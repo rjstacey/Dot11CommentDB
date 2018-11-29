@@ -1,0 +1,134 @@
+html, body, #root {
+  font-family: 'Roboto', 'Helvetica', sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+div#App {
+  display: table;
+  height: 100%;
+  width: 100%;
+}
+header {
+  display: table-row;
+  width: 100%;
+  background-color: rgb(63,81,181);
+}
+main {
+  display: table-row;
+  height: 100%
+}
+
+.AppTitle {
+  display: inline-block;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+  font-weight: 400;
+  font-size: 34px;
+  line-height: 40px;
+  margin: 24px 0;
+  padding: 0;
+  color: white;
+}
+.LoginForm {
+  display: inline-block;
+}
+
+.ModalOverlay {
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+.ModalContent {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 500px; /* Could be more or less, depending on screen size */
+}
+
+.Tabs {
+  position: relative;
+  height: 100%;
+}
+.Tabs_TabList {
+  border-bottom: 1px solid #aaa;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.Tabs_Tab {
+  display: inline-block;
+  border: 1px solid transparent;
+  border-bottom: none;
+  bottom: -1px;
+  position: relative;
+  list-style: none;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.Tabs_Tab--selected {
+  background: #fff;
+  border-color: #aaa;
+  color: black;
+  border-radius: 5px 5px 0 0;
+}
+
+.Tabs_Tab--disabled {
+  color: GrayText;
+  cursor: default;
+}
+
+.Tabs_Tab:focus {
+  box-shadow: 0 0 5px hsl(208, 99%, 50%);
+  border-color: hsl(208, 99%, 50%);
+  outline: none;
+}
+
+.Tabs_Tab:focus:after {
+  content: "";
+  position: absolute;
+  height: 5px;
+  left: -4px;
+  right: -4px;
+  bottom: -5px;
+  background: #fff;
+}
+
+.Tabs_TabPanel {
+  display: none;
+  position: absolute;
+  top: 33px;
+  bottom: 0;
+  left: 0;
+  right: 0
+}
+
+.Tabs_TabPanel--selected {
+  display: block;
+}
+
+div#Users div#Ballots {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.headerFilt {
+  background: #ffffff;
+  border: 1px solid #ddd;
+  padding: 5px;
+  font-weight: 100;
+  font-size: -1;
+}
+
+.headerFilt[placeholder]:empty:before {
+  content: attr(placeholder);
+  color: #555;
+}

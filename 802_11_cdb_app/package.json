@@ -1,0 +1,23 @@
+{
+  "name": "802_11_cdb_app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "axios": "^0.18.0",
+    "immutability-helper": "^2.7.1",
+    "react": "^16.4.2",
+    "react-dom": "^16.4.2",
+    "react-modal": "^3.5.1",
+    "react-scripts": "1.1.5",
+    "react-tabs": "^2.2.2",
+    "react-truncate": "^2.4.0",
+    "react-virtualized": "^9.20.1"
+  },
+  "proxy": "http://localhost:8080",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  }
+}

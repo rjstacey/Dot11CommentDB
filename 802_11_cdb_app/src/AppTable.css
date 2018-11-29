@@ -1,0 +1,68 @@
+:local(.Table) {
+  width: 100%;
+  height: 100%;
+  /*margin-top: 15px;*/
+}
+:local(.headerRow),
+:local(.evenRow),
+:local(.oddRow) {
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: row;
+  align-items: top;
+}
+:local(.headerRow) {
+  font-weight: 700;
+}
+:local(.oddRow) {
+  background-color: #f6f6f6;
+}
+:local(.headerColumn) {
+  text-transform: none;
+}
+:local(.rowColumn) {
+  padding: 2px;
+}
+:local(.headerSortAsc) {
+  border-right: 2px solid;
+}
+:local(.headerSortDesc) {
+  border-left: 2px solid;
+}
+:local(.noRows) {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1em;
+  color: #bdbdbd;
+}
+/* mixin for multiline */
+.block-with-text {
+  overflow: hidden;
+  position: relative;
+  line-height: 1.2em;
+  max-height: 2.4em;
+  text-align: justify;
+  /*margin-right: -1em;*/
+  padding-right: 1em;
+}
+.block-with-text:before {
+  content: '...';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+.block-with-text:after {
+  content: '';
+  position: absolute;
+  right: 0;
+  width: 1em;
+  height: 1em;
+  margin-top: 0.2em;
+  background: white;
+}
