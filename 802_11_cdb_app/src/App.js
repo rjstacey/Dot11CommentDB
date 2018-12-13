@@ -1,9 +1,12 @@
 import React from 'react';
-import { Tab, Tabs, TabList, TabPanel } from 'react-tabs'; 
+import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import Modal from 'react-modal';
 import LoginForm from './Login.js';
 import Users from './Users.js';
 import Ballots from './Ballots.js';
 import Comments from './Comments.js';
+
+Modal.setAppElement('#root');
 
 class App extends React.Component {
 

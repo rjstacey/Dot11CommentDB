@@ -140,3 +140,38 @@ export function filterData(data, filters) {
 	}
 	return filtDataMap;
 }
+
+export function sortData(dataMap, data, sortBy, sortDirection) {
+  var sortDataMap = dataMap.slice();
+
+  sortBy.forEach(key => {
+    sortDataMap.sort((a, b) => {
+      if (sortDirection[key] === 'NONE') {
+          return a - b; // Index order (= original order)
+      }
+      else {
+        const aa = data[a];
+        const bb = data[b];
+        if (typeof aa[key] === 'number' && typeof bb[key] === 'number') {
+          return aa[key] - bb[key];
+        }
+        else if (typeof aa[key] === 'string' && typeof bb[key] === 'string') {
+          const A = aa[key].toUpperCase();
+          const B = bb[key].toUpperCase();
+          if (A < B) {
+            return -1;
+          }
+          if (A > B) {
+            return 1;
+          }
+          return 0;
+        }
+      }
+      return 0;
+    })
+    if (sortDirection[key] === 'DESC') {
+      sortDataMap.reverse()
+    }
+  })
+  return sortDataMap;
+}

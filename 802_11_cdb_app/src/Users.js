@@ -1,8 +1,8 @@
 import React from 'react';
 import Modal from 'react-modal';
 import update from 'immutability-helper';
-import {sortData, AppTable} from './AppTable'
-import {filterData} from './filter'
+import {AppTable} from './AppTable'
+import {filterData, sortData} from './filter'
 
 
 var axios = require('axios');

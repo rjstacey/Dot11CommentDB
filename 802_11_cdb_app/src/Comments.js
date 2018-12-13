@@ -1,9 +1,11 @@
 import React from 'react';
 import Modal from 'react-modal';
 import update from 'immutability-helper';
-import {sortData, AppTable} from './AppTable'
-import {filterData} from './filter'
+import {AppTable} from './AppTable'
+import {CommentDetail} from './CommentDetail.js'
+import {filterData, sortData} from './filter'
 import Truncate from 'react-truncate'
+
 
 var axios = require('axios');
 
@@ -39,9 +41,27 @@ export default class Comments extends React.Component {
     this.state = {
       showOkModal: false,
       modalMessage: '',
+
       commentData: [],
       commentDataMap: [],
       expandAll: false,
+
+      edit: {
+        CIDs: [],
+        Commenter: '',
+        MustSatisfy: false,
+        Category: '',
+        Clasue: '',
+        Page: '',
+        Comment: '',
+        ProposedChange: '',
+        Assignee: '',
+        ResolutionStatus: '',
+        Resolution: '',
+        EditStatus: '',
+        EditNotes: '',
+      },
+
       ballots: [],
       ballotId: ''
     }
@@ -315,7 +335,7 @@ export default class Comments extends React.Component {
           })}
         </select>
         <button onClick={this.assignComments}>Assign</button>
-        <button onClick={this.showEditModal}>Edit</button>
+        <button onClick={e => {this.setState({showEditModal: true})}}>Edit</button>
         
         <AppTable
           style={{position: 'absolute', top: '32px', bottom: '18px', left: 0, right: 0}}
@@ -327,12 +347,18 @@ export default class Comments extends React.Component {
           ref={(ref) => {this.appTableRef = ref}}
         />
 
+        <Modal className='ModalContent' overlayClassName='ModalOverlay' isOpen={this.state.showEditModal} appElement={document.querySelector('#Comments')}>
+          <CommentDetail />
+        </Modal>
+
         <Modal className='ModalContent' overlayClassName='ModalOverlay' isOpen={this.state.showOkModal} appElement={document.querySelector('#Comments')}>
           <p>{this.state.modalMessage}</p>
           <button onClick={this.hideOkModal}>OK</button>
         </Modal>
 
+
       </div>
       )
   }
+
 }
