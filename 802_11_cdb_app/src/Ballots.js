@@ -318,7 +318,7 @@ export default class Ballots extends React.Component {
             <button>Add</button>
             <button onClick={this.handleRemoveSelected}>Remove Selected</button>
             <AppTable 
-              style={{position: 'absolute', top: '32px', bottom: '18px', left: 0, right: 0}}
+              //style={{position: 'relative', top: '32px', bottom: '18px', left: 0, right: 0}}
               rowCount={this.state.ballotDataMap.length}
               rowGetter={({index}) => {return this.state.ballotData[this.state.ballotDataMap[index]]}}
               columns={ballotColumns}
@@ -329,7 +329,7 @@ export default class Ballots extends React.Component {
             <button onClick={this.getEpolls}>Short List</button>
             <button>Long List</button>
             <AppTable
-              style={{position: 'absolute', top: '32px', bottom: '18px', left: 0, right: 0}}
+              //style={{position: 'relative', top: '32px', bottom: '18px', left: 0, right: 0}}
               rowCount={this.state.epollDataMap.length}
               rowGetter={({index}) => {return this.state.epollData[this.state.epollDataMap[index]]}}
               columns={epollColumns}

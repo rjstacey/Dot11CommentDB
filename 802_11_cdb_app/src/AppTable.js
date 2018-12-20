@@ -98,7 +98,7 @@ export class AppTable extends React.Component {
   componentDidMount() {
     var wrapper = document.getElementById('AppTableWrapper');
     this.setState({height: wrapper.offsetHeight, width: wrapper.offsetWidth})
-    console.log('height=', wrapper.offsetHeight, ' width=', wrapper.offsetWidth);
+    //console.log('height=', wrapper.offsetHeight, ' width=', wrapper.offsetWidth);
   }
 
   clearCachedRowHeight(rowIndex) {
@@ -113,9 +113,6 @@ export class AppTable extends React.Component {
   }
 
   render() {
-    const {
-      headerHeight
-    } = this.state;
 
     const renderHeaderCell = ({columnData, dataKey, label}) => {
 
@@ -124,7 +121,7 @@ export class AppTable extends React.Component {
       const showFilter = this.state.filters.hasOwnProperty(dataKey);
 
       return (
-        <div style={{height: '100%', backgroundColor: '#fafafa', padding: '5px'}}>
+        <div>
           <span
             title={label}
             onClick={e => this.sortChange(e, dataKey)}
@@ -154,25 +151,24 @@ export class AppTable extends React.Component {
         return index % 2 === 0 ? styles.evenRow : styles.oddRow;
       }
     }
-    const setRef = (ref) => {
-      this.tableRef = ref
-    }
+
+    console.log(this.cache)
 
     return (
-      <div id='AppTableWrapper' style={this.props.style}>
+      <div id='AppTableWrapper' style={{height: 'calc(100% - 21px)'}}>
         <Table
             className={styles.Table}
             height={this.state.height}
             width={this.state.width}
             headerClassName={styles.headerColumn}
-            headerHeight={headerHeight}
+            headerHeight={this.state.headerHeight}
             noRowsRenderer={noRowsRenderer}
             rowClassName={rowClassName}
             rowHeight={this.cache.rowHeight}
             deferredMeasurementCache={this.cache}
             rowGetter={this.props.rowGetter}
             rowCount={this.props.rowCount}
-            ref={setRef}
+
             {...this.props}
             >
 
@@ -187,7 +183,7 @@ export class AppTable extends React.Component {
                     dataKey={col.dataKey}
                     headerRenderer={col.HeaderCell? col.HeaderCell: renderHeaderCell}
                     cellRenderer={col.Cell? ({rowIndex, dataKey, parent, columnIndex}) => {
-                      var cellInfo = {index: rowIndex, column: {id: dataKey}};
+                      var cellInfo = {index: rowIndex, column: {id: dataKey, width: col.width}};
                       return (
                         <CellMeasurer
                           cache={this.cache}

@@ -19,6 +19,8 @@
 }
 :local(.headerColumn) {
   text-transform: none;
+  background-color: #fafafa;
+  padding: '5px'
 }
 :local(.rowColumn) {
   padding: 2px;

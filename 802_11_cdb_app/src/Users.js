@@ -215,7 +215,7 @@ export default class Users extends React.Component {
         <button onClick={this.handleRemoveSelected}>Remove Selected</button>
         
         <AppTable
-          style={{position: 'absolute', top: '32px', bottom: '18px', left: 0, right: 0}}
+          style={{position: 'relative', top: '32px', bottom: '18px', left: 0, right: 0}}
           rowCount={this.state.userDataMap.length}
           columns={columns}
           sortFunc={this.sortFunc}

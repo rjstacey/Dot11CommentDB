@@ -6,6 +6,7 @@ import {CommentDetail} from './CommentDetail.js'
 import {filterData, sortData} from './filter'
 import Truncate from 'react-truncate'
 
+import './Comments.css'
 
 var axios = require('axios');
 
@@ -46,25 +47,10 @@ export default class Comments extends React.Component {
       commentDataMap: [],
       expandAll: false,
 
-      edit: {
-        CIDs: [],
-        Commenter: '',
-        MustSatisfy: false,
-        Category: '',
-        Clasue: '',
-        Page: '',
-        Comment: '',
-        ProposedChange: '',
-        Assignee: '',
-        ResolutionStatus: '',
-        Resolution: '',
-        EditStatus: '',
-        EditNotes: '',
-      },
-
       ballots: [],
       ballotId: ''
     }
+    this.users = [];
     this.sortBy = [];
     this.sortDirection = [];
     this.filters = {};
@@ -130,6 +116,26 @@ export default class Comments extends React.Component {
     var ballotId = e.target.value;
     this.setState({ballotId: ballotId});
     this.getComments(ballotId);
+  }
+  getUsers = () => {
+    axios.get('/users')
+      .then((response) => {
+          if (response.data.status !== 'OK') {
+            this.showModal(response.data.message);
+          }
+          else {
+            const userData = response.data.data;
+            console.log(userData);
+            this.users = [];
+            userData.forEach(i => {
+              this.users.push({UserID: i.UserID, Name: i.Name, Email: i.Email})
+            })
+            console.log('users=', this.users)
+          }
+        })
+      .catch((error) => {
+          this.showOkModal(`Unable to get ballots list: ${error}`);
+        });
   }
   getComments = (ballotId) => {
     axios.get('/comments', {params: {BallotID: ballotId}})
@@ -201,22 +207,6 @@ export default class Comments extends React.Component {
             this.showOkModal('Unable to delete users');
           });
       }
-  }
-
-  rowSelect = ({event, index, rowData}) => {
-    this.appTableRef.clearCachedRowHeight(index)
-    if (this.state.selectedRow === index) {
-      // deselect row
-      this.setState({selectedRow: -1})
-    }
-    else {
-      if (this.state.selectedRow >= 0) {
-        // deselect previous selection
-        this.appTableRef.clearCachedRowHeight(this.state.selectedRow)
-      }
-      // select row
-      this.setState({selectedRow: index})
-    }
   }
 
   renderHeaderCheckbox = ({dataKey}) => {
@@ -305,7 +295,7 @@ export default class Comments extends React.Component {
     const expanded = this.state.commentData[commentDataIndex].isExpanded;
 
     return(
-      <Truncate lines={expanded? false: 2}>
+      <Truncate lines={expanded? false: 2} width={cellInfo.column.width}>
         {html_preserve_newline(this.state.commentData[commentDataIndex][cellInfo.column.id])}
       </Truncate>
     )
@@ -313,6 +303,7 @@ export default class Comments extends React.Component {
 
   componentDidMount() {
     this.getBallots();
+    this.getUsers();
   }
 
   render() {
@@ -334,28 +325,32 @@ export default class Comments extends React.Component {
             return (<option key={i.BallotID} value={i.BallotID}>{i.Description}</option>)
           })}
         </select>
-        <button onClick={this.assignComments}>Assign</button>
-        <button onClick={e => {this.setState({showEditModal: true})}}>Edit</button>
         
-        <AppTable
-          style={{position: 'absolute', top: '32px', bottom: '18px', left: 0, right: 0}}
-          rowCount={this.state.commentDataMap.length}
-          columns={columns}
-          sortFunc={this.sortFunc}
-          filtFunc={this.filtFunc}
-          rowGetter={({index}) => {return this.state.commentData[this.state.commentDataMap[index]]}}
-          ref={(ref) => {this.appTableRef = ref}}
-        />
-
-        <Modal className='ModalContent' overlayClassName='ModalOverlay' isOpen={this.state.showEditModal} appElement={document.querySelector('#Comments')}>
-          <CommentDetail />
-        </Modal>
+        {!this.state.showEditModal?
+          <AppTable
+            rowCount={this.state.commentDataMap.length}
+            columns={columns}
+            sortFunc={this.sortFunc}
+            filtFunc={this.filtFunc}
+            rowGetter={({index}) => {return this.state.commentData[this.state.commentDataMap[index]]}}
+            onRowDoubleClick={({event, index, rowData}) => {this.setState({editIndex: index, showEditModal: true})}}
+            ref={(ref) => {this.appTableRef = ref}}
+          />
+          :
+          <CommentDetail
+            commentData={this.state.commentData}
+            commentDataMap={this.state.commentDataMap}
+            commentIndex={this.state.editIndex}
+            users={this.users}
+            save={this.saveChanges}
+            close={() => {this.setState({showEditModal: false})}}
+          />
+        }
 
         <Modal className='ModalContent' overlayClassName='ModalOverlay' isOpen={this.state.showOkModal} appElement={document.querySelector('#Comments')}>
           <p>{this.state.modalMessage}</p>
           <button onClick={this.hideOkModal}>OK</button>
         </Modal>
-
 
       </div>
       )

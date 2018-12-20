@@ -1,46 +1,44 @@
 import React from 'react';
-import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
-import Modal from 'react-modal';
+import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import LoginForm from './Login.js';
 import Users from './Users.js';
 import Ballots from './Ballots.js';
 import Comments from './Comments.js';
-
-Modal.setAppElement('#root');
+import './App.css'
 
 class App extends React.Component {
 
   render() {
     return (
-      <div id="App">
-        <header>
-          <h3 className="AppTitle">802.11 Comment Database</h3>
-          <LoginForm className="LoginForm" />
-        </header>
-        <main>
-          <Tabs
-            className="Tabs"
-            selectedTabClassName="Tabs_Tab--selected"
-            disabledTabClassName="Tabs_Tab--disabled"
-            selectedTabPanelClassName="Tabs_TabPanel--selected"
-            forceRenderTabPanel={true}>
-            <TabList className="Tabs_TabList">
-              <Tab className="Tabs_Tab">Users</Tab>
-              <Tab className="Tabs_Tab">Ballots</Tab>
-              <Tab className="Tabs_Tab">Comments</Tab>
-            </TabList>
-            <TabPanel className="Tabs_TabPanel">
-              <Users />
-            </TabPanel>
-            <TabPanel className="Tabs_TabPanel">
-              <Ballots />
-            </TabPanel>
-            <TabPanel className="Tabs_TabPanel">
-              <Comments />
-            </TabPanel>
-          </Tabs>
-        </main>
-      </div>
+      <Router>
+        <div id='App'>
+          <header>
+            <h3 className="AppTitle">802.11 Comment Database</h3>
+            <nav>
+              <ul>
+                <li>
+                  <Link to="/">Home</Link>
+                </li>
+                <li>
+                  <Link to="/Users/">Users</Link>
+                </li>
+                <li>
+                  <Link to="/Ballots/">Ballots</Link>
+                </li>
+                <li>
+                  <Link to="/Comments/">Comments</Link>
+                </li>
+              </ul>
+            </nav>
+          </header>
+          <main>
+            <Route path="/" exact component={LoginForm} />
+            <Route path="/Users/" component={Users} />
+            <Route path="/Ballots/" component={Ballots} />
+            <Route path="/Comments/" component={Comments} />
+          </main>
+        </div>
+      </Router>
     )
   }
 }
