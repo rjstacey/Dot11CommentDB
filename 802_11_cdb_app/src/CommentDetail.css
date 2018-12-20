@@ -1,0 +1,139 @@
+#CommentDetail {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	width: 100%;
+}
+
+#CommentDetail .row {
+	display: flex;
+	flex-direction: row;
+	width: 100%;
+	margin: 10px 0;
+}
+
+#CommentDetail .column {
+	flex: 1;
+}
+
+
+#CommentDetail .CID,
+#CommentDetail .Page {
+	display: inline-block;
+	width: 200px;
+}
+
+#CommentDetail .Commenter,
+#CommentDetail .Clause {
+	display: inline-block;
+	width: 300px;
+}
+
+#CommentDetail .MustSatisfy,
+#CommentDetail .Category {
+	display: inline-block;
+}
+
+
+#CommentDetail label {
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+#CommentDetail .Comment,
+#CommentDetail .ProposedChange {
+	width: 100%;
+}
+
+#CommentDetail .TopRow {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+}
+#CommentDetail .ResolutionStatus {
+	flex: 0;
+}
+
+#CommentDetail .SubmissionInput {
+	width: 100px;
+}
+#CommentDetail .MotionNumber {
+	width: 40px;
+}
+#CommentDetail .EditedInDraft {
+	width: 40px;
+}
+
+#CommentDetail .Resolution,
+#CommentDetail .EditingNotes,
+#CommentDetail .History,
+#CommentDetail .Notes {
+	width: 100%;
+	height: 200px;
+}
+#CommentDetail .cTabs {
+  position: relative;
+  height: 100%;
+}
+#CommentDetail .cTabs_TabList {
+  border-bottom: 1px solid #aaa;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+#CommentDetail .cTabs_Tab {
+	display: inline-block;
+	border: 1px solid transparent;
+	border-bottom: none;
+	bottom: -1px;
+	position: relative;
+	list-style: none;
+	padding: 6px 12px;
+	cursor: pointer;
+}
+
+#CommentDetail .cTabs_Tab--selected {
+	background: #fff;
+	border-color: #aaa;
+	color: black;
+	border-radius: 5px 5px 0 0;
+	font-weight: bold;
+}
+
+#CommentDetail .cTabs_Tab--disabled {
+	color: GrayText;
+	cursor: default;
+	font-weight: normal;
+}
+
+/*
+#CommentDetail .cTabs_Tab:focus {
+	box-shadow: 0 0 5px hsl(208, 99%, 50%);
+	border-color: hsl(208, 99%, 50%);
+	outline: none;
+}
+
+#CommentDetail .cTabs_Tab:focus:after {
+	content: "";
+	position: absolute;
+	height: 5px;
+	left: -4px;
+	right: -4px;
+	bottom: -5px;
+	background: #fff;
+}
+*/
+
+#CommentDetail .cTabs_TabPanel {
+	display: none;
+	position: absolute;
+	top: 33px;
+	left: 0;
+	right: 0;
+	border: 1px solid #aaa;
+	border-top: none;
+}
+
+#CommentDetail .cTabs_TabPanel--selected {
+	display: block;
+}
