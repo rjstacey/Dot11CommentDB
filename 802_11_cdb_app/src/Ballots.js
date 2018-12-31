@@ -1,29 +1,83 @@
 import React from 'react';
 import Modal from 'react-modal';
-import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'; 
 import update from 'immutability-helper';
-import {AppTable} from './AppTable'
-import {filterData, sortData} from './filter'
+import {connect} from 'react-redux';
+import {Column, Table} from 'react-virtualized';
+import {getBallots, clearGetBallotsError, deleteBallots, clearDeleteBallotsError, updateBallot, clearUpdateBallotError, addBallot, clearAddBallotError} from './actions/ballots';
+import {deleteCommentsWithBallotId, importComments, clearImportError} from './actions/comments'
+import {filterData, sortData, sortClick, allSelected, toggleVisible} from './filter'
+import Epolls from './Epolls'
+import styles from './AppTable.css'
 
-var axios = require('axios');
+function SortIndicator(props) {
+  const {sortDirection, onClick, ...otherProps} = props;
 
-export default class Ballots extends React.Component {
-  state = {
-    showOkModal: false,
-    modalMessage: '',
-    showImportModal: false,
-  	ballotData: [],
-    ballotDataMap: [],
-    ballotImport: {},
-    epollData: [],
-    epollDataMap: []
-  };
-  ballotSortBy = [];
-  ballotSortDirection = [];
-  ballotFilters = {};
-  epollSortBy = [];
-  epollSortDirection = [];
-  epollFilters = {};
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" onClick={onClick} {...otherProps}>
+      {sortDirection === 'ASC'?
+        (<path d="M5 8 l5-5 5 5z" />):
+         (sortDirection === 'DESC'?
+          (<path d="M5 11 l5 5 5-5 z" />):
+            (<path d="M5 8 l5-5 5 5z M5 11 l5 5 5-5 z" />))}
+      <path d="M0 0h24v24H0z" fill="none" />
+    </svg>
+    );
+}
+class Ballots extends React.Component {
+  constructor(props) {
+
+    super(props);
+  
+    this.columns = [
+      {Header: '', dataKey: 'isChecked', width: 40, sortable: false, HeaderCell: this.renderHeaderCheckbox, Cell: this.renderCheckbox},
+      {Header: 'Ballot Series', dataKey: 'BallotSeries', width: 150, Cell: this.renderEditable},
+      {Header: 'Ballot ID', dataKey: 'BallotID', width: 100, Cell: this.renderEditable},
+      {Header: 'Topic', dataKey: 'Topic', width: 300, Cell: this.renderEditable},
+      {Header: 'ePoll', dataKey: 'EpollNum', width: 80},
+      {Header: 'Start', dataKey: 'Start', width: 100},
+      {Header: 'End', dataKey: 'End', width: 100},
+      {Header: 'Comment Count', dataKey: 'count', width: 80, Cell: this.renderCommentCount}
+    ];
+
+    const filters = {
+      BallotSeries: '',
+      BallotID: '',
+      Topic: '',
+      EpollNum: ''
+    }
+
+    this.state = {
+      showOkModal: false,
+      modalMessage: '',
+      showEpolls: false,
+      height: 100,
+      width: 100,
+      ballotDataMap: [],
+      ballotImport: {},
+      selectedBallots: [],
+      sortBy: [],
+      sortDirection: [],
+      filters,
+    }
+  }
+  
+  static getDerivedStateFromProps(props, state) {
+    if (props.ballotData.length !== state.ballotDataMap.length) {
+      // rebuild selectedBallots since entries may have been removed
+      let selectedBallots = []
+      props.ballotData.forEach(b => {
+        if (state.selectedBallots.includes(b.BallotID)) {
+          selectedBallots.push(b.BallotID)
+        }
+      })
+      const newState = {
+        ballotDataMap: sortData(filterData(props.ballotData, state.filters), props.ballotData, state.sortBy, state.sortDirection),
+        selectedBallots
+      }
+      return newState;
+    }
+    return null;
+  }
 
   showOkModal = (msg) => {
     this.setState({showOkModal: true, modalMessage: msg});
@@ -31,17 +85,12 @@ export default class Ballots extends React.Component {
   hideOkModal = () => {
     this.setState({showOkModal: false});
   }
-  showImportModal = (e, cellInfo) => {
-    console.log(cellInfo);
-    console.log(this.state.epollData[cellInfo.index]);
-
-    var ballotImport = Object.assign({}, this.state.epollData[cellInfo.index]); // clone
-    ballotImport.BallotSeries = '';
-
-    this.setState({showImportModal: true, ballotImport: ballotImport});
+  showEpolls = (e) => {
+    this.setState({showEpolls: true});
+    e.preventDefault()
   }
-  hideImportModal = () => {
-    this.setState({showImportModal: false});
+  hideEpolls = () => {
+    this.setState({showEpolls: false});
   }
   ballotSortFunc = ({sortBy, sortDirection}) => {
     this.ballotSortBy = sortBy;
@@ -79,285 +128,282 @@ export default class Ballots extends React.Component {
       epollDataMap: sortData(filterData(epollData, this.epollFilters), epollData, this.epollSortBy, this.epollSortDirection)
     });
   }
-  getEpolls = () => {
-    axios.get('/epolls')
-      .then((response) => {
-          if (response.data.status !== 'OK') {
-            this.showOkModal(response.data.message);
-          }
-          else {
-            console.log(response.data.data);
-            this.updateEpollData(response.data.data);
-          }
-        })
-      .catch((error) => {
-          this.showOkModal('Unable to get epoll list');
-        });
-  }
   updateBallotData = (ballotData) => {
     this.setState({
       ballotData: ballotData,
       ballotDataMap: sortData(filterData(ballotData, this.ballotFilters), ballotData, this.ballotSortBy, this.ballotSortDirection)
     });
   }
-  getBallots = () => {
-    axios.get('/ballots')
-      .then((response) => {
-          if (response.data.status !== 'OK') {
-            this.showModal(response.data.message);
-          }
-          else {
-            const newBallotData = response.data.data;
-            console.log(newBallotData);
-            var ballotData = [];
-            newBallotData.forEach(i => {
-              ballotData.push({isChecked: false, ...i})
-            })
-            this.updateBallotData(ballotData);
-          }
-        })
-      .catch((error) => {
-          this.showOkModal('Unable to get ballots list');
-        });
-  }
+
   handleImportChange = (e) => {
     const ballotImport = update(this.state.ballotImport, {[e.target.name]: {$set: e.target.value}});
     this.setState({ballotImport});
   }
-  importBallot = (e) => {
-    this.setState({showImportModal: false})
-    console.log(this.state.ballotImport)
-    axios.put('/ballots', this.state.ballotImport)
-      .then((response) => {
-        if (response.data.status !== 'OK') {
-          console.log(response.data.message);
-          this.showOkModal(response.data.message);
-        }
-        else {
-          const i = response.data.data;
-          console.log(i);
-          var ballotData = this.state.ballotData.slice();
-          ballotData.push({isChecked: false, ...i});
-          this.updateBallotData(ballotData);
-        }
-      })
-      .catch((error) => {
-          this.showOkModal(`Unable to import epoll: ${error}`);
-      });
-    e.preventDefault();
+  deleteCommentsClick = (e, rowData) => {
+    console.log('ballotId=', rowData.BallotID)
+    this.props.dispatch(deleteCommentsWithBallotId(rowData.BallotID));
   }
-  deleteComments = (e, cellInfo) => {
-    var ballotId = this.state.ballotData[this.state.ballotDataMap[cellInfo.index]].BallotID;
-    axios.delete('/comments/BallotID', {data: {BallotID: ballotId}})
-      .then((response) => {
-        if (response.data.status !== 'OK') {
-          console.log(response.data.message);
-          this.showOkModal(response.data.message);
-        }
-        else {
-          const mIndex = this.state.ballotDataMap[cellInfo.index];
-          this.setState({
-            ballotData: update(this.state.ballotData, {[mIndex]: {count: {$set: 0}}})
-          });
-        }
-      })
-      .catch((error) => {
-          this.showOkModal(`Unable to delete comments for BallotID=${ballotId}: ${error}`);
-      });
-  }
-  importComments = (e, cellInfo) => {
-    const ballot = this.state.ballotData[this.state.ballotDataMap[cellInfo.index]];
-    axios.put('/comments/import', {EpollNum: ballot.epollNum, BallotID: ballot.BallotID, StartCID: 100})
-      .then((response) => {
-        if (response.data.status !== 'OK') {
-          console.log(response.data.message);
-          this.showOkModal(response.data.message);
-        }
-        else {
-          const count = response.data.data.count;
-          const mIndex = this.state.ballotDataMap[cellInfo.index];
-          console.log('New count=', count);
-          this.setState({
-            ballotData: update(this.state.ballotData, {[mIndex]: {count: {$set: count}}})
-          });
-        }
-      })
-      .catch((error) => {
-          this.showOkModal(`Unable to import comments for epoll=${ballot.epollNum}: ${error}`);
-      });
-  }
-  handleRowCheckbox = (row, event) => {
-    const ballotData = this.state.ballotData;
-    ballotData[row.index].isChecked = event.target.checked;
-    this.setState({ballotData: ballotData});
-  }
-  getBallotRow = ({index}) => {
-    return this.state.ballotData[index];
-  }
-  getEpollRow = ({index}) => {
-    return this.state.epollData[index];
+  importCommentsClick = (e, rowData) => {
+    this.props.dispatch(importComments(rowData.BallotID, rowData.EpollNum, 1));
   }
   handleRemoveSelected = () => {
-    const {ballotDataMap, ballotData} = this.state;
+    const {ballotData} = this.props;
+    const {ballotDataMap} = this.state;
     var delBallotIds = [];
     for (var i = 0; i < ballotDataMap.length; i++) { // only select checked items that are visible
-      if (ballotData[ballotDataMap[i]].isChecked) {
-        delBallotIds.push(ballotData[ballotDataMap[i]].BallotID)
+      let ballotId = ballotData[ballotDataMap[i]].BallotID
+      if (this.state.selectedBallots.includes(ballotId)) {
+        delBallotIds.push(ballotId)
       }
     }
     if (delBallotIds.length) {
-      axios.delete('/ballots', {data: delBallotIds})
-        .then((response) => {
-          if (response.data.status !== 'OK') {
-            this.showOkModal(response.data.message);
-          }
-          else {
-            this.getBallots();
-          }
-        })
-        .catch((error) => {
-          this.showOkModal('Unable to delete ballots');
-        });
-      }
+      this.props.dispatch(deleteBallots(delBallotIds))
+    }
   }
-  renderCheckbox = (cellInfo) => {
-    const mIndex = this.state.ballotDataMap[cellInfo.index];
+  sortChange = (event, dataKey) => {
+
+    const {sortBy, sortDirection} = sortClick(event, dataKey, this.state.sortBy, this.state.sortDirection);
+
+    this.setState({
+      sortBy: sortBy,
+      sortDirection: sortDirection,
+      ballotDataMap: sortData(this.state.ballotDataMap, this.props.ballotData, sortBy, sortDirection)
+    });
+  }
+
+  filterChange = (event, dataKey) => {
+    const {ballotData} = this.props;
+    const {sortBy, sortDirection} = this.state;
+
+    const filters = update(this.state.filters, {[dataKey]: {$set: event.target.textContent}});
+
+    this.setState({
+      filters: filters,
+      ballotDataMap: sortData(filterData(ballotData, filters), ballotData, sortBy, sortDirection)
+    });
+  }
+  updateBallotField = (rowIndex, dataKey, fieldData) => {
+    const b = this.props.ballotData[this.state.ballotDataMap[rowIndex]];
+    this.props.dispatch(updateBallot({
+        BallotID: b.BallotID,
+        [dataKey]: fieldData
+      }));
+  }
+
+  updateBallotFieldIfChanged = (rowIndex, dataKey, fieldData) => {
+    const b = this.props.ballotData[this.state.ballotDataMap[rowIndex]];
+    if (b[dataKey] !== fieldData) {
+      this.props.dispatch(updateBallot({
+        BallotID: b.BallotID,
+        [dataKey]: fieldData
+      }));
+    }
+  }
+
+  renderHeaderCheckbox = ({dataKey}) => {
+    const {ballotDataMap, selectedBallots} = this.state;
+    const {ballotData} = this.props;
+    const checked = allSelected(selectedBallots, ballotDataMap, ballotData, 'BallotID');
     return (
       <input type="checkbox"
-        checked={this.state.ballotData[mIndex][cellInfo.column.id]}
+        checked={checked}
         onChange={e => {
+          this.setState({selectedBallots: toggleVisible(selectedBallots, ballotDataMap, ballotData, 'BallotID')})
+        }}
+      />
+    );
+  }
+  renderCheckbox = ({rowIndex, rowData, dataKey}) => {
+    const ballotId = rowData.BallotID;
+    return (
+      <input type="checkbox"
+        checked={this.state.selectedBallots.indexOf(ballotId) >= 0}
+        onClick={e => {
+          // if commentId is present in selectedComments (i > 0) then remove it; otherwise add it
+          let i = this.state.selectedBallots.indexOf(ballotId);
           this.setState({
-            ballotData: update(this.state.ballotData, {[mIndex]: {[cellInfo.column.id]: {$set: e.target.checked}}})
+            selectedBallots: update(this.state.selectedBallots, (i > -1)? {$splice: [[i, 1]]}: {$push: [ballotId]})
           })
         }}
       />
     );
   }
-  renderEditable = (cellInfo) => {
-    const mIndex = this.state.ballotDataMap[cellInfo.index];
+  renderEditable = ({rowIndex, rowData, dataKey}) => {
     return (
       <div
         contentEditable
-        suppressContentEditableWarning
         onBlur={e => {
-          this.setState({
-            ballotData: update(this.state.ballotData, {[mIndex]: {[cellInfo.column.id]: {$set: e.target.innerHTML}}})
-          });
+          this.updateBallotFieldIfChanged(rowIndex, dataKey, e.target.innerHTML)
         }}
-        dangerouslySetInnerHTML={{__html: this.state.ballotData[mIndex][cellInfo.column.id]}}
+        dangerouslySetInnerHTML={{__html: rowData[dataKey]}}
       />
     );
   }
-  renderImport = (cellInfo) => {
-    var imported = this.state.epollData[this.state.epollDataMap[cellInfo.index]].InDatabase;
-
-    if (imported) {
-      return null;
-    }
-    else {
-      return (
-        <button onClick={(e) => {return this.showImportModal(e, cellInfo)}}>Import</button>
-      );
-    }
-  }
-  renderCommentCount = (cellInfo) => {
-    var count = this.state.ballotData[this.state.ballotDataMap[cellInfo.index]].count;
+  renderCommentCount = ({rowIndex, rowData, dataKey}) => {
+    var count = rowData.count;
     if (count > 0) {
       return (
         <div>
           <span>{count}</span>
-          <button onClick={(e) => {return this.deleteComments(e, cellInfo)}}>Delete</button>
+          <button onClick={(e) => {return this.deleteCommentsClick(e, rowData)}}>Delete</button>
         </div>
         )
     }
     else {
       return (
-        <button onClick={(e) => {return this.importComments(e, cellInfo)}}>Import</button>
+        <button onClick={(e) => {return this.importCommentsClick(e, rowData)}}>Import</button>
         )
     }
   }
 
+  refresh = () => {
+    this.props.dispatch(getBallots());
+  }
+
   componentDidMount() {
-    this.getBallots();
+    var wrapper = document.getElementById('Ballots');
+    this.setState({height: wrapper.offsetHeight - 19, width: wrapper.offsetWidth})
+  }
+
+  renderOkModal = () => {
+    const open = this.props.getBallotsError
+      || this.props.updateBallotError
+      || this.props.deleteBallotsError
+      || this.props.importState.error
+
+    var msg = this.props.errMsg;
+    var dispatchObj = null
+    if (this.props.getBallotsError) {
+      msg = this.props.getBallotsMsg
+      dispatchObj = clearGetBallotsError()
+    }
+    else if (this.props.updateBallotError) {
+      msg = this.props.updateBallotMsg
+      dispatchObj = clearUpdateBallotError()
+    }
+    else if (this.props.deleteBallotsError) {
+      msg = this.props.deleteBallotsMsg
+      dispatchObj = clearDeleteBallotsError()
+    }
+    else if (this.props.importState.error) {
+      msg = this.props.importState.errorMsg
+      dispatchObj = clearImportError()
+    }
+
+    return (
+      <Modal
+        className='ModalContent'
+        overlayClassName='ModalOverlay'
+        isOpen={open}
+        appElement={document.querySelector('#Ballots')}
+      >
+        <p>{msg}</p>
+        <button onClick={() => this.props.dispatch(dispatchObj)}>OK</button>
+      </Modal>
+    )
   }
 
   render() {
-  	const ballotColumns = [
-      {Header: '', dataKey: 'isChecked', width: 40, sortable: false, filterable: false, Cell: this.renderCheckbox},
-      {Header: 'Ballot Series', dataKey: 'BallotSeries', width: 150, filterable: true, Cell: this.renderEditable},
-      {Header: 'Ballot ID', dataKey: 'BallotID', width: 100, filterable: true, Cell: this.renderEditable},
-      {Header: 'Topic', dataKey: 'Topic', width: 300, filterable: true, Cell: this.renderEditable},
-      {Header: 'ePoll', dataKey: 'epollNum', width: 80, filterable: true},
-      {Header: 'Start', dataKey: 'Start', width: 100},
-      {Header: 'End', dataKey: 'End', width: 100},
-      {Header: 'Comment Count', dataKey: 'count', width: 80, filterable: false, Cell: this.renderCommentCount}
-    ];
-    const epollColumns = [
-      {Header: '', dataKey: 'Import', width: 100, sortable: false, Cell: this.renderImport},
-      {Header: 'ePoll', dataKey: 'EpollNum', width: 100},
-      {Header: 'Ballot ID', dataKey: 'BallotID', width: 100},
-      {Header: 'Topic', dataKey: 'Topic', width: 500},
-      {Header: 'Start', dataKey: 'Start', width: 100},
-      {Header: 'End', dataKey: 'End', width: 100},
-      {Header: 'Result', dataKey: 'Votes', width: 100},
-    ];
+    const renderTable = () => {
+      const renderHeaderCell = ({columnData, dataKey, label}) => {
+
+        const sortDirection = this.state.sortDirection[dataKey];
+        const showIndicator = columnData.hasOwnProperty('sortable')? columnData.sortable: true;
+        const showFilter = this.state.filters.hasOwnProperty(dataKey);
+
+        return (
+          <div>
+            <span
+              title={label}
+              onClick={e => this.sortChange(e, dataKey)}
+              style={{cursor: 'pointer'}}>
+              {label}
+              {showIndicator && <SortIndicator sortDirection={sortDirection} />}
+            </span><br />
+            {showFilter &&
+              <div
+                className={styles.headerFilt}
+                placeholder='Filter'
+                contentEditable
+                onInput={e => {this.filterChange(e, dataKey)}}
+              />}
+          </div>
+        );
+      }
+      const noRowsRenderer = () => {
+        return <div className={styles.noRows}>{this.props.isFetching? 'Loading...': 'No rows'}</div>
+      }
+      const rowClassName = ({index}) => {
+        if (index < 0) {
+          return styles.headerRow;
+        } else {
+          return index % 2 === 0 ? styles.evenRow : styles.oddRow;
+        }
+      }
+
+      return (
+        <Table
+          className={styles.Table}
+          height={this.state.height}
+          width={this.state.width}
+          rowHeight={54}
+          headerHeight={60}
+          noRowsRenderer={noRowsRenderer}
+          headerClassName={styles.headerColumn}
+          rowClassName={rowClassName}
+          rowCount={this.state.ballotDataMap.length}
+          rowGetter={({index}) => {return this.props.ballotData[this.state.ballotDataMap[index]]}}
+        >
+          {this.columns.map((col, index) => {
+            return (
+              <Column 
+                key={index}
+                className={col.className}
+                columnData={col}
+                width={col.width}
+                label={col.Header}
+                dataKey={col.dataKey}
+                headerRenderer={col.HeaderCell? col.HeaderCell: renderHeaderCell}
+                cellRenderer={col.Cell}
+                flexGrow={col.hasOwnProperty('flexGrow')? col.flexGrow: 0}
+                flexShrink={col.hasOwnProperty('flexShrink')? col.flexShrink: 1}
+              />
+            )})}
+        </Table>
+      )
+    }
     return (
-      <div id='Ballots'>
-        <Tabs
-          className="Tabs"
-          selectedTabClassName="Tabs_Tab--selected"
-          disabledTabClassName="Tabs_Tab--disabled"
-          selectedTabPanelClassName="Tabs_TabPanel--selected"
-          forceRenderTabPanel={true}>
-          <TabList className="Tabs_TabList">
-            <Tab className="Tabs_Tab">Ballots</Tab>
-            <Tab className="Tabs_Tab">ePolls</Tab>
-          </TabList>
-          <TabPanel className="Tabs_TabPanel">
-            <button onClick={this.getBallots}>Refresh</button>
+      <div id='Ballots' style={{height: '100%'}}>
+        {this.state.showEpolls?
+          (<Epolls close={() => this.setState({showEpolls: false})} />):
+          (<div>
+            <button onClick={this.refresh}>Refresh</button>
             <button>Add</button>
             <button onClick={this.handleRemoveSelected}>Remove Selected</button>
-            <AppTable 
-              //style={{position: 'relative', top: '32px', bottom: '18px', left: 0, right: 0}}
-              rowCount={this.state.ballotDataMap.length}
-              rowGetter={({index}) => {return this.state.ballotData[this.state.ballotDataMap[index]]}}
-              columns={ballotColumns}
-              sortFunc={this.ballotSortFunc}
-              filtFunc={this.ballotFiltFunc} />
-          </TabPanel>
-          <TabPanel className="Tabs_TabPanel">
-            <button onClick={this.getEpolls}>Short List</button>
-            <button>Long List</button>
-            <AppTable
-              //style={{position: 'relative', top: '32px', bottom: '18px', left: 0, right: 0}}
-              rowCount={this.state.epollDataMap.length}
-              rowGetter={({index}) => {return this.state.epollData[this.state.epollDataMap[index]]}}
-              columns={epollColumns}
-              sortFunc={this.epollSortFunc}
-              filtFunc={this.epollFiltFunc} />
-          </TabPanel>
-        </Tabs>
-
-        <Modal className='ModalContent' overlayClassName='ModalOverlay' isOpen={this.state.showOkModal} appElement={document.querySelector('#Ballots')}>
-          <p>{this.state.modalMessage}</p>
-          <button onClick={this.hideOkModal}>OK</button>
-        </Modal>
-
-        <Modal className='ModalContent' overlayClassName='ModalOverlay' isOpen={this.state.showImportModal} appElement={document.querySelector('#Ballots')}>
-          <form className='content' onSubmit={this.handleImportSubmit}>
-            <label>Ballot Series:<input type='text' name='BallotSeries' value={this.state.ballotImport.BallotSeries} onChange={this.handleImportChange}/></label><br />
-            <label>Ballot ID:<input type='text' name='BallotID' value={this.state.ballotImport.BallotID} onChange={this.handleImportChange}/></label><br />
-            <label>Topic:<input type='text' name='Topic' value={this.state.ballotImport.Topic} onChange={this.handleImportChange}/></label><br />
-            <label>Start:<input type='text' name='Start' value={this.state.ballotImport.Start} onChange={this.handleImportChange}/></label><br />
-            <label>End:<input type='text' name='End' value={this.state.ballotImport.End} onChange={this.handleImportChange}/></label><br />
-            <label>Result:<input type='text' name='Votes' value={this.state.ballotImport.Votes} onChange={this.handleImportChange}/></label><br />
-            <label>epollNum:<input type='text' name='epollNum' value={this.state.ballotImport.EpollNum} onChange={this.handleImportChange}/></label><br />
-            <button type='submit' onClick={this.importBallot}>Import</button>
-            <button onClick={this.hideImportModal}>Cancel</button>
-          </form>
-        </Modal>
-
+            <button onClick={this.showEpolls}>Import ePoll</button>
+            {renderTable()}
+            {this.renderOkModal()}
+          </div>)
+        }
       </div>
     )
   }
 }
+
+function mapStateToProps(state) {
+  return {
+    ballotData: state.ballots.ballotData,
+    getBallots: state.ballots.getBallots,
+    getBallotsError: state.ballots.getBallotsError,
+    getBallotsMsg: state.ballots.getBallotsMsg,
+    updateBallot: state.ballots.updateBallot,
+    updateBallotError: state.ballots.updateBallotError,
+    updateBallotMsg: state.ballots.updateBallotMsg,
+    importState: state.comments.importState,
+    errMsg: state.comments.errMsg,
+    deleteBallots: state.ballots.deleteBallots,
+    deleteBallotsError: state.ballots.deleteBallotsError,
+    deleteBallotsMsg: state.ballots.deleteBallotsMsg
+  }
+}
+export default connect(mapStateToProps)(Ballots);

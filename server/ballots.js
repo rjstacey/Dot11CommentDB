@@ -59,6 +59,7 @@ module.exports = function(db, request) {
       		console.log('Last insert ID:', result.insertId)
       		ret.status = 'OK';
       		ret.message = '';
+          ret.data = {BallotID, BallotSeries, Topic, Start, End, Votes, EpollNum};
       		return res
         			.status(200)
         			.send(ret);
@@ -125,7 +126,7 @@ module.exports = function(db, request) {
     console.log(sess.ieeeCookieJar);
 
     // Get a list of ballot IDs in the database
-    var SQL_STRING = 'SELECT BallotID FROM `ballots`;';
+    var SQL_STRING = 'SELECT EpollNum FROM `ballots`;';
     db.query(SQL_STRING, function (err, results) {
       if (err) {
         console.log('Error ' + err);
@@ -135,7 +136,7 @@ module.exports = function(db, request) {
       }
       var idList = [];
       for (var i = 0; i < results.length; i++) {
-        idList.push(results[i].BallotID);
+        idList.push(results[i].EpollNum);
       }
       //console.log(idList);
 
@@ -168,7 +169,7 @@ module.exports = function(db, request) {
               epoll.Votes = tds.eq(5).text();
               var p = tds.eq(7).html().match(/poll-status\?p=(\d+)/);
               epoll.EpollNum = p? p[1]: '';
-              epoll.InDatabase = (idList.indexOf(epoll.BallotID) != -1); // determine if ballot is already present in database
+              epoll.InDatabase = (idList.indexOf(epoll.EpollNum) >= 0); // determine if ballot is already present in database
               epolls.push(epoll);
             });
             console.log(epolls);

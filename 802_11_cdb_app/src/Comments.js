@@ -1,10 +1,14 @@
 import React from 'react';
 import Modal from 'react-modal';
 import update from 'immutability-helper';
-import {AppTable} from './AppTable'
-import {CommentDetail} from './CommentDetail.js'
-import {filterData, sortData} from './filter'
-import Truncate from 'react-truncate'
+import {connect} from 'react-redux';
+import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
+import LinesEllipsis from 'react-lines-ellipsis'
+import CommentDetail from './CommentDetail'
+import {filterData, sortData, sortClick, allSelected, toggleVisible} from './filter'
+import {fetchComments, updateComment, clearError} from './actions/comments'
+import styles from './AppTable.css';
+
 
 import './Comments.css'
 
@@ -34,26 +38,89 @@ function html_preserve_newline(text) {
     }
   })
 }
+function SortIndicator(props) {
+  const {sortDirection, onClick, ...otherProps} = props;
 
-export default class Comments extends React.Component {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" onClick={onClick} {...otherProps}>
+      {sortDirection === 'ASC'?
+        (<path d="M5 8 l5-5 5 5z" />):
+         (sortDirection === 'DESC'?
+          (<path d="M5 11 l5 5 5-5 z" />):
+            (<path d="M5 8 l5-5 5 5z M5 11 l5 5 5-5 z" />))}
+      <path d="M0 0h24v24H0z" fill="none" />
+    </svg>
+    );
+}
+class Comments extends React.Component {
   constructor(props) {
     super(props);
+
+
+    this.users = [];
+
+    this.columns = [
+      {Header: '', width: 60, flexGrow: 0, flexShrink: 0, dataKey: 'isChecked', sortable: false, HeaderCell: this.renderHeaderCheckbox, Cell: this.renderCheckbox},
+      {Header: 'CID', width: 60, flexGrow: 0, flexShrink: 0, dataKey: 'CommentID'},
+      {Header: 'Commenter', width: 150, flexGrow: 0, flexShrink: 0, dataKey: 'Commenter'},
+      {Header: 'Must Satisfy', width: 80, flexGrow: 0, flexShrink: 0, dataKey: 'MustSatisfy'},
+      {Header: 'Category', width: 80, flexGrow: 0, flexShrink: 0, dataKey: 'Category'},
+      {Header: 'Clause', width: 100, flexGrow: 0, flexShrink: 0, dataKey: 'Clause'},
+      {Header: 'Page', width: 100, flexGrow: 0, flexShrink: 0, dataKey: 'Page'},
+      {Header: 'Comment', width: 400, flexGrow: 1, flexShrink: 1, dataKey: 'Comment', Cell: this.renderMultiline},
+      {Header: 'Proposed Change', width: 400, flexGrow: 1, flexShrink: 1, dataKey: 'ProposedChange', Cell: this.renderMultiline},
+    ];
+
+    // List of filterable columns
+    const filters = {
+      Commenter: '',
+      MustSatisfy: '',
+      Category: '',
+      Clause: '',
+      Page: '',
+      Comment: '',
+      ProposedChange: ''
+    };
 
     this.state = {
       showOkModal: false,
       modalMessage: '',
 
-      commentData: [],
+      editIndex: 0,
+
       commentDataMap: [],
+      selectedComments: [],
+      expandedComments: [],
       expandAll: false,
 
       ballots: [],
-      ballotId: ''
+      ballotId: '',
+
+      sortBy: [],
+      sortDirection: {},
+      filters,
+
+      height: 500,
+      width: 600
     }
-    this.users = [];
-    this.sortBy = [];
-    this.sortDirection = [];
-    this.filters = {};
+
+    this.cache = new CellMeasurerCache({
+      defaultHeight: 54,
+      fixedWidth: true
+    })
+
+    this.clearCachedRowHeight.bind()
+    this.clearAllCachedRowHeight.bind()
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    if (props.commentData.length !== state.commentDataMap.length) {
+      const newState = {
+        commentDataMap: sortData(filterData(props.commentData, state.filters), props.commentData, state.sortBy, state.sortDirection)
+      }
+      return newState;
+    }
+    return null;
   }
 
   showOkModal = (msg) => {
@@ -69,27 +136,29 @@ export default class Comments extends React.Component {
     this.setState({showAddModal: false});
   }
 
-  sortFunc = ({sortBy, sortDirection}) => {
-    this.sortBy = sortBy;
-    this.sortDirection = sortDirection;
-    const commentData = this.state.commentData;
+  sortChange = (event, dataKey) => {
+
+    const {sortBy, sortDirection} = sortClick(event, dataKey, this.state.sortBy, this.state.sortDirection);
+
     this.setState({
-      commentDataMap: sortData(this.state.commentDataMap, commentData, sortBy, sortDirection)
+      sortBy: sortBy,
+      sortDirection: sortDirection,
+      commentDataMap: sortData(this.state.commentDataMap, this.props.commentData, sortBy, sortDirection)
     });
   }
-  filtFunc = ({filters}) => {
-    this.filters = filters;
-    const commentData = this.state.commentData;
+
+  filterChange = (event, dataKey) => {
+    const {commentData} = this.props;
+    const {sortBy, sortDirection} = this.state;
+
+    const filters = update(this.state.filters, {[dataKey]: {$set: event.target.textContent}});
+
     this.setState({
-      commentDataMap: sortData(filterData(commentData, filters), commentData, this.sortBy, this.sortDirection)
+      filters: filters,
+      commentDataMap: sortData(filterData(commentData, filters), commentData, sortBy, sortDirection)
     });
   }
-  updateCommentData = (commentData) => {
-    this.setState({
-      commentData: commentData,
-      commentDataMap: sortData(filterData(commentData, this.filters), commentData, this.sortBy, this.sortDirection)
-    });
-  }
+  
   getBallots = () => {
     axios.get('/ballots')
       .then((response) => {
@@ -114,8 +183,7 @@ export default class Comments extends React.Component {
   }
   handleBallotChange = (e) => {
     var ballotId = e.target.value;
-    this.setState({ballotId: ballotId});
-    this.getComments(ballotId);
+    this.props.dispatch(fetchComments(ballotId));
   }
   getUsers = () => {
     axios.get('/users')
@@ -137,208 +205,207 @@ export default class Comments extends React.Component {
           this.showOkModal(`Unable to get ballots list: ${error}`);
         });
   }
-  getComments = (ballotId) => {
-    axios.get('/comments', {params: {BallotID: ballotId}})
-      .then((response) => {
-          if (response.data.status !== 'OK') {
-            this.showOkModal(response.data.message);
-          }
-          else {
-            const newcommentData = response.data.data;
-            console.log(newcommentData);
-            var commentData = [];
-            newcommentData.forEach(i => {
-              commentData.push({isChecked: false, ...i})
-            })
-            this.updateCommentData(commentData);
-          }
-        })
-      .catch((error) => {
-          this.showOkModal(`Unable to get comments: ${error}`);
-        });
-  }
-  handleUserAddChange = (e) => {
-    const userAdd = update(this.state.userAdd, {[e.target.name]: {$set: e.target.value}});
-    this.setState({userAdd});
-  }
-  handleUserAddSubmit = (e) => {
-    this.setState({showAddModal: false})
-    console.log(this.state.userAdd)
-    axios.put('/users', this.state.userAdd)
-      .then((response) => {
-        if (response.data.status !== 'OK') {
-            console.log(response.data.message);
-            this.showOkModal(response.data.message);
-          }
-          else {
-            const i = response.data.data;
-            console.log(i);
-            var commentData = this.state.commentData.slice();
-            commentData.push({isChecked: false, ...i});
-            this.updatecommentData(commentData);
-          }
-      })
-      .catch((error) => {
-          this.showOkModal('Unable to add user');
-      });
-    e.preventDefault();
-  }
-
-  handleRemoveSelected = () => {
-    const {commentDataMap, commentData} = this.state;
-    var delUserIds = [];
-    for (var i = 0; i < commentDataMap.length; i++) { // only select checked items that are visible
-      if (commentData[commentDataMap[i]].isChecked) {
-        delUserIds.push(commentData[commentDataMap[i]].UserID)
-      }
-    }
-    if (delUserIds.length) {
-        axios.delete('/users', {data: delUserIds})
-          .then((response) => {
-            if (response.data.status !== 'OK') {
-              this.showOkModal(response.data.message);
-            }
-            else {
-              this.updateUsers();
-              //this.showOkModal('Users deleted');
-            }
-          })
-          .catch((error) => {
-            this.showOkModal('Unable to delete users');
-          });
-      }
-  }
 
   renderHeaderCheckbox = ({dataKey}) => {
-    const {commentDataMap, commentData} = this.state;
-    var checked = commentDataMap.length > 0; // not checked if list is empty
-    for (var i in commentDataMap) {
-      if (!commentData[i].isChecked) {
-        checked = false;
-      }
-    }
+    const {commentDataMap, selectedComments, expandedComments} = this.state;
+    const {commentData} = this.props;
+    const checked = allSelected(selectedComments, commentDataMap, commentData, 'CommentID');
+    const expanded = allSelected(expandedComments, commentDataMap, commentData, 'CommentID')
     return (
       <div>
       <input type="checkbox"
         checked={checked}
         onChange={e => {
-          const checked = e.target.checked;
-          const commentDataMap = this.state.commentDataMap;
-          var commentData = this.state.commentData.slice();
-          for (var i in commentDataMap) {
-            commentData[i].isChecked = checked;
-          }
-          this.setState({commentData})
+          this.setState({selectedComments: toggleVisible(selectedComments, commentDataMap, commentData, 'CommentID')})
         }}
       />
       <ExpandIcon 
-        showPlus={!this.state.allExpanded}
+        showPlus={!expanded}
         onClick={e => {
-          console.log('Expand All!')
-          var allExpanded = !this.state.allExpanded;
-          var commentData = this.state.commentData.slice();
-          for (var i in this.state.commentDataMap) {
-            commentData[i].isExpanded = allExpanded;
-          }
-          this.setState({commentData, allExpanded})
-          this.appTableRef.clearAllCachedRowHeight()
+          this.setState({expandedComments: toggleVisible(expandedComments, commentDataMap, commentData, 'CommentID')})
+          this.clearAllCachedRowHeight()
         }}
       />
       </div>
     );
   }
 
-  renderEditable = (cellInfo) => {
-    const commentDataIndex = this.state.commentDataMap[cellInfo.index];
+  renderEditable = ({rowIndex, rowData, dataKey}) => {
     return (
       <div
         contentEditable
         onBlur={e => {
-          this.setState({
-            commentData: update(this.state.commentData, {[commentDataIndex]: {[cellInfo.column.id]: {$set: e.target.innerHTML}}})
-          });
+          this.updateCommentFieldIfChanged(rowIndex, dataKey, e.target.innerHTML)
         }}
-        dangerouslySetInnerHTML={{__html: this.state.commentData[commentDataIndex][cellInfo.column.id]}}
+        dangerouslySetInnerHTML={{__html: rowData[dataKey]}}
       />
     );
   }
 
-  renderCheckbox = (cellInfo) => {
-    const commentDataIndex = this.state.commentDataMap[cellInfo.index];
+  renderCheckbox = ({rowIndex, rowData, dataKey}) => {
+    const commentId = rowData.CommentID;
     return (
       <div>
         <input type="checkbox"
-          checked={this.state.commentData[commentDataIndex][cellInfo.column.id]}
-          onChange={e => {
+          checked={this.state.selectedComments.indexOf(commentId) >= 0}
+          onClick={e => {
+            // if commentId is present in selectedComments (i > 0) then remove it; otherwise add it
+            let i = this.state.selectedComments.indexOf(commentId);
             this.setState({
-              commentData: update(this.state.commentData, {[commentDataIndex]: {[cellInfo.column.id]: {$set: e.target.checked}}})
+              selectedComments: update(this.state.selectedComments, (i > -1)? {$splice: [[i, 1]]}: {$push: [commentId]})
             })
           }}
-        />      
+        />
         <ExpandIcon 
-          showPlus={!this.state.commentData[commentDataIndex].isExpanded}
+          showPlus={!this.state.expandedComments.includes(commentId)}
           onClick={e => {
-            console.log('Clicked on row!')
-            const expanded = this.state.commentData[commentDataIndex].isExpanded;
+            let i = this.state.expandedComments.indexOf(commentId);
             this.setState({
-              commentData: update(this.state.commentData, {[commentDataIndex]: {isExpanded: {$set: !expanded}}})
+              expandedComments: update(this.state.expandedComments, (i > -1)? {$splice: [[i, 1]]}: {$push: [commentId]})
             })
-            this.appTableRef.clearCachedRowHeight(cellInfo.index)
+            this.clearCachedRowHeight(rowIndex)
           }}
         />
       </div>
     );
   }
 
-  renderMultiline = (cellInfo) => {
-    const commentDataIndex = this.state.commentDataMap[cellInfo.index];
-    const expanded = this.state.commentData[commentDataIndex].isExpanded;
-
+  renderMultiline = ({rowIndex, rowData, dataKey, columnIndex, parent}) => {
+    const commentId = rowData.CommentID;
+    const expanded = this.state.expandedComments.includes(commentId);
+    console.log('expanded=', expanded, rowIndex, columnIndex)
     return(
-      <Truncate lines={expanded? false: 2} width={cellInfo.column.width}>
-        {html_preserve_newline(this.state.commentData[commentDataIndex][cellInfo.column.id])}
-      </Truncate>
+      <CellMeasurer
+        cache={this.cache}
+        columnIndex={columnIndex}
+        parent={parent}
+        key={dataKey}
+        rowIndex={rowIndex}
+      >
+        <LinesEllipsis
+          text={rowData[dataKey]}
+          maxLine={expanded? 1000: 3}
+          basedOn='letters'
+        />
+      </CellMeasurer>
     )
   }
 
+  clearCachedRowHeight(rowIndex) {
+    // Clear all the column heights in the cache.
+    for (var i = 0; i < this.columns.length; i++) {
+      this.cache.clear(rowIndex, i)
+    }
+  }
+
+  clearAllCachedRowHeight() {
+    this.cache.clearAll()
+  }
+
   componentDidMount() {
+    var wrapper = document.getElementById('Comments');
+    this.setState({height: wrapper.offsetHeight - 19, width: wrapper.offsetWidth})
     this.getBallots();
     this.getUsers();
   }
 
+  componentDidUpdate() {
+    console.log(this.cache)
+  }
+
+  editRow = ({event, index, rowData}) => {
+    this.setState({
+      editIndex: index,
+      showEditModal: true
+    })
+  }
+
   render() {
-    const columns = [
-      {Header: '', width: 60, dataKey: 'isChecked', sortable: false, filterable: false, HeaderCell: this.renderHeaderCheckbox, Cell: this.renderCheckbox},
-      {Header: 'CID', width: 60, dataKey: 'CommentID', filterable: false},
-      {Header: 'Commenter', width: 150, dataKey: 'Commenter', filterable: true},
-      {Header: 'Must Satisfy', width: 60, dataKey: 'MustSatisfy', filterable: true},
-      {Header: 'Category', width: 60, dataKey: 'Category', filterable: true},
-      {Header: 'Clause', width: 100, dataKey: 'Clause', filterable: true},
-      {Header: 'Page', width: 100, dataKey: 'Page', filterable: true},
-      {Header: 'Comment', width: 400, dataKey: 'Comment', filterable: true, Cell: this.renderMultiline},
-      {Header: 'Proposed Change', width: 400, dataKey: 'ProposedChange', filterable: true, Cell: this.renderMultiline},
-    ];
+
+    
+    const renderTable = () => {
+      const renderHeaderCell = ({columnData, dataKey, label}) => {
+
+        const sortDirection = this.state.sortDirection[dataKey];
+        const showIndicator = columnData.hasOwnProperty('sortable')? columnData.sortable: true;
+        const showFilter = this.state.filters.hasOwnProperty(dataKey);
+
+        return (
+          <div>
+            <span
+              title={label}
+              onClick={e => this.sortChange(e, dataKey)}
+              style={{cursor: 'pointer'}}>
+              {label}
+              {showIndicator && <SortIndicator sortDirection={sortDirection} />}
+            </span><br />
+            {showFilter &&
+              <div
+                className={styles.headerFilt}
+                placeholder='Filter'
+                contentEditable
+                onInput={e => {this.filterChange(e, dataKey)}}
+              />}
+          </div>
+        );
+      }
+      const noRowsRenderer = () => {
+        return <div className={styles.noRows}>{this.props.isFetchingComments? 'Loading...': 'No rows'}</div>
+      }
+      const rowClassName = ({index}) => {
+        if (index < 0) {
+          return styles.headerRow;
+        } else {
+          return index % 2 === 0 ? styles.evenRow : styles.oddRow;
+        }
+      }
+
+      return (
+        <Table
+          className={styles.Table}
+          height={this.state.height}
+          width={this.state.width}
+          rowHeight={this.cache.rowHeight}
+          headerHeight={60}
+          noRowsRenderer={noRowsRenderer}
+          headerClassName={styles.headerColumn}
+          rowClassName={rowClassName}
+          rowCount={this.state.commentDataMap.length}
+          rowGetter={({index}) => {return this.props.commentData[this.state.commentDataMap[index]]}}
+          onRowDoubleClick={this.editRow}
+        >
+          {this.columns.map((col, index) => {
+            return (
+              <Column 
+                key={index}
+                className={col.className}
+                columnData={col}
+                width={col.width}
+                label={col.Header}
+                dataKey={col.dataKey}
+                headerRenderer={col.HeaderCell? col.HeaderCell: renderHeaderCell}
+                cellRenderer={col.Cell}
+                flexGrow={col.hasOwnProperty('flexGrow')? col.flexGrow: 0}
+                flexShrink={col.hasOwnProperty('flexShrink')? col.flexShrink: 1}
+              />
+            )})}
+        </Table>
+      )
+    }
+
     return (
       <div id='Comments'>
-        <select name='Ballot' value={this.state.ballotId} onChange={this.handleBallotChange}>
+        <select name='Ballot' value={this.props.ballotId} onChange={this.handleBallotChange}>
           {this.state.ballots.map(i => {
             return (<option key={i.BallotID} value={i.BallotID}>{i.Description}</option>)
           })}
         </select>
         
         {!this.state.showEditModal?
-          <AppTable
-            rowCount={this.state.commentDataMap.length}
-            columns={columns}
-            sortFunc={this.sortFunc}
-            filtFunc={this.filtFunc}
-            rowGetter={({index}) => {return this.state.commentData[this.state.commentDataMap[index]]}}
-            onRowDoubleClick={({event, index, rowData}) => {this.setState({editIndex: index, showEditModal: true})}}
-            ref={(ref) => {this.appTableRef = ref}}
-          />
+          renderTable()
           :
           <CommentDetail
-            commentData={this.state.commentData}
+            commentData={this.props.commentData}
             commentDataMap={this.state.commentDataMap}
             commentIndex={this.state.editIndex}
             users={this.users}
@@ -357,3 +424,16 @@ export default class Comments extends React.Component {
   }
 
 }
+
+function mapStateToProps(state) {
+  return {
+    isFetchingComments: state.comments.isFetching,
+    ballotId: state.comments.ballotId,
+    commentData: state.comments.data,
+    updateError: state.comments.updateError || state.comments.fetchError,
+    errMsg: state.comments.errMsg,
+    userData: state.users.data,
+    isFetchingUsers: state.users.isFetching
+  }
+}
+export default connect(mapStateToProps)(Comments);

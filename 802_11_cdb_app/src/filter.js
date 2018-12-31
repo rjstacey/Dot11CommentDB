@@ -147,7 +147,7 @@ export function sortData(dataMap, data, sortBy, sortDirection) {
   sortBy.forEach(key => {
     sortDataMap.sort((a, b) => {
       if (sortDirection[key] === 'NONE') {
-          return a - b; // Index order (= original order)
+        return a - b; // Index order (= original order)
       }
       else {
         const aa = data[a];
@@ -174,4 +174,74 @@ export function sortData(dataMap, data, sortBy, sortDirection) {
     }
   })
   return sortDataMap;
+}
+
+export function sortClick(event, dataKey, currSortBy, currSortDirection) {
+  var sortBy = currSortBy.slice()
+  var sortDirection = Object.assign({}, currSortDirection)
+
+  if (event.shiftKey) {
+    // Shift + click appends a column to existing criteria
+    if (sortDirection.hasOwnProperty(dataKey)) {
+      sortDirection[dataKey] = sortDirection[dataKey] === 'NONE'? 'ASC':
+        (sortDirection[dataKey] === 'ASC'? 'DESC': 'NONE');
+    } else {
+      sortDirection[dataKey] = 'ASC';
+    }
+    if (!sortBy.includes(dataKey)) {
+      sortBy.unshift(dataKey);
+    }
+  } else if (event.ctrlKey || event.metaKey) {
+    // Control + click removes column from sort (if pressent)
+    const index = sortBy.indexOf(dataKey);
+    if (index >= 0) {
+      sortBy.splice(index, 1);
+      delete sortDirection[dataKey];
+    }
+  } else {
+    sortBy.length = 0;
+    sortBy.push(dataKey);
+
+    if (sortDirection.hasOwnProperty(dataKey)) {
+      sortDirection[dataKey] = sortDirection[dataKey] === 'NONE'? 'ASC':
+        (sortDirection[dataKey] === 'ASC'? 'DESC': 'NONE');
+    } else {
+      sortDirection[dataKey] = 'ASC';
+    }
+  }
+  return {sortBy, sortDirection};
+}
+
+export function allSelected(selectedList, dataMap, data, idKey) {
+  var allSelected = dataMap.length > 0; // not if list is empty
+  for (var i = 0; i < dataMap.length; i++) {
+    if (selectedList.indexOf(data[dataMap[i]][idKey]) < 0) {
+      allSelected = false;
+    }
+  }
+  return allSelected;
+}
+
+export function toggleVisible(currSelectedList, dataMap, data, idKey) {
+  let selectedList = currSelectedList.slice();
+  if (allSelected(selectedList, dataMap, data, idKey)) {
+    // remove all visible (filtered) IDs
+    for (let i = 0; i < dataMap.length; i++) {
+      let id = data[dataMap[i]][idKey];
+      let j = selectedList.indexOf(id)
+      if (j > -1) {
+        selectedList.splice(j, 1);
+      }
+    }
+  }
+  else {
+    // insert all visible (filtered) IDs if not already present
+    for (let i = 0; i < dataMap.length; i++) {
+      let id = data[dataMap[i]][idKey];
+      if (selectedList.indexOf(id) < 0) {
+        selectedList.push(id)
+      }
+    }
+  }
+  return selectedList;
 }

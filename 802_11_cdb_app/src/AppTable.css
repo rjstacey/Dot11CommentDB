@@ -12,7 +12,8 @@
   align-items: top;
 }
 :local(.headerRow) {
-  font-weight: 700;
+  font-weight: bold;
+  font-size: 0.9em;
 }
 :local(.oddRow) {
   background-color: #f6f6f6;
@@ -43,6 +44,19 @@
   font-size: 1em;
   color: #bdbdbd;
 }
+:local(.headerFilt) {
+  background: #ffffff;
+  border: 1px solid #ddd;
+  padding: 1px;
+  font-weight: 100;
+  font-size: -1;
+}
+
+:local(.headerFilt[placeholder]:empty:before) {
+  content: attr(placeholder);
+  color: #555;
+}
+
 /* mixin for multiline */
 .block-with-text {
   overflow: hidden;

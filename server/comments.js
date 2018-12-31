@@ -74,8 +74,8 @@ module.exports = function (db, request) {
 
     var ret = {status: "Error", message: "Unknown server error"};
 
-    const ballotid = req.body.BallotID;
-    var SQL = 'DELETE FROM comments WHERE BallotID=' + db.escape(ballotid);
+    const ballotid = db.escape(req.body.BallotID);
+    var SQL = `DELETE FROM comments WHERE BallotID=${ballotid}`;
     console.log(SQL);
     db.query(SQL, (err, results, fields) => {
       if (err) {
@@ -96,6 +96,15 @@ module.exports = function (db, request) {
 
     var ret = {status: "Error", message: "Unknown server error"};
 
+    if (!req.body.hasOwnProperty('BallotID') ||
+      !req.body.hasOwnProperty('EpollNum') ||
+      !req.body.hasOwnProperty('StartCID')) {
+      ret.message = "Missing parameter. Need BallotID, EpollNum and StartCID."
+      return res
+        .status(200)
+        .send(ret);
+    }
+    
     var id = req.body.BallotID;
     var cid = req.body.StartCID || 1;
     var epollNum = req.body.EpollNum;

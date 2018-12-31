@@ -3,16 +3,21 @@
  */
 import React from 'react';
 import update from 'immutability-helper';
-import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'; 
+import {connect} from 'react-redux';
+import {Tab, Tabs, TabList, TabPanel} from 'react-tabs';
+import {fetchUsers} from './actions/users';
 import './CommentDetail.css'
 
- export class CommentDetail extends React.Component {
+class CommentDetail extends React.Component {
  	constructor(props) {
  		super(props)
+
+ 		console.log(props.commentDataMap, props.commentIndex)
  		this.state = {
  			index: props.commentIndex,
  			comment: props.commentData[props.commentDataMap[props.commentIndex]]
  		}
+ 		console.log(this.state.commentData)
  		this.state.comment.ResnStatus = ''
  		this.state.comment.EditStatus = ''
  		this.state.comment.ReadyForMotion = false
@@ -42,6 +47,9 @@ import './CommentDetail.css'
  	}
  	changeInput = (e) => {
  		this.setState({comment: update(this.state.comment, {[e.target.name]: {$set: e.target.value}})})
+ 	}
+ 	componentDidMount() {
+ 		this.props.dispatch(fetchUsers())
  	}
  	render() {
 
@@ -76,7 +84,7 @@ import './CommentDetail.css'
 						onChange={this.assigneeChange}
 					>
 						<option key={0} value={0}>Not Assigned</option>
-						{this.props.users.map(i => {
+						{this.props.userData && this.props.userData.map(i => {
 							return (<option key={i.UserID} value={i.UserID}>{i.Name} &lt;{i.Email}&gt;</option>)
 							})}
 					</select>
@@ -249,3 +257,15 @@ import './CommentDetail.css'
 		)
  	}
  }
+
+ function mapStateToProps(state) {
+  return {
+    ballotId: state.comments.ballotId,
+    commentData: state.comments.data,
+    updateError: state.comments.updateError || state.comments.fetchError,
+    errMsg: state.comments.errMsg,
+    userData: state.users.data,
+    isFetchingUsers: state.users.isFetching
+  }
+}
+export default connect(mapStateToProps)(CommentDetail);

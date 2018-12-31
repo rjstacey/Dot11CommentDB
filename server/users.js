@@ -63,11 +63,10 @@ module.exports = function (db) {
 					.send(ret)
 			}
 			console.log(result);
-			data.userid = result.insertId;
+			data.UserID = result.insertId;
 			ret.status = 'OK';
 			ret.message = '';
 			ret.data = data;
-			//ret.data = result.data;
 			return res
 				.status(200)
 				.send(ret)
@@ -78,13 +77,13 @@ module.exports = function (db) {
   		console.log(req.body);
 
   		// We use the email address as the primary key. It is also the username for authentication, so we can't change it
-  		var email = req.body['Email'];
-  		delete req.body['Email'];
+  		var userid = req.body['UserID'];
+  		delete req.body['UserID'];
   		console.log(req.body);
 
   		var ret = {status: "Error", message: "Unknown server error"};
 
-  		db.query("UPDATE users SET ? WHERE Email=?",  [req.body, email], function(err, result) {
+  		db.query("UPDATE users SET ? WHERE UserID=?",  [req.body, userid], function(err, result) {
     		if (err) {
       			console.log(err.message);
       			ret.message = JSON.stringify(err);
