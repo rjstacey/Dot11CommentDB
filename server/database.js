@@ -41,7 +41,7 @@ module.exports = {
                 console.log(err);
                 return callback(err);
             }
-            if (args.length > 2){
+            if (args.length > 2) {
                 sql_args = args[1];
             }
             connection.query(args[0], sql_args, function(err, results) {
@@ -54,5 +54,26 @@ module.exports = {
             });
         });
     },
-    escape: mysql.escape
+    // Promisified SQL query using connection pool
+    query2: function() {
+        if (arguments.length === 0 || arguments.length > 2) {
+            throw new Error('Invalid number of arguments'); 
+        }
+        const arg0 = arguments[0];
+        const arg1 = arguments.length > 1? arguments[1]: [];
+        return new Promise((resolve, reject) => {
+            pool.query(arg0, arg1, (err, results) => {
+                if (err) {
+                    return reject(err);
+                }
+                else {
+                    return resolve(results);
+                }
+            });
+        });
+    },
+
+    escape: mysql.escape,
+
+    format: mysql.format
 };

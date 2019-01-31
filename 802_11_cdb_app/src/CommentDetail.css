@@ -60,6 +60,10 @@
 #CommentDetail .MotionNumber {
 	width: 40px;
 }
+#CommentDetail .ResolutionInput {
+	width: 100%;
+	height: 100%;
+}
 #CommentDetail .EditedInDraft {
 	width: 40px;
 }

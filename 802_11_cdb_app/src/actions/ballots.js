@@ -142,10 +142,9 @@ function addBallotSuccess(ballotData) {
 		ballot: ballotData
 	}
 }
-function addBallotFailure(ballotData, msg) {
+function addBallotFailure(msg) {
 	return {
 		type: 'ADD_BALLOT_FAILURE',
-		ballot: ballotData,
 		errMsg: msg
 	}
 }
@@ -156,14 +155,14 @@ export function addBallot(ballotData) {
 		return axios.put('/ballots/', ballotData)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
-					dispatch(addBallotFailure(ballotData, response.data.message))
+					dispatch(addBallotFailure(response.data.message))
 				}
 				else {
 					dispatch(addBallotSuccess(response.data.data))
 				}
 			})
 			.catch((error) => {
-				dispatch(addBallotFailure(ballotData, `Unable to add ballot ${ballotData.BallotID}`))
+				dispatch(addBallotFailure(`Unable to add ballot ${ballotData.BallotID}`))
 			})
 	}
 }
@@ -173,15 +172,17 @@ export function clearAddBallotError() {
 	}
 }
 
-function getEpollsLocal() {
+function getEpollsLocal(n) {
 	return {
-		type: 'GET_EPOLLS'
+		type: 'GET_EPOLLS',
+		n
 	}
 }
-function getEpollsSuccess(epollData) {
+function getEpollsSuccess(n, epollData) {
 	return {
 		type: 'GET_EPOLLS_SUCCESS',
-		epollData: epollData
+		n,
+		epollData
 	}
 }
 function getEpollsFailure(msg) {
@@ -190,16 +191,16 @@ function getEpollsFailure(msg) {
 		errMsg: msg
 	}
 }
-export function getEpolls() {
+export function getEpolls(n = 20) {
 	return dispatch => {
-		dispatch(getEpollsLocal())
-		return axios.get('/epolls')
+		dispatch(getEpollsLocal(n))
+		return axios.get('/epolls', {params: {n}})
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(getEpollsFailure(response.data.message))
 				}
 				else {
-					dispatch(getEpollsSuccess(response.data.data))
+					dispatch(getEpollsSuccess(n, response.data.data))
 				}
 			})
 			.catch((error) => {

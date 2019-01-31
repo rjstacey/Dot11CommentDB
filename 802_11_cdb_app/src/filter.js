@@ -2,6 +2,7 @@
 //
 // Shamlessly stolen from https://github.com/koalyptus/TableFilter
 //
+import React from 'react'
 
 const isNumber =
     (obj) => Object.prototype.toString.call(obj) === '[object Number]';
@@ -212,6 +213,9 @@ export function sortClick(event, dataKey, currSortBy, currSortDirection) {
   return {sortBy, sortDirection};
 }
 
+/*
+ * Determine if all items in map have been selected
+ */
 export function allSelected(selectedList, dataMap, data, idKey) {
   var allSelected = dataMap.length > 0; // not if list is empty
   for (var i = 0; i < dataMap.length; i++) {
@@ -244,4 +248,19 @@ export function toggleVisible(currSelectedList, dataMap, data, idKey) {
     }
   }
   return selectedList;
+}
+
+export function SortIndicator(props) {
+  const {sortDirection, onClick, ...otherProps} = props;
+
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" onClick={onClick} {...otherProps}>
+      {sortDirection === 'ASC'?
+        (<path d="M5 8 l5-5 5 5z" />):
+         (sortDirection === 'DESC'?
+          (<path d="M5 11 l5 5 5-5 z" />):
+            (<path d="M5 8 l5-5 5 5z M5 11 l5 5 5-5 z" />))}
+      <path d="M0 0h24v24H0z" fill="none" />
+    </svg>
+    );
 }

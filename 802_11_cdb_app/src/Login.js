@@ -1,15 +1,13 @@
 import React from 'react';
+import {connect} from 'react-redux';
+import {loginGetState, login, logout} from './actions/login';
 
-var axios = require('axios');
-
-export default class LoginForm extends React.Component {
+class LoginForm extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      logged_in: false,
       username: '',
       password: '',
-      status: ''
     };
 
     this.handleChange = this.handleChange.bind(this);
@@ -17,38 +15,20 @@ export default class LoginForm extends React.Component {
     this.handleLogout = this.handleLogout.bind(this);
   }
 
-  handleChange(event) {
-    this.setState({[event.target.name]: event.target.value});
+  componentDidMount() {
+    this.props.dispatch(loginGetState());
   }
-  handleLogin(event) {
-    //alert('A name/password was submitted: ' + this.state.username + '  ' + this.state.password);
 
-    axios.post('/login', {'username': this.state.username, 'password': this.state.password, 'tz': 420})
-      .then((response) => {
-          console.log(response);
-          if (response.data.status !== 'OK') {
-            this.setState({'status': response.data.message});
-          }
-          else {
-            this.setState({logged_in: true, status: response.data.data.name});
-          }
-        })
-      .catch((error) => {console.log(error)});
-    event.preventDefault();
+  handleChange(e) {
+    this.setState({[e.target.name]: e.target.value});
   }
-  handleLogout(event) {
-    axios.post('/logout')
-      .then((response) => {
-          console.log(response);
-          if (response.data.status !== 'OK') {
-            this.setState({'status': response.data.message});
-          }
-          else {
-            this.setState({logged_in: false, username: '', password: '', status: ''});
-          }
-        })
-      .catch((error) => {console.log(error)});
-    event.preventDefault();
+  handleLogin(e) {
+    this.props.dispatch(login(this.state.username, this.state.password))
+    e.preventDefault();
+  }
+  handleLogout(e) {
+    this.props.dispatch(logout())
+    e.preventDefault();
   }
   render() {
     const login_form =
@@ -73,20 +53,32 @@ export default class LoginForm extends React.Component {
             value={this.state.password}
             onChange={this.handleChange} />
         </label><br />
-        <input type="submit" value="Sign In" /><br />
-        <p dangerouslySetInnerHTML={{__html: this.state.status}} />
+        <input type="submit" value="Sign In" disabled={this.props.InProgress} /><br />
+        <p dangerouslySetInnerHTML={{__html: this.props.StatusMsg}} />
       </form>
 
     const logout_form =
       <form onSubmit={this.handleLogout}>
-        <p>{this.state.status}</p>
-        <input type="submit" value="Sign Out" />
+        <p>{this.props.Name} ({this.props.SAPIN})</p>
+        <input type="submit" value="Sign Out" disabled={this.props.InProgress} />
       </form>
 
     return (
-      <fieldset {...this.props}>
-        {this.state.logged_in? logout_form: login_form}
+      <fieldset>
+        {this.props.LoggedIn? logout_form: login_form}
       </fieldset>
       )
   }
 }
+
+function mapStateToProps(state) {
+  return {
+    LoggedIn: state.login.LoggedIn,
+    InProgress: state.login.InProgress,
+    Username: state.login.Username,
+    Name: state.login.Name,
+    SAPIN: state.login.SAPIN,
+    StatusMsg: state.login.StatusMsg,
+  }
+}
+export default connect(mapStateToProps)(LoginForm);

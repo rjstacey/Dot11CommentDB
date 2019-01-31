@@ -1,74 +1,117 @@
 
 const defaultState = {
-  isFetching: false,
-  didInvalidate: false,
-  fetchError: false,
-  updateError: false,
-  errMsg: '',
-  data: []
+  userData: [],
+  getUsers: false,
+  getUsersError: false,
+  getUsersMsg: '',
+  updateUsers: false,
+  updateUsersError: false,
+  updateUsersMsg: '',
+  addUsers: false,
+  addUsersError: false,
+  addUsersMsg: '',
+  deleteUsers: false,
+  deleteUsersError: false,
+  deleteUsersMsg: ''
 }
 
 const users = (state = defaultState, action) => {
-  var newUsers, userIds;
+  var newUserData, userIds;
 
-  console.log(action)
+  //console.log(action)
 
   switch (action.type) {
-    case 'GETALL_USERS':
+    case 'GET_USERS':
       return Object.assign({}, state, {
-        isFetching: true,
-        fetchError: false,
+        getUsers: true,
+        getUsersError: false,
       })
-    case 'GETALL_USERS_SUCCESS':
+    case 'GET_USERS_SUCCESS':
       return Object.assign({}, state, {
-        didInvalidate: false,
-        isFetching: false,
-        fetchError: false,
-        data: action.users
+        getUsers: false,
+        getUsersError: false,
+        userData: action.users
       })
-    case 'GETALL_USERS_FAILURE':
+    case 'GET_USERS_FAILURE':
       return Object.assign({}, state, {
-        isFetching: false,
-        fetchError: true,
-        errMsg: action.errMsg
+        getUsers: false,
+        getUsersError: true,
+        getUsersMsg: action.errMsg
       })
-    case 'INVALIDATE_USERS':
+    case 'CLEAR_GET_USERS_ERROR':
       return Object.assign({}, state, {
-        didInvalidate: true
-      })
-    case 'CLEAR_ERROR':
-      return Object.assign({}, state, {
-        fetchError: false,
-        updateError: false
+        getUsersError: false,
       })
     case 'UPDATE_USER':
-      newUsers = state.data.map(u =>
+      newUserData = state.userData.map(u =>
         (u.UserID === action.user.UserID)? Object.assign({}, u, action.user): u
       )
-      return Object.assign({}, state, {data: newUsers})
-    case 'UPDATE_USER_FAILURE':
-    case 'DELETE_USERS_FAILURE':
       return Object.assign({}, state, {
-        updateError: true,
-        errMsg: action.errMsg
+        updateUser: true,
+        updateUserError: false,
+        userData: newUserData
+      })
+    case 'UPDATE_USER_SUCCESS':
+      return Object.assign({}, state, {
+        updateUser: false,
+        updateUserError: false
+      });
+    case 'UPDATE_USER_FAILURE':
+      return Object.assign({}, state, {
+        updateUser: false,
+        updateUserError: true,
+        updateUserMsg: action.errMsg
+      })
+    case 'CLEAR_UPDATE_USER_ERROR':
+      return Object.assign({}, state, {
+        updateUserError: true,
+      })
+    case 'ADD_USER':
+      return Object.assign({}, state, {
+        addUser: true,
+        addUserError: false,
+      })
+    case 'ADD_USER_SUCCESS':
+      newUserData = state.userData.slice()
+      newUserData.push(action.user)
+      return Object.assign({}, state, {
+        addUser: false,
+        addUserError: false,
+        userData: newUserData
+      })
+    case 'ADD_USER_FAILURE':
+      return Object.assign({}, state, {
+        addUser: false,
+        addUserError: true,
+        addUserMsg: action.errMsg
+      })
+    case 'CLEAR_ADD_USER_ERROR':
+      return Object.assign({}, state, {
+        addUserError: true,
       })
     case 'DELETE_USERS':
       userIds = (action.userIds instanceof Array)? action.userIds: [action.userIds];
-      newUsers = state.data.filter(u => !userIds.includes(u.UserID));
-      return Object.assign({}, state, {data: newUsers})
-    case 'ADD_USER':
-      return state;
-    case 'ADD_USER_SUCCESS':
-      newUsers = state.data.slice();
-      newUsers.push(action.userData);
-      return Object.assign({}, state, {data: newUsers});
-    case 'ADD_USER_FAILURE':
+      newUserData = state.userData.filter(u => !userIds.includes(u.UserID));
       return Object.assign({}, state, {
-        updateError: true,
-        errMsg: action.errMsg
+        deleteUsers: true,
+        deleteUsersError: false,
+        userData: newUserData
       })
-    case 'UPDATE_USER_SUCCESS':
     case 'DELETE_USERS_SUCCESS':
+      return Object.assign({}, state, {
+        deleteUsers: false,
+        deleteUsersError: false
+      })
+    case 'DELETE_USERS_FAILURE':
+      return Object.assign({}, state, {
+        deleteUsers: false,
+        deleteUsersError: true,
+        deteleUsersMsg: action.errMsg
+      })
+    case 'CLEAR_DELETE_USERS_ERROR':
+      return Object.assign({}, state, {
+        deleteUsersError: false
+      })
     default:
       return state
   }

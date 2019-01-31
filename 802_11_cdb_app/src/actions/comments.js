@@ -2,78 +2,70 @@ import {updateBallotLocal} from './ballots'
 
 var axios = require('axios');
 
-function requestComments(ballotId) {
+export function setProject(project) {
 	return {
-		type: 'GETALL_COMMENTS',
+		type: 'SET_PROJECT',
+		project
+	}
+}
+
+export function setFilter(dataKey, filter) {
+	return {
+		type: 'SET_COMMENTS_FILTER',
+		dataKey,
+		filter
+	}
+
+}
+
+export function setSort(sortBy, sortDirection) {
+	return {
+		type: 'SET_COMMENTS_SORT',
+		sortBy,
+		sortDirection
+	}
+}
+
+function getCommentsLocal(ballotId) {
+	return {
+		type: 'GET_COMMENTS',
 		ballotId: ballotId
 	}
 }
-function receiveCommentsSuccess(comments) {
+function getCommentsSuccess(comments) {
 	return {
-		type: 'GETALL_COMMENTS_SUCCESS',
+		type: 'GET_COMMENTS_SUCCESS',
 		comments
 	}
 }
-function receiveCommentsFailure(msg) {
+function getCommentsFailure(msg) {
 	return {
-		type: 'GETALL_COMMENTS_FAILURE',
+		type: 'GET_COMMENTS_FAILURE',
 		errMsg: msg
 	}
 }
 
-export function fetchComments(ballotId) {
+export function getComments(ballotId) {
 	return dispatch => {
-		dispatch(requestComments(ballotId))
+		dispatch(getCommentsLocal(ballotId))
 		return axios.get('/comments', {params: {BallotID: ballotId}})
 			.then((response) => {
 				if (response.data.status !== 'OK') {
-					dispatch(receiveCommentsFailure(response.data.message))
+					dispatch(getCommentsFailure(response.data.message))
 				}
 				else {
-					dispatch(receiveCommentsSuccess(response.data.data))
+					dispatch(getCommentsSuccess(response.data.data))
 				}
 			})
 			.catch((error) => {
-				dispatch(receiveCommentsFailure('Unable to get comment list'))
+				dispatch(getCommentsFailure('Unable to get comment list'))
 			})
 	}
 }
 
-function updateCommentLocal(commentData) {
+export function clearGetCommentsError() {
 	return {
-		type: 'UPDATE_COMMENT',
-		comment: commentData
-	}
-}
-function updateCommentSuccess(commentData) {
-	return {
-		type: 'UPDATE_COMMENT_SUCCESS',
-		comment: commentData
-	}
-}
-function updateCommentFailure(commentId, msg) {
-	return {
-		type: 'UPDATE_COMMENT_FAILURE',
-		commentId,
-		errMsg: msg
-	}
-}
-
-export function updateComment(newCommentData) {
-	return dispatch => {
-		dispatch(updateCommentLocal(newCommentData));
-		return axios.post('/comment', newCommentData)
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(updateCommentFailure(response.data.message))
-				}
-				else {
-					dispatch(updateCommentSuccess(newCommentData))
-				}
-			})
-			.catch((error) => {
-				dispatch(updateCommentFailure(newCommentData.CommentID, `Unable to update comment ${newCommentData.CommentID}`))
-			})
+		type: 'CLEAR_GET_COMMENTS_ERROR',
 	}
 }
 
@@ -98,7 +90,7 @@ function deleteCommentsWithBallotIdFailure(ballotId, msg) {
 }
 export function deleteCommentsWithBallotId(ballotId) {
 	return dispatch => {
-		dispatch(updateCommentLocal(ballotId));
+		dispatch(deleteCommentsWithBallotIdLocal(ballotId));
 		return axios.delete('/comments/BallotId', {data: {BallotID: ballotId}})
 			.then((response) => {
 				if (response.data.status !== 'OK') {
@@ -114,16 +106,23 @@ export function deleteCommentsWithBallotId(ballotId) {
 			})
 	}
 }
+
+export function clearDeleteCommentsWithBallotIdError() {
+	return {
+		type: 'CLEAR_DELETE_COMMENTS_WITH_BALLOTID_ERROR',
+	}
+}
+
 function importCommentsLocal(ballotId) {
 	return {
 		type: 'IMPORT_COMMENTS',
-		ballotId: ballotId
+		ballotId
 	}
 }
 function importCommentsSuccess(ballotId, count) {
 	return {
 		type: 'IMPORT_COMMENTS_SUCCESS',
-		ballotId: ballotId,
+		ballotId,
 		commentCount: count
 	}
 }
@@ -154,23 +153,185 @@ export function importComments(ballotId, epollNum, startCID) {
 				}
 			})
 			.catch((error) => {
-				dispatch(importCommentsFailure(ballotId, `Unable to delete comments with ballotId=${ballotId}`))
+				dispatch(importCommentsFailure(ballotId, `Unable to import comments for ballotId=${ballotId}`))
 			})
 	}
 }
 
-export function clearImportError() {
+export function clearImportCommentsError() {
 	return {
-		type: 'CLEAR_IMPORT_ERROR'
+		type: 'CLEAR_IMPORT_COMMENTS_ERROR'
 	}
 }
-export function clearUpdateError() {
+
+function updateCommentLocal(data) {
 	return {
-		type: 'CLEAR_UPDATE_ERROR'
+		type: 'UPDATE_COMMENT',
+		comment: data
 	}
 }
-export function clearFetchError() {
+function updateCommentSuccess(data) {
 	return {
-		type: 'CLEAR_FETCH_ERROR'
+		type: 'UPDATE_COMMENT_SUCCESS',
+		comment: data
+	}
+}
+function updateCommentFailure(msg) {
+	return {
+		type: 'UPDATE_COMMENT_FAILURE',
+		errMsg: msg
+	}
+}
+
+export function updateComment(data) {
+	return dispatch => {
+		dispatch(updateCommentLocal(data));
+		return axios.post('/comment', data)
+			.then((response) => {
+				if (response.data.status !== 'OK') {
+					dispatch(updateCommentFailure(response.data.message))
+				}
+				else {
+					dispatch(updateCommentSuccess(data))
+				}
+			})
+			.catch((error) => {
+				dispatch(updateCommentFailure(`Unable to update comment ${data.BallotID}/${data.CommentID}`))
+			})
+	}
+}
+
+export function clearUpdateCommentError() {
+	return {
+		type: 'CLEAR_UPDATE_COMMENT_ERROR',
+	}
+}
+
+function addResolutionLocal(data) {
+	return {
+		type: 'ADD_RESOLUTION',
+		resolution: data
+	}
+}
+function addResolutionSuccess(data) {
+	return {
+		type: 'ADD_RESOLUTION_SUCCESS',
+		resolution: data
+	}
+}
+function addResolutionFailure(msg) {
+	return {
+		type: 'ADD_RESOLUTION_FAILURE',
+		errMsg: msg
+	}
+}
+
+export function addResolution(data) {
+	return dispatch => {
+		dispatch(addResolutionLocal(data));
+		return axios.put('/resolution', data)
+			.then((response) => {
+				if (response.data.status !== 'OK') {
+					dispatch(addResolutionFailure(response.data.message))
+				}
+				else {
+					dispatch(addResolutionSuccess(data))
+				}
+			})
+			.catch((error) => {
+				dispatch(addResolutionFailure(`Unable to add resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`))
+			})
+	}
+}
+
+export function clearAddResolutionError() {
+	return {
+		type: 'CLEAR_ADD_RESOLUTION_ERROR',
+	}
+}
+
+function updateResolutionLocal(data) {
+	return {
+		type: 'UPDATE_RESOLUTION',
+		resolution: data
+	}
+}
+function updateResolutionSuccess(data) {
+	return {
+		type: 'UPDATE_RESOLUTION_SUCCESS',
+		resolution: data
+	}
+}
+function updateResolutionFailure(msg) {
+	return {
+		type: 'UPDATE_RESOLUTION_FAILURE',
+		errMsg: msg
+	}
+}
+
+export function updateResolution(data) {
+	return dispatch => {
+		dispatch(updateResolutionLocal(data));
+		return axios.post('/resolution', data)
+			.then((response) => {
+				if (response.data.status !== 'OK') {
+					dispatch(updateResolutionFailure(response.data.message))
+				}
+				else {
+					dispatch(updateResolutionSuccess(data))
+				}
+			})
+			.catch((error) => {
+				dispatch(updateResolutionFailure(`Unable to update resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`))
+			})
+	}
+}
+
+export function clearUpdateResolutionError() {
+	return {
+		type: 'CLEAR_UPDATE_RESOLUTION_ERROR',
+	}
+}
+
+function deleteResolutionLocal(data) {
+	return {
+		type: 'DELETE_RESOLUTION',
+		resolution: data
+	}
+}
+function deleteResolutionSuccess(data) {
+	return {
+		type: 'DELETE_RESOLUTION_SUCCESS',
+		resolution: data
+	}
+}
+function deleteResolutionFailure(msg) {
+	return {
+		type: 'DELETE_RESOLUTION_FAILURE',
+		errMsg: msg
+	}
+}
+
+export function deleteResolution(data) {
+	return dispatch => {
+		dispatch(deleteResolutionLocal(data));
+		return axios.delete('/resolution', data)
+			.then((response) => {
+				if (response.data.status !== 'OK') {
+					dispatch(deleteResolutionFailure(response.data.message))
+				}
+				else {
+					dispatch(deleteResolutionSuccess(data))
+				}
+			})
+			.catch((error) => {
+				dispatch(deleteResolutionFailure(`Unable to delete resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`))
+			})
+	}
+}
+
+export function clearDeleteResolutionError() {
+	return {
+		type: 'CLEAR_DELETE_RESOLUTION_ERROR',
 	}
 }

@@ -1,77 +1,132 @@
 var axios = require('axios');
 
-function requestUsers() {
+function getUsersLocal() {
 	return {
-		type: 'GETALL_USERS'
+		type: 'GET_USERS'
 	}
 }
-function receiveUsersSuccess(users) {
+function getUsersSuccess(users) {
 	return {
-		type: 'GETALL_USERS_SUCCESS',
+		type: 'GET_USERS_SUCCESS',
 		users
 	}
 }
-function receiveUsersFailure(msg) {
+function getUsersFailure(msg) {
 	return {
-		type: 'GETALL_USERS_FAILURE',
+		type: 'GET_USERS_FAILURE',
 		errMsg: msg
 	}
 }
 
-export function fetchUsers() {
+export function getUsers() {
 	return dispatch => {
-		console.log('fetch users')
-		dispatch(requestUsers())
+		dispatch(getUsersLocal())
 		return axios.get('/users')
 			.then((response) => {
 				if (response.data.status !== 'OK') {
-					dispatch(receiveUsersFailure(response.data.message))
+					dispatch(getUsersFailure(response.data.message))
 				}
 				else {
-					dispatch(receiveUsersSuccess(response.data.data))
+					dispatch(getUsersSuccess(response.data.data))
 				}
 			})
 			.catch((error) => {
-				dispatch(receiveUsersFailure('Unable to get users list'))
+				dispatch(getUsersFailure('Unable to get users list'))
 			})
 	}
 }
 
-function updateUserLocal(userData) {
+export function clearGetUsersError() {
+	return {
+		type: 'CLEAR_GET_USERS_ERROR'
+	}
+}
+
+function updateUserLocal(user) {
 	return {
 		type: 'UPDATE_USER',
-		user: userData
+		user
 	}
 }
-function updateUserSuccess(userData) {
+function updateUserSuccess(user) {
 	return {
 		type: 'UPDATE_USER_SUCCESS',
-		user: userData
+		user
 	}
 }
-function updateUserFailure(userId, msg) {
+function updateUserFailure(user, msg) {
 	return {
 		type: 'UPDATE_USER_FAILURE',
-		userId,
+		user,
 		errMsg: msg
 	}
 }
 
-export function updateUser(newUserData) {
+export function updateUser(user) {
 	return dispatch => {
-		dispatch(updateUserLocal(newUserData));
-		return axios.post('/users', newUserData)
+		dispatch(updateUserLocal(user));
+		return axios.post('/users', user)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
-					dispatch(updateUserFailure(response.data.message))
+					dispatch(updateUserFailure(user, response.data.message))
 				}
 				else {
-					dispatch(updateUserSuccess(newUserData))
+					dispatch(updateUserSuccess(response.data.data))
 				}
 			})
 			.catch((error) => {
-				dispatch(updateUserFailure(newUserData.UserID, `Unable to update user ${newUserData.UserID}`))
+				dispatch(updateUserFailure(user, `Unable to update user ${user.UserID}`))
 			})
+	}
+}
+
+export function clearUpdateUserError() {
+	return {
+		type: 'CLEAR_UPDATE_USER_ERROR'
+	}
+}
+
+function addUserLocal(user) {
+	return {
+		type: 'ADD_USERS',
+		user
+	}
+}
+function addUserSuccess(user) {
+	return {
+		type: 'ADD_USER_SUCCESS',
+		user
+	}
+}
+function addUserFailure(user, msg) {
+	return {
+		type: 'ADD_USER_FAILURE',
+		user,
+		errMsg: msg
+	}
+}
+
+export function addUser(user) {
+	return dispatch => {
+		dispatch(addUserLocal(user))
+		return axios.put('/users', user)
+			.then((response) => {
+				if (response.data.status !== 'OK') {
+					dispatch(addUserFailure(user, response.data.message))
+				}
+				else {
+					dispatch(addUserSuccess(response.data.data))
+				}
+			})
+			.catch((error) => {
+				dispatch(addUserFailure(user, `Unable to add user ${user.UserID}`))
+			})
+	}
+}
+
+export function clearAddUserError() {
+	return {
+		type: 'CLEAR_ADD_USER_ERROR'
 	}
 }
 
@@ -111,51 +166,10 @@ export function deleteUsers(userIds) {
 			})
 	}
 }
-function addUserLocal(userData) {
+
+export function clearDeleteUsersError() {
 	return {
-		type: 'ADD_USERS',
-		userData
-	}
-}
-function addUserSuccess(userData) {
-	return {
-		type: 'ADD_USER_SUCCESS',
-		userData
-	}
-}
-function addUserFailure(userData, msg) {
-	return {
-		type: 'ADD_USER_FAILURE',
-		userData,
-		errMsg: msg
+		type: 'CLEAR_DELETE_USERS_ERROR'
 	}
 }
 
-export function addUser(userData) {
-	return dispatch => {
-		dispatch(addUserLocal(userData))
-		return axios.put('/users', userData)
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(addUserFailure(userData, response.data.message))
-				}
-				else {
-					dispatch(addUserSuccess(response.data.data))
-				}
-			})
-			.catch((error) => {
-				dispatch(addUserFailure(userData, `Unable to add user ${userData.UserID}`))
-			})
-	}
-}
-export function invalidateUsers() {
-	return {
-		type: 'INVALIDATE_USERS'
-	}
-}
-
-export function clearError() {
-	return {
-		type: 'CLEAR_ERROR'
-	}
-}
