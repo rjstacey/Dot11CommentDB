@@ -3,12 +3,11 @@
  */
 import React from 'react'
 import update from 'immutability-helper'
-import Modal from 'react-modal'
 import {connect} from 'react-redux'
 import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'
 import Textarea from 'react-textarea-autosize'
 import {getUsers} from './actions/users'
-import {updateComment, clearUpdateCommentError, addResolution, updateResolution, deleteResolution} from './actions/comments'
+import {updateComment, addResolution, updateResolution, deleteResolution} from './actions/comments'
 import './CommentDetail.css'
 
 
@@ -331,29 +330,6 @@ class CommentDetail extends React.Component {
 		)
 	}
 
-	renderOkModal = () => {
-		const open = this.props.updateCommentsError
-
-		var msg = 'Something wrong'
-		var dispatchObj = null
-		if (this.props.updateCommentsError) {
-			msg = this.props.updateCommentsMsg
-			dispatchObj = clearUpdateCommentError()
-		}
-
-		return (
-			<Modal
-				className='ModalContent'
-				overlayClassName='ModalOverlay'
-				isOpen={open}
-				appElement={document.querySelector('#CommentDetail')}
-			>
-			<p>{msg}</p>
-			<button onClick={() => this.props.dispatch(dispatchObj)}>OK</button>
-			</Modal>
-		)
-	}
-
  	render() {
 
 		return(
@@ -392,7 +368,6 @@ class CommentDetail extends React.Component {
 						{this.renderTabs()}
 					</div>
 				</div>
-				{this.renderOkModal()}
 			</div>
 		)
 	}
@@ -401,15 +376,14 @@ class CommentDetail extends React.Component {
 function mapStateToProps(state) {
 	const {comments, users} = state
 	return {
-    	ballotId: comments.ballotId,
-	    commentData: comments.commentData,
-	    updateComment: comments.updateComment,
-    	updateCommentError: comments.updateCommentError,
-    	updateCommentMsg: comments.updateCommentMsg,
+		ballotId: comments.ballotId,
+		commentData: comments.commentData,
+		updateComment: comments.updateComment,
+		errorMsg: comments.errorMsgs.length? comments.errorMsgs[0]: null,
 		userData: users.userData,
-    	getUsers: users.getUsers,
-    	getUsersError: users.getUsersError,
-    	getUsersMsg: users.getUsersMsg
+		getUsers: users.getUsers,
+		getUsersError: users.getUsersError,
+		getUsersMsg: users.getUsersMsg
   	}
 }
 export default connect(mapStateToProps)(CommentDetail);

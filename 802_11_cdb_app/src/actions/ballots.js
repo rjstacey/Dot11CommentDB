@@ -1,4 +1,21 @@
+import {syncEpollsAgainstBallots} from './epolls'
+
 var axios = require('axios');
+
+export function setBallotsFilter(dataKey, filter) {
+	return {
+		type: 'SET_BALLOTS_FILTER',
+		dataKey,
+		filter
+	}
+}
+export function setBallotsSort(sortBy, sortDirection) {
+	return {
+		type: 'SET_BALLOTS_SORT',
+		sortBy,
+		sortDirection
+	}
+}
 
 function getBallotsLocal() {
 	return {
@@ -19,7 +36,7 @@ function getBallotsFailure(msg) {
 }
 
 export function getBallots() {
-	return dispatch => {
+	return (dispatch, getState) => {
 		dispatch(getBallotsLocal())
 		return axios.get('/ballots')
 			.then((response) => {
@@ -30,40 +47,35 @@ export function getBallots() {
 					dispatch(getBallotsSuccess(response.data.data))
 				}
 			})
+			.then(() => dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData)))
 			.catch((error) => {
+				console.log(error)
 				dispatch(getBallotsFailure('Unable to get ballot list'))
 			})
 	}
 }
 
-export function clearGetBallotsError() {
-	return {
-		type: 'CLEAR_GET_BALLOTS_ERROR'
-	}
-}
-
-export function updateBallotLocal(ballotData) {
+export function updateBallotLocal(ballot) {
 	return {
 		type: 'UPDATE_BALLOT',
-		ballot: ballotData
+		ballot
 	}
 }
-function updateBallotSuccess(ballotData) {
+function updateBallotSuccess(ballot) {
 	return {
 		type: 'UPDATE_BALLOT_SUCCESS',
-		ballot: ballotData
+		ballot
 	}
 }
-function updateBallotFailure(ballotId, msg) {
+function updateBallotFailure(msg) {
 	return {
 		type: 'UPDATE_BALLOT_FAILURE',
-		ballotId,
 		errMsg: msg
 	}
 }
 
 export function updateBallot(newData) {
-	return dispatch => {
+	return (dispatch, getState) => {
 		dispatch(updateBallotLocal(newData));
 		return axios.post('/ballots', newData)
 			.then((response) => {
@@ -74,15 +86,10 @@ export function updateBallot(newData) {
 					dispatch(updateBallotSuccess(newData))
 				}
 			})
+			.then(() => dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData)))
 			.catch((error) => {
 				dispatch(updateBallotFailure(newData.BallotID, `Unable to update ballot ${newData.BallotID}`))
 			})
-	}
-}
-
-export function clearUpdateBallotError() {
-	return {
-		type: 'CLEAR_UPDATE_BALLOT_ERROR'
 	}
 }
 
@@ -107,7 +114,7 @@ function deleteBallotsFailure(ballotIds, msg) {
 }
 
 export function deleteBallots(ballotIds) {
-	return dispatch => {
+	return (dispatch, getState) => {
 		dispatch(deleteBallotsLocal(ballotIds))
 		return axios.delete('/ballots', {data: ballotIds})
 			.then((response) => {
@@ -118,28 +125,23 @@ export function deleteBallots(ballotIds) {
 					dispatch(deleteBallotsSuccess(ballotIds))
 				}
 			})
+			.then(() => dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData)))
 			.catch((error) => {
 				dispatch(deleteBallotsFailure(ballotIds, `Unable to delete ballots ${ballotIds}: ${error}`))
 			})
 	}
 }
 
-export function clearDeleteBallotsError() {
-	return {
-		type: 'CLEAR_DELETE_BALLOTS_ERROR'
-	}
-}
-
-function addBallotLocal(ballotData) {
+function addBallotLocal(ballot) {
 	return {
 		type: 'ADD_BALLOT',
-		ballot: ballotData
+		ballot
 	}
 }
-function addBallotSuccess(ballotData) {
+function addBallotSuccess(ballot) {
 	return {
 		type: 'ADD_BALLOT_SUCCESS',
-		ballot: ballotData
+		ballot
 	}
 }
 function addBallotFailure(msg) {
@@ -149,10 +151,10 @@ function addBallotFailure(msg) {
 	}
 }
 
-export function addBallot(ballotData) {
-	return dispatch => {
-		dispatch(addBallotLocal(ballotData))
-		return axios.put('/ballots/', ballotData)
+export function addBallot(ballot) {
+	return (dispatch, getState) => {
+		dispatch(addBallotLocal(ballot))
+		return axios.put('/ballots/', ballot)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(addBallotFailure(response.data.message))
@@ -161,55 +163,29 @@ export function addBallot(ballotData) {
 					dispatch(addBallotSuccess(response.data.data))
 				}
 			})
+			.then(() => dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData)))
 			.catch((error) => {
-				dispatch(addBallotFailure(`Unable to add ballot ${ballotData.BallotID}`))
+				dispatch(addBallotFailure(`Unable to add ballot ${ballot.BallotID}`))
 			})
-	}
-}
-export function clearAddBallotError() {
-	return {
-		type: 'CLEAR_ADD_BALLOT_ERROR'
 	}
 }
 
-function getEpollsLocal(n) {
+export function setProject(project) {
 	return {
-		type: 'GET_EPOLLS',
-		n
+		type: 'SET_PROJECT',
+		project
 	}
 }
-function getEpollsSuccess(n, epollData) {
+export function setBallotId(ballotId) {
 	return {
-		type: 'GET_EPOLLS_SUCCESS',
-		n,
-		epollData
+		type: 'SET_BALLOTID',
+		ballotId
 	}
 }
-function getEpollsFailure(msg) {
+
+export function clearBallotsError() {
 	return {
-		type: 'GET_EPOLLS_FAILURE',
-		errMsg: msg
+		type: 'CLEAR_BALLOTS_ERROR'
 	}
 }
-export function getEpolls(n = 20) {
-	return dispatch => {
-		dispatch(getEpollsLocal(n))
-		return axios.get('/epolls', {params: {n}})
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(getEpollsFailure(response.data.message))
-				}
-				else {
-					dispatch(getEpollsSuccess(n, response.data.data))
-				}
-			})
-			.catch((error) => {
-				dispatch(getEpollsFailure('Unable to get a list of epolls'))
-			})
-	}
-}
-export function clearGetEpollsError() {
-	return {
-		type: 'CLEAR_GET_EPOLLS_ERROR'
-	}
-}
+

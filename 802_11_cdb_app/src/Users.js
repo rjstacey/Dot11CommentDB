@@ -3,357 +3,350 @@ import Modal from 'react-modal';
 import update from 'immutability-helper';
 import { connect } from 'react-redux';
 import {Column, Table} from 'react-virtualized';
-import {filterData, sortData, sortClick, allSelected, toggleVisible, SortIndicator} from './filter';
-import {getUsers, clearGetUsersError, updateUser, clearUpdateUserError, addUser, clearAddUserError, deleteUsers, clearDeleteUsersError} from './actions/users';
+import {sortClick, allSelected, toggleVisible, SortIndicator} from './filter';
+import {setUsersFilter, setUsersSort, getUsers, updateUser, addUser, deleteUsers} from './actions/users';
 import styles from './AppTable.css';
 
-class Users extends React.Component {
+const defaultUserData = {SAPIN: '', Name: '', Email: '', Access: 3};
 
-  constructor(props) {
-    super(props)
+class AddUserModal extends React.PureComponent {
+	constructor(props) {
+		super(props)
 
-    this.columns = [
-      {dataKey: '',       width: 40,  label: '',
-        sortable: false,
-        headerRenderer: this.renderHeaderCheckbox,
-        cellRenderer: this.renderCheckbox},
-      {dataKey: 'SAPIN',  width: 80,  label: 'SA PIN',
-        cellRenderer: this.renderEditable},
-      {dataKey: 'Name',   width: 300, label: 'Name',
-        cellRenderer: this.renderEditable},
-      {dataKey: 'Email',  width: 300, label: 'eMail Address',
-        cellRenderer: this.renderEditable},
-      {dataKey: 'Access', width: 100, label: 'Access Level',
-        cellRenderer: this.renderAccess}
-    ];
+		this.state = {
+			wasOpen: props.isOpen,
+			userData: defaultUserData
+		}
+	}
 
-    const filters = {
-      Name: '',
-      Email: ''
-    }
+	static getDerivedStateFromProps(props, state) {
+		// Reset userData to default on each open
+		var newState = {};
+		if (props.isOpen && !state.wasOpen) {
+			newState.userData = defaultUserData;
+		}
+		newState.wasOpen = props.isOpen;
+		return newState;
+	}
 
-    this.state = {
-      showAddModal: false,
-      modalMessage: '',
-      selectedUsers: [],
-      userDataMap: [],
-      userAdd: {SAPIN: '', Name: '', Email: '', Access: 3},
-      sortBy: [],
-      sortDirection: {},
-      filters
-    }
-  }
+	change = (e) => {
+		this.setState({userData: Object.assign({}, this.state.userData, {[e.target.name]: e.target.value})});
+	}
 
-  static getDerivedStateFromProps(props, state) {
-    if (props.userData.length !== state.userDataMap.length) {
-      const newState = {
-        userDataMap: sortData(filterData(props.userData, state.filters), props.userData, state.sortBy, state.sortDirection)
-      }
-      console.log(newState)
-      return newState;
-    }
-    return null;
-  }
+	submit = (e) => {
+		console.log(this.state.userData);
+		this.props.dispatch(addUser(this.state.userData));
+		this.props.close();
+	}
 
-  showOkModal = (msg) => {
-    this.setState({showOkModal: true, modalMessage: msg});
-  }
-  hideOkModal = () => {
-    this.setState({showOkModal: false});
-  }
-  showAddModal = () => {
-    this.setState({showAddModal: true, userAdd: {Name: '', Email: '', Access: 3}});
-  }
-  hideAddModal = () => {
-    this.setState({showAddModal: false});
-  }
+	render() {
+		return (
+			<Modal
+				className='ModalContent'
+				overlayClassName='ModalOverlay'
+				isOpen={this.props.isOpen}
+				appElement={this.props.appElement}
+			>
+				<label>SA PIN:<input type='text' name='SAPIN' value={this.state.userData.SAPIN} onChange={this.change}/></label><br />
+				<label>Name:<input type='text' name='Name' value={this.state.userData.Name} onChange={this.change}/></label><br />
+				<label>Email:<input type='text' name='Email' value={this.state.userData.Email} onChange={this.change}/></label><br />
+				<label>Access Level:
+					<select name='Access' value={this.state.userData.Access} onChange={this.change}>
+					<option value='1'>Basic</option>
+					<option value='2'>Plus</option>
+					<option value='3'>Super</option>
+					</select>
+				</label><br />
+				<button onClick={this.submit}>Add</button>
+				<button onClick={this.props.close}>Cancel</button>
+			</Modal>
+		)
+	}
+}
 
-  handleUserAddChange = (e) => {
-    const userAdd = update(this.state.userAdd, {[e.target.name]: {$set: e.target.value}});
-    this.setState({userAdd});
-  }
-  handleUserAddSubmit = (e) => {
-    this.setState({showAddModal: false})
-    console.log(this.state.userAdd);
-    this.props.dispatch(addUser(this.state.userAdd))
-    e.preventDefault();
-  }
+class Users extends React.PureComponent {
 
-  handleRemoveSelected = () => {
-    const {userData} = this.props;
-    const {userDataMap} = this.state;
-    var delUserIds = [];
-    for (var i = 0; i < userDataMap.length; i++) { // only select checked items that are visible
-      let userId = userData[userDataMap[i]].UserID
-      if (this.state.selectedUsers.includes(userId)) {
-        delUserIds.push(userId)
-      }
-    }
-    if (delUserIds.length) {
-      this.props.dispatch(deleteUsers(delUserIds))
-    }
-  }
+	constructor(props) {
+		super(props)
 
-  refresh = () => {
-    this.props.dispatch(getUsers());
-  }
+		this.columns = [
+			{dataKey: '',       label: '',
+				width: 40, flexGrow: 0, flexShrink: 0,
+				headerRenderer: this.renderHeaderCheckbox,
+				cellRenderer: this.renderCheckbox},
+			{dataKey: 'SAPIN',  label: 'SA PIN',
+				width: 100,
+				cellRenderer: this.renderEditable},
+			{dataKey: 'Name',   label: 'Name',
+				width: 300,
+				cellRenderer: this.renderEditable},
+			{dataKey: 'Email',  label: 'eMail Address',
+				width: 300,
+				cellRenderer: this.renderEditable},
+			{dataKey: 'Access', label: 'Access Level',
+				width: 100,
+				cellRenderer: this.renderAccess}
+		];
 
-  updateUserField = (rowIndex, dataKey, fieldData) => {
-    const userDataIndex = this.state.userDataMap[rowIndex];
-    const u = this.props.userData[userDataIndex];
-    this.props.dispatch(updateUser({
-        UserID: u.UserID,
-        [dataKey]: fieldData
-      }));
-  }
+		// List of filterable columns
+    	const filterable = ['SAPIN', 'Name', 'Email'];
+		if (Object.keys(props.filters).length === 0) {
+			filterable.forEach(dataKey => {
+				this.props.dispatch(setUsersFilter(dataKey, ''));
+			});
+		}
 
-  updateUserFieldIfChanged = (rowIndex, dataKey, fieldData) => {
-    const userDataIndex = this.state.userDataMap[rowIndex];
-    const u = this.props.userData[userDataIndex];
-    if (u[dataKey] !== fieldData) {
-      this.props.dispatch(updateUser({
-        UserID: u.UserID,
-        [dataKey]: fieldData
-      }));
-    }
-  }
+		this.sortable = ['SAPIN', 'Name', 'Email', 'Access'];
 
-  renderOkModal = () => {
-    const open = this.props.getUsersError
-      || this.props.updateUserError
-      || this.props.addUserError
-      || this.props.deleteUsersError
+		this.state = {
+			height: 800,
+			width: 600,
+			showAddModal: false,
+			selectedUsers: [],
+			userAdd: {SAPIN: '', Name: '', Email: '', Access: 3},
+		}
+	}
 
-    var msg = 'Something wrong'
-    var dispatchObj = null
-    if (this.props.getUsersError) {
-      msg = this.props.getUsersMsg
-      dispatchObj = clearGetUsersError()
-    }
-    else if (this.props.updateUserError) {
-      msg = this.props.updateUserMsg
-      dispatchObj = clearUpdateUserError()
-    }
-    else if (this.props.addUserError) {
-      msg = this.props.addUsersMsg
-      dispatchObj = clearAddUserError()
-    }
-    else if (this.props.deleteUsersError) {
-      msg = this.props.deleteUsersMsg
-      dispatchObj = clearDeleteUsersError()
-    }
+	componentDidMount() {
+		var wrapper = document.getElementById('Users');
+		this.setState({
+			height: wrapper.offsetHeight - 19,
+			width: Math.min(wrapper.offsetWidth, 800)
+		})
+		if (!this.props.usersDataValid) {
+			this.props.dispatch(getUsers())
+		}
+	}
 
-    return (
-      <Modal
-        className='ModalContent'
-        overlayClassName='ModalOverlay'
-        isOpen={open}
-        appElement={document.querySelector('#Users')}
-      >
-        <p>{msg}</p>
-        <button onClick={() => this.props.dispatch(dispatchObj)}>OK</button>
-      </Modal>
-    )
-  }
+	handleRemoveSelected = () => {
+		const {usersData, usersDataMap} = this.props;
+		var delUserIds = [];
+		for (var i = 0; i < usersDataMap.length; i++) { // only select checked items that are visible
+			let userId = usersData[usersDataMap[i]].UserID
+			if (this.state.selectedUsers.includes(userId)) {
+				delUserIds.push(userId)
+			}
+		}
+		if (delUserIds.length) {
+			this.props.dispatch(deleteUsers(delUserIds))
+		}
+	}
 
-  renderHeaderCell = ({columnData, dataKey, label}) => {
-    const sortDirection = this.state.sortBy.includes(dataKey)? this.state.sortDirection[dataKey]: 'NONE';
-    const showIndicator = columnData.hasOwnProperty('sortable')? columnData.sortable: true;
-    const showFilter = this.state.filters.hasOwnProperty(dataKey);
+	refresh = () => {
+		this.props.dispatch(getUsers());
+	}
 
-    return (
-      <div>
-        <span
-          title={label}
-          onClick={e => this.sortChange(e, dataKey)}
-          style={{cursor: 'pointer'}}>
-          {label}
-          {showIndicator && <SortIndicator sortDirection={sortDirection} />}
-        </span><br />
-        {showFilter &&
-          <div
-            className={styles.headerFilt}
-            placeholder='Filter'
-            contentEditable
-            onInput={e => {this.filterChange(e, dataKey)}}
-          />}
-      </div>
-    )
-  }
+	updateUserField = (rowIndex, dataKey, fieldData) => {
+		const usersDataIndex = this.props.usersDataMap[rowIndex];
+		const u = this.props.usersData[usersDataIndex];
+		this.props.dispatch(updateUser({
+			UserID: u.UserID,
+			[dataKey]: fieldData
+		}));
+	}
 
-  noRowsRenderer = () => {
-    return <div className={styles.noRows}>{this.props.getUsers? 'Loading...': 'No rows'}</div>
-  }
+	updateUserFieldIfChanged = (rowIndex, dataKey, fieldData) => {
+		const usersDataIndex = this.props.usersDataMap[rowIndex];
+		const u = this.props.usersData[usersDataIndex];
+		if (u[dataKey] !== fieldData) {
+			this.props.dispatch(updateUser({
+				UserID: u.UserID,
+				[dataKey]: fieldData
+			}));
+		}
+	}
 
-  rowClassName = ({index}) => {
-    if (index < 0) {
-      return styles.headerRow
-    } else {
-      return index % 2 === 0 ? styles.evenRow : styles.oddRow
-    }
-  }
+	renderSortLabel = (props) => {
+		const {dataKey, label, style} = props;
+		const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE'
+		return (
+			<span
+				key={'label-' + dataKey}
+				title={label}
+				onClick={e => this.sortChange(e, dataKey)}
+				style={{cursor: 'pointer', userSelect: 'none', ...style}}
+			>
+				{label}
+				<SortIndicator sortDirection={sortDirection} />
+			</span>
+		);
+	}
+	renderLabel = (props) => {
+		const {label, style} = props;
+		return (
+			<span
+				key={'label-' + label}
+				title={label}
+				style={style}
+			>
+				{label}
+			</span>
+		);
+	}
+	renderFilter = (dataKey) => {
+		return (
+			<input
+				key={'filt-' + dataKey}
+				type='text'
+				className={styles.headerFilt}
+				placeholder='Filter'
+				onChange={e => this.filterChange(e, dataKey)}
+				value={this.props.filters[dataKey]}
+				style={{width: '100%'}}
+			/>
+		);
+	}
+	renderHeaderCell = ({columnData, dataKey, label}) => {
+		const labelElement = this.sortable.includes(dataKey)? this.renderSortLabel({dataKey, label}): this.renderLabel({label});
+		const showFilter = this.props.filters.hasOwnProperty(dataKey)
+		return (
+			<div>
+				{labelElement}
+				{showFilter && this.renderFilter(dataKey)}
+			</div>
+		);
+	}
 
-  renderHeaderCheckbox = ({dataKey}) => {
-    const {userDataMap, selectedUsers} = this.state
-    const {userData} = this.props
-    const checked = allSelected(selectedUsers, userDataMap, userData, 'UserID')
-    return (
-      <input type="checkbox"
-        checked={checked}
-        onChange={e => {
-          this.setState({selectedUsers: toggleVisible(selectedUsers, userDataMap, userData, 'UserID')})
-        }}
-      />
-    )
-  }
+	noRowsRenderer = () => {
+		return <div className={styles.noRows}>{this.props.getUsers? 'Loading...': 'No rows'}</div>
+	}
 
-  renderEditable = ({rowIndex, rowData, dataKey}) => {
-    return (
-      <div
-        contentEditable
-        onBlur={e => {
-          this.updateUserFieldIfChanged(rowIndex, dataKey, e.target.innerHTML)
-        }}
-        dangerouslySetInnerHTML={{__html: rowData[dataKey]}}
-      />
-    );
-  }
+	rowClassName = ({index}) => {
+		if (index < 0) {
+			return styles.headerRow
+		} else {
+			return index % 2 === 0 ? styles.evenRow : styles.oddRow
+		}
+	}
 
-  renderCheckbox = ({rowIndex, rowData, dataKey}) => {
-    const userId = rowData.UserID;
-    return (
-      <input type="checkbox"
-        checked={this.state.selectedUsers.indexOf(userId) > -1}
-        onChange={e => {
-          // if userId is present in selectedUsers (i > 0) then remove it; otherwise add it
-          let i = this.state.selectedUsers.indexOf(userId);
-          this.setState({
-            selectedUsers: update(this.state.selectedUsers, (i > -1)? {$splice: [[i, 1]]}: {$push: [userId]})
-          })
-        }}
-      />
-    );
-  }
+	renderHeaderCheckbox = ({dataKey}) => {
+		const {selectedUsers} = this.state
+		const {usersData, usersDataMap} = this.props
+		const checked = allSelected(selectedUsers, usersDataMap, usersData, 'UserID')
+		return (
+			<input
+				type="checkbox"
+				checked={checked}
+				onChange={e => {
+					this.setState({selectedUsers: toggleVisible(selectedUsers, usersDataMap, usersData, 'UserID')})
+				}}
+			/>
+		)
+	}
 
-  renderAccess = ({rowIndex, rowData, dataKey}) => {
-    return (
-      <select 
-        value={rowData[dataKey]}
-        onChange={e => {
-          this.updateUserField(rowIndex, dataKey, e.target.value)
-        }}>
-        <option value='1'>Basic</option>
-        <option value='2'>Plus</option>
-        <option value='3'>Super</option>
-      </select>
-    )
-  }
+	renderEditable = ({rowIndex, rowData, dataKey}) => {
+		return (
+			<div
+				contentEditable
+				onBlur={e => {
+					this.updateUserFieldIfChanged(rowIndex, dataKey, e.target.innerHTML)
+				}}
+				dangerouslySetInnerHTML={{__html: rowData[dataKey]}}
+			/>
+		)
+	}
 
-  sortChange = (event, dataKey) => {
-    const {sortBy, sortDirection} = sortClick(event, dataKey, this.state.sortBy, this.state.sortDirection);
+	renderCheckbox = ({rowIndex, rowData, dataKey}) => {
+		const userId = rowData.UserID;
+		return (
+			<input
+				type="checkbox"
+				checked={this.state.selectedUsers.indexOf(userId) > -1}
+				onChange={e => {
+					// if userId is present in selectedUsers (i > 0) then remove it; otherwise add it
+					let i = this.state.selectedUsers.indexOf(userId);
+					this.setState({
+						selectedUsers: update(this.state.selectedUsers, (i > -1)? {$splice: [[i, 1]]}: {$push: [userId]})
+					})
+				}}
+			/>
+		)
+	}
 
-    this.setState({
-      sortBy: sortBy,
-      sortDirection: sortDirection,
-      userDataMap: sortData(this.state.userDataMap, this.props.userData, sortBy, sortDirection)
-    });
-  }
+	renderAccess = ({rowIndex, rowData, dataKey}) => {
+		return (
+			<select 
+				value={rowData[dataKey]}
+				onChange={e => {
+					this.updateUserField(rowIndex, dataKey, e.target.value)
+				}}
+			>
+				<option value='1'>Basic</option>
+				<option value='2'>Plus</option>
+				<option value='3'>Super</option>
+			</select>
+		)
+	}
 
-  filterChange = (event, dataKey) => {
-    const {userData} = this.props
-    const {sortBy, sortDirection} = this.state
-    const filters = update(this.state.filters, {[dataKey]: {$set: event.target.textContent}})
+  	sortChange = (event, dataKey) => {
+		const {sortBy, sortDirection} = sortClick(event, dataKey, this.props.sortBy, this.props.sortDirection);
+		this.props.dispatch(setUsersSort(sortBy, sortDirection));
+	}
+	filterChange = (event, dataKey) => {
+		this.props.dispatch(setUsersFilter(dataKey, event.target.value));
+	}
 
-    this.setState({
-      filters: filters,
-      userDataMap: sortData(filterData(userData, filters), userData, sortBy, sortDirection)
-    });
-  }
+	renderTable = () => {
+		return (
+			<Table
+				className={styles.Table}
+				height={this.state.height}
+				width={this.state.width}
+				rowHeight={22}
+				headerHeight={40}
+				noRowsRenderer={this.noRowsRenderer}
+				headerClassName={styles.headerColumn}
+				rowClassName={this.rowClassName}
+				rowCount={this.props.usersDataMap.length}
+				rowGetter={({index}) => {return this.props.usersData[this.props.usersDataMap[index]]}}
+			>
+				{this.columns.map((col, index) => {
+					const {headerRenderer, ...otherProps} = col;
+					return (
+						<Column 
+							key={index}
+							columnData={col}
+							headerRenderer={headerRenderer? headerRenderer: this.renderHeaderCell}
+							{...otherProps}
+						/>
+				)})}
+			</Table>
+			)
+	}
 
-  renderTable = () => {
-    return (
-      <Table
-        className={styles.Table}
-        height={400}
-        width={600}
-        rowHeight={50}
-        headerHeight={60}
-        noRowsRenderer={this.noRowsRenderer}
-        headerClassName={styles.headerColumn}
-        rowClassName={this.rowClassName}
-        rowCount={this.state.userDataMap.length}
-        rowGetter={({index}) => {return this.props.userData[this.state.userDataMap[index]]}}
-      >
-        {this.columns.map((col, index) => {
-          return (
-            <Column 
-              key={index}
-              className={col.className}
-              columnData={col}
-              width={col.width}
-              label={col.label}
-              dataKey={col.dataKey}
-              headerRenderer={col.headerRenderer? col.headerRenderer: this.renderHeaderCell}
-              cellRenderer={col.cellRenderer}
-            />
-          )})}
-      </Table>
-    )
-  }
-  
-  componentDidMount() {
-  }
+	render() {
+		return (
+			<div id='Users'>
+				<button disabled={this.props.getUsers} onClick={this.refresh}>Refresh</button>
+				<button onClick={() => this.setState({showAddUserModal: true})}>Add</button>
+				<button onClick={this.handleRemoveSelected}>Remove Selected</button>
 
-  render() {
-  
-    return (
-      <div id='Users'>
-        {!this.props.isFetching && <button onClick={this.refresh}>Refresh</button>}
-        <button onClick={this.showAddModal}>Add</button>
-        <button onClick={this.handleRemoveSelected}>Remove Selected</button>
-        
-        {this.renderTable()}
+				{this.renderTable()}
 
-        {this.renderOkModal()}
-
-        <Modal className='ModalContent' overlayClassName='ModalOverlay' isOpen={this.state.showAddModal} appElement={document.querySelector('#Users')}>
-          <form className='content' onSubmit={this.handleUserAddSubmit}>
-            <label>SA PIN:<input type='text' name='SAPIN' value={this.state.userAdd.SAPIN} onChange={this.handleUserAddChange}/></label><br />
-            <label>Name:<input type='text' name='Name' value={this.state.userAdd.Name} onChange={this.handleUserAddChange}/></label><br />
-            <label>Email:<input type='text' name='Email' value={this.state.userAdd.Email} onChange={this.handleUserAddChange}/></label><br />
-            <label>Access Level:
-              <select name='Access' value={this.state.userAdd.Access} onChange={this.handleUserAddChange}>
-                <option value='1'>Basic</option>
-                <option value='2'>Plus</option>
-                <option value='3'>Super</option>
-              </select>
-            </label><br />
-            <button type='submit'>Add</button>
-            <button onClick={this.hideAddModal}>close</button>
-          </form>
-        </Modal>
-
-      </div>
-      )
-  }
+				<AddUserModal
+					isOpen={this.state.showAddUserModal}
+					close={() => this.setState({showAddUserModal: false})}
+					dispatch={this.props.dispatch}
+					appElement={document.querySelector('#Users')}
+				/>
+			</div>
+		)
+	}
 }
 
 function mapStateToProps(state) {
-  const s = state.users;
-  return {
-    userData: s.userData,
-    getUsers: s.getUsers,
-    getUsersError: s.getUsersError,
-    getUsersMsg: s.getUsersMsg,
-    updateUser: s.updateUser,
-    updateUserError: s.updateUserError,
-    updateUserMsg: s.updateUserMsg,
-    addUser: s.addUser,
-    addUserError: s.addUserError,
-    addUserMsg: s.addUserMsg,
-    deleteUsers: s.deleteUsers,
-    deleteUsersError: s.deleteUsersError,
-    deleteUsersMsg: s.deleteUsersMsg
-  }
+	const s = state.users;
+	return {
+		filters: s.filters,
+		sortBy: s.sortBy,
+		sortDirection: s.sortDirection,
+		usersDataValid: s.usersDataValid,
+		usersData: s.usersData,
+		usersDataMap: s.usersDataMap,
+		getUsers: s.getUsers,
+		updateUser: s.updateUser,
+		addUser: s.addUser,
+		deleteUsers: s.deleteUsers,
+	}
 }
 export default connect(mapStateToProps)(Users);

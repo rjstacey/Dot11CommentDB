@@ -3,17 +3,40 @@ import {updateBallotLocal} from './ballots'
 
 var axios = require('axios');
 
+export function setResultsProject(project) {
+	return {
+		type: 'SET_RESULTS_PROJECT',
+		project
+	}
+}
+
+export function setResultsFilter(dataKey, filter) {
+	return {
+		type: 'SET_RESULTS_FILTER',
+		dataKey,
+		filter
+	}
+
+}
+
+export function setResultsSort(sortBy, sortDirection) {
+	return {
+		type: 'SET_RESULTS_SORT',
+		sortBy,
+		sortDirection
+	}
+}
+
 function getResultsLocal(ballotId) {
 	return {
 		type: 'GET_RESULTS',
 		ballotId: ballotId
 	}
 }
-function getResultsSuccess(results, summary) {
+function getResultsSuccess(results) {
 	return {
 		type: 'GET_RESULTS_SUCCESS',
-		results,
-		summary
+		results
 	}
 }
 function getResultsFailure(msg) {
@@ -32,19 +55,13 @@ export function getResults(ballotId) {
 					dispatch(getResultsFailure(response.data.message))
 				}
 				else {
-					var {results, summary} = response.data.data;
-					dispatch(getResultsSuccess(results, summary))
+					var results = response.data.data;
+					dispatch(getResultsSuccess(results))
 				}
 			})
 			.catch((error) => {
 				dispatch(getResultsFailure('Unable to get results list'))
 			})
-	}
-}
-
-export function clearGetResultsError() {
-	return {
-		type: 'CLEAR_GET_RESULTS_ERROR',
 	}
 }
 
@@ -83,12 +100,6 @@ export function deleteResults(ballotId) {
 			.catch((error) => {
 				dispatch(deleteResultsFailure(ballotId, `Unable to delete results with ballotId=${ballotId}`))
 			})
-	}
-}
-
-export function clearDeleteResultsError() {
-	return {
-		type: 'CLEAR_DELETE_RESULTS_ERROR',
 	}
 }
 
@@ -136,12 +147,6 @@ export function importResults(ballotId, epollNum) {
 	}
 }
 
-export function clearImportResultsError() {
-	return {
-		type: 'CLEAR_IMPORT_RESULTS_ERROR'
-	}
-}
-
 function summarizeResultsLocal(data) {
 	return {
 		type: 'SUMMARIZE_RESULTS',
@@ -178,9 +183,9 @@ export function summarizeResults(data) {
 	}
 }
 
-export function clearSummarizeResultsError() {
+export function clearResultsError() {
 	return {
-		type: 'CLEAR_SUMMARIZE_RESULTS_ERROR',
+		type: 'CLEAR_RESULTS_ERROR',
 	}
 }
 

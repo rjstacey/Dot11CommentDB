@@ -9,7 +9,7 @@ export function setProject(project) {
 	}
 }
 
-export function setFilter(dataKey, filter) {
+export function setCommentsFilter(dataKey, filter) {
 	return {
 		type: 'SET_COMMENTS_FILTER',
 		dataKey,
@@ -18,7 +18,7 @@ export function setFilter(dataKey, filter) {
 
 }
 
-export function setSort(sortBy, sortDirection) {
+export function setCommentsSort(sortBy, sortDirection) {
 	return {
 		type: 'SET_COMMENTS_SORT',
 		sortBy,
@@ -63,12 +63,6 @@ export function getComments(ballotId) {
 	}
 }
 
-export function clearGetCommentsError() {
-	return {
-		type: 'CLEAR_GET_COMMENTS_ERROR',
-	}
-}
-
 function deleteCommentsWithBallotIdLocal(ballotId) {
 	return {
 		type: 'DELETE_COMMENTS_WITH_BALLOTID',
@@ -104,12 +98,6 @@ export function deleteCommentsWithBallotId(ballotId) {
 			.catch((error) => {
 				dispatch(deleteCommentsWithBallotIdFailure(ballotId, `Unable to delete comments with ballotId=${ballotId}`))
 			})
-	}
-}
-
-export function clearDeleteCommentsWithBallotIdError() {
-	return {
-		type: 'CLEAR_DELETE_COMMENTS_WITH_BALLOTID_ERROR',
 	}
 }
 
@@ -158,12 +146,6 @@ export function importComments(ballotId, epollNum, startCID) {
 	}
 }
 
-export function clearImportCommentsError() {
-	return {
-		type: 'CLEAR_IMPORT_COMMENTS_ERROR'
-	}
-}
-
 function updateCommentLocal(data) {
 	return {
 		type: 'UPDATE_COMMENT',
@@ -201,12 +183,6 @@ export function updateComment(data) {
 	}
 }
 
-export function clearUpdateCommentError() {
-	return {
-		type: 'CLEAR_UPDATE_COMMENT_ERROR',
-	}
-}
-
 function addResolutionLocal(data) {
 	return {
 		type: 'ADD_RESOLUTION',
@@ -241,12 +217,6 @@ export function addResolution(data) {
 			.catch((error) => {
 				dispatch(addResolutionFailure(`Unable to add resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`))
 			})
-	}
-}
-
-export function clearAddResolutionError() {
-	return {
-		type: 'CLEAR_ADD_RESOLUTION_ERROR',
 	}
 }
 
@@ -330,8 +300,8 @@ export function deleteResolution(data) {
 	}
 }
 
-export function clearDeleteResolutionError() {
+export function clearCommentsError() {
 	return {
-		type: 'CLEAR_DELETE_RESOLUTION_ERROR',
+		type: 'CLEAR_COMMENTS_ERROR',
 	}
 }

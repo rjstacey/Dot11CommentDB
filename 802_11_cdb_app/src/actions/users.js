@@ -1,5 +1,22 @@
 var axios = require('axios');
 
+export function setUsersFilter(dataKey, filter) {
+	return {
+		type: 'SET_USERS_FILTER',
+		dataKey,
+		filter
+	}
+
+}
+
+export function setUsersSort(sortBy, sortDirection) {
+	return {
+		type: 'SET_USERS_SORT',
+		sortBy,
+		sortDirection
+	}
+}
+
 function getUsersLocal() {
 	return {
 		type: 'GET_USERS'
@@ -33,12 +50,6 @@ export function getUsers() {
 			.catch((error) => {
 				dispatch(getUsersFailure('Unable to get users list'))
 			})
-	}
-}
-
-export function clearGetUsersError() {
-	return {
-		type: 'CLEAR_GET_USERS_ERROR'
 	}
 }
 
@@ -80,12 +91,6 @@ export function updateUser(user) {
 	}
 }
 
-export function clearUpdateUserError() {
-	return {
-		type: 'CLEAR_UPDATE_USER_ERROR'
-	}
-}
-
 function addUserLocal(user) {
 	return {
 		type: 'ADD_USERS',
@@ -121,12 +126,6 @@ export function addUser(user) {
 			.catch((error) => {
 				dispatch(addUserFailure(user, `Unable to add user ${user.UserID}`))
 			})
-	}
-}
-
-export function clearAddUserError() {
-	return {
-		type: 'CLEAR_ADD_USER_ERROR'
 	}
 }
 
@@ -167,9 +166,9 @@ export function deleteUsers(userIds) {
 	}
 }
 
-export function clearDeleteUsersError() {
+export function clearUsersError() {
 	return {
-		type: 'CLEAR_DELETE_USERS_ERROR'
+		type: 'CLEAR_USERS_ERROR'
 	}
 }
 

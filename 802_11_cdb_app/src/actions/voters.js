@@ -1,19 +1,170 @@
 
-import {updateBallotLocal} from './ballots'
-
 var axios = require('axios');
 
-function getVotersLocal(ballotId) {
+export function setVotingPoolFilter(dataKey, filter) {
 	return {
-		type: 'GET_VOTERS',
-		ballotId: ballotId
+		type: 'SET_VOTING_POOL_FILTER',
+		dataKey,
+		filter
+	}
+
+}
+
+export function setVotingPoolSort(sortBy, sortDirection) {
+	return {
+		type: 'SET_VOTING_POOL_SORT',
+		sortBy,
+		sortDirection
 	}
 }
-function getVotersSuccess(voters, summary) {
+
+function getVotingPoolLocal() {
+	return {
+		type: 'GET_VOTING_POOL'
+	}
+}
+function getVotingPoolSuccess(votingPoolData) {
+	return {
+		type: 'GET_VOTING_POOL_SUCCESS',
+		votingPoolData
+	}
+}
+function getVotingPoolFailure(msg) {
+	return {
+		type: 'GET_VOTING_POOL_FAILURE',
+		errMsg: msg
+	}
+}
+
+export function getVotingPool() {
+	return dispatch => {
+		dispatch(getVotingPoolLocal())
+		return axios.get('/votingPool')
+			.then((response) => {
+				if (response.data.status !== 'OK') {
+					dispatch(getVotingPoolFailure(response.data.message))
+				}
+				else {
+					dispatch(getVotingPoolSuccess(response.data.data))
+				}
+			})
+			.catch((error) => {
+				dispatch(getVotingPoolFailure('Unable to get voting pool list'))
+			})
+	}
+}
+
+function addVotingPoolLocal(votingPoolData) {
+	return {
+		type: 'ADD_VOTING_POOL',
+		votingPoolData
+	}
+}
+function addVotingPoolSuccess(votingPoolData) {
+	return {
+		type: 'ADD_VOTING_POOL_SUCCESS',
+		votingPoolData
+	}
+}
+function addVotingPoolFailure(msg) {
+	return {
+		type: 'ADD_VOTING_POOL_FAILURE',
+		errMsg: msg
+	}
+}
+
+function generateVotingPoolId(votingPool) {
+	var id = 0;
+	votingPool.forEach(v => {
+		if (v.VotingPoolID >= id) {id = v.VotingPoolID + 1}
+	})
+	return id
+}
+
+export function addVotingPool(newEntry) {
+	return (dispatch, getState) => {
+		newEntry.VotingPoolID = generateVotingPoolId(getState().voters.votingPoolData);
+		dispatch(addVotingPoolLocal(newEntry))
+		return axios.put('/votingPool', newEntry)
+			.then((response) => {
+				if (response.data.status !== 'OK') {
+					dispatch(addVotingPoolFailure(response.data.message))
+				}
+				else {
+					dispatch(addVotingPoolSuccess(response.data.data))
+				}
+			})
+			.catch((error) => {
+				dispatch(addVotingPoolFailure('Unable to add voting pool'))
+			})
+	}
+}
+
+function deleteVotingPoolLocal(votingPoolId) {
+	return {
+		type: 'DELETE_VOTING_POOL',
+		votingPoolId
+	}
+}
+function deleteVotingPoolSuccess(votingPoolId) {
+	return {
+		type: 'DELETE_VOTING_POOL_SUCCESS',
+		votingPoolId
+	}
+}
+function deleteVotingPoolFailure(msg) {
+	return {
+		type: 'DELETE_VOTING_POOL_FAILURE',
+		errMsg: msg
+	}
+}
+
+export function deleteVotingPool(votingPoolId) {
+	return (dispatch, getState) => {
+		dispatch(deleteVotingPoolLocal(votingPoolId))
+		return axios.delete('/votingPool', {data: {VotingPoolID: votingPoolId}})
+			.then((response) => {
+				if (response.data.status !== 'OK') {
+					dispatch(deleteVotingPoolFailure(response.data.message))
+				}
+				else {
+					dispatch(deleteVotingPoolSuccess(votingPoolId))
+				}
+			})
+			.catch((error) => {
+				dispatch(deleteVotingPoolFailure('Unable to delete voting pool'))
+			})
+	}
+}
+
+
+export function setVotersFilter(dataKey, filter) {
+	return {
+		type: 'SET_VOTERS_FILTER',
+		dataKey,
+		filter
+	}
+
+}
+
+export function setVotersSort(sortBy, sortDirection) {
+	return {
+		type: 'SET_VOTERS_SORT',
+		sortBy,
+		sortDirection
+	}
+}
+
+function getVotersLocal(votingPoolId) {
+	return {
+		type: 'GET_VOTERS',
+		votingPoolId
+	}
+}
+function getVotersSuccess(votersData) {
 	return {
 		type: 'GET_VOTERS_SUCCESS',
-		voters,
-		summary
+		votersData
 	}
 }
 function getVotersFailure(msg) {
@@ -23,118 +174,139 @@ function getVotersFailure(msg) {
 	}
 }
 
-export function getVoters(ballotId) {
+export function getVoters(votingPoolId) {
 	return dispatch => {
-		dispatch(getVotersLocal(ballotId))
-		return axios.get('/voters', {params: {BallotID: ballotId}})
+		dispatch(getVotersLocal(votingPoolId))
+		return axios.get('/voters', {params: {VotingPoolID: votingPoolId}})
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(getVotersFailure(response.data.message))
 				}
 				else {
-					var {voters, summary} = response.data.data;
-					dispatch(getVotersSuccess(voters, summary))
+					dispatch(getVotersSuccess(response.data.data))
 				}
 			})
 			.catch((error) => {
-				dispatch(getVotersFailure('Unable to get voters list'))
+				dispatch(getVotersFailure(`Unable to get voters for ${votingPoolId}`))
 			})
 	}
 }
 
-export function clearGetVotersError() {
-	return {
-		type: 'CLEAR_GET_VOTERS_ERROR',
-	}
-}
 
-function deleteVotersLocal(ballotId) {
+function deleteVotersLocal(voterPoolId) {
 	return {
 		type: 'DELETE_VOTERS',
-		ballotId: ballotId
+		voterPoolId
 	}
 }
-function deleteVotersSuccess(ballotId) {
+function deleteVotersSuccess(voterPoolId) {
 	return {
 		type: 'DELETE_VOTERS_SUCCESS',
-		ballotId: ballotId
+		voterPoolId
 	}
 }
-function deleteVotersFailure(ballotId, msg) {
+function deleteVotersFailure(msg) {
 	return {
 		type: 'DELETE_VOTERS_FAILURE',
-		ballotId,
 		errMsg: msg
 	}
 }
-export function deleteVoters(ballotId) {
+export function deleteVoters(voterPoolId) {
 	return dispatch => {
-		dispatch(deleteVotersLocal(ballotId));
-		return axios.delete('/voters', {data: {BallotID: ballotId}})
+		dispatch(deleteVotersLocal(voterPoolId));
+		return axios.delete('/voters', {data: {VoterPoolID: voterPoolId}})
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(deleteVotersFailure(response.data.message))
 				}
 				else {
-					dispatch(updateBallotLocal({BallotID: ballotId, Voters: ''}))
-					dispatch(deleteVotersSuccess(ballotId))
+					dispatch(deleteVotersSuccess(voterPoolId))
 				}
 			})
 			.catch((error) => {
-				dispatch(deleteVotersFailure(ballotId, `Unable to delete voters with ballotId=${ballotId}`))
+				dispatch(deleteVotersFailure(`Unable to delete voters for ballot series ${voterPoolId}`))
 			})
 	}
 }
 
-export function clearDeleteVotersError() {
-	return {
-		type: 'CLEAR_DELETE_VOTERS_ERROR',
-	}
-}
-
-function uploadVotersLocal(ballotId) {
+function uploadVotersLocal(votingPoolId) {
 	return {
 		type: 'IMPORT_VOTERS',
-		ballotId
+		votingPoolId
 	}
 }
-function uploadVotersSuccess(ballotId) {
+function uploadVotersSuccess(votingPoolId) {
 	return {
 		type: 'IMPORT_VOTERS_SUCCESS',
-		ballotId,
+		votingPoolId,
 	}
 }
-function uploadVotersFailure(ballotId, msg) {
+function uploadVotersFailure(msg) {
 	return {
 		type: 'IMPORT_VOTERS_FAILURE',
-		ballotId,
 		errMsg: msg
 	}
 }
-export function uploadVoters(ballotId, file) {
+export function uploadVoters(votingPoolId, file) {
 	return dispatch => {
-		dispatch(uploadVotersLocal(ballotId));
+		dispatch(uploadVotersLocal(votingPoolId));
 		var formData = new FormData();
-		formData.append("BallotID", ballotId);
+		formData.append("VotingPoolID", votingPoolId);
 		formData.append("VotersFile", file);
 		return axios.post('/voters', formData, {headers: {'Content-Type': 'multipart/form-data'}})
 			.then((response) => {
 				if (response.data.status !== 'OK') {
-					dispatch(uploadVotersFailure(ballotId, response.data.message))
+					dispatch(uploadVotersFailure(response.data.message))
 				}
 				else {
-					dispatch(uploadVotersSuccess(ballotId))
+					dispatch(uploadVotersSuccess(votingPoolId))
 				}
 			})
 			.catch((error) => {
-				dispatch(uploadVotersFailure(ballotId, `Unable to import voters for ballotId=${ballotId}`))
+				dispatch(uploadVotersFailure(`Unable to import voters for voting pool ${votingPoolId}`))
 			})
 	}
 }
 
-export function clearImportVotersError() {
+function addVoterLocal(voter) {
 	return {
-		type: 'CLEAR_IMPORT_VOTERS_ERROR'
+		type: 'ADD_VOTER',
+		voter
+	}
+}
+function addVoterSuccess(voter) {
+	return {
+		type: 'ADD_VOTER_SUCCESS',
+		voter
+	}
+}
+function addVoterFailure(msg) {
+	return {
+		type: 'ADD_VOTER_FAILURE',
+		errMsg: msg
+	}
+}
+export function addVoter(voter) {
+	return dispatch => {
+		dispatch(addVoterLocal(voter));
+		return axios.put('/voters', voter)
+			.then((response) => {
+				if (response.data.status !== 'OK') {
+					dispatch(addVoterFailure(response.data.message))
+				}
+				else {
+					dispatch(addVoterSuccess(response.data.data))
+				}
+			})
+			.catch((error) => {
+				console.log(error)
+				dispatch(addVoterFailure('Unable to add voter'))
+			})
 	}
 }
 
+export function clearVotersError() {
+	return {
+		type: 'CLEAR_VOTERS_ERROR',
+	}
+}

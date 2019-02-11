@@ -143,74 +143,71 @@ export function filterData(data, filters) {
 }
 
 export function sortData(dataMap, data, sortBy, sortDirection) {
-  var sortDataMap = dataMap.slice();
+	var sortDataMap = dataMap.slice();
 
-  sortBy.forEach(key => {
-    sortDataMap.sort((a, b) => {
-      if (sortDirection[key] === 'NONE') {
-        return a - b; // Index order (= original order)
-      }
-      else {
-        const aa = data[a];
-        const bb = data[b];
-        if (typeof aa[key] === 'number' && typeof bb[key] === 'number') {
-          return aa[key] - bb[key];
-        }
-        else if (typeof aa[key] === 'string' && typeof bb[key] === 'string') {
-          const A = aa[key].toUpperCase();
-          const B = bb[key].toUpperCase();
-          if (A < B) {
-            return -1;
-          }
-          if (A > B) {
-            return 1;
-          }
-          return 0;
-        }
-      }
-      return 0;
-    })
-    if (sortDirection[key] === 'DESC') {
-      sortDataMap.reverse()
-    }
-  })
-  return sortDataMap;
+	sortBy.forEach(key => {
+		sortDataMap.sort((a, b) => {
+			if (!sortDirection[key] || sortDirection[key] === 'NONE') {
+				return a - b; // Index order (= original order)
+			}
+			else {
+				const aa = data[a];
+				const bb = data[b];
+				if (typeof aa[key] === 'number' && typeof bb[key] === 'number') {
+					return aa[key] - bb[key];
+				}
+				else if (typeof aa[key] === 'string' && typeof bb[key] === 'string') {
+					const A = aa[key].toUpperCase();
+					const B = bb[key].toUpperCase();
+					if (A < B) {
+						return -1;
+					}
+					if (A > B) {
+						return 1;
+					}
+					return 0;
+				}
+			}
+			return 0;
+		})
+		if (sortDirection[key] === 'DESC') {
+			sortDataMap.reverse()
+		}
+	})
+	return sortDataMap;
 }
 
 export function sortClick(event, dataKey, currSortBy, currSortDirection) {
-  var sortBy = currSortBy.slice()
-  var sortDirection = Object.assign({}, currSortDirection)
+	var sortBy = currSortBy.slice()
+	var sortDirection = Object.assign({}, currSortDirection)
 
-  if (event.shiftKey) {
-    // Shift + click appends a column to existing criteria
-    if (sortDirection.hasOwnProperty(dataKey)) {
-      sortDirection[dataKey] = sortDirection[dataKey] === 'NONE'? 'ASC':
-        (sortDirection[dataKey] === 'ASC'? 'DESC': 'NONE');
-    } else {
-      sortDirection[dataKey] = 'ASC';
-    }
-    if (!sortBy.includes(dataKey)) {
-      sortBy.unshift(dataKey);
-    }
-  } else if (event.ctrlKey || event.metaKey) {
-    // Control + click removes column from sort (if pressent)
-    const index = sortBy.indexOf(dataKey);
-    if (index >= 0) {
-      sortBy.splice(index, 1);
-      delete sortDirection[dataKey];
-    }
-  } else {
-    sortBy.length = 0;
-    sortBy.push(dataKey);
-
-    if (sortDirection.hasOwnProperty(dataKey)) {
-      sortDirection[dataKey] = sortDirection[dataKey] === 'NONE'? 'ASC':
-        (sortDirection[dataKey] === 'ASC'? 'DESC': 'NONE');
-    } else {
-      sortDirection[dataKey] = 'ASC';
-    }
-  }
-  return {sortBy, sortDirection};
+	if (event.shiftKey) {
+		// Shift + click appends a column to existing criteria
+		if (sortBy.includes(dataKey)) {
+			sortDirection[dataKey] = sortDirection[dataKey] === 'DESC'? 'NONE':
+				(sortDirection[dataKey] === 'ASC'? 'DESC': 'ASC');
+		} else {
+			sortDirection[dataKey] = 'ASC';
+			sortBy.unshift(dataKey);
+		}
+	} else if (event.ctrlKey || event.metaKey) {
+		// Control + click removes column from sort (if pressent)
+		const index = sortBy.indexOf(dataKey);
+		if (index >= 0) {
+			sortBy.splice(index, 1);
+			delete sortDirection[dataKey];
+		}
+	} else {
+		if (sortBy.includes(dataKey)) {
+			sortDirection[dataKey] = sortDirection[dataKey] === 'DESC'? 'NONE':
+				(sortDirection[dataKey] === 'ASC'? 'DESC': 'ASC');
+		} else {
+			sortDirection[dataKey] = 'ASC';
+		}
+		sortBy.length = 0;
+		sortBy.push(dataKey);
+	}
+	return {sortBy, sortDirection};
 }
 
 /*
@@ -250,6 +247,7 @@ export function toggleVisible(currSelectedList, dataMap, data, idKey) {
   return selectedList;
 }
 
+/*
 export function SortIndicator(props) {
   const {sortDirection, onClick, ...otherProps} = props;
 
@@ -260,6 +258,23 @@ export function SortIndicator(props) {
          (sortDirection === 'DESC'?
           (<path d="M5 11 l5 5 5-5 z" />):
             (<path d="M5 8 l5-5 5 5z M5 11 l5 5 5-5 z" />))}
+      <path d="M0 0h24v24H0z" fill="none" />
+    </svg>
+    );
+}
+*/
+
+
+export function SortIndicator(props) {
+  const {sortDirection, onClick, ...otherProps} = props;
+
+  return (
+    <svg width={16} height={16} viewBox="0 0 48 48" onClick={onClick} {...otherProps}>
+      {sortDirection === 'ASC'?
+      	(<path d="M25.7,27.3c0,0-2.1,2.1-4.2,4.2V8.2h-5.9v23.4c-2.1-2.1-4.2-4.2-4.2-4.2l-4.2,4.2l9.3,9.3c1.2,1.2,3,1.2,4.2,0l9.3-9.3l-4.2-4.2z"/>):
+         (sortDirection === 'DESC'?
+         	(<path d="M11.2,22.5c0,0,2.1-2.1,4.2-4.2v23.4h5.9V18.3c2.1,2.1,4.2,4.2,4.2,4.2l4.2-4.2l-9.3-9.3c-1.2-1.2-3-1.2-4.2,0L7,18.4l4.2,4.2z"/>):
+            /*(<path d="M5 8 l5-5 5 5z M5 11 l5 5 5-5 z" />)*/ null)}
       <path d="M0 0h24v24H0z" fill="none" />
     </svg>
     );
