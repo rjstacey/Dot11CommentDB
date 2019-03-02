@@ -3,7 +3,7 @@ import {connect} from 'react-redux';
 import {getBallots, setProject, setBallotId} from './actions/ballots';
 
 
-class BallotSelector extends React.Component {
+class BallotSelector extends React.PureComponent {
 
 	componentDidMount() {
 		if (!this.props.ballotsDataValid) {

@@ -33,10 +33,13 @@ function getResultsLocal(ballotId) {
 		ballotId: ballotId
 	}
 }
-function getResultsSuccess(results) {
+function getResultsSuccess(data) {
 	return {
 		type: 'GET_RESULTS_SUCCESS',
-		results
+		ballotId: data.BallotID,
+		votingPoolId: data.VotingPoolID,
+		results: data.results,
+		summary: data.summary
 	}
 }
 function getResultsFailure(msg) {
@@ -55,8 +58,7 @@ export function getResults(ballotId) {
 					dispatch(getResultsFailure(response.data.message))
 				}
 				else {
-					var results = response.data.data;
-					dispatch(getResultsSuccess(results))
+					dispatch(getResultsSuccess(response.data.data))
 				}
 			})
 			.catch((error) => {
@@ -68,13 +70,13 @@ export function getResults(ballotId) {
 function deleteResultsLocal(ballotId) {
 	return {
 		type: 'DELETE_RESULTS',
-		ballotId: ballotId
+		ballotId
 	}
 }
 function deleteResultsSuccess(ballotId) {
 	return {
 		type: 'DELETE_RESULTS_SUCCESS',
-		ballotId: ballotId
+		ballotId
 	}
 }
 function deleteResultsFailure(ballotId, msg) {
@@ -93,7 +95,7 @@ export function deleteResults(ballotId) {
 					dispatch(deleteResultsFailure(response.data.message))
 				}
 				else {
-					dispatch(updateBallotLocal({BallotID: ballotId, Results: ''}))
+					dispatch(updateBallotLocal({BallotID: ballotId, ResultCount: 0, Result: {}}))
 					dispatch(deleteResultsSuccess(ballotId))
 				}
 			})
@@ -109,11 +111,11 @@ function importResultsLocal(ballotId) {
 		ballotId
 	}
 }
-function importResultsSuccess(ballotId, summary) {
+function importResultsSuccess(ballotId, result) {
 	return {
 		type: 'IMPORT_RESULTS_SUCCESS',
 		ballotId,
-		summary
+		Result: result
 	}
 }
 function importResultsFailure(ballotId, msg) {
@@ -130,19 +132,42 @@ export function importResults(ballotId, epollNum) {
 			BallotID: ballotId,
 			EpollNum: epollNum
 		}
-		return axios.put('/results/import', params)
+		return axios.post('/results/import', params)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(importResultsFailure(ballotId, response.data.message))
 				}
 				else {
-					const summary = response.data.data.summary;
-					dispatch(updateBallotLocal({BallotID: ballotId, Summary: summary}))
-					dispatch(importResultsSuccess(ballotId, summary))
+					const result = response.data.data;
+					dispatch(updateBallotLocal({BallotID: ballotId, Result: result}))
+					dispatch(importResultsSuccess(ballotId, result))
 				}
 			})
 			.catch((error) => {
 				dispatch(importResultsFailure(ballotId, `Unable to import results for ballotId=${ballotId}`))
+			})
+	}
+}
+
+export function uploadResults(ballotId, file) {
+	return dispatch => {
+		dispatch(importResultsLocal(ballotId));
+		var formData = new FormData();
+		formData.append("BallotID", ballotId);
+		formData.append("ResultsFile", file);
+		return axios.post('/results/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
+			.then((response) => {
+				if (response.data.status !== 'OK') {
+					dispatch(importResultsFailure(ballotId, response.data.message))
+				}
+				else {
+					const result = response.data.data;
+					dispatch(updateBallotLocal({BallotID: ballotId, Result: result}))
+					dispatch(importResultsSuccess(ballotId, result))
+				}
+			})
+			.catch((error) => {
+				dispatch(importResultsFailure(ballotId, `Unable to upload results for ballot ${ballotId}`))
 			})
 	}
 }

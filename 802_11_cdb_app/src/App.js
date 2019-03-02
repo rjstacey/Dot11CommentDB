@@ -23,8 +23,8 @@ class App extends React.Component {
 								<li><Link to="/Users/">Users</Link></li>
 								<li><Link to="/Voters/">Voters</Link></li>
 								<li><Link to="/Ballots/">Ballots</Link></li>
-								<li><Link to="/Results/">Results</Link></li>
-								<li><Link to="/Comments/">Comments</Link></li>
+								<li><Link to="/Results">Results</Link></li>
+								<li><Link to="/Comments">Comments</Link></li>
 							</ul>
 						</nav>
 					</header>
@@ -33,8 +33,8 @@ class App extends React.Component {
 						<Route path="/Users/" component={Users} />
 						<Route path="/Voters/" component={VoterPools} />
 						<Route path="/Ballots/" component={Ballots} />
-						<Route path="/Results/" component={Results} />
-						<Route path="/Comments/" component={Comments} />
+						<Route path="/Results/:ballotId?" component={Results} />
+						<Route path="/Comments/:ballotId?" component={Comments} />
 						<ErrorModal />
 					</main>
 				</div>

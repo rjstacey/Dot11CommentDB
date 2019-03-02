@@ -1,7 +1,6 @@
 :local(.Table) {
-  width: 100%;
-  height: 100%;
-  /*margin-top: 15px;*/
+  /*width: 100%;
+  height: 100%; */
 }
 :local(.headerRow),
 :local(.evenRow),
@@ -10,6 +9,7 @@
   display: flex;
   flex-direction: row;
   align-items: top;
+  box-sizing: border-box;
 }
 :local(.headerRow) {
   font-weight: bold;
@@ -55,6 +55,14 @@
 :local(.headerFilt[placeholder]:empty:before) {
   content: attr(placeholder);
   color: #555;
+}
+
+:local(.actionColumn) {
+	visibility: hidden;
+}
+:local(div.evenRow:hover .actionColumn),
+:local(div.oddRow:hover .actionColumn) {
+	visibility: visible;
 }
 
 /* mixin for multiline */

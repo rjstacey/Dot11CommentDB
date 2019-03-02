@@ -7,6 +7,7 @@ import BallotSelector from './BallotSelector'
 import CommentDetail from './CommentDetail'
 import {sortClick, allSelected, toggleVisible, SortIndicator} from './filter'
 import {setCommentsSort, setCommentsFilter, getComments} from './actions/comments'
+import {setBallotId} from './actions/ballots'
 import styles from './AppTable.css';
 
 
@@ -51,7 +52,7 @@ class Comments extends React.Component {
 				cellRenderer: this.cellRendererCheckbox},
 			{dataKey: 'CommentID', label: 'CID',
 				width: 60, flexGrow: 0, flexShrink: 0},
-			{dataKey: ['Commenter', 'Vote', 'MustSatisfy'], label: 'Commenter',
+			{dataKey: ['Name', 'Vote', 'MustSatisfy'], label: 'Commenter',
 				width: 150, flexGrow: 0, flexShrink: 0,
 				cellRenderer: this.cellRendererVertical},
 			{dataKey: 'Category', label: 'Category',
@@ -59,16 +60,17 @@ class Comments extends React.Component {
 			{dataKey: 'Clause', label: 'Clause',
 				width: 100, flexGrow: 0, flexShrink: 0},
 			{dataKey: 'Page', label: 'Page',
-				width: 100, flexGrow: 0, flexShrink: 0},
+				width: 80, flexGrow: 0, flexShrink: 0},
 			{dataKey: 'Comment', label: 'Comment',
 				width: 400}, 
 			{dataKey: 'ProposedChange', label: 'Proposed Change',
 				width: 400},
 			{dataKey: 'Assignee', label: 'Assignee',
-				width: 100},
+				width: 150, flexGrow: 0, flexShrink: 0,
+				cellRenderer: this.cellRendererAssignee},
 			{dataKey: ['ResnStatus', 'Resolution'], label: 'Resolution',
 				width: 400,
-				cellRenderer: this.cellRendererHorizontal},
+				cellRenderer: this.cellRendererResolution},
 			{dataKey: ['EditStatus', 'EditNotes'], label: 'Editing',
 				width: 300,
 				cellRenderer: this.cellRendererHorizontal},
@@ -118,17 +120,47 @@ class Comments extends React.Component {
 	}
 
 	componentDidMount() {
-		var wrapper = document.getElementById('Comments');
-		this.setState({height: wrapper.offsetHeight - 19, width: wrapper.offsetWidth})
-		if (!this.props.commentsValid && this.props.ballotId) {
-			this.props.dispatch(getComments(this.props.ballotId));
+		this.updateDimensions()
+		window.addEventListener("resize", this.updateDimensions);
+
+		const ballotId = this.props.match.params.ballotId;
+		//console.log(ballotId, this.props.ballotId)
+		if (this.props.ballotId !== ballotId && (this.props.ballotId || ballotId)) {
+			if (ballotId) {
+				// Routed here with parameter ballotId specified, but not matching stored ballotId
+				// Store the ballotId and get results for this ballotId
+				this.props.dispatch(setBallotId(ballotId))
+				this.props.dispatch(getComments(ballotId))
+			}
+			else {
+				// Routed here with parameter ballotId unspecified, but we have a ballotId stored
+				// Redirect to the stored ballotId
+				this.props.history.replace(`/Comments/${this.props.ballotId}`)
+				console.log(`/Comments/${this.props.ballotId}`)
+				this.props.dispatch(getComments(this.props.ballotId))
+			}
 			this.rowHeightCache.clearAll()
 		}
 	}
+	componentWillUnmount() {
+		window.removeEventListener("resize", this.updateDimensions);
+	}
+	updateDimensions = () => {
+		var header = document.getElementsByTagName('header')[0]
+		var top = document.getElementById('top-row')
+		var height = window.innerHeight - header.offsetHeight - top.offsetHeight - 5
+		var width = window.innerWidth - 1; //parent.offsetWidth
+		//console.log('update ', width, height)
+		this.setState({height, width})
+	}
 
 	ballotSelected = (ballotId) => {
-		this.props.dispatch(getComments(ballotId));
-		this.rowHeightCache.clearAll()
+		// Redirect to results page with selected ballot
+		this.props.history.push(`/Comments/${ballotId}`)
+		if (ballotId) {
+			this.props.dispatch(getComments(ballotId));
+			this.rowHeightCache.clearAll()
+		}
 	}
 
 	sortChange = (event, dataKey) => {
@@ -327,6 +359,24 @@ class Comments extends React.Component {
 		}
 	}
 
+	cellRendererAssignee = (props) => {
+		const {rowData} = props;
+		return (
+			<div style={{display: 'flex', flexDirection: 'column'}}>
+				{rowData.resolutions.map((r, i) => (<div key={i}>{r.AssigneeName}</div>))}
+			</div>
+		)
+	}
+	cellRendererResolution = (props) => {
+		const {rowData} = props;
+		var rList = rowData.resolutions.filter(r => r.ResnStatus)
+		var nowrap = rList.length > 1
+		return (
+			<div style={{display: 'flex', flexDirection: 'column'}}>
+				{rList.map((r, i) => (<div key={i} style={nowrap? {whiteSpace: 'nowrap'}: {}}><b>{r.ResnStatus}:</b> {r.Resolution}</div>))}
+			</div>
+		)
+	}
 	cellRendererVertical = (props) => {
 		const {rowData, dataKey} = props;
 		return (
@@ -429,8 +479,10 @@ class Comments extends React.Component {
 	render() {   
 		return (
 			<div id='Comments' style={{height: '100%'}}>
-        		<BallotSelector onBallotSelected={this.ballotSelected} />
-				{this.renderRow2()}
+				<div id='top-row'>
+        			<BallotSelector onBallotSelected={this.ballotSelected} />
+					{this.renderRow2()}
+				</div>
 
 				{!this.state.showCommentDetail?
 					this.renderTable()

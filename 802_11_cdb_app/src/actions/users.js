@@ -76,7 +76,7 @@ function updateUserFailure(user, msg) {
 export function updateUser(user) {
 	return dispatch => {
 		dispatch(updateUserLocal(user));
-		return axios.post('/users', user)
+		return axios.put('/users', user)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(updateUserFailure(user, response.data.message))
@@ -114,7 +114,7 @@ function addUserFailure(user, msg) {
 export function addUser(user) {
 	return dispatch => {
 		dispatch(addUserLocal(user))
-		return axios.put('/users', user)
+		return axios.post('/users', user)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(addUserFailure(user, response.data.message))

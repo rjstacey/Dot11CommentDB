@@ -6,8 +6,10 @@ import {Column, Table} from 'react-virtualized';
 import DatePicker from 'react-datepicker';
 import Voters from './Voters'
 import {setVotingPoolSort, setVotingPoolFilter, getVotingPool, addVotingPool, deleteVotingPool, uploadVoters} from './actions/voters'
-import {sortClick, allSelected, toggleVisible, SortIndicator} from './filter'
+import {sortClick, allSelected, toggleVisible, SortIndicator, DeleteIcon, AddIcon, RefreshIcon} from './filter'
 import styles from './AppTable.css'
+
+
 
 class AddVotingPoolModal extends React.PureComponent {
 	constructor(props) {
@@ -21,7 +23,7 @@ class AddVotingPoolModal extends React.PureComponent {
 		// Reset userData to default on each open
 		var newState = {};
 		if (props.isOpen && !state.wasOpen) {
-			newState.votongPool = {VotingPoolID: 0, Name: '', Date: new Date()};
+			newState.votingPool = {VotingPoolID: 0, Name: '', Date: new Date()};
 		}
 		newState.wasOpen = props.isOpen;
 		return newState;
@@ -86,15 +88,24 @@ class VoterPools extends React.PureComponent {
 		super(props);
 
 		this.columns = [
-			{dataKey: '',				width: 40,  label: '',
+			{dataKey: '',				label: '',
+				width: 40,
 				headerRenderer: this.renderHeaderCheckbox,
 				cellRenderer: this.renderCheckbox},
-			{dataKey: 'VotingPoolID',	width: 100, label: 'ID'},
-			{dataKey: 'Name',			width: 200, label: 'Voting Pool'},
-			{dataKey: 'Date',			width: 200, label: 'Date',
+			{dataKey: 'VotingPoolID',	label: 'ID',
+				width: 100},
+			{dataKey: 'Name',			label: 'Voting Pool',
+				width: 200},
+			{dataKey: 'Date',			label: 'Date',
+				width: 200,
 				cellRenderer: this.renderDate},
-			{dataKey: 'VoterCount',		width: 200, label: 'Voters',
+			{dataKey: 'VoterCount',		label: 'Voters',
+				width: 200,
 				cellRenderer: this.renderVotersCount},
+			{dataKey: '',				label: '',
+				width: 200,
+				headerRenderer: this.renderHeaderActions,
+				cellRenderer: this.renderActions}
 		];
 
 		this.state = {
@@ -116,16 +127,25 @@ class VoterPools extends React.PureComponent {
 		}
 
 		this.sortable = ['Name', 'Date', 'VoterCount'];
-
-		this.lastRenderedWidth = this.state.width;
 	}
 
 	componentDidMount() {
-		var wrapper = document.getElementById('VoterPools');
-		this.setState({height: wrapper.offsetHeight - 19, width: wrapper.offsetWidth})
+		this.updateDimensions()
+		window.addEventListener("resize", this.updateDimensions);
 		if (!this.props.votingPoolValid) {
 			this.props.dispatch(getVotingPool())
 		}
+	}
+	componentWillUnmount() {
+		window.removeEventListener("resize", this.updateDimensions);
+	}
+	updateDimensions = () => {
+		var header = document.getElementsByTagName('header')[0]
+		var top = document.getElementById('top-row')
+		var height = window.innerHeight - header.offsetHeight - top.offsetHeight - 5
+		var width = window.innerWidth - 1; //parent.offsetWidth
+		//console.log('update ', width, height)
+		this.setState({height, width})
 	}
 	
 	deleteVotersClick = (e, rowData) => {
@@ -171,6 +191,19 @@ class VoterPools extends React.PureComponent {
 		this.props.dispatch(setVotingPoolFilter(dataKey, event.target.value));
 	}
 
+	renderActions = ({rowIndex}) => {
+		return (
+			<DeleteIcon className={styles.actionColumn} width={22} height={22} onClick={() => this.deleteRow(rowIndex)}/>
+		)
+	}
+	renderHeaderActions = ({rowIndex}) => {
+		return (
+			<div title='Actions'>
+				<RefreshIcon width={22} height={22} title='Refresh' onClick={this.refresh} />
+				<AddIcon width={22} height={22} onClick={() => this.setState({showAddUserModal: true})}/>
+			</div>
+		)
+	}
 	renderSortLabel = (props) => {
 		const {dataKey, label, style} = props;
 		const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE'
@@ -211,7 +244,7 @@ class VoterPools extends React.PureComponent {
 			/>
 		);
 	}
-	renderHeaderCell = ({columnData, dataKey, label}) => {
+	renderHeaderCell = ({dataKey, label}) => {
 		const labelElement = this.sortable.includes(dataKey)? this.renderSortLabel({dataKey, label}): this.renderLabel({label});
 		const showFilter = this.props.filters.hasOwnProperty(dataKey)
 		return (
@@ -250,7 +283,7 @@ class VoterPools extends React.PureComponent {
 		);
 	}
 	renderDate = ({rowData, dataKey}) => {
-		// rowData[dataKey] is a UTC time string. We convert this to easter time
+		// rowData[dataKey] is a UTC time string. We convert this to eastern time
 		// and display only the date (not time).
 		var d = new Date(rowData[dataKey]).toISOString().slice(0, 10)
 		//var str = d.slice(0, 10)
@@ -314,7 +347,6 @@ class VoterPools extends React.PureComponent {
 					return (
 						<Column 
 							key={index}
-							columnData={col}
 							headerRenderer={headerRenderer? headerRenderer: this.renderHeaderCell}
 							{...otherProps}
 						/>
@@ -334,9 +366,11 @@ class VoterPools extends React.PureComponent {
 		}
 		return (
 			<div id='VoterPools' style={{height: '100%'}}>
-				<button disabled={this.props.getVotingPool} onClick={this.refresh}>Refresh</button>
-				<button onClick={this.handleRemoveSelected}>Remove Selected</button>
-				<button onClick={() => this.setState({showAddVotingPool: true})}>Add</button>
+				<div id='top-row'>
+					<button disabled={this.props.getVotingPool} onClick={this.refresh}>Refresh</button>
+					<button onClick={this.handleRemoveSelected}>Remove Selected</button>
+					<button onClick={() => this.setState({showAddVotingPool: true})}>Add</button>
+				</div>
 				{this.renderTable()}
 				<AddVotingPoolModal
 					isOpen={this.state.showAddVotingPool}
@@ -366,7 +400,6 @@ function mapStateToProps(state) {
 		votingPoolDataMap: voters.votingPoolDataMap,
 		getVotingPool: voters.getVotingPool,
 		addVotingPool: voters.addVotingPool,
-		errorMsg: voters.errorMsgs.length? voters.errorMsgs[0]: null,
 	}
 }
 export default connect(mapStateToProps)(VoterPools);

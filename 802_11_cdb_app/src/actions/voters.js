@@ -49,6 +49,7 @@ export function getVotingPool() {
 				}
 			})
 			.catch((error) => {
+				console.log(error)
 				dispatch(getVotingPoolFailure('Unable to get voting pool list'))
 			})
 	}
@@ -85,7 +86,7 @@ export function addVotingPool(newEntry) {
 	return (dispatch, getState) => {
 		newEntry.VotingPoolID = generateVotingPoolId(getState().voters.votingPoolData);
 		dispatch(addVotingPoolLocal(newEntry))
-		return axios.put('/votingPool', newEntry)
+		return axios.post('/votingPool', newEntry)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(addVotingPoolFailure(response.data.message))
@@ -289,7 +290,7 @@ function addVoterFailure(msg) {
 export function addVoter(voter) {
 	return dispatch => {
 		dispatch(addVoterLocal(voter));
-		return axios.put('/voters', voter)
+		return axios.post('/voters', voter)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(addVoterFailure(response.data.message))

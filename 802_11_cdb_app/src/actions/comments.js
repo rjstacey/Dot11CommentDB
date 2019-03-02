@@ -129,7 +129,7 @@ export function importComments(ballotId, epollNum, startCID) {
 			EpollNum: epollNum,
 			StartCID: startCID
 		}
-		return axios.put('/comments/import', params)
+		return axios.post('/comments/import', params)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(importCommentsFailure(ballotId, response.data.message))
@@ -168,7 +168,7 @@ function updateCommentFailure(msg) {
 export function updateComment(data) {
 	return dispatch => {
 		dispatch(updateCommentLocal(data));
-		return axios.post('/comment', data)
+		return axios.put('/comment', data)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(updateCommentFailure(response.data.message))
@@ -205,7 +205,7 @@ function addResolutionFailure(msg) {
 export function addResolution(data) {
 	return dispatch => {
 		dispatch(addResolutionLocal(data));
-		return axios.put('/resolution', data)
+		return axios.post('/resolution', data)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(addResolutionFailure(response.data.message))
@@ -242,7 +242,7 @@ function updateResolutionFailure(msg) {
 export function updateResolution(data) {
 	return dispatch => {
 		dispatch(updateResolutionLocal(data));
-		return axios.post('/resolution', data)
+		return axios.put('/resolution', data)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(updateResolutionFailure(response.data.message))
@@ -285,7 +285,7 @@ function deleteResolutionFailure(msg) {
 export function deleteResolution(data) {
 	return dispatch => {
 		dispatch(deleteResolutionLocal(data));
-		return axios.delete('/resolution', data)
+		return axios.delete('/resolution', {data: data})
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(deleteResolutionFailure(response.data.message))
@@ -296,6 +296,45 @@ export function deleteResolution(data) {
 			})
 			.catch((error) => {
 				dispatch(deleteResolutionFailure(`Unable to delete resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`))
+			})
+	}
+}
+
+function uploadCommentsLocal(ballotId) {
+	return {
+		type: 'UPLOAD_COMMENTS',
+		ballotId
+	}
+}
+function uploadCommentsSuccess(ballotId) {
+	return {
+		type: 'UPLOAD_COMMENTS_SUCCESS',
+		ballotId,
+	}
+}
+function uploadCommentsFailure(msg) {
+	return {
+		type: 'UPLOAD_COMMENTS_FAILURE',
+		errMsg: msg
+	}
+}
+export function uploadComments(ballotId, file) {
+	return dispatch => {
+		dispatch(uploadCommentsLocal(ballotId));
+		var formData = new FormData();
+		formData.append("BallotID", ballotId);
+		formData.append("CommentsFile", file);
+		return axios.post('/comments/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
+			.then((response) => {
+				if (response.data.status !== 'OK') {
+					dispatch(uploadCommentsFailure(response.data.message))
+				}
+				else {
+					dispatch(uploadCommentsSuccess(ballotId))
+				}
+			})
+			.catch((error) => {
+				dispatch(uploadCommentsFailure(`Unable to upload comments for ballot ${ballotId}`))
 			})
 	}
 }

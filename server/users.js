@@ -2,127 +2,81 @@
 module.exports = function (db) {
 	var module = {};
 
-	module.getAll = function (req, res, next) {
-  		var ret = {status: "Error", message: "Unknown server error"};
+	module.getUsers = function (req, res, next) {
 
-   		db.query('SELECT * FROM users;', (err, results) => {
-    		if (err) {
-      			ret.message = JSON.stringify(err);
-      			console.log(err);
-      			return res
-        			.status(200)
-        			.send(ret);
-   			}
-    		console.log(`Send ${JSON.stringify(results)}`);
-    		ret.status = 'OK';
-    		ret.message = '';
-    		ret.data = results;
-    		return res
-      			.status(200)
-      			.send(ret);
-  		});
+		return db.query2('SELECT * FROM users')
 	}
 
 	module.getAccessLevel = function (sapin, email, callback) {
+		var SQL;
 		if (sapin > 0) {
-			SQL = 'SELECT * from users WHERE SAPIN=?';
-			param = sapin;
+			SQL = db.format('SELECT * from users WHERE SAPIN=?', [sapin]);
 		}
 		else {
-			SQL = 'SELECT * from users WHERE Email=?';
-			param = email;
+			SQL = db.format('SELECT * from users WHERE Email=?', [email]);
 		}
-		console.log(SQL + param);
-		db.query(SQL, param, (err, results) => {
-			console.log(JSON.stringify(results));
-			if (err) {
-				console.log(err);
-				callback(1);
-			}
-			else {
-				callback(results[0].Access);
-			}
-		});
+		console.log(SQL);
+		return db.query2(SQL)
+			.then(results => {
+				console.log(JSON.stringify(results));
+				return results.length > 0? results[0].Access: 1;
+			})
 	}
 
-	module.add = function (req, res, next) {
-		const data = req.body;
-		console.log(data);
+	module.addUser = function (req, res, next) {
+		console.log(req.body);
 
-		var ret = {status: "Error", message: "Unknown server error"};
+		var entry = {
+			SAPIN: req.body.SAPIN,
+			Name: req.body.Name,
+			Email: req.body.Email,
+			Access: req.body.Access
+		};
 
-		var SQL = 'INSERT INTO users (SAPIN, Name, Email, Access) VALUES (?, ?, ?, ?);';
-		db.query(SQL, [data.SAPIN, data.Name, data.Email, data.Access], (err, result) => {
-			if (err) {
-				console.log(err);
-
-				ret.status = 'Error';
-				ret.message = JSON.stringify(err);
-				return res
-					.status(200)
-					.send(ret)
-			}
-			console.log(result);
-			data.UserID = result.insertId;
-			ret.status = 'OK';
-			ret.message = '';
-			ret.data = data;
-			return res
-				.status(200)
-				.send(ret)
-		});
+		var SQL = `INSERT INTO users (${Object.keys(entry)}) VALUES (${db.escape(Object.values(entry))});`;
+		return db.query2(SQL)
+			.then(result => {
+				entry.UserID = result.insertId;
+				return entry;
+			})
 	}
 
-	module.update = function (req, res, next) {
+	module.updateUser = function (req, res, next) {
   		console.log(req.body);
 
-  		// We use the email address as the primary key. It is also the username for authentication, so we can't change it
-  		var userid = req.body['UserID'];
-  		delete req.body['UserID'];
-  		console.log(req.body);
+  		if (!req.body.hasOwnProperty('UserID')) {
+  			return Promise.reject('Missing parameter UserID')
+		}
+		var id = req.body.UserID;
 
-  		var ret = {status: "Error", message: "Unknown server error"};
+		var entry = {
+			SAPIN: req.body.SAPIN,
+			Name: req.body.Name,
+			Email: req.body.Email,
+			Access: req.body.Access
+		};
+		Object.keys(entry).forEach(key => {
+			if (entry[key] === undefined) {
+				delete entry[key]
+			}
+		});
+		if (Object.keys(entry).length === 0) {
+			return Promise.resolve();
+		}
 
-  		db.query("UPDATE users SET ? WHERE UserID=?",  [req.body, userid], function(err, result) {
-    		if (err) {
-      			console.log(err.message);
-      			ret.message = JSON.stringify(err);
-      			return res
-        			.status(200)
-        			.send(ret);
-    		}
-    		ret.status = 'OK';
-    		ret.message = '';
-    		return res
-      			.status(200)
-      			.send(ret);
-  		});
+  		return db.query2("UPDATE users SET ? WHERE UserID=?",  [entry, id])
+  			.then(result => {
+				entry.UserID = id;
+				return entry
+			})
 	}
 
-	module.delete = function (req, res, next) {
+	module.deleteUser = function (req, res, next) {
     	console.log(req.body);
 
-    	const userids = req.body;
+		const userids = req.body;
 
-    	var ret = {status: "Error", message: "Unknown server error"};
-
-    	db.query('DELETE FROM users WHERE userid IN (?)', [userids], function(err, result) {
-      		if (err) {
-        		console.log(err.message);
-        		ret.message = JSON.stringify(err);
-        		return res
-          			.status(200)
-          			.send(ret);
-      		}
-      		ret.status = "OK";
-      		ret.message = "";
-      		return res
-        		.status(200)
-        		.send(ret);
-    	});
-	}
-
-	module.import = function (req, res, next) {
+		return db.query2('DELETE FROM users WHERE userid IN (?)', [userids])
 	}
 
 	return module;

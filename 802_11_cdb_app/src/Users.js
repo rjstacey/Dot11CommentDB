@@ -3,7 +3,7 @@ import Modal from 'react-modal';
 import update from 'immutability-helper';
 import { connect } from 'react-redux';
 import {Column, Table} from 'react-virtualized';
-import {sortClick, allSelected, toggleVisible, SortIndicator} from './filter';
+import {sortClick, allSelected, toggleVisible, SortIndicator, RefreshIcon, AddIcon, DeleteIcon} from './filter';
 import {setUsersFilter, setUsersSort, getUsers, updateUser, addUser, deleteUsers} from './actions/users';
 import styles from './AppTable.css';
 
@@ -85,7 +85,11 @@ class Users extends React.PureComponent {
 				cellRenderer: this.renderEditable},
 			{dataKey: 'Access', label: 'Access Level',
 				width: 100,
-				cellRenderer: this.renderAccess}
+				cellRenderer: this.renderAccess},
+			{dataKey: '', label: '',
+				width: 200,
+				headerRenderer: this.renderHeaderActions,
+				cellRenderer: this.renderActions}
 		];
 
 		// List of filterable columns
@@ -130,6 +134,12 @@ class Users extends React.PureComponent {
 		if (delUserIds.length) {
 			this.props.dispatch(deleteUsers(delUserIds))
 		}
+	}
+
+	deleteRow = (rowIndex) => {
+		const u = this.props.usersData[this.props.usersDataMap[rowIndex]];
+		console.log(rowIndex, u)
+		this.props.dispatch(deleteUsers([u.UserID]))
 	}
 
 	refresh = () => {
@@ -196,7 +206,7 @@ class Users extends React.PureComponent {
 			/>
 		);
 	}
-	renderHeaderCell = ({columnData, dataKey, label}) => {
+	renderHeaderCell = ({dataKey, label}) => {
 		const labelElement = this.sortable.includes(dataKey)? this.renderSortLabel({dataKey, label}): this.renderLabel({label});
 		const showFilter = this.props.filters.hasOwnProperty(dataKey)
 		return (
@@ -237,6 +247,7 @@ class Users extends React.PureComponent {
 	renderEditable = ({rowIndex, rowData, dataKey}) => {
 		return (
 			<div
+				title={rowData[dataKey]}
 				contentEditable
 				onBlur={e => {
 					this.updateUserFieldIfChanged(rowIndex, dataKey, e.target.innerHTML)
@@ -278,6 +289,20 @@ class Users extends React.PureComponent {
 		)
 	}
 
+	renderActions = ({rowIndex}) => {
+		return (
+			<DeleteIcon className={styles.actionColumn} width={22} height={22} onClick={() => this.deleteRow(rowIndex)}/>
+		)
+	}
+	renderHeaderActions = ({rowIndex}) => {
+		return (
+			<div title='Actions'>
+				<RefreshIcon width={22} height={22} title='Refresh' onClick={this.refresh} />
+				<AddIcon width={22} height={22} onClick={() => this.setState({showAddUserModal: true})}/>
+			</div>
+		)
+	}
+
   	sortChange = (event, dataKey) => {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, this.props.sortBy, this.props.sortDirection);
 		this.props.dispatch(setUsersSort(sortBy, sortDirection));
@@ -305,7 +330,6 @@ class Users extends React.PureComponent {
 					return (
 						<Column 
 							key={index}
-							columnData={col}
 							headerRenderer={headerRenderer? headerRenderer: this.renderHeaderCell}
 							{...otherProps}
 						/>

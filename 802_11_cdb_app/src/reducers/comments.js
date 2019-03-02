@@ -55,12 +55,11 @@ const comments = (state = defaultState, action) => {
 
 		case 'DELETE_COMMENTS_WITH_BALLOTID':
 			return Object.assign({}, state, {
-				deleteComments: true,
+				deleteComments: true
 			}, (state.ballotId === action.ballotId)? {commentData: [], commentDataMap: []}: null)
 		case 'DELETE_COMMENTS_WITH_BALLOTID_SUCCESS':
 			return Object.assign({}, state, {
-				deleteComments: false,
-				deleteCommentsError: false
+				deleteComments: false
 			})
 		case 'DELETE_COMMENTS_WITH_BALLOTID_FAILURE':
 			errorMsgs = state.errorMsgs.slice();
@@ -113,11 +112,28 @@ const comments = (state = defaultState, action) => {
 				updateComment: false,
 				errorMsgs: errorMsgs
 			});
+		case 'IMPORT_VOTERS':
+			return Object.assign({}, state, {uploadComments: true})
+		case 'IMPORT_VOTERS_SUCCESS':
+			return Object.assign({}, state, {
+				uploadComments: false,
+			})
+		case 'IMPORT_VOTERS_FAILURE':
+			errorMsgs = state.errorMsgs.slice();
+			errorMsgs.push(action.errMsg);
+			return Object.assign({}, state, {
+				uploadComments: false,
+				errorMsgs: errorMsgs
+			});
 
 		case 'UPDATE_RESOLUTION':
-			if (state.ballotID !== action.resolution.BallotID) {
+			return Object.assign({}, state, {
+				updateComment: true
+			})
+		case 'UPDATE_RESOLUTION_SUCCESS':
+			if (state.ballotId !== action.resolution.BallotID) {
 				return Object.assign({}, state, {
-					updateComment: true,
+					updateComment: false
 				})
 			}
 			newCommentData = state.commentData.map(c => {
@@ -130,15 +146,10 @@ const comments = (state = defaultState, action) => {
 				else {
 					return c
 				}
-			})
-			return Object.assign({}, state, {
-				updateComment: true,
-				commentData: newCommentData
-			})
-		case 'UPDATE_RESOLUTION_SUCCESS':
+			});
 			return Object.assign({}, state, {
 				updateComment: false,
-				updateCommentError: false
+				commentData: newCommentData
 			})
 		case 'UPDATE_RESOLUTION_FAILURE':
 			errorMsgs = state.errorMsgs.slice();
@@ -149,30 +160,13 @@ const comments = (state = defaultState, action) => {
 			});
 
 		case 'ADD_RESOLUTION':
-			if (state.ballotID !== action.resolution.BallotID) {
-				return Object.assign({}, state, {
-					updateComment: true,
-				})
-			}
-			newCommentData = state.commentData.map((c, index) => {
-				if (c.CommentID === action.resolution.CommentID) {
-					newResolutions = c.resolutions.slice()
-					newResolutions.push({ResolutionID: index, ...action.resolution})
-					return Object.assign({}, c, {resolutions: newResolutions})
-				}
-				else {
-					return c
-				}
-			})
 			return Object.assign({}, state, {
-				updateComment: true,
-				commentData: newCommentData
+				updateComment: true
 			})
 		case 'ADD_RESOLUTION_SUCCESS':
-			if (state.ballotID !== action.resolution.BallotID) {
+			if (state.ballotId !== action.resolution.BallotID) {
 				return Object.assign({}, state, {
-					updateComment: false,
-					updateCommentError: false,
+					updateComment: false
 				})
 			}
 			newCommentData = state.commentData.map(c => {
@@ -199,14 +193,18 @@ const comments = (state = defaultState, action) => {
 
 		case 'DELETE_RESOLUTION':
 			return Object.assign({}, state, {
-				updateComment: true,
-				updateCommentError: false
+				updateComment: true
 			})
 		case 'DELETE_RESOLUTION_SUCCESS':
+			if (state.ballotId !== action.resolution.BallotID) {
+				return Object.assign({}, state, {
+					updateComment: false
+				})
+			}
 			newCommentData = state.commentData.map((c, index) => {
 				if (c.CommentID === action.resolution.CommentID) {
 					newResolutions = c.resolutions.filter(r => 
-						(r.ResolutionID !== action.data.ResolutionID)
+						(r.ResolutionID !== action.resolution.ResolutionID)
 						)
 					return Object.assign({}, c, {resolutions: newResolutions})
 				}
@@ -216,7 +214,6 @@ const comments = (state = defaultState, action) => {
 			})
 			return Object.assign({}, state, {
 				updateComment: false,
-				updateCommentError: false,
 				commentData: newCommentData
 			})
 		case 'DELETE_RESOLUTION_FAILURE':

@@ -1,10 +1,11 @@
 import {sortData, filterData} from '../filter';
 
 const defaultState = {
-	ballotId: '',
   	filters: {},
 	sortBy: [],
 	sortDirection: {},
+	ballotId: '',
+	votingPoolID: '',
 	resultsDataValid: false,
 	resultsData: [],
 	resultsDataMap: [],
@@ -18,72 +19,86 @@ const results = (state = defaultState, action) => {
 
 	switch (action.type) {
 		case 'SET_RESULTS_SORT':
-			return Object.assign({}, state, {
+			return {
+				...state,
 				sortBy: action.sortBy,
 				sortDirection: action.sortDirection,
 				resultsDataMap: sortData(state.resultsDataMap, state.resultsData, action.sortBy, action.sortDirection)
-			});
+			}
 		case 'SET_RESULTS_FILTER':
-			const filters = Object.assign({}, state.filters, {[action.dataKey]: action.filter});
-			return Object.assign({}, state, {
+			const filters = {
+				...state.filters, 
+				[action.dataKey]: action.filter
+			}
+			return {
+				...state,
 				filters,
 				resultsDataMap: sortData(filterData(state.resultsData, filters), state.resultsData, state.sortBy, state.sortDirection)
-			});
+			}
 		case 'GET_RESULTS':
-			return Object.assign({}, state, {
+			return {
+				...state,
 				getResults: true,
 				ballotId: action.ballotId,
 				resultsData: [],
 				resultsDataMap: []
-			})
+			}
 		case 'GET_RESULTS_SUCCESS':
-			return Object.assign({}, state, {
-				resultsDataValid: true,
+			return {
+				...state,
 				getResults: false,
+				ballotId: action.ballotId,
+				votingPoolId: action.votingPoolId,
+				resultsDataValid: true,
 				resultsData: action.results,
 				resultsDataMap: sortData(filterData(action.results, state.filters), action.results, state.sortBy, state.sortDirection),
-			})
+				resultsSummary: action.summary
+			}
 		case 'GET_RESULTS_FAILURE':
-			errorMsgs = state.votersErrorMsg.slice();
+			errorMsgs = state.errorMsgs.slice();
 			errorMsgs.push(action.errMsg);
-			return Object.assign({}, state, {
+			return {
+				...state,
 				getResults: false,
 				errorMsgs: errorMsgs
-			});
+			}
 
 		case 'DELETE_RESULTS':
 			return Object.assign({}, state, {
 				deleteResults: true,
-			}, (state.ballotId === action.ballotId)? {resultsData: []}: null)
+			}, (state.ballotId === action.ballotId)? {
+				resultsDataValid: false,
+				resultsData: [],
+				resultsDataMap: [],
+				resultsSummary: {}
+			}: null)
 		case 'DELETE_RESULTS_SUCCESS':
-			return Object.assign({}, state, {
-				deleteResults: false,
-			})
+			return {...state, deleteResults: false}
 		case 'DELETE_RESULTS_FAILURE':
 			errorMsgs = state.errorMsgs.slice();
 			errorMsgs.push(action.errMsg);
-			return Object.assign({}, state, {
+			return {
+				...state,
 				deleteResults: false,
 				errorMsgs: errorMsgs
-			});
+			}
 
 		case 'IMPORT_RESULTS':
-			return Object.assign({}, state, {
-				importResults: true
-			})
+			return {...state, importResults: true}
 		case 'IMPORT_RESULTS_SUCCESS':
-			return Object.assign({}, state, {
+			return {
+				...state,
 				importResults: false,
-				importResultsError: false,
 				importSummary: action.summary
-			})
+			}
 		case 'IMPORT_RESULTS_FAILURE':
 			errorMsgs = state.errorMsgs.slice();
 			errorMsgs.push(action.errMsg);
-			return Object.assign({}, state, {
+			return {
+				...state,
 				importResults: false,
 				errorMsgs: errorMsgs
-			});
+			}
 
 		case 'SUMMARIZE_RESULTS':
 			return Object.assign({}, state, {

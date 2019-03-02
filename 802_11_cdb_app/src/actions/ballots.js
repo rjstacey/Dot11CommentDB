@@ -77,13 +77,13 @@ function updateBallotFailure(msg) {
 export function updateBallot(newData) {
 	return (dispatch, getState) => {
 		dispatch(updateBallotLocal(newData));
-		return axios.post('/ballots', newData)
+		return axios.put('/ballots', newData)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(updateBallotFailure(response.data.message))
 				}
 				else {
-					dispatch(updateBallotSuccess(newData))
+					dispatch(updateBallotSuccess(response.data.data))
 				}
 			})
 			.then(() => dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData)))
@@ -154,7 +154,7 @@ function addBallotFailure(msg) {
 export function addBallot(ballot) {
 	return (dispatch, getState) => {
 		dispatch(addBallotLocal(ballot))
-		return axios.put('/ballots/', ballot)
+		return axios.post('/ballots/', ballot)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(addBallotFailure(response.data.message))

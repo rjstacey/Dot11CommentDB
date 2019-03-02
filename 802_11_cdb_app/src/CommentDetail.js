@@ -7,7 +7,8 @@ import {connect} from 'react-redux'
 import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'
 import Textarea from 'react-textarea-autosize'
 import {getUsers} from './actions/users'
-import {updateComment, addResolution, updateResolution, deleteResolution} from './actions/comments'
+import {updateComment, addResolution, updateResolution, deleteResolution} from './actions/comments';
+import {DeleteIcon} from './filter'
 import './CommentDetail.css'
 
 
@@ -22,15 +23,20 @@ function shallowDiff(originalObj, modifiedObj) {
 }
 
 class CommentDetail extends React.Component {
- 	constructor(props) {
- 		super(props)
+	constructor(props) {
+		super(props)
 
- 		this.state = {
- 			index: props.commentIndex,
- 			comment: props.commentData[props.commentDataMap[props.commentIndex]]
- 		}
- 		//console.log(this.state.commentData)
- 	}
+		this.state = {
+			index: props.commentIndex,
+			comment: props.commentData[props.commentDataMap[props.commentIndex]]
+		}
+	}
+
+	componentDidMount() {
+		if (!this.props.usersDataValid) {
+			this.props.dispatch(getUsers())
+		}
+	}
 
  	previousComment = () => {
 		const index = this.state.index - 1;
@@ -50,15 +56,15 @@ class CommentDetail extends React.Component {
  	addResolution = (e) => {
  		this.setState({comment: update(this.state.comment, {resolutions: {$push: [{ResolutionID: this.state.comment.resolutions.length}]}})})
  	}
+ 	removeResolution = (index) => {
+ 		this.setState({comment: update(this.state.comment, {resolutions: {$splice: [[index, 1]]}})})
+ 	}
  	
  	changeCheckboxGroup = (e) => {
  		this.setState({comment: update(this.state.comment, {[e.target.name]: {$set: e.target.checked? e.target.value: ''}})})
  	}
  	changeInput = (e) => {
  		this.setState({comment: update(this.state.comment, {[e.target.name]: {$set: e.target.value}})})
- 	}
- 	componentDidMount() {
- 		this.props.dispatch(getUsers())
  	}
 
  	saveChange = (e) => {
@@ -133,31 +139,15 @@ class CommentDetail extends React.Component {
 				<div className='Assignee'><label>Assignee:</label><span>{r.Assginee}</span></div>
 				<select
 					name='Assignee'
-					value={r.Assignee}
+					value={r.Assignee === null? 0: r.Assignee}
 					onChange={e => this.changeResolutionInput(e, index)}
 				>
 					<option key={0} value={0}>Not Assigned</option>
-					{this.props.userData && this.props.userData.map(i => {
+					{this.props.usersData && this.props.usersData.map(i => {
 						return (<option key={i.UserID} value={i.UserID}>{i.Name} &lt;{i.Email}&gt;</option>)
 						})}
 				</select>
-				<label>Ready for motion:
-					<input
-						type='checkbox'
-						name='ReadyForMotion'
-						checked={r.ReadyForMotion}
-						onChange={e => this.changeResolutionInput(e, index)}
-					/>
-				</label>
-				<label>Approved by motion:
-					<input
-						className='ApprovedByMotion'
-						type='text'
-						name='ApprovedByMotion'
-						value={r.ApprovedByMotion}
-						onChange={e => this.changeResolutionInput(e, index)}
-					/>
-				</label><br />
+				<DeleteIcon width={22} height={22} onClick={() => this.removeResolution(index)}/>
 			</div>	
  			<div className='TopRow'>
 				<div className='ResolutionStatus'>
@@ -195,7 +185,7 @@ class CommentDetail extends React.Component {
 							className='SubmissionInput'
 							type='text'
 							name='Submission'
-							value={r.Submission}
+							value={r.Submission === null? '': r.Submission}
 							onChange={e => this.changeResolutionInput(e, index)}
 						/>
 					</label>
@@ -208,6 +198,25 @@ class CommentDetail extends React.Component {
 					value={r.Resolution}
 					onChange={e => this.changeResolutionInput(e, index)}
 				/>
+			</div>
+			<div className='row'>
+				<label>Ready for motion:
+					<input
+						type='checkbox'
+						name='ReadyForMotion'
+						checked={r.ReadyForMotion}
+						onChange={e => this.changeResolutionInput(e, index)}
+					/>
+				</label>
+				<label>Approved by motion:
+					<input
+						className='ApprovedByMotion'
+						type='text'
+						name='ApprovedByMotion'
+						value={r.ApprovedByMotion}
+						onChange={e => this.changeResolutionInput(e, index)}
+					/>
+				</label><br />
 			</div>
 			</TabPanel>
 		)
@@ -309,7 +318,10 @@ class CommentDetail extends React.Component {
 		>
 			<TabList className="cTabs_TabList">
 				{this.state.comment.resolutions.map((r, index) =>
-					(<Tab key={index} className="cTabs_Tab">Resolution {index}</Tab>)
+					(	<Tab key={index} className="cTabs_Tab">
+							{index === 0? 'Resolution ': ''}{index}
+							
+						</Tab>)
 				)}
 				<Tab className="cTabs_Tab" onClick={this.addResolution}>+</Tab>
 				<Tab className="cTabs_Tab">Editing</Tab>
@@ -344,7 +356,7 @@ class CommentDetail extends React.Component {
 
 				<div className='row'>
 					<div className='CID'><label>CID:</label><span>{this.state.comment.CommentID}</span></div>
-					<div className='Commenter'><label>Commenter:</label><span>{this.state.comment.Commenter}</span></div>
+					<div className='Commenter'><label>Commenter:</label><span>{this.state.comment.Name}</span></div>
 					<div className='MustSatisfy'><label>Must Satisfy:</label><input type='checkbox' readOnly checked={this.state.comment.MustSatisfy} /></div>
 				</div>
 
@@ -378,12 +390,8 @@ function mapStateToProps(state) {
 	return {
 		ballotId: comments.ballotId,
 		commentData: comments.commentData,
-		updateComment: comments.updateComment,
-		errorMsg: comments.errorMsgs.length? comments.errorMsgs[0]: null,
-		userData: users.userData,
-		getUsers: users.getUsers,
-		getUsersError: users.getUsersError,
-		getUsersMsg: users.getUsersMsg
+		usersDataValid: users.usersDataValid,
+		usersData: users.usersData
   	}
 }
 export default connect(mapStateToProps)(CommentDetail);

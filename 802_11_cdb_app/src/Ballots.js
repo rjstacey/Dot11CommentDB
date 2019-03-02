@@ -1,14 +1,50 @@
 import React from 'react';
+import {Link} from "react-router-dom";
+import Modal from 'react-modal';
 import update from 'immutability-helper';
 import {connect} from 'react-redux';
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
 import {setBallotsFilter, setBallotsSort, getBallots, deleteBallots, updateBallot} from './actions/ballots';
-import {deleteCommentsWithBallotId, importComments} from './actions/comments'
-import {deleteResults, importResults} from './actions/results'
+import {getVotingPool} from './actions/voters';
+import {deleteCommentsWithBallotId, importComments, uploadComments} from './actions/comments'
+import {deleteResults, importResults, uploadResults} from './actions/results'
 import {sortClick, allSelected, toggleVisible, SortIndicator} from './filter'
 import Epolls from './Epolls'
 import styles from './AppTable.css'
 
+class UploadModal extends React.PureComponent {
+	constructor(props) {
+		super(props)
+		this.fileInputRef = React.createRef();
+	}
+	submit = () => {
+		this.props.dispatch(
+			this.props.uploadType === 'results'?
+				uploadResults(this.props.ballotId, this.fileInputRef.current.files[0]):
+				uploadComments(this.props.ballotId, this.fileInputRef.current.files[0])
+		);
+	}
+	render() {
+		return (
+			<Modal
+				className='ModalContent'
+				overlayClassName='ModalOverlay'
+				isOpen={this.props.isOpen}
+				appElement={this.props.appElement}
+			>
+				<p>Upload {this.props.uploadType} for {this.props.ballotId}</p>
+				<input
+					type='file'
+					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+					ref={this.fileInputRef}
+				/>
+				<br />
+				<button onClick={this.submit}>OK</button>
+				<button onClick={this.props.close}>Cancel</button>
+			</Modal>
+		)
+	}
+}
 
 class Ballots extends React.Component {
 	constructor(props) {
@@ -40,15 +76,18 @@ class Ballots extends React.Component {
 			{dataKey: 'End',          label: 'End',
 				width: 100, flexShrink: 0,
 				cellRenderer: this.renderDate},
-	        {dataKey: 'BallotSeries', label: 'Voting Pool',
+	        {dataKey: 'VotingPoolID', label: 'Voting Pool',
 	        	width: 80,
-	    		cellRenderer: this.renderEditable},
+	    		cellRenderer: this.renderVotingPool},
+	    	{dataKey: 'PrevBallotID', label: 'Previous Ballot In Series',
+	        	width: 80,
+	    		cellRenderer: this.renderPrevBallot},
 			{dataKey: 'Results',      label: 'Voting Result',
 				width: 150,
-				cellRenderer: this.renderResult},
-			{dataKey: 'CommentCount', label: 'Comments',
+				cellRenderer: this.renderResultsSummary},
+			{dataKey: 'Comments', label: 'Comments',
 				width: 100,
-				cellRenderer: this.renderCommentCount}
+				cellRenderer: this.renderCommentsSummary}
 		];
 
 		this.state = {
@@ -57,6 +96,9 @@ class Ballots extends React.Component {
 			width: 100,
 			ballotImport: {},
 			selectedBallots: [],
+			showUpload: false,
+			uploadType: '',
+			uploadBallotID: 0
 		}
 
 		// List of filterable columns
@@ -69,11 +111,32 @@ class Ballots extends React.Component {
 
 		this.sortable = ['BallotID', 'Project', 'Document', 'Topic', 'EpollNum', 'Start', 'End'];
 
-		this.lastRenderedWidth = this.state.width;
 		this.rowHeightCache = new CellMeasurerCache({
 			minHeight: 18,
 			fixedWidth: true
 		})
+	}
+	componentDidMount() {
+		this.updateDimensions()
+		window.addEventListener("resize", this.updateDimensions);
+
+		if (!this.props.ballotsDataValid) {
+			this.props.dispatch(getBallots())
+		}
+		if (!this.props.votingPoolDataValid) {
+			this.props.dispatch(getVotingPool())
+		}
+	}
+	componentWillUnmount() {
+		window.removeEventListener("resize", this.updateDimensions);
+	}
+	updateDimensions = () => {
+		var header = document.getElementsByTagName('header')[0]
+		var top = document.getElementById('top-row')
+		var height = window.innerHeight - header.offsetHeight - top.offsetHeight - 5
+		var width = window.innerWidth - 1; //parent.offsetWidth
+		//console.log('update ', width, height)
+		this.setState({height, width})
 	}
 
 	showEpolls = (e) => {
@@ -90,12 +153,26 @@ class Ballots extends React.Component {
 	importCommentsClick = (e, rowData) => {
 		this.props.dispatch(importComments(rowData.BallotID, rowData.EpollNum));
 	}
+	uploadCommentsClick = (e, rowData) => {
+		this.setState({
+			showUpload: true,
+			uploadType: 'comments',
+			uploadBallotID: rowData.BallotID
+		})
+	}
 	deleteResultsClick = (e, rowData) => {
 		console.log('ballotId=', rowData.BallotID)
 		this.props.dispatch(deleteResults(rowData.BallotID));
 	}
 	importResultsClick = (e, rowData) => {
 		this.props.dispatch(importResults(rowData.BallotID, rowData.EpollNum));
+	}
+	uploadResultsClick = (e, rowData) => {
+		this.setState({
+			showUpload: true,
+			uploadType: 'results',
+			uploadBallotID: rowData.BallotID
+		})
 	}
 	handleRemoveSelected = () => {
 		const {ballotsData, ballotsDataMap} = this.props;
@@ -205,55 +282,82 @@ class Ballots extends React.Component {
 			)
 		}
 	}
-	renderCommentCount = ({rowIndex, rowData, dataKey}) => {
-		var count = rowData[dataKey];
-		if (count > 0) {
+	
+	renderVotingPool = ({rowIndex, columnIndex, rowData, dataKey}) => {
+		return (
+			<select
+				name={dataKey}
+				value={rowData[dataKey]}
+				onChange={e => this.updateBallotFieldIfChanged(rowIndex, columnIndex, dataKey, e.target.value)}
+			>
+				<option key={0} value={null}>None</option>
+				{this.props.votingPoolData.map(i => {
+					return (<option key={i.VotingPoolID} value={i.VotingPoolID}>{i.Name}</option>)
+				})}
+			</select>
+		)
+	}
+	renderPrevBallot = ({rowIndex, columnIndex, rowData, dataKey}) => {
+		var project = rowData.Project;
+		return (
+			<select
+				name={dataKey}
+				value={rowData[dataKey]}
+				onChange={e => this.updateBallotFieldIfChanged(rowIndex, columnIndex, dataKey, e.target.value)}
+			>
+				<option key={0} value={''}>None</option>
+				{this.props.ballotsByProject[project].map(i => {
+					return (i !== rowData.BallotID? <option key={i} value={i}>{i}</option>: null)
+				})}
+			</select>
+		)
+	}
+	renderResultsSummary = ({rowIndex, rowData, dataKey}) => {
+		var results = rowData.Results;
+		let el = [];
+		if (results && results.Total) {
+			let p = parseFloat(100*results.Approve/(results.Approve+results.Disapprove));
+			let percentStr = isNaN(p)? '': ` (${p.toFixed(1)}%)`;
+			el.push(<span key={el.length}>{`${results.Approve}/${results.Disapprove}/${results.Abstain}` + percentStr}</span>)
+			el.push(<br key={el.length}/>)
+			if (rowData.VotingPoolID) {
+				el.push(<span key={el.length}>{`Invalid Abstain: ${results.InvalidAbstain}`}</span>)
+				el.push(<br key={el.length}/>)
+				el.push(<span key={el.length}>{`Invalid Vote: ${results.InvalidVote}`}</span>)
+				el.push(<br key={el.length}/>)
+			}
+			el.push(<button key={el.length} onClick={(e) => {return this.deleteResultsClick(e, rowData)}}>Delete</button>)
+		}
+		else {
+			el.push(<button key={el.length} onClick={(e) => {return this.importResultsClick(e, rowData)}}>Import</button>)
+			el.push(<button key={el.length} onClick={(e) => {return this.uploadResultsClick(e, rowData)}}>Upload</button>)
+		}
+		return <Link to={`/Results/${rowData.BallotID}`}>{el}</Link>
+	}
+
+	renderCommentsSummary = ({rowIndex, rowData, dataKey}) => {
+		var comments = rowData.Comments;
+		if (comments.Count > 0) {
 			return (
 				<div>
-					<span>{count}</span>
+					<Link to={`/Comments/${rowData.BallotID}`}>{comments.CommentIDMin}-{comments.CommentIDMax} ({comments.Count})</Link><br />
 					<button onClick={(e) => {return this.deleteCommentsClick(e, rowData)}}>Delete</button>
 				</div>
 			)
 		}
 		else {
 			return (
-				<button onClick={(e) => {return this.importCommentsClick(e, rowData)}}>Import</button>
-			)
-		}
-	}
-
-	renderResult = ({rowIndex, rowData, dataKey}) => {
-		var result = rowData.Result;
-		if (result) {
-			let p = parseFloat(100*result.Approve/(result.Approve+result.Disapprove)).toFixed(1);
-			let percentStr = isNaN(p)? '': ` (${p})`;
-			return (
 				<div>
-					<span>{`${result.Approve}/${result.Disapprove}/${result.Abstain}` + percentStr}</span><br />
-					<span>{`Invalid Abstains: ${result.InvalidAbstain}`}</span><br />
-					<span>{`Invalid Votes: ${result.InvalidVote}`}</span><br />
-					<button onClick={(e) => {return this.deleteResultsClick(e, rowData)}}>Delete</button>
+					<button onClick={(e) => {return this.importCommentsClick(e, rowData)}}>Import</button>
+					<button onClick={(e) => {return this.uploadCommentsClick(e, rowData)}}>Upload</button>
 				</div>
 			)
 		}
-		else {
-			return (
-				<button onClick={(e) => {return this.importResultsClick(e, rowData)}}>Import</button>
-			)
-		}
 	}
+
 
 	refresh = () => {
 		this.props.dispatch(getBallots())
-	}
-
-	componentDidMount() {
-		var wrapper = document.getElementById('Ballots');
-		this.setState({height: wrapper.offsetHeight - 19, width: wrapper.offsetWidth})
-
-		if (!this.props.ballotsDataValid) {
-			this.props.dispatch(getBallots())
-		}
 	}
 
 	renderSortLabel = (props) => {
@@ -374,11 +478,21 @@ class Ballots extends React.Component {
 			{this.state.showEpolls?
 				(<Epolls close={() => this.setState({showEpolls: false})} />):
 				(<div>
-					<button disabled={this.props.getBallots} onClick={this.refresh}>Refresh</button>
-					<button>Add</button>
-					<button onClick={this.handleRemoveSelected}>Remove Selected</button>
-					<button onClick={this.showEpolls}>Import ePoll</button>
+					<div id='top-row'>
+						<button disabled={this.props.getBallots} onClick={this.refresh}>Refresh</button>
+						<button>Add</button>
+						<button onClick={this.handleRemoveSelected}>Remove Selected</button>
+						<button onClick={this.showEpolls}>Import ePoll</button>
+					</div>
 					{this.renderTable()}
+					<UploadModal
+						ballotId={this.state.uploadBallotID}
+						uploadType={this.state.uploadType}
+						isOpen={this.state.showUpload}
+						close={() => this.setState({showUpload: false})}
+						dispatch={this.props.dispatch}
+						appElement={document.querySelector('#Ballots')}
+					/>
 				</div>)
 			}
 			</div>
@@ -387,7 +501,7 @@ class Ballots extends React.Component {
 }
 
 function mapStateToProps(state) {
-	const {ballots, comments, results} = state
+	const {ballots, voters, comments, results} = state
 	return {
 		filters: ballots.filters,
 		sortBy: ballots.sortBy,
@@ -395,9 +509,12 @@ function mapStateToProps(state) {
 		ballotsDataValid: ballots.ballotsDataValid,
 		ballotsData: ballots.ballotsData,
 		ballotsDataMap: ballots.ballotsDataMap,
+		ballotsByProject: ballots.ballotsByProject,
 		getBallots: ballots.getBallots,
 		updateBallot: ballots.updateBallot,
-		deleteBallots: state.ballots.deleteBallots,
+		deleteBallots: ballots.deleteBallots,
+		votingPoolDataValid: voters.votingPoolDataValid,
+		votingPoolData: voters.votingPoolData,
 		importComments: comments.importComments,
 		importCommentsCount: comments.importCommentsCount,
 		deleteResults: results.deleteResults,

@@ -43,18 +43,18 @@ class AddVoterModal extends React.PureComponent {
 		)
 	}
 }
-class Voters extends React.PureComponent {
+class Voters extends React.Component {
 	constructor(props) {
 		super(props);
 
 		this.columns = [
-			{dataKey: '',				width: 40,  label: '',
-				sortable: false,
+			{dataKey: '',	label: '',
+				width: 40,  
 				headerRenderer: this.renderHeaderCheckbox,
 				cellRenderer: this.renderCheckbox},
-			{dataKey: 'SAPIN',	width: 100, label: 'SA PIN'},
-			{dataKey: 'Name',			width: 200, label: 'Name'},
-			{dataKey: 'Email',			width: 200, label: 'Email'}
+			{dataKey: 'SAPIN',	label: 'SA PIN', width: 100},
+			{dataKey: 'Name', label: 'Name',	width: 200},
+			{dataKey: 'Email', label: 'Email',	width: 250}
 		];
 
 		this.state = {
@@ -74,16 +74,25 @@ class Voters extends React.PureComponent {
 			});
 		}
 		this.sortable = ['SAPIN', 'Name', 'Email'];
-
-		this.lastRenderedWidth = this.state.width;
 	}
 
 	componentDidMount() {
-		var wrapper = document.getElementById('Voters');
-		this.setState({height: wrapper.offsetHeight - 19, width: wrapper.offsetWidth})
+		this.updateDimensions()
+		window.addEventListener("resize", this.updateDimensions);
 		if (!this.props.votersValid || this.props.votingPool.VotingPoolID !== this.props.votingPoolId) {
 			this.props.dispatch(getVoters(this.props.votingPool.VotingPoolID))
 		}
+	}
+	componentWillUnmount() {
+		window.removeEventListener("resize", this.updateDimensions);
+	}
+	updateDimensions = () => {
+		var header = document.getElementsByTagName('header')[0]
+		var top = document.getElementById('top-row')
+		var height = window.innerHeight - header.offsetHeight - top.offsetHeight - 5
+		var width = window.innerWidth - 1; //parent.offsetWidth
+		//console.log('update ', width, height)
+		this.setState({height, width})
 	}
 
 	handleRemoveSelected = () => {
@@ -201,10 +210,6 @@ class Voters extends React.PureComponent {
 	}
 
 	renderTable = () => {
-		if (this.lastRenderedWidth !== this.state.width) {
-			this.lastRenderedWidth = this.state.width
-		}
-
 		return (
 			<Table
 				className={styles.Table}
@@ -236,11 +241,13 @@ class Voters extends React.PureComponent {
 	render() {
 		return (
 			<div id='Voters' style={{height: '100%'}}>
-				<label>Voting Pool:<span>{this.props.votingPool.Name}</span></label>
-				<label>Date:<span>{this.props.votingPool.Date.slice(0, 10)}</span></label><br/>
-				<button onClick={this.props.close}>Back</button>
-				<button onClick={this.handleRemoveSelected}>Remove Selected</button>
-				<button onClick={() => this.setState({showAddVoter: true})}>Add</button>
+				<div id='top-row'>
+					<label>Voting Pool:<span>{this.props.votingPool.Name}</span></label>
+					<label>Date:<span>{this.props.votingPool.Date.slice(0, 10)}</span></label><br/>
+					<button onClick={this.props.close}>Back</button>
+					<button onClick={this.handleRemoveSelected}>Remove Selected</button>
+					<button onClick={() => this.setState({showAddVoter: true})}>Add</button>
+				</div>
 
 				{this.renderTable()}
 
