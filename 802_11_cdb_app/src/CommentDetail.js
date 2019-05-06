@@ -8,7 +8,6 @@ import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'
 import Textarea from 'react-textarea-autosize'
 import {getUsers} from './actions/users'
 import {updateComment, addResolution, updateResolution, deleteResolution} from './actions/comments';
-import {DeleteIcon} from './filter'
 import './CommentDetail.css'
 
 
@@ -138,7 +137,7 @@ class CommentDetail extends React.Component {
  			<div className='row'>
 				<div className='Assignee'><label>Assignee:</label><span>{r.Assginee}</span></div>
 				<select
-					name='Assignee'
+					name='AssigneeName'
 					value={r.Assignee === null? 0: r.Assignee}
 					onChange={e => this.changeResolutionInput(e, index)}
 				>
@@ -147,7 +146,7 @@ class CommentDetail extends React.Component {
 						return (<option key={i.UserID} value={i.UserID}>{i.Name} &lt;{i.Email}&gt;</option>)
 						})}
 				</select>
-				<DeleteIcon width={22} height={22} onClick={() => this.removeResolution(index)}/>
+				<span className="fa fa-trash-alt" onClick={() => this.removeResolution(index)}/>
 			</div>	
  			<div className='TopRow'>
 				<div className='ResolutionStatus'>
@@ -255,8 +254,8 @@ class CommentDetail extends React.Component {
 						<input
 							className='EditedInDraft'
 							type='text'
-							name='EditedInDraft'
-							value={this.state.comment.EditedInDraft}
+							name='EditInDraft'
+							value={this.state.comment.EditInDraft}
 							onChange={this.changeInput}
 						/><br />
 					</label>
@@ -266,7 +265,7 @@ class CommentDetail extends React.Component {
 					contentEditable
 					onInput={e => {
 						this.setState({
-							comment: update(this.state.comment, {EditingNotes: {$set: e.target.innerHTML}})
+							comment: update(this.state.comment, {EditNotes: {$set: e.target.innerHTML}})
 						});
 					}}
 					//dangerouslySetInnerHTML={{__html: this.state.comment.EditingNotes}}
@@ -356,7 +355,7 @@ class CommentDetail extends React.Component {
 
 				<div className='row'>
 					<div className='CID'><label>CID:</label><span>{this.state.comment.CommentID}</span></div>
-					<div className='Commenter'><label>Commenter:</label><span>{this.state.comment.Name}</span></div>
+					<div className='Commenter'><label>Commenter:</label><span>{this.state.comment.CommenterName}</span></div>
 					<div className='MustSatisfy'><label>Must Satisfy:</label><input type='checkbox' readOnly checked={this.state.comment.MustSatisfy} /></div>
 				</div>
 

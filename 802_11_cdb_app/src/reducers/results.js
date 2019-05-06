@@ -6,6 +6,7 @@ const defaultState = {
 	sortDirection: {},
 	ballotId: '',
 	votingPoolID: '',
+	ballot: {},
 	resultsDataValid: false,
 	resultsData: [],
 	resultsDataMap: [],
@@ -49,6 +50,8 @@ const results = (state = defaultState, action) => {
 				getResults: false,
 				ballotId: action.ballotId,
 				votingPoolId: action.votingPoolId,
+				votingPoolSize: action.votingPoolSize,
+				ballot: action.ballot,
 				resultsDataValid: true,
 				resultsData: action.results,
 				resultsDataMap: sortData(filterData(action.results, state.filters), action.results, state.sortBy, state.sortDirection),
@@ -89,7 +92,12 @@ const results = (state = defaultState, action) => {
 			return {
 				...state,
 				importResults: false,
-				importSummary: action.summary
+				ballotId: action.ballotId,
+				votingPoolId: action.votingPoolId,
+				resultsDataValid: true,
+				resultsData: action.results,
+				resultsDataMap: sortData(filterData(action.results, state.filters), action.results, state.sortBy, state.sortDirection),
+				resultsSummary: action.summary
 			}
 		case 'IMPORT_RESULTS_FAILURE':
 			errorMsgs = state.errorMsgs.slice();

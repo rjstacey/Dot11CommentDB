@@ -4,7 +4,7 @@ module.exports = function (db) {
 
 	module.getUsers = function (req, res, next) {
 
-		return db.query2('SELECT * FROM users')
+		return db.query('SELECT * FROM users')
 	}
 
 	module.getAccessLevel = function (sapin, email, callback) {
@@ -16,7 +16,7 @@ module.exports = function (db) {
 			SQL = db.format('SELECT * from users WHERE Email=?', [email]);
 		}
 		console.log(SQL);
-		return db.query2(SQL)
+		return db.query(SQL)
 			.then(results => {
 				console.log(JSON.stringify(results));
 				return results.length > 0? results[0].Access: 1;
@@ -34,7 +34,7 @@ module.exports = function (db) {
 		};
 
 		var SQL = `INSERT INTO users (${Object.keys(entry)}) VALUES (${db.escape(Object.values(entry))});`;
-		return db.query2(SQL)
+		return db.query(SQL)
 			.then(result => {
 				entry.UserID = result.insertId;
 				return entry;
@@ -64,7 +64,7 @@ module.exports = function (db) {
 			return Promise.resolve();
 		}
 
-  		return db.query2("UPDATE users SET ? WHERE UserID=?",  [entry, id])
+  		return db.query("UPDATE users SET ? WHERE UserID=?",  [entry, id])
   			.then(result => {
 				entry.UserID = id;
 				return entry
@@ -76,7 +76,7 @@ module.exports = function (db) {
 
 		const userids = req.body;
 
-		return db.query2('DELETE FROM users WHERE userid IN (?)', [userids])
+		return db.query('DELETE FROM users WHERE userid IN (?)', [userids])
 	}
 
 	return module;

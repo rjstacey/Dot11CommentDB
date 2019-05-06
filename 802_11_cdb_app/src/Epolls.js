@@ -2,25 +2,25 @@ import React from 'react';
 import Modal from 'react-modal';
 import {connect} from 'react-redux';
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
-import {sortClick, SortIndicator} from './filter'
-import {setEpollsSort, setEpollsFilter, getEpolls, clearEpollsError} from './actions/epolls';
-import {addBallot, clearBallotsError} from './actions/ballots';
+import {sortClick} from './filter'
+import {setEpollsSort, setEpollsFilter, getEpolls} from './actions/epolls';
+import {addBallot} from './actions/ballots';
 import './Epolls.css'
 import styles from './AppTable.css'
 
 class Epolls extends React.Component {
 	constructor(props) {
 		super(props)
-  
+
 		this.columns = [
 			{dataKey: 'Import',    width: 100, label: '',
 				sortable: false,
 				cellRenderer: this.renderImport},
 			{dataKey: 'EpollNum',  width: 100, label: 'ePoll',
 				cellRenderer: this.renderText},
-			{dataKey: 'BallotID',  width: 100, label: 'ePoll Name',
+			{dataKey: 'BallotID',  width: 200, label: 'ePoll Name',
 				cellRenderer: this.renderText},
-			{dataKey: 'Document',  width: 300, label: 'Document',
+			{dataKey: 'Document',  width: 200, label: 'Document',
 				cellRenderer: this.renderText},
 			{dataKey: 'Topic',     width: 500, label: 'Topic',
 				cellRenderer: this.renderText},
@@ -46,14 +46,14 @@ class Epolls extends React.Component {
 				this.props.dispatch(setEpollsFilter(dataKey, ''));
 			});
 		}
-
 		this.sortable = ['EpollNum', 'BallotID', 'Document', 'Topic', 'Start', 'End'];
 
-		this.lastRenderedWidth = this.state.width;
 		this.rowHeightCache = new CellMeasurerCache({
 			minHeight: 18,
 			fixedWidth: true
-		})
+		});
+
+		this.numberEpolls = 20;
 	}
   
 	static getDerivedStateFromProps(props, state) {
@@ -67,6 +67,25 @@ class Epolls extends React.Component {
 		return newState
 	}
 
+	componentDidMount() {
+		this.updateDimensions()
+		window.addEventListener("resize", this.updateDimensions);
+
+		if (!this.props.epollsDataValid) {
+			this.props.dispatch(getEpolls(this.numberEpolls))
+		}
+	}
+	componentWillUnmount() {
+		window.removeEventListener("resize", this.updateDimensions);
+	}
+	updateDimensions = () => {
+		var header = document.getElementsByTagName('header')[0]
+		var top = document.getElementById('top-row')
+		var height = window.innerHeight - header.offsetHeight - top.offsetHeight - 5
+		var width = window.innerWidth - 1; //parent.offsetWidth
+		//console.log('update ', width, height)
+		this.setState({height, width})
+	}
 
 	importClick = (rowData) => {
 		console.log(rowData)
@@ -86,7 +105,11 @@ class Epolls extends React.Component {
 		this.setState({ballotImportWait: true})
 	}
 	refresh = () => {
-		this.props.dispatch(getEpolls(20))
+		this.props.dispatch(getEpolls(this.numberEpolls))
+	}
+	getMore = () => {
+		this.numberEpolls += 10;
+		this.props.dispatch(getEpolls(this.numberEpolls))
 	}
 	sortChange = (event, dataKey) => {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, this.props.sortBy, this.props.sortDirection);
@@ -144,15 +167,6 @@ class Epolls extends React.Component {
 		)
 	}
 
-	componentDidMount() {
-		var wrapper = document.getElementById('Epolls');
-		this.setState({height: wrapper.offsetHeight - 19, width: wrapper.offsetWidth});
-
-		if (!this.props.epollsDataValid) {
-			this.props.dispatch(getEpolls(20))
-		}
-	}
-
 	renderSortLabel = (props) => {
 		const {dataKey, label, style} = props;
 		const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE'
@@ -164,7 +178,7 @@ class Epolls extends React.Component {
 				style={{cursor: 'pointer', userSelect: 'none', ...style}}
 			>
 				{label}
-				<SortIndicator sortDirection={sortDirection} />
+				{sortDirection === 'NONE' || <i className={sortDirection === 'ASC'? "fa fa-sort-alpha-down": "fa fa-sort-alpha-up"} />}
 			</span>
 		);
 	}
@@ -217,10 +231,6 @@ class Epolls extends React.Component {
 	}
 
 	renderTable = () => {
-		if (this.lastRenderedWidth !== this.state.width) {
-			this.lastRenderedWidth = this.state.width
-			this.rowHeightCache.clearAll()
-		}
 		return (
 			<Table
 				className={styles.Table}
@@ -250,42 +260,17 @@ class Epolls extends React.Component {
 		)
 	}
 
-	renderOkModal = () => {
-
-		var msg = null;
-		var dispatchObj = null
-		if (this.props.ballotsErrorMsg) {
-			msg = this.props.ballotsErrorMsg
-			dispatchObj = clearBallotsError()
-		}
-		else if (this.props.epollsErrorMsg) {
-			msg = this.props.epollsErrorMsg
-			dispatchObj = clearEpollsError()
-		}
-
-		return (
-			<Modal
-				className='OkModalContent'
-				overlayClassName='OkModalOverlay'
-				isOpen={!!msg}
-				appElement={document.querySelector('#Epolls')}
-			>
-				<p>{msg}</p>
-				<button onClick={() => this.props.dispatch(dispatchObj)}>OK</button>
-			</Modal>
-		)
-	}
-
 	render() {
 
 		return (
 			<div id='Epolls' style={{height: '100%'}}>
-				<button onClick={this.props.close}>Back</button>
-				<button onClick={this.refresh}>Refresh</button>
+				<div id='top-row'>
+					<button onClick={this.props.close}>Back</button>
+					<button onClick={this.refresh}>Refresh</button>
+					<button onClick={this.getMore}>Get More</button>
+				</div>
 
 				{this.renderTable()}
-
-				{this.renderOkModal()}
 
 				<Modal 
 					className='ImportModalContent'

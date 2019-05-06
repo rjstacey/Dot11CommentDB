@@ -38,6 +38,8 @@ function getResultsSuccess(data) {
 		type: 'GET_RESULTS_SUCCESS',
 		ballotId: data.BallotID,
 		votingPoolId: data.VotingPoolID,
+		votingPoolSize: data.VotingPoolSize,
+		ballot: data.ballot,
 		results: data.results,
 		summary: data.summary
 	}
@@ -59,6 +61,7 @@ export function getResults(ballotId) {
 				}
 				else {
 					dispatch(getResultsSuccess(response.data.data))
+					dispatch(updateBallotLocal({BallotID: ballotId, Results: response.data.data.summary}))
 				}
 			})
 			.catch((error) => {
@@ -95,7 +98,7 @@ export function deleteResults(ballotId) {
 					dispatch(deleteResultsFailure(response.data.message))
 				}
 				else {
-					dispatch(updateBallotLocal({BallotID: ballotId, ResultCount: 0, Result: {}}))
+					dispatch(updateBallotLocal({BallotID: ballotId, Results: {}}))
 					dispatch(deleteResultsSuccess(ballotId))
 				}
 			})
@@ -111,11 +114,10 @@ function importResultsLocal(ballotId) {
 		ballotId
 	}
 }
-function importResultsSuccess(ballotId, result) {
+function importResultsSuccess(data) {
 	return {
 		type: 'IMPORT_RESULTS_SUCCESS',
-		ballotId,
-		Result: result
+		...data
 	}
 }
 function importResultsFailure(ballotId, msg) {
@@ -138,9 +140,9 @@ export function importResults(ballotId, epollNum) {
 					dispatch(importResultsFailure(ballotId, response.data.message))
 				}
 				else {
-					const result = response.data.data;
-					dispatch(updateBallotLocal({BallotID: ballotId, Result: result}))
-					dispatch(importResultsSuccess(ballotId, result))
+					const summary = response.data.data.summary;
+					dispatch(updateBallotLocal({BallotID: ballotId, Results: summary}))
+					dispatch(importResultsSuccess(response.data.data))
 				}
 			})
 			.catch((error) => {
@@ -162,7 +164,7 @@ export function uploadResults(ballotId, file) {
 				}
 				else {
 					const result = response.data.data;
-					dispatch(updateBallotLocal({BallotID: ballotId, Result: result}))
+					dispatch(updateBallotLocal({BallotID: ballotId, Results: result}))
 					dispatch(importResultsSuccess(ballotId, result))
 				}
 			})

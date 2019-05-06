@@ -15,7 +15,7 @@ function parseClosedEpollsPage(body) {
 	// If we get the "ePolls" page then parse the data table
 	// (use cheerio, which provides jQuery parsing)
 	if ($('div.title').length && $('div.title').html() == "ePolls") {
-		console.log('GOT ePolls page');
+		//console.log('GOT ePolls page');
 		$('.b_data_row').each(function (index) {  // each table data row
 			var tds = $(this).find('td');
 			var epoll = {};
@@ -56,67 +56,14 @@ function parsePollResults(csvArray) {
 
 /*
  * Get ballots SQL query.
- * The union of two queries:
- *  - one with voting pool (VotingPoolID is not null), results are validated against pool
- *  - one without voting pool (VotingPoolID is null), raw results 
  */
 const GET_BALLOTS_SQL =
 	'SELECT ' +
 		'ballots.*, ' +
-		'SUM(CASE WHEN voters.SAPIN IS NOT NULL AND Vote LIKE "Approve" THEN 1 ELSE 0 END) AS Approve, ' +
-		'SUM(CASE WHEN voters.SAPIN IS NOT NULL AND Vote LIKE "Disapprove" THEN 1 ELSE 0 END) AS Disapprove, ' +
-		'SUM(CASE WHEN voters.SAPIN IS NOT NULL AND Vote LIKE "Abstain%expertise" THEN 1 ELSE 0 END) AS Abstain, ' +
-		'SUM(CASE WHEN voters.SAPIN IS NOT NULL AND Vote LIKE "Abstain%" AND Vote NOT LIKE "Abstain%expertise" THEN 1 ELSE 0 END) AS InvalidAbstain, ' +
-		'SUM(CASE WHEN voters.SAPIN IS NULL AND Vote IS NOT NULL THEN 1 ELSE 0 END) AS InvalidVote, ' +
-		'SUM(CASE WHEN Vote IS NOT NULL THEN 1 ELSE 0 END) AS Total, ' +
 		'(SELECT COUNT(*) FROM comments WHERE comments.BallotID = ballots.BallotID) AS CommentCount, ' +
 		'(SELECT MIN(CommentID) FROM comments WHERE comments.BallotID = ballots.BallotID) AS CommentIDMin, ' +
 		'(SELECT MAX(CommentID) FROM comments WHERE comments.BallotID = ballots.BallotID) AS CommentIDMax ' +
-	'FROM ballots ' +
-		'LEFT JOIN results ON ballots.BallotID = results.BallotID ' +
-		'LEFT JOIN voters ON ballots.VotingPoolID > 0 AND ballots.VotingPoolID = voters.VotingPoolID AND voters.SAPIN = results.SAPIN ' +
-		'WHERE ballots.VotingPoolID > 0 GROUP BY ballots.BallotID ' +
-	'UNION ' +
-	'SELECT ' +
-		'ballots.*, ' +
-		'SUM(CASE WHEN Vote LIKE "Approve" THEN 1 ELSE 0 END) AS Approve, ' +
-		'SUM(CASE WHEN Vote LIKE "Disapprove" THEN 1 ELSE 0 END) AS Disapprove, ' +
-		'SUM(CASE WHEN Vote LIKE "Abstain%" THEN 1 ELSE 0 END) AS Abstain, ' +
-		'NULL AS InvalidAbstain, ' +
-		'NULL AS InvalidVote, ' +
-		'SUM(CASE WHEN Vote IS NOT NULL THEN 1 ELSE 0 END) AS Total, ' +
-		'(SELECT COUNT(*) FROM comments WHERE comments.BallotID = ballots.BallotID) AS CommentCount, ' +
-		'(SELECT MIN(CommentID) FROM comments WHERE comments.BallotID = ballots.BallotID) AS CommentIDMin, ' +
-		'(SELECT MAX(CommentID) FROM comments WHERE comments.BallotID = ballots.BallotID) AS CommentIDMax ' +
-	'FROM ballots ' +
-		'LEFT JOIN results ON ballots.BallotID = results.BallotID ' +
-		'WHERE ballots.VotingPoolID = 0 GROUP BY ballots.BallotID';
-
-/*
- * Get results summary for a ballot with a voting pool
- */
-const GET_RESULTS_FOR_BALLOT_WITH_POOL =
-	'SELECT ' +
-		'SUM(CASE WHEN voters.SAPIN IS NOT NULL AND Vote LIKE "Approve" THEN 1 ELSE 0 END) AS Approve, ' +
-		'SUM(CASE WHEN voters.SAPIN IS NOT NULL AND Vote LIKE "Disapprove" THEN 1 ELSE 0 END) AS Disapprove, ' +
-		'SUM(CASE WHEN voters.SAPIN IS NOT NULL AND Vote LIKE "Abstain%expertise" THEN 1 ELSE 0 END) AS Abstain, ' +
-		'SUM(CASE WHEN voters.SAPIN IS NOT NULL AND Vote LIKE "Abstain%" AND Vote NOT LIKE "Abstain%expertise" THEN 1 ELSE 0 END) AS InvalidAbstain, ' +
-		'SUM(CASE WHEN voters.SAPIN IS NULL THEN 1 ELSE 0 END) AS InvalidVote, ' +
-		'COUNT(*) AS Total ' +
-	'FROM results LEFT JOIN voters ON voters.VotingPoolID = ? AND voters.SAPIN = results.SAPIN WHERE results.BallotID = ?';
-
-/*
- * Get results summary for a ballot without a voting pool
- */
-const GET_RESULTS_FOR_BALLOT_WITHOUT_POOL =
-	'SELECT ' +
-		'SUM(CASE WHEN Vote LIKE "Approve" THEN 1 ELSE 0 END) AS Approve, ' +
-		'SUM(CASE WHEN Vote LIKE "Disapprove" THEN 1 ELSE 0 END) AS Disapprove, ' +
-		'SUM(CASE WHEN Vote LIKE "Abstain%" THEN 1 ELSE 0 END) AS Abstain, ' +
-		'NULL AS InvalidAbstain, ' +
-		'NULL AS InvalidVote, ' +
-		'COUNT(*) AS Total ' +
-	'FROM results WHERE BallotID = ? ';
+	'FROM ballots ORDER BY Project, Start';
 
 /*
  * Get comments summary for ballot
@@ -133,13 +80,11 @@ module.exports = function(db, rp) {
 	module.getBallots = (req, res, next) => {
 		var ballots;
 
-		return db.query2(GET_BALLOTS_SQL)
+		return db.query(GET_BALLOTS_SQL)
 			.then(results => {
-				console.log(results)
-				ballots = results;
+  				ballots = results;
 
-				var p = results.map(r => resultsModule.getResultsLocal(r.BallotID))
-				return Promise.all(p)
+				return Promise.all(ballots.map(r => resultsModule.getResultsLocal(r.BallotID)))
 			})
 			.then(results => {
 				if (results.length !== ballots.length) {
@@ -158,33 +103,6 @@ module.exports = function(db, rp) {
 					return b;
 				})
 			})
-			/*
-				results.forEach(r => {
-					r.Results = {
-						Approve: r.Approve,
-						Disapprove: r.Disapprove,
-						Abstain: r.Abstain,
-						InvalidAbstain: r.InvalidAbstain,
-						InvalidVote: r.InvalidVote,
-						Total: r.Total
-					}
-					delete r.Approve
-					delete r.Disapprove
-					delete r.Abstain
-					delete r.InvalidAbstain
-					delete r.InvalidVote
-					delete r.Total
-					r.Comments = {
-						Count: r.CommentCount,
-						CommentIDMin: r.CommentIDMin,
-						CommentIDMax: r.CommentIDMax
-					}
-					delete r.CommentCount
-					delete r.CommentIDMin
-					delete r.CommentIDMax
-				})
-				return results;
-			})*/
 	}
 
 	module.addBallot = (req, res, next) => {
@@ -208,7 +126,7 @@ module.exports = function(db, rp) {
 		});
 
 		var SQL = `INSERT INTO ballots (${Object.keys(entry)}) VALUES (${db.escape(Object.values(entry))}); SELECT * FROM ballots WHERE BallotID=${db.escape(entry.BallotID)}`;
-		return db.query2(SQL)
+		return db.query(SQL)
 			.then(results => {
 				if (results.length !== 2 || results[1].length != 1) {
 					throw "Unexpected result"
@@ -248,30 +166,25 @@ module.exports = function(db, rp) {
 		}
 
 		var ballot;
-		return db.query2('UPDATE ballots SET ? WHERE BallotID=?; SELECT * FROM ballots WHERE BallotID=?',  [entry, id, id])
+		return db.query('UPDATE ballots SET ? WHERE BallotID=?; SELECT * FROM ballots WHERE BallotID=?',  [entry, id, id])
 			.then(results => {
 				if (results.length !== 2 || results[1].length != 1) {
 					throw "Unexpected SQL query result"
 				}
 				ballot = results[1][0];
-				if (ballot.VotingPoolID > 0) {
-					return db.query2(GET_RESULTS_FOR_BALLOT_WITH_POOL + ';' + GET_COMMENTS_FOR_BALLOT, [ballot.VotingPoolID, ballot.BallotID, ballot.BallotID])
-				} else {
-					return db.query2(GET_RESULTS_FOR_BALLOT_WITHOUT_POOL + ';' + GET_COMMENTS_FOR_BALLOT, [ballot.BallotID, ballot.BallotID])
-				}
+				return resultsModule.getResultsLocal(id)
 			})
 			.then(results => {
-				if (results.length !== 2) {
-					throw "Unexpected SQL query result"
-				}
-				ballot.Results = results[0][0];
-				ballot.Comments = results[1][0];
+				ballot.Results = results.summary;
+				return db.query(GET_COMMENTS_FOR_BALLOT, [id])
+			})
+			.then(results => {
+				ballot.Comments = results[0];
 				return ballot
 			})
 	}
 
 	module.deleteBallots = (req, res, next) => {
-		console.log('Delete for '+ req.url);
 		console.log(req.body);
 
 		var ballotids = db.escape(req.body);
@@ -283,7 +196,7 @@ module.exports = function(db, rp) {
 			`DELETE FROM resolutions WHERE BallotID IN (${ballotids});` +
 			`DELETE FROM results WHERE BallotID IN (${ballotids});` +
 			'COMMIT;'
-		return db.query2(SQL)
+		return db.query(SQL)
 	}
 
 	/*
@@ -325,7 +238,18 @@ module.exports = function(db, rp) {
 				})
 		}
 
+		var epollsList = []
         return recursivePageGet([], n, 1)
+        	.then(epolls => {
+        		epollsList = epolls;
+        		return db.query('SELECT BallotId, EpollNum FROM ballots')
+        	})
+        	.then(ballots => {
+        		for (epoll of epollsList) {
+        			epoll.InDatabase = !!ballots.find(b => b.EpollNum === epoll.EpollNum)
+        		}
+        		return epollsList
+        	})
 	}
 
 	return module;

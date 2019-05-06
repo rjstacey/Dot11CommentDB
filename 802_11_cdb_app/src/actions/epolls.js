@@ -44,7 +44,7 @@ export function getEpolls(n = 20) {
 				}
 				else {
 					dispatch(getEpollsSuccess(n, response.data.data))
-					dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData))
+					//dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData))
 				}
 			})
 			.catch((error) => {

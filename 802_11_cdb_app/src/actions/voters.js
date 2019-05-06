@@ -162,10 +162,11 @@ function getVotersLocal(votingPoolId) {
 		votingPoolId
 	}
 }
-function getVotersSuccess(votersData) {
+function getVotersSuccess(data) {
 	return {
 		type: 'GET_VOTERS_SUCCESS',
-		votersData
+		votingPool: data.votingPool,
+		voters: data.voters
 	}
 }
 function getVotersFailure(msg) {
@@ -232,19 +233,19 @@ export function deleteVoters(voterPoolId) {
 
 function uploadVotersLocal(votingPoolId) {
 	return {
-		type: 'IMPORT_VOTERS',
+		type: 'UPLOAD_VOTERS',
 		votingPoolId
 	}
 }
 function uploadVotersSuccess(votingPoolId) {
 	return {
-		type: 'IMPORT_VOTERS_SUCCESS',
+		type: 'UPLOAD_VOTERS_SUCCESS',
 		votingPoolId,
 	}
 }
 function uploadVotersFailure(msg) {
 	return {
-		type: 'IMPORT_VOTERS_FAILURE',
+		type: 'UPLOAD_VOTERS_FAILURE',
 		errMsg: msg
 	}
 }
@@ -254,7 +255,7 @@ export function uploadVoters(votingPoolId, file) {
 		var formData = new FormData();
 		formData.append("VotingPoolID", votingPoolId);
 		formData.append("VotersFile", file);
-		return axios.post('/voters', formData, {headers: {'Content-Type': 'multipart/form-data'}})
+		return axios.post('/voters/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
 			.then((response) => {
 				if (response.data.status !== 'OK') {
 					dispatch(uploadVotersFailure(response.data.message))

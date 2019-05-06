@@ -91,7 +91,7 @@ export function deleteCommentsWithBallotId(ballotId) {
 					dispatch(deleteCommentsWithBallotIdFailure(response.data.message))
 				}
 				else {
-					dispatch(updateBallotLocal({BallotID: ballotId, count: 0}))
+					dispatch(updateBallotLocal({BallotID: ballotId, Comments: {Count: 0}}))
 					dispatch(deleteCommentsWithBallotIdSuccess(ballotId))
 				}
 			})
@@ -107,11 +107,11 @@ function importCommentsLocal(ballotId) {
 		ballotId
 	}
 }
-function importCommentsSuccess(ballotId, count) {
+function importCommentsSuccess(ballotId, summary) {
 	return {
 		type: 'IMPORT_COMMENTS_SUCCESS',
 		ballotId,
-		commentCount: count
+		CommentsSummary: summary
 	}
 }
 function importCommentsFailure(ballotId, msg) {
@@ -135,13 +135,14 @@ export function importComments(ballotId, epollNum, startCID) {
 					dispatch(importCommentsFailure(ballotId, response.data.message))
 				}
 				else {
-					const count = response.data.data.count;
-					dispatch(updateBallotLocal({BallotID: ballotId, count: count}))
-					dispatch(importCommentsSuccess(ballotId, count))
+					const commentsSummary = response.data.data.CommentsSummary;
+					dispatch(updateBallotLocal({BallotID: ballotId, Comments: commentsSummary}))
+					dispatch(importCommentsSuccess(ballotId, commentsSummary))
 				}
 			})
 			.catch((error) => {
-				dispatch(importCommentsFailure(ballotId, `Unable to import comments for ballotId=${ballotId}`))
+				console.log(error)
+				dispatch(importCommentsFailure(ballotId, `Unable to import comments for ${ballotId}`))
 			})
 	}
 }
@@ -211,10 +212,11 @@ export function addResolution(data) {
 					dispatch(addResolutionFailure(response.data.message))
 				}
 				else {
-					dispatch(addResolutionSuccess(data))
+					dispatch(addResolutionSuccess(response.data.data))
 				}
 			})
 			.catch((error) => {
+				console.log(error)
 				dispatch(addResolutionFailure(`Unable to add resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`))
 			})
 	}
@@ -335,6 +337,47 @@ export function uploadComments(ballotId, file) {
 			})
 			.catch((error) => {
 				dispatch(uploadCommentsFailure(`Unable to upload comments for ballot ${ballotId}`))
+			})
+	}
+}
+
+function uploadResolutionsLocal(ballotId) {
+	return {
+		type: 'UPLOAD_RESOLUTIONS',
+		ballotId
+	}
+}
+function uploadResolutionsSuccess(ballotId) {
+	return {
+		type: 'UPLOAD_RESOLUTIONS_SUCCESS',
+		ballotId,
+	}
+}
+function uploadResolutionsFailure(msg) {
+	return {
+		type: 'UPLOAD_RESOLUTIONS_FAILURE',
+		errMsg: msg
+	}
+}
+export function uploadResolutions(ballotId, file) {
+	console.log('uploadResolutions')
+
+	return dispatch => {
+		dispatch(uploadResolutionsLocal(ballotId));
+		var formData = new FormData();
+		formData.append("BallotID", ballotId);
+		formData.append("ResolutionsFile", file);
+		return axios.post('/resolutions/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
+			.then((response) => {
+				if (response.data.status !== 'OK') {
+					dispatch(uploadResolutionsFailure(response.data.message))
+				}
+				else {
+					dispatch(uploadResolutionsSuccess(ballotId))
+				}
+			})
+			.catch((error) => {
+				dispatch(uploadResolutionsFailure(`Unable to upload resolutions for ballot ${ballotId}`))
 			})
 	}
 }

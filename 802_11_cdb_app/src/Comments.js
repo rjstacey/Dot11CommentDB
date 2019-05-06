@@ -1,31 +1,17 @@
 import React from 'react';
+import Modal from 'react-modal';
 import update from 'immutability-helper';
 import {connect} from 'react-redux';
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
+import Draggable from 'react-draggable';
 import LinesEllipsis from 'react-lines-ellipsis'
 import BallotSelector from './BallotSelector'
 import CommentDetail from './CommentDetail'
-import {sortClick, allSelected, toggleVisible, SortIndicator} from './filter'
-import {setCommentsSort, setCommentsFilter, getComments} from './actions/comments'
+import {sortClick, allSelected, toggleVisible} from './filter'
+import {setCommentsSort, setCommentsFilter, getComments, uploadResolutions} from './actions/comments'
 import {setBallotId} from './actions/ballots'
 import styles from './AppTable.css';
-
-
-function ExpandIcon(props) {
-	const {showPlus, ...otherProps} = props;
-	return (
-		<svg width={18} height={18} aria-label={showPlus? 'Expand': 'Shrink'} {...otherProps}>
-			<g stroke='black'>
-			<circle cx={9} cy={9} r={8} strokeWidth={1} fill='none'/>
-			<path
-				d={showPlus? 'M 4,9 h 10 M 9,4 v 10': 'M 4,9 h 10'}
-				strokeWidth={2}
-				strokeLinecap='round'
-			/>
-			</g>
-		</svg>
-	)
-}
+import './CommentSelector.css';
 
 
 function html_preserve_newline(text) {
@@ -41,57 +27,142 @@ function html_preserve_newline(text) {
 	text;
 }
 
+class ImportModal extends React.PureComponent {
+	constructor(props) {
+		super(props)
+		this.fileInputRef = React.createRef();
+	}
+	submit = () => {
+		this.props.dispatch(uploadResolutions(this.props.ballotId, this.fileInputRef.current.files[0]))
+		this.props.close()
+	}
+	render() {
+		return (
+			<Modal
+				className='ModalContent'
+				overlayClassName='ModalOverlay'
+				isOpen={this.props.isOpen}
+				appElement={this.props.appElement}
+			>
+				<p>Import resolutions for {this.props.ballotId}. Current resolutions (if any) will be deleted.</p>
+				<label>
+				From file&nbsp;&nbsp;
+					<input
+						type='file'
+						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+						ref={this.fileInputRef}
+					/>
+				</label>
+				<br />
+				<button onClick={this.submit}>OK</button>
+				<button onClick={this.props.close}>Cancel</button>
+			</Modal>
+		)
+	}
+}
+
+class ColumnSelector extends React.PureComponent {
+	constructor(props) {
+		super(props)
+		this.state = {
+			isOpen: false
+		}
+	}
+
+	componentDidUpdate() {
+		setTimeout(() => {
+			if (this.state.isOpen) {
+				window.addEventListener('click', this.close)
+			}
+			else{
+				window.removeEventListener('click', this.close)
+			}
+		}, 0)
+	}
+
+	componentWillUnmount() {
+		window.removeEventListener('click', this.close)
+	}
+
+	close = () => {
+		this.setState({isOpen: false})
+	}
+
+	render() {
+		const {list} = this.props
+		const {isOpen} = this.state
+		return (
+			<div className="dd-wrapper">
+				<div className="dd-header" onClick={() => this.setState({isOpen: !this.state.isOpen})}>
+					<div className="dd-header-title">Select Columns</div><i className={isOpen? "fa fa-angle-up": "fa fa-angle-down"} />
+				</div>
+				{isOpen &&
+					<ul className="dd-list">
+						{list.map((item, index) => (
+							<li className="dd-list-item" key={item.dataKey} onClick={() => this.props.toggleItem(item.dataKey)}>
+								{item.label} {this.props.isChecked(item.dataKey) && <i className="fa fa-check" />}
+							</li>
+						))}
+					</ul>
+				}
+			</div>
+		)
+	}
+}
+
 class Comments extends React.Component {
 	constructor(props) {
 		super(props);
-
 		this.columns = [
 			{dataKey: '', label: '',
-				width: 60, flexGrow: 0, flexShrink: 0,
-				headerRenderer: this.renderHeaderCheckbox,
-				cellRenderer: this.cellRendererCheckbox},
+				width: 40, flexGrow: 0, flexShrink: 0,
+				headerRenderer: this.renderHeaderCellCheckbox,
+				cellRenderer: this.renderDataCellCheckbox},
 			{dataKey: 'CommentID', label: 'CID',
 				width: 60, flexGrow: 0, flexShrink: 0},
-			{dataKey: ['Name', 'Vote', 'MustSatisfy'], label: 'Commenter',
-				width: 150, flexGrow: 0, flexShrink: 0,
-				cellRenderer: this.cellRendererVertical},
-			{dataKey: 'Category', label: 'Category',
-				width: 80, flexGrow: 0, flexShrink: 0},
+			{dataKey: 'CommenterName', label: 'Commenter',
+				width: 100, flexGrow: 0, flexShrink: 0},
+			{dataKey: 'MustSatisfy', label: 'MS',
+				width: 36, flexGrow: 0, flexShrink: 0},
+			{dataKey: 'Category', label: 'Cat',
+				width: 36, flexGrow: 0, flexShrink: 0},
 			{dataKey: 'Clause', label: 'Clause',
 				width: 100, flexGrow: 0, flexShrink: 0},
 			{dataKey: 'Page', label: 'Page',
 				width: 80, flexGrow: 0, flexShrink: 0},
 			{dataKey: 'Comment', label: 'Comment',
-				width: 400}, 
+				width: 400, flexGrow: 1, flexShrink: 1}, 
 			{dataKey: 'ProposedChange', label: 'Proposed Change',
-				width: 400},
+				width: 400, flexGrow: 1, flexShrink: 1},
 			{dataKey: 'Assignee', label: 'Assignee',
-				width: 150, flexGrow: 0, flexShrink: 0,
-				cellRenderer: this.cellRendererAssignee},
-			{dataKey: ['ResnStatus', 'Resolution'], label: 'Resolution',
-				width: 400,
-				cellRenderer: this.cellRendererResolution},
-			{dataKey: ['EditStatus', 'EditNotes'], label: 'Editing',
-				width: 300,
-				cellRenderer: this.cellRendererHorizontal},
+				width: 150, flexGrow: 1, flexShrink: 1,
+				cellRenderer: this.renderDataCellAssignee},
+			{dataKey: 'Resolution', label: 'Resolution',
+				width: 400, flexGrow: 1, flexShrink: 1,
+				cellRenderer: this.renderDataCellResolution},
+			{dataKey: 'Editing', label: 'Editing',
+				width: 300, flexGrow: 1, flexShrink: 1,
+				cellRenderer: this.renderDataCellEditing},
 		];
+		this.columns[this.columns.length-1].isLast = true;
 
 		// List of filterable columns
-    	const filterable = ['CommentID', 'Commenter', 'MustSatisfy', 'Category', 'Clause', 'Page', 'Comment', 'ProposedChange', 'Assignee'];
+    	const filterable = ['CommentID', 'CommenterName', 'MustSatisfy', 'Category', 'Clause', 'Page', 'Comment', 'ProposedChange', 'Assignee'];
 		if (Object.keys(props.filters).length === 0) {
 			filterable.forEach(dataKey => {
 				this.props.dispatch(setCommentsFilter(dataKey, ''));
 			});
 		}
+		this.sortable = filterable;
 
-		this.sortable = ['CommentID', 'Commenter', 'MustSatisfy', 'Vote', 'Category', 'Clause', 'Page', 'Comment', 'ProposedChange'];
-
-		const show = {
-			Commenter: false,
-			Assignee: false,
-			Resolution: false,
-			Editing: false,
-		}
+		var columnVisible = {};
+		var columnWidth = {};
+		this.columns.forEach(col => {
+			if (col.dataKey) {
+				columnVisible[col.dataKey] = !col.hiddenByDefault;
+				columnWidth[col.dataKey] = col.width
+			}
+		});
 
 		this.state = {
 			editIndex: 0,
@@ -100,14 +171,15 @@ class Comments extends React.Component {
 			selectedComments: [],
 			expandedComments: [],
 
-			show,
+			columnVisible,
+			columnWidth,
 
 			height: 500,
 			width: 600
 		}
 
 		this.lastBallotId = ''
-		this.lastRenderedWidth = this.state.width
+		this.lastRenderedWidth = this.width
 		this.rowHeightCache = new CellMeasurerCache({
 			minHeight: 54,
 			fixedWidth: true
@@ -154,6 +226,24 @@ class Comments extends React.Component {
 		this.setState({height, width})
 	}
 
+	resizeColumn = ({dataKey, deltaX}) => {
+		var i = this.columns.findIndex(c => c.dataKey === dataKey)
+		this.columns[i].width += deltaX;
+		//this.columns[i+1].width -= deltaX;
+		//this.setState({columnWidth: update(this.state.columnWidth, {$set: {[this.columns[i].dataKey]: this.columns[i].width, [this.columns[i+1].dataKey]: this.columns[i+1].width}})})
+		this.setState({columnWidth: update(this.state.columnWidth, {$set: {[this.columns[i].dataKey]: this.columns[i].width}})})
+		//this.tableRef.recomputeGridSize()
+		//console.log('col=', i, ' deltaX=', deltaX, ' width=', this.columns[i].width)
+	}
+
+	toggleColumnVisible = (dataKey) => {
+		this.setState({columnVisible: update(this.state.columnVisible, {$toggle: [dataKey]})})
+	}
+
+	isColumnVisible = (dataKey) => {
+		return this.state.columnVisible[dataKey]
+	}
+
 	ballotSelected = (ballotId) => {
 		// Redirect to results page with selected ballot
 		this.props.history.push(`/Comments/${ballotId}`)
@@ -175,68 +265,64 @@ class Comments extends React.Component {
 	rowGetter = ({index}) => {
 		return this.props.commentData[this.props.commentDataMap[index]];
 	}
-	renderHeaderCheckbox = ({dataKey}) => {
+	renderHeaderCellCheckbox = ({dataKey}) => {
 		const {selectedComments, expandedComments} = this.state;
 		const {commentDataMap, commentData} = this.props;
 		const checked = allSelected(selectedComments, commentDataMap, commentData, 'CommentID');
 		const expanded = allSelected(expandedComments, commentDataMap, commentData, 'CommentID')
 		return (
 			<div>
-				<input type="checkbox"
+				<input
+					type="checkbox"
+					title="Select All"
 					checked={checked}
 					onChange={e => {
 						this.setState({selectedComments: toggleVisible(selectedComments, commentDataMap, commentData, 'CommentID')})
 					}}
 				/>
-				<ExpandIcon 
+				<span
 					style={{cursor: 'pointer'}}
-					showPlus={!expanded}
+					title="Expand All"
+					className={expanded? "fa fa-angle-double-down": "fa fa-angle-double-right"}
 					onClick={e => {
 						this.setState({expandedComments: toggleVisible(expandedComments, commentDataMap, commentData, 'CommentID')})
 						this.clearAllCachedRowHeight()
 					}}
 				/>
+				<div>{commentDataMap.length}</div>
 			</div>
 		);
 	}
-	renderEditable = ({rowIndex, rowData, dataKey}) => {
-    	return (
-			<div
-				contentEditable
-				onBlur={e => {
-					this.updateCommentFieldIfChanged(rowIndex, dataKey, e.target.innerHTML)
-				}}
-				dangerouslySetInnerHTML={{__html: rowData[dataKey]}}
-			/>
-		);
-	}
-
-	cellRendererCheckbox = ({rowIndex, rowData, dataKey}) => {
+	renderDataCellCheckbox = ({rowIndex, rowData, dataKey}) => {
 		const commentId = rowData.CommentID;
+		const expanded = this.state.expandedComments.includes(commentId);
 		return (
 			<div>
-			<input
-				type="checkbox"
-				checked={this.state.selectedComments.indexOf(commentId) >= 0}
-				onChange={e => {
-					// if commentId is present in selectedComments (i > 0) then remove it; otherwise add it
-            		let i = this.state.selectedComments.indexOf(commentId);
-            		this.setState({
-            			selectedComments: update(this.state.selectedComments, (i > -1)? {$splice: [[i, 1]]}: {$push: [commentId]})
-            		})
-        		}}
-        	/>
-        	<ExpandIcon 
-        		showPlus={!this.state.expandedComments.includes(commentId)}
-        		onClick={e => {
-        			let i = this.state.expandedComments.indexOf(commentId);
-        			this.setState({
-        				expandedComments: update(this.state.expandedComments, (i > -1)? {$splice: [[i, 1]]}: {$push: [commentId]})
-        			})
-        			this.clearCachedRowHeight(rowIndex)
-        		}}
-        	/>
-        	</div>
+				<input
+					type="checkbox"
+					title="Select Row"
+					checked={this.state.selectedComments.indexOf(commentId) >= 0}
+					onChange={e => {
+						// if commentId is present in selectedComments (i > 0) then remove it; otherwise add it
+						let i = this.state.selectedComments.indexOf(commentId);
+						this.setState({
+							selectedComments: update(this.state.selectedComments, (i > -1)? {$splice: [[i, 1]]}: {$push: [commentId]})
+						})
+					}}
+				/>
+				<span
+					style={{cursor: 'pointer'}}
+					title="Expand Row"
+					className={expanded? "fa fa-angle-down": "fa fa-angle-right"}
+					onClick={e => {
+						let i = this.state.expandedComments.indexOf(commentId);
+						this.setState({
+							expandedComments: update(this.state.expandedComments, (i > -1)? {$splice: [[i, 1]]}: {$push: [commentId]})
+						})
+						this.clearCachedRowHeight(rowIndex)
+					}}
+				/>
+			</div>
         );
 	}
 
@@ -252,77 +338,69 @@ class Comments extends React.Component {
 		)
 	}
 
-	renderSortLabel = (props) => {
-		const {dataKey, label, style} = props;
-		const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE'
+	renderLabel = ({dataKey, label}) => {
+		const sortable = this.sortable.includes(dataKey);
+		const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE';
+		if (sortable) {
+			var style = {cursor: 'pointer'};
+			var onClick = e => this.sortChange(e, dataKey);
+		}
 		return (
-			<span
-				key={'label-' + dataKey}
-				title={label}
-				onClick={e => this.sortChange(e, dataKey)}
-				style={{cursor: 'pointer', userSelect: 'none', ...style}}
-			>
-				{label}
-				<SortIndicator sortDirection={sortDirection} />
-			</span>
-		);
-	}
-
-	renderLabel = (props) => {
-		const {label, style} = props;
-		return (
-			<span
-				key={'label-' + label}
+			<div
+				className={styles.headerLabelContainer}
 				title={label}
 				style={style}
+				onClick={onClick}
 			>
-				{label}
-			</span>
-		);
+				<span className={styles.headerLabel}>{label}</span>
+				{sortable && (sortDirection === 'NONE' || <span className={styles.headerSortIcon + " " + (sortDirection === 'ASC'? "fa fa-sort-alpha-down": "fa fa-sort-alpha-up")} />)}
+			</div>
+		)
 	}
 
-	renderFilter = (dataKey) => {
+	renderFilter = ({dataKey}) => {
 		return (
 			<input
-				key={'filt-' + dataKey}
 				type='text'
 				className={styles.headerFilt}
 				placeholder='Filter'
 				onChange={e => {this.filterChange(e, dataKey)}}
 				value={this.props.filters[dataKey]}
-				style={{width: '100%'}}
+				style={{width: 'calc(100% - 5px)'}}
 			/>
-		);
+		)
 	}
 
 	renderHeaderCell = ({columnData, dataKey, label}) => {
-		if (Array.isArray(dataKey)) {
-			const smallStyle = {fontSize: '0.75em'};
-			const subElements = [];
-			dataKey.forEach(key => {
-				subElements.push(this.sortable.includes(key)? this.renderSortLabel({dataKey: key, label: key, style: smallStyle}): this.renderLabel({label: key, style: smallStyle}));
-				if (this.props.filters.hasOwnProperty(key)) {
-					subElements.push(this.renderFilter(key))
-				}
-				subElements.push(<br key={'br-' + key} />)
-			})
+		const col = columnData;
+		const showFilter = this.props.filters.hasOwnProperty(dataKey);
+
+		if (col.isLast) {
 			return (
-				<div>
-					{this.renderLabel({label})}<br />
-					{subElements}
-				</div>
-			);
+				<React.Fragment key={dataKey}>
+					{this.renderLabel({dataKey, label})}
+					{showFilter && this.renderFilter({dataKey})}
+				</React.Fragment>
+			)
 		}
-		else {
-			const labelElement = this.sortable.includes(dataKey)? this.renderSortLabel({dataKey, label}): this.renderLabel({label});
-			const showFilter = this.props.filters.hasOwnProperty(dataKey)
-			return (
-				<div>
-					{labelElement}
-					{showFilter && this.renderFilter(dataKey)}
+		return (
+			<React.Fragment key={dataKey}>
+				<div className={styles.headerBox}>
+					{this.renderLabel({dataKey, label})}
+					{showFilter && this.renderFilter({dataKey})}
 				</div>
-			);
-		}
+				<Draggable
+					axis="x"
+					defaultClassName={styles.dragHandle}
+					defaultClassNameDragging={styles.dragHandleActive}
+					onDrag={(event, {deltaX}) => this.resizeColumn({dataKey, deltaX})}
+					position={{x: 0}}
+					zIndex={999}
+				>
+					<span className={styles.dragHandleIcon}>⋮</span>
+				</Draggable>
+			</React.Fragment>
+		)
 	}
   
 	noRowsRenderer = () => {
@@ -359,40 +437,35 @@ class Comments extends React.Component {
 		}
 	}
 
-	cellRendererAssignee = (props) => {
-		const {rowData} = props;
+	renderDataCellAssignee = ({rowData}) => {
+		const {resolutions} = rowData;
+		if (resolutions.length === 0) {
+			return null
+		} else if (resolutions.length === 1) {
+			return resolutions[0].AssigneeName
+		}
 		return (
 			<div style={{display: 'flex', flexDirection: 'column'}}>
-				{rowData.resolutions.map((r, i) => (<div key={i}>{r.AssigneeName}</div>))}
+				{resolutions.map((r, i) => (<div style={{whiteSpace: 'nowrap'}} key={i}>{r.AssigneeName}</div>))}
 			</div>
 		)
 	}
-	cellRendererResolution = (props) => {
-		const {rowData} = props;
-		var rList = rowData.resolutions.filter(r => r.ResnStatus)
-		var nowrap = rList.length > 1
+	renderDataCellResolution = ({rowData}) => {
+		const {resolutions} = rowData;
+		if (resolutions.length === 0) {
+			return null
+		} else if (resolutions.length === 1) {
+			const r = resolutions[0];
+			return r.ResnStatus? <React.Fragment><b>{r.ResnStatus}:</b> {r.Resolution}</React.Fragment>: r.Resolution
+		}
 		return (
 			<div style={{display: 'flex', flexDirection: 'column'}}>
-				{rList.map((r, i) => (<div key={i} style={nowrap? {whiteSpace: 'nowrap'}: {}}><b>{r.ResnStatus}:</b> {r.Resolution}</div>))}
+				{resolutions.map((r, i) => (<div key={i} style={{whiteSpace: 'nowrap'}}><b>{r.ResnStatus}:</b> {r.Resolution}</div>))}
 			</div>
 		)
 	}
-	cellRendererVertical = (props) => {
-		const {rowData, dataKey} = props;
-		return (
-			<div style={{display: 'flex', flexDirection: 'column'}}>
-				{dataKey.map(key => (<div key={'cell-' + key}>{rowData[key]}</div>))}
-			</div>
-		)
-	}
-
-	cellRendererHorizontal = (props) => {
-		const {rowData, dataKey} = props;
-		return (
-			<div style={{display: 'flex', flexDirection: 'row'}}>
-				{dataKey.map(key => (<div key={'cell-' + key}>{rowData[key]}</div>))}
-			</div>
-		)
+	renderDataCellEditing = ({rowData}) => {
+		return rowData.EditStatus? <React.Fragment><b>{rowData.EditStatus}:</b> {rowData.EditNotes}</React.Fragment>: rowData.EditNotes
 	}
 
 	setTableRef = (ref) => {
@@ -411,7 +484,7 @@ class Comments extends React.Component {
 				height={this.state.height}
 				width={this.state.width}
 				rowHeight={this.rowHeightCache.rowHeight}
-				headerHeight={80}
+				headerHeight={44}
 				noRowsRenderer={this.noRowsRenderer}
 				headerClassName={styles.headerColumn}
 				rowClassName={this.rowClassName}
@@ -422,13 +495,17 @@ class Comments extends React.Component {
         		ref={this.setTableRef}
         	>
 				{this.columns.map((col, index) => {
-					const {cellRenderer, headerRenderer, ...otherProps} = col;
+					const {cellRenderer, headerRenderer, width, ...otherProps} = col;
+					if (col.dataKey && !this.isColumnVisible(col.dataKey)) {
+						return null
+					}
 					return (
 						<Column 
 							key={index}
 							columnData={col}
 							headerRenderer={headerRenderer? headerRenderer: this.renderHeaderCell}
 							cellRenderer={this.renderMeasuredCell}
+							width={this.state.columnWidth[col.dataKey]? this.state.columnWidth[col.dataKey]: width}
 							{...otherProps}
 						/>
 					)})}
@@ -449,26 +526,6 @@ class Comments extends React.Component {
 		this.tableRef.recomputeRowHeights(0);
 	}
 
-	renderRow2 = () => {
-		return (
-			<div className='row'>        
-			<label>Show:
-				{Object.keys(this.state.show).map(k =>
-					<label key={k}>
-						<input
-							type='checkbox'
-							name={k}
-							checked={this.state.show[k]}
-							onChange={e => this.setState({show: update(this.state.show, {$toggle: [k]})})}
-						/>{k}
-					</label>
-				)}
-			</label>
-			</div>
-		)
-	}
-
-
 	editRow = ({event, index, rowData}) => {
 		this.setState({
 			editIndex: index,
@@ -478,10 +535,11 @@ class Comments extends React.Component {
 
 	render() {   
 		return (
-			<div id='Comments' style={{height: '100%'}}>
+			<div id='Comments'>
 				<div id='top-row'>
         			<BallotSelector onBallotSelected={this.ballotSelected} />
-					{this.renderRow2()}
+        			<button onClick={e => this.setState({showImport: true})}>Upload Resolutions</button>
+        			<ColumnSelector list={this.columns} toggleItem={this.toggleColumnVisible} isChecked={this.isColumnVisible}/>
 				</div>
 
 				{!this.state.showCommentDetail?
@@ -494,6 +552,13 @@ class Comments extends React.Component {
 						close={() => {this.setState({showCommentDetail: false})}}
 					/>
 				}
+				<ImportModal
+					ballotId={this.props.ballotId}
+					isOpen={this.state.showImport}
+					close={() => this.setState({showImport: false})}
+					dispatch={this.props.dispatch}
+					appElement={document.querySelector('#Comments')}
+				/>
 			</div>
 		)
 	}
@@ -507,11 +572,9 @@ function mapStateToProps(state) {
 		sortBy: comments.sortBy,
 		sortDirection: comments.sortDirection,
 		ballotId: ballots.ballotId,
-		commentsValid: comments.ballotId && comments.ballotId === ballots.ballotId,
 		commentData: comments.commentData,
 		commentDataMap: comments.commentDataMap,
-		getComments: comments.getComments,
-		updateComment: comments.updateComment,
+		getComments: comments.getComments
 	}
 }
 export default connect(mapStateToProps)(Comments);

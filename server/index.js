@@ -37,17 +37,26 @@ app.use((req, res, next) => {
 });
 
 function resData(res, data) {
-	res.status(200).send({
-		status: 'OK',
-		data: data
-	})
+	var ret = {status: 'OK'};
+	if (data) {
+		ret.data = data
+	}
+	res.status(200).send(ret)
 }
+
 function resErr(res, err) {
 	console.log(err)
-	res.status(200).send({
+	var ret = {
 		status: 'Error',
-		message: JSON.stringify(err)
-	})
+		err: err
+	};
+	if (typeof err === 'string') {
+		ret.message = err
+	}
+	else {
+		ret.message = JSON.stringify(err)
+	}
+	res.status(200).send(ret)
 }
 
 /*
@@ -167,6 +176,10 @@ app.delete('/resolution', (req, res, next) => {
 	comments.deleteResolution(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
 });
+app.post('/resolutions/upload', upload.single('ResolutionsFile'), (req, res, next) => {
+	comments.uploadResolutions(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
+});
 
 /*
  * Ballot results API
@@ -223,7 +236,7 @@ app.delete('/voters', (req, res, next) => {
 	voters.deleteVoters(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
 });
-app.post('/voters', upload.single('VotersFile'), (req, res, next) => {
+app.post('/voters/upload', upload.single('VotersFile'), (req, res, next) => {
 	voters.uploadVoters(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
 });
@@ -238,13 +251,16 @@ app.post('/voters', upload.single('VotersFile'), (req, res, next) => {
 const session = require('./session')(connection, rp, users);
 
 app.get('/login', (req, res, next) => {
-	session.getState(req, res, next);
+	session.getState(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
 });
 app.post('/login', (req, res, next) => {
-	session.login(req, res, next);
+	session.login(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
 });
 app.post('/logout', (req, res, next) => {
-	session.logout(req, res, next);
+	session.logout(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
 });
 
 app.use(express.static('app'));

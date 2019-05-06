@@ -3,7 +3,7 @@ import Modal from 'react-modal';
 import update from 'immutability-helper';
 import { connect } from 'react-redux';
 import {Column, Table} from 'react-virtualized';
-import {sortClick, allSelected, toggleVisible, SortIndicator, RefreshIcon, AddIcon, DeleteIcon} from './filter';
+import {sortClick, allSelected, toggleVisible} from './filter';
 import {setUsersFilter, setUsersSort, getUsers, updateUser, addUser, deleteUsers} from './actions/users';
 import styles from './AppTable.css';
 
@@ -177,7 +177,7 @@ class Users extends React.PureComponent {
 				style={{cursor: 'pointer', userSelect: 'none', ...style}}
 			>
 				{label}
-				<SortIndicator sortDirection={sortDirection} />
+				{sortDirection === 'NONE' || <i className={sortDirection === 'ASC'? "fa fa-sort-alpha-down": "fa fa-sort-alpha-up"} />}
 			</span>
 		);
 	}
@@ -291,14 +291,16 @@ class Users extends React.PureComponent {
 
 	renderActions = ({rowIndex}) => {
 		return (
-			<DeleteIcon className={styles.actionColumn} width={22} height={22} onClick={() => this.deleteRow(rowIndex)}/>
+			<div className={styles.actionColumn}>
+				<span className="fa fa-trash-alt" title='Delete' />
+			</div>
 		)
 	}
 	renderHeaderActions = ({rowIndex}) => {
 		return (
 			<div title='Actions'>
-				<RefreshIcon width={22} height={22} title='Refresh' onClick={this.refresh} />
-				<AddIcon width={22} height={22} onClick={() => this.setState({showAddUserModal: true})}/>
+				<span className="fa fa-sync-alt" title='Refresh' onClick={this.refresh} />&nbsp;
+				<span className="fa fa-plus" title='Add' onClick={() => this.setState({showAddUserModal: true})} />
 			</div>
 		)
 	}

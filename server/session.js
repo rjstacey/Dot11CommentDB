@@ -14,10 +14,7 @@ module.exports = function (db, rp, users) {
 				access: sess.access
 			};
 		}
-		res.status(200).send({
-			status: 'OK',
-			data: info
-		});
+		return Promise.resolve(info)
 	}
   
 	module.login = function (req, res, next) {
@@ -40,7 +37,7 @@ module.exports = function (db, rp, users) {
 		// Do an initial GET on /pub/login so that we get cookies. We can do a login without this, but
 		// if we don't get the cookies associated with this GET, then the server seems to get confused
 		// and won't have the approriate state post login.
-		rp.get(options)
+		return rp.get(options)
 			.then(ieeeRes => {
 				var $ = cheerio.load(ieeeRes.body);
 				var loginForm = {
@@ -85,16 +82,7 @@ module.exports = function (db, rp, users) {
 					sapin: sess.sapin, 
 					access: sess.access
 				};
-				res.status(200).send({
-					status: 'OK',
-					data: info
-				})
-			})
-			.catch(err => {
-				res.status(200).send({
-					status: 'Error',
-					message: typeof err === 'string'? err: JSON.stringify(err)
-				})
+				return info
 			})
 	}
 
@@ -102,21 +90,10 @@ module.exports = function (db, rp, users) {
 		console.log(req.headers);
 
 		var sess = req.session;
-
-		var ret = {status: "Error", message: "Unknown server error"};
-
-		rp.get({url: 'https://development.standards.ieee.org/pub/logout', jar: sess.ieeeCookieJar})
+		return rp.get({url: 'https://development.standards.ieee.org/pub/logout', jar: sess.ieeeCookieJar})
 			.then(body => {
-				res.status(200).send({
-				status: 'OK'
-			});
-		})
-		.catch(err => {
-			res.status(200).send({
-				status: 'Error',
-				message: JSON.stringify(err)
-			});
-		})
+				return null
+			})
 	}
 
 	return module;

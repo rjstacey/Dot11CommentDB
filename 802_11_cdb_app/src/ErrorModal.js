@@ -57,11 +57,11 @@ function mapStateToProps(state) {
 	const {users, ballots, epolls, voters, results, comments} = state
 	return {
 		usersErrorMsg: users.errorMsgs.length? users.errorMsgs[0]: null,
+		votersErrorMsg: voters.errorMsgs.length? voters.errorMsgs[0]: null,
 		ballotsErrorMsg: ballots.errorMsgs.length? ballots.errorMsgs[0]: null,
 		epollsErrorMsg: epolls.errorMsgs.length? epolls.errorMsgs[0]: null,
-		votersErrorMsg: voters.errorMsgs.length? voters.errorMsgs[0]: null,
-		commentsErrorMsg: comments.errorMsgs.length? comments.errorMsgs[0]: null,
-		resultsErrorMsg: results.errorMsgs.length? results.errorMsgs[0]: null
+		resultsErrorMsg: results.errorMsgs.length? results.errorMsgs[0]: null,
+		commentsErrorMsg: comments.errorMsgs.length? comments.errorMsgs[0]: null
 	}
 }
 export default connect(mapStateToProps)(ErrorModal);

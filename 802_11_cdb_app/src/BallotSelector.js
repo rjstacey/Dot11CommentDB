@@ -29,7 +29,7 @@ class BallotSelector extends React.PureComponent {
 	render() {
 		const {projectList, ballotList} = this.props;
 		return (
-			<div className='row'>
+			<div style={{display: 'inline-block'}}>
 				<label>Project:
 					<select
 						name='Project'

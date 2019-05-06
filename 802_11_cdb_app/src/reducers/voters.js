@@ -8,7 +8,7 @@ const defaultState = {
 	votingPoolData: [],
 	votingPoolDataMap: [],
 
-	votingPoolId: '',
+	votingPool: {},
 	votersFilters: {},
 	votersSortBy: [],
 	votersSortDirection: {},
@@ -17,7 +17,7 @@ const defaultState = {
 	votersDataMap: [],
 	addVoter: false,
 	deleteVoters: false,
-	importVoters: false,
+	uploadVoters: false,
 	errorMsgs: [],
 }
 
@@ -26,160 +26,172 @@ const voters = (state = defaultState, action) => {
 
 	switch (action.type) {
 		case 'SET_VOTING_POOL_SORT':
-			return Object.assign({}, state, {
+			return {
+				...state,
 				votingPoolSortBy: action.sortBy,
 				votingPoolSortDirection: action.sortDirection,
 				votingPoolDataMap: sortData(state.votingPoolDataMap, state.votingPoolData, action.sortBy, action.sortDirection)
-			});
+			}
 		case 'SET_VOTING_POOL_FILTER':
 			filters = Object.assign({}, state.votingPoolFilters, {[action.dataKey]: action.filter});
-			return Object.assign({}, state, {
+			return {
+				...state,
 				votingPoolFilters: filters,
 				votingPoolDataMap: sortData(filterData(state.votingPoolData, filters), state.votingPoolData, state.votingPoolSortBy, state.votingPoolSortDirection)
-			});
+			}
 		case 'GET_VOTING_POOL':
-			return Object.assign({}, state, {
+			return {
+				...state,
 				getVotingPool: true,
+				votingPoolDataValid: false,
 				votingPoolData: [],
 				votingPoolDataMap: []
-			});
+			}
 		case 'GET_VOTING_POOL_SUCCESS':
-			return Object.assign({}, state, {
-				votersDataValid: true,
+			return {
+				...state,
+				votingPoolDataValid: true,
 				getVotingPool: false,
 				votingPoolData: action.votingPoolData,
 				votingPoolDataMap: sortData(filterData(action.votingPoolData, state.votingPoolFlters), state.votingPoolData, state.votingPoolSortBy, state.votingPoolSortDirection)
-			});
+			}
 		case 'GET_VOTING_POOL_FAILURE':
 			errorMsgs = state.errorMsgs.slice();
 			errorMsgs.push(action.errMsg);
-			return Object.assign({}, state, {
+			return {
+				...state,
 				getVotingPool: false,
-				errorMsgs: errorMsgs
-			});
+				errorMsgs
+			}
 
 		case 'ADD_VOTING_POOL':
-			return Object.assign({}, state, {addVotingPool: true});
+			return {...state, addVotingPool: true}
 		case 'ADD_VOTING_POOL_SUCCESS':
 			votingPoolData = state.votingPoolData.slice();
 			votingPoolData.push(action.votingPoolData);
-			return Object.assign({}, state, {
+			return {
+				...state,
 				addVotingPool: false,
 				votingPoolData: votingPoolData,
 				votingPoolDataMap: sortData(filterData(votingPoolData, state.votingPoolFilters), votingPoolData, state.votingPoolSortBy, state.votingPoolSortDirection),
-			});
+			}
 		case 'ADD_VOTING_POOL_FAILTURE':
 			errorMsgs = state.errorMsgs.slice();
 			errorMsgs.push(action.errMsg);
-			return Object.assign({}, state, {
+			return {
+				...state,
 				addVotingPool: false,
-				errorMsgs: errorMsgs
-			});
+				errorMsgs
+			}
 		case 'DELETE_VOTING_POOL':
-			return Object.assign({}, state, {deleteVotingPool: true});
+			return {...state, deleteVotingPool: true}
 		case 'DELETE_VOTING_POOL_SUCCESS':
 			votingPoolData = state.votingPoolData.filter(b => action.votingPoolId !== b.VotingPoolID);
-			return Object.assign({}, state, {
+			return {
+				...state,
 				deleteVotingPool: false,
 				votingPoolData: votingPoolData,
 				votingPoolDataMap: sortData(filterData(votingPoolData, state.filters), votingPoolData, state.votingPoolSortBy, state.votingPoolSortDirection),
-			});
+			}
 		case 'DELETE_VOTING_POOL_FAILTURE':
 			errorMsgs = state.errorMsgs.slice();
 			errorMsgs.push(action.errMsg);
-			return Object.assign({}, state, {
+			return {
+				...state,
 				deleteVotingPool: false,
-				errorMsgs: errorMsgs
-			});
+				errorMsgs
+			}
 
 		case 'SET_VOTERS_SORT':
-			return Object.assign({}, state, {
+			return {
+				...state,
 				votersSortBy: action.sortBy,
 				votersSortDirection: action.sortDirection,
 				votersDataMap: sortData(state.votersDataMap, state.votersData, action.sortBy, action.sortDirection)
-			});
+			}
 		case 'SET_VOTERS_FILTER':
-			filters = Object.assign({}, state.votersFilters, {[action.dataKey]: action.filter});
-			return Object.assign({}, state, {
+			filters = {...state.votersFilters, [action.dataKey]: action.filter}
+			return {
+				...state,
 				votersFilters: filters,
 				votersDataMap: sortData(filterData(state.votersData, filters), state.votersData, state.votersSortBy, state.votersSortDirection)
-			});
+			}
 		case 'GET_VOTERS':
-			return Object.assign({}, state, {
-				votingPoolId: action.VotingPoolID,
+			return {
+				...state,
+				votingPool: {VotingPoolID: action.votingPoolId},
 				getVoters: true,
 				votersData: [],
 				votersDataMap: []
-			});
+			}
 		case 'GET_VOTERS_SUCCESS':
-			return Object.assign({}, state, {
+			return {
+				...state,
 				votersDataValid: true,
 				getVoters: false,
-				votersData: action.votersData,
-				votersDataMap: sortData(filterData(action.votersData, state.votersFlters), action.votersData, state.votersSortBy, state.votersSortDirection)
-			});
+				votingPool: action.votingPool,
+				votersData: action.voters,
+				votersDataMap: sortData(filterData(action.voters, state.votersFlters), action.voters, state.votersSortBy, state.votersSortDirection)
+			}
 		case 'GET_VOTERS_FAILURE':
 			errorMsgs = state.errorMsgs.slice();
 			errorMsgs.push(action.errMsg);
-			return Object.assign({}, state, {
+			return {
+				...state,
 				getVoters: false,
-				errorMsgs: errorMsgs
-			});
+				errorMsgs
+			}
 		case 'ADD_VOTER':
-			return Object.assign({}, state, {
-				addVoter: true
-			});
+			return {...state, addVoter: true}
 		case 'ADD_VOTER_SUCCESS':
 			votersData = state.votersData.slice();
 			votersData.push(action.voter);
-			return Object.assign({}, state, {
+			return {
+				...state,
 				addVoter: false,
 				votersData: votersData,
 				votersDataMap: sortData(filterData(votersData, state.votersFilters), votersData, state.votersSortBy, state.votersSortDirection)
-			});
+			}
 		case 'ADD_VOTER_FAILURE':
 			errorMsgs = state.errorMsgs.slice();
 			errorMsgs.push(action.errMsg);
-			return Object.assign({}, state, {
+			return {...state,
 				addVoter: false,
-				errorMsgs: errorMsgs
-			});
+				errorMsgs
+			}
 
 		case 'DELETE_VOTERS':
 			return Object.assign({}, state, {
 				deleteVoters: true,
 			}, (state.votingPoolID === action.VotingPoolID)? {votersData: [], votersDataMap: []}: null)
 		case 'DELETE_VOTERS_SUCCESS':
-			return Object.assign({}, state, {
-				deleteVoters: false
-			})
+			return {...state, deleteVoters: false}
 		case 'DELETE_VOTERS_FAILURE':
 			errorMsgs = state.errorMsgs.slice();
 			errorMsgs.push(action.errMsg);
-			return Object.assign({}, state, {
+			return {...state,
 				deleteVoters: false,
-				errorMsgs: errorMsgs
-			});
+				errorMsgs
+			}
 
-		case 'IMPORT_VOTERS':
-			return Object.assign({}, state, {importVoters: true})
-		case 'IMPORT_VOTERS_SUCCESS':
-			return Object.assign({}, state, {
-				importVoters: false,
-			})
-		case 'IMPORT_VOTERS_FAILURE':
+		case 'UPLOAD_VOTERS':
+			return {...state, uploadVoters: true}
+		case 'UPLOAD_VOTERS_SUCCESS':
+			return {...state, uploadVoters: false}
+		case 'UPLOAD_VOTERS_FAILURE':
 			errorMsgs = state.errorMsgs.slice();
 			errorMsgs.push(action.errMsg);
-			return Object.assign({}, state, {
-				importVoters: false,
-				errorMsgs: errorMsgs
-			});
+			return {
+				...state,
+				uploadVoters: false,
+				errorMsgs
+			}
 
 		case 'CLEAR_VOTERS_ERROR':
 			if (state.errorMsgs.length) {
 				errorMsgs = state.errorMsgs.slice();
 				errorMsgs.pop();
-				return Object.assign({}, state, {errorMsgs: errorMsgs})
+				return {...state, errorMsgs}
 			}
 			return state;
 

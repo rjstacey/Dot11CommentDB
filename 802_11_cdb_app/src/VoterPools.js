@@ -1,15 +1,10 @@
 import React from 'react';
 import Modal from 'react-modal';
-import update from 'immutability-helper';
 import {connect} from 'react-redux';
 import {Column, Table} from 'react-virtualized';
-import DatePicker from 'react-datepicker';
-import Voters from './Voters'
 import {setVotingPoolSort, setVotingPoolFilter, getVotingPool, addVotingPool, deleteVotingPool, uploadVoters} from './actions/voters'
-import {sortClick, allSelected, toggleVisible, SortIndicator, DeleteIcon, AddIcon, RefreshIcon} from './filter'
+import {sortClick} from './filter'
 import styles from './AppTable.css'
-
-
 
 class AddVotingPoolModal extends React.PureComponent {
 	constructor(props) {
@@ -18,6 +13,7 @@ class AddVotingPoolModal extends React.PureComponent {
 			wasOpen: props.isOpen,
 			votingPool: {VotingPoolID: 0, Name: '', Date: new Date()}
 		}
+		this.votersFileInputRef = React.createRef();
 	}
 	static getDerivedStateFromProps(props, state) {
 		// Reset userData to default on each open
@@ -29,13 +25,28 @@ class AddVotingPoolModal extends React.PureComponent {
 		return newState;
 	}
 	change = (e) => {
-		this.setState({votingPool: Object.assign({}, this.state.votingPool, {[e.target.name]: e.target.value})});
+		this.setState({votingPool: {...this.state.votingPool, [e.target.name]: e.target.value}});
 	}
-	submit = (votingPool) => {
+	changeDate = date => {
+		this.setState({votingPool: {...this.state.votingPool, Date: date}})
+	}
+	submit = () => {
+		var file = this.votersFileInputRef.current.files[0];
 		this.props.dispatch(addVotingPool(this.state.votingPool))
-		this.props.close()
+			.then(() => {
+				if (file) {
+					return this.props.dispatch(uploadVoters(this.state.votingPool.VotingPoolID, file))
+				}
+				else {
+					return Promise.resolve()
+				}
+			})
+			.then(this.props.close)
 	}
 	render() {
+		const style = {
+			label: {display: 'inline-block', textAlign: 'left', width: '100px'}
+		}
 		return (
 			<Modal
 				className='ModalContent'
@@ -44,10 +55,19 @@ class AddVotingPoolModal extends React.PureComponent {
 				appElement={this.props.appElement}
 			>
 				<p>Add voters pool</p>
-				<label>Pool Name:<input type='text' name='Name' value={this.state.votingPool.Name} onChange={this.change}/></label><br />
-				<label>Pool Date:<DatePicker selected={this.state.votingPool.Date} onChange={newDate => this.setState({votingPool: {Date: newDate}})} /></label>
-				<button onClick={this.submit}>OK</button>
-				<button onClick={this.props.close}>Cancel</button>
+				<label style={style.label}>Pool Name:</label>
+					<input type='text' name='Name' value={this.state.votingPool.Name} onChange={this.change}/><br />
+				<label style={style.label}>Voters:</label>
+					<input
+						type='file'
+						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+						ref={this.votersFileInputRef}
+					/>
+				<br />
+				<p>
+					<button onClick={this.submit}>OK</button>
+					<button onClick={this.props.close}>Cancel</button>
+				</p>
 			</Modal>
 		)
 	}
@@ -59,7 +79,7 @@ class ImportVotersModal extends React.PureComponent {
 		this.votersFileInputRef = React.createRef();
 	}
 	submit = () => {
-		this.props.dispatch(uploadVoters(this.props.votingPool.VotingPoolID, this.votersFileInputRef.current.files[0]));
+		this.props.dispatch(uploadVoters(this.props.votingPool.VotingPoolID, this.votersFileInputRef.current.files[0])).then(this.props.close)
 	}
 	render() {
 		return (
@@ -88,31 +108,26 @@ class VoterPools extends React.PureComponent {
 		super(props);
 
 		this.columns = [
-			{dataKey: '',				label: '',
-				width: 40,
-				headerRenderer: this.renderHeaderCheckbox,
-				cellRenderer: this.renderCheckbox},
 			{dataKey: 'VotingPoolID',	label: 'ID',
 				width: 100},
 			{dataKey: 'Name',			label: 'Voting Pool',
 				width: 200},
-			{dataKey: 'Date',			label: 'Date',
-				width: 200,
-				cellRenderer: this.renderDate},
 			{dataKey: 'VoterCount',		label: 'Voters',
-				width: 200,
-				cellRenderer: this.renderVotersCount},
+				width: 100},
 			{dataKey: '',				label: '',
-				width: 200,
+				width: 100,
 				headerRenderer: this.renderHeaderActions,
 				cellRenderer: this.renderActions}
 		];
+
+		this.maxWidth = this.columns.reduce((acc, col) => acc + col.width, 0)
+		console.log(this.maxWidth)
 
 		this.state = {
 			height: 100,
 			width: 100,
 			selectedRows: [],
-			votingPool: {VotingPoolID: 0, Name: '', Date: new Date()},
+			votingPool: {VotingPoolID: 0, Name: ''},
 			showVotersImport: false,
 			showAddVotingPool: false,
 			showVoters: false
@@ -125,8 +140,7 @@ class VoterPools extends React.PureComponent {
 				this.props.dispatch(setVotingPoolFilter(dataKey, ''));
 			});
 		}
-
-		this.sortable = ['Name', 'Date', 'VoterCount'];
+		this.sortable = ['Name', 'VoterCount'];
 	}
 
 	componentDidMount() {
@@ -145,43 +159,25 @@ class VoterPools extends React.PureComponent {
 		var height = window.innerHeight - header.offsetHeight - top.offsetHeight - 5
 		var width = window.innerWidth - 1; //parent.offsetWidth
 		//console.log('update ', width, height)
-		this.setState({height, width})
+		this.setState({height, width: Math.min(width, this.maxWidth)})
 	}
-	
-	deleteVotersClick = (e, rowData) => {
+	deleteVotingPool = (rowData) => {
 		console.log('VotingPoolID=', rowData.VotingPoolID)
 		this.props.dispatch(deleteVotingPool(rowData.VotingPoolID));
 	}
-	importVotersClick = (e, rowData) => {
+	importVotersClick = (rowData) => {
 		this.setState({
 			votingPool: rowData,
 			showVotersImport: true
 		})
 	}
 	showVoters = ({event, rowData}) => {
-		this.setState({
-			votingPool: rowData,
-			showVoters: true
-		})
+		this.props.history.push(`/Voters/${rowData.VotingPoolID}`)
 	}
 	refresh = () => {
 		this.props.dispatch(getVotingPool());
 	}
 
-	handleRemoveSelected = () => {
-		const data = this.props.votingPoolData;
-		const dataMap = this.props.votingPoolDataMap;
-		var ids = [];
-		for (var i = 0; i < dataMap.length; i++) { // only select checked items that are visible
-			let id = data[dataMap[i]].VotingPoolID
-			if (this.state.selectedRows.includes(id)) {
-				ids.push(id)
-			}
-		}
-		if (ids.length) {
-			this.props.dispatch(deleteVotingPool(ids))
-		}
-	}
 	sortChange = (event, dataKey) => {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, this.props.sortBy, this.props.sortDirection);
 		this.props.dispatch(setVotingPoolSort(sortBy, sortDirection));
@@ -191,16 +187,19 @@ class VoterPools extends React.PureComponent {
 		this.props.dispatch(setVotingPoolFilter(dataKey, event.target.value));
 	}
 
-	renderActions = ({rowIndex}) => {
+	renderActions = ({rowIndex, rowData}) => {
 		return (
-			<DeleteIcon className={styles.actionColumn} width={22} height={22} onClick={() => this.deleteRow(rowIndex)}/>
+			<div className={styles.actionColumn}>
+				<span className="fa fa-file-upload" title='Upload' onClick={() => this.importVotersClick(rowData)} />&nbsp;
+				<span className="fa fa-trash-alt" title='Delete' onClick={() => this.deleteVotingPool(rowData)}/>
+			</div>
 		)
 	}
 	renderHeaderActions = ({rowIndex}) => {
 		return (
 			<div title='Actions'>
-				<RefreshIcon width={22} height={22} title='Refresh' onClick={this.refresh} />
-				<AddIcon width={22} height={22} onClick={() => this.setState({showAddUserModal: true})}/>
+				<span className="fa fa-sync-alt" title='Refresh' onClick={this.refresh} />&nbsp;
+				<span className="fa fa-plus" title='Add' onClick={() => this.setState({showAddVotingPool: true})} />
 			</div>
 		)
 	}
@@ -215,7 +214,7 @@ class VoterPools extends React.PureComponent {
 				style={{cursor: 'pointer', userSelect: 'none', ...style}}
 			>
 				{label}
-				<SortIndicator sortDirection={sortDirection} />
+				{sortDirection === 'NONE' || <i className={sortDirection === 'ASC'? "fa fa-sort-alpha-down": "fa fa-sort-alpha-up"} />}
 			</span>
 		);
 	}
@@ -240,7 +239,7 @@ class VoterPools extends React.PureComponent {
 				placeholder='Filter'
 				onChange={e => this.filterChange(e, dataKey)}
 				value={this.props.filters[dataKey]}
-				style={{width: '100%'}}
+				style={{width: '90%'}}
 			/>
 		);
 	}
@@ -254,62 +253,7 @@ class VoterPools extends React.PureComponent {
 			</div>
 		);
 	}
-	renderHeaderCheckbox = ({dataKey}) => {
-		const {selectedRows} = this.state;
-		const {votingPoolData, votingPoolDataMap} = this.props;
-		const checked = allSelected(selectedRows, votingPoolDataMap, votingPoolData, 'VotingPoolID');
-		return (
-			<input
-				type="checkbox"
-				checked={checked}
-				onChange={e => this.setState({selectedRows: toggleVisible(selectedRows, votingPoolDataMap, votingPoolData, 'VotingPoolID')})}
-			/>
-		);
-	}
-	renderCheckbox = ({rowIndex, rowData, dataKey, parent}) => {
-		const id = rowData.VotingPoolID;
-		return (
-			<input
-				type="checkbox"
-				checked={this.state.selectedRows.includes(id)}
-				onChange={e => {
-					// if commentId is present in selectedComments (i > 0) then remove it; otherwise add it
-					let i = this.state.selectedRows.indexOf(id);
-					this.setState({
-						selectedRows: update(this.state.selectedRows, (i > -1)? {$splice: [[i, 1]]}: {$push: [id]})
-					})
-				}}
-			/>
-		);
-	}
-	renderDate = ({rowData, dataKey}) => {
-		// rowData[dataKey] is a UTC time string. We convert this to eastern time
-		// and display only the date (not time).
-		var d = new Date(rowData[dataKey]).toISOString().slice(0, 10)
-		//var str = d.slice(0, 10)
-		//var str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
-		return (
-			<div
-				dangerouslySetInnerHTML={{__html: d}}
-			/>
-		)
-	}
-	renderVotersCount = ({rowIndex, rowData, dataKey}) => {
-		var count = rowData[dataKey];
-		if (count > 0) {
-			return (
-				<div>
-					<span>{count}</span>
-					<button onClick={(e) => {return this.deleteVotersClick(e, rowData)}}>Delete</button>
-				</div>
-			)
-		}
-		else {
-			return (
-				<button onClick={(e) => {return this.importVotersClick(e, rowData)}}>Import</button>
-			)
-		}
-	}
+
 	noRowsRenderer = () => {
 		return <div className={styles.noRows}>{this.props.getVotingPool? 'Loading...': 'No rows'}</div>
 	}
@@ -334,7 +278,7 @@ class VoterPools extends React.PureComponent {
 				height={this.state.height}
 				width={this.state.width}
 				rowHeight={22}
-				headerHeight={40}
+				headerHeight={44}
 				noRowsRenderer={this.noRowsRenderer}
 				headerClassName={styles.headerColumn}
 				rowClassName={this.rowClassName}
@@ -356,20 +300,9 @@ class VoterPools extends React.PureComponent {
 	}
 
 	render() {
-		if (this.state.showVoters) {
-			return (
-				<Voters
-					votingPool={this.state.votingPool}
-					close={() => {this.setState({showVoters: false})}}
-				/>
-			)
-		}
 		return (
-			<div id='VoterPools' style={{height: '100%'}}>
+			<div id='VoterPools'>
 				<div id='top-row'>
-					<button disabled={this.props.getVotingPool} onClick={this.refresh}>Refresh</button>
-					<button onClick={this.handleRemoveSelected}>Remove Selected</button>
-					<button onClick={() => this.setState({showAddVotingPool: true})}>Add</button>
 				</div>
 				{this.renderTable()}
 				<AddVotingPoolModal

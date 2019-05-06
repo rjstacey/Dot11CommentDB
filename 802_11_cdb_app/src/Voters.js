@@ -4,7 +4,7 @@ import update from 'immutability-helper';
 import {connect} from 'react-redux';
 import {Column, Table} from 'react-virtualized';
 import {setVotersFilter, setVotersSort, getVoters, deleteVoters, addVoter} from './actions/voters'
-import {sortClick, allSelected, toggleVisible, SortIndicator} from './filter'
+import {sortClick, allSelected, toggleVisible} from './filter'
 import styles from './AppTable.css'
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -12,20 +12,25 @@ class AddVoterModal extends React.PureComponent {
 	constructor(props) {
 		super(props);
 		this.state = {
-			voter: {SAPIN: 0, Name: '', Email: ''}
+			voter: {SAPIN: 0, LastName: '', FirstName: '', MI: '', Email: ''}
 		}
 	}
 	change = (e) => {
-		this.setState({voter: Object.assign({}, this.state.voter, {[e.target.name]: e.target.value})});
+		this.setState({voter: {...this.state.voter, [e.target.name]: e.target.value}})
 	}
 	submit = (e) => {
 		this.props.dispatch(addVoter({
 			VotingPoolID: this.props.votingPool.VotingPoolID,
 			...this.state.voter
-		}));
-		this.props.close()
+		})).then(this.props.close)
 	}
 	render() {
+		if (!this.props.votingPool) {
+			return null
+		}
+		const style = {
+			label: {display: 'inline-block', textAlign: 'left', width: '100px'}
+		}
 		return (
 			<Modal
 				className='ModalContent'
@@ -34,15 +39,25 @@ class AddVoterModal extends React.PureComponent {
 				appElement={this.props.appElement}
 			>
 				<p>Add voter to voting pool {this.props.votingPool.Name}</p>
-				<label>SA PIN:<input type='text' name='SAPIN' value={this.state.voter.SAPIN} onChange={this.change}/></label><br />
-				<label>Name:<input type='text' name='Name' value={this.state.voter.Name} onChange={this.change}/></label><br />
-				<label>Email:<input type='text' name='Email' value={this.state.voter.Email} onChange={this.change}/></label><br />
-				<button onClick={this.submit}>OK</button>
-				<button onClick={this.props.close}>Cancel</button>
+				<label style={style.label}>SA PIN:</label>
+					<input style={{width: 100}} type='text' name='SAPIN' value={this.state.voter.SAPIN} onChange={this.change}/><br />
+				<label style={style.label}>Last Name:</label>
+					<input style={{width: 150}} type='text' name='LastName' value={this.state.voter.LastName} onChange={this.change}/><br />
+				<label style={style.label}>First Name:</label>
+					<input style={{width: 150}} type='text' name='FirstName' value={this.state.voter.FirstName} onChange={this.change}/><br />
+				<label style={style.label}>MI:</label>
+					<input style={{width: 50}} type='text' name='MI' value={this.state.voter.MI} onChange={this.change}/><br />
+				<label style={style.label}>Email:</label>
+					<input style={{width: 250}} type='text' name='Email' value={this.state.voter.Email} onChange={this.change}/><br />
+				<p>
+					<button onClick={this.submit}>OK</button>
+					<button onClick={this.props.close}>Cancel</button>
+				</p>
 			</Modal>
 		)
 	}
 }
+
 class Voters extends React.Component {
 	constructor(props) {
 		super(props);
@@ -52,10 +67,14 @@ class Voters extends React.Component {
 				width: 40,  
 				headerRenderer: this.renderHeaderCheckbox,
 				cellRenderer: this.renderCheckbox},
-			{dataKey: 'SAPIN',	label: 'SA PIN', width: 100},
-			{dataKey: 'Name', label: 'Name',	width: 200},
-			{dataKey: 'Email', label: 'Email',	width: 250}
+			{dataKey: 'SAPIN',		label: 'SA PIN',		width: 100},
+			{dataKey: 'LastName',	label: 'Last Name',		width: 150},
+			{dataKey: 'FirstName',	label: 'First Name',	width: 150},
+			{dataKey: 'MI',			label: 'MI',			width: 50},
+			{dataKey: 'Email',		label: 'Email',			width: 250}
 		];
+
+		this.maxWidth = this.columns.reduce((acc, col) => acc + col.width, 0)
 
 		this.state = {
 			height: 100,
@@ -67,20 +86,22 @@ class Voters extends React.Component {
 		}
 
 		// List of filterable columns
-    	const filterable = ['SAPIN', 'Name', 'Email'];
+    	const filterable = ['SAPIN', 'LastName', 'FirstName', 'MI', 'Email'];
 		if (Object.keys(props.filters).length === 0) {
 			filterable.forEach(dataKey => {
 				this.props.dispatch(setVotersFilter(dataKey, ''));
 			});
 		}
-		this.sortable = ['SAPIN', 'Name', 'Email'];
+		this.sortable = filterable;
 	}
 
 	componentDidMount() {
 		this.updateDimensions()
 		window.addEventListener("resize", this.updateDimensions);
-		if (!this.props.votersValid || this.props.votingPool.VotingPoolID !== this.props.votingPoolId) {
-			this.props.dispatch(getVoters(this.props.votingPool.VotingPoolID))
+
+		const votingPoolId = this.props.match.params.votingPoolId;
+		if (!this.props.votingPool || this.props.votingPool.VotingPoolID !== votingPoolId) {
+			this.props.dispatch(getVoters(votingPoolId))
 		}
 	}
 	componentWillUnmount() {
@@ -92,7 +113,7 @@ class Voters extends React.Component {
 		var height = window.innerHeight - header.offsetHeight - top.offsetHeight - 5
 		var width = window.innerWidth - 1; //parent.offsetWidth
 		//console.log('update ', width, height)
-		this.setState({height, width})
+		this.setState({height, width: Math.min(width, this.maxWidth)})
 	}
 
 	handleRemoveSelected = () => {
@@ -129,7 +150,7 @@ class Voters extends React.Component {
 				style={{cursor: 'pointer', userSelect: 'none', ...style}}
 			>
 				{label}
-				<SortIndicator sortDirection={sortDirection} />
+				{sortDirection === 'NONE' || <i className={sortDirection === 'ASC'? "fa fa-sort-alpha-down": "fa fa-sort-alpha-up"} />}
 			</span>
 		);
 	}
@@ -154,7 +175,7 @@ class Voters extends React.Component {
 				placeholder='Filter'
 				onChange={e => this.filterChange(e, dataKey)}
 				value={this.props.filters[dataKey]}
-				style={{width: '100%'}}
+				style={{width: 'calc(100% - 10px)'}}
 			/>
 		);
 	}
@@ -240,14 +261,16 @@ class Voters extends React.Component {
 
 	render() {
 		return (
-			<div id='Voters' style={{height: '100%'}}>
-				<div id='top-row'>
-					<label>Voting Pool:<span>{this.props.votingPool.Name}</span></label>
-					<label>Date:<span>{this.props.votingPool.Date.slice(0, 10)}</span></label><br/>
+			<div id='Voters'>
+				{this.props.votingPool?
+					(<div id='top-row'>
+					<label>Voting Pool:<span>{this.props.votingPool.Name}</span></label><br/>
 					<button onClick={this.props.close}>Back</button>
 					<button onClick={this.handleRemoveSelected}>Remove Selected</button>
 					<button onClick={() => this.setState({showAddVoter: true})}>Add</button>
-				</div>
+					</div>):
+					(<div id='top-row'></div>)
+				}
 
 				{this.renderTable()}
 
@@ -257,6 +280,7 @@ class Voters extends React.Component {
 					votingPool={this.props.votingPool}
 					dispatch={this.props.dispatch}
 					appElement={document.querySelector('#Voters')}
+					coulmns={this.columns}
 				/>
 			</div>
 		)
@@ -269,7 +293,7 @@ function mapStateToProps(state) {
 		filters: voters.votersFilters,
 		sortBy: voters.votersSortBy,
 		sortDirection: voters.votersSortDirection,
-		votingPoolId: voters.votingPoolId,
+		votingPool: voters.votingPool,
 		votersData: voters.votersData,
 		votersDataMap: voters.votersDataMap,
 		getVoters: voters.getVoters,

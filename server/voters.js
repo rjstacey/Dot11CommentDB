@@ -1,15 +1,27 @@
 
 const csvParse = require('csv-parse/lib/sync')
 
-function parseVoters(csvArray) {
-	// Row 0 is the header:
-	 // 'SA PIN', 'Date', 'Vote', 'Email'
-	csvArray.shift();
-	return csvArray.map(c => {
+function parseVoters(votersCsvBuffer) {
+
+	const p = csvParse(votersCsvBuffer, {columns: false});
+	if (p.length === 0) {
+		throw 'Got empty .csv file';
+	}
+
+	// Row 0 is the header
+	expected = ['SA PIN', 'LastName', 'FirstName', 'MI', 'Email'];
+	if (expected.reduce((r, v, i) => v !== p[0][i], false)) {
+		throw `Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`
+	}
+	p.shift();
+
+	return p.map(c => {
 		return {
 			SAPIN: c[0],
-			Name: c[1],
-			Email: c[2]
+			LastName: c[1],
+			FirstName: c[2],
+			MI: c[3],
+			Email: c[4]
 		}
 	});
 }
@@ -19,11 +31,8 @@ module.exports = function(db, rp) {
 	var module = {};
 
 	module.getVotingPool = function (req, res, next) {
-		const sess = req.session;
-
-		// Get a list of BallotIDs in BallotSeries. Keep them in order of ballot start date.
-		const SQL = `SELECT vp.*, (SELECT COUNT(*) FROM voters AS v WHERE vp.VotingPoolID = v.VotingPoolID) AS VoterCount FROM votingpool AS vp ORDER BY Date`;
-		return db.query2(SQL)
+		const SQL = 'SELECT vp.*, (SELECT COUNT(*) FROM voters AS v WHERE vp.VotingPoolID = v.VotingPoolID) AS VoterCount FROM votingpool AS vp ORDER BY vp.Name';
+		return db.query(SQL)
 	}
 
 	module.deleteVotingPool = function (req, res, next) {
@@ -45,7 +54,7 @@ module.exports = function(db, rp) {
 
 		var SQL = `DELETE FROM votingpool${where}; DELETE FROM voters${where}`;
 		console.log(SQL);
-		return db.query2(SQL)
+		return db.query(SQL)
 	}
 
 	module.addVotingPool = (req, res, next) => {
@@ -57,14 +66,13 @@ module.exports = function(db, rp) {
 
 		var entry = {
 			VotingPoolID: req.body.VotingPoolID,
-			Name: req.body.Name,
-			Date: new Date(req.body.Date).toISOString().slice(0, 10)
+			Name: req.body.Name
 		}
 
 		var SQL = `INSERT INTO votingpool (${Object.keys(entry)}) VALUES (${db.escape(Object.values(entry))});` +
 			`SELECT vp.*, (SELECT COUNT(*) FROM voters AS v WHERE vp.VotingPoolID = v.VotingPoolID) AS VoterCount FROM votingpool AS vp WHERE vp.VotingPoolID = ${db.escape(entry.VotingPoolID)}`;
 		console.log(SQL)
-		return db.query2(SQL)
+		return db.query(SQL)
 			.then(results => {
 				if (results.length !== 2) {
 					throw "Unexpected SQL query result"
@@ -84,7 +92,16 @@ module.exports = function(db, rp) {
 		}
 		votingPoolId = req.query.VotingPoolID;
 
-		return db.query2('SELECT * FROM voters WHERE VotingPoolID=?', [votingPoolId])
+		return db.query('SELECT * FROM votingpool WHERE VotingPoolID=?; SELECT * FROM voters WHERE VotingPoolID=?', [votingPoolId, votingPoolId])
+			.then(results => {
+				if (results.length !== 2 || results[0].length != 1) {
+					throw "Unexpected SQL result"
+				}
+				return {
+					votingPool: results[0][0],
+					voters: results[1]
+				}
+			})
 	}
 
 	module.addVoter = function (req, res, next) {
@@ -97,15 +114,19 @@ module.exports = function(db, rp) {
 		var entry = {
 			VotingPoolID: req.body.VotingPoolID,
 			SAPIN: req.body.SAPIN,
-			Name: req.body.Name,
-			Email: req.body.Email,
+			LastName: req.body.LastName,
+			FirstName: req.body.FirstName,
+			MI: req.body.MI,
+			Email: req.body.Email
 		};
 
-		const SQL = `INSERT INTO voters (${Object.keys(entry)}) VALUES (${db.escape(Object.values(entry))}); SELECT * FROM voters WHERE VotingPoolID=${db.escape(entry.BallotID)}`;
-		db.query2(SQL)
-			.then(result => {
-				if (results.length !== 2 || results[1].length != 1) {
-					throw "Unexpected result"
+		const SQL = `INSERT INTO voters (${Object.keys(entry)}) VALUES (${db.escape(Object.values(entry))}); SELECT * FROM voters WHERE VotingPoolID=${db.escape(entry.VotingPoolID)}`;
+		console.log(SQL)
+		return db.query(SQL)
+			.then(results => {
+				console.log(results)
+				if (results.length !== 2 || results[1].length !== 1) {
+					throw "Unexpected SQL result"
 				}
 				return results[1][0];
 			})
@@ -130,47 +151,44 @@ module.exports = function(db, rp) {
 
 		var SQL = `DELETE FROM voters${where}`;
 		console.log(SQL);
-		return db.query2(SQL)
+		return db.query(SQL)
 	}
 
 	module.uploadVoters = (req, res, next) => {
-		console.log(req.body);
+		//console.log(req);
 
 		var votingPoolId = req.body.VotingPoolID;
 		if (!votingPoolId) {
 			return Promise.reject('Missing parameter VotingPoolID')
 	    }
-	    console.log(req.file)
+	    //console.log(req.file)
 		if (!req.file) {
-			return Promise.reject('Got unexpected file type');
+			return Promise.reject('Missing file');
 		}
 
-		var votersArray = csvParse(req.file.buffer);
-		if (votersArray.length === 0 || votersArray[0].length < 3) {
-			return Promise.reject(votersArray.length === 0?
-						'Got empty .csv file':
-						`Unexpected number of columns ${voters[0].length} in .csv file`)
-		}
+		var voters = parseVoters(req.file.buffer);
 
-		var voters = parseVoters(votersArray);
-		if (voters.length === 0) {
-			return Promise.resolve({Count: 0})
-		}
-
-		var SQL = `INSERT INTO voters (VotingPoolID, ${Object.keys(voters[0])}) VALUES`;
-		voters.forEach((c, i) => {
-			SQL += (i > 0? ',': '') + `(${db.escape(votingPoolId)}, ${db.escape(Object.values(c))})`;
-		});
-		SQL += ";\n";
-		console.log(SQL);
-
-		return db.query2(SQL)
+		return db.query('DELETE FROM voters WHERE VotingPoolID=?', [votingPoolId])
 			.then(result => {
-				return {Count: voters.length}
+
+				if (voters.length === 0) {
+					return Promise.resolve({Count: 0})
+				}
+
+				var SQL = `INSERT INTO voters (VotingPoolID, ${Object.keys(voters[0])}) VALUES`;
+				voters.forEach((c, i) => {
+					SQL += (i > 0? ',': '') + `(${db.escape(votingPoolId)}, ${db.escape(Object.values(c))})`;
+				});
+				SQL += ";\n";
+				//console.log(SQL);
+				return db.query(SQL)
+					.then(result => {
+						return {Count: voters.length}
+					})
+					.catch(err => {
+						throw err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err
+					});
 			})
-			.catch(err => {
-				throw err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err
-			});
 	}
 
 	return module;

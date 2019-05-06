@@ -3,10 +3,12 @@ import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import LoginForm from './Login';
 import Users from './Users';
 import Ballots from './Ballots';
+import Epolls from './Epolls';
 import Comments from './Comments';
 import Results from './Results';
 import VoterPools from './VoterPools';
-import ErrorModal from './ErrorModal'
+import Voters from './Voters';
+import ErrorModal from './ErrorModal';
 import './App.css'
 
 class App extends React.Component {
@@ -31,8 +33,10 @@ class App extends React.Component {
 					<main>
 						<Route path="/" exact component={LoginForm} />
 						<Route path="/Users/" component={Users} />
-						<Route path="/Voters/" component={VoterPools} />
+						<Route path="/Voters/" exact component={VoterPools} />
+						<Route path="/Voters/:votingPoolId" component={Voters} />
 						<Route path="/Ballots/" component={Ballots} />
+						<Route path="/Epolls/" component={Epolls} />
 						<Route path="/Results/:ballotId?" component={Results} />
 						<Route path="/Comments/:ballotId?" component={Comments} />
 						<ErrorModal />

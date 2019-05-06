@@ -139,7 +139,7 @@ const ballots = (state = defaultState, action) => {
 
 		case 'UPDATE_BALLOT':
 			ballotsData = state.ballotsData.map(d =>
-				d.BallotID === action.ballot.BallotID? {...d, ...action.ballot, Result: {...action.ballot.Result}}: d
+				d.BallotID === action.ballot.BallotID? {...d, ...action.ballot}: d
 			);
 			return {
 				...state,
@@ -151,7 +151,7 @@ const ballots = (state = defaultState, action) => {
 			}
 		case 'UPDATE_BALLOT_SUCCESS':
 			ballotsData = state.ballotsData.map(d =>
-				d.BallotID === action.ballot.BallotID? {...d, ...action.ballot, Result: {...action.ballot.Result}}: d
+				d.BallotID === action.ballot.BallotID? {...d, ...action.ballot}: d
 			);
 			return {
 				...state,

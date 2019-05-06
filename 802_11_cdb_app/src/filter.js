@@ -2,133 +2,94 @@
 //
 // Shamlessly stolen from https://github.com/koalyptus/TableFilter
 //
-import React from 'react'
 
 const isNumber =
-    (obj) => Object.prototype.toString.call(obj) === '[object Number]';
+	(obj) => Object.prototype.toString.call(obj) === '[object Number]';
 
 const parseNumber = (value, decimal = '.') => {
-    // Return the value as-is if it's already a number
-    if (isNumber(value)) {
-        return value;
-    }
+	// Return the value as-is if it's already a number
+	if (isNumber(value)) {
+		return value;
+	}
 
-    // Build regex to strip out everything except digits, decimal point and
-    // minus sign
-    let regex = new RegExp('[^0-9-' + decimal + ']', ['g']);
-    let unformatted = parseFloat(
-        ('' + value)
-            // replace bracketed values with negatives
-            .replace(/\((.*)\)/, '-$1')
-            // strip out any cruft
-            .replace(regex, '')
-            // make sure decimal point is standard
-            .replace(decimal, '.')
-    );
+	// Build regex to strip out everything except digits, decimal point and
+	// minus sign
+	let regex = new RegExp('[^0-9-' + decimal + ']', ['g']);
+	let unformatted = parseFloat(
+		('' + value)
+			// replace bracketed values with negatives
+			.replace(/\((.*)\)/, '-$1')
+			// strip out any cruft
+			.replace(regex, '')
+			// make sure decimal point is standard
+			.replace(decimal, '.')
+		);
 
-    // This will fail silently
-    return !isNaN(unformatted) ? unformatted : 0;
+	// This will fail silently
+	return !isNaN(unformatted) ? unformatted : 0;
 };
 
 const rgxEsc = (text) => {
-    let chars = /[-/\\^$*+?.()|[\]{}]/g;
-    let escMatch = '\\$&';
-    return String(text).replace(chars, escMatch);
+	let chars = /[-/\\^$*+?.()|[\]{}]/g;
+	let escMatch = '\\$&';
+	return String(text).replace(chars, escMatch);
 };
 
 const contains = (term, data, exactMatch = false, caseSensitive = false) => {
-    let regexp;
-    let modifier = caseSensitive ? 'g' : 'gi';
-    if (exactMatch) {
-        regexp = new RegExp('(^\\s*)' + rgxEsc(term) + '(\\s*$)', modifier);
-    } else {
-        regexp = new RegExp(rgxEsc(term), modifier);
-    }
-    return regexp.test(data);
+	let regexp;
+	let modifier = caseSensitive ? 'g' : 'gi';
+	if (exactMatch) {
+		regexp = new RegExp('(^\\s*)' + rgxEsc(term) + '(\\s*$)', modifier);
+	} else {
+		regexp = new RegExp(rgxEsc(term), modifier);
+	}
+	return regexp.test(data);
 };
 
 function filterCol(dataMap, data, dataKey, filtStr) {
-
-	let newDataMap = [];
-
-   	switch (dataKey) {
-    case 'Clause':
-		dataMap.forEach(i => {
-			const d = data[i][dataKey];
-			const len = Math.min(d.length, filtStr.length);
-	        if (d.substring(0, len) === filtStr.substring(0, len)) {
-	        	newDataMap.push(i);
-	        }
-		})
-		return newDataMap;
-
-    default:
-        let numCompFunc = undefined;
-        let strCompFunc = undefined;
-        let rgxCompFunc = undefined;
-    	let rgx, compVal, compStr;
-
-    	if (/^\/.*\/$/.test(filtStr)) {
-    		rgx = new RegExp(filtStr.replace('^/', '').replace('/$', ''));
-    		rgxCompFunc = (dataStr, rgx) => {return rgx.test(dataStr)}
-    	}
-    	else if (/^<=/.test(filtStr)) {	// less than or equal to
-    		compVal = parseNumber(filtStr.replace('<=', ''));
-    		numCompFunc = (dataVal, compVal) => {return dataVal <= compVal}
-    	}
-		else if (/^>=/.test(filtStr)) {	// greater than or equal to
-			compVal = parseNumber(filtStr.replace('>=', ''));
-			numCompFunc = (dataVal, compVal) => {return dataVal >= compVal}
-		}
-		else if (/^</.test(filtStr)) {	// less than
-			compVal = parseNumber(filtStr.replace('<', ''));
-			numCompFunc = (dataVal, compVal) => {return dataVal < compVal}
-		}
-		else if (/^>/.test(filtStr)) {	// greater than
-			compVal = parseNumber(filtStr.replace('<', ''));
-			numCompFunc = (dataVal, compVal) => {return dataVal > compVal}
-		}
-	    else if (/^!/.test(filtStr)) {	// not containing
-	    	compStr = filtStr.replace('!', '');
-	    	strCompFunc = (dataStr, compStr) => {return contains(compStr, dataStr, false, false)? false : true}
-		}
-		else if (/^=/.test(filtStr)) {	// exact match
-			compStr = filtStr.replace('=', '');
-    		strCompFunc = (dataStr, compStr) => {return contains(compStr, dataStr, true, false)}
-		}
-		else {
-			compStr = filtStr;
-			strCompFunc = (dataStr, compStr) => {return contains(compStr, dataStr, false, false)}
-		}
-
-		if (rgxCompFunc) {
-			dataMap.forEach((i) => {
-        		if (rgxCompFunc(data[i][dataKey], rgx)) {
-            		newDataMap.push(i);
-        		}
+	switch (dataKey) {
+		case 'Clause':
+			let len = filtStr.length;
+			if (len && filtStr[len-1] === '.') {
+				len = len-1;
+			}
+			return dataMap.filter(i => {
+				let d = data[i][dataKey];
+				return d === filtStr || (d.substring(0, len) === filtStr.substring(0, len) && d[len] === '.')
 			})
-        	return newDataMap;
-		}
-		else if (numCompFunc) {
-			dataMap.forEach((i) => {
-				var dataVal = parseNumber(data[i][dataKey]);
-        		if (numCompFunc(dataVal, compVal)) {
-            		newDataMap.push(i);
-        		}
-			})
-        	return newDataMap;
-		}
-		else if (strCompFunc) {
-			dataMap.forEach((i) => {
-        		if (strCompFunc(data[i][dataKey], compStr)) {
-            		newDataMap.push(i);
-        		}
-			})
-        	return newDataMap;
-		}
-		break;
- 	}
-	return dataMap;
+
+		default:
+			if (/^\/.*\/$/.test(filtStr)) {
+				let rgx = new RegExp(filtStr.replace(/^\//, '').replace(/\/$/, ''));
+				return dataMap.filter(i => rgx.test(data[i][dataKey]))
+			}
+			else if (/^<=/.test(filtStr)) {	// less than or equal to
+				let compVal = parseNumber(filtStr.replace('<=', ''));
+				return dataMap.filter(i => data[i][dataKey] <= compVal)
+			}
+			else if (/^>=/.test(filtStr)) {	// greater than or equal to
+				let compVal = parseNumber(filtStr.replace('>=', ''));
+				return dataMap.filter(i => data[i][dataKey] >= compVal)
+			}
+			else if (/^</.test(filtStr)) {	// less than
+				let compVal = parseNumber(filtStr.replace('<', ''));
+				return dataMap.filter(i => data[i][dataKey] < compVal)
+			}
+			else if (/^>/.test(filtStr)) {	// greater than
+				let compVal = parseNumber(filtStr.replace('<', ''));
+				return dataMap.filter(i => data[i][dataKey] > compVal)
+			}
+		    else if (/^!/.test(filtStr)) {	// not containing
+				let compStr = filtStr.replace('!', '');
+				return dataMap.filter(i => !contains(compStr, data[i][dataKey], false, false))
+			}
+			else if (/^=/.test(filtStr)) {	// exact match
+				let compStr = filtStr.replace('=', '');
+				return dataMap.filter(i => contains(compStr, data[i][dataKey], true, false))
+			}
+			// simple search
+			return dataMap.filter(i => contains(filtStr, data[i][dataKey], false, false))
+	}
 }
 
 export function filterData(data, filters) {
@@ -214,37 +175,37 @@ export function sortClick(event, dataKey, currSortBy, currSortDirection) {
  * Determine if all items in map have been selected
  */
 export function allSelected(selectedList, dataMap, data, idKey) {
-  var allSelected = dataMap.length > 0; // not if list is empty
-  for (var i = 0; i < dataMap.length; i++) {
-    if (selectedList.indexOf(data[dataMap[i]][idKey]) < 0) {
-      allSelected = false;
-    }
-  }
-  return allSelected;
+	var allSelected = dataMap.length > 0; // not if list is empty
+	for (var i = 0; i < dataMap.length; i++) {
+		if (selectedList.indexOf(data[dataMap[i]][idKey]) < 0) {
+			allSelected = false;
+		}
+	}
+	return allSelected;
 }
 
 export function toggleVisible(currSelectedList, dataMap, data, idKey) {
-  let selectedList = currSelectedList.slice();
-  if (allSelected(selectedList, dataMap, data, idKey)) {
-    // remove all visible (filtered) IDs
-    for (let i = 0; i < dataMap.length; i++) {
-      let id = data[dataMap[i]][idKey];
-      let j = selectedList.indexOf(id)
-      if (j > -1) {
-        selectedList.splice(j, 1);
-      }
-    }
-  }
-  else {
-    // insert all visible (filtered) IDs if not already present
-    for (let i = 0; i < dataMap.length; i++) {
-      let id = data[dataMap[i]][idKey];
-      if (selectedList.indexOf(id) < 0) {
-        selectedList.push(id)
-      }
-    }
-  }
-  return selectedList;
+	let selectedList = currSelectedList.slice();
+	if (allSelected(selectedList, dataMap, data, idKey)) {
+		// remove all visible (filtered) IDs
+		for (let i = 0; i < dataMap.length; i++) {
+			let id = data[dataMap[i]][idKey];
+			let j = selectedList.indexOf(id)
+			if (j > -1) {
+				selectedList.splice(j, 1);
+			}
+		}
+	}
+	else {
+		// insert all visible (filtered) IDs if not already present
+		for (let i = 0; i < dataMap.length; i++) {
+			let id = data[dataMap[i]][idKey];
+			if (selectedList.indexOf(id) < 0) {
+				selectedList.push(id)
+			}
+		}
+	}
+	return selectedList;
 }
 
 /*
@@ -263,7 +224,7 @@ export function SortIndicator(props) {
     );
 }
 */
-
+/*
 export function DeleteIcon(props) {
 	return (
 		<svg id="delete" viewBox="0 0 473 473" {...props}>
@@ -309,18 +270,34 @@ export function UploadIcon(props) {
 		</svg>
 	)
 }
-
 export function SortIndicator(props) {
   const {sortDirection, onClick, ...otherProps} = props;
 
   return (
-    <svg width={16} height={16} viewBox="0 0 48 48" onClick={onClick} {...otherProps}>
+    <svg width={8} height={16} viewBox="0 0 30 48" onClick={onClick} {...otherProps}>
       {sortDirection === 'ASC'?
       	(<path d="M25.7,27.3c0,0-2.1,2.1-4.2,4.2V8.2h-5.9v23.4c-2.1-2.1-4.2-4.2-4.2-4.2l-4.2,4.2l9.3,9.3c1.2,1.2,3,1.2,4.2,0l9.3-9.3l-4.2-4.2z"/>):
          (sortDirection === 'DESC'?
          	(<path d="M11.2,22.5c0,0,2.1-2.1,4.2-4.2v23.4h5.9V18.3c2.1,2.1,4.2,4.2,4.2,4.2l4.2-4.2l-9.3-9.3c-1.2-1.2-3-1.2-4.2,0L7,18.4l4.2,4.2z"/>):
-            /*(<path d="M5 8 l5-5 5 5z M5 11 l5 5 5-5 z" />)*/ null)}
+             null)}
       <path d="M0 0h24v24H0z" fill="none" />
     </svg>
     );
 }
+
+export function ExpandIcon(props) {
+	const {showPlus, ...otherProps} = props;
+	return (
+		<svg width={18} height={18} aria-label={showPlus? 'Expand': 'Shrink'} {...otherProps}>
+			<g stroke='black'>
+			<circle cx={9} cy={9} r={8} strokeWidth={1} fill='none'/>
+			<path
+				d={showPlus? 'M 4,9 h 10 M 9,4 v 10': 'M 4,9 h 10'}
+				strokeWidth={2}
+				strokeLinecap='round'
+			/>
+			</g>
+		</svg>
+	)
+}
+*/

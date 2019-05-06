@@ -1,28 +1,40 @@
 import React from 'react';
 import {Link} from "react-router-dom";
 import Modal from 'react-modal';
-import update from 'immutability-helper';
 import {connect} from 'react-redux';
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
 import {setBallotsFilter, setBallotsSort, getBallots, deleteBallots, updateBallot} from './actions/ballots';
 import {getVotingPool} from './actions/voters';
 import {deleteCommentsWithBallotId, importComments, uploadComments} from './actions/comments'
 import {deleteResults, importResults, uploadResults} from './actions/results'
-import {sortClick, allSelected, toggleVisible, SortIndicator} from './filter'
-import Epolls from './Epolls'
+import {sortClick} from './filter'
 import styles from './AppTable.css'
 
-class UploadModal extends React.PureComponent {
+class ImportModal extends React.PureComponent {
 	constructor(props) {
 		super(props)
 		this.fileInputRef = React.createRef();
+
+		this.state = {
+			fromFile: false
+		}
 	}
 	submit = () => {
-		this.props.dispatch(
-			this.props.uploadType === 'results'?
-				uploadResults(this.props.ballotId, this.fileInputRef.current.files[0]):
-				uploadComments(this.props.ballotId, this.fileInputRef.current.files[0])
-		);
+		if (this.state.fromFile) {
+			this.props.dispatch(
+				this.props.importType === 'results'?
+					uploadResults(this.props.ballotId, this.fileInputRef.current.files[0]):
+					uploadComments(this.props.ballotId, this.fileInputRef.current.files[0])
+			)
+		}
+		else {
+			this.props.dispatch(
+				this.props.importType === 'results'?
+					importResults(this.props.ballotId, this.props.epollNum):
+					importComments(this.props.ballotId, this.props.epollNum, 1)
+			)
+		}
+		this.props.close()
 	}
 	render() {
 		return (
@@ -32,12 +44,32 @@ class UploadModal extends React.PureComponent {
 				isOpen={this.props.isOpen}
 				appElement={this.props.appElement}
 			>
-				<p>Upload {this.props.uploadType} for {this.props.ballotId}</p>
-				<input
-					type='file'
-					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-					ref={this.fileInputRef}
-				/>
+				<p>Import {this.props.importType} for {this.props.ballotId}. Current {this.props.importType} (if any) will be deleted.</p>
+				<p>Select whether to import from the ePoll associated with the ballot or from a local .csv file.</p>
+				<label>
+					<input
+						name='FromEpoll'
+						type='radio'
+						checked={!this.state.fromFile}
+						onChange={e => this.setState({fromFile: !e.target.checked})}
+					/>
+					From ePoll
+				</label>
+				<br />
+				<label>
+					<input
+						name='FromFile'
+						type='radio'
+						checked={this.state.fromFile}
+						onChange={e => this.setState({fromFile: e.target.checked})}
+					/>
+					From file&nbsp;&nbsp;
+					<input
+						type='file'
+						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+						ref={this.fileInputRef}
+					/>
+				</label>
 				<br />
 				<button onClick={this.submit}>OK</button>
 				<button onClick={this.props.close}>Cancel</button>
@@ -52,10 +84,10 @@ class Ballots extends React.Component {
 		super(props);
 
 		this.columns = [
-			{dataKey: '',             label: '',
+			/*{dataKey: '',             label: '',
 				width: 40, flexGrow: 0, flexShrink: 0,
 				headerRenderer: this.renderHeaderCheckbox,
-				cellRenderer: this.renderCheckbox},
+				cellRenderer: this.renderCheckbox},*/
 			{dataKey: 'Project',      label: 'Project',
 				width: 65, flexShrink: 0,
 				cellRenderer: this.renderEditable},
@@ -71,34 +103,30 @@ class Ballots extends React.Component {
 			{dataKey: 'EpollNum',     label: 'ePoll',
 				width: 80, flexGrow: 0, flexShrink: 0},
 			{dataKey: 'Start',        label: 'Start',
-				width: 100, flexShrink: 0,
+				width: 84, flexShrink: 0,
 				cellRenderer: this.renderDate},
 			{dataKey: 'End',          label: 'End',
-				width: 100, flexShrink: 0,
+				width: 84, flexShrink: 0,
 				cellRenderer: this.renderDate},
-	        {dataKey: 'VotingPoolID', label: 'Voting Pool',
-	        	width: 80,
+	        {dataKey: ['VotingPoolID', 'PrevBallotID'], label: 'Voting Pool/\nPrev Ballot',
+	        	width: 100,
 	    		cellRenderer: this.renderVotingPool},
-	    	{dataKey: 'PrevBallotID', label: 'Previous Ballot In Series',
-	        	width: 80,
-	    		cellRenderer: this.renderPrevBallot},
-			{dataKey: 'Results',      label: 'Voting Result',
+			{dataKey: 'Results',      label: 'Result',
 				width: 150,
 				cellRenderer: this.renderResultsSummary},
-			{dataKey: 'Comments', label: 'Comments',
+			{dataKey: 'Comments',	label: 'Comments',
 				width: 100,
 				cellRenderer: this.renderCommentsSummary}
 		];
 
 		this.state = {
-			showEpolls: false,
 			height: 100,
 			width: 100,
 			ballotImport: {},
 			selectedBallots: [],
-			showUpload: false,
-			uploadType: '',
-			uploadBallotID: 0
+			showImport: false,
+			importType: '',
+			importBallot: {}
 		}
 
 		// List of filterable columns
@@ -117,6 +145,7 @@ class Ballots extends React.Component {
 		})
 	}
 	componentDidMount() {
+		console.log('did mount')
 		this.updateDimensions()
 		window.addEventListener("resize", this.updateDimensions);
 
@@ -126,6 +155,7 @@ class Ballots extends React.Component {
 		if (!this.props.votingPoolDataValid) {
 			this.props.dispatch(getVotingPool())
 		}
+		this.rowHeightCache.clearAll()
 	}
 	componentWillUnmount() {
 		window.removeEventListener("resize", this.updateDimensions);
@@ -140,24 +170,17 @@ class Ballots extends React.Component {
 	}
 
 	showEpolls = (e) => {
-		this.setState({showEpolls: true});
-		e.preventDefault()
-	}
-	hideEpolls = () => {
-		this.setState({showEpolls: false});
+		this.props.history.push('/Epolls/');
 	}
 	deleteCommentsClick = (e, rowData) => {
 		console.log('ballotId=', rowData.BallotID)
 		this.props.dispatch(deleteCommentsWithBallotId(rowData.BallotID));
 	}
 	importCommentsClick = (e, rowData) => {
-		this.props.dispatch(importComments(rowData.BallotID, rowData.EpollNum));
-	}
-	uploadCommentsClick = (e, rowData) => {
 		this.setState({
-			showUpload: true,
-			uploadType: 'comments',
-			uploadBallotID: rowData.BallotID
+			showImport: true,
+			importType: 'comments',
+			importBallot: rowData
 		})
 	}
 	deleteResultsClick = (e, rowData) => {
@@ -165,13 +188,10 @@ class Ballots extends React.Component {
 		this.props.dispatch(deleteResults(rowData.BallotID));
 	}
 	importResultsClick = (e, rowData) => {
-		this.props.dispatch(importResults(rowData.BallotID, rowData.EpollNum));
-	}
-	uploadResultsClick = (e, rowData) => {
 		this.setState({
-			showUpload: true,
-			uploadType: 'results',
-			uploadBallotID: rowData.BallotID
+			showImport: true,
+			importType: 'results',
+			importBallot: rowData
 		})
 	}
 	handleRemoveSelected = () => {
@@ -216,39 +236,12 @@ class Ballots extends React.Component {
 		}
 	}
 
-	renderHeaderCheckbox = ({dataKey}) => {
-		const {selectedBallots} = this.state;
-		const {ballotsData, ballotsDataMap} = this.props;
-		const checked = allSelected(selectedBallots, ballotsDataMap, ballotsData, 'BallotID');
-		return (
-			<input
-				type="checkbox"
-				checked={checked}
-				onChange={e => this.setState({selectedBallots: toggleVisible(selectedBallots, ballotsDataMap, ballotsData, 'BallotID')})}
-			/>
-		);
-	}
-	renderCheckbox = ({rowIndex, rowData, dataKey, parent}) => {
-		const ballotId = rowData.BallotID;
-		return (
-			<input
-				type="checkbox"
-				checked={this.state.selectedBallots.includes(ballotId)}
-				onChange={e => {
-					// if commentId is present in selectedComments (i > 0) then remove it; otherwise add it
-					let i = this.state.selectedBallots.indexOf(ballotId);
-					this.setState({
-						selectedBallots: update(this.state.selectedBallots, (i > -1)? {$splice: [[i, 1]]}: {$push: [ballotId]})
-					})
-				}}
-			/>
-		);
-	}
 	renderDate = ({rowData, dataKey}) => {
-		// rowData[dataKey] is a UTC time string. We convert this to easter time
-		// and display only the date (not time).
+		// rowData[dataKey] is a UTC time string. We convert this to US eastern time
+		// and display only the date in format "yyyy-mm-dd" (ISO format).
 		var d = new Date(rowData[dataKey])
-		var str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
+		d = new Date(d.toLocaleString('en-US', {timeZone: 'America/New_York'}))
+		var str = d.toISOString().substring(0,10)
 		return (
 			<div
 				dangerouslySetInnerHTML={{__html: str}}
@@ -266,35 +259,36 @@ class Ballots extends React.Component {
 			/>
 		);
 	}
-	renderVotersCount = ({rowIndex, rowData, dataKey}) => {
-		var count = rowData[dataKey];
-		if (count > 0) {
-			return (
-				<div>
-					<span>{count}</span>
-					<button onClick={(e) => {return this.deleteVotersClick(e, rowData)}}>Delete</button>
-				</div>
-			)
-		}
-		else {
-			return (
-				<button onClick={(e) => {return this.importVotersClick(e, rowData)}}>Import</button>
-			)
-		}
-	}
 	
 	renderVotingPool = ({rowIndex, columnIndex, rowData, dataKey}) => {
+		var project = rowData.Project;
+		const showSelectVotingPool = !rowData[dataKey[1]]
+		const showSelectBallot = !rowData[dataKey[0]]
 		return (
-			<select
-				name={dataKey}
-				value={rowData[dataKey]}
-				onChange={e => this.updateBallotFieldIfChanged(rowIndex, columnIndex, dataKey, e.target.value)}
-			>
-				<option key={0} value={null}>None</option>
-				{this.props.votingPoolData.map(i => {
-					return (<option key={i.VotingPoolID} value={i.VotingPoolID}>{i.Name}</option>)
-				})}
-			</select>
+			<div>
+				{showSelectVotingPool &&
+					<select
+						name={dataKey}
+						value={rowData[dataKey[0]]}
+						onChange={e => this.updateBallotFieldIfChanged(rowIndex, columnIndex, dataKey[0], e.target.value)}
+					>
+						<option key={0} value={''}>Select Pool</option>
+						{this.props.votingPoolData.map(i => {
+							return (<option key={i.VotingPoolID} value={i.VotingPoolID}>{i.Name}</option>)
+						})}
+					</select>}
+				{showSelectBallot &&
+					<select
+						name={dataKey}
+						value={rowData[dataKey[1]]}
+						onChange={e => this.updateBallotFieldIfChanged(rowIndex, columnIndex, dataKey[1], e.target.value)}
+					>
+						<option key={0} value={''}>Select Ballot</option>
+						{project && this.props.ballotsByProject[project].map(i => {
+							return (i !== rowData.BallotID? <option key={i} value={i}>{i}</option>: null)
+						})}
+					</select>}
+			</div>
 		)
 	}
 	renderPrevBallot = ({rowIndex, columnIndex, rowData, dataKey}) => {
@@ -306,38 +300,36 @@ class Ballots extends React.Component {
 				onChange={e => this.updateBallotFieldIfChanged(rowIndex, columnIndex, dataKey, e.target.value)}
 			>
 				<option key={0} value={''}>None</option>
-				{this.props.ballotsByProject[project].map(i => {
+				{project && this.props.ballotsByProject[project].map(i => {
 					return (i !== rowData.BallotID? <option key={i} value={i}>{i}</option>: null)
 				})}
 			</select>
 		)
 	}
 	renderResultsSummary = ({rowIndex, rowData, dataKey}) => {
-		var results = rowData.Results;
-		let el = [];
+		var results = rowData[dataKey];
+		var resultsStr = '';
 		if (results && results.Total) {
 			let p = parseFloat(100*results.Approve/(results.Approve+results.Disapprove));
-			let percentStr = isNaN(p)? '': ` (${p.toFixed(1)}%)`;
-			el.push(<span key={el.length}>{`${results.Approve}/${results.Disapprove}/${results.Abstain}` + percentStr}</span>)
-			el.push(<br key={el.length}/>)
-			if (rowData.VotingPoolID) {
-				el.push(<span key={el.length}>{`Invalid Abstain: ${results.InvalidAbstain}`}</span>)
-				el.push(<br key={el.length}/>)
-				el.push(<span key={el.length}>{`Invalid Vote: ${results.InvalidVote}`}</span>)
-				el.push(<br key={el.length}/>)
+			resultsStr = `${results.Approve}/${results.Disapprove}/${results.Abstain}`
+			if (!isNaN(p)) {
+				resultsStr += ` (${p.toFixed(1)}%)`
 			}
-			el.push(<button key={el.length} onClick={(e) => {return this.deleteResultsClick(e, rowData)}}>Delete</button>)
 		}
-		else {
-			el.push(<button key={el.length} onClick={(e) => {return this.importResultsClick(e, rowData)}}>Import</button>)
-			el.push(<button key={el.length} onClick={(e) => {return this.uploadResultsClick(e, rowData)}}>Upload</button>)
-		}
-		return <Link to={`/Results/${rowData.BallotID}`}>{el}</Link>
+		return (
+			<div>
+				<Link to={`/Results/${rowData.BallotID}`}>
+					<span>{resultsStr}</span>
+				</Link>
+				<button onClick={e => this.deleteResultsClick(e, rowData)}>Delete</button>
+				<button onClick={e => this.importResultsClick(e, rowData)}>Import</button>
+			</div>
+		)
 	}
 
 	renderCommentsSummary = ({rowIndex, rowData, dataKey}) => {
 		var comments = rowData.Comments;
-		if (comments.Count > 0) {
+		if (comments && comments.Count > 0) {
 			return (
 				<div>
 					<Link to={`/Comments/${rowData.BallotID}`}>{comments.CommentIDMin}-{comments.CommentIDMax} ({comments.Count})</Link><br />
@@ -349,15 +341,14 @@ class Ballots extends React.Component {
 			return (
 				<div>
 					<button onClick={(e) => {return this.importCommentsClick(e, rowData)}}>Import</button>
-					<button onClick={(e) => {return this.uploadCommentsClick(e, rowData)}}>Upload</button>
 				</div>
 			)
 		}
 	}
 
-
 	refresh = () => {
 		this.props.dispatch(getBallots())
+		this.rowHeightCache.clearAll()
 	}
 
 	renderSortLabel = (props) => {
@@ -371,7 +362,7 @@ class Ballots extends React.Component {
 				style={{cursor: 'pointer', userSelect: 'none', ...style}}
 			>
 				{label}
-				<SortIndicator sortDirection={sortDirection} />
+				{sortDirection === 'NONE' || <i className={sortDirection === 'ASC'? "fa fa-sort-alpha-down": "fa fa-sort-alpha-up"} />}
 			</span>
 		);
 	}
@@ -439,10 +430,6 @@ class Ballots extends React.Component {
 	}
 
 	renderTable = () => {
-		if (this.lastRenderedWidth !== this.state.width) {
-			this.lastRenderedWidth = this.state.width
-			this.rowHeightCache.clearAll()
-		}
 		return (
 			<Table
 				className={styles.Table}
@@ -474,27 +461,23 @@ class Ballots extends React.Component {
 
 	render() {
 		return (
-			<div id='Ballots' style={{height: '100%'}}>
-			{this.state.showEpolls?
-				(<Epolls close={() => this.setState({showEpolls: false})} />):
-				(<div>
-					<div id='top-row'>
-						<button disabled={this.props.getBallots} onClick={this.refresh}>Refresh</button>
-						<button>Add</button>
-						<button onClick={this.handleRemoveSelected}>Remove Selected</button>
-						<button onClick={this.showEpolls}>Import ePoll</button>
-					</div>
-					{this.renderTable()}
-					<UploadModal
-						ballotId={this.state.uploadBallotID}
-						uploadType={this.state.uploadType}
-						isOpen={this.state.showUpload}
-						close={() => this.setState({showUpload: false})}
-						dispatch={this.props.dispatch}
-						appElement={document.querySelector('#Ballots')}
-					/>
-				</div>)
-			}
+			<div id='Ballots'>
+				<div id='top-row'>
+					<button disabled={this.props.getBallots} onClick={this.refresh}>Refresh</button>
+					<button>Add</button>
+					<button onClick={this.handleRemoveSelected}>Remove Selected</button>
+					<button onClick={this.showEpolls}>Import ePoll</button>
+				</div>
+				{this.renderTable()}
+				<ImportModal
+					ballotId={this.state.importBallot.BallotID}
+					epollNum={this.state.importBallot.EpollNum}
+					importType={this.state.importType}
+					isOpen={this.state.showImport}
+					close={() => this.setState({showImport: false})}
+					dispatch={this.props.dispatch}
+					appElement={document.querySelector('#Ballots')}
+				/>
 			</div>
 		)
 	}

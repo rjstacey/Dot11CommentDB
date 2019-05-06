@@ -1,5 +1,20 @@
+'use strict';
+
 var csvParse = require('csv-parse/lib/sync');
 var xlsx = require('xlsx');
+
+/*
+function stringToHex(s) {
+	var hex, i;
+
+	var result = "";
+	for (i=0; i<s.length; i++) {
+    	hex = s.charCodeAt(i).toString(16);
+    	result += ("000"+hex).slice(-4) + ' ';
+    }
+	return result
+}
+*/
 
 function parsePollComments(startCommentId, pollCommentsCsv) {
 	var cid = startCommentId;
@@ -10,7 +25,7 @@ function parsePollComments(startCommentId, pollCommentsCsv) {
 	}
 
 	// Row 0 is the header
-	expected = ['Index', 'Date', 'SA PIN', 'Name', 'Comment', 'Category', 'Page Number', 'Subclause', 'Line Number', 'Proposed Change', 'Must Be Satisfied'];
+	var expected = ['Index', 'Date', 'SA PIN', 'Name', 'Comment', 'Category', 'Page Number', 'Subclause', 'Line Number', 'Proposed Change', 'Must Be Satisfied'];
 	if (expected.reduce((r, v, i) => v !== p[0][i], false)) {
 		throw `Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`
 	}
@@ -19,17 +34,127 @@ function parsePollComments(startCommentId, pollCommentsCsv) {
 	return p.map(c => {
 		var e = {
 			CommentID: cid++,
-			SAPIN: c[2],
-			Name: c[3],
+			C_Index: parseInt(c[0]),
+			CommenterSAPIN: c[2],
+			CommenterName: c[3],
 			Comment: c[4],
-			Page: parseFloat(c[6]) + parseFloat(c[8])/100,
 			Category: c[5]? c[5].charAt(0): '',   // First letter only (G, T or E)
+			C_Page: c[6],
+			C_Clause: c[7],
+			C_Line: c[8],
+			Page: parseFloat(c[6]) + parseFloat(c[8])/100,
 			Clause: c[7],
 			ProposedChange: c[9],
 			MustSatisfy: !!(c[10] === '1')
 		};
 		if (isNaN(e.Page)) {e.Page = 0}
 		return e;
+	})
+}
+
+function parseResolution(cs) {
+	// Does the comment have an assignee, resolution, submission?
+	if (cs['Resn Status'] || cs['Resolution'] || cs['Submission'] || cs['Assignee']) {
+		var n = {
+			CommentID: cs['CID'],
+			ResnStatus: cs['Resn Status'] || '',
+			Resolution: cs['Resolution'] || '',
+			Submission: cs['Submission'] || '',
+			ApprovalRef: cs['Motion Number'] || '',
+			AssigneeName: cs['Assignee'] || '',
+			EditStatus: cs['Edit Status'] || '',
+			EditNotes: cs['Edit Notes'] || '',
+			EditInDraft: cs['Edited in Draft'] || ''
+		}
+		return n
+	}
+	return null
+}
+
+function parseCommentsSheet(commentsSheet, comments, updateComments, newComments, newResolutions) {
+
+	var commentsSheetArray = xlsx.utils.sheet_to_json(commentsSheet)
+	if (commentsSheetArray.length === 0) {
+		throw 'Comments worksheet has no rows'
+	}
+
+
+	var highestIndex = 0;
+	comments.forEach(c => {
+
+		// Find the highest comment index in case we need to append new comments
+		if (c.C_Index > highestIndex) {
+			highestIndex = c.C_Index;
+		}
+
+		/* Find entry in comments worksheet that matches current entry.
+		 * If a cell is blank in the worksheet, it will have an undefined entry in the row object.
+		 * For Page and Line numbers convert to integer.
+		 *   Sometimes commenters enter fractional line numbers or fractional page numbers.
+		 * For Comment and Proposed Change compare only basic text.
+		 *   Line endings might differ: database has \n line endings while spreadsheet has \r\n line endings (so remove \r).
+		 *   Unicode characters might differ. */
+		var i = commentsSheetArray.findIndex(cs => 
+				(c.CommenterName == cs['Commenter'] &&
+				 (c.Category === cs['Type of Comment']) &&
+				 (cs['Clause Number(C)'] === undefined || c.C_Clause.substring(0, cs['Clause Number(C)'].length) === cs['Clause Number(C)']) &&
+				 (cs['Page(C)'] === undefined || parseInt(c.C_Page) === parseInt(cs['Page(C)'])) &&
+				 (cs['Line(C)'] === undefined || parseInt(c.C_Line) === parseInt(cs['Line(C)'])) &&
+				 (cs['Comment'] === undefined || c.Comment.replace(/[^A-Za-z0-9-]|\r/gm, '') == cs['Comment'].replace(/[^A-Za-z0-9-]|\r/gm, '')) &&
+				 (cs['Proposed Change'] === undefined || c.ProposedChange.replace(/[^A-Za-z0-9-]|\r/gm, '') == cs['Proposed Change'].replace(/[^A-Za-z0-9-]|\r/gm, ''))
+				))
+
+		if (i >= 0) {
+			var cs = commentsSheetArray[i];
+			commentsSheetArray.splice(i, 1) // remove entry
+
+			// See if any of the comment fields need updating
+			var u = {PrevCommentID: c.CommentID};
+			if (c.CommentID !== cs['CID']) {
+				u.CommentID = cs['CID']
+			}
+			if (c.CommentGroup !== cs['Comment Group']) {
+				u.CommentGroup = cs['Comment Group']
+			}
+			if (cs['Clause'] && c.Clause !== cs['Clause']) {
+				c.Clause = cs['Clause']
+			}
+			var page = parseFloat(cs['Page'])
+			if (page && c.Page != page) {
+				c.Page = page
+			}
+			//console.log('match ', u)
+			if (Object.keys(u).length > 1) {
+				updateComments.push(u)
+			}
+
+			var n = parseResolution(cs)
+			if (n) {
+				newResolutions.push(n)
+			}
+		}
+	})
+
+	// The remaining entries in commentsSheetArray did not match an existing comment
+	commentsSheetArray.forEach(cs => {
+		newComments.push({
+			C_Index: ++highestIndex,
+			CommentID: cs['CID'],
+			CommenterName: cs['Commenter'],
+			Category: cs['Type of Comment'],
+			C_Page: parseInt(cs['Page(C)']).toString(),
+			C_Line: parseInt(cs['Line(C)']).toString(),
+			Page: parseFloat(cs['Page(C)']) + parseFloat(cs['Line(C)'])/100,
+			C_Clause: cs['Clause Number(C)'] || '',
+			Clause: cs['Clause'] || '',
+			Comment: cs['Comment'] || '',
+			ProposedChange: cs['Proposed Change'] || '',
+			CommentGroup: cs['Comment Group'] || '',
+		});
+		var n = parseResolution(cs);
+		if (n) {
+			newResolutions.push(n)
+		}
 	})
 }
 
@@ -45,15 +170,18 @@ module.exports = function (db, rp) {
 		}
 
 		const SQL = 
-			'SELECT c.*, r.Vote FROM comments AS c LEFT JOIN results AS r ON (c.BallotID = r.BallotID AND c.SAPIN = r.SAPIN) WHERE c.BallotID = ?; ' +
-			'SELECT r.*, u.Name AS AssigneeName FROM resolutions AS r LEFT JOIN users AS u ON (r.Assignee = u.UserID) WHERE BallotID = ?;'
-		console.log(SQL);
-		return db.query2(SQL, [ballotId, ballotId])
+			'SELECT c.*, r.Vote FROM comments AS c LEFT JOIN results AS r ON (c.BallotID = r.BallotID AND c.CommenterSAPIN = r.SAPIN) WHERE c.BallotID = ?; ' +
+			'SELECT r.*, u.Name AS AssigneeName FROM resolutions AS r LEFT JOIN users AS u ON (r.AssigneeSAPIN = u.UserID) WHERE BallotID = ?;'
+		//console.log(SQL);
+		return db.query(SQL, [ballotId, ballotId])
 			.then(results => {
 				// Join the comments and resolutions tables. Each comment has an array of resolutions.
 				var comments = results[0];
 				var resolutions = results[1];
 				comments.forEach(c => {
+					if (c.Vote !== 'Disapprove') {
+						c.MustSatisfy = 0
+					}
 					c.resolutions = [];
 					resolutions.forEach(r => {
 						if (c.BallotID === r.BallotID && c.CommentID === r.CommentID) {
@@ -88,7 +216,7 @@ module.exports = function (db, rp) {
 			delete req.body.resolutions;
 
 			// Need to know what is already present
-			return db.query2('SELECT * FROM resolutions WHERE (BallotID=? AND CommentID=?)', [ballotId, commentId])
+			return db.query('SELECT * FROM resolutions WHERE (BallotID=? AND CommentID=?)', [ballotId, commentId])
 				.then(results => {
 					// Each resolution entry is either an update or an insertion
 					// an update if already present; an insertion if not present
@@ -131,11 +259,11 @@ module.exports = function (db, rp) {
 
 					var query = queries.join(';');
 					console.log(query);
-					return db.query2(query);
+					return db.query(query);
 				})
 		}
 		else if (Object.keys(req.body).length !== 0) {
-			return db.query2("UPDATE comments SET ? WHERE (BallotID=? AND CommentID=?)", [req.body, ballotId, commentId]);
+			return db.query("UPDATE comments SET ? WHERE (BallotID=? AND CommentID=?)", [req.body, ballotId, commentId]);
 		}
 		else {
 			// Nothing to do
@@ -159,7 +287,7 @@ module.exports = function (db, rp) {
 		delete req.body.CommentID;
 		delete req.body.ResolutionID;
 
-		return db.query2("UPDATE resolutions SET ? WHERE (BallotID=? AND CommentID=? AND ResolutionID=?)",
+		return db.query("UPDATE resolutions SET ? WHERE (BallotID=? AND CommentID=? AND ResolutionID=?)",
 			[req.body, ballotId, commentId, resolutionId])
 	}
 
@@ -171,8 +299,20 @@ module.exports = function (db, rp) {
 		    !req.body.hasOwnProperty('ResolutionID')) {
 			return Promise.reject('Missing BallotID, CommentID and/or ResolutionID')
 		}
+		var SQL =
+			db.format('INSERT INTO resolutions SET ?;',
+				[req.body]) +
+			db.format('SELECT r.*, u.Name AS AssigneeName FROM resolutions AS r LEFT JOIN users AS u ON (r.AssigneeSAPIN = u.UserID) WHERE BallotID=? AND CommentID=? AND ResolutionID=?',
+				[req.body.BallotID, req.body.CommentID, req.body.ResolutionID]);
 
-		return db.query2('INSERT INTO resolutions SET ?', [req.body])
+		return db.query(SQL)
+			.then(results => {
+				if (results.length !== 2 || results[1].length !== 1) {
+					throw "Unexpected result"
+				}
+				console.log(results[1][0])
+				return results[1][0];
+			})
 	}
 
 	module.deleteResolution = (req, res, next) => {
@@ -184,7 +324,7 @@ module.exports = function (db, rp) {
 			return Promise.reject('Missing BallotID, CommentID and/or ResolutionID')
 		}
 
-		return db.query2('DELETE FROM resolutions WHERE BallotID=? AND CommentID=? AND ResolutionID=?',
+		return db.query('DELETE FROM resolutions WHERE BallotID=? AND CommentID=? AND ResolutionID=?',
 			[req.body.BallotID, req.body.CommentID, req.body.ResolutionID])
 	}
   
@@ -192,21 +332,20 @@ module.exports = function (db, rp) {
 		console.log(req.body);
 
 		const ballotId = req.body.BallotID;
-		return db.query2('DELETE FROM comments WHERE BallotID=', [ballotId])
+		return db.query('DELETE FROM comments WHERE BallotID=?', [ballotId])
 	}
 
 	module.importComments = function (req, res, next) {
 		console.log(req.body);
 
 		if (!req.body.hasOwnProperty('BallotID') ||
-			!req.body.hasOwnProperty('EpollNum') ||
-			!req.body.hasOwnProperty('StartCID')) {
-			return Promise.reject("Missing parameter. Need BallotID, EpollNum and StartCID.")
+			!req.body.hasOwnProperty('EpollNum')) {
+			return Promise.reject("Missing BallotID and/or EpollNum parameter")
 		}
 
 		const ballotId = req.body.BallotID;
-		const startCommentId = req.body.StartCID || 1;
 		const epollNum = req.body.EpollNum;
+		const startCommentId = req.body.StartCID || 1;
 
 		const sess = req.session;
 
@@ -224,22 +363,28 @@ module.exports = function (db, rp) {
 				}
 
 				var comments = parsePollComments(startCommentId, ieeeRes.body);
-				console.log(comments);
+				//console.log(comments);
 
-				if (comments.length === 0) {
-					console.log('no comments')
-					return {count: 0}
+				var SQL = db.format('DELETE FROM comments WHERE BallotID=?;', [ballotId]);
+				if (comments.length) {
+					SQL += `INSERT INTO comments (BallotID, ${Object.keys(comments[0])}) VALUES`;
+					comments.forEach((c, i) => {
+						SQL += (i > 0? ',': '') + `(${db.escape(ballotId)},${db.escape(Object.values(c))})`;
+					});
+					SQL += ';'
 				}
-
-				var SQL = `INSERT INTO comments (BallotID, ${Object.keys(comments[0])}) VALUES`;
-				comments.forEach((c, i) => {
-					SQL += (i > 0? ',': '') + `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`;
-				});
-				SQL += ";\n";
+				SQL += db.format('SELECT COUNT(*) AS Count, MIN(CommentID) AS CommentIDMin, MAX(CommentID) AS CommentIDMax FROM comments WHERE BallotID=?', [ballotId])
 				//console.log(SQL);
 
-				return db.query2(SQL)
-					.then(result => {return comments.length})
+				return db.query(SQL)
+			})
+			.then(results => {
+				// Two or three results are present
+				var summary = results[results.length-1][0]
+				return {
+					BallotID: ballotId,
+					CommentsSummary: summary
+				}
 			})
 	}
 
@@ -259,22 +404,24 @@ module.exports = function (db, rp) {
 		var comments = parsePollComments(startCommentId, req.file.buffer);
 		//console.log(comments);
 
-		if (comments.length === 0) {
-			console.log('no comments')
-			return {count: 0}
+		var SQL = db.format('DELETE FROM comments WHERE BallotID=?;', [ballotId]);
+		if (comments.length) {
+			SQL += `INSERT INTO comments (BallotID, ${Object.keys(comments[0])}) VALUES`;
+			comments.forEach((c, i) => {
+				SQL += (i > 0? ',': '') + `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`;
+			});
+			SQL += ';'
 		}
-
-		var SQL = `INSERT INTO comments (BallotID, ${Object.keys(comments[0])}) VALUES`;
-		comments.forEach((c, i) => {
-			SQL += (i > 0? ',': '') + `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`;
-		});
-		SQL += ";\n";
+		SQL += db.format('SELECT COUNT(*) AS Count, MIN(CommentID) AS CommentIDMin, MAX(CommentID) AS CommentIDMax FROM comments WHERE BallotID=?', [ballotId])
 		//console.log(SQL);
 
-		return db.query2(SQL)
-			.then(result => {
-				console.log('return comments')
-				return {count: comments.length}
+		return db.query(SQL)
+			.then(results => {
+				var summary = results[results.length-1][0]
+				return {
+					BallotID: ballotId,
+					CommentsSummary: summary
+				}
 			})
 	}
 
@@ -285,18 +432,58 @@ module.exports = function (db, rp) {
 		if (!ballotId) {
 			return Promise.reject('Missing parameter BallotID');
 		}
-		const sess = req.session;
-
-		console.log(req.file)
+		//console.log(req.file)
 		if (!req.file) {
 			return Promise.reject('Missing file');
 		}
 		var workbook = xlsx.read(req.file.buffer, {type: 'buffer'});
-		console.log(workbook.SheetNames)
-		var ws = workbook.Sheets[workbook.SheetNames[0]];
-		var csv = xlsx.utils.sheet_to_csv(ws);
-		var c = csvParse(csv, {columns: true});
-		console.log(c[0])
+		//console.log(workbook.SheetNames)
+		var ws = workbook.Sheets['Comments'];
+
+		var SQL = db.format('SELECT * FROM comments WHERE BallotID=?', [ballotId]);
+		return db.query(SQL)
+			.then(results => {
+				//console.log(results)
+				var updateComments = [];
+				var newComments = [];
+				var newResolutions = [];
+
+				parseCommentsSheet(ws, results, updateComments, newComments, newResolutions);
+				//console.log(comments)
+
+				SQL = db.format('DELETE FROM resolutions WHERE BallotID=?;', [ballotId]);
+				if (updateComments.length) {
+					updateComments.forEach((c, i) => {
+						var cid = c.PrevCommentID;
+						delete c.PrevCommentID;
+						SQL += db.format('UPDATE comments SET ? WHERE BallotID=? AND CommentID=?;', [c, ballotId, cid]);
+					});
+				}
+				if (newComments.length) {
+					SQL += db.format('INSERT INTO comments (BallotID, ??) VALUES ', [Object.keys(newComments[0])]);
+					newComments.forEach((c, i) => {
+						SQL += i? ',': '';
+						SQL += db.format('(?, ?)', [ballotId, Object.values(c)])
+					});
+					SQL += ';'
+				}
+				if (newResolutions.length) {
+					SQL += db.format('INSERT INTO resolutions (BallotID, ??) VALUES ', [Object.keys(newResolutions[0])]);
+					newResolutions.forEach((r, i) => {
+						SQL += i? ',': '';
+						SQL += db.format('(?, ?)', [ballotId, Object.values(r)]);
+					})
+					SQL += ';'
+				}
+				const fs = require('fs');
+				fs.writeFile("sql.txt", SQL, console.log)
+				console.log('updateComments ', updateComments.length, ' newComments ', newComments.length, ' newResolutions ', newResolutions.length)
+
+				return db.query(SQL)
+			})
+			.then(results => {
+				return null
+			})
 	}
 
 	return module;
