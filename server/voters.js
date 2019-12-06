@@ -9,7 +9,7 @@ function parseVoters(votersCsvBuffer) {
 	}
 
 	// Row 0 is the header
-	expected = ['SA PIN', 'LastName', 'FirstName', 'MI', 'Email'];
+	expected = ['SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'];
 	if (expected.reduce((r, v, i) => v !== p[0][i], false)) {
 		throw `Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`
 	}
@@ -21,7 +21,8 @@ function parseVoters(votersCsvBuffer) {
 			LastName: c[1],
 			FirstName: c[2],
 			MI: c[3],
-			Email: c[4]
+			Email: c[4],
+			Status: c[5]
 		}
 	});
 }

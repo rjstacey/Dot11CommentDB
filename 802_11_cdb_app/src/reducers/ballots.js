@@ -76,10 +76,10 @@ const ballots = (state = defaultState, action) => {
 				sortDirection: action.sortDirection,
 				ballotsDataMap: sortData(state.ballotsDataMap, state.ballotsData, action.sortBy, action.sortDirection)
 			}
-		case 'SET_BALLOTS_FILTER':
+		case 'SET_BALLOTS_FILTERS':
 			const filters = {
 				...state.filters, 
-				[action.dataKey]: action.filter
+				...action.filters
 			}
 			return {
 				...state,
@@ -138,33 +138,39 @@ const ballots = (state = defaultState, action) => {
 			}
 
 		case 'UPDATE_BALLOT':
-			ballotsData = state.ballotsData.map(d =>
-				d.BallotID === action.ballot.BallotID? {...d, ...action.ballot}: d
-			);
+			/*ballotsData = state.ballotsData.map(d =>
+				d.BallotID === action.ballotId? {...d, ...action.ballotData}: d
+			);*/
 			return {
 				...state,
 				updateBallot: true,
-				ballotsData: ballotsData,
+				/*ballotsData: ballotsData,
 				ballotsDataMap: sortData(filterData(ballotsData, state.filters), ballotsData, state.sortBy, state.sortDirection),
 				ballotsByProject: getBallotsByProject(ballotsData),
-				projectList: getProjectsList(ballotsData)
+				projectList: getProjectsList(ballotsData)*/
 			}
 		case 'UPDATE_BALLOT_SUCCESS':
 			ballotsData = state.ballotsData.map(d =>
-				d.BallotID === action.ballot.BallotID? {...d, ...action.ballot}: d
+				d.BallotID === action.ballotData.BallotID? {...d, ...action.ballotData}: d
 			);
 			return {
 				...state,
 				updateBallot: false,
 				ballotsData: ballotsData,
 				ballotsDataMap: sortData(filterData(ballotsData, state.filters), ballotsData, state.sortBy, state.sortDirection),
+				ballotsByProject: getBallotsByProject(ballotsData),
 				projectList: getProjectsList(ballotsData)
 			}
 		case 'UPDATE_BALLOT_FAILURE':
+			ballotsData = state.ballotsData.map(d =>
+				d.BallotID === action.ballotId? Object.assign({}, d): d
+			);
+			ballotsData = state.ballotsData.slice(); // touch ballotsData so that display is updated
 			errorMsgs = state.errorMsgs.slice();
 			errorMsgs.push(action.errMsg);
 			return {
 				...state,
+				ballotsData: ballotsData,
 				updateBallot: false,
 				errorMsgs: errorMsgs
 			}

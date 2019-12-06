@@ -1,11 +1,10 @@
 
 var axios = require('axios');
 
-export function setVotingPoolFilter(dataKey, filter) {
+export function setVotingPoolFilters(filters) {
 	return {
-		type: 'SET_VOTING_POOL_FILTER',
-		dataKey,
-		filter
+		type: 'SET_VOTING_POOL_FILTERS',
+		filters
 	}
 
 }
@@ -139,11 +138,10 @@ export function deleteVotingPool(votingPoolId) {
 }
 
 
-export function setVotersFilter(dataKey, filter) {
+export function setVotersFilters(filters) {
 	return {
 		type: 'SET_VOTERS_FILTER',
-		dataKey,
-		filter
+		filters
 	}
 
 }

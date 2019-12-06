@@ -27,8 +27,8 @@ const comments = (state = defaultState, action) => {
 				sortDirection: action.sortDirection,
 				commentDataMap: sortData(state.commentDataMap, state.commentData, action.sortBy, action.sortDirection)
 			}
-		case 'SET_COMMENTS_FILTER':
-			const filters = {...state.filters, [action.dataKey]: action.filter}
+		case 'SET_COMMENTS_FILTERS':
+			const filters = {...state.filters, ...action.filters};
 			return {
 				...state,
 				filters,
@@ -114,7 +114,7 @@ const comments = (state = defaultState, action) => {
 				...state,
 				updateComment: true,
 				commentData: newCommentData,
-				commentDataMap: sortData(filterData(action.comments, state.filters), action.comments, state.sortBy, state.sortDirection)
+				commentDataMap: sortData(filterData(newCommentData, state.filters), newCommentData, state.sortBy, state.sortDirection)
 			}
 		case 'UPDATE_COMMENT_SUCCESS':
 			return {...state, updateComment: false}
@@ -148,7 +148,7 @@ const comments = (state = defaultState, action) => {
 				...state,
 				updateComment: false,
 				commentData: newCommentData,
-				commentDataMap: sortData(filterData(action.comments, state.filters), action.comments, state.sortBy, state.sortDirection)
+				commentDataMap: sortData(filterData(newCommentData, state.filters), newCommentData, state.sortBy, state.sortDirection)
 			}
 		case 'UPDATE_RESOLUTION_FAILURE':
 			errorMsgs = state.errorMsgs.slice();

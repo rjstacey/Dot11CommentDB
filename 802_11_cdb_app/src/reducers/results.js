@@ -6,6 +6,7 @@ const defaultState = {
 	sortDirection: {},
 	ballotId: '',
 	votingPoolID: '',
+	votingPoolSize: 0,
 	ballot: {},
 	resultsDataValid: false,
 	resultsData: [],
@@ -26,10 +27,10 @@ const results = (state = defaultState, action) => {
 				sortDirection: action.sortDirection,
 				resultsDataMap: sortData(state.resultsDataMap, state.resultsData, action.sortBy, action.sortDirection)
 			}
-		case 'SET_RESULTS_FILTER':
+		case 'SET_RESULTS_FILTERS':
 			const filters = {
-				...state.filters, 
-				[action.dataKey]: action.filter
+				...state.filters,
+				...action.filters
 			}
 			return {
 				...state,

@@ -9,11 +9,10 @@ export function setProject(project) {
 	}
 }
 
-export function setCommentsFilter(dataKey, filter) {
+export function setCommentsFilters(filters) {
 	return {
-		type: 'SET_COMMENTS_FILTER',
-		dataKey,
-		filter
+		type: 'SET_COMMENTS_FILTERS',
+		filters
 	}
 
 }

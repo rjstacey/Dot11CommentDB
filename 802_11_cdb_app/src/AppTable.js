@@ -1,311 +1,28 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-modal';
 import update from 'immutability-helper';
 import {connect} from 'react-redux';
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
 import Draggable from 'react-draggable';
-import LinesEllipsis from 'react-lines-ellipsis';
-import BallotSelector from './BallotSelector';
-import ColumnSelector from './ColumnSelector';
-import CommentDetail from './CommentDetail';
-import {sortClick, allSelected, toggleVisible, filterValidate} from './filter';
-import {setCommentsSort, setCommentsFilters, getComments, uploadResolutions} from './actions/comments';
-import {setBallotId} from './actions/ballots';
+import LinesEllipsis from 'react-lines-ellipsis'
+import BallotSelector from './BallotSelector'
+import CommentDetail from './CommentDetail'
+import {sortClick, allSelected, toggleVisible} from './filter'
+import {setCommentsSort, setCommentsFilter, getComments, uploadResolutions} from './actions/comments'
+import {setBallotId} from './actions/ballots'
 import styles from './AppTable.css';
 
 
-function html_preserve_newline(text) {
-	return typeof text === 'string'?
-		text.split('\n').map((line, i, arr) => {
-			const lline = <span key={i}>{line}</span>;
-			if (i === arr.length - 1) {
-				return lline;
-			} else {
-				return [lline, <br key={i + 'br'} />];
-		}
-	}):
-	text;
-}
-
-
-/**
- * @function
- * @description This function is used to determine the text node and it's index within
- * a "root" DOM element.
- *
- * @param  {DOMElement} rootEl The root
- * @param  {Integer} index     The index within the root element of which you want to find the text node
- * @return {Object}            An object that contains the text node, and the index within that text node
- */
-function getTextNodeAtPosition(rootEl, index) {
-    const treeWalker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, elem => {
-        if (index > elem.textContent.length) {
-            index -= elem.textContent.length;
-            return NodeFilter.FILTER_REJECT;
-        }
-        return NodeFilter.FILTER_ACCEPT;
-    });
-    const node = treeWalker.nextNode();
-
-    return {
-        node: node? node: rootEl,
-        position: node? index: 0,
-    };
-};
-
-
-class ContentEditable extends React.Component {
-	constructor(props) {
-		super(props)
-		this.ref = props.innerRef
-	}
-    shouldComponentUpdate = (nextProps) => {
-        return nextProps.html !== this.ref.current.innerHTML;
-    }
-	componentWillUpdate() {
-		this.selection = window.getSelection();
-		if (this.selection && this.selection.rangeCount) {
-			const container = this.ref.current
-			const range = this.selection.getRangeAt(0);
-			const clone = range.cloneRange();
-
-			// find the range start index
-			clone.selectNodeContents(container);
-			clone.setStart(container, 0);
-			clone.setEnd(range.startContainer, range.startOffset);
-			this.startIndex = clone.toString().length;
-
-			// find the range end index
-			clone.selectNodeContents(container);
-			clone.setStart(container, 0);
-			clone.setEnd(range.endContainer, range.endOffset);
-			this.endIndex = clone.toString().length;
-		}
-	}
-    componentDidUpdate() {
-    	if (this.selection && this.selection.rangeCount) { 
-	    	const container = this.ref.current
-			const start = getTextNodeAtPosition(container, this.startIndex);
-			const end = getTextNodeAtPosition(container, this.endIndex);
-			const newRange = new Range();
-
-			newRange.setStart(start.node, start.position);
-			newRange.setEnd(end.node, end.position);
-
-			this.selection.removeAllRanges();
-			this.selection.addRange(newRange);
-			container.focus();
-		}
-    }
-    emitChange = () => {
-        var html = this.ref.current.innerHTML;
-        if (this.props.onChange && html !== this.lastHtml) {
-            this.props.onChange({
-                target: {
-                    value: this.ref.current.innerText
-                }
-            });
-        }
-        this.lastHtml = html;
-    }
-    render() {
-        return <div
-        	className={this.props.className}
-        	ref={this.ref}
-            onInput={this.emitChange}
-            onBlur={this.emitChange}
-            contentEditable
-            dangerouslySetInnerHTML={{__html: this.props.html}} />;
-    }
-}
-
-class SelectCommentsModal extends React.PureComponent {
-
-	static propTypes = {
-		isOpen: PropTypes.bool.isRequired,
-		close: PropTypes.func.isRequired,
-		setSelected: PropTypes.func.isRequired,
-		selected: PropTypes.array.isRequired,
-		commentData: PropTypes.array.isRequired,
-		commentDataMap: PropTypes.array.isRequired,
-		appElement: PropTypes.any
-	}
-
-	constructor(props) {
-		super(props)
-		this.state = {
-			isOpen: false,
-			list: ''
-		}
-		this.listRef = React.createRef()
-	}
-
-	static getDerivedStateFromProps(props, state) {
-		var newState = {}
-		if (state.isOpen !== props.isOpen) {
-			const {commentData} = props
-			const cidValid = cid => commentData.filter(row => row.CommentID === cid).length > 0
-			const list = props.selected.map(cid => cidValid(cid)? cid.toString(): '<span style="color: red">' + cid + '</span>').join(', ')
-			newState = {
-				isOpen: props.isOpen,
-				list: list
-			}
-		}
-		return newState
-	}
-	changeList = (e) => {
-		const {commentData} = this.props
-		const cidValid = cid => commentData.filter(row => row.CommentID === cid).length > 0
-		const listArr = e.target.value.match(/\d+[^\d]*/g)
-		if (listArr) {
-			var list = ''
-			listArr.forEach(cidStr => {
-				const m = cidStr.match(/(\d+)(.*)/)		// split number from separator
-				const cid = m[1]
-				const sep = m[2]
-				if (cidValid(parseInt(cid, 10))) {
-					list += cid + sep
-				}
-				else {
-					list += '<span style="color: red">' + cid + '</span>' + sep
-				}
-			})
-			this.setState({list})
-		}
-	}
-	selectShown = () => {
-		const {commentData, commentDataMap} = this.props
-		const list = commentDataMap.map(i => commentData[i].CommentID).join(', ')
-		this.setState({list})
-	}
-	clear = () => {
-		this.setState({list: ''})
-	}
-	submit = () => {
-		//const listStr = this.state.list.replace(/<span[^>]*>|<\/span>/g, '')	// strip out <span> and </span>
-		const listStr = this.listRef.current.innerText
-		const listArr = listStr.match(/\d+/g)	// split out numbers
-		const cids = listArr? listArr.map(cid => parseInt(cid, 10)): []
-		this.props.setSelected(cids)
-		this.props.close()
-	}
-	render() {
-		return (
-			<Modal
-				className={styles.SelectCommentsContent}
-				overlayClassName={styles.SelectCommentsOverlay}
-				isOpen={this.props.isOpen}
-				appElement={this.props.appElement}
-			>
-				<div>
-					<button onClick={this.selectShown}>Select Filtered</button>
-					<button onClick={this.clear}>Clear</button>
-					<p>Enter a list of CIDs:</p>
-					<ContentEditable
-						className={styles.ModalDialog}
-						innerRef={this.listRef}
-						html={this.state.list}
-						onChange={this.changeList}
-					/>
-					<br />
-					<button onClick={this.submit}>OK</button>
-					<button onClick={this.submit}>Edit Selected</button>
-					<button onClick={this.props.close}>Cancel</button>
-				</div>
-				<div className={styles.ModalArrow}></div>
-			</Modal>
-		)
-	}
-}
-
-class ImportModal extends React.PureComponent {
-
-	static propTypes = {
-		ballotId: PropTypes.string.isRequired,
-		isOpen: PropTypes.bool.isRequired,
-		close: PropTypes.func.isRequired,
-		appElement: PropTypes.any
-	}
-
-	constructor(props) {
-		super(props)
-		this.fileInputRef = React.createRef();
-	}
-	submit = () => {
-		this.props.dispatch(uploadResolutions(this.props.ballotId, this.fileInputRef.current.files[0]))
-		this.props.close()
-	}
-	render() {
-		return (
-			<Modal
-				className='ModalContent'
-				overlayClassName='ModalOverlay'
-				isOpen={this.props.isOpen}
-				appElement={this.props.appElement}
-			>
-				<p>Import resolutions for {this.props.ballotId}. Current resolutions (if any) will be deleted.</p>
-				<label>
-				From file&nbsp;&nbsp;
-					<input
-						type='file'
-						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-						ref={this.fileInputRef}
-					/>
-				</label>
-				<br />
-				<button onClick={this.submit}>OK</button>
-				<button onClick={this.props.close}>Cancel</button>
-			</Modal>
-		)
-	}
-}
-
-class Comments extends React.Component {
+class AppTable extends React.PureComponent {
 	constructor(props) {
 
 		super(props);
 
-		this.columns = [
-			{dataKey: '', label: '',
-				width: 40, flexGrow: 0, flexShrink: 0,
-				headerRenderer: this.renderHeaderCellCheckbox,
-				cellRenderer: this.renderDataCellCheckbox},
-			{dataKey: 'CommentID', label: 'CID',
-				width: 60, flexGrow: 0, flexShrink: 0},
-			{dataKey: 'CommenterName', label: 'Commenter',
-				width: 100, flexGrow: 0, flexShrink: 0},
-			{dataKey: 'MustSatisfy', label: 'MS',
-				width: 36, flexGrow: 0, flexShrink: 0,
-				cellRenderer: this.renderDataCellCheck},
-			{dataKey: 'Category', label: 'Cat',
-				width: 36, flexGrow: 0, flexShrink: 0},
-			{dataKey: 'Clause', label: 'Clause',
-				width: 100, flexGrow: 0, flexShrink: 0},
-			{dataKey: 'Page', label: 'Page',
-				width: 80, flexGrow: 0, flexShrink: 0},
-			{dataKey: 'Comment', label: 'Comment',
-				width: 400, flexGrow: 1, flexShrink: 1}, 
-			{dataKey: 'ProposedChange', label: 'Proposed Change',
-				width: 400, flexGrow: 1, flexShrink: 1},
-			{dataKey: 'Assignee', label: 'Assignee',
-				width: 150, flexGrow: 1, flexShrink: 1,
-				cellRenderer: this.renderDataCellAssignee},
-			{dataKey: 'Resolution', label: 'Resolution',
-				width: 400, flexGrow: 1, flexShrink: 1,
-				cellRenderer: this.renderDataCellResolution},
-			{dataKey: 'Editing', label: 'Editing',
-				width: 300, flexGrow: 1, flexShrink: 1,
-				cellRenderer: this.renderDataCellEditing,
-				isLast: true}
-		];
 
 		// List of filterable columns
     	const filterable = ['CommentID', 'CommenterName', 'MustSatisfy', 'Category', 'Clause', 'Page', 'Comment', 'ProposedChange', 'Assignee'];
 		if (Object.keys(props.filters).length === 0) {
-			var filters = {};
-			filterable.forEach(dataKey => {filters[dataKey] = ''});
-			this.props.dispatch(setCommentsFilters(filters));
+			filterable.forEach(dataKey => this.props.dispatch(setCommentsFilter(dataKey, '')))
 		}
 		this.sortable = filterable;
 
@@ -321,8 +38,6 @@ class Comments extends React.Component {
 		this.state = {
 			editIndex: 0,
 			showCommentDetail: false,
-			showImport: false,
-			showSelectComments: false,
 
 			selectedComments: [],
 			expandedComments: [],
@@ -398,15 +113,6 @@ class Comments extends React.Component {
 		return this.state.columnVisible[dataKey]
 	}
 
-	ballotSelected = (ballotId) => {
-		// Redirect to results page with selected ballot
-		this.props.history.push(`/Comments/${ballotId}`)
-		if (ballotId) {
-			this.props.dispatch(getComments(ballotId));
-			this.rowHeightCache.clearAll()
-		}
-	}
-
 	sortChange = (event, dataKey) => {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, this.props.sortBy, this.props.sortDirection);
 		this.props.dispatch(setCommentsSort(sortBy, sortDirection));
@@ -414,8 +120,7 @@ class Comments extends React.Component {
 	}
 
 	filterChange = (event, dataKey) => {
-		var filter = filterValidate(dataKey, event.target.value)
-		this.props.dispatch(setCommentsFilters({[dataKey]: filter}));
+		this.props.dispatch(setCommentsFilter(dataKey, event.target.value));
 		this.rowHeightCache.clearAll()
 	}
 
@@ -427,36 +132,27 @@ class Comments extends React.Component {
 		const {selectedComments, expandedComments} = this.state;
 		const {commentDataMap, commentData} = this.props;
 		const checked = allSelected(selectedComments, commentDataMap, commentData, 'CommentID');
-		const indeterminate = !checked && selectedComments.length > 0
 		const expanded = allSelected(expandedComments, commentDataMap, commentData, 'CommentID');
 		return (
 			<div>
-				<div>{commentDataMap.length}</div>
 				<input
-					className={styles.checkbox}
 					type="checkbox"
 					title="Select All"
 					checked={checked}
-					ref={el => el && (el.indeterminate = indeterminate)}
 					onChange={e => {
-						this.setState({showSelectComments: true})
-						//this.setState({selectedComments: toggleVisible(selectedComments, commentDataMap, commentData, 'CommentID')})
+						this.setState({selectedComments: toggleVisible(selectedComments, commentDataMap, commentData, 'CommentID')})
 					}}
 				/>
-				{/*<span
+				<span
 					style={{cursor: 'pointer'}}
 					title="Expand All"
-					className={expanded? "fa fa-angle-double-down": "fa fa-angle-double-right"}*/}
-				<input
-					className={styles.doubleExpandable}
-					type="checkbox"
-					title="Expand All"
-					checked={expanded}
-					onChange={e => {
+					className={expanded? "fa fa-angle-double-down": "fa fa-angle-double-right"}
+					onClick={e => {
 						this.setState({expandedComments: toggleVisible(expandedComments, commentDataMap, commentData, 'CommentID')})
 						this.clearAllCachedRowHeight()
 					}}
 				/>
+				<div>{commentDataMap.length}</div>
 			</div>
 		)
 	}
@@ -465,9 +161,8 @@ class Comments extends React.Component {
 		const commentId = rowData.CommentID;
 		const expanded = this.state.expandedComments.includes(commentId);
 		return (
-			<React.Fragment>
+			<div>
 				<input
-					className={styles.checkbox}
 					type="checkbox"
 					title="Select Row"
 					checked={this.state.selectedComments.indexOf(commentId) >= 0}
@@ -479,16 +174,11 @@ class Comments extends React.Component {
 						})
 					}}
 				/>
-				{/*<span
+				<span
 					style={{cursor: 'pointer'}}
 					title="Expand Row"
-					className={expanded? "fa fa-angle-down": "fa fa-angle-right"}*/}
-				<input
-					className={styles.expandable}
-					type="checkbox"
-					title="Expand Row"
-					checked={expanded}
-					onChange={e => {
+					className={expanded? "fa fa-angle-down": "fa fa-angle-right"}
+					onClick={e => {
 						let i = this.state.expandedComments.indexOf(commentId);
 						this.setState({
 							expandedComments: update(this.state.expandedComments, (i > -1)? {$splice: [[i, 1]]}: {$push: [commentId]})
@@ -496,15 +186,8 @@ class Comments extends React.Component {
 						this.clearCachedRowHeight(rowIndex)
 					}}
 				/>
-			</React.Fragment>
+			</div>
         );
-	}
-
-	renderDataCellCheck = ({rowIndex, rowData, dataKey}) => {
-		/*return (
-			<span className={rowData[dataKey]? "fas fa-check": ""} />
-		)*/
-		return rowData[dataKey]? '\u2714': ''
 	}
 
 	renderMultiline = ({rowIndex, rowData, dataKey, columnIndex, parent}) => {
@@ -548,18 +231,13 @@ class Comments extends React.Component {
 	}
 
 	renderFilter = ({dataKey}) => {
-		var filter = this.props.filters[dataKey]
-		var classNames = styles.headerFilt
-		if (filter && !filter.valid) {
-			classNames += ' ' + styles.headerFiltInvalid
-		}
 		return (
 			<input
-				type='search'
-				className={classNames}
+				type='text'
+				className={styles.headerFilt}
 				placeholder='Filter'
 				onChange={e => {this.filterChange(e, dataKey)}}
-				value={filter.filtStr}
+				value={this.props.filters[dataKey]}
 			/>
 		)
 	}
@@ -611,10 +289,6 @@ class Comments extends React.Component {
 	renderMeasuredCell(props) {
 		const {rowIndex, rowData, dataKey, columnIndex, columnData, parent} = props;
 		const expanded = this.state.expandedComments.includes(rowData.CommentID);
-		var cell = columnData.cellRenderer? columnData.cellRenderer(props): <div>{html_preserve_newline(rowData[dataKey])}</div>;
-		if (!cell) {
-			cell = <div />
-		}
 		if (expanded) {
 			return (
 				<CellMeasurer
@@ -624,13 +298,13 @@ class Comments extends React.Component {
 					parent={parent}
 					key={dataKey}
 				>
-					{cell}
+					{columnData.cellRenderer? columnData.cellRenderer(props): <div>{html_preserve_newline(rowData[dataKey])}</div>}
 				</CellMeasurer>
 			)
 		}
 		else {
 			this.rowHeightCache.set(rowIndex, columnIndex, undefined, 0); // force to minHeight
-			return cell;
+			return columnData.cellRenderer? columnData.cellRenderer(props): <div>{html_preserve_newline(rowData[dataKey])}</div>;
 		}
 	}
 
@@ -738,7 +412,6 @@ class Comments extends React.Component {
 				<div id='top-row'>
         			<BallotSelector onBallotSelected={this.ballotSelected} />
         			<button onClick={e => this.setState({showImport: true})}>Upload Resolutions</button>
-        			<button onClick={e => this.setState({showSelectComments: true})}>Select</button>
         			<ColumnSelector list={this.columns} toggleItem={this.toggleColumnVisible} isChecked={this.isColumnVisible}/>
 				</div>
 
@@ -757,15 +430,6 @@ class Comments extends React.Component {
 					isOpen={this.state.showImport}
 					close={() => this.setState({showImport: false})}
 					dispatch={this.props.dispatch}
-					appElement={document.querySelector('#Comments')}
-				/>
-				<SelectCommentsModal
-					isOpen={this.state.showSelectComments}
-					close={() => this.setState({showSelectComments: false})}
-					setSelected={cids => this.setState({selectedComments: cids})}
-					selected={this.state.selectedComments}
-					commentData={this.props.commentData}
-					commentDataMap={this.props.commentDataMap}
 					appElement={document.querySelector('#Comments')}
 				/>
 			</div>

@@ -122,7 +122,7 @@ app.get('/ballots', (req, res, next) => {
 	ballots.getBallots(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
 });
-app.put('/ballots', (req, res, next) => {
+app.put('/ballot/:ballotId', (req, res, next) => {
 	ballots.updateBallot(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
 });
@@ -205,6 +205,10 @@ app.post('/results/import', (req, res, next) => {
 app.post('/results/upload', upload.single('ResultsFile'), (req, res, next) => {
 	results.uploadResults(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
+});
+app.get('/results/export', (req, res, next) => {
+	results.exportResults(req, res, next)
+		.catch(err => resErr(res, err))
 });
 
 /*

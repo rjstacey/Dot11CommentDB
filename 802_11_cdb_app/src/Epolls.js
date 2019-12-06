@@ -2,8 +2,9 @@ import React from 'react';
 import Modal from 'react-modal';
 import {connect} from 'react-redux';
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
-import {sortClick} from './filter'
-import {setEpollsSort, setEpollsFilter, getEpolls} from './actions/epolls';
+import Draggable from 'react-draggable';
+import {sortClick, filterValidate} from './filter'
+import {setEpollsSort, setEpollsFilters, getEpolls} from './actions/epolls';
 import {addBallot} from './actions/ballots';
 import './Epolls.css'
 import styles from './AppTable.css'
@@ -13,9 +14,6 @@ class Epolls extends React.Component {
 		super(props)
 
 		this.columns = [
-			{dataKey: 'Import',    width: 100, label: '',
-				sortable: false,
-				cellRenderer: this.renderImport},
 			{dataKey: 'EpollNum',  width: 100, label: 'ePoll',
 				cellRenderer: this.renderText},
 			{dataKey: 'BallotID',  width: 200, label: 'ePoll Name',
@@ -28,7 +26,13 @@ class Epolls extends React.Component {
 				cellRenderer: this.renderDate},
 			{dataKey: 'End',       width: 100, label: 'End',
 				cellRenderer: this.renderDate},
-			{dataKey: 'Votes',     width: 100, label: 'Result'},
+			{dataKey: 'Votes',     width: 100, label: 'Result',
+				cellRenderer: this.renderText},
+			{dataKey: '', label: '',
+				width: 200,
+				headerRenderer: this.renderHeaderActions,
+				cellRenderer: this.renderActions,
+				isLast: true}
 		];
 
 		this.state = {
@@ -42,9 +46,9 @@ class Epolls extends React.Component {
 		// List of filterable columns
 		const filterable = ['EpollNum', 'BallotID', 'Document', 'Topic'];
 		if (Object.keys(props.filters).length === 0) {
-			filterable.forEach(dataKey => {
-				this.props.dispatch(setEpollsFilter(dataKey, ''));
-			});
+			var filters = {};
+			filterable.forEach(dataKey => {filters[dataKey] = ''});
+			this.props.dispatch(setEpollsFilters(filters));
 		}
 		this.sortable = ['EpollNum', 'BallotID', 'Document', 'Topic', 'Start', 'End'];
 
@@ -87,6 +91,12 @@ class Epolls extends React.Component {
 		this.setState({height, width})
 	}
 
+	resizeColumn = ({dataKey, deltaX}) => {
+		var i = this.columns.findIndex(c => c.dataKey === dataKey)
+		this.columns[i].width += deltaX;
+		//this.setState({columnWidth: update(this.state.columnWidth, {$set: {[this.columns[i].dataKey]: this.columns[i].width}})})
+	}
+
 	importClick = (rowData) => {
 		console.log(rowData)
 		this.setState({
@@ -117,43 +127,47 @@ class Epolls extends React.Component {
 		this.rowHeightCache.clearAll()
 	}
 	filterChange = (event, dataKey) => {
-		this.props.dispatch(setEpollsFilter(dataKey, event.target.value));
+		var filter = filterValidate(dataKey, event.target.value)
+		this.props.dispatch(setEpollsFilters({[dataKey]: filter}));
 		this.rowHeightCache.clearAll()
 	}
 
-	renderImport = ({rowData}) => {
+	renderHeaderActions = ({rowIndex}) => {
+		return (
+			<React.Fragment>
+				<span className="fa fa-sync-alt" title='Refresh' onClick={this.refresh} />&nbsp;
+				<span className="fa fa-window-close" title='Close' onClick={this.props.close} />&nbsp;
+				<span className="fa fa-angle-double-down" title='Load More' onClick={this.getMore} />
+			</React.Fragment>
+		)
+	}
+
+	renderActions = ({rowData}) => {
 		if (rowData.InDatabase) {
 			return (
 				<span>Already Present</span>
 			)
 		} else {
 			return (
-				<button onClick={e => {this.importClick(rowData)}}>Import</button>
+				<span className="fa fa-upload" title='Import' onClick={() => this.importClick(rowData)} />
 			)
 		}
 	}
 
 	renderText = ({rowIndex, rowData, dataKey, columnIndex}) => {
-		return (
-			<div
-				dangerouslySetInnerHTML={{__html: rowData[dataKey]}}
-			/>
-		)
+		return <span>{rowData[dataKey]}</span>
 	}
 
 	renderDate = ({rowData, dataKey}) => {
-		// rowData[dataKey] is a UTC time string. We convert this to easter time
+		// rowData[dataKey] is a UTC time string. We convert this to eastern time
 		// and display only the date (not time).
 		var d = new Date(rowData[dataKey])
 		var str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
-		return (
-			<div
-				dangerouslySetInnerHTML={{__html: str}}
-			/>
-		)
+		return <span>{str}</span>
 	}
 
-	renderMeasuredCell = ({rowIndex, rowData, dataKey, columnIndex, columnData, parent}) => {
+	renderMeasuredCell = (props) => {
+		var {rowIndex, dataKey, columnIndex, columnData, parent} = props;
 		return (
 			<CellMeasurer
 				cache={this.rowHeightCache}
@@ -162,7 +176,7 @@ class Epolls extends React.Component {
 				parent={parent}
 				key={dataKey}
 			>
-				{columnData.cellRenderer({rowIndex, rowData, dataKey, columnIndex, parent})}
+				{columnData.cellRenderer(props)}
 			</CellMeasurer>
 		)
 	}
@@ -182,40 +196,82 @@ class Epolls extends React.Component {
 			</span>
 		);
 	}
-	renderLabel = (props) => {
-		const {label, style} = props;
-		return (
-			<span
-				key={'label-' + label}
-				title={label}
-				style={style}
-			>
-				{label}
-			</span>
-		);
+
+	renderLabel = ({dataKey, label}) => {
+		if (this.sortable.includes(dataKey)) {
+			const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE';
+			return (
+				<div
+					className={styles.headerLabel}
+					title={label}
+					style={{cursor: 'pointer'}}
+					onClick={e => this.sortChange(e, dataKey)}
+				>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 12px)'}}>{label}</div>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'ASC'? '12px': '0'}}><i className="fa fa-sort-alpha-down" /></div>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'DESC'? '12px': '0'}}><i className="fa fa-sort-alpha-up" /></div>
+				</div>
+			)
+		}
+		else {
+			return (
+				<div
+					className={styles.headerLabel}
+					title={label}
+				>
+					{label}
+				</div>
+			)
+		}
 	}
-	renderFilter = (dataKey) => {
+
+	renderFilter = ({dataKey}) => {
+		var filter = this.props.filters[dataKey]
+		var classNames = styles.headerFilt
+		if (filter && !filter.valid) {
+			classNames += ' ' + styles.headerFiltInvalid
+		}
 		return (
 			<input
-				key={'filt-' + dataKey}
 				type='text'
-				className={styles.headerFilt}
+				className={classNames}
 				placeholder='Filter'
-				onChange={e => this.filterChange(e, dataKey)}
-				value={this.props.filters[dataKey]}
-				style={{width: '100%'}}
+				onChange={e => {this.filterChange(e, dataKey)}}
+				value={filter.filtStr}
 			/>
-		);
+		)
 	}
+
 	renderHeaderCell = ({columnData, dataKey, label}) => {
-		const labelElement = this.sortable.includes(dataKey)? this.renderSortLabel({dataKey, label}): this.renderLabel({label});
-		const showFilter = this.props.filters.hasOwnProperty(dataKey)
+		const col = columnData;
+		const showFilter = this.props.filters.hasOwnProperty(dataKey);
+
+		if (col.isLast) {
+			return (
+				<div className={styles.headerLabelBox} style={{flex: '0 0 100%'}}>
+					{this.renderLabel({dataKey, label})}
+					{showFilter && this.renderFilter({dataKey})}
+				</div>
+			)
+		}
 		return (
-			<div>
-				{labelElement}
-				{showFilter && this.renderFilter(dataKey)}
-			</div>
-		);
+			<React.Fragment>
+				<div className={styles.headerLabelBox} style={{flex: '0 0 calc(100% - 12px)'}}>
+					{this.renderLabel({dataKey, label})}
+					{showFilter && this.renderFilter({dataKey})}
+				</div>
+				<Draggable
+					axis="x"
+					defaultClassName={styles.headerDrag}
+					defaultClassNameDragging={styles.dragHandleActive}
+					onDrag={(event, {deltaX}) => this.resizeColumn({dataKey, deltaX})}
+					position={{x: 0}}
+					zIndex={999}
+				>
+					<span className={styles.dragHandleIcon}>⋮</span>
+				</Draggable>
+			</React.Fragment>
+		)
 	}
 
 	noRowsRenderer = () => {
@@ -238,7 +294,7 @@ class Epolls extends React.Component {
 				width={this.state.width}
 				rowHeight={this.rowHeightCache.rowHeight}
 				deferredMeasurementCache={this.rowHeightCache}
-				headerHeight={60}
+				headerHeight={40}
 				noRowsRenderer={this.noRowsRenderer}
 				headerClassName={styles.headerColumn}
 				rowClassName={this.rowClassName}
@@ -265,9 +321,6 @@ class Epolls extends React.Component {
 		return (
 			<div id='Epolls' style={{height: '100%'}}>
 				<div id='top-row'>
-					<button onClick={this.props.close}>Back</button>
-					<button onClick={this.refresh}>Refresh</button>
-					<button onClick={this.getMore}>Get More</button>
 				</div>
 
 				{this.renderTable()}

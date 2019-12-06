@@ -32,8 +32,8 @@ const voters = (state = defaultState, action) => {
 				votingPoolSortDirection: action.sortDirection,
 				votingPoolDataMap: sortData(state.votingPoolDataMap, state.votingPoolData, action.sortBy, action.sortDirection)
 			}
-		case 'SET_VOTING_POOL_FILTER':
-			filters = Object.assign({}, state.votingPoolFilters, {[action.dataKey]: action.filter});
+		case 'SET_VOTING_POOL_FILTERS':
+			filters = {...state.votingPoolFilters, ...action.filters};
 			return {
 				...state,
 				votingPoolFilters: filters,
@@ -109,8 +109,8 @@ const voters = (state = defaultState, action) => {
 				votersSortDirection: action.sortDirection,
 				votersDataMap: sortData(state.votersDataMap, state.votersData, action.sortBy, action.sortDirection)
 			}
-		case 'SET_VOTERS_FILTER':
-			filters = {...state.votersFilters, [action.dataKey]: action.filter}
+		case 'SET_VOTERS_FILTERS':
+			filters = {...state.votersFilters, ...action.filters};
 			return {
 				...state,
 				votersFilters: filters,

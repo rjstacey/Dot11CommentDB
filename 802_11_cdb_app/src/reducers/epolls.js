@@ -34,8 +34,8 @@ const epolls = (state = defaultState, action) => {
 				sortDirection: action.sortDirection,
 				epollsDataMap: sortData(state.epollsDataMap, state.epollsData, action.sortBy, action.sortDirection)
 			}
-		case 'SET_EPOLLS_FILTER':
-			const filters = {...state.filters, [action.dataKey]: action.filter}
+		case 'SET_EPOLLS_FILTERS':
+			const filters = {...state.filters, ...action.filters}
 			return {
 				...state,
 				filters,

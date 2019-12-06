@@ -5,11 +5,10 @@ import React from 'react'
 import update from 'immutability-helper'
 import {connect} from 'react-redux'
 import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'
-import Textarea from 'react-textarea-autosize'
 import {getUsers} from './actions/users'
 import {updateComment, addResolution, updateResolution, deleteResolution} from './actions/comments';
+import {ResolutionEditor} from './ResolutionEditor';
 import './CommentDetail.css'
-
 
 function shallowDiff(originalObj, modifiedObj) {
 	let changed = {};
@@ -20,6 +19,7 @@ function shallowDiff(originalObj, modifiedObj) {
  	}
  	return changed;
 }
+
 
 class CommentDetail extends React.Component {
 	constructor(props) {
@@ -191,7 +191,7 @@ class CommentDetail extends React.Component {
 				</div>
 			</div>
 			<div className='Resolution'>
-				<Textarea
+				<ResolutionEditor
 					className='ResolutionInput'
 					name='Resolution'
 					value={r.Resolution}
@@ -342,6 +342,7 @@ class CommentDetail extends React.Component {
 	}
 
  	render() {
+ 		const {comment} = this.state
 
 		return(
 			<div id='CommentDetail'>
@@ -354,15 +355,15 @@ class CommentDetail extends React.Component {
 				</div>
 
 				<div className='row'>
-					<div className='CID'><label>CID:</label><span>{this.state.comment.CommentID}</span></div>
-					<div className='Commenter'><label>Commenter:</label><span>{this.state.comment.CommenterName}</span></div>
-					<div className='MustSatisfy'><label>Must Satisfy:</label><input type='checkbox' readOnly checked={this.state.comment.MustSatisfy} /></div>
+					<div className='CID'><label>CID:</label><span>{comment.CommentID}</span></div>
+					<div className='Commenter'><label>Commenter:</label><span>{comment.CommenterName}</span></div>
+					<div className='MustSatisfy'><label>Must Satisfy:</label><input type='checkbox' readOnly checked={comment.MustSatisfy} /></div>
 				</div>
 
 				<div className='row'>
-					<div className='Page'><label>Page/Line:</label><span>{this.state.comment.Page}</span></div>
-					<div className='Clause'><label>Clause:</label><span>{this.state.comment.Clause}</span></div>
-					<div className='Category'><label>Category:</label><span>{this.state.comment.Category}</span></div>
+					<div className='Page'><label>Page/Line:</label><span>{comment.Page}</span></div>
+					<div className='Clause'><label>Clause:</label><span>{comment.Clause}</span></div>
+					<div className='Category'><label>Category:</label><span>{comment.Category}</span></div>
 				</div>
 				
 
@@ -370,11 +371,14 @@ class CommentDetail extends React.Component {
 					<div className='column'>
 						<div className='column'>
 							<label>Comment:</label>
-							<div className='Comment'>{this.state.comment.Comment}</div>
+							<div className='Comment'>{comment.Comment}</div>
 							<label>Proposed Change:</label>
-							<div className='ProposedChange'>{this.state.comment.ProposedChange}</div>
+							<div className='ProposedChange'>{comment.ProposedChange}</div>
 						</div>
 					</div>
+
+				</div>
+				<div className='row'>
 					<div className='column'>
 						{this.renderTabs()}
 					</div>

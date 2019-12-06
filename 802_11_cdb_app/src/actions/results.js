@@ -10,13 +10,11 @@ export function setResultsProject(project) {
 	}
 }
 
-export function setResultsFilter(dataKey, filter) {
+export function setResultsFilters(filters) {
 	return {
-		type: 'SET_RESULTS_FILTER',
-		dataKey,
-		filter
+		type: 'SET_RESULTS_FILTERS',
+		filters
 	}
-
 }
 
 export function setResultsSort(sortBy, sortDirection) {

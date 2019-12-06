@@ -1,10 +1,9 @@
 var axios = require('axios');
 
-export function setEpollsFilter(dataKey, filter) {
+export function setEpollsFilters(filters) {
 	return {
-		type: 'SET_EPOLLS_FILTER',
-		dataKey,
-		filter
+		type: 'SET_EPOLLS_FILTERS',
+		filters
 	}
 }
 export function setEpollsSort(sortBy, sortDirection) {

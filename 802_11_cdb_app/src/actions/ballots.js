@@ -2,11 +2,10 @@ import {syncEpollsAgainstBallots} from './epolls'
 
 var axios = require('axios');
 
-export function setBallotsFilter(dataKey, filter) {
+export function setBallotsFilters(filters) {
 	return {
-		type: 'SET_BALLOTS_FILTER',
-		dataKey,
-		filter
+		type: 'SET_BALLOTS_FILTERS',
+		filters
 	}
 }
 export function setBallotsSort(sortBy, sortDirection) {
@@ -55,40 +54,43 @@ export function getBallots() {
 	}
 }
 
-export function updateBallotLocal(ballot) {
+export function updateBallotLocal(ballotId, ballotData) {
 	return {
 		type: 'UPDATE_BALLOT',
-		ballot
+		ballotId,
+		ballotData
 	}
 }
-function updateBallotSuccess(ballot) {
+function updateBallotSuccess(ballotId, ballotData) {
 	return {
 		type: 'UPDATE_BALLOT_SUCCESS',
-		ballot
+		ballotId,
+		ballotData
 	}
 }
-function updateBallotFailure(msg) {
+function updateBallotFailure(ballotId, msg) {
 	return {
 		type: 'UPDATE_BALLOT_FAILURE',
+		ballotId,
 		errMsg: msg
 	}
 }
 
-export function updateBallot(newData) {
+export function updateBallot(ballotId, ballotData) {
 	return (dispatch, getState) => {
-		dispatch(updateBallotLocal(newData));
-		return axios.put('/ballots', newData)
+		dispatch(updateBallotLocal(ballotId, ballotData));
+		return axios.put(`/ballot/${ballotId}`, ballotData)
 			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(updateBallotFailure(response.data.message))
+				if (response.data.status === 'OK') {
+					dispatch(updateBallotSuccess(ballotId, response.data.data))
 				}
 				else {
-					dispatch(updateBallotSuccess(response.data.data))
+					dispatch(updateBallotFailure(ballotId, response.data.message))
 				}
 			})
 			.then(() => dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData)))
 			.catch((error) => {
-				dispatch(updateBallotFailure(newData.BallotID, `Unable to update ballot ${newData.BallotID}`))
+				dispatch(updateBallotFailure(ballotId, `Unable to update ballot ${ballotId}`))
 			})
 	}
 }

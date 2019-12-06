@@ -59,25 +59,34 @@ function filterCol(dataMap, data, dataKey, filtStr) {
 			})
 
 		default:
-			if (/^\/.*\/$/.test(filtStr)) {
-				let rgx = new RegExp(filtStr.replace(/^\//, '').replace(/\/$/, ''));
+			if (filtStr[0] === '/') {
+				var parts = filtStr.split('/'),
+				regex = filtStr,
+				options = "";
+				if (parts.length > 1) {
+					regex = parts[1];
+					options = parts[2];
+				}
+				let rgx = new RegExp(regex, options);
 				return dataMap.filter(i => rgx.test(data[i][dataKey]))
 			}
-			else if (/^<=/.test(filtStr)) {	// less than or equal to
-				let compVal = parseNumber(filtStr.replace('<=', ''));
-				return dataMap.filter(i => data[i][dataKey] <= compVal)
-			}
-			else if (/^>=/.test(filtStr)) {	// greater than or equal to
-				let compVal = parseNumber(filtStr.replace('>=', ''));
-				return dataMap.filter(i => data[i][dataKey] >= compVal)
-			}
-			else if (/^</.test(filtStr)) {	// less than
-				let compVal = parseNumber(filtStr.replace('<', ''));
-				return dataMap.filter(i => data[i][dataKey] < compVal)
-			}
-			else if (/^>/.test(filtStr)) {	// greater than
-				let compVal = parseNumber(filtStr.replace('<', ''));
-				return dataMap.filter(i => data[i][dataKey] > compVal)
+			else if (filtStr[0] === '<' || filtStr[0] === '>') {
+				let result = /^(<=|>=|<|>)(.*)/.exec(filtStr)
+				let compVal = parseNumber(result[2])
+				let func = undefined
+				if (result[1] === '<=') {
+					func = (i => data[i][dataKey] <= compVal)
+				}
+				else if (result[1] === '>=') {
+					func = (i => data[i][dataKey] >= compVal)
+				}
+				else if (result[1] === '<') {
+					func = (i => data[i][dataKey] < compVal)
+				}
+				else if (result[1] === '>') {
+					func = (i => data[i][dataKey] > compVal)
+				}
+				return dataMap.filter(func)
 			}
 		    else if (/^!/.test(filtStr)) {	// not containing
 				let compStr = filtStr.replace('!', '');
@@ -92,12 +101,39 @@ function filterCol(dataMap, data, dataKey, filtStr) {
 	}
 }
 
+export function filterValidate(dataKey, filtStr) {
+	var valid = true
+	if (filtStr.length && dataKey !== 'Clause') {
+		if (filtStr[0] === '/') {	// regex
+			var parts = filtStr.split('/'),
+				regex = filtStr,
+				options = "";
+			if (parts.length > 1) {
+				regex = parts[1];
+				options = parts[2];
+			}
+			try {
+				new RegExp(regex, options)
+			}
+			catch(e) {
+				valid = false
+			}
+		}
+		else if (filtStr[0] === '<' || filtStr[0] === '>') {
+			const result = /^(<=|>=|<|>)(.*)/.exec(filtStr)
+			console.log(isNaN(parseFloat(result[2])))
+			valid = !isNaN(parseFloat(result[2]))
+		}
+	}
+	return {filtStr, valid}
+}
+
 export function filterData(data, filters) {
 	// create a 1:1 map of data
 	let filtDataMap = Array.apply(null, {length: data.length}).map(Function.call, Number);
 	for (let dataKey in filters) {
-		if (filters[dataKey]) {
-			filtDataMap = filterCol(filtDataMap, data, dataKey, filters[dataKey]);
+		if (filters[dataKey].valid && filters[dataKey].filtStr.length) {
+			filtDataMap = filterCol(filtDataMap, data, dataKey, filters[dataKey].filtStr);
 		}
 	}
 	return filtDataMap;

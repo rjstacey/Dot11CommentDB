@@ -1,10 +1,9 @@
 var axios = require('axios');
 
-export function setUsersFilter(dataKey, filter) {
+export function setUsersFilters(filters) {
 	return {
-		type: 'SET_USERS_FILTER',
-		dataKey,
-		filter
+		type: 'SET_USERS_FILTERS',
+		filters
 	}
 
 }

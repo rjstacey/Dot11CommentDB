@@ -1,16 +1,29 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from "react-router-dom";
 import Modal from 'react-modal';
+import update from 'immutability-helper';
 import {connect} from 'react-redux';
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
-import {setBallotsFilter, setBallotsSort, getBallots, deleteBallots, updateBallot} from './actions/ballots';
+import Draggable from 'react-draggable';
+import {setBallotsFilters, setBallotsSort, getBallots, deleteBallots, updateBallot} from './actions/ballots';
 import {getVotingPool} from './actions/voters';
 import {deleteCommentsWithBallotId, importComments, uploadComments} from './actions/comments'
 import {deleteResults, importResults, uploadResults} from './actions/results'
-import {sortClick} from './filter'
+import {sortClick, filterValidate} from './filter'
 import styles from './AppTable.css'
 
 class ImportModal extends React.PureComponent {
+
+	static propTypes = {
+		ballotId: PropTypes.string.isRequired,
+		epollNum: PropTypes.number.isRequired,
+		importType: PropTypes.oneOf(['', 'results', 'comments']),
+		isOpen: PropTypes.bool.isRequired,
+		close: PropTypes.func.isRequired,
+		appElement: PropTypes.any
+	}
+
 	constructor(props) {
 		super(props)
 		this.fileInputRef = React.createRef();
@@ -19,6 +32,7 @@ class ImportModal extends React.PureComponent {
 			fromFile: false
 		}
 	}
+
 	submit = () => {
 		if (this.state.fromFile) {
 			this.props.dispatch(
@@ -36,6 +50,7 @@ class ImportModal extends React.PureComponent {
 		}
 		this.props.close()
 	}
+
 	render() {
 		return (
 			<Modal
@@ -78,7 +93,51 @@ class ImportModal extends React.PureComponent {
 	}
 }
 
-class Ballots extends React.Component {
+class ContentEditable extends React.Component {
+
+	static propTypes = {
+		deferUpdate: PropTypes.bool.isRequired,
+		value: PropTypes.string.isRequired,
+		onChange: PropTypes.func.isRequired
+	}
+
+	constructor(props) {
+		super(props);
+		this.divRef = React.createRef();
+		this.lastValue = ''
+	}
+
+	render() {
+		return (
+			<div
+				ref={this.divRef}
+				onBlur={this.emitChange}
+				contentEditable
+				dangerouslySetInnerHTML={{__html: this.props.value}}
+			/>
+		)
+	}
+
+	shouldComponentUpdate(nextProps) {
+		return !nextProps.deferUpdate && nextProps.value !== this.divRef.current.innerHTML;
+	}
+
+	componentDidUpdate() {
+		if (this.props.value !== this.divRef.current.innerHTML) {
+			this.divRef.current.innerHTML = this.props.value;
+		}
+	}
+
+	emitChange = () => {
+		var currentValue = this.divRef.current.innerHTML;
+		if (this.props.onChange && currentValue !== this.lastValue) {
+			this.props.onChange({target: {value: currentValue}});
+		}
+		this.lastValue = currentValue;
+	}
+}
+
+class Ballots extends React.PureComponent {
 	constructor(props) {
 
 		super(props);
@@ -89,34 +148,35 @@ class Ballots extends React.Component {
 				headerRenderer: this.renderHeaderCheckbox,
 				cellRenderer: this.renderCheckbox},*/
 			{dataKey: 'Project',      label: 'Project',
-				width: 65, flexShrink: 0,
+				width: 65, flexShrink: 0, flexGrow: 0,
 				cellRenderer: this.renderEditable},
 			{dataKey: 'BallotID',     label: 'Ballot ID',
-				width: 75, flexShrink: 0,
+				width: 75, flexShrink: 0, flexGrow: 0,
 				cellRenderer: this.renderEditable},
 			{dataKey: 'Document',     label: 'Document',
-				width: 150, flexGrow: 1,
+				width: 150, flexShrink: 1, flexGrow: 1,
 				cellRenderer: this.renderEditable},
 			{dataKey: 'Topic',        label: 'Topic',
-				width: 300, flexGrow: 1,
+				width: 300, flexShrink: 1, flexGrow: 1,
 				cellRenderer: this.renderEditable},
 			{dataKey: 'EpollNum',     label: 'ePoll',
 				width: 80, flexGrow: 0, flexShrink: 0},
 			{dataKey: 'Start',        label: 'Start',
-				width: 84, flexShrink: 0,
+				width: 86, flexShrink: 0,
 				cellRenderer: this.renderDate},
 			{dataKey: 'End',          label: 'End',
-				width: 84, flexShrink: 0,
+				width: 86, flexShrink: 0,
 				cellRenderer: this.renderDate},
-	        {dataKey: ['VotingPoolID', 'PrevBallotID'], label: 'Voting Pool/\nPrev Ballot',
-	        	width: 100,
+	        {dataKey: ['VotingPoolID', 'PrevBallotID'], label: 'Voting Pool/Prev Ballot',
+	        	width: 100, flexShrink: 1, flexGrow: 1,
 	    		cellRenderer: this.renderVotingPool},
 			{dataKey: 'Results',      label: 'Result',
-				width: 150,
+				width: 150, flexShrink: 1, flexGrow: 1,
 				cellRenderer: this.renderResultsSummary},
 			{dataKey: 'Comments',	label: 'Comments',
-				width: 100,
-				cellRenderer: this.renderCommentsSummary}
+				width: 100, flexShrink: 1, flexGrow: 1,
+				cellRenderer: this.renderCommentsSummary,
+				isLast: true}
 		];
 
 		this.state = {
@@ -126,15 +186,15 @@ class Ballots extends React.Component {
 			selectedBallots: [],
 			showImport: false,
 			importType: '',
-			importBallot: {}
+			importBallot: {BallotID: '', EpollNum: 0}
 		}
 
 		// List of filterable columns
     	const filterable = ['BallotID', 'Project', 'Document', 'Topic', 'EpollNum'];
 		if (Object.keys(props.filters).length === 0) {
-			filterable.forEach(dataKey => {
-				this.props.dispatch(setBallotsFilter(dataKey, ''));
-			});
+			var filters = {};
+			filterable.forEach(dataKey => {filters[dataKey] = ''});
+			this.props.dispatch(setBallotsFilters(filters));
 		}
 
 		this.sortable = ['BallotID', 'Project', 'Document', 'Topic', 'EpollNum', 'Start', 'End'];
@@ -145,7 +205,6 @@ class Ballots extends React.Component {
 		})
 	}
 	componentDidMount() {
-		console.log('did mount')
 		this.updateDimensions()
 		window.addEventListener("resize", this.updateDimensions);
 
@@ -167,6 +226,12 @@ class Ballots extends React.Component {
 		var width = window.innerWidth - 1; //parent.offsetWidth
 		//console.log('update ', width, height)
 		this.setState({height, width})
+	}
+
+	resizeColumn = ({dataKey, deltaX}) => {
+		var i = this.columns.findIndex(c => c.dataKey === dataKey)
+		this.columns[i].width += deltaX;
+		this.setState({columnWidth: update(this.state.columnWidth, {$set: {[this.columns[i].dataKey]: this.columns[i].width}})})
 	}
 
 	showEpolls = (e) => {
@@ -215,23 +280,19 @@ class Ballots extends React.Component {
 		event.preventDefault()
 	}
 	filterChange = (event, dataKey) => {
-		this.props.dispatch(setBallotsFilter(dataKey, event.target.value));
+		var filter = filterValidate(dataKey, event.target.value)
+		this.props.dispatch(setBallotsFilters({[dataKey]: filter}));
 		this.rowHeightCache.clearAll()
 	}
 	updateBallotField = (rowIndex, dataKey, fieldData) => {
 		const b = this.props.ballotsData[this.props.ballotsDataMap[rowIndex]];
-		this.props.dispatch(updateBallot({
-			BallotID: b.BallotID,
-			[dataKey]: fieldData
-		}));
+		this.props.dispatch(updateBallot(b.BallotID, {[dataKey]: fieldData}))
 	}
 	updateBallotFieldIfChanged = (rowIndex, columnIndex, dataKey, fieldData) => {
 		const b = this.props.ballotsData[this.props.ballotsDataMap[rowIndex]];
 		if (b[dataKey] !== fieldData) {
-			this.props.dispatch(updateBallot({
-				BallotID: b.BallotID,
-				[dataKey]: fieldData
-			}))
+			this.props.dispatch(updateBallot(b.BallotID, {[dataKey]: fieldData}))
+				//.then(() => {console.log('updated'); this.tableRef.forceUpdate()})
 			this.rowHeightCache.clear(rowIndex, columnIndex)
 		}
 	}
@@ -241,23 +302,17 @@ class Ballots extends React.Component {
 		// and display only the date in format "yyyy-mm-dd" (ISO format).
 		var d = new Date(rowData[dataKey])
 		d = new Date(d.toLocaleString('en-US', {timeZone: 'America/New_York'}))
-		var str = d.toISOString().substring(0,10)
-		return (
-			<div
-				dangerouslySetInnerHTML={{__html: str}}
-			/>
-		)
+		return d.toISOString().substring(0,10)
 	}
+
 	renderEditable = ({rowIndex, rowData, dataKey, columnIndex}) => {
 		return (
-			<div
-				contentEditable
-				onBlur={e => {
-					this.updateBallotFieldIfChanged(rowIndex, columnIndex, dataKey, e.target.innerHTML)
-				}}
-				dangerouslySetInnerHTML={{__html: rowData[dataKey]}}
+			<ContentEditable
+				value={rowData[dataKey]}
+				deferUpdate={this.props.updateBallot}
+				onChange={e => this.updateBallotFieldIfChanged(rowIndex, columnIndex, dataKey, e.target.value)}
 			/>
-		);
+		)
 	}
 	
 	renderVotingPool = ({rowIndex, columnIndex, rowData, dataKey}) => {
@@ -309,41 +364,37 @@ class Ballots extends React.Component {
 	renderResultsSummary = ({rowIndex, rowData, dataKey}) => {
 		var results = rowData[dataKey];
 		var resultsStr = '';
-		if (results && results.Total) {
+		if (results && results.TotalReturns) {
 			let p = parseFloat(100*results.Approve/(results.Approve+results.Disapprove));
 			resultsStr = `${results.Approve}/${results.Disapprove}/${results.Abstain}`
 			if (!isNaN(p)) {
 				resultsStr += ` (${p.toFixed(1)}%)`
 			}
 		}
-		return (
-			<div>
-				<Link to={`/Results/${rowData.BallotID}`}>
-					<span>{resultsStr}</span>
-				</Link>
-				<button onClick={e => this.deleteResultsClick(e, rowData)}>Delete</button>
-				<button onClick={e => this.importResultsClick(e, rowData)}>Import</button>
-			</div>
-		)
+		return resultsStr
+			? <React.Fragment>
+				<Link to={`/Results/${rowData.BallotID}`}>{resultsStr}</Link>&nbsp;
+				<i title="Delete Results" className={`fa fa-trash-alt ${styles.actionCell}`} onClick={e => this.deleteResultsClick(e, rowData)} />&nbsp;
+				<i title="Import Results" className={`fa fa-upload ${styles.actionCell}`} onClick={e => this.importResultsClick(e, rowData)} />
+			  </React.Fragment>
+			: <React.Fragment>
+				None&nbsp;
+				<i title="Import Results" className={`fa fa-upload ${styles.actionCell}`} onClick={e => this.importResultsClick(e, rowData)} />
+			  </React.Fragment>
 	}
 
 	renderCommentsSummary = ({rowIndex, rowData, dataKey}) => {
 		var comments = rowData.Comments;
-		if (comments && comments.Count > 0) {
-			return (
-				<div>
-					<Link to={`/Comments/${rowData.BallotID}`}>{comments.CommentIDMin}-{comments.CommentIDMax} ({comments.Count})</Link><br />
-					<button onClick={(e) => {return this.deleteCommentsClick(e, rowData)}}>Delete</button>
-				</div>
-			)
-		}
-		else {
-			return (
-				<div>
-					<button onClick={(e) => {return this.importCommentsClick(e, rowData)}}>Import</button>
-				</div>
-			)
-		}
+		return (comments && comments.Count > 0)
+			? <React.Fragment>
+				<Link to={`/Comments/${rowData.BallotID}`}>{comments.CommentIDMin}-{comments.CommentIDMax} ({comments.Count})</Link>&nbsp;
+				<i title="Delete Comments" className={`fa fa-trash-alt ${styles.actionCell}`} onClick={e => this.deleteCommentsClick(e, rowData)} />&nbsp;
+				<i title="Import Comments" className={`fa fa-upload ${styles.actionCell}`} onClick={e => this.importCommentsClick(e, rowData)} />
+			  </React.Fragment>
+			: <React.Fragment>
+				None&nbsp;
+				<i title="Import Comments" className={`fa fa-upload ${styles.actionCell}`} onClick={e => this.importCommentsClick(e, rowData)} />
+			  </React.Fragment>
 	}
 
 	refresh = () => {
@@ -351,55 +402,81 @@ class Ballots extends React.Component {
 		this.rowHeightCache.clearAll()
 	}
 
-	renderSortLabel = (props) => {
-		const {dataKey, label, style} = props;
-		const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE'
-		return (
-			<span
-				key={'label-' + dataKey}
-				title={label}
-				onClick={e => this.sortChange(e, dataKey)}
-				style={{cursor: 'pointer', userSelect: 'none', ...style}}
-			>
-				{label}
-				{sortDirection === 'NONE' || <i className={sortDirection === 'ASC'? "fa fa-sort-alpha-down": "fa fa-sort-alpha-up"} />}
-			</span>
-		);
+	renderLabel = ({dataKey, label}) => {
+		if (this.sortable.includes(dataKey)) {
+			const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE';
+			return (
+				<div
+					className={styles.headerLabel}
+					title={label}
+					style={{cursor: 'pointer'}}
+					onClick={e => this.sortChange(e, dataKey)}
+				>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 12px)'}}>{label}</div>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'ASC'? '12px': '0'}}><i className="fa fa-sort-alpha-down" /></div>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'DESC'? '12px': '0'}}><i className="fa fa-sort-alpha-up" /></div>
+				</div>
+			)
+		}
+		else {
+			return (
+				<div
+					className={styles.headerLabel}
+					title={label}
+				>
+					{label}
+				</div>
+			)
+		}
 	}
-	renderLabel = (props) => {
-		const {label, style} = props;
-		return (
-			<span
-				key={'label-' + label}
-				title={label}
-				style={style}
-			>
-				{label}
-			</span>
-		);
-	}
-	renderFilter = (dataKey) => {
+
+	renderFilter = ({dataKey}) => {
+		var filter = this.props.filters[dataKey]
+		var classNames = styles.headerFilt
+		if (filter && !filter.valid) {
+			classNames += ' ' + styles.headerFiltInvalid
+		}
 		return (
 			<input
-				key={'filt-' + dataKey}
 				type='text'
-				className={styles.headerFilt}
+				className={classNames}
 				placeholder='Filter'
-				onChange={e => this.filterChange(e, dataKey)}
-				value={this.props.filters[dataKey]}
-				style={{width: '100%'}}
+				onChange={e => {this.filterChange(e, dataKey)}}
+				value={filter.filtStr}
 			/>
-		);
+		)
 	}
+
 	renderHeaderCell = ({columnData, dataKey, label}) => {
-		const labelElement = this.sortable.includes(dataKey)? this.renderSortLabel({dataKey, label}): this.renderLabel({label});
-		const showFilter = this.props.filters.hasOwnProperty(dataKey)
+		const col = columnData;
+		const showFilter = this.props.filters.hasOwnProperty(dataKey);
+
+		if (col.isLast) {
+			return (
+				<div className={styles.headerLabelBox} style={{flex: '0 0 100%'}}>
+					{this.renderLabel({dataKey, label})}
+					{showFilter && this.renderFilter({dataKey})}
+				</div>
+			)
+		}
 		return (
-			<div>
-				{labelElement}
-				{showFilter && this.renderFilter(dataKey)}
-			</div>
-		);
+			<React.Fragment>
+				<div className={styles.headerLabelBox} style={{flex: '0 0 calc(100% - 12px)'}}>
+					{this.renderLabel({dataKey, label})}
+					{showFilter && this.renderFilter({dataKey})}
+				</div>
+				<Draggable
+					axis="x"
+					defaultClassName={styles.headerDrag}
+					defaultClassNameDragging={styles.dragHandleActive}
+					onDrag={(event, {deltaX}) => this.resizeColumn({dataKey, deltaX})}
+					position={{x: 0}}
+					zIndex={999}
+				>
+					<span className={styles.dragHandleIcon}>⋮</span>
+				</Draggable>
+			</React.Fragment>
+		)
 	}
 
 	noRowsRenderer = () => {
@@ -429,6 +506,10 @@ class Ballots extends React.Component {
 		)
 	}
 
+	setTableRef = (ref) => {
+		this.tableRef = ref;
+	}
+
 	renderTable = () => {
 		return (
 			<Table
@@ -443,12 +524,14 @@ class Ballots extends React.Component {
 				rowClassName={this.rowClassName}
 				rowCount={this.props.ballotsDataMap.length}
 				rowGetter={({index}) => {return this.props.ballotsData[this.props.ballotsDataMap[index]]}}
+				ref={this.setTableRef}
 			>
 				{this.columns.map((col, index) => {
 					const {cellRenderer, headerRenderer, ...otherProps} = col;
 					return (
 						<Column 
 							key={index}
+							className={styles.rowColumn}
 							columnData={col}
 							headerRenderer={headerRenderer? headerRenderer: this.renderHeaderCell}
 							cellRenderer={cellRenderer? this.renderMeasuredCell: undefined}
@@ -484,7 +567,7 @@ class Ballots extends React.Component {
 }
 
 function mapStateToProps(state) {
-	const {ballots, voters, comments, results} = state
+	const {ballots, voters} = state
 	return {
 		filters: ballots.filters,
 		sortBy: ballots.sortBy,
@@ -495,13 +578,8 @@ function mapStateToProps(state) {
 		ballotsByProject: ballots.ballotsByProject,
 		getBallots: ballots.getBallots,
 		updateBallot: ballots.updateBallot,
-		deleteBallots: ballots.deleteBallots,
 		votingPoolDataValid: voters.votingPoolDataValid,
 		votingPoolData: voters.votingPoolData,
-		importComments: comments.importComments,
-		importCommentsCount: comments.importCommentsCount,
-		deleteResults: results.deleteResults,
-		importResults: results.importResults,
 	}
 }
 export default connect(mapStateToProps)(Ballots);

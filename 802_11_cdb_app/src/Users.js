@@ -3,8 +3,9 @@ import Modal from 'react-modal';
 import update from 'immutability-helper';
 import { connect } from 'react-redux';
 import {Column, Table} from 'react-virtualized';
-import {sortClick, allSelected, toggleVisible} from './filter';
-import {setUsersFilter, setUsersSort, getUsers, updateUser, addUser, deleteUsers} from './actions/users';
+import Draggable from 'react-draggable';
+import {sortClick, allSelected, toggleVisible, filterValidate} from './filter';
+import {setUsersFilters, setUsersSort, getUsers, updateUser, addUser, deleteUsers} from './actions/users';
 import styles from './AppTable.css';
 
 const defaultUserData = {SAPIN: '', Name: '', Email: '', Access: 3};
@@ -89,37 +90,52 @@ class Users extends React.PureComponent {
 			{dataKey: '', label: '',
 				width: 200,
 				headerRenderer: this.renderHeaderActions,
-				cellRenderer: this.renderActions}
+				cellRenderer: this.renderActions,
+				isLast: true}
 		];
 
 		// List of filterable columns
     	const filterable = ['SAPIN', 'Name', 'Email'];
 		if (Object.keys(props.filters).length === 0) {
-			filterable.forEach(dataKey => {
-				this.props.dispatch(setUsersFilter(dataKey, ''));
-			});
+			var filters = {};
+			filterable.forEach(dataKey => {filters[dataKey] = ''});
+			this.props.dispatch(setUsersFilters(filters));
 		}
 
 		this.sortable = ['SAPIN', 'Name', 'Email', 'Access'];
 
+		var columnVisible = {};
+		var columnWidth = {};
+		var width = 0;
+		this.columns.forEach(col => {
+			width += col.width;
+			if (col.dataKey) {
+				columnVisible[col.dataKey] = !col.hiddenByDefault;
+				columnWidth[col.dataKey] = col.width
+			}
+		});
+
 		this.state = {
 			height: 800,
-			width: 600,
+			width: width,
 			showAddModal: false,
 			selectedUsers: [],
-			userAdd: {SAPIN: '', Name: '', Email: '', Access: 3},
+
+			columnVisible,
+			columnWidth
 		}
 	}
 
 	componentDidMount() {
-		var wrapper = document.getElementById('Users');
-		this.setState({
-			height: wrapper.offsetHeight - 19,
-			width: Math.min(wrapper.offsetWidth, 800)
-		})
 		if (!this.props.usersDataValid) {
 			this.props.dispatch(getUsers())
 		}
+	}
+
+	resizeColumn = ({dataKey, deltaX}) => {
+		var i = this.columns.findIndex(c => c.dataKey === dataKey)
+		this.columns[i].width += deltaX;
+		this.setState({columnWidth: update(this.state.columnWidth, {$set: {[this.columns[i].dataKey]: this.columns[i].width}})})
 	}
 
 	handleRemoveSelected = () => {
@@ -166,55 +182,81 @@ class Users extends React.PureComponent {
 		}
 	}
 
-	renderSortLabel = (props) => {
-		const {dataKey, label, style} = props;
-		const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE'
-		return (
-			<span
-				key={'label-' + dataKey}
-				title={label}
-				onClick={e => this.sortChange(e, dataKey)}
-				style={{cursor: 'pointer', userSelect: 'none', ...style}}
-			>
-				{label}
-				{sortDirection === 'NONE' || <i className={sortDirection === 'ASC'? "fa fa-sort-alpha-down": "fa fa-sort-alpha-up"} />}
-			</span>
-		);
+	renderLabel = ({dataKey, label}) => {
+		if (this.sortable.includes(dataKey)) {
+			const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE';
+			return (
+				<div
+					className={styles.headerLabel}
+					title={label}
+					style={{cursor: 'pointer'}}
+					onClick={e => this.sortChange(e, dataKey)}
+				>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 12px)'}}>{label}</div>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'ASC'? '12px': '0'}}><i className="fa fa-sort-alpha-down" /></div>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'DESC'? '12px': '0'}}><i className="fa fa-sort-alpha-up" /></div>
+				</div>
+			)
+		}
+		else {
+			return (
+				<div
+					className={styles.headerLabel}
+					title={label}
+				>
+					{label}
+				</div>
+			)
+		}
 	}
-	renderLabel = (props) => {
-		const {label, style} = props;
-		return (
-			<span
-				key={'label-' + label}
-				title={label}
-				style={style}
-			>
-				{label}
-			</span>
-		);
-	}
-	renderFilter = (dataKey) => {
+
+	renderFilter = ({dataKey}) => {
+		var filter = this.props.filters[dataKey]
+		var classNames = styles.headerFilt
+		if (filter && !filter.valid) {
+			classNames += ' ' + styles.headerFiltInvalid
+		}
 		return (
 			<input
-				key={'filt-' + dataKey}
 				type='text'
-				className={styles.headerFilt}
+				className={classNames}
 				placeholder='Filter'
-				onChange={e => this.filterChange(e, dataKey)}
-				value={this.props.filters[dataKey]}
-				style={{width: '100%'}}
+				onChange={e => {this.filterChange(e, dataKey)}}
+				value={filter.filtStr}
 			/>
-		);
+		)
 	}
-	renderHeaderCell = ({dataKey, label}) => {
-		const labelElement = this.sortable.includes(dataKey)? this.renderSortLabel({dataKey, label}): this.renderLabel({label});
-		const showFilter = this.props.filters.hasOwnProperty(dataKey)
+
+	renderHeaderCell = ({columnData, dataKey, label}) => {
+		const col = columnData;
+		const showFilter = this.props.filters.hasOwnProperty(dataKey);
+
+		if (col.isLast) {
+			return (
+				<div className={styles.headerLabelBox} style={{flex: '0 0 100%'}}>
+					{this.renderLabel({dataKey, label})}
+					{showFilter && this.renderFilter({dataKey})}
+				</div>
+			)
+		}
 		return (
-			<div>
-				{labelElement}
-				{showFilter && this.renderFilter(dataKey)}
-			</div>
-		);
+			<React.Fragment>
+				<div className={styles.headerLabelBox} style={{flex: '0 0 calc(100% - 12px)'}}>
+					{this.renderLabel({dataKey, label})}
+					{showFilter && this.renderFilter({dataKey})}
+				</div>
+				<Draggable
+					axis="x"
+					defaultClassName={styles.headerDrag}
+					defaultClassNameDragging={styles.dragHandleActive}
+					onDrag={(event, {deltaX}) => this.resizeColumn({dataKey, deltaX})}
+					position={{x: 0}}
+					zIndex={999}
+				>
+					<span className={styles.dragHandleIcon}>⋮</span>
+				</Draggable>
+			</React.Fragment>
+		)
 	}
 
 	noRowsRenderer = () => {
@@ -296,12 +338,14 @@ class Users extends React.PureComponent {
 			</div>
 		)
 	}
+
 	renderHeaderActions = ({rowIndex}) => {
 		return (
-			<div title='Actions'>
+			<React.Fragment>
 				<span className="fa fa-sync-alt" title='Refresh' onClick={this.refresh} />&nbsp;
-				<span className="fa fa-plus" title='Add' onClick={() => this.setState({showAddUserModal: true})} />
-			</div>
+				<span className="fa fa-plus" title='Add User' onClick={() => this.setState({showAddUserModal: true})} />&nbsp;
+				<span className="fa fa-trash-alt" title='Remove Selected Users' onClick={this.handleRemoveSelected} />
+			</React.Fragment>
 		)
 	}
 
@@ -309,8 +353,10 @@ class Users extends React.PureComponent {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, this.props.sortBy, this.props.sortDirection);
 		this.props.dispatch(setUsersSort(sortBy, sortDirection));
 	}
+
 	filterChange = (event, dataKey) => {
-		this.props.dispatch(setUsersFilter(dataKey, event.target.value));
+		var filter = filterValidate(dataKey, event.target.value)
+		this.props.dispatch(setUsersFilters({[dataKey]: filter}));
 	}
 
 	renderTable = () => {
@@ -328,24 +374,25 @@ class Users extends React.PureComponent {
 				rowGetter={({index}) => {return this.props.usersData[this.props.usersDataMap[index]]}}
 			>
 				{this.columns.map((col, index) => {
-					const {headerRenderer, ...otherProps} = col;
+					const {cellRenderer, headerRenderer, width, ...otherProps} = col;
 					return (
 						<Column 
 							key={index}
+							className={styles.rowColumn}
+							columnData={col}
 							headerRenderer={headerRenderer? headerRenderer: this.renderHeaderCell}
+							cellRenderer={cellRenderer}
+							width={this.state.columnWidth[col.dataKey]? this.state.columnWidth[col.dataKey]: width}
 							{...otherProps}
 						/>
 				)})}
 			</Table>
-			)
+		)
 	}
 
 	render() {
 		return (
 			<div id='Users'>
-				<button disabled={this.props.getUsers} onClick={this.refresh}>Refresh</button>
-				<button onClick={() => this.setState({showAddUserModal: true})}>Add</button>
-				<button onClick={this.handleRemoveSelected}>Remove Selected</button>
 
 				{this.renderTable()}
 

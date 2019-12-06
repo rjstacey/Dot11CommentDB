@@ -1,0 +1,59 @@
+GET: https://development.standards.ieee.org/pub/login
+response:
+
+POST: https://development.standards.ieee.org/pub/login
+Cookie: _ga=GA1.2.1488072114.1502490309; unicaID=L6QIeQiZ6gF-avySK9Q; __utmz=98802054.1520607517.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __gads=ID=b98f089c93e7e7fe:T=1522249581:S=ALNI_MbIlh8ucsKpfVXwAH-s6ez_c6W4_w; __unam=bbafcf0-162d47d4531-66b963f3-1; _parsely_visitor={%22id%22:%22f44570ad-1ae5-4ba5-9420-244ea89f42ba%22%2C%22session_count%22:1%2C%22last_session_ts%22:1524154351833}; __utma=86787162.694875910.1502490299.1525560033.1525942539.13; __utmz=86787162.1525942539.13.8.utmcsr=grouper.ieee.org|utmccn=(referral)|utmcmd=referral|utmcct=/groups/802/11/; _mkto_trk=id:211-FYL-955&token:_mch-ieee.org-1527282508878-69922; cookieconsent_status=dismiss; __utma=98802054.1488072114.1502490309.1520607517.1529964386.2; TS01e5e42f=012f3506239881a3ffb5ebffb9fcf1ecc198b6a2587490ef925269b6728b238f79eccd5723a6fcca35d7788d40a4f244b48a2c0a58; ISA4=UmFuZG9tSVZH1cLkpDe7YeYnBUUmPc10WvlkoX2i8ByMuzb1Ucxntmw7h3YYugwm8hTOuR97kXr9hM0SIsD44ih2qpN9C1W8Ql0kHYjRafA_; TS01f293bb=012f35062375e1353ce02491b3a2df5d1ef445da91a69bc38d6a48360453fd95dc65108c83f75d2e0c53ea9aabd80efc585d844f102e75bd19337bf331ad6a7f69ab14ceb0
+
+response: 302
+Location: /my-site
+Set-Cookie: ISA4=UmFuZG9tSVahmE6sPLVu9vVdTGrHQadHLMugNbbzW27c-y63pWgIrkaMlhU0a64jaSrTy7*X2I-fPhojyo7sslFiI82pQr3q88TVEUqnJaUJNeH60N6ELg6sDJzZvCf2; path=/; domain=.ieee.org; HttpOnly;Secure
+Set-Cookie: TS01e5e42f=012f3506239881a3ffb5ebffb9fcf1ecc198b6a2587490ef925269b6728b238f79eccd5723a6fcca35d7788d40a4f244b48a2c0a58; Path=/; Secure; HTTPOnly
+Set-Cookie: TS01f293bb=012f3506234d66d61cc2c7d287259519d031602193a69bc38d6a48360453fd95dc65108c83e68cf0c778c7f9e9a6b77d05d0ffb2013b39055e6ad8dff33fd79f28ea67d2c6; path=/; domain=.ieee.org; HTTPonly; Secure
+
+GET https://development.standards.ieee.org/my-site
+Cookie: _ga=GA1.2.1488072114.1502490309; unicaID=L6QIeQiZ6gF-avySK9Q; __utmz=98802054.1520607517.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __gads=ID=b98f089c93e7e7fe:T=1522249581:S=ALNI_MbIlh8ucsKpfVXwAH-s6ez_c6W4_w; __unam=bbafcf0-162d47d4531-66b963f3-1; _parsely_visitor={%22id%22:%22f44570ad-1ae5-4ba5-9420-244ea89f42ba%22%2C%22session_count%22:1%2C%22last_session_ts%22:1524154351833}; __utma=86787162.694875910.1502490299.1525560033.1525942539.13; __utmz=86787162.1525942539.13.8.utmcsr=grouper.ieee.org|utmccn=(referral)|utmcmd=referral|utmcct=/groups/802/11/; _mkto_trk=id:211-FYL-955&token:_mch-ieee.org-1527282508878-69922; cookieconsent_status=dismiss; __utma=98802054.1488072114.1502490309.1520607517.1529964386.2; TS01e5e42f=012f3506239881a3ffb5ebffb9fcf1ecc198b6a2587490ef925269b6728b238f79eccd5723a6fcca35d7788d40a4f244b48a2c0a58; ISA4=UmFuZG9tSVahmE6sPLVu9vVdTGrHQadHLMugNbbzW27c-y63pWgIrkaMlhU0a64jaSrTy7*X2I-fPhojyo7sslFiI82pQr3q88TVEUqnJaUJNeH60N6ELg6sDJzZvCf2; TS01f293bb=012f3506234d66d61cc2c7d287259519d031602193a69bc38d6a48360453fd95dc65108c83e68cf0c778c7f9e9a6b77d05d0ffb2013b39055e6ad8dff33fd79f28ea67d2c6
+
+response: 302
+Location: /
+Set-Cookie: TS01e5e42f=012f3506239881a3ffb5ebffb9fcf1ecc198b6a2587490ef925269b6728b238f79eccd5723a6fcca35d7788d40a4f244b48a2c0a58; Path=/; Secure; HTTPOnly
+
+GET: https://development.standards.ieee.org/
+Cookie: _ga=GA1.2.1488072114.1502490309; unicaID=L6QIeQiZ6gF-avySK9Q; __utmz=98802054.1520607517.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __gads=ID=b98f089c93e7e7fe:T=1522249581:S=ALNI_MbIlh8ucsKpfVXwAH-s6ez_c6W4_w; __unam=bbafcf0-162d47d4531-66b963f3-1; _parsely_visitor={%22id%22:%22f44570ad-1ae5-4ba5-9420-244ea89f42ba%22%2C%22session_count%22:1%2C%22last_session_ts%22:1524154351833}; __utma=86787162.694875910.1502490299.1525560033.1525942539.13; __utmz=86787162.1525942539.13.8.utmcsr=grouper.ieee.org|utmccn=(referral)|utmcmd=referral|utmcct=/groups/802/11/; _mkto_trk=id:211-FYL-955&token:_mch-ieee.org-1527282508878-69922; cookieconsent_status=dismiss; __utma=98802054.1488072114.1502490309.1520607517.1529964386.2; TS01e5e42f=012f3506239881a3ffb5ebffb9fcf1ecc198b6a2587490ef925269b6728b238f79eccd5723a6fcca35d7788d40a4f244b48a2c0a58; ISA4=UmFuZG9tSVahmE6sPLVu9vVdTGrHQadHLMugNbbzW27c-y63pWgIrkaMlhU0a64jaSrTy7*X2I-fPhojyo7sslFiI82pQr3q88TVEUqnJaUJNeH60N6ELg6sDJzZvCf2; TS01f293bb=012f3506234d66d61cc2c7d287259519d031602193a69bc38d6a48360453fd95dc65108c83e68cf0c778c7f9e9a6b77d05d0ffb2013b39055e6ad8dff33fd79f28ea67d2c6
+
+response: 302
+Location: /my-site/home
+Set-Cookie: TS01e5e42f=012f3506239881a3ffb5ebffb9fcf1ecc198b6a2587490ef925269b6728b238f79eccd5723a6fcca35d7788d40a4f244b48a2c0a58; Path=/; Secure; HTTPOnly
+
+GET: https://development.standards.ieee.org/my-site/home
+Cookie: _ga=GA1.2.1488072114.1502490309; unicaID=L6QIeQiZ6gF-avySK9Q; __utmz=98802054.1520607517.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __gads=ID=b98f089c93e7e7fe:T=1522249581:S=ALNI_MbIlh8ucsKpfVXwAH-s6ez_c6W4_w; __unam=bbafcf0-162d47d4531-66b963f3-1; _parsely_visitor={%22id%22:%22f44570ad-1ae5-4ba5-9420-244ea89f42ba%22%2C%22session_count%22:1%2C%22last_session_ts%22:1524154351833}; __utma=86787162.694875910.1502490299.1525560033.1525942539.13; __utmz=86787162.1525942539.13.8.utmcsr=grouper.ieee.org|utmccn=(referral)|utmcmd=referral|utmcct=/groups/802/11/; _mkto_trk=id:211-FYL-955&token:_mch-ieee.org-1527282508878-69922; cookieconsent_status=dismiss; __utma=98802054.1488072114.1502490309.1520607517.1529964386.2; TS01e5e42f=012f3506239881a3ffb5ebffb9fcf1ecc198b6a2587490ef925269b6728b238f79eccd5723a6fcca35d7788d40a4f244b48a2c0a58; ISA4=UmFuZG9tSVahmE6sPLVu9vVdTGrHQadHLMugNbbzW27c-y63pWgIrkaMlhU0a64jaSrTy7*X2I-fPhojyo7sslFiI82pQr3q88TVEUqnJaUJNeH60N6ELg6sDJzZvCf2; TS01f293bb=012f3506234d66d61cc2c7d287259519d031602193a69bc38d6a48360453fd95dc65108c83e68cf0c778c7f9e9a6b77d05d0ffb2013b39055e6ad8dff33fd79f28ea67d2c6
+
+response: 302
+Location: /rjstacey@gmail.com/home
+Set-Cookie: TS01e5e42f=012f3506239881a3ffb5ebffb9fcf1ecc198b6a2587490ef925269b6728b238f79eccd5723a6fcca35d7788d40a4f244b48a2c0a58; Path=/; Secure; HTTPOnly
+
+GET: https://development.standards.ieee.org/rjstacey@gmail.com/home
+Cookie: _ga=GA1.2.1488072114.1502490309; unicaID=L6QIeQiZ6gF-avySK9Q; __utmz=98802054.1520607517.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __gads=ID=b98f089c93e7e7fe:T=1522249581:S=ALNI_MbIlh8ucsKpfVXwAH-s6ez_c6W4_w; __unam=bbafcf0-162d47d4531-66b963f3-1; _parsely_visitor={%22id%22:%22f44570ad-1ae5-4ba5-9420-244ea89f42ba%22%2C%22session_count%22:1%2C%22last_session_ts%22:1524154351833}; __utma=86787162.694875910.1502490299.1525560033.1525942539.13; __utmz=86787162.1525942539.13.8.utmcsr=grouper.ieee.org|utmccn=(referral)|utmcmd=referral|utmcct=/groups/802/11/; _mkto_trk=id:211-FYL-955&token:_mch-ieee.org-1527282508878-69922; cookieconsent_status=dismiss; __utma=98802054.1488072114.1502490309.1520607517.1529964386.2; TS01e5e42f=012f3506239881a3ffb5ebffb9fcf1ecc198b6a2587490ef925269b6728b238f79eccd5723a6fcca35d7788d40a4f244b48a2c0a58; ISA4=UmFuZG9tSVahmE6sPLVu9vVdTGrHQadHLMugNbbzW27c-y63pWgIrkaMlhU0a64jaSrTy7*X2I-fPhojyo7sslFiI82pQr3q88TVEUqnJaUJNeH60N6ELg6sDJzZvCf2; TS01f293bb=012f3506234d66d61cc2c7d287259519d031602193a69bc38d6a48360453fd95dc65108c83e68cf0c778c7f9e9a6b77d05d0ffb2013b39055e6ad8dff33fd79f28ea67d2c6
+
+response: 200
+Set-Cookie: ISA4=UmFuZG9tSVZAHykftEPdelFISAvds-u5k8upBY7kfRg0slQ5vFCOAYudSnAbNWEl17CqX89dL62xxM4i8SvhnIOwJWx9uw3AzW3r96t4vAM13iBBV1S9rztqAmnGg5NS; path=/; domain=.ieee.org; HttpOnly;Secure
+Set-Cookie: TS01e5e42f=012f3506239881a3ffb5ebffb9fcf1ecc198b6a2587490ef925269b6728b238f79eccd5723a6fcca35d7788d40a4f244b48a2c0a58; Path=/; Secure; HTTPOnly
+Set-Cookie: TS01f293bb=012f3506230a8062e06532ad49a2a29c2e53f61675a69bc38d6a48360453fd95dc65108c8394680b822f9e5c2cc27aa97b6aeb32523baa150f51e00509271e52d50dbbcfd6; path=/; domain=.ieee.org; HTTPonly; Secure
+
+[Continue]
+POST: https://development.standards.ieee.org/rjstacey@gmail.com/announcement
+Cookie: _ga=GA1.2.1488072114.1502490309; unicaID=L6QIeQiZ6gF-avySK9Q; __utmz=98802054.1520607517.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __gads=ID=b98f089c93e7e7fe:T=1522249581:S=ALNI_MbIlh8ucsKpfVXwAH-s6ez_c6W4_w; __unam=bbafcf0-162d47d4531-66b963f3-1; _parsely_visitor={%22id%22:%22f44570ad-1ae5-4ba5-9420-244ea89f42ba%22%2C%22session_count%22:1%2C%22last_session_ts%22:1524154351833}; __utma=86787162.694875910.1502490299.1525560033.1525942539.13; __utmz=86787162.1525942539.13.8.utmcsr=grouper.ieee.org|utmccn=(referral)|utmcmd=referral|utmcct=/groups/802/11/; _mkto_trk=id:211-FYL-955&token:_mch-ieee.org-1527282508878-69922; cookieconsent_status=dismiss; __utma=98802054.1488072114.1502490309.1520607517.1529964386.2; TS01e5e42f=012f3506239881a3ffb5ebffb9fcf1ecc198b6a2587490ef925269b6728b238f79eccd5723a6fcca35d7788d40a4f244b48a2c0a58; ISA4=UmFuZG9tSVZAHykftEPdelFISAvds-u5k8upBY7kfRg0slQ5vFCOAYudSnAbNWEl17CqX89dL62xxM4i8SvhnIOwJWx9uw3AzW3r96t4vAM13iBBV1S9rztqAmnGg5NS; TS01f293bb=012f3506230a8062e06532ad49a2a29c2e53f61675a69bc38d6a48360453fd95dc65108c8394680b822f9e5c2cc27aa97b6aeb32523baa150f51e00509271e52d50dbbcfd6
+
+response: 302
+Location: /rjstacey@gmail.com/home
+Set-Cookie: ISA4=UmFuZG9tSVb3MQ4*yBlQrs4LyS*-ZM2HNRNeEh6aufZBstWH5qLx5PlaBLhZTYP9-KIMjaXfR1jxaRnttWLERz1iC17uDtrZ7yuMKX8AIxlttXzTpwq1WeRpggu*YAl*; path=/; domain=.ieee.org; HttpOnly;Secure
+Set-Cookie: TS01e5e42f=012f350623e078db9dd3a24de03907fe6139cf1c0322a495f821c6c3cd1d2a7eb34a972a4649421726f7c944eee4083934527eb9ab; Path=/; Secure; HTTPOnly
+Set-Cookie: TS01f293bb=012f350623cf7aab079f097d1da95ad0dbe5c154cea69bc38d6a48360453fd95dc65108c8360c9372dee046252ef090c3f95d89d2fb032a513adbb0ff420f3fb49aed4d412; path=/; domain=.ieee.org; HTTPonly; Secure
+
+GET: https://development.standards.ieee.org/rjstacey@gmail.com/home
+Cookie: _ga=GA1.2.1488072114.1502490309; unicaID=L6QIeQiZ6gF-avySK9Q; __utmz=98802054.1520607517.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __gads=ID=b98f089c93e7e7fe:T=1522249581:S=ALNI_MbIlh8ucsKpfVXwAH-s6ez_c6W4_w; __unam=bbafcf0-162d47d4531-66b963f3-1; _parsely_visitor={%22id%22:%22f44570ad-1ae5-4ba5-9420-244ea89f42ba%22%2C%22session_count%22:1%2C%22last_session_ts%22:1524154351833}; __utma=86787162.694875910.1502490299.1525560033.1525942539.13; __utmz=86787162.1525942539.13.8.utmcsr=grouper.ieee.org|utmccn=(referral)|utmcmd=referral|utmcct=/groups/802/11/; _mkto_trk=id:211-FYL-955&token:_mch-ieee.org-1527282508878-69922; cookieconsent_status=dismiss; __utma=98802054.1488072114.1502490309.1520607517.1529964386.2; ISA4=UmFuZG9tSVb3MQ4*yBlQrs4LyS*-ZM2HNRNeEh6aufZBstWH5qLx5PlaBLhZTYP9-KIMjaXfR1jxaRnttWLERz1iC17uDtrZ7yuMKX8AIxlttXzTpwq1WeRpggu*YAl*; TS01e5e42f=012f350623e078db9dd3a24de03907fe6139cf1c0322a495f821c6c3cd1d2a7eb34a972a4649421726f7c944eee4083934527eb9ab; TS01f293bb=012f350623cf7aab079f097d1da95ad0dbe5c154cea69bc38d6a48360453fd95dc65108c8360c9372dee046252ef090c3f95d89d2fb032a513adbb0ff420f3fb49aed4d412
+
+response: 200
+Set-Cookie: ISA4=UmFuZG9tSVaSq1Hn7T1D27*WpluIZUrX6U5YNmUW4R-CUKqaBrI0miEhZo4GkjLXnYMj0qmWkCG*QuUZHL8kUSUGUGwsTXXAlvzHwAUMlc4Ar1SCBXmR1WhJ5DnD2Ztn; path=/; domain=.ieee.org; HttpOnly;Secure
+Set-Cookie: TS01e5e42f=012f350623e078db9dd3a24de03907fe6139cf1c0322a495f821c6c3cd1d2a7eb34a972a4649421726f7c944eee4083934527eb9ab; Path=/; Secure; HTTPOnly
+Set-Cookie: TS01f293bb=012f350623682863672e2dda931b6c78cb03a1d870a69bc38d6a48360453fd95dc65108c836859fe5ea47cb91bef686a0aa037411596d0f843152529c9bf9fefc46317cf6d; path=/; domain=.ieee.org; HTTPonly; Secure
+

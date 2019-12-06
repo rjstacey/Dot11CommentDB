@@ -2,6 +2,7 @@
 
 var csvParse = require('csv-parse/lib/sync');
 var xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 
 /*
 function stringToHex(s) {
@@ -39,9 +40,9 @@ function parsePollComments(startCommentId, pollCommentsCsv) {
 			CommenterName: c[3],
 			Comment: c[4],
 			Category: c[5]? c[5].charAt(0): '',   // First letter only (G, T or E)
-			C_Page: c[6],
-			C_Clause: c[7],
-			C_Line: c[8],
+			C_Page: c[6].trim(),
+			C_Clause: c[7].trim(),
+			C_Line: c[8].trim(),
 			Page: parseFloat(c[6]) + parseFloat(c[8])/100,
 			Clause: c[7],
 			ProposedChange: c[9],
@@ -80,6 +81,7 @@ function parseCommentsSheet(commentsSheet, comments, updateComments, newComments
 
 
 	var highestIndex = 0;
+	var unmatchedComments = [];
 	comments.forEach(c => {
 
 		// Find the highest comment index in case we need to append new comments
@@ -91,17 +93,20 @@ function parseCommentsSheet(commentsSheet, comments, updateComments, newComments
 		 * If a cell is blank in the worksheet, it will have an undefined entry in the row object.
 		 * For Page and Line numbers convert to integer.
 		 *   Sometimes commenters enter fractional line numbers or fractional page numbers.
+		 *   They have been stored in raw (text) form in this database, but have been rounded to an integer in Adrian's database.
 		 * For Comment and Proposed Change compare only basic text.
-		 *   Line endings might differ: database has \n line endings while spreadsheet has \r\n line endings (so remove \r).
-		 *   Unicode characters might differ. */
+		 *   Line endings might differ: database has \n line endings while spreadsheet has \r\n line endings (so remove line endings).
+		 *   Only check ASCII characters. */
+		//const pattern = /[^A-Za-z0-9-+",:\/ ]|\r|\n/gm
+		const pattern = /[^\x00-\x7f]|\r?\n|\r/gm
 		var i = commentsSheetArray.findIndex(cs => 
-				(c.CommenterName == cs['Commenter'] &&
+				(c.CommenterName === cs['Commenter'] &&
 				 (c.Category === cs['Type of Comment']) &&
-				 (cs['Clause Number(C)'] === undefined || c.C_Clause.substring(0, cs['Clause Number(C)'].length) === cs['Clause Number(C)']) &&
-				 (cs['Page(C)'] === undefined || parseInt(c.C_Page) === parseInt(cs['Page(C)'])) &&
-				 (cs['Line(C)'] === undefined || parseInt(c.C_Line) === parseInt(cs['Line(C)'])) &&
-				 (cs['Comment'] === undefined || c.Comment.replace(/[^A-Za-z0-9-]|\r/gm, '') == cs['Comment'].replace(/[^A-Za-z0-9-]|\r/gm, '')) &&
-				 (cs['Proposed Change'] === undefined || c.ProposedChange.replace(/[^A-Za-z0-9-]|\r/gm, '') == cs['Proposed Change'].replace(/[^A-Za-z0-9-]|\r/gm, ''))
+				 (!cs.hasOwnProperty('Clause Number(C)') || c.C_Clause.substring(0, cs['Clause Number(C)'].length) === cs['Clause Number(C)']) &&
+				 (!cs.hasOwnProperty('Page(C)') || Math.round(parseFloat(c.C_Page)) === parseInt(cs['Page(C)'])) &&
+				 (!cs.hasOwnProperty('Line(C)') || Math.round(parseFloat(c.C_Line)) === parseInt(cs['Line(C)'])) &&
+				 (!cs.hasOwnProperty('Comment') || c.Comment.replace(pattern, '') === cs['Comment'].replace(pattern, '')) &&
+				 (!cs.hasOwnProperty('Proposed Change') || c.ProposedChange.replace(pattern, '') === cs['Proposed Change'].replace(pattern, ''))
 				))
 
 		if (i >= 0) {
@@ -120,7 +125,7 @@ function parseCommentsSheet(commentsSheet, comments, updateComments, newComments
 				c.Clause = cs['Clause']
 			}
 			var page = parseFloat(cs['Page'])
-			if (page && c.Page != page) {
+			if (page && c.Page !== page) {
 				c.Page = page
 			}
 			//console.log('match ', u)
@@ -133,18 +138,23 @@ function parseCommentsSheet(commentsSheet, comments, updateComments, newComments
 				newResolutions.push(n)
 			}
 		}
+		else {
+			unmatchedComments.push(c)
+		}
 	})
 
 	// The remaining entries in commentsSheetArray did not match an existing comment
 	commentsSheetArray.forEach(cs => {
+		var p = cs['Page(C)']? parseInt(cs['Page(C)']): 0
+		var l = cs['Line(C)']? parseInt(cs['Line(C)']): 0
 		newComments.push({
 			C_Index: ++highestIndex,
 			CommentID: cs['CID'],
 			CommenterName: cs['Commenter'],
 			Category: cs['Type of Comment'],
-			C_Page: parseInt(cs['Page(C)']).toString(),
-			C_Line: parseInt(cs['Line(C)']).toString(),
-			Page: parseFloat(cs['Page(C)']) + parseFloat(cs['Line(C)'])/100,
+			C_Page: cs['Page(C)']? cs['Page(C)'].trim(): '',
+			C_Line: cs['Line(C)']? cs['Line(C)'].trim(): '',
+			Page: p + l/100,
 			C_Clause: cs['Clause Number(C)'] || '',
 			Clause: cs['Clause'] || '',
 			Comment: cs['Comment'] || '',
@@ -156,6 +166,27 @@ function parseCommentsSheet(commentsSheet, comments, updateComments, newComments
 			newResolutions.push(n)
 		}
 	})
+
+	console.log('unmatchedComments: ', unmatchedComments)
+	console.log('commentsSheetArray: ', commentsSheetArray)
+	const pattern = /[^\x00-\x7f]|\r?\n|\r/gm
+	unmatchedComments.forEach(c => {
+		var i = commentsSheetArray.findIndex(cs => {
+			var r = false
+			console.log('CID=', c.CommentID, 'vs', cs['CID'])
+			if (c.CommenterName === cs['Commenter']) {console.log('Commenter')}
+			if (c.Category === cs['Type of Comment']) {console.log('Category')}
+			if (!cs.hasOwnProperty('Clause Number(C)') || c.C_Clause.substring(0, cs['Clause Number(C)'].length) === cs['Clause Number(C)']) {console.log('Clause')}
+			if (!cs.hasOwnProperty('Page(C)') || c.C_Page === cs['Page(C)'].trim()) {console.log('Page')}
+			if (!cs.hasOwnProperty('Line(C)') || c.C_Line === cs['Line(C)'].trim()) {console.log('Line')}
+			if (!cs.hasOwnProperty('Comment') || c.Comment.replace(pattern, '') === cs['Comment'].replace(pattern, '')) {console.log('Comment')}
+			if (!cs.hasOwnProperty('Proposed Change') || c.ProposedChange.replace(pattern, '') === cs['Proposed Change'].replace(pattern, '')) {console.log('Proposed')}
+			return r
+		})
+	})
+
+	const fs = require('fs');
+	fs.writeFile("c.txt", 'unmatchedComments: ' + JSON.stringify(unmatchedComments) + 'commentsSheetArray: ' + JSON.stringify(commentsSheetArray), (err) => {!err || console.log(err)})
 }
 
 module.exports = function (db, rp) {
@@ -476,8 +507,8 @@ module.exports = function (db, rp) {
 					SQL += ';'
 				}
 				const fs = require('fs');
-				fs.writeFile("sql.txt", SQL, console.log)
-				console.log('updateComments ', updateComments.length, ' newComments ', newComments.length, ' newResolutions ', newResolutions.length)
+				fs.writeFile("sql.txt", SQL, (err) => {if (err) {console.log(err)}})
+				//console.log('updateComments ', updateComments.length, ' newComments ', newComments.length, ' newResolutions ', newResolutions.length)
 
 				return db.query(SQL)
 			})

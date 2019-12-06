@@ -3,7 +3,7 @@ import Modal from 'react-modal';
 import update from 'immutability-helper';
 import {connect} from 'react-redux';
 import {Column, Table} from 'react-virtualized';
-import {setVotersFilter, setVotersSort, getVoters, deleteVoters, addVoter} from './actions/voters'
+import {setVotersFilters, setVotersSort, getVoters, deleteVoters, addVoter} from './actions/voters'
 import {sortClick, allSelected, toggleVisible} from './filter'
 import styles from './AppTable.css'
 import "react-datepicker/dist/react-datepicker.css";
@@ -71,7 +71,8 @@ class Voters extends React.Component {
 			{dataKey: 'LastName',	label: 'Last Name',		width: 150},
 			{dataKey: 'FirstName',	label: 'First Name',	width: 150},
 			{dataKey: 'MI',			label: 'MI',			width: 50},
-			{dataKey: 'Email',		label: 'Email',			width: 250}
+			{dataKey: 'Email',		label: 'Email',			width: 250},
+			{dataKey: 'Status',		label: 'Status',		width: 100}
 		];
 
 		this.maxWidth = this.columns.reduce((acc, col) => acc + col.width, 0)
@@ -86,11 +87,11 @@ class Voters extends React.Component {
 		}
 
 		// List of filterable columns
-    	const filterable = ['SAPIN', 'LastName', 'FirstName', 'MI', 'Email'];
+    	const filterable = ['SAPIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'];
 		if (Object.keys(props.filters).length === 0) {
-			filterable.forEach(dataKey => {
-				this.props.dispatch(setVotersFilter(dataKey, ''));
-			});
+			var filters = {};
+			filterable.forEach(dataKey => {filters[dataKey] = ''});
+			this.props.dispatch(setVotersFilters(filters));
 		}
 		this.sortable = filterable;
 	}
@@ -136,7 +137,7 @@ class Voters extends React.Component {
 		event.preventDefault();
 	}
 	filterChange = (event, dataKey) => {
-		this.props.dispatch(setVotersFilter(dataKey, event.target.value));
+		this.props.dispatch(setVotersFilters({[dataKey]: event.target.value}));
 	}
 
 	renderSortLabel = (props) => {

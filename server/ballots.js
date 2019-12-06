@@ -141,12 +141,13 @@ module.exports = function(db, rp) {
 	module.updateBallot = (req, res, next) => {
 		console.log(req.body);
 
-		if (!req.body.hasOwnProperty('BallotID')) {
-			return Promise.reject('Missing parameter BallotID')
+		if (!req.params.hasOwnProperty('ballotId')) {
+			return Promise.reject('Missing parameter ballotId')
 		}
-		var id = req.body.BallotID;
+		var id = req.params.ballotId;
 
 		var entry = {
+			BallotID: req.body.BallotID,
 			PrevBallotID: req.body.PrevBallotID,
 			VotingPoolID: req.body.VotingPoolID,
 			Project: req.body.Project,
@@ -161,26 +162,65 @@ module.exports = function(db, rp) {
 				delete entry[key]
 			}
 		});
+
+		var ballotData;
+		var p;
+
 		if (Object.keys(entry).length === 0) {
-			return Promise.resolve()
+			p = Promise.resolve(null)
+		}
+		else {
+			p = db.query('UPDATE ballots SET ? WHERE BallotID=?',  [entry, id])
+			.then(result => {
+				if (result.changedRows !== 1) {
+					console.log(result)
+					throw new Error("Unexpected result from SQL UPDATE")
+				}
+
+				if (entry.hasOwnProperty('BallotID') && id !== entry.BallotID) {
+					// The BallotID is being updated; do so for all tables
+					var SQL = db.format(
+						'SET @oldId = ?; SET @newId = ?; ' +
+						'UPDATE results SET BallotID=@newId WHERE BallotID=@oldId; ' +
+						'UPDATE comments SET BallotID=@newId WHERE BallotID=@oldId; ' +
+						'UPDATE resolutions SET BallotID=@newId WHERE BallotID=@oldId; ',
+						[id, entry.BallotID]);
+
+					id = entry.BallotID;	// Use new BallotID
+
+					return db.query(SQL)
+				}
+				return null;
+			}, err => {
+				if (err.code === 'ER_DUP_ENTRY') {
+					throw `Cannot change Ballot ID to ${entry.BallotID}; a ballot with that ID already exists`
+				}
+				throw err
+			})
 		}
 
-		var ballot;
-		return db.query('UPDATE ballots SET ? WHERE BallotID=?; SELECT * FROM ballots WHERE BallotID=?',  [entry, id, id])
+		return p
 			.then(results => {
-				if (results.length !== 2 || results[1].length != 1) {
-					throw "Unexpected SQL query result"
+				if (results) {
+					console.log(results)
 				}
-				ballot = results[1][0];
+				return db.query('SELECT * FROM ballots WHERE BallotID=?',  [id])
+			})
+			.then(results => {
+				console.log(results)
+				if (results.length !== 1 && results[0].length !== 1) {
+					throw new Error("Unexpected result SQL SELECT")
+				}
+				ballotData = results[0];
 				return resultsModule.getResultsLocal(id)
 			})
 			.then(results => {
-				ballot.Results = results.summary;
+				ballotData.Results = results.summary;
 				return db.query(GET_COMMENTS_FOR_BALLOT, [id])
 			})
 			.then(results => {
-				ballot.Comments = results[0];
-				return ballot
+				ballotData.Comments = results[0];
+				return ballotData
 			})
 	}
 

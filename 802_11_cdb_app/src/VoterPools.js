@@ -2,7 +2,7 @@ import React from 'react';
 import Modal from 'react-modal';
 import {connect} from 'react-redux';
 import {Column, Table} from 'react-virtualized';
-import {setVotingPoolSort, setVotingPoolFilter, getVotingPool, addVotingPool, deleteVotingPool, uploadVoters} from './actions/voters'
+import {setVotingPoolSort, setVotingPoolFilters, getVotingPool, addVotingPool, deleteVotingPool, uploadVoters} from './actions/voters'
 import {sortClick} from './filter'
 import styles from './AppTable.css'
 
@@ -136,9 +136,9 @@ class VoterPools extends React.PureComponent {
 		// List of filterable columns
     	const filterable = ['Name'];
 		if (Object.keys(props.filters).length === 0) {
-			filterable.forEach(dataKey => {
-				this.props.dispatch(setVotingPoolFilter(dataKey, ''));
-			});
+			var filters = {};
+			filterable.forEach(dataKey => {filters[dataKey] = ''});
+			this.props.dispatch(setVotingPoolFilters(filters));
 		}
 		this.sortable = ['Name', 'VoterCount'];
 	}
@@ -184,7 +184,7 @@ class VoterPools extends React.PureComponent {
 		event.preventDefault();
 	}
 	filterChange = (event, dataKey) => {
-		this.props.dispatch(setVotingPoolFilter(dataKey, event.target.value));
+		this.props.dispatch(setVotingPoolFilters({[dataKey]: event.target.value}));
 	}
 
 	renderActions = ({rowIndex, rowData}) => {
@@ -198,8 +198,8 @@ class VoterPools extends React.PureComponent {
 	renderHeaderActions = ({rowIndex}) => {
 		return (
 			<div title='Actions'>
-				<span className="fa fa-sync-alt" title='Refresh' onClick={this.refresh} />&nbsp;
-				<span className="fa fa-plus" title='Add' onClick={() => this.setState({showAddVotingPool: true})} />
+				<span title='Refresh' className="fa fa-sync-alt"  onClick={this.refresh} />&nbsp;
+				<span title='Add Voter Pool' className="fa fa-plus"  onClick={() => this.setState({showAddVotingPool: true})} />
 			</div>
 		)
 	}
