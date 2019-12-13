@@ -1,36 +1,31 @@
-#App {
-  display: table;
-  /* height: 100%;
-  width: 100%; */
+.title {
+	display: inline-block;
+	font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+	font-weight: 400;
+	font-size: 34px;
+	line-height: 40px;
+	margin: 24px 0;
+	padding: 0;
+	color: white;
 }
-#App header {
-  display: table;
-  width: 100vw;
-  height: 106px;
-  background-color: rgb(63,81,181);
+.header {
+	display: table;
+	width: 100vw;
+	height: 106px;
+	background-color: rgb(63,81,181);
 }
-#App header nav {
-  display: table-row;
+.header nav {
+	display: table-row;
 }
-#App header nav ul {
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
+.header nav ul {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
 }
-#App header nav ul li {
-  display: inline-block;
-  width: 100px;
+.header nav ul li {
+	display: inline-block;
+	width: 100px;
 }
-#App main {
-  height: calc(100% - 106px);
-}
-#App .AppTitle {
-  display: inline-block;
-  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
-  font-weight: 400;
-  font-size: 34px;
-  line-height: 40px;
-  margin: 24px 0;
-  padding: 0;
-  color: white;
+.main {
+	height: calc(100vh - 106px);
 }

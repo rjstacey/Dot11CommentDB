@@ -76,7 +76,7 @@
 }
 :local(.headerDrag) {
 	flex: 0 0 12px;
-	z-index: 2;
+	/*z-index: 2;*/
 	cursor: col-resize;
 	color: #0085ff;
 }
@@ -87,7 +87,7 @@
 :local(.dragHandleActive),
 :local(.dragHandleActive:hover) {
 	color: #0b6fcc;
-	z-index: 3;
+	/*z-index: 3;*/
 }
 :local(.dragHandleIcon) {
 	display: flex;
@@ -193,24 +193,11 @@
 :local(.doubleExpandable:checked) {
 	transform: rotate(90deg) translateX(-3px);
 }
-:local(.SelectCommentsOverlay) {
-	position: fixed; /* Stay in place */
-	z-index: 10; /* Sit on top */
-	left: 0;
-	top: 0;
-	width: 100%; /* Full width */
-	height: 100%; /* Full height */
-	background-color: rgb(0,0,0); /* Fallback color */
-	background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-}
 :local(.SelectCommentsContent) {
-	background-color: #fefefe;
-	/*margin: 15% auto; /* 15% from the top and centered */
-	margin-top: 126px;
-	margin-left: 54px;
-	padding: 20px;
-	border: 1px solid #888;
-	width: 80%; /* Could be more or less, depending on screen size */
+	top: 126px !important;
+	left: 54px !important;
+	width: 80% !important;
+	transform: none !important;
 }
 :local(.ModalDialog) {
 	max-height: 20vh;

@@ -1,6 +1,7 @@
 import React from 'react'
 import cx from 'classnames'
-import {Editor, EditorState, RichUtils, getDefaultKeyBinding, KeyBindingUtil} from 'draft-js';
+import {Editor, EditorState, RichUtils, ContentState, getDefaultKeyBinding, KeyBindingUtil, convertFromHTML} from 'draft-js';
+import {EditorToolIcon} from './Icons';
 import 'draft-js/dist/Draft.css'
 import {stateToHTML} from 'draft-js-export-html';
 import {stateFromHTML} from 'draft-js-import-html';
@@ -13,32 +14,32 @@ const styleMap = {
   }
 };
 
-class StyleButton extends React.Component {
-	constructor() {
-		super();
-		this.onToggle = (e) => {
+const StyleButton = (props) => {
+	let {className, label, isActive, isDisabled} = props;
+	className = cx(className, {
+		[styles.button]: true,
+		[styles.isActive]: isActive,
+	});
+	let onClick = (e) => {
 			e.preventDefault();
-			this.props.onToggle(this.props.style);
-		};
+			props.onClick(e);
 	}
-	render() {
-		let className = 'RichEditor-styleButton';
-		if (this.props.active) {
-			className += ' RichEditor-activeButton';
-		}
-		return (
-			<button className={styles.button} onMouseDown={this.onToggle}>
-				<span className={styles['icon-' + this.props.label]} />
-			</button>
-		);
-	}
+	return (
+		<button
+			className={className}
+			onMouseDown={onClick}
+			disabled={isDisabled}
+		>
+			<EditorToolIcon className={styles.icon} icon={label} />
+		</button>
+	);
 }
 
 const BLOCK_TYPES = [
-	{label: 'Quote', style: 'blockquote'},
-	{label: 'UL', style: 'unordered-list-item'},
-	{label: 'OL', style: 'ordered-list-item'},
-	{label: 'Code', style: 'code-block'},
+	{label: 'quote', style: 'blockquote'},
+	{label: 'unordered-list-item', style: 'unordered-list-item'},
+	{label: 'ordered-list-item', style: 'ordered-list-item'},
+	{label: 'code', style: 'code-block'},
 ];
 const BlockStyleControls = (props) => {
 	const {editorState} = props;
@@ -48,15 +49,13 @@ const BlockStyleControls = (props) => {
 		.getBlockForKey(selection.getStartKey())
 		.getType();
 	return (
-		//<div className="RichEditor-controls">
-		<div className={cx(styles.buttonGroup)}>
+		<div className={styles.buttonGroup}>
 			{BLOCK_TYPES.map((type) =>
 				<StyleButton
 					key={type.label}
-					active={type.style === blockType}
+					isActive={type.style === blockType}
 					label={type.label}
-					onToggle={props.onToggle}
-					style={type.style}
+					onClick={() => props.onChange(RichUtils.toggleBlockType(editorState, type.style))}
 				/>
 			)}
 		</div>
@@ -64,29 +63,48 @@ const BlockStyleControls = (props) => {
 };
 
 var INLINE_STYLES = [
-	{label: 'Bold', style: 'BOLD', title: 'Ctrl-b'},
-	{label: 'Italic', style: 'ITALIC', title: 'Ctrl-i'},
-	{label: 'Underline', style: 'UNDERLINE', title: 'Ctrl-u'},
-	{label: 'Strikethrough', style: 'STRIKETHROUGH', title: 'Ctrl-/'},
-	{label: 'Highlight', style: 'HIGHLIGHT'},
-	{label: 'Monospace', style: 'CODE'},
+	{label: 'bold', style: 'BOLD', title: 'Ctrl-b'},
+	{label: 'italic', style: 'ITALIC', title: 'Ctrl-i'},
+	{label: 'underline', style: 'UNDERLINE', title: 'Ctrl-u'},
+	{label: 'strikethrough', style: 'STRIKETHROUGH', title: 'Ctrl-/'},
+	{label: 'highlight', style: 'HIGHLIGHT'},
 ];
 const InlineStyleControls = (props) => {
-	const currentStyle = props.editorState.getCurrentInlineStyle();
-        
+	const {editorState} = props;
+	const currentStyle = editorState.getCurrentInlineStyle();
 	return (
-		//<div className="RichEditor-controls">
-		<div className={cx([styles.buttonGroup]: true)}>
+		<div className={styles.buttonGroup}>
 			{INLINE_STYLES.map((type) =>
 				<StyleButton
 					key={type.label}
-					active={currentStyle.has(type.style)}
+					isActive={currentStyle.has(type.style)}
 					label={type.label}
-					onToggle={props.onToggle}
-					style={type.style}
+					onClick={() => props.onChange(RichUtils.toggleInlineStyle(editorState, type.style))}
 					title={type.title}
 				/>
 			)}
+		</div>
+	);
+};
+
+const ActionControls = (props) => {
+	let editorState = props.editorState;
+	let canUndo = editorState.getUndoStack().size !== 0;
+    let canRedo = editorState.getRedoStack().size !== 0;
+	return (
+		<div className={styles.buttonGroup}>
+			<StyleButton
+				isDisabled={!canUndo}
+				label='undo'
+				onClick={() => props.onChange(EditorState.undo(editorState))}
+				title='Ctrl-z'
+			/>
+			<StyleButton
+				isDisabled={!canRedo}
+				label='redo'
+				onClick={() => props.onChange(EditorState.redo(editorState))}
+				title='Ctrl-r'
+			/>
 		</div>
 	);
 };
@@ -97,22 +115,40 @@ const options = {
 		ITALIC: {element: 'i'},
 		UNDERLINE: {element: 'ins'},
 		STRIKETHROUGH: {element: 'del'},
-		HIGHLIGHT: {style: {color: '#ccc'}},
+		HIGHLIGHT: {element: 'mark'},
 	},
 	//defaultBlockTag: ' '
+}
+
+function blockStyleFn(block) {
+	let result = styles.block;
+	switch (block.getType()) {
+	case 'unstyled':
+		return cx(result, styles.paragraph);
+	case 'blockquote':
+		return cx(result, styles.blockquote);
+	case 'code-block':
+		return cx(result, styles.codeBlock);
+	default:
+		return result;
+	}
 }
 
 export class ResolutionEditor extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = {editorState: EditorState.createEmpty()};
-		console.log(styles)
 	}
 	static getDerivedStateFromProps(props, state) {
 		let newState = {}
 		if (props.value !== state.value) {
 			newState.value = props.value
 			let contentState = stateFromHTML(props.value, options)
+			/*const blocksFromHTML = convertFromHTML(props.value);
+			const contentState = ContentState.createFromBlockArray(
+			  blocksFromHTML.contentBlocks,
+			  blocksFromHTML.entityMap
+			);*/
 			newState.editorState = EditorState.createWithContent(contentState)
 		}
 		return newState
@@ -169,47 +205,43 @@ export class ResolutionEditor extends React.Component {
 		}
 		return 'not-handled';
 	}
-	toggleBlockType = (blockType) => {
-		this.onChange(
-			RichUtils.toggleBlockType(
-				this.state.editorState,
-				blockType
-			)
-		);
-	}
-	toggleInlineStyle = (inlineStyle) => {
-		this.onChange(
-			RichUtils.toggleInlineStyle(
-				this.state.editorState,
-				inlineStyle
-			)
-		);
-	}
 	handlePastedText = (text, html) => {
 		console.log(html)
 		return false;
 	}
-	render() {
-		const {editorState} = this.state;
+	shouldHidePlaceholder = () => {
 		// If the user changes block type before entering any text, we can
 		// either style the placeholder or hide it. Let's just hide it now.
-		let className = 'RichEditor-editor';
-		var contentState = editorState.getCurrentContent();
+		let {editorState} = this.state;
+		let contentState = editorState.getCurrentContent();
 		if (!contentState.hasText()) {
 			if (contentState.getBlockMap().first().getType() !== 'unstyled') {
-				className += ' RichEditor-hidePlaceholder';
+				return true;
 			}
 		}
+		return false;
+	}
+	render() {
+		const {editorState} = this.state;
+
+		let className = cx({
+			[styles.editor]: true,
+			[styles.hidePlaceholder]: this.shouldHidePlaceholder(),
+		});
 
 		return (
-			<div>
+			<div className={styles.root}>
 				<BlockStyleControls
 					editorState={editorState}
-					onToggle={this.toggleBlockType}
+					onChange={this.onChange}
 				/>
 				<InlineStyleControls
 					editorState={editorState}
-					onToggle={this.toggleInlineStyle}
+					onChange={this.onChange}
+				/>
+				<ActionControls
+					editorState={editorState}
+					onChange={this.onChange}
 				/>
 				<Editor
 					className={className}
@@ -218,6 +250,7 @@ export class ResolutionEditor extends React.Component {
 					handleKeyCommand={this.handleKeyCommand}
 					keyBindingFn={this.mapKeyToEditorCommand}
 					handlePastedText={this.handlePastedText}
+					blockStyleFn={blockStyleFn}
 					placeholder='Enter some text...'
 					onChange={this.onChange}
 					onBlur={this.emitChange}

@@ -1,91 +1,112 @@
-#CommentDetail {
+.root {
 	display: flex;
 	flex-direction: column;
 	height: 100%;
 	width: 100%;
 }
 
-#CommentDetail .row {
+.row {
 	display: flex;
 	flex-direction: row;
 	width: 100%;
 	margin: 10px 0;
 }
 
-#CommentDetail .column {
+.tab {
+	display: block;
+	width: 100%;
+	/*height: 400px;*/
+}
+
+.column {
 	flex: 1;
 }
 
+.empty {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1em;
+	color: #bdbdbd;
+}
 
-#CommentDetail .CID,
-#CommentDetail .Page {
+.CID,
+.Page {
 	display: inline-block;
 	width: 200px;
 }
 
-#CommentDetail .Commenter,
-#CommentDetail .Clause {
+.Commenter,
+.Clause {
 	display: inline-block;
 	width: 300px;
 }
 
-#CommentDetail .MustSatisfy,
-#CommentDetail .Category {
+.MustSatisfy,
+.Category {
 	display: inline-block;
 }
 
 
-#CommentDetail label {
+label {
 	font-weight: bold;
 	white-space: nowrap;
 }
 
-#CommentDetail .Comment,
-#CommentDetail .ProposedChange {
+.Comment,
+.ProposedChange {
 	width: 100%;
 }
 
-#CommentDetail .TopRow {
+.TopRow {
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;
 }
-#CommentDetail .ResolutionStatus {
+.ResolutionStatus {
 	flex: 0;
 }
 
-#CommentDetail .SubmissionInput {
+.SubmissionInput {
 	width: 100px;
 }
-#CommentDetail .MotionNumber {
+.MotionNumber {
 	width: 40px;
 }
-#CommentDetail .ResolutionInput {
+.ResolutionInput {
 	width: 100%;
 	height: 100%;
 }
-#CommentDetail .EditedInDraft {
+.EditedInDraft {
 	width: 40px;
 }
 
-#CommentDetail .Resolution,
-#CommentDetail .EditingNotes,
-#CommentDetail .History,
-#CommentDetail .Notes {
+.Resolution,
+.EditingNotes,
+.History,
+.Notes {
 	width: 100%;
-	height: 200px;
+	/*height: 200px;*/
 }
-#CommentDetail .cTabs {
+
+
+.cTabs {
   position: relative;
-  height: 100%;
+  /*height: 100%;*/
 }
-#CommentDetail .cTabs_TabList {
+
+.cTabs_TabList {
   border-bottom: 1px solid #aaa;
   margin: 0 0 10px;
   padding: 0;
 }
 
-#CommentDetail .cTabs_Tab {
+.cTabs_Tab {
 	display: inline-block;
 	border: 1px solid transparent;
 	border-bottom: none;
@@ -96,7 +117,7 @@
 	cursor: pointer;
 }
 
-#CommentDetail .cTabs_Tab--selected {
+.cTabs_Tab__selected {
 	background: #fff;
 	border-color: #aaa;
 	color: black;
@@ -104,20 +125,20 @@
 	font-weight: bold;
 }
 
-#CommentDetail .cTabs_Tab--disabled {
+.cTabs_Tab__disabled {
 	color: GrayText;
 	cursor: default;
 	font-weight: normal;
 }
 
 /*
-#CommentDetail .cTabs_Tab:focus {
+.cTabs_Tab:focus {
 	box-shadow: 0 0 5px hsl(208, 99%, 50%);
 	border-color: hsl(208, 99%, 50%);
 	outline: none;
 }
 
-#CommentDetail .cTabs_Tab:focus:after {
+.cTabs_Tab:focus:after {
 	content: "";
 	position: absolute;
 	height: 5px;
@@ -128,9 +149,9 @@
 }
 */
 
-#CommentDetail .cTabs_TabPanel {
+.cTabs_TabPanel {
 	display: none;
-	position: absolute;
+	/*position: absolute;*/
 	top: 33px;
 	left: 0;
 	right: 0;
@@ -138,70 +159,7 @@
 	border-top: none;
 }
 
-#CommentDetail .cTabs_TabPanel--selected {
+.cTabs_TabPanel__selected {
 	display: block;
 }
 
-.RichEditor-root {
-  background: #fff;
-  border: 1px solid #ddd;
-  font-family: 'Georgia', serif;
-  font-size: 14px;
-  padding: 15px;
-}
-
-.RichEditor-editor {
-  border-top: 1px solid #ddd;
-  cursor: text;
-  font-size: 16px;
-  margin-top: 10px;
-}
-
-.RichEditor-editor .public-DraftEditorPlaceholder-root,
-.RichEditor-editor .public-DraftEditor-content {
-  margin: 0 -15px -15px;
-  padding: 15px;
-}
-
-.RichEditor-editor .public-DraftEditor-content {
-  min-height: 100px;
-}
-
-.RichEditor-hidePlaceholder .public-DraftEditorPlaceholder-root {
-  display: none;
-}
-
-.RichEditor-editor .RichEditor-blockquote {
-  border-left: 5px solid #eee;
-  color: #666;
-  font-family: 'Hoefler Text', 'Georgia', serif;
-  font-style: italic;
-  margin: 16px 0;
-  padding: 10px 20px;
-}
-
-.RichEditor-editor .public-DraftStyleDefault-pre {
-  background-color: rgba(0, 0, 0, 0.05);
-  font-family: 'Inconsolata', 'Menlo', 'Consolas', monospace;
-  font-size: 16px;
-  padding: 20px;
-}
-
-.RichEditor-controls {
-  font-family: 'Helvetica', sans-serif;
-  font-size: 14px;
-  margin-bottom: 5px;
-  user-select: none;
-}
-
-.RichEditor-styleButton {
-  color: #999;
-  cursor: pointer;
-  margin-right: 16px;
-  padding: 2px 0;
-  display: inline-block;
-}
-
-.RichEditor-activeButton {
-  color: #5890ff;
-}

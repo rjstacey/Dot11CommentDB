@@ -1,13 +1,56 @@
-import React from 'react';
-import Modal from 'react-modal';
+import PropTypes from 'prop-types';
+import React, {useState} from 'react';
+import AppModal from './AppModal';
 import {connect} from 'react-redux';
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
 import Draggable from 'react-draggable';
 import {sortClick, filterValidate} from './filter'
+import {IconRefresh, IconImport, IconClose, IconMore} from './Icons'
 import {setEpollsSort, setEpollsFilters, getEpolls} from './actions/epolls';
 import {addBallot} from './actions/ballots';
-import './Epolls.css'
 import styles from './AppTable.css'
+
+function EpollImportModal(props) {
+	const [ballotImport, setBallotImport] = useState(props.ballotImport);
+
+	function onOpen() {
+		console.log('open ', props.ballotImport)
+		setBallotImport(props.ballotImport)
+	}
+
+	function change(e) {
+		setBallotImport({...ballotImport, [e.target.name]: e.target.value})
+	}
+
+	function submit() {
+		props.dispatch(addBallot(ballotImport)).then(props.close)
+	}
+
+	return (
+		<AppModal
+			isOpen={props.isOpen}
+			onAfterOpen={onOpen}
+			onRequestClose={props.close}
+		>
+			<label>ePoll:<input type='text' name='EpollNum' value={ballotImport.EpollNum} readOnly /></label><br />
+			<label>Ballot ID:<input type='text' name='BallotID' value={ballotImport.BallotID} onChange={change}/></label><br />
+			<label>Project:<input type='text' name='Project' value={ballotImport.Project} onChange={change}/></label><br />
+			<label>Document:<input type='text' name='Document' value={ballotImport.Document} onChange={change}/></label><br />
+			<label>Topic:<input type='text' name='Topic' value={ballotImport.Topic} onChange={change}/></label><br />
+			<label>Start:<input type='text' name='Start' value={ballotImport.Start} onChange={change}/></label><br />
+			<label>End:<input type='text' name='End' value={ballotImport.End} onChange={change}/></label><br />
+			<label>Result:<input type='text' name='Votes' value={ballotImport.Votes} onChange={change}/></label><br />
+			<button type='submit' onClick={submit}>Import</button>
+			<button onClick={props.close}>Cancel</button>
+		</AppModal>
+	)
+}
+EpollImportModal.propTypes = {
+	isOpen: PropTypes.bool.isRequired,
+	close: PropTypes.func.isRequired,
+	dispatch: PropTypes.func.isRequired,
+	ballotImport: PropTypes.object.isRequired
+}
 
 class Epolls extends React.Component {
 	constructor(props) {
@@ -37,7 +80,6 @@ class Epolls extends React.Component {
 
 		this.state = {
 			showImportModal: false,
-			ballotImportWait: false,
 			ballotImport: {},
 			height: 100,
 			width: 100
@@ -60,17 +102,6 @@ class Epolls extends React.Component {
 		this.numberEpolls = 20;
 	}
   
-	static getDerivedStateFromProps(props, state) {
-		var newState = {}
-		if (state.ballotImportWait && !props.addBallot) {
-			Object.assign(newState, {ballotImportWait: false})
-			if (!props.addBallotError) {
-				Object.assign(newState, {showImportModal: false})
-			}
-		}
-		return newState
-	}
-
 	componentDidMount() {
 		this.updateDimensions()
 		window.addEventListener("resize", this.updateDimensions);
@@ -107,13 +138,6 @@ class Epolls extends React.Component {
 	hideImportModal = () => {
 		this.setState({showImportModal: false});
 	}
-	handleImportChange = (e) => {
-		this.setState({ballotImport: Object.assign({}, this.state.ballotImport, {[e.target.name]: e.target.value})})
-	}
-	importEpolls = (e) => {
-		this.props.dispatch(addBallot(this.state.ballotImport))
-		this.setState({ballotImportWait: true})
-	}
 	refresh = () => {
 		this.props.dispatch(getEpolls(this.numberEpolls))
 	}
@@ -135,9 +159,9 @@ class Epolls extends React.Component {
 	renderHeaderActions = ({rowIndex}) => {
 		return (
 			<React.Fragment>
-				<span className="fa fa-sync-alt" title='Refresh' onClick={this.refresh} />&nbsp;
-				<span className="fa fa-window-close" title='Close' onClick={this.props.close} />&nbsp;
-				<span className="fa fa-angle-double-down" title='Load More' onClick={this.getMore} />
+				<IconRefresh title='Refresh' onClick={this.refresh} />&nbsp;
+				<IconClose title='Close' onClick={this.props.close} />&nbsp;
+				<IconMore title='Load More' onClick={this.getMore} />
 			</React.Fragment>
 		)
 	}
@@ -149,7 +173,7 @@ class Epolls extends React.Component {
 			)
 		} else {
 			return (
-				<span className="fa fa-upload" title='Import' onClick={() => this.importClick(rowData)} />
+				<IconImport title='Import' onClick={() => this.importClick(rowData)} />
 			)
 		}
 	}
@@ -317,7 +341,6 @@ class Epolls extends React.Component {
 	}
 
 	render() {
-
 		return (
 			<div id='Epolls' style={{height: '100%'}}>
 				<div id='top-row'>
@@ -325,23 +348,13 @@ class Epolls extends React.Component {
 
 				{this.renderTable()}
 
-				<Modal 
-					className='ImportModalContent'
-					overlayClassName='ImportModalOverlay'
+				<EpollImportModal
 					isOpen={this.state.showImportModal}
-					appElement={document.querySelector('#Epolls')}
-				>
-					<label>ePoll:<input type='text' name='EpollNum' value={this.state.ballotImport.EpollNum} readOnly /></label><br />
-					<label>Ballot ID:<input type='text' name='BallotID' value={this.state.ballotImport.BallotID} onChange={this.handleImportChange}/></label><br />
-					<label>Project:<input type='text' name='Project' value={this.state.ballotImport.Project} onChange={this.handleImportChange}/></label><br />
-					<label>Document:<input type='text' name='Document' value={this.state.ballotImport.Document} onChange={this.handleImportChange}/></label><br />
-					<label>Topic:<input type='text' name='Topic' value={this.state.ballotImport.Topic} onChange={this.handleImportChange}/></label><br />
-					<label>Start:<input type='text' name='Start' value={this.state.ballotImport.Start} onChange={this.handleImportChange}/></label><br />
-					<label>End:<input type='text' name='End' value={this.state.ballotImport.End} onChange={this.handleImportChange}/></label><br />
-					<label>Result:<input type='text' name='Votes' value={this.state.ballotImport.Votes} onChange={this.handleImportChange}/></label><br />
-					<button type='submit' onClick={this.importEpolls}>Import</button>
-					<button onClick={this.hideImportModal}>Cancel</button>
-				</Modal>
+					close={this.hideImportModal}
+					ballotImport={this.state.ballotImport}
+					setBallotImport={this.setBallotImport}
+					dispatch={this.props.dispatch}
+				/>
 			</div>
 		)
 	}
@@ -359,8 +372,6 @@ function mapStateToProps(state) {
 		epollsDataMap: epolls.epollsDataMap,
 		getEpolls: epolls.getEpolls,
 		addBallot: ballots.addBallot,
-		ballotsErrorMsg: ballots.errorMsgs.length? ballots.errorMsgs[0]: null,
-		epollsErrorMsg: epolls.errorMsgs.length? epolls.errorMsgs[0]: null
 	}
 }
 export default connect(mapStateToProps)(Epolls);

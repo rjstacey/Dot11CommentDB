@@ -9,9 +9,9 @@ import BallotSelector from './BallotSelector';
 import {setResultsSort, setResultsFilters, getResults} from './actions/results'
 import {setBallotId} from './actions/ballots'
 import {sortClick, filterValidate} from './filter'
+import {IconSort} from './Icons'
 import styles from './AppTable.css'
 import {saveAs} from 'file-saver'
-//var ExcelJS = require('exceljs')
 var axios = require('axios');
 
 
@@ -325,9 +325,8 @@ class Results extends React.PureComponent {
 					style={{cursor: 'pointer'}}
 					onClick={e => this.sortChange(e, dataKey)}
 				>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 12px)'}}>{label}</div>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'ASC'? '12px': '0'}}><i className="fa fa-sort-alpha-down" /></div>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'DESC'? '12px': '0'}}><i className="fa fa-sort-alpha-up" /></div>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 13px)'}}>{label}</div>
+					{sortDirection !== 'NONE' && <IconSort direction={sortDirection} />}
 				</div>
 			)
 		}

@@ -1,68 +1,59 @@
-import React from 'react';
-import Modal from 'react-modal';
-import update from 'immutability-helper';
+import PropTypes from 'prop-types';
+import React, {useState} from 'react';
 import { connect } from 'react-redux';
 import {Column, Table} from 'react-virtualized';
 import Draggable from 'react-draggable';
+import update from 'immutability-helper';
+import AppModal from './AppModal';
 import {sortClick, allSelected, toggleVisible, filterValidate} from './filter';
+import {IconRefresh, IconAdd, IconDelete, IconSort} from './Icons';
 import {setUsersFilters, setUsersSort, getUsers, updateUser, addUser, deleteUsers} from './actions/users';
 import styles from './AppTable.css';
 
-const defaultUserData = {SAPIN: '', Name: '', Email: '', Access: 3};
 
-class AddUserModal extends React.PureComponent {
-	constructor(props) {
-		super(props)
+function AddUserModal(props) {
+	const defaultUserData = {SAPIN: '', Name: '', Email: '', Access: 3};
+	const [userData, setUserData] = useState(defaultUserData);
 
-		this.state = {
-			wasOpen: props.isOpen,
-			userData: defaultUserData
-		}
+	function onOpen() {
+		setUserData(defaultUserData)
 	}
 
-	static getDerivedStateFromProps(props, state) {
-		// Reset userData to default on each open
-		var newState = {};
-		if (props.isOpen && !state.wasOpen) {
-			newState.userData = defaultUserData;
-		}
-		newState.wasOpen = props.isOpen;
-		return newState;
+	function change(e) {
+		setUserData({...userData, [e.target.name]: e.target.value});
 	}
 
-	change = (e) => {
-		this.setState({userData: Object.assign({}, this.state.userData, {[e.target.name]: e.target.value})});
+	function submit(e) {
+		console.log(userData);
+		props.dispatch(addUser(userData));
+		props.close();
 	}
 
-	submit = (e) => {
-		console.log(this.state.userData);
-		this.props.dispatch(addUser(this.state.userData));
-		this.props.close();
-	}
-
-	render() {
-		return (
-			<Modal
-				className='ModalContent'
-				overlayClassName='ModalOverlay'
-				isOpen={this.props.isOpen}
-				appElement={this.props.appElement}
-			>
-				<label>SA PIN:<input type='text' name='SAPIN' value={this.state.userData.SAPIN} onChange={this.change}/></label><br />
-				<label>Name:<input type='text' name='Name' value={this.state.userData.Name} onChange={this.change}/></label><br />
-				<label>Email:<input type='text' name='Email' value={this.state.userData.Email} onChange={this.change}/></label><br />
-				<label>Access Level:
-					<select name='Access' value={this.state.userData.Access} onChange={this.change}>
-					<option value='1'>Basic</option>
-					<option value='2'>Plus</option>
-					<option value='3'>Super</option>
-					</select>
-				</label><br />
-				<button onClick={this.submit}>Add</button>
-				<button onClick={this.props.close}>Cancel</button>
-			</Modal>
-		)
-	}
+	return (
+		<AppModal
+			isOpen={props.isOpen}
+			onAfterOpen={onOpen}
+			onRequestClose={props.close}
+		>
+			<label>SA PIN:<input type='text' name='SAPIN' value={userData.SAPIN} onChange={change}/></label><br />
+			<label>Name:<input type='text' name='Name' value={userData.Name} onChange={change}/></label><br />
+			<label>Email:<input type='text' name='Email' value={userData.Email} onChange={change}/></label><br />
+			<label>Access Level:
+				<select name='Access' value={userData.Access} onChange={change}>
+				<option value='1'>Basic</option>
+				<option value='2'>Plus</option>
+				<option value='3'>Super</option>
+				</select>
+			</label><br />
+			<button onClick={submit}>Add</button>
+			<button onClick={props.close}>Cancel</button>
+		</AppModal>
+	)
+}
+AddUserModal.propTypes = {
+	isOpen: PropTypes.bool.isRequired,
+	close: PropTypes.func.isRequired,
+	dispatch: PropTypes.func.isRequired
 }
 
 class Users extends React.PureComponent {
@@ -118,7 +109,7 @@ class Users extends React.PureComponent {
 		this.state = {
 			height: 800,
 			width: width,
-			showAddModal: false,
+			showAddUserModal: false,
 			selectedUsers: [],
 
 			columnVisible,
@@ -192,9 +183,8 @@ class Users extends React.PureComponent {
 					style={{cursor: 'pointer'}}
 					onClick={e => this.sortChange(e, dataKey)}
 				>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 12px)'}}>{label}</div>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'ASC'? '12px': '0'}}><i className="fa fa-sort-alpha-down" /></div>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'DESC'? '12px': '0'}}><i className="fa fa-sort-alpha-up" /></div>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 13px)'}}>{label}</div>
+					{sortDirection !== 'NONE' && <IconSort direction={sortDirection} />}
 				</div>
 			)
 		}
@@ -334,7 +324,7 @@ class Users extends React.PureComponent {
 	renderActions = ({rowIndex}) => {
 		return (
 			<div className={styles.actionColumn}>
-				<span className="fa fa-trash-alt" title='Delete' />
+				<IconDelete title='Delete' />
 			</div>
 		)
 	}
@@ -342,9 +332,9 @@ class Users extends React.PureComponent {
 	renderHeaderActions = ({rowIndex}) => {
 		return (
 			<React.Fragment>
-				<span className="fa fa-sync-alt" title='Refresh' onClick={this.refresh} />&nbsp;
-				<span className="fa fa-plus" title='Add User' onClick={() => this.setState({showAddUserModal: true})} />&nbsp;
-				<span className="fa fa-trash-alt" title='Remove Selected Users' onClick={this.handleRemoveSelected} />
+				<IconRefresh title='Refresh' onClick={this.refresh} />&nbsp;
+				<IconAdd title='Add User' onClick={() => this.setState({showAddUserModal: true})} />&nbsp;
+				<IconDelete title='Remove Selected Users' onClick={this.handleRemoveSelected} />
 			</React.Fragment>
 		)
 	}
@@ -400,7 +390,6 @@ class Users extends React.PureComponent {
 					isOpen={this.state.showAddUserModal}
 					close={() => this.setState({showAddUserModal: false})}
 					dispatch={this.props.dispatch}
-					appElement={document.querySelector('#Users')}
 				/>
 			</div>
 		)

@@ -1,25 +1,26 @@
-#Epolls {
-	height: 100%;
-	width: 100%;
-}
-
-.ImportModalOverlay {
+.modalOverlay {
 	position: fixed; /* Stay in place */
-	z-index: 1; /* Sit on top */
 	left: 0;
+	right: 0;
 	top: 0;
+	bottom: 0;
 	width: 100%; /* Full width */
 	height: 100%; /* Full height */
 	background-color: rgb(0,0,0); /* Fallback color */
 	background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
 }
-.ImportModalContent {
+.modalContent {
+	position: absolute;
+	top: 20%;
+	left: 50%;
+	transform: translate(-50%, -50%);
 	background-color: #fefefe;
-	margin: 15% auto; /* 15% from the top and centered */
 	padding: 20px;
 	border: 1px solid #888;
 }
 
-.ImportModalContent label {
-	font-weight: bold;
+.close {
+	position: absolute;
+	top: 5px;
+	right: 5px;
 }

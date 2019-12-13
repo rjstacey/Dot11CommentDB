@@ -1,5 +1,4 @@
-import React from 'react';
-import Modal from 'react-modal';
+import React, {useRef} from 'react';
 import update from 'immutability-helper';
 import {connect} from 'react-redux';
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
@@ -13,7 +12,9 @@ import {setBallotId} from './actions/ballots'
 import styles from './AppTable.css';
 
 
-class AppTable extends React.PureComponent {
+function AppTable(props) {
+	tableRef = useRef();
+
 	constructor(props) {
 
 		super(props);
@@ -345,46 +346,39 @@ class AppTable extends React.PureComponent {
 		this.tableRef = ref;
 	}
 
-	renderTable() {
-		if (this.lastRenderedWidth !== this.state.width || this.lastBallotId !== this.props.ballotId) {
-			this.lastRenderedWidth = this.state.width
-			this.lastBallotId = this.props.ballotId
-			this.rowHeightCache.clearAll()
-		}
-		return (
-			<Table
-				className={styles.Table}
-				height={this.state.height}
-				width={this.state.width}
-				rowHeight={this.rowHeightCache.rowHeight}
-				headerHeight={44}
-				noRowsRenderer={this.noRowsRenderer}
-				headerClassName={styles.headerColumn}
-				rowClassName={this.rowClassName}
-				rowCount={this.props.commentDataMap.length}
-				rowGetter={this.rowGetter}
-				onRowDoubleClick={this.editRow}
-				//headerRowRenderer={this.headerRowRenderer}
-        		ref={this.setTableRef}
-        	>
-				{this.columns.map((col, index) => {
-					const {cellRenderer, headerRenderer, width, ...otherProps} = col;
-					if (col.dataKey && !this.isColumnVisible(col.dataKey)) {
-						return null
-					}
-					return (
-						<Column 
-							key={index}
-							columnData={col}
-							headerRenderer={headerRenderer? headerRenderer: this.renderHeaderCell}
-							cellRenderer={this.renderMeasuredCell}
-							width={this.state.columnWidth[col.dataKey]? this.state.columnWidth[col.dataKey]: width}
-							{...otherProps}
-						/>
-					)})}
-			</Table>
-        )
-	}
+	return (
+		<Table
+			className={styles.Table}
+			height={props.height}
+			width={props.width}
+			rowHeight={this.rowHeightCache.rowHeight}
+			headerHeight={44}
+			noRowsRenderer={this.noRowsRenderer}
+			headerClassName={styles.headerColumn}
+			rowClassName={this.rowClassName}
+			rowCount={this.props.commentDataMap.length}
+			rowGetter={props.rowGetter}
+			onRowDoubleClick={this.editRow}
+			//headerRowRenderer={this.headerRowRenderer}
+			ref={this.setTableRef}
+		>
+			{props.columns.map((col, index) => {
+				const {cellRenderer, headerRenderer, width, ...otherProps} = col;
+				if (col.dataKey && !this.isColumnVisible(col.dataKey)) {
+					return null
+				}
+				return (
+					<Column 
+						key={index}
+						columnData={col}
+						headerRenderer={headerRenderer? headerRenderer: this.renderHeaderCell}
+						cellRenderer={this.renderMeasuredCell}
+						width={this.state.columnWidth[col.dataKey]? this.state.columnWidth[col.dataKey]: width}
+						{...otherProps}
+					/>
+				)})}
+		</Table>
+	)
 
 	clearCachedRowHeight(rowIndex) {
 		// Clear all the column heights in the cache.
@@ -405,49 +399,14 @@ class AppTable extends React.PureComponent {
 			showCommentDetail: true
 		})
 	}
-
-	render() {   
-		return (
-			<div id='Comments'>
-				<div id='top-row'>
-        			<BallotSelector onBallotSelected={this.ballotSelected} />
-        			<button onClick={e => this.setState({showImport: true})}>Upload Resolutions</button>
-        			<ColumnSelector list={this.columns} toggleItem={this.toggleColumnVisible} isChecked={this.isColumnVisible}/>
-				</div>
-
-				{!this.state.showCommentDetail?
-					this.renderTable()
-					:
-					<CommentDetail
-						commentData={this.props.commentData}
-						commentDataMap={this.props.commentDataMap}
-						commentIndex={this.state.editIndex}
-						close={() => {this.setState({showCommentDetail: false})}}
-					/>
-				}
-				<ImportModal
-					ballotId={this.props.ballotId}
-					isOpen={this.state.showImport}
-					close={() => this.setState({showImport: false})}
-					dispatch={this.props.dispatch}
-					appElement={document.querySelector('#Comments')}
-				/>
-			</div>
-		)
-	}
-
 }
 
-function mapStateToProps(state) {
-	const {comments, ballots} = state
-	return {
-		filters: comments.filters,
-		sortBy: comments.sortBy,
-		sortDirection: comments.sortDirection,
-		ballotId: ballots.ballotId,
-		commentData: comments.commentData,
-		commentDataMap: comments.commentDataMap,
-		getComments: comments.getComments
-	}
+AppTable.propTypes = {
+	columns: PropTypes.array.isRequired,
+	height: PropTypes.number.isRequired,
+	width: PropTypes.number.isRequired,
+	data: PropTypes.array.isRequired,
+	dataMap: PropTypes.array.isRequired,
 }
-export default connect(mapStateToProps)(Comments);
+
+export default AppTable;

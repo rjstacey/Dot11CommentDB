@@ -5,20 +5,24 @@ import Users from './Users';
 import Ballots from './Ballots';
 import Epolls from './Epolls';
 import Comments from './Comments';
+import CommentDetail from './CommentDetail';
 import Results from './Results';
 import VoterPools from './VoterPools';
 import Voters from './Voters';
 import ErrorModal from './ErrorModal';
-import './App.css'
+import {init as iconInit} from './Icons'
+import styles from './App.css'
+
 
 class App extends React.Component {
 
 	render() {
+		iconInit();
 		return (
 			<Router>
 				<div id='App'>
-					<header>
-						<h3 className="AppTitle">802.11 Comment Database</h3>
+					<header className={styles.header}>
+						<h3 className={styles.title}>802.11 Comment Database</h3>
 						<nav>
 							<ul>
 								<li><Link to="/">Home</Link></li>
@@ -30,7 +34,7 @@ class App extends React.Component {
 							</ul>
 						</nav>
 					</header>
-					<main>
+					<main className={styles.main}>
 						<Route path="/" exact component={LoginForm} />
 						<Route path="/Users/" component={Users} />
 						<Route path="/Voters/" exact component={VoterPools} />
@@ -38,7 +42,8 @@ class App extends React.Component {
 						<Route path="/Ballots/" component={Ballots} />
 						<Route path="/Epolls/" component={Epolls} />
 						<Route path="/Results/:ballotId?" component={Results} />
-						<Route path="/Comments/:ballotId?" component={Comments} />
+						<Route path="/Comments/:ballotId?" exact component={Comments} />
+						<Route path="/Comments/:ballotId/:commentId(\d+)" component={CommentDetail} />
 						<ErrorModal />
 					</main>
 				</div>

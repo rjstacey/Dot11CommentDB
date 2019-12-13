@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
-import React from 'react';
-import Modal from 'react-modal';
+import React, {useRef, useState} from 'react';
+import {Redirect} from 'react-router-dom'
 import update from 'immutability-helper';
 import {connect} from 'react-redux';
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
@@ -8,10 +8,11 @@ import Draggable from 'react-draggable';
 import LinesEllipsis from 'react-lines-ellipsis';
 import BallotSelector from './BallotSelector';
 import ColumnSelector from './ColumnSelector';
-import CommentDetail from './CommentDetail';
+import AppModal from './AppModal';
 import {sortClick, allSelected, toggleVisible, filterValidate} from './filter';
 import {setCommentsSort, setCommentsFilters, getComments, uploadResolutions} from './actions/comments';
 import {setBallotId} from './actions/ballots';
+import {IconSort} from './Icons';
 import styles from './AppTable.css';
 
 
@@ -120,42 +121,19 @@ class ContentEditable extends React.Component {
     }
 }
 
-class SelectCommentsModal extends React.PureComponent {
+function SelectCommentsModal(props) {
+	const [list, setList] = useState('');
+	const listRef = useRef();
 
-	static propTypes = {
-		isOpen: PropTypes.bool.isRequired,
-		close: PropTypes.func.isRequired,
-		setSelected: PropTypes.func.isRequired,
-		selected: PropTypes.array.isRequired,
-		commentData: PropTypes.array.isRequired,
-		commentDataMap: PropTypes.array.isRequired,
-		appElement: PropTypes.any
+	function onOpen() {
+		const {commentData, selected} = props
+		const cidValid = cid => commentData.filter(row => row.CommentID === cid).length > 0
+		const list = selected.map(cid => cidValid(cid)? cid.toString(): '<span style="color: red">' + cid + '</span>').join(', ')
+		setList(list)
 	}
 
-	constructor(props) {
-		super(props)
-		this.state = {
-			isOpen: false,
-			list: ''
-		}
-		this.listRef = React.createRef()
-	}
-
-	static getDerivedStateFromProps(props, state) {
-		var newState = {}
-		if (state.isOpen !== props.isOpen) {
-			const {commentData} = props
-			const cidValid = cid => commentData.filter(row => row.CommentID === cid).length > 0
-			const list = props.selected.map(cid => cidValid(cid)? cid.toString(): '<span style="color: red">' + cid + '</span>').join(', ')
-			newState = {
-				isOpen: props.isOpen,
-				list: list
-			}
-		}
-		return newState
-	}
-	changeList = (e) => {
-		const {commentData} = this.props
+	function changeList(e) {
+		const {commentData} = props
 		const cidValid = cid => commentData.filter(row => row.CommentID === cid).length > 0
 		const listArr = e.target.value.match(/\d+[^\d]*/g)
 		if (listArr) {
@@ -171,95 +149,96 @@ class SelectCommentsModal extends React.PureComponent {
 					list += '<span style="color: red">' + cid + '</span>' + sep
 				}
 			})
-			this.setState({list})
+			setList(list)
 		}
 	}
-	selectShown = () => {
-		const {commentData, commentDataMap} = this.props
+
+	function selectShown() {
+		const {commentData, commentDataMap} = props
 		const list = commentDataMap.map(i => commentData[i].CommentID).join(', ')
-		this.setState({list})
+		setList(list)
 	}
-	clear = () => {
-		this.setState({list: ''})
+
+	function clear() {
+		setList('')
 	}
-	submit = () => {
+
+	function submit() {
 		//const listStr = this.state.list.replace(/<span[^>]*>|<\/span>/g, '')	// strip out <span> and </span>
-		const listStr = this.listRef.current.innerText
+		const listStr = listRef.current.innerText
 		const listArr = listStr.match(/\d+/g)	// split out numbers
 		const cids = listArr? listArr.map(cid => parseInt(cid, 10)): []
-		this.props.setSelected(cids)
-		this.props.close()
+		props.setSelected(cids)
+		props.close()
 	}
-	render() {
-		return (
-			<Modal
-				className={styles.SelectCommentsContent}
-				overlayClassName={styles.SelectCommentsOverlay}
-				isOpen={this.props.isOpen}
-				appElement={this.props.appElement}
-			>
-				<div>
-					<button onClick={this.selectShown}>Select Filtered</button>
-					<button onClick={this.clear}>Clear</button>
-					<p>Enter a list of CIDs:</p>
-					<ContentEditable
-						className={styles.ModalDialog}
-						innerRef={this.listRef}
-						html={this.state.list}
-						onChange={this.changeList}
-					/>
-					<br />
-					<button onClick={this.submit}>OK</button>
-					<button onClick={this.submit}>Edit Selected</button>
-					<button onClick={this.props.close}>Cancel</button>
-				</div>
-				<div className={styles.ModalArrow}></div>
-			</Modal>
-		)
-	}
+
+	return (
+		<AppModal
+			className={styles.SelectCommentsContent}
+			isOpen={props.isOpen}
+			onRequestClose={props.close}
+			onAfterOpen={onOpen}
+		>
+			<div className={styles.ModalArrow}></div>
+			<button onClick={selectShown}>Select Filtered</button>
+			<button onClick={clear}>Clear</button>
+			<p>Enter a list of CIDs:</p>
+			<ContentEditable
+				className={styles.ModalDialog}
+				innerRef={listRef}
+				html={list}
+				onChange={changeList}
+			/>
+			<br />
+			<button onClick={submit}>OK</button>
+			<button onClick={submit}>Edit Selected</button>
+			<button onClick={props.close}>Cancel</button>
+		</AppModal>
+	)
+}
+SelectCommentsModal.propTypes = {
+	isOpen: PropTypes.bool.isRequired,
+	close: PropTypes.func.isRequired,
+	setSelected: PropTypes.func.isRequired,
+	selected: PropTypes.array.isRequired,
+	commentData: PropTypes.array.isRequired,
+	commentDataMap: PropTypes.array.isRequired,
 }
 
-class ImportModal extends React.PureComponent {
+function ImportModal(props) {
+	const fileInputRef = useRef();
 
-	static propTypes = {
-		ballotId: PropTypes.string.isRequired,
-		isOpen: PropTypes.bool.isRequired,
-		close: PropTypes.func.isRequired,
-		appElement: PropTypes.any
+	function submit() {
+		props.dispatch(uploadResolutions(props.ballotId, fileInputRef.current.files[0]))
+		props.close()
 	}
 
-	constructor(props) {
-		super(props)
-		this.fileInputRef = React.createRef();
-	}
-	submit = () => {
-		this.props.dispatch(uploadResolutions(this.props.ballotId, this.fileInputRef.current.files[0]))
-		this.props.close()
-	}
-	render() {
-		return (
-			<Modal
-				className='ModalContent'
-				overlayClassName='ModalOverlay'
-				isOpen={this.props.isOpen}
-				appElement={this.props.appElement}
-			>
-				<p>Import resolutions for {this.props.ballotId}. Current resolutions (if any) will be deleted.</p>
-				<label>
-				From file&nbsp;&nbsp;
-					<input
-						type='file'
-						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-						ref={this.fileInputRef}
-					/>
-				</label>
-				<br />
-				<button onClick={this.submit}>OK</button>
-				<button onClick={this.props.close}>Cancel</button>
-			</Modal>
-		)
-	}
+	return (
+		<AppModal
+			isOpen={props.isOpen}
+			onRequestClose={props.close}
+		>
+			<p>Import resolutions for {props.ballotId}. Current resolutions (if any) will be deleted.</p>
+			<label>
+			From file&nbsp;&nbsp;
+				<input
+					type='file'
+					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+					ref={fileInputRef}
+				/>
+			</label>
+			<br />
+			<button onClick={submit}>OK</button>
+			<button onClick={props.close}>Cancel</button>
+		</AppModal>
+	)
 }
+ImportModal.propTypes = {
+	ballotId: PropTypes.string.isRequired,
+	isOpen: PropTypes.bool.isRequired,
+	close: PropTypes.func.isRequired,
+}
+
 
 class Comments extends React.Component {
 	constructor(props) {
@@ -352,21 +331,11 @@ class Comments extends React.Component {
 		window.addEventListener("resize", this.updateDimensions);
 
 		const ballotId = this.props.match.params.ballotId;
-		//console.log(ballotId, this.props.ballotId)
-		if (this.props.ballotId !== ballotId && (this.props.ballotId || ballotId)) {
-			if (ballotId) {
-				// Routed here with parameter ballotId specified, but not matching stored ballotId
-				// Store the ballotId and get results for this ballotId
-				this.props.dispatch(setBallotId(ballotId))
-				this.props.dispatch(getComments(ballotId))
-			}
-			else {
-				// Routed here with parameter ballotId unspecified, but we have a ballotId stored
-				// Redirect to the stored ballotId
-				this.props.history.replace(`/Comments/${this.props.ballotId}`)
-				console.log(`/Comments/${this.props.ballotId}`)
-				this.props.dispatch(getComments(this.props.ballotId))
-			}
+		if (ballotId && ballotId !== this.props.ballotId) {
+			// Routed here with parameter ballotId specified, but not matching stored ballotId
+			// Store the ballotId and get results for this ballotId
+			this.props.dispatch(setBallotId(ballotId))
+			this.props.dispatch(getComments(ballotId))
 			this.rowHeightCache.clearAll()
 		}
 	}
@@ -378,10 +347,12 @@ class Comments extends React.Component {
 	updateDimensions = () => {
 		var header = document.getElementsByTagName('header')[0]
 		var top = document.getElementById('top-row')
-		var height = window.innerHeight - header.offsetHeight - top.offsetHeight - 5
-		var width = window.innerWidth - 1; //parent.offsetWidth
-		//console.log('update ', width, height)
-		this.setState({height, width})
+		if (header && top) {
+			var height = window.innerHeight - header.offsetHeight - top.offsetHeight - 5
+			var width = window.innerWidth - 1; //parent.offsetWidth
+			//console.log('update ', width, height)
+			this.setState({height, width})
+		}
 	}
 
 	resizeColumn = ({dataKey, deltaX}) => {
@@ -443,10 +414,6 @@ class Comments extends React.Component {
 						//this.setState({selectedComments: toggleVisible(selectedComments, commentDataMap, commentData, 'CommentID')})
 					}}
 				/>
-				{/*<span
-					style={{cursor: 'pointer'}}
-					title="Expand All"
-					className={expanded? "fa fa-angle-double-down": "fa fa-angle-double-right"}*/}
 				<input
 					className={styles.doubleExpandable}
 					type="checkbox"
@@ -479,10 +446,6 @@ class Comments extends React.Component {
 						})
 					}}
 				/>
-				{/*<span
-					style={{cursor: 'pointer'}}
-					title="Expand Row"
-					className={expanded? "fa fa-angle-down": "fa fa-angle-right"}*/}
 				<input
 					className={styles.expandable}
 					type="checkbox"
@@ -501,9 +464,6 @@ class Comments extends React.Component {
 	}
 
 	renderDataCellCheck = ({rowIndex, rowData, dataKey}) => {
-		/*return (
-			<span className={rowData[dataKey]? "fas fa-check": ""} />
-		)*/
 		return rowData[dataKey]? '\u2714': ''
 	}
 
@@ -529,9 +489,8 @@ class Comments extends React.Component {
 					style={{cursor: 'pointer'}}
 					onClick={e => this.sortChange(e, dataKey)}
 				>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 12px)'}}>{label}</div>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'ASC'? '12px': '0'}}><i className="fa fa-sort-alpha-down" /></div>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'DESC'? '12px': '0'}}><i className="fa fa-sort-alpha-up" /></div>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 13px)'}}>{label}</div>
+					{sortDirection !== 'NONE' && <IconSort direction={sortDirection} />}
 				</div>
 			)
 		}
@@ -732,26 +691,29 @@ class Comments extends React.Component {
 		})
 	}
 
-	render() {   
+	render() {
+		const ballotId = this.props.match.params.ballotId;
+		if ((!ballotId && this.props.ballotId) ||
+			(ballotId && this.props.ballotId && ballotId !== this.props.ballotId)) {
+			// Routed here with parameter ballotId unspecified, but we have a ballotId stored
+			// Redirect to the stored ballotId
+			// Or the ballotId has changed
+			console.log('render ', ballotId, this.props.ballotId)
+			return <Redirect push={!ballotId} to={`/Comments/${this.props.ballotId}`} />
+		}
+		if (this.state.showCommentDetail) {
+			return <Redirect push to={this.props.location.pathname + `/${this.props.commentData[this.state.editIndex].CommentID}`} />
+		}
 		return (
 			<div id='Comments'>
 				<div id='top-row'>
         			<BallotSelector onBallotSelected={this.ballotSelected} />
         			<button onClick={e => this.setState({showImport: true})}>Upload Resolutions</button>
-        			<button onClick={e => this.setState({showSelectComments: true})}>Select</button>
         			<ColumnSelector list={this.columns} toggleItem={this.toggleColumnVisible} isChecked={this.isColumnVisible}/>
 				</div>
 
-				{!this.state.showCommentDetail?
-					this.renderTable()
-					:
-					<CommentDetail
-						commentData={this.props.commentData}
-						commentDataMap={this.props.commentDataMap}
-						commentIndex={this.state.editIndex}
-						close={() => {this.setState({showCommentDetail: false})}}
-					/>
-				}
+				{this.renderTable()}
+
 				<ImportModal
 					ballotId={this.props.ballotId}
 					isOpen={this.state.showImport}
@@ -759,6 +721,7 @@ class Comments extends React.Component {
 					dispatch={this.props.dispatch}
 					appElement={document.querySelector('#Comments')}
 				/>
+
 				<SelectCommentsModal
 					isOpen={this.state.showSelectComments}
 					close={() => this.setState({showSelectComments: false})}
@@ -771,7 +734,6 @@ class Comments extends React.Component {
 			</div>
 		)
 	}
-
 }
 
 function mapStateToProps(state) {

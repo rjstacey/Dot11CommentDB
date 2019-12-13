@@ -1,61 +1,65 @@
-import React from 'react';
-import Modal from 'react-modal';
+import PropTypes from 'prop-types';
+import React, {useState} from 'react';
 import update from 'immutability-helper';
 import {connect} from 'react-redux';
 import {Column, Table} from 'react-virtualized';
 import {setVotersFilters, setVotersSort, getVoters, deleteVoters, addVoter} from './actions/voters'
 import {sortClick, allSelected, toggleVisible} from './filter'
+import AppModal from './AppModal';
 import styles from './AppTable.css'
 import "react-datepicker/dist/react-datepicker.css";
 
-class AddVoterModal extends React.PureComponent {
-	constructor(props) {
-		super(props);
-		this.state = {
-			voter: {SAPIN: 0, LastName: '', FirstName: '', MI: '', Email: ''}
-		}
+function AddVoterModal(props) {
+	const defaultVoter = {SAPIN: 0, LastName: '', FirstName: '', MI: '', Email: ''};
+	const [voter, setVoter] = useState(defaultVoter);
+
+	function onOpen() {
+		setVoter(defaultVoter)
 	}
-	change = (e) => {
-		this.setState({voter: {...this.state.voter, [e.target.name]: e.target.value}})
+
+	function change(e) {
+		setVoter({...voter, [e.target.name]: e.target.value})
 	}
-	submit = (e) => {
-		this.props.dispatch(addVoter({
-			VotingPoolID: this.props.votingPool.VotingPoolID,
-			...this.state.voter
-		})).then(this.props.close)
+
+	function submit(e) {
+		props.dispatch(addVoter({
+			VotingPoolID: props.votingPool.VotingPoolID,
+			...voter
+		})).then(props.close)
 	}
-	render() {
-		if (!this.props.votingPool) {
-			return null
-		}
-		const style = {
-			label: {display: 'inline-block', textAlign: 'left', width: '100px'}
-		}
-		return (
-			<Modal
-				className='ModalContent'
-				overlayClassName='ModalOverlay'
-				isOpen={this.props.isOpen}
-				appElement={this.props.appElement}
-			>
-				<p>Add voter to voting pool {this.props.votingPool.Name}</p>
-				<label style={style.label}>SA PIN:</label>
-					<input style={{width: 100}} type='text' name='SAPIN' value={this.state.voter.SAPIN} onChange={this.change}/><br />
-				<label style={style.label}>Last Name:</label>
-					<input style={{width: 150}} type='text' name='LastName' value={this.state.voter.LastName} onChange={this.change}/><br />
-				<label style={style.label}>First Name:</label>
-					<input style={{width: 150}} type='text' name='FirstName' value={this.state.voter.FirstName} onChange={this.change}/><br />
-				<label style={style.label}>MI:</label>
-					<input style={{width: 50}} type='text' name='MI' value={this.state.voter.MI} onChange={this.change}/><br />
-				<label style={style.label}>Email:</label>
-					<input style={{width: 250}} type='text' name='Email' value={this.state.voter.Email} onChange={this.change}/><br />
-				<p>
-					<button onClick={this.submit}>OK</button>
-					<button onClick={this.props.close}>Cancel</button>
-				</p>
-			</Modal>
-		)
+
+	const style = {
+		label: {display: 'inline-block', textAlign: 'left', width: '100px'}
 	}
+	return (
+		<AppModal
+			isOpen={props.isOpen}
+			onAfterOpen={onOpen}
+			onRequestClose={props.close}
+		>
+			<p>Add voter to voting pool {props.votingPool.Name}</p>
+			<label style={style.label}>SA PIN:</label>
+				<input style={{width: 100}} type='text' name='SAPIN' value={voter.SAPIN} onChange={change}/><br />
+			<label style={style.label}>Last Name:</label>
+				<input style={{width: 150}} type='text' name='LastName' value={voter.LastName} onChange={change}/><br />
+			<label style={style.label}>First Name:</label>
+				<input style={{width: 150}} type='text' name='FirstName' value={voter.FirstName} onChange={change}/><br />
+			<label style={style.label}>MI:</label>
+				<input style={{width: 50}} type='text' name='MI' value={voter.MI} onChange={change}/><br />
+			<label style={style.label}>Email:</label>
+				<input style={{width: 250}} type='text' name='Email' value={voter.Email} onChange={change}/><br />
+			<p>
+				<button onClick={submit}>OK</button>
+				<button onClick={props.close}>Cancel</button>
+			</p>
+		</AppModal>
+	)
+}
+AddVoterModal.propTypes = {
+	isOpen: PropTypes.bool.isRequired,
+	close: PropTypes.func.isRequired,
+	votingPool: PropTypes.object.isRequired,
+	dispatch: PropTypes.func.isRequired
 }
 
 class Voters extends React.Component {
@@ -83,7 +87,8 @@ class Voters extends React.Component {
 			selectedRows: [],
 			showVotersImport: false,
 			showAddVoter: false,
-			showVoters: false
+			showVoters: false,
+			close: false
 		}
 
 		// List of filterable columns
@@ -261,12 +266,15 @@ class Voters extends React.Component {
 	}
 
 	render() {
+		if (this.state.close) {
+			this.props.history.goBack()
+		}
 		return (
 			<div id='Voters'>
 				{this.props.votingPool?
 					(<div id='top-row'>
 					<label>Voting Pool:<span>{this.props.votingPool.Name}</span></label><br/>
-					<button onClick={this.props.close}>Back</button>
+					<button onClick={() => this.setState({close: true})}>Back</button>
 					<button onClick={this.handleRemoveSelected}>Remove Selected</button>
 					<button onClick={() => this.setState({showAddVoter: true})}>Add</button>
 					</div>):
@@ -280,8 +288,6 @@ class Voters extends React.Component {
 					close={() => this.setState({showAddVoter: false})}
 					votingPool={this.props.votingPool}
 					dispatch={this.props.dispatch}
-					appElement={document.querySelector('#Voters')}
-					coulmns={this.columns}
 				/>
 			</div>
 		)
@@ -298,7 +304,6 @@ function mapStateToProps(state) {
 		votersData: voters.votersData,
 		votersDataMap: voters.votersDataMap,
 		getVoters: voters.getVoters,
-		errorMsg: voters.errorMsgs.length? voters.errorMsgs[0]: null,
 	}
 }
 export default connect(mapStateToProps)(Voters);

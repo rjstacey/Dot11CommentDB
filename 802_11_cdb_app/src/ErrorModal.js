@@ -1,6 +1,6 @@
 import React from 'react';
-import Modal from 'react-modal';
 import {connect} from 'react-redux';
+import AppModal from './AppModal';
 import {clearUsersError} from './actions/users';
 import {clearBallotsError} from './actions/ballots';
 import {clearEpollsError} from './actions/epolls';
@@ -8,49 +8,42 @@ import {clearVotersError} from './actions/voters';
 import {clearResultsError} from './actions/results';
 import {clearCommentsError} from './actions/comments';
 
-class ErrorModal extends React.Component {
-
-	render() {
-		var msg = null;
-		var clearFunc = undefined;
-		if (this.props.usersErrorMsg) {
-			msg = this.props.usersErrorMsg;
-			clearFunc = clearUsersError;
-		}
-		else if (this.props.ballotsErrorMsg) {
-			msg = this.props.ballotsErrorMsg;
-			clearFunc = clearBallotsError;
-		}
-		else if (this.props.epollsErrorMsg) {
-			msg = this.props.epollsErrorMsg;
-			clearFunc = clearEpollsError;
-		}
-		else if (this.props.votersErrorMsg) {
-			msg = this.props.votersErrorMsg;
-			clearFunc = clearVotersError;
-		}
-		else if (this.props.resultsErrorMsg) {
-			msg = this.props.resultsErrorMsg;
-			clearFunc = clearResultsError;
-		}
-		else if (this.props.commentsErrorMsg) {
-			msg = this.props.commentsErrorMsg;
-			clearFunc = clearCommentsError;
-		}
-
-
-		return (
-			<Modal
-				className='ModalContent'
-				overlayClassName='ModalOverlay'
-				isOpen={!!msg}
-				appElement={document.querySelector('main')}
-			>
-				<p>{msg}</p>
-				<button onClick={() => this.props.dispatch(clearFunc())}>OK</button>
-			</Modal>
-		)
+function ErrorModal(props) {
+	var msg = null;
+	var clearFunc = undefined;
+	if (props.usersErrorMsg) {
+		msg = props.usersErrorMsg;
+		clearFunc = clearUsersError;
 	}
+	else if (props.ballotsErrorMsg) {
+		msg = props.ballotsErrorMsg;
+		clearFunc = clearBallotsError;
+	}
+	else if (props.epollsErrorMsg) {
+		msg = props.epollsErrorMsg;
+		clearFunc = clearEpollsError;
+	}
+	else if (props.votersErrorMsg) {
+		msg = props.votersErrorMsg;
+		clearFunc = clearVotersError;
+	}
+	else if (props.resultsErrorMsg) {
+		msg = props.resultsErrorMsg;
+		clearFunc = clearResultsError;
+	}
+	else if (props.commentsErrorMsg) {
+		msg = props.commentsErrorMsg;
+		clearFunc = clearCommentsError;
+	}
+
+	return (
+		<AppModal
+			isOpen={!!msg}
+		>
+			<p>{msg}</p>
+			<button onClick={() => props.dispatch(clearFunc())}>OK</button>
+		</AppModal>
+	)
 }
 
 function mapStateToProps(state) {

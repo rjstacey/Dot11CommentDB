@@ -11,6 +11,7 @@ import {getVotingPool} from './actions/voters';
 import {deleteCommentsWithBallotId, importComments, uploadComments} from './actions/comments'
 import {deleteResults, importResults, uploadResults} from './actions/results'
 import {sortClick, filterValidate} from './filter'
+import {IconImport, IconSort, IconDelete} from './Icons'
 import styles from './AppTable.css'
 
 class ImportModal extends React.PureComponent {
@@ -374,12 +375,12 @@ class Ballots extends React.PureComponent {
 		return resultsStr
 			? <React.Fragment>
 				<Link to={`/Results/${rowData.BallotID}`}>{resultsStr}</Link>&nbsp;
-				<i title="Delete Results" className={`fa fa-trash-alt ${styles.actionCell}`} onClick={e => this.deleteResultsClick(e, rowData)} />&nbsp;
-				<i title="Import Results" className={`fa fa-upload ${styles.actionCell}`} onClick={e => this.importResultsClick(e, rowData)} />
+				<IconDelete title="Delete Results" className={styles.actionCell} onClick={e => this.deleteResultsClick(e, rowData)} />&nbsp;
+				<IconImport title="Import Results" className={styles.actionCell} onClick={e => this.importResultsClick(e, rowData)} />
 			  </React.Fragment>
 			: <React.Fragment>
 				None&nbsp;
-				<i title="Import Results" className={`fa fa-upload ${styles.actionCell}`} onClick={e => this.importResultsClick(e, rowData)} />
+				<IconImport title="Import Results" className={styles.actionCell} onClick={e => this.importResultsClick(e, rowData)} />
 			  </React.Fragment>
 	}
 
@@ -388,12 +389,12 @@ class Ballots extends React.PureComponent {
 		return (comments && comments.Count > 0)
 			? <React.Fragment>
 				<Link to={`/Comments/${rowData.BallotID}`}>{comments.CommentIDMin}-{comments.CommentIDMax} ({comments.Count})</Link>&nbsp;
-				<i title="Delete Comments" className={`fa fa-trash-alt ${styles.actionCell}`} onClick={e => this.deleteCommentsClick(e, rowData)} />&nbsp;
-				<i title="Import Comments" className={`fa fa-upload ${styles.actionCell}`} onClick={e => this.importCommentsClick(e, rowData)} />
+				<IconDelete title="Delete Comments" className={styles.actionCell} onClick={e => this.deleteCommentsClick(e, rowData)} />&nbsp;
+				<IconImport title="Import Comments" className={styles.actionCell} onClick={e => this.importCommentsClick(e, rowData)} />
 			  </React.Fragment>
 			: <React.Fragment>
 				None&nbsp;
-				<i title="Import Comments" className={`fa fa-upload ${styles.actionCell}`} onClick={e => this.importCommentsClick(e, rowData)} />
+				<IconImport title="Import Comments" className={styles.actionCell} onClick={e => this.importCommentsClick(e, rowData)} />
 			  </React.Fragment>
 	}
 
@@ -412,9 +413,8 @@ class Ballots extends React.PureComponent {
 					style={{cursor: 'pointer'}}
 					onClick={e => this.sortChange(e, dataKey)}
 				>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 12px)'}}>{label}</div>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'ASC'? '12px': '0'}}><i className="fa fa-sort-alpha-down" /></div>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'DESC'? '12px': '0'}}><i className="fa fa-sort-alpha-up" /></div>
+					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 13px)'}}>{label}</div>
+					{sortDirection !== 'NONE' && <IconSort direction={sortDirection} />}
 				</div>
 			)
 		}
