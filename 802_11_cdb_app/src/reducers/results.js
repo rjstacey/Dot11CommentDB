@@ -8,6 +8,7 @@ const defaultState = {
 	votingPoolID: '',
 	votingPoolSize: 0,
 	ballot: {},
+	getResults: false,
 	resultsDataValid: false,
 	resultsData: [],
 	resultsDataMap: [],

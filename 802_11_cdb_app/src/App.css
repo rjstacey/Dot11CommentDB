@@ -27,5 +27,5 @@
 	width: 100px;
 }
 .main {
-	height: calc(100vh - 106px);
+	/*height: calc(100vh - 106px);*/
 }

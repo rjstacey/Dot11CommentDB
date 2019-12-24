@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import LoginForm from './Login';
 import Users from './Users';
 import Ballots from './Ballots';
+import BallotDetail from './BallotDetail';
 import Epolls from './Epolls';
 import Comments from './Comments';
 import CommentDetail from './CommentDetail';
@@ -39,8 +40,9 @@ class App extends React.Component {
 						<Route path="/Users/" component={Users} />
 						<Route path="/Voters/" exact component={VoterPools} />
 						<Route path="/Voters/:votingPoolId" component={Voters} />
-						<Route path="/Ballots/" component={Ballots} />
+						<Route path="/Ballots/" exact component={Ballots} />
 						<Route path="/Epolls/" component={Epolls} />
+						<Route path="/Ballot/:ballotId?" component={BallotDetail} />
 						<Route path="/Results/:ballotId?" component={Results} />
 						<Route path="/Comments/:ballotId?" exact component={Comments} />
 						<Route path="/Comments/:ballotId/:commentId(\d+)" component={CommentDetail} />

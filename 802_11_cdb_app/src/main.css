@@ -90,22 +90,5 @@ html, body, #root {
   display: block;
 }
 
-div#Users div#Ballots {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
 
-.headerFilt {
-  background: #ffffff;
-  border: 1px solid #ddd;
-  padding: 1px;
-  font-weight: 100;
-  font-size: -1;
-}
-
-.headerFilt[placeholder]:empty:before {
-  content: attr(placeholder);
-  color: #555;
-}
 

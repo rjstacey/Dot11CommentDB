@@ -1,6 +1,9 @@
 .root {
 	display: flex;
 	flex-direction: column;
+	margin: auto;
+	width: 600px;
+	position: relative;
 }
 
 .row {
@@ -11,7 +14,29 @@
 }
 
 .column {
-	flex: 1;
+	display: flex;
+	flex-direction: column;
+	/*flex: 1;*/
+}
+
+.close {
+	position: absolute;
+	right: 10px;
+	top: 10px;
+}
+
+.ballotTypeGroup {
+	display: flex;
+	flex-direction: column;
+	padding-left: 20px;
+	padding-top: 10px;
+}
+
+.importGroup {
+	display: flex;
+	flex-direction: column;
+	padding-left: 20px;
+	padding-top: 10px;
 }
 
 .empty {
@@ -27,25 +52,35 @@
 	color: #bdbdbd;
 }
 
-.row label {
+.initLabel {
 	width: 150px;
+}
+.row label {
 	font-weight: bold;
 	white-space: nowrap;
 }
 
-.column input[name=Project],
-.row input[name=BallotID] {
+.row input[name=Project],
+.row input[name=BallotID],
+.row input[name=EpollNum] {
 	width: 100px;
 }
 .row input[name=Document] {
 	width: 300px;
 }
+.topic,
 .row input[name=Topic] {
 	width: 400px;
 	height: 3em;
+	white-space: normal;
 }
 .row input[name=PrevBallotID] {
 	width: 100px;
+}
+
+.toLabel {
+	width: 40px;
+	text-align: center;
 }
 
 .invalidDate {

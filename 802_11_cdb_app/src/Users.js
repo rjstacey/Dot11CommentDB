@@ -1,12 +1,10 @@
 import PropTypes from 'prop-types';
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import { connect } from 'react-redux';
-import {Column, Table} from 'react-virtualized';
-import Draggable from 'react-draggable';
-import update from 'immutability-helper';
+import AppTable from './AppTable';
 import AppModal from './AppModal';
-import {sortClick, allSelected, toggleVisible, filterValidate} from './filter';
-import {IconRefresh, IconAdd, IconDelete, IconSort} from './Icons';
+import {sortClick, filterValidate} from './filter';
+import {IconRefresh, IconAdd, IconDelete} from './Icons';
 import {setUsersFilters, setUsersSort, getUsers, updateUser, addUser, deleteUsers} from './actions/users';
 import styles from './AppTable.css';
 
@@ -56,262 +54,140 @@ AddUserModal.propTypes = {
 	dispatch: PropTypes.func.isRequired
 }
 
-class Users extends React.PureComponent {
+function Users(props) {
 
-	constructor(props) {
-		super(props)
+	const columns = [
+		{dataKey: 'SAPIN',  label: 'SA PIN',
+			sortable: true,
+			filterable: true,
+			width: 100,
+			cellRenderer: renderEditable},
+		{dataKey: 'Name',   label: 'Name',
+			sortable: true,
+			filterable: true,
+			width: 300,
+			cellRenderer: renderEditable},
+		{dataKey: 'Email',  label: 'eMail Address',
+			sortable: true,
+			filterable: true,
+			width: 300,
+			cellRenderer: renderEditable},
+		{dataKey: 'Access', label: 'Access Level',
+			sortable: true,
+			filterable: true,
+			width: 100,
+			cellRenderer: renderAccess},
+		{dataKey: '', label: '',
+			sortable: false,
+			filterable: false,
+			width: 200,
+			headerRenderer: renderHeaderActions,
+			cellRenderer: renderActions,
+			isLast: true}
+	];
+	const primaryDataKey = columns[0].dataKey
 
-		this.columns = [
-			{dataKey: '',       label: '',
-				width: 40, flexGrow: 0, flexShrink: 0,
-				headerRenderer: this.renderHeaderCheckbox,
-				cellRenderer: this.renderCheckbox},
-			{dataKey: 'SAPIN',  label: 'SA PIN',
-				width: 100,
-				cellRenderer: this.renderEditable},
-			{dataKey: 'Name',   label: 'Name',
-				width: 300,
-				cellRenderer: this.renderEditable},
-			{dataKey: 'Email',  label: 'eMail Address',
-				width: 300,
-				cellRenderer: this.renderEditable},
-			{dataKey: 'Access', label: 'Access Level',
-				width: 100,
-				cellRenderer: this.renderAccess},
-			{dataKey: '', label: '',
-				width: 200,
-				headerRenderer: this.renderHeaderActions,
-				cellRenderer: this.renderActions,
-				isLast: true}
-		];
+	const [tableHeight, setTableHeight] = useState(400)
+	const [tableWidth, setTableWidth] = useState(300)
+	const [showAddUserModal, setShowAddUserModal] = useState(false);
+	const [selected, setSelected] = useState([])
+	
+	useEffect(() => {
 
-		// List of filterable columns
-    	const filterable = ['SAPIN', 'Name', 'Email'];
+		function updateDimensions() {
+			const header = document.getElementsByTagName('header')[0]
+			if (header) {
+				setTableHeight(window.innerHeight - header.offsetHeight - 5)
+				setTableWidth(window.innerWidth - 1)
+			}
+		}
+
+		updateDimensions();
+
+		window.addEventListener("resize", updateDimensions);
+		return () => {
+			window.removeEventListener("resize", updateDimensions);
+		}
+	}, [])
+
+	useEffect(() => {
 		if (Object.keys(props.filters).length === 0) {
 			var filters = {};
-			filterable.forEach(dataKey => {filters[dataKey] = ''});
-			this.props.dispatch(setUsersFilters(filters));
-		}
-
-		this.sortable = ['SAPIN', 'Name', 'Email', 'Access'];
-
-		var columnVisible = {};
-		var columnWidth = {};
-		var width = 0;
-		this.columns.forEach(col => {
-			width += col.width;
-			if (col.dataKey) {
-				columnVisible[col.dataKey] = !col.hiddenByDefault;
-				columnWidth[col.dataKey] = col.width
+			for (let col of columns) {
+				if (col.filterable) {
+					filters[col.dataKey] = filterValidate(col.dataKey, '')
+				}
 			}
-		});
-
-		this.state = {
-			height: 800,
-			width: width,
-			showAddUserModal: false,
-			selectedUsers: [],
-
-			columnVisible,
-			columnWidth
+			props.dispatch(setUsersFilters(filters));
 		}
-	}
-
-	componentDidMount() {
-		if (!this.props.usersDataValid) {
-			this.props.dispatch(getUsers())
+		if (!props.usersDataValid) {
+			props.dispatch(getUsers())
 		}
-	}
+	}, [])
 
-	resizeColumn = ({dataKey, deltaX}) => {
-		var i = this.columns.findIndex(c => c.dataKey === dataKey)
-		this.columns[i].width += deltaX;
-		this.setState({columnWidth: update(this.state.columnWidth, {$set: {[this.columns[i].dataKey]: this.columns[i].width}})})
-	}
-
-	handleRemoveSelected = () => {
-		const {usersData, usersDataMap} = this.props;
-		var delUserIds = [];
+	function handleRemoveSelected() {
+		const {usersData, usersDataMap} = props;
+		var ids = [];
 		for (var i = 0; i < usersDataMap.length; i++) { // only select checked items that are visible
-			let userId = usersData[usersDataMap[i]].UserID
-			if (this.state.selectedUsers.includes(userId)) {
-				delUserIds.push(userId)
+			let id = usersData[usersDataMap[i]][primaryDataKey]
+			if (selected.includes(id)) {
+				ids.push(id)
 			}
 		}
-		if (delUserIds.length) {
-			this.props.dispatch(deleteUsers(delUserIds))
+		if (ids.length) {
+			props.dispatch(deleteUsers(ids))
 		}
 	}
 
-	deleteRow = (rowIndex) => {
-		const u = this.props.usersData[this.props.usersDataMap[rowIndex]];
+	function deleteRow(rowIndex) {
+		const u = props.usersData[props.usersDataMap[rowIndex]];
 		console.log(rowIndex, u)
-		this.props.dispatch(deleteUsers([u.UserID]))
+		props.dispatch(deleteUsers([u[primaryDataKey]]))
 	}
 
-	refresh = () => {
-		this.props.dispatch(getUsers());
+	function refresh() {
+		props.dispatch(getUsers());
 	}
 
-	updateUserField = (rowIndex, dataKey, fieldData) => {
-		const usersDataIndex = this.props.usersDataMap[rowIndex];
-		const u = this.props.usersData[usersDataIndex];
-		this.props.dispatch(updateUser({
+	function updateUserField(rowIndex, dataKey, fieldData) {
+		const usersDataIndex = props.usersDataMap[rowIndex];
+		const u = props.usersData[usersDataIndex];
+		props.dispatch(updateUser({
 			UserID: u.UserID,
 			[dataKey]: fieldData
 		}));
 	}
 
-	updateUserFieldIfChanged = (rowIndex, dataKey, fieldData) => {
-		const usersDataIndex = this.props.usersDataMap[rowIndex];
-		const u = this.props.usersData[usersDataIndex];
+	function updateUserFieldIfChanged(rowIndex, dataKey, fieldData) {
+		const usersDataIndex = props.usersDataMap[rowIndex];
+		const u = props.usersData[usersDataIndex];
 		if (u[dataKey] !== fieldData) {
-			this.props.dispatch(updateUser({
+			props.dispatch(updateUser({
 				UserID: u.UserID,
 				[dataKey]: fieldData
 			}));
 		}
 	}
 
-	renderLabel = ({dataKey, label}) => {
-		if (this.sortable.includes(dataKey)) {
-			const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE';
-			return (
-				<div
-					className={styles.headerLabel}
-					title={label}
-					style={{cursor: 'pointer'}}
-					onClick={e => this.sortChange(e, dataKey)}
-				>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 13px)'}}>{label}</div>
-					{sortDirection !== 'NONE' && <IconSort direction={sortDirection} />}
-				</div>
-			)
-		}
-		else {
-			return (
-				<div
-					className={styles.headerLabel}
-					title={label}
-				>
-					{label}
-				</div>
-			)
-		}
-	}
-
-	renderFilter = ({dataKey}) => {
-		var filter = this.props.filters[dataKey]
-		var classNames = styles.headerFilt
-		if (filter && !filter.valid) {
-			classNames += ' ' + styles.headerFiltInvalid
-		}
-		return (
-			<input
-				type='text'
-				className={classNames}
-				placeholder='Filter'
-				onChange={e => {this.filterChange(e, dataKey)}}
-				value={filter.filtStr}
-			/>
-		)
-	}
-
-	renderHeaderCell = ({columnData, dataKey, label}) => {
-		const col = columnData;
-		const showFilter = this.props.filters.hasOwnProperty(dataKey);
-
-		if (col.isLast) {
-			return (
-				<div className={styles.headerLabelBox} style={{flex: '0 0 100%'}}>
-					{this.renderLabel({dataKey, label})}
-					{showFilter && this.renderFilter({dataKey})}
-				</div>
-			)
-		}
-		return (
-			<React.Fragment>
-				<div className={styles.headerLabelBox} style={{flex: '0 0 calc(100% - 12px)'}}>
-					{this.renderLabel({dataKey, label})}
-					{showFilter && this.renderFilter({dataKey})}
-				</div>
-				<Draggable
-					axis="x"
-					defaultClassName={styles.headerDrag}
-					defaultClassNameDragging={styles.dragHandleActive}
-					onDrag={(event, {deltaX}) => this.resizeColumn({dataKey, deltaX})}
-					position={{x: 0}}
-					zIndex={999}
-				>
-					<span className={styles.dragHandleIcon}>⋮</span>
-				</Draggable>
-			</React.Fragment>
-		)
-	}
-
-	noRowsRenderer = () => {
-		return <div className={styles.noRows}>{this.props.getUsers? 'Loading...': 'No rows'}</div>
-	}
-
-	rowClassName = ({index}) => {
-		if (index < 0) {
-			return styles.headerRow
-		} else {
-			return index % 2 === 0 ? styles.evenRow : styles.oddRow
-		}
-	}
-
-	renderHeaderCheckbox = ({dataKey}) => {
-		const {selectedUsers} = this.state
-		const {usersData, usersDataMap} = this.props
-		const checked = allSelected(selectedUsers, usersDataMap, usersData, 'UserID')
-		return (
-			<input
-				type="checkbox"
-				checked={checked}
-				onChange={e => {
-					this.setState({selectedUsers: toggleVisible(selectedUsers, usersDataMap, usersData, 'UserID')})
-				}}
-			/>
-		)
-	}
-
-	renderEditable = ({rowIndex, rowData, dataKey}) => {
+	function renderEditable({rowIndex, rowData, dataKey}) {
 		return (
 			<div
 				title={rowData[dataKey]}
 				contentEditable
 				onBlur={e => {
-					this.updateUserFieldIfChanged(rowIndex, dataKey, e.target.innerHTML)
+					updateUserFieldIfChanged(rowIndex, dataKey, e.target.innerHTML)
 				}}
 				dangerouslySetInnerHTML={{__html: rowData[dataKey]}}
 			/>
 		)
 	}
 
-	renderCheckbox = ({rowIndex, rowData, dataKey}) => {
-		const userId = rowData.UserID;
-		return (
-			<input
-				type="checkbox"
-				checked={this.state.selectedUsers.indexOf(userId) > -1}
-				onChange={e => {
-					// if userId is present in selectedUsers (i > 0) then remove it; otherwise add it
-					let i = this.state.selectedUsers.indexOf(userId);
-					this.setState({
-						selectedUsers: update(this.state.selectedUsers, (i > -1)? {$splice: [[i, 1]]}: {$push: [userId]})
-					})
-				}}
-			/>
-		)
-	}
-
-	renderAccess = ({rowIndex, rowData, dataKey}) => {
+	function renderAccess({rowIndex, rowData, dataKey}) {
 		return (
 			<select 
 				value={rowData[dataKey]}
 				onChange={e => {
-					this.updateUserField(rowIndex, dataKey, e.target.value)
+					updateUserField(rowIndex, dataKey, e.target.value)
 				}}
 			>
 				<option value='1'>Basic</option>
@@ -321,79 +197,64 @@ class Users extends React.PureComponent {
 		)
 	}
 
-	renderActions = ({rowIndex}) => {
+	function renderActions({rowIndex}) {
 		return (
 			<div className={styles.actionColumn}>
-				<IconDelete title='Delete' />
+				<IconDelete title='Delete' onClick={e => deleteRow({rowIndex})} />
 			</div>
 		)
 	}
 
-	renderHeaderActions = ({rowIndex}) => {
+	function renderHeaderActions({rowIndex}) {
 		return (
 			<React.Fragment>
-				<IconRefresh title='Refresh' onClick={this.refresh} />&nbsp;
-				<IconAdd title='Add User' onClick={() => this.setState({showAddUserModal: true})} />&nbsp;
-				<IconDelete title='Remove Selected Users' onClick={this.handleRemoveSelected} />
+				<IconRefresh title='Refresh' onClick={refresh} />&nbsp;
+				<IconAdd title='Add User' onClick={() => setShowAddUserModal(true)} />&nbsp;
+				<IconDelete title='Remove Selected Users' onClick={handleRemoveSelected} />
 			</React.Fragment>
 		)
 	}
 
-  	sortChange = (event, dataKey) => {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, this.props.sortBy, this.props.sortDirection);
-		this.props.dispatch(setUsersSort(sortBy, sortDirection));
+  	function sortChange(event, dataKey) {
+		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
+		props.dispatch(setUsersSort(sortBy, sortDirection));
 	}
 
-	filterChange = (event, dataKey) => {
+	function filterChange(event, dataKey) {
 		var filter = filterValidate(dataKey, event.target.value)
-		this.props.dispatch(setUsersFilters({[dataKey]: filter}));
+		props.dispatch(setUsersFilters({[dataKey]: filter}));
 	}
 
-	renderTable = () => {
-		return (
-			<Table
-				className={styles.Table}
-				height={this.state.height}
-				width={this.state.width}
+	return (
+		<div id='Users'>
+			<AppTable
+				hasRowSelector={true}
+				hasRowExpander={false}
+				columns={columns}
 				rowHeight={22}
-				headerHeight={40}
-				noRowsRenderer={this.noRowsRenderer}
-				headerClassName={styles.headerColumn}
-				rowClassName={this.rowClassName}
-				rowCount={this.props.usersDataMap.length}
-				rowGetter={({index}) => {return this.props.usersData[this.props.usersDataMap[index]]}}
-			>
-				{this.columns.map((col, index) => {
-					const {cellRenderer, headerRenderer, width, ...otherProps} = col;
-					return (
-						<Column 
-							key={index}
-							className={styles.rowColumn}
-							columnData={col}
-							headerRenderer={headerRenderer? headerRenderer: this.renderHeaderCell}
-							cellRenderer={cellRenderer}
-							width={this.state.columnWidth[col.dataKey]? this.state.columnWidth[col.dataKey]: width}
-							{...otherProps}
-						/>
-				)})}
-			</Table>
-		)
-	}
+				height={tableHeight}
+				width={tableWidth}
+				loading={props.getUsers}
+				filters={props.filters}
+				sortBy={props.sortBy}
+				sortDirection={props.sortDirection}
+				sortChange={sortChange}
+				filterChange={filterChange}
+				//showSelected={() => setShowSelected(true)}
+				setSelected={(ids) => setSelected(ids)}
+				selected={selected}
+				data={props.usersData}
+				dataMap={props.usersDataMap}
+				primaryDataKey={primaryDataKey}
+			/>
 
-	render() {
-		return (
-			<div id='Users'>
-
-				{this.renderTable()}
-
-				<AddUserModal
-					isOpen={this.state.showAddUserModal}
-					close={() => this.setState({showAddUserModal: false})}
-					dispatch={this.props.dispatch}
-				/>
-			</div>
-		)
-	}
+			<AddUserModal
+				isOpen={showAddUserModal}
+				close={() => setShowAddUserModal(false)}
+				dispatch={props.dispatch}
+			/>
+		</div>
+	)
 }
 
 function mapStateToProps(state) {

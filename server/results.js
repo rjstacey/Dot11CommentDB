@@ -303,9 +303,9 @@ function populateResultsWorksheet(ws, results) {
 module.exports = function(db, rp) {
 	var module = {};
 
-	module.getResultsLocal = function (ballotId) {
+	module.getResultsLocal = function(ballotId) {
 
-		if (!ballotId) {
+		if (ballotId === undefined) {
 			return Promise.reject('Missing parameter BallotID');
 		}
 

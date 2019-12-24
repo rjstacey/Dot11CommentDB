@@ -5,7 +5,7 @@ const results = require('./results');
 // Convert date string to UTC
 function parseDateTime(dateStr) {
 	// Date is in format: "11-Dec-2018 23:59:59 ET" and is always eastern time
-	return moment.tz(dateStr, 'DD-MMM-YYYY HH:mm:ss', 'America/New_York')
+	return moment.tz(dateStr, 'DD-MMM-YYYY HH:mm:ss', 'America/New_York').format();
 }
 
 function parseClosedEpollsPage(body) {

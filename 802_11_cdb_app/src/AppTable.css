@@ -1,11 +1,10 @@
-:local(.Table) {
+.Table {
   /*width: 100%;
   height: 100%; */
 }
-:local(.headerRow),
-:local(.evenRow),
-:local(.oddRow) {
-	border-bottom: 1px solid #e0e0e0;
+.headerRow,
+.evenRow,
+.oddRow {
 	display: flex;
 	flex-direction: row;
 	align-items: top;
@@ -15,23 +14,23 @@
 	font-weight: bold;
 	font-size: 0.9em;
 }
-:local(.oddRow) {
+.oddRow {
 	background-color: #f6f6f6;
 }
-:local(.oddRow:focus) {
+.oddRow:focus {
 	background-color: #f0f0f0;
 }
-:local(.headerColumn) {
+.headerColumn {
 	display: flex;
 	flex-direction: row;
 	text-transform: none;
 	background-color: #fafafa;
 }
-:local(.rowColumn) {
+.rowColumn {
 	padding: 2px;
 	box-sizing: border-box;
 }
-:local(.noRows) {
+.noRows {
 	position: absolute;
 	top: 0;
 	bottom: 0;
@@ -44,22 +43,22 @@
 	color: #bdbdbd;
 }
 
-:local(.headerWithDrag) {
+.headerWithDrag {
 	display: flex;
 	flex-direction: column;
 	flex: 0 0 calc(100% - 12px);
 }
-:local(.headerLabel) {
+.headerLabel {
 	display: block;
 	width: 100%;
 	user-select: none;
 }
-:local(.headerLabelItem) {
+.headerLabelItem {
 	display: inline-block;
 	white-space: nowrap; 
 	overflow: hidden;
 }
-:local(.headerFilt) {
+.headerFilt {
 	background-color: #ffffff;
 	border: 1px solid #ddd;
 	padding: 0;
@@ -67,47 +66,49 @@
 	box-sizing: border-box;
 	width: 100%;
 }
-:local(.headerFiltInvalid) {
+.headerFiltInvalid {
 	background-color: red
 }
-:local(.headerFilt[placeholder]:empty:before) {
+.headerFilt[placeholder]:empty:before {
 	content: attr(placeholder);
 	color: #555;
 }
-:local(.headerDrag) {
+
+.headerDrag {
 	flex: 0 0 12px;
 	/*z-index: 2;*/
 	cursor: col-resize;
 	color: #0085ff;
 }
-:local(.headerLabel:hover),
-:local(.headerDrag:hover) {
+.headerLabel:hover,
+.headerDrag:hover {
 	background-color: rgba(0, 0, 0, 0.1);
 }
-:local(.dragHandleActive),
-:local(.dragHandleActive:hover) {
+.dragHandleActive,
+.dragHandleActive:hover {
 	color: #0b6fcc;
 	/*z-index: 3;*/
 }
-:local(.dragHandleIcon) {
+.dragHandleIcon {
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
 }
 
-:local(.actionColumn),
-:local(.actionCell) {
+.evenRow .actionColumn,
+.oddRow .actionColumn,
+.rowColumn .actionCell {
 	visibility: hidden;
 }
-:local(.evenRow:hover .actionColumn),
-:local(.oddRow:hover .actionColumn),
-:local(.rowColumn:hover .actionCell) {
+.evenRow:hover .actionColumn,
+.oddRow:hover .actionColumn,
+.rowColumn:hover .actionCell {
 	visibility: visible;
 }
 
 /* Override input type=checkbox to customize the checkbox */
-:local(.checkbox) {
+.checkbox {
 	-webkit-appearance: none;
 	background-color: #fafafa;
 	border: 1px solid #cacece;
@@ -118,24 +119,25 @@
 	position: relative;
 }
 
-:local(.checkbox:active), :local(.checkbox:checked:active) {
+.checkbox:active,
+.checkbox:checked:active {
 	/*box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px 1px 3px rgba(0,0,0,0.1);*/
 }
 
-:local(.checkbox:checked) {
+.checkbox:checked {
 	background-color: #e9ecee;
 	border: 1px solid #adb8c0;
 	/*box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px -15px 10px -12px rgba(0,0,0,0.05), inset 15px 10px -12px rgba(255,255,255,0.1);*/
 	/*color: #99a1a7;*/
 }
-:local(.checkbox:indeterminate) {
+.checkbox:indeterminate {
 	background-color: #e9ecee;
 	border: 1px solid #adb8c0;
 	/*box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px -15px 10px -12px rgba(0,0,0,0.05), inset 15px 10px -12px rgba(255,255,255,0.1);*/
 	/*color: #99a1a7;*/
 }
 
-:local(.checkbox:checked:after) {
+.checkbox:checked:after {
 	content: '\2714';
 	font-size: 10px;
 	font-weight: 700;
@@ -143,7 +145,7 @@
 	top: -1px;
 	left: 1px;
 }
-:local(.checkbox:indeterminate:after) {
+.checkbox:indeterminate:after {
 	content: "";
 	position: absolute;
 	top: 1px;
@@ -152,7 +154,7 @@
 }
 
 /* Override input type=checkbox to customize a expand/collapse icon */
-:local(.expandable) {
+.expandable {
 	-webkit-appearance: none;
 	background-color: #fafafa;
 	display: inline-block;
@@ -165,12 +167,12 @@
 	transform: translateY(-2px);
 }
 
-:local(.expandable:checked) {
+.expandable:checked {
 	transform: rotate(90deg) translateX(-3px);
 }
 
 /* Override input type=checkbox to customize a expand/collapse icon */
-:local(.doubleExpandable) {
+.doubleExpandable {
 	-webkit-appearance: none;
 	background-color: #fafafa;
 	display: inline-block;
@@ -181,7 +183,7 @@
 	border-bottom: 6px solid transparent;
 	border-left: 6px solid currentColor;
 }
-:local(.doubleExpandable:after) {
+.doubleExpandable:after {
 	content: "";
 	position: absolute;
 	top: -6px;
@@ -190,65 +192,6 @@
 	border-bottom: 6px solid transparent;
 	border-left: 6px solid currentColor;
 }
-:local(.doubleExpandable:checked) {
+.doubleExpandable:checked {
 	transform: rotate(90deg) translateX(-3px);
-}
-:local(.SelectCommentsContent) {
-	top: 126px !important;
-	left: 54px !important;
-	width: 80% !important;
-	transform: none !important;
-}
-:local(.ModalDialog) {
-	max-height: 20vh;
-	/*width: 80%;*/
-	border: 1px solid #888;
-	overflow-x: hidden;
-	overflow-y: auto;
-	padding: 4px 16px 4px 4px;
-}
-:local(.ModalArrow) {
-    display: block;
-    position: fixed;
-    content: "";
-    top: 152px;
-    transform: translateY(-50%);
-    left: 20px;
-    bottom: auto;
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 25px 35px 25px 0;
-    border-color: transparent #ffffff transparent transparent;
-    /*-webkit-filter: drop-shadow(-2px 0px 1px rgba(0,0,0,.5));
-    -moz-filter: drop-shadow(0px 1px 2px rgba(0,0,0,.5));
-    -ms-filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
-    -o-filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
-    filter: drop-shadow(0px 1px 2px rgba(0,0,0,.5));*/
-}
-
-/* mixin for multiline */
-.block-with-text {
-  overflow: hidden;
-  position: relative;
-  line-height: 1.2em;
-  max-height: 2.4em;
-  text-align: justify;
-  /*margin-right: -1em;*/
-  padding-right: 1em;
-}
-.block-with-text:before {
-  content: '...';
-  position: absolute;
-  right: 0;
-  bottom: 0;
-}
-.block-with-text:after {
-  content: '';
-  position: absolute;
-  right: 0;
-  width: 1em;
-  height: 1em;
-  margin-top: 0.2em;
-  background: white;
 }

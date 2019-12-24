@@ -28,7 +28,7 @@ function CommentDetail(props) {
 	const [comment, setComment] = useState(null)
 	const history = useHistory()
 	let {ballotId, commentId} = useParams()
-	commentId = parseInt(commentId)	// comes in as a string, but we want a number
+	commentId = parseInt(commentId, 10)	// comes in as a string, but we want a number
 
 	useEffect(() => {
 		if (!props.usersDataValid) {
@@ -167,9 +167,6 @@ function CommentDetail(props) {
 	function changeResolutionCheckboxGroup(e, index) {
  		setComment(update(comment, {resolutions: {[index]: {[e.target.name]: {$set: e.target.checked? e.target.value: ''}}}}))
  	}
- 	function changeResolutionDiv(e, index) {
-		setComment(update(comment, {resolutions: {[index]: {Resolution: {$set: e.target.innerHTML}}}}))
-	}
  	
  	function Comment(props) {
  		return (

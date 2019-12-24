@@ -1,6 +1,7 @@
 import {sortData, filterData} from '../filter';
 
 const defaultState = {
+	getVotingPool: false,
 	votingPoolFilters: {},
 	votingPoolSortBy: [],
 	votingPoolSortDirection: {},
@@ -9,6 +10,7 @@ const defaultState = {
 	votingPoolDataMap: [],
 
 	votingPool: {},
+	getVoters: false,
 	votersFilters: {},
 	votersSortBy: [],
 	votersSortDirection: {},

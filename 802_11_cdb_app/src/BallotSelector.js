@@ -1,38 +1,43 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {connect} from 'react-redux';
+import DataListInput from 'react-datalist-input';
 import {getBallots, setProject, setBallotId} from './actions/ballots';
 
 
-class BallotSelector extends React.PureComponent {
+function BallotSelector(props) {
+	const {project, projectList, ballotId, ballotList, readOnly, onBallotSelected} = props;
+	const [ballotIdStr, setBallotIdStr] = useState('')
 
-	componentDidMount() {
-		if (!this.props.ballotsDataValid) {
-			this.props.dispatch(getBallots())
+	useEffect(() => {
+		if (!props.ballotsDataValid) {
+			props.dispatch(getBallots())
 		}
-	}
+	}, [])
 
-	handleProjectChange = (e) => {
+	function handleProjectChange(e) {
 		const project = e.target.value;
-		if (project !== this.props.project) {
-			this.props.dispatch(setProject(project))
+		if (project !== props.project) {
+			props.dispatch(setProject(project))
 		}
 	}
 
-	handleBallotChange = (e) => {
-		var ballotId = e.target.value;
-		this.props.dispatch(setBallotId(ballotId));
-		if (this.props.onBallotSelected) {
-			this.props.onBallotSelected(ballotId)
+	function handleBallotChange(e) {
+		var bid = e.target.value;
+		setBallotIdStr(bid)
+		if (ballotList.findIndex(b => b.BallotID === bid) >= 0) {
+			props.dispatch(setBallotId(bid));
+			if (onBallotSelected) {
+				onBallotSelected(bid)
+			}
 		}
 	}
 
-	renderProjectSelector = () => {
-		const {project, projectList} = this.props;
+	/*function renderProjectSelector() {
 		return (
 			<select
 				name='Project'
 				value={project}
-				onChange={this.handleProjectChange}
+				onChange={handleProjectChange}
 				disabled={projectList.length === 0}
 			>
 				<option value='' disabled >Select</option>
@@ -41,15 +46,33 @@ class BallotSelector extends React.PureComponent {
 				})}
 			</select>
 		)
+	}*/
+	function renderProjectSelector() {
+		return (
+			<React.Fragment>
+			<input
+				type='search'
+				name='Project'
+				value={project}
+				onChange={handleProjectChange}
+				//disabled={projectList.length === 0}
+				list='projectList'
+			/>
+			<datalist id='projectList'>
+				{projectList.map(i => {
+					return (<option key={i} value={i} />)
+				})}
+			</datalist>
+			</React.Fragment>
+		)
 	}
 
-	renderBallotSelector = () => {
-		const {ballotId, ballotList} = this.props;
+	/*function renderBallotSelector() {
 		return (
 			<select
 				name='Ballot'
 				value={ballotId}
-				onChange={this.handleBallotChange}
+				onChange={handleBallotChange}
 				disabled={ballotList.length === 0}
 			>
 				<option value={''} disabled >Select</option>
@@ -59,23 +82,63 @@ class BallotSelector extends React.PureComponent {
 				})}
 			</select>
 		)
-	}
-
-	render() {
-		const {project, ballotId, ballotList, readOnly} = this.props;
-		const ballot = ballotList.find(b => b.BallotID === ballotId)
-		const ballotDescr = ballot? `${ballot.BallotID} ${ballot.Document}`.substring(0,32): ballotId.toString()
+	}*/
+	function renderBallotSelector() {
 		return (
-			<div style={{display: 'inline-block'}}>
-				<label>Project:
-					{readOnly? project: this.renderProjectSelector()}
-				</label>
-				<label>Ballot:
-					{readOnly? ballotDescr: this.renderBallotSelector()}
-				</label>
-			</div>
+			<React.Fragment>
+				<input
+					type='search'
+					name='Ballot'
+					value={ballotIdStr}
+					onChange={handleBallotChange}
+					disabled={ballotList.length === 0}
+					list='ballotList'
+				/>
+				<datalist id='ballotList'>
+					{ballotList.map(i => {
+						return (<option key={i.BallotID} value={i.BallotID} >{i.Document.substring(0,32)}</option>)
+					})}
+				</datalist>
+			</React.Fragment>
 		)
 	}
+	/*function onSelect(item) {
+		const bid = item.key
+		console.log(bid)
+		props.dispatch(setBallotId(bid));
+		if (onBallotSelected) {
+			onBallotSelected(bid)
+		}
+	}
+	function renderBallotSelector() {
+		const items = ballotList.map((b, i) => {
+	        return {
+	            label: b.BallotID  + ": " + b.Document,
+	            key: b.BallotID,
+	        }
+    	});
+		return (
+			<DataListInput
+				placeholder={"Select..."}
+				items={items}
+				onSelect={onSelect}
+				//match={this.matchCurrentInput}
+			/>
+		)
+	}*/
+		
+	const ballot = ballotList.find(b => b.BallotID === ballotId)
+	const ballotDescr = ballot? `${ballot.BallotID} ${ballot.Document}`.substring(0,32): ballotId.toString()
+	return (
+		<div style={{display: 'inline-block'}}>
+			<label>Project:
+				{readOnly? project: renderProjectSelector()}
+			</label>
+			<label>Ballot:
+				{readOnly? ballotDescr: renderBallotSelector()}
+			</label>
+		</div>
+	)
 }
 
 function mapStateToProps(state) {

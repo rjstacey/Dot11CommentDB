@@ -1,41 +1,28 @@
 import PropTypes from 'prop-types';
-import React from 'react';
-import Modal from 'react-modal';
-import update from 'immutability-helper';
+import React, {useState, useEffect} from 'react';
+import {useHistory, useParams} from 'react-router-dom'
+import AppTable from './AppTable';
+import AppModal from './AppModal';
 import {connect} from 'react-redux';
-import {Column, Table} from 'react-virtualized';
-import Draggable from 'react-draggable';
 import BallotSelector from './BallotSelector';
 import {setResultsSort, setResultsFilters, getResults} from './actions/results'
 import {setBallotId} from './actions/ballots'
 import {sortClick, filterValidate} from './filter'
-import {IconSort} from './Icons'
+import {IconAngleUp, IconAngleDown} from './Icons'
 import styles from './AppTable.css'
 import {saveAs} from 'file-saver'
 var axios = require('axios');
 
 
+function ExportModal(props) {
+	const {isOpen, close} = props
+	const ballotId = props.ballot.BallotID
+	const project = props.ballot.Project
+	const [forProject, setForProject] = useState(false)
 
-class ExportModal extends React.Component {
-
-	static propTypes = {
-		ballot: PropTypes.object.isRequired,
-		isOpen: PropTypes.bool.isRequired,
-		close: PropTypes.func.isRequired,
-		appElement: PropTypes.any
-	}
-
-	constructor(props) {
-		super(props)
-		this.state = {
-			forProject: false
-		}
-	}
-
-	submit = (e) => {
-		const ballotId = this.props.ballot.BallotID
-		const project = this.props.ballot.Project
-		const forProject = this.state.forProject
+	function submit(e) {
+		const ballotId = props.ballot.BallotID
+		const project = props.ballot.Project
 		const params = forProject? {Project: project}: {BallotID: ballotId}
 		axios.get('/results/export', {params, responseType: 'blob'})
 			.then((response) => {
@@ -43,46 +30,45 @@ class ExportModal extends React.Component {
 					const filename = (forProject? project: ballotId) + ' results.xlsx'
 					saveAs(response.data, filename)
 				}
-				this.props.close()
+				close()
 			})
 			.catch((error) => {
 				console.log(error)
-				this.props.close()
+				close()
 			})
 	}
 
-	render() {
-		const ballotId = this.props.ballot.BallotID
-		const project = this.props.ballot.Project
-		const forProject = this.state.forProject
-		return (
-			<Modal
-				className='ModalContent'
-				overlayClassName='ModalOverlay'
-				isOpen={this.props.isOpen}
-				appElement={this.props.appElement}
-			>
-				<p>Export results for:</p>
-				<label><input
-					className={styles.checkbox}
-					type="radio"
-					title={ballotId}
-					checked={!forProject}
-					onChange={e => {this.setState({forProject: !forProject})}}
-				/>This ballot {ballotId}</label>
-				<label><input
-					className={styles.checkbox}
-					type="radio"
-					title={project}
-					checked={forProject}
-					onChange={e => {this.setState({forProject: !forProject})}}
-				/>This project {project}</label>
-				<button onClick={this.submit}>OK</button>
-				<button onClick={this.props.close}>Cancel</button>
-			</Modal>
-		)
-	}
+	return (
+		<AppModal
+			isOpen={isOpen}
+			onRequestClose={close}
+		>
+			<p>Export results for:</p>
+			<label><input
+				className={styles.checkbox}
+				type="radio"
+				title={ballotId}
+				checked={!forProject}
+				onChange={e => setForProject(!forProject)}
+			/>This ballot {ballotId}</label>
+			<label><input
+				className={styles.checkbox}
+				type="radio"
+				title={project}
+				checked={forProject}
+				onChange={e => setForProject(!forProject)}
+			/>This project {project}</label>
+			<button onClick={submit}>OK</button>
+			<button onClick={close}>Cancel</button>
+		</AppModal>
+	)
 }
+ExportModal.propTypes = {
+	ballot: PropTypes.object.isRequired,
+	isOpen: PropTypes.bool.isRequired,
+	close: PropTypes.func.isRequired,
+}
+
 
 function getResultsSummary(resultsSummary, ballot, votingPoolSize) {
 	const r = resultsSummary, b = ballot
@@ -152,325 +138,219 @@ function getResultsSummary(resultsSummary, ballot, votingPoolSize) {
 	return rs
 }
 
-class ResultsSummary extends React.PureComponent {
+function ResultsSummary(props) {
+	const {visible} = props
+	const r = getResultsSummary(props.resultsSummary, props.ballot, props.votingPoolSize)
 
-	static propTypes = {
-		visible: PropTypes.bool.isRequired,
-		resultsSummary: PropTypes.object.isRequired,
-		ballot: PropTypes.object.isRequired,
-		votingPoolSize: PropTypes.number.isRequired
+	var style = {
+		container: {
+			display: 'flex',
+			flexDirection: 'row',
+			justifyContent: 'space-arround',
+		},
+		col: {
+			display: 'flex',
+			flexDirection: 'column',
+			paddingRight: '10px'
+		},
+		lv: {
+			display: 'flex',
+			flexDirection: 'row',
+			justifyContent: 'space-between'
+		},
+		title: {display: 'block', fontWeight: 'bold', margin: '5px 0 5px 0'}
 	}
-
-	render() {
-		const {visible} = this.props
-		const r = getResultsSummary(this.props.resultsSummary, this.props.ballot, this.props.votingPoolSize)
-
-		var style = {
-			container: {
-				display: 'flex',
-				flexDirection: 'row',
-				justifyContent: 'space-arround',
-			},
-			col: {
-				display: 'flex',
-				flexDirection: 'column',
-				paddingRight: '10px'
-			},
-			lv: {
-				display: 'flex',
-				flexDirection: 'row',
-				justifyContent: 'space-between'
-			},
-			title: {display: 'block', fontWeight: 'bold', margin: '5px 0 5px 0'}
-		}
-		return (
-			<div id='results-summary' style={{...style.container, display: visible? 'flex': 'none'}}>
-				<div style={{...style.col, flex: '1 1 160px'}}>
-					<div style={style.title}>Ballot</div>
-					<div style={style.lv}><span>Opened:</span><span>{r.opened}</span></div>
-					<div style={style.lv}><span>Closed:</span><span>{r.closed}</span></div>
-					<div style={style.lv}><span>Duration:</span><span>{r.duration}</span></div>
-					<div style={style.lv}><span>Voting pool:</span><span>{r.votingPoolSize}</span></div>
-				</div>
-				<div style={{...style.col, flex: '1 1 160px'}}>
-					<div style={style.title}>Result</div>
-					<div style={style.lv}><span>Approval rate:</span><span>{r.approvalRateStr}</span></div>
-					<div style={style.lv}><span>Approve:</span><span>{r.approve}&nbsp;</span></div>
-					<div style={style.lv}><span>Disapprove:</span><span>{r.disapprove}&nbsp;</span></div>
-					<div style={style.lv}><span>Abstain:</span><span>{r.abstain}&nbsp;</span></div>
-				</div>
-				<div style={{...style.col, flex: '1 1 180px'}}>
-					<div style={style.title}>Invalid votes</div>
-					<div style={style.lv}><span>Not in pool:</span><span>{r.invalidVote}</span></div>
-					<div style={style.lv}><span>Disapprove without comment:</span><span>{r.invalidDisapprove}</span></div>
-					<div style={style.lv}><span>Abstain reason:</span><span>{r.invalidAbstain}</span></div>
-				</div>
-				<div style={{...style.col, flex: '1 1 220px'}}>
-					<div style={style.title}>Other criteria</div>
-					<div style={style.lv}><span>Total returns:</span><span>{r.returns}</span></div>
-					<div style={style.lv}><span>Returns as % of pool:</span><span>{r.returnsPctStr}</span></div>
-					<div>{r.returnsReqStr}</div>
-					<div style={style.lv}><span>Abstains as % of returns:</span><span>{r.abstainsPctStr}</span></div>
-					<div>{r.abstainsReqStr}</div>
-				</div>
+	return (
+		<div id='results-summary' style={{...style.container, display: visible? 'flex': 'none'}}>
+			<div style={{...style.col, flex: '1 1 160px'}}>
+				<div style={style.title}>Ballot</div>
+				<div style={style.lv}><span>Opened:</span><span>{r.opened}</span></div>
+				<div style={style.lv}><span>Closed:</span><span>{r.closed}</span></div>
+				<div style={style.lv}><span>Duration:</span><span>{r.duration}</span></div>
+				<div style={style.lv}><span>Voting pool:</span><span>{r.votingPoolSize}</span></div>
 			</div>
-		)
-	}
+			<div style={{...style.col, flex: '1 1 160px'}}>
+				<div style={style.title}>Result</div>
+				<div style={style.lv}><span>Approval rate:</span><span>{r.approvalRateStr}</span></div>
+				<div style={style.lv}><span>Approve:</span><span>{r.approve}&nbsp;</span></div>
+				<div style={style.lv}><span>Disapprove:</span><span>{r.disapprove}&nbsp;</span></div>
+				<div style={style.lv}><span>Abstain:</span><span>{r.abstain}&nbsp;</span></div>
+			</div>
+			<div style={{...style.col, flex: '1 1 180px'}}>
+				<div style={style.title}>Invalid votes</div>
+				<div style={style.lv}><span>Not in pool:</span><span>{r.invalidVote}</span></div>
+				<div style={style.lv}><span>Disapprove without comment:</span><span>{r.invalidDisapprove}</span></div>
+				<div style={style.lv}><span>Abstain reason:</span><span>{r.invalidAbstain}</span></div>
+			</div>
+			<div style={{...style.col, flex: '1 1 220px'}}>
+				<div style={style.title}>Other criteria</div>
+				<div style={style.lv}><span>Total returns:</span><span>{r.returns}</span></div>
+				<div style={style.lv}><span>Returns as % of pool:</span><span>{r.returnsPctStr}</span></div>
+				<div>{r.returnsReqStr}</div>
+				<div style={style.lv}><span>Abstains as % of returns:</span><span>{r.abstainsPctStr}</span></div>
+				<div>{r.abstainsReqStr}</div>
+			</div>
+		</div>
+	)
+}
+ResultsSummary.propTypes = {
+	visible: PropTypes.bool.isRequired,
+	resultsSummary: PropTypes.object.isRequired,
+	ballot: PropTypes.object.isRequired,
+	votingPoolSize: PropTypes.number.isRequired
 }
 
-class Results extends React.PureComponent {
-	constructor(props) {
 
-		super(props);
+function Results(props) {
 
-		this.columns = [
-			{dataKey: 'SAPIN',		label: 'SA PIN',		width: 75},
-			//{dataKey: 'LastName',	label: 'Last Name', 	width: 150},
-			//{dataKey: 'FirstName',	label: 'First Name', 	width: 150},
-			//{dataKey: 'MI',			label: 'MI',			width: 50},
-			{dataKey: 'Name',		label: 'Name', 			width: 200},
-			{dataKey: 'Affiliation', label: 'Affiliation', 	width: 200},
-			{dataKey: 'Email',		label: 'Email',			width: 250},
-			{dataKey: 'Vote',		label: 'Vote',			width: 210},
-			{dataKey: 'CommentCount', label: 'Comments',	width: 110},
-			{dataKey: 'Notes',		label: 'Notes',			width: 250, flexShrink: 1, flexGrow: 1, isLast: true}
-		];
+	const columns = [
+		{dataKey: 'SAPIN',		label: 'SA PIN',
+			sortable: true,
+			filterable: true,
+			width: 75},
+		{dataKey: 'Name',		label: 'Name',
+			sortable: true,
+			filterable: true,
+			width: 200},
+		{dataKey: 'Affiliation', label: 'Affiliation',
+			sortable: true,
+			filterable: true,
+			width: 200},
+		{dataKey: 'Email',		label: 'Email',
+			sortable: true,
+			filterable: true,
+			width: 250},
+		{dataKey: 'Vote',		label: 'Vote',
+			sortable: true,
+			filterable: true,
+			width: 210},
+		{dataKey: 'CommentCount', label: 'Comments',
+			sortable: true,
+			filterable: true,
+			width: 110},
+		{dataKey: 'Notes',		label: 'Notes',
+			sortable: true,
+			filterable: true,
+			width: 250, flexShrink: 1, flexGrow: 1,
+			isLast: true}
+	];
 
-		this.state = {
-			windowHeight: 400.0,
-			windowWidth: 400.0,
-			headerHeight: 100.0,
-			resultsHeight: 140.0,
-			showSummary: true
-		}
+	const {ballotId} = useParams();
+	const history = useHistory();
 
-		// List of filterable columns
-		const filterable = ['SAPIN', 'Name', 'Affiliation', 'Email', 'Vote', 'CommentCount', 'Notes'];
-		if (Object.keys(props.filters).length === 0) {
-			var filters = {};
-			filterable.forEach(dataKey => {filters[dataKey] = ''});
-			this.props.dispatch(setResultsFilters(filters));
-		}
-		this.sortable = filterable;
+	const [showSummary, setShowSummary] = useState(false);
+	const [showExportModal, setShowExportModal] = useState(false);
 
-		this.state.showExportModal = false
-	}
+	const [tableSize, setTableSize] = useState({
+		height: 400,
+		width: 400,
+	});
 
-	componentDidMount() {
-		this.updateDimensions()
-		window.addEventListener("resize", this.updateDimensions);
-
-		const ballotId = this.props.match.params.ballotId;
-		//console.log(ballotId, this.props.ballotId)
-		if (this.props.ballotId !== ballotId && (this.props.ballotId || ballotId)) {
-			if (ballotId) {
-				// Routed here with parameter ballotId specified, but not matching stored ballotId
-				// Store the ballotId and get results for this ballotId
-				this.props.dispatch(setBallotId(ballotId))
-				this.props.dispatch(getResults(ballotId))
-			}
-			else {
-				// Routed here with parameter ballotId unspecified, but we have a ballotId stored
-				// Redirect to the stored ballotId
-				this.props.history.replace(`/Results/${this.props.ballotId}`)
-				console.log(`/Results/${this.props.ballotId}`)
-				this.props.dispatch(getResults(this.props.ballotId))
-			}
-		}
-	}
-
-	componentWillUnmount() {
-		window.removeEventListener("resize", this.updateDimensions);
-	}
-
-	updateDimensions = () => {
+	function updateTableSize() {
 		const headerEl = document.getElementsByTagName('header')[0];
 		const topRowEl = document.getElementById('top-row');
 		const resultsEl = document.getElementById('results-summary');
-		this.setState({
-			windowHeight: window.innerHeight,
-			windowWidth: window.innerWidth,
-			headerHeight: headerEl.offsetHeight + topRowEl.offsetHeight,
-			resultsHeight: resultsEl.offsetHeight
-		})
+		const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight + resultsEl.offsetHeight;
+
+		const height = window.innerHeight - headerHeight - 5;
+		const width = window.innerWidth - 1;
+
+		if (height !== tableSize.height || width !== tableSize.width) {
+			setTableSize({height, width});
+		}
+	}
+	useEffect(() => {updateTableSize()})
+
+	useEffect(() => {
+		window.addEventListener("resize", updateTableSize);
+		return () => {
+			window.removeEventListener("resize", updateTableSize);
+		}
+	}, [])
+
+	useEffect(() => {
+		if (Object.keys(props.filters).length === 0) {
+			var filters = {};
+			for (let col of columns) {
+				if (col.filterable) {
+					filters[col.dataKey] = filterValidate(col.dataKey, '')
+				}
+			}
+			props.dispatch(setResultsFilters(filters));
+		}
+		if (ballotId && ballotId !== props.ballotId) {
+			// Routed here with parameter ballotId specified, but not matching stored ballotId
+			// Store the ballotId and get results for this ballotId
+			props.dispatch(setBallotId(ballotId))
+			props.dispatch(getResults(ballotId))
+		}
+		if (!ballotId && props.ballotId) {
+			history.replace(`/Results/${props.ballotId}`)
+		}
+	}, [])
+
+	function sortChange(event, dataKey) {
+		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
+		props.dispatch(setResultsSort(sortBy, sortDirection));
 	}
 
-	resizeColumn = ({dataKey, deltaX}) => {
-		var i = this.columns.findIndex(c => c.dataKey === dataKey)
-		this.columns[i].width += deltaX;
-		this.setState({columnWidth: update(this.state.columnWidth, {$set: {[this.columns[i].dataKey]: this.columns[i].width}})})
-	}
-
-	sortChange = (event, dataKey) => {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, this.props.sortBy, this.props.sortDirection);
-		this.props.dispatch(setResultsSort(sortBy, sortDirection));
-	}
-	filterChange = (event, dataKey) => {
+	function filterChange(event, dataKey) {
 		var filter = filterValidate(dataKey, event.target.value)
-		this.props.dispatch(setResultsFilters({[dataKey]: filter}));
+		props.dispatch(setResultsFilters({[dataKey]: filter}));
 	}
-	ballotSelected = (ballotId) => {
+
+	function ballotSelected(ballotId) {
 		// Redirect to results page with selected ballot
-		this.props.history.push(`/Results/${ballotId}`)
-		this.props.dispatch(getResults(ballotId));
+		history.push(`/Results/${ballotId}`)
+		props.dispatch(getResults(ballotId));
 	}
 
-	renderLabel = ({dataKey, label}) => {
-		if (this.sortable.includes(dataKey)) {
-			const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE';
-			return (
-				<div
-					className={styles.headerLabel}
-					title={label}
+	return (
+		<div id='Results'>
+			<div id='top-row'>
+				<BallotSelector
+					onBallotSelected={ballotSelected}
+				/>
+				<span
 					style={{cursor: 'pointer'}}
-					onClick={e => this.sortChange(e, dataKey)}
-				>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 13px)'}}>{label}</div>
-					{sortDirection !== 'NONE' && <IconSort direction={sortDirection} />}
-				</div>
-			)
-		}
-		else {
-			return (
-				<div
-					className={styles.headerLabel}
-					title={label}
-				>
-					{label}
-				</div>
-			)
-		}
-	}
-
-	renderFilter = ({dataKey}) => {
-		var filter = this.props.filters[dataKey]
-		var classNames = styles.headerFilt
-		if (filter && !filter.valid) {
-			classNames += ' ' + styles.headerFiltInvalid
-		}
-		return (
-			<input
-				type='text'
-				className={classNames}
-				placeholder='Filter'
-				onChange={e => {this.filterChange(e, dataKey)}}
-				value={filter && filter.filtStr}
-			/>
-		)
-	}
-
-	renderHeaderCell = ({columnData, dataKey, label}) => {
-		const col = columnData;
-		const showFilter = this.props.filters.hasOwnProperty(dataKey);
-
-		if (col.isLast) {
-			return (
-				<div className={styles.headerLabelBox} style={{flex: '0 0 100%'}}>
-					{this.renderLabel({dataKey, label})}
-					{showFilter && this.renderFilter({dataKey})}
-				</div>
-			)
-		}
-		return (
-			<React.Fragment>
-				<div className={styles.headerLabelBox} style={{flex: '0 0 calc(100% - 12px)'}}>
-					{this.renderLabel({dataKey, label})}
-					{showFilter && this.renderFilter({dataKey})}
-				</div>
-				<Draggable
-					axis="x"
-					defaultClassName={styles.headerDrag}
-					defaultClassNameDragging={styles.dragHandleActive}
-					onDrag={(event, {deltaX}) => this.resizeColumn({dataKey, deltaX})}
-					position={{x: 0}}
-					zIndex={999}
-				>
-					<span className={styles.dragHandleIcon}>⋮</span>
-				</Draggable>
-			</React.Fragment>
-		)
-	}
-
-	noRowsRenderer = () => {
-		return <div className={styles.noRows}>{this.props.getResults? 'Loading...': 'No rows'}</div>
-	}
-
-	rowClassName = ({index}) => {
-		if (index < 0) {
-			return styles.headerRow;
-		} else {
-			return index % 2 === 0 ? styles.evenRow : styles.oddRow;
-		}
-	}
-
-	rowGetter = ({index}) => {
-		return this.props.resultsData[this.props.resultsDataMap[index]]
-	}
-
-	renderTable = () => {
-		//console.log('render ', this.state.width, this.state.height)
-		var height = this.state.windowHeight - this.state.headerHeight - 1;
-		var width = this.state.windowWidth - 1;
-		if (this.state.showSummary) {
-			height -= this.state.resultsHeight;
-		}
-		return (
-			<Table
-				className={styles.Table}
-				rowHeight={20}
-				height={height}
-				width={width}
-				headerHeight={40}
-				noRowsRenderer={this.noRowsRenderer}
-				headerClassName={styles.headerColumn}
-				rowClassName={this.rowClassName}
-				rowCount={this.props.resultsDataMap.length}
-				rowGetter={this.rowGetter}
-			>
-				{this.columns.map((col, index) => {
-					const {headerRenderer, ...otherProps} = col;
-					return (
-						<Column 
-							key={index}
-							columnData={col}
-							headerRenderer={headerRenderer? headerRenderer: this.renderHeaderCell}
-							{...otherProps}
-						/>
-				)})}
-			</Table>
-		)
-	}
-
-	render() {
-		return (
-			<div id='Results'>
-				<div id='top-row'>
-					<BallotSelector
-						onBallotSelected={this.ballotSelected}
-					/>
-					<span
-						style={{cursor: 'pointer'}}
-						onClick={() => {this.setState({showSummary: !this.state.showSummary})}}
-					><i className={this.state.showSummary? "fa fa-angle-down": "fa fa-angle-right"} />Results</span>
-					<button onClick={() => {this.setState({showExportModal: true})}}>Export</button>
-					<span>{this.props.resultsDataMap.length}</span>
-				</div>
-				<ResultsSummary
-					visible={this.state.showSummary}
-					resultsSummary={this.props.resultsSummary}
-					ballot={this.props.ballot}
-					votingPoolSize={this.props.votingPoolSize}
-				/>
-				{this.renderTable()}
-				<ExportModal
-					ballot={this.props.ballot}
-					isOpen={this.state.showExportModal}
-					close={() => this.setState({showExportModal: false})}
-					appElement={document.querySelector('#Results')}
-				/>
+					onClick={() => setShowSummary(!showSummary)}
+				>{showSummary?<IconAngleDown />:<IconAngleUp />}Results</span>
+				<button onClick={() => setShowExportModal(true)}>Export</button>
 			</div>
-		)
-	}
+			<ResultsSummary
+				visible={showSummary}
+				resultsSummary={props.resultsSummary}
+				ballot={props.ballot}
+				votingPoolSize={props.votingPoolSize}
+			/>
+			<AppTable
+				hasRowSelector={false}
+				hasRowExpander={false}
+				columns={columns}
+				rowHeight={18}
+				height={tableSize.height}
+				width={tableSize.width}
+				loading={props.getResults}
+				//editRow={editRow}
+				filters={props.filters}
+				sortBy={props.sortBy}
+				sortDirection={props.sortDirection}
+				sortChange={sortChange}
+				filterChange={filterChange}
+				//showSelected={() => setShowSelected(true)}
+				//setSelected={(cids) => setSelected(cids)}
+				//selected={selected}
+				primaryDataKey={'SAPIN'}
+				data={props.resultsData}
+				dataMap={props.resultsDataMap}
+			/>
+			<ExportModal
+				ballot={props.ballot}
+				isOpen={showExportModal}
+				close={() => setShowExportModal(false)}
+			/>
+		</div>
+	)
 }
 
 function mapStateToProps(state) {

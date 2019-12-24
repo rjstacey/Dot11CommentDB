@@ -1,5 +1,20 @@
 import {sortData, filterData} from '../filter';
 
+function defaultBallot() {
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	return {
+		Project: '',
+		BallotID: '',
+		EpollNum: '',
+		Document: '',
+		Topic: '',
+		Start: today.toISOString(),
+		End: today.toISOString(),
+		VotingPoolID: 0,
+		PrevBallotID: ''}
+}
+
 const defaultState = {
 	filters: {},
 	sortBy: [],
@@ -16,6 +31,10 @@ const defaultState = {
 	ballotList: [],
 	project: '',
 	ballotId: '',
+	editBallot: {
+		action: 'add',
+		ballot: defaultBallot()
+	},
 	errorMsgs: [],
 };
 
@@ -194,6 +213,20 @@ const ballots = (state = defaultState, action) => {
 				...state,
 				deleteBallots: false,
 				errorMsgs: errorMsgs
+			}
+		case 'EDIT_BALLOT':
+			let ballotId = action.ballotId;
+			let ballot = state.ballotsData.find(b => b.BallotID === ballotId)
+			if (!ballot) {
+				ballot = defaultBallot;
+			}
+			const editBallot = {
+				ballot,
+				action: action.action
+			}
+			return {
+				...state,
+				editBallot
 			}
 
 		case 'SET_PROJECT':

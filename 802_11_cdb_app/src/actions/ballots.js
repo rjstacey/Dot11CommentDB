@@ -61,7 +61,7 @@ export function updateBallotLocal(ballotId, ballotData) {
 		ballotData
 	}
 }
-function updateBallotSuccess(ballotId, ballotData) {
+export function updateBallotSuccess(ballotId, ballotData) {
 	return {
 		type: 'UPDATE_BALLOT_SUCCESS',
 		ballotId,
@@ -182,6 +182,14 @@ export function setBallotId(ballotId) {
 	return {
 		type: 'SET_BALLOTID',
 		ballotId
+	}
+}
+
+export function editBallot(ballotId, action) {
+	return {
+		type: 'EDIT_BALLOT',
+		ballotId,
+		action
 	}
 }
 

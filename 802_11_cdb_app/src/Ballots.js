@@ -1,335 +1,328 @@
 import PropTypes from 'prop-types';
-import React from 'react';
-import {Link} from "react-router-dom";
-import Modal from 'react-modal';
-import update from 'immutability-helper';
+import React, {useState, useEffect, useRef} from 'react';
+import {Link, useHistory} from "react-router-dom";
 import {connect} from 'react-redux';
-import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
-import Draggable from 'react-draggable';
-import {setBallotsFilters, setBallotsSort, getBallots, deleteBallots, updateBallot} from './actions/ballots';
+import moment from'moment-timezone';
+import AppTable from './AppTable'
+import AppModal from './AppModal';
+import ContentEditable from './ContentEditable';
+import BallotDetailModal from './BallotDetail';
+import {setBallotsFilters, setBallotsSort, getBallots, deleteBallots, updateBallot, addBallot, editBallot} from './actions/ballots';
 import {getVotingPool} from './actions/voters';
 import {deleteCommentsWithBallotId, importComments, uploadComments} from './actions/comments'
 import {deleteResults, importResults, uploadResults} from './actions/results'
 import {sortClick, filterValidate} from './filter'
-import {IconImport, IconSort, IconDelete} from './Icons'
+import {IconImport, IconDelete} from './Icons'
 import styles from './AppTable.css'
 
-class ImportModal extends React.PureComponent {
+/* Convert a UTC time string to US eastern time
+ * and display only the date in format "yyyy-mm-dd" (ISO format). */
+function strDate(utcDateStr) {
+	var d = new Date(utcDateStr)
+	d = new Date(d.toLocaleString('en-US', {timeZone: 'America/New_York'}))
+	return d.toISOString().substring(0,10)
+}
 
-	static propTypes = {
-		ballotId: PropTypes.string.isRequired,
-		epollNum: PropTypes.number.isRequired,
-		importType: PropTypes.oneOf(['', 'results', 'comments']),
-		isOpen: PropTypes.bool.isRequired,
-		close: PropTypes.func.isRequired,
-		appElement: PropTypes.any
-	}
+/* Parse date and convert to ISO UTC string */
+function parseDate(etDateStr) {
+	// Date is in format: "yyyy-mm-dd" and is always eastern time
+	return moment.tz(etDateStr, 'YYYY-MM-DD', 'America/New_York').toUTCString()
+}
 
-	constructor(props) {
-		super(props)
-		this.fileInputRef = React.createRef();
+function defaultBallot() {
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	return {
+		Project: '',
+		BallotID: '',
+		Document: '',
+		Topic: '',
+		Start: today.toISOString(),
+		End: today.toISOString(),
+		VotingPoolID: 0,
+		PrevBallotID: ''}
+}
 
-		this.state = {
-			fromFile: false
-		}
-	}
+function ImportBallotModal(props) {
+	const {ballotId, epollNum, importType, isOpen, close, dispatch} = props;
+	const fileInputRef = useRef();
 
-	submit = () => {
-		if (this.state.fromFile) {
-			this.props.dispatch(
-				this.props.importType === 'results'?
-					uploadResults(this.props.ballotId, this.fileInputRef.current.files[0]):
-					uploadComments(this.props.ballotId, this.fileInputRef.current.files[0])
-			)
+	const [fromFile, setFromFile] = useState(false);
+
+	function submit() {
+		if (fromFile) {
+			dispatch(
+				importType === 'results'?
+					uploadResults(ballotId, fileInputRef.current.files[0]):
+					uploadComments(ballotId, fileInputRef.current.files[0])
+			).then(() => close())
 		}
 		else {
-			this.props.dispatch(
-				this.props.importType === 'results'?
-					importResults(this.props.ballotId, this.props.epollNum):
-					importComments(this.props.ballotId, this.props.epollNum, 1)
-			)
+			dispatch(
+				importType === 'results'?
+					importResults(ballotId, epollNum):
+					importComments(ballotId, epollNum, 1)
+			).then(() => close())
 		}
-		this.props.close()
 	}
 
-	render() {
-		return (
-			<Modal
-				className='ModalContent'
-				overlayClassName='ModalOverlay'
-				isOpen={this.props.isOpen}
-				appElement={this.props.appElement}
-			>
-				<p>Import {this.props.importType} for {this.props.ballotId}. Current {this.props.importType} (if any) will be deleted.</p>
-				<p>Select whether to import from the ePoll associated with the ballot or from a local .csv file.</p>
-				<label>
-					<input
-						name='FromEpoll'
-						type='radio'
-						checked={!this.state.fromFile}
-						onChange={e => this.setState({fromFile: !e.target.checked})}
-					/>
-					From ePoll
-				</label>
-				<br />
-				<label>
-					<input
-						name='FromFile'
-						type='radio'
-						checked={this.state.fromFile}
-						onChange={e => this.setState({fromFile: e.target.checked})}
-					/>
-					From file&nbsp;&nbsp;
-					<input
-						type='file'
-						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-						ref={this.fileInputRef}
-					/>
-				</label>
-				<br />
-				<button onClick={this.submit}>OK</button>
-				<button onClick={this.props.close}>Cancel</button>
-			</Modal>
-		)
-	}
+	return (
+		<AppModal
+			isOpen={isOpen}
+			onRequestClose={close}
+		>
+			<p>Import {importType} for {ballotId}. Current {importType} (if any) will be deleted.</p>
+			<p>Select whether to import from the ePoll associated with the ballot or from a local .csv file.</p>
+			<label>
+				<input
+					name='FromEpoll'
+					type='radio'
+					checked={!fromFile}
+					onChange={e => setFromFile(!e.target.checked)}
+				/>
+				From ePoll
+			</label>
+			<br />
+			<label>
+				<input
+					name='FromFile'
+					type='radio'
+					checked={fromFile}
+					onChange={e => setFromFile(e.target.checked)}
+				/>
+				From file&nbsp;&nbsp;
+				<input
+					type='file'
+					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+					ref={fileInputRef}
+				/>
+			</label>
+			<br />
+			<button onClick={submit}>OK</button>
+			<button onClick={close}>Cancel</button>
+		</AppModal>
+	)
+}
+ImportBallotModal.propTypes = {
+	ballotId: PropTypes.string.isRequired,
+	epollNum: PropTypes.string.isRequired,
+	importType: PropTypes.oneOf(['', 'results', 'comments']),
+	isOpen: PropTypes.bool.isRequired,
+	close: PropTypes.func.isRequired,
+	dispatch: PropTypes.func.isRequired
 }
 
-class ContentEditable extends React.Component {
+function Ballots(props) {
+	const history = useHistory();
 
-	static propTypes = {
-		deferUpdate: PropTypes.bool.isRequired,
-		value: PropTypes.string.isRequired,
-		onChange: PropTypes.func.isRequired
-	}
+	const columns = [
+		{dataKey: 'Project',      label: 'Project',
+			sortable: true,
+			filterable: true,
+			width: 65, flexShrink: 0, flexGrow: 0},
+		{dataKey: 'BallotID',     label: 'Ballot ID',
+			sortable: true,
+			filterable: true,
+			width: 75, flexShrink: 0, flexGrow: 0},
+		{dataKey: 'Document',     label: 'Document',
+			sortable: true,
+			filterable: true,
+			width: 150, flexShrink: 1, flexGrow: 1},
+		{dataKey: 'Topic',        label: 'Topic',
+			sortable: true,
+			filterable: true,
+			width: 300, flexShrink: 1, flexGrow: 1},
+		{dataKey: 'EpollNum',     label: 'ePoll',
+			sortable: true,
+			filterable: true,
+			width: 80, flexGrow: 0, flexShrink: 0},
+		{dataKey: 'Start',        label: 'Start',
+			sortable: true,
+			filterable: true,
+			width: 86, flexShrink: 0,
+			cellRenderer: renderDate},
+		{dataKey: 'End',          label: 'End',
+			sortable: true,
+			filterable: true,
+			width: 86, flexShrink: 0,
+			cellRenderer: renderDate},
+        {dataKey: ['VotingPoolID', 'PrevBallotID'], label: 'Voting Pool/Prev Ballot',
+        	sortable: false,
+			filterable: false,
+        	width: 100, flexShrink: 1, flexGrow: 1,
+    		cellRenderer: renderVotingPool},
+		{dataKey: 'Results',      label: 'Result',
+			sortable: true,
+			filterable: true,
+			width: 150, flexShrink: 1, flexGrow: 1,
+			cellRenderer: renderResultsSummary},
+		{dataKey: 'Comments',	label: 'Comments',
+			sortable: true,
+			filterable: true,
+			width: 100, flexShrink: 1, flexGrow: 1,
+			cellRenderer: renderCommentsSummary,
+			isLast: true}
+	];
+	const primaryDataKey = 'BallotID';
 
-	constructor(props) {
-		super(props);
-		this.divRef = React.createRef();
-		this.lastValue = ''
-	}
+	const [selected, setSelected] = useState([]);
+	const [importHandler, setImportHandler] = useState({
+		show: false,
+		type: '',
+		ballot: {BallotID: '', EpollNum: ''}});
 
-	render() {
-		return (
-			<div
-				ref={this.divRef}
-				onBlur={this.emitChange}
-				contentEditable
-				dangerouslySetInnerHTML={{__html: this.props.value}}
-			/>
-		)
-	}
+	const [ballotDetail, setBallotDetail] = useState(() => {return {
+		show: false,
+		action: null,
+		ballot: defaultBallot()
+	}});
 
-	shouldComponentUpdate(nextProps) {
-		return !nextProps.deferUpdate && nextProps.value !== this.divRef.current.innerHTML;
-	}
+	const [tableSize, setTableSize] = useState({
+		height: 400,
+		width: 400,
+	});
 
-	componentDidUpdate() {
-		if (this.props.value !== this.divRef.current.innerHTML) {
-			this.divRef.current.innerHTML = this.props.value;
+	function updateTableSize() {
+		const headerEl = document.getElementsByTagName('header')[0];
+		const topRowEl = document.getElementById('top-row');
+		const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight;
+
+		const height = window.innerHeight - headerHeight - 5;
+		const width = window.innerWidth - 1;
+
+		if (height !== tableSize.height || width !== tableSize.width) {
+			setTableSize({height, width});
 		}
 	}
+	useEffect(() => {updateTableSize()})
 
-	emitChange = () => {
-		var currentValue = this.divRef.current.innerHTML;
-		if (this.props.onChange && currentValue !== this.lastValue) {
-			this.props.onChange({target: {value: currentValue}});
+	useEffect(() => {
+		window.addEventListener("resize", updateTableSize);
+		return () => {
+			window.removeEventListener("resize", updateTableSize);
 		}
-		this.lastValue = currentValue;
-	}
-}
+	}, [])
 
-class Ballots extends React.PureComponent {
-	constructor(props) {
-
-		super(props);
-
-		this.columns = [
-			/*{dataKey: '',             label: '',
-				width: 40, flexGrow: 0, flexShrink: 0,
-				headerRenderer: this.renderHeaderCheckbox,
-				cellRenderer: this.renderCheckbox},*/
-			{dataKey: 'Project',      label: 'Project',
-				width: 65, flexShrink: 0, flexGrow: 0,
-				cellRenderer: this.renderEditable},
-			{dataKey: 'BallotID',     label: 'Ballot ID',
-				width: 75, flexShrink: 0, flexGrow: 0,
-				cellRenderer: this.renderEditable},
-			{dataKey: 'Document',     label: 'Document',
-				width: 150, flexShrink: 1, flexGrow: 1,
-				cellRenderer: this.renderEditable},
-			{dataKey: 'Topic',        label: 'Topic',
-				width: 300, flexShrink: 1, flexGrow: 1,
-				cellRenderer: this.renderEditable},
-			{dataKey: 'EpollNum',     label: 'ePoll',
-				width: 80, flexGrow: 0, flexShrink: 0},
-			{dataKey: 'Start',        label: 'Start',
-				width: 86, flexShrink: 0,
-				cellRenderer: this.renderDate},
-			{dataKey: 'End',          label: 'End',
-				width: 86, flexShrink: 0,
-				cellRenderer: this.renderDate},
-	        {dataKey: ['VotingPoolID', 'PrevBallotID'], label: 'Voting Pool/Prev Ballot',
-	        	width: 100, flexShrink: 1, flexGrow: 1,
-	    		cellRenderer: this.renderVotingPool},
-			{dataKey: 'Results',      label: 'Result',
-				width: 150, flexShrink: 1, flexGrow: 1,
-				cellRenderer: this.renderResultsSummary},
-			{dataKey: 'Comments',	label: 'Comments',
-				width: 100, flexShrink: 1, flexGrow: 1,
-				cellRenderer: this.renderCommentsSummary,
-				isLast: true}
-		];
-
-		this.state = {
-			height: 100,
-			width: 100,
-			ballotImport: {},
-			selectedBallots: [],
-			showImport: false,
-			importType: '',
-			importBallot: {BallotID: '', EpollNum: 0}
-		}
-
-		// List of filterable columns
-    	const filterable = ['BallotID', 'Project', 'Document', 'Topic', 'EpollNum'];
+	useEffect(() => {
 		if (Object.keys(props.filters).length === 0) {
 			var filters = {};
-			filterable.forEach(dataKey => {filters[dataKey] = ''});
-			this.props.dispatch(setBallotsFilters(filters));
+			for (let col of columns) {
+				if (col.filterable) {
+					filters[col.dataKey] = filterValidate(col.dataKey, '')
+				}
+			}
+			props.dispatch(setBallotsFilters(filters));
 		}
-
-		this.sortable = ['BallotID', 'Project', 'Document', 'Topic', 'EpollNum', 'Start', 'End'];
-
-		this.rowHeightCache = new CellMeasurerCache({
-			minHeight: 18,
-			fixedWidth: true
-		})
-	}
-	componentDidMount() {
-		this.updateDimensions()
-		window.addEventListener("resize", this.updateDimensions);
-
-		if (!this.props.ballotsDataValid) {
-			this.props.dispatch(getBallots())
+		if (!props.ballotsDataValid) {
+			props.dispatch(getBallots())
 		}
-		if (!this.props.votingPoolDataValid) {
-			this.props.dispatch(getVotingPool())
+		if (!props.votingPoolDataValid) {
+			props.dispatch(getVotingPool())
 		}
-		this.rowHeightCache.clearAll()
-	}
-	componentWillUnmount() {
-		window.removeEventListener("resize", this.updateDimensions);
-	}
-	updateDimensions = () => {
-		var header = document.getElementsByTagName('header')[0]
-		var top = document.getElementById('top-row')
-		var height = window.innerHeight - header.offsetHeight - top.offsetHeight - 5
-		var width = window.innerWidth - 1; //parent.offsetWidth
-		//console.log('update ', width, height)
-		this.setState({height, width})
+	}, [])
+
+	function showEpolls(e) {
+		history.push('/Epolls/');
 	}
 
-	resizeColumn = ({dataKey, deltaX}) => {
-		var i = this.columns.findIndex(c => c.dataKey === dataKey)
-		this.columns[i].width += deltaX;
-		this.setState({columnWidth: update(this.state.columnWidth, {$set: {[this.columns[i].dataKey]: this.columns[i].width}})})
-	}
-
-	showEpolls = (e) => {
-		this.props.history.push('/Epolls/');
-	}
-	deleteCommentsClick = (e, rowData) => {
+	function deleteCommentsClick(e, rowData) {
 		console.log('ballotId=', rowData.BallotID)
-		this.props.dispatch(deleteCommentsWithBallotId(rowData.BallotID));
+		props.dispatch(deleteCommentsWithBallotId(rowData.BallotID));
 	}
-	importCommentsClick = (e, rowData) => {
-		this.setState({
-			showImport: true,
-			importType: 'comments',
-			importBallot: rowData
+	function importCommentsClick(e, rowData) {
+		setImportHandler({
+			show: true,
+			type: 'comments',
+			ballot: rowData
 		})
 	}
-	deleteResultsClick = (e, rowData) => {
+
+	function deleteResultsClick(e, rowData) {
 		console.log('ballotId=', rowData.BallotID)
-		this.props.dispatch(deleteResults(rowData.BallotID));
+		props.dispatch(deleteResults(rowData.BallotID));
 	}
-	importResultsClick = (e, rowData) => {
-		this.setState({
-			showImport: true,
-			importType: 'results',
-			importBallot: rowData
+
+	function importResultsClick(e, rowData) {
+		setImportHandler({
+			show: true,
+			type: 'results',
+			ballot: rowData
 		})
 	}
-	handleRemoveSelected = () => {
-		const {ballotsData, ballotsDataMap} = this.props;
-		var delBallotIds = [];
-		for (var i = 0; i < ballotsDataMap.length; i++) { // only select checked items that are visible
-			let ballotId = ballotsData[ballotsDataMap[i]].BallotID
-			if (this.state.selectedBallots.includes(ballotId)) {
-				delBallotIds.push(ballotId)
+
+	function handleRemoveSelected() {
+		const {ballotsData, ballotsDataMap} = props;
+		let ids = [];
+		for (let i of ballotsDataMap) { // only select checked items that are visible
+			let id = ballotsData[i][primaryDataKey]
+			if (selected.includes(id)) {
+				ids.push(id)
 			}
 		}
-		if (delBallotIds.length) {
-			this.props.dispatch(deleteBallots(delBallotIds))
-			this.rowHeightCache.clearAll()
+		if (ids.length) {
+			props.dispatch(deleteBallots(ids))
+				.then(() => {
+					const s = selected.filter(id => !ids.includes(id));
+					setSelected(s);
+				})
 		}
 	}
-	sortChange = (event, dataKey) => {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, this.props.sortBy, this.props.sortDirection);
-		this.props.dispatch(setBallotsSort(sortBy, sortDirection));
-		this.rowHeightCache.clearAll()
+
+	function sortChange(event, dataKey) {
+		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
+		props.dispatch(setBallotsSort(sortBy, sortDirection));
 		event.preventDefault()
 	}
-	filterChange = (event, dataKey) => {
+
+	function filterChange(event, dataKey) {
 		var filter = filterValidate(dataKey, event.target.value)
-		this.props.dispatch(setBallotsFilters({[dataKey]: filter}));
-		this.rowHeightCache.clearAll()
+		props.dispatch(setBallotsFilters({[dataKey]: filter}));
 	}
-	updateBallotField = (rowIndex, dataKey, fieldData) => {
-		const b = this.props.ballotsData[this.props.ballotsDataMap[rowIndex]];
-		this.props.dispatch(updateBallot(b.BallotID, {[dataKey]: fieldData}))
-	}
-	updateBallotFieldIfChanged = (rowIndex, columnIndex, dataKey, fieldData) => {
-		const b = this.props.ballotsData[this.props.ballotsDataMap[rowIndex]];
+
+	function updateBallotField(rowIndex, columnIndex, dataKey, fieldData) {
+		const b = props.ballotsData[props.ballotsDataMap[rowIndex]];
 		if (b[dataKey] !== fieldData) {
-			this.props.dispatch(updateBallot(b.BallotID, {[dataKey]: fieldData}))
-				//.then(() => {console.log('updated'); this.tableRef.forceUpdate()})
-			this.rowHeightCache.clear(rowIndex, columnIndex)
+			props.dispatch(updateBallot(b.BallotID, {[dataKey]: fieldData}))
 		}
 	}
 
-	renderDate = ({rowData, dataKey}) => {
-		// rowData[dataKey] is a UTC time string. We convert this to US eastern time
-		// and display only the date in format "yyyy-mm-dd" (ISO format).
-		var d = new Date(rowData[dataKey])
-		d = new Date(d.toLocaleString('en-US', {timeZone: 'America/New_York'}))
-		return d.toISOString().substring(0,10)
+	function renderDate({rowData, dataKey}) {
+		return strDate(rowData[dataKey])
 	}
 
-	renderEditable = ({rowIndex, rowData, dataKey, columnIndex}) => {
+	function renderEditable({rowIndex, rowData, dataKey, columnIndex}) {
 		return (
 			<ContentEditable
 				value={rowData[dataKey]}
-				deferUpdate={this.props.updateBallot}
-				onChange={e => this.updateBallotFieldIfChanged(rowIndex, columnIndex, dataKey, e.target.value)}
+				onChange={e => updateBallotField(rowIndex, columnIndex, dataKey, e.target.value)}
 			/>
 		)
 	}
 	
-	renderVotingPool = ({rowIndex, columnIndex, rowData, dataKey}) => {
-		var project = rowData.Project;
-		const showSelectVotingPool = !rowData[dataKey[1]]
-		const showSelectBallot = !rowData[dataKey[0]]
+	function renderVotingPool({rowIndex, columnIndex, rowData, dataKey}) {
+		const votingPoolID = rowData[dataKey[0]];
+		const prevBallotID = rowData[dataKey[1]]; 
+		if (votingPoolID > 0) {
+			const v = props.votingPoolData.find(v => v.VotingPoolID === votingPoolID)
+			return v? v.Name: '';
+		}
+		else {
+			return prevBallotID;
+		}
+		//var project = rowData.Project;
+		//const showSelectVotingPool = !rowData[dataKey[1]]
+		//const showSelectBallot = !rowData[dataKey[0]]
+		/*
 		return (
 			<div>
 				{showSelectVotingPool &&
 					<select
 						name={dataKey}
 						value={rowData[dataKey[0]]}
-						onChange={e => this.updateBallotFieldIfChanged(rowIndex, columnIndex, dataKey[0], e.target.value)}
+						onChange={e => updateBallotField(rowIndex, columnIndex, dataKey[0], e.target.value)}
 					>
 						<option key={0} value={''}>Select Pool</option>
-						{this.props.votingPoolData.map(i => {
+						{props.votingPoolData.map(i => {
 							return (<option key={i.VotingPoolID} value={i.VotingPoolID}>{i.Name}</option>)
 						})}
 					</select>}
@@ -337,32 +330,19 @@ class Ballots extends React.PureComponent {
 					<select
 						name={dataKey}
 						value={rowData[dataKey[1]]}
-						onChange={e => this.updateBallotFieldIfChanged(rowIndex, columnIndex, dataKey[1], e.target.value)}
+						onChange={e => updateBallotField(rowIndex, columnIndex, dataKey[1], e.target.value)}
 					>
 						<option key={0} value={''}>Select Ballot</option>
-						{project && this.props.ballotsByProject[project].map(i => {
+						{project && props.ballotsByProject[project].map(i => {
 							return (i !== rowData.BallotID? <option key={i} value={i}>{i}</option>: null)
 						})}
 					</select>}
 			</div>
 		)
+		*/
 	}
-	renderPrevBallot = ({rowIndex, columnIndex, rowData, dataKey}) => {
-		var project = rowData.Project;
-		return (
-			<select
-				name={dataKey}
-				value={rowData[dataKey]}
-				onChange={e => this.updateBallotFieldIfChanged(rowIndex, columnIndex, dataKey, e.target.value)}
-			>
-				<option key={0} value={''}>None</option>
-				{project && this.props.ballotsByProject[project].map(i => {
-					return (i !== rowData.BallotID? <option key={i} value={i}>{i}</option>: null)
-				})}
-			</select>
-		)
-	}
-	renderResultsSummary = ({rowIndex, rowData, dataKey}) => {
+
+	function renderResultsSummary({rowIndex, rowData, dataKey}) {
 		var results = rowData[dataKey];
 		var resultsStr = '';
 		if (results && results.TotalReturns) {
@@ -375,195 +355,109 @@ class Ballots extends React.PureComponent {
 		return resultsStr
 			? <React.Fragment>
 				<Link to={`/Results/${rowData.BallotID}`}>{resultsStr}</Link>&nbsp;
-				<IconDelete title="Delete Results" className={styles.actionCell} onClick={e => this.deleteResultsClick(e, rowData)} />&nbsp;
-				<IconImport title="Import Results" className={styles.actionCell} onClick={e => this.importResultsClick(e, rowData)} />
+				<div className={styles.actionColumn}>
+					<IconDelete title="Delete Results" onClick={e => deleteResultsClick(e, rowData)} />&nbsp;
+					<IconImport title="Import Results" onClick={e => importResultsClick(e, rowData)} />
+				</div>
 			  </React.Fragment>
 			: <React.Fragment>
 				None&nbsp;
-				<IconImport title="Import Results" className={styles.actionCell} onClick={e => this.importResultsClick(e, rowData)} />
+				<div className={styles.actionColumn}>
+					<IconImport title="Import Results" onClick={e => importResultsClick(e, rowData)} />
+				</div>
 			  </React.Fragment>
 	}
 
-	renderCommentsSummary = ({rowIndex, rowData, dataKey}) => {
+	function renderCommentsSummary({rowIndex, rowData, dataKey}) {
 		var comments = rowData.Comments;
 		return (comments && comments.Count > 0)
 			? <React.Fragment>
 				<Link to={`/Comments/${rowData.BallotID}`}>{comments.CommentIDMin}-{comments.CommentIDMax} ({comments.Count})</Link>&nbsp;
-				<IconDelete title="Delete Comments" className={styles.actionCell} onClick={e => this.deleteCommentsClick(e, rowData)} />&nbsp;
-				<IconImport title="Import Comments" className={styles.actionCell} onClick={e => this.importCommentsClick(e, rowData)} />
+				<div className={styles.actionColumn}>
+					<IconDelete title="Delete Comments" onClick={e => deleteCommentsClick(e, rowData)} />&nbsp;
+					<IconImport title="Import Comments" onClick={e => importCommentsClick(e, rowData)} />
+				</div>
 			  </React.Fragment>
 			: <React.Fragment>
 				None&nbsp;
-				<IconImport title="Import Comments" className={styles.actionCell} onClick={e => this.importCommentsClick(e, rowData)} />
+				<div className={styles.actionColumn}>
+					<IconImport title="Import Comments" onClick={e => importCommentsClick(e, rowData)} />
+				</div>
 			  </React.Fragment>
 	}
 
-	refresh = () => {
-		this.props.dispatch(getBallots())
-		this.rowHeightCache.clearAll()
+	function refresh() {
+		props.dispatch(getBallots())
 	}
 
-	renderLabel = ({dataKey, label}) => {
-		if (this.sortable.includes(dataKey)) {
-			const sortDirection = this.props.sortBy.includes(dataKey)? this.props.sortDirection[dataKey]: 'NONE';
-			return (
-				<div
-					className={styles.headerLabel}
-					title={label}
-					style={{cursor: 'pointer'}}
-					onClick={e => this.sortChange(e, dataKey)}
-				>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 13px)'}}>{label}</div>
-					{sortDirection !== 'NONE' && <IconSort direction={sortDirection} />}
-				</div>
-			)
-		}
-		else {
-			return (
-				<div
-					className={styles.headerLabel}
-					title={label}
-				>
-					{label}
-				</div>
-			)
-		}
+	function handleAddBallot(event) {
+		setBallotDetail({
+			show: true,
+			action: 'add',
+			ballot: defaultBallot()
+		})
 	}
 
-	renderFilter = ({dataKey}) => {
-		var filter = this.props.filters[dataKey]
-		var classNames = styles.headerFilt
-		if (filter && !filter.valid) {
-			classNames += ' ' + styles.headerFiltInvalid
-		}
-		return (
-			<input
-				type='text'
-				className={classNames}
-				placeholder='Filter'
-				onChange={e => {this.filterChange(e, dataKey)}}
-				value={filter.filtStr}
-			/>
-		)
+	function handleEditBallot({event, index, rowData}) {
+		const ballotId = rowData.BallotID;
+		props.dispatch(editBallot(ballotId));
+		history.push(`/Ballot/${ballotId}`);
+
+		/*const ballot = props.ballotsData[props.ballotsDataMap[index]];
+		setBallotDetail({
+			show: true,
+			action: 'update',
+			ballot
+		})*/
 	}
 
-	renderHeaderCell = ({columnData, dataKey, label}) => {
-		const col = columnData;
-		const showFilter = this.props.filters.hasOwnProperty(dataKey);
-
-		if (col.isLast) {
-			return (
-				<div className={styles.headerLabelBox} style={{flex: '0 0 100%'}}>
-					{this.renderLabel({dataKey, label})}
-					{showFilter && this.renderFilter({dataKey})}
-				</div>
-			)
-		}
-		return (
-			<React.Fragment>
-				<div className={styles.headerLabelBox} style={{flex: '0 0 calc(100% - 12px)'}}>
-					{this.renderLabel({dataKey, label})}
-					{showFilter && this.renderFilter({dataKey})}
-				</div>
-				<Draggable
-					axis="x"
-					defaultClassName={styles.headerDrag}
-					defaultClassNameDragging={styles.dragHandleActive}
-					onDrag={(event, {deltaX}) => this.resizeColumn({dataKey, deltaX})}
-					position={{x: 0}}
-					zIndex={999}
-				>
-					<span className={styles.dragHandleIcon}>⋮</span>
-				</Draggable>
-			</React.Fragment>
-		)
-	}
-
-	noRowsRenderer = () => {
-		return <div className={styles.noRows}>{this.props.getBallots? 'Loading...': 'No rows'}</div>
-	}
-
-	rowClassName = ({index}) => {
-		if (index < 0) {
-			return styles.headerRow;
-		} else {
-			return index % 2 === 0 ? styles.evenRow : styles.oddRow;
-		}
-	}
-
-	renderMeasuredCell = (props) => {
-		const {rowIndex, dataKey, columnIndex, columnData, parent} = props;
-		return (
-			<CellMeasurer
-				cache={this.rowHeightCache}
-				rowIndex={rowIndex}
-				columnIndex={columnIndex}
-				parent={parent}
-				key={dataKey}
-			>
-				{columnData.cellRenderer(props)}
-			</CellMeasurer>
-		)
-	}
-
-	setTableRef = (ref) => {
-		this.tableRef = ref;
-	}
-
-	renderTable = () => {
-		return (
-			<Table
-				className={styles.Table}
-				height={this.state.height}
-				width={this.state.width}
-				rowHeight={this.rowHeightCache.rowHeight}
-				deferredMeasurementCache={this.rowHeightCache}
-				headerHeight={40}
-				noRowsRenderer={this.noRowsRenderer}
-				headerClassName={styles.headerColumn}
-				rowClassName={this.rowClassName}
-				rowCount={this.props.ballotsDataMap.length}
-				rowGetter={({index}) => {return this.props.ballotsData[this.props.ballotsDataMap[index]]}}
-				ref={this.setTableRef}
-			>
-				{this.columns.map((col, index) => {
-					const {cellRenderer, headerRenderer, ...otherProps} = col;
-					return (
-						<Column 
-							key={index}
-							className={styles.rowColumn}
-							columnData={col}
-							headerRenderer={headerRenderer? headerRenderer: this.renderHeaderCell}
-							cellRenderer={cellRenderer? this.renderMeasuredCell: undefined}
-							{...otherProps}
-						/>
-				)})}
-			</Table>
-		)
-	}
-
-	render() {
-		return (
-			<div id='Ballots'>
-				<div id='top-row'>
-					<button disabled={this.props.getBallots} onClick={this.refresh}>Refresh</button>
-					<button>Add</button>
-					<button onClick={this.handleRemoveSelected}>Remove Selected</button>
-					<button onClick={this.showEpolls}>Import ePoll</button>
-				</div>
-				{this.renderTable()}
-				<ImportModal
-					ballotId={this.state.importBallot.BallotID}
-					epollNum={this.state.importBallot.EpollNum}
-					importType={this.state.importType}
-					isOpen={this.state.showImport}
-					close={() => this.setState({showImport: false})}
-					dispatch={this.props.dispatch}
-					appElement={document.querySelector('#Ballots')}
-				/>
+	return (
+		<div id='Ballots'>
+			<div id='top-row'>
+				<button disabled={props.getBallots} onClick={refresh}>Refresh</button>
+				<button onClick={handleAddBallot}>Add</button>
+				<button onClick={handleRemoveSelected}>Remove Selected</button>
+				<button onClick={showEpolls}>Import ePoll</button>
 			</div>
-		)
-	}
+			<AppTable
+				hasRowSelector={true}
+				hasRowExpander={false}
+				columns={columns}
+				rowHeight={40}
+				height={tableSize.height}
+				width={tableSize.width}
+				loading={props.getBallots}
+				editRow={handleEditBallot}
+				filters={props.filters}
+				sortBy={props.sortBy}
+				sortDirection={props.sortDirection}
+				sortChange={sortChange}
+				filterChange={filterChange}
+				//showSelected={() => setShowSelected(true)}
+				setSelected={(cids) => setSelected(cids)}
+				selected={selected}
+				data={props.ballotsData}
+				dataMap={props.ballotsDataMap}
+				primaryDataKey={primaryDataKey}
+			/>
+			<ImportBallotModal
+				ballotId={importHandler.ballot.BallotID}
+				epollNum={importHandler.ballot.EpollNum}
+				importType={importHandler.type}
+				isOpen={importHandler.show}
+				close={() => setImportHandler({...importHandler, show: false})}
+				dispatch={props.dispatch}
+			/>
+			{/*<BallotDetailModal
+				//votingPoolData={props.votingPoolData}
+				//ballotsByProject={props.ballotsByProject}
+				isOpen={ballotDetail.show}
+				ballot={ballotDetail.ballot}
+				action={ballotDetail.action}
+				close={() => setBallotDetail({...ballotDetail, show: false})}
+			/>*/}
+		</div>
+	)
 }
 
 function mapStateToProps(state) {

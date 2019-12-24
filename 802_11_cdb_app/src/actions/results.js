@@ -1,5 +1,5 @@
 
-import {updateBallotLocal} from './ballots'
+import {updateBallotSuccess} from './ballots'
 
 var axios = require('axios');
 
@@ -59,7 +59,6 @@ export function getResults(ballotId) {
 				}
 				else {
 					dispatch(getResultsSuccess(response.data.data))
-					dispatch(updateBallotLocal({BallotID: ballotId, Results: response.data.data.summary}))
 				}
 			})
 			.catch((error) => {
@@ -96,7 +95,7 @@ export function deleteResults(ballotId) {
 					dispatch(deleteResultsFailure(response.data.message))
 				}
 				else {
-					dispatch(updateBallotLocal({BallotID: ballotId, Results: {}}))
+					dispatch(updateBallotSuccess(ballotId, {Results: {}}))
 					dispatch(deleteResultsSuccess(ballotId))
 				}
 			})
@@ -139,7 +138,7 @@ export function importResults(ballotId, epollNum) {
 				}
 				else {
 					const summary = response.data.data.summary;
-					dispatch(updateBallotLocal({BallotID: ballotId, Results: summary}))
+					dispatch(updateBallotSuccess(ballotId, {Results: summary}))
 					dispatch(importResultsSuccess(response.data.data))
 				}
 			})
@@ -161,9 +160,9 @@ export function uploadResults(ballotId, file) {
 					dispatch(importResultsFailure(ballotId, response.data.message))
 				}
 				else {
-					const result = response.data.data;
-					dispatch(updateBallotLocal({BallotID: ballotId, Results: result}))
-					dispatch(importResultsSuccess(ballotId, result))
+					const summary = response.data.data;
+					dispatch(updateBallotSuccess(ballotId, {Results: summary}))
+					dispatch(importResultsSuccess(ballotId, summary))
 				}
 			})
 			.catch((error) => {
