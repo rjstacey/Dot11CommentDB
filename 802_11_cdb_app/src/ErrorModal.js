@@ -39,6 +39,7 @@ function ErrorModal(props) {
 	return (
 		<AppModal
 			isOpen={!!msg}
+			onRequestClose={() => props.dispatch(clearFunc())}
 		>
 			<p>{msg}</p>
 			<button onClick={() => props.dispatch(clearFunc())}>OK</button>

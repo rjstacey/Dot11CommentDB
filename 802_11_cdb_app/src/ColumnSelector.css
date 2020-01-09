@@ -3,7 +3,7 @@
 	display: inline-block;
 	user-select: none;
 	position: relative;
-	width: 222px;
+	/*width: 222px;*/
 }
 :local(.header) {
 	display: flex;
@@ -22,7 +22,9 @@
 :local(.list) {
 	z-index: 10;
 	position: absolute;
-	width: 100%;
+	right: 0;
+	/*width: 100%;*/
+	width: 222px;
 	margin-block-start: 0;
 	margin-block-end: 0;
 	padding-inline-start: 5px;

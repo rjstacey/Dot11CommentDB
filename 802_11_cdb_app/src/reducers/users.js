@@ -10,6 +10,7 @@ const defaultState = {
 	getUsers: false,
 	updateUsers: false,
 	addUsers: false,
+	uploadUsers: false,
 	deleteUsers: false,
 	errorMsgs: []
 }
@@ -111,6 +112,25 @@ const users = (state = defaultState, action) => {
 				deleteUsers: false,
 				errorMsgs
 			};
+		case 'UPLOAD_USERS':
+			return {...state, uploadUsers: true}
+		case 'UPLOAD_USERS_SUCCESS':
+			return {
+				...state,
+				uploadUsers: false,
+				usersDataValid: true,
+				usersData: action.users,
+				usersDataMap: sortData(filterData(action.users, state.filters), action.users, state.sortBy, state.sortDirection)
+			};
+		case 'UPLOAD_USERS_FAILURE':
+			errorMsgs = state.errorMsgs.slice();
+			errorMsgs.push(action.errMsg);
+			return {
+				...state,
+				uploadUsers: false,
+				errorMsgs
+			};
+
 		case 'CLEAR_USERS_ERROR':
 			if (state.errorMsgs.length) {
 				errorMsgs = state.errorMsgs.slice();

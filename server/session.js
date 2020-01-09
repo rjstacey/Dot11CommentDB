@@ -17,19 +17,18 @@ module.exports = function (db, rp, users) {
 		return Promise.resolve(info)
 	}
   
-	module.login = function (req, res, next) {
+	module.login = async (req, res, next) => {
 		// Server side session for this user
 		// If we haven't already done so, create a cookie jar for ieee.org.
-		var sess = req.session;
-		if (sess.ieeeCookieJar === undefined) {
-			sess.ieeeCookieJar = rp.jar();
+		//var sess = req.session;
+		if (req.session.ieeeCookieJar === undefined) {
+			req.session.ieeeCookieJar = rp.jar();
 		}
-		sess.username = req.body.username;
+		req.session.username = req.body.username;
 
 		var options = {
 			url: 'https://development.standards.ieee.org/pub/login',
-			//followAllRedirects: true,
-			jar: sess.ieeeCookieJar,
+			jar: req.session.ieeeCookieJar,
 			resolveWithFullResponse: true,
 			simple: false
 		};
@@ -37,63 +36,64 @@ module.exports = function (db, rp, users) {
 		// Do an initial GET on /pub/login so that we get cookies. We can do a login without this, but
 		// if we don't get the cookies associated with this GET, then the server seems to get confused
 		// and won't have the approriate state post login.
-		return rp.get(options)
-			.then(ieeeRes => {
-				var $ = cheerio.load(ieeeRes.body);
-				var loginForm = {
-					v: $('input[name="v"]').val(),
-					c: $('input[name="c"]').val(),
-					x1: req.body.username,
-					x2: req.body.password,
-					f0: 3, // "Sign In To" selector (1 = Attendance Tool, 2 = Mentor, 3 = My Project, 4 = Standards Dictionary)
-					privacyconsent: 'on',
-					ok_button: 'Sign+In'
-				};
+		var ieeeRes = await rp.get(options);
 
-				// Now post the login data. There will be a bunch of redirects, but we should get a logged in page.
-				// options.form = loginForm;
-				return rp.post(Object.assign({}, options, {form: loginForm}));
-			})
-			.then(ieeeRes => {
-				if (ieeeRes.statusCode === 302) {
-					// Update the URL to the user's home and do another get.
-					options.url = 'https://development.standards.ieee.org/' + sess.username + '/home';
-					return rp.get(options);
-				}
-				else {
-					m = ieeeRes.body.match(/<div class="field_err">(.*)<\/div>/);
-					return Promise.reject(m? m[1]: 'Not logged in');
-				}
-			})
-			.then(ieeeRes => {
-				// We should receive a bold message: Welcome: <username> (SA PIN: <sapin>)
-				var n = ieeeRes.body.match(/<big>Welcome: (.*) \(SA PIN: ([0-9]+)\)<\/big>/);
-				sess.name = n? n[1]: 'Unknown';
-				sess.sapin = n? n[2]: 0;
+		var $ = cheerio.load(ieeeRes.body);
+		var loginForm = {
+			v: $('input[name="v"]').val(),
+			c: $('input[name="c"]').val(),
+			x1: req.body.username,
+			x2: req.body.password,
+			f0: 3, // "Sign In To" selector (1 = Attendance Tool, 2 = Mentor, 3 = My Project, 4 = Standards Dictionary)
+			privacyconsent: 'on',
+			ok_button: 'Sign+In'
+		};
 
-				return users.getAccessLevel(sess.sapin, sess.username)
-			})
-			.then(access => {
-				console.log('access level = ' + access);
-				sess.access = access;
-				var info = {
-					username: sess.username,
-					name: sess.name, 
-					sapin: sess.sapin, 
-					access: sess.access
-				};
-				return info
-			})
+		// Now post the login data. There will be a bunch of redirects, but we should get a logged in page.
+		// options.form = loginForm;
+		ieeeRes = await rp.post(Object.assign({}, options, {form: loginForm}));
+		if (ieeeRes.statusCode !== 302) {
+			m = ieeeRes.body.match(/<div class="field_err">(.*)<\/div>/);
+			return Promise.reject(m? m[1]: 'Not logged in');
+		}
+		// Update the URL to the user's home and do another get.
+		options.url = 'https://development.standards.ieee.org/' + req.session.username + '/home';
+		ieeeRes = await rp.get(options);
+
+		// We should receive a bold message: Welcome: <name> (SA PIN: <sapin>)
+		var n = ieeeRes.body.match(/<big>Welcome: (.*) \(SA PIN: ([0-9]+)\)<\/big>/);
+		req.session.name = n? n[1]: 'Unknown';
+		req.session.sapin = n? n[2]: 0;
+		req.session.access = await users.getAccessLevel(req.session.sapin, req.session.username);
+
+		console.log('access level = ' + req.session.access);
+		var info = {
+			username: req.session.username,
+			name: req.session.name, 
+			sapin: req.session.sapin, 
+			access: req.session.access,
+			authenticated: req.session.authenticated
+		};
+
+		/*newOptions = {
+			url: `https://mentor.ieee.org/802.11/polls/closed?n=1`,
+			jar: sess.ieeeCookieJar
+		}
+		ieeeRes = await rp.get(newOptions)
+		var $ = cheerio.load(ieeeRes);
+		console.log($('div.title').html())*/
+
+		return info
 	}
 
 	module.logout = (req, res, next) => {
-		console.log(req.headers);
+		//console.log(req.headers);
 
-		var sess = req.session;
-		return rp.get({url: 'https://development.standards.ieee.org/pub/logout', jar: sess.ieeeCookieJar})
-			.then(body => {
-				return null
-			})
+		//var sess = req.session;
+		req.session.access = 0;
+
+		rp.get({url: 'https://development.standards.ieee.org/pub/logout', jar: req.session.ieeeCookieJar})
+		return Promise.resolve(null)
 	}
 
 	return module;

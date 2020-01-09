@@ -34,21 +34,20 @@ function getEpollsFailure(msg) {
 	}
 }
 export function getEpolls(n = 20) {
-	return (dispatch, getState) => {
+	return async (dispatch, getState) => {
 		dispatch(getEpollsLocal(n))
-		return axios.get('/epolls', {params: {n}})
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(getEpollsFailure(response.data.message))
-				}
-				else {
-					dispatch(getEpollsSuccess(n, response.data.data))
-					//dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData))
-				}
-			})
-			.catch((error) => {
-				dispatch(getEpollsFailure('Unable to get a list of epolls'))
-			})
+		try {
+			const response = await axios.get('/epolls', {params: {n}})
+			if (response.data.status !== 'OK') {
+				return dispatch(getEpollsFailure(response.data.message))
+			}
+			else {
+				return dispatch(getEpollsSuccess(n, response.data.data))
+			}
+		}
+		catch(error) {
+			return dispatch(getEpollsFailure('Unable to get a list of epolls'))
+		}
 	}
 }
 export function clearEpollsError() {

@@ -24,7 +24,7 @@ function syncAgainstBallots(epollsData, ballotsData) {
 
 const epolls = (state = defaultState, action) => {
 	var epollsData, errorMsgs;
-	console.log(action);
+	//console.log(action);
 
 	switch (action.type) {
 		case 'SET_EPOLLS_SORT':

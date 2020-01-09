@@ -5,7 +5,7 @@ const defaultState = {
 	votingPoolFilters: {},
 	votingPoolSortBy: [],
 	votingPoolSortDirection: {},
-	votingPoolValid: false,
+	votingPoolDataValid: false,
 	votingPoolData: [],
 	votingPoolDataMap: [],
 
@@ -92,6 +92,7 @@ const voters = (state = defaultState, action) => {
 			return {
 				...state,
 				deleteVotingPool: false,
+				votingPoolDateValid: true,
 				votingPoolData: votingPoolData,
 				votingPoolDataMap: sortData(filterData(votingPoolData, state.filters), votingPoolData, state.votingPoolSortBy, state.votingPoolSortDirection),
 			}
@@ -161,13 +162,36 @@ const voters = (state = defaultState, action) => {
 				addVoter: false,
 				errorMsgs
 			}
+		case 'UPDATE_VOTER':
+			return {...state, updateVoter: true}
+		case 'UPDATE_VOTER_SUCCESS':
+			votersData = state.votersData.map(v =>
+				(v.SAPIN === action.SAPIN)? {...v, ...action.voterData}: v
+			);
+			return {
+				...state,
+				updateVoter: false,
+				votersData: votersData,
+				votersDataMap: sortData(filterData(votersData, state.votersFilters), votersData, state.votersSortBy, state.votersSortDirection)
+			}
+		case 'UPDATE_VOTER_FAILURE':
+			errorMsgs = state.errorMsgs.slice();
+			errorMsgs.push(action.errMsg);
+			return {...state,
+				updateVoter: false,
+				errorMsgs
+			}
 
 		case 'DELETE_VOTERS':
-			return Object.assign({}, state, {
-				deleteVoters: true,
-			}, (state.votingPoolID === action.VotingPoolID)? {votersData: [], votersDataMap: []}: null)
+			return {...state, deleteVoters: true}
 		case 'DELETE_VOTERS_SUCCESS':
-			return {...state, deleteVoters: false}
+			votersData = state.votersData.filter(v => !action.SAPINs.includes(v.SAPIN));
+			return {
+				...state,
+				deleteVoters: false,
+				votersData,
+				votersDataMap: sortData(filterData(votersData, state.votersFilters), votersData, state.votersSortBy, state.votersSortDirection)
+			}
 		case 'DELETE_VOTERS_FAILURE':
 			errorMsgs = state.errorMsgs.slice();
 			errorMsgs.push(action.errMsg);

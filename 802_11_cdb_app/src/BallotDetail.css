@@ -9,14 +9,22 @@
 .row {
 	display: flex;
 	flex-direction: row;
-	/* width: 100%; */
-	margin: 10px 0;
+	margin: 6px 0;
 }
 
 .column {
 	display: flex;
 	flex-direction: column;
-	/*flex: 1;*/
+}
+
+.optionsColumn {
+	width: 300px;
+}
+
+.fromColumn {
+	display: flex;
+	flex-direction: column;
+	margin-left: 10px;
 }
 
 .close {
@@ -28,15 +36,13 @@
 .ballotTypeGroup {
 	display: flex;
 	flex-direction: column;
-	padding-left: 20px;
-	padding-top: 10px;
+	margin: 0 auto;
 }
 
 .importGroup {
 	display: flex;
 	flex-direction: column;
-	padding-left: 20px;
-	padding-top: 10px;
+	margin-left: 20px;
 }
 
 .empty {
@@ -53,7 +59,7 @@
 }
 
 .initLabel {
-	width: 150px;
+	width: 120px;
 }
 .row label {
 	font-weight: bold;
@@ -81,8 +87,4 @@
 .toLabel {
 	width: 40px;
 	text-align: center;
-}
-
-.invalidDate {
-	background-color: red;
 }

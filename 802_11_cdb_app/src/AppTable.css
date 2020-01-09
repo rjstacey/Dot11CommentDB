@@ -1,6 +1,6 @@
 .Table {
-  /*width: 100%;
-  height: 100%; */
+	margin: 0 auto;
+	align-items: center;
 }
 .headerRow,
 .evenRow,
@@ -65,13 +65,14 @@
 	font-weight: 100;
 	box-sizing: border-box;
 	width: 100%;
+	background-color: white;
 }
 .headerFiltInvalid {
 	background-color: red
 }
-.headerFilt[placeholder]:empty:before {
-	content: attr(placeholder);
-	color: #555;
+.headerFilt:placeholder-shown {
+	background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22' %3E%3Cpath fill-opacity='.2' d='m 0,0 7.5,11.25 0,7.5 2.5,3.75 0,-11.25 7.5,-11.25 Z'%3E%3C/path%3E%3C/svg%3E") right / contain no-repeat;
+	background-color: white;
 }
 
 .headerDrag {

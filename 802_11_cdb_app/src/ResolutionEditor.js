@@ -1,6 +1,6 @@
-import React from 'react'
+import React, {useState, useEffect, useRef} from 'react'
 import cx from 'classnames'
-import {Editor, EditorState, RichUtils, ContentState, getDefaultKeyBinding, KeyBindingUtil, convertFromHTML} from 'draft-js';
+import {Editor, EditorState, RichUtils, getDefaultKeyBinding, KeyBindingUtil} from 'draft-js';
 import {EditorToolIcon} from './Icons';
 import 'draft-js/dist/Draft.css'
 import {stateToHTML} from 'draft-js-export-html';
@@ -9,9 +9,9 @@ import styles from './ResolutionEditor.css'
 
 
 const styleMap = {
-  'HIGHLIGHT': {
-    'backgroundColor': '#faed27',
-  }
+	'HIGHLIGHT': {
+		'backgroundColor': '#faed27',
+	}
 };
 
 const StyleButton = (props) => {
@@ -134,52 +134,55 @@ function blockStyleFn(block) {
 	}
 }
 
-export class ResolutionEditor extends React.Component {
-	constructor(props) {
-		super(props);
-		this.state = {editorState: EditorState.createEmpty()};
-	}
-	static getDerivedStateFromProps(props, state) {
-		let newState = {}
-		if (props.value !== state.value) {
-			newState.value = props.value
-			let contentState = stateFromHTML(props.value, options)
-			/*const blocksFromHTML = convertFromHTML(props.value);
-			const contentState = ContentState.createFromBlockArray(
-			  blocksFromHTML.contentBlocks,
-			  blocksFromHTML.entityMap
-			);*/
-			newState.editorState = EditorState.createWithContent(contentState)
+export function ResolutionEditor(props) {
+	const [editorState, setEditorState] = useState(EditorState.createEmpty())
+	const [resnStatus, setResnStatus] = useState('')
+	const [showTools, setShowTools] = useState(false)
+	const editorRef = useRef(null)
+
+	useEffect(() => {
+		const html = stateToHTML(editorState.getCurrentContent(), options)
+		if (props.resolution !== html) {
+			let contentState = stateFromHTML(props.resolution, options)
+			setEditorState(EditorState.createWithContent(contentState))
 		}
-		return newState
+		if (props.resnStatus !== resnStatus) {
+			setResnStatus(props.resnStatus)
+		}
+	}, [props.resolution, props.resnStatus])
+
+	function changeResolutionCheckboxGroup(e) {
+		e.preventDefault()
+		setResnStatus(e.target.checked? '': e.target.value)
+ 	}
+
+	function onChange(editorState) {
+		setEditorState(editorState)
 	}
-	onChange = editorState => {
-		this.setState({editorState})
-	}
-	emitChange = e => {
-		const {onChange, name} = this.props
-		if (onChange) {
-			let html = stateToHTML(this.state.editorState.getCurrentContent(), options)
+
+	function emitChange(e) {
+		const {changeResolution, changeResnStatus} = props
+		if (changeResolution) {
+			const html = stateToHTML(editorState.getCurrentContent(), options)
 			console.log(html)
-			onChange({
-				target: {
-					name: name,
-					value: html
-				}
-			})
+			changeResolution(html)
+		}
+		if (changeResnStatus) {
+			changeResnStatus(resnStatus)
 		}
 	}
-	mapKeyToEditorCommand = e => {
+
+	function mapKeyToEditorCommand(e) {
 		if (e.keyCode === 9 /* TAB */) {
 			e.preventDefault();
 			console.log('TAB')
 			const newEditorState = RichUtils.onTab(
 					e,
-					this.state.editorState,
+					editorState,
 					4, /* maxDepth */
 				);
-			if (newEditorState !== this.state.editorState) {
-				this.onChange(newEditorState);
+			if (newEditorState !== editorState) {
+				onChange(newEditorState);
 			}
 			return;
 		}
@@ -191,29 +194,31 @@ export class ResolutionEditor extends React.Component {
 		}
 		return getDefaultKeyBinding(e);
 	}
-	handleKeyCommand = (command, editorState) => {
+
+	function handleKeyCommand(command, state) {
 		var newState = RichUtils.handleKeyCommand(editorState, command);
 		if (!newState && command === 'strikethrough') {
-			newState = RichUtils.toggleInlineStyle(this.state.editorState, 'STRIKETHROUGH');
+			newState = RichUtils.toggleInlineStyle(editorState, 'STRIKETHROUGH');
 		}
 		if (!newState && command === 'highlight') {
-			newState = RichUtils.toggleInlineStyle(this.state.editorState, 'HIGHLIGHT');
+			newState = RichUtils.toggleInlineStyle(editorState, 'HIGHLIGHT');
 		}
 		if (newState) {
-			this.onChange(newState);
+			onChange(newState);
 			return 'handled';
 		}
 		return 'not-handled';
 	}
-	handlePastedText = (text, html) => {
+
+	function handlePastedText(text, html) {
 		console.log(html)
 		return false;
 	}
-	shouldHidePlaceholder = () => {
+
+	function shouldHidePlaceholder() {
 		// If the user changes block type before entering any text, we can
 		// either style the placeholder or hide it. Let's just hide it now.
-		let {editorState} = this.state;
-		let contentState = editorState.getCurrentContent();
+		const contentState = editorState.getCurrentContent();
 		if (!contentState.hasText()) {
 			if (contentState.getBlockMap().first().getType() !== 'unstyled') {
 				return true;
@@ -221,43 +226,79 @@ export class ResolutionEditor extends React.Component {
 		}
 		return false;
 	}
-	render() {
-		const {editorState} = this.state;
 
-		let className = cx({
-			[styles.editor]: true,
-			[styles.hidePlaceholder]: this.shouldHidePlaceholder(),
-		});
+	let className = cx({
+		[styles.editor]: true,
+		[styles.hidePlaceholder]: shouldHidePlaceholder(),
+	});
 
-		return (
-			<div className={styles.root}>
-				<BlockStyleControls
-					editorState={editorState}
-					onChange={this.onChange}
-				/>
-				<InlineStyleControls
-					editorState={editorState}
-					onChange={this.onChange}
-				/>
-				<ActionControls
-					editorState={editorState}
-					onChange={this.onChange}
-				/>
+	return (
+		<div className={styles.root} onClick={() => editorRef.current.focus()}>
+			<div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: 5}}>
+				<div className={styles.ResolutionStatus}>
+					<label>
+						<input
+							type='checkbox'
+							name='ResnStatus'
+							value='A'
+							checked={resnStatus === 'A'}
+							onMouseDown={changeResolutionCheckboxGroup}		// onMouseDown so that editor does not lose focus
+							readOnly
+						/>Accepted
+					</label>
+					<label>
+						<input
+							type='checkbox'
+							name='ResnStatus'
+							value='V'
+							checked={resnStatus === 'V'}
+							onMouseDown={changeResolutionCheckboxGroup}
+							readOnly
+						/>Revised
+					</label>
+					<label>
+						<input
+							type='checkbox'
+							name='ResnStatus'
+							value='J'
+							checked={resnStatus === 'J'}
+							onMouseDown={changeResolutionCheckboxGroup}
+							readOnly
+						/>Rejected
+					</label>
+				</div>
+				<div style={{visibility: showTools? 'visible': 'hidden'}}>
+					<BlockStyleControls
+						editorState={editorState}
+						onChange={onChange}
+					/>
+					<InlineStyleControls
+						editorState={editorState}
+						onChange={onChange}
+					/>
+					<ActionControls
+						editorState={editorState}
+						onChange={onChange}
+					/>
+				</div>
+			</div>
+			<div className={styles.editor}>
 				<Editor
 					className={className}
+					ref={editorRef}
 					customStyleMap={styleMap}
-					editorState={this.state.editorState}
-					handleKeyCommand={this.handleKeyCommand}
-					keyBindingFn={this.mapKeyToEditorCommand}
-					handlePastedText={this.handlePastedText}
+					editorState={editorState}
+					handleKeyCommand={handleKeyCommand}
+					keyBindingFn={mapKeyToEditorCommand}
+					handlePastedText={handlePastedText}
 					blockStyleFn={blockStyleFn}
 					placeholder='Enter some text...'
-					onChange={this.onChange}
-					onBlur={this.emitChange}
+					onChange={onChange}
+					onBlur={(editorState) => {setShowTools(false); emitChange(editorState)}}
 					spellCheck={true}
+					onFocus={(e) => {setShowTools(true)}}
 				/>
 			</div>
-		);
-	}
-	
+		</div>
+	);	
 }

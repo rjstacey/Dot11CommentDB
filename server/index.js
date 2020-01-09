@@ -4,10 +4,8 @@
  * Robert Stacey
  */
 
-// [START app]
 'use strict';
 
-// [START setup]
 var express = require('express');
 var multer = require('multer');
 var upload = multer();
@@ -20,15 +18,17 @@ app.use(express.urlencoded({extended: true}));
 var rp = require('request-promise-native').defaults({proxy: 'http://proxy-chain.intel.com:912'});
 
 var connection = require('./database');
-// [END setup]
 
-var express_session = require('express-session');
-app.use(express_session({
+var expressSession = require('express-session');
+var MySQLStore = require('express-mysql-session')(expressSession);
+var sessionStore = new MySQLStore({}, connection.pool);
+app.use(expressSession({
 	//name: 'id42',
 	secret: 'random_string_goes_here',
 	resave: false,
 	saveUninitialized: true,
 	//cookie: { secure: true }
+	store: sessionStore
 }));
 
 app.use((req, res, next) => {
@@ -45,19 +45,50 @@ function resData(res, data) {
 }
 
 function resErr(res, err) {
-	console.log(err)
-	var ret = {
-		status: 'Error',
-		err: err
-	};
+	console.error(err)
+	var ret = {status: 'Error'};
 	if (typeof err === 'string') {
 		ret.message = err
 	}
 	else {
-		ret.message = JSON.stringify(err)
+		ret.message = err.message
 	}
 	res.status(200).send(ret)
 }
+
+/*
+ * Enforce basic access
+ */
+app.all(['/users', '/votingPool', '/voters'], (req, res, next) => {
+	const {access} = req.session;
+	console.log('enforce', req.method, access)
+	if (req.method === 'GET') {
+		if (access <= 1) {
+			return resErr(res, 'Insufficient karma')
+		}
+	}
+	next()
+})
+app.all((req, res, next) => {
+	if (req.path === '/login' || req.path === '/logout') {
+		return next()
+	}
+	const {access, autheticated} = req.session;
+	switch (req.method) {
+	case 'PUT':
+	case 'POST':
+	case 'DELETE':
+		if (!autheticated) {
+			return resErr(res, 'Not autheticated')
+		}
+		if (access <= 2) {
+			return resErr(res, 'Insufficient karma')
+		}
+	}
+	next()
+})
+
+
 
 /*
  * Users API
@@ -87,9 +118,12 @@ app.delete('/users', (req, res, next) => {
 	users.deleteUser(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
 });
+app.post('/users/upload', upload.single('UsersFile'), (req, res, next) => {
+	users.uploadUsers(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
+});
 
 /*
-
 app.get('/pdf', function (req, res, next) {
 
     console.log('Request for /pdf');
@@ -108,6 +142,36 @@ app.get('/pdf', function (req, res, next) {
 */
 
 /*
+ * Ballot results API
+ */
+const results = require('./results')(connection, rp);
+
+app.get('/results', (req, res, next) => {
+	results.getResults(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
+});
+app.delete('/results', (req, res, next) => {
+	results.deleteResults(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
+});
+app.get('/results/summary', (req, res, next) => {
+	results.summarizeResults(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
+});
+app.post('/results/import', (req, res, next) => {
+	results.importResults(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
+});
+app.post('/results/upload', upload.single('ResultsFile'), (req, res, next) => {
+	results.uploadResults(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
+});
+app.get('/results/export', (req, res, next) => {
+	results.exportResults(req, res, next)
+		.catch(err => resErr(res, err))
+});
+
+/*
  * Ballots API
  *
  * GET /ballots: return the complete array of ballot entries in the database
@@ -116,7 +180,7 @@ app.get('/pdf', function (req, res, next) {
  * DELETE: /ballots: delete ballots identified by an array of BallotIDs
  * GET: /epolls: return a list of epolls by scraping the mentor webpage for closed epolls.
  */
-const ballots = require('./ballots')(connection, rp);
+const ballots = require('./ballots')(connection, rp, results);
 
 app.get('/ballots', (req, res, next) => {
 	ballots.getBallots(req, res, next)
@@ -181,35 +245,6 @@ app.post('/resolutions/upload', upload.single('ResolutionsFile'), (req, res, nex
 		.then(data => resData(res, data), err => resErr(res, err))
 });
 
-/*
- * Ballot results API
- */
-const results = require('./results')(connection, rp);
-
-app.get('/results', (req, res, next) => {
-	results.getResults(req, res, next)
-		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.delete('/results', (req, res, next) => {
-	results.deleteResults(req, res, next)
-		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.get('/results/summary', (req, res, next) => {
-	results.summarizeResults(req, res, next)
-		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.post('/results/import', (req, res, next) => {
-	results.importResults(req, res, next)
-		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.post('/results/upload', upload.single('ResultsFile'), (req, res, next) => {
-	results.uploadResults(req, res, next)
-		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.get('/results/export', (req, res, next) => {
-	results.exportResults(req, res, next)
-		.catch(err => resErr(res, err))
-});
 
 /*
  * Voting pools and voters API
@@ -236,6 +271,10 @@ app.post('/voters', (req, res, next) => {
 	voters.addVoter(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
 });
+app.put('/voters/:votingPoolId/:SAPIN', (req, res, next) => {
+	voters.updateVoter(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
+});
 app.delete('/voters', (req, res, next) => {
 	voters.deleteVoters(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
@@ -253,7 +292,6 @@ app.post('/voters/upload', upload.single('VotersFile'), (req, res, next) => {
  * POST /logout: logout
  */
 const session = require('./session')(connection, rp, users);
-
 app.get('/login', (req, res, next) => {
 	session.getState(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))

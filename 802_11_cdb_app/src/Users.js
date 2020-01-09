@@ -1,12 +1,11 @@
 import PropTypes from 'prop-types';
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import { connect } from 'react-redux';
 import AppTable from './AppTable';
 import AppModal from './AppModal';
 import {sortClick, filterValidate} from './filter';
-import {IconRefresh, IconAdd, IconDelete} from './Icons';
-import {setUsersFilters, setUsersSort, getUsers, updateUser, addUser, deleteUsers} from './actions/users';
-import styles from './AppTable.css';
+import {ActionButton} from './Icons';
+import {setUsersFilters, setUsersSort, getUsers, updateUser, addUser, deleteUsers, uploadUsers} from './actions/users';
 
 
 function AddUserModal(props) {
@@ -54,6 +53,36 @@ AddUserModal.propTypes = {
 	dispatch: PropTypes.func.isRequired
 }
 
+function UploadUsersModal(props) {
+	const usersFileInputRef = useRef();
+
+	function submit() {
+		props.dispatch(uploadUsers(usersFileInputRef.current.files[0])).then(props.close)
+	}
+
+	return (
+		<AppModal
+			isOpen={props.isOpen}
+			onRequestClose={props.close}
+		>
+			<p>Upload users</p>
+			<input
+				type='file'
+				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+				ref={usersFileInputRef}
+			/>
+			<br />
+			<button onClick={submit}>OK</button>
+			<button onClick={props.close}>Cancel</button>
+		</AppModal>
+	)
+}
+UploadUsersModal.propTypes = {
+	isOpen: PropTypes.bool.isRequired,
+	close: PropTypes.func.isRequired,
+	dispatch: PropTypes.func.isRequired
+}
+
 function Users(props) {
 
 	const columns = [
@@ -76,37 +105,37 @@ function Users(props) {
 			sortable: true,
 			filterable: true,
 			width: 100,
-			cellRenderer: renderAccess},
-		{dataKey: '', label: '',
-			sortable: false,
-			filterable: false,
-			width: 200,
-			headerRenderer: renderHeaderActions,
-			cellRenderer: renderActions,
+			cellRenderer: renderAccess,
 			isLast: true}
 	];
 	const primaryDataKey = columns[0].dataKey
 
-	const [tableHeight, setTableHeight] = useState(400)
-	const [tableWidth, setTableWidth] = useState(300)
 	const [showAddUserModal, setShowAddUserModal] = useState(false);
+	const [showUploadUsersModal, setShowUploadUsersModal] = useState(false);
 	const [selected, setSelected] = useState([])
+
+	const [tableSize, setTableSize] = useState({
+		height: 400,
+		width: 300,
+	});
+
+	function updateTableSize() {
+		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
+		const headerEl = document.getElementsByTagName('header')[0];
+
+		const height = window.innerHeight - headerEl.offsetHeight - 5;
+		const width = window.innerWidth - 1;
+
+		if (height !== tableSize.height || width !== tableSize.width) {
+			setTableSize({height, width: Math.min(width, maxWidth)});
+		}
+	}
 	
 	useEffect(() => {
-
-		function updateDimensions() {
-			const header = document.getElementsByTagName('header')[0]
-			if (header) {
-				setTableHeight(window.innerHeight - header.offsetHeight - 5)
-				setTableWidth(window.innerWidth - 1)
-			}
-		}
-
-		updateDimensions();
-
-		window.addEventListener("resize", updateDimensions);
+		updateTableSize();
+		window.addEventListener("resize", updateTableSize);
 		return () => {
-			window.removeEventListener("resize", updateDimensions);
+			window.removeEventListener("resize", updateTableSize);
 		}
 	}, [])
 
@@ -137,12 +166,6 @@ function Users(props) {
 		if (ids.length) {
 			props.dispatch(deleteUsers(ids))
 		}
-	}
-
-	function deleteRow(rowIndex) {
-		const u = props.usersData[props.usersDataMap[rowIndex]];
-		console.log(rowIndex, u)
-		props.dispatch(deleteUsers([u[primaryDataKey]]))
 	}
 
 	function refresh() {
@@ -197,24 +220,6 @@ function Users(props) {
 		)
 	}
 
-	function renderActions({rowIndex}) {
-		return (
-			<div className={styles.actionColumn}>
-				<IconDelete title='Delete' onClick={e => deleteRow({rowIndex})} />
-			</div>
-		)
-	}
-
-	function renderHeaderActions({rowIndex}) {
-		return (
-			<React.Fragment>
-				<IconRefresh title='Refresh' onClick={refresh} />&nbsp;
-				<IconAdd title='Add User' onClick={() => setShowAddUserModal(true)} />&nbsp;
-				<IconDelete title='Remove Selected Users' onClick={handleRemoveSelected} />
-			</React.Fragment>
-		)
-	}
-
   	function sortChange(event, dataKey) {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
 		props.dispatch(setUsersSort(sortBy, sortDirection));
@@ -226,14 +231,23 @@ function Users(props) {
 	}
 
 	return (
-		<div id='Users'>
+		<div id='Users' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
+				<span><label>Users</label></span>
+				<span>
+					<ActionButton name='add' title='Add User' onClick={() => setShowAddUserModal(true)} />
+					<ActionButton name='delete' title='Remove Selected' onClick={handleRemoveSelected} />
+					<ActionButton name='upload' title='Upload Users' onClick={() => setShowUploadUsersModal(true)} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				</span>
+			</div>
 			<AppTable
 				hasRowSelector={true}
 				hasRowExpander={false}
 				columns={columns}
 				rowHeight={22}
-				height={tableHeight}
-				width={tableWidth}
+				height={tableSize.height}
+				width={tableSize.width}
 				loading={props.getUsers}
 				filters={props.filters}
 				sortBy={props.sortBy}
@@ -251,6 +265,11 @@ function Users(props) {
 			<AddUserModal
 				isOpen={showAddUserModal}
 				close={() => setShowAddUserModal(false)}
+				dispatch={props.dispatch}
+			/>
+			<UploadUsersModal
+				isOpen={showUploadUsersModal}
+				close={() => setShowUploadUsersModal(false)}
 				dispatch={props.dispatch}
 			/>
 		</div>

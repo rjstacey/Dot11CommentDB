@@ -1,28 +1,10 @@
 import React, {useState, useRef, useEffect} from 'react';
 import {connect} from 'react-redux';
-import {useHistory, useParams} from 'react-router-dom'
+import {useHistory} from 'react-router-dom'
 import AppTable from './AppTable';
-import BallotDetailModal from './BallotDetail';
 import {sortClick, filterValidate} from './filter'
-import {IconRefresh, IconImport, IconClose, IconMore} from './Icons'
+import {ActionButton, IconImport, IconClose} from './Icons'
 import {setEpollsSort, setEpollsFilters, getEpolls} from './actions/epolls';
-import styles from './Epolls.css'
-
-
-function defaultBallot() {
-	const now = new Date();
-	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-	return {
-		Project: '',
-		BallotID: '',
-		EpollNum: '',
-		Document: '',
-		Topic: '',
-		Start: today.toISOString(),
-		End: today.toISOString(),
-		VotingPoolID: 0,
-		PrevBallotID: ''}
-}
 
 function Epolls(props) {
 
@@ -54,37 +36,35 @@ function Epolls(props) {
 			sortable: false,
 			filterable: false,
 			width: 200,
-			headerRenderer: renderHeaderActions,
 			cellRenderer: renderActions,
 			isLast: true}
 	];
+	const primaryDataKey = columns[0].dataKey;
 
 	const history = useHistory();
 
 	const numberEpolls = useRef(20);
-	const [importBallot, setImportBallot] = useState(() => {return {
-		show: false,
-		ballot: defaultBallot()
-	}});
+
 	const [tableSize, setTableSize] = useState({
 		height: 400,
 		width: 300,
 	});
 
 	function updateTableSize() {
+		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
 		const headerEl = document.getElementsByTagName('header')[0];
-		const headerHeight = headerEl.offsetHeight;
+		const topRowEl = document.getElementById('top-row')
 
-		const height = window.innerHeight - headerHeight - 5;
+		const height = window.innerHeight - headerEl.offsetHeight - topRowEl.offsetHeight - 5;
 		const width = window.innerWidth - 1;
 
 		if (height !== tableSize.height || width !== tableSize.width) {
-			setTableSize({height, width});
+			setTableSize({height, width: Math.min(width, maxWidth)});
 		}
 	}
-	useEffect(() => {updateTableSize()})
 
 	useEffect(() => {
+		updateTableSize();
 		window.addEventListener("resize", updateTableSize);
 		return () => {
 			window.removeEventListener("resize", updateTableSize);
@@ -108,11 +88,7 @@ function Epolls(props) {
 
 	function importClick(rowData) {
 		console.log(rowData)
-		const ballot = {...rowData, Project: ''}
-		setImportBallot({
-			show: true,
-			ballot
-		})
+		history.push(`/ImportEpoll/${rowData.EpollNum}`)
 	}
 
 	function refresh() {
@@ -138,16 +114,6 @@ function Epolls(props) {
 		props.dispatch(setEpollsFilters({[dataKey]: filter}));
 	}
 
-	function renderHeaderActions({rowIndex}) {
-		return (
-			<React.Fragment>
-				<IconRefresh title='Refresh' onClick={refresh} />&nbsp;
-				<IconMore title='Load More' onClick={getMore} />
-				<IconClose title='Close' onClick={close} />&nbsp;
-			</React.Fragment>
-		)
-	}
-
 	function renderActions({rowData}) {
 		if (rowData.InDatabase) {
 			return (
@@ -169,7 +135,15 @@ function Epolls(props) {
 	}
 
 	return (
-		<div id='Epolls'>
+		<div id='Epolls' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
+				<span><label>Closed ePolls</label></span>
+				<span>
+					<ActionButton name='more' title='Load More' onClick={getMore} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+					<IconClose title='Close' onClick={close} />
+				</span>
+			</div>
 			<AppTable
 				hasRowSelector={false}
 				hasRowExpander={true}
@@ -189,17 +163,8 @@ function Epolls(props) {
 				//selected={selected}
 				data={props.epollsData}
 				dataMap={props.epollsDataMap}
-				//primaryDataKey={'CommentID'}
+				primaryDataKey={primaryDataKey}
 			/>
-
-			{/*<BallotDetailModal
-				//votingPoolData={props.votingPoolData}
-				//ballotsByProject={props.ballotsByProject}
-				//isOpen={importBallot.show}
-				//ballot={importBallot.ballot}
-				//action={'add'}
-				//close={() => setImportBallot({...importBallot, show: false})}
-			/>*/}
 		</div>
 	)
 }

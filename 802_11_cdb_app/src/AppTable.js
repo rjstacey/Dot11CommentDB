@@ -26,9 +26,9 @@ function AppTable(props) {
 	const [expanded, setExpanded] = useState([])
 
 	const rowHeightCache = useRef(new CellMeasurerCache({
-		minHeight: props.rowHeight,
-		fixedWidth: true
-	}))
+			minHeight: props.rowHeight,
+			fixedWidth: true
+		}))
 
 	useEffect(clearAllCachedRowHeight, [props.columns])	// If column layout changes
 
@@ -104,7 +104,7 @@ function AppTable(props) {
 			<input
 				type='search'
 				className={className}
-				placeholder='Filter'
+				placeholder=' '//'Filter'
 				onChange={e => props.filterChange(e, dataKey)}
 				value={filter.filtStr}
 			/>
@@ -275,7 +275,7 @@ function AppTable(props) {
 		columns.push({
 			dataKey: '', label: '',
 			sortable: false,
-			width: (props.hasRowSelector && props.hasRowExpander)? 40: 20,
+			width: (props.hasRowSelector && props.hasRowExpander)? 40: 25,
 			flexGrow: 0, flexShrink: 0,
 			headerRenderer: renderHeaderCellCheckbox,
 			cellRenderer: renderDataCellCheckbox
@@ -294,7 +294,7 @@ function AppTable(props) {
 			headerClassName={styles.headerColumn}
 			rowClassName={rowClassName}
 			rowCount={props.dataMap.length}
-			rowGetter={rowGetter}
+			rowGetter={props.rowGetter || rowGetter}
 			onRowDoubleClick={props.editRow}
 			ref={(ref) => tableRef = ref}
 		>

@@ -19,20 +19,20 @@ function loginGetStateFailure(msg) {
 }
 
 export function loginGetState() {
-	return dispatch => {
+	return async (dispatch) => {
 		dispatch(loginGetStateLocal());
-		return axios.get('/login')
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(loginGetStateFailure(response.data.message))
-				}
-				else {
-					dispatch(loginGetStateSuccess(response.data.data))
-				}
-			})
-			.catch((error) => {
-				dispatch(loginGetStateFailure('Unable to get login state'))
-			})
+		try {
+			const response = await axios.get('/login')
+			if (response.data.status === 'OK') {
+				return dispatch(loginGetStateSuccess(response.data.data))
+			}
+			else {
+				return dispatch(loginGetStateFailure(response.data.message))
+			}
+		}
+		catch(error) {
+			return dispatch(loginGetStateFailure('Unable to get login state'))
+		}
 	}
 }
 

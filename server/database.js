@@ -29,6 +29,8 @@ const fm1db = {
 var pool = mysql.createPool(or1db);
 
 module.exports = {
+	pool: pool,
+	
 	// Promisified SQL query using connection pool
 	query: function() {
 		if (arguments.length === 0 || arguments.length > 2) {

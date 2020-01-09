@@ -165,6 +165,46 @@ export function deleteUsers(userIds) {
 	}
 }
 
+function uploadUsersLocal() {
+	return {
+		type: 'UPLOAD_USERS'
+	}
+}
+
+function uploadUsersSuccess(users) {
+	return {
+		type: 'UPLOAD_USERS_SUCCESS',
+		users
+	}
+}
+
+function uploadUsersFailure(msg) {
+	return {
+		type: 'UPLOAD_USERS_FAILURE',
+		errMsg: msg
+	}
+}
+
+export function uploadUsers(file) {
+	return async (dispatch) => {
+		dispatch(uploadUsersLocal());
+		var formData = new FormData();
+		formData.append("UsersFile", file);
+		try {
+			const response = await axios.post('/users/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
+			if (response.data.status === 'OK') {
+				return dispatch(uploadUsersSuccess(response.data.data))
+			}
+			else {
+				return dispatch(uploadUsersFailure(response.data.message))
+			}
+		}
+		catch(error) {
+			return dispatch(uploadUsersFailure('Unable to upload users'))
+		}
+	}
+}
+
 export function clearUsersError() {
 	return {
 		type: 'CLEAR_USERS_ERROR'

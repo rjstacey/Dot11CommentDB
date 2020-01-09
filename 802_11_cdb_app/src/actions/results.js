@@ -137,6 +137,7 @@ export function importResults(ballotId, epollNum) {
 					dispatch(importResultsFailure(ballotId, response.data.message))
 				}
 				else {
+					console.log(response.data)
 					const summary = response.data.data.summary;
 					dispatch(updateBallotSuccess(ballotId, {Results: summary}))
 					dispatch(importResultsSuccess(response.data.data))

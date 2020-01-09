@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
-import React, {useState, useRef, useEffect, useLayoutEffect} from 'react';
-import {useHistory, useParams} from 'react-router-dom'
+import React, {useState, useRef, useEffect} from 'react';
+import {useHistory} from 'react-router-dom'
 import {connect} from 'react-redux';
 import AppTable from './AppTable';
 import AppModal from './AppModal';
+import ConfirmModal from './ConfirmModal';
 import {setVotingPoolSort, setVotingPoolFilters, getVotingPool, addVotingPool, deleteVotingPool, uploadVoters} from './actions/voters'
 import {sortClick, filterValidate} from './filter'
-import {IconRefresh, IconAdd, IconDelete, IconImport} from './Icons'
-import styles from './AppTable.css'
+import {ActionButton} from './Icons'
 
 function AddVotingPoolModal(props) {
 	const defaultVotingPool = {VotingPoolID: 0, Name: '', Date: new Date()}
@@ -114,28 +114,37 @@ function VoterPools(props) {
 		{dataKey: 'VoterCount',		label: 'Voters',
 			sortable: true,
 			filterable: true,
-			width: 100},
-		{dataKey: '',				label: '',
-			sortable: false,
-			filterable: false,
 			width: 100,
-			headerRenderer: renderHeaderActions,
-			cellRenderer: renderActions,
 			isLast: true}
 	];
+	const primaryDataKey = columns[0].dataKey;
 
-	const [tableHeight, setTableHeight] = useState(400)
-	const [tableWidth, setTableWidth] = useState(() => columns.reduce((acc, col) => acc + col.width, 0))
 	const [showAddVotingPool, setShowAddVotingPool] = useState(false)
-	const [showVotersImport, setShowVotersImport] = useState(false)
 	const [selected, setSelected] = useState([])
-	const [votingPool, setVotingPool] = useState({})
 
-	useLayoutEffect(() => {
-		updateDimensions();
-		window.addEventListener("resize", updateDimensions);
+	const [tableSize, setTableSize] = useState({
+		height: 400,
+		width: 300,
+	});
+
+	function updateTableSize() {
+		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
+		const headerEl = document.getElementsByTagName('header')[0];
+		const topRowEl = document.getElementById('top-row')
+
+		const height = window.innerHeight - headerEl.offsetHeight - topRowEl.offsetHeight - 5;
+		const width = window.innerWidth - 1;
+
+		if (height !== tableSize.height || width !== tableSize.width) {
+			setTableSize({height, width: Math.min(width, maxWidth)});
+		}
+	}
+
+	useEffect(() => {
+		updateTableSize();
+		window.addEventListener("resize", updateTableSize);
 		return () => {
-			window.removeEventListener("resize", updateDimensions);
+			window.removeEventListener("resize", updateTableSize);
 		}
 	}, [])
 
@@ -149,30 +158,10 @@ function VoterPools(props) {
 			}
 			props.dispatch(setVotingPoolFilters(filters));
 		}
-		if (!props.votingPoolValid) {
+		if (!props.votingPoolDataValid) {
 			props.dispatch(getVotingPool())
 		}
 	}, [])
-
-	function updateDimensions() {
-		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
-		const header = document.getElementsByTagName('header')[0]
-		const top = document.getElementById('top-row')
-		const height = window.innerHeight - header.offsetHeight - top.offsetHeight - 5
-		const width = window.innerWidth - 1;
-		setTableHeight(height)
-		setTableWidth(Math.min(width, maxWidth))
-	}
-
-	function deleteVotingPool(rowData) {
-		console.log('VotingPoolID=', rowData.VotingPoolID)
-		props.dispatch(deleteVotingPool(rowData.VotingPoolID));
-	}
-
-	function importVotersClick(rowData) {
-		setVotingPool(rowData)
-		setShowVotersImport(true)
-	}
 
 	function showVoters({event, rowData}) {
 		history.push(`/Voters/${rowData.VotingPoolID}`)
@@ -180,6 +169,32 @@ function VoterPools(props) {
 
 	function refresh() {
 		props.dispatch(getVotingPool());
+	}
+
+	async function handleRemoveSelected() {
+		const data = props.votingPoolData;
+		const dataMap = props.votingPoolDataMap;
+		var ids = [];
+		for (var i = 0; i < dataMap.length; i++) { // only select checked items that are visible
+			let id = data[dataMap[i]][primaryDataKey]
+			if (selected.includes(id)) {
+				ids.push(id)
+			}
+		}
+
+		if (ids.length === 0) {
+			return;
+		}
+		
+		const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?')
+		if (!ok) {
+			return
+		}
+
+		await Promise.all(ids.map(id => {return props.dispatch(deleteVotingPool(id))}));
+
+		const s = selected.filter(id => !ids.includes(id));
+		setSelected(s);
 	}
 
 	function sortChange(event, dataKey) {
@@ -193,35 +208,23 @@ function VoterPools(props) {
 		props.dispatch(setVotingPoolFilters({[dataKey]: filter}));
 	}
 
-	function renderActions({rowIndex, rowData}) {
-		return (
-			<div className={styles.actionColumn}>
-				<IconImport title='Import' onClick={() => importVotersClick(rowData)} />&nbsp;
-				<IconDelete title='Delete' onClick={() => deleteVotingPool(rowData)} />
-			</div>
-		)
-	}
-
-	function renderHeaderActions({rowIndex}) {
-		return (
-			<div title='Actions'>
-				<IconRefresh title='Refresh' onClick={refresh} />&nbsp;
-				<IconAdd title='Add Voter Pool' onClick={() => setShowAddVotingPool(true)} />
-			</div>
-		)
-	}
-
 	return (
-		<div id='VoterPools'>
-			<div id='top-row'>
+		<div id='VoterPools' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
+				<span><label>Voting Pools</label></span>
+				<span>
+					<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowAddVotingPool(true)} />
+					<ActionButton name='delete' title='Remove Selected' onClick={handleRemoveSelected} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				</span>
 			</div>
 			<AppTable
 				hasRowSelector={true}
 				hasRowExpander={false}
 				columns={columns}
 				rowHeight={22}
-				height={tableHeight}
-				width={tableWidth}
+				height={tableSize.height}
+				width={tableSize.width}
 				loading={props.getVotingPool}
 				editRow={showVoters}
 				filters={props.filters}
@@ -229,26 +232,28 @@ function VoterPools(props) {
 				sortDirection={props.sortDirection}
 				sortChange={sortChange}
 				filterChange={filterChange}
-				//showSelected={() => setShowSelected(true)}
-				setSelected={(cids) => setSelected(cids)}
+				setSelected={(ids) => setSelected(ids)}
 				selected={selected}
 				data={props.votingPoolData}
 				dataMap={props.votingPoolDataMap}
-				primaryDataKey={'VotingPoolID'}
+				primaryDataKey={primaryDataKey}
 			/>
 			<AddVotingPoolModal
 				isOpen={showAddVotingPool}
 				close={() => setShowAddVotingPool(false)}
 				dispatch={props.dispatch}
 			/>
-			<ImportVotersModal
-				votingPool={votingPool}
-				isOpen={showVotersImport}
-				close={() => setShowVotersImport(false)}
-				dispatch={props.dispatch}
-			/>
 		</div>
 	)
+}
+VoterPools.propTypes = {
+	filters: PropTypes.object.isRequired,
+	sortBy: PropTypes.array.isRequired,
+	sortDirection: PropTypes.object.isRequired,
+	votingPoolDataValid: PropTypes.bool.isRequired,
+	votingPoolData:  PropTypes.array.isRequired,
+	votingPoolDataMap: PropTypes.array.isRequired,
+	getVotingPool: PropTypes.bool.isRequired
 }
 
 function mapStateToProps(state) {
@@ -257,10 +262,10 @@ function mapStateToProps(state) {
 		filters: voters.votingPoolFilters,
 		sortBy: voters.votingPoolSortBy,
 		sortDirection: voters.votingPoolSortDirection,
+		votingPoolDataValid: voters.votingPoolDataValid,
 		votingPoolData: voters.votingPoolData,
 		votingPoolDataMap: voters.votingPoolDataMap,
 		getVotingPool: voters.getVotingPool,
-		addVotingPool: voters.addVotingPool,
 	}
 }
 export default connect(mapStateToProps)(VoterPools);

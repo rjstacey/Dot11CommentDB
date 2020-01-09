@@ -8,6 +8,7 @@ import ColumnSelector from './ColumnSelector';
 import ContentEditable from './ContentEditable';
 import AppModal from './AppModal';
 import AppTable from './AppTable';
+import {ActionButton} from './Icons';
 import {sortClick, filterValidate} from './filter';
 import {setCommentsSort, setCommentsFilters, getComments, uploadResolutions} from './actions/comments';
 import {setBallotId} from './actions/ballots';
@@ -171,11 +172,17 @@ function renderDataCellEditing({rowData}) {
 	return rowData.EditStatus? <React.Fragment><b>{rowData.EditStatus}:</b> {rowData.EditNotes}</React.Fragment>: rowData.EditNotes
 }
 
+function renderDataCellCommentID({rowData}) {
+	const {CommentID, ResolutionCount} = rowData
+	return ResolutionCount > 1? CommentID.toFixed(1): CommentID
+}
+
 const allColumns = [
 	{dataKey: 'CommentID', label: 'CID',
 		sortable: true,
 		filterable: true,
-		width: 60, flexGrow: 0, flexShrink: 0},
+		width: 60, flexGrow: 0, flexShrink: 0,
+		cellRenderer: renderDataCellCommentID},
 	{dataKey: 'CommenterName', label: 'Commenter',
 		sortable: true,
 		filterable: true,
@@ -205,16 +212,16 @@ const allColumns = [
 		sortable: true,
 		filterable: true,
 		width: 400, flexGrow: 1, flexShrink: 1},
-	{dataKey: 'Assignee', label: 'Assignee',
+	{dataKey: 'AssigneeName', label: 'Assignee',
 		sortable: true,
 		filterable: true,
-		width: 150, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderDataCellAssignee},
+		width: 150, flexGrow: 1, flexShrink: 1/*,
+		cellRenderer: renderDataCellAssignee*/},
 	{dataKey: 'Resolution', label: 'Resolution',
 		sortable: false,
 		filterable: false,
-		width: 400, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderDataCellResolution},
+		width: 400, flexGrow: 1, flexShrink: 1/*,
+		cellRenderer: renderDataCellResolution*/},
 	{dataKey: 'Editing', label: 'Editing',
 		sortable: false,
 		filterable: false,
@@ -225,7 +232,8 @@ const allColumns = [
 
 function Comments(props) {
 	const history = useHistory()
-	let {ballotId} = useParams()
+	const {ballotId} = useParams()
+	const {commentData, commentDataMap, dispatch} = props;
 
 	const [columns, setColumns] = useState(allColumns)
 	const [showImport, setShowImport] = useState(false)
@@ -249,9 +257,9 @@ function Comments(props) {
 			setTableSize({height, width});
 		}
 	}
-	useEffect(() => {updateTableSize()})
 
 	useEffect(() => {
+		updateTableSize()
 		window.addEventListener("resize", updateTableSize);
 		return () => {
 			window.removeEventListener("resize", updateTableSize);
@@ -266,21 +274,33 @@ function Comments(props) {
 					filters[col.dataKey] = filterValidate(col.dataKey, '')
 				}
 			}
-			props.dispatch(setCommentsFilters(filters));
-		}
-		if (ballotId && ballotId !== props.ballotId) {
-			// Routed here with parameter ballotId specified, but not matching stored ballotId
-			// Store the ballotId and get results for this ballotId
-			props.dispatch(setBallotId(ballotId))
-			props.dispatch(getComments(ballotId))
+			dispatch(setCommentsFilters(filters));
 		}
 	}, [])
 
+	console.log(commentData)
+
 	useEffect(() => {
-		if (props.ballotId && ballotId !== props.ballotId) {
+		if (ballotId) {
+			if (ballotId !== props.ballotId) {
+				// Routed here with parameter ballotId specified, but not matching stored ballotId
+				// Store the ballotId and get results for this ballotId
+				dispatch(setBallotId(ballotId))
+				dispatch(getComments(ballotId)).then(console.log(commentData))
+			}
+			else if (!props.getComments && (!props.commentDataValid || props.commentBallotId !== ballotId)) {
+				dispatch(getComments(ballotId)).then(console.log(commentData))
+			}
+		}
+		else if (props.ballotId) {
 			history.replace(`/Comments/${props.ballotId}`)
 		}
-	})
+	}, [ballotId, props.ballotId])
+
+	function refresh() {
+		dispatch(getComments(ballotId))
+			.then(console.log(commentData))
+	}
 
 	function toggleColumnVisible(dataKey) {
 		const i = columns.findIndex(col => col.dataKey === dataKey)
@@ -300,34 +320,65 @@ function Comments(props) {
 	}
 
 	function ballotSelected(ballotId) {
-		// Redirect to results page with selected ballot
+		// Redirect to page with selected ballot
 		history.push(`/Comments/${ballotId}`)
-		if (ballotId) {
-			props.dispatch(getComments(ballotId));
-		}
+		dispatch(getComments(ballotId));
 	}
 
 	function sortChange(event, dataKey) {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
-		props.dispatch(setCommentsSort(sortBy, sortDirection));
+		dispatch(setCommentsSort(sortBy, sortDirection));
 	}
 
 	function filterChange(event, dataKey) {
 		var filter = filterValidate(dataKey, event.target.value)
-		props.dispatch(setCommentsFilters({[dataKey]: filter}));
+		dispatch(setCommentsFilters({[dataKey]: filter}));
 	}
 
-	function editRow({event, index, rowData}) {
-		const cid = props.commentData[props.commentDataMap[index]].CommentID
-		history.push(props.location.pathname + `/${cid}`)
+	function editComment({event, index, rowData}) {
+		const {CommentID, ResolutionCount} = rowData
+		const cidStr = CommentID.toFixed(ResolutionCount > 1? 1: 0)
+		history.push(props.location.pathname + '?CID=' + cidStr)
+	}
+
+	function editComments() {
+		history.push(props.location.pathname + `?CIDs=${selected.join(',')}`)
+	}
+
+	function rowGetter({index}) {
+		const c = commentData[props.commentDataMap[index]];
+		if (index > 0 && Math.floor(commentData[commentDataMap[index - 1]].CommentID) === Math.floor(c.CommentID)) {
+			// Previous row holds the same comment
+			return {
+				...c,
+				CommenterName: '',
+				MustSatisfy: '',
+				Category: '',
+				Clause: '',
+				Page: '',
+				Comment: '',
+				ProposedChange: ''
+			}
+		}
+		return c;
 	}
 
 	return (
 		<div id='Comments'>
-			<div id='top-row'>
-    			<BallotSelector onBallotSelected={ballotSelected} />
-    			<button onClick={e => setShowImport(true)}>Upload Resolutions</button>
-    			<ColumnSelector list={allColumns} toggleItem={toggleColumnVisible} isChecked={isColumnVisible}/>
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
+				<span>
+    				<BallotSelector onBallotSelected={ballotSelected} />
+    			</span>
+    			<span>
+    				<ActionButton name='group' title='Group Selected' />
+					<ActionButton name='assignment' title='Assign Selected' />
+					<ActionButton name='edit' title='Edit Selected' onClick={editComments} />
+    			</span>
+    			<span>
+    				<ActionButton name='upload' title='Upload Resolutions' onClick={e => setShowImport(true)} />
+    				<ColumnSelector list={allColumns} toggleItem={toggleColumnVisible} isChecked={isColumnVisible}/>
+    				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+    			</span>
 			</div>
 
 			<AppTable
@@ -338,7 +389,7 @@ function Comments(props) {
 				height={tableSize.height}
 				width={tableSize.width}
 				loading={props.getComments}
-				editRow={editRow}
+				editRow={editComment}
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
@@ -350,6 +401,7 @@ function Comments(props) {
 				data={props.commentData}
 				dataMap={props.commentDataMap}
 				primaryDataKey={'CommentID'}
+				rowGetter={rowGetter}
 			/>
 
 			<ImportModal
@@ -370,6 +422,18 @@ function Comments(props) {
 		</div>
 	)
 }
+Comments.propTypes = {
+	filters: PropTypes.object.isRequired,
+	sortBy: PropTypes.array.isRequired,
+	sortDirection: PropTypes.object.isRequired,
+	ballotId: PropTypes.string.isRequired,
+	commentBallotId: PropTypes.string.isRequired,
+	commentDataValid: PropTypes.bool.isRequired,
+	commentData: PropTypes.array.isRequired,
+	commentDataMap: PropTypes.array.isRequired,
+	getComments: PropTypes.bool.isRequired,
+	dispatch: PropTypes.func.isRequired
+}
 
 function mapStateToProps(state) {
 	const {comments, ballots} = state
@@ -378,6 +442,8 @@ function mapStateToProps(state) {
 		sortBy: comments.sortBy,
 		sortDirection: comments.sortDirection,
 		ballotId: ballots.ballotId,
+		commentBallotId: comments.ballotId,
+		commentDataValid: comments.commentDataValid,
 		commentData: comments.commentData,
 		commentDataMap: comments.commentDataMap,
 		getComments: comments.getComments

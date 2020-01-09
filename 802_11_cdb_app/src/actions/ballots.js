@@ -121,15 +121,15 @@ export function deleteBallots(ballotIds) {
 		return axios.delete('/ballots', {data: ballotIds})
 			.then((response) => {
 				if (response.data.status !== 'OK') {
-					dispatch(deleteBallotsFailure(ballotIds, response.data.message))
+					return dispatch(deleteBallotsFailure(ballotIds, response.data.message))
 				}
 				else {
-					dispatch(deleteBallotsSuccess(ballotIds))
+					return dispatch(deleteBallotsSuccess(ballotIds))
 				}
 			})
 			.then(() => dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData)))
 			.catch((error) => {
-				dispatch(deleteBallotsFailure(ballotIds, `Unable to delete ballots ${ballotIds}: ${error}`))
+				return dispatch(deleteBallotsFailure(ballotIds, `Unable to delete ballots ${ballotIds}: ${error}`))
 			})
 	}
 }
@@ -159,15 +159,15 @@ export function addBallot(ballot) {
 		return axios.post('/ballots/', ballot)
 			.then((response) => {
 				if (response.data.status !== 'OK') {
-					dispatch(addBallotFailure(response.data.message))
+					return dispatch(addBallotFailure(response.data.message))
 				}
 				else {
-					dispatch(addBallotSuccess(response.data.data))
+					return dispatch(addBallotSuccess(response.data.data))
 				}
 			})
 			.then(() => dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData)))
 			.catch((error) => {
-				dispatch(addBallotFailure(`Unable to add ballot ${ballot.BallotID}`))
+				return dispatch(addBallotFailure(`Unable to add ballot ${ballot.BallotID}`))
 			})
 	}
 }
@@ -182,14 +182,6 @@ export function setBallotId(ballotId) {
 	return {
 		type: 'SET_BALLOTID',
 		ballotId
-	}
-}
-
-export function editBallot(ballotId, action) {
-	return {
-		type: 'EDIT_BALLOT',
-		ballotId,
-		action
 	}
 }
 

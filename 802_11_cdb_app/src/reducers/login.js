@@ -1,5 +1,6 @@
 
 const defaultState = {
+	valid: false,
 	Username: '',
 	Name: '',
 	SAPIN: '',
@@ -13,13 +14,18 @@ const comments = (state = defaultState, action) => {
 
 	switch (action.type) {
 	case 'LOGIN_GET_STATE':
-		return {...state, InProgress: true}
+		return {
+			...state,
+			valid: false,
+			InProgress: true
+		}
 	case 'LOGIN_GET_STATE_SUCCESS':
 		if (action.info) {
 			return {
 	        	...state,
-				LoggedIn: true,
+	        	valid: true,
 				InProgress: false,
+				LoggedIn: action.info.access > 0,
 				Username: action.info.username,
 				Name: action.info.name,
 				SAPIN: action.info.sapin,
@@ -29,8 +35,9 @@ const comments = (state = defaultState, action) => {
 		else {
 	        return {
 				...state,
-				LoggedIn: false,
-				InProgress: false
+				valid: true,
+				InProgress: false,
+				LoggedIn: false
 			}
 		}
 	case 'LOGIN_GET_STATE_FAILURE':
@@ -49,8 +56,9 @@ const comments = (state = defaultState, action) => {
 	case 'LOGIN_SUCCESS':
 		return {
 			...state,
-			LoggedIn: true,
+			valid: true,
 			InProgress: false,
+			LoggedIn: action.info.access > 0,
 			Username: action.info.username,
 			Name: action.info.name,
 			SAPIN: action.info.sapin,
@@ -59,8 +67,9 @@ const comments = (state = defaultState, action) => {
 	case 'LOGIN_FAILURE':
 		return {
 			...state,
-			LoggedIn: false,
+			valid: false,
 			InProgress: false,
+			LoggedIn: false,
 			StatusMsg: action.errMsg
 		}
 	case 'LOGOUT_START':
@@ -72,13 +81,17 @@ const comments = (state = defaultState, action) => {
 	case 'LOGOUT_SUCCESS':
 		return {
 			...state,
+			valid: true,
 			LoggedIn: false,
+			Access: 0,
 			InProgress: false,
 		}
 	case 'LOGOUT_FAILURE':
 		return {
 			...state,
+			valid: false,
 			LoggedIn: false,
+			Access: 0,
 			InProgress: false,
 			StatusMsg: action.errMsg
 		}

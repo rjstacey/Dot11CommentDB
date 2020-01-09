@@ -1,115 +1,20 @@
 import PropTypes from 'prop-types';
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect} from 'react';
 import {Link, useHistory} from "react-router-dom";
 import {connect} from 'react-redux';
 import moment from'moment-timezone';
-import AppTable from './AppTable'
-import AppModal from './AppModal';
-import ContentEditable from './ContentEditable';
-import BallotDetailModal from './BallotDetail';
-import {setBallotsFilters, setBallotsSort, getBallots, deleteBallots, updateBallot, addBallot, editBallot} from './actions/ballots';
+import ConfirmModal from './ConfirmModal';
+import AppTable from './AppTable';
+import {setBallotsFilters, setBallotsSort, getBallots, deleteBallots} from './actions/ballots';
 import {getVotingPool} from './actions/voters';
-import {deleteCommentsWithBallotId, importComments, uploadComments} from './actions/comments'
-import {deleteResults, importResults, uploadResults} from './actions/results'
-import {sortClick, filterValidate} from './filter'
-import {IconImport, IconDelete} from './Icons'
-import styles from './AppTable.css'
+import {sortClick, filterValidate} from './filter';
+import {ActionButton} from './Icons';
 
-/* Convert a UTC time string to US eastern time
- * and display only the date in format "yyyy-mm-dd" (ISO format). */
-function strDate(utcDateStr) {
-	var d = new Date(utcDateStr)
-	d = new Date(d.toLocaleString('en-US', {timeZone: 'America/New_York'}))
-	return d.toISOString().substring(0,10)
-}
 
-/* Parse date and convert to ISO UTC string */
-function parseDate(etDateStr) {
-	// Date is in format: "yyyy-mm-dd" and is always eastern time
-	return moment.tz(etDateStr, 'YYYY-MM-DD', 'America/New_York').toUTCString()
-}
-
-function defaultBallot() {
-	const now = new Date();
-	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-	return {
-		Project: '',
-		BallotID: '',
-		Document: '',
-		Topic: '',
-		Start: today.toISOString(),
-		End: today.toISOString(),
-		VotingPoolID: 0,
-		PrevBallotID: ''}
-}
-
-function ImportBallotModal(props) {
-	const {ballotId, epollNum, importType, isOpen, close, dispatch} = props;
-	const fileInputRef = useRef();
-
-	const [fromFile, setFromFile] = useState(false);
-
-	function submit() {
-		if (fromFile) {
-			dispatch(
-				importType === 'results'?
-					uploadResults(ballotId, fileInputRef.current.files[0]):
-					uploadComments(ballotId, fileInputRef.current.files[0])
-			).then(() => close())
-		}
-		else {
-			dispatch(
-				importType === 'results'?
-					importResults(ballotId, epollNum):
-					importComments(ballotId, epollNum, 1)
-			).then(() => close())
-		}
-	}
-
-	return (
-		<AppModal
-			isOpen={isOpen}
-			onRequestClose={close}
-		>
-			<p>Import {importType} for {ballotId}. Current {importType} (if any) will be deleted.</p>
-			<p>Select whether to import from the ePoll associated with the ballot or from a local .csv file.</p>
-			<label>
-				<input
-					name='FromEpoll'
-					type='radio'
-					checked={!fromFile}
-					onChange={e => setFromFile(!e.target.checked)}
-				/>
-				From ePoll
-			</label>
-			<br />
-			<label>
-				<input
-					name='FromFile'
-					type='radio'
-					checked={fromFile}
-					onChange={e => setFromFile(e.target.checked)}
-				/>
-				From file&nbsp;&nbsp;
-				<input
-					type='file'
-					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-					ref={fileInputRef}
-				/>
-			</label>
-			<br />
-			<button onClick={submit}>OK</button>
-			<button onClick={close}>Cancel</button>
-		</AppModal>
-	)
-}
-ImportBallotModal.propTypes = {
-	ballotId: PropTypes.string.isRequired,
-	epollNum: PropTypes.string.isRequired,
-	importType: PropTypes.oneOf(['', 'results', 'comments']),
-	isOpen: PropTypes.bool.isRequired,
-	close: PropTypes.func.isRequired,
-	dispatch: PropTypes.func.isRequired
+/* Convert an ISO date string to US eastern time
+ * and display only the date in format "yyyy-mm-dd" */
+function dateToShortDate(isoDate) {
+	return moment(isoDate).tz('America/New_York').format('YYYY-MM-DD')
 }
 
 function Ballots(props) {
@@ -166,17 +71,6 @@ function Ballots(props) {
 	const primaryDataKey = 'BallotID';
 
 	const [selected, setSelected] = useState([]);
-	const [importHandler, setImportHandler] = useState({
-		show: false,
-		type: '',
-		ballot: {BallotID: '', EpollNum: ''}});
-
-	const [ballotDetail, setBallotDetail] = useState(() => {return {
-		show: false,
-		action: null,
-		ballot: defaultBallot()
-	}});
-
 	const [tableSize, setTableSize] = useState({
 		height: 400,
 		width: 400,
@@ -225,32 +119,7 @@ function Ballots(props) {
 		history.push('/Epolls/');
 	}
 
-	function deleteCommentsClick(e, rowData) {
-		console.log('ballotId=', rowData.BallotID)
-		props.dispatch(deleteCommentsWithBallotId(rowData.BallotID));
-	}
-	function importCommentsClick(e, rowData) {
-		setImportHandler({
-			show: true,
-			type: 'comments',
-			ballot: rowData
-		})
-	}
-
-	function deleteResultsClick(e, rowData) {
-		console.log('ballotId=', rowData.BallotID)
-		props.dispatch(deleteResults(rowData.BallotID));
-	}
-
-	function importResultsClick(e, rowData) {
-		setImportHandler({
-			show: true,
-			type: 'results',
-			ballot: rowData
-		})
-	}
-
-	function handleRemoveSelected() {
+	async function handleRemoveSelected() {
 		const {ballotsData, ballotsDataMap} = props;
 		let ids = [];
 		for (let i of ballotsDataMap) { // only select checked items that are visible
@@ -259,13 +128,19 @@ function Ballots(props) {
 				ids.push(id)
 			}
 		}
-		if (ids.length) {
-			props.dispatch(deleteBallots(ids))
-				.then(() => {
-					const s = selected.filter(id => !ids.includes(id));
-					setSelected(s);
-				})
+		if (ids.length === 0) {
+			return;
 		}
+		
+		const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?')
+		if (!ok) {
+			return
+		}
+		
+		await props.dispatch(deleteBallots(ids))
+
+		const s = selected.filter(id => !ids.includes(id));
+		setSelected(s);
 	}
 
 	function sortChange(event, dataKey) {
@@ -279,26 +154,10 @@ function Ballots(props) {
 		props.dispatch(setBallotsFilters({[dataKey]: filter}));
 	}
 
-	function updateBallotField(rowIndex, columnIndex, dataKey, fieldData) {
-		const b = props.ballotsData[props.ballotsDataMap[rowIndex]];
-		if (b[dataKey] !== fieldData) {
-			props.dispatch(updateBallot(b.BallotID, {[dataKey]: fieldData}))
-		}
-	}
-
 	function renderDate({rowData, dataKey}) {
-		return strDate(rowData[dataKey])
+		return dateToShortDate(rowData[dataKey])
 	}
 
-	function renderEditable({rowIndex, rowData, dataKey, columnIndex}) {
-		return (
-			<ContentEditable
-				value={rowData[dataKey]}
-				onChange={e => updateBallotField(rowIndex, columnIndex, dataKey, e.target.value)}
-			/>
-		)
-	}
-	
 	function renderVotingPool({rowIndex, columnIndex, rowData, dataKey}) {
 		const votingPoolID = rowData[dataKey[0]];
 		const prevBallotID = rowData[dataKey[1]]; 
@@ -309,37 +168,6 @@ function Ballots(props) {
 		else {
 			return prevBallotID;
 		}
-		//var project = rowData.Project;
-		//const showSelectVotingPool = !rowData[dataKey[1]]
-		//const showSelectBallot = !rowData[dataKey[0]]
-		/*
-		return (
-			<div>
-				{showSelectVotingPool &&
-					<select
-						name={dataKey}
-						value={rowData[dataKey[0]]}
-						onChange={e => updateBallotField(rowIndex, columnIndex, dataKey[0], e.target.value)}
-					>
-						<option key={0} value={''}>Select Pool</option>
-						{props.votingPoolData.map(i => {
-							return (<option key={i.VotingPoolID} value={i.VotingPoolID}>{i.Name}</option>)
-						})}
-					</select>}
-				{showSelectBallot &&
-					<select
-						name={dataKey}
-						value={rowData[dataKey[1]]}
-						onChange={e => updateBallotField(rowIndex, columnIndex, dataKey[1], e.target.value)}
-					>
-						<option key={0} value={''}>Select Ballot</option>
-						{project && props.ballotsByProject[project].map(i => {
-							return (i !== rowData.BallotID? <option key={i} value={i}>{i}</option>: null)
-						})}
-					</select>}
-			</div>
-		)
-		*/
 	}
 
 	function renderResultsSummary({rowIndex, rowData, dataKey}) {
@@ -352,38 +180,19 @@ function Ballots(props) {
 				resultsStr += ` (${p.toFixed(1)}%)`
 			}
 		}
-		return resultsStr
-			? <React.Fragment>
-				<Link to={`/Results/${rowData.BallotID}`}>{resultsStr}</Link>&nbsp;
-				<div className={styles.actionColumn}>
-					<IconDelete title="Delete Results" onClick={e => deleteResultsClick(e, rowData)} />&nbsp;
-					<IconImport title="Import Results" onClick={e => importResultsClick(e, rowData)} />
-				</div>
-			  </React.Fragment>
-			: <React.Fragment>
-				None&nbsp;
-				<div className={styles.actionColumn}>
-					<IconImport title="Import Results" onClick={e => importResultsClick(e, rowData)} />
-				</div>
-			  </React.Fragment>
+		if (!resultsStr) {
+			resultsStr = 'None'
+		}
+		return <Link to={`/Results/${rowData.BallotID}`}>{resultsStr}</Link>
 	}
 
 	function renderCommentsSummary({rowIndex, rowData, dataKey}) {
-		var comments = rowData.Comments;
-		return (comments && comments.Count > 0)
-			? <React.Fragment>
-				<Link to={`/Comments/${rowData.BallotID}`}>{comments.CommentIDMin}-{comments.CommentIDMax} ({comments.Count})</Link>&nbsp;
-				<div className={styles.actionColumn}>
-					<IconDelete title="Delete Comments" onClick={e => deleteCommentsClick(e, rowData)} />&nbsp;
-					<IconImport title="Import Comments" onClick={e => importCommentsClick(e, rowData)} />
-				</div>
-			  </React.Fragment>
-			: <React.Fragment>
-				None&nbsp;
-				<div className={styles.actionColumn}>
-					<IconImport title="Import Comments" onClick={e => importCommentsClick(e, rowData)} />
-				</div>
-			  </React.Fragment>
+		const comments = rowData[dataKey];
+		let commentStr = 'None';
+		if (comments && comments.Count > 0) {
+			commentStr = `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
+		}
+		return <Link to={`/Comments/${rowData.BallotID}`}>{commentStr}</Link>
 	}
 
 	function refresh() {
@@ -391,33 +200,23 @@ function Ballots(props) {
 	}
 
 	function handleAddBallot(event) {
-		setBallotDetail({
-			show: true,
-			action: 'add',
-			ballot: defaultBallot()
-		})
+		history.push('/Ballot/');
 	}
 
-	function handleEditBallot({event, index, rowData}) {
-		const ballotId = rowData.BallotID;
-		props.dispatch(editBallot(ballotId));
-		history.push(`/Ballot/${ballotId}`);
-
-		/*const ballot = props.ballotsData[props.ballotsDataMap[index]];
-		setBallotDetail({
-			show: true,
-			action: 'update',
-			ballot
-		})*/
+	function handleEditBallot({rowData}) {
+		history.push(`/Ballot/${rowData.BallotID}`);
 	}
 
 	return (
 		<div id='Ballots'>
-			<div id='top-row'>
-				<button disabled={props.getBallots} onClick={refresh}>Refresh</button>
-				<button onClick={handleAddBallot}>Add</button>
-				<button onClick={handleRemoveSelected}>Remove Selected</button>
-				<button onClick={showEpolls}>Import ePoll</button>
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
+				<span><label>Ballots</label></span>
+				<span>
+					<ActionButton name='add' title='Add' onClick={handleAddBallot} />
+					<ActionButton name='delete' title='Remove Selected' onClick={handleRemoveSelected} />
+					<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.getBallots} />
+				</span>
 			</div>
 			<AppTable
 				hasRowSelector={true}
@@ -433,31 +232,27 @@ function Ballots(props) {
 				sortDirection={props.sortDirection}
 				sortChange={sortChange}
 				filterChange={filterChange}
-				//showSelected={() => setShowSelected(true)}
 				setSelected={(cids) => setSelected(cids)}
 				selected={selected}
 				data={props.ballotsData}
 				dataMap={props.ballotsDataMap}
 				primaryDataKey={primaryDataKey}
 			/>
-			<ImportBallotModal
-				ballotId={importHandler.ballot.BallotID}
-				epollNum={importHandler.ballot.EpollNum}
-				importType={importHandler.type}
-				isOpen={importHandler.show}
-				close={() => setImportHandler({...importHandler, show: false})}
-				dispatch={props.dispatch}
-			/>
-			{/*<BallotDetailModal
-				//votingPoolData={props.votingPoolData}
-				//ballotsByProject={props.ballotsByProject}
-				isOpen={ballotDetail.show}
-				ballot={ballotDetail.ballot}
-				action={ballotDetail.action}
-				close={() => setBallotDetail({...ballotDetail, show: false})}
-			/>*/}
 		</div>
 	)
+}
+Ballots.propTypes = {
+	filters: PropTypes.object.isRequired,
+	sortBy: PropTypes.array.isRequired,
+	sortDirection: PropTypes.object.isRequired,
+	ballotsDataValid: PropTypes.bool.isRequired,
+	ballotsData: PropTypes.array.isRequired,
+	ballotsDataMap: PropTypes.array.isRequired,
+	ballotsByProject: PropTypes.object.isRequired,
+	getBallots: PropTypes.bool.isRequired,
+	votingPoolDataValid: PropTypes.bool.isRequired,
+	votingPoolData: PropTypes.array.isRequired,
+	dispatch: PropTypes.func.isRequired
 }
 
 function mapStateToProps(state) {
@@ -471,7 +266,6 @@ function mapStateToProps(state) {
 		ballotsDataMap: ballots.ballotsDataMap,
 		ballotsByProject: ballots.ballotsByProject,
 		getBallots: ballots.getBallots,
-		updateBallot: ballots.updateBallot,
 		votingPoolDataValid: voters.votingPoolDataValid,
 		votingPoolData: voters.votingPoolData,
 	}

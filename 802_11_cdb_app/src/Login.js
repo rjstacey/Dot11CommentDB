@@ -7,7 +7,9 @@ function LoginForm(props) {
 
 	// useEffect with an empty array will be called once on component mount
 	useEffect(() => {
-		props.dispatch(loginGetState());
+		if (!props.valid) {
+			props.dispatch(loginGetState());
+		}
 	}, [])
 
 	function change(e) {
@@ -25,7 +27,7 @@ function LoginForm(props) {
 	}
 
 	const login_form =
-		<form onSubmit={loginSubmit}>
+		<form onSubmit={loginSubmit} style={{display: 'inline-block', width: '300px'}}>
 			<label>
 				<span>Username/Email:</span><br />
 				<input
@@ -55,21 +57,24 @@ function LoginForm(props) {
 		</form>
 
 	const logout_form =
-		<form onSubmit={logoutSubmit}>
+		<form onSubmit={logoutSubmit} style={{display: 'inline-block', width: '300px'}}>
 			<p>{props.Name} ({props.SAPIN})</p>
 			<input type="submit" value="Sign Out" disabled={props.InProgress} />
 		</form>
 
 	return (
-		<fieldset>
-			{props.LoggedIn? logout_form: login_form}
-		</fieldset>
+		<div style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+			<fieldset>
+				{props.LoggedIn? logout_form: login_form}
+			</fieldset>
+		</div>
 	)
 }
 
 function mapStateToProps(state) {
 	const {login} = state;
 	return {
+		valid: login.valid,
 		LoggedIn: login.LoggedIn,
 		InProgress: login.InProgress,
 		Username: login.Username,

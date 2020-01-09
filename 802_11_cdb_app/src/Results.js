@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useLayoutEffect} from 'react';
 import {useHistory, useParams} from 'react-router-dom'
 import AppTable from './AppTable';
 import AppModal from './AppModal';
@@ -8,8 +8,7 @@ import BallotSelector from './BallotSelector';
 import {setResultsSort, setResultsFilters, getResults} from './actions/results'
 import {setBallotId} from './actions/ballots'
 import {sortClick, filterValidate} from './filter'
-import {IconAngleUp, IconAngleDown} from './Icons'
-import styles from './AppTable.css'
+import {ActionButton, IconUp, IconDown} from './Icons'
 import {saveAs} from 'file-saver'
 var axios = require('axios');
 
@@ -45,19 +44,17 @@ function ExportModal(props) {
 		>
 			<p>Export results for:</p>
 			<label><input
-				className={styles.checkbox}
 				type="radio"
 				title={ballotId}
 				checked={!forProject}
 				onChange={e => setForProject(!forProject)}
-			/>This ballot {ballotId}</label>
+			/>This ballot {ballotId}</label><br />
 			<label><input
-				className={styles.checkbox}
 				type="radio"
 				title={project}
 				checked={forProject}
 				onChange={e => setForProject(!forProject)}
-			/>This project {project}</label>
+			/>This project {project}</label><br />
 			<button onClick={submit}>OK</button>
 			<button onClick={close}>Cancel</button>
 		</AppModal>
@@ -238,7 +235,7 @@ function Results(props) {
 	const {ballotId} = useParams();
 	const history = useHistory();
 
-	const [showSummary, setShowSummary] = useState(false);
+	const [showSummary, setShowSummary] = useState(true);
 	const [showExportModal, setShowExportModal] = useState(false);
 
 	const [tableSize, setTableSize] = useState({
@@ -259,7 +256,7 @@ function Results(props) {
 			setTableSize({height, width});
 		}
 	}
-	useEffect(() => {updateTableSize()})
+	useLayoutEffect(() => {updateTableSize()}, [showSummary])
 
 	useEffect(() => {
 		window.addEventListener("resize", updateTableSize);
@@ -278,16 +275,28 @@ function Results(props) {
 			}
 			props.dispatch(setResultsFilters(filters));
 		}
-		if (ballotId && ballotId !== props.ballotId) {
-			// Routed here with parameter ballotId specified, but not matching stored ballotId
-			// Store the ballotId and get results for this ballotId
-			props.dispatch(setBallotId(ballotId))
-			props.dispatch(getResults(ballotId))
+	}, [])
+
+	useEffect(() => {
+		if (ballotId) {
+			if (ballotId !== props.ballotId) {
+				// Routed here with parameter ballotId specified, but not matching stored ballotId
+				// Store the ballotId and get results for this ballotId
+				props.dispatch(setBallotId(ballotId))
+				props.dispatch(getResults(ballotId))
+			}
+			else if (!props.getResults && (!props.resultsDataValid || props.ballot.BallotID !== ballotId)) {
+				props.dispatch(getResults(ballotId))
+			}
 		}
-		if (!ballotId && props.ballotId) {
+		else if (props.ballotId) {
 			history.replace(`/Results/${props.ballotId}`)
 		}
-	}, [])
+	}, [ballotId, props.ballotId])
+
+	function refresh(e) {
+		props.dispatch(getResults(ballotId))
+	}
 
 	function sortChange(event, dataKey) {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
@@ -300,22 +309,26 @@ function Results(props) {
 	}
 
 	function ballotSelected(ballotId) {
-		// Redirect to results page with selected ballot
+		// Redirect to page with selected ballot
 		history.push(`/Results/${ballotId}`)
 		props.dispatch(getResults(ballotId));
 	}
 
 	return (
 		<div id='Results'>
-			<div id='top-row'>
-				<BallotSelector
-					onBallotSelected={ballotSelected}
-				/>
-				<span
-					style={{cursor: 'pointer'}}
-					onClick={() => setShowSummary(!showSummary)}
-				>{showSummary?<IconAngleDown />:<IconAngleUp />}Results</span>
-				<button onClick={() => setShowExportModal(true)}>Export</button>
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between', position: 'relative'}}>
+				<span>
+					<BallotSelector
+						onBallotSelected={ballotSelected}
+					/>
+				</span>
+				<span>
+					<ActionButton name='export' title='Export' onClick={() => setShowExportModal(true)} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				</span>
+				<div style={{position: 'absolute', right: '80px', bottom: '-10px'}}>
+					{showSummary? <IconUp onClick={() => setShowSummary(false)}/>: <IconDown onClick={() => setShowSummary(true)}/>}
+				</div>
 			</div>
 			<ResultsSummary
 				visible={showSummary}
@@ -352,6 +365,18 @@ function Results(props) {
 		</div>
 	)
 }
+Results.propTypes = {
+	filters: PropTypes.object.isRequired,
+	sortBy: PropTypes.array.isRequired,
+	sortDirection: PropTypes.object.isRequired,
+	ballotId: PropTypes.string.isRequired,
+	ballot: PropTypes.object.isRequired,
+	votingPoolSize: PropTypes.number.isRequired,
+	resultsDataValid: PropTypes.bool.isRequired,
+	resultsData: PropTypes.array.isRequired,
+	resultsDataMap: PropTypes.array.isRequired,
+	getResults: PropTypes.bool.isRequired
+}
 
 function mapStateToProps(state) {
 	const {ballots, results} = state;
@@ -362,6 +387,7 @@ function mapStateToProps(state) {
 		ballotId: ballots.ballotId,
 		ballot: results.ballot,
 		votingPoolSize: results.votingPoolSize,
+		resultsDataValid: results.resultsDataValid,
 		resultsData: results.resultsData,
 		resultsDataMap: results.resultsDataMap,
 		resultsSummary: results.resultsSummary,

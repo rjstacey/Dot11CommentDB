@@ -72,73 +72,86 @@ const GET_COMMENTS_FOR_BALLOT =
 	'SELECT COUNT(*) AS Count, MIN(CommentID) AS CommentIDMin, MAX(CommentID) AS CommentIDMax ' +
 	'FROM comments WHERE BallotID=? ';
 
-module.exports = function(db, rp) {
+module.exports = function(db, rp, resultsModule) {
 	var module = {};
 
-	const resultsModule = require('./results')(db, rp);
-
-	module.getBallots = (req, res, next) => {
-		var ballots;
-
-		return db.query(GET_BALLOTS_SQL)
-			.then(results => {
-  				ballots = results;
-
-				return Promise.all(ballots.map(r => resultsModule.getResultsLocal(r.BallotID)))
-			})
-			.then(results => {
-				if (results.length !== ballots.length) {
-					throw 'Unexpected mapping'
-				}
-				return ballots.map((b, i) => {
-					b.Comments = {
-						Count: b.CommentCount,
-						CommentIDMin: b.CommentIDMin,
-						CommentIDMax: b.CommentIDMax
-					}
-					delete b.CommentCount
-					delete b.CommentIDMin
-					delete b.CommentIDMax
-					b.Results = results[i].summary
-					return b;
-				})
-			})
+	module.getBallots = async (req, res, next) => {
+		const ballots = await db.query(GET_BALLOTS_SQL)
+		return ballots.map(b => {
+			b.Comments = {
+				Count: b.CommentCount,
+				CommentIDMin: b.CommentIDMin,
+				CommentIDMax: b.CommentIDMax
+			}
+			delete b.CommentCount
+			delete b.CommentIDMin
+			delete b.CommentIDMax
+			b.Results = JSON.parse(b.ResultsSummary);
+			delete b.ResultsSummary;
+			return b;
+		})
 	}
 
-	module.addBallot = (req, res, next) => {
-		console.log(req.body);
+	async function getBallotWithNewResultsSummary(ballotId) {
+		let results;
+		results = await resultsModule.getResultsLocal(ballotId)
+		var summary = JSON.stringify(results.summary);
+			
+		results = await db.query(
+			'UPDATE ballots SET ResultsSummary=? WHERE BallotID=?;' +
+			GET_COMMENTS_FOR_BALLOT + ';' +
+			'SELECT * FROM ballots WHERE BallotID=?', [summary, ballotId, ballotId, ballotId]
+			);
+
+		if (results.length !== 3 && results[1].length !== 1 && results[2].length !== 1) {
+			throw new Error("Unexpected result SQL SELECT")
+		}
+		ballotData = results[2][0];
+		ballotData.Results = JSON.parse(ballotData.ResultsSummary);
+		delete ballotData.ResultsSummary;
+		ballotData.Comments = results[1][0];
+		return ballotData;
+	}
+
+	module.addBallot = async (req, res, next) => {
+		//console.log(req.body);
 
 		var entry = {
 			BallotID: req.body.BallotID,
-			VotingPoolID: req.body.VotingPoolID,
-			PrevBallotID: req.body.PrevBallotID,
 			Project: req.body.Project,
+			Type: req.body.Type,
 			Document: req.body.Document,
 			Topic: req.body.Topic,
 			Start: req.body.Start,
 			End: req.body.End,
-			EpollNum: req.body.EpollNum
+			EpollNum: req.body.EpollNum,
+			VotingPoolID: req.body.VotingPoolID,
+			PrevBallotID: req.body.PrevBallotID
 		}
-		Object.keys(entry).forEach(key => {
+
+		for (let key of Object.keys(entry)) {
 			if (entry[key] === undefined) {
 				delete entry[key]
 			}
-		});
+		}
 
-		var SQL = `INSERT INTO ballots (${Object.keys(entry)}) VALUES (${db.escape(Object.values(entry))}); SELECT * FROM ballots WHERE BallotID=${db.escape(entry.BallotID)}`;
-		return db.query(SQL)
-			.then(results => {
-				if (results.length !== 2 || results[1].length != 1) {
-					throw "Unexpected result"
-				}
-				return results[1][0];
-			})
-			.catch(err => {
-				throw err.code == 'ER_DUP_ENTRY'? "An entry already exists with this ID": JSON.stringify(err)
-			});
+		try {
+			const results = await db.query(
+				'INSERT INTO ballots (??) VALUES (?)',
+				[Object.keys(entry), Object.values(entry)]
+				);
+
+			if (results.affectedRows !== 1) {
+				throw "Unexpected result"
+			}
+			return getBallotWithNewResultsSummary(entry.BallotID);
+		}
+		catch(err) {
+			throw err.code == 'ER_DUP_ENTRY'? "An entry already exists with this ID": JSON.stringify(err)
+		}
 	}
 
-	module.updateBallot = (req, res, next) => {
+	module.updateBallot = async (req, res, next) => {
 		console.log(req.body);
 
 		if (!req.params.hasOwnProperty('ballotId')) {
@@ -148,88 +161,63 @@ module.exports = function(db, rp) {
 
 		var entry = {
 			BallotID: req.body.BallotID,
-			PrevBallotID: req.body.PrevBallotID,
-			VotingPoolID: req.body.VotingPoolID,
 			Project: req.body.Project,
+			Type: req.body.Type,
 			Document: req.body.Document,
 			Topic: req.body.Topic,
 			Start: req.body.Start,
 			End: req.body.End,
 			EpollNum: req.body.EpollNum,
+			PrevBallotID: req.body.PrevBallotID,
+			VotingPoolID: req.body.VotingPoolID
 		}
-		Object.keys(entry).forEach(key => {
+
+		for (let key of Object.keys(entry)) {
 			if (entry[key] === undefined) {
 				delete entry[key]
 			}
-		});
-
-		var ballotData;
-		var p;
+		}
 
 		if (Object.keys(entry).length === 0) {
-			p = Promise.resolve(null)
+			return Promise.resolve(null)
 		}
-		else {
-			p = db.query('UPDATE ballots SET ? WHERE BallotID=?',  [entry, id])
-			.then(result => {
-				if (result.changedRows !== 1) {
-					console.log(result)
-					throw new Error("Unexpected result from SQL UPDATE")
-				}
 
-				if (entry.hasOwnProperty('BallotID') && id !== entry.BallotID) {
-					// The BallotID is being updated; do so for all tables
-					var SQL = db.format(
-						'SET @oldId = ?; SET @newId = ?; ' +
-						'UPDATE results SET BallotID=@newId WHERE BallotID=@oldId; ' +
-						'UPDATE comments SET BallotID=@newId WHERE BallotID=@oldId; ' +
-						'UPDATE resolutions SET BallotID=@newId WHERE BallotID=@oldId; ',
-						[id, entry.BallotID]);
-
-					id = entry.BallotID;	// Use new BallotID
-
-					return db.query(SQL)
-				}
-				return null;
-			}, err => {
-				if (err.code === 'ER_DUP_ENTRY') {
+		try {
+			const result = await db.query('UPDATE ballots SET ? WHERE BallotID=?',  [entry, id]);
+			if (result.affectedRows !== 1) {
+				console.log(result)
+				throw new Error("Unexpected result from SQL UPDATE")
+			}
+		}
+		catch(err) {
+			if (err.code === 'ER_DUP_ENTRY') {
 					throw `Cannot change Ballot ID to ${entry.BallotID}; a ballot with that ID already exists`
 				}
-				throw err
-			})
+			throw err
+		}
+		
+		if (entry.hasOwnProperty('BallotID') && id !== entry.BallotID) {
+			// The BallotID is being updated; do so for all tables
+			var SQL = db.format(
+				'SET @oldId = ?; SET @newId = ?; ' +
+				'UPDATE results SET BallotID=@newId WHERE BallotID=@oldId; ' +
+				'UPDATE comments SET BallotID=@newId WHERE BallotID=@oldId; ' +
+				'UPDATE resolutions SET BallotID=@newId WHERE BallotID=@oldId; ',
+				[id, entry.BallotID]);
+
+			id = entry.BallotID;	// Use new BallotID
+
+			await db.query(SQL)
 		}
 
-		return p
-			.then(results => {
-				if (results) {
-					console.log(results)
-				}
-				return db.query('SELECT * FROM ballots WHERE BallotID=?',  [id])
-			})
-			.then(results => {
-				console.log(results)
-				if (results.length !== 1 && results[0].length !== 1) {
-					throw new Error("Unexpected result SQL SELECT")
-				}
-				ballotData = results[0];
-				return resultsModule.getResultsLocal(id)
-			})
-			.then(results => {
-				ballotData.Results = results.summary;
-				return db.query(GET_COMMENTS_FOR_BALLOT, [id])
-			})
-			.then(results => {
-				ballotData.Comments = results[0];
-				return ballotData
-			})
+		return getBallotWithNewResultsSummary(id);
 	}
 
 	module.deleteBallots = (req, res, next) => {
 		console.log(req.body);
 
-		var ballotids = db.escape(req.body);
-
-		var SQL =
+		const ballotids = db.escape(req.body);
+		const SQL =
 			'START TRANSACTION;' +
 			`DELETE FROM ballots WHERE BallotID IN (${ballotids});` +
 			`DELETE FROM comments WHERE BallotID IN (${ballotids});` +
@@ -244,52 +232,45 @@ module.exports = function(db, rp) {
 	 *
 	 * Parameters: n = number of entries to get
 	 */
-	module.getEpolls = (req, res, next) => {
+	module.getEpolls = async (req, res, next) => {
 		const sess = req.session;
-		console.log(sess);
+		//console.log(sess);
 
 		var n = req.query.hasOwnProperty('n')? parseInt(req.query.n): 0;
 
-        function recursivePageGet(epolls, n, page) {
+        async function recursivePageGet(epolls, n, page) {
 			console.log('get epolls n=', n)
 
 			var options = {
 				url: `https://mentor.ieee.org/802.11/polls/closed?n=${page}`,
 				jar: sess.ieeeCookieJar
 			}
-			console.log(options.url);
+			//console.log(options.url);
 
-			return rp.get(options)
-				.then(body => {
-					//console.log(body)
-					var epollsPage = parseClosedEpollsPage(body);
-					var end = n - epolls.length;
-					if (end > epollsPage.length) {
-						end = epollsPage.length;
-					}
-					epolls = epolls.concat(epollsPage.slice(0, end));
+			const body = await rp.get(options);
 
-					if (epolls.length === n || epollsPage.length === 0) {
-						console.log('send ', epolls.length);
-						return epolls;
-					}
+			//console.log(body)
+			var epollsPage = parseClosedEpollsPage(body);
+			var end = n - epolls.length;
+			if (end > epollsPage.length) {
+				end = epollsPage.length;
+			}
+			epolls = epolls.concat(epollsPage.slice(0, end));
 
-					return recursivePageGet(epolls, n, page+1);
-				})
+			if (epolls.length === n || epollsPage.length === 0) {
+				console.log('send ', epolls.length);
+				return epolls;
+			}
+
+			return recursivePageGet(epolls, n, page+1);
 		}
 
-		var epollsList = []
-        return recursivePageGet([], n, 1)
-        	.then(epolls => {
-        		epollsList = epolls;
-        		return db.query('SELECT BallotId, EpollNum FROM ballots')
-        	})
-        	.then(ballots => {
-        		for (epoll of epollsList) {
-        			epoll.InDatabase = !!ballots.find(b => b.EpollNum === epoll.EpollNum)
-        		}
-        		return epollsList
-        	})
+		const epollsList = recursivePageGet([], n, 1);
+		const ballots = await db.query('SELECT BallotId, EpollNum FROM ballots');
+		for (epoll of await epollsList) {
+			epoll.InDatabase = !!ballots.find(b => b.EpollNum === epoll.EpollNum)
+		}
+		return epollsList
 	}
 
 	return module;

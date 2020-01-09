@@ -85,7 +85,7 @@ function getProjectForBallotId(ballotsData, ballotId) {
 const ballots = (state = defaultState, action) => {
 	var ballotsData, errorMsgs, project;
 
-	console.log(action);
+	//console.log(action);
 
 	switch (action.type) {
 		case 'SET_BALLOTS_SORT':
@@ -213,20 +213,6 @@ const ballots = (state = defaultState, action) => {
 				...state,
 				deleteBallots: false,
 				errorMsgs: errorMsgs
-			}
-		case 'EDIT_BALLOT':
-			let ballotId = action.ballotId;
-			let ballot = state.ballotsData.find(b => b.BallotID === ballotId)
-			if (!ballot) {
-				ballot = defaultBallot;
-			}
-			const editBallot = {
-				ballot,
-				action: action.action
-			}
-			return {
-				...state,
-				editBallot
 			}
 
 		case 'SET_PROJECT':

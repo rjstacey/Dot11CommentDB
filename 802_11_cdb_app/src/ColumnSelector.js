@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React, {useState, useEffect} from 'react';
-import {IconAngleDown, IconAngleUp} from './Icons';
+import {ActionButton} from './Icons';
 import styles from './ColumnSelector.css';
 
 function ColumnSelector(props) {
@@ -18,7 +18,7 @@ function ColumnSelector(props) {
 		return () => {
 			window.removeEventListener('click', close)
 		}
-	})
+	}, [isOpen])
 
 	function close() {
 		setOpen(false)
@@ -26,9 +26,7 @@ function ColumnSelector(props) {
 
 	return (
 		<div className={styles.wrapper}>
-			<div className={styles.header} onClick={() => setOpen(!isOpen)}>
-				<div className={styles.headerTitle}>Select Columns</div>{isOpen? <IconAngleUp />: <IconAngleDown />}
-			</div>
+			<ActionButton name='columns' title='Select Columns' onClick={() => setOpen(!isOpen)} />
 			{isOpen &&
 				<ul className={styles.list}>
 					{list.map((item, index) => (

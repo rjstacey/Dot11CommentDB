@@ -6,6 +6,7 @@ const defaultState = {
 	filters: {},
 	sortBy: [],
 	sortDirection: {},
+	commentDataValid: false,
 	commentData: [],
 	commentDataMap: [],
 	getComments: false,
@@ -39,6 +40,7 @@ const comments = (state = defaultState, action) => {
 				...state,
 				getComments: true,
 				ballotId: action.ballotId,
+				commentDataValid: false,
 				commentData: [],
 				commentDataMap: []
 			}
@@ -46,6 +48,7 @@ const comments = (state = defaultState, action) => {
 			return {
 				...state,
 				getComments: false,
+				commentDataValid: true,
 				commentData: action.comments,
 				commentDataMap: sortData(filterData(action.comments, state.filters), action.comments, state.sortBy, state.sortDirection)
 			}

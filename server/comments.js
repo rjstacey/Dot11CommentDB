@@ -192,38 +192,56 @@ function parseCommentsSheet(commentsSheet, comments, updateComments, newComments
 module.exports = function (db, rp) {
 	var module = {};
 
-	module.getComments = function (req, res, next) {
-		console.log(req.query)
+	module.getComments = async (req, res, next) => {
+		//console.log(req.query)
 
 		const ballotId = req.query.BallotID;
 		if (!ballotId) {
 			return Promise.reject('Missing parameter BallotID');
 		}
 
-		const SQL = 
+		/*const SQL = 
 			'SELECT c.*, r.Vote FROM comments AS c LEFT JOIN results AS r ON (c.BallotID = r.BallotID AND c.CommenterSAPIN = r.SAPIN) WHERE c.BallotID = ?; ' +
-			'SELECT r.*, u.Name AS AssigneeName FROM resolutions AS r LEFT JOIN users AS u ON (r.AssigneeSAPIN = u.UserID) WHERE BallotID = ?;'
+			'SELECT r.*, u.Name AS AssigneeName FROM resolutions AS r LEFT JOIN users AS u ON (r.AssigneeSAPIN = u.SAPIN) WHERE BallotID = ?;'*/
+		const SQL = 
+			'SELECT ' +
+				'c.*, ' +
+				'IF(r.ResolutionID, c.CommentID + r.ResolutionID/10, c.CommentID) AS CommentID, ' +
+				'(SELECT COUNT(*) FROM resolutions AS r WHERE c.BallotID = r.BallotID AND c.CommentID = r.CommentID) AS ResolutionCount, ' +
+				'r.ResolutionID, r.AssigneeSAPIN, r.ResnStatus, r.Resolution, r.Submission, r.ApprovalRef, ' + 
+				'results.Vote, users.Name AS AssigneeName ' +
+			'FROM comments AS c ' +
+				'LEFT JOIN resolutions AS r ON c.BallotID = r.BallotID AND c.CommentID = r.CommentID ' +
+				'LEFT JOIN results ON c.BallotID = results.BallotID AND c.CommenterSAPIN = results.SAPIN ' +
+				'LEFT JOIN users ON r.AssigneeSAPIN = users.SAPIN ' +
+			'WHERE c.BallotID = ?;'
 		//console.log(SQL);
-		return db.query(SQL, [ballotId, ballotId])
-			.then(results => {
-				// Join the comments and resolutions tables. Each comment has an array of resolutions.
-				var comments = results[0];
-				var resolutions = results[1];
-				comments.forEach(c => {
-					if (c.Vote !== 'Disapprove') {
-						c.MustSatisfy = 0
-					}
-					c.resolutions = [];
-					resolutions.forEach(r => {
-						if (c.BallotID === r.BallotID && c.CommentID === r.CommentID) {
-							delete r.BallotID;
-							delete r.CommentID;
-							c.resolutions.push(r);
-						}
-					})
-				})
-				return comments
+		const comments = await db.query(SQL, [ballotId])
+		/*for (let c of comments) {
+			if (c.ResolutionCount > 1) {
+				c.CommentID = c.CommentID + c.ResolutionID/10
+			}
+		}*/
+		return comments
+
+		/*
+		// Join the comments and resolutions tables. Each comment has an array of resolutions.
+		var comments = results[0];
+		//var resolutions = results[1];
+		for (let c of comments) {
+			if (c.Vote !== 'Disapprove') {
+				c.MustSatisfy = 0
+			}
+			c.resolutions = [];
+			resolutions.forEach(r => {
+				if (c.BallotID === r.BallotID && c.CommentID === r.CommentID) {
+					delete r.BallotID;
+					delete r.CommentID;
+					c.resolutions.push(r);
+				}
 			})
+		}
+		return comments*/
 	}
 
 	module.updateComment = (req, res, next) => {
@@ -333,7 +351,7 @@ module.exports = function (db, rp) {
 		var SQL =
 			db.format('INSERT INTO resolutions SET ?;',
 				[req.body]) +
-			db.format('SELECT r.*, u.Name AS AssigneeName FROM resolutions AS r LEFT JOIN users AS u ON (r.AssigneeSAPIN = u.UserID) WHERE BallotID=? AND CommentID=? AND ResolutionID=?',
+			db.format('SELECT r.*, u.Name AS AssigneeName FROM resolutions AS r LEFT JOIN users AS u ON (r.AssigneeSAPIN = u.SAPIN) WHERE BallotID=? AND CommentID=? AND ResolutionID=?',
 				[req.body.BallotID, req.body.CommentID, req.body.ResolutionID]);
 
 		return db.query(SQL)

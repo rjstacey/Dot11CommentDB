@@ -159,7 +159,8 @@ function summarizeResults(results) {
 		InvalidAbstain: 0,
 		InvalidDisapprove: 0,
 		ReturnsPoolSize: 0,
-		TotalReturns: 0
+		TotalReturns: 0,
+		BallotReturns: 0
 	};
 
 	results.forEach(r => {
@@ -303,69 +304,82 @@ function populateResultsWorksheet(ws, results) {
 module.exports = function(db, rp) {
 	var module = {};
 
-	module.getResultsLocal = function(ballotId) {
+	module.getResultsLocal = async function(ballotId) {
 
 		if (ballotId === undefined) {
 			return Promise.reject('Missing parameter BallotID');
 		}
 
-		function recursiveBallotResultsGet(ballotSeries, ballotId) {
-			return db.query('SELECT BallotID, VotingPoolID, PrevBallotID FROM ballots WHERE BallotID=?; ' +
-							'SELECT r.*, (SELECT COUNT(*) FROM comments AS c WHERE BallotID=? AND c.CommenterSAPIN = r.SAPIN) AS CommentCount FROM results AS r WHERE BallotID=?;',
-							[ballotId, ballotId, ballotId])
-				.then(results => {
-					if (results[0].length === 0) {
-						return ballotList;
-					}
-					var b = Object.assign({}, results[0][0], {results: results[1]})
-					ballotSeries.unshift(b);
-					if (b.PrevBallotID) {
-						return recursiveBallotResultsGet(ballotSeries, b.PrevBallotID);
-					}
-					else {
-						return ballotSeries;
-					}
-				})
+		async function recursiveBallotResultsGet(ballotSeries, ballotId) {
+			const results = await db.query(
+				'SELECT BallotID, VotingPoolID, PrevBallotID FROM ballots WHERE BallotID=?; ' +
+				'SELECT r.*, (SELECT COUNT(*) FROM comments AS c WHERE BallotID=? AND c.CommenterSAPIN = r.SAPIN) AS CommentCount FROM results AS r WHERE BallotID=?;',
+				[ballotId, ballotId, ballotId]);
+
+			if (results[0].length === 0) {
+				return ballotSeries;
+			}
+			var b = Object.assign({}, results[0][0], {results: results[1]})
+			ballotSeries.unshift(b);
+			if (b.PrevBallotID) {
+				return recursiveBallotResultsGet(ballotSeries, b.PrevBallotID);
+			}
+			else {
+				return ballotSeries;
+			}
 		}
 
-		var votingPoolId;
+		// Get ballot information
+		var results = await db.query(
+			'SELECT *, (SELECT COUNT(*) FROM results WHERE results.BallotID=?) AS BallotReturns FROM ballots WHERE BallotID=?',
+			[ballotId, ballotId]
+			)
+		var ballot = results[0];
+
+		const ballotSeries = await recursiveBallotResultsGet([], ballotId)	// then get results from each ballot in series
+		if (ballotSeries.length === 0) {
+			return Promise.reject('No such ballot')
+		}
+
 		var votingPoolSize;
-		var ballot;
-		return db.query('SELECT * FROM ballots WHERE BallotID=?', [ballotId])	// Get ballot information
-			.then(results => {
-				ballot = results[0];
-				return recursiveBallotResultsGet([], ballotId)	// then get results from each ballot in series
-			})
-			.then(ballotSeries => {
-				if (ballotSeries.length === 0) {
-					return Promise.reject('No such ballot')
-				}
-				votingPoolId  = ballotSeries[0].VotingPoolID;
-				if (votingPoolId) {
-					// if there is a voting pool, get that
-					return db.query('SELECT SAPIN, LastName, FirstName, MI, Email, Status FROM voters WHERE VotingPoolID=?', [votingPoolId])
-						.then(voters => {
-							// voting pool size excludes ExOfficio; they are allowed to vote, but don't affect returns
-							votingPoolSize = voters.filter(v => !/^ExOfficio/.test(v.Status)).length;
-							return colateResults(ballotSeries, voters)	// colate results against voting pool and prior ballots in series
-						})
-				}
-				else {
-					votingPoolSize = 0;
-					return colateResults(ballotSeries)	// colate results for just this ballot
-				}
-			})
-			.then(results => {
-				//console.log(ballot)
-				return {
-					BallotID: ballotId,
-					VotingPoolID: votingPoolId,
-					VotingPoolSize: votingPoolSize,
-					ballot,
-					results,
-					summary: summarizeResults(results)
-				}
-			})
+		const votingPoolId  = ballotSeries[0].VotingPoolID;
+		if (votingPoolId) {
+			// if there is a voting pool, get that
+			const voters = await db.query(
+				'SELECT SAPIN, LastName, FirstName, MI, Email, Status FROM voters WHERE VotingPoolID=?',
+				[votingPoolId]
+				);
+			// voting pool size excludes ExOfficio; they are allowed to vote, but don't affect returns
+			votingPoolSize = voters.filter(v => !/^ExOfficio/.test(v.Status)).length;
+			results = colateResults(ballotSeries, voters)	// colate results against voting pool and prior ballots in series
+		}
+		else {
+			votingPoolSize = 0;
+			results = colateResults(ballotSeries)	// colate results for just this ballot
+		}
+
+		//console.log(ballot)
+		var summary = summarizeResults(results)
+		summary.BallotReturns = ballot.BallotReturns;
+		delete ballot.BallotReturns;
+
+		/* Update results summary in ballots table if different */
+		const ResultsSummary = JSON.stringify(summary);
+		if (ResultsSummary !== ballot.ResultsSummary) {
+			await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [ResultsSummary, ballotId])	
+		}
+
+		ballot.Results = JSON.parse(ResultsSummary);
+		delete ballot.ResultsSummary
+
+		return {
+			BallotID: ballotId,
+			VotingPoolID: votingPoolId,
+			VotingPoolSize: votingPoolSize,
+			ballot,
+			results,
+			summary
+		}
 	}
 
 	module.getResults = function (req) {
@@ -380,10 +394,10 @@ module.exports = function(db, rp) {
 			return Promise.reject('Missing parameter BallotID');
 		}
 
-		return db.query('DELETE FROM results WHERE BallotID=?', [ballotId])
+		return db.query('DELETE FROM results WHERE BallotID=?; UPDATE ballots SET ResultsSummary=NULL WHERE BallotID=?', [ballotId, ballotId])
 	}
 
-	module.importResults = (req, res, next) => {
+	module.importResults = async (req, res, next) => {
 		console.log(req.body);
 
 		if (!req.body.hasOwnProperty('BallotID') ||
@@ -395,58 +409,55 @@ module.exports = function(db, rp) {
 
 		const sess = req.session;
 
-		var options = {
+		const p1 = rp.get({
 			url: `https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`,
 			jar: sess.ieeeCookieJar,
 			resolveWithFullResponse: true,
 			simple: false
+		});
+		const p2 = rp.get({
+			url: `https://mentor.ieee.org/802.11/poll-status?p=${epollNum}`,
+			jar: sess.ieeeCookieJar,
+			resolveWithFullResponse: true,
+			simple: false
+		})
+
+		var ieeeRes = await p1
+		if (ieeeRes.headers['content-type'] !== 'text/csv') {
+			return Promise.reject('Not logged in')
+		}
+		var pollResults = parsePollResultsCsv(ieeeRes.body);
+
+		ieeeRes = await p2
+		/* Get Name and Affiliation from HTML (not present in .csv) */
+		var pollResults2 = parsePollResultsHtml(ieeeRes.body)
+
+		for (let r of pollResults) {
+			h = pollResults2.find(h => h.Email === r.Email)
+			r.Name = h? h.Name: ''
+			r.Affiliation = h? h.Affiliation: ''
 		}
 
-		var pollResults;
-		return rp.get(options)
-			.then(ieeeRes => {
-				//console.log(ieeeRes.headers);
+		await db.query('DELETE FROM results WHERE BallotID=?', [ballotId])
 
-				if (ieeeRes.headers['content-type'] !== 'text/csv') {
-					return Promise.reject('Not logged in')
-				}
+		if (pollResults.length === 0) {
+			return Promise.resolve(null);
+		}
 
-				pollResults = parsePollResultsCsv(ieeeRes.body);
-
-				options.url = `https://mentor.ieee.org/802.11/poll-status?p=${epollNum}`
-				return rp.get(options)
-			})
-			.then(ieeeRes => {
-				/* Get Name and Affiliation from HTML (not present in .csv) */
-				var pollResults2 = parsePollResultsHtml(ieeeRes.body)
-
-				pollResults.forEach(r => {
-					h = pollResults2.find(h => h.Email === r.Email)
-					r.Name = h? h.Name: ''
-					r.Affiliation = h? h.Affiliation: ''
-				})
-
-				return db.query('DELETE FROM results WHERE BallotID=?', [ballotId])
-			})
-			.then(results => {
-				if (pollResults.length === 0) {
-					return Promise.resolve(null);
-				}
-
-				var SQL = `INSERT INTO results (BallotID, ${Object.keys(pollResults[0])}) VALUES`;
-				pollResults.forEach((c, i) => {
-					SQL += (i > 0? ',': '') + `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`;
-				});
-				SQL += ";";
-
-				return db.query(SQL)
-					.catch(err => {
-						return Promise.reject(err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err)
-					});
-			})
-			.then(results => {
-				return module.getResultsLocal(ballotId)
-			})
+		var SQL = `INSERT INTO results (BallotID, ${Object.keys(pollResults[0])}) VALUES`;
+		pollResults.forEach((c, i) => {
+			SQL += (i > 0? ',': '') + `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`;
+		});
+		SQL += ";";
+		try {
+			await db.query(SQL)
+		}
+		catch(err) {
+			return Promise.reject(err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err)
+		}
+		const Results = await module.getResultsLocal(ballotId)
+		await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [JSON.stringify(Results.summary), ballotId])
+		return Results;
 	}
 
 	module.uploadResults = function (req, res, next) {

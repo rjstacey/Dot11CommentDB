@@ -1,38 +1,35 @@
 .root {
 	display: flex;
 	flex-direction: column;
-	height: 100%;
-	width: 100%;
+	margin: 0 5px;
+}
+
+.topRow {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	position: relative;
 }
 
 .row {
 	display: flex;
 	flex-direction: row;
-	width: 100%;
-	margin: 10px 0;
-}
-
-.tab {
-	display: block;
-	width: 100%;
-	/*height: 400px;*/
+	padding: 10px 5px;
 }
 
 .column {
-	flex: 1;
+	display: flex;
+	flex-direction: column;
 }
 
 .empty {
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	left: 0;
-	right: 0;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	width: 100%;
+	height: 200px;
 	font-size: 1em;
-	color: #bdbdbd;
+	color: GrayText;
 }
 
 .CID,
@@ -52,8 +49,13 @@
 	display: inline-block;
 }
 
+.Assignee {
+	width: 200px;
+	margin-left: 5px;
+}
 
-label {
+
+.root label {
 	font-weight: bold;
 	white-space: nowrap;
 }
@@ -68,20 +70,13 @@ label {
 	flex-direction: row;
 	justify-content: space-between;
 }
-.ResolutionStatus {
-	flex: 0;
-}
-
 .SubmissionInput {
 	width: 100px;
 }
 .MotionNumber {
 	width: 40px;
 }
-.ResolutionInput {
-	width: 100%;
-	height: 100%;
-}
+
 .EditedInDraft {
 	width: 40px;
 }
@@ -90,34 +85,38 @@ label {
 .EditingNotes,
 .History,
 .Notes {
-	width: 100%;
+	/*width: 100%;*/
 	/*height: 200px;*/
 }
 
-
-.cTabs {
-  position: relative;
-  /*height: 100%;*/
+.AddResolution {
+	padding: 5px;
+	color: GrayText;
 }
 
-.cTabs_TabList {
-  border-bottom: 1px solid #aaa;
-  margin: 0 0 10px;
-  padding: 0;
+
+.tabs {
+	position: relative;
 }
 
-.cTabs_Tab {
+.tabList {
+	border-bottom: 1px solid #aaa;
+	margin: 0;
+	padding: 0;
+}
+
+.tab {
 	display: inline-block;
 	border: 1px solid transparent;
 	border-bottom: none;
 	bottom: -1px;
 	position: relative;
 	list-style: none;
-	padding: 6px 12px;
+	padding: 5px 5px;
 	cursor: pointer;
 }
 
-.cTabs_Tab__selected {
+.tab_selected {
 	background: #fff;
 	border-color: #aaa;
 	color: black;
@@ -125,20 +124,20 @@ label {
 	font-weight: bold;
 }
 
-.cTabs_Tab__disabled {
+.tab_disabled {
 	color: GrayText;
 	cursor: default;
 	font-weight: normal;
 }
 
 /*
-.cTabs_Tab:focus {
+.tab:focus {
 	box-shadow: 0 0 5px hsl(208, 99%, 50%);
 	border-color: hsl(208, 99%, 50%);
 	outline: none;
 }
 
-.cTabs_Tab:focus:after {
+.tab:focus:after {
 	content: "";
 	position: absolute;
 	height: 5px;
@@ -149,17 +148,14 @@ label {
 }
 */
 
-.cTabs_TabPanel {
+.tabPanel {
 	display: none;
-	/*position: absolute;*/
-	top: 33px;
-	left: 0;
-	right: 0;
 	border: 1px solid #aaa;
 	border-top: none;
+	box-sizing: border-box;
 }
 
-.cTabs_TabPanel__selected {
+.tabPanel_selected {
 	display: block;
 }
 
