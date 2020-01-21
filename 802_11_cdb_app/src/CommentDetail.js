@@ -1,251 +1,308 @@
 /*
  * Comment detail
  */
-import React, {useState, useEffect} from 'react'
+import React, {useState, useEffect, useRef} from 'react'
 import {useHistory, useParams, useLocation} from 'react-router-dom'
-import update from 'immutability-helper'
 import {connect} from 'react-redux'
 import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'
-import ConfirmModal from './ConfirmModal'
-import {updateComment, addResolution, updateResolution, deleteResolution, getComments} from './actions/comments'
+import cx from 'classnames'
+//import ConfirmModal from './ConfirmModal'
+import {addResolution, updateResolutions, deleteResolution, getComments} from './actions/comments'
 import {setBallotId} from './actions/ballots'
-import {ResolutionEditor} from './ResolutionEditor'
+import {BasicEditor} from './ResolutionEditor'
 import BallotSelector from './BallotSelector'
 import AssigneeSelector from './AssigneeSelector'
-import {ActionButton, IconClose} from './Icons'
+import {ActionButton} from './Icons'
 import styles from './CommentDetail.css'
 
+function ResnStatus(props) {
+	const {value, onChange} = props
+	const isIndeterminate = value === '<multiple'
+
+	return (
+		<div className={styles.ResolutionStatus}>
+			<label>
+				<input
+					className='checkbox'
+					type='checkbox'
+					name='ResnStatus'
+					value='A'
+					ref={el => el && (el.indeterminate = isIndeterminate)}
+					checked={value === 'A'}
+					onChange={e => onChange(e.target.checked? e.target.value: '')}
+				/>Accepted
+			</label>
+			<label>
+				<input
+					className='checkbox'
+					type='checkbox'
+					name='ResnStatus'
+					value='V'
+					ref={el => el && (el.indeterminate = isIndeterminate)}
+					checked={value === 'V'}
+					onChange={e => onChange(e.target.checked? e.target.value: '')}
+				/>Revised
+			</label>
+			<label>
+				<input
+					className='checkbox'
+					type='checkbox'
+					name='ResnStatus'
+					value='J'
+					ref={el => el && (el.indeterminate = isIndeterminate)}
+					checked={value === 'J'}
+					onChange={e => onChange(e.target.checked? e.target.value: '')}
+				/>Rejected
+			</label>
+		</div>
+	)
+}
+
+function ResolutionEditor(props) {
+	const {resolution, setResolution} = props
+	const placeholder = resolution.Resolution === '<multiple>'? 'Multiple': 'Enter some text...'
+	let header = ''
+	switch (resolution.ResnStatus) {
+	case 'A':
+		header = 'ACCEPTED'
+		break
+	case 'V':
+		header = 'REVISED'
+		break
+	case 'J':
+		header = 'REJECTED'
+		break
+	default:
+		header = ''
+	}
+
+	return (
+		<BasicEditor
+			value={resolution.Resolution}
+			onChange={value => setResolution({Resolution: value})}
+			placeholder={placeholder}
+			header={header}
+		>
+			<ResnStatus
+				value={resolution.ResnStatus}
+				onChange={value => setResolution({ResnStatus: value})}
+			/>
+		</BasicEditor>
+	)
+}
 
 function Resolution(props) {
 	const {resolution, setResolution} = props
-	console.log(resolution)
+	//console.log(resolution)
 
-	function changeResolutionInput(e) {
- 		setResolution(update(resolution, {[e.target.name]: {$set: e.target.value}}))
- 	}
-
- 	function changeResnStatus(value) {
- 		setResolution(update(resolution, {ResnStatus: {$set: value}}))
- 	}
-
- 	function changeResolution(value) {
- 		setResolution(update(resolution, {Resolution: {$set: value}}))
- 	}
-
- 	function changeAssignee(value) {
- 		setResolution(update(resolution, {AssigneeSAPIN: {$set: value}}))
- 	}
-	
- 	function changeApproved(e) {
+	function changeApproved(e) {
  		let value;
- 		if (e.target.checked) {
- 			value = new Date()
- 			value = value.toDateString()
- 		}
- 		else {
- 			value = '';
- 		}
- 		setResolution(update(resolution, {ApprovedByMotion: {$set: value}}))
- 	}
+ 		if (e.target.name === 'Approved') {
+	 		if (e.target.checked) {
+				value = new Date()
+				value = value.toDateString()
+			}
+			else {
+				value = '';
+			}
+		}
+		else {
+			value = e.target.value
+		}
+		setResolution({ApprovedByMotion: value})
+	}
 
-	return (
-		<React.Fragment>
-			<div className={styles.row} style={{justifyContent: 'space-between'}}>
+	if (resolution.ResolutionID === null) {
+		return null
+	}
+
+	let submissionClassName = cx({
+		[styles.SubmissionInput]: true,
+		[styles.Multiple]: resolution.Submission === '<multiple>'
+	})
+
+	let approvedByClassName = cx({
+		[styles.ApprovedByMotion]: true,
+		[styles.Multiple]: resolution.ApprovedByMotion === '<multiple>'
+	})
+
+ 	return (
+ 		<React.Fragment>
+ 			<div className={styles.row} style={{justifyContent: 'space-between'}}>
 				<div className={styles.column}>
 					<span style={{display: 'inline-flex'}}>
 						<label style={{width: 120}}>Assignee:</label>
 						<AssigneeSelector
-							value={resolution.AssigneeSAPIN}
-							onChange={changeAssignee}
+							value={resolution.AssigneeSAPIN || 0}
+							onChange={value => setResolution({AssigneeSAPIN: value})}
 						/>
 					</span>
 					<span style={{display: 'inline-flex'}}>
 						<label style={{width: 120}}>Submission:</label>
 						<input
-							className={styles.SubmissionInput}
-							type='text'
+							className={submissionClassName}
+							type='search'
 							name='Submission'
-							value={resolution.Submission === null? '': resolution.Submission}
-							onChange={e => changeResolutionInput(e)}
+							value={resolution.Submission || ''}
+							onChange={e => setResolution({Submission: e.target.value})}
+							placeholder='None'
 						/>
 					</span>
 				</div>
 				<div className={styles.column} >
 					<label>
 						<input
+							className='checkbox'
 							type='checkbox'
 							name='ReadyForMotion'
-							checked={resolution.ReadyForMotion}
-							onChange={e => changeResolutionInput(e)}
+							ref={el => el && (el.indeterminate = resolution.ReadyForMotion === '<multiple>')}
+							checked={resolution.ReadyForMotion || false}
+							onChange={e => setResolution({ReadyForMotion: e.target.checked})}
 						/>
 						Ready for motion
 					</label>
 					<label>
 						<input
+							className='checkbox'
 							type='checkbox'
 							name='Approved'
+							ref={el => el && (el.indeterminate = resolution.ApprovedByMotion === '<multiple>')}
 							checked={!!resolution.ApprovedByMotion}
-							onChange={e => changeApproved(e)}
+							onChange={changeApproved}
 						/>
-						Approved
+						Approved&nbsp;
 						<input
-							className={styles.ApprovedByMotion}
+							className={approvedByClassName}
 							type='text'
 							name='ApprovedByMotion'
 							value={resolution.ApprovedByMotion || ''}
-							onChange={e => changeResolutionInput(e)}
+							onChange={changeApproved}
 						/>
 					</label>
 				</div>
 			</div>
 			<div className={styles.Resolution}>
 				<ResolutionEditor
-					className={styles.ResolutionInput}
-					name='Resolution'
-					resnStatus={resolution.ResnStatus}
-					changeResnStatus={(value) => changeResnStatus(value)}
-					resolution={resolution.Resolution}
-					changeResolution={(value) => changeResolution(value)}
+					resolution={resolution}
+					setResolution={setResolution}
+				/>
+			</div>
+			<div className={styles.tab}>
+				<OtherTabs
+					resolution={resolution}
+					setResolution={setResolution}
 				/>
 			</div>
 		</React.Fragment>
 	)
 }
 
-function Resolutions(props) {
-	const {resolutions, setResolutions} = props
-	const [tabIndex, setTabIndex] = useState(0)
+function EditStatus(props) {
+	const {resolution, setResolution} = props
 
-	function handleAddResolution(e) {
-		const index = resolutions.length
- 		setResolutions(update(resolutions, {$push: [{ResolutionID: index}]}))
- 		setTabIndex(index)
- 		console.log(`add resolution ${index}`)
- 	}
-
-	async function handleRemoveResolution(e, index) {
-		const ok = await ConfirmModal.show(`Are you sure you want to delete resolution ${index}?`)
-		if (ok) {
-			setResolutions(update(resolutions, {$splice: [[index, 1]]}))
-			e.preventDefault()
-			if (tabIndex === index) {
-				setTabIndex(0)
+	function changeEditStatus(e) {
+ 		let fields = {}
+ 		if (e.target.name === 'EditStatus') {
+	 		if (e.target.checked) {
+				fields.EditStatus = e.target.value
+				if (e.target.value === 'I') {
+					fields.EditInDraft = '1.0'
+				}
+				else {
+					fields.EditInDraft = ''
+				}
+			}
+			else {
+				fields.EditStatus = ''
+				if (e.target.value === 'I') {
+					fields.EditInDraft = ''
+				}
 			}
 		}
+		else {
+			fields.EditInDraft = e.target.value
+			if (e.target.value) {
+				fields.EditStatus = 'I'
+			}
+		}
+		setResolution(fields)
+		e.stopPropagation()
 	}
-	
+
+	const editInDraft = resolution.EditInDraft === '<multiple>'? '': resolution.EditInDraft
+	const placeholder = resolution.EditInDraft === '<multiple>'? 'Multiple': null
+
 	return (
-		<Tabs
-			className={styles.tabs}
-			selectedTabClassName={styles.tab_selected}
-			disabledTabClassName={styles.tab_disabled}
-			selectedTabPanelClassName={styles.tabPanel_selected}
-			selectedIndex={tabIndex}
-			onSelect={setTabIndex}
-		>
-			<TabList className={styles.tabList}>
-				{resolutions.map((r, index) =>
-					<Tab key={index} className={styles.tab}>
-						Resolution {index}&nbsp;
-						<IconClose onClick={(e) => handleRemoveResolution(e, index)} />
-					</Tab>
-				)}
-				<Tab className={styles.tab} onClick={handleAddResolution}>+</Tab>
-			</TabList>
-			{resolutions.map((r, index) => 
-				<TabPanel key={index} className={styles.tabPanel}>
-					<Resolution
-						index={index}
-						resolution={resolutions[index]}
-						setResolution={(r) => setResolutions(update(resolutions, {[index]: {$set: r}}))}
+		<div className={styles.column}>
+			<span>
+				<label>
+					<input
+						className='checkbox'
+						type='checkbox'
+						name='EditStatus'
+						value='I'
+						ref={el => el && (el.indeterminate = resolution.EditStatus === '<multiple>')}
+						checked={resolution.EditStatus === 'I'}
+						onChange={changeEditStatus}
 					/>
-				</TabPanel>
-			)}
-			<TabPanel className={styles.tabPanel}>
-				<div className={styles.AddResolution} onClick={handleAddResolution}>Add resolution...</div>
-			</TabPanel>
-		</Tabs>
+					Implemented in draft:
+				</label>
+				<input
+					className={styles.EditedInDraft}
+					type='text'
+					name='EditInDraft'
+					value={editInDraft || ''}
+					onChange={changeEditStatus}
+					placeholder={placeholder}
+				/>
+			</span>
+			<span>
+				<label>
+					<input
+						className='checkbox'
+						type='checkbox'
+						name='EditStatus'
+						value='N'
+						ref={el => el && (el.indeterminate = resolution.EditStatus === '<multiple>')}
+						checked={resolution.EditStatus === 'N'}
+						onChange={changeEditStatus}
+					/>
+					No Change
+				</label>
+			</span>		
+		</div>
 	)
 }
 
 function Editing(props) {
-	const {comment, setComment} = props
-
-	function changeCheckboxGroup(e) {
- 		setComment(update(comment, {[e.target.name]: {$set: e.target.checked? e.target.value: ''}}))
- 	}
-
- 	function changeInput(e) {
- 		setComment(update(comment, {[e.target.name]: {$set: e.target.value}}))
- 	}
+	const {resolution, setResolution} = props
 
 	return (
-		<React.Fragment>
-			<div className={styles.row}>
-				<div className={styles.EditingStatus}>
-					<label>
-						<input
-							type='checkbox'
-							name='EditStatus'
-							value='I'
-							checked={comment.EditStatus === 'I'}
-							onChange={changeCheckboxGroup}
-						/>Implemented</label>
-					<label>
-						<input
-							type='checkbox'
-							name='EditStatus'
-							value='N'
-							checked={comment.EditStatus === 'N'}
-							onChange={changeCheckboxGroup}
-						/>No Change
-					</label>
-				</div>
-				<label>Edited in Draft:
-					<input
-						className={styles.EditedInDraft}
-						type='text'
-						name='EditInDraft'
-						value={comment.EditInDraft}
-						onChange={changeInput}
-					/>
-				</label>
-			</div>
-			<div
-				className={styles.EditingNotes}
-				contentEditable
-				onInput={e => setComment(update(comment, {EditNotes: {$set: e.target.innerHTML}}))}
+		<BasicEditor
+			value={resolution.EditNotes}
+			onChange={value => setResolution({EditNotes: value})}
+		>
+			<EditStatus
+				resolution={resolution}
+				setResolution={setResolution}
 			/>
-		</React.Fragment>
+		</BasicEditor>
 	)
 }
 
 function Notes(props) {
-	const {comment, setComment} = props
+	const {resolution, setResolution} = props
 
 	return (
-		<div
-			className={styles.Notes}
-			contentEditable
-			onInput={e => setComment(update(comment, {Notes: {$set: e.target.innerHTML}}))}
-		/>
-	)
-}
-
-function History(props) {
-	const {comment, setComment} = props
-
-	return (
-		<div
-			className={styles.History}
-			contentEditable
-			onInput={e => setComment(update(comment, {History: {$set: e.target.innerHTML}}))}
+		<BasicEditor
+			value={resolution.Notes}
+			onChange={value => setResolution({Notes: value})}
 		/>
 	)
 }
 
 function OtherTabs(props) {
-	const {comment, setComment} = props
+	const {resolution, setResolution} = props
 
 	return (
 		<Tabs
@@ -257,24 +314,17 @@ function OtherTabs(props) {
 			<TabList className={styles.tabList}>
 				<Tab className={styles.tab}>Editing</Tab>
 				<Tab className={styles.tab}>Notes</Tab>
-				<Tab className={styles.tab}>History</Tab>
 			</TabList>
 			<TabPanel className={styles.tabPanel}>
 				<Editing
-					comment={comment}
-					setComment={setComment}
+					resolution={resolution}
+					setResolution={setResolution}
 				/>
 			</TabPanel>
 			<TabPanel className={styles.tabPanel}>
 				<Notes
-					comment={comment}
-					setComment={setComment}
-				/>
-			</TabPanel>
-			<TabPanel className={styles.tabPanel}>
-				<History
-					comment={comment}
-					setComment={setComment}
+					resolution={resolution}
+					setResolution={setResolution}
 				/>
 			</TabPanel>
 		</Tabs>
@@ -282,58 +332,63 @@ function OtherTabs(props) {
 }
 
 function Comment(props) {
-	const {comment, setComment} = props
+	const {commentIds, resolution, setResolution} = props
+	const comment = resolution
 
-	 function setResolutions(resolutions) {
- 		setComment(update(comment, {resolutions: {$set: resolutions}}))
- 	}
+	function Entry({className, label, content}) {
+		return (
+			<div className={className}>
+				<label>{label}:</label>&nbsp;
+				<div className={cx(content === '<multiple>' && styles.Multiple)}>
+					{content}
+				</div>
+			</div>
+		)
+	}
+
+	const mustSatisfyText = comment.MustSatisfy === '<multiple>'
+		? comment.MustSatisfy
+		: '\u2714'
+
+	const commenterEl = (
+		<span>
+			<span className={cx(comment.CommenterName === '<multiple>' && styles.Multiple)}>
+				{comment.CommenterName}
+			</span>&nbsp;
+			(<span className={cx(comment.Vote === '<multiple>' && styles.Multiple)}>
+				{comment.Vote}
+			</span>)
+		</span>
+	)
 
 	return (
 		<React.Fragment>
 			<div className={styles.row}>
-				<div className={styles.CID}>
-					<label>CID:</label><span>{comment.CommentID.toFixed(comment.ResolutionCount > 1? 1: 0)}</span>
-				</div>
-				<div className={styles.Commenter}><label>Commenter:</label><span>{comment.CommenterName}</span></div>
-				<div className={styles.MustSatisfy}><label>Must Satisfy:</label><input type='checkbox' readOnly checked={comment.MustSatisfy} /></div>
+				<Entry className={styles.CID} label={'CID'} content={commentIds} />
+			</div>
+			<div className={styles.row}>
+				<Entry className={styles.Commenter} label={'Commenter'} content={commenterEl} />
+				{comment.MustSatisfy !== 0 && <Entry className={styles.MustSatisfy} label={'Must Satisfy'} content={mustSatisfyText} />}
 			</div>
 
 			<div className={styles.row}>
-				<div className={styles.Page}><label>Page/Line:</label><span>{comment.Page}</span></div>
-				<div className={styles.Clause}><label>Clause:</label><span>{comment.Clause}</span></div>
-				<div className={styles.Category}><label>Category:</label><span>{comment.Category}</span></div>
+				<Entry className={styles.Page} label={'Page/Line'} content={comment.Page} />
+				<Entry className={styles.Clause} label={'Clause'} content={comment.Clause} />
+				<Entry className={styles.Category} label={'Category'} content={comment.Category} />
 			</div>
 			
 			<div className={styles.row}>
-				<div className={styles.column}>
-					<label>Comment:</label>
-					<div className={styles.Comment}>{comment.Comment}</div>
-				</div>
-			</div>
-			<div className={styles.row}>
-				<div className={styles.column}>
-					<label>Proposed Change:</label>
-					<div className={styles.ProposedChange}>{comment.ProposedChange}</div>
-				</div>
+				<Entry className={styles.Comment} label={'Comment'} content={comment.Comment} />
 			</div>
 
 			<div className={styles.row}>
-				<div className={styles.column}>
-					<div className={styles.row} style={{justifyContent: 'space-between'}}>
-						<label>Resolution:</label>
-						<ActionButton name='add' title='Create Alternate Resolution' />
-					</div>
-					<Resolution
-						resolution={comment}
-						setResolution={setComment}
-					/>
-				</div>
+				<Entry className={styles.ProposedChange} label={'Proposed Change'} content={comment.ProposedChange} />
 			</div>
 
-			<div className={styles.tab}>
-				<OtherTabs
-					comment={comment}
-					setComment={setComment}
+			<div className={styles.column}>
+				<Resolution
+					resolution={resolution}
+					setResolution={setResolution}
 				/>
 			</div>
 		</React.Fragment>
@@ -350,17 +405,66 @@ function shallowDiff(originalObj, modifiedObj) {
  	return changed;
 }
 
-function useQuery() {
-	return new URLSearchParams(useLocation().search);
+function recursivelyDiffObjects(l, r) {
+	const isObject = o => o != null && typeof o === 'object';
+	const isDate = d => d instanceof Date;
+	const isEmpty = o => Object.keys(o).length === 0;
+
+	if (l === r) return l;
+
+	if (!isObject(l) || !isObject(r)) {
+		return '<multiple>'
+	}
+
+	if (isDate(l) || isDate(r)) {
+		if (l.valueOf() === r.valueOf()) return l;
+		return '<multiple>';
+	}
+
+	if (Array.isArray(l) && Array.isArray(r)) {
+		if (l.length === r.length) {
+			return l.map((v, i) => recursivelyDiffObjects(l[i], r[i]))
+		}
+	}
+	else {
+		const deletedValues = Object.keys(l).reduce((acc, key) => {
+			return r.hasOwnProperty(key) ? acc : { ...acc, [key]: '<multiple>' };
+		}, {});
+
+		return Object.keys(r).reduce((acc, key) => {
+			if (!l.hasOwnProperty(key)) return { ...acc, [key]: r[key] }; // return added r key
+
+			const difference = recursivelyDiffObjects(l[key], r[key]);
+
+			if (isObject(difference) && isEmpty(difference) && !isDate(difference)) return acc; // return no diff
+
+			return { ...acc, [key]: difference }; // return updated key
+		}, deletedValues);
+	}
 }
 
 function CommentDetail(props) {
 	const {commentData, commentDataMap, dispatch} = props
 	const history = useHistory()
 	const {ballotId} = useParams()
-	const query = useQuery()
-	const commentId = parseFloat(query.get('CID'), 10)	// comes in as a string, but we want a number
-	const [comment, setComment] = useState(null)
+	const query = new URLSearchParams(useLocation().search)
+	const cidStr = query.get('CID')	// comes in as a string
+	let commentId
+	if (cidStr) {
+		commentId = parseFloat(cidStr, 10)	// we want a number
+	}
+	const cidsStr = query.get('CIDs')
+	let commentIds
+	if (cidsStr) {
+		commentIds = cidsStr.split(',').map(cid => parseFloat(cid, 10))	// comes in as strings, but we want a numbers
+	}
+
+	const [resolution, setResolution] = useState()
+	const origResolution = useRef()
+	const [comments, setComments] = useState()
+	const [unavailable, setUnavailable] = useState()
+
+	console.log(resolution)
 
 	useEffect(() => {
 		if (ballotId && ballotId !== props.ballotId) {
@@ -372,16 +476,76 @@ function CommentDetail(props) {
 	}, [])
 
 	useEffect(() => {
-		if (ballotId === props.ballotId && !comment) {
-			const c = commentData.find(c => c.CommentID === commentId)
-			if (c) {
-				setComment(c)
+		if (ballotId === props.ballotId && commentData.length > 0) {
+			let c
+			if (cidStr) {
+				if (/\d+\.\d+/.test(cidStr)) {
+					c = commentData.find(c => c.CommentID === commentId)
+				}
+				else {
+					c = commentData.find(c => Math.floor(c.CommentID) === commentId)
+				}
+				setComments([c])
+			}
+			else {
+				let r = {}, u = [], a = []
+				for (let cid of commentIds) {
+					c = commentData.find(c => c.CommentID === cid)
+					if (c) {
+						r = recursivelyDiffObjects(r, c)
+						a.push(c)
+					}
+					else {
+						u.push(cid)
+					}
+				}
+				setUnavailable(u.length > 0? u: null)
+				setComments(a)
+				c = r
+			}
+			if (c &&
+				(!resolution ||
+				 c.BallotID !== resolution.BallotID ||
+				 c.CommentID !== resolution.CommentID ||
+				 c.ResolutionID !== resolution.ResolutionID)) {
+				console.log(c)
+				setResolution(c)
+				origResolution.current = c
 			}
 		}
-	}, [props.commentData])
+	}, [props.ballotID, props.commentData, commentId])
+
+	function doResolutionUpdate(fields) {
+		const r = {...resolution, ...fields}
+		console.log(fields, resolution, r)
+		setResolution(r)
+	}
+
+	function handleSave() {
+		const r = origResolution.current
+		const d = shallowDiff(r, resolution)
+		const updates = []
+		for (let c of comments) {
+			let n = {}
+			for (let o of Object.keys(d)) {
+				if (c[o] !== d[o]) {
+					n[o] = d[o]
+				}
+			}
+			console.log(n)
+			if (Object.keys(n).length > 0) {
+				n.BallotID = c.BallotID
+				n.CommentID = c.CommentID
+				n.ResolutionID = c.ResolutionID
+				updates.push(n)
+			}
+		}
+		if (updates.length > 0) {
+			dispatch(updateResolutions(ballotId, updates))
+		}
+	}
 
 	function previousComment() {
-		const commentId = comment.CommentID
 		var i = commentDataMap.findIndex(i => commentData[i].CommentID === commentId) - 1
 		if (i === -2) {
 			i = 0
@@ -391,110 +555,89 @@ function CommentDetail(props) {
 		}
 		const c = commentData[commentDataMap[i]]
 		const {CommentID, ResolutionCount} = c
-		setComment(c)
 		history.replace(props.location.pathname + `?CID=${CommentID.toFixed(ResolutionCount > 1? 1: 0)}`)
 	}
 
 	function nextComment() {
-		const commentId = comment.CommentID
 		var i = commentDataMap.findIndex(i => commentData[i].CommentID === commentId) + 1
 		if (i >= commentDataMap.length) {
 			i = 0
 		}
 		const c = commentData[commentDataMap[i]]
 		const {CommentID, ResolutionCount} = c
-		setComment(c)
-		console.log(CommentID, ResolutionCount)
 		history.replace(props.location.pathname + `?CID=${CommentID.toFixed(ResolutionCount > 1? 1: 0)}`)
 	}
+
+	async function handleAddResolution() {
+ 		const resolutionId = await dispatch(addResolution({BallotID: ballotId, CommentID: Math.floor(commentId)}))
+ 		console.log(resolutionId)
+ 		history.replace(props.location.pathname + '?CID=' + (commentId + resolutionId/10).toFixed(1))
+ 	}
+
+ 	async function handleDeleteResolution() {
+ 		const commentId = Math.floor(resolution.CommentID)
+ 		console.log('delete')
+ 		await dispatch(deleteResolution({BallotID: ballotId, CommentID: Math.floor(commentId), ResolutionID: resolution.ResolutionID}))
+ 		history.replace(props.location.pathname + '?CID=' + commentId.toFixed(0))
+ 	}
 
  	function close() {
  		history.goBack()
  	}
+
+ 	let child
+ 	let disableButtons = true
+ 	const isMultiple = comments && comments.length > 1
+ 	if (resolution && !unavailable) {
+	 	const cidsStr = comments.length > 0
+	 		? comments.map(c => c.CommentID).join(', ')
+	 		: comments[0].CommentID.toFixed(comments[0].ResolutionCount > 1? 1: 0)
+		child = (
+			<Comment
+				commentIds={cidsStr}
+				resolution={resolution}
+				setResolution={doResolutionUpdate}
+			/>
+		)
+		disableButtons = false
+	}
+	else {
+		let emptyStr
+		if (props.getComments) {
+			emptyStr = 'Loading...'
+		}
+		else if (unavailable) {
+			emptyStr = unavailable.length > 0
+				? `CIDs ${unavailable.join(', ')} not available`
+				: `CID ${unavailable[0]} is not avilable`
+		}
+		else {
+			emptyStr = '!! Unexpected !!'
+		}
+		child = (
+			<div className={styles.empty}>{emptyStr}</div>
+		)
+	}
  	
- 	function saveChange(e) {
- 		const commentId = comment.CommentID
- 		const propsComment = props.commentData.find(c => c.CommentID === commentId)
- 		const stateComment = comment
- 		var changed = shallowDiff(propsComment, stateComment);
-
- 		if (changed.resolutions) {
- 			changed.resolutions.forEach(r1 => {
- 				let onlyInModified = true
- 				propsComment.resolutions.forEach(r2 => {
- 					if (r1.ResolutionID === r2.ResolutionID) {
- 						onlyInModified = false
- 						let m = shallowDiff(r2, r1)
- 						if (Object.keys(m).length) {
- 							m.BallotID = props.ballotId
- 							m.CommentID = comment.CommentID
- 							m.ResolutionID = r1.ResolutionID
- 							props.dispatch(updateResolution(m))
- 						}
- 					}
- 				})
- 				if (onlyInModified) {
- 					r1.BallotID = props.ballotId
- 					r1.CommentID = comment.CommentID
- 					props.dispatch(addResolution(r1))
- 				}
- 			})
- 			propsComment.resolutions.forEach(r2 => {
- 				let onlyInOriginal = true
- 				changed.resolutions.forEach(r1 => {
- 					if (r1.ResolutionID === r2.ResolutionID) {
- 						onlyInOriginal = false
- 					}
- 				})
- 				if (onlyInOriginal) {
- 					let r = {
- 						BallotID: props.ballotId,
- 						CommentID: comment.CommentID,
- 						ResolutionID: r2.ResolutionID
- 					}
- 					props.dispatch(deleteResolution(r))
- 				}
- 			})
- 			delete changed.resolutions
- 		}
- 		if (Object.keys(changed).length) {
- 			changed.BallotID = props.ballotId
- 			changed.CommentID = comment.CommentID
- 			props.dispatch(updateComment(changed))
- 		}
- 	}
-
- 	function undoChange(e) {
- 		setComment(props.commentData.find(c => c.CommentID === commentId))
- 	}
-
 	return(
 		<div id='CommentDetail' className={styles.root}>
 			<div id='top-row' className={styles.topRow}>
 				<BallotSelector readOnly />
 				<span>
-	 				<ActionButton name='prev' title='Previous Comment' onClick={previousComment} />
-					<ActionButton name='next' title='Next Comment' onClick={nextComment} />
-					<ActionButton name='save' title='Save' onClick={saveChange} />
-					<ActionButton name='undo' title='Undo' onClick={undoChange} />
+					<ActionButton name='prev' title='Previous Comment' disabled={disableButtons || isMultiple} onClick={previousComment} />
+					<ActionButton name='next' title='Next Comment' disabled={disableButtons || isMultiple} onClick={nextComment} />
+					<ActionButton name='save' title='Save Changes' disabled={disableButtons} onClick={handleSave} />
+					<ActionButton name='add' title='Create Alternate Resolution' disabled={disableButtons} onClick={handleAddResolution} />
+					<ActionButton name='delete' title='Delete Resolution' disabled={disableButtons} onClick={handleDeleteResolution} />
 					<ActionButton name='close' title='Close' onClick={close} />
 				</span>
 			</div>
-			{comment?
-				<Comment
-					comment={comment}
-					setComment={setComment}
-				/>
-				:
-				<div className={styles.empty}>
-					{props.getComments? 'Loading...': `CID ${commentId} not available`}
-				</div>
-			}
+			{child}
 		</div>
 	)
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state, props) {
 	const {comments} = state
 	return {
 		ballotId: comments.ballotId,

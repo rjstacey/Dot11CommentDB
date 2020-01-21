@@ -103,16 +103,20 @@ export function ActionButton(props) {
 		'close': 'window-close',
 		'group': 'object-group',
 		'assignment': 'user-check',
-		'edit': 'edit'
+		'edit': 'edit',
+		'highlight': 'highlighter',
+		'quote': 'quote-right',
+		'unordered-list-item': 'list-ul',
+		'ordered-list-item': 'list-ol',
 	}
 	return (
 		<button
 			className={className}
-			onClick={props.onClick}
+			onMouseDown={props.onClick}
 			disabled={disabled}
 			title={title}
 		>
-			<FontAwesomeIcon className={styles.icon} icon={mapName[name]} />
+			<FontAwesomeIcon className={styles.icon} icon={mapName[name] || name} />
 		</button>
 	);
 }

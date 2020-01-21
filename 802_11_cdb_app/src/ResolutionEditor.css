@@ -2,15 +2,27 @@
 	background: #fff;
 }
 
+.toolbar {
+	visibility: hidden;
+	margin-top: auto
+}
+
+.visible {
+	visibility: visible;
+}
+
 /* Editor */
 .editor {
 	cursor: text;
 	font-size: 16px;
-	padding: 5px;
+	margin: 5px;
+	border: 1px solid #999;
+	border-radius: 2px;
 }
 
 .editor :global(.public-DraftEditor-content) {
 	overflow: auto;
+	margin: 5px;
 }
 
 .hidePlaceholder :global(.public-DraftEditorPlaceholder-root) {

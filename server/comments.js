@@ -189,10 +189,23 @@ function parseCommentsSheet(commentsSheet, comments, updateComments, newComments
 	fs.writeFile("c.txt", 'unmatchedComments: ' + JSON.stringify(unmatchedComments) + 'commentsSheetArray: ' + JSON.stringify(commentsSheetArray), (err) => {!err || console.log(err)})
 }
 
+const GET_COMMENTS_SQL =
+	'SELECT ' +
+		'c.*, ' +
+		'IF(r.ResolutionID, c.CommentID + r.ResolutionID/10, c.CommentID) AS CommentID, ' +
+		'(SELECT COUNT(*) FROM resolutions AS r WHERE c.BallotID = r.BallotID AND c.CommentID = r.CommentID) AS ResolutionCount, ' +
+		'r.ResolutionID, r.AssigneeSAPIN, r.ResnStatus, r.Resolution, r.Submission, r.ReadyForMotion, r.ApprovedByMotion, ' + 
+		'r.EditStatus, r.EditInDraft, r.EditNotes, r.Notes, ' +
+		'results.Vote, users.Name AS AssigneeName ' +
+	'FROM comments AS c ' +
+		'LEFT JOIN resolutions AS r ON c.BallotID = r.BallotID AND c.CommentID = r.CommentID ' +
+		'LEFT JOIN results ON c.BallotID = results.BallotID AND c.CommenterSAPIN = results.SAPIN ' +
+		'LEFT JOIN users ON r.AssigneeSAPIN = users.SAPIN ';
+
 module.exports = function (db, rp) {
 	var module = {};
 
-	module.getComments = async (req, res, next) => {
+	module.getComments = (req, res, next) => {
 		//console.log(req.query)
 
 		const ballotId = req.query.BallotID;
@@ -200,48 +213,9 @@ module.exports = function (db, rp) {
 			return Promise.reject('Missing parameter BallotID');
 		}
 
-		/*const SQL = 
-			'SELECT c.*, r.Vote FROM comments AS c LEFT JOIN results AS r ON (c.BallotID = r.BallotID AND c.CommenterSAPIN = r.SAPIN) WHERE c.BallotID = ?; ' +
-			'SELECT r.*, u.Name AS AssigneeName FROM resolutions AS r LEFT JOIN users AS u ON (r.AssigneeSAPIN = u.SAPIN) WHERE BallotID = ?;'*/
-		const SQL = 
-			'SELECT ' +
-				'c.*, ' +
-				'IF(r.ResolutionID, c.CommentID + r.ResolutionID/10, c.CommentID) AS CommentID, ' +
-				'(SELECT COUNT(*) FROM resolutions AS r WHERE c.BallotID = r.BallotID AND c.CommentID = r.CommentID) AS ResolutionCount, ' +
-				'r.ResolutionID, r.AssigneeSAPIN, r.ResnStatus, r.Resolution, r.Submission, r.ApprovalRef, ' + 
-				'results.Vote, users.Name AS AssigneeName ' +
-			'FROM comments AS c ' +
-				'LEFT JOIN resolutions AS r ON c.BallotID = r.BallotID AND c.CommentID = r.CommentID ' +
-				'LEFT JOIN results ON c.BallotID = results.BallotID AND c.CommenterSAPIN = results.SAPIN ' +
-				'LEFT JOIN users ON r.AssigneeSAPIN = users.SAPIN ' +
-			'WHERE c.BallotID = ?;'
+		const SQL = GET_COMMENTS_SQL + 'WHERE c.BallotID=?;'
 		//console.log(SQL);
-		const comments = await db.query(SQL, [ballotId])
-		/*for (let c of comments) {
-			if (c.ResolutionCount > 1) {
-				c.CommentID = c.CommentID + c.ResolutionID/10
-			}
-		}*/
-		return comments
-
-		/*
-		// Join the comments and resolutions tables. Each comment has an array of resolutions.
-		var comments = results[0];
-		//var resolutions = results[1];
-		for (let c of comments) {
-			if (c.Vote !== 'Disapprove') {
-				c.MustSatisfy = 0
-			}
-			c.resolutions = [];
-			resolutions.forEach(r => {
-				if (c.BallotID === r.BallotID && c.CommentID === r.CommentID) {
-					delete r.BallotID;
-					delete r.CommentID;
-					c.resolutions.push(r);
-				}
-			})
-		}
-		return comments*/
+		return db.query(SQL, [ballotId])
 	}
 
 	module.updateComment = (req, res, next) => {
@@ -320,27 +294,140 @@ module.exports = function (db, rp) {
 		}
 	}
 
-	module.updateResolution = (req, res, next) => {
-		console.log(req.body);
+	async function updateResolution(resolution) {
+		console.log(resolution)
 
-		if (!req.body.hasOwnProperty('BallotID') ||
-			!req.body.hasOwnProperty('CommentID') ||
-			!req.body.hasOwnProperty('ResolutionID')) {
+		if (!resolution.hasOwnProperty('BallotID') ||
+			!resolution.hasOwnProperty('CommentID') ||
+			!resolution.hasOwnProperty('ResolutionID')) {
 			return Promise.reject('Missing BallotID, CommentID and/or ResolutionID');
 		}
 
-		var ballotId = req.body.BallotID;
-		var commentId = req.body.CommentID;
-		var resolutionId = req.body.ResolutionID;
-		delete req.body.BallotID;
-		delete req.body.CommentID;
-		delete req.body.ResolutionID;
+		const ballotId = resolution.BallotID;
+		const commentId = resolution.CommentID;
+		const resolutionId = resolution.ResolutionID;
+		const entry = {
+			ResnStatus: resolution.ResnStatus,
+			Resolution: resolution.Resolution,
+			AssigneeSAPIN: resolution.AssigneeSAPIN,
+			AssigneeName: resolution.AssigneeName,
+			Submission: resolution.Submission,
+			ReadyForMotion: resolution.ReadyForMotion,
+			ApprovedByMotion: resolution.ApprovedByMotion,
+			EditStatus: resolution.EditStatus,
+			EditNotes: resolution.EditNotes,
+			EditInDraft: resolution.EditInDraft,
+			Notes: resolution.Notes
+		}
+		for (let key of Object.keys(entry)) {
+			if (entry[key] === undefined) {
+				delete entry[key]
+			}
+		}
+		console.log(entry)
+		if (Object.keys(entry).length === 0) {
+			return Promise.reject('Nothing to update')
+		}
 
-		return db.query("UPDATE resolutions SET ? WHERE (BallotID=? AND CommentID=? AND ResolutionID=?)",
-			[req.body, ballotId, commentId, resolutionId])
+		const results = await db.query(
+			"UPDATE resolutions SET ? WHERE (BallotID=? AND CommentID=? AND ResolutionID=?)",
+			[entry, ballotId, commentId, resolutionId])
+		console.log(results)
+		return null
 	}
 
-	module.addResolution = (req, res, next) => {
+	module.updateResolution = async (req, res, next) => {
+		console.log(req.body);
+
+		return updateResolution(req.body)
+	}
+
+	module.updateResolutions = async (req, res, next) => {
+
+		if (!req.body.hasOwnProperty('resolutions') ||
+			!Array.isArray(req.body.resolutions)) {
+			return Promise.reject('Badly formed request: missing resolutions array')
+		}
+
+		return Promise.all(req.body.resolutions.map(r => updateResolution(r)))
+	}
+
+
+	module.addResolution = async (req, res, next) => {
+		console.log(req.body);
+
+		if (!req.body.hasOwnProperty('BallotID') ||
+		    !req.body.hasOwnProperty('CommentID')) {
+			return Promise.reject('Missing BallotID and/or CommentID')
+		}
+		const ballotId = req.body.BallotID
+		const commentId = req.body.CommentID
+		let resolutionId
+		if (!req.body.hasOwnProperty('ResolutionID')) {
+			/* Find smallest unused ResolutionID */
+			let result = await db.query(
+				'SELECT MIN(ResolutionID)-1 AS ResolutionID FROM resolutions WHERE BallotID=? AND CommentID=?;',
+				[ballotId, commentId])
+			resolutionId = result[0].ResolutionID
+			console.log(result)
+			if (resolutionId === null) {
+				resolutionId = 0
+			}
+			else if (resolutionId < 0) {
+				result = await db.query(
+					'SELECT r1.ResolutionID+1 AS ResolutionID FROM resolutions AS r1 ' +
+    				'LEFT JOIN resolutions AS r2 ON r1.ResolutionID+1=r2.ResolutionID AND r1.BallotID=r2.BallotID AND r1.CommentID=r2.CommentID ' +
+					'WHERE r2.ResolutionID IS NULL AND r1.BallotID=? AND r1.CommentID=? LIMIT 1;',
+					[ballotId, commentId])
+				console.log(result)
+				resolutionId = result[0].ResolutionID
+			}
+		}
+		else {
+			resolutionId = req.body.ResolutionID
+		}
+		console.log(resolutionId)
+
+		const entry = {
+			BallotID: ballotId,
+			CommentID: commentId,
+			ResolutionID: resolutionId,
+			ResnStatus: req.body.ResnStatus,
+			Resolution: req.body.Resolution,
+			AssigneeSAPIN: req.body.AssigneeSAPIN,
+			AssigneeName: req.body.AssigneeName,
+			Submission: req.body.Submission,
+			ReadyForMotion: req.body.ReadyForMotion,
+			ApprovedByMotion: req.body.ApprovedByMotion,
+			EditStatus: req.body.EditStatus,
+			EditNotes: req.body.EditNotes,
+			EditInDraft: req.body.EditInDraft,
+			Notes: req.body.Notes
+		}
+
+		const SQL =
+			db.format(
+				'INSERT INTO resolutions SET ?;',
+				[entry]) +
+			db.format(
+				GET_COMMENTS_SQL +
+				'WHERE c.BallotID=? AND c.CommentID=?;',
+				[req.body.BallotID, req.body.CommentID]);
+		console.log(SQL)
+		const results = await db.query(SQL)
+		if (results.length !== 2 || results[1].length < 1) {
+			throw "Unexpected result"
+		}
+		console.log(results[0])
+		return {
+			BallotID: ballotId,
+			CommentID: commentId,
+			ResolutionID: resolutionId,
+			updatedComments: results[1]
+		}
+	}
+
+	module.deleteResolution = async (req, res, next) => {
 		console.log(req.body);
 
 		if (!req.body.hasOwnProperty('BallotID') ||
@@ -348,33 +435,28 @@ module.exports = function (db, rp) {
 		    !req.body.hasOwnProperty('ResolutionID')) {
 			return Promise.reject('Missing BallotID, CommentID and/or ResolutionID')
 		}
-		var SQL =
-			db.format('INSERT INTO resolutions SET ?;',
-				[req.body]) +
-			db.format('SELECT r.*, u.Name AS AssigneeName FROM resolutions AS r LEFT JOIN users AS u ON (r.AssigneeSAPIN = u.SAPIN) WHERE BallotID=? AND CommentID=? AND ResolutionID=?',
-				[req.body.BallotID, req.body.CommentID, req.body.ResolutionID]);
+		const ballotId = req.body.BallotID
+		const commentId = req.body.CommentID
+		const resolutionId = req.body.ResolutionID
 
-		return db.query(SQL)
-			.then(results => {
-				if (results.length !== 2 || results[1].length !== 1) {
-					throw "Unexpected result"
-				}
-				console.log(results[1][0])
-				return results[1][0];
-			})
-	}
-
-	module.deleteResolution = (req, res, next) => {
-		console.log(req.body);
-
-		if (!req.body.hasOwnProperty('BallotID') ||
-		    !req.body.hasOwnProperty('CommentID') ||
-		    !req.body.hasOwnProperty('ResolutionID')) {
-			return Promise.reject('Missing BallotID, CommentID and/or ResolutionID')
+		const SQL =
+			db.format(
+				'DELETE FROM resolutions WHERE BallotID=? AND CommentID=? AND ResolutionID=?; ',
+				[ballotId, commentId, resolutionId]) +
+			db.format(
+				GET_COMMENTS_SQL +
+				'WHERE c.BallotID=? AND c.CommentID=?;',
+				[ballotId, commentId]);
+		const results = await db.query(SQL)
+		if (results.length !== 2 || results[1].length < 1) {
+			throw "Unexpected result"
 		}
-
-		return db.query('DELETE FROM resolutions WHERE BallotID=? AND CommentID=? AND ResolutionID=?',
-			[req.body.BallotID, req.body.CommentID, req.body.ResolutionID])
+		return {
+			BallotID: ballotId,
+			CommentID: commentId,
+			ResolutionID: resolutionId,
+			updatedComments: results[1]
+		}
 	}
   
 	module.deleteByBallotID = function (req, res, next) {

@@ -1,10 +1,12 @@
 import React, {useState, useEffect, useRef} from 'react'
 import cx from 'classnames'
-import {Editor, EditorState, RichUtils, getDefaultKeyBinding, KeyBindingUtil} from 'draft-js';
-import {EditorToolIcon} from './Icons';
+import {Editor, EditorState, RichUtils, getDefaultKeyBinding, KeyBindingUtil, ContentBlock, genKey} from 'draft-js'
+import {List, OrderedMap, Map} from 'immutable'
+import {ActionButton} from './Icons'
 import 'draft-js/dist/Draft.css'
-import {stateToHTML} from 'draft-js-export-html';
-import {stateFromHTML} from 'draft-js-import-html';
+import {stateToHTML} from 'draft-js-export-html'
+import {stateFromHTML} from 'draft-js-import-html'
+import debounce from 'lodash/debounce'
 import styles from './ResolutionEditor.css'
 
 
@@ -14,35 +16,14 @@ const styleMap = {
 	}
 };
 
-const StyleButton = (props) => {
-	let {className, label, isActive, isDisabled} = props;
-	className = cx(className, {
-		[styles.button]: true,
-		[styles.isActive]: isActive,
-	});
-	let onClick = (e) => {
-			e.preventDefault();
-			props.onClick(e);
-	}
-	return (
-		<button
-			className={className}
-			onMouseDown={onClick}
-			disabled={isDisabled}
-		>
-			<EditorToolIcon className={styles.icon} icon={label} />
-		</button>
-	);
-}
-
 const BLOCK_TYPES = [
 	{label: 'quote', style: 'blockquote'},
 	{label: 'unordered-list-item', style: 'unordered-list-item'},
 	{label: 'ordered-list-item', style: 'ordered-list-item'},
 	{label: 'code', style: 'code-block'},
 ];
-const BlockStyleControls = (props) => {
-	const {editorState} = props;
+function BlockStyleControls(props) {
+	const {editorState, onChange} = props;
 	const selection = editorState.getSelection();
 	const blockType = editorState
 		.getCurrentContent()
@@ -51,11 +32,11 @@ const BlockStyleControls = (props) => {
 	return (
 		<div className={styles.buttonGroup}>
 			{BLOCK_TYPES.map((type) =>
-				<StyleButton
+				<ActionButton
 					key={type.label}
 					isActive={type.style === blockType}
-					label={type.label}
-					onClick={() => props.onChange(RichUtils.toggleBlockType(editorState, type.style))}
+					name={type.label}
+					onClick={() => onChange(RichUtils.toggleBlockType(editorState, type.style))}
 				/>
 			)}
 		</div>
@@ -69,17 +50,17 @@ var INLINE_STYLES = [
 	{label: 'strikethrough', style: 'STRIKETHROUGH', title: 'Ctrl-/'},
 	{label: 'highlight', style: 'HIGHLIGHT'},
 ];
-const InlineStyleControls = (props) => {
-	const {editorState} = props;
+function InlineStyleControls(props) {
+	const {editorState, onChange} = props;
 	const currentStyle = editorState.getCurrentInlineStyle();
 	return (
 		<div className={styles.buttonGroup}>
 			{INLINE_STYLES.map((type) =>
-				<StyleButton
+				<ActionButton
 					key={type.label}
 					isActive={currentStyle.has(type.style)}
-					label={type.label}
-					onClick={() => props.onChange(RichUtils.toggleInlineStyle(editorState, type.style))}
+					name={type.label}
+					onClick={() => onChange(RichUtils.toggleInlineStyle(editorState, type.style))}
 					title={type.title}
 				/>
 			)}
@@ -87,27 +68,52 @@ const InlineStyleControls = (props) => {
 	);
 };
 
-const ActionControls = (props) => {
-	let editorState = props.editorState;
-	let canUndo = editorState.getUndoStack().size !== 0;
-    let canRedo = editorState.getRedoStack().size !== 0;
+function ActionControls(props) {
+	const {editorState, onChange} = props;
+	const canUndo = editorState.getUndoStack().size !== 0;
+    const canRedo = editorState.getRedoStack().size !== 0;
 	return (
 		<div className={styles.buttonGroup}>
-			<StyleButton
+			<ActionButton
 				isDisabled={!canUndo}
-				label='undo'
-				onClick={() => props.onChange(EditorState.undo(editorState))}
+				name='undo'
+				onClick={() => onChange(EditorState.undo(editorState))}
 				title='Ctrl-z'
 			/>
-			<StyleButton
+			<ActionButton
 				isDisabled={!canRedo}
-				label='redo'
-				onClick={() => props.onChange(EditorState.redo(editorState))}
+				name='redo'
+				onClick={() => onChange(EditorState.redo(editorState))}
 				title='Ctrl-r'
 			/>
 		</div>
 	);
 };
+
+function Toolbar(props) {
+	const {editorState, onChange, show} = props;
+
+	return (
+		<div
+			className={cx({[styles.toolbar]: true, [styles.visible]: show})}
+			//style={{visibility: show? 'visible': 'hidden', marginTop: 'auto'}}
+			onMouseDown={e => e.preventDefault()}	// don't take focus from editor
+		>
+			<BlockStyleControls
+				editorState={editorState}
+				onChange={onChange}
+			/>
+			<InlineStyleControls
+				editorState={editorState}
+				onChange={onChange}
+			/>
+			<ActionControls
+				editorState={editorState}
+				onChange={onChange}
+			/>
+		</div>
+	)
+}
 
 const options = {
 	inlineStyles: {
@@ -134,74 +140,109 @@ function blockStyleFn(block) {
 	}
 }
 
-export function ResolutionEditor(props) {
+function mapKeyToEditorCommand(e) {
+	if (KeyBindingUtil.hasCommandModifier(e) && e.key === '/') {
+		return 'strikethrough';
+	}
+	if (KeyBindingUtil.hasCommandModifier(e) && e.key === 'h') {
+		return 'highlight';
+	}
+	return getDefaultKeyBinding(e);
+}
+	
+
+function shouldHidePlaceholder(state) {
+	// If the user changes block type before entering any text, we can
+	// either style the placeholder or hide it. Let's just hide it now.
+	const contentState = state.getCurrentContent();
+	if (!contentState.hasText()) {
+		if (contentState.getBlockMap().first().getType() !== 'unstyled') {
+			return true;
+		}
+	}
+	return false;
+}
+
+function insertNewBlock(editorState, text) {
+	const content = editorState.getCurrentContent();
+	const blockMap = content.getBlockMap();
+
+	const newBlockKey = genKey();
+
+	const newBlock = new ContentBlock({
+		key: newBlockKey,
+		type: 'unstyled',
+		text: text,
+		characterList: new List(),
+		depth: 0,
+		data: new Map({}),
+	});
+
+	const newBlockMap = OrderedMap([[newBlockKey, newBlock]]).concat(blockMap)
+
+	const selection = editorState.getSelection();
+
+	const newContent = content.merge({
+		blockMap: newBlockMap,
+		selectionBefore: selection,
+		selectionAfter: selection.merge({
+			anchorKey: newBlockKey,
+			anchorOffset: 0,
+			focusKey: newBlockKey,
+			focusOffset: 0,
+			isBackward: false,
+		}),
+	});
+
+	return EditorState.push(editorState, newContent, 'split-block');
+}
+
+export function BasicEditor(props) {
+	const {value, header} = props
 	const [editorState, setEditorState] = useState(EditorState.createEmpty())
-	const [resnStatus, setResnStatus] = useState('')
-	const [showTools, setShowTools] = useState(false)
-	const editorRef = useRef(null)
+	const [showToolbar, setShowToolbar] = useState(false)
+	const editorRef = useRef()
+	const changeResolution = useRef()
+
+	useEffect(() => {
+		changeResolution.current = debounce((resolutionHtml, editorState, onChange) => {
+			const html = stateToHTML(editorState.getCurrentContent(), options)
+			console.log(html)
+			if (resolutionHtml !== html) {
+				onChange(html)
+			}
+		}, 500)
+		return () => {
+			changeResolution.current.flush()
+		}
+	}, [])
+
+	useEffect(() => {
+		if (props.header) {
+			setEditorState(insertNewBlock(editorState, props.header))
+		}
+	}, [props.header])
 
 	useEffect(() => {
 		const html = stateToHTML(editorState.getCurrentContent(), options)
-		if (props.resolution !== html) {
-			let contentState = stateFromHTML(props.resolution, options)
+		if (value !== html) {
+			let contentState = stateFromHTML(value, options)
 			setEditorState(EditorState.createWithContent(contentState))
 		}
-		if (props.resnStatus !== resnStatus) {
-			setResnStatus(props.resnStatus)
-		}
-	}, [props.resolution, props.resnStatus])
+	}, [props.value])
 
-	function changeResolutionCheckboxGroup(e) {
-		e.preventDefault()
-		setResnStatus(e.target.checked? '': e.target.value)
- 	}
-
-	function onChange(editorState) {
-		setEditorState(editorState)
-	}
-
-	function emitChange(e) {
-		const {changeResolution, changeResnStatus} = props
-		if (changeResolution) {
-			const html = stateToHTML(editorState.getCurrentContent(), options)
-			console.log(html)
-			changeResolution(html)
-		}
-		if (changeResnStatus) {
-			changeResnStatus(resnStatus)
-		}
-	}
-
-	function mapKeyToEditorCommand(e) {
-		if (e.keyCode === 9 /* TAB */) {
-			e.preventDefault();
-			console.log('TAB')
-			const newEditorState = RichUtils.onTab(
-					e,
-					editorState,
-					4, /* maxDepth */
-				);
-			if (newEditorState !== editorState) {
-				onChange(newEditorState);
-			}
-			return;
-		}
-		if (KeyBindingUtil.hasCommandModifier(e) && e.key === '/') {
-			return 'strikethrough';
-		}
-		if (KeyBindingUtil.hasCommandModifier(e) && e.key === 'h') {
-			return 'highlight';
-		}
-		return getDefaultKeyBinding(e);
+	function onChange(state) {
+		setEditorState(state)
+		changeResolution.current(value, state, props.onChange)
 	}
 
 	function handleKeyCommand(command, state) {
-		var newState = RichUtils.handleKeyCommand(editorState, command);
+		let newState = RichUtils.handleKeyCommand(state, command);
 		if (!newState && command === 'strikethrough') {
-			newState = RichUtils.toggleInlineStyle(editorState, 'STRIKETHROUGH');
+			newState = RichUtils.toggleInlineStyle(state, 'STRIKETHROUGH');
 		}
 		if (!newState && command === 'highlight') {
-			newState = RichUtils.toggleInlineStyle(editorState, 'HIGHLIGHT');
+			newState = RichUtils.toggleInlineStyle(state, 'HIGHLIGHT');
 		}
 		if (newState) {
 			onChange(newState);
@@ -215,74 +256,23 @@ export function ResolutionEditor(props) {
 		return false;
 	}
 
-	function shouldHidePlaceholder() {
-		// If the user changes block type before entering any text, we can
-		// either style the placeholder or hide it. Let's just hide it now.
-		const contentState = editorState.getCurrentContent();
-		if (!contentState.hasText()) {
-			if (contentState.getBlockMap().first().getType() !== 'unstyled') {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	let className = cx({
 		[styles.editor]: true,
-		[styles.hidePlaceholder]: shouldHidePlaceholder(),
+		[styles.hidePlaceholder]: shouldHidePlaceholder(editorState),
 	});
 
 	return (
-		<div className={styles.root} onClick={() => editorRef.current.focus()}>
-			<div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: 5}}>
-				<div className={styles.ResolutionStatus}>
-					<label>
-						<input
-							type='checkbox'
-							name='ResnStatus'
-							value='A'
-							checked={resnStatus === 'A'}
-							onMouseDown={changeResolutionCheckboxGroup}		// onMouseDown so that editor does not lose focus
-							readOnly
-						/>Accepted
-					</label>
-					<label>
-						<input
-							type='checkbox'
-							name='ResnStatus'
-							value='V'
-							checked={resnStatus === 'V'}
-							onMouseDown={changeResolutionCheckboxGroup}
-							readOnly
-						/>Revised
-					</label>
-					<label>
-						<input
-							type='checkbox'
-							name='ResnStatus'
-							value='J'
-							checked={resnStatus === 'J'}
-							onMouseDown={changeResolutionCheckboxGroup}
-							readOnly
-						/>Rejected
-					</label>
-				</div>
-				<div style={{visibility: showTools? 'visible': 'hidden'}}>
-					<BlockStyleControls
-						editorState={editorState}
-						onChange={onChange}
-					/>
-					<InlineStyleControls
-						editorState={editorState}
-						onChange={onChange}
-					/>
-					<ActionControls
-						editorState={editorState}
-						onChange={onChange}
-					/>
-				</div>
+		<div className={styles.root} onClick={e => editorRef.current.focus()}>
+			<div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignContent: 'bottom', padding: 5}}>
+				{props.children? props.children: <div />}
+				<Toolbar
+					show={showToolbar}
+					editorState={editorState}
+					onChange={onChange}
+				/>
 			</div>
 			<div className={styles.editor}>
+				{header && <p>{header}</p>}
 				<Editor
 					className={className}
 					ref={editorRef}
@@ -292,13 +282,14 @@ export function ResolutionEditor(props) {
 					keyBindingFn={mapKeyToEditorCommand}
 					handlePastedText={handlePastedText}
 					blockStyleFn={blockStyleFn}
-					placeholder='Enter some text...'
+					placeholder={props.placeholder || 'Enter some text...'}
 					onChange={onChange}
-					onBlur={(editorState) => {setShowTools(false); emitChange(editorState)}}
+					onBlur={() => setShowToolbar(false)}
+					onFocus={() => setShowToolbar(true)}
 					spellCheck={true}
-					onFocus={(e) => {setShowTools(true)}}
 				/>
 			</div>
 		</div>
 	);	
 }
+

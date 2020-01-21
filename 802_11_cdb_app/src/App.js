@@ -8,7 +8,6 @@ import BallotDetail from './BallotDetail';
 import Epolls from './Epolls';
 import Comments from './Comments';
 import CommentDetail from './CommentDetail';
-import CommentMultiple from './CommentMultiple';
 import Results from './Results';
 import VoterPools from './VoterPools';
 import Voters from './Voters';
@@ -28,7 +27,7 @@ function CommentsRoute(props) {
 		return <CommentDetail {...props} />
 	}
 	else if (query.get('CIDs')) {
-		return <CommentMultiple {...props} />
+		return <CommentDetail {...props} />
 	}
 	else {
 		return <Comments {...props} />

@@ -139,42 +139,13 @@ function renderDataCellCheck({rowIndex, rowData, dataKey}) {
 	return rowData[dataKey]? '\u2714': ''
 }
 
-function renderDataCellAssignee({rowData}) {
-	const {resolutions} = rowData;
-	if (resolutions.length === 0) {
-		return null
-	} else if (resolutions.length === 1) {
-		return resolutions[0].AssigneeName
-	}
-	return (
-		<div style={{display: 'flex', flexDirection: 'column'}}>
-			{resolutions.map((r, i) => (<div style={{whiteSpace: 'nowrap'}} key={i}>{r.AssigneeName}</div>))}
-		</div>
-	)
-}
-
-function renderDataCellResolution({rowData}) {
-	const {resolutions} = rowData;
-	if (resolutions.length === 0) {
-		return null
-	} else if (resolutions.length === 1) {
-		const r = resolutions[0];
-		return r.ResnStatus? <React.Fragment><b>{r.ResnStatus}:</b> {r.Resolution}</React.Fragment>: r.Resolution
-	}
-	return (
-		<div style={{display: 'flex', flexDirection: 'column'}}>
-			{resolutions.map((r, i) => (<div key={i} style={{whiteSpace: 'nowrap'}}><b>{r.ResnStatus}:</b> {r.Resolution}</div>))}
-		</div>
-	)
-}
-
 function renderDataCellEditing({rowData}) {
 	return rowData.EditStatus? <React.Fragment><b>{rowData.EditStatus}:</b> {rowData.EditNotes}</React.Fragment>: rowData.EditNotes
 }
 
 function renderDataCellCommentID({rowData}) {
 	const {CommentID, ResolutionCount} = rowData
-	return ResolutionCount > 1? CommentID.toFixed(1): CommentID
+	return CommentID.toFixed(ResolutionCount > 1? 1: 0)
 }
 
 const allColumns = [
@@ -278,18 +249,16 @@ function Comments(props) {
 		}
 	}, [])
 
-	console.log(commentData)
-
 	useEffect(() => {
 		if (ballotId) {
 			if (ballotId !== props.ballotId) {
 				// Routed here with parameter ballotId specified, but not matching stored ballotId
 				// Store the ballotId and get results for this ballotId
 				dispatch(setBallotId(ballotId))
-				dispatch(getComments(ballotId)).then(console.log(commentData))
+				dispatch(getComments(ballotId))
 			}
 			else if (!props.getComments && (!props.commentDataValid || props.commentBallotId !== ballotId)) {
-				dispatch(getComments(ballotId)).then(console.log(commentData))
+				dispatch(getComments(ballotId))
 			}
 		}
 		else if (props.ballotId) {

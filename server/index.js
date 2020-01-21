@@ -236,6 +236,10 @@ app.put('/resolution', (req, res, next) => {
 	comments.updateResolution(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
 });
+app.put('/resolutions', (req, res, next) => {
+	comments.updateResolutions(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
+});
 app.delete('/resolution', (req, res, next) => {
 	comments.deleteResolution(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))

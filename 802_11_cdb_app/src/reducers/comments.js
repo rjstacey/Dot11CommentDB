@@ -18,8 +18,9 @@ const defaultState = {
 }
 
 const comments = (state = defaultState, action) => {
-	var newCommentData, newResolutions, errorMsgs;
+	var newCommentData, errorMsgs;
 
+	console.log(action)
 	switch (action.type) {
 		case 'SET_COMMENTS_SORT':
 			return {
@@ -130,18 +131,17 @@ const comments = (state = defaultState, action) => {
 				errorMsgs
 			}
 
-		case 'UPDATE_RESOLUTION':
+		case 'UPDATE_RESOLUTIONS':
 			return {...state, updateComment: true}
-		case 'UPDATE_RESOLUTION_SUCCESS':
-			if (state.ballotId !== action.resolution.BallotID) {
+		case 'UPDATE_RESOLUTIONS_SUCCESS':
+			if (state.ballotId !== action.ballotId) {
 				return {...state, updateComment: false}
 			}
 			newCommentData = state.commentData.map(c => {
-				if (c.CommentID === action.resolution.CommentID) {
-					newResolutions = c.resolutions.map(r => 
-						(r.ResolutionID === action.resolution.ResolutionID)? {...r, ...action.resolution}: r
-					)
-					return {...c, resolutions: newResolutions}
+				const r = action.resolutions.find(r => r.CommentID === c.CommentID && r.ResolutionID === c.ResolutionID)
+				if (r) {
+					console.log('updated with ', r)
+					return {...c, ...r}
 				}
 				else {
 					return c
@@ -165,19 +165,15 @@ const comments = (state = defaultState, action) => {
 		case 'ADD_RESOLUTION':
 			return {...state, updateComment: true}
 		case 'ADD_RESOLUTION_SUCCESS':
-			if (state.ballotId !== action.resolution.BallotID) {
+			if (state.ballotId !== action.ballotId) {
 				return {...state, updateComment: false}
 			}
-			newCommentData = state.commentData.map(c => {
-				if (c.CommentID === action.resolution.CommentID) {
-					newResolutions = c.resolutions.slice()
-					newResolutions.push(action.resolution)
-					return {...c, resolutions: newResolutions}
-				}
-				else {
-					return c
-				}
-			})
+
+			/* Replace comments with the modified CommentID, maintaining increasing CommentID order */
+			newCommentData = state.commentData
+								.filter(c => Math.floor(c.CommentID) !== action.commentId)
+								.concat(action.updatedComments)
+								.sort((c1, c2) => c1.CommentID - c2.CommentID)
 			return {
 				...state,
 				updateComment: false,
@@ -196,24 +192,19 @@ const comments = (state = defaultState, action) => {
 		case 'DELETE_RESOLUTION':
 			return {...state, updateComment: true}
 		case 'DELETE_RESOLUTION_SUCCESS':
-			if (state.ballotId !== action.resolution.BallotID) {
+			if (state.ballotId !== action.ballotId) {
 				return {...state, updateComment: false}
 			}
-			newCommentData = state.commentData.map((c, index) => {
-				if (c.CommentID === action.resolution.CommentID) {
-					newResolutions = c.resolutions.filter(r => 
-						(r.ResolutionID !== action.resolution.ResolutionID)
-					)
-					return {...c, resolutions: newResolutions}
-				}
-				else {
-					return c
-				}
-			})
+			/* Replace comments with the modified CommentID, maintaining increasing CommentID order */
+			newCommentData = state.commentData
+								.filter(c => Math.floor(c.CommentID) !== action.commentId)
+								.concat(action.updatedComments)
+								.sort((c1, c2) => c1.CommentID - c2.CommentID)
 			return {
 				...state,
 				updateComment: false,
-				commentData: newCommentData
+				commentData: newCommentData,
+				commentDataMap: sortData(filterData(newCommentData, state.filters), newCommentData, state.sortBy, state.sortDirection)
 			}
 		case 'DELETE_RESOLUTION_FAILURE':
 			errorMsgs = state.errorMsgs.slice();

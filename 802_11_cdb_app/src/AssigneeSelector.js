@@ -10,17 +10,17 @@ const style = {
 }
 
 function Assignee(props) {
-	const {value, onChange} = props
+	const {value, onChange, usersDataValid, usersData, dispatch} = props
 
 	useEffect(() => {
-		if (!props.usersDataValid) {
-			props.dispatch(getUsers())
+		if (!usersDataValid) {
+			dispatch(getUsers())
 		}
 	}, [])
 
 	const options =
 		[{value: 0, label: 'Not Assigned'}]
-		.concat(props.usersData.map(u => {
+		.concat(usersData.map(u => {
 			return {value: u.SAPIN, label: `${u.Name} <${u.Email}>`}
 		}));
 
@@ -32,18 +32,26 @@ function Assignee(props) {
 		dropdownIndicator: (provided, state) => {return {...provided, padding: 0}}
 	}
 
+	function handleChange({value}, action) {
+		onChange(value)
+	}
+
+	const placeholder = value === '<multiple>'? value: null
+	const v = value === '<multiple>'? null: options.find(o => o.value === value)
+
 	return (
 		<Select
 			name='Assignee'
-			value={value || 0}
-			onChange={onChange}
+			value={v}
+			onChange={handleChange}
 			options={options}
 			styles={customStyles}
+			placeholder={placeholder}
 		/>
 	)
 }
 Assignee.propTypes = {
-	value: PropTypes.number.isRequired,
+	value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
 	onChange: PropTypes.func.isRequired,
 	usersDataValid: PropTypes.bool.isRequired,
 	usersData: PropTypes.array.isRequired,

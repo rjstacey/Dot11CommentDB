@@ -189,12 +189,17 @@ function addResolutionLocal(data) {
 		resolution: data
 	}
 }
+
 function addResolutionSuccess(data) {
 	return {
 		type: 'ADD_RESOLUTION_SUCCESS',
-		resolution: data
+		ballotId: data.BallotID,
+		commentId: data.CommentID,
+		resolutionId: data.ResolutionID,
+		updatedComments: data.updatedComments
 	}
 }
+
 function addResolutionFailure(msg) {
 	return {
 		type: 'ADD_RESOLUTION_FAILURE',
@@ -203,58 +208,65 @@ function addResolutionFailure(msg) {
 }
 
 export function addResolution(data) {
-	return dispatch => {
+	return async (dispatch) => {
 		dispatch(addResolutionLocal(data));
-		return axios.post('/resolution', data)
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(addResolutionFailure(response.data.message))
-				}
-				else {
-					dispatch(addResolutionSuccess(response.data.data))
-				}
-			})
-			.catch((error) => {
-				console.log(error)
-				dispatch(addResolutionFailure(`Unable to add resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`))
-			})
+		try {
+			const response = await axios.post('/resolution', data)
+			if (response.data.status === 'OK') {
+				await dispatch(addResolutionSuccess(response.data.data))
+				console.log(response.data.data)
+				return response.data.data.ResolutionID
+			}
+			else {
+				await dispatch(addResolutionFailure(response.data.message))
+				return -1
+			}
+		}
+		catch(error) {
+			console.log(error)
+			await dispatch(addResolutionFailure(`Unable to add resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`))
+			return -1
+		}
 	}
 }
 
-function updateResolutionLocal(data) {
+function updateResolutionsLocal(ballotId, resolutions) {
 	return {
-		type: 'UPDATE_RESOLUTION',
-		resolution: data
+		type: 'UPDATE_RESOLUTIONS',
+		ballotId,
+		resolutions
 	}
 }
-function updateResolutionSuccess(data) {
+function updateResolutionsSuccess(ballotId, resolutions) {
 	return {
-		type: 'UPDATE_RESOLUTION_SUCCESS',
-		resolution: data
+		type: 'UPDATE_RESOLUTIONS_SUCCESS',
+		ballotId,
+		resolutions
 	}
 }
-function updateResolutionFailure(msg) {
+function updateResolutionsFailure(errMsg) {
 	return {
-		type: 'UPDATE_RESOLUTION_FAILURE',
-		errMsg: msg
+		type: 'UPDATE_RESOLUTIONS_FAILURE',
+		errMsg
 	}
 }
 
-export function updateResolution(data) {
-	return dispatch => {
-		dispatch(updateResolutionLocal(data));
-		return axios.put('/resolution', data)
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(updateResolutionFailure(response.data.message))
-				}
-				else {
-					dispatch(updateResolutionSuccess(data))
-				}
-			})
-			.catch((error) => {
-				dispatch(updateResolutionFailure(`Unable to update resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`))
-			})
+export function updateResolutions(ballotId, resolutions) {
+	return async (dispatch) => {
+		dispatch(updateResolutionsLocal(ballotId, resolutions));
+		try {
+			const response = await axios.put('/resolutions', {ballotId, resolutions})
+			if (response.data.status === 'OK') {
+				return dispatch(updateResolutionsSuccess(ballotId, resolutions))
+			}
+			else {
+				return dispatch(updateResolutionsFailure(response.data.message))
+			}
+		}
+		catch(error) {
+			console.log(error)
+			return dispatch(updateResolutionsFailure(`Unable to update resolutions for ${ballotId}`))
+		}
 	}
 }
 
@@ -264,16 +276,22 @@ export function clearUpdateResolutionError() {
 	}
 }
 
-function deleteResolutionLocal(data) {
+function deleteResolutionLocal(ballotId, commentId, resolutionId) {
 	return {
 		type: 'DELETE_RESOLUTION',
-		resolution: data
+		ballotId,
+		commentId,
+		resolutionId
 	}
 }
+
 function deleteResolutionSuccess(data) {
 	return {
 		type: 'DELETE_RESOLUTION_SUCCESS',
-		resolution: data
+		ballotId: data.BallotID,
+		commentId: data.CommentID,
+		resolutionId: data.ResolutionID,
+		updatedComments: data.updatedComments
 	}
 }
 function deleteResolutionFailure(msg) {
@@ -284,20 +302,21 @@ function deleteResolutionFailure(msg) {
 }
 
 export function deleteResolution(data) {
-	return dispatch => {
-		dispatch(deleteResolutionLocal(data));
-		return axios.delete('/resolution', {data: data})
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(deleteResolutionFailure(response.data.message))
-				}
-				else {
-					dispatch(deleteResolutionSuccess(data))
-				}
-			})
-			.catch((error) => {
-				dispatch(deleteResolutionFailure(`Unable to delete resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`))
-			})
+	return async (dispatch) => {
+		dispatch(deleteResolutionLocal(data))
+		try {
+			const response = await axios.delete('/resolution', {data: data})
+			if (response.data.status === 'OK') {
+				return dispatch(deleteResolutionSuccess(response.data.data))
+			}
+			else {
+				return dispatch(deleteResolutionFailure(response.data.message))
+			}
+		}
+		catch(error) {
+			console.log(error)
+			return dispatch(deleteResolutionFailure(`Unable to delete resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`))
+		}
 	}
 }
 

@@ -14,7 +14,7 @@
 .row {
 	display: flex;
 	flex-direction: row;
-	padding: 10px 5px;
+	padding: 10px 5px 0px 5px;
 }
 
 .column {
@@ -32,20 +32,33 @@
 	color: GrayText;
 }
 
-.CID,
 .Page {
 	display: inline-block;
 	width: 200px;
 }
-
-.Commenter,
+.CID div,
+.Page div {
+	display: inline-block;
+}
+.Commenter {
+	display: inline-block;
+	width: 500px;
+}
 .Clause {
 	display: inline-block;
 	width: 300px;
 }
+.Commenter div,
+.Clause div {
+	display: inline-block;
+}
 
 .MustSatisfy,
 .Category {
+	display: inline-block;
+}
+.MustSatisfy div,
+.Category div {
 	display: inline-block;
 }
 
@@ -64,15 +77,26 @@
 .ProposedChange {
 	width: 100%;
 }
+.Comment div,
+.ProposedChange div {
+	display: block;
+}
 
 .TopRow {
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;
 }
+
 .SubmissionInput {
 	width: 100px;
 }
+
+.Multiple {
+	color: GrayText;
+	font-style: italic;
+}
+
 .MotionNumber {
 	width: 40px;
 }
