@@ -1,3 +1,14 @@
+import {
+	LOGIN_GET_STATE,
+	LOGIN_GET_STATE_SUCCESS,
+	LOGIN_GET_STATE_FAILURE,
+	LOGIN_START,
+	LOGIN_SUCCESS,
+	LOGIN_FAILURE,
+	LOGOUT_START,
+	LOGOUT_SUCCESS,
+	LOGOUT_FAILURE
+} from '../actions/login'
 
 const defaultState = {
 	valid: false,
@@ -10,16 +21,16 @@ const defaultState = {
 	StatusMsg: ''
 }
 
-const comments = (state = defaultState, action) => {
+const login = (state = defaultState, action) => {
 
 	switch (action.type) {
-	case 'LOGIN_GET_STATE':
+	case LOGIN_GET_STATE:
 		return {
 			...state,
 			valid: false,
 			InProgress: true
 		}
-	case 'LOGIN_GET_STATE_SUCCESS':
+	case LOGIN_GET_STATE_SUCCESS:
 		if (action.info) {
 			return {
 	        	...state,
@@ -40,20 +51,20 @@ const comments = (state = defaultState, action) => {
 				LoggedIn: false
 			}
 		}
-	case 'LOGIN_GET_STATE_FAILURE':
+	case LOGIN_GET_STATE_FAILURE:
 		return {
 			...state,
 			LoggedIn: false,
 			InProgress: false,
 			StatusMsg: action.errMsg
 		}
-	case 'LOGIN_START':
+	case LOGIN_START:
 		return {
 			...state,
 			InProgress: true,
 			LoggedIn: false
 		}
-	case 'LOGIN_SUCCESS':
+	case LOGIN_SUCCESS:
 		return {
 			...state,
 			valid: true,
@@ -64,7 +75,7 @@ const comments = (state = defaultState, action) => {
 			SAPIN: action.info.sapin,
 			Access: action.info.access
 		}
-	case 'LOGIN_FAILURE':
+	case LOGIN_FAILURE:
 		return {
 			...state,
 			valid: false,
@@ -72,13 +83,13 @@ const comments = (state = defaultState, action) => {
 			LoggedIn: false,
 			StatusMsg: action.errMsg
 		}
-	case 'LOGOUT_START':
+	case LOGOUT_START:
 		return {
 			...state,
 			InProgress: true,
 			StatusMsg: '',
 		}
-	case 'LOGOUT_SUCCESS':
+	case LOGOUT_SUCCESS:
 		return {
 			...state,
 			valid: true,
@@ -86,7 +97,7 @@ const comments = (state = defaultState, action) => {
 			Access: 0,
 			InProgress: false,
 		}
-	case 'LOGOUT_FAILURE':
+	case LOGOUT_FAILURE:
 		return {
 			...state,
 			valid: false,
@@ -100,4 +111,4 @@ const comments = (state = defaultState, action) => {
 	}
 }
 
-export default comments
+export default login

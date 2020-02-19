@@ -6,6 +6,7 @@ import epolls from './epolls'
 import comments from './comments'
 import results from './results'
 import voters from './voters'
+import errMsg from './error'
 
 export default combineReducers({
 	login,
@@ -14,5 +15,6 @@ export default combineReducers({
 	epolls,
 	comments,
 	results,
-	voters
+	voters,
+	errMsg
 })

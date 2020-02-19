@@ -1,22 +1,18 @@
 var axios = require('axios');
 
-function loginGetStateLocal() {
-	return {
-		type: 'LOGIN_GET_STATE'
-	}
-}
-function loginGetStateSuccess(info) {
-	return {
-		type: 'LOGIN_GET_STATE_SUCCESS',
-		info
-	}
-}
-function loginGetStateFailure(msg) {
-	return {
-		type: 'LOGIN_GET_STATE_FAILURE',
-		errMsg: msg
-	}
-}
+export const LOGIN_GET_STATE = 'LOGIN_GET_STATE'
+export const LOGIN_GET_STATE_SUCCESS = 'LOGIN_GET_STATE_SUCCESS'
+export const LOGIN_GET_STATE_FAILURE = 'LOGIN_GET_STATE_FAILURE'
+export const LOGIN_START = 'LOGIN_START'
+export const LOGIN_SUCCESS = 'LOGIN_SUCCESS'
+export const LOGIN_FAILURE = 'LOGIN_FAILURE'
+export const LOGOUT_START = 'LOGOUT_START'
+export const LOGOUT_SUCCESS = 'LOGOUT_SUCCESS'
+export const LOGOUT_FAILURE = 'LOGOUT_FAILURE'
+
+const loginGetStateLocal = () => {return {type: LOGIN_GET_STATE}}
+const loginGetStateSuccess = (info) => {return {type: LOGIN_GET_STATE_SUCCESS, info}}
+const loginGetStateFailure = (errMsg) => {return {type: LOGIN_GET_STATE_FAILURE, errMsg}}
 
 export function loginGetState() {
 	return async (dispatch) => {
@@ -26,9 +22,7 @@ export function loginGetState() {
 			if (response.data.status === 'OK') {
 				return dispatch(loginGetStateSuccess(response.data.data))
 			}
-			else {
-				return dispatch(loginGetStateFailure(response.data.message))
-			}
+			return dispatch(loginGetStateFailure(response.data.message))
 		}
 		catch(error) {
 			return dispatch(loginGetStateFailure('Unable to get login state'))
@@ -36,73 +30,42 @@ export function loginGetState() {
 	}
 }
 
-function loginStart() {
-	return {
-		type: 'LOGIN_START'
-	}
-}
-function loginSuccess(info) {
-	return {
-		type: 'LOGIN_SUCCESS',
-		info
-	}
-}
-function loginFailure(msg) {
-	return {
-		type: 'LOGIN_FAILURE',
-		errMsg: msg
-	}
-}
+const loginStart = () => {return {type: LOGIN_START}}
+const loginSuccess = (info) => {return {type: LOGIN_SUCCESS, info}}
+const loginFailure = (errMsg) => {return {type: LOGIN_FAILURE, errMsg}}
 
 export function login(username, password) {
-	return dispatch => {
+	return async (dispatch) => {
 		dispatch(loginStart())
-		return axios.post('/login', {username, password})
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(loginFailure(response.data.message))
-				}
-				else {
-					dispatch(loginSuccess(response.data.data))
-				}
-			})
-			.catch((error) => {
-				dispatch(loginFailure('Unable to login'))
-			})
+		try {
+			const response = await axios.post('/login', {username, password})
+			if (response.data.status === 'OK') {
+				return dispatch(loginSuccess(response.data.data))
+			}
+			return dispatch(loginFailure(response.data.message))
+		}
+		catch(error) {
+			return dispatch(loginFailure('Unable to login'))
+		}
 	}
 }
 
-function logoutStart() {
-	return {
-		type: 'LOGOUT_START'
-	}
-}
-function logoutSuccess() {
-	return {
-		type: 'LOGOUT_SUCCESS',
-	}
-}
-function logoutFailure(msg) {
-	return {
-		type: 'LOGOUT_FAILURE',
-		errMsg: msg
-	}
-}
+const logoutStart = () => {return {type: LOGOUT_START}}
+const logoutSuccess = () => {return {type: LOGOUT_SUCCESS}}
+const logoutFailure = (errMsg) => {return {type: LOGOUT_FAILURE, errMsg}}
 
 export function logout() {
-	return dispatch => {
+	return async (dispatch) => {
 		dispatch(logoutStart())
-		return axios.post('/logout')
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(logoutFailure(response.data.message))
-				}
-				else {
-					dispatch(logoutSuccess())
-				}
-			})
-			.catch((error) => {
-				dispatch(logoutFailure('Unable to logout'))
-			})
+		try {
+			const response = await axios.post('/logout')
+			if (response.data.status === 'OK') {
+				return dispatch(logoutSuccess())
+			}
+			return dispatch(logoutFailure(response.data.message))
+		}
+		catch(error) {
+			return dispatch(logoutFailure('Unable to logout'))
+		}
 	}
 }

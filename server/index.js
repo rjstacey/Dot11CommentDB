@@ -248,6 +248,10 @@ app.post('/resolutions/upload', upload.single('ResolutionsFile'), (req, res, nex
 	comments.uploadResolutions(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
 });
+app.get('/comments/myProjectExport', (req, res, next) => {
+	comments.exportMyProjectComments(req, res, next)
+		.catch(err => resErr(res, err))
+});
 
 
 /*

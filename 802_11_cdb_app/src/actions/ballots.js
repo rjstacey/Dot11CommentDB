@@ -1,193 +1,136 @@
 import {syncEpollsAgainstBallots} from './epolls'
+import {setError} from './error'
 
 var axios = require('axios');
 
-export function setBallotsFilters(filters) {
-	return {
-		type: 'SET_BALLOTS_FILTERS',
-		filters
-	}
-}
-export function setBallotsSort(sortBy, sortDirection) {
-	return {
-		type: 'SET_BALLOTS_SORT',
-		sortBy,
-		sortDirection
-	}
-}
+export const SET_BALLOTS_FILTERS = 'SET_BALLOTS_FILTERS'
+export const SET_BALLOTS_SORT = 'SET_BALLOTS_SORT'
+export const GET_BALLOTS = 'GET_BALLOTS'
+export const GET_BALLOTS_SUCCESS = 'GET_BALLOTS_SUCCESS'
+export const GET_BALLOTS_FAILURE = 'GET_BALLOTS_FAILURE'
+export const UPDATE_BALLOT = 'UPDATE_BALLOT'
+export const UPDATE_BALLOT_SUCCESS = 'UPDATE_BALLOT_SUCCESS'
+export const UPDATE_BALLOT_FAILURE = 'UPDATE_BALLOT_FAILURE'
+export const DELETE_BALLOTS = 'DELETE_BALLOTS'
+export const DELETE_BALLOTS_SUCCESS = 'DELETE_BALLOTS_SUCCESS'
+export const DELETE_BALLOTS_FAILURE = 'DELETE_BALLOTS_FAILURE'
+export const ADD_BALLOT = 'ADD_BALLOT'
+export const ADD_BALLOT_SUCCESS = 'ADD_BALLOT_SUCCESS'
+export const ADD_BALLOT_FAILURE = 'ADD_BALLOT_FAILURE'
+export const SET_PROJECT = 'SET_PROJECT'
+export const SET_BALLOTID = 'SET_BALLOTID'
 
-function getBallotsLocal() {
-	return {
-		type: 'GET_BALLOTS'
-	}
-}
-function getBallotsSuccess(ballots) {
-	return {
-		type: 'GET_BALLOTS_SUCCESS',
-		ballots
-	}
-}
-function getBallotsFailure(msg) {
-	return {
-		type: 'GET_BALLOTS_FAILURE',
-		errMsg: msg
-	}
-}
+export const setBallotsFilters = (filters) => {return {type: SET_BALLOTS_FILTERS, filters}}
+export const setBallotsSort = (sortBy, sortDirection) => {return {type: SET_BALLOTS_SORT, sortBy, sortDirection}}
+
+const getBallotsLocal = () => {return {type: GET_BALLOTS}}
+const getBallotsSuccess  = (ballots) => {return {type: GET_BALLOTS_SUCCESS,	ballots}}
+const getBallotsFailure = () => {return {type: GET_BALLOTS_FAILURE}}
 
 export function getBallots() {
-	return (dispatch, getState) => {
+	return async (dispatch, getState) => {
 		dispatch(getBallotsLocal())
-		return axios.get('/ballots')
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(getBallotsFailure(response.data.message))
-				}
-				else {
-					dispatch(getBallotsSuccess(response.data.data))
-				}
-			})
-			.then(() => dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData)))
-			.catch((error) => {
-				console.log(error)
-				dispatch(getBallotsFailure('Unable to get ballot list'))
-			})
+		try {
+			const response = await axios.get('/ballots')
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(getBallotsFailure()),
+					dispatch(setError(response.data.message))
+				])
+			}
+			await dispatch(getBallotsSuccess(response.data.data))
+			return dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData))
+		}
+		catch(error) {
+			console.log(error)
+			return Promise.all([
+				dispatch(getBallotsFailure()),
+				dispatch(setError('Unable to get ballot list'))
+			])
+		}
 	}
 }
 
-export function updateBallotLocal(ballotId, ballotData) {
-	return {
-		type: 'UPDATE_BALLOT',
-		ballotId,
-		ballotData
-	}
-}
-export function updateBallotSuccess(ballotId, ballotData) {
-	return {
-		type: 'UPDATE_BALLOT_SUCCESS',
-		ballotId,
-		ballotData
-	}
-}
-function updateBallotFailure(ballotId, msg) {
-	return {
-		type: 'UPDATE_BALLOT_FAILURE',
-		ballotId,
-		errMsg: msg
-	}
-}
+export const updateBallotLocal = (ballotId, ballotData) => {return {type: UPDATE_BALLOT, ballotId, ballotData}}
+export const updateBallotSuccess = (ballotId, ballotData) => {return {type: UPDATE_BALLOT_SUCCESS,	ballotId, ballotData}}
+const updateBallotFailure = (ballotId) => {return {type: UPDATE_BALLOT_FAILURE, ballotId}}
 
 export function updateBallot(ballotId, ballotData) {
-	return (dispatch, getState) => {
-		dispatch(updateBallotLocal(ballotId, ballotData));
-		return axios.put(`/ballot/${ballotId}`, ballotData)
-			.then((response) => {
-				if (response.data.status === 'OK') {
-					dispatch(updateBallotSuccess(ballotId, response.data.data))
-				}
-				else {
-					dispatch(updateBallotFailure(ballotId, response.data.message))
-				}
-			})
-			.then(() => dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData)))
-			.catch((error) => {
-				dispatch(updateBallotFailure(ballotId, `Unable to update ballot ${ballotId}`))
-			})
+	return async (dispatch, getState) => {
+		dispatch(updateBallotLocal(ballotId, ballotData))
+		try {
+			const response = await axios.put(`/ballot/${ballotId}`, ballotData)
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(updateBallotFailure(ballotId)),
+					dispatch(setError(response.data.message))
+				])
+			}
+			await dispatch(updateBallotSuccess(ballotId, response.data.data))
+			return dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData))
+		}
+		catch(error) {
+			return Promise.all([
+				dispatch(updateBallotFailure(ballotId)),
+				dispatch(setError(`Unable to update ballot ${ballotId}`))
+			])
+		}
 	}
 }
 
-function deleteBallotsLocal(ballotIds) {
-	return {
-		type: 'DELETE_BALLOTS',
-		ballotIds
-	}
-}
-function deleteBallotsSuccess(ballotIds) {
-	return {
-		type: 'DELETE_BALLOTS_SUCCESS',
-		ballotIds
-	}
-}
-function deleteBallotsFailure(ballotIds, msg) {
-	return {
-		type: 'DELETE_BALLOTS_FAILURE',
-		ballotIds,
-		errMsg: msg
-	}
-}
+const deleteBallotsLocal = (ballotIds) => {return {type: DELETE_BALLOTS, ballotIds}}
+const deleteBallotsSuccess = (ballotIds) => {return {type: DELETE_BALLOTS_SUCCESS, ballotIds}}
+const deleteBallotsFailure = (ballotIds) => {return {type: DELETE_BALLOTS_FAILURE, ballotIds}}
 
 export function deleteBallots(ballotIds) {
-	return (dispatch, getState) => {
+	return async (dispatch, getState) => {
 		dispatch(deleteBallotsLocal(ballotIds))
-		return axios.delete('/ballots', {data: ballotIds})
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					return dispatch(deleteBallotsFailure(ballotIds, response.data.message))
-				}
-				else {
-					return dispatch(deleteBallotsSuccess(ballotIds))
-				}
-			})
-			.then(() => dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData)))
-			.catch((error) => {
-				return dispatch(deleteBallotsFailure(ballotIds, `Unable to delete ballots ${ballotIds}: ${error}`))
-			})
+		try {
+			const response = await axios.delete('/ballots', {data: ballotIds})
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(deleteBallotsFailure(ballotIds)),
+					dispatch(setError(response.data.message))
+				])
+			}
+			await dispatch(deleteBallotsSuccess(ballotIds))
+			return dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData))
+		}
+		catch(error) {
+			return Promise.all([
+				dispatch(deleteBallotsFailure(ballotIds)),
+				dispatch(setError(`Unable to delete ballots ${ballotIds}: ${error}`))
+			])
+		}
 	}
 }
 
-function addBallotLocal(ballot) {
-	return {
-		type: 'ADD_BALLOT',
-		ballot
-	}
-}
-function addBallotSuccess(ballot) {
-	return {
-		type: 'ADD_BALLOT_SUCCESS',
-		ballot
-	}
-}
-function addBallotFailure(msg) {
-	return {
-		type: 'ADD_BALLOT_FAILURE',
-		errMsg: msg
-	}
-}
+const addBallotLocal = (ballot) => {return {type: ADD_BALLOT, ballot}}
+const addBallotSuccess = (ballot) => {return {type: ADD_BALLOT_SUCCESS,	ballot}}
+const addBallotFailure = () => {return {type: ADD_BALLOT_FAILURE}}
 
 export function addBallot(ballot) {
-	return (dispatch, getState) => {
+	return async (dispatch, getState) => {
 		dispatch(addBallotLocal(ballot))
-		return axios.post('/ballots/', ballot)
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					return dispatch(addBallotFailure(response.data.message))
-				}
-				else {
-					return dispatch(addBallotSuccess(response.data.data))
-				}
-			})
-			.then(() => dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData)))
-			.catch((error) => {
-				return dispatch(addBallotFailure(`Unable to add ballot ${ballot.BallotID}`))
-			})
+		try {
+			const response = axios.post('/ballots/', ballot)
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(addBallotFailure()),
+					dispatch(setError(response.data.message))
+				])
+			}
+			await dispatch(addBallotSuccess(response.data.data))
+			return dispatch(syncEpollsAgainstBallots(getState().ballots.ballotsData))
+		}
+		catch(error) {
+			return Promise.all([
+				dispatch(addBallotFailure()),
+				dispatch(setError(`Unable to add ballot ${ballot.BallotID}`))
+			])
+		}
 	}
 }
 
-export function setProject(project) {
-	return {
-		type: 'SET_PROJECT',
-		project
-	}
-}
-export function setBallotId(ballotId) {
-	return {
-		type: 'SET_BALLOTID',
-		ballotId
-	}
-}
-
-export function clearBallotsError() {
-	return {
-		type: 'CLEAR_BALLOTS_ERROR'
-	}
-}
-
+export const setProject = (project) => {return {type: SET_PROJECT, project}}
+export const setBallotId = (ballotId) => {return {type: SET_BALLOTID, ballotId}}

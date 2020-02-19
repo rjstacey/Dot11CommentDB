@@ -4,7 +4,7 @@ import {connect} from 'react-redux';
 import {useHistory, useParams} from 'react-router-dom'
 import moment from 'moment-timezone';
 import ConfirmModal from './ConfirmModal';
-import {IconClose, IconNext, IconPrev} from './Icons';
+import {IconClose} from './Icons';
 import {updateBallot, addBallot, getBallots} from './actions/ballots';
 import {getVotingPool} from './actions/voters';
 import {importResults, uploadResults, deleteResults} from './actions/results';
@@ -71,13 +71,13 @@ function BallotDetail(props) {
 	const [ballot, setBallot] = useState(defaultBallot);
 	const [resultsAction, setResultsAction] = useState({
 		importFromEpoll: false,
-		fileName: null,
+		file: null,
 		remove: false
 	});
 	const resultsFileRef = useRef();
 	const [commentsAction, setCommentsAction] = useState({
 		importFromEpoll: false,
-		fileName: null,
+		file: null,
 		remove: false
 	})
 	const commentsFileRef = useRef();
@@ -143,7 +143,7 @@ function BallotDetail(props) {
 			const b = props.ballotsData.find(b => b.BallotID === ballotId)
 			if (b) {
 				let changed = shallowDiff(b, ballot)
-				if (changed === {}) {
+				if (changed !== {}) {
 					action = updateBallot(ballotId, changed);
 				}
 			}
@@ -175,8 +175,8 @@ function BallotDetail(props) {
 		else if (resultsAction.importFromEpoll) {
 			props.dispatch(importResults(ballot.BallotID, ballot.EpollNum))
 		}
-		else if (resultsAction.fileName) {
-			props.dispatch(uploadResults(ballotId, resultsFileRef.current.files[0]))
+		else if (resultsAction.file) {
+			props.dispatch(uploadResults(ballotId, resultsAction.file))
 		}
 
 		if (commentsAction.remove) {
@@ -185,8 +185,8 @@ function BallotDetail(props) {
 		else if (commentsAction.importFromEpoll) {
 			props.dispatch(importComments(ballot.BallotID, ballot.EpollNum, 1))
 		}
-		else if (commentsAction.fileName) {
-			props.dispatch(uploadComments(ballotId, commentsFileRef.current.files[0]))
+		else if (commentsAction.file) {
+			props.dispatch(uploadComments(ballotId, ballot.Type, commentsAction.file))
 		}
 
 		/* Once we have added a ballot, we navigate there so that furhter changes are updates */
@@ -295,9 +295,9 @@ function BallotDetail(props) {
 				<label>
 					<input
 						type='checkbox'
-						checked={resultsAction.fileName !== null}
+						checked={resultsAction.file !== null}
 						onChange={handleResultsFromFile}
-					/> Upload from {resultsAction.fileName? resultsAction.fileName: 'file'}
+					/> Upload from {resultsAction.file? resultsAction.file.name: 'file'}
 					<input
 						type='file'
 						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -313,7 +313,7 @@ function BallotDetail(props) {
 
 	function handleCommentsRemove(e) {
 		setCommentsAction({
-			fileName: null,
+			file: null,
 			importFromEpoll: false,
 			remove: e.target.checked
 		})
@@ -321,7 +321,7 @@ function BallotDetail(props) {
 
 	function handleCommentsFromEpoll(e) {
 		setCommentsAction({
-			fileName: null,
+			file: null,
 			importFromEpoll: e.target.checked,
 			remove: false
 		})
@@ -332,13 +332,13 @@ function BallotDetail(props) {
 			commentsFileRef.current.click()
 		}
 		else {
-			setCommentsAction({...commentsAction, fileName: null})
+			setCommentsAction({...commentsAction, file: null})
 		}
 	}
 
 	function handleCommentsFileSelected(e) {
 		setCommentsAction({
-			fileName: e.target.files[0].name,
+			file: e.target.files[0],
 			importFromEpoll: false,
 			remove: false
 		})
@@ -372,9 +372,9 @@ function BallotDetail(props) {
 				<label>
 					<input
 						type='checkbox'
-						checked={commentsAction.fileName !== null}
+						checked={commentsAction.file !== null}
 						onChange={handleCommentsFromFile}
-					/> Upload from {commentsAction.fileName? commentsAction.fileName: 'file'}
+					/> Upload from {commentsAction.file? commentsAction.file.name: 'file'}
 					<input
 						type='file'
 						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -413,13 +413,12 @@ function BallotDetail(props) {
 					<div className={styles.row}>
 						<label className={styles.initLabel}>Ballot ID:</label>
 						<input type='text' name='BallotID' value={ballot.BallotID} onChange={change} />
-						<IconPrev />
-						<IconNext />
 					</div>
+					{(ballot.Type !== 3 && ballot.Type !== 4) &&
 					<div className={styles.row}>
 						<label className={styles.initLabel}>ePoll Number:</label>
 						<input type='text' name='EpollNum' value={ballot.EpollNum} onChange={change} />
-					</div>
+					</div>}
 				</div>
 				<div className={styles.ballotTypeGroup}>
 					{ballotTypes.map((str, i) => 

@@ -9,87 +9,12 @@ import cx from 'classnames'
 //import ConfirmModal from './ConfirmModal'
 import {addResolution, updateResolutions, deleteResolution, getComments} from './actions/comments'
 import {setBallotId} from './actions/ballots'
-import {BasicEditor} from './ResolutionEditor'
+import {ResolutionEditor, BasicEditor} from './ResolutionEditor'
 import BallotSelector from './BallotSelector'
 import AssigneeSelector from './AssigneeSelector'
 import {ActionButton} from './Icons'
 import styles from './CommentDetail.css'
 
-function ResnStatus(props) {
-	const {value, onChange} = props
-	const isIndeterminate = value === '<multiple'
-
-	return (
-		<div className={styles.ResolutionStatus}>
-			<label>
-				<input
-					className='checkbox'
-					type='checkbox'
-					name='ResnStatus'
-					value='A'
-					ref={el => el && (el.indeterminate = isIndeterminate)}
-					checked={value === 'A'}
-					onChange={e => onChange(e.target.checked? e.target.value: '')}
-				/>Accepted
-			</label>
-			<label>
-				<input
-					className='checkbox'
-					type='checkbox'
-					name='ResnStatus'
-					value='V'
-					ref={el => el && (el.indeterminate = isIndeterminate)}
-					checked={value === 'V'}
-					onChange={e => onChange(e.target.checked? e.target.value: '')}
-				/>Revised
-			</label>
-			<label>
-				<input
-					className='checkbox'
-					type='checkbox'
-					name='ResnStatus'
-					value='J'
-					ref={el => el && (el.indeterminate = isIndeterminate)}
-					checked={value === 'J'}
-					onChange={e => onChange(e.target.checked? e.target.value: '')}
-				/>Rejected
-			</label>
-		</div>
-	)
-}
-
-function ResolutionEditor(props) {
-	const {resolution, setResolution} = props
-	const placeholder = resolution.Resolution === '<multiple>'? 'Multiple': 'Enter some text...'
-	let header = ''
-	switch (resolution.ResnStatus) {
-	case 'A':
-		header = 'ACCEPTED'
-		break
-	case 'V':
-		header = 'REVISED'
-		break
-	case 'J':
-		header = 'REJECTED'
-		break
-	default:
-		header = ''
-	}
-
-	return (
-		<BasicEditor
-			value={resolution.Resolution}
-			onChange={value => setResolution({Resolution: value})}
-			placeholder={placeholder}
-			header={header}
-		>
-			<ResnStatus
-				value={resolution.ResnStatus}
-				onChange={value => setResolution({ResnStatus: value})}
-			/>
-		</BasicEditor>
-	)
-}
 
 function Resolution(props) {
 	const {resolution, setResolution} = props
@@ -125,6 +50,8 @@ function Resolution(props) {
 		[styles.ApprovedByMotion]: true,
 		[styles.Multiple]: resolution.ApprovedByMotion === '<multiple>'
 	})
+
+	const placeholder = resolution.Resolution === '<multiple>'? '<multiple>': '<blank>'
 
  	return (
  		<React.Fragment>
@@ -173,7 +100,7 @@ function Resolution(props) {
 						Approved&nbsp;
 						<input
 							className={approvedByClassName}
-							type='text'
+							type='search'
 							name='ApprovedByMotion'
 							value={resolution.ApprovedByMotion || ''}
 							onChange={changeApproved}
@@ -183,8 +110,9 @@ function Resolution(props) {
 			</div>
 			<div className={styles.Resolution}>
 				<ResolutionEditor
-					resolution={resolution}
-					setResolution={setResolution}
+					value={resolution.Resolution}
+					onChange={(ResnStatus, Resolution) => setResolution({ResnStatus, Resolution})}
+					placeholder={placeholder}
 				/>
 			</div>
 			<div className={styles.tab}>
@@ -274,33 +202,6 @@ function EditStatus(props) {
 	)
 }
 
-function Editing(props) {
-	const {resolution, setResolution} = props
-
-	return (
-		<BasicEditor
-			value={resolution.EditNotes}
-			onChange={value => setResolution({EditNotes: value})}
-		>
-			<EditStatus
-				resolution={resolution}
-				setResolution={setResolution}
-			/>
-		</BasicEditor>
-	)
-}
-
-function Notes(props) {
-	const {resolution, setResolution} = props
-
-	return (
-		<BasicEditor
-			value={resolution.Notes}
-			onChange={value => setResolution({Notes: value})}
-		/>
-	)
-}
-
 function OtherTabs(props) {
 	const {resolution, setResolution} = props
 
@@ -316,15 +217,20 @@ function OtherTabs(props) {
 				<Tab className={styles.tab}>Notes</Tab>
 			</TabList>
 			<TabPanel className={styles.tabPanel}>
-				<Editing
-					resolution={resolution}
-					setResolution={setResolution}
-				/>
+				<BasicEditor
+					value={resolution.EditNotes}
+					onChange={value => setResolution({EditNotes: value})}
+				>
+					<EditStatus
+						resolution={resolution}
+						setResolution={setResolution}
+					/>
+				</BasicEditor>
 			</TabPanel>
 			<TabPanel className={styles.tabPanel}>
-				<Notes
-					resolution={resolution}
-					setResolution={setResolution}
+				<BasicEditor
+					value={resolution.Notes}
+					onChange={value => setResolution({Notes: value})}
 				/>
 			</TabPanel>
 		</Tabs>
@@ -463,8 +369,6 @@ function CommentDetail(props) {
 	const origResolution = useRef()
 	const [comments, setComments] = useState()
 	const [unavailable, setUnavailable] = useState()
-
-	console.log(resolution)
 
 	useEffect(() => {
 		if (ballotId && ballotId !== props.ballotId) {
@@ -607,7 +511,7 @@ function CommentDetail(props) {
 			emptyStr = 'Loading...'
 		}
 		else if (unavailable) {
-			emptyStr = unavailable.length > 0
+			emptyStr = unavailable.length > 1
 				? `CIDs ${unavailable.join(', ')} not available`
 				: `CID ${unavailable[0]} is not avilable`
 		}

@@ -1,18 +1,21 @@
-import PropTypes from 'prop-types';
-import React, {useRef, useState, useEffect} from 'react';
+import PropTypes from 'prop-types'
+import React, {useRef, useState, useEffect} from 'react'
 import {useHistory, useParams} from 'react-router-dom'
-import update from 'immutability-helper';
-import {connect} from 'react-redux';
-import BallotSelector from './BallotSelector';
-import ColumnSelector from './ColumnSelector';
-import ContentEditable from './ContentEditable';
-import AppModal from './AppModal';
-import AppTable from './AppTable';
-import {ActionButton} from './Icons';
-import {sortClick, filterValidate} from './filter';
-import {setCommentsSort, setCommentsFilters, getComments, uploadResolutions} from './actions/comments';
-import {setBallotId} from './actions/ballots';
-import styles from './Comments.css';
+import update from 'immutability-helper'
+import {connect} from 'react-redux'
+import BallotSelector from './BallotSelector'
+import ColumnSelector from './ColumnSelector'
+import ContentEditable from './ContentEditable'
+import AppModal from './AppModal'
+import AppTable from './AppTable'
+import {ActionButton} from './Icons'
+import {sortClick, filterValidate} from './filter'
+import {setCommentsSort, setCommentsFilters, getComments, uploadResolutions} from './actions/comments'
+import {setBallotId} from './actions/ballots'
+import {saveAs} from 'file-saver'
+import styles from './Comments.css'
+import editorStyles from './ResolutionEditor.css'
+var axios = require('axios')
 
 
 function SelectCommentsModal(props) {
@@ -132,6 +135,65 @@ ImportModal.propTypes = {
 	close: PropTypes.func.isRequired,
 }
 
+function ExportModal(props) {
+	const {ballotId} = props
+	const [forMyProject, setForMyProject] = useState(false)
+
+	async function submit(e) {
+		try {
+			const params = {BallotID: props.ballotId}
+			const response = await axios.get('/comments/myProjectExport', {params, responseType: 'blob'})
+			if (response.status === 200) {
+				const filename = ballotId + '_comments.xlsx'
+				saveAs(response.data, filename)
+			}
+			props.close()
+		}
+		catch(error) {
+			console.log(error)
+			props.close()
+		}
+	}
+
+	return (
+		<AppModal
+			isOpen={props.isOpen}
+			onRequestClose={props.close}
+		>
+			<p>Export comments for {props.ballotId}:</p>
+			<p>
+				<label>
+					<input
+						type="radio"
+						title={ballotId}
+						checked={forMyProject}
+						onChange={e => setForMyProject(!forMyProject)}
+					/>
+					Resolved comments for MyProject upload
+				</label>
+			</p>
+			<p>
+				<label>
+					<input
+						type="radio"
+						title={ballotId}
+						checked={!forMyProject}
+						onChange={e => setForMyProject(forMyProject)}
+					/>
+					All comments for mentor upload
+				</label>
+			</p>
+			<button onClick={submit}>OK</button>
+			<button onClick={props.close}>Cancel</button>
+		</AppModal>
+	)
+}
+ExportModal.propTypes = {
+	ballotId: PropTypes.string.isRequired,
+	isOpen: PropTypes.bool.isRequired,
+	close: PropTypes.func.isRequired,
+}
+
 /*
  * The data cell rendering functions are pure functions (dependent only on input parameters)
  */
@@ -147,6 +209,16 @@ function renderDataCellCommentID({rowData}) {
 	const {CommentID, ResolutionCount} = rowData
 	return CommentID.toFixed(ResolutionCount > 1? 1: 0)
 }
+
+function renderDataCellResolution({rowData}) {
+	return (
+		<div
+			className={editorStyles.editor}
+			dangerouslySetInnerHTML={{__html: rowData.Resolution}}
+		/>
+	)
+}
+
 
 const allColumns = [
 	{dataKey: 'CommentID', label: 'CID',
@@ -191,8 +263,8 @@ const allColumns = [
 	{dataKey: 'Resolution', label: 'Resolution',
 		sortable: false,
 		filterable: false,
-		width: 400, flexGrow: 1, flexShrink: 1/*,
-		cellRenderer: renderDataCellResolution*/},
+		width: 400, flexGrow: 1, flexShrink: 1,
+		cellRenderer: renderDataCellResolution},
 	{dataKey: 'Editing', label: 'Editing',
 		sortable: false,
 		filterable: false,
@@ -208,6 +280,7 @@ function Comments(props) {
 
 	const [columns, setColumns] = useState(allColumns)
 	const [showImport, setShowImport] = useState(false)
+	const [showExport, setShowExport] = useState(false)
 	const [showSelected, setShowSelected] = useState(false)
 	const [selected, setSelected] = useState([])
 
@@ -254,6 +327,7 @@ function Comments(props) {
 			if (ballotId !== props.ballotId) {
 				// Routed here with parameter ballotId specified, but not matching stored ballotId
 				// Store the ballotId and get results for this ballotId
+				console.log(ballotId, props.ballotId)
 				dispatch(setBallotId(ballotId))
 				dispatch(getComments(ballotId))
 			}
@@ -264,11 +338,10 @@ function Comments(props) {
 		else if (props.ballotId) {
 			history.replace(`/Comments/${props.ballotId}`)
 		}
-	}, [ballotId, props.ballotId])
+	}, [ballotId])
 
 	function refresh() {
 		dispatch(getComments(ballotId))
-			.then(console.log(commentData))
 	}
 
 	function toggleColumnVisible(dataKey) {
@@ -344,6 +417,7 @@ function Comments(props) {
 					<ActionButton name='edit' title='Edit Selected' onClick={editComments} />
     			</span>
     			<span>
+    				<ActionButton name='export' title='Export to file' onClick={e => setShowExport(true)} />
     				<ActionButton name='upload' title='Upload Resolutions' onClick={e => setShowImport(true)} />
     				<ColumnSelector list={allColumns} toggleItem={toggleColumnVisible} isChecked={isColumnVisible}/>
     				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
@@ -377,6 +451,13 @@ function Comments(props) {
 				ballotId={props.ballotId}
 				isOpen={showImport}
 				close={() => setShowImport(false)}
+				dispatch={props.dispatch}
+			/>
+
+			<ExportModal
+				ballotId={props.ballotId}
+				isOpen={showExport}
+				close={() => setShowExport(false)}
 				dispatch={props.dispatch}
 			/>
 

@@ -27,10 +27,12 @@ module.exports = function (db, rp, users) {
 		req.session.username = req.body.username;
 
 		var options = {
-			url: 'https://development.standards.ieee.org/pub/login',
+			//url: 'https://development.standards.ieee.org/pub/login',
+			url: 'https://imat.ieee.org/pub/login',
 			jar: req.session.ieeeCookieJar,
 			resolveWithFullResponse: true,
-			simple: false
+			simple: false,
+			followAllRedirects: true
 		};
 
 		// Do an initial GET on /pub/login so that we get cookies. We can do a login without this, but
@@ -44,7 +46,7 @@ module.exports = function (db, rp, users) {
 			c: $('input[name="c"]').val(),
 			x1: req.body.username,
 			x2: req.body.password,
-			f0: 3, // "Sign In To" selector (1 = Attendance Tool, 2 = Mentor, 3 = My Project, 4 = Standards Dictionary)
+			f0: 1, // "Sign In To" selector (1 = Attendance Tool, 2 = Mentor, 3 = My Project, 4 = Standards Dictionary)
 			privacyconsent: 'on',
 			ok_button: 'Sign+In'
 		};
@@ -52,16 +54,19 @@ module.exports = function (db, rp, users) {
 		// Now post the login data. There will be a bunch of redirects, but we should get a logged in page.
 		// options.form = loginForm;
 		ieeeRes = await rp.post(Object.assign({}, options, {form: loginForm}));
-		if (ieeeRes.statusCode !== 302) {
-			m = ieeeRes.body.match(/<div class="field_err">(.*)<\/div>/);
+		if (ieeeRes.statusCode === 200 && ieeeRes.body.search(/<div class="title">Sign In<\/div>/) !== -1) {
+			m = ieeeRes.body.search(/<div class="field_err">(.*)<\/div>/)
 			return Promise.reject(m? m[1]: 'Not logged in');
 		}
 		// Update the URL to the user's home and do another get.
-		options.url = 'https://development.standards.ieee.org/' + req.session.username + '/home';
-		ieeeRes = await rp.get(options);
+		//options.url = 'https://development.standards.ieee.org/' + req.session.username + '/home';
+		//ieeeRes = await rp.get(options);
 
 		// We should receive a bold message: Welcome: <name> (SA PIN: <sapin>)
-		var n = ieeeRes.body.match(/<big>Welcome: (.*) \(SA PIN: ([0-9]+)\)<\/big>/);
+		//var n = ieeeRes.body.match(/<big>Welcome: (.*) \(SA PIN: ([0-9]+)\)<\/big>/);
+		// We should receive a message: Home - <name>, SA PIN: <sapin>
+		console.log(ieeeRes.body)
+		var n = ieeeRes.body.match(/<span class="attendance_nav">Home - (.*), SA PIN: ([0-9]+)<\/span>/);
 		req.session.name = n? n[1]: 'Unknown';
 		req.session.sapin = n? n[2]: 0;
 		req.session.access = await users.getAccessLevel(req.session.sapin, req.session.username);
@@ -92,7 +97,8 @@ module.exports = function (db, rp, users) {
 		//var sess = req.session;
 		req.session.access = 0;
 
-		rp.get({url: 'https://development.standards.ieee.org/pub/logout', jar: req.session.ieeeCookieJar})
+		//rp.get({url: 'https://development.standards.ieee.org/pub/logout', jar: req.session.ieeeCookieJar})
+		rp.get({url: 'https://imat.ieee.org/pub/logout', jar: req.session.ieeeCookieJar})
 		return Promise.resolve(null)
 	}
 

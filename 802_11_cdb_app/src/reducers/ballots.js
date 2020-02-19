@@ -1,4 +1,22 @@
 import {sortData, filterData} from '../filter';
+import {
+	SET_BALLOTS_FILTERS,
+	SET_BALLOTS_SORT,
+	GET_BALLOTS,
+	GET_BALLOTS_SUCCESS,
+	GET_BALLOTS_FAILURE,
+	UPDATE_BALLOT,
+	UPDATE_BALLOT_SUCCESS,
+	UPDATE_BALLOT_FAILURE,
+	DELETE_BALLOTS,
+	DELETE_BALLOTS_SUCCESS,
+	DELETE_BALLOTS_FAILURE,
+	ADD_BALLOT,
+	ADD_BALLOT_SUCCESS,
+	ADD_BALLOT_FAILURE,
+	SET_PROJECT,
+	SET_BALLOTID
+} from '../actions/ballots'
 
 function defaultBallot() {
 	const now = new Date();
@@ -12,7 +30,8 @@ function defaultBallot() {
 		Start: today.toISOString(),
 		End: today.toISOString(),
 		VotingPoolID: 0,
-		PrevBallotID: ''}
+		PrevBallotID: ''
+	}
 }
 
 const defaultState = {
@@ -35,7 +54,6 @@ const defaultState = {
 		action: 'add',
 		ballot: defaultBallot()
 	},
-	errorMsgs: [],
 };
 
 function getProjectsList(ballotsData) {
@@ -83,19 +101,19 @@ function getProjectForBallotId(ballotsData, ballotId) {
 }
 
 const ballots = (state = defaultState, action) => {
-	var ballotsData, errorMsgs, project;
+	var ballotsData, project;
 
 	//console.log(action);
 
 	switch (action.type) {
-		case 'SET_BALLOTS_SORT':
+		case SET_BALLOTS_SORT:
 			return {
 				...state,
 				sortBy: action.sortBy,
 				sortDirection: action.sortDirection,
 				ballotsDataMap: sortData(state.ballotsDataMap, state.ballotsData, action.sortBy, action.sortDirection)
 			}
-		case 'SET_BALLOTS_FILTERS':
+		case SET_BALLOTS_FILTERS:
 			const filters = {
 				...state.filters, 
 				...action.filters
@@ -105,7 +123,7 @@ const ballots = (state = defaultState, action) => {
 				filters,
 				ballotsDataMap: sortData(filterData(state.ballotsData, filters), state.ballotsData, state.sortBy, state.sortDirection)
 			}
-		case 'GET_BALLOTS':
+		case GET_BALLOTS:
 			return {
 				...state,
 				getBallots: true,
@@ -113,7 +131,7 @@ const ballots = (state = defaultState, action) => {
 				ballotsDataMap: [],
 				ballotsByProject: {}
 			}
-		case 'GET_BALLOTS_SUCCESS':
+		case GET_BALLOTS_SUCCESS:
 			project = getProjectForBallotId(action.ballots, state.ballotId)
 			return {
 				...state,
@@ -126,17 +144,11 @@ const ballots = (state = defaultState, action) => {
 				ballotList: getBallotListForProject(action.ballots, project),
 				project
 			}
-		case 'GET_BALLOTS_FAILURE':
-			errorMsgs = state.errorMsgs.slice();
-			errorMsgs.push(action.errMsg);
-			return {
-				...state,
-				getBallots: false,
-				errorMsgs: errorMsgs
-			}
-		case 'ADD_BALLOT':
+		case GET_BALLOTS_FAILURE:
+			return {...state, getBallots: false}
+		case ADD_BALLOT:
 			return {...state, addBallot: true}
-		case 'ADD_BALLOT_SUCCESS':
+		case ADD_BALLOT_SUCCESS:
 			ballotsData = state.ballotsData.slice();
 			ballotsData.push(action.ballot);
 			return {
@@ -147,16 +159,10 @@ const ballots = (state = defaultState, action) => {
 				ballotsByProject: getBallotsByProject(ballotsData),
 				projectList: getProjectsList(ballotsData)
 			}
-		case 'ADD_BALLOT_FAILURE':
-			errorMsgs = state.errorMsgs.slice();
-			errorMsgs.push(action.errMsg);
-			return {
-				...state,
-				addBallot: false,
-				errorMsgs: errorMsgs
-			}
+		case ADD_BALLOT_FAILURE:
+			return {...state, addBallot: false}
 
-		case 'UPDATE_BALLOT':
+		case UPDATE_BALLOT:
 			/*ballotsData = state.ballotsData.map(d =>
 				d.BallotID === action.ballotId? {...d, ...action.ballotData}: d
 			);*/
@@ -168,7 +174,7 @@ const ballots = (state = defaultState, action) => {
 				ballotsByProject: getBallotsByProject(ballotsData),
 				projectList: getProjectsList(ballotsData)*/
 			}
-		case 'UPDATE_BALLOT_SUCCESS':
+		case UPDATE_BALLOT_SUCCESS:
 			ballotsData = state.ballotsData.map(d =>
 				d.BallotID === action.ballotData.BallotID? {...d, ...action.ballotData}: d
 			);
@@ -180,23 +186,20 @@ const ballots = (state = defaultState, action) => {
 				ballotsByProject: getBallotsByProject(ballotsData),
 				projectList: getProjectsList(ballotsData)
 			}
-		case 'UPDATE_BALLOT_FAILURE':
+		case UPDATE_BALLOT_FAILURE:
 			ballotsData = state.ballotsData.map(d =>
 				d.BallotID === action.ballotId? Object.assign({}, d): d
 			);
 			ballotsData = state.ballotsData.slice(); // touch ballotsData so that display is updated
-			errorMsgs = state.errorMsgs.slice();
-			errorMsgs.push(action.errMsg);
 			return {
 				...state,
 				ballotsData: ballotsData,
-				updateBallot: false,
-				errorMsgs: errorMsgs
+				updateBallot: false
 			}
 
-		case 'DELETE_BALLOTS':
+		case DELETE_BALLOTS:
 			return {...state, deleteBallots: true}
-		case 'DELETE_BALLOTS_SUCCESS':
+		case DELETE_BALLOTS_SUCCESS:
 			ballotsData = state.ballotsData.filter(b => !action.ballotIds.includes(b.BallotID));
 			return {
 				...state,
@@ -206,23 +209,17 @@ const ballots = (state = defaultState, action) => {
 				ballotsByProject: getBallotsByProject(ballotsData),
 				projectList: getProjectsList(ballotsData)
 			}
-		case 'DELETE_BALLOTS_FAILTURE':
-			errorMsgs = state.errorMsgs.slice();
-			errorMsgs.push(action.errMsg);
-			return {
-				...state,
-				deleteBallots: false,
-				errorMsgs: errorMsgs
-			}
+		case DELETE_BALLOTS_FAILURE:
+			return {...state, deleteBallots: false}
 
-		case 'SET_PROJECT':
+		case SET_PROJECT:
 			return {
 				...state,
 				project: action.project,
 				ballotId: '',
 				ballotList: getBallotListForProject(state.ballotsData, action.project)
 			}
-		case 'SET_BALLOTID':
+		case SET_BALLOTID:
 			project = getProjectForBallotId(state.ballotsData, action.ballotId);
 			if (project !== state.project) {
 				return {
@@ -236,14 +233,6 @@ const ballots = (state = defaultState, action) => {
 				...state,
 				ballotId: action.ballotId
 			}
-
-		case 'CLEAR_BALLOTS_ERROR':
-			if (state.errorMsgs.length) {
-				errorMsgs = state.errorMsgs.slice();
-				errorMsgs.pop();
-				return {...state, errorMsgs}
-			}
-			return state;
 
 		default:
 			return state;

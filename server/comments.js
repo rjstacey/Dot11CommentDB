@@ -17,7 +17,12 @@ function stringToHex(s) {
 }
 */
 
-function parsePollComments(startCommentId, pollCommentsCsv) {
+const epollCommentsHeader = [
+	'Index', 'Date', 'SA PIN', 'Name', 'Comment', 'Category', 'Page Number', 'Subclause', 'Line Number', 
+	'Proposed Change', 'Must Be Satisfied'
+]
+
+function parseEpollComments(startCommentId, pollCommentsCsv) {
 	var cid = startCommentId;
 
 	const p = csvParse(pollCommentsCsv, {columns: false});
@@ -26,9 +31,8 @@ function parsePollComments(startCommentId, pollCommentsCsv) {
 	}
 
 	// Row 0 is the header
-	var expected = ['Index', 'Date', 'SA PIN', 'Name', 'Comment', 'Category', 'Page Number', 'Subclause', 'Line Number', 'Proposed Change', 'Must Be Satisfied'];
-	if (expected.reduce((r, v, i) => v !== p[0][i], false)) {
-		throw `Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`
+	if (epollCommentsHeader.reduce((r, v, i) => r || v !== p[0][i], false)) {
+		throw `Unexpected column headings ${p[0].join()}. Expected ${epollCommentsHeader.join()}.`
 	}
 	p.shift();
 
@@ -40,17 +44,117 @@ function parsePollComments(startCommentId, pollCommentsCsv) {
 			CommenterName: c[3],
 			Comment: c[4],
 			Category: c[5]? c[5].charAt(0): '',   // First letter only (G, T or E)
-			C_Page: c[6].trim(),
-			C_Clause: c[7].trim(),
-			C_Line: c[8].trim(),
+			C_Page: c[6]? c[6].trim(): '',
+			C_Clause: c[7]? c[7].trim(): '',
+			C_Line: c[8]? c[8].trim(): '',
 			Page: parseFloat(c[6]) + parseFloat(c[8])/100,
-			Clause: c[7],
-			ProposedChange: c[9],
+			Clause: c[7]? c[7]: '',
+			ProposedChange: c[9]? c[9]: '',
 			MustSatisfy: !!(c[10] === '1')
 		};
 		if (isNaN(e.Page)) {e.Page = 0}
 		return e;
 	})
+}
+
+const myProjectCommentsHeader = [
+	'Comment ID', 'Date', 'Comment #', 'Name', 'Email', 'Phone', 'Style', 'Index #', 'Classification', 'Vote',
+	'Affiliation', 'Category', 'Page', 'Subclause','Line','Comment','File','Must be Satisfied','Proposed Change',
+	'Disposition Status', 'Disposition Detail', 'Other1', 'Other2', 'Other3'
+]
+
+async function parseMyProjectComments(startCommentId, buffer, isExcel) {
+
+	var p = [] 	// an array of arrays
+	if (isExcel) {
+		var workbook = new ExcelJS.Workbook()
+		await workbook.xlsx.load(buffer)
+
+		workbook.getWorksheet(1).eachRow(row => {
+			p.push(row.values.slice(1, 26))
+		})
+	}
+	else {
+		p = csvParse(buffer, {columns: false})
+	}
+	//console.log(p)
+
+	if (p.length === 0) {
+		throw 'Got empty comments file'
+	}
+
+	// Check the column names to make sure we have the right file
+	// The CSV from MyProject has # replaced by ., so replace '#' with '.' (in the regex this matches anything)
+	var expected = myProjectCommentsHeader.map(r => r.replace('#', '.'))
+	if (expected.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].search(new RegExp(v, 'i')) === -1, false)) {
+		throw `Unexpected column headings ${p[0].join()}. Expected ${myProjectCommentsHeader.join()}.`
+	}
+	p.shift()	// remove column heading row
+
+	var cid = startCommentId
+	return p.map(c => {
+		const c_page = c[12] !== undefined? c[12]: ''
+		const c_line = c[14] !== undefined? c[14]: ''
+		var page = parseFloat(c_page) + parseFloat(c_line)/100
+		if (isNaN(page)) {page = 0}
+		return {
+			CommentID: cid++,
+			//C_CommentID: c[0],
+			C_Index: c[7],
+			//Date: c[1],
+			CommenterSAPIN: null,
+			CommenterName: c[3],
+			//CommenterEmail: c[4],
+			//CommenterPhone: c[5],
+			Comment: c[15],
+			Category: c[11]? c[11].charAt(0): '',   // First letter only (G, T or E)
+			C_Page: c_page,
+			C_Clause: c[13]? c[13]: '',
+			C_Line: c_line,
+			Page: page,
+			Clause: c[13]? c[13]: '',
+			ProposedChange: c[18],
+			MustSatisfy: !!(c[17] === '1')
+		}
+	})
+}
+
+function exportMyProjectComments(comments) {
+	var workbook = new ExcelJS.Workbook()
+	var sheet = workbook.addWorksheet('export_resolved_comments')
+	sheet.addRow(myProjectCommentsHeader)
+	for (let c of comments) {
+		const row = [
+			c.C_CommentID,
+			c.Date,
+			c.C_CommentNum,	// Comment #
+			c.CommenterName,
+			'',				// Email
+			'',				// Phone
+			'Ballot',		// Style
+			c.C_Index,		// Index #
+			'',				// Classification
+			c.Vote,
+			'',				// Affiliation
+			c.Category,
+			c.C_Page,
+			c.Clause,		// Subclause
+			c.C_Line,
+			c.Comment,
+			c.File,
+			c.MustSatisfy,
+			c.ProposedChange,
+			c.ResnStatus,	// Disposition Status
+			c.Resolution,	// Disposition Detail
+			'',
+			'',
+			''
+		]
+
+		sheet.addRow(row)
+	}
+
+	return workbook.xlsx.writeBuffer()
 }
 
 function parseResolution(cs) {
@@ -304,7 +408,7 @@ module.exports = function (db, rp) {
 		}
 
 		const ballotId = resolution.BallotID;
-		const commentId = resolution.CommentID;
+		const commentId = Math.floor(resolution.CommentID);
 		const resolutionId = resolution.ResolutionID;
 		const entry = {
 			ResnStatus: resolution.ResnStatus,
@@ -519,41 +623,48 @@ module.exports = function (db, rp) {
 			})
 	}
 
-	module.uploadComments = function (req, res, next) {
+	module.uploadComments = async function(req, res, next) {
 		console.log(req.body);
 
-		const ballotId = req.body.BallotID;
-		const startCommentId = req.body.StartCID || 1;
-		if (!ballotId) {
-			return Promise.reject('Missing parameter BallotID')
+		if (!req.body.BallotID ||
+			!req.body.Type) {
+			return Promise.reject("Missing BallotID and/or Type parameter")
 		}
+		const ballotId = req.body.BallotID
+		const type = req.body.Type
+		const startCommentId = req.body.StartCID || 1
 
 		console.log(req.file)
 		if (!req.file) {
 			return Promise.reject('Missing file')
 		}
-		var comments = parsePollComments(startCommentId, req.file.buffer);
-		//console.log(comments);
 
-		var SQL = db.format('DELETE FROM comments WHERE BallotID=?;', [ballotId]);
-		if (comments.length) {
-			SQL += `INSERT INTO comments (BallotID, ${Object.keys(comments[0])}) VALUES`;
-			comments.forEach((c, i) => {
-				SQL += (i > 0? ',': '') + `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`;
-			});
-			SQL += ';'
+		let comments;
+		if (type < 3) {
+			comments = parseEpollComments(startCommentId, req.file.buffer)
 		}
-		SQL += db.format('SELECT COUNT(*) AS Count, MIN(CommentID) AS CommentIDMin, MAX(CommentID) AS CommentIDMax FROM comments WHERE BallotID=?', [ballotId])
+		else {
+			const isExcel = req.file.originalname.search(/\.xlsx$/i) !== -1
+			comments = await parseMyProjectComments(startCommentId, req.file.buffer, isExcel)
+		}
+		//console.log('comment=', comments)
+
+		var SQL = db.format('DELETE FROM comments WHERE BallotID=?;', [ballotId])
+		if (comments.length) {
+			SQL +=
+				`INSERT INTO comments (BallotID, ${Object.keys(comments[0])}) VALUES` +
+				comments.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(', ') +
+				';'
+		}
+		SQL += db.format(GET_COMMENTS_SQL + 'WHERE c.BallotID=?;', [ballotId])
 		//console.log(SQL);
 
-		return db.query(SQL)
-			.then(results => {
-				var summary = results[results.length-1][0]
-				return {
-					BallotID: ballotId,
-					CommentsSummary: summary
-				}
-			})
+		const results = await db.query(SQL)
+		//console.log(results)
+		return {
+			BallotID: ballotId,
+			comments: results[2]
+		}
 	}
 
 	module.uploadResolutions = function (req, res, next) {
@@ -567,7 +678,7 @@ module.exports = function (db, rp) {
 		if (!req.file) {
 			return Promise.reject('Missing file');
 		}
-		var workbook = xlsx.read(req.file.buffer, {type: 'buffer'});
+			
 		//console.log(workbook.SheetNames)
 		var ws = workbook.Sheets['Comments'];
 
@@ -615,6 +726,17 @@ module.exports = function (db, rp) {
 			.then(results => {
 				return null
 			})
+	}
+
+	module.exportMyProjectComments = async function(req, res, next) {
+		const ballotId = req.query.BallotID;
+		if (!ballotId) {
+			return Promise.reject('Missing parameter BallotID');
+		}
+		const comments = await db.query(GET_COMMENTS_SQL + "WHERE c.ResnStatus <> '' AND c.BallotID = ?;", [ballotId])
+		const buffer = await exportMyProjectComments(comments)
+		res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+		res.status(200).send(buffer)
 	}
 
 	return module;

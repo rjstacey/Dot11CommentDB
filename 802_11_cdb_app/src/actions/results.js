@@ -1,37 +1,25 @@
-
 import {updateBallotSuccess} from './ballots'
+import {setError} from './error'
 
 var axios = require('axios');
 
-export function setResultsProject(project) {
-	return {
-		type: 'SET_RESULTS_PROJECT',
-		project
-	}
-}
+export const SET_RESULTS_FILTERS = 'SET_RESULTS_FILTERS'
+export const SET_RESULTS_SORT = 'SET_RESULTS_SORT'
+export const GET_RESULTS = 'GET_RESULTS'
+export const GET_RESULTS_SUCCESS = 'GET_RESULTS_SUCCESS'
+export const GET_RESULTS_FAILURE = 'GET_RESULTS_FAILURE'
+export const DELETE_RESULTS = 'DELETE_RESULTS'
+export const DELETE_RESULTS_SUCCESS = 'DELETE_RESULTS_SUCCESS'
+export const DELETE_RESULTS_FAILURE = 'DELETE_RESULTS_FAILURE'
+export const IMPORT_RESULTS = 'IMPORT_RESULTS'
+export const IMPORT_RESULTS_SUCCESS = 'IMPORT_RESULTS_SUCCESS'
+export const IMPORT_RESULTS_FAILURE = 'IMPORT_RESULTS_FAILURE'
 
-export function setResultsFilters(filters) {
-	return {
-		type: 'SET_RESULTS_FILTERS',
-		filters
-	}
-}
+export const setResultsFilters = (filters) => {return {type: SET_RESULTS_FILTERS, filters}}
+export const setResultsSort = (sortBy, sortDirection) => {return {type: SET_RESULTS_SORT, sortBy, sortDirection}}
 
-export function setResultsSort(sortBy, sortDirection) {
-	return {
-		type: 'SET_RESULTS_SORT',
-		sortBy,
-		sortDirection
-	}
-}
-
-function getResultsLocal(ballotId) {
-	return {
-		type: 'GET_RESULTS',
-		ballotId: ballotId
-	}
-}
-function getResultsSuccess(data) {
+const getResultsLocal = (ballotId) => {return {type: GET_RESULTS, ballotId}}
+const getResultsSuccess = (data) => {
 	return {
 		type: 'GET_RESULTS_SUCCESS',
 		ballotId: data.BallotID,
@@ -42,175 +30,119 @@ function getResultsSuccess(data) {
 		summary: data.summary
 	}
 }
-function getResultsFailure(msg) {
-	return {
-		type: 'GET_RESULTS_FAILURE',
-		errMsg: msg
-	}
-}
+const getResultsFailure = () => {return {type: GET_RESULTS_FAILURE}}
 
 export function getResults(ballotId) {
-	return dispatch => {
+	return async (dispatch) => {
 		dispatch(getResultsLocal(ballotId))
-		return axios.get('/results', {params: {BallotID: ballotId}})
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(getResultsFailure(response.data.message))
-				}
-				else {
-					dispatch(getResultsSuccess(response.data.data))
-				}
-			})
-			.catch((error) => {
-				dispatch(getResultsFailure('Unable to get results list'))
-			})
-	}
-}
-
-function deleteResultsLocal(ballotId) {
-	return {
-		type: 'DELETE_RESULTS',
-		ballotId
-	}
-}
-function deleteResultsSuccess(ballotId) {
-	return {
-		type: 'DELETE_RESULTS_SUCCESS',
-		ballotId
-	}
-}
-function deleteResultsFailure(ballotId, msg) {
-	return {
-		type: 'DELETE_RESULTS_FAILURE',
-		ballotId,
-		errMsg: msg
-	}
-}
-export function deleteResults(ballotId) {
-	return dispatch => {
-		dispatch(deleteResultsLocal(ballotId));
-		return axios.delete('/results', {data: {BallotID: ballotId}})
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(deleteResultsFailure(response.data.message))
-				}
-				else {
-					dispatch(updateBallotSuccess(ballotId, {Results: {}}))
-					dispatch(deleteResultsSuccess(ballotId))
-				}
-			})
-			.catch((error) => {
-				dispatch(deleteResultsFailure(ballotId, `Unable to delete results with ballotId=${ballotId}`))
-			})
-	}
-}
-
-function importResultsLocal(ballotId) {
-	return {
-		type: 'IMPORT_RESULTS',
-		ballotId
-	}
-}
-function importResultsSuccess(data) {
-	return {
-		type: 'IMPORT_RESULTS_SUCCESS',
-		...data
-	}
-}
-function importResultsFailure(ballotId, msg) {
-	return {
-		type: 'IMPORT_RESULTS_FAILURE',
-		ballotId,
-		errMsg: msg
-	}
-}
-export function importResults(ballotId, epollNum) {
-	return dispatch => {
-		dispatch(importResultsLocal(ballotId));
-		var params = {
-			BallotID: ballotId,
-			EpollNum: epollNum
+		try {
+			const response = await axios.get('/results', {params: {BallotID: ballotId}})
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(getResultsFailure()),
+					dispatch(setError(response.data.message))
+				])
+			}
+			return dispatch(getResultsSuccess(response.data.data))
 		}
-		return axios.post('/results/import', params)
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(importResultsFailure(ballotId, response.data.message))
-				}
-				else {
-					console.log(response.data)
-					const summary = response.data.data.summary;
-					dispatch(updateBallotSuccess(ballotId, {Results: summary}))
-					dispatch(importResultsSuccess(response.data.data))
-				}
-			})
-			.catch((error) => {
-				dispatch(importResultsFailure(ballotId, `Unable to import results for ballotId=${ballotId}`))
-			})
+		catch(error) {
+			return Promise.all([
+				dispatch(getResultsFailure()),
+				dispatch(setError('Unable to get results list'))
+			])
+		}
+	}
+}
+
+const deleteResultsLocal = (ballotId) => {return {type: DELETE_RESULTS, ballotId}}
+const deleteResultsSuccess = (ballotId) => {return {type: DELETE_RESULTS_SUCCESS, ballotId}}
+const deleteResultsFailure = (ballotId) => {return {type: DELETE_RESULTS_FAILURE, ballotId}}
+
+export function deleteResults(ballotId) {
+	return async (dispatch) => {
+		dispatch(deleteResultsLocal(ballotId))
+		try {
+			const response = await axios.delete('/results', {data: {BallotID: ballotId}})
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(deleteResultsFailure(ballotId)),
+					dispatch(setError(response.data.message))
+				])
+			}
+			return Promise.all([
+				dispatch(updateBallotSuccess(ballotId, {Results: {}})),
+				dispatch(deleteResultsSuccess(ballotId))
+			])
+		}
+		catch(error) {
+			return Promise.all([
+				dispatch(deleteResultsFailure(ballotId)),
+				dispatch(setError(`Unable to delete results with ballotId=${ballotId}`))
+			])
+		}
+	}
+}
+
+const importResultsLocal = (ballotId) => {return {type: IMPORT_RESULTS, ballotId}}
+const importResultsSuccess = (data) => {return {type: IMPORT_RESULTS_SUCCESS, ...data}}
+const importResultsFailure = (ballotId) => {return {type: IMPORT_RESULTS_FAILURE, ballotId}}
+
+export function importResults(ballotId, epollNum) {
+	return async (dispatch) => {
+		dispatch(importResultsLocal(ballotId))
+		try {
+			const params = {
+				BallotID: ballotId,
+				EpollNum: epollNum
+			}
+			const response = await axios.post('/results/import', params)
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(importResultsFailure(ballotId)),
+					dispatch(setError(response.data.message))
+				])
+			}
+			console.log(response.data)
+			const summary = response.data.data.summary;
+			return Promise.all([
+				dispatch(updateBallotSuccess(ballotId, {Results: summary})),
+				dispatch(importResultsSuccess(response.data.data))
+			])
+		}
+		catch(error) {
+			return Promise.all([
+				dispatch(importResultsFailure(ballotId)),
+				dispatch(setError(`Unable to import results for ballotId=${ballotId}`))
+			])
+		}
 	}
 }
 
 export function uploadResults(ballotId, file) {
-	return dispatch => {
-		dispatch(importResultsLocal(ballotId));
-		var formData = new FormData();
-		formData.append("BallotID", ballotId);
-		formData.append("ResultsFile", file);
-		return axios.post('/results/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(importResultsFailure(ballotId, response.data.message))
-				}
-				else {
-					const summary = response.data.data;
-					dispatch(updateBallotSuccess(ballotId, {Results: summary}))
-					dispatch(importResultsSuccess(ballotId, summary))
-				}
-			})
-			.catch((error) => {
-				dispatch(importResultsFailure(ballotId, `Unable to upload results for ballot ${ballotId}`))
-			})
+	return async (dispatch) => {
+		dispatch(importResultsLocal(ballotId))
+		try {
+			var formData = new FormData()
+			formData.append("BallotID", ballotId)
+			formData.append("ResultsFile", file)
+			const response = await axios.post('/results/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(importResultsFailure(ballotId)),
+					dispatch(setError(response.data.message))
+				])
+			}
+			const summary = response.data.data
+			return Promise.all([
+				dispatch(updateBallotSuccess(ballotId, {Results: summary})),
+				dispatch(importResultsSuccess(ballotId, summary))
+			])
+		}
+		catch(error) {
+			return Promise.all([
+				dispatch(importResultsFailure(ballotId)),
+				dispatch(setError(`Unable to upload results for ballot ${ballotId}`))
+			])
+		}
 	}
 }
-
-function summarizeResultsLocal(data) {
-	return {
-		type: 'SUMMARIZE_RESULTS',
-	}
-}
-function summarizeResultsSuccess(data) {
-	return {
-		type: 'SUMMARIZE_RESULTS_SUCCESS',
-		symmary: data
-	}
-}
-function summarizeResultsFailure(msg) {
-	return {
-		type: 'SUMMARIZE_RESULTS_FAILURE',
-		errMsg: msg
-	}
-}
-
-export function summarizeResults(data) {
-	return dispatch => {
-		dispatch(summarizeResultsLocal());
-		return axios.get('/results/summary')
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(summarizeResultsFailure(response.data.message))
-				}
-				else {
-					dispatch(summarizeResultsSuccess(data))
-				}
-			})
-			.catch((error) => {
-				dispatch(summarizeResultsFailure(`Unable to get results summary for ${data.BallotID}`))
-			})
-	}
-}
-
-export function clearResultsError() {
-	return {
-		type: 'CLEAR_RESULTS_ERROR',
-	}
-}
-

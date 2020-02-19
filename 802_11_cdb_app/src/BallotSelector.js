@@ -13,6 +13,7 @@ function BallotSelector(props) {
 	}, [])
 
 	function handleProjectChange(e) {
+		console.log('project change')
 		const project = e.target.value;
 		if (project !== props.project) {
 			props.dispatch(setProject(project))
@@ -20,6 +21,7 @@ function BallotSelector(props) {
 	}
 
 	function handleBallotChange(e) {
+		console.log('ballot change')
 		var ballotId = e.target.value;
 		props.dispatch(setBallotId(ballotId));
 		if (onBallotSelected) {

@@ -1,189 +1,134 @@
-var axios = require('axios');
+import {setError} from './error'
+var axios = require('axios')
 
-export function setUsersFilters(filters) {
-	return {
-		type: 'SET_USERS_FILTERS',
-		filters
-	}
+export const SET_USERS_FILTERS = 'SET_USERS_FILTERS'
+export const SET_USERS_SORT = 'SET_USERS_SORT'
+export const GET_USERS = 'GET_USERS'
+export const GET_USERS_SUCCESS = 'GET_USERS_SUCCESS'
+export const GET_USERS_FAILURE = 'GET_USERS_FAILURE'
+export const UPDATE_USER = 'UPDATE_USER'
+export const UPDATE_USER_SUCCESS = 'UPDATE_USER_SUCCESS'
+export const UPDATE_USER_FAILURE = 'UPDATE_USER_FAILURE'
+export const ADD_USER = 'ADD_USER'
+export const ADD_USER_SUCCESS = 'ADD_USER_SUCCESS'
+export const ADD_USER_FAILURE = 'ADD_USER_FAILURE'
+export const DELETE_USERS = 'DELETE_USERS'
+export const DELETE_USERS_SUCCESS = 'DELETE_USERS_SUCCESS'
+export const DELETE_USERS_FAILURE = 'DELETE_USERS_FAILURE'
+export const UPLOAD_USERS = 'UPLOAD_USERS'
+export const UPLOAD_USERS_SUCCESS = 'UPLOAD_USERS_SUCCESS'
+export const UPLOAD_USERS_FAILURE = 'UPLOAD_USERS_FAILURE'
 
-}
+export const setUsersFilters = (filters) => {return {type: SET_USERS_FILTERS, filters}}
+export const setUsersSort = (sortBy, sortDirection) => {return {type: SET_USERS_SORT, sortBy, sortDirection}}
 
-export function setUsersSort(sortBy, sortDirection) {
-	return {
-		type: 'SET_USERS_SORT',
-		sortBy,
-		sortDirection
-	}
-}
-
-function getUsersLocal() {
-	return {
-		type: 'GET_USERS'
-	}
-}
-function getUsersSuccess(users) {
-	return {
-		type: 'GET_USERS_SUCCESS',
-		users
-	}
-}
-function getUsersFailure(msg) {
-	return {
-		type: 'GET_USERS_FAILURE',
-		errMsg: msg
-	}
-}
+const getUsersLocal = () => {return {type: GET_USERS}}
+const getUsersSuccess = (users) => {return {type: GET_USERS_SUCCESS, users}}
+const getUsersFailure = ()=> {return {type: GET_USERS_FAILURE}}
 
 export function getUsers() {
-	return dispatch => {
+	return async (dispatch) => {
 		dispatch(getUsersLocal())
-		return axios.get('/users')
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(getUsersFailure(response.data.message))
-				}
-				else {
-					dispatch(getUsersSuccess(response.data.data))
-				}
-			})
-			.catch((error) => {
-				dispatch(getUsersFailure('Unable to get users list'))
-			})
+		try {
+			const response = await axios.get('/users')
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(getUsersFailure()),
+					dispatch(setError(response.data.message))
+				])
+			}
+			return dispatch(getUsersSuccess(response.data.data))
+		}
+		catch(error) {
+			return Promise.all([
+				dispatch(getUsersFailure()),
+				dispatch(setError('Unable to get users list'))
+			])
+		}
 	}
 }
 
-function updateUserLocal(user) {
-	return {
-		type: 'UPDATE_USER',
-		user
-	}
-}
-function updateUserSuccess(user) {
-	return {
-		type: 'UPDATE_USER_SUCCESS',
-		user
-	}
-}
-function updateUserFailure(user, msg) {
-	return {
-		type: 'UPDATE_USER_FAILURE',
-		user,
-		errMsg: msg
-	}
-}
+const updateUserLocal = (user) => {return {type: UPDATE_USER, user}}
+const updateUserSuccess = (user)=> {return {type: UPDATE_USER_SUCCESS, user}}
+const updateUserFailure = (user) => {return {type: UPDATE_USER_FAILURE, user}}
 
 export function updateUser(user) {
-	return dispatch => {
-		dispatch(updateUserLocal(user));
-		return axios.put('/users', user)
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(updateUserFailure(user, response.data.message))
-				}
-				else {
-					dispatch(updateUserSuccess(response.data.data))
-				}
-			})
-			.catch((error) => {
-				dispatch(updateUserFailure(user, `Unable to update user ${user.UserID}`))
-			})
+	return async (dispatch) => {
+		dispatch(updateUserLocal(user))
+		try {
+			const response = await axios.put('/users', user)
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(updateUserFailure(user)),
+					dispatch(setError(response.data.message))
+				])
+			}
+			return dispatch(updateUserSuccess(response.data.data))
+		}
+		catch(error) {
+			return Promise.all([
+				dispatch(updateUserFailure(user)),
+				dispatch(setError(`Unable to update user ${user.UserID}`))
+			])
+		}
 	}
 }
 
-function addUserLocal(user) {
-	return {
-		type: 'ADD_USERS',
-		user
-	}
-}
-function addUserSuccess(user) {
-	return {
-		type: 'ADD_USER_SUCCESS',
-		user
-	}
-}
-function addUserFailure(user, msg) {
-	return {
-		type: 'ADD_USER_FAILURE',
-		user,
-		errMsg: msg
-	}
-}
+const addUserLocal = (user) => {return {type: ADD_USER,	user}}
+const addUserSuccess = (user) => {return {type: ADD_USER_SUCCESS, user}}
+const addUserFailure = (user)=> {return {type: ADD_USER_FAILURE, user}}
 
 export function addUser(user) {
-	return dispatch => {
+	return async (dispatch) => {
 		dispatch(addUserLocal(user))
-		return axios.post('/users', user)
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(addUserFailure(user, response.data.message))
-				}
-				else {
-					dispatch(addUserSuccess(response.data.data))
-				}
-			})
-			.catch((error) => {
-				dispatch(addUserFailure(user, `Unable to add user ${user.UserID}`))
-			})
+		try {
+			const response = await axios.post('/users', user)
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(addUserFailure(user)),
+					dispatch(setError(response.data.message))
+				])
+			}
+			return dispatch(addUserSuccess(response.data.data))
+		}
+		catch(error) {
+			return Promise.all([
+				dispatch(addUserFailure(user)),
+				dispatch(setError(`Unable to add user ${user.UserID}`))
+			])
+		}
 	}
 }
 
-function deleteUsersLocal(userIds) {
-	return {
-		type: 'DELETE_USERS',
-		userIds
-	}
-}
-function deleteUsersSuccess(userIds) {
-	return {
-		type: 'DELETE_USERS_SUCCESS'
-	}
-}
-function deleteUsersFailure(userIds, msg) {
-	return {
-		type: 'DELETE_USERS_FAILURE',
-		userIds,
-		errMsg: msg
-	}
-}
+const deleteUsersLocal = (userIds) => {return {type: DELETE_USERS, userIds}}
+const deleteUsersSuccess = (userIds) => {return {type: DELETE_USERS_SUCCESS}}
+const deleteUsersFailure = (userIds) => {return {type: DELETE_USERS_FAILURE, userIds}}
 
 export function deleteUsers(userIds) {
-	return dispatch => {
+	return async (dispatch) => {
 		dispatch(deleteUsersLocal(userIds))
-		return axios.delete('/users', {data: userIds})
-			.then((response) => {
-				if (response.data.status !== 'OK') {
-					dispatch(deleteUsersFailure(userIds, response.data.message))
-				}
-				else {
-					dispatch(deleteUsersSuccess(response.data.data))
-				}
-			})
-			.catch((error) => {
-				dispatch(updateUserFailure(userIds, `Unable to delete users ${userIds}`))
-			})
+		try {
+			const response = await axios.delete('/users', {data: userIds})
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(deleteUsersFailure(userIds)),
+					dispatch(setError(response.data.message))
+				])
+			}
+			return dispatch(deleteUsersSuccess(response.data.data))
+		}
+		catch(error) {
+			return Promise.all([
+				dispatch(updateUserFailure(userIds)),
+				dispatch(setError(`Unable to delete users ${userIds}`))
+			])
+		}
 	}
 }
 
-function uploadUsersLocal() {
-	return {
-		type: 'UPLOAD_USERS'
-	}
-}
-
-function uploadUsersSuccess(users) {
-	return {
-		type: 'UPLOAD_USERS_SUCCESS',
-		users
-	}
-}
-
-function uploadUsersFailure(msg) {
-	return {
-		type: 'UPLOAD_USERS_FAILURE',
-		errMsg: msg
-	}
-}
+const uploadUsersLocal = () => {return {type: UPLOAD_USERS}}
+const uploadUsersSuccess = (users) => {return {type: UPLOAD_USERS_SUCCESS, users}}
+const uploadUsersFailure = () => {return {type: UPLOAD_USERS_FAILURE}}
 
 export function uploadUsers(file) {
 	return async (dispatch) => {
@@ -192,22 +137,19 @@ export function uploadUsers(file) {
 		formData.append("UsersFile", file);
 		try {
 			const response = await axios.post('/users/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
-			if (response.data.status === 'OK') {
-				return dispatch(uploadUsersSuccess(response.data.data))
+			if (response.data.status !== 'OK') {
+				return Promise.all([
+					dispatch(uploadUsersFailure()),
+					dispatch(setError(response.data.message))
+				])
 			}
-			else {
-				return dispatch(uploadUsersFailure(response.data.message))
-			}
+			return dispatch(uploadUsersSuccess(response.data.data))
 		}
 		catch(error) {
-			return dispatch(uploadUsersFailure('Unable to upload users'))
+			return Promise.all([
+				dispatch(uploadUsersFailure()),
+				dispatch(setError('Unable to upload users'))
+			])
 		}
 	}
 }
-
-export function clearUsersError() {
-	return {
-		type: 'CLEAR_USERS_ERROR'
-	}
-}
-

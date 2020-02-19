@@ -15,21 +15,26 @@
 .editor {
 	cursor: text;
 	font-size: 16px;
-	margin: 5px;
-	border: 1px solid #999;
-	border-radius: 2px;
+	padding: 5px;
 }
 
 .editor :global(.public-DraftEditor-content) {
+	border: 1px solid #999;
+	border-radius: 2px;
 	overflow: auto;
-	margin: 5px;
+	padding: 5px;
 }
 
 .hidePlaceholder :global(.public-DraftEditorPlaceholder-root) {
 	display: none;
 }
 
-.editor .paragraph {
+.editor :global(.public-DraftEditorPlaceholder-root) {
+	font-style: italic;
+	color: GreyText;
+}
+
+.editor p {
 	margin: 14px 0;
 }
 
@@ -39,7 +44,7 @@
 	margin: 14px 0;
 }
 
-.editor .codeBlock {
+.editor code-block {
 	background-color: #f3f3f3;
 	font-family: "Inconsolata", "Menlo", "Consolas", monospace;
 	font-size: 16px;
@@ -49,11 +54,11 @@
 }
 
 /* Hacky: Remove padding from inline <code> within code block. */
-.editor .codeBlock span[style] {
+.editor code-block span[style] {
 	padding: 0 !important;
 }
 
-.editor .blockquote {
+.editor blockquote {
 	border-left: 5px solid #eee;
 	font-family: 'TimesNewRoman', serif;
 	margin: 16px 0;
@@ -62,12 +67,16 @@
 
 /* There shouldn't be margin outside the first/last blocks */
 .editor .block:first-child,
+.editor p:first-child,
+.editor blockquote:first-child,
 .editor pre:first-child,
 .editor ul:first-child,
 .editor ol:first-child {
 	margin-top: 0;
 }
 .editor .block:last-child,
+.editor p:last-child,
+.editor blockquote:last-child,
 .editor pre:last-child,
 .editor ul:last-child,
 .editor ol:last-child {
@@ -127,20 +136,6 @@
 
 .button:disabled > * {
 	opacity: .5;
-}
-
-/* IconButton */
-.iconButton {
-  padding-left: 3px;
-  padding-right: 3px;
-}
-
-.icon {
-	display: inline-block;
-	width: 16px;
-	height: 16px;
-	background-position: center center;
-	background-repeat: no-repeat;
 }
 
 .isActive {
