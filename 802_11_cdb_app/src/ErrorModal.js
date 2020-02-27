@@ -3,14 +3,26 @@ import {connect} from 'react-redux'
 import AppModal from './AppModal'
 import {clearError} from './actions/error'
 
+function strToHtml(s) {
+	return s
+		.split('<')
+		.join('&lt;')
+		.split('>')
+		.join('&gt;')
+		.split('\n')
+		.join('<br />')
+}
+
 function ErrorModal(props) {
+	const {errMsg, dispatch} = props
 	return (
 		<AppModal
-			isOpen={props.errMsg !== null}
-			onRequestClose={() => props.dispatch(clearError())}
+			isOpen={errMsg !== null}
+			onRequestClose={() => dispatch(clearError())}
 		>
-			<p>{props.errMsg}</p>
-			<button onClick={() => props.dispatch(clearError())}>OK</button>
+			{errMsg && errMsg.summary && <h3 dangerouslySetInnerHTML={{__html: strToHtml(errMsg.summary)}} />}
+			{errMsg && errMsg.detail && <p dangerouslySetInnerHTML={{__html: strToHtml(errMsg.detail)}} />}
+			<button onClick={() => dispatch(clearError())}>OK</button>
 		</AppModal>
 	)
 }

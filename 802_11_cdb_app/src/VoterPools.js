@@ -197,14 +197,14 @@ function VoterPools(props) {
 		setSelected(s);
 	}
 
-	function sortChange(event, dataKey) {
+	function setSort(dataKey, event) {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
 		props.dispatch(setVotingPoolSort(sortBy, sortDirection));
 		event.preventDefault();
 	}
 
-	function filterChange(event, dataKey) {
-		var filter = filterValidate(dataKey, event.target.value)
+	function setFilter(dataKey, value) {
+		var filter = filterValidate(dataKey, value)
 		props.dispatch(setVotingPoolFilters({[dataKey]: filter}));
 	}
 
@@ -230,8 +230,8 @@ function VoterPools(props) {
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
-				sortChange={sortChange}
-				filterChange={filterChange}
+				setSort={setSort}
+				setFilter={setFilter}
 				setSelected={(ids) => setSelected(ids)}
 				selected={selected}
 				data={props.votingPoolData}

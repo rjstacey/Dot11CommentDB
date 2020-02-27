@@ -10,7 +10,7 @@ function errMsg(state = initialState, action) {
 	switch (action.type) {
 		case SET_ERROR:
 			newState = state.slice()
-			newState.push(action.errMsg)
+			newState.push({summary: action.summary, detail: action.detail})
 			return newState
 		case CLEAR_ERROR:
 			if (state.length) {

@@ -143,14 +143,14 @@ function Ballots(props) {
 		setSelected(s);
 	}
 
-	function sortChange(event, dataKey) {
+	function setSort(dataKey, event) {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
 		props.dispatch(setBallotsSort(sortBy, sortDirection));
 		event.preventDefault()
 	}
 
-	function filterChange(event, dataKey) {
-		var filter = filterValidate(dataKey, event.target.value)
+	function setFilter(dataKey, value) {
+		var filter = filterValidate(dataKey, value)
 		props.dispatch(setBallotsFilters({[dataKey]: filter}));
 	}
 
@@ -230,8 +230,8 @@ function Ballots(props) {
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
-				sortChange={sortChange}
-				filterChange={filterChange}
+				setSort={setSort}
+				setFilter={setFilter}
 				setSelected={(cids) => setSelected(cids)}
 				selected={selected}
 				data={props.ballotsData}

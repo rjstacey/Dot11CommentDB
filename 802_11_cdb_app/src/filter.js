@@ -55,7 +55,7 @@ function filterCol(dataMap, data, dataKey, filtStr) {
 			}
 			return dataMap.filter(i => {
 				let d = data[i][dataKey];
-				return d === filtStr || (d.substring(0, len) === filtStr.substring(0, len) && d[len] === '.')
+				return d === filtStr || (d && d.substring(0, len) === filtStr.substring(0, len) && d[len] === '.')
 			})
 
 		default:

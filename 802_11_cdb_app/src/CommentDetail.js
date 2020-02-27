@@ -15,7 +15,6 @@ import AssigneeSelector from './AssigneeSelector'
 import {ActionButton} from './Icons'
 import styles from './CommentDetail.css'
 
-
 function Resolution(props) {
 	const {resolution, setResolution} = props
 	//console.log(resolution)
@@ -41,6 +40,10 @@ function Resolution(props) {
 		return null
 	}
 
+	let commentGroupClassName = cx({
+		[styles.CommentGroupInput]: true,
+		[styles.Multiple]: resolution.CommentGroup === '<multiple>'
+	})
 	let submissionClassName = cx({
 		[styles.SubmissionInput]: true,
 		[styles.Multiple]: resolution.Submission === '<multiple>'
@@ -58,14 +61,25 @@ function Resolution(props) {
  			<div className={styles.row} style={{justifyContent: 'space-between'}}>
 				<div className={styles.column}>
 					<span style={{display: 'inline-flex'}}>
-						<label style={{width: 120}}>Assignee:</label>
+						<label style={{width: 150}}>Comment Group:</label>
+						<input
+							className={commentGroupClassName}
+							type='search'
+							name='CommentGroup'
+							value={resolution.CommentGroup || ''}
+							onChange={e => setResolution({CommentGroup: e.target.value})}
+							placeholder='None'
+						/>
+					</span>
+					<span style={{display: 'inline-flex'}}>
+						<label style={{width: 150}}>Assignee:</label>
 						<AssigneeSelector
 							value={resolution.AssigneeSAPIN || 0}
 							onChange={value => setResolution({AssigneeSAPIN: value})}
 						/>
 					</span>
 					<span style={{display: 'inline-flex'}}>
-						<label style={{width: 120}}>Submission:</label>
+						<label style={{width: 150}}>Submission:</label>
 						<input
 							className={submissionClassName}
 							type='search'

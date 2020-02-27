@@ -3,6 +3,7 @@ var axios = require('axios')
 
 export const SET_USERS_FILTERS = 'SET_USERS_FILTERS'
 export const SET_USERS_SORT = 'SET_USERS_SORT'
+
 export const GET_USERS = 'GET_USERS'
 export const GET_USERS_SUCCESS = 'GET_USERS_SUCCESS'
 export const GET_USERS_FAILURE = 'GET_USERS_FAILURE'
@@ -42,7 +43,7 @@ export function getUsers() {
 		catch(error) {
 			return Promise.all([
 				dispatch(getUsersFailure()),
-				dispatch(setError('Unable to get users list'))
+				dispatch(setError('Unable to get users list', error.toString()))
 			])
 		}
 	}
@@ -68,7 +69,7 @@ export function updateUser(user) {
 		catch(error) {
 			return Promise.all([
 				dispatch(updateUserFailure(user)),
-				dispatch(setError(`Unable to update user ${user.UserID}`))
+				dispatch(setError(`Unable to update user ${user.UserID}`, error.toString()))
 			])
 		}
 	}
@@ -94,7 +95,7 @@ export function addUser(user) {
 		catch(error) {
 			return Promise.all([
 				dispatch(addUserFailure(user)),
-				dispatch(setError(`Unable to add user ${user.UserID}`))
+				dispatch(setError(`Unable to add user ${user.UserID}`, error.toString()))
 			])
 		}
 	}
@@ -120,7 +121,7 @@ export function deleteUsers(userIds) {
 		catch(error) {
 			return Promise.all([
 				dispatch(updateUserFailure(userIds)),
-				dispatch(setError(`Unable to delete users ${userIds}`))
+				dispatch(setError(`Unable to delete users ${userIds}`, error.toString()))
 			])
 		}
 	}
@@ -148,7 +149,7 @@ export function uploadUsers(file) {
 		catch(error) {
 			return Promise.all([
 				dispatch(uploadUsersFailure()),
-				dispatch(setError('Unable to upload users'))
+				dispatch(setError('Unable to upload users', error.toString()))
 			])
 		}
 	}

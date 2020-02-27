@@ -88,8 +88,9 @@
 	justify-content: space-between;
 }
 
+.CommentGroupInput,
 .SubmissionInput {
-	width: 100px;
+	size: 60;
 }
 
 .Multiple {

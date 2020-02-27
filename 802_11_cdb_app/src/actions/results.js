@@ -48,7 +48,7 @@ export function getResults(ballotId) {
 		catch(error) {
 			return Promise.all([
 				dispatch(getResultsFailure()),
-				dispatch(setError('Unable to get results list'))
+				dispatch(setError('Unable to get results list', error.toString()))
 			])
 		}
 	}
@@ -77,7 +77,7 @@ export function deleteResults(ballotId) {
 		catch(error) {
 			return Promise.all([
 				dispatch(deleteResultsFailure(ballotId)),
-				dispatch(setError(`Unable to delete results with ballotId=${ballotId}`))
+				dispatch(setError(`Unable to delete results with ballotId=${ballotId}`, error.toString()))
 			])
 		}
 	}
@@ -112,7 +112,7 @@ export function importResults(ballotId, epollNum) {
 		catch(error) {
 			return Promise.all([
 				dispatch(importResultsFailure(ballotId)),
-				dispatch(setError(`Unable to import results for ballotId=${ballotId}`))
+				dispatch(setError(`Unable to import results for ballotId=${ballotId}`, error.toString()))
 			])
 		}
 	}
@@ -141,7 +141,7 @@ export function uploadResults(ballotId, file) {
 		catch(error) {
 			return Promise.all([
 				dispatch(importResultsFailure(ballotId)),
-				dispatch(setError(`Unable to upload results for ballot ${ballotId}`))
+				dispatch(setError(`Unable to upload results for ballot ${ballotId}`, error.toString()))
 			])
 		}
 	}

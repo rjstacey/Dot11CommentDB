@@ -38,7 +38,7 @@ app.use((req, res, next) => {
 
 function resData(res, data) {
 	var ret = {status: 'OK'};
-	if (data) {
+	if (data !== undefined) {
 		ret.data = data
 	}
 	res.status(200).send(ret)
@@ -186,6 +186,10 @@ app.get('/ballots', (req, res, next) => {
 	ballots.getBallots(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
 });
+app.get('/ballot/:ballotId', (req, res, next) => {
+	ballots.getBallot(req, res, next)
+		.then(data => resData(res, data), err => resErr(res, err))
+});
 app.put('/ballot/:ballotId', (req, res, next) => {
 	ballots.updateBallot(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
@@ -228,6 +232,10 @@ app.post('/comments/upload', upload.single('CommentsFile'), (req, res, next) => 
 	comments.uploadComments(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
 });
+app.get('/comments/myProjectExport', (req, res, next) => {
+	comments.exportMyProjectComments(req, res, next)
+		.catch(err => resErr(res, err))
+});
 app.post('/resolution', (req, res, next) => {
 	comments.addResolution(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
@@ -248,10 +256,7 @@ app.post('/resolutions/upload', upload.single('ResolutionsFile'), (req, res, nex
 	comments.uploadResolutions(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
 });
-app.get('/comments/myProjectExport', (req, res, next) => {
-	comments.exportMyProjectComments(req, res, next)
-		.catch(err => resErr(res, err))
-});
+
 
 
 /*

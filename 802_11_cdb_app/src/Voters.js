@@ -7,7 +7,7 @@ import {setVotersFilters, setVotersSort, getVoters, deleteVoters, addVoter, upda
 import {sortClick, filterValidate, shallowDiff} from './filter'
 import AppTable from './AppTable';
 import AppModal from './AppModal';
-import {ActionButton, IconClose} from './Icons';
+import {ActionButton} from './Icons';
 
 
 function ImportVotersModal(props) {
@@ -254,14 +254,14 @@ function Voters(props) {
 		setSelected(s);
 	}
 
-	function sortChange(event, dataKey) {
+	function setSort(dataKey, event) {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
 		props.dispatch(setVotersSort(sortBy, sortDirection));
 		event.preventDefault();
 	}
 
-	function filterChange(event, dataKey) {
-		var filter = filterValidate(dataKey, event.target.value)
+	function setFilter(dataKey, value) {
+		var filter = filterValidate(dataKey, value)
 		props.dispatch(setVotersFilters({[dataKey]: filter}));
 	}
 
@@ -289,7 +289,7 @@ function Voters(props) {
 						<ActionButton name='delete' title='Remove Selected' onClick={handleRemoveSelected} />
 						<ActionButton name='import' title='Import Voters' onClick={() => setShowImportVoters(true)} />
 						<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.getVoters} />
-						<IconClose onClick={close} />
+						<ActionButton name='close' title='Close' onClick={close} />
 					</span>
 				</div>):
 				(<div id='top-row'></div>)
@@ -305,8 +305,8 @@ function Voters(props) {
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
-				sortChange={sortChange}
-				filterChange={filterChange}
+				setSort={setSort}
+				setFilter={setFilter}
 				setSelected={(ids) => setSelected(ids)}
 				selected={selected}
 				editRow={handleEditVoter}

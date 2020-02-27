@@ -50,13 +50,25 @@
 }
 .headerLabel {
 	display: block;
-	width: 100%;
 	user-select: none;
+	position: relative;
+}
+.headerLabelSort {
+	cursor: pointer;
+}
+.headerLabelIcon {
+	position: absolute;
+	right: 0;
+	top: 2px;
 }
 .headerLabelItem {
 	display: inline-block;
-	white-space: nowrap; 
+	white-space: nowrap;
 	overflow: hidden;
+	width: 100%;
+}
+.headerLabelItemTrucate {
+	width: calc(100% - 12px);
 }
 .headerFilt {
 	background-color: #ffffff;

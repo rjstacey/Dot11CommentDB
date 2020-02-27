@@ -1,18 +1,19 @@
-import React from 'react';
-import {BrowserRouter as Router, Switch, Route, Link, useLocation} from "react-router-dom";
+import React, {useEffect} from 'react'
+import {BrowserRouter as Router, Switch, Route, Link, useLocation} from "react-router-dom"
 import {connect} from 'react-redux'
-import LoginForm from './Login';
-import Users from './Users';
-import Ballots from './Ballots';
-import BallotDetail from './BallotDetail';
-import Epolls from './Epolls';
-import Comments from './Comments';
-import CommentDetail from './CommentDetail';
-import Results from './Results';
-import VoterPools from './VoterPools';
-import Voters from './Voters';
-import ErrorModal from './ErrorModal';
-import ConfirmModal from './ConfirmModal';
+import {loginGetState} from './actions/login'
+import LoginForm from './Login'
+import Users from './Users'
+import Ballots from './Ballots'
+import BallotDetail from './BallotDetail'
+import Epolls from './Epolls'
+import Comments from './Comments'
+import CommentDetail from './CommentDetail'
+import Results from './Results'
+import VoterPools from './VoterPools'
+import Voters from './Voters'
+import ErrorModal from './ErrorModal'
+import ConfirmModal from './ConfirmModal'
 import {init as iconInit} from './Icons'
 import styles from './App.css'
 
@@ -35,9 +36,13 @@ function CommentsRoute(props) {
 }
 
 function App(props) {
-	const {access} = props;
+	const {access, dispatch} = props;
 
-	iconInit();
+	iconInit()
+
+	useEffect(() => {
+		dispatch(loginGetState())
+	}, [])
 
 	return (
 		<Router>

@@ -119,11 +119,18 @@ async function parseMyProjectComments(startCommentId, buffer, isExcel) {
 	})
 }
 
+const mapToDispositionStatus = {
+	A: 'ACCEPTED',
+	R: 'REVISED',
+	J: 'REJECTED'
+}
+
 function exportMyProjectComments(comments) {
 	var workbook = new ExcelJS.Workbook()
 	var sheet = workbook.addWorksheet('export_resolved_comments')
 	sheet.addRow(myProjectCommentsHeader)
 	for (let c of comments) {
+
 		const row = [
 			c.C_CommentID,
 			c.Date,
@@ -144,7 +151,7 @@ function exportMyProjectComments(comments) {
 			c.File,
 			c.MustSatisfy,
 			c.ProposedChange,
-			c.ResnStatus,	// Disposition Status
+			mapToDispositionStatus[c.ResnStatus] || '',	// Disposition Status
 			c.Resolution,	// Disposition Detail
 			'',
 			'',
@@ -157,24 +164,6 @@ function exportMyProjectComments(comments) {
 	return workbook.xlsx.writeBuffer()
 }
 
-function parseResolution(cs) {
-	// Does the comment have an assignee, resolution, submission?
-	if (cs['Resn Status'] || cs['Resolution'] || cs['Submission'] || cs['Assignee']) {
-		var n = {
-			CommentID: cs['CID'],
-			ResnStatus: cs['Resn Status'] || '',
-			Resolution: cs['Resolution'] || '',
-			Submission: cs['Submission'] || '',
-			ApprovalRef: cs['Motion Number'] || '',
-			AssigneeName: cs['Assignee'] || '',
-			EditStatus: cs['Edit Status'] || '',
-			EditNotes: cs['Edit Notes'] || '',
-			EditInDraft: cs['Edited in Draft'] || ''
-		}
-		return n
-	}
-	return null
-}
 
 function parseCommentsSheet(commentsSheet, comments, updateComments, newComments, newResolutions) {
 
@@ -293,6 +282,202 @@ function parseCommentsSheet(commentsSheet, comments, updateComments, newComments
 	fs.writeFile("c.txt", 'unmatchedComments: ' + JSON.stringify(unmatchedComments) + 'commentsSheetArray: ' + JSON.stringify(commentsSheetArray), (err) => {!err || console.log(err)})
 }
 
+const legacyCommentsHeader = [
+	'CID', 'Commenter', 'LB', 'Draft', 'Clause Number(C)', 'Page(C)', 'Line(C)', 'Type of Comment', 'Part of No Vote',
+	'Page', 'Line', 'Clause', 'Duplicate of CID', 'Resn Status', 'Assignee', 'Submission', 'Motion Number',
+	'Comment', 'Proposed Change', 'Resolution',	'Owning Ad-hoc', 'Comment Group', 'Ad-hoc Status', 'Ad-hoc Notes',
+	'Edit Status', 'Edit Notes', 'Edited in Draft', 'Last Updated', 'Last Updated By'
+]
+
+async function parseLegacyCommentsSpreadsheet(buffer) {
+
+	var workbook = new ExcelJS.Workbook()
+	await workbook.xlsx.load(buffer)
+	const worksheet = workbook.getWorksheet('Comments')
+	//console.log(worksheet.rowCount)
+
+	// Row 0 is the header
+	var header = worksheet.getRow(1).values
+	header.shift()	// Remove column 0
+	if (legacyCommentsHeader.reduce((r, v, i) => r || v !== header[i], false)) {
+		throw `Unexpected column headings ${header.join()}. Expected ${legacyCommentsHeader.join()}.`
+	}
+
+	var comments = []
+	worksheet.eachRow(row => {
+		const entry = legacyCommentsHeader.reduce((entry, key, i) => {entry[key] = row.getCell(i+1).text; return entry}, {})
+		comments.push(entry)
+	})
+	comments.shift()	// remove header
+	//console.log(comments.slice(0, 4))
+
+	return comments;
+}
+
+
+const comparisons = [
+	(dbC, sC) => dbC.CommenterName === sC['Commenter'],
+	(dbC, sC) => dbC.Category === sC['Type of Comment'],
+	(dbC, sC) => dbC.C_Clause.substring(0, sC['Clause Number(C)'].length) === sC['Clause Number(C)'],				// Legacy might trucate
+	(dbC, sC) => dbC.C_Page === sC['Page(C)'] || Math.round(parseFloat(dbC.C_Page)) === parseInt(sC['Page(C)']),	// Legacy converts page to int
+	(dbC, sC) => dbC.C_Line === sC['Line(C)'] || Math.round(parseFloat(dbC.C_Line)) === parseInt(sC['Line(C)']),	// Legacy converts line to int
+	(dbC, sC) => dbC.Comment === sC['Comment'],
+	(dbC, sC) => dbC.ProposedChange === sC['Proposed Change']
+]
+
+/*
+ * Successivly match columns, elimating rows that don't match as we go
+ * Once we are down to one row, that is the match.
+ * The idea is to first match columns that aren't likely to have issues and then use additional columns as needed.
+ */
+function matchByElimination(sheetComments, dbComments) {
+
+	if (sheetComments.length !== dbComments.length) {
+		throw `Number of rows in spreadsheet must match number of comments in database ` +
+			`(${sheetComments.length} != ${dbComments.length})`
+	}
+
+	/* For the Comment and Proposed Change columns, compare only basic text.
+	 *   Line endings might differ: database has \n line endings while spreadsheet has \r\n line endings.
+	 *   Only compare ASCII characters that are not control characters. */
+	const pattern = /[^\x20-\x7f]/gm
+	for (let c of sheetComments) {
+		c['Comment'] = c['Comment'].replace(pattern, '')
+		c['Proposed Change'] = c['Proposed Change'].replace(pattern, '')
+	}
+	for (let c of dbComments) {
+		c['Comment'] = c['Comment'].replace(pattern, '')
+		c['ProposedChange'] = c['ProposedChange'].replace(pattern, '')
+	}
+
+	let matched = []				// paired dbComments and sheetComments
+	let dbCommentsRemaining = []	// dbComments with no match
+	let sheetCommentsRemaining = sheetComments.slice()
+	for (let dbC of dbComments) {
+		let scr = sheetCommentsRemaining.slice()
+		for (let comp of comparisons) {
+			scr = scr.filter(sC => comp(dbC, sC))
+			if (scr.length === 0) {
+				dbCommentsRemaining.push(dbC)
+				break
+			}
+			if (scr.length === 1) {
+				// Found match
+				matched.push({dbComment: dbC, sheetComment: scr[0]})
+				const i = sheetCommentsRemaining.findIndex(sC => sC === scr[0])
+				sheetCommentsRemaining.splice(i, 1)
+				break
+			}
+		}
+	}
+	console.log('result: ', matched.length, dbCommentsRemaining.length)
+	return [matched, dbCommentsRemaining, sheetCommentsRemaining]
+}
+
+/*
+ * Try to find a match for each comment in turn
+ */
+function matchPerfect(sheetComments, dbComments) {
+
+	/* For the Comment and Proposed Change columns, compare only basic text.
+	 *   Line endings might differ: database has \n line endings while spreadsheet has \r\n line endings.
+	 *   Only compare ASCII characters that are not control characters. */
+	const pattern = /[^\x20-\x7f]/gm
+	for (let c of sheetComments) {
+		c['Comment'] = c['Comment'].replace(pattern, '')
+		c['Proposed Change'] = c['Proposed Change'].replace(pattern, '')
+	}
+	for (let c of dbComments) {
+		c['Comment'] = c['Comment'].replace(pattern, '')
+		c['ProposedChange'] = c['ProposedChange'].replace(pattern, '')
+	}
+
+	let matched = []				// paired dbComments and sheetComments
+	let dbCommentsRemaining = []	// dbComments with no match
+	let sheetCommentsRemaining = sheetComments.slice()
+	for (let dbC of dbComments) {
+
+		// The reducer function runs through each of the comparisons and as long as it passes (returns true)
+		// it continues. If a comparisong fails the result fails.
+		const i = sheetCommentsRemaining.findIndex(sC => comparisons.reduce((acc, comp) => acc && comp(dbC, sC), true))
+		if (i >= 0) {
+			matched.push({dbComment: dbC, sheetComment: sheetCommentsRemaining[i]})
+			sheetCommentsRemaining.splice(i, 1)
+		}
+		else {
+			dbCommentsRemaining.push(dbC)
+		}
+	}
+
+	return [matched, dbCommentsRemaining, sheetCommentsRemaining]
+}
+
+/*
+ * Match by comment ID
+ */
+function matchByCommentId(sheetComments, dbComments) {
+	let matched = []				// paired dbComments and sheetComments
+	let dbCommentsRemaining = []	// dbComments with no match
+	let sheetCommentsRemaining = sheetComments.slice()
+	for (let dbC of dbComments) {
+		const i = sheetCommentsRemaining.findIndex(sC => parseInt(sC['CID']) === dbC.CommentID)
+		if (i >= 0) {
+			matched.push({dbComment: dbC, sheetComment: sheetCommentsRemaining[i]})
+			sheetCommentsRemaining.splice(i, 1)
+		}
+		else {
+			dbCommentsRemaining.push(dbC)
+		}
+	}
+
+	return [matched, dbCommentsRemaining, sheetCommentsRemaining]
+}
+
+function commentUpdate(c, cs) {
+	var u = {}
+
+	const cid = c.CommentID
+	if (c.CommentID !== cs['CID']) {
+		u.CommentID = cs['CID']
+	}
+	if (c.CommentGroup !== cs['Comment Group']) {
+		u.CommentGroup = cs['Comment Group']
+	}
+	if (cs['Clause'] && c.Clause !== cs['Clause']) {
+		u.Clause = cs['Clause']
+	}
+	var page = parseFloat(cs['Page'])
+	if (page && c.Page !== page) {
+		u.Page = page
+	}
+
+	if (Object.keys(u).length) {
+		u.PrevCommentID = cid
+		return u
+	}
+
+	return null
+}
+
+function resolutionUpdate(cs) {
+	// Does the comment have an assignee, resolution, submission?
+	if (cs['Resn Status'] || cs['Resolution'] || cs['Submission'] || cs['Assignee']) {
+		var n = {
+			CommentID: cs['CID'],
+			ResnStatus: cs['Resn Status'] || '',
+			Resolution: cs['Resolution'] || '',
+			Submission: cs['Submission'] || '',
+			ApprovedByMotion: cs['Motion Number'] || '',
+			AssigneeName: cs['Assignee'] || '',
+			EditStatus: cs['Edit Status'] || '',
+			EditNotes: cs['Edit Notes'] || '',
+			EditInDraft: cs['Edited in Draft'] || ''
+		}
+		return n
+	}
+	return null
+}
+
 const GET_COMMENTS_SQL =
 	'SELECT ' +
 		'c.*, ' +
@@ -305,6 +490,10 @@ const GET_COMMENTS_SQL =
 		'LEFT JOIN resolutions AS r ON c.BallotID = r.BallotID AND c.CommentID = r.CommentID ' +
 		'LEFT JOIN results ON c.BallotID = results.BallotID AND c.CommenterSAPIN = results.SAPIN ' +
 		'LEFT JOIN users ON r.AssigneeSAPIN = users.SAPIN ';
+
+const GET_COMMENTS_SUMMARY_SQL =
+	'SELECT COUNT(*) AS Count, MIN(CommentID) AS CommentIDMin, MAX(CommentID) AS CommentIDMax ' +
+	'FROM comments WHERE BallotID=?';
 
 module.exports = function (db, rp) {
 	var module = {};
@@ -570,7 +759,29 @@ module.exports = function (db, rp) {
 		return db.query('DELETE FROM comments WHERE BallotID=?', [ballotId])
 	}
 
-	module.importComments = function (req, res, next) {
+	async function insertComments(ballotId, comments) {
+		var SQL = db.format('DELETE FROM comments WHERE BallotID=?;', [ballotId])
+		if (comments.length) {
+			SQL +=
+				`INSERT INTO comments (BallotID, ${Object.keys(comments[0])}) VALUES` +
+				comments.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(', ') +
+				';'
+		}
+		SQL += db.format(GET_COMMENTS_SQL + 'WHERE c.BallotID=?;', [ballotId])
+		SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId])
+
+		//console.log(SQL);
+
+		const results = await db.query(SQL)
+		//console.log(results)
+		return {
+			BallotID: ballotId,
+			comments: results[results.length-2],
+			summary: results[results.length-1][0]
+		}
+	}
+
+	module.importComments = async (req, res, next) => {
 		console.log(req.body);
 
 		if (!req.body.hasOwnProperty('BallotID') ||
@@ -590,37 +801,16 @@ module.exports = function (db, rp) {
 			resolveWithFullResponse: true,
 			simple: false
 		}
-		return rp.get(options)
-			.then(ieeeRes => {
-				console.log(ieeeRes.headers);
-				if (ieeeRes.headers['content-type'] !== 'text/csv') {
-					return Promise.reject('Not logged in')
-				}
+		const ieeeRes = await rp.get(options)
+		console.log(ieeeRes.headers);
+		if (ieeeRes.headers['content-type'] !== 'text/csv') {
+			return Promise.reject('Not logged in')
+		}
 
-				var comments = parsePollComments(startCommentId, ieeeRes.body);
-				//console.log(comments);
+		var comments = parseEpollComments(startCommentId, ieeeRes.body);
+		//console.log(comments);
 
-				var SQL = db.format('DELETE FROM comments WHERE BallotID=?;', [ballotId]);
-				if (comments.length) {
-					SQL += `INSERT INTO comments (BallotID, ${Object.keys(comments[0])}) VALUES`;
-					comments.forEach((c, i) => {
-						SQL += (i > 0? ',': '') + `(${db.escape(ballotId)},${db.escape(Object.values(c))})`;
-					});
-					SQL += ';'
-				}
-				SQL += db.format('SELECT COUNT(*) AS Count, MIN(CommentID) AS CommentIDMin, MAX(CommentID) AS CommentIDMax FROM comments WHERE BallotID=?', [ballotId])
-				//console.log(SQL);
-
-				return db.query(SQL)
-			})
-			.then(results => {
-				// Two or three results are present
-				var summary = results[results.length-1][0]
-				return {
-					BallotID: ballotId,
-					CommentsSummary: summary
-				}
-			})
+		return insertComments(ballotId, comments)
 	}
 
 	module.uploadComments = async function(req, res, next) {
@@ -647,85 +837,100 @@ module.exports = function (db, rp) {
 			const isExcel = req.file.originalname.search(/\.xlsx$/i) !== -1
 			comments = await parseMyProjectComments(startCommentId, req.file.buffer, isExcel)
 		}
-		//console.log('comment=', comments)
 
-		var SQL = db.format('DELETE FROM comments WHERE BallotID=?;', [ballotId])
-		if (comments.length) {
+		//console.log('comment=', comments)
+		return insertComments(ballotId, comments)
+	}
+
+	module.uploadResolutions = async function (req, res, next) {
+		console.log(req.body);
+
+		const ballotId = req.body.BallotID;
+		if (!ballotId) {
+			return Promise.reject('Missing parameter BallotID')
+		}
+		if (!req.file) {
+			return Promise.reject('Missing file')
+		}
+
+		const match = {
+			'elimination': matchByElimination,
+			'perfect': matchPerfect,
+			'cid': matchByCommentId
+		}
+
+		const matchAlgorithm = req.body.matchAlgorithm
+		const valid = Object.keys(match).join('|')
+		console.log('huh', matchAlgorithm, typeof matchAlgorithm !== 'string', matchAlgorithm.search(valid) === -1)
+		if (!matchAlgorithm || 
+			typeof matchAlgorithm !== 'string' ||
+			matchAlgorithm.search(valid) === -1) {
+			throw 'Parameter matchAlgorithm either missing or has value other than ' + valid + '.'
+		}
+
+		const matchAll = req.body.matchAll || true
+
+		const sheetComments = await parseLegacyCommentsSpreadsheet(req.file.buffer)
+		const dbComments = await db.query('SELECT * FROM comments WHERE BallotID=?', [ballotId])
+
+		const [matched, dbCommentsRemaining, sheetCommentsRemaining] = match[matchAlgorithm](sheetComments, dbComments)
+		console.log(sheetCommentsRemaining)
+		if (matchAll && (sheetCommentsRemaining.length || dbCommentsRemaining.length)) {
+			throw `No update\n` +
+				`${matched.length} matched entries\n` +
+				`${dbCommentsRemaining.length} unmatch database entries\n` +
+				`${sheetCommentsRemaining.length} unmatch spreadsheet entries:\n` +
+				sheetCommentsRemaining.map(c => c['CID']).join(', ')
+		}
+
+		// See if any of the comment fields need updating
+		var updateComments = []
+		var newResolutions = []
+		for (let m of matched) {
+			const c = m.dbComment
+			const cs = m.sheetComment
+
+			const u = commentUpdate(c, cs)
+			if (u) {
+				updateComments.push(u)
+			}
+
+			const r = resolutionUpdate(cs)
+			if (r) {
+				newResolutions.push(r)
+			}
+		}
+
+		var SQL = db.format('DELETE FROM resolutions WHERE BallotID=?;', [ballotId]);
+		if (updateComments.length) {
+			for (let c of updateComments) {
+				var cid = c.PrevCommentID;
+				delete c.PrevCommentID;
+				SQL += db.format('UPDATE comments SET ? WHERE BallotID=? AND CommentID=?;', [c, ballotId, cid]);
+			}
+		}
+
+		if (newResolutions.length) {
 			SQL +=
-				`INSERT INTO comments (BallotID, ${Object.keys(comments[0])}) VALUES` +
-				comments.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(', ') +
+				db.format('INSERT INTO resolutions (BallotID, ??) VALUES ', [Object.keys(newResolutions[0])]) +
+				newResolutions.map(r => db.format('(?, ?)', [ballotId, Object.values(r)])).join(',') +
 				';'
 		}
 		SQL += db.format(GET_COMMENTS_SQL + 'WHERE c.BallotID=?;', [ballotId])
+		SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId])
+
+		//const fs = require('fs');
+		//fs.writeFile("sql.txt", SQL, (err) => {if (err) {console.log(err)}})
 		//console.log(SQL);
 
 		const results = await db.query(SQL)
 		//console.log(results)
 		return {
 			BallotID: ballotId,
-			comments: results[2]
+			comments: results[results.length-2],
+			summary: results[results.length-1][0],
+			unmatch: sheetCommentsRemaining.map(c => c['CID'])
 		}
-	}
-
-	module.uploadResolutions = function (req, res, next) {
-		console.log(req.body);
-
-		const ballotId = req.body.BallotID;
-		if (!ballotId) {
-			return Promise.reject('Missing parameter BallotID');
-		}
-		//console.log(req.file)
-		if (!req.file) {
-			return Promise.reject('Missing file');
-		}
-			
-		//console.log(workbook.SheetNames)
-		var ws = workbook.Sheets['Comments'];
-
-		var SQL = db.format('SELECT * FROM comments WHERE BallotID=?', [ballotId]);
-		return db.query(SQL)
-			.then(results => {
-				//console.log(results)
-				var updateComments = [];
-				var newComments = [];
-				var newResolutions = [];
-
-				parseCommentsSheet(ws, results, updateComments, newComments, newResolutions);
-				//console.log(comments)
-
-				SQL = db.format('DELETE FROM resolutions WHERE BallotID=?;', [ballotId]);
-				if (updateComments.length) {
-					updateComments.forEach((c, i) => {
-						var cid = c.PrevCommentID;
-						delete c.PrevCommentID;
-						SQL += db.format('UPDATE comments SET ? WHERE BallotID=? AND CommentID=?;', [c, ballotId, cid]);
-					});
-				}
-				if (newComments.length) {
-					SQL += db.format('INSERT INTO comments (BallotID, ??) VALUES ', [Object.keys(newComments[0])]);
-					newComments.forEach((c, i) => {
-						SQL += i? ',': '';
-						SQL += db.format('(?, ?)', [ballotId, Object.values(c)])
-					});
-					SQL += ';'
-				}
-				if (newResolutions.length) {
-					SQL += db.format('INSERT INTO resolutions (BallotID, ??) VALUES ', [Object.keys(newResolutions[0])]);
-					newResolutions.forEach((r, i) => {
-						SQL += i? ',': '';
-						SQL += db.format('(?, ?)', [ballotId, Object.values(r)]);
-					})
-					SQL += ';'
-				}
-				const fs = require('fs');
-				fs.writeFile("sql.txt", SQL, (err) => {if (err) {console.log(err)}})
-				//console.log('updateComments ', updateComments.length, ' newComments ', newComments.length, ' newResolutions ', newResolutions.length)
-
-				return db.query(SQL)
-			})
-			.then(results => {
-				return null
-			})
 	}
 
 	module.exportMyProjectComments = async function(req, res, next) {
@@ -733,7 +938,8 @@ module.exports = function (db, rp) {
 		if (!ballotId) {
 			return Promise.reject('Missing parameter BallotID');
 		}
-		const comments = await db.query(GET_COMMENTS_SQL + "WHERE c.ResnStatus <> '' AND c.BallotID = ?;", [ballotId])
+		const comments = await db.query(GET_COMMENTS_SQL + "WHERE r.ResnStatus IS NOT NULL AND r.ResnStatus <> '' AND c.BallotID = ?;", [ballotId])
+		console.log(comments)
 		const buffer = await exportMyProjectComments(comments)
 		res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 		res.status(200).send(buffer)

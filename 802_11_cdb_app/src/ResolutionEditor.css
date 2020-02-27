@@ -59,10 +59,19 @@
 }
 
 .editor blockquote {
-	border-left: 5px solid #eee;
 	font-family: 'TimesNewRoman', serif;
-	margin: 16px 0;
-	padding: 10px 20px;
+	margin: 10px 20px;
+	padding: 0 0;
+}
+
+.editor u {
+	color: blue;
+	text-decoration: underline;
+}
+
+.editor del {
+	color: red;
+	text-decoration: line-through;
 }
 
 /* There shouldn't be margin outside the first/last blocks */

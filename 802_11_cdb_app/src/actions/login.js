@@ -15,7 +15,10 @@ const loginGetStateSuccess = (info) => {return {type: LOGIN_GET_STATE_SUCCESS, i
 const loginGetStateFailure = (errMsg) => {return {type: LOGIN_GET_STATE_FAILURE, errMsg}}
 
 export function loginGetState() {
-	return async (dispatch) => {
+	return async (dispatch, getState) => {
+		if (getState().login.InProgress) {
+			return null
+		}
 		dispatch(loginGetStateLocal());
 		try {
 			const response = await axios.get('/login')

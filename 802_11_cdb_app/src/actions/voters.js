@@ -38,7 +38,7 @@ export function getVotingPool() {
 			console.log(error)
 			return Promise.all([
 				dispatch(getVotingPoolFailure()),
-				dispatch(setError('Unable to get voting pool list'))
+				dispatch(setError('Unable to get voting pool list', error.toString()))
 			])
 		}
 	}
@@ -73,7 +73,7 @@ export function addVotingPool(newEntry) {
 		catch(error) {
 			return Promise.all([
 				dispatch(addVotingPoolFailure()),
-				dispatch(setError('Unable to add voting pool'))
+				dispatch(setError('Unable to add voting pool', error.toString()))
 			])
 		}
 	}
@@ -99,7 +99,7 @@ export function deleteVotingPool(votingPoolId) {
 		catch(error) {
 			return Promise.all([
 				dispatch(deleteVotingPoolFailure()),
-				dispatch(setError('Unable to delete voting pool'))
+				dispatch(setError('Unable to delete voting pool', error.toString()))
 			])
 		}
 	}
@@ -146,7 +146,7 @@ export function getVoters(votingPoolId) {
 		catch(error) {
 			return Promise.all([
 				dispatch(getVotersFailure()),
-				dispatch(setError(`Unable to get voters for ${votingPoolId}`))
+				dispatch(setError(`Unable to get voters for ${votingPoolId}`, error.toString()))
 			])
 		}
 	}
@@ -173,7 +173,7 @@ export function deleteVoters(votingPoolId, SAPINs) {
 		catch(error) {
 			return Promise.all([
 				dispatch(deleteVotersFailure()),
-				dispatch(setError(`Unable to delete voters for ballot series ${votingPoolId}`))
+				dispatch(setError(`Unable to delete voters for ballot series ${votingPoolId}`, error.toString()))
 			])
 		}
 	}
@@ -202,7 +202,7 @@ export function uploadVoters(votingPoolId, file) {
 		catch(error) {
 			return Promise.all([
 				dispatch(uploadVotersFailure()),
-				dispatch(setError(`Unable to import voters for voting pool ${votingPoolId}`))
+				dispatch(setError(`Unable to import voters for voting pool ${votingPoolId}`, error.toString()))
 			])
 		}
 	}
@@ -253,10 +253,9 @@ export function updateVoter(votingPoolId, SAPIN, voterData) {
 			return dispatch(updateVoterSuccess(votingPoolId, SAPIN, response.data.data))
 		}
 		catch(error) {
-			console.log(error)
 			return Promise.all([
 				dispatch(updateVoterFailure()),
-				dispatch(setError('Unable to update voter'))
+				dispatch(setError('Unable to update voter', error.toString()))
 			])
 		}
 	}

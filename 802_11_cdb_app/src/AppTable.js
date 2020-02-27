@@ -1,24 +1,65 @@
-import PropTypes from 'prop-types';
-import React, {useState, useEffect, useRef} from 'react';
-import update from 'immutability-helper';
-import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized';
-import Draggable from 'react-draggable';
-import cx from 'classnames';
+import PropTypes from 'prop-types'
+import React, {useState, useEffect, useRef} from 'react'
+import update from 'immutability-helper'
+import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized'
+import Draggable from 'react-draggable'
+import cx from 'classnames'
 import {allSelected, toggleVisible} from './filter'
 import {IconSort} from './Icons'
-import styles from './AppTable.css';
+import styles from './AppTable.css'
 
 function html_preserve_newline(text) {
 	return typeof text === 'string'?
 		text.split('\n').map((line, i, arr) => {
-			const lline = <span key={i}>{line}</span>;
+			const lline = <span key={i}>{line}</span>
 			if (i === arr.length - 1) {
-				return lline;
+				return lline
 			} else {
-				return [lline, <br key={i + 'br'} />];
+				return [lline, <br key={i + 'br'} />]
 		}
 	}):
-	text;
+	text
+}
+
+export function renderFilter({dataKey, filter, setFilter}) {
+	//const filter = props.filters[dataKey]
+	const className = cx({
+		[styles.headerFilt]: true,
+		[styles.headerFiltInvalid]: filter && !filter.valid
+	})
+	return (
+		<input
+			type='search'
+			className={className}
+			placeholder=' '//'Filter'
+			onChange={e => setFilter(dataKey, e.target.value)}
+			value={filter.filtStr}
+		/>
+	)
+}
+
+export function renderLabel({dataKey, label, sortable, sortBy, sortDirection, setSort, width}) {
+	let direction = 'NONE'
+	let onClick = undefined
+	if (sortable && sortBy.includes(dataKey)) {
+		direction = sortDirection[dataKey]
+	}
+	if (sortable) {
+		onClick = e => setSort(dataKey, e)
+	}
+	return (
+		<div
+			className={cx(styles.headerLabel, {[styles.headerLabelSort]: sortable})}
+			title={label}
+			onClick={onClick}
+			style={{width: width || '100%'}}
+		>
+			{/*<div className={cx(styles.headerLabelItem, {[styles.headerLabelItemTrucate]: direction !== 'NONE'})}>{label}</div>
+			{direction !== 'NONE' && <IconSort className={styles.headerLabelIcon} direction={direction} />}*/}
+			<div className={cx(styles.headerLabelItem, {[styles.headerLabelItemTrucate]: direction !== 'NONE'})}>{label}</div>
+			{direction !== 'NONE' && <IconSort className={styles.headerLabelIcon} direction={direction} />}
+		</div>
+	)
 }
 
 function AppTable(props) {
@@ -32,7 +73,7 @@ function AppTable(props) {
 
 	useEffect(clearAllCachedRowHeight, [props.columns])	// If column layout changes
 
-	const [columnWidth, setColumnWidth] = useState({});
+	const [columnWidth, setColumnWidth] = useState({})
 	useEffect(() => {
 		/* Initialize column width */
 		let newColumnWidth = {};
@@ -55,7 +96,7 @@ function AppTable(props) {
 
 	function clearAllCachedRowHeight() {
 		rowHeightCache.current.clearAll()
-		tableRef.recomputeRowHeights(0);
+		tableRef.recomputeRowHeights(0)
 	}
 
 	function resizeColumn({dataKey, deltaX}) {
@@ -67,67 +108,29 @@ function AppTable(props) {
 		return props.data[props.dataMap[index]];
 	}
 
-	function renderLabel({dataKey, label, columnData}) {
-		if (columnData.sortable) {
-			const sortDirection = props.sortBy.includes(dataKey)? props.sortDirection[dataKey]: 'NONE';
-			return (
-				<div
-					className={styles.headerLabel}
-					title={label}
-					style={{cursor: 'pointer'}}
-					onClick={e => props.sortChange(e, dataKey)}
-				>
-					<div className={styles.headerLabelItem} style={{width: sortDirection === 'NONE'? '100%': 'calc(100% - 13px)'}}>{label}</div>
-					{sortDirection !== 'NONE' && <IconSort direction={sortDirection} />}
-				</div>
-			)
-		}
-		else {
-			return (
-				<div
-					className={styles.headerLabel}
-					title={label}
-				>
-					{label}
-				</div>
-			)
-		}
-	}
-
-	function renderFilter({dataKey}) {
-		const filter = props.filters[dataKey]
-		const className = cx({
-			[styles.headerFilt]: true,
-			[styles.headerFiltInvalid]: filter && !filter.valid
-		})
-		return (
-			<input
-				type='search'
-				className={className}
-				placeholder=' '//'Filter'
-				onChange={e => props.filterChange(e, dataKey)}
-				value={filter.filtStr}
-			/>
-		)
-	}
-
 	function renderHeaderCell({columnData, dataKey, label}) {
-		const col = columnData;
-		const showFilter = props.filters.hasOwnProperty(dataKey);
+		const showFilter = columnData.filters.hasOwnProperty(dataKey)
+		const filter = columnData.filters[dataKey]
+		const {sortable, sortBy, sortDirection, setSort} = columnData
 
-		if (col.isLast) {
+		const defaultHeader = (
+			<React.Fragment>
+				{renderLabel({dataKey, label, sortable, sortBy, sortDirection, setSort})}
+				{showFilter && renderFilter({dataKey, filter, setFilter: columnData.setFilter})}
+			</React.Fragment>
+		)
+
+		if (columnData.isLast) {
 			return (
 				<div className={styles.headerLabelBox} style={{flex: '0 0 100%'}}>
-					{renderLabel({dataKey, label, columnData})}
-					{showFilter && renderFilter({dataKey})}
+					{columnData.headerRenderer? columnData.headerRenderer({dataKey, columnData}): defaultHeader}
 				</div>
 			)
 		}
 		return (
 			<React.Fragment>
 				<div className={styles.headerLabelBox} style={{flex: '0 0 calc(100% - 12px)'}}>
-					{renderLabel({dataKey, label, columnData})}
-					{showFilter && renderFilter({dataKey})}
+					{columnData.headerRenderer? columnData.headerRenderer({dataKey, columnData}): defaultHeader}
 				</div>
 				<Draggable
 					axis="x"
@@ -270,18 +273,19 @@ function AppTable(props) {
 		}
 	}
 
-	let columns = []
+	let column0
 	if (props.hasRowSelector || props.hasRowExpander) {
-		columns.push({
-			dataKey: '', label: '',
-			sortable: false,
-			width: (props.hasRowSelector && props.hasRowExpander)? 40: 25,
-			flexGrow: 0, flexShrink: 0,
-			headerRenderer: renderHeaderCellCheckbox,
-			cellRenderer: renderDataCellCheckbox
-		})
+		column0 = (
+			<Column 
+				dataKey=''
+				headerRenderer={renderHeaderCellCheckbox}
+				cellRenderer={renderDataCellCheckbox}
+				flexGrow={0}
+				flexShrink={0}
+				width={(props.hasRowSelector && props.hasRowExpander)? 40: 25}
+			/>
+			)
 	}
-	columns = columns.concat(props.columns)
 
 	return (
 		<Table
@@ -289,7 +293,7 @@ function AppTable(props) {
 			height={props.height}
 			width={props.width}
 			rowHeight={rowHeightCache.current.rowHeight}
-			headerHeight={44}
+			headerHeight={props.headerHeight? props.headerHeight: 44}
 			noRowsRenderer={renderNoRows}
 			headerClassName={styles.headerColumn}
 			rowClassName={rowClassName}
@@ -298,13 +302,15 @@ function AppTable(props) {
 			onRowDoubleClick={props.editRow}
 			ref={(ref) => tableRef = ref}
 		>
-			{columns.map((col, index) => {
+			{column0}
+
+			{props.columns.map((col, index) => {
 				const {cellRenderer, headerRenderer, width, ...otherProps} = col;
 				return (
 					<Column 
 						key={index}
-						columnData={col}
-						headerRenderer={headerRenderer? headerRenderer: renderHeaderCell}
+						columnData={{...col, filters: props.filters, setFilter: props.setFilter, sortBy: props.sortBy, sortDirection: props.sortDirection, setSort: props.setSort}}
+						headerRenderer={renderHeaderCell}
 						cellRenderer={renderMeasuredCell}
 						width={columnWidth.hasOwnProperty(col.dataKey)? columnWidth[col.dataKey]: width}
 						{...otherProps}
@@ -325,8 +331,8 @@ AppTable.propTypes = {
 	filters: PropTypes.object.isRequired,
 	sortBy: PropTypes.array.isRequired,
 	sortDirection: PropTypes.object.isRequired,
-	sortChange: PropTypes.func.isRequired,
-	filterChange: PropTypes.func.isRequired,
+	setSort: PropTypes.func.isRequired,
+	setFilter: PropTypes.func.isRequired,
 	primaryDataKey: PropTypes.string,
 	showSelected: PropTypes.func,
 	setSelected: PropTypes.func,

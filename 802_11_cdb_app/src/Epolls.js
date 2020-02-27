@@ -3,7 +3,7 @@ import {connect} from 'react-redux';
 import {useHistory} from 'react-router-dom'
 import AppTable from './AppTable';
 import {sortClick, filterValidate} from './filter'
-import {ActionButton, IconImport, IconClose} from './Icons'
+import {ActionButton} from './Icons'
 import {setEpollsSort, setEpollsFilters, getEpolls} from './actions/epolls';
 
 function Epolls(props) {
@@ -104,13 +104,13 @@ function Epolls(props) {
 		props.dispatch(getEpolls(numberEpolls.current))
 	}
 
-	function sortChange(event, dataKey) {
+	function setSort(dataKey, event) {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
 		props.dispatch(setEpollsSort(sortBy, sortDirection));
 	}
 
-	function filterChange(event, dataKey) {
-		var filter = filterValidate(dataKey, event.target.value)
+	function setFilter(dataKey, value) {
+		var filter = filterValidate(dataKey, value)
 		props.dispatch(setEpollsFilters({[dataKey]: filter}));
 	}
 
@@ -121,7 +121,7 @@ function Epolls(props) {
 			)
 		} else {
 			return (
-				<IconImport title='Import' onClick={() => importClick(rowData)} />
+				<ActionButton name='import' title='Import' onClick={() => importClick(rowData)} />
 			)
 		}
 	}
@@ -141,7 +141,7 @@ function Epolls(props) {
 				<span>
 					<ActionButton name='more' title='Load More' onClick={getMore} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-					<IconClose title='Close' onClick={close} />
+					<ActionButton name='close' title='Close' onClick={close} />
 				</span>
 			</div>
 			<AppTable
@@ -156,8 +156,8 @@ function Epolls(props) {
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
-				sortChange={sortChange}
-				filterChange={filterChange}
+				setSort={setSort}
+				setFilter={setFilter}
 				//showSelected={() => setShowSelected(true)}
 				//setSelected={(cids) => setSelected(cids)}
 				//selected={selected}

@@ -63,7 +63,7 @@ const GET_BALLOTS_SQL =
 		'(SELECT COUNT(*) FROM comments WHERE comments.BallotID = ballots.BallotID) AS CommentCount, ' +
 		'(SELECT MIN(CommentID) FROM comments WHERE comments.BallotID = ballots.BallotID) AS CommentIDMin, ' +
 		'(SELECT MAX(CommentID) FROM comments WHERE comments.BallotID = ballots.BallotID) AS CommentIDMax ' +
-	'FROM ballots ORDER BY Project, Start';
+	'FROM ballots';
 
 /*
  * Get comments summary for ballot
@@ -75,21 +75,32 @@ const GET_COMMENTS_FOR_BALLOT =
 module.exports = function(db, rp, resultsModule) {
 	var module = {};
 
+	function reformatBallot(b) {
+		b.Comments = {
+			Count: b.CommentCount,
+			CommentIDMin: b.CommentIDMin,
+			CommentIDMax: b.CommentIDMax
+		}
+		delete b.CommentCount
+		delete b.CommentIDMin
+		delete b.CommentIDMax
+		b.Results = JSON.parse(b.ResultsSummary)
+		delete b.ResultsSummary
+		return b
+	}
+
 	module.getBallots = async (req, res, next) => {
-		const ballots = await db.query(GET_BALLOTS_SQL)
-		return ballots.map(b => {
-			b.Comments = {
-				Count: b.CommentCount,
-				CommentIDMin: b.CommentIDMin,
-				CommentIDMax: b.CommentIDMax
-			}
-			delete b.CommentCount
-			delete b.CommentIDMin
-			delete b.CommentIDMax
-			b.Results = JSON.parse(b.ResultsSummary);
-			delete b.ResultsSummary;
-			return b;
-		})
+		const ballots = await db.query(GET_BALLOTS_SQL + ' ORDER BY Project, Start')
+		return ballots.map(b => reformatBallot(b))
+	}
+
+	module.getBallot = async (req, res, next) => {
+		if (!req.params.hasOwnProperty('ballotId')) {
+			return Promise.reject('Missing parameter ballotId')
+		}
+		var id = req.params.ballotId;
+		const ballot = await db.query(GET_BALLOTS_SQL + ' WHERE BallotID=?', [id])
+		return reformatBallot(ballot)
 	}
 
 	async function getBallotWithNewResultsSummary(ballotId) {
@@ -178,36 +189,34 @@ module.exports = function(db, rp, resultsModule) {
 			}
 		}
 
-		if (Object.keys(entry).length === 0) {
-			return Promise.resolve(null)
-		}
-
-		try {
-			const result = await db.query('UPDATE ballots SET ? WHERE BallotID=?',  [entry, id]);
-			if (result.affectedRows !== 1) {
-				console.log(result)
-				throw new Error("Unexpected result from SQL UPDATE")
+		if (Object.keys(entry).length) {
+			try {
+				const result = await db.query('UPDATE ballots SET ? WHERE BallotID=?',  [entry, id]);
+				if (result.affectedRows !== 1) {
+					console.log(result)
+					throw new Error("Unexpected result from SQL UPDATE")
+				}
 			}
-		}
-		catch(err) {
-			if (err.code === 'ER_DUP_ENTRY') {
+			catch(err) {
+				if (err.code === 'ER_DUP_ENTRY') {
 					throw `Cannot change Ballot ID to ${entry.BallotID}; a ballot with that ID already exists`
 				}
-			throw err
-		}
-		
-		if (entry.hasOwnProperty('BallotID') && id !== entry.BallotID) {
-			// The BallotID is being updated; do so for all tables
-			var SQL = db.format(
-				'SET @oldId = ?; SET @newId = ?; ' +
-				'UPDATE results SET BallotID=@newId WHERE BallotID=@oldId; ' +
-				'UPDATE comments SET BallotID=@newId WHERE BallotID=@oldId; ' +
-				'UPDATE resolutions SET BallotID=@newId WHERE BallotID=@oldId; ',
-				[id, entry.BallotID]);
+				throw err
+			}
+			
+			if (entry.hasOwnProperty('BallotID') && id !== entry.BallotID) {
+				// The BallotID is being updated; do so for all tables
+				var SQL = db.format(
+					'SET @oldId = ?; SET @newId = ?; ' +
+					'UPDATE results SET BallotID=@newId WHERE BallotID=@oldId; ' +
+					'UPDATE comments SET BallotID=@newId WHERE BallotID=@oldId; ' +
+					'UPDATE resolutions SET BallotID=@newId WHERE BallotID=@oldId; ',
+					[id, entry.BallotID]);
 
-			id = entry.BallotID;	// Use new BallotID
+				id = entry.BallotID;	// Use new BallotID
 
-			await db.query(SQL)
+				await db.query(SQL)
+			}
 		}
 
 		return getBallotWithNewResultsSummary(id);

@@ -4,11 +4,11 @@ import {connect} from 'react-redux';
 import {useHistory, useParams} from 'react-router-dom'
 import moment from 'moment-timezone';
 import ConfirmModal from './ConfirmModal';
-import {IconClose} from './Icons';
+import {ActionButton} from './Icons';
 import {updateBallot, addBallot, getBallots} from './actions/ballots';
 import {getVotingPool} from './actions/voters';
 import {importResults, uploadResults, deleteResults} from './actions/results';
-import {importComments, uploadComments, deleteCommentsWithBallotId} from './actions/comments';
+import {importComments, uploadComments, deleteComments} from './actions/comments';
 import styles from './BallotDetail.css';
 
 function defaultBallot() {
@@ -180,7 +180,7 @@ function BallotDetail(props) {
 		}
 
 		if (commentsAction.remove) {
-			props.dispatch(deleteCommentsWithBallotId(ballot.BallotID))
+			props.dispatch(deleteComments(ballot.BallotID))
 		}
 		else if (commentsAction.importFromEpoll) {
 			props.dispatch(importComments(ballot.BallotID, ballot.EpollNum, 1))
@@ -238,7 +238,7 @@ function BallotDetail(props) {
 
 	function handleResultsRemove(e) {
 		setResultsAction({
-			fileName: null,
+			file: null,
 			importFromEpoll: false,
 			remove: e.target.checked
 		})
@@ -246,7 +246,7 @@ function BallotDetail(props) {
 
 	function handleResultsFromEpoll(e) {
 		setResultsAction({
-			fileName: null,
+			file: null,
 			importFromEpoll: e.target.checked,
 			remove: false
 		})
@@ -257,13 +257,13 @@ function BallotDetail(props) {
 			resultsFileRef.current.click()
 		}
 		else {
-			setResultsAction({...resultsAction, fileName: null})
+			setResultsAction({...resultsAction, file: null})
 		}
 	}
 
 	function handleResultsFileSelected(e) {
 		setResultsAction({
-			fileName: e.target.files[0].name,
+			file: e.target.files[0],
 			importFromEpoll: false,
 			remove: false
 		})
@@ -289,7 +289,7 @@ function BallotDetail(props) {
 							type='checkbox'
 							checked={resultsAction.importFromEpoll}
 							onChange={handleResultsFromEpoll}
-						/> Import from ePoll
+						/> {ballot.Results? 'Reimport': 'Import'} from ePoll
 					</label>
 				}
 				<label>
@@ -400,7 +400,7 @@ function BallotDetail(props) {
 	const shortDateEnd = dateToShortDate(ballot.End)
 	return (
 		<div className={styles.root}>
-			<div className={styles.close}><IconClose className={styles.close} onClick={close} /></div>
+			<div className={styles.close}><ActionButton name='close' title='Close' onClick={close} /></div>
 			<div className={styles.row}>
 				<div className={styles.column}>
 					<div className={styles.row}>

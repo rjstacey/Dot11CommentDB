@@ -31,7 +31,7 @@ export function getEpolls(n = 20) {
 		catch(error) {
 			return Promise.all([
 				dispatch(getEpollsFailure()),
-				dispatch(setError('Unable to get a list of epolls'))
+				dispatch(setError('Unable to get a list of epolls', error.toString()))
 			])
 		}
 	}

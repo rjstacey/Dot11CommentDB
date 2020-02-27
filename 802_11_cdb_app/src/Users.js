@@ -220,13 +220,13 @@ function Users(props) {
 		)
 	}
 
-  	function sortChange(event, dataKey) {
+  	function setSort(dataKey, event) {
 		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
 		props.dispatch(setUsersSort(sortBy, sortDirection));
 	}
 
-	function filterChange(event, dataKey) {
-		var filter = filterValidate(dataKey, event.target.value)
+	function setFilter(dataKey, value) {
+		var filter = filterValidate(dataKey, value)
 		props.dispatch(setUsersFilters({[dataKey]: filter}));
 	}
 
@@ -252,8 +252,8 @@ function Users(props) {
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
-				sortChange={sortChange}
-				filterChange={filterChange}
+				setSort={setSort}
+				setFilter={setFilter}
 				//showSelected={() => setShowSelected(true)}
 				setSelected={(ids) => setSelected(ids)}
 				selected={selected}

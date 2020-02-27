@@ -2,7 +2,7 @@ import React, {useState, useEffect, useRef} from 'react'
 import cx from 'classnames'
 import {Editor, EditorState, RichUtils, getDefaultKeyBinding, KeyBindingUtil,
 	ContentBlock, genKey, SelectionState, Modifier, ContentState, convertFromHTML} from 'draft-js'
-import {OrderedMap} from 'immutable'
+import Immutable from 'immutable'
 import {ActionButton} from './Icons'
 import 'draft-js/dist/Draft.css'
 import {stateToHTML} from 'draft-js-export-html'
@@ -11,18 +11,13 @@ import debounce from 'lodash/debounce'
 import styles from './ResolutionEditor.css'
 
 
-const styleMap = {
-	'HIGHLIGHT': {
-		'backgroundColor': '#faed27',
-	}
-};
-
 const BLOCK_TYPES = [
 	{label: 'quote', style: 'blockquote'},
 	{label: 'unordered-list-item', style: 'unordered-list-item'},
 	{label: 'ordered-list-item', style: 'ordered-list-item'},
 	{label: 'code', style: 'code-block'},
-];
+]
+
 function BlockStyleControls(props) {
 	const {editorState, onChange} = props;
 	const selection = editorState.getSelection();
@@ -37,12 +32,12 @@ function BlockStyleControls(props) {
 					key={type.label}
 					isActive={type.style === blockType}
 					name={type.label}
-					onClick={() => onChange(RichUtils.toggleBlockType(editorState, type.style))}
+					onMouseDown={() => onChange(RichUtils.toggleBlockType(editorState, type.style))}
 				/>
 			)}
 		</div>
-	);
-};
+	)
+}
 
 var INLINE_STYLES = [
 	{label: 'bold', style: 'BOLD', title: 'Ctrl-b'},
@@ -50,7 +45,7 @@ var INLINE_STYLES = [
 	{label: 'underline', style: 'UNDERLINE', title: 'Ctrl-u'},
 	{label: 'strikethrough', style: 'STRIKETHROUGH', title: 'Ctrl-/'},
 	{label: 'highlight', style: 'HIGHLIGHT'},
-];
+]
 function InlineStyleControls(props) {
 	const {editorState, onChange} = props;
 	const currentStyle = editorState.getCurrentInlineStyle();
@@ -61,7 +56,7 @@ function InlineStyleControls(props) {
 					key={type.label}
 					isActive={currentStyle.has(type.style)}
 					name={type.label}
-					onClick={() => onChange(RichUtils.toggleInlineStyle(editorState, type.style))}
+					onMouseDown={() => onChange(RichUtils.toggleInlineStyle(editorState, type.style))}
 					title={type.title}
 				/>
 			)}
@@ -78,13 +73,13 @@ function ActionControls(props) {
 			<ActionButton
 				disabled={!canUndo}
 				name='undo'
-				onClick={() => onChange(EditorState.undo(editorState))}
+				onMouseDown={() => onChange(EditorState.undo(editorState))}
 				title='Ctrl-z'
 			/>
 			<ActionButton
 				disabled={!canRedo}
 				name='redo'
-				onClick={() => onChange(EditorState.redo(editorState))}
+				onMouseDown={() => onChange(EditorState.redo(editorState))}
 				title='Ctrl-r'
 			/>
 		</div>
@@ -115,14 +110,42 @@ function Toolbar(props) {
 	)
 }
 
-const options = {
+const styleMap = {
+	'BOLD': {
+		'fontWeight': 'bold'
+	},
+	'ITALIC': {
+		'fontStyle': 'italic'
+	},
+	'UNDERLINE': {
+		'color': 'blue',
+		'textDecoration': 'underline'
+	},
+	'STRIKETHROUGH': {
+		'color': 'red',
+		'textDecoration': 'line-through'
+	},
+	'HIGHLIGHT': {
+		'backgroundColor': '#faed27',
+	}
+}
+
+const htmlConversionOptions = {
 	inlineStyles: {
 		BOLD: {element: 'b'},
 		ITALIC: {element: 'i'},
-		UNDERLINE: {element: 'ins'},
+		UNDERLINE: {element: 'u'},
 		STRIKETHROUGH: {element: 'del'},
 		HIGHLIGHT: {element: 'mark'},
 	},
+	/*blockRenderers: {
+		'code-block': (block) => {
+			return '<code>' + block.getText() + '</code>'
+		},
+		'blockquote': (block) => {
+			return '<blockquote>' + block.getText() + '</blockquote>'
+		},
+	},*/
 	//defaultBlockTag: ' '
 }
 
@@ -146,6 +169,9 @@ function mapKeyToEditorCommand(e) {
 	if (KeyBindingUtil.hasCommandModifier(e) && e.key === 'h') {
 		return 'highlight';
 	}
+	if ((KeyBindingUtil.hasCommandModifier(e) || e.shiftKey) && e.keyCode === 13) {
+		return 'soft-newline';
+	}
 	return getDefaultKeyBinding(e);
 }
 	
@@ -159,10 +185,6 @@ function shouldHidePlaceholder(state) {
 
 function getResnStatus(editorState) {
 	const blockText = editorState.getCurrentContent().getFirstBlock().getText()
-	const m = blockText.match(/(ACCEPTED|REVISED|REJECTED)/i)
-	if (m) {
-		return m[1].toUpperCase()
-	}
 	if (blockText.search(/ACCEPT/i) !== -1) {
 		return 'ACCEPTED'
 	}
@@ -217,7 +239,7 @@ function updateResnStatus(editorState, resnStatus) {
 		})
 
 		const blockMap =
-			OrderedMap([[newBlock.key, newBlock]])
+			Immutable.OrderedMap([[newBlock.key, newBlock]])
 			.concat(content.getBlockMap())
 
 		content = content.set('blockMap', blockMap)
@@ -278,6 +300,12 @@ function ResnStatus(props) {
 	)
 }
 
+const mapResnStatus = {
+	ACCEPTED: 'A',
+	REVISED: 'R',
+	REJECTED: 'J'
+}
+
 export function ResolutionEditor(props) {
 	const [editorState, setEditorState] = useState(EditorState.createEmpty())
 	const [showToolbar, setShowToolbar] = useState(false)
@@ -286,10 +314,10 @@ export function ResolutionEditor(props) {
 
 	useEffect(() => {
 		changeResolution.current = debounce((currentResolution, editorState, onChange) => {
-			const newResolution = stateToHTML(editorState.getCurrentContent(), options)
-			const newResnStatus = getResnStatus(editorState)
-			console.log(newResolution)
+			const newResolution = stateToHTML(editorState.getCurrentContent(), htmlConversionOptions)
+			const newResnStatus = mapResnStatus[getResnStatus(editorState)] || ''
 			if (currentResolution !== newResolution) {
+				//console.log('save state', newResolution)
 				onChange(newResnStatus, newResolution)
 			}
 		}, 500)
@@ -300,14 +328,14 @@ export function ResolutionEditor(props) {
 
 	useEffect(() => {
 
-		const html = stateToHTML(editorState.getCurrentContent(), options)
+		const html = stateToHTML(editorState.getCurrentContent(), htmlConversionOptions)
 		if (props.value !== html) {
 			const blocksFromHTML = convertFromHTML(props.value || '')
 			const contentState = ContentState.createFromBlockArray(
 				blocksFromHTML.contentBlocks,
 				blocksFromHTML.entityMap,
 			)
-			/*let contentState = stateFromHTML(props.value || '', options)*/
+			/*let contentState = stateFromHTML(props.value || '', htmlConversionOptions)*/
 			setEditorState(EditorState.createWithContent(contentState))
 		}
 	}, [props.value])
@@ -324,6 +352,9 @@ export function ResolutionEditor(props) {
 		}
 		if (!newState && command === 'highlight') {
 			newState = RichUtils.toggleInlineStyle(state, 'HIGHLIGHT')
+		}
+		if (!newState && command === 'soft-newline') {
+			newState = RichUtils.insertSoftNewline(state)
 		}
 		if (newState) {
 			onChange(newState);
@@ -360,6 +391,7 @@ export function ResolutionEditor(props) {
 					className={className}
 					ref={editorRef}
 					customStyleMap={styleMap}
+					//blockRenderMap={blockRenderMap}
 					editorState={editorState}
 					handleKeyCommand={handleKeyCommand}
 					keyBindingFn={mapKeyToEditorCommand}
@@ -385,7 +417,7 @@ export function BasicEditor(props) {
 
 	useEffect(() => {
 		changeResolution.current = debounce((resolutionHtml, editorState, onChange) => {
-			const html = stateToHTML(editorState.getCurrentContent(), options)
+			const html = stateToHTML(editorState.getCurrentContent(), htmlConversionOptions)
 			console.log(html)
 			if (resolutionHtml !== html) {
 				onChange(html)
@@ -396,20 +428,18 @@ export function BasicEditor(props) {
 		}
 	}, [])
 
-	console.log('render:', stateToHTML(editorState.getCurrentContent(), options))
-
 	useEffect(() => {
-		const html = stateToHTML(editorState.getCurrentContent(), options)
+		const html = stateToHTML(editorState.getCurrentContent(), htmlConversionOptions)
 		console.log('html:', html)
 		if (props.value !== html) {
 			console.log('props.value:', props.value)
-			let contentState = stateFromHTML(props.value || '', options)
+			let contentState = stateFromHTML(props.value || '', htmlConversionOptions)
 			setEditorState(EditorState.createWithContent(contentState))
 		}
 	}, [props.value])
 
 	function onChange(state) {
-		console.log('onChange', stateToHTML(state.getCurrentContent(), options))
+		console.log('onChange', stateToHTML(state.getCurrentContent(), htmlConversionOptions))
 		setEditorState(state)
 		changeResolution.current(props.value, state, props.onChange)
 	}

@@ -39,35 +39,10 @@ export function init() {
 	);
 }
 
-export function IconImport(props) { return <FontAwesomeIcon icon='download' {...props} /> }
-export function IconExport(props) { return <FontAwesomeIcon icon='upload' {...props} /> }
-
-export function IconDelete(props) { return <FontAwesomeIcon icon='trash-alt' {...props} /> }
-export function IconRefresh(props) { return <FontAwesomeIcon icon='sync' {...props} /> }
-export function IconAdd(props) { return <FontAwesomeIcon icon='plus' {...props} /> }
 
 export function IconClose(props) { return <FontAwesomeIcon icon='window-close' {...props} /> }
-export function IconMore(props) { return <FontAwesomeIcon icon='angle-double-down' {...props} /> }
-
-export function IconAngleDown(props) { return <FontAwesomeIcon icon='angle-down' {...props} /> }
-export function IconAngleUp(props) { return <FontAwesomeIcon icon='angle-up' {...props} /> }
-
-export function IconNext(props) { return <FontAwesomeIcon icon='arrow-circle-right' {...props} /> }
-export function IconPrev(props) { return <FontAwesomeIcon icon='arrow-circle-left' {...props} /> }
 export function IconUp(props) { return <FontAwesomeIcon icon='arrow-circle-up' className={styles.icon} {...props} /> }
 export function IconDown(props) { return <FontAwesomeIcon icon='arrow-circle-down' className={styles.icon} {...props} /> }
-
-/* Used in the resolution editor */
-export function EditorToolIcon({icon, ...props}) {
-	const map = {
-		'highlight': 'highlighter',
-		'quote': 'quote-right',
-		'unordered-list-item': 'list-ul',
-		'ordered-list-item': 'list-ol',
-	}
-	icon = map[icon]? map[icon]: icon;
-	return <FontAwesomeIcon icon={icon} {...props} />
-}
 
 export function IconSort({direction, isAlpha, ...props}) {
 	var icon = 'sort-'
@@ -82,11 +57,11 @@ export function ButtonGroup(props) {
 }
 
 export function ActionButton(props) {
-	let {className, name, title, isActive, disabled} = props;
+	let {className, name, isActive, ...otherProps} = props;
 	className = cx(className, {
 		[styles.button]: true,
 		[styles.isActive]: isActive,
-	});
+	})
 	const mapName = {
 		'refresh': 'sync',
 		'add': 'plus',
@@ -112,9 +87,7 @@ export function ActionButton(props) {
 	return (
 		<button
 			className={className}
-			onMouseDown={props.onClick}
-			disabled={disabled}
-			title={title}
+			{...otherProps}
 		>
 			<FontAwesomeIcon className={styles.icon} icon={mapName[name] || name} />
 		</button>
