@@ -3,7 +3,8 @@ import React, {useState, useRef, useEffect} from 'react';
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux';
 import ConfirmModal from './ConfirmModal';
-import {setVotersFilters, setVotersSort, getVoters, deleteVoters, addVoter, updateVoter, uploadVoters} from './actions/voters'
+import {setVotersFilters, setVotersSort, setVotersSelected, getVoters, deleteVoters, addVoter, updateVoter, uploadVoters} from './actions/voters'
+import {setError} from './actions/error'
 import {sortClick, filterValidate, shallowDiff} from './filter'
 import AppTable from './AppTable';
 import AppModal from './AppModal';
@@ -11,21 +12,23 @@ import {ActionButton} from './Icons';
 
 
 function ImportVotersModal(props) {
-	const votersFileInputRef = useRef();
+	const fileInputRef = useRef();
 
-	function submit() {
-		props.dispatch(uploadVoters(props.votingPool.VotingPoolID, votersFileInputRef.current.files[0])).then(props.close)
+	async function submit() {
+		await props.dispatch(uploadVoters(props.votingPoolType, props.votingPoolName, fileInputRef.current.files[0]))
+		props.close()
 	}
+
 	return (
 		<AppModal
 			isOpen={props.isOpen}
 			onRequestClose={props.close}
 		>
-			<p>Import voters list for {props.votingPool.Name}</p>
+			<p>Import voters list for {props.votingPoolName}</p>
 			<input
 				type='file'
 				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-				ref={votersFileInputRef}
+				ref={fileInputRef}
 			/>
 			<br />
 			<button onClick={submit}>OK</button>
@@ -36,36 +39,49 @@ function ImportVotersModal(props) {
 ImportVotersModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
-	votingPool: PropTypes.object.isRequired,
+	votingPoolName: PropTypes.string.isRequired,
+	votingPoolType: PropTypes.oneOf(['SA', 'WG']),
 	dispatch: PropTypes.func.isRequired
 }
 
-function AddVoterModal(props) {
-	const [voter, setVoter] = useState(props.voter);
+function AddUpdateVoterModal(props) {
+	const [voter, setVoter] = useState(props.voter)
 
 	function onOpen() {
 		setVoter(props.voter)
 	}
 
 	function change(e) {
-		setVoter({...voter, [e.target.name]: e.target.value})
+		let {name, value} = e.target
+		if (name === 'SAPIN') {
+			value = parseInt(value, 10)
+		}
+		setVoter({...voter, [name]: value})
 	}
 
 	async function submit(e) {
-		let a;
-		if (props.action === 'add') {
-			a = addVoter({
-				VotingPoolID: props.votingPool.VotingPoolID,
-				...voter
-			})
+		const key = props.votingPoolType === 'SA'? 'Email': 'SAPIN'
+		let a
+		if (!voter[key]) {
+			a = setError(`Unable to ${props.action} voter`, `${key} must not be blank.`)
 		}
 		else {
-			const changed = shallowDiff(props.voter, voter)
-			a = updateVoter(
-				props.votingPool.VotingPoolID,
-				props.voter.SAPIN,
-				changed
-			)
+			if (props.action === 'add') {
+				a = addVoter(
+					props.votingPoolType,
+					props.votingPoolName,
+					voter
+				)
+			}
+			else {
+				const changed = shallowDiff(props.voter, voter)
+				a = updateVoter(
+					props.votingPoolType,
+					props.votingPoolName,
+					props.voter[key],
+					changed
+				)
+			}
 		}
 		await props.dispatch(a)
 		props.close()
@@ -74,16 +90,13 @@ function AddVoterModal(props) {
 	const style = {
 		label: {display: 'inline-block', textAlign: 'left', width: '100px'}
 	}
+
 	const title = props.action === 'add'
-		? 'Add voter to voting pool ' + props.votingPool.Name
-		: 'Update voter';
-	return (
-		<AppModal
-			isOpen={props.isOpen}
-			onAfterOpen={onOpen}
-			onRequestClose={props.close}
-		>
-			<h3>{title}</h3>
+		? 'Add voter to voting pool ' + props.votingPoolName
+		: 'Update voter'
+
+	const wgVoterFields = (
+		<React.Fragment>
 			<p>
 				<label style={style.label}>SA PIN:</label>
 				<input style={{width: 100}} type='text' name='SAPIN' value={voter.SAPIN} onChange={change}/>
@@ -111,6 +124,30 @@ function AddVoterModal(props) {
 					<option value='ExOfficio'>ExOfficio</option>
 				</select>
 			</p>
+		</React.Fragment>
+	)
+
+	const saVoterFields = (
+		<React.Fragment>
+			<p>
+				<label style={style.label}>Name:</label>
+				<input style={{width: 200}} type='text' name='Name' value={voter.Name} onChange={change}/>
+			</p>
+			<p>
+				<label style={style.label}>Email:</label>
+				<input style={{width: 250}} type='text' name='Email' value={voter.Email} onChange={change}/>
+			</p>
+		</React.Fragment>
+	)
+
+	return (
+		<AppModal
+			isOpen={props.isOpen}
+			onAfterOpen={onOpen}
+			onRequestClose={props.close}
+		>
+			<h3>{title}</h3>
+			{props.votingPoolType === 'SA'? saVoterFields: wgVoterFields}
 			<p>
 				<button onClick={submit}>OK</button>
 				<button onClick={props.close}>Cancel</button>
@@ -118,61 +155,76 @@ function AddVoterModal(props) {
 		</AppModal>
 	)
 }
-AddVoterModal.propTypes = {
+AddUpdateVoterModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
-	votingPool: PropTypes.object.isRequired,
+	votingPoolName: PropTypes.string.isRequired,
+	votingPoolType: PropTypes.oneOf(['SA', 'WG']),
 	voter: PropTypes.object.isRequired,
 	action: PropTypes.oneOf(['add', 'update']),
 	dispatch: PropTypes.func.isRequired
 }
 
 const defaultVoter = {
+	Name: '',
 	SAPIN: '',
 	LastName: '',
 	FirstName: '',
 	MI: '',
 	Email: '',
 	Status: 'Voter'
-};
+}
 
+const wgColumns = [
+	{dataKey: 'SAPIN',		label: 'SA PIN',
+		sortable: true,
+		filterable: true,
+		width: 100},
+	{dataKey: 'LastName',	label: 'Last Name',
+		sortable: true,
+		filterable: true,
+		width: 150},
+	{dataKey: 'FirstName',	label: 'First Name',
+		sortable: true,
+		filterable: true,
+		width: 150},
+	{dataKey: 'MI',			label: 'MI',
+		sortable: true,
+		filterable: true,
+		width: 50},
+	{dataKey: 'Email',		label: 'Email',
+		sortable: true,
+		filterable: true,
+		width: 250},
+	{dataKey: 'Status',		label: 'Status',
+		sortable: true,
+		filterable: true,
+		width: 100}
+]
+
+const saColumns = [
+	{dataKey: 'Email',	label: 'Email',
+		sortable: true,
+		filterable: true,
+		width: 250},
+	{dataKey: 'Name',	label: 'Name',
+		sortable: true,
+		filterable: true,
+		width: 300}
+]
+
+const filterKeys = [
+	'SAPIN', 'Email', 'Name', 'LastName', 'FirstName', 'MI', 'Status'
+]
+	
 function Voters(props) {
-	let {votingPoolId} = useParams()
-	if (votingPoolId) {
-		votingPoolId = parseInt(votingPoolId, 10)
-	}
+	let {votingPoolType, votingPoolName} = useParams()
 	const history = useHistory()
 
-	const columns = [
-		{dataKey: 'SAPIN',		label: 'SA PIN',
-			sortable: true,
-			filterable: true,
-			width: 100},
-		{dataKey: 'LastName',	label: 'Last Name',
-			sortable: true,
-			filterable: true,
-			width: 150},
-		{dataKey: 'FirstName',	label: 'First Name',
-			sortable: true,
-			filterable: true,
-			width: 150},
-		{dataKey: 'MI',			label: 'MI',
-			sortable: true,
-			filterable: true,
-			width: 50},
-		{dataKey: 'Email',		label: 'Email',
-			sortable: true,
-			filterable: true,
-			width: 250},
-		{dataKey: 'Status',		label: 'Status',
-			sortable: true,
-			filterable: true,
-			width: 100}
-	];
+	const columns = votingPoolType === 'SA'? saColumns: wgColumns
 	const primaryDataKey = columns[0].dataKey
 
-	const [selected, setSelected] = useState([])
-	const [addEditVoter, setAddEditVoter] = useState({
+	const [addUpdateVoter, setAddUpdateVoter] = useState({
 		action: null,
 		voter: defaultVoter
 	})
@@ -181,7 +233,7 @@ function Voters(props) {
 	const [tableSize, setTableSize] = useState({
 		height: 400,
 		width: 300,
-	});
+	})
 
 	function updateTableSize() {
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
@@ -194,70 +246,63 @@ function Voters(props) {
 			setTableSize({height, width: Math.min(width, maxWidth)});
 		}
 	}
-	
+
 	useEffect(() => {
-		updateTableSize();
-		window.addEventListener("resize", updateTableSize);
+		updateTableSize()
+		window.addEventListener("resize", updateTableSize)
 		return () => {
-			window.removeEventListener("resize", updateTableSize);
+			window.removeEventListener("resize", updateTableSize)
 		}
 	}, [])
 
 	useEffect(() => {
 		if (Object.keys(props.filters).length === 0) {
-			var filters = {};
-			for (let col of columns) {
-				if (col.filterable) {
-					filters[col.dataKey] = filterValidate(col.dataKey, '')
-				}
+			var filters = {}
+			for (let key of filterKeys) {
+				filters[key] = filterValidate(key, '')
 			}
-			props.dispatch(setVotersFilters(filters));
+			props.dispatch(setVotersFilters(filters))
 		}
 	}, [])
 
 	useEffect(() => {
-		if ((!props.votingPool || props.votingPool.VotingPoolID !== votingPoolId) && !props.getVoters) {
-			props.dispatch(getVoters(votingPoolId))
+		if ((!props.votingPool.VotingPool || props.votingPool.VotingPool !== votingPoolName ||
+			 !props.votingPool.PoolType || props.votingPool.PoolType !== votingPoolType) &&
+			!props.getVoters) {
+			props.dispatch(getVoters(votingPoolType, votingPoolName))
 		}
-	}, [votingPoolId, props.votingPool])
+	}, [votingPoolName, votingPoolType])
 
 	function close() {
  		history.goBack()
  	}
 
  	function refresh() {
- 		props.dispatch(getVoters(votingPoolId))
+ 		props.dispatch(getVoters(votingPoolType, votingPoolName))
  	}
 
 	async function handleRemoveSelected() {
-		const {data, dataMap} = props;
-		var ids = [];
-		for (var i = 0; i < dataMap.length; i++) { // only select checked items that are visible
-			let id = data[dataMap[i]][primaryDataKey]
-			if (selected.includes(id)) {
+		const {voters, votersMap} = props
+		var ids = []
+		for (var i = 0; i < votersMap.length; i++) { // only select checked items that are visible
+			let id = voters[votersMap[i]][primaryDataKey]
+			if (props.selected.includes(id)) {
 				ids.push(id)
 			}
 		}
 
-		if (ids.length === 0) {
-			return;
+		if (ids.length) {
+			const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?')
+			if (ok) {
+				await props.dispatch(deleteVoters(votingPoolType, votingPoolName, ids))
+			}
 		}
-		
-		const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?')
-		if (!ok) {
-			return
-		}
-
-		await props.dispatch(deleteVoters(votingPoolId, ids))
-
-		const s = selected.filter(id => !ids.includes(id));
-		setSelected(s);
 	}
 
 	function setSort(dataKey, event) {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
-		props.dispatch(setVotersSort(sortBy, sortDirection));
-		event.preventDefault();
+		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection)
+		props.dispatch(setVotersSort(sortBy, sortDirection))
+		event.preventDefault()
 	}
 
 	function setFilter(dataKey, value) {
@@ -266,14 +311,14 @@ function Voters(props) {
 	}
 
 	function handleAddVoter(e) {
-		setAddEditVoter({
+		setAddUpdateVoter({
 			action: 'add',
 			voter: defaultVoter
 		})
 	}
 
-	function handleEditVoter({rowData}) {
-		setAddEditVoter({
+	function handleUpdateVoter({rowData}) {
+		setAddUpdateVoter({
 			action: 'update',
 			voter: rowData
 		})
@@ -281,22 +326,17 @@ function Voters(props) {
 
 	return (
 		<div id='Voters' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-			{props.votingPool?
-				(<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
-					<span><label>Voting Pool:&nbsp;</label>{props.votingPool.Name}</span>
-					<span>
-						<ActionButton name='add' title='Add Voter' onClick={handleAddVoter} />
-						<ActionButton name='delete' title='Remove Selected' onClick={handleRemoveSelected} />
-						<ActionButton name='import' title='Import Voters' onClick={() => setShowImportVoters(true)} />
-						<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.getVoters} />
-						<ActionButton name='close' title='Close' onClick={close} />
-					</span>
-				</div>):
-				(<div id='top-row'></div>)
-			}
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
+				<span><label>Voting Pool:&nbsp;</label>{votingPoolName}</span>
+				<span>
+					<ActionButton name='add' title='Add Voter' onClick={handleAddVoter} />
+					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
+					<ActionButton name='import' title='Import Voters' onClick={() => setShowImportVoters(true)} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.getVoters} />
+					<ActionButton name='close' title='Close' onClick={close} />
+				</span>
+			</div>
 			<AppTable
-				hasRowSelector={true}
-				hasRowExpander={false}
 				columns={columns}
 				rowHeight={20}
 				height={tableSize.height}
@@ -307,26 +347,28 @@ function Voters(props) {
 				sortDirection={props.sortDirection}
 				setSort={setSort}
 				setFilter={setFilter}
-				setSelected={(ids) => setSelected(ids)}
-				selected={selected}
-				editRow={handleEditVoter}
-				data={props.data}
-				dataMap={props.dataMap}
+				setSelected={(ids) => props.dispatch(setVotersSelected(ids))}
+				selected={props.selected}
+				editRow={handleUpdateVoter}
+				data={props.voters}
+				dataMap={props.votersMap}
 				primaryDataKey={primaryDataKey}
 			/>
 
-			<AddVoterModal
-				isOpen={!!addEditVoter.action}
-				close={() => setAddEditVoter({...addEditVoter, action: null})}
-				votingPool={props.votingPool}
-				voter={addEditVoter.voter}
-				action={addEditVoter.action}
+			<AddUpdateVoterModal
+				isOpen={!!addUpdateVoter.action}
+				close={() => setAddUpdateVoter({...addUpdateVoter, action: null})}
+				votingPoolName={votingPoolName}
+				votingPoolType={votingPoolType}
+				voter={addUpdateVoter.voter}
+				action={addUpdateVoter.action}
 				dispatch={props.dispatch}
 			/>
 			<ImportVotersModal
 				isOpen={showImportVoters}
 				close={() => setShowImportVoters(false)}
-				votingPool={props.votingPool}
+				votingPoolName={votingPoolName}
+				votingPoolType={votingPoolType}
 				dispatch={props.dispatch}
 			/>
 		</div>
@@ -336,10 +378,11 @@ Voters.propTypes = {
 	filters: PropTypes.object.isRequired,
 	sortBy: PropTypes.array.isRequired,
 	sortDirection: PropTypes.object.isRequired,
+	selected: PropTypes.array.isRequired,
 	votingPool: PropTypes.object.isRequired,
-	dataValid: PropTypes.bool.isRequired,
-	data:  PropTypes.array.isRequired,
-	dataMap: PropTypes.array.isRequired,
+	votersValid: PropTypes.bool.isRequired,
+	voters:  PropTypes.array.isRequired,
+	votersMap: PropTypes.array.isRequired,
 	getVoters: PropTypes.bool.isRequired
 }
 
@@ -349,11 +392,12 @@ function mapStateToProps(state) {
 		filters: voters.votersFilters,
 		sortBy: voters.votersSortBy,
 		sortDirection: voters.votersSortDirection,
+		selected: voters.votersSelected,
 		votingPool: voters.votingPool,
-		dataValid: voters.votersDataValid,
-		data: voters.votersData,
-		dataMap: voters.votersDataMap,
+		votersValid: voters.votersValid,
+		voters: voters.voters,
+		votersMap: voters.votersMap,
 		getVoters: voters.getVoters,
 	}
 }
-export default connect(mapStateToProps)(Voters);
+export default connect(mapStateToProps)(Voters)

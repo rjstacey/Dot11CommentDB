@@ -52,6 +52,7 @@
 	display: block;
 	user-select: none;
 	position: relative;
+	width: 100%;
 }
 .headerLabelSort {
 	cursor: pointer;

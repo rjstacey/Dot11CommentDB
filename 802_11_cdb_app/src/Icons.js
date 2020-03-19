@@ -39,7 +39,6 @@ export function init() {
 	);
 }
 
-
 export function IconClose(props) { return <FontAwesomeIcon icon='window-close' {...props} /> }
 export function IconUp(props) { return <FontAwesomeIcon icon='arrow-circle-up' className={styles.icon} {...props} /> }
 export function IconDown(props) { return <FontAwesomeIcon icon='arrow-circle-down' className={styles.icon} {...props} /> }

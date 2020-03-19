@@ -244,6 +244,18 @@ export function toggleVisible(currSelectedList, dataMap, data, idKey) {
 	return selectedList;
 }
 
+export function updateSelected(origSelected, origData, newData, key) {
+	let newSelected = []
+	for (let s of origSelected) {
+		const value = origData[s][key]
+		const i = newData.findIndex(c => c[key] === value)
+		if (i !== -1) {
+			newSelected.push(i)
+		}
+	}
+	return newSelected
+}
+
 export function shallowDiff(originalObj, modifiedObj) {
 	let changed = {};
 	for (let k in modifiedObj) {

@@ -1,10 +1,10 @@
-import React, {useState, useRef, useEffect} from 'react';
-import {connect} from 'react-redux';
+import React, {useState, useRef, useEffect} from 'react'
+import {connect} from 'react-redux'
 import {useHistory} from 'react-router-dom'
-import AppTable from './AppTable';
+import AppTable from './AppTable'
 import {sortClick, filterValidate} from './filter'
 import {ActionButton} from './Icons'
-import {setEpollsSort, setEpollsFilters, getEpolls} from './actions/epolls';
+import {setEpollsSort, setEpollsFilters, getEpolls} from './actions/epolls'
 
 function Epolls(props) {
 
@@ -38,12 +38,13 @@ function Epolls(props) {
 			width: 200,
 			cellRenderer: renderActions,
 			isLast: true}
-	];
-	const primaryDataKey = columns[0].dataKey;
+	]
 
-	const history = useHistory();
+	const primaryDataKey = columns[0].dataKey
 
-	const numberEpolls = useRef(20);
+	const history = useHistory()
+
+	const numberEpolls = useRef(20)
 
 	const [tableSize, setTableSize] = useState({
 		height: 400,
@@ -81,7 +82,7 @@ function Epolls(props) {
 			}
 			props.dispatch(setEpollsFilters(filters));
 		}
-		if (!props.epollsDataValid) {
+		if (!props.epollsValid) {
 			props.dispatch(getEpolls(numberEpolls.current))
 		}
 	}, [])
@@ -105,13 +106,13 @@ function Epolls(props) {
 	}
 
 	function setSort(dataKey, event) {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
-		props.dispatch(setEpollsSort(sortBy, sortDirection));
+		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection)
+		props.dispatch(setEpollsSort(sortBy, sortDirection))
 	}
 
 	function setFilter(dataKey, value) {
 		var filter = filterValidate(dataKey, value)
-		props.dispatch(setEpollsFilters({[dataKey]: filter}));
+		props.dispatch(setEpollsFilters({[dataKey]: filter}))
 	}
 
 	function renderActions({rowData}) {
@@ -145,8 +146,6 @@ function Epolls(props) {
 				</span>
 			</div>
 			<AppTable
-				hasRowSelector={false}
-				hasRowExpander={true}
 				columns={columns}
 				rowHeight={54}
 				height={tableSize.height}
@@ -158,11 +157,9 @@ function Epolls(props) {
 				sortDirection={props.sortDirection}
 				setSort={setSort}
 				setFilter={setFilter}
-				//showSelected={() => setShowSelected(true)}
-				//setSelected={(cids) => setSelected(cids)}
-				//selected={selected}
-				data={props.epollsData}
-				dataMap={props.epollsDataMap}
+				expanded={true}
+				data={props.epolls}
+				dataMap={props.epollsMap}
 				primaryDataKey={primaryDataKey}
 			/>
 		</div>
@@ -170,20 +167,16 @@ function Epolls(props) {
 }
 
 function mapStateToProps(state) {
-	const {epolls, ballots, voters} = state;
+	const {epolls} = state
 
 	return {
 		filters: epolls.filters,
 		sortBy: epolls.sortBy,
 		sortDirection: epolls.sortDirection,
-		epollsDataValid: epolls.epollsDataValid,
-		epollsData: epolls.epollsData,
-		epollsDataMap: epolls.epollsDataMap,
+		epollsValid: epolls.epollsValid,
+		epolls: epolls.epolls,
+		epollsMap: epolls.epollsMap,
 		getEpolls: epolls.getEpolls,
-		addBallot: ballots.addBallot,
-		votingPoolDataValid: voters.votingPoolDataValid,
-		votingPoolData: voters.votingPoolData,
-		ballotsByProject: ballots.ballotsByProject,
 	}
 }
-export default connect(mapStateToProps)(Epolls);
+export default connect(mapStateToProps)(Epolls)

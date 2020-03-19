@@ -8,123 +8,135 @@ function parseUsersCsv(usersCsv) {
 	}
 
 	// Row 0 is the header
-	expected = ['SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'];
+	expected = ['SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status']
 	if (expected.reduce((r, v, i) => v !== p[0][i], false)) {
 		throw `Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`
 	}
-	p.shift();
+	p.shift()
 
 	return p.map(c => {
 		return {
 			SAPIN: c[0],
-			Name: c[2] + ' ' + c[3] + ' ' + c[1],
+			Name: c[2] + ' ' + c[1],
 			LastName: c[1],
 			FirstName: c[2],
 			MI: c[3],
 			Email: c[4],
 			Status: c[5],
 		}
-	});
+	})
 }
 
 module.exports = function (db) {
-	var module = {};
+	var module = {}
 
 	module.getUsers = (req, res, next) => {
-
 		return db.query('SELECT * FROM users')
 	}
 
 	module.getAccessLevel = async (sapin, email, callback) => {
-		var SQL;
+		var SQL
 		if (sapin > 0) {
 			SQL = db.format('SELECT * from users WHERE SAPIN=?', [sapin]);
 		}
 		else {
 			SQL = db.format('SELECT * from users WHERE Email=?', [email]);
 		}
-		console.log(SQL);
+		console.log(SQL)
 		const results = await db.query(SQL)
-		return results.length > 0? results[0].Access: 0;
+		return results.length > 0? results[0].Access: 0
 	}
 
 	module.addUser = async (req, res, next) => {
-		//console.log(req.body);
 
 		var entry = {
 			SAPIN: req.body.SAPIN,
 			Name: req.body.Name,
+			LastName: req.body.LastName,
+			FirstName: req.body.FirstName,
+			MI: req.body.MI,
 			Email: req.body.Email,
 			Access: req.body.Access
-		};
-
-		const results = await db.query(
-			'INSERT INTO users (??) VALUES (?);',
-			[Object.keys(entry), Object.values(entry)]
-			)
-		entry.UserID = result.insertId;
-		return entry;
-	}
-
-	module.updateUser = async (req, res, next) => {
-  		//console.log(req.body);
-
-  		if (!req.body.hasOwnProperty('UserID')) {
-  			return Promise.reject('Missing parameter UserID')
 		}
-		var id = req.body.UserID;
 
-		var entry = {
-			SAPIN: req.body.SAPIN,
-			Name: req.body.Name,
-			Email: req.body.Email,
-			Access: req.body.Access
-		};
 		Object.keys(entry).forEach(key => {
 			if (entry[key] === undefined) {
 				delete entry[key]
 			}
-		});
-		if (Object.keys(entry).length === 0) {
-			return Promise.resolve();
+		})
+
+		if (!entry.SAPIN) {
+			throw 'Must provide SAPIN'
 		}
 
-  		await db.query("UPDATE users SET ? WHERE UserID=?",  [entry, id])
-		entry.UserID = id;
+		const SQL = 
+			db.format('INSERT INTO users (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]) +
+			db.format('SELECT * FROM users WHERE SAPIN=?;', [entry.SAPIN])
+		const results = await db.query(SQL)
+		return results[1][0]
+	}
+
+	module.updateUser = async (req, res, next) => {
+		const {userId} = req.params
+
+		let entry = {
+			SAPIN: req.body.SAPIN,
+			Name: req.body.Name,
+			LastName: req.body.LastName,
+			FirstName: req.body.FirstName,
+			MI: req.body.MI,
+			Email: req.body.Email,
+			Access: req.body.Access
+		}
+
+		Object.keys(entry).forEach(key => {
+			if (entry[key] === undefined) {
+				delete entry[key]
+			}
+		})
+
+		if (Object.keys(entry).length) {
+			const SQL =
+				db.format("UPDATE users SET ? WHERE SAPIN=?;",  [entry, userId]) +
+				db.format("SELECT ?? from users WHERE SAPIN=?;", [Object.keys(entry), entry.SAPIN? entry.SAPIN: userId])
+  			const results = await db.query(SQL)
+  			entry = results[1][0]
+  			if (entry.SAPIN === undefined) {
+  				entry.SAPIN = userId
+  			}
+		}
+
 		return entry
 	}
 
-	module.deleteUser = (req, res, next) => {
-    	//console.log(req.body);
-
-		const userids = req.body;
-
-		return db.query('DELETE FROM users WHERE userid IN (?)', [userids])
+	module.deleteUsers = (req, res, next) => {
+		const userIds = req.body
+		if (!Array.isArray(userIds)) {
+			throw 'Expected array parameter'
+		}
+		return db.query('DELETE FROM users WHERE SAPIN IN (?)', [userIds])
 	}
 
 	module.uploadUsers = async (req, res, next) => {
-		//console.log(req.body);
-
-		console.log(req.file)
+		//console.log(req.file)
 		if (!req.file) {
-			return Promise.reject('Missing file')
+			throw 'Missing file'
 		}
-		var users = parseUsersCsv(req.file.buffer);
+		const users = parseUsersCsv(req.file.buffer)
 		//console.log(users);
 
-		if (users.length === 0) {
-			console.log('no users')
-			return {Count: 0}
+		let SQL = ''
+		if (users.length) {
+			SQL =
+				`INSERT INTO users (${Object.keys(users[0])}) VALUES ` +
+				users.map(u => {return '(' + db.escape(Object.values(u)) + ')'}).join(',') +
+				' ON DUPLICATE KEY UPDATE ' +
+				'Name=VALUES(Name), LastName=VALUES(LastName), FirstName=VALUES(FirstName), MI=VALUES(MI), Email=VALUES(Email), Status=VALUES(Status);'
 		}
-
-		const SQL = `INSERT INTO users (${Object.keys(users[0])}) VALUES ` +
-			users.map(u => {return '(' + db.escape(Object.values(u)) + ')'}).join(',') +
-			' ON DUPLICATE KEY UPDATE ' +
-			'Name=VALUES(Name), LastName=VALUES(LastName), FirstName=VALUES(FirstName), MI=VALUES(MI), Email=VALUES(Email), Status=VALUES(Status);' +
-			'SELECT * FROM users;';
-		const results = await db.query(SQL);
-		return results[1];
+		SQL += 'SELECT * FROM users;'
+		const results = await db.query(SQL)
+		return results[results.length - 1]
 	}
 
-	return module;
+	return module
 }

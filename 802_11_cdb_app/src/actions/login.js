@@ -1,4 +1,4 @@
-var axios = require('axios');
+import fetcher from '../lib/fetcher'
 
 export const LOGIN_GET_STATE = 'LOGIN_GET_STATE'
 export const LOGIN_GET_STATE_SUCCESS = 'LOGIN_GET_STATE_SUCCESS'
@@ -19,13 +19,10 @@ export function loginGetState() {
 		if (getState().login.InProgress) {
 			return null
 		}
-		dispatch(loginGetStateLocal());
+		dispatch(loginGetStateLocal())
 		try {
-			const response = await axios.get('/login')
-			if (response.data.status === 'OK') {
-				return dispatch(loginGetStateSuccess(response.data.data))
-			}
-			return dispatch(loginGetStateFailure(response.data.message))
+			const info = await fetcher.get('/login')
+			return dispatch(loginGetStateSuccess(info))
 		}
 		catch(error) {
 			return dispatch(loginGetStateFailure('Unable to get login state'))
@@ -41,11 +38,8 @@ export function login(username, password) {
 	return async (dispatch) => {
 		dispatch(loginStart())
 		try {
-			const response = await axios.post('/login', {username, password})
-			if (response.data.status === 'OK') {
-				return dispatch(loginSuccess(response.data.data))
-			}
-			return dispatch(loginFailure(response.data.message))
+			const info = await fetcher.post('/login', {username, password})
+			return dispatch(loginSuccess(info))
 		}
 		catch(error) {
 			return dispatch(loginFailure('Unable to login'))
@@ -61,13 +55,11 @@ export function logout() {
 	return async (dispatch) => {
 		dispatch(logoutStart())
 		try {
-			const response = await axios.post('/logout')
-			if (response.data.status === 'OK') {
-				return dispatch(logoutSuccess())
-			}
-			return dispatch(logoutFailure(response.data.message))
+			await fetcher.post('/logout')
+			return dispatch(logoutSuccess())
 		}
 		catch(error) {
+			console.log(error)
 			return dispatch(logoutFailure('Unable to logout'))
 		}
 	}

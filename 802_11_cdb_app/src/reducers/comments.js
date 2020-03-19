@@ -2,6 +2,8 @@ import {sortData, filterData} from '../filter'
 import {
 	SET_COMMENTS_FILTERS,
 	SET_COMMENTS_SORT,
+	SET_COMMENTS_SELECTED,
+	SET_COMMENTS_EXPANDED,
 	GET_COMMENTS,
 	GET_COMMENTS_SUCCESS,
 	GET_COMMENTS_FAILURE,
@@ -14,15 +16,15 @@ import {
 	UPDATE_COMMENT,
 	UPDATE_COMMENT_SUCCESS,
 	UPDATE_COMMENT_FAILURE,
-	ADD_RESOLUTION,
-	ADD_RESOLUTION_SUCCESS,
-	ADD_RESOLUTION_FAILURE,
+	ADD_RESOLUTIONS,
+	ADD_RESOLUTIONS_SUCCESS,
+	ADD_RESOLUTIONS_FAILURE,
 	UPDATE_RESOLUTIONS,
 	UPDATE_RESOLUTIONS_SUCCESS,
 	UPDATE_RESOLUTIONS_FAILURE,
-	DELETE_RESOLUTION,
-	DELETE_RESOLUTION_SUCCESS,
-	DELETE_RESOLUTION_FAILURE,
+	DELETE_RESOLUTIONS,
+	DELETE_RESOLUTIONS_SUCCESS,
+	DELETE_RESOLUTIONS_FAILURE,
 	UPLOAD_COMMENTS,
 	UPLOAD_COMMENTS_SUCCESS,
 	UPLOAD_COMMENTS_FAILURE
@@ -33,9 +35,11 @@ const defaultState = {
 	filters: {},
 	sortBy: [],
 	sortDirection: {},
-	commentDataValid: false,
-	commentData: [],
-	commentDataMap: [],
+	selected: [],
+	expanded: [],
+	commentsValid: false,
+	comments: [],
+	commentsMap: [],
 	getComments: false,
 	updateComment: false,
 	deleteComments: false,
@@ -44,8 +48,36 @@ const defaultState = {
 	importCommentsCount: undefined
 }
 
+function updateSelected(comments, selected) {
+	const newSelected = []
+	for (let s of selected) {
+		if (comments.find(c => c.CID === s)) {
+			// Keep it if it matches a comment exactly
+			newSelected.push(s)
+		}
+		else {
+			// If it is just the comment ID, then keep CIDs for all those comments
+			for (let c of comments) {
+				if (s === c.CommentID.toString()) {
+					newSelected.push(c.CID)
+				}
+			}
+		}
+	}
+	return newSelected
+}
+
+function updateComments(comments, updatedComments) {
+	/* Replace comments with the modified CommentID, maintaining increasing CommentID order */
+	const cids = updatedComments.map(c => c.CommentID)
+	return comments
+		.filter(c => !cids.includes(c.CommentID))
+		.concat(updatedComments)
+		.sort((c1, c2) => c1.CommentID - c2.CommentID)
+}
+
 function comments(state = defaultState, action) {
-	var newCommentData;
+	let newComments
 
 	switch (action.type) {
 		case SET_COMMENTS_SORT:
@@ -53,31 +85,44 @@ function comments(state = defaultState, action) {
 				...state,
 				sortBy: action.sortBy,
 				sortDirection: action.sortDirection,
-				commentDataMap: sortData(state.commentDataMap, state.commentData, action.sortBy, action.sortDirection)
+				commentsMap: sortData(state.commentsMap, state.comments, action.sortBy, action.sortDirection)
 			}
 		case SET_COMMENTS_FILTERS:
-			const filters = {...state.filters, ...action.filters};
+			const filters = {...state.filters, ...action.filters}
 			return {
 				...state,
 				filters,
-				commentDataMap: sortData(filterData(state.commentData, filters), state.commentData, state.sortBy, state.sortDirection)
+				commentsMap: sortData(filterData(state.comments, filters), state.comments, state.sortBy, state.sortDirection)
+			}
+		case SET_COMMENTS_SELECTED:
+			return {
+				...state,
+				selected: updateSelected(state.comments, action.selected)
+			}
+		case SET_COMMENTS_EXPANDED:
+			return {
+				...state,
+				expanded: action.expanded
 			}
 		case GET_COMMENTS:
 			return {
 				...state,
 				getComments: true,
 				ballotId: action.ballotId,
-				commentDataValid: false,
-				commentData: [],
-				commentDataMap: []
+				commentsValid: false,
+				comments: [],
+				commentsMap: [],
+				selected: state.ballotId !== action.ballotId? []: state.selected,
+				expanded: state.ballotId !== action.ballotId? []: state.expanded
 			}
 		case GET_COMMENTS_SUCCESS:
 			return {
 				...state,
 				getComments: false,
-				commentDataValid: true,
-				commentData: action.comments,
-				commentDataMap: sortData(filterData(action.comments, state.filters), action.comments, state.sortBy, state.sortDirection)
+				commentsValid: true,
+				comments: action.comments,
+				commentsMap: sortData(filterData(action.comments, state.filters), action.comments, state.sortBy, state.sortDirection),
+				selected: updateSelected(action.comments, state.selected)
 			}
 		case GET_COMMENTS_FAILURE:
 			return {...state, getComments: false}
@@ -89,14 +134,14 @@ function comments(state = defaultState, action) {
 					updateComment: true,
 				}
 			}
-			newCommentData = state.commentData.map(c =>
+			newComments = state.comments.map(c =>
 				(c.CommentID === action.comment.CommentID)? {...c, ...action.comment}: c
 				)
 			return {
 				...state,
 				updateComment: true,
-				commentData: newCommentData,
-				commentDataMap: sortData(filterData(newCommentData, state.filters), newCommentData, state.sortBy, state.sortDirection)
+				comments: newComments,
+				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection)
 			}
 		case UPDATE_COMMENT_SUCCESS:
 			return {...state, updateComment: false}
@@ -107,8 +152,9 @@ function comments(state = defaultState, action) {
 			return state.ballotId === action.ballotId? {
 					...state,
 					deleteComments: true,
-					commentData: [],
-					commentDataMap: []
+					comments: [],
+					commentsMap: [],
+					selected: []
 				}: {
 					...state,
 					deleteComments: true,
@@ -127,9 +173,10 @@ function comments(state = defaultState, action) {
 			return {
 				...state,
 				importComments: false,
-				commentDataValid: true,
-				commentData: action.comments,
-				commentDataMap: sortData(filterData(action.comments, state.filters), action.comments, state.sortBy, state.sortDirection)
+				commentsValid: true,
+				comments: action.comments,
+				commentsMap: sortData(filterData(action.comments, state.filters), action.comments, state.sortBy, state.sortDirection),
+				selected: updateSelected(action.comments, state.selected)
 			}
 		case IMPORT_COMMENTS_FAILURE:
 			return {...state, importComments: false}
@@ -143,32 +190,29 @@ function comments(state = defaultState, action) {
 			return {
 				...state,
 				uploadComments: false,
-				commentDataValid: true,
-				commentData: action.comments,
-				commentDataMap: sortData(filterData(action.comments, state.filters), action.comments, state.sortBy, state.sortDirection)
+				commentsValid: true,
+				comments: action.comments,
+				commentsMap: sortData(filterData(action.comments, state.filters), action.comments, state.sortBy, state.sortDirection),
+				selected: updateSelected(action.comments, state.selected)
 			}
 		case UPLOAD_COMMENTS_FAILURE:
 			return {...state, uploadComments: false}
 
-		case ADD_RESOLUTION:
+		case ADD_RESOLUTIONS:
 			return {...state, updateComment: true}
-		case ADD_RESOLUTION_SUCCESS:
+		case ADD_RESOLUTIONS_SUCCESS:
 			if (state.ballotId !== action.ballotId) {
 				return {...state, updateComment: false}
 			}
-
-			/* Replace comments with the modified CommentID, maintaining increasing CommentID order */
-			newCommentData = state.commentData
-								.filter(c => Math.floor(c.CommentID) !== action.commentId)
-								.concat(action.updatedComments)
-								.sort((c1, c2) => c1.CommentID - c2.CommentID)
+			newComments = updateComments(state.comments, action.updatedComments.concat(action.newComments))
 			return {
 				...state,
 				updateComment: false,
-				commentData: newCommentData,
-				commentDataMap: sortData(filterData(newCommentData, state.filters), newCommentData, state.sortBy, state.sortDirection)
+				comments: newComments,
+				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection),
+				selected: updateSelected(newComments, state.selected)
 			}
-		case ADD_RESOLUTION_FAILURE:
+		case ADD_RESOLUTIONS_FAILURE:
 			return {...state, updateComment: false}
 
 		case UPDATE_RESOLUTIONS:
@@ -177,43 +221,34 @@ function comments(state = defaultState, action) {
 			if (state.ballotId !== action.ballotId) {
 				return {...state, updateComment: false}
 			}
-			newCommentData = state.commentData.map(c => {
+			newComments = state.comments.map(c => {
 				const r = action.resolutions.find(r => r.CommentID === c.CommentID && r.ResolutionID === c.ResolutionID)
-				if (r) {
-					console.log('updated with ', r)
-					return {...c, ...r}
-				}
-				else {
-					return c
-				}
-			});
+				return r? {...c, ...r}: c
+			})
 			return {
 				...state,
 				updateComment: false,
-				commentData: newCommentData,
-				commentDataMap: sortData(filterData(newCommentData, state.filters), newCommentData, state.sortBy, state.sortDirection)
+				comments: newComments,
+				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection),
 			}
 		case UPDATE_RESOLUTIONS_FAILURE:
 			return {...state, updateComment: false}
 
-		case DELETE_RESOLUTION:
+		case DELETE_RESOLUTIONS:
 			return {...state, updateComment: true}
-		case DELETE_RESOLUTION_SUCCESS:
+		case DELETE_RESOLUTIONS_SUCCESS:
 			if (state.ballotId !== action.ballotId) {
 				return {...state, updateComment: false}
 			}
-			/* Replace comments with the modified CommentID, maintaining increasing CommentID order */
-			newCommentData = state.commentData
-								.filter(c => Math.floor(c.CommentID) !== action.commentId)
-								.concat(action.updatedComments)
-								.sort((c1, c2) => c1.CommentID - c2.CommentID)
+			newComments = updateComments(state.comments, action.updatedComments)
 			return {
 				...state,
 				updateComment: false,
-				commentData: newCommentData,
-				commentDataMap: sortData(filterData(newCommentData, state.filters), newCommentData, state.sortBy, state.sortDirection)
+				comments: newComments,
+				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection),
+				selected: updateSelected(newComments, state.selected)
 			}
-		case DELETE_RESOLUTION_FAILURE:
+		case DELETE_RESOLUTIONS_FAILURE:
 			return {...state, updateComment: false}
 
 		default:

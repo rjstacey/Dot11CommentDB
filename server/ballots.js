@@ -95,11 +95,8 @@ module.exports = function(db, rp, resultsModule) {
 	}
 
 	module.getBallot = async (req, res, next) => {
-		if (!req.params.hasOwnProperty('ballotId')) {
-			return Promise.reject('Missing parameter ballotId')
-		}
-		var id = req.params.ballotId;
-		const ballot = await db.query(GET_BALLOTS_SQL + ' WHERE BallotID=?', [id])
+		const {ballotId} = req.params
+		const ballot = await db.query(GET_BALLOTS_SQL + ' WHERE BallotID=?', [ballotId])
 		return reformatBallot(ballot)
 	}
 
@@ -223,17 +220,21 @@ module.exports = function(db, rp, resultsModule) {
 	}
 
 	module.deleteBallots = (req, res, next) => {
-		console.log(req.body);
+		console.log(req.body)
 
-		const ballotids = db.escape(req.body);
-		const SQL =
+		const ballotIds = req.body
+		if (!Array.isArray(ballotIds)) {
+			throw 'Expected array of ballot IDs'
+		}
+
+		return db.query(
 			'START TRANSACTION;' +
-			`DELETE FROM ballots WHERE BallotID IN (${ballotids});` +
-			`DELETE FROM comments WHERE BallotID IN (${ballotids});` +
-			`DELETE FROM resolutions WHERE BallotID IN (${ballotids});` +
-			`DELETE FROM results WHERE BallotID IN (${ballotids});` +
-			'COMMIT;'
-		return db.query(SQL)
+			'DELETE FROM ballots WHERE BallotID IN (?);' +
+			'DELETE FROM comments WHERE BallotID IN (?);' +
+			'DELETE FROM resolutions WHERE BallotID IN (?);' +
+			'DELETE FROM results WHERE BallotID IN (?);' +
+			'COMMIT;',
+			[ballotIds, ballotIds, ballotIds, ballotIds])
 	}
 
 	/*

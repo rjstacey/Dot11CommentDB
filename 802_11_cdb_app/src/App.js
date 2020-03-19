@@ -65,7 +65,7 @@ function App(props) {
 						<Route path="/" exact component={LoginForm} />
 						{access > 0 && <Route path="/Users/" component={Users} />}
 						{access > 0 && <Route path="/Voters/" exact component={VoterPools} />}
-						{access > 0 && <Route path="/Voters/:votingPoolId" component={Voters} />}
+						{access > 0 && <Route path="/Voters/:votingPoolType/:votingPoolName" component={Voters} />}
 						<Route path="/Ballots/" exact component={Ballots} />
 						<Route path="/Epolls/" component={Epolls} />
 						<Route path="/ImportEpoll/:epollNum" component={BallotDetail} />

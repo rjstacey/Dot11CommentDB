@@ -1,10 +1,10 @@
-var cheerio = require('cheerio');
-const csvParse = require('csv-parse/lib/sync');
-var ExcelJS = require('exceljs');
+const cheerio = require('cheerio')
+const csvParse = require('csv-parse/lib/sync')
+const ExcelJS = require('exceljs')
 
-function parsePollResultsCsv(pollResultsCsv) {
+function parseEpollResultsCsv(buffer) {
 
-	const p = csvParse(pollResultsCsv, {columns: false});
+	const p = csvParse(buffer, {columns: false});
 	if (p.length === 0) {
 		throw 'Got empty poll-results.csv';
 	}
@@ -25,7 +25,7 @@ function parsePollResultsCsv(pollResultsCsv) {
 	});
 }
 
-function parsePollResultsHtml(body) {
+function parseEpollResultsHtml(body) {
 	var $ = cheerio.load(body);
 	// If we get the "ePoll Status" page then parse the data table
 	// (use cheerio, which provides jQuery parsing)
@@ -53,6 +53,47 @@ function parsePollResultsHtml(body) {
 	}
 }
 
+const myProjectResultsHeader = [
+	'Name', 'EMAIL', 'Affiliation(s)', 'Voter Classification', 'Current Vote', 'Comments'
+]
+
+async function parseMyProjectResults(buffer, isExcel) {
+	var p = [] 	// an array of arrays
+	if (isExcel) {
+		var workbook = new ExcelJS.Workbook()
+		await workbook.xlsx.load(buffer)
+
+		workbook.getWorksheet(1).eachRow(row => {
+			p.push(row.values.slice(1, 7))
+		})
+	}
+	else {
+		throw "Can't handle .csv file"
+	}
+
+	if (p.length < 2) {
+		throw 'File has less than 2 rows'
+	}
+
+	p.shift()	// PAR #
+	if (myProjectResultsHeader.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].search(new RegExp(v, 'i')) === -1, false)) {
+		throw `Unexpected column headings ${p[0].join()}. Expected ${myProjectResultsHeader.join()}.`
+	}
+	p.shift()	// remove heading row
+
+	const results = p.map(c => {
+		return {
+			Name: c[0],
+			Email: c[1],
+			Affiliation: c[2],
+			Vote: c[4]
+		}
+	})
+
+	/* The SA results records all voters. We don't want to record votes for voters the pool that do not vote */
+	return results.filter(v => v.Vote !== 'None')
+}
+
 function appendStr(toStr, str) {
 	if (typeof toStr === 'string') {
 		return toStr + (toStr? ', ': '') + str
@@ -62,96 +103,79 @@ function appendStr(toStr, str) {
 	}
 }
 
-function colateResults(ballotSeries, voters=[]) {
-	var results = [];
-
-	if (!ballotSeries.length) {
-		throw 'ballot series list is empty'
-	}
-
-	if (voters.length) {
-		// This ballot has a voter pool
-		results = voters.slice();
-
-		// Collect each voters last vote
-		results.forEach(v => {
-			v.Vote = ''
-			v.Notes = ''
-			v.Name = v.FirstName + ' ' + v.LastName
-			r = ballotSeries[ballotSeries.length-1].results.find(r => r.SAPIN === v.SAPIN)
+function colateWGResults(ballotSeries, voters) {
+	// Collect each voters last vote
+	let results = []
+	for (let voter of voters) {
+		let v = {}
+		v.SAPIN = voter.SAPIN
+		v.Email = voter.Email
+		v.Status = voter.Status
+		v.Vote = ''
+		v.Notes = ''
+		v.Name = voter.FirstName + ' ' + voter.LastName
+		let r = ballotSeries[ballotSeries.length-1].results.find(r => r.SAPIN === voter.SAPIN)
+		if (r) {
+			// If the voter voted in this round, record the vote
+			v.Vote = r.Vote
+			v.CommentCount = r.CommentCount
+			v.Affiliation = r.Affiliation
+		}
+		else {
+			// Otherwise, see if they voted under a different SA PIN
+			r = ballotSeries[ballotSeries.length - 1].results.find(r => {
+				// We detect this as a vote with different SA PIN, but same email address
+				return r.SAPIN !== voter.SAPIN &&
+					   r.Email.toLowerCase() === voter.Email.toLowerCase()
+			})
 			if (r) {
-				// If the voter voted in this round, record the vote
+				v.Notes = 'Voted with SAPIN=' + r.SAPIN
 				v.Vote = r.Vote
-				v.CommentCount = r.CommentCount
 				v.Affiliation = r.Affiliation
+				v.CommentCount = r.CommentCount
+				r.Notes = 'In pool as SAPIN=' + voter.SAPIN
 			}
 			else {
-				// Otherwise, see if they voted under a different SA PIN
-				r = ballotSeries[ballotSeries.length - 1].results.find(r => {
-					// We detect this as a vote with different SA PIN, but same email address
-					return r.SAPIN !== v.SAPIN &&
-						   r.Email.toLowerCase() === v.Email.toLowerCase()
-				})
-				if (r) {
-					v.Notes = 'Voted with SAPIN=' + r.SAPIN
-					v.Vote = r.Vote
-					v.Affiliation = r.Affiliation
-					v.CommentCount = r.CommentCount
-					r.Notes = 'In pool as SAPIN=' + v.SAPIN
-				}
-				else {
-					// Otherwise, find their last vote and record that
-					for (let i = ballotSeries.length - 2; i >= 0; i--) {
-						r = ballotSeries[i].results.find(r => r.SAPIN === v.SAPIN)
-						if (r && r.Vote) {
-							v.Vote = r.Vote
-							v.CommentCount = r.CommentCount
-							v.Affiliation = r.Affiliation
-							v.Notes = 'From ' + ballotSeries[i].BallotID
-							break
-						}
+				// Otherwise, find their last vote and record that
+				for (let i = ballotSeries.length - 2; i >= 0; i--) {
+					r = ballotSeries[i].results.find(r => r.SAPIN === voter.SAPIN)
+					if (r && r.Vote) {
+						v.Vote = r.Vote
+						v.CommentCount = r.CommentCount
+						v.Affiliation = r.Affiliation
+						v.Notes = 'From ' + ballotSeries[i].BallotID
+						break
 					}
 				}
 			}
-			
-			// If this is an ExOfficio voter, then note that
-			if (v.Vote && /^ExOfficio/.test(v.Status)) {
-				v.Notes = appendStr(v.Notes, v.Status)
-			}
-		})
+		}
 
-		// Add results for those that voted but are not in the pool)
-		ballotSeries[ballotSeries.length - 1].results.forEach(r => {
-			if (results.findIndex(v => v.SAPIN === r.SAPIN) < 0) {
-				if (!r.Notes) {	// might be "In pool as..."
-					r.Notes = 'Not in pool';
-				}
-				results.push(r)
-			}
-		})
+		// If this is an ExOfficio voter, then note that
+		if (v.Vote && /^ExOfficio/.test(voter.Status)) {
+			v.Notes = appendStr(v.Notes, voter.Status)
+		}
 
-		// Remove ExOfficio if they did not vote
-		results = results.filter(v => (!/^ExOfficio/.test(v.Status) || v.Vote))
-	}
-	else {
-		// No voters pool, so only the votes from ballot count
-		results = ballotSeries[ballotSeries.length - 1].results.slice()
-		results.forEach(v => {
-			v.Notes = ''
-			if (/Abstain/.test(v.Vote) && !/^Abstain.*expertise/.test(v.Vote)) {
-				v.Notes = 'Abstain reason';
-			}
-			if (/^Disapprove/.test(v.Vote) && v.CommentCount === 0) {
-				v.Notes = 'Without comment';
-			}
-		})
+		results.push(v)
 	}
 
-	return results;
+	// Add results for those that voted but are not in the pool)
+	for (let r of ballotSeries[ballotSeries.length - 1].results) {
+		if (results.findIndex(v => v.SAPIN === r.SAPIN) < 0) {
+			if (!r.Notes) {	// might be "In pool as..."
+				r.Notes = 'Not in pool'
+			}
+			results.push(r)
+		}
+	}
+
+	// Remove ExOfficio if they did not vote
+	results = results.filter(v => (!/^ExOfficio/.test(v.Status) || v.Vote))
+	return results
 }
 
-function summarizeResults(results) {
-	var summary = {
+function summarizeWGResults(results) {
+
+	let summary = {
 		Approve: 0,
 		Disapprove: 0,
 		Abstain: 0,
@@ -161,31 +185,31 @@ function summarizeResults(results) {
 		ReturnsPoolSize: 0,
 		TotalReturns: 0,
 		BallotReturns: 0
-	};
+	}
 
-	results.forEach(r => {
+	for (let r of results) {
 		if (/[Ii]n pool/.test(r.Notes)) {
 			if (/Not in pool/.test(r.Notes)) {
-				summary.InvalidVote++;
+				summary.InvalidVote++
 			}
 		}
 		else {
 			if (/^Approve/.test(r.Vote)) {
-					summary.Approve++;
+					summary.Approve++
 			}
 			else if (/^Disapprove/.test(r.Vote)) {
 				if (r.CommentCount) {
-					summary.Disapprove++;
+					summary.Disapprove++
 				}
 				else {
-					summary.InvalidDisapprove++;
+					summary.InvalidDisapprove++
 				}
 			}
 			else if (/^Abstain.*expertise/.test(r.Vote)) {
-				summary.Abstain++;
+				summary.Abstain++
 			}
 			else if (/^Abstain/.test(r.Vote)) {
-				summary.InvalidAbstain++;
+				summary.InvalidAbstain++
 			}
 
 			// All 802.11 members (Status='Voter') count toward the returns pool
@@ -199,9 +223,115 @@ function summarizeResults(results) {
 				summary.ReturnsPoolSize++
 			}
 		}
-	})
+	}
 	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain;
-	return summary;
+
+	return summary
+}
+
+function colateSAResults(ballotSeries, voters) {
+	// Collect each voters last vote
+	let results = []
+	for (let voter of voters) {
+		let v = {}
+		v.Email = voter.Email
+		v.Name = voter.Name
+		v.Vote = ''
+		v.Notes = ''
+		r = ballotSeries[ballotSeries.length-1].results.find(r => r.Email === v.Email)
+		if (r) {
+			// If the voter voted in this round, record the vote
+			v.Vote = r.Vote
+			v.CommentCount = r.CommentCount
+			v.Affiliation = r.Affiliation
+		}
+		else {
+			// Otherwise, find their last vote and record that
+			for (let i = ballotSeries.length - 2; i >= 0; i--) {
+				r = ballotSeries[i].results.find(r => r.Email === v.Email)
+				if (r && r.Vote) {
+					v.Vote = r.Vote
+					v.CommentCount = r.CommentCount
+					v.Affiliation = r.Affiliation
+					v.Notes = 'From ' + ballotSeries[i].BallotID
+					break
+				}
+			}
+		}
+
+		results.push(v)
+	}
+
+	return results
+}
+
+function summarizeSAResults(results) {
+
+	let summary = {
+		Approve: 0,
+		Disapprove: 0,
+		Abstain: 0,
+		InvalidVote: 0,
+		InvalidAbstain: 0,
+		InvalidDisapprove: 0,
+		ReturnsPoolSize: 0,
+		TotalReturns: 0,
+		BallotReturns: 0
+	}
+
+	for (let r of results) {
+		if (/^Approve/.test(r.Vote)) {
+				summary.Approve++
+		}
+		else if (/^Disapprove/.test(r.Vote)) {
+			if (r.CommentCount) {
+				summary.Disapprove++
+			}
+			else {
+				summary.InvalidDisapprove++
+			}
+		}
+		else if (/^Abstain/.test(r.Vote)) {
+			summary.Abstain++
+		}
+	}
+	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.InvalidDisapprove + summary.Abstain
+
+	return summary
+}
+
+function summarizeBallotResults(results) {
+	let summary = {
+		Approve: 0,
+		Disapprove: 0,
+		Abstain: 0,
+		InvalidVote: 0,
+		InvalidAbstain: 0,
+		InvalidDisapprove: 0,
+		ReturnsPoolSize: 0,
+		TotalReturns: 0,
+		BallotReturns: 0
+	}
+
+	for (let r of results) {
+		if (/^Approve/.test(r.Vote)) {
+				summary.Approve++
+		}
+		else if (/^Disapprove/.test(r.Vote)) {
+			if (r.CommentCount) {
+				summary.Disapprove++
+			}
+			else {
+				summary.InvalidDisapprove++
+			}
+		}
+		else if (/^Abstain/.test(r.Vote)) {
+			summary.Abstain++
+		}
+	}
+	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain
+
+	return summary
 }
 
 function populateResultsWorksheet(ws, results) {
@@ -302,31 +432,27 @@ function populateResultsWorksheet(ws, results) {
 }
 
 module.exports = function(db, rp) {
-	var module = {};
+	var module = {}
 
-	module.getResultsLocal = async function(ballotId) {
+	module.getResultsLocal = async (ballotId) => {
 
 		if (ballotId === undefined) {
-			return Promise.reject('Missing parameter BallotID');
+			throw 'Missing parameter BallotID'
 		}
 
-		async function recursiveBallotResultsGet(ballotSeries, ballotId) {
+		async function recursiveBallotSeriesGet(ballotSeries, ballotId) {
 			const results = await db.query(
-				'SELECT BallotID, VotingPoolID, PrevBallotID FROM ballots WHERE BallotID=?; ' +
-				'SELECT r.*, (SELECT COUNT(*) FROM comments AS c WHERE BallotID=? AND c.CommenterSAPIN = r.SAPIN) AS CommentCount FROM results AS r WHERE BallotID=?;',
-				[ballotId, ballotId, ballotId]);
+				'SELECT BallotID, Type, VotingPoolID, PrevBallotID FROM ballots WHERE BallotID=?; ' +
+				'SELECT r.*, (SELECT COUNT(*) FROM comments AS c WHERE BallotID=? AND ((c.CommenterSAPIN IS NOT NULL AND c.CommenterSAPIN = r.SAPIN) OR (c.CommenterEmail IS NOT NULL AND c.CommenterEmail = r.Email))) AS CommentCount FROM results AS r WHERE BallotID=?;',
+				[ballotId, ballotId, ballotId])
 
 			if (results[0].length === 0) {
-				return ballotSeries;
+				return ballotSeries
 			}
+
 			var b = Object.assign({}, results[0][0], {results: results[1]})
-			ballotSeries.unshift(b);
-			if (b.PrevBallotID) {
-				return recursiveBallotResultsGet(ballotSeries, b.PrevBallotID);
-			}
-			else {
-				return ballotSeries;
-			}
+			ballotSeries.unshift(b)
+			return b.PrevBallotID? recursiveBallotSeriesGet(ballotSeries, b.PrevBallotID): ballotSeries
 		}
 
 		// Get ballot information
@@ -334,42 +460,55 @@ module.exports = function(db, rp) {
 			'SELECT *, (SELECT COUNT(*) FROM results WHERE results.BallotID=?) AS BallotReturns FROM ballots WHERE BallotID=?',
 			[ballotId, ballotId]
 			)
-		var ballot = results[0];
+		var ballot = results[0]
 
-		const ballotSeries = await recursiveBallotResultsGet([], ballotId)	// then get results from each ballot in series
+		const ballotSeries = await recursiveBallotSeriesGet([], ballotId)	// then get results from each ballot in series
 		if (ballotSeries.length === 0) {
-			return Promise.reject('No such ballot')
+			throw 'No such ballot'
 		}
 
-		var votingPoolSize;
-		const votingPoolId  = ballotSeries[0].VotingPoolID;
-		if (votingPoolId) {
+		let votingPoolSize, summary
+		const type = ballotSeries[0].Type
+		const votingPoolId  = ballotSeries[0].VotingPoolID
+		if (type === 1) {	// initial WG ballot
 			// if there is a voting pool, get that
 			const voters = await db.query(
-				'SELECT SAPIN, LastName, FirstName, MI, Email, Status FROM voters WHERE VotingPoolID=?',
+				'SELECT SAPIN, LastName, FirstName, MI, Email, Status FROM wgVoters WHERE VotingPoolID=?',
 				[votingPoolId]
-				);
+				)
 			// voting pool size excludes ExOfficio; they are allowed to vote, but don't affect returns
-			votingPoolSize = voters.filter(v => !/^ExOfficio/.test(v.Status)).length;
-			results = colateResults(ballotSeries, voters)	// colate results against voting pool and prior ballots in series
+			votingPoolSize = voters.filter(v => !/^ExOfficio/.test(v.Status)).length
+			results = colateWGResults(ballotSeries, voters)	// colate results against voting pool and prior ballots in series
+			summary = summarizeWGResults(results)
+		}
+		else if (type === 3) {	// initial SA ballot
+			// if there is a voting pool, get that
+			const voters = await db.query(
+				'SELECT Email, Name FROM saVoters WHERE VotingPoolID=?',
+				[votingPoolId]
+				)
+			votingPoolSize = voters.length
+			results = colateSAResults(ballotSeries, voters)	// colate results against voting pool and prior ballots in series
+			summary = summarizeSAResults(results)
+			summary.ReturnsPoolSize = votingPoolSize
 		}
 		else {
-			votingPoolSize = 0;
-			results = colateResults(ballotSeries)	// colate results for just this ballot
+			votingPoolSize = 0
+			results = ballotSeries[ballotSeries.length - 1].results	// colate results for just this ballot
+			summary = summarizeBallotResults(results)
 		}
 
 		//console.log(ballot)
-		var summary = summarizeResults(results)
-		summary.BallotReturns = ballot.BallotReturns;
-		delete ballot.BallotReturns;
+		summary.BallotReturns = ballot.BallotReturns
+		delete ballot.BallotReturns
 
 		/* Update results summary in ballots table if different */
-		const ResultsSummary = JSON.stringify(summary);
+		const ResultsSummary = JSON.stringify(summary)
 		if (ResultsSummary !== ballot.ResultsSummary) {
 			await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [ResultsSummary, ballotId])	
 		}
 
-		ballot.Results = JSON.parse(ResultsSummary);
+		ballot.Results = JSON.parse(ResultsSummary)
 		delete ballot.ResultsSummary
 
 		return {
@@ -383,38 +522,28 @@ module.exports = function(db, rp) {
 	}
 
 	module.getResults = function (req) {
-		return module.getResultsLocal(req.query.BallotID);
+		const {ballotId} = req.params
+		return module.getResultsLocal(ballotId);
 	}
 
-	module.deleteResults = function (req, res, next) {
-		console.log(req.body);
-
-		const ballotId = req.body.BallotID;
-		if (!ballotId) {
-			return Promise.reject('Missing parameter BallotID');
-		}
-
+	module.deleteResults = (req, res, next) => {
+		const {ballotId} = req.params;
 		return db.query('DELETE FROM results WHERE BallotID=?; UPDATE ballots SET ResultsSummary=NULL WHERE BallotID=?', [ballotId, ballotId])
 	}
 
-	module.importResults = async (req, res, next) => {
-		console.log(req.body);
-
-		if (!req.body.hasOwnProperty('BallotID') ||
-			!req.body.hasOwnProperty('EpollNum')) {
-			return Promise.reject('Missing parameter BallotID and/or EpollNum.')
+	module.importEpollResults = async (req, res, next) => {
+		const sess = req.session
+		if (sess.access <= 1) {
+			throw 'Insufficient karma'
 		}
-		var ballotId = req.body.BallotID;
-		var epollNum = req.body.EpollNum;
 
-		const sess = req.session;
-
+		const {ballotId, epollNum} = req.params
 		const p1 = rp.get({
 			url: `https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`,
 			jar: sess.ieeeCookieJar,
 			resolveWithFullResponse: true,
 			simple: false
-		});
+		})
 		const p2 = rp.get({
 			url: `https://mentor.ieee.org/802.11/poll-status?p=${epollNum}`,
 			jar: sess.ieeeCookieJar,
@@ -424,13 +553,13 @@ module.exports = function(db, rp) {
 
 		var ieeeRes = await p1
 		if (ieeeRes.headers['content-type'] !== 'text/csv') {
-			return Promise.reject('Not logged in')
+			throw 'Not logged in'
 		}
-		var pollResults = parsePollResultsCsv(ieeeRes.body);
+		var pollResults = parseEpollResultsCsv(ieeeRes.body)
 
 		ieeeRes = await p2
 		/* Get Name and Affiliation from HTML (not present in .csv) */
-		var pollResults2 = parsePollResultsHtml(ieeeRes.body)
+		var pollResults2 = parseEpollResultsHtml(ieeeRes.body)
 
 		for (let r of pollResults) {
 			h = pollResults2.find(h => h.Email === r.Email)
@@ -440,147 +569,98 @@ module.exports = function(db, rp) {
 
 		await db.query('DELETE FROM results WHERE BallotID=?', [ballotId])
 
-		if (pollResults.length === 0) {
-			return Promise.resolve(null);
-		}
-
-		var SQL = `INSERT INTO results (BallotID, ${Object.keys(pollResults[0])}) VALUES`;
-		pollResults.forEach((c, i) => {
-			SQL += (i > 0? ',': '') + `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`;
-		});
-		SQL += ";";
-		try {
-			await db.query(SQL)
-		}
-		catch(err) {
-			return Promise.reject(err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err)
+		if (pollResults.length) {
+			const SQL =
+				`INSERT INTO results (BallotID, ${Object.keys(pollResults[0])}) VALUES` +
+				pollResults.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(',') +
+				';'
+			try {
+				await db.query(SQL)
+			}
+			catch(err) {
+				throw err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err
+			}
 		}
 		const Results = await module.getResultsLocal(ballotId)
 		await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [JSON.stringify(Results.summary), ballotId])
 		return Results;
 	}
 
-	module.uploadResults = function (req, res, next) {
-		console.log(req.body);
-
-		const ballotId = req.body.BallotID;
-		if (!ballotId) {
-			return Promise.reject('Missing parameter BallotID')
-		}
-		const votingPoolId = req.body.VotingPoolID;
+	module.uploadResults = async (req, res, next) => {
+		const {ballotId} = req.params
+		const type = parseInt(req.params.type, 10)
 
 		console.log(req.file)
 		if (!req.file) {
-			return Promise.reject('Missing file')
-		}
-		var results = parsePollResults(req.file.buffer);
-		console.log(results);
-
-		if (results.length === 0) {
-			console.log('no results')
-			return {Count: 0}
+			throw 'Missing file'
 		}
 
-		var INSERT_RESULTS_SQL = `INSERT INTO results (BallotID, ${Object.keys(results[0])}) VALUES`;
-		results.forEach((c, i) => {
-			INSERT_RESULTS_SQL += (i > 0? ',': '') + `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`;
-		});
-
-		var GET_RESULTS_SQL;
-		if (votingPoolId) {
-			GET_RESULTS_SQL = 
-				`(SELECT COUNT(*) FROM voters AS v LEFT JOIN results AS r ON v.SAPIN = r.SAPIN WHERE v.VotingPoolID = ${votingPoolId} AND r.BallotID = ${ballotId} AND r.Vote LIKE "Approve") AS Approve, ` +
-				`(SELECT COUNT(*) FROM voters AS v LEFT JOIN results AS r ON v.SAPIN = r.SAPIN WHERE v.VotingPoolID = ${votingPoolId} AND r.BallotID = ${ballotId} AND r.Vote LIKE "Disapprove") AS Disapprove, ` +
-				`(SELECT COUNT(*) FROM voters AS v LEFT JOIN results AS r ON v.SAPIN = r.SAPIN WHERE v.VotingPoolID = ${votingPoolId} AND r.BallotID = ${ballotId} AND r.Vote LIKE "Abstain%expertise") AS Abstain, ` +
-				`(SELECT COUNT(*) FROM voters AS v LEFT JOIN results AS r ON v.SAPIN = r.SAPIN WHERE v.VotingPoolID = ${votingPoolId} AND r.BallotID = ${ballotId} AND r.Vote LIKE "Abstain%" AND r.Vote NOT LIKE "Abstain%expertise") AS InvalidAbstain, ` +
-				`(SELECT COUNT(*) FROM results AS r WHERE r.BallotID = ${ballotId} AND r.SAPIN NOT IN (SELECT SAPIN FROM voters AS v WHERE v.VotingPoolID = ${votingPoolId})) AS InvalidVote`
+		let results
+		if (type < 3) {
+			results = parseEpollResults(req.file.buffer)
 		}
 		else {
-			GET_RESULTS_SQL =
-				'SELECT ' +
-					'COUNT(*) AS Total, ' +
-					'SUM(CASE WHEN Vote LIKE "Approve" THEN 1 ELSE 0 END) AS Approve, ' +
-					'SUM(CASE WHEN Vote LIKE "Disapprove" THEN 1 ELSE 0 END) AS Disapprove, ' +
-					'SUM(CASE WHEN Vote LIKE "Abstain%" THEN 1 ELSE 0 END) AS Abstain ' +
-				`FROM results WHERE BallotID = "${ballotId}"`
+			const isExcel = req.file.originalname.search(/\.xlsx$/i) !== -1
+			results = await parseMyProjectResults(req.file.buffer, isExcel)
 		}
+		//console.log(results);
 
-		return db.query(INSERT_RESULTS_SQL + ';' + GET_RESULTS_SQL + ';')
-			.then(results => {
-				if (results.length != 2 || results[1].length != 1) {
-					return Promise.reject('Unexpected SQL query result')
-				}
-				return results[1][0];
-			})
-			.catch(err => {
-				return Promise.reject(err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err)
-			});
+		await db.query('DELETE FROM results WHERE BallotID=?', [ballotId])
+
+		if (results.length) {
+			const SQL =
+				`INSERT INTO results (BallotID, ${Object.keys(results[0])}) VALUES` +
+				results.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(',') +
+				';'
+			try {
+				await db.query(SQL)
+			}
+			catch(err) {
+				throw err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err
+			}
+		}
+		console.log(ballotId)
+		const Results = await module.getResultsLocal(ballotId)
+		await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [JSON.stringify(Results.summary), ballotId])
+		return Results
 	}
 
-	module.summarizeResults = (req, res, next) => {
-		if (!req.body.hasOwnProperty('BallotID')) {
-      		res.status(200).send({
-      			status: 'Error',
-      			message: "Missing parameter BallotID"
-      		});
-			return;
-		}
-		var ballotId = req.body.BallotID;
-
-		SQL = 'SELECT COUNT(*) FROM results WHERE Vote LIKE "Approve" AND BallotID=${ballotID} AS Y,' +
-			'SELECT COUNT(*) FROM results WHERE Vote LIKE "Disapprove" AND BallotID=${ballotID} AS N,' +
-			'SELECT COUNT(*) FROM results WHERE Vote LIKE "Abstain" AND BallotID=${ballotID} AS A;';
-		db.query(SQL)
-			.then(result => {
-				res.status(200).send({
-					status: 'OK',
-					data: result
-				});
-			})
-			.catch(err => {
-				res.status(200).send({
-					status: 'Error',
-					message: typeof err === 'string'? err: JSON.stringify(err)
-				});
-			});
-	}
-
-	module.exportResults = (req, res, next) => {
-		var p
+	module.exportResults = async (req, res, next) => {
+		let results
+		let fileNamePrefix = ''
 		if (req.query.hasOwnProperty('BallotID')) {
 			const ballotId = req.query.BallotID
-			p = module.getResultsLocal(ballotId)
-				.then(result => [result])	// turn parameter into an array
+			fileNamePrefix = ballotId
+			const result = await module.getResultsLocal(ballotId)
+			results = [result]	// turn parameter into an array
 		}
 		else if (req.query.hasOwnProperty('BallotIDs')) {
 			const ballotIds = req.query.BallotIDs
-			p = Promise.all(ballotIds.map(ballotId => module.getResultsLocal(ballotId)))
+			fileNamePrefix = ballotIds.join('_')
+			results = await Promise.all(ballotIds.map(ballotId => module.getResultsLocal(ballotId)))
 		}
 		else if (req.query.hasOwnProperty('Project')) {
 			const project = req.query.Project
-			p = db.query('SELECT BallotID FROM ballots WHERE Project=?', [project])
-				.then(results => {
-					return Promise.all(results.map(r => module.getResultsLocal(r.BallotID)))
-				})
+			fileNamePrefix = project
+			results = await db.query('SELECT BallotID FROM ballots WHERE Project=?', [project])
+			results = await Promise.all(results.map(r => module.getResultsLocal(r.BallotID)))
 		}
 		else {
-			p = Promise.reject('Missing parameter BallotID, BallotIDs or Project.')
+			throw 'Missing parameter BallotID, BallotIDs or Project'
 		}
-		return p
-			.then(summaries => {
-				var wb = new ExcelJS.Workbook()
-				wb.creator = '802.11';
-				summaries.forEach(s => {
-					var ws = wb.addWorksheet(s.BallotID)
-					populateResultsWorksheet(ws, s)
-				})
-				return wb.xlsx.writeBuffer()
-			})
-			.then(buffer => {
-				res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-				res.status(200).send(buffer)
-			})
+
+		let wb = new ExcelJS.Workbook()
+		wb.creator = '802.11'
+		for (let r of results) {
+			let ws = wb.addWorksheet(r.BallotID)
+			populateResultsWorksheet(ws, r)
+		}
+
+		res.attachment(fileNamePrefix + '_results.xlsx')
+		
+		await wb.xlsx.write(res)
+		res.end()
 	}
 
-	return module;
+	return module
 }

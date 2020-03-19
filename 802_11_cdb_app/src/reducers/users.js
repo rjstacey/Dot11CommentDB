@@ -2,6 +2,7 @@ import {sortData, filterData} from '../filter'
 import {
 	SET_USERS_FILTERS,
 	SET_USERS_SORT,
+	SET_USERS_SELECTED,
 	GET_USERS,
 	GET_USERS_SUCCESS,
 	GET_USERS_FAILURE,
@@ -23,9 +24,10 @@ const defaultState = {
 	filters: {},
 	sortBy: [],
 	sortDirection: {},
-	usersDataValid: false,
-	usersData: [],
-	usersDataMap: [],
+	selected: [],
+	usersValid: false,
+	users: [],
+	usersMap: [],
 	getUsers: false,
 	updateUsers: false,
 	addUsers: false,
@@ -33,8 +35,12 @@ const defaultState = {
 	deleteUsers: false
 }
 
+function updateSelected(users, selected) {
+	return selected.filter(s => users.find(u => u.SAPIN === s))
+}
+
 function users(state = defaultState, action) {
-	var newUsersData, userIds;
+	var users, userIds
 
 	switch (action.type) {
 		case SET_USERS_SORT:
@@ -42,14 +48,19 @@ function users(state = defaultState, action) {
 				...state,
 				sortBy: action.sortBy,
 				sortDirection: action.sortDirection,
-				usersDataMap: sortData(state.usersDataMap, state.usersData, action.sortBy, action.sortDirection)
+				usersMap: sortData(state.usersMap, state.users, action.sortBy, action.sortDirection)
 			}
 		case SET_USERS_FILTERS:
-			const filters = {...state.filters, ...action.filters};
+			const filters = {...state.filters, ...action.filters}
 			return {
 				...state,
 				filters,
-				usersDataMap: sortData(filterData(state.usersData, filters), state.usersData, state.sortBy, state.sortDirection)
+				usersMap: sortData(filterData(state.users, filters), state.users, state.sortBy, state.sortDirection)
+			}
+		case SET_USERS_SELECTED:
+			return {
+				...state,
+				selected: updateSelected(state.users, action.selected)
 			}
 		case GET_USERS:
 			return {...state, getUsers: true}
@@ -57,22 +68,23 @@ function users(state = defaultState, action) {
 			return {
 				...state,
 				getUsers: false,
-				usersDataValid: true,
-				usersData: action.users,
-				usersDataMap: sortData(filterData(action.users, state.filters), action.users, state.sortBy, state.sortDirection)
+				usersValid: true,
+				users: action.users,
+				usersMap: sortData(filterData(action.users, state.filters), action.users, state.sortBy, state.sortDirection),
+				selected: updateSelected(action.users, state.selected)
 			}
 		case GET_USERS_FAILURE:
 			return {...state, getUsers: false}
 
 		case UPDATE_USER:
-			newUsersData = state.usersData.map(u =>
-				(u.UserID === action.user.UserID)? Object.assign({}, u, action.user): u
+			users = state.users.map(u =>
+				(u.SAPIN === action.SAPIN)? Object.assign({}, u, action.user): u
 				)
 			return {
 				...state,
 				updateUser: true,
-				usersData: newUsersData,
-				usersDataMap: sortData(filterData(newUsersData, state.filters), newUsersData, state.sortBy, state.sortDirection)
+				users,
+				usersMap: sortData(filterData(users, state.filters), users, state.sortBy, state.sortDirection)
 			}
 		case UPDATE_USER_SUCCESS:
 			return {...state, updateUser: false}
@@ -82,25 +94,26 @@ function users(state = defaultState, action) {
 		case ADD_USER:
 			return {...state, addUser: true}
 		case ADD_USER_SUCCESS:
-			newUsersData = state.usersData.slice()
-			newUsersData.push(action.user)
+			users = state.users.slice()
+			users.push(action.user)
 			return {
 				...state,
 				addUser: false,
-				usersData: newUsersData,
-				usersDataMap: sortData(filterData(newUsersData, state.filters), newUsersData, state.sortBy, state.sortDirection)
+				users: users,
+				usersMap: sortData(filterData(users, state.filters), users, state.sortBy, state.sortDirection)
 			}
 		case ADD_USER_FAILURE:
 			return {...state, addUsers: false}
 
 		case DELETE_USERS:
-			userIds = (action.userIds instanceof Array)? action.userIds: [action.userIds];
-			newUsersData = state.usersData.filter(u => !userIds.includes(u.UserID));
+			userIds = action.userIds
+			users = state.users.filter(u => !userIds.includes(u.SAPIN))
 			return {
 				...state,
 				deleteUsers: true,
-				usersData: newUsersData,
-				usersDataMap: sortData(filterData(newUsersData, state.filters), newUsersData, state.sortBy, state.sortDirection),
+				users: users,
+				usersMap: sortData(filterData(users, state.filters), users, state.sortBy, state.sortDirection),
+				selected: updateSelected(users, state.selected)
 			}
 		case DELETE_USERS_SUCCESS:
 			return {...state, deleteUsers: false}
@@ -113,9 +126,10 @@ function users(state = defaultState, action) {
 			return {
 				...state,
 				uploadUsers: false,
-				usersDataValid: true,
-				usersData: action.users,
-				usersDataMap: sortData(filterData(action.users, state.filters), action.users, state.sortBy, state.sortDirection)
+				usersValid: true,
+				users: action.users,
+				usersMap: sortData(filterData(action.users, state.filters), action.users, state.sortBy, state.sortDirection),
+				selected: updateSelected(action.users, state.selected)
 			}
 		case UPLOAD_USERS_FAILURE:
 			return {...state, uploadUsers: false}

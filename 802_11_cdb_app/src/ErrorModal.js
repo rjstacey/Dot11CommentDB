@@ -33,4 +33,4 @@ function mapStateToProps(state) {
 		errMsg: errMsg.length? errMsg[0]: null
 	}
 }
-export default connect(mapStateToProps)(ErrorModal);
+export default connect(mapStateToProps)(ErrorModal)

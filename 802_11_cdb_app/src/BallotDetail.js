@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 import ConfirmModal from './ConfirmModal';
 import {ActionButton} from './Icons';
 import {updateBallot, addBallot, getBallots} from './actions/ballots';
-import {getVotingPool} from './actions/voters';
+import {getVotingPools} from './actions/voters';
 import {importResults, uploadResults, deleteResults} from './actions/results';
 import {importComments, uploadComments, deleteComments} from './actions/comments';
 import styles from './BallotDetail.css';
@@ -22,7 +22,7 @@ function defaultBallot() {
 		Topic: '',
 		Start: today.toISOString(),
 		End: today.toISOString(),
-		VotingPoolID: 0,
+		VotingPoolID: '',
 		PrevBallotID: ''}
 }
 
@@ -84,11 +84,11 @@ function BallotDetail(props) {
 
 	/* On mount, make sure we have the ballots and voting pools loaded */
 	useEffect(() => {
-		if (!props.ballotsDataValid) {
+		if (!props.ballotsValid) {
 			props.dispatch(getBallots())
 		}
-		if (!props.votingPoolDataValid) {
-			props.dispatch(getVotingPool())
+		if (!props.votingPoolsValid) {
+			props.dispatch(getVotingPools())
 		}
 	}, [])
 
@@ -96,13 +96,13 @@ function BallotDetail(props) {
 	 * reload the ballot from ballot data or epoll data as appropriate. */
 	useEffect(() => {
 		if (ballotId) {
-			const b = props.ballotsData.find(b => b.BallotID === ballotId)
+			const b = props.ballots.find(b => b.BallotID === ballotId)
 			if (b) {
 				setBallot(b)
 			}
 		}
 		else if (epollNum) {
-			const e = props.epollsData.find(e => e.EpollNum === epollNum)
+			const e = props.epolls.find(e => e.EpollNum === epollNum)
 			if (e) {
 				const b = {
 					Project: '',
@@ -118,7 +118,7 @@ function BallotDetail(props) {
 				setBallot(b)
 			}
 		}
-	}, [props.ballotsData, props.epollsData])
+	}, [props.ballots, props.epolls])
 
 	function change(e) {
 		const {name, value} = e.target;
@@ -138,9 +138,9 @@ function BallotDetail(props) {
 	}
 
 	async function submit(e) {
-		let action = null;
+		let action;
 		if (ballotId) {
-			const b = props.ballotsData.find(b => b.BallotID === ballotId)
+			const b = props.ballots.find(b => b.BallotID === ballotId)
 			if (b) {
 				let changed = shallowDiff(b, ballot)
 				if (changed !== {}) {
@@ -176,7 +176,7 @@ function BallotDetail(props) {
 			props.dispatch(importResults(ballot.BallotID, ballot.EpollNum))
 		}
 		else if (resultsAction.file) {
-			props.dispatch(uploadResults(ballotId, resultsAction.file))
+			props.dispatch(uploadResults(ballotId, ballot.Type, resultsAction.file))
 		}
 
 		if (commentsAction.remove) {
@@ -189,7 +189,7 @@ function BallotDetail(props) {
 			props.dispatch(uploadComments(ballotId, ballot.Type, commentsAction.file))
 		}
 
-		/* Once we have added a ballot, we navigate there so that furhter changes are updates */
+		/* Once we have added a ballot, we navigate there so that further changes are updates */
 		if (action && !ballotId) {
 			history.replace(`/Ballot/${ballot.BallotID}`)
 		}
@@ -200,7 +200,7 @@ function BallotDetail(props) {
 	}
 
 	function renderVotingPoolOptions() {
-		const votingPoolOptions = props.votingPoolData.map(i => <option key={i.VotingPoolID} value={i.VotingPoolID}>{i.Name}</option>);
+		const votingPoolOptions = props.votingPools.map(i => <option key={i.VotingPoolID} value={i.VotingPoolID}>{i.VotingPoolID}</option>);
 		return (
 			<div className={styles.row}>
 				<label className={styles.initLabel}>Voting Pool:</label>
@@ -466,28 +466,26 @@ function BallotDetail(props) {
 	)
 }
 BallotDetail.propTypes = {
-	ballotsDataValid: PropTypes.bool.isRequired,
-	ballotsData: PropTypes.array.isRequired,
+	ballotsValid: PropTypes.bool.isRequired,
+	ballots: PropTypes.array.isRequired,
 	ballotsByProject: PropTypes.object.isRequired,
 	projectList: PropTypes.array.isRequired,
-	votingPoolDataValid: PropTypes.bool.isRequired,
-	votingPoolData: PropTypes.array.isRequired,
-	epollsDataValid: PropTypes.bool.isRequired,
-	epollsData: PropTypes.array.isRequired,
+	votingPoolsValid: PropTypes.bool.isRequired,
+	votingPools: PropTypes.array.isRequired,
+	epolls: PropTypes.array.isRequired,
 	dispatch: PropTypes.func.isRequired
 }
 
 function mapStateToProps(state) {
 	const {ballots, voters, epolls} = state
 	return {
-		ballotsDataValid: ballots.ballotsDataValid,
-		ballotsData: ballots.ballotsData,
+		ballotsValid: ballots.ballotsValid,
+		ballots: ballots.ballots,
 		ballotsByProject: ballots.ballotsByProject,
 		projectList: ballots.projectList,
-		votingPoolDataValid: voters.votingPoolDataValid,
-		votingPoolData: voters.votingPoolData,
-		epollsDataValid: epolls.epollsDataValid,
-		epollsData: epolls.epollsData,
+		votingPoolsValid: voters.votingPoolsValid,
+		votingPools: voters.votingPools,
+		epolls: epolls.epolls,
 	}
 }
 export default connect(mapStateToProps)(BallotDetail);

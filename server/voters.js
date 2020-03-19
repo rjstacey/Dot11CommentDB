@@ -1,16 +1,20 @@
 
 const csvParse = require('csv-parse/lib/sync')
+const ExcelJS = require('exceljs')
 
-function parseVoters(votersCsvBuffer) {
+const membersHeader = [
+	'SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'
+]
 
-	const p = csvParse(votersCsvBuffer, {columns: false});
+function parseVoters(buffer) {
+
+	const p = csvParse(buffer, {columns: false});
 	if (p.length === 0) {
 		throw 'Got empty .csv file';
 	}
 
 	// Row 0 is the header
-	expected = ['SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'];
-	if (expected.reduce((r, v, i) => v !== p[0][i], false)) {
+	if (membersHeader.reduce((r, v, i) => v !== p[0][i], false)) {
 		throw `Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`
 	}
 	p.shift();
@@ -27,220 +31,300 @@ function parseVoters(votersCsvBuffer) {
 	});
 }
 
+const myProjectBallotMembersHeader = [
+	'Name', 'EMAIL', 'Affiliations(s)', 'Voter Classification', 'Current Vote', 'Comments'
+]
+
+async function parseMyProjectVoters(buffer, isExcel) {
+	var p = [] 	// an array of arrays
+	if (isExcel) {
+		var workbook = new ExcelJS.Workbook()
+		await workbook.xlsx.load(buffer)
+
+		workbook.getWorksheet(1).eachRow(row => {
+			p.push(row.values.slice(1, 7))
+		})
+	}
+	else {
+		throw "Can't handle .csv file"
+	}
+
+	if (p.length < 2) {
+		throw 'File has less than 2 rows'
+	}
+
+	p.shift()	// PAR #
+	if (myProjectBallotMembersHeader.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].toLowerCase() !== v.toLowerCase(), false)) {
+		throw `Unexpected column headings:\n${p[0].join()}\n\nExpected:\n${myProjectBallotMembersHeader.join()}`
+	}
+	p.shift()	// remove heading row
+
+	return p.map(c => {
+		return {
+			Name: c[0],
+			Email: c[1],
+			//Affiliation: c[2],
+			//Vote: c[4]
+		}
+	})
+}
+
 
 module.exports = function(db, rp) {
 	var module = {};
 
-	module.getVotingPool = function (req, res, next) {
-
-		const {access} = req.session;
-		if (access <= 1) {
-			return Promise.reject('Insufficient karma')
-		}
-
-		return db.query(
-			'SELECT vp.*, (SELECT COUNT(*) FROM voters AS v WHERE vp.VotingPoolID = v.VotingPoolID) AS VoterCount ' + 
-			'FROM votingpool AS vp ORDER BY vp.Name'
-			);
-	}
-
-	module.deleteVotingPool = function (req, res, next) {
-		//console.log(req.body);
-
-		const {access} = req.session;
-		if (access <= 2) {
-			return Promise.reject('Insufficient karma')
-		}
-
-		var where = '';
-		if (req.body.hasOwnProperty('VotingPoolIDs')) {
-			if (!Array.isArray(req.body.VotingPoolIDs)) {
-				return Promise.reject('Parameter VotingPoolIDs must be an array')
-			}
-			where = ` WHERE VotingPoolID IN (${db.escape(req.body.VotingPoolIDs.join())})`;
-		}
-		else if (req.body.hasOwnProperty('VotingPoolID')) {
-			where = ` WHERE VotingPoolID=${db.escape(req.body.VotingPoolID)}`;
-		}
-		else {
-			return Promise.reject('Missing parameter; must have VotingPoolID or VotingPoolIDs')
-		}
-
-		var SQL = `DELETE FROM votingpool${where}; DELETE FROM voters${where}`;
-		console.log(SQL);
-		return db.query(SQL)
-	}
-
-	module.addVotingPool = async (req, res, next) => {
-		//console.log(req.body);
-
-		const {access} = req.session;
-		if (access <= 2) {
-			return Promise.reject('Insufficient karma')
-		}
-
-		if (!req.body.hasOwnProperty('VotingPoolID')) {
-			return Promise.reject('Missing parameter VotingPoolID')
-		}
-
-		var entry = {
-			VotingPoolID: req.body.VotingPoolID,
-			Name: req.body.Name
-		}
-
-		var SQL = db.format(
-			'INSERT INTO votingpool (??) VALUES (?); ' +
-			'SELECT vp.*, (SELECT COUNT(*) FROM voters AS v WHERE vp.VotingPoolID = v.VotingPoolID) AS VoterCount ' +
-			'FROM votingpool AS vp WHERE vp.VotingPoolID=?',
-			[Object.keys(entry), Object.values(entry), entry.VotingPoolID]
-			);
-		console.log(SQL)
-		try {
-			const results = await db.query(SQL)
-			if (results.length !== 2) {
-				throw "Unexpected SQL query result"
-			}
-			return results[1][0]
-		}
-		catch(err) {
-			throw err.code === 'ER_DUP_ENTRY'? new Error("An entry already exists with this ID"): err
-		}
-	}
-
-	module.getVoters = async function (req, res, next) {
-
-		const {access} = req.session;
-		if (access <= 1) {
-			return Promise.reject('Insufficient karma')
-		}
-
-		if (!req.query.hasOwnProperty('VotingPoolID')) {
-			return Promise.reject('Missing parameter VotingPoolID')
-		}
-		votingPoolId = req.query.VotingPoolID;
-
-		const results = await db.query(
-			'SELECT * FROM votingpool WHERE VotingPoolID=?; ' + 
-			'SELECT * FROM voters WHERE VotingPoolID=?',
-			[votingPoolId, votingPoolId]
+	async function getVotingPoolsLocal() {
+		const SQL =
+			'SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters GROUP BY VotingPoolID;' +
+			'SELECT VotingPoolID, COUNT(*) AS VoterCount FROM saVoters GROUP BY VotingPoolID;'
+		const results = await db.query(SQL)
+		const votingPools =
+			results[0].map(v => {return Object.assign({}, v, {PoolType: 'WG'})})
+			.concat(
+				results[1].map(v => {return Object.assign({}, v, {PoolType: 'SA'})})
 			)
-		if (results.length !== 2 || results[0].length != 1) {
-			throw new Error("Unexpected SQL result")
+		return votingPools
+	}
+
+	async function getVotingPoolLocal(votingPoolType, votingPoolName) {
+		const table = votingPoolType === 'SA'? 'saVoters': 'wgVoters'
+		const results = await db.query(
+			'SELECT VotingPoolID, COUNT(*) AS VoterCount FROM ?? WHERE VotingPoolID = ?;',
+			[table, votingPoolName])
+		if (results.length !== 1) {
+			throw 'Unexpected result from SQL query'
 		}
+		return Object.assign({}, results[0], {PoolType: votingPoolType})
+	}
+
+	module.getVotingPools = async (req, res, next) => {
+		const {access} = req.session;
+		if (access <= 1) {
+			throw 'Insufficient karma'
+		}
+
+		const votingPools = await getVotingPoolsLocal()
+		return {votingPools}
+	}
+
+	module.deleteVotingPools = async (req, res, next) => {
+		const {access} = req.session;
+		if (access <= 2) {
+			throw 'Insufficient karma'
+		}
+
+		let votingPools = req.body
+		if (!votingPools || !Array.isArray(votingPools)) {
+			throw "Array parameter missing"
+		}
+		let saVotingPoolIds = [], wgVotingPoolIds = []
+		for (let vp of votingPools) {
+			if (vp.PoolType === 'SA') {
+				saVotingPoolIds.push(vp.VotingPoolID)
+			}
+			else if (vp.PoolType === 'WG') {
+				saVotingPoolIds.push(vp.VotingPoolID)
+			}
+			else {
+				throw `Invalid pool type ${vp.PoolType} for ${vp.VotingPool}`
+			}
+		}
+		let SQL = ''
+		if (saVotingPoolIds.length > 0) {
+			SQL += db.format('DELETE FROM saVoters WHERE VotingPoolID IN (?);', [saVotingPoolIds])
+		}
+		if (wgVotingPoolIds.length > 0) {
+			SQL += db.format('DELETE FROM wgVoters WHERE VotingPoolID IN (?);', [wgVotingPoolIds])
+		}
+		if (SQL) {
+			await db.query(SQL)
+		}
+
+		votingPools = await getVotingPoolsLocal()
+		return {votingPools}
+	}
+
+	async function getVotersLocal(votingPoolType, votingPoolId) {
+		const table = votingPoolType === 'WG'? 'wgVoters': 'saVoters'
+		return db.query('SELECT * FROM ?? WHERE VotingPoolID=?;', [table, votingPoolId])
+	}
+
+	module.getVoters = async (req, res, next) => {
+		const {access} = req.session;
+		if (access <= 1) {
+			throw 'Insufficient karma'
+		}
+
+		const {votingPoolType, votingPoolId} = req.params
+		const voters = await getVotersLocal(votingPoolType, votingPoolId)
+		const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
 		return {
-			votingPool: results[0][0],
-			voters: results[1]
+			voters,
+			votingPool
 		}
 	}
 
 	module.addVoter = async (req, res, next) => {
-		//console.log(req.body);
-
 		const {access} = req.session;
 		if (access <= 2) {
-			return Promise.reject('Insufficient karma')
+			throw 'Insufficient karma'
 		}
 
-		if (!req.body.hasOwnProperty('VotingPoolID')) {
-			return Promise.reject('Missing parameter VotingPoolID')
+		const {votingPoolType, votingPoolId} = req.params
+
+		let entry = {
+			VotingPoolID: votingPoolId,
+			Email: req.body.Email
 		}
-
-		var entry = {
-			VotingPoolID: req.body.VotingPoolID,
-			SAPIN: req.body.SAPIN,
-			LastName: req.body.LastName,
-			FirstName: req.body.FirstName,
-			MI: req.body.MI,
-			Email: req.body.Email,
-			Status: req.body.Status
-		};
-
+		let table, key
+		if (votingPoolType == 'SA') {
+			entry = Object.assign(entry, {
+				Name: req.body.Name
+			})
+			table = 'saVoters'
+			key = 'Email'
+		}
+		else {
+			entry = Object.assign(entry, {
+				SAPIN: req.body.SAPIN,
+				LastName: req.body.LastName,
+				FirstName: req.body.FirstName,
+				MI: req.body.MI,
+				Status: req.body.Status
+			})
+			table = 'wgVoters'
+			key = 'SAPIN'
+		}
+		const SQL =
+			db.format('INSERT INTO ?? (??) VALUES (?);',
+				[table, Object.keys(entry), Object.values(entry)]) +
+			db.format('SELECT * FROM ?? WHERE VotingPoolID = ? AND ?? = ?',
+				[table, votingPoolId, key, entry[key]])
 		try {
-			const results = await db.query(
-				'INSERT INTO voters (??) VALUES (?); ' +
-				'SELECT * FROM voters WHERE VotingPoolID=? AND SAPIN=?',
-				[Object.keys(entry), Object.values(entry), entry.VotingPoolID, entry.SAPIN]);
+			const results = await db.query(SQL)
 			if (results.length !== 2 && results[1].length === 1) {
 				console.log(results);
 				throw new Error("Unexpected SQL result")
 			}
-			return results[1][0];
+			const voter = results[1][0]
+			const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
+			return {
+				voter,
+				votingPool
+			}
 		}
 		catch(err) {
 			if (err.code === 'ER_DUP_ENTRY') {
 				let msg = 
-					`Cannot add voter with SAPIN ${entry.SAPIN} to voting pool ${entry.VotingPoolID}; ` +
-					`a voter with that SAPIN already exists.`;
-				throw new Error(msg);
+					`Cannot add voter with ${key} ${entry[key]} to voting pool ${entry.VotingPoolID}; ` +
+					`a voter with that ${key} already exists.`
+				throw new Error(msg)
 			}
-			throw err;
+			throw err
 		}
 	}
 
 	module.updateVoter = async (req, res, next) => {
-		//console.log(req.body);
-
 		const {access} = req.session;
 		if (access <= 2) {
-			return Promise.reject('Insufficient karma')
+			throw 'Insufficient karma'
 		}
 
-		if (!req.params.hasOwnProperty('votingPoolId') ||
-			!req.params.hasOwnProperty('SAPIN')) {
-			return Promise.reject('Missing parameter VotingPoolID and/or SAPIN')
-		}
-		const votingPoolId = parseInt(req.params.votingPoolId, 10);
-		const SAPIN = parseInt(req.params.SAPIN, 10);
+		let {votingPoolType, votingPoolId, voterId} = req.params
+		console.log('updateVoter', votingPoolType, votingPoolId, voterId)
 
-		var entry = {
+		let entry = {
 			VotingPoolID: req.body.VotingPoolID,
-			SAPIN: req.body.SAPIN,
-			LastName: req.body.LastName,
-			FirstName: req.body.FirstName,
-			MI: req.body.MI,
-			Email: req.body.Email,
-			Status: req.body.Status
-		};
-		for (let key of Object.keys(entry)) {
-			if (entry[key] === undefined) {
-				delete entry[key]
+			Email: req.body.Email
+		}
+		let table, key
+		if (votingPoolType == 'SA') {
+			entry = Object.assign(entry, {
+				Name: req.body.Name
+			})
+			table = 'saVoters'
+			key = 'Email'
+		}
+		else {
+			voterId = parseInt(voterId, 10)
+			if (voterId === NaN) {
+				throw 'Expected a number for SAPIN'
+			}
+			entry = Object.assign(entry, {
+				SAPIN: voterId,
+				LastName: req.body.LastName,
+				FirstName: req.body.FirstName,
+				MI: req.body.MI,
+				Status: req.body.Status
+			})
+			table = 'wgVoters'
+			key = 'SAPIN'
+		}
+		for (let k of Object.keys(entry)) {
+			if (entry[k] === undefined) {
+				delete entry[k]
 			}
 		}
 		if (Object.keys(entry).length === 0) {
-			return Promise.resolve(null)
+			return null
 		}
+		const SQL = 
+			db.format('UPDATE ?? SET ? WHERE VotingPoolID=? AND ??=?;',
+				[table, entry, votingPoolId, key, voterId]) +
+			db.format('SELECT * FROM ?? WHERE VotingPoolID=? AND ??=?',
+				[table, entry.VotingPoolID? entry.VotingPoolID: votingPoolId, key, entry[key]? entry[key]: voterId])
 
 		try {
-			const results = await db.query(
-				'UPDATE voters SET ? WHERE VotingPoolID=? AND SAPIN=?;' +
-				'SELECT * FROM voters WHERE VotingPoolID=? AND SAPIN=?',
-				[entry, votingPoolId, SAPIN, votingPoolId, SAPIN]);
-
+			const results = await db.query(SQL)
 			if (results[0].affectedRows !== 1 || results[1].length !== 1) {
 				console.log(results)
 				throw new Error("Unexpected result from SQL UPDATE")
 			}
-
-			return results[1][0];
+			const voter = results[1][0]
+			const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
+			return {
+				voter,
+				votingPool
+			}
 		}
 		catch(err) {
 			if (err.code === 'ER_DUP_ENTRY') {
 				let msg = null;
-				if (entry.votingPoolId && entry.SAPIN) {
-					msg = 
-						`Cannot change VotingPoolID to ${entry.VotingPoolID} and SAPIN to ${entry.SAPIN} ` +
-						`for voter with VotingPoolID=${votingPoolId} and SAPIN=${SAPIN}; a voter those identifiers already exists.`;
+				if (votingPoolType === 'WG') {
+					if (entry.VotingPoolID && entry.SAPIN) {
+						msg = 
+							`Cannot move voter with SAPIN ${entry.SAPIN} to voting pool ${entry.VotingPoolID}. ` +
+							`A voter with SAPIN ${entry.SAPIN} already exists in voting pool ${entry.VotingPoolID}.`
+					}
+					else if (entry.VotingPoolID) {
+						msg = 
+							`Cannot move voter with SAPIN ${id} to voting pool ${entry.VotingPoolID}. ` +
+							`A voter with SAPIN ${id} already exists in voting pool ${entry.VotingPoolID}.`
+					}
+					else if (entry.SAPIN) {
+						msg = 
+							`Cannot change SAPIN from ${id} to ${entry.SAPIN}. ` +
+							`A voter with SAPIN ${entry.SAPIN} already exists in voting pool ${votingPoolId}.`
+					}
 				}
-				else if (entry.votingPoolId) {
-					msg = 
-						`Cannot change VotingPoolID to ${entry.VotingPoolID} ` +
-						`for voter with VotingPoolID=${votingPoolId} and SAPIN=${SAPIN}; a voter with that VotingPoolID already exists.`;
+				else {
+					if (entry.VotingPoolID && entry.Email) {
+						msg = 
+							`Cannot move voter with email ${entry.Email} to voting pool ${entry.VotingPoolID}. ` +
+							`A voter with email ${entry.Email} already exists in voting pool ${entry.VotingPoolID}.`
+					}
+					else if (entry.VotingPoolID) {
+						msg = 
+							`Cannot move voter with email ${id} to voting pool ${entry.VotingPoolID}. ` +
+							`A voter with email ${id} already exists in voting pool ${entry.VotingPoolID}.`
+					}
+					else if (entry.Email) {
+						msg = 
+							`Cannot change email from ${id} to ${entry.Email}. ` +
+							`A voter with email ${entry.Email} already exists in voting pool ${votingPoolId}.`
+					}
 				}
-				else if (entry.SAPIN) {
-					msg = 
-						`Cannot change SAPIN to ${entry.SAPIN} ` +
-						`for voter with VotingPoolID=${votingPoolId} and SAPIN=${SAPIN}; a voter with that SAPIN already exists.`;
-				}
+
 				if (msg) {
 					throw msg
 				}
@@ -249,59 +333,76 @@ module.exports = function(db, rp) {
 		}
 	}
 
-	module.deleteVoters = function (req, res, next) {
-		//console.log(req.body);
-
+	module.deleteVoters = async (req, res, next) => {
 		const {access} = req.session;
 		if (access <= 2) {
-			return Promise.reject('Insufficient karma')
+			throw 'Insufficient karma'
 		}
 
-		if (!req.body.hasOwnProperty('VotingPoolID') ||
-			!req.body.hasOwnProperty('SAPINs')) {
-			return Promise.reject('Missing parameter; must have VotingPoolID and SAPINs')
+		const {votingPoolType, votingPoolId} = req.params
+
+		let SQL
+		if (votingPoolType === 'SA') {
+			const Emails = req.body.Emails
+			if (!Emails || !Array.isArray(Emails)) {
+				throw 'Missing array parameter Emails'
+			}
+			SQL = db.format('DELETE FROM saVoters WHERE VotingPoolID=? AND Email IN (?)', [votingPoolId, Emails])
 		}
-		const {VotingPoolID, SAPINs} = req.body;
-		const SQL = db.format('DELETE FROM voters WHERE VotingPoolID=? AND SAPIN IN (?)', [VotingPoolID, SAPINs]);
-		console.log(SQL);
-		return db.query(SQL)
+		else {
+			const SAPINs = req.body.SAPINs
+			if (!SAPINs || !Array.isArray(SAPINs)) {
+				throw 'Missing array parameter SAPINs'
+			}
+			SQL = db.format('DELETE FROM wgVoters WHERE VotingPoolID=? AND SAPIN IN (?)', [votingPoolId, SAPINs])
+		}
+		const result = await db.query(SQL)
+		const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
+		return {votingPool}
 	}
 
-	module.uploadVoters = (req, res, next) => {
-		//console.log(req);
-
-		var votingPoolId = req.body.VotingPoolID;
-		if (!votingPoolId) {
-			return Promise.reject('Missing parameter VotingPoolID')
-	    }
-	    //console.log(req.file)
+	module.uploadVoters = async (req, res, next) => {
+		const {votingPoolType, votingPoolId} = req.params
 		if (!req.file) {
-			return Promise.reject('Missing file');
+			throw 'Missing file'
 		}
 
-		var voters = parseVoters(req.file.buffer);
+		let table
+		let voters
+		if (votingPoolType === 'SA') {
+			table = 'saVoters'
+			const isExcel = req.file.originalname.search(/\.xlsx$/i) !== -1
+			voters = await parseMyProjectVoters(req.file.buffer, isExcel)
+		}
+		else {
+			table = 'wgVoters'
+			voters = parseVoters(req.file.buffer)
+		}
 
-		return db.query('DELETE FROM voters WHERE VotingPoolID=?', [votingPoolId])
-			.then(result => {
+		await db.query('DELETE FROM ?? WHERE VotingPoolID=?', [table, votingPoolId])
 
-				if (voters.length === 0) {
-					return Promise.resolve({Count: 0})
-				}
+		if (voters.length === 0) {
+			return {voters: []}
+		}
 
-				var SQL = `INSERT INTO voters (VotingPoolID, ${Object.keys(voters[0])}) VALUES`;
-				voters.forEach((c, i) => {
-					SQL += (i > 0? ',': '') + `(${db.escape(votingPoolId)}, ${db.escape(Object.values(c))})`;
-				});
-				SQL += ";\n";
-				//console.log(SQL);
-				return db.query(SQL)
-					.then(result => {
-						return {Count: voters.length}
-					})
-					.catch(err => {
-						throw err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err
-					});
-			})
+		const SQL =
+			db.format('INSERT INTO ?? (VotingPoolID, ??) VALUES ', [table, Object.keys(voters[0])]) +
+			voters.map(v => db.format('(?, ?)', [votingPoolId, Object.values(v)])).join(', ') +
+			';'
+
+		try {
+			await db.query(SQL)
+		}
+		catch(err) {
+			throw err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err
+		}
+
+		voters = await getVotersLocal(votingPoolType, votingPoolId)
+		const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
+		return {
+			voters,
+			votingPool
+		}
 	}
 
 	return module;

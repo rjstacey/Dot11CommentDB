@@ -104,7 +104,7 @@ async function parseMyProjectComments(startCommentId, buffer, isExcel) {
 			//Date: c[1],
 			CommenterSAPIN: null,
 			CommenterName: c[3],
-			//CommenterEmail: c[4],
+			CommenterEmail: c[4],
 			//CommenterPhone: c[5],
 			Comment: c[15],
 			Category: c[11]? c[11].charAt(0): '',   // First letter only (G, T or E)
@@ -125,9 +125,12 @@ const mapToDispositionStatus = {
 	J: 'REJECTED'
 }
 
-function exportMyProjectComments(comments) {
-	var workbook = new ExcelJS.Workbook()
-	var sheet = workbook.addWorksheet('export_resolved_comments')
+function myProjectCommentsWorkbook(comments) {
+
+	let wb = new ExcelJS.Workbook()
+	wb.creator = '802.11'
+	let sheet = wb.addWorksheet('export_resolved_comments')
+
 	sheet.addRow(myProjectCommentsHeader)
 	for (let c of comments) {
 
@@ -136,7 +139,7 @@ function exportMyProjectComments(comments) {
 			c.Date,
 			c.C_CommentNum,	// Comment #
 			c.CommenterName,
-			'',				// Email
+			c.CommenterEmail, // Email
 			'',				// Phone
 			'Ballot',		// Style
 			c.C_Index,		// Index #
@@ -161,7 +164,7 @@ function exportMyProjectComments(comments) {
 		sheet.addRow(row)
 	}
 
-	return workbook.xlsx.writeBuffer()
+	return wb
 }
 
 
@@ -171,7 +174,6 @@ function parseCommentsSheet(commentsSheet, comments, updateComments, newComments
 	if (commentsSheetArray.length === 0) {
 		throw 'Comments worksheet has no rows'
 	}
-
 
 	var highestIndex = 0;
 	var unmatchedComments = [];
@@ -481,8 +483,10 @@ function resolutionUpdate(cs) {
 const GET_COMMENTS_SQL =
 	'SELECT ' +
 		'c.*, ' +
-		'IF(r.ResolutionID, c.CommentID + r.ResolutionID/10, c.CommentID) AS CommentID, ' +
 		'(SELECT COUNT(*) FROM resolutions AS r WHERE c.BallotID = r.BallotID AND c.CommentID = r.CommentID) AS ResolutionCount, ' +
+		'IF((SELECT COUNT(*) FROM resolutions AS r WHERE c.BallotID = r.BallotID AND c.CommentID = r.CommentID) > 1, ' + 
+			'CONCAT(CONVERT(c.CommentID, CHAR), ".", CONVERT(r.ResolutionID, CHAR)), ' + 
+			'CONVERT(c.CommentID, CHAR)) AS CID, ' +
 		'r.ResolutionID, r.AssigneeSAPIN, r.ResnStatus, r.Resolution, r.Submission, r.ReadyForMotion, r.ApprovedByMotion, ' + 
 		'r.EditStatus, r.EditInDraft, r.EditNotes, r.Notes, ' +
 		'results.Vote, users.Name AS AssigneeName ' +
@@ -496,40 +500,24 @@ const GET_COMMENTS_SUMMARY_SQL =
 	'FROM comments WHERE BallotID=?';
 
 module.exports = function (db, rp) {
-	var module = {};
+	var module = {}
 
-	module.getComments = (req, res, next) => {
-		//console.log(req.query)
+	module.getComments = async (req, res, next) => {
+		const {ballotId} = req.params
 
-		const ballotId = req.query.BallotID;
-		if (!ballotId) {
-			return Promise.reject('Missing parameter BallotID');
-		}
-
-		const SQL = GET_COMMENTS_SQL + 'WHERE c.BallotID=?;'
-		//console.log(SQL);
-		return db.query(SQL, [ballotId])
+		return db.query(GET_COMMENTS_SQL + ' WHERE c.BallotID=?', [ballotId])
 	}
 
 	module.updateComment = (req, res, next) => {
-		console.log(req.body);
-
-		if (!req.body.hasOwnProperty('BallotID') || !req.body.hasOwnProperty('CommentID')) {
-			return Promise.reject('Missing BallotID and/or CommentID');
-		}
-
-		const ballotId = req.body.BallotID;
-		const commentId = req.body.CommentID;
-		delete req.body.BallotID;
-		delete req.body.CommentID;
+		const {ballotId, commentId} = req.params
 
 		if (req.body.hasOwnProperty('resolutions')) {
 			// If there are resolutions then they may need to be inserted or updated
 			if (!Array.isArray(req.body.resolutions)) {
-				return Promise.reject('Expected array for resolutions');
+				throw 'Expected array for resolutions'
 			}
-			var resolutions = req.body.resolutions;
-			delete req.body.resolutions;
+			var resolutions = req.body.resolutions
+			delete req.body.resolutions
 
 			// Need to know what is already present
 			return db.query('SELECT * FROM resolutions WHERE (BallotID=? AND CommentID=?)', [ballotId, commentId])
@@ -587,19 +575,26 @@ module.exports = function (db, rp) {
 		}
 	}
 
-	async function updateResolution(resolution) {
-		console.log(resolution)
+	function getResolutionIds(CIDs) {
+		return CIDs.split(',').map(cid => {
+			const m = cid.match(/(\d+)\.(\d+)/)
+			return m?
+				{
+					CommentID: parseInt(m[1], 10),
+					ResolutionID: parseInt(m[2], 10)
+				}:
+				{
+					CommentID: parseInt(cid, 10)
+				}
+		})
+	}
 
-		if (!resolution.hasOwnProperty('BallotID') ||
-			!resolution.hasOwnProperty('CommentID') ||
-			!resolution.hasOwnProperty('ResolutionID')) {
-			return Promise.reject('Missing BallotID, CommentID and/or ResolutionID');
-		}
-
-		const ballotId = resolution.BallotID;
-		const commentId = Math.floor(resolution.CommentID);
-		const resolutionId = resolution.ResolutionID;
+	async function updateResolution(ballotId, commentId, resolutionId, resolution) {
 		const entry = {
+			BallotID: resolution.BallotID,
+			CommentID: resolution.CommentID,
+			ResolutionID: resolution.ResolutionID,
+			CommentGroup: resolution.CommentGroup,
 			ResnStatus: resolution.ResnStatus,
 			Resolution: resolution.Resolution,
 			AssigneeSAPIN: resolution.AssigneeSAPIN,
@@ -618,45 +613,59 @@ module.exports = function (db, rp) {
 			}
 		}
 		console.log(entry)
-		if (Object.keys(entry).length === 0) {
-			return Promise.reject('Nothing to update')
+		let SQL = ''
+		if (Object.keys(entry).length) {
+			SQL += db.format(
+					'UPDATE resolutions SET ? WHERE (BallotID=? AND CommentID=? AND ResolutionID=?);',
+					[entry, ballotId, commentId, resolutionId]
+				)
+			if (entry.BallotID) {
+				ballotId = entry.BallotID
+			}
+			if (entry.CommentID) {
+				commentId = entry.CommentID
+			}
+			if (entry.ResolutionID) {
+				resolutionId = entry.ResolutionID
+			}
 		}
-
-		const results = await db.query(
-			"UPDATE resolutions SET ? WHERE (BallotID=? AND CommentID=? AND ResolutionID=?)",
-			[entry, ballotId, commentId, resolutionId])
-		console.log(results)
-		return null
-	}
-
-	module.updateResolution = async (req, res, next) => {
-		console.log(req.body);
-
-		return updateResolution(req.body)
+		SQL += db.format(
+				'SELECT * FROM resolutions WHERE (BallotID=? AND CommentID=? AND ResolutionID=?);',
+				[ballotId, commentId, resolutionId]
+			)
+		const results = await db.query(SQL)
+		return results[results.length-1][0]
 	}
 
 	module.updateResolutions = async (req, res, next) => {
+		const {ballotId} = req.params
+		const {CIDs} = req.body
 
 		if (!req.body.hasOwnProperty('resolutions') ||
 			!Array.isArray(req.body.resolutions)) {
-			return Promise.reject('Badly formed request: missing resolutions array')
+			throw 'Missing resolutions array'
+		}
+		const resolutions = req.body.resolutions
+
+		// If the optional parameter CIDs is not given, then use the identifiers in the resolutions
+		let resIds
+		if (CIDs) {
+			resIds = getResolutionIds(CIDs)
+			if (resolutions.length !== resIds.length) {
+				throw 'The CIDs array and resolutions array have different lengths'
+			}
+		}
+		else {
+			resIds = resolutions.map(r => ({CommentID: r.CommentID, ResolutionID: r.ResolutionID}))
 		}
 
-		return Promise.all(req.body.resolutions.map(r => updateResolution(r)))
+		return Promise.all(resolutions.map((r, i) => updateResolution(ballotId, resIds[i].CommentID, resIds[i].ResolutionID, r)))
 	}
 
 
-	module.addResolution = async (req, res, next) => {
-		console.log(req.body);
-
-		if (!req.body.hasOwnProperty('BallotID') ||
-		    !req.body.hasOwnProperty('CommentID')) {
-			return Promise.reject('Missing BallotID and/or CommentID')
-		}
-		const ballotId = req.body.BallotID
-		const commentId = req.body.CommentID
+	async function addResolution(ballotId, commentId, resolution) {
 		let resolutionId
-		if (!req.body.hasOwnProperty('ResolutionID')) {
+		if (!resolution.hasOwnProperty('ResolutionID')) {
 			/* Find smallest unused ResolutionID */
 			let result = await db.query(
 				'SELECT MIN(ResolutionID)-1 AS ResolutionID FROM resolutions WHERE BallotID=? AND CommentID=?;',
@@ -685,78 +694,92 @@ module.exports = function (db, rp) {
 			BallotID: ballotId,
 			CommentID: commentId,
 			ResolutionID: resolutionId,
-			ResnStatus: req.body.ResnStatus,
-			Resolution: req.body.Resolution,
-			AssigneeSAPIN: req.body.AssigneeSAPIN,
-			AssigneeName: req.body.AssigneeName,
-			Submission: req.body.Submission,
-			ReadyForMotion: req.body.ReadyForMotion,
-			ApprovedByMotion: req.body.ApprovedByMotion,
-			EditStatus: req.body.EditStatus,
-			EditNotes: req.body.EditNotes,
-			EditInDraft: req.body.EditInDraft,
-			Notes: req.body.Notes
+			ResnStatus: resolution.ResnStatus,
+			Resolution: resolution.Resolution,
+			AssigneeSAPIN: resolution.AssigneeSAPIN,
+			AssigneeName: resolution.AssigneeName,
+			Submission: resolution.Submission,
+			ReadyForMotion: resolution.ReadyForMotion,
+			ApprovedByMotion: resolution.ApprovedByMotion,
+			EditStatus: resolution.EditStatus,
+			EditNotes: resolution.EditNotes,
+			EditInDraft: resolution.EditInDraft,
+			Notes: resolution.Notes
 		}
 
-		const SQL =
-			db.format(
-				'INSERT INTO resolutions SET ?;',
-				[entry]) +
-			db.format(
-				GET_COMMENTS_SQL +
-				'WHERE c.BallotID=? AND c.CommentID=?;',
-				[req.body.BallotID, req.body.CommentID]);
-		console.log(SQL)
-		const results = await db.query(SQL)
-		if (results.length !== 2 || results[1].length < 1) {
-			throw "Unexpected result"
-		}
-		console.log(results[0])
+		const result = await db.query('INSERT INTO resolutions SET ?', [entry])
 		return {
 			BallotID: ballotId,
 			CommentID: commentId,
-			ResolutionID: resolutionId,
-			updatedComments: results[1]
+			ResolutionID: resolutionId
 		}
 	}
 
-	module.deleteResolution = async (req, res, next) => {
-		console.log(req.body);
-
-		if (!req.body.hasOwnProperty('BallotID') ||
-		    !req.body.hasOwnProperty('CommentID') ||
-		    !req.body.hasOwnProperty('ResolutionID')) {
-			return Promise.reject('Missing BallotID, CommentID and/or ResolutionID')
+	module.addResolutions = async (req, res, next) => {
+		const {ballotId} = req.params
+		const resolutions = req.body
+		if (!Array.isArray(resolutions)) {
+			throw 'Expect an array parameter'
 		}
-		const ballotId = req.body.BallotID
-		const commentId = req.body.CommentID
-		const resolutionId = req.body.ResolutionID
+		console.log(resolutions)
 
+		const resIds = await Promise.all(resolutions.map(r => addResolution(ballotId, r.CommentID, r)))
+		console.log(resIds)
+		const commentIds = resIds.map(r => r.CommentID)
+		const updatedComments = await db.query(
+			GET_COMMENTS_SQL + 'WHERE c.BallotID=? AND c.CommentID IN (?);',
+			[ballotId, commentIds]
+		)
+		let data = {
+			newComments: [],
+			updatedComments: []
+		}
+		for (let c of updatedComments) {
+			if (resIds.find(r => r.CommentID === c.CommentID && r.ResolutionID === c.ResolutionID)) {
+				data.newComments.push(c)
+			}
+			else {
+				data.updatedComments.push(c)
+			}
+		}
+		return data
+	}
+
+	module.deleteResolutions = async (req, res, next) => {
+		const {ballotId} = req.params
+		const {resolutions} = req.body
+		console.log(resolutions)
+
+		//const resIds = getResolutionIds(CIDs)
 		const SQL =
-			db.format(
-				'DELETE FROM resolutions WHERE BallotID=? AND CommentID=? AND ResolutionID=?; ',
-				[ballotId, commentId, resolutionId]) +
+			resolutions.map(r => 
+				db.format(
+					'DELETE FROM resolutions WHERE BallotID=? AND CommentID=? AND ResolutionID=?;',
+					[ballotId, r.CommentID, r.ResolutionID]
+				)
+			).join('') +
 			db.format(
 				GET_COMMENTS_SQL +
-				'WHERE c.BallotID=? AND c.CommentID=?;',
-				[ballotId, commentId]);
+				'WHERE c.BallotID=? AND c.CommentID IN (?);',
+				[ballotId, resolutions.map(r => r.CommentID)]
+			)
+
+		console.log(SQL)
 		const results = await db.query(SQL)
-		if (results.length !== 2 || results[1].length < 1) {
-			throw "Unexpected result"
-		}
 		return {
-			BallotID: ballotId,
-			CommentID: commentId,
-			ResolutionID: resolutionId,
-			updatedComments: results[1]
+			updatedComments: results[results.length-1]
 		}
 	}
   
-	module.deleteByBallotID = function (req, res, next) {
-		console.log(req.body);
-
-		const ballotId = req.body.BallotID;
-		return db.query('DELETE FROM comments WHERE BallotID=?', [ballotId])
+	module.deleteComments = async (req, res, next) => {
+		const {ballotId} = req.params
+		await db.query(
+			'START TRANSACTION;' +
+			'DELETE FROM comments WHERE BallotID=?;' +
+			'DELETE FROM resolutions WHERE BallotID=?;' +
+			'COMMIT;',
+			[ballotId, ballotId])
+		return true
 	}
 
 	async function insertComments(ballotId, comments) {
@@ -781,19 +804,11 @@ module.exports = function (db, rp) {
 		}
 	}
 
-	module.importComments = async (req, res, next) => {
-		console.log(req.body);
-
-		if (!req.body.hasOwnProperty('BallotID') ||
-			!req.body.hasOwnProperty('EpollNum')) {
-			return Promise.reject("Missing BallotID and/or EpollNum parameter")
-		}
-
-		const ballotId = req.body.BallotID;
-		const epollNum = req.body.EpollNum;
-		const startCommentId = req.body.StartCID || 1;
-
+	module.importEpollComments = async (req, res, next) => {
 		const sess = req.session;
+
+		const {ballotId, epollNum} = req.params
+		const startCommentId = req.body.StartCID || 1;
 
 		var options = {
 			url: `https://mentor.ieee.org/802.11/poll-comments.csv?p=${epollNum}`,
@@ -802,9 +817,9 @@ module.exports = function (db, rp) {
 			simple: false
 		}
 		const ieeeRes = await rp.get(options)
-		console.log(ieeeRes.headers);
+		console.log(ieeeRes.headers)
 		if (ieeeRes.headers['content-type'] !== 'text/csv') {
-			return Promise.reject('Not logged in')
+			throw 'Not logged in'
 		}
 
 		var comments = parseEpollComments(startCommentId, ieeeRes.body);
@@ -814,22 +829,15 @@ module.exports = function (db, rp) {
 	}
 
 	module.uploadComments = async function(req, res, next) {
-		console.log(req.body);
+		const {ballotId} = req.params
+		const type = parseInt(req.params.type, 10)
 
-		if (!req.body.BallotID ||
-			!req.body.Type) {
-			return Promise.reject("Missing BallotID and/or Type parameter")
+		if (!req.file) {
+			throw 'Missing file'
 		}
-		const ballotId = req.body.BallotID
-		const type = req.body.Type
 		const startCommentId = req.body.StartCID || 1
 
-		console.log(req.file)
-		if (!req.file) {
-			return Promise.reject('Missing file')
-		}
-
-		let comments;
+		let comments
 		if (type < 3) {
 			comments = parseEpollComments(startCommentId, req.file.buffer)
 		}
@@ -936,13 +944,17 @@ module.exports = function (db, rp) {
 	module.exportMyProjectComments = async function(req, res, next) {
 		const ballotId = req.query.BallotID;
 		if (!ballotId) {
-			return Promise.reject('Missing parameter BallotID');
+			throw 'Missing parameter BallotID'
 		}
 		const comments = await db.query(GET_COMMENTS_SQL + "WHERE r.ResnStatus IS NOT NULL AND r.ResnStatus <> '' AND c.BallotID = ?;", [ballotId])
-		console.log(comments)
-		const buffer = await exportMyProjectComments(comments)
-		res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-		res.status(200).send(buffer)
+		//console.log(comments)
+
+		let wb = myProjectCommentsWorkbook(comments)
+
+		res.attachment(ballotId + '_comments.xlsx')
+
+		await wb.xlsx.write(res)
+		res.end()
 	}
 
 	return module;

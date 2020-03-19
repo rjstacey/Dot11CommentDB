@@ -4,24 +4,24 @@
  * Robert Stacey
  */
 
-'use strict';
+'use strict'
 
-var express = require('express');
-var multer = require('multer');
-var upload = multer();
-var app = express();
+var express = require('express')
+var multer = require('multer')
+var upload = multer()
+var app = express()
 
 //app.enable('trust proxy');
-app.use(express.json());
-app.use(express.urlencoded({extended: true}));
+app.use(express.json())
+app.use(express.urlencoded({extended: true}))
 
-var rp = require('request-promise-native').defaults({proxy: 'http://proxy-chain.intel.com:912'});
+var rp = require('request-promise-native').defaults({proxy: 'http://proxy-chain.intel.com:912'})
 
-var connection = require('./database');
+var connection = require('./database')
 
-var expressSession = require('express-session');
-var MySQLStore = require('express-mysql-session')(expressSession);
-var sessionStore = new MySQLStore({}, connection.pool);
+var expressSession = require('express-session')
+var MySQLStore = require('express-mysql-session')(expressSession)
+var sessionStore = new MySQLStore({}, connection.pool)
 app.use(expressSession({
 	//name: 'id42',
 	secret: 'random_string_goes_here',
@@ -29,31 +29,34 @@ app.use(expressSession({
 	saveUninitialized: true,
 	//cookie: { secure: true }
 	store: sessionStore
-}));
+}))
 
 app.use((req, res, next) => {
-	console.log(req.method, req.url);
-	next();
-});
+	console.log(req.method, req.url)
+	next()
+})
+
 
 function resData(res, data) {
-	var ret = {status: 'OK'};
-	if (data !== undefined) {
-		ret.data = data
-	}
-	res.status(200).send(ret)
+	res.status(200).json(data)
 }
 
 function resErr(res, err) {
-	console.error(err)
-	var ret = {status: 'Error'};
+	console.log(err)
+	let message
 	if (typeof err === 'string') {
-		ret.message = err
+		message = err
 	}
 	else {
-		ret.message = err.message
+		//console.log(err)
+		try {
+			message = err.toString()
+		}
+		catch(e) {
+			message = JSON.stringify(err)
+		}
 	}
-	res.status(200).send(ret)
+	res.status(400).send(message)
 }
 
 /*
@@ -73,7 +76,7 @@ app.all((req, res, next) => {
 	if (req.path === '/login' || req.path === '/logout') {
 		return next()
 	}
-	const {access, autheticated} = req.session;
+	const {access, autheticated} = req.session
 	switch (req.method) {
 	case 'PUT':
 	case 'POST':
@@ -96,32 +99,33 @@ app.all((req, res, next) => {
  * Maintain a database table of users.
  * 
  * GET /users: returns the complete array of user entries in the database.
- * PUT /users: updates entries for the users based on user ID.
- * POST /users: adds a user to the database. Generates a unique user ID for user added.
+ * PUT /user/{userId}: updates entry for a specific user ID.
+ * POST /user: adds a user to the database. Returns a unique user ID for user added.
  * DELETE /users: deletes users from list of user IDs.
+ * POST /users/upload: insert users from file
  */
-const users = require('./users')(connection);
+const users = require('./users')(connection)
 
 app.get('/users', (req, res, next) => {
 	users.getUsers(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.put('/users', (req, res, next) => {
+})
+app.put('/user/:userId', (req, res, next) => {
 	users.updateUser(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.post('/users', (req, res, next) => {
+})
+app.post('/user', (req, res, next) => {
 	users.addUser(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 app.delete('/users', (req, res, next) => {
-	users.deleteUser(req, res, next)
+	users.deleteUsers(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 app.post('/users/upload', upload.single('UsersFile'), (req, res, next) => {
 	users.uploadUsers(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 
 /*
 app.get('/pdf', function (req, res, next) {
@@ -141,35 +145,33 @@ app.get('/pdf', function (req, res, next) {
 });
 */
 
+
 /*
  * Ballot results API
  */
-const results = require('./results')(connection, rp);
+const results = require('./results')(connection, rp)
 
-app.get('/results', (req, res, next) => {
+app.get('/results/:ballotId', (req, res, next) => {
 	results.getResults(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.delete('/results', (req, res, next) => {
+})
+app.delete('/results/:ballotId', (req, res, next) => {
 	results.deleteResults(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.get('/results/summary', (req, res, next) => {
-	results.summarizeResults(req, res, next)
+})
+app.post('/results/importFromEpoll/:ballotId/:epollNum', (req, res, next) => {
+	results.importEpollResults(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.post('/results/import', (req, res, next) => {
-	results.importResults(req, res, next)
-		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.post('/results/upload', upload.single('ResultsFile'), (req, res, next) => {
+})
+app.post('/results/upload/:ballotId/:type', upload.single('ResultsFile'), (req, res, next) => {
 	results.uploadResults(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.get('/results/export', (req, res, next) => {
+})
+app.get('/exportResults', (req, res, next) => {
 	results.exportResults(req, res, next)
 		.catch(err => resErr(res, err))
-});
+})
+
 
 /*
  * Ballots API
@@ -180,122 +182,122 @@ app.get('/results/export', (req, res, next) => {
  * DELETE: /ballots: delete ballots identified by an array of BallotIDs
  * GET: /epolls: return a list of epolls by scraping the mentor webpage for closed epolls.
  */
-const ballots = require('./ballots')(connection, rp, results);
+const ballots = require('./ballots')(connection, rp, results)
 
 app.get('/ballots', (req, res, next) => {
 	ballots.getBallots(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 app.get('/ballot/:ballotId', (req, res, next) => {
 	ballots.getBallot(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 app.put('/ballot/:ballotId', (req, res, next) => {
 	ballots.updateBallot(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 app.post('/ballots', (req, res, next) => {
 	ballots.addBallot(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 app.delete('/ballots', (req, res, next) => {
 	ballots.deleteBallots(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 app.get('/epolls', (req, res, next) => {
 	ballots.getEpolls(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
+
 
 /*
- * Comments API
+ * Ballot comments API
+ *
+ * GET /comments/{ballotId} - return an array of comments for a given ballot
+ * PUT /comment/{ballotId}/{commentId} - update a comment; returns the updated comment
+ * DELETE /comments/{ballotId} - delete comments in the array of comment IDs
+ * POST /comments/importFromEpoll/{ballotId}/{epollNum} - import comments from an epoll on mentor
+ * POST /comments/upload/{ballotId}/{type} - import comments from a file; file format determined by type
+ * GET /exportComments/myProject - export resolved comments in a form suitable for MyProject upload
  */
-const comments = require('./comments')(connection, rp);
+const comments = require('./comments')(connection, rp)
 
-app.get('/comments', (req, res, next) => {
+app.get('/comments/:ballotId', (req, res, next) => {
 	comments.getComments(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.put('/comment', (req, res, next) => {
+})
+app.put('/comment/:ballotId/:commentId', (req, res, next) => {
 	comments.updateComment(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.delete('/comments/BallotId', (req, res, next) => {
-	comments.deleteByBallotID(req, res, next)
+})
+app.delete('/comments/:ballotId', (req, res, next) => {
+	comments.deleteComments(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.post('/comments/import', (req, res, next) => {
-	comments.importComments(req, res, next)
+})
+app.post('/comments/importFromEpoll/:ballotId/:epollNum', (req, res, next) => {
+	comments.importEpollComments(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.post('/comments/upload', upload.single('CommentsFile'), (req, res, next) => {
+})
+app.post('/comments/upload/:ballotId/:type', upload.single('CommentsFile'), (req, res, next) => {
 	comments.uploadComments(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.get('/comments/myProjectExport', (req, res, next) => {
+})
+app.get('/exportComments/myProject', (req, res, next) => {
 	comments.exportMyProjectComments(req, res, next)
 		.catch(err => resErr(res, err))
-});
-app.post('/resolution', (req, res, next) => {
-	comments.addResolution(req, res, next)
+})
+app.post('/resolutions/:ballotId', (req, res, next) => {
+	comments.addResolutions(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.put('/resolution', (req, res, next) => {
-	comments.updateResolution(req, res, next)
-		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.put('/resolutions', (req, res, next) => {
+})
+app.put('/resolutions/:ballotId', (req, res, next) => {
 	comments.updateResolutions(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.delete('/resolution', (req, res, next) => {
-	comments.deleteResolution(req, res, next)
+})
+app.delete('/resolutions/:ballotId', (req, res, next) => {
+	comments.deleteResolutions(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 app.post('/resolutions/upload', upload.single('ResolutionsFile'), (req, res, next) => {
 	comments.uploadResolutions(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 
 
 
 /*
  * Voting pools and voters API
  */
-const voters = require('./voters')(connection, rp);
+const voters = require('./voters')(connection, rp)
 
-app.get('/votingPool', (req, res, next) => {
-	voters.getVotingPool(req, res, next)
+app.get('/votingPools', (req, res, next) => {
+	voters.getVotingPools(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.delete('/votingPool', (req, res, next) => {
-	voters.deleteVotingPool(req, res, next)
+})
+app.delete('/votingPools', (req, res, next) => {
+	voters.deleteVotingPools(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.post('/votingPool', (req, res, next) => {
-	voters.addVotingPool(req, res, next)
-		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.get('/voters', (req, res, next) => {
+})
+app.get('/voters/:votingPoolType(SA|WG)/:votingPoolId', (req, res, next) => {
 	voters.getVoters(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.post('/voters', (req, res, next) => {
+})
+app.post('/voter/:votingPoolType(SA|WG)/:votingPoolId', (req, res, next) => {
 	voters.addVoter(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.put('/voters/:votingPoolId/:SAPIN', (req, res, next) => {
+})
+app.put('/voter/:votingPoolType(SA|WG)/:votingPoolId/:voterId', (req, res, next) => {
 	voters.updateVoter(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.delete('/voters', (req, res, next) => {
+})
+app.delete('/voters/:votingPoolType(SA|WG)/:votingPoolId', (req, res, next) => {
 	voters.deleteVoters(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
-app.post('/voters/upload', upload.single('VotersFile'), (req, res, next) => {
+})
+app.post('/votersUpload/:votingPoolType(SA|WG)/:votingPoolId', upload.single('VotersFile'), (req, res, next) => {
 	voters.uploadVoters(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 
 /*
  * Session API
@@ -308,24 +310,24 @@ const session = require('./session')(connection, rp, users);
 app.get('/login', (req, res, next) => {
 	session.getState(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 app.post('/login', (req, res, next) => {
 	session.login(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 app.post('/logout', (req, res, next) => {
 	session.logout(req, res, next)
 		.then(data => resData(res, data), err => resErr(res, err))
-});
+})
 
-app.use(express.static('app'));
+app.use(express.static('app'))
 
 // [START listen]
-var PORT = process.env.PORT || 8080;
+var PORT = process.env.PORT || 8080
 app.listen(PORT, function () {
-	console.log('App listening on port %s', PORT);
-	console.log('Press Ctrl+C to quit.');
-});
+	console.log('App listening on port %s', PORT)
+	console.log('Press Ctrl+C to quit.')
+})
 // [END listen]
 // [END app]
 

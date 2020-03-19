@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types';
-import React, {useState, useEffect} from 'react';
-import {Link, useHistory} from "react-router-dom";
-import {connect} from 'react-redux';
-import moment from'moment-timezone';
-import ConfirmModal from './ConfirmModal';
-import AppTable from './AppTable';
-import {setBallotsFilters, setBallotsSort, getBallots, deleteBallots} from './actions/ballots';
-import {getVotingPool} from './actions/voters';
-import {sortClick, filterValidate} from './filter';
-import {ActionButton} from './Icons';
+import PropTypes from 'prop-types'
+import React, {useState, useEffect} from 'react'
+import {Link, useHistory} from "react-router-dom"
+import {connect} from 'react-redux'
+import moment from'moment-timezone'
+import ConfirmModal from './ConfirmModal'
+import AppTable from './AppTable'
+import {setBallotsFilters, setBallotsSort, setBallotsSelected, getBallots, deleteBallots} from './actions/ballots'
+import {getVotingPools} from './actions/voters'
+import {sortClick, filterValidate} from './filter'
+import {ActionButton} from './Icons'
 
 
 /* Convert an ISO date string to US eastern time
@@ -18,7 +18,7 @@ function dateToShortDate(isoDate) {
 }
 
 function Ballots(props) {
-	const history = useHistory();
+	const history = useHistory()
 
 	const columns = [
 		{dataKey: 'Project',      label: 'Project',
@@ -67,33 +67,32 @@ function Ballots(props) {
 			width: 100, flexShrink: 1, flexGrow: 1,
 			cellRenderer: renderCommentsSummary,
 			isLast: true}
-	];
-	const primaryDataKey = 'BallotID';
+	]
+	const primaryDataKey = 'BallotID'
 
-	const [selected, setSelected] = useState([]);
 	const [tableSize, setTableSize] = useState({
 		height: 400,
 		width: 400,
-	});
+	})
 
 	function updateTableSize() {
-		const headerEl = document.getElementsByTagName('header')[0];
-		const topRowEl = document.getElementById('top-row');
-		const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight;
+		const headerEl = document.getElementsByTagName('header')[0]
+		const topRowEl = document.getElementById('top-row')
+		const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight
 
-		const height = window.innerHeight - headerHeight - 5;
-		const width = window.innerWidth - 1;
+		const height = window.innerHeight - headerHeight - 5
+		const width = window.innerWidth - 1
 
 		if (height !== tableSize.height || width !== tableSize.width) {
-			setTableSize({height, width});
+			setTableSize({height, width})
 		}
 	}
 	useEffect(() => {updateTableSize()})
 
 	useEffect(() => {
-		window.addEventListener("resize", updateTableSize);
+		window.addEventListener("resize", updateTableSize)
 		return () => {
-			window.removeEventListener("resize", updateTableSize);
+			window.removeEventListener("resize", updateTableSize)
 		}
 	}, [])
 
@@ -105,53 +104,46 @@ function Ballots(props) {
 					filters[col.dataKey] = filterValidate(col.dataKey, '')
 				}
 			}
-			props.dispatch(setBallotsFilters(filters));
+			props.dispatch(setBallotsFilters(filters))
 		}
-		if (!props.ballotsDataValid) {
+		if (!props.ballotsValid) {
 			props.dispatch(getBallots())
 		}
-		if (!props.votingPoolDataValid) {
-			props.dispatch(getVotingPool())
+		if (!props.votingPoolsValid) {
+			props.dispatch(getVotingPools())
 		}
 	}, [])
 
 	function showEpolls(e) {
-		history.push('/Epolls/');
+		history.push('/Epolls/')
 	}
 
 	async function handleRemoveSelected() {
-		const {ballotsData, ballotsDataMap} = props;
-		let ids = [];
-		for (let i of ballotsDataMap) { // only select checked items that are visible
-			let id = ballotsData[i][primaryDataKey]
+		const {ballots, ballotsMap, selected} = props
+		let ids = []
+		for (let i of ballotsMap) { // only select checked items that are visible
+			let id = ballots[i][primaryDataKey]
 			if (selected.includes(id)) {
 				ids.push(id)
 			}
 		}
-		if (ids.length === 0) {
-			return;
+		if (ids.length) {
+			const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?')
+			if (ok) {
+				await props.dispatch(deleteBallots(ids))
+			}
 		}
-		
-		const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?')
-		if (!ok) {
-			return
-		}
-		
-		await props.dispatch(deleteBallots(ids))
-
-		const s = selected.filter(id => !ids.includes(id));
-		setSelected(s);
 	}
 
 	function setSort(dataKey, event) {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
-		props.dispatch(setBallotsSort(sortBy, sortDirection));
+		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection)
+		props.dispatch(setBallotsSort(sortBy, sortDirection))
 		event.preventDefault()
 	}
 
 	function setFilter(dataKey, value) {
 		var filter = filterValidate(dataKey, value)
-		props.dispatch(setBallotsFilters({[dataKey]: filter}));
+		props.dispatch(setBallotsFilters({[dataKey]: filter}))
 	}
 
 	function renderDate({rowData, dataKey}) {
@@ -159,22 +151,21 @@ function Ballots(props) {
 	}
 
 	function renderVotingPool({rowIndex, columnIndex, rowData, dataKey}) {
-		const votingPoolID = rowData[dataKey[0]];
-		const prevBallotID = rowData[dataKey[1]]; 
-		if (votingPoolID > 0) {
-			const v = props.votingPoolData.find(v => v.VotingPoolID === votingPoolID)
-			return v? v.Name: '';
+		const type = rowData.Type
+		if (type === 1 || type === 3) {
+			return rowData.VotingPoolID
 		}
-		else {
-			return prevBallotID;
+		else if (type === 2 || type === 4) {
+			return rowData.PrevBallotID
 		}
+		return ''
 	}
 
 	function renderResultsSummary({rowIndex, rowData, dataKey}) {
-		var results = rowData[dataKey];
-		var resultsStr = '';
+		var results = rowData[dataKey]
+		var resultsStr = ''
 		if (results && results.TotalReturns) {
-			let p = parseFloat(100*results.Approve/(results.Approve+results.Disapprove));
+			let p = parseFloat(100*results.Approve/(results.Approve+results.Disapprove))
 			resultsStr = `${results.Approve}/${results.Disapprove}/${results.Abstain}`
 			if (!isNaN(p)) {
 				resultsStr += ` (${p.toFixed(1)}%)`
@@ -187,8 +178,8 @@ function Ballots(props) {
 	}
 
 	function renderCommentsSummary({rowIndex, rowData, dataKey}) {
-		const comments = rowData[dataKey];
-		let commentStr = 'None';
+		const comments = rowData[dataKey]
+		let commentStr = 'None'
 		if (comments && comments.Count > 0) {
 			commentStr = `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
 		}
@@ -200,11 +191,11 @@ function Ballots(props) {
 	}
 
 	function handleAddBallot(event) {
-		history.push('/Ballot/');
+		history.push('/Ballot/')
 	}
 
 	function handleEditBallot({rowData}) {
-		history.push(`/Ballot/${rowData.BallotID}`);
+		history.push(`/Ballot/${rowData.BallotID}`)
 	}
 
 	return (
@@ -213,7 +204,7 @@ function Ballots(props) {
 				<span><label>Ballots</label></span>
 				<span>
 					<ActionButton name='add' title='Add' onClick={handleAddBallot} />
-					<ActionButton name='delete' title='Remove Selected' onClick={handleRemoveSelected} />
+					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
 					<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.getBallots} />
 				</span>
@@ -232,10 +223,10 @@ function Ballots(props) {
 				sortDirection={props.sortDirection}
 				setSort={setSort}
 				setFilter={setFilter}
-				setSelected={(cids) => setSelected(cids)}
-				selected={selected}
-				data={props.ballotsData}
-				dataMap={props.ballotsDataMap}
+				setSelected={(ballotIds) => props.dispatch(setBallotsSelected(ballotIds))}
+				selected={props.selected}
+				data={props.ballots}
+				dataMap={props.ballotsMap}
 				primaryDataKey={primaryDataKey}
 			/>
 		</div>
@@ -245,13 +236,13 @@ Ballots.propTypes = {
 	filters: PropTypes.object.isRequired,
 	sortBy: PropTypes.array.isRequired,
 	sortDirection: PropTypes.object.isRequired,
-	ballotsDataValid: PropTypes.bool.isRequired,
-	ballotsData: PropTypes.array.isRequired,
-	ballotsDataMap: PropTypes.array.isRequired,
+	ballotsValid: PropTypes.bool.isRequired,
+	ballots: PropTypes.array.isRequired,
+	ballotsMap: PropTypes.array.isRequired,
 	ballotsByProject: PropTypes.object.isRequired,
 	getBallots: PropTypes.bool.isRequired,
-	votingPoolDataValid: PropTypes.bool.isRequired,
-	votingPoolData: PropTypes.array.isRequired,
+	votingPoolsValid: PropTypes.bool.isRequired,
+	votingPools: PropTypes.array.isRequired,
 	dispatch: PropTypes.func.isRequired
 }
 
@@ -261,13 +252,14 @@ function mapStateToProps(state) {
 		filters: ballots.filters,
 		sortBy: ballots.sortBy,
 		sortDirection: ballots.sortDirection,
-		ballotsDataValid: ballots.ballotsDataValid,
-		ballotsData: ballots.ballotsData,
-		ballotsDataMap: ballots.ballotsDataMap,
+		ballotsValid: ballots.ballotsValid,
+		ballots: ballots.ballots,
+		ballotsMap: ballots.ballotsMap,
 		ballotsByProject: ballots.ballotsByProject,
+		selected: ballots.selected,
 		getBallots: ballots.getBallots,
-		votingPoolDataValid: voters.votingPoolDataValid,
-		votingPoolData: voters.votingPoolData,
+		votingPoolsValid: voters.votingPoolsValid,
+		votingPools: voters.votingPools,
 	}
 }
-export default connect(mapStateToProps)(Ballots);
+export default connect(mapStateToProps)(Ballots)

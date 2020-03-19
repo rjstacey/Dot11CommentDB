@@ -12,25 +12,25 @@ const defaultState = {
 	filters: {},
 	sortBy: [],
 	sortDirection: {},
-	epollsDataValid: false,
-	epollsData: [],
-	epollsDataMap: [],
+	epollsValid: false,
+	epolls: [],
+	epollsMap: [],
 	getEpolls: false
 };
 
-function syncAgainstBallots(epollsData, ballotsData) {
-	const epollsList = ballotsData.map(b => b.EpollNum);
-	return epollsData.map(d => {
+function syncAgainstBallots(epolls, ballots) {
+	const epollsList = ballots.map(b => b.EpollNum)
+	return epolls.map(d => {
 		if (d.InDatabase) {
 			return !epollsList.includes(d.EpollNum)? Object.assign({}, d, {InDatabase: false}): d
 		} else {
 			return epollsList.includes(d.EpollNum)? Object.assign({}, d, {InDatabase: true}): d
 		}
-	});
+	})
 }
 
 const epolls = (state = defaultState, action) => {
-	var epollsData;
+	let epolls
 
 	switch (action.type) {
 		case SET_EPOLLS_SORT:
@@ -38,39 +38,39 @@ const epolls = (state = defaultState, action) => {
 				...state,
 				sortBy: action.sortBy,
 				sortDirection: action.sortDirection,
-				epollsDataMap: sortData(state.epollsDataMap, state.epollsData, action.sortBy, action.sortDirection)
+				epollsMap: sortData(state.epollsMap, state.epolls, action.sortBy, action.sortDirection)
 			}
 		case SET_EPOLLS_FILTERS:
 			const filters = {...state.filters, ...action.filters}
 			return {
 				...state,
 				filters,
-				epollsDataMap: sortData(filterData(state.epollsData, filters), state.epollsData, state.sortBy, state.sortDirection)
+				epollsMap: sortData(filterData(state.epolls, filters), state.epolls, state.sortBy, state.sortDirection)
 			}
 		case GET_EPOLLS:
 			return {
 				...state,
 				getEpolls: true,
-				epollsData: [],
-				epollsDataMap: []
+				epolls: [],
+				epollsMap: []
 			}
 		case GET_EPOLLS_SUCCESS:
 			return {
 				...state,
 				getEpolls: false,
-				epollsDataValid: true,
-				epollsData: action.epollsData,
-				epollsDataMap: sortData(filterData(action.epollsData, state.filters), action.epollsData, state.sortBy, state.sortDirection)
+				epollsValid: true,
+				epolls: action.epolls,
+				epollsMap: sortData(filterData(action.epolls, state.filters), action.epolls, state.sortBy, state.sortDirection)
 			}
 		case GET_EPOLLS_FAILURE:
 			return {...state, getEpolls: false}
 
 		case SYNC_EPOLLS_AGAINST_BALLOTS:
-			epollsData = syncAgainstBallots(state.epollsData, action.ballotsData)
+			epolls = syncAgainstBallots(state.epolls, action.ballots)
 			return {
 				...state,
-				epollsData: epollsData,
-				epollsDataMap: sortData(filterData(epollsData, state.filters), epollsData, state.sortBy, state.sortDirection)
+				epolls,
+				epollsMap: sortData(filterData(epolls, state.filters), epolls, state.sortBy, state.sortDirection)
 			}
 
 		default:

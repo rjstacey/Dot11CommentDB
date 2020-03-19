@@ -10,17 +10,17 @@ const style = {
 }
 
 function Assignee(props) {
-	const {value, onChange, usersDataValid, usersData, dispatch} = props
+	const {value, onChange, usersValid, users, dispatch} = props
 
 	useEffect(() => {
-		if (!usersDataValid) {
+		if (!usersValid) {
 			dispatch(getUsers())
 		}
 	}, [])
 
 	const options =
 		[{value: 0, label: 'Not Assigned'}]
-		.concat(usersData.map(u => {
+		.concat(users.map(u => {
 			return {value: u.SAPIN, label: `${u.Name} <${u.Email}>`}
 		}));
 
@@ -53,15 +53,15 @@ function Assignee(props) {
 Assignee.propTypes = {
 	value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
 	onChange: PropTypes.func.isRequired,
-	usersDataValid: PropTypes.bool.isRequired,
-	usersData: PropTypes.array.isRequired,
+	usersValid: PropTypes.bool.isRequired,
+	users: PropTypes.array.isRequired,
 	dispatch: PropTypes.func.isRequired,
 }
 
 export default connect((state) => {
 	const {users} = state
 	return {
-		usersDataValid: users.usersDataValid,
-		usersData: users.usersData
+		usersValid: users.usersValid,
+		users: users.users
 	}
 })(Assignee)

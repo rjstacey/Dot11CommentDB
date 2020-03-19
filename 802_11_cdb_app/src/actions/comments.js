@@ -1,10 +1,11 @@
 import {updateBallotSuccess} from './ballots'
 import {setError} from './error'
-
-var axios = require('axios')
+import fetcher from '../lib/fetcher'
 
 export const SET_COMMENTS_FILTERS = 'SET_COMMENTS_FILTERS'
 export const SET_COMMENTS_SORT = 'SET_COMMENTS_SORT'
+export const SET_COMMENTS_SELECTED = 'SET_COMMENTS_SELECTED'
+export const SET_COMMENTS_EXPANDED = 'SET_COMMENTS_EXPANDED'
 
 export const GET_COMMENTS = 'GET_COMMENTS'
 export const GET_COMMENTS_SUCCESS = 'GET_COMMENTS_SUCCESS'
@@ -22,19 +23,21 @@ export const UPLOAD_COMMENTS = 'UPLOAD_COMMENTS'
 export const UPLOAD_COMMENTS_SUCCESS = 'UPLOAD_COMMENTS_SUCCESS'
 export const UPLOAD_COMMENTS_FAILURE = 'UPLOAD_COMMENTS_FAILURE'
 
-export const ADD_RESOLUTION = 'ADD_RESOLUTION'
-export const ADD_RESOLUTION_SUCCESS = 'ADD_RESOLUTION_SUCCESS'
-export const ADD_RESOLUTION_FAILURE = 'ADD_RESOLUTION_FAILURE'
+export const ADD_RESOLUTIONS = 'ADD_RESOLUTIONS'
+export const ADD_RESOLUTIONS_SUCCESS = 'ADD_RESOLUTIONS_SUCCESS'
+export const ADD_RESOLUTIONS_FAILURE = 'ADD_RESOLUTIONS_FAILURE'
 export const UPDATE_RESOLUTIONS = 'UPDATE_RESOLUTIONS'
 export const UPDATE_RESOLUTIONS_SUCCESS = 'UPDATE_RESOLUTIONS_SUCCESS'
 export const UPDATE_RESOLUTIONS_FAILURE = 'UPDATE_RESOLUTIONS_FAILURE'
-export const DELETE_RESOLUTION = 'DELETE_RESOLUTION'
-export const DELETE_RESOLUTION_SUCCESS = 'DELETE_RESOLUTION_SUCCESS'
-export const DELETE_RESOLUTION_FAILURE = 'DELETE_RESOLUTION_FAILURE'
+export const DELETE_RESOLUTIONS = 'DELETE_RESOLUTIONS'
+export const DELETE_RESOLUTIONS_SUCCESS = 'DELETE_RESOLUTIONS_SUCCESS'
+export const DELETE_RESOLUTIONS_FAILURE = 'DELETE_RESOLUTIONS_FAILURE'
 
 
 export const setCommentsFilters = (filters) => {return {type: SET_COMMENTS_FILTERS, filters}}
 export const setCommentsSort = (sortBy, sortDirection) => {return {type: SET_COMMENTS_SORT, sortBy, sortDirection}}
+export const setCommentsSelected = (selected) => {return {type: SET_COMMENTS_SELECTED, selected}}
+export const setCommentsExpanded = (expanded) => {return {type: SET_COMMENTS_EXPANDED, expanded}}
 
 const getCommentsLocal = (ballotId) => {return {type: GET_COMMENTS, ballotId}}
 const getCommentsSuccess = (comments) => {return {type: GET_COMMENTS_SUCCESS, comments}}
@@ -44,19 +47,13 @@ export function getComments(ballotId) {
 	return async (dispatch) => {
 		dispatch(getCommentsLocal(ballotId))
 		try {
-			const response = await axios.get('/comments', {params: {BallotID: ballotId}})
-			if (response.data.status !== 'OK') {
-				return Promise.all([
-					dispatch(getCommentsFailure()),
-					dispatch(setError(response.data.message))
-				])
-			}
-			return dispatch(getCommentsSuccess(response.data.data))
+			const comments = await fetcher.get(`/comments/${ballotId}`)
+			return dispatch(getCommentsSuccess(comments))
 		}
 		catch(error) {
 			return Promise.all([
 				dispatch(getCommentsFailure()),
-				dispatch(setError('Unable to get comment list', error.toString()))
+				dispatch(setError(`Unable to get comments for ${ballotId}`, error))
 			])
 		}
 	}
@@ -70,19 +67,13 @@ export function updateComment(data) {
 	return async (dispatch) => {
 		dispatch(updateCommentLocal(data))
 		try {
-			const response = await axios.put('/comment', data)
-			if (response.data.status !== 'OK') {
-				return Promise.all([
-					dispatch(updateCommentFailure()),
-					dispatch(setError(response.data.message))
-				])
-			}
-			return dispatch(updateCommentSuccess(data))
+			const updatedComment = await fetcher.put('/comment', data)
+			return dispatch(updateCommentSuccess(updatedComment))
 		}
 		catch(error) {
 			return Promise.all([
 				dispatch(updateCommentFailure()),
-				dispatch(setError(`Unable to update comment ${data.BallotID}/${data.CommentID}`, error.toString()))
+				dispatch(setError(`Unable to update comment ${data.BallotID}/${data.CommentID}`, error))
 			])
 		}
 	}
@@ -96,13 +87,7 @@ export function deleteComments(ballotId) {
 	return async (dispatch) => {
 		dispatch(deleteCommentsLocal(ballotId))
 		try {
-			const response = await axios.delete('/comments/BallotId', {data: {BallotID: ballotId}})
-			if (response.data.status !== 'OK') {
-				return Promise.all([
-					dispatch(deleteCommentsFailure(ballotId)),
-					dispatch(setError(response.data.message))
-				])
-			}
+			await fetcher.delete('/comments/BallotId', {BallotID: ballotId})
 			const summary = {Count: 0, CommentIDMin: 0, CommentIDMax: 0}
 			return Promise.all([
 				dispatch(deleteCommentsSuccess(ballotId)),
@@ -113,7 +98,7 @@ export function deleteComments(ballotId) {
 		catch(error) {
 			return Promise.all([
 				dispatch(deleteCommentsFailure(ballotId)),
-				dispatch(setError(`Unable to delete comments with ballotId=${ballotId}`, error.toString()))
+				dispatch(setError(`Unable to delete comments with ballotId=${ballotId}`, error))
 			])
 		}
 	}
@@ -125,21 +110,9 @@ const importCommentsFailure = (ballotId) => {return {type: IMPORT_COMMENTS_FAILU
 
 export function importComments(ballotId, epollNum, startCID) {
 	return async (dispatch) => {
-		dispatch(importCommentsLocal(ballotId));
-		var params = {
-			BallotID: ballotId,
-			EpollNum: epollNum,
-			StartCID: startCID
-		}
+		dispatch(importCommentsLocal(ballotId))
 		try {
-			const response = await axios.post('/comments/import', params)
-			if (response.data.status !== 'OK') {
-				return Promise.all([
-					dispatch(importCommentsFailure(ballotId)),
-					dispatch(setError(response.data.message))
-				])
-			}
-			const {comments, summary} = response.data.data
+			const {comments, summary} = await fetcher.post(`/comments/importFromEpoll/${ballotId}/${epollNum}`, {StartCID: startCID})
 			return Promise.all([
 				dispatch(importCommentsSuccess(ballotId, comments)),
 				// Update the comments summary for the ballot
@@ -149,7 +122,7 @@ export function importComments(ballotId, epollNum, startCID) {
 		catch(error) {
 			return Promise.all([
 				dispatch(importCommentsFailure(ballotId)),
-				dispatch(setError(`Unable to import comments for ${ballotId}`, error.toString()))
+				dispatch(setError(`Unable to import comments for ${ballotId}`, error))
 			])
 		}
 	}
@@ -161,21 +134,9 @@ const uploadCommentsFailure = () => {return {type: UPLOAD_COMMENTS_FAILURE}}
 
 export function uploadComments(ballotId, type, file) {
 	return async (dispatch) => {
-		dispatch(uploadCommentsLocal(ballotId));
-		const formData = new FormData();
-		formData.append("BallotID", ballotId);
-		formData.append("Type", type);
-		formData.append("CommentsFile", file);
-		console.log(file)
+		dispatch(uploadCommentsLocal(ballotId))
 		try {
-			const response = await axios.post('/comments/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
-			if (response.data.status !== 'OK') {
-				return Promise.all([
-					dispatch(uploadCommentsFailure()),
-					dispatch(setError(response.data.message))
-				])
-			}
-			const {comments, summary} = response.data.data
+			const {comments, summary} = await fetcher.postMultipart(`/comments/upload/${ballotId}/${type}`, {CommentsFile: file})
 			return Promise.all([
 				dispatch(uploadCommentsSuccess(ballotId, comments)),
 				// Update the comments summary for the ballot
@@ -185,46 +146,30 @@ export function uploadComments(ballotId, type, file) {
 		catch(error) {
 			return Promise.all([
 				dispatch(uploadCommentsFailure()),
-				dispatch(setError(`Unable to upload comments for ballot ${ballotId}`, error.toString()))
+				dispatch(setError(`Unable to upload comments for ${ballotId}`, error))
 			])
 		}
 	}
 }
 
-const addResolutionLocal = (resolution) => {return {type: ADD_RESOLUTION, resolution}}
-const addResolutionSuccess = (data) => {
-	return {
-		type: 'ADD_RESOLUTION_SUCCESS',
-		ballotId: data.BallotID,
-		commentId: data.CommentID,
-		resolutionId: data.ResolutionID,
-		updatedComments: data.updatedComments
-	}
-}
-const addResolutionFailure = () => {return {type: ADD_RESOLUTION_FAILURE}}
+const addResolutionsLocal = (ballotId, resolutions) => {return {type: ADD_RESOLUTIONS, ballotId, resolutions}}
+const addResolutionsSuccess = (ballotId, newComments, updatedComments) => {return {type: ADD_RESOLUTIONS_SUCCESS, ballotId, newComments, updatedComments}}
+const addResolutionsFailure = () => {return {type: ADD_RESOLUTIONS_FAILURE}}
 
-export function addResolution(data) {
+export function addResolutions(ballotId, resolutions) {
 	return async (dispatch) => {
-		dispatch(addResolutionLocal(data));
+		dispatch(addResolutionsLocal(ballotId, resolutions))
 		try {
-			const response = await axios.post('/resolution', data)
-			if (response.data.status !== 'OK') {
-				await Promise.all([
-					dispatch(addResolutionFailure()),
-					dispatch(setError(response.data.message))
-				])
-				return -1
-			}
-			await dispatch(addResolutionSuccess(response.data.data))
-			//console.log(response.data.data)
-			return response.data.data.ResolutionID
+			const response = await fetcher.post(`/resolutions/${ballotId}`, resolutions)
+			await dispatch(addResolutionsSuccess(ballotId, response.newComments, response.updatedComments))
+			return response.newComments
 		}
 		catch(error) {
 			await Promise.all([
-				dispatch(addResolutionFailure()),
-				dispatch(setError(`Unable to add resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`, error.toString()))
+				dispatch(addResolutionsFailure()),
+				dispatch(setError(`Unable to add resolutions`, error))
 			])
-			return -1
+			return null
 		}
 	}
 }
@@ -237,54 +182,34 @@ export function updateResolutions(ballotId, resolutions) {
 	return async (dispatch) => {
 		dispatch(updateResolutionsLocal(ballotId, resolutions));
 		try {
-			const response = await axios.put('/resolutions', {ballotId, resolutions})
-			if (response.data.status !== 'OK') {
-				return Promise.all([
-					dispatch(updateResolutionsFailure()),
-					dispatch(setError(response.data.message))
-				])
-			}
+			await fetcher.put(`/resolutions/${ballotId}`, {ballotId, resolutions})
 			return dispatch(updateResolutionsSuccess(ballotId, resolutions))
 		}
 		catch(error) {
 			return Promise.all([
 				dispatch(updateResolutionsFailure()),
-				dispatch(setError(`Unable to update resolutions for ${ballotId}`, error.toString()))
+				dispatch(setError(`Unable to update resolutions for ${ballotId}`, error))
 			])
 		}
 	}
 }
 
-const deleteResolutionLocal = (ballotId, commentId, resolutionId) => {return {type: DELETE_RESOLUTION, ballotId, commentId, resolutionId}}
-const deleteResolutionSuccess = (data) => {
-	return {
-		type: DELETE_RESOLUTION_SUCCESS,
-		ballotId: data.BallotID,
-		commentId: data.CommentID,
-		resolutionId: data.ResolutionID,
-		updatedComments: data.updatedComments
-	}
-}
-const deleteResolutionFailure = () => {return {type: DELETE_RESOLUTION_FAILURE}}
+const deleteResolutionsLocal = (ballotId, resolutions) => {return {type: DELETE_RESOLUTIONS, ballotId, resolutions}}
+const deleteResolutionsSuccess = (ballotId, updatedComments) => {return {type: DELETE_RESOLUTIONS_SUCCESS, ballotId, updatedComments}}
+const deleteResolutionsFailure = () => {return {type: DELETE_RESOLUTIONS_FAILURE}}
 
-export function deleteResolution(data) {
+export function deleteResolutions(ballotId, resolutions) {
 	return async (dispatch) => {
-		dispatch(deleteResolutionLocal(data))
+		dispatch(deleteResolutionsLocal(ballotId, resolutions))
 		try {
-			const response = await axios.delete('/resolution', {data: data})
-			if (response.data.status !== 'OK') {
-				return Promise.all([
-					dispatch(deleteResolutionFailure()),
-					dispatch(setError(response.data.message))
-				])
-			}
-			return dispatch(deleteResolutionSuccess(response.data.data))
+			const response = await fetcher.delete(`/resolutions/${ballotId}`, {resolutions})
+			return dispatch(deleteResolutionsSuccess(ballotId, response.updatedComments))
 		}
 		catch(error) {
 			console.log(error)
 			return Promise.all([
-				dispatch(deleteResolutionFailure()),
-				dispatch(setError(`Unable to delete resolution ${data.BallotID}/${data.CommentID}/${data.ResolutionID}`, error.toString()))
+				dispatch(deleteResolutionsFailure()),
+				dispatch(setError(`Unable to delete resolutions`, error))
 			])
 		}
 	}
@@ -292,21 +217,15 @@ export function deleteResolution(data) {
 
 export function uploadResolutions(ballotId, matchAlgorithm, matchAll, file) {
 	return async (dispatch) => {
-		dispatch(uploadCommentsLocal(ballotId));
+		dispatch(uploadCommentsLocal(ballotId))
+		const params = {
+			BallotID: ballotId,
+			matchAlgorithm,
+			matchAll,
+			ResolutionsFile: file
+		}
 		try {
-			var formData = new FormData()
-			formData.append("BallotID", ballotId)
-			formData.append("matchAlgorithm", matchAlgorithm)
-			formData.append("matchAll", matchAll)
-			formData.append("ResolutionsFile", file)
-			const response = await axios.post('/resolutions/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
-			if (response.data.status !== 'OK') {
-				return Promise.all([
-					dispatch(uploadCommentsFailure()),
-					dispatch(setError(`Unable to upload resolutions for ballot ${ballotId}`, response.data.message))
-				])
-			}
-			const {comments, summary} = response.data.data
+			const {comments, summary} = await fetcher.postMultipart('/resolutions/upload', params)
 			return Promise.all([
 				dispatch(uploadCommentsSuccess(ballotId, comments)),
 				dispatch(updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary}))
@@ -315,7 +234,7 @@ export function uploadResolutions(ballotId, matchAlgorithm, matchAll, file) {
 		catch(error) {
 			return Promise.all([
 				dispatch(uploadCommentsFailure()),
-				dispatch(setError(`Unable to upload resolutions for ballot ${ballotId}`, error.toString()))
+				dispatch(setError(`Unable to upload resolutions for ballot ${ballotId}`, error))
 			])
 		}
 	}

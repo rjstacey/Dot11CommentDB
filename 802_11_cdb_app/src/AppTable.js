@@ -38,13 +38,13 @@ export function renderFilter({dataKey, filter, setFilter}) {
 	)
 }
 
-export function renderLabel({dataKey, label, sortable, sortBy, sortDirection, setSort, width}) {
+export function renderLabel({dataKey, label, sortable, sortBy, sortDirection, setSort}) {
 	let direction = 'NONE'
 	let onClick = undefined
-	if (sortable && sortBy.includes(dataKey)) {
-		direction = sortDirection[dataKey]
-	}
 	if (sortable) {
+		if (sortBy.includes(dataKey)) {
+			direction = sortDirection[dataKey]
+		}
 		onClick = e => setSort(dataKey, e)
 	}
 	return (
@@ -52,10 +52,7 @@ export function renderLabel({dataKey, label, sortable, sortBy, sortDirection, se
 			className={cx(styles.headerLabel, {[styles.headerLabelSort]: sortable})}
 			title={label}
 			onClick={onClick}
-			style={{width: width || '100%'}}
 		>
-			{/*<div className={cx(styles.headerLabelItem, {[styles.headerLabelItemTrucate]: direction !== 'NONE'})}>{label}</div>
-			{direction !== 'NONE' && <IconSort className={styles.headerLabelIcon} direction={direction} />}*/}
 			<div className={cx(styles.headerLabelItem, {[styles.headerLabelItemTrucate]: direction !== 'NONE'})}>{label}</div>
 			{direction !== 'NONE' && <IconSort className={styles.headerLabelIcon} direction={direction} />}
 		</div>
@@ -63,8 +60,7 @@ export function renderLabel({dataKey, label, sortable, sortBy, sortDirection, se
 }
 
 function AppTable(props) {
-	let tableRef = null;
-	const [expanded, setExpanded] = useState([])
+	let tableRef = null
 
 	const rowHeightCache = useRef(new CellMeasurerCache({
 			minHeight: props.rowHeight,
@@ -105,7 +101,7 @@ function AppTable(props) {
 	}
 
 	function rowGetter({index}) {
-		return props.data[props.dataMap[index]];
+		return props.data[props.dataMap[index]]
 	}
 
 	function renderHeaderCell({columnData, dataKey, label}) {
@@ -147,16 +143,16 @@ function AppTable(props) {
 	}
 
 	function renderHeaderCellCheckbox({dataKey}) {
-		const {dataMap, data, primaryDataKey} = props;
+		const {dataMap, data, primaryDataKey} = props
 
-		let elements = [];
-		if (props.hasRowSelector) {
-			const {selected, showSelected} = props;
-			const isChecked = allSelected(selected, dataMap, data, primaryDataKey);
-			const isIndeterminate = !isChecked && selected.length > 0;
+		let elements = []
+		if (Array.isArray(props.selected)) {
+			const {selected, showSelected, setSelected} = props
+			const isChecked = allSelected(selected, dataMap, data, primaryDataKey)
+			const isIndeterminate = !isChecked && selected.length > 0
 			const onChange = showSelected?
 				showSelected:
-				() => props.setSelected(toggleVisible(selected, props.dataMap, props.data, primaryDataKey));
+				() => setSelected(toggleVisible(selected, dataMap, data, primaryDataKey));
 
 			elements.push(
 				<input
@@ -170,8 +166,9 @@ function AppTable(props) {
 				/>
 			)
 		}
-		if (props.hasRowExpander) {
-			const isExpanded = allSelected(expanded, dataMap, data, primaryDataKey);
+		if (Array.isArray(props.expanded)) {
+			const {expanded, setExpanded} = props
+			const isExpanded = allSelected(expanded, dataMap, data, primaryDataKey)
 			elements.push(
 				<input
 					key='expander'
@@ -195,9 +192,9 @@ function AppTable(props) {
 	}
 
 	function renderDataCellCheckbox({rowIndex, rowData, dataKey}) {
-		const id = rowData[props.primaryDataKey];
+		const id = rowData[props.primaryDataKey]
 		let elements = []
-		if (props.hasRowSelector) {
+		if (Array.isArray(props.selected)) {
 			const {selected, setSelected} = props
 			const isSelected = selected.includes(id)
 			elements.push(
@@ -209,14 +206,15 @@ function AppTable(props) {
 					checked={isSelected}
 					onChange={e => {
 						// if commentId is present in selectedComments (i > 0) then remove it; otherwise add it
-						const i = selected.indexOf(id);
+						const i = selected.indexOf(id)
 						setSelected(update(selected, (i > -1)? {$splice: [[i, 1]]}: {$push: [id]}))
 					}}
 				/>
 			)
 		}
-		if (props.hasRowExpander) {
-			const isExpanded = expanded.includes(id);
+		if (Array.isArray(props.expanded)) {
+			const {expanded, setExpanded} = props
+			const isExpanded = expanded.includes(id)
 			elements.push(
 				<input
 					key='expander'
@@ -225,7 +223,7 @@ function AppTable(props) {
 					title="Expand Row"
 					checked={isExpanded}
 					onChange={e => {
-						const i = expanded.indexOf(id);
+						const i = expanded.indexOf(id)
 						setExpanded(update(expanded, (i > -1)? {$splice: [[i, 1]]}: {$push: [id]}))
 						clearCachedRowHeight(rowIndex)
 					}}
@@ -241,24 +239,23 @@ function AppTable(props) {
 		if (!cell) {
 			cell = ''
 		}
-		if (props.hasRowExpander) {
-			const isExpanded = expanded.includes(rowData[props.primaryDataKey]);
-			if (isExpanded) {
-				return (
-					<CellMeasurer
-						cache={rowHeightCache.current}
-						rowIndex={rowIndex}
-						columnIndex={columnIndex}
-						parent={parent}
-						key={dataKey}
-					>
-						{cell}
-					</CellMeasurer>
-				)
-			}
+		if (props.expanded === true || (Array.isArray(props.expanded) && props.expanded.includes(rowData[props.primaryDataKey]))) {
+			return (
+				<CellMeasurer
+					cache={rowHeightCache.current}
+					rowIndex={rowIndex}
+					columnIndex={columnIndex}
+					parent={parent}
+					key={dataKey}
+				>
+					{cell}
+				</CellMeasurer>
+			)
 		}
-		rowHeightCache.current.set(rowIndex, columnIndex, undefined, 0); // force to minHeight
-		return cell;
+		else {
+			rowHeightCache.current.set(rowIndex, columnIndex, undefined, 0) // force to minHeight
+			return cell
+		}
 	}
 
 	function renderNoRows() {
@@ -274,7 +271,7 @@ function AppTable(props) {
 	}
 
 	let column0
-	if (props.hasRowSelector || props.hasRowExpander) {
+	if (Array.isArray(props.selected) || Array.isArray(props.expanded)) {
 		column0 = (
 			<Column 
 				dataKey=''
@@ -282,7 +279,7 @@ function AppTable(props) {
 				cellRenderer={renderDataCellCheckbox}
 				flexGrow={0}
 				flexShrink={0}
-				width={(props.hasRowSelector && props.hasRowExpander)? 40: 25}
+				width={(Array.isArray(props.selected) && Array.isArray(props.expanded))? 40: 25}
 			/>
 			)
 	}
@@ -321,8 +318,6 @@ function AppTable(props) {
 }
 
 AppTable.propTypes = {
-	hasRowSelector: PropTypes.bool,
-	hasRowExpander: PropTypes.bool,
 	columns: PropTypes.array.isRequired,
 	height: PropTypes.number.isRequired,
 	width: PropTypes.number.isRequired,
@@ -337,6 +332,8 @@ AppTable.propTypes = {
 	showSelected: PropTypes.func,
 	setSelected: PropTypes.func,
 	selected: PropTypes.array,
+	setExpanded: PropTypes.func,
+	expanded: PropTypes.oneOfType([PropTypes.bool, PropTypes.array]),
 }
 
 export default AppTable;

@@ -1,18 +1,17 @@
 import {sortData, filterData} from '../filter'
 import {
-	SET_VOTING_POOL_FILTERS,
-	SET_VOTING_POOL_SORT,
-	GET_VOTING_POOL,
-	GET_VOTING_POOL_SUCCESS,
-	GET_VOTING_POOL_FAILURE,
-	ADD_VOTING_POOL,
-	ADD_VOTING_POOL_SUCCESS,
-	ADD_VOTING_POOL_FAILURE,
-	DELETE_VOTING_POOL,
-	DELETE_VOTING_POOL_SUCCESS,
-	DELETE_VOTING_POOL_FAILURE,
+	SET_VOTING_POOLS_FILTERS,
+	SET_VOTING_POOLS_SORT,
+	SET_VOTING_POOLS_SELECTED,
+	GET_VOTING_POOLS,
+	GET_VOTING_POOLS_SUCCESS,
+	GET_VOTING_POOLS_FAILURE,
+	DELETE_VOTING_POOLS,
+	DELETE_VOTING_POOLS_SUCCESS,
+	DELETE_VOTING_POOLS_FAILURE,
 	SET_VOTERS_FILTERS,
 	SET_VOTERS_SORT,
+	SET_VOTERS_SELECTED,
 	GET_VOTERS,
 	GET_VOTERS_SUCCESS,
 	GET_VOTERS_FAILURE,
@@ -31,161 +30,180 @@ import {
 }from '../actions/voters'
 
 const defaultState = {
-	getVotingPool: false,
-	votingPoolFilters: {},
-	votingPoolSortBy: [],
-	votingPoolSortDirection: {},
-	votingPoolDataValid: false,
-	votingPoolData: [],
-	votingPoolDataMap: [],
+	getVotingPools: false,
+	votingPoolsFilters: {},
+	votingPoolsSortBy: [],
+	votingPoolsSortDirection: {},
+	votingPoolsSelected: [],
+	votingPoolsValid: false,
+	votingPools: [],
+	votingPoolsMap: [],
 
-	votingPool: {},
+	votingPool: {VotingPool: '', PoolType: '', VotersCount: 0},
 	getVoters: false,
 	votersFilters: {},
 	votersSortBy: [],
 	votersSortDirection: {},
-	votersDataValid: false,
-	votersData: [],
-	votersDataMap: [],
+	votersSelected: [],
+	votersValid: false,
+	voters: [],
+	votersMap: [],
 	addVoter: false,
 	deleteVoters: false,
 	uploadVoters: false
 }
 
+function updateSelected(data, dataKey, selected) {
+	return selected.filter(s => data.find(d => d[dataKey] === s))
+}
+
 const voters = (state = defaultState, action) => {
-	var votingPoolData, votersData, filters;
+	let votingPools, votingPool, voters, filters, key
 
 	switch (action.type) {
-		case SET_VOTING_POOL_SORT:
+		case SET_VOTING_POOLS_SORT:
 			return {
 				...state,
-				votingPoolSortBy: action.sortBy,
-				votingPoolSortDirection: action.sortDirection,
-				votingPoolDataMap: sortData(state.votingPoolDataMap, state.votingPoolData, action.sortBy, action.sortDirection)
+				votingPoolsSortBy: action.sortBy,
+				votingPoolsSortDirection: action.sortDirection,
+				votingPoolsMap: sortData(state.votingPoolsMap, state.votingPools, action.sortBy, action.sortDirection)
 			}
-		case SET_VOTING_POOL_FILTERS:
-			filters = {...state.votingPoolFilters, ...action.filters};
+		case SET_VOTING_POOLS_FILTERS:
+			filters = {...state.votingPoolsFilters, ...action.filters}
 			return {
 				...state,
-				votingPoolFilters: filters,
-				votingPoolDataMap: sortData(filterData(state.votingPoolData, filters), state.votingPoolData, state.votingPoolSortBy, state.votingPoolSortDirection)
+				votingPoolsFilters: filters,
+				votingPoolsMap: sortData(filterData(state.votingPools, filters), state.votingPools, state.votingPoolsSortBy, state.votingPoolsSortDirection)
 			}
-		case GET_VOTING_POOL:
+		case SET_VOTING_POOLS_SELECTED:
 			return {
 				...state,
-				getVotingPool: true,
-				votingPoolDataValid: false,
-				votingPoolData: [],
-				votingPoolDataMap: []
+				votingPoolsSelected: updateSelected(state.votingPools, 'VotingPoolID', action.selected)
 			}
-		case GET_VOTING_POOL_SUCCESS:
+		case GET_VOTING_POOLS:
 			return {
 				...state,
-				votingPoolDataValid: true,
-				getVotingPool: false,
-				votingPoolData: action.votingPoolData,
-				votingPoolDataMap: sortData(filterData(action.votingPoolData, state.votingPoolFlters), state.votingPoolData, state.votingPoolSortBy, state.votingPoolSortDirection)
+				getVotingPools: true,
+				votingPoolsValid: false,
+				votingPools: [],
+				votingPoolsMap: []
 			}
-		case GET_VOTING_POOL_FAILURE:
-			return {...state, getVotingPool: false}
+		case GET_VOTING_POOLS_SUCCESS:
+			votingPools = action.votingPools
+			return {
+				...state,
+				votingPoolsValid: true,
+				getVotingPools: false,
+				votingPools,
+				votingPoolsMap: sortData(filterData(votingPools, state.votingPoolsFlters), votingPools, state.votingPoolsSortBy, state.votingPoolsSortDirection)
+			}
+		case GET_VOTING_POOLS_FAILURE:
+			return {...state, getVotingPools: false}
 
-		case ADD_VOTING_POOL:
-			return {...state, addVotingPool: true}
-		case ADD_VOTING_POOL_SUCCESS:
-			votingPoolData = state.votingPoolData.slice();
-			votingPoolData.push(action.votingPoolData);
+		case DELETE_VOTING_POOLS:
+			return {...state, deleteVotingPools: true}
+		case DELETE_VOTING_POOLS_SUCCESS:
+			votingPools = state.votingPools.filter(vp1 => !action.votingPools.find(vp2 => vp2.PoolType === vp1.PoolType && vp2.VotingPoolID === vp1.VotingPoolID))
 			return {
 				...state,
-				addVotingPool: false,
-				votingPoolData: votingPoolData,
-				votingPoolDataMap: sortData(filterData(votingPoolData, state.votingPoolFilters), votingPoolData, state.votingPoolSortBy, state.votingPoolSortDirection),
+				deleteVotingPools: false,
+				votingPoolsValid: true,
+				votingPools,
+				votingPoolsMap: sortData(filterData(votingPools, state.votingPoolsFilters), votingPools, state.votingPoolsSortBy, state.votingPoolsSortDirection),
+				votingPoolsSelected: updateSelected(votingPools, 'VotingPoolID', state.votingPoolsSelected)
 			}
-		case ADD_VOTING_POOL_FAILURE:
-			return {...state, addVotingPool: false}
-		case DELETE_VOTING_POOL:
-			return {...state, deleteVotingPool: true}
-		case DELETE_VOTING_POOL_SUCCESS:
-			votingPoolData = state.votingPoolData.filter(b => action.votingPoolId !== b.VotingPoolID);
-			return {
-				...state,
-				deleteVotingPool: false,
-				votingPoolDateValid: true,
-				votingPoolData: votingPoolData,
-				votingPoolDataMap: sortData(filterData(votingPoolData, state.filters), votingPoolData, state.votingPoolSortBy, state.votingPoolSortDirection),
-			}
-		case DELETE_VOTING_POOL_FAILURE:
-			return {...state, deleteVotingPool: false}
+		case DELETE_VOTING_POOLS_FAILURE:
+			return {...state, deleteVotingPools: false}
 
 		case SET_VOTERS_SORT:
 			return {
 				...state,
 				votersSortBy: action.sortBy,
 				votersSortDirection: action.sortDirection,
-				votersDataMap: sortData(state.votersDataMap, state.votersData, action.sortBy, action.sortDirection)
+				votersMap: sortData(state.votersMap, state.voters, action.sortBy, action.sortDirection)
 			}
 		case SET_VOTERS_FILTERS:
 			filters = {...state.votersFilters, ...action.filters};
 			return {
 				...state,
 				votersFilters: filters,
-				votersDataMap: sortData(filterData(state.votersData, filters), state.votersData, state.votersSortBy, state.votersSortDirection)
+				votersMap: sortData(filterData(state.voters, filters), state.voters, state.votersSortBy, state.votersSortDirection)
+			}
+		case SET_VOTERS_SELECTED:
+			key = state.votingPool.PoolType === 'SA'? 'Email': 'SAPIN'
+			return {
+				...state,
+				votersSelected: updateSelected(state.voters, key, action.selected)
 			}
 		case GET_VOTERS:
 			return {
 				...state,
-				votingPool: {VotingPoolID: action.votingPoolId},
 				getVoters: true,
-				votersData: [],
-				votersDataMap: []
+				voters: [],
+				votersMap: []
 			}
 		case GET_VOTERS_SUCCESS:
 			return {
 				...state,
-				votersDataValid: true,
 				getVoters: false,
+				votersValid: true,
 				votingPool: action.votingPool,
-				votersData: action.voters,
-				votersDataMap: sortData(filterData(action.voters, state.votersFlters), action.voters, state.votersSortBy, state.votersSortDirection)
+				voters: action.voters,
+				votersMap: sortData(filterData(action.voters, state.votersFlters), action.voters, state.votersSortBy, state.votersSortDirection)
 			}
 		case GET_VOTERS_FAILURE:
 			return {...state, getVoters: false}
+
 		case ADD_VOTER:
 			return {...state, addVoter: true}
 		case ADD_VOTER_SUCCESS:
-			votersData = state.votersData.slice();
-			votersData.push(action.voter);
+			voters = state.voters.slice()
+			voters.push(action.voter)
+			votingPools = state.votingPools.map(vp => (vp.PoolType === action.votingPool.PoolType && vp.VotingPoolID === action.votingPool.VotingPoolID)? action.votingPool: vp)
 			return {
 				...state,
 				addVoter: false,
-				votersData: votersData,
-				votersDataMap: sortData(filterData(votersData, state.votersFilters), votersData, state.votersSortBy, state.votersSortDirection)
+				voters,
+				votersMap: sortData(filterData(voters, state.votersFilters), voters, state.votersSortBy, state.votersSortDirection),
+				votingPools,
+				votingPoolsMap: sortData(filterData(votingPools, state.votingPoolsFlters), votingPools, state.votingPoolsSortBy, state.votingPoolsSortDirection)
 			}
 		case ADD_VOTER_FAILURE:
 			return {...state, addVoter: false}
 		case UPDATE_VOTER:
 			return {...state, updateVoter: true}
 		case UPDATE_VOTER_SUCCESS:
-			votersData = state.votersData.map(v =>
-				(v.SAPIN === action.SAPIN)? {...v, ...action.voterData}: v
-			);
-			return {
-				...state,
-				updateVoter: false,
-				votersData: votersData,
-				votersDataMap: sortData(filterData(votersData, state.votersFilters), votersData, state.votersSortBy, state.votersSortDirection)
+			votingPool = action.votingPool
+			if (votingPool.PoolType === state.votingPool.PoolType && votingPool.VotingPoolID === state.votingPool.VotingPoolID) {
+				key = votingPool.PoolType === 'SA'? 'Email': 'SAPIN'
+				voters = state.voters.map(v => (v[key] === action.voterId)? {...v, ...action.voter}: v)
+				return {
+					...state,
+					updateVoter: false,
+					voters,
+					votersMap: sortData(filterData(voters, state.votersFilters), voters, state.votersSortBy, state.votersSortDirection)
+				}
 			}
+			return {...state, updateVoter: false}
 		case UPDATE_VOTER_FAILURE:
 			return {...state, updateVoter: false}
 
 		case DELETE_VOTERS:
 			return {...state, deleteVoters: true}
 		case DELETE_VOTERS_SUCCESS:
-			votersData = state.votersData.filter(v => !action.SAPINs.includes(v.SAPIN));
+			votingPool = action.votingPool
+			key = votingPool.PoolType === 'SA'? 'Email': 'SAPIN'
+			voters = state.voters.filter(v => !action.voterIds.includes(v[key]))
+			votingPools = state.votingPools.map(vp => (vp.PoolType === votingPool.PoolType && vp.VotingPoolID === votingPool.VotingPoolID)? votingPool: vp)
 			return {
 				...state,
 				deleteVoters: false,
-				votersData,
-				votersDataMap: sortData(filterData(votersData, state.votersFilters), votersData, state.votersSortBy, state.votersSortDirection)
+				votingPool,
+				voters,
+				votersMap: sortData(filterData(voters, state.votersFilters), voters, state.votersSortBy, state.votersSortDirection),
+				votingPools,
+				votingPoolsMap: sortData(filterData(votingPools, state.votingPoolsFlters), votingPools, state.votingPoolsSortBy, state.votingPoolsSortDirection),
+				votersSelected: updateSelected(voters, key, state.votersSelected)
 			}
 		case DELETE_VOTERS_FAILURE:
 			return {...state, deleteVoters: false}
@@ -193,7 +211,31 @@ const voters = (state = defaultState, action) => {
 		case UPLOAD_VOTERS:
 			return {...state, uploadVoters: true}
 		case UPLOAD_VOTERS_SUCCESS:
-			return {...state, uploadVoters: false}
+			voters = action.voters
+			votingPool = action.votingPool
+			key = votingPool.PoolType === 'SA'? 'Email': 'SAPIN'
+			votingPools = state.votingPools.slice()
+			let i
+			for (i = 0; i < votingPools.length; i++) {
+				let vp = votingPools[i]
+				if (vp.PoolType === votingPool.PoolType && vp.VotingPoolID === votingPool.VotingPoolID) {
+					votingPools[i] = votingPool
+					break
+				}
+			}
+			if (i === votingPools.length) {
+				votingPools.push(votingPool)
+			}
+			return {
+				...state,
+				uploadVoters: false,
+				votingPool,
+				voters,
+				votersMap: sortData(filterData(voters, state.votersFilters), voters, state.votersSortBy, state.votersSortDirection),
+				votingPools,
+				votingPoolsMap: sortData(filterData(votingPools, state.votingPoolsFlters), votingPools, state.votingPoolsSortBy, state.votingPoolsSortDirection),
+				votersSelected: updateSelected(voters, key, state.votersSelected)
+			}
 		case UPLOAD_VOTERS_FAILURE:
 			return {...state, uploadVoters: false}
 

@@ -22,7 +22,7 @@ function ColumnSelector(props) {
 
 	function radioChange(e) {
 		if ((!isStacked && e.target.name === 'stacked') ||
-			(isStacked && e.target.name == 'flat')) {
+			(isStacked && e.target.name === 'flat')) {
 			toggleColumns()
 		}
 	}
@@ -36,8 +36,8 @@ function ColumnSelector(props) {
 			<ActionButton name='columns' title='Select Columns' onClick={() => setOpen(!isOpen)} />
 			{isOpen &&
 				<div className={styles.container}>
-					<label><input type='radio' name='stacked' checked={isStacked} onClick={radioChange} />Stacked</label>
-					<label><input type='radio' name='flat' checked={!isStacked} onClick={radioChange} />Flat</label>
+					<label><input type='radio' name='stacked' checked={isStacked} onChange={radioChange} />Stacked</label>
+					<label><input type='radio' name='flat' checked={!isStacked} onChange={radioChange} />Flat</label>
 					<hr />
 					<ul className={styles.list}>
 						{list.map((item, index) => (

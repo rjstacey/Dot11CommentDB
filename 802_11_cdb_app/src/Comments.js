@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types'
 import React, {useRef, useState, useEffect} from 'react'
 import {useHistory, useParams} from 'react-router-dom'
-import update from 'immutability-helper'
 import {connect} from 'react-redux'
 import BallotSelector from './BallotSelector'
 import ColumnSelector from './ColumnSelector'
@@ -10,37 +9,39 @@ import AppModal from './AppModal'
 import AppTable, {renderFilter, renderLabel} from './AppTable'
 import {ActionButton} from './Icons'
 import {sortClick, filterValidate} from './filter'
-import {setCommentsSort, setCommentsFilters, getComments, uploadResolutions} from './actions/comments'
+import {setCommentsSort, setCommentsFilters, setCommentsSelected, setCommentsExpanded, getComments, uploadResolutions} from './actions/comments'
 import {setBallotId} from './actions/ballots'
-import {saveAs} from 'file-saver'
+import {setError} from './actions/error'
+import fetcher from './lib/fetcher'
 import styles from './Comments.css'
 import editorStyles from './ResolutionEditor.css'
-var axios = require('axios')
 
 
 function SelectCommentsModal(props) {
-	const [list, setList] = useState('');
-	const listRef = useRef(null);
+	const [list, setList] = useState('')
+	const listRef = useRef(null)
+
+	function cidValid(cid) {
+		return props.comments.filter(c => c.CommentID.toString() === cid || `${c.CommentID}.${c.ResolutionID}` === cid).length > 0
+	}
 
 	function onOpen() {
-		const {commentData, selected} = props
-		const cidValid = cid => commentData.filter(row => row.CommentID === cid).length > 0
+		const {selected} = props
 		const list = selected.map(cid => cidValid(cid)? cid.toString(): '<span style="color: red">' + cid + '</span>').join(', ')
 		setList(list)
 	}
 
 	function changeList(e) {
-		const {commentData} = props
-		const cidValid = cid => commentData.filter(row => row.CommentID === cid).length > 0
-		const listArr = listRef.current.innerText.match(/\d+[^\d]*/g)
+		const listArr = listRef.current.innerText.match(/\d+\.\d+[^\d]*|\d+[^\d]*/g)
+		console.log(listArr)
 		if (listArr) {
 			var list = ''
 			listArr.forEach(cidStr => {
-				const m = cidStr.match(/(\d+)(.*)/)		// split number from separator
+				const m = cidStr.match(/(\d+\.\d+|\d+)(.*)/)		// split number from separator
 				const cid = m[1]
 				const sep = m[2]
-				console.log(m)
-				if (cidValid(parseInt(cid, 10))) {
+				//console.log(m)
+				if (cidValid(cid)) {
 					list += cid + sep
 				}
 				else {
@@ -52,8 +53,8 @@ function SelectCommentsModal(props) {
 	}
 
 	function selectShown() {
-		const {commentData, commentDataMap} = props
-		const list = commentDataMap.map(i => commentData[i].CommentID).join(', ')
+		const {comments, commentsMap} = props
+		const list = commentsMap.map(i => comments[i].CommentID).join(', ')
 		setList(list)
 	}
 
@@ -62,8 +63,7 @@ function SelectCommentsModal(props) {
 	}
 
 	function submit() {
-		const listArr = listRef.current.innerText.match(/\d+/g)	// split out numbers
-		const cids = listArr? listArr.map(cid => parseInt(cid, 10)): []
+		const cids = listRef.current.innerText.match(/\d+\.\d+|\d+/g)	// just the numbers
 		props.setSelected(cids)
 		props.close()
 	}
@@ -97,8 +97,8 @@ SelectCommentsModal.propTypes = {
 	close: PropTypes.func.isRequired,
 	setSelected: PropTypes.func.isRequired,
 	selected: PropTypes.array.isRequired,
-	commentData: PropTypes.array.isRequired,
-	commentDataMap: PropTypes.array.isRequired,
+	comments: PropTypes.array.isRequired,
+	commentsMap: PropTypes.array.isRequired
 }
 
 function ImportModal(props) {
@@ -168,18 +168,12 @@ function ExportModal(props) {
 
 	async function submit(e) {
 		try {
-			const params = {BallotID: props.ballotId}
-			const response = await axios.get('/comments/myProjectExport', {params, responseType: 'blob'})
-			if (response.status === 200) {
-				const filename = ballotId + '_comments.xlsx'
-				saveAs(response.data, filename)
-			}
-			props.close()
+			await fetcher.getFile('/exportComments/myProject', {BallotID: props.ballotId})
 		}
 		catch(error) {
-			console.log(error)
-			props.close()
+			props.dispatch(setError(`Unable to export comments for ${props.ballotId}`, error))
 		}
+		props.close()
 	}
 
 	return (
@@ -232,16 +226,11 @@ function renderDataCellEditing({rowData}) {
 	return rowData.EditStatus? <React.Fragment><b>{rowData.EditStatus}:</b> {rowData.EditNotes}</React.Fragment>: rowData.EditNotes
 }
 
-function renderDataCellCommentID({rowData}) {
-	const {CommentID, ResolutionCount} = rowData
-	return CommentID.toFixed(ResolutionCount > 1? 1: 0)
-}
-
 function renderDataCellResolution({rowData}) {
 	const resnColor = {
-		'A': 'green',
-		'V': 'orange',
-		'J': 'red'
+		'A': '#d3ecd3',
+		'V': '#f9ecb9',
+		'J': '#f3c0c0'
 	}
 	return (
 		<div
@@ -253,43 +242,42 @@ function renderDataCellResolution({rowData}) {
 }
 
 function renderHeaderCellStacked1({columnData}) {
-	const showFilter = columnData.filters.hasOwnProperty('CommentID')
 	const {sortBy, sortDirection, setSort} = columnData
 
 	return (
 		<React.Fragment>
 		<div style={{display: 'flex', flexDirection: 'row'}} >
 			<div style={{display: 'flex', flexDirection: 'column', width: 80}} >
-				{renderLabel({dataKey: 'CommentID', label: 'CID', sortable: true, sortBy, sortDirection, setSort})}
-				{showFilter && renderFilter({dataKey: 'CommentID', filter: columnData.filters['CommentID'], setFilter: columnData.setFilter})}
+				{renderLabel({dataKey: 'CID', label: 'CID', sortable: true, sortBy, sortDirection, setSort})}
+				{columnData.filters.hasOwnProperty('CID') && renderFilter({dataKey: 'CID', filter: columnData.filters['CID'], setFilter: columnData.setFilter})}
 			</div>
 			<div style={{display: 'flex', flexDirection: 'column', width: 40, marginLeft: 25}} >
 				{renderLabel({dataKey: 'Category', label: 'Cat', sortable: true, sortBy, sortDirection, setSort})}
-				{showFilter && renderFilter({dataKey: 'Category', filter: columnData.filters['Category'], setFilter: columnData.setFilter})}
+				{columnData.filters.hasOwnProperty('Category') && renderFilter({dataKey: 'Category', filter: columnData.filters['Category'], setFilter: columnData.setFilter})}
 			</div>
 			<div style={{display: 'flex', flexDirection: 'column', width: 25, marginLeft: 15}} >
 				{renderLabel({dataKey: 'MustSatisfy', label: 'MS', sortable: true, sortBy, sortDirection, setSort})}
-				{showFilter && renderFilter({dataKey: 'MustSatisfy', filter: columnData.filters['MustSatisfy'], setFilter: columnData.setFilter})}
+				{columnData.filters.hasOwnProperty('MustSatifsy') && renderFilter({dataKey: 'MustSatisfy', filter: columnData.filters['MustSatisfy'], setFilter: columnData.setFilter})}
 			</div>
 		</div>
 		<div style={{display: 'flex', flexDirection: 'row'}} >
 			<div style={{display: 'flex', flexDirection: 'column', width: 100}} >
-				{renderLabel({dataKey: 'Clause', label: 'Clause', sortable: true, sortBy, sortDirection, setSort, width: 100})}
-				{showFilter && renderFilter({dataKey: 'Clause', filter: columnData.filters['Clause'], setFilter: columnData.setFilter})}
+				{renderLabel({dataKey: 'Clause', label: 'Clause', sortable: true, sortBy, sortDirection, setSort})}
+				{columnData.filters.hasOwnProperty('Clause') && renderFilter({dataKey: 'Clause', filter: columnData.filters['Clause'], setFilter: columnData.setFilter})}
 			</div>
 			<div style={{display: 'flex', flexDirection: 'column', width: 80, marginLeft: 5}} >
-				{renderLabel({dataKey: 'Page', label: 'Page', sortable: true, sortBy, sortDirection, setSort, width: 80})}
-				{showFilter && renderFilter({dataKey: 'Page', filter: columnData.filters['Page'], setFilter: columnData.setFilter})}
+				{renderLabel({dataKey: 'Page', label: 'Page', sortable: true, sortBy, sortDirection, setSort})}
+				{columnData.filters.hasOwnProperty('Page') && renderFilter({dataKey: 'Page', filter: columnData.filters['Page'], setFilter: columnData.setFilter})}
 			</div>
 		</div>
 		<div style={{display: 'flex', flexDirection: 'row'}} >
 			<div style={{display: 'flex', flexDirection: 'column', width: 100}} >
-				{renderLabel({dataKey: 'CommenterName', label: 'Commenter', sortable: true, sortBy, sortDirection, setSort, width: 100})}
-				{showFilter && renderFilter({dataKey: 'CommenterName', filter: columnData.filters['CommenterName'], setFilter: columnData.setFilter})}
+				{renderLabel({dataKey: 'CommenterName', label: 'Commenter', sortable: true, sortBy, sortDirection, setSort})}
+				{columnData.filters.hasOwnProperty('CommenterName') && renderFilter({dataKey: 'CommenterName', filter: columnData.filters['CommenterName'], setFilter: columnData.setFilter})}
 			</div>
 			<div style={{display: 'flex', flexDirection: 'column', width: 80, marginLeft: 5}} >
 				{renderLabel({dataKey: 'Vote', label: 'Vote', sortable: true, sortBy, sortDirection, setSort})}
-				{showFilter && renderFilter({dataKey: 'Vote', filter: columnData.filters['Vote'], setFilter: columnData.setFilter})}
+				{columnData.filters.hasOwnProperty('Vote') && renderFilter({dataKey: 'Vote', filter: columnData.filters['Vote'], setFilter: columnData.setFilter})}
 			</div>
 		</div>
 		</React.Fragment>
@@ -300,13 +288,13 @@ function renderDataCellStacked1({rowData}) {
 	return (
 		<div style={{display: 'flex', flexDirection: 'column'}}>
 			<div>
-				<div style={{display: 'inline-block', width: 80, fontWeight: 'bold'}}>{renderDataCellCommentID({rowData})}</div>
+				<div style={{display: 'inline-block', width: 80, fontWeight: 'bold'}}>{rowData['CID']}</div>
 				<div style={{display: 'inline-block', width: 40, marginLeft: 25}}>{rowData['Category']}</div>
 				<div style={{display: 'inline-block', width: 25, marginLeft: 15}}>{rowData['MustSatisfy']? '\u2714': ''}</div>
 			</div>
 			<div>
-				<div style={{display: 'inline-block', width: '100px', fontStyle: 'italic'}}>{rowData['Clause']}</div>
-				<div style={{display: 'inline-block', marginLeft: '5px'}}>{rowData['Page']}</div>
+				<div style={{display: 'inline-block', width: 100, fontStyle: 'italic'}}>{rowData['Clause']}</div>
+				<div style={{display: 'inline-block', marginLeft: 5}}>{rowData['Page']}</div>
 			</div>
 			<div>{rowData['CommenterName'] + ' (' + rowData['Vote'] + ')'}</div>
 		</div>
@@ -334,6 +322,7 @@ function renderHeaderCellStacked2({columnData}) {
 		</React.Fragment>
 	)
 }
+
 function renderDataCellStacked2({rowData}) {
 	return (
 		<div style={{display: 'flex', flexDirection: 'column'}}>
@@ -345,11 +334,10 @@ function renderDataCellStacked2({rowData}) {
 }
 
 const flatColumns = [
-	{dataKey: 'CommentID', label: 'CID',
+	{dataKey: 'CID', label: 'CID',
 		sortable: true,
 		filterable: true,
-		width: 60, flexGrow: 0, flexShrink: 0,
-		cellRenderer: renderDataCellCommentID},
+		width: 60, flexGrow: 0, flexShrink: 0},
 	{dataKey: 'CommenterName', label: 'Commenter',
 		sortable: true,
 		filterable: true,
@@ -406,7 +394,7 @@ const flatColumns = [
 		width: 300, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderDataCellEditing,
 		isLast: true}
-];
+]
 
 const stackedColumns = [
 	{dataKey: 'Stack1', label: 'CID/Cat/MS/...',
@@ -415,12 +403,6 @@ const stackedColumns = [
 		width: 200, flexGrow: 0, flexShrink: 0,
 		headerRenderer: renderHeaderCellStacked1,
 		cellRenderer: renderDataCellStacked1},
-	{dataKey: 'Stack2', label: 'Comment Group/Assign...',
-		sortable: false,
-		filterable: false,
-		width: 250, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCellStacked2,
-		cellRenderer: renderDataCellStacked2},
 	{dataKey: 'Comment', label: 'Comment',
 		sortable: true,
 		filterable: true,
@@ -429,6 +411,12 @@ const stackedColumns = [
 		sortable: true,
 		filterable: true,
 		width: 400, flexGrow: 1, flexShrink: 1},
+	{dataKey: 'Stack2', label: 'Comment Group/Assign...',
+		sortable: false,
+		filterable: false,
+		width: 250, flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCellStacked2,
+		cellRenderer: renderDataCellStacked2},
 	{dataKey: 'Resolution', label: 'Resolution',
 		sortable: false,
 		filterable: false,
@@ -440,10 +428,10 @@ const stackedColumns = [
 		width: 300, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderDataCellEditing,
 		isLast: true}
-];
+]
 
 const allFilters = [
-	'CommentID', 'CommenterName', 'Vote', 'MustSatisfy', 'Category', 'Clause', 'Page',
+	'CID', 'CommenterName', 'Vote', 'MustSatisfy', 'Category', 'Clause', 'Page',
 	'Comment', 'ProposedChange', 'CommentGroup', 'AssigneeName', 'Submission',
 	'Resolution'
 ]
@@ -451,12 +439,12 @@ const allFilters = [
 function Comments(props) {
 	const history = useHistory()
 	const {ballotId} = useParams()
-	const {commentData, commentDataMap, dispatch} = props;
+	const {comments, commentsMap, dispatch} = props;
 
 	const [showImport, setShowImport] = useState(false)
 	const [showExport, setShowExport] = useState(false)
 	const [showSelected, setShowSelected] = useState(false)
-	const [selected, setSelected] = useState([])
+	//const [selected, setSelected] = useState([])
 
 	const [columnVisibility, setColumnVisibility] = useState(() => {
 		const v1 = stackedColumns.reduce((o, c) => {return {...o, [c.dataKey]: true}}, {})
@@ -499,7 +487,7 @@ function Comments(props) {
 			for (let dataKey of allFilters) {
 				filters[dataKey] = filterValidate(dataKey, '')
 			}
-			dispatch(setCommentsFilters(filters));
+			dispatch(setCommentsFilters(filters))
 		}
 	}, [])
 
@@ -512,7 +500,7 @@ function Comments(props) {
 				dispatch(setBallotId(ballotId))
 				dispatch(getComments(ballotId))
 			}
-			else if (!props.getComments && (!props.commentDataValid || props.commentBallotId !== ballotId)) {
+			else if (!props.getComments && (!props.commentsValid || props.commentBallotId !== ballotId)) {
 				dispatch(getComments(ballotId))
 			}
 		}
@@ -540,7 +528,7 @@ function Comments(props) {
 	function ballotSelected(ballotId) {
 		// Redirect to page with selected ballot
 		history.push(`/Comments/${ballotId}`)
-		dispatch(getComments(ballotId));
+		dispatch(getComments(ballotId))
 	}
 
 	function setSort(dataKey, event) {
@@ -554,22 +542,24 @@ function Comments(props) {
 	}
 
 	function editComment({event, index, rowData}) {
-		const {CommentID, ResolutionCount} = rowData
-		const cidStr = CommentID.toFixed(ResolutionCount > 1? 1: 0)
-		history.push(props.location.pathname + '?CID=' + cidStr)
+		//const {CommentID, ResolutionCount} = rowData
+		//const cidStr = CommentID.toFixed(ResolutionCount > 1? 1: 0)
+		//history.push(props.location.pathname + '?CIDs=' + cidStr)
+		history.push(props.location.pathname + '?CIDs=' + rowData.CID)
 	}
 
 	function editComments() {
-		history.push(props.location.pathname + `?CIDs=${selected.join(',')}`)
+		history.push(props.location.pathname + `?CIDs=${props.selected.join(',')}`)
 	}
 
 	function rowGetter({index}) {
-		const c = commentData[props.commentDataMap[index]];
-		if (index > 0 && Math.floor(commentData[commentDataMap[index - 1]].CommentID) === Math.floor(c.CommentID)) {
+		const c = comments[props.commentsMap[index]]
+		if (index > 0 && Math.floor(comments[commentsMap[index - 1]].CommentID) === Math.floor(c.CommentID)) {
 			// Previous row holds the same comment
 			return {
 				...c,
 				CommenterName: '',
+				Vote: '',
 				MustSatisfy: '',
 				Category: '',
 				Clause: '',
@@ -608,8 +598,6 @@ function Comments(props) {
 
 			<AppTable
 				headerHeight={isStacked? 116: 44}
-				hasRowSelector={true}
-				hasRowExpander={true}
 				columns={columns}
 				rowHeight={54}
 				height={tableSize.height}
@@ -622,11 +610,13 @@ function Comments(props) {
 				setSort={setSort}
 				setFilter={setFilter}
 				showSelected={() => setShowSelected(true)}
-				setSelected={(cids) => setSelected(cids)}
-				selected={selected}
-				data={props.commentData}
-				dataMap={props.commentDataMap}
-				primaryDataKey={'CommentID'}
+				setSelected={(cids) => props.dispatch(setCommentsSelected(cids))}
+				selected={props.selected}
+				setExpanded={(cids) => props.dispatch(setCommentsExpanded(cids))}
+				expanded={props.expanded}
+				data={props.comments}
+				dataMap={props.commentsMap}
+				primaryDataKey={'CID'}
 				rowGetter={rowGetter}
 			/>
 
@@ -647,10 +637,10 @@ function Comments(props) {
 			<SelectCommentsModal
 				isOpen={showSelected}
 				close={() => setShowSelected(false)}
-				setSelected={cids => setSelected(cids)}
-				selected={selected}
-				commentData={props.commentData}
-				commentDataMap={props.commentDataMap}
+				setSelected={cids => props.dispatch(setCommentsSelected(cids))}
+				selected={props.selected}
+				comments={props.comments}
+				commentsMap={props.commentsMap}
 			/>
 		</div>
 	)
@@ -659,11 +649,13 @@ Comments.propTypes = {
 	filters: PropTypes.object.isRequired,
 	sortBy: PropTypes.array.isRequired,
 	sortDirection: PropTypes.object.isRequired,
+	selected: PropTypes.array.isRequired,
+	expanded: PropTypes.array.isRequired,
 	ballotId: PropTypes.string.isRequired,
 	commentBallotId: PropTypes.string.isRequired,
-	commentDataValid: PropTypes.bool.isRequired,
-	commentData: PropTypes.array.isRequired,
-	commentDataMap: PropTypes.array.isRequired,
+	commentsValid: PropTypes.bool.isRequired,
+	comments: PropTypes.array.isRequired,
+	commentsMap: PropTypes.array.isRequired,
 	getComments: PropTypes.bool.isRequired,
 	dispatch: PropTypes.func.isRequired
 }
@@ -674,11 +666,13 @@ function mapStateToProps(state) {
 		filters: comments.filters,
 		sortBy: comments.sortBy,
 		sortDirection: comments.sortDirection,
+		selected: comments.selected,
+		expanded: comments.expanded,
 		ballotId: ballots.ballotId,
 		commentBallotId: comments.ballotId,
-		commentDataValid: comments.commentDataValid,
-		commentData: comments.commentData,
-		commentDataMap: comments.commentDataMap,
+		commentsValid: comments.commentsValid,
+		comments: comments.comments,
+		commentsMap: comments.commentsMap,
 		getComments: comments.getComments
 	}
 }

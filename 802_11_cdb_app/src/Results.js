@@ -6,35 +6,33 @@ import AppModal from './AppModal';
 import {connect} from 'react-redux';
 import BallotSelector from './BallotSelector';
 import {setResultsSort, setResultsFilters, getResults} from './actions/results'
+import {setError} from './actions/error'
 import {setBallotId} from './actions/ballots'
 import {sortClick, filterValidate} from './filter'
 import {ActionButton, IconUp, IconDown} from './Icons'
-import {saveAs} from 'file-saver'
-var axios = require('axios');
+//import {saveAs} from 'file-saver'
+//var axios = require('axios');
+import fetcher from './lib/fetcher'
 
 
 function ExportModal(props) {
-	const {isOpen, close} = props
+	const {isOpen, close, dispatch} = props
 	const ballotId = props.ballot.BallotID
 	const project = props.ballot.Project
 	const [forProject, setForProject] = useState(false)
 
-	function submit(e) {
+	async function submit(e) {
 		const ballotId = props.ballot.BallotID
 		const project = props.ballot.Project
 		const params = forProject? {Project: project}: {BallotID: ballotId}
-		axios.get('/results/export', {params, responseType: 'blob'})
-			.then((response) => {
-				if (response.status === 200) {
-					const filename = (forProject? project: ballotId) + ' results.xlsx'
-					saveAs(response.data, filename)
-				}
-				close()
-			})
-			.catch((error) => {
-				console.log(error)
-				close()
-			})
+		try {
+			await fetcher.getFile('/exportResults', params)
+		}
+		catch(error) {
+			console.log(error)
+			dispatch(setError(`Unable to export results for ${ballotId}`, error))
+		}
+		close()
 	}
 
 	return (
@@ -64,6 +62,7 @@ ExportModal.propTypes = {
 	ballot: PropTypes.object.isRequired,
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
+	dispatch: PropTypes.func.isRequired,
 }
 
 
@@ -77,6 +76,7 @@ function getResultsSummary(resultsSummary, ballot, votingPoolSize) {
 
 		approvalRate: null,
 		approvalRateStr: '',
+		approvalRateReqStr: '',
 		approve: null,
 		disapprove: null,
 		abstain: null,
@@ -110,6 +110,7 @@ function getResultsSummary(resultsSummary, ballot, votingPoolSize) {
 		if (!isNaN(pct)) {
 			rs.approvalRate = pct
 			rs.approvalRateStr = `${(100*pct).toFixed(1)}%`
+			rs.approvalRateReqStr = (pct > 0.75? 'Meets': 'Does not meet') + ' approval requirement (>75%)'
 		}
 		rs.approve = r.Approve
 		rs.disapprove = r.Disapprove
@@ -117,17 +118,22 @@ function getResultsSummary(resultsSummary, ballot, votingPoolSize) {
 		rs.invalidVote = r.InvalidVote
 		rs.invalidDisapprove = r.InvalidDisapprove
 		rs.invalidAbstain = r.InvalidAbstain
-		rs.returns = r.TotalReturns;
-		pct = parseFloat(rs.returns/r.ReturnsPoolSize);
+		rs.returns = r.TotalReturns
+		pct = parseFloat(rs.returns/r.ReturnsPoolSize)
 		if (!isNaN(pct)) {
 			rs.returnsPct = pct
 			rs.returnsPctStr = `${(100*pct).toFixed(1)}%`
-			rs.returnsReqStr = (rs.returnsPct > 0.5? 'Meets': 'Does not meet') + ' return requirement (>50%)'
+			if (ballot.Type === 3 || ballot.Type === 4) {	// SA ballot requirement
+				rs.returnsReqStr = (rs.returnsPct > 0.75? 'Meets': 'Does not meet') + ' return requirement (>75%)'
+			}
+			else {	// WG requirement
+				rs.returnsReqStr = (rs.returnsPct > 0.5? 'Meets': 'Does not meet') + ' return requirement (>50%)'
+			}
 		}
-		pct = parseFloat(r.Abstain/votingPoolSize);
+		pct = parseFloat(r.Abstain/votingPoolSize)
 		if (!isNaN(pct)) {
 			rs.abstainsPct = pct
-			rs.abstainsPctStr = `${(100*pct).toFixed(1)}%`;
+			rs.abstainsPctStr = `${(100*pct).toFixed(1)}%`
 			rs.abstainsReqStr = (rs.abstainsPct < 0.3? 'Meets': 'Does not meet') + ' abstain requirement (<30%)'
 		}
 	}
@@ -135,9 +141,11 @@ function getResultsSummary(resultsSummary, ballot, votingPoolSize) {
 	return rs
 }
 
+
 function ResultsSummary(props) {
-	const {visible} = props
-	const r = getResultsSummary(props.resultsSummary, props.ballot, props.votingPoolSize)
+	const {visible, ballot, votingPoolSize, resultsSummary} = props
+	const r = getResultsSummary(resultsSummary, ballot, votingPoolSize)
+	const ballotType = ['CC', 'WG', 'WG', 'SA', 'SA'][ballot.Type]
 
 	var style = {
 		container: {
@@ -148,7 +156,7 @@ function ResultsSummary(props) {
 		col: {
 			display: 'flex',
 			flexDirection: 'column',
-			paddingRight: '10px'
+			paddingRight: '20px'
 		},
 		lv: {
 			display: 'flex',
@@ -157,36 +165,55 @@ function ResultsSummary(props) {
 		},
 		title: {display: 'block', fontWeight: 'bold', margin: '5px 0 5px 0'}
 	}
+
+	const ballotCol = (
+		<div style={{...style.col, flex: '0 1 260px'}}>
+			<div style={style.title}>{ballotType} Ballot</div>
+			<div style={style.lv}><span>Opened:</span><span>{r.opened}</span></div>
+			<div style={style.lv}><span>Closed:</span><span>{r.closed}</span></div>
+			<div style={style.lv}><span>Duration:</span><span>{r.duration}</span></div>
+			<div style={style.lv}><span>Voting pool size:</span><span>{r.votingPoolSize}</span></div>
+		</div>
+	)
+
+	const resultCol = (
+		<div style={{...style.col, flex: '0 1 300px'}}>
+			<div style={style.title}>Result</div>
+			<div style={style.lv}><span>Approve:</span><span>{r.approve}</span></div>
+			<div style={style.lv}><span>Disapprove:</span><span>{r.disapprove}</span></div>
+			{ballotType === 'SA' && <div style={style.lv}><span>Disapprove without MBS comment:</span><span>{r.invalidDisapprove}</span></div>}
+			<div style={style.lv}><span>Abstain:</span><span>{r.abstain}</span></div>
+			<div style={style.lv}><span>Total returns:</span><span>{r.returns}</span></div>
+		</div>
+	)
+
+	const invalidVotesCol = (
+		<div style={{...style.col, flex: '0 1 300px'}}>
+			<div style={style.title}>Invalid votes</div>
+			<div style={style.lv}><span>Not in pool:</span><span>{r.invalidVote}</span></div>
+			<div style={style.lv}><span>Disapprove without comment:</span><span>{r.invalidDisapprove}</span></div>
+			<div style={style.lv}><span>Abstain reason:</span><span>{r.invalidAbstain}</span></div>
+		</div>
+	)
+
+	const approvalCriteriaCol = (
+		<div style={{...style.col, flex: '0 1 400px'}}>
+			<div style={style.title}>Approval criteria</div>
+			<div style={style.lv}><span>Approval rate:</span><span>{r.approvalRateStr}</span></div>
+			{ballotType !== 'CC' && <div>{r.approvalRateReqStr}</div>}
+			<div style={style.lv}><span>Returns as % of pool:</span><span>{r.returnsPctStr}</span></div>
+			<div>{r.returnsReqStr}</div>
+			<div style={style.lv}><span>Abstains as % of returns:</span><span>{r.abstainsPctStr}</span></div>
+			<div>{r.abstainsReqStr}</div>
+		</div>
+	)
+
 	return (
 		<div id='results-summary' style={{...style.container, display: visible? 'flex': 'none'}}>
-			<div style={{...style.col, flex: '1 1 160px'}}>
-				<div style={style.title}>Ballot</div>
-				<div style={style.lv}><span>Opened:</span><span>{r.opened}</span></div>
-				<div style={style.lv}><span>Closed:</span><span>{r.closed}</span></div>
-				<div style={style.lv}><span>Duration:</span><span>{r.duration}</span></div>
-				<div style={style.lv}><span>Voting pool:</span><span>{r.votingPoolSize}</span></div>
-			</div>
-			<div style={{...style.col, flex: '1 1 160px'}}>
-				<div style={style.title}>Result</div>
-				<div style={style.lv}><span>Approval rate:</span><span>{r.approvalRateStr}</span></div>
-				<div style={style.lv}><span>Approve:</span><span>{r.approve}&nbsp;</span></div>
-				<div style={style.lv}><span>Disapprove:</span><span>{r.disapprove}&nbsp;</span></div>
-				<div style={style.lv}><span>Abstain:</span><span>{r.abstain}&nbsp;</span></div>
-			</div>
-			<div style={{...style.col, flex: '1 1 180px'}}>
-				<div style={style.title}>Invalid votes</div>
-				<div style={style.lv}><span>Not in pool:</span><span>{r.invalidVote}</span></div>
-				<div style={style.lv}><span>Disapprove without comment:</span><span>{r.invalidDisapprove}</span></div>
-				<div style={style.lv}><span>Abstain reason:</span><span>{r.invalidAbstain}</span></div>
-			</div>
-			<div style={{...style.col, flex: '1 1 220px'}}>
-				<div style={style.title}>Other criteria</div>
-				<div style={style.lv}><span>Total returns:</span><span>{r.returns}</span></div>
-				<div style={style.lv}><span>Returns as % of pool:</span><span>{r.returnsPctStr}</span></div>
-				<div>{r.returnsReqStr}</div>
-				<div style={style.lv}><span>Abstains as % of returns:</span><span>{r.abstainsPctStr}</span></div>
-				<div>{r.abstainsReqStr}</div>
-			</div>
+			{ballotCol}
+			{resultCol}
+			{ballotType === 'WG' && invalidVotesCol}
+			{ballotType !== 'CC' && approvalCriteriaCol}
 		</div>
 	)
 }
@@ -197,41 +224,39 @@ ResultsSummary.propTypes = {
 	votingPoolSize: PropTypes.number.isRequired
 }
 
+const allColumns = [
+	{dataKey: 'SAPIN',		label: 'SA PIN',
+		sortable: true,
+		filterable: true,
+		width: 75},
+	{dataKey: 'Name',		label: 'Name',
+		sortable: true,
+		filterable: true,
+		width: 200},
+	{dataKey: 'Affiliation', label: 'Affiliation',
+		sortable: true,
+		filterable: true,
+		width: 200},
+	{dataKey: 'Email',		label: 'Email',
+		sortable: true,
+		filterable: true,
+		width: 250},
+	{dataKey: 'Vote',		label: 'Vote',
+		sortable: true,
+		filterable: true,
+		width: 210},
+	{dataKey: 'CommentCount', label: 'Comments',
+		sortable: true,
+		filterable: true,
+		width: 110},
+	{dataKey: 'Notes',		label: 'Notes',
+		sortable: true,
+		filterable: true,
+		width: 250, flexShrink: 1, flexGrow: 1,
+		isLast: true}
+]
 
 function Results(props) {
-
-	const columns = [
-		{dataKey: 'SAPIN',		label: 'SA PIN',
-			sortable: true,
-			filterable: true,
-			width: 75},
-		{dataKey: 'Name',		label: 'Name',
-			sortable: true,
-			filterable: true,
-			width: 200},
-		{dataKey: 'Affiliation', label: 'Affiliation',
-			sortable: true,
-			filterable: true,
-			width: 200},
-		{dataKey: 'Email',		label: 'Email',
-			sortable: true,
-			filterable: true,
-			width: 250},
-		{dataKey: 'Vote',		label: 'Vote',
-			sortable: true,
-			filterable: true,
-			width: 210},
-		{dataKey: 'CommentCount', label: 'Comments',
-			sortable: true,
-			filterable: true,
-			width: 110},
-		{dataKey: 'Notes',		label: 'Notes',
-			sortable: true,
-			filterable: true,
-			width: 250, flexShrink: 1, flexGrow: 1,
-			isLast: true}
-	];
-
 	const {ballotId} = useParams();
 	const history = useHistory();
 
@@ -241,7 +266,15 @@ function Results(props) {
 	const [tableSize, setTableSize] = useState({
 		height: 400,
 		width: 400,
-	});
+	})
+
+	let columns
+	if (props.ballot.Type === 3 || props.ballot.Type === 4) {
+		columns = allColumns.slice(1, allColumns.length)
+	}
+	else {
+		columns = allColumns
+	}
 
 	function updateTableSize() {
 		const headerEl = document.getElementsByTagName('header')[0];
@@ -337,8 +370,6 @@ function Results(props) {
 				votingPoolSize={props.votingPoolSize}
 			/>
 			<AppTable
-				hasRowSelector={false}
-				hasRowExpander={false}
 				columns={columns}
 				rowHeight={18}
 				height={tableSize.height}
@@ -361,6 +392,7 @@ function Results(props) {
 				ballot={props.ballot}
 				isOpen={showExportModal}
 				close={() => setShowExportModal(false)}
+				dispatch={props.dispatch}
 			/>
 		</div>
 	)

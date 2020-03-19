@@ -6,8 +6,7 @@ import {useHistory, useParams, useLocation} from 'react-router-dom'
 import {connect} from 'react-redux'
 import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'
 import cx from 'classnames'
-//import ConfirmModal from './ConfirmModal'
-import {addResolution, updateResolutions, deleteResolution, getComments} from './actions/comments'
+import {addResolutions, updateResolutions, deleteResolutions, getComments} from './actions/comments'
 import {setBallotId} from './actions/ballots'
 import {ResolutionEditor, BasicEditor} from './ResolutionEditor'
 import BallotSelector from './BallotSelector'
@@ -252,7 +251,7 @@ function OtherTabs(props) {
 }
 
 function Comment(props) {
-	const {commentIds, resolution, setResolution} = props
+	const {cids, resolution, setResolution} = props
 	const comment = resolution
 
 	function Entry({className, label, content}) {
@@ -281,10 +280,13 @@ function Comment(props) {
 		</span>
 	)
 
+	const cidsStr = cids.join(', ')
+	const cidsLabel = cids.length > 1? 'CIDs': 'CID'
+
 	return (
 		<React.Fragment>
 			<div className={styles.row}>
-				<Entry className={styles.CID} label={'CID'} content={commentIds} />
+				<Entry className={styles.CID} label={cidsLabel} content={cidsStr} />
 			</div>
 			<div className={styles.row}>
 				<Entry className={styles.Commenter} label={'Commenter'} content={commenterEl} />
@@ -356,32 +358,24 @@ function recursivelyDiffObjects(l, r) {
 
 			const difference = recursivelyDiffObjects(l[key], r[key]);
 
-			if (isObject(difference) && isEmpty(difference) && !isDate(difference)) return acc; // return no diff
+			if (isObject(difference) && isEmpty(difference) && !isDate(difference)) return acc // return no diff
 
-			return { ...acc, [key]: difference }; // return updated key
-		}, deletedValues);
+			return { ...acc, [key]: difference } // return updated key
+		}, deletedValues)
 	}
 }
 
 function CommentDetail(props) {
-	const {commentData, commentDataMap, dispatch} = props
+	const {comments, commentsMap, dispatch} = props
 	const history = useHistory()
 	const {ballotId} = useParams()
 	const query = new URLSearchParams(useLocation().search)
-	const cidStr = query.get('CID')	// comes in as a string
-	let commentId
-	if (cidStr) {
-		commentId = parseFloat(cidStr, 10)	// we want a number
-	}
 	const cidsStr = query.get('CIDs')
-	let commentIds
-	if (cidsStr) {
-		commentIds = cidsStr.split(',').map(cid => parseFloat(cid, 10))	// comes in as strings, but we want a numbers
-	}
+	const cids = cidsStr.split(',')
 
 	const [resolution, setResolution] = useState()
 	const origResolution = useRef()
-	const [comments, setComments] = useState()
+	const [currentComments, setCurrentComments] = useState()
 	const [unavailable, setUnavailable] = useState()
 
 	useEffect(() => {
@@ -394,44 +388,30 @@ function CommentDetail(props) {
 	}, [])
 
 	useEffect(() => {
-		if (ballotId === props.ballotId && commentData.length > 0) {
-			let c
-			if (cidStr) {
-				if (/\d+\.\d+/.test(cidStr)) {
-					c = commentData.find(c => c.CommentID === commentId)
+		if (ballotId === props.ballotId && comments.length > 0) {
+			let c, r = {}, u = [], a = []
+			for (let cid of cids) {
+				c = comments.find(c => c.CommentID.toString() === cid || `${c.CommentID}.${c.ResolutionID}` === cid)
+				if (c) {
+					r = recursivelyDiffObjects(r, c)
+					a.push(c)
 				}
 				else {
-					c = commentData.find(c => Math.floor(c.CommentID) === commentId)
+					u.push(cid)
 				}
-				setComments([c])
 			}
-			else {
-				let r = {}, u = [], a = []
-				for (let cid of commentIds) {
-					c = commentData.find(c => c.CommentID === cid)
-					if (c) {
-						r = recursivelyDiffObjects(r, c)
-						a.push(c)
-					}
-					else {
-						u.push(cid)
-					}
-				}
-				setUnavailable(u.length > 0? u: null)
-				setComments(a)
-				c = r
-			}
-			if (c &&
+			setUnavailable(u.length > 0? u: null)
+			setCurrentComments(a)
+			if (r &&
 				(!resolution ||
-				 c.BallotID !== resolution.BallotID ||
-				 c.CommentID !== resolution.CommentID ||
-				 c.ResolutionID !== resolution.ResolutionID)) {
-				console.log(c)
-				setResolution(c)
-				origResolution.current = c
+				 r.BallotID !== resolution.BallotID ||
+				 r.CommentID !== resolution.CommentID ||
+				 r.ResolutionID !== resolution.ResolutionID)) {
+				setResolution(r)
+				origResolution.current = r
 			}
 		}
-	}, [props.ballotID, props.commentData, commentId])
+	}, [props.ballotID, props.comments, cidsStr])
 
 	function doResolutionUpdate(fields) {
 		const r = {...resolution, ...fields}
@@ -443,7 +423,7 @@ function CommentDetail(props) {
 		const r = origResolution.current
 		const d = shallowDiff(r, resolution)
 		const updates = []
-		for (let c of comments) {
+		for (let c of currentComments) {
 			let n = {}
 			for (let o of Object.keys(d)) {
 				if (c[o] !== d[o]) {
@@ -463,40 +443,54 @@ function CommentDetail(props) {
 		}
 	}
 
+	function findCommentIndex(cid) {
+		return commentsMap.findIndex(i => {
+			let c = comments[i]
+			return c.CommentID.toString() === cid || `${c.CommentID}.${c.ResolutionID}` === cid
+		})
+	}
+
 	function previousComment() {
-		var i = commentDataMap.findIndex(i => commentData[i].CommentID === commentId) - 1
+		let cid = cids[0]
+		var i = findCommentIndex(cid) - 1
 		if (i === -2) {
 			i = 0
 		}
 		else if (i === -1) {
-			i = commentDataMap.length - 1
+			i = commentsMap.length - 1
 		}
-		const c = commentData[commentDataMap[i]]
-		const {CommentID, ResolutionCount} = c
-		history.replace(props.location.pathname + `?CID=${CommentID.toFixed(ResolutionCount > 1? 1: 0)}`)
+		history.replace(props.location.pathname + '?CIDs=' + comments[commentsMap[i]].CID)
 	}
 
 	function nextComment() {
-		var i = commentDataMap.findIndex(i => commentData[i].CommentID === commentId) + 1
-		if (i >= commentDataMap.length) {
+		let cid = cids[0]
+		var i = findCommentIndex(cid) + 1
+		if (i >= commentsMap.length) {
 			i = 0
 		}
-		const c = commentData[commentDataMap[i]]
-		const {CommentID, ResolutionCount} = c
-		history.replace(props.location.pathname + `?CID=${CommentID.toFixed(ResolutionCount > 1? 1: 0)}`)
+		history.replace(props.location.pathname + '?CIDs=' + comments[commentsMap[i]].CID)
 	}
 
-	async function handleAddResolution() {
- 		const resolutionId = await dispatch(addResolution({BallotID: ballotId, CommentID: Math.floor(commentId)}))
- 		console.log(resolutionId)
- 		history.replace(props.location.pathname + '?CID=' + (commentId + resolutionId/10).toFixed(1))
- 	}
+	async function handleAddResolutions() {
+		let cids = currentComments.map(c => c.CommentID)
+		cids = cids.filter((cid, i) => cids.indexOf(cid) === i)	// elliminate duplicates
+		cids = cids.map(cid => ({CommentID: cid}))
+		const resIds = await dispatch(addResolutions(ballotId, cids))
+		console.log(resIds)
+		if (resIds && resIds.length) {
+			const cids = resIds.map(r => r.CID).join(',')
+			history.replace(props.location.pathname + '?CIDs=' + cids)
+		}
+	}
 
- 	async function handleDeleteResolution() {
- 		const commentId = Math.floor(resolution.CommentID)
- 		console.log('delete')
- 		await dispatch(deleteResolution({BallotID: ballotId, CommentID: Math.floor(commentId), ResolutionID: resolution.ResolutionID}))
- 		history.replace(props.location.pathname + '?CID=' + commentId.toFixed(0))
+ 	async function handleDeleteResolutions() {
+ 		const resolutions = currentComments
+ 			.filter(c => c.ResolutionCount)
+ 			.map(c => ({CommentID: Math.floor(c.CommentID), ResolutionID: c.ResolutionID}))
+ 		await dispatch(deleteResolutions(ballotId, resolutions))
+ 		let cids = resolutions.map(r => r.CommentID)
+ 		cids = cids.filter((cid, i) => cids.indexOf(cid) === i)	// elliminate duplicates
+ 		history.replace(props.location.pathname + '?CIDs=' + cids.toString())
  	}
 
  	function close() {
@@ -505,14 +499,12 @@ function CommentDetail(props) {
 
  	let child
  	let disableButtons = true
- 	const isMultiple = comments && comments.length > 1
+ 	const isMultiple = currentComments && currentComments.length > 1
  	if (resolution && !unavailable) {
-	 	const cidsStr = comments.length > 0
-	 		? comments.map(c => c.CommentID).join(', ')
-	 		: comments[0].CommentID.toFixed(comments[0].ResolutionCount > 1? 1: 0)
+	 	const cids = currentComments.map(c => c.CID)
 		child = (
 			<Comment
-				commentIds={cidsStr}
+				cids={cids}
 				resolution={resolution}
 				setResolution={doResolutionUpdate}
 			/>
@@ -545,8 +537,8 @@ function CommentDetail(props) {
 					<ActionButton name='prev' title='Previous Comment' disabled={disableButtons || isMultiple} onClick={previousComment} />
 					<ActionButton name='next' title='Next Comment' disabled={disableButtons || isMultiple} onClick={nextComment} />
 					<ActionButton name='save' title='Save Changes' disabled={disableButtons} onClick={handleSave} />
-					<ActionButton name='add' title='Create Alternate Resolution' disabled={disableButtons} onClick={handleAddResolution} />
-					<ActionButton name='delete' title='Delete Resolution' disabled={disableButtons} onClick={handleDeleteResolution} />
+					<ActionButton name='add' title='Create Alternate Resolution' disabled={disableButtons} onClick={handleAddResolutions} />
+					<ActionButton name='delete' title='Delete Resolution' disabled={disableButtons} onClick={handleDeleteResolutions} />
 					<ActionButton name='close' title='Close' onClick={close} />
 				</span>
 			</div>
@@ -559,8 +551,8 @@ function mapStateToProps(state, props) {
 	const {comments} = state
 	return {
 		ballotId: comments.ballotId,
-		commentData: comments.commentData,
-		commentDataMap: comments.commentDataMap,
+		comments: comments.comments,
+		commentsMap: comments.commentsMap,
 		getComments: comments.getComments,
   	}
 }
