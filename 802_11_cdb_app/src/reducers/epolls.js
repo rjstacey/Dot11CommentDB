@@ -23,12 +23,12 @@ const defaultState = {
 };
 
 function syncAgainstBallots(epolls, ballots) {
-	const epollsList = ballots.map(b => b.EpollNum)
 	return epolls.map(d => {
-		if (d.InDatabase) {
-			return !epollsList.includes(d.EpollNum)? Object.assign({}, d, {InDatabase: false}): d
-		} else {
-			return epollsList.includes(d.EpollNum)? Object.assign({}, d, {InDatabase: true}): d
+		if (ballots.find(b => b.EpollNum === d.EpollNum)) {
+			return d.InDatabase? d: {...d, InDatabase: true}
+		}
+		else {
+			return d.InDatabase? {...d, InDatabase: false}: d
 		}
 	})
 }

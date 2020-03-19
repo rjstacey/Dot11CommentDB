@@ -429,7 +429,6 @@ function Comments(props) {
 	const [showImport, setShowImport] = useState(false)
 	const [showExport, setShowExport] = useState(false)
 	const [showSelected, setShowSelected] = useState(false)
-	//const [selected, setSelected] = useState([])
 
 	const [columnVisibility, setColumnVisibility] = useState(() => {
 		const v1 = stackedColumns.reduce((o, c) => {return {...o, [c.dataKey]: true}}, {})
@@ -441,28 +440,28 @@ function Comments(props) {
 	const [tableSize, setTableSize] = useState({
 		height: 400,
 		width: 300,
-	});
+	})
 
 	const columns = (isStacked? stackedColumns: flatColumns).filter(c => !columnVisibility.hasOwnProperty(c.dataKey) || columnVisibility[c.dataKey])
 
 	function updateTableSize() {
-		const headerEl = document.getElementsByTagName('header')[0];
-		const topRowEl = document.getElementById('top-row');
-		const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight;
+		const headerEl = document.getElementsByTagName('header')[0]
+		const topRowEl = document.getElementById('top-row')
+		const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight
 
-		const height = window.innerHeight - headerHeight - 5;
-		const width = window.innerWidth - 1;
+		const height = window.innerHeight - headerHeight - 5
+		const width = window.innerWidth - 1
 
 		if (height !== tableSize.height || width !== tableSize.width) {
-			setTableSize({height, width});
+			setTableSize({height, width})
 		}
 	}
 
 	useEffect(() => {
 		updateTableSize()
-		window.addEventListener("resize", updateTableSize);
+		window.addEventListener("resize", updateTableSize)
 		return () => {
-			window.removeEventListener("resize", updateTableSize);
+			window.removeEventListener("resize", updateTableSize)
 		}
 	}, [])
 

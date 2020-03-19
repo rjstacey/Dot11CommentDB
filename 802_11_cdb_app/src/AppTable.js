@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import React, {useState, useEffect, useRef} from 'react'
+import React, {useState, useMemo} from 'react'
 import update from 'immutability-helper'
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized'
 import Draggable from 'react-draggable'
@@ -8,7 +8,7 @@ import {allSelected, toggleVisible} from './filter'
 import {IconSort} from './Icons'
 import styles from './AppTable.css'
 
-function html_preserve_newline(text) {
+function renderPreservingNewlines(text) {
 	return typeof text === 'string'?
 		text.split('\n').map((line, i, arr) => {
 			const lline = <span key={i}>{line}</span>
@@ -22,7 +22,6 @@ function html_preserve_newline(text) {
 }
 
 export function renderFilter({dataKey, filter, setFilter}) {
-	//const filter = props.filters[dataKey]
 	const className = cx({
 		[styles.headerFilt]: true,
 		[styles.headerFiltInvalid]: filter && !filter.valid
@@ -62,42 +61,34 @@ export function renderLabel({dataKey, label, sortable, sortBy, sortDirection, se
 function AppTable(props) {
 	let tableRef = null
 
-	const rowHeightCache = useRef(new CellMeasurerCache({
+	const rowHeightCache = useMemo(() => new CellMeasurerCache({
+			defaultHeight: props.rowHeight,
 			minHeight: props.rowHeight,
 			fixedWidth: true
-		}))
+		}), [props.columns])
 
-	useEffect(clearAllCachedRowHeight, [props.columns])	// If column layout changes
+	const [columnWidth, setColumnWidth] = useState(initColumnWidths)
 
-	const [columnWidth, setColumnWidth] = useState({})
-	useEffect(() => {
-		/* Initialize column width */
-		let newColumnWidth = {};
-		for (let col of props.columns) {
-			const {dataKey, width} = col
-			if (dataKey && !columnWidth.hasOwnProperty(dataKey)) {
-				newColumnWidth[dataKey] = width
-			}
-		}
-		setColumnWidth(newColumnWidth)
-	}, [props.columns])
+	function initColumnWidths() {
+		return props.columns.reduce((obj, col) => ({...obj, [col.dataKey]: col.width}), {})
+	}
 
 	function clearCachedRowHeight(rowIndex) {
 		// Clear all the column heights in the cache.
 		for (let i = 0; i < props.columns.length; i++) {
-			rowHeightCache.current.clear(rowIndex, i)
+			rowHeightCache.clear(rowIndex, i)
 		}
-		tableRef.recomputeRowHeights(rowIndex);
+		tableRef.recomputeRowHeights(rowIndex)
 	}
 
 	function clearAllCachedRowHeight() {
-		rowHeightCache.current.clearAll()
+		rowHeightCache.clearAll()
 		tableRef.recomputeRowHeights(0)
 	}
 
 	function resizeColumn({dataKey, deltaX}) {
 		const width = columnWidth[dataKey] + deltaX
-		setColumnWidth(update(columnWidth, {$set: {[dataKey]: width}}))
+		setColumnWidth({...columnWidth, [dataKey]: width})
 	}
 
 	function rowGetter({index}) {
@@ -205,7 +196,6 @@ function AppTable(props) {
 					title="Select Row"
 					checked={isSelected}
 					onChange={e => {
-						// if commentId is present in selectedComments (i > 0) then remove it; otherwise add it
 						const i = selected.indexOf(id)
 						setSelected(update(selected, (i > -1)? {$splice: [[i, 1]]}: {$push: [id]}))
 					}}
@@ -235,14 +225,14 @@ function AppTable(props) {
   
 	function renderMeasuredCell(cellProps) {
 		const {rowIndex, rowData, dataKey, columnIndex, columnData, parent} = cellProps
-		var cell = columnData.cellRenderer? columnData.cellRenderer(cellProps): html_preserve_newline(rowData[dataKey]);
+		var cell = columnData.cellRenderer? columnData.cellRenderer(cellProps): renderPreservingNewlines(rowData[dataKey]);
 		if (!cell) {
 			cell = ''
 		}
 		if (props.expanded === true || (Array.isArray(props.expanded) && props.expanded.includes(rowData[props.primaryDataKey]))) {
 			return (
 				<CellMeasurer
-					cache={rowHeightCache.current}
+					cache={rowHeightCache}
 					rowIndex={rowIndex}
 					columnIndex={columnIndex}
 					parent={parent}
@@ -253,7 +243,7 @@ function AppTable(props) {
 			)
 		}
 		else {
-			rowHeightCache.current.set(rowIndex, columnIndex, undefined, 0) // force to minHeight
+			rowHeightCache.set(rowIndex, columnIndex, undefined, 0) // force to minHeight
 			return cell
 		}
 	}
@@ -281,7 +271,7 @@ function AppTable(props) {
 				flexShrink={0}
 				width={(Array.isArray(props.selected) && Array.isArray(props.expanded))? 40: 25}
 			/>
-			)
+		)
 	}
 
 	return (
@@ -289,7 +279,7 @@ function AppTable(props) {
 			className={styles.Table}
 			height={props.height}
 			width={props.width}
-			rowHeight={rowHeightCache.current.rowHeight}
+			rowHeight={rowHeightCache.rowHeight}
 			headerHeight={props.headerHeight? props.headerHeight: 44}
 			noRowsRenderer={renderNoRows}
 			headerClassName={styles.headerColumn}
@@ -312,7 +302,8 @@ function AppTable(props) {
 						width={columnWidth.hasOwnProperty(col.dataKey)? columnWidth[col.dataKey]: width}
 						{...otherProps}
 					/>
-				)})}
+				)}
+			)}
 		</Table>
 	)
 }
@@ -333,7 +324,7 @@ AppTable.propTypes = {
 	setSelected: PropTypes.func,
 	selected: PropTypes.array,
 	setExpanded: PropTypes.func,
-	expanded: PropTypes.oneOfType([PropTypes.bool, PropTypes.array]),
+	expanded: PropTypes.oneOfType([PropTypes.bool, PropTypes.array])
 }
 
-export default AppTable;
+export default AppTable
