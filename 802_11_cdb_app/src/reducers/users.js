@@ -1,6 +1,6 @@
-import {sortData, filterData} from '../filter'
+import {sortClick, sortData, filterValidate, filterData} from '../filter'
 import {
-	SET_USERS_FILTERS,
+	SET_USERS_FILTER,
 	SET_USERS_SORT,
 	SET_USERS_SELECTED,
 	GET_USERS,
@@ -20,8 +20,12 @@ import {
 	UPLOAD_USERS_FAILURE
 } from '../actions/users'
 
+const filterKeys = [
+	'SAPIN', 'Name', 'Email', 'Access'
+]
+
 const defaultState = {
-	filters: {},
+	filters: filterKeys.reduce((obj, key) => ({...obj, [key]: filterValidate(key, '')}), {}),
 	sortBy: [],
 	sortDirection: {},
 	selected: [],
@@ -44,14 +48,18 @@ function users(state = defaultState, action) {
 
 	switch (action.type) {
 		case SET_USERS_SORT:
+			const {sortBy, sortDirection} = sortClick(action.event, action.dataKey, state.sortBy, state.sortDirection)
 			return {
 				...state,
-				sortBy: action.sortBy,
-				sortDirection: action.sortDirection,
-				usersMap: sortData(state.usersMap, state.users, action.sortBy, action.sortDirection)
+				sortBy,
+				sortDirection,
+				usersMap: sortData(state.usersMap, state.users, sortBy, sortDirection)
 			}
-		case SET_USERS_FILTERS:
-			const filters = {...state.filters, ...action.filters}
+		case SET_USERS_FILTER:
+			const filters = {
+				...state.votingPoolsFilters,
+				[action.dataKey]: filterValidate(action.dataKey, action.value)
+			}
 			return {
 				...state,
 				filters,

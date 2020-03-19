@@ -1,15 +1,15 @@
 import {setError} from './error'
 import fetcher from '../lib/fetcher'
 
-export const SET_EPOLLS_FILTERS = 'SET_EPOLLS_FILTERS'
+export const SET_EPOLLS_FILTER = 'SET_EPOLLS_FILTER'
 export const SET_EPOLLS_SORT = 'SET_EPOLLS_SORT'
 export const GET_EPOLLS = 'GET_EPOLLS'
 export const GET_EPOLLS_SUCCESS = 'GET_EPOLLS_SUCCESS'
 export const GET_EPOLLS_FAILURE = 'GET_EPOLLS_FAILURE'
 export const SYNC_EPOLLS_AGAINST_BALLOTS = 'SYNC_EPOLLS_AGAINST_BALLOTS'
 
-export const setEpollsFilters = (filters) => {return {type: SET_EPOLLS_FILTERS, filters}}
-export const setEpollsSort = (sortBy, sortDirection) => {return {type: SET_EPOLLS_SORT, sortBy, sortDirection}}
+export const setEpollsFilter = (dataKey, value) => {return {type: SET_EPOLLS_FILTER, dataKey, value}}
+export const setEpollsSort = (event, dataKey) => {return {type: SET_EPOLLS_SORT, event, dataKey}}
 
 const getEpollsLocal = (n) => {return {type: GET_EPOLLS, n}}
 const getEpollsSuccess = (n, epolls) => {return {type: GET_EPOLLS_SUCCESS, n, epolls}}

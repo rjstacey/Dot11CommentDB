@@ -3,9 +3,9 @@ import React, {useState, useRef, useEffect} from 'react';
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux';
 import ConfirmModal from './ConfirmModal';
-import {setVotersFilters, setVotersSort, setVotersSelected, getVoters, deleteVoters, addVoter, updateVoter, uploadVoters} from './actions/voters'
+import {setVotersFilter, setVotersSort, setVotersSelected, getVoters, deleteVoters, addVoter, updateVoter, uploadVoters} from './actions/voters'
 import {setError} from './actions/error'
-import {sortClick, filterValidate, shallowDiff} from './filter'
+import {shallowDiff} from './filter'
 import AppTable from './AppTable';
 import AppModal from './AppModal';
 import {ActionButton} from './Icons';
@@ -213,10 +213,7 @@ const saColumns = [
 		width: 300}
 ]
 
-const filterKeys = [
-	'SAPIN', 'Email', 'Name', 'LastName', 'FirstName', 'MI', 'Status'
-]
-	
+
 function Voters(props) {
 	let {votingPoolType, votingPoolName} = useParams()
 	const history = useHistory()
@@ -256,16 +253,6 @@ function Voters(props) {
 	}, [])
 
 	useEffect(() => {
-		if (Object.keys(props.filters).length === 0) {
-			var filters = {}
-			for (let key of filterKeys) {
-				filters[key] = filterValidate(key, '')
-			}
-			props.dispatch(setVotersFilters(filters))
-		}
-	}, [])
-
-	useEffect(() => {
 		if ((!props.votingPool.VotingPool || props.votingPool.VotingPool !== votingPoolName ||
 			 !props.votingPool.PoolType || props.votingPool.PoolType !== votingPoolType) &&
 			!props.getVoters) {
@@ -297,17 +284,6 @@ function Voters(props) {
 				await props.dispatch(deleteVoters(votingPoolType, votingPoolName, ids))
 			}
 		}
-	}
-
-	function setSort(dataKey, event) {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection)
-		props.dispatch(setVotersSort(sortBy, sortDirection))
-		event.preventDefault()
-	}
-
-	function setFilter(dataKey, value) {
-		var filter = filterValidate(dataKey, value)
-		props.dispatch(setVotersFilters({[dataKey]: filter}));
 	}
 
 	function handleAddVoter(e) {
@@ -345,8 +321,8 @@ function Voters(props) {
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
-				setSort={setSort}
-				setFilter={setFilter}
+				setSort={(dataKey, event) => props.dispatch(setVotersSort(event, dataKey))}
+				setFilter={(dataKey, value) => props.dispatch(setVotersFilter(dataKey, value))}
 				setSelected={(ids) => props.dispatch(setVotersSelected(ids))}
 				selected={props.selected}
 				editRow={handleUpdateVoter}
@@ -387,17 +363,17 @@ Voters.propTypes = {
 }
 
 function mapStateToProps(state) {
-	const {voters} = state;
+	const s = state.voters
 	return {
-		filters: voters.votersFilters,
-		sortBy: voters.votersSortBy,
-		sortDirection: voters.votersSortDirection,
-		selected: voters.votersSelected,
-		votingPool: voters.votingPool,
-		votersValid: voters.votersValid,
-		voters: voters.voters,
-		votersMap: voters.votersMap,
-		getVoters: voters.getVoters,
+		filters: s.votersFilters,
+		sortBy: s.votersSortBy,
+		sortDirection: s.votersSortDirection,
+		selected: s.votersSelected,
+		votingPool: s.votingPool,
+		votersValid: s.votersValid,
+		voters: s.voters,
+		votersMap: s.votersMap,
+		getVoters: s.getVoters,
 	}
 }
 export default connect(mapStateToProps)(Voters)

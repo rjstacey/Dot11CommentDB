@@ -1,6 +1,6 @@
-import {sortData, filterData} from '../filter'
+import {sortClick, sortData, filterValidate, filterData} from '../filter'
 import {
-	SET_BALLOTS_FILTERS,
+	SET_BALLOTS_FILTER,
 	SET_BALLOTS_SORT,
 	SET_BALLOTS_SELECTED,
 	GET_BALLOTS,
@@ -35,8 +35,12 @@ function defaultBallot() {
 	}
 }
 
+const filterKeys = [
+	'Project', 'BallotID', 'Document', 'Topic', 'EpollNum', 'Start', 'End', 'Results', 'Comments'
+]
+
 const defaultState = {
-	filters: {},
+	filters: filterKeys.reduce((obj, key) => ({...obj, [key]: filterValidate(key, '')}), {}),
 	sortBy: [],
 	sortDirection: {},
 	selected: [],
@@ -112,16 +116,17 @@ const ballots = (state = defaultState, action) => {
 
 	switch (action.type) {
 		case SET_BALLOTS_SORT:
+			const {sortBy, sortDirection} = sortClick(action.event, action.dataKey, state.sortBy, state.sortDirection)
 			return {
 				...state,
-				sortBy: action.sortBy,
-				sortDirection: action.sortDirection,
-				ballotsMap: sortData(state.ballotsMap, state.ballots, action.sortBy, action.sortDirection)
+				sortBy,
+				sortDirection,
+				ballotsMap: sortData(state.ballotsMap, state.ballots, sortBy, sortDirection)
 			}
-		case SET_BALLOTS_FILTERS:
+		case SET_BALLOTS_FILTER:
 			const filters = {
-				...state.filters, 
-				...action.filters
+				...state.filters,
+				[action.dataKey]: filterValidate(action.dataKey, action.value)
 			}
 			return {
 				...state,

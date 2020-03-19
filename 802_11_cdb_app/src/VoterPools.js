@@ -5,9 +5,8 @@ import {connect} from 'react-redux'
 import AppTable from './AppTable'
 import AppModal from './AppModal'
 import ConfirmModal from './ConfirmModal'
-import {setVotingPoolsSort, setVotingPoolsFilters, setVotingPoolsSelected, getVotingPools, deleteVotingPools, uploadVoters} from './actions/voters'
+import {setVotingPoolsSort, setVotingPoolsFilter, setVotingPoolsSelected, getVotingPools, deleteVotingPools, uploadVoters} from './actions/voters'
 import {setError} from './actions/error'
-import {sortClick, filterValidate} from './filter'
 import {ActionButton} from './Icons'
 
 function AddVotingPoolModal(props) {
@@ -109,15 +108,12 @@ ImportVotersModal.propTypes = {
 const columns = [
 	{dataKey: 'PoolType',		label: 'Type',
 		sortable: true,
-		filterable: true,
 		width: 80},
 	{dataKey: 'VotingPoolID',	label: 'Name',
 		sortable: true,
-		filterable: true,
 		width: 200},
 	{dataKey: 'VoterCount',		label: 'Voters',
 		sortable: true,
-		filterable: true,
 		width: 100,
 		isLast: true}
 ]
@@ -153,15 +149,6 @@ function VoterPools(props) {
 	}, [])
 
 	useEffect(() => {
-		if (Object.keys(props.filters).length === 0) {
-			var filters = {}
-			for (let col of columns) {
-				if (col.filterable) {
-					filters[col.dataKey] = filterValidate(col.dataKey, '')
-				}
-			}
-			props.dispatch(setVotingPoolsFilters(filters))
-		}
 		if (!props.votingPoolsValid) {
 			props.dispatch(getVotingPools())
 		}
@@ -194,17 +181,6 @@ function VoterPools(props) {
 		}
 	}
 
-	function setSort(dataKey, event) {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection)
-		props.dispatch(setVotingPoolsSort(sortBy, sortDirection))
-		event.preventDefault()
-	}
-
-	function setFilter(dataKey, value) {
-		var filter = filterValidate(dataKey, value)
-		props.dispatch(setVotingPoolsFilters({[dataKey]: filter}))
-	}
-
 	return (
 		<div id='VoterPools' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
@@ -225,8 +201,8 @@ function VoterPools(props) {
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
-				setSort={setSort}
-				setFilter={setFilter}
+				setSort={(dataKey, event) => props.dispatch(setVotingPoolsSort(event, dataKey))}
+				setFilter={(dataKey, value) => props.dispatch(setVotingPoolsFilter(dataKey, value))}
 				setSelected={(ids) => props.dispatch(setVotingPoolsSelected(ids))}
 				selected={props.selected}
 				data={props.votingPools}
@@ -254,16 +230,16 @@ VoterPools.propTypes = {
 }
 
 function mapStateToProps(state) {
-	const {voters} = state;
+	const s = state.voters
 	return {
-		filters: voters.votingPoolsFilters,
-		sortBy: voters.votingPoolsSortBy,
-		sortDirection: voters.votingPoolsSortDirection,
-		selected: voters.votingPoolsSelected,
-		votingPoolsValid: voters.votingPoolsValid,
-		votingPools: voters.votingPools,
-		votingPoolsMap: voters.votingPoolsMap,
-		getVotingPools: voters.getVotingPools,
+		filters: s.votingPoolsFilters,
+		sortBy: s.votingPoolsSortBy,
+		sortDirection: s.votingPoolsSortDirection,
+		selected: s.votingPoolsSelected,
+		votingPoolsValid: s.votingPoolsValid,
+		votingPools: s.votingPools,
+		votingPoolsMap: s.votingPoolsMap,
+		getVotingPools: s.getVotingPools
 	}
 }
 export default connect(mapStateToProps)(VoterPools)

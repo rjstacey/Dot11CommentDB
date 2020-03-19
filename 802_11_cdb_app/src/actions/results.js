@@ -2,7 +2,7 @@ import {updateBallotSuccess} from './ballots'
 import {setError} from './error'
 import fetcher from '../lib/fetcher'
 
-export const SET_RESULTS_FILTERS = 'SET_RESULTS_FILTERS'
+export const SET_RESULTS_FILTER = 'SET_RESULTS_FILTER'
 export const SET_RESULTS_SORT = 'SET_RESULTS_SORT'
 export const GET_RESULTS = 'GET_RESULTS'
 export const GET_RESULTS_SUCCESS = 'GET_RESULTS_SUCCESS'
@@ -14,8 +14,8 @@ export const IMPORT_RESULTS = 'IMPORT_RESULTS'
 export const IMPORT_RESULTS_SUCCESS = 'IMPORT_RESULTS_SUCCESS'
 export const IMPORT_RESULTS_FAILURE = 'IMPORT_RESULTS_FAILURE'
 
-export const setResultsFilters = (filters) => {return {type: SET_RESULTS_FILTERS, filters}}
-export const setResultsSort = (sortBy, sortDirection) => {return {type: SET_RESULTS_SORT, sortBy, sortDirection}}
+export const setResultsFilter = (dataKey, value) => {return {type: SET_RESULTS_FILTER, dataKey, value}}
+export const setResultsSort = (event, dataKey) => {return {type: SET_RESULTS_SORT, event, dataKey}}
 
 const getResultsLocal = (ballotId) => {return {type: GET_RESULTS, ballotId}}
 const getResultsSuccess = (data) => {

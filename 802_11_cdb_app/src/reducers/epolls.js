@@ -1,6 +1,6 @@
-import {sortData, filterData} from '../filter';
+import {sortClick, sortData, filterValidate, filterData} from '../filter';
 import {
-	SET_EPOLLS_FILTERS,
+	SET_EPOLLS_FILTER,
 	SET_EPOLLS_SORT,
 	GET_EPOLLS,
 	GET_EPOLLS_SUCCESS,
@@ -8,8 +8,12 @@ import {
 	SYNC_EPOLLS_AGAINST_BALLOTS
 } from '../actions/epolls'
 
+const filterKeys = [
+	'EpollNum', 'BallotID', 'Document', 'Topic', 'Start', 'End', 'Votes'
+]
+
 const defaultState = {
-	filters: {},
+	filters: filterKeys.reduce((obj, key) => ({...obj, [key]: filterValidate(key, '')}), {}),
 	sortBy: [],
 	sortDirection: {},
 	epollsValid: false,
@@ -34,14 +38,18 @@ const epolls = (state = defaultState, action) => {
 
 	switch (action.type) {
 		case SET_EPOLLS_SORT:
+			const {sortBy, sortDirection} = sortClick(action.event, action.dataKey, state.sortBy, state.sortDirection)
 			return {
 				...state,
-				sortBy: action.sortBy,
-				sortDirection: action.sortDirection,
-				epollsMap: sortData(state.epollsMap, state.epolls, action.sortBy, action.sortDirection)
+				sortBy,
+				sortDirection,
+				epollsMap: sortData(state.epollsMap, state.epolls, sortBy, sortDirection)
 			}
-		case SET_EPOLLS_FILTERS:
-			const filters = {...state.filters, ...action.filters}
+		case SET_EPOLLS_FILTER:
+			const filters = {
+				...state.votingPoolsFilters,
+				[action.dataKey]: filterValidate(action.dataKey, action.value)
+			}
 			return {
 				...state,
 				filters,

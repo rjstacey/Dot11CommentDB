@@ -1,6 +1,6 @@
-import {sortData, filterData} from '../filter'
+import {sortClick, sortData, filterValidate, filterData} from '../filter'
 import {
-	SET_VOTING_POOLS_FILTERS,
+	SET_VOTING_POOLS_FILTER,
 	SET_VOTING_POOLS_SORT,
 	SET_VOTING_POOLS_SELECTED,
 	GET_VOTING_POOLS,
@@ -9,7 +9,7 @@ import {
 	DELETE_VOTING_POOLS,
 	DELETE_VOTING_POOLS_SUCCESS,
 	DELETE_VOTING_POOLS_FAILURE,
-	SET_VOTERS_FILTERS,
+	SET_VOTERS_FILTER,
 	SET_VOTERS_SORT,
 	SET_VOTERS_SELECTED,
 	GET_VOTERS,
@@ -27,11 +27,20 @@ import {
 	UPDATE_VOTER,
 	UPDATE_VOTER_SUCCESS,
 	UPDATE_VOTER_FAILURE
-}from '../actions/voters'
+} from '../actions/voters'
+
+const votingPoolsFilterKeys = [
+	'PoolType', 'VotingPoolID', 'VoterCount'
+]
+
+const votersFilterKeys = [
+	'SAPIN', 'Email', 'Name', 'LastName', 'FirstName', 'MI', 'Status'
+]
+
 
 const defaultState = {
 	getVotingPools: false,
-	votingPoolsFilters: {},
+	votingPoolsFilters: votingPoolsFilterKeys.reduce((obj, key) => ({...obj, [key]: filterValidate(key, '')}), {}),
 	votingPoolsSortBy: [],
 	votingPoolsSortDirection: {},
 	votingPoolsSelected: [],
@@ -41,7 +50,7 @@ const defaultState = {
 
 	votingPool: {VotingPool: '', PoolType: '', VotersCount: 0},
 	getVoters: false,
-	votersFilters: {},
+	votersFilters: votersFilterKeys.reduce((obj, key) => ({...obj, [key]: filterValidate(key, '')}), {}),
 	votersSortBy: [],
 	votersSortDirection: {},
 	votersSelected: [],
@@ -58,23 +67,31 @@ function updateSelected(data, dataKey, selected) {
 }
 
 const voters = (state = defaultState, action) => {
-	let votingPools, votingPool, voters, filters, key
+	let votingPools, votingPool, voters, key
 
 	switch (action.type) {
 		case SET_VOTING_POOLS_SORT:
+		{
+			const {sortBy, sortDirection} = sortClick(action.event, action.dataKey, state.votingPoolsSortBy, state.votingPoolsSortDirection)
 			return {
 				...state,
-				votingPoolsSortBy: action.sortBy,
-				votingPoolsSortDirection: action.sortDirection,
-				votingPoolsMap: sortData(state.votingPoolsMap, state.votingPools, action.sortBy, action.sortDirection)
+				votingPoolsSortBy: sortBy,
+				votingPoolsSortDirection: sortDirection,
+				votingPoolsMap: sortData(state.votingPoolsMap, state.votingPools, sortBy, sortDirection)
 			}
-		case SET_VOTING_POOLS_FILTERS:
-			filters = {...state.votingPoolsFilters, ...action.filters}
+		}
+		case SET_VOTING_POOLS_FILTER:
+		{
+			const filters = {
+				...state.votingPoolsFilters,
+				[action.dataKey]: filterValidate(action.dataKey, action.value)
+			}
 			return {
 				...state,
 				votingPoolsFilters: filters,
 				votingPoolsMap: sortData(filterData(state.votingPools, filters), state.votingPools, state.votingPoolsSortBy, state.votingPoolsSortDirection)
 			}
+		}
 		case SET_VOTING_POOLS_SELECTED:
 			return {
 				...state,
@@ -116,19 +133,27 @@ const voters = (state = defaultState, action) => {
 			return {...state, deleteVotingPools: false}
 
 		case SET_VOTERS_SORT:
+		{
+			const {sortBy, sortDirection} = sortClick(action.event, action.dataKey, state.votersSortBy, state.votersSortDirection)
 			return {
 				...state,
-				votersSortBy: action.sortBy,
-				votersSortDirection: action.sortDirection,
-				votersMap: sortData(state.votersMap, state.voters, action.sortBy, action.sortDirection)
+				votersSortBy: sortBy,
+				votersSortDirection: sortDirection,
+				votersMap: sortData(state.votersMap, state.voters, sortBy, sortDirection)
 			}
-		case SET_VOTERS_FILTERS:
-			filters = {...state.votersFilters, ...action.filters};
+		}
+		case SET_VOTERS_FILTER:
+		{
+			const filters = {
+				...state.votingPoolsFilters,
+				[action.dataKey]: filterValidate(action.dataKey, action.value)
+			}
 			return {
 				...state,
 				votersFilters: filters,
 				votersMap: sortData(filterData(state.voters, filters), state.voters, state.votersSortBy, state.votersSortDirection)
 			}
+		}
 		case SET_VOTERS_SELECTED:
 			key = state.votingPool.PoolType === 'SA'? 'Email': 'SAPIN'
 			return {

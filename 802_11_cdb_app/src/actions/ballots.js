@@ -2,7 +2,7 @@ import {syncEpollsAgainstBallots} from './epolls'
 import {setError} from './error'
 import fetcher from '../lib/fetcher'
 
-export const SET_BALLOTS_FILTERS = 'SET_BALLOTS_FILTERS'
+export const SET_BALLOTS_FILTER = 'SET_BALLOTS_FILTER'
 export const SET_BALLOTS_SORT = 'SET_BALLOTS_SORT'
 export const SET_BALLOTS_SELECTED = 'SET_BALLOTS_SELECTED'
 
@@ -23,8 +23,8 @@ export const ADD_BALLOT_SUCCESS = 'ADD_BALLOT_SUCCESS'
 export const ADD_BALLOT_FAILURE = 'ADD_BALLOT_FAILURE'
 
 
-export const setBallotsFilters = (filters) => {return {type: SET_BALLOTS_FILTERS, filters}}
-export const setBallotsSort = (sortBy, sortDirection) => {return {type: SET_BALLOTS_SORT, sortBy, sortDirection}}
+export const setBallotsFilter = (dataKey, value) => {return {type: SET_BALLOTS_FILTER, dataKey, value}}
+export const setBallotsSort = (event, dataKey) => {return {type: SET_BALLOTS_SORT, event, dataKey}}
 export const setBallotsSelected = (selected) => {return {type: SET_BALLOTS_SELECTED, selected}}
 
 export const setProject = (project) => {return {type: SET_PROJECT, project}}

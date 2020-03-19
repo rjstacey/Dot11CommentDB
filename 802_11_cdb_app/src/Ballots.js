@@ -5,9 +5,8 @@ import {connect} from 'react-redux'
 import moment from'moment-timezone'
 import ConfirmModal from './ConfirmModal'
 import AppTable from './AppTable'
-import {setBallotsFilters, setBallotsSort, setBallotsSelected, getBallots, deleteBallots} from './actions/ballots'
+import {setBallotsFilter, setBallotsSort, setBallotsSelected, getBallots, deleteBallots} from './actions/ballots'
 import {getVotingPools} from './actions/voters'
-import {sortClick, filterValidate} from './filter'
 import {ActionButton} from './Icons'
 
 
@@ -23,32 +22,25 @@ function Ballots(props) {
 	const columns = [
 		{dataKey: 'Project',      label: 'Project',
 			sortable: true,
-			filterable: true,
 			width: 65, flexShrink: 0, flexGrow: 0},
 		{dataKey: 'BallotID',     label: 'Ballot ID',
 			sortable: true,
-			filterable: true,
 			width: 75, flexShrink: 0, flexGrow: 0},
 		{dataKey: 'Document',     label: 'Document',
 			sortable: true,
-			filterable: true,
 			width: 150, flexShrink: 1, flexGrow: 1},
 		{dataKey: 'Topic',        label: 'Topic',
 			sortable: true,
-			filterable: true,
 			width: 300, flexShrink: 1, flexGrow: 1},
 		{dataKey: 'EpollNum',     label: 'ePoll',
 			sortable: true,
-			filterable: true,
 			width: 80, flexGrow: 0, flexShrink: 0},
 		{dataKey: 'Start',        label: 'Start',
 			sortable: true,
-			filterable: true,
 			width: 86, flexShrink: 0,
 			cellRenderer: renderDate},
 		{dataKey: 'End',          label: 'End',
 			sortable: true,
-			filterable: true,
 			width: 86, flexShrink: 0,
 			cellRenderer: renderDate},
         {dataKey: ['VotingPoolID', 'PrevBallotID'], label: 'Voting Pool/Prev Ballot',
@@ -58,12 +50,10 @@ function Ballots(props) {
     		cellRenderer: renderVotingPool},
 		{dataKey: 'Results',      label: 'Result',
 			sortable: true,
-			filterable: true,
 			width: 150, flexShrink: 1, flexGrow: 1,
 			cellRenderer: renderResultsSummary},
 		{dataKey: 'Comments',	label: 'Comments',
 			sortable: true,
-			filterable: true,
 			width: 100, flexShrink: 1, flexGrow: 1,
 			cellRenderer: renderCommentsSummary,
 			isLast: true}
@@ -97,15 +87,6 @@ function Ballots(props) {
 	}, [])
 
 	useEffect(() => {
-		if (Object.keys(props.filters).length === 0) {
-			var filters = {};
-			for (let col of columns) {
-				if (col.filterable) {
-					filters[col.dataKey] = filterValidate(col.dataKey, '')
-				}
-			}
-			props.dispatch(setBallotsFilters(filters))
-		}
 		if (!props.ballotsValid) {
 			props.dispatch(getBallots())
 		}
@@ -133,17 +114,6 @@ function Ballots(props) {
 				await props.dispatch(deleteBallots(ids))
 			}
 		}
-	}
-
-	function setSort(dataKey, event) {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection)
-		props.dispatch(setBallotsSort(sortBy, sortDirection))
-		event.preventDefault()
-	}
-
-	function setFilter(dataKey, value) {
-		var filter = filterValidate(dataKey, value)
-		props.dispatch(setBallotsFilters({[dataKey]: filter}))
 	}
 
 	function renderDate({rowData, dataKey}) {
@@ -221,8 +191,8 @@ function Ballots(props) {
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
-				setSort={setSort}
-				setFilter={setFilter}
+				setSort={(dataKey, event) => props.dispatch(setBallotsSort(event, dataKey))}
+				setFilter={(dataKey, value) => props.dispatch(setBallotsFilter(dataKey, value))}
 				setSelected={(ballotIds) => props.dispatch(setBallotsSelected(ballotIds))}
 				selected={props.selected}
 				data={props.ballots}

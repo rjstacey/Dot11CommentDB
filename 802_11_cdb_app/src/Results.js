@@ -1,17 +1,14 @@
-import PropTypes from 'prop-types';
-import React, {useState, useEffect, useLayoutEffect} from 'react';
+import PropTypes from 'prop-types'
+import React, {useState, useEffect, useLayoutEffect} from 'react'
 import {useHistory, useParams} from 'react-router-dom'
-import AppTable from './AppTable';
-import AppModal from './AppModal';
-import {connect} from 'react-redux';
-import BallotSelector from './BallotSelector';
-import {setResultsSort, setResultsFilters, getResults} from './actions/results'
+import AppTable from './AppTable'
+import AppModal from './AppModal'
+import {connect} from 'react-redux'
+import BallotSelector from './BallotSelector'
+import {setResultsSort, setResultsFilter, getResults} from './actions/results'
 import {setError} from './actions/error'
 import {setBallotId} from './actions/ballots'
-import {sortClick, filterValidate} from './filter'
 import {ActionButton, IconUp, IconDown} from './Icons'
-//import {saveAs} from 'file-saver'
-//var axios = require('axios');
 import fetcher from './lib/fetcher'
 
 
@@ -227,31 +224,24 @@ ResultsSummary.propTypes = {
 const allColumns = [
 	{dataKey: 'SAPIN',		label: 'SA PIN',
 		sortable: true,
-		filterable: true,
 		width: 75},
 	{dataKey: 'Name',		label: 'Name',
 		sortable: true,
-		filterable: true,
 		width: 200},
 	{dataKey: 'Affiliation', label: 'Affiliation',
 		sortable: true,
-		filterable: true,
 		width: 200},
 	{dataKey: 'Email',		label: 'Email',
 		sortable: true,
-		filterable: true,
 		width: 250},
 	{dataKey: 'Vote',		label: 'Vote',
 		sortable: true,
-		filterable: true,
 		width: 210},
 	{dataKey: 'CommentCount', label: 'Comments',
 		sortable: true,
-		filterable: true,
 		width: 110},
 	{dataKey: 'Notes',		label: 'Notes',
 		sortable: true,
-		filterable: true,
 		width: 250, flexShrink: 1, flexGrow: 1,
 		isLast: true}
 ]
@@ -299,18 +289,6 @@ function Results(props) {
 	}, [])
 
 	useEffect(() => {
-		if (Object.keys(props.filters).length === 0) {
-			var filters = {};
-			for (let col of columns) {
-				if (col.filterable) {
-					filters[col.dataKey] = filterValidate(col.dataKey, '')
-				}
-			}
-			props.dispatch(setResultsFilters(filters));
-		}
-	}, [])
-
-	useEffect(() => {
 		if (ballotId) {
 			if (ballotId !== props.ballotId) {
 				// Routed here with parameter ballotId specified, but not matching stored ballotId
@@ -318,7 +296,7 @@ function Results(props) {
 				props.dispatch(setBallotId(ballotId))
 				props.dispatch(getResults(ballotId))
 			}
-			else if (!props.getResults && (!props.resultsDataValid || props.ballot.BallotID !== ballotId)) {
+			else if (!props.getResults && (!props.resultsValid || props.ballot.BallotID !== ballotId)) {
 				props.dispatch(getResults(ballotId))
 			}
 		}
@@ -329,16 +307,6 @@ function Results(props) {
 
 	function refresh(e) {
 		props.dispatch(getResults(ballotId))
-	}
-
-	function setSort(dataKey, event) {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection);
-		props.dispatch(setResultsSort(sortBy, sortDirection));
-	}
-
-	function setFilter(dataKey, value) {
-		var filter = filterValidate(dataKey, value)
-		props.dispatch(setResultsFilters({[dataKey]: filter}));
 	}
 
 	function ballotSelected(ballotId) {
@@ -379,14 +347,11 @@ function Results(props) {
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
-				setSort={setSort}
-				setFilter={setFilter}
-				//showSelected={() => setShowSelected(true)}
-				//setSelected={(cids) => setSelected(cids)}
-				//selected={selected}
+				setSort={(dataKey, event) => props.dispatch(setResultsSort(event, dataKey))}
+				setFilter={(dataKey, value) => props.dispatch(setResultsFilter(dataKey, value))}
 				primaryDataKey={'SAPIN'}
-				data={props.resultsData}
-				dataMap={props.resultsDataMap}
+				data={props.results}
+				dataMap={props.resultsMap}
 			/>
 			<ExportModal
 				ballot={props.ballot}
@@ -404,9 +369,9 @@ Results.propTypes = {
 	ballotId: PropTypes.string.isRequired,
 	ballot: PropTypes.object.isRequired,
 	votingPoolSize: PropTypes.number.isRequired,
-	resultsDataValid: PropTypes.bool.isRequired,
-	resultsData: PropTypes.array.isRequired,
-	resultsDataMap: PropTypes.array.isRequired,
+	resultsValid: PropTypes.bool.isRequired,
+	results: PropTypes.array.isRequired,
+	resultsMap: PropTypes.array.isRequired,
 	getResults: PropTypes.bool.isRequired
 }
 
@@ -419,9 +384,9 @@ function mapStateToProps(state) {
 		ballotId: ballots.ballotId,
 		ballot: results.ballot,
 		votingPoolSize: results.votingPoolSize,
-		resultsDataValid: results.resultsDataValid,
-		resultsData: results.resultsData,
-		resultsDataMap: results.resultsDataMap,
+		resultsValid: results.resultsValid,
+		results: results.results,
+		resultsMap: results.resultsMap,
 		resultsSummary: results.resultsSummary,
 		getResults: results.getResults,
 	}

@@ -1,7 +1,7 @@
 import {setError} from './error'
 import fetcher from '../lib/fetcher'
 
-export const SET_USERS_FILTERS = 'SET_USERS_FILTERS'
+export const SET_USERS_FILTER = 'SET_USERS_FILTER'
 export const SET_USERS_SORT = 'SET_USERS_SORT'
 export const SET_USERS_SELECTED = 'SET_USERS_SELECTED'
 
@@ -21,8 +21,8 @@ export const UPLOAD_USERS = 'UPLOAD_USERS'
 export const UPLOAD_USERS_SUCCESS = 'UPLOAD_USERS_SUCCESS'
 export const UPLOAD_USERS_FAILURE = 'UPLOAD_USERS_FAILURE'
 
-export const setUsersFilters = (filters) => {return {type: SET_USERS_FILTERS, filters}}
-export const setUsersSort = (sortBy, sortDirection) => {return {type: SET_USERS_SORT, sortBy, sortDirection}}
+export const setUsersFilter = (dataKey, value) => {return {type: SET_USERS_FILTER, dataKey, value}}
+export const setUsersSort = (event, dataKey) => {return {type: SET_USERS_SORT, event, dataKey}}
 export const setUsersSelected = (selected) => {return {type: SET_USERS_SELECTED, selected}}
 
 const getUsersLocal = () => {return {type: GET_USERS}}

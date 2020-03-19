@@ -8,8 +8,7 @@ import ContentEditable from './ContentEditable'
 import AppModal from './AppModal'
 import AppTable, {renderFilter, renderLabel} from './AppTable'
 import {ActionButton} from './Icons'
-import {sortClick, filterValidate} from './filter'
-import {setCommentsSort, setCommentsFilters, setCommentsSelected, setCommentsExpanded, getComments, uploadResolutions} from './actions/comments'
+import {setCommentsSort, setCommentsFilter, setCommentsSelected, setCommentsExpanded, getComments, uploadResolutions} from './actions/comments'
 import {setBallotId} from './actions/ballots'
 import {setError} from './actions/error'
 import fetcher from './lib/fetcher'
@@ -302,22 +301,21 @@ function renderDataCellStacked1({rowData}) {
 }
 
 function renderHeaderCellStacked2({columnData}) {
-	const showFilter = columnData.filters.hasOwnProperty('CommentID')
 	const {sortBy, sortDirection, setSort} = columnData
 
 	return (
 		<React.Fragment>
 			<div>
 				{renderLabel({dataKey: 'CommentGroup', label: 'Comment Group', sortable: true, sortBy, sortDirection, setSort})}
-				{showFilter && renderFilter({dataKey: 'CommentGroup', filter: columnData.filters['CommentGroup'], setFilter: columnData.setFilter})}
+				{columnData.filters.hasOwnProperty('CommentGroup') && renderFilter({dataKey: 'CommentGroup', filter: columnData.filters['CommentGroup'], setFilter: columnData.setFilter})}
 			</div>
 			<div>
 				{renderLabel({dataKey: 'AssigneeName', label: 'Assignee', sortable: true, sortBy, sortDirection, setSort})}
-				{showFilter && renderFilter({dataKey: 'AssigneeName', filter: columnData.filters['AssigneeName'], setFilter: columnData.setFilter})}
+				{columnData.filters.hasOwnProperty('AssigneeName') && renderFilter({dataKey: 'AssigneeName', filter: columnData.filters['AssigneeName'], setFilter: columnData.setFilter})}
 			</div>
 			<div>
 				{renderLabel({dataKey: 'Submission', label: 'Submission', sortable: true, sortBy, sortDirection, setSort})}
-				{showFilter && renderFilter({dataKey: 'Submission', filter: columnData.filters['Submission'], setFilter: columnData.setFilter})}
+				{columnData.filters.hasOwnProperty('Submission') && renderFilter({dataKey: 'Submission', filter: columnData.filters['Submission'], setFilter: columnData.setFilter})}
 			</div>
 		</React.Fragment>
 	)
@@ -390,7 +388,6 @@ const flatColumns = [
 		cellRenderer: renderDataCellResolution},
 	{dataKey: 'Editing', label: 'Editing',
 		sortable: false,
-		filterable: false,
 		width: 300, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderDataCellEditing,
 		isLast: true}
@@ -399,41 +396,29 @@ const flatColumns = [
 const stackedColumns = [
 	{dataKey: 'Stack1', label: 'CID/Cat/MS/...',
 		sortable: false,
-		filterable: false,
 		width: 200, flexGrow: 0, flexShrink: 0,
 		headerRenderer: renderHeaderCellStacked1,
 		cellRenderer: renderDataCellStacked1},
 	{dataKey: 'Comment', label: 'Comment',
 		sortable: true,
-		filterable: true,
 		width: 400, flexGrow: 1, flexShrink: 1}, 
 	{dataKey: 'ProposedChange', label: 'Proposed Change',
 		sortable: true,
-		filterable: true,
 		width: 400, flexGrow: 1, flexShrink: 1},
 	{dataKey: 'Stack2', label: 'Comment Group/Assign...',
 		sortable: false,
-		filterable: false,
 		width: 250, flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCellStacked2,
 		cellRenderer: renderDataCellStacked2},
 	{dataKey: 'Resolution', label: 'Resolution',
 		sortable: false,
-		filterable: false,
 		width: 400, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderDataCellResolution},
 	{dataKey: 'Editing', label: 'Editing',
 		sortable: false,
-		filterable: false,
 		width: 300, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderDataCellEditing,
 		isLast: true}
-]
-
-const allFilters = [
-	'CID', 'CommenterName', 'Vote', 'MustSatisfy', 'Category', 'Clause', 'Page',
-	'Comment', 'ProposedChange', 'CommentGroup', 'AssigneeName', 'Submission',
-	'Resolution'
 ]
 
 function Comments(props) {
@@ -482,16 +467,6 @@ function Comments(props) {
 	}, [])
 
 	useEffect(() => {
-		if (Object.keys(props.filters).length === 0) {
-			var filters = {};
-			for (let dataKey of allFilters) {
-				filters[dataKey] = filterValidate(dataKey, '')
-			}
-			dispatch(setCommentsFilters(filters))
-		}
-	}, [])
-
-	useEffect(() => {
 		if (ballotId) {
 			if (ballotId !== props.ballotId) {
 				// Routed here with parameter ballotId specified, but not matching stored ballotId
@@ -529,16 +504,6 @@ function Comments(props) {
 		// Redirect to page with selected ballot
 		history.push(`/Comments/${ballotId}`)
 		dispatch(getComments(ballotId))
-	}
-
-	function setSort(dataKey, event) {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection)
-		dispatch(setCommentsSort(sortBy, sortDirection))
-	}
-
-	function setFilter(dataKey, value) {
-		var filter = filterValidate(dataKey, value)
-		dispatch(setCommentsFilters({[dataKey]: filter}))
 	}
 
 	function editComment({event, index, rowData}) {
@@ -607,8 +572,8 @@ function Comments(props) {
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
-				setSort={setSort}
-				setFilter={setFilter}
+				setSort={(dataKey, event) => props.dispatch(setCommentsSort(event, dataKey))}
+				setFilter={(dataKey, value) => props.dispatch(setCommentsFilter(dataKey, value))}
 				showSelected={() => setShowSelected(true)}
 				setSelected={(cids) => props.dispatch(setCommentsSelected(cids))}
 				selected={props.selected}

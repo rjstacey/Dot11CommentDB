@@ -2,7 +2,7 @@ import {updateBallotSuccess} from './ballots'
 import {setError} from './error'
 import fetcher from '../lib/fetcher'
 
-export const SET_COMMENTS_FILTERS = 'SET_COMMENTS_FILTERS'
+export const SET_COMMENTS_FILTER = 'SET_COMMENTS_FILTER'
 export const SET_COMMENTS_SORT = 'SET_COMMENTS_SORT'
 export const SET_COMMENTS_SELECTED = 'SET_COMMENTS_SELECTED'
 export const SET_COMMENTS_EXPANDED = 'SET_COMMENTS_EXPANDED'
@@ -34,8 +34,8 @@ export const DELETE_RESOLUTIONS_SUCCESS = 'DELETE_RESOLUTIONS_SUCCESS'
 export const DELETE_RESOLUTIONS_FAILURE = 'DELETE_RESOLUTIONS_FAILURE'
 
 
-export const setCommentsFilters = (filters) => {return {type: SET_COMMENTS_FILTERS, filters}}
-export const setCommentsSort = (sortBy, sortDirection) => {return {type: SET_COMMENTS_SORT, sortBy, sortDirection}}
+export const setCommentsFilter = (dataKey, value) => {return {type: SET_COMMENTS_FILTER, dataKey, value}}
+export const setCommentsSort = (event, dataKey) => {return {type: SET_COMMENTS_SORT, event, dataKey}}
 export const setCommentsSelected = (selected) => {return {type: SET_COMMENTS_SELECTED, selected}}
 export const setCommentsExpanded = (expanded) => {return {type: SET_COMMENTS_EXPANDED, expanded}}
 

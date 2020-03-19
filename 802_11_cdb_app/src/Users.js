@@ -3,10 +3,9 @@ import React, {useState, useEffect, useRef} from 'react'
 import { connect } from 'react-redux'
 import AppTable from './AppTable'
 import AppModal from './AppModal'
-import {sortClick, filterValidate} from './filter'
 import {ActionButton} from './Icons'
 import ConfirmModal from './ConfirmModal'
-import {setUsersFilters, setUsersSort, setUsersSelected, getUsers, updateUser, addUser, deleteUsers, uploadUsers} from './actions/users'
+import {setUsersFilter, setUsersSort, setUsersSelected, getUsers, updateUser, addUser, deleteUsers, uploadUsers} from './actions/users'
 
 
 function AddUserModal(props) {
@@ -89,22 +88,18 @@ function Users(props) {
 	const columns = [
 		{dataKey: 'SAPIN',  label: 'SA PIN',
 			sortable: true,
-			filterable: true,
 			width: 100,
 			cellRenderer: renderEditable},
 		{dataKey: 'Name',   label: 'Name',
 			sortable: true,
-			filterable: true,
 			width: 300,
 			cellRenderer: renderEditable},
 		{dataKey: 'Email',  label: 'eMail Address',
 			sortable: true,
-			filterable: true,
 			width: 300,
 			cellRenderer: renderEditable},
 		{dataKey: 'Access', label: 'Access Level',
 			sortable: true,
-			filterable: true,
 			width: 100,
 			cellRenderer: renderAccess,
 			isLast: true}
@@ -140,15 +135,6 @@ function Users(props) {
 	}, [])
 
 	useEffect(() => {
-		if (Object.keys(props.filters).length === 0) {
-			var filters = {}
-			for (let col of columns) {
-				if (col.filterable) {
-					filters[col.dataKey] = filterValidate(col.dataKey, '')
-				}
-			}
-			props.dispatch(setUsersFilters(filters))
-		}
 		if (!props.usersValid) {
 			props.dispatch(getUsers())
 		}
@@ -223,16 +209,6 @@ function Users(props) {
 		)
 	}
 
-  	function setSort(dataKey, event) {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection)
-		props.dispatch(setUsersSort(sortBy, sortDirection))
-	}
-
-	function setFilter(dataKey, value) {
-		var filter = filterValidate(dataKey, value)
-		props.dispatch(setUsersFilters({[dataKey]: filter}))
-	}
-
 	return (
 		<div id='Users' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
@@ -252,9 +228,9 @@ function Users(props) {
 				loading={props.getUsers}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
-				setSort={setSort}
+				setSort={(dataKey, event) => props.dispatch(setUsersSort(event, dataKey))}
 				filters={props.filters}
-				setFilter={setFilter}
+				setFilter={(dataKey, value) => props.dispatch(setUsersFilter(dataKey, value))}
 				selected={props.selected}
 				setSelected={(ids) => props.dispatch(setUsersSelected(ids))}
 				data={props.users}
@@ -267,7 +243,7 @@ function Users(props) {
 				close={() => setShowAddUserModal(false)}
 				dispatch={props.dispatch}
 			/>
-			
+
 			<UploadUsersModal
 				isOpen={showUploadUsersModal}
 				close={() => setShowUploadUsersModal(false)}

@@ -1,6 +1,6 @@
-import {sortData, filterData} from '../filter'
+import {sortClick, sortData, filterValidate, filterData} from '../filter'
 import {
-	SET_RESULTS_FILTERS,
+	SET_RESULTS_FILTER,
 	SET_RESULTS_SORT,
 	GET_RESULTS,
 	GET_RESULTS_SUCCESS,
@@ -13,8 +13,12 @@ import {
 	IMPORT_RESULTS_FAILURE
 } from '../actions/results'
 
+const filterKeys = [
+	'SAPIN', 'Name', 'Affiliation', 'Email', 'Vote', 'CommentCount', 'Notes'
+]
+
 const defaultState = {
-  	filters: {},
+  	filters: filterKeys.reduce((obj, key) => ({...obj, [key]: filterValidate(key, '')}), {}),
 	sortBy: [],
 	sortDirection: {},
 	ballotId: '',
@@ -22,40 +26,41 @@ const defaultState = {
 	votingPoolSize: 0,
 	ballot: {},
 	getResults: false,
-	resultsDataValid: false,
-	resultsData: [],
-	resultsDataMap: [],
+	resultsValid: false,
+	results: [],
+	resultsMap: [],
 	resultsSummary: {},
-	importResults: false,
+	importResults: false
 }
 
-const results = (state = defaultState, action) => {
+function results(state = defaultState, action) {
 
 	switch (action.type) {
 		case SET_RESULTS_SORT:
+			const {sortBy, sortDirection} = sortClick(action.event, action.dataKey, state.sortBy, state.sortDirection)
 			return {
 				...state,
-				sortBy: action.sortBy,
-				sortDirection: action.sortDirection,
-				resultsDataMap: sortData(state.resultsDataMap, state.resultsData, action.sortBy, action.sortDirection)
+				sortBy,
+				sortDirection,
+				resultsMap: sortData(state.resultsMap, state.results, sortBy, sortDirection)
 			}
-		case SET_RESULTS_FILTERS:
+		case SET_RESULTS_FILTER:
 			const filters = {
 				...state.filters,
-				...action.filters
+				[action.dataKey]: filterValidate(action.dataKey, action.value)
 			}
 			return {
 				...state,
 				filters,
-				resultsDataMap: sortData(filterData(state.resultsData, filters), state.resultsData, state.sortBy, state.sortDirection)
+				resultsMap: sortData(filterData(state.results, filters), state.results, state.sortBy, state.sortDirection)
 			}
 		case GET_RESULTS:
 			return {
 				...state,
 				getResults: true,
 				ballotId: action.ballotId,
-				resultsData: [],
-				resultsDataMap: []
+				results: [],
+				resultsMap: []
 			}
 		case GET_RESULTS_SUCCESS:
 			return {
@@ -65,9 +70,9 @@ const results = (state = defaultState, action) => {
 				votingPoolId: action.votingPoolId,
 				votingPoolSize: action.votingPoolSize,
 				ballot: action.ballot,
-				resultsDataValid: true,
-				resultsData: action.results,
-				resultsDataMap: sortData(filterData(action.results, state.filters), action.results, state.sortBy, state.sortDirection),
+				resultsValid: true,
+				results: action.results,
+				resultsMap: sortData(filterData(action.results, state.filters), action.results, state.sortBy, state.sortDirection),
 				resultsSummary: action.summary
 			}
 		case GET_RESULTS_FAILURE:
@@ -77,9 +82,9 @@ const results = (state = defaultState, action) => {
 			return Object.assign({}, state, {
 				deleteResults: true,
 			}, (state.ballotId === action.ballotId)? {
-				resultsDataValid: false,
-				resultsData: [],
-				resultsDataMap: [],
+				resultsValid: false,
+				results: [],
+				resultsMap: [],
 				resultsSummary: {}
 			}: null)
 		case DELETE_RESULTS_SUCCESS:
@@ -95,9 +100,9 @@ const results = (state = defaultState, action) => {
 				importResults: false,
 				ballotId: action.ballotId,
 				votingPoolId: action.votingPoolId,
-				resultsDataValid: true,
-				resultsData: action.results,
-				resultsDataMap: sortData(filterData(action.results, state.filters), action.results, state.sortBy, state.sortDirection),
+				resultsValid: true,
+				results: action.results,
+				resultsMap: sortData(filterData(action.results, state.filters), action.results, state.sortBy, state.sortDirection),
 				resultsSummary: action.summary
 			}
 		case IMPORT_RESULTS_FAILURE:

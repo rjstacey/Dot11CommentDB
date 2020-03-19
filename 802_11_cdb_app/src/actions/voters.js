@@ -1,7 +1,7 @@
 import {setError} from './error'
 import fetcher from '../lib/fetcher'
 
-export const SET_VOTING_POOLS_FILTERS = 'SET_VOTING_POOLS_FILTERS'
+export const SET_VOTING_POOLS_FILTER = 'SET_VOTING_POOLS_FILTER'
 export const SET_VOTING_POOLS_SORT = 'SET_VOTING_POOLS_SORT'
 export const SET_VOTING_POOLS_SELECTED = 'SET_VOTING_POOLS_SELECTED'
 export const GET_VOTING_POOLS = 'GET_VOTING_POOLS'
@@ -12,8 +12,8 @@ export const DELETE_VOTING_POOLS_SUCCESS = 'DELETE_VOTING_POOLS_SUCCESS'
 export const DELETE_VOTING_POOLS_FAILURE = 'DELETE_VOTING_POOLS_FAILURE'
 
 
-export const setVotingPoolsFilters = (filters) => {return {type: SET_VOTING_POOLS_FILTERS, filters}}
-export const setVotingPoolsSort = (sortBy, sortDirection) => {return {type: SET_VOTING_POOLS_SORT, sortBy, sortDirection}}
+export const setVotingPoolsFilter = (dataKey, value) => {return {type: SET_VOTING_POOLS_FILTER, dataKey, value}}
+export const setVotingPoolsSort = (event, dataKey) => {return {type: SET_VOTING_POOLS_SORT, event, dataKey}}
 export const setVotingPoolsSelected = (selected) => {return {type: SET_VOTING_POOLS_SELECTED, selected}}
 
 const getVotingPoolsLocal = () => {return {type: GET_VOTING_POOLS}}
@@ -57,7 +57,7 @@ export function deleteVotingPools(votingPools) {
 	}
 }
 
-export const SET_VOTERS_FILTERS = 'SET_VOTERS_FILTERS'
+export const SET_VOTERS_FILTER = 'SET_VOTERS_FILTER'
 export const SET_VOTERS_SORT = 'SET_VOTERS_SORT'
 export const SET_VOTERS_SELECTED = 'SET_VOTERS_SELECTED'
 export const GET_VOTERS = 'GET_VOTERS'
@@ -76,8 +76,8 @@ export const UPDATE_VOTER = 'UPDATE_VOTER'
 export const UPDATE_VOTER_SUCCESS = 'UPDATE_VOTER_SUCCESS'
 export const UPDATE_VOTER_FAILURE = 'UPDATE_VOTER_FAILURE'
 
-export const setVotersFilters = (filters) => {return {type: SET_VOTERS_FILTERS, filters}}
-export const setVotersSort = (sortBy, sortDirection) => {return {type: SET_VOTERS_SORT, sortBy, sortDirection}}
+export const setVotersFilter = (dataKey, value) => {return {type: SET_VOTERS_FILTER, dataKey, value}}
+export const setVotersSort = (event, dataKey) => {return {type: SET_VOTERS_SORT, event, dataKey}}
 export const setVotersSelected = (selected) => {return {type: SET_VOTERS_SELECTED, selected}}
 
 const getVotersLocal = (votingPoolType, votingPoolId) => {return {type: GET_VOTERS, votingPoolType, votingPoolId}}

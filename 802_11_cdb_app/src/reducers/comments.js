@@ -1,6 +1,6 @@
-import {sortData, filterData} from '../filter'
+import {sortClick, sortData, filterValidate, filterData} from '../filter'
 import {
-	SET_COMMENTS_FILTERS,
+	SET_COMMENTS_FILTER,
 	SET_COMMENTS_SORT,
 	SET_COMMENTS_SELECTED,
 	SET_COMMENTS_EXPANDED,
@@ -30,9 +30,15 @@ import {
 	UPLOAD_COMMENTS_FAILURE
 } from '../actions/comments'
 
+const filterKeys = [
+	'CID', 'CommenterName', 'Vote', 'MustSatisfy', 'Category', 'Clause', 'Page',
+	'Comment', 'ProposedChange', 'CommentGroup', 'AssigneeName', 'Submission',
+	'Resolution'
+]
+
 const defaultState = {
 	ballotId: '',
-	filters: {},
+	filters: filterKeys.reduce((obj, key) => ({...obj, [key]: filterValidate(key, '')}), {}),
 	sortBy: [],
 	sortDirection: {},
 	selected: [],
@@ -81,14 +87,18 @@ function comments(state = defaultState, action) {
 
 	switch (action.type) {
 		case SET_COMMENTS_SORT:
+			const {sortBy, sortDirection} = sortClick(action.event, action.dataKey, state.sortBy, state.sortDirection)
 			return {
 				...state,
-				sortBy: action.sortBy,
-				sortDirection: action.sortDirection,
-				commentsMap: sortData(state.commentsMap, state.comments, action.sortBy, action.sortDirection)
+				sortBy,
+				sortDirection,
+				commentsMap: sortData(state.commentsMap, state.comments, sortBy, sortDirection)
 			}
-		case SET_COMMENTS_FILTERS:
-			const filters = {...state.filters, ...action.filters}
+		case SET_COMMENTS_FILTER:
+			const filters = {
+				...state.filters,
+				[action.dataKey]: filterValidate(action.dataKey, action.value)
+			}
 			return {
 				...state,
 				filters,

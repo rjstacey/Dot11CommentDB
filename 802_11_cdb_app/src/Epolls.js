@@ -2,39 +2,30 @@ import React, {useState, useRef, useEffect} from 'react'
 import {connect} from 'react-redux'
 import {useHistory} from 'react-router-dom'
 import AppTable from './AppTable'
-import {sortClick, filterValidate} from './filter'
 import {ActionButton} from './Icons'
-import {setEpollsSort, setEpollsFilters, getEpolls} from './actions/epolls'
+import {setEpollsSort, setEpollsFilter, getEpolls} from './actions/epolls'
 
 function Epolls(props) {
 
 	const columns = [
 		{dataKey: 'EpollNum',  width: 100, label: 'ePoll',
-			sortable: true,
-			filterable: true},
+			sortable: true},
 		{dataKey: 'BallotID',  width: 200, label: 'ePoll Name',
-			sortable: true,
-			filterable: true},
+			sortable: true},
 		{dataKey: 'Document',  width: 200, label: 'Document',
-			sortable: true,
-			filterable: true},
+			sortable: true},
 		{dataKey: 'Topic',     width: 500, label: 'Topic',
-			sortable: true,
-			filterable: true},
+			sortable: true},
 		{dataKey: 'Start',     width: 100, label: 'Start',
 			sortable: true,
-			filterable: true,
 			cellRenderer: renderDate},
 		{dataKey: 'End',       width: 100, label: 'End',
 			sortable: true,
-			filterable: true,
 			cellRenderer: renderDate},
 		{dataKey: 'Votes',     width: 100, label: 'Result',
-			sortable: true,
-			filterable: true},
+			sortable: true},
 		{dataKey: '', label: '',
 			sortable: false,
-			filterable: false,
 			width: 200,
 			cellRenderer: renderActions,
 			isLast: true}
@@ -73,15 +64,6 @@ function Epolls(props) {
 	}, [])
 
 	useEffect(() => {
-		if (Object.keys(props.filters).length === 0) {
-			var filters = {};
-			for (let col of columns) {
-				if (col.filterable) {
-					filters[col.dataKey] = filterValidate(col.dataKey, '')
-				}
-			}
-			props.dispatch(setEpollsFilters(filters));
-		}
 		if (!props.epollsValid) {
 			props.dispatch(getEpolls(numberEpolls.current))
 		}
@@ -103,16 +85,6 @@ function Epolls(props) {
 	function getMore() {
 		numberEpolls.current += 10;
 		props.dispatch(getEpolls(numberEpolls.current))
-	}
-
-	function setSort(dataKey, event) {
-		const {sortBy, sortDirection} = sortClick(event, dataKey, props.sortBy, props.sortDirection)
-		props.dispatch(setEpollsSort(sortBy, sortDirection))
-	}
-
-	function setFilter(dataKey, value) {
-		var filter = filterValidate(dataKey, value)
-		props.dispatch(setEpollsFilters({[dataKey]: filter}))
 	}
 
 	function renderActions({rowData}) {
@@ -155,8 +127,8 @@ function Epolls(props) {
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
-				setSort={setSort}
-				setFilter={setFilter}
+				setSort={(dataKey, event) => props.dispatch(setEpollsSort(event, dataKey))}
+				setFilter={(dataKey, value) => props.dispatch(setEpollsFilter(dataKey, value))}
 				expanded={true}
 				data={props.epolls}
 				dataMap={props.epollsMap}
