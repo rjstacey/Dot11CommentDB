@@ -1,67 +1,34 @@
-import React, {useState, useRef, useEffect} from 'react'
+import React, {useRef, useEffect} from 'react'
 import {connect} from 'react-redux'
 import {useHistory} from 'react-router-dom'
-import AppTable from './AppTable'
+import AppTable, {renderDate} from './AppTable'
 import {ActionButton} from './Icons'
 import {setEpollsSort, setEpollsFilter, getEpolls} from './actions/epolls'
 
+
 function Epolls(props) {
+	const history = useHistory()
 
 	const columns = [
-		{dataKey: 'EpollNum',  width: 100, label: 'ePoll',
-			sortable: true},
-		{dataKey: 'BallotID',  width: 200, label: 'ePoll Name',
-			sortable: true},
-		{dataKey: 'Document',  width: 200, label: 'Document',
-			sortable: true},
-		{dataKey: 'Topic',     width: 500, label: 'Topic',
-			sortable: true},
-		{dataKey: 'Start',     width: 100, label: 'Start',
-			sortable: true,
+		{dataKey: 'EpollNum',	label: 'ePoll',			width: 100,	sortable: true},
+		{dataKey: 'BallotID',	label: 'ePoll Name',	width: 200,	sortable: true},
+		{dataKey: 'Document',	label: 'Document',		width: 200,	sortable: true},
+		{dataKey: 'Topic',		label: 'Topic',			width: 500,	sortable: true},
+		{dataKey: 'Start',		label: 'Start',			width: 100,	sortable: true,
 			cellRenderer: renderDate},
-		{dataKey: 'End',       width: 100, label: 'End',
-			sortable: true,
+		{dataKey: 'End',		label: 'End',			width: 100,	sortable: true,
 			cellRenderer: renderDate},
-		{dataKey: 'Votes',     width: 100, label: 'Result',
-			sortable: true},
-		{dataKey: '', label: '',
-			sortable: false,
-			width: 200,
+		{dataKey: 'Votes',		label: 'Result',		width: 100,	sortable: true},
+		{dataKey: '',			label: '',				width: 200,	sortable: false,
 			cellRenderer: renderActions,
 			isLast: true}
 	]
+	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
+	const width = Math.min(window.innerWidth - 1, maxWidth)
 
 	const primaryDataKey = columns[0].dataKey
 
-	const history = useHistory()
-
 	const numberEpolls = useRef(20)
-
-	const [tableSize, setTableSize] = useState({
-		height: 400,
-		width: 300,
-	});
-
-	function updateTableSize() {
-		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
-		const headerEl = document.getElementsByTagName('header')[0];
-		const topRowEl = document.getElementById('top-row')
-
-		const height = window.innerHeight - headerEl.offsetHeight - topRowEl.offsetHeight - 5;
-		const width = window.innerWidth - 1;
-
-		if (height !== tableSize.height || width !== tableSize.width) {
-			setTableSize({height, width: Math.min(width, maxWidth)});
-		}
-	}
-
-	useEffect(() => {
-		updateTableSize();
-		window.addEventListener("resize", updateTableSize);
-		return () => {
-			window.removeEventListener("resize", updateTableSize);
-		}
-	}, [])
 
 	useEffect(() => {
 		if (!props.epollsValid) {
@@ -69,8 +36,15 @@ function Epolls(props) {
 		}
 	}, [])
 
+	function getTableSize() {
+		const headerEl = document.getElementsByTagName('header')[0]
+		const topRowEl = document.getElementById('top-row')
+		const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight
+		const height = window.innerHeight - headerHeight - 1
+		return {height, width}
+	}
+
 	function importClick(rowData) {
-		console.log(rowData)
 		history.push(`/ImportEpoll/${rowData.EpollNum}`)
 	}
 
@@ -98,18 +72,10 @@ function Epolls(props) {
 			)
 		}
 	}
-
-	function renderDate({rowData, dataKey}) {
-		// rowData[dataKey] is an ISO time string. We convert this to eastern time
-		// and display only the date (not time).
-		var d = new Date(rowData[dataKey])
-		var str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
-		return str
-	}
-
+	
 	return (
 		<div id='Epolls' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width, justifyContent: 'space-between'}}>
 				<span><label>Closed ePolls</label></span>
 				<span>
 					<ActionButton name='more' title='Load More' onClick={getMore} />
@@ -120,10 +86,8 @@ function Epolls(props) {
 			<AppTable
 				columns={columns}
 				rowHeight={54}
-				height={tableSize.height}
-				width={tableSize.width}
+				getTableSize={getTableSize}
 				loading={props.getEpolls}
-				//editRow={editRow}
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
@@ -139,16 +103,16 @@ function Epolls(props) {
 }
 
 function mapStateToProps(state) {
-	const {epolls} = state
+	const s = state.epolls
 
 	return {
-		filters: epolls.filters,
-		sortBy: epolls.sortBy,
-		sortDirection: epolls.sortDirection,
-		epollsValid: epolls.epollsValid,
-		epolls: epolls.epolls,
-		epollsMap: epolls.epollsMap,
-		getEpolls: epolls.getEpolls,
+		filters: s.filters,
+		sortBy: s.sortBy,
+		sortDirection: s.sortDirection,
+		epollsValid: s.epollsValid,
+		epolls: s.epolls,
+		epollsMap: s.epollsMap,
+		getEpolls: s.getEpolls
 	}
 }
 export default connect(mapStateToProps)(Epolls)

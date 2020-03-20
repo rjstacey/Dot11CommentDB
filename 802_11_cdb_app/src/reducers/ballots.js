@@ -150,7 +150,7 @@ const ballots = (state = defaultState, action) => {
 			project = getProjectForBallotId(action.ballots, state.ballotId)
 			return {
 				...state,
-				ballotsDataValid: true,
+				ballotsValid: true,
 				getBallots: false,
 				ballots: action.ballots,
 				ballotsMap: sortData(filterData(action.ballots, state.filters), action.ballots, state.sortBy, state.sortDirection),

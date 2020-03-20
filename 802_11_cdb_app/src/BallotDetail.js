@@ -1,19 +1,19 @@
-import PropTypes from 'prop-types';
-import React, {useState, useEffect, useRef} from 'react';
-import {connect} from 'react-redux';
+import PropTypes from 'prop-types'
+import React, {useState, useEffect, useRef} from 'react'
+import {connect} from 'react-redux'
 import {useHistory, useParams} from 'react-router-dom'
-import moment from 'moment-timezone';
-import ConfirmModal from './ConfirmModal';
-import {ActionButton} from './Icons';
-import {updateBallot, addBallot, getBallots} from './actions/ballots';
-import {getVotingPools} from './actions/voters';
-import {importResults, uploadResults, deleteResults} from './actions/results';
-import {importComments, uploadComments, deleteComments} from './actions/comments';
-import styles from './BallotDetail.css';
+import moment from 'moment-timezone'
+import ConfirmModal from './ConfirmModal'
+import {ActionButton} from './Icons'
+import {updateBallot, addBallot, getBallots} from './actions/ballots'
+import {getVotingPools} from './actions/voters'
+import {importResults, uploadResults, deleteResults} from './actions/results'
+import {importComments, uploadComments, deleteComments} from './actions/comments'
+import styles from './BallotDetail.css'
 
 function defaultBallot() {
-	const now = new Date();
-	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const now = new Date()
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 	return {
 		Project: '',
 		BallotID: '',
@@ -48,9 +48,9 @@ function shortDateToDate(shortDateStr) {
 }
 
 function renderResultsSummary(results) {
-	var resultsStr = '';
+	var resultsStr = ''
 	if (results && results.TotalReturns) {
-		let p = parseFloat(100*results.Approve/(results.Approve+results.Disapprove));
+		let p = parseFloat(100*results.Approve/(results.Approve+results.Disapprove))
 		resultsStr = `${results.Approve}/${results.Disapprove}/${results.Abstain}`
 		if (!isNaN(p)) {
 			resultsStr += ` (${p.toFixed(1)}%)`

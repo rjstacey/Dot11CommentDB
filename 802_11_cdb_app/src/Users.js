@@ -109,30 +109,18 @@ function Users(props) {
 	const [showAddUserModal, setShowAddUserModal] = useState(false)
 	const [showUploadUsersModal, setShowUploadUsersModal] = useState(false)
 
-	const [tableSize, setTableSize] = useState({
-		height: 400,
-		width: 300,
-	})
-
-	function updateTableSize() {
+	function getTableSize() {
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
+
 		const headerEl = document.getElementsByTagName('header')[0]
 
-		const height = window.innerHeight - headerEl.offsetHeight - 5
+		const height = window.innerHeight -  headerEl.offsetHeight - 1
 		const width = window.innerWidth - 1
 
-		if (height !== tableSize.height || width !== tableSize.width) {
-			setTableSize({height, width: Math.min(width, maxWidth)})
-		}
+		return {height, width: Math.min(width, maxWidth)}
 	}
-	
-	useEffect(() => {
-		updateTableSize()
-		window.addEventListener("resize", updateTableSize)
-		return () => {
-			window.removeEventListener("resize", updateTableSize)
-		}
-	}, [])
+
+	const {width} = getTableSize()
 
 	useEffect(() => {
 		if (!props.usersValid) {
@@ -211,7 +199,7 @@ function Users(props) {
 
 	return (
 		<div id='Users' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: width, justifyContent: 'space-between'}}>
 				<span><label>Users</label></span>
 				<span>
 					<ActionButton name='add' title='Add User' onClick={() => setShowAddUserModal(true)} />
@@ -223,8 +211,7 @@ function Users(props) {
 			<AppTable
 				columns={columns}
 				rowHeight={22}
-				height={tableSize.height}
-				width={tableSize.width}
+				getTableSize={getTableSize}
 				loading={props.getUsers}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}

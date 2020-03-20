@@ -1,29 +1,26 @@
-import React, {useEffect} from 'react';
-import {connect} from 'react-redux';
-import {getBallots, setProject, setBallotId} from './actions/ballots';
-
+import React, {useEffect} from 'react'
+import {connect} from 'react-redux'
+import {getBallots, setProject, setBallotId} from './actions/ballots'
 
 function BallotSelector(props) {
-	const {project, projectList, ballotId, ballotList, readOnly, onBallotSelected} = props;
+	const {project, projectList, ballotId, ballotList, readOnly, onBallotSelected} = props
 
 	useEffect(() => {
-		if (!props.ballotsDataValid) {
+		if (!props.ballotsValid) {
 			props.dispatch(getBallots())
 		}
 	}, [])
 
 	function handleProjectChange(e) {
-		console.log('project change')
-		const project = e.target.value;
+		const project = e.target.value
 		if (project !== props.project) {
 			props.dispatch(setProject(project))
 		}
 	}
 
 	function handleBallotChange(e) {
-		console.log('ballot change')
-		var ballotId = e.target.value;
-		props.dispatch(setBallotId(ballotId));
+		var ballotId = e.target.value
+		props.dispatch(setBallotId(ballotId))
 		if (onBallotSelected) {
 			onBallotSelected(ballotId)
 		}
@@ -81,14 +78,14 @@ function BallotSelector(props) {
 }
 
 function mapStateToProps(state) {
-	const {ballots} = state;
+	const s = state.ballots
 	return {
-		project: ballots.project,
-		ballotId: ballots.ballotId,
-		projectList: ballots.projectList,
-		ballotList: ballots.ballotList,
-		ballotsDataValid: ballots.ballotsDataValid,
-		ballotsData: ballots.ballotsData,
+		project: s.project,
+		ballotId: s.ballotId,
+		projectList: s.projectList,
+		ballotList: s.ballotList,
+		ballotsValid: s.ballotsValid,
+		ballots: s.ballots
 	}
 }
-export default connect(mapStateToProps)(BallotSelector);
+export default connect(mapStateToProps)(BallotSelector)

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import React, {useState, useEffect, useLayoutEffect} from 'react'
+import React, {useState, useEffect} from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import AppTable from './AppTable'
 import AppModal from './AppModal'
@@ -222,71 +222,45 @@ ResultsSummary.propTypes = {
 }
 
 const allColumns = [
-	{dataKey: 'SAPIN',		label: 'SA PIN',
-		sortable: true,
-		width: 75},
-	{dataKey: 'Name',		label: 'Name',
-		sortable: true,
-		width: 200},
-	{dataKey: 'Affiliation', label: 'Affiliation',
-		sortable: true,
-		width: 200},
-	{dataKey: 'Email',		label: 'Email',
-		sortable: true,
-		width: 250},
-	{dataKey: 'Vote',		label: 'Vote',
-		sortable: true,
-		width: 210},
-	{dataKey: 'CommentCount', label: 'Comments',
-		sortable: true,
-		width: 110},
-	{dataKey: 'Notes',		label: 'Notes',
-		sortable: true,
-		width: 250, flexShrink: 1, flexGrow: 1,
+	{dataKey: 'SAPIN',		 label: 'SA PIN',		width: 75,	sortable: true},
+	{dataKey: 'Name',		 label: 'Name',			width: 200,	sortable: true},
+	{dataKey: 'Affiliation', label: 'Affiliation',	width: 200,	sortable: true},
+	{dataKey: 'Email',		 label: 'Email',		width: 250,	sortable: true},
+	{dataKey: 'Vote',		 label: 'Vote',			width: 210,	sortable: true},
+	{dataKey: 'CommentCount',label: 'Comments',		width: 110,	sortable: true},
+	{dataKey: 'Notes',		 label: 'Notes',		width: 250,	sortable: true,
+		flexShrink: 1, flexGrow: 1,
 		isLast: true}
 ]
 
+function getTableSize() {
+	const headerEl = document.getElementsByTagName('header')[0]
+	const topRowEl = document.getElementById('top-row')
+	const resultsEl = document.getElementById('results-summary')
+	const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight + resultsEl.offsetHeight
+
+	const height = window.innerHeight - headerHeight - 5
+	const width = window.innerWidth - 1
+
+	return {height, width}
+}
+
 function Results(props) {
-	const {ballotId} = useParams();
-	const history = useHistory();
+	const {ballotId} = useParams()
+	const history = useHistory()
 
-	const [showSummary, setShowSummary] = useState(true);
-	const [showExportModal, setShowExportModal] = useState(false);
+	const [showSummary, setShowSummary] = useState(true)
+	const [showExportModal, setShowExportModal] = useState(false)
 
-	const [tableSize, setTableSize] = useState({
-		height: 400,
-		width: 400,
-	})
-
-	let columns
+	let columns, primaryDataKey
 	if (props.ballot.Type === 3 || props.ballot.Type === 4) {
 		columns = allColumns.slice(1, allColumns.length)
+		primaryDataKey = 'Email'
 	}
 	else {
 		columns = allColumns
+		primaryDataKey = 'SAPIN'
 	}
-
-	function updateTableSize() {
-		const headerEl = document.getElementsByTagName('header')[0];
-		const topRowEl = document.getElementById('top-row');
-		const resultsEl = document.getElementById('results-summary');
-		const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight + resultsEl.offsetHeight;
-
-		const height = window.innerHeight - headerHeight - 5;
-		const width = window.innerWidth - 1;
-
-		if (height !== tableSize.height || width !== tableSize.width) {
-			setTableSize({height, width});
-		}
-	}
-	useLayoutEffect(() => {updateTableSize()}, [showSummary])
-
-	useEffect(() => {
-		window.addEventListener("resize", updateTableSize);
-		return () => {
-			window.removeEventListener("resize", updateTableSize);
-		}
-	}, [])
 
 	useEffect(() => {
 		if (ballotId) {
@@ -317,7 +291,7 @@ function Results(props) {
 
 	return (
 		<div id='Results'>
-			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between', position: 'relative'}}>
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', position: 'relative'}}>
 				<span>
 					<BallotSelector
 						onBallotSelected={ballotSelected}
@@ -340,16 +314,15 @@ function Results(props) {
 			<AppTable
 				columns={columns}
 				rowHeight={18}
-				height={tableSize.height}
-				width={tableSize.width}
+				getTableSize={getTableSize}
+				tableSizeDependencies={[showSummary]}
 				loading={props.getResults}
-				//editRow={editRow}
 				filters={props.filters}
 				sortBy={props.sortBy}
 				sortDirection={props.sortDirection}
 				setSort={(dataKey, event) => props.dispatch(setResultsSort(event, dataKey))}
 				setFilter={(dataKey, value) => props.dispatch(setResultsFilter(dataKey, value))}
-				primaryDataKey={'SAPIN'}
+				primaryDataKey={primaryDataKey}
 				data={props.results}
 				dataMap={props.resultsMap}
 			/>

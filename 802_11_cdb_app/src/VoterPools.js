@@ -106,47 +106,24 @@ ImportVotersModal.propTypes = {
 }
 
 const columns = [
-	{dataKey: 'PoolType',		label: 'Type',
-		sortable: true,
-		width: 80},
-	{dataKey: 'VotingPoolID',	label: 'Name',
-		sortable: true,
-		width: 200},
-	{dataKey: 'VoterCount',		label: 'Voters',
-		sortable: true,
-		width: 100,
+	{dataKey: 'PoolType',		label: 'Type',		width: 80,	sortable: true},
+	{dataKey: 'VotingPoolID',	label: 'Name',		width: 200,	sortable: true},
+	{dataKey: 'VoterCount',		label: 'Voters',	width: 100,	sortable: true,
 		isLast: true}
 ]
 
 function VoterPools(props) {
 	const history = useHistory()
 	const [showAddVotingPool, setShowAddVotingPool] = useState(false)
+	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
+	const width = Math.min(window.innerWidth - 1, maxWidth)
 
-	const [tableSize, setTableSize] = useState({
-		height: 400,
-		width: 300,
-	});
-
-	function updateTableSize() {
-		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
+	function getTableSize() {
 		const headerEl = document.getElementsByTagName('header')[0]
 		const topRowEl = document.getElementById('top-row')
-
 		const height = window.innerHeight - headerEl.offsetHeight - topRowEl.offsetHeight - 5
-		const width = window.innerWidth - 1
-
-		if (height !== tableSize.height || width !== tableSize.width) {
-			setTableSize({height, width: Math.min(width, maxWidth)})
-		}
+		return {height, width}
 	}
-
-	useEffect(() => {
-		updateTableSize();
-		window.addEventListener("resize", updateTableSize)
-		return () => {
-			window.removeEventListener("resize", updateTableSize)
-		}
-	}, [])
 
 	useEffect(() => {
 		if (!props.votingPoolsValid) {
@@ -183,7 +160,7 @@ function VoterPools(props) {
 
 	return (
 		<div id='VoterPools' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width, justifyContent: 'space-between'}}>
 				<span><label>Voting Pools</label></span>
 				<span>
 					<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowAddVotingPool(true)} />
@@ -194,8 +171,7 @@ function VoterPools(props) {
 			<AppTable
 				columns={columns}
 				rowHeight={22}
-				height={tableSize.height}
-				width={tableSize.width}
+				getTableSize={getTableSize}
 				loading={props.getVotingPools}
 				editRow={showVoters}
 				filters={props.filters}

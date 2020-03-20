@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import React, {useState, useMemo} from 'react'
+import React, {useState, useMemo, useEffect, useLayoutEffect} from 'react'
 import update from 'immutability-helper'
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized'
 import Draggable from 'react-draggable'
@@ -58,8 +58,44 @@ export function renderLabel({dataKey, label, sortable, sortBy, sortDirection, se
 	)
 }
 
+export function renderDate({rowData, dataKey}) {
+	// rowData[dataKey] is an ISO time string. We convert this to eastern time
+	// and display only the date (not time).
+	var d = new Date(rowData[dataKey])
+	var str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
+	return str
+}
+
+function useTableSize(getTableSize, dependencies) {
+	const [tableSize, setTableSize] = useState({
+		height: 400,
+		width: 300,
+	})
+
+	function onResize() {
+		const {height, width} = getTableSize()
+		if (height !== tableSize.height || width !== tableSize.width) {
+			setTableSize({height, width})
+		}
+	}
+
+	useLayoutEffect(() => {
+		onResize()
+		window.addEventListener("resize", onResize)
+		return () => {
+			window.removeEventListener("resize", onResize)
+		}
+	}, [])
+
+	useEffect(onResize, dependencies)
+
+	return tableSize
+}
+
 function AppTable(props) {
 	let tableRef = null
+
+	const {height, width} = useTableSize(props.getTableSize, props.tableSizeDependencies || [])
 
 	const rowHeightCache = useMemo(() => new CellMeasurerCache({
 			defaultHeight: props.rowHeight,
@@ -277,8 +313,8 @@ function AppTable(props) {
 	return (
 		<Table
 			className={styles.Table}
-			height={props.height}
-			width={props.width}
+			height={height}
+			width={width}
 			rowHeight={rowHeightCache.rowHeight}
 			headerHeight={props.headerHeight? props.headerHeight: 44}
 			noRowsRenderer={renderNoRows}
@@ -310,8 +346,9 @@ function AppTable(props) {
 
 AppTable.propTypes = {
 	columns: PropTypes.array.isRequired,
-	height: PropTypes.number.isRequired,
-	width: PropTypes.number.isRequired,
+	getTableSize: PropTypes.func.isRequired,
+	//height: PropTypes.number.isRequired,
+	//width: PropTypes.number.isRequired,
 	loading: PropTypes.bool.isRequired,
 	editRow: PropTypes.func,
 	filters: PropTypes.object.isRequired,

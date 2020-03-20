@@ -217,7 +217,7 @@ ExportModal.propTypes = {
 /*
  * The data cell rendering functions are pure functions (dependent only on input parameters)
  */
-function renderDataCellCheck({rowIndex, rowData, dataKey}) {
+function renderDataCellCheck({rowData, dataKey}) {
 	return rowData[dataKey]? '\u2714': ''
 }
 
@@ -332,94 +332,72 @@ function renderDataCellStacked2({rowData}) {
 }
 
 const flatColumns = [
-	{dataKey: 'CID', label: 'CID',
-		sortable: true,
-		filterable: true,
-		width: 60, flexGrow: 0, flexShrink: 0},
-	{dataKey: 'CommenterName', label: 'Commenter',
-		sortable: true,
-		filterable: true,
-		width: 100, flexGrow: 1, flexShrink: 1},
-	{dataKey: 'Vote', label: 'Vote',
-		sortable: true,
-		filterable: true,
-		width: 50, flexGrow: 1, flexShrink: 1},
-	{dataKey: 'MustSatisfy', label: 'MS',
-		sortable: true,
-		filterable: true,
-		width: 36, flexGrow: 0, flexShrink: 0,
+	{dataKey: 'CID',			label: 'CID',			width: 60,	sortable: true,
+		flexGrow: 0, flexShrink: 0},
+	{dataKey: 'CommenterName',	label: 'Commenter',		width: 100,	sortable: true,
+		flexGrow: 1, flexShrink: 1},
+	{dataKey: 'Vote',			label: 'Vote',			width: 50,	sortable: true,
+		flexGrow: 1, flexShrink: 1},
+	{dataKey: 'MustSatisfy',	label: 'MS',			width: 36,	sortable: true,
+		flexGrow: 0, flexShrink: 0,
 		cellRenderer: renderDataCellCheck},
-	{dataKey: 'Category', label: 'Cat',
-		sortable: true,
-		filterable: true,
-		width: 36, flexGrow: 0, flexShrink: 0},
-	{dataKey: 'Clause', label: 'Clause',
-		sortable: true,
-		filterable: true,
-		width: 100, flexGrow: 0, flexShrink: 0},
-	{dataKey: 'Page', label: 'Page',
-		sortable: true,
-		filterable: true,
-		width: 80, flexGrow: 0, flexShrink: 0},
-	{dataKey: 'Comment', label: 'Comment',
-		sortable: true,
-		filterable: true,
-		width: 400, flexGrow: 1, flexShrink: 1}, 
-	{dataKey: 'ProposedChange', label: 'Proposed Change',
-		sortable: true,
-		filterable: true,
-		width: 400, flexGrow: 1, flexShrink: 1},
-	{dataKey: 'CommentGroup', label: 'Comment Group',
-		sortable: true,
-		filterable: true,
-		width: 150, flexGrow: 1, flexShrink: 1},
-	{dataKey: 'AssigneeName', label: 'Assignee',
-		sortable: true,
-		filterable: true,
-		width: 150, flexGrow: 1, flexShrink: 1},
-	{dataKey: 'Submission', label: 'Submission',
-		sortable: true,
-		filterable: true,
-		width: 150, flexGrow: 1, flexShrink: 1},
-	{dataKey: 'Resolution', label: 'Resolution',
-		sortable: false,
-		filterable: false,
-		width: 400, flexGrow: 1, flexShrink: 1,
+	{dataKey: 'Category',		label: 'Cat',			width: 36,	sortable: true,
+		flexGrow: 0, flexShrink: 0},
+	{dataKey: 'Clause',			label: 'Clause',		width: 100,	sortable: true,
+		flexGrow: 0, flexShrink: 0},
+	{dataKey: 'Page',			label: 'Page',			width: 80,	sortable: true,
+		flexGrow: 0, flexShrink: 0},
+	{dataKey: 'Comment',		label: 'Comment',		width: 400,	sortable: true,
+		flexGrow: 1, flexShrink: 1}, 
+	{dataKey: 'ProposedChange',	label: 'Proposed Change',width: 400,sortable: true,
+		flexGrow: 1, flexShrink: 1},
+	{dataKey: 'CommentGroup',	label: 'Comment Group',	width: 150, sortable: true,
+		flexGrow: 1, flexShrink: 1},
+	{dataKey: 'AssigneeName',	label: 'Assignee',		width: 150, sortable: true,
+		flexGrow: 1, flexShrink: 1},
+	{dataKey: 'Submission',		label: 'Submission',	width: 150, sortable: true,
+		flexGrow: 1, flexShrink: 1},
+	{dataKey: 'Resolution',		label: 'Resolution',	width: 400, sortable: false,
+		flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderDataCellResolution},
-	{dataKey: 'Editing', label: 'Editing',
-		sortable: false,
-		width: 300, flexGrow: 1, flexShrink: 1,
+	{dataKey: 'Editing',		label: 'Editing',		width: 300, sortable: false,
+		flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderDataCellEditing,
 		isLast: true}
 ]
 
 const stackedColumns = [
-	{dataKey: 'Stack1', label: 'CID/Cat/MS/...',
-		sortable: false,
-		width: 200, flexGrow: 0, flexShrink: 0,
+	{dataKey: 'Stack1',			label: 'CID/Cat/MS/...',width: 200, sortable: false,
+		flexGrow: 0, flexShrink: 0,
 		headerRenderer: renderHeaderCellStacked1,
 		cellRenderer: renderDataCellStacked1},
-	{dataKey: 'Comment', label: 'Comment',
-		sortable: true,
-		width: 400, flexGrow: 1, flexShrink: 1}, 
-	{dataKey: 'ProposedChange', label: 'Proposed Change',
-		sortable: true,
-		width: 400, flexGrow: 1, flexShrink: 1},
-	{dataKey: 'Stack2', label: 'Comment Group/Assign...',
-		sortable: false,
-		width: 250, flexGrow: 1, flexShrink: 1,
+	{dataKey: 'Comment',		label: 'Comment',		width: 400, sortable: true,
+		flexGrow: 1, flexShrink: 1}, 
+	{dataKey: 'ProposedChange', label: 'Proposed Change',width: 400,sortable: true,
+		flexGrow: 1, flexShrink: 1},
+	{dataKey: 'Stack2', label: 'Comment Group/Assign...',width: 250,sortable: false,
+		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCellStacked2,
 		cellRenderer: renderDataCellStacked2},
-	{dataKey: 'Resolution', label: 'Resolution',
-		sortable: false,
-		width: 400, flexGrow: 1, flexShrink: 1,
+	{dataKey: 'Resolution',		label: 'Resolution',	width: 400, sortable: false,
+		flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderDataCellResolution},
-	{dataKey: 'Editing', label: 'Editing',
-		sortable: false,
-		width: 300, flexGrow: 1, flexShrink: 1,
+	{dataKey: 'Editing',		label: 'Editing',		width: 300, sortable: false,
+		flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderDataCellEditing,
 		isLast: true}
 ]
+
+function getTableSize() {
+	const headerEl = document.getElementsByTagName('header')[0]
+	const topRowEl = document.getElementById('top-row')
+	const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight
+
+	const height = window.innerHeight - headerHeight - 1
+	const width = window.innerWidth - 1
+
+	return {height, width}
+}
 
 function Comments(props) {
 	const history = useHistory()
@@ -437,40 +415,13 @@ function Comments(props) {
 	})
 	const [isStacked, setStacked] = useState(true)
 
-	const [tableSize, setTableSize] = useState({
-		height: 400,
-		width: 300,
-	})
-
 	const columns = (isStacked? stackedColumns: flatColumns).filter(c => !columnVisibility.hasOwnProperty(c.dataKey) || columnVisibility[c.dataKey])
-
-	function updateTableSize() {
-		const headerEl = document.getElementsByTagName('header')[0]
-		const topRowEl = document.getElementById('top-row')
-		const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight
-
-		const height = window.innerHeight - headerHeight - 5
-		const width = window.innerWidth - 1
-
-		if (height !== tableSize.height || width !== tableSize.width) {
-			setTableSize({height, width})
-		}
-	}
-
-	useEffect(() => {
-		updateTableSize()
-		window.addEventListener("resize", updateTableSize)
-		return () => {
-			window.removeEventListener("resize", updateTableSize)
-		}
-	}, [])
-
+	
 	useEffect(() => {
 		if (ballotId) {
 			if (ballotId !== props.ballotId) {
 				// Routed here with parameter ballotId specified, but not matching stored ballotId
-				// Store the ballotId and get results for this ballotId
-				console.log(ballotId, props.ballotId)
+				// Store the ballotId and get comments for this ballotId
 				dispatch(setBallotId(ballotId))
 				dispatch(getComments(ballotId))
 			}
@@ -506,9 +457,6 @@ function Comments(props) {
 	}
 
 	function editComment({event, index, rowData}) {
-		//const {CommentID, ResolutionCount} = rowData
-		//const cidStr = CommentID.toFixed(ResolutionCount > 1? 1: 0)
-		//history.push(props.location.pathname + '?CIDs=' + cidStr)
 		history.push(props.location.pathname + '?CIDs=' + rowData.CID)
 	}
 
@@ -537,7 +485,7 @@ function Comments(props) {
 
 	return (
 		<div id='Comments'>
-			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between'}}>
 				<span>
     				<BallotSelector onBallotSelected={ballotSelected} />
     			</span>
@@ -564,8 +512,7 @@ function Comments(props) {
 				headerHeight={isStacked? 116: 44}
 				columns={columns}
 				rowHeight={54}
-				height={tableSize.height}
-				width={tableSize.width}
+				getTableSize={getTableSize}
 				loading={props.getComments}
 				editRow={editComment}
 				filters={props.filters}

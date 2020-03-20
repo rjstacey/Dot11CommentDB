@@ -176,81 +176,39 @@ const defaultVoter = {
 }
 
 const wgColumns = [
-	{dataKey: 'SAPIN',		label: 'SA PIN',
-		sortable: true,
-		filterable: true,
-		width: 100},
-	{dataKey: 'LastName',	label: 'Last Name',
-		sortable: true,
-		filterable: true,
-		width: 150},
-	{dataKey: 'FirstName',	label: 'First Name',
-		sortable: true,
-		filterable: true,
-		width: 150},
-	{dataKey: 'MI',			label: 'MI',
-		sortable: true,
-		filterable: true,
-		width: 50},
-	{dataKey: 'Email',		label: 'Email',
-		sortable: true,
-		filterable: true,
-		width: 250},
-	{dataKey: 'Status',		label: 'Status',
-		sortable: true,
-		filterable: true,
-		width: 100}
+	{dataKey: 'SAPIN',		label: 'SA PIN',	width: 100,	sortable: true},
+	{dataKey: 'LastName',	label: 'Last Name',	width: 150,	sortable: true},
+	{dataKey: 'FirstName',	label: 'First Name',width: 150,	sortable: true},
+	{dataKey: 'MI',			label: 'MI',		width: 50,	sortable: true},
+	{dataKey: 'Email',		label: 'Email',		width: 250,	sortable: true},
+	{dataKey: 'Status',		label: 'Status',	width: 100,	sortable: true}
 ]
 
 const saColumns = [
-	{dataKey: 'Email',	label: 'Email',
-		sortable: true,
-		filterable: true,
-		width: 250},
-	{dataKey: 'Name',	label: 'Name',
-		sortable: true,
-		filterable: true,
-		width: 300}
+	{dataKey: 'Email',		label: 'Email',		width: 250,	sortable: true},
+	{dataKey: 'Name',		label: 'Name',		width: 300,	sortable: true}
 ]
-
 
 function Voters(props) {
 	let {votingPoolType, votingPoolName} = useParams()
 	const history = useHistory()
-
-	const columns = votingPoolType === 'SA'? saColumns: wgColumns
-	const primaryDataKey = columns[0].dataKey
-
 	const [addUpdateVoter, setAddUpdateVoter] = useState({
 		action: null,
 		voter: defaultVoter
 	})
 	const [showImportVoters, setShowImportVoters] = useState(false)
 
-	const [tableSize, setTableSize] = useState({
-		height: 400,
-		width: 300,
-	})
+	const columns = votingPoolType === 'SA'? saColumns: wgColumns
+	const primaryDataKey = columns[0].dataKey
 
-	function updateTableSize() {
-		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
-		const headerEl = document.getElementsByTagName('header')[0];
+	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
+	const width = Math.min(window.innerWidth - 1, maxWidth)
 
-		const height = window.innerHeight - headerEl.offsetHeight - 5;
-		const width = window.innerWidth - 1;
-
-		if (height !== tableSize.height || width !== tableSize.width) {
-			setTableSize({height, width: Math.min(width, maxWidth)});
-		}
+	function getTableSize() {
+		const headerEl = document.getElementsByTagName('header')[0]
+		const height = window.innerHeight - headerEl.offsetHeight - 5
+		return {height, width}
 	}
-
-	useEffect(() => {
-		updateTableSize()
-		window.addEventListener("resize", updateTableSize)
-		return () => {
-			window.removeEventListener("resize", updateTableSize)
-		}
-	}, [])
 
 	useEffect(() => {
 		if ((!props.votingPool.VotingPool || props.votingPool.VotingPool !== votingPoolName ||
@@ -302,7 +260,7 @@ function Voters(props) {
 
 	return (
 		<div id='Voters' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: tableSize.width, justifyContent: 'space-between'}}>
+			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width, justifyContent: 'space-between'}}>
 				<span><label>Voting Pool:&nbsp;</label>{votingPoolName}</span>
 				<span>
 					<ActionButton name='add' title='Add Voter' onClick={handleAddVoter} />
@@ -315,8 +273,7 @@ function Voters(props) {
 			<AppTable
 				columns={columns}
 				rowHeight={20}
-				height={tableSize.height}
-				width={tableSize.width}
+				getTableSize={getTableSize}
 				loading={props.getVoters}
 				filters={props.filters}
 				sortBy={props.sortBy}
