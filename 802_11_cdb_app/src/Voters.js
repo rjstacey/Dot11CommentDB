@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types';
-import React, {useState, useRef, useEffect} from 'react';
+import PropTypes from 'prop-types'
+import React, {useState, useRef, useEffect} from 'react'
 import {useHistory, useParams} from 'react-router-dom'
-import {connect} from 'react-redux';
-import ConfirmModal from './ConfirmModal';
+import {connect} from 'react-redux'
+import ConfirmModal from './ConfirmModal'
 import {setVotersFilter, setVotersSort, setVotersSelected, getVoters, deleteVoters, addVoter, updateVoter, uploadVoters} from './actions/voters'
 import {setError} from './actions/error'
-import {shallowDiff} from './filter'
-import AppTable from './AppTable';
-import AppModal from './AppModal';
-import {ActionButton} from './Icons';
+import {shallowDiff} from './lib/filter'
+import AppTable from './AppTable'
+import AppModal from './AppModal'
+import {ActionButton} from './Icons'
 
 
 function ImportVotersModal(props) {

@@ -9,8 +9,8 @@ import {updateBallot, addBallot, getBallots} from './actions/ballots'
 import {getVotingPools} from './actions/voters'
 import {importResults, uploadResults, deleteResults} from './actions/results'
 import {importComments, uploadComments, deleteComments} from './actions/comments'
-import {shallowDiff} from './filter'
-import styles from './BallotDetail.css'
+import {shallowDiff} from './lib/filter'
+import styles from './css/BallotDetail.css'
 
 function defaultBallot() {
 	const now = new Date()

@@ -1,7 +1,7 @@
-import React from 'react';
-import cx from 'classnames';
-import {library} from '@fortawesome/fontawesome-svg-core';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import React from 'react'
+import cx from 'classnames'
+import {library} from '@fortawesome/fontawesome-svg-core'
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 // import what we use
 import {
 	faUpload, faDownload,
@@ -17,9 +17,9 @@ import {
 	faColumns,
 	faSave,
 	faObjectGroup, faUserCheck, faEdit
-} from '@fortawesome/free-solid-svg-icons';
+} from '@fortawesome/free-solid-svg-icons'
 //import { faCode, faHighlighter } from '@fortawesome/free-regular-svg-icons';
-import styles from './Icons.css';
+import styles from './css/Icons.css'
 
 export function init() {
 	library.add(
@@ -36,7 +36,7 @@ export function init() {
 		faColumns,
 		faSave,
 		faObjectGroup, faUserCheck, faEdit
-	);
+	)
 }
 
 export function IconClose(props) { return <FontAwesomeIcon icon='window-close' {...props} /> }

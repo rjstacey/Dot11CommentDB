@@ -12,7 +12,7 @@ import {ResolutionEditor, BasicEditor} from './ResolutionEditor'
 import BallotSelector from './BallotSelector'
 import AssigneeSelector from './AssigneeSelector'
 import {ActionButton} from './Icons'
-import styles from './CommentDetail.css'
+import styles from './css/CommentDetail.css'
 
 function Resolution(props) {
 	const {resolution, setResolution} = props

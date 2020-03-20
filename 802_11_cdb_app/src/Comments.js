@@ -12,8 +12,8 @@ import {setCommentsSort, setCommentsFilter, setCommentsSelected, setCommentsExpa
 import {setBallotId} from './actions/ballots'
 import {setError} from './actions/error'
 import fetcher from './lib/fetcher'
-import styles from './Comments.css'
-import editorStyles from './ResolutionEditor.css'
+import styles from './css/Comments.css'
+import editorStyles from './css/ResolutionEditor.css'
 
 
 function SelectCommentsModal(props) {

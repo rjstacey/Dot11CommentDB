@@ -6,7 +6,7 @@ import Draggable from 'react-draggable'
 import cx from 'classnames'
 import {allSelected, toggleVisible} from './filter'
 import {IconSort} from './Icons'
-import styles from './AppTable.css'
+import styles from './css/AppTable.css'
 
 function renderPreservingNewlines(text) {
 	return typeof text === 'string'?

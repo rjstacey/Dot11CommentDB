@@ -1,0 +1,186 @@
+.root {
+	display: flex;
+	flex-direction: column;
+	margin: 0 5px;
+}
+
+.topRow {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	position: relative;
+}
+
+.row {
+	display: flex;
+	flex-direction: row;
+	padding: 10px 5px 0px 5px;
+}
+
+.column {
+	display: flex;
+	flex-direction: column;
+}
+
+.empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 200px;
+	font-size: 1em;
+	color: GrayText;
+}
+
+.Page {
+	display: inline-block;
+	width: 200px;
+}
+.CID div,
+.Page div {
+	display: inline-block;
+}
+.Commenter {
+	display: inline-block;
+	width: 500px;
+}
+.Clause {
+	display: inline-block;
+	width: 300px;
+}
+.Commenter div,
+.Clause div {
+	display: inline-block;
+}
+
+.MustSatisfy,
+.Category {
+	display: inline-block;
+}
+.MustSatisfy div,
+.Category div {
+	display: inline-block;
+}
+
+.Assignee {
+	width: 200px;
+	margin-left: 5px;
+}
+
+
+.root label {
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+.Comment,
+.ProposedChange {
+	width: 100%;
+}
+.Comment div,
+.ProposedChange div {
+	display: block;
+}
+
+.TopRow {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+}
+
+.CommentGroupInput,
+.SubmissionInput {
+	size: 60;
+}
+
+.Multiple {
+	color: GrayText;
+	font-style: italic;
+}
+
+.MotionNumber {
+	width: 40px;
+}
+
+.EditedInDraft {
+	width: 40px;
+}
+
+.Resolution,
+.EditingNotes,
+.History,
+.Notes {
+	/*width: 100%;*/
+	/*height: 200px;*/
+}
+
+.AddResolution {
+	padding: 5px;
+	color: GrayText;
+}
+
+
+.tabs {
+	position: relative;
+}
+
+.tabList {
+	border-bottom: 1px solid #aaa;
+	margin: 0;
+	padding: 0;
+}
+
+.tab {
+	display: inline-block;
+	border: 1px solid transparent;
+	border-bottom: none;
+	bottom: -1px;
+	position: relative;
+	list-style: none;
+	padding: 5px 5px;
+	cursor: pointer;
+}
+
+.tab_selected {
+	background: #fff;
+	border-color: #aaa;
+	color: black;
+	border-radius: 5px 5px 0 0;
+	font-weight: bold;
+}
+
+.tab_disabled {
+	color: GrayText;
+	cursor: default;
+	font-weight: normal;
+}
+
+/*
+.tab:focus {
+	box-shadow: 0 0 5px hsl(208, 99%, 50%);
+	border-color: hsl(208, 99%, 50%);
+	outline: none;
+}
+
+.tab:focus:after {
+	content: "";
+	position: absolute;
+	height: 5px;
+	left: -4px;
+	right: -4px;
+	bottom: -5px;
+	background: #fff;
+}
+*/
+
+.tabPanel {
+	display: none;
+	border: 1px solid #aaa;
+	border-top: none;
+	box-sizing: border-box;
+}
+
+.tabPanel_selected {
+	display: block;
+}
+

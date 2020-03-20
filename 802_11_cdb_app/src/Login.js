@@ -1,6 +1,6 @@
-import React, {useState, useEffect} from 'react';
-import {connect} from 'react-redux';
-import {loginGetState, login, logout} from './actions/login';
+import React, {useState, useEffect} from 'react'
+import {connect} from 'react-redux'
+import {loginGetState, login, logout} from './actions/login'
 
 function LoginForm(props) {
 	const [credentials, setCredentials] = useState({username: '', password: ''})

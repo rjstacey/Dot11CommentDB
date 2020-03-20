@@ -15,7 +15,7 @@ import Voters from './Voters'
 import ErrorModal from './ErrorModal'
 import ConfirmModal from './ConfirmModal'
 import {init as iconInit} from './Icons'
-import styles from './App.css'
+import styles from './css/App.css'
 
 function useQuery() {
 	return new URLSearchParams(useLocation().search)

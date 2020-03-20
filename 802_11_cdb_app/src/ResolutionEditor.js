@@ -8,7 +8,7 @@ import 'draft-js/dist/Draft.css'
 import {stateToHTML} from 'draft-js-export-html'
 import {stateFromHTML} from 'draft-js-import-html'
 import debounce from 'lodash/debounce'
-import styles from './ResolutionEditor.css'
+import styles from './css/ResolutionEditor.css'
 
 
 const BLOCK_TYPES = [
