@@ -2,22 +2,12 @@ import PropTypes from 'prop-types'
 import React, {useEffect} from 'react'
 import {Link, useHistory} from "react-router-dom"
 import {connect} from 'react-redux'
-import moment from'moment-timezone'
 import ConfirmModal from './ConfirmModal'
-import AppTable from './AppTable'
+import AppTable, {renderDate} from './AppTable'
 import {setBallotsFilter, setBallotsSort, setBallotsSelected, getBallots, deleteBallots} from './actions/ballots'
 import {getVotingPools} from './actions/voters'
 import {ActionButton} from './Icons'
 
-/* Convert an ISO date string to US eastern time
- * and display only the date in format "yyyy-mm-dd" */
-function dateToShortDate(isoDate) {
-	return moment(isoDate).tz('America/New_York').format('YYYY-MM-DD')
-}
-
-function renderDate({rowData, dataKey}) {
-	return dateToShortDate(rowData[dataKey])
-}
 
 function renderVotingPool({columnIndex, rowData}) {
 	const type = rowData.Type
@@ -30,7 +20,7 @@ function renderVotingPool({columnIndex, rowData}) {
 	return ''
 }
 
-function renderResultsSummary({rowIndex, rowData, dataKey}) {
+export function renderResultsSummary({rowData, dataKey}) {
 	var results = rowData[dataKey]
 	var resultsStr = ''
 	if (results && results.TotalReturns) {
@@ -46,7 +36,7 @@ function renderResultsSummary({rowIndex, rowData, dataKey}) {
 	return <Link to={`/Results/${rowData.BallotID}`}>{resultsStr}</Link>
 }
 
-function renderCommentsSummary({rowIndex, rowData, dataKey}) {
+export function renderCommentsSummary({rowData, dataKey}) {
 	const comments = rowData[dataKey]
 	let commentStr = 'None'
 	if (comments && comments.Count > 0) {

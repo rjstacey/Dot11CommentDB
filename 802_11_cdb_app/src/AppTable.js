@@ -61,8 +61,8 @@ export function renderLabel({dataKey, label, sortable, sortBy, sortDirection, se
 export function renderDate({rowData, dataKey}) {
 	// rowData[dataKey] is an ISO time string. We convert this to eastern time
 	// and display only the date (not time).
-	var d = new Date(rowData[dataKey])
-	var str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
+	const d = new Date(rowData[dataKey])
+	const str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
 	return str
 }
 

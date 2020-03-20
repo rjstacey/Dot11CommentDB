@@ -18,16 +18,13 @@ import {init as iconInit} from './Icons'
 import styles from './App.css'
 
 function useQuery() {
-	return new URLSearchParams(useLocation().search);
+	return new URLSearchParams(useLocation().search)
 }
 
 function CommentsRoute(props) {
-	const query = useQuery();
+	const query = useQuery()
 
-	if (query.get('CID')) {
-		return <CommentDetail {...props} />
-	}
-	else if (query.get('CIDs')) {
+	if (query.get('CIDs')) {
 		return <CommentDetail {...props} />
 	}
 	else {
@@ -36,7 +33,7 @@ function CommentsRoute(props) {
 }
 
 function App(props) {
-	const {access, dispatch} = props;
+	const {access, dispatch} = props
 
 	iconInit()
 
@@ -72,7 +69,6 @@ function App(props) {
 						<Route path="/Ballot/:ballotId?" component={BallotDetail} />
 						<Route path="/Results/:ballotId?" component={Results} />
 						<Route path="/Comments/:ballotId?" exact component={CommentsRoute} />
-						{/*<Route path="/Comments/:ballotId/:commentId(\d+)" component={CommentDetail} />*/}
 					</Switch>
 					<ErrorModal />
 					<ConfirmModal />
@@ -89,4 +85,4 @@ function mapStateToProps(state) {
 		loggedIn: login.LoggedIn
   	}
 }
-export default connect(mapStateToProps)(App);
+export default connect(mapStateToProps)(App)

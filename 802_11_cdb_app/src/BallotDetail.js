@@ -2,13 +2,14 @@ import PropTypes from 'prop-types'
 import React, {useState, useEffect, useRef} from 'react'
 import {connect} from 'react-redux'
 import {useHistory, useParams} from 'react-router-dom'
-import moment from 'moment-timezone'
 import ConfirmModal from './ConfirmModal'
 import {ActionButton} from './Icons'
+import {renderResultsSummary, renderCommentsSummary} from './Ballots'
 import {updateBallot, addBallot, getBallots} from './actions/ballots'
 import {getVotingPools} from './actions/voters'
 import {importResults, uploadResults, deleteResults} from './actions/results'
 import {importComments, uploadComments, deleteComments} from './actions/comments'
+import {shallowDiff} from './filter'
 import styles from './BallotDetail.css'
 
 function defaultBallot() {
@@ -26,37 +27,20 @@ function defaultBallot() {
 		PrevBallotID: ''}
 }
 
-function shallowDiff(originalObj, modifiedObj) {
-	let changed = {};
-	for (let k in modifiedObj) {
- 		if (modifiedObj.hasOwnProperty(k) && modifiedObj[k] !== originalObj[k]) {
- 			changed[k] = modifiedObj[k]
- 		}
- 	}
- 	return changed;
-}
-
-/* Convert an ISO date string to US eastern time
- * and display only the date in format "yyyy-mm-dd" */
+/* Convert an ISO date string to US eastern time and return string in form "YYYY-MM-DD" */
 function dateToShortDate(isoDate) {
-	return moment(isoDate).tz('America/New_York').format('YYYY-MM-DD')
+	const utcDate = new Date(isoDate)
+	const date = new Date(utcDate.toLocaleString("en-US", {timeZone: "America/New_York"}))
+	return date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).substr(-2) + '-' + ('0' + date.getDate()).substr(-2)
 }
 
-/* Parse date (YYYY-MM-DD) as US eastern time and convert to ISO date string */
+/* Parse date in form "YYYY-MM-DD" as US eastern time and convert to UTC ISO date string */
 function shortDateToDate(shortDateStr) {
-	return moment.tz(shortDateStr, 'YYYY-MM-DD', 'America/New_York').format()
-}
-
-function renderResultsSummary(results) {
-	var resultsStr = ''
-	if (results && results.TotalReturns) {
-		let p = parseFloat(100*results.Approve/(results.Approve+results.Disapprove))
-		resultsStr = `${results.Approve}/${results.Disapprove}/${results.Abstain}`
-		if (!isNaN(p)) {
-			resultsStr += ` (${p.toFixed(1)}%)`
-		}
-	}
-	return resultsStr? resultsStr: 'None'
+	const date = new Date(shortDateStr)	// local time
+	const easternDate = new Date(date.toLocaleString("en-US", {timeZone: "America/New_York"}))
+	const utcDate = new Date(date.toLocaleString("en-US", {timeZone: "UTC"}))
+	const diff = utcDate - easternDate
+	return (date + diff).toISOString()
 }
 
 /*
@@ -66,9 +50,9 @@ function renderResultsSummary(results) {
  * /ImportEpoll/:epollNum -> add a new ballot from an epoll
  */
 function BallotDetail(props) {
-	const {ballotId, epollNum} = useParams();
-	const history = useHistory();
-	const [ballot, setBallot] = useState(defaultBallot);
+	const {ballotId, epollNum} = useParams()
+	const history = useHistory()
+	const [ballot, setBallot] = useState(defaultBallot)
 	const [resultsAction, setResultsAction] = useState({
 		importFromEpoll: false,
 		file: null,
@@ -273,7 +257,7 @@ function BallotDetail(props) {
 		return (
 			<React.Fragment>
 			<div className={styles.row}>
-				<label>Results:</label>&nbsp;{renderResultsSummary(ballot.Results)}
+				<label>Results:</label>&nbsp;{renderResultsSummary({rowData: ballot, dataKey: 'Results'})}
 			</div>
 			<div className={styles.fromColumn}>
 				<label>
@@ -348,7 +332,7 @@ function BallotDetail(props) {
 		return (
 			<React.Fragment>
 			<div className={styles.row}>
-				<label>Comments:</label>&nbsp;{ballot.Comments? ballot.Comments.Count: 'None'}
+				<label>Comments:</label>&nbsp;{renderCommentsSummary({rowData: ballot, dataKey: 'Comments'})}
 			</div>
 			<div className={styles.fromColumn}>
 				{ballot.Comments &&
@@ -394,7 +378,7 @@ function BallotDetail(props) {
 		'Recirc WG ballot',
 		'Initial SA ballot',
 		'Recirc SA ballot'
-	];
+	]
 
 	const shortDateStart = dateToShortDate(ballot.Start)
 	const shortDateEnd = dateToShortDate(ballot.End)
@@ -485,7 +469,7 @@ function mapStateToProps(state) {
 		projectList: ballots.projectList,
 		votingPoolsValid: voters.votingPoolsValid,
 		votingPools: voters.votingPools,
-		epolls: epolls.epolls,
+		epolls: epolls.epolls
 	}
 }
-export default connect(mapStateToProps)(BallotDetail);
+export default connect(mapStateToProps)(BallotDetail)
