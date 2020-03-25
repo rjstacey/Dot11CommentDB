@@ -82,6 +82,30 @@ function updateComments(comments, updatedComments) {
 		.sort((c1, c2) => c1.CommentID - c2.CommentID)
 }
 
+function getCommentStatus(c) {
+	let Status = ''
+	if (c.ApprovedByMotion) {
+		Status = 'Resolution approved'
+	}
+	else if (c.ReadyForMotion) {
+		Status = 'Ready for motion'
+	}
+	else if (c.ResnStatus) {
+		Status = 'Resolution drafted'
+	}
+	else if (c.AssigneeName) {
+		Status = 'Assigned'
+	}
+	return Status
+}
+
+function updateCommentsStatus(comments) {
+	return comments.map(c => {
+		const Status = getCommentStatus(c)
+		return Status !== c.Status? {...c, Status}: c
+	})
+}
+
 function comments(state = defaultState, action) {
 	let newComments
 
@@ -126,13 +150,14 @@ function comments(state = defaultState, action) {
 				expanded: state.ballotId !== action.ballotId? []: state.expanded
 			}
 		case GET_COMMENTS_SUCCESS:
+			newComments = updateCommentsStatus(action.comments)
 			return {
 				...state,
 				getComments: false,
 				commentsValid: true,
-				comments: action.comments,
-				commentsMap: sortData(filterData(action.comments, state.filters), action.comments, state.sortBy, state.sortDirection),
-				selected: updateSelected(action.comments, state.selected)
+				comments: newComments,
+				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection),
+				selected: updateSelected(newComments, state.selected)
 			}
 		case GET_COMMENTS_FAILURE:
 			return {...state, getComments: false}
@@ -180,13 +205,14 @@ function comments(state = defaultState, action) {
 			if (action.ballotId !== state.ballotId) {
 				return {...state, importComments: false}
 			}
+			newComments = updateCommentsStatus(action.comments)
 			return {
 				...state,
 				importComments: false,
 				commentsValid: true,
-				comments: action.comments,
-				commentsMap: sortData(filterData(action.comments, state.filters), action.comments, state.sortBy, state.sortDirection),
-				selected: updateSelected(action.comments, state.selected)
+				comments: newComments,
+				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection),
+				selected: updateSelected(newComments, state.selected)
 			}
 		case IMPORT_COMMENTS_FAILURE:
 			return {...state, importComments: false}
@@ -197,13 +223,14 @@ function comments(state = defaultState, action) {
 			if (action.ballotId !== state.ballotId) {
 				return {...state, uploadComments: false}
 			}
+			newComments = updateCommentsStatus(action.comments)
 			return {
 				...state,
 				uploadComments: false,
 				commentsValid: true,
-				comments: action.comments,
-				commentsMap: sortData(filterData(action.comments, state.filters), action.comments, state.sortBy, state.sortDirection),
-				selected: updateSelected(action.comments, state.selected)
+				comments: newComments,
+				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection),
+				selected: updateSelected(newComments, state.selected)
 			}
 		case UPLOAD_COMMENTS_FAILURE:
 			return {...state, uploadComments: false}
@@ -214,7 +241,9 @@ function comments(state = defaultState, action) {
 			if (state.ballotId !== action.ballotId) {
 				return {...state, updateComment: false}
 			}
-			newComments = updateComments(state.comments, action.updatedComments.concat(action.newComments))
+			newComments = action.updatedComments.concat(action.newComments)
+			newComments = updateCommentsStatus(newComments)
+			newComments = updateComments(state.comments, newComments)
 			return {
 				...state,
 				updateComment: false,
@@ -232,8 +261,12 @@ function comments(state = defaultState, action) {
 				return {...state, updateComment: false}
 			}
 			newComments = state.comments.map(c => {
-				const r = action.resolutions.find(r => r.CommentID === c.CommentID && r.ResolutionID === c.ResolutionID)
-				return r? {...c, ...r}: c
+				let r = action.resolutions.find(r => r.CommentID === c.CommentID && r.ResolutionID === c.ResolutionID)
+				if (r) {
+					r.Status = getCommentStatus(r)
+					return {...c, ...r}
+				}
+				return c
 			})
 			return {
 				...state,

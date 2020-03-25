@@ -11,7 +11,6 @@ var multer = require('multer')
 var upload = multer()
 var app = express()
 
-//app.enable('trust proxy');
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 
@@ -35,7 +34,6 @@ app.use((req, res, next) => {
 	console.log(req.method, req.url)
 	next()
 })
-
 
 function resData(res, data) {
 	res.status(200).json(data)

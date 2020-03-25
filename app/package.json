@@ -1,5 +1,5 @@
 {
-  "name": "802_11_cdb_app",
+  "name": "dot11-comment-db-app",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

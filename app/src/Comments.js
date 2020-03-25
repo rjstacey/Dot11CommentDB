@@ -32,7 +32,6 @@ function SelectCommentsModal(props) {
 
 	function changeList(e) {
 		const listArr = listRef.current.innerText.match(/\d+\.\d+[^\d]*|\d+[^\d]*/g)
-		console.log(listArr)
 		if (listArr) {
 			var list = ''
 			listArr.forEach(cidStr => {
@@ -53,7 +52,7 @@ function SelectCommentsModal(props) {
 
 	function selectShown() {
 		const {comments, commentsMap} = props
-		const list = commentsMap.map(i => comments[i].CommentID).join(', ')
+		const list = commentsMap.map(i => comments[i].CID).join(', ')
 		setList(list)
 	}
 
@@ -256,7 +255,7 @@ function renderHeaderCellStacked1({columnData}) {
 			</div>
 			<div style={{display: 'flex', flexDirection: 'column', width: 25, marginLeft: 15}} >
 				{renderLabel({dataKey: 'MustSatisfy', label: 'MS', sortable: true, sortBy, sortDirection, setSort})}
-				{columnData.filters.hasOwnProperty('MustSatifsy') && renderFilter({dataKey: 'MustSatisfy', filter: columnData.filters['MustSatisfy'], setFilter: columnData.setFilter})}
+				{columnData.filters.hasOwnProperty('MustSatisfy') && renderFilter({dataKey: 'MustSatisfy', filter: columnData.filters['MustSatisfy'], setFilter: columnData.setFilter})}
 			</div>
 		</div>
 		<div style={{display: 'flex', flexDirection: 'row'}} >
@@ -331,6 +330,23 @@ function renderDataCellStacked2({rowData}) {
 		)
 }
 
+export function renderCommentStatus({rowData}) {
+	let Status = ''
+	if (rowData.ApprovedByMotion) {
+		Status = 'Resolution approved'
+	}
+	else if (rowData.ReadyForMotion) {
+		Status = 'Ready for motion'
+	}
+	else if (rowData.ResnStatus) {
+		Status = 'Resolution drafted'
+	}
+	else if (rowData.AssigneeName) {
+		Status = 'Assigned'
+	}
+	return Status
+}
+
 const flatColumns = [
 	{dataKey: 'CID',			label: 'CID',			width: 60,	sortable: true,
 		flexGrow: 0, flexShrink: 0},
@@ -357,6 +373,9 @@ const flatColumns = [
 		flexGrow: 1, flexShrink: 1},
 	{dataKey: 'Submission',		label: 'Submission',	width: 150, sortable: true,
 		flexGrow: 1, flexShrink: 1},
+	{dataKey: 'Status',			label: 'Status',		width: 150,	sortable: true,
+		flexGrow: 1, flexShrink: 1,
+		cellRenderer: renderCommentStatus},
 	{dataKey: 'Resolution',		label: 'Resolution',	width: 400, sortable: false,
 		flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderDataCellResolution},
@@ -379,6 +398,8 @@ const stackedColumns = [
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCellStacked2,
 		cellRenderer: renderDataCellStacked2},
+	{dataKey: 'Status',			label: 'Status',		width: 150,	sortable: true,
+		flexGrow: 1, flexShrink: 1},
 	{dataKey: 'Resolution',		label: 'Resolution',	width: 400, sortable: false,
 		flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderDataCellResolution},
@@ -480,7 +501,7 @@ function Comments(props) {
 				ProposedChange: ''
 			}
 		}
-		return c;
+		return c
 	}
 
 	return (

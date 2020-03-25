@@ -12,6 +12,7 @@ import {ResolutionEditor, BasicEditor} from './ResolutionEditor'
 import BallotSelector from './BallotSelector'
 import AssigneeSelector from './AssigneeSelector'
 import {ActionButton} from './Icons'
+import {renderCommentStatus} from './Comments'
 import styles from './css/CommentDetail.css'
 
 function Resolution(props) {
@@ -257,7 +258,7 @@ function Comment(props) {
 	function Entry({className, label, content}) {
 		return (
 			<div className={className}>
-				<label>{label}:</label>&nbsp;
+				{label && <label>{label}:&nbsp;</label>}
 				<div className={cx(content === '<multiple>' && styles.Multiple)}>
 					{content}
 				</div>
@@ -285,8 +286,9 @@ function Comment(props) {
 
 	return (
 		<React.Fragment>
-			<div className={styles.row}>
+			<div className={cx(styles.row, styles.status_row)}>
 				<Entry className={styles.CID} label={cidsLabel} content={cidsStr} />
+				<Entry className={styles.Status} content={renderCommentStatus({rowData: comment})} />
 			</div>
 			<div className={styles.row}>
 				<Entry className={styles.Commenter} label={'Commenter'} content={commenterEl} />

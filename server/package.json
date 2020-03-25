@@ -1,7 +1,7 @@
 {
-  "name": "comment-db",
-  "version": "1.0.0",
-  "description": "Comment DB server",
+  "name": "dot11-comment-db-server",
+  "version": "0.1.0",
+  "description": "IEEE 802.11 comment tracking tool server",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -11,7 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
-    "csv-parse": "^4.3.0",
+    "csv-parse": "^4.8.8",
     "exceljs": "^3.2.0",
     "express": "^4.17.1",
     "express-mysql-session": "^2.1.0",

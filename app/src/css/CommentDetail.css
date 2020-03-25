@@ -17,6 +17,10 @@
 	padding: 10px 5px 0px 5px;
 }
 
+.status_row {
+	justify-content: space-between;
+}
+
 .column {
 	display: flex;
 	flex-direction: column;
@@ -32,6 +36,7 @@
 	color: GrayText;
 }
 
+.CID,
 .Page {
 	display: inline-block;
 	width: 200px;
