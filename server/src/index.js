@@ -318,6 +318,9 @@ app.post('/logout', (req, res, next) => {
 		.then(data => resData(res, data), err => resErr(res, err))
 })
 
+//app.get('/', (req, res, next) => {
+//	return res.send("All is well!")
+//})
 app.use(express.static('app'))
 
 // [START listen]

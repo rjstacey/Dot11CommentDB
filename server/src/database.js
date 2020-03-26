@@ -18,9 +18,9 @@ const fm1db = {
 	password: 'dRmYr2qO87fH4A3',
 	database: 'CommentDBTest',
 	ssl: {
-		ca: fs.readFileSync(__dirname + '/ca_cert.pem'),
-		cert: fs.readFileSync(__dirname + '/client_cert.pem'),
-		key: fs.readFileSync(__dirname + '/client_key.pem'),
+		ca: fs.readFileSync('ca_cert.pem'),
+		cert: fs.readFileSync('client_cert.pem'),
+		key: fs.readFileSync('client_key.pem'),
 		rejectUnauthorized: false
 	},
 	multipleStatements: true

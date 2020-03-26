@@ -1,11 +1,14 @@
 {
-  "name": "dot11-comment-db-server",
+  "name": "dot11-comment-db",
   "version": "0.1.0",
   "description": "IEEE 802.11 comment tracking tool server",
   "main": "index.js",
   "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js --exec babel-node --presents es2015,stage-2 --inspect",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js --exec babel-node --presents es2015,stage-2 --inspect"
+    "build": "cp *.pem ../build && webpack",
+    "prod": "cd ../build && node server.js"
   },
   "author": "Robert Stacey",
   "license": "ISC",
@@ -17,12 +20,9 @@
     "express-mysql-session": "^2.1.0",
     "express-session": "^1.17.0",
     "fs": "0.0.1-security",
-    "global-tunnel": "^1.2.0",
     "moment-timezone": "^0.5.23",
     "multer": "^1.4.1",
     "mysql": "^2.17.1",
-    "node-blob": "0.0.2",
-    "pandas-js": "^0.2.4",
     "request": "^2.88.0",
     "request-debug": "^0.2.0",
     "request-promise-native": "^1.0.8",
@@ -32,6 +32,9 @@
     "babel-cli": "^6.26.0",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-stage-2": "^6.24.1",
-    "nodemon": "^1.17.5"
+    "file-loader": "^6.0.0",
+    "nodemon": "^1.17.5",
+    "webpack": "^4.42.1",
+    "webpack-cli": "^3.3.11"
   }
 }

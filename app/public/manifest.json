@@ -1,9 +1,9 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "802.11 Comment Database",
+  "name": "802.11 Comment Database",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "ieee802.11icon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     }
