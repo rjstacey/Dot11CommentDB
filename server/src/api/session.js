@@ -65,7 +65,7 @@ module.exports = function (db, rp, users) {
 		// We should receive a bold message: Welcome: <name> (SA PIN: <sapin>)
 		//var n = ieeeRes.body.match(/<big>Welcome: (.*) \(SA PIN: ([0-9]+)\)<\/big>/);
 		// We should receive a message: Home - <name>, SA PIN: <sapin>
-		console.log(ieeeRes.body)
+		//console.log(ieeeRes.body)
 		var n = ieeeRes.body.match(/<span class="attendance_nav">Home - (.*), SA PIN: ([0-9]+)<\/span>/);
 		req.session.name = n? n[1]: 'Unknown';
 		req.session.sapin = n? n[2]: 0;

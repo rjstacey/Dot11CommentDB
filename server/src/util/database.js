@@ -1,4 +1,6 @@
-var mysql = require('mysql');
+'use strict'
+
+const mysql = require('mysql');
 
 // Connect to the database
 const or1db = {
@@ -9,7 +11,7 @@ const or1db = {
 	database: 'CommentDBTest',
 	multipleStatements: true
 };
-
+/*
 const fs = require('fs');
 const fm1db = {
 	host: 'maria3451-us-fm-in.icloud.intel.com',
@@ -25,8 +27,8 @@ const fm1db = {
 	},
 	multipleStatements: true
 };
-
-var pool = mysql.createPool(or1db);
+*/
+const pool = mysql.createPool(or1db);
 
 module.exports = {
 	pool: pool,
@@ -53,4 +55,4 @@ module.exports = {
 	escape: mysql.escape,
 
 	format: mysql.format
-};
+}
