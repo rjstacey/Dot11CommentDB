@@ -38,7 +38,7 @@ export function getBallots() {
 	return async (dispatch, getState) => {
 		dispatch(getBallotsLocal())
 		try {
-			const data = await fetcher.get('/ballots')
+			const data = await fetcher.get('/api/ballots')
 			await dispatch(getBallotsSuccess(data))
 			return dispatch(syncEpollsAgainstBallots(getState().ballots.ballots))
 		}
@@ -60,7 +60,7 @@ export function updateBallot(ballotId, ballot) {
 	return async (dispatch, getState) => {
 		dispatch(updateBallotLocal(ballotId, ballot))
 		try {
-			const updatedBallot = await fetcher.put(`/ballot/${ballotId}`, ballot)
+			const updatedBallot = await fetcher.put(`/api/ballot/${ballotId}`, ballot)
 			await dispatch(updateBallotSuccess(ballotId, updatedBallot))
 			return dispatch(syncEpollsAgainstBallots(getState().ballots.ballots))
 		}
@@ -81,7 +81,7 @@ export function deleteBallots(ballotIds) {
 	return async (dispatch, getState) => {
 		dispatch(deleteBallotsLocal(ballotIds))
 		try {
-			await fetcher.delete('/ballots', ballotIds)
+			await fetcher.delete('/api/ballots', ballotIds)
 			await dispatch(deleteBallotsSuccess(ballotIds))
 			return dispatch(syncEpollsAgainstBallots(getState().ballots.ballots))
 		}
@@ -102,7 +102,7 @@ export function addBallot(ballot) {
 	return async (dispatch, getState) => {
 		dispatch(addBallotLocal(ballot))
 		try {
-			const updateBallot = await fetcher.post('/ballots', ballot)
+			const updateBallot = await fetcher.post('/api/ballots', ballot)
 			await dispatch(addBallotSuccess(updateBallot))
 			return dispatch(syncEpollsAgainstBallots(getState().ballots.ballots))
 		}

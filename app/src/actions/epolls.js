@@ -19,7 +19,7 @@ export function getEpolls(n = 20) {
 	return async (dispatch, getState) => {
 		dispatch(getEpollsLocal(n))
 		try {
-			const epolls = await fetcher.get('/epolls', {n})
+			const epolls = await fetcher.get('/api/epolls', {n})
 			return dispatch(getEpollsSuccess(n, epolls))
 		}
 		catch(error) {

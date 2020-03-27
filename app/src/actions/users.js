@@ -33,7 +33,7 @@ export function getUsers() {
 	return async (dispatch) => {
 		dispatch(getUsersLocal())
 		try {
-			const users = await fetcher.get('/users')
+			const users = await fetcher.get('/api/users')
 			return dispatch(getUsersSuccess(users))
 		}
 		catch(error) {
@@ -53,7 +53,7 @@ export function updateUser(SAPIN, user) {
 	return async (dispatch) => {
 		dispatch(updateUserLocal(SAPIN, user))
 		try {
-			const updatedUser = await fetcher.put(`/user/${SAPIN}`, user)
+			const updatedUser = await fetcher.put(`/api/user/${SAPIN}`, user)
 			return dispatch(updateUserSuccess(SAPIN, updatedUser))
 		}
 		catch(error) {
@@ -73,7 +73,7 @@ export function addUser(user) {
 	return async (dispatch) => {
 		dispatch(addUserLocal(user))
 		try {
-			const updatedUser = await fetcher.post('/user', user)
+			const updatedUser = await fetcher.post('/api/user', user)
 			return dispatch(addUserSuccess(updatedUser))
 		}
 		catch(error) {
@@ -93,7 +93,7 @@ export function deleteUsers(userIds) {
 	return async (dispatch) => {
 		dispatch(deleteUsersLocal(userIds))
 		try {
-			await fetcher.delete('/users', userIds)
+			await fetcher.delete('/api/users', userIds)
 			return dispatch(deleteUsersSuccess(userIds))
 		}
 		catch(error) {
@@ -113,7 +113,7 @@ export function uploadUsers(file) {
 	return async (dispatch) => {
 		dispatch(uploadUsersLocal())
 		try {
-			const users = await fetcher.postMultipart('/users/upload', {UsersFile: file})
+			const users = await fetcher.postMultipart('/api/users/upload', {UsersFile: file})
 			return dispatch(uploadUsersSuccess(users))
 		}
 		catch(error) {

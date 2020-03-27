@@ -47,7 +47,7 @@ export function getComments(ballotId) {
 	return async (dispatch) => {
 		dispatch(getCommentsLocal(ballotId))
 		try {
-			const comments = await fetcher.get(`/comments/${ballotId}`)
+			const comments = await fetcher.get(`/api/comments/${ballotId}`)
 			return dispatch(getCommentsSuccess(comments))
 		}
 		catch(error) {
@@ -67,7 +67,7 @@ export function updateComment(data) {
 	return async (dispatch) => {
 		dispatch(updateCommentLocal(data))
 		try {
-			const updatedComment = await fetcher.put('/comment', data)
+			const updatedComment = await fetcher.put('/api/comment', data)
 			return dispatch(updateCommentSuccess(updatedComment))
 		}
 		catch(error) {
@@ -87,7 +87,7 @@ export function deleteComments(ballotId) {
 	return async (dispatch) => {
 		dispatch(deleteCommentsLocal(ballotId))
 		try {
-			await fetcher.delete('/comments/BallotId', {BallotID: ballotId})
+			await fetcher.delete('/api/comments/BallotId', {BallotID: ballotId})
 			const summary = {Count: 0, CommentIDMin: 0, CommentIDMax: 0}
 			return Promise.all([
 				dispatch(deleteCommentsSuccess(ballotId)),
@@ -112,7 +112,7 @@ export function importComments(ballotId, epollNum, startCID) {
 	return async (dispatch) => {
 		dispatch(importCommentsLocal(ballotId))
 		try {
-			const {comments, summary} = await fetcher.post(`/comments/importFromEpoll/${ballotId}/${epollNum}`, {StartCID: startCID})
+			const {comments, summary} = await fetcher.post(`/api/comments/importFromEpoll/${ballotId}/${epollNum}`, {StartCID: startCID})
 			return Promise.all([
 				dispatch(importCommentsSuccess(ballotId, comments)),
 				// Update the comments summary for the ballot
@@ -136,7 +136,7 @@ export function uploadComments(ballotId, type, file) {
 	return async (dispatch) => {
 		dispatch(uploadCommentsLocal(ballotId))
 		try {
-			const {comments, summary} = await fetcher.postMultipart(`/comments/upload/${ballotId}/${type}`, {CommentsFile: file})
+			const {comments, summary} = await fetcher.postMultipart(`/api/comments/upload/${ballotId}/${type}`, {CommentsFile: file})
 			return Promise.all([
 				dispatch(uploadCommentsSuccess(ballotId, comments)),
 				// Update the comments summary for the ballot
@@ -160,7 +160,7 @@ export function addResolutions(ballotId, resolutions) {
 	return async (dispatch) => {
 		dispatch(addResolutionsLocal(ballotId, resolutions))
 		try {
-			const response = await fetcher.post(`/resolutions/${ballotId}`, resolutions)
+			const response = await fetcher.post(`/api/resolutions/${ballotId}`, resolutions)
 			await dispatch(addResolutionsSuccess(ballotId, response.newComments, response.updatedComments))
 			return response.newComments
 		}
@@ -182,7 +182,7 @@ export function updateResolutions(ballotId, resolutions) {
 	return async (dispatch) => {
 		dispatch(updateResolutionsLocal(ballotId, resolutions));
 		try {
-			await fetcher.put(`/resolutions/${ballotId}`, {ballotId, resolutions})
+			await fetcher.put(`/api/resolutions/${ballotId}`, {ballotId, resolutions})
 			return dispatch(updateResolutionsSuccess(ballotId, resolutions))
 		}
 		catch(error) {
@@ -202,7 +202,7 @@ export function deleteResolutions(ballotId, resolutions) {
 	return async (dispatch) => {
 		dispatch(deleteResolutionsLocal(ballotId, resolutions))
 		try {
-			const response = await fetcher.delete(`/resolutions/${ballotId}`, {resolutions})
+			const response = await fetcher.delete(`/api/resolutions/${ballotId}`, {resolutions})
 			return dispatch(deleteResolutionsSuccess(ballotId, response.updatedComments))
 		}
 		catch(error) {
@@ -225,7 +225,7 @@ export function uploadResolutions(ballotId, matchAlgorithm, matchAll, file) {
 			ResolutionsFile: file
 		}
 		try {
-			const {comments, summary} = await fetcher.postMultipart('/resolutions/upload', params)
+			const {comments, summary} = await fetcher.postMultipart('/api/resolutions/upload', params)
 			return Promise.all([
 				dispatch(uploadCommentsSuccess(ballotId, comments)),
 				dispatch(updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary}))

@@ -1,6 +1,8 @@
 const cheerio = require('cheerio')
 const csvParse = require('csv-parse/lib/sync')
 const ExcelJS = require('exceljs')
+const db = require('../util/database')
+const rp = require('request-promise-native')
 
 function parseEpollResultsCsv(buffer) {
 
@@ -431,236 +433,225 @@ function populateResultsWorksheet(ws, results) {
 	}
 }
 
-module.exports = function(db, rp) {
-	var module = {}
+async function getResultsLocal(ballotId) {
 
-	module.getResultsLocal = async (ballotId) => {
+	if (ballotId === undefined) {
+		throw 'Missing parameter BallotID'
+	}
 
-		if (ballotId === undefined) {
-			throw 'Missing parameter BallotID'
+	async function recursiveBallotSeriesGet(ballotSeries, ballotId) {
+		const results = await db.query(
+			'SELECT BallotID, Type, VotingPoolID, PrevBallotID FROM ballots WHERE BallotID=?; ' +
+			'SELECT r.*, (SELECT COUNT(*) FROM comments AS c WHERE BallotID=? AND ((c.CommenterSAPIN IS NOT NULL AND c.CommenterSAPIN = r.SAPIN) OR (c.CommenterEmail IS NOT NULL AND c.CommenterEmail = r.Email))) AS CommentCount FROM results AS r WHERE BallotID=?;',
+			[ballotId, ballotId, ballotId])
+
+		if (results[0].length === 0) {
+			return ballotSeries
 		}
 
-		async function recursiveBallotSeriesGet(ballotSeries, ballotId) {
-			const results = await db.query(
-				'SELECT BallotID, Type, VotingPoolID, PrevBallotID FROM ballots WHERE BallotID=?; ' +
-				'SELECT r.*, (SELECT COUNT(*) FROM comments AS c WHERE BallotID=? AND ((c.CommenterSAPIN IS NOT NULL AND c.CommenterSAPIN = r.SAPIN) OR (c.CommenterEmail IS NOT NULL AND c.CommenterEmail = r.Email))) AS CommentCount FROM results AS r WHERE BallotID=?;',
-				[ballotId, ballotId, ballotId])
+		var b = Object.assign({}, results[0][0], {results: results[1]})
+		ballotSeries.unshift(b)
+		return b.PrevBallotID? recursiveBallotSeriesGet(ballotSeries, b.PrevBallotID): ballotSeries
+	}
 
-			if (results[0].length === 0) {
-				return ballotSeries
-			}
+	// Get ballot information
+	var results = await db.query(
+		'SELECT *, (SELECT COUNT(*) FROM results WHERE results.BallotID=?) AS BallotReturns FROM ballots WHERE BallotID=?',
+		[ballotId, ballotId]
+		)
+	var ballot = results[0]
 
-			var b = Object.assign({}, results[0][0], {results: results[1]})
-			ballotSeries.unshift(b)
-			return b.PrevBallotID? recursiveBallotSeriesGet(ballotSeries, b.PrevBallotID): ballotSeries
-		}
+	const ballotSeries = await recursiveBallotSeriesGet([], ballotId)	// then get results from each ballot in series
+	if (ballotSeries.length === 0) {
+		throw 'No such ballot'
+	}
 
-		// Get ballot information
-		var results = await db.query(
-			'SELECT *, (SELECT COUNT(*) FROM results WHERE results.BallotID=?) AS BallotReturns FROM ballots WHERE BallotID=?',
-			[ballotId, ballotId]
+	let votingPoolSize, summary
+	const type = ballotSeries[0].Type
+	const votingPoolId  = ballotSeries[0].VotingPoolID
+	if (type === 1) {	// initial WG ballot
+		// if there is a voting pool, get that
+		const voters = await db.query(
+			'SELECT SAPIN, LastName, FirstName, MI, Email, Status FROM wgVoters WHERE VotingPoolID=?',
+			[votingPoolId]
 			)
-		var ballot = results[0]
-
-		const ballotSeries = await recursiveBallotSeriesGet([], ballotId)	// then get results from each ballot in series
-		if (ballotSeries.length === 0) {
-			throw 'No such ballot'
-		}
-
-		let votingPoolSize, summary
-		const type = ballotSeries[0].Type
-		const votingPoolId  = ballotSeries[0].VotingPoolID
-		if (type === 1) {	// initial WG ballot
-			// if there is a voting pool, get that
-			const voters = await db.query(
-				'SELECT SAPIN, LastName, FirstName, MI, Email, Status FROM wgVoters WHERE VotingPoolID=?',
-				[votingPoolId]
-				)
-			// voting pool size excludes ExOfficio; they are allowed to vote, but don't affect returns
-			votingPoolSize = voters.filter(v => !/^ExOfficio/.test(v.Status)).length
-			results = colateWGResults(ballotSeries, voters)	// colate results against voting pool and prior ballots in series
-			summary = summarizeWGResults(results)
-		}
-		else if (type === 3) {	// initial SA ballot
-			// if there is a voting pool, get that
-			const voters = await db.query(
-				'SELECT Email, Name FROM saVoters WHERE VotingPoolID=?',
-				[votingPoolId]
-				)
-			votingPoolSize = voters.length
-			results = colateSAResults(ballotSeries, voters)	// colate results against voting pool and prior ballots in series
-			summary = summarizeSAResults(results)
-			summary.ReturnsPoolSize = votingPoolSize
-		}
-		else {
-			votingPoolSize = 0
-			results = ballotSeries[ballotSeries.length - 1].results	// colate results for just this ballot
-			summary = summarizeBallotResults(results)
-		}
-
-		//console.log(ballot)
-		summary.BallotReturns = ballot.BallotReturns
-		delete ballot.BallotReturns
-
-		/* Update results summary in ballots table if different */
-		const ResultsSummary = JSON.stringify(summary)
-		if (ResultsSummary !== ballot.ResultsSummary) {
-			await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [ResultsSummary, ballotId])	
-		}
-
-		ballot.Results = JSON.parse(ResultsSummary)
-		delete ballot.ResultsSummary
-
-		return {
-			BallotID: ballotId,
-			VotingPoolID: votingPoolId,
-			VotingPoolSize: votingPoolSize,
-			ballot,
-			results,
-			summary
-		}
+		// voting pool size excludes ExOfficio; they are allowed to vote, but don't affect returns
+		votingPoolSize = voters.filter(v => !/^ExOfficio/.test(v.Status)).length
+		results = colateWGResults(ballotSeries, voters)	// colate results against voting pool and prior ballots in series
+		summary = summarizeWGResults(results)
+	}
+	else if (type === 3) {	// initial SA ballot
+		// if there is a voting pool, get that
+		const voters = await db.query(
+			'SELECT Email, Name FROM saVoters WHERE VotingPoolID=?',
+			[votingPoolId]
+			)
+		votingPoolSize = voters.length
+		results = colateSAResults(ballotSeries, voters)	// colate results against voting pool and prior ballots in series
+		summary = summarizeSAResults(results)
+		summary.ReturnsPoolSize = votingPoolSize
+	}
+	else {
+		votingPoolSize = 0
+		results = ballotSeries[ballotSeries.length - 1].results	// colate results for just this ballot
+		summary = summarizeBallotResults(results)
 	}
 
-	module.getResults = function (req) {
-		const {ballotId} = req.params
-		return module.getResultsLocal(ballotId);
+	//console.log(ballot)
+	summary.BallotReturns = ballot.BallotReturns
+	delete ballot.BallotReturns
+
+	/* Update results summary in ballots table if different */
+	const ResultsSummary = JSON.stringify(summary)
+	if (ResultsSummary !== ballot.ResultsSummary) {
+		await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [ResultsSummary, ballotId])	
 	}
 
-	module.deleteResults = (req, res, next) => {
-		const {ballotId} = req.params;
-		return db.query('DELETE FROM results WHERE BallotID=?; UPDATE ballots SET ResultsSummary=NULL WHERE BallotID=?', [ballotId, ballotId])
+	ballot.Results = JSON.parse(ResultsSummary)
+	delete ballot.ResultsSummary
+
+	return {
+		BallotID: ballotId,
+		VotingPoolID: votingPoolId,
+		VotingPoolSize: votingPoolSize,
+		ballot,
+		results,
+		summary
+	}
+}
+
+function getResults(ballotId) {
+	return module.getResultsLocal(ballotId)
+}
+
+function deleteResults(ballotId) {
+	return db.query('DELETE FROM results WHERE BallotID=?; UPDATE ballots SET ResultsSummary=NULL WHERE BallotID=?', [ballotId, ballotId])
+}
+
+async function importEpollResults(ballotId, epollNum) {
+
+	const p1 = rp.get({
+		url: `https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`,
+		jar: sess.ieeeCookieJar,
+		resolveWithFullResponse: true,
+		simple: false
+	})
+
+	const p2 = rp.get({
+		url: `https://mentor.ieee.org/802.11/poll-status?p=${epollNum}`,
+		jar: sess.ieeeCookieJar,
+		resolveWithFullResponse: true,
+		simple: false
+	})
+
+	var ieeeRes = await p1
+	if (ieeeRes.headers['content-type'] !== 'text/csv') {
+		throw 'Not logged in'
+	}
+	var pollResults = parseEpollResultsCsv(ieeeRes.body)
+
+	ieeeRes = await p2
+	/* Get Name and Affiliation from HTML (not present in .csv) */
+	var pollResults2 = parseEpollResultsHtml(ieeeRes.body)
+
+	for (let r of pollResults) {
+		h = pollResults2.find(h => h.Email === r.Email)
+		r.Name = h? h.Name: ''
+		r.Affiliation = h? h.Affiliation: ''
 	}
 
-	module.importEpollResults = async (req, res, next) => {
-		const sess = req.session
-		if (sess.access <= 1) {
-			throw 'Insufficient karma'
+	await db.query('DELETE FROM results WHERE BallotID=?', [ballotId])
+
+	if (pollResults.length) {
+		const SQL =
+			`INSERT INTO results (BallotID, ${Object.keys(pollResults[0])}) VALUES` +
+			pollResults.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(',') +
+			';'
+		try {
+			await db.query(SQL)
 		}
-
-		const {ballotId, epollNum} = req.params
-		const p1 = rp.get({
-			url: `https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`,
-			jar: sess.ieeeCookieJar,
-			resolveWithFullResponse: true,
-			simple: false
-		})
-		const p2 = rp.get({
-			url: `https://mentor.ieee.org/802.11/poll-status?p=${epollNum}`,
-			jar: sess.ieeeCookieJar,
-			resolveWithFullResponse: true,
-			simple: false
-		})
-
-		var ieeeRes = await p1
-		if (ieeeRes.headers['content-type'] !== 'text/csv') {
-			throw 'Not logged in'
+		catch(err) {
+			throw err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err
 		}
-		var pollResults = parseEpollResultsCsv(ieeeRes.body)
+	}
+	const Results = await module.getResultsLocal(ballotId)
+	await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [JSON.stringify(Results.summary), ballotId])
+	return Results;
+}
 
-		ieeeRes = await p2
-		/* Get Name and Affiliation from HTML (not present in .csv) */
-		var pollResults2 = parseEpollResultsHtml(ieeeRes.body)
+async function uploadResults(req, res, next) {
+	
+	let results
+	if (type < 3) {
+		results = parseEpollResults(req.file.buffer)
+	}
+	else {
+		const isExcel = req.file.originalname.search(/\.xlsx$/i) !== -1
+		results = await parseMyProjectResults(req.file.buffer, isExcel)
+	}
+	//console.log(results);
 
-		for (let r of pollResults) {
-			h = pollResults2.find(h => h.Email === r.Email)
-			r.Name = h? h.Name: ''
-			r.Affiliation = h? h.Affiliation: ''
+	await db.query('DELETE FROM results WHERE BallotID=?', [ballotId])
+
+	if (results.length) {
+		const SQL =
+			`INSERT INTO results (BallotID, ${Object.keys(results[0])}) VALUES` +
+			results.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(',') +
+			';'
+		try {
+			await db.query(SQL)
 		}
-
-		await db.query('DELETE FROM results WHERE BallotID=?', [ballotId])
-
-		if (pollResults.length) {
-			const SQL =
-				`INSERT INTO results (BallotID, ${Object.keys(pollResults[0])}) VALUES` +
-				pollResults.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(',') +
-				';'
-			try {
-				await db.query(SQL)
-			}
-			catch(err) {
-				throw err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err
-			}
+		catch(err) {
+			throw err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err
 		}
-		const Results = await module.getResultsLocal(ballotId)
-		await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [JSON.stringify(Results.summary), ballotId])
-		return Results;
+	}
+	console.log(ballotId)
+	const Results = await module.getResultsLocal(ballotId)
+	await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [JSON.stringify(Results.summary), ballotId])
+	return Results
+}
+
+async function exportResults(params, res) {
+	let results
+	let fileNamePrefix = ''
+	if (params.hasOwnProperty('BallotID')) {
+		const ballotId = req.query.BallotID
+		fileNamePrefix = ballotId
+		const result = await module.getResultsLocal(ballotId)
+		results = [result]	// turn parameter into an array
+	}
+	else if (params.hasOwnProperty('BallotIDs')) {
+		const ballotIds = req.query.BallotIDs
+		fileNamePrefix = ballotIds.join('_')
+		results = await Promise.all(ballotIds.map(ballotId => module.getResultsLocal(ballotId)))
+	}
+	else if (params.hasOwnProperty('Project')) {
+		const project = req.query.Project
+		fileNamePrefix = project
+		results = await db.query('SELECT BallotID FROM ballots WHERE Project=?', [project])
+		results = await Promise.all(results.map(r => module.getResultsLocal(r.BallotID)))
+	}
+	else {
+		throw 'Missing parameter BallotID, BallotIDs or Project'
 	}
 
-	module.uploadResults = async (req, res, next) => {
-		const {ballotId} = req.params
-		const type = parseInt(req.params.type, 10)
-
-		console.log(req.file)
-		if (!req.file) {
-			throw 'Missing file'
-		}
-
-		let results
-		if (type < 3) {
-			results = parseEpollResults(req.file.buffer)
-		}
-		else {
-			const isExcel = req.file.originalname.search(/\.xlsx$/i) !== -1
-			results = await parseMyProjectResults(req.file.buffer, isExcel)
-		}
-		//console.log(results);
-
-		await db.query('DELETE FROM results WHERE BallotID=?', [ballotId])
-
-		if (results.length) {
-			const SQL =
-				`INSERT INTO results (BallotID, ${Object.keys(results[0])}) VALUES` +
-				results.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(',') +
-				';'
-			try {
-				await db.query(SQL)
-			}
-			catch(err) {
-				throw err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err
-			}
-		}
-		console.log(ballotId)
-		const Results = await module.getResultsLocal(ballotId)
-		await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [JSON.stringify(Results.summary), ballotId])
-		return Results
+	let wb = new ExcelJS.Workbook()
+	wb.creator = '802.11'
+	for (let r of results) {
+		let ws = wb.addWorksheet(r.BallotID)
+		populateResultsWorksheet(ws, r)
 	}
 
-	module.exportResults = async (req, res, next) => {
-		let results
-		let fileNamePrefix = ''
-		if (req.query.hasOwnProperty('BallotID')) {
-			const ballotId = req.query.BallotID
-			fileNamePrefix = ballotId
-			const result = await module.getResultsLocal(ballotId)
-			results = [result]	// turn parameter into an array
-		}
-		else if (req.query.hasOwnProperty('BallotIDs')) {
-			const ballotIds = req.query.BallotIDs
-			fileNamePrefix = ballotIds.join('_')
-			results = await Promise.all(ballotIds.map(ballotId => module.getResultsLocal(ballotId)))
-		}
-		else if (req.query.hasOwnProperty('Project')) {
-			const project = req.query.Project
-			fileNamePrefix = project
-			results = await db.query('SELECT BallotID FROM ballots WHERE Project=?', [project])
-			results = await Promise.all(results.map(r => module.getResultsLocal(r.BallotID)))
-		}
-		else {
-			throw 'Missing parameter BallotID, BallotIDs or Project'
-		}
+	res.attachment(fileNamePrefix + '_results.xlsx')
+	
+	await wb.xlsx.write(res)
+	res.end()
+}
 
-		let wb = new ExcelJS.Workbook()
-		wb.creator = '802.11'
-		for (let r of results) {
-			let ws = wb.addWorksheet(r.BallotID)
-			populateResultsWorksheet(ws, r)
-		}
-
-		res.attachment(fileNamePrefix + '_results.xlsx')
-		
-		await wb.xlsx.write(res)
-		res.end()
-	}
-
-	return module
+module.exports = {
+	getResults,
+	deleteResults,
+	importEpollResults,
+	uploadResults,
+	exportResults
 }

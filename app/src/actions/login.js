@@ -21,7 +21,7 @@ export function loginGetState() {
 		}
 		dispatch(loginGetStateLocal())
 		try {
-			const info = await fetcher.get('/login')
+			const info = await fetcher.get('/auth/login')
 			return dispatch(loginGetStateSuccess(info))
 		}
 		catch(error) {
@@ -38,7 +38,7 @@ export function login(username, password) {
 	return async (dispatch) => {
 		dispatch(loginStart())
 		try {
-			const info = await fetcher.post('/login', {username, password})
+			const info = await fetcher.post('/auth/login', {username, password})
 			return dispatch(loginSuccess(info))
 		}
 		catch(error) {
@@ -55,7 +55,7 @@ export function logout() {
 	return async (dispatch) => {
 		dispatch(logoutStart())
 		try {
-			await fetcher.post('/logout')
+			await fetcher.post('/auth/logout')
 			return dispatch(logoutSuccess())
 		}
 		catch(error) {

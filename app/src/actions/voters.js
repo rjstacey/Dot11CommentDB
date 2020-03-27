@@ -24,7 +24,7 @@ export function getVotingPools() {
 	return async (dispatch) => {
 		dispatch(getVotingPoolsLocal())
 		try {
-			const {votingPools} = await fetcher.get('/votingPools')
+			const {votingPools} = await fetcher.get('/api/votingPools')
 			return dispatch(getVotingPoolsSuccess(votingPools))
 		}
 		catch(error) {
@@ -45,7 +45,7 @@ export function deleteVotingPools(votingPools) {
 	return async (dispatch, getState) => {
 		dispatch(deleteVotingPoolsLocal(votingPools))
 		try {
-			await fetcher.delete('/votingPools', votingPools)
+			await fetcher.delete('/api/votingPools', votingPools)
 			return dispatch(deleteVotingPoolsSuccess(votingPools))
 		}
 		catch(error) {
@@ -88,7 +88,7 @@ export function getVoters(votingPoolType, votingPoolId) {
 	return async (dispatch) => {
 		dispatch(getVotersLocal(votingPoolType, votingPoolId))
 		try {
-			const {votingPool, voters} = await fetcher.get(`/voters/${votingPoolType}/${votingPoolId}`)
+			const {votingPool, voters} = await fetcher.get(`/api/voters/${votingPoolType}/${votingPoolId}`)
 			return dispatch(getVotersSuccess(votingPool, voters))
 		}
 		catch(error) {
@@ -109,7 +109,7 @@ export function deleteVoters(votingPoolType, votingPoolId, voterIds) {
 		dispatch(deleteVotersLocal(votingPoolType, votingPoolId))
 		try {
 			const idArrayName = votingPoolType === 'SA'? 'Emails': 'SAPINs'
-			const {votingPool} = await fetcher.delete(`/voters/${votingPoolType}/${votingPoolId}`, {[idArrayName]: voterIds})
+			const {votingPool} = await fetcher.delete(`/api/voters/${votingPoolType}/${votingPoolId}`, {[idArrayName]: voterIds})
 			return dispatch(deleteVotersSuccess(votingPool, voterIds))
 		}
 		catch(error) {
@@ -131,7 +131,7 @@ export function uploadVoters(votingPoolType, votingPoolId, file) {
 		try {
 			var formData = new FormData()
 			formData.append("VotersFile", file)
-			const {voters, votingPool} = await fetcher.postMultipart(`/votersUpload/${votingPoolType}/${votingPoolId}`, {votersFile: file})
+			const {voters, votingPool} = await fetcher.postMultipart(`/api/votersUpload/${votingPoolType}/${votingPoolId}`, {votersFile: file})
 			return dispatch(uploadVotersSuccess(votingPool, voters))
 		}
 		catch(error) {
@@ -151,7 +151,7 @@ export function addVoter(votingPoolType, votingPoolId, voter) {
 	return async (dispatch) => {
 		dispatch(addVoterLocal(votingPoolType, votingPoolId, voter))
 		try {
-			const data = await fetcher.post(`/voter/${votingPoolType}/${votingPoolId}`, voter)
+			const data = await fetcher.post(`/api/voter/${votingPoolType}/${votingPoolId}`, voter)
 			return dispatch(addVoterSuccess(data.votingPool, data.voter))
 		}
 		catch(error) {
@@ -172,7 +172,7 @@ export function updateVoter(votingPoolType, votingPoolId, voterId, voter) {
 	return async (dispatch) => {
 		dispatch(updateVoterLocal(votingPoolType, votingPoolId, voter))
 		try {
-			const data = await fetcher.put(`/voter/${votingPoolType}/${votingPoolId}/${voterId}`, voter)
+			const data = await fetcher.put(`/api/voter/${votingPoolType}/${votingPoolId}/${voterId}`, voter)
 			return dispatch(updateVoterSuccess(data.votingPool, voterId, data.voter))
 		}
 		catch(error) {

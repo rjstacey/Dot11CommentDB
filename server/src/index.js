@@ -6,18 +6,20 @@
 
 'use strict'
 
+require('dotenv').config()
+
 const path = require('path')
 const express = require('express')
-const app = express()
 
+const app = express()
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 
-const connection = require('./util/database')
 
+const db = require('./util/database')
 const expressSession = require('express-session')
 const MySQLStore = require('express-mysql-session')(expressSession)
-const sessionStore = new MySQLStore({}, connection.pool)
+const sessionStore = new MySQLStore({}, db.pool)
 app.use(expressSession({
 	//name: 'id42',
 	secret: 'random_string_goes_here',
@@ -32,8 +34,26 @@ app.use((req, res, next) => {
 	next()
 })
 
-const api = require('./api/router')(connection)
-app.use('/api', api)
+app.use('/auth', require('./auth/session'))
+app.use('/api', require('./api/router'))
+
+app.use((err, req, res, next) => {
+	console.log(err)
+	let message
+	if (typeof err === 'string') {
+		message = err
+	}
+	else {
+		//console.log(err)
+		try {
+			message = err.toString()
+		}
+		catch(e) {
+			message = JSON.stringify(err)
+		}
+	}
+	res.status(400).send(message)
+})
 
 app.use(express.static(path.join(__dirname, 'app')))
 app.get('/*', (req, res) => {
@@ -42,7 +62,7 @@ app.get('/*', (req, res) => {
 
 // [START listen]
 var PORT = process.env.PORT || 8080
-app.listen(PORT, function () {
+app.listen(PORT, () => {
 	console.log('App listening on port %s', PORT)
 	console.log('Press Ctrl+C to quit.')
 })

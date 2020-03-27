@@ -1,8 +1,10 @@
 'use strict';
 
-var csvParse = require('csv-parse/lib/sync');
-var xlsx = require('xlsx');
-const ExcelJS = require('exceljs');
+var csvParse = require('csv-parse/lib/sync')
+var xlsx = require('xlsx')
+const ExcelJS = require('exceljs')
+const db = require('../util/database')
+const rp = require('request-promise-native')
 
 /*
 function stringToHex(s) {
@@ -499,463 +501,415 @@ const GET_COMMENTS_SUMMARY_SQL =
 	'SELECT COUNT(*) AS Count, MIN(CommentID) AS CommentIDMin, MAX(CommentID) AS CommentIDMax ' +
 	'FROM comments WHERE BallotID=?';
 
-module.exports = function (db, rp) {
-	var module = {}
+async function getComments(ballotId) {
+	return db.query(GET_COMMENTS_SQL + ' WHERE c.BallotID=?', [ballotId])
+}
 
-	module.getComments = async (req, res, next) => {
-		const {ballotId} = req.params
+function updateComment(ballotId, commentId, comment) {
 
-		return db.query(GET_COMMENTS_SQL + ' WHERE c.BallotID=?', [ballotId])
-	}
+	if (comment.hasOwnProperty('resolutions')) {
+		// If there are resolutions then they may need to be inserted or updated
+		if (!Array.isArray(comment.resolutions)) {
+			throw 'Expected array for resolutions'
+		}
+		var resolutions = comment.resolutions
+		delete comment.resolutions
 
-	module.updateComment = (req, res, next) => {
-		const {ballotId, commentId} = req.params
-
-		if (req.body.hasOwnProperty('resolutions')) {
-			// If there are resolutions then they may need to be inserted or updated
-			if (!Array.isArray(req.body.resolutions)) {
-				throw 'Expected array for resolutions'
-			}
-			var resolutions = req.body.resolutions
-			delete req.body.resolutions
-
-			// Need to know what is already present
-			return db.query('SELECT * FROM resolutions WHERE (BallotID=? AND CommentID=?)', [ballotId, commentId])
-				.then(results => {
-					// Each resolution entry is either an update or an insertion
-					// an update if already present; an insertion if not present
-					let queries = [];
-					resolutions.forEach(r1 => {
-						console.log('r1=', r1)
-						let present = false;
-						results.forEach(r2 => {
-							if (r2.ResolutionID === r1.ResolutionID) {
-								present = true;
-							}
-						})
-						if (present) {
-							// present so it is an update
-							let resolutionId = r1.ResolutionID;
-							delete r1.BallotID;
-							delete r1.CommentID;
-							delete r1.ResolutionID;
-							if (Object.keys(r1).length !== 0) {
-								queries.push(db.format('UPDATE resolutions SET ? WHERE (BallotID=? AND CommentID=? AND ResolutionID=?)', [r1, ballotId, commentId, resolutionId]));
-							}
+		// Need to know what is already present
+		return db.query('SELECT * FROM resolutions WHERE (BallotID=? AND CommentID=?)', [ballotId, commentId])
+			.then(results => {
+				// Each resolution entry is either an update or an insertion
+				// an update if already present; an insertion if not present
+				let queries = [];
+				resolutions.forEach(r1 => {
+					console.log('r1=', r1)
+					let present = false;
+					results.forEach(r2 => {
+						if (r2.ResolutionID === r1.ResolutionID) {
+							present = true;
 						}
-						else {
-							// not present so it must be an insert
-							r1.BallotID = ballotId;
-							r1.CommentID = commentId;
-							queries.push(db.format('INSERT INTO resolutions SET ?', r1));
+					})
+					if (present) {
+						// present so it is an update
+						let resolutionId = r1.ResolutionID;
+						delete r1.BallotID;
+						delete r1.CommentID;
+						delete r1.ResolutionID;
+						if (Object.keys(r1).length !== 0) {
+							queries.push(db.format('UPDATE resolutions SET ? WHERE (BallotID=? AND CommentID=? AND ResolutionID=?)', [r1, ballotId, commentId, resolutionId]));
 						}
-					});
-
-					// If there are additional changes to the comment, then make these too
-					if (Object.keys(req.body).length !== 0) {
-						queries.push(db.format('UPDATE comments SET ? WHERE (BallotID=? AND CommentID=?)', [req.body, ballotId, commentId]));
 					}
-
-					// It is possible that we end up with nothing to do
-					if (queries.length === 0) {
-						return Promise.resolve(null);
+					else {
+						// not present so it must be an insert
+						r1.BallotID = ballotId;
+						r1.CommentID = commentId;
+						queries.push(db.format('INSERT INTO resolutions SET ?', r1));
 					}
+				});
 
-					var query = queries.join(';');
-					console.log(query);
-					return db.query(query);
-				})
-		}
-		else if (Object.keys(req.body).length !== 0) {
-			return db.query("UPDATE comments SET ? WHERE (BallotID=? AND CommentID=?)", [req.body, ballotId, commentId]);
-		}
-		else {
-			// Nothing to do
-			return Promise.resolve(null);
-		}
-	}
-
-	function getResolutionIds(CIDs) {
-		return CIDs.split(',').map(cid => {
-			const m = cid.match(/(\d+)\.(\d+)/)
-			return m?
-				{
-					CommentID: parseInt(m[1], 10),
-					ResolutionID: parseInt(m[2], 10)
-				}:
-				{
-					CommentID: parseInt(cid, 10)
+				// If there are additional changes to the comment, then make these too
+				if (Object.keys(comment).length !== 0) {
+					queries.push(db.format('UPDATE comments SET ? WHERE (BallotID=? AND CommentID=?)', [comment, ballotId, commentId]));
 				}
-		})
-	}
 
-	async function updateResolution(ballotId, commentId, resolutionId, resolution) {
-		const entry = {
-			BallotID: resolution.BallotID,
-			CommentID: resolution.CommentID,
-			ResolutionID: resolution.ResolutionID,
-			CommentGroup: resolution.CommentGroup,
-			ResnStatus: resolution.ResnStatus,
-			Resolution: resolution.Resolution,
-			AssigneeSAPIN: resolution.AssigneeSAPIN,
-			AssigneeName: resolution.AssigneeName,
-			Submission: resolution.Submission,
-			ReadyForMotion: resolution.ReadyForMotion,
-			ApprovedByMotion: resolution.ApprovedByMotion,
-			EditStatus: resolution.EditStatus,
-			EditNotes: resolution.EditNotes,
-			EditInDraft: resolution.EditInDraft,
-			Notes: resolution.Notes
+				// It is possible that we end up with nothing to do
+				if (queries.length === 0) {
+					return Promise.resolve(null);
+				}
+
+				var query = queries.join(';');
+				console.log(query);
+				return db.query(query);
+			})
+	}
+	else if (Object.keys(comment).length !== 0) {
+		return db.query("UPDATE comments SET ? WHERE (BallotID=? AND CommentID=?)", [comment, ballotId, commentId]);
+	}
+	else {
+		// Nothing to do
+		return Promise.resolve(null);
+	}
+}
+
+function getResolutionIds(CIDs) {
+	return CIDs.split(',').map(cid => {
+		const m = cid.match(/(\d+)\.(\d+)/)
+		return m?
+			{
+				CommentID: parseInt(m[1], 10),
+				ResolutionID: parseInt(m[2], 10)
+			}:
+			{
+				CommentID: parseInt(cid, 10)
+			}
+	})
+}
+
+async function updateResolution(ballotId, commentId, resolutionId, resolution) {
+	const entry = {
+		BallotID: resolution.BallotID,
+		CommentID: resolution.CommentID,
+		ResolutionID: resolution.ResolutionID,
+		CommentGroup: resolution.CommentGroup,
+		ResnStatus: resolution.ResnStatus,
+		Resolution: resolution.Resolution,
+		AssigneeSAPIN: resolution.AssigneeSAPIN,
+		AssigneeName: resolution.AssigneeName,
+		Submission: resolution.Submission,
+		ReadyForMotion: resolution.ReadyForMotion,
+		ApprovedByMotion: resolution.ApprovedByMotion,
+		EditStatus: resolution.EditStatus,
+		EditNotes: resolution.EditNotes,
+		EditInDraft: resolution.EditInDraft,
+		Notes: resolution.Notes
+	}
+	for (let key of Object.keys(entry)) {
+		if (entry[key] === undefined) {
+			delete entry[key]
 		}
-		for (let key of Object.keys(entry)) {
-			if (entry[key] === undefined) {
-				delete entry[key]
-			}
-		}
-		console.log(entry)
-		let SQL = ''
-		if (Object.keys(entry).length) {
-			SQL += db.format(
-					'UPDATE resolutions SET ? WHERE (BallotID=? AND CommentID=? AND ResolutionID=?);',
-					[entry, ballotId, commentId, resolutionId]
-				)
-			if (entry.BallotID) {
-				ballotId = entry.BallotID
-			}
-			if (entry.CommentID) {
-				commentId = entry.CommentID
-			}
-			if (entry.ResolutionID) {
-				resolutionId = entry.ResolutionID
-			}
-		}
+	}
+	console.log(entry)
+	let SQL = ''
+	if (Object.keys(entry).length) {
 		SQL += db.format(
-				'SELECT * FROM resolutions WHERE (BallotID=? AND CommentID=? AND ResolutionID=?);',
-				[ballotId, commentId, resolutionId]
+				'UPDATE resolutions SET ? WHERE (BallotID=? AND CommentID=? AND ResolutionID=?);',
+				[entry, ballotId, commentId, resolutionId]
 			)
-		const results = await db.query(SQL)
-		return results[results.length-1][0]
-	}
-
-	module.updateResolutions = async (req, res, next) => {
-		const {ballotId} = req.params
-		const {CIDs} = req.body
-
-		if (!req.body.hasOwnProperty('resolutions') ||
-			!Array.isArray(req.body.resolutions)) {
-			throw 'Missing resolutions array'
+		if (entry.BallotID) {
+			ballotId = entry.BallotID
 		}
-		const resolutions = req.body.resolutions
-
-		// If the optional parameter CIDs is not given, then use the identifiers in the resolutions
-		let resIds
-		if (CIDs) {
-			resIds = getResolutionIds(CIDs)
-			if (resolutions.length !== resIds.length) {
-				throw 'The CIDs array and resolutions array have different lengths'
-			}
+		if (entry.CommentID) {
+			commentId = entry.CommentID
 		}
-		else {
-			resIds = resolutions.map(r => ({CommentID: r.CommentID, ResolutionID: r.ResolutionID}))
-		}
-
-		return Promise.all(resolutions.map((r, i) => updateResolution(ballotId, resIds[i].CommentID, resIds[i].ResolutionID, r)))
-	}
-
-
-	async function addResolution(ballotId, commentId, resolution) {
-		let resolutionId
-		if (!resolution.hasOwnProperty('ResolutionID')) {
-			/* Find smallest unused ResolutionID */
-			let result = await db.query(
-				'SELECT MIN(ResolutionID)-1 AS ResolutionID FROM resolutions WHERE BallotID=? AND CommentID=?;',
-				[ballotId, commentId])
-			resolutionId = result[0].ResolutionID
-			console.log(result)
-			if (resolutionId === null) {
-				resolutionId = 0
-			}
-			else if (resolutionId < 0) {
-				result = await db.query(
-					'SELECT r1.ResolutionID+1 AS ResolutionID FROM resolutions AS r1 ' +
-    				'LEFT JOIN resolutions AS r2 ON r1.ResolutionID+1=r2.ResolutionID AND r1.BallotID=r2.BallotID AND r1.CommentID=r2.CommentID ' +
-					'WHERE r2.ResolutionID IS NULL AND r1.BallotID=? AND r1.CommentID=? LIMIT 1;',
-					[ballotId, commentId])
-				console.log(result)
-				resolutionId = result[0].ResolutionID
-			}
-		}
-		else {
-			resolutionId = req.body.ResolutionID
-		}
-		console.log(resolutionId)
-
-		const entry = {
-			BallotID: ballotId,
-			CommentID: commentId,
-			ResolutionID: resolutionId,
-			ResnStatus: resolution.ResnStatus,
-			Resolution: resolution.Resolution,
-			AssigneeSAPIN: resolution.AssigneeSAPIN,
-			AssigneeName: resolution.AssigneeName,
-			Submission: resolution.Submission,
-			ReadyForMotion: resolution.ReadyForMotion,
-			ApprovedByMotion: resolution.ApprovedByMotion,
-			EditStatus: resolution.EditStatus,
-			EditNotes: resolution.EditNotes,
-			EditInDraft: resolution.EditInDraft,
-			Notes: resolution.Notes
-		}
-
-		const result = await db.query('INSERT INTO resolutions SET ?', [entry])
-		return {
-			BallotID: ballotId,
-			CommentID: commentId,
-			ResolutionID: resolutionId
+		if (entry.ResolutionID) {
+			resolutionId = entry.ResolutionID
 		}
 	}
-
-	module.addResolutions = async (req, res, next) => {
-		const {ballotId} = req.params
-		const resolutions = req.body
-		if (!Array.isArray(resolutions)) {
-			throw 'Expect an array parameter'
-		}
-		console.log(resolutions)
-
-		const resIds = await Promise.all(resolutions.map(r => addResolution(ballotId, r.CommentID, r)))
-		console.log(resIds)
-		const commentIds = resIds.map(r => r.CommentID)
-		const updatedComments = await db.query(
-			GET_COMMENTS_SQL + 'WHERE c.BallotID=? AND c.CommentID IN (?);',
-			[ballotId, commentIds]
+	SQL += db.format(
+			'SELECT * FROM resolutions WHERE (BallotID=? AND CommentID=? AND ResolutionID=?);',
+			[ballotId, commentId, resolutionId]
 		)
-		let data = {
-			newComments: [],
-			updatedComments: []
-		}
-		for (let c of updatedComments) {
-			if (resIds.find(r => r.CommentID === c.CommentID && r.ResolutionID === c.ResolutionID)) {
-				data.newComments.push(c)
-			}
-			else {
-				data.updatedComments.push(c)
-			}
-		}
-		return data
-	}
+	const results = await db.query(SQL)
+	return results[results.length-1][0]
+}
 
-	module.deleteResolutions = async (req, res, next) => {
-		const {ballotId} = req.params
-		const {resolutions} = req.body
-		console.log(resolutions)
-
-		//const resIds = getResolutionIds(CIDs)
-		const SQL =
-			resolutions.map(r => 
-				db.format(
-					'DELETE FROM resolutions WHERE BallotID=? AND CommentID=? AND ResolutionID=?;',
-					[ballotId, r.CommentID, r.ResolutionID]
-				)
-			).join('') +
-			db.format(
-				GET_COMMENTS_SQL +
-				'WHERE c.BallotID=? AND c.CommentID IN (?);',
-				[ballotId, resolutions.map(r => r.CommentID)]
-			)
-
-		console.log(SQL)
-		const results = await db.query(SQL)
-		return {
-			updatedComments: results[results.length-1]
+async function updateResolutions(ballotId, CIDs, resolutions) {
+	// If the optional parameter CIDs is not given, then use the identifiers in the resolutions
+	let resIds
+	if (CIDs) {
+		resIds = getResolutionIds(CIDs)
+		if (resolutions.length !== resIds.length) {
+			throw 'The CIDs array and resolutions array have different lengths'
 		}
 	}
-  
-	module.deleteComments = async (req, res, next) => {
-		const {ballotId} = req.params
-		await db.query(
-			'START TRANSACTION;' +
-			'DELETE FROM comments WHERE BallotID=?;' +
-			'DELETE FROM resolutions WHERE BallotID=?;' +
-			'COMMIT;',
-			[ballotId, ballotId])
-		return true
+	else {
+		resIds = resolutions.map(r => ({CommentID: r.CommentID, ResolutionID: r.ResolutionID}))
 	}
 
-	async function insertComments(ballotId, comments) {
-		var SQL = db.format('DELETE FROM comments WHERE BallotID=?;', [ballotId])
-		if (comments.length) {
-			SQL +=
-				`INSERT INTO comments (BallotID, ${Object.keys(comments[0])}) VALUES` +
-				comments.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(', ') +
-				';'
+	return Promise.all(resolutions.map((r, i) => updateResolution(ballotId, resIds[i].CommentID, resIds[i].ResolutionID, r)))
+}
+
+async function addResolution(ballotId, commentId, resolution) {
+	let resolutionId
+	if (!resolution.hasOwnProperty('ResolutionID')) {
+		/* Find smallest unused ResolutionID */
+		let result = await db.query(
+			'SELECT MIN(ResolutionID)-1 AS ResolutionID FROM resolutions WHERE BallotID=? AND CommentID=?;',
+			[ballotId, commentId])
+		resolutionId = result[0].ResolutionID
+		console.log(result)
+		if (resolutionId === null) {
+			resolutionId = 0
 		}
-		SQL += db.format(GET_COMMENTS_SQL + 'WHERE c.BallotID=?;', [ballotId])
-		SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId])
-
-		//console.log(SQL);
-
-		const results = await db.query(SQL)
-		//console.log(results)
-		return {
-			BallotID: ballotId,
-			comments: results[results.length-2],
-			summary: results[results.length-1][0]
+		else if (resolutionId < 0) {
+			result = await db.query(
+				'SELECT r1.ResolutionID+1 AS ResolutionID FROM resolutions AS r1 ' +
+				'LEFT JOIN resolutions AS r2 ON r1.ResolutionID+1=r2.ResolutionID AND r1.BallotID=r2.BallotID AND r1.CommentID=r2.CommentID ' +
+				'WHERE r2.ResolutionID IS NULL AND r1.BallotID=? AND r1.CommentID=? LIMIT 1;',
+				[ballotId, commentId])
+			console.log(result)
+			resolutionId = result[0].ResolutionID
 		}
 	}
+	else {
+		resolutionId = req.body.ResolutionID
+	}
+	console.log(resolutionId)
 
-	module.importEpollComments = async (req, res, next) => {
-		const sess = req.session;
-
-		const {ballotId, epollNum} = req.params
-		const startCommentId = req.body.StartCID || 1;
-
-		var options = {
-			url: `https://mentor.ieee.org/802.11/poll-comments.csv?p=${epollNum}`,
-			jar: sess.ieeeCookieJar,
-			resolveWithFullResponse: true,
-			simple: false
-		}
-		const ieeeRes = await rp.get(options)
-		console.log(ieeeRes.headers)
-		if (ieeeRes.headers['content-type'] !== 'text/csv') {
-			throw 'Not logged in'
-		}
-
-		var comments = parseEpollComments(startCommentId, ieeeRes.body);
-		//console.log(comments);
-
-		return insertComments(ballotId, comments)
+	const entry = {
+		BallotID: ballotId,
+		CommentID: commentId,
+		ResolutionID: resolutionId,
+		ResnStatus: resolution.ResnStatus,
+		Resolution: resolution.Resolution,
+		AssigneeSAPIN: resolution.AssigneeSAPIN,
+		AssigneeName: resolution.AssigneeName,
+		Submission: resolution.Submission,
+		ReadyForMotion: resolution.ReadyForMotion,
+		ApprovedByMotion: resolution.ApprovedByMotion,
+		EditStatus: resolution.EditStatus,
+		EditNotes: resolution.EditNotes,
+		EditInDraft: resolution.EditInDraft,
+		Notes: resolution.Notes
 	}
 
-	module.uploadComments = async function(req, res, next) {
-		const {ballotId} = req.params
-		const type = parseInt(req.params.type, 10)
+	const result = await db.query('INSERT INTO resolutions SET ?', [entry])
+	return {
+		BallotID: ballotId,
+		CommentID: commentId,
+		ResolutionID: resolutionId
+	}
+}
 
-		if (!req.file) {
-			throw 'Missing file'
-		}
-		const startCommentId = req.body.StartCID || 1
+async function addResolutions(ballotId, resolutions) {
+	console.log(resolutions)
 
-		let comments
-		if (type < 3) {
-			comments = parseEpollComments(startCommentId, req.file.buffer)
+	const resIds = await Promise.all(resolutions.map(r => addResolution(ballotId, r.CommentID, r)))
+	console.log(resIds)
+	const commentIds = resIds.map(r => r.CommentID)
+	const updatedComments = await db.query(
+		GET_COMMENTS_SQL + 'WHERE c.BallotID=? AND c.CommentID IN (?);',
+		[ballotId, commentIds]
+	)
+	let data = {
+		newComments: [],
+		updatedComments: []
+	}
+	for (let c of updatedComments) {
+		if (resIds.find(r => r.CommentID === c.CommentID && r.ResolutionID === c.ResolutionID)) {
+			data.newComments.push(c)
 		}
 		else {
-			const isExcel = req.file.originalname.search(/\.xlsx$/i) !== -1
-			comments = await parseMyProjectComments(startCommentId, req.file.buffer, isExcel)
-		}
-
-		//console.log('comment=', comments)
-		return insertComments(ballotId, comments)
-	}
-
-	module.uploadResolutions = async function (req, res, next) {
-		console.log(req.body);
-
-		const ballotId = req.body.BallotID;
-		if (!ballotId) {
-			return Promise.reject('Missing parameter BallotID')
-		}
-		if (!req.file) {
-			return Promise.reject('Missing file')
-		}
-
-		const match = {
-			'elimination': matchByElimination,
-			'perfect': matchPerfect,
-			'cid': matchByCommentId
-		}
-
-		const matchAlgorithm = req.body.matchAlgorithm
-		const valid = Object.keys(match).join('|')
-		console.log('huh', matchAlgorithm, typeof matchAlgorithm !== 'string', matchAlgorithm.search(valid) === -1)
-		if (!matchAlgorithm || 
-			typeof matchAlgorithm !== 'string' ||
-			matchAlgorithm.search(valid) === -1) {
-			throw 'Parameter matchAlgorithm either missing or has value other than ' + valid + '.'
-		}
-
-		const matchAll = req.body.matchAll || true
-
-		const sheetComments = await parseLegacyCommentsSpreadsheet(req.file.buffer)
-		const dbComments = await db.query('SELECT * FROM comments WHERE BallotID=?', [ballotId])
-
-		const [matched, dbCommentsRemaining, sheetCommentsRemaining] = match[matchAlgorithm](sheetComments, dbComments)
-		console.log(sheetCommentsRemaining)
-		if (matchAll && (sheetCommentsRemaining.length || dbCommentsRemaining.length)) {
-			throw `No update\n` +
-				`${matched.length} matched entries\n` +
-				`${dbCommentsRemaining.length} unmatch database entries\n` +
-				`${sheetCommentsRemaining.length} unmatch spreadsheet entries:\n` +
-				sheetCommentsRemaining.map(c => c['CID']).join(', ')
-		}
-
-		// See if any of the comment fields need updating
-		var updateComments = []
-		var newResolutions = []
-		for (let m of matched) {
-			const c = m.dbComment
-			const cs = m.sheetComment
-
-			const u = commentUpdate(c, cs)
-			if (u) {
-				updateComments.push(u)
-			}
-
-			const r = resolutionUpdate(cs)
-			if (r) {
-				newResolutions.push(r)
-			}
-		}
-
-		var SQL = db.format('DELETE FROM resolutions WHERE BallotID=?;', [ballotId]);
-		if (updateComments.length) {
-			for (let c of updateComments) {
-				var cid = c.PrevCommentID;
-				delete c.PrevCommentID;
-				SQL += db.format('UPDATE comments SET ? WHERE BallotID=? AND CommentID=?;', [c, ballotId, cid]);
-			}
-		}
-
-		if (newResolutions.length) {
-			SQL +=
-				db.format('INSERT INTO resolutions (BallotID, ??) VALUES ', [Object.keys(newResolutions[0])]) +
-				newResolutions.map(r => db.format('(?, ?)', [ballotId, Object.values(r)])).join(',') +
-				';'
-		}
-		SQL += db.format(GET_COMMENTS_SQL + 'WHERE c.BallotID=?;', [ballotId])
-		SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId])
-
-		//const fs = require('fs');
-		//fs.writeFile("sql.txt", SQL, (err) => {if (err) {console.log(err)}})
-		//console.log(SQL);
-
-		const results = await db.query(SQL)
-		//console.log(results)
-		return {
-			BallotID: ballotId,
-			comments: results[results.length-2],
-			summary: results[results.length-1][0],
-			unmatch: sheetCommentsRemaining.map(c => c['CID'])
+			data.updatedComments.push(c)
 		}
 	}
+	return data
+}
 
-	module.exportMyProjectComments = async function(req, res, next) {
-		const ballotId = req.query.BallotID;
-		if (!ballotId) {
-			throw 'Missing parameter BallotID'
-		}
-		const comments = await db.query(GET_COMMENTS_SQL + "WHERE r.ResnStatus IS NOT NULL AND r.ResnStatus <> '' AND c.BallotID = ?;", [ballotId])
-		//console.log(comments)
+async function deleteResolutions(ballotId, resolutions) {
+	console.log(resolutions)
 
-		let wb = myProjectCommentsWorkbook(comments)
+	const SQL =
+		resolutions.map(r => 
+			db.format(
+				'DELETE FROM resolutions WHERE BallotID=? AND CommentID=? AND ResolutionID=?;',
+				[ballotId, r.CommentID, r.ResolutionID]
+			)
+		).join('') +
+		db.format(
+			GET_COMMENTS_SQL +
+			'WHERE c.BallotID=? AND c.CommentID IN (?);',
+			[ballotId, resolutions.map(r => r.CommentID)]
+		)
 
-		res.attachment(ballotId + '_comments.xlsx')
+	console.log(SQL)
+	const results = await db.query(SQL)
+	return {
+		updatedComments: results[results.length-1]
+	}
+}
+  
+async function deleteComments(ballotId) {
+	await db.query(
+		'START TRANSACTION;' +
+		'DELETE FROM comments WHERE BallotID=?;' +
+		'DELETE FROM resolutions WHERE BallotID=?;' +
+		'COMMIT;',
+		[ballotId, ballotId])
+	return true
+}
 
-		await wb.xlsx.write(res)
-		res.end()
+async function insertComments(ballotId, comments) {
+	var SQL = db.format('DELETE FROM comments WHERE BallotID=?;', [ballotId])
+	if (comments.length) {
+		SQL +=
+			`INSERT INTO comments (BallotID, ${Object.keys(comments[0])}) VALUES` +
+			comments.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(', ') +
+			';'
+	}
+	SQL += db.format(GET_COMMENTS_SQL + 'WHERE c.BallotID=?;', [ballotId])
+	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId])
+
+	//console.log(SQL);
+
+	const results = await db.query(SQL)
+	//console.log(results)
+	return {
+		BallotID: ballotId,
+		comments: results[results.length-2],
+		summary: results[results.length-1][0]
+	}
+}
+
+async function importEpollComments(sess, ballotId, epollNum, startCommentId) {
+	const options = {
+		url: `https://mentor.ieee.org/802.11/poll-comments.csv?p=${epollNum}`,
+		jar: sess.ieeeCookieJar,
+		resolveWithFullResponse: true,
+		simple: false
+	}
+	const ieeeRes = await rp.get(options)
+	console.log(ieeeRes.headers)
+	if (ieeeRes.headers['content-type'] !== 'text/csv') {
+		throw 'Not logged in'
 	}
 
-	return module;
+	const comments = parseEpollComments(startCommentId, ieeeRes.body)
+	//console.log(comments);
+
+	return insertComments(ballotId, comments)
+}
+
+async function uploadComments(req, res, next) {
+	let comments
+	if (type < 3) {
+		comments = parseEpollComments(startCommentId, req.file.buffer)
+	}
+	else {
+		const isExcel = req.file.originalname.search(/\.xlsx$/i) !== -1
+		comments = await parseMyProjectComments(startCommentId, req.file.buffer, isExcel)
+	}
+	//console.log('comment=', comments)
+	return insertComments(ballotId, comments)
+}
+
+async function uploadResolutions(ballotId, matchAlgorithm, matchAll, file) {
+	const match = {
+		'elimination': matchByElimination,
+		'perfect': matchPerfect,
+		'cid': matchByCommentId
+	}
+	const valid = Object.keys(match).join('|')
+	console.log('huh', matchAlgorithm, typeof matchAlgorithm !== 'string', matchAlgorithm.search(valid) === -1)
+	if (!matchAlgorithm || 
+		typeof matchAlgorithm !== 'string' ||
+		matchAlgorithm.search(valid) === -1) {
+		throw 'Parameter matchAlgorithm either missing or has value other than ' + valid + '.'
+	}
+
+	const sheetComments = await parseLegacyCommentsSpreadsheet(file.buffer)
+	const dbComments = await db.query('SELECT * FROM comments WHERE BallotID=?', [ballotId])
+
+	const [matched, dbCommentsRemaining, sheetCommentsRemaining] = match[matchAlgorithm](sheetComments, dbComments)
+	console.log(sheetCommentsRemaining)
+	if (matchAll && (sheetCommentsRemaining.length || dbCommentsRemaining.length)) {
+		throw `No update\n` +
+			`${matched.length} matched entries\n` +
+			`${dbCommentsRemaining.length} unmatch database entries\n` +
+			`${sheetCommentsRemaining.length} unmatch spreadsheet entries:\n` +
+			sheetCommentsRemaining.map(c => c['CID']).join(', ')
+	}
+
+	// See if any of the comment fields need updating
+	var updateComments = []
+	var newResolutions = []
+	for (let m of matched) {
+		const c = m.dbComment
+		const cs = m.sheetComment
+		const u = commentUpdate(c, cs)
+		if (u) {
+			updateComments.push(u)
+		}
+		const r = resolutionUpdate(cs)
+		if (r) {
+			newResolutions.push(r)
+		}
+	}
+
+	var SQL = db.format('DELETE FROM resolutions WHERE BallotID=?;', [ballotId]);
+	if (updateComments.length) {
+		for (let c of updateComments) {
+			var cid = c.PrevCommentID;
+			delete c.PrevCommentID;
+			SQL += db.format('UPDATE comments SET ? WHERE BallotID=? AND CommentID=?;', [c, ballotId, cid]);
+		}
+	}
+
+	if (newResolutions.length) {
+		SQL +=
+			db.format('INSERT INTO resolutions (BallotID, ??) VALUES ', [Object.keys(newResolutions[0])]) +
+			newResolutions.map(r => db.format('(?, ?)', [ballotId, Object.values(r)])).join(',') +
+			';'
+	}
+	SQL += db.format(GET_COMMENTS_SQL + 'WHERE c.BallotID=?;', [ballotId])
+	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId])
+
+	//const fs = require('fs');
+	//fs.writeFile("sql.txt", SQL, (err) => {if (err) {console.log(err)}})
+	//console.log(SQL);
+
+	const results = await db.query(SQL)
+	//console.log(results)
+	return {
+		BallotID: ballotId,
+		comments: results[results.length-2],
+		summary: results[results.length-1][0],
+		unmatch: sheetCommentsRemaining.map(c => c['CID'])
+	}
+}
+
+async function exportMyProjectComments(ballotId, res) {
+	
+	const comments = await db.query(GET_COMMENTS_SQL + "WHERE r.ResnStatus IS NOT NULL AND r.ResnStatus <> '' AND c.BallotID = ?;", [ballotId])
+	//console.log(comments)
+
+	let wb = myProjectCommentsWorkbook(comments)
+
+	res.attachment(ballotId + '_comments.xlsx')
+
+	await wb.xlsx.write(res)
+	res.end()
+}
+
+module.exports = {
+	getComments,
+	updateComment,
+	updateResolutions,
+	addResolutions,
+	deleteResolutions,
+	deleteComments,
+	importEpollComments,
+	uploadComments,
+	uploadResolutions,
+	exportMyProjectComments
 }
