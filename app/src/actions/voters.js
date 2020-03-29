@@ -131,7 +131,7 @@ export function uploadVoters(votingPoolType, votingPoolId, file) {
 		try {
 			var formData = new FormData()
 			formData.append("VotersFile", file)
-			const {voters, votingPool} = await fetcher.postMultipart(`/api/votersUpload/${votingPoolType}/${votingPoolId}`, {votersFile: file})
+			const {voters, votingPool} = await fetcher.postMultipart(`/api/votersUpload/${votingPoolType}/${votingPoolId}`, {VotersFile: file})
 			return dispatch(uploadVotersSuccess(votingPool, voters))
 		}
 		catch(error) {

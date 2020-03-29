@@ -102,7 +102,7 @@ async function getBallot(ballotId) {
 
 async function getBallotWithNewResultsSummary(ballotId) {
 	let results;
-	results = await resultsModule.getResultsLocal(ballotId)
+	results = await resultsModule.getResults(ballotId)
 	var summary = JSON.stringify(results.summary);
 		
 	results = await db.query(
@@ -147,12 +147,12 @@ async function addBallot(ballot) {
 		const results = await db.query(
 			'INSERT INTO ballots (??) VALUES (?)',
 			[Object.keys(entry), Object.values(entry)]
-			);
+			)
 
 		if (results.affectedRows !== 1) {
 			throw "Unexpected result"
 		}
-		return getBallotWithNewResultsSummary(entry.BallotID);
+		return getBallotWithNewResultsSummary(entry.BallotID)
 	}
 	catch(err) {
 		throw err.code == 'ER_DUP_ENTRY'? "An entry already exists with this ID": JSON.stringify(err)
@@ -211,13 +211,10 @@ async function updateBallot(ballotId, ballot) {
 		}
 	}
 
-	return getBallotWithNewResultsSummary(ballotId);
+	return getBallotWithNewResultsSummary(ballotId)
 }
 
 function deleteBallots(ballotIds) {
-	console.log(req.body)
-
-
 	return db.query(
 		'START TRANSACTION;' +
 		'DELETE FROM ballots WHERE BallotID IN (?);' +

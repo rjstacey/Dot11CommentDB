@@ -433,11 +433,7 @@ function populateResultsWorksheet(ws, results) {
 	}
 }
 
-async function getResultsLocal(ballotId) {
-
-	if (ballotId === undefined) {
-		throw 'Missing parameter BallotID'
-	}
+async function getResults(ballotId) {
 
 	async function recursiveBallotSeriesGet(ballotSeries, ballotId) {
 		const results = await db.query(
@@ -520,10 +516,6 @@ async function getResultsLocal(ballotId) {
 	}
 }
 
-function getResults(ballotId) {
-	return module.getResultsLocal(ballotId)
-}
-
 function deleteResults(ballotId) {
 	return db.query('DELETE FROM results WHERE BallotID=?; UPDATE ballots SET ResultsSummary=NULL WHERE BallotID=?', [ballotId, ballotId])
 }
@@ -574,7 +566,7 @@ async function importEpollResults(ballotId, epollNum) {
 			throw err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err
 		}
 	}
-	const Results = await module.getResultsLocal(ballotId)
+	const Results = await getResults(ballotId)
 	await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [JSON.stringify(Results.summary), ballotId])
 	return Results;
 }
@@ -606,7 +598,7 @@ async function uploadResults(req, res, next) {
 		}
 	}
 	console.log(ballotId)
-	const Results = await module.getResultsLocal(ballotId)
+	const Results = await getResults(ballotId)
 	await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [JSON.stringify(Results.summary), ballotId])
 	return Results
 }
@@ -617,19 +609,19 @@ async function exportResults(params, res) {
 	if (params.hasOwnProperty('BallotID')) {
 		const ballotId = req.query.BallotID
 		fileNamePrefix = ballotId
-		const result = await module.getResultsLocal(ballotId)
+		const result = await getResults(ballotId)
 		results = [result]	// turn parameter into an array
 	}
 	else if (params.hasOwnProperty('BallotIDs')) {
 		const ballotIds = req.query.BallotIDs
 		fileNamePrefix = ballotIds.join('_')
-		results = await Promise.all(ballotIds.map(ballotId => module.getResultsLocal(ballotId)))
+		results = await Promise.all(ballotIds.map(ballotId => getResults(ballotId)))
 	}
 	else if (params.hasOwnProperty('Project')) {
 		const project = req.query.Project
 		fileNamePrefix = project
 		results = await db.query('SELECT BallotID FROM ballots WHERE Project=?', [project])
-		results = await Promise.all(results.map(r => module.getResultsLocal(r.BallotID)))
+		results = await Promise.all(results.map(r => getResults(r.BallotID)))
 	}
 	else {
 		throw 'Missing parameter BallotID, BallotIDs or Project'

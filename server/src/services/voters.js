@@ -1,8 +1,8 @@
+'use strict'
 
 const csvParse = require('csv-parse/lib/sync')
 const ExcelJS = require('exceljs')
 const db = require('../util/database')
-const rp = require('request-promise-native')
 
 const membersHeader = [
 	'SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'
@@ -306,7 +306,7 @@ async function deleteVoters(votingPoolType, votingPoolId, voterIds) {
 	else {
 		SQL = db.format('DELETE FROM wgVoters WHERE VotingPoolID=? AND SAPIN IN (?)', [votingPoolId, voterIds])
 	}
-	const result = await db.query(SQL)
+	await db.query(SQL)
 	const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
 	return {votingPool}
 }
