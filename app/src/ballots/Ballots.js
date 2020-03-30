@@ -2,11 +2,11 @@ import PropTypes from 'prop-types'
 import React, {useEffect} from 'react'
 import {Link, useHistory} from "react-router-dom"
 import {connect} from 'react-redux'
-import ConfirmModal from './ConfirmModal'
-import AppTable, {renderDate} from './AppTable'
-import {setBallotsFilter, setBallotsSort, setBallotsSelected, getBallots, deleteBallots} from './actions/ballots'
-import {getVotingPools} from './actions/voters'
-import {ActionButton} from './Icons'
+import ConfirmModal from '../modals/ConfirmModal'
+import AppTable, {renderDate} from '../general/AppTable'
+import {setBallotsFilter, setBallotsSort, setBallotsSelected, getBallots, deleteBallots} from '../actions/ballots'
+import {getVotingPools} from '../actions/voters'
+import {ActionButton} from '../general/Icons'
 
 
 function renderVotingPool({columnIndex, rowData}) {

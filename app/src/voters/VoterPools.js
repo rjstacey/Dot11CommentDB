@@ -2,12 +2,12 @@ import PropTypes from 'prop-types'
 import React, {useState, useRef, useEffect} from 'react'
 import {useHistory} from 'react-router-dom'
 import {connect} from 'react-redux'
-import AppTable from './AppTable'
-import AppModal from './AppModal'
-import ConfirmModal from './ConfirmModal'
-import {setVotingPoolsSort, setVotingPoolsFilter, setVotingPoolsSelected, getVotingPools, deleteVotingPools, uploadVoters} from './actions/voters'
-import {setError} from './actions/error'
-import {ActionButton} from './Icons'
+import AppTable from '../general/AppTable'
+import AppModal from '../modals/AppModal'
+import ConfirmModal from '../modals/ConfirmModal'
+import {setVotingPoolsSort, setVotingPoolsFilter, setVotingPoolsSelected, getVotingPools, deleteVotingPools, uploadVoters} from '../actions/voters'
+import {setError} from '../actions/error'
+import {ActionButton} from '../general/Icons'
 
 function AddVotingPoolModal(props) {
 	const [votingPoolName, setVotingPoolName] = useState('')

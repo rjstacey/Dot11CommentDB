@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react'
 import {connect} from 'react-redux'
-import {getBallots, setProject, setBallotId} from './actions/ballots'
+import {getBallots, setProject, setBallotId} from '../actions/ballots'
 
 function BallotSelector(props) {
 	const {project, projectList, ballotId, ballotList, readOnly, onBallotSelected} = props

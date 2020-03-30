@@ -19,7 +19,7 @@ import {
 	faObjectGroup, faUserCheck, faEdit
 } from '@fortawesome/free-solid-svg-icons'
 //import { faCode, faHighlighter } from '@fortawesome/free-regular-svg-icons';
-import styles from './css/Icons.css'
+import styles from '../css/Icons.css'
 
 export function init() {
 	library.add(

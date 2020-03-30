@@ -3,12 +3,12 @@ import cx from 'classnames'
 import {Editor, EditorState, RichUtils, getDefaultKeyBinding, KeyBindingUtil,
 	ContentBlock, genKey, SelectionState, Modifier, ContentState, convertFromHTML} from 'draft-js'
 import Immutable from 'immutable'
-import {ActionButton} from './Icons'
+import {ActionButton} from '../general/Icons'
 import 'draft-js/dist/Draft.css'
 import {stateToHTML} from 'draft-js-export-html'
 import {stateFromHTML} from 'draft-js-import-html'
 import debounce from 'lodash/debounce'
-import styles from './css/ResolutionEditor.css'
+import styles from '../css/ResolutionEditor.css'
 
 
 const BLOCK_TYPES = [

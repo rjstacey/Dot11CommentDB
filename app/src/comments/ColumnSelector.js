@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import React, {useState, useEffect} from 'react'
-import {ActionButton} from './Icons'
-import styles from './css/ColumnSelector.css'
+import {ActionButton} from '../general/Icons'
+import styles from '../css/ColumnSelector.css'
 
 function ColumnSelector(props) {
 	const [isOpen, setOpen] = useState(false)

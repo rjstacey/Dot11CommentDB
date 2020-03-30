@@ -1,7 +1,7 @@
 import React from 'react'
 import {connect} from 'react-redux'
 import AppModal from './AppModal'
-import {clearError} from './actions/error'
+import {clearError} from '../actions/error'
 
 function strToHtml(s) {
 	return s

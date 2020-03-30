@@ -4,9 +4,9 @@ import update from 'immutability-helper'
 import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized'
 import Draggable from 'react-draggable'
 import cx from 'classnames'
-import {allSelected, toggleVisible} from './filter'
+import {allSelected, toggleVisible} from '../lib/filter'
 import {IconSort} from './Icons'
-import styles from './css/AppTable.css'
+import styles from '../css/AppTable.css'
 
 function renderPreservingNewlines(text) {
 	return typeof text === 'string'?

@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import Modal from 'react-modal'
-import {IconClose} from './Icons'
 import cx from 'classnames'
-import styles from './css/Modals.css'
+import {IconClose} from '../general/Icons'
+import styles from '../css/Modals.css'
 
 function AppModal(props) {
 	const {className, children, ...otherProps} = props;

@@ -1,9 +1,9 @@
 import React, {useRef, useEffect} from 'react'
 import {connect} from 'react-redux'
 import {useHistory} from 'react-router-dom'
-import AppTable, {renderDate} from './AppTable'
-import {ActionButton} from './Icons'
-import {setEpollsSort, setEpollsFilter, getEpolls} from './actions/epolls'
+import AppTable, {renderDate} from '../general/AppTable'
+import {ActionButton} from '../general/Icons'
+import {setEpollsSort, setEpollsFilter, getEpolls} from '../actions/epolls'
 
 
 function Epolls(props) {

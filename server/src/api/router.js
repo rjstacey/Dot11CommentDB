@@ -9,11 +9,6 @@
 const multer = require('multer')
 const upload = multer()
 const router = require('express').Router()
-const rp = require('request-promise-native')
-
-if (process.env.HTTP_PROXY) {
-	rp.defaults({proxy: process.env.HTTP_PROXY})
-}
 
 /*
  * Enforce basic access

@@ -1,15 +1,15 @@
 import PropTypes from 'prop-types'
 import React, {useState, useEffect} from 'react'
 import {useHistory, useParams} from 'react-router-dom'
-import AppTable from './AppTable'
-import AppModal from './AppModal'
 import {connect} from 'react-redux'
-import BallotSelector from './BallotSelector'
-import {setResultsSort, setResultsFilter, getResults} from './actions/results'
-import {setError} from './actions/error'
-import {setBallotId} from './actions/ballots'
-import {ActionButton, IconUp, IconDown} from './Icons'
-import fetcher from './lib/fetcher'
+import AppTable from '../general/AppTable'
+import AppModal from '../modals/AppModal'
+import BallotSelector from '../ballots/BallotSelector'
+import {setResultsSort, setResultsFilter, getResults} from '../actions/results'
+import {setError} from '../actions/error'
+import {setBallotId} from '../actions/ballots'
+import {ActionButton, IconUp, IconDown} from '../general/Icons'
+import fetcher from '../lib/fetcher'
 
 
 function ExportModal(props) {

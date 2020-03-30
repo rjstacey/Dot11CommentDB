@@ -1,11 +1,20 @@
 import PropTypes from 'prop-types'
 import React, {useState, useEffect, useRef} from 'react'
 import { connect } from 'react-redux'
-import AppTable from './AppTable'
-import AppModal from './AppModal'
-import {ActionButton} from './Icons'
-import ConfirmModal from './ConfirmModal'
-import {setUsersFilter, setUsersSort, setUsersSelected, getUsers, updateUser, addUser, deleteUsers, uploadUsers} from './actions/users'
+import AppTable from '../general/AppTable'
+import AppModal from '../modals/AppModal'
+import ConfirmModal from '../modals/ConfirmModal'
+import {ActionButton} from '../general/Icons'
+import {
+	setUsersFilter,
+	setUsersSort,
+	setUsersSelected,
+	getUsers,
+	updateUser,
+	addUser,
+	deleteUsers,
+	uploadUsers
+} from '../actions/users'
 
 
 function AddUserModal(props) {
@@ -190,9 +199,10 @@ function Users(props) {
 					updateUserField(rowIndex, dataKey, e.target.value)
 				}}
 			>
-				<option value='1'>Basic</option>
-				<option value='2'>Plus</option>
-				<option value='3'>Super</option>
+				<option value='0'>Public</option>
+				<option value='1'>Member</option>
+				<option value='2'>Subgroup Admin</option>
+				<option value='3'>WG Admin</option>
 			</select>
 		)
 	}

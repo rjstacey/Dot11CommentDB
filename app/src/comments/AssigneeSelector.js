@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import React, {useEffect} from 'react'
 import {connect} from 'react-redux'
 import Select from 'react-select'
-import {getUsers} from './actions/users'
+import {getUsers} from '../actions/users'
 
 const style = {
 	display: 'inline-block',
