@@ -7,7 +7,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js --exec babel-node --presents es2015,stage-2 --inspect",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "cp *.pem ../build && webpack",
+    "build": "webpack",
     "prod": "cd ../build && node server.js"
   },
   "author": "Robert Stacey",
