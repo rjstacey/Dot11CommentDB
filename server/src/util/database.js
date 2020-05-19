@@ -3,14 +3,29 @@
 const mysql = require('mysql')
 
 // Connect to the database
-const options = {
-	host: process.env.DB_HOST,
-	port: process.env.DB_PORT,
-	user: process.env.DB_USER,
-	password: process.env.DB_PASSWORD,
-	database: process.env.DB_DATABASE,
-	multipleStatements: true
+let options
+if (process.env.NODE_ENV !== 'development') {
+	options = {
+		host: process.env.DB_HOST,
+		port: process.env.DB_PORT,
+		user: process.env.DB_USER,
+		password: process.env.DB_PASSWORD,
+		database: process.env.DB_DATABASE,
+		multipleStatements: true
+	}
 }
+else {
+	options = {
+		host: process.env.RDS_HOSTNAME,
+		port: process.env.RDS_PORT,
+		user: process.env.RDS_USERNAME,
+		password: process.env.RDS_PASSWORD,
+		database: process.env.RDS_DB_NAME,
+		multipleStatements: true
+	}
+}
+
+//console.log(options)
 const pool = mysql.createPool(options)
 
 // Promisified SQL query using connection pool

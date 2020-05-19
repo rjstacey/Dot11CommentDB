@@ -5,8 +5,10 @@ import {connect} from 'react-redux'
 import BallotSelector from '../ballots/BallotSelector'
 import ColumnSelector from './ColumnSelector'
 import ContentEditable from '../general/ContentEditable'
+import CommentsFilter from './CommentsFilter'
+import BulkActions from './BulkActions'
 import AppModal from '../modals/AppModal'
-import AppTable, {renderFilter, renderLabel} from '../general/AppTable'
+import AppTable, {ColumnLabel} from '../general/AppTable'
 import {ActionButton} from '../general/Icons'
 import {setCommentsSort, setCommentsFilter, setCommentsSelected, setCommentsExpanded, getComments, uploadResolutions} from '../actions/comments'
 import {setBallotId} from '../actions/ballots'
@@ -15,6 +17,8 @@ import fetcher from '../lib/fetcher'
 import styles from '../css/Comments.css'
 import editorStyles from '../css/ResolutionEditor.css'
 
+/** @jsx jsx */
+import { css, jsx } from '@emotion/core'
 
 function SelectCommentsModal(props) {
 	const [list, setList] = useState('')
@@ -239,148 +243,130 @@ function renderDataCellResolution({rowData}) {
 	)
 }
 
-function renderHeaderCellStacked1({columnData}) {
-	const {sortBy, sortDirection, setSort} = columnData
+function commentsSortStateMap(state, ownProps) {
+	return {
+		sort: state.comments.sort
+	}
+}
+function commentsSortDispatchMap(dispatch, ownProps) {
+	return {
+		setSort: (dataKey, event) => dispatch(setCommentsSort(event, dataKey))
+	}
+}
+const ConnectedColumnLabel = connect(commentsSortStateMap, commentsSortDispatchMap)(ColumnLabel)
+
+const rowCss = css`
+	display: flex;
+	flex-direction: row;
+`
+function renderHeaderCellStacked1() {
 
 	return (
 		<React.Fragment>
-		<div style={{display: 'flex', flexDirection: 'row'}} >
-			<div style={{display: 'flex', flexDirection: 'column', width: 80}} >
-				{renderLabel({dataKey: 'CID', label: 'CID', sortable: true, sortBy, sortDirection, setSort})}
-				{columnData.filters.hasOwnProperty('CID') && renderFilter({dataKey: 'CID', filter: columnData.filters['CID'], setFilter: columnData.setFilter})}
+			<div css={rowCss} >
+				<ConnectedColumnLabel css={{width: 80}} dataKey='CID' label='CID' />
+				<ConnectedColumnLabel css={{width: 40, marginLeft: 25}} dataKey='Category' label='Cat' />
+				<ConnectedColumnLabel css={{width: 25, marginLeft: 15}} dataKey='MustSatisfy' label='MS' />
 			</div>
-			<div style={{display: 'flex', flexDirection: 'column', width: 40, marginLeft: 25}} >
-				{renderLabel({dataKey: 'Category', label: 'Cat', sortable: true, sortBy, sortDirection, setSort})}
-				{columnData.filters.hasOwnProperty('Category') && renderFilter({dataKey: 'Category', filter: columnData.filters['Category'], setFilter: columnData.setFilter})}
+			<div css={rowCss} >
+				<ConnectedColumnLabel css={{width: 100}} dataKey='Clause' label='Clause' />
+				<ConnectedColumnLabel css={{width: 50, marginLeft: 5}} dataKey='Page' label='Page' />
 			</div>
-			<div style={{display: 'flex', flexDirection: 'column', width: 25, marginLeft: 15}} >
-				{renderLabel({dataKey: 'MustSatisfy', label: 'MS', sortable: true, sortBy, sortDirection, setSort})}
-				{columnData.filters.hasOwnProperty('MustSatisfy') && renderFilter({dataKey: 'MustSatisfy', filter: columnData.filters['MustSatisfy'], setFilter: columnData.setFilter})}
+			<div css={rowCss} >
+				<ConnectedColumnLabel css={{width: 100}} dataKey='CommenterName' label='Commenter' />
+				<ConnectedColumnLabel css={{width: 50, marginLeft: 5}} dataKey='Vote' label='Vote' />
 			</div>
-		</div>
-		<div style={{display: 'flex', flexDirection: 'row'}} >
-			<div style={{display: 'flex', flexDirection: 'column', width: 100}} >
-				{renderLabel({dataKey: 'Clause', label: 'Clause', sortable: true, sortBy, sortDirection, setSort})}
-				{columnData.filters.hasOwnProperty('Clause') && renderFilter({dataKey: 'Clause', filter: columnData.filters['Clause'], setFilter: columnData.setFilter})}
-			</div>
-			<div style={{display: 'flex', flexDirection: 'column', width: 80, marginLeft: 5}} >
-				{renderLabel({dataKey: 'Page', label: 'Page', sortable: true, sortBy, sortDirection, setSort})}
-				{columnData.filters.hasOwnProperty('Page') && renderFilter({dataKey: 'Page', filter: columnData.filters['Page'], setFilter: columnData.setFilter})}
-			</div>
-		</div>
-		<div style={{display: 'flex', flexDirection: 'row'}} >
-			<div style={{display: 'flex', flexDirection: 'column', width: 100}} >
-				{renderLabel({dataKey: 'CommenterName', label: 'Commenter', sortable: true, sortBy, sortDirection, setSort})}
-				{columnData.filters.hasOwnProperty('CommenterName') && renderFilter({dataKey: 'CommenterName', filter: columnData.filters['CommenterName'], setFilter: columnData.setFilter})}
-			</div>
-			<div style={{display: 'flex', flexDirection: 'column', width: 80, marginLeft: 5}} >
-				{renderLabel({dataKey: 'Vote', label: 'Vote', sortable: true, sortBy, sortDirection, setSort})}
-				{columnData.filters.hasOwnProperty('Vote') && renderFilter({dataKey: 'Vote', filter: columnData.filters['Vote'], setFilter: columnData.setFilter})}
-			</div>
-		</div>
 		</React.Fragment>
 	)
 }
 
 function renderDataCellStacked1({rowData}) {
-	return (
-		<div style={{display: 'flex', flexDirection: 'column'}}>
-			<div>
-				<div style={{display: 'inline-block', width: 80, fontWeight: 'bold'}}>{rowData['CID']}</div>
-				<div style={{display: 'inline-block', width: 40, marginLeft: 25}}>{rowData['Category']}</div>
-				<div style={{display: 'inline-block', width: 25, marginLeft: 15}}>{rowData['MustSatisfy']? '\u2714': ''}</div>
-			</div>
-			<div>
-				<div style={{display: 'inline-block', width: 100, fontStyle: 'italic'}}>{rowData['Clause']}</div>
-				<div style={{display: 'inline-block', marginLeft: 5}}>{rowData['Page']}</div>
-			</div>
-			<div>{rowData['CommenterName'] + ' (' + rowData['Vote'] + ')'}</div>
-		</div>
-		)
-}
-
-function renderHeaderCellStacked2({columnData}) {
-	const {sortBy, sortDirection, setSort} = columnData
-
+	const commenterStr = rowData['CommenterName'] + (rowData['Vote']? ' (' + rowData['Vote'] + ')': '')
 	return (
 		<React.Fragment>
-			<div>
-				{renderLabel({dataKey: 'CommentGroup', label: 'Comment Group', sortable: true, sortBy, sortDirection, setSort})}
-				{columnData.filters.hasOwnProperty('CommentGroup') && renderFilter({dataKey: 'CommentGroup', filter: columnData.filters['CommentGroup'], setFilter: columnData.setFilter})}
+			<div css={rowCss} >
+				<div css={{width: 80, fontWeight: 'bold'}}>{rowData['CID']}</div>
+				<div css={{width: 40, marginLeft: 25}}>{rowData['Category']}</div>
+				<div css={{width: 25, marginLeft: 15}}>{rowData['MustSatisfy']? '\u2714': ''}</div>
 			</div>
-			<div>
-				{renderLabel({dataKey: 'AssigneeName', label: 'Assignee', sortable: true, sortBy, sortDirection, setSort})}
-				{columnData.filters.hasOwnProperty('AssigneeName') && renderFilter({dataKey: 'AssigneeName', filter: columnData.filters['AssigneeName'], setFilter: columnData.setFilter})}
+			<div css={rowCss} >
+				<div css={{width: 100, fontStyle: 'italic'}}>{rowData['Clause']}</div>
+				<div css={{marginLeft: 5}}>{rowData['Page']}</div>
 			</div>
-			<div>
-				{renderLabel({dataKey: 'Submission', label: 'Submission', sortable: true, sortBy, sortDirection, setSort})}
-				{columnData.filters.hasOwnProperty('Submission') && renderFilter({dataKey: 'Submission', filter: columnData.filters['Submission'], setFilter: columnData.setFilter})}
-			</div>
+			<div css={rowCss} >{commenterStr}</div>
 		</React.Fragment>
 	)
 }
 
-function renderDataCellStacked2({rowData}) {
-	return (
-		<div style={{display: 'flex', flexDirection: 'column'}}>
-			<div>{rowData['CommentGroup'] || 'None'}</div>
-			<div>{rowData['AssigneeName'] || 'Not Assigned'}</div>
-			<div>{rowData['Submission'] || 'None'}</div>
-		</div>
-		)
+function renderHeaderCellStacked2() {
+	const cols = [
+		{dataKey: 'AssigneeName', label: 'Assignee'},
+		{dataKey: 'Submission', label: 'Submission'}
+	]
+	return cols.map(c => (<ConnectedColumnLabel key={c.dataKey} dataKey={c.dataKey} label={c.label} />))
 }
 
-export function renderCommentStatus({rowData}) {
-	let Status = ''
-	if (rowData.ApprovedByMotion) {
-		Status = 'Resolution approved'
-	}
-	else if (rowData.ReadyForMotion) {
-		Status = 'Ready for motion'
-	}
-	else if (rowData.ResnStatus) {
-		Status = 'Resolution drafted'
-	}
-	else if (rowData.AssigneeName) {
-		Status = 'Assigned'
-	}
-	return Status
+function renderDataCellStacked2({rowData}) {
+	return (
+		<React.Fragment>
+			<div>{rowData['AssigneeName'] || 'Not Assigned'}</div>
+			<div>{rowData['Submission'] || 'None'}</div>
+		</React.Fragment>
+	)
+}
+
+function renderHeaderCell({dataKey, label}) {
+	return <ConnectedColumnLabel dataKey={dataKey} label={label} />
 }
 
 const flatColumns = [
 	{dataKey: 'CID',			label: 'CID',			width: 60,	sortable: true,
-		flexGrow: 0, flexShrink: 0},
+		flexGrow: 0, flexShrink: 0,
+		headerRenderer: renderHeaderCell},
 	{dataKey: 'CommenterName',	label: 'Commenter',		width: 100,	sortable: true,
-		flexGrow: 1, flexShrink: 1},
+		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell},
 	{dataKey: 'Vote',			label: 'Vote',			width: 50,	sortable: true,
-		flexGrow: 1, flexShrink: 1},
+		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell},
 	{dataKey: 'MustSatisfy',	label: 'MS',			width: 36,	sortable: true,
 		flexGrow: 0, flexShrink: 0,
+		headerRenderer: renderHeaderCell,
 		cellRenderer: renderDataCellCheck},
 	{dataKey: 'Category',		label: 'Cat',			width: 36,	sortable: true,
-		flexGrow: 0, flexShrink: 0},
+		flexGrow: 0, flexShrink: 0,
+		headerRenderer: renderHeaderCell},
 	{dataKey: 'Clause',			label: 'Clause',		width: 100,	sortable: true,
-		flexGrow: 0, flexShrink: 0},
+		flexGrow: 0, flexShrink: 0,
+		headerRenderer: renderHeaderCell},
 	{dataKey: 'Page',			label: 'Page',			width: 80,	sortable: true,
-		flexGrow: 0, flexShrink: 0},
+		flexGrow: 0, flexShrink: 0,
+		headerRenderer: renderHeaderCell},
 	{dataKey: 'Comment',		label: 'Comment',		width: 400,	sortable: true,
-		flexGrow: 1, flexShrink: 1}, 
+		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell}, 
 	{dataKey: 'ProposedChange',	label: 'Proposed Change',width: 400,sortable: true,
-		flexGrow: 1, flexShrink: 1},
+		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell},
 	{dataKey: 'CommentGroup',	label: 'Comment Group',	width: 150, sortable: true,
-		flexGrow: 1, flexShrink: 1},
+		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell},
 	{dataKey: 'AssigneeName',	label: 'Assignee',		width: 150, sortable: true,
-		flexGrow: 1, flexShrink: 1},
+		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell},
 	{dataKey: 'Submission',		label: 'Submission',	width: 150, sortable: true,
-		flexGrow: 1, flexShrink: 1},
+		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell},
 	{dataKey: 'Status',			label: 'Status',		width: 150,	sortable: true,
 		flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderCommentStatus},
+		headerRenderer: renderHeaderCell},
 	{dataKey: 'Resolution',		label: 'Resolution',	width: 400, sortable: false,
 		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell,
 		cellRenderer: renderDataCellResolution},
 	{dataKey: 'Editing',		label: 'Editing',		width: 300, sortable: false,
 		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell,
 		cellRenderer: renderDataCellEditing,
 		isLast: true}
 ]
@@ -391,20 +377,28 @@ const stackedColumns = [
 		headerRenderer: renderHeaderCellStacked1,
 		cellRenderer: renderDataCellStacked1},
 	{dataKey: 'Comment',		label: 'Comment',		width: 400, sortable: true,
-		flexGrow: 1, flexShrink: 1}, 
+		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell}, 
 	{dataKey: 'ProposedChange', label: 'Proposed Change',width: 400,sortable: true,
-		flexGrow: 1, flexShrink: 1},
-	{dataKey: 'Stack2', label: 'Comment Group/Assign...',width: 250,sortable: false,
+		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell},
+	{dataKey: 'CommentGroup',	label: 'Group',	width: 150, sortable: true,
+		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell},
+	{dataKey: 'Status',			label: 'Status',		width: 150,	sortable: true,
+		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell},
+	{dataKey: 'Stack2', label: 'Assignee/Submission',width: 250,sortable: false,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCellStacked2,
 		cellRenderer: renderDataCellStacked2},
-	{dataKey: 'Status',			label: 'Status',		width: 150,	sortable: true,
-		flexGrow: 1, flexShrink: 1},
 	{dataKey: 'Resolution',		label: 'Resolution',	width: 400, sortable: false,
 		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell,
 		cellRenderer: renderDataCellResolution},
 	{dataKey: 'Editing',		label: 'Editing',		width: 300, sortable: false,
 		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell,
 		cellRenderer: renderDataCellEditing,
 		isLast: true}
 ]
@@ -481,8 +475,8 @@ function Comments(props) {
 		history.push(props.location.pathname + '?CIDs=' + rowData.CID)
 	}
 
-	function editComments() {
-		history.push(props.location.pathname + `?CIDs=${props.selected.join(',')}`)
+	function editComments(cids) {
+		history.push(props.location.pathname + `?CIDs=${cids.join(',')}`)
 	}
 
 	function rowGetter({index}) {
@@ -508,37 +502,38 @@ function Comments(props) {
 		<div id='Comments'>
 			<div id='top-row' style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between'}}>
 				<span>
-    				<BallotSelector onBallotSelected={ballotSelected} />
-    			</span>
-    			<span>
-    				<ActionButton name='group' title='Group Selected' />
-					<ActionButton name='assignment' title='Assign Selected' />
-					<ActionButton name='edit' title='Edit Selected' onClick={editComments} />
-    			</span>
-    			<span>
-    				<ActionButton name='export' title='Export to file' onClick={e => setShowExport(true)} />
-    				<ActionButton name='upload' title='Upload Resolutions' onClick={e => setShowImport(true)} />
-    				<ColumnSelector
-    					list={isStacked? stackedColumns: flatColumns}
-    					isStacked={isStacked}
-    					toggleColumns={toggleColumns}
-    					toggleItem={toggleColumnVisible}
-    					isChecked={isColumnVisible}
-    				/>
-    				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-    			</span>
+					<BallotSelector onBallotSelected={ballotSelected} />
+				</span>
+				<span>
+					<BulkActions
+						editSelected={editComments}
+					/>
+				</span>
+				<span>
+					<ActionButton name='export' title='Export to file' onClick={e => setShowExport(true)} />
+					<ActionButton name='upload' title='Upload Resolutions' onClick={e => setShowImport(true)} />
+					<ColumnSelector
+						list={isStacked? stackedColumns: flatColumns}
+						isStacked={isStacked}
+						toggleColumns={toggleColumns}
+						toggleItem={toggleColumnVisible}
+						isChecked={isColumnVisible}
+					/>
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				</span>
 			</div>
 
+			<CommentsFilter />
+
 			<AppTable
-				headerHeight={isStacked? 116: 44}
+				headerHeight={isStacked? 60: 22}
 				columns={columns}
 				rowHeight={54}
 				getTableSize={getTableSize}
 				loading={props.getComments}
 				editRow={editComment}
 				filters={props.filters}
-				sortBy={props.sortBy}
-				sortDirection={props.sortDirection}
+				sort={props.sort}
 				setSort={(dataKey, event) => props.dispatch(setCommentsSort(event, dataKey))}
 				setFilter={(dataKey, value) => props.dispatch(setCommentsFilter(dataKey, value))}
 				showSelected={() => setShowSelected(true)}
@@ -574,13 +569,13 @@ function Comments(props) {
 				comments={props.comments}
 				commentsMap={props.commentsMap}
 			/>
+
 		</div>
 	)
 }
 Comments.propTypes = {
 	filters: PropTypes.object.isRequired,
-	sortBy: PropTypes.array.isRequired,
-	sortDirection: PropTypes.object.isRequired,
+	sort: PropTypes.object.isRequired,
 	selected: PropTypes.array.isRequired,
 	expanded: PropTypes.array.isRequired,
 	ballotId: PropTypes.string.isRequired,
@@ -596,8 +591,7 @@ function mapStateToProps(state) {
 	const {comments, ballots} = state
 	return {
 		filters: comments.filters,
-		sortBy: comments.sortBy,
-		sortDirection: comments.sortDirection,
+		sort: comments.sort,
 		selected: comments.selected,
 		expanded: comments.expanded,
 		ballotId: ballots.ballotId,

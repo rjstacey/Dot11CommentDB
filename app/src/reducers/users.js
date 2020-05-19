@@ -1,4 +1,5 @@
-import {sortClick, sortData, filterValidate, filterData} from '../filter'
+import {FilterType, filterCreate, filterSetValue, filterData} from './filter'
+import {SortType, sortCreate, sortAddColumn, sortClick, sortData} from './sort'
 import {
 	SET_USERS_FILTER,
 	SET_USERS_SORT,
@@ -20,14 +21,56 @@ import {
 	UPLOAD_USERS_FAILURE
 } from '../actions/users'
 
-const filterKeys = [
-	'SAPIN', 'Name', 'Email', 'Access'
+const userFields = ['SAPIN', 'Name', 'Email', 'Access']
+
+const accessOptions = [
+	{value: 0, label: 'Public'},
+	{value: 1, label: 'Member'},
+	{value: 2, label: 'Subgroup Admin'},
+	{value: 3, label: 'WG Admin'}
 ]
 
+/*
+ * Generate a filter for each field (table column)
+ */
+function genDefaultFilters() {
+	let filters = {}
+	for (let dataKey of userFields) {
+		let type
+		switch (dataKey) {
+		case 'SAPIN':
+		case 'Access':
+			type = FilterType.NUMERIC
+			break
+		default:
+			type = FilterType.STRING
+		}
+		filters[dataKey] = filterCreate(type)
+	}
+	return filters
+}
+
+function genDefaultSort() {
+	let sort = sortCreate()
+	for (let dataKey of userFields) {
+		let type
+		switch (dataKey) {
+		case 'SAPIN':
+		case 'Access':
+			type = SortType.NUMERIC
+			break
+		default:
+			type = SortType.STRING
+		}
+		sortAddColumn(sort, dataKey, type)
+	}
+	return sort
+}
+
 const defaultState = {
-	filters: filterKeys.reduce((obj, key) => ({...obj, [key]: filterValidate(key, '')}), {}),
-	sortBy: [],
-	sortDirection: {},
+	filters: genDefaultFilters(),
+	accessOptions: accessOptions,
+	sort: genDefaultSort(),
 	selected: [],
 	usersValid: false,
 	users: [],
@@ -48,22 +91,21 @@ function users(state = defaultState, action) {
 
 	switch (action.type) {
 		case SET_USERS_SORT:
-			const {sortBy, sortDirection} = sortClick(action.event, action.dataKey, state.sortBy, state.sortDirection)
+			const sort = sortClick(state.sort, action.dataKey, action.event)
 			return {
 				...state,
-				sortBy,
-				sortDirection,
-				usersMap: sortData(state.usersMap, state.users, sortBy, sortDirection)
+				sort,
+				usersMap: sortData(sort, state.usersMap, state.users)
 			}
 		case SET_USERS_FILTER:
 			const filters = {
-				...state.votingPoolsFilters,
-				[action.dataKey]: filterValidate(action.dataKey, action.value)
+				...state.filters,
+				[action.dataKey]: filterSetValue(state.filters[action.dataKey], action.value)
 			}
 			return {
 				...state,
 				filters,
-				usersMap: sortData(filterData(state.users, filters), state.users, state.sortBy, state.sortDirection)
+				usersMap: sortData(state.sort, filterData(state.users, filters), state.users)
 			}
 		case SET_USERS_SELECTED:
 			return {
@@ -78,7 +120,7 @@ function users(state = defaultState, action) {
 				getUsers: false,
 				usersValid: true,
 				users: action.users,
-				usersMap: sortData(filterData(action.users, state.filters), action.users, state.sortBy, state.sortDirection),
+				usersMap: sortData(state.sort, filterData(action.users, state.filters), action.users),
 				selected: updateSelected(action.users, state.selected)
 			}
 		case GET_USERS_FAILURE:
@@ -92,7 +134,7 @@ function users(state = defaultState, action) {
 				...state,
 				updateUser: true,
 				users,
-				usersMap: sortData(filterData(users, state.filters), users, state.sortBy, state.sortDirection)
+				usersMap: sortData(state.sort, filterData(users, state.filters), users)
 			}
 		case UPDATE_USER_SUCCESS:
 			return {...state, updateUser: false}
@@ -108,7 +150,7 @@ function users(state = defaultState, action) {
 				...state,
 				addUser: false,
 				users: users,
-				usersMap: sortData(filterData(users, state.filters), users, state.sortBy, state.sortDirection)
+				usersMap: sortData(state.sort, filterData(users, state.filters), users)
 			}
 		case ADD_USER_FAILURE:
 			return {...state, addUsers: false}
@@ -120,7 +162,7 @@ function users(state = defaultState, action) {
 				...state,
 				deleteUsers: true,
 				users: users,
-				usersMap: sortData(filterData(users, state.filters), users, state.sortBy, state.sortDirection),
+				usersMap: sortData(state.sort, filterData(users, state.filters), users),
 				selected: updateSelected(users, state.selected)
 			}
 		case DELETE_USERS_SUCCESS:
@@ -136,7 +178,7 @@ function users(state = defaultState, action) {
 				uploadUsers: false,
 				usersValid: true,
 				users: action.users,
-				usersMap: sortData(filterData(action.users, state.filters), action.users, state.sortBy, state.sortDirection),
+				usersMap: sortData(state.sort, filterData(action.users, state.filters), action.users),
 				selected: updateSelected(action.users, state.selected)
 			}
 		case UPLOAD_USERS_FAILURE:

@@ -32,8 +32,8 @@ function getUsers() {
 	return db.query('SELECT * FROM users')
 }
 
-async function getAccessLevel(sapin, email) {
-	var SQL
+async function getUser(sapin, email) {
+	let SQL
 	if (sapin > 0) {
 		SQL = db.format('SELECT * from users WHERE SAPIN=?', [sapin]);
 	}
@@ -42,7 +42,8 @@ async function getAccessLevel(sapin, email) {
 	}
 	console.log(SQL)
 	const results = await db.query(SQL)
-	return results.length > 0? results[0].Access: 0
+	const user = results.length > 0? results[0]: null
+	return user
 }
 
 async function addUser(user) {
@@ -53,16 +54,17 @@ async function addUser(user) {
 		FirstName: user.FirstName,
 		MI: user.MI,
 		Email: user.Email,
+		Status: user.Status,
 		Access: user.Access
 	}
 
-	Object.keys(entry).forEach(key => {
+	for (let key of Object.keys(entry)) {
 		if (entry[key] === undefined) {
 			delete entry[key]
 		}
-	})
+	}
 
-	if (!entry.SAPIN) {
+	if (!entry.hasOwnProperty('SAPIN')) {
 		throw 'Must provide SAPIN'
 	}
 
@@ -81,14 +83,15 @@ async function updateUser(userId, user) {
 		FirstName: user.FirstName,
 		MI: user.MI,
 		Email: user.Email,
+		Status: user.Status,
 		Access: user.Access
 	}
 
-	Object.keys(entry).forEach(key => {
+	for (let key of Object.keys(entry)) {
 		if (entry[key] === undefined) {
 			delete entry[key]
 		}
-	})
+	}
 
 	if (Object.keys(entry).length) {
 		const SQL =
@@ -127,7 +130,7 @@ async function uploadUsers(file) {
 
 module.exports = {
 	getUsers,
-	getAccessLevel,
+	getUser,
 	addUser,
 	updateUser,
 	deleteUsers,

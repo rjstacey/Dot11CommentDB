@@ -7,8 +7,8 @@ function LoginForm(props) {
 
 	// useEffect with an empty array will be called once on component mount
 	useEffect(() => {
-		if (!props.valid) {
-			props.dispatch(loginGetState());
+		if (!props.InProgress) {
+			props.dispatch(loginGetState())
 		}
 	}, [])
 
@@ -72,14 +72,12 @@ function LoginForm(props) {
 }
 
 function mapStateToProps(state) {
-	const {login} = state;
+	const {login} = state
 	return {
-		valid: login.valid,
-		LoggedIn: login.LoggedIn,
 		InProgress: login.InProgress,
-		Username: login.Username,
-		Name: login.Name,
-		SAPIN: login.SAPIN,
+		LoggedIn: login.LoggedIn,
+		Name: login.User? login.User.Name: '',
+		SAPIN: login.User? login.User.SAPIN: '',
 		StatusMsg: login.StatusMsg,
 	}
 }

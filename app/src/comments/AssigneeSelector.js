@@ -1,67 +1,70 @@
 import PropTypes from 'prop-types'
-import React, {useEffect} from 'react'
+import React from 'react'
 import {connect} from 'react-redux'
-import Select from 'react-select'
+import Select from 'react-dropdown-select'
 import {getUsers} from '../actions/users'
 
-const style = {
-	display: 'inline-block',
-	width: 200,
-}
+/** @jsx jsx */
+import { css, jsx } from '@emotion/core'
 
-function Assignee(props) {
-	const {value, onChange, usersValid, users, dispatch} = props
+function AssigneeSelector({value, onChange, valid, loading, options, getOptions, ...otherProps}) {
 
-	useEffect(() => {
-		if (!usersValid) {
-			dispatch(getUsers())
+	React.useEffect(() => {
+		if (!valid) {
+			getOptions()
 		}
 	}, [])
 
-	const options =
-		[{value: 0, label: 'Not Assigned'}]
-		.concat(users.map(u => {
-			return {value: u.SAPIN, label: `${u.Name} <${u.Email}>`}
-		}));
-
-	const customStyles = {
-		container: (provided, state) => {return {...provided, ...style}},
-		input: (provided, state) => {return {...provided, paddingTop: 0, paddingBottom: 0, margin: 0}},
-		valueContainer: (provided, state) => {return {...provided, padding: 0}},
-		control: (provided, state) => {return {...provided, minHeight: 0}},
-		dropdownIndicator: (provided, state) => {return {...provided, padding: 0}}
+	function handleChange(value) {
+		onChange(value.length === 0? 0: value[0].value)
 	}
 
-	function handleChange({value}, action) {
-		onChange(value)
-	}
+	const placeholder = value === '<multiple>'? value: 'Not assigned'
+	const optionSelected = value === '<multiple>'? undefined: options.find(o => o.value === value)
 
-	const placeholder = value === '<multiple>'? value: null
-	const v = value === '<multiple>'? null: options.find(o => o.value === value)
+	const selectCss = css`
+		background-color: white;
+		border: 1px solid #ddd;
+		padding: 0;
+		box-sizing: border-box;
+		width: unset;
+	`
 
 	return (
-		<Select
-			name='Assignee'
-			value={v}
-			onChange={handleChange}
-			options={options}
-			styles={customStyles}
-			placeholder={placeholder}
-		/>
+		<div {...otherProps}>
+			<Select
+				css={selectCss}
+				values={optionSelected? [optionSelected]: []}
+				onChange={handleChange}
+				options={options}
+				loading={loading}
+				clearable
+				placeholder={placeholder}
+			/>
+		</div>
 	)
 }
-Assignee.propTypes = {
+AssigneeSelector.propTypes = {
 	value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
 	onChange: PropTypes.func.isRequired,
-	usersValid: PropTypes.bool.isRequired,
-	users: PropTypes.array.isRequired,
-	dispatch: PropTypes.func.isRequired,
+	valid: PropTypes.bool.isRequired,
+	loading: PropTypes.bool.isRequired,
+	options: PropTypes.array.isRequired,
+	getOptions: PropTypes.func.isRequired,
 }
 
-export default connect((state) => {
-	const {users} = state
-	return {
-		usersValid: users.usersValid,
-		users: users.users
+export default connect(
+	(state) => {
+		const {users} = state
+		return {
+			valid: users.usersValid,
+			loading: users.getUsers,
+			options: users.users.map(u => {return {value: u.SAPIN, label: `${u.Name}`}})
+		}
+	},
+	(dispatch) => {
+		return {
+			getOptions: () => dispatch(getUsers())
+		}
 	}
-})(Assignee)
+)(AssigneeSelector)

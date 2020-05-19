@@ -3,6 +3,7 @@ import {setError} from './error'
 import fetcher from '../lib/fetcher'
 
 export const SET_COMMENTS_FILTER = 'SET_COMMENTS_FILTER'
+export const GEN_COMMENTS_OPTIONS = 'GEN_COMMENTS_OPTIONS'
 export const SET_COMMENTS_SORT = 'SET_COMMENTS_SORT'
 export const SET_COMMENTS_SELECTED = 'SET_COMMENTS_SELECTED'
 export const SET_COMMENTS_EXPANDED = 'SET_COMMENTS_EXPANDED'
@@ -10,9 +11,9 @@ export const SET_COMMENTS_EXPANDED = 'SET_COMMENTS_EXPANDED'
 export const GET_COMMENTS = 'GET_COMMENTS'
 export const GET_COMMENTS_SUCCESS = 'GET_COMMENTS_SUCCESS'
 export const GET_COMMENTS_FAILURE = 'GET_COMMENTS_FAILURE'
-export const UPDATE_COMMENT = 'UPDATE_COMMENT'
-export const UPDATE_COMMENT_SUCCESS = 'UPDATE_COMMENT_SUCCESS'
-export const UPDATE_COMMENT_FAILURE = 'UPDATE_COMMENT_FAILURE'
+export const UPDATE_COMMENTS = 'UPDATE_COMMENTS'
+export const UPDATE_COMMENTS_SUCCESS = 'UPDATE_COMMENTS_SUCCESS'
+export const UPDATE_COMMENTS_FAILURE = 'UPDATE_COMMENTS_FAILURE'
 export const DELETE_COMMENTS = 'DELETE_COMMENTS'
 export const DELETE_COMMENTS_SUCCESS = 'DELETE_COMMENTS_SUCCESS'
 export const DELETE_COMMENTS_FAILURE = 'DELETE_COMMENTS_FAILURE'
@@ -35,6 +36,16 @@ export const DELETE_RESOLUTIONS_FAILURE = 'DELETE_RESOLUTIONS_FAILURE'
 
 
 export const setCommentsFilter = (dataKey, value) => {return {type: SET_COMMENTS_FILTER, dataKey, value}}
+export const genCommentsOptions = (dataKey) => {return {type: GEN_COMMENTS_OPTIONS, dataKey}}
+
+export function removeCommentsFilter(dataKey, value) {
+	return async (dispatch, getState) => {
+		let values = getState().comments.filters[dataKey].values
+		values = values.filter(v => v !== value)
+		return dispatch(setCommentsFilter(dataKey, values))
+	}
+}
+
 export const setCommentsSort = (event, dataKey) => {return {type: SET_COMMENTS_SORT, event, dataKey}}
 export const setCommentsSelected = (selected) => {return {type: SET_COMMENTS_SELECTED, selected}}
 export const setCommentsExpanded = (expanded) => {return {type: SET_COMMENTS_EXPANDED, expanded}}
@@ -59,21 +70,22 @@ export function getComments(ballotId) {
 	}
 }
 
-const updateCommentLocal = (comment) => {return {type: UPDATE_COMMENT, comment}}
-const updateCommentSuccess = (comment) => {return {type: UPDATE_COMMENT_SUCCESS, comment}}
-const updateCommentFailure = () => {return {type: UPDATE_COMMENT_FAILURE}}
+const updateCommentsLocal = (ballotId, commentIds, comments) => {return {type: UPDATE_COMMENTS, ballotId, commentIds, comments}}
+const updateCommentsSuccess = (ballotId, commentIds, comments) => {return {type: UPDATE_COMMENTS_SUCCESS, ballotId, commentIds, comments}}
+const updateCommentsFailure = () => {return {type: UPDATE_COMMENTS_FAILURE}}
 
-export function updateComment(data) {
+export function updateComments(ballotId, comments) {
 	return async (dispatch) => {
-		dispatch(updateCommentLocal(data))
+		const commentIds = comments.map(c => c.CommentID)
+		dispatch(updateCommentsLocal(ballotId, commentIds, comments))
 		try {
-			const updatedComment = await fetcher.put('/api/comment', data)
-			return dispatch(updateCommentSuccess(updatedComment))
+			const {updatedComments} = await fetcher.put(`/api/comments/${ballotId}`, {commentIds, comments})
+			return dispatch(updateCommentsSuccess(ballotId, commentIds, updatedComments))
 		}
 		catch(error) {
 			return Promise.all([
-				dispatch(updateCommentFailure()),
-				dispatch(setError(`Unable to update comment ${data.BallotID}/${data.CommentID}`, error))
+				dispatch(updateCommentsFailure()),
+				dispatch(setError(`Unable to update comments for ${ballotId}`, error))
 			])
 		}
 	}
@@ -180,10 +192,10 @@ const updateResolutionsFailure = () => {return {type: UPDATE_RESOLUTIONS_FAILURE
 
 export function updateResolutions(ballotId, resolutions) {
 	return async (dispatch) => {
-		dispatch(updateResolutionsLocal(ballotId, resolutions));
+		dispatch(updateResolutionsLocal(ballotId, resolutions))
 		try {
-			await fetcher.put(`/api/resolutions/${ballotId}`, {ballotId, resolutions})
-			return dispatch(updateResolutionsSuccess(ballotId, resolutions))
+			const response = await fetcher.put(`/api/resolutions/${ballotId}`, {ballotId, resolutions})
+			return dispatch(updateResolutionsSuccess(ballotId, response))
 		}
 		catch(error) {
 			return Promise.all([
@@ -219,13 +231,12 @@ export function uploadResolutions(ballotId, matchAlgorithm, matchAll, file) {
 	return async (dispatch) => {
 		dispatch(uploadCommentsLocal(ballotId))
 		const params = {
-			BallotID: ballotId,
 			matchAlgorithm,
 			matchAll,
 			ResolutionsFile: file
 		}
 		try {
-			const {comments, summary} = await fetcher.postMultipart('/api/resolutions/upload', params)
+			const {comments, summary} = await fetcher.postMultipart(`/api/uploadResolutions/${ballotId}`, params)
 			return Promise.all([
 				dispatch(uploadCommentsSuccess(ballotId, comments)),
 				dispatch(updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary}))

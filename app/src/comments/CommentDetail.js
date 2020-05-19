@@ -12,7 +12,7 @@ import {ResolutionEditor, BasicEditor} from './ResolutionEditor'
 import BallotSelector from '../ballots/BallotSelector'
 import AssigneeSelector from './AssigneeSelector'
 import {ActionButton} from '../general/Icons'
-import {renderCommentStatus} from './Comments'
+import {shallowDiff} from '../lib/compare'
 import styles from '../css/CommentDetail.css'
 
 function Resolution(props) {
@@ -288,7 +288,7 @@ function Comment(props) {
 		<React.Fragment>
 			<div className={cx(styles.row, styles.status_row)}>
 				<Entry className={styles.CID} label={cidsLabel} content={cidsStr} />
-				<Entry className={styles.Status} content={renderCommentStatus({rowData: comment})} />
+				<Entry className={styles.Status} content={comment.Status} />
 			</div>
 			<div className={styles.row}>
 				<Entry className={styles.Commenter} label={'Commenter'} content={commenterEl} />
@@ -317,16 +317,6 @@ function Comment(props) {
 			</div>
 		</React.Fragment>
 	)
-}
-
-function shallowDiff(originalObj, modifiedObj) {
-	let changed = {};
-	for (let k in modifiedObj) {
- 		if (modifiedObj.hasOwnProperty(k) && modifiedObj[k] !== originalObj[k]) {
- 			changed[k] = modifiedObj[k]
- 		}
- 	}
- 	return changed;
 }
 
 function recursivelyDiffObjects(l, r) {

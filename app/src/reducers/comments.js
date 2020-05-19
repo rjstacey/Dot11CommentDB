@@ -1,6 +1,8 @@
-import {sortClick, sortData, filterValidate, filterData} from '../filter'
+import {FilterType, filterCreate, filterSetValue, filterData} from './filter'
+import {SortType, sortCreate, sortAddColumn, sortClick, sortData} from './sort'
 import {
 	SET_COMMENTS_FILTER,
+	GEN_COMMENTS_OPTIONS,
 	SET_COMMENTS_SORT,
 	SET_COMMENTS_SELECTED,
 	SET_COMMENTS_EXPANDED,
@@ -13,9 +15,9 @@ import {
 	IMPORT_COMMENTS,
 	IMPORT_COMMENTS_SUCCESS,
 	IMPORT_COMMENTS_FAILURE,
-	UPDATE_COMMENT,
-	UPDATE_COMMENT_SUCCESS,
-	UPDATE_COMMENT_FAILURE,
+	UPDATE_COMMENTS,
+	UPDATE_COMMENTS_SUCCESS,
+	UPDATE_COMMENTS_FAILURE,
 	ADD_RESOLUTIONS,
 	ADD_RESOLUTIONS_SUCCESS,
 	ADD_RESOLUTIONS_FAILURE,
@@ -30,17 +32,88 @@ import {
 	UPLOAD_COMMENTS_FAILURE
 } from '../actions/comments'
 
-const filterKeys = [
-	'CID', 'CommenterName', 'Vote', 'MustSatisfy', 'Category', 'Clause', 'Page',
-	'Comment', 'ProposedChange', 'CommentGroup', 'AssigneeName', 'Submission',
-	'Resolution'
-]
+const commentFields = {
+	CID: 'CID',
+	CommenterName: 'Commenter',
+	Vote: 'Vote',
+	MustSatisfy: 'Must Satisfy',
+	Category: 'Category',
+	Clause: 'Clause',
+	Page: 'Page',
+	Comment: 'Comment',
+	ProposedChange: 'Proposed Change',
+	CommentGroup: 'Group',
+	AssigneeName: 'Assignee',
+	Submission: 'Submission',
+	Status: 'Status',
+	ResnStatus: 'Resn Status',
+	Resolution: 'Resolution',
+	EditStatus: 'Editing Status',
+	EditInDraft: 'In Draft',
+	EditNotes: 'Editing Notes'
+}
+
+/*
+ * Generate a list of unique value-label pairs for a particular field
+ */
+function genFieldOptions(dataKey, comments) {
+	switch (dataKey) {
+	case 'MustSatisfy':
+		return [{value: 0, label: 'No'}, {value: 1, label: 'Yes'}]
+	default:
+		return [...new Set(comments.map(c => c[dataKey]))]
+			.sort()
+			.map(v => ({value: v, label: v === ''? '<blank>': v}))
+	}
+}
+
+/*
+ * Generate a filter for each field (table column)
+ */
+function genDefaultFilters() {
+	let filters = {}
+	for (let dataKey of Object.keys(commentFields)) {
+		let type
+		switch (dataKey) {
+		case 'CID':
+			type = FilterType.NUMERIC
+			break
+		case 'Clause':
+			type = FilterType.CLAUSE
+			break
+		case 'Page':
+			type = FilterType.PAGE
+			break
+		default:
+			type = FilterType.STRING
+		}
+		filters[dataKey] = filterCreate(type)
+	}
+	return filters
+}
+
+function genDefaultSort() {
+	let sort = sortCreate()
+	for (let dataKey of Object.keys(commentFields)) {
+		let type
+		switch (dataKey) {
+		case 'SAPIN':
+		case 'Access':
+			type = SortType.NUMERIC
+			break
+		default:
+			type = SortType.STRING
+		}
+		sortAddColumn(sort, dataKey, type)
+	}
+	return sort
+}
 
 const defaultState = {
 	ballotId: '',
-	filters: filterKeys.reduce((obj, key) => ({...obj, [key]: filterValidate(key, '')}), {}),
-	sortBy: [],
-	sortDirection: {},
+	filters: genDefaultFilters(),
+	options: Object.keys(commentFields).reduce((options, dataKey) => ({...options, [dataKey]: []}), {}),
+	sort: genDefaultSort(),
 	selected: [],
 	expanded: [],
 	commentsValid: false,
@@ -51,7 +124,6 @@ const defaultState = {
 	deleteComments: false,
 	importComments: false,
 	uploadComments: false,
-	importCommentsCount: undefined
 }
 
 function updateSelected(comments, selected) {
@@ -107,27 +179,33 @@ function updateCommentsStatus(comments) {
 }
 
 function comments(state = defaultState, action) {
-	let newComments
+	let newComments, filters
 
 	switch (action.type) {
-		case SET_COMMENTS_SORT:
-			const {sortBy, sortDirection} = sortClick(action.event, action.dataKey, state.sortBy, state.sortDirection)
-			return {
-				...state,
-				sortBy,
-				sortDirection,
-				commentsMap: sortData(state.commentsMap, state.comments, sortBy, sortDirection)
-			}
 		case SET_COMMENTS_FILTER:
-			const filters = {
+			filters = {
 				...state.filters,
-				[action.dataKey]: filterValidate(action.dataKey, action.value)
+				[action.dataKey]: filterSetValue(state.filters[action.dataKey], action.value)
 			}
 			return {
 				...state,
 				filters,
-				commentsMap: sortData(filterData(state.comments, filters), state.comments, state.sortBy, state.sortDirection)
+				commentsMap: sortData(state.sort, filterData(state.comments, filters), state.comments)
 			}
+		case GEN_COMMENTS_OPTIONS:
+			const fieldOptions = genFieldOptions(action.dataKey, state.comments)
+			return {
+				...state,
+				options: {...state.options, [action.dataKey]: fieldOptions}
+			}
+		case SET_COMMENTS_SORT:
+			const sort = sortClick(state.sort, action.dataKey, action.event)
+			return {
+				...state,
+				sort,
+				commentsMap: sortData(sort, state.commentsMap, state.comments)
+			}
+
 		case SET_COMMENTS_SELECTED:
 			return {
 				...state,
@@ -156,31 +234,29 @@ function comments(state = defaultState, action) {
 				getComments: false,
 				commentsValid: true,
 				comments: newComments,
-				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection),
+				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments),
 				selected: updateSelected(newComments, state.selected)
 			}
 		case GET_COMMENTS_FAILURE:
 			return {...state, getComments: false}
 
-		case UPDATE_COMMENT:
-			if (state.ballotID !== action.comment.BallotID) {
-				return {
-					...state,
-					updateComment: true,
-				}
+		case UPDATE_COMMENTS:
+			return {...state, updateComment: true}
+		case UPDATE_COMMENTS_SUCCESS:
+			if (state.ballotId !== action.ballotId) {
+				return {...state, updateComment: false}
 			}
-			newComments = state.comments.map(c =>
-				(c.CommentID === action.comment.CommentID)? {...c, ...action.comment}: c
-				)
+			newComments = state.comments.map(c => {
+				const i = action.commentIds.indexOf(c.CommentID)
+				return (i === -1)? c: {...c, ...action.comments[i]}
+			})
 			return {
 				...state,
 				updateComment: true,
 				comments: newComments,
-				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection)
+				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments)
 			}
-		case UPDATE_COMMENT_SUCCESS:
-			return {...state, updateComment: false}
-		case UPDATE_COMMENT_FAILURE:
+		case UPDATE_COMMENTS_FAILURE:
 			return {...state, updateComment: false}
 
 		case DELETE_COMMENTS:
@@ -211,7 +287,7 @@ function comments(state = defaultState, action) {
 				importComments: false,
 				commentsValid: true,
 				comments: newComments,
-				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection),
+				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments),
 				selected: updateSelected(newComments, state.selected)
 			}
 		case IMPORT_COMMENTS_FAILURE:
@@ -229,7 +305,7 @@ function comments(state = defaultState, action) {
 				uploadComments: false,
 				commentsValid: true,
 				comments: newComments,
-				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection),
+				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments),
 				selected: updateSelected(newComments, state.selected)
 			}
 		case UPLOAD_COMMENTS_FAILURE:
@@ -248,7 +324,7 @@ function comments(state = defaultState, action) {
 				...state,
 				updateComment: false,
 				comments: newComments,
-				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection),
+				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments),
 				selected: updateSelected(newComments, state.selected)
 			}
 		case ADD_RESOLUTIONS_FAILURE:
@@ -272,7 +348,7 @@ function comments(state = defaultState, action) {
 				...state,
 				updateComment: false,
 				comments: newComments,
-				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection),
+				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments),
 			}
 		case UPDATE_RESOLUTIONS_FAILURE:
 			return {...state, updateComment: false}
@@ -288,7 +364,7 @@ function comments(state = defaultState, action) {
 				...state,
 				updateComment: false,
 				comments: newComments,
-				commentsMap: sortData(filterData(newComments, state.filters), newComments, state.sortBy, state.sortDirection),
+				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments),
 				selected: updateSelected(newComments, state.selected)
 			}
 		case DELETE_RESOLUTIONS_FAILURE:

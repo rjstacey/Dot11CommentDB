@@ -21,7 +21,7 @@ function stringToHex(s) {
 
 const epollCommentsHeader = [
 	'Index', 'Date', 'SA PIN', 'Name', 'Comment', 'Category', 'Page Number', 'Subclause', 'Line Number', 
-	'Proposed Change', 'Must Be Satisfied'
+	'Proposed Change'//, 'Must Be Satisfied'
 ]
 
 function parseEpollComments(startCommentId, pollCommentsCsv) {
@@ -315,7 +315,7 @@ async function parseLegacyCommentsSpreadsheet(buffer) {
 	comments.shift()	// remove header
 	//console.log(comments.slice(0, 4))
 
-	return comments;
+	return comments
 }
 
 
@@ -501,73 +501,48 @@ const GET_COMMENTS_SUMMARY_SQL =
 	'SELECT COUNT(*) AS Count, MIN(CommentID) AS CommentIDMin, MAX(CommentID) AS CommentIDMax ' +
 	'FROM comments WHERE BallotID=?';
 
+const GET_RESOLUTIONS_SQL =
+	'SELECT ' +
+		'r.BallotID, r.CommentID, r.ResolutionID, r.AssigneeSAPIN, r.ResnStatus, r.Resolution, r.Submission, r.ReadyForMotion, r.ApprovedByMotion, ' + 
+		'r.EditStatus, r.EditInDraft, r.EditNotes, r.Notes, ' +
+		'users.Name AS AssigneeName ' +
+	'FROM resolutions AS r ' +
+		'LEFT JOIN users ON r.AssigneeSAPIN = users.SAPIN ';
+
 async function getComments(ballotId) {
 	return db.query(GET_COMMENTS_SQL + ' WHERE c.BallotID=?', [ballotId])
 }
 
-function updateComment(ballotId, commentId, comment) {
+async function updateComment(ballotId, commentId, comment) {
 
-	if (comment.hasOwnProperty('resolutions')) {
-		// If there are resolutions then they may need to be inserted or updated
-		if (!Array.isArray(comment.resolutions)) {
-			throw 'Expected array for resolutions'
+	if (Object.keys(comment).length !== 0) {
+		let SQL = db.format("UPDATE comments SET ? WHERE (BallotID=? AND CommentID=?); ", [comment, ballotId, commentId])
+		if (comment.BallotID) {
+			ballotId = comment.BallotID
 		}
-		var resolutions = comment.resolutions
-		delete comment.resolutions
-
-		// Need to know what is already present
-		return db.query('SELECT * FROM resolutions WHERE (BallotID=? AND CommentID=?)', [ballotId, commentId])
-			.then(results => {
-				// Each resolution entry is either an update or an insertion
-				// an update if already present; an insertion if not present
-				let queries = [];
-				resolutions.forEach(r1 => {
-					console.log('r1=', r1)
-					let present = false;
-					results.forEach(r2 => {
-						if (r2.ResolutionID === r1.ResolutionID) {
-							present = true;
-						}
-					})
-					if (present) {
-						// present so it is an update
-						let resolutionId = r1.ResolutionID;
-						delete r1.BallotID;
-						delete r1.CommentID;
-						delete r1.ResolutionID;
-						if (Object.keys(r1).length !== 0) {
-							queries.push(db.format('UPDATE resolutions SET ? WHERE (BallotID=? AND CommentID=? AND ResolutionID=?)', [r1, ballotId, commentId, resolutionId]));
-						}
-					}
-					else {
-						// not present so it must be an insert
-						r1.BallotID = ballotId;
-						r1.CommentID = commentId;
-						queries.push(db.format('INSERT INTO resolutions SET ?', r1));
-					}
-				});
-
-				// If there are additional changes to the comment, then make these too
-				if (Object.keys(comment).length !== 0) {
-					queries.push(db.format('UPDATE comments SET ? WHERE (BallotID=? AND CommentID=?)', [comment, ballotId, commentId]));
-				}
-
-				// It is possible that we end up with nothing to do
-				if (queries.length === 0) {
-					return Promise.resolve(null);
-				}
-
-				var query = queries.join(';');
-				console.log(query);
-				return db.query(query);
-			})
-	}
-	else if (Object.keys(comment).length !== 0) {
-		return db.query("UPDATE comments SET ? WHERE (BallotID=? AND CommentID=?)", [comment, ballotId, commentId]);
+		if (comment.CommentID) {
+			commentId = comment.CommentID
+		}
+		SQL += db.format("SELECT * FROM comments WHERE (BallotID=? AND CommentID=?)", [ballotId, commentId])
+		const results = await db.query(SQL)
+		return results[1][0]
 	}
 	else {
 		// Nothing to do
-		return Promise.resolve(null);
+		return {}
+	}
+}
+
+async function updateComments(ballotId, commentIds, comments) {
+	if (!Array.isArray(commentIds) || !Array.isArray(comments) || commentIds.length !== comments.length) {
+		throw 'Expect array parameters of the same length for commentIds and comments'
+	}
+	console.log(commentIds, comments)
+	const updatedComments = await Promise.all(commentIds.map((commentId, i) => updateComment(ballotId, commentId, comments[i])))
+	console.log(updatedComments)
+	return {
+		commentIds,
+		updatedComments
 	}
 }
 
@@ -590,7 +565,6 @@ async function updateResolution(ballotId, commentId, resolutionId, resolution) {
 		BallotID: resolution.BallotID,
 		CommentID: resolution.CommentID,
 		ResolutionID: resolution.ResolutionID,
-		CommentGroup: resolution.CommentGroup,
 		ResnStatus: resolution.ResnStatus,
 		Resolution: resolution.Resolution,
 		AssigneeSAPIN: resolution.AssigneeSAPIN,
@@ -625,8 +599,7 @@ async function updateResolution(ballotId, commentId, resolutionId, resolution) {
 			resolutionId = entry.ResolutionID
 		}
 	}
-	SQL += db.format(
-			'SELECT * FROM resolutions WHERE (BallotID=? AND CommentID=? AND ResolutionID=?);',
+	SQL += db.format(GET_RESOLUTIONS_SQL + ' WHERE (BallotID=? AND CommentID=? AND ResolutionID=?);',
 			[ballotId, commentId, resolutionId]
 		)
 	const results = await db.query(SQL)
@@ -904,6 +877,7 @@ async function exportMyProjectComments(ballotId, res) {
 module.exports = {
 	getComments,
 	updateComment,
+	updateComments,
 	updateResolutions,
 	addResolutions,
 	deleteResolutions,

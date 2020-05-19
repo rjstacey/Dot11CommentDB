@@ -1,5 +1,5 @@
 import React from 'react'
-import { render } from 'react-dom'
+import ReactDOM from 'react-dom'
 import { createStore, applyMiddleware } from 'redux'
 import thunkMiddleware from 'redux-thunk'
 import { createLogger } from 'redux-logger'
@@ -15,7 +15,7 @@ const store = createStore(
 	applyMiddleware(thunkMiddleware, createLogger({collapsed: true}))
 );
 
-render(
+ReactDOM.render(
 	<Provider store={store}>
 		<App />
 	</Provider>,

@@ -1,12 +1,16 @@
 import PropTypes from 'prop-types'
 import React, {useState, useMemo, useEffect, useLayoutEffect} from 'react'
 import update from 'immutability-helper'
-import {Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized'
+import {defaultTableRowRenderer, Column, Table, CellMeasurer, CellMeasurerCache} from 'react-virtualized'
 import Draggable from 'react-draggable'
-import cx from 'classnames'
-import {allSelected, toggleVisible} from '../lib/filter'
+import Select from 'react-dropdown-select'
+import {allSelected, toggleVisible} from '../lib/select'
 import {IconSort} from './Icons'
 import styles from '../css/AppTable.css'
+import {SortType, SortDirection, isSortable} from '../reducers/sort'
+
+/** @jsx jsx */
+import { css, jsx } from '@emotion/core'
 
 function renderPreservingNewlines(text) {
 	return typeof text === 'string'?
@@ -21,39 +25,109 @@ function renderPreservingNewlines(text) {
 	text
 }
 
-export function renderFilter({dataKey, filter, setFilter}) {
-	const className = cx({
-		[styles.headerFilt]: true,
-		[styles.headerFiltInvalid]: filter && !filter.valid
-	})
+export function ColumnSearchFilter({className, dataKey, label, filter, setFilter, width}) {
+
+	if (!filter) {
+		return null
+	}
+
+	const inputCss = css`
+		background-color: #ffffff;
+		border: 1px solid #ddd;
+		padding: 0;
+		box-sizing: border-box;
+		min-width: ${width? width + 'px': 'unset'};
+		min-height: 28px;
+		background-color: ${filter.valid? 'white': 'red'};
+		:placeholder-shown {
+			background: right center no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' %3E%3Cpath fill-opacity='.2' d='m 0,0 7.5,11.25 0,7.5 2.5,3.75 0,-11.25 7.5,-11.25 Z'%3E%3C/path%3E%3C/svg%3E");
+		}
+		:hover {
+			border-color: #0074D9;
+		}
+	`
+
 	return (
-		<input
-			type='search'
-			className={className}
-			placeholder=' '//'Filter'
-			onChange={e => setFilter(dataKey, e.target.value)}
-			value={filter.filtStr}
-		/>
+			<input
+				className={className}
+				css={inputCss}
+				type='search'
+				placeholder=' '//'Filter'
+				onChange={e => setFilter(e.target.value)}
+				value={filter.values}
+			/>
 	)
 }
 
-export function renderLabel({dataKey, label, sortable, sortBy, sortDirection, setSort}) {
-	let direction = 'NONE'
-	let onClick = undefined
+export function ColumnDropdownFilter({dataKey, label, filter, setFilter, options, genOptions, width}) {
+
+	const selectCss = css`
+		background-color: white;
+		border: 1px solid #ddd;
+		padding: 0;
+		box-sizing: border-box;
+		min-width: ${width? width + 'px': 'unset'};
+	`
+
+	const onChange = (values) => {
+		setFilter(values.map(v => v.value))
+	}
+
+	const values = Array.isArray(filter.values)?
+		filter.values.map(v => options.find(o => o.value === v)):
+		[]
+
+	return (
+			<Select
+				css={selectCss}
+				placeholder=""
+				values={values}
+				onChange={onChange}
+				multi
+				closeOnSelect
+				onDropdownOpen={genOptions}
+				options={options}
+			/>
+    )
+}
+
+export function ColumnLabel({dataKey, label, sort, setSort, ...otherProps}) {
+	let direction = SortDirection.NONE, onClick, isAlpha
+	const sortable = isSortable(sort, dataKey)
 	if (sortable) {
-		if (sortBy.includes(dataKey)) {
-			direction = sortDirection[dataKey]
+		if (sort.by.includes(dataKey)) {
+			direction = sort.direction[dataKey]
 		}
 		onClick = e => setSort(dataKey, e)
+		isAlpha = sort.type[dataKey] !== SortType.NUMERIC
 	}
+	const headerLabel = css`
+		display: block;
+		user-select: none;
+		position: relative;
+		width: 100%;
+		cursor: ${sortable? 'pointer': 'unset'};
+	`
+	const headerLabelItem = css`
+		display: inline-block;
+		white-space: nowrap;
+		overflow: hidden;
+		width: ${direction === SortDirection.NONE? '100%': 'calc(100% - 12px)'};
+	`
+	const headerLabelIcon = css`
+		position: absolute;
+		right: 0;
+		top: 2px;
+	`
 	return (
 		<div
-			className={cx(styles.headerLabel, {[styles.headerLabelSort]: sortable})}
+			css={headerLabel}
 			title={label}
 			onClick={onClick}
+			{...otherProps}
 		>
-			<div className={cx(styles.headerLabelItem, {[styles.headerLabelItemTrucate]: direction !== 'NONE'})}>{label}</div>
-			{direction !== 'NONE' && <IconSort className={styles.headerLabelIcon} direction={direction} />}
+			<div css={headerLabelItem}>{label}</div>
+			{direction !== 'NONE' && <IconSort css={headerLabelIcon} isAlpha={isAlpha} direction={direction} />}
 		</div>
 	)
 }
@@ -131,40 +205,74 @@ function AppTable(props) {
 		return props.data[props.dataMap[index]]
 	}
 
+	/* We replace headerRowRender so that we can remove the "overflow: hidden" style property */
+	function headerRowRenderer({className, columns, style}) {
+		delete style.overflow
+		return (
+			<div className={className} role="row" style={style}>
+				{columns}
+			</div>
+		)
+	}
+
 	function renderHeaderCell({columnData, dataKey, label}) {
-		const showFilter = columnData.filters.hasOwnProperty(dataKey)
+		const dragCss = css`
+			display: flex;
+			flex: 0 0 12px;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			cursor: col-resize;
+			color: #0085ff;
+			:hover,
+			.react-draggable-dragging {
+				background-color: rgba(0, 0, 0, 0.1);
+			}
+
+			.react-draggable-dragging {
+				color: #0b6fcc;
+			}
+		`
+		const dragHandleIconCss = css`
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		`
 		const filter = columnData.filters[dataKey]
-		const {sortable, sortBy, sortDirection, setSort} = columnData
+		const {sort, setSort} = columnData
 
 		const defaultHeader = (
 			<React.Fragment>
-				{renderLabel({dataKey, label, sortable, sortBy, sortDirection, setSort})}
-				{showFilter && renderFilter({dataKey, filter, setFilter: columnData.setFilter})}
+				<ColumnLabel dataKey={dataKey} label={label} sort={sort} setSort={setSort} />
+				<ColumnSearchFilter css={css`width: 100%`} dataKey={dataKey} filter={filter} setFilter={(value) => columnData.setFilter(dataKey, value)} />
 			</React.Fragment>
 		)
 
 		if (columnData.isLast) {
 			return (
 				<div className={styles.headerLabelBox} style={{flex: '0 0 100%'}}>
-					{columnData.headerRenderer? columnData.headerRenderer({dataKey, columnData}): defaultHeader}
+					{columnData.headerRenderer? columnData.headerRenderer({dataKey, label, columnData}): defaultHeader}
 				</div>
 			)
 		}
 		return (
 			<React.Fragment>
 				<div className={styles.headerLabelBox} style={{flex: '0 0 calc(100% - 12px)'}}>
-					{columnData.headerRenderer? columnData.headerRenderer({dataKey, columnData}): defaultHeader}
+					{columnData.headerRenderer? columnData.headerRenderer({dataKey, label, columnData}): defaultHeader}
 				</div>
-				<Draggable
-					axis="x"
-					defaultClassName={styles.headerDrag}
-					defaultClassNameDragging={styles.dragHandleActive}
-					onDrag={(event, {deltaX}) => resizeColumn({dataKey, deltaX})}
-					position={{x: 0}}
-					zIndex={999}
-				>
-					<span className={styles.dragHandleIcon}>⋮</span>
-				</Draggable>
+				<div css={dragCss}>
+					<Draggable
+						axis="x"
+						//defaultClassName={css(dragCss)}
+						//defaultClassNameDragging={css(dragActiveCss)}
+						onDrag={(event, {deltaX}) => resizeColumn({dataKey, deltaX})}
+						position={{x: 0}}
+						zIndex={999}
+					>
+						<span css={dragHandleIconCss}>⋮</span>
+					</Draggable>
+				</div>
 			</React.Fragment>
 		)
 	}
@@ -288,12 +396,27 @@ function AppTable(props) {
 		return <div className={styles.noRows}>{props.loading? 'Loading...': 'No rows'}</div>
 	}
 
-	function rowClassName({index}) {
+
+	function rowClassName({index, rowData}) {
 		if (index < 0) {
 			return styles.headerRow;
-		} else {
-			return index % 2 === 0 ? styles.evenRow : styles.oddRow;
 		}
+		/*else {
+			return index % 2 === 0 ? styles.evenRow : styles.oddRow;
+		}*/
+	}
+
+	function rowRenderer(myProps) {
+		let className
+		const id = myProps.rowData[props.primaryDataKey]
+		if (Array.isArray(props.selected) && props.selected.includes(id)) {
+			className = styles.selectedRow
+		}
+		else {
+			className = myProps.index % 2 === 0 ? styles.evenRow : styles.oddRow
+		}
+		className += ' ' + props.className
+		return defaultTableRowRenderer({...myProps, className})
 	}
 
 	let column0
@@ -316,9 +439,11 @@ function AppTable(props) {
 			height={height}
 			width={width}
 			rowHeight={rowHeightCache.rowHeight}
-			headerHeight={props.headerHeight? props.headerHeight: 44}
+			headerHeight={props.headerHeight? props.headerHeight: 56}
 			noRowsRenderer={renderNoRows}
+			headerRowRenderer={headerRowRenderer}
 			headerClassName={styles.headerColumn}
+			rowRenderer={rowRenderer}
 			rowClassName={rowClassName}
 			rowCount={props.dataMap.length}
 			rowGetter={props.rowGetter || rowGetter}
@@ -329,10 +454,17 @@ function AppTable(props) {
 
 			{props.columns.map((col, index) => {
 				const {cellRenderer, headerRenderer, width, ...otherProps} = col;
+				const columnData = {
+					...col,
+					filters: props.filters,
+					setFilter: props.setFilter,
+					sort: props.sort,
+					setSort: props.setSort
+				}
 				return (
 					<Column 
 						key={index}
-						columnData={{...col, filters: props.filters, setFilter: props.setFilter, sortBy: props.sortBy, sortDirection: props.sortDirection, setSort: props.setSort}}
+						columnData={columnData}
 						headerRenderer={renderHeaderCell}
 						cellRenderer={renderMeasuredCell}
 						width={columnWidth.hasOwnProperty(col.dataKey)? columnWidth[col.dataKey]: width}
@@ -352,10 +484,9 @@ AppTable.propTypes = {
 	loading: PropTypes.bool.isRequired,
 	editRow: PropTypes.func,
 	filters: PropTypes.object.isRequired,
-	sortBy: PropTypes.array.isRequired,
-	sortDirection: PropTypes.object.isRequired,
-	setSort: PropTypes.func.isRequired,
 	setFilter: PropTypes.func.isRequired,
+	sort: PropTypes.object.isRequired,
+	setSort: PropTypes.func.isRequired,
 	primaryDataKey: PropTypes.string,
 	showSelected: PropTypes.func,
 	setSelected: PropTypes.func,

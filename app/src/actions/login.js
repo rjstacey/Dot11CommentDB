@@ -1,18 +1,16 @@
 import fetcher from '../lib/fetcher'
 
 export const LOGIN_GET_STATE = 'LOGIN_GET_STATE'
-export const LOGIN_GET_STATE_SUCCESS = 'LOGIN_GET_STATE_SUCCESS'
-export const LOGIN_GET_STATE_FAILURE = 'LOGIN_GET_STATE_FAILURE'
 export const LOGIN_START = 'LOGIN_START'
 export const LOGIN_SUCCESS = 'LOGIN_SUCCESS'
 export const LOGIN_FAILURE = 'LOGIN_FAILURE'
 export const LOGOUT_START = 'LOGOUT_START'
-export const LOGOUT_SUCCESS = 'LOGOUT_SUCCESS'
-export const LOGOUT_FAILURE = 'LOGOUT_FAILURE'
 
 const loginGetStateLocal = () => {return {type: LOGIN_GET_STATE}}
-const loginGetStateSuccess = (info) => {return {type: LOGIN_GET_STATE_SUCCESS, info}}
-const loginGetStateFailure = (errMsg) => {return {type: LOGIN_GET_STATE_FAILURE, errMsg}}
+const loginStart = () => {return {type: LOGIN_START}}
+const logoutStart = () => {return {type: LOGOUT_START}}
+const loginSuccess = (user) => {return {type: LOGIN_SUCCESS, user}}
+const loginFailure = (errMsg) => {return {type: LOGIN_FAILURE, errMsg}}
 
 export function loginGetState() {
 	return async (dispatch, getState) => {
@@ -21,46 +19,40 @@ export function loginGetState() {
 		}
 		dispatch(loginGetStateLocal())
 		try {
-			const info = await fetcher.get('/auth/login')
-			return dispatch(loginGetStateSuccess(info))
+			const user = await fetcher.get('/auth/login')
+			return dispatch(loginSuccess(user))
 		}
 		catch(error) {
-			return dispatch(loginGetStateFailure('Unable to get login state'))
+			console.log(error)
+			return dispatch(loginFailure('Unable to get login state'))
 		}
 	}
 }
 
-const loginStart = () => {return {type: LOGIN_START}}
-const loginSuccess = (info) => {return {type: LOGIN_SUCCESS, info}}
-const loginFailure = (errMsg) => {return {type: LOGIN_FAILURE, errMsg}}
 
 export function login(username, password) {
 	return async (dispatch) => {
 		dispatch(loginStart())
 		try {
-			const info = await fetcher.post('/auth/login', {username, password})
-			return dispatch(loginSuccess(info))
+			const user = await fetcher.post('/auth/login', {username, password})
+			return dispatch(loginSuccess(user))
 		}
 		catch(error) {
-			return dispatch(loginFailure('Unable to login'))
+			return dispatch(loginFailure(typeof error === 'string'? error: error.toString()))
 		}
 	}
 }
-
-const logoutStart = () => {return {type: LOGOUT_START}}
-const logoutSuccess = () => {return {type: LOGOUT_SUCCESS}}
-const logoutFailure = (errMsg) => {return {type: LOGOUT_FAILURE, errMsg}}
 
 export function logout() {
 	return async (dispatch) => {
 		dispatch(logoutStart())
 		try {
 			await fetcher.post('/auth/logout')
-			return dispatch(logoutSuccess())
+			return dispatch(loginSuccess(null))
 		}
 		catch(error) {
 			console.log(error)
-			return dispatch(logoutFailure('Unable to logout'))
+			return dispatch(loginFailure('Unable to logout'))
 		}
 	}
 }

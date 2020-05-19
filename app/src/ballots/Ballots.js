@@ -11,7 +11,7 @@ import {ActionButton} from '../general/Icons'
 
 function renderVotingPool({columnIndex, rowData}) {
 	const type = rowData.Type
-	if (type === 1 || type === 3) {
+	if (type === 1 || type === 3 || type === 5) {
 		return rowData.VotingPoolID
 	}
 	else if (type === 2 || type === 4) {
@@ -144,17 +144,17 @@ function Ballots(props) {
 			</div>
 			<AppTable
 				columns={columns}
+				headerHeight={60}
 				rowHeight={40}
 				getTableSize={getTableSize}
 				loading={props.getBallots}
 				editRow={handleEditBallot}
 				filters={props.filters}
-				sortBy={props.sortBy}
-				sortDirection={props.sortDirection}
-				setSort={(dataKey, event) => props.dispatch(setBallotsSort(event, dataKey))}
 				setFilter={(dataKey, value) => props.dispatch(setBallotsFilter(dataKey, value))}
-				setSelected={(ballotIds) => props.dispatch(setBallotsSelected(ballotIds))}
+				sort={props.sort}
+				setSort={(dataKey, event) => props.dispatch(setBallotsSort(event, dataKey))}
 				selected={props.selected}
+				setSelected={(ballotIds) => props.dispatch(setBallotsSelected(ballotIds))}
 				data={props.ballots}
 				dataMap={props.ballotsMap}
 				primaryDataKey={primaryDataKey}
@@ -164,12 +164,10 @@ function Ballots(props) {
 }
 Ballots.propTypes = {
 	filters: PropTypes.object.isRequired,
-	sortBy: PropTypes.array.isRequired,
-	sortDirection: PropTypes.object.isRequired,
+	sort: PropTypes.object.isRequired,
 	ballotsValid: PropTypes.bool.isRequired,
 	ballots: PropTypes.array.isRequired,
 	ballotsMap: PropTypes.array.isRequired,
-	ballotsByProject: PropTypes.object.isRequired,
 	selected: PropTypes.array.isRequired,
 	getBallots: PropTypes.bool.isRequired,
 	votingPoolsValid: PropTypes.bool.isRequired,
@@ -181,12 +179,10 @@ function mapStateToProps(state) {
 	const {ballots, voters} = state
 	return {
 		filters: ballots.filters,
-		sortBy: ballots.sortBy,
-		sortDirection: ballots.sortDirection,
+		sort: ballots.sort,
 		ballotsValid: ballots.ballotsValid,
 		ballots: ballots.ballots,
 		ballotsMap: ballots.ballotsMap,
-		ballotsByProject: ballots.ballotsByProject,
 		selected: ballots.selected,
 		getBallots: ballots.getBallots,
 		votingPoolsValid: voters.votingPoolsValid,

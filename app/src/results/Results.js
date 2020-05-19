@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import React, {useState, useEffect} from 'react'
+import React from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
 import AppTable from '../general/AppTable'
@@ -8,22 +8,24 @@ import BallotSelector from '../ballots/BallotSelector'
 import {setResultsSort, setResultsFilter, getResults} from '../actions/results'
 import {setError} from '../actions/error'
 import {setBallotId} from '../actions/ballots'
-import {ActionButton, IconUp, IconDown} from '../general/Icons'
+import {ActionButton, Handle} from '../general/Icons'
 import fetcher from '../lib/fetcher'
 
+/** @jsx jsx */
+import { css, jsx } from '@emotion/core'
 
 function ExportModal(props) {
 	const {isOpen, close, dispatch} = props
 	const ballotId = props.ballot.BallotID
 	const project = props.ballot.Project
-	const [forProject, setForProject] = useState(false)
+	const [forProject, setForProject] = React.useState(false)
 
 	async function submit(e) {
 		const ballotId = props.ballot.BallotID
 		const project = props.ballot.Project
 		const params = forProject? {Project: project}: {BallotID: ballotId}
 		try {
-			await fetcher.getFile('/exportResults', params)
+			await fetcher.getFile('/api/exportResults', params)
 		}
 		catch(error) {
 			console.log(error)
@@ -140,82 +142,113 @@ function getResultsSummary(resultsSummary, ballot, votingPoolSize) {
 
 
 function ResultsSummary(props) {
-	const {visible, ballot, votingPoolSize, resultsSummary} = props
+	const {ballot, votingPoolSize, resultsSummary, showSummary, setShowSummary} = props
 	const r = getResultsSummary(resultsSummary, ballot, votingPoolSize)
-	const ballotType = ['CC', 'WG', 'WG', 'SA', 'SA'][ballot.Type]
+	const ballotType = ['CC Ballot', 'WG Ballot', 'WG Ballot', 'SA Ballot', 'SA Ballot', 'Motion'][ballot.Type]
 
-	var style = {
-		container: {
-			display: 'flex',
-			flexDirection: 'row',
-			justifyContent: 'space-arround',
-		},
-		col: {
-			display: 'flex',
-			flexDirection: 'column',
-			paddingRight: '20px'
-		},
-		lv: {
-			display: 'flex',
-			flexDirection: 'row',
-			justifyContent: 'space-between'
-		},
-		title: {display: 'block', fontWeight: 'bold', margin: '5px 0 5px 0'}
-	}
+	const colCss = css`
+		display: flex;
+		flex-direction: column;
+		padding-right: 20px;
+	`
+	const titleCss = css`
+		display: block;
+		font-weight: bold;
+		margin: 5px 0 5px 0;
+	`
+	const lvCss = css`
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+	`
+
+	const Col = (props) => <div css={colCss} {...props} />
+	const Title = (props) => <div css={titleCss} {...props} />
+	const LabelValue = ({label, value, ...otherProps}) => (
+			<div css={lvCss} {...otherProps} >
+				<span>{label}</span><span>{value}</span>
+			</div>
+		)
 
 	const ballotCol = (
-		<div style={{...style.col, flex: '0 1 260px'}}>
-			<div style={style.title}>{ballotType} Ballot</div>
-			<div style={style.lv}><span>Opened:</span><span>{r.opened}</span></div>
-			<div style={style.lv}><span>Closed:</span><span>{r.closed}</span></div>
-			<div style={style.lv}><span>Duration:</span><span>{r.duration}</span></div>
-			<div style={style.lv}><span>Voting pool size:</span><span>{r.votingPoolSize}</span></div>
-		</div>
+		<Col css={{flex: '0 1 260px'}}>
+			<Title>{ballotType}</Title>
+			<LabelValue label='Opened:' value={r.opened} />
+			<LabelValue label='Closed:' value={r.closed} />
+			<LabelValue label='Duration:' value={r.duration} />
+			<LabelValue label='Voting pool size:' value={r.votingPoolSize} />
+		</Col>
 	)
 
 	const resultCol = (
-		<div style={{...style.col, flex: '0 1 300px'}}>
-			<div style={style.title}>Result</div>
-			<div style={style.lv}><span>Approve:</span><span>{r.approve}</span></div>
-			<div style={style.lv}><span>Disapprove:</span><span>{r.disapprove}</span></div>
-			{ballotType === 'SA' && <div style={style.lv}><span>Disapprove without MBS comment:</span><span>{r.invalidDisapprove}</span></div>}
-			<div style={style.lv}><span>Abstain:</span><span>{r.abstain}</span></div>
-			<div style={style.lv}><span>Total returns:</span><span>{r.returns}</span></div>
-		</div>
+		<Col css={{flex: '0 1 300px'}}>
+			<Title>Result</Title>
+			<LabelValue label='Approve:' value={r.approve} />
+			<LabelValue label='Disapprove:' value={r.disapprove} />
+			{(ballot.Type === 3 || ballot.Type === 4) && <LabelValue label='Disapprove without MBS comment:' value={r.invalidDisapprove} />}
+			<LabelValue label='Abstain:' value={r.abstain} />
+			<LabelValue label='Total returns:' value={r.returns} />
+			{ballot.Type === 5 && <LabelValue label='Not in pool:' value={r.invalidVote} />}
+		</Col>
 	)
 
 	const invalidVotesCol = (
-		<div style={{...style.col, flex: '0 1 300px'}}>
-			<div style={style.title}>Invalid votes</div>
-			<div style={style.lv}><span>Not in pool:</span><span>{r.invalidVote}</span></div>
-			<div style={style.lv}><span>Disapprove without comment:</span><span>{r.invalidDisapprove}</span></div>
-			<div style={style.lv}><span>Abstain reason:</span><span>{r.invalidAbstain}</span></div>
-		</div>
+		<Col css={{flex: '0 1 300px'}}>
+			<Title>Invalid votes</Title>
+			<LabelValue label='Not in pool:' value={r.invalidVote} />
+			<LabelValue label='Disapprove without comment:' value={r.invalidDisapprove} />
+			<LabelValue label='Abstain reason:' value={r.invalidAbstain} />
+		</Col>
 	)
 
 	const approvalCriteriaCol = (
-		<div style={{...style.col, flex: '0 1 400px'}}>
-			<div style={style.title}>Approval criteria</div>
-			<div style={style.lv}><span>Approval rate:</span><span>{r.approvalRateStr}</span></div>
-			{ballotType !== 'CC' && <div>{r.approvalRateReqStr}</div>}
-			<div style={style.lv}><span>Returns as % of pool:</span><span>{r.returnsPctStr}</span></div>
+		<Col css={{flex: '0 1 400px'}}>
+			<Title>Approval criteria</Title>
+			<LabelValue label='Approval rate:' value={r.approvalRateStr} />
+			{ballot.Type !== 0 && <div>{r.approvalRateReqStr}</div>}
+			<LabelValue label='Returns as % of pool:' value={r.returnsPctStr} />
 			<div>{r.returnsReqStr}</div>
-			<div style={style.lv}><span>Abstains as % of returns:</span><span>{r.abstainsPctStr}</span></div>
+			<LabelValue label='Abstains as % of returns:' value={r.abstainsPctStr} />
 			<div>{r.abstainsReqStr}</div>
-		</div>
+		</Col>
 	)
 
-	return (
-		<div id='results-summary' style={{...style.container, display: visible? 'flex': 'none'}}>
+	const contentCss = css`
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		width: 100%;
+		max-width: 1400px;
+	`
+	const DetailedSummary = (props) => (
+		<div css={contentCss}>
 			{ballotCol}
 			{resultCol}
 			{ballotType === 'WG' && invalidVotesCol}
 			{ballotType !== 'CC' && approvalCriteriaCol}
 		</div>
 	)
+
+	const BasicSummary = (props) => (
+		<div css={contentCss}>
+			<Title>{ballotType}</Title>
+			<LabelValue label='Result:' value={`${r.approve}/${r.disapprove}/${r.abstain} (${r.approvalRateStr})`} />
+		</div>
+	)
+
+	const containerCss = css`
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+	`
+	return (
+		<div id='results-summary' css={containerCss}>
+			{showSummary? <DetailedSummary />: <BasicSummary />}
+			<Handle open={showSummary} onClick={() => setShowSummary(!showSummary)} />
+		</div>
+	)
 }
 ResultsSummary.propTypes = {
-	visible: PropTypes.bool.isRequired,
 	resultsSummary: PropTypes.object.isRequired,
 	ballot: PropTypes.object.isRequired,
 	votingPoolSize: PropTypes.number.isRequired
@@ -249,8 +282,8 @@ function Results(props) {
 	const {ballotId} = useParams()
 	const history = useHistory()
 
-	const [showSummary, setShowSummary] = useState(true)
-	const [showExportModal, setShowExportModal] = useState(false)
+	const [showSummary, setShowSummary] = React.useState(true)
+	const [showExportModal, setShowExportModal] = React.useState(false)
 
 	let columns, primaryDataKey
 	if (props.ballot.Type === 3 || props.ballot.Type === 4) {
@@ -262,7 +295,7 @@ function Results(props) {
 		primaryDataKey = 'SAPIN'
 	}
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (ballotId) {
 			if (ballotId !== props.ballotId) {
 				// Routed here with parameter ballotId specified, but not matching stored ballotId
@@ -286,7 +319,7 @@ function Results(props) {
 	function ballotSelected(ballotId) {
 		// Redirect to page with selected ballot
 		history.push(`/Results/${ballotId}`)
-		props.dispatch(getResults(ballotId));
+		props.dispatch(getResults(ballotId))
 	}
 
 	return (
@@ -301,27 +334,25 @@ function Results(props) {
 					<ActionButton name='export' title='Export' onClick={() => setShowExportModal(true)} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</span>
-				<div style={{position: 'absolute', right: '80px', bottom: '-10px'}}>
-					{showSummary? <IconUp onClick={() => setShowSummary(false)}/>: <IconDown onClick={() => setShowSummary(true)}/>}
-				</div>
 			</div>
 			<ResultsSummary
-				visible={showSummary}
 				resultsSummary={props.resultsSummary}
 				ballot={props.ballot}
 				votingPoolSize={props.votingPoolSize}
+				showSummary={showSummary}
+				setShowSummary={setShowSummary}
 			/>
 			<AppTable
 				columns={columns}
+				headerHeight={60}
 				rowHeight={18}
 				getTableSize={getTableSize}
 				tableSizeDependencies={[showSummary]}
 				loading={props.getResults}
 				filters={props.filters}
-				sortBy={props.sortBy}
-				sortDirection={props.sortDirection}
-				setSort={(dataKey, event) => props.dispatch(setResultsSort(event, dataKey))}
 				setFilter={(dataKey, value) => props.dispatch(setResultsFilter(dataKey, value))}
+				sort={props.sort}
+				setSort={(dataKey, event) => props.dispatch(setResultsSort(event, dataKey))}
 				primaryDataKey={primaryDataKey}
 				data={props.results}
 				dataMap={props.resultsMap}
@@ -337,8 +368,7 @@ function Results(props) {
 }
 Results.propTypes = {
 	filters: PropTypes.object.isRequired,
-	sortBy: PropTypes.array.isRequired,
-	sortDirection: PropTypes.object.isRequired,
+	sort: PropTypes.object.isRequired,
 	ballotId: PropTypes.string.isRequired,
 	ballot: PropTypes.object.isRequired,
 	votingPoolSize: PropTypes.number.isRequired,
@@ -352,8 +382,7 @@ function mapStateToProps(state) {
 	const {ballots, results} = state;
 	return {
 		filters: results.filters,
-		sortBy: results.sortBy,
-		sortDirection: results.sortDirection,
+		sort: results.sort,
 		ballotId: ballots.ballotId,
 		ballot: results.ballot,
 		votingPoolSize: results.votingPoolSize,
@@ -361,7 +390,7 @@ function mapStateToProps(state) {
 		results: results.results,
 		resultsMap: results.resultsMap,
 		resultsSummary: results.resultsSummary,
-		getResults: results.getResults,
+		getResults: results.getResults
 	}
 }
 export default connect(mapStateToProps)(Results);

@@ -1,4 +1,4 @@
-import React, {useRef, useEffect} from 'react'
+import React from 'react'
 import {connect} from 'react-redux'
 import {useHistory} from 'react-router-dom'
 import AppTable, {renderDate} from '../general/AppTable'
@@ -28,9 +28,9 @@ function Epolls(props) {
 
 	const primaryDataKey = columns[0].dataKey
 
-	const numberEpolls = useRef(20)
+	const numberEpolls = React.useRef(20)
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (!props.epollsValid) {
 			props.dispatch(getEpolls(numberEpolls.current))
 		}
@@ -89,10 +89,9 @@ function Epolls(props) {
 				getTableSize={getTableSize}
 				loading={props.getEpolls}
 				filters={props.filters}
-				sortBy={props.sortBy}
-				sortDirection={props.sortDirection}
-				setSort={(dataKey, event) => props.dispatch(setEpollsSort(event, dataKey))}
 				setFilter={(dataKey, value) => props.dispatch(setEpollsFilter(dataKey, value))}
+				sort={props.sort}
+				setSort={(dataKey, event) => props.dispatch(setEpollsSort(event, dataKey))}
 				expanded={true}
 				data={props.epolls}
 				dataMap={props.epollsMap}
@@ -107,8 +106,7 @@ function mapStateToProps(state) {
 
 	return {
 		filters: s.filters,
-		sortBy: s.sortBy,
-		sortDirection: s.sortDirection,
+		sort: s.sort,
 		epollsValid: s.epollsValid,
 		epolls: s.epolls,
 		epollsMap: s.epollsMap,

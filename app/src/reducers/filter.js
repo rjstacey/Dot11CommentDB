@@ -1,28 +1,21 @@
 // filter.js - filter utility
 //
-// Shamelessly stolen from https://github.com/koalyptus/TableFilter
+// Began life here https://github.com/koalyptus/TableFilter
 //
 
-const isNumber =
-	(obj) => Object.prototype.toString.call(obj) === '[object Number]';
-
-const parseNumber = (value, decimal = '.') => {
+const parseNumber = (value) => {
 	// Return the value as-is if it's already a number
-	if (isNumber(value)) {
-		return value;
+	if (typeof value === 'number') {
+		return value
 	}
 
 	// Build regex to strip out everything except digits, decimal point and
 	// minus sign
-	let regex = new RegExp('[^0-9-' + decimal + ']', ['g']);
+	let regex = new RegExp('[^0-9-.]', ['g']);
 	let unformatted = parseFloat(
 		('' + value)
-			// replace bracketed values with negatives
-			.replace(/\((.*)\)/, '-$1')
 			// strip out any cruft
 			.replace(regex, '')
-			// make sure decimal point is standard
-			.replace(decimal, '.')
 		);
 
 	// This will fail silently
@@ -46,223 +39,176 @@ const contains = (term, data, exactMatch = false, caseSensitive = false) => {
 	return regexp.test(data);
 };
 
-function filterCol(dataMap, data, dataKey, filtStr) {
-	switch (dataKey) {
-		case 'Clause':
-			let len = filtStr.length;
-			if (len && filtStr[len-1] === '.') {
-				len = len-1;
-			}
-			return dataMap.filter(i => {
-				let d = data[i][dataKey];
-				return d === filtStr || (d && d.substring(0, len) === filtStr.substring(0, len) && d[len] === '.')
-			})
+function filterClause(dataMap, data, dataKey, str) {
+	let len = str.length
+	if (len && str[len-1] === '.') {
+		len = len - 1
+	}
+	return dataMap.filter(i => {
+		let d = data[i][dataKey]
+		return d === str || (d && d.substring(0, len) === str.substring(0, len) && d[len] === '.')
+	})
+}
 
-		default:
-			if (filtStr[0] === '/') {
-				var parts = filtStr.split('/'),
-				regex = filtStr,
-				options = "";
-				if (parts.length > 1) {
-					regex = parts[1];
-					options = parts[2];
-				}
-				let rgx = new RegExp(regex, options);
-				return dataMap.filter(i => rgx.test(data[i][dataKey]))
-			}
-			else if (filtStr[0] === '<' || filtStr[0] === '>') {
-				let result = /^(<=|>=|<|>)(.*)/.exec(filtStr)
-				let compVal = parseNumber(result[2])
-				let func = undefined
-				if (result[1] === '<=') {
-					func = (i => data[i][dataKey] <= compVal)
-				}
-				else if (result[1] === '>=') {
-					func = (i => data[i][dataKey] >= compVal)
-				}
-				else if (result[1] === '<') {
-					func = (i => data[i][dataKey] < compVal)
-				}
-				else if (result[1] === '>') {
-					func = (i => data[i][dataKey] > compVal)
-				}
-				return dataMap.filter(func)
-			}
-		    else if (/^!/.test(filtStr)) {	// not containing
-				let compStr = filtStr.replace('!', '');
-				return dataMap.filter(i => !contains(compStr, data[i][dataKey], false, false))
-			}
-			else if (/^=/.test(filtStr)) {	// exact match
-				let compStr = filtStr.replace('=', '');
-				return dataMap.filter(i => contains(compStr, data[i][dataKey], true, false))
-			}
-			// simple search
-			return dataMap.filter(i => contains(filtStr, data[i][dataKey], false, false))
+function filterRegex(dataMap, data, dataKey, regexStr) {
+	let parts = regexStr.split('/'),
+		regex = regexStr,
+		options = "";
+	if (parts.length > 1) {
+		regex = parts[1];
+		options = parts[2];
+	}
+	let rgx = new RegExp(regex, options);
+	return dataMap.filter(i => rgx.test(data[i][dataKey]))
+}
+
+function regexValid(regexStr) {
+	let parts = regexStr.split('/'),
+		regex = regexStr,
+		options = "";
+	if (parts.length > 1) {
+		regex = parts[1];
+		options = parts[2];
+	}
+	try {
+		new RegExp(regex, options)
+	}
+	catch(e) {
+		return false
+	}
+	return true
+}
+
+function filterNumericRange(dataMap, data, dataKey, rangeStr) {
+	const result = /^(<=|>=|<|>)(.*)/.exec(rangeStr)
+	const compVal = parseNumber(result[2])
+	let func = undefined
+	if (result[1] === '<=') {
+		func = (i => data[i][dataKey] <= compVal)
+	}
+	else if (result[1] === '>=') {
+		func = (i => data[i][dataKey] >= compVal)
+	}
+	else if (result[1] === '<') {
+		func = (i => data[i][dataKey] < compVal)
+	}
+	else if (result[1] === '>') {
+		func = (i => data[i][dataKey] > compVal)
+	}
+	return dataMap.filter(func)
+}
+
+function numericRangeValid(rangeStr) {
+	const result = /^(<=|>=|<|>)(.*)/.exec(rangeStr)
+	return !isNaN(parseFloat(result[2]))
+}
+
+function filterNumeric(dataMap, data, dataKey, value) {
+	const n = parseNumber(value)
+	return dataMap.filter(i => data[i][dataKey] === n)
+}
+
+function filterPage(dataMap, data, dataKey, value) {
+	let n = parseNumber(value)
+	if (value.search(/\d+\./) !== -1) {
+		// floating point number => exact match
+		return dataMap.filter(i => data[i][dataKey] === n)
+	}
+	else {
+		//Integer value => just match page
+		return dataMap.filter(i => Math.round(data[i][dataKey]) === n)
 	}
 }
 
-export function filterValidate(dataKey, filtStr) {
+function filterValidate(type, value) {
 	var valid = true
-	if (filtStr.length && dataKey !== 'Clause') {
-		if (filtStr[0] === '/') {	// regex
-			var parts = filtStr.split('/'),
-				regex = filtStr,
-				options = "";
-			if (parts.length > 1) {
-				regex = parts[1];
-				options = parts[2];
-			}
-			try {
-				new RegExp(regex, options)
-			}
-			catch(e) {
-				valid = false
-			}
+	if (value && value.length) {
+		if (value[0] === '/') {	// regex
+			valid = regexValid(value)
 		}
-		else if (filtStr[0] === '<' || filtStr[0] === '>') {
-			const result = /^(<=|>=|<|>)(.*)/.exec(filtStr)
-			console.log(isNaN(parseFloat(result[2])))
-			valid = !isNaN(parseFloat(result[2]))
+		else if (type === FilterType.NUMERIC && (value[0] === '<' || value[0] === '>')) {
+			valid = numericRangeValid(value)
 		}
 	}
-	return {filtStr, valid}
+	return valid
 }
 
 export function filterData(data, filters) {
 	// create a 1:1 map of data
 	let filtDataMap = Array.apply(null, {length: data.length}).map(Function.call, Number);
 	for (let dataKey in filters) {
-		if (filters[dataKey].valid && filters[dataKey].filtStr.length) {
-			filtDataMap = filterCol(filtDataMap, data, dataKey, filters[dataKey].filtStr);
-		}
-	}
-	return filtDataMap;
-}
-
-export function sortData(dataMap, data, sortBy, sortDirection) {
-	var sortDataMap = dataMap.slice();
-
-	sortBy.forEach(key => {
-		sortDataMap.sort((a, b) => {
-			if (!sortDirection[key] || sortDirection[key] === 'NONE') {
-				return a - b; // Index order (= original order)
+		let filter = filters[dataKey]
+		if (filter.valid && filter.values && filter.values.length) {
+			if (Array.isArray(filter.values)) {
+				const values = filter.values
+				filtDataMap = filtDataMap.filter(i => values.includes(data[i][dataKey]))
 			}
 			else {
-				const aa = data[a];
-				const bb = data[b];
-				if (typeof aa[key] === 'number' && typeof bb[key] === 'number') {
-					return aa[key] - bb[key];
+				let value = filter.values
+				if (value[0] === '/') {
+					filtDataMap = filterRegex(filtDataMap, data, dataKey, value)
 				}
-				else /*if (typeof aa[key] === 'string' && typeof bb[key] === 'string')*/ {
-					const A = (aa[key] === null || aa[key] === undefined)? '': aa[key].toString().toUpperCase();
-					const B = (bb[key] === null || bb[key] === undefined)? '': bb[key].toString().toUpperCase();
-					if (A < B) {
-						return -1;
+				else if (filter.type === FilterType.CLAUSE) {
+					filtDataMap = filterClause(filtDataMap, data, dataKey, value)
+				}
+				else if (filter.type === FilterType.NUMERIC || filter.type === FilterType.PAGE) {
+					if (value[0] === '<' || value[0] === '>') {
+						filtDataMap = filterNumericRange(filtDataMap, data, dataKey, value)
 					}
-					if (A > B) {
-						return 1;
+					else if (filter.type === FilterType.PAGE) {
+						filtDataMap = filterPage(filtDataMap, data, dataKey, value)
 					}
-					return 0;
+					else {
+						filtDataMap = filterNumeric(filtDataMap, data, dataKey, value)
+					}
+				}
+				else {
+					if (value[0] === '=') {	// exact match
+						value = value.replace('=', '');
+						filtDataMap = filtDataMap.filter(i => contains(value, data[i][dataKey], true, false))
+					}
+					else if (value[0] === '!') { // not containing
+						value = value.replace('!', '');
+						filtDataMap = filtDataMap.filter(i => !contains(value, data[i][dataKey], false, false))
+					}
+					else { // simple search
+						filtDataMap = filtDataMap.filter(i => contains(value, data[i][dataKey], false, false))
+					}
 				}
 			}
-			//return 0;
-		})
-		if (sortDirection[key] === 'DESC') {
-			sortDataMap.reverse()
-		}
-	})
-	return sortDataMap;
-}
-
-export function sortClick(event, dataKey, currSortBy, currSortDirection) {
-	var sortBy = currSortBy.slice()
-	var sortDirection = Object.assign({}, currSortDirection)
-
-	if (event.shiftKey) {
-		// Shift + click appends a column to existing criteria
-		if (sortBy.includes(dataKey)) {
-			sortDirection[dataKey] = sortDirection[dataKey] === 'DESC'? 'NONE':
-				(sortDirection[dataKey] === 'ASC'? 'DESC': 'ASC');
-		} else {
-			sortDirection[dataKey] = 'ASC';
-			sortBy.unshift(dataKey);
-		}
-	} else if (event.ctrlKey || event.metaKey) {
-		// Control + click removes column from sort (if pressent)
-		const index = sortBy.indexOf(dataKey);
-		if (index >= 0) {
-			sortBy.splice(index, 1);
-			delete sortDirection[dataKey];
-		}
-	} else {
-		if (sortBy.includes(dataKey)) {
-			sortDirection[dataKey] = sortDirection[dataKey] === 'DESC'? 'NONE':
-				(sortDirection[dataKey] === 'ASC'? 'DESC': 'ASC');
-		} else {
-			sortDirection[dataKey] = 'ASC';
-		}
-		sortBy.length = 0;
-		sortBy.push(dataKey);
-	}
-	return {sortBy, sortDirection};
-}
-
-/*
- * Determine if all items in map have been selected
- */
-export function allSelected(selectedList, dataMap, data, idKey) {
-	var allSelected = dataMap.length > 0; // not if list is empty
-	for (var i = 0; i < dataMap.length; i++) {
-		if (selectedList.indexOf(data[dataMap[i]][idKey]) < 0) {
-			allSelected = false;
 		}
 	}
-	return allSelected;
+	return filtDataMap
 }
 
-export function toggleVisible(currSelectedList, dataMap, data, idKey) {
-	let selectedList = currSelectedList.slice();
-	if (allSelected(selectedList, dataMap, data, idKey)) {
-		// remove all visible (filtered) IDs
-		for (let i = 0; i < dataMap.length; i++) {
-			let id = data[dataMap[i]][idKey];
-			let j = selectedList.indexOf(id)
-			if (j > -1) {
-				selectedList.splice(j, 1);
-			}
-		}
+export function filterSetValue(filter, value) {
+	return {
+		...filter,
+		valid: Array.isArray(value)? true: filterValidate(filter.type, value),
+		values: value
 	}
-	else {
-		// insert all visible (filtered) IDs if not already present
-		for (let i = 0; i < dataMap.length; i++) {
-			let id = data[dataMap[i]][idKey];
-			if (selectedList.indexOf(id) < 0) {
-				selectedList.push(id)
-			}
-		}
+}
+
+export function filterCreate(type, values = '') {
+
+	if (!filterTypeValid(type)) {
+		throw new Error('Invalid filter type')
 	}
-	return selectedList;
-}
 
-export function updateSelected(origSelected, origData, newData, key) {
-	let newSelected = []
-	for (let s of origSelected) {
-		const value = origData[s][key]
-		const i = newData.findIndex(c => c[key] === value)
-		if (i !== -1) {
-			newSelected.push(i)
-		}
+	return {
+		type,
+		values,
+		valid: Array.isArray(values)? true: filterValidate(type, values),
 	}
-	return newSelected
 }
 
-export function shallowDiff(originalObj, modifiedObj) {
-	let changed = {};
-	for (let k in modifiedObj) {
- 		if (modifiedObj.hasOwnProperty(k) && modifiedObj[k] !== originalObj[k]) {
- 			changed[k] = modifiedObj[k]
- 		}
- 	}
- 	return changed;
+function filterTypeValid(type) {
+	return Object.values(FilterType).includes(type)
 }
 
+export const FilterType = {
+	NUMERIC: 0,
+	STRING: 1,
+	CLAUSE: 2,
+	PAGE: 3
+}

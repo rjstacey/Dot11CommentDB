@@ -17,6 +17,8 @@ app.use(express.urlencoded({extended: true}))
 
 
 const db = require('./util/database')
+require('./util/seedDatabase').init()
+
 const expressSession = require('express-session')
 const MySQLStore = require('express-mysql-session')(expressSession)
 const sessionStore = new MySQLStore({}, db.pool)
@@ -55,6 +57,7 @@ app.use((err, req, res, next) => {
 	res.status(400).send(message)
 })
 
+console.log(__dirname)
 app.use(express.static(path.join(__dirname, 'app')))
 app.get('/*', (req, res) => {
 	return res.sendFile(path.join(__dirname, 'app', 'index.html'))

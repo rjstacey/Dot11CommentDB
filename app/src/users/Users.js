@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types'
 import React, {useState, useEffect, useRef} from 'react'
 import { connect } from 'react-redux'
-import AppTable from '../general/AppTable'
+import AppTable, {ColumnLabel, ColumnSearchFilter, ColumnDropdownFilter} from '../general/AppTable'
 import AppModal from '../modals/AppModal'
 import ConfirmModal from '../modals/ConfirmModal'
 import {ActionButton} from '../general/Icons'
+import AccessSelector from './AccessSelector'
 import {
 	setUsersFilter,
 	setUsersSort,
@@ -16,81 +17,124 @@ import {
 	uploadUsers
 } from '../actions/users'
 
+const defaultUser = {SAPIN: '', Name: '', Email: '', Access: 3}
 
-function AddUserModal(props) {
-	const defaultUserData = {SAPIN: '', Name: '', Email: '', Access: 3}
-	const [userData, setUserData] = useState(defaultUserData)
-
-	function onOpen() {
-		setUserData(defaultUserData)
-	}
+function AddEditUserModal({isOpen, user, setUser, submit, close}) {
 
 	function change(e) {
-		setUserData({...userData, [e.target.name]: e.target.value})
-	}
-
-	function submit(e) {
-		console.log(userData)
-		props.dispatch(addUser(userData))
-		props.close()
+		setUser({...user, [e.target.name]: e.target.value})
 	}
 
 	return (
 		<AppModal
-			isOpen={props.isOpen}
-			onAfterOpen={onOpen}
-			onRequestClose={props.close}
+			isOpen={isOpen}
+			onRequestClose={close}
 		>
-			<label>SA PIN:<input type='text' name='SAPIN' value={userData.SAPIN} onChange={change}/></label><br />
-			<label>Name:<input type='text' name='Name' value={userData.Name} onChange={change}/></label><br />
-			<label>Email:<input type='text' name='Email' value={userData.Email} onChange={change}/></label><br />
+			<label>SA PIN:<input type='text' name='SAPIN' value={user.SAPIN} onChange={change}/></label><br />
+			<label>Name:<input type='text' name='Name' value={user.Name} onChange={change}/></label><br />
+			<label>Email:<input type='text' name='Email' value={user.Email} onChange={change}/></label><br />
 			<label>Access Level:
-				<select name='Access' value={userData.Access} onChange={change}>
-				<option value='1'>Basic</option>
-				<option value='2'>Plus</option>
-				<option value='3'>Super</option>
-				</select>
+				<AccessSelector 
+					value={user.Access}
+					onChange={value => setUser({...user, Access: value})}
+				/>
 			</label><br />
 			<button onClick={submit}>Add</button>
-			<button onClick={props.close}>Cancel</button>
+			<button onClick={close}>Cancel</button>
 		</AppModal>
 	)
 }
-AddUserModal.propTypes = {
+AddEditUserModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
+	submit: PropTypes.func.isRequired,
 	close: PropTypes.func.isRequired,
-	dispatch: PropTypes.func.isRequired
+	user: PropTypes.object.isRequired,
+	setUser: PropTypes.func.isRequired
 }
 
-function UploadUsersModal(props) {
-	const usersFileInputRef = useRef()
-
-	function submit() {
-		props.dispatch(uploadUsers(usersFileInputRef.current.files[0])).then(props.close)
-	}
+function UploadUsersModal({isOpen, close, submit}) {
+	const fileInputRef = useRef()
 
 	return (
 		<AppModal
-			isOpen={props.isOpen}
-			onRequestClose={props.close}
+			isOpen={isOpen}
+			onRequestClose={close}
 		>
 			<p>Upload users</p>
 			<input
 				type='file'
 				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-				ref={usersFileInputRef}
+				ref={fileInputRef}
 			/>
 			<br />
-			<button onClick={submit}>OK</button>
-			<button onClick={props.close}>Cancel</button>
+			<button onClick={() => submit(fileInputRef.current.files[0])}>OK</button>
+			<button onClick={close}>Cancel</button>
 		</AppModal>
 	)
 }
 UploadUsersModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
-	dispatch: PropTypes.func.isRequired
+	submit: PropTypes.func.isRequired
 }
+
+const UsersColumnLabel = connect(
+	(state, ownProps) => {
+		const {dataKey} = ownProps
+		return {
+			sort: state.users.sort,
+			label: dataKey
+		}
+	},
+	(dispatch, ownProps) => {
+		return {
+			setSort: (dataKey, event) => dispatch(setUsersSort(event, dataKey))
+		}
+	}
+)(ColumnLabel)
+
+const UsersAccessFilter = connect(
+	(state) => {
+		const dataKey = 'Access'
+		return {
+			filter: state.users.filters[dataKey],
+			options: state.users.accessOptions,
+		}
+	},
+	(dispatch) => {
+		const dataKey = 'Access'
+		return {
+			setFilter: (value) => dispatch(setUsersFilter(dataKey, value)),
+		}
+	}
+)(ColumnDropdownFilter)
+
+const UsersSearchFilter = connect(
+	(state, ownProps) => {
+		const {dataKey} = ownProps
+		return {
+			filter: state.users.filters[dataKey],
+			label: dataKey
+		}
+	},
+	(dispatch, ownProps) => {
+		const {dataKey} = ownProps
+		return {
+			setFilter: (value) => dispatch(setUsersFilter(dataKey, value)),
+		}
+	}
+)(ColumnSearchFilter)
+
+function usersTableHeader({dataKey}) {
+	return (
+		<React.Fragment>
+			<UsersColumnLabel dataKey={dataKey} />
+			{dataKey === 'Access'? <UsersAccessFilter />: <UsersSearchFilter dataKey={dataKey} />}
+		</React.Fragment>
+	)
+}
+
+const EditUser = {ADD: 1, UPDATE: 2}
 
 function Users(props) {
 
@@ -98,25 +142,27 @@ function Users(props) {
 		{dataKey: 'SAPIN',  label: 'SA PIN',
 			sortable: true,
 			width: 100,
-			cellRenderer: renderEditable},
+			headerRenderer: usersTableHeader},
 		{dataKey: 'Name',   label: 'Name',
 			sortable: true,
 			width: 300,
-			cellRenderer: renderEditable},
+			headerRenderer: usersTableHeader},
 		{dataKey: 'Email',  label: 'eMail Address',
 			sortable: true,
 			width: 300,
-			cellRenderer: renderEditable},
+			headerRenderer: usersTableHeader},
 		{dataKey: 'Access', label: 'Access Level',
 			sortable: true,
 			width: 100,
 			cellRenderer: renderAccess,
+			headerRenderer: usersTableHeader,
 			isLast: true}
 	]
 	const primaryDataKey = columns[0].dataKey
 
-	const [showAddUserModal, setShowAddUserModal] = useState(false)
 	const [showUploadUsersModal, setShowUploadUsersModal] = useState(false)
+	const [editUser, setEditUser] = useState(null)
+	const [user, setUser] = useState(defaultUser)
 
 	function getTableSize() {
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
@@ -158,53 +204,31 @@ function Users(props) {
 		props.dispatch(getUsers())
 	}
 
-	function updateUserField(rowIndex, dataKey, fieldData) {
-		const index = props.usersMap[rowIndex]
-		const u = props.users[index]
-		if (dataKey === 'SAPIN') {
-			fieldData = parseInt(fieldData, 10)
-		}
-		props.dispatch(updateUser(u.SAPIN, {[dataKey]: fieldData}))
+	function renderAccess({rowData}) {
+		return props.accessOptions.find(o => o.value === rowData.Access).label
 	}
 
-	function updateUserFieldIfChanged(rowIndex, dataKey, fieldData) {
-		const index = props.usersMap[rowIndex]
-		const u = props.users[index]
-		if (dataKey === 'SAPIN') {
-			fieldData = parseInt(fieldData, 10)
+	function openAddUser() {
+		setUser(defaultUser)
+		setEditUser(EditUser.ADD)
+	}
+
+	function openEditUser({rowData}) {
+		setUser(rowData)
+		setEditUser(EditUser.UPDATE)
+	}
+
+	function submitUser() {
+		if (editUser === EditUser.ADD) {
+			props.dispatch(addUser(user)).then(setEditUser(null))
 		}
-		if (u[dataKey] !== fieldData) {
-			props.dispatch(updateUser(u.SAPIN, {[dataKey]: fieldData}))
+		if (editUser === EditUser.UPDATE) {
+			props.dispatch(updateUser(user)).then(setEditUser(null))
 		}
 	}
 
-	function renderEditable({rowIndex, rowData, dataKey}) {
-		return (
-			<div
-				title={rowData[dataKey]}
-				contentEditable
-				onBlur={e => {
-					updateUserFieldIfChanged(rowIndex, dataKey, e.target.innerHTML)
-				}}
-				dangerouslySetInnerHTML={{__html: rowData[dataKey]}}
-			/>
-		)
-	}
-
-	function renderAccess({rowIndex, rowData, dataKey}) {
-		return (
-			<select 
-				value={rowData[dataKey]}
-				onChange={e => {
-					updateUserField(rowIndex, dataKey, e.target.value)
-				}}
-			>
-				<option value='0'>Public</option>
-				<option value='1'>Member</option>
-				<option value='2'>Subgroup Admin</option>
-				<option value='3'>WG Admin</option>
-			</select>
-		)
+	function submitUsersUpload(file) {
+		props.dispatch(uploadUsers(file)).then(setShowUploadUsersModal(false))
 	}
 
 	return (
@@ -212,19 +236,20 @@ function Users(props) {
 			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: width, justifyContent: 'space-between'}}>
 				<span><label>Users</label></span>
 				<span>
-					<ActionButton name='add' title='Add User' onClick={() => setShowAddUserModal(true)} />
+					<ActionButton name='add' title='Add User' onClick={openAddUser} />
 					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
 					<ActionButton name='upload' title='Upload Users' onClick={() => setShowUploadUsersModal(true)} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</span>
 			</div>
 			<AppTable
+				headerHeight={60}
 				columns={columns}
 				rowHeight={22}
 				getTableSize={getTableSize}
 				loading={props.getUsers}
-				sortBy={props.sortBy}
-				sortDirection={props.sortDirection}
+				editRow={openEditUser}
+				sort={props.sort}
 				setSort={(dataKey, event) => props.dispatch(setUsersSort(event, dataKey))}
 				filters={props.filters}
 				setFilter={(dataKey, value) => props.dispatch(setUsersFilter(dataKey, value))}
@@ -235,16 +260,18 @@ function Users(props) {
 				primaryDataKey={primaryDataKey}
 			/>
 
-			<AddUserModal
-				isOpen={showAddUserModal}
-				close={() => setShowAddUserModal(false)}
-				dispatch={props.dispatch}
+			<AddEditUserModal
+				isOpen={!!editUser}
+				close={() => setEditUser(null)}
+				submit={submitUser}
+				user={user}
+				setUser={setUser}
 			/>
 
 			<UploadUsersModal
 				isOpen={showUploadUsersModal}
 				close={() => setShowUploadUsersModal(false)}
-				dispatch={props.dispatch}
+				submit={submitUsersUpload}
 			/>
 		</div>
 	)
@@ -254,16 +281,13 @@ function mapStateToProps(state) {
 	const s = state.users
 	return {
 		filters: s.filters,
-		sortBy: s.sortBy,
-		sortDirection: s.sortDirection,
+		sort: s.sort,
+		accessOptions: s.accessOptions,
 		selected: s.selected,
 		usersValid: s.usersValid,
 		users: s.users,
 		usersMap: s.usersMap,
-		getUsers: s.getUsers,
-		updateUser: s.updateUser,
-		addUser: s.addUser,
-		deleteUsers: s.deleteUsers,
+		getUsers: s.getUsers
 	}
 }
 

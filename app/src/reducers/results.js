@@ -1,4 +1,5 @@
-import {sortClick, sortData, filterValidate, filterData} from '../filter'
+import {FilterType, filterCreate, filterSetValue, filterData} from './filter'
+import {SortType, sortCreate, sortAddColumn, sortClick, sortData} from './sort'
 import {
 	SET_RESULTS_FILTER,
 	SET_RESULTS_SORT,
@@ -13,14 +14,65 @@ import {
 	IMPORT_RESULTS_FAILURE
 } from '../actions/results'
 
-const filterKeys = [
-	'SAPIN', 'Name', 'Affiliation', 'Email', 'Vote', 'CommentCount', 'Notes'
-]
+const resultFields = ['SAPIN', 'Name', 'Affiliation', 'Email', 'Vote', 'CommentCount', 'Notes'];
 
+/*
+ * Generate a filter for each field (table column)
+ */
+function genDefaultFilters() {
+	let filters = {}
+	for (let dataKey of resultFields) {
+		let type
+		switch (dataKey) {
+		case 'SAPIN':
+		case 'CommentCount':
+			type = FilterType.NUMERIC
+			break
+		case 'Name':
+		case 'Affiliation':
+		case 'Email':
+		case 'Vote':
+		case 'Notes':
+			type = FilterType.STRING
+			break
+		default:
+			break
+		}
+		if (type !== undefined) {
+			filters[dataKey] = filterCreate(type)
+		}
+	}
+	return filters
+}
+
+function genDefaultSort() {
+	let sort = sortCreate()
+	for (let dataKey of resultFields) {
+		let type
+		switch (dataKey) {
+		case 'SAPIN':
+		case 'CommentCount':
+			type = SortType.NUMERIC
+			break
+		case 'Name':
+		case 'Affiliation':
+		case 'Email':
+		case 'Vote':
+		case 'Notes':
+			type = SortType.STRING
+			break
+		default:
+			break
+		}
+		if (type !== undefined) {
+			sortAddColumn(sort, dataKey, type)
+		}
+	}
+	return sort
+}
 const defaultState = {
-  	filters: filterKeys.reduce((obj, key) => ({...obj, [key]: filterValidate(key, '')}), {}),
-	sortBy: [],
-	sortDirection: {},
+  	filters: genDefaultFilters(),
+	sort: genDefaultSort(),
 	ballotId: '',
 	votingPoolID: '',
 	votingPoolSize: 0,
@@ -37,22 +89,21 @@ function results(state = defaultState, action) {
 
 	switch (action.type) {
 		case SET_RESULTS_SORT:
-			const {sortBy, sortDirection} = sortClick(action.event, action.dataKey, state.sortBy, state.sortDirection)
+			const sort = sortClick(state.sort, action.dataKey, action.event)
 			return {
 				...state,
-				sortBy,
-				sortDirection,
-				resultsMap: sortData(state.resultsMap, state.results, sortBy, sortDirection)
+				sort,
+				resultsMap: sortData(sort, state.resultsMap, state.results)
 			}
 		case SET_RESULTS_FILTER:
 			const filters = {
 				...state.filters,
-				[action.dataKey]: filterValidate(action.dataKey, action.value)
+				[action.dataKey]: filterSetValue(state.filters[action.dataKey], action.value)
 			}
 			return {
 				...state,
 				filters,
-				resultsMap: sortData(filterData(state.results, filters), state.results, state.sortBy, state.sortDirection)
+				resultsMap: sortData(state.sort, filterData(state.results, filters), state.results)
 			}
 		case GET_RESULTS:
 			return {
@@ -72,7 +123,7 @@ function results(state = defaultState, action) {
 				ballot: action.ballot,
 				resultsValid: true,
 				results: action.results,
-				resultsMap: sortData(filterData(action.results, state.filters), action.results, state.sortBy, state.sortDirection),
+				resultsMap: sortData(state.sort, filterData(action.results, state.filters), action.results),
 				resultsSummary: action.summary
 			}
 		case GET_RESULTS_FAILURE:
@@ -102,7 +153,7 @@ function results(state = defaultState, action) {
 				votingPoolId: action.votingPoolId,
 				resultsValid: true,
 				results: action.results,
-				resultsMap: sortData(filterData(action.results, state.filters), action.results, state.sortBy, state.sortDirection),
+				resultsMap: sortData(state.sort, filterData(action.results, state.filters), action.results),
 				resultsSummary: action.summary
 			}
 		case IMPORT_RESULTS_FAILURE:

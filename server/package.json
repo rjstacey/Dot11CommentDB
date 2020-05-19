@@ -4,8 +4,7 @@
   "description": "IEEE 802.11 comment tracking tool server",
   "main": "index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js --exec babel-node --presents es2015,stage-2 --inspect",
+    "start": "nodemon src/index.js --exec babel-node --presents es2015,stage-2 --inspect",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack",
     "prod": "cd ../build && node server.js"

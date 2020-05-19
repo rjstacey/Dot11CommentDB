@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react'
-import {BrowserRouter as Router, Switch, Route, Link, useLocation} from "react-router-dom"
+import {BrowserRouter as Router, Switch, Route, Link, useLocation} from 'react-router-dom'
 import {connect} from 'react-redux'
 import {loginGetState} from './actions/login'
 import LoginForm from './general/Login'
@@ -17,6 +17,8 @@ import ConfirmModal from './modals/ConfirmModal'
 import {init as iconInit} from './general/Icons'
 import styles from './css/App.css'
 
+iconInit()
+		
 function useQuery() {
 	return new URLSearchParams(useLocation().search)
 }
@@ -34,8 +36,6 @@ function CommentsRoute(props) {
 
 function App(props) {
 	const {access, dispatch} = props
-
-	iconInit()
 
 	useEffect(() => {
 		dispatch(loginGetState())
@@ -81,8 +81,7 @@ function App(props) {
 function mapStateToProps(state) {
 	const {login} = state
 	return {
-		access: login.Access,
-		loggedIn: login.LoggedIn
+		access: login.Access
   	}
 }
 export default connect(mapStateToProps)(App)

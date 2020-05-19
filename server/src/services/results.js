@@ -41,7 +41,7 @@ function parseEpollResultsHtml(body) {
 				Email: unescape($(tds.eq(2)).children().eq(0).attr('href').replace('mailto:', '')),
 				Affiliation: tds.eq(3).text()
 			};
-			console.log(result)
+			//console.log(result)
 			results.push(result)
 		})
 		return results
@@ -302,6 +302,108 @@ function summarizeSAResults(results) {
 	return summary
 }
 
+function colateMotionResults(ballotResults, voters) {
+	// Collect each voters last vote
+	let results = []
+	for (let voter of voters) {
+		let v = {}
+		v.SAPIN = voter.SAPIN
+		v.Email = voter.Email
+		v.Status = voter.Status
+		v.Vote = ''
+		v.Notes = ''
+		v.Name = voter.FirstName + ' ' + voter.LastName
+		let r = ballotResults.find(r => r.SAPIN === voter.SAPIN)
+		if (r) {
+			// If the voter voted in this round, record the vote
+			v.Vote = r.Vote
+			v.CommentCount = r.CommentCount
+			v.Affiliation = r.Affiliation
+		}
+		else {
+			// Otherwise, see if they voted under a different SA PIN
+			r = ballotResults.find(r => {
+				// We detect this as a vote with different SA PIN, but same email address
+				return r.SAPIN !== voter.SAPIN &&
+					   r.Email.toLowerCase() === voter.Email.toLowerCase()
+			})
+			if (r) {
+				v.Notes = 'Voted with SAPIN=' + r.SAPIN
+				v.Vote = r.Vote
+				v.Affiliation = r.Affiliation
+				v.CommentCount = r.CommentCount
+				r.Notes = 'In pool as SAPIN=' + voter.SAPIN
+			}
+		}
+
+		// If this is an ExOfficio voter, then note that
+		if (v.Vote && /^ExOfficio/.test(voter.Status)) {
+			v.Notes = appendStr(v.Notes, voter.Status)
+		}
+
+		results.push(v)
+	}
+
+	// Add results for those that voted but are not in the pool)
+	for (let r of ballotResults) {
+		if (results.findIndex(v => v.SAPIN === r.SAPIN) < 0) {
+			if (!r.Notes) {	// might be "In pool as..."
+				r.Notes = 'Not in pool'
+			}
+			results.push(r)
+		}
+	}
+
+	return results
+}
+
+function summarizeMotionResults(results) {
+	let summary = {
+		Approve: 0,
+		Disapprove: 0,
+		Abstain: 0,
+		InvalidVote: 0,
+		InvalidAbstain: 0,
+		InvalidDisapprove: 0,
+		ReturnsPoolSize: 0,
+		TotalReturns: 0,
+		BallotReturns: 0
+	}
+
+	for (let r of results) {
+		if (/[Ii]n pool/.test(r.Notes)) {
+			if (/Not in pool/.test(r.Notes)) {
+				summary.InvalidVote++
+			}
+		}
+		else {
+			if (/^Approve/.test(r.Vote)) {
+				summary.Approve++
+			}
+			else if (/^Disapprove/.test(r.Vote)) {
+				summary.Disapprove++
+			}
+			else if (/^Abstain/.test(r.Vote)) {
+				summary.Abstain++
+			}
+
+			// All 802.11 members (Status='Voter') count toward the returns pool
+			// Only ExOfficio that cast a vote count torward the returns pool
+			if (/^Voter/.test(r.Status)) {
+				summary.ReturnsPoolSize++
+			}
+			else if (/^Approve/.test(r.Vote) ||
+				(/^Disapprove/.test(r.Vote) && r.CommentCount) ||
+				/^Abstain/.test(r.Vote)) {
+				summary.ReturnsPoolSize++
+			}
+		}
+	}
+	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain
+
+	return summary
+}
+
 function summarizeBallotResults(results) {
 	let summary = {
 		Approve: 0,
@@ -317,7 +419,7 @@ function summarizeBallotResults(results) {
 
 	for (let r of results) {
 		if (/^Approve/.test(r.Vote)) {
-				summary.Approve++
+			summary.Approve++
 		}
 		else if (/^Disapprove/.test(r.Vote)) {
 			if (r.CommentCount) {
@@ -454,7 +556,7 @@ async function getResults(ballotId) {
 	var results = await db.query(
 		'SELECT *, (SELECT COUNT(*) FROM results WHERE results.BallotID=?) AS BallotReturns FROM ballots WHERE BallotID=?',
 		[ballotId, ballotId]
-		)
+	)
 	var ballot = results[0]
 
 	const ballotSeries = await recursiveBallotSeriesGet([], ballotId)	// then get results from each ballot in series
@@ -486,6 +588,17 @@ async function getResults(ballotId) {
 		results = colateSAResults(ballotSeries, voters)	// colate results against voting pool and prior ballots in series
 		summary = summarizeSAResults(results)
 		summary.ReturnsPoolSize = votingPoolSize
+	}
+	else if (type === 5) {	// motion
+		// if there is a voting pool, get that
+		const voters = await db.query(
+			'SELECT SAPIN, LastName, FirstName, MI, Email, Status FROM wgVoters WHERE VotingPoolID=?',
+			[votingPoolId]
+			)
+		votingPoolSize = voters.length
+		ballot = ballotSeries[ballotSeries.length - 1]
+		results = colateMotionResults(ballot.results, voters)	// colate results for just this ballot
+		summary = summarizeMotionResults(results)
 	}
 	else {
 		votingPoolSize = 0
@@ -520,7 +633,7 @@ function deleteResults(ballotId) {
 	return db.query('DELETE FROM results WHERE BallotID=?; UPDATE ballots SET ResultsSummary=NULL WHERE BallotID=?', [ballotId, ballotId])
 }
 
-async function importEpollResults(ballotId, epollNum) {
+async function importEpollResults(sess, ballotId, epollNum) {
 
 	const p1 = rp.get({
 		url: `https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`,
@@ -607,18 +720,18 @@ async function exportResults(params, res) {
 	let results
 	let fileNamePrefix = ''
 	if (params.hasOwnProperty('BallotID')) {
-		const ballotId = req.query.BallotID
+		const ballotId = params.BallotID
 		fileNamePrefix = ballotId
 		const result = await getResults(ballotId)
 		results = [result]	// turn parameter into an array
 	}
 	else if (params.hasOwnProperty('BallotIDs')) {
-		const ballotIds = req.query.BallotIDs
+		const ballotIds = params.BallotIDs
 		fileNamePrefix = ballotIds.join('_')
 		results = await Promise.all(ballotIds.map(ballotId => getResults(ballotId)))
 	}
 	else if (params.hasOwnProperty('Project')) {
-		const project = req.query.Project
+		const project = params.Project
 		fileNamePrefix = project
 		results = await db.query('SELECT BallotID FROM ballots WHERE Project=?', [project])
 		results = await Promise.all(results.map(r => getResults(r.BallotID)))

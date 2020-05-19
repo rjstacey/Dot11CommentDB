@@ -1,91 +1,122 @@
-import React, {useEffect} from 'react'
+import React from 'react'
 import {connect} from 'react-redux'
+import Select from 'react-dropdown-select'
 import {getBallots, setProject, setBallotId} from '../actions/ballots'
 
-function BallotSelector(props) {
-	const {project, projectList, ballotId, ballotList, readOnly, onBallotSelected} = props
+/** @jsx jsx */
+import { css, jsx } from '@emotion/core'
 
-	useEffect(() => {
-		if (!props.ballotsValid) {
-			props.dispatch(getBallots())
+function BallotSelector(props) {
+	const {valid, loading, project, projectList, ballotId, ballotList, getBallots, setProject, setBallotId, readOnly, onBallotSelected} = props
+
+	React.useEffect(() => {
+		if (!valid) {
+			getBallots()
 		}
 	}, [])
 
-	function handleProjectChange(e) {
-		const project = e.target.value
-		if (project !== props.project) {
-			props.dispatch(setProject(project))
+	function handleProjectChange(values) {
+		const value = values.length > 0? values[0].value: ''
+		if (value !== project) {
+			setProject(value)
 		}
 	}
 
-	function handleBallotChange(e) {
-		var ballotId = e.target.value
-		props.dispatch(setBallotId(ballotId))
+	function handleBallotChange(values) {
+		const value = values.length > 0? values[0].value: ''
+		setBallotId(value)
 		if (onBallotSelected) {
-			onBallotSelected(ballotId)
+			onBallotSelected(value)
 		}
 	}
 
-	function renderProjectSelector() {
-		return (
-			<select
-				name='Project'
-				value={project}
-				onChange={handleProjectChange}
-				disabled={projectList.length === 0}
-				style={{width: '100px'}}
-			>
-				<option value='' disabled >Select</option>
-				{projectList.map(i => {
-					return (<option key={i} value={i}>{i}</option>)
-				})}
-			</select>
-		)
+	function ProjectSelector(props) {
+		const options = projectList
+		const value = options.find(o => o.value === project)
+		if (readOnly) {
+			return project
+		}
+		else {
+			return (
+				<Select
+					values={value? [value]: []}
+					onChange={handleProjectChange}
+					options={options}
+					loading={loading}
+					{...props}
+				/>
+			)
+		}
 	}
 
-	function renderBallotSelector() {
-		return (
-			<select
-				name='Ballot'
-				value={ballotId}
-				onChange={handleBallotChange}
-				disabled={ballotList.length === 0}
-				style={{width: '160px'}}
-			>
-				<option value={''} disabled >Select</option>
-				{ballotList.map(i => {
-					const desc = `${i.BallotID} ${i.Document}`.substring(0,32)
-					return (<option key={i.BallotID} value={i.BallotID}>{desc}</option>)
-				})}
-			</select>
-		)
+	function BallotSelector(props) {
+		const options = ballotList
+		const value = options.find(o => o.value === ballotId)
+		if (readOnly) {
+			return value? value.label: ballotId
+		}
+		else {
+			return (
+				<Select
+					values={value? [value]: []}
+					onChange={handleBallotChange}
+					options={options}
+					loading={loading}
+					disabled={ballotList.length === 0}
+					{...props}
+				/>
+			)
+		}
 	}
 
-	const ballot = ballotList.find(b => b.BallotID === ballotId)
-	const ballotDescr = ballot? `${ballot.BallotID} ${ballot.Document}`.substring(0,32): ballotId.toString()
+	const containerCss = css`
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	`
+	const labelCss = css`
+		font-weight: bold;
+		margin: 10px;
+	`
+	const selectorCss = css`
+		min-height: 22px;
+		width: unset;
+	`
+	const projectSelectorCss = css`
+		${selectorCss}
+		min-width: 100px;
+	`
+	const ballotSelectorCss = css`
+		${selectorCss}
+		min-width: 250px;
+	`
 	return (
-		<span>
-			<span>
-				<label style={{marginLeft: '10px'}}>Project:</label>&nbsp;
-				{readOnly? <div style={{display: 'inline-block', width: '100px'}}>{project}</div>: renderProjectSelector()}
-			</span>
-			<span>
-				<label style={{marginLeft: '5px'}}>Ballot:</label>&nbsp;
-				{readOnly? <div style={{display: 'inline-block'}}>{ballotDescr}</div>: renderBallotSelector()}
-			</span>
-		</span>
+		<div css={containerCss} >
+			<label css={labelCss}>Project:</label>
+			<ProjectSelector css={projectSelectorCss} />
+			<label css={labelCss}>Ballot:</label>
+			<BallotSelector css={ballotSelectorCss} />
+		</div>
 	)
 }
 
-function mapStateToProps(state) {
-	const s = state.ballots
-	return {
-		project: s.project,
-		ballotId: s.ballotId,
-		projectList: s.projectList,
-		ballotList: s.ballotList,
-		ballotsValid: s.ballotsValid,
-		ballots: s.ballots
+export default connect(
+	(state) => {
+		const s = state.ballots
+		return {
+			project: s.project,
+			ballotId: s.ballotId,
+			projectList: s.projectList,
+			ballotList: s.ballotList,
+			valid: s.ballotsValid,
+			loading: s.getBallots,
+		}
+	},
+	(dispatch) => {
+		return {
+			getBallots: () => dispatch(getBallots()),
+			setProject: (project) => dispatch(setProject(project)),
+			setBallotId: (ballotId) => dispatch(setBallotId(ballotId))
+		}
 	}
-}
-export default connect(mapStateToProps)(BallotSelector)
+)(BallotSelector)

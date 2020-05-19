@@ -9,7 +9,7 @@ import {updateBallot, addBallot, getBallots} from '../actions/ballots'
 import {getVotingPools} from '../actions/voters'
 import {importResults, uploadResults, deleteResults} from '../actions/results'
 import {importComments, uploadComments, deleteComments} from '../actions/comments'
-import {shallowDiff} from '../lib/filter'
+import {shallowDiff} from '../lib/compare'
 import styles from '../css/BallotDetail.css'
 
 function defaultBallot() {
@@ -377,7 +377,8 @@ function BallotDetail(props) {
 		'Initial WG ballot',
 		'Recirc WG ballot',
 		'Initial SA ballot',
-		'Recirc SA ballot'
+		'Recirc SA ballot',
+		'Motion'
 	]
 
 	const shortDateStart = dateToShortDate(ballot.Start)
@@ -430,7 +431,7 @@ function BallotDetail(props) {
 						<input type='date' name='End' value={shortDateEnd} onChange={changeDate} />
 					</div>
 					<div className={styles.row}>
-						{(ballot.Type === 1 || ballot.Type === 3) && renderVotingPoolOptions()}
+						{(ballot.Type === 1 || ballot.Type === 3 || ballot.Type === 5) && renderVotingPoolOptions()}
 						{(ballot.Type === 2 || ballot.Type === 4) && renderPrevBallotOptions()}
 					</div>
 				</div>

@@ -1,4 +1,5 @@
-import {sortClick, sortData, filterValidate, filterData} from '../filter'
+import {FilterType, filterCreate, filterSetValue, filterData} from './filter'
+import {SortType, sortCreate, sortAddColumn, sortClick, sortData} from './sort'
 import {
 	SET_BALLOTS_FILTER,
 	SET_BALLOTS_SORT,
@@ -35,14 +36,62 @@ function defaultBallot() {
 	}
 }
 
-const filterKeys = [
-	'Project', 'BallotID', 'Document', 'Topic', 'EpollNum', 'Start', 'End', 'Results', 'Comments'
-]
+const ballotFields = ['Project', 'BallotID', 'Document', 'Topic', 'EpollNum', 'Start', 'End', 'Result', 'Comments', 'VotingPoolID', 'PrevBallotID'];
+
+/*
+ * Generate a filter for each field (table column)
+ */
+function genDefaultFilters() {
+	let filters = {}
+	for (let dataKey of ballotFields) {
+		let type
+		switch (dataKey) {
+		case 'EpollNum':
+			type = FilterType.NUMERIC
+			break
+		case 'Project':
+		case 'BallotID':
+		case 'Document':
+		case 'Topic':
+			type = FilterType.STRING
+			break
+		default:
+			break
+		}
+		if (type !== undefined) {
+			filters[dataKey] = filterCreate(type)
+		}
+	}
+	return filters
+}
+
+function genDefaultSort() {
+	let sort = sortCreate()
+	for (let dataKey of ballotFields) {
+		let type
+		switch (dataKey) {
+		case 'EpollNum':
+			type = SortType.NUMERIC
+			break
+		case 'Project':
+		case 'BallotID':
+		case 'Document':
+		case 'Topic':
+			type = SortType.STRING
+			break
+		default:
+			break
+		}
+		if (type !== undefined) {
+			sortAddColumn(sort, dataKey, type)
+		}
+	}
+	return sort
+}
 
 const defaultState = {
-	filters: filterKeys.reduce((obj, key) => ({...obj, [key]: filterValidate(key, '')}), {}),
-	sortBy: [],
-	sortDirection: {},
+	filters: genDefaultFilters(),
+	sort: genDefaultSort(),
 	selected: [],
 	expanded: [],
 	ballotsValid: false,
@@ -52,7 +101,6 @@ const defaultState = {
 	addBallot: false,
 	updateBallot: false,
 	deleteBallots: false,
-	ballotsByProject: {},
 	projectList: [],
 	ballotList: [],
 	project: '',
@@ -63,48 +111,26 @@ const defaultState = {
 	},
 }
 
-function getProjectsList(ballotsData) {
-	var projects = [];
-
-	ballotsData.forEach(b => {
-		if (!projects.includes(b.Project)) {
-			projects.push(b.Project)
-		}
-	})
-	return projects
+function genProjectList(ballots) {
+	return [...new Set(ballots.map(b => b.Project))]
+		.sort()
+		.map(p => ({value: p, label: p}))
 }
 
-function getBallotsByProject(ballotsData) {
-	var ballotsByProject = {};
-	ballotsData.forEach(b => {
-		if (b.Project) {
-			if (!ballotsByProject.hasOwnProperty(b.Project)) {
-				ballotsByProject[b.Project] = [b.BallotID]
-			}
-			else {
-				ballotsByProject[b.Project].push(b.BallotID)
-			}
-		}
-	})
-	return ballotsByProject
-}
-
-/*
- * Reducer that returns an array of ballots for a particular project
- */
-function getBallotListForProject(ballots, project) {
-	return ballots.filter(b => {
-		return b.Project === project? b: null
-	})
+function genBallotList(ballots, project) {
+	const compare = (a, b) => {
+		const A = a.label.toUpperCase()
+		const B = b.label.toUpperCase()
+		return A < B? -1: (A > B? 1: 0)
+	}
+	return ballots.filter(b => b.Project === project)
+		.map(b => ({value: b.BallotID, label: `${b.BallotID} ${b.Document}`}))
+		.sort(compare)
 }
 
 function getProjectForBallotId(ballots, ballotId) {
-	for (var b of ballots) {
-		if (b.BallotID === ballotId) {
-			return b.Project;
-		}
-	}
-	return ''
+	const b = ballots.find(b => b.BallotID === ballotId)
+	return b? b.Project: ''
 }
 
 function updateSelected(ballots, selected) {
@@ -112,26 +138,25 @@ function updateSelected(ballots, selected) {
 }
 
 const ballots = (state = defaultState, action) => {
-	var ballots, project
+	let ballots, project
 
 	switch (action.type) {
 		case SET_BALLOTS_SORT:
-			const {sortBy, sortDirection} = sortClick(action.event, action.dataKey, state.sortBy, state.sortDirection)
+			const sort = sortClick(state.sort, action.dataKey, action.event)
 			return {
 				...state,
-				sortBy,
-				sortDirection,
-				ballotsMap: sortData(state.ballotsMap, state.ballots, sortBy, sortDirection)
+				sort,
+				ballotsMap: sortData(sort, state.ballotsMap, state.ballots)
 			}
 		case SET_BALLOTS_FILTER:
 			const filters = {
 				...state.filters,
-				[action.dataKey]: filterValidate(action.dataKey, action.value)
+				[action.dataKey]: filterSetValue(state.filters[action.dataKey], action.value)
 			}
 			return {
 				...state,
 				filters,
-				ballotsMap: sortData(filterData(state.ballots, filters), state.ballots, state.sortBy, state.sortDirection)
+				ballotsMap: sortData(state.sort, filterData(state.ballots, filters), state.ballots)
 			}
 		case SET_BALLOTS_SELECTED:
 			return {
@@ -141,10 +166,7 @@ const ballots = (state = defaultState, action) => {
 		case GET_BALLOTS:
 			return {
 				...state,
-				getBallots: true,
-				ballots: [],
-				ballotsMap: [],
-				ballotsByProject: {}
+				getBallots: true
 			}
 		case GET_BALLOTS_SUCCESS:
 			project = getProjectForBallotId(action.ballots, state.ballotId)
@@ -153,11 +175,10 @@ const ballots = (state = defaultState, action) => {
 				ballotsValid: true,
 				getBallots: false,
 				ballots: action.ballots,
-				ballotsMap: sortData(filterData(action.ballots, state.filters), action.ballots, state.sortBy, state.sortDirection),
-				ballotsByProject: getBallotsByProject(action.ballots),
-				projectList: getProjectsList(action.ballots),
-				ballotList: getBallotListForProject(action.ballots, project),
+				ballotsMap: sortData(state.sort, filterData(action.ballots, state.filters), action.ballots),
 				project,
+				projectList: genProjectList(action.ballots),
+				ballotList: genBallotList(action.ballots, project),
 				selected: updateSelected(action.ballots, state.selected)
 			}
 		case GET_BALLOTS_FAILURE:
@@ -171,9 +192,8 @@ const ballots = (state = defaultState, action) => {
 				...state,
 				addBallot: false,
 				ballots,
-				ballotsMap: sortData(filterData(ballots, state.filters), ballots, state.sortBy, state.sortDirection),
-				ballotsByProject: getBallotsByProject(ballots),
-				projectList: getProjectsList(ballots),
+				ballotsMap: sortData(state.sort, filterData(ballots, state.filters), ballots),
+				projectList: genProjectList(ballots),
 				selected: updateSelected(action.ballots, state.selected)
 			}
 		case ADD_BALLOT_FAILURE:
@@ -190,9 +210,8 @@ const ballots = (state = defaultState, action) => {
 				...state,
 				updateBallot: false,
 				ballots,
-				ballotsMap: sortData(filterData(ballots, state.filters), ballots, state.sortBy, state.sortDirection),
-				ballotsByProject: getBallotsByProject(ballots),
-				projectList: getProjectsList(ballots)
+				ballotsMap: sortData(state.sort, filterData(ballots, state.filters), ballots),
+				projectList: genProjectList(ballots),
 			}
 		case UPDATE_BALLOT_FAILURE:
 			ballots = state.ballots.map(d => d.BallotID === action.ballotId? Object.assign({}, d): d)
@@ -210,9 +229,8 @@ const ballots = (state = defaultState, action) => {
 				...state,
 				deleteBallots: false,
 				ballots,
-				ballotsMap: sortData(filterData(ballots, state.filters), ballots, state.sortBy, state.sortDirection),
-				ballotsByProject: getBallotsByProject(ballots),
-				projectList: getProjectsList(ballots),
+				ballotsMap: sortData(state.sort, filterData(ballots, state.filters), ballots),
+				projectList: genProjectList(ballots),
 				selected: updateSelected(ballots, state.selected)
 			}
 		case DELETE_BALLOTS_FAILURE:
@@ -222,22 +240,17 @@ const ballots = (state = defaultState, action) => {
 			return {
 				...state,
 				project: action.project,
-				ballotId: '',
-				ballotList: getBallotListForProject(state.ballots, action.project)
+				ballotList: genBallotList(state.ballots, action.project)
 			}
+
 		case SET_BALLOTID:
-			project = getProjectForBallotId(state.ballots, action.ballotId);
-			if (project !== state.project) {
-				return {
-					...state,
-					ballotId: action.ballotId,
-					project,
-					ballotList: getBallotListForProject(state.ballots, project)
-				}
-			}
+			project = getProjectForBallotId(state.ballots, action.ballotId)
 			return {
 				...state,
-				ballotId: action.ballotId
+				ballotId: action.ballotId,
+				project,
+				projectList: genProjectList(state.ballots),
+				ballotList: genBallotList(state.ballots, project)
 			}
 
 		default:

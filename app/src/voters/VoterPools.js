@@ -175,12 +175,11 @@ function VoterPools(props) {
 				loading={props.getVotingPools}
 				editRow={showVoters}
 				filters={props.filters}
-				sortBy={props.sortBy}
-				sortDirection={props.sortDirection}
-				setSort={(dataKey, event) => props.dispatch(setVotingPoolsSort(event, dataKey))}
 				setFilter={(dataKey, value) => props.dispatch(setVotingPoolsFilter(dataKey, value))}
-				setSelected={(ids) => props.dispatch(setVotingPoolsSelected(ids))}
+				sort={props.sort}
+				setSort={(dataKey, event) => props.dispatch(setVotingPoolsSort(event, dataKey))}
 				selected={props.selected}
+				setSelected={(ids) => props.dispatch(setVotingPoolsSelected(ids))}
 				data={props.votingPools}
 				dataMap={props.votingPoolsMap}
 				primaryDataKey='VotingPoolID'
@@ -196,8 +195,7 @@ function VoterPools(props) {
 }
 VoterPools.propTypes = {
 	filters: PropTypes.object.isRequired,
-	sortBy: PropTypes.array.isRequired,
-	sortDirection: PropTypes.object.isRequired,
+	sort: PropTypes.object.isRequired,
 	selected: PropTypes.array.isRequired,
 	votingPoolsValid: PropTypes.bool.isRequired,
 	votingPools:  PropTypes.array.isRequired,
@@ -209,8 +207,7 @@ function mapStateToProps(state) {
 	const s = state.voters
 	return {
 		filters: s.votingPoolsFilters,
-		sortBy: s.votingPoolsSortBy,
-		sortDirection: s.votingPoolsSortDirection,
+		sort: s.votingPoolsSort,
 		selected: s.votingPoolsSelected,
 		votingPoolsValid: s.votingPoolsValid,
 		votingPools: s.votingPools,

@@ -4,18 +4,21 @@
 }
 .headerRow,
 .evenRow,
-.oddRow {
+.oddRow,
+.selectedRow {
 	display: flex;
 	flex-direction: row;
-	align-items: top;
 	box-sizing: border-box;
 }
-:local(.headerRow) {
+.headerRow {
 	font-weight: bold;
-	font-size: 0.9em;
+	/*font-size: 0.9em;*/
 }
 .oddRow {
 	background-color: #f6f6f6;
+}
+.selectedRow {
+	background-color: #b9b9f7;
 }
 .oddRow:focus {
 	background-color: #f0f0f0;

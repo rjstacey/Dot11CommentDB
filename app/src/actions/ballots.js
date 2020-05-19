@@ -27,8 +27,8 @@ export const setBallotsFilter = (dataKey, value) => {return {type: SET_BALLOTS_F
 export const setBallotsSort = (event, dataKey) => {return {type: SET_BALLOTS_SORT, event, dataKey}}
 export const setBallotsSelected = (selected) => {return {type: SET_BALLOTS_SELECTED, selected}}
 
-export const setProject = (project) => {return {type: SET_PROJECT, project}}
-export const setBallotId = (ballotId) => {return {type: SET_BALLOTID, ballotId}}
+export const setProject = (project) => ({type: SET_PROJECT, project})
+export const setBallotId = (ballotId) => ({type: SET_BALLOTID, ballotId})
 
 const getBallotsLocal = () => {return {type: GET_BALLOTS}}
 const getBallotsSuccess  = (ballots) => {return {type: GET_BALLOTS_SUCCESS,	ballots}}

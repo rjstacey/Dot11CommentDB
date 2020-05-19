@@ -7,7 +7,7 @@ import AppModal from '../modals/AppModal'
 import ConfirmModal from '../modals/ConfirmModal'
 import {setVotersFilter, setVotersSort, setVotersSelected, getVoters, deleteVoters, addVoter, updateVoter, uploadVoters} from '../actions/voters'
 import {setError} from '../actions/error'
-import {shallowDiff} from '../lib/filter'
+import {shallowDiff} from '../lib/compare'
 import {ActionButton} from '../general/Icons'
 
 
@@ -276,12 +276,11 @@ function Voters(props) {
 				getTableSize={getTableSize}
 				loading={props.getVoters}
 				filters={props.filters}
-				sortBy={props.sortBy}
-				sortDirection={props.sortDirection}
-				setSort={(dataKey, event) => props.dispatch(setVotersSort(event, dataKey))}
 				setFilter={(dataKey, value) => props.dispatch(setVotersFilter(dataKey, value))}
-				setSelected={(ids) => props.dispatch(setVotersSelected(ids))}
+				sort={props.sort}
+				setSort={(dataKey, event) => props.dispatch(setVotersSort(event, dataKey))}
 				selected={props.selected}
+				setSelected={(ids) => props.dispatch(setVotersSelected(ids))}
 				editRow={handleUpdateVoter}
 				data={props.voters}
 				dataMap={props.votersMap}
@@ -309,8 +308,7 @@ function Voters(props) {
 }
 Voters.propTypes = {
 	filters: PropTypes.object.isRequired,
-	sortBy: PropTypes.array.isRequired,
-	sortDirection: PropTypes.object.isRequired,
+	sort: PropTypes.object.isRequired,
 	selected: PropTypes.array.isRequired,
 	votingPool: PropTypes.object.isRequired,
 	votersValid: PropTypes.bool.isRequired,
@@ -323,8 +321,7 @@ function mapStateToProps(state) {
 	const s = state.voters
 	return {
 		filters: s.votersFilters,
-		sortBy: s.votersSortBy,
-		sortDirection: s.votersSortDirection,
+		sort: s.votersSort,
 		selected: s.votersSelected,
 		votingPool: s.votingPool,
 		votersValid: s.votersValid,
