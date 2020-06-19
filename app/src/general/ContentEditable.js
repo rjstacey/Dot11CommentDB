@@ -57,7 +57,7 @@ function _ContentEditable(props, ref) {
 
 	useEffect(() => {
 		if (selection && selection.rangeCount) { 
-	    	const container = innerRef.current //props.innerRef.current
+	    	const container = innerRef.current
 			const start = getTextNodeAtPosition(container, index.current.startIndex);
 			const end = getTextNodeAtPosition(container, index.current.endIndex);
 			const newRange = new Range();
@@ -67,7 +67,7 @@ function _ContentEditable(props, ref) {
 
 			selection.removeAllRanges();
 			selection.addRange(newRange);
-			container.focus();
+			//container.focus();
 		}
 	})
 

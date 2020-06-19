@@ -1,10 +1,9 @@
 import PropTypes from 'prop-types'
 import React, {useRef, useState, useEffect} from 'react'
-import {useHistory, useParams} from 'react-router-dom'
+import {useHistory, useParams, useLocation} from 'react-router-dom'
 import {connect} from 'react-redux'
 import BallotSelector from '../ballots/BallotSelector'
 import ColumnSelector from './ColumnSelector'
-import ContentEditable from '../general/ContentEditable'
 import CommentsFilter from './CommentsFilter'
 import BulkActions from './BulkActions'
 import AppModal from '../modals/AppModal'
@@ -14,103 +13,22 @@ import {setCommentsSort, setCommentsFilter, setCommentsSelected, setCommentsExpa
 import {setBallotId} from '../actions/ballots'
 import {setError} from '../actions/error'
 import fetcher from '../lib/fetcher'
-import styles from '../css/Comments.css'
 import editorStyles from '../css/ResolutionEditor.css'
+import {CommentIdSelector} from './CommentIdList'
+import CommentDetail from './CommentDetail'
 
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core'
 
-function SelectCommentsModal(props) {
-	const [list, setList] = useState('')
-	const listRef = useRef(null)
 
-	function cidValid(cid) {
-		return props.comments.filter(c => c.CommentID.toString() === cid || `${c.CommentID}.${c.ResolutionID}` === cid).length > 0
-	}
-
-	function onOpen() {
-		const {selected} = props
-		const list = selected.map(cid => cidValid(cid)? cid.toString(): '<span style="color: red">' + cid + '</span>').join(', ')
-		setList(list)
-	}
-
-	function changeList(e) {
-		const listArr = listRef.current.innerText.match(/\d+\.\d+[^\d]*|\d+[^\d]*/g)
-		if (listArr) {
-			var list = ''
-			listArr.forEach(cidStr => {
-				const m = cidStr.match(/(\d+\.\d+|\d+)(.*)/)		// split number from separator
-				const cid = m[1]
-				const sep = m[2]
-				//console.log(m)
-				if (cidValid(cid)) {
-					list += cid + sep
-				}
-				else {
-					list += '<span style="color: red">' + cid + '</span>' + sep
-				}
-			})
-			setList(list)
-		}
-	}
-
-	function selectShown() {
-		const {comments, commentsMap} = props
-		const list = commentsMap.map(i => comments[i].CID).join(', ')
-		setList(list)
-	}
-
-	function clear() {
-		setList('')
-	}
-
-	function submit() {
-		const cids = listRef.current.innerText.match(/\d+\.\d+|\d+/g)	// just the numbers
-		props.setSelected(cids)
-		props.close()
-	}
-
-	return (
-		<AppModal
-			className={styles.SelectCommentsContent}
-			isOpen={props.isOpen}
-			onRequestClose={props.close}
-			onAfterOpen={onOpen}
-		>
-			<div className={styles.ModalArrow}></div>
-			<button onClick={selectShown}>Select Filtered</button>
-			<button onClick={clear}>Clear</button>
-			<p>Enter a list of CIDs:</p>
-			<ContentEditable
-				className={styles.ModalDialog}
-				ref={listRef}
-				value={list}
-				onInput={changeList}
-			/>
-			<br />
-			<button onClick={submit}>OK</button>
-			<button onClick={submit}>Edit Selected</button>
-			<button onClick={props.close}>Cancel</button>
-		</AppModal>
-	)
-}
-SelectCommentsModal.propTypes = {
-	isOpen: PropTypes.bool.isRequired,
-	close: PropTypes.func.isRequired,
-	setSelected: PropTypes.func.isRequired,
-	selected: PropTypes.array.isRequired,
-	comments: PropTypes.array.isRequired,
-	commentsMap: PropTypes.array.isRequired
-}
-
-function ImportModal(props) {
+function _ImportModal({isOpen, close, ballotId, uploadResolutions}) {
 	const fileInputRef = useRef();
 	const [algo, setAlgo] = useState('cid')
 	const [matchAll, setMatchAll] = useState(false)
 
 	function submit() {
-		props.dispatch(uploadResolutions(props.ballotId, algo, matchAll, fileInputRef.current.files[0]))
-		props.close()
+		uploadResolutions(ballotId, algo, matchAll, fileInputRef.current.files[0])
+		close()
 	}
 
 	function setField(e) {
@@ -125,10 +43,10 @@ function ImportModal(props) {
 
 	return (
 		<AppModal
-			isOpen={props.isOpen}
-			onRequestClose={props.close}
+			isOpen={isOpen}
+			onRequestClose={close}
 		>
-			<p>Import resolutions for {props.ballotId}. Current resolutions (if any) will be deleted.</p>
+			<p>Import resolutions for {ballotId}. Current resolutions (if any) will be deleted.</p>
 			<p>
 				<label>Match algorithm:</label><br />
 				{algoFields.map(a => 
@@ -154,36 +72,46 @@ function ImportModal(props) {
 			</label>
 			<br />
 			<button onClick={submit}>OK</button>
-			<button onClick={props.close}>Cancel</button>
+			<button onClick={close}>Cancel</button>
 		</AppModal>
 	)
 }
-ImportModal.propTypes = {
-	ballotId: PropTypes.string.isRequired,
+
+_ImportModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
+	ballotId: PropTypes.string.isRequired,
+	upload: PropTypes.func.isRequired
 }
 
-function ExportModal(props) {
-	const {ballotId} = props
+const ImportModal = connect(
+	null,
+	(dispatch, ownProps) => {
+		return {
+			upload: (...args) => dispatch(uploadResolutions(...args))
+		}
+	} 
+)(_ImportModal)
+
+function _ExportModal({isOpen, close, ballotId, setError}) {
 	const [forMyProject, setForMyProject] = useState(false)
 
 	async function submit(e) {
 		try {
-			await fetcher.getFile('/exportComments/myProject', {BallotID: props.ballotId})
+			await fetcher.getFile('/exportComments/myProject', {BallotID: ballotId})
 		}
 		catch(error) {
-			props.dispatch(setError(`Unable to export comments for ${props.ballotId}`, error))
+			setError(`Unable to export comments for ${ballotId}`, error)
 		}
-		props.close()
+		close()
 	}
 
 	return (
 		<AppModal
-			isOpen={props.isOpen}
-			onRequestClose={props.close}
+			isOpen={isOpen}
+			onRequestClose={close}
 		>
-			<p>Export comments for {props.ballotId}:</p>
+			<p>Export comments for {ballotId}:</p>
 			<p>
 				<label>
 					<input
@@ -207,15 +135,25 @@ function ExportModal(props) {
 				</label>
 			</p>
 			<button onClick={submit}>OK</button>
-			<button onClick={props.close}>Cancel</button>
+			<button onClick={close}>Cancel</button>
 		</AppModal>
 	)
 }
-ExportModal.propTypes = {
+
+_ExportModal.propTypes = {
 	ballotId: PropTypes.string.isRequired,
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
 }
+
+const ExportModal = connect(
+	null,
+	(dispatch, ownProps) => {
+		return {
+			setError: (...args) => dispatch(setError(...args))
+		}
+	} 
+)(_ExportModal)
 
 /*
  * The data cell rendering functions are pure functions (dependent only on input parameters)
@@ -257,8 +195,8 @@ const ConnectedColumnLabel = connect(commentsSortStateMap, commentsSortDispatchM
 
 const rowCss = css`
 	display: flex;
-	flex-direction: row;
-`
+	flex-direction: row;`
+
 function renderHeaderCellStacked1() {
 
 	return (
@@ -319,52 +257,56 @@ function renderHeaderCell({dataKey, label}) {
 	return <ConnectedColumnLabel dataKey={dataKey} label={label} />
 }
 
+function renderCommentsSelector(props) {
+	return <CommentIdSelector focusOnMount {...props} />
+}
+
 const flatColumns = [
-	{dataKey: 'CID',			label: 'CID',			width: 60,	sortable: true,
+	{dataKey: 'CID',			label: 'CID',			width: 60,
 		flexGrow: 0, flexShrink: 0,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'CommenterName',	label: 'Commenter',		width: 100,	sortable: true,
+	{dataKey: 'CommenterName',	label: 'Commenter',		width: 100,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'Vote',			label: 'Vote',			width: 50,	sortable: true,
+	{dataKey: 'Vote',			label: 'Vote',			width: 50,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'MustSatisfy',	label: 'MS',			width: 36,	sortable: true,
+	{dataKey: 'MustSatisfy',	label: 'MS',			width: 36,
 		flexGrow: 0, flexShrink: 0,
 		headerRenderer: renderHeaderCell,
 		cellRenderer: renderDataCellCheck},
-	{dataKey: 'Category',		label: 'Cat',			width: 36,	sortable: true,
+	{dataKey: 'Category',		label: 'Cat',			width: 36,
 		flexGrow: 0, flexShrink: 0,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'Clause',			label: 'Clause',		width: 100,	sortable: true,
+	{dataKey: 'Clause',			label: 'Clause',		width: 100,
 		flexGrow: 0, flexShrink: 0,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'Page',			label: 'Page',			width: 80,	sortable: true,
+	{dataKey: 'Page',			label: 'Page',			width: 80,
 		flexGrow: 0, flexShrink: 0,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'Comment',		label: 'Comment',		width: 400,	sortable: true,
+	{dataKey: 'Comment',		label: 'Comment',		width: 400,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell}, 
-	{dataKey: 'ProposedChange',	label: 'Proposed Change',width: 400,sortable: true,
+	{dataKey: 'ProposedChange',	label: 'Proposed Change',width: 400,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'CommentGroup',	label: 'Comment Group',	width: 150, sortable: true,
+	{dataKey: 'CommentGroup',	label: 'Comment Group',	width: 150,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'AssigneeName',	label: 'Assignee',		width: 150, sortable: true,
+	{dataKey: 'AssigneeName',	label: 'Assignee',		width: 150,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'Submission',		label: 'Submission',	width: 150, sortable: true,
+	{dataKey: 'Submission',		label: 'Submission',	width: 150,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'Status',			label: 'Status',		width: 150,	sortable: true,
+	{dataKey: 'Status',			label: 'Status',		width: 150,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'Resolution',		label: 'Resolution',	width: 400, sortable: false,
+	{dataKey: 'Resolution',		label: 'Resolution',	width: 400,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell,
 		cellRenderer: renderDataCellResolution},
-	{dataKey: 'Editing',		label: 'Editing',		width: 300, sortable: false,
+	{dataKey: 'Editing',		label: 'Editing',		width: 300,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell,
 		cellRenderer: renderDataCellEditing,
@@ -372,56 +314,47 @@ const flatColumns = [
 ]
 
 const stackedColumns = [
-	{dataKey: 'Stack1',			label: 'CID/Cat/MS/...',width: 200, sortable: false,
+	{dataKey: 'Stack1',			label: 'CID/Cat/MS/...',width: 200,
 		flexGrow: 0, flexShrink: 0,
 		headerRenderer: renderHeaderCellStacked1,
 		cellRenderer: renderDataCellStacked1},
-	{dataKey: 'Comment',		label: 'Comment',		width: 400, sortable: true,
+	{dataKey: 'Comment',		label: 'Comment',		width: 400,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell}, 
-	{dataKey: 'ProposedChange', label: 'Proposed Change',width: 400,sortable: true,
+	{dataKey: 'ProposedChange', label: 'Proposed Change',width: 400,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'CommentGroup',	label: 'Group',	width: 150, sortable: true,
+	{dataKey: 'CommentGroup',	label: 'Group',			width: 150,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'Status',			label: 'Status',		width: 150,	sortable: true,
+	{dataKey: 'Status',			label: 'Status',		width: 150,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'Stack2', label: 'Assignee/Submission',width: 250,sortable: false,
+	{dataKey: 'Stack2', label: 'Assignee/Submission',	width: 250,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCellStacked2,
 		cellRenderer: renderDataCellStacked2},
-	{dataKey: 'Resolution',		label: 'Resolution',	width: 400, sortable: false,
+	{dataKey: 'Resolution',		label: 'Resolution',	width: 400,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell,
 		cellRenderer: renderDataCellResolution},
-	{dataKey: 'Editing',		label: 'Editing',		width: 300, sortable: false,
+	{dataKey: 'Editing',		label: 'Editing',		width: 300,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell,
 		cellRenderer: renderDataCellEditing,
 		isLast: true}
 ]
-
-function getTableSize() {
-	const headerEl = document.getElementsByTagName('header')[0]
-	const topRowEl = document.getElementById('top-row')
-	const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight
-
-	const height = window.innerHeight - headerHeight - 1
-	const width = window.innerWidth - 1
-
-	return {height, width}
-}
+	
 
 function Comments(props) {
 	const history = useHistory()
 	const {ballotId} = useParams()
-	const {comments, commentsMap, dispatch} = props;
+	const query = new URLSearchParams(useLocation().search)
+	const cidsStr = query.get('CIDs')
+	const cids = cidsStr? cidsStr.split(','): []
 
 	const [showImport, setShowImport] = useState(false)
 	const [showExport, setShowExport] = useState(false)
-	const [showSelected, setShowSelected] = useState(false)
 
 	const [columnVisibility, setColumnVisibility] = useState(() => {
 		const v1 = stackedColumns.reduce((o, c) => {return {...o, [c.dataKey]: true}}, {})
@@ -430,18 +363,21 @@ function Comments(props) {
 	})
 	const [isStacked, setStacked] = useState(true)
 
-	const columns = (isStacked? stackedColumns: flatColumns).filter(c => !columnVisibility.hasOwnProperty(c.dataKey) || columnVisibility[c.dataKey])
-	
+	let columns = (isStacked? stackedColumns: flatColumns).filter(c => !columnVisibility.hasOwnProperty(c.dataKey) || columnVisibility[c.dataKey])
+	if (cids.length) {
+		columns = [columns[0]]
+	}
+
 	useEffect(() => {
 		if (ballotId) {
 			if (ballotId !== props.ballotId) {
 				// Routed here with parameter ballotId specified, but not matching stored ballotId
 				// Store the ballotId and get comments for this ballotId
-				dispatch(setBallotId(ballotId))
-				dispatch(getComments(ballotId))
+				props.setBallotId(ballotId)
+				props.getComments(ballotId)
 			}
 			else if (!props.getComments && (!props.commentsValid || props.commentBallotId !== ballotId)) {
-				dispatch(getComments(ballotId))
+				props.getComments(ballotId)
 			}
 		}
 		else if (props.ballotId) {
@@ -450,7 +386,7 @@ function Comments(props) {
 	}, [ballotId])
 
 	function refresh() {
-		dispatch(getComments(ballotId))
+		props.getComments(ballotId)
 	}
 
 	function toggleColumns() {
@@ -468,7 +404,7 @@ function Comments(props) {
 	function ballotSelected(ballotId) {
 		// Redirect to page with selected ballot
 		history.push(`/Comments/${ballotId}`)
-		dispatch(getComments(ballotId))
+		props.getComments(ballotId)
 	}
 
 	function editComment({event, index, rowData}) {
@@ -480,7 +416,8 @@ function Comments(props) {
 	}
 
 	function rowGetter({index}) {
-		const c = comments[props.commentsMap[index]]
+		const {comments, commentsMap} = props;
+		const c = comments[commentsMap[index]]
 		if (index > 0 && Math.floor(comments[commentsMap[index - 1]].CommentID) === Math.floor(c.CommentID)) {
 			// Previous row holds the same comment
 			return {
@@ -498,6 +435,19 @@ function Comments(props) {
 		return c
 	}
 
+	function getTableSize() {
+		const headerEl = document.getElementsByTagName('header')[0]
+		const topRowEl = document.getElementById('top-row')
+		const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight
+
+		const height = window.innerHeight - headerHeight - 1
+		const width = columns.length > 1? window.innerWidth - 1: columns[0].width + 43
+
+		return {height, width}
+	}
+
+
+	const width = window.innerWidth - 5;
 	return (
 		<div id='Comments'>
 			<div id='top-row' style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between'}}>
@@ -523,56 +473,49 @@ function Comments(props) {
 				</span>
 			</div>
 
-			<CommentsFilter />
+			<CommentsFilter css={css`max-width: ${width}px`}/>
 
-			<AppTable
-				headerHeight={isStacked? 60: 22}
-				columns={columns}
-				rowHeight={54}
-				getTableSize={getTableSize}
-				loading={props.getComments}
-				editRow={editComment}
-				filters={props.filters}
-				sort={props.sort}
-				setSort={(dataKey, event) => props.dispatch(setCommentsSort(event, dataKey))}
-				setFilter={(dataKey, value) => props.dispatch(setCommentsFilter(dataKey, value))}
-				showSelected={() => setShowSelected(true)}
-				setSelected={(cids) => props.dispatch(setCommentsSelected(cids))}
-				selected={props.selected}
-				setExpanded={(cids) => props.dispatch(setCommentsExpanded(cids))}
-				expanded={props.expanded}
-				data={props.comments}
-				dataMap={props.commentsMap}
-				primaryDataKey={'CID'}
-				rowGetter={rowGetter}
-			/>
+			<div style={{display: 'flex', flexDirection: 'row'}}>
+				<AppTable
+					headerHeight={isStacked? 60: 22}
+					columns={columns}
+					rowHeight={54}
+					getTableSize={getTableSize}
+					loading={props.loading}
+					editRow={editComment}
+					filters={props.filters}
+					sort={props.sort}
+					setSort={props.setSort}
+					setFilter={props.setFilter}
+					selector={renderCommentsSelector}
+					setSelected={props.setSelected}
+					selected={props.selected}
+					setExpanded={props.setExpanded}
+					expanded={props.expanded}
+					data={props.comments}
+					dataMap={props.commentsMap}
+					primaryDataKey={'CID'}
+					rowGetter={rowGetter}
+				/>
+				{cids.length && <CommentDetail />}
+			</div>
 
 			<ImportModal
 				ballotId={props.ballotId}
 				isOpen={showImport}
 				close={() => setShowImport(false)}
-				dispatch={props.dispatch}
 			/>
 
 			<ExportModal
 				ballotId={props.ballotId}
 				isOpen={showExport}
 				close={() => setShowExport(false)}
-				dispatch={props.dispatch}
-			/>
-
-			<SelectCommentsModal
-				isOpen={showSelected}
-				close={() => setShowSelected(false)}
-				setSelected={cids => props.dispatch(setCommentsSelected(cids))}
-				selected={props.selected}
-				comments={props.comments}
-				commentsMap={props.commentsMap}
 			/>
 
 		</div>
 	)
 }
+
 Comments.propTypes = {
 	filters: PropTypes.object.isRequired,
 	sort: PropTypes.object.isRequired,
@@ -583,23 +526,33 @@ Comments.propTypes = {
 	commentsValid: PropTypes.bool.isRequired,
 	comments: PropTypes.array.isRequired,
 	commentsMap: PropTypes.array.isRequired,
-	getComments: PropTypes.bool.isRequired,
-	dispatch: PropTypes.func.isRequired
+	loading: PropTypes.bool.isRequired,
 }
 
-function mapStateToProps(state) {
-	const {comments, ballots} = state
-	return {
-		filters: comments.filters,
-		sort: comments.sort,
-		selected: comments.selected,
-		expanded: comments.expanded,
-		ballotId: ballots.ballotId,
-		commentBallotId: comments.ballotId,
-		commentsValid: comments.commentsValid,
-		comments: comments.comments,
-		commentsMap: comments.commentsMap,
-		getComments: comments.getComments
+export default connect(
+	(state, ownProps) => {
+		const {comments, ballots} = state
+		return {
+			ballotId: ballots.ballotId,
+			filters: comments.filters,
+			sort: comments.sort,
+			selected: comments.selected,
+			expanded: comments.expanded,
+			commentBallotId: comments.ballotId,
+			commentsValid: comments.commentsValid,
+			comments: comments.comments,
+			commentsMap: comments.commentsMap,
+			loading: comments.getComments
+		}
+	},
+	(dispatch, ownProps) => {
+		return {
+			setSelected: cids => dispatch(setCommentsSelected(cids)),
+			setExpanded: cids => dispatch(setCommentsExpanded(cids)),
+			setFilter: (dataKey, value) => dispatch(setCommentsFilter(dataKey, value)),
+			setSort: (dataKey, event) => dispatch(setCommentsSort(event, dataKey)),
+			getComments: ballotId => dispatch(getComments(ballotId)),
+			setBallotId: ballotId => dispatch(setBallotId(ballotId))
+		}
 	}
-}
-export default connect(mapStateToProps)(Comments);
+)(Comments);

@@ -25,7 +25,7 @@ else {
 	}
 }
 
-//console.log(options)
+console.log(options)
 const pool = mysql.createPool(options)
 
 // Promisified SQL query using connection pool

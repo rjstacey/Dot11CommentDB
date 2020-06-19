@@ -5,12 +5,13 @@ import {defaultTableRowRenderer, Column, Table, CellMeasurer, CellMeasurerCache}
 import Draggable from 'react-draggable'
 import Select from 'react-dropdown-select'
 import {allSelected, toggleVisible} from '../lib/select'
-import {IconSort} from './Icons'
-import styles from '../css/AppTable.css'
+import {IconSort, Handle, Expander, DoubleExpander, Checkbox} from './Icons'
 import {SortType, SortDirection, isSortable} from '../reducers/sort'
+import ClickOutside from '../general/ClickOutside'
 
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core'
+
 
 function renderPreservingNewlines(text) {
 	return typeof text === 'string'?
@@ -34,9 +35,8 @@ export function ColumnSearchFilter({className, dataKey, label, filter, setFilter
 	const inputCss = css`
 		background-color: #ffffff;
 		border: 1px solid #ddd;
-		padding: 0;
 		box-sizing: border-box;
-		min-width: ${width? width + 'px': 'unset'};
+		width: ${width? width + 'px': 'unset'};
 		min-height: 28px;
 		background-color: ${filter.valid? 'white': 'red'};
 		:placeholder-shown {
@@ -44,8 +44,7 @@ export function ColumnSearchFilter({className, dataKey, label, filter, setFilter
 		}
 		:hover {
 			border-color: #0074D9;
-		}
-	`
+		}`
 
 	return (
 			<input
@@ -106,19 +105,16 @@ export function ColumnLabel({dataKey, label, sort, setSort, ...otherProps}) {
 		user-select: none;
 		position: relative;
 		width: 100%;
-		cursor: ${sortable? 'pointer': 'unset'};
-	`
+		cursor: ${sortable? 'pointer': 'unset'};`
 	const headerLabelItem = css`
 		display: inline-block;
 		white-space: nowrap;
 		overflow: hidden;
-		width: ${direction === SortDirection.NONE? '100%': 'calc(100% - 12px)'};
-	`
+		width: ${direction === SortDirection.NONE? '100%': 'calc(100% - 12px)'};`
 	const headerLabelIcon = css`
 		position: absolute;
 		right: 0;
-		top: 2px;
-	`
+		top: 2px;`
 	return (
 		<div
 			css={headerLabel}
@@ -129,6 +125,39 @@ export function ColumnLabel({dataKey, label, sort, setSort, ...otherProps}) {
 			<div css={headerLabelItem}>{label}</div>
 			{direction !== 'NONE' && <IconSort css={headerLabelIcon} isAlpha={isAlpha} direction={direction} />}
 		</div>
+	)
+}
+
+function RowSelector({renderSelector}) {
+	const [open, setOpen] = React.useState(false)
+
+	const containerCss = css`
+		position: relative;
+		height: 22px;
+		border-radius: 6px;
+		:hover,
+		:focus,
+		:focus-within {
+			background-color: #ccc;
+		}`
+	const handleCss = css`
+		border-radius: 6px;`
+	const contentCss = css`
+		position: absolute;
+		top: 22px;
+		left: -1px;
+		min-width: 300px;
+		border: 1px solid #ccc;
+		padding: 0;
+		background: #fff;
+		border-radius: 2px;
+		box-shadow: 0 0 10px 0 rgba(0,0,0,0.2);
+		z-index: 9;`
+	return (
+		<ClickOutside css={containerCss} onClick={() => setOpen(!open)} onClickOutside={() => setOpen(false)}  >
+			<Handle css={handleCss} title="Select List" open={open} onClick={(e) => {setOpen(!open); e.stopPropagation()}} />
+			{open && renderSelector({css: contentCss})}
+		</ClickOutside>
 	)
 }
 
@@ -165,6 +194,36 @@ function useTableSize(getTableSize, dependencies) {
 
 	return tableSize
 }
+
+const tableCss = css`
+	margin: 0 auto;
+	align-items: center;
+
+	.headerColumn {
+		display: flex;
+		flex-direction: row;
+		text-transform: none;
+		background-color: #fafafa;
+	}
+
+	.headerRow,
+	.evenRow,
+	.oddRow,
+	.selectedRow {
+		display: flex;
+		flex-direction: row;
+		box-sizing: border-box;
+	}
+	.headerRow {
+		font-weight: bold;
+	}
+	.oddRow {
+		background-color: #f6f6f6;
+	}
+	.selectedRow {
+		background-color: #b9b9f7;
+	}
+`
 
 function AppTable(props) {
 	let tableRef = null
@@ -228,17 +287,14 @@ function AppTable(props) {
 			.react-draggable-dragging {
 				background-color: rgba(0, 0, 0, 0.1);
 			}
-
 			.react-draggable-dragging {
 				color: #0b6fcc;
-			}
-		`
+			}`
 		const dragHandleIconCss = css`
 			display: flex;
 			flex-direction: column;
 			justify-content: center;
-			align-items: center;
-		`
+			align-items: center;`
 		const filter = columnData.filters[dataKey]
 		const {sort, setSort} = columnData
 
@@ -251,21 +307,19 @@ function AppTable(props) {
 
 		if (columnData.isLast) {
 			return (
-				<div className={styles.headerLabelBox} style={{flex: '0 0 100%'}}>
+				<div style={{flex: '0 0 100%'}}>
 					{columnData.headerRenderer? columnData.headerRenderer({dataKey, label, columnData}): defaultHeader}
 				</div>
 			)
 		}
 		return (
 			<React.Fragment>
-				<div className={styles.headerLabelBox} style={{flex: '0 0 calc(100% - 12px)'}}>
+				<div style={{flex: '0 0 calc(100% - 12px)'}}>
 					{columnData.headerRenderer? columnData.headerRenderer({dataKey, label, columnData}): defaultHeader}
 				</div>
 				<div css={dragCss}>
 					<Draggable
 						axis="x"
-						//defaultClassName={css(dragCss)}
-						//defaultClassNameDragging={css(dragActiveCss)}
 						onDrag={(event, {deltaX}) => resizeColumn({dataKey, deltaX})}
 						position={{x: 0}}
 						zIndex={999}
@@ -277,66 +331,69 @@ function AppTable(props) {
 		)
 	}
 
-	function renderHeaderCellCheckbox({dataKey}) {
+	function renderHeaderCellCheckbox({dataKey, columnData}) {
 		const {dataMap, data, primaryDataKey} = props
+		const {selected, setSelected, expanded, setExpanded} = columnData
 
 		let elements = []
-		if (Array.isArray(props.selected)) {
-			const {selected, showSelected, setSelected} = props
+		if (Array.isArray(selected)) {
+			//const {selected, showSelected, setSelected} = props
+			const {selector} = props
 			const isChecked = allSelected(selected, dataMap, data, primaryDataKey)
 			const isIndeterminate = !isChecked && selected.length > 0
-			const onChange = showSelected?
-				showSelected:
-				() => setSelected(toggleVisible(selected, dataMap, data, primaryDataKey));
 
+			const containerCss = css`
+				border-radius: 6px;
+				:hover,
+				:focus-within {
+					background-color: #ddd;
+				}
+			`
 			elements.push(
-				<input
-					key='selector'
-					className={styles.checkbox}
-					type="checkbox"
-					title="Select All"
-					checked={isChecked}
-					ref={el => el && (el.indeterminate = isIndeterminate)}
-					onChange={onChange}
-				/>
+				<div key='selector' css={containerCss} style={{display: 'flex', flexDirection: 'row'}}>
+					<Checkbox
+						title="Select All"
+						checked={isChecked}
+						indeterminate={isIndeterminate}
+						onChange={() => setSelected(toggleVisible(selected, dataMap, data, primaryDataKey))}
+					/>
+					{selector && <RowSelector renderSelector={selector} />}
+				</div>
 			)
 		}
-		if (Array.isArray(props.expanded)) {
-			const {expanded, setExpanded} = props
+		if (Array.isArray(expanded)) {
+			//const {expanded, setExpanded} = props
 			const isExpanded = allSelected(expanded, dataMap, data, primaryDataKey)
+
 			elements.push(
-				<input
+				<DoubleExpander
 					key='expander'
-					className={styles.doubleExpandable}
-					type="checkbox"
 					title="Expand All"
-					checked={isExpanded}
-					onChange={e => {
+					open={isExpanded}
+					onClick={e => {
 						setExpanded(toggleVisible(expanded, dataMap, data, primaryDataKey))
 						clearAllCachedRowHeight()
 					}}
 				/>
 			)
 		}
+
 		return (
-			<div>
-				<div>{dataMap.length}</div>
-				{elements}	
+			<div style={{display: 'flex', flexDirection: 'column'}}>
+				{elements}
 			</div>
 		)
 	}
 
-	function renderDataCellCheckbox({rowIndex, rowData, dataKey}) {
+	function renderDataCellCheckbox({rowIndex, dataKey, rowData, columnData}) {
 		const id = rowData[props.primaryDataKey]
 		let elements = []
-		if (Array.isArray(props.selected)) {
-			const {selected, setSelected} = props
+		if (Array.isArray(columnData.selected)) {
+			const {selected, setSelected} = columnData
 			const isSelected = selected.includes(id)
 			elements.push(
-				<input
+				<Checkbox
 					key='selector'
-					className={styles.checkbox}
-					type="checkbox"
 					title="Select Row"
 					checked={isSelected}
 					onChange={e => {
@@ -346,17 +403,15 @@ function AppTable(props) {
 				/>
 			)
 		}
-		if (Array.isArray(props.expanded)) {
-			const {expanded, setExpanded} = props
+		if (Array.isArray(columnData.expanded)) {
+			const {expanded, setExpanded} = columnData
 			const isExpanded = expanded.includes(id)
 			elements.push(
-				<input
+				<Expander
 					key='expander'
-					className={styles.expandable}
-					type="checkbox"
 					title="Expand Row"
-					checked={isExpanded}
-					onChange={e => {
+					open={isExpanded}
+					onClick={e => {
 						const i = expanded.indexOf(id)
 						setExpanded(update(expanded, (i > -1)? {$splice: [[i, 1]]}: {$push: [id]}))
 						clearCachedRowHeight(rowIndex)
@@ -364,7 +419,14 @@ function AppTable(props) {
 				/>
 			)
 		}
-		return elements
+		const controlCss = css`
+			display: flex;
+			flex-direction: column;`
+		return (
+			<div css={controlCss}>
+				{elements}	
+			</div>
+		)
 	}
   
 	function renderMeasuredCell(cellProps) {
@@ -393,13 +455,23 @@ function AppTable(props) {
 	}
 
 	function renderNoRows() {
-		return <div className={styles.noRows}>{props.loading? 'Loading...': 'No rows'}</div>
+		const noRowsCss = css`
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 1em;
+			color: #bdbdbd;`
+		return <div css={noRowsCss}>{props.loading? 'Loading...': 'No rows'}</div>
 	}
 
-
-	function rowClassName({index, rowData}) {
+	function rowClassName({index}) {
 		if (index < 0) {
-			return styles.headerRow;
+			return 'headerRow';
 		}
 		/*else {
 			return index % 2 === 0 ? styles.evenRow : styles.oddRow;
@@ -410,10 +482,10 @@ function AppTable(props) {
 		let className
 		const id = myProps.rowData[props.primaryDataKey]
 		if (Array.isArray(props.selected) && props.selected.includes(id)) {
-			className = styles.selectedRow
+			className = 'selectedRow';
 		}
 		else {
-			className = myProps.index % 2 === 0 ? styles.evenRow : styles.oddRow
+			className = myProps.index % 2 === 0 ? 'evenRow' : 'oddRow';
 		}
 		className += ' ' + props.className
 		return defaultTableRowRenderer({...myProps, className})
@@ -421,9 +493,16 @@ function AppTable(props) {
 
 	let column0
 	if (Array.isArray(props.selected) || Array.isArray(props.expanded)) {
+		const columnData = {
+				selected: props.selected,
+				setSelected: props.setSelected,
+				expanded: props.expanded,
+				setExpanded: props.setExpanded
+			}
 		column0 = (
 			<Column 
 				dataKey=''
+				columnData={columnData}
 				headerRenderer={renderHeaderCellCheckbox}
 				cellRenderer={renderDataCellCheckbox}
 				flexGrow={0}
@@ -435,14 +514,15 @@ function AppTable(props) {
 
 	return (
 		<Table
-			className={styles.Table}
+			//className={styles.Table}
+			css={tableCss}
 			height={height}
 			width={width}
 			rowHeight={rowHeightCache.rowHeight}
 			headerHeight={props.headerHeight? props.headerHeight: 56}
 			noRowsRenderer={renderNoRows}
 			headerRowRenderer={headerRowRenderer}
-			headerClassName={styles.headerColumn}
+			headerClassName='headerColumn'
 			rowRenderer={rowRenderer}
 			rowClassName={rowClassName}
 			rowCount={props.dataMap.length}
@@ -459,7 +539,11 @@ function AppTable(props) {
 					filters: props.filters,
 					setFilter: props.setFilter,
 					sort: props.sort,
-					setSort: props.setSort
+					setSort: props.setSort,
+					selected: props.selected,
+					setSelected: props.setSelected,
+					expanded: props.expanded,
+					setExpanded: props.setExpanded
 				}
 				return (
 					<Column 
@@ -489,10 +573,10 @@ AppTable.propTypes = {
 	setSort: PropTypes.func.isRequired,
 	primaryDataKey: PropTypes.string,
 	showSelected: PropTypes.func,
-	setSelected: PropTypes.func,
 	selected: PropTypes.array,
-	setExpanded: PropTypes.func,
-	expanded: PropTypes.oneOfType([PropTypes.bool, PropTypes.array])
+	setSelected: PropTypes.func,
+	expanded: PropTypes.oneOfType([PropTypes.bool, PropTypes.array]),
+	setExpanded: PropTypes.func
 }
 
 export default AppTable

@@ -3,6 +3,7 @@ import {setError} from './error'
 import fetcher from '../lib/fetcher'
 
 export const SET_COMMENTS_FILTER = 'SET_COMMENTS_FILTER'
+export const CLEAR_COMMENTS_FILTERS = 'CLEAR_COMMENTS_FILTERS'
 export const GEN_COMMENTS_OPTIONS = 'GEN_COMMENTS_OPTIONS'
 export const SET_COMMENTS_SORT = 'SET_COMMENTS_SORT'
 export const SET_COMMENTS_SELECTED = 'SET_COMMENTS_SELECTED'
@@ -37,6 +38,7 @@ export const DELETE_RESOLUTIONS_FAILURE = 'DELETE_RESOLUTIONS_FAILURE'
 
 export const setCommentsFilter = (dataKey, value) => {return {type: SET_COMMENTS_FILTER, dataKey, value}}
 export const genCommentsOptions = (dataKey) => {return {type: GEN_COMMENTS_OPTIONS, dataKey}}
+export const clearCommentsFilters = () => ({type: CLEAR_COMMENTS_FILTERS})
 
 export function removeCommentsFilter(dataKey, value) {
 	return async (dispatch, getState) => {

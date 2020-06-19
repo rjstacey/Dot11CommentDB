@@ -6,13 +6,14 @@ import {useHistory, useParams, useLocation} from 'react-router-dom'
 import {connect} from 'react-redux'
 import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'
 import cx from 'classnames'
-import {addResolutions, updateResolutions, deleteResolutions, getComments} from '../actions/comments'
+import {setCommentsSort, setCommentsFilter, addResolutions, updateResolutions, deleteResolutions, getComments} from '../actions/comments'
 import {setBallotId} from '../actions/ballots'
 import {ResolutionEditor, BasicEditor} from './ResolutionEditor'
 import BallotSelector from '../ballots/BallotSelector'
 import AssigneeSelector from './AssigneeSelector'
 import {ActionButton} from '../general/Icons'
 import {shallowDiff} from '../lib/compare'
+import AppTable, {ColumnLabel} from '../general/AppTable'
 import styles from '../css/CommentDetail.css'
 
 function Resolution(props) {
@@ -357,9 +358,21 @@ function recursivelyDiffObjects(l, r) {
 	}
 }
 
+function getTableSize() {
+	const headerEl = document.getElementsByTagName('header')[0]
+	const topRowEl = document.getElementById('top-row')
+	const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight
+
+	const height = window.innerHeight - headerHeight - 1
+	const width = 200
+
+	return {height, width}
+}
+
 function CommentDetail(props) {
 	const {comments, commentsMap, dispatch} = props
 	const history = useHistory()
+	const location = useLocation()
 	const {ballotId} = useParams()
 	const query = new URLSearchParams(useLocation().search)
 	const cidsStr = query.get('CIDs')
@@ -374,8 +387,8 @@ function CommentDetail(props) {
 		if (ballotId && ballotId !== props.ballotId) {
 			// Routed here with parameter ballotId specified, but not matching stored ballotId
 			// Store the ballotId and get results for this ballotId
-			dispatch(setBallotId(ballotId))
-			dispatch(getComments(ballotId))
+			props.setBallotId(ballotId)
+			props.getComments(ballotId)
 		}
 	}, [])
 
@@ -451,7 +464,7 @@ function CommentDetail(props) {
 		else if (i === -1) {
 			i = commentsMap.length - 1
 		}
-		history.replace(props.location.pathname + '?CIDs=' + comments[commentsMap[i]].CID)
+		history.replace(location.pathname + '?CIDs=' + comments[commentsMap[i]].CID)
 	}
 
 	function nextComment() {
@@ -460,7 +473,7 @@ function CommentDetail(props) {
 		if (i >= commentsMap.length) {
 			i = 0
 		}
-		history.replace(props.location.pathname + '?CIDs=' + comments[commentsMap[i]].CID)
+		history.replace(location.pathname + '?CIDs=' + comments[commentsMap[i]].CID)
 	}
 
 	async function handleAddResolutions() {
@@ -471,7 +484,7 @@ function CommentDetail(props) {
 		console.log(resIds)
 		if (resIds && resIds.length) {
 			const cids = resIds.map(r => r.CID).join(',')
-			history.replace(props.location.pathname + '?CIDs=' + cids)
+			history.replace(location.pathname + '?CIDs=' + cids)
 		}
 	}
 
@@ -482,7 +495,7 @@ function CommentDetail(props) {
  		await dispatch(deleteResolutions(ballotId, resolutions))
  		let cids = resolutions.map(r => r.CommentID)
  		cids = cids.filter((cid, i) => cids.indexOf(cid) === i)	// elliminate duplicates
- 		history.replace(props.location.pathname + '?CIDs=' + cids.toString())
+ 		history.replace(location.pathname + '?CIDs=' + cids.toString())
  	}
 
  	function close() {
@@ -520,6 +533,8 @@ function CommentDetail(props) {
 			<div className={styles.empty}>{emptyStr}</div>
 		)
 	}
+
+	const columns = [{dataKey: 'CID', label: 'CID',	 width: 60, flexGrow: 0, flexShrink: 0, isLast: true}]
  	
 	return(
 		<div id='CommentDetail' className={styles.root}>
@@ -548,4 +563,30 @@ function mapStateToProps(state, props) {
 		getComments: comments.getComments,
   	}
 }
-export default connect(mapStateToProps)(CommentDetail);
+export default connect(
+	(state, ownProps) => {
+		const {comments, ballots} = state
+		return {
+			ballotId: comments.ballotId,
+			filters: comments.filters,
+			sort: comments.sort,
+			//selected: comments.selected,
+			//expanded: comments.expanded,
+			commentsValid: comments.commentsValid,
+			comments: comments.comments,
+			commentsMap: comments.commentsMap,
+			loading: comments.getComments
+		}
+	},
+	(dispatch, ownProps) => {
+		return {
+			//setSelected: cids => dispatch(setCommentsSelected(cids)),
+			//setExpanded: cids => dispatch(setCommentsExpanded(cids)),
+			setFilter: (dataKey, value) => dispatch(setCommentsFilter(dataKey, value)),
+			setSort: (dataKey, event) => dispatch(setCommentsSort(event, dataKey)),
+			getComments: ballotId => dispatch(getComments(ballotId)),
+			setBallotId: ballotId => dispatch(setBallotId(ballotId)),
+			dispatch: dispatch
+		}
+	}
+)(CommentDetail);

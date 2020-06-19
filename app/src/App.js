@@ -15,10 +15,13 @@ import CommentDetail from './comments/CommentDetail'
 import ErrorModal from './modals/ErrorModal'
 import ConfirmModal from './modals/ConfirmModal'
 import {init as iconInit} from './general/Icons'
-import styles from './css/App.css'
+
+/** @jsx jsx */
+import { css, jsx } from '@emotion/core'
 
 iconInit()
-		
+
+/*
 function useQuery() {
 	return new URLSearchParams(useLocation().search)
 }
@@ -33,19 +36,57 @@ function CommentsRoute(props) {
 		return <Comments {...props} />
 	}
 }
+*/
+const titleCss = css`
+	display: inline-block;
+	font-family: "Arial", "Helvetica", sans-serif;
+	font-weight: 400;
+	font-size: 28px;
+	margin: 12px 8px 8px 8px;
+	padding: 0;
+	color: #008080;
+	text-align: center;`
 
-function App(props) {
-	const {access, dispatch} = props
+const headerCss = css`
+	display: flex;
+	flex-direction: column;
+	& > nav {
+		display: inline-flex;
+		flex-direction: row;
+		justify-content: center;
+	}
+	& > nav ul {
+		list-style-type: none;
+		padding: 0 0;
+	}
+	& > nav ul li {
+		display: inline-block;
+		width: 100px;
+		padding: 4px;
+		margin: 0 4px;
+		background: #efefef;
+		text-align: center;
+	}
+	& > nav ul li:hover {
+		background-color: rgba(0, 0, 0, 0.1);
+	}`
+
+const mainCss = css`
+	position: relative;
+	margin: 0 auto;
+	align-items: center;`
+
+function App({access, loginGetState}) {
 
 	useEffect(() => {
-		dispatch(loginGetState())
+		loginGetState()
 	}, [])
 
 	return (
 		<Router>
 			<div id='App'>
-				<header className={styles.header}>
-					<h3 className={styles.title}>802.11 Comment Resolution Tool</h3>
+				<header css={headerCss}>
+					<h3 css={titleCss}>802.11 Comment Resolution Tool</h3>
 					<nav>
 						<ul>
 							<li><Link to="/">Home</Link></li>
@@ -57,7 +98,7 @@ function App(props) {
 						</ul>
 					</nav>
 				</header>
-				<main className={styles.main}>
+				<main css={mainCss}>
 					<Switch>
 						<Route path="/" exact component={LoginForm} />
 						{access > 0 && <Route path="/Users/" component={Users} />}
@@ -68,7 +109,7 @@ function App(props) {
 						<Route path="/ImportEpoll/:epollNum" component={BallotDetail} />
 						<Route path="/Ballot/:ballotId?" component={BallotDetail} />
 						<Route path="/Results/:ballotId?" component={Results} />
-						<Route path="/Comments/:ballotId?" exact component={CommentsRoute} />
+						<Route path="/Comments/:ballotId?" exact component={Comments} />
 					</Switch>
 					<ErrorModal />
 					<ConfirmModal />
@@ -78,10 +119,15 @@ function App(props) {
 	)
 }
 
-function mapStateToProps(state) {
-	const {login} = state
-	return {
-		access: login.Access
-  	}
-}
-export default connect(mapStateToProps)(App)
+export default connect(
+	(state, ownProps) => {
+		return {
+			access: state.login.Access
+		}
+	},
+	(dispatch, ownProps) => {
+		return {
+			loginGetState: () => dispatch(loginGetState())
+		}
+	}
+)(App)

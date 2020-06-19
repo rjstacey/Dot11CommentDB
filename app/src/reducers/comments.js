@@ -2,6 +2,7 @@ import {FilterType, filterCreate, filterSetValue, filterData} from './filter'
 import {SortType, sortCreate, sortAddColumn, sortClick, sortData} from './sort'
 import {
 	SET_COMMENTS_FILTER,
+	CLEAR_COMMENTS_FILTERS,
 	GEN_COMMENTS_OPTIONS,
 	SET_COMMENTS_SORT,
 	SET_COMMENTS_SELECTED,
@@ -186,6 +187,16 @@ function comments(state = defaultState, action) {
 			filters = {
 				...state.filters,
 				[action.dataKey]: filterSetValue(state.filters[action.dataKey], action.value)
+			}
+			return {
+				...state,
+				filters,
+				commentsMap: sortData(state.sort, filterData(state.comments, filters), state.comments)
+			}
+		case CLEAR_COMMENTS_FILTERS:
+			filters = {}
+			for (let dataKey in state.filters) {
+				filters[dataKey] = filterSetValue(state.filters[dataKey], '')
 			}
 			return {
 				...state,

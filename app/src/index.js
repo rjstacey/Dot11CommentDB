@@ -8,7 +8,7 @@ import rootReducer from './reducers'
 //import { composeWithDevTools } from 'redux-devtools-extension'
 import App from './App'
 import registerServiceWorker from './registerServiceWorker'
-import './css/index.css'
+import './index.css'
 
 const store = createStore(
 	rootReducer,
@@ -21,4 +21,5 @@ ReactDOM.render(
 	</Provider>,
 	document.getElementById('root')
 );
+
 registerServiceWorker();

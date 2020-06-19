@@ -3,13 +3,12 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 
-function ClickOutside(props) {
+function ClickOutside({onClickOutside, ...props}) {
   const containerRef = React.createRef()
 
   function handleClick(event) {
     const container = containerRef.current
     const {target} = event
-    const {onClickOutside} = props
 
     if ((container && container === target) || (container && !container.contains(target))) {
       onClickOutside(event)
@@ -21,18 +20,11 @@ function ClickOutside(props) {
     return () => document.removeEventListener('click', handleClick, true)
   })
 
-  const {className, children} = props
-  return (
-    <div className={className} ref={containerRef}>
-      {children}
-    </div>
-  )
+  return <div ref={containerRef} {...props} />
 }
 
 ClickOutside.propTypes = {
-  onClickOutside: PropTypes.func.isRequired,
-  children: PropTypes.node.isRequired,
-  className: PropTypes.string
+  onClickOutside: PropTypes.func.isRequired
 }
 
 export default ClickOutside

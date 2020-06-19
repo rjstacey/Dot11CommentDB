@@ -6,9 +6,9 @@ import {ActionButton} from '../general/Icons'
 import AssigneeSelector from './AssigneeSelector'
 import {genCommentsOptions, addResolutions, updateResolutions, updateComments} from '../actions/comments'
 
-
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core'
+
 
 function _CommentGroupSelector({value, onChange, options, getOptions, loading, ...otherProps}) {
 
@@ -17,8 +17,7 @@ function _CommentGroupSelector({value, onChange, options, getOptions, loading, .
 		border: 1px solid #ddd;
 		padding: 0;
 		box-sizing: border-box;
-		width: unset;
-	`
+		width: unset;`
 
 	const selectValue = options.find(o => o.value === value)
 	return (
@@ -37,6 +36,7 @@ function _CommentGroupSelector({value, onChange, options, getOptions, loading, .
 		</div>
 	)
 }
+
 const CommentGroupSelector = connect(
 	(state) => {
 		const {comments} = state
@@ -58,18 +58,6 @@ function BulkActions(props) {
 	const [assignee, setAssignee] = React.useState(0)
 	const [commentGroup, setCommentGroup] = React.useState(0)
 
-	const bulkActionsCss = css`
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		justify-content: space-between;
-		label {
-			font-weight: bold;
-		}
-		span {
-			margin-left: 10px;
-		}
-	`
 	function assignSelected(field) {
 		const a = [], u = []
 		for (let cid of selected) {
@@ -97,7 +85,7 @@ function BulkActions(props) {
 		const u = []
 		for (let cid of selected) {
 			const c = comments.find(c => c.CommentID.toString() === cid || `${c.CommentID}.${c.ResolutionID}` === cid)
-			if (c) {
+			if (c && !u.find(u => c.CommentID === u.CommentID)) {
 				u.push({CommentID: c.CommentID, CommentGroup: commentGroup})
 			}
 		}
@@ -107,35 +95,47 @@ function BulkActions(props) {
 	}
 
 	function editSelected() {
-		props.editSelected(props.selected)
+		props.editSelected(selected)
 	}
+
+	const bulkActionsCss = css`
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		label {
+			font-weight: bold;
+		}
+		span {
+			margin-left: 10px;
+		}`
 
 	return (
 		<div css={bulkActionsCss}>
-			<label>On Selected:</label>
+			<label>Bulk Actions ({props.selected.length} Selected):</label>
 			<span>
 				<CommentGroupSelector
-					css={css`display: inline-block;`}
+					style={{display: 'inline-block'}}
 					value={commentGroup}
 					onChange={setCommentGroup}
-				/>
+				/>&nbsp;
 				<ActionButton
 					name='group'
 					title='Group Selected'
-					disabled={props.selected.length === 0}
+					disabled={selected.length === 0}
 					onClick={groupSelected}
 				/>
 			</span>
 			<span>
 				<AssigneeSelector
-					css={css`display: inline-block;`}
+					style={{display: 'inline-block'}}
 					value={assignee}
 					onChange={setAssignee}
-				/>
+				/>&nbsp;
 				<ActionButton
 					name='assignment'
 					title='Assign Selected'
-					disabled={props.selected.length === 0}
+					disabled={selected.length === 0}
 					onClick={assignSelected}
 				/>
 			</span>
@@ -144,15 +144,18 @@ function BulkActions(props) {
 				<ActionButton
 					name='edit'
 					title='Edit Selected'
-					disabled={props.selected.length === 0}
+					disabled={selected.length === 0}
 					onClick={editSelected}
 				/>
 			</span>
 		</div>
 	)
 }
+
 BulkActions.propTypes = {
+	ballotId: PropTypes.string.isRequired,
 	selected: PropTypes.array.isRequired,
+	comments: PropTypes.array.isRequired,
 	editSelected: PropTypes.func.isRequired
 }
 
