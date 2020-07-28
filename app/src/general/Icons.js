@@ -264,3 +264,7 @@ export function Checkbox({indeterminate, ...otherProps}) {
 		}`;
 	return <input type='checkbox' css={checkboxCss} ref={el => el && (el.indeterminate = indeterminate)} {...otherProps}/>
 }
+
+export function Search(props) {
+	return <input type='search' {...props} />
+}

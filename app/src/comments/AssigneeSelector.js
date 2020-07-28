@@ -44,6 +44,7 @@ function AssigneeSelector({value, onChange, valid, loading, options, getOptions,
 		</div>
 	)
 }
+
 AssigneeSelector.propTypes = {
 	value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
 	onChange: PropTypes.func.isRequired,

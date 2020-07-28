@@ -112,9 +112,7 @@ const defaultState = {
 }
 
 function genProjectList(ballots) {
-	return [...new Set(ballots.map(b => b.Project))]
-		.sort()
-		.map(p => ({value: p, label: p}))
+	return [...new Set(ballots.map(b => b.Project))].sort()
 }
 
 function genBallotList(ballots, project) {

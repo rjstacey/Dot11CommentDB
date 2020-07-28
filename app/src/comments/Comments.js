@@ -1,19 +1,22 @@
 import PropTypes from 'prop-types'
-import React, {useRef, useState, useEffect} from 'react'
+import React from 'react'
 import {useHistory, useParams, useLocation} from 'react-router-dom'
 import {connect} from 'react-redux'
+import {Container, Row, Col} from 'react-grid-system'
+//import BaseTable, { AutoResizer } from 'react-base-table'
+//import 'react-base-table/styles.css'
+import AutoSizer from 'react-virtualized-auto-sizer'
 import BallotSelector from '../ballots/BallotSelector'
 import ColumnSelector from './ColumnSelector'
 import CommentsFilter from './CommentsFilter'
-import BulkActions from './BulkActions'
 import AppModal from '../modals/AppModal'
-import AppTable, {ColumnLabel} from '../general/AppTable'
-import {ActionButton} from '../general/Icons'
-import {setCommentsSort, setCommentsFilter, setCommentsSelected, setCommentsExpanded, getComments, uploadResolutions} from '../actions/comments'
+import AppTable, {ColumnLabel} from '../table/AppTable'
+import {ActionButton, Checkbox} from '../general/Icons'
+import {setCommentsSort, setCommentsFilter, setCommentsSelected, toggleCommentsSelected, setCommentsExpanded, getComments, uploadResolutions} from '../actions/comments'
 import {setBallotId} from '../actions/ballots'
 import {setError} from '../actions/error'
 import fetcher from '../lib/fetcher'
-import editorStyles from '../css/ResolutionEditor.css'
+import {editorCss} from './ResolutionEditor'
 import {CommentIdSelector} from './CommentIdList'
 import CommentDetail from './CommentDetail'
 
@@ -21,13 +24,13 @@ import CommentDetail from './CommentDetail'
 import { css, jsx } from '@emotion/core'
 
 
-function _ImportModal({isOpen, close, ballotId, uploadResolutions}) {
-	const fileInputRef = useRef();
-	const [algo, setAlgo] = useState('cid')
-	const [matchAll, setMatchAll] = useState(false)
+function _UploadCommentsModal({isOpen, close, ballotId, upload}) {
+	const fileInputRef = React.useRef()
+	const [algo, setAlgo] = React.useState('cid')
+	const [matchAll, setMatchAll] = React.useState(false)
 
 	function submit() {
-		uploadResolutions(ballotId, algo, matchAll, fileInputRef.current.files[0])
+		upload(ballotId, algo, matchAll, fileInputRef.current.files[0])
 		close()
 	}
 
@@ -77,24 +80,24 @@ function _ImportModal({isOpen, close, ballotId, uploadResolutions}) {
 	)
 }
 
-_ImportModal.propTypes = {
+_UploadCommentsModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
 	ballotId: PropTypes.string.isRequired,
 	upload: PropTypes.func.isRequired
 }
 
-const ImportModal = connect(
+const UploadCommentsModal = connect(
 	null,
 	(dispatch, ownProps) => {
 		return {
 			upload: (...args) => dispatch(uploadResolutions(...args))
 		}
 	} 
-)(_ImportModal)
+)(_UploadCommentsModal)
 
 function _ExportModal({isOpen, close, ballotId, setError}) {
-	const [forMyProject, setForMyProject] = useState(false)
+	const [forMyProject, setForMyProject] = React.useState(false)
 
 	async function submit(e) {
 		try {
@@ -174,7 +177,7 @@ function renderDataCellResolution({rowData}) {
 	}
 	return (
 		<div
-			className={editorStyles.editor}
+			css={editorCss}
 			style={{backgroundColor: resnColor[rowData.ResnStatus]}}
 			dangerouslySetInnerHTML={{__html: rowData.Resolution}}
 		/>
@@ -195,24 +198,30 @@ const ConnectedColumnLabel = connect(commentsSortStateMap, commentsSortDispatchM
 
 const rowCss = css`
 	display: flex;
-	flex-direction: row;`
+	flex-direction: row;
+	flex-wrap: nowrap`
+
+const elementCss = (width, paddingRight=0) => css`
+	box-sizing: border-box;
+	width: ${width}px;
+	padding-right: ${paddingRight}px`
 
 function renderHeaderCellStacked1() {
 
 	return (
 		<React.Fragment>
-			<div css={rowCss} >
-				<ConnectedColumnLabel css={{width: 80}} dataKey='CID' label='CID' />
-				<ConnectedColumnLabel css={{width: 40, marginLeft: 25}} dataKey='Category' label='Cat' />
-				<ConnectedColumnLabel css={{width: 25, marginLeft: 15}} dataKey='MustSatisfy' label='MS' />
+			<div css={rowCss}>
+				<ConnectedColumnLabel css={elementCss(100, 5)} dataKey='CID' label='CID' />
+				<ConnectedColumnLabel css={elementCss(40, 5)} dataKey='Category' label='Cat' />
+				<ConnectedColumnLabel css={elementCss(32)} dataKey='MustSatisfy' label='MS' />
 			</div>
-			<div css={rowCss} >
-				<ConnectedColumnLabel css={{width: 100}} dataKey='Clause' label='Clause' />
-				<ConnectedColumnLabel css={{width: 50, marginLeft: 5}} dataKey='Page' label='Page' />
+			<div css={rowCss}>
+				<ConnectedColumnLabel css={elementCss(100, 5)} dataKey='Clause' label='Clause' />
+				<ConnectedColumnLabel css={elementCss(50, 0)} dataKey='Page' label='Page' />
 			</div>
-			<div css={rowCss} >
-				<ConnectedColumnLabel css={{width: 100}} dataKey='CommenterName' label='Commenter' />
-				<ConnectedColumnLabel css={{width: 50, marginLeft: 5}} dataKey='Vote' label='Vote' />
+			<div css={rowCss}>
+				<ConnectedColumnLabel css={elementCss(100, 5)} dataKey='CommenterName' label='Commenter' />
+				<ConnectedColumnLabel css={elementCss(50, 0)} dataKey='Vote' label='Vote' />
 			</div>
 		</React.Fragment>
 	)
@@ -222,16 +231,16 @@ function renderDataCellStacked1({rowData}) {
 	const commenterStr = rowData['CommenterName'] + (rowData['Vote']? ' (' + rowData['Vote'] + ')': '')
 	return (
 		<React.Fragment>
-			<div css={rowCss} >
-				<div css={{width: 80, fontWeight: 'bold'}}>{rowData['CID']}</div>
-				<div css={{width: 40, marginLeft: 25}}>{rowData['Category']}</div>
-				<div css={{width: 25, marginLeft: 15}}>{rowData['MustSatisfy']? '\u2714': ''}</div>
+			<div css={rowCss}>
+				<div css={[elementCss(100,5), {fontWeight: 'bold'}]}>{rowData['CID']}</div>
+				<div css={elementCss(40, 5)}>{rowData['Category']}</div>
+				<div css={elementCss(30)}>{rowData['MustSatisfy']? '\u2714': ''}</div>
 			</div>
-			<div css={rowCss} >
-				<div css={{width: 100, fontStyle: 'italic'}}>{rowData['Clause']}</div>
-				<div css={{marginLeft: 5}}>{rowData['Page']}</div>
+			<div css={rowCss}>
+				<div css={[elementCss(100, 5), {fontStyle: 'italic'}]}>{rowData['Clause']}</div>
+				<div css={elementCss(50)}>{rowData['Page']}</div>
 			</div>
-			<div css={rowCss} >{commenterStr}</div>
+			<div css={rowCss}>{commenterStr}<span role='img' title='Approve'>&#128077;&#128078;</span></div>
 		</React.Fragment>
 	)
 }
@@ -253,13 +262,41 @@ function renderDataCellStacked2({rowData}) {
 	)
 }
 
-function renderHeaderCell({dataKey, label}) {
-	return <ConnectedColumnLabel dataKey={dataKey} label={label} />
+function renderHeaderCell({dataKey, label, column}) {
+	if (dataKey) {
+		return <ConnectedColumnLabel dataKey={dataKey} label={label} />
+	}
+	else {
+		return <ConnectedColumnLabel key={column.key} dataKey={column.dataKey} label={column.label} />
+	}
 }
 
 function renderCommentsSelector(props) {
 	return <CommentIdSelector focusOnMount {...props} />
 }
+
+const renderTextBlock = ({rowData, column}) => {
+	const cellData = rowData[column.dataKey]
+	return typeof cellData === 'string'?
+		cellData.split('\n').map((line, i, arr) => {
+				const lline = <span key={i}>{line}</span>
+				if (i === arr.length - 1) {
+					return lline
+				} else {
+					return [lline, <br key={i + 'br'} />]
+			}
+		}):
+		cellData
+}
+
+const renderRowSelector = ({rowData, column}) => (
+	<Checkbox
+		key='selector'
+		title="Select Row"
+		checked={rowData.Selected}
+		onChange={e => column.toggleSelected([rowData['CID']])}
+	/>
+)
 
 const flatColumns = [
 	{dataKey: 'CID',			label: 'CID',			width: 60,
@@ -286,10 +323,12 @@ const flatColumns = [
 		headerRenderer: renderHeaderCell},
 	{dataKey: 'Comment',		label: 'Comment',		width: 400,
 		flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell}, 
+		headerRenderer: renderHeaderCell,
+		cellRenderer: renderTextBlock}, 
 	{dataKey: 'ProposedChange',	label: 'Proposed Change',width: 400,
 		flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
+		headerRenderer: renderHeaderCell,
+		cellRenderer: renderTextBlock},
 	{dataKey: 'CommentGroup',	label: 'Comment Group',	width: 150,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
@@ -300,6 +339,9 @@ const flatColumns = [
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
 	{dataKey: 'Status',			label: 'Status',		width: 150,
+		flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCell},
+	{dataKey: 'ApprovedByMotion',	label: 'Motion Number',	width: 80,
 		flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderCell},
 	{dataKey: 'Resolution',		label: 'Resolution',	width: 400,
@@ -314,61 +356,86 @@ const flatColumns = [
 ]
 
 const stackedColumns = [
-	{dataKey: 'Stack1',			label: 'CID/Cat/MS/...',width: 200,
-		flexGrow: 0, flexShrink: 0,
+	{key: 'Stack1', dataKey: 'Stack1',			label: 'CID/Cat/MS/...',width: 200,
+		flexGrow: 0, flexShrink: 0, resizable: true,
 		headerRenderer: renderHeaderCellStacked1,
 		cellRenderer: renderDataCellStacked1},
-	{dataKey: 'Comment',		label: 'Comment',		width: 400,
+	{key: 'Comment', dataKey: 'Comment',		label: 'Comment',		width: 400,
 		flexGrow: 1, flexShrink: 1,
+		resizable: true,
 		headerRenderer: renderHeaderCell}, 
-	{dataKey: 'ProposedChange', label: 'Proposed Change',width: 400,
+	{key: 'PC', dataKey: 'ProposedChange', label: 'Proposed Change',width: 400,
 		flexGrow: 1, flexShrink: 1,
+		resizable: true,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'CommentGroup',	label: 'Group',			width: 150,
+	{key: 'CG', dataKey: 'CommentGroup',	label: 'Group',			width: 150,
 		flexGrow: 1, flexShrink: 1,
+		resizable: true,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'Status',			label: 'Status',		width: 150,
+	{key: 'Status', dataKey: 'Status',			label: 'Status',		width: 150,
 		flexGrow: 1, flexShrink: 1,
+		resizable: true,
 		headerRenderer: renderHeaderCell},
-	{dataKey: 'Stack2', label: 'Assignee/Submission',	width: 250,
+	{key: 'Stack2', dataKey: 'Stack2', label: 'Assignee/Submission',	width: 250,
 		flexGrow: 1, flexShrink: 1,
+		resizable: true,
 		headerRenderer: renderHeaderCellStacked2,
 		cellRenderer: renderDataCellStacked2},
-	{dataKey: 'Resolution',		label: 'Resolution',	width: 400,
+	{key: 'ABM', dataKey: 'ApprovedByMotion',	label: 'Motion Number',	width: 80,
 		flexGrow: 1, flexShrink: 1,
+		resizable: true,
+		headerRenderer: renderHeaderCell},
+	{key: 'Resoultion', dataKey: 'Resolution',		label: 'Resolution',	width: 400,
+		flexGrow: 1, flexShrink: 1,
+		resizable: true,
 		headerRenderer: renderHeaderCell,
 		cellRenderer: renderDataCellResolution},
-	{dataKey: 'Editing',		label: 'Editing',		width: 300,
+	{key: 'Editing', dataKey: 'Editing',		label: 'Editing',		width: 300,
 		flexGrow: 1, flexShrink: 1,
+		resizable: true,
 		headerRenderer: renderHeaderCell,
 		cellRenderer: renderDataCellEditing,
 		isLast: true}
 ]
 	
-
 function Comments(props) {
 	const history = useHistory()
 	const {ballotId} = useParams()
 	const query = new URLSearchParams(useLocation().search)
 	const cidsStr = query.get('CIDs')
-	const cids = cidsStr? cidsStr.split(','): []
 
-	const [showImport, setShowImport] = useState(false)
-	const [showExport, setShowExport] = useState(false)
+	const [editMode, setEditMode] = React.useState(false)
+	const [showImport, setShowImport] = React.useState(false)
+	const [showExport, setShowExport] = React.useState(false)
 
-	const [columnVisibility, setColumnVisibility] = useState(() => {
+	const [columnVisibility, setColumnVisibility] = React.useState(() => {
 		const v1 = stackedColumns.reduce((o, c) => {return {...o, [c.dataKey]: true}}, {})
 		const v2 = flatColumns.reduce((o, c) => {return {...o, [c.dataKey]: true}}, {})
 		return {...v1, ...v2}
 	})
-	const [isStacked, setStacked] = useState(true)
+	const [isStacked, setStacked] = React.useState(true)
 
-	let columns = (isStacked? stackedColumns: flatColumns).filter(c => !columnVisibility.hasOwnProperty(c.dataKey) || columnVisibility[c.dataKey])
-	if (cids.length) {
-		columns = [columns[0]]
-	}
+	const columns = React.useMemo(() => {
+		let columns 
+		if (editMode) {
+			columns = [stackedColumns[0]]
+		}
+		else {
+			columns = (isStacked? stackedColumns: flatColumns).filter(c => !columnVisibility.hasOwnProperty(c.dataKey) || columnVisibility[c.dataKey])
+		}
+		const selectionColumn = {
+			key: 'CID',
+			width: 40,
+			flexShrink: 0,
+			resizable: false,
+			format: 'checkbox',
+			toggleSelected: props.toggleSelected,
+			cellRenderer: renderRowSelector
+		}
+		return [selectionColumn, ...columns]
+	}, [columnVisibility, editMode])
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (ballotId) {
 			if (ballotId !== props.ballotId) {
 				// Routed here with parameter ballotId specified, but not matching stored ballotId
@@ -407,18 +474,57 @@ function Comments(props) {
 		props.getComments(ballotId)
 	}
 
-	function editComment({event, index, rowData}) {
-		history.push(props.location.pathname + '?CIDs=' + rowData.CID)
+	function editClick({event, index, rowData}) {
+		const {comments, commentsMap} = props
+		let cids = cidsStr? cidsStr.split(','): []
+		const cid = rowData.CID
+		if (event.shiftKey) {
+			// Shift + click => include all between last and current
+			console.log('shift', cids)
+			if (cids.length === 0) {
+				cids.push(cid)
+			}
+			else {
+				const cid_last = cids[cids.length - 1]
+				const i_last = commentsMap.findIndex(i => comments[i].CID === cid_last)
+				const i_selected = commentsMap.findIndex(i => comments[i].CID === cid)
+				console.log(cid_last, i_last, i_selected)
+				if (i_last >= 0 && i_selected >= 0) {
+					if (i_last > i_selected) {
+						for (let i = i_selected; i < i_last; i++) {
+							cids.push(comments[commentsMap[i]].CID)
+						}
+					}
+					else {
+						for (let i = i_last + 1; i <= i_selected; i++) {
+							cids.push(comments[commentsMap[i]].CID)
+						}
+					}
+				}
+			}
+		} else if (event.ctrlKey || event.metaKey) {
+			console.log('ctrl', cids)
+			// Control + click => add or remove
+			if (cids.includes(cid)) {
+				cids = cids.filter(c => c !== cid)
+			}
+			else {
+				cids.push(cid)
+			}
+		} else {
+			cids = [cid]
+		}
+		history.push(props.location.pathname + '?CIDs=' + cids.join(','))
 	}
 
 	function editComments(cids) {
 		history.push(props.location.pathname + `?CIDs=${cids.join(',')}`)
 	}
 
-	function rowGetter({index}) {
+	function rowGetter({rowIndex}) {
 		const {comments, commentsMap} = props;
-		const c = comments[commentsMap[index]]
-		if (index > 0 && Math.floor(comments[commentsMap[index - 1]].CommentID) === Math.floor(c.CommentID)) {
+		const c = comments[commentsMap[rowIndex]]
+		if (rowIndex > 0 && Math.floor(comments[commentsMap[rowIndex - 1]].CommentID) === Math.floor(c.CommentID)) {
 			// Previous row holds the same comment
 			return {
 				...c,
@@ -441,66 +547,72 @@ function Comments(props) {
 		const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight
 
 		const height = window.innerHeight - headerHeight - 1
-		const width = columns.length > 1? window.innerWidth - 1: columns[0].width + 43
+		const width = columns.length > 1? window.innerWidth - 30: columns[0].width + 43 + 17
 
 		return {height, width}
 	}
 
+	const table = (
+		<AppTable
+			fixed={fixed}
+			headerHeight={isStacked? 60: 22}
+			columns={columns}
+			width={editMode? columns[0].width + columns[1].width + 17: 'calc(100vw-16px)'}
+			height={800}
+			data={props.commentsMap}
+			rowGetter={rowGetter}
+			loading={props.loading}
+			//editRow={editClick}
+			filters={props.filters}
+			sort={props.sort}
+			setSort={props.setSort}
+			setFilter={props.setFilter}
+			selector={renderCommentsSelector}
+			setSelected={props.setSelected}
+			selected={props.selected}
+		/>
+	)
 
-	const width = window.innerWidth - 5;
+	const editView = (
+		<div style={{display: 'flex'}}>
+			{table}
+			<Container><CommentDetail cidsStr={props.selected.join(',')} /></Container>
+		</div>
+	)
+
+	const fixed = false
 	return (
-		<div id='Comments'>
-			<div id='top-row' style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between'}}>
-				<span>
-					<BallotSelector onBallotSelected={ballotSelected} />
-				</span>
-				<span>
-					<BulkActions
-						editSelected={editComments}
-					/>
-				</span>
-				<span>
-					<ActionButton name='export' title='Export to file' onClick={e => setShowExport(true)} />
-					<ActionButton name='upload' title='Upload Resolutions' onClick={e => setShowImport(true)} />
-					<ColumnSelector
-						list={isStacked? stackedColumns: flatColumns}
-						isStacked={isStacked}
-						toggleColumns={toggleColumns}
-						toggleItem={toggleColumnVisible}
-						isChecked={isColumnVisible}
-					/>
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-				</span>
+		<React.Fragment>
+			<Container id='Comments' fluid>
+				<Row id='top-row' justify='between' align='center'>
+					<Col xs='content'>
+						<BallotSelector onBallotSelected={ballotSelected} />
+					</Col>
+					<Col xs='content'>
+						<button onClick={e => setEditMode(!editMode)}>{editMode? 'Edit': 'View'}</button>
+						<ActionButton name='export' title='Export to file' onClick={e => setShowExport(true)} />
+						<ActionButton name='upload' title='Upload Resolutions' onClick={e => setShowImport(true)} />
+						<ColumnSelector
+							list={isStacked? stackedColumns: flatColumns}
+							isStacked={isStacked}
+							toggleColumns={toggleColumns}
+							toggleItem={toggleColumnVisible}
+							isChecked={isColumnVisible}
+						/>
+						<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+					</Col>
+				</Row>
+
+				<Row>
+					<CommentsFilter css={css`max-width: calc(100vw-16px)`}/>
+				</Row>
+			</Container>
+			
+			<div style={{height: '70vh', width: 'calc(100vw-16px)', boxSizing: 'border-box'}}>
+				{editMode? editView: table}
 			</div>
 
-			<CommentsFilter css={css`max-width: ${width}px`}/>
-
-			<div style={{display: 'flex', flexDirection: 'row'}}>
-				<AppTable
-					headerHeight={isStacked? 60: 22}
-					columns={columns}
-					rowHeight={54}
-					getTableSize={getTableSize}
-					loading={props.loading}
-					editRow={editComment}
-					filters={props.filters}
-					sort={props.sort}
-					setSort={props.setSort}
-					setFilter={props.setFilter}
-					selector={renderCommentsSelector}
-					setSelected={props.setSelected}
-					selected={props.selected}
-					setExpanded={props.setExpanded}
-					expanded={props.expanded}
-					data={props.comments}
-					dataMap={props.commentsMap}
-					primaryDataKey={'CID'}
-					rowGetter={rowGetter}
-				/>
-				{cids.length && <CommentDetail />}
-			</div>
-
-			<ImportModal
+			<UploadCommentsModal
 				ballotId={props.ballotId}
 				isOpen={showImport}
 				close={() => setShowImport(false)}
@@ -512,7 +624,7 @@ function Comments(props) {
 				close={() => setShowExport(false)}
 			/>
 
-		</div>
+		</React.Fragment>
 	)
 }
 
@@ -542,12 +654,14 @@ export default connect(
 			commentsValid: comments.commentsValid,
 			comments: comments.comments,
 			commentsMap: comments.commentsMap,
+			commentsSortedFiltered: comments.commentsMap.map(i => comments.comments[i]),
 			loading: comments.getComments
 		}
 	},
 	(dispatch, ownProps) => {
 		return {
 			setSelected: cids => dispatch(setCommentsSelected(cids)),
+			toggleSelected: cids => dispatch(toggleCommentsSelected(cids)),
 			setExpanded: cids => dispatch(setCommentsExpanded(cids)),
 			setFilter: (dataKey, value) => dispatch(setCommentsFilter(dataKey, value)),
 			setSort: (dataKey, event) => dispatch(setCommentsSort(event, dataKey)),

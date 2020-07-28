@@ -1,62 +1,18 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import Select from 'react-dropdown-select'
 import {ActionButton} from '../general/Icons'
 import AssigneeSelector from './AssigneeSelector'
-import {genCommentsOptions, addResolutions, updateResolutions, updateComments} from '../actions/comments'
+import CommentGroupSelector from './CommentGroupSelector'
+import {addResolutions, updateResolutions, updateComments} from '../actions/comments'
 
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core'
 
-
-function _CommentGroupSelector({value, onChange, options, getOptions, loading, ...otherProps}) {
-
-	const selectCss = css`
-		background-color: white;
-		border: 1px solid #ddd;
-		padding: 0;
-		box-sizing: border-box;
-		width: unset;`
-
-	const selectValue = options.find(o => o.value === value)
-	return (
-		<div {...otherProps}>
-			<Select
-				css={selectCss}
-				values={selectValue? [selectValue]: []}
-				onChange={(values) => onChange(values.length? values[0].value: '')}
-				options={options}
-				loading={loading}
-				create
-				clearable
-				onDropdownOpen={getOptions}
-				placeholder={'Select comment group'}
-			/>
-		</div>
-	)
-}
-
-const CommentGroupSelector = connect(
-	(state) => {
-		const {comments} = state
-		return {
-			options: comments.options['CommentGroup'] || [],
-			loading: comments.getComments
-		}
-	},
-	(dispatch) => {
-		return {
-			getOptions: () => dispatch(genCommentsOptions('CommentGroup'))
-		}
-	}
-
-)(_CommentGroupSelector)
-
 function BulkActions(props) {
 	const {ballotId, comments, selected, updateComments, addResolutions, updateResolutions} = props
 	const [assignee, setAssignee] = React.useState(0)
-	const [commentGroup, setCommentGroup] = React.useState(0)
+	const [commentGroup, setCommentGroup] = React.useState('')
 
 	function assignSelected(field) {
 		const a = [], u = []
@@ -103,10 +59,10 @@ function BulkActions(props) {
 		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
-		label {
+		& > label {
 			font-weight: bold;
 		}
-		span {
+		& > span {
 			margin-left: 10px;
 		}`
 
@@ -118,6 +74,7 @@ function BulkActions(props) {
 					style={{display: 'inline-block'}}
 					value={commentGroup}
 					onChange={setCommentGroup}
+					placeholder='Select comment group'
 				/>&nbsp;
 				<ActionButton
 					name='group'

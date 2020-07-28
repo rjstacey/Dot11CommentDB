@@ -1,5 +1,6 @@
 import React from 'react'
 import {connect} from 'react-redux'
+import {Row, Col} from 'react-grid-system'
 import {ColumnSearchFilter, ColumnDropdownFilter} from '../general/AppTable'
 import {setCommentsFilter, removeCommentsFilter, clearCommentsFilters, genCommentsOptions} from '../actions/comments'
 import {Handle, Cross} from '../general/Icons'
@@ -23,6 +24,8 @@ const commentFieldLabel = (dataKey) => {
 		ProposedChange: 'Proposed Change',
 		CommentGroup: 'Comment Group',
 		AssigneeName: 'Assignee',
+		Status: 'Status',
+		ApprovedByMotion: 'Motion Number',
 		ResnStatus: 'Resn Status',
 		Resolution: 'Resolution',
 		EditStatus: 'Editing Status',
@@ -35,7 +38,7 @@ const commentFieldLabel = (dataKey) => {
 	}
 	return label
 }
-
+/*
 function Row(props) {
 	const rowCss = css`
 		display: flex;
@@ -51,7 +54,7 @@ function Col(props) {
 		margin: 5px;`
 	return <div css={colCss} {...props} />
 }
-
+*/
 
 function commentsFilterStateMap(state, ownProps) {
 	const {dataKey} = ownProps
@@ -189,11 +192,11 @@ function ChangeFilters(props) {
 						<CommentsSearchFilter dataKey='Clause' width={100} />
 						<CommentsSearchFilter dataKey='Page' width={80} />
 						<CommentsDropdownFilter dataKey='Category' />
-						<CommentsDropdownFilter dataKey='MustSatisfy' />
 					</Row>
 					<Row>
 						<CommentsDropdownFilter dataKey='CommenterName' width={200} />
 						<CommentsDropdownFilter dataKey='Vote' width={100} />
+						<CommentsDropdownFilter dataKey='MustSatisfy' />
 					</Row>
 
 				</Col>
@@ -204,6 +207,10 @@ function ChangeFilters(props) {
 				<Col>
 					<CommentsDropdownFilter dataKey='CommentGroup' />
 					<CommentsDropdownFilter dataKey='AssigneeName' />
+				</Col>
+				<Col>
+					<CommentsDropdownFilter dataKey='Status' />
+					<CommentsDropdownFilter dataKey='ApprovedByMotion' />
 				</Col>
 				<Col>
 					<Row>

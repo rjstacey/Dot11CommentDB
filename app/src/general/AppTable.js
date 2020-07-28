@@ -196,7 +196,7 @@ function useTableSize(getTableSize, dependencies) {
 }
 
 const tableCss = css`
-	margin: 0 auto;
+	/*margin: 0 auto;*/
 	align-items: center;
 
 	.headerColumn {
@@ -337,7 +337,6 @@ function AppTable(props) {
 
 		let elements = []
 		if (Array.isArray(selected)) {
-			//const {selected, showSelected, setSelected} = props
 			const {selector} = props
 			const isChecked = allSelected(selected, dataMap, data, primaryDataKey)
 			const isIndeterminate = !isChecked && selected.length > 0
@@ -347,12 +346,12 @@ function AppTable(props) {
 				:hover,
 				:focus-within {
 					background-color: #ddd;
-				}
-			`
+				}`
+
 			elements.push(
 				<div key='selector' css={containerCss} style={{display: 'flex', flexDirection: 'row'}}>
 					<Checkbox
-						title="Select All"
+						title={isChecked? "Clear All": isIndeterminate? "Clear Selected": "Select All"}
 						checked={isChecked}
 						indeterminate={isIndeterminate}
 						onChange={() => setSelected(toggleVisible(selected, dataMap, data, primaryDataKey))}
@@ -362,7 +361,6 @@ function AppTable(props) {
 			)
 		}
 		if (Array.isArray(expanded)) {
-			//const {expanded, setExpanded} = props
 			const isExpanded = allSelected(expanded, dataMap, data, primaryDataKey)
 
 			elements.push(
@@ -514,7 +512,7 @@ function AppTable(props) {
 
 	return (
 		<Table
-			//className={styles.Table}
+			fixed
 			css={tableCss}
 			height={height}
 			width={width}
@@ -527,6 +525,7 @@ function AppTable(props) {
 			rowClassName={rowClassName}
 			rowCount={props.dataMap.length}
 			rowGetter={props.rowGetter || rowGetter}
+			//onRowClick={(p) => {props.columns.length === 1 && props.editRow(p)}}
 			onRowDoubleClick={props.editRow}
 			ref={(ref) => tableRef = ref}
 		>

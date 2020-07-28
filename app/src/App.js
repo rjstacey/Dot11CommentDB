@@ -1,5 +1,5 @@
-import React, {useEffect} from 'react'
-import {BrowserRouter as Router, Switch, Route, Link, useLocation} from 'react-router-dom'
+import React from 'react'
+import {BrowserRouter as Router, Switch, Route, Link} from 'react-router-dom'
 import {connect} from 'react-redux'
 import {loginGetState} from './actions/login'
 import LoginForm from './general/Login'
@@ -11,7 +11,6 @@ import BallotDetail from './ballots/BallotDetail'
 import Epolls from './ballots/Epolls'
 import Results from './results/Results'
 import Comments from './comments/Comments'
-import CommentDetail from './comments/CommentDetail'
 import ErrorModal from './modals/ErrorModal'
 import ConfirmModal from './modals/ConfirmModal'
 import {init as iconInit} from './general/Icons'
@@ -21,22 +20,6 @@ import { css, jsx } from '@emotion/core'
 
 iconInit()
 
-/*
-function useQuery() {
-	return new URLSearchParams(useLocation().search)
-}
-
-function CommentsRoute(props) {
-	const query = useQuery()
-
-	if (query.get('CIDs')) {
-		return <CommentDetail {...props} />
-	}
-	else {
-		return <Comments {...props} />
-	}
-}
-*/
 const titleCss = css`
 	display: inline-block;
 	font-family: "Arial", "Helvetica", sans-serif;
@@ -78,7 +61,7 @@ const mainCss = css`
 
 function App({access, loginGetState}) {
 
-	useEffect(() => {
+	React.useEffect(() => {
 		loginGetState()
 	}, [])
 

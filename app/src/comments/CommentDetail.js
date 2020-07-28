@@ -1,20 +1,40 @@
 /*
  * Comment detail
  */
-import React, {useState, useEffect, useRef} from 'react'
-import {useHistory, useParams, useLocation} from 'react-router-dom'
+import React from 'react'
+import {useHistory, useLocation} from 'react-router-dom'
 import {connect} from 'react-redux'
 import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'
-import cx from 'classnames'
-import {setCommentsSort, setCommentsFilter, addResolutions, updateResolutions, deleteResolutions, getComments} from '../actions/comments'
-import {setBallotId} from '../actions/ballots'
+import {Row, Col} from 'react-grid-system'
+import {addResolutions, updateResolutions, deleteResolutions} from '../actions/comments'
 import {ResolutionEditor, BasicEditor} from './ResolutionEditor'
-import BallotSelector from '../ballots/BallotSelector'
 import AssigneeSelector from './AssigneeSelector'
-import {ActionButton} from '../general/Icons'
+import CommentGroupSelector from './CommentGroupSelector'
+import {ActionButton, Checkbox, Search} from '../general/Icons'
 import {shallowDiff} from '../lib/compare'
-import AppTable, {ColumnLabel} from '../general/AppTable'
-import styles from '../css/CommentDetail.css'
+
+/** @jsx jsx */
+import { css, jsx } from '@emotion/core'
+
+//const Row = props => <div css={{display: 'flex', flexDirection: 'row'}} {...props} />
+//const Col = props => <div css={{display: 'flex', flexDirection: 'column'}} {...props} />
+
+const Label = (props) => <label css={css`font-weight: bold;	white-space: nowrap`} {...props} />
+
+const multipleCss = css`
+	color: GrayText;
+	font-style: italic`
+
+const Content = ({children}) => 
+	typeof children === 'string'
+		? <span css={children === '<multiple>' && multipleCss} children={children} />
+		: children;
+
+const Entry = ({label, children, ...otherProps}) =>
+	<Col {...otherProps}>
+		{label && <Label>{label}:&nbsp;</Label>}
+		<Content children={children} />
+	</Col>
 
 function Resolution(props) {
 	const {resolution, setResolution} = props
@@ -41,101 +61,83 @@ function Resolution(props) {
 		return null
 	}
 
-	let commentGroupClassName = cx({
-		[styles.CommentGroupInput]: true,
-		[styles.Multiple]: resolution.CommentGroup === '<multiple>'
-	})
-	let submissionClassName = cx({
-		[styles.SubmissionInput]: true,
-		[styles.Multiple]: resolution.Submission === '<multiple>'
-	})
-
-	let approvedByClassName = cx({
-		[styles.ApprovedByMotion]: true,
-		[styles.Multiple]: resolution.ApprovedByMotion === '<multiple>'
-	})
-
-	const placeholder = resolution.Resolution === '<multiple>'? '<multiple>': '<blank>'
-
  	return (
  		<React.Fragment>
- 			<div className={styles.row} style={{justifyContent: 'space-between'}}>
-				<div className={styles.column}>
-					<span style={{display: 'inline-flex'}}>
-						<label style={{width: 150}}>Comment Group:</label>
-						<input
-							className={commentGroupClassName}
-							type='search'
-							name='CommentGroup'
-							value={resolution.CommentGroup || ''}
-							onChange={e => setResolution({CommentGroup: e.target.value})}
-							placeholder='None'
-						/>
-					</span>
-					<span style={{display: 'inline-flex'}}>
-						<label style={{width: 150}}>Assignee:</label>
-						<AssigneeSelector
-							value={resolution.AssigneeSAPIN || 0}
-							onChange={value => setResolution({AssigneeSAPIN: value})}
-						/>
-					</span>
-					<span style={{display: 'inline-flex'}}>
-						<label style={{width: 150}}>Submission:</label>
-						<input
-							className={submissionClassName}
-							type='search'
-							name='Submission'
-							value={resolution.Submission || ''}
-							onChange={e => setResolution({Submission: e.target.value})}
-							placeholder='None'
-						/>
-					</span>
-				</div>
-				<div className={styles.column} >
-					<label>
-						<input
-							className='checkbox'
-							type='checkbox'
-							name='ReadyForMotion'
-							ref={el => el && (el.indeterminate = resolution.ReadyForMotion === '<multiple>')}
-							checked={resolution.ReadyForMotion || false}
-							onChange={e => setResolution({ReadyForMotion: e.target.checked})}
-						/>
-						Ready for motion
-					</label>
-					<label>
-						<input
-							className='checkbox'
-							type='checkbox'
-							name='Approved'
-							ref={el => el && (el.indeterminate = resolution.ApprovedByMotion === '<multiple>')}
-							checked={!!resolution.ApprovedByMotion}
-							onChange={changeApproved}
-						/>
-						Approved&nbsp;
-						<input
-							className={approvedByClassName}
-							type='search'
-							name='ApprovedByMotion'
-							value={resolution.ApprovedByMotion || ''}
-							onChange={changeApproved}
-						/>
-					</label>
-				</div>
-			</div>
-			<div className={styles.Resolution}>
-				<ResolutionEditor
-					value={resolution.Resolution}
-					onChange={(ResnStatus, Resolution) => setResolution({ResnStatus, Resolution})}
-					placeholder={placeholder}
-				/>
-			</div>
-			<div className={styles.tab}>
-				<OtherTabs
-					resolution={resolution}
-					setResolution={setResolution}
-				/>
-			</div>
+ 			<Row>
+				<Col xs={12} md={8}>
+					<Row align='center' style={{marginTop: '10px', marginBottom: '10px'}}>
+						<Col xs={6} md={4}><Label>Comment Group:</Label></Col>
+						<Col xs='content'>
+							<CommentGroupSelector
+								css={css`display: inline-block; width: 200px`}
+								value={resolution.CommentGroup === '<multiple>'? '': resolution.CommentGroup}
+								onChange={value => setResolution({CommentGroup: value})}
+								placeholder={resolution.CommentGroup === '<multiple>'? '<multiple>': '<blank>'}
+							/>
+						</Col>
+					</Row>
+					<Row align='center' style={{marginTop: '10px', marginBottom: '10px'}}>
+						<Col xs={6} md={4}><Label>Assignee:</Label></Col>
+						<Col xs='content'>
+							<AssigneeSelector
+								css={css`display: inline-block; width: 200px`}
+								value={resolution.AssigneeSAPIN || 0}
+								onChange={value => setResolution({AssigneeSAPIN: value})}
+							/>
+						</Col>
+					</Row>
+					<Row align='center' style={{marginTop: '10px', marginBottom: '10px'}}>
+						<Col xs={6} md={4}><Label>Submission:</Label></Col>
+						<Col xs='content'>
+							<Search
+								value={resolution.Submission || ''}
+								onChange={e => setResolution({Submission: e.target.value})}
+								placeholder='None'
+							/>
+						</Col>
+					</Row>
+				</Col>
+				<Col xs={12} md={4} style={{marginTop: '10px', marginBottom: '10px'}}>
+					<Row align='center'>
+						<Col xs={12}>
+							<Checkbox
+								name='ReadyForMotion'
+								indeterminate={resolution.ReadyForMotion === '<multiple>'}
+								checked={!!resolution.ReadyForMotion}
+								onChange={e => setResolution({ReadyForMotion: e.target.checked})}
+							/>
+							<Label>Ready for motion</Label>
+						</Col>
+					</Row>
+					<Row align='center'>
+						<Col xs='content'>
+							<Checkbox
+								name='Approved'
+								indeterminate={resolution.ApprovedByMotion === '<multiple>'}
+								checked={!!resolution.ApprovedByMotion}
+								onChange={changeApproved}
+							/>
+							<Label>Approved</Label>
+						</Col>
+						<Col>
+							<Search
+								name='ApprovedByMotion'
+								value={resolution.ApprovedByMotion || ''}
+								onChange={changeApproved}
+							/>
+						</Col>
+					</Row>
+				</Col>
+				<Col xs={12} style={{marginTop: '10px'}}>
+					<Label>Resolution:</Label><br />
+					<ResolutionEditor
+						value={resolution.Resolution}
+						onChange={(ResnStatus, Resolution) => setResolution({ResnStatus, Resolution})}
+						placeholder={resolution.Resolution === '<multiple>'? '<multiple>': '<blank>'}
+					/>
+				</Col>
+				
+			</Row>
 		</React.Fragment>
 	)
 }
@@ -169,50 +171,44 @@ function EditStatus(props) {
 			}
 		}
 		setResolution(fields)
-		e.stopPropagation()
 	}
 
 	const editInDraft = resolution.EditInDraft === '<multiple>'? '': resolution.EditInDraft
 	const placeholder = resolution.EditInDraft === '<multiple>'? 'Multiple': null
 
 	return (
-		<div className={styles.column}>
-			<span>
-				<label>
-					<input
-						className='checkbox'
-						type='checkbox'
+		<div onClick={e => e.stopPropagation()}>
+			<Row>
+				<Col xs='content' align='center'>
+					<Checkbox
 						name='EditStatus'
 						value='I'
-						ref={el => el && (el.indeterminate = resolution.EditStatus === '<multiple>')}
+						indeterminate={resolution.EditStatus === '<multiple>'}
 						checked={resolution.EditStatus === 'I'}
 						onChange={changeEditStatus}
 					/>
-					Implemented in draft:
-				</label>
-				<input
-					className={styles.EditedInDraft}
-					type='text'
-					name='EditInDraft'
-					value={editInDraft || ''}
-					onChange={changeEditStatus}
-					placeholder={placeholder}
-				/>
-			</span>
-			<span>
-				<label>
-					<input
-						className='checkbox'
-						type='checkbox'
+					<Label>Implemented in draft:</Label>
+					<Search
+						css={{width: '40px'}}
+						name='EditInDraft'
+						value={editInDraft || ''}
+						onChange={changeEditStatus}
+						placeholder={placeholder}
+					/>
+				</Col>
+			</Row>
+			<Row>
+				<Col xs='content' align='center'>
+					<Checkbox
 						name='EditStatus'
 						value='N'
-						ref={el => el && (el.indeterminate = resolution.EditStatus === '<multiple>')}
+						indeterminate={resolution.EditStatus === '<multiple>'}
 						checked={resolution.EditStatus === 'N'}
 						onChange={changeEditStatus}
 					/>
-					No Change
-				</label>
-			</span>		
+					<Label>No Change</Label>
+				</Col>
+			</Row>
 		</div>
 	)
 }
@@ -220,18 +216,68 @@ function EditStatus(props) {
 function OtherTabs(props) {
 	const {resolution, setResolution} = props
 
+	const tabsCss = css`
+		.react-tabs {
+			-webkit-tap-highlight-color: transparent;
+		}
+		.react-tabs__tab-list {
+			border-bottom: 1px solid #aaa;
+			margin: 0;
+			padding: 0;
+		}
+		.react-tabs__tab {
+			display: inline-block;
+			border: 1px solid transparent;
+			border-bottom: none;
+			bottom: -1px;
+			position: relative;
+			list-style: none;
+			padding: 5px 5px;
+			cursor: pointer;
+			:focus {
+				/*box-shadow: 0 0 5px hsl(208, 99%, 50%);
+				border-color: hsl(208, 99%, 50%);*/
+				outline: none;
+			}
+			/*:focus:after {
+				content: "";
+				position: absolute;
+				height: 5px;
+				left: -4px;
+				right: -4px;
+				bottom: -5px;
+				background: #fff;
+			}*/
+		}
+		.react-tabs__tab--selected {
+			background: #fff;
+			border-color: #aaa;
+			color: black;
+			border-radius: 5px 5px 0 0;
+			font-weight: bold;
+		}
+		.react-tabs__tab--disabled {
+			color: GrayText;
+			cursor: default;
+			font-weight: normal;
+		}
+		.react-tabs__tab-panel {
+			display: none;
+			border: 1px solid #aaa;
+			border-top: none;
+			box-sizing: border-box;
+		}
+		.react-tabs__tab-panel--selected {
+			display: block;
+		}`
+
 	return (
-		<Tabs
-			className={styles.tabs}
-			selectedTabClassName={styles.tab_selected}
-			disabledTabClassName={styles.tab_disabled}
-			selectedTabPanelClassName={styles.tabPanel_selected}
-		>
-			<TabList className={styles.tabList}>
-				<Tab className={styles.tab}>Editing</Tab>
-				<Tab className={styles.tab}>Notes</Tab>
+		<Tabs css={tabsCss}>
+			<TabList>
+				<Tab>Editing</Tab>
+				<Tab>Notes</Tab>
 			</TabList>
-			<TabPanel className={styles.tabPanel}>
+			<TabPanel>
 				<BasicEditor
 					value={resolution.EditNotes}
 					onChange={value => setResolution({EditNotes: value})}
@@ -242,7 +288,7 @@ function OtherTabs(props) {
 					/>
 				</BasicEditor>
 			</TabPanel>
-			<TabPanel className={styles.tabPanel}>
+			<TabPanel>
 				<BasicEditor
 					value={resolution.Notes}
 					onChange={value => setResolution({Notes: value})}
@@ -256,30 +302,12 @@ function Comment(props) {
 	const {cids, resolution, setResolution} = props
 	const comment = resolution
 
-	function Entry({className, label, content}) {
-		return (
-			<div className={className}>
-				{label && <label>{label}:&nbsp;</label>}
-				<div className={cx(content === '<multiple>' && styles.Multiple)}>
-					{content}
-				</div>
-			</div>
-		)
-	}
 
-	const mustSatisfyText = comment.MustSatisfy === '<multiple>'
-		? comment.MustSatisfy
-		: '\u2714'
-
-	const commenterEl = (
-		<span>
-			<span className={cx(comment.CommenterName === '<multiple>' && styles.Multiple)}>
-				{comment.CommenterName}
-			</span>&nbsp;
-			(<span className={cx(comment.Vote === '<multiple>' && styles.Multiple)}>
-				{comment.Vote}
-			</span>)
-		</span>
+	const Commenter = (props) => (
+		<Entry label='Commenter' {...props} >
+			<Content>{comment.CommenterName}</Content>
+			{comment.Vote && <React.Fragment>&nbsp;(<Content>{comment.Vote}</Content>)</React.Fragment>}
+		</Entry>
 	)
 
 	const cidsStr = cids.join(', ')
@@ -287,35 +315,42 @@ function Comment(props) {
 
 	return (
 		<React.Fragment>
-			<div className={cx(styles.row, styles.status_row)}>
-				<Entry className={styles.CID} label={cidsLabel} content={cidsStr} />
-				<Entry className={styles.Status} content={comment.Status} />
-			</div>
-			<div className={styles.row}>
-				<Entry className={styles.Commenter} label={'Commenter'} content={commenterEl} />
-				{comment.MustSatisfy !== 0 && <Entry className={styles.MustSatisfy} label={'Must Satisfy'} content={mustSatisfyText} />}
-			</div>
+			<Row justify='between' style={{marginTop: '10px', marginBottom: '10px'}}>
+				<Entry xs='content' label={cidsLabel}>{cidsStr}</Entry>
+				<Entry xs='content'>{comment.Status}</Entry>
+			</Row>
+			<Row style={{marginTop: '10px', marginBottom: '10px'}}>
+				<Commenter xs={8} md={6} />
+				{comment.MustSatisfy !== 0 && <Entry xs='content' label='Must Satisfy'>{comment.MustSatisfy === '<multiple>'? comment.MustSatisfy: '\u2714'}</Entry>}
+			</Row>
 
-			<div className={styles.row}>
-				<Entry className={styles.Page} label={'Page/Line'} content={comment.Page} />
-				<Entry className={styles.Clause} label={'Clause'} content={comment.Clause} />
-				<Entry className={styles.Category} label={'Category'} content={comment.Category} />
-			</div>
+			<Row style={{marginTop: '10px', marginBottom: '10px'}}>
+				<Entry xs={6} md={4} label='Page/Line'>{comment.Page}</Entry>
+				<Entry xs={6} md={4} label='Clause'>{comment.Clause}</Entry>
+				<Entry xs='content' label='Category'>{comment.Category}</Entry>
+			</Row>
 			
-			<div className={styles.row}>
-				<Entry className={styles.Comment} label={'Comment'} content={comment.Comment} />
-			</div>
+			<Row style={{marginTop: '10px', marginBottom: '10px'}}>
+				<Entry label='Comment'>{comment.Comment}</Entry>
+			</Row>
 
-			<div className={styles.row}>
-				<Entry className={styles.ProposedChange} label={'Proposed Change'} content={comment.ProposedChange} />
-			</div>
+			<Row style={{marginTop: '10px', marginBottom: '10px'}}>
+				<Entry label='Proposed Change'>{comment.ProposedChange}</Entry>
+			</Row>
 
-			<div className={styles.column}>
-				<Resolution
-					resolution={resolution}
-					setResolution={setResolution}
-				/>
-			</div>
+			<Resolution
+				resolution={resolution}
+				setResolution={setResolution}
+			/>
+
+			<Row style={{marginTop: '10px'}}>
+				<Col xs={12}>
+					<OtherTabs
+						resolution={resolution}
+						setResolution={setResolution}
+					/>
+				</Col>
+			</Row>
 		</React.Fragment>
 	)
 }
@@ -358,42 +393,19 @@ function recursivelyDiffObjects(l, r) {
 	}
 }
 
-function getTableSize() {
-	const headerEl = document.getElementsByTagName('header')[0]
-	const topRowEl = document.getElementById('top-row')
-	const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight
-
-	const height = window.innerHeight - headerHeight - 1
-	const width = 200
-
-	return {height, width}
-}
-
 function CommentDetail(props) {
-	const {comments, commentsMap, dispatch} = props
 	const history = useHistory()
 	const location = useLocation()
-	const {ballotId} = useParams()
-	const query = new URLSearchParams(useLocation().search)
-	const cidsStr = query.get('CIDs')
-	const cids = cidsStr.split(',')
 
-	const [resolution, setResolution] = useState()
-	const origResolution = useRef()
-	const [currentComments, setCurrentComments] = useState()
-	const [unavailable, setUnavailable] = useState()
+	const [resolution, setResolution] = React.useState()
+	const origResolution = React.useRef()
+	const [currentComments, setCurrentComments] = React.useState([])
+	const [unavailableComments, setUnavailableComments] = React.useState([])
 
-	useEffect(() => {
-		if (ballotId && ballotId !== props.ballotId) {
-			// Routed here with parameter ballotId specified, but not matching stored ballotId
-			// Store the ballotId and get results for this ballotId
-			props.setBallotId(ballotId)
-			props.getComments(ballotId)
-		}
-	}, [])
-
-	useEffect(() => {
-		if (ballotId === props.ballotId && comments.length > 0) {
+	React.useEffect(() => {
+		const {comments} = props
+		const cids = props.cidsStr.split(',')
+		if (comments.length > 0) {
 			let c, r = {}, u = [], a = []
 			for (let cid of cids) {
 				c = comments.find(c => c.CommentID.toString() === cid || `${c.CommentID}.${c.ResolutionID}` === cid)
@@ -405,7 +417,7 @@ function CommentDetail(props) {
 					u.push(cid)
 				}
 			}
-			setUnavailable(u.length > 0? u: null)
+			setUnavailableComments(u)
 			setCurrentComments(a)
 			if (r &&
 				(!resolution ||
@@ -416,7 +428,7 @@ function CommentDetail(props) {
 				origResolution.current = r
 			}
 		}
-	}, [props.ballotID, props.comments, cidsStr])
+	}, [props.comments, props.cidsStr])
 
 	function doResolutionUpdate(fields) {
 		const r = {...resolution, ...fields}
@@ -444,11 +456,12 @@ function CommentDetail(props) {
 			}
 		}
 		if (updates.length > 0) {
-			dispatch(updateResolutions(ballotId, updates))
+			props.updateResolutions(props.ballotId, updates)
 		}
 	}
-
+/*
 	function findCommentIndex(cid) {
+		const {comments, commentsMap} = props
 		return commentsMap.findIndex(i => {
 			let c = comments[i]
 			return c.CommentID.toString() === cid || `${c.CommentID}.${c.ResolutionID}` === cid
@@ -456,7 +469,8 @@ function CommentDetail(props) {
 	}
 
 	function previousComment() {
-		let cid = cids[0]
+		const {comments, commentsMap, cidsStr} = props
+		let cid = cidsStr[0]
 		var i = findCommentIndex(cid) - 1
 		if (i === -2) {
 			i = 0
@@ -468,19 +482,20 @@ function CommentDetail(props) {
 	}
 
 	function nextComment() {
-		let cid = cids[0]
+		const {comments, commentsMap, cidsStr} = props
+		let cid = cidsStr[0]
 		var i = findCommentIndex(cid) + 1
 		if (i >= commentsMap.length) {
 			i = 0
 		}
 		history.replace(location.pathname + '?CIDs=' + comments[commentsMap[i]].CID)
 	}
-
+*/
 	async function handleAddResolutions() {
 		let cids = currentComments.map(c => c.CommentID)
 		cids = cids.filter((cid, i) => cids.indexOf(cid) === i)	// elliminate duplicates
 		cids = cids.map(cid => ({CommentID: cid}))
-		const resIds = await dispatch(addResolutions(ballotId, cids))
+		const resIds = await props.addResolutions(props.ballotId, cids)
 		console.log(resIds)
 		if (resIds && resIds.length) {
 			const cids = resIds.map(r => r.CID).join(',')
@@ -492,87 +507,55 @@ function CommentDetail(props) {
  		const resolutions = currentComments
  			.filter(c => c.ResolutionCount)
  			.map(c => ({CommentID: Math.floor(c.CommentID), ResolutionID: c.ResolutionID}))
- 		await dispatch(deleteResolutions(ballotId, resolutions))
+ 		await props.deleteResolutions(props.ballotId, resolutions)
  		let cids = resolutions.map(r => r.CommentID)
  		cids = cids.filter((cid, i) => cids.indexOf(cid) === i)	// elliminate duplicates
  		history.replace(location.pathname + '?CIDs=' + cids.toString())
  	}
 
  	function close() {
- 		history.goBack()
+ 		history.replace(location.pathname)
  	}
 
- 	let child
- 	let disableButtons = true
- 	const isMultiple = currentComments && currentComments.length > 1
- 	if (resolution && !unavailable) {
-	 	const cids = currentComments.map(c => c.CID)
-		child = (
-			<Comment
-				cids={cids}
-				resolution={resolution}
-				setResolution={doResolutionUpdate}
-			/>
-		)
-		disableButtons = false
+	let notAvailableStr
+	if (props.loading) {
+		notAvailableStr = 'Loading...'
 	}
-	else {
-		let emptyStr
-		if (props.getComments) {
-			emptyStr = 'Loading...'
-		}
-		else if (unavailable) {
-			emptyStr = unavailable.length > 1
-				? `CIDs ${unavailable.join(', ')} not available`
-				: `CID ${unavailable[0]} is not avilable`
-		}
-		else {
-			emptyStr = '!! Unexpected !!'
-		}
-		child = (
-			<div className={styles.empty}>{emptyStr}</div>
-		)
+	else if (unavailableComments.length) {
+		notAvailableStr = unavailableComments.length > 1
+			? `CIDs ${unavailableComments.join(', ')} not available`
+			: `CID ${unavailableComments[0]} is not avilable`
 	}
+	else if (!resolution) {
+		notAvailableStr = '!! Unexpected !!'
+	}
+	const disableButtons = !!notAvailableStr 	// disable buttons if displaying string
 
-	const columns = [{dataKey: 'CID', label: 'CID',	 width: 60, flexGrow: 0, flexShrink: 0, isLast: true}]
- 	
+	console.log(props.cidsStr, notAvailableStr, currentComments)
 	return(
-		<div id='CommentDetail' className={styles.root}>
-			<div id='top-row' className={styles.topRow}>
-				<BallotSelector readOnly />
-				<span>
-					<ActionButton name='prev' title='Previous Comment' disabled={disableButtons || isMultiple} onClick={previousComment} />
-					<ActionButton name='next' title='Next Comment' disabled={disableButtons || isMultiple} onClick={nextComment} />
-					<ActionButton name='save' title='Save Changes' disabled={disableButtons} onClick={handleSave} />
-					<ActionButton name='add' title='Create Alternate Resolution' disabled={disableButtons} onClick={handleAddResolutions} />
-					<ActionButton name='delete' title='Delete Resolution' disabled={disableButtons} onClick={handleDeleteResolutions} />
-					<ActionButton name='close' title='Close' onClick={close} />
-				</span>
-			</div>
-			{child}
-		</div>
+		<React.Fragment>
+			<Row justify='end' nowrap>
+				<ActionButton name='save' title='Save Changes' disabled={disableButtons} onClick={handleSave} />
+				<ActionButton name='add' title='Create Alternate Resolution' disabled={disableButtons} onClick={handleAddResolutions} />
+				<ActionButton name='delete' title='Delete Resolution' disabled={disableButtons} onClick={handleDeleteResolutions} />
+				<ActionButton name='close' title='Close' onClick={close} />
+			</Row>
+			
+			{notAvailableStr
+				? <Row justify='center' align='center' style={{minHeight: '200px'}}>
+					<span style={{fontSize: '1em', color: 'GrayText'}}>{notAvailableStr}</span>
+				  </Row>
+				: <Comment cids={currentComments.map(c => c.CID)} resolution={resolution} setResolution={doResolutionUpdate} />
+			}
+		</React.Fragment>
 	)
 }
 
-function mapStateToProps(state, props) {
-	const {comments} = state
-	return {
-		ballotId: comments.ballotId,
-		comments: comments.comments,
-		commentsMap: comments.commentsMap,
-		getComments: comments.getComments,
-  	}
-}
 export default connect(
 	(state, ownProps) => {
-		const {comments, ballots} = state
+		const {comments} = state
 		return {
 			ballotId: comments.ballotId,
-			filters: comments.filters,
-			sort: comments.sort,
-			//selected: comments.selected,
-			//expanded: comments.expanded,
-			commentsValid: comments.commentsValid,
 			comments: comments.comments,
 			commentsMap: comments.commentsMap,
 			loading: comments.getComments
@@ -580,13 +563,9 @@ export default connect(
 	},
 	(dispatch, ownProps) => {
 		return {
-			//setSelected: cids => dispatch(setCommentsSelected(cids)),
-			//setExpanded: cids => dispatch(setCommentsExpanded(cids)),
-			setFilter: (dataKey, value) => dispatch(setCommentsFilter(dataKey, value)),
-			setSort: (dataKey, event) => dispatch(setCommentsSort(event, dataKey)),
-			getComments: ballotId => dispatch(getComments(ballotId)),
-			setBallotId: ballotId => dispatch(setBallotId(ballotId)),
-			dispatch: dispatch
+			addResolutions: (ballotId, cids) => dispatch(addResolutions(ballotId, cids)),
+			deleteResolutions: (ballotId, resolutions) => dispatch(deleteResolutions(ballotId, resolutions)),
+			updateResolutions: (ballotId, resolutions) => dispatch(updateResolutions(ballotId, resolutions)),
 		}
 	}
 )(CommentDetail);

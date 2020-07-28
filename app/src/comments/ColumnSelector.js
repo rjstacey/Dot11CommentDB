@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import React, {useState, useEffect} from 'react'
+import React from 'react'
 import {ActionButton} from '../general/Icons'
 
 /** @jsx jsx */
@@ -46,10 +46,10 @@ const listItemCss = css`
 	}`
 
 function ColumnSelector(props) {
-	const [isOpen, setOpen] = useState(false)
+	const [isOpen, setOpen] = React.useState(false)
 	const {list, isStacked, toggleColumns} = props
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (isOpen) {
 			window.addEventListener('click', close)
 		}

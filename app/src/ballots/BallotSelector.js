@@ -31,7 +31,7 @@ function BallotSelector(props) {
 	}
 
 	function ProjectSelector(props) {
-		const options = projectList
+		const options = projectList.map(p => ({value: p, label: p}))
 		const value = options.find(o => o.value === project)
 		if (readOnly) {
 			return project

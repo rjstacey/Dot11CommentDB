@@ -13,7 +13,8 @@ export function allSelected(selectedList, dataMap, data, idKey) {
 
 export function toggleVisible(currSelectedList, dataMap, data, idKey) {
 	let selectedList = currSelectedList.slice();
-	if (allSelected(selectedList, dataMap, data, idKey)) {
+	//if (allSelected(selectedList, dataMap, data, idKey)) {
+	if (selectedList.length) {
 		// remove all visible (filtered) IDs
 		for (let i = 0; i < dataMap.length; i++) {
 			let id = data[dataMap[i]][idKey];

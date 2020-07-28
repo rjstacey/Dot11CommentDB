@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types'
-import React from 'react'
 import Modal from 'react-modal'
 import {IconClose} from '../general/Icons'
 
