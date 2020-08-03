@@ -3,13 +3,57 @@ import React, {useEffect} from 'react'
 import {Link, useHistory} from "react-router-dom"
 import {connect} from 'react-redux'
 import ConfirmModal from '../modals/ConfirmModal'
-import AppTable, {renderDate} from '../general/AppTable'
+import AppTable from '../table/AppTable'
 import {setBallotsFilter, setBallotsSort, setBallotsSelected, getBallots, deleteBallots} from '../actions/ballots'
 import {getVotingPools} from '../actions/voters'
-import {ActionButton} from '../general/Icons'
+import {ActionButton, Checkbox} from '../general/Icons'
+import {allSelected, toggleVisible} from '../lib/select'
 
+const ControlHeader = ({data, dataMap, selected, setSelected}) => {
+	const isSelected = allSelected(selected, dataMap, data, 'BallotID')
+	const isIndeterminate = !isSelected && selected.length
 
-function renderVotingPool({columnIndex, rowData}) {
+	return (
+		<Checkbox
+			title={isSelected? "Clear All": isIndeterminate? "Clear Selected": "Select All"}
+			checked={isSelected}
+			indeterminate={isIndeterminate}
+			onChange={e => setSelected(toggleVisible(selected, dataMap, data, 'BallotID'))}
+		/>
+	)
+}
+
+const ControlCell = ({rowData, selected, setSelected}) => {
+	const id = rowData['BallotID']
+	return (
+		<Checkbox
+			key='selector'
+			title="Select Row"
+			checked={selected.includes(id)}
+			onChange={() => {
+				const i = selected.indexOf(id)
+				const s = selected.slice()
+				if (i >= 0) {s.splice(i, 1)} else {s.push(id)}
+				setSelected(s)
+			}}
+		/>
+	)
+}
+
+const mapControlState = (state, ownProps) => ({
+	selected: state.ballots.selected,
+	data: state.ballots.ballots,
+	dataMap: state.ballots.ballotsMap
+});
+
+const mapControlDispatch = (dispatch, ownProps) => ({
+	setSelected: cids => dispatch(setBallotsSelected(cids)),
+});
+
+const ConnectedControlHeader = connect(mapControlState, mapControlDispatch)(ControlHeader);
+const ConnectedControlCell = connect(mapControlState)(ControlCell);
+
+function renderVotingPool({rowData}) {
 	const type = rowData.Type
 	if (type === 1 || type === 3 || type === 5) {
 		return rowData.VotingPoolID
@@ -20,7 +64,8 @@ function renderVotingPool({columnIndex, rowData}) {
 	return ''
 }
 
-export function renderResultsSummary({rowData, dataKey}) {
+export function renderResultsSummary({rowData, dataKey, column}) {
+	if (!dataKey) dataKey = column.key
 	var results = rowData[dataKey]
 	var resultsStr = ''
 	if (results && results.TotalReturns) {
@@ -36,7 +81,8 @@ export function renderResultsSummary({rowData, dataKey}) {
 	return <Link to={`/Results/${rowData.BallotID}`}>{resultsStr}</Link>
 }
 
-export function renderCommentsSummary({rowData, dataKey}) {
+export function renderCommentsSummary({rowData, dataKey, column}) {
+	if (!dataKey) dataKey = column.key
 	const comments = rowData[dataKey]
 	let commentStr = 'None'
 	if (comments && comments.Count > 0) {
@@ -45,44 +91,55 @@ export function renderCommentsSummary({rowData, dataKey}) {
 	return <Link to={`/Comments/${rowData.BallotID}`}>{commentStr}</Link>
 }
 
-function getTableSize() {
-	const headerEl = document.getElementsByTagName('header')[0]
-	const topRowEl = document.getElementById('top-row')
-	const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight
-
-	const height = window.innerHeight - headerHeight - 1
-	const width = window.innerWidth - 1
-
-	return {height, width}
+function renderDate({rowData, column}) {
+	const dataKey = column.key
+	// rowData[dataKey] is an ISO time string. We convert this to eastern time
+	// and display only the date (not time).
+	const d = new Date(rowData[dataKey])
+	const str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
+	return str
 }
 
 const columns = [
-	{dataKey: 'Project',		label: 'Project',	width: 65,	sortable: true,
-		flexShrink: 0, flexGrow: 0},
-	{dataKey: 'BallotID',		label: 'Ballot ID',	width: 75,	sortable: true,
-		flexShrink: 0, flexGrow: 0},
-	{dataKey: 'Document',		label: 'Document',	width: 150,	sortable: true,
-		flexShrink: 1, flexGrow: 1},
-	{dataKey: 'Topic',			label: 'Topic',		width: 300,	sortable: true,
-		flexShrink: 1, flexGrow: 1},
-	{dataKey: 'EpollNum',		label: 'ePoll',		width: 80,	sortable: true,
-		flexGrow: 0, flexShrink: 0},
-	{dataKey: 'Start',			label: 'Start',		width: 86,	sortable: true,
-		flexShrink: 0,
+	{key: 'BallotID',
+		width: 40, flexShrink: 0, flexGrow: 0,
+		headerRenderer: props => <ConnectedControlHeader {...props}/>,
+		cellRenderer: props => <ConnectedControlCell {...props} />},
+	{key: 'Project',
+		label: 'Project',
+		width: 65,	flexShrink: 0, flexGrow: 0},
+	{key: 'BallotID',
+		label: 'Ballot ID',
+		width: 75,	flexShrink: 0, flexGrow: 0},
+	{key: 'Document',
+		label: 'Document',
+		width: 150,	flexShrink: 1, flexGrow: 1},
+	{key: 'Topic',
+		label: 'Topic',
+		width: 300,	flexShrink: 1, flexGrow: 1},
+	{key: 'EpollNum',
+		label: 'ePoll',
+		width: 80,	flexGrow: 0, flexShrink: 0},
+	{key: 'Start',
+		label: 'Start',
+		width: 86, flexShrink: 0,
 		cellRenderer: renderDate},
-	{dataKey: 'End',			label: 'End',		width: 86,	sortable: true,
-		flexShrink: 0,
+	{key: 'End',
+		label: 'End',
+		width: 86, flexShrink: 0,
 		cellRenderer: renderDate},
-	{dataKey: 'N/A',			label: 'Voting Pool/Prev Ballot',	width: 100, sortable: false,
-    	flexShrink: 1, flexGrow: 1,
+	{key: 'N/A',
+		label: 'Voting Pool/Prev Ballot',
+		width: 100, flexShrink: 1, flexGrow: 1,
 		cellRenderer: renderVotingPool},
-	{dataKey: 'Results',		label: 'Result',	width: 150,	sortable: true,
-		flexShrink: 1, flexGrow: 1,
+	{key: 'Results',
+		label: 'Result',
+		width: 150,	flexShrink: 1, flexGrow: 1,
 		cellRenderer: renderResultsSummary},
-	{dataKey: 'Comments',		label: 'Comments',	width: 100,	sortable: true,
-		flexShrink: 1, flexGrow: 1,
-		cellRenderer: renderCommentsSummary,
-		isLast: true}
+	{key: 'Comments',
+		label: 'Comments',
+		width: 100,	flexShrink: 1, flexGrow: 1,
+		cellRenderer: renderCommentsSummary}
 ]
 const primaryDataKey = 'BallotID'
 
@@ -90,11 +147,11 @@ function Ballots(props) {
 	const history = useHistory()
 
 	useEffect(() => {
-		if (!props.ballotsValid && !props.getBallots) {
-			props.dispatch(getBallots())
+		if (!props.ballotsValid && !props.loading) {
+			props.getBallots()
 		}
 		if (!props.votingPoolsValid) {
-			props.dispatch(getVotingPools())
+			props.getVotingPools()
 		}
 	}, [])
 
@@ -114,13 +171,9 @@ function Ballots(props) {
 		if (ids.length) {
 			const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?')
 			if (ok) {
-				await props.dispatch(deleteBallots(ids))
+				await props.deleteBallots(ids)
 			}
 		}
-	}
-
-	function refresh() {
-		props.dispatch(getBallots())
 	}
 
 	function handleAddBallot(event) {
@@ -139,29 +192,32 @@ function Ballots(props) {
 					<ActionButton name='add' title='Add' onClick={handleAddBallot} />
 					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
 					<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.getBallots} />
+					<ActionButton name='refresh' title='Refresh' onClick={props.getBallots} disabled={props.loading} />
 				</span>
 			</div>
 			<AppTable
 				columns={columns}
 				headerHeight={60}
 				rowHeight={40}
-				getTableSize={getTableSize}
-				loading={props.getBallots}
-				editRow={handleEditBallot}
+				height='70vh'
+				width='calc(100vw - 16px)'
+				estimatedRowHeight={54}
+				loading={props.loading}
+				onRowDoubleClick={handleEditBallot}
 				filters={props.filters}
-				setFilter={(dataKey, value) => props.dispatch(setBallotsFilter(dataKey, value))}
+				setFilter={props.setFilter}
 				sort={props.sort}
-				setSort={(dataKey, event) => props.dispatch(setBallotsSort(event, dataKey))}
+				setSort={props.setSort}
 				selected={props.selected}
-				setSelected={(ballotIds) => props.dispatch(setBallotsSelected(ballotIds))}
+				setSelected={props.setSelected}
 				data={props.ballots}
 				dataMap={props.ballotsMap}
-				primaryDataKey={primaryDataKey}
+				rowKey={primaryDataKey}
 			/>
 		</div>
 	)
 }
+
 Ballots.propTypes = {
 	filters: PropTypes.object.isRequired,
 	sort: PropTypes.object.isRequired,
@@ -169,24 +225,34 @@ Ballots.propTypes = {
 	ballots: PropTypes.array.isRequired,
 	ballotsMap: PropTypes.array.isRequired,
 	selected: PropTypes.array.isRequired,
-	getBallots: PropTypes.bool.isRequired,
+	loading: PropTypes.bool.isRequired,
 	votingPoolsValid: PropTypes.bool.isRequired,
 	votingPools: PropTypes.array.isRequired,
-	dispatch: PropTypes.func.isRequired
 }
 
-function mapStateToProps(state) {
-	const {ballots, voters} = state
-	return {
-		filters: ballots.filters,
-		sort: ballots.sort,
-		ballotsValid: ballots.ballotsValid,
-		ballots: ballots.ballots,
-		ballotsMap: ballots.ballotsMap,
-		selected: ballots.selected,
-		getBallots: ballots.getBallots,
-		votingPoolsValid: voters.votingPoolsValid,
-		votingPools: voters.votingPools,
+export default connect(
+	(state, ownProps) => {
+		const {ballots, voters} = state
+		return {
+			filters: ballots.filters,
+			sort: ballots.sort,
+			ballotsValid: ballots.ballotsValid,
+			ballots: ballots.ballots,
+			ballotsMap: ballots.ballotsMap,
+			selected: ballots.selected,
+			loading: ballots.getBallots,
+			votingPoolsValid: voters.votingPoolsValid,
+			votingPools: voters.votingPools,
+		}
+	},
+	(dispatch, ownProps) => {
+		return {
+			getBallots: () => dispatch(getBallots()),
+			deleteBallots: (ids) => dispatch(deleteBallots(ids)),
+			getVotingPools: () => dispatch(getVotingPools()),
+			setFilter: (dataKey, value) => dispatch(setBallotsFilter(dataKey, value)),
+			setSort: (dataKey, event) => dispatch(setBallotsSort(event, dataKey)),
+			setSelected: (ballotIds) => dispatch(setBallotsSelected(ballotIds)),
+		}
 	}
-}
-export default connect(mapStateToProps)(Ballots)
+)(Ballots);

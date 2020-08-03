@@ -170,7 +170,7 @@ const updateVoterFailure = () => {return {type: UPDATE_VOTER_FAILURE}}
 
 export function updateVoter(votingPoolType, votingPoolId, voterId, voter) {
 	return async (dispatch) => {
-		dispatch(updateVoterLocal(votingPoolType, votingPoolId, voter))
+		dispatch(updateVoterLocal(votingPoolType, votingPoolId, voterId, voter))
 		try {
 			const data = await fetcher.put(`/api/voter/${votingPoolType}/${votingPoolId}/${voterId}`, voter)
 			return dispatch(updateVoterSuccess(data.votingPool, voterId, data.voter))

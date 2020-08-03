@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import React, {useState, useRef, useEffect} from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
-import AppTable from '../general/AppTable'
+import AppTable from '../table/AppTable'
 import AppModal from '../modals/AppModal'
 import ConfirmModal from '../modals/ConfirmModal'
 import {setVotersFilter, setVotersSort, setVotersSelected, getVoters, deleteVoters, addVoter, updateVoter, uploadVoters} from '../actions/voters'
@@ -15,7 +15,7 @@ function ImportVotersModal(props) {
 	const fileInputRef = useRef();
 
 	async function submit() {
-		await props.dispatch(uploadVoters(props.votingPoolType, props.votingPoolName, fileInputRef.current.files[0]))
+		await props.uploadVoters(props.votingPoolType, props.votingPoolName, fileInputRef.current.files[0])
 		props.close()
 	}
 
@@ -41,7 +41,7 @@ ImportVotersModal.propTypes = {
 	close: PropTypes.func.isRequired,
 	votingPoolName: PropTypes.string.isRequired,
 	votingPoolType: PropTypes.oneOf(['SA', 'WG']),
-	dispatch: PropTypes.func.isRequired
+	uploadVoters: PropTypes.func.isRequired
 }
 
 function AddUpdateVoterModal(props) {
@@ -63,27 +63,27 @@ function AddUpdateVoterModal(props) {
 		const key = props.votingPoolType === 'SA'? 'Email': 'SAPIN'
 		let a
 		if (!voter[key]) {
-			a = setError(`Unable to ${props.action} voter`, `${key} must not be blank.`)
+			a = props.setError(`Unable to ${props.action} voter`, `${key} must not be blank.`)
 		}
 		else {
 			if (props.action === 'add') {
-				a = addVoter(
-					props.votingPoolType,
-					props.votingPoolName,
-					voter
-				)
+				a = props.addVoter(
+						props.votingPoolType,
+						props.votingPoolName,
+						voter
+					)
 			}
 			else {
 				const changed = shallowDiff(props.voter, voter)
-				a = updateVoter(
-					props.votingPoolType,
-					props.votingPoolName,
-					props.voter[key],
-					changed
-				)
+				a = props.updateVoter(
+						props.votingPoolType,
+						props.votingPoolName,
+						props.voter[key],
+						changed
+					)
 			}
 		}
-		await props.dispatch(a)
+		await a
 		props.close()
 	}
 
@@ -162,7 +162,8 @@ AddUpdateVoterModal.propTypes = {
 	votingPoolType: PropTypes.oneOf(['SA', 'WG']),
 	voter: PropTypes.object.isRequired,
 	action: PropTypes.oneOf(['add', 'update']),
-	dispatch: PropTypes.func.isRequired
+	updateVoter: PropTypes.func.isRequired,
+	addVoter: PropTypes.func.isRequired
 }
 
 const defaultVoter = {
@@ -176,17 +177,17 @@ const defaultVoter = {
 }
 
 const wgColumns = [
-	{dataKey: 'SAPIN',		label: 'SA PIN',	width: 100,	sortable: true},
-	{dataKey: 'LastName',	label: 'Last Name',	width: 150,	sortable: true},
-	{dataKey: 'FirstName',	label: 'First Name',width: 150,	sortable: true},
-	{dataKey: 'MI',			label: 'MI',		width: 50,	sortable: true},
-	{dataKey: 'Email',		label: 'Email',		width: 250,	sortable: true},
-	{dataKey: 'Status',		label: 'Status',	width: 100,	sortable: true}
+	{key: 'SAPIN',		label: 'SA PIN',	width: 100},
+	{key: 'LastName',	label: 'Last Name',	width: 150},
+	{key: 'FirstName',	label: 'First Name',width: 150},
+	{key: 'MI',			label: 'MI',		width: 50},
+	{key: 'Email',		label: 'Email',		width: 250},
+	{key: 'Status',		label: 'Status',	width: 100}
 ]
 
 const saColumns = [
-	{dataKey: 'Email',		label: 'Email',		width: 250,	sortable: true},
-	{dataKey: 'Name',		label: 'Name',		width: 300,	sortable: true}
+	{key: 'Email',		label: 'Email',		width: 250},
+	{key: 'Name',		label: 'Name',		width: 300}
 ]
 
 function Voters(props) {
@@ -199,22 +200,16 @@ function Voters(props) {
 	const [showImportVoters, setShowImportVoters] = useState(false)
 
 	const columns = votingPoolType === 'SA'? saColumns: wgColumns
-	const primaryDataKey = columns[0].dataKey
+	const primaryDataKey = columns[0].key
 
 	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
 	const width = Math.min(window.innerWidth - 1, maxWidth)
 
-	function getTableSize() {
-		const headerEl = document.getElementsByTagName('header')[0]
-		const height = window.innerHeight - headerEl.offsetHeight - 5
-		return {height, width}
-	}
-
 	useEffect(() => {
 		if ((!props.votingPool.VotingPool || props.votingPool.VotingPool !== votingPoolName ||
 			 !props.votingPool.PoolType || props.votingPool.PoolType !== votingPoolType) &&
-			!props.getVoters) {
-			props.dispatch(getVoters(votingPoolType, votingPoolName))
+			!props.loading) {
+			props.getVoters(votingPoolType, votingPoolName)
 		}
 	}, [votingPoolName, votingPoolType])
 
@@ -223,7 +218,7 @@ function Voters(props) {
  	}
 
  	function refresh() {
- 		props.dispatch(getVoters(votingPoolType, votingPoolName))
+ 		props.getVoters(votingPoolType, votingPoolName)
  	}
 
 	async function handleRemoveSelected() {
@@ -239,7 +234,7 @@ function Voters(props) {
 		if (ids.length) {
 			const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?')
 			if (ok) {
-				await props.dispatch(deleteVoters(votingPoolType, votingPoolName, ids))
+				await props.deleteVoters(votingPoolType, votingPoolName, ids)
 			}
 		}
 	}
@@ -266,25 +261,27 @@ function Voters(props) {
 					<ActionButton name='add' title='Add Voter' onClick={handleAddVoter} />
 					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
 					<ActionButton name='import' title='Import Voters' onClick={() => setShowImportVoters(true)} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.getVoters} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.loading} />
 					<ActionButton name='close' title='Close' onClick={close} />
 				</span>
 			</div>
 			<AppTable
 				columns={columns}
-				rowHeight={20}
-				getTableSize={getTableSize}
-				loading={props.getVoters}
+				estimatedRowHeight={32}
+				headerHeight={60}
+				width={width}
+				height='70vh'
+				loading={props.loading}
 				filters={props.filters}
-				setFilter={(dataKey, value) => props.dispatch(setVotersFilter(dataKey, value))}
+				setFilter={props.setFilter}
 				sort={props.sort}
-				setSort={(dataKey, event) => props.dispatch(setVotersSort(event, dataKey))}
+				setSort={props.setSort}
 				selected={props.selected}
-				setSelected={(ids) => props.dispatch(setVotersSelected(ids))}
-				editRow={handleUpdateVoter}
+				setSelected={props.setSelected}
+				onRowDoubleClick={handleUpdateVoter}
 				data={props.voters}
 				dataMap={props.votersMap}
-				primaryDataKey={primaryDataKey}
+				rowKey={primaryDataKey}
 			/>
 
 			<AddUpdateVoterModal
@@ -294,14 +291,16 @@ function Voters(props) {
 				votingPoolType={votingPoolType}
 				voter={addUpdateVoter.voter}
 				action={addUpdateVoter.action}
-				dispatch={props.dispatch}
+				addVoter={props.addVoter}
+				updateVoter={props.updateVoter}
 			/>
+
 			<ImportVotersModal
 				isOpen={showImportVoters}
 				close={() => setShowImportVoters(false)}
 				votingPoolName={votingPoolName}
 				votingPoolType={votingPoolType}
-				dispatch={props.dispatch}
+				uploadVoters={props.uploadVoters}
 			/>
 		</div>
 	)
@@ -314,20 +313,39 @@ Voters.propTypes = {
 	votersValid: PropTypes.bool.isRequired,
 	voters:  PropTypes.array.isRequired,
 	votersMap: PropTypes.array.isRequired,
-	getVoters: PropTypes.bool.isRequired
+	loading: PropTypes.bool.isRequired,
+	setFilter: PropTypes.func.isRequired,
+	setSort: PropTypes.func.isRequired,
+	setSelected: PropTypes.func.isRequired,
+	getVoters: PropTypes.func.isRequired,
+	uploadVoters: PropTypes.func.isRequired,
+	addVoter: PropTypes.func.isRequired,
+	updateVoter: PropTypes.func.isRequired, 
+	deleteVoters: PropTypes.func.isRequired
 }
 
-function mapStateToProps(state) {
-	const s = state.voters
-	return {
-		filters: s.votersFilters,
-		sort: s.votersSort,
-		selected: s.votersSelected,
-		votingPool: s.votingPool,
-		votersValid: s.votersValid,
-		voters: s.voters,
-		votersMap: s.votersMap,
-		getVoters: s.getVoters,
-	}
-}
-export default connect(mapStateToProps)(Voters)
+export default connect(
+	(state, ownProps) => {
+		const s = state.voters
+		return {
+			filters: s.votersFilters,
+			sort: s.votersSort,
+			selected: s.votersSelected,
+			votingPool: s.votingPool,
+			votersValid: s.votersValid,
+			voters: s.voters,
+			votersMap: s.votersMap,
+			loading: s.getVoters,
+		}
+	},
+	(dispatch, ownProps) => ({
+		setFilter: (dataKey, value) => dispatch(setVotersFilter(dataKey, value)),
+		setSort: (dataKey, event) => dispatch(setVotersSort(event, dataKey)),
+		setSelected: ids => dispatch(setVotersSelected(ids)),
+		getVoters: (...args) => dispatch(getVoters(...args)),
+		uploadVoters: (...args) => dispatch(uploadVoters(...args)),
+		addVoter: (...args) => dispatch(addVoter(...args)),
+		updateVoter: (votingPoolType, votingPoolId, voterId, voter) => dispatch(updateVoter(votingPoolType, votingPoolId, voterId, voter)),
+		deleteVoters: (...args) => dispatch(deleteVoters(...args))
+	})
+)(Voters)

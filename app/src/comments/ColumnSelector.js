@@ -1,16 +1,15 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import {ActionButton} from '../general/Icons'
+import styled from '@emotion/styled'
+import {ActionButton, Checkbox} from '../general/Icons'
+import ClickOutside from '../general/ClickOutside'
 
-/** @jsx jsx */
-import { css, jsx } from '@emotion/core'
-
-const wrapperCss = css`
+const Wrapper = styled(ClickOutside)`
 	display: inline-block;
 	user-select: none;
 	position: relative;`
 
-const containerCss = css`
+const PullDown = styled.div`
 	z-index: 10;
 	position: absolute;
 	right: 0;
@@ -25,12 +24,12 @@ const containerCss = css`
 	overflow-y: auto;
 	-webkit-overflow-scrolling: touch;`
 
-const listCss = css`
+const PullDownList = styled.ul`
 	margin-block-start: 0;
 	margin-block-end: 0;
 	padding-inline-start: 5px;`
 
-const listItemCss = css`
+const PullDownListItem = styled.li`
 	width: 100%;
 	cursor: default;
 	display: inline-block;
@@ -45,58 +44,38 @@ const listItemCss = css`
 		background-color: #ffcc01;
 	}`
 
-function ColumnSelector(props) {
+function ColumnSelector({list, isStacked, toggleStacked, isFixed, toggleFixed, isChecked, toggleItem}) {
 	const [isOpen, setOpen] = React.useState(false)
-	const {list, isStacked, toggleColumns} = props
-
-	React.useEffect(() => {
-		if (isOpen) {
-			window.addEventListener('click', close)
-		}
-		else{
-			window.removeEventListener('click', close)
-		}
-
-		return () => {
-			window.removeEventListener('click', close)
-		}
-	}, [isOpen])
-
-	function radioChange(e) {
-		if ((!isStacked && e.target.name === 'stacked') ||
-			(isStacked && e.target.name === 'flat')) {
-			toggleColumns()
-		}
-	}
-
-	function close() {
-		setOpen(false)
-	}
 
 	return (
-		<div css={wrapperCss}>
+		<Wrapper onClick={() => setOpen(!isOpen)} onClickOutside={() => setOpen(false)}>
 			<ActionButton name='columns' title='Select Columns' onClick={() => setOpen(!isOpen)} />
 			{isOpen &&
-				<div css={containerCss}>
-					<label><input type='radio' name='stacked' checked={isStacked} onChange={radioChange} />Stacked</label>
-					<label><input type='radio' name='flat' checked={!isStacked} onChange={radioChange} />Flat</label>
+				<PullDown>
+					<label><Checkbox name='fixed' checked={isFixed} onChange={toggleFixed} />Scale column width</label>
+					<br />
+					<label><Checkbox name='stacked' checked={isStacked} onChange={e => {!isStacked && toggleStacked()}} />Stacked</label>
+					<label><Checkbox name='flat' checked={!isStacked} onChange={e => {isStacked && toggleStacked()}} />Flat</label>
 					<hr />
-					<ul css={listCss}>
+					<PullDownList>
 						{list.map((item, index) => (
-							<li css={listItemCss} key={item.dataKey} onClick={() => props.toggleItem(item.dataKey)}>
-								{props.isChecked(item.dataKey) && '\u2714'} {item.label} 
-							</li>
+							<PullDownListItem key={item.key} onClick={() => toggleItem(item.key)}>
+								{isChecked(item.key) && '\u2714'} {item.label} 
+							</PullDownListItem>
 						))}
-					</ul>
-				</div>
+					</PullDownList>
+				</PullDown>
 			}
-		</div>
+		</Wrapper>
 	)
 }
+
 ColumnSelector.propTypes = {
 	list: PropTypes.array.isRequired,
 	isStacked: PropTypes.bool.isRequired,
-	toggleColumns: PropTypes.func.isRequired,
+	isFixed: PropTypes.bool.isRequired,
+	toggleStacked: PropTypes.func.isRequired,
+	toggleFixed: PropTypes.func.isRequired,
 	isChecked: PropTypes.func.isRequired,
 	toggleItem: PropTypes.func.isRequired
 }

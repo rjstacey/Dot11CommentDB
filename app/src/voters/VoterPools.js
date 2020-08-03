@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import React, {useState, useRef, useEffect} from 'react'
 import {useHistory} from 'react-router-dom'
 import {connect} from 'react-redux'
-import AppTable from '../general/AppTable'
+import AppTable from '../table/AppTable'
 import AppModal from '../modals/AppModal'
 import ConfirmModal from '../modals/ConfirmModal'
 import {setVotingPoolsSort, setVotingPoolsFilter, setVotingPoolsSelected, getVotingPools, deleteVotingPools, uploadVoters} from '../actions/voters'
@@ -22,12 +22,12 @@ function AddVotingPoolModal(props) {
 
 	async function submit() {
 		if (!votingPoolName) {
-			props.dispatch(setError('Unable to add voting pool', 'Voting pool must have a name'))
+			props.setError('Unable to add voting pool', 'Voting pool must have a name')
 		}
 		else {
 			let file = fileInputRef.current.files[0]
 			if (file) {
-				await props.dispatch(uploadVoters(votingPoolType, votingPoolName, file))
+				await props.uploadVoters(votingPoolType, votingPoolName, file)
 			}
 			props.history.push(`/Voters/${votingPoolType}/${votingPoolName}`)
 		}
@@ -70,14 +70,15 @@ function AddVotingPoolModal(props) {
 AddVotingPoolModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
-	dispatch: PropTypes.func.isRequired
+	uploadVoters: PropTypes.func.isRequired,
+	setError: PropTypes.func.isRequired
 }
 
 function ImportVotersModal(props) {
 	const votersFileInputRef = useRef()
 
 	async function submit() {
-		await props.dispatch(uploadVoters(props.votingPool.VotingPoolID, votersFileInputRef.current.files[0]))
+		await props.uploadVoters(props.votingPool.VotingPoolID, votersFileInputRef.current.files[0])
 		props.close()
 	}
 
@@ -102,41 +103,29 @@ ImportVotersModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
 	votingPool: PropTypes.object.isRequired,
-	dispatch: PropTypes.func.isRequired
+	uploadVoters: PropTypes.func.isRequired
 }
 
 const columns = [
-	{dataKey: 'PoolType',		label: 'Type',		width: 80,	sortable: true},
-	{dataKey: 'VotingPoolID',	label: 'Name',		width: 200,	sortable: true},
-	{dataKey: 'VoterCount',		label: 'Voters',	width: 100,	sortable: true,
-		isLast: true}
+	{key: 'PoolType',		label: 'Type',		width: 80},
+	{key: 'VotingPoolID',	label: 'Name',		width: 200},
+	{key: 'VoterCount',		label: 'Voters',	width: 100}
 ]
 
 function VoterPools(props) {
 	const history = useHistory()
 	const [showAddVotingPool, setShowAddVotingPool] = useState(false)
-	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
+	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
 	const width = Math.min(window.innerWidth - 1, maxWidth)
-
-	function getTableSize() {
-		const headerEl = document.getElementsByTagName('header')[0]
-		const topRowEl = document.getElementById('top-row')
-		const height = window.innerHeight - headerEl.offsetHeight - topRowEl.offsetHeight - 5
-		return {height, width}
-	}
 
 	useEffect(() => {
 		if (!props.votingPoolsValid) {
-			props.dispatch(getVotingPools())
+			props.getVotingPools()
 		}
 	}, [])
 
-	function showVoters({event, rowData}) {
+	function showVoters({rowData}) {
 		history.push(`/Voters/${rowData.PoolType}/${rowData.VotingPoolID}`)
-	}
-
-	function refresh() {
-		props.dispatch(getVotingPools());
 	}
 
 	async function handleRemoveSelected() {
@@ -153,7 +142,7 @@ function VoterPools(props) {
 		if (vps.length) {
 			const ok = await ConfirmModal.show('Are you sure you want to delete ' + vps.map(vp => vp.VotingPoolID).join(', ') + '?')
 			if (ok) {
-				await props.dispatch(deleteVotingPools(vps))
+				await props.deleteVotingPools(vps);
 			}
 		}
 	}
@@ -165,34 +154,39 @@ function VoterPools(props) {
 				<span>
 					<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowAddVotingPool(true)} />
 					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+					<ActionButton name='refresh' title='Refresh' onClick={props.getVotingPools} />
 				</span>
 			</div>
 			<AppTable
+				fixed
 				columns={columns}
-				rowHeight={22}
-				getTableSize={getTableSize}
-				loading={props.getVotingPools}
-				editRow={showVoters}
+				estimatedRowHeight={32}
+				headerHeight={64}
+				height='70vh'
+				width={width}
+				loading={props.loading}
+				onRowDoubleClick={showVoters}
 				filters={props.filters}
-				setFilter={(dataKey, value) => props.dispatch(setVotingPoolsFilter(dataKey, value))}
+				setFilter={props.setFilter}
 				sort={props.sort}
-				setSort={(dataKey, event) => props.dispatch(setVotingPoolsSort(event, dataKey))}
+				setSort={props.setSort}
 				selected={props.selected}
-				setSelected={(ids) => props.dispatch(setVotingPoolsSelected(ids))}
+				setSelected={props.setSelected}
 				data={props.votingPools}
 				dataMap={props.votingPoolsMap}
-				primaryDataKey='VotingPoolID'
+				rowKey='VotingPoolID'
 			/>
 			<AddVotingPoolModal
 				isOpen={showAddVotingPool}
 				close={() => setShowAddVotingPool(false)}
-				dispatch={props.dispatch}
+				uploadVoters={props.uploadVoters}
+				setError={props.setError}
 				history={history}
 			/>
 		</div>
 	)
 }
+
 VoterPools.propTypes = {
 	filters: PropTypes.object.isRequired,
 	sort: PropTypes.object.isRequired,
@@ -200,19 +194,35 @@ VoterPools.propTypes = {
 	votingPoolsValid: PropTypes.bool.isRequired,
 	votingPools:  PropTypes.array.isRequired,
 	votingPoolsMap: PropTypes.array.isRequired,
-	getVotingPools: PropTypes.bool.isRequired
+	loading: PropTypes.bool.isRequired,
+	setFilter: PropTypes.func.isRequired,
+	setSort: PropTypes.func.isRequired,
+	setSelected: PropTypes.func.isRequired,
+	getVotingPools: PropTypes.func.isRequired,
+	uploadVoters: PropTypes.func.isRequired,
+	setError: PropTypes.func.isRequired,
 }
 
-function mapStateToProps(state) {
-	const s = state.voters
-	return {
-		filters: s.votingPoolsFilters,
-		sort: s.votingPoolsSort,
-		selected: s.votingPoolsSelected,
-		votingPoolsValid: s.votingPoolsValid,
-		votingPools: s.votingPools,
-		votingPoolsMap: s.votingPoolsMap,
-		getVotingPools: s.getVotingPools
-	}
-}
-export default connect(mapStateToProps)(VoterPools)
+export default connect(
+	(state, ownProps) => {
+		const s = state.voters
+		return {
+			filters: s.votingPoolsFilters,
+			sort: s.votingPoolsSort,
+			selected: s.votingPoolsSelected,
+			votingPoolsValid: s.votingPoolsValid,
+			votingPools: s.votingPools,
+			votingPoolsMap: s.votingPoolsMap,
+			loading: s.getVotingPools
+		}
+	},
+	(dispatch, ownProps) => ({
+		setFilter: (dataKey, value) => dispatch(setVotingPoolsFilter(dataKey, value)),
+		setSort: (dataKey, event) => dispatch(setVotingPoolsSort(event, dataKey)),
+		setSelected: (ids) => dispatch(setVotingPoolsSelected(ids)),
+		getVotingPools: () => dispatch(getVotingPools()),
+		deleteVotingPools: (vps) => dispatch(deleteVotingPools(vps)),
+		uploadVoters: (votingPoolType, votingPoolName, file) => dispatch(uploadVoters(votingPoolType, votingPoolName, file)),
+		setError: (a, b) => dispatch(setError(a, b))
+	})
+)(VoterPools)

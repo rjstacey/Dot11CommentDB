@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import React, {useState, useEffect, useRef} from 'react'
 import { connect } from 'react-redux'
-import AppTable, {ColumnLabel, ColumnSearchFilter, ColumnDropdownFilter} from '../general/AppTable'
+import AppTable, {ColumnLabel, ColumnDropdownFilter} from '../table/AppTable'
 import AppModal from '../modals/AppModal'
 import ConfirmModal from '../modals/ConfirmModal'
 import {ActionButton} from '../general/Icons'
@@ -78,21 +78,6 @@ UploadUsersModal.propTypes = {
 	submit: PropTypes.func.isRequired
 }
 
-const UsersColumnLabel = connect(
-	(state, ownProps) => {
-		const {dataKey} = ownProps
-		return {
-			sort: state.users.sort,
-			label: dataKey
-		}
-	},
-	(dispatch, ownProps) => {
-		return {
-			setSort: (dataKey, event) => dispatch(setUsersSort(event, dataKey))
-		}
-	}
-)(ColumnLabel)
-
 const UsersAccessFilter = connect(
 	(state) => {
 		const dataKey = 'Access'
@@ -109,27 +94,19 @@ const UsersAccessFilter = connect(
 	}
 )(ColumnDropdownFilter)
 
-const UsersSearchFilter = connect(
-	(state, ownProps) => {
-		const {dataKey} = ownProps
-		return {
-			filter: state.users.filters[dataKey],
-			label: dataKey
-		}
-	},
-	(dispatch, ownProps) => {
-		const {dataKey} = ownProps
-		return {
-			setFilter: (value) => dispatch(setUsersFilter(dataKey, value)),
-		}
-	}
-)(ColumnSearchFilter)
-
-function usersTableHeader({dataKey}) {
+function usersTableHeader(props) {
+	console.log(props)
 	return (
 		<React.Fragment>
-			<UsersColumnLabel dataKey={dataKey} />
-			{dataKey === 'Access'? <UsersAccessFilter />: <UsersSearchFilter dataKey={dataKey} />}
+			<ColumnLabel
+				dataKey={props.column.key}
+				label={props.column.label}
+				sort={props.sort}
+				setSort={props.setSort}
+			/>
+			<UsersAccessFilter
+				dataKey={props.key}
+			/>
 		</React.Fragment>
 	)
 }
@@ -139,33 +116,25 @@ const EditUser = {ADD: 1, UPDATE: 2}
 function Users(props) {
 
 	const columns = [
-		{dataKey: 'SAPIN',  label: 'SA PIN',
-			sortable: true,
-			width: 100,
-			headerRenderer: usersTableHeader},
-		{dataKey: 'Name',   label: 'Name',
-			sortable: true,
-			width: 300,
-			headerRenderer: usersTableHeader},
-		{dataKey: 'Email',  label: 'eMail Address',
-			sortable: true,
-			width: 300,
-			headerRenderer: usersTableHeader},
-		{dataKey: 'Access', label: 'Access Level',
-			sortable: true,
-			width: 100,
+		{key: 'SAPIN',  label: 'SA PIN',
+			width: 100},
+		{key: 'Name',   label: 'Name',
+			width: 300},
+		{key: 'Email',  label: 'eMail Address',
+			width: 300},
+		{key: 'Access', label: 'Access Level',
+			width: 150,
 			cellRenderer: renderAccess,
-			headerRenderer: usersTableHeader,
-			isLast: true}
+			headerRenderer: usersTableHeader}
 	]
-	const primaryDataKey = columns[0].dataKey
+	const primaryDataKey = columns[0].key
 
 	const [showUploadUsersModal, setShowUploadUsersModal] = useState(false)
 	const [editUser, setEditUser] = useState(null)
 	const [user, setUser] = useState(defaultUser)
 
 	function getTableSize() {
-		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
+		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
 
 		const headerEl = document.getElementsByTagName('header')[0]
 
@@ -179,7 +148,7 @@ function Users(props) {
 
 	useEffect(() => {
 		if (!props.usersValid) {
-			props.dispatch(getUsers())
+			props.getUsers()
 		}
 	}, [])
 
@@ -195,13 +164,9 @@ function Users(props) {
 		if (ids.length) {
 			const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?')
 			if (ok) {
-				await props.dispatch(deleteUsers(ids))
+				await props.deleteUsers(ids)
 			}
 		}
-	}
-
-	function refresh() {
-		props.dispatch(getUsers())
 	}
 
 	function renderAccess({rowData}) {
@@ -220,10 +185,10 @@ function Users(props) {
 
 	function submitUser() {
 		if (editUser === EditUser.ADD) {
-			props.dispatch(addUser(user)).then(setEditUser(null))
+			props.addUser(user).then(setEditUser(null))
 		}
 		if (editUser === EditUser.UPDATE) {
-			props.dispatch(updateUser(user)).then(setEditUser(null))
+			props.updateUser(user).then(setEditUser(null))
 		}
 	}
 
@@ -239,25 +204,27 @@ function Users(props) {
 					<ActionButton name='add' title='Add User' onClick={openAddUser} />
 					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
 					<ActionButton name='upload' title='Upload Users' onClick={() => setShowUploadUsersModal(true)} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+					<ActionButton name='refresh' title='Refresh' onClick={props.getUsers} />
 				</span>
 			</div>
 			<AppTable
-				headerHeight={60}
+				fixed
+				estimatedRowHeight={32}
+				headerHeight={64}
+				height='70vh'
+				width={width}
 				columns={columns}
-				rowHeight={22}
-				getTableSize={getTableSize}
-				loading={props.getUsers}
-				editRow={openEditUser}
+				loading={props.loading}
+				onRowDoubleClick={openEditUser}
 				sort={props.sort}
-				setSort={(dataKey, event) => props.dispatch(setUsersSort(event, dataKey))}
+				setSort={props.setSort}
 				filters={props.filters}
-				setFilter={(dataKey, value) => props.dispatch(setUsersFilter(dataKey, value))}
+				setFilter={props.setFilter}
 				selected={props.selected}
-				setSelected={(ids) => props.dispatch(setUsersSelected(ids))}
+				setSelected={props.setSelected}
 				data={props.users}
 				dataMap={props.usersMap}
-				primaryDataKey={primaryDataKey}
+				rowKey={primaryDataKey}
 			/>
 
 			<AddEditUserModal
@@ -277,18 +244,28 @@ function Users(props) {
 	)
 }
 
-function mapStateToProps(state) {
-	const s = state.users
-	return {
-		filters: s.filters,
-		sort: s.sort,
-		accessOptions: s.accessOptions,
-		selected: s.selected,
-		usersValid: s.usersValid,
-		users: s.users,
-		usersMap: s.usersMap,
-		getUsers: s.getUsers
-	}
-}
-
-export default connect(mapStateToProps)(Users)
+export default connect(
+	(state, ownProps) => {
+		const s = state.users
+		return {
+			filters: s.filters,
+			sort: s.sort,
+			selected: s.selected,
+			accessOptions: s.accessOptions,
+			usersValid: s.usersValid,
+			users: s.users,
+			usersMap: s.usersMap,
+			loading: s.getUsers
+		}
+	},
+	(dispatch, ownProps) => ({
+		setFilter: (dataKey, value) => dispatch(setUsersFilter(dataKey, value)),
+		setSort: (dataKey, event) => dispatch(setUsersSort(event, dataKey)),
+		setSelected: (ids) => dispatch(setUsersSelected(ids)),
+		getUsers: () => dispatch(getUsers()),
+		addUser: (user) => dispatch(addUser(user)),
+		updateUser: (user) => dispatch(updateUser(user)),
+		deleteUsers: (ids) => dispatch(deleteUsers(ids)),
+		uploadUsers: (file) => dispatch(uploadUsers(file))
+	})
+)(Users)

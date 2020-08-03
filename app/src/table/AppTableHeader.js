@@ -3,42 +3,89 @@ import React from 'react'
 import {DraggableCore} from 'react-draggable'
 import {IconSort} from '../general/Icons'
 import {SortType, SortDirection, isSortable} from '../reducers/sort'
-
-/** @jsx jsx */
-import { css, jsx } from '@emotion/core'
 import styled from '@emotion/styled'
+import cn from 'classnames'
+import Select from 'react-dropdown-select'
 
-export function ColumnSearchFilter({className, dataKey, label, filter, setFilter, width}) {
+
+const StyledSelect = styled(Select)`
+	background-color: white;
+	border: 1px solid #ddd;
+	padding: 0;
+	box-sizing: border-box;`
+
+export function ColumnDropdownFilter({dataKey, filter, setFilter, options, genOptions, width}) {
+
+	const onChange = (values) => {
+		setFilter(values.map(v => v.value))
+	}
+
+	const values = Array.isArray(filter.values)?
+		filter.values.map(v => options.find(o => o.value === v)):
+		[]
+
+	return (
+			<StyledSelect
+				style={{width: width}}
+				placeholder=""
+				values={values}
+				onChange={onChange}
+				multi
+				closeOnSelect
+				onDropdownOpen={genOptions}
+				options={options}
+			/>
+    )
+}
+
+const SearchFilter = styled.input`
+	background-color: #ffffff;
+	border: 1px solid #ddd;
+	box-sizing: border-box;
+	min-height: 28px;
+	background-color: white;
+	:placeholder-shown {
+		background: right center no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' %3E%3Cpath fill-opacity='.2' d='m 0,0 7.5,11.25 0,7.5 2.5,3.75 0,-11.25 7.5,-11.25 Z'%3E%3C/path%3E%3C/svg%3E");
+	}
+	:hover {
+		border-color: #0074D9;
+	}
+	.invalid {
+		background-color: red;
+	}`
+
+export function ColumnSearchFilter({className, dataKey, label, filter, setFilter, width, style}) {
 
 	if (!filter) {
 		return null
 	}
 
-	const inputCss = css`
-		background-color: #ffffff;
-		border: 1px solid #ddd;
-		box-sizing: border-box;
-		width: ${width? width + 'px': 'unset'};
-		min-height: 28px;
-		background-color: ${filter.valid? 'white': 'red'};
-		:placeholder-shown {
-			background: right center no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' %3E%3Cpath fill-opacity='.2' d='m 0,0 7.5,11.25 0,7.5 2.5,3.75 0,-11.25 7.5,-11.25 Z'%3E%3C/path%3E%3C/svg%3E");
-		}
-		:hover {
-			border-color: #0074D9;
-		}`
-
 	return (
-		<input
-			className={className}
-			css={inputCss}
+		<SearchFilter
+			className={cn(className, {invalid: !filter.valid})}
 			type='search'
 			placeholder=' '//'Filter'
 			onChange={e => setFilter(e.target.value)}
 			value={filter.values}
+			style={style}
 		/>
 	)
 }
+
+const HeaderLabel = styled.div`
+	display: block;
+	user-select: none;
+	position: relative;
+	width: 100%;
+	font-weight: bold;
+	.icon {
+		position: relative;
+		top: -2px;
+	}`
+const LabelText = styled.div`
+	display: inline-block;
+	white-space: nowrap;
+	overflow: hidden;`
 
 export function ColumnLabel({dataKey, label, sort, setSort, ...otherProps}) {
 	let direction = SortDirection.NONE, onClick, isAlpha
@@ -50,66 +97,62 @@ export function ColumnLabel({dataKey, label, sort, setSort, ...otherProps}) {
 		onClick = e => setSort(dataKey, e)
 		isAlpha = sort.type[dataKey] !== SortType.NUMERIC
 	}
-	const headerLabel = css`
-		display: block;
-		user-select: none;
-		position: relative;
-		width: 100%;
-		cursor: ${sortable? 'pointer': 'unset'};
-		font-weight: bold`
-	const headerLabelItem = css`
-		display: inline-block;
-		white-space: nowrap;
-		overflow: hidden;
-		width: ${direction === SortDirection.NONE? '100%': 'calc(100% - 14px)'};`
-	const headerLabelIcon = css`
-		position: relative;
-		top: -2px;`
+
 	return (
-		<div
-			css={headerLabel}
+		<HeaderLabel
 			title={label}
+			style={sortable? {cursor: 'pointer'}: {}}
 			onClick={onClick}
 			{...otherProps}
 		>
-			<div css={headerLabelItem}>{label}</div>
-			{direction !== 'NONE' && <IconSort css={headerLabelIcon} isAlpha={isAlpha} direction={direction} />}
-		</div>
+			<LabelText style={{width: direction === SortDirection.NONE? '100%': 'calc(100% - 14px)'}}>{label}</LabelText>
+			{direction !== 'NONE' && <IconSort className='icon' isAlpha={isAlpha} direction={direction} />}
+		</HeaderLabel>
 	)
 }
 
-function defaultHeaderCellRenderer({columnIndex, column, sort, setSort, filters, setFilter}) {
-	const {dataKey, label} = column
+function defaultHeaderCellRenderer({column, sort, setSort, filters, setFilter}) {
+	const {key, label} = column
 	return (
 		<React.Fragment>
-			<ColumnLabel dataKey={dataKey} label={label} sort={sort} setSort={setSort} />
-			<ColumnSearchFilter css={css`width: 100%`} dataKey={dataKey} filter={filters[dataKey]} setFilter={(value) => setFilter(dataKey, value)} />
+			<ColumnLabel
+				dataKey={key}
+				label={label}
+				sort={sort}
+				setSort={setSort}
+			/>
+			<ColumnSearchFilter
+				style={{width: '100%'}}
+				dataKey={key}
+				filter={filters[key]}
+				setFilter={(value) => setFilter(key, value)}
+			/>
 		</React.Fragment>
 	)
 }
 
-function ResizableHeaderCell({width, flexGrow, flexShrink, setWidth, children, ...otherProps}) {
-	const [drag, setDrag] = React.useState(false)
-	const dragCss = css`
-		display: flex;
-		flex: 0 0 12px;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		cursor: col-resize;
-		color: #0085ff;
-		:hover {
-			color: #0b6fcc;
-			background-color: rgba(0, 0, 0, 0.1)
-		}`
+const FlexRow = styled.div`
+	display: flex;
+	flex-direction: row;`
 
-	const draggingCss = css`
+const DragHandle = styled.div`
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	cursor: col-resize;
+	color: #0085ff;
+	:hover,
+	.dragging {
 		color: #0b6fcc;
-		background-color: rgba(0, 0, 0, 0.1)`
+		background-color: rgba(0, 0, 0, 0.1)
+	}`
 
+function ResizableHeaderCell({width, setWidth, children, ...otherProps}) {
+	const [drag, setDrag] = React.useState(false)
 	return (
-		<div style={{display: 'flex', width: `${width}px`, flexGrow, flexShrink}} {...otherProps}>
-			<div style={{flex: '0 0 calc(100% - 12px)', overflow: 'hidden'}}>
+		<FlexRow {...otherProps}>
+			<div style={{height: '100%', width: 'calc(100% - 12px)'}}>
 				{children}
 			</div>
 			<DraggableCore
@@ -118,39 +161,61 @@ function ResizableHeaderCell({width, flexGrow, flexShrink, setWidth, children, .
 				onStart={e => setDrag(true)}
 				onStop={e => setDrag(false)}
 			>
-				<div css={[dragCss, drag && draggingCss]} style={{flex: '0 0 12px'}}>
+				<DragHandle className={cn(drag && 'dragging')} style={{height: '100%', width: '12px'}}>
 					<span>⋮</span>
-				</div>
+				</DragHandle>
 			</DraggableCore>
-		</div>
+		</FlexRow>
 	)
 }
 
-const HeaderRow = styled.div`
-	display: flex;
-	flex-direction: row;
-	flex-wrap: nowrap;
+const HeaderContainer = styled.div`
+	overflow: hidden;
 	box-sizing: border-box;`
 
-function TableHeader({
+const HeaderRow = styled.div`
+	display: flex;
+	box-sizing: border-box;
+	height: 100%;`
+
+/**
+ * TableHeader component for AppTable
+ */
+const TableHeader = React.forwardRef(({
+	className,
 	fixed,
+	width,
+	height,
 	columns,
 	setColumnWidth,
 	filters,
 	setFilter,
 	sort,
 	setSort,
-	...otherProps}) {
+	selected,
+	setSelected,
+	data,
+	dataMap,
+	rowGetter,
+	rowKey,
+	...otherProps}, ref) => {
+
+	const totalWidth = columns.reduce((acc, col) => acc + col.width, 0);
 
 	const cells = columns.map((column, columnIndex) => {
+		const containerStyle = {
+			flexBasis: column.width,
+			flexGrow: fixed? 0: column.flexGrow,
+			flexShrink: fixed? 0: column.flexShrink
+		}
 		const cellRenderer = column.headerRenderer || defaultHeaderCellRenderer
-		const cellProps = {columnIndex, column, filters, setFilter, sort, setSort}			
+		const cellProps = {columnIndex, column, data, dataMap, rowGetter, rowKey, sort, setSort, filters, setFilter, selected, setSelected}
 		return (
 			<ResizableHeaderCell
 				key={columnIndex}
+				className='AppTable__headerCell'
+				style={containerStyle}
 				width={column.width}
-				flexGrow={fixed? 0: column.flexGrow}
-				flexShrink={fixed? 0: column.flexShrink}
 				setWidth={width => setColumnWidth(columnIndex, width)}
 			>
 				{cellRenderer(cellProps)}
@@ -158,12 +223,22 @@ function TableHeader({
 		)
 	})
 
+	const classNames = [className, 'AppTable__headerRow'].join(' ')
+
 	return (
-		<HeaderRow {...otherProps}>
-			{cells}
-		</HeaderRow>
+		<HeaderContainer
+		 	ref={ref}
+			style={{height, width}}
+		>
+			<HeaderRow
+				className={classNames}
+				style={{width: fixed? totalWidth: width, height}}
+			>
+				{cells}
+			</HeaderRow>
+		</HeaderContainer>
 	)
-}
+})
 
 TableHeader.propTypes = {
 	fixed: PropTypes.bool,

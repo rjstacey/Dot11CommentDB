@@ -9,6 +9,7 @@ export const SET_COMMENTS_SORT = 'SET_COMMENTS_SORT'
 export const SET_COMMENTS_SELECTED = 'SET_COMMENTS_SELECTED'
 export const TOGGLE_COMMENTS_SELECTED = 'TOGGLE_COMMENTS_SELECTED'
 export const SET_COMMENTS_EXPANDED = 'SET_COMMENTS_EXPANDED'
+export const TOGGLE_COMMENTS_EXPANDED = 'TOGGLE_COMMENTS_EXPANDED'
 
 export const GET_COMMENTS = 'GET_COMMENTS'
 export const GET_COMMENTS_SUCCESS = 'GET_COMMENTS_SUCCESS'
@@ -53,6 +54,7 @@ export const setCommentsSort = (event, dataKey) => {return {type: SET_COMMENTS_S
 export const setCommentsSelected = (selected) => {return {type: SET_COMMENTS_SELECTED, selected}}
 export const toggleCommentsSelected = (selected) => {return {type: TOGGLE_COMMENTS_SELECTED, selected}}
 export const setCommentsExpanded = (expanded) => {return {type: SET_COMMENTS_EXPANDED, expanded}}
+export const toggleCommentsExpanded = (expanded) => {return {type: TOGGLE_COMMENTS_EXPANDED, expanded}}
 
 const getCommentsLocal = (ballotId) => {return {type: GET_COMMENTS, ballotId}}
 const getCommentsSuccess = (comments) => {return {type: GET_COMMENTS_SUCCESS, comments}}

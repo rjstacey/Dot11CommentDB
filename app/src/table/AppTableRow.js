@@ -2,9 +2,17 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {shouldComponentUpdate} from 'react-window';
 
-function defaultCellRenderer({rowData, column}) {
-	return rowData[column.dataKey]
+import styled from '@emotion/styled'
+
+function defaultCellRenderer({rowData, key}) {
+	return rowData[key]
 }
+
+const BodyRow = styled.div`
+	display: flex;
+	position: relative;
+	box-sizing: border-box;`
+
 
 /**
  * TableRow component for AppTable
@@ -37,61 +45,60 @@ class TableRow extends React.Component {
 		const {
 			isScrolling,
 			fixed,
-			className,
 			style,
+			className,
 			columns,
 			rowIndex,
 			rowData,
+			rowKey,
+			isExpanded,
+			selected,
+			setSelected,
 			estimatedRowHeight,
 			onRowHeightChange,
+			onRowDoubleClick,
 			...otherProps
 		} = this.props;
 		/* eslint-enable no-unused-vars */
 
-		// Add appropriate row classNames
-		let classNames = [className]
-		classNames.push((rowIndex % 2 === 0)? 'AppTable__row-even': 'AppTable__row-odd')
-		if (rowData.Selected)
-			classNames.push('AppTable__row-selected')
-		classNames = classNames.join(' ')
-
 		const cells = columns.map((column, columnIndex) => {
 			const cellRenderer = column.cellRenderer || defaultCellRenderer
-			const cellProps = {rowIndex, rowData, columnIndex, column}
+			const cellProps = {rowIndex, columnIndex, rowData, rowKey, key: column.key, column, selected, setSelected}
 			const cellStyle = {
-				width: column.width,
+				flexBasis: column.width,
 				flexGrow: fixed? 0: column.flexGrow,
 				flexShrink: fixed? 0: column.flexShrink
 			}
 			return (
-				<div key={columnIndex} style={cellStyle}>
+				<div className='AppTable__dataCell' key={columnIndex} style={cellStyle}>
 					{cellRenderer(cellProps)}
 				</div>
 			)
 		})
 
 		let rowStyle = {...style}
-		if (!this.state.measured)
+		if (!this.state.measured && isExpanded) {
 			delete rowStyle.height
-		rowStyle.display = 'flex'
+		}
 
 	  	return (
-			<div
+			<BodyRow
 				{...otherProps}
 				ref={ref => this.ref = ref}
-				className={classNames}
+				className={className}
 				style={rowStyle}
+				onDoubleClick={e => onRowDoubleClick({rowIndex, rowData})}
 			>
 				{cells}
-			</div>
+			</BodyRow>
 		)
 	}
 
 	_measureHeight(initialMeasure) {
 		if (!this.ref) return;
 
-		const { style, onRowHeightChange, rowIndex } = this.props;
-		const height = this.ref.getBoundingClientRect().height;
+		const { style, onRowHeightChange, rowIndex, estimatedRowHeight, isExpanded } = this.props;
+		const height = isExpanded? this.ref.getBoundingClientRect().height: estimatedRowHeight;
 		this.setState({ measured: true }, () => {
 			if (initialMeasure || height !== style.height)
 				onRowHeightChange(rowIndex, height);
@@ -100,11 +107,12 @@ class TableRow extends React.Component {
 }
 
 TableRow.propTypes = {
-	className: PropTypes.string,
+	fixed: PropTypes.bool,
 	style: PropTypes.object,
+	className: PropTypes.string,
 	columns: PropTypes.arrayOf(PropTypes.object).isRequired,
-	rowData: PropTypes.oneOfType([PropTypes.object, PropTypes.func]).isRequired,
 	rowIndex: PropTypes.number.isRequired,
+	rowData: PropTypes.oneOfType([PropTypes.object, PropTypes.func]).isRequired,
 	rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 	estimatedRowHeight: PropTypes.number,
 	onRowHeightChange: PropTypes.func.isRequired

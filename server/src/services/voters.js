@@ -355,6 +355,7 @@ module.exports = {
 	deleteVotingPools,
 	getVoters,
 	addVoter,
+	updateVoter,
 	deleteVoters,
 	uploadVoters
 }

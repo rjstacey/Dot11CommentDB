@@ -8,6 +8,7 @@ import {
 	SET_COMMENTS_SELECTED,
 	TOGGLE_COMMENTS_SELECTED,
 	SET_COMMENTS_EXPANDED,
+	TOGGLE_COMMENTS_EXPANDED,
 	GET_COMMENTS,
 	GET_COMMENTS_SUCCESS,
 	GET_COMMENTS_FAILURE,
@@ -174,16 +175,17 @@ function getCommentStatus(c) {
 	return Status
 }
 
-function updateCommentsStatusSelected(comments, selected) {
+function updateCommentsStatus(comments, selected, expanded) {
 	return comments.map(c => {
 		const Status = getCommentStatus(c)
 		const Selected = selected.includes(c.CID) || selected.includes(c.CommentID.toString())
-		return (c.Status !== Status || c.Selected !== Selected)? {...c, Status, Selected}: c
+		const Expanded = expanded.includes(c.CID) || expanded.includes(c.CommentID.toString())
+		return (c.Status !== Status || c.Selected !== Selected || c.Expanded !== Expanded)? {...c, Status, Selected, Expanded}: c
 	})
 }
 
 function comments(state = defaultState, action) {
-	let newComments, newSelected, filters
+	let newComments, newSelected, newExpanded, filters
 
 	switch (action.type) {
 		case SET_COMMENTS_FILTER:
@@ -224,7 +226,7 @@ function comments(state = defaultState, action) {
 			newSelected = updateSelected(state.comments, action.selected)
 			return {
 				...state,
-				comments: updateCommentsStatusSelected(state.comments, newSelected),
+				comments: updateCommentsStatus(state.comments, newSelected, state.expanded),
 				selected: newSelected
 			}
 		case TOGGLE_COMMENTS_SELECTED:
@@ -243,13 +245,32 @@ function comments(state = defaultState, action) {
 			//newSelected = updateSelected(state.comments, newSelected)
 			return {
 				...state,
-				comments: updateCommentsStatusSelected(state.comments, newSelected),
+				comments: updateCommentsStatus(state.comments, newSelected, state.expanded),
 				selected: newSelected
 			}
 		case SET_COMMENTS_EXPANDED:
 			return {
 				...state,
+				comments: updateCommentsStatus(state.comments, state.selected, action.expanded),
 				expanded: action.expanded
+			}
+		case TOGGLE_COMMENTS_EXPANDED:
+			newExpanded = state.expanded.slice()
+			for (let s of action.expanded) {
+				const i = newExpanded.indexOf(s)
+				if (i >= 0) {
+					newExpanded.splice(i, 1)
+				}
+				else {
+					newExpanded = newExpanded.concat([s])
+				}
+				
+			}
+			//newSelected = updateSelected(state.comments, newSelected)
+			return {
+				...state,
+				comments: updateCommentsStatus(state.comments, state.selected, newExpanded),
+				expanded: newExpanded
 			}
 		case GET_COMMENTS:
 			return {
@@ -263,7 +284,7 @@ function comments(state = defaultState, action) {
 				expanded: state.ballotId !== action.ballotId? []: state.expanded
 			}
 		case GET_COMMENTS_SUCCESS:
-			newComments = updateCommentsStatusSelected(action.comments, state.selected)
+			newComments = updateCommentsStatus(action.comments, state.selected, state.expanded)
 			return {
 				...state,
 				getComments: false,
@@ -317,7 +338,7 @@ function comments(state = defaultState, action) {
 			if (action.ballotId !== state.ballotId) {
 				return {...state, importComments: false}
 			}
-			newComments = updateCommentsStatusSelected(action.comments, state.selected)
+			newComments = updateCommentsStatus(action.comments, state.selected, state.expanded)
 			return {
 				...state,
 				importComments: false,
@@ -335,7 +356,7 @@ function comments(state = defaultState, action) {
 			if (action.ballotId !== state.ballotId) {
 				return {...state, uploadComments: false}
 			}
-			newComments = updateCommentsStatusSelected(action.comments, state.selected)
+			newComments = updateCommentsStatus(action.comments, state.selected, state.expanded)
 			return {
 				...state,
 				uploadComments: false,
@@ -354,7 +375,7 @@ function comments(state = defaultState, action) {
 				return {...state, updateComment: false}
 			}
 			newComments = action.updatedComments.concat(action.newComments)
-			newComments = updateCommentsStatusSelected(newComments, state.selected)
+			newComments = updateCommentsStatus(newComments, state.selected, state.expanded)
 			return {
 				...state,
 				updateComment: false,
