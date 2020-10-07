@@ -1,25 +1,35 @@
 import React from 'react'
 import {connect} from 'react-redux'
 import {useHistory} from 'react-router-dom'
-import AppTable, {renderDate} from '../general/AppTable'
+import AppTable from '../table/AppTable'
+import BallotDetailModal from './BallotDetail'
 import {ActionButton} from '../general/Icons'
 import {setEpollsSort, setEpollsFilter, getEpolls} from '../actions/epolls'
 
+function renderDate({rowData, key}) {
+	// rowData[key] is an ISO time string. We convert this to eastern time
+	// and display only the date (not time).
+	const d = new Date(rowData[key])
+	const str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
+	return str
+}
 
 function Epolls(props) {
 	const history = useHistory()
+	const numberEpolls = React.useRef(20)
+	const [epollNum, setEpollNum] = React.useState(null)
 
 	const columns = [
-		{dataKey: 'EpollNum',	label: 'ePoll',			width: 100,	sortable: true},
-		{dataKey: 'BallotID',	label: 'ePoll Name',	width: 200,	sortable: true},
-		{dataKey: 'Document',	label: 'Document',		width: 200,	sortable: true},
-		{dataKey: 'Topic',		label: 'Topic',			width: 500,	sortable: true},
-		{dataKey: 'Start',		label: 'Start',			width: 100,	sortable: true,
+		{key: 'EpollNum',	label: 'ePoll',			width: 100},
+		{key: 'BallotID',	label: 'ePoll Name',	width: 200},
+		{key: 'Document',	label: 'Document',		width: 200},
+		{key: 'Topic',		label: 'Topic',			width: 500},
+		{key: 'Start',		label: 'Start',			width: 100,
 			cellRenderer: renderDate},
-		{dataKey: 'End',		label: 'End',			width: 100,	sortable: true,
+		{key: 'End',		label: 'End',			width: 100,
 			cellRenderer: renderDate},
-		{dataKey: 'Votes',		label: 'Result',		width: 100,	sortable: true},
-		{dataKey: '',			label: '',				width: 200,	sortable: false,
+		{key: 'Votes',		label: 'Result',		width: 100},
+		{key: '',			label: '',				width: 200,
 			cellRenderer: renderActions,
 			isLast: true}
 	]
@@ -28,89 +38,82 @@ function Epolls(props) {
 
 	const primaryDataKey = columns[0].dataKey
 
-	const numberEpolls = React.useRef(20)
-
 	React.useEffect(() => {
-		if (!props.epollsValid) {
-			props.dispatch(getEpolls(numberEpolls.current))
-		}
+		if (!props.epollsValid)
+			props.getEpolls(numberEpolls.current)
 	}, [])
 
-	function getTableSize() {
-		const headerEl = document.getElementsByTagName('header')[0]
-		const topRowEl = document.getElementById('top-row')
-		const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight
-		const height = window.innerHeight - headerHeight - 1
-		return {height, width}
-	}
-
-	function importClick(rowData) {
-		history.push(`/ImportEpoll/${rowData.EpollNum}`)
-	}
-
-	function refresh() {
-		props.dispatch(getEpolls(numberEpolls.current))
-	}
-
-	function close() {
-		history.goBack();
-	}
+	const refresh = () => props.getEpolls(numberEpolls.current)
+	const close = () => history.goBack()
 
 	function getMore() {
 		numberEpolls.current += 10;
-		props.dispatch(getEpolls(numberEpolls.current))
+		props.getEpolls(numberEpolls.current)
 	}
 
 	function renderActions({rowData}) {
 		if (rowData.InDatabase) {
-			return (
-				<span>Already Present</span>
-			)
-		} else {
-			return (
-				<ActionButton name='import' title='Import' onClick={() => importClick(rowData)} />
-			)
+			return <span>Already Present</span>
+		}
+		else {
+			return <ActionButton name='import' title='Import' onClick={() => setEpollNum(rowData.EpollNum)} />
 		}
 	}
 	
 	return (
-		<div id='Epolls' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width, justifyContent: 'space-between'}}>
-				<span><label>Closed ePolls</label></span>
-				<span>
-					<ActionButton name='more' title='Load More' onClick={getMore} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-					<ActionButton name='close' title='Close' onClick={close} />
-				</span>
+		<React.Fragment>
+			<div style={{display: 'flex', justifyContent: 'center'}}>
+				<div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width}}>
+					<span><label>Closed ePolls</label></span>
+					<span>
+						<ActionButton name='more' title='Load More' onClick={getMore} />
+						<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+						<ActionButton name='close' title='Close' onClick={close} />
+					</span>
+				</div>
 			</div>
-			<AppTable
-				columns={columns}
-				rowHeight={54}
-				getTableSize={getTableSize}
-				loading={props.getEpolls}
-				filters={props.filters}
-				setFilter={(dataKey, value) => props.dispatch(setEpollsFilter(dataKey, value))}
-				sort={props.sort}
-				setSort={(dataKey, event) => props.dispatch(setEpollsSort(event, dataKey))}
-				expanded={true}
-				data={props.epolls}
-				dataMap={props.epollsMap}
-				primaryDataKey={primaryDataKey}
+			<div style={{flex: 1}}>
+				<AppTable
+					columns={columns}
+					headerHeight={60}
+					estimatedRowHeight={64}
+					loading={props.loading}
+					filters={props.filters}
+					setFilter={props.setFilter}
+					sort={props.sort}
+					setSort={props.setSort}
+					data={props.epolls}
+					dataMap={props.epollsMap}
+					rowKey={primaryDataKey}
+				/>
+			</div>
+			<BallotDetailModal
+				isOpen={epollNum !== null}
+				ballotId='+'
+				epollNum={epollNum}
+				close={() => setEpollNum(null)}
 			/>
-		</div>
+		</React.Fragment>
 	)
 }
 
-function mapStateToProps(state) {
-	const s = state.epolls
-
-	return {
-		filters: s.filters,
-		sort: s.sort,
-		epollsValid: s.epollsValid,
-		epolls: s.epolls,
-		epollsMap: s.epollsMap,
-		getEpolls: s.getEpolls
+export default connect(
+	(state, ownProps) => {
+		const s = state.epolls
+		return {
+			filters: s.filters,
+			sort: s.sort,
+			epollsValid: s.epollsValid,
+			epolls: s.epolls,
+			epollsMap: s.epollsMap,
+			loading: s.getEpolls
+		}
+	},
+	(dispatch, ownProps) => {
+		return {
+			getEpolls: (n) => dispatch(getEpolls(n)),
+			setFilter: (dataKey, value) => dispatch(setEpollsFilter(dataKey, value)),
+			setSort: (dataKey, event) => dispatch(setEpollsSort(event, dataKey))
+		}
 	}
-}
-export default connect(mapStateToProps)(Epolls)
+)(Epolls)

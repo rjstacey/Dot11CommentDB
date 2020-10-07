@@ -385,7 +385,7 @@ function ResnStatus(props) {
 
 const mapResnStatus = {
 	ACCEPTED: 'A',
-	REVISED: 'R',
+	REVISED: 'V',
 	REJECTED: 'J'
 }
 

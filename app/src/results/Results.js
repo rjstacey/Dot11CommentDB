@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
-import AppTable from '../general/AppTable'
+import AppTable from '../table/AppTable'
 import AppModal from '../modals/AppModal'
 import BallotSelector from '../ballots/BallotSelector'
 import {setResultsSort, setResultsFilter, getResults} from '../actions/results'
@@ -10,9 +10,7 @@ import {setError} from '../actions/error'
 import {setBallotId} from '../actions/ballots'
 import {ActionButton, Handle} from '../general/Icons'
 import fetcher from '../lib/fetcher'
-
-/** @jsx jsx */
-import { css, jsx } from '@emotion/core'
+import styled from '@emotion/styled'
 
 function ExportModal(props) {
 	const {isOpen, close, dispatch} = props
@@ -57,13 +55,13 @@ function ExportModal(props) {
 		</AppModal>
 	)
 }
+
 ExportModal.propTypes = {
 	ballot: PropTypes.object.isRequired,
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
 	dispatch: PropTypes.func.isRequired,
 }
-
 
 function getResultsSummary(resultsSummary, ballot, votingPoolSize) {
 	const r = resultsSummary, b = ballot
@@ -146,32 +144,30 @@ function ResultsSummary(props) {
 	const r = getResultsSummary(resultsSummary, ballot, votingPoolSize)
 	const ballotType = ['CC Ballot', 'WG Ballot', 'WG Ballot', 'SA Ballot', 'SA Ballot', 'Motion'][ballot.Type]
 
-	const colCss = css`
+	const Col = styled.div`
 		display: flex;
 		flex-direction: column;
-		padding-right: 20px;
-	`
-	const titleCss = css`
+		flex: 0 1 ${({width}) => width}px;
+		padding-right: 20px;`
+
+	const Title = styled.div`
 		display: block;
 		font-weight: bold;
-		margin: 5px 0 5px 0;
-	`
-	const lvCss = css`
+		margin: 5px 0 5px 0;`
+
+	const LV = styled.div`
 		display: flex;
 		flex-direction: row;
-		justify-content: space-between;
-	`
+		justify-content: space-between;`
 
-	const Col = (props) => <div css={colCss} {...props} />
-	const Title = (props) => <div css={titleCss} {...props} />
 	const LabelValue = ({label, value, ...otherProps}) => (
-			<div css={lvCss} {...otherProps} >
+			<LV {...otherProps} >
 				<span>{label}</span><span>{value}</span>
-			</div>
+			</LV>
 		)
 
 	const ballotCol = (
-		<Col css={{flex: '0 1 260px'}}>
+		<Col width={260}>
 			<Title>{ballotType}</Title>
 			<LabelValue label='Opened:' value={r.opened} />
 			<LabelValue label='Closed:' value={r.closed} />
@@ -181,7 +177,7 @@ function ResultsSummary(props) {
 	)
 
 	const resultCol = (
-		<Col css={{flex: '0 1 300px'}}>
+		<Col width={300}>
 			<Title>Result</Title>
 			<LabelValue label='Approve:' value={r.approve} />
 			<LabelValue label='Disapprove:' value={r.disapprove} />
@@ -193,7 +189,7 @@ function ResultsSummary(props) {
 	)
 
 	const invalidVotesCol = (
-		<Col css={{flex: '0 1 300px'}}>
+		<Col width={300}>
 			<Title>Invalid votes</Title>
 			<LabelValue label='Not in pool:' value={r.invalidVote} />
 			<LabelValue label='Disapprove without comment:' value={r.invalidDisapprove} />
@@ -202,7 +198,7 @@ function ResultsSummary(props) {
 	)
 
 	const approvalCriteriaCol = (
-		<Col css={{flex: '0 1 400px'}}>
+		<Col width={400}>
 			<Title>Approval criteria</Title>
 			<LabelValue label='Approval rate:' value={r.approvalRateStr} />
 			{ballot.Type !== 0 && <div>{r.approvalRateReqStr}</div>}
@@ -213,39 +209,39 @@ function ResultsSummary(props) {
 		</Col>
 	)
 
-	const contentCss = css`
+	const Content = styled.div`
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 		width: 100%;
-		max-width: 1400px;
-	`
-	const DetailedSummary = (props) => (
-		<div css={contentCss}>
+		max-width: 1400px;`
+
+	const detailedSummary = (
+		<Content>
 			{ballotCol}
 			{resultCol}
 			{ballotType === 'WG' && invalidVotesCol}
 			{ballotType !== 'CC' && approvalCriteriaCol}
-		</div>
+		</Content>
 	)
 
-	const BasicSummary = (props) => (
-		<div css={contentCss}>
+	const basicSummary = (
+		<Content>
 			<Title>{ballotType}</Title>
 			<LabelValue label='Result:' value={`${r.approve}/${r.disapprove}/${r.abstain} (${r.approvalRateStr})`} />
-		</div>
+		</Content>
 	)
 
-	const containerCss = css`
+	const Container = styled.div`
 		display: flex;
 		flex-direction: row;
-		justify-content: space-between;
-	`
+		justify-content: space-between;`
+
 	return (
-		<div id='results-summary' css={containerCss}>
-			{showSummary? <DetailedSummary />: <BasicSummary />}
+		<Container>
+			{showSummary? detailedSummary: basicSummary}
 			<Handle open={showSummary} onClick={() => setShowSummary(!showSummary)} />
-		</div>
+		</Container>
 	)
 }
 ResultsSummary.propTypes = {
@@ -255,28 +251,15 @@ ResultsSummary.propTypes = {
 }
 
 const allColumns = [
-	{dataKey: 'SAPIN',		 label: 'SA PIN',		width: 75,	sortable: true},
-	{dataKey: 'Name',		 label: 'Name',			width: 200,	sortable: true},
-	{dataKey: 'Affiliation', label: 'Affiliation',	width: 200,	sortable: true},
-	{dataKey: 'Email',		 label: 'Email',		width: 250,	sortable: true},
-	{dataKey: 'Vote',		 label: 'Vote',			width: 210,	sortable: true},
-	{dataKey: 'CommentCount',label: 'Comments',		width: 110,	sortable: true},
-	{dataKey: 'Notes',		 label: 'Notes',		width: 250,	sortable: true,
-		flexShrink: 1, flexGrow: 1,
-		isLast: true}
+	{key: 'SAPIN',		 label: 'SA PIN',		width: 75,	sortable: true},
+	{key: 'Name',		 label: 'Name',			width: 200,	sortable: true},
+	{key: 'Affiliation', label: 'Affiliation',	width: 200,	sortable: true},
+	{key: 'Email',		 label: 'Email',		width: 250,	sortable: true},
+	{key: 'Vote',		 label: 'Vote',			width: 210,	sortable: true},
+	{key: 'CommentCount',label: 'Comments',		width: 110,	sortable: true},
+	{key: 'Notes',		 label: 'Notes',		width: 250,	sortable: true,
+		flexShrink: 1, flexGrow: 1}
 ]
-
-function getTableSize() {
-	const headerEl = document.getElementsByTagName('header')[0]
-	const topRowEl = document.getElementById('top-row')
-	const resultsEl = document.getElementById('results-summary')
-	const headerHeight = headerEl.offsetHeight + topRowEl.offsetHeight + resultsEl.offsetHeight
-
-	const height = window.innerHeight - headerHeight - 5
-	const width = window.innerWidth - 1
-
-	return {height, width}
-}
 
 function Results(props) {
 	const {ballotId} = useParams()
@@ -323,7 +306,7 @@ function Results(props) {
 	}
 
 	return (
-		<div id='Results'>
+		<React.Fragment>
 			<div id='top-row' style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', position: 'relative'}}>
 				<span>
 					<BallotSelector
@@ -342,28 +325,28 @@ function Results(props) {
 				showSummary={showSummary}
 				setShowSummary={setShowSummary}
 			/>
-			<AppTable
-				columns={columns}
-				headerHeight={60}
-				rowHeight={18}
-				getTableSize={getTableSize}
-				tableSizeDependencies={[showSummary]}
-				loading={props.getResults}
-				filters={props.filters}
-				setFilter={(dataKey, value) => props.dispatch(setResultsFilter(dataKey, value))}
-				sort={props.sort}
-				setSort={(dataKey, event) => props.dispatch(setResultsSort(event, dataKey))}
-				primaryDataKey={primaryDataKey}
-				data={props.results}
-				dataMap={props.resultsMap}
-			/>
+			<div style={{flex: 1}}>
+				<AppTable
+					columns={columns}
+					headerHeight={60}
+					estimatedRowHeight={32}
+					loading={props.getResults}
+					filters={props.filters}
+					setFilter={(dataKey, value) => props.dispatch(setResultsFilter(dataKey, value))}
+					sort={props.sort}
+					setSort={(dataKey, event) => props.dispatch(setResultsSort(event, dataKey))}
+					rowKey={primaryDataKey}
+					data={props.results}
+					dataMap={props.resultsMap}
+				/>
+			</div>
 			<ExportModal
 				ballot={props.ballot}
 				isOpen={showExportModal}
 				close={() => setShowExportModal(false)}
 				dispatch={props.dispatch}
 			/>
-		</div>
+		</React.Fragment>
 	)
 }
 Results.propTypes = {

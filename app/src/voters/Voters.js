@@ -163,7 +163,8 @@ AddUpdateVoterModal.propTypes = {
 	voter: PropTypes.object.isRequired,
 	action: PropTypes.oneOf(['add', 'update']),
 	updateVoter: PropTypes.func.isRequired,
-	addVoter: PropTypes.func.isRequired
+	addVoter: PropTypes.func.isRequired,
+	setError: PropTypes.func.isRequired,
 }
 
 const defaultVoter = {
@@ -254,35 +255,39 @@ function Voters(props) {
 	}
 
 	return (
-		<div id='Voters' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width, justifyContent: 'space-between'}}>
-				<span><label>Voting Pool:&nbsp;</label>{votingPoolName}</span>
-				<span>
-					<ActionButton name='add' title='Add Voter' onClick={handleAddVoter} />
-					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
-					<ActionButton name='import' title='Import Voters' onClick={() => setShowImportVoters(true)} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.loading} />
-					<ActionButton name='close' title='Close' onClick={close} />
-				</span>
+		<React.Fragment>
+			<div style={{display: 'flex', justifyContent: 'center'}}>
+				<div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width}}>
+					<span><label>Voting Pool:&nbsp;</label>{votingPoolName}</span>
+					<span>
+						<ActionButton name='add' title='Add Voter' onClick={handleAddVoter} />
+						<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
+						<ActionButton name='import' title='Import Voters' onClick={() => setShowImportVoters(true)} />
+						<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.loading} />
+						<ActionButton name='close' title='Close' onClick={close} />
+					</span>
+				</div>
 			</div>
-			<AppTable
-				columns={columns}
-				estimatedRowHeight={32}
-				headerHeight={60}
-				width={width}
-				height='70vh'
-				loading={props.loading}
-				filters={props.filters}
-				setFilter={props.setFilter}
-				sort={props.sort}
-				setSort={props.setSort}
-				selected={props.selected}
-				setSelected={props.setSelected}
-				onRowDoubleClick={handleUpdateVoter}
-				data={props.voters}
-				dataMap={props.votersMap}
-				rowKey={primaryDataKey}
-			/>
+
+			<div style={{flex: 1}}>
+				<AppTable
+					fixed
+					columns={columns}
+					headerHeight={60}
+					estimatedRowHeight={32}
+					loading={props.loading}
+					sort={props.sort}
+					setSort={props.setSort}
+					filters={props.filters}
+					setFilter={props.setFilter}
+					selected={props.selected}
+					setSelected={props.setSelected}
+					onRowDoubleClick={handleUpdateVoter}
+					data={props.voters}
+					dataMap={props.votersMap}
+					rowKey={primaryDataKey}
+				/>
+			</div>
 
 			<AddUpdateVoterModal
 				isOpen={!!addUpdateVoter.action}
@@ -293,6 +298,7 @@ function Voters(props) {
 				action={addUpdateVoter.action}
 				addVoter={props.addVoter}
 				updateVoter={props.updateVoter}
+				setError={props.setError}
 			/>
 
 			<ImportVotersModal
@@ -302,9 +308,10 @@ function Voters(props) {
 				votingPoolType={votingPoolType}
 				uploadVoters={props.uploadVoters}
 			/>
-		</div>
+		</React.Fragment>
 	)
 }
+
 Voters.propTypes = {
 	filters: PropTypes.object.isRequired,
 	sort: PropTypes.object.isRequired,
@@ -346,6 +353,7 @@ export default connect(
 		uploadVoters: (...args) => dispatch(uploadVoters(...args)),
 		addVoter: (...args) => dispatch(addVoter(...args)),
 		updateVoter: (votingPoolType, votingPoolId, voterId, voter) => dispatch(updateVoter(votingPoolType, votingPoolId, voterId, voter)),
-		deleteVoters: (...args) => dispatch(deleteVoters(...args))
+		deleteVoters: (...args) => dispatch(deleteVoters(...args)),
+		setError: (...args) => dispatch(setError(...args))
 	})
 )(Voters)

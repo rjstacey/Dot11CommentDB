@@ -15,7 +15,8 @@ import {
 	faFileExport,
 	faColumns,
 	faSave,
-	faObjectGroup, faUserCheck, faEdit
+	faObjectGroup, faUserCheck, faEdit,
+	faCaretSquareDown, faCaretSquareUp
 } from '@fortawesome/free-solid-svg-icons'
 //import { faCode, faHighlighter } from '@fortawesome/free-regular-svg-icons';
 
@@ -36,7 +37,8 @@ export function init() {
 		faFileExport,
 		faColumns,
 		faSave,
-		faObjectGroup, faUserCheck, faEdit
+		faObjectGroup, faUserCheck, faEdit,
+		faCaretSquareDown, faCaretSquareUp
 	)
 }
 
@@ -47,6 +49,13 @@ export function IconSort({direction, isAlpha, ...props}) {
 		(isAlpha? 'alpha-': 'numeric-') +
 		(direction === 'ASC'? 'down': 'up')
 	return <FontAwesomeIcon icon={icon} {...props} />
+}
+
+export function ActionButtonSort({direction, isAlpha, ...props}) {
+	let icon = 'sort-' +
+		(isAlpha? 'alpha-': 'numeric-') +
+		(direction === 'ASC'? 'down': 'up')
+	return <ActionButton name={icon} {...props} />
 }
 
 export const ButtonGroup = styled.div`
@@ -75,34 +84,35 @@ export const ButtonGroup = styled.div`
 	:disabled > * {
 		opacity: .5;
 	}
-`
+`;
 
-export const ActionButton = ({name, isActive, ...otherProps}) => {
-	const Button = styled.button`
-		display: inline-block;
-		margin: 0 5px 0 0;
-		padding: 3px;
-		box-sizing: border-box;
-		background: none #fdfdfd;
-		background: linear-gradient(to bottom, #fdfdfd 0%,#f6f7f8 100%);
-		border: 1px solid #999;
-		border-radius: 2px;
-		color: #333;
-		text-decoration: none;
-		font-size: inherit;
-		font-family: inherit;
-		cursor: pointer;
-		white-space: nowrap;
-		:disabled {
-			cursor: not-allowed;
-			background: none transparent;
-		}
-		:disabled > * {
-			opacity: .5;
-		}
-	`
+export const Button = styled.button`
+	display: inline-block;
+	margin: 0 5px 0 0;
+	padding: 3px;
+	box-sizing: border-box;
+	background: none ${({isActive}) => isActive? '#d8d8d8': '#fdfdfd'};
+	/*background: linear-gradient(to bottom, #fdfdfd 0%,#f6f7f8 100%);*/
+	border: 1px solid #999;
+	border-radius: 2px;
+	color: #333;
+	text-decoration: none;
+	font-size: inherit;
+	font-family: inherit;
+	cursor: pointer;
+	white-space: nowrap;
+	:disabled {
+		cursor: not-allowed;
+		background: none transparent;
+	}
+	:disabled > * {
+		opacity: .5;
+	}
+`;
 
-	const mapName = {
+export const ActionButton = ({name, ...otherProps}) => {
+
+	const icon = {
 		'refresh': 'sync',
 		'add': 'plus',
 		'delete': 'trash-alt',
@@ -123,11 +133,13 @@ export const ActionButton = ({name, isActive, ...otherProps}) => {
 		'quote': 'quote-right',
 		'unordered-list-item': 'list-ul',
 		'ordered-list-item': 'list-ol',
-	}
+		'dropdown-open': 'caret-square-down',
+		'dropdown-close': 'caret-square-up',
+	}[name] || name;
 
 	return (
-		<Button style={isActive? {background: 'none #d8d8d8'}: {}} {...otherProps}>
-			<FontAwesomeIcon icon={mapName[name] || name} />
+		<Button {...otherProps}>
+			<FontAwesomeIcon icon={icon} />
 		</Button>
 	)
 }
@@ -180,6 +192,45 @@ export const DoubleExpander = ({open, ...otherProps}) => (
 	</IconContainer>
 )
 
+const VoteIcon = styled.div`
+	width: 12px;
+	height: 12px;`
+
+export const VoteYesIcon = (props) => (
+	<VoteIcon {...props}>
+	<svg viewBox="0 0 600 600">
+		<defs id="defs1373">
+			<linearGradient id="linearGradient2250">
+				<stop style={{stopColor: '#008700', stopOpacity: 1}} offset="0" id="stop2252"/>
+				<stop style={{stopColor: '#006f00', stopOpacity: 1}} offset="1" id="stop2254"/>
+			</linearGradient>
+		</defs>
+		<path
+			d="M 7.6885391,404.6142 C 7.6885391,404.6142 122.85389,534.30185 145.88696,587.27791 L 244.92916,587.27791 C 286.38869,460.59602 447.62018,158.16034 585.8186,52.208207 C 614.45182,15.394067 542.5208,0.19798715 484.4731,24.568517 C 396.98668,61.298507 231.98485,341.73657 201.16633,409.22081 C 157.4035,420.73735 111.33735,335.51499 111.33735,335.51499 L 7.6885391,404.6142 z "
+			style={{fill:'#00bb00', fillOpacity:1, fillRule:'evenodd', stroke:'#000000', strokeWidth:2, strokeLinecap:'butt', strokeLinejoin:'miter', strokeMiterlimit:4, strokeDasharray:'none', strokeOpacity:1}}
+		/>
+	</svg>
+	</VoteIcon>
+)
+
+export const VoteNoIcon = (props) => (
+	<VoteIcon {...props}>
+		<svg viewBox="0 0 525 600">
+			<defs id="defs5">
+				<linearGradient id="linearGradient2299">
+					<stop style={{stopColor: '#ff0000', stopOpacity: 1}} offset="0" id="stop2301"/>
+					<stop style={{stopColor: '#c70000', stopOpacity: 1}} offset="1" id="stop2303"/>
+				</linearGradient>
+				<radialGradient cx="262.5" cy="300" fx="262.5" fy="300" r="246.9456" gradientTransform="matrix(1,0,0,1.200021,0,-60.00638)" gradientUnits="userSpaceOnUse"/>
+			</defs>
+			<path
+				d="M 15.554399,499.23617 C 15.554399,489.88388 49.262003,442.92493 90.460178,394.88295 C 131.65835,346.84096 171.36188,300.19332 178.69024,291.22150 C 186.01860,282.24967 178.40699,230.17136 161.77557,175.49190 C 127.32187,62.217924 124.18126,24.551078 147.96473,9.8520875 C 180.47155,-10.238240 225.08409,19.441293 262.53181,86.070496 L 300.46929,153.57113 L 371.71241,83.651323 C 418.55713,37.676699 451.99662,17.200896 469.35551,23.862122 C 503.70070,37.041618 523.52158,88.613119 497.56689,97.264679 C 468.10720,107.08456 346.17818,292.63354 346.40950,327.29275 C 346.51902,343.70450 363.84370,387.26650 384.90880,424.09720 C 399.76671,450.07512 419.73824,470.57451 411.81016,484.66521 L 369.43018,559.98778 C 361.21065,574.59648 330.85012,535.64770 294.88494,497.84045 L 232.14649,431.88864 L 162.59445,514.37325 C 124.34083,559.73979 88.627185,596.62407 83.230792,596.33832 C 77.834411,596.05256 15.554399,508.58848 15.554399,499.23617 z "
+				style={{fill:'#bb0000', fillOpacity:1, stroke:'none', strokeWidth:2, strokeLinejoin:'round', strokeMiterlimit:4, strokeDasharray:'none', strokeOpacity:1}}
+			/>
+		</svg>
+	</VoteIcon>
+)
+
 const Input = styled.input`
 	cursor: inherit;
 	-webkit-appearance: none;
@@ -223,6 +274,5 @@ export function Checkbox({indeterminate, ...otherProps}) {
 	return <Input type='checkbox' ref={el => el && (el.indeterminate = indeterminate)} {...otherProps}/>
 }
 
-export function Search(props) {
-	return <Input type='search' {...props} />
-}
+export const Search = styled.input`
+	width: ${({width}) => typeof width === 'undefined'? 'unset': (width + (typeof width === 'number'? 'px': ''))}`

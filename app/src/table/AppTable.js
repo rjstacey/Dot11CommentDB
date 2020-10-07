@@ -4,6 +4,8 @@ import {VariableSizeGrid as Grid} from 'react-window'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import TableRow from './AppTableRow'
 import TableHeader, {ColumnLabel, ColumnSearchFilter, ColumnDropdownFilter} from './AppTableHeader'
+import ShowFilters from './ShowFilters'
+import ColumnDropdown from './ColumnDropdown'
 import {debounce, getScrollbarSize} from '../lib/utils'
 import {allSelected, toggleVisible} from '../lib/select'
 import {Checkbox} from '../general/Icons'
@@ -43,11 +45,14 @@ const ControlCell = ({rowData, rowKey, selected, setSelected}) => {
 	)
 }
 
-
 const Table = styled.div`
 	display: flex;
 	flex-direction: column-reverse;
+	align-items: center;
 	position: relative;
+	:focus {
+		outline: none;
+	}
 	.AppTable__headerRow,
 	.AppTable__dataRow {
 		display: flex;
@@ -69,10 +74,14 @@ const Table = styled.div`
 	.AppTable__dataRow-selected {
 		background-color: #b9b9f7;
 	}
-	.AppTable__headerCell,
+	.AppTable__headerCell {
+		box-sizing: border-box;
+	}
 	.AppTable__dataCell {
-		overflow: hidden;
-	}`
+		padding-right: 10px;
+		box-sizing: border-box;
+	}
+`;
 
 const NoRowsBody = styled.div`
 	display: flex;
@@ -82,12 +91,11 @@ const NoRowsBody = styled.div`
 	color: #bdbdbd;`
 
 
-function AppTable(props) {
-	const tableRef = React.createRef()
-	const headerRef = React.createRef()
-
-	const [columnsIn, setColumnsIn] = React.useState([])
-	const [columns, setColumns] = React.useState(() => props.columns.slice())
+function AppTableSized(props) {
+	const gridRef = React.createRef();
+	const headerRef = React.createRef();
+	const [columnsIn, setColumnsIn] = React.useState([]);
+	const [columns, setColumns] = React.useState(() => props.columns.slice());
 
 	const controlColumn = {
 		key: '',
@@ -101,15 +109,20 @@ function AppTable(props) {
 		setColumnsIn(props.columns);
 		const columns = props.columns.slice();
 		if (props.setSelected) {
-			columns.unshift(controlColumn)
+			columns.unshift(controlColumn);
 		}
 		setColumns(columns);
+		if (gridRef.current)
+			gridRef.current.resetAfterColumnIndex(0, false);
 	}
 
-	const setColumnWidth = (index, width) => {
-		const newColumns = columns.slice();
-		newColumns[index] = {...columns[index], width};
-		setColumns(newColumns);
+	function setColumnWidth(index, width) {
+		setColumns(columns => {
+			let newColumns = columns.slice();
+			newColumns[index] = {...columns[index], width};
+			gridRef.current.resetAfterColumnIndex(0, false);
+			return newColumns
+		})
 	}
 
 	let _resetIndex = null
@@ -118,9 +131,9 @@ function AppTable(props) {
 	const updateRowHeights = debounce(() => {
 		_rowHeightMap = {..._rowHeightMap, ..._rowHeightMapBuffer};
 		_rowHeightMapBuffer = {};
-		if (tableRef.current) {
-			tableRef.current.resetAfterRowIndex(_resetIndex, false);
-			tableRef.current.forceUpdate();
+		if (gridRef.current) {
+			gridRef.current.resetAfterRowIndex(_resetIndex, false);
+			gridRef.current.forceUpdate();
 		}
 		_resetIndex = null;
     }, 0);
@@ -132,102 +145,128 @@ function AppTable(props) {
     	updateRowHeights();
     }
 
-    const getRowHeight = (rowIndex) => {
-    	return _rowHeightMap[rowIndex] || props.estimatedRowHeight;
-    }
+    const getRowHeight = (rowIndex) => _rowHeightMap[rowIndex] || props.estimatedRowHeight;
 
     // Sync the table header scroll position with that of the table body
-	const handleScroll = ({scrollLeft}) => {
+	function handleScroll({scrollLeft}) {
 		if (headerRef.current) {
 			headerRef.current.scrollLeft = scrollLeft;
 		}
 	}
 
 	const totalWidth = columns.reduce((acc, col) => acc + col.width, 0)
+	let {width, height} =  props;
+	if (!width) {
+		// If width is not given, then size to content
+		width = totalWidth + scrollbarSize
+	}
+	const containerWidth = width;
+	if (width > (totalWidth + scrollbarSize)) {
+		width = totalWidth + scrollbarSize
+	}
 
 	// put header after body and reverse the display order via css
-    // to prevent header's shadow being covered by body
+	// to prevent header's shadow being covered by body
 	return (
-		<div style={{height: props.height, width: props.width}}>
-			<AutoSizer>
-				{({height, width}) =>
-					<Table role='table' style={{height, width}}>
-						{props.data.length?
-							<Grid
-								ref={tableRef}
-								height={height - props.headerHeight}
-								width={width}
-								columnCount={1}
-								columnWidth={() => (props.fixed? totalWidth: width - scrollbarSize)}
-								rowCount={props.dataMap.length}
+		<Table role='table' style={{height, width: containerWidth}} onKeyDown={props.onKeyDown} tabIndex={0}>
+			{props.data.length?
+				<Grid
+					ref={gridRef}
+					height={height - props.headerHeight}
+					width={width}
+					columnCount={1}
+					columnWidth={() => (props.fixed? totalWidth: width - scrollbarSize)}
+					rowCount={props.dataMap.length}
+					estimatedRowHeight={props.estimatedRowHeight}
+					rowHeight={getRowHeight}
+					onScroll={handleScroll}
+				>
+					{({columnIndex, rowIndex, style}) => {
+						const rowData = props.rowGetter? props.rowGetter({rowIndex}): props.data[props.dataMap[rowIndex]]
+						//console.log(rowData)
+						const isSelected = props.selected && props.selected.includes(rowData[props.rowKey]);
+						const isExpanded = props.expanded && props.expanded.includes(rowData[props.rowKey]);
+
+						// Add appropriate row classNames
+						let classNames = ['AppTable__dataRow']
+						classNames.push((rowIndex % 2 === 0)? 'AppTable__dataRow-even': 'AppTable__dataRow-odd')
+						if (isSelected)
+							classNames.push('AppTable__dataRow-selected')
+
+						return (
+							<TableRow
+								key={rowIndex}
+								className={classNames.join(' ')}
+								fixed={props.fixed}
+								rowIndex={rowIndex}
+								rowData={rowData}
+								rowKey={props.rowKey}
+								isExpanded={isExpanded}
+								style={style}
+								columns={columns}
 								estimatedRowHeight={props.estimatedRowHeight}
-								rowHeight={getRowHeight}
-								onScroll={handleScroll}
-							>
-								{({columnIndex, rowIndex, style}) => {
-									const rowData = props.rowGetter? props.rowGetter({rowIndex}): props.data[props.dataMap[rowIndex]]
-									//console.log(rowData)
-									const isSelected = props.selected && props.selected.includes(rowData[props.rowKey]);
-									const isExpanded = props.expanded && props.expanded.includes(rowData[props.rowKey]);
+								onRowHeightChange={onRowHeightChange}
+								onRowClick={props.onRowClick}
+								onRowDoubleClick={props.onRowDoubleClick}
+								selected={props.selected}
+								setSelected={props.setSelected}
+							/>
+						)
+					}}
+				</Grid>:
+				<NoRowsBody style={{height: height - props.headerHeight, width}}>
+					{props.loading? 'Loading...': 'No Data'}
+				</NoRowsBody>
+			}
+			<TableHeader
+				ref={headerRef}
+				fixed={props.fixed}
+				outerStyle={{width, height: props.headerHeight, paddingRight: scrollbarSize}}
+				innerStyle={{width: props.fixed? totalWidth + scrollbarSize: '100%'}}
+				scrollbarSize={scrollbarSize}
+				columns={columns}
+				setColumnWidth={setColumnWidth}
+				filters={props.filters}
+				setFilter={props.setFilter}
+				sort={props.sort}
+				setSort={props.setSort}
+				data={props.data}
+				dataMap={props.dataMap}
+				rowGetter={props.rowGetter}
+				rowKey={props.rowKey}
+				selected={props.selected}
+				setSelected={props.setSelected}
+			/>
+			{props.showFilters &&
+				<ShowFilters
+					style={{width}}
+					data={props.data}
+					dataMap={props.dataMap}
+					filters={props.filters}
+					setFilter={props.setFilter}
+					removeFilter={props.removeFilter}
+					clearFilters={props.clearFilters}
+				/>
+			}
+		</Table>
+	)
+}
 
-									// Add appropriate row classNames
-									let classNames = ['AppTable__dataRow']
-									classNames.push((rowIndex % 2 === 0)? 'AppTable__dataRow-even': 'AppTable__dataRow-odd')
-									if (isSelected)
-										classNames.push('AppTable__dataRow-selected')
 
-									return (
-										<TableRow
-											key={rowIndex}
-											className={classNames.join(' ')}
-											fixed={props.fixed}
-											rowIndex={rowIndex}
-											rowData={rowData}
-											rowKey={props.rowKey}
-											isExpanded={isExpanded}
-											style={style}
-											columns={columns}
-											estimatedRowHeight={props.estimatedRowHeight}
-											onRowHeightChange={onRowHeightChange}
-											onRowDoubleClick={props.onRowDoubleClick}
-											selected={props.selected}
-											setSelected={props.setSelected}
-										/>
-									)
-								}}
-							</Grid>:
-							<NoRowsBody style={{height: height - props.headerHeight, width}}>
-								{props.loading? 'Loading...': 'No Data'}
-							</NoRowsBody>
-						}
-						<TableHeader
-							ref={headerRef}
-							fixed={props.fixed}
-							height={props.headerHeight}
-							width={width - scrollbarSize}
-							columns={columns}
-							setColumnWidth={setColumnWidth}
-							filters={props.filters}
-							setFilter={props.setFilter}
-							sort={props.sort}
-							setSort={props.setSort}
-							data={props.data}
-							dataMap={props.dataMap}
-							rowGetter={props.rowGetter}
-							rowKey={props.rowKey}
-							selected={props.selected}
-							setSelected={props.setSelected}
-						/>
-					</Table>
-				}
-			</AutoSizer>
-		</div>
+/*
+ * AppTable
+ * Auto sized to container unless contentWidth is true, in which case width is size of content
+ */
+function AppTable(props) {
+	return (
+		<AutoSizer disableWidth={props.contentWidth}>
+			{({height, width}) => <AppTableSized height={height} width={width} {...props} />}
+		</AutoSizer>
 	)
 }
 
 AppTable.propTypes = {
-	height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-	width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+	contentWidth: PropTypes.bool,
 	columns: PropTypes.array.isRequired,
 	data: PropTypes.array.isRequired,
 	dataMap: PropTypes.array.isRequired,
@@ -242,7 +281,10 @@ AppTable.propTypes = {
 	setSort: PropTypes.func.isRequired,
 	selected: PropTypes.array,
 	expanded: PropTypes.array,
+	onRowClick: PropTypes.func,
+	onRowDoubleClick: PropTypes.func,
+	showFilters: PropTypes.bool
 }
 
 export default AppTable
-export {ColumnLabel, ColumnSearchFilter, ColumnDropdownFilter}
+export {ColumnLabel, ColumnSearchFilter, ColumnDropdownFilter, ColumnDropdown}

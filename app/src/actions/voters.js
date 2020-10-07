@@ -12,16 +12,18 @@ export const DELETE_VOTING_POOLS_SUCCESS = 'DELETE_VOTING_POOLS_SUCCESS'
 export const DELETE_VOTING_POOLS_FAILURE = 'DELETE_VOTING_POOLS_FAILURE'
 
 
-export const setVotingPoolsFilter = (dataKey, value) => {return {type: SET_VOTING_POOLS_FILTER, dataKey, value}}
-export const setVotingPoolsSort = (event, dataKey) => {return {type: SET_VOTING_POOLS_SORT, event, dataKey}}
-export const setVotingPoolsSelected = (selected) => {return {type: SET_VOTING_POOLS_SELECTED, selected}}
+export const setVotingPoolsFilter = (dataKey, value) => ({type: SET_VOTING_POOLS_FILTER, dataKey, value})
+export const setVotingPoolsSort = (event, dataKey) => ({type: SET_VOTING_POOLS_SORT, event, dataKey})
+export const setVotingPoolsSelected = (selected) => ({type: SET_VOTING_POOLS_SELECTED, selected})
 
-const getVotingPoolsLocal = () => {return {type: GET_VOTING_POOLS}}
-const getVotingPoolsSuccess = (votingPools) => {return {type: GET_VOTING_POOLS_SUCCESS, votingPools}}
-const getVotingPoolsFailure = () => {return {type: GET_VOTING_POOLS_FAILURE}}
+const getVotingPoolsLocal = () => ({type: GET_VOTING_POOLS})
+const getVotingPoolsSuccess = (votingPools) => ({type: GET_VOTING_POOLS_SUCCESS, votingPools})
+const getVotingPoolsFailure = () => ({type: GET_VOTING_POOLS_FAILURE})
 
 export function getVotingPools() {
-	return async (dispatch) => {
+	return async (dispatch, getState) => {
+		if (getState().voters.getVotingPools)
+			return null
 		dispatch(getVotingPoolsLocal())
 		try {
 			const {votingPools} = await fetcher.get('/api/votingPools')
@@ -37,9 +39,9 @@ export function getVotingPools() {
 	}
 }
 
-const deleteVotingPoolsLocal = (votingPools) => {return {type: DELETE_VOTING_POOLS, votingPools}}
-const deleteVotingPoolsSuccess = (votingPools) => {return {type: DELETE_VOTING_POOLS_SUCCESS, votingPools}}
-const deleteVotingPoolsFailure = () => {return {type: DELETE_VOTING_POOLS_FAILURE}}
+const deleteVotingPoolsLocal = (votingPools) => ({type: DELETE_VOTING_POOLS, votingPools})
+const deleteVotingPoolsSuccess = (votingPools) => ({type: DELETE_VOTING_POOLS_SUCCESS, votingPools})
+const deleteVotingPoolsFailure = () => ({type: DELETE_VOTING_POOLS_FAILURE})
 
 export function deleteVotingPools(votingPools) {
 	return async (dispatch, getState) => {
@@ -76,13 +78,13 @@ export const UPDATE_VOTER = 'UPDATE_VOTER'
 export const UPDATE_VOTER_SUCCESS = 'UPDATE_VOTER_SUCCESS'
 export const UPDATE_VOTER_FAILURE = 'UPDATE_VOTER_FAILURE'
 
-export const setVotersFilter = (dataKey, value) => {return {type: SET_VOTERS_FILTER, dataKey, value}}
-export const setVotersSort = (event, dataKey) => {return {type: SET_VOTERS_SORT, event, dataKey}}
-export const setVotersSelected = (selected) => {return {type: SET_VOTERS_SELECTED, selected}}
+export const setVotersFilter = (dataKey, value) => ({type: SET_VOTERS_FILTER, dataKey, value})
+export const setVotersSort = (event, dataKey) => ({type: SET_VOTERS_SORT, event, dataKey})
+export const setVotersSelected = (selected) => ({type: SET_VOTERS_SELECTED, selected})
 
-const getVotersLocal = (votingPoolType, votingPoolId) => {return {type: GET_VOTERS, votingPoolType, votingPoolId}}
-const getVotersSuccess = (votingPool, voters) => {return {type: GET_VOTERS_SUCCESS, votingPool, voters}}
-const getVotersFailure = () => {return {type: GET_VOTERS_FAILURE}}
+const getVotersLocal = (votingPoolType, votingPoolId) => ({type: GET_VOTERS, votingPoolType, votingPoolId})
+const getVotersSuccess = (votingPool, voters) => ({type: GET_VOTERS_SUCCESS, votingPool, voters})
+const getVotersFailure = () => ({type: GET_VOTERS_FAILURE})
 
 export function getVoters(votingPoolType, votingPoolId) {
 	return async (dispatch) => {
@@ -100,9 +102,9 @@ export function getVoters(votingPoolType, votingPoolId) {
 	}
 }
 
-const deleteVotersLocal = (votingPoolType, votingPoolId) => {return {type: DELETE_VOTERS, votingPoolType, votingPoolId}}
-const deleteVotersSuccess = (votingPool, voterIds) => {return {type: DELETE_VOTERS_SUCCESS, votingPool, voterIds}}
-const deleteVotersFailure = () => {return {type: DELETE_VOTERS_FAILURE}}
+const deleteVotersLocal = (votingPoolType, votingPoolId) => ({type: DELETE_VOTERS, votingPoolType, votingPoolId})
+const deleteVotersSuccess = (votingPool, voterIds) => ({type: DELETE_VOTERS_SUCCESS, votingPool, voterIds})
+const deleteVotersFailure = () => ({type: DELETE_VOTERS_FAILURE})
 
 export function deleteVoters(votingPoolType, votingPoolId, voterIds) {
 	return async (dispatch) => {
@@ -121,9 +123,9 @@ export function deleteVoters(votingPoolType, votingPoolId, voterIds) {
 	}
 }
 
-const uploadVotersLocal = (votingPoolType, votingPoolId) => {return {type: UPLOAD_VOTERS, votingPoolType, votingPoolId}}
-const uploadVotersSuccess = (votingPool, voters) => {return {type: UPLOAD_VOTERS_SUCCESS, votingPool, voters}}
-const uploadVotersFailure = () => {return {type: UPLOAD_VOTERS_FAILURE}}
+const uploadVotersLocal = (votingPoolType, votingPoolId) => ({type: UPLOAD_VOTERS, votingPoolType, votingPoolId})
+const uploadVotersSuccess = (votingPool, voters) => ({type: UPLOAD_VOTERS_SUCCESS, votingPool, voters})
+const uploadVotersFailure = () => ({type: UPLOAD_VOTERS_FAILURE})
 
 export function uploadVoters(votingPoolType, votingPoolId, file) {
 	return async (dispatch) => {
@@ -143,9 +145,9 @@ export function uploadVoters(votingPoolType, votingPoolId, file) {
 	}
 }
 
-const addVoterLocal = (votingPoolType, votingPoolId, voter) => {return {type: ADD_VOTER, votingPoolType, votingPoolId, voter}}
-const addVoterSuccess = (votingPool, voter) => {return {type: ADD_VOTER_SUCCESS, voter, votingPool}}
-const addVoterFailure = () => {return {type: ADD_VOTER_FAILURE}}
+const addVoterLocal = (votingPoolType, votingPoolId, voter) => ({type: ADD_VOTER, votingPoolType, votingPoolId, voter})
+const addVoterSuccess = (votingPool, voter) => ({type: ADD_VOTER_SUCCESS, voter, votingPool})
+const addVoterFailure = () => ({type: ADD_VOTER_FAILURE})
 
 export function addVoter(votingPoolType, votingPoolId, voter) {
 	return async (dispatch) => {
@@ -164,9 +166,9 @@ export function addVoter(votingPoolType, votingPoolId, voter) {
 	}
 }
 
-const updateVoterLocal = (votingPoolType, votingPoolId, voterId, voter) => {return {type: UPDATE_VOTER, votingPoolType, votingPoolId, voterId, voter}}
-const updateVoterSuccess = (votingPool, voterId, voter) => {return {type: UPDATE_VOTER_SUCCESS, votingPool, voterId, voter}}
-const updateVoterFailure = () => {return {type: UPDATE_VOTER_FAILURE}}
+const updateVoterLocal = (votingPoolType, votingPoolId, voterId, voter) => ({type: UPDATE_VOTER, votingPoolType, votingPoolId, voterId, voter})
+const updateVoterSuccess = (votingPool, voterId, voter) => ({type: UPDATE_VOTER_SUCCESS, votingPool, voterId, voter})
+const updateVoterFailure = () => ({type: UPDATE_VOTER_FAILURE})
 
 export function updateVoter(votingPoolType, votingPoolId, voterId, voter) {
 	return async (dispatch) => {

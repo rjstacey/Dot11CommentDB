@@ -59,6 +59,37 @@ async function _getFile(url, params) {
 	}
 }
 
+async function _postForFile(url, params, file) {
+	url = apiBaseUrl + url
+
+	let formData = new FormData()
+	formData.append('params', JSON.stringify(params))
+	formData.append('file', file)
+
+	const options = {
+		method: 'POST',
+		body: formData
+	}
+	
+	const res = await fetch(url, options)
+
+	if (res.ok) {
+		let filename = 'download'
+		const d = res.headers.get('content-disposition')
+		if (d) {
+			const m = d.match(/filename="(.*)"/i)
+			if (m) {
+				filename = m[1]
+			}
+		}
+		saveAs(await res.blob(), filename)
+		return filename
+	}
+	else {
+		return errHandler(res)
+	}
+}
+
 async function _postMultipart(url, params) {
 	url = apiBaseUrl + url
 
@@ -84,6 +115,7 @@ for (let m of ["GET", "POST", "PUT", "DELETE", "PATCH"]) {
 }
 
 methods.getFile = _getFile
+methods.postForFile = _postForFile
 methods.postMultipart = _postMultipart
 
 export default methods

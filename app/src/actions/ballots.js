@@ -3,6 +3,9 @@ import {setError} from './error'
 import fetcher from '../lib/fetcher'
 
 export const SET_BALLOTS_FILTER = 'SET_BALLOTS_FILTER'
+export const GEN_BALLOTS_OPTIONS = 'GEN_BALLOTS_OPTIONS'
+export const CLEAR_BALLOTS_FILTERS = 'CLEAR_BALLOTS_FILTERS'
+
 export const SET_BALLOTS_SORT = 'SET_BALLOTS_SORT'
 export const SET_BALLOTS_SELECTED = 'SET_BALLOTS_SELECTED'
 
@@ -24,7 +27,18 @@ export const ADD_BALLOT_FAILURE = 'ADD_BALLOT_FAILURE'
 
 
 export const setBallotsFilter = (dataKey, value) => {return {type: SET_BALLOTS_FILTER, dataKey, value}}
-export const setBallotsSort = (event, dataKey) => {return {type: SET_BALLOTS_SORT, event, dataKey}}
+export const genBallotsOptions = (dataKey, all) => ({type: GEN_BALLOTS_OPTIONS, dataKey, all})
+export const clearBallotsFilters = () => ({type: CLEAR_BALLOTS_FILTERS})
+
+export function removeBallotsFilter(dataKey, value) {
+	return async (dispatch, getState) => {
+		let values = getState().ballots.filters[dataKey].values
+		values = values.filter(v => v !== value)
+		return dispatch(setBallotsFilter(dataKey, values))
+	}
+}
+
+export const setBallotsSort = (dataKey, direction) => {return {type: SET_BALLOTS_SORT, dataKey, direction}}
 export const setBallotsSelected = (selected) => {return {type: SET_BALLOTS_SELECTED, selected}}
 
 export const setProject = (project) => ({type: SET_PROJECT, project})
@@ -36,6 +50,8 @@ const getBallotsFailure = () => {return {type: GET_BALLOTS_FAILURE}}
 
 export function getBallots() {
 	return async (dispatch, getState) => {
+		if (getState().ballots.getBallots)
+			return null
 		dispatch(getBallotsLocal())
 		try {
 			const data = await fetcher.get('/api/ballots')

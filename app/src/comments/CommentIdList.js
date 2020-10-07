@@ -5,11 +5,32 @@ import {Editor, EditorState, ContentState, SelectionState, Modifier, CompositeDe
 import 'draft-js/dist/Draft.css'
 import {Cross} from '../general/Icons'
 import debounce from 'lodash/debounce'
-import {setCommentsSelected, setCommentsFilter} from '../actions/comments'
+import {setSelected} from '../actions/select'
+import {setFilter} from '../actions/filter'
+import styled from '@emotion/styled'
 
-/** @jsx jsx */
-import { css, jsx } from '@emotion/core'
-
+const Container = styled.div`
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	border: 1px solid #ddd;
+	width: 100%;
+	.DraftEditor-root {
+		cursor: text;
+		max-height: 20vh;
+		width: 100%;
+		overflow-y: auto;
+		padding: 4px 16px 4px 4px;
+		margin: 5px;
+	}
+	:hover {
+		border-color: #0074D9
+	}
+	:focus-within {
+		outline: -webkit-focus-ring-color auto 1px;
+	}
+`;
 
 function CommentIdList({cids, cidValid, onChange, focusOnMount, ...otherProps}) {
 	const debounceChange = React.useRef()
@@ -83,36 +104,15 @@ function CommentIdList({cids, cidValid, onChange, focusOnMount, ...otherProps}) 
 		debounceChange.current(cids, updatedCids, onChange)
 	}
 
-	const containerCss = css`
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		justify-content: space-between;
-		border: 1px solid #ddd;
-		width: 100%;
-		.DraftEditor-root {
-			cursor: text;
-			max-height: 20vh;
-			width: 100%;
-			overflow-y: auto;
-			padding: 4px 16px 4px 4px;
-			margin: 5px;
-		}
-		:hover {
-			border-color: #0074D9
-		}
-		:focus-within {
-			outline: -webkit-focus-ring-color auto 1px;
-		}`
 
 	return (
-		<div css={containerCss} {...otherProps} onClick={e => e.stopPropagation()} >
+		<Container {...otherProps}>
 			<Editor
 				editorState={editorState}
 				onChange={editorStateChange}
 			/>
 			{editorState.getCurrentContent().hasText() && <Cross onClick={clear} />}
-		</div>
+		</Container>
 	)
 }
 
@@ -130,7 +130,7 @@ export const CommentIdFilter = connect(
 	},
 	(dispatch, ownProps) => {
 		return {
-			onChange: cids => dispatch(setCommentsFilter('CID', cids))
+			onChange: cids => dispatch(setFilter('comments', 'CID', cids))
 		}
 	}
 )(CommentIdList)
@@ -145,7 +145,7 @@ export const CommentIdSelector = connect(
 	},
 	(dispatch, ownProps) => {
 		return {
-			onChange: cids => dispatch(setCommentsSelected(cids))
+			onChange: cids => dispatch(setSelected('comments', cids))
 		}
 	}
 )(CommentIdList)

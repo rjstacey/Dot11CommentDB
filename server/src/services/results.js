@@ -684,15 +684,15 @@ async function importEpollResults(sess, ballotId, epollNum) {
 	return Results;
 }
 
-async function uploadResults(req, res, next) {
+async function uploadResults(ballotId, type, file) {
 	
 	let results
 	if (type < 3) {
-		results = parseEpollResults(req.file.buffer)
+		results = parseEpollResults(file.buffer)
 	}
 	else {
-		const isExcel = req.file.originalname.search(/\.xlsx$/i) !== -1
-		results = await parseMyProjectResults(req.file.buffer, isExcel)
+		const isExcel = file.originalname.search(/\.xlsx$/i) !== -1
+		results = await parseMyProjectResults(file.buffer, isExcel)
 	}
 	//console.log(results);
 

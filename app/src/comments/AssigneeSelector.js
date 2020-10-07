@@ -1,71 +1,179 @@
-import PropTypes from 'prop-types'
 import React from 'react'
+import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
 import Select from 'react-dropdown-select'
 import {getUsers} from '../actions/users'
+import styled from '@emotion/styled'
+import {strComp} from '../lib/utils'
 
-/** @jsx jsx */
-import { css, jsx } from '@emotion/core'
+const StyledItem = styled.span`
+	padding: 4px 10px;
+	color: #555;
+	border-radius: 3px;
+	margin: 3px;
+	cursor: pointer;
+	${({ isSelected }) => isSelected? 'color: #fff; background: #0074d9;': 'color: #555; :hover {background: #f2f2f2;}'}
+	& > span {
+		margin: 5px 10px;
+		${({ isItalic }) => isItalic && 'font-style: italic;'}
+	}
+`;
 
-function AssigneeSelector({value, onChange, valid, loading, options, getOptions, ...otherProps}) {
+const StyledAdd = styled.span`
+	padding: 4px 10px;
+	border-radius: 3px;
+	margin: 3px;
+	cursor: pointer;
+	color: #0074D9;
+	:hover {background: #f2f2f2}
+	& > span {
+		font-style: italic;
+	}
+`;
+
+const StyledNoData = styled.div`
+	padding: 10px;
+    text-align: center;
+    color: #0074D9;
+`;
+
+const renderItem = ({item, props, state, methods}) => (
+	<StyledItem
+		key={item.value}
+		onClick={() => methods.addItem(item)}
+		isSelected={methods.isSelected(item)}
+		isItalic={typeof item.value === 'string'}
+	>
+		<span>{item.label}</span>
+	</StyledItem>
+);
+
+const renderAddItem = ({item, props, state, methods}) => (
+	<StyledAdd
+		key={'__add__'}
+		onClick={() => methods.addItem(item)}
+		isSelected={false}
+		isItalic={true}
+	>
+		{'add "'}<span>{item.label}</span>{'"'}
+	</StyledAdd>
+);
+
+const renderDropdown = ({props, state, methods}) => {
+	//const {options} = props
+	const options = methods.searchResults()
+	const presentOptions = options.filter(o => o.present).map(item => renderItem({item, props, state, methods}))
+	const additionalOptions = options.filter(o => !o.present).map(item => renderItem({item, props, state, methods}))
+	return (
+		<React.Fragment>
+			{state.search && renderAddItem({item: {value: state.search, label: state.search}, props, state, methods})}
+			{presentOptions}
+			{additionalOptions.length > 0 && <hr key='__hr__' style={{width: '100px'}}/>}
+			{additionalOptions}
+			{presentOptions.length === 0 && additionalOptions.length === 0 && <StyledNoData key='__nodata__'>No Data</StyledNoData>}
+		</React.Fragment>
+	)
+};
+
+const StyledSelect = styled(Select)`
+	background-color: white;
+	border: 1px solid #ddd;
+	padding: 0;
+	box-sizing: border-box;
+	width: ${({width}) => typeof width === 'undefined'? 'unset': (width + (typeof width === 'number'? 'px': ''))}`
+
+function AssigneeSelector({
+	value,		// value is object {SAPIN: number, Name: string}
+	onChange,
+	users,
+	comments,
+	usersValid,
+	getUsers,
+	loading,
+	width,
+	placeholder,
+}) {
 
 	React.useEffect(() => {
-		if (!valid) {
-			getOptions()
-		}
+		if (!usersValid)
+			getUsers()
 	}, [])
 
-	function handleChange(value) {
-		onChange(value.length === 0? 0: value[0].value)
+	const options = React.useMemo(() => {
+		// Produce a unique set of SAPIN/Name mappings. If there is no SAPIN then the name is the key.
+		const presentOptions = comments.reduce((arr, c) => {
+				if (c.AssigneeSAPIN) {
+					return arr.find(o => o.value === c.AssigneeSAPIN)? arr: [...arr, {value: c.AssigneeSAPIN, label: c.AssigneeName, present: true}];
+				}
+				if (c.AssigneeName) {
+					return arr.find(o => o.value === c.AssigneeName)? arr: [...arr, {value: c.AssigneeName, label: c.AssigneeName, present: true}];
+				}
+				return arr
+			}, [])
+			.sort((a, b) => strComp(a.label, b.label))
+		const userOptions =
+			users.filter(u => !presentOptions.find(o => o.value === u.SAPIN))
+			.map(u => ({value: u.SAPIN, label: u.Name, present: false}))
+			.sort((a, b) => strComp(a.label, b.label))
+		const options = presentOptions.concat(userOptions)
+		return options
+	}, [comments, users])
+
+	function handleChange(values) {
+		if (values.length > 0) {
+			const v = values[0]
+			const newValue = {SAPIN: typeof v.value === 'number'? v.value: null, Name: v.label}
+			onChange(newValue)
+		}
+		else {
+			if (value.SAPIN || value.Name) {
+				const newValue = {SAPIN: null, Name: null}
+				onChange(newValue)
+			}
+		}
 	}
 
-	const placeholder = value === '<multiple>'? value: 'Not assigned'
-	const optionSelected = value === '<multiple>'? undefined: options.find(o => o.value === value)
-
-	const selectCss = css`
-		background-color: white;
-		border: 1px solid #ddd;
-		padding: 0;
-		box-sizing: border-box;
-		width: unset;
-	`
+	const optionSelected = options.find(o => o.value === (value.SAPIN || value.Name))
 
 	return (
-		<div {...otherProps}>
-			<Select
-				css={selectCss}
-				values={optionSelected? [optionSelected]: []}
-				onChange={handleChange}
-				options={options}
-				loading={loading}
-				clearable
-				placeholder={placeholder}
-			/>
-		</div>
+		<StyledSelect
+			width={width}
+			values={optionSelected? [optionSelected]: []}
+			onChange={handleChange}
+			options={options}
+			loading={loading}
+			create
+			clearable
+			placeholder={placeholder}
+			dropdownRenderer={renderDropdown}
+		/>
 	)
 }
 
 AssigneeSelector.propTypes = {
-	value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+	value: PropTypes.object.isRequired,
 	onChange: PropTypes.func.isRequired,
-	valid: PropTypes.bool.isRequired,
+	width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+	usersValid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
-	options: PropTypes.array.isRequired,
-	getOptions: PropTypes.func.isRequired,
+	users: PropTypes.array.isRequired,
+	comments: PropTypes.array.isRequired,
+	getUsers: PropTypes.func.isRequired
 }
 
 export default connect(
 	(state) => {
-		const {users} = state
+		const {users, comments} = state
 		return {
-			valid: users.usersValid,
+			usersValid: users.usersValid,
 			loading: users.getUsers,
-			options: users.users.map(u => {return {value: u.SAPIN, label: `${u.Name}`}})
+			users: users.users,
+			comments: comments.comments,
 		}
 	},
 	(dispatch) => {
 		return {
-			getOptions: () => dispatch(getUsers())
+			getUsers: () => dispatch(getUsers())
 		}
 	}
 )(AssigneeSelector)

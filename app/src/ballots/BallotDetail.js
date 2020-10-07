@@ -1,9 +1,10 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import {useHistory, useParams} from 'react-router-dom'
+import {useHistory} from 'react-router-dom'
 import Select from 'react-dropdown-select'
-import {Container, Row, Col} from 'react-grid-system'
+import styled from '@emotion/styled'
+import AppModal from '../modals/AppModal'
 import ConfirmModal from '../modals/ConfirmModal'
 import {Checkbox, Search} from '../general/Icons'
 import {renderResultsSummary, renderCommentsSummary} from './Ballots'
@@ -12,8 +13,6 @@ import {getVotingPools} from '../actions/voters'
 import {importResults, uploadResults, deleteResults} from '../actions/results'
 import {importComments, uploadComments, deleteComments} from '../actions/comments'
 import {shallowDiff} from '../lib/compare'
-
-//import styles from '../css/BallotDetail.css'
 
 function defaultBallot() {
 	const now = new Date()
@@ -43,11 +42,11 @@ function shortDateToDate(shortDateStr) {
 	const easternDate = new Date(date.toLocaleString("en-US", {timeZone: "America/New_York"}))
 	const utcDate = new Date(date.toLocaleString("en-US", {timeZone: "UTC"}))
 	const diff = utcDate - easternDate
-	return (date + diff).toISOString()
+	let newDate = new Date(date.getTime() + diff)
+	console.log(newDate)
+	console.log(newDate instanceof Date && !isNaN(newDate))
+	return isNaN(newDate)? '': newDate.toISOString()
 }
-
-//const Row = (props) => <div css={{display: 'flex', flexDirection: 'row', margin: 'margin: 6px 0'}} {...props} />
-//const Col = (props) => <div css={{display: 'flex', flexDirection: 'column'}} {...props} />
 
 function SelectProject({project, projectList, onChange, ...otherProps}) {
 	const options = projectList.map(p => ({value: p, label: p}))
@@ -60,7 +59,7 @@ function SelectVotingPoolId({votingPoolId, votingPools, onChange, ...otherProps}
 	const options = votingPools.map(i => ({value: i.VotingPoolID, label: i.VotingPoolID}))
 	const value = options.find(o => o.value === votingPoolId)
 	const handleChange = (values) => onChange(values.length? values[0].value: '')
-	return <Select	values={value? [value]: []}	options={options} onChange={handleChange} {...otherProps} />
+	return <Select values={value? [value]: []} options={options} onChange={handleChange} {...otherProps} />
 }
 
 function SelectPrevBallot({prevBallotId, ballotList, onChange, ...otherProps}) {
@@ -70,104 +69,254 @@ function SelectPrevBallot({prevBallotId, ballotList, onChange, ...otherProps}) {
 	return <Select values={value? [value]: []} options={options} onChange={handleChange} {...otherProps} />
 }
 
-const LabeledCheckbox = ({label, ...otherProps}) => <span><Checkbox {...otherProps}/><label>{label}</label></span>
+const BallotTypesContainer = styled.div`
+	display: flex;
+	flex-direction: column;
+	padding: 20px;`
 
-/*
-const GridContainer = ({rows, columns, gap, children, ...otherProps}) => {
+function BallotTypes({value, onChange}) {
+	const ballotTypes = [
+		'Comment collection',
+		'Initial WG ballot',
+		'Recirc WG ballot',
+		'Initial SA ballot',
+		'Recirc SA ballot',
+		'Motion'
+	]
+	return (
+		<BallotTypesContainer>
+			<label>Ballot Type:</label>
+			{ballotTypes.map((str, i) => 
+				<span key={i}>
+					<input id={'radio_'+ i} type='radio' name='Type' value={i} checked={value === i} onChange={onChange} />
+					<label htmlFor={'radio_'+ i} >{str}</label>
+				</span>
+			)}
+		</BallotTypesContainer>
+	)
+}
 
-	let newChildren = []
-	React.Children.forEach(children, element => {
-		if (!React.isValidElement(element)) return
-		const {row, col, style, ...otherProps} = element.props
-		let updatedStyle = {
-			...style,
-			gridRow: row,
-			gridColumn: col
-		}
-		console.log(style, updatedStyle)
-		newChildren.push(React.cloneElement(element, {...otherProps, row: undefined, col: undefined, style: updatedStyle}))
-	})
+const ActionsContainer = styled.div`
+	display: flex;
+	flex-direction: column;
+	padding: 20px;`
 
-	const containerStyle = {
-		display: 'grid',
-		gridTemplateRows: rows,
-		gridTemplateColumns: columns,
-		gap,
-		justifyContent: 'center'
+const CommentsActions = ({action, setAction, ballot}) => {
+	const fileRef = React.useRef();
+	return (
+		<ActionsContainer>
+			<span>
+				<label>Comments:&nbsp;</label>
+				{renderCommentsSummary({rowData: ballot, key: 'Comments'})}
+			</span>
+			{ballot.Comments &&
+				<span>
+					<Checkbox
+						id='delete'
+						checked={action.remove}
+						onChange={e => setAction({file: null, importFromEpoll: false, remove: !action.remove})}
+					/>
+					<label htmlFor='delete'>Delete</label>
+				</span>
+			}
+			{ballot.EpollNum &&
+				<span>
+					<Checkbox
+						id='importFromEpoll'
+						checked={action.importFromEpoll}
+						onChange={e => setAction({file: null, importFromEpoll: !action.importFromEpoll, remove: false})}
+					/>
+					<label htmlFor='importFromEpoll'>{(ballot.Comments? 'Reimport': 'Import') + ' from ePoll'}</label>
+				</span>
+			}
+			<span>
+				<Checkbox
+					id='file'
+					checked={action.file !== null}
+					onChange={e => action.file === null? fileRef.current.click(): setAction(action => ({...action, file: null}))}
+				/>
+				<label htmlFor='file'>{'Upload from ' + (action.file? action.file.name: 'file')}</label>
+			</span>
+			<input
+				type='file'
+				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+				ref={fileRef}
+				onChange={e => setAction({file: e.target.files[0], importFromEpoll: false, remove: false})}
+				style={{display: "none"}}
+			/>
+		</ActionsContainer>
+	)
+}
+
+const ResultsActions = ({action, setAction, ballot}) => {
+	const fileRef = React.useRef();
+	return (
+		<ActionsContainer>
+			<span>
+				<label>Results:&nbsp;</label>
+				{renderResultsSummary({rowData: ballot, key: 'Results'})}
+			</span>
+			<span>
+				<Checkbox
+					id='delete'
+					checked={action.remove}
+					onChange={e => setAction({file: null, importFromEpoll: false, remove: !action.remove})}
+				/>
+				<label htmlFor='delete'>Delete</label>
+			</span>
+			{ballot.EpollNum &&
+				<span>
+					<Checkbox
+						id='importFromEpoll'
+						checked={action.importFromEpoll}
+						onChange={e => setAction({file: null, importFromEpoll: !action.importFromEpoll, remove: false})}
+					/>
+					<label htmlFor='importFromEpoll'>{(ballot.Results? 'Reimport': 'Import') + ' from ePoll'}</label>
+				</span>
+			}
+			<span>
+				<Checkbox
+					id='fromFile'
+					checked={action.file !== null}
+					onChange={e => action.file === null? fileRef.current.click(): setAction(action => ({...action, file: null}))}
+				/>
+				<label htmlFor='fromFile'>{'Upload from ' + (action.file? action.file.name: 'file')}</label>
+			</span>
+			<input
+				type='file'
+				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+				ref={fileRef}
+				onChange={e => setAction({file: e.target.files[0], importFromEpoll: false, remove: false})}
+				style={{display: "none"}}
+			/>
+		</ActionsContainer>
+	)
+}
+
+const Container = styled.div`
+	display: flex;
+	flex-direction: column;
+	width: 80vw;
+	max-width: 1000px;
+`;
+
+const Row = styled.div`
+	display: flex;
+	flex-direction: row;
+	margin: 10px;
+`;
+
+const Col = styled.div`
+	display: flex;
+	flex-direction: column;
+`;
+
+const Col1 = styled(Col)`
+	flex: 60% 1 1;
+	& label {
+		width: 150px;
 	}
+`;
 
-	return <div style={containerStyle} {...otherProps}>{newChildren}</div>
-}
+const Col2 = styled(Col)`
+	flex: 40% 1 1;
+`;
 
-const Item = ({rowPos, colPos, rowSpan, colSpan, ...otherProps}) => {
-	const gridCss = css`
-		grid-row: ${rowPos} ${rowSpan? '/ span ' + rowSpan: ''};
-		grid-column: ${colPos} ${colSpan? '/ span ' + colSpan: ''};` 
-	return <div css={gridCss} {...otherProps} />
-}
-*/
+const Row2 = styled(Row)`
+	& label {
+		flex: 100px 0 0;
+	}
+	& textarea {
+		flex: 1;
+		height: 3em;
+	}
+`;
 
+const Col3 = styled(Col)`
+	flex: 60% 1 1;
+	& label {
+		width: 150px;
+	}
+`;
+
+const Col4 = styled(Col)`
+	flex: 40% 1 1;
+	display: flex;
+	& label {
+		width: 200px;
+	}
+`;
+
+const ButtonRow = styled(Row)`
+	justify-content: space-around;
+`;
 
 /*
  * Ballot detail is mounted from
- * /Ballot/:ballotId -> update an existing ballot
- * /Ballot/ -> add a new ballot
- * /ImportEpoll/:epollNum -> add a new ballot from an epoll
+ * The ballotId parameter is '+' to add a new ballot or a ballot ID to update a ballot
+ * If the ballotId parameter is '+' and epollNum is provided, then the ballot fields are filled in from the epoll data
  */
 function BallotDetail(props) {
-	const {ballotId, epollNum} = useParams()
-	const history = useHistory()
-	const [ballot, setBallot] = React.useState(defaultBallot)
+	const {ballotId, epollNum} = props;
+	const history = useHistory();
+	const [ballot, setBallot] = React.useState(defaultBallot);
 	const [resultsAction, setResultsAction] = React.useState({
+		remove: false,
 		importFromEpoll: false,
-		file: null,
-		remove: false
+		file: null
 	});
-	const resultsFileRef = React.useRef();
 	const [commentsAction, setCommentsAction] = React.useState({
+		remove: false,
 		importFromEpoll: false,
-		file: null,
-		remove: false
-	})
-	const commentsFileRef = React.useRef();
+		file: null
+	});
 
 	/* On mount, make sure we have the ballots and voting pools loaded */
 	React.useEffect(() => {
-		if (!props.ballotsValid) {
+		if (!props.ballotsValid)
 			props.getBallots()
-		}
-		if (!props.votingPoolsValid) {
+		if (!props.votingPoolsValid)
 			props.getVotingPools()
-		}
-	}, [])
+	}, []);
 
 	/* On mount or if the underlying data changes,
 	 * reload the ballot from ballot data or epoll data as appropriate. */
-	React.useEffect(() => {
-		if (ballotId) {
+	React.useEffect(() => onOpen(), [ballotId, props.ballots, props.epolls]);
+
+	const onOpen = () => {
+		if (ballotId === '+') {
+			if (epollNum) {
+				const e = props.epolls.find(e => e.EpollNum === epollNum)
+				if (e) {
+					const b = {
+						Project: '',
+						BallotID: e.BallotID,
+						EpollNum: epollNum,
+						Document: e.Document,
+						Topic: e.Topic,
+						Start: e.Start,
+						End: e.End,
+						VotingPoolID: 0,
+						PrevBallotID: ''
+					}
+					setBallot(b)
+				}
+				else {
+					setBallot(defaultBallot)
+				}
+			}
+			else {
+				setBallot(defaultBallot)
+			}
+		}
+		else if (ballotId) {
 			const b = props.ballots.find(b => b.BallotID === ballotId)
 			if (b) {
 				setBallot(b)
 			}
 		}
-		else if (epollNum) {
-			const e = props.epolls.find(e => e.EpollNum === epollNum)
-			if (e) {
-				const b = {
-					Project: '',
-					BallotID: e.BallotID,
-					EpollNum: epollNum,
-					Document: e.Document,
-					Topic: e.Topic,
-					Start: e.Start,
-					End: e.End,
-					VotingPoolID: 0,
-					PrevBallotID: ''
-				}
-				setBallot(b)
-			}
-		}
-	}, [props.ballots, props.epolls])
+	}
+
 
 	function change(e) {
 		const {name, value} = e.target;
@@ -177,22 +326,24 @@ function BallotDetail(props) {
 	function handleProjectChange(project) {
 		//const project = values.length > 0? values[0].value: ''
 		props.setProject(project)
-		setBallot({...ballot, Project: project})
+		setBallot(ballot => ({...ballot, Project: project}))
 	}
 
 	function changeDate(e) {
 		const {name, value} = e.target;
+		console.log(value)
 		const dateStr = shortDateToDate(value)
-		console.log(dateStr)
-		setBallot({...ballot, [name]: dateStr})
+		setBallot(ballot => ({...ballot, [name]: dateStr}))
 	}
 
 	function changeType(e) {
 		const {name, value} = e.target;
-		setBallot({...ballot, [name]: parseInt(value, 10)})
+		setBallot(ballot => ({...ballot, [name]: parseInt(value, 10)}))
 	}
 
-	async function submit(e) {
+	/* All the database manipulation functions are asynchornous. They need to be issues in the right order
+	 * but don't need to complete until the next is started. */
+	async function submit() {
 
 		// Delete stuff first
 		if (resultsAction.remove) {
@@ -212,23 +363,20 @@ function BallotDetail(props) {
 		}
 
 		// Update or create ballot entry
-		let action;
-		if (ballotId) {
+		if (ballotId === '+') {
+			props.addBallot(ballot)
+		}
+		else {
 			const b = props.ballots.find(b => b.BallotID === ballotId)
 			if (b) {
 				let changed = shallowDiff(b, ballot)
 				if (changed !== {}) {
-					action = () => props.updateBallot(ballotId, changed)
+					props.updateBallot(ballotId, changed)
 				}
 			}
 		}
-		else {
-			action = () => props.addBallot(ballot)
-		}
-		if (action) {
-			await action()
-		}
-				
+
+		// import or update results
 		if (resultsAction.importFromEpoll) {
 			props.importResults(ballot.BallotID, ballot.EpollNum)
 		}
@@ -236,6 +384,7 @@ function BallotDetail(props) {
 			props.uploadResults(ballotId, ballot.Type, resultsAction.file)
 		}
 
+		// import or update results
 		if (commentsAction.importFromEpoll) {
 			props.importComments(ballot.BallotID, ballot.EpollNum, 1)
 		}
@@ -243,266 +392,121 @@ function BallotDetail(props) {
 			props.uploadComments(ballotId, ballot.Type, commentsAction.file)
 		}
 
-		/* Once we have added a ballot, we navigate there so that further changes are updates */
-		if (action && !ballotId) {
-			history.replace(`/Ballot/${ballot.BallotID}`)
-		}
+		props.close()
 	}
 
-	function close() {
-		history.goBack()
-	}
-
-
-	function handleResultsRemove(e) {
-		setResultsAction({
-			file: null,
-			importFromEpoll: false,
-			remove: e.target.checked
-		})
-	}
-
-	function handleResultsFromEpoll(e) {
-		setResultsAction({
-			file: null,
-			importFromEpoll: e.target.checked,
-			remove: false
-		})
-	}
-
-	function handleResultsFromFile(e) {
-		if (e.target.checked) {
-			resultsFileRef.current.click()
-		}
-		else {
-			setResultsAction({...resultsAction, file: null})
-		}
-	}
-
-	function handleResultsFileSelected(e) {
-		setResultsAction({
-			file: e.target.files[0],
-			importFromEpoll: false,
-			remove: false
-		})
-	}
-
-
-	function handleCommentsRemove(e) {
-		setCommentsAction({
-			file: null,
-			importFromEpoll: false,
-			remove: e.target.checked
-		})
-	}
-
-	function handleCommentsFromEpoll(e) {
-		setCommentsAction({
-			file: null,
-			importFromEpoll: e.target.checked,
-			remove: false
-		})
-	}
-
-	function handleCommentsFromFile(e) {
-		if (e.target.checked) {
-			commentsFileRef.current.click()
-		}
-		else {
-			setCommentsAction({...commentsAction, file: null})
-		}
-	}
-
-	function handleCommentsFileSelected(e) {
-		setCommentsAction({
-			file: e.target.files[0],
-			importFromEpoll: false,
-			remove: false
-		})
-	}
-
-	const CommentsActions = (props) => (
-			<div style={{display: 'flex', flexDirection: 'column', padding: '20px'}}>
-				<span><label>Comments:&nbsp;</label>{renderCommentsSummary({rowData: ballot, dataKey: 'Comments'})}</span>
-				{ballot.Comments &&
-					<LabeledCheckbox
-						label='Delete'
-						checked={commentsAction.remove}
-						onChange={handleCommentsRemove}
-					/>
-				}
-				{ballot.EpollNum &&
-					<LabeledCheckbox
-						label={(ballot.Comments? 'Reimport': 'Import') + ' from ePoll'}
-						checked={commentsAction.importFromEpoll}
-						onChange={handleCommentsFromEpoll}
-					/>
-				}
-				<LabeledCheckbox
-					label={'Upload from ' + (commentsAction.file? commentsAction.file.name: 'file')}
-					checked={commentsAction.file !== null}
-					onChange={handleCommentsFromFile}
-				/> 
-				<input
-					type='file'
-					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-					ref={commentsFileRef}
-					onChange={handleCommentsFileSelected}
-					style={{display: "none"}}
-				/>
-			</div>
-		)
-
-	const ResultsActions = (props) => (
-			<div style={{display: 'flex', flexDirection: 'column', padding: '20px'}}>
-				<span><label>Results:</label>&nbsp;{renderResultsSummary({rowData: ballot, dataKey: 'Results'})}</span>
-				<LabeledCheckbox
-					label='Delete'
-					checked={resultsAction.remove}
-					onChange={handleResultsRemove}
-				/>
-				{ballot.EpollNum &&
-					<LabeledCheckbox
-						label={(ballot.Results? 'Reimport': 'Import') + ' from ePoll'}
-						checked={resultsAction.importFromEpoll}
-						onChange={handleResultsFromEpoll}
-					/> 
-				}
-				<LabeledCheckbox
-					label={'Upload from ' + (resultsAction.file? resultsAction.file.name: 'file')}
-					checked={resultsAction.file !== null}
-					onChange={handleResultsFromFile}
-				/>
-				<input
-					type='file'
-					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-					ref={resultsFileRef}
-					onChange={handleResultsFileSelected}
-					style={{display: "none"}}
-				/>
-			</div>
-		)
-
-	function BallotTypes(props) {
-		const ballotTypes = [
-			'Comment collection',
-			'Initial WG ballot',
-			'Recirc WG ballot',
-			'Initial SA ballot',
-			'Recirc SA ballot',
-			'Motion'
-		]
-		return (
-			<div style={{display: 'flex', flexDirection: 'column', padding: '20px'}} {...props} >
-				<label>Ballot Type:</label>
-				{ballotTypes.map((str, i) => 
-					<label key={i}><input type='radio' name='Type' value={i} checked={ballot.Type === i} onChange={changeType} />{str}</label>)}
-			</div>
-		)
-	}
+	const close = history.goBack
 
 	const shortDateStart = dateToShortDate(ballot.Start)
 	const shortDateEnd = dateToShortDate(ballot.End)
 	return (
-		<Container style={{maxWidth: '800px'}}>
-			<Row>
-				<Col xs={12} md={7}>
-					<Row style={{margin: '10px 0'}}>
-						<Col xs={4}><label>Project:</label></Col>
-						<Col xs={8}>
+		<AppModal
+			isOpen={props.isOpen}
+			onAfterOpen={onOpen}
+			onRequestClose={props.close}
+		>
+			<Container>
+				<Row>
+					<Col1>
+						<Row>
+							<label>Project:</label>
 							<SelectProject
 								project={ballot.Project}
 								projectList={props.projectList}
 								onChange={handleProjectChange}
-								css={{width: '150px'}}
+								style={{width: '150px'}}
 							/>
-						</Col>
-					</Row>
-
-					<Row style={{margin: '10px 0'}}>
-						<Col xs={4}><label>Ballot ID:</label></Col>
-						<Col xs={8}><Search name='BallotID' value={ballot.BallotID} onChange={change} /></Col>
-					</Row>
-
-					{(ballot.Type !== 3 && ballot.Type !== 4) &&
-						<Row style={{margin: '10px 0'}}>
-							<Col xs={4}><label>ePoll Number:</label></Col>
-							<Col xs={8}><Search name='EpollNum' value={ballot.EpollNum} onChange={change} /></Col>
 						</Row>
-					}
 
-					<Row style={{margin: '10px 0'}}>
-						<Col xs={4}><label>Document:</label></Col>
-						<Col xs={8}><Search name='Document' value={ballot.Document} onChange={change}/></Col>
-					</Row>
-				</Col>
-				<Col xs={12} md={5}>
-					<BallotTypes />
-				</Col>
-			</Row>
-			<Row style={{margin: '10px 0'}}>
-				<Col xs={2}><label>Topic:</label></Col>
-				<Col xs={10}>
-					<textarea css={{width: '400px', height: '3em'}} name='Topic' value={ballot.Topic} onChange={change} />
-				</Col>
-			</Row>
-			<Row>
-				<Col xs={12} md={7}>
-					<Row style={{margin: '10px 0'}}>
-						<Col xs={4}><label>Start:</label></Col>
-						<Col xs={8}>
+						<Row>
+							<label>Ballot ID:</label>
+							<Search name='BallotID' value={ballot.BallotID} onChange={change} />
+						</Row>
+
+						{(ballot.Type !== 3 && ballot.Type !== 4) &&
+							<Row>
+								<label>ePoll Number:</label>
+								<Search name='EpollNum' value={ballot.EpollNum} onChange={change} />
+							</Row>
+						}
+
+						<Row>
+							<label>Document:</label>
+							<Search name='Document' value={ballot.Document} onChange={change}/>
+						</Row>
+					</Col1>
+					<Col2>
+						<BallotTypes value={ballot.Type} onChange={changeType} />
+					</Col2>
+				</Row>
+				<Row>
+					<Col>
+						<Row2>
+							<label>Topic:</label>
+							<textarea name='Topic' value={ballot.Topic} onChange={change} />
+						</Row2>
+					</Col>
+				</Row>
+				<Row>
+					<Col3>
+						<Row>
+							<label>Start:</label>
 							<input type='date' name='Start' value={shortDateStart} onChange={changeDate} />
-						</Col>
-					</Row>
-					<Row style={{margin: '10px 0'}}>
-						<Col xs={4}><label>End</label></Col>
-						<Col xs={8}>
+						</Row>
+						<Row>
+							<label>End</label>
 							<input type='date' name='End' value={shortDateEnd} onChange={changeDate} />
-						</Col>
-					</Row>
-					{(ballot.Type === 1 || ballot.Type === 3 || ballot.Type === 5) &&		
-						<Row style={{margin: '10px 0'}}>
-							<Col xs={4}><label>Voting Pool:</label></Col>
-							<Col xs={8}>
+						</Row>
+						{(ballot.Type === 1 || ballot.Type === 3 || ballot.Type === 5) &&		
+							<Row>
+								<label>Voting Pool:</label>
 								<SelectVotingPoolId 
 									votingPoolId={ballot.VotingPoolID}
 									votingPools={props.votingPools}
 									onChange={value => setBallot({...ballot, VotingPoolID: value})}
-									css={{width: '250px'}}
+									style={{width: '250px'}}
 								/>
-							</Col>
-						</Row>
-					}
-					{(ballot.Type === 2 || ballot.Type === 4) &&
-						<Row style={{margin: '10px 0'}}>
-							<Col xs={4}><label>Previous Ballot:</label></Col>
-							<Col xs={8}>
+							</Row>
+						}
+						{(ballot.Type === 2 || ballot.Type === 4) &&
+							<Row>
+								<label>Previous Ballot:</label>
 								<SelectPrevBallot
 									prevBallotId={ballot.PrevBallotID}
 									ballotList={props.ballotList}
 									onChange={value => setBallot({...ballot, PrevBallotID: value})}
-									css={{width: '250px'}}
+									style={{width: '250px'}}
 								/>
-							</Col>
-						</Row>
-					}
-				</Col>
-				<Col xs={12} md={5}>
-					<Row>
-						<Col xs={6}><ResultsActions /></Col>
-						<Col xs={6}><CommentsActions /></Col>
-					</Row>
-				</Col>
-			</Row>
-			<Row>
-				<button onClick={submit}>{ballotId? 'Update': 'Add'}</button>
-				<button onClick={close}>Cancel</button>
-			</Row>
-		</Container>
+							</Row>
+						}
+					</Col3>
+					<Col4>
+						<ResultsActions
+							action={resultsAction}
+							setAction={setResultsAction}
+							ballot={ballot}
+						/>
+						<CommentsActions 
+							action={commentsAction}
+							setAction={setCommentsAction}
+							ballot={ballot}
+						/>
+					</Col4>
+				</Row>
+				<ButtonRow>
+					<button onClick={submit}>{ballotId === '+'? 'Add': 'Update'}</button>
+					<button onClick={close}>Cancel</button>
+				</ButtonRow>
+			</Container>
+		</AppModal>
 	)
 }
 
 BallotDetail.propTypes = {
+	isOpen: PropTypes.bool.isRequired,
+	close: PropTypes.func.isRequired,
+	ballotId: PropTypes.string.isRequired,
+	epollNum: PropTypes.string,
 	ballotsValid: PropTypes.bool.isRequired,
 	ballots: PropTypes.array.isRequired,
 	projectList: PropTypes.array.isRequired,
@@ -542,3 +546,4 @@ export default connect(
 		}
 	}
 )(BallotDetail)
+

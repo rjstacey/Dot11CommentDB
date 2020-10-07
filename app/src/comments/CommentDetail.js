@@ -1,34 +1,38 @@
-/*
- * Comment detail
- */
 import React from 'react'
 import {useHistory, useLocation} from 'react-router-dom'
 import {connect} from 'react-redux'
 import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'
-import {Row, Col} from 'react-grid-system'
+import {Container, Row, Col} from 'react-grid-system'
 import {addResolutions, updateResolutions, deleteResolutions} from '../actions/comments'
 import {ResolutionEditor, BasicEditor} from './ResolutionEditor'
 import AssigneeSelector from './AssigneeSelector'
 import CommentGroupSelector from './CommentGroupSelector'
 import {ActionButton, Checkbox, Search} from '../general/Icons'
 import {shallowDiff} from '../lib/compare'
+import styled from '@emotion/styled'
 
-/** @jsx jsx */
-import { css, jsx } from '@emotion/core'
 
-//const Row = props => <div css={{display: 'flex', flexDirection: 'row'}} {...props} />
-//const Col = props => <div css={{display: 'flex', flexDirection: 'column'}} {...props} />
+const Label = styled.label`
+	font-weight: bold;
+	white-space: nowrap`
 
-const Label = (props) => <label css={css`font-weight: bold;	white-space: nowrap`} {...props} />
-
-const multipleCss = css`
+const Multiple = styled.span`
 	color: GrayText;
 	font-style: italic`
 
-const Content = ({children}) => 
-	typeof children === 'string'
-		? <span css={children === '<multiple>' && multipleCss} children={children} />
-		: children;
+const Content = ({children}) => {
+	if (typeof children === 'string') {
+		if (children === '<multiple>') {
+			return <Multiple>{children}</Multiple>
+		}
+		else {
+			return <span>{children}</span>
+		}
+	}
+	else {
+		return children
+	}
+}
 
 const Entry = ({label, children, ...otherProps}) =>
 	<Col {...otherProps}>
@@ -69,7 +73,7 @@ function Resolution(props) {
 						<Col xs={6} md={4}><Label>Comment Group:</Label></Col>
 						<Col xs='content'>
 							<CommentGroupSelector
-								css={css`display: inline-block; width: 200px`}
+								width={300}
 								value={resolution.CommentGroup === '<multiple>'? '': resolution.CommentGroup}
 								onChange={value => setResolution({CommentGroup: value})}
 								placeholder={resolution.CommentGroup === '<multiple>'? '<multiple>': '<blank>'}
@@ -80,9 +84,12 @@ function Resolution(props) {
 						<Col xs={6} md={4}><Label>Assignee:</Label></Col>
 						<Col xs='content'>
 							<AssigneeSelector
-								css={css`display: inline-block; width: 200px`}
-								value={resolution.AssigneeSAPIN || 0}
-								onChange={value => setResolution({AssigneeSAPIN: value})}
+								width={300}
+								value={(resolution.AssigneeSAPIN || resolution.AssigneeName) === '<multiple>'?
+									{SAPIN: null, Name: null}:
+									{SAPIN: resolution.AssigneeSAPIN, Name: resolution.AssigneeName}}
+								onChange={({SAPIN, Name}) => setResolution({AssigneeSAPIN: SAPIN, AssigneeName: Name})}
+								placeholder={(resolution.AssigneeSAPIN || resolution.AssigneeName) === '<multiple>'? '<multiple>': 'Not assigned'}
 							/>
 						</Col>
 					</Row>
@@ -189,7 +196,7 @@ function EditStatus(props) {
 					/>
 					<Label>Implemented in draft:</Label>
 					<Search
-						css={{width: '40px'}}
+						width={40}
 						name='EditInDraft'
 						value={editInDraft || ''}
 						onChange={changeEditStatus}
@@ -213,66 +220,66 @@ function EditStatus(props) {
 	)
 }
 
+const StyledTabs = styled(Tabs)`
+	.react-tabs {
+		-webkit-tap-highlight-color: transparent;
+	}
+	.react-tabs__tab-list {
+		border-bottom: 1px solid #aaa;
+		margin: 0;
+		padding: 0;
+	}
+	.react-tabs__tab {
+		display: inline-block;
+		border: 1px solid transparent;
+		border-bottom: none;
+		bottom: -1px;
+		position: relative;
+		list-style: none;
+		padding: 5px 5px;
+		cursor: pointer;
+		:focus {
+			/*box-shadow: 0 0 5px hsl(208, 99%, 50%);
+			border-color: hsl(208, 99%, 50%);*/
+			outline: none;
+		}
+		/*:focus:after {
+			content: "";
+			position: absolute;
+			height: 5px;
+			left: -4px;
+			right: -4px;
+			bottom: -5px;
+			background: #fff;
+		}*/
+	}
+	.react-tabs__tab--selected {
+		background: #fff;
+		border-color: #aaa;
+		color: black;
+		border-radius: 5px 5px 0 0;
+		font-weight: bold;
+	}
+	.react-tabs__tab--disabled {
+		color: GrayText;
+		cursor: default;
+		font-weight: normal;
+	}
+	.react-tabs__tab-panel {
+		display: none;
+		border: 1px solid #aaa;
+		border-top: none;
+		box-sizing: border-box;
+	}
+	.react-tabs__tab-panel--selected {
+		display: block;
+	}`
+
 function OtherTabs(props) {
 	const {resolution, setResolution} = props
 
-	const tabsCss = css`
-		.react-tabs {
-			-webkit-tap-highlight-color: transparent;
-		}
-		.react-tabs__tab-list {
-			border-bottom: 1px solid #aaa;
-			margin: 0;
-			padding: 0;
-		}
-		.react-tabs__tab {
-			display: inline-block;
-			border: 1px solid transparent;
-			border-bottom: none;
-			bottom: -1px;
-			position: relative;
-			list-style: none;
-			padding: 5px 5px;
-			cursor: pointer;
-			:focus {
-				/*box-shadow: 0 0 5px hsl(208, 99%, 50%);
-				border-color: hsl(208, 99%, 50%);*/
-				outline: none;
-			}
-			/*:focus:after {
-				content: "";
-				position: absolute;
-				height: 5px;
-				left: -4px;
-				right: -4px;
-				bottom: -5px;
-				background: #fff;
-			}*/
-		}
-		.react-tabs__tab--selected {
-			background: #fff;
-			border-color: #aaa;
-			color: black;
-			border-radius: 5px 5px 0 0;
-			font-weight: bold;
-		}
-		.react-tabs__tab--disabled {
-			color: GrayText;
-			cursor: default;
-			font-weight: normal;
-		}
-		.react-tabs__tab-panel {
-			display: none;
-			border: 1px solid #aaa;
-			border-top: none;
-			box-sizing: border-box;
-		}
-		.react-tabs__tab-panel--selected {
-			display: block;
-		}`
-
 	return (
-		<Tabs css={tabsCss}>
+		<StyledTabs>
 			<TabList>
 				<Tab>Editing</Tab>
 				<Tab>Notes</Tab>
@@ -294,7 +301,7 @@ function OtherTabs(props) {
 					onChange={value => setResolution({Notes: value})}
 				/>
 			</TabPanel>
-		</Tabs>
+		</StyledTabs>
 	)
 }
 
@@ -431,9 +438,7 @@ function CommentDetail(props) {
 	}, [props.comments, props.cidsStr])
 
 	function doResolutionUpdate(fields) {
-		const r = {...resolution, ...fields}
-		console.log(fields, resolution, r)
-		setResolution(r)
+		setResolution(r => ({...r, ...fields}))
 	}
 
 	function handleSave() {
@@ -459,38 +464,7 @@ function CommentDetail(props) {
 			props.updateResolutions(props.ballotId, updates)
 		}
 	}
-/*
-	function findCommentIndex(cid) {
-		const {comments, commentsMap} = props
-		return commentsMap.findIndex(i => {
-			let c = comments[i]
-			return c.CommentID.toString() === cid || `${c.CommentID}.${c.ResolutionID}` === cid
-		})
-	}
 
-	function previousComment() {
-		const {comments, commentsMap, cidsStr} = props
-		let cid = cidsStr[0]
-		var i = findCommentIndex(cid) - 1
-		if (i === -2) {
-			i = 0
-		}
-		else if (i === -1) {
-			i = commentsMap.length - 1
-		}
-		history.replace(location.pathname + '?CIDs=' + comments[commentsMap[i]].CID)
-	}
-
-	function nextComment() {
-		const {comments, commentsMap, cidsStr} = props
-		let cid = cidsStr[0]
-		var i = findCommentIndex(cid) + 1
-		if (i >= commentsMap.length) {
-			i = 0
-		}
-		history.replace(location.pathname + '?CIDs=' + comments[commentsMap[i]].CID)
-	}
-*/
 	async function handleAddResolutions() {
 		let cids = currentComments.map(c => c.CommentID)
 		cids = cids.filter((cid, i) => cids.indexOf(cid) === i)	// elliminate duplicates
@@ -531,9 +505,9 @@ function CommentDetail(props) {
 	}
 	const disableButtons = !!notAvailableStr 	// disable buttons if displaying string
 
-	console.log(props.cidsStr, notAvailableStr, currentComments)
+	//console.log(props.cidsStr, notAvailableStr, currentComments)
 	return(
-		<React.Fragment>
+		<Container>
 			<Row justify='end' nowrap>
 				<ActionButton name='save' title='Save Changes' disabled={disableButtons} onClick={handleSave} />
 				<ActionButton name='add' title='Create Alternate Resolution' disabled={disableButtons} onClick={handleAddResolutions} />
@@ -547,7 +521,7 @@ function CommentDetail(props) {
 				  </Row>
 				: <Comment cids={currentComments.map(c => c.CID)} resolution={resolution} setResolution={doResolutionUpdate} />
 			}
-		</React.Fragment>
+		</Container>
 	)
 }
 

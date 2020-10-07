@@ -67,6 +67,7 @@ function AddVotingPoolModal(props) {
 		</AppModal>
 	)
 }
+
 AddVotingPoolModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
@@ -99,6 +100,7 @@ function ImportVotersModal(props) {
 		</AppModal>
 	)
 }
+
 ImportVotersModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
@@ -119,9 +121,8 @@ function VoterPools(props) {
 	const width = Math.min(window.innerWidth - 1, maxWidth)
 
 	useEffect(() => {
-		if (!props.votingPoolsValid) {
+		if (!props.votingPoolsValid)
 			props.getVotingPools()
-		}
 	}, [])
 
 	function showVoters({rowData}) {
@@ -148,34 +149,38 @@ function VoterPools(props) {
 	}
 
 	return (
-		<div id='VoterPools' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width, justifyContent: 'space-between'}}>
-				<span><label>Voting Pools</label></span>
-				<span>
-					<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowAddVotingPool(true)} />
-					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
-					<ActionButton name='refresh' title='Refresh' onClick={props.getVotingPools} />
-				</span>
+		<React.Fragment>
+			<div style={{display: 'flex', justifyContent: 'center'}}>
+				<div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width}}>
+					<span><label>Voting Pools</label></span>
+					<span>
+						<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowAddVotingPool(true)} />
+						<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
+						<ActionButton name='refresh' title='Refresh' onClick={props.getVotingPools} />
+					</span>
+				</div>
 			</div>
-			<AppTable
-				fixed
-				columns={columns}
-				estimatedRowHeight={32}
-				headerHeight={64}
-				height='70vh'
-				width={width}
-				loading={props.loading}
-				onRowDoubleClick={showVoters}
-				filters={props.filters}
-				setFilter={props.setFilter}
-				sort={props.sort}
-				setSort={props.setSort}
-				selected={props.selected}
-				setSelected={props.setSelected}
-				data={props.votingPools}
-				dataMap={props.votingPoolsMap}
-				rowKey='VotingPoolID'
-			/>
+
+			<div style={{flex: 1}}>
+				<AppTable
+					fixed
+					columns={columns}
+					estimatedRowHeight={32}
+					headerHeight={64}
+					loading={props.loading}
+					onRowDoubleClick={showVoters}
+					filters={props.filters}
+					setFilter={props.setFilter}
+					sort={props.sort}
+					setSort={props.setSort}
+					selected={props.selected}
+					setSelected={props.setSelected}
+					data={props.votingPools}
+					dataMap={props.votingPoolsMap}
+					rowKey='VotingPoolID'
+				/>
+			</div>
+
 			<AddVotingPoolModal
 				isOpen={showAddVotingPool}
 				close={() => setShowAddVotingPool(false)}
@@ -183,7 +188,7 @@ function VoterPools(props) {
 				setError={props.setError}
 				history={history}
 			/>
-		</div>
+		</React.Fragment>
 	)
 }
 

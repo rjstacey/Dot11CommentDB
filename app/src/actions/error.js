@@ -18,4 +18,4 @@ export function setError(summary, error) {
 	return {type: SET_ERROR, summary, detail}
 }
 
-export const clearError = () => {return {type: CLEAR_ERROR}}
+export const clearError = () => ({type: CLEAR_ERROR})

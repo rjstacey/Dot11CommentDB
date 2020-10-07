@@ -1,8 +1,11 @@
-import {FilterType, filterCreate, filterSetValue, filterData} from './filter'
-import {SortType, sortCreate, sortAddColumn, sortClick, sortData} from './sort'
+import sortReducer, {SortType, SortDirection, sortData} from './sort'
+import {SORT_PREFIX, SORT_INIT} from '../actions/sort'
+
+import filtersReducer, {FilterType, filterSetOptions, filterData} from './filter'
+import {FILTER_PREFIX, FILTER_INIT} from '../actions/filter'
+
 import {
-	SET_BALLOTS_FILTER,
-	SET_BALLOTS_SORT,
+	GEN_BALLOTS_OPTIONS,
 	SET_BALLOTS_SELECTED,
 	GET_BALLOTS,
 	GET_BALLOTS_SUCCESS,
@@ -39,13 +42,23 @@ function defaultBallot() {
 const ballotFields = ['Project', 'BallotID', 'Document', 'Topic', 'EpollNum', 'Start', 'End', 'Result', 'Comments', 'VotingPoolID', 'PrevBallotID'];
 
 /*
+ * Generate a list of unique value-label pairs for a particular field
+ */
+function genFieldOptions(dataKey, data) {
+	let options
+	// return an array of unique values for dataKey, sorted, and value '' or null labeled '<blank>'
+	options = [...new Set(data.map(c => c[dataKey]))]	// array of unique values for dataKey
+		.sort()
+		.map(v => ({value: v, label: (v === null || v === '')? '<blank>': v}))
+	return options
+}
+
+/*
  * Generate a filter for each field (table column)
  */
-function genDefaultFilters() {
-	let filters = {}
-	for (let dataKey of ballotFields) {
-		let type
-		switch (dataKey) {
+const defaultFiltersEntries = ballotFields.reduce((entries, dataKey) => {
+	let type
+	switch (dataKey) {
 		case 'EpollNum':
 			type = FilterType.NUMERIC
 			break
@@ -56,20 +69,19 @@ function genDefaultFilters() {
 			type = FilterType.STRING
 			break
 		default:
+			type = FilterType.STRING
 			break
-		}
-		if (type !== undefined) {
-			filters[dataKey] = filterCreate(type)
-		}
 	}
-	return filters
-}
+	return {...entries, [dataKey]: {type}}
+}, {});
 
-function genDefaultSort() {
-	let sort = sortCreate()
-	for (let dataKey of ballotFields) {
-		let type
-		switch (dataKey) {
+
+/*
+ * Generate object that describes the initial sort state
+ */
+const defaultSortEntries = ballotFields.reduce((entries, dataKey) => {
+	let type
+	switch (dataKey) {
 		case 'EpollNum':
 			type = SortType.NUMERIC
 			break
@@ -81,17 +93,13 @@ function genDefaultSort() {
 			break
 		default:
 			break
-		}
-		if (type !== undefined) {
-			sortAddColumn(sort, dataKey, type)
-		}
 	}
-	return sort
-}
+	const direction = SortDirection.NONE;
+	return {...entries, [dataKey]: {type, direction}}
+}, {});
+
 
 const defaultState = {
-	filters: genDefaultFilters(),
-	sort: genDefaultSort(),
 	selected: [],
 	expanded: [],
 	ballotsValid: false,
@@ -135,26 +143,20 @@ function updateSelected(ballots, selected) {
 	return selected.filter(s => ballots.find(b => b.BallotID === s))
 }
 
-const ballots = (state = defaultState, action) => {
+const ballotsReducer = (state = defaultState, action) => {
 	let ballots, project
 
 	switch (action.type) {
-		case SET_BALLOTS_SORT:
-			const sort = sortClick(state.sort, action.dataKey, action.event)
+		case GEN_BALLOTS_OPTIONS:
+			// If the "all" options is specified then generate for all comments, otherwise for those visible
+			ballots = action.all? state.ballots: state.ballotsMap.map(i => state.ballots[i])
+			const fieldOptions = genFieldOptions(action.dataKey, ballots)
 			return {
 				...state,
-				sort,
-				ballotsMap: sortData(sort, state.ballotsMap, state.ballots)
-			}
-		case SET_BALLOTS_FILTER:
-			const filters = {
-				...state.filters,
-				[action.dataKey]: filterSetValue(state.filters[action.dataKey], action.value)
-			}
-			return {
-				...state,
-				filters,
-				ballotsMap: sortData(state.sort, filterData(state.ballots, filters), state.ballots)
+				filters: {
+					...state.filters,
+					[action.dataKey]: filterSetOptions(state.filters[action.dataKey], fieldOptions)
+				}
 			}
 		case SET_BALLOTS_SELECTED:
 			return {
@@ -203,7 +205,7 @@ const ballots = (state = defaultState, action) => {
 				updateBallot: true,
 			}
 		case UPDATE_BALLOT_SUCCESS:
-			ballots = state.ballots.map(d => d.BallotID === action.ballot.BallotID? {...d, ...action.ballot}: d)
+			ballots = state.ballots.map(d => d.BallotID === action.ballotId? {...d, ...action.ballot}: d)
 			return {
 				...state,
 				updateBallot: false,
@@ -256,4 +258,35 @@ const ballots = (state = defaultState, action) => {
 	}
 }
 
-export default ballots
+/*
+ * Attach higher-order reducers
+ */
+export default (state, action) => {
+	if (state === undefined) {
+		return {
+			...ballotsReducer(undefined, {}),
+			sort: sortReducer(undefined, {type: SORT_INIT, entries: defaultSortEntries}),
+			filters: filtersReducer(undefined, {type: FILTER_INIT, entries: defaultFiltersEntries})
+		}
+	}
+	if (action.type.startsWith(SORT_PREFIX) && action.dataSet === 'ballots') {
+		const sort = sortReducer(state.sort, action);
+		return {
+			...state,
+			sort,
+			ballotsMap: sortData(sort, state.ballotsMap, state.ballots)
+		}
+	}
+	else if (action.type.startsWith(FILTER_PREFIX) && action.dataSet === 'ballots') {
+		const filters = filtersReducer(state.filters, action);
+		return {
+			...state,
+			filters,
+			ballotsMap: sortData(state.sort, filterData(state.ballots, filters), state.ballots)
+		}
+	}
+	else {
+		return ballotsReducer(state, action)
+	}
+}
+

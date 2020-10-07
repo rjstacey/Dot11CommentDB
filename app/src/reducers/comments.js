@@ -1,14 +1,16 @@
-import {FilterType, filterCreate, filterSetValue, filterData} from './filter'
-import {SortType, sortCreate, sortAddColumn, sortClick, sortData} from './sort'
+import sortReducer, {SortType, SortDirection} from './sort'
+import {SORT_PREFIX, SORT_INIT} from '../actions/sort'
+
+import filtersReducer, {FilterType} from './filter'
+import {FILTER_PREFIX, FILTER_INIT} from '../actions/filter'
+
+import {SELECT_PREFIX} from '../actions/select'
+import selectReducer from './select'
+
+import {EXPAND_PREFIX} from '../actions/expand'
+import expandReducer from './expand'
+
 import {
-	SET_COMMENTS_FILTER,
-	CLEAR_COMMENTS_FILTERS,
-	GEN_COMMENTS_OPTIONS,
-	SET_COMMENTS_SORT,
-	SET_COMMENTS_SELECTED,
-	TOGGLE_COMMENTS_SELECTED,
-	SET_COMMENTS_EXPANDED,
-	TOGGLE_COMMENTS_EXPANDED,
 	GET_COMMENTS,
 	GET_COMMENTS_SUCCESS,
 	GET_COMMENTS_FAILURE,
@@ -61,24 +63,25 @@ const commentFields = {
  * Generate a list of unique value-label pairs for a particular field
  */
 function genFieldOptions(dataKey, comments) {
+	let options
 	switch (dataKey) {
 	case 'MustSatisfy':
 		return [{value: 0, label: 'No'}, {value: 1, label: 'Yes'}]
 	default:
-		return [...new Set(comments.map(c => c[dataKey]))]
+		// return an array of unique values for dataKey, sorted, and value '' or null labeled '<blank>'
+		options = [...new Set(comments.map(c => c[dataKey]))]	// array of unique values for dataKey
 			.sort()
-			.map(v => ({value: v, label: v === ''? '<blank>': v}))
+			.map(v => ({value: v, label: (v === null || v === '')? '<blank>': v}))
+		return options
 	}
 }
 
 /*
  * Generate a filter for each field (table column)
  */
-function genDefaultFilters() {
-	let filters = {}
-	for (let dataKey of Object.keys(commentFields)) {
-		let type
-		switch (dataKey) {
+const defaultFiltersEntries = Object.keys(commentFields).reduce((entries, dataKey) => {
+	let type
+	switch (dataKey) {
 		case 'CID':
 			type = FilterType.NUMERIC
 			break
@@ -90,36 +93,31 @@ function genDefaultFilters() {
 			break
 		default:
 			type = FilterType.STRING
-		}
-		filters[dataKey] = filterCreate(type)
 	}
-	return filters
-}
+	return {...entries, [dataKey]: {type}}
+}, {});
 
-function genDefaultSort() {
-	let sort = sortCreate()
-	for (let dataKey of Object.keys(commentFields)) {
-		let type
-		switch (dataKey) {
-		case 'SAPIN':
-		case 'Access':
+
+/*
+ * Generate object that describes the initial sort state
+ */
+const defaultSortEntries = Object.keys(commentFields).reduce((entries, dataKey) => {
+	let type
+	switch (dataKey) {
+		case 'CommentID':
+		case 'CID':
+		case 'Page':
 			type = SortType.NUMERIC
 			break
 		default:
 			type = SortType.STRING
-		}
-		sortAddColumn(sort, dataKey, type)
 	}
-	return sort
-}
+	const direction = SortDirection.NONE;
+	return {...entries, [dataKey]: {type, direction}}
+}, {});
 
 const defaultState = {
 	ballotId: '',
-	filters: genDefaultFilters(),
-	options: Object.keys(commentFields).reduce((options, dataKey) => ({...options, [dataKey]: []}), {}),
-	sort: genDefaultSort(),
-	selected: [],
-	expanded: [],
 	commentsValid: false,
 	comments: [],
 	commentsMap: [],
@@ -178,100 +176,15 @@ function getCommentStatus(c) {
 function updateCommentsStatus(comments, selected, expanded) {
 	return comments.map(c => {
 		const Status = getCommentStatus(c)
-		const Selected = selected.includes(c.CID) || selected.includes(c.CommentID.toString())
-		const Expanded = expanded.includes(c.CID) || expanded.includes(c.CommentID.toString())
-		return (c.Status !== Status || c.Selected !== Selected || c.Expanded !== Expanded)? {...c, Status, Selected, Expanded}: c
+		return c.Status !== Status? {...c, Status}: c
 	})
 }
 
-function comments(state = defaultState, action) {
-	let newComments, newSelected, newExpanded, filters
+function commentsReducer(state = defaultState, action) {
+	let newComments
 
 	switch (action.type) {
-		case SET_COMMENTS_FILTER:
-			filters = {
-				...state.filters,
-				[action.dataKey]: filterSetValue(state.filters[action.dataKey], action.value)
-			}
-			return {
-				...state,
-				filters,
-				commentsMap: sortData(state.sort, filterData(state.comments, filters), state.comments)
-			}
-		case CLEAR_COMMENTS_FILTERS:
-			filters = {}
-			for (let dataKey in state.filters) {
-				filters[dataKey] = filterSetValue(state.filters[dataKey], '')
-			}
-			return {
-				...state,
-				filters,
-				commentsMap: sortData(state.sort, filterData(state.comments, filters), state.comments)
-			}
-		case GEN_COMMENTS_OPTIONS:
-			const fieldOptions = genFieldOptions(action.dataKey, state.comments)
-			return {
-				...state,
-				options: {...state.options, [action.dataKey]: fieldOptions}
-			}
-		case SET_COMMENTS_SORT:
-			const sort = sortClick(state.sort, action.dataKey, action.event)
-			return {
-				...state,
-				sort,
-				commentsMap: sortData(sort, state.commentsMap, state.comments)
-			}
 
-		case SET_COMMENTS_SELECTED:
-			newSelected = updateSelected(state.comments, action.selected)
-			return {
-				...state,
-				comments: updateCommentsStatus(state.comments, newSelected, state.expanded),
-				selected: newSelected
-			}
-		case TOGGLE_COMMENTS_SELECTED:
-			newSelected = state.selected.slice()
-			for (let s of action.selected) {
-				const i = newSelected.indexOf(s)
-				if (i >= 0) {
-					newSelected.splice(i, 1)
-				}
-				else {
-					newSelected = newSelected.concat([s])
-				}
-				
-			}
-			console.log(state.selected, newSelected)
-			//newSelected = updateSelected(state.comments, newSelected)
-			return {
-				...state,
-				comments: updateCommentsStatus(state.comments, newSelected, state.expanded),
-				selected: newSelected
-			}
-		case SET_COMMENTS_EXPANDED:
-			return {
-				...state,
-				comments: updateCommentsStatus(state.comments, state.selected, action.expanded),
-				expanded: action.expanded
-			}
-		case TOGGLE_COMMENTS_EXPANDED:
-			newExpanded = state.expanded.slice()
-			for (let s of action.expanded) {
-				const i = newExpanded.indexOf(s)
-				if (i >= 0) {
-					newExpanded.splice(i, 1)
-				}
-				else {
-					newExpanded = newExpanded.concat([s])
-				}
-				
-			}
-			//newSelected = updateSelected(state.comments, newSelected)
-			return {
-				...state,
-				comments: updateCommentsStatus(state.comments, state.selected, newExpanded),
-				expanded: newExpanded
-			}
 		case GET_COMMENTS:
 			return {
 				...state,
@@ -279,7 +192,6 @@ function comments(state = defaultState, action) {
 				ballotId: action.ballotId,
 				commentsValid: false,
 				comments: [],
-				commentsMap: [],
 				selected: state.ballotId !== action.ballotId? []: state.selected,
 				expanded: state.ballotId !== action.ballotId? []: state.expanded
 			}
@@ -290,7 +202,6 @@ function comments(state = defaultState, action) {
 				getComments: false,
 				commentsValid: true,
 				comments: newComments,
-				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments),
 				selected: updateSelected(newComments, state.selected)
 			}
 		case GET_COMMENTS_FAILURE:
@@ -311,7 +222,7 @@ function comments(state = defaultState, action) {
 				...state,
 				updateComment: true,
 				comments: newComments,
-				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments)
+				//commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments)
 			}
 		case UPDATE_COMMENTS_FAILURE:
 			return {...state, updateComment: false}
@@ -321,7 +232,6 @@ function comments(state = defaultState, action) {
 					...state,
 					deleteComments: true,
 					comments: [],
-					commentsMap: [],
 					selected: []
 				}: {
 					...state,
@@ -344,7 +254,6 @@ function comments(state = defaultState, action) {
 				importComments: false,
 				commentsValid: true,
 				comments: newComments,
-				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments),
 				selected: updateSelected(newComments, state.selected)
 			}
 		case IMPORT_COMMENTS_FAILURE:
@@ -362,7 +271,6 @@ function comments(state = defaultState, action) {
 				uploadComments: false,
 				commentsValid: true,
 				comments: newComments,
-				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments),
 				selected: updateSelected(newComments, state.selected)
 			}
 		case UPLOAD_COMMENTS_FAILURE:
@@ -380,7 +288,6 @@ function comments(state = defaultState, action) {
 				...state,
 				updateComment: false,
 				comments: newComments,
-				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments),
 				selected: updateSelected(newComments, state.selected)
 			}
 		case ADD_RESOLUTIONS_FAILURE:
@@ -404,7 +311,6 @@ function comments(state = defaultState, action) {
 				...state,
 				updateComment: false,
 				comments: newComments,
-				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments),
 			}
 		case UPDATE_RESOLUTIONS_FAILURE:
 			return {...state, updateComment: false}
@@ -420,7 +326,6 @@ function comments(state = defaultState, action) {
 				...state,
 				updateComment: false,
 				comments: newComments,
-				commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments),
 				selected: updateSelected(newComments, state.selected)
 			}
 		case DELETE_RESOLUTIONS_FAILURE:
@@ -431,4 +336,36 @@ function comments(state = defaultState, action) {
 	}
 }
 
-export default comments
+/*
+ * Attach higher-order reducers
+ */
+export default (state, action) => {
+	if (state === undefined) {
+		return {
+			...commentsReducer(undefined, {}),
+			sort: sortReducer(undefined, {type: SORT_INIT, entries: defaultSortEntries}),
+			filters: filtersReducer(undefined, {type: FILTER_INIT, entries: defaultFiltersEntries}),
+			selected: selectReducer(undefined, {}),
+			expanded: expandReducer(undefined, {})
+		}
+	}
+	if (action.type.startsWith(SORT_PREFIX) && action.dataSet === 'comments') {
+		const sort = sortReducer(state.sort, action);
+		return {...state, sort}
+	}
+	else if (action.type.startsWith(FILTER_PREFIX) && action.dataSet === 'comments') {
+		const filters = filtersReducer(state.filters, action);
+		return {...state, filters}
+	}
+	else if (action.type.startsWith(SELECT_PREFIX) && action.dataSet === 'comments') {
+		const selected = selectReducer(state.selected, action);
+		return {...state, selected}
+	}
+	else if (action.type.startsWith(EXPAND_PREFIX) && action.dataSet === 'comments') {
+		const expanded = expandReducer(state.expanded, action);
+		return {...state, expanded}
+	}
+	else {
+		return commentsReducer(state, action)
+	}
+}

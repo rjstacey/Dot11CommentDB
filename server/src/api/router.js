@@ -223,72 +223,65 @@ router.get('/epolls', async (req, res, next) => {
 */
 const commentsModule = require('../services/comments')
 
-router.get('/comments/:ballotId', async (req, res, next) => {
-	try {
-		const {ballotId} = req.params
-		const data = await commentsModule.getComments(ballotId)
-		res.json(data)
-	}
-	catch(err) {next(err)}
+router.get('/comments/:ballotId', (req, res, next) => {
+	const {ballotId} = req.params
+	return commentsModule.getComments(ballotId)
+		.then(data => res.json(data), err => next(err))
 })
-router.put('/comment/:ballotId/:commentId', async (req, res, next) => {
-	try {
-		const {ballotId, commentId} = req.params
-		const comment = req.body
-		const data = await commentsModule.updateComment(ballotId, commentId, comment)
-		res.json(data)
-	}
-	catch(err) {next(err)}
+router.put('/comment/:ballotId/:commentId', (req, res, next) => {
+	const {ballotId, commentId} = req.params
+	const comment = req.body
+	return commentsModule.updateComment(ballotId, commentId, comment)
+		.then(data => res.json(data), err => next(err))
 })
-router.put('/comments/:ballotId', async (req, res, next) => {
-	try {
-		const {ballotId} = req.params
-		const {commentIds, comments} = req.body
-		const data = await commentsModule.updateComments(ballotId, commentIds, comments)
-		res.json(data)
-	}
-	catch(err) {next(err)}
+router.put('/comments/:ballotId', (req, res, next) => {
+	const {ballotId} = req.params
+	const {commentIds, comments} = req.body
+	return commentsModule.updateComments(ballotId, commentIds, comments)
+		.then(data => res.json(data), err => next(err))
 })
-router.delete('/comments/:ballotId', async (req, res, next) => {
-	try {
-		const {ballotId} = req.params
-		const data = await commentsModule.deleteComments(ballotId)
-		res.json(data)
-	}
-	catch(err) {next(err)}
+router.delete('/comments/:ballotId', (req, res, next) => {
+	const {ballotId} = req.params
+	return commentsModule.deleteComments(ballotId)
+		.then(data => res.json(data), err => next(err))
 })
-router.post('/comments/importFromEpoll/:ballotId/:epollNum', async (req, res, next) => {
-	try {
-		const sess = req.session
-		const {ballotId, epollNum} = req.params
-		const startCommentId = req.body.StartCID || 1
-		const data = await commentsModule.importEpollComments(sess, ballotId, epollNum, startCommentId)
-		res.json(data)
-	}
-	catch(err) {next(err)}
+router.post('/comments/importFromEpoll/:ballotId/:epollNum', (req, res, next) => {
+	const sess = req.session
+	const {ballotId, epollNum} = req.params
+	const startCommentId = req.body.StartCID || 1
+	return commentsModule.importEpollComments(sess, ballotId, epollNum, startCommentId)
+		.then(data => res.json(data), err => next(err))
 })
-router.post('/comments/upload/:ballotId/:type', upload.single('CommentsFile'), async (req, res, next) => {
-	try {
-		const {ballotId} = req.params
-		const type = parseInt(req.params.type, 10)
-		if (!req.file) {
-			throw 'Missing file'
-		}
-		const startCommentId = req.body.StartCID || 1
-		const data = await commentsModule.uploadComments(ballotId, type, startCommentId, req.file)
-		res.json(data)
+router.post('/comments/upload/:ballotId/:type', upload.single('CommentsFile'), (req, res, next) => {
+	const {ballotId} = req.params
+	const type = parseInt(req.params.type, 10)
+	if (!req.file) {
+		return next('Missing file')
 	}
-	catch(err) {next(err)}
+	const startCommentId = req.body.StartCID || 1
+	return commentsModule.uploadComments(ballotId, type, startCommentId, req.file)
+		.then(data => res.json(data), err => next(err))
 })
-router.get('/exportComments/myProject', (req, res, next) => {
-	try {
-		const ballotId = req.query.BallotID
-		if (!ballotId) {
-			throw 'Missing parameter BallotID'
-		}
-		commentsModule.exportMyProjectComments(ballotId, res)
+router.post('/comments/exportForMyProject', upload.single('file'), (req, res, next) => {
+	const {BallotID, Filename} = JSON.parse(req.body.params)
+	if (!BallotID) {
+		return next('Missing parameter BallotID')
 	}
-	catch(err) {next(err)}
+	if (!req.file) {
+		return next('Missing file')
+	}
+	return commentsModule.exportResolutionsForMyProject(BallotID, Filename, req.file, res)
+		.catch(err => next(err))
+})
+router.post('/comments/exportSpreadsheet', upload.single('file'), (req, res, next) => {
+	const {BallotID, Filename} = JSON.parse(req.body.params)
+	if (!BallotID) {
+		return next('Missing parameter BallotID')
+	}
+	if (!req.file) {
+		return next('Missing file')
+	}
+	return commentsModule.exportSpreadsheet(BallotID, Filename, req.file, res).catch(err => next(err))
 })
 router.post('/resolutions/:ballotId', async (req, res, next) => {
 	try {
@@ -330,15 +323,23 @@ router.delete('/resolutions/:ballotId', async (req, res, next) => {
 router.post('/uploadResolutions/:ballotId', upload.single('ResolutionsFile'), async (req, res, next) => {
 	try {
 		const {ballotId} = req.params
-		const matchAlgorithm = req.body.matchAlgorithm
-		const matchAll = req.body.matchAll || true
-		if (!ballotId) {
-			throw 'Missing parameter BallotID'
+		if (!req.body.params) {
+			throw 'Missing parameters'
+		}
+		const {toUpdate, matchAlgorithm, matchAll, sheetName} = JSON.parse(req.body.params)
+		if (!Array.isArray(toUpdate)) {
+			throw 'Missing or invalid parameter toUpdate'
+		}
+		if (!matchAlgorithm || typeof matchAlgorithm !== 'string') {
+			throw 'Missing or invalid parameter matchAlgorithm'
+		}
+		if (!ballotId || typeof ballotId !== 'string') {
+			throw 'Missing or invalid parameter BallotID'
 		}
 		if (!req.file) {
 			throw 'Missing file'
 		}
-		const data = await commentsModule.uploadResolutions(ballotId, matchAlgorithm, matchAll, req.file)
+		const data = await commentsModule.uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchAll, sheetName, req.file)
 		res.json(data)
 	}
 	catch(err) {next(err)}

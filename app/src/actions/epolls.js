@@ -8,12 +8,12 @@ export const GET_EPOLLS_SUCCESS = 'GET_EPOLLS_SUCCESS'
 export const GET_EPOLLS_FAILURE = 'GET_EPOLLS_FAILURE'
 export const SYNC_EPOLLS_AGAINST_BALLOTS = 'SYNC_EPOLLS_AGAINST_BALLOTS'
 
-export const setEpollsFilter = (dataKey, value) => {return {type: SET_EPOLLS_FILTER, dataKey, value}}
-export const setEpollsSort = (event, dataKey) => {return {type: SET_EPOLLS_SORT, event, dataKey}}
+export const setEpollsFilter = (dataKey, value) => ({type: SET_EPOLLS_FILTER, dataKey, value})
+export const setEpollsSort = (event, dataKey) => ({type: SET_EPOLLS_SORT, event, dataKey})
 
-const getEpollsLocal = (n) => {return {type: GET_EPOLLS, n}}
-const getEpollsSuccess = (n, epolls) => {return {type: GET_EPOLLS_SUCCESS, n, epolls}}
-const getEpollsFailure = () => {return {type: GET_EPOLLS_FAILURE}}
+const getEpollsLocal = (n) => ({type: GET_EPOLLS, n})
+const getEpollsSuccess = (n, epolls) => ({type: GET_EPOLLS_SUCCESS, n, epolls})
+const getEpollsFailure = () => ({type: GET_EPOLLS_FAILURE})
 
 export function getEpolls(n = 20) {
 	return async (dispatch, getState) => {
@@ -31,4 +31,4 @@ export function getEpolls(n = 20) {
 	}
 }
 
-export const syncEpollsAgainstBallots = (ballots) => {return {type: SYNC_EPOLLS_AGAINST_BALLOTS, ballots}}
+export const syncEpollsAgainstBallots = (ballots) => ({type: SYNC_EPOLLS_AGAINST_BALLOTS, ballots})

@@ -7,7 +7,6 @@ import Users from './users/Users'
 import VoterPools from './voters/VoterPools'
 import Voters from './voters/Voters'
 import Ballots from './ballots/Ballots'
-import BallotDetail from './ballots/BallotDetail'
 import Epolls from './ballots/Epolls'
 import Results from './results/Results'
 import Comments from './comments/Comments'
@@ -15,22 +14,16 @@ import ErrorModal from './modals/ErrorModal'
 import ConfirmModal from './modals/ConfirmModal'
 import {init as iconInit} from './general/Icons'
 
-/** @jsx jsx */
-import { css, jsx } from '@emotion/core'
+import styled from '@emotion/styled'
 
 iconInit()
 
-const titleCss = css`
-	display: inline-block;
-	font-family: "Arial", "Helvetica", sans-serif;
-	font-weight: 400;
-	font-size: 28px;
-	margin: 12px 8px 8px 8px;
-	padding: 0;
-	color: #008080;
-	text-align: center;`
+const OuterDiv = styled.div`
+	display: flex;
+	flex-direction: column;
+	height: 100vh;`
 
-const headerCss = css`
+const Header = styled.header`
 	display: flex;
 	flex-direction: column;
 	& > nav {
@@ -54,10 +47,25 @@ const headerCss = css`
 		background-color: rgba(0, 0, 0, 0.1);
 	}`
 
-const mainCss = css`
+const Title = styled.h3`
+	display: inline-block;
+	font-family: "Arial", "Helvetica", sans-serif;
+	font-weight: 400;
+	font-size: 28px;
+	margin: 12px 8px 8px 8px;
+	padding: 0;
+	color: #008080;
+	text-align: center;`
+
+const Main = styled.main`
+	flex: 1;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
 	position: relative;
 	margin: 0 auto;
-	align-items: center;`
+	justify-content: center;
+	align-items: stretch;`
 
 function App({access, loginGetState}) {
 
@@ -67,9 +75,9 @@ function App({access, loginGetState}) {
 
 	return (
 		<Router>
-			<div id='App'>
-				<header css={headerCss}>
-					<h3 css={titleCss}>802.11 Comment Resolution Tool</h3>
+			<OuterDiv>
+				<Header>
+					<Title>802.11 Comment Resolution Tool</Title>
 					<nav>
 						<ul>
 							<li><Link to="/">Home</Link></li>
@@ -80,24 +88,22 @@ function App({access, loginGetState}) {
 							<li><Link to="/Comments">Comments</Link></li>
 						</ul>
 					</nav>
-				</header>
-				<main css={mainCss}>
+				</Header>
+				<Main>
 					<Switch>
 						<Route path="/" exact component={LoginForm} />
 						{access > 0 && <Route path="/Users/" component={Users} />}
 						{access > 0 && <Route path="/Voters/" exact component={VoterPools} />}
 						{access > 0 && <Route path="/Voters/:votingPoolType/:votingPoolName" component={Voters} />}
-						<Route path="/Ballots/" exact component={Ballots} />
+						<Route path="/Ballots/:ballotId?" component={Ballots} />
 						<Route path="/Epolls/" component={Epolls} />
-						<Route path="/ImportEpoll/:epollNum" component={BallotDetail} />
-						<Route path="/Ballot/:ballotId?" component={BallotDetail} />
 						<Route path="/Results/:ballotId?" component={Results} />
 						<Route path="/Comments/:ballotId?" exact component={Comments} />
 					</Switch>
 					<ErrorModal />
 					<ConfirmModal />
-				</main>
-			</div>
+				</Main>
+			</OuterDiv>
 		</Router>
 	)
 }

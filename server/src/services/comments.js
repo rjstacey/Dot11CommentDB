@@ -20,8 +20,7 @@ function stringToHex(s) {
 */
 
 const epollCommentsHeader = [
-	'Index', 'Date', 'SA PIN', 'Name', 'Comment', 'Category', 'Page Number', 'Subclause', 'Line Number', 
-	'Proposed Change'//, 'Must Be Satisfied'
+	'Index', 'Date', 'SA PIN', 'Name', 'Comment', 'Category', 'Page Number', 'Subclause', 'Line Number', 'Proposed Change'//, 'Must Be Satisfied'
 ]
 
 function parseEpollComments(startCommentId, pollCommentsCsv) {
@@ -65,6 +64,27 @@ const myProjectCommentsHeader = [
 	'Disposition Status', 'Disposition Detail', 'Other1', 'Other2', 'Other3'
 ]
 
+function parseMyProjectComment(c) {
+	let comment = {
+		C_Index: c[0],								// Comment ID
+		CommenterSAPIN: null,
+		CommenterName: c[3],						// Name
+		CommenterEmail: c[4],						// Email
+		Category: c[11]? c[11].charAt(0): '',		// Category: first letter only (G, T or E)
+		C_Page: c[12] || '',						// Page
+		C_Clause: c[13] || '',						// Subclause
+		C_Line: c[14] || '',						// Line
+		Comment: c[15] || '',						// Comment
+		ProposedChange: c[18] || '',				// Proposed Change
+		MustSatisfy: c[17].toLowerCase() === 'yes'	// Must be Satisfied
+	}
+	comment.Clause = comment.C_Clause
+	comment.Page = parseFloat(comment.C_Page) + parseFloat(comment.C_Line)/100
+	if (isNaN(comment.Page)) {comment.Page = 0}
+
+	return comment
+}
+
 async function parseMyProjectComments(startCommentId, buffer, isExcel) {
 
 	var p = [] 	// an array of arrays
@@ -89,84 +109,82 @@ async function parseMyProjectComments(startCommentId, buffer, isExcel) {
 	// The CSV from MyProject has # replaced by ., so replace '#' with '.' (in the regex this matches anything)
 	var expected = myProjectCommentsHeader.map(r => r.replace('#', '.'))
 	if (expected.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].search(new RegExp(v, 'i')) === -1, false)) {
-		throw `Unexpected column headings ${p[0].join()}. Expected ${myProjectCommentsHeader.join()}.`
+		throw `Unexpected column headings:\n${p[0].join(', ')}\n\nExpected:\n${myProjectCommentsHeader.join(', ')}`
 	}
 	p.shift()	// remove column heading row
 
-	var cid = startCommentId
-	return p.map(c => {
-		const c_page = c[12] !== undefined? c[12]: ''
-		const c_line = c[14] !== undefined? c[14]: ''
-		var page = parseFloat(c_page) + parseFloat(c_line)/100
-		if (isNaN(page)) {page = 0}
-		return {
-			CommentID: cid++,
-			//C_CommentID: c[0],
-			C_Index: c[7],
-			//Date: c[1],
-			CommenterSAPIN: null,
-			CommenterName: c[3],
-			CommenterEmail: c[4],
-			//CommenterPhone: c[5],
-			Comment: c[15],
-			Category: c[11]? c[11].charAt(0): '',   // First letter only (G, T or E)
-			C_Page: c_page,
-			C_Clause: c[13]? c[13]: '',
-			C_Line: c_line,
-			Page: page,
-			Clause: c[13]? c[13]: '',
-			ProposedChange: c[18],
-			MustSatisfy: !!(c[17] === '1')
-		}
-	})
+	// Parse each row and assign CommentID
+	return p.map((c, i) => ({CommentID: startCommentId + i, ...parseMyProjectComment(c)}))
 }
 
-const mapToDispositionStatus = {
+const comparisons2 = [
+	(dbC, c) => (dbC.CommenterName === c.CommenterName),
+	(dbC, c) => (dbC.Category === c.Category),
+	(dbC, c) => (dbC.C_Clause === c.C_Clause),
+	(dbC, c) => (dbC.C_Page === c.C_Page),
+	(dbC, c) => (dbC.C_Line === c.C_Line),
+	(dbC, c) => (dbC.Comment === c.Comment),
+	(dbC, c) => (dbC.ProposedChange === c.ProposedChange)
+];
+
+function matchCommentByEllimination(comment, dbComments) {
+	let scr = dbComments.slice()
+	for (let comp of comparisons2) {
+		scr = scr.filter(dbC => comp(dbC, comment))
+		if (scr.length === 0) {
+			return null
+		}
+		if (scr.length === 1) {
+			return scr[0]
+		}
+	}
+	return null
+}
+
+const mapDispositionStatus = {
 	A: 'ACCEPTED',
-	R: 'REVISED',
+	V: 'REVISED',
 	J: 'REJECTED'
 }
 
-function myProjectCommentsWorkbook(comments) {
+/*
+ * Add approved resolutions to an existing MyProject comment spreadsheet
+ */
+async function myProjectAddResolutions(workbook, dbComments) {
 
-	let wb = new ExcelJS.Workbook()
-	wb.creator = '802.11'
-	let sheet = wb.addWorksheet('export_resolved_comments')
-
-	sheet.addRow(myProjectCommentsHeader)
-	for (let c of comments) {
-
-		const row = [
-			c.C_CommentID,
-			c.Date,
-			c.C_CommentNum,	// Comment #
-			c.CommenterName,
-			c.CommenterEmail, // Email
-			'',				// Phone
-			'Ballot',		// Style
-			c.C_Index,		// Index #
-			'',				// Classification
-			c.Vote,
-			'',				// Affiliation
-			c.Category,
-			c.C_Page,
-			c.Clause,		// Subclause
-			c.C_Line,
-			c.Comment,
-			c.File,
-			c.MustSatisfy,
-			c.ProposedChange,
-			mapToDispositionStatus[c.ResnStatus] || '',	// Disposition Status
-			c.Resolution,	// Disposition Detail
-			'',
-			'',
-			''
-		]
-
-		sheet.addRow(row)
+	let worksheet = workbook.getWorksheet(1);
+	if (!worksheet) {
+		'Unexpected file format; worksheet not found'
 	}
 
-	return wb
+	// Check the column names to make sure we have the right file
+	let row = worksheet.getRow(1);
+	if (!row) {
+		throw 'Unexpected file format; header row not found'
+	}
+	const header = row.values.slice(1, 26);
+
+	if (myProjectCommentsHeader.reduce((r, v, i) => r || typeof header[i] !== 'string' || header[i].search(new RegExp(v, 'i')) === -1, false)) {
+		throw `Unexpected column headings:\n${header.join(', ')}\n\nExpected:\n${myProjectCommentsHeader.join(', ')}`
+	}
+
+	worksheet.eachRow((row, i) => {
+		if (i === 1) {	// skip header
+			return
+		}
+		let comment = parseMyProjectComment(row.values.slice(1, 26));
+
+		/* Find comment with matching identifier. If can't be found by identifier then match on comment fields. */
+		let dbC = dbComments.find(c => c.C_Index === comment.C_Index);
+		//if (!dbC) {
+		//	dbC = matchCommentByEllimination(comment, dbComments);
+		//}
+		if (dbC && dbC.ApprovedByMotion) {
+			console.log(`found ${comment.C_Index}`)
+			row.getCell(20).value = mapDispositionStatus[dbC.ResnStatus] || '';
+			row.getCell(21).value = dbC.Resolution || '';
+		}
+	})
 }
 
 
@@ -293,11 +311,17 @@ const legacyCommentsHeader = [
 	'Edit Status', 'Edit Notes', 'Edited in Draft', 'Last Updated', 'Last Updated By'
 ]
 
-async function parseLegacyCommentsSpreadsheet(buffer) {
+async function parseLegacyCommentsSpreadsheet(buffer, sheetName) {
 
 	var workbook = new ExcelJS.Workbook()
 	await workbook.xlsx.load(buffer)
-	const worksheet = workbook.getWorksheet('Comments')
+	console.log(workbook)
+	const worksheet = workbook.getWorksheet(sheetName)
+	if (!worksheet) {
+		let sheets = []
+		workbook.eachSheet((worksheet, sheetId) => sheets.push(worksheet.name))
+		throw `Workbook does not have a "${sheetName}" worksheet. It does have the following worksheets: ${sheets.join(', ')}.`
+	}
 	//console.log(worksheet.rowCount)
 
 	// Row 0 is the header
@@ -318,14 +342,123 @@ async function parseLegacyCommentsSpreadsheet(buffer) {
 	return comments
 }
 
+function processHtml(html) {
+	if (typeof html !== 'string') return ''
+
+	html = html.replace(/<p\w[^>]*>(.*)<\/p[^>]*>/g, (match, entity) => `${entity}\n`);
+	html = html.replace(/<[^>]+>/g, '');
+
+	var translate_re = /&(nbsp|amp|quot|lt|gt);/g;
+	var translate = {
+		"nbsp": " ",
+		"amp" : "&",
+		"quot": "\"",
+		"lt"  : "<",
+		"gt"  : ">"
+	};
+	html = html.replace(translate_re, (match, entity) => translate[entity]);
+
+	return html
+}
+
+function genLegacyWorksheetTable(sheet, ballotId, doc, comments) {
+
+	let columns = {
+		'CID': {width: 6, value: c => c.CID},
+		'Commenter': {width: 14, outlineLevel: 1, value: c => c.CommenterName},
+		'LB': {width: 8, outlineLevel: 1, value: ballotId},
+		'Draft': {width: 8, outlineLevel: 1, value: doc},
+		'Clause Number(C)': {width: 11, outlineLevel: 1, value: c => c.C_Clause},
+		'Page(C)': {width: 8, outlineLevel: 1, value: c => c.C_Page},
+		'Line(C)': {width: 8, outlineLevel: 1, value: c => c.C_Line},
+		'Type of Comment': {width: 10, outlineLevel: 1, value: c => c.Category},
+		'Part of No Vote': {width: 10, outlineLevel: 1, value: c => c.MustSatisfy? "Yes": "No"},
+		'Page': {width: 8, value: c => c.Page},
+		'Line': {width: 7, outlineLevel: 1, value: c => c.C_Line},
+		'Clause': {width: 11, value: c => c.Clause},
+		'Duplicate of CID': {width: 10},
+		'Resn Status': {width: 8, value: c => c.ResnStatus || ''},
+		'Assignee': {width: 11, outlineLevel: 1, value: c => c.AssigneeName || ''},
+		'Submission': {width: 12, outlineLevel: 1, value: c => c.Submission || ''},
+		'Motion Number': {width: 9, outlineLevel: 1, value: c => c.ApprovedByMotion || ''},
+		'Comment': {width: 25, value: c => c.Comment},
+		'Proposed Change': {width: 25, value: c => c.ProposedChange},
+		'Resolution': {width: 25, value: c => processHtml(c.Resolution)},
+		'Owning Ad-hoc': {width: 9},
+		'Comment Group': {width: 10, value: c => c.CommentGroup || ''},
+		'Ad-hoc Status': {width: 10, value: c => c.Status || ''},
+		'Ad-hoc Notes': {width: 25, value: c => c.Notes || ''},
+		'Edit Status': {width: 8, value: c => c.EditStatus || ''},
+		'Edit Notes': {width: 25, value: c => c.EditNotes || ''},
+		'Edited in Draft': {width: 9, value: c => c.EditInDraft || ''},
+		'Last Updated': {width: 15, outlineLevel: 1},
+		'Last Updated By': {outlineLevel: 1}
+	};
+
+	const colNames = Object.keys(columns);
+
+	let table = {
+		name: 'MyTable',
+		ref: 'A1',
+		headerRow: true,
+		totalsRow: false,
+		style: {
+			theme: 'TableStyleLight15',
+			showRowStripes: false,
+		},
+		columns: colNames.map(name => ({name, filterButton: true})),
+		rows: comments.map(c => colNames.map(key => {
+			let col = columns[key]
+			if (typeof col.value === 'function') {
+				return col.value(c)
+			}
+			else if (col.value) {
+				return col.value
+			}
+			return ''
+		}))
+	};
+
+	sheet.addTable(table)
+
+	// Adjust column width, outlineLevel and style
+	const borderStyle = {style:'thin', color: {argb:'33333300'}}
+	let i = 0
+	for (let key of colNames) {
+		let col = columns[key]
+		i++
+		if (col.width) {
+			sheet.getColumn(i).width = col.width
+		}
+		if (col.outlineLevel) {
+			sheet.getColumn(i).outlineLevel = col.outlineLevel
+		}
+		sheet.getColumn(i).font = {name: 'Arial', size: 10, family: 2}
+		sheet.getColumn(i).alignment = {wrapText: true, vertical: 'top'}
+		/*sheet.getColumn(i).border = {
+			top: borderStyle, 
+			left: borderStyle, 
+			bottom: borderStyle, 
+			right: borderStyle
+		}*/
+	}
+
+	// Table header is frozen
+	sheet.views = [{state: 'frozen', xSplit: 0, ySplit: 1}];
+}
+
 
 const comparisons = [
 	(dbC, sC) => dbC.CommenterName === sC['Commenter'],
 	(dbC, sC) => dbC.Category === sC['Type of Comment'],
-	(dbC, sC) => dbC.C_Clause.substring(0, sC['Clause Number(C)'].length) === sC['Clause Number(C)'],				// Legacy might trucate
+	(dbC, sC) => (dbC.C_Clause === sC['Clause Number(C)'] ||
+				  dbC.C_Clause.replace(/[0]+$/g, '') === sC['Clause Number(C)'] ||	// Legacy strips trailing 0
+				(sC['Clause Number(C)'].length > 10 && dbC.C_Clause.substring(0, sC['Clause Number(C)'].length) === sC['Clause Number(C)'])),		// Legacy might trucate
 	(dbC, sC) => dbC.C_Page === sC['Page(C)'] || Math.round(parseFloat(dbC.C_Page)) === parseInt(sC['Page(C)']),	// Legacy converts page to int
 	(dbC, sC) => dbC.C_Line === sC['Line(C)'] || Math.round(parseFloat(dbC.C_Line)) === parseInt(sC['Line(C)']),	// Legacy converts line to int
-	(dbC, sC) => dbC.Comment === sC['Comment'],
+	(dbC, sC) => dbC.Comment.length === sC['Comment'].length,				// number of characters match
+	(dbC, sC) => dbC.ProposedChange.length === sC['Proposed Change'].length,
+	(dbC, sC) => dbC.Comment === sC['Comment'],								// actual text matches
 	(dbC, sC) => dbC.ProposedChange === sC['Proposed Change']
 ]
 
@@ -419,7 +552,7 @@ function matchPerfect(sheetComments, dbComments) {
 /*
  * Match by comment ID
  */
-function matchByCommentId(sheetComments, dbComments) {
+function matchCID(sheetComments, dbComments) {
 	let matched = []				// paired dbComments and sheetComments
 	let dbCommentsRemaining = []	// dbComments with no match
 	let sheetCommentsRemaining = sheetComments.slice()
@@ -437,22 +570,27 @@ function matchByCommentId(sheetComments, dbComments) {
 	return [matched, dbCommentsRemaining, sheetCommentsRemaining]
 }
 
-function commentUpdate(c, cs) {
+function commentUpdate(toUpdate, c, cs) {
 	var u = {}
 
 	const cid = c.CommentID
-	if (c.CommentID !== cs['CID']) {
+	if (toUpdate.includes('cid') && c.CommentID !== cs['CID']) {
 		u.CommentID = cs['CID']
 	}
-	if (c.CommentGroup !== cs['Comment Group']) {
+	if (toUpdate.includes('comment')) {
+		if (cs['Clause'] && c.Clause !== cs['Clause']) {
+			u.Clause = cs['Clause']
+		}
+		const page = parseFloat(cs['Page'])
+		if (page && c.Page !== page) {
+			u.Page = page
+		}
+	}
+	if (toUpdate.includes('commentgroup') && c.CommentGroup !== cs['Comment Group']) {
 		u.CommentGroup = cs['Comment Group']
 	}
-	if (cs['Clause'] && c.Clause !== cs['Clause']) {
-		u.Clause = cs['Clause']
-	}
-	var page = parseFloat(cs['Page'])
-	if (page && c.Page !== page) {
-		u.Page = page
+	if (toUpdate.includes('adhoc') && c.AdHoc !== cs['Owning Ad-hoc']) {
+		u.AdHoc = cs['Owning Ad-hoc']
 	}
 
 	if (Object.keys(u).length) {
@@ -491,7 +629,8 @@ const GET_COMMENTS_SQL =
 			'CONVERT(c.CommentID, CHAR)) AS CID, ' +
 		'r.ResolutionID, r.AssigneeSAPIN, r.ResnStatus, r.Resolution, r.Submission, r.ReadyForMotion, r.ApprovedByMotion, ' + 
 		'r.EditStatus, r.EditInDraft, r.EditNotes, r.Notes, ' +
-		'results.Vote, users.Name AS AssigneeName ' +
+		'results.Vote, ' +
+		'CASE WHEN users.Name IS NULL THEN r.AssigneeName ELSE users.Name END AS AssigneeName ' +
 	'FROM comments AS c ' +
 		'LEFT JOIN resolutions AS r ON c.BallotID = r.BallotID AND c.CommentID = r.CommentID ' +
 		'LEFT JOIN results ON c.BallotID = results.BallotID AND c.CommenterSAPIN = results.SAPIN ' +
@@ -773,43 +912,56 @@ async function importEpollComments(sess, ballotId, epollNum, startCommentId) {
 	return insertComments(ballotId, comments)
 }
 
-async function uploadComments(req, res, next) {
+async function uploadComments(ballotId, type, startCommentId, file) {
 	let comments
 	if (type < 3) {
-		comments = parseEpollComments(startCommentId, req.file.buffer)
+		comments = parseEpollComments(startCommentId, file.buffer)
 	}
 	else {
-		const isExcel = req.file.originalname.search(/\.xlsx$/i) !== -1
-		comments = await parseMyProjectComments(startCommentId, req.file.buffer, isExcel)
+		const isExcel = file.originalname.search(/\.xlsx$/i) !== -1
+		comments = await parseMyProjectComments(startCommentId, file.buffer, isExcel)
 	}
 	//console.log('comment=', comments)
 	return insertComments(ballotId, comments)
 }
 
-async function uploadResolutions(ballotId, matchAlgorithm, matchAll, file) {
+const FieldsToUpdate = {
+	CID: 'cid',
+	Comment: 'comment',
+	AdHoc: 'adhoc',
+	CommentGroup: 'commentgroup',
+	Assignee: 'assignee',
+	Resolution: 'resolution',
+	Editing: 'editing'
+}
+
+async function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchAll, sheetName, file) {
 	const match = {
 		'elimination': matchByElimination,
 		'perfect': matchPerfect,
-		'cid': matchByCommentId
-	}
-	const valid = Object.keys(match).join('|')
-	console.log('huh', matchAlgorithm, typeof matchAlgorithm !== 'string', matchAlgorithm.search(valid) === -1)
-	if (!matchAlgorithm || 
-		typeof matchAlgorithm !== 'string' ||
-		matchAlgorithm.search(valid) === -1) {
-		throw 'Parameter matchAlgorithm either missing or has value other than ' + valid + '.'
+		'cid': matchCID
 	}
 
-	const sheetComments = await parseLegacyCommentsSpreadsheet(file.buffer)
+	for (let f of toUpdate) {
+		if (!Object.values(FieldsToUpdate).includes(f)) {
+			throw `Invalid entry in toUpdate array: ${f}. Valid entries are ${Object.values(FieldsToUpdate).join(', ')}.`
+		}
+	}
+
+	if (!match.hasOwnProperty(matchAlgorithm)) {
+		throw `Invalid matchAlgorithm parameter value: ${matchAlgorithm}. Valid options are ${Object.keys(match).join(', ')}.`
+	}
+
+	const sheetComments = await parseLegacyCommentsSpreadsheet(file.buffer, sheetName)
 	const dbComments = await db.query('SELECT * FROM comments WHERE BallotID=?', [ballotId])
 
 	const [matched, dbCommentsRemaining, sheetCommentsRemaining] = match[matchAlgorithm](sheetComments, dbComments)
-	console.log(sheetCommentsRemaining)
-	if (matchAll && (sheetCommentsRemaining.length || dbCommentsRemaining.length)) {
+	if (matchAll && (sheetCommentsRemaining.length > 0 || dbCommentsRemaining.length > 0)) {
 		throw `No update\n` +
-			`${matched.length} matched entries\n` +
-			`${dbCommentsRemaining.length} unmatch database entries\n` +
-			`${sheetCommentsRemaining.length} unmatch spreadsheet entries:\n` +
+			`${matched.length} entries match\n` +
+			`${dbCommentsRemaining.length} unmatched database entries:\n` +
+			dbCommentsRemaining.map(c => c.CommentID).join(', ') + '\n' +
+			`${sheetCommentsRemaining.length} unmatched spreadsheet entries:\n` +
 			sheetCommentsRemaining.map(c => c['CID']).join(', ')
 	}
 
@@ -819,7 +971,7 @@ async function uploadResolutions(ballotId, matchAlgorithm, matchAll, file) {
 	for (let m of matched) {
 		const c = m.dbComment
 		const cs = m.sheetComment
-		const u = commentUpdate(c, cs)
+		const u = commentUpdate(toUpdate, c, cs)
 		if (u) {
 			updateComments.push(u)
 		}
@@ -838,11 +990,13 @@ async function uploadResolutions(ballotId, matchAlgorithm, matchAll, file) {
 		}
 	}
 
+	console.log(newResolutions.length)
 	if (newResolutions.length) {
 		SQL +=
 			db.format('INSERT INTO resolutions (BallotID, ??) VALUES ', [Object.keys(newResolutions[0])]) +
 			newResolutions.map(r => db.format('(?, ?)', [ballotId, Object.values(r)])).join(',') +
 			';'
+			console.log(SQL)
 	}
 	SQL += db.format(GET_COMMENTS_SQL + 'WHERE c.BallotID=?;', [ballotId])
 	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId])
@@ -857,20 +1011,73 @@ async function uploadResolutions(ballotId, matchAlgorithm, matchAll, file) {
 		BallotID: ballotId,
 		comments: results[results.length-2],
 		summary: results[results.length-1][0],
-		unmatch: sheetCommentsRemaining.map(c => c['CID'])
+		unmatched: sheetCommentsRemaining.map(c => c['CID'])
 	}
 }
 
-async function exportMyProjectComments(ballotId, res) {
+async function exportResolutionsForMyProject(ballotId, filename, file, res) {
 	
-	const comments = await db.query(GET_COMMENTS_SQL + "WHERE r.ResnStatus IS NOT NULL AND r.ResnStatus <> '' AND c.BallotID = ?;", [ballotId])
-	//console.log(comments)
+	const comments = await db.query(
+		GET_COMMENTS_SQL + 
+		"WHERE c.BallotID=? " +
+			"AND r.ApprovedByMotion IS NOT NULL AND r.ApprovedByMotion <> '' " +
+			"AND r.ResnStatus IS NOT NULL AND r.ResnStatus <> '';",
+		[ballotId])
 
-	let wb = myProjectCommentsWorkbook(comments)
+	let workbook = new ExcelJS.Workbook()
+	try {
+		await workbook.xlsx.load(file.buffer)
+	}
+	catch(err) {
+		throw "Invalid workbook: " + err
+	}
 
-	res.attachment(ballotId + '_comments.xlsx')
+	myProjectAddResolutions(workbook, comments)
+	res.attachment(filename || 'comments_resolved.xlsx')
+	try {
+		await workbook.xlsx.write(res)
+	}
+	catch(err) {
+		throw "Unable to regenerate workbook: " + err
+	}
+	res.end()
+}
 
-	await wb.xlsx.write(res)
+async function exportSpreadsheet(ballotId, filename, file, res) {
+	
+	const [comments, ballots] = await db.query(
+		GET_COMMENTS_SQL + "WHERE c.BallotID=?;" +
+		"SELECT Document FROM ballots WHERE BallotID=?;",
+		[ballotId, ballotId]);
+	const doc = ballots.length > 0? ballots[0].Document: ''
+
+	let workbook = new ExcelJS.Workbook()
+	try {
+		await workbook.xlsx.load(file.buffer)
+	}
+	catch(err) {
+		throw "Invalid workbook: " + err
+	}
+	let ids = []
+	workbook.eachSheet(sheet => {
+		if (sheet.name !== 'Title' && sheet.name !== 'Revision History') {
+			ids.push(sheet.id)
+		}
+	})
+	for (let id of ids) {
+		workbook.removeWorksheet(id)
+	}
+
+	let sheet = workbook.addWorksheet('Comments')
+	genLegacyWorksheetTable(sheet, ballotId, doc, comments)
+
+	res.attachment(filename || 'comments.xlsx')
+	try {
+		await workbook.xlsx.write(res)
+	}
+	catch(err) {
+		throw "Unable to regenerate workbook: " + err
+	}
 	res.end()
 }
 
@@ -885,5 +1092,6 @@ module.exports = {
 	importEpollComments,
 	uploadComments,
 	uploadResolutions,
-	exportMyProjectComments
+	exportResolutionsForMyProject,
+	exportSpreadsheet
 }

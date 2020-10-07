@@ -1,59 +1,60 @@
+import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
 import Select from 'react-dropdown-select'
-import {genCommentsOptions} from '../actions/comments'
+import styled from '@emotion/styled'
 
+const StyledSelect = styled(Select)`
+	background-color: white;
+	border: 1px solid #ddd;
+	padding: 0;
+	box-sizing: border-box;
+	width: ${({width}) => typeof width === 'undefined'? 'unset': (width + (typeof width === 'number'? 'px': ''))}`
 
-/** @jsx jsx */
-import { css, jsx } from '@emotion/core'
+function CommentGroupSelector({
+	value,
+	onChange,
+	comments,
+	loading,
+	placeholder,
+	width
+}) {
 
-function CommentGroupSelector({value, onChange, options, getOptions, loading, placeholder, ...otherProps}) {
+	const options = React.useMemo(() => {
+		return [...new Set(comments.map(c => c['CommentGroup']))].map(v => ({value: v, label: v}))
+	}, [comments]);
 
-	const selectCss = css`
-		background-color: white;
-		border: 1px solid #ddd;
-		padding: 0;
-		box-sizing: border-box;
-		width: unset;`
+	const optionSelected = options.find(o => o.value === value);
 
-	const selectValue = options.find(o => o.value === value)
 	return (
-		<div {...otherProps}>
-			<Select
-				css={selectCss}
-				values={selectValue? [selectValue]: []}
-				onChange={(values) => onChange(values.length? values[0].value: '')}
-				options={options}
-				loading={loading}
-				create
-				clearable
-				onDropdownOpen={getOptions}
-				placeholder={placeholder}
-			/>
-		</div>
+		<StyledSelect
+			width={width}
+			values={optionSelected? [optionSelected]: []}
+			onChange={(values) => onChange(values.length? values[0].value: '')}
+			options={options}
+			loading={loading}
+			create
+			clearable
+			placeholder={placeholder}
+		/>
 	)
 }
 
 CommentGroupSelector.propTypes = {
 	value: PropTypes.string.isRequired,
 	onChange: PropTypes.func.isRequired,
+	width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+	comments: PropTypes.array.isRequired,
 	loading: PropTypes.bool.isRequired,
-	options: PropTypes.array.isRequired,
-	getOptions: PropTypes.func.isRequired,
+	placeholder: PropTypes.string,
 }
 
 export default connect(
 	(state) => {
 		const {comments} = state
 		return {
-			options: comments.options['CommentGroup'] || [],
+			comments: comments.comments,
 			loading: comments.getComments
 		}
-	},
-	(dispatch) => {
-		return {
-			getOptions: () => dispatch(genCommentsOptions('CommentGroup'))
-		}
 	}
-
 )(CommentGroupSelector)

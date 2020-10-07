@@ -3,6 +3,13 @@
 // Began life here https://github.com/koalyptus/TableFilter
 //
 
+import {
+	FILTER_INIT,
+	FILTER_SET,
+	FILTER_REMOVE,
+	FILTER_CLEAR_ALL
+} from '../actions/filter'
+
 const parseNumber = (value) => {
 	// Return the value as-is if it's already a number
 	if (typeof value === 'number') {
@@ -189,6 +196,13 @@ export function filterSetValue(filter, value) {
 	}
 }
 
+export function filterSetOptions(filter, options) {
+	return {
+		...filter,
+		options
+	}
+}
+
 export function filterCreate(type, values = '') {
 
 	if (!filterTypeValid(type)) {
@@ -199,11 +213,26 @@ export function filterCreate(type, values = '') {
 		type,
 		values,
 		valid: Array.isArray(values)? true: filterValidate(type, values),
+		options: []
 	}
+}
+
+export function isFilterable(filters, dataKey) {
+	return filters.hasOwnProperty(dataKey)
 }
 
 function filterTypeValid(type) {
 	return Object.values(FilterType).includes(type)
+}
+
+function filtersInit(entries) {
+	const filters = {}
+	if (entries) {
+		for (let dataKey of Object.keys(entries)) {
+			filters[dataKey] = filterCreate(entries[dataKey].type)
+		}
+	}
+	return filters;
 }
 
 export const FilterType = {
@@ -212,3 +241,39 @@ export const FilterType = {
 	CLAUSE: 2,
 	PAGE: 3
 }
+
+function filtersReducer(state = {}, action) {
+
+	switch (action.type) {
+		case FILTER_SET:
+			return {
+				...state,
+				[action.dataKey]: filterSetValue(state[action.dataKey], action.value)
+			}
+		case FILTER_REMOVE:
+			let filter = {...state[action.dataKey]}
+			if (Array.isArray(filter.values))
+				filter.values = filter.values.filter(v => v !== action.value)
+			else
+				filter.values = []
+			return {
+				...state,
+				[action.dataKey]: filter
+			}
+
+		case FILTER_CLEAR_ALL:
+			const filters = {}
+			for (let dataKey in state) {
+				filters[dataKey] = filterSetValue(state[dataKey], '')
+			}
+			return filters
+
+		case FILTER_INIT:
+			return filtersInit(action.entries)
+
+		default:
+			return state
+	}
+}
+
+export default filtersReducer

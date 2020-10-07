@@ -1,67 +1,62 @@
 import React from 'react'
 import {connect} from 'react-redux'
-import {Row, Col} from 'react-grid-system'
-import {ColumnSearchFilter, ColumnDropdownFilter} from '../general/AppTable'
-import {setCommentsFilter, removeCommentsFilter, clearCommentsFilters, genCommentsOptions} from '../actions/comments'
-import {Handle, Cross} from '../general/Icons'
-import ClickOutside from '../general/ClickOutside'
+import styled from '@emotion/styled'
+import Select from 'react-dropdown-select'
+import {ColumnSearchFilter, ColumnDropdown} from '../table/AppTable'
+import {setCommentsFilter, removeCommentsFilter, clearCommentsFilters, genCommentsOptions, setCommentsSort} from '../actions/comments'
 import {CommentIdFilter} from './CommentIdList'
+import ShowFilters from '../table/ShowFilters'
 
-/** @jsx jsx */
-import { css, jsx } from '@emotion/core'
 
-const labelCss = css`
-	font-weight: bold;
-	margin: 3px 5px 3px 5px;`
+const commentFieldLabel = dataKey => ({
+	CommenterName: 'Commenter',
+	MustSatisfy: 'Must Satisfy',
+	Category: 'Cat',
+	Page: 'Page',
+	ProposedChange: 'Proposed Change',
+	CommentGroup: 'Comment Group',
+	AssigneeName: 'Assignee',
+	Status: 'Status',
+	ApprovedByMotion: 'Motion Number',
+	ResnStatus: 'Resn Status',
+	Resolution: 'Resolution',
+	EditStatus: 'Editing Status',
+	EditInDraft: 'In Draft',
+	EditNotes: 'Editing Notes'
+}[dataKey] || dataKey);
 
-const commentFieldLabel = (dataKey) => {
-
-	const fieldLabels = {
-		CommenterName: 'Commenter',
-		MustSatisfy: 'Must Satisfy',
-		Category: 'Cat',
-		Page: 'Page',
-		ProposedChange: 'Proposed Change',
-		CommentGroup: 'Comment Group',
-		AssigneeName: 'Assignee',
-		Status: 'Status',
-		ApprovedByMotion: 'Motion Number',
-		ResnStatus: 'Resn Status',
-		Resolution: 'Resolution',
-		EditStatus: 'Editing Status',
-		EditInDraft: 'In Draft',
-		EditNotes: 'Editing Notes'
+const SearchInput = styled.input`
+	margin: 10px 10px 0;
+	line-height: 30px;
+	padding: 0px 20px;
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	:focus {
+		outline: none;
+		border: 1px solid deepskyblue;
 	}
-	let label = fieldLabels[dataKey]
-	if (!label) {
-		label = dataKey
-	}
-	return label
-}
-/*
-function Row(props) {
-	const rowCss = css`
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;`
-	return <div css={rowCss} {...props} />
-}
+`;
 
-function Col(props) {
-	const colCss = css`
-		display: flex;
-		flex-direction: column;
-		margin: 5px;`
-	return <div css={colCss} {...props} />
-}
-*/
+const StyledSelect = styled(Select)`
+	background-color: white;
+	border: 1px solid #ddd;
+	padding: 0;
+	box-sizing: border-box;
+	.react-dropdown-select-dropdown {
+		overflow: initial;
+		max-height: unset;
+		width: unset;
+	}
+`;
+
 
 function commentsFilterStateMap(state, ownProps) {
 	const {dataKey} = ownProps
 	return {
+		label: commentFieldLabel(dataKey),
 		filter: state.comments.filters[dataKey],
-		options: state.comments.options[dataKey],
-		label: commentFieldLabel(dataKey)
+		sort: state.comments.sort,
+		options: state.comments.filters[dataKey].options
 	}
 }
 
@@ -69,202 +64,108 @@ function commentsFilterDispatchMap(dispatch, ownProps) {
 	const {dataKey} = ownProps
 	return {
 		setFilter: (value) => dispatch(setCommentsFilter(dataKey, value)),
-		genOptions: () => dispatch(genCommentsOptions(dataKey))
+		setSort: (dataKey, direction) => dispatch(setCommentsSort(dataKey, direction)),
+		genOptions: (all) => dispatch(genCommentsOptions(dataKey, all))
 	}
 }
 
-const CommentsDropdownFilter = connect(commentsFilterStateMap, commentsFilterDispatchMap)(
-	({label, ...otherProps}) => {
-		return (
-			<Col onClick={e => e.stopPropagation()}>
-				<label css={labelCss}>{label}</label>
-				<ColumnDropdownFilter {...otherProps} />
-			</Col>
-		)
-	}
-)
+export const CommentsColumnDropdown = connect(commentsFilterStateMap, commentsFilterDispatchMap)(ColumnDropdown)
 
-const CommentsSearchFilter = connect(commentsFilterStateMap, commentsFilterDispatchMap)(
-	({label, ...otherProps}) => {
-		return (
-			<Col onClick={e => e.stopPropagation()}>
-				<label css={labelCss}>{label}</label>
-				<ColumnSearchFilter {...otherProps} />
-			</Col>
-		)
-	}
-)
+const ActiveFilterLabel = styled.label`
+	font-weight: bold;
+	line-height: 22px;
+	margin: 3px;
+`;
+
+const ActiveFilterContainer = styled.div`
+	display: flex;
+	flex-direction: row;
+	height: 22px;
+	margin: 3px 3px 3px 0;
+	background: #0074d9;
+	color: #fff;
+	align-items: center;
+	:hover {opacity: 0.9}`
+
+const ActiveFilterItem = styled.span`
+	color: #fff;
+	line-height: 21px;
+	padding: 0 0 0 5px;
+`;
+
+const ActiveFilterClose = styled.span`
+	cursor: pointer;
+	width: 22px;
+	text-align: center;
+	:after {content: "×"}
+	:hover {color: tomato}
+`;
 
 function ActiveFilter({children, remove}) {
-	const componentCss = css`
-		display: flex;
-		flex-direction: row;
-		border: 1px solid #fff;
-		border-radius: 2px;
-		padding: 0 5px;
-		margin: 3px 0 3px 5px;
-		background: #0074d9;
-		color: #fff;
-		:hover {opacity: 0.9}`
-	const itemCss = css`
-		color: #fff;
-		line-height: 21px`
-	const closeCss = css`
-		cursor: pointer;
-		width: 22px;
-		height: 22px;
-		text-align: center;
-		margin: 0 -5px 0 0;
-		border-radius: 0 3px 3px 0;
-		:hover {color: tomato}`
 	return (
-		<span css={componentCss} role='listitem' direction='ltr' onClick={e => e.stopPropagation()} >
-			<span css={itemCss}>{children}</span>
-			<span css={closeCss} onClick={remove}>×</span>
-		</span>
+		<ActiveFilterContainer role='listitem' direction='ltr'>
+			{children && <ActiveFilterItem>{children}</ActiveFilterItem>}
+			<ActiveFilterClose onClick={remove} />
+		</ActiveFilterContainer>
 	)
 }
 
-function _ShowFilters({filters, setFilter, removeFilter, options}) {
-
-	let children = []
+function renderActiveFilters({filters, setFilter, removeFilter, clearFilters, options}) {
+	let elements = []
 	for (let dataKey of Object.keys(filters)) {
 		let f = filters[dataKey]
 		if (f.valid && f.values.length) {
-			children.push(<label key={dataKey} css={labelCss}>{commentFieldLabel(dataKey) + ': '}</label>)
+			elements.push(<ActiveFilterLabel key={dataKey}>{commentFieldLabel(dataKey) + ': '}</ActiveFilterLabel>)
 			if (Array.isArray(f.values)) {
 				for (let v of f.values) {
 					const o = options[dataKey].find(o => o.value === v)
 					const s = o? o.label: v
-					children.push(<ActiveFilter key={`${dataKey}_${v}`} remove={() => removeFilter(dataKey, v)}>{s}</ActiveFilter>)
+					elements.push(<ActiveFilter key={`${dataKey}_${v}`} remove={() => removeFilter(dataKey, v)}>{s}</ActiveFilter>)
 				}
 			}
 			else {
 				const s = f.values
-				children.push(<ActiveFilter key={`${dataKey}_${s}`} remove={() => setFilter(dataKey, '')}>{s}</ActiveFilter>)
+				elements.push(<ActiveFilter key={`${dataKey}_${s}`} remove={() => setFilter(dataKey, '')}>{s}</ActiveFilter>)
 			}
 		}
 	}
-
-	if (children.length === 0) {
-		const placeholderCss = css`
-			color: #ccc;
-			margin-left: 5px;
-			font-size: smaller`
-		children.push(<span key='nothing' css={placeholderCss}>Select...</span>)
+	if (elements.length > 2) {
+		elements.push(<ActiveFilterLabel>Clear All:</ActiveFilterLabel>)
+		elements.push(<ActiveFilter key={'clear_all'} remove={clearFilters} />)
 	}
-
-	const showFiltersCss = css`
-		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
-		max-height: 120px;
-		overflow: hidden;`
-	return <div css={showFiltersCss}>{children}</div>
+	return elements
 }
 
-const ShowFilters = connect(
-	(state, ownProps) => {
-		return {
-			filters: state.comments.filters,
-			options: state.comments.options
-		}
-	},
-	(dispatch, ownProps) => {
-		return {
-			setFilter: (dataKey, value) => dispatch(setCommentsFilter(dataKey, value)),
-			removeFilter: (dataKey, value) => dispatch(removeCommentsFilter(dataKey, value))
-		}
+const FiltersContainer = styled.div`
+	display: flex;
+	flex-direction: row;
+`;
+
+const FiltersLabel = styled.div`
+	flex: content;
+	margin: 5px;
+	& label {
+		font-weight: bold;
 	}
-)(_ShowFilters)
+`;
 
-function ChangeFilters(props) {
+const FiltersPlaceholder = styled.span`
+	color: #ccc;
+	margin-left: 5px;
+`;
 
-	return (
-		<Col onClick={e => e.stopPropagation()} >
-			<Row>
-				<label css={labelCss}>CID</label>
-				<CommentIdFilter />
-			</Row>
-			<Row>
-				<Col>
-					<Row>
-						<CommentsSearchFilter dataKey='Clause' width={100} />
-						<CommentsSearchFilter dataKey='Page' width={80} />
-						<CommentsDropdownFilter dataKey='Category' />
-					</Row>
-					<Row>
-						<CommentsDropdownFilter dataKey='CommenterName' width={200} />
-						<CommentsDropdownFilter dataKey='Vote' width={100} />
-						<CommentsDropdownFilter dataKey='MustSatisfy' />
-					</Row>
+const FiltersContent = styled.div`
+	flex: 1;
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-content: flex-start;
+	border: solid 1px #ccc;
+	border-radius: 3px;
+`;
 
-				</Col>
-				<Col>
-					<CommentsSearchFilter dataKey='Comment' />
-					<CommentsSearchFilter dataKey='ProposedChange' />
-				</Col>
-				<Col>
-					<CommentsDropdownFilter dataKey='CommentGroup' />
-					<CommentsDropdownFilter dataKey='AssigneeName' />
-				</Col>
-				<Col>
-					<CommentsDropdownFilter dataKey='Status' />
-					<CommentsDropdownFilter dataKey='ApprovedByMotion' />
-				</Col>
-				<Col>
-					<Row>
-						<CommentsDropdownFilter dataKey='Submission' />
-						<CommentsDropdownFilter dataKey='ResnStatus' />
-					</Row>
-					<CommentsSearchFilter dataKey='Resolution' />
-				</Col>
-				<Col>
-					<Row>
-						<CommentsDropdownFilter dataKey='EditStatus' width={70} />
-						<CommentsDropdownFilter dataKey='EditInDraft' width={80} />
-					</Row>
-					<CommentsSearchFilter dataKey='EditNotes' />
-				</Col>
-			</Row>
-		</Col>
-	)
-}
 
-function CommentsFilters({totalRows, shownRows, clearFilters, hasFilter, ...otherProps}) {
-	const [open, setOpen] = React.useState(false)
-
-	const containerCss = css`
-		display: flex;
-		flex-direction: row;
-		align-items: center;`
-		
-	const filtersCss = css`
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		cursor: pointer;
-		border: 1px solid #ccc;
-		border-radius: 2px;
-		background-color: white;
-		min-height: 36px;
-		align-items: center;
-		:hover {border-color: #0074D9}`
-
-	return (
-		<div css={containerCss} {...otherProps} >
-			<Col>
-				<label css={labelCss}>Filters:</label>
-				<span>{`Showing ${shownRows} of ${totalRows}`}</span>
-			</Col>
-			<ClickOutside css={filtersCss} onClick={() => setOpen(!open)} onClickOutside={() => setOpen(false)} >
-				{open? <ChangeFilters />: <ShowFilters />}
-				{hasFilter() && <Cross title="Clear All" onClick={e => {clearFilters(); e.stopPropagation()}} />}
-				<Handle title={open? "Close": "Open"} open={open} onClick={(e) => {setOpen(!open);e.stopPropagation()}} />
-			</ClickOutside>
-		</div>
-	)
-}
+const CommentsFilters = (props) => <ShowFilters {...props} />
 
 /* Run through the filters and see if at least one is set */
 function hasFilter(filters) {
@@ -288,13 +189,15 @@ export default connect(
 	(state, ownProps) => {
 		const {comments} = state
 		return {
-			totalRows: comments.comments.length,
-			shownRows: comments.commentsMap.length,
-			hasFilter: () => hasFilter(comments.filters)
+			data: comments.comments,
+			dataMap: comments.commentsMap,
+			filters: state.comments.filters
 		}
 	},
 	(dispatch, ownProps) => {
 		return {
+			setFilter: (dataKey, value) => dispatch(setCommentsFilter(dataKey, value)),
+			removeFilter: (dataKey, value) => dispatch(removeCommentsFilter(dataKey, value)),
 			clearFilters: () => dispatch(clearCommentsFilters())
 		}
 	}

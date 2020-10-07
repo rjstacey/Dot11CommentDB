@@ -6,36 +6,37 @@ import {SortType, SortDirection, isSortable} from '../reducers/sort'
 import styled from '@emotion/styled'
 import cn from 'classnames'
 import Select from 'react-dropdown-select'
-
+import ColumnDropdown from './ColumnDropdown'
 
 const StyledSelect = styled(Select)`
 	background-color: white;
 	border: 1px solid #ddd;
 	padding: 0;
-	box-sizing: border-box;`
+	box-sizing: border-box`
 
-export function ColumnDropdownFilter({dataKey, filter, setFilter, options, genOptions, width}) {
+export function ColumnDropdownFilter({filter, setFilter, options, genOptions, width}) {
 
 	const onChange = (values) => {
+		console.log(values)
 		setFilter(values.map(v => v.value))
 	}
 
 	const values = Array.isArray(filter.values)?
 		filter.values.map(v => options.find(o => o.value === v)):
-		[]
+		[];
 
 	return (
-			<StyledSelect
-				style={{width: width}}
-				placeholder=""
-				values={values}
-				onChange={onChange}
-				multi
-				closeOnSelect
-				onDropdownOpen={genOptions}
-				options={options}
-			/>
-    )
+		<StyledSelect
+			style={{width: width}}
+			placeholder=""
+			values={values}
+			onChange={onChange}
+			multi
+			closeOnSelect
+			onDropdownOpen={() => {console.log('drop'); genOptions()}}
+			options={options}
+		/>
+	)
 }
 
 const SearchFilter = styled.input`
@@ -76,16 +77,19 @@ const HeaderLabel = styled.div`
 	display: block;
 	user-select: none;
 	position: relative;
+	${({sortable}) => sortable? 'cursor: pointer;': ''}
 	width: 100%;
 	font-weight: bold;
 	.icon {
 		position: relative;
 		top: -2px;
 	}`
+
 const LabelText = styled.div`
 	display: inline-block;
 	white-space: nowrap;
-	overflow: hidden;`
+	overflow: hidden;
+	width: ${({direction}) => direction === SortDirection.NONE? '100%': 'calc(100% - 14px)'}`
 
 export function ColumnLabel({dataKey, label, sort, setSort, ...otherProps}) {
 	let direction = SortDirection.NONE, onClick, isAlpha
@@ -101,16 +105,17 @@ export function ColumnLabel({dataKey, label, sort, setSort, ...otherProps}) {
 	return (
 		<HeaderLabel
 			title={label}
-			style={sortable? {cursor: 'pointer'}: {}}
+			sortable={sortable}
 			onClick={onClick}
 			{...otherProps}
 		>
-			<LabelText style={{width: direction === SortDirection.NONE? '100%': 'calc(100% - 14px)'}}>{label}</LabelText>
+			<LabelText direction={direction}>{label}</LabelText>
 			{direction !== 'NONE' && <IconSort className='icon' isAlpha={isAlpha} direction={direction} />}
 		</HeaderLabel>
 	)
 }
 
+/*
 function defaultHeaderCellRenderer({column, sort, setSort, filters, setFilter}) {
 	const {key, label} = column
 	return (
@@ -130,47 +135,60 @@ function defaultHeaderCellRenderer({column, sort, setSort, filters, setFilter}) 
 		</React.Fragment>
 	)
 }
+*/
 
-const FlexRow = styled.div`
+const defaultHeaderCellRenderer = (props) => <label>{props.column.label}</label>
+
+const HeaderCellAnchor = styled.div`
+	position: relative;
+	width: 0;
+	height: 100%;
+`;
+
+const HeaderCell = styled.div`
 	display: flex;
-	flex-direction: row;`
+	flex-direction: row;
+`;
 
-const DragHandle = styled.div`
+const HeaderCellContent = styled.div`
+	height: 100%;
+	width: calc(100% - 12px)
+`;
+
+const ResizeHandle = styled.div`
+	height: 100%;
+	width: 12px;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
 	cursor: col-resize;
 	color: #0085ff;
+	::after {
+		content: "⋮";
+	}
 	:hover,
 	.dragging {
 		color: #0b6fcc;
 		background-color: rgba(0, 0, 0, 0.1)
-	}`
+	}
+`;
 
-function ResizableHeaderCell({width, setWidth, children, ...otherProps}) {
+function ColumnResizer({width, setWidth}) {
 	const [drag, setDrag] = React.useState(false)
 	return (
-		<FlexRow {...otherProps}>
-			<div style={{height: '100%', width: 'calc(100% - 12px)'}}>
-				{children}
-			</div>
-			<DraggableCore
-				axis="x"
-				onDrag={(event, {deltaX}) => setWidth(width + deltaX)}
-				onStart={e => setDrag(true)}
-				onStop={e => setDrag(false)}
-			>
-				<DragHandle className={cn(drag && 'dragging')} style={{height: '100%', width: '12px'}}>
-					<span>⋮</span>
-				</DragHandle>
-			</DraggableCore>
-		</FlexRow>
+		<DraggableCore
+			axis="x"
+			onDrag={(event, {deltaX}) => setWidth(width + deltaX)}
+			onStart={e => setDrag(true)}
+			onStop={e => setDrag(false)}
+		>
+			<ResizeHandle className={drag? 'dragging': undefined} />
+		</DraggableCore>
 	)
 }
 
 const HeaderContainer = styled.div`
-	overflow: hidden;
 	box-sizing: border-box;`
 
 const HeaderRow = styled.div`
@@ -178,14 +196,38 @@ const HeaderRow = styled.div`
 	box-sizing: border-box;
 	height: 100%;`
 
+function MyHeaderCell({style, cellRenderer, cellProps, width, setWidth, ...otherProps}) {
+	const anchorRef = React.useRef();
+	return (
+		<React.Fragment>
+			<HeaderCellAnchor ref={anchorRef} />
+			<HeaderCell {...otherProps}
+				className='AppTable__headerCell'
+				style={style}
+			>
+				<HeaderCellContent>
+					{cellRenderer({anchorRef, ...cellProps})}
+				</HeaderCellContent>
+				<ColumnResizer
+					width={width}
+					setWidth={setWidth}
+				/>
+			</HeaderCell>
+		</React.Fragment>
+	)
+}
+
 /**
  * TableHeader component for AppTable
+ *
+ * HeaderCellAnchor is of zero width and provides an attachment point (outside the 'overflow: hidden') for dropdown overlays
+ * HeaderCell containst the header cell content and column resizer
  */
 const TableHeader = React.forwardRef(({
 	className,
 	fixed,
-	width,
-	height,
+	outerStyle,
+	innerStyle,
 	columns,
 	setColumnWidth,
 	filters,
@@ -200,26 +242,25 @@ const TableHeader = React.forwardRef(({
 	rowKey,
 	...otherProps}, ref) => {
 
-	const totalWidth = columns.reduce((acc, col) => acc + col.width, 0);
-
 	const cells = columns.map((column, columnIndex) => {
 		const containerStyle = {
 			flexBasis: column.width,
 			flexGrow: fixed? 0: column.flexGrow,
-			flexShrink: fixed? 0: column.flexShrink
+			flexShrink: fixed? 0: column.flexShrink,
+			overflow: 'hidden'	// necessary so that the content does not affect size
 		}
 		const cellRenderer = column.headerRenderer || defaultHeaderCellRenderer
 		const cellProps = {columnIndex, column, data, dataMap, rowGetter, rowKey, sort, setSort, filters, setFilter, selected, setSelected}
 		return (
-			<ResizableHeaderCell
+			<MyHeaderCell
 				key={columnIndex}
-				className='AppTable__headerCell'
 				style={containerStyle}
+				cellRenderer={cellRenderer}
+				cellProps={cellProps}
 				width={column.width}
 				setWidth={width => setColumnWidth(columnIndex, width)}
-			>
-				{cellRenderer(cellProps)}
-			</ResizableHeaderCell>
+				{...otherProps}
+			/>
 		)
 	})
 
@@ -228,11 +269,11 @@ const TableHeader = React.forwardRef(({
 	return (
 		<HeaderContainer
 		 	ref={ref}
-			style={{height, width}}
+			style={outerStyle}
 		>
 			<HeaderRow
 				className={classNames}
-				style={{width: fixed? totalWidth: width, height}}
+				style={innerStyle}
 			>
 				{cells}
 			</HeaderRow>

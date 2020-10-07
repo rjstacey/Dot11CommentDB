@@ -4,9 +4,7 @@ import {shouldComponentUpdate} from 'react-window';
 
 import styled from '@emotion/styled'
 
-function defaultCellRenderer({rowData, key}) {
-	return rowData[key]
-}
+const defaultCellRenderer = ({rowData, key}) => rowData[key];
 
 const BodyRow = styled.div`
 	display: flex;
@@ -56,6 +54,7 @@ class TableRow extends React.Component {
 			setSelected,
 			estimatedRowHeight,
 			onRowHeightChange,
+			onRowClick,
 			onRowDoubleClick,
 			...otherProps
 		} = this.props;
@@ -67,7 +66,8 @@ class TableRow extends React.Component {
 			const cellStyle = {
 				flexBasis: column.width,
 				flexGrow: fixed? 0: column.flexGrow,
-				flexShrink: fixed? 0: column.flexShrink
+				flexShrink: fixed? 0: column.flexShrink,
+				overflow: 'hidden'	// necessary so that the content does not affect size
 			}
 			return (
 				<div className='AppTable__dataCell' key={columnIndex} style={cellStyle}>
@@ -81,13 +81,17 @@ class TableRow extends React.Component {
 			delete rowStyle.height
 		}
 
+		const onClick = onRowClick? event => onRowClick({event, rowIndex, rowData}): undefined
+		const onDoubleClick = onRowDoubleClick? event => onRowDoubleClick({event, rowIndex, rowData}): undefined
+
 	  	return (
 			<BodyRow
 				{...otherProps}
 				ref={ref => this.ref = ref}
 				className={className}
 				style={rowStyle}
-				onDoubleClick={e => onRowDoubleClick({rowIndex, rowData})}
+				onClick={onClick}
+				onDoubleClick={onDoubleClick}
 			>
 				{cells}
 			</BodyRow>

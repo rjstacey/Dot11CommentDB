@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types'
-import React, {useState, useEffect, useRef} from 'react'
+import React from 'react'
 import { connect } from 'react-redux'
+import styled from '@emotion/styled'
 import AppTable, {ColumnLabel, ColumnDropdownFilter} from '../table/AppTable'
 import AppModal from '../modals/AppModal'
 import ConfirmModal from '../modals/ConfirmModal'
@@ -17,43 +18,103 @@ import {
 	uploadUsers
 } from '../actions/users'
 
-const defaultUser = {SAPIN: '', Name: '', Email: '', Access: 3}
+const DefaultUser = {SAPIN: '', Name: '', Email: '', Access: 3}
+const EditUserAction = {CLOSED: 0, ADD: 1, UPDATE: 2}
 
-function AddEditUserModal({isOpen, user, setUser, submit, close}) {
+const Form = styled.ul`
+	width: 400px;
+	padding: 0;
+	overflow: visible;`
 
-	function change(e) {
-		setUser({...user, [e.target.name]: e.target.value})
+const FormRow = styled.li`
+	display: flex;
+	flex-wrap: wrap;
+	margin: 10px;
+	justify-content: space-between;
+	&:last-child {	/* last item has buttons */
+		margin-top: 30px;
+		justify-content: space-around;
+	}
+	& > label {
+		flex: 1 0 100px;
+		max-width: 220px;
+		font-weight: bold;
+	}
+	& > input {
+		flex: 1 0 200px;
+	}
+	& > button {
+		padding: 8px 16px;
+		border: none;
+		background: #333;
+		color: #f2f2f2;
+		text-transform: uppercase;
+		border-radius: 2px;
+	}`
+
+function EditUserModal(props) {
+	const [user, setUser] = React.useState(props.user)
+
+	const onOpen = () => setUser(props.user)
+
+	function submit() {
+		if (props.action === EditUserAction.ADD)
+			props.addUser(user)
+		else
+			props.updateUser(props.user.SAPIN, user)
+		props.close()
 	}
 
+	const change = e => setUser({...user, [e.target.name]: e.target.value})
+	const actionText = props.action === EditUserAction.ADD? 'Add': 'Update'
 	return (
 		<AppModal
-			isOpen={isOpen}
-			onRequestClose={close}
+			isOpen={props.isOpen}
+			onAfterOpen={onOpen}
+			onRequestClose={props.close}
 		>
-			<label>SA PIN:<input type='text' name='SAPIN' value={user.SAPIN} onChange={change}/></label><br />
-			<label>Name:<input type='text' name='Name' value={user.Name} onChange={change}/></label><br />
-			<label>Email:<input type='text' name='Email' value={user.Email} onChange={change}/></label><br />
-			<label>Access Level:
-				<AccessSelector 
-					value={user.Access}
-					onChange={value => setUser({...user, Access: value})}
-				/>
-			</label><br />
-			<button onClick={submit}>Add</button>
-			<button onClick={close}>Cancel</button>
+			<p>{actionText} user</p>
+			<Form>
+				<FormRow>
+					<label htmlFor='SAPIN'>SA PIN:</label>
+					<input type='text' id='SAPIN' name='SAPIN' value={user.SAPIN} onChange={change}/>
+				</FormRow>
+				<FormRow>
+					<label htmlFor='Name'>Name:</label>
+					<input type='text' id='Name' name='Name' value={user.Name} onChange={change}/>
+				</FormRow>
+				<FormRow>
+					<label htmlFor='Email'>Email:</label>
+					<input type='text' id='Email' name='Email' value={user.Email} onChange={change}/>
+				</FormRow>
+				<FormRow>
+					<label htmlFor='Access'>Access Level:</label>
+					<AccessSelector
+						id='Access'
+						value={user.Access}
+						onChange={value => {console.log(value); setUser({...user, Access: value})}}
+					/>
+				</FormRow>
+				<FormRow>
+					<button onClick={submit}>{actionText}</button>
+					<button onClick={props.close}>Cancel</button>
+				</FormRow>
+			</Form>
 		</AppModal>
 	)
 }
-AddEditUserModal.propTypes = {
+
+EditUserModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
-	submit: PropTypes.func.isRequired,
 	close: PropTypes.func.isRequired,
+	action: PropTypes.number.isRequired,
 	user: PropTypes.object.isRequired,
-	setUser: PropTypes.func.isRequired
+	addUser: PropTypes.func.isRequired,
+	updateUser: PropTypes.func.isRequired
 }
 
 function UploadUsersModal({isOpen, close, submit}) {
-	const fileInputRef = useRef()
+	const fileInputRef = React.useRef()
 
 	return (
 		<AppModal
@@ -72,6 +133,7 @@ function UploadUsersModal({isOpen, close, submit}) {
 		</AppModal>
 	)
 }
+
 UploadUsersModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
@@ -79,23 +141,16 @@ UploadUsersModal.propTypes = {
 }
 
 const UsersAccessFilter = connect(
-	(state) => {
-		const dataKey = 'Access'
-		return {
-			filter: state.users.filters[dataKey],
-			options: state.users.accessOptions,
-		}
-	},
-	(dispatch) => {
-		const dataKey = 'Access'
-		return {
-			setFilter: (value) => dispatch(setUsersFilter(dataKey, value)),
-		}
-	}
+	(state, ownProps) => ({
+		filter: state.users.filters[ownProps.dataKey],
+		options: state.users.accessOptions,
+	}),
+	(dispatch, ownProps) => ({
+		setFilter: (value) => dispatch(setUsersFilter(ownProps.dataKey, value)),
+	})
 )(ColumnDropdownFilter)
 
 function usersTableHeader(props) {
-	console.log(props)
 	return (
 		<React.Fragment>
 			<ColumnLabel
@@ -105,52 +160,35 @@ function usersTableHeader(props) {
 				setSort={props.setSort}
 			/>
 			<UsersAccessFilter
-				dataKey={props.key}
+				dataKey={props.column.key}
 			/>
 		</React.Fragment>
 	)
 }
 
-const EditUser = {ADD: 1, UPDATE: 2}
-
 function Users(props) {
 
 	const columns = [
-		{key: 'SAPIN',  label: 'SA PIN',
-			width: 100},
-		{key: 'Name',   label: 'Name',
-			width: 300},
-		{key: 'Email',  label: 'eMail Address',
-			width: 300},
-		{key: 'Access', label: 'Access Level',
-			width: 150,
+		{key: 'SAPIN',  label: 'SA PIN', width: 100},
+		{key: 'Name',   label: 'Name', width: 300},
+		{key: 'Email',  label: 'eMail Address', width: 300},
+		{key: 'Access', label: 'Access Level', width: 150,
 			cellRenderer: renderAccess,
 			headerRenderer: usersTableHeader}
 	]
 	const primaryDataKey = columns[0].key
 
-	const [showUploadUsersModal, setShowUploadUsersModal] = useState(false)
-	const [editUser, setEditUser] = useState(null)
-	const [user, setUser] = useState(defaultUser)
+	const [showUploadUsersModal, setShowUploadUsersModal] = React.useState(false)
+	const [editUser, setEditUser] = React.useState({
+		action: EditUserAction.CLOSED,
+		user: DefaultUser})
 
-	function getTableSize() {
-		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
-
-		const headerEl = document.getElementsByTagName('header')[0]
-
-		const height = window.innerHeight -  headerEl.offsetHeight - 1
-		const width = window.innerWidth - 1
-
-		return {height, width: Math.min(width, maxWidth)}
-	}
-
-	const {width} = getTableSize()
-
-	useEffect(() => {
-		if (!props.usersValid) {
+	React.useEffect(() => {
+		if (!props.usersValid)
 			props.getUsers()
-		}
 	}, [])
+
+	const width = Math.min(window.innerWidth, columns.reduce((acc, col) => acc + col.width, 0) + 40)
 
 	async function handleRemoveSelected() {
 		const {users, usersMap, selected} = props
@@ -174,65 +212,64 @@ function Users(props) {
 	}
 
 	function openAddUser() {
-		setUser(defaultUser)
-		setEditUser(EditUser.ADD)
+		setEditUser({
+			action: EditUserAction.ADD,
+			user: DefaultUser
+		})
 	}
 
 	function openEditUser({rowData}) {
-		setUser(rowData)
-		setEditUser(EditUser.UPDATE)
-	}
-
-	function submitUser() {
-		if (editUser === EditUser.ADD) {
-			props.addUser(user).then(setEditUser(null))
-		}
-		if (editUser === EditUser.UPDATE) {
-			props.updateUser(user).then(setEditUser(null))
-		}
+		setEditUser({
+			action: EditUserAction.UPDATE,
+			user: rowData
+		})
 	}
 
 	function submitUsersUpload(file) {
-		props.dispatch(uploadUsers(file)).then(setShowUploadUsersModal(false))
+		props.uploadUsers(file).then(setShowUploadUsersModal(false))
 	}
 
 	return (
-		<div id='Users' style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-			<div id='top-row' style={{display: 'flex', flexDirection: 'row', width: width, justifyContent: 'space-between'}}>
-				<span><label>Users</label></span>
-				<span>
-					<ActionButton name='add' title='Add User' onClick={openAddUser} />
-					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
-					<ActionButton name='upload' title='Upload Users' onClick={() => setShowUploadUsersModal(true)} />
-					<ActionButton name='refresh' title='Refresh' onClick={props.getUsers} />
-				</span>
+		<React.Fragment>
+			<div style={{display: 'flex', justifyContent: 'center'}}>
+				<div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width}}>
+					<span><label>Users</label></span>
+					<span>
+						<ActionButton name='add' title='Add User' onClick={openAddUser} />
+						<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
+						<ActionButton name='upload' title='Upload Users' onClick={() => setShowUploadUsersModal(true)} />
+						<ActionButton name='refresh' title='Refresh' onClick={props.getUsers} />
+					</span>
+				</div>
 			</div>
-			<AppTable
-				fixed
-				estimatedRowHeight={32}
-				headerHeight={64}
-				height='70vh'
-				width={width}
-				columns={columns}
-				loading={props.loading}
-				onRowDoubleClick={openEditUser}
-				sort={props.sort}
-				setSort={props.setSort}
-				filters={props.filters}
-				setFilter={props.setFilter}
-				selected={props.selected}
-				setSelected={props.setSelected}
-				data={props.users}
-				dataMap={props.usersMap}
-				rowKey={primaryDataKey}
-			/>
 
-			<AddEditUserModal
-				isOpen={!!editUser}
-				close={() => setEditUser(null)}
-				submit={submitUser}
-				user={user}
-				setUser={setUser}
+			<div style={{flex: 1}}>
+				<AppTable
+					fixed
+					columns={columns}
+					headerHeight={64}
+					estimatedRowHeight={32}
+					loading={props.loading}
+					sort={props.sort}
+					setSort={props.setSort}
+					filters={props.filters}
+					setFilter={props.setFilter}
+					selected={props.selected}
+					setSelected={props.setSelected}
+					onRowDoubleClick={openEditUser}
+					data={props.users}
+					dataMap={props.usersMap}
+					rowKey={primaryDataKey}
+				/>
+			</div>
+
+			<EditUserModal
+				isOpen={editUser.action !== EditUserAction.CLOSED}
+				close={() => setEditUser(s => ({...s, action: EditUserAction.CLOSED}))}
+				action={editUser.action}
+				user={editUser.user}
+				addUser={props.addUser}
+				updateUser={props.updateUser}
 			/>
 
 			<UploadUsersModal
@@ -240,7 +277,7 @@ function Users(props) {
 				close={() => setShowUploadUsersModal(false)}
 				submit={submitUsersUpload}
 			/>
-		</div>
+		</React.Fragment>
 	)
 }
 
@@ -264,7 +301,7 @@ export default connect(
 		setSelected: (ids) => dispatch(setUsersSelected(ids)),
 		getUsers: () => dispatch(getUsers()),
 		addUser: (user) => dispatch(addUser(user)),
-		updateUser: (user) => dispatch(updateUser(user)),
+		updateUser: (sapin, user) => dispatch(updateUser(sapin, user)),
 		deleteUsers: (ids) => dispatch(deleteUsers(ids)),
 		uploadUsers: (file) => dispatch(uploadUsers(file))
 	})

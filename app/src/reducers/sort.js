@@ -1,3 +1,8 @@
+import {
+	SORT_INIT,
+	SORT_SET,
+	SORT_TOGGLE
+} from '../actions/sort'
 
 function parseNumber(value) {
 	// Return the value as-is if it's already a number
@@ -108,6 +113,26 @@ export function sortClick(sort, dataKey, event) {
 	return {...sort, by: sortBy, direction: sortDirection};
 }
 
+export function setSort(sort, dataKey, direction) {
+	const sortBy = sort.by.slice();
+	const sortDirection = Object.assign({}, sort.direction);
+	const index = sortBy.indexOf(dataKey);
+	if (index >= 0) {
+		if (sortDirection[dataKey] === direction) {
+			sortBy.splice(index, 1);
+			delete sortDirection[dataKey];
+		}
+		else {
+			sortDirection[dataKey] = direction;
+		}
+	}
+	else {
+		sortDirection[dataKey] = direction;
+		sortBy.unshift(dataKey);
+	}
+	return {...sort, by: sortBy, direction: sortDirection};
+}
+
 export function isSortable(sort, dataKey) {
 	return sort.type.hasOwnProperty(dataKey)
 }
@@ -143,3 +168,39 @@ export const SortType = {
 	NUMERIC: 2,
 	CLAUSE: 3
 }
+
+const defaultState = {
+	by: [],
+	type: {},
+	direction: {}
+}
+
+function sortInit(entries) {
+	let sort = {...defaultState}
+	if (entries) {
+		for (let dataKey of Object.keys(entries)) {
+			sort.type[dataKey] = entries[dataKey].type;
+			sort.direction[dataKey] = entries[dataKey].direction;
+		}
+	}
+	return sort;
+}
+
+function sortReducer(state = defaultState, action) {
+
+	switch (action.type) {
+		case SORT_SET:
+			return setSort(state, action.dataKey, action.direction)
+
+		case SORT_TOGGLE:
+			return sortClick(state, action.dataKey, action.event)
+
+		case SORT_INIT:
+			return sortInit(action.entries)
+
+		default:
+			return state
+	}
+}
+
+export default sortReducer

@@ -2,15 +2,6 @@ import {updateBallotSuccess} from './ballots'
 import {setError} from './error'
 import fetcher from '../lib/fetcher'
 
-export const SET_COMMENTS_FILTER = 'SET_COMMENTS_FILTER'
-export const CLEAR_COMMENTS_FILTERS = 'CLEAR_COMMENTS_FILTERS'
-export const GEN_COMMENTS_OPTIONS = 'GEN_COMMENTS_OPTIONS'
-export const SET_COMMENTS_SORT = 'SET_COMMENTS_SORT'
-export const SET_COMMENTS_SELECTED = 'SET_COMMENTS_SELECTED'
-export const TOGGLE_COMMENTS_SELECTED = 'TOGGLE_COMMENTS_SELECTED'
-export const SET_COMMENTS_EXPANDED = 'SET_COMMENTS_EXPANDED'
-export const TOGGLE_COMMENTS_EXPANDED = 'TOGGLE_COMMENTS_EXPANDED'
-
 export const GET_COMMENTS = 'GET_COMMENTS'
 export const GET_COMMENTS_SUCCESS = 'GET_COMMENTS_SUCCESS'
 export const GET_COMMENTS_FAILURE = 'GET_COMMENTS_FAILURE'
@@ -38,27 +29,9 @@ export const DELETE_RESOLUTIONS_SUCCESS = 'DELETE_RESOLUTIONS_SUCCESS'
 export const DELETE_RESOLUTIONS_FAILURE = 'DELETE_RESOLUTIONS_FAILURE'
 
 
-export const setCommentsFilter = (dataKey, value) => {return {type: SET_COMMENTS_FILTER, dataKey, value}}
-export const genCommentsOptions = (dataKey) => {return {type: GEN_COMMENTS_OPTIONS, dataKey}}
-export const clearCommentsFilters = () => ({type: CLEAR_COMMENTS_FILTERS})
-
-export function removeCommentsFilter(dataKey, value) {
-	return async (dispatch, getState) => {
-		let values = getState().comments.filters[dataKey].values
-		values = values.filter(v => v !== value)
-		return dispatch(setCommentsFilter(dataKey, values))
-	}
-}
-
-export const setCommentsSort = (event, dataKey) => {return {type: SET_COMMENTS_SORT, event, dataKey}}
-export const setCommentsSelected = (selected) => {return {type: SET_COMMENTS_SELECTED, selected}}
-export const toggleCommentsSelected = (selected) => {return {type: TOGGLE_COMMENTS_SELECTED, selected}}
-export const setCommentsExpanded = (expanded) => {return {type: SET_COMMENTS_EXPANDED, expanded}}
-export const toggleCommentsExpanded = (expanded) => {return {type: TOGGLE_COMMENTS_EXPANDED, expanded}}
-
-const getCommentsLocal = (ballotId) => {return {type: GET_COMMENTS, ballotId}}
-const getCommentsSuccess = (comments) => {return {type: GET_COMMENTS_SUCCESS, comments}}
-const getCommentsFailure = () => {return {type: GET_COMMENTS_FAILURE}}
+const getCommentsLocal = (ballotId) => ({type: GET_COMMENTS, ballotId})
+const getCommentsSuccess = (comments) => ({type: GET_COMMENTS_SUCCESS, comments})
+const getCommentsFailure = () => ({type: GET_COMMENTS_FAILURE})
 
 export function getComments(ballotId) {
 	return async (dispatch) => {
@@ -76,9 +49,9 @@ export function getComments(ballotId) {
 	}
 }
 
-const updateCommentsLocal = (ballotId, commentIds, comments) => {return {type: UPDATE_COMMENTS, ballotId, commentIds, comments}}
-const updateCommentsSuccess = (ballotId, commentIds, comments) => {return {type: UPDATE_COMMENTS_SUCCESS, ballotId, commentIds, comments}}
-const updateCommentsFailure = () => {return {type: UPDATE_COMMENTS_FAILURE}}
+const updateCommentsLocal = (ballotId, commentIds, comments) => ({type: UPDATE_COMMENTS, ballotId, commentIds, comments})
+const updateCommentsSuccess = (ballotId, commentIds, comments) => ({type: UPDATE_COMMENTS_SUCCESS, ballotId, commentIds, comments})
+const updateCommentsFailure = () => ({type: UPDATE_COMMENTS_FAILURE})
 
 export function updateComments(ballotId, comments) {
 	return async (dispatch) => {
@@ -97,9 +70,9 @@ export function updateComments(ballotId, comments) {
 	}
 }
 
-const deleteCommentsLocal = (ballotId) => {return {type: DELETE_COMMENTS, ballotId}}
-const deleteCommentsSuccess = (ballotId) => {return {type: DELETE_COMMENTS_SUCCESS, ballotId}}
-const deleteCommentsFailure = (ballotId) => {return {type: DELETE_COMMENTS_FAILURE, ballotId}}
+const deleteCommentsLocal = (ballotId) => ({type: DELETE_COMMENTS, ballotId})
+const deleteCommentsSuccess = (ballotId) => ({type: DELETE_COMMENTS_SUCCESS, ballotId})
+const deleteCommentsFailure = (ballotId) => ({type: DELETE_COMMENTS_FAILURE, ballotId})
 
 export function deleteComments(ballotId) {
 	return async (dispatch) => {
@@ -122,9 +95,9 @@ export function deleteComments(ballotId) {
 	}
 }
 
-const importCommentsLocal  = (ballotId) => {return {type: IMPORT_COMMENTS, ballotId}}
-const importCommentsSuccess = (ballotId, comments) => {return {type: IMPORT_COMMENTS_SUCCESS, ballotId, comments}}
-const importCommentsFailure = (ballotId) => {return {type: IMPORT_COMMENTS_FAILURE, ballotId}}
+const importCommentsLocal  = (ballotId) => ({type: IMPORT_COMMENTS, ballotId})
+const importCommentsSuccess = (ballotId, comments) => ({type: IMPORT_COMMENTS_SUCCESS, ballotId, comments})
+const importCommentsFailure = (ballotId) => ({type: IMPORT_COMMENTS_FAILURE, ballotId})
 
 export function importComments(ballotId, epollNum, startCID) {
 	return async (dispatch) => {
@@ -146,9 +119,9 @@ export function importComments(ballotId, epollNum, startCID) {
 	}
 }
 
-const uploadCommentsLocal = (ballotId) => {return {type: UPLOAD_COMMENTS, ballotId}}
-const uploadCommentsSuccess = (ballotId, comments) => {return {type: UPLOAD_COMMENTS_SUCCESS, ballotId, comments}}
-const uploadCommentsFailure = () => {return {type: UPLOAD_COMMENTS_FAILURE}}
+const uploadCommentsLocal = (ballotId) => ({type: UPLOAD_COMMENTS, ballotId})
+const uploadCommentsSuccess = (ballotId, comments) => ({type: UPLOAD_COMMENTS_SUCCESS, ballotId, comments})
+const uploadCommentsFailure = () => ({type: UPLOAD_COMMENTS_FAILURE})
 
 export function uploadComments(ballotId, type, file) {
 	return async (dispatch) => {
@@ -170,9 +143,9 @@ export function uploadComments(ballotId, type, file) {
 	}
 }
 
-const addResolutionsLocal = (ballotId, resolutions) => {return {type: ADD_RESOLUTIONS, ballotId, resolutions}}
-const addResolutionsSuccess = (ballotId, newComments, updatedComments) => {return {type: ADD_RESOLUTIONS_SUCCESS, ballotId, newComments, updatedComments}}
-const addResolutionsFailure = () => {return {type: ADD_RESOLUTIONS_FAILURE}}
+const addResolutionsLocal = (ballotId, resolutions) => ({type: ADD_RESOLUTIONS, ballotId, resolutions})
+const addResolutionsSuccess = (ballotId, newComments, updatedComments) => ({type: ADD_RESOLUTIONS_SUCCESS, ballotId, newComments, updatedComments})
+const addResolutionsFailure = () => ({type: ADD_RESOLUTIONS_FAILURE})
 
 export function addResolutions(ballotId, resolutions) {
 	return async (dispatch) => {
@@ -192,9 +165,9 @@ export function addResolutions(ballotId, resolutions) {
 	}
 }
 
-const updateResolutionsLocal = (ballotId, resolutions) => {return {type: UPDATE_RESOLUTIONS, ballotId, resolutions}}
-const updateResolutionsSuccess = (ballotId, resolutions) => {return {type: UPDATE_RESOLUTIONS_SUCCESS, ballotId, resolutions}}
-const updateResolutionsFailure = () => {return {type: UPDATE_RESOLUTIONS_FAILURE}}
+const updateResolutionsLocal = (ballotId, resolutions) => ({type: UPDATE_RESOLUTIONS, ballotId, resolutions})
+const updateResolutionsSuccess = (ballotId, resolutions) => ({type: UPDATE_RESOLUTIONS_SUCCESS, ballotId, resolutions})
+const updateResolutionsFailure = () => ({type: UPDATE_RESOLUTIONS_FAILURE})
 
 export function updateResolutions(ballotId, resolutions) {
 	return async (dispatch) => {
@@ -212,9 +185,9 @@ export function updateResolutions(ballotId, resolutions) {
 	}
 }
 
-const deleteResolutionsLocal = (ballotId, resolutions) => {return {type: DELETE_RESOLUTIONS, ballotId, resolutions}}
-const deleteResolutionsSuccess = (ballotId, updatedComments) => {return {type: DELETE_RESOLUTIONS_SUCCESS, ballotId, updatedComments}}
-const deleteResolutionsFailure = () => {return {type: DELETE_RESOLUTIONS_FAILURE}}
+const deleteResolutionsLocal = (ballotId, resolutions) => ({type: DELETE_RESOLUTIONS, ballotId, resolutions})
+const deleteResolutionsSuccess = (ballotId, updatedComments) => ({type: DELETE_RESOLUTIONS_SUCCESS, ballotId, updatedComments})
+const deleteResolutionsFailure = () => ({type: DELETE_RESOLUTIONS_FAILURE})
 
 export function deleteResolutions(ballotId, resolutions) {
 	return async (dispatch) => {
@@ -233,26 +206,70 @@ export function deleteResolutions(ballotId, resolutions) {
 	}
 }
 
-export function uploadResolutions(ballotId, matchAlgorithm, matchAll, file) {
+export const FieldsToUpdate = {
+	CID: 'cid',
+	Comment: 'comment',
+	AdHoc: 'adhoc',
+	CommentGroup: 'commentgroup',
+	Assignee: 'assignee',
+	Resolution: 'resolution',
+	Editing: 'editing'
+}
+
+export const MatchAlgorithm = {
+	Ellimination: 'ellimination',
+	Perfect: 'perfect',
+	CID: 'cid'
+}
+
+export function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchAll, sheetName, file) {
 	return async (dispatch) => {
 		dispatch(uploadCommentsLocal(ballotId))
 		const params = {
-			matchAlgorithm,
-			matchAll,
+			params: JSON.stringify({
+				toUpdate,
+				matchAlgorithm,
+				matchAll,
+				sheetName
+			}),
 			ResolutionsFile: file
 		}
 		try {
-			const {comments, summary} = await fetcher.postMultipart(`/api/uploadResolutions/${ballotId}`, params)
-			return Promise.all([
+			const {comments, summary, unmatched} = await fetcher.postMultipart(`/api/uploadResolutions/${ballotId}`, params)
+			await Promise.all([
 				dispatch(uploadCommentsSuccess(ballotId, comments)),
 				dispatch(updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary}))
 			])
+			return unmatched
 		}
 		catch(error) {
-			return Promise.all([
+			await Promise.all([
 				dispatch(uploadCommentsFailure()),
 				dispatch(setError(`Unable to upload resolutions for ballot ${ballotId}`, error))
 			])
+			return null
+		}
+	}
+}
+
+export const CommentsSpreadsheetFormat = {
+	MyProject: 'MyProject',
+	AllComments: 'AllComments',
+	TabPerAdHoc: 'TabPerAdHoc',
+	TabPerCommentGroup: 'TabPerCommentGroup'
+}
+
+export function exportCommentsSpreadsheet(ballotId, file, format) {
+	return async (dispatch) => {
+		try {
+			let Filename;
+			if (file)
+				Filename = file.name
+			await fetcher.postForFile('/api/comments/exportSpreadsheet', {BallotID: ballotId, Filename, Format: format}, file)
+			return null
+		}
+		catch(error) {
+			dispatch(setError(`Unable to export comments for ${ballotId}`, error))
 		}
 	}
 }
