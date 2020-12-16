@@ -87,15 +87,15 @@ function AssigneeSelector({
 	onChange,
 	users,
 	comments,
-	usersValid,
-	getUsers,
+	valid,
 	loading,
+	getUsers,
 	width,
 	placeholder,
 }) {
 
 	React.useEffect(() => {
-		if (!usersValid)
+		if (!valid)
 			getUsers()
 	}, [])
 
@@ -154,7 +154,7 @@ AssigneeSelector.propTypes = {
 	value: PropTypes.object.isRequired,
 	onChange: PropTypes.func.isRequired,
 	width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-	usersValid: PropTypes.bool.isRequired,
+	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
 	users: PropTypes.array.isRequired,
 	comments: PropTypes.array.isRequired,
@@ -165,8 +165,8 @@ export default connect(
 	(state) => {
 		const {users, comments} = state
 		return {
-			usersValid: users.usersValid,
-			loading: users.getUsers,
+			valid: users.valid,
+			loading: users.loading,
 			users: users.users,
 			comments: comments.comments,
 		}

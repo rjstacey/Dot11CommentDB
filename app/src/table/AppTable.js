@@ -1,49 +1,19 @@
 import PropTypes from 'prop-types'
 import React from 'react'
+import {connect} from 'react-redux'
+import Immutable from 'immutable'
+import styled from '@emotion/styled'
 import {VariableSizeGrid as Grid} from 'react-window'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import TableRow from './AppTableRow'
-import TableHeader, {ColumnLabel, ColumnSearchFilter, ColumnDropdownFilter} from './AppTableHeader'
-import ShowFilters from './ShowFilters'
-import ColumnDropdown from './ColumnDropdown'
+import TableHeader from './AppTableHeader'
+import {ControlHeader, ControlCell} from './ControlColumn'
 import {debounce, getScrollbarSize} from '../lib/utils'
-import {allSelected, toggleVisible} from '../lib/select'
-import {Checkbox} from '../general/Icons'
-import styled from '@emotion/styled'
+import {setSelected} from '../actions/select'
+import {uiInitTable, uiSetTableColumnWidths} from '../actions/ui'
+import {getDataMap} from '../selectors/dataMap'
 
 const scrollbarSize = getScrollbarSize();
-
-const ControlHeader = ({rowKey, data, dataMap, selected, setSelected}) => {
-	const isSelected = allSelected(selected, dataMap, data, rowKey)
-	const isIndeterminate = !isSelected && selected.length
-
-	return (
-		<Checkbox
-			title={isSelected? "Clear All": isIndeterminate? "Clear Selected": "Select All"}
-			checked={isSelected}
-			indeterminate={isIndeterminate}
-			onChange={e => setSelected(toggleVisible(selected, dataMap, data, rowKey))}
-		/>
-	)
-}
-
-const ControlCell = ({rowData, rowKey, selected, setSelected}) => {
-	const id = rowData[rowKey]
-	//console.log(selected, rowKey, id)
-	return (
-		<Checkbox
-			key='selector'
-			title="Select Row"
-			checked={selected.includes(id)}
-			onChange={() => {
-				const i = selected.indexOf(id)
-				const s = selected.slice()
-				if (i >= 0) {s.splice(i, 1)} else {s.push(id)}
-				setSelected(s)
-			}}
-		/>
-	)
-}
 
 const Table = styled.div`
 	display: flex;
@@ -88,170 +58,264 @@ const NoRowsBody = styled.div`
 	align-items: center;
 	justify-content: center;
 	font-size: 1em;
-	color: #bdbdbd;`
+	color: #bdbdbd;
+`;
 
-
-function AppTableSized(props) {
-	const gridRef = React.createRef();
-	const headerRef = React.createRef();
-	const [columnsIn, setColumnsIn] = React.useState([]);
-	const [columns, setColumns] = React.useState(() => props.columns.slice());
-
-	const controlColumn = {
-		key: '',
-		width: 40, flexGrow: 0, flexShrink: 0,
-		headerRenderer: p => <ControlHeader {...p} />,
-		cellRenderer: p => <ControlCell {...p} />
-	}
-
-	// Detect changes to props.columns and reset column widths
-	if (props.columns !== columnsIn) {
-		setColumnsIn(props.columns);
-		const columns = props.columns.slice();
-		if (props.setSelected) {
-			columns.unshift(controlColumn);
-		}
-		setColumns(columns);
-		if (gridRef.current)
-			gridRef.current.resetAfterColumnIndex(0, false);
-	}
-
-	function setColumnWidth(index, width) {
-		setColumns(columns => {
-			let newColumns = columns.slice();
-			newColumns[index] = {...columns[index], width};
-			gridRef.current.resetAfterColumnIndex(0, false);
-			return newColumns
-		})
-	}
-
-	let _resetIndex = null
-	let _rowHeightMap = {}
-	let _rowHeightMapBuffer = {}
-	const updateRowHeights = debounce(() => {
-		_rowHeightMap = {..._rowHeightMap, ..._rowHeightMapBuffer};
-		_rowHeightMapBuffer = {};
-		if (gridRef.current) {
-			gridRef.current.resetAfterRowIndex(_resetIndex, false);
-			gridRef.current.forceUpdate();
-		}
-		_resetIndex = null;
-    }, 0);
-
-    const onRowHeightChange = (rowIndex, height) => {
-    	if (_resetIndex === null) _resetIndex = rowIndex;
-    	else if (_resetIndex > rowIndex) _resetIndex = rowIndex;
-    	_rowHeightMapBuffer = {..._rowHeightMapBuffer, [rowIndex]: height}
-    	updateRowHeights();
-    }
-
-    const getRowHeight = (rowIndex) => _rowHeightMap[rowIndex] || props.estimatedRowHeight;
-
-    // Sync the table header scroll position with that of the table body
-	function handleScroll({scrollLeft}) {
-		if (headerRef.current) {
-			headerRef.current.scrollLeft = scrollLeft;
-		}
-	}
-
-	const totalWidth = columns.reduce((acc, col) => acc + col.width, 0)
-	let {width, height} =  props;
-	if (!width) {
-		// If width is not given, then size to content
-		width = totalWidth + scrollbarSize
-	}
-	const containerWidth = width;
-	if (width > (totalWidth + scrollbarSize)) {
-		width = totalWidth + scrollbarSize
-	}
-
-	// put header after body and reverse the display order via css
-	// to prevent header's shadow being covered by body
-	return (
-		<Table role='table' style={{height, width: containerWidth}} onKeyDown={props.onKeyDown} tabIndex={0}>
-			{props.data.length?
-				<Grid
-					ref={gridRef}
-					height={height - props.headerHeight}
-					width={width}
-					columnCount={1}
-					columnWidth={() => (props.fixed? totalWidth: width - scrollbarSize)}
-					rowCount={props.dataMap.length}
-					estimatedRowHeight={props.estimatedRowHeight}
-					rowHeight={getRowHeight}
-					onScroll={handleScroll}
-				>
-					{({columnIndex, rowIndex, style}) => {
-						const rowData = props.rowGetter? props.rowGetter({rowIndex}): props.data[props.dataMap[rowIndex]]
-						//console.log(rowData)
-						const isSelected = props.selected && props.selected.includes(rowData[props.rowKey]);
-						const isExpanded = props.expanded && props.expanded.includes(rowData[props.rowKey]);
-
-						// Add appropriate row classNames
-						let classNames = ['AppTable__dataRow']
-						classNames.push((rowIndex % 2 === 0)? 'AppTable__dataRow-even': 'AppTable__dataRow-odd')
-						if (isSelected)
-							classNames.push('AppTable__dataRow-selected')
-
-						return (
-							<TableRow
-								key={rowIndex}
-								className={classNames.join(' ')}
-								fixed={props.fixed}
-								rowIndex={rowIndex}
-								rowData={rowData}
-								rowKey={props.rowKey}
-								isExpanded={isExpanded}
-								style={style}
-								columns={columns}
-								estimatedRowHeight={props.estimatedRowHeight}
-								onRowHeightChange={onRowHeightChange}
-								onRowClick={props.onRowClick}
-								onRowDoubleClick={props.onRowDoubleClick}
-								selected={props.selected}
-								setSelected={props.setSelected}
-							/>
-						)
-					}}
-				</Grid>:
-				<NoRowsBody style={{height: height - props.headerHeight, width}}>
-					{props.loading? 'Loading...': 'No Data'}
-				</NoRowsBody>
-			}
-			<TableHeader
-				ref={headerRef}
-				fixed={props.fixed}
-				outerStyle={{width, height: props.headerHeight, paddingRight: scrollbarSize}}
-				innerStyle={{width: props.fixed? totalWidth + scrollbarSize: '100%'}}
-				scrollbarSize={scrollbarSize}
-				columns={columns}
-				setColumnWidth={setColumnWidth}
-				filters={props.filters}
-				setFilter={props.setFilter}
-				sort={props.sort}
-				setSort={props.setSort}
-				data={props.data}
-				dataMap={props.dataMap}
-				rowGetter={props.rowGetter}
-				rowKey={props.rowKey}
-				selected={props.selected}
-				setSelected={props.setSelected}
-			/>
-			{props.showFilters &&
-				<ShowFilters
-					style={{width}}
-					data={props.data}
-					dataMap={props.dataMap}
-					filters={props.filters}
-					setFilter={props.setFilter}
-					removeFilter={props.removeFilter}
-					clearFilters={props.clearFilters}
-				/>
-			}
-		</Table>
-	)
+const controlColumn = {
+	label: 'Control',
+	width: 30, flexGrow: 1, flexShrink: 1,
+	headerRenderer: p => <ControlHeader {...p} />,
+	cellRenderer: p => <ControlCell {...p} />
 }
 
+class AppTableSized extends React.PureComponent {
+
+	constructor(props) {
+		super(props);
+
+		let tableConfig
+		if (!props.tableConfig) {
+			tableConfig = props.defaultTableConfig || {fixed: false, columns: Immutable.Map()};
+			props.initTableConfig(tableConfig.fixed, tableConfig.columns);
+			console.log('init', props.defaultTableConfig, tableConfig)
+		}
+		else {
+			tableConfig = props.tableConfig;
+			console.log('state', tableConfig)
+		}
+
+		let columns = props.columns
+			.filter((col, key) => tableConfig.columns.has(key)? tableConfig.columns.get(key).visible: true)
+			.map((col, key) => (tableConfig.columns.has(key)? {...col, width: tableConfig.columns.get(key).width}: col));
+		if (props.controlColumn)
+			columns = Immutable.OrderedMap({'__ctrl__': controlColumn}).concat(columns);
+		this.state = {columns};
+
+		this.fixed = tableConfig.fixed;
+
+		this._resetIndex = null;
+		this._rowHeightMap = {};
+		this._rowHeightMapBuffer = {};
+		this.updateRowHeights = debounce(() => {
+			this._rowHeightMap = {...this._rowHeightMap, ...this._rowHeightMapBuffer};
+			this._rowHeightMapBuffer = {};
+			if (this.gridRef)
+				this.gridRef.resetAfterRowIndex(this._resetIndex, true);
+			this._resetIndex = null;
+    	}, 0);
+	}
+
+	/*componentDidMount() {
+		console.log('table mount')
+	}*/
+
+	componentDidUpdate(prevProps, prevState) {
+		if (prevProps.width !== this.props.width && this.gridRef) {
+			console.log('width change')
+			this.gridRef.resetAfterColumnIndex(0, true);
+		}
+	}
+
+	componentWillUnmount() {
+		//console.log('unmount and emit')
+		const widths = this.state.columns.map((col, key) => col.width);
+		this.props.setTableColumnWidths(widths);
+	}
+
+	setColumnWidth = (key, deltaX) => {
+		this.setState(
+			(state, props) => ({columns: state.columns.update(key, c => ({...c, width: c.width + deltaX}))}),
+			() => this.gridRef && this.gridRef.resetAfterColumnIndex(0, true)
+		);
+	}
+
+    onRowHeightChange = (rowIndex, height) => {
+    	if (this._resetIndex === null || this._resetIndex > rowIndex)
+    		this._resetIndex = rowIndex;
+    	this._rowHeightMapBuffer = {...this._rowHeightMapBuffer, [rowIndex]: height};
+    	this.updateRowHeights();
+    }
+
+    getRowHeight = (rowIndex) => this._rowHeightMap[rowIndex] || this.props.estimatedRowHeight;
+
+    // Sync the table header scroll position with that of the table body
+	handleScroll = ({scrollLeft, scrollTop}) => {if (this.headerRef) this.headerRef.scrollLeft = scrollLeft};
+
+	handleKeyDown = (event) => {
+		const {data, dataMap, selected, setSelected, rowKey} = this.props;
+
+		if (!selected)
+			return
+
+		if (event.keyCode !== 38 && event.keyCode !== 40)
+			return
+
+		if (selected.length === 0) {
+			if (dataMap.length > 0)
+				setSelected([data[dataMap[0]][rowKey]])
+			return
+		}
+
+		let id = selected[0]
+		let i = dataMap.findIndex(i => data[i][rowKey] === id)
+		if (i === -1) {
+			if (dataMap.length > 0)
+				setSelected([data[dataMap[0]][rowKey]])
+			return
+		}
+
+		if (event.keyCode === 38) {			// Up arrow
+			if (i === 0) 
+				i = dataMap.length - 1;
+			else
+				i = i - 1 
+		}
+		else if (event.keyCode === 40) {	// Down arrow
+			if (i === (dataMap.length - 1))
+				i = 0
+			else
+				i = i + 1
+		}
+		else
+			return
+
+		if (this.gridRef)
+			this.gridRef.scrollToItem({rowIndex: i})
+
+		setSelected([data[dataMap[i]][rowKey]])
+	}
+
+	handleClick = ({event, rowData}) => {
+		const {data, dataMap, selected, setSelected, rowKey} = this.props
+
+		if (!selected)
+			return
+
+		let ids = selected.slice()
+		const id = rowData[rowKey]
+		if (event.shiftKey) {
+			// Shift + click => include all between last and current
+			if (ids.length === 0) {
+				ids.push(id)
+			}
+			else {
+				const id_last = ids[ids.length - 1]
+				const i_last = dataMap.findIndex(i => data[i][rowKey] === id_last)
+				const i_selected = dataMap.findIndex(i => data[i][rowKey] === id)
+				if (i_last >= 0 && i_selected >= 0) {
+					if (i_last > i_selected) {
+						for (let i = i_selected; i < i_last; i++) {
+							ids.push(data[dataMap[i]][rowKey])
+						}
+					}
+					else {
+						for (let i = i_last + 1; i <= i_selected; i++) {
+							ids.push(data[dataMap[i]][rowKey])
+						}
+					}
+				}
+			}
+		} else if (event.ctrlKey || event.metaKey) {
+			// Control + click => add or remove
+			if (ids.includes(id)) {
+				ids = ids.filter(s => s !== id)
+			}
+			else {
+				ids.push(id)
+			}
+		} else {
+			ids = [id]
+		}
+		setSelected(ids)
+	}
+
+	render() {
+		const {props} = this
+		let totalWidth = 0;
+		this.state.columns.forEach(col => totalWidth = totalWidth + col.width);
+
+		let {width, height} =  props;
+		if (!width) {
+			// If width is not given, then size to content
+			width = totalWidth + scrollbarSize
+		}
+		const containerWidth = width;
+		//if (width > (totalWidth + scrollbarSize)) {
+		//	width = totalWidth + scrollbarSize
+		//}
+
+		// put header after body and reverse the display order via css
+		// to prevent header's shadow being covered by body
+		return (
+			<Table role='table' style={{height, width: containerWidth}} onKeyDown={this.handleKeyDown} tabIndex={0}>
+				{props.data.length?
+					<Grid
+						ref={ref => this.gridRef = ref}
+						height={height - props.headerHeight}
+						width={width}
+						columnCount={1}
+						columnWidth={() => (this.fixed? totalWidth: width - scrollbarSize)}
+						rowCount={props.dataMap.length}
+						estimatedRowHeight={props.estimatedRowHeight}
+						rowHeight={this.getRowHeight}
+						onScroll={this.handleScroll}
+					>
+						{({rowIndex, style}) => {
+							const rowData = props.rowGetter? 
+								props.rowGetter({rowIndex, data: props.data, dataMap: props.dataMap}): 
+								props.data[props.dataMap[rowIndex]]
+								
+							//console.log(rowData)
+							const isSelected = props.selected && props.selected.includes(rowData[props.rowKey]);
+							const isExpanded = props.expanded && props.expanded.includes(rowData[props.rowKey]);
+
+							// Add appropriate row classNames
+							let classNames = ['AppTable__dataRow']
+							classNames.push((rowIndex % 2 === 0)? 'AppTable__dataRow-even': 'AppTable__dataRow-odd')
+							if (isSelected)
+								classNames.push('AppTable__dataRow-selected')
+
+							return (
+								<TableRow
+									key={rowIndex}
+									className={classNames.join(' ')}
+									style={style}
+									fixed={this.fixed}
+									rowIndex={rowIndex}
+									rowData={rowData}
+									rowKey={props.rowKey}
+									dataSet={props.dataSet}
+									isExpanded={isExpanded}
+									columns={this.state.columns}
+									estimatedRowHeight={props.estimatedRowHeight}
+									onRowHeightChange={this.onRowHeightChange}
+									onRowClick={this.handleClick}
+									onRowDoubleClick={props.onRowDoubleClick}
+								/>
+							)
+						}}
+					</Grid>:
+					<NoRowsBody style={{height: height - props.headerHeight, width}}>
+						{props.loading? 'Loading...': 'No Data'}
+					</NoRowsBody>
+				}
+				<TableHeader
+					ref={ref => this.headerRef = ref}
+					fixed={this.fixed}
+					outerStyle={{width, height: props.headerHeight, paddingRight: scrollbarSize}}
+					innerStyle={{width: this.fixed? totalWidth + scrollbarSize: '100%'}}
+					scrollbarSize={scrollbarSize}
+					columns={this.state.columns}
+					//setColumnWidth={(index, width) => this.props.setColumnWidth(this.state.columns[index].key, width)}
+					setColumnWidth={this.setColumnWidth}
+					setTableWidth={this.props.resizeWidth}
+					dataSet={props.dataSet}
+					rowKey={props.rowKey}
+				/>
+			</Table>
+		)
+	}
+}
 
 /*
  * AppTable
@@ -267,24 +331,41 @@ function AppTable(props) {
 
 AppTable.propTypes = {
 	contentWidth: PropTypes.bool,
-	columns: PropTypes.array.isRequired,
+	columns: PropTypes.object.isRequired,
+	controlColumn: PropTypes.bool,
+	dataSet: PropTypes.string.isRequired,
 	data: PropTypes.array.isRequired,
 	dataMap: PropTypes.array.isRequired,
+	selected: PropTypes.array,
+	expanded: PropTypes.array,
 	rowGetter: PropTypes.func,
 	rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 	headerHeight: PropTypes.number.isRequired,
 	estimatedRowHeight: PropTypes.number.isRequired,
 	loading: PropTypes.bool.isRequired,
-	filters: PropTypes.object.isRequired,
-	setFilter: PropTypes.func.isRequired,
-	sort: PropTypes.object.isRequired,
-	setSort: PropTypes.func.isRequired,
-	selected: PropTypes.array,
-	expanded: PropTypes.array,
 	onRowClick: PropTypes.func,
 	onRowDoubleClick: PropTypes.func,
-	showFilters: PropTypes.bool
 }
 
-export default AppTable
-export {ColumnLabel, ColumnSearchFilter, ColumnDropdownFilter, ColumnDropdown}
+export default connect(
+	(state, ownProps) => {
+		const {dataSet, tableView} = ownProps;
+		return {
+			selected: state[dataSet].selected,
+			expanded: state[dataSet].expanded,
+			valid: state[dataSet].valid,
+			loading: state[dataSet].loading,
+			data: state[dataSet][ownProps.dataSet],
+			dataMap: getDataMap(state, dataSet),
+			tableConfig: state[dataSet].ui.tablesConfig? state[dataSet].ui.tablesConfig[tableView]: undefined
+		}
+	},
+	(dispatch, ownProps) => {
+		const {dataSet, tableView} = ownProps;
+		return {
+			setSelected: ids => dispatch(setSelected(dataSet, ids)),
+			initTableConfig: (fixed, columns) => dispatch(uiInitTable(dataSet, tableView, fixed, columns)),
+			setTableColumnWidths: (key, width) => dispatch(uiSetTableColumnWidths(dataSet, tableView, key, width))
+		}
+	}
+)(AppTable)

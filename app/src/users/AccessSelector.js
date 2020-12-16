@@ -10,7 +10,8 @@ const StyledSelect = styled(Select)`
 	padding: 0;
 	box-sizing: border-box;
 	width: unset;
-	min-width: 160px`
+	min-width: 160px
+`;
 
 function AccessSelector({value, onChange, options, dispatch, ...otherProps}) {
 

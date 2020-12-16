@@ -1,19 +1,14 @@
 import {setError} from './error'
 import fetcher from '../lib/fetcher'
 
-export const SET_EPOLLS_FILTER = 'SET_EPOLLS_FILTER'
-export const SET_EPOLLS_SORT = 'SET_EPOLLS_SORT'
-export const GET_EPOLLS = 'GET_EPOLLS'
-export const GET_EPOLLS_SUCCESS = 'GET_EPOLLS_SUCCESS'
-export const GET_EPOLLS_FAILURE = 'GET_EPOLLS_FAILURE'
-export const SYNC_EPOLLS_AGAINST_BALLOTS = 'SYNC_EPOLLS_AGAINST_BALLOTS'
+export const EPOLLS_PREFIX = 'EPOLLS_'
+export const EPOLLS_GET = EPOLLS_PREFIX + 'GET'
+export const EPOLLS_GET_SUCCESS = EPOLLS_PREFIX + 'GET_SUCCESS'
+export const EPOLLS_GET_FAILURE = EPOLLS_PREFIX + 'GET_FAILURE'
 
-export const setEpollsFilter = (dataKey, value) => ({type: SET_EPOLLS_FILTER, dataKey, value})
-export const setEpollsSort = (event, dataKey) => ({type: SET_EPOLLS_SORT, event, dataKey})
-
-const getEpollsLocal = (n) => ({type: GET_EPOLLS, n})
-const getEpollsSuccess = (n, epolls) => ({type: GET_EPOLLS_SUCCESS, n, epolls})
-const getEpollsFailure = () => ({type: GET_EPOLLS_FAILURE})
+const getEpollsLocal = (n) => ({type: EPOLLS_GET, n})
+const getEpollsSuccess = (n, epolls) => ({type: EPOLLS_GET_SUCCESS, n, epolls})
+const getEpollsFailure = () => ({type: EPOLLS_GET_FAILURE})
 
 export function getEpolls(n = 20) {
 	return async (dispatch, getState) => {
@@ -30,5 +25,3 @@ export function getEpolls(n = 20) {
 		}
 	}
 }
-
-export const syncEpollsAgainstBallots = (ballots) => ({type: SYNC_EPOLLS_AGAINST_BALLOTS, ballots})

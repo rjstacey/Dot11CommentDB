@@ -4,12 +4,13 @@ import {connect} from 'react-redux'
 import {loginGetState} from './actions/login'
 import LoginForm from './general/Login'
 import Users from './users/Users'
-import VoterPools from './voters/VoterPools'
+import VotersPools from './voters/VotersPools'
 import Voters from './voters/Voters'
 import Ballots from './ballots/Ballots'
 import Epolls from './ballots/Epolls'
 import Results from './results/Results'
 import Comments from './comments/Comments'
+import Reports from './reports/Reports'
 import ErrorModal from './modals/ErrorModal'
 import ConfirmModal from './modals/ConfirmModal'
 import {init as iconInit} from './general/Icons'
@@ -21,7 +22,8 @@ iconInit()
 const OuterDiv = styled.div`
 	display: flex;
 	flex-direction: column;
-	height: 100vh;`
+	height: 100vh;
+`;
 
 const Header = styled.header`
 	display: flex;
@@ -45,7 +47,18 @@ const Header = styled.header`
 	}
 	& > nav ul li:hover {
 		background-color: rgba(0, 0, 0, 0.1);
-	}`
+	}
+`;
+
+const Main = styled.main`
+	flex: 1;
+	width: 100%;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	margin: 0 auto;
+	align-items: center;
+`;
 
 const Title = styled.h3`
 	display: inline-block;
@@ -55,17 +68,9 @@ const Title = styled.h3`
 	margin: 12px 8px 8px 8px;
 	padding: 0;
 	color: #008080;
-	text-align: center;`
+	text-align: center;
+`;
 
-const Main = styled.main`
-	flex: 1;
-	width: 100%;
-	display: flex;
-	flex-direction: column;
-	position: relative;
-	margin: 0 auto;
-	justify-content: center;
-	align-items: stretch;`
 
 function App({access, loginGetState}) {
 
@@ -86,6 +91,7 @@ function App({access, loginGetState}) {
 							<li><Link to="/Ballots/">Ballots</Link></li>
 							<li><Link to="/Results">Results</Link></li>
 							<li><Link to="/Comments">Comments</Link></li>
+							<li><Link to="/Reports">Reports</Link></li>
 						</ul>
 					</nav>
 				</Header>
@@ -93,12 +99,13 @@ function App({access, loginGetState}) {
 					<Switch>
 						<Route path="/" exact component={LoginForm} />
 						{access > 0 && <Route path="/Users/" component={Users} />}
-						{access > 0 && <Route path="/Voters/" exact component={VoterPools} />}
+						{access > 0 && <Route path="/Voters/" exact component={VotersPools} />}
 						{access > 0 && <Route path="/Voters/:votingPoolType/:votingPoolName" component={Voters} />}
 						<Route path="/Ballots/:ballotId?" component={Ballots} />
 						<Route path="/Epolls/" component={Epolls} />
 						<Route path="/Results/:ballotId?" component={Results} />
 						<Route path="/Comments/:ballotId?" exact component={Comments} />
+						<Route path="/Reports/:ballotId?" exact component={Reports} />
 					</Switch>
 					<ErrorModal />
 					<ConfirmModal />

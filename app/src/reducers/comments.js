@@ -1,8 +1,9 @@
-import sortReducer, {SortType, SortDirection} from './sort'
-import {SORT_PREFIX, SORT_INIT} from '../actions/sort'
+import sortReducer from './sort'
+import {SORT_PREFIX, SORT_INIT, SortDirection} from '../actions/sort'
+import {SortType} from '../lib/sort'
 
-import filtersReducer, {FilterType} from './filter'
-import {FILTER_PREFIX, FILTER_INIT} from '../actions/filter'
+import filtersReducer from './filter'
+import {FILTER_PREFIX, FILTER_INIT, FilterType} from '../actions/filter'
 
 import {SELECT_PREFIX} from '../actions/select'
 import selectReducer from './select'
@@ -10,19 +11,25 @@ import selectReducer from './select'
 import {EXPAND_PREFIX} from '../actions/expand'
 import expandReducer from './expand'
 
+import {UI_PREFIX} from '../actions/ui'
+import uiReducer from './ui'
+
 import {
-	GET_COMMENTS,
-	GET_COMMENTS_SUCCESS,
-	GET_COMMENTS_FAILURE,
-	DELETE_COMMENTS,
-	DELETE_COMMENTS_SUCCESS,
-	DELETE_COMMENTS_FAILURE,
-	IMPORT_COMMENTS,
-	IMPORT_COMMENTS_SUCCESS,
-	IMPORT_COMMENTS_FAILURE,
-	UPDATE_COMMENTS,
-	UPDATE_COMMENTS_SUCCESS,
-	UPDATE_COMMENTS_FAILURE,
+	COMMENTS_GET,
+	COMMENTS_GET_SUCCESS,
+	COMMENTS_GET_FAILURE,
+	COMMENTS_UPDATE,
+	COMMENTS_UPDATE_SUCCESS,
+	COMMENTS_UPDATE_FAILURE,
+	COMMENTS_DELETE,
+	COMMENTS_DELETE_SUCCESS,
+	COMMENTS_DELETE_FAILURE,
+	COMMENTS_IMPORT,
+	COMMENTS_IMPORT_SUCCESS,
+	COMMENTS_IMPORT_FAILURE,
+	COMMENTS_UPLOAD,
+	COMMENTS_UPLOAD_SUCCESS,
+	COMMENTS_UPLOAD_FAILURE,
 	ADD_RESOLUTIONS,
 	ADD_RESOLUTIONS_SUCCESS,
 	ADD_RESOLUTIONS_FAILURE,
@@ -32,9 +39,6 @@ import {
 	DELETE_RESOLUTIONS,
 	DELETE_RESOLUTIONS_SUCCESS,
 	DELETE_RESOLUTIONS_FAILURE,
-	UPLOAD_COMMENTS,
-	UPLOAD_COMMENTS_SUCCESS,
-	UPLOAD_COMMENTS_FAILURE
 } from '../actions/comments'
 
 const commentFields = {
@@ -47,6 +51,7 @@ const commentFields = {
 	Page: 'Page',
 	Comment: 'Comment',
 	ProposedChange: 'Proposed Change',
+	AdHoc: 'Ad-hoc',
 	CommentGroup: 'Group',
 	AssigneeName: 'Assignee',
 	Submission: 'Submission',
@@ -60,27 +65,10 @@ const commentFields = {
 }
 
 /*
- * Generate a list of unique value-label pairs for a particular field
- */
-function genFieldOptions(dataKey, comments) {
-	let options
-	switch (dataKey) {
-	case 'MustSatisfy':
-		return [{value: 0, label: 'No'}, {value: 1, label: 'Yes'}]
-	default:
-		// return an array of unique values for dataKey, sorted, and value '' or null labeled '<blank>'
-		options = [...new Set(comments.map(c => c[dataKey]))]	// array of unique values for dataKey
-			.sort()
-			.map(v => ({value: v, label: (v === null || v === '')? '<blank>': v}))
-		return options
-	}
-}
-
-/*
  * Generate a filter for each field (table column)
  */
 const defaultFiltersEntries = Object.keys(commentFields).reduce((entries, dataKey) => {
-	let type
+	let type, options
 	switch (dataKey) {
 		case 'CID':
 			type = FilterType.NUMERIC
@@ -91,10 +79,14 @@ const defaultFiltersEntries = Object.keys(commentFields).reduce((entries, dataKe
 		case 'Page':
 			type = FilterType.PAGE
 			break
+		case 'MustSatisfy':
+			type = FilterType.NUMERIC
+			options = [{value: 0, label: 'No'}, {value: 1, label: 'Yes'}]
+			break;
 		default:
 			type = FilterType.STRING
 	}
-	return {...entries, [dataKey]: {type}}
+	return {...entries, [dataKey]: {type, options}}
 }, {});
 
 
@@ -109,6 +101,9 @@ const defaultSortEntries = Object.keys(commentFields).reduce((entries, dataKey) 
 		case 'Page':
 			type = SortType.NUMERIC
 			break
+		case 'Clause':
+			type = SortType.CLAUSE
+			break
 		default:
 			type = SortType.STRING
 	}
@@ -116,68 +111,44 @@ const defaultSortEntries = Object.keys(commentFields).reduce((entries, dataKey) 
 	return {...entries, [dataKey]: {type, direction}}
 }, {});
 
+
+const updateComments = (comments, updatedComments) => (
+	/* Replace comments with the modified CommentID, maintaining increasing CommentID order */
+	comments
+		.filter(c1 => !updatedComments.find(c2 => c2.CommentID === c1.CommentID && (c1.ResolutionID === null || c2.ResolutionID === c1.ResolutionID)))
+		.concat(updatedComments)
+		.sort((c1, c2) => c1.CommentID === c2.CommentID? c1.ResolutionID - c2.ResolutionID: c1.CommentID - c2.CommentID)
+)
+
+function getCommentStatus(c) {
+	let Status = ''
+	if (c.ApprovedByMotion)
+		Status = 'Resolution approved'
+	else if (c.ReadyForMotion)
+		Status = 'Ready for motion'
+	else if (c.ResnStatus)
+		Status = 'Resolution drafted'
+	else if (c.AssigneeName)
+		Status = 'Assigned'
+	return Status
+}
+
+const updateCommentsStatus = (comments) => (
+	comments.map(c => {
+		const Status = getCommentStatus(c)
+		return c.Status !== Status? {...c, Status}: c
+	})
+)
+
 const defaultState = {
 	ballotId: '',
-	commentsValid: false,
+	valid: false,
+	loading: false,
 	comments: [],
-	commentsMap: [],
-	getComments: false,
 	updateComment: false,
 	deleteComments: false,
 	importComments: false,
 	uploadComments: false,
-}
-
-function updateSelected(comments, selected) {
-	const newSelected = []
-	for (let s of selected) {
-		if (comments.find(c => c.CID === s)) {
-			// Keep it if it matches a comment exactly
-			newSelected.push(s)
-		}
-		else {
-			// If it is just the comment ID, then keep CIDs for all those comments
-			for (let c of comments) {
-				if (s === c.CommentID.toString()) {
-					newSelected.push(c.CID)
-				}
-			}
-		}
-	}
-	return newSelected
-}
-
-function updateComments(comments, updatedComments) {
-	/* Replace comments with the modified CommentID, maintaining increasing CommentID order */
-	const cids = updatedComments.map(c => c.CommentID)
-	return comments
-		.filter(c => !cids.includes(c.CommentID))
-		.concat(updatedComments)
-		.sort((c1, c2) => c1.CommentID - c2.CommentID)
-}
-
-function getCommentStatus(c) {
-	let Status = ''
-	if (c.ApprovedByMotion) {
-		Status = 'Resolution approved'
-	}
-	else if (c.ReadyForMotion) {
-		Status = 'Ready for motion'
-	}
-	else if (c.ResnStatus) {
-		Status = 'Resolution drafted'
-	}
-	else if (c.AssigneeName) {
-		Status = 'Assigned'
-	}
-	return Status
-}
-
-function updateCommentsStatus(comments, selected, expanded) {
-	return comments.map(c => {
-		const Status = getCommentStatus(c)
-		return c.Status !== Status? {...c, Status}: c
-	})
 }
 
 function commentsReducer(state = defaultState, action) {
@@ -185,95 +156,88 @@ function commentsReducer(state = defaultState, action) {
 
 	switch (action.type) {
 
-		case GET_COMMENTS:
+		case COMMENTS_GET:
 			return {
 				...state,
-				getComments: true,
 				ballotId: action.ballotId,
-				commentsValid: false,
-				comments: [],
-				selected: state.ballotId !== action.ballotId? []: state.selected,
-				expanded: state.ballotId !== action.ballotId? []: state.expanded
+				loading: true,
+				valid: false,
+				comments: []
 			}
-		case GET_COMMENTS_SUCCESS:
-			newComments = updateCommentsStatus(action.comments, state.selected, state.expanded)
+		case COMMENTS_GET_SUCCESS:
+			newComments = updateCommentsStatus(action.comments)
 			return {
 				...state,
-				getComments: false,
-				commentsValid: true,
-				comments: newComments,
-				selected: updateSelected(newComments, state.selected)
+				loading: false,
+				valid: true,
+				comments: newComments
 			}
-		case GET_COMMENTS_FAILURE:
-			return {...state, getComments: false}
+		case COMMENTS_GET_FAILURE:
+			return {...state, loading: false}
 
-		case UPDATE_COMMENTS:
+		case COMMENTS_UPDATE:
 			return {...state, updateComment: true}
-		case UPDATE_COMMENTS_SUCCESS:
+		case COMMENTS_UPDATE_SUCCESS:
 			if (state.ballotId !== action.ballotId) {
 				return {...state, updateComment: false}
 			}
-			newComments = state.comments.map(c => {
-				const i = action.commentIds.indexOf(c.CommentID)
-				return (i === -1)? c: {...c, ...action.comments[i]}
+			newComments = state.comments.map(c1 => {
+				const c2 = action.comments.find(c2 => c2.CommentID === c1.CommentID)
+				return c2? {...c1, ...c2}: c1
 			})
-			newComments = newComments.map(c => ({Selected: !!c.Selected, ...c}))
+			newComments = updateCommentsStatus(newComments)
 			return {
 				...state,
-				updateComment: true,
-				comments: newComments,
-				//commentsMap: sortData(state.sort, filterData(newComments, state.filters), newComments)
+				updateComment: false,
+				comments: newComments
 			}
-		case UPDATE_COMMENTS_FAILURE:
+		case COMMENTS_UPDATE_FAILURE:
 			return {...state, updateComment: false}
 
-		case DELETE_COMMENTS:
+		case COMMENTS_DELETE:
 			return state.ballotId === action.ballotId? {
 					...state,
 					deleteComments: true,
 					comments: [],
-					selected: []
 				}: {
 					...state,
 					deleteComments: true,
 				}
-		case DELETE_COMMENTS_SUCCESS:
+		case COMMENTS_DELETE_SUCCESS:
 			return {...state, deleteComments: false}
-		case DELETE_COMMENTS_FAILURE:
+		case COMMENTS_DELETE_FAILURE:
 			return {...state, deleteComments: false}
 
-		case IMPORT_COMMENTS:
+		case COMMENTS_IMPORT:
 			return {...state, importComments: true}
-		case IMPORT_COMMENTS_SUCCESS:
+		case COMMENTS_IMPORT_SUCCESS:
 			if (action.ballotId !== state.ballotId) {
 				return {...state, importComments: false}
 			}
-			newComments = updateCommentsStatus(action.comments, state.selected, state.expanded)
+			newComments = updateCommentsStatus(action.comments)
 			return {
 				...state,
 				importComments: false,
-				commentsValid: true,
-				comments: newComments,
-				selected: updateSelected(newComments, state.selected)
+				valid: true,
+				comments: newComments
 			}
-		case IMPORT_COMMENTS_FAILURE:
+		case COMMENTS_IMPORT_FAILURE:
 			return {...state, importComments: false}
 
-		case UPLOAD_COMMENTS:
+		case COMMENTS_UPLOAD:
 			return {...state, uploadComments: true}
-		case UPLOAD_COMMENTS_SUCCESS:
+		case COMMENTS_UPLOAD_SUCCESS:
 			if (action.ballotId !== state.ballotId) {
 				return {...state, uploadComments: false}
 			}
-			newComments = updateCommentsStatus(action.comments, state.selected, state.expanded)
+			newComments = updateCommentsStatus(action.comments)
 			return {
 				...state,
 				uploadComments: false,
-				commentsValid: true,
-				comments: newComments,
-				selected: updateSelected(newComments, state.selected)
+				valid: true,
+				comments: newComments
 			}
-		case UPLOAD_COMMENTS_FAILURE:
+		case COMMENTS_UPLOAD_FAILURE:
 			return {...state, uploadComments: false}
 
 		case ADD_RESOLUTIONS:
@@ -282,13 +246,15 @@ function commentsReducer(state = defaultState, action) {
 			if (state.ballotId !== action.ballotId) {
 				return {...state, updateComment: false}
 			}
-			newComments = action.updatedComments.concat(action.newComments)
-			newComments = updateCommentsStatus(newComments, state.selected, state.expanded)
+			// Concat new comments
+			newComments = state.comments.concat(action.newComments)
+			// Update and sort comments
+			newComments = updateComments(newComments, action.updatedComments)
+			newComments = updateCommentsStatus(newComments)
 			return {
 				...state,
 				updateComment: false,
 				comments: newComments,
-				selected: updateSelected(newComments, state.selected)
 			}
 		case ADD_RESOLUTIONS_FAILURE:
 			return {...state, updateComment: false}
@@ -316,17 +282,23 @@ function commentsReducer(state = defaultState, action) {
 			return {...state, updateComment: false}
 
 		case DELETE_RESOLUTIONS:
-			return {...state, updateComment: true}
+			return {
+				...state,
+				updateComment: true
+			}
 		case DELETE_RESOLUTIONS_SUCCESS:
 			if (state.ballotId !== action.ballotId) {
 				return {...state, updateComment: false}
 			}
-			newComments = updateComments(state.comments, action.updatedComments)
+			// Remove deleted comments
+			newComments = state.comments.filter(c1 => !action.deletedComments.find(c2 => c2.CommentID === c1.CommentID && c2.ResolutionID === c1.ResolutionID))
+			// Update and sort comments
+			newComments = updateComments(newComments, action.updatedComments)
+			newComments = updateCommentsStatus(newComments)
 			return {
 				...state,
 				updateComment: false,
 				comments: newComments,
-				selected: updateSelected(newComments, state.selected)
 			}
 		case DELETE_RESOLUTIONS_FAILURE:
 			return {...state, updateComment: false}
@@ -339,6 +311,7 @@ function commentsReducer(state = defaultState, action) {
 /*
  * Attach higher-order reducers
  */
+const dataSet = 'comments'
 export default (state, action) => {
 	if (state === undefined) {
 		return {
@@ -346,24 +319,29 @@ export default (state, action) => {
 			sort: sortReducer(undefined, {type: SORT_INIT, entries: defaultSortEntries}),
 			filters: filtersReducer(undefined, {type: FILTER_INIT, entries: defaultFiltersEntries}),
 			selected: selectReducer(undefined, {}),
-			expanded: expandReducer(undefined, {})
+			expanded: expandReducer(undefined, {}),
+			ui: uiReducer(undefined, {})
 		}
 	}
-	if (action.type.startsWith(SORT_PREFIX) && action.dataSet === 'comments') {
+	if (action.type.startsWith(SORT_PREFIX) && action.dataSet === dataSet) {
 		const sort = sortReducer(state.sort, action);
 		return {...state, sort}
 	}
-	else if (action.type.startsWith(FILTER_PREFIX) && action.dataSet === 'comments') {
+	else if (action.type.startsWith(FILTER_PREFIX) && action.dataSet === dataSet) {
 		const filters = filtersReducer(state.filters, action);
 		return {...state, filters}
 	}
-	else if (action.type.startsWith(SELECT_PREFIX) && action.dataSet === 'comments') {
+	else if (action.type.startsWith(SELECT_PREFIX) && action.dataSet === dataSet) {
 		const selected = selectReducer(state.selected, action);
 		return {...state, selected}
 	}
-	else if (action.type.startsWith(EXPAND_PREFIX) && action.dataSet === 'comments') {
+	else if (action.type.startsWith(EXPAND_PREFIX) && action.dataSet === dataSet) {
 		const expanded = expandReducer(state.expanded, action);
 		return {...state, expanded}
+	}
+	else if (action.type.startsWith(UI_PREFIX) && action.dataSet === dataSet) {
+		const ui = uiReducer(state.ui, action);
+		return {...state, ui}
 	}
 	else {
 		return commentsReducer(state, action)

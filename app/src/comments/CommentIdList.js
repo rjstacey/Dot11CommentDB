@@ -1,10 +1,8 @@
 import React from 'react'
 import {connect} from 'react-redux'
-//import ContentEditable from 'react-contenteditable'
-import {Editor, EditorState, ContentState, SelectionState, Modifier, CompositeDecorator} from 'draft-js'
+import {Editor, EditorState, ContentState, CompositeDecorator} from 'draft-js'
 import 'draft-js/dist/Draft.css'
 import {Cross} from '../general/Icons'
-import debounce from 'lodash/debounce'
 import {setSelected} from '../actions/select'
 import {setFilter} from '../actions/filter'
 import styled from '@emotion/styled'
@@ -14,34 +12,36 @@ const Container = styled.div`
 	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
-	border: 1px solid #ddd;
-	width: 100%;
 	.DraftEditor-root {
-		cursor: text;
-		max-height: 20vh;
 		width: 100%;
-		overflow-y: auto;
-		padding: 4px 16px 4px 4px;
-		margin: 5px;
+		cursor: text;
 	}
 	:hover {
 		border-color: #0074D9
 	}
-	:focus-within {
+	/*:focus-within {
 		outline: -webkit-focus-ring-color auto 1px;
-	}
+	}*/
 `;
 
-function CommentIdList({cids, cidValid, onChange, focusOnMount, ...otherProps}) {
-	const debounceChange = React.useRef()
-	const [editorState, setEditorState] = React.useState(initState)
+function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount, close, ...otherProps}) {
+	const editorRef = React.useRef();
+	const [editorState, setEditorState] = React.useState(initState);
 
 	React.useEffect(() => {
-		// On mount, create a debounce update handler...
-		debounceChange.current = debounce(handleChange, 500)
-		// ...end ensure that debounce is flushed on unmount
-		return debounceChange.current.flush
+		// Close the dropdown if the user scrolls
+		// (we don't track position changes during scrolling)
+		window.addEventListener('scroll', close, true);
+		return () => window.removeEventListener('scroll', close);
 	}, [])
+
+	React.useEffect(() => {
+		if (!editorState.getSelection().hasFocus) {
+			let state = EditorState.push(editorState, ContentState.createFromText(cids.join(', ')), 'remove-range')
+			state = EditorState.moveSelectionToEnd(state)
+			setEditorState(state)
+		}
+	}, [cids])
 
 	function initState() {
 		const decorator = new CompositeDecorator([
@@ -50,12 +50,11 @@ function CommentIdList({cids, cidValid, onChange, focusOnMount, ...otherProps}) 
 				component: props => <span style={{color: "red"}}>{props.children}</span>,
 			}
 		]);
-		let editorState
-		editorState = EditorState.createWithContent(ContentState.createFromText(cids.join(', ')), decorator)
+		let state = EditorState.createWithContent(ContentState.createFromText(cids.join(', ')), decorator)
 		if (focusOnMount) {
-			editorState = EditorState.moveFocusToEnd(editorState)
+			state = EditorState.moveFocusToEnd(state)
 		}
-		return editorState
+		return state
 	}
 
 	function findInvalidCIDs(contentBlock, callback, contentState) {
@@ -70,15 +69,11 @@ function CommentIdList({cids, cidValid, onChange, focusOnMount, ...otherProps}) 
 		}
 	}
 
-	function handleChange(currentCids, updatedCids, onChange) {
-		if (updatedCids.join() !== currentCids.join()) {
-			onChange(updatedCids)
-		}
-	}
+	function clear(e) {
+		e.stopPropagation();	// don't take focus from editor
 
-	function clear() {
 		//setEditorState(EditorState.push(editorState, ContentState.createFromText('')))
-		let contentState = editorState.getCurrentContent();
+		/*let contentState = editorState.getCurrentContent();
 		const firstBlock = contentState.getFirstBlock();
 		const lastBlock = contentState.getLastBlock();
 		const allSelected = new SelectionState({
@@ -89,27 +84,32 @@ function CommentIdList({cids, cidValid, onChange, focusOnMount, ...otherProps}) 
 			hasFocus: true
 		});
 		contentState = Modifier.removeRange(contentState, allSelected, 'backward');
-		let state = EditorState.push(editorState, contentState, 'remove-range');
-		//console.log('clear', state.getCurrentContent().getPlainText())
-		//newState = EditorState.forceSelection(newState, contentState.getSelectionAfter());
-		setEditorState(state)
-		debounceChange.current(cids, [], onChange)
+		const state = EditorState.push(editorState, contentState, 'remove-range');
+		setEditorState(state);*/
+		onChange([]);
 	}
 
-	function editorStateChange(state) {
-		setEditorState(state)
+	function emitChange(state) {
 		const s = state.getCurrentContent().getPlainText()
 		const updatedCids = s.match(/\d+\.\d+|\d+/g) || []	// just the numbers
-		//console.log('onChange', state.getCurrentContent().getPlainText())
-		debounceChange.current(cids, updatedCids, onChange)
+		if (updatedCids.join() !== cids.join())
+			onChange(updatedCids)
 	}
 
-
 	return (
-		<Container {...otherProps}>
+		<Container
+			style={style}
+			className={className}
+			onClick={e => editorRef.current.focus()}
+		>
 			<Editor
+				ref={editorRef}
 				editorState={editorState}
-				onChange={editorStateChange}
+				onChange={setEditorState}
+				onFocus={() => console.log('focus')}
+				handleReturn={() => (emitChange(editorState) || 'handled')}	// return 'handled' to prevent default handler
+				onBlur={() => emitChange(editorState)}
+				placeholder={'List of CIDs...'}
 			/>
 			{editorState.getCurrentContent().hasText() && <Cross onClick={clear} />}
 		</Container>
@@ -124,7 +124,7 @@ export const CommentIdFilter = connect(
 	(state, ownProps) => {
 		const s = state.comments
 		return {
-			cids: s.filters['CID'].values || [],
+			cids: s.filters['CID'].values.map(v => v.value) || [],
 			cidValid: (cid) => cidValid(s.comments, cid)
 		}
 	},
@@ -139,7 +139,7 @@ export const CommentIdSelector = connect(
 	(state, ownProps) => {
 		const s = state.comments
 		return {
-			cids: s.selected || [],
+			cids: s.selected,
 			cidValid: (cid) => cidValid(s.comments, cid)
 		}
 	},

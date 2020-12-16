@@ -74,7 +74,7 @@ router.post('/user', async (req, res, next) => {
 })
 router.delete('/users', async (req, res, next) => {
 	try {
-		userIds = req.body
+		const userIds = req.body
 		if (!Array.isArray(userIds)) {
 			throw 'Expected array parameter'
 		}
@@ -240,6 +240,12 @@ router.put('/comments/:ballotId', (req, res, next) => {
 	return commentsModule.updateComments(ballotId, commentIds, comments)
 		.then(data => res.json(data), err => next(err))
 })
+router.patch('/comments/startCommentId/:ballotId', (req, res, next) => {
+	const {ballotId} = req.params
+	const {StartCommentID} = req.body
+	return commentsModule.setStartCommentId(ballotId, StartCommentID)
+		.then(data => res.json(data), err => next(err))
+})
 router.delete('/comments/:ballotId', (req, res, next) => {
 	const {ballotId} = req.params
 	return commentsModule.deleteComments(ballotId)
@@ -270,8 +276,7 @@ router.post('/comments/exportForMyProject', upload.single('file'), (req, res, ne
 	if (!req.file) {
 		return next('Missing file')
 	}
-	return commentsModule.exportResolutionsForMyProject(BallotID, Filename, req.file, res)
-		.catch(err => next(err))
+	return commentsModule.exportResolutionsForMyProject(BallotID, Filename, req.file, res).catch(err => next(err))
 })
 router.post('/comments/exportSpreadsheet', upload.single('file'), (req, res, next) => {
 	const {BallotID, Filename} = JSON.parse(req.body.params)
@@ -315,8 +320,8 @@ router.delete('/resolutions/:ballotId', async (req, res, next) => {
 		if (resolutions === undefined || !Array.isArray(resolutions)) {
 			throw 'Missing resolutions array'
 		}
-		await commentsModule.deleteResolutions(ballotId, resolutions)
-		res.json(null)
+		const data = await commentsModule.deleteResolutions(ballotId, resolutions)
+		res.json(data)
 	}
 	catch(err) {next(err)}
 })

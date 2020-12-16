@@ -1,178 +1,91 @@
+import {sortFunc} from '../lib/sort'
 import {
 	SORT_INIT,
 	SORT_SET,
-	SORT_TOGGLE
+	SORT_CLICK,
+	SortDirection
 } from '../actions/sort'
 
-function parseNumber(value) {
-	// Return the value as-is if it's already a number
-	if (typeof value === 'number') {
-		return value
-	}
-
-	// Build regex to strip out everything except digits, decimal point and minus sign
-	let regex = new RegExp('[^0-9-.]', ['g']);
-	let unformatted = parseFloat(
-		('' + value)
-			// strip out any cruft
-			.replace(regex, '')
-		);
-
-	// This will fail silently
-	return !isNaN(unformatted) ? unformatted : 0;
-}
-
 export function sortData(sort, dataMap, data) {
-	const sortType = sort.type, sortBy = sort.by, sortDirection = sort.direction;
-	const sortedDataMap = dataMap.slice()
+	const {type, by, direction} = sort;
+	let sortedDataMap = dataMap;
 
-	for (let key of sortBy) {
-		let sortFunc = (index_a, index_b) => index_a - index_b; // Index order (= original order)
-		if (sortDirection[key] && sortType[key] && sortDirection[key] !== SortDirection.NONE) {
-			if (sortType[key] === SortType.NUMERIC) {
-				// Numeric compare function
-				sortFunc = (index_a, index_b) => {
-					const A = parseNumber(data[index_a][key]);
-					const B = parseNumber(data[index_b][key]);
-					return A - B;
-				}
-			}
-			else if (sortType[key] === SortType.CLAUSE) {
-				// Clause sort function
-				sortFunc = (index_a, index_b) => {
-					const A = data[index_a][key].split('.')
-					const B = data[index_b][key].split('.')
-					for (let i of Array(Math.min(A.length, B.length)).keys()) {
-						if (A[i] !== B[i]) {
-							if (!isNaN(A[i]) && !isNaN(B[i])) {
-								return parseNumber(A[i]) - parseNumber(B[i], 10);
-							}
-							else {
-								return A[i] < B[i]? -1: 1;
-							}
-						}
-					}
-					// Equal so far, so straight string compare
-					return A < B? -1: (A > B? 1: 0);
-				}
-			}
-			else {
-				// String compare function
-				sortFunc = (index_a, index_b) => {
-					const A = ('' + data[index_a][key]).toLowerCase();
-					const B = ('' + data[index_b][key]).toLowerCase();
-					if (A < B) {
-						return -1;
-					}
-					if (A > B) {
-						return 1;
-					}
-					return 0;
-				}
-			}
+	for (let key of by) {
+		let cmp = (index_a, index_b) => index_a - index_b; // Index order (= original order)
+		if (direction[key] && type[key] && direction[key] !== SortDirection.NONE) {
+			const cmpFunc = sortFunc[type[key]]
+			if (cmpFunc)
+				cmp = (index_a, index_b) => cmpFunc(data[index_a][key], data[index_b][key]);
+			else
+				console.warn(`No sort function for ${key} (sort type ${type[key]})`)
 		}
-		sortedDataMap.sort(sortFunc)
-		if (sortDirection[key] === SortDirection.DESC) {
-			sortedDataMap.reverse()
-		}
+		sortedDataMap = sortedDataMap.slice();
+		sortedDataMap.sort(cmp);
+		if (direction[key] === SortDirection.DESC)
+			sortedDataMap.reverse();
 	}
 
-	return sortedDataMap
+	return sortedDataMap;
 }
 
 export function sortClick(sort, dataKey, event) {
-	var sortBy = sort.by.slice()
-	var sortDirection = Object.assign({}, sort.direction)
+	let by = sort.by
+	let direction = sort.direction
 
 	if (event.shiftKey) {
 		// Shift + click appends a column to existing criteria
-		if (sortBy.includes(dataKey)) {
-			sortDirection[dataKey] = sortDirection[dataKey] === SortDirection.DESC? SortDirection.NONE:
-				(sortDirection[dataKey] === SortDirection.ASC? SortDirection.DESC: SortDirection.ASC);
-		} else {
-			sortDirection[dataKey] = SortDirection.ASC;
-			sortBy.unshift(dataKey);
-		}
-	} else if (event.ctrlKey || event.metaKey) {
-		// Control + click removes column from sort (if pressent)
-		const index = sortBy.indexOf(dataKey);
-		if (index >= 0) {
-			sortBy.splice(index, 1);
-			delete sortDirection[dataKey];
-		}
-	} else {
-		if (sortBy.includes(dataKey)) {
-			sortDirection[dataKey] = sortDirection[dataKey] === SortDirection.DESC? SortDirection.NONE:
-				(sortDirection[dataKey] === SortDirection.ASC? SortDirection.DESC: SortDirection.ASC);
-		} else {
-			sortDirection[dataKey] = SortDirection.ASC;
-		}
-		sortBy.length = 0;
-		sortBy.push(dataKey);
-	}
-	return {...sort, by: sortBy, direction: sortDirection};
-}
-
-export function setSort(sort, dataKey, direction) {
-	const sortBy = sort.by.slice();
-	const sortDirection = Object.assign({}, sort.direction);
-	const index = sortBy.indexOf(dataKey);
-	if (index >= 0) {
-		if (sortDirection[dataKey] === direction) {
-			sortBy.splice(index, 1);
-			delete sortDirection[dataKey];
+		if (by.includes(dataKey)) {
+			// Already present; must be ASC or DESC
+			if (direction[dataKey] === SortDirection.ASC)
+				direction = {...direction, [dataKey]: SortDirection.DESC}; // toggle ASC -> DESC
+			else
+				by = by.filter(d => d !== dataKey) // toggle DESC -> removed
 		}
 		else {
-			sortDirection[dataKey] = direction;
+			// Not present; add entry as ASC
+			direction[dataKey] = SortDirection.ASC;
+			by = [...by, dataKey];
 		}
 	}
+	else if (event.ctrlKey || event.metaKey) {
+		// Control + click removes column from sort (if present)
+		by = by.filter(d => d !== dataKey);
+	}
 	else {
-		sortDirection[dataKey] = direction;
-		sortBy.unshift(dataKey);
+		// Click without modifier adds as only entry or toggles if already present
+		if (by.includes(dataKey)) {
+			// Already present; must be ASC or DESC
+			if (direction[dataKey] === SortDirection.ASC) {
+				direction = {...direction, [dataKey]: SortDirection.DESC}; // toggle ASC -> DESC
+				by = [dataKey];
+			}
+			else {
+				by = []; // toggle DESC -> removed
+			}
+		}
+		else {
+			// Not present; add entry as ASC
+			direction[dataKey] = SortDirection.ASC;
+			by = [dataKey];
+		}
 	}
-	return {...sort, by: sortBy, direction: sortDirection};
+
+	return {...sort, by, direction};
 }
 
-export function isSortable(sort, dataKey) {
-	return sort.type.hasOwnProperty(dataKey)
-}
-
-/*
- * Create sort object
- */
-export function sortCreate() {
-	return {
-		by: [],
-		type: {},
-		direction: {}
+export function sortSet(sort, dataKey, direction) {
+	const index = sort.by.indexOf(dataKey);
+	if (index >= 0) {
+		if (direction === SortDirection.NONE)
+			return {...sort, by: sort.by.filter(d => d !== dataKey), direction: {...sort.direction, [dataKey]: SortDirection.NONE}} // remove from sort by list
+		else
+			return {...sort, direction: {...sort.direction, [dataKey]: direction}} // change direction
 	}
-}
-
-/*
- * Initialize a column in sort object
- */
-export function sortAddColumn(sort, dataKey, type) {
-	sort.direction[dataKey] = SortDirection.NONE
-	sort.type[dataKey] = type
-}
-
-export const SortDirection = {
-	NONE: 'NONE',
-	ASC: 'ASC',
-	DESC: 'DESC'
-}
-
-export const SortType = {
-	NOTSORTABLE: 0,
-	STRING: 1,
-	NUMERIC: 2,
-	CLAUSE: 3
-}
-
-const defaultState = {
-	by: [],
-	type: {},
-	direction: {}
+	else {
+		if (direction !== SortDirection.NONE)
+			return {...sort, by: [...sort.by, dataKey], direction: {...sort.direction, [dataKey]: direction}} // add to sort by list
+	}
+	return sort
 }
 
 function sortInit(entries) {
@@ -186,13 +99,19 @@ function sortInit(entries) {
 	return sort;
 }
 
+const defaultState = {
+	by: [],
+	type: {},
+	direction: {}
+}
+
 function sortReducer(state = defaultState, action) {
 
 	switch (action.type) {
 		case SORT_SET:
-			return setSort(state, action.dataKey, action.direction)
+			return sortSet(state, action.dataKey, action.direction)
 
-		case SORT_TOGGLE:
+		case SORT_CLICK:
 			return sortClick(state, action.dataKey, action.event)
 
 		case SORT_INIT:

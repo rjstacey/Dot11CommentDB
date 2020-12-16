@@ -4,9 +4,9 @@
   "description": "IEEE 802.11 comment tracking tool server",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon src/index.js --exec babel-node --presents es2015,stage-2 --inspect",
+    "start": "NODE_ENV=development nodemon src/index.js --exec babel-node --presents es2015,stage-2 --inspect",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack",
+    "build": "node_modules/.bin/webpack",
     "prod": "cd ../build && node server.js"
   },
   "author": "Robert Stacey",
@@ -36,7 +36,7 @@
     "babel-preset-stage-2": "^6.24.1",
     "file-loader": "^6.0.0",
     "nodemon": "^1.19.4",
-    "webpack": "^4.42.1",
+    "webpack": "^4.44.2",
     "webpack-cli": "^3.3.11"
   }
 }

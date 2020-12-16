@@ -4,12 +4,13 @@ import {shouldComponentUpdate} from 'react-window';
 
 import styled from '@emotion/styled'
 
-const defaultCellRenderer = ({rowData, key}) => rowData[key];
+const defaultCellRenderer = ({rowData, dataKey}) => rowData[dataKey];
 
 const BodyRow = styled.div`
 	display: flex;
 	position: relative;
-	box-sizing: border-box;`
+	box-sizing: border-box;
+`;
 
 
 /**
@@ -18,10 +19,8 @@ const BodyRow = styled.div`
 class TableRow extends React.Component {
 	constructor(props) {
 		super(props);
-
-		this.state = {
-			measured: false
-		};
+		this.state = {measured: false};
+		this.rowRef = null;
 	}
 
 	/* This function knows to compare individual style props and ignore the wrapper object in order
@@ -34,7 +33,7 @@ class TableRow extends React.Component {
 
 	componentDidUpdate(prevProps, prevState) {
 		if (this.state.measured && prevState.measured) {
-			this.setState({ measured: false }, () => this._measureHeight());
+			this.setState({measured: false}, () => this._measureHeight());
 		}
 	}
 
@@ -49,9 +48,8 @@ class TableRow extends React.Component {
 			rowIndex,
 			rowData,
 			rowKey,
+			dataSet,
 			isExpanded,
-			selected,
-			setSelected,
 			estimatedRowHeight,
 			onRowHeightChange,
 			onRowClick,
@@ -60,21 +58,25 @@ class TableRow extends React.Component {
 		} = this.props;
 		/* eslint-enable no-unused-vars */
 
-		const cells = columns.map((column, columnIndex) => {
+		const cells = columns.map((column, key) => {
 			const cellRenderer = column.cellRenderer || defaultCellRenderer
-			const cellProps = {rowIndex, columnIndex, rowData, rowKey, key: column.key, column, selected, setSelected}
+			const cellProps = {rowIndex, rowData, dataSet, rowKey, dataKey: key, column}
 			const cellStyle = {
 				flexBasis: column.width,
 				flexGrow: fixed? 0: column.flexGrow,
 				flexShrink: fixed? 0: column.flexShrink,
-				overflow: 'hidden'	// necessary so that the content does not affect size
+				overflow: 'hidden'	// necessary to ensure that the content does not affect size
 			}
 			return (
-				<div className='AppTable__dataCell' key={columnIndex} style={cellStyle}>
+				<div
+					key={key}
+					className='AppTable__dataCell'
+					style={cellStyle}
+				>
 					{cellRenderer(cellProps)}
 				</div>
 			)
-		})
+		}).toArray()
 
 		let rowStyle = {...style}
 		if (!this.state.measured && isExpanded) {
@@ -87,7 +89,7 @@ class TableRow extends React.Component {
 	  	return (
 			<BodyRow
 				{...otherProps}
-				ref={ref => this.ref = ref}
+				ref={ref => this.rowRef = ref}
 				className={className}
 				style={rowStyle}
 				onClick={onClick}
@@ -99,11 +101,11 @@ class TableRow extends React.Component {
 	}
 
 	_measureHeight(initialMeasure) {
-		if (!this.ref) return;
+		if (!this.rowRef) return;
 
-		const { style, onRowHeightChange, rowIndex, estimatedRowHeight, isExpanded } = this.props;
-		const height = isExpanded? this.ref.getBoundingClientRect().height: estimatedRowHeight;
-		this.setState({ measured: true }, () => {
+		const {style, onRowHeightChange, rowIndex, estimatedRowHeight, isExpanded} = this.props;
+		const height = isExpanded? this.rowRef.getBoundingClientRect().height: estimatedRowHeight;
+		this.setState({measured: true}, () => {
 			if (initialMeasure || height !== style.height)
 				onRowHeightChange(rowIndex, height);
 		});
@@ -114,7 +116,7 @@ TableRow.propTypes = {
 	fixed: PropTypes.bool,
 	style: PropTypes.object,
 	className: PropTypes.string,
-	columns: PropTypes.arrayOf(PropTypes.object).isRequired,
+	columns: PropTypes.object.isRequired,
 	rowIndex: PropTypes.number.isRequired,
 	rowData: PropTypes.oneOfType([PropTypes.object, PropTypes.func]).isRequired,
 	rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

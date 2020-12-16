@@ -3,6 +3,7 @@ import React from 'react'
 import {useHistory} from 'react-router-dom'
 import {connect} from 'react-redux'
 import Immutable from 'immutable'
+import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
 import ConfirmModal from '../modals/ConfirmModal'
 import {getVotingPools, deleteVotingPools} from '../actions/votingPools'
@@ -19,8 +20,8 @@ const columns = Immutable.OrderedMap({
 function VotersPools(props) {
 	const history = useHistory()
 	const [showVotersPoolAdd, setShowVotersPoolAdd] = React.useState(false)
-	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
-	const width = Math.min(window.innerWidth - 1, maxWidth)
+
+	const width = Math.min(window.innerWidth, columns.reduce((acc, col) => acc + col.width, 0) + 40)
 
 	React.useEffect(() => {
 		if (!props.valid)
@@ -52,18 +53,16 @@ function VotersPools(props) {
 
 	return (
 		<React.Fragment>
-			<div style={{display: 'flex', justifyContent: 'center'}}>
-				<div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width}}>
-					<span><label>Voting Pools</label></span>
-					<span>
-						<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowVotersPoolAdd(true)} />
-						<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
-						<ActionButton name='refresh' title='Refresh' onClick={props.getVotingPools} />
-					</span>
-				</div>
-			</div>
+			<TopRow style={{width}}>
+				<span><label>Voting Pools</label></span>
+				<span>
+					<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowVotersPoolAdd(true)} />
+					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
+					<ActionButton name='refresh' title='Refresh' onClick={props.getVotingPools} />
+				</span>
+			</TopRow>
 
-			<div style={{flex: 1}}>
+			<TableRow style={{width}}>
 				<AppTable
 					fixed
 					columns={columns}
@@ -77,7 +76,7 @@ function VotersPools(props) {
 					rowKey='VotingPoolID'
 					onRowDoubleClick={showVoters}
 				/>
-			</div>
+			</TableRow>
 
 			<VotersPoolAddModal
 				isOpen={showVotersPoolAdd}
@@ -87,6 +86,16 @@ function VotersPools(props) {
 		</React.Fragment>
 	)
 }
+
+const TopRow = styled.div`
+	display: flex;
+	justify-content: space-between;
+`;
+
+const TableRow = styled.div`
+	flex: 1;	/* remaining height */
+`;
+
 
 VotersPools.propTypes = {
 	selected: PropTypes.array.isRequired,

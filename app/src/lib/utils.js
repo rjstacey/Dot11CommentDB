@@ -1,11 +1,25 @@
 
 export function debounce(fn, ms = 0) {
-	let timeoutId;
-	return function(...args) {
+	let timeoutId, lastArgs, lastThis;
+	function invoke() {
+		timeoutId = undefined;
+		return fn.apply(lastThis, lastArgs)
+	}
+	function flush() {
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+			invoke();
+		}
+	}
+	function debounced() {
+		lastArgs = arguments;
+		lastThis = this;
 		clearTimeout(timeoutId);
-		timeoutId = setTimeout(() => fn.apply(this, args), ms);
-	};
-};
+		timeoutId = setTimeout(invoke, ms);
+	}
+	debounced.flush = flush;
+	return debounced;
+}
 
 // copied from https://github.com/react-bootstrap/dom-helpers
 let scrollbarSize;
@@ -36,4 +50,14 @@ export function strComp(a, b) {
 	if (A < B) return -1;
 	if (A > B) return 1;
 	return 0;
+}
+
+export function shallowDiff(originalObj, modifiedObj) {
+	let changed = {};
+	for (let k in modifiedObj) {
+		if (modifiedObj.hasOwnProperty(k) && modifiedObj[k] !== originalObj[k]) {
+			changed[k] = modifiedObj[k]
+		}
+	}
+	return changed;
 }

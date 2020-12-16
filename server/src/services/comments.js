@@ -141,7 +141,7 @@ function matchCommentByEllimination(comment, dbComments) {
 	return null
 }
 
-const mapDispositionStatus = {
+const mapResnStatus = {
 	A: 'ACCEPTED',
 	V: 'REVISED',
 	J: 'REJECTED'
@@ -180,9 +180,9 @@ async function myProjectAddResolutions(workbook, dbComments) {
 		//	dbC = matchCommentByEllimination(comment, dbComments);
 		//}
 		if (dbC && dbC.ApprovedByMotion) {
-			console.log(`found ${comment.C_Index}`)
-			row.getCell(20).value = mapDispositionStatus[dbC.ResnStatus] || '';
-			row.getCell(21).value = dbC.Resolution || '';
+			//console.log(`found ${comment.C_Index}`)
+			row.getCell(20).value = mapResnStatus[dbC.ResnStatus] || '';
+			row.getCell(21).value = processHtml(dbC.Resolution);
 		}
 	})
 }
@@ -383,7 +383,7 @@ function genLegacyWorksheetTable(sheet, ballotId, doc, comments) {
 		'Motion Number': {width: 9, outlineLevel: 1, value: c => c.ApprovedByMotion || ''},
 		'Comment': {width: 25, value: c => c.Comment},
 		'Proposed Change': {width: 25, value: c => c.ProposedChange},
-		'Resolution': {width: 25, value: c => processHtml(c.Resolution)},
+		'Resolution': {width: 25, value: c => (c.ResnStatus? mapResnStatus[c.ResnStatus] + '\n': '') + processHtml(c.Resolution)},
 		'Owning Ad-hoc': {width: 9},
 		'Comment Group': {width: 10, value: c => c.CommentGroup || ''},
 		'Ad-hoc Status': {width: 10, value: c => c.Status || ''},
@@ -685,6 +685,24 @@ async function updateComments(ballotId, commentIds, comments) {
 	}
 }
 
+async function setStartCommentId(ballotId, startCommentId) {
+	/* To avoid duplicate keys, we convernt key with offset to a negative number and the convert later to positive number
+	 */
+	const SQL = db.format(
+		'START TRANSACTION;' +
+		'SET @ballotId = ?;' +
+		'SET @startCommentId = ?;' +
+		'SET @offset = @startCommentId - (SELECT MIN(CommentID) FROM comments WHERE BallotID=@ballotId);' +
+		'UPDATE comments SET CommentID = (CommentID + @offset)*-1 WHERE BallotID=@ballotId;' +
+		'UPDATE resolutions SET CommentID = (CommentID + @offset)*-1 WHERE BallotID=@ballotId;' +
+		'UPDATE comments SET CommentID = CommentID*-1 WHERE BallotID=@ballotId;' +
+		'UPDATE resolutions SET CommentID = CommentID*-1 WHERE BallotID=@ballotId;' +
+		'COMMIT;',
+		[ballotId, startCommentId]);
+	const results = await db.query(SQL);
+	return getComments(ballotId);
+}
+
 function getResolutionIds(CIDs) {
 	return CIDs.split(',').map(cid => {
 		const m = cid.match(/(\d+)\.(\d+)/)
@@ -828,7 +846,7 @@ async function addResolutions(ballotId, resolutions) {
 		updatedComments: []
 	}
 	for (let c of updatedComments) {
-		if (resIds.find(r => r.CommentID === c.CommentID && r.ResolutionID === c.ResolutionID)) {
+		if (resIds.find(r => r.CommentID === c.CommentID && r.ResolutionID === c.ResolutionID && c.ResolutionCount > 1)) {
 			data.newComments.push(c)
 		}
 		else {
@@ -1085,6 +1103,7 @@ module.exports = {
 	getComments,
 	updateComment,
 	updateComments,
+	setStartCommentId,
 	updateResolutions,
 	addResolutions,
 	deleteResolutions,

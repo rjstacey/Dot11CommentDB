@@ -1,15 +1,18 @@
 import React from 'react'
 import {connect} from 'react-redux'
+import Immutable from 'immutable'
 import {useHistory} from 'react-router-dom'
 import AppTable from '../table/AppTable'
 import BallotDetailModal from './BallotDetail'
 import {ActionButton} from '../general/Icons'
-import {setEpollsSort, setEpollsFilter, getEpolls} from '../actions/epolls'
+import {getEpolls} from '../actions/epolls'
+import {getDataMap} from '../selectors/dataMap'
+import {getSyncedEpolls} from '../selectors/epolls'
 
-function renderDate({rowData, key}) {
+function renderDate({rowData, dataKey}) {
 	// rowData[key] is an ISO time string. We convert this to eastern time
 	// and display only the date (not time).
-	const d = new Date(rowData[key])
+	const d = new Date(rowData[dataKey])
 	const str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
 	return str
 }
@@ -19,24 +22,21 @@ function Epolls(props) {
 	const numberEpolls = React.useRef(20)
 	const [epollNum, setEpollNum] = React.useState(null)
 
-	const columns = [
-		{key: 'EpollNum',	label: 'ePoll',			width: 100},
-		{key: 'BallotID',	label: 'ePoll Name',	width: 200},
-		{key: 'Document',	label: 'Document',		width: 200},
-		{key: 'Topic',		label: 'Topic',			width: 500},
-		{key: 'Start',		label: 'Start',			width: 100,
-			cellRenderer: renderDate},
-		{key: 'End',		label: 'End',			width: 100,
-			cellRenderer: renderDate},
-		{key: 'Votes',		label: 'Result',		width: 100},
-		{key: '',			label: '',				width: 200,
-			cellRenderer: renderActions,
-			isLast: true}
-	]
+	const columns = Immutable.OrderedMap({
+		EpollNum: 	{label: 'ePoll', 		width: 100},
+		BallotID: 	{label: 'ePoll Name',	width: 200},
+		Document: 	{label: 'Document',		width: 200},
+		Topic: 		{label: 'Topic',		width: 500},
+		Start: 		{label: 'Start',		width: 100, 	cellRenderer: renderDate},
+		End: 		{label: 'End',			width: 100,		cellRenderer: renderDate},
+		Votes: 		{label: 'Result',		width: 100},
+		Actions: 	{label: '',				width: 200,		cellRenderer: renderActions}
+	});
+
+	const primaryDataKey = 'EpollNum'
+
 	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
 	const width = Math.min(window.innerWidth - 1, maxWidth)
-
-	const primaryDataKey = columns[0].dataKey
 
 	React.useEffect(() => {
 		if (!props.epollsValid)
@@ -75,15 +75,12 @@ function Epolls(props) {
 			<div style={{flex: 1}}>
 				<AppTable
 					columns={columns}
-					headerHeight={60}
+					headerHeight={28}
 					estimatedRowHeight={64}
-					loading={props.loading}
-					filters={props.filters}
-					setFilter={props.setFilter}
-					sort={props.sort}
-					setSort={props.setSort}
+					dataSet='epolls'
 					data={props.epolls}
 					dataMap={props.epollsMap}
+					loading={props.loading}
 					rowKey={primaryDataKey}
 				/>
 			</div>
@@ -97,23 +94,18 @@ function Epolls(props) {
 	)
 }
 
+const dataSet = 'epolls'
 export default connect(
 	(state, ownProps) => {
-		const s = state.epolls
+		const s = state[dataSet]
 		return {
-			filters: s.filters,
-			sort: s.sort,
-			epollsValid: s.epollsValid,
-			epolls: s.epolls,
-			epollsMap: s.epollsMap,
-			loading: s.getEpolls
+			valid: s.valid,
+			loading: s.loading,
+			epolls: getSyncedEpolls(state),
+			epollsMap: getDataMap(state, dataSet),
 		}
 	},
-	(dispatch, ownProps) => {
-		return {
-			getEpolls: (n) => dispatch(getEpolls(n)),
-			setFilter: (dataKey, value) => dispatch(setEpollsFilter(dataKey, value)),
-			setSort: (dataKey, event) => dispatch(setEpollsSort(event, dataKey))
-		}
-	}
+	(dispatch, ownProps) => ({
+		getEpolls: (n) => dispatch(getEpolls(n)),
+	})
 )(Epolls)

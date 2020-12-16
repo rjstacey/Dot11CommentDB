@@ -108,6 +108,9 @@ export const Button = styled.button`
 	:disabled > * {
 		opacity: .5;
 	}
+	:focus {
+		outline: none;
+	}
 `;
 
 export const ActionButton = ({name, ...otherProps}) => {
@@ -240,9 +243,9 @@ const Input = styled.input`
 	padding: 6px;
 	/*border-radius: 3px;*/
 	display: inline-block;
+	width: 14px;
+	height: 14px;
 	position: relative;
-	width: 12px;
-	height: 12px;
 	:checked {
 		background-color: #e9ecee;
 		border: 1px solid #adb8c0;

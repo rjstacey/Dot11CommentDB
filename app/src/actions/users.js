@@ -1,40 +1,60 @@
 import {setError} from './error'
 import fetcher from '../lib/fetcher'
+import {setSelected} from './select'
 
-export const SET_USERS_FILTER = 'SET_USERS_FILTER'
-export const SET_USERS_SORT = 'SET_USERS_SORT'
-export const SET_USERS_SELECTED = 'SET_USERS_SELECTED'
+const dataSet = 'users'
+export const USERS_PREFIX = 'USERS_'
 
-export const GET_USERS = 'GET_USERS'
-export const GET_USERS_SUCCESS = 'GET_USERS_SUCCESS'
-export const GET_USERS_FAILURE = 'GET_USERS_FAILURE'
-export const UPDATE_USER = 'UPDATE_USER'
-export const UPDATE_USER_SUCCESS = 'UPDATE_USER_SUCCESS'
-export const UPDATE_USER_FAILURE = 'UPDATE_USER_FAILURE'
-export const ADD_USER = 'ADD_USER'
-export const ADD_USER_SUCCESS = 'ADD_USER_SUCCESS'
-export const ADD_USER_FAILURE = 'ADD_USER_FAILURE'
-export const DELETE_USERS = 'DELETE_USERS'
-export const DELETE_USERS_SUCCESS = 'DELETE_USERS_SUCCESS'
-export const DELETE_USERS_FAILURE = 'DELETE_USERS_FAILURE'
-export const UPLOAD_USERS = 'UPLOAD_USERS'
-export const UPLOAD_USERS_SUCCESS = 'UPLOAD_USERS_SUCCESS'
-export const UPLOAD_USERS_FAILURE = 'UPLOAD_USERS_FAILURE'
+export const USERS_GET = USERS_PREFIX + 'GET'
+export const USERS_GET_SUCCESS = USERS_PREFIX + 'GET_SUCCESS'
+export const USERS_GET_FAILURE = USERS_PREFIX + 'GET_FAILURE'
 
-export const setUsersFilter = (dataKey, value) => {return {type: SET_USERS_FILTER, dataKey, value}}
-export const setUsersSort = (event, dataKey) => {return {type: SET_USERS_SORT, event, dataKey}}
-export const setUsersSelected = (selected) => {return {type: SET_USERS_SELECTED, selected}}
+export const USERS_UPDATE = USERS_PREFIX + 'UPDATE'
+export const USERS_UPDATE_SUCCESS = USERS_PREFIX + 'UPDATE_SUCCESS'
+export const USERS_UPDATE_FAILURE = USERS_PREFIX + 'UPDATE_FAILURE'
 
-const getUsersLocal = () => {return {type: GET_USERS}}
-const getUsersSuccess = (users) => {return {type: GET_USERS_SUCCESS, users}}
-const getUsersFailure = ()=> {return {type: GET_USERS_FAILURE}}
+export const USERS_ADD = USERS_PREFIX + 'ADD'
+export const USERS_ADD_SUCCESS = USERS_PREFIX + 'ADD_SUCCESS'
+export const USERS_ADD_FAILURE = USERS_PREFIX + 'ADD_FAILURE'
+
+export const USERS_DELETE = USERS_PREFIX + 'DELETE'
+export const USERS_DELETE_SUCCESS = USERS_PREFIX + 'DELETE_SUCCESS'
+export const USERS_DELETE_FAILURE = USERS_PREFIX + 'DELETE_FAILURE'
+
+export const USERS_UPLOAD = USERS_PREFIX + 'UPLOAD'
+export const USERS_UPLOAD_SUCCESS = USERS_PREFIX + 'UPLOAD_SUCCESS'
+export const USERS_UPLOAD_FAILURE = USERS_PREFIX + 'UPLOAD_FAILURE'
+
+function updateIdList(users, selected) {
+	const changed = selected.reduce(
+		(result, id) => result || !users.find(u => u.SAPIN === id),
+		false
+	);
+
+	if (!changed)
+		return selected
+
+	return selected.filter(id => !users.find(u => u.SAPIN === id))
+}
+
+const getUsersLocal = () => ({type: USERS_GET})
+const getUsersSuccess = (users) => ({type: USERS_GET_SUCCESS, users})
+const getUsersFailure = ()=> ({type: USERS_GET_FAILURE})
 
 export function getUsers() {
-	return async (dispatch) => {
+	return async (dispatch, getState) => {
 		dispatch(getUsersLocal())
 		try {
 			const users = await fetcher.get('/api/users')
-			return dispatch(getUsersSuccess(users))
+
+			const p = []
+			const {selected} = getState()[dataSet]
+			const newSelected = updateIdList(users, selected)
+			if (newSelected !== selected)
+				p.push(dispatch(setSelected(dataSet, newSelected)))
+
+			p.push(dispatch(getUsersSuccess(users)))
+			return Promise.all(p)
 		}
 		catch(error) {
 			return Promise.all([
@@ -45,9 +65,9 @@ export function getUsers() {
 	}
 }
 
-const updateUserLocal = (SAPIN, user) => {return {type: UPDATE_USER, SAPIN, user}}
-const updateUserSuccess = (SAPIN, user)=> {return {type: UPDATE_USER_SUCCESS, SAPIN, user}}
-const updateUserFailure = (SAPIN) => {return {type: UPDATE_USER_FAILURE, SAPIN}}
+const updateUserLocal = (SAPIN, user) => ({type: USERS_UPDATE, SAPIN, user})
+const updateUserSuccess = (SAPIN, user)=> ({type: USERS_UPDATE_SUCCESS, SAPIN, user})
+const updateUserFailure = (SAPIN) => ({type: USERS_UPDATE_FAILURE, SAPIN})
 
 export function updateUser(SAPIN, user) {
 	return async (dispatch) => {
@@ -65,9 +85,9 @@ export function updateUser(SAPIN, user) {
 	}
 }
 
-const addUserLocal = (user) => {return {type: ADD_USER,	user}}
-const addUserSuccess = (user) => {return {type: ADD_USER_SUCCESS, user}}
-const addUserFailure = (user)=> {return {type: ADD_USER_FAILURE, user}}
+const addUserLocal = (user) => ({type: USERS_ADD,	user})
+const addUserSuccess = (user) => ({type: USERS_ADD_SUCCESS, user})
+const addUserFailure = (user)=> ({type: USERS_ADD_FAILURE, user})
 
 export function addUser(user) {
 	return async (dispatch) => {
@@ -85,16 +105,21 @@ export function addUser(user) {
 	}
 }
 
-const deleteUsersLocal = (userIds) => {return {type: DELETE_USERS, userIds}}
-const deleteUsersSuccess = (userIds) => {return {type: DELETE_USERS_SUCCESS, userIds}}
-const deleteUsersFailure = (userIds) => {return {type: DELETE_USERS_FAILURE, userIds}}
+const deleteUsersLocal = (userIds) => ({type: USERS_DELETE, userIds})
+const deleteUsersSuccess = (userIds) => ({type: USERS_DELETE_SUCCESS, userIds})
+const deleteUsersFailure = (userIds) => ({type: USERS_DELETE_FAILURE, userIds})
 
 export function deleteUsers(userIds) {
-	return async (dispatch) => {
+	return async (dispatch, getState) => {
 		dispatch(deleteUsersLocal(userIds))
 		try {
 			await fetcher.delete('/api/users', userIds)
-			return dispatch(deleteUsersSuccess(userIds))
+			const {selected} = getState()[dataSet]
+			const newSelected = selected.filter(id => !userIds.includes(id))
+			return Promise.all([
+				dispatch(deleteUsersSuccess(userIds)),
+				dispatch(setSelected(dataSet, newSelected))
+				])
 		}
 		catch(error) {
 			return Promise.all([
@@ -105,9 +130,9 @@ export function deleteUsers(userIds) {
 	}
 }
 
-const uploadUsersLocal = () => {return {type: UPLOAD_USERS}}
-const uploadUsersSuccess = (users) => {return {type: UPLOAD_USERS_SUCCESS, users}}
-const uploadUsersFailure = () => {return {type: UPLOAD_USERS_FAILURE}}
+const uploadUsersLocal = () => ({type: USERS_UPLOAD})
+const uploadUsersSuccess = (users) => ({type: USERS_UPLOAD_SUCCESS, users})
+const uploadUsersFailure = () => ({type: USERS_UPLOAD_FAILURE})
 
 export function uploadUsers(file) {
 	return async (dispatch) => {

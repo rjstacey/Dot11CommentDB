@@ -93,7 +93,7 @@ async function getVotingPoolLocal(votingPoolType, votingPoolName) {
 	if (results.length !== 1) {
 		throw 'Unexpected result from SQL query'
 	}
-	return Object.assign({}, results[0], {PoolType: votingPoolType})
+	return Object.assign({}, results[0], {VotingPoolID: votingPoolName, PoolType: votingPoolType})
 }
 
 async function getVotingPools() {
@@ -108,7 +108,7 @@ async function deleteVotingPools(votingPools) {
 			saVotingPoolIds.push(vp.VotingPoolID)
 		}
 		else if (vp.PoolType === 'WG') {
-			saVotingPoolIds.push(vp.VotingPoolID)
+			wgVotingPoolIds.push(vp.VotingPoolID)
 		}
 		else {
 			throw `Invalid pool type ${vp.PoolType} for ${vp.VotingPool}`
@@ -317,7 +317,7 @@ async function uploadVoters(votingPoolType, votingPoolId, file) {
 	if (votingPoolType === 'SA') {
 		table = 'saVoters'
 		const isExcel = file.originalname.search(/\.xlsx$/i) !== -1
-		voters = await parseMyProjectVoters(req.file.buffer, isExcel)
+		voters = await parseMyProjectVoters(file.buffer, isExcel)
 	}
 	else {
 		table = 'wgVoters'

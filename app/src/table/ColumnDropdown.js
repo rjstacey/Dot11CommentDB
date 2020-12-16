@@ -1,14 +1,21 @@
+import PropTypes from 'prop-types'
 import React from 'react'
 import ReactDOM from 'react-dom'
+import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {SortType, SortDirection, isSortable} from '../reducers/sort'
-import {ActionButtonSort, Button, Handle} from '../general/Icons'
+import {FixedSizeList as List} from 'react-window'
+import {Button, ActionButtonSort, Handle} from '../general/Icons'
 import ClickOutside from '../general/ClickOutside'
+import {getAllFieldOptions, getAvailableFieldOptions} from '../selectors/options'
+import {setSort, isSortable, SortDirection} from '../actions/sort'
+import {SortType, sortFunc} from '../lib/sort'
+import {setFilter, addFilter, removeFilter, FilterType} from '../actions/filter'
+import {CommentIdFilter} from '../comments/CommentIdList'
 
 const SearchInput = styled.input`
 	margin: 10px 10px 0;
 	line-height: 30px;
-	padding: 0px 20px;
+	padding-left: 20px;
 	border: 1px solid #ccc;
 	border-radius: 3px;
 	:focus {
@@ -17,21 +24,32 @@ const SearchInput = styled.input`
 	}
 `;
 
-const Items = styled.div`
-	overflow-x: auto;
+const StyledCommandIdFilter = styled(CommentIdFilter)`
+	margin: 10px 10px 0;
+	line-height: 30px;
+	padding-left: 20px;
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	max-width: 300px;
+	:focus {
+		outline: none;
+		border: 1px solid deepskyblue;
+	}
+`;
+
+const StyledList = styled(List)`
 	min-height: 10px;
 	max-height: 200px;
 	border: 1px solid #ccc;
 	border-radius: 3px;
 	margin: 10px;
 	padding: 10px;
-	display: flex;
-	flex-direction: column;
 `;
 
 const Item = styled.div`
-	display: flex;
-	align-items: baseline;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 	${({ disabled }) => disabled && 'text-decoration: line-through;'}
 	${({ isSelected }) => isSelected? 'background: #0074d9;': ':hover{background: #ccc;}'}
 	& > span {
@@ -76,158 +94,266 @@ const Header = styled(ClickOutside)`
 	}
 `;
 
+function Sort({
+	dataKey,
+	sort,
+	setSort
+}) {
+	const direction = sort.direction[dataKey]
+	return (
+		<span>Sort:
+			<span>
+				<ActionButtonSort
+					onClick={e => setSort(dataKey, direction === SortDirection.ASC? SortDirection.NONE: SortDirection.ASC)}
+					direction={SortDirection.ASC}
+					isAlpha={sort.type[dataKey] !== SortType.NUMERIC}
+					isActive={direction === SortDirection.ASC}
+				/>
+				<ActionButtonSort
+					onClick={e => setSort(dataKey, direction === SortDirection.DESC? SortDirection.NONE: SortDirection.DESC)}
+					direction={SortDirection.DESC}
+					isAlpha={sort.type[dataKey] !== SortType.NUMERIC}
+					isActive={direction === SortDirection.DESC}
+				/>
+			</span>
+		</span>
+	)
+}
 
-function Dropdown({ style, className, dataKey, sort, setSort, filter, setFilter, allOptions, availableOptions, close }) {
+Sort.propTypes = {
+	dataKey: PropTypes.string.isRequired,
+	sort: PropTypes.object.isRequired,
+	setSort: PropTypes.func.isRequired
+}
+
+
+function Filter({
+	dataKey,
+	sortType,
+	filter,
+	setFilter,
+	addFilter,
+	removeFilter,
+	allOptions,
+	availableOptions,
+	selected
+}) {
 	const [search, setSearch] = React.useState('')
 	const regexp = new RegExp(search, 'i');
 
-	const isSelected = (item) => Array.isArray(filter.values) && filter.values.find(v => v === item.value)
+	const isItemSelected = (item) => filter.values.find(v => v.value === item.value) !== undefined
 
-	const allClear = (Array.isArray(filter.values) && filter.values.length === 0) || !filter.values;
+	const allClear = filter.values.length === 0;
+
+	const matchesSelected = filter.values.join() === selected.join();
 
 	const clearAllItems = () => setFilter([]);
 
-	const addSearch = () => setFilter(search);
+	const cmpFunc = sortFunc[sortType];
+	const options = filter.options?
+		filter.options:
+		filter.values.length > 0? allOptions: availableOptions;
+	const items = options
+		.filter((item) => regexp.test(item.label))
+		.sort((itemA, itemB) => cmpFunc(itemA.value, itemB.value))
+		.map((item, index) => {
+			const isSelected = isItemSelected(item);
+			return {
+				label: item.label,
+				isSelected: isItemSelected(item),
+				onChange: () => isSelected? removeFilter(item.value, FilterType.EXACT): addFilter(item.value, FilterType.EXACT)
+			}
+		})
 
-	const addItem = (item) => {
-		if (Array.isArray(filter.values)) {
-			const values = filter.values.slice();
-			const i = values.findIndex(v => v === item.value);
-			if (i >= 0)
-				values.splice(i, 1)
-			else
-				values.push(item.value)
-			setFilter(values)
-		}
-		else {
-			setFilter([item.value])
-		}
+	if (search) {
+		let addSearch
+		if (filter.type === FilterType.PAGE)
+			addSearch = () => addFilter(search, FilterType.PAGE)
+		else if (filter.type === FilterType.CLAUSE)
+			addSearch = () => addFilter(search, FilterType.CLAUSE)
+		else 
+			addSearch = () => addFilter(search, FilterType.CONTAINS)
+		items.unshift({
+			label: 'Contains: ' + search,
+			isSelected: false,
+			onChange: addSearch
+		})
 	}
 
-	const options = (Array.isArray(filter.values) && filter.values.length > 0)? allOptions: availableOptions;
+	if (dataKey === 'CID' && selected.length > 0) {
+		items.unshift({
+			label: 'Selected: ' + selected.join(', '),
+			isSelected: matchesSelected,
+			onChange: () => setFilter(selected)
+		})
+	}
+
+	return (
+		<React.Fragment>
+			<span>Filter:
+			{dataKey === 'CID' &&
+			<Button
+				onClick={() => setFilter(selected)}
+				disabled={selected.length === 0}
+			>
+				Selected
+			</Button>}
+			<Button
+				onClick={clearAllItems}
+				disabled={allClear}
+			>
+				Clear
+			</Button></span>
+			{dataKey === 'CID' && <StyledCommandIdFilter />}
+			<SearchInput
+				type="search"
+				value={search}
+				onChange={(e) => setSearch(e.target.value)}
+				placeholder="Search..."
+			/>
+			<StyledList
+				height={150}
+				itemCount={items.length}
+				itemSize={35}
+				width='auto'
+			>
+				{({index, style}) => {
+					const label = items[index].label
+					const isSelected = items[index].isSelected
+					const onChange = items[index].onChange
+					return (
+						<Item
+							key={index}
+							style={style}
+							isSelected={isSelected}
+						>
+							<input type='checkbox' checked={isSelected} onChange={onChange}/>
+							<span>{label}</span>
+						</Item>
+					)
+				}}
+			</StyledList>
+		</React.Fragment>
+	)
+}
+
+Filter.propTypes = {
+	filter: PropTypes.object.isRequired,
+	setFilter: PropTypes.func.isRequired,
+	allOptions: PropTypes.array.isRequired,
+	availableOptions: PropTypes.array.isRequired,
+}
+
+function Dropdown({style, className, dataKey, sort, setSort, filter, setFilter, addFilter, removeFilter, allOptions, availableOptions, close, dataSet, selected}) {
+	const containerRef = React.useRef();
+	const [containerStyle, setContainerStyle] = React.useState(style)
+
+	// Close the dropdown if the user scrolls
+	// (we don't track position changes during scrolling)
+	React.useEffect(() => {
+		window.addEventListener('scroll', close, true);
+		return () => window.removeEventListener('scroll', close);
+	}, [])
+
+	React.useEffect(() => {
+		// If the dropdown is outside the viewport, then move it
+		const bounds = containerRef.current.getBoundingClientRect();
+		if (bounds.x + bounds.width > window.innerWidth) {
+			setContainerStyle(style => ({...style, left: window.innerWidth - bounds.width}))
+		}
+	})
 
 	return (
 		<DropdownContainer
-			style={style}
+			ref={containerRef}
+			style={containerStyle}
 			className={className}
 		>
 			{isSortable(sort, dataKey) &&
-				<span>Sort:
-					<span>
-						<ActionButtonSort
-							onClick={e => setSort(dataKey, SortDirection.ASC)}
-							direction={SortDirection.ASC}
-							isAlpha={sort.type[dataKey] !== SortType.NUMERIC}
-							isActive={sort.direction[dataKey] === SortDirection.ASC}
-						/>
-						<ActionButtonSort
-							onClick={e => setSort(dataKey, SortDirection.DESC)}
-							direction={SortDirection.DESC}
-							isAlpha={sort.type[dataKey] !== SortType.NUMERIC}
-							isActive={sort.direction[dataKey] === SortDirection.DESC}
-						/>
-						<Button
-							onClick={e => setSort(dataKey, SortDirection.NONE)}
-							isActive={sort.direction[dataKey] === SortDirection.NONE}
-						>
-							clear
-						</Button>
-					</span>
-				</span>
+				<Sort
+					dataKey={dataKey}
+					sort={sort}
+					setSort={setSort}
+				/>
 			}
-
 			{filter &&
-				<React.Fragment>
-					<span>Filter:</span>
-					<SearchInput
-						type="text"
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						placeholder="Search..."
-					/>
-					<Items>
-						<Item
-							key='clear-all'
-							isSelected={allClear}
-							onClick={clearAllItems}
-						>
-							<input type='checkbox' checked={allClear}/>
-							<span>(Clear All)</span>
-						</Item>
-						{search &&
-							<Item
-								key='add-search'
-								isSelected={false}
-								onClick={addSearch}
-							>
-								<input type='checkbox' checked={false}/>
-								<span>{'Add: ' + search}</span>
-							</Item>
-						}
-						{options
-							.filter((item) => regexp.test(item.label))
-							.map((item) => {
-								const isSel = isSelected(item)
-								return (
-									<Item
-										key={item.value}
-										disabled={item.disabled}
-										isSelected={isSel}
-										onClick={item.disabled ? null : () => addItem(item)}
-									>
-										<input type='checkbox' checked={isSel} onChange={() => console.log('add')} />
-										<span>{item.label}</span>
-									</Item>
-								);
-						})}
-					</Items>
-				</React.Fragment>
+				<Filter
+					dataKey={dataKey}
+					selected={selected}
+					sortType={sort.type[dataKey]}
+					filter={filter}
+					setFilter={setFilter}
+					addFilter={addFilter}
+					removeFilter={removeFilter}
+					allOptions={allOptions}
+					availableOptions={availableOptions}
+				/>
 			}
 		</DropdownContainer>
 	);
-};
+}
+
+const ConnectedDropdown = connect(
+	(state, ownProps) => {
+		const {dataSet, dataKey} = ownProps
+		return {
+			filter: state[dataSet].filters[dataKey],
+			sort: state[dataSet].sort,
+			selected: state[dataSet].selected,
+			allOptions: getAllFieldOptions(state, dataSet, dataKey),
+			availableOptions: getAvailableFieldOptions(state, dataSet, dataKey)
+		}
+	},
+	(dispatch, ownProps) => {
+		const {dataSet, dataKey} = ownProps
+		return {
+			setFilter: (value) => dispatch(setFilter(dataSet, dataKey, value)),
+			addFilter: (value, filterType) => dispatch(addFilter(dataSet, dataKey, value, filterType)),
+			removeFilter: (value, filterType) => dispatch(removeFilter(dataSet, dataKey, value, filterType)),
+			setSort: (dataKey, direction) => dispatch(setSort(dataSet, dataKey, direction)),
+		}
+	}
+)(Dropdown)
 
 function renderDropdown({anchorRef, ...otherProps}) {
 	return ReactDOM.createPortal(
-		<Dropdown {...otherProps} />,
+		<ConnectedDropdown {...otherProps} />,
 		anchorRef.current
 	)
 }
 
-function ColumnDropdown({
-	className,
-	style,
-	label,
-	...props
-}) {
-	const {anchorRef} = props;
-	const containerRef = React.createRef();
+function ColumnDropdown(props) {
+	const {className, style, label, ...otherProps} = props;
+	const {anchorRef, column} = props;
+	const containerRef = React.useRef();
 	const [open, setOpen] = React.useState(false);
-	const [bounds, setBounds] = React.useState({});
-
-	React.useEffect(() => {
-		// Get container bounds relative to anchor
-		const anchor = anchorRef.current.getBoundingClientRect()
-		const container = containerRef.current.getBoundingClientRect()
-		const relative = {
-			x: container.x - anchor.x,
-			y: container.y - anchor.y,
-			height: container.height,
-			width: container.width
-		}
-		setBounds(relative)
-	}, [props.column])
+	const [position, setPosition] = React.useState({top: 0, left: 0});
+	const width = 2*column.width;
 
 	const handleClose = (e) => {
-		if (!open || anchorRef.current.contains(e.target)) {
-			// ignore if not open or event target is an element inside the dropdown
+		// ignore if not open or event target is an element inside the dropdown
+		if (!open || (anchorRef.current && anchorRef.current.lastChild.contains(e.target))) {
 			return;
 		}
+		
 		setOpen(false)
 	}
 
-	const dropdownStyle = {top: bounds.y + bounds.height+2, left: bounds.x, maxWidth: 2*props.column.width};
+	const handleOpen = () => {
+		if (!open) {
+			// Update position on open
+			const anchor = anchorRef.current.getBoundingClientRect();
+			const container = containerRef.current.getBoundingClientRect();
+			const top = container.y - anchor.y + container.height;
+			let left = container.x - anchor.x;
+			if (left < anchor.x)
+				left = 0;
+			setPosition(position => (top !== position.top || left !== position.left)? {top, left}: position)
+		}
+		setOpen(!open)
+	}
 
+	const dropdownStyle = {...position, maxWidth: width};
 	return (
 		<Header
 			ref={containerRef}
@@ -236,8 +362,8 @@ function ColumnDropdown({
 			style={style}
 		>
 			<label>{label}</label>
-			<Handle className='handle' open={open} onClick={() => setOpen(!open)} />
-			{open && renderDropdown({bounds, style: dropdownStyle, close: handleClose, ...props})}
+			<Handle className='handle' open={open} onClick={handleOpen} />
+			{open && renderDropdown({style: dropdownStyle, close: handleClose, ...otherProps})}
 		</Header>
 	)
 }

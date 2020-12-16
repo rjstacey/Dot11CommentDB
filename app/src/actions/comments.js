@@ -1,22 +1,36 @@
 import {updateBallotSuccess} from './ballots'
 import {setError} from './error'
 import fetcher from '../lib/fetcher'
+import {setSelected} from './select'
+import {setExpanded} from './expand'
 
-export const GET_COMMENTS = 'GET_COMMENTS'
-export const GET_COMMENTS_SUCCESS = 'GET_COMMENTS_SUCCESS'
-export const GET_COMMENTS_FAILURE = 'GET_COMMENTS_FAILURE'
-export const UPDATE_COMMENTS = 'UPDATE_COMMENTS'
-export const UPDATE_COMMENTS_SUCCESS = 'UPDATE_COMMENTS_SUCCESS'
-export const UPDATE_COMMENTS_FAILURE = 'UPDATE_COMMENTS_FAILURE'
-export const DELETE_COMMENTS = 'DELETE_COMMENTS'
-export const DELETE_COMMENTS_SUCCESS = 'DELETE_COMMENTS_SUCCESS'
-export const DELETE_COMMENTS_FAILURE = 'DELETE_COMMENTS_FAILURE'
-export const IMPORT_COMMENTS = 'IMPORT_COMMENTS'
-export const IMPORT_COMMENTS_SUCCESS = 'IMPORT_COMMENTS_SUCCESS'
-export const IMPORT_COMMENTS_FAILURE = 'IMPORT_COMMENTS_FAILURE'
-export const UPLOAD_COMMENTS = 'UPLOAD_COMMENTS'
-export const UPLOAD_COMMENTS_SUCCESS = 'UPLOAD_COMMENTS_SUCCESS'
-export const UPLOAD_COMMENTS_FAILURE = 'UPLOAD_COMMENTS_FAILURE'
+export const dataSet = 'comments'
+
+export const COMMENTS_PREFIX = 'COMMENTS_'
+
+export const COMMENTS_GET = COMMENTS_PREFIX + 'GET'
+export const COMMENTS_GET_SUCCESS = COMMENTS_PREFIX + 'GET_SUCCESS'
+export const COMMENTS_GET_FAILURE = COMMENTS_PREFIX + 'GET_FAILURE'
+
+export const COMMENTS_UPDATE = COMMENTS_PREFIX + 'UPDATE'
+export const COMMENTS_UPDATE_SUCCESS = COMMENTS_PREFIX + 'UPDATE_SUCCESS'
+export const COMMENTS_UPDATE_FAILURE = COMMENTS_PREFIX + 'UPDATE_FAILURE'
+
+export const COMMENTS_DELETE = COMMENTS_PREFIX + 'DELETE'
+export const COMMENTS_DELETE_SUCCESS = COMMENTS_PREFIX + 'DELETE_SUCCESS'
+export const COMMENTS_DELETE_FAILURE = COMMENTS_PREFIX + 'DELETE_FAILURE'
+
+export const COMMENTS_IMPORT = COMMENTS_PREFIX + 'IMPORT'
+export const COMMENTS_IMPORT_SUCCESS = COMMENTS_PREFIX + 'IMPORT_SUCCESS'
+export const COMMENTS_IMPORT_FAILURE = COMMENTS_PREFIX + 'IMPORT_FAILURE'
+
+export const COMMENTS_UPLOAD = COMMENTS_PREFIX + 'UPLOAD'
+export const COMMENTS_UPLOAD_SUCCESS = COMMENTS_PREFIX + 'UPLOAD_SUCCESS'
+export const COMMENTS_UPLOAD_FAILURE = COMMENTS_PREFIX + 'UPLOAD_FAILURE'
+
+export const COMMENTS_SET_START_COMMENTID = COMMENTS_PREFIX + 'SET_START_COMMENTID'
+export const COMMENTS_SET_START_COMMENTID_SUCCESS = COMMENTS_PREFIX + 'SET_START_COMMENTID_SUCCESS'
+export const COMMENTS_SET_START_COMMENTID_FAILURE = COMMENTS_PREFIX + 'SET_START_COMMENTID_FAILURE'
 
 export const ADD_RESOLUTIONS = 'ADD_RESOLUTIONS'
 export const ADD_RESOLUTIONS_SUCCESS = 'ADD_RESOLUTIONS_SUCCESS'
@@ -29,16 +43,53 @@ export const DELETE_RESOLUTIONS_SUCCESS = 'DELETE_RESOLUTIONS_SUCCESS'
 export const DELETE_RESOLUTIONS_FAILURE = 'DELETE_RESOLUTIONS_FAILURE'
 
 
-const getCommentsLocal = (ballotId) => ({type: GET_COMMENTS, ballotId})
-const getCommentsSuccess = (comments) => ({type: GET_COMMENTS_SUCCESS, comments})
-const getCommentsFailure = () => ({type: GET_COMMENTS_FAILURE})
+function updateIdList(comments, selected) {
+	const changed = selected.reduce(
+		(result, id) => result || !comments.find(c => c.CID === id),
+		false
+	);
+
+	if (!changed)
+		return selected
+
+	let newSelected = []
+	for (let s of selected) {
+		if (comments.find(c => c.CID === s)) {
+			// Keep it if it matches a comment exactly
+			newSelected.push(s)
+		}
+		else {
+			// If it is just the comment ID, then keep CIDs for all those comments
+			const cids = comments.filter(c => c.CommentID.toString() === s).map(c => c.CID)
+			newSelected = newSelected.concat(cids)
+		}
+	}
+	return newSelected
+}
+
+const getCommentsLocal = (ballotId) => ({type: COMMENTS_GET, ballotId})
+const getCommentsSuccess = (comments) => ({type: COMMENTS_GET_SUCCESS, comments})
+const getCommentsFailure = () => ({type: COMMENTS_GET_FAILURE})
 
 export function getComments(ballotId) {
-	return async (dispatch) => {
-		dispatch(getCommentsLocal(ballotId))
+	return async (dispatch, getState) => {
+		if (getState()[dataSet].ballotId !== ballotId) {
+			// If we get comments for a different ballot then the selected and expaded arrays no longer apply
+			dispatch(setSelected(dataSet, []));
+			dispatch(setExpanded(dataSet, []));
+		}
+		dispatch(getCommentsLocal(ballotId));
 		try {
 			const comments = await fetcher.get(`/api/comments/${ballotId}`)
-			return dispatch(getCommentsSuccess(comments))
+			const promises = []
+			const {selected, expanded} = getState()[dataSet]
+			const newSelected = updateIdList(comments, selected)
+			if (newSelected !== selected)
+				promises.push(dispatch(setSelected(dataSet, newSelected)))
+			const newExpanded = updateIdList(comments, expanded)
+				promises.push(dispatch(setExpanded(dataSet, newExpanded)))
+			promises.push(dispatch(getCommentsSuccess(comments)))
+			return Promise.all(promises)
 		}
 		catch(error) {
 			return Promise.all([
@@ -49,9 +100,9 @@ export function getComments(ballotId) {
 	}
 }
 
-const updateCommentsLocal = (ballotId, commentIds, comments) => ({type: UPDATE_COMMENTS, ballotId, commentIds, comments})
-const updateCommentsSuccess = (ballotId, commentIds, comments) => ({type: UPDATE_COMMENTS_SUCCESS, ballotId, commentIds, comments})
-const updateCommentsFailure = () => ({type: UPDATE_COMMENTS_FAILURE})
+const updateCommentsLocal = (ballotId, commentIds, comments) => ({type: COMMENTS_UPDATE, ballotId, commentIds, comments})
+const updateCommentsSuccess = (ballotId, commentIds, comments) => ({type: COMMENTS_UPDATE_SUCCESS, ballotId, commentIds, comments})
+const updateCommentsFailure = () => ({type: COMMENTS_UPDATE_FAILURE})
 
 export function updateComments(ballotId, comments) {
 	return async (dispatch) => {
@@ -70,21 +121,25 @@ export function updateComments(ballotId, comments) {
 	}
 }
 
-const deleteCommentsLocal = (ballotId) => ({type: DELETE_COMMENTS, ballotId})
-const deleteCommentsSuccess = (ballotId) => ({type: DELETE_COMMENTS_SUCCESS, ballotId})
-const deleteCommentsFailure = (ballotId) => ({type: DELETE_COMMENTS_FAILURE, ballotId})
+const deleteCommentsLocal = (ballotId) => ({type: COMMENTS_DELETE, ballotId})
+const deleteCommentsSuccess = (ballotId) => ({type: COMMENTS_DELETE_SUCCESS, ballotId})
+const deleteCommentsFailure = (ballotId) => ({type: COMMENTS_DELETE_FAILURE, ballotId})
 
 export function deleteComments(ballotId) {
-	return async (dispatch) => {
+	return async (dispatch, getState) => {
 		dispatch(deleteCommentsLocal(ballotId))
 		try {
 			await fetcher.delete('/api/comments/BallotId', {BallotID: ballotId})
+			const promises = []
+			const {selected, expanded} = getState()[dataSet]
+			if (selected.length)
+				promises.push(dispatch(setSelected(dataSet, [])))
+			if (expanded.length)
+				promises.push(dispatch(setExpanded(dataSet, [])))
+			promises.push(dispatch(deleteCommentsSuccess(ballotId)))
 			const summary = {Count: 0, CommentIDMin: 0, CommentIDMax: 0}
-			return Promise.all([
-				dispatch(deleteCommentsSuccess(ballotId)),
-				// Update the comments summary for the ballot
-				dispatch(updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary}))
-			])
+			promises.push(updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary}))
+			return Promise.all(promises)
 		}
 		catch(error) {
 			return Promise.all([
@@ -95,9 +150,9 @@ export function deleteComments(ballotId) {
 	}
 }
 
-const importCommentsLocal  = (ballotId) => ({type: IMPORT_COMMENTS, ballotId})
-const importCommentsSuccess = (ballotId, comments) => ({type: IMPORT_COMMENTS_SUCCESS, ballotId, comments})
-const importCommentsFailure = (ballotId) => ({type: IMPORT_COMMENTS_FAILURE, ballotId})
+const importCommentsLocal  = (ballotId) => ({type: COMMENTS_IMPORT, ballotId})
+const importCommentsSuccess = (ballotId, comments) => ({type: COMMENTS_IMPORT_SUCCESS, ballotId, comments})
+const importCommentsFailure = (ballotId) => ({type: COMMENTS_IMPORT_FAILURE, ballotId})
 
 export function importComments(ballotId, epollNum, startCID) {
 	return async (dispatch) => {
@@ -119,9 +174,9 @@ export function importComments(ballotId, epollNum, startCID) {
 	}
 }
 
-const uploadCommentsLocal = (ballotId) => ({type: UPLOAD_COMMENTS, ballotId})
-const uploadCommentsSuccess = (ballotId, comments) => ({type: UPLOAD_COMMENTS_SUCCESS, ballotId, comments})
-const uploadCommentsFailure = () => ({type: UPLOAD_COMMENTS_FAILURE})
+const uploadCommentsLocal = (ballotId) => ({type: COMMENTS_UPLOAD, ballotId})
+const uploadCommentsSuccess = (ballotId, comments) => ({type: COMMENTS_UPLOAD_SUCCESS, ballotId, comments})
+const uploadCommentsFailure = () => ({type: COMMENTS_UPLOAD_FAILURE})
 
 export function uploadComments(ballotId, type, file) {
 	return async (dispatch) => {
@@ -143,16 +198,48 @@ export function uploadComments(ballotId, type, file) {
 	}
 }
 
+const setStartCommentIdLocal = (ballotId, startCommentId) => ({type: COMMENTS_SET_START_COMMENTID, ballotId, startCommentId})
+const setStartCommentIdFailure = () => ({type: COMMENTS_SET_START_COMMENTID_FAILURE})
+
+export function setStartCommentId(ballotId, startCommentId) {
+	return async (dispatch, getState) => {
+		dispatch(setStartCommentIdLocal(ballotId, startCommentId))
+		try {
+			const comments = await fetcher.patch(`/api/comments/startCommentId/${ballotId}`, {StartCommentID: startCommentId})
+			return Promise.all([
+				dispatch(setSelected(dataSet, [])),
+				dispatch(setExpanded(dataSet, [])),
+				dispatch(getCommentsSuccess(comments))
+			]);
+		}
+		catch(error) {
+			return Promise.all([
+				dispatch(setStartCommentIdFailure()),
+				dispatch(setError(`Unable to start CID for ${ballotId}`, error))
+			]);
+		}
+	}
+}
+
 const addResolutionsLocal = (ballotId, resolutions) => ({type: ADD_RESOLUTIONS, ballotId, resolutions})
 const addResolutionsSuccess = (ballotId, newComments, updatedComments) => ({type: ADD_RESOLUTIONS_SUCCESS, ballotId, newComments, updatedComments})
 const addResolutionsFailure = () => ({type: ADD_RESOLUTIONS_FAILURE})
 
 export function addResolutions(ballotId, resolutions) {
-	return async (dispatch) => {
+	return async (dispatch, getState) => {
 		dispatch(addResolutionsLocal(ballotId, resolutions))
 		try {
 			const response = await fetcher.post(`/api/resolutions/${ballotId}`, resolutions)
 			await dispatch(addResolutionsSuccess(ballotId, response.newComments, response.updatedComments))
+
+			const promises = []
+			const {comments, expanded} = getState()[dataSet]
+			const newSelected = response.newComments.map(c => c.CID)
+			promises.push(dispatch(setSelected(dataSet, newSelected)))
+			const newExpanded = updateIdList(comments, expanded)
+			if (newExpanded !== expanded)
+				promises.push(dispatch(setExpanded(dataSet, newExpanded)))
+			await Promise.all(promises)
 			return response.newComments
 		}
 		catch(error) {
@@ -170,11 +257,21 @@ const updateResolutionsSuccess = (ballotId, resolutions) => ({type: UPDATE_RESOL
 const updateResolutionsFailure = () => ({type: UPDATE_RESOLUTIONS_FAILURE})
 
 export function updateResolutions(ballotId, resolutions) {
-	return async (dispatch) => {
+	return async (dispatch, getState) => {
 		dispatch(updateResolutionsLocal(ballotId, resolutions))
 		try {
 			const response = await fetcher.put(`/api/resolutions/${ballotId}`, {ballotId, resolutions})
-			return dispatch(updateResolutionsSuccess(ballotId, response))
+			await dispatch(updateResolutionsSuccess(ballotId, response))
+
+			const promises = []
+			const {comments, selected, expanded} = getState()[dataSet]
+			const newSelected = updateIdList(comments, selected)
+			if (newSelected !== selected)
+				promises.push(dispatch(setSelected(dataSet, newSelected)))
+			const newExpanded = updateIdList(comments, expanded)
+			if (newExpanded !== expanded)
+				promises.push(dispatch(setExpanded(dataSet, newExpanded)))
+			return Promise.all(promises)
 		}
 		catch(error) {
 			return Promise.all([
@@ -186,15 +283,24 @@ export function updateResolutions(ballotId, resolutions) {
 }
 
 const deleteResolutionsLocal = (ballotId, resolutions) => ({type: DELETE_RESOLUTIONS, ballotId, resolutions})
-const deleteResolutionsSuccess = (ballotId, updatedComments) => ({type: DELETE_RESOLUTIONS_SUCCESS, ballotId, updatedComments})
+const deleteResolutionsSuccess = (ballotId, deletedComments, updatedComments) => ({type: DELETE_RESOLUTIONS_SUCCESS, ballotId, deletedComments, updatedComments})
 const deleteResolutionsFailure = () => ({type: DELETE_RESOLUTIONS_FAILURE})
 
 export function deleteResolutions(ballotId, resolutions) {
-	return async (dispatch) => {
+	return async (dispatch, getState) => {
 		dispatch(deleteResolutionsLocal(ballotId, resolutions))
 		try {
 			const response = await fetcher.delete(`/api/resolutions/${ballotId}`, {resolutions})
-			return dispatch(deleteResolutionsSuccess(ballotId, response.updatedComments))
+			await dispatch(deleteResolutionsSuccess(ballotId, resolutions, response.updatedComments))
+			const promises = []
+			const {comments, selected, expanded} = getState()[dataSet]
+			const newSelected = updateIdList(comments, selected)
+			if (newSelected !== selected)
+				promises.push(dispatch(setSelected(dataSet, newSelected)))
+			const newExpanded = updateIdList(comments, expanded)
+			if (newExpanded !== expanded)
+				promises.push(dispatch(setExpanded(dataSet, newExpanded)))
+			return Promise.all(promises)
 		}
 		catch(error) {
 			console.log(error)
@@ -265,7 +371,8 @@ export function exportCommentsSpreadsheet(ballotId, file, format) {
 			let Filename;
 			if (file)
 				Filename = file.name
-			await fetcher.postForFile('/api/comments/exportSpreadsheet', {BallotID: ballotId, Filename, Format: format}, file)
+			const url = '/api/comments/' + (format === CommentsSpreadsheetFormat.MyProject? 'exportForMyProject': 'exportSpreadsheet')
+			await fetcher.postForFile(url, {BallotID: ballotId, Filename, Format: format}, file)
 			return null
 		}
 		catch(error) {

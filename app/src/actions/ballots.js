@@ -1,13 +1,5 @@
-import {syncEpollsAgainstBallots} from './epolls'
 import {setError} from './error'
 import fetcher from '../lib/fetcher'
-
-export const SET_BALLOTS_FILTER = 'SET_BALLOTS_FILTER'
-export const GEN_BALLOTS_OPTIONS = 'GEN_BALLOTS_OPTIONS'
-export const CLEAR_BALLOTS_FILTERS = 'CLEAR_BALLOTS_FILTERS'
-
-export const SET_BALLOTS_SORT = 'SET_BALLOTS_SORT'
-export const SET_BALLOTS_SELECTED = 'SET_BALLOTS_SELECTED'
 
 export const SET_PROJECT = 'SET_PROJECT'
 export const SET_BALLOTID = 'SET_BALLOTID'
@@ -25,38 +17,21 @@ export const ADD_BALLOT = 'ADD_BALLOT'
 export const ADD_BALLOT_SUCCESS = 'ADD_BALLOT_SUCCESS'
 export const ADD_BALLOT_FAILURE = 'ADD_BALLOT_FAILURE'
 
-
-export const setBallotsFilter = (dataKey, value) => {return {type: SET_BALLOTS_FILTER, dataKey, value}}
-export const genBallotsOptions = (dataKey, all) => ({type: GEN_BALLOTS_OPTIONS, dataKey, all})
-export const clearBallotsFilters = () => ({type: CLEAR_BALLOTS_FILTERS})
-
-export function removeBallotsFilter(dataKey, value) {
-	return async (dispatch, getState) => {
-		let values = getState().ballots.filters[dataKey].values
-		values = values.filter(v => v !== value)
-		return dispatch(setBallotsFilter(dataKey, values))
-	}
-}
-
-export const setBallotsSort = (dataKey, direction) => {return {type: SET_BALLOTS_SORT, dataKey, direction}}
-export const setBallotsSelected = (selected) => {return {type: SET_BALLOTS_SELECTED, selected}}
-
 export const setProject = (project) => ({type: SET_PROJECT, project})
 export const setBallotId = (ballotId) => ({type: SET_BALLOTID, ballotId})
 
-const getBallotsLocal = () => {return {type: GET_BALLOTS}}
-const getBallotsSuccess  = (ballots) => {return {type: GET_BALLOTS_SUCCESS,	ballots}}
-const getBallotsFailure = () => {return {type: GET_BALLOTS_FAILURE}}
+const getBallotsLocal = () => ({type: GET_BALLOTS})
+const getBallotsSuccess  = (ballots) => ({type: GET_BALLOTS_SUCCESS,	ballots})
+const getBallotsFailure = () => ({type: GET_BALLOTS_FAILURE})
 
 export function getBallots() {
 	return async (dispatch, getState) => {
-		if (getState().ballots.getBallots)
+		if (getState().ballots.loading)
 			return null
 		dispatch(getBallotsLocal())
 		try {
 			const data = await fetcher.get('/api/ballots')
-			await dispatch(getBallotsSuccess(data))
-			return dispatch(syncEpollsAgainstBallots(getState().ballots.ballots))
+			return dispatch(getBallotsSuccess(data))
 		}
 		catch(error) {
 			console.log(error)
@@ -68,17 +43,16 @@ export function getBallots() {
 	}
 }
 
-export const updateBallotLocal = (ballotId, ballot) => {return {type: UPDATE_BALLOT, ballotId, ballot}}
-export const updateBallotSuccess = (ballotId, ballot) => {return {type: UPDATE_BALLOT_SUCCESS,	ballotId, ballot}}
-const updateBallotFailure = (ballotId) => {return {type: UPDATE_BALLOT_FAILURE, ballotId}}
+export const updateBallotLocal = (ballotId, ballot) => ({type: UPDATE_BALLOT, ballotId, ballot})
+export const updateBallotSuccess = (ballotId, ballot) => ({type: UPDATE_BALLOT_SUCCESS,	ballotId, ballot})
+const updateBallotFailure = (ballotId) => ({type: UPDATE_BALLOT_FAILURE, ballotId})
 
 export function updateBallot(ballotId, ballot) {
 	return async (dispatch, getState) => {
 		dispatch(updateBallotLocal(ballotId, ballot))
 		try {
 			const updatedBallot = await fetcher.put(`/api/ballot/${ballotId}`, ballot)
-			await dispatch(updateBallotSuccess(ballotId, updatedBallot))
-			return dispatch(syncEpollsAgainstBallots(getState().ballots.ballots))
+			return dispatch(updateBallotSuccess(ballotId, updatedBallot))
 		}
 		catch(error) {
 			return Promise.all([
@@ -89,17 +63,16 @@ export function updateBallot(ballotId, ballot) {
 	}
 }
 
-const deleteBallotsLocal = (ballotIds) => {return {type: DELETE_BALLOTS, ballotIds}}
-const deleteBallotsSuccess = (ballotIds) => {return {type: DELETE_BALLOTS_SUCCESS, ballotIds}}
-const deleteBallotsFailure = (ballotIds) => {return {type: DELETE_BALLOTS_FAILURE, ballotIds}}
+const deleteBallotsLocal = (ballotIds) => ({type: DELETE_BALLOTS, ballotIds})
+const deleteBallotsSuccess = (ballotIds) => ({type: DELETE_BALLOTS_SUCCESS, ballotIds})
+const deleteBallotsFailure = (ballotIds) => ({type: DELETE_BALLOTS_FAILURE, ballotIds})
 
 export function deleteBallots(ballotIds) {
 	return async (dispatch, getState) => {
 		dispatch(deleteBallotsLocal(ballotIds))
 		try {
 			await fetcher.delete('/api/ballots', ballotIds)
-			await dispatch(deleteBallotsSuccess(ballotIds))
-			return dispatch(syncEpollsAgainstBallots(getState().ballots.ballots))
+			return dispatch(deleteBallotsSuccess(ballotIds))
 		}
 		catch(error) {
 			return Promise.all([
@@ -110,17 +83,16 @@ export function deleteBallots(ballotIds) {
 	}
 }
 
-const addBallotLocal = (ballot) => {return {type: ADD_BALLOT, ballot}}
-const addBallotSuccess = (ballot) => {return {type: ADD_BALLOT_SUCCESS,	ballot}}
-const addBallotFailure = () => {return {type: ADD_BALLOT_FAILURE}}
+const addBallotLocal = (ballot) => ({type: ADD_BALLOT, ballot})
+const addBallotSuccess = (ballot) => ({type: ADD_BALLOT_SUCCESS, ballot})
+const addBallotFailure = () => ({type: ADD_BALLOT_FAILURE})
 
 export function addBallot(ballot) {
 	return async (dispatch, getState) => {
 		dispatch(addBallotLocal(ballot))
 		try {
 			const updateBallot = await fetcher.post('/api/ballots', ballot)
-			await dispatch(addBallotSuccess(updateBallot))
-			return dispatch(syncEpollsAgainstBallots(getState().ballots.ballots))
+			return dispatch(addBallotSuccess(updateBallot))
 		}
 		catch(error) {
 			return Promise.all([
@@ -130,3 +102,12 @@ export function addBallot(ballot) {
 		}
 	}
 }
+
+export const BallotType = {
+	CC: 0,			// comment collection
+	WG_Initial: 1,	// initial WG ballot
+	WG_Recirc: 2,	// WG ballot recirculation
+	SA_Initial: 3,	// initial SA ballot
+	SA_Recirc: 4,	// SA ballot recirculation
+	Motion: 5		// motion
+};

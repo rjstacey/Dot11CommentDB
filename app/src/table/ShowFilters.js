@@ -1,6 +1,9 @@
 import PropTypes from 'prop-types'
 import React from 'react'
+import {connect} from 'react-redux'
 import styled from '@emotion/styled'
+import {getDataMap} from '../selectors/dataMap'
+import {removeFilter, clearAllFilters} from '../actions/filter'
 
 const ActiveFilterLabel = styled.label`
 	font-weight: bold;
@@ -41,28 +44,24 @@ function ActiveFilter({children, remove}) {
 	)
 }
 
-function renderActiveFilters({filters, setFilter, removeFilter, clearFilters, options}) {
+function renderActiveFilters({filters, removeFilter, clearAllFilters}) {
 	let elements = []
-	for (let dataKey of Object.keys(filters)) {
+	for (let dataKey in filters) {
 		let f = filters[dataKey]
-		if (f.valid && f.values.length) {
+		if (f.values.length > 0) {
 			elements.push(<ActiveFilterLabel key={dataKey}>{dataKey + ': '}</ActiveFilterLabel>)
-			if (Array.isArray(f.values)) {
-				for (let v of f.values) {
-					const o = f.options.find(o => o.value === v)
-					const s = o? o.label: v
-					elements.push(<ActiveFilter key={`${dataKey}_${v}`} remove={() => removeFilter(dataKey, v)}>{s}</ActiveFilter>)
-				}
-			}
-			else {
-				const s = f.values
-				elements.push(<ActiveFilter key={`${dataKey}_${s}`} remove={() => setFilter(dataKey, '')}>{s}</ActiveFilter>)
+			for (let v of f.values) {
+				const o = f.options && f.options.find(o => o.value === v.value)
+				let s = o? o.label: v.value
+				if (s === '')
+					s = '(Blank)'
+				elements.push(<ActiveFilter key={`${dataKey}_${v.value}`} remove={() => removeFilter(dataKey, v.value, v.filterType)}>{s}</ActiveFilter>)
 			}
 		}
 	}
 	if (elements.length > 2) {
-		elements.push(<ActiveFilterLabel>Clear All:</ActiveFilterLabel>)
-		elements.push(<ActiveFilter key={'clear_all'} remove={clearFilters} />)
+		elements.push(<ActiveFilterLabel key='clear_all_label'>Clear All:</ActiveFilterLabel>)
+		elements.push(<ActiveFilter key='clear_all' remove={clearAllFilters} />)
 	}
 	return elements
 }
@@ -95,12 +94,12 @@ const FiltersContent = styled.div`
 	border-radius: 3px;
 `;
 
-function ShowFilters({style, className, data, dataMap, filters, setFilter, removeFilter, clearFilters, ...otherProps}) {
+function ShowFilters({style, className, data, dataMap, filters, removeFilter, clearAllFilters, ...otherProps}) {
 
 	const shownRows = dataMap.length;
 	const totalRows = data.length;
 
-	const activeFilterElements = renderActiveFilters({filters, setFilter, removeFilter, clearFilters})
+	const activeFilterElements = renderActiveFilters({filters, removeFilter, clearAllFilters})
 
 	return (
 		<FiltersContainer style={style}>
@@ -119,9 +118,24 @@ ShowFilters.propTypes = {
 	data: PropTypes.array.isRequired,
 	dataMap: PropTypes.array.isRequired,
 	filters: PropTypes.object.isRequired,
-	setFilter: PropTypes.func.isRequired,
 	removeFilter: PropTypes.func.isRequired,
-	clearFilters: PropTypes.func.isRequired
+	clearAllFilters: PropTypes.func.isRequired
 }
 
-export default ShowFilters;
+export default connect(
+	(state, ownProps) => {
+		const {dataSet} = ownProps
+		return {
+			data: state[dataSet][dataSet],
+			dataMap: getDataMap(state, dataSet),
+			filters: state[dataSet].filters,
+		}
+	},
+	(dispatch, ownProps) => {
+		const {dataSet} = ownProps
+		return {
+			removeFilter: (dataKey, value, filterType) => dispatch(removeFilter(dataSet, dataKey, value, filterType)),
+			clearAllFilters: () => dispatch(clearAllFilters(dataSet)),
+		}
+	}
+)(ShowFilters);

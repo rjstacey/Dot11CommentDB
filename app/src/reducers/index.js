@@ -5,6 +5,7 @@ import ballots from './ballots'
 import epolls from './epolls'
 import comments from './comments'
 import results from './results'
+import votingPools from './votingPools'
 import voters from './voters'
 import errMsg from './error'
 
@@ -15,6 +16,7 @@ export default combineReducers({
 	epolls,
 	comments,
 	results,
+	votingPools,
 	voters,
 	errMsg
 })

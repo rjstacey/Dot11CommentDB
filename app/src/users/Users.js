@@ -1,16 +1,16 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import { connect } from 'react-redux'
+import {connect} from 'react-redux'
+import Immutable from 'immutable'
 import styled from '@emotion/styled'
-import AppTable, {ColumnLabel, ColumnDropdownFilter} from '../table/AppTable'
+import AppTable from '../table/AppTable'
 import AppModal from '../modals/AppModal'
 import ConfirmModal from '../modals/ConfirmModal'
 import {ActionButton} from '../general/Icons'
 import AccessSelector from './AccessSelector'
+import {getDataMap} from '../selectors/dataMap'
+
 import {
-	setUsersFilter,
-	setUsersSort,
-	setUsersSelected,
 	getUsers,
 	updateUser,
 	addUser,
@@ -140,53 +140,24 @@ UploadUsersModal.propTypes = {
 	submit: PropTypes.func.isRequired
 }
 
-const UsersAccessFilter = connect(
-	(state, ownProps) => ({
-		filter: state.users.filters[ownProps.dataKey],
-		options: state.users.accessOptions,
-	}),
-	(dispatch, ownProps) => ({
-		setFilter: (value) => dispatch(setUsersFilter(ownProps.dataKey, value)),
-	})
-)(ColumnDropdownFilter)
-
-function usersTableHeader(props) {
-	return (
-		<React.Fragment>
-			<ColumnLabel
-				dataKey={props.column.key}
-				label={props.column.label}
-				sort={props.sort}
-				setSort={props.setSort}
-			/>
-			<UsersAccessFilter
-				dataKey={props.column.key}
-			/>
-		</React.Fragment>
-	)
-}
-
 function Users(props) {
 
-	const columns = [
-		{key: 'SAPIN',  label: 'SA PIN', width: 100},
-		{key: 'Name',   label: 'Name', width: 300},
-		{key: 'Email',  label: 'eMail Address', width: 300},
-		{key: 'Access', label: 'Access Level', width: 150,
-			cellRenderer: renderAccess,
-			headerRenderer: usersTableHeader}
-	]
-	const primaryDataKey = columns[0].key
+	const columns = Immutable.OrderedMap({
+		SAPIN: 	{label: 'SA PIN', 		width: 100, flexGrow: 1, flexShrink: 1},
+		Name: 	{label: 'Name', 		width: 300, flexGrow: 1, flexShrink: 1},
+		Email: 	{label: 'eMail Address',width: 300, flexGrow: 1, flexShrink: 1},
+		Access: {label: 'Access Level',	width: 150, flexGrow: 1, flexShrink: 1, cellRenderer: renderAccess}
+	});
 
-	const [showUploadUsersModal, setShowUploadUsersModal] = React.useState(false)
-	const [editUser, setEditUser] = React.useState({
-		action: EditUserAction.CLOSED,
-		user: DefaultUser})
+	const primaryDataKey = 'SAPIN'
+
+	const [showUploadUsersModal, setShowUploadUsersModal] = React.useState(false);
+	const [editUser, setEditUser] = React.useState({action: EditUserAction.CLOSED, user: DefaultUser});
 
 	React.useEffect(() => {
 		if (!props.usersValid)
 			props.getUsers()
-	}, [])
+	}, []);
 
 	const width = Math.min(window.innerWidth, columns.reduce((acc, col) => acc + col.width, 0) + 40)
 
@@ -211,19 +182,9 @@ function Users(props) {
 		return props.accessOptions.find(o => o.value === rowData.Access).label
 	}
 
-	function openAddUser() {
-		setEditUser({
-			action: EditUserAction.ADD,
-			user: DefaultUser
-		})
-	}
-
-	function openEditUser({rowData}) {
-		setEditUser({
-			action: EditUserAction.UPDATE,
-			user: rowData
-		})
-	}
+	const openAddUser = () => setEditUser({action: EditUserAction.ADD, user: DefaultUser})
+	const openEditUser = ({rowData}) => setEditUser({action: EditUserAction.UPDATE, user: rowData})
+	const closeEditUser = () => setEditUser(s => ({...s, action: EditUserAction.CLOSED}))
 
 	function submitUsersUpload(file) {
 		props.uploadUsers(file).then(setShowUploadUsersModal(false))
@@ -231,41 +192,32 @@ function Users(props) {
 
 	return (
 		<React.Fragment>
-			<div style={{display: 'flex', justifyContent: 'center'}}>
-				<div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width}}>
-					<span><label>Users</label></span>
-					<span>
-						<ActionButton name='add' title='Add User' onClick={openAddUser} />
-						<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
-						<ActionButton name='upload' title='Upload Users' onClick={() => setShowUploadUsersModal(true)} />
-						<ActionButton name='refresh' title='Refresh' onClick={props.getUsers} />
-					</span>
-				</div>
-			</div>
+			<TopRow style={{width}}>
+				<span><label>Users</label></span>
+				<span>
+					<ActionButton name='add' title='Add User' onClick={openAddUser} />
+					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
+					<ActionButton name='upload' title='Upload Users' onClick={() => setShowUploadUsersModal(true)} />
+					<ActionButton name='refresh' title='Refresh' onClick={props.getUsers} />
+				</span>
+			</TopRow>
 
-			<div style={{flex: 1}}>
+			<TableRow style={{width}}>
 				<AppTable
 					fixed
 					columns={columns}
+					controlColumn
 					headerHeight={64}
 					estimatedRowHeight={32}
-					loading={props.loading}
-					sort={props.sort}
-					setSort={props.setSort}
-					filters={props.filters}
-					setFilter={props.setFilter}
-					selected={props.selected}
-					setSelected={props.setSelected}
 					onRowDoubleClick={openEditUser}
-					data={props.users}
-					dataMap={props.usersMap}
+					dataSet='users'
 					rowKey={primaryDataKey}
 				/>
-			</div>
+			</TableRow>
 
 			<EditUserModal
 				isOpen={editUser.action !== EditUserAction.CLOSED}
-				close={() => setEditUser(s => ({...s, action: EditUserAction.CLOSED}))}
+				close={closeEditUser}
 				action={editUser.action}
 				user={editUser.user}
 				addUser={props.addUser}
@@ -281,24 +233,28 @@ function Users(props) {
 	)
 }
 
+const TopRow = styled.div`
+	display: flex;
+	justify-content: space-between;
+`;
+
+const TableRow = styled.div`
+	flex: 1;	/* remaining height */
+`;
+
+const dataSet = 'users'
 export default connect(
 	(state, ownProps) => {
-		const s = state.users
 		return {
-			filters: s.filters,
-			sort: s.sort,
-			selected: s.selected,
-			accessOptions: s.accessOptions,
-			usersValid: s.usersValid,
-			users: s.users,
-			usersMap: s.usersMap,
-			loading: s.getUsers
+			selected: state[dataSet].selected,
+			accessOptions: state[dataSet].accessOptions,
+			usersValid: state[dataSet].valid,
+			loading: state[dataSet].loading,
+			users: state[dataSet][dataSet],
+			usersMap: getDataMap(state, dataSet),
 		}
 	},
 	(dispatch, ownProps) => ({
-		setFilter: (dataKey, value) => dispatch(setUsersFilter(dataKey, value)),
-		setSort: (dataKey, event) => dispatch(setUsersSort(event, dataKey)),
-		setSelected: (ids) => dispatch(setUsersSelected(ids)),
 		getUsers: () => dispatch(getUsers()),
 		addUser: (user) => dispatch(addUser(user)),
 		updateUser: (sapin, user) => dispatch(updateUser(sapin, user)),

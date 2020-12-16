@@ -4,14 +4,15 @@ const mysql = require('mysql')
 
 // Connect to the database
 let options
-if (process.env.NODE_ENV !== 'development') {
+if (process.env.NODE_ENV === 'development') {
 	options = {
 		host: process.env.DB_HOST,
 		port: process.env.DB_PORT,
 		user: process.env.DB_USER,
 		password: process.env.DB_PASSWORD,
 		database: process.env.DB_DATABASE,
-		multipleStatements: true
+		multipleStatements: true,
+		charset: 'UTF8MB4_GENERAL_CI'
 	}
 }
 else {
@@ -21,11 +22,12 @@ else {
 		user: process.env.RDS_USERNAME,
 		password: process.env.RDS_PASSWORD,
 		database: process.env.RDS_DB_NAME,
-		multipleStatements: true
+		multipleStatements: true,
+		charset: 'UTF8MB4_GENERAL_CI'
 	}
 }
 
-console.log(options)
+console.log(process.env.NODE_ENV, options)
 const pool = mysql.createPool(options)
 
 // Promisified SQL query using connection pool

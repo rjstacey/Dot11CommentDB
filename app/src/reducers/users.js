@@ -1,24 +1,32 @@
-import {FilterType, filterCreate, filterSetValue, filterData} from './filter'
-import {SortType, sortCreate, sortAddColumn, sortClick, sortData} from './sort'
+import sortReducer from './sort'
+import {SORT_PREFIX, SORT_INIT, SortDirection} from '../actions/sort'
+import {SortType} from '../lib/sort'
+
+import filtersReducer from './filter'
+import {FILTER_PREFIX, FILTER_INIT, FilterType} from '../actions/filter'
+
+import selectReducer from './select'
+import {SELECT_PREFIX} from '../actions/select'
+
+import {UI_PREFIX} from '../actions/ui'
+import uiReducer from './ui'
+
 import {
-	SET_USERS_FILTER,
-	SET_USERS_SORT,
-	SET_USERS_SELECTED,
-	GET_USERS,
-	GET_USERS_SUCCESS,
-	GET_USERS_FAILURE,
-	UPDATE_USER,
-	UPDATE_USER_SUCCESS,
-	UPDATE_USER_FAILURE,
-	ADD_USER,
-	ADD_USER_SUCCESS,
-	ADD_USER_FAILURE,
-	DELETE_USERS,
-	DELETE_USERS_SUCCESS,
-	DELETE_USERS_FAILURE,
-	UPLOAD_USERS,
-	UPLOAD_USERS_SUCCESS,
-	UPLOAD_USERS_FAILURE
+	USERS_GET,
+	USERS_GET_SUCCESS,
+	USERS_GET_FAILURE,
+	USERS_UPDATE,
+	USERS_UPDATE_SUCCESS,
+	USERS_UPDATE_FAILURE,
+	USERS_ADD,
+	USERS_ADD_SUCCESS,
+	USERS_ADD_FAILURE,
+	USERS_DELETE,
+	USERS_DELETE_SUCCESS,
+	USERS_DELETE_FAILURE,
+	USERS_UPLOAD,
+	USERS_UPLOAD_SUCCESS,
+	USERS_UPLOAD_FAILURE
 } from '../actions/users'
 
 const userFields = ['SAPIN', 'Name', 'Email', 'Access']
@@ -33,100 +41,75 @@ const accessOptions = [
 /*
  * Generate a filter for each field (table column)
  */
-function genDefaultFilters() {
-	let filters = {}
-	for (let dataKey of userFields) {
-		let type
-		switch (dataKey) {
+const defaultFiltersEntries = userFields.reduce((entries, dataKey) => {
+	let type, options
+	switch (dataKey) {
 		case 'SAPIN':
+			type = FilterType.NUMERIC
+			break
 		case 'Access':
 			type = FilterType.NUMERIC
+			options = accessOptions
 			break
 		default:
 			type = FilterType.STRING
-		}
-		filters[dataKey] = filterCreate(type)
 	}
-	return filters
-}
+	return {...entries, [dataKey]: {type, options}}
+}, {});
 
-function genDefaultSort() {
-	let sort = sortCreate()
-	for (let dataKey of userFields) {
-		let type
-		switch (dataKey) {
+
+/*
+ * Generate object that describes the initial sort state
+ */
+const defaultSortEntries = userFields.reduce((entries, dataKey) => {
+	let type
+	switch (dataKey) {
 		case 'SAPIN':
 		case 'Access':
 			type = SortType.NUMERIC
 			break
 		default:
 			type = SortType.STRING
-		}
-		sortAddColumn(sort, dataKey, type)
 	}
-	return sort
-}
+	const direction = SortDirection.NONE;
+	return {...entries, [dataKey]: {type, direction}}
+}, {});
+
 
 const defaultState = {
-	filters: genDefaultFilters(),
 	accessOptions: accessOptions,
-	sort: genDefaultSort(),
-	selected: [],
-	usersValid: false,
+	valid: false,
+	loading: false,
 	users: [],
-	usersMap: [],
-	getUsers: false,
 	updateUsers: false,
 	addUsers: false,
 	uploadUsers: false,
 	deleteUsers: false
 }
 
-function updateSelected(users, selected) {
-	return selected.filter(s => users.find(u => u.SAPIN === s))
-}
-
-function users(state = defaultState, action) {
+function usersReducer(state = defaultState, action) {
 	var users, userIds
 
 	switch (action.type) {
-		case SET_USERS_SORT:
-			const sort = sortClick(state.sort, action.dataKey, action.event)
+		case USERS_GET:
 			return {
 				...state,
-				sort,
-				usersMap: sortData(sort, state.usersMap, state.users)
+				loading: true
 			}
-		case SET_USERS_FILTER:
-			const filters = {
-				...state.filters,
-				[action.dataKey]: filterSetValue(state.filters[action.dataKey], action.value)
-			}
+		case USERS_GET_SUCCESS:
 			return {
 				...state,
-				filters,
-				usersMap: sortData(state.sort, filterData(state.users, filters), state.users)
-			}
-		case SET_USERS_SELECTED:
-			return {
-				...state,
-				selected: updateSelected(state.users, action.selected)
-			}
-		case GET_USERS:
-			return {...state, getUsers: true}
-		case GET_USERS_SUCCESS:
-			return {
-				...state,
-				getUsers: false,
-				usersValid: true,
+				loading: false,
+				valid: true,
 				users: action.users,
-				usersMap: sortData(state.sort, filterData(action.users, state.filters), action.users),
-				selected: updateSelected(action.users, state.selected)
 			}
-		case GET_USERS_FAILURE:
-			return {...state, getUsers: false}
+		case USERS_GET_FAILURE:
+			return {
+				...state,
+				loading: false
+			}
 
-		case UPDATE_USER:
+		case USERS_UPDATE:
 			users = state.users.map(u =>
 				(u.SAPIN === action.SAPIN)? Object.assign({}, u, action.user): u
 				)
@@ -134,54 +117,48 @@ function users(state = defaultState, action) {
 				...state,
 				updateUser: true,
 				users,
-				usersMap: sortData(state.sort, filterData(users, state.filters), users)
 			}
-		case UPDATE_USER_SUCCESS:
+		case USERS_UPDATE_SUCCESS:
 			return {...state, updateUser: false}
-		case UPDATE_USER_FAILURE:
+		case USERS_UPDATE_FAILURE:
 			return {...state, updateUser: false}
 
-		case ADD_USER:
+		case USERS_ADD:
 			return {...state, addUser: true}
-		case ADD_USER_SUCCESS:
+		case USERS_ADD_SUCCESS:
 			users = state.users.slice()
 			users.push(action.user)
 			return {
 				...state,
 				addUser: false,
 				users: users,
-				usersMap: sortData(state.sort, filterData(users, state.filters), users)
 			}
-		case ADD_USER_FAILURE:
+		case USERS_ADD_FAILURE:
 			return {...state, addUsers: false}
 
-		case DELETE_USERS:
+		case USERS_DELETE:
 			userIds = action.userIds
 			users = state.users.filter(u => !userIds.includes(u.SAPIN))
 			return {
 				...state,
 				deleteUsers: true,
 				users: users,
-				usersMap: sortData(state.sort, filterData(users, state.filters), users),
-				selected: updateSelected(users, state.selected)
 			}
-		case DELETE_USERS_SUCCESS:
+		case USERS_DELETE_SUCCESS:
 			return {...state, deleteUsers: false}
-		case DELETE_USERS_FAILURE:
+		case USERS_DELETE_FAILURE:
 			return {...state, deleteUsers: false}
 
-		case UPLOAD_USERS:
+		case USERS_UPLOAD:
 			return {...state, uploadUsers: true}
-		case UPLOAD_USERS_SUCCESS:
+		case USERS_UPLOAD_SUCCESS:
 			return {
 				...state,
 				uploadUsers: false,
 				usersValid: true,
 				users: action.users,
-				usersMap: sortData(state.sort, filterData(action.users, state.filters), action.users),
-				selected: updateSelected(action.users, state.selected)
 			}
-		case UPLOAD_USERS_FAILURE:
+		case USERS_UPLOAD_FAILURE:
 			return {...state, uploadUsers: false}
 
 		default:
@@ -189,4 +166,38 @@ function users(state = defaultState, action) {
 	}
 }
 
-export default users
+/*
+ * Attach higher-order reducers
+ */
+const dataSet = 'users'
+export default (state, action) => {
+	if (state === undefined) {
+		return {
+			...usersReducer(undefined, {}),
+			sort: sortReducer(undefined, {type: SORT_INIT, entries: defaultSortEntries}),
+			filters: filtersReducer(undefined, {type: FILTER_INIT, entries: defaultFiltersEntries}),
+			selected: selectReducer(undefined, {}),
+			ui: uiReducer(undefined, {})
+		}
+	}
+	if (action.type.startsWith(SORT_PREFIX) && action.dataSet === dataSet) {
+		const sort = sortReducer(state.sort, action);
+		return {...state, sort}
+	}
+	else if (action.type.startsWith(FILTER_PREFIX) && action.dataSet === dataSet) {
+		const filters = filtersReducer(state.filters, action);
+		return {...state, filters}
+	}
+	else if (action.type.startsWith(SELECT_PREFIX) && action.dataSet === dataSet) {
+		const selected = selectReducer(state.selected, action);
+		return {...state, selected}
+	}
+	else if (action.type.startsWith(UI_PREFIX) && action.dataSet === dataSet) {
+		const ui = uiReducer(state.ui, action);
+		return {...state, ui}
+	}
+	else {
+		return usersReducer(state, action)
+	}
+}
+

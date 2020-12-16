@@ -1,8 +1,17 @@
-import {FilterType, filterCreate, filterSetValue, filterData} from './filter'
-import {SortType, sortCreate, sortAddColumn, sortClick, sortData} from './sort'
+import sortReducer from './sort'
+import {SORT_PREFIX, SORT_INIT, SortDirection} from '../actions/sort'
+import {SortType} from '../lib/sort'
+
+import filtersReducer from './filter'
+import {FILTER_PREFIX, FILTER_INIT, FilterType} from '../actions/filter'
+
+import selectReducer from './select'
+import {SELECT_PREFIX} from '../actions/select'
+
+import {UI_PREFIX} from '../actions/ui'
+import uiReducer from './ui'
+
 import {
-	SET_RESULTS_FILTER,
-	SET_RESULTS_SORT,
 	GET_RESULTS,
 	GET_RESULTS_SUCCESS,
 	GET_RESULTS_FAILURE,
@@ -16,14 +25,13 @@ import {
 
 const resultFields = ['SAPIN', 'Name', 'Affiliation', 'Email', 'Vote', 'CommentCount', 'Notes'];
 
+
 /*
  * Generate a filter for each field (table column)
  */
-function genDefaultFilters() {
-	let filters = {}
-	for (let dataKey of resultFields) {
-		let type
-		switch (dataKey) {
+const defaultFiltersEntries = resultFields.reduce((entries, dataKey) => {
+	let type
+	switch (dataKey) {
 		case 'SAPIN':
 		case 'CommentCount':
 			type = FilterType.NUMERIC
@@ -37,19 +45,17 @@ function genDefaultFilters() {
 			break
 		default:
 			break
-		}
-		if (type !== undefined) {
-			filters[dataKey] = filterCreate(type)
-		}
 	}
-	return filters
-}
+	return type !== undefined? {...entries, [dataKey]: {type}}: entries;
+}, {});
 
-function genDefaultSort() {
-	let sort = sortCreate()
-	for (let dataKey of resultFields) {
-		let type
-		switch (dataKey) {
+
+/*
+ * Generate object that describes the initial sort state
+ */
+const defaultSortEntries = resultFields.reduce((entries, dataKey) => {
+	let type
+	switch (dataKey) {
 		case 'SAPIN':
 		case 'CommentCount':
 			type = SortType.NUMERIC
@@ -63,67 +69,44 @@ function genDefaultSort() {
 			break
 		default:
 			break
-		}
-		if (type !== undefined) {
-			sortAddColumn(sort, dataKey, type)
-		}
 	}
-	return sort
-}
+	const direction = SortDirection.NONE;
+	return type !== undefined? {...entries, [dataKey]: {type, direction}}: entries;
+}, {});
+
 const defaultState = {
-  	filters: genDefaultFilters(),
-	sort: genDefaultSort(),
 	ballotId: '',
 	votingPoolID: '',
 	votingPoolSize: 0,
 	ballot: {},
-	getResults: false,
-	resultsValid: false,
+	loading: false,
+	valid: false,
 	results: [],
-	resultsMap: [],
 	resultsSummary: {},
 	importResults: false
 }
 
-function results(state = defaultState, action) {
+function resultsReducer(state = defaultState, action) {
 
 	switch (action.type) {
-		case SET_RESULTS_SORT:
-			const sort = sortClick(state.sort, action.dataKey, action.event)
-			return {
-				...state,
-				sort,
-				resultsMap: sortData(sort, state.resultsMap, state.results)
-			}
-		case SET_RESULTS_FILTER:
-			const filters = {
-				...state.filters,
-				[action.dataKey]: filterSetValue(state.filters[action.dataKey], action.value)
-			}
-			return {
-				...state,
-				filters,
-				resultsMap: sortData(state.sort, filterData(state.results, filters), state.results)
-			}
 		case GET_RESULTS:
 			return {
 				...state,
-				getResults: true,
+				loading: true,
 				ballotId: action.ballotId,
 				results: [],
-				resultsMap: []
+				resultsSummary: {}
 			}
 		case GET_RESULTS_SUCCESS:
 			return {
 				...state,
-				getResults: false,
+				loading: false,
 				ballotId: action.ballotId,
 				votingPoolId: action.votingPoolId,
 				votingPoolSize: action.votingPoolSize,
 				ballot: action.ballot,
-				resultsValid: true,
+				valid: true,
 				results: action.results,
-				resultsMap: sortData(state.sort, filterData(action.results, state.filters), action.results),
 				resultsSummary: action.summary
 			}
 		case GET_RESULTS_FAILURE:
@@ -133,9 +116,8 @@ function results(state = defaultState, action) {
 			return Object.assign({}, state, {
 				deleteResults: true,
 			}, (state.ballotId === action.ballotId)? {
-				resultsValid: false,
+				valid: false,
 				results: [],
-				resultsMap: [],
 				resultsSummary: {}
 			}: null)
 		case DELETE_RESULTS_SUCCESS:
@@ -151,9 +133,8 @@ function results(state = defaultState, action) {
 				importResults: false,
 				ballotId: action.ballotId,
 				votingPoolId: action.votingPoolId,
-				resultsValid: true,
+				valid: true,
 				results: action.results,
-				resultsMap: sortData(state.sort, filterData(action.results, state.filters), action.results),
 				resultsSummary: action.summary
 			}
 		case IMPORT_RESULTS_FAILURE:
@@ -164,4 +145,37 @@ function results(state = defaultState, action) {
 	}
 }
 
-export default results
+/*
+ * Attach higher-order reducers
+ */
+const dataSet = 'results'
+export default (state, action) => {
+	if (state === undefined) {
+		return {
+			...resultsReducer(undefined, {}),
+			sort: sortReducer(undefined, {type: SORT_INIT, entries: defaultSortEntries}),
+			filters: filtersReducer(undefined, {type: FILTER_INIT, entries: defaultFiltersEntries}),
+			selected: selectReducer(undefined, {}),
+			ui: uiReducer(undefined, {})
+		}
+	}
+	if (action.type.startsWith(SORT_PREFIX) && action.dataSet === dataSet) {
+		const sort = sortReducer(state.sort, action);
+		return {...state, sort}
+	}
+	else if (action.type.startsWith(FILTER_PREFIX) && action.dataSet === dataSet) {
+		const filters = filtersReducer(state.filters, action);
+		return {...state, filters}
+	}
+	else if (action.type.startsWith(SELECT_PREFIX) && action.dataSet === dataSet) {
+		const selected = selectReducer(state.selected, action);
+		return {...state, selected}
+	}
+	else if (action.type.startsWith(UI_PREFIX) && action.dataSet === dataSet) {
+		const ui = uiReducer(state.ui, action);
+		return {...state, ui}
+	}
+	else {
+		return resultsReducer(state, action)
+	}
+}

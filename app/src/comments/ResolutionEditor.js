@@ -1,16 +1,13 @@
 import React from 'react'
 import {Editor, EditorState, RichUtils, getDefaultKeyBinding, KeyBindingUtil,
-	ContentBlock, genKey, SelectionState, Modifier, ContentState, convertFromHTML} from 'draft-js'
+	Modifier, ContentState, convertFromHTML} from 'draft-js'
 import 'draft-js/dist/Draft.css'
 import Immutable from 'immutable'
 import {stateToHTML} from 'draft-js-export-html'
-import {stateFromHTML} from 'draft-js-import-html'
-import debounce from 'lodash/debounce'
-import {ButtonGroup, ActionButton, Checkbox} from '../general/Icons'
-
-/** @jsx jsx */
-import { css, jsx } from '@emotion/core'
-
+import {debounce} from '../lib/utils'
+import {ActionButton} from '../general/Icons'
+import {css} from '@emotion/core'
+import styled from '@emotion/styled'
 
 /* Inline styles */
 const styleMap = {
@@ -33,6 +30,8 @@ const styleMap = {
 	}
 }
 
+const blockStyleFn = (contentBlock) => contentBlock.getType()
+
 const blockStyleCss = css`
 	p {
 		margin: 14px 0;
@@ -52,12 +51,14 @@ const blockStyleCss = css`
 		padding: 0 0;
 	}
 
-	ul {
+	ul,
+	ul > .unordered-list-item {
 		font-family: 'TimesNewRoman', serif;
 		list-style-type: "— "
 	}
 
-	ol {
+	ol,
+	ol > .ordered-list-item {
 		font-family: 'TimesNewRoman', serif;
 		list-style-type: numeric
 	}
@@ -77,36 +78,26 @@ const blockStyleCss = css`
 	ul:last-child,
 	ol:last-child {
 		margin-bottom: 0;
-	}`
-
-const resolutionEditorCss = css`
-	.DraftEditor-root {
-		cursor: text;
-		font-size: 16px;
-		padding: 5px;
 	}
-
-	.public-DraftEditor-content {
-		border: 1px solid #999;
-		border-radius: 2px;
-		overflow: auto;
-		padding: 5px;
-	}
-
-	.public-DraftEditorPlaceholder-root {
-		font-style: italic;
-		color: GrayText;
-	}
-
-	${css(blockStyleCss)}`
+`;
 
 export const editorCss = css`
-	${resolutionEditorCss}
+	${css(blockStyleCss)}
 	b {${css(styleMap['BOLD'])}}
 	i {${css(styleMap['ITALIC'])}}
 	u {${css(styleMap['UNDERLINE'])}}
 	del {${css(styleMap['STRIKETHROUGH'])}}
-	mark {${css(styleMap['HIGHLIGHT'])}}`
+	mark {${css(styleMap['HIGHLIGHT'])}}
+`;
+
+const ButtonGroup = styled.div`
+	display: inline-block;
+	margin: 0 5px 0 0;
+	padding: 3px 8px;
+	height: 30px;
+	line-height: 22px;
+	box-sizing: border-box;
+`;
 
 const BLOCK_TYPES = [
 	{label: 'Quote', 			name: 'quote', 					style: 'blockquote'},
@@ -185,15 +176,13 @@ function ActionControls(props) {
 	)
 }
 
-function Toolbar(props) {
-	const {editorState, onChange, show} = props;
-	const toolbarCss = css`
-		visibility: hidden;
-		margin-top: auto`
+
+function Toolbar({style, className, editorState, onChange}) {
 
 	return (
 		<div
-			css={[toolbarCss, show && css`visibility: visible`]}
+			style={style}
+			className={className}
 			onMouseDown={e => e.preventDefault()}	// don't take focus from editor
 		>
 			<BlockStyleControls
@@ -221,14 +210,12 @@ const htmlConversionOptions = {
 		HIGHLIGHT: {element: 'mark'},
 	},
 	/*blockRenderers: {
-		'code-block': (block) => {
-			return '<code>' + block.getText() + '</code>'
-		},
-		'blockquote': (block) => {
-			return '<blockquote>' + block.getText() + '</blockquote>'
-		},
-	},*/
-	//defaultBlockTag: ' '
+		'unstyled': (block) => '<p>' + block.getText() + '</p>',
+		'paragraph': (block) => '<p>' + block.getText() + '</p>',
+		'code-block': (block) => '<code>' + block.getText() + '</code>',
+		'blockquote': (block) => '<blockquote>' + block.getText() + '</blockquote>',
+	},
+	defaultBlockTag: 'p'*/
 }
 
 const blockRenderMap = Immutable.Map({
@@ -264,6 +251,7 @@ function mapKeyToEditorCommand(e) {
 	}
 	return getDefaultKeyBinding(e);
 }
+
 /*
 function shouldHidePlaceholder(state) {
 	// If the user changes block type before entering any text, we can
@@ -272,163 +260,68 @@ function shouldHidePlaceholder(state) {
 	return !content.hasText() && content.getBlockMap().first().getType() !== 'unstyled'
 }
 */
-function getResnStatus(editorState) {
-	const blockText = editorState.getCurrentContent().getFirstBlock().getText()
-	if (blockText.search(/ACCEPT/i) !== -1) {
-		return 'ACCEPTED'
-	}
-	if (blockText.search(/REVISE/i) !== -1) {
-		return 'REVISED'
-	}
-	if (blockText.search(/REJECT/i) !== -1) {
-		return 'REJECTED'
-	}
-	return ''
-}
 
-function updateResnStatus(editorState, resnStatus) {
-	let newState;
-	let content = editorState.getCurrentContent()
-	const block = content.getFirstBlock()
-	const m = block.getText().match(/(ACCEPTED|REVISED|REJECTED|ACCEPT|REVISE|REJECT)/i)
-	if (m) {
-		const start = m.index
-		const end = m.index + m[1].length
-		if (block.getText() === m[1] && resnStatus === '' && content.getKeyAfter(block.key)) {
-			// The first block is resolution status (no additional text) and it is being removed
-			const selection = SelectionState.createEmpty(block.key)
-				.merge({
-					'anchorOffset': start,
-					'focusKey': content.getKeyAfter(block.key),
-					'focusOffset': 0,
-					'hasFocus': true
-				})
-			content = Modifier.removeRange(content, selection, 'backward')
-			return EditorState.push(editorState, content, 'remove-range')
+export class ResolutionEditor extends React.Component {
+	constructor(props) {
+		super(props);
+		this.state = {
+			showToolbar: false,
+			value: props.value,
+			editorState: this.initEditorState(props.value)
 		}
-		else {
-			console.log('replace')
-			const selection = SelectionState.createEmpty(block.key)
-				.merge({
-					'anchorOffset': start,
-					'focusOffset': end,
-					'hasFocus': true
-				})
-			content = Modifier.replaceText(content, selection, resnStatus)
-				.set('selectionAfter', editorState.getSelection())
-			newState = EditorState.push(editorState, content, 'change-block-data')
-
-		}	
-	}
-	else if (resnStatus) {
-		const newBlock = new ContentBlock({
-			key: genKey(),
-			type: 'unstyled',
-			text: resnStatus,
-		})
-
-		const blockMap =
-			Immutable.OrderedMap([[newBlock.key, newBlock]])
-			.concat(content.getBlockMap())
-
-		content = content.set('blockMap', blockMap)
-
-		newState = EditorState.push(editorState, content, 'insert-fragment')
+		this.editorRef = null;
+		this.debouncedSave = debounce(this.save, 500);
 	}
 
-	if (newState) {
-		return EditorState.forceSelection(newState, editorState.getSelection())
+	componentWillUnmount() {
+		this.debouncedSave.flush();
 	}
 
-	return editorState
-}
+	componentDidUpdate() {
+		if (!this.state.editorState.getSelection().hasFocus &&
+			this.state.value !== this.props.value) {
+			//console.log(this.state.resolution, this.props.resolution)
 
-function ResnStatus(props) {
-	const {editorState} = props
-	const value = getResnStatus(editorState)
+			// flush edits (if any)
+			this.debouncedSave.flush();
 
-	function onChange(e) {
-		const value = e.target.checked? e.target.value: ''
-		props.onChange(updateResnStatus(editorState, value))
-		e.stopPropagation()
+			// Reinitialize state from props
+			console.log('reinit from ', this.props.value)
+			this.setState({
+				value: this.props.value,
+				editorState: this.initEditorState(this.props.value)
+			});
+		}
 	}
 
-	return (
-		<div>
-			<label>
-				<Checkbox
-					name='ResnStatus'
-					value='ACCEPTED'
-					checked={value === 'ACCEPTED'}
-					onChange={onChange}
-				/>Accepted
-			</label>
-			<label>
-				<Checkbox
-					name='ResnStatus'
-					value='REVISED'
-					checked={value === 'REVISED'}
-					onChange={onChange}
-				/>Revised
-			</label>
-			<label>
-				<Checkbox
-					name='ResnStatus'
-					value='REJECTED'
-					checked={value === 'REJECTED'}
-					onChange={onChange}
-				/>Rejected
-			</label>
-		</div>
-	)
-}
+	initEditorState = (value) => {
+		const html = value? value.split('\n').map(t => `<p>${t}</p>`).join(''): '';
+		const blocksFromHTML = convertFromHTML(html)
+		const contentState = ContentState.createFromBlockArray(
+			blocksFromHTML.contentBlocks,
+			blocksFromHTML.entityMap,
+		)
+		return EditorState.createWithContent(contentState);
+	}
 
-const mapResnStatus = {
-	ACCEPTED: 'A',
-	REVISED: 'V',
-	REJECTED: 'J'
-}
-
-export function ResolutionEditor(props) {
-	const [editorState, setEditorState] = React.useState(EditorState.createEmpty())
-	const [showToolbar, setShowToolbar] = React.useState(false)
-	const editorRef = props.editorRef || React.useRef()
-	const changeResolution = React.useRef()
-
-	React.useEffect(() => {
-		changeResolution.current = debounce((currentResolution, editorState, onChange) => {
-			const newResolution = stateToHTML(editorState.getCurrentContent(), htmlConversionOptions)
-			const newResnStatus = mapResnStatus[getResnStatus(editorState)] || ''
-			if (currentResolution !== newResolution) {
-				//console.log('save state', newResolution)
-				onChange(newResnStatus, newResolution)
+	save = () => {
+		this.setState((state, props) => {
+			const content = state.editorState.getCurrentContent();
+			const value = content.hasText()? stateToHTML(content, htmlConversionOptions): '';
+			if (value !== state.value) {
+				props.onChange(value)
+				return {...state, value}
 			}
-		}, 500)
-		return () => {
-			changeResolution.current.flush()
-		}
-	}, [])
-
-	React.useEffect(() => {
-
-		const html = stateToHTML(editorState.getCurrentContent(), htmlConversionOptions)
-		if (props.value !== html) {
-			const blocksFromHTML = convertFromHTML(props.value || '')
-			const contentState = ContentState.createFromBlockArray(
-				blocksFromHTML.contentBlocks,
-				blocksFromHTML.entityMap,
-			)
-			/*let contentState = stateFromHTML(props.value || '', htmlConversionOptions)*/
-			setEditorState(EditorState.createWithContent(contentState))
-		}
-	}, [props.value])
-
-	function onChange(state) {
-		setEditorState(state)
-		changeResolution.current(props.value, state, props.onChange)
+			return state;
+		})
 	}
 
-	function handleKeyCommand(command, state) {
+	onChange = (editorState) => {
+		this.setState({editorState});
+		this.debouncedSave();
+	}
+
+	handleKeyCommand  = (command, state) => {
 		let newState = RichUtils.handleKeyCommand(state, command)
 		if (!newState && command === 'strikethrough') {
 			newState = RichUtils.toggleInlineStyle(state, 'STRIKETHROUGH')
@@ -440,130 +333,86 @@ export function ResolutionEditor(props) {
 			newState = RichUtils.insertSoftNewline(state)
 		}
 		if (newState) {
-			onChange(newState);
+			this.onChange(newState);
 			return 'handled';
 		}
 		return 'not-handled';
 	}
 
-	function handlePastedText(text, html) {
-		console.log(html)
-		return false;
+	handlePastedText = (text, html, editorState) => {
+		const newContent = ContentState.createFromText(text);
+		const content = Modifier.replaceWithFragment(
+			editorState.getCurrentContent(),
+			editorState.getSelection(),
+			newContent.getBlockMap()
+		);
+		const newEditorState = EditorState.push(editorState, content, 'insert-fragment');
+		this.onChange(newEditorState);
+		return true;
 	}
 
-	return (
-		<div css={resolutionEditorCss} onClick={e => editorRef.current.focus()}>
-			<div css={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignContent: 'bottom', padding: 5}}>
-				<ResnStatus
-					editorState={editorState}
-					onChange={onChange}
+	render() {
+		return (
+			<div
+				style={{position: 'relative'}}
+				className={this.props.className}
+				onClick={e => this.editorRef.focus()}	// a click inside the container places focus on the editor
+			>
+				<StyledToolbar
+					style={{visibility: this.state.showToolbar? 'visible': 'hidden'}}
+					editorState={this.state.editorState}
+					onChange={this.onChange}
 				/>
-				<Toolbar
-					show={showToolbar}
-					editorState={editorState}
-					onChange={onChange}
-				/>
+				<EditorContainer>
+					<Editor
+						ref={ref => this.editorRef = ref}
+						editorState={this.state.editorState}
+						onChange={this.onChange}
+						customStyleMap={styleMap}
+						blockRenderMap={blockRenderMap}
+						blockStyleFn={blockStyleFn}
+						keyBindingFn={mapKeyToEditorCommand}
+						handleKeyCommand={this.handleKeyCommand}
+						handlePastedText={this.handlePastedText}
+						placeholder={this.props.placeholder || 'Enter some text...'}
+						onBlur={() => this.setState({showToolbar: false})}
+						onFocus={() => this.setState({showToolbar: true})}
+						spellCheck
+					/>
+				</EditorContainer>
 			</div>
-			<Editor
-				ref={editorRef}
-				customStyleMap={styleMap}
-				blockRenderMap={blockRenderMap}
-				//blockStyleFn={blockStyleFn}
-				editorState={editorState}
-				handleKeyCommand={handleKeyCommand}
-				keyBindingFn={mapKeyToEditorCommand}
-				handlePastedText={handlePastedText}
-				placeholder={props.placeholder || 'Enter some text...'}
-				onChange={onChange}
-				onBlur={() => setShowToolbar(false)}
-				onFocus={() => setShowToolbar(true)}
-				spellCheck={true}
-			/>
-		</div>
-	)
+		)
+	}
 }
 
+const StyledToolbar = styled(Toolbar)`
+	position: absolute;
+	top: -34px;
+	right: 0;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-content: bottom;
+`;
 
-export function BasicEditor(props) {
-	const [editorState, setEditorState] = React.useState(EditorState.createEmpty())
-	const [showToolbar, setShowToolbar] = React.useState(false)
-	const editorRef = props.editorRef || React.useRef()
-	const changeResolution = React.useRef()
+const EditorContainer = styled.div`
 
-	React.useEffect(() => {
-		changeResolution.current = debounce((resolutionHtml, editorState, onChange) => {
-			const html = stateToHTML(editorState.getCurrentContent(), htmlConversionOptions)
-			console.log(html)
-			if (resolutionHtml !== html) {
-				onChange(html)
-			}
-		}, 500)
-		return () => {
-			changeResolution.current.flush()
-		}
-	}, [])
-
-	React.useEffect(() => {
-		const html = stateToHTML(editorState.getCurrentContent(), htmlConversionOptions)
-		console.log('html:', html)
-		if (props.value !== html) {
-			console.log('props.value:', props.value)
-			let contentState = stateFromHTML(props.value || '', htmlConversionOptions)
-			setEditorState(EditorState.createWithContent(contentState))
-		}
-	}, [props.value])
-
-	function onChange(state) {
-		console.log('onChange', stateToHTML(state.getCurrentContent(), htmlConversionOptions))
-		setEditorState(state)
-		changeResolution.current(props.value, state, props.onChange)
+	.DraftEditor-root {
+		cursor: text;
+		font-size: 16px;
+		padding: 5px;
 	}
 
-	function handleKeyCommand(command, state) {
-		let newState = RichUtils.handleKeyCommand(state, command);
-		if (!newState && command === 'strikethrough') {
-			newState = RichUtils.toggleInlineStyle(state, 'STRIKETHROUGH');
-		}
-		if (!newState && command === 'highlight') {
-			newState = RichUtils.toggleInlineStyle(state, 'HIGHLIGHT');
-		}
-		if (newState) {
-			onChange(newState);
-			return 'handled';
-		}
-		return 'not-handled';
+	.public-DraftEditor-content {
+		overflow: auto;
+		padding: 5px;
 	}
 
-	function handlePastedText(text, html) {
-		console.log(html)
-		return false;
+	.public-DraftEditorPlaceholder-root {
+		font-style: italic;
+		color: GrayText;
+		width: unset;
 	}
 
-	return (
-		<div css={resolutionEditorCss} onClick={e => {console.log('focus'); editorRef.current.focus()}}>
-			<div css={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignContent: 'bottom', padding: 5}}>
-				{props.children}
-				<Toolbar
-					show={showToolbar}
-					editorState={editorState}
-					onChange={onChange}
-				/>
-			</div>
-			<Editor
-				ref={editorRef}
-				customStyleMap={styleMap}
-				editorState={editorState}
-				handleKeyCommand={handleKeyCommand}
-				keyBindingFn={mapKeyToEditorCommand}
-				handlePastedText={handlePastedText}
-				blockRenderMap={blockRenderMap}
-				placeholder={props.placeholder || 'Enter some text...'}
-				onChange={onChange}
-				onBlur={() => setShowToolbar(false)}
-				onFocus={() => setShowToolbar(true)}
-				spellCheck={true}
-			/>
-		</div>
-	);	
-}
-
+	${css(blockStyleCss)}
+`;

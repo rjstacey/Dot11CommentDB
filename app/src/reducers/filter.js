@@ -6,8 +6,11 @@
 import {
 	FILTER_INIT,
 	FILTER_SET,
+	FILTER_ADD,
 	FILTER_REMOVE,
-	FILTER_CLEAR_ALL
+	FILTER_CLEAR,
+	FILTER_CLEAR_ALL,
+	FilterType
 } from '../actions/filter'
 
 const parseNumber = (value) => {
@@ -26,8 +29,9 @@ const parseNumber = (value) => {
 		);
 
 	// This will fail silently
-	return !isNaN(unformatted) ? unformatted : 0;
+	return !isNaN(unformatted)? unformatted: 0;
 };
+/*
 
 const rgxEsc = (text) => {
 	let chars = /[-/\\^$*+?.()|[\]{}]/g;
@@ -57,6 +61,7 @@ function filterClause(dataMap, data, dataKey, str) {
 	})
 }
 
+
 function filterRegex(dataMap, data, dataKey, regexStr) {
 	let parts = regexStr.split('/'),
 		regex = regexStr,
@@ -69,22 +74,6 @@ function filterRegex(dataMap, data, dataKey, regexStr) {
 	return dataMap.filter(i => rgx.test(data[i][dataKey]))
 }
 
-function regexValid(regexStr) {
-	let parts = regexStr.split('/'),
-		regex = regexStr,
-		options = "";
-	if (parts.length > 1) {
-		regex = parts[1];
-		options = parts[2];
-	}
-	try {
-		new RegExp(regex, options)
-	}
-	catch(e) {
-		return false
-	}
-	return true
-}
 
 function filterNumericRange(dataMap, data, dataKey, rangeStr) {
 	const result = /^(<=|>=|<|>)(.*)/.exec(rangeStr)
@@ -127,20 +116,8 @@ function filterPage(dataMap, data, dataKey, value) {
 	}
 }
 
-function filterValidate(type, value) {
-	var valid = true
-	if (value && value.length) {
-		if (value[0] === '/') {	// regex
-			valid = regexValid(value)
-		}
-		else if (type === FilterType.NUMERIC && (value[0] === '<' || value[0] === '>')) {
-			valid = numericRangeValid(value)
-		}
-	}
-	return valid
-}
 
-export function filterData(data, filters) {
+export function filterData2(data, filters) {
 	// create a 1:1 map of data
 	let filtDataMap = Array.apply(null, {length: data.length}).map(Function.call, Number);
 	for (let dataKey in filters) {
@@ -187,23 +164,94 @@ export function filterData(data, filters) {
 	}
 	return filtDataMap
 }
+*/
+export function filterData(data, filters) {
+	// create a 1:1 map of data
+	let filtDataMap = Array.apply(null, {length: data.length}).map(Function.call, Number);
+	for (const dataKey in filters) {
+		const values = filters[dataKey].values
+		if (values.length) {
+			filtDataMap = filtDataMap.filter(i => values.reduce((result, value) => result || (value.valid && value.compFunc(data[i][dataKey])), false))
+		}
+	}
+	return filtDataMap;
+}
 
-export function filterSetValue(filter, value) {
-	return {
-		...filter,
-		valid: Array.isArray(value)? true: filterValidate(filter.type, value),
-		values: value
+/* Exact match
+ */
+const cmpExact = (d, val) => d === val
+
+/* Clause match
+ */
+const cmpClause = (d, val) => {
+	let len = val.length
+	if (len && val[len-1] === '.')
+		len = len - 1
+	return d === val || (d && d.substring(0, len) === val.substring(0, len) && d[len] === '.')
+}
+
+/* Page match:
+ * floating point number => match page and line
+ * Integer value => match page
+ */
+const cmpPage = (d, val) => {
+	const n = parseNumber(val);
+	return (val.search(/\d+\./) !== -1)? d === n: Math.round(d) === n
+}
+
+const cmpRegex = (d, regex) => regex.test(d)
+
+const getRegex = (regexStr) => {
+	const parts = regexStr.split('/');
+	let regex = regexStr,
+		options = "";
+	if (parts.length > 1) {
+		regex = parts[1];
+		options = parts[2];
+	}
+	try {
+		return new RegExp(regex, options)
+	}
+	catch (e) {
+		return null
 	}
 }
 
-export function filterSetOptions(filter, options) {
+function filterAddValue(filter, value, filterType) {
+	let compFunc, regex
+
+	switch (filterType) {
+		case FilterType.EXACT:
+			compFunc = d => cmpExact(d, value);
+			break;
+		case FilterType.REGEX:
+			regex = getRegex(value);
+			if (regex) {
+				compFunc = d => cmpRegex(d, regex);
+			}
+			break;
+		case FilterType.CONTAINS:
+			regex = new RegExp(value, 'i');
+			compFunc = d => cmpRegex(d, regex);
+			break;
+		case FilterType.CLAUSE:
+			compFunc = d => cmpClause(d, value);
+			break;
+		case FilterType.PAGE:
+			compFunc = d => cmpPage(d, value);
+			break;
+		default:
+			throw TypeError(`Unexpected filter type ${filterType}`);
+	}
+
 	return {
 		...filter,
-		options
+		values: [...filter.values, {value, valid: compFunc !== undefined, filterType, compFunc}]
 	}
 }
 
-export function filterCreate(type, values = '') {
+function filterCreate(entry) {
+	const {type, options} = entry
 
 	if (!filterTypeValid(type)) {
 		throw new Error('Invalid filter type')
@@ -211,14 +259,10 @@ export function filterCreate(type, values = '') {
 
 	return {
 		type,
-		values,
-		valid: Array.isArray(values)? true: filterValidate(type, values),
-		options: []
+		options,
+		values: [],
+		valid: true
 	}
-}
-
-export function isFilterable(filters, dataKey) {
-	return filters.hasOwnProperty(dataKey)
 }
 
 function filterTypeValid(type) {
@@ -229,42 +273,47 @@ function filtersInit(entries) {
 	const filters = {}
 	if (entries) {
 		for (let dataKey of Object.keys(entries)) {
-			filters[dataKey] = filterCreate(entries[dataKey].type)
+			filters[dataKey] = filterCreate(entries[dataKey])
 		}
 	}
 	return filters;
 }
 
-export const FilterType = {
-	NUMERIC: 0,
-	STRING: 1,
-	CLAUSE: 2,
-	PAGE: 3
-}
-
 function filtersReducer(state = {}, action) {
+	let filter
 
 	switch (action.type) {
 		case FILTER_SET:
+			filter = {...state[action.dateKey], values: []}
+			for (let value of action.values)
+				filter = filterAddValue(filter, value, FilterType.EXACT)
 			return {
 				...state,
-				[action.dataKey]: filterSetValue(state[action.dataKey], action.value)
+				[action.dataKey]: filter
+			}
+		case FILTER_ADD:
+			return {
+				...state,
+				[action.dataKey]: filterAddValue(state[action.dataKey], action.value, action.filterType)
 			}
 		case FILTER_REMOVE:
-			let filter = {...state[action.dataKey]}
-			if (Array.isArray(filter.values))
-				filter.values = filter.values.filter(v => v !== action.value)
-			else
-				filter.values = []
+			filter = {...state[action.dataKey]}
+			filter.values = filter.values.filter(v => v.value !== action.value || v.filterType !== action.filterType)
 			return {
 				...state,
 				[action.dataKey]: filter
 			}
 
+		case FILTER_CLEAR:
+			return {
+				...state,
+				[action.dataKey]: {...state[action.dataKey], values: []}
+			}
+
 		case FILTER_CLEAR_ALL:
 			const filters = {}
 			for (let dataKey in state) {
-				filters[dataKey] = filterSetValue(state[dataKey], '')
+				filters[dataKey] = {...state[dataKey], values: []}
 			}
 			return filters
 

@@ -1,91 +1,64 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import ReactDOM from 'react-dom'
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
+import Immutable from 'immutable'
+import styled from '@emotion/styled'
 import BallotSelector from '../ballots/BallotSelector'
 import ColumnSelector from './ColumnSelector'
 import AppTable from '../table/AppTable'
-import {ActionButton, Checkbox, Expander, DoubleExpander, Handle, VoteYesIcon, VoteNoIcon} from '../general/Icons'
+import ShowFilters from '../table/ShowFilters'
+import {Button, ActionButton, VoteYesIcon, VoteNoIcon} from '../general/Icons'
 import {getComments} from '../actions/comments'
-import {setSort} from '../actions/sort'
-import {setFilter, removeFilter, clearFilters} from '../actions/filter'
-import {setSelected, toggleSelected} from '../actions/select'
-import {setExpanded, toggleExpanded} from '../actions/expand'
+import {setSelected} from '../actions/select'
 import {getDataMap} from '../selectors/dataMap'
-import {getAllFieldOptions, getAvailableFieldOptions} from '../selectors/options'
 import {setBallotId} from '../actions/ballots'
+import {uiSetProperty} from '../actions/ui'
 import {editorCss} from './ResolutionEditor'
-import {CommentIdSelector} from './CommentIdList'
 import CommentDetail from './CommentDetail'
 import CommentsImportModal from './CommentsImport'
 import CommentsExportModal from './CommentsExport'
-import ClickOutside from '../general/ClickOutside'
 import ColumnDropdown from '../table/ColumnDropdown'
-import styled from '@emotion/styled'
-
-const commentFieldLabel = dataKey => ({
-	CommenterName: 'Commenter',
-	MustSatisfy: 'Must Satisfy',
-	Category: 'Cat',
-	Page: 'Page',
-	ProposedChange: 'Proposed Change',
-	CommentGroup: 'Comment Group',
-	AssigneeName: 'Assignee',
-	Status: 'Status',
-	ApprovedByMotion: 'Motion Number',
-	ResnStatus: 'Resn Status',
-	Resolution: 'Resolution',
-	EditStatus: 'Editing Status',
-	EditInDraft: 'In Draft',
-	EditNotes: 'Editing Notes'
-}[dataKey] || dataKey);
-
-const CommentsColumnDropdown = connect(
-	(state, ownProps) => {
-		const {dataKey} = ownProps
-		return {
-			label: commentFieldLabel(dataKey),
-			filter: state.comments.filters[dataKey],
-			sort: state.comments.sort,
-			allOptions: getAllFieldOptions(state, 'comments', dataKey), //state.comments.filters[dataKey].options
-			availableOptions: getAvailableFieldOptions(state, 'comments', dataKey)
-		}
-	},
-	(dispatch, ownProps) => {
-		const {dataKey} = ownProps
-		return {
-			setFilter: (value) => dispatch(setFilter('comments', dataKey, value)),
-			setSort: (dataKey, direction) => dispatch(setSort('comments', dataKey, direction)),
-		}
-	}
-)(ColumnDropdown);
-
-const FlexColumn = styled.div`
-	display: flex;
-	flex-direction: column;`
+import copyToClipboard from 'copy-html-to-clipboard'
 
 const FlexRow = styled.div`
 	display: flex;
 	flex-direction: row;
 	margin: 0 5px;
-	align-items: center;`
+	align-items: center;
+`;
 
 /*
  * The data cell rendering functions are pure functions (dependent only on input parameters)
  */
-function renderDataCellCheck({rowData, dataKey}) {
-	return rowData[dataKey]? '\u2714': ''
-}
+const renderDataCellCheck = ({rowData, dataKey}) => rowData[dataKey]? '\u2714': ''
 
-function renderDataCellEditing({rowData}) {
-	return rowData.EditStatus? <React.Fragment><b>{rowData.EditStatus}:</b> {rowData.EditNotes}</React.Fragment>: rowData.EditNotes
-}
+const renderHeaderCellEditing = (props) =>
+	<React.Fragment>
+		<HeaderSubcomponent {...props} dataKey='EditStatus' label='Editing Status' />
+		<HeaderSubcomponent {...props} dataKey='EditInDraft' label='In Draft' />
+		<HeaderSubcomponent {...props} dataKey='EditNotes' label='Notes' />
+	</React.Fragment>
+
+const renderDataCellEditing = ({rowData}) => 
+	<React.Fragment>
+		{rowData.EditStatus === 'I' && <span>In D{rowData['EditInDraft']}</span>}
+		{rowData.EditStatus === 'N' && <span>No change</span>}
+		<ResolutionContainter
+			dangerouslySetInnerHTML={{__html: rowData['EditNotes']}}
+		/>
+	</React.Fragment>
 
 const ResolutionContainter = styled.div`
 	${editorCss}
 	background-color: ${({color}) => color};
 `;
+
+const resnStatusMap = {
+	'A': 'ACCEPTED',
+	'V': 'REVISED',
+	'J': 'REJECTED'
+};
 
 function renderDataCellResolution({rowData}) {
 	const resnColor = {
@@ -93,11 +66,14 @@ function renderDataCellResolution({rowData}) {
 		'V': '#f9ecb9',
 		'J': '#f3c0c0'
 	}
+	const status = resnStatusMap[rowData['ResnStatus']] || ''
 	return (
 		<ResolutionContainter
-			color={resnColor[rowData.ResnStatus]}
-			dangerouslySetInnerHTML={{__html: rowData.Resolution}}
-		/>
+			color={resnColor[rowData['ResnStatus']]}
+		>
+			<div>{status}</div>
+			<div dangerouslySetInnerHTML={{__html: rowData['Resolution']}}/>
+		</ResolutionContainter>
 	)
 }
 
@@ -109,30 +85,26 @@ const DataSubcomponent = styled.div`
 	overflow: hidden;
 `;
 
-const HeaderSubcomponent = DataSubcomponent.withComponent(CommentsColumnDropdown);
+const HeaderSubcomponent = DataSubcomponent.withComponent(ColumnDropdown);
 
+const renderHeaderCellStacked1 = (props) => 
+	<React.Fragment>
+		<FlexRow>
+			<HeaderSubcomponent {...props} width={70} dataKey='CID' label='CID' />
+			<HeaderSubcomponent {...props} width={40} dataKey='Category' label='Cat' />
+		</FlexRow>
+		<FlexRow>
+			<HeaderSubcomponent {...props} width={70} dataKey='Clause' label='Clause' />
+			<HeaderSubcomponent {...props} width={40} dataKey='Page' label='Page' />
+		</FlexRow>
+		<FlexRow>
+			<HeaderSubcomponent {...props} width={90} dataKey='CommenterName' label='Commenter' />
+			<HeaderSubcomponent {...props} width={30} dataKey='Vote' label='Vote' />
+			<HeaderSubcomponent {...props} width={30} dataKey='MustSatisfy' label='MS' />
+		</FlexRow>
+	</React.Fragment>
 
-function renderHeaderCellStacked1(props) {
-	return (
-		<React.Fragment>
-			<FlexRow>
-				<HeaderSubcomponent width={70} dataKey='CID' {...props} />
-				<HeaderSubcomponent width={40} dataKey='Category' {...props} />
-			</FlexRow>
-			<FlexRow>
-				<HeaderSubcomponent width={70} dataKey='Clause' {...props} />
-				<HeaderSubcomponent width={40} dataKey='Page' {...props} />
-			</FlexRow>
-			<FlexRow>
-				<HeaderSubcomponent width={90} dataKey='CommenterName' {...props} />
-				<HeaderSubcomponent width={30} dataKey='Vote' {...props} />
-				<HeaderSubcomponent width={30} dataKey='MustSatisfy' label='MS' {...props} />
-			</FlexRow>
-		</React.Fragment>
-	)
-}
-
-function renderDataCellStacked1({rowData}) {
+const renderDataCellStacked1 = ({rowData}) => {
 	const commenterStr = rowData.CommenterName
 	let voteIcon
 	if (rowData.Vote === 'Approve')
@@ -143,355 +115,311 @@ function renderDataCellStacked1({rowData}) {
 	return (
 		<React.Fragment>
 			<FlexRow>
-				<DataSubcomponent width={70} style={{fontWeight: 'bold'}}>{rowData['CID']}</DataSubcomponent>
-				<DataSubcomponent width={40}>{rowData['Category']}</DataSubcomponent>
+				<DataSubcomponent width={70} style={{fontWeight: 'bold'}}>{rowData.CID}</DataSubcomponent>
+				<DataSubcomponent width={40}>{rowData.Category}</DataSubcomponent>
 			</FlexRow>
 			<FlexRow>
-				<DataSubcomponent width={70} style={{fontStyle: 'italic'}}>{rowData['Clause']}</DataSubcomponent>
-				<DataSubcomponent width={40}>{rowData['Page']}</DataSubcomponent>
+				<DataSubcomponent width={70} style={{fontStyle: 'italic'}}>{rowData.Clause}</DataSubcomponent>
+				<DataSubcomponent width={40}>{rowData.Page.toFixed(2)}</DataSubcomponent>
 			</FlexRow>
 			<FlexRow>{voteIcon}{commenterStr}{mbs}</FlexRow>
 		</React.Fragment>
 	)
 }
 
-function renderHeaderCellStacked2(props) {
-	return (
-		<React.Fragment>
-			<HeaderSubcomponent dataKey='AssigneeName' {...props} />
-			<HeaderSubcomponent dataKey='Submission' {...props} />
-		</React.Fragment>
-	)
-}
+const renderHeaderCellStacked2 = (props) =>
+	<React.Fragment>
+		<HeaderSubcomponent {...props} dataKey='AssigneeName' label='Assignee' />
+		<HeaderSubcomponent {...props} dataKey='Submission' label='Submission' />
+	</React.Fragment>
 
-function renderDataCellStacked2({rowData}) {
-	return (
-		<React.Fragment>
-			<div>{rowData['AssigneeName'] || 'Not Assigned'}</div>
-			<div>{rowData['Submission'] || 'None'}</div>
-		</React.Fragment>
-	)
-}
+const renderDataCellStacked2 = ({rowData}) => 
+	<React.Fragment>
+		<div>{rowData['AssigneeName'] || 'Not Assigned'}</div>
+		<div>{rowData['Submission'] || 'None'}</div>
+	</React.Fragment>
 
-function renderHeaderCellResolution(props) {
-	return (
-		<React.Fragment>
-			<HeaderSubcomponent dataKey='ResnStatus' {...props} />
-			<HeaderSubcomponent dataKey='Resolution' {...props} />
-		</React.Fragment>
-	)
-}
+const renderHeaderCellStacked3 = (props) => 
+	<React.Fragment>
+		<HeaderSubcomponent {...props} dataKey='AdHoc' label='Ad-hoc' />
+		<HeaderSubcomponent {...props} dataKey='CommentGroup' label='Comment Group' />
+	</React.Fragment>
 
-const renderHeaderCell = (props) => <CommentsColumnDropdown dataKey={props.column.key} {...props} />
+const renderDataCellStacked3 = ({rowData}) =>
+	<React.Fragment>
+		<div>{rowData['AdHoc'] || ''}</div>
+		<div>{rowData['CommentGroup'] || ''}</div>
+	</React.Fragment>
+
+const renderHeaderCellResolution = (props) => 
+	<React.Fragment>
+		<HeaderSubcomponent {...props} dataKey='ResnStatus' label='Resolution Status' />
+		<HeaderSubcomponent {...props} dataKey='Resolution' label='Resolution' />
+	</React.Fragment>
+
+const TextBlock = styled.div`
+	& p {
+		margin: 8px 0;
+	}
+	& p:first-of-type {
+		margin: 0;
+	}
+`;
 
 // Renderer that will preserve newlines
 const renderTextBlock = ({rowData, dataKey}) => {
 	const cellData = rowData[dataKey]
 	return typeof cellData === 'string'?
-		cellData.split('\n').map((line, i, arr) => {
-				const lline = <span key={i}>{line}</span>
-				if (i === arr.length - 1) {
-					return lline
-				} else {
-					return [lline, <br key={i + 'br'} />]
-			}
-		}):
+		<TextBlock>
+			{cellData? cellData.split('\n').map((line, i) => <p key={i}>{line}</p>): ''}
+		</TextBlock>:
 		cellData
 }
 
-const RowSelectorContainer = styled(ClickOutside)`
-	height: 22px;
-	border-radius: 6px;
-`;
+const allColumns = Immutable.OrderedMap({
+	Stack1:
+		{label: 'CID/Cat/MS/...',
+			width: 200, flexGrow: 1, flexShrink: 0,
+			headerRenderer: renderHeaderCellStacked1,
+			cellRenderer: renderDataCellStacked1},
+	CID:
+		{label: 'CID',
+			width: 60, flexGrow: 1, flexShrink: 0,
+			dropdownWidth: 400},
+	CommenterName:
+		{label: 'Commenter',
+			width: 100, flexGrow: 1, flexShrink: 1},
+	Vote:
+		{label: 'Vote',
+			width: 50, flexGrow: 1, flexShrink: 1},
+	MustSatisfy:
+		{label: 'MS',
+			width: 36, flexGrow: 1, flexShrink: 0,
+			cellRenderer: renderDataCellCheck},
+	Category:
+		{label: 'Cat',
+			width: 36, flexGrow: 1, flexShrink: 0},
+	Clause:
+		{label: 'Clause',
+			width: 100, flexGrow: 1, flexShrink: 0},
+	Page:
+		{label: 'Page',
+			width: 80, flexGrow: 1, flexShrink: 0},
+	Comment:
+		{label: 'Comment',
+			width: 400, flexGrow: 1, flexShrink: 1,
+			cellRenderer: renderTextBlock},
+	ProposedChange:
+		{label: 'Proposed Change',
+			width: 400, flexGrow: 1, flexShrink: 1,
+			cellRenderer: renderTextBlock},
+	Stack2:
+		{label: 'Ad Hoc/Group',
+			width: 150, flexGrow: 1, flexShrink: 1,
+			headerRenderer: renderHeaderCellStacked3,
+			cellRenderer: renderDataCellStacked3},
+	AdHoc:
+		{label: 'Ad Hoc',
+			width: 100, flexGrow: 1, flexShrink: 1},
+	CommentGroup:
+		{label: 'Group',
+			width: 150, flexGrow: 1, flexShrink: 1},
+	Stack3:
+		{label: 'Assignee/Submission',
+			width: 250, flexGrow: 1, flexShrink: 1,
+			headerRenderer: renderHeaderCellStacked2,
+			cellRenderer: renderDataCellStacked2},
+	AssigneeName:
+		{label: 'Assignee',
+			width: 150, flexGrow: 1, flexShrink: 1},
+	Submission:
+		{label: 'Submission',
+			 width: 150, flexGrow: 1, flexShrink: 1},
+	Status:
+		{label: 'Status',
+			width: 150, flexGrow: 1, flexShrink: 1},
+	ApprovedByMotion:
+		{label: 'Motion Number',
+			width: 80, flexGrow: 1, flexShrink: 1},
+	Resolution:
+		{label: 'Resolution',
+			width: 400, flexGrow: 1, flexShrink: 1,
+			headerRenderer: renderHeaderCellResolution,
+			cellRenderer: renderDataCellResolution},
+	Editing:
+		{label: 'Editing',
+			width: 300, flexGrow: 1, flexShrink: 1,
+			headerRenderer: renderHeaderCellEditing,
+			cellRenderer: renderDataCellEditing}
+});
 
-const CommentIdEntry = styled(CommentIdSelector)`
-	position: absolute;
-	min-width: 300px;
-	border: 1px solid #ccc;
-	padding: 0;
-	background: #fff;
-	border-radius: 2px;
-	box-shadow: 0 0 10px 0 rgba(0,0,0,0.2);
-	z-index: 9;
-`;
+const editViewL = [
+	{key: 'Stack1'},
+	{key: 'Comment'},
+	{key: 'ProposedChange'}
+];
 
-function renderDropdown({anchorRef}) {
-	return ReactDOM.createPortal(
-		<CommentIdEntry focusOnMount anchorRef={anchorRef} />,
-		anchorRef.current
-	)
-}
+const editViewM = [
+	{key: 'Stack1'},
+	{key: 'Comment'}
+];
 
-function RowSelector(props) {
-	const containerRef = React.createRef();
-	const [open, setOpen] = React.useState(false);
+const editViewS = [
+	{key: 'Stack1'}
+];
 
-	const handleClose = (e) => {
-		if (!open || props.anchorRef.current.contains(e.target)) {
-			// ignore if not open or event target is an element inside the dropdown
-			return;
-		}
-		setOpen(false)
+const view1L = [
+	{key: 'Stack1'},
+	{key: 'Comment'},
+	{key: 'ProposedChange'},
+	{key: 'Stack2'},
+	{key: 'Stack3'},
+	{key: 'Status'},
+	{key: 'ApprovedByMotion'},
+	{key: 'Resolution'},
+	{key: 'Editing'}
+];
+
+const viewsByMedia = {
+	L: {'View 1': view1L, 'View 2': view1L, 'Edit View': editViewL},
+	M: {'View 1': view1L, 'View 2': view1L, 'Edit View': editViewM},
+	S: {'View 1': view1L, 'View 2': view1L, 'Edit View': editViewS}
+};
+
+const getDefaultColumnsConfig = (view) => allColumns.map((col, key) => {
+	const v = view.find(v => v.key === key);
+	return {
+		width: (v && v.width)? v.width: col.width,
+		visible: !!v
 	}
+}).toMap();
 
-	return (
-		<RowSelectorContainer
-			ref={containerRef}
-			onClickOutside={handleClose}
+const getDefaultTableConfig = (view) => {
+	let media;
+	//console.log(window.matchMedia("(min-width: 1024px)").matches)
+	if (window.matchMedia("(max-width: 768px)").matches)
+		media = 'S'
+	else if (window.matchMedia("(max-width: 1024px)").matches)
+		media = 'M'
+	else
+		media = 'L'
+	const columns = getDefaultColumnsConfig(viewsByMedia[media][view])
+
+	return {
+		fixed: false,
+		columns,
+		media
+	}
+};
+
+const tableViews = ['View 1', 'View 2', 'Edit View'];
+
+const defaultTablesConfig = tableViews.reduce((config, view) => ({...config, [view]: getDefaultTableConfig(view)}), {});
+
+function ColumnViewSelector({tableView, setTableView}) {
+	return tableViews.map(view => 
+		<Button
+			key={view}
+			isActive={tableView === view}
+			onClick={e => setTableView(view)}
 		>
-			<Handle title="Select List" open={open} onClick={() => setOpen(!open)} />
-			{open && renderDropdown(props)}
-		</RowSelectorContainer>
+			{view}
+		</Button>
 	)
 }
 
-const Selector = styled.div`
-	display: flex;
-	flex-direction: column;
-	border-radius: 3px;
-	:hover,
-	:focus-within {
-		background-color: #ddd;
+function setClipboard(selected, comments) {
+
+	const cmts = comments.filter(c => selected.includes(c.CID))
+
+	const td = d => `<td>${d}</td>`
+	const th = d => `<th>${d}</th>`
+	const header = `
+		<tr>
+			${th('CID')}
+			${th('Page')}
+			${th('Clause')}
+			${th('Comment')}
+			${th('Proposed Change')}
+		</tr>`
+	const row = c => `
+		<tr>
+			${td(c.CID)}
+			${td(c.Page)}
+			${td(c.Clause)}
+			${td(c.Comment)}
+			${td(c.ProposedChange)}
+		</tr>`
+	const table = t => `
+		<style>
+			table {border-collapse: collapse;}
+			table, th, td {border: 1px solid black;}
+			td {vertical-align: top;}
+		</style>
+		<table>
+			${header}
+			${t.map(c => row(c))}
+		</table>`
+
+	const text = table(cmts)
+
+	copyToClipboard(text, {asHtml: true});
+}
+
+function commentsRowGetter({rowIndex, data, dataMap}) {
+	const c = data[dataMap[rowIndex]]
+	if (rowIndex > 0 && data[dataMap[rowIndex - 1]].CommentID === c.CommentID) {
+		// Previous row holds the same comment
+		return {
+			...c,
+			CommenterName: '',
+			Vote: '',
+			MustSatisfy: '',
+			Category: '',
+			Clause: '',
+			Page: '',
+			Comment: '',
+			ProposedChange: ''
+		}
 	}
-`;
-
-const ControlHeader = (props) => {
-	const {rowKey, data, dataMap, selected, setSelected, expanded, setExpanded} = props;
-
-	const allSelected = React.useMemo(() => (
-			dataMap.length > 0 &&	// not if list is empty
-			dataMap.filter(i => !selected.includes(data[i][rowKey])).length === 0
-		),
-		[data, dataMap, selected]
-	);
-
-	const isIndeterminate = !allSelected && selected.length;
-
-	const allExpanded = React.useMemo(() => (
-			dataMap.length > 0 &&	// not if list is empty
-			dataMap.filter(i => !expanded.includes(data[i][rowKey])).length === 0
-		),
-		[data, dataMap, expanded]
-	);
-
-	const toggleAllSelected = () => setSelected(selected.length? []: dataMap.map(i => data[i].CID));
-
-	const toggleAllExpanded = () => setExpanded(expanded.length? []: dataMap.map(i => data[i].CID));
-
-	return (
-		<FlexColumn>
-			<Selector>
-				<Checkbox
-					title={allSelected? "Clear All": isIndeterminate? "Clear Selected": "Select All"}
-					checked={allSelected}
-					indeterminate={isIndeterminate}
-					onChange={toggleAllSelected}
-				/>
-				<RowSelector {...props}/>
-			</Selector>
-			<DoubleExpander
-				key='expander'
-				title="Expand All"
-				open={allExpanded}
-				onClick={toggleAllExpanded}
-			/>
-		</FlexColumn>
-	)
+	return c
 }
-
-const ConnectedControlHeader = connect(
-	(state, ownProps) => ({
-		selected: state[ownProps.dataSet].selected,
-		expanded: state[ownProps.dataSet].expanded,
-		data: state[ownProps.dataSet].comments,
-		dataMap: getDataMap(state, ownProps.dataSet),
-	}),
-	(dispatch, ownProps) => ({
-		setSelected: cids => dispatch(setSelected(ownProps.dataSet, cids)),
-		setExpanded: cids => dispatch(setExpanded(ownProps.dataSet, cids))
-	})
-)(ControlHeader);
-
-const ControlCell = ({rowKey, rowData, selected, toggleSelected, expanded, toggleExpanded}) => {
-	const id = rowData[rowKey]
-	return (
-		<div style={{display: 'flex', flexDirection: 'column'}}>
-			<Checkbox
-				key='selector'
-				title="Select Row"
-				checked={selected.includes(id)}
-				onChange={() => toggleSelected(id)}
-			/>
-			<Expander
-				key='expander'
-				title="Expand Row"
-				open={expanded.includes(id)}
-				onClick={() => toggleExpanded(id)}
-			/>
-		</div>
-	)
-}
-
-const ConnectedControlCell = connect(
-	(state, ownProps) => ({
-		selected: state[ownProps.dataSet].selected,
-		expanded: state[ownProps.dataSet].expanded
-	}),
-	(dispatch, ownProps) => ({
-		toggleSelected: cid => dispatch(toggleSelected(ownProps.dataSet, [cid])),
-		toggleExpanded: cid => dispatch(toggleExpanded(ownProps.dataSet, [cid]))
-	})
-)(ControlCell)
-
-
-const editColumns = [
-	{key: 'cid', label: 'CID...',
-		width: 200, flexGrow: 0, flexShrink: 0,
-		headerRenderer: renderHeaderCellStacked1,
-		cellRenderer: renderDataCellStacked1},
-];
-
-const flatColumns = [
-	{key: 'CID', label: 'CID',
-		width: 60, flexGrow: 0, flexShrink: 0,
-		headerRenderer: renderHeaderCell},
-	{key: 'CommenterName', label: 'Commenter',
-		width: 100, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
-	{key: 'Vote', label: 'Vote',
-		width: 50, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
-	{key: 'MustSatisfy', label: 'MS',
-		width: 36, flexGrow: 0, flexShrink: 0,
-		headerRenderer: renderHeaderCell,
-		cellRenderer: renderDataCellCheck},
-	{key: 'Category', label: 'Cat',
-		width: 36, flexGrow: 0, flexShrink: 0,
-		headerRenderer: renderHeaderCell},
-	{key: 'Clause', label: 'Clause',
-		width: 100, flexGrow: 0, flexShrink: 0,
-		headerRenderer: renderHeaderCell},
-	{key: 'Page', label: 'Page',
-		width: 80, flexGrow: 0, flexShrink: 0,
-		headerRenderer: renderHeaderCell},
-	{key: 'Comment', label: 'Comment',
-		width: 400, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell,
-		cellRenderer: renderTextBlock}, 
-	{key: 'ProposedChange', label: 'Proposed Change',
-		width: 400, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell,
-		cellRenderer: renderTextBlock},
-	{key: 'CommentGroup', label: 'Comment Group',
-		width: 150, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
-	{key: 'AssigneeName', label: 'Assignee',
-		width: 150, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
-	{key: 'Submission', label: 'Submission',
-		 width: 150, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
-	{key: 'Status', label: 'Status',
-		width: 150, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
-	{key: 'ApprovedByMotion', label: 'Motion Number',
-		width: 80, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
-	{key: 'Resolution', label: 'Resolution',
-		width: 400, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCellResolution,
-		cellRenderer: renderDataCellResolution},
-	{key: 'EditStatus', label: 'Editing',
-		width: 300, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell,
-		cellRenderer: renderDataCellEditing}
-];
-
-const stackedColumns = [
-	{key: 'Stack1', label: 'CID/Cat/MS/...',
-		width: 200, flexGrow: 0, flexShrink: 0,
-		headerRenderer: renderHeaderCellStacked1,
-		cellRenderer: renderDataCellStacked1},
-	{key: 'Comment', label: 'Comment',
-		width: 400, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
-	{key: 'ProposedChange', label: 'Proposed Change',
-		width: 400, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
-	{key: 'CommentGroup', label: 'Group',
-		width: 150, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
-	{key: 'Status', label: 'Status',
-		width: 150, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
-	{key: 'Stack2', label: 'Assignee/Submission',
-		width: 250, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCellStacked2,
-		cellRenderer: renderDataCellStacked2},
-	{key: 'ApprovedByMotion', label: 'Motion Number',
-		width: 80, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell},
-	{key: 'Resoultion', label: 'Resolution',
-		width: 400, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCellResolution,
-		cellRenderer: renderDataCellResolution},
-	{key: 'EditStatus', label: 'Editing',
-		width: 300, flexGrow: 1, flexShrink: 1,
-		headerRenderer: renderHeaderCell,
-		cellRenderer: renderDataCellEditing}
-];
 
 function Comments(props) {
 	const history = useHistory()
 	const {ballotId} = useParams()
-
-	const [editMode, setEditMode] = React.useState(false)
 	const [showImport, setShowImport] = React.useState(false)
 	const [showExport, setShowExport] = React.useState(false)
+	const [split, setSplit] = React.useState(0.5)
 
-	const [columnVisibility, setColumnVisibility] = React.useState(() => {
-		const v1 = stackedColumns.reduce((o, c) => ({...o, [c.key]: true}), {})
-		const v2 = flatColumns.reduce((o, c) => ({...o, [c.key]: true}), {})
-		return {...v1, ...v2}
-	})
-	const [isStacked, setStacked] = React.useState(true)
-	const [fixed, setFixed] = React.useState(false)
+	const tableView = props.tableView || 'View 1'
+	if (!props.tableView)
+		props.setTableView(tableView)
+	const tableConfig = props.tablesConfig? props.tablesConfig[tableView]: null;
 
-	const columns = React.useMemo(() => {
-		let columns
-		if (editMode) {
-			columns = editColumns
+	const editMode = tableView === 'Edit View';
+
+	/* If we change the table config signficantly we want to remount the table component,
+	 * so we create a key id for the component that depends on signficant parameters */
+	const tableId = React.useMemo(() => {
+		let id = tableView
+		if (tableConfig) {
+			if (tableConfig.fixed) id += 'fixed';
+			tableConfig.columns.forEach((v, k) => {if (v.visible) id += k});
 		}
-		else {
-			columns = (isStacked? stackedColumns: flatColumns).filter(c => !columnVisibility.hasOwnProperty(c.key) || columnVisibility[c.key])
-		}
-		columns = columns.map(c => ({
-			...c,
-			// column controls
-			setFilter: props.setFilter,
-			setSort: props.setSort
-		}))
-		const controlColumn = {
-			key: 'CID',
-			width: 40,
-			flexShrink: 0,
-			flexGrow: 0,
-			headerRenderer: props => <ConnectedControlHeader dataSet='comments' {...props}/>,
-			cellRenderer: props => <ConnectedControlCell dataSet='comments' {...props} />
-		}
+		return id
+	}, [tableView, tableConfig]);
 
-		return [controlColumn, ...columns]
-	}, [columnVisibility, editMode, isStacked])
-
+	/* Act on a change to the ballotId in the URL */
 	React.useEffect(() => {
 		if (ballotId) {
 			if (ballotId !== props.ballotId) {
-				// Routed here with parameter ballotId specified, but not matching stored ballotId
-				// Store the ballotId and get comments for this ballotId
+				/* Routed here with parameter ballotId specified, but not matching stored ballotId.
+				 * Store the ballotId and get comments for this ballotId */
 				props.setBallotId(ballotId)
 				props.getComments(ballotId)
 			}
-			else if (!props.loading && (!props.commentsValid || props.commentBallotId !== ballotId)) {
+			else if (!props.loading && (!props.valid || props.commentBallotId !== ballotId)) {
 				props.getComments(ballotId)
 			}
 		}
@@ -500,187 +428,73 @@ function Comments(props) {
 		}
 	}, [ballotId])
 
-	const refresh = () => props.getComments(ballotId)
+	const refresh = () => props.getComments(ballotId);
 
-	function toggleColumnVisible(dataKey) {
-		setColumnVisibility({...columnVisibility, [dataKey]: !columnVisibility[dataKey]})
-	}
+	const ballotSelected = (ballotId) => history.push(`/Comments/${ballotId}`);
 
-	function isColumnVisible(dataKey) {
-		return columnVisibility[dataKey]
-	}
+	const setTableDetailSplit = (deltaX) => setSplit(split => split - deltaX/window.innerWidth);
 
-	function ballotSelected(ballotId) {
-		// Redirect to page with selected ballot
-		history.push(`/Comments/${ballotId}`)
-		props.getComments(ballotId)
-	}
-
-	function handleKeyDown(event) {
-		if (event.keyCode !== 38 && event.keyCode !== 40)
-			return
-
-		const {comments, commentsMap, selected, setSelected} = props;
-
-		if (selected.length === 0) {
-			if (commentsMap.length > 0)
-				setSelected([comments[commentsMap[0]].CID])
-			return
-		}
-
-		let cid = props.selected[0]
-		let i = props.commentsMap.findIndex(i => props.comments[i].CID === cid)
-		if (i === -1) {
-			if (commentsMap.length > 0)
-				setSelected([comments[commentsMap[0]].CID])
-			return
-		}
-
-		if (event.keyCode === 38) {			// Up arrow
-			if (i === 0) 
-				i = commentsMap.length - 1;
-			else
-				i = i - 1 
-		}
-		else if (event.keyCode === 40) {	// Down arrow
-			if (i === (commentsMap.length - 1))
-				i = 0
-			else
-				i = i + 1
-		}
-		else
-			return
-
-		setSelected([comments[commentsMap[i]].CID])
-	}
-
-	function editClick({event, rowData}) {
-		const {comments, commentsMap, setSelected} = props
-		let cids = props.selected.slice()
-		const cid = rowData.CID
-		if (event.shiftKey) {
-			// Shift + click => include all between last and current
-			if (cids.length === 0) {
-				cids.push(cid)
-			}
-			else {
-				const cid_last = cids[cids.length - 1]
-				const i_last = commentsMap.findIndex(i => comments[i].CID === cid_last)
-				const i_selected = commentsMap.findIndex(i => comments[i].CID === cid)
-				if (i_last >= 0 && i_selected >= 0) {
-					if (i_last > i_selected) {
-						for (let i = i_selected; i < i_last; i++) {
-							cids.push(comments[commentsMap[i]].CID)
-						}
-					}
-					else {
-						for (let i = i_last + 1; i <= i_selected; i++) {
-							cids.push(comments[commentsMap[i]].CID)
-						}
-					}
-				}
-			}
-		} else if (event.ctrlKey || event.metaKey) {
-			// Control + click => add or remove
-			if (cids.includes(cid)) {
-				cids = cids.filter(c => c !== cid)
-			}
-			else {
-				cids.push(cid)
-			}
-		} else {
-			cids = [cid]
-		}
-		setSelected(cids)
-	}
-
-	function rowGetter({rowIndex}) {
-		const {comments, commentsMap} = props;
-		const c = comments[commentsMap[rowIndex]]
-		if (rowIndex > 0 && Math.floor(comments[commentsMap[rowIndex - 1]].CommentID) === Math.floor(c.CommentID)) {
-			// Previous row holds the same comment
-			return {
-				...c,
-				CommenterName: '',
-				Vote: '',
-				MustSatisfy: '',
-				Category: '',
-				Clause: '',
-				Page: '',
-				Comment: '',
-				ProposedChange: ''
-			}
-		}
-		return c
-	}
-
-	const topRow = (
-		<div style={{display: 'flex', justifyContent: 'space-between'}} >
-			<BallotSelector onBallotSelected={ballotSelected} />
-			<div>
-				<button onClick={e => setEditMode(!editMode)}>{editMode? 'Edit': 'View'}</button>
-				<ActionButton name='export' title='Export to file' onClick={e => setShowExport(true)} disabled={!ballotId} />
-				<ActionButton name='upload' title='Upload Resolutions' onClick={e => setShowImport(true)} disabled={!ballotId} />
-				<ColumnSelector
-					list={isStacked? stackedColumns: flatColumns}
-					isStacked={isStacked}
-					toggleStacked={() => setStacked(!isStacked)}
-					isFixed={fixed}
-					toggleFixed={() => setFixed(!fixed)}
-					toggleItem={toggleColumnVisible}
-					isChecked={isColumnVisible}
-				/>
-				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-			</div>
-		</div>
-	)
-
-	const table = ({onRowClick, onRowDoubleClick, contentWidth}) => (
+	const table =
 		<AppTable
-			fixed={fixed}
-			contentWidth={contentWidth}
-			headerHeight={isStacked? 66: 22}
-			columns={columns}
+			key={tableId}
+			columns={allColumns}
+			defaultTableConfig={defaultTablesConfig[tableView]}
+			tableView={tableView}
+			headerHeight={66} //{isStacked? 66: 22}
+			controlColumn
 			estimatedRowHeight={64}
-			data={props.comments}
-			dataMap={props.commentsMap}
-			selected={props.selected}
-			expanded={props.expanded}
-			rowGetter={rowGetter}
+			rowGetter={commentsRowGetter}
 			loading={props.loading}
-			filters={props.filters}
-			sort={props.sort}
-			setSort={props.setSort}
-			setFilter={props.setFilter}
-			removeFilter={props.removeFilter}
-			clearFilters={props.clearFilters}
-			onRowClick={onRowClick}
-			onRowDoubleClick={onRowDoubleClick}
-			onKeyDown={handleKeyDown}
+			dataSet='comments'
 			rowKey='CID'
-			showFilters
+			resizeWidth={editMode? setTableDetailSplit: undefined}
 		/>
-	)
 
-	const tableView = (
-		<div style={{flex: 1}}>
-			{table({onRowClick: editClick, onRowDoubleClick: () => setEditMode(true)})}
-		</div>
-	)
-
-	const editView = (
-		<div style={{display: 'flex', flex: 1}}>
-			{table({onRowClick: editClick, contentWidth: true})}
-			<CommentDetail cidsStr={props.selected.join(',')} />
-		</div>
-	)
+	let body = table;
+	if (tableView === 'Edit View') {
+		body =
+			<React.Fragment>
+				<div style={{flex: `${100 - split*100}%`, overflow: 'hidden', boxSizing: 'border-box'}}>
+					{table}
+				</div>
+				<CommentDetail
+					style={{flex: `${split*100}%`, overflow: 'auto', boxSizing: 'border-box'}}
+					key={props.selected}
+				/>
+			</React.Fragment>
+	}
 
 	return (
 		<React.Fragment>
 
-			{topRow}
+			<TopRow>
+				<BallotSelector onBallotSelected={ballotSelected} />
+				<div>
+					<ColumnViewSelector
+						tableView={props.tableView}
+						setTableView={props.setTableView}
+					/>
+					<Button onClick={e => setClipboard(props.selected, props.comments)}>Copy</Button>
+					<ActionButton name='export' title='Export to file' onClick={e => setShowExport(true)} disabled={!ballotId} />
+					<ActionButton name='upload' title='Upload resolutions' onClick={e => setShowImport(true)} disabled={!ballotId} />
+					{props.tableConfig && props.tableConfig[tableView] &&
+						<ColumnSelector
+							allColumns={allColumns}
+						/>
+					}
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				</div>
+			</TopRow>
 
-			{editMode? editView: tableView}
+			<div style={{display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden'}}>
+				<ShowFilters
+					style={{width: '100%'}}
+					dataSet={dataSet}
+				/>
+				<div style={{display: 'flex', flexDirection: 'row', flex: 1, overflow: 'hidden', alignContent: 'center'}}>
+					{body}
+				</div>
+			</div>
 
 			<CommentsImportModal
 				ballotId={props.ballotId}
@@ -698,45 +512,41 @@ function Comments(props) {
 	)
 }
 
+const TopRow = styled.div`
+	display: flex;
+	justify-content: space-between;
+`;
+
 Comments.propTypes = {
-	filters: PropTypes.object.isRequired,
-	sort: PropTypes.object.isRequired,
 	selected: PropTypes.array.isRequired,
-	expanded: PropTypes.array.isRequired,
 	ballotId: PropTypes.string.isRequired,
 	commentBallotId: PropTypes.string.isRequired,
-	commentsValid: PropTypes.bool.isRequired,
-	comments: PropTypes.array.isRequired,
-	commentsMap: PropTypes.array.isRequired,
+	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
+	comments: PropTypes.arrayOf(PropTypes.object).isRequired,
+	commentsMap: PropTypes.arrayOf(PropTypes.number).isRequired,
 }
 
+const dataSet = 'comments'
 export default connect(
 	(state, ownProps) => {
-		const {comments, ballots} = state
 		return {
-			ballotId: ballots.ballotId,
-			filters: comments.filters,
-			sort: comments.sort,
-			selected: comments.selected,
-			expanded: comments.expanded,
-			commentBallotId: comments.ballotId,
-			commentsValid: comments.commentsValid,
-			comments: comments.comments,
-			commentsMap: getDataMap(state, 'comments'),
-			loading: comments.getComments
+			ballotId: state.ballots.ballotId,
+			selected: state[dataSet].selected,
+			expanded: state[dataSet].expanded,
+			commentBallotId: state[dataSet].ballotId,
+			valid: state[dataSet].valid,
+			loading: state[dataSet].loading,
+			comments: state[dataSet].comments,
+			commentsMap: getDataMap(state, dataSet),
+			tableView: state[dataSet].ui.tableView,
+			tablesConfig: state[dataSet].ui.tablesConfig
 		}
 	},
-	(dispatch, ownProps) => {
-		return {
-			setFilter: (dataKey, value) => dispatch(setFilter('comments', dataKey, value)),
-			removeFilter: (dataKey, value) => dispatch(removeFilter('comments', dataKey, value)),
-			clearFilters: () => dispatch(clearFilters('comments')),
-			setSort: (dataKey, event) => dispatch(setSort('comments', event, dataKey)),
-			setSelected: cids => dispatch(setSelected('comments', cids)),
-			setExpanded: cids => dispatch(setExpanded('comments', cids)),
-			getComments: ballotId => dispatch(getComments(ballotId)),
-			setBallotId: ballotId => dispatch(setBallotId(ballotId))
-		}
-	}
+	(dispatch, ownProps) => ({
+		setSelected: ids => dispatch(setSelected(dataSet, ids)),
+		getComments: ballotId => dispatch(getComments(ballotId)),
+		setBallotId: ballotId => dispatch(setBallotId(ballotId)),
+		setTableView: view => dispatch(uiSetProperty(dataSet, 'tableView', view)),
+	})
 )(Comments);

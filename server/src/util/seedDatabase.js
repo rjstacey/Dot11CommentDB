@@ -32,25 +32,26 @@ const ballotsTable =
 		'PRIMARY KEY (`BallotID`)' +
 	') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
 
-const commentsTable = 
-	'CREATE TABLE `comments` (' +
-		'`BallotID` varchar(16) NOT NULL,' +
-		'`CommentID` int(32) NOT NULL,' +
-		'`CommenterSAPIN` int(32) DEFAULT NULL,' +
-		'`CommenterEmail` varchar(128) DEFAULT NULL,' +
-		'`CommenterName` varchar(128) DEFAULT NULL,' +
-		'`Category` varchar(1) DEFAULT NULL,' +
-		'`Clause` varchar(128) DEFAULT NULL,' +
-		'`Page` decimal(10,2) DEFAULT NULL,' +
-		'`Comment` varchar(4096) DEFAULT NULL,' +
-		'`ProposedChange` varchar(4096) DEFAULT NULL,' +
-		'`MustSatisfy` tinyint(1) DEFAULT "0",' +
-		'`CommentGroup` varchar(128) DEFAULT NULL,' +
-		'`C_Page` varchar(45) DEFAULT NULL,' +
-		'`C_Line` varchar(45) DEFAULT NULL,' +
-		'`C_Clause` varchar(128) DEFAULT NULL,' +
-		'`C_Index` int(32) DEFAULT NULL,' +
-		'PRIMARY KEY (`BallotID`,`CommentID`)' +
+const commentsTable =
+	'CREATE TABLE `comments` ('
+		'`BallotID` varchar(16) NOT NULL,'
+		'`CommentID` int(32) NOT NULL,'
+		'`CommenterSAPIN` int(32) DEFAULT NULL,'
+		'`CommenterEmail` varchar(128) DEFAULT NULL,'
+		'`CommenterName` varchar(128) DEFAULT NULL,'
+		'`MustSatisfy` tinyint(1) DEFAULT 0,'
+		'`Category` varchar(1) DEFAULT NULL,'
+		'`Clause` varchar(128) DEFAULT NULL,'
+		'`Page` decimal(10,2) DEFAULT NULL,'
+		'`Comment` varchar(4096) DEFAULT NULL,'
+		'`ProposedChange` varchar(4096) DEFAULT NULL,'
+		'`CommentGroup` varchar(128) DEFAULT NULL,'
+		'`C_Page` varchar(45) DEFAULT NULL,'
+		'`C_Line` varchar(45) DEFAULT NULL,'
+		'`C_Clause` varchar(128) DEFAULT NULL,'
+		'`C_Index` int(32) DEFAULT NULL,'
+		'`AdHoc` varchar(128) DEFAULT NULL,'
+		'PRIMARY KEY (`BallotID`,`CommentID`)'
 	') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
 
 const resolutionsTable =
@@ -133,6 +134,11 @@ async function init() {
 	try {
 		/* Create tables as needed */
 		let existingTables = await db.query('SHOW tables')
+			.catch(err => {
+				console.log('show tables')
+				throw err
+			})
+
 		existingTables = existingTables.map(t => t[Object.keys(t)[0]])
 		console.log(existingTables)
 		for (let table of Object.keys(createTables)) {

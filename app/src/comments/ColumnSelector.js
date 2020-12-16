@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import styled from '@emotion/styled'
+import {connect} from 'react-redux'
+import {uiSetProperty, uiSetTableFixed, uiSetTableColumnVisible} from '../actions/ui'
 import {ActionButton, Checkbox} from '../general/Icons'
 import ClickOutside from '../general/ClickOutside'
 
@@ -44,25 +46,37 @@ const PullDownListItem = styled.li`
 		background-color: #ffcc01;
 	}`
 
-function ColumnSelector({list, isStacked, toggleStacked, isFixed, toggleFixed, isChecked, toggleItem}) {
+
+function ColumnSelector({
+	tableView,
+	setTableView,
+	tableConfig,
+	setTableFixed,
+	setTableColumnVisible,
+	allColumns
+	}) {
+
 	const [isOpen, setOpen] = React.useState(false)
+	
+	const columnsConfig = tableConfig[tableView].columns;
+	const fixed = tableConfig[tableView].fixed;
 
 	return (
 		<Wrapper onClick={() => setOpen(!isOpen)} onClickOutside={() => setOpen(false)}>
 			<ActionButton name='columns' title='Select Columns' onClick={() => setOpen(!isOpen)} />
 			{isOpen &&
 				<PullDown>
-					<label><Checkbox name='fixed' checked={isFixed} onChange={toggleFixed} />Scale column width</label>
-					<br />
-					<label><Checkbox name='stacked' checked={isStacked} onChange={e => {!isStacked && toggleStacked()}} />Stacked</label>
-					<label><Checkbox name='flat' checked={!isStacked} onChange={e => {isStacked && toggleStacked()}} />Flat</label>
+					<label><Checkbox checked={fixed} onChange={() => setTableFixed(tableView, !fixed)} />Fixed</label>
 					<hr />
 					<PullDownList>
-						{list.map((item, index) => (
-							<PullDownListItem key={item.key} onClick={() => toggleItem(item.key)}>
-								{isChecked(item.key) && '\u2714'} {item.label} 
-							</PullDownListItem>
-						))}
+						{allColumns.map((column, key) => {
+							const cfg = columnsConfig.get(key);
+							return cfg?
+								<PullDownListItem key={key} onClick={() => setTableColumnVisible(tableView, key, !cfg.visible)}>
+									{cfg.visible && '\u2714'} {column.label || key}
+								</PullDownListItem>:
+								null
+						}).toArray()}
 					</PullDownList>
 				</PullDown>
 			}
@@ -71,13 +85,24 @@ function ColumnSelector({list, isStacked, toggleStacked, isFixed, toggleFixed, i
 }
 
 ColumnSelector.propTypes = {
-	list: PropTypes.array.isRequired,
-	isStacked: PropTypes.bool.isRequired,
-	isFixed: PropTypes.bool.isRequired,
-	toggleStacked: PropTypes.func.isRequired,
-	toggleFixed: PropTypes.func.isRequired,
-	isChecked: PropTypes.func.isRequired,
-	toggleItem: PropTypes.func.isRequired
+	tableView: PropTypes.string.isRequired,
+	tableConfig: PropTypes.object.isRequired,
+	setTableView: PropTypes.func.isRequired,
+	setTableFixed: PropTypes.func.isRequired,
+	setTableColumnVisible: PropTypes.func.isRequired,
 }
 
-export default ColumnSelector
+const dataSet = 'comments'
+export default connect(
+	(state, ownProps) => {
+		return {
+			tableView: state[dataSet].ui['tableView'],
+			tableConfig: state[dataSet].ui['tableConfig'],
+		}
+	},
+	(dispatch, ownProps) => ({
+		setTableView: view => dispatch(uiSetProperty(dataSet, 'tableView', view)),
+		setTableFixed: (view, isFixed) => dispatch(uiSetTableFixed(dataSet, view, isFixed)),
+		setTableColumnVisible: (view, key, isVisible) => dispatch(uiSetTableColumnVisible(dataSet, view, key, isVisible))
+	})
+)(ColumnSelector);

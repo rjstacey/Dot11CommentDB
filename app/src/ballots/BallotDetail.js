@@ -1,18 +1,18 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import {useHistory} from 'react-router-dom'
-import Select from 'react-dropdown-select'
 import styled from '@emotion/styled'
+import Select from 'react-dropdown-select'
 import AppModal from '../modals/AppModal'
 import ConfirmModal from '../modals/ConfirmModal'
 import {Checkbox, Search} from '../general/Icons'
 import {renderResultsSummary, renderCommentsSummary} from './Ballots'
 import {updateBallot, addBallot, getBallots, setProject} from '../actions/ballots'
-import {getVotingPools} from '../actions/voters'
+import {getProjectList, getBallotList} from '../selectors/ballots'
+import {getVotingPools} from '../actions/votingPools'
 import {importResults, uploadResults, deleteResults} from '../actions/results'
-import {importComments, uploadComments, deleteComments} from '../actions/comments'
-import {shallowDiff} from '../lib/compare'
+import {importComments, uploadComments, deleteComments, setStartCommentId} from '../actions/comments'
+import {shallowDiff} from '../lib/utils'
 
 function defaultBallot() {
 	const now = new Date()
@@ -101,7 +101,7 @@ const ActionsContainer = styled.div`
 	flex-direction: column;
 	padding: 20px;`
 
-const CommentsActions = ({action, setAction, ballot}) => {
+const CommentsActions = ({action, setAction, ballot, file, setFile, startCID, setStartCID}) => {
 	const fileRef = React.useRef();
 	return (
 		<ActionsContainer>
@@ -109,12 +109,25 @@ const CommentsActions = ({action, setAction, ballot}) => {
 				<label>Comments:&nbsp;</label>
 				{renderCommentsSummary({rowData: ballot, key: 'Comments'})}
 			</span>
+			<span>
+				<Checkbox
+					id='start'
+					checked={action === Action.SET_START_CID}
+					onChange={e => setAction(action !== Action.SET_START_CID? Action.SET_START_CID: Action.NONE)}
+				/>
+				<label htmlFor='start'>Change starting CID:&nbsp;</label>
+				<Search
+					width={80}
+					value={startCID}
+					onChange={e => setStartCID(e.target.value)}
+				/>
+			</span>
 			{ballot.Comments &&
 				<span>
 					<Checkbox
 						id='delete'
-						checked={action.remove}
-						onChange={e => setAction({file: null, importFromEpoll: false, remove: !action.remove})}
+						checked={action === Action.REMOVE}
+						onChange={e => setAction(action !== Action.REMOVE? Action.REMOVE: Action.NONE)}
 					/>
 					<label htmlFor='delete'>Delete</label>
 				</span>
@@ -123,8 +136,8 @@ const CommentsActions = ({action, setAction, ballot}) => {
 				<span>
 					<Checkbox
 						id='importFromEpoll'
-						checked={action.importFromEpoll}
-						onChange={e => setAction({file: null, importFromEpoll: !action.importFromEpoll, remove: false})}
+						checked={action === Action.IMPORT_FROM_EPOLL}
+						onChange={e => setAction(action !== Action.IMPORT_FROM_EPOLL? Action.IMPORT_FROM_EPOLL: Action.NONE)}
 					/>
 					<label htmlFor='importFromEpoll'>{(ballot.Comments? 'Reimport': 'Import') + ' from ePoll'}</label>
 				</span>
@@ -132,23 +145,32 @@ const CommentsActions = ({action, setAction, ballot}) => {
 			<span>
 				<Checkbox
 					id='file'
-					checked={action.file !== null}
-					onChange={e => action.file === null? fileRef.current.click(): setAction(action => ({...action, file: null}))}
+					checked={action === Action.IMPORT_FROM_FILE}
+					onChange={e => action !== Action.IMPORT_FROM_FILE? fileRef.current.click(): setAction(Action.NONE)}
 				/>
-				<label htmlFor='file'>{'Upload from ' + (action.file? action.file.name: 'file')}</label>
+				<label htmlFor='file'>{'Upload from ' + (file? file.name: 'file')}</label>
 			</span>
 			<input
 				type='file'
 				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 				ref={fileRef}
-				onChange={e => setAction({file: e.target.files[0], importFromEpoll: false, remove: false})}
+				onChange={e => {
+					if (e.target.files) {
+						setAction(Action.IMPORT_FROM_FILE);
+						setFile(e.target.files[0]);
+					}
+					else {
+						setAction(Action.NONE);
+						setFile(null);
+					}
+				}}
 				style={{display: "none"}}
 			/>
 		</ActionsContainer>
 	)
 }
 
-const ResultsActions = ({action, setAction, ballot}) => {
+const ResultsActions = ({action, setAction, ballot, file, setFile}) => {
 	const fileRef = React.useRef();
 	return (
 		<ActionsContainer>
@@ -159,8 +181,8 @@ const ResultsActions = ({action, setAction, ballot}) => {
 			<span>
 				<Checkbox
 					id='delete'
-					checked={action.remove}
-					onChange={e => setAction({file: null, importFromEpoll: false, remove: !action.remove})}
+					checked={action === Action.REMOVE}
+					onChange={e => setAction(action !== Action.REMOVE? Action.REMOVE: Action.NONE)}
 				/>
 				<label htmlFor='delete'>Delete</label>
 			</span>
@@ -168,8 +190,8 @@ const ResultsActions = ({action, setAction, ballot}) => {
 				<span>
 					<Checkbox
 						id='importFromEpoll'
-						checked={action.importFromEpoll}
-						onChange={e => setAction({file: null, importFromEpoll: !action.importFromEpoll, remove: false})}
+						checked={action === Action.IMPORT_FROM_EPOLL}
+						onChange={e => setAction(action !== Action.IMPORT_FROM_EPOLL? Action.IMPORT_FROM_EPOLL: Action.NONE)}
 					/>
 					<label htmlFor='importFromEpoll'>{(ballot.Results? 'Reimport': 'Import') + ' from ePoll'}</label>
 				</span>
@@ -177,16 +199,25 @@ const ResultsActions = ({action, setAction, ballot}) => {
 			<span>
 				<Checkbox
 					id='fromFile'
-					checked={action.file !== null}
-					onChange={e => action.file === null? fileRef.current.click(): setAction(action => ({...action, file: null}))}
+					checked={action === Action.IMPORT_FROM_FILE}
+					onChange={e => action !== Action.IMPORT_FROM_FILE? fileRef.current.click(): setAction(Action.NONE)}
 				/>
-				<label htmlFor='fromFile'>{'Upload from ' + (action.file? action.file.name: 'file')}</label>
+				<label htmlFor='fromFile'>{'Upload from ' + (file? file.name: 'file')}</label>
 			</span>
 			<input
 				type='file'
 				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 				ref={fileRef}
-				onChange={e => setAction({file: e.target.files[0], importFromEpoll: false, remove: false})}
+				onChange={e => {
+					if (e.target.files) {
+						setAction(Action.IMPORT_FROM_FILE);
+						setFile(e.target.files[0]);
+					}
+					else {
+						setAction(Action.NONE);
+						setFile(null);
+					}
+				}}
 				style={{display: "none"}}
 			/>
 		</ActionsContainer>
@@ -251,6 +282,14 @@ const ButtonRow = styled(Row)`
 	justify-content: space-around;
 `;
 
+const Action = {
+	NONE: null,
+	REMOVE: 'remove',
+	IMPORT_FROM_EPOLL: 'import_from_epoll',
+	IMPORT_FROM_FILE: 'import_from_file',
+	SET_START_CID: 'set_start_CID'
+}
+
 /*
  * Ballot detail is mounted from
  * The ballotId parameter is '+' to add a new ballot or a ballot ID to update a ballot
@@ -258,18 +297,12 @@ const ButtonRow = styled(Row)`
  */
 function BallotDetail(props) {
 	const {ballotId, epollNum} = props;
-	const history = useHistory();
 	const [ballot, setBallot] = React.useState(defaultBallot);
-	const [resultsAction, setResultsAction] = React.useState({
-		remove: false,
-		importFromEpoll: false,
-		file: null
-	});
-	const [commentsAction, setCommentsAction] = React.useState({
-		remove: false,
-		importFromEpoll: false,
-		file: null
-	});
+	const [resultsAction, setResultsAction] = React.useState(Action.NONE);
+	const [resultsFile, setResultsFile] = React.useState('');
+	const [commentsAction, setCommentsAction] = React.useState(Action.NONE);
+	const [commentsFile, setCommentsFile] = React.useState(null);
+	const [startCID, setStartCID] = React.useState('');
 
 	/* On mount, make sure we have the ballots and voting pools loaded */
 	React.useEffect(() => {
@@ -313,6 +346,7 @@ function BallotDetail(props) {
 			const b = props.ballots.find(b => b.BallotID === ballotId)
 			if (b) {
 				setBallot(b)
+				setStartCID(b.Comments? b.Comments.CommentIDMin: 0)
 			}
 		}
 	}
@@ -346,19 +380,17 @@ function BallotDetail(props) {
 	async function submit() {
 
 		// Delete stuff first
-		if (resultsAction.remove) {
+		if (resultsAction === Action.REMOVE) {
 			const ok = await ConfirmModal.show(`Are you sure you want to delete results for ${ballot.BallotID}?`)
-			if (!ok) {
+			if (!ok)
 				return
-			}
 			props.deleteResults(ballot.BallotID)
 		}
 
-		if (commentsAction.remove) {
+		if (commentsAction === Action.REMOVE) {
 			const ok = await ConfirmModal.show(`Are you sure you want to delete comments for ${ballot.BallotID}?`)
-			if (!ok) {
-				return;
-			}
+			if (!ok)
+				return
 			props.deleteComments(ballot.BallotID)
 		}
 
@@ -377,25 +409,26 @@ function BallotDetail(props) {
 		}
 
 		// import or update results
-		if (resultsAction.importFromEpoll) {
+		if (resultsAction === Action.IMPORT_FROM_EPOLL) {
 			props.importResults(ballot.BallotID, ballot.EpollNum)
 		}
-		else if (resultsAction.file) {
-			props.uploadResults(ballotId, ballot.Type, resultsAction.file)
+		else if (resultsAction === Action.IMPORT_FROM_FILE) {
+			props.uploadResults(ballotId, ballot.Type, resultsFile)
 		}
 
 		// import or update results
-		if (commentsAction.importFromEpoll) {
+		if (commentsAction === Action.SET_START_CID) {
+			props.setStartCommentId(ballotId, startCID)
+		}
+		else if (commentsAction === Action.IMPORT_FROM_EPOLL) {
 			props.importComments(ballot.BallotID, ballot.EpollNum, 1)
 		}
-		else if (commentsAction.file) {
-			props.uploadComments(ballotId, ballot.Type, commentsAction.file)
+		else if (commentsAction === Action.IMPORT_FROM_FILE) {
+			props.uploadComments(ballotId, ballot.Type, commentsFile)
 		}
 
 		props.close()
 	}
-
-	const close = history.goBack
 
 	const shortDateStart = dateToShortDate(ballot.Start)
 	const shortDateEnd = dateToShortDate(ballot.End)
@@ -485,17 +518,23 @@ function BallotDetail(props) {
 							action={resultsAction}
 							setAction={setResultsAction}
 							ballot={ballot}
+							file={resultsFile}
+							setFile={setResultsFile}
 						/>
 						<CommentsActions 
 							action={commentsAction}
 							setAction={setCommentsAction}
 							ballot={ballot}
+							file={commentsFile}
+							setFile={setCommentsFile}
+							startCID={startCID}
+							setStartCID={setStartCID}
 						/>
 					</Col4>
 				</Row>
 				<ButtonRow>
 					<button onClick={submit}>{ballotId === '+'? 'Add': 'Update'}</button>
-					<button onClick={close}>Cancel</button>
+					<button onClick={props.close}>Cancel</button>
 				</ButtonRow>
 			</Container>
 		</AppModal>
@@ -518,16 +557,16 @@ BallotDetail.propTypes = {
 
 export default connect(
 	(state, ownProps) => {
-		const {ballots, voters, epolls} = state
+		const {ballots, votingPools, epolls} = state
 		return {
-			ballotsValid: ballots.ballotsValid,
+			ballotsValid: ballots.valid,
 			ballots: ballots.ballots,
-			projectList: ballots.projectList,
-			ballotList: ballots.ballotList,
-			votingPoolsValid: voters.votingPoolsValid,
-			votingPools: voters.votingPools,
+			loading: ballots.loading,
+			projectList: getProjectList(state),
+			ballotList: getBallotList(state),
+			votingPoolsValid: votingPools.valid,
+			votingPools: votingPools.votingPools,
 			epolls: epolls.epolls,
-			loading: ballots.getBallots
 		}
 	},
 	(dispatch, ownProps) => {
@@ -542,7 +581,8 @@ export default connect(
 			uploadResults: (ballotId, ballotType, file) => dispatch(uploadResults(ballotId, ballotType, file)),
 			deleteComments: (ballotId) => dispatch(deleteComments(ballotId)),
 			importComments: (ballotId, epollNum) => dispatch(importComments(ballotId, epollNum, 1)),
-			uploadComments: (ballotId, ballotType, file) => dispatch(uploadComments(ballotId, ballotType, file))
+			uploadComments: (ballotId, ballotType, file) => dispatch(uploadComments(ballotId, ballotType, file)),
+			setStartCommentId: (ballotId, startCommentId) => dispatch(setStartCommentId(ballotId, startCommentId))
 		}
 	}
 )(BallotDetail)
