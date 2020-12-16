@@ -1,0 +1,188 @@
+import PropTypes from 'prop-types'
+import React from 'react'
+import {connect} from 'react-redux'
+import {Checkbox, Expander, DoubleExpander, Handle} from '../general/Icons'
+import {setSelected, toggleSelected} from '../actions/select'
+import {setExpanded, toggleExpanded} from '../actions/expand'
+import {getDataMap} from '../selectors/dataMap'
+import styled from '@emotion/styled'
+import ClickOutside from '../general/ClickOutside'
+import ReactDOM from 'react-dom'
+import {CommentIdSelector} from '../comments/CommentIdList'
+
+
+const RowSelectorContainer = styled(ClickOutside)`
+	height: 22px;
+	border-radius: 6px;
+`;
+
+const StyledCommentIdSelector = styled(CommentIdSelector)`
+	position: absolute;
+	min-width: 400px;
+	margin: 10px 10px 0;
+	line-height: 30px;
+	padding-left: 20px;
+	background: #fff;
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
+	z-index: 9;
+`;
+
+function renderDropdown({anchorRef, ...otherProps}) {
+	return ReactDOM.createPortal(
+		<StyledCommentIdSelector focusOnMount {...otherProps}/>,
+		anchorRef.current
+	)
+}
+
+function RowSelector(props) {
+	const {anchorRef} = props;
+	const containerRef = React.useRef();
+	const [open, setOpen] = React.useState(false);
+	const [position, setPosition] = React.useState({top: 0, left: 0});
+
+	const handleOpen = () => {
+		if (!open) {
+			// Update position on open
+			const anchor = anchorRef.current.getBoundingClientRect();
+			const container = containerRef.current.getBoundingClientRect();
+			const top = container.y - anchor.y + container.height;
+			const left = container.x - anchor.x;
+			setPosition(position => (top !== position.top || left !== position.left)? {top, left}: position)
+		}
+		setOpen(!open)
+	}
+
+	const handleClose = (e) => {
+		// ignore if not open or event target is an element inside the dropdown
+		if (!open || anchorRef.current.lastChild.contains(e.target)) {
+			return;
+		}
+		setOpen(false)
+	}
+
+	return (
+		<RowSelectorContainer
+			ref={containerRef}
+			onClickOutside={handleClose}
+		>
+			<Handle title="Select List" open={open} onClick={handleOpen} />
+			{open && renderDropdown({style: position, close: handleClose, ...props})}
+		</RowSelectorContainer>
+	)
+}
+
+const Selector = styled.div`
+	display: flex;
+	flex-direction: column;
+	border-radius: 3px;
+	:hover,
+	:focus-within {
+		background-color: #ddd;
+	}
+`;
+
+const Container = styled.div`
+	display: flex;
+	flex-direction: column;
+`;
+
+const _ControlHeader = (props) => {
+	const {rowKey, data, dataMap, selected, setSelected, expanded, setExpanded} = props;
+
+	const allSelected = React.useMemo(() => (
+			dataMap.length > 0 &&	// not if list is empty
+			dataMap.filter(i => !selected.includes(data[i][rowKey])).length === 0
+		),
+		[data, dataMap, selected]
+	);
+
+	const isIndeterminate = !allSelected && selected.length;
+
+	const allExpanded = React.useMemo(() => (
+			expanded &&
+			dataMap.length > 0 &&	// not if list is empty
+			dataMap.filter(i => !expanded.includes(data[i][rowKey])).length === 0
+		),
+		[data, dataMap, expanded]
+	);
+
+	const toggleAllSelected = () => setSelected(selected.length? []: dataMap.map(i => data[i][rowKey]));
+
+	const toggleAllExpanded = () => setExpanded(expanded.length? []: dataMap.map(i => data[i][rowKey]));
+
+	return (
+		<Container>
+			<Selector>
+				<Checkbox
+					title={allSelected? "Clear all": isIndeterminate? "Clear selected": "Select all"}
+					checked={allSelected}
+					indeterminate={isIndeterminate}
+					onChange={toggleAllSelected}
+				/>
+				{props.dataSet === 'comments' && <RowSelector {...props}/>}
+			</Selector>
+			{expanded &&
+				<DoubleExpander
+					title="Expand All"
+					open={allExpanded}
+					onClick={toggleAllExpanded}
+				/>
+			}
+		</Container>
+	)
+}
+
+export const ControlHeader = connect(
+	(state, ownProps) => ({
+		selected: state[ownProps.dataSet].selected,
+		expanded: state[ownProps.dataSet].expanded,
+		data: state[ownProps.dataSet][ownProps.dataSet],
+		dataMap: getDataMap(state, ownProps.dataSet),
+	}),
+	(dispatch, ownProps) => ({
+		setSelected: ids => dispatch(setSelected(ownProps.dataSet, ids)),
+		setExpanded: ids => dispatch(setExpanded(ownProps.dataSet, ids))
+	})
+)(_ControlHeader);
+
+const _ControlCell = ({rowKey, rowData, selected, toggleSelected, expanded, toggleExpanded}) => {
+	const id = rowData[rowKey]
+	return (
+		<Container onClick={e => e.stopPropagation()} >
+			<Checkbox
+				title="Select row"
+				checked={selected.includes(id)}
+				onChange={() => toggleSelected(id)}
+			/>
+			{expanded && 
+				<Expander
+					title="Expand row"
+					open={expanded.includes(id)}
+					onClick={() => toggleExpanded(id)}
+				/>
+			}
+		</Container>
+	)
+}
+
+_ControlCell.propTypes = {
+	rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+	dataSet: PropTypes.string.isRequired,
+	selected: PropTypes.array.isRequired,
+	toggleSelected: PropTypes.func.isRequired,
+	expanded: PropTypes.array,
+	toggleExpanded: PropTypes.func,
+}
+
+export const ControlCell = connect(
+	(state, ownProps) => ({
+		selected: state[ownProps.dataSet].selected,
+		expanded: state[ownProps.dataSet].expanded
+	}),
+	(dispatch, ownProps) => ({
+		toggleSelected: id => dispatch(toggleSelected(ownProps.dataSet, [id])),
+		toggleExpanded: id => dispatch(toggleExpanded(ownProps.dataSet, [id]))
+	})
+)(_ControlCell)
