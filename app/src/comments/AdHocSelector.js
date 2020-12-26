@@ -10,18 +10,25 @@ const StyledSelect = styled(Select)`
 	border: 1px solid #ddd;
 	padding: 0;
 	box-sizing: border-box;
-	width: ${({width}) => typeof width === 'undefined'? 'unset': (width + (typeof width === 'number'? 'px': ''))}
+	width: ${({width}) => typeof width === 'undefined'? 'unset': (width + (typeof width === 'number'? 'px': ''))};
+	& .react-dropdown-select-input {
+		font-size: unset;
+		&::placeholder {
+			font-style: italic;
+			color: GreyText;
+		}
+	}
 `;
 
 function AdHocSelector({
 	value,
 	onChange,
-	options,
+	fieldOptions,
 	loading,
 	placeholder,
 	width
 }) {
-
+	const options = fieldOptions.filter(o => o.value !== '');	// remove blank entry (we use 'clear' to set blank)
 	const optionSelected = options.find(o => o.value === value);
 
 	return (
@@ -43,14 +50,14 @@ AdHocSelector.propTypes = {
 	onChange: PropTypes.func.isRequired,
 	width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 	placeholder: PropTypes.string,
-	options: PropTypes.array.isRequired,
+	fieldOptions: PropTypes.array.isRequired,
 	loading: PropTypes.bool.isRequired,
 }
 
 const dataSet = 'comments'
 export default connect(
 	(state, ownProps) => ({
-		options: getAllFieldOptions(state, dataSet, 'AdHoc'),
+		fieldOptions: getAllFieldOptions(state, dataSet, 'AdHoc'),
 		loading: state[dataSet].loading
 	})
 )(AdHocSelector)

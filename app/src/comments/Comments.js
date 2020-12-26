@@ -16,8 +16,8 @@ import {setBallotId} from '../actions/ballots'
 import {uiSetProperty} from '../actions/ui'
 import {editorCss} from './ResolutionEditor'
 import CommentDetail from './CommentDetail'
-import CommentsImportModal from './CommentsImport'
-import CommentsExportModal from './CommentsExport'
+import CommentsImport from './CommentsImport'
+import CommentsExport from './CommentsExport'
 import ColumnDropdown from '../table/ColumnDropdown'
 import copyToClipboard from 'copy-html-to-clipboard'
 
@@ -112,6 +112,7 @@ const renderDataCellStacked1 = ({rowData}) => {
 	else if (rowData.Vote === 'Disapprove')
 		voteIcon = <VoteNoIcon />
 	const mbs = rowData.MustSatisfy? <span style={{color: 'red', fontSize: 'smaller', fontWeight: 'bold'}}>&nbsp;MS</span>: null
+	const page = typeof rowData.Page === 'number'? rowData.Page.toFixed(2): rowData.Page
 	return (
 		<React.Fragment>
 			<FlexRow>
@@ -120,7 +121,7 @@ const renderDataCellStacked1 = ({rowData}) => {
 			</FlexRow>
 			<FlexRow>
 				<DataSubcomponent width={70} style={{fontStyle: 'italic'}}>{rowData.Clause}</DataSubcomponent>
-				<DataSubcomponent width={40}>{rowData.Page.toFixed(2)}</DataSubcomponent>
+				<DataSubcomponent width={40}>{page}</DataSubcomponent>
 			</FlexRow>
 			<FlexRow>{voteIcon}{commenterStr}{mbs}</FlexRow>
 		</React.Fragment>
@@ -234,7 +235,7 @@ const allColumns = Immutable.OrderedMap({
 			width: 150, flexGrow: 1, flexShrink: 1},
 	Submission:
 		{label: 'Submission',
-			 width: 150, flexGrow: 1, flexShrink: 1},
+			width: 150, flexGrow: 1, flexShrink: 1},
 	Status:
 		{label: 'Status',
 			width: 150, flexGrow: 1, flexShrink: 1},
@@ -281,9 +282,9 @@ const view1L = [
 ];
 
 const viewsByMedia = {
-	L: {'View 1': view1L, 'View 2': view1L, 'Edit View': editViewL},
-	M: {'View 1': view1L, 'View 2': view1L, 'Edit View': editViewM},
-	S: {'View 1': view1L, 'View 2': view1L, 'Edit View': editViewS}
+	L: {'1': view1L, '2': view1L, 'Edit': editViewL},
+	M: {'1': view1L, '2': view1L, 'Edit': editViewM},
+	S: {'1': view1L, '2': view1L, 'Edit': editViewS}
 };
 
 const getDefaultColumnsConfig = (view) => allColumns.map((col, key) => {
@@ -312,7 +313,7 @@ const getDefaultTableConfig = (view) => {
 	}
 };
 
-const tableViews = ['View 1', 'View 2', 'Edit View'];
+const tableViews = ['1', '2', 'Edit'];
 
 const defaultTablesConfig = tableViews.reduce((config, view) => ({...config, [view]: getDefaultTableConfig(view)}), {});
 
@@ -388,26 +389,28 @@ function commentsRowGetter({rowIndex, data, dataMap}) {
 function Comments(props) {
 	const history = useHistory()
 	const {ballotId} = useParams()
-	const [showImport, setShowImport] = React.useState(false)
-	const [showExport, setShowExport] = React.useState(false)
 	const [split, setSplit] = React.useState(0.5)
 
-	const tableView = props.tableView || 'View 1'
-	if (!props.tableView)
+	let tableView
+	if (tableViews.includes(props.tableView)) {
+		tableView = props.tableView
+	}
+	else {
+		tableView = tableViews[0]
 		props.setTableView(tableView)
-	const tableConfig = props.tablesConfig? props.tablesConfig[tableView]: null;
-
-	const editMode = tableView === 'Edit View';
+	}
+	const tableConfig = props.tablesConfig[tableView] || defaultTablesConfig[tableView];
 
 	/* If we change the table config signficantly we want to remount the table component,
 	 * so we create a key id for the component that depends on signficant parameters */
-	const tableId = React.useMemo(() => {
+	const [tableId, columns] = React.useMemo(() => {
 		let id = tableView
 		if (tableConfig) {
 			if (tableConfig.fixed) id += 'fixed';
 			tableConfig.columns.forEach((v, k) => {if (v.visible) id += k});
 		}
-		return id
+		let columns = allColumns.filter((col, key) => tableConfig.columns.has(key)? tableConfig.columns.get(key).visible: true)
+		return [id, columns]
 	}, [tableView, tableConfig]);
 
 	/* Act on a change to the ballotId in the URL */
@@ -437,7 +440,7 @@ function Comments(props) {
 	const table =
 		<AppTable
 			key={tableId}
-			columns={allColumns}
+			columns={columns}
 			defaultTableConfig={defaultTablesConfig[tableView]}
 			tableView={tableView}
 			headerHeight={66} //{isStacked? 66: 22}
@@ -447,11 +450,11 @@ function Comments(props) {
 			loading={props.loading}
 			dataSet='comments'
 			rowKey='CID'
-			resizeWidth={editMode? setTableDetailSplit: undefined}
+			resizeWidth={tableView === 'Edit View'? setTableDetailSplit: undefined}
 		/>
 
 	let body = table;
-	if (tableView === 'Edit View') {
+	if (tableView === 'Edit') {
 		body =
 			<React.Fragment>
 				<div style={{flex: `${100 - split*100}%`, overflow: 'hidden', boxSizing: 'border-box'}}>
@@ -475,38 +478,21 @@ function Comments(props) {
 						setTableView={props.setTableView}
 					/>
 					<Button onClick={e => setClipboard(props.selected, props.comments)}>Copy</Button>
-					<ActionButton name='export' title='Export to file' onClick={e => setShowExport(true)} disabled={!ballotId} />
-					<ActionButton name='upload' title='Upload resolutions' onClick={e => setShowImport(true)} disabled={!ballotId} />
-					{props.tableConfig && props.tableConfig[tableView] &&
-						<ColumnSelector
-							allColumns={allColumns}
-						/>
-					}
+					<CommentsExport ballotId={ballotId} />
+					<CommentsImport ballotId={ballotId} />
+					<ColumnSelector allColumns={allColumns}	/>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>
 			</TopRow>
 
-			<div style={{display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden'}}>
-				<ShowFilters
-					style={{width: '100%'}}
-					dataSet={dataSet}
-				/>
-				<div style={{display: 'flex', flexDirection: 'row', flex: 1, overflow: 'hidden', alignContent: 'center'}}>
-					{body}
-				</div>
-			</div>
-
-			<CommentsImportModal
-				ballotId={props.ballotId}
-				isOpen={showImport}
-				close={() => setShowImport(false)}
+			<ShowFilters
+				style={{width: '100%'}}
+				dataSet={dataSet}
 			/>
 
-			<CommentsExportModal
-				ballotId={props.ballotId}
-				isOpen={showExport}
-				close={() => setShowExport(false)}
-			/>
+			<TableRow>
+				{body}
+			</TableRow>
 
 		</React.Fragment>
 	)
@@ -515,6 +501,14 @@ function Comments(props) {
 const TopRow = styled.div`
 	display: flex;
 	justify-content: space-between;
+	width: 100%;
+`;
+
+const TableRow = styled.div`
+	flex: 1;	/* remaining height */
+	width: 100%;
+	display: flex;
+	align-content: center;
 `;
 
 Comments.propTypes = {

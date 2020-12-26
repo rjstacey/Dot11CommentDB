@@ -4,14 +4,19 @@ import {
 	UI_SET_PROPERTY,
 	UI_INIT_TABLE,
 	UI_SET_TABLE_VIEW,
-	UI_SET_TABLE_FIXED,
+	UI_TOGGLE_TABLE_FIXED,
 	UI_SET_TABLE_COLUMN_VISIBLE,
-	UI_SET_TABLE_COLUMN_WIDTHS
+	UI_SET_TABLE_COLUMNS
 } from '../actions/ui'
+
+const defaultTableConfig = {
+	fixed: false,
+	columns: Immutable.Map()
+}
 
 const defaultState = {
 	tableView: 'default',
-	tablesConfig: {fixed: false, columns: Immutable.Map()}
+	tablesConfig: {default: defaultTableConfig}
 } 
 
 function uiReducer(state = defaultState, action) {
@@ -27,18 +32,25 @@ function uiReducer(state = defaultState, action) {
 			tablesConfig = {...state.tablesConfig, [action.view]: {fixed: action.fixed, columns: action.columns}};
 			return {...state, tablesConfig};
 		case UI_SET_TABLE_VIEW:
-			return {...state, view: action.view}
-		case UI_SET_TABLE_FIXED:
-			tablesConfig = {...state.tablesConfig, [action.view]: {...state.tablesConfig[action.view], fixed: action.fixed}};
+			if (!tablesConfig[action.view]) {
+				tablesConfig = {...state.tablesConfig, [action.view]: defaultTableConfig}
+				return {...state, view: action.view, tablesConfig}
+			}
+			else {
+				return {state, view: action.view}
+			}
+		case UI_TOGGLE_TABLE_FIXED:
+			const fixed = !state.tablesConfig[action.view].fixed
+			tablesConfig = {...state.tablesConfig, [action.view]: {...state.tablesConfig[action.view], fixed}};
 			return {...state, tablesConfig};
 		case UI_SET_TABLE_COLUMN_VISIBLE:
 			columns = state.tablesConfig[action.view].columns;
 			columns = columns.update(action.key, col => ({...col, visible: action.visible}));
 			tablesConfig = {...state.tablesConfig, [action.view]: {...state.tablesConfig[action.view], columns}};
 			return {...state, tablesConfig};
-		case UI_SET_TABLE_COLUMN_WIDTHS:
+		case UI_SET_TABLE_COLUMNS:
 			columns = state.tablesConfig[action.view].columns;
-			action.widths.forEach((width, key) => columns = columns.update(key, col => ({...col, width})));
+			action.columns.forEach((col2, key) => columns = columns.update(key, col1 => ({...col1, ...col2})));
 			tablesConfig = {...state.tablesConfig, [action.view]: {...state.tablesConfig[action.view], columns}};
 			return {...state, tablesConfig};
 		default:

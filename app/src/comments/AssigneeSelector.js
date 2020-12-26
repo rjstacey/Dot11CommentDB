@@ -80,7 +80,15 @@ const StyledSelect = styled(Select)`
 	border: 1px solid #ddd;
 	padding: 0;
 	box-sizing: border-box;
-	width: ${({width}) => typeof width === 'undefined'? 'unset': (width + (typeof width === 'number'? 'px': ''))}`
+	width: ${({width}) => typeof width === 'undefined'? 'unset': (width + (typeof width === 'number'? 'px': ''))};
+	& .react-dropdown-select-input {
+		font-size: unset;
+		&::placeholder {
+			font-style: italic;
+			color: GreyText;
+		}
+	}
+`;
 
 function AssigneeSelector({
 	value,		// value is object {SAPIN: number, Name: string}

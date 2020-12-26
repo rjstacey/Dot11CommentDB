@@ -117,7 +117,7 @@ function Reports(props) {
 	const {ballotId} = useParams();
 	const [report, setReport] = React.useState('');
 	const tableRef = React.useRef();
-
+	console.log('reports')
 	React.useEffect(() => {
 		if (ballotId) {
 			if (ballotId !== props.ballotId) {
@@ -131,7 +131,7 @@ function Reports(props) {
 			}
 		}
 		else if (props.ballotId) {
-			history.replace(`/Report/${props.ballotId}`)
+			history.replace(`/Reports/${props.ballotId}`)
 		}
 	}, [ballotId])
 

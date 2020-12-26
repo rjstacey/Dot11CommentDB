@@ -25,6 +25,7 @@ function AccessSelector({value, onChange, options, dispatch, ...otherProps}) {
 			onChange={handleChange}
 			options={options}
 			placeholder={placeholder}
+			portal={document.querySelector('#root')}
 			{...otherProps}
 		/>
 	)
@@ -37,9 +38,5 @@ AccessSelector.propTypes = {
 }
 
 export default connect(
-	(state) => {
-		return {
-			options: state.users.accessOptions
-		}
-	}
+	(state) => ({options: state.users.accessOptions})
 )(AccessSelector)

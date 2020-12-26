@@ -113,9 +113,9 @@ class TableRow extends React.Component {
 }
 
 TableRow.propTypes = {
-	fixed: PropTypes.bool,
-	style: PropTypes.object,
 	className: PropTypes.string,
+	style: PropTypes.object,
+	fixed: PropTypes.bool,
 	columns: PropTypes.object.isRequired,
 	rowIndex: PropTypes.number.isRequired,
 	rowData: PropTypes.oneOfType([PropTypes.object, PropTypes.func]).isRequired,

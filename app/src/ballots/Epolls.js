@@ -1,6 +1,7 @@
 import React from 'react'
 import {connect} from 'react-redux'
 import Immutable from 'immutable'
+import styled from '@emotion/styled'
 import {useHistory} from 'react-router-dom'
 import AppTable from '../table/AppTable'
 import BallotDetailModal from './BallotDetail'
@@ -16,6 +17,19 @@ function renderDate({rowData, dataKey}) {
 	const str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
 	return str
 }
+
+// The action row height is determined by its content
+const ActionRow = styled.div`
+	display: flex;
+	justify-content: space-between;
+	width: 100%;
+`;
+
+// The table row grows to the available height
+const TableRow = styled.div`
+	flex: 1;
+	width: 100%;
+`;
 
 function Epolls(props) {
 	const history = useHistory()
@@ -35,8 +49,7 @@ function Epolls(props) {
 
 	const primaryDataKey = 'EpollNum'
 
-	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
-	const width = Math.min(window.innerWidth - 1, maxWidth)
+	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
 
 	React.useEffect(() => {
 		if (!props.epollsValid)
@@ -62,28 +75,24 @@ function Epolls(props) {
 	
 	return (
 		<React.Fragment>
-			<div style={{display: 'flex', justifyContent: 'center'}}>
-				<div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width}}>
-					<span><label>Closed ePolls</label></span>
-					<span>
-						<ActionButton name='more' title='Load More' onClick={getMore} />
-						<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-						<ActionButton name='close' title='Close' onClick={close} />
-					</span>
-				</div>
-			</div>
-			<div style={{flex: 1}}>
+			<ActionRow style={{maxWidth}}>
+				<span><label>Closed ePolls</label></span>
+				<span>
+					<ActionButton name='more' title='Load More' onClick={getMore} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+					<ActionButton name='close' title='Close' onClick={close} />
+				</span>
+			</ActionRow>
+			<TableRow style={{maxWidth}}>
 				<AppTable
 					columns={columns}
 					headerHeight={28}
 					estimatedRowHeight={64}
 					dataSet='epolls'
-					data={props.epolls}
-					dataMap={props.epollsMap}
 					loading={props.loading}
 					rowKey={primaryDataKey}
 				/>
-			</div>
+			</TableRow>
 			<BallotDetailModal
 				isOpen={epollNum !== null}
 				ballotId='+'

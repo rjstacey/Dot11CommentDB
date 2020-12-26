@@ -2,107 +2,118 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import styled from '@emotion/styled'
 import {connect} from 'react-redux'
-import {uiSetProperty, uiSetTableFixed, uiSetTableColumnVisible} from '../actions/ui'
-import {ActionButton, Checkbox} from '../general/Icons'
-import ClickOutside from '../general/ClickOutside'
+import {uiSetProperty, uiToggleTableFixed, uiSetTableColumnVisible} from '../actions/ui'
+import {Button} from '../general/Icons'
+import {ActionButtonDropdown} from '../general/Dropdown'
 
-const Wrapper = styled(ClickOutside)`
-	display: inline-block;
-	user-select: none;
-	position: relative;`
+const Row = styled.div`
+	margin: 5px 10px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+`;
 
-const PullDown = styled.div`
-	z-index: 10;
-	position: absolute;
-	right: 0;
-	width: 222px;
-	border: 2px solid #dfdfdf;
-	/*border-top: none;*/
-	border-bottom-right-radius: 3px;
-	border-bottom-left-radius: 3px;
-	background-color: #fff;
-	box-shadow: 0 2px 5px -1px #e8e8e8;
-	max-height: 300px;
-	overflow-y: auto;
-	-webkit-overflow-scrolling: touch;`
+const ItemList = styled.div`
+	min-height: 10px;
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	margin: 10px;
+	padding: 10px;
+	overflow: auto;
+`;
 
-const PullDownList = styled.ul`
-	margin-block-start: 0;
-	margin-block-end: 0;
-	padding-inline-start: 5px;`
-
-const PullDownListItem = styled.li`
-	width: 100%;
-	cursor: default;
-	display: inline-block;
+const Item = styled.div`
+	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
-	:selected {
-		color: #fff;
-		background-color: #ffcc01;
+	${({ disabled }) => disabled && 'text-decoration: line-through;'}
+	${({ isSelected }) => isSelected? 'background: #0074d9;': ':hover{background: #ccc;}'}
+	& > span {
+		margin: 5px 5px;
+		${({ isSelected }) => isSelected && 'color: #fff;'}
 	}
-	:hover {
-		color: #fff;
-		background-color: #ffcc01;
-	}`
+`;
 
-
-function ColumnSelector({
-	tableView,
-	setTableView,
-	tableConfig,
-	setTableFixed,
-	setTableColumnVisible,
-	allColumns
+function _ColumnSelectorDropdown({
+		tableView,
+		tableConfig,
+		setTableView,
+		toggleTableFixed,
+		setTableColumnVisible,
+		allColumns
 	}) {
 
-	const [isOpen, setOpen] = React.useState(false)
-	
-	const columnsConfig = tableConfig[tableView].columns;
-	const fixed = tableConfig[tableView].fixed;
-
 	return (
-		<Wrapper onClick={() => setOpen(!isOpen)} onClickOutside={() => setOpen(false)}>
-			<ActionButton name='columns' title='Select Columns' onClick={() => setOpen(!isOpen)} />
-			{isOpen &&
-				<PullDown>
-					<label><Checkbox checked={fixed} onChange={() => setTableFixed(tableView, !fixed)} />Fixed</label>
-					<hr />
-					<PullDownList>
-						{allColumns.map((column, key) => {
-							const cfg = columnsConfig.get(key);
-							return cfg?
-								<PullDownListItem key={key} onClick={() => setTableColumnVisible(tableView, key, !cfg.visible)}>
-									{cfg.visible && '\u2714'} {column.label || key}
-								</PullDownListItem>:
-								null
-						}).toArray()}
-					</PullDownList>
-				</PullDown>
-			}
-		</Wrapper>
+		<React.Fragment>
+			<Row>
+				<label>Fixed column width:</label>
+				<Button
+					onClick={() => toggleTableFixed(tableView)}
+					isActive={tableConfig.fixed}
+				>
+					On
+				</Button>
+			</Row>
+			<ItemList>
+				{allColumns.map((column, key) => {
+					const visible = (tableConfig && tableConfig.columns.has(key))? tableConfig.columns.get(key).visible: true;
+					return (
+						<Item
+							key={key}
+							isSelected={visible}
+						>
+							<input
+								type='checkbox'
+								checked={visible}
+								onChange={() => setTableColumnVisible(tableView, key, !visible)}
+							/>
+							<span>{column.label || key}</span>
+						</Item>
+					)
+				}).toArray()}
+			</ItemList>
+		</React.Fragment>
 	)
 }
 
-ColumnSelector.propTypes = {
+_ColumnSelectorDropdown.propTypes = {
 	tableView: PropTypes.string.isRequired,
-	tableConfig: PropTypes.object.isRequired,
+	tableConfig: PropTypes.object,
 	setTableView: PropTypes.func.isRequired,
-	setTableFixed: PropTypes.func.isRequired,
+	toggleTableFixed: PropTypes.func.isRequired,
 	setTableColumnVisible: PropTypes.func.isRequired,
 }
 
 const dataSet = 'comments'
-export default connect(
+const ColumnSelectorDropdown = connect(
 	(state, ownProps) => {
+		const tableView = state[dataSet].ui['tableView'];
+		const tablesConfig = state[dataSet].ui['tablesConfig'];
 		return {
-			tableView: state[dataSet].ui['tableView'],
-			tableConfig: state[dataSet].ui['tableConfig'],
+			tableView,
+			tableConfig: tablesConfig[tableView],
 		}
 	},
 	(dispatch, ownProps) => ({
 		setTableView: view => dispatch(uiSetProperty(dataSet, 'tableView', view)),
-		setTableFixed: (view, isFixed) => dispatch(uiSetTableFixed(dataSet, view, isFixed)),
+		toggleTableFixed: (view) => dispatch(uiToggleTableFixed(dataSet, view)),
 		setTableColumnVisible: (view, key, isVisible) => dispatch(uiSetTableColumnVisible(dataSet, view, key, isVisible))
 	})
-)(ColumnSelector);
+)(_ColumnSelectorDropdown);
+
+function ColumnSelector({
+	allColumns
+}) {
+	return (
+		<ActionButtonDropdown
+			name='columns'
+			title='Configure table'
+		>
+			<ColumnSelectorDropdown
+				allColumns={allColumns}
+			/>
+		</ActionButtonDropdown>
+	)
+}
+
+export default ColumnSelector;

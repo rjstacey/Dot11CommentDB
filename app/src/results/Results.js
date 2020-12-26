@@ -7,20 +7,22 @@ import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
 import BallotSelector from '../ballots/BallotSelector'
 import {getResults} from '../actions/results'
-import {setBallotId} from '../actions/ballots'
+import {setBallotId, BallotType} from '../actions/ballots'
 import {ActionButton} from '../general/Icons'
 import ResultsSummary from './ResultsSummary'
-import ResultsExportModal from './ResultsExport'
+import ResultsExport from './ResultsExport'
 
 // The action row height is determined by its content
 const ActionRow = styled.div`
 	display: flex;
 	justify-content: space-between;
+	width: 100%;
 `;
 
 // The table row grows to the available height
 const TableRow = styled.div`
 	flex: 1;
+	width: 100%;
 `;
 
 const tableColumns = Immutable.OrderedMap({
@@ -41,28 +43,30 @@ function Results({
 		loading,
 		getResults,
 		setBallotId,
-		...props
+		ballotId: currentBallotId,
 	}) {
 	const {ballotId} = useParams()
 	const history = useHistory()
 
-	const [showExportModal, setShowExportModal] = React.useState(false)
-
-	let columns, primaryDataKey
-	if (ballot.Type === 3 || ballot.Type === 4) {
-		columns = tableColumns.slice(1, tableColumns.size)
-		primaryDataKey = 'Email'
-	}
-	else {
-		columns = tableColumns
-		primaryDataKey = 'SAPIN'
-	}
-
-	const width = Math.min(window.innerWidth, columns.reduce((acc, col) => acc + col.width, 0) + 40)
+	/* If we change the table config signficantly we want to remount the table component,
+	 * so we create a key id for the component that depends on signficant parameters */
+	const [tableId, columns, primaryDataKey, maxWidth] = React.useMemo(() => {
+		let columns, primaryDataKey
+		if (ballot.Type === BallotType.SA_Initial || ballot.Type === BallotType.SA_Recirc) {
+			columns = tableColumns.slice(1, tableColumns.size)
+			primaryDataKey = 'Email'
+		}
+		else {
+			columns = tableColumns
+			primaryDataKey = 'SAPIN'
+		}
+		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40;
+		return [primaryDataKey, columns, primaryDataKey, maxWidth]
+	}, [ballot.Type]);
 
 	React.useEffect(() => {
 		if (ballotId) {
-			if (ballotId !== props.ballotId) {
+			if (ballotId !== currentBallotId) {
 				// Routed here with parameter ballotId specified, but not matching stored ballotId
 				// Store the ballotId and get results for this ballotId
 				setBallotId(ballotId)
@@ -72,34 +76,31 @@ function Results({
 				getResults(ballotId)
 			}
 		}
-		else if (props.ballotId) {
-			history.replace(`/Results/${props.ballotId}`)
+		else if (currentBallotId) {
+			history.replace(`/Results/${currentBallotId}`)
 		}
-	}, [ballotId, props.ballotId])
+	}, [ballotId, currentBallotId]);
 
 	const onBallotSelected = (ballotId) => history.push(`/Results/${ballotId}`); // Redirect to page with selected ballot
 
 	return (
 		<React.Fragment>
-			<ActionRow style={{width}}>
+			<ActionRow style={{maxWidth}}>
+				<BallotSelector onBallotSelected={onBallotSelected}	/>
 				<span>
-					<BallotSelector
-						onBallotSelected={onBallotSelected}
-					/>
-				</span>
-				<span>
-					<ActionButton name='export' title='Export' onClick={() => setShowExportModal(true)} />
+					<ResultsExport ballotId={ballotId} ballot={ballot} />
 					<ActionButton name='refresh' title='Refresh' onClick={() => getResults(ballotId)} />
 				</span>
 			</ActionRow>
 			<ResultsSummary
-				style={{width}}
+				style={{maxWidth}}
 				ballot={ballot}
 				resultsSummary={resultsSummary}
 				votingPoolSize={votingPoolSize}
 			/>
-			<TableRow style={{width}}>
+			<TableRow style={{maxWidth}}>
 				<AppTable
+					key={tableId}
 					columns={columns}
 					headerHeight={28}
 					estimatedRowHeight={32}
@@ -107,11 +108,6 @@ function Results({
 					rowKey={primaryDataKey}
 				/>
 			</TableRow>
-			<ResultsExportModal
-				ballot={ballot}
-				isOpen={showExportModal}
-				close={() => setShowExportModal(false)}
-			/>
 		</React.Fragment>
 	)
 }

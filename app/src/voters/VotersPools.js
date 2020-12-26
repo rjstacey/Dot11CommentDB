@@ -11,91 +11,100 @@ import {getDataMap} from '../selectors/dataMap'
 import {ActionButton} from '../general/Icons'
 import VotersPoolAddModal from './VotersPoolAdd'
 
-const columns = Immutable.OrderedMap({
+const ActionCell = styled.div`
+	display: flex;
+	justify-content: center;
+`;
+
+const RowActions = ({onEdit, onDelete}) =>
+	<ActionCell>
+		<ActionButton name='edit' title='Edit' onClick={onEdit} />
+		<ActionButton name='delete' title='Delete' onClick={onDelete} />
+	</ActionCell>
+
+const tableColumns = Immutable.OrderedMap({
 	PoolType: 		{label: 'Type',		width: 80},
 	VotingPoolID: 	{label: 'Name',		width: 200},
-	VoterCount: 	{label: 'Voters',	width: 100}
+	VoterCount: 	{label: 'Voters',	width: 100},
+	Actions:  		{label: 'Actions',	width: 100}
 });
+
+const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
+
+const TopRow = styled.div`
+	display: flex;
+	justify-content: space-between;
+	width: 100%;
+`;
+
+const TableRow = styled.div`
+	flex: 1;	/* remaining height */
+	width: 100%;
+	.AppTable__dataRow,
+	.AppTable__headerRow {
+		align-items: center;
+	}
+`;
 
 function VotersPools(props) {
 	const history = useHistory()
 	const [showVotersPoolAdd, setShowVotersPoolAdd] = React.useState(false)
-
-	const width = Math.min(window.innerWidth, columns.reduce((acc, col) => acc + col.width, 0) + 40)
 
 	React.useEffect(() => {
 		if (!props.valid)
 			props.getVotingPools()
 	}, [])
 
-	const showVoters = ({rowData}) => history.push(`/Voters/${rowData.PoolType}/${rowData.VotingPoolID}`)
+	const columns = React.useMemo(() => {
+		return tableColumns.update('Actions', c => ({
+			...c,
+			cellRenderer: ({rowData}) => 
+				<RowActions
+					onEdit={() => history.push(`/Voters/${rowData.PoolType}/${rowData.VotingPoolID}`)}
+					onDelete={() => deleteVotingPool(rowData)}
+				/>
+		}));
+	}, []);
 
-	const onVotersPoolAdd = (votingPoolType, votingPoolName) => history.push(`/Voters/${votingPoolType}/${votingPoolName}`)
-
-	async function handleRemoveSelected() {
-		const data = props.votingPools
-		const dataMap = props.votingPoolsMap
-		let vps = []
-		for (var i = 0; i < dataMap.length; i++) { // only select checked items that are visible
-			let vp = data[dataMap[i]]
-			if (props.selected.includes(vp.VotingPoolID)) {
-				vps.push(vp)
-			}
-		}
-
-		if (vps.length) {
-			const ok = await ConfirmModal.show('Are you sure you want to delete ' + vps.map(vp => vp.VotingPoolID).join(', ') + '?')
-			if (ok) {
-				await props.deleteVotingPools(vps);
-			}
-		}
+	const deleteVotingPool = async (vp) => {
+		const ok = await ConfirmModal.show(`Are you sure you want to delete ${vp.VotingPoolID}?`)
+		if (ok)
+			props.deleteVotingPools([vp.VotingPoolID])
 	}
+
+	const addVotingPool = (votingPoolType, votingPoolName) => history.push(`/Voters/${votingPoolType}/${votingPoolName}`)
 
 	return (
 		<React.Fragment>
-			<TopRow style={{width}}>
-				<span><label>Voting Pools</label></span>
+			<TopRow style={{maxWidth}}>
+				<label>Voting Pools</label>
 				<span>
 					<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowVotersPoolAdd(true)} />
-					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
 					<ActionButton name='refresh' title='Refresh' onClick={props.getVotingPools} />
 				</span>
 			</TopRow>
 
-			<TableRow style={{width}}>
+			<TableRow style={{maxWidth}}>
 				<AppTable
 					fixed
 					columns={columns}
 					controlColumn
 					estimatedRowHeight={32}
-					headerHeight={28}
+					headerHeight={36}
 					dataSet='votingPools'
 					loading={props.loading}
-					data={props.votingPools}
-					dataMap={props.votingPoolsMap}
 					rowKey='VotingPoolID'
-					onRowDoubleClick={showVoters}
 				/>
 			</TableRow>
 
 			<VotersPoolAddModal
 				isOpen={showVotersPoolAdd}
 				close={() => setShowVotersPoolAdd(false)}
-				onSubmit={onVotersPoolAdd}
+				onSubmit={addVotingPool}
 			/>
 		</React.Fragment>
 	)
 }
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-`;
-
-const TableRow = styled.div`
-	flex: 1;	/* remaining height */
-`;
-
 
 VotersPools.propTypes = {
 	selected: PropTypes.array.isRequired,

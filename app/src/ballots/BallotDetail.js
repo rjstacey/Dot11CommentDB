@@ -4,10 +4,11 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import Select from 'react-dropdown-select'
 import AppModal from '../modals/AppModal'
+import {Form, Row, Col, Field, List, ListItem} from '../general/Form'
 import ConfirmModal from '../modals/ConfirmModal'
 import {Checkbox, Search} from '../general/Icons'
 import {renderResultsSummary, renderCommentsSummary} from './Ballots'
-import {updateBallot, addBallot, getBallots, setProject} from '../actions/ballots'
+import {updateBallot, addBallot, getBallots, setProject, BallotType} from '../actions/ballots'
 import {getProjectList, getBallotList} from '../selectors/ballots'
 import {getVotingPools} from '../actions/votingPools'
 import {importResults, uploadResults, deleteResults} from '../actions/results'
@@ -48,68 +49,93 @@ function shortDateToDate(shortDateStr) {
 	return isNaN(newDate)? '': newDate.toISOString()
 }
 
-function SelectProject({project, projectList, onChange, ...otherProps}) {
+const StyledSelect = styled(Select)`
+	min-height: unset;
+	padding: unset;
+	width: unset;
+	flex: 1 1 ${({width}) => width}px;
+`;
+
+function SelectProject({width, project, projectList, onChange}) {
 	const options = projectList.map(p => ({value: p, label: p}))
 	const value = options.find(o => o.value === project)
-	const handleChange = (values) => onChange(values.length > 0? values[0].value: '')
-	return <Select values={value? [value]: []} options={options} onChange={handleChange} create clearable searchable {...otherProps} />
-}
-
-function SelectVotingPoolId({votingPoolId, votingPools, onChange, ...otherProps}) {
-	const options = votingPools.map(i => ({value: i.VotingPoolID, label: i.VotingPoolID}))
-	const value = options.find(o => o.value === votingPoolId)
-	const handleChange = (values) => onChange(values.length? values[0].value: '')
-	return <Select values={value? [value]: []} options={options} onChange={handleChange} {...otherProps} />
-}
-
-function SelectPrevBallot({prevBallotId, ballotList, onChange, ...otherProps}) {
-	const options = ballotList//.map(i => ({value: i.VotingPoolID, label: i.VotingPoolID}))
-	const value = options.find(o => o.value === prevBallotId)
-	const handleChange = (values) => onChange(values.length? values[0].value: '')
-	return <Select values={value? [value]: []} options={options} onChange={handleChange} {...otherProps} />
-}
-
-const BallotTypesContainer = styled.div`
-	display: flex;
-	flex-direction: column;
-	padding: 20px;`
-
-function BallotTypes({value, onChange}) {
-	const ballotTypes = [
-		'Comment collection',
-		'Initial WG ballot',
-		'Recirc WG ballot',
-		'Initial SA ballot',
-		'Recirc SA ballot',
-		'Motion'
-	]
 	return (
-		<BallotTypesContainer>
-			<label>Ballot Type:</label>
-			{ballotTypes.map((str, i) => 
-				<span key={i}>
-					<input id={'radio_'+ i} type='radio' name='Type' value={i} checked={value === i} onChange={onChange} />
-					<label htmlFor={'radio_'+ i} >{str}</label>
-				</span>
-			)}
-		</BallotTypesContainer>
+		<StyledSelect
+			width={width}
+			values={value? [value]: []}
+			options={options}
+			onChange={(values) => onChange(values.length > 0? values[0].value: '')}
+			create
+			clearable
+			searchable
+			dropdownPosition='auto'
+		/>
 	)
 }
 
-const ActionsContainer = styled.div`
-	display: flex;
-	flex-direction: column;
-	padding: 20px;`
+function SelectVotingPoolId({width, votingPoolId, votingPools, onChange}) {
+	const options = votingPools.map(i => ({value: i.VotingPoolID, label: i.VotingPoolID}))
+	const value = options.find(o => o.value === votingPoolId)
+	return (
+		<StyledSelect
+			width={width}
+			values={value? [value]: []}
+			options={options}
+			onChange={(values) => onChange(values.length? values[0].value: '')}
+			dropdownPosition='auto'
+		/>
+	)
+}
+
+function SelectPrevBallot({width, prevBallotId, ballotList, onChange}) {
+	const options = ballotList//.map(i => ({value: i.VotingPoolID, label: i.VotingPoolID}))
+	const value = options.find(o => o.value === prevBallotId)
+	return (
+		<StyledSelect
+			width={width}
+			values={value? [value]: []}
+			options={options}
+			onChange={(values) => onChange(values.length? values[0].value: '')}
+			dropdownPosition='auto'
+		/>
+	)
+}
+
+function BallotTypes({value, onChange}) {
+	const ballotTypeOptions = [
+		{value: BallotType.CC, label: 'Comment collection'},
+		{value: BallotType.WG_Initial, label: 'Initial WG ballot'},
+		{value: BallotType.WG_Recirc, label: 'Recirc WG ballot'},
+		{value: BallotType.SA_Initial, label: 'Initial SA ballot'},
+		{value: BallotType.SA_Recirc, label: 'Recirc SA ballot'},
+		{value: BallotType.Motion, label: 'Motion'}
+	];
+	return (
+		<List
+			label='Ballot Type:'
+		>
+			{ballotTypeOptions.map((o) => 
+				<ListItem key={o.value}>
+					<input
+						id={'radio_' + o.value}
+						type='radio' name='Type'
+						value={o.value}
+						checked={value === o.value}
+						onChange={onChange}
+					/>
+					<label htmlFor={'radio_'+ o.value} >{o.label}</label>
+				</ListItem>
+			)}
+		</List>
+	)
+}
 
 const CommentsActions = ({action, setAction, ballot, file, setFile, startCID, setStartCID}) => {
 	const fileRef = React.useRef();
 	return (
-		<ActionsContainer>
-			<span>
-				<label>Comments:&nbsp;</label>
-				{renderCommentsSummary({rowData: ballot, key: 'Comments'})}
-			</span>
-			<span>
+		<List>
+			<label>Comments: {renderCommentsSummary({rowData: ballot, key: 'Comments'})}</label>
+			<ListItem>
 				<Checkbox
 					id='start'
 					checked={action === Action.SET_START_CID}
@@ -118,38 +144,38 @@ const CommentsActions = ({action, setAction, ballot, file, setFile, startCID, se
 				<label htmlFor='start'>Change starting CID:&nbsp;</label>
 				<Search
 					width={80}
-					value={startCID}
+					value={startCID || 1}
 					onChange={e => setStartCID(e.target.value)}
 				/>
-			</span>
+			</ListItem>
 			{ballot.Comments &&
-				<span>
+				<ListItem>
 					<Checkbox
 						id='delete'
 						checked={action === Action.REMOVE}
 						onChange={e => setAction(action !== Action.REMOVE? Action.REMOVE: Action.NONE)}
 					/>
 					<label htmlFor='delete'>Delete</label>
-				</span>
+				</ListItem>
 			}
 			{ballot.EpollNum &&
-				<span>
+				<ListItem>
 					<Checkbox
 						id='importFromEpoll'
 						checked={action === Action.IMPORT_FROM_EPOLL}
 						onChange={e => setAction(action !== Action.IMPORT_FROM_EPOLL? Action.IMPORT_FROM_EPOLL: Action.NONE)}
 					/>
 					<label htmlFor='importFromEpoll'>{(ballot.Comments? 'Reimport': 'Import') + ' from ePoll'}</label>
-				</span>
+				</ListItem>
 			}
-			<span>
+			<ListItem>
 				<Checkbox
 					id='file'
 					checked={action === Action.IMPORT_FROM_FILE}
 					onChange={e => action !== Action.IMPORT_FROM_FILE? fileRef.current.click(): setAction(Action.NONE)}
 				/>
 				<label htmlFor='file'>{'Upload from ' + (file? file.name: 'file')}</label>
-			</span>
+			</ListItem>
 			<input
 				type='file'
 				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -166,44 +192,40 @@ const CommentsActions = ({action, setAction, ballot, file, setFile, startCID, se
 				}}
 				style={{display: "none"}}
 			/>
-		</ActionsContainer>
+		</List>
 	)
 }
 
 const ResultsActions = ({action, setAction, ballot, file, setFile}) => {
 	const fileRef = React.useRef();
 	return (
-		<ActionsContainer>
-			<span>
-				<label>Results:&nbsp;</label>
-				{renderResultsSummary({rowData: ballot, key: 'Results'})}
-			</span>
-			<span>
+		<List>
+			<label>Results: {renderResultsSummary({rowData: ballot, key: 'Results'})}</label>
+			<ListItem>
 				<Checkbox
 					id='delete'
 					checked={action === Action.REMOVE}
 					onChange={e => setAction(action !== Action.REMOVE? Action.REMOVE: Action.NONE)}
 				/>
 				<label htmlFor='delete'>Delete</label>
-			</span>
+			</ListItem>
 			{ballot.EpollNum &&
-				<span>
+				<ListItem>
 					<Checkbox
 						id='importFromEpoll'
 						checked={action === Action.IMPORT_FROM_EPOLL}
 						onChange={e => setAction(action !== Action.IMPORT_FROM_EPOLL? Action.IMPORT_FROM_EPOLL: Action.NONE)}
 					/>
 					<label htmlFor='importFromEpoll'>{(ballot.Results? 'Reimport': 'Import') + ' from ePoll'}</label>
-				</span>
-			}
-			<span>
+				</ListItem>}
+			<ListItem>
 				<Checkbox
 					id='fromFile'
 					checked={action === Action.IMPORT_FROM_FILE}
 					onChange={e => action !== Action.IMPORT_FROM_FILE? fileRef.current.click(): setAction(Action.NONE)}
 				/>
 				<label htmlFor='fromFile'>{'Upload from ' + (file? file.name: 'file')}</label>
-			</span>
+			</ListItem>
 			<input
 				type='file'
 				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -220,67 +242,82 @@ const ResultsActions = ({action, setAction, ballot, file, setFile}) => {
 				}}
 				style={{display: "none"}}
 			/>
-		</ActionsContainer>
+		</List>
 	)
 }
 
-const Container = styled.div`
-	display: flex;
-	flex-direction: column;
-	width: 80vw;
-	max-width: 1000px;
+const TextArea = styled.textarea`
+	font-family: inherit;
+	font-size: unset;
+	flex: 1;
+	height: 3.5em;
 `;
 
-const Row = styled.div`
-	display: flex;
-	flex-direction: row;
-	margin: 10px;
-`;
-
-const Col = styled.div`
-	display: flex;
-	flex-direction: column;
-`;
-
-const Col1 = styled(Col)`
-	flex: 60% 1 1;
-	& label {
-		width: 150px;
+function Column1({project, setProject, projectList, ballot, setBallot, ballotList, votingPools}) {
+	const change = (e) => {
+		const {name, value} = e.target;
+		setBallot({...ballot, [name]: value});
 	}
-`;
-
-const Col2 = styled(Col)`
-	flex: 40% 1 1;
-`;
-
-const Row2 = styled(Row)`
-	& label {
-		flex: 100px 0 0;
+	const changeProject = (project) => {
+		//const project = values.length > 0? values[0].value: ''
+		setProject(project)
+		setBallot(ballot => ({...ballot, Project: project}))
 	}
-	& textarea {
-		flex: 1;
-		height: 3em;
+	const changeDate = (e) => {
+		const {name, value} = e.target;
+		const dateStr = shortDateToDate(value);
+		setBallot(ballot => ({...ballot, [name]: dateStr}));
 	}
-`;
-
-const Col3 = styled(Col)`
-	flex: 60% 1 1;
-	& label {
-		width: 150px;
-	}
-`;
-
-const Col4 = styled(Col)`
-	flex: 40% 1 1;
-	display: flex;
-	& label {
-		width: 200px;
-	}
-`;
-
-const ButtonRow = styled(Row)`
-	justify-content: space-around;
-`;
+	return (
+		<React.Fragment>
+			<Field label='Project:'>
+				<SelectProject
+					width={150}
+					project={ballot.Project}
+					projectList={projectList}
+					onChange={changeProject}
+				/>
+			</Field>
+			<Field label='Ballot ID:'>
+				<Search name='BallotID' value={ballot.BallotID} onChange={change} />
+			</Field>
+			{(ballot.Type !== BallotType.SA_Initial && ballot.Type !== BallotType.SA_Recirc) &&
+				<Field label='ePoll Number:'>
+					<Search name='EpollNum' value={ballot.EpollNum} onChange={change} />
+				</Field>}
+			<Field label='Document:'>
+				<Search name='Document' value={ballot.Document} onChange={change}/>
+			</Field>
+			<Field label='Topic:'>
+				<TextArea name='Topic' value={ballot.Topic} onChange={change} />
+			</Field>
+			<Field label='Start:'>
+				<input type='date' name='Start' value={dateToShortDate(ballot.Start)} onChange={changeDate} />
+			</Field>
+			<Field label='End:'>
+				<input type='date' name='End' value={dateToShortDate(ballot.End)} onChange={changeDate} />
+			</Field>
+			{(ballot.Type === BallotType.WG_Initial || ballot.Type === BallotType.SA_Initial || ballot.Type === BallotType.Motion) &&
+				<Field label='Voter Pool:'>
+					<SelectVotingPoolId 
+						votingPoolId={ballot.VotingPoolID}
+						votingPools={votingPools}
+						onChange={value => setBallot(ballot => ({...ballot, VotingPoolID: value}))}
+						width={150}
+					/>
+				</Field>}
+			{(ballot.Type === BallotType.WG_Recirc || ballot.Type === BallotType.SA_Recirc) &&
+				<Field label='Previous Ballot:'>
+					<SelectPrevBallot
+						prevBallotId={ballot.PrevBallotID}
+						ballotList={ballotList}
+						onChange={value => setBallot(ballot => ({...ballot, PrevBallotID: value}))}
+						width={150}
+					/>
+				</Field>}
+		</React.Fragment>
+	)
+}
 
 const Action = {
 	NONE: null,
@@ -295,7 +332,7 @@ const Action = {
  * The ballotId parameter is '+' to add a new ballot or a ballot ID to update a ballot
  * If the ballotId parameter is '+' and epollNum is provided, then the ballot fields are filled in from the epoll data
  */
-function BallotDetail(props) {
+function _BallotDetailForm(props) {
 	const {ballotId, epollNum} = props;
 	const [ballot, setBallot] = React.useState(defaultBallot);
 	const [resultsAction, setResultsAction] = React.useState(Action.NONE);
@@ -351,31 +388,12 @@ function BallotDetail(props) {
 		}
 	}
 
-
-	function change(e) {
-		const {name, value} = e.target;
-		setBallot({...ballot, [name]: value});
-	}
-
-	function handleProjectChange(project) {
-		//const project = values.length > 0? values[0].value: ''
-		props.setProject(project)
-		setBallot(ballot => ({...ballot, Project: project}))
-	}
-
-	function changeDate(e) {
-		const {name, value} = e.target;
-		console.log(value)
-		const dateStr = shortDateToDate(value)
-		setBallot(ballot => ({...ballot, [name]: dateStr}))
-	}
-
 	function changeType(e) {
 		const {name, value} = e.target;
 		setBallot(ballot => ({...ballot, [name]: parseInt(value, 10)}))
 	}
 
-	/* All the database manipulation functions are asynchornous. They need to be issues in the right order
+	/* All the database manipulation functions are asynchornous. They need to be issued in the right order
 	 * but don't need to complete until the next is started. */
 	async function submit() {
 
@@ -430,119 +448,53 @@ function BallotDetail(props) {
 		props.close()
 	}
 
-	const shortDateStart = dateToShortDate(ballot.Start)
-	const shortDateEnd = dateToShortDate(ballot.End)
 	return (
-		<AppModal
-			isOpen={props.isOpen}
-			onAfterOpen={onOpen}
-			onRequestClose={props.close}
+		<Form
+			title={ballotId === '+'? 'Add ballot': `Edit ballot ${ballotId}`}
+			submit={submit}
+			submitText={ballotId === '+'? 'Add': 'Update'}
+			cancel={props.close}
 		>
-			<Container>
-				<Row>
-					<Col1>
-						<Row>
-							<label>Project:</label>
-							<SelectProject
-								project={ballot.Project}
-								projectList={props.projectList}
-								onChange={handleProjectChange}
-								style={{width: '150px'}}
-							/>
-						</Row>
-
-						<Row>
-							<label>Ballot ID:</label>
-							<Search name='BallotID' value={ballot.BallotID} onChange={change} />
-						</Row>
-
-						{(ballot.Type !== 3 && ballot.Type !== 4) &&
-							<Row>
-								<label>ePoll Number:</label>
-								<Search name='EpollNum' value={ballot.EpollNum} onChange={change} />
-							</Row>
-						}
-
-						<Row>
-							<label>Document:</label>
-							<Search name='Document' value={ballot.Document} onChange={change}/>
-						</Row>
-					</Col1>
-					<Col2>
-						<BallotTypes value={ballot.Type} onChange={changeType} />
-					</Col2>
-				</Row>
-				<Row>
-					<Col>
-						<Row2>
-							<label>Topic:</label>
-							<textarea name='Topic' value={ballot.Topic} onChange={change} />
-						</Row2>
-					</Col>
-				</Row>
-				<Row>
-					<Col3>
-						<Row>
-							<label>Start:</label>
-							<input type='date' name='Start' value={shortDateStart} onChange={changeDate} />
-						</Row>
-						<Row>
-							<label>End</label>
-							<input type='date' name='End' value={shortDateEnd} onChange={changeDate} />
-						</Row>
-						{(ballot.Type === 1 || ballot.Type === 3 || ballot.Type === 5) &&		
-							<Row>
-								<label>Voting Pool:</label>
-								<SelectVotingPoolId 
-									votingPoolId={ballot.VotingPoolID}
-									votingPools={props.votingPools}
-									onChange={value => setBallot({...ballot, VotingPoolID: value})}
-									style={{width: '250px'}}
-								/>
-							</Row>
-						}
-						{(ballot.Type === 2 || ballot.Type === 4) &&
-							<Row>
-								<label>Previous Ballot:</label>
-								<SelectPrevBallot
-									prevBallotId={ballot.PrevBallotID}
-									ballotList={props.ballotList}
-									onChange={value => setBallot({...ballot, PrevBallotID: value})}
-									style={{width: '250px'}}
-								/>
-							</Row>
-						}
-					</Col3>
-					<Col4>
-						<ResultsActions
-							action={resultsAction}
-							setAction={setResultsAction}
-							ballot={ballot}
-							file={resultsFile}
-							setFile={setResultsFile}
-						/>
-						<CommentsActions 
-							action={commentsAction}
-							setAction={setCommentsAction}
-							ballot={ballot}
-							file={commentsFile}
-							setFile={setCommentsFile}
-							startCID={startCID}
-							setStartCID={setStartCID}
-						/>
-					</Col4>
-				</Row>
-				<ButtonRow>
-					<button onClick={submit}>{ballotId === '+'? 'Add': 'Update'}</button>
-					<button onClick={props.close}>Cancel</button>
-				</ButtonRow>
-			</Container>
-		</AppModal>
+			<Row>
+				<Col>
+					<Column1
+						project={props.project}
+						setProject={props.setProject}
+						projectList={props.projectList}
+						ballot={ballot}
+						setBallot={setBallot}
+						ballotList={props.ballotList}
+						votingPools={props.votingPools}
+					/>
+				</Col>
+				<Col>
+					<BallotTypes
+						value={ballot.Type}
+						onChange={changeType}
+					/>
+					<ResultsActions
+						action={resultsAction}
+						setAction={setResultsAction}
+						ballot={ballot}
+						file={resultsFile}
+						setFile={setResultsFile}
+					/>
+					<CommentsActions 
+						action={commentsAction}
+						setAction={setCommentsAction}
+						ballot={ballot}
+						file={commentsFile}
+						setFile={setCommentsFile}
+						startCID={startCID}
+						setStartCID={setStartCID}
+					/>
+				</Col>
+			</Row>
+		</Form>
 	)
 }
 
-BallotDetail.propTypes = {
-	isOpen: PropTypes.bool.isRequired,
+_BallotDetailForm.propTypes = {
 	close: PropTypes.func.isRequired,
 	ballotId: PropTypes.string.isRequired,
 	epollNum: PropTypes.string,
@@ -555,7 +507,7 @@ BallotDetail.propTypes = {
 	epolls: PropTypes.array.isRequired,
 }
 
-export default connect(
+const BallotDetailForm = connect(
 	(state, ownProps) => {
 		const {ballots, votingPools, epolls} = state
 		return {
@@ -585,5 +537,27 @@ export default connect(
 			setStartCommentId: (ballotId, startCommentId) => dispatch(setStartCommentId(ballotId, startCommentId))
 		}
 	}
-)(BallotDetail)
+)(_BallotDetailForm)
 
+function BallotDetailModal({
+	isOpen,
+	close,
+	ballotId,
+	epollNum
+}) {
+	return (
+		<AppModal
+			isOpen={isOpen}
+			onRequestClose={close}
+		>
+			<BallotDetailForm 
+				isOpen={isOpen}
+				close={close}
+				ballotId={ballotId}
+				epollNum={epollNum}
+			/>
+		</AppModal>
+	)
+}
+
+export default BallotDetailModal;

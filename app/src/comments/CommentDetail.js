@@ -77,16 +77,16 @@ function CategorizationRow({
 					width={300}
 					value={resolution.AdHoc === '<multiple>'? '': resolution.AdHoc || ''}
 					onChange={value => setResolution({AdHoc: value})}
-					placeholder={resolution.AdHoc === '<multiple>'? '<multiple>': '<blank>'}
+					placeholder={resolution.AdHoc === '<multiple>'? '<multiple>': '(Blank)'}
 				/>
 			</LabelValuePair>
 			<LabelValuePair>
 				<Label>Comment Group:</Label>
 				<CommentGroupSelector
 					width={300}
-					value={resolution.CommentGroup === '<multiple>'? '': resolution.CommentGroup}
+					value={resolution.CommentGroup === '<multiple>'? '': resolution.CommentGroup || ''}
 					onChange={value => setResolution({CommentGroup: value})}
-					placeholder={resolution.CommentGroup === '<multiple>'? '<multiple>': '<blank>'}
+					placeholder={resolution.CommentGroup === '<multiple>'? '<multiple>': '(Blank)'}
 				/>
 			</LabelValuePair>
 		</Row1>
@@ -579,7 +579,11 @@ function recursivelyDiffObjects(l, r) {
 	}
 }
 
-class CommentDetail extends React.Component {
+const CommentDetailContainer = styled.div`
+	margin: 10px;
+`;
+
+class CommentDetail extends React.PureComponent {
 	constructor(props) {
 		super(props)
 		this.state = this.initState(props);
@@ -686,7 +690,7 @@ class CommentDetail extends React.Component {
 		const disableButtons = !!notAvailableStr 	// disable buttons if displaying string
 
 		return(
-			<div
+			<CommentDetailContainer
 				style={this.props.style}
 				className={this.props.className}
 			>
@@ -709,7 +713,7 @@ class CommentDetail extends React.Component {
 						setShowEditing={this.props.setShowEditing}
 					/>
 				}
-			</div>
+			</CommentDetailContainer>
 		)
 	}
 }

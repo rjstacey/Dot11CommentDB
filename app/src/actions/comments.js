@@ -323,7 +323,7 @@ export const FieldsToUpdate = {
 }
 
 export const MatchAlgorithm = {
-	Ellimination: 'ellimination',
+	Elimination: 'elimination',
 	Perfect: 'perfect',
 	CID: 'cid'
 }

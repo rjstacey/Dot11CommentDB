@@ -3,6 +3,7 @@ import React from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
 import Immutable from 'immutable'
+import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
 import ConfirmModal from '../modals/ConfirmModal'
 import {getVoters, deleteVoters} from '../actions/voters'
@@ -11,6 +12,17 @@ import {getDataMap} from '../selectors/dataMap'
 import VotersImportModal from './VotersImport'
 import VoterEditModal from './VoterEdit'
 
+
+const ActionCell = styled.div`
+	display: flex;
+	justify-content: center;
+`;
+
+const RowActions = ({onEdit, onDelete}) =>
+	<ActionCell>
+		<ActionButton name='edit' title='Edit' onClick={onEdit} />
+		<ActionButton name='delete' title='Delete' onClick={onDelete} />
+	</ActionCell>
 
 const defaultVoter = {
 	Name: '',
@@ -28,28 +40,57 @@ const wgColumns = Immutable.OrderedMap({
 	FirstName: 	{label: 'First Name',	width: 150},
 	MI: 		{label: 'MI',			width: 50},
 	Email: 		{label: 'Email',		width: 250},
-	Status: 	{label: 'Status',		width: 100}
+	Status: 	{label: 'Status',		width: 100},
+	Actions: 	{label: '', 			width: 100}
 });
 
 const saColumns = Immutable.OrderedMap({
 	Email: 		{label: 'Email',		width: 250},
-	Name: 		{label: 'Name',			width: 300}
+	Name: 		{label: 'Name',			width: 300},
+	Actions: 	{label: '', 			width: 100}
 });
+
+const TopRow = styled.div`
+	display: flex;
+	justify-content: space-between;
+	width: 100%;
+`;
+
+const TableRow = styled.div`
+	flex: 1;	/* remaining height */
+	width: 100%;
+	.AppTable__dataRow {
+		align-items: center;
+	}
+`;
 
 function Voters(props) {
 	const {votingPoolType, votingPoolName} = useParams()
 	const history = useHistory()
-	const [editVoter, setEditVoter] = React.useState({
-		action: null,
-		voter: defaultVoter
-	})
+	const [editVoter, setEditVoter] = React.useState({action: null, voter: defaultVoter})
 	const [showImportVoters, setShowImportVoters] = React.useState(false)
 
-	const columns = votingPoolType === 'SA'? saColumns: wgColumns
-	const primaryDataKey = columns.keys()[0]
-
-	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0)
-	const width = Math.min(window.innerWidth - 1, maxWidth)
+	const [columns, primaryDataKey, maxWidth] = React.useMemo(() => {
+		let columns, primaryDataKey;
+		if (votingPoolType === 'WG') {
+			columns = wgColumns;
+			primaryDataKey = 'SAPIN';
+		}
+		else {
+			columns = saColumns;
+			primaryDataKey = 'Email';
+		}
+		columns = columns.update('Actions', v => ({
+			...v,
+			cellRenderer: ({rowData}) => 
+				<RowActions
+					onEdit={() => setEditVoter({action: 'update', voter: rowData})}
+					onDelete={() => onDelete(rowData)}
+				/>
+		}));
+		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
+		return [columns, primaryDataKey, maxWidth]
+	}, [votingPoolType]);
 
 	React.useEffect(() => {
 		if ((!props.votingPool.VotingPoolID || props.votingPool.VotingPoolID !== votingPoolName ||
@@ -59,13 +100,8 @@ function Voters(props) {
 		}
 	}, [votingPoolName, votingPoolType])
 
-	function close() {
- 		history.goBack()
- 	}
-
- 	function refresh() {
- 		props.getVoters(votingPoolType, votingPoolName)
- 	}
+	const close = history.goBack;
+ 	const refresh = () => props.getVoters(votingPoolType, votingPoolName);
 
 	async function handleRemoveSelected() {
 		const {voters, votersMap} = props
@@ -85,50 +121,41 @@ function Voters(props) {
 		}
 	}
 
-	function handleAddVoter(e) {
-		setEditVoter({
-			action: 'add',
-			voter: defaultVoter
-		})
+	const onDelete = async (voter) => {
+		const ok = await ConfirmModal.show(`Are you sure you want to remove ${voter.FirstName} ${voter.LastName} from the voting pool?`)
+		if (ok)
+			props.deleteVoters(votingPoolType, votingPoolName, [voter[primaryDataKey]])
 	}
 
-	function handleUpdateVoter({rowData}) {
-		setEditVoter({
-			action: 'update',
-			voter: rowData
-		})
-	}
+	const handleAddVoter = () => setEditVoter({action: 'add', voter: defaultVoter});
+	//const handleUpdateVoter = ({rowData}) => setEditVoter({action: 'update', voter: rowData});
 
 	return (
 		<React.Fragment>
-			<div style={{display: 'flex', justifyContent: 'center'}}>
-				<div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width}}>
-					<span><label>Voters Pool:&nbsp;</label>{votingPoolName}</span>
-					<span>
-						<ActionButton name='add' title='Add Voter' onClick={handleAddVoter} />
-						<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
-						<ActionButton name='import' title='Import Voters' onClick={() => setShowImportVoters(true)} />
-						<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.loading} />
-						<ActionButton name='close' title='Close' onClick={close} />
-					</span>
-				</div>
-			</div>
+			<TopRow style={{maxWidth}}>
+				<span><label>{votingPoolType} ballot voting pool:&nbsp;</label>{votingPoolName}</span>
+				<span>
+					<ActionButton name='add' title='Add Voter' onClick={handleAddVoter} />
+					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
+					<ActionButton name='import' title='Import Voters' onClick={() => setShowImportVoters(true)} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.loading} />
+					<ActionButton name='close' title='Close' onClick={close} />
+				</span>
+			</TopRow>
 
-			<div style={{flex: 1}}>
+			<TableRow style={{maxWidth}}>
 				<AppTable
+					key={columns}
 					fixed
 					columns={columns}
 					controlColumn
 					dataSet='voters'
 					headerHeight={60}
-					estimatedRowHeight={32}
+					estimatedRowHeight={36}
 					loading={props.loading}
-					onRowDoubleClick={handleUpdateVoter}
-					data={props.voters}
-					dataMap={props.votersMap}
 					rowKey={primaryDataKey}
 				/>
-			</div>
+			</TableRow>
 
 			<VoterEditModal
 				isOpen={!!editVoter.action}

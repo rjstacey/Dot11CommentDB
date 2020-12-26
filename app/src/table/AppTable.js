@@ -10,7 +10,7 @@ import TableHeader from './AppTableHeader'
 import {ControlHeader, ControlCell} from './ControlColumn'
 import {debounce, getScrollbarSize} from '../lib/utils'
 import {setSelected} from '../actions/select'
-import {uiInitTable, uiSetTableColumnWidths} from '../actions/ui'
+import {uiInitTable, uiSetTableColumns} from '../actions/ui'
 import {getDataMap} from '../selectors/dataMap'
 
 const scrollbarSize = getScrollbarSize();
@@ -29,8 +29,9 @@ const Table = styled.div`
 		flex-flow: row nowrap;
 		box-sizing: border-box;
 	}
+	.AppTable__headerContainer,
 	.AppTable__headerRow {
-		background-color: white;
+		background-color: #efefef;
 	}
 	.AppTable__dataRow {
 		padding: 5px 0;
@@ -77,15 +78,15 @@ class AppTableSized extends React.PureComponent {
 		if (!props.tableConfig) {
 			tableConfig = props.defaultTableConfig || {fixed: false, columns: Immutable.Map()};
 			props.initTableConfig(tableConfig.fixed, tableConfig.columns);
-			console.log('init', props.defaultTableConfig, tableConfig)
+			//console.log('init', props.defaultTableConfig, tableConfig)
 		}
 		else {
 			tableConfig = props.tableConfig;
-			console.log('state', tableConfig)
+			//console.log('state', tableConfig)
 		}
 
 		let columns = props.columns
-			.filter((col, key) => tableConfig.columns.has(key)? tableConfig.columns.get(key).visible: true)
+			//.filter((col, key) => tableConfig.columns.has(key)? tableConfig.columns.get(key).visible: true)
 			.map((col, key) => (tableConfig.columns.has(key)? {...col, width: tableConfig.columns.get(key).width}: col));
 		if (props.controlColumn)
 			columns = Immutable.OrderedMap({'__ctrl__': controlColumn}).concat(columns);
@@ -111,15 +112,14 @@ class AppTableSized extends React.PureComponent {
 
 	componentDidUpdate(prevProps, prevState) {
 		if (prevProps.width !== this.props.width && this.gridRef) {
-			console.log('width change')
 			this.gridRef.resetAfterColumnIndex(0, true);
 		}
 	}
 
 	componentWillUnmount() {
 		//console.log('unmount and emit')
-		const widths = this.state.columns.map((col, key) => col.width);
-		this.props.setTableColumnWidths(widths);
+		const columns = this.state.columns.map((col, key) => ({width: col.width}));
+		this.props.setTableColumns(columns);
 	}
 
 	setColumnWidth = (key, deltaX) => {
@@ -261,6 +261,7 @@ class AppTableSized extends React.PureComponent {
 						onScroll={this.handleScroll}
 					>
 						{({rowIndex, style}) => {
+							const rowKey = props.rowKey
 							const rowData = props.rowGetter? 
 								props.rowGetter({rowIndex, data: props.data, dataMap: props.dataMap}): 
 								props.data[props.dataMap[rowIndex]]
@@ -277,7 +278,7 @@ class AppTableSized extends React.PureComponent {
 
 							return (
 								<TableRow
-									key={rowIndex}
+									key={rowKey? rowData[rowKey]: rowIndex}
 									className={classNames.join(' ')}
 									style={style}
 									fixed={this.fixed}
@@ -306,7 +307,6 @@ class AppTableSized extends React.PureComponent {
 					innerStyle={{width: this.fixed? totalWidth + scrollbarSize: '100%'}}
 					scrollbarSize={scrollbarSize}
 					columns={this.state.columns}
-					//setColumnWidth={(index, width) => this.props.setColumnWidth(this.state.columns[index].key, width)}
 					setColumnWidth={this.setColumnWidth}
 					setTableWidth={this.props.resizeWidth}
 					dataSet={props.dataSet}
@@ -365,7 +365,7 @@ export default connect(
 		return {
 			setSelected: ids => dispatch(setSelected(dataSet, ids)),
 			initTableConfig: (fixed, columns) => dispatch(uiInitTable(dataSet, tableView, fixed, columns)),
-			setTableColumnWidths: (key, width) => dispatch(uiSetTableColumnWidths(dataSet, tableView, key, width))
+			setTableColumns: (columns) => dispatch(uiSetTableColumns(dataSet, tableView, columns))
 		}
 	}
 )(AppTable)

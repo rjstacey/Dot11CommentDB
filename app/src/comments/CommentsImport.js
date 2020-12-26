@@ -2,9 +2,10 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppModal from '../modals/AppModal'
+import {Form, Row, Col, List, ListItem, Field} from '../general/Form'
 import ConfirmModal from '../modals/ConfirmModal'
 import {uploadResolutions, FieldsToUpdate, MatchAlgorithm} from '../actions/comments'
+import {ActionButtonDropdown} from '../general/Dropdown'
 
 const importFieldOptions = [
 	{value: FieldsToUpdate.CID,
@@ -31,7 +32,7 @@ const importFieldOptions = [
 ]
 
 const matchAlgoOptions = [
-	{value: MatchAlgorithm.Ellimination,
+	{value: MatchAlgorithm.Elimination,
 		label: 'Successive elimination',
 		description: 'Successively eliminate rows that do not match until only one row is left by matching, in order, Commenter, Category, Page, ' +
 		'Line, Comment and Proposed Change. Fields that might have issues are only matched if needed.'},
@@ -43,58 +44,11 @@ const matchAlgoOptions = [
 		description: 'Match CID'}
 ]
 
-const Form = styled.div`
+const CommentsImportForm = styled(Form)`
 	width: 600px;
-	overflow: visible;
-	& input[type=radio],
-	& input[type=checkbox] {
-		margin-right: 10px;
-	}
-	& input[id=sheetName] {
-		width: 200px;
-	}
-	& button {
-		width: 100px;
-		padding: 8px 16px;
-		border: none;
-		background: #333;
-		color: #f2f2f2;
-		text-transform: uppercase;
-		border-radius: 2px;
-	}
-	& .titleRow {
-		justify-content: center;
-	}
-	& .errMsgRow {
-		justify-content: center;
-		color: red
-	}
-	& .buttonRow {
-		margin-top: 30px;
-		justify-content: space-around;
-	}`
+`;
 
-const FormRow = styled.div`
-	display: flex;
-	flex-wrap: wrap;
-	margin: 10px;`
-
-const FormCol = styled.div`
-	display: flex;
-	flex-direction: column;
-	margin: 10px;`
-
-const Label = styled.label`
-	font-weight: bold;`
-
-function CommentsImportModal({ballotId, isOpen, close, upload}) {
-	const fileRef = React.useRef()
-	const [fields, setFields] = React.useState([])
-	const [algo, setAlgo] = React.useState(MatchAlgorithm.CID)
-	const [matchAll, setMatchAll] = React.useState(true)
-	const [sheetName, setSheetName] = React.useState('Comments')
-	const [errMsg, setErrMsg] = React.useState('')
-
+const ImportFieldsList = ({fields, setFields}) => {
 	const changeImportFields = e => {
 		const newFields = fields.slice()
 		if (e.target.checked) {
@@ -105,9 +59,55 @@ function CommentsImportModal({ballotId, isOpen, close, upload}) {
 			if (i >= 0)
 				newFields.splice(i, 1)
 		}
-		console.log(newFields)
 		setFields(newFields)
 	}
+	return (
+		<List
+			label='Import fields (selected fields will be overwritten):'
+		>
+			{importFieldOptions.map(a => 
+				<ListItem key={a.value}>
+					<input type='checkbox' title={a.description} value={a.value} checked={fields.includes(a.value)} onChange={changeImportFields} />
+					<label>{a.label}</label>
+				</ListItem>
+			)}
+		</List>
+	)
+}
+
+const MatchAlgoList = ({algo, setAlgo}) =>
+	<List
+		label='Match algorithm:'
+	>
+		{matchAlgoOptions.map(a => 
+			<ListItem key={a.value}>
+				<input type='radio' title={a.description} value={a.value} checked={algo === a.value} onChange={e => setAlgo(e.target.value)} />
+				<label>{a.label}</label>
+			</ListItem>
+		)}
+	</List>
+
+const UpdateList = ({matchAll, setMatchAll}) =>
+	<List
+		label='Update:'
+	>
+		<ListItem>
+			<input type='radio' id='matchAll' checked={matchAll} onChange={e => setMatchAll(!matchAll)} />
+			<label htmlFor='matchAll'>All comments and only if all comments match</label>
+		</ListItem>
+		<ListItem>
+			<input type='radio' id='matchAny' checked={!matchAll} onChange={e => setMatchAll(!matchAll)} />
+			<label htmlFor='matchAny'>Comments that match</label>
+		</ListItem>
+	</List>
+
+function _CommentsImportDropdown({ballotId, close, upload}) {
+	const fileRef = React.useRef()
+	const [fields, setFields] = React.useState([])
+	const [algo, setAlgo] = React.useState(MatchAlgorithm.CID)
+	const [matchAll, setMatchAll] = React.useState(true)
+	const [sheetName, setSheetName] = React.useState('Comments')
+	const [errMsg, setErrMsg] = React.useState('')
 
 	async function submit() {
 		const file = fileRef.current.files[0]
@@ -126,83 +126,76 @@ function CommentsImportModal({ballotId, isOpen, close, upload}) {
 	}
 
 	return (
-		<AppModal
-			isOpen={isOpen}
-			onRequestClose={close}
+		<CommentsImportForm
+			title={`Import fields for ${ballotId} from Excel spreadsheet`}
+			errorText={errMsg}
+			submit={submit}
+			cancel={close}
 		>
-			<Form>
-				<FormRow className='titleRow'>
-					<h3>Import fields for {ballotId} from an Excel spreadsheet</h3>
-				</FormRow>
-				<FormCol>
-					<span><Label>Import fields:</Label> (existing content will be overwritten)</span>
-					<div>
-						{importFieldOptions.map(a => 
-							<React.Fragment key={a.value}>
-								<input type='checkbox' title={a.description} value={a.value} checked={fields.includes(a.value)} onChange={changeImportFields} />
-								<label>{a.label}</label><br />
-							</React.Fragment>
-						)}
-					</div>
-				</FormCol>
-				<FormCol>
-					<Label>Match algorithm:</Label>
-					<div>
-						{matchAlgoOptions.map(a => 
-							<React.Fragment key={a.value}>
-								<input type='radio' title={a.description} value={a.value} checked={algo === a.value} onChange={e => setAlgo(e.target.value)} />
-								<label>{a.label}</label><br />
-							</React.Fragment>
-						)}
-					</div>
-				</FormCol>
-				<FormCol>
-					<Label>Update:</Label>
-					<div>
-						<input type='radio' id='matchAll' checked={matchAll} onChange={e => setMatchAll(!matchAll)} />
-						<label htmlFor='matchAll'>All comments and only if all comments match</label><br />
-						<input type='radio' id='matchAny' checked={!matchAll} onChange={e => setMatchAll(!matchAll)} />
-						<label htmlFor='matchAny'>Comments that match</label>
-					</div>
-				</FormCol>
-				<FormCol>
-					<Label htmlFor='fileInput'>Spreadsheet:</Label>
-					<input
-						type='file'
-						id='fileInput'
-						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-						ref={fileRef}
-						onClick={e => setErrMsg('')}
-					/>
-				</FormCol>
-				<FormCol>
-					<Label htmlFor='sheetName'>Worksheet name:</Label>
-					<input type='text' id='sheetName' value={sheetName} onChange={e => setSheetName(e.target.value)} />
-				</FormCol>
-				<FormRow className='errMsgRow'>
-					<span>{errMsg || '\u00A0'}</span>
-				</FormRow>
-				<FormRow className='buttonRow'>
-					<button onClick={submit}>OK</button>
-					<button onClick={close}>Cancel</button>
-				</FormRow>
-			</Form>
-		</AppModal>
+			<Row>
+				<Col>
+					<ImportFieldsList fields={fields} setFields={setFields}	/>
+				</Col>
+				<Col>
+					<Row>
+						<MatchAlgoList algo={algo} setAlgo={setAlgo} />
+					</Row>
+					<Row>
+						<UpdateList matchAll={matchAll} setMatchAll={setMatchAll} />
+					</Row>
+				</Col>
+			</Row>
+			<Field
+				label='Spreadsheet file:'
+				style={{justifyContent: 'left'}}
+			>
+				<input
+					type='file'
+					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+					ref={fileRef}
+					onClick={e => setErrMsg('')}
+				/>
+			</Field>
+			<Field
+				label='Worksheet name:'
+				style={{justifyContent: 'left'}}
+			>
+				<input type='text' value={sheetName} onChange={e => setSheetName(e.target.value)} />
+			</Field>
+		</CommentsImportForm>
 	)
 }
 
-CommentsImportModal.propTypes = {
-	isOpen: PropTypes.bool.isRequired,
+_CommentsImportDropdown.propTypes = {
 	close: PropTypes.func.isRequired,
 	ballotId: PropTypes.string.isRequired,
 	upload: PropTypes.func.isRequired
 }
 
-export default connect(
+const CommentsImportDropdown = connect(
 	null,
 	(dispatch, ownProps) => {
 		return {
 			upload: (...args) => dispatch(uploadResolutions(...args))
 		}
-	} 
-)(CommentsImportModal)
+	}
+)(_CommentsImportDropdown)
+
+function CommentsImport({
+	className,
+	style,
+	ballotId
+}) {
+	return (
+		<ActionButtonDropdown
+			name='upload'
+			title='Upload resolutions'
+			disabled={!ballotId}
+		>
+			<CommentsImportDropdown
+				ballotId={ballotId}
+			/>
+		</ActionButtonDropdown>
+	)
+}
+export default CommentsImport;

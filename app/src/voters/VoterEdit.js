@@ -3,17 +3,13 @@ import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppModal from '../modals/AppModal'
+import {Form, Field} from '../general/Form'
 import {addVoter, updateVoter} from '../actions/voters'
 import {setError} from '../actions/error'
 import {shallowDiff} from '../lib/utils'
 
-const Form = styled.div`
+const VoterEditForm = styled(Form)`
 	width: 400px;
-	& label {
-		font-weight: bold;
-		text-align: left;
-		width: 100px;
-	}
 	& input[name=SAPIN] {
 		width: 100px;
 	}
@@ -33,32 +29,6 @@ const Form = styled.div`
 	& select[name=Status] {
 		width: 200px;
 	}
-	& button {
-		width: 100px;
-		padding: 8px 16px;
-		border: none;
-		background: #333;
-		color: #f2f2f2;
-		text-transform: uppercase;
-		border-radius: 2px;
-	}
-	& .titleRow {
-		justify-content: center;
-	}
-	& .errMsgRow {
-		justify-content: center;
-		color: red
-	}
-	& .buttonRow {
-		margin-top: 30px;
-		justify-content: space-around;
-	}
-`;
-
-const FormRow = styled.div`
-	display: flex;
-	flex-wrap: wrap;
-	margin: 10px;
 `;
 
 function VoterEditModal({
@@ -71,8 +41,7 @@ function VoterEditModal({
 	updateVoter,
 	addVoter,
 	setError,
-	}) {
-
+}) {
 	const [state, setState] = React.useState(voter)
 
 	const onOpen = () => setState(voter)
@@ -105,51 +74,43 @@ function VoterEditModal({
 	}
 
 	const title = action === 'add'
-		? 'Add voter to voting pool ' + votingPoolName
+		? 'Add voter to voter pool ' + votingPoolName
 		: 'Update voter'
 
 	const wgVoterFields = (
 		<React.Fragment>
-			<FormRow>
-				<label>SA PIN:</label>
+			<Field label='SA PIN:'>
 				<input type='text' name='SAPIN' value={state.SAPIN} onChange={change}/>
-			</FormRow>
-			<FormRow>
-				<label>Last Name:</label>
+			</Field>
+			<Field label='Last name:'>
 				<input type='text' name='LastName' value={state.LastName} onChange={change}/>
-			</FormRow>
-			<FormRow>
-				<label>First Name:</label>
+			</Field>
+			<Field label='First name:'>
 				<input type='text' name='FirstName' value={state.FirstName} onChange={change}/>
-			</FormRow>
-			<FormRow>
-				<label>MI:</label>
+			</Field>
+			<Field label='MI:'>
 				<input type='text' name='MI' value={state.MI} onChange={change}/>
-			</FormRow>
-			<FormRow>
-				<label>Email:</label>
+			</Field>
+			<Field label='Email:'>
 				<input type='text' name='Email' value={state.Email} onChange={change}/>
-			</FormRow>
-			<FormRow>
-				<label>Status:</label>
+			</Field>
+			<Field label='Status:'>
 				<select name='Status' value={state.Status} onChange={change}>
 					<option value='Voter'>Voter</option>
 					<option value='ExOfficio'>ExOfficio</option>
 				</select>
-			</FormRow>
+			</Field>
 		</React.Fragment>
 	)
 
 	const saVoterFields = (
 		<React.Fragment>
-			<FormRow>
-				<label>Name:</label>
+			<Field label='Name:'>
 				<input type='text' name='Name' value={state.Name} onChange={change}/>
-			</FormRow>
-			<FormRow>
-				<label>Email:</label>
+			</Field>
+			<Field label='Email:'>
 				<input type='text' name='Email' value={state.Email} onChange={change}/>
-			</FormRow>
+			</Field>
 		</React.Fragment>
 	)
 
@@ -159,16 +120,13 @@ function VoterEditModal({
 			onAfterOpen={onOpen}
 			onRequestClose={close}
 		>
-			<Form>
-				<FormRow className='titleRow'>
-					<h3>{title}</h3>
-				</FormRow>
+			<VoterEditForm
+				title={title}
+				submit={submit}
+				cancel={close}
+			>
 				{votingPoolType === 'SA'? saVoterFields: wgVoterFields}
-				<FormRow className='buttonRow'>
-					<button onClick={submit}>OK</button>
-					<button onClick={close}>Cancel</button>
-				</FormRow>
-			</Form>
+			</VoterEditForm>
 		</AppModal>
 	)
 }

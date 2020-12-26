@@ -85,7 +85,8 @@ const ActiveFilterContainer = styled.div`
 	background: #0074d9;
 	color: #fff;
 	align-items: center;
-	:hover {opacity: 0.9}`
+	:hover {opacity: 0.9}
+`;
 
 const ActiveFilterItem = styled.span`
 	color: #fff;

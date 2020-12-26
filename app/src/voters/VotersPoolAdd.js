@@ -1,43 +1,9 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import styled from '@emotion/styled'
 import AppModal from '../modals/AppModal'
+import {Form, Row, Field} from '../general/Form'
 import {uploadVoters} from '../actions/voters'
-
-const Form = styled.div`
-	width: 400px;
-	& label {
-		font-weight: bold;
-		text-align: left;
-	}
-	& button {
-		width: 100px;
-		padding: 8px 16px;
-		border: none;
-		background: #333;
-		color: #f2f2f2;
-		text-transform: uppercase;
-		border-radius: 2px;
-	}
-	& .titleRow {
-		justify-content: center;
-	}
-	& .errMsgRow {
-		justify-content: center;
-		color: red
-	}
-	& .buttonRow {
-		margin-top: 30px;
-		justify-content: space-around;
-	}
-`;
-
-const FormRow = styled.div`
-	display: flex;
-	flex-wrap: wrap;
-	margin: 10px;
-`;
 
 const defaultState = {
 	votingPoolName: '',
@@ -51,7 +17,6 @@ function VotersPoolAddModal({
 	uploadVoters,
 	setError
 }) {
-
 	const [state, setState] = React.useState(defaultState)
 	const [errMsg, setErrMsg] = React.useState('')
 	const fileInputRef = React.useRef()
@@ -68,12 +33,11 @@ function VotersPoolAddModal({
 		const {votingPoolType, votingPoolName} = state
 		const file = fileInputRef.current.files[0]
 		if (!state.votingPoolName) {
-			setErrMsg('Voting pool must have a name');
+			setErrMsg('Voter pool must have a name');
 			return
 		}
-		if (file) {
+		if (file)
 			await uploadVoters(votingPoolType, votingPoolName, file)
-		}
 		onSubmit(votingPoolType, votingPoolName)
 	}
 
@@ -83,39 +47,33 @@ function VotersPoolAddModal({
 			onAfterOpen={onOpen}
 			onRequestClose={close}
 		>
-			<Form>
-				<FormRow className='titleRow'>
-					<h3>Add voters pool</h3>
-				</FormRow>
-				<FormRow>
-					<label>Pool Name:</label>
+			<Form
+				title='Add voter pool'
+				errorText={errMsg}
+				submit={submit}
+				cancel={close}
+			>
+				<Field label='Pool name:'>
 					<input type='text' name='votingPoolName' value={state.votingPoolName} onChange={onChange}/>
-				</FormRow>
-				<FormRow>
+				</Field>
+				<Row>
 					<input type="radio" name='votingPoolType' value='WG' checked={state.votingPoolType === 'WG'} onChange={onChange} />
 					<label>WG ballot pool</label>
-				</FormRow>
-				<FormRow>
+				</Row>
+				<Row>
 					<input type="radio" name='votingPoolType' value='SA' checked={state.votingPoolType === 'SA'} onChange={onChange} />
 					<label>SA ballot pool</label>
-				</FormRow>
-				<FormRow>
+				</Row>
+				<Row>
 					<label>Voters spreadsheet (optional):</label>
-				</FormRow>
-				<FormRow>
+				</Row>
+				<Row>
 					<input
 						type='file'
 						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 						ref={fileInputRef}
 					/>
-				</FormRow>
-				<FormRow className='errMsgRow'>
-					<span>{errMsg}</span>
-				</FormRow>
-				<FormRow className='buttonRow'>
-					<button onClick={submit}>OK</button>
-					<button onClick={close}>Cancel</button>
-				</FormRow>
+				</Row>
 			</Form>
 		</AppModal>
 	)

@@ -56,7 +56,7 @@ function RowSelector(props) {
 
 	const handleClose = (e) => {
 		// ignore if not open or event target is an element inside the dropdown
-		if (!open || anchorRef.current.lastChild.contains(e.target)) {
+		if (!open || (anchorRef && anchorRef.current.lastChild.contains(e.target))) {
 			return;
 		}
 		setOpen(false)

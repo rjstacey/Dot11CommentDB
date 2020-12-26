@@ -6,20 +6,22 @@ import {getBallots, setProject, setBallotId} from '../actions/ballots'
 import {getProjectList, getBallotList} from '../selectors/ballots'
 import styled from '@emotion/styled'
 
-const Container = styled.div`
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-`;
 
 const Label = styled.label`
 	font-weight: bold;
-	margin: 10px;
+	margin-right: 10px;
 `;
 
 const StyledSelect = styled(Select)`
-	min-height: 22px;
+	min-height: unset;
 	width: unset;
+	flex: 0 1 ${({width}) => width}px;
+	margin-right: 20px;
+`;
+
+const Container = styled.div`
+	display: flex;
+	align-items: center;
 `;
 
 function ProjectSelect({project, setProject, projectList, loading, readOnly}) {
@@ -38,7 +40,7 @@ function ProjectSelect({project, setProject, projectList, loading, readOnly}) {
 
 	return (
 		<StyledSelect
-			styled={{minWidth: 100}}
+			width={100}
 			values={value? [value]: []}
 			onChange={handleChange}
 			options={options}
@@ -62,7 +64,7 @@ function BallotSelect({ballotId, setBallotId, ballotList, loading, readOnly}) {
 
 	return (
 		<StyledSelect
-			style={{minWidth: 250}}
+			width={250}
 			values={value? [value]: []}
 			onChange={handleChange}
 			options={ballotList}
@@ -73,6 +75,8 @@ function BallotSelect({ballotId, setBallotId, ballotList, loading, readOnly}) {
 }
 
 function BallotSelector({
+	className,
+	style,
 	valid,
 	loading,
 	project,
@@ -98,7 +102,10 @@ function BallotSelector({
 	}
 
 	return (
-		<Container>
+		<Container
+			className={className}
+			style={style}
+		>
 			<Label>Project:</Label>
 			<ProjectSelect
 				project={project}
@@ -124,6 +131,7 @@ BallotSelector.propTypes = {
 	ballotId: PropTypes.string.isRequired,
 	projectList: PropTypes.array.isRequired,
 	ballotList: PropTypes.array.isRequired,
+	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
 	getBallots: PropTypes.func.isRequired,
 	setProject: PropTypes.func.isRequired,

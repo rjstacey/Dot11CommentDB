@@ -82,13 +82,6 @@ function getResultsSummary(ballot, r, votingPoolSize) {
 	return summary
 }
 
-const Col = styled.div`
-	display: flex;
-	flex-direction: column;
-	flex: 0 1 ${({width}) => width}px;
-	padding-right: 20px;
-`;
-
 const Title = styled.div`
 	font-weight: bold;
 	margin: 5px 0 5px 0;
@@ -99,17 +92,19 @@ const LV = styled.div`
 	justify-content: space-between;
 `;
 
-const Content = styled.div`
+const Col = styled.div`
 	display: flex;
-	justify-content: space-between;
-	width: 100%;
-	max-width: 1400px;
+	flex-direction: column;
+	flex: 0 1 ${({width}) => width}px;
+	padding: 0 20px;
 `;
 
 const Container = styled.div`
+	position: relative;
 	display: flex;
-	flex-direction: row;
 	justify-content: space-between;
+	width: 100%;
+	margin: 0 10px;
 `;
 
 const PassFailBlock = styled.div`
@@ -117,8 +112,6 @@ const PassFailBlock = styled.div`
 `;
 
 const PassFailSpan = PassFailBlock.withComponent('span');
-
-//const passFailStyle = (pass) => typeof pass === 'boolean'? {backgroundColor: pass? '#d3ecd3': '#f3c0c0'}: null
 
 const LabelValue = ({label, children, ...otherProps}) =>
 	<LV {...otherProps} >
@@ -128,11 +121,11 @@ const LabelValue = ({label, children, ...otherProps}) =>
 
 const ballotTypeLabel = (ballotType) => {
 	const labels = {
-		[BallotType.CC]: 'Comment Collection',
-		[BallotType.WG_Initial]: 'Initial WG Ballot',
-		[BallotType.WG_Recirc]: 'Recirculation WG Ballot',
-		[BallotType.SA_Initial]: 'Initial SA Ballot',
-		[BallotType.SA_Recirc]: 'Recirculation SA Ballot',
+		[BallotType.CC]: 'Comment collection',
+		[BallotType.WG_Initial]: 'Initial WG ballot',
+		[BallotType.WG_Recirc]: 'Recirculation WG ballot',
+		[BallotType.SA_Initial]: 'Initial SA ballot',
+		[BallotType.SA_Recirc]: 'Recirculation SA ballot',
 		[BallotType.Motion]: 'Motion'
 	}
 	return labels[ballotType] || 'Uexpected ballot type';
@@ -186,45 +179,45 @@ const ApprovalCriteriaColumn = ({ballot, summary}) =>
 	</Col>
 
 const DetailedSummary = ({ballot, summary}) =>
-	<Content>
+	<React.Fragment>
 		<BallotColumn ballot={ballot} summary={summary} />
 		<ResultColumn ballot={ballot} summary={summary} />
 		{(ballot.Type === BallotType.WG_Initial || ballot.Type === BallotType.WG_Recirc) &&
 			<InvalidVotesColumn summary={summary} />}
 		{ballot.Type !== BallotType.CC &&
 			<ApprovalCriteriaColumn ballot={ballot} summary={summary} />}
-	</Content>
+	</React.Fragment>
 
 const BasicSummary = ({ballot, summary}) =>
-	<Content>
-		<Title>{ballotTypeLabel(ballot.Type)}</Title>
-		<span>
-			<Title>Result:</Title>
+	<React.Fragment>
+		<Col>
+			<Title>{ballotTypeLabel(ballot.Type)}</Title>
+		</Col>
+		<Col>
 			<PassFailSpan pass={summary.approvalRatePass}>{summary.approve}/{summary.disapprove}/{summary.abstain} ({summary.approvalRate})</PassFailSpan>
-		</span>
-	</Content>
+		</Col>
+	</React.Fragment>
 
 function ResultsSummary({
+	className,
+	style,
 	ballot,
 	resultsSummary,
-	votingPoolSize,
-	style,
-	className
+	votingPoolSize
 }) {
 	const [showSummary, setShowSummary] = React.useState(true);
 	const summary = getResultsSummary(ballot, resultsSummary, votingPoolSize);
-	console.log(summary, typeof summary.approvalRatePass)
+
 	return (
 		<Container
 			className={className}
 			style={style}
 		>
-			{
-				showSummary?
-					<DetailedSummary ballot={ballot} summary={summary} />:
-					<BasicSummary ballot={ballot} summary={summary} />
-			}
+			{showSummary?
+				<DetailedSummary ballot={ballot} summary={summary} />:
+				<BasicSummary ballot={ballot} summary={summary} />}
 			<Handle
+				style={{position: 'absolute', right: 0}}
 				open={showSummary}
 				onClick={() => setShowSummary(!showSummary)}
 			/>

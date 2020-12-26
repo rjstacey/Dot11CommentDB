@@ -3,38 +3,12 @@ import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppModal from '../modals/AppModal'
+import {Form, Row} from '../general/Form'
 import {uploadVoters} from '../actions/voters'
 
-const Form = styled.div`
+const VotersImportForm = styled(Form)`
 	width: 400px;
-	& button {
-		width: 100px;
-		padding: 8px 16px;
-		border: none;
-		background: #333;
-		color: #f2f2f2;
-		text-transform: uppercase;
-		border-radius: 2px;
-	}
-	& .titleRow {
-		justify-content: center;
-	}
-	& .errMsgRow {
-		justify-content: center;
-		color: red
-	}
-	& .buttonRow {
-		margin-top: 30px;
-		justify-content: space-around;
-	}
 `;
-
-const FormRow = styled.div`
-	display: flex;
-	flex-wrap: wrap;
-	margin: 10px;
-`;
-
 
 function VotersImportModal({
 	isOpen,
@@ -42,8 +16,7 @@ function VotersImportModal({
 	votingPoolName,
 	votingPoolType,
 	uploadVoters
-	}) {
-
+}) {
 	const fileInputRef = React.useRef();
 	const [errMsg, setErrMsg] = React.useState('')
 
@@ -62,25 +35,20 @@ function VotersImportModal({
 			isOpen={isOpen}
 			onRequestClose={close}
 		>
-			<Form>
-				<FormRow className='titleRow'>
-					<h3>Import voters list for {votingPoolName}</h3>
-				</FormRow>
-				<FormRow>
+			<VotersImportForm
+				title={`Import voters list for ${votingPoolName}`}
+				errorText={errMsg}
+				submit={submit}
+				cancel={close}
+			>
+				<Row>
 					<input
 						type='file'
 						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 						ref={fileInputRef}
 					/>
-				</FormRow>
-				<FormRow className='errMsgRow'>
-					<span>{errMsg}</span>
-				</FormRow>
-				<FormRow className='buttonRow'>
-					<button onClick={submit}>OK</button>
-					<button onClick={close}>Cancel</button>
-				</FormRow>
-			</Form>
+				</Row>
+			</VotersImportForm>
 		</AppModal>
 	)
 }

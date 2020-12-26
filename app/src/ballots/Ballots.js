@@ -3,6 +3,7 @@ import React from 'react'
 import {Link, useHistory, useParams} from "react-router-dom"
 import {connect} from 'react-redux'
 import Immutable from 'immutable'
+import styled from '@emotion/styled'
 import BallotDetailModal from './BallotDetail'
 import ConfirmModal from '../modals/ConfirmModal'
 import AppTable from '../table/AppTable'
@@ -13,8 +14,17 @@ import {setSort} from '../actions/sort'
 import {getDataMap} from '../selectors/dataMap'
 import {getVotingPools} from '../actions/votingPools'
 import {ActionButton} from '../general/Icons'
-import styled from '@emotion/styled'
 
+const ActionCell = styled.div`
+	display: flex;
+	justify-content: center;
+`;
+
+const RowActions = ({onEdit, onDelete}) =>
+	<ActionCell>
+		<ActionButton name='edit' title='Edit' onClick={onEdit} />
+		<ActionButton name='delete' title='Delete' onClick={onDelete} />
+	</ActionCell>
 
 const DataSubcomponent = styled.div`
 	flex: 1 1 ${({width}) => width && typeof width === 'string'? width: width + 'px'};
@@ -76,7 +86,7 @@ function renderDate({rowData, dataKey}) {
 	return str
 }
 
-const columns = Immutable.OrderedMap({
+const tableColumns = Immutable.OrderedMap({
 	Project:
 		{label: 'Project',
 			width: 100,	flexShrink: 0, flexGrow: 0},
@@ -112,70 +122,71 @@ const columns = Immutable.OrderedMap({
 	Comments:
 		{label: 'Comments',
 			width: 100,	flexShrink: 1, flexGrow: 1,
-			cellRenderer: renderCommentsSummary}
+			cellRenderer: renderCommentsSummary},
+	Actions:
+		{label: 'Actions',
+			width: 100,	flexShrink: 1, flexGrow: 1}
 });
 
-const primaryDataKey = 'BallotID'
+const primaryDataKey = 'BallotID';
+const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
 
 // The action row height is determined by its content
 const ActionRow = styled.div`
 	display: flex;
 	justify-content: space-between;
+	width: 100%;
 `;
 
 // The table row grows to the available height
 const TableRow = styled.div`
 	flex: 1;
+	width: 100%;
 `;
 
 function Ballots(props) {
 	const history = useHistory();
 	const {ballotId} = useParams();
-	//const [ballotId, setBallotId] = React.useState(null);
-	const width = Math.min(window.innerWidth, columns.reduce((acc, col) => acc + col.width, 0) + 40)
+
+	const columns = React.useMemo(() => {
+		return tableColumns.update('Actions', c => ({
+			...c,
+			cellRenderer: ({rowData}) => 
+				<RowActions
+					onEdit={() => history.push(`/Ballots/${rowData.BallotID}`)}
+					onDelete={() => deleteBallot(rowData)}
+				/>
+		}));
+	}, []);
 
 	React.useEffect(() => {
 		if (!props.ballotsValid && !props.loading)
 			props.getBallots()
 		if (!props.votingPoolsValid)
 			props.getVotingPools()
-	}, [])
+	}, []);
 
-	const addBallot = event => history.push('/Ballots/+')
-	const editBallot = () => props.selected.length && history.push(`/Ballots/${props.selected[0]}`)
-	const closeBallot = () => history.push('/Ballots')
-	const deleteBallots = async () => {
-		const {ballots, ballotsMap, selected} = props
-		let ids = []
-		ballotsMap.forEach(i => { // only select checked items that are visible
-			let id = ballots[i][primaryDataKey]
-			if (selected.includes(id)) {
-				ids.push(id)
-			}
-		})
-		if (ids.length) {
-			const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?')
-			if (ok)
-				await props.deleteBallots(ids)
-		}
+	const deleteBallot = async (ballot) => {
+		const ok = await ConfirmModal.show(`Are you sure you want to delete ${ballot.BallotID}?`)
+		if (ok)
+			await props.deleteBallots([ballot.BallotID])
 	}
-
-	const showEpolls = e => history.push('/Epolls/')
+	const addBallot = event => history.push('/Ballots/+')
+	const closeBallot = () => history.push('/Ballots')
+	const showEpolls = () => history.push('/Epolls/')
 
 	return (
 		<React.Fragment>
-			<ActionRow style={{width}}>
+			<ActionRow style={{maxWidth}}>
 				<span><label>Ballots</label></span>
 				<span>
 					<ActionButton name='add' title='Add' onClick={addBallot} />
-					<ActionButton name='edit' title='Edit' disabled={props.selected.length === 0} onClick={editBallot} />
-					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={deleteBallots} />
 					<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
 					<ActionButton name='refresh' title='Refresh' onClick={props.getBallots} disabled={props.loading} />
 				</span>
 			</ActionRow>
 
-			<TableRow style={{width}}>
+			<TableRow style={{maxWidth}}>
 				<AppTable
 					columns={columns}
 					controlColumn
@@ -185,7 +196,6 @@ function Ballots(props) {
 					rowHeight={40}
 					estimatedRowHeight={54}
 					loading={props.loading}
-					onRowDoubleClick={editBallot}
 				/>
 			</TableRow>
 

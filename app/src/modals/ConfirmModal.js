@@ -1,5 +1,6 @@
 import React from 'react';
 import AppModal from './AppModal';
+import {Form} from '../general/Form'
 
 let resolve;
 
@@ -36,9 +37,12 @@ class ConfirmModal extends React.Component {
 				isOpen={this.state.isOpen}
 				onRequestClose={this.handleCancel}
 			>
-				<p>{this.state.message}</p>
-				<button onClick={this.handleOk}>OK</button>
-				<button onClick={this.handleCancel}>Cancel</button>
+				<Form
+					submit={this.handleOk}
+					cancel={this.handleCancel}
+				>
+					<p>{this.state.message}</p>
+				</Form>
 			</AppModal>
 		)
 	}

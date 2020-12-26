@@ -8,7 +8,6 @@ const defaultHeaderCellRenderer = (props) => <ColumnDropdown dataKey={props.colu
 
 const HeaderCell = styled.div`
 	display: flex;
-	flex-direction: row;
 `;
 
 const HeaderCellContent = styled.div`
@@ -75,15 +74,14 @@ const HeaderRow = styled.div`
  */
  const TableHeader = React.forwardRef(({
 	className,
-	fixed,
 	outerStyle,
 	innerStyle,
+	fixed,
 	columns,
 	setColumnWidth,
 	setTableWidth,
 	rowKey,
-	dataSet,
-	...otherProps}, ref) => {
+	dataSet}, ref) => {
 
 	const anchorRef = React.useRef();
 
@@ -97,7 +95,7 @@ const HeaderRow = styled.div`
 		const cellRenderer = column.headerRenderer || defaultHeaderCellRenderer
 		const cellProps = {anchorRef, dataKey: key, column, rowKey, dataSet}
 		return (
-			<HeaderCell {...otherProps}
+			<HeaderCell
 				key={key}
 				className='AppTable__headerCell'
 				style={containerStyle}
@@ -118,6 +116,7 @@ const HeaderRow = styled.div`
 		<HeaderAnchor ref={anchorRef}>
 			<HeaderContainer
 			 	ref={ref}
+			 	className='AppTable__headerContainer'
 				style={outerStyle}
 			>
 				<HeaderRow
@@ -130,17 +129,22 @@ const HeaderRow = styled.div`
 					<ColumnResizer 
 						style={{position: 'absolute', right: 0, top: 0}}
 						setWidth={setTableWidth}
-					/>
-				}
+					/>}
 			</HeaderContainer>
 		</HeaderAnchor>
 	)
 })
 
 TableHeader.propTypes = {
+	className: PropTypes.string,
+	outerStyle: PropTypes.object,
+	innerStyle: PropTypes.object,
 	fixed: PropTypes.bool,
 	columns: PropTypes.object.isRequired,
 	setColumnWidth: PropTypes.func.isRequired,
+	setTableWidth: PropTypes.func,
+	rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+	dataSet: PropTypes.string.isRequired,
 }
 
 export default TableHeader

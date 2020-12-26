@@ -68,10 +68,7 @@ const DropdownContainer = styled.div`
 	border-radius: 2px;
 	box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
 	z-index: 9;
-	:focus {
-		outline: none;
-	}
-}
+	:focus {outline: none}
 `;
 
 const Header = styled(ClickOutside)`
@@ -90,8 +87,15 @@ const Header = styled(ClickOutside)`
 		position: absolute;
 		right: 0;
 		bottom: 0;
-		background: #fff;
+		background: inherit;
 	}
+`;
+
+const Row = styled.div`
+	margin: 5px 10px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
 `;
 
 function Sort({
@@ -101,7 +105,7 @@ function Sort({
 }) {
 	const direction = sort.direction[dataKey]
 	return (
-		<span>Sort:
+		<Row>Sort:
 			<span>
 				<ActionButtonSort
 					onClick={e => setSort(dataKey, direction === SortDirection.ASC? SortDirection.NONE: SortDirection.ASC)}
@@ -116,7 +120,7 @@ function Sort({
 					isActive={direction === SortDirection.DESC}
 				/>
 			</span>
-		</span>
+		</Row>
 	)
 }
 
@@ -142,12 +146,6 @@ function Filter({
 	const regexp = new RegExp(search, 'i');
 
 	const isItemSelected = (item) => filter.values.find(v => v.value === item.value) !== undefined
-
-	const allClear = filter.values.length === 0;
-
-	const matchesSelected = filter.values.join() === selected.join();
-
-	const clearAllItems = () => setFilter([]);
 
 	const cmpFunc = sortFunc[sortType];
 	const options = filter.options?
@@ -180,30 +178,24 @@ function Filter({
 		})
 	}
 
-	if (dataKey === 'CID' && selected.length > 0) {
-		items.unshift({
-			label: 'Selected: ' + selected.join(', '),
-			isSelected: matchesSelected,
-			onChange: () => setFilter(selected)
-		})
-	}
-
 	return (
 		<React.Fragment>
-			<span>Filter:
-			{dataKey === 'CID' &&
-			<Button
-				onClick={() => setFilter(selected)}
-				disabled={selected.length === 0}
-			>
-				Selected
-			</Button>}
-			<Button
-				onClick={clearAllItems}
-				disabled={allClear}
-			>
-				Clear
-			</Button></span>
+			<Row>Filter:
+				{dataKey === 'CID' &&
+					<Button
+						onClick={() => setFilter(selected)}
+						disabled={selected.length === 0}
+						isActive={filter.values.map(v => v.value).join() === selected.join()}
+					>
+						Selected
+					</Button>}
+				<Button
+					onClick={() => setFilter([])}
+					isActive={filter.values.length === 0}
+				>
+					Clear
+				</Button>
+			</Row>
 			{dataKey === 'CID' && <StyledCommandIdFilter />}
 			<SearchInput
 				type="search"
@@ -258,9 +250,11 @@ function Dropdown({style, className, dataKey, sort, setSort, filter, setFilter, 
 	React.useEffect(() => {
 		// If the dropdown is outside the viewport, then move it
 		const bounds = containerRef.current.getBoundingClientRect();
-		if (bounds.x + bounds.width > window.innerWidth) {
+		/*if (bounds.x + bounds.width > window.innerWidth) {
 			setContainerStyle(style => ({...style, left: window.innerWidth - bounds.width}))
-		}
+		}*/
+		if (bounds.x < 0)
+			setContainerStyle(style => ({...style, left: 0, right: undefined}))
 	})
 
 	return (
@@ -327,7 +321,7 @@ function ColumnDropdown(props) {
 	const {anchorRef, column} = props;
 	const containerRef = React.useRef();
 	const [open, setOpen] = React.useState(false);
-	const [position, setPosition] = React.useState({top: 0, left: 0});
+	const [position, setPosition] = React.useState({top: 0, right: 0});
 	const width = 2*column.width;
 
 	const handleClose = (e) => {
@@ -345,10 +339,8 @@ function ColumnDropdown(props) {
 			const anchor = anchorRef.current.getBoundingClientRect();
 			const container = containerRef.current.getBoundingClientRect();
 			const top = container.y - anchor.y + container.height;
-			let left = container.x - anchor.x;
-			if (left < anchor.x)
-				left = 0;
-			setPosition(position => (top !== position.top || left !== position.left)? {top, left}: position)
+			const right = (anchor.x + anchor.width) - (container.x + container.width);
+			setPosition(position => (top !== position.top || right !== position.right)? {top, right}: position)
 		}
 		setOpen(!open)
 	}

@@ -117,7 +117,7 @@ async function parseMyProjectComments(startCommentId, buffer, isExcel) {
 	return p.map((c, i) => ({CommentID: startCommentId + i, ...parseMyProjectComment(c)}))
 }
 
-const comparisons2 = [
+/*const comparisons2 = [
 	(dbC, c) => (dbC.CommenterName === c.CommenterName),
 	(dbC, c) => (dbC.Category === c.Category),
 	(dbC, c) => (dbC.C_Clause === c.C_Clause),
@@ -139,7 +139,7 @@ function matchCommentByEllimination(comment, dbComments) {
 		}
 	}
 	return null
-}
+}*/
 
 const mapResnStatus = {
 	A: 'ACCEPTED',
@@ -460,7 +460,38 @@ const comparisons = [
 	(dbC, sC) => dbC.ProposedChange.length === sC['Proposed Change'].length,
 	(dbC, sC) => dbC.Comment === sC['Comment'],								// actual text matches
 	(dbC, sC) => dbC.ProposedChange === sC['Proposed Change']
-]
+];
+
+function findMatchByEliminationUsingTheseComparisons(dbC, sheetComments, comparisons) {
+	let scr = sheetComments;
+	for (let comp of comparisons) {
+		scr = scr.filter(sC => comp(dbC, sC))
+		if (scr.length === 0) {
+			return null
+		}
+		if (scr.length === 1) {
+			return scr[0]
+		}
+	}
+	return null
+}
+
+/*
+ * Find match by elimination, running through a set of comparisons. If a match is not found the
+ * order of the comparisons is changed. We change the order because sometimes entries in the
+ * spreadsheet have been changed and differ from the orginal comment.
+ */
+function findMatchByElimination(dbC, sheetComments) {
+	const comps = comparisons.slice()
+	for (let i = 0; i < comparisons.length; i++) {
+		console.log(i)
+		let sC = findMatchByEliminationUsingTheseComparisons(dbC, sheetComments, comps)
+		if (sC)
+			return sC
+		comps.push(comps.shift())
+	}
+	return null
+}
 
 /*
  * Successivly match columns, elimating rows that don't match as we go
@@ -491,23 +522,17 @@ function matchByElimination(sheetComments, dbComments) {
 	let dbCommentsRemaining = []	// dbComments with no match
 	let sheetCommentsRemaining = sheetComments.slice()
 	for (let dbC of dbComments) {
-		let scr = sheetCommentsRemaining.slice()
-		for (let comp of comparisons) {
-			scr = scr.filter(sC => comp(dbC, sC))
-			if (scr.length === 0) {
-				dbCommentsRemaining.push(dbC)
-				break
-			}
-			if (scr.length === 1) {
-				// Found match
-				matched.push({dbComment: dbC, sheetComment: scr[0]})
-				const i = sheetCommentsRemaining.findIndex(sC => sC === scr[0])
-				sheetCommentsRemaining.splice(i, 1)
-				break
-			}
+		let sC = findMatchByElimination(dbC, sheetCommentsRemaining)
+		if (sC) {
+			matched.push({dbComment: dbC, sheetComment: sC})
+			const i = sheetCommentsRemaining.findIndex(c => c === sC)
+			sheetCommentsRemaining.splice(i, 1)
+		}
+		else {
+			dbCommentsRemaining.push(dbC)
 		}
 	}
-	console.log('result: ', matched.length, dbCommentsRemaining.length)
+	//console.log('result: ', matched.length, dbCommentsRemaining.length)
 	return [matched, dbCommentsRemaining, sheetCommentsRemaining]
 }
 
@@ -739,7 +764,7 @@ async function updateResolution(ballotId, commentId, resolutionId, resolution) {
 			delete entry[key]
 		}
 	}
-	console.log(entry)
+	//console.log(entry)
 	let SQL = ''
 	if (Object.keys(entry).length) {
 		SQL += db.format(
@@ -872,7 +897,7 @@ async function deleteResolutions(ballotId, resolutions) {
 			[ballotId, resolutions.map(r => r.CommentID)]
 		)
 
-	console.log(SQL)
+	//console.log(SQL)
 	const results = await db.query(SQL)
 	return {
 		updatedComments: results[results.length-1]
@@ -1014,7 +1039,7 @@ async function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchAll, s
 			db.format('INSERT INTO resolutions (BallotID, ??) VALUES ', [Object.keys(newResolutions[0])]) +
 			newResolutions.map(r => db.format('(?, ?)', [ballotId, Object.values(r)])).join(',') +
 			';'
-			console.log(SQL)
+			//console.log(SQL)
 	}
 	SQL += db.format(GET_COMMENTS_SQL + 'WHERE c.BallotID=?;', [ballotId])
 	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId])
