@@ -15,9 +15,11 @@ const ActiveFilterContainer = styled.div`
 	display: flex;
 	flex-direction: row;
 	height: 22px;
+	max-width: 200px;
 	margin: 3px 3px 3px 0;
 	background: #0074d9;
 	color: #fff;
+	border-radius: 3px;
 	align-items: center;
 	:hover {opacity: 0.9}`
 
@@ -25,12 +27,15 @@ const ActiveFilterItem = styled.span`
 	color: #fff;
 	line-height: 21px;
 	padding: 0 0 0 5px;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 `;
 
 const ActiveFilterClose = styled.span`
 	cursor: pointer;
-	width: 22px;
 	text-align: center;
+	margin: 0 5px;
 	:after {content: "×"}
 	:hover {color: tomato}
 `;
@@ -52,7 +57,7 @@ function renderActiveFilters({filters, removeFilter, clearAllFilters}) {
 			elements.push(<ActiveFilterLabel key={dataKey}>{dataKey + ': '}</ActiveFilterLabel>)
 			for (let v of f.values) {
 				const o = f.options && f.options.find(o => o.value === v.value)
-				let s = o? o.label: v.value
+				let s = o? o.label: v.value.toString()
 				if (s === '')
 					s = '(Blank)'
 				elements.push(<ActiveFilter key={`${dataKey}_${v.value}`} remove={() => removeFilter(dataKey, v.value, v.filterType)}>{s}</ActiveFilter>)
@@ -69,11 +74,14 @@ function renderActiveFilters({filters, removeFilter, clearAllFilters}) {
 const FiltersContainer = styled.div`
 	display: flex;
 	flex-direction: row;
+	width: 100%;
+	padding: 10px;
+	box-sizing: border-box;
 `;
 
 const FiltersLabel = styled.div`
 	flex: content;
-	margin: 5px;
+	margin-right: 5px;
 	& label {
 		font-weight: bold;
 	}
@@ -102,7 +110,10 @@ function ShowFilters({style, className, data, dataMap, filters, removeFilter, cl
 	const activeFilterElements = renderActiveFilters({filters, removeFilter, clearAllFilters})
 
 	return (
-		<FiltersContainer style={style}>
+		<FiltersContainer
+			style={style}
+			className={className}
+		>
 			<FiltersLabel>
 				<label>Filters:</label><br/>
 				<span>{`Showing ${shownRows} of ${totalRows}`}</span>

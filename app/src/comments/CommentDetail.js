@@ -7,134 +7,155 @@ import {uiSetProperty} from '../actions/ui'
 import AdHocSelector from './AdHocSelector'
 import CommentGroupSelector from './CommentGroupSelector'
 import AssigneeSelector from './AssigneeSelector'
+import SubmissionSelector from './SubmissionSelector'
 import {ResolutionEditor} from './ResolutionEditor'
-import {ActionButton, Checkbox, Search} from '../general/Icons'
+import {ActionButton, VoteYesIcon, VoteNoIcon} from '../general/Icons'
+import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from '../general/Form'
 import {shallowDiff} from '../lib/utils'
 import {getDataMap} from '../selectors/dataMap'
 import {debounce} from '../lib/utils'
 
-const Label = styled.label`
-	font-weight: bold;
-	white-space: nowrap
-`;
+const MULTIPLE = '<multiple>';
+const isMultiple = (value) => value === MULTIPLE;
+const BLANK_STR = '(Blank)';
+const MULTIPLE_STR = '(Multiple)';
 
-const Multiple = styled.span`
+const MultipleContainer = styled.span`
 	color: GrayText;
 	font-style: italic;
 `;
 
-const FlexRow = styled.div`
-	display: flex;
-	flex-direction: row;
-`;
+const Multiple = (props) => <MultipleContainer {...props}>{MULTIPLE_STR}</MultipleContainer>
 
-const FlexCol = styled.div`
-	display: flex;
-	flex-direction: column;
-`;
+const renderCommenter = (comment) => {
+	const commenter = comment.CommenterName
+	if (isMultiple(commenter)) {
+		return <Multiple />
+	}
+	let vote, mbs
+	if (comment.Vote === 'Approve') {
+		vote = <VoteYesIcon />
+	}
+	else if (comment.Vote === 'Disapprove') {
+		vote = <VoteNoIcon />
+		if (comment.MustSatisfy)
+			mbs = <span style={{color: 'red', fontSize: 'smaller', fontWeight: 'bold'}}>MBS</span>
+	}
+	return (
+		<span>
+			{commenter}
+			{vote && <React.Fragment>&nbsp;{vote}</React.Fragment>}
+			{mbs && <React.Fragment>&nbsp;{mbs}</React.Fragment>}
+		</span>
+	)
+};
 
-const Content = ({children}) => {
-	if (typeof children === 'string') {
-		if (children === '<multiple>') {
-			return <Multiple>{children}</Multiple>
-		}
-		else {
-			return <span>{children}</span>
-		}
-	}
-	else {
-		return children
-	}
+const renderEntry = (value) => {
+	if (isMultiple(value))
+		return <Multiple />
+	return <span>{value}</span>
+};
+
+const renderPage = (page) => {
+	if (isMultiple(page))
+		return <Multiple />
+	return typeof page === 'number'? page.toFixed(2): page;
 }
 
-const Entry = ({label, children, ...otherProps}) =>
-	<FlexRow {...otherProps}>
-		{label && <Label>{label}:&nbsp;</Label>}
-		<Content children={children} />
-	</FlexRow>
-
-const LabelValuePair = styled.div`
-	display: flex;
-	align-items: center;
-	margin: 10px 0;
-	& label {
-		width: 150px;
+const TextBlockContainer = styled.div`
+	& p {
+		margin: 8px 0;
+	}
+	& p:first-of-type {
+		margin: 0;
 	}
 `;
 
-function CategorizationRow({
-	style,
-	className,
-	resolution,
-	setResolution
-}) {
-
+const renderTextBlock = (value) => {
+	if (isMultiple(value))
+		return <Multiple />
 	return (
-		<Row1>
-			<LabelValuePair>
-				<Label>Ad-hoc:</Label>
-				<AdHocSelector
-					width={300}
-					value={resolution.AdHoc === '<multiple>'? '': resolution.AdHoc || ''}
-					onChange={value => setResolution({AdHoc: value})}
-					placeholder={resolution.AdHoc === '<multiple>'? '<multiple>': '(Blank)'}
-				/>
-			</LabelValuePair>
-			<LabelValuePair>
-				<Label>Comment Group:</Label>
-				<CommentGroupSelector
-					width={300}
-					value={resolution.CommentGroup === '<multiple>'? '': resolution.CommentGroup || ''}
-					onChange={value => setResolution({CommentGroup: value})}
-					placeholder={resolution.CommentGroup === '<multiple>'? '<multiple>': '(Blank)'}
-				/>
-			</LabelValuePair>
-		</Row1>
+		<TextBlockContainer>
+			{value.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+		</TextBlockContainer>
 	)
 }
 
+const Categorization = ({resolution, setResolution, readOnly}) =>
+	<Row>
+		<Col>
+			<Field label='Ad-hoc:'>
+				<AdHocSelector
+					style={{flexBasis: 150}}
+					value={isMultiple(resolution.AdHoc)? '': resolution.AdHoc || ''}
+					onChange={value => setResolution({AdHoc: value})}
+					placeholder={isMultiple(resolution.AdHoc)? MULTIPLE_STR: BLANK_STR}
+					readOnly={readOnly}
+				/>
+			</Field>
+		</Col>
+		<Col>
+			<Field label='Comment group:'>
+				<CommentGroupSelector
+					style={{flexBasis: 300}}
+					value={isMultiple(resolution.CommentGroup)? '': resolution.CommentGroup || ''}
+					onChange={value => setResolution({CommentGroup: value})}
+					placeholder={isMultiple(resolution.CommentGroup)? MULTIPLE_STR: BLANK_STR}
+					readOnly={readOnly}
+				/>
+			</Field>
+		</Col>
+	</Row>
+
 function Column1({
+	style,
+	className,
 	resolution,
 	setResolution,
-	style,
-	className
+	readOnly
 }) {
 	return (
-		<FlexCol
+		<Col
 			style={style}
 			className={className}
 		>
-			<LabelValuePair>
-				<Label>Assignee:</Label>
-				<AssigneeSelector
-					width={300}
-					value={(resolution.AssigneeSAPIN || resolution.AssigneeName) === '<multiple>'?
-						{SAPIN: null, Name: null}:
-						{SAPIN: resolution.AssigneeSAPIN, Name: resolution.AssigneeName}}
-					onChange={({SAPIN, Name}) => setResolution({AssigneeSAPIN: SAPIN, AssigneeName: Name})}
-					placeholder={(resolution.AssigneeSAPIN || resolution.AssigneeName) === '<multiple>'? '<multiple>': 'Not assigned'}
-				/>
-			</LabelValuePair>
-			<LabelValuePair>
-				<Label>Submission:</Label>
-				<Search
-					value={resolution.Submission || ''}
-					onChange={e => setResolution({Submission: e.target.value})}
-					placeholder='None'
-				/>
-			</LabelValuePair>
-		</FlexCol>
+			<Row>
+				<Field label='Assignee:'>
+					<AssigneeSelector
+						style={{flexBasis: 200}}
+						value={isMultiple(resolution.AssigneeSAPIN || resolution.AssigneeName)?
+							{SAPIN: null, Name: null}:
+							{SAPIN: resolution.AssigneeSAPIN, Name: resolution.AssigneeName}}
+						onChange={({SAPIN, Name}) => setResolution({AssigneeSAPIN: SAPIN, AssigneeName: Name})}
+						placeholder={isMultiple(resolution.AssigneeSAPIN || resolution.AssigneeName)? MULTIPLE_STR: BLANK_STR}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Submission:'>
+					<SubmissionSelector
+						style={{flexBasis: 200}}
+						value={isMultiple(resolution.Submission)? '': resolution.Submission || ''}
+						onChange={value => setResolution({Submission: value})}
+						placeholder={isMultiple(resolution.Submission)? MULTIPLE_STR: BLANK_STR}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Row>
+		</Col>
 	)
 }
 
 function Column2({
+	style,
+	className,
 	resolution,
 	setResolution,
-	style,
-	className
+	readOnly
 }) {
 
-	function changeApproved(e) {
+	const changeApproved = (e) => {
  		let value;
  		if (e.target.name === 'Approved') {
 	 		if (e.target.checked) {
@@ -152,34 +173,42 @@ function Column2({
 	}
 
 	return (
-		<FlexCol
+		<Col
 			style={style}
 			className={className}
 		>
-			<div>
-				<Checkbox
-					name='ReadyForMotion'
-					indeterminate={resolution.ReadyForMotion === '<multiple>'}
-					checked={!!resolution.ReadyForMotion}
-					onChange={e => setResolution({ReadyForMotion: e.target.checked})}
-				/>
-				<Label>Ready for motion</Label>
-			</div>
-			<div>
-				<Checkbox
-					name='Approved'
-					indeterminate={resolution.ApprovedByMotion === '<multiple>'}
-					checked={!!resolution.ApprovedByMotion}
-					onChange={changeApproved}
-				/>
-				<Label>Approved by motion: </Label>
-				<Search
-					name='ApprovedByMotion'
-					value={resolution.ApprovedByMotion || ''}
-					onChange={changeApproved}
-				/>
-			</div>
-		</FlexCol>
+			<List>
+				<ListItem>
+					<Checkbox
+						name='ReadyForMotion'
+						indeterminate={isMultiple(resolution.ReadyForMotion)}
+						checked={!!resolution.ReadyForMotion}
+						onChange={e => setResolution({ReadyForMotion: e.target.checked})}
+						disabled={readOnly}
+					/>
+					<label>Ready for motion</label>
+				</ListItem>
+				<ListItem>
+					<Checkbox
+						name='Approved'
+						indeterminate={isMultiple(resolution.ApprovedByMotion)}
+						checked={!!resolution.ApprovedByMotion}
+						onChange={changeApproved}
+						disabled={readOnly}
+					/>
+					<label>Approved by motion: </label>
+					<Input
+						type='search'
+						size={6}
+						name='ApprovedByMotion'
+						value={isMultiple(resolution.ApprovedByMotion)? '': resolution.ApprovedByMotion || ''}
+						onChange={changeApproved}
+						placeholder={isMultiple(resolution.ApprovedByMotion)? MULTIPLE_STR: ''}
+						disabled={readOnly}
+					/>
+				</ListItem>
+			</List>
+		</Col>
 	)
 }
 
@@ -188,22 +217,18 @@ const ResnStatusContainer = styled.div`
 	& div {
 		display: flex;
 		align-items: center;
-		margin: 0 10px;
+		margin: 5px 10px;
 	}
 `;
 
 function ResnStatus({
-		style,
-		className,
-		value,
-		onChange
-	}) {
-
-	function handleChange(e) {
-		const value = e.target.checked? e.target.value: '';
-		onChange(value);
-		e.stopPropagation();
-	}
+	style,
+	className,
+	value,
+	onChange,
+	readOnly
+}) {
+	const handleChange = e => onChange(e.target.checked? e.target.value: '');
 
 	return (
 		<ResnStatusContainer
@@ -215,8 +240,9 @@ function ResnStatus({
 					name='ResnStatus'
 					value='A'
 					checked={value === 'A'}
-					indeterminate={value === '<multiple>'}
+					indeterminate={isMultiple(value)}
 					onChange={handleChange}
+					disabled={readOnly}
 				/>
 				<label>ACCEPTED</label>
 			</div>
@@ -225,8 +251,9 @@ function ResnStatus({
 					name='ResnStatus'
 					value='V'
 					checked={value === 'V'}
-					indeterminate={value === '<multiple>'}
+					indeterminate={isMultiple(value)}
 					onChange={handleChange}
+					disabled={readOnly}
 				/>
 				<label>REVISED</label>
 			</div>
@@ -235,8 +262,9 @@ function ResnStatus({
 					name='ResnStatus'
 					value='J'
 					checked={value === 'J'}
-					indeterminate={value === '<multiple>'}
+					indeterminate={isMultiple(value)}
 					onChange={handleChange}
+					disabled={readOnly}
 				/>
 				<label>REJECTED</label>
 			</div>
@@ -250,46 +278,56 @@ const resnColor = {
 	'J': '#f3c0c0'
 }
 
-const Row1 = styled.div`
-	display: flex;
-	justify-content: space-between;
-`;
-
-function Resolution({resolution, setResolution}) {
-
-	return (
-		<React.Fragment>
-			<Row1>
-				<Column1
-					resolution={resolution}
-					setResolution={setResolution}
-				/>
-				<Column2
-					resolution={resolution}
-					setResolution={setResolution}
-				/>
-			</Row1>
-			<FlexCol style={{marginTop: '10px'}}>
-				<Label>Resolution:</Label>
+const Resolution = ({resolution, setResolution, showEditing, setShowEditing, readOnly}) =>
+	<React.Fragment>
+		<Row>
+			<Column1
+				resolution={resolution}
+				setResolution={setResolution}
+				readOnly={readOnly}
+			/>
+			<Column2
+				resolution={resolution}
+				setResolution={setResolution}
+				readOnly={readOnly}
+			/>
+		</Row>
+		<Row>
+			<Col
+				style={{
+					width: '100%',
+					position: 'relative',	// position toolbar
+					paddingTop: 15			// make room for toolbar
+				}}
+			>
+				<label>Resolution:</label>
 				<StyledResnStatus
 					value={resolution.ResnStatus}
 					onChange={value => setResolution({ResnStatus: value})}
+					readOnly={readOnly}
 				/>
 				<StyledResolutionEditor
-					value={resolution.Resolution === '<multiple>'? '': resolution.Resolution}
+					value={isMultiple(resolution.Resolution)? '': resolution.Resolution}
 					onChange={value => setResolution({Resolution: value})}
-					placeholder={resolution.Resolution === '<multiple>'? '<multiple>': '(Blank)'}
+					placeholder={isMultiple(resolution.Resolution)? MULTIPLE_STR: BLANK_STR}
 					resnStatus={resolution.ResnStatus}
+					readOnly={readOnly}
 				/>
-			</FlexCol>
-		</React.Fragment>
-	)
-}
+			</Col>
+		</Row>
+		<OtherTabs
+			resolution={resolution}
+			setResolution={setResolution}
+			showEditing={showEditing}
+			setShowEditing={setShowEditing}
+			readOnly={readOnly}
+		/>
+	</React.Fragment>
 
 const StyledResnStatus = styled(ResnStatus)`
 	width: fit-content;
-	background-color: ${({value}) => resnColor[value] || '#fff'};
-	border: 1px solid #aaa;
+	background-color: ${({value}) => resnColor[value] || '#fafafa'};
+	border: 1px solid #ddd;
 	border-bottom: none;
 	border-radius: 5px 5px 0 0;
 	position: relative;
@@ -298,20 +336,14 @@ const StyledResnStatus = styled(ResnStatus)`
 `;
 
 const StyledResolutionEditor = styled(ResolutionEditor)`
-	background-color: ${({resnStatus}) => resnColor[resnStatus] || '#fff'};
-	border: 1px solid #aaa;
+	background-color: ${({resnStatus}) => resnColor[resnStatus] || '#fafafa'};
+	border: 1px solid #ddd;
 	border-radius: 0 5px 5px 5px;
 `;
 
-const EditStatusContainer = styled.div`
-	display: flex;
-	flex-direction: column;
-	margin: 10px;
-`;
+function EditStatus({resolution, setResolution, readOnly}) {
 
-function EditStatus({resolution, setResolution}) {
-
-	function changeEditStatus(e) {
+	const changeEditStatus = (e) => {
  		let fields = {}
  		if (e.target.name === 'EditStatus') {
 	 		if (e.target.checked) {
@@ -337,45 +369,53 @@ function EditStatus({resolution, setResolution}) {
 			}
 		}
 		setResolution(fields)
-	}
+	};
 
-	const editInDraft = resolution.EditInDraft === '<multiple>'? '': resolution.EditInDraft
-	const placeholder = resolution.EditInDraft === '<multiple>'? 'Multiple': null
+	const editInDraft = isMultiple(resolution.EditInDraft)? '': resolution.EditInDraft
+	const placeholder = isMultiple(resolution.EditInDraft)? MULTIPLE_STR: null
 
 	return (
-		<EditStatusContainer onClick={e => e.stopPropagation()}>
-			<div>
+		<List onClick={e => e.stopPropagation()}>
+			<ListItem>
 				<Checkbox
 					name='EditStatus'
 					value='I'
-					indeterminate={resolution.EditStatus === '<multiple>'}
+					indeterminate={isMultiple(resolution.EditStatus)}
 					checked={resolution.EditStatus === 'I'}
 					onChange={changeEditStatus}
+					disabled={readOnly}
 				/>
-				<Label>Implemented in draft:</Label>
-				<Search
-					width={40}
+				<label>Implemented in draft:</label>
+				<Input
+					type='number'
+					style={{width: 80}}
+					pattern='^\d*(\.\d{0,2})?$'
+					step='0.1'
 					name='EditInDraft'
 					value={editInDraft || ''}
 					onChange={changeEditStatus}
 					placeholder={placeholder}
+					disabled={readOnly}
 				/>
-			</div>
-			<div>
+			</ListItem>
+			<ListItem>
 				<Checkbox
 					name='EditStatus'
 					value='N'
-					indeterminate={resolution.EditStatus === '<multiple>'}
+					indeterminate={isMultiple(resolution.EditStatus)}
 					checked={resolution.EditStatus === 'N'}
 					onChange={changeEditStatus}
+					disabled={readOnly}
 				/>
-				<Label>No Change</Label>
-			</div>
-		</EditStatusContainer>
+				<label>No Change</label>
+			</ListItem>
+		</List>
 	)
 }
 
 const StyledTabs = styled(Tabs)`
+	position: relative; /* toolbar anchors to top */
+	padding-top: 5px;	/* room for toolbar */
 	.react-tabs {
 		-webkit-tap-highlight-color: transparent;
 	}
@@ -398,8 +438,8 @@ const StyledTabs = styled(Tabs)`
 		}
 	}
 	.react-tabs__tab--selected {
-		background: #fff;
-		border-color: #aaa;
+		background: #fafafa;
+		border-color: #ddd;
 		font-weight: bold;
 	}
 	.react-tabs__tab--disabled {
@@ -410,7 +450,8 @@ const StyledTabs = styled(Tabs)`
 	.react-tabs__tab-panel {
 		display: none;
 		box-sizing: border-box;
-		border: 1px solid #aaa;
+		border: 1px solid #ddd;
+		background-color: #fafafa;
 		border-radius: 5px 5px 5px 5px;
 		:first-of-type {
 			border-radius: 0 5px 5px 5px;
@@ -421,120 +462,84 @@ const StyledTabs = styled(Tabs)`
 	}
 `;
 
-function OtherTabs({style, resolution, setResolution, showEditing, setShowEditing}) {
+const OtherTabs = ({resolution, setResolution, showEditing, setShowEditing, readOnly}) =>
+	<StyledTabs
+		selectedIndex={showEditing? 1: 0}
+		onSelect={index => setShowEditing(index === 1)}
+	>
+		<TabList>
+			<Tab>Notes</Tab>
+			<Tab>Editing</Tab>
+		</TabList>
+		<TabPanel>
+			<ResolutionEditor
+				value={isMultiple(resolution.Notes)? '': resolution.Notes}
+				onChange={value => setResolution({Notes: value})}
+				placeholder={isMultiple(resolution.Notes)? MULTIPLE_STR: BLANK_STR}
+				readOnly={readOnly}
+			/>
+		</TabPanel>
+		<TabPanel>
+			<EditStatus
+				resolution={resolution}
+				setResolution={setResolution}
+				readOnly={readOnly}
+			/>
+			<ResolutionEditor
+				value={isMultiple(resolution.EditNotes)? '': resolution.EditNotes}
+				onChange={value => setResolution({EditNotes: value})}
+				placeholder={isMultiple(resolution.Notes)? MULTIPLE_STR: BLANK_STR}
+				readOnly={readOnly}
+			/>
+		</TabPanel>
 
-	return (
-		<StyledTabs
-			style={style}
-			selectedIndex={showEditing? 1: 0}
-			onSelect={index => setShowEditing(index === 1)}
-		>
-			<TabList>
-				<Tab>Notes</Tab>
-				<Tab>Editing</Tab>
-			</TabList>
-			<TabPanel>
-				<ResolutionEditor
-					value={resolution.Notes}
-					onChange={value => setResolution({Notes: value})}
-				/>
-			</TabPanel>
-			<TabPanel>
-				<EditStatus
-					resolution={resolution}
-					setResolution={setResolution}
-				/>
-				<ResolutionEditor
-					value={resolution.EditNotes}
-					onChange={value => setResolution({EditNotes: value})}
-				/>
-			</TabPanel>
+	</StyledTabs>
 
-		</StyledTabs>
-	)
-}
 
-const TextBlockContainer = styled.div`
-	& p {
-		margin: 8px 0;
-	}
-	& p:first-of-type {
-		margin: 0;
-	}
-`;
-
-const TextBlock = ({children}) => (
-	typeof children === 'string'?
-		<TextBlockContainer>
-			{children && children.split('\n').map((line, i) => <p key={i}>{line}</p>)}
-		</TextBlockContainer>:
-		children
-)
-
-function Comment(props) {
-	const {cids, resolution, setResolution} = props
+function Comment({
+	cids,
+	resolution,
+	setResolution,
+	showEditing,
+	setShowEditing,
+	readOnly
+}) {
 	const comment = resolution
-
-	const Commenter = (props) => (
-		<Entry label='Commenter' {...props} >
-			<Content>{comment.CommenterName}</Content>
-			{comment.Vote && <React.Fragment>&nbsp;(<Content>{comment.Vote}</Content>)</React.Fragment>}
-		</Entry>
-	)
-
 	const cidsStr = cids.join(', ')
-	const cidsLabel = cids.length > 1? 'CIDs': 'CID'
-
-	const page = typeof comment.Page === 'number'? comment.Page.toFixed(2): comment.Page;
+	const cidsLabel = cids.length > 1? 'CIDs:': 'CID:'
 
 	return (
 		<React.Fragment>
-
-			<FlexRow style={{marginTop: '10px', marginBottom: '10px', justifyContent: 'space-between'}}>
-				<Entry label={cidsLabel}>{cidsStr}</Entry>
-				<Entry>{comment.Status}</Entry>
-			</FlexRow>
-
-			<FlexRow style={{marginTop: '10px', marginBottom: '10px'}}>
-				<Commenter style={{width: '40%'}} />
-				{comment.MustSatisfy !== 0 && <Entry label='Must Satisfy'>{comment.MustSatisfy === '<multiple>'? comment.MustSatisfy: '\u2714'}</Entry>}
-			</FlexRow>
-
-			<FlexRow style={{marginTop: '10px', marginBottom: '10px'}}>
-				<Entry style={{width: '33%'}} label='Page/Line'>{page}</Entry>
-				<Entry style={{width: '33%'}} label='Clause'>{comment.Clause}</Entry>
-				<Entry label='Category'>{comment.Category}</Entry>
-			</FlexRow>
-			
-			<FlexCol style={{marginTop: '10px', marginBottom: '10px'}}>
-				<Label>Comment:</Label>
-				<TextBlock>{comment.Comment}</TextBlock>
-			</FlexCol>
-
-			<FlexCol style={{marginTop: '10px', marginBottom: '10px'}}>
-				<Label>Proposed Change:</Label>
-				<TextBlock>{comment.ProposedChange}</TextBlock>
-			</FlexCol>
-
-			<CategorizationRow
+			<Row>
+				<FieldLeft label={cidsLabel}>{cidsStr}</FieldLeft>
+				<FieldLeft>{renderEntry(comment.Status)}</FieldLeft>
+			</Row>
+			<Row>
+				<FieldLeft label='Commenter:'>{renderCommenter(comment)}</FieldLeft>
+			</Row>
+			<Row>
+				<FieldLeft label='Page/Line:'>{renderPage(comment.Page)}</FieldLeft>
+				<FieldLeft label='Clause:'>{renderEntry(comment.Clause)}</FieldLeft>
+				<FieldLeft label='Category:'>{renderEntry(comment.Category)}</FieldLeft>
+			</Row>
+			<Row>
+				<List label='Comment:'>{renderTextBlock(comment.Comment)}</List>
+			</Row>
+			<Row>
+				<List label='Proposed Change:'>{renderTextBlock(comment.ProposedChange)}</List>
+			</Row>
+			<Categorization
 				resolution={resolution}
 				setResolution={setResolution}
+				readOnly={readOnly}
 			/>
-
 			{resolution.ResolutionID !== null &&
 				<Resolution
 					resolution={resolution}
 					setResolution={setResolution}
-				/>
-			}
-
-			{resolution.ResolutionID !== null &&
-				<OtherTabs
-					style={{marginTop: '10px', width: '100%'}}
-					resolution={resolution}
-					setResolution={setResolution}
-					showEditing={props.showEditing}
-					setShowEditing={props.setShowEditing}
+					showEditing={showEditing}
+					setShowEditing={setShowEditing}
+					readOnly={readOnly}
 				/>
 			}
 		</React.Fragment>
@@ -548,13 +553,12 @@ function recursivelyDiffObjects(l, r) {
 
 	if (l === r) return l;
 
-	if (!isObject(l) || !isObject(r)) {
-		return '<multiple>'
-	}
+	if (!isObject(l) || !isObject(r))
+		return MULTIPLE;
 
 	if (isDate(l) || isDate(r)) {
 		if (l.valueOf() === r.valueOf()) return l;
-		return '<multiple>';
+		return MULTIPLE;
 	}
 
 	if (Array.isArray(l) && Array.isArray(r)) {
@@ -564,7 +568,7 @@ function recursivelyDiffObjects(l, r) {
 	}
 	else {
 		const deletedValues = Object.keys(l).reduce((acc, key) => {
-			return r.hasOwnProperty(key) ? acc : { ...acc, [key]: '<multiple>' };
+			return r.hasOwnProperty(key) ? acc : { ...acc, [key]: MULTIPLE };
 		}, {});
 
 		return Object.keys(r).reduce((acc, key) => {
@@ -579,8 +583,25 @@ function recursivelyDiffObjects(l, r) {
 	}
 }
 
+const NotAvaialble = styled.div`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1em;
+	color: #bdbdbd;
+`;
+
 const CommentDetailContainer = styled.div`
-	margin: 10px;
+	padding: 10px;
+	label {
+		font-weight: bold;
+	}
+`;
+
+const TopRow = styled.div`
+	display: flex;
+	justify-content: space-between;
+	width: 100%;
 `;
 
 class CommentDetail extends React.PureComponent {
@@ -676,7 +697,7 @@ class CommentDetail extends React.PureComponent {
  		this.props.deleteResolutions(this.props.ballotId, resolutions)
  	}
 
- 	close = () => {}
+ 	handleToggleEditComment = () => this.props.setUiEditComment(!this.props.uiEditComment);
 
 	render() {
 
@@ -694,23 +715,42 @@ class CommentDetail extends React.PureComponent {
 				style={this.props.style}
 				className={this.props.className}
 			>
-				<FlexRow style={{justifyContent: 'flex-end', flexWrap: 'nowrap'}}>
-					<ActionButton name='save' title='Save Changes' disabled={disableButtons} onClick={this.handleSave} />
-					<ActionButton name='add' title='Create Alternate Resolution' disabled={disableButtons} onClick={this.handleAddResolutions} />
-					<ActionButton name='delete' title='Delete Resolution' disabled={disableButtons} onClick={this.handleDeleteResolutions} />
-					<ActionButton name='close' title='Close' onClick={this.close} />
-				</FlexRow>
+				<TopRow>
+					<span></span>
+					<span>
+						<ActionButton
+							name='edit'
+							title='Edit resolution'
+							disabled={disableButtons}
+							isActive={this.props.uiEditComment}
+							onClick={this.handleToggleEditComment}
+						/>
+						<ActionButton
+							name='add'
+							title='Create alternate resolution'
+							disabled={disableButtons}
+							onClick={this.handleAddResolutions}
+						/>
+						<ActionButton
+							name='delete'
+							title='Delete resolution'
+							disabled={disableButtons}
+							onClick={this.handleDeleteResolutions}
+						/>
+					</span>
+				</TopRow>
 				
 				{notAvailableStr?
-					<FlexRow style={{minHeight: '200px', justifyContent:'center'}}>
-						<span style={{fontSize: '1em', color: 'GrayText'}}>{notAvailableStr}</span>
-				 	</FlexRow>:
+					<NotAvaialble>
+						<span>{notAvailableStr}</span>
+				 	</NotAvaialble>:
 					<Comment 
 						cids={this.state.comments.map(c => c.CID)}
 						resolution={this.state.editedResolution}
 						setResolution={this.doResolutionUpdate}
-						showEditing={this.props.showEditing}
-						setShowEditing={this.props.setShowEditing}
+						showEditing={this.props.uiEditingTabSelected}
+						setShowEditing={this.props.setUiEditingTabSelected}
+						readOnly={!this.props.uiEditComment}
 					/>
 				}
 			</CommentDetailContainer>
@@ -726,13 +766,17 @@ export default connect(
 		commentsMap: getDataMap(state, dataSet),
 		loading: state[dataSet].loading,
 		selected: state[dataSet].selected,
-		showEditing: state[dataSet].ui['showEditing']
+		uiEditingTabSelected: state[dataSet].ui['showEditing'],
+		uiEditComment: state[dataSet].ui['editComment']
 	}),
 	(dispatch, ownProps) => ({
 		addResolutions: (ballotId, cids) => dispatch(addResolutions(ballotId, cids)),
 		deleteResolutions: (ballotId, resolutions) => dispatch(deleteResolutions(ballotId, resolutions)),
 		updateResolutions: (ballotId, resolutions) => dispatch(updateResolutions(ballotId, resolutions)),
 		updateComments: (ballotId, comments) => dispatch(updateComments(ballotId, comments)),
-		setShowEditing: (show) => dispatch(uiSetProperty(dataSet, 'showEditing', show))
+		setUiEditingTabSelected: (show) => dispatch(uiSetProperty(dataSet, 'showEditing', show)),
+		setUiEditComment: (edit) => dispatch(uiSetProperty(dataSet, 'editComment', edit))
 	})
 )(CommentDetail);
+
+export {renderCommenter, renderPage, renderTextBlock}

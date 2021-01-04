@@ -26,17 +26,11 @@ import {
 	USERS_DELETE_FAILURE,
 	USERS_UPLOAD,
 	USERS_UPLOAD_SUCCESS,
-	USERS_UPLOAD_FAILURE
+	USERS_UPLOAD_FAILURE,
+	AccessLevelOptions
 } from '../actions/users'
 
 const userFields = ['SAPIN', 'Name', 'Email', 'Access']
-
-const accessOptions = [
-	{value: 0, label: 'Public'},
-	{value: 1, label: 'Member'},
-	{value: 2, label: 'Subgroup Admin'},
-	{value: 3, label: 'WG Admin'}
-]
 
 /*
  * Generate a filter for each field (table column)
@@ -49,7 +43,7 @@ const defaultFiltersEntries = userFields.reduce((entries, dataKey) => {
 			break
 		case 'Access':
 			type = FilterType.NUMERIC
-			options = accessOptions
+			options = AccessLevelOptions
 			break
 		default:
 			type = FilterType.STRING
@@ -77,7 +71,6 @@ const defaultSortEntries = userFields.reduce((entries, dataKey) => {
 
 
 const defaultState = {
-	accessOptions: accessOptions,
 	valid: false,
 	loading: false,
 	users: [],

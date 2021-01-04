@@ -9,6 +9,7 @@ import {
 	faQuoteRight, faListUl, faListOl, faCode,
 	faSync, faPlus, faTrashAlt, 
 	faSortAlphaDown, faSortAlphaUp, faSortNumericDown, faSortNumericUp,
+	faFilter,
 	faWindowClose, faAngleDoubleDown,
 	faAngleDown, faAngleUp,
 	faArrowCircleRight, faArrowCircleLeft, faArrowCircleUp, faArrowCircleDown,
@@ -22,7 +23,6 @@ import {
 
 import styled from '@emotion/styled'
 
-
 export function init() {
 	library.add(
 		faUpload, faDownload,
@@ -31,6 +31,7 @@ export function init() {
 		faUndo, faRedo,
 		faSync, faPlus, faTrashAlt,
 		faSortAlphaDown, faSortAlphaUp, faSortNumericDown, faSortNumericUp,
+		faFilter,
 		faWindowClose, faAngleDoubleDown,
 		faAngleDown, faAngleUp,
 		faArrowCircleRight, faArrowCircleLeft, faArrowCircleUp, faArrowCircleDown,
@@ -42,7 +43,7 @@ export function init() {
 	)
 }
 
-export function IconClose(props) { return <FontAwesomeIcon icon='window-close' {...props} /> }
+//export function IconClose(props) { return <FontAwesomeIcon icon='window-close' {...props} /> }
 
 export function IconSort({direction, isAlpha, ...props}) {
 	let icon = 'sort-' +
@@ -51,7 +52,9 @@ export function IconSort({direction, isAlpha, ...props}) {
 	return <FontAwesomeIcon icon={icon} {...props} />
 }
 
-export function ActionButtonSort({direction, isAlpha, ...props}) {
+//export const IconFilter = (props) => <FontAwesomeIcon icon='filter' {...props} />
+
+export const ActionButtonSort = ({direction, isAlpha, ...props}) => {
 	let icon = 'sort-' +
 		(isAlpha? 'alpha-': 'numeric-') +
 		(direction === 'ASC'? 'down': 'up')
@@ -88,7 +91,7 @@ export const ButtonGroup = styled.div`
 
 export const Button = styled.button`
 	display: inline-block;
-	margin: 0 5px 0 0;
+	margin-right: 5px;
 	padding: 3px;
 	box-sizing: border-box;
 	background: none ${({isActive}) => isActive? '#d8d8d8': '#fdfdfd'};
@@ -159,7 +162,7 @@ const IconContainer = styled.div`
  *	  open = {true|false} indicates that the window is open or closed
  *  />
  */
-export const Handle = ({open, ...otherProps}) => {
+/*export const Handle = ({open, ...otherProps}) => {
 	return (
 		<IconContainer {...otherProps}>
 			<svg style={!open? {transform: 'rotate(180deg)'}: {}} fill="none" viewBox="0 0 40 40">
@@ -167,7 +170,20 @@ export const Handle = ({open, ...otherProps}) => {
 			</svg>
 		</IconContainer>
 	)
-}
+}*/
+
+export const Handle = styled.span`
+    display: inline-block;
+    width: 0;
+    height: 0;
+    vertical-align: middle;
+    content: "";
+    border-top-style: solid;
+    border-top-width: 4px;
+    border-right: 4px solid transparent;
+    border-bottom: 0 solid transparent;
+    border-left: 4px solid transparent;
+`;
 
 export const Cross = (props) => {
 	return (
@@ -196,23 +212,25 @@ export const DoubleExpander = ({open, ...otherProps}) => (
 )
 
 const VoteIcon = styled.div`
+	display: inline-block;
 	width: 12px;
-	height: 12px;`
+	height: 12px;
+`;
 
 export const VoteYesIcon = (props) => (
 	<VoteIcon {...props}>
-	<svg viewBox="0 0 600 600">
-		<defs id="defs1373">
-			<linearGradient id="linearGradient2250">
-				<stop style={{stopColor: '#008700', stopOpacity: 1}} offset="0" id="stop2252"/>
-				<stop style={{stopColor: '#006f00', stopOpacity: 1}} offset="1" id="stop2254"/>
-			</linearGradient>
-		</defs>
-		<path
-			d="M 7.6885391,404.6142 C 7.6885391,404.6142 122.85389,534.30185 145.88696,587.27791 L 244.92916,587.27791 C 286.38869,460.59602 447.62018,158.16034 585.8186,52.208207 C 614.45182,15.394067 542.5208,0.19798715 484.4731,24.568517 C 396.98668,61.298507 231.98485,341.73657 201.16633,409.22081 C 157.4035,420.73735 111.33735,335.51499 111.33735,335.51499 L 7.6885391,404.6142 z "
-			style={{fill:'#00bb00', fillOpacity:1, fillRule:'evenodd', stroke:'#000000', strokeWidth:2, strokeLinecap:'butt', strokeLinejoin:'miter', strokeMiterlimit:4, strokeDasharray:'none', strokeOpacity:1}}
-		/>
-	</svg>
+		<svg viewBox="0 0 600 600">
+			<defs id="defs1373">
+				<linearGradient id="linearGradient2250">
+					<stop style={{stopColor: '#008700', stopOpacity: 1}} offset="0" id="stop2252"/>
+					<stop style={{stopColor: '#006f00', stopOpacity: 1}} offset="1" id="stop2254"/>
+				</linearGradient>
+			</defs>
+			<path
+				d="M 7.6885391,404.6142 C 7.6885391,404.6142 122.85389,534.30185 145.88696,587.27791 L 244.92916,587.27791 C 286.38869,460.59602 447.62018,158.16034 585.8186,52.208207 C 614.45182,15.394067 542.5208,0.19798715 484.4731,24.568517 C 396.98668,61.298507 231.98485,341.73657 201.16633,409.22081 C 157.4035,420.73735 111.33735,335.51499 111.33735,335.51499 L 7.6885391,404.6142 z "
+				style={{fill:'#00bb00', fillOpacity:1, fillRule:'evenodd', stroke:'#000000', strokeWidth:2, strokeLinecap:'butt', strokeLinejoin:'miter', strokeMiterlimit:4, strokeDasharray:'none', strokeOpacity:1}}
+			/>
+		</svg>
 	</VoteIcon>
 )
 
@@ -234,48 +252,3 @@ export const VoteNoIcon = (props) => (
 	</VoteIcon>
 )
 
-const Input = styled.input`
-	cursor: inherit;
-	-webkit-appearance: none;
-	background-color: #fafafa;
-	border: 1px solid #cacece;
-	/*box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px -15px 10px -12px rgba(0,0,0,0.05);*/
-	padding: 6px;
-	/*border-radius: 3px;*/
-	display: inline-block;
-	width: 14px;
-	height: 14px;
-	position: relative;
-	:checked {
-		background-color: #e9ecee;
-		border: 1px solid #adb8c0;
-	}
-	:indeterminate {
-		background-color: #e9ecee;
-		border: 1px solid #adb8c0;
-	}
-	:checked:after {
-		content: '\\2714';
-		font-size: 10px;
-		font-weight: 700;
-		position: absolute;
-		top: -1px;
-		left: 1px;
-	}
-	:indeterminate:after {
-		content: "";
-		position: absolute;
-		top: 1px;
-		left: 1px;
-		border: 5px solid #5f6061;
-	}
-	:focus {
-		outline: none;
-	}`;
-
-export function Checkbox({indeterminate, ...otherProps}) {
-	return <Input type='checkbox' ref={el => el && (el.indeterminate = indeterminate)} {...otherProps}/>
-}
-
-export const Search = styled.input`
-	width: ${({width}) => typeof width === 'undefined'? 'unset': (width + (typeof width === 'number'? 'px': ''))}`

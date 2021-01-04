@@ -1,5 +1,10 @@
 import {saveAs} from 'file-saver'
 
+const methods = {};
+
+let jwtBearerToken;
+methods.setJWT = (token) => jwtBearerToken = token;
+
 const apiBaseUrl = ''
 
 async function errHandler(res) {
@@ -17,30 +22,39 @@ async function errHandler(res) {
 }
 
 async function _jsonMethod(method, url, params) {
-	url = apiBaseUrl + url
+	url = apiBaseUrl + url;
 
-	if (method === "GET" && params) {
-		url += '?' + new URLSearchParams(params)
+	const options = {method};
+
+	if (params) {
+		if (method === "GET")
+			url += '?' + new URLSearchParams(params)
+		else
+			options.body = JSON.stringify(params)
 	}
 
-	const options = {
-		method,
-		headers: {
-			Accept: "application/json",
-			"Content-Type": "application/json",
-		},
-		...(params && method !== "GET" && {body: JSON.stringify(params)}),
-	}
+	options.headers = {
+		'Accept': 'application/json',
+		'Content-Type': 'application/json',
+		'Authorization': `Bearer ${jwtBearerToken}`
+	};
 
 	const res = await fetch(url, options)
 
 	return res.ok? res.json(): errHandler(res)
 }
 
-async function _getFile(url, params) {
+["GET", "POST", "PUT", "DELETE", "PATCH"].forEach(m => methods[m.toLowerCase()] = (...args) => _jsonMethod(m, ...args));
+
+methods.getFile = async (url, params) => {
 	url = apiBaseUrl + url + '?' + new URLSearchParams(params)
 
-	const res = await fetch(url, {method: 'GET'})
+	const options = {
+		method: 'GET',
+		headers: {'Authorization': `Bearer ${jwtBearerToken}`}
+	};
+
+	const res = await fetch(url, options);
 
 	if (res.ok) {
 		let filename = 'download'
@@ -59,7 +73,7 @@ async function _getFile(url, params) {
 	}
 }
 
-async function _postForFile(url, params, file) {
+methods.postForFile = async (url, params, file) => {
 	url = apiBaseUrl + url
 
 	let formData = new FormData()
@@ -68,10 +82,11 @@ async function _postForFile(url, params, file) {
 
 	const options = {
 		method: 'POST',
+		headers: {'Authorization': `Bearer ${jwtBearerToken}`},
 		body: formData
 	}
-	
-	const res = await fetch(url, options)
+
+	const res = await fetch(url, options);
 
 	if (res.ok) {
 		let filename = 'download'
@@ -91,7 +106,7 @@ async function _postForFile(url, params, file) {
 	}
 }
 
-async function _postMultipart(url, params) {
+methods.postMultipart = async (url, params) => {
 	url = apiBaseUrl + url
 
 	let formData = new FormData()
@@ -101,22 +116,13 @@ async function _postMultipart(url, params) {
 
 	const options = {
 		method: 'POST',
+		headers: {'Authorization': `Bearer ${jwtBearerToken}`},
 		body: formData
-	}
-	
-	const res = await fetch(url, options)
+	};
+
+	const res = await fetch(url, options);
 
 	return res.ok? res.json(): errHandler(res)
 }
-
-var methods = {}
-
-for (let m of ["GET", "POST", "PUT", "DELETE", "PATCH"]) {
-	methods[m.toLowerCase()] = (...data) => _jsonMethod(m, ...data)
-}
-
-methods.getFile = _getFile
-methods.postForFile = _postForFile
-methods.postMultipart = _postMultipart
 
 export default methods

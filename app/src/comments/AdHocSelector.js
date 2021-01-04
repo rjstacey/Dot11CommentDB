@@ -1,24 +1,8 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
-import Select from 'react-dropdown-select'
-import styled from '@emotion/styled'
+import {Select} from '../general/Form'
 import {getAllFieldOptions} from '../selectors/options'
-
-const StyledSelect = styled(Select)`
-	background-color: white;
-	border: 1px solid #ddd;
-	padding: 0;
-	box-sizing: border-box;
-	width: ${({width}) => typeof width === 'undefined'? 'unset': (width + (typeof width === 'number'? 'px': ''))};
-	& .react-dropdown-select-input {
-		font-size: unset;
-		&::placeholder {
-			font-style: italic;
-			color: GreyText;
-		}
-	}
-`;
 
 function AdHocSelector({
 	value,
@@ -26,13 +10,14 @@ function AdHocSelector({
 	fieldOptions,
 	loading,
 	placeholder,
-	width
+	width,
+	...otherProps
 }) {
 	const options = fieldOptions.filter(o => o.value !== '');	// remove blank entry (we use 'clear' to set blank)
 	const optionSelected = options.find(o => o.value === value);
 
 	return (
-		<StyledSelect
+		<Select
 			width={width}
 			values={optionSelected? [optionSelected]: []}
 			onChange={(values) => onChange(values.length? values[0].value: '')}
@@ -41,6 +26,7 @@ function AdHocSelector({
 			create
 			clearable
 			placeholder={placeholder}
+			{...otherProps}
 		/>
 	)
 }

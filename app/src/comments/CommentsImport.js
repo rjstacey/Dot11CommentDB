@@ -4,7 +4,7 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {Form, Row, Col, List, ListItem, Field} from '../general/Form'
 import ConfirmModal from '../modals/ConfirmModal'
-import {uploadResolutions, FieldsToUpdate, MatchAlgorithm} from '../actions/comments'
+import {uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate} from '../actions/comments'
 import {ActionButtonDropdown} from '../general/Dropdown'
 
 const importFieldOptions = [
@@ -29,7 +29,7 @@ const importFieldOptions = [
 	{value: FieldsToUpdate.Editing,
 		label: 'Editing status',
 		description: 'Update Edit Status, Edit Notes and Edited in Draft fields for each comment'}
-]
+];
 
 const matchAlgoOptions = [
 	{value: MatchAlgorithm.Elimination,
@@ -42,7 +42,19 @@ const matchAlgoOptions = [
 	{value: MatchAlgorithm.CID,
 		label: 'Match CID',
 		description: 'Match CID'}
-]
+];
+
+const matchUpdateOptions = [
+	{value: MatchUpdate.All,
+		label: 'All comments',
+		description: 'Update all comments provided all comments match.'},
+	{value: MatchUpdate.Any,
+		label: 'Any comments that match',
+		description: 'Update comments that match, ignore comments that don\'t match.'},
+	{value: MatchUpdate.Add,
+		label: 'Add comments that don\'t match any existing comments',
+		description: 'Update all comments and add extra comments provided all existing comments match'}
+];
 
 const CommentsImportForm = styled(Form)`
 	width: 600px;
@@ -81,31 +93,40 @@ const MatchAlgoList = ({algo, setAlgo}) =>
 	>
 		{matchAlgoOptions.map(a => 
 			<ListItem key={a.value}>
-				<input type='radio' title={a.description} value={a.value} checked={algo === a.value} onChange={e => setAlgo(e.target.value)} />
+				<input type='radio'
+					title={a.description}
+					value={a.value}
+					checked={algo === a.value}
+					onChange={e => setAlgo(e.target.value)}
+				/>
 				<label>{a.label}</label>
 			</ListItem>
 		)}
 	</List>
 
-const UpdateList = ({matchAll, setMatchAll}) =>
+const UpdateList = ({matchUpdate, setMatchUpdate}) =>
 	<List
 		label='Update:'
 	>
-		<ListItem>
-			<input type='radio' id='matchAll' checked={matchAll} onChange={e => setMatchAll(!matchAll)} />
-			<label htmlFor='matchAll'>All comments and only if all comments match</label>
-		</ListItem>
-		<ListItem>
-			<input type='radio' id='matchAny' checked={!matchAll} onChange={e => setMatchAll(!matchAll)} />
-			<label htmlFor='matchAny'>Comments that match</label>
-		</ListItem>
+		{matchUpdateOptions.map(a => 
+			<ListItem key={a.value}>
+				<input
+					type='radio'
+					title={a.description}
+					value={a.value}
+					checked={matchUpdate === a.value}
+					onChange={e => setMatchUpdate(e.target.value)}
+				/>
+				<label>{a.label}</label>
+			</ListItem>
+		)}
 	</List>
 
 function _CommentsImportDropdown({ballotId, close, upload}) {
 	const fileRef = React.useRef()
 	const [fields, setFields] = React.useState([])
 	const [algo, setAlgo] = React.useState(MatchAlgorithm.CID)
-	const [matchAll, setMatchAll] = React.useState(true)
+	const [matchUpdate, setMatchUpdate] = React.useState(MatchUpdate.All)
 	const [sheetName, setSheetName] = React.useState('Comments')
 	const [errMsg, setErrMsg] = React.useState('')
 
@@ -115,7 +136,7 @@ function _CommentsImportDropdown({ballotId, close, upload}) {
 			setErrMsg('Select spreadsheet file')
 			return
 		}
-		const unmatched = await upload(ballotId, fields, algo, matchAll, sheetName, file)
+		const unmatched = await upload(ballotId, fields, algo, matchUpdate, sheetName, file)
 		close()
 		if (unmatched !== null) {
 			const msg = unmatched.length?
@@ -141,27 +162,31 @@ function _CommentsImportDropdown({ballotId, close, upload}) {
 						<MatchAlgoList algo={algo} setAlgo={setAlgo} />
 					</Row>
 					<Row>
-						<UpdateList matchAll={matchAll} setMatchAll={setMatchAll} />
+						<UpdateList matchUpdate={matchUpdate} setMatchUpdate={setMatchUpdate} />
 					</Row>
 				</Col>
 			</Row>
-			<Field
-				label='Spreadsheet file:'
-				style={{justifyContent: 'left'}}
-			>
-				<input
-					type='file'
-					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-					ref={fileRef}
-					onClick={e => setErrMsg('')}
-				/>
-			</Field>
-			<Field
-				label='Worksheet name:'
-				style={{justifyContent: 'left'}}
-			>
-				<input type='text' value={sheetName} onChange={e => setSheetName(e.target.value)} />
-			</Field>
+			<Row>
+				<Field
+					label='Spreadsheet file:'
+					style={{justifyContent: 'left'}}
+				>
+					<input
+						type='file'
+						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+						ref={fileRef}
+						onClick={e => setErrMsg('')}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field
+					label='Worksheet name:'
+					style={{justifyContent: 'left'}}
+				>
+					<input type='text' value={sheetName} onChange={e => setSheetName(e.target.value)} />
+				</Field>
+			</Row>
 		</CommentsImportForm>
 	)
 }

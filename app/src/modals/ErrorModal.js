@@ -1,6 +1,7 @@
 import React from 'react'
 import {connect} from 'react-redux'
 import AppModal from './AppModal'
+import {Form} from '../general/Form'
 import {clearError} from '../actions/error'
 
 function strToHtml(s) {
@@ -13,24 +14,33 @@ function strToHtml(s) {
 		.join('<br />')
 }
 
-function ErrorModal(props) {
-	const {errMsg, dispatch} = props
+function ErrorModal({errMsg, clearError}) {
+	let summary, detail;
+	if (errMsg) {
+		summary = errMsg.summary;
+		if (errMsg.detail)
+			detail = errMsg.detail;
+	}
 	return (
 		<AppModal
 			isOpen={errMsg !== null}
-			onRequestClose={() => dispatch(clearError())}
+			onRequestClose={clearError}
 		>
-			{errMsg && errMsg.summary && <h3 dangerouslySetInnerHTML={{__html: strToHtml(errMsg.summary)}} />}
-			{errMsg && errMsg.detail && <p dangerouslySetInnerHTML={{__html: strToHtml(errMsg.detail)}} />}
-			<button onClick={() => dispatch(clearError())}>OK</button>
+			<Form
+				title={summary}
+				submit={clearError}
+			>
+				{detail && <p dangerouslySetInnerHTML={{__html: strToHtml(detail)}} />}
+			</Form>
 		</AppModal>
 	)
 }
 
-function mapStateToProps(state) {
-	const {errMsg} = state
-	return {
-		errMsg: errMsg.length? errMsg[0]: null
-	}
-}
-export default connect(mapStateToProps)(ErrorModal)
+export default connect(
+	(state) => ({
+		errMsg: state.errMsg.length? state.errMsg[0]: null
+	}),
+	(dispatch) => ({
+		clearError: () => dispatch(clearError())
+	})
+)(ErrorModal)

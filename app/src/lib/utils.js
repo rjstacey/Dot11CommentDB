@@ -61,3 +61,10 @@ export function shallowDiff(originalObj, modifiedObj) {
 	}
 	return changed;
 }
+
+export const displayDate = d => {
+	const date = (typeof d === 'string')? new Date(d): d;
+	if (date)
+		return date.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'});
+	return ''
+}

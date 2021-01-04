@@ -117,29 +117,6 @@ async function parseMyProjectComments(startCommentId, buffer, isExcel) {
 	return p.map((c, i) => ({CommentID: startCommentId + i, ...parseMyProjectComment(c)}))
 }
 
-/*const comparisons2 = [
-	(dbC, c) => (dbC.CommenterName === c.CommenterName),
-	(dbC, c) => (dbC.Category === c.Category),
-	(dbC, c) => (dbC.C_Clause === c.C_Clause),
-	(dbC, c) => (dbC.C_Page === c.C_Page),
-	(dbC, c) => (dbC.C_Line === c.C_Line),
-	(dbC, c) => (dbC.Comment === c.Comment),
-	(dbC, c) => (dbC.ProposedChange === c.ProposedChange)
-];
-
-function matchCommentByEllimination(comment, dbComments) {
-	let scr = dbComments.slice()
-	for (let comp of comparisons2) {
-		scr = scr.filter(dbC => comp(dbC, comment))
-		if (scr.length === 0) {
-			return null
-		}
-		if (scr.length === 1) {
-			return scr[0]
-		}
-	}
-	return null
-}*/
 
 const mapResnStatus = {
 	A: 'ACCEPTED',
@@ -447,13 +424,12 @@ function genLegacyWorksheetTable(sheet, ballotId, doc, comments) {
 	sheet.views = [{state: 'frozen', xSplit: 0, ySplit: 1}];
 }
 
-
 const comparisons = [
 	(dbC, sC) => dbC.CommenterName === sC['Commenter'],
 	(dbC, sC) => dbC.Category === sC['Type of Comment'],
 	(dbC, sC) => (dbC.C_Clause === sC['Clause Number(C)'] ||
-				  dbC.C_Clause.replace(/[0]+$/g, '') === sC['Clause Number(C)'] ||	// Legacy strips trailing 0
-				(sC['Clause Number(C)'].length > 10 && dbC.C_Clause.substring(0, sC['Clause Number(C)'].length) === sC['Clause Number(C)'])),		// Legacy might trucate
+			(dbC.C_Clause.replace(/[0]+$/g, '') === sC['Clause Number(C)']) ||	// Legacy strips trailing 0
+			(sC['Clause Number(C)'].length > 10 && dbC.C_Clause.substring(0, sC['Clause Number(C)'].length) === sC['Clause Number(C)'])),		// Legacy might trucate
 	(dbC, sC) => dbC.C_Page === sC['Page(C)'] || Math.round(parseFloat(dbC.C_Page)) === parseInt(sC['Page(C)']),	// Legacy converts page to int
 	(dbC, sC) => dbC.C_Line === sC['Line(C)'] || Math.round(parseFloat(dbC.C_Line)) === parseInt(sC['Line(C)']),	// Legacy converts line to int
 	(dbC, sC) => dbC.Comment.length === sC['Comment'].length,				// number of characters match
@@ -466,14 +442,12 @@ function findMatchByEliminationUsingTheseComparisons(dbC, sheetComments, compari
 	let scr = sheetComments;
 	for (let comp of comparisons) {
 		scr = scr.filter(sC => comp(dbC, sC))
-		if (scr.length === 0) {
+		if (scr.length === 0)
 			return null
-		}
-		if (scr.length === 1) {
+		if (scr.length === 1)
 			return scr[0]
-		}
 	}
-	return null
+	return scr[0] // duplicate comments, choose one
 }
 
 /*
@@ -484,7 +458,6 @@ function findMatchByEliminationUsingTheseComparisons(dbC, sheetComments, compari
 function findMatchByElimination(dbC, sheetComments) {
 	const comps = comparisons.slice()
 	for (let i = 0; i < comparisons.length; i++) {
-		console.log(i)
 		let sC = findMatchByEliminationUsingTheseComparisons(dbC, sheetComments, comps)
 		if (sC)
 			return sC
@@ -500,23 +473,22 @@ function findMatchByElimination(dbC, sheetComments) {
  */
 function matchByElimination(sheetComments, dbComments) {
 
-	if (sheetComments.length !== dbComments.length) {
-		throw `Number of rows in spreadsheet must match number of comments in database ` +
-			`(${sheetComments.length} != ${dbComments.length})`
+	if (sheetComments.length < dbComments.length) {
+		throw `Spreadsheet has ${sheetComments.length} comments; less than number comments, ${dbComments.length}, in the database.`
 	}
 
 	/* For the Comment and Proposed Change columns, compare only basic text.
 	 *   Line endings might differ: database has \n line endings while spreadsheet has \r\n line endings.
 	 *   Only compare ASCII characters that are not control characters. */
 	const pattern = /[^\x20-\x7f]/gm
-	for (let c of sheetComments) {
+	sheetComments.forEach(c => {
 		c['Comment'] = c['Comment'].replace(pattern, '')
 		c['Proposed Change'] = c['Proposed Change'].replace(pattern, '')
-	}
-	for (let c of dbComments) {
+	});
+	dbComments.forEach(c => {
 		c['Comment'] = c['Comment'].replace(pattern, '')
 		c['ProposedChange'] = c['ProposedChange'].replace(pattern, '')
-	}
+	});
 
 	let matched = []				// paired dbComments and sheetComments
 	let dbCommentsRemaining = []	// dbComments with no match
@@ -626,23 +598,36 @@ function commentUpdate(toUpdate, c, cs) {
 	return null
 }
 
-function resolutionUpdate(cs) {
-	// Does the comment have an assignee, resolution, submission?
-	if (cs['Resn Status'] || cs['Resolution'] || cs['Submission'] || cs['Assignee']) {
-		var n = {
-			CommentID: cs['CID'],
-			ResnStatus: cs['Resn Status'] || '',
-			Resolution: cs['Resolution'] || '',
-			Submission: cs['Submission'] || '',
-			ApprovedByMotion: cs['Motion Number'] || '',
-			AssigneeName: cs['Assignee'] || '',
-			EditStatus: cs['Edit Status'] || '',
-			EditNotes: cs['Edit Notes'] || '',
-			EditInDraft: cs['Edited in Draft'] || ''
-		}
-		return n
+function resolutionUpdate(toUpdate, c, cs) {
+	var n = {}
+
+	const cid = c.CommentID;
+	if (toUpdate.includes('cid')) {
+		n.CommentID = cs['CID'];
 	}
-	return null
+
+	if (toUpdate.includes('assignee')) {
+		n.AssigneeName = cs['Assinee'] || '';
+	}
+
+	if (toUpdate.includes('resolution')) {
+		n.ResnStatus = cs['Resn Status'] || '';
+		n.Resolution = cs['Resolution'] || '';
+		n.ApprovedByMotion = cs['Motion Number'] || '';
+	}
+
+	if (toUpdate.includes('editing')) {
+		n.EditStatus = cs['Edit Status'] || '';
+		n.EditNotes = cs['Edit Notes'] || '';
+		n.EditInDraft = cs['Edited in Draft'] || '';
+	}
+
+	if (Object.keys(n).length) {
+		n.PrevCommentID = cid;
+		return n;
+	}
+
+	return null;
 }
 
 const GET_COMMENTS_SQL =
@@ -836,16 +821,16 @@ async function addResolution(ballotId, commentId, resolution) {
 		CommentID: commentId,
 		ResolutionID: resolutionId,
 		ResnStatus: resolution.ResnStatus,
-		Resolution: resolution.Resolution,
+		Resolution: resolution.Resolution || '',
 		AssigneeSAPIN: resolution.AssigneeSAPIN,
 		AssigneeName: resolution.AssigneeName,
 		Submission: resolution.Submission,
 		ReadyForMotion: resolution.ReadyForMotion,
 		ApprovedByMotion: resolution.ApprovedByMotion,
 		EditStatus: resolution.EditStatus,
-		EditNotes: resolution.EditNotes,
+		EditNotes: resolution.EditNotes || '',
 		EditInDraft: resolution.EditInDraft,
-		Notes: resolution.Notes
+		Notes: resolution.Notes || ''
 	}
 
 	const result = await db.query('INSERT INTO resolutions SET ?', [entry])
@@ -950,7 +935,6 @@ async function importEpollComments(sess, ballotId, epollNum, startCommentId) {
 	}
 
 	const comments = parseEpollComments(startCommentId, ieeeRes.body)
-	//console.log(comments);
 
 	return insertComments(ballotId, comments)
 }
@@ -964,7 +948,6 @@ async function uploadComments(ballotId, type, startCommentId, file) {
 		const isExcel = file.originalname.search(/\.xlsx$/i) !== -1
 		comments = await parseMyProjectComments(startCommentId, file.buffer, isExcel)
 	}
-	//console.log('comment=', comments)
 	return insertComments(ballotId, comments)
 }
 
@@ -976,71 +959,111 @@ const FieldsToUpdate = {
 	Assignee: 'assignee',
 	Resolution: 'resolution',
 	Editing: 'editing'
-}
+};
 
-async function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchAll, sheetName, file) {
-	const match = {
-		'elimination': matchByElimination,
-		'perfect': matchPerfect,
-		'cid': matchCID
-	}
+const MatchAlgo = {
+	'elimination': matchByElimination,
+	'perfect': matchPerfect,
+	'cid': matchCID
+};
 
-	for (let f of toUpdate) {
-		if (!Object.values(FieldsToUpdate).includes(f)) {
-			throw `Invalid entry in toUpdate array: ${f}. Valid entries are ${Object.values(FieldsToUpdate).join(', ')}.`
-		}
-	}
+const MatchUpdate = {
+	All: 'all',
+	Any: 'any',
+	Add: 'add'
+};
 
-	if (!match.hasOwnProperty(matchAlgorithm)) {
-		throw `Invalid matchAlgorithm parameter value: ${matchAlgorithm}. Valid options are ${Object.keys(match).join(', ')}.`
-	}
-
-	const sheetComments = await parseLegacyCommentsSpreadsheet(file.buffer, sheetName)
-	const dbComments = await db.query('SELECT * FROM comments WHERE BallotID=?', [ballotId])
-
-	const [matched, dbCommentsRemaining, sheetCommentsRemaining] = match[matchAlgorithm](sheetComments, dbComments)
-	if (matchAll && (sheetCommentsRemaining.length > 0 || dbCommentsRemaining.length > 0)) {
-		throw `No update\n` +
-			`${matched.length} entries match\n` +
-			`${dbCommentsRemaining.length} unmatched database entries:\n` +
-			dbCommentsRemaining.map(c => c.CommentID).join(', ') + '\n' +
-			`${sheetCommentsRemaining.length} unmatched spreadsheet entries:\n` +
-			sheetCommentsRemaining.map(c => c['CID']).join(', ')
-	}
+function updateCommentsSQL(ballotId, matched, toUpdate) {
+	let SQL = '';
 
 	// See if any of the comment fields need updating
-	var updateComments = []
-	var newResolutions = []
-	for (let m of matched) {
+	let updateComments = [],
+		updateResolutions = [],
+		newResolutions = [];
+
+	matched.forEach(m => {
 		const c = m.dbComment
 		const cs = m.sheetComment
 		const u = commentUpdate(toUpdate, c, cs)
-		if (u) {
+		if (u)
 			updateComments.push(u)
-		}
-		const r = resolutionUpdate(cs)
+		const r = resolutionUpdate(toUpdate, c, cs)
 		if (r) {
-			newResolutions.push(r)
+			if (r.ResolutionID)
+				updateResolutions.push(r)
+			else {
+				delete r.PrevCommentID;
+				newResolutions.push(r)
+			}
 		}
+	});
+
+	updateComments.forEach(c => {
+		let cid = c.PrevCommentID;
+		delete c.PrevCommentID;
+		SQL += db.format('UPDATE comments SET ? WHERE BallotID=? AND CommentID=?;', [c, ballotId, cid]);
+	});
+
+	updateResolutions.forEach(r => {
+		let cid = c.PrevCommentID;
+		delete c.PrevCommentID;
+		SQL += db.format('UPDATE resolutions SET ? WHERE BallotID=? AND CommentID=?', [r, ballotId, cid]);
+	});
+
+	SQL +=
+		db.format('INSERT INTO resolutions (BallotID, ??) VALUES ', [Object.keys(newResolutions[0])]) +
+		newResolutions.map(r => db.format('(?, ?)', [ballotId, Object.values(r)])).join(',') +
+		';'
+
+	return SQL;
+}
+
+function addCommentsSQL(ballotId, unmatched, toUpdate) {
+	return ''
+}
+
+async function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, file) {
+
+	toUpdate.forEach(f => {
+		if (!Object.values(FieldsToUpdate).includes(f)) {
+			throw `Invalid entry in toUpdate array: ${f}. Valid entries are ${Object.values(FieldsToUpdate).join(', ')}.`
+		}
+	});
+
+	if (!MatchAlgo.hasOwnProperty(matchAlgorithm)) {
+		throw `Invalid matchAlgorithm parameter value: ${matchAlgorithm}. Valid options are ${Object.keys(MatchAlgo).join(', ')}.`
 	}
 
-	var SQL = db.format('DELETE FROM resolutions WHERE BallotID=?;', [ballotId]);
-	if (updateComments.length) {
-		for (let c of updateComments) {
-			var cid = c.PrevCommentID;
-			delete c.PrevCommentID;
-			SQL += db.format('UPDATE comments SET ? WHERE BallotID=? AND CommentID=?;', [c, ballotId, cid]);
-		}
+	if (!Object.values(MatchUpdate).includes(matchUpdate)) {
+		throw `Invalid matchUpdate parameter value: ${matchUpdate}. Valid options are ${Object.values(MatchUpdate).join(', ')}.`
 	}
 
-	console.log(newResolutions.length)
-	if (newResolutions.length) {
-		SQL +=
-			db.format('INSERT INTO resolutions (BallotID, ??) VALUES ', [Object.keys(newResolutions[0])]) +
-			newResolutions.map(r => db.format('(?, ?)', [ballotId, Object.values(r)])).join(',') +
-			';'
-			//console.log(SQL)
+	const sheetComments = await parseLegacyCommentsSpreadsheet(file.buffer, sheetName);
+	const dbComments = await getComments(ballotId);
+
+	const [matched, dbCommentsRemaining, sheetCommentsRemaining] =
+		MatchAlgo[matchAlgorithm](sheetComments, dbComments);
+
+	let SQL;
+	if (matchUpdate === MatchUpdate.All) {
+		if (sheetCommentsRemaining.length > 0 || dbCommentsRemaining.length > 0) {
+			throw `No update\n` +
+				`${matched.length} entries match\n` +
+				`${dbCommentsRemaining.length} unmatched database entries:\n` +
+				dbCommentsRemaining.map(c => c.CommentID).join(', ') + '\n' +
+				`${sheetCommentsRemaining.length} unmatched spreadsheet entries:\n` +
+				sheetCommentsRemaining.map(c => c['CID']).join(', ')
+		}
+
+		SQL = updateCommentsSQL(ballotId, matched, toUpdate);
 	}
+	else if (matchUpdate === MatchUpdate.Any) {
+		SQL = updateCommentsSQL(ballotId, matched, toUpdate);
+	}
+	else if (matchUpdate === MatchUpdate.Add) {
+		SQL = addCommentsSQL(ballotId, sheetCommentsRemaining, toUpdate)
+	}
+
 	SQL += db.format(GET_COMMENTS_SQL + 'WHERE c.BallotID=?;', [ballotId])
 	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId])
 

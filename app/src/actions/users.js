@@ -1,6 +1,7 @@
 import {setError} from './error'
 import fetcher from '../lib/fetcher'
 import {setSelected} from './select'
+export {AccessLevel, AccessLevelOptions} from './login'	// re-export access level constants
 
 const dataSet = 'users'
 export const USERS_PREFIX = 'USERS_'

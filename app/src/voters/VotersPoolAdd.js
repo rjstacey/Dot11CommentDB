@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import AppModal from '../modals/AppModal'
-import {Form, Row, Field} from '../general/Form'
+import {Form, Row, Col, Field, List, ListItem, Input} from '../general/Form'
 import {uploadVoters} from '../actions/voters'
 
 const defaultState = {
@@ -53,26 +53,32 @@ function VotersPoolAddModal({
 				submit={submit}
 				cancel={close}
 			>
-				<Field label='Pool name:'>
-					<input type='text' name='votingPoolName' value={state.votingPoolName} onChange={onChange}/>
-				</Field>
 				<Row>
-					<input type="radio" name='votingPoolType' value='WG' checked={state.votingPoolType === 'WG'} onChange={onChange} />
-					<label>WG ballot pool</label>
+					<Field label='Pool name:'>
+						<Input type='text' name='votingPoolName' value={state.votingPoolName} onChange={onChange}/>
+					</Field>
 				</Row>
 				<Row>
-					<input type="radio" name='votingPoolType' value='SA' checked={state.votingPoolType === 'SA'} onChange={onChange} />
-					<label>SA ballot pool</label>
+					<List>
+						<ListItem>
+							<input type="radio" name='votingPoolType' value='WG' checked={state.votingPoolType === 'WG'} onChange={onChange} />
+							<label>WG ballot pool</label>
+						</ListItem>
+						<ListItem>
+							<input type="radio" name='votingPoolType' value='SA' checked={state.votingPoolType === 'SA'} onChange={onChange} />
+							<label>SA ballot pool</label>
+						</ListItem>
+					</List>
 				</Row>
 				<Row>
-					<label>Voters spreadsheet (optional):</label>
-				</Row>
-				<Row>
-					<input
-						type='file'
-						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-						ref={fileInputRef}
-					/>
+					<Col>
+						<label>Voters spreadsheet (optional):</label>
+						<input
+							type='file'
+							accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+							ref={fileInputRef}
+						/>
+					</Col>
 				</Row>
 			</Form>
 		</AppModal>

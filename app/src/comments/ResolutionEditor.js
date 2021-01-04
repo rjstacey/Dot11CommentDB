@@ -353,17 +353,16 @@ export class ResolutionEditor extends React.Component {
 
 	render() {
 		return (
-			<div
-				style={{position: 'relative'}}
-				className={this.props.className}
-				onClick={e => this.editorRef.focus()}	// a click inside the container places focus on the editor
-			>
+			<React.Fragment>
 				<StyledToolbar
 					style={{visibility: this.state.showToolbar? 'visible': 'hidden'}}
 					editorState={this.state.editorState}
 					onChange={this.onChange}
 				/>
-				<EditorContainer>
+				<EditorContainer
+					className={this.props.className}
+					onClick={e => this.editorRef.focus()}	// a click inside the container places focus on the editor
+				>
 					<Editor
 						ref={ref => this.editorRef = ref}
 						editorState={this.state.editorState}
@@ -378,21 +377,23 @@ export class ResolutionEditor extends React.Component {
 						onBlur={() => this.setState({showToolbar: false})}
 						onFocus={() => this.setState({showToolbar: true})}
 						spellCheck
+						readOnly={this.props.readOnly}
 					/>
 				</EditorContainer>
-			</div>
+			</React.Fragment>
 		)
 	}
 }
 
 const StyledToolbar = styled(Toolbar)`
 	position: absolute;
-	top: -34px;
+	top: 0;
 	right: 0;
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;
 	align-content: bottom;
+	z-index: 2;
 `;
 
 const EditorContainer = styled.div`

@@ -97,6 +97,8 @@ const Col = styled.div`
 	flex-direction: column;
 	flex: 0 1 ${({width}) => width}px;
 	padding: 0 20px;
+	:first-of-type {padding-left: 0}
+	:last-of-type {padding-right: 0}
 `;
 
 const Container = styled.div`
@@ -104,7 +106,8 @@ const Container = styled.div`
 	display: flex;
 	justify-content: space-between;
 	width: 100%;
-	margin: 0 10px;
+	padding: 0 10px 10px 10px;
+	box-sizing: border-box;
 `;
 
 const PassFailBlock = styled.div`

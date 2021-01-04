@@ -1,4 +1,3 @@
-import {sortFunc} from '../lib/sort'
 import {
 	SORT_INIT,
 	SORT_SET,
@@ -6,29 +5,7 @@ import {
 	SortDirection
 } from '../actions/sort'
 
-export function sortData(sort, dataMap, data) {
-	const {type, by, direction} = sort;
-	let sortedDataMap = dataMap;
-
-	for (let key of by) {
-		let cmp = (index_a, index_b) => index_a - index_b; // Index order (= original order)
-		if (direction[key] && type[key] && direction[key] !== SortDirection.NONE) {
-			const cmpFunc = sortFunc[type[key]]
-			if (cmpFunc)
-				cmp = (index_a, index_b) => cmpFunc(data[index_a][key], data[index_b][key]);
-			else
-				console.warn(`No sort function for ${key} (sort type ${type[key]})`)
-		}
-		sortedDataMap = sortedDataMap.slice();
-		sortedDataMap.sort(cmp);
-		if (direction[key] === SortDirection.DESC)
-			sortedDataMap.reverse();
-	}
-
-	return sortedDataMap;
-}
-
-export function sortClick(sort, dataKey, event) {
+function sortClick(sort, dataKey, event) {
 	let by = sort.by
 	let direction = sort.direction
 
@@ -73,36 +50,36 @@ export function sortClick(sort, dataKey, event) {
 	return {...sort, by, direction};
 }
 
-export function sortSet(sort, dataKey, direction) {
-	const index = sort.by.indexOf(dataKey);
-	if (index >= 0) {
+function sortSet(state, dataKey, direction) {
+	let by = state.by;
+	if (by.indexOf(dataKey) >= 0) {
 		if (direction === SortDirection.NONE)
-			return {...sort, by: sort.by.filter(d => d !== dataKey), direction: {...sort.direction, [dataKey]: SortDirection.NONE}} // remove from sort by list
-		else
-			return {...sort, direction: {...sort.direction, [dataKey]: direction}} // change direction
+			by = by.filter(d => d !== dataKey) // remove from sort by list
 	}
 	else {
-		if (direction !== SortDirection.NONE)
-			return {...sort, by: [...sort.by, dataKey], direction: {...sort.direction, [dataKey]: direction}} // add to sort by list
+		by = by.slice();
+		by.push(dataKey);
 	}
-	return sort
+	const sorts = {...state.sorts, [dataKey]: {...state.sorts[dataKey], direction}};
+	return {...state, by, sorts}
 }
 
 function sortInit(entries) {
-	let sort = {...defaultState}
+	const sorts = {};
 	if (entries) {
-		for (let dataKey of Object.keys(entries)) {
-			sort.type[dataKey] = entries[dataKey].type;
-			sort.direction[dataKey] = entries[dataKey].direction;
-		}
+		Object.keys(entries).forEach(dataKey => {
+			sorts[dataKey] = {
+				type: entries[dataKey].type,
+				direction: entries[dataKey].direction
+			}
+		});
 	}
-	return sort;
+	return {by: [], sorts};
 }
 
 const defaultState = {
 	by: [],
-	type: {},
-	direction: {}
+	sorts: {}
 }
 
 function sortReducer(state = defaultState, action) {

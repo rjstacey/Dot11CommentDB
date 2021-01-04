@@ -8,14 +8,14 @@ import BallotSelector from '../ballots/BallotSelector'
 import ColumnSelector from './ColumnSelector'
 import AppTable from '../table/AppTable'
 import ShowFilters from '../table/ShowFilters'
-import {Button, ActionButton, VoteYesIcon, VoteNoIcon} from '../general/Icons'
+import {Button, ActionButton} from '../general/Icons'
 import {getComments} from '../actions/comments'
 import {setSelected} from '../actions/select'
 import {getDataMap} from '../selectors/dataMap'
 import {setBallotId} from '../actions/ballots'
 import {uiSetProperty} from '../actions/ui'
 import {editorCss} from './ResolutionEditor'
-import CommentDetail from './CommentDetail'
+import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './CommentDetail'
 import CommentsImport from './CommentsImport'
 import CommentsExport from './CommentsExport'
 import ColumnDropdown from '../table/ColumnDropdown'
@@ -24,8 +24,10 @@ import copyToClipboard from 'copy-html-to-clipboard'
 const FlexRow = styled.div`
 	display: flex;
 	flex-direction: row;
-	margin: 0 5px;
 	align-items: center;
+	& > *:not(:last-child) {
+		margin-right: 5px;
+	}
 `;
 
 /*
@@ -35,8 +37,8 @@ const renderDataCellCheck = ({rowData, dataKey}) => rowData[dataKey]? '\u2714': 
 
 const renderHeaderCellEditing = (props) =>
 	<React.Fragment>
-		<HeaderSubcomponent {...props} dataKey='EditStatus' label='Editing Status' />
-		<HeaderSubcomponent {...props} dataKey='EditInDraft' label='In Draft' />
+		<HeaderSubcomponent {...props} dropdownWidth={150} dataKey='EditStatus' label='Editing Status' />
+		<HeaderSubcomponent {...props} dropdownWidth={200} dataKey='EditInDraft' label='In Draft' />
 		<HeaderSubcomponent {...props} dataKey='EditNotes' label='Notes' />
 	</React.Fragment>
 
@@ -79,7 +81,6 @@ function renderDataCellResolution({rowData}) {
 
 const DataSubcomponent = styled.div`
 	flex: 1 1 ${({width}) => width && typeof width === 'string'? width: width + 'px'};
-	height: 18px;
 	padding-right: 5px;
 	box-sizing: border-box;
 	overflow: hidden;
@@ -90,29 +91,21 @@ const HeaderSubcomponent = DataSubcomponent.withComponent(ColumnDropdown);
 const renderHeaderCellStacked1 = (props) => 
 	<React.Fragment>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={70} dataKey='CID' label='CID' />
-			<HeaderSubcomponent {...props} width={40} dataKey='Category' label='Cat' />
+			<HeaderSubcomponent {...props} width={70} dropdownWidth={400} dataKey='CID' label='CID' />
+			<HeaderSubcomponent {...props} width={40} dropdownWidth={140} dataKey='Category' label='Cat' />
 		</FlexRow>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={70} dataKey='Clause' label='Clause' />
-			<HeaderSubcomponent {...props} width={40} dataKey='Page' label='Page' />
+			<HeaderSubcomponent {...props} width={70} dropdownWidth={200} dataKey='Clause' label='Clause' />
+			<HeaderSubcomponent {...props} width={40} dropdownWidth={150} dataKey='Page' label='Page' dataRenderer={renderPage} />
 		</FlexRow>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={90} dataKey='CommenterName' label='Commenter' />
+			<HeaderSubcomponent {...props} width={90} dropdownWidth={300} dataKey='CommenterName' label='Commenter' />
 			<HeaderSubcomponent {...props} width={30} dataKey='Vote' label='Vote' />
 			<HeaderSubcomponent {...props} width={30} dataKey='MustSatisfy' label='MS' />
 		</FlexRow>
 	</React.Fragment>
 
 const renderDataCellStacked1 = ({rowData}) => {
-	const commenterStr = rowData.CommenterName
-	let voteIcon
-	if (rowData.Vote === 'Approve')
-		voteIcon = <VoteYesIcon />
-	else if (rowData.Vote === 'Disapprove')
-		voteIcon = <VoteNoIcon />
-	const mbs = rowData.MustSatisfy? <span style={{color: 'red', fontSize: 'smaller', fontWeight: 'bold'}}>&nbsp;MS</span>: null
-	const page = typeof rowData.Page === 'number'? rowData.Page.toFixed(2): rowData.Page
 	return (
 		<React.Fragment>
 			<FlexRow>
@@ -121,9 +114,9 @@ const renderDataCellStacked1 = ({rowData}) => {
 			</FlexRow>
 			<FlexRow>
 				<DataSubcomponent width={70} style={{fontStyle: 'italic'}}>{rowData.Clause}</DataSubcomponent>
-				<DataSubcomponent width={40}>{page}</DataSubcomponent>
+				<DataSubcomponent width={40}>{renderPage(rowData.Page)}</DataSubcomponent>
 			</FlexRow>
-			<FlexRow>{voteIcon}{commenterStr}{mbs}</FlexRow>
+			<FlexRow>{renderCommenter(rowData)}</FlexRow>
 		</React.Fragment>
 	)
 }
@@ -143,7 +136,7 @@ const renderDataCellStacked2 = ({rowData}) =>
 const renderHeaderCellStacked3 = (props) => 
 	<React.Fragment>
 		<HeaderSubcomponent {...props} dataKey='AdHoc' label='Ad-hoc' />
-		<HeaderSubcomponent {...props} dataKey='CommentGroup' label='Comment Group' />
+		<HeaderSubcomponent {...props} dataKey='CommentGroup' label='Comment Group' dropdownWidth={300} />
 	</React.Fragment>
 
 const renderDataCellStacked3 = ({rowData}) =>
@@ -154,28 +147,9 @@ const renderDataCellStacked3 = ({rowData}) =>
 
 const renderHeaderCellResolution = (props) => 
 	<React.Fragment>
-		<HeaderSubcomponent {...props} dataKey='ResnStatus' label='Resolution Status' />
+		<HeaderSubcomponent {...props} dropdownWidth={150} dataKey='ResnStatus' label='Resolution Status' />
 		<HeaderSubcomponent {...props} dataKey='Resolution' label='Resolution' />
 	</React.Fragment>
-
-const TextBlock = styled.div`
-	& p {
-		margin: 8px 0;
-	}
-	& p:first-of-type {
-		margin: 0;
-	}
-`;
-
-// Renderer that will preserve newlines
-const renderTextBlock = ({rowData, dataKey}) => {
-	const cellData = rowData[dataKey]
-	return typeof cellData === 'string'?
-		<TextBlock>
-			{cellData? cellData.split('\n').map((line, i) => <p key={i}>{line}</p>): ''}
-		</TextBlock>:
-		cellData
-}
 
 const allColumns = Immutable.OrderedMap({
 	Stack1:
@@ -205,15 +179,17 @@ const allColumns = Immutable.OrderedMap({
 			width: 100, flexGrow: 1, flexShrink: 0},
 	Page:
 		{label: 'Page',
-			width: 80, flexGrow: 1, flexShrink: 0},
+			width: 80, flexGrow: 1, flexShrink: 0,
+			dataRenderer: renderPage,
+			cellRenderer: ({rowData, dataKey}) => renderPage(rowData[dataKey])},
 	Comment:
 		{label: 'Comment',
 			width: 400, flexGrow: 1, flexShrink: 1,
-			cellRenderer: renderTextBlock},
+			cellRenderer: ({rowData, dataKey}) => renderTextBlock(rowData[dataKey])},
 	ProposedChange:
 		{label: 'Proposed Change',
 			width: 400, flexGrow: 1, flexShrink: 1,
-			cellRenderer: renderTextBlock},
+			cellRenderer: ({rowData, dataKey}) => renderTextBlock(rowData[dataKey])},
 	Stack2:
 		{label: 'Ad Hoc/Group',
 			width: 150, flexGrow: 1, flexShrink: 1,
@@ -224,7 +200,8 @@ const allColumns = Immutable.OrderedMap({
 			width: 100, flexGrow: 1, flexShrink: 1},
 	CommentGroup:
 		{label: 'Group',
-			width: 150, flexGrow: 1, flexShrink: 1},
+			width: 150, flexGrow: 1, flexShrink: 1,
+			dropdownWidth: 300},
 	Stack3:
 		{label: 'Assignee/Submission',
 			width: 250, flexGrow: 1, flexShrink: 1,
@@ -235,13 +212,16 @@ const allColumns = Immutable.OrderedMap({
 			width: 150, flexGrow: 1, flexShrink: 1},
 	Submission:
 		{label: 'Submission',
-			width: 150, flexGrow: 1, flexShrink: 1},
+			width: 150, flexGrow: 1, flexShrink: 1,
+			dropdownWidth: 300},
 	Status:
 		{label: 'Status',
-			width: 150, flexGrow: 1, flexShrink: 1},
+			width: 150, flexGrow: 1, flexShrink: 1,
+			dropdownWidth: 250},
 	ApprovedByMotion:
 		{label: 'Motion Number',
-			width: 80, flexGrow: 1, flexShrink: 1},
+			width: 80, flexGrow: 1, flexShrink: 1,
+			dropdownWidth: 200},
 	Resolution:
 		{label: 'Resolution',
 			width: 400, flexGrow: 1, flexShrink: 1,
@@ -443,14 +423,14 @@ function Comments(props) {
 			columns={columns}
 			defaultTableConfig={defaultTablesConfig[tableView]}
 			tableView={tableView}
-			headerHeight={66} //{isStacked? 66: 22}
+			headerHeight={62} //{isStacked? 66: 22}
 			controlColumn
 			estimatedRowHeight={64}
 			rowGetter={commentsRowGetter}
 			loading={props.loading}
 			dataSet='comments'
 			rowKey='CID'
-			resizeWidth={tableView === 'Edit View'? setTableDetailSplit: undefined}
+			resizeWidth={tableView === 'Edit'? setTableDetailSplit: undefined}
 		/>
 
 	let body = table;
@@ -461,7 +441,7 @@ function Comments(props) {
 					{table}
 				</div>
 				<CommentDetail
-					style={{flex: `${split*100}%`, overflow: 'auto', boxSizing: 'border-box'}}
+					style={{flex: `${split*100}%`, height: '100%', overflow: 'auto', boxSizing: 'border-box'}}
 					key={props.selected}
 				/>
 			</React.Fragment>
@@ -486,7 +466,6 @@ function Comments(props) {
 			</TopRow>
 
 			<ShowFilters
-				style={{width: '100%'}}
 				dataSet={dataSet}
 			/>
 
@@ -502,10 +481,13 @@ const TopRow = styled.div`
 	display: flex;
 	justify-content: space-between;
 	width: 100%;
+	padding: 10px;
+	box-sizing: border-box;
 `;
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
+	overflow: hidden; /* prevent content increasing height */
 	width: 100%;
 	display: flex;
 	align-content: center;

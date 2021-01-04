@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import {Checkbox, Expander, DoubleExpander, Handle} from '../general/Icons'
+import {Expander, DoubleExpander, Handle} from '../general/Icons'
+import {Checkbox} from '../general/Form'
 import {setSelected, toggleSelected} from '../actions/select'
 import {setExpanded, toggleExpanded} from '../actions/expand'
 import {getDataMap} from '../selectors/dataMap'
@@ -14,6 +15,7 @@ import {CommentIdSelector} from '../comments/CommentIdList'
 const RowSelectorContainer = styled(ClickOutside)`
 	height: 22px;
 	border-radius: 6px;
+	text-align: center;
 `;
 
 const StyledCommentIdSelector = styled(CommentIdSelector)`
@@ -77,6 +79,7 @@ const Selector = styled.div`
 	display: flex;
 	flex-direction: column;
 	border-radius: 3px;
+	align-items: center;
 	:hover,
 	:focus-within {
 		background-color: #ddd;
@@ -86,6 +89,7 @@ const Selector = styled.div`
 const Container = styled.div`
 	display: flex;
 	flex-direction: column;
+	align-items: center;
 `;
 
 const _ControlHeader = (props) => {

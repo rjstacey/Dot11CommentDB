@@ -39,7 +39,9 @@ class ConfirmModal extends React.Component {
 			>
 				<Form
 					submit={this.handleOk}
+					submitLabel='Yes'
 					cancel={this.handleCancel}
+					cancelLabel='No'
 				>
 					<p>{this.state.message}</p>
 				</Form>

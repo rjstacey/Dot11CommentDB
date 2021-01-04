@@ -4,12 +4,11 @@ import {connect} from 'react-redux'
 import {Select} from '../general/Form'
 import {getAllFieldOptions} from '../selectors/options'
 
-function CommentGroupSelector({
+function SubmissionSelector({
 	value,
 	onChange,
 	fieldOptions,
 	loading,
-	placeholder,
 	width,
 	...otherProps
 }) {
@@ -25,13 +24,12 @@ function CommentGroupSelector({
 			loading={loading}
 			create
 			clearable
-			placeholder={placeholder}
 			{...otherProps}
 		/>
 	)
 }
 
-CommentGroupSelector.propTypes = {
+SubmissionSelector.propTypes = {
 	value: PropTypes.string.isRequired,
 	onChange: PropTypes.func.isRequired,
 	width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -43,7 +41,7 @@ CommentGroupSelector.propTypes = {
 const dataSet = 'comments'
 export default connect(
 	(state, ownProps) => ({
-		fieldOptions: getAllFieldOptions(state, dataSet, 'CommentGroup'),
+		fieldOptions: getAllFieldOptions(state, dataSet, 'Submission'),
 		loading: state[dataSet].loading
 	})
-)(CommentGroupSelector)
+)(SubmissionSelector)

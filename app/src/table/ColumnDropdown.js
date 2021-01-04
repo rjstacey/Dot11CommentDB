@@ -4,24 +4,18 @@ import ReactDOM from 'react-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {FixedSizeList as List} from 'react-window'
-import {Button, ActionButtonSort, Handle} from '../general/Icons'
+import {Button, ActionButtonSort, Handle, IconSort} from '../general/Icons'
 import ClickOutside from '../general/ClickOutside'
 import {getAllFieldOptions, getAvailableFieldOptions} from '../selectors/options'
-import {setSort, isSortable, SortDirection} from '../actions/sort'
-import {SortType, sortFunc} from '../lib/sort'
+import {setSort, SortDirection} from '../actions/sort'
+import {SortType, sortOptions} from '../lib/sort'
 import {setFilter, addFilter, removeFilter, FilterType} from '../actions/filter'
 import {CommentIdFilter} from '../comments/CommentIdList'
+import {Checkbox, Input} from '../general/Form'
 
-const SearchInput = styled.input`
-	margin: 10px 10px 0;
-	line-height: 30px;
-	padding-left: 20px;
-	border: 1px solid #ccc;
-	border-radius: 3px;
-	:focus {
-		outline: none;
-		border: 1px solid deepskyblue;
-	}
+const StyledInput = styled(Input)`
+	margin: 5px 10px;
+	padding: 10px;
 `;
 
 const StyledCommandIdFilter = styled(CommentIdFilter)`
@@ -30,7 +24,6 @@ const StyledCommandIdFilter = styled(CommentIdFilter)`
 	padding-left: 20px;
 	border: 1px solid #ccc;
 	border-radius: 3px;
-	max-width: 300px;
 	:focus {
 		outline: none;
 		border: 1px solid deepskyblue;
@@ -38,57 +31,40 @@ const StyledCommandIdFilter = styled(CommentIdFilter)`
 `;
 
 const StyledList = styled(List)`
-	min-height: 10px;
-	max-height: 200px;
+	min-height: 35px;
+	max-height: 250px;
 	border: 1px solid #ccc;
 	border-radius: 3px;
 	margin: 10px;
-	padding: 10px;
 `;
 
 const Item = styled.div`
-	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
+	display: flex;
+	align-items: center;
 	${({ disabled }) => disabled && 'text-decoration: line-through;'}
 	${({ isSelected }) => isSelected? 'background: #0074d9;': ':hover{background: #ccc;}'}
-	& > span {
+	& > div {
 		margin: 5px 5px;
 		${({ isSelected }) => isSelected && 'color: #fff;'}
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
 	}
 `;
 
 const DropdownContainer = styled.div`
 	position: absolute;
+	min-width: 150px;
 	padding: 10px;
 	display: flex;
 	flex-direction: column;
+	box-sizing: border-box;
 	background: #fff;
 	border: 1px solid #ccc;
 	border-radius: 2px;
 	box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
 	z-index: 9;
 	:focus {outline: none}
-`;
-
-const Header = styled(ClickOutside)`
-	position: relative;
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	user-select: none;
-	width: 100%;
-	overflow: hidden;
-	box-sizing: border-box;
-	& label {
-		font-weight: bold;
-	}
-	.handle {
-		position: absolute;
-		right: 0;
-		bottom: 0;
-		background: inherit;
-	}
 `;
 
 const Row = styled.div`
@@ -99,24 +75,24 @@ const Row = styled.div`
 `;
 
 function Sort({
-	dataKey,
 	sort,
 	setSort
 }) {
-	const direction = sort.direction[dataKey]
+	const {direction, type} = sort;
 	return (
-		<Row>Sort:
+		<Row>
+			<label>Sort:</label>
 			<span>
 				<ActionButtonSort
-					onClick={e => setSort(dataKey, direction === SortDirection.ASC? SortDirection.NONE: SortDirection.ASC)}
+					onClick={e => setSort(direction === SortDirection.ASC? SortDirection.NONE: SortDirection.ASC)}
 					direction={SortDirection.ASC}
-					isAlpha={sort.type[dataKey] !== SortType.NUMERIC}
+					isAlpha={type !== SortType.NUMERIC}
 					isActive={direction === SortDirection.ASC}
 				/>
 				<ActionButtonSort
-					onClick={e => setSort(dataKey, direction === SortDirection.DESC? SortDirection.NONE: SortDirection.DESC)}
+					onClick={e => setSort(direction === SortDirection.DESC? SortDirection.NONE: SortDirection.DESC)}
 					direction={SortDirection.DESC}
-					isAlpha={sort.type[dataKey] !== SortType.NUMERIC}
+					isAlpha={type !== SortType.NUMERIC}
 					isActive={direction === SortDirection.DESC}
 				/>
 			</span>
@@ -125,62 +101,104 @@ function Sort({
 }
 
 Sort.propTypes = {
-	dataKey: PropTypes.string.isRequired,
 	sort: PropTypes.object.isRequired,
 	setSort: PropTypes.func.isRequired
 }
 
-
 function Filter({
 	dataKey,
-	sortType,
+	sort,
 	filter,
 	setFilter,
 	addFilter,
 	removeFilter,
 	allOptions,
 	availableOptions,
-	selected
+	selected,
+	dataRenderer
 }) {
-	const [search, setSearch] = React.useState('')
-	const regexp = new RegExp(search, 'i');
+	const [search, setSearch] = React.useState('');
+	const inputRef = React.useRef();
 
-	const isItemSelected = (item) => filter.values.find(v => v.value === item.value) !== undefined
+	React.useEffect(() => {
+		if (search === '//')
+			inputRef.current.setSelectionRange(1, 1)
+	}, [search]);
 
-	const cmpFunc = sortFunc[sortType];
+	const onInputKey = e => {
+		if (e.key === 'Enter' && e.target.value)
+			toggleItemSelected(items[0])
+		if (e.key === '/' && !e.target.value) {
+			// If search is empty and / is pressed, then add // to search
+			// and position the cursor between the slashes (through useEffect on search change)
+			e.preventDefault();
+			setSearch('//');
+		}
+	}
+
+	const isItemSelected = (item) => 
+		filter.values.find(v => v.value === item.value && v.filterType === item.type) !== undefined
+
+	const toggleItemSelected = (item) => {
+		setSearch('');
+		if (isItemSelected(item))
+			removeFilter(item.value, item.type)
+		else
+			addFilter(item.value, item.type)
+	}
+
 	const options = filter.options?
 		filter.options:
 		filter.values.length > 0? allOptions: availableOptions;
-	const items = options
-		.filter((item) => regexp.test(item.label))
-		.sort((itemA, itemB) => cmpFunc(itemA.value, itemB.value))
-		.map((item, index) => {
-			const isSelected = isItemSelected(item);
-			return {
-				label: item.label,
-				isSelected: isItemSelected(item),
-				onChange: () => isSelected? removeFilter(item.value, FilterType.EXACT): addFilter(item.value, FilterType.EXACT)
-			}
-		})
-
+	let searchItems = filter.values
+		.filter(v => v.filterType !== FilterType.EXACT)
+		.map(v => ({
+			value: v.value,
+			label: (v.filterType === FilterType.REGEX? 'Regex: ': 'Contains: ') + v.value.toString(),
+			type: v.filterType
+		}));
+	let exactItems = options.map(o => ({...o, type: FilterType.EXACT}));
 	if (search) {
-		let addSearch
-		if (filter.type === FilterType.PAGE)
-			addSearch = () => addFilter(search, FilterType.PAGE)
-		else if (filter.type === FilterType.CLAUSE)
-			addSearch = () => addFilter(search, FilterType.CLAUSE)
-		else 
-			addSearch = () => addFilter(search, FilterType.CONTAINS)
-		items.unshift({
-			label: 'Contains: ' + search,
-			isSelected: false,
-			onChange: addSearch
-		})
+		let regexp;
+		const parts = search.split('/');
+		if (search[0] === '/' && parts.length > 2) {
+			// User is entering a regex in the form /pattern/flags.
+			// If the regex doesn't validate then ignore it
+			try {regexp = new RegExp(parts[1], parts[2])} catch (err) {}
+			if (regexp) {
+				exactItems = exactItems.filter(item => regexp.test(item.label))
+				let item = {
+					label: 'Regex: ' + regexp.toString(),
+					value: regexp,
+					type: FilterType.REGEX
+				}
+				searchItems.unshift(item)
+			}
+		}
+		else {
+			regexp = new RegExp(search, 'i');
+			exactItems = exactItems.filter(item => regexp.test(item.label))
+			let item = {
+				label: 'Contains: ' + search,
+				value: search,
+				type: FilterType.CONTAINS
+			}
+			searchItems.unshift(item)
+		}
 	}
+
+	exactItems = sortOptions(sort, exactItems)
+
+	// Regex items at the top of the list
+	const items = searchItems.concat(exactItems);
+
+	const itemHeight = 35;
+	const listHeight = Math.min(items.length * itemHeight, 150);
 
 	return (
 		<React.Fragment>
-			<Row>Filter:
+			<Row>
+				<label>Filter:</label>
 				{dataKey === 'CID' &&
 					<Button
 						onClick={() => setFilter(selected)}
@@ -197,30 +215,32 @@ function Filter({
 				</Button>
 			</Row>
 			{dataKey === 'CID' && <StyledCommandIdFilter />}
-			<SearchInput
-				type="search"
+			<StyledInput
+				type='search'
 				value={search}
-				onChange={(e) => setSearch(e.target.value)}
+				ref={inputRef}
+				onChange={e => setSearch(e.target.value)}
+				onKeyDown={onInputKey}
 				placeholder="Search..."
 			/>
 			<StyledList
-				height={150}
+				height={listHeight}
 				itemCount={items.length}
-				itemSize={35}
+				itemSize={itemHeight}
 				width='auto'
 			>
 				{({index, style}) => {
-					const label = items[index].label
-					const isSelected = items[index].isSelected
-					const onChange = items[index].onChange
+					const item = items[index];
+					const isSelected = isItemSelected(item);
 					return (
 						<Item
-							key={index}
+							key={item.value}
 							style={style}
 							isSelected={isSelected}
+							onClick={() => toggleItemSelected(item)}
 						>
-							<input type='checkbox' checked={isSelected} onChange={onChange}/>
-							<span>{label}</span>
+							<Checkbox checked={isSelected} readOnly />
+							{dataRenderer? dataRenderer(item.label): <div>{item.label}</div>}
 						</Item>
 					)
 				}}
@@ -236,9 +256,25 @@ Filter.propTypes = {
 	availableOptions: PropTypes.array.isRequired,
 }
 
-function Dropdown({style, className, dataKey, sort, setSort, filter, setFilter, addFilter, removeFilter, allOptions, availableOptions, close, dataSet, selected}) {
+function Dropdown({
+	style,
+	className,
+	dataKey,
+	sort,
+	setSort,
+	filter,
+	setFilter,
+	addFilter,
+	removeFilter,
+	allOptions,
+	availableOptions,
+	close,
+	dataSet,
+	selected,
+	dataRenderer
+}) {
 	const containerRef = React.useRef();
-	const [containerStyle, setContainerStyle] = React.useState(style)
+	const [containerStyle, setContainerStyle] = React.useState(style);
 
 	// Close the dropdown if the user scrolls
 	// (we don't track position changes during scrolling)
@@ -255,7 +291,7 @@ function Dropdown({style, className, dataKey, sort, setSort, filter, setFilter, 
 		}*/
 		if (bounds.x < 0)
 			setContainerStyle(style => ({...style, left: 0, right: undefined}))
-	})
+	});
 
 	return (
 		<DropdownContainer
@@ -263,9 +299,8 @@ function Dropdown({style, className, dataKey, sort, setSort, filter, setFilter, 
 			style={containerStyle}
 			className={className}
 		>
-			{isSortable(sort, dataKey) &&
+			{sort &&
 				<Sort
-					dataKey={dataKey}
 					sort={sort}
 					setSort={setSort}
 				/>
@@ -274,13 +309,14 @@ function Dropdown({style, className, dataKey, sort, setSort, filter, setFilter, 
 				<Filter
 					dataKey={dataKey}
 					selected={selected}
-					sortType={sort.type[dataKey]}
+					sort={sort}
 					filter={filter}
 					setFilter={setFilter}
 					addFilter={addFilter}
 					removeFilter={removeFilter}
 					allOptions={allOptions}
 					availableOptions={availableOptions}
+					dataRenderer={dataRenderer}
 				/>
 			}
 		</DropdownContainer>
@@ -292,7 +328,7 @@ const ConnectedDropdown = connect(
 		const {dataSet, dataKey} = ownProps
 		return {
 			filter: state[dataSet].filters[dataKey],
-			sort: state[dataSet].sort,
+			sort: state[dataSet].sort.sorts[dataKey],
 			selected: state[dataSet].selected,
 			allOptions: getAllFieldOptions(state, dataSet, dataKey),
 			availableOptions: getAvailableFieldOptions(state, dataSet, dataKey)
@@ -304,7 +340,7 @@ const ConnectedDropdown = connect(
 			setFilter: (value) => dispatch(setFilter(dataSet, dataKey, value)),
 			addFilter: (value, filterType) => dispatch(addFilter(dataSet, dataKey, value, filterType)),
 			removeFilter: (value, filterType) => dispatch(removeFilter(dataSet, dataKey, value, filterType)),
-			setSort: (dataKey, direction) => dispatch(setSort(dataSet, dataKey, direction)),
+			setSort: (direction) => dispatch(setSort(dataSet, dataKey, direction)),
 		}
 	}
 )(Dropdown)
@@ -316,48 +352,100 @@ function renderDropdown({anchorRef, ...otherProps}) {
 	)
 }
 
-function ColumnDropdown(props) {
+const Wrapper = styled(ClickOutside)`
+	position: relative;
+`;
+
+const Header = styled.div`
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	user-select: none;
+	width: 100%;
+	overflow: hidden;
+	box-sizing: border-box;
+	margin-right: 5px;
+	:hover {color: tomato}
+	& .handle {
+		position: absolute;
+		right: 0;
+		background: inherit;
+	}
+`;
+
+const Label = styled.label`
+	font-weight: bold;
+`;
+
+function _ColumnDropdown(props) {
 	const {className, style, label, ...otherProps} = props;
-	const {anchorRef, column} = props;
+	const {anchorRef, column, sort, filter} = props;
 	const containerRef = React.useRef();
 	const [open, setOpen] = React.useState(false);
-	const [position, setPosition] = React.useState({top: 0, right: 0});
-	const width = 2*column.width;
+	let dropdownStyle = {};
 
-	const handleClose = (e) => {
+	if (!sort && !filter) {
+		return <Label>{label}</Label>
+	}
+
+	const close = e => {
 		// ignore if not open or event target is an element inside the dropdown
-		if (!open || (anchorRef.current && anchorRef.current.lastChild.contains(e.target))) {
-			return;
-		}
-		
+		if (!open || (anchorRef.current && anchorRef.current.lastChild.contains(e.target)))
+			return		
 		setOpen(false)
 	}
 
-	const handleOpen = () => {
-		if (!open) {
-			// Update position on open
-			const anchor = anchorRef.current.getBoundingClientRect();
-			const container = containerRef.current.getBoundingClientRect();
-			const top = container.y - anchor.y + container.height;
-			const right = (anchor.x + anchor.width) - (container.x + container.width);
-			setPosition(position => (top !== position.top || right !== position.right)? {top, right}: position)
-		}
-		setOpen(!open)
+	if (open) {
+		// Update position on open
+		const anchor = anchorRef.current.getBoundingClientRect();
+		const container = containerRef.current.getBoundingClientRect();
+		const top = container.y - anchor.y + container.height;
+		const right = (anchor.x + anchor.width) - (container.x + container.width);
+		const width = props.dropdownWidth || column.width;
+		dropdownStyle = {top, width};
+		if ((right + width) > anchor.width)
+			dropdownStyle.left = 0;
+		else
+			dropdownStyle.right = right
 	}
 
-	const dropdownStyle = {...position, maxWidth: width};
+	let handle = <Handle className='handle'/>
+	if (sort && sort.direction !== SortDirection.NONE)
+		handle =
+			<IconSort
+				className='handle'
+				direction={sort.direction}
+				isAlpha={sort.type !== SortType.NUMERIC}
+			/>
+
 	return (
-		<Header
+		<Wrapper
 			ref={containerRef}
-			onClickOutside={handleClose}
+			onClickOutside={close}
 			className={className}
 			style={style}
 		>
-			<label>{label}</label>
-			<Handle className='handle' open={open} onClick={handleOpen} />
-			{open && renderDropdown({style: dropdownStyle, close: handleClose, ...otherProps})}
-		</Header>
+			<Header
+				onClick={() => setOpen(!open)}
+			>
+				<Label>{label}</Label>
+				{handle}
+			</Header>
+			{open && renderDropdown({style: dropdownStyle, close, ...otherProps})}
+		</Wrapper>
 	)
 }
+
+const ColumnDropdown = connect(
+	(state, ownProps) => {
+		const {dataSet, dataKey} = ownProps
+		const filter = state[dataSet].filters[dataKey]
+		const sort = state[dataSet].sort.sorts[dataKey]	
+		return {
+			sort,
+			filter
+		}
+	}
+)(_ColumnDropdown)
 
 export default ColumnDropdown

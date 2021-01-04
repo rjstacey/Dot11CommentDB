@@ -1,10 +1,9 @@
 const cheerio = require('cheerio')
 const rp = require('request-promise-native')
 const users = require('../services/users')
+const jwt = require('../util/jwt')
 
-function getState(req) {
-	return req.session.user? req.session.user: null
-}
+const getState = (req) => req.session.user;
   
 async function login(req) {
 	// Server side session for this user
@@ -83,6 +82,8 @@ async function login(req) {
 	req.session.user = user
 	req.session.access = user.Access
 
+	user.Token = jwt.token(username)
+
 	/*newOptions = {
 		url: `https://mentor.ieee.org/802.11/polls/closed?n=1`,
 		jar: sess.ieeeCookieJar
@@ -113,22 +114,21 @@ router.get('/login', (req, res, next) => {
 		const data = getState(req)
 		res.json(data)
 	}
-	catch(err) {next(err)}
+	catch (err) {next(err)}
 })
 router.post('/login', async (req, res, next) => {
 	try {
 		const data = await login(req)
 		res.json(data)
 	}
-	catch(err) {
-		console.log(err); next(err)}
+	catch (err) {next(err)}
 })
 router.post('/logout', (req, res, next) => {
 	try {
 		logout(req)
 		res.json(null)
 	}
-	catch(err) {next(err)}
+	catch (err) {next(err)}
 })
 
 module.exports = router

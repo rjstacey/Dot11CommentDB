@@ -3,7 +3,7 @@ import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppModal from '../modals/AppModal'
-import {Form, Field} from '../general/Form'
+import {Form, Row, Field, Input, Select} from '../general/Form'
 import {addVoter, updateVoter} from '../actions/voters'
 import {setError} from '../actions/error'
 import {shallowDiff} from '../lib/utils'
@@ -31,6 +31,11 @@ const VoterEditForm = styled(Form)`
 	}
 `;
 
+const statusOptions = [
+	{value: 'Voter', label: 'Voter'},
+	{value: 'ExOfficio', label: 'ExOfficio'}
+];
+
 function VoterEditModal({
 	isOpen,
 	close,
@@ -52,6 +57,11 @@ function VoterEditModal({
 			value = parseInt(value, 10)
 		}
 		setState(state => ({...state, [name]: value}))
+	}
+
+	const changeStatus = (options) => {
+		const value = options.length? options[0].value: '';
+		setState(state => ({...state, Status: value}))
 	}
 
 	async function submit(e) {
@@ -77,42 +87,59 @@ function VoterEditModal({
 		? 'Add voter to voter pool ' + votingPoolName
 		: 'Update voter'
 
-	const wgVoterFields = (
+	const wgVoterFields =
 		<React.Fragment>
-			<Field label='SA PIN:'>
-				<input type='text' name='SAPIN' value={state.SAPIN} onChange={change}/>
-			</Field>
-			<Field label='Last name:'>
-				<input type='text' name='LastName' value={state.LastName} onChange={change}/>
-			</Field>
-			<Field label='First name:'>
-				<input type='text' name='FirstName' value={state.FirstName} onChange={change}/>
-			</Field>
-			<Field label='MI:'>
-				<input type='text' name='MI' value={state.MI} onChange={change}/>
-			</Field>
-			<Field label='Email:'>
-				<input type='text' name='Email' value={state.Email} onChange={change}/>
-			</Field>
-			<Field label='Status:'>
-				<select name='Status' value={state.Status} onChange={change}>
-					<option value='Voter'>Voter</option>
-					<option value='ExOfficio'>ExOfficio</option>
-				</select>
-			</Field>
+			<Row>
+				<Field label='SA PIN:'>
+					<Input type='text' name='SAPIN' value={state.SAPIN} onChange={change}/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Last name:'>
+					<Input type='text' name='LastName' value={state.LastName} onChange={change}/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='First name:'>
+					<Input type='text' name='FirstName' value={state.FirstName} onChange={change}/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='MI:'>
+					<Input type='text' name='MI' value={state.MI} onChange={change}/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Email:'>
+					<Input type='text' name='Email' value={state.Email} onChange={change}/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Status:'>
+					<Select
+						style={{width: 120}}
+						values={[statusOptions.find(v => v.value === state.Status)]}
+						options={statusOptions}
+						onChange={changeStatus}
+						portal={document.querySelector('#root')}
+					/>
+				</Field>
+			</Row>
 		</React.Fragment>
-	)
 
-	const saVoterFields = (
+	const saVoterFields =
 		<React.Fragment>
-			<Field label='Name:'>
-				<input type='text' name='Name' value={state.Name} onChange={change}/>
-			</Field>
-			<Field label='Email:'>
-				<input type='text' name='Email' value={state.Email} onChange={change}/>
-			</Field>
+			<Row>
+				<Field label='Name:'>
+					<Input type='text' name='Name' value={state.Name} onChange={change}/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Email:'>
+					<Input type='text' name='Email' value={state.Email} onChange={change}/>
+				</Field>
+			</Row>
 		</React.Fragment>
-	)
 
 	return (
 		<AppModal

@@ -9,9 +9,9 @@ import {ActionButton} from '../general/Icons'
 import {getDataMap} from '../selectors/dataMap'
 import UsersImport from './UsersImport'
 import UserAddEditModal, {EditUserAction} from './UserAddEdit'
-import {getUsers, deleteUsers} from '../actions/users'
+import {getUsers, deleteUsers, AccessLevel, AccessLevelOptions} from '../actions/users'
 
-const DefaultUser = {SAPIN: '', Name: '', Email: '', Access: 3}
+const DefaultUser = {SAPIN: '', Name: '', Email: '', Access: AccessLevel.Member}
 
 const ActionCell = styled.div`
 	display: flex;
@@ -28,34 +28,35 @@ const TopRow = styled.div`
 	display: flex;
 	justify-content: space-between;
 	width: 100%;
+	padding: 10px;
+	box-sizing: border-box;
 `;
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
 	width: 100%;
+	align-items: center;
 	.AppTable__dataRow,
 	.AppTable__headerRow {
 		align-items: center;
 	}
 `;
 
-const Label = styled.label`
-	font-weight: bold;
-`;
+const renderAccess = ({rowData}) => AccessLevelOptions.find(o => o.value === rowData.Access).label;
 
 const tableColumns = Immutable.OrderedMap({
-	SAPIN: 		{label: 'SA PIN', 		width: 100, flexGrow: 1, flexShrink: 1},
+	SAPIN: 		{label: 'SA PIN', 		width: 100, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
 	Name: 		{label: 'Name', 		width: 300, flexGrow: 1, flexShrink: 1},
 	Email: 		{label: 'eMail Address',width: 300, flexGrow: 1, flexShrink: 1},
-	Access: 	{label: 'Access Level',	width: 150, flexGrow: 1, flexShrink: 1},
-	Actions: 	{label: 'Actions',		width: 100, flexGrow: 1, flexShrink: 1, headerRenderer: ({column}) => <Label>{column.label}</Label>}
+	Access: 	{label: 'Access Level',	width: 150, flexGrow: 1, flexShrink: 1, dropdownWidth: 200,
+					cellRenderer: renderAccess},
+	Actions: 	{label: 'Actions',		width: 100, flexGrow: 1, flexShrink: 1}
 });
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
 const primaryDataKey = 'SAPIN';
 
 function Users({
 	selected,
-	accessOptions,
 	valid,
 	loading,
 	users,
@@ -68,10 +69,6 @@ function Users({
 	const columns = React.useMemo(() => {
 		let columns = tableColumns;
 		columns = columns
-			.update('Access', v => ({
-				...v,
-				cellRenderer: ({rowData}) => accessOptions.find(o => o.value === rowData.Access).label
-			}))
 			.update('Actions', v => ({
 				...v,
 				cellRenderer: ({rowData}) => 
@@ -89,7 +86,7 @@ function Users({
 	}, []);
 
 	const onDelete = async (user) => {
-		const ok = await ConfirmModal.show(`Are you sure you want to remove ${user.FirstName} ${user.LastName}?`)
+		const ok = await ConfirmModal.show(`Are you sure you want to delete ${user.Name} (${user.SAPIN})?`)
 		if (ok)
 			deleteUsers([user[primaryDataKey]])
 	}
@@ -116,13 +113,13 @@ function Users({
 	return (
 		<React.Fragment>
 			<TopRow style={{maxWidth}}>
-				<span><label>Users</label></span>
-				<span>
+				<div>Users</div>
+				<div>
 					<ActionButton name='add' title='Add User' onClick={openAddUser} />
 					<ActionButton name='delete' title='Remove Selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
 					<UsersImport />
 					<ActionButton name='refresh' title='Refresh' onClick={getUsers} />
-				</span>
+				</div>
 			</TopRow>
 
 			<TableRow style={{maxWidth}}>
@@ -150,7 +147,6 @@ function Users({
 
 Users.propTypes = {
 	selected: PropTypes.array.isRequired,
-	accessOptions: PropTypes.array.isRequired,
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
 	users:  PropTypes.array.isRequired,
@@ -164,7 +160,6 @@ export default connect(
 	(state, ownProps) => {
 		return {
 			selected: state[dataSet].selected,
-			accessOptions: state[dataSet].accessOptions,
 			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
 			users: state[dataSet][dataSet],

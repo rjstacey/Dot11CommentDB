@@ -11,18 +11,27 @@ import {setBallotId, BallotType} from '../actions/ballots'
 import {ActionButton} from '../general/Icons'
 import ResultsSummary from './ResultsSummary'
 import ResultsExport from './ResultsExport'
+import {AccessLevel} from '../actions/login'
 
 // The action row height is determined by its content
 const ActionRow = styled.div`
 	display: flex;
 	justify-content: space-between;
+	align-items: center;
 	width: 100%;
+	padding: 10px;
+	box-sizing: border-box;
 `;
 
 // The table row grows to the available height
 const TableRow = styled.div`
 	flex: 1;
+	overflow: hidden; /* prevent content increasing height */
 	width: 100%;
+	.AppTable__dataRow,
+	.AppTable__headerRow {
+		align-items: center;
+	}
 `;
 
 const tableColumns = Immutable.OrderedMap({
@@ -36,15 +45,16 @@ const tableColumns = Immutable.OrderedMap({
 });
 
 function Results({
-		ballot,
-		resultsSummary,
-		votingPoolSize,
-		resultsValid,
-		loading,
-		getResults,
-		setBallotId,
-		ballotId: currentBallotId,
-	}) {
+	access,
+	ballot,
+	resultsSummary,
+	votingPoolSize,
+	resultsValid,
+	loading,
+	getResults,
+	setBallotId,
+	ballotId: currentBallotId,
+}) {
 	const {ballotId} = useParams()
 	const history = useHistory()
 
@@ -53,12 +63,18 @@ function Results({
 	const [tableId, columns, primaryDataKey, maxWidth] = React.useMemo(() => {
 		let columns, primaryDataKey
 		if (ballot.Type === BallotType.SA_Initial || ballot.Type === BallotType.SA_Recirc) {
-			columns = tableColumns.slice(1, tableColumns.size)
+			columns = tableColumns.delete('SAPIN')
 			primaryDataKey = 'Email'
 		}
 		else {
 			columns = tableColumns
 			primaryDataKey = 'SAPIN'
+			if (access <= AccessLevel.SubgroupAdmin) {
+				columns = columns.delete('SAPIN')
+			}
+		}
+		if (access <= AccessLevel.SubgroupAdmin) {
+			columns = columns.delete('Email')
 		}
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40;
 		return [primaryDataKey, columns, primaryDataKey, maxWidth]
@@ -125,14 +141,18 @@ Results.propTypes = {
 
 const dataSet = 'results'
 export default connect(
-	(state, ownProps) => ({
-		ballotId: state.ballots.ballotId,
-		ballot: state[dataSet].ballot,
-		resultsSummary: state[dataSet].resultsSummary,
-		votingPoolSize: state[dataSet].votingPoolSize,
-		resultsValid: state[dataSet].valid,
-		loading: state[dataSet].loading,
-	}),
+	(state, ownProps) => {
+		const user = state.login.user;
+		return {
+			ballotId: state.ballots.ballotId,
+			ballot: state[dataSet].ballot,
+			resultsSummary: state[dataSet].resultsSummary,
+			votingPoolSize: state[dataSet].votingPoolSize,
+			resultsValid: state[dataSet].valid,
+			loading: state[dataSet].loading,
+			access: user? user.Access: 0
+		}
+	},
 	(dispatch, ownProps) => ({
 		getResults: ballotId => dispatch(getResults(ballotId)),
 		setBallotId: ballotId => dispatch(setBallotId(ballotId))

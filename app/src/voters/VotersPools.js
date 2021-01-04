@@ -23,7 +23,7 @@ const RowActions = ({onEdit, onDelete}) =>
 	</ActionCell>
 
 const tableColumns = Immutable.OrderedMap({
-	PoolType: 		{label: 'Type',		width: 80},
+	PoolType: 		{label: 'Type',		width: 80, dropdownWidth: 150},
 	VotingPoolID: 	{label: 'Name',		width: 200},
 	VoterCount: 	{label: 'Voters',	width: 100},
 	Actions:  		{label: 'Actions',	width: 100}

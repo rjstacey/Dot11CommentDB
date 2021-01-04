@@ -64,7 +64,7 @@ const NoRowsBody = styled.div`
 
 const controlColumn = {
 	label: 'Control',
-	width: 30, flexGrow: 1, flexShrink: 1,
+	width: 30, flexGrow: 1, flexShrink: 0,
 	headerRenderer: p => <ControlHeader {...p} />,
 	cellRenderer: p => <ControlCell {...p} />
 }

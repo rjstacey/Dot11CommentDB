@@ -59,21 +59,22 @@ class TableRow extends React.Component {
 		/* eslint-enable no-unused-vars */
 
 		const cells = columns.map((column, key) => {
-			const cellRenderer = column.cellRenderer || defaultCellRenderer
-			const cellProps = {rowIndex, rowData, dataSet, rowKey, dataKey: key, column}
-			const cellStyle = {
-				flexBasis: column.width,
-				flexGrow: fixed? 0: column.flexGrow,
-				flexShrink: fixed? 0: column.flexShrink,
+			const {headerRenderer, cellRenderer, width, flexGrow, flexShrink, ...colProps} = column;
+			const style = {
+				flexBasis: width,
+				flexGrow: fixed? 0: flexGrow,
+				flexShrink: fixed? 0: flexShrink,
 				overflow: 'hidden'	// necessary to ensure that the content does not affect size
 			}
+			const renderer = cellRenderer || defaultCellRenderer;
+			const props = {rowIndex, rowData, dataSet, rowKey, dataKey: key, ...colProps}
 			return (
 				<div
 					key={key}
 					className='AppTable__dataCell'
-					style={cellStyle}
+					style={style}
 				>
-					{cellRenderer(cellProps)}
+					{renderer(props)}
 				</div>
 			)
 		}).toArray()

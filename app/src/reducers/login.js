@@ -3,15 +3,15 @@ import {
 	LOGIN_START,
 	LOGIN_SUCCESS,
 	LOGIN_FAILURE,
-	LOGOUT_START
+	LOGOUT_START,
+	loginUserInit
 } from '../actions/login'
 
+const user = loginUserInit();
 const defaultState = {
-	InProgress: false,
-	LoggedIn: false,
-	User: null,
-	Access: 0,
-	StatusMsg: ''
+	loading: false,
+	user,
+	statusMsg: ''
 }
 
 const login = (state = defaultState, action) => {
@@ -20,32 +20,28 @@ const login = (state = defaultState, action) => {
 	case LOGIN_GET_STATE:
 		return {
 			...state,
-			InProgress: true,
-			StatusMsg: ''
+			loading: true,
+			statusMsg: ''
 		}
 	case LOGIN_START:
 	case LOGOUT_START:
 		return {
 			...state,
-			InProgress: true,
-			LoggedIn: false,
-			User: null,
-			Access: 0,
-			StatusMsg: ''
+			loading: true,
+			user: null,
+			statusMsg: ''
 		}
 	case LOGIN_SUCCESS:
 		return {
 			...state,
-			InProgress: false,
-			LoggedIn: action.user? true: false,
-			User: action.user,
-			Access: action.user? action.user.Access: 0
+			loading: false,
+			user: action.user,
 		}
 	case LOGIN_FAILURE:
 		return {
 			...state,
-			InProgress: false,
-			StatusMsg: action.errMsg
+			loading: false,
+			statusMsg: action.errMsg
 		}
 	default:
 		return state

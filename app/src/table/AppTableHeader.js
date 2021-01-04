@@ -4,7 +4,7 @@ import {DraggableCore} from 'react-draggable'
 import styled from '@emotion/styled'
 import ColumnDropdown from './ColumnDropdown'
 
-const defaultHeaderCellRenderer = (props) => <ColumnDropdown dataKey={props.column.key} label={props.column.label} {...props}/>
+const defaultHeaderCellRenderer = (props) => <ColumnDropdown {...props}/>
 
 const HeaderCell = styled.div`
 	display: flex;
@@ -86,22 +86,23 @@ const HeaderRow = styled.div`
 	const anchorRef = React.useRef();
 
 	const cells = columns.map((column, key) => {
-		const containerStyle = {
-			flexBasis: column.width,
-			flexGrow: fixed? 0: column.flexGrow,
-			flexShrink: fixed? 0: column.flexShrink,
+		const {headerRenderer, width, flexGrow, flexShrink, ...colProps} = column;
+		const style = {
+			flexBasis: width,
+			flexGrow: fixed? 0: flexGrow,
+			flexShrink: fixed? 0: flexShrink,
 			overflow: 'hidden'	// necessary so that the content does not affect size
 		}
-		const cellRenderer = column.headerRenderer || defaultHeaderCellRenderer
-		const cellProps = {anchorRef, dataKey: key, column, rowKey, dataSet}
+		const renderer = headerRenderer || defaultHeaderCellRenderer
+		const props = {anchorRef, dataKey: key, column, rowKey, dataSet, ...colProps}
 		return (
 			<HeaderCell
 				key={key}
 				className='AppTable__headerCell'
-				style={containerStyle}
+				style={style}
 			>
 				<HeaderCellContent>
-					{cellRenderer(cellProps)}
+					{renderer(props)}
 				</HeaderCellContent>
 				<ColumnResizer
 					setWidth={deltaX => setColumnWidth(key, deltaX)}

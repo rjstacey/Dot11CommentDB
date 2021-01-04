@@ -11,8 +11,7 @@ function fieldOptions(data, dataKey) {
 	// return an array of unique values for dataKey, sorted, and value '' or null labeled '(Blank)'
 	const options = 
 		[...new Set(data.map(c => c[dataKey] !== null? c[dataKey]: ''))]	// array of unique values for dataKey
-		.sort()
-		.map(v => ({value: v, label: (v === '')? '(Blank)': v}))
+		.map(v => ({value: v, label: v === ''? '(Blank)': v}))
 	return options
 }
 

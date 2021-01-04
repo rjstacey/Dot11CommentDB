@@ -18,7 +18,7 @@ router.all('*', (req, res, next) => {
 	switch (req.method) {
 	case 'GET':
 		// Certain data is sensitive (has email addresses, etc.)
-		if (req.path.match(/^\/users|^\/votingPool|^\/voters/i)) {
+		if (req.path.match(/^\/votingPool|^\/voters/i)) {
 			console.log('validate access')
 			if (access <= 1) {	// Need read access
 				return next('Insufficient karma')
@@ -331,12 +331,15 @@ router.post('/uploadResolutions/:ballotId', upload.single('ResolutionsFile'), as
 		if (!req.body.params) {
 			throw 'Missing parameters'
 		}
-		const {toUpdate, matchAlgorithm, matchAll, sheetName} = JSON.parse(req.body.params)
+		const {toUpdate, matchAlgorithm, matchUpdate, sheetName} = JSON.parse(req.body.params)
 		if (!Array.isArray(toUpdate)) {
 			throw 'Missing or invalid parameter toUpdate'
 		}
 		if (!matchAlgorithm || typeof matchAlgorithm !== 'string') {
 			throw 'Missing or invalid parameter matchAlgorithm'
+		}
+		if (!matchUpdate || typeof matchUpdate !== 'string') {
+			throw 'Missing or invalid parameter matchUpdate'
 		}
 		if (!ballotId || typeof ballotId !== 'string') {
 			throw 'Missing or invalid parameter BallotID'
@@ -344,7 +347,7 @@ router.post('/uploadResolutions/:ballotId', upload.single('ResolutionsFile'), as
 		if (!req.file) {
 			throw 'Missing file'
 		}
-		const data = await commentsModule.uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchAll, sheetName, req.file)
+		const data = await commentsModule.uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, req.file)
 		res.json(data)
 	}
 	catch(err) {next(err)}

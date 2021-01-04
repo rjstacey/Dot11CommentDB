@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {Form, Row} from '../general/Form'
+import {Form, Row, List, ListItem} from '../general/Form'
 import {ActionButtonDropdown} from '../general/Dropdown'
 import {exportCommentsSpreadsheet, CommentsSpreadsheetFormat} from '../actions/comments'
 
@@ -37,58 +37,64 @@ function _CommentsExportDropdown({
 			cancel={close}
 		>
 			<Row>
-				<label>For MyProject upload. Modifies an existing MyProject comment spreadsheet.</label>
+				<List
+					label='For MyProject upload; modifies an existing MyProject comment spreadsheet.'
+				>
+					<ListItem>
+						<input
+							type="radio"
+							id={CommentsSpreadsheetFormat.MyProject}
+							title={'Export appoved resolutions for MyProject upload. Modifies an existing MyProject comment spreadsheet.'}
+							checked={spreadsheetFormat === CommentsSpreadsheetFormat.MyProject}
+							onChange={e => setSpreadsheetFormat(CommentsSpreadsheetFormat.MyProject)}
+						/>
+						<label htmlFor={CommentsSpreadsheetFormat.MyProject}>
+							All resolved comments
+						</label>
+					</ListItem>
+				</List>
 			</Row>
 			<Row>
-				<input
-					type="radio"
-					id={CommentsSpreadsheetFormat.MyProject}
-					title={'Export appoved resolutions for MyProject upload. Modifies an existing MyProject comment spreadsheet.'}
-					checked={spreadsheetFormat === CommentsSpreadsheetFormat.MyProject}
-					onChange={e => setSpreadsheetFormat(CommentsSpreadsheetFormat.MyProject)}
-				/>
-				<label htmlFor={CommentsSpreadsheetFormat.MyProject}>
-					All resolved comments
-				</label>
-			</Row>
-			<Row>
-				<label>For review or mentor upload. Optionally overwrites an existing spreadsheet keeping Title and Revision History tabs.</label>
-			</Row>
-			<Row>
-				<input
-					type="radio"
-					id={CommentsSpreadsheetFormat.AllComments}
-					title={'Export all comments. Optionally overwrites an existing spreadsheet keeping Title and Revision History tabs.'}
-					checked={spreadsheetFormat === CommentsSpreadsheetFormat.AllComments}
-					onChange={e => setSpreadsheetFormat(CommentsSpreadsheetFormat.AllComments)}
-				/>
-				<label htmlFor={CommentsSpreadsheetFormat.AllComments}>
-					All comments
-				</label>
-			</Row>
-			<Row>
-				<input
-					type="radio"
-					id={CommentsSpreadsheetFormat.TabPerAdHoc}
-					title={'Export all comments plus a tab for each ad-hoc. Optionally overwrites an existing spreadsheet keeping Title and Revision History tabs.'}
-					checked={spreadsheetFormat === CommentsSpreadsheetFormat.TabPerAdHoc}
-					onChange={e => setSpreadsheetFormat(CommentsSpreadsheetFormat.TabPerAdHoc)}
-				/>
-				<label htmlFor={CommentsSpreadsheetFormat.TabPerAdHoc}>
-					All comments plus one sheet per ad-hoc
-				</label>
-			</Row>
-			<Row>
-				<input
-					type="radio"
-					id={CommentsSpreadsheetFormat.TabPerCommentGroup}
-					title={'Export all comments plus a tab for each comment group. Optionally overwrites an existing spreadsheet keeping Title and Revision History tabs.'}
-					checked={spreadsheetFormat === CommentsSpreadsheetFormat.TabPerCommentGroup}
-					onChange={e => setSpreadsheetFormat(CommentsSpreadsheetFormat.TabPerCommentGroup)}
-				/>
-				<label htmlFor={CommentsSpreadsheetFormat.TabPerCommentGroup}>
-					All comments plus one sheet per comment group
-				</label>
+				<List
+					label='For review or mentor upload; optionally overwrites an existing spreadsheet keeping Title and Revision History tabs.'
+				>
+					<ListItem>
+						<input
+							type="radio"
+							id={CommentsSpreadsheetFormat.AllComments}
+							title={'Export all comments. Optionally overwrites an existing spreadsheet keeping Title and Revision History tabs.'}
+							checked={spreadsheetFormat === CommentsSpreadsheetFormat.AllComments}
+							onChange={e => setSpreadsheetFormat(CommentsSpreadsheetFormat.AllComments)}
+						/>
+						<label htmlFor={CommentsSpreadsheetFormat.AllComments}>
+							All comments
+						</label>
+					</ListItem>
+					<ListItem>
+						<input
+							type="radio"
+							id={CommentsSpreadsheetFormat.TabPerAdHoc}
+							title={'Export all comments plus a tab for each ad-hoc. Optionally overwrites an existing spreadsheet keeping Title and Revision History tabs.'}
+							checked={spreadsheetFormat === CommentsSpreadsheetFormat.TabPerAdHoc}
+							onChange={e => setSpreadsheetFormat(CommentsSpreadsheetFormat.TabPerAdHoc)}
+						/>
+						<label htmlFor={CommentsSpreadsheetFormat.TabPerAdHoc}>
+							All comments plus one sheet per ad-hoc
+						</label>
+					</ListItem>
+					<ListItem>
+						<input
+							type="radio"
+							id={CommentsSpreadsheetFormat.TabPerCommentGroup}
+							title={'Export all comments plus a tab for each comment group. Optionally overwrites an existing spreadsheet keeping Title and Revision History tabs.'}
+							checked={spreadsheetFormat === CommentsSpreadsheetFormat.TabPerCommentGroup}
+							onChange={e => setSpreadsheetFormat(CommentsSpreadsheetFormat.TabPerCommentGroup)}
+						/>
+						<label htmlFor={CommentsSpreadsheetFormat.TabPerCommentGroup}>
+							All comments plus one sheet per comment group
+						</label>
+					</ListItem>
+				</List>
 			</Row>
 			<Row>
 				<input

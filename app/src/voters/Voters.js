@@ -36,18 +36,18 @@ const defaultVoter = {
 
 const wgColumns = Immutable.OrderedMap({
 	SAPIN: 		{label: 'SA PIN',		width: 100},
-	LastName: 	{label: 'Last Name',	width: 150},
-	FirstName: 	{label: 'First Name',	width: 150},
+	LastName: 	{label: 'Last Name',	width: 150, dropdownWidth: 250},
+	FirstName: 	{label: 'First Name',	width: 150, dropdownWidth: 250},
 	MI: 		{label: 'MI',			width: 50},
-	Email: 		{label: 'Email',		width: 250},
+	Email: 		{label: 'Email',		width: 250, dropdownWidth: 350},
 	Status: 	{label: 'Status',		width: 100},
-	Actions: 	{label: '', 			width: 100}
+	Actions: 	{label: 'Actions', 		width: 100}
 });
 
 const saColumns = Immutable.OrderedMap({
-	Email: 		{label: 'Email',		width: 250},
-	Name: 		{label: 'Name',			width: 300},
-	Actions: 	{label: '', 			width: 100}
+	Email: 		{label: 'Email',		width: 250, dropdownWidth: 350},
+	Name: 		{label: 'Name',			width: 300, dropdownWidth: 350},
+	Actions: 	{label: 'Actions', 		width: 100}
 });
 
 const TopRow = styled.div`
@@ -59,7 +59,8 @@ const TopRow = styled.div`
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
 	width: 100%;
-	.AppTable__dataRow {
+	.AppTable__dataRow,
+	.AppTable__headerRow {
 		align-items: center;
 	}
 `;
@@ -150,7 +151,7 @@ function Voters(props) {
 					columns={columns}
 					controlColumn
 					dataSet='voters'
-					headerHeight={60}
+					headerHeight={36}
 					estimatedRowHeight={36}
 					loading={props.loading}
 					rowKey={primaryDataKey}

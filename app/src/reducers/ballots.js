@@ -28,22 +28,6 @@ import {
 	SET_BALLOTID
 } from '../actions/ballots'
 
-function defaultBallot() {
-	const now = new Date()
-	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-	return {
-		Project: '',
-		BallotID: '',
-		EpollNum: '',
-		Document: '',
-		Topic: '',
-		Start: today.toISOString(),
-		End: today.toISOString(),
-		VotingPoolID: '',
-		PrevBallotID: ''
-	}
-}
-
 const ballotFields = ['Project', 'BallotID', 'Document', 'Topic', 'EpollNum', 'Start', 'End', 'Result', 'Comments', 'VotingPoolID', 'PrevBallotID'];
 
 /*
@@ -59,6 +43,8 @@ const defaultFiltersEntries = ballotFields.reduce((entries, dataKey) => {
 		case 'BallotID':
 		case 'Document':
 		case 'Topic':
+		case 'PrevBallotID':
+		case 'VotingPoolID':
 			type = FilterType.STRING
 			break
 		default:
@@ -82,6 +68,8 @@ const defaultSortEntries = ballotFields.reduce((entries, dataKey) => {
 		case 'BallotID':
 		case 'Document':
 		case 'Topic':
+		case 'PrevBallotID':
+		case 'VotingPoolID':
 			type = SortType.STRING
 			break
 		case 'Start':
@@ -104,11 +92,7 @@ const defaultState = {
 	updateBallot: false,
 	deleteBallots: false,
 	project: '',
-	ballotId: '',
-	editBallot: {
-		action: 'add',
-		ballot: defaultBallot()
-	},
+	ballotId: ''
 }
 
 function getProjectForBallotId(ballots, ballotId) {

@@ -7,6 +7,12 @@ export const SortType = {
 	DATE: 3
 }
 
+export const SortDirection = {
+	NONE: 'NONE',
+	ASC: 'ASC',
+	DESC: 'DESC'
+}
+
 function parseNumber(value) {
 	// Return the value as-is if it's already a number
 	if (typeof value === 'number')
@@ -62,4 +68,40 @@ export const sortFunc = {
 	[SortType.CLAUSE]: cmpClause,
 	[SortType.STRING]: cmpString,
 	[SortType.DATE]: cmpDate
+}
+
+export function sortData(sortState, dataMap, data) {
+	let sortedDataMap = dataMap;
+
+	sortState.by.forEach(key => {
+		const {direction, type} = sortState.sorts[key];
+		if (direction !== SortDirection.ASC && direction !== SortDirection.DESC)
+			return
+		const cmpFunc = sortFunc[type]
+		if (!cmpFunc) {
+			console.warn(`No sort function for ${key} (sort type ${type[key]})`);
+			return
+		}
+		const cmp = (index_a, index_b) => cmpFunc(data[index_a][key], data[index_b][key]);
+		sortedDataMap = sortedDataMap.slice();
+		sortedDataMap.sort(cmp);
+		if (direction === SortDirection.DESC)
+			sortedDataMap.reverse();
+	});
+
+	return sortedDataMap;
+}
+
+export function sortOptions(sort, options) {
+	const {direction, type} = sort;
+	let sortedOptions = options;
+
+	if (direction === SortDirection.ASC || direction === SortDirection.DESC) {
+		const cmpFunc = sortFunc[type];
+		sortedOptions = sortedOptions.sort((itemA, itemB) => cmpFunc(itemA.value, itemB.value));
+		if (direction === SortDirection.DESC)
+			sortedOptions.reverse();
+	}
+
+	return sortedOptions;
 }

@@ -8,12 +8,13 @@ import BallotDetailModal from './BallotDetail'
 import ConfirmModal from '../modals/ConfirmModal'
 import AppTable from '../table/AppTable'
 import ColumnDropdown from '../table/ColumnDropdown'
-import {getBallots, deleteBallots} from '../actions/ballots'
+import {getBallots, deleteBallots, BallotType} from '../actions/ballots'
 import {setSelected} from '../actions/select'
 import {setSort} from '../actions/sort'
 import {getDataMap} from '../selectors/dataMap'
 import {getVotingPools} from '../actions/votingPools'
 import {ActionButton} from '../general/Icons'
+import {displayDate} from '../lib/utils'
 
 const ActionCell = styled.div`
 	display: flex;
@@ -28,7 +29,6 @@ const RowActions = ({onEdit, onDelete}) =>
 
 const DataSubcomponent = styled.div`
 	flex: 1 1 ${({width}) => width && typeof width === 'string'? width: width + 'px'};
-	height: 18px;
 	padding-right: 5px;
 	box-sizing: border-box;
 	overflow: hidden;
@@ -44,10 +44,10 @@ const renderHeaderCellVotingPool = (props) =>
 
 const renderVotingPool = ({rowData}) => {
 	const type = rowData.Type
-	if (type === 1 || type === 3 || type === 5) {
+	if (type === BallotType.WG_Initial || type === BallotType.SA_Initial || type === BallotType.Motion) {
 		return rowData.VotingPoolID
 	}
-	else if (type === 2 || type === 4) {
+	else if (type === BallotType.WG_Recirc || type === BallotType.SA_Recirc) {
 		return rowData.PrevBallotID
 	}
 	return ''
@@ -69,8 +69,8 @@ export function renderResultsSummary({rowData, dataKey}) {
 	return <Link to={`/Results/${rowData.BallotID}`}>{resultsStr}</Link>
 }
 
-export function renderCommentsSummary({rowData, key}) {
-	const comments = rowData[key]
+export function renderCommentsSummary({rowData, dataKey}) {
+	const comments = rowData[dataKey]
 	let commentStr = 'None'
 	if (comments && comments.Count > 0) {
 		commentStr = `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
@@ -81,35 +81,41 @@ export function renderCommentsSummary({rowData, key}) {
 function renderDate({rowData, dataKey}) {
 	// rowData[key] is an ISO time string. We convert this to eastern time
 	// and display only the date (not time).
-	const d = new Date(rowData[dataKey])
-	const str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
-	return str
+	return displayDate(rowData[dataKey]);
 }
 
 const tableColumns = Immutable.OrderedMap({
 	Project:
 		{label: 'Project',
-			width: 100,	flexShrink: 0, flexGrow: 0},
+			width: 100,	flexShrink: 0, flexGrow: 0,
+			dropdownWidth: 200},
 	BallotID: 
 		{label: 'Ballot',
-			width: 100,	flexShrink: 0, flexGrow: 0},
+			width: 100,	flexShrink: 0, flexGrow: 0,
+			dropdownWidth: 200},
 	Document:
 		{label: 'Document',
-			width: 150,	flexShrink: 1, flexGrow: 1},
+			width: 150,	flexShrink: 1, flexGrow: 1,
+			dropdownWidth: 300},
 	Topic:
 		{label: 'Topic',
 			width: 300,	flexShrink: 1, flexGrow: 1},
 	EpollNum:
 		{label: 'ePoll',
-			width: 80,	flexGrow: 0, flexShrink: 0},
+			width: 80,	flexGrow: 0, flexShrink: 0,
+			dropdownWidth: 200},
 	Start:
 		{label: 'Start',
 			width: 86, flexShrink: 0,
-			cellRenderer: renderDate},
+			dataRenderer: displayDate,
+			cellRenderer: renderDate,
+			dropdownWidth: 300},
 	End:
 		{label: 'End',
 			width: 86, flexShrink: 0,
-			cellRenderer: renderDate},
+			dataRenderer: displayDate,
+			cellRenderer: renderDate,
+			dropdownWidth: 300},
 	VotingPool:
 		{label: '',
 			width: 100, flexShrink: 1, flexGrow: 1,

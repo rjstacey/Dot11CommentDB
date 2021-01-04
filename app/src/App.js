@@ -1,8 +1,8 @@
 import React from 'react'
-import {BrowserRouter as Router, Switch, Route, Link} from 'react-router-dom'
+import {BrowserRouter as Router, Switch, Route, NavLink} from 'react-router-dom'
 import {connect} from 'react-redux'
-import {loginGetState} from './actions/login'
-import LoginForm from './general/Login'
+import {loginGetState, AccessLevel} from './actions/login'
+import Account from './general/Login'
 import Users from './users/Users'
 import VotersPools from './voters/VotersPools'
 import Voters from './voters/Voters'
@@ -23,30 +23,34 @@ const OuterDiv = styled.div`
 	display: flex;
 	flex-direction: column;
 	height: 100vh;
+	align-items: center;
 `;
 
 const Header = styled.header`
+	max-width: 1400px;
 	display: flex;
-	flex-direction: column;
-	& > nav {
-		display: inline-flex;
-		flex-direction: row;
-		justify-content: center;
-	}
-	& > nav ul {
-		list-style-type: none;
-		padding: 0 0;
-	}
-	& > nav ul li {
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	margin: 10px;
+`;
+
+const Nav = styled.nav`
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	justify-content: center;
+	& > a {
 		display: inline-block;
 		width: 100px;
 		padding: 4px;
 		margin: 0 4px;
 		background: #efefef;
 		text-align: center;
-	}
-	& > nav ul li:hover {
-		background-color: rgba(0, 0, 0, 0.1);
+		&.active, :hover {
+			background-color: rgba(0, 0, 0, 0.1);
+		}
 	}
 `;
 
@@ -74,38 +78,40 @@ const Title = styled.h3`
 
 function App({access, loginGetState}) {
 
-	React.useEffect(() => {
-		loginGetState()
-	}, [])
+	React.useEffect(() => {loginGetState()}, []);
 
 	return (
 		<Router>
 			<OuterDiv>
 				<Header>
 					<Title>802.11 Comment Resolution Tool</Title>
-					<nav>
-						<ul>
-							<li><Link to="/">Home</Link></li>
-							{access > 0 && <li><Link to="/Users/">Users</Link></li>}
-							{access > 0 && <li><Link to="/Voters/">Voter Pools</Link></li>}
-							<li><Link to="/Ballots/">Ballots</Link></li>
-							<li><Link to="/Results">Results</Link></li>
-							<li><Link to="/Comments">Comments</Link></li>
-							<li><Link to="/Reports">Reports</Link></li>
-						</ul>
-					</nav>
+					<Nav>
+							{access > AccessLevel.Public &&
+								<React.Fragment>
+									<NavLink to="/Users/" activeClassName='active'>Users</NavLink>
+									{access > AccessLevel.SubgroupAdmin && <NavLink to="/Voters/" activeClassName='active'>Voter Pools</NavLink>}
+									<NavLink to="/Ballots/" activeClassName='active'>Ballots</NavLink>
+									<NavLink to="/Results" activeClassName='active'>Results</NavLink>
+									<NavLink to="/Comments" activeClassName='active'>Comments</NavLink>
+									<NavLink to="/Reports" activeClassName='active'>Reports</NavLink>
+								</React.Fragment>}
+					</Nav>
+					<Account />
 				</Header>
 				<Main>
 					<Switch>
-						<Route path="/" exact component={LoginForm} />
-						{access > 0 && <Route path="/Users/" component={Users} />}
-						{access > 0 && <Route path="/Voters/" exact component={VotersPools} />}
-						{access > 0 && <Route path="/Voters/:votingPoolType/:votingPoolName" component={Voters} />}
-						<Route path="/Ballots/:ballotId?" component={Ballots} />
-						<Route path="/Epolls/" component={Epolls} />
-						<Route path="/Results/:ballotId?" component={Results} />
-						<Route path="/Comments/:ballotId?" exact component={Comments} />
-						<Route path="/Reports/:ballotId?" exact component={Reports} />
+						<Route path="/" exact component={null} />
+						{access > AccessLevel.Public &&
+							<React.Fragment>
+								<Route path="/Users/" component={Users} />
+								{access > AccessLevel.SubgroupAdmin && <Route path="/Voters/" exact component={VotersPools} />}
+								{access > AccessLevel.SubgroupAdmin && <Route path="/Voters/:votingPoolType/:votingPoolName" component={Voters} />}
+								<Route path="/Ballots/:ballotId?" component={Ballots} />
+								<Route path="/Epolls/" component={Epolls} />
+								<Route path="/Results/:ballotId?" component={Results} />
+								<Route path="/Comments/:ballotId?" exact component={Comments} />
+								<Route path="/Reports/:ballotId?" exact component={Reports} />
+							</React.Fragment>}
 					</Switch>
 					<ErrorModal />
 					<ConfirmModal />
@@ -117,8 +123,9 @@ function App({access, loginGetState}) {
 
 export default connect(
 	(state, ownProps) => {
+		const user = state.login.user
 		return {
-			access: state.login.Access
+			access: user? user.Access: AccessLevel.Public
 		}
 	},
 	(dispatch, ownProps) => {

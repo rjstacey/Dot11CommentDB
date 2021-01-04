@@ -1,7 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
-import Select from 'react-dropdown-select'
+import {Select} from '../general/Form'
 import {getUsers} from '../actions/users'
 import styled from '@emotion/styled'
 import {strComp} from '../lib/utils'
@@ -75,21 +75,6 @@ const renderDropdown = ({props, state, methods}) => {
 	)
 };
 
-const StyledSelect = styled(Select)`
-	background-color: white;
-	border: 1px solid #ddd;
-	padding: 0;
-	box-sizing: border-box;
-	width: ${({width}) => typeof width === 'undefined'? 'unset': (width + (typeof width === 'number'? 'px': ''))};
-	& .react-dropdown-select-input {
-		font-size: unset;
-		&::placeholder {
-			font-style: italic;
-			color: GreyText;
-		}
-	}
-`;
-
 function AssigneeSelector({
 	value,		// value is object {SAPIN: number, Name: string}
 	onChange,
@@ -99,7 +84,7 @@ function AssigneeSelector({
 	loading,
 	getUsers,
 	width,
-	placeholder,
+	...otherProps
 }) {
 
 	React.useEffect(() => {
@@ -144,7 +129,7 @@ function AssigneeSelector({
 	const optionSelected = options.find(o => o.value === (value.SAPIN || value.Name))
 
 	return (
-		<StyledSelect
+		<Select
 			width={width}
 			values={optionSelected? [optionSelected]: []}
 			onChange={handleChange}
@@ -152,8 +137,8 @@ function AssigneeSelector({
 			loading={loading}
 			create
 			clearable
-			placeholder={placeholder}
 			dropdownRenderer={renderDropdown}
+			{...otherProps}
 		/>
 	)
 }

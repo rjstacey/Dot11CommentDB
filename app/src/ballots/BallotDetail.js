@@ -2,11 +2,9 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import Select from 'react-dropdown-select'
 import AppModal from '../modals/AppModal'
-import {Form, Row, Col, Field, List, ListItem} from '../general/Form'
+import {Form, Row, Col, Field, List, ListItem, Checkbox, Input, Select, TextArea} from '../general/Form'
 import ConfirmModal from '../modals/ConfirmModal'
-import {Checkbox, Search} from '../general/Icons'
 import {renderResultsSummary, renderCommentsSummary} from './Ballots'
 import {updateBallot, addBallot, getBallots, setProject, BallotType} from '../actions/ballots'
 import {getProjectList, getBallotList} from '../selectors/ballots'
@@ -49,18 +47,11 @@ function shortDateToDate(shortDateStr) {
 	return isNaN(newDate)? '': newDate.toISOString()
 }
 
-const StyledSelect = styled(Select)`
-	min-height: unset;
-	padding: unset;
-	width: unset;
-	flex: 1 1 ${({width}) => width}px;
-`;
-
 function SelectProject({width, project, projectList, onChange}) {
 	const options = projectList.map(p => ({value: p, label: p}))
 	const value = options.find(o => o.value === project)
 	return (
-		<StyledSelect
+		<Select
 			width={width}
 			values={value? [value]: []}
 			options={options}
@@ -77,7 +68,7 @@ function SelectVotingPoolId({width, votingPoolId, votingPools, onChange}) {
 	const options = votingPools.map(i => ({value: i.VotingPoolID, label: i.VotingPoolID}))
 	const value = options.find(o => o.value === votingPoolId)
 	return (
-		<StyledSelect
+		<Select
 			width={width}
 			values={value? [value]: []}
 			options={options}
@@ -91,7 +82,7 @@ function SelectPrevBallot({width, prevBallotId, ballotList, onChange}) {
 	const options = ballotList//.map(i => ({value: i.VotingPoolID, label: i.VotingPoolID}))
 	const value = options.find(o => o.value === prevBallotId)
 	return (
-		<StyledSelect
+		<Select
 			width={width}
 			values={value? [value]: []}
 			options={options}
@@ -116,14 +107,14 @@ function BallotTypes({value, onChange}) {
 		>
 			{ballotTypeOptions.map((o) => 
 				<ListItem key={o.value}>
-					<input
-						id={'radio_' + o.value}
-						type='radio' name='Type'
+					<Checkbox
+						id={o.value}
+						name='Type'
 						value={o.value}
 						checked={value === o.value}
 						onChange={onChange}
 					/>
-					<label htmlFor={'radio_'+ o.value} >{o.label}</label>
+					<label htmlFor={o.value} >{o.label}</label>
 				</ListItem>
 			)}
 		</List>
@@ -142,7 +133,8 @@ const CommentsActions = ({action, setAction, ballot, file, setFile, startCID, se
 					onChange={e => setAction(action !== Action.SET_START_CID? Action.SET_START_CID: Action.NONE)}
 				/>
 				<label htmlFor='start'>Change starting CID:&nbsp;</label>
-				<Search
+				<Input
+					type='search'
 					width={80}
 					value={startCID || 1}
 					onChange={e => setStartCID(e.target.value)}
@@ -246,9 +238,7 @@ const ResultsActions = ({action, setAction, ballot, file, setFile}) => {
 	)
 }
 
-const TextArea = styled.textarea`
-	font-family: inherit;
-	font-size: unset;
+const TopicTextArea = styled(TextArea)`
 	flex: 1;
 	height: 3.5em;
 `;
@@ -279,23 +269,23 @@ function Column1({project, setProject, projectList, ballot, setBallot, ballotLis
 				/>
 			</Field>
 			<Field label='Ballot ID:'>
-				<Search name='BallotID' value={ballot.BallotID} onChange={change} />
+				<Input type='search' name='BallotID' value={ballot.BallotID} onChange={change} />
 			</Field>
 			{(ballot.Type !== BallotType.SA_Initial && ballot.Type !== BallotType.SA_Recirc) &&
 				<Field label='ePoll Number:'>
-					<Search name='EpollNum' value={ballot.EpollNum} onChange={change} />
+					<Input type='search' name='EpollNum' value={ballot.EpollNum} onChange={change} />
 				</Field>}
 			<Field label='Document:'>
-				<Search name='Document' value={ballot.Document} onChange={change}/>
+				<Input type='search' name='Document' value={ballot.Document} onChange={change}/>
 			</Field>
 			<Field label='Topic:'>
-				<TextArea name='Topic' value={ballot.Topic} onChange={change} />
+				<TopicTextArea name='Topic' value={ballot.Topic} onChange={change} />
 			</Field>
 			<Field label='Start:'>
-				<input type='date' name='Start' value={dateToShortDate(ballot.Start)} onChange={changeDate} />
+				<Input type='date' name='Start' value={dateToShortDate(ballot.Start)} onChange={changeDate} />
 			</Field>
 			<Field label='End:'>
-				<input type='date' name='End' value={dateToShortDate(ballot.End)} onChange={changeDate} />
+				<Input type='date' name='End' value={dateToShortDate(ballot.End)} onChange={changeDate} />
 			</Field>
 			{(ballot.Type === BallotType.WG_Initial || ballot.Type === BallotType.SA_Initial || ballot.Type === BallotType.Motion) &&
 				<Field label='Voter Pool:'>

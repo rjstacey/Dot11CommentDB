@@ -328,14 +328,20 @@ export const MatchAlgorithm = {
 	CID: 'cid'
 }
 
-export function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchAll, sheetName, file) {
+export const MatchUpdate = {
+	All: 'all',
+	Any: 'any',
+	Add: 'add'
+}
+
+export function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, file) {
 	return async (dispatch) => {
 		dispatch(uploadCommentsLocal(ballotId))
 		const params = {
 			params: JSON.stringify({
 				toUpdate,
 				matchAlgorithm,
-				matchAll,
+				matchUpdate,
 				sheetName
 			}),
 			ResolutionsFile: file
