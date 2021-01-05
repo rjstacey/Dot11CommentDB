@@ -664,6 +664,7 @@ class CommentDetail extends React.PureComponent {
 			if (Object.keys(commentUpdate).length > 0) {
 				commentUpdate.BallotID = c.BallotID
 				commentUpdate.CommentID = c.CommentID
+				commentUpdate.id = c.id
 				console.log(commentUpdate)
 				commentUpdates.push(commentUpdate)
 			}
@@ -671,6 +672,7 @@ class CommentDetail extends React.PureComponent {
 				resolutionUpdate.BallotID = c.BallotID
 				resolutionUpdate.CommentID = c.CommentID
 				resolutionUpdate.ResolutionID = c.ResolutionID
+				resolutionUpdate.id = c.resolution_id
 				console.log(resolutionUpdate)
 				resolutionUpdates.push(resolutionUpdate)
 			}

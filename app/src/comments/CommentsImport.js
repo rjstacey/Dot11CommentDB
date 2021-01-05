@@ -139,8 +139,10 @@ function _CommentsImportDropdown({ballotId, close, upload}) {
 		const unmatched = await upload(ballotId, fields, algo, matchUpdate, sheetName, file)
 		close()
 		if (unmatched !== null) {
-			const msg = unmatched.length?
+			const msg = unmatched.length > 1?
 				`${unmatched.length} comments were not updated:\n${unmatched.join(', ')}`:
+				unmatched.length === 1?
+				`${unmatched.length} comment was not updated:\n${unmatched[0]}`:
 				`All comments successfully update`
 			await ConfirmModal.show(msg)
 		}

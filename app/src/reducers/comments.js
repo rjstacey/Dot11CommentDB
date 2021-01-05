@@ -266,10 +266,12 @@ function commentsReducer(state = defaultState, action) {
 				return {...state, updateComment: false}
 			}
 			newComments = state.comments.map(c => {
-				let r = action.resolutions.find(r => r.CommentID === c.CommentID && r.ResolutionID === c.ResolutionID)
+				let r = action.resolutions.find(r => r.id === c.resolution_id)
 				if (r) {
-					r.Status = getCommentStatus(r)
-					return {...c, ...r}
+					const {id, ...newResolution} = r;	// remove id
+					const newComment = {...c, ...newResolution};
+					newComment.Status = getCommentStatus(newComment);
+					return newComment;
 				}
 				return c
 			})

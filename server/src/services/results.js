@@ -538,33 +538,36 @@ function populateResultsWorksheet(ws, results) {
 async function getResults(ballotId) {
 
 	async function recursiveBallotSeriesGet(ballotSeries, ballotId) {
-		const results = await db.query(
-			'SELECT BallotID, Type, VotingPoolID, PrevBallotID FROM ballots WHERE BallotID=?; ' +
-			'SELECT r.*, (SELECT COUNT(*) FROM comments AS c WHERE BallotID=? AND ((c.CommenterSAPIN IS NOT NULL AND c.CommenterSAPIN = r.SAPIN) OR (c.CommenterEmail IS NOT NULL AND c.CommenterEmail = r.Email))) AS CommentCount FROM results AS r WHERE BallotID=?;',
-			[ballotId, ballotId, ballotId])
+		const [noop, ballots, results] = await db.query(
+			'SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?); ' +
+			'SELECT id, BallotID, Type, VotingPoolID, PrevBallotID FROM ballots WHERE id=@ballot_id; ' +
+			'SELECT r.*, (SELECT COUNT(*) FROM comments AS c WHERE ballot_id=@ballot_id AND ((c.CommenterSAPIN IS NOT NULL AND c.CommenterSAPIN = r.SAPIN) OR (c.CommenterEmail IS NOT NULL AND c.CommenterEmail = r.Email))) AS CommentCount FROM results AS r WHERE ballot_id=@ballot_id;',
+			[ballotId]
+		);
 
-		if (results[0].length === 0) {
-			return ballotSeries
-		}
+		if (ballots.length === 0)
+			return ballotSeries;
 
-		var b = Object.assign({}, results[0][0], {results: results[1]})
+		var b = Object.assign({}, ballots[0], {results})
 		ballotSeries.unshift(b)
 		return b.PrevBallotID? recursiveBallotSeriesGet(ballotSeries, b.PrevBallotID): ballotSeries
 	}
 
 	// Get ballot information
-	var results = await db.query(
-		'SELECT *, (SELECT COUNT(*) FROM results WHERE results.BallotID=?) AS BallotReturns FROM ballots WHERE BallotID=?',
-		[ballotId, ballotId]
-	)
-	var ballot = results[0]
+	const [noop, ballots] = await db.query(
+		'SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?); ' +
+		'SELECT *, (SELECT COUNT(*) FROM results WHERE results.ballot_id=@ballot_id) AS BallotReturns FROM ballots WHERE id=@ballot_id;',
+		[ballotId]
+	);
+	if (ballots.length === 0)
+		throw `No such ballot: ${ballotId}`
+	var ballot = ballots[0];
 
 	const ballotSeries = await recursiveBallotSeriesGet([], ballotId)	// then get results from each ballot in series
-	if (ballotSeries.length === 0) {
-		throw 'No such ballot'
-	}
+	if (ballotSeries.length === 0)
+		throw `No such ballot: ${ballotId}`
 
-	let votingPoolSize, summary
+	let votingPoolSize, results, summary
 	const type = ballotSeries[0].Type
 	const votingPoolId  = ballotSeries[0].VotingPoolID
 	if (type === 1) {	// initial WG ballot
@@ -630,7 +633,11 @@ async function getResults(ballotId) {
 }
 
 function deleteResults(ballotId) {
-	return db.query('DELETE FROM results WHERE BallotID=?; UPDATE ballots SET ResultsSummary=NULL WHERE BallotID=?', [ballotId, ballotId])
+	return db.query(
+		'SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?); ' +
+		'DELETE FROM results WHERE ballot_id=@ballot_id; ' +
+		'UPDATE ballots SET ResultsSummary=NULL WHERE id=@ballot_id',
+		[ballotId]);
 }
 
 async function importEpollResults(sess, ballotId, epollNum) {
@@ -665,12 +672,13 @@ async function importEpollResults(sess, ballotId, epollNum) {
 		r.Affiliation = h? h.Affiliation: ''
 	}
 
-	await db.query('DELETE FROM results WHERE BallotID=?', [ballotId])
+	await deleteResults(ballotId);
 
 	if (pollResults.length) {
 		const SQL =
-			`INSERT INTO results (BallotID, ${Object.keys(pollResults[0])}) VALUES` +
-			pollResults.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(',') +
+			'SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?); ' +
+			`INSERT INTO results (ballot_id, BallotID, ${Object.keys(pollResults[0])}) VALUES` +
+			pollResults.map(c => `(@ballot_id, ${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(',') +
 			';'
 		try {
 			await db.query(SQL)
@@ -696,12 +704,13 @@ async function uploadResults(ballotId, type, file) {
 	}
 	//console.log(results);
 
-	await db.query('DELETE FROM results WHERE BallotID=?', [ballotId])
+	await deleteResults(ballotId);
 
 	if (results.length) {
 		const SQL =
-			`INSERT INTO results (BallotID, ${Object.keys(results[0])}) VALUES` +
-			results.map(c => `(${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(',') +
+			'SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?); ' +
+			`INSERT INTO results (ballot_id, BallotID, ${Object.keys(results[0])}) VALUES` +
+			results.map(c => `(@ballot_id, ${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(',') +
 			';'
 		try {
 			await db.query(SQL)

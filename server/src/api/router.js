@@ -303,11 +303,11 @@ router.post('/resolutions/:ballotId', async (req, res, next) => {
 router.put('/resolutions/:ballotId', async (req, res, next) => {
 	try {
 		const {ballotId} = req.params
-		const {CIDs, resolutions} = req.body
+		const {resolutions} = req.body
 		if (resolutions === undefined || !Array.isArray(resolutions)) {
 			throw 'Missing resolutions array'
 		}
-		const data = await commentsModule.updateResolutions(ballotId, CIDs, resolutions)
+		const data = await commentsModule.updateResolutions(ballotId, resolutions)
 		console.log(data)
 		res.json(data)
 	}
