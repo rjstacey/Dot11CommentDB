@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {Form, Row, Col, List, ListItem, Field} from '../general/Form'
+import {Form, Row, Col, List, ListItem, Field, Checkbox} from '../general/Form'
 import ConfirmModal from '../modals/ConfirmModal'
 import {uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate} from '../actions/comments'
 import {ActionButtonDropdown} from '../general/Dropdown'
@@ -11,8 +11,8 @@ const importFieldOptions = [
 	{value: FieldsToUpdate.CID,
 		label: 'CID',
 		description: 'Update CID of each comment'},
-	{value: FieldsToUpdate.Comment,
-		label: 'Comment',
+	{value: FieldsToUpdate.ClausePage,
+		label: 'Clause & Page',
 		description: 'Update Clause, Page and Line fields of each comment. Original fields as commented are preserved.'},
 	{value: FieldsToUpdate.AdHoc,
 		label: 'Owning Ad-hoc',
@@ -32,16 +32,16 @@ const importFieldOptions = [
 ];
 
 const matchAlgoOptions = [
+	{value: MatchAlgorithm.CID,
+		label: 'Match CID',
+		description: 'Match CID'},
 	{value: MatchAlgorithm.Elimination,
 		label: 'Successive elimination',
 		description: 'Successively eliminate rows that do not match until only one row is left by matching, in order, Commenter, Category, Page, ' +
 		'Line, Comment and Proposed Change. Fields that might have issues are only matched if needed.'},
 	{value: MatchAlgorithm.Perfect,
 		label: 'Match comment',
-		description: 'Match Commenter, Category, Page, Line, Comment and Proposed Change'},
-	{value: MatchAlgorithm.CID,
-		label: 'Match CID',
-		description: 'Match CID'}
+		description: 'Match Commenter, Category, Page, Line, Comment and Proposed Change'}
 ];
 
 const matchUpdateOptions = [
@@ -60,7 +60,7 @@ const CommentsImportForm = styled(Form)`
 	width: 600px;
 `;
 
-const ImportFieldsList = ({fields, setFields}) => {
+const ImportFieldsList = ({fields, setFields, disableCID}) => {
 	const changeImportFields = e => {
 		const newFields = fields.slice()
 		if (e.target.checked) {
@@ -78,8 +78,17 @@ const ImportFieldsList = ({fields, setFields}) => {
 			label='Import fields (selected fields will be overwritten):'
 		>
 			{importFieldOptions.map(a => 
-				<ListItem key={a.value}>
-					<input type='checkbox' title={a.description} value={a.value} checked={fields.includes(a.value)} onChange={changeImportFields} />
+				<ListItem
+					key={a.value}
+					disabled={a.value === FieldsToUpdate.CID && disableCID}
+				>
+					<Checkbox
+						value={a.value}
+						title={a.description}
+						checked={fields.includes(a.value)}
+						onChange={changeImportFields}
+						disabled={a.value === FieldsToUpdate.CID && disableCID}
+					/>
 					<label>{a.label}</label>
 				</ListItem>
 			)}
@@ -92,7 +101,9 @@ const MatchAlgoList = ({algo, setAlgo}) =>
 		label='Match algorithm:'
 	>
 		{matchAlgoOptions.map(a => 
-			<ListItem key={a.value}>
+			<ListItem
+				key={a.value}
+			>
 				<input type='radio'
 					title={a.description}
 					value={a.value}
@@ -109,9 +120,10 @@ const UpdateList = ({matchUpdate, setMatchUpdate}) =>
 		label='Update:'
 	>
 		{matchUpdateOptions.map(a => 
-			<ListItem key={a.value}>
-				<input
-					type='radio'
+			<ListItem
+				key={a.value}
+			>
+				<input type='radio'
 					title={a.description}
 					value={a.value}
 					checked={matchUpdate === a.value}
@@ -143,9 +155,17 @@ function _CommentsImportDropdown({ballotId, close, upload}) {
 				`${unmatched.length} comments were not updated:\n${unmatched.join(', ')}`:
 				unmatched.length === 1?
 				`${unmatched.length} comment was not updated:\n${unmatched[0]}`:
-				`All comments successfully update`
-			await ConfirmModal.show(msg)
+				`All comments successfully updated`
+			await ConfirmModal.show(msg, false)
 		}
+	}
+
+	const handleSetAlgo = (algo) => {
+		if (algo === MatchAlgorithm.CID && fields.includes(FieldsToUpdate.CID)) {
+			const newFields = fields.filter(f => f !== FieldsToUpdate.CID);
+			setFields(newFields);
+		}
+		setAlgo(algo);
 	}
 
 	return (
@@ -157,14 +177,24 @@ function _CommentsImportDropdown({ballotId, close, upload}) {
 		>
 			<Row>
 				<Col>
-					<ImportFieldsList fields={fields} setFields={setFields}	/>
+					<ImportFieldsList
+						fields={fields}
+						setFields={setFields}
+						disableCID={algo === MatchAlgorithm.CID}
+					/>
 				</Col>
 				<Col>
 					<Row>
-						<MatchAlgoList algo={algo} setAlgo={setAlgo} />
+						<MatchAlgoList
+							algo={algo}
+							setAlgo={handleSetAlgo}
+						/>
 					</Row>
 					<Row>
-						<UpdateList matchUpdate={matchUpdate} setMatchUpdate={setMatchUpdate} />
+						<UpdateList
+							matchUpdate={matchUpdate}
+							setMatchUpdate={setMatchUpdate}
+						/>
 					</Row>
 				</Col>
 			</Row>

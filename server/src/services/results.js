@@ -1,3 +1,5 @@
+'use strict';
+
 const cheerio = require('cheerio')
 const csvParse = require('csv-parse/lib/sync')
 const ExcelJS = require('exceljs')
@@ -12,7 +14,7 @@ function parseEpollResultsCsv(buffer) {
 	}
 
 	// Row 0 is the header
-	expected = ['SA PIN', 'Date', 'Vote', 'Email'];
+	const expected = ['SA PIN', 'Date', 'Vote', 'Email'];
 	if (expected.reduce((r, v, i) => v !== p[0][i], false)) {
 		throw `Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`
 	}
@@ -667,7 +669,7 @@ async function importEpollResults(sess, ballotId, epollNum) {
 	var pollResults2 = parseEpollResultsHtml(ieeeRes.body)
 
 	for (let r of pollResults) {
-		h = pollResults2.find(h => h.Email === r.Email)
+		const h = pollResults2.find(h => h.Email === r.Email)
 		r.Name = h? h.Name: ''
 		r.Affiliation = h? h.Affiliation: ''
 	}
@@ -676,7 +678,7 @@ async function importEpollResults(sess, ballotId, epollNum) {
 
 	if (pollResults.length) {
 		const SQL =
-			'SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?); ' +
+			`SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=${db.escape(ballotId)}); ` +
 			`INSERT INTO results (ballot_id, BallotID, ${Object.keys(pollResults[0])}) VALUES` +
 			pollResults.map(c => `(@ballot_id, ${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(',') +
 			';'

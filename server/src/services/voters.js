@@ -74,15 +74,11 @@ async function parseMyProjectVoters(buffer, isExcel) {
 
 async function getVotingPoolsLocal() {
 	const SQL =
-		'SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters GROUP BY VotingPoolID;' +
-		'SELECT VotingPoolID, COUNT(*) AS VoterCount FROM saVoters GROUP BY VotingPoolID;'
-	const results = await db.query(SQL)
-	const votingPools =
-		results[0].map(v => {return Object.assign({}, v, {PoolType: 'WG'})})
-		.concat(
-			results[1].map(v => {return Object.assign({}, v, {PoolType: 'SA'})})
-		)
-	return votingPools
+		'SELECT VotingPoolID, COUNT(*) AS VoterCount, \'WG\' AS PoolType FROM wgVoters GROUP BY VotingPoolID;' +
+		'SELECT VotingPoolID, COUNT(*) AS VoterCount, \'SA\' AS PoolType FROM saVoters GROUP BY VotingPoolID;';
+	const results = await db.query(SQL);
+	const votingPools = results[0].concat(results[1]);
+	return votingPools;
 }
 
 async function getVotingPoolLocal(votingPoolType, votingPoolName) {

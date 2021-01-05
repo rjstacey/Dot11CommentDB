@@ -11,12 +11,13 @@ class ConfirmModal extends React.Component {
 
 		this.state = {
 			isOpen: false,
-			message: ''
+			message: '',
+			hasCancel: true
 		}
 	}
 
-	static show(msg) {
-		ConfirmModal.instance.setState({isOpen: true, message: msg})
+	static show(message, hasCancel=true) {
+		ConfirmModal.instance.setState({isOpen: true, message, hasCancel})
 
 		return new Promise(res => {resolve = res})
 	}
@@ -39,8 +40,8 @@ class ConfirmModal extends React.Component {
 			>
 				<Form
 					submit={this.handleOk}
-					submitLabel='Yes'
-					cancel={this.handleCancel}
+					submitLabel={this.state.hasCancel? 'Yes': 'OK'}
+					cancel={this.state.hasCancel? this.handleCancel: undefined}
 					cancelLabel='No'
 				>
 					<p>{this.state.message}</p>

@@ -314,7 +314,7 @@ export function deleteResolutions(ballotId, resolutions) {
 
 export const FieldsToUpdate = {
 	CID: 'cid',
-	Comment: 'comment',
+	ClausePage: 'clausepage',
 	AdHoc: 'adhoc',
 	CommentGroup: 'commentgroup',
 	Assignee: 'assignee',

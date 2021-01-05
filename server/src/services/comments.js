@@ -1,23 +1,10 @@
 'use strict';
 
-var csvParse = require('csv-parse/lib/sync')
-var xlsx = require('xlsx')
+//var xlsx = require('xlsx')
+const csvParse = require('csv-parse/lib/sync')
 const ExcelJS = require('exceljs')
 const db = require('../util/database')
 const rp = require('request-promise-native')
-
-/*
-function stringToHex(s) {
-	var hex, i;
-
-	var result = "";
-	for (i=0; i<s.length; i++) {
-    	hex = s.charCodeAt(i).toString(16);
-    	result += ("000"+hex).slice(-4) + ' ';
-    }
-	return result
-}
-*/
 
 const epollCommentsHeader = [
 	'Index', 'Date', 'SA PIN', 'Name', 'Comment', 'Category', 'Page Number', 'Subclause', 'Line Number', 'Proposed Change'//, 'Must Be Satisfied'
@@ -164,7 +151,7 @@ async function myProjectAddResolutions(workbook, dbComments) {
 	})
 }
 
-
+/*
 function parseCommentsSheet(commentsSheet, comments, updateComments, newComments, newResolutions) {
 
 	var commentsSheetArray = xlsx.utils.sheet_to_json(commentsSheet)
@@ -188,7 +175,7 @@ function parseCommentsSheet(commentsSheet, comments, updateComments, newComments
 		 *   They have been stored in raw (text) form in this database, but have been rounded to an integer in Adrian's database.
 		 * For Comment and Proposed Change compare only basic text.
 		 *   Line endings might differ: database has \n line endings while spreadsheet has \r\n line endings (so remove line endings).
-		 *   Only check ASCII characters. */
+		 *   Only check ASCII characters. *//*
 		//const pattern = /[^A-Za-z0-9-+",:\/ ]|\r|\n/gm
 		const pattern = /[^\x00-\x7f]|\r?\n|\r/gm
 		var i = commentsSheetArray.findIndex(cs => 
@@ -280,6 +267,7 @@ function parseCommentsSheet(commentsSheet, comments, updateComments, newComments
 	const fs = require('fs');
 	fs.writeFile("c.txt", 'unmatchedComments: ' + JSON.stringify(unmatchedComments) + 'commentsSheetArray: ' + JSON.stringify(commentsSheetArray), (err) => {!err || console.log(err)})
 }
+*/
 
 const legacyCommentsHeader = [
 	'CID', 'Commenter', 'LB', 'Draft', 'Clause Number(C)', 'Page(C)', 'Line(C)', 'Type of Comment', 'Part of No Vote',
@@ -292,7 +280,7 @@ async function parseLegacyCommentsSpreadsheet(buffer, sheetName) {
 
 	var workbook = new ExcelJS.Workbook()
 	await workbook.xlsx.load(buffer)
-	console.log(workbook)
+	//console.log(workbook)
 	const worksheet = workbook.getWorksheet(sheetName)
 	if (!worksheet) {
 		let sheets = []
@@ -573,67 +561,6 @@ function matchCID(sheetComments, dbComments) {
 	return [matched, dbCommentsRemaining, sheetCommentsRemaining]
 }
 
-function commentUpdate(toUpdate, c, cs) {
-	var u = {}
-
-	if (toUpdate.includes('cid') && c.CommentID !== cs['CID']) {
-		u.CommentID = cs['CID']
-	}
-	if (toUpdate.includes('comment')) {
-		if (cs['Clause'] && c.Clause !== cs['Clause']) {
-			u.Clause = cs['Clause']
-		}
-		const page = parseFloat(cs['Page'])
-		if (page && c.Page !== page) {
-			u.Page = page
-		}
-	}
-	if (toUpdate.includes('commentgroup') && c.CommentGroup !== cs['Comment Group']) {
-		u.CommentGroup = cs['Comment Group']
-	}
-	if (toUpdate.includes('adhoc') && c.AdHoc !== cs['Owning Ad-hoc']) {
-		u.AdHoc = cs['Owning Ad-hoc']
-	}
-
-	if (Object.keys(u).length) {
-		u.id = c.id
-		return u
-	}
-
-	return null
-}
-
-function resolutionUpdate(toUpdate, c, cs) {
-	var n = {}
-
-	if (toUpdate.includes('cid')) {
-		n.CommentID = cs['CID'];
-	}
-
-	if (toUpdate.includes('assignee')) {
-		n.AssigneeName = cs['Assinee'] || '';
-	}
-
-	if (toUpdate.includes('resolution')) {
-		n.ResnStatus = cs['Resn Status'] || '';
-		n.Resolution = cs['Resolution'] || '';
-		n.ApprovedByMotion = cs['Motion Number'] || '';
-	}
-
-	if (toUpdate.includes('editing')) {
-		n.EditStatus = cs['Edit Status'] || '';
-		n.EditNotes = cs['Edit Notes'] || '';
-		n.EditInDraft = cs['Edited in Draft'] || '';
-	}
-
-	if (Object.keys(n).length) {
-		n.comment_id = c.id;
-		n.id = c.resolution_id;
-		return n;
-	}
-
-	return null;
-}
 
 const GET_COMMENTS_SQL =
 	'SELECT ' +
@@ -937,7 +864,7 @@ async function uploadComments(ballotId, type, startCommentId, file) {
 
 const FieldsToUpdate = {
 	CID: 'cid',
-	Comment: 'comment',
+	ClausePage: 'clausepage',
 	AdHoc: 'adhoc',
 	CommentGroup: 'commentgroup',
 	Assignee: 'assignee',
@@ -957,6 +884,56 @@ const MatchUpdate = {
 	Add: 'add'
 };
 
+function commentUpdate(toUpdate, c, cs) {
+	const u = {}
+
+	if (toUpdate.includes(FieldsToUpdate.CID)) {
+		u.CommentID = cs['CID'];
+	}
+
+	if (toUpdate.includes(FieldsToUpdate.ClausePage)) {
+		u.Clause = cs['Clause'];
+		u.Page = parseFloat(cs['Page']);
+		if (isNaN(u.Page)) {u.Page = 0}
+	}
+
+	if (toUpdate.includes(FieldsToUpdate.CommentGroup)) {
+		u.CommentGroup = cs['Comment Group'];
+	}
+
+	if (toUpdate.includes(FieldsToUpdate.AdHoc)) {
+		u.AdHoc = cs['Owning Ad-hoc'];
+	}
+
+	return (Object.keys(u).length)? u: null;
+}
+
+function resolutionUpdate(toUpdate, c, cs) {
+	const n = {}
+
+	if (toUpdate.includes(FieldsToUpdate.CID)) {
+		n.CommentID = cs['CID'];
+	}
+
+	if (toUpdate.includes(FieldsToUpdate.Assignee)) {
+		n.AssigneeName = cs['Assinee'] || '';
+	}
+
+	if (toUpdate.includes(FieldsToUpdate.Resolution)) {
+		n.ResnStatus = cs['Resn Status'] || '';
+		n.Resolution = cs['Resolution'] || '';
+		n.ApprovedByMotion = cs['Motion Number'] || '';
+	}
+
+	if (toUpdate.includes(FieldsToUpdate.Editing)) {
+		n.EditStatus = cs['Edit Status'] || '';
+		n.EditNotes = cs['Edit Notes'] || '';
+		n.EditInDraft = cs['Edited in Draft'] || '';
+	}
+
+	return (Object.keys(n).length)? n: null;
+}
+
 function updateCommentsSQL(ballotId, matched, toUpdate) {
 
 	// See if any of the comment fields need updating
@@ -968,38 +945,41 @@ function updateCommentsSQL(ballotId, matched, toUpdate) {
 		const c = m.dbComment
 		const cs = m.sheetComment
 		const u = commentUpdate(toUpdate, c, cs)
-		if (u)
+		if (u) {
+			u.id = c.id;
 			updateComments.push(u)
+		}
 		const r = resolutionUpdate(toUpdate, c, cs)
 		if (r) {
-			if (r.id)
-				updateResolutions.push(r)
-			else
+			if (c.resolution_id) {
+				r.id = c.resolution_id;
+				updateResolutions.push(r);
+			}
+			else {
+				r.comment_id = c.id;
 				newResolutions.push(r)
+			}
 		}
 	});
 
 	const SQL =
 		updateComments.map(c => {
-			let id = c.id;
+			const id = c.id;
 			delete c.id;
-			return db.format('UPDATE comments SET ? WHERE id=?;', [c, id]);
+			return db.format('UPDATE comments SET ? WHERE id=?', [c, id]);
 		})
 		.concat(
 			updateResolutions.map(r => {
-				let id = r.id;
+				const id = r.id;
 				delete r.id;
-				delete r.comment_id;
-				return db.format('UPDATE resolutions SET ? WHERE id=?;', [r, id]);
+				return db.format('UPDATE resolutions SET ? WHERE id=?', [r, id]);
 			})
 		)
 		.concat(
 			newResolutions.map(r => {
-				const commentId = r.CommentID;
-				delete r.CommentID;
 				return db.format(
-					'INSERT INTO resolutions (BallotID, comment_id, ??) VALUE (?, (SELECT c.id FROM comments c JOIN ballots b ON b.id=c.ballot_id WHERE b.BallotID=? AND c.CommentID=?), ?)',
-					[Object.keys(r), ballotId, ballotId, commentId, Object.values(r)]
+					'INSERT INTO resolutions (BallotID, ??) VALUE (?, ?)',
+					[Object.keys(r), ballotId, Object.values(r)]
 				);
 			})
 		)
@@ -1026,12 +1006,10 @@ function addCommentsSQL(ballotId, sheetComments, toUpdate) {
 			ProposedChange: cs['Proposed Change'],
 			...commentUpdate(update, {}, cs)
 		}
-		delete c.id;
 		newComments.push(c);
 
 		const r = resolutionUpdate(toUpdate, c, cs);
 		if (r) {
-			delete r.comment_id;
 			newResolutions.push(r);
 		}
 	});
@@ -1100,7 +1078,8 @@ async function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchUpdate
 		SQL = addCommentsSQL(ballotId, sheetCommentsRemaining, toUpdate);
 		sheetCommentsRemaining = [];
 	}
-	SQL += ';'
+	if (SQL)
+		SQL += ';'
 	SQL += db.format(GET_COMMENTS_SQL + 'WHERE b.BallotID=? ORDER BY c.CommentID;', [ballotId]);
 	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId]);
 

@@ -1,5 +1,7 @@
-const db = require('../util/database')
+'use strict';
+
 const csvParse = require('csv-parse/lib/sync')
+const db = require('../util/database')
 
 function parseUsersCsv(usersCsv) {
 

@@ -74,7 +74,7 @@ const GET_BALLOTS_SQL =
  */
 const GET_COMMENTS_FOR_BALLOT =
 	'SELECT COUNT(*) AS Count, MIN(CommentID) AS CommentIDMin, MAX(CommentID) AS CommentIDMax ' +
-	'FROM comments WHERE BallotID=? ';
+	'FROM ballots b JOIN comments c ON b.id=c.ballot_id WHERE b.BallotID=?';
 
 function reformatBallot(b) {
 	b.Comments = {
@@ -114,7 +114,7 @@ async function getBallotWithNewResultsSummary(ballotId) {
 	if (results.length !== 3 && results[1].length !== 1 && results[2].length !== 1) {
 		throw new Error("Unexpected result SQL SELECT")
 	}
-	ballotData = results[2][0];
+	const ballotData = results[2][0];
 	ballotData.Results = JSON.parse(ballotData.ResultsSummary);
 	delete ballotData.ResultsSummary;
 	ballotData.Comments = results[1][0];
