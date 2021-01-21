@@ -7,7 +7,7 @@ function parseUsersCsv(usersCsv) {
 
 	const p = csvParse(usersCsv, {columns: false})
 	if (p.length === 0) {
-		throw 'Got empty membership.csv';
+		throw 'Got empty .csv file';
 	}
 
 	// Row 0 is the header
@@ -30,11 +30,11 @@ function parseUsersCsv(usersCsv) {
 	})
 }
 
-function getUsers() {
+export function getUsers() {
 	return db.query('SELECT * FROM users')
 }
 
-async function getUser(sapin, email) {
+export async function getUser(sapin, email) {
 	let SQL
 	if (sapin > 0) {
 		SQL = db.format('SELECT * from users WHERE SAPIN=?', [sapin]);
@@ -43,12 +43,13 @@ async function getUser(sapin, email) {
 		SQL = db.format('SELECT * from users WHERE Email=?', [email]);
 	}
 	console.log(SQL)
-	const results = await db.query(SQL)
-	const user = results.length > 0? results[0]: null
+	const [rows] = await db.query2(SQL)
+	console.log(rows)
+	const user = rows.length > 0? rows[0]: null
 	return user
 }
 
-async function addUser(user) {
+export async function addUser(user) {
 	let entry = {
 		SAPIN: user.SAPIN,
 		Name: user.Name,
@@ -77,7 +78,7 @@ async function addUser(user) {
 	return results[1][0]
 }
 
-async function updateUser(userId, user) {
+export async function updateUser(userId, user) {
 	let entry = {
 		SAPIN: user.SAPIN,
 		Name: user.Name,
@@ -109,11 +110,11 @@ async function updateUser(userId, user) {
 	return entry
 }
 
-function deleteUsers(userIds) {
+export function deleteUsers(userIds) {
 	return db.query('DELETE FROM users WHERE SAPIN IN (?)', [userIds])
 }
 
-async function uploadUsers(file) {
+export async function uploadUsers(file) {
 	const users = parseUsersCsv(file.buffer)
 	//console.log(users)
 
@@ -128,13 +129,4 @@ async function uploadUsers(file) {
 	SQL += 'SELECT * FROM users;'
 	const results = await db.query(SQL)
 	return results[results.length - 1]
-}
-
-module.exports = {
-	getUsers,
-	getUser,
-	addUser,
-	updateUser,
-	deleteUsers,
-	uploadUsers
 }

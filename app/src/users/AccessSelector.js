@@ -1,7 +1,8 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import {Select} from '../general/Form'
-import {AccessLevelOptions} from '../actions/users'
+
+import {AccessLevelOptions} from '../store/actions/users'
 
 function AccessSelector({
 	value,

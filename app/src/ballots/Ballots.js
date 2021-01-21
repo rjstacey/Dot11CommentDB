@@ -8,13 +8,15 @@ import BallotDetailModal from './BallotDetail'
 import ConfirmModal from '../modals/ConfirmModal'
 import AppTable from '../table/AppTable'
 import ColumnDropdown from '../table/ColumnDropdown'
-import {getBallots, deleteBallots, BallotType} from '../actions/ballots'
-import {setSelected} from '../actions/select'
-import {setSort} from '../actions/sort'
-import {getDataMap} from '../selectors/dataMap'
-import {getVotingPools} from '../actions/votingPools'
 import {ActionButton} from '../general/Icons'
 import {displayDate} from '../lib/utils'
+
+import {getBallots, deleteBallots, BallotType} from '../store/actions/ballots'
+import {setSelected} from '../store/actions/select'
+import {setSort} from '../store/actions/sort'
+import {getDataMap} from '../store/selectors/dataMap'
+import {getVotingPools} from '../store/actions/votingPools'
+
 
 const ActionCell = styled.div`
 	display: flex;
@@ -175,7 +177,7 @@ function Ballots(props) {
 	const deleteBallot = async (ballot) => {
 		const ok = await ConfirmModal.show(`Are you sure you want to delete ${ballot.BallotID}?`)
 		if (ok)
-			await props.deleteBallots([ballot.BallotID])
+			await props.deleteBallots([ballot])
 	}
 	const addBallot = event => history.push('/Ballots/+')
 	const closeBallot = () => history.push('/Ballots')

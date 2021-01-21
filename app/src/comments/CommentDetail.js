@@ -2,8 +2,7 @@ import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'
-import {addResolutions, updateResolutions, deleteResolutions, updateComments} from '../actions/comments'
-import {uiSetProperty} from '../actions/ui'
+
 import AdHocSelector from './AdHocSelector'
 import CommentGroupSelector from './CommentGroupSelector'
 import AssigneeSelector from './AssigneeSelector'
@@ -12,8 +11,11 @@ import {ResolutionEditor} from './ResolutionEditor'
 import {ActionButton, VoteYesIcon, VoteNoIcon} from '../general/Icons'
 import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from '../general/Form'
 import {shallowDiff} from '../lib/utils'
-import {getDataMap} from '../selectors/dataMap'
 import {debounce} from '../lib/utils'
+
+import {addResolutions, updateResolutions, deleteResolutions, updateComments} from '../store/actions/comments'
+import {uiSetProperty} from '../store/actions/ui'
+import {getDataMap} from '../store/selectors/dataMap'
 
 const MULTIPLE = '<multiple>';
 const isMultiple = (value) => value === MULTIPLE;
@@ -107,45 +109,42 @@ const Categorization = ({resolution, setResolution, readOnly}) =>
 		</Col>
 	</Row>
 
-function Column1({
+const Column1 = ({
 	style,
 	className,
 	resolution,
 	setResolution,
 	readOnly
-}) {
-	return (
-		<Col
-			style={style}
-			className={className}
-		>
-			<Row>
-				<Field label='Assignee:'>
-					<AssigneeSelector
-						style={{flexBasis: 200}}
-						value={isMultiple(resolution.AssigneeSAPIN || resolution.AssigneeName)?
-							{SAPIN: null, Name: null}:
-							{SAPIN: resolution.AssigneeSAPIN, Name: resolution.AssigneeName}}
-						onChange={({SAPIN, Name}) => setResolution({AssigneeSAPIN: SAPIN, AssigneeName: Name})}
-						placeholder={isMultiple(resolution.AssigneeSAPIN || resolution.AssigneeName)? MULTIPLE_STR: BLANK_STR}
-						readOnly={readOnly}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Submission:'>
-					<SubmissionSelector
-						style={{flexBasis: 200}}
-						value={isMultiple(resolution.Submission)? '': resolution.Submission || ''}
-						onChange={value => setResolution({Submission: value})}
-						placeholder={isMultiple(resolution.Submission)? MULTIPLE_STR: BLANK_STR}
-						readOnly={readOnly}
-					/>
-				</Field>
-			</Row>
-		</Col>
-	)
-}
+}) => 
+	<Col
+		style={style}
+		className={className}
+	>
+		<Row>
+			<Field label='Assignee:'>
+				<AssigneeSelector
+					style={{flexBasis: 200}}
+					value={isMultiple(resolution.AssigneeSAPIN || resolution.AssigneeName)?
+						{SAPIN: null, Name: null}:
+						{SAPIN: resolution.AssigneeSAPIN, Name: resolution.AssigneeName}}
+					onChange={({SAPIN, Name}) => setResolution({AssigneeSAPIN: SAPIN, AssigneeName: Name})}
+					placeholder={isMultiple(resolution.AssigneeSAPIN || resolution.AssigneeName)? MULTIPLE_STR: BLANK_STR}
+					readOnly={readOnly}
+				/>
+			</Field>
+		</Row>
+		<Row>
+			<Field label='Submission:'>
+				<SubmissionSelector
+					style={{flexBasis: 200}}
+					value={isMultiple(resolution.Submission)? '': resolution.Submission || ''}
+					onChange={value => setResolution({Submission: value})}
+					placeholder={isMultiple(resolution.Submission)? MULTIPLE_STR: BLANK_STR}
+					readOnly={readOnly}
+				/>
+			</Field>
+		</Row>
+	</Col>
 
 function Column2({
 	style,
@@ -518,8 +517,8 @@ function Comment({
 				<FieldLeft label='Commenter:'>{renderCommenter(comment)}</FieldLeft>
 			</Row>
 			<Row>
-				<FieldLeft label='Page/Line:'>{renderPage(comment.Page)}</FieldLeft>
-				<FieldLeft label='Clause:'>{renderEntry(comment.Clause)}</FieldLeft>
+				<FieldLeft label='Page/Line:'>{renderPage(comment.Page)} [{comment.C_Page} {comment.C_Line}]</FieldLeft>
+				<FieldLeft label='Clause:'>{renderEntry(comment.Clause)} [{comment.C_Clause}]</FieldLeft>
 				<FieldLeft label='Category:'>{renderEntry(comment.Category)}</FieldLeft>
 			</Row>
 			<Row>
@@ -609,6 +608,7 @@ class CommentDetail extends React.PureComponent {
 		super(props)
 		this.state = this.initState(props);
 		this.save = debounce(this.doSave, 500);
+		console.log('mount')
 	}
 
 	componentWillUnmount() {
@@ -635,68 +635,80 @@ class CommentDetail extends React.PureComponent {
 	}
 
 	doResolutionUpdate = (fields) => {
+		console.log('do update', fields)
 		this.setState((state, props) => {
 			const editedResolution = {...state.editedResolution, ...fields}
 			this.save(state.origResolution, editedResolution, state.comments)
 			return {
 				...state,
+				origResolution: editedResolution,
 				editedResolution
 			}
 		})
 	}
 
 	doSave = (origResolution, editedResolution, comments) => {
+		console.log('save')
 		const r = origResolution
 		const d = shallowDiff(r, editedResolution)
-		const commentUpdates = [], resolutionUpdates = [];
+		const commentUpdates = [], resolutionUpdates = [], resolutionAdds = [];
 		for (let c of comments) {
 			let commentUpdate = {}, resolutionUpdate = {};
-			for (let o of Object.keys(d)) {
-				if (o === 'AdHoc' || o === 'CommentGroup') {
-					if (c[o] !== d[o])
-						commentUpdate[o] = d[o]
-				}
-				else {
-					if (c[o] !== d[o])
-						resolutionUpdate[o] = d[o]
-				}
+			for (let k in d) {
+				if (k === 'AdHoc' || k === 'CommentGroup')
+					commentUpdate[k] = d[k]
+				else
+					resolutionUpdate[k] = d[k]
 			}
 			if (Object.keys(commentUpdate).length > 0) {
-				commentUpdate.BallotID = c.BallotID
-				commentUpdate.CommentID = c.CommentID
-				commentUpdate.id = c.id
-				console.log(commentUpdate)
+				commentUpdate.id = c.comment_id
 				commentUpdates.push(commentUpdate)
 			}
 			if (Object.keys(resolutionUpdate).length > 0) {
-				resolutionUpdate.BallotID = c.BallotID
-				resolutionUpdate.CommentID = c.CommentID
-				resolutionUpdate.ResolutionID = c.ResolutionID
-				resolutionUpdate.id = c.resolution_id
-				console.log(resolutionUpdate)
-				resolutionUpdates.push(resolutionUpdate)
+				if (c.resolution_id) {
+					resolutionUpdate.id = c.resolution_id
+					resolutionUpdates.push(resolutionUpdate)
+				}
+				else {
+					resolutionUpdate.BallotID = c.BallotID
+					resolutionUpdate.CommentID = c.CommentID
+					resolutionUpdate.comment_id = c.comment_id
+					resolutionAdds.push(resolutionUpdate)
+				}
 			}
 		}
 		if (commentUpdates.length > 0)
-			this.props.updateComments(this.props.ballotId, commentUpdates)
+			this.props.updateComments(commentUpdates)
+		if (resolutionAdds.length > 0)
+			this.props.addResolutions(resolutionAdds)
 		if (resolutionUpdates.length > 0)
-			this.props.updateResolutions(this.props.ballotId, resolutionUpdates)
+			this.props.updateResolutions(resolutionUpdates)
 	}
 
-	handleSave = () => this.doSave(this.state.origResolution, this.state.editedResolution, this.state.comments)
+	//handleSave = () => this.doSave(this.state.origResolution, this.state.editedResolution, this.state.comments)
 
 	handleAddResolutions = () => {
-		const cids =
-			[...new Set(this.state.comments.map(c => c.CommentID))]	// array of unique CommentIDs (elliminate duplicates)
-			.map(cid => ({CommentID: cid}))	
-		this.props.addResolutions(this.props.ballotId, cids)
+		const {comments} = this.state;
+		//console.log(comments)
+		const resolutions = [];
+		// Add only one entry per CommentID
+		for (let c of comments) {
+			if (!resolutions.find(r => r.comment_id === c.comment_id)) {
+				resolutions.push({
+					BallotID: c.BallotID,
+					CommentID: c.CommentID,
+					comment_id: c.comment_id
+				})
+			}
+		}
+		this.props.addResolutions(resolutions)
 	}
 
  	handleDeleteResolutions = () => {
  		const resolutions = this.state.comments
- 			.filter(c => c.ResolutionCount)			// only those with resolutions
- 			.map(c => ({CommentID: c.CommentID, ResolutionID: c.ResolutionID}))
- 		this.props.deleteResolutions(this.props.ballotId, resolutions)
+ 			.filter(c => c.ResolutionCount > 0)			// only those with resolutions
+ 			.map(c => ({id: c.resolution_id}));
+ 		this.props.deleteResolutions(resolutions)
  	}
 
  	handleToggleEditComment = () => this.props.setUiEditComment(!this.props.uiEditComment);
@@ -772,10 +784,10 @@ export default connect(
 		uiEditComment: state[dataSet].ui['editComment']
 	}),
 	(dispatch, ownProps) => ({
-		addResolutions: (ballotId, cids) => dispatch(addResolutions(ballotId, cids)),
-		deleteResolutions: (ballotId, resolutions) => dispatch(deleteResolutions(ballotId, resolutions)),
-		updateResolutions: (ballotId, resolutions) => dispatch(updateResolutions(ballotId, resolutions)),
-		updateComments: (ballotId, comments) => dispatch(updateComments(ballotId, comments)),
+		addResolutions: (resolutions) => dispatch(addResolutions(resolutions)),
+		deleteResolutions: (resolutions) => dispatch(deleteResolutions(resolutions)),
+		updateResolutions: (resolutions) => dispatch(updateResolutions(resolutions)),
+		updateComments: (comments) => dispatch(updateComments(comments)),
 		setUiEditingTabSelected: (show) => dispatch(uiSetProperty(dataSet, 'showEditing', show)),
 		setUiEditComment: (edit) => dispatch(uiSetProperty(dataSet, 'editComment', edit))
 	})

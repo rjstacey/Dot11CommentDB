@@ -1,11 +1,11 @@
 import React from 'react'
 import {connect} from 'react-redux'
+import styled from '@emotion/styled'
 import {Editor, EditorState, ContentState, CompositeDecorator} from 'draft-js'
 import 'draft-js/dist/Draft.css'
 import {Cross} from '../general/Icons'
-import {setSelected} from '../actions/select'
-import {setFilter} from '../actions/filter'
-import styled from '@emotion/styled'
+import {setSelected} from '../store/actions/select'
+import {setFilter} from '../store/actions/filter'
 
 const Container = styled.div`
 	display: flex;

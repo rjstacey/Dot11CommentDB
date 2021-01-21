@@ -35,6 +35,7 @@ class ConfirmModal extends React.Component {
 	render() {
 		return (
 			<AppModal
+				overlayStyle={{zIndex: 20}}
 				isOpen={this.state.isOpen}
 				onRequestClose={this.handleCancel}
 			>

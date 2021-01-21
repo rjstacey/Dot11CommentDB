@@ -3,7 +3,7 @@ const rp = require('request-promise-native')
 const users = require('../services/users')
 const jwt = require('../util/jwt')
 
-const getState = (req) => req.session.user;
+const getState = (req) => ({user: req.session.user || null});
   
 async function login(req) {
 	// Server side session for this user
@@ -43,7 +43,7 @@ async function login(req) {
 	// options.form = loginForm;
 	ieeeRes = await rp.post(Object.assign({}, options, {form: loginForm}));
 	if (ieeeRes.statusCode === 200 && ieeeRes.body.search(/<div class="title">Sign In<\/div>/) !== -1) {
-		m = ieeeRes.body.match(/<div class="field_err">(.*)<\/div>/)
+		const m = ieeeRes.body.match(/<div class="field_err">(.*)<\/div>/)
 		throw m? m[1]: 'Not logged in'
 	}
 	// Update the URL to the user's home and do another get.
@@ -92,13 +92,14 @@ async function login(req) {
 	var $ = cheerio.load(ieeeRes);
 	console.log($('div.title').html())*/
 
-	return user
+	return {user}
 }
 
 function logout(req) {
 	req.session.user = null
 	req.session.access = 0
 	rp.get({url: 'https://imat.ieee.org/pub/logout', jar: req.session.ieeeCookieJar})
+	return {user: null}
 }
 
 /*
@@ -123,12 +124,12 @@ router.post('/login', async (req, res, next) => {
 	}
 	catch (err) {next(err)}
 })
-router.post('/logout', (req, res, next) => {
+router.post('/logout', async (req, res, next) => {
 	try {
-		logout(req)
-		res.json(null)
+		const data = await logout(req)
+		res.json(data)
 	}
 	catch (err) {next(err)}
 })
 
-module.exports = router
+module.exports = router;

@@ -33,7 +33,7 @@ export function loginUserInit() {
 	// Get user from local storage. This may fail if the browser has certain privacy settings.
 	let user;
 	try {user = JSON.parse(localStorage.getItem(LOGIN_STORAGE))} catch (err) {/* ignore errors */}
-	if (user)
+	if (user && user.Token)
 		fetcher.setJWT(user.Token);
 	return user;
 }
@@ -43,17 +43,19 @@ export function loginGetState() {
 		if (getState().login.loading)
 			return null
 		dispatch(loginGetStateLocal())
+		let user;
 		try {
-			const user = await fetcher.get('/auth/login')
-			try {localStorage.setItem(LOGIN_STORAGE, JSON.stringify(user))} catch (err) {};
-			if (user)
-				fetcher.setJWT(user.Token);
-			return dispatch(loginSuccess(user))
+			const response = await fetcher.get('/auth/login');
+			user = response.user;
 		}
 		catch (error) {
 			console.error(error)
 			return dispatch(loginFailure('Unable to get login state'))
 		}
+		try {localStorage.setItem(LOGIN_STORAGE, JSON.stringify(user))} catch (err) {};
+		if (user && user.Token)
+			fetcher.setJWT(user.Token);
+		return dispatch(loginSuccess(user))
 	}
 }
 
@@ -61,18 +63,22 @@ export function login(username, password) {
 	return async (dispatch) => {
 		try {localStorage.removeItem(LOGIN_STORAGE)} catch (err) {};
 		dispatch(loginStart())
+		let user;
 		try {
-			const user = await fetcher.post('/auth/login', {username, password})
-			try {localStorage.setItem(LOGIN_STORAGE, JSON.stringify(user))} catch (err) {};
-			if (user && user.Token)
-				fetcher.setJWT(user.Token);
-			else
-				console.error('Missing JWT token');
-			return dispatch(loginSuccess(user))
+			const response = await fetcher.post('/auth/login', {username, password});
+			user = response.user;
 		}
 		catch (error) {
-			return dispatch(loginFailure(typeof error === 'string'? error: error.toString()))
+			await dispatch(loginFailure(typeof error === 'string'? error: error.toString()));
+			return null;
 		}
+		try {localStorage.setItem(LOGIN_STORAGE, JSON.stringify(user))} catch (err) {};
+		if (user && user.Token)
+			fetcher.setJWT(user.Token);
+		else
+			console.error('Missing JWT token');
+		await dispatch(loginSuccess(user));
+		return user;
 	}
 }
 
@@ -83,11 +89,11 @@ export function logout() {
 		fetcher.setJWT(null);
 		try {
 			await fetcher.post('/auth/logout')
-			return dispatch(loginSuccess(null))
 		}
 		catch (error) {
-			console.log(error)
+			console.error(error)
 			return dispatch(loginFailure('Unable to logout'))
 		}
+		return dispatch(loginSuccess(null))
 	}
 }

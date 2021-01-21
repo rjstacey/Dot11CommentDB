@@ -2,8 +2,9 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {getDataMap} from '../selectors/dataMap'
-import {removeFilter, clearAllFilters} from '../actions/filter'
+
+import {getDataMap} from '../store/selectors/dataMap'
+import {removeFilter, clearAllFilters} from '../store/actions/filter'
 
 const ActiveFilterLabel = styled.label`
 	font-weight: bold;

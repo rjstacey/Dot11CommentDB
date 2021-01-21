@@ -2,7 +2,8 @@ import React from 'react'
 import {connect} from 'react-redux'
 import AppModal from './AppModal'
 import {Form} from '../general/Form'
-import {clearError} from '../actions/error'
+
+import {clearError} from '../store/actions/error'
 
 function strToHtml(s) {
 	return s

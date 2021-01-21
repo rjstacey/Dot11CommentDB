@@ -9,9 +9,10 @@ import TableRow from './AppTableRow'
 import TableHeader from './AppTableHeader'
 import {ControlHeader, ControlCell} from './ControlColumn'
 import {debounce, getScrollbarSize} from '../lib/utils'
-import {setSelected} from '../actions/select'
-import {uiInitTable, uiSetTableColumns} from '../actions/ui'
-import {getDataMap} from '../selectors/dataMap'
+
+import {setSelected} from '../store/actions/select'
+import {uiInitTable, uiSetTableColumns} from '../store/actions/ui'
+import {getDataMap} from '../store/selectors/dataMap'
 
 const scrollbarSize = getScrollbarSize();
 
@@ -355,8 +356,8 @@ export default connect(
 			expanded: state[dataSet].expanded,
 			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
-			data: state[dataSet][ownProps.dataSet],
-			dataMap: getDataMap(state, dataSet),
+			data: ownProps.data? ownProps.data: state[dataSet][ownProps.dataSet],
+			dataMap: ownProps.dataMap? ownProps.dataMap: getDataMap(state, dataSet),
 			tableConfig: state[dataSet].ui.tablesConfig? state[dataSet].ui.tablesConfig[tableView]: undefined
 		}
 	},

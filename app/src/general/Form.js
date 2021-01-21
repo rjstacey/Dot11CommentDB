@@ -2,6 +2,7 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import styled from '@emotion/styled'
 import ReactDropdownSelect from 'react-dropdown-select'
+import {Spinner} from '../general/Icons'
 
 const StyledSelect = styled(ReactDropdownSelect)`
 	background-color: #fafafa;
@@ -231,12 +232,13 @@ const ListItem = ({style, className, children}) =>
 		{children}
 	</ListItemContainer>
 
-const Form = ({style, className, title, errorText, submit, submitLabel, cancel, cancelLabel, children}) => 
+const Form = ({style, className, title, busy, errorText, submit, submitLabel, cancel, cancelLabel, children}) => 
 	<Container
 		style={style}
 		className={className}
 	>
 		{title && <Title>{title}</Title>}
+		<Spinner style={{alignSelf: 'center', visibility: busy? 'visible': 'hidden'}}/>
 		{children}
 		{errorText !== undefined && <ErrMsg>{errorText || '\u00a0'}</ErrMsg>}
 		<ButtonRow>

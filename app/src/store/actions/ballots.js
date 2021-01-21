@@ -43,41 +43,43 @@ export function getBallots() {
 	}
 }
 
-export const updateBallotLocal = (ballotId, ballot) => ({type: UPDATE_BALLOT, ballotId, ballot})
-export const updateBallotSuccess = (ballotId, ballot) => ({type: UPDATE_BALLOT_SUCCESS,	ballotId, ballot})
-const updateBallotFailure = (ballotId) => ({type: UPDATE_BALLOT_FAILURE, ballotId})
+const updateBallotLocal = (ballot) => ({type: UPDATE_BALLOT, ballot})
+export const updateBallotSuccess = (ballotId, ballot) => ({type: UPDATE_BALLOT_SUCCESS, ballotId, ballot})
+const updateBallotFailure = (ballot) => ({type: UPDATE_BALLOT_FAILURE, ballot})
 
 export function updateBallot(ballotId, ballot) {
+	console.log(ballotId, ballot)
 	return async (dispatch, getState) => {
-		dispatch(updateBallotLocal(ballotId, ballot))
+		dispatch(updateBallotLocal(ballot))
 		try {
-			const updatedBallot = await fetcher.put(`/api/ballot/${ballotId}`, ballot)
+			const [updatedBallot] = await fetcher.put(`/api/ballots`, [ballot])
 			return dispatch(updateBallotSuccess(ballotId, updatedBallot))
 		}
 		catch(error) {
 			return Promise.all([
-				dispatch(updateBallotFailure(ballotId)),
+				dispatch(updateBallotFailure(ballot)),
 				dispatch(setError(`Unable to update ballot ${ballotId}`, error.toString()))
 			])
 		}
 	}
 }
 
-const deleteBallotsLocal = (ballotIds) => ({type: DELETE_BALLOTS, ballotIds})
-const deleteBallotsSuccess = (ballotIds) => ({type: DELETE_BALLOTS_SUCCESS, ballotIds})
-const deleteBallotsFailure = (ballotIds) => ({type: DELETE_BALLOTS_FAILURE, ballotIds})
+const deleteBallotsLocal = (ballots) => ({type: DELETE_BALLOTS, ballots})
+const deleteBallotsSuccess = (ballots) => ({type: DELETE_BALLOTS_SUCCESS, ballots})
+const deleteBallotsFailure = (ballots) => ({type: DELETE_BALLOTS_FAILURE, ballots})
 
-export function deleteBallots(ballotIds) {
+export function deleteBallots(ballots) {
 	return async (dispatch, getState) => {
-		dispatch(deleteBallotsLocal(ballotIds))
+		dispatch(deleteBallotsLocal(ballots))
 		try {
-			await fetcher.delete('/api/ballots', ballotIds)
-			return dispatch(deleteBallotsSuccess(ballotIds))
+			await fetcher.delete('/api/ballots', ballots)
+			return dispatch(deleteBallotsSuccess(ballots))
 		}
 		catch(error) {
+			const ballotIdsStr = ballots.map(b => ballots.BallotID).join(', ')
 			return Promise.all([
-				dispatch(deleteBallotsFailure(ballotIds)),
-				dispatch(setError(`Unable to delete ballots ${ballotIds}`, error.toString()))
+				dispatch(deleteBallotsFailure(ballots)),
+				dispatch(setError(`Unable to delete ballots ${ballotIdsStr}`, error.toString()))
 			])
 		}
 	}
@@ -91,7 +93,7 @@ export function addBallot(ballot) {
 	return async (dispatch, getState) => {
 		dispatch(addBallotLocal(ballot))
 		try {
-			const updateBallot = await fetcher.post('/api/ballots', ballot)
+			const [updateBallot] = await fetcher.post('/api/ballots', [ballot])
 			return dispatch(addBallotSuccess(updateBallot))
 		}
 		catch(error) {

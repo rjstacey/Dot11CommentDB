@@ -4,9 +4,10 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppModal from '../modals/AppModal'
 import {Form, Row, Field, Input, Select} from '../general/Form'
-import {addVoter, updateVoter} from '../actions/voters'
-import {setError} from '../actions/error'
 import {shallowDiff} from '../lib/utils'
+
+import {addVoter, updateVoter} from '../store/actions/voters'
+import {setError} from '../store/actions/error'
 
 const VoterEditForm = styled(Form)`
 	width: 400px;

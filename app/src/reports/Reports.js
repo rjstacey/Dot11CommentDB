@@ -4,8 +4,9 @@ import {useHistory, useParams} from 'react-router-dom'
 import styled from '@emotion/styled'
 import {connect} from 'react-redux'
 import BallotSelector from '../ballots/BallotSelector'
-import {setBallotId} from '../actions/ballots'
-import {getComments} from '../actions/comments'
+
+import {setBallotId} from '../store/actions/ballots'
+import {getComments} from '../store/actions/comments'
 
 function countsByCategory(comments) {
 	return {

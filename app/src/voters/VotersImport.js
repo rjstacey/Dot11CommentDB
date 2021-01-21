@@ -4,7 +4,8 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppModal from '../modals/AppModal'
 import {Form, Row} from '../general/Form'
-import {uploadVoters} from '../actions/voters'
+
+import {uploadVoters} from '../store/actions/voters'
 
 const VotersImportForm = styled(Form)`
 	width: 400px;

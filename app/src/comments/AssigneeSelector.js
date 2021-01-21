@@ -1,9 +1,10 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
-import {Select} from '../general/Form'
-import {getUsers} from '../actions/users'
 import styled from '@emotion/styled'
+import {Select} from '../general/Form'
+
+import {getUsers} from '../store/actions/users'
 import {strComp} from '../lib/utils'
 
 const StyledItem = styled.span`
@@ -113,17 +114,16 @@ function AssigneeSelector({
 	}, [comments, users])
 
 	function handleChange(values) {
+		let newValue;
 		if (values.length > 0) {
 			const v = values[0]
-			const newValue = {SAPIN: typeof v.value === 'number'? v.value: null, Name: v.label}
-			onChange(newValue)
+			newValue = {SAPIN: typeof v.value === 'number'? v.value: null, Name: v.label}
 		}
 		else {
-			if (value.SAPIN || value.Name) {
-				const newValue = {SAPIN: null, Name: null}
-				onChange(newValue)
-			}
+			newValue = {SAPIN: null, Name: null}
 		}
+		if (newValue.SAPIN !== value.SAPIN || newValue.Name !== value.Name)
+			onChange(newValue)
 	}
 
 	const optionSelected = options.find(o => o.value === (value.SAPIN || value.Name))

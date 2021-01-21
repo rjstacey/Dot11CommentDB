@@ -51,13 +51,13 @@ const deleteResultsLocal = (ballotId) => {return {type: DELETE_RESULTS, ballotId
 const deleteResultsSuccess = (ballotId) => {return {type: DELETE_RESULTS_SUCCESS, ballotId}}
 const deleteResultsFailure = (ballotId) => {return {type: DELETE_RESULTS_FAILURE, ballotId}}
 
-export function deleteResults(ballotId) {
+export function deleteResults(ballotId, ballot) {
 	return async (dispatch) => {
 		dispatch(deleteResultsLocal(ballotId))
 		try {
 			await fetcher.delete(`/api/results/${ballotId}`)
 			return Promise.all([
-				dispatch(updateBallotSuccess(ballotId, {Results: {}})),
+				dispatch(updateBallotSuccess(ballotId, {id: ballot.id, Results: {}})),
 				dispatch(deleteResultsSuccess(ballotId))
 			])
 		}
@@ -78,11 +78,11 @@ export function importResults(ballotId, epollNum) {
 	return async (dispatch) => {
 		dispatch(importResultsLocal(ballotId))
 		try {
-			const data = await fetcher.post(`/api/results/importFromEpoll/${ballotId}/${epollNum}`)
-			console.log(data)
+			const result = await fetcher.post(`/api/results/importFromEpoll/${ballotId}/${epollNum}`)
+			console.log(result)
 			return Promise.all([
-				dispatch(updateBallotSuccess(ballotId, {Results: data.summary})),
-				dispatch(importResultsSuccess(data))
+				dispatch(updateBallotSuccess(ballotId, result.ballot)),
+				dispatch(importResultsSuccess(ballotId))
 			])
 		}
 		catch(error) {
@@ -94,14 +94,33 @@ export function importResults(ballotId, epollNum) {
 	}
 }
 
-export function uploadResults(ballotId, type, file) {
+export function uploadEpollResults(ballotId, file) {
 	return async (dispatch) => {
 		dispatch(importResultsLocal(ballotId))
 		try {
-			const data = await fetcher.postMultipart(`/api/results/upload/${ballotId}/${type}`, {ResultsFile: file})
+			const result = await fetcher.postMultipart(`/api/results/uploadEpollResults/${ballotId}`, {ResultsFile: file})
 			return Promise.all([
-				dispatch(updateBallotSuccess(ballotId, {Results: data.summary})),
-				dispatch(importResultsSuccess(data))
+				dispatch(updateBallotSuccess(ballotId, result.ballot)),
+				dispatch(importResultsSuccess(result))
+			])
+		}
+		catch(error) {
+			return Promise.all([
+				dispatch(importResultsFailure(ballotId)),
+				dispatch(setError(`Unable to upload results for ballot ${ballotId}`, error))
+			])
+		}
+	}
+}
+
+export function uploadMyProjectResults(ballotId, file) {
+	return async (dispatch) => {
+		dispatch(importResultsLocal(ballotId))
+		try {
+			const result = await fetcher.postMultipart(`/api/results/uploadMyProjectResults/${ballotId}`, {ResultsFile: file})
+			return Promise.all([
+				dispatch(updateBallotSuccess(ballotId, result.ballot)),
+				dispatch(importResultsSuccess(result))
 			])
 		}
 		catch(error) {

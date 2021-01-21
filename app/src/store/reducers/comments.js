@@ -115,7 +115,7 @@ const defaultSortEntries = Object.keys(commentFields).reduce((entries, dataKey) 
 const updateComments = (comments, updatedComments) => (
 	/* Replace comments with the modified CommentID, maintaining increasing CommentID order */
 	comments
-		.filter(c1 => !updatedComments.find(c2 => c2.CommentID === c1.CommentID && (c1.ResolutionID === null || c2.ResolutionID === c1.ResolutionID)))
+		.filter(c1 => !updatedComments.find(c2 => c2.comment_id === c1.comment_id))
 		.concat(updatedComments)
 		.sort((c1, c2) => c1.CommentID === c2.CommentID? c1.ResolutionID - c2.ResolutionID: c1.CommentID - c2.CommentID)
 )
@@ -178,14 +178,11 @@ function commentsReducer(state = defaultState, action) {
 		case COMMENTS_UPDATE:
 			return {...state, updateComment: true}
 		case COMMENTS_UPDATE_SUCCESS:
-			if (state.ballotId !== action.ballotId) {
-				return {...state, updateComment: false}
-			}
 			newComments = state.comments.map(c1 => {
-				const c2 = action.comments.find(c2 => c2.CommentID === c1.CommentID)
+				const c2 = action.comments.find(c2 => c2.id === c1.id)
 				return c2? {...c1, ...c2}: c1
-			})
-			newComments = updateCommentsStatus(newComments)
+			});
+			newComments = updateCommentsStatus(newComments);
 			return {
 				...state,
 				updateComment: false,
@@ -243,13 +240,8 @@ function commentsReducer(state = defaultState, action) {
 		case ADD_RESOLUTIONS:
 			return {...state, updateComment: true}
 		case ADD_RESOLUTIONS_SUCCESS:
-			if (state.ballotId !== action.ballotId) {
-				return {...state, updateComment: false}
-			}
 			// Concat new comments
-			newComments = state.comments.concat(action.newComments)
-			// Update and sort comments
-			newComments = updateComments(newComments, action.updatedComments)
+			newComments = updateComments(state.comments, action.comments)
 			newComments = updateCommentsStatus(newComments)
 			return {
 				...state,
@@ -262,19 +254,11 @@ function commentsReducer(state = defaultState, action) {
 		case UPDATE_RESOLUTIONS:
 			return {...state, updateComment: true}
 		case UPDATE_RESOLUTIONS_SUCCESS:
-			if (state.ballotId !== action.ballotId) {
-				return {...state, updateComment: false}
-			}
-			newComments = state.comments.map(c => {
-				let r = action.resolutions.find(r => r.id === c.resolution_id)
-				if (r) {
-					const {id, ...newResolution} = r;	// remove id
-					const newComment = {...c, ...newResolution};
-					newComment.Status = getCommentStatus(newComment);
-					return newComment;
-				}
-				return c
+			newComments = state.comments.map(c1 => {
+				const c2 = action.comments.find(c2 => c1.resolution_id === c2.resolution_id)
+				return c2? {...c1, ...c2}: c1;
 			})
+			newComments = updateCommentsStatus(newComments)
 			return {
 				...state,
 				updateComment: false,
@@ -289,13 +273,8 @@ function commentsReducer(state = defaultState, action) {
 				updateComment: true
 			}
 		case DELETE_RESOLUTIONS_SUCCESS:
-			if (state.ballotId !== action.ballotId) {
-				return {...state, updateComment: false}
-			}
 			// Remove deleted comments
-			newComments = state.comments.filter(c1 => !action.deletedComments.find(c2 => c2.CommentID === c1.CommentID && c2.ResolutionID === c1.ResolutionID))
-			// Update and sort comments
-			newComments = updateComments(newComments, action.updatedComments)
+			newComments = updateComments(state.comments, action.comments)
 			newComments = updateCommentsStatus(newComments)
 			return {
 				...state,

@@ -6,12 +6,12 @@ import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
 import ConfirmModal from '../modals/ConfirmModal'
-import {getVoters, deleteVoters} from '../actions/voters'
-import {ActionButton} from '../general/Icons'
-import {getDataMap} from '../selectors/dataMap'
 import VotersImportModal from './VotersImport'
 import VoterEditModal from './VoterEdit'
+import {ActionButton} from '../general/Icons'
 
+import {getVoters, deleteVoters} from '../store/actions/voters'
+import {getDataMap} from '../store/selectors/dataMap'
 
 const ActionCell = styled.div`
 	display: flex;

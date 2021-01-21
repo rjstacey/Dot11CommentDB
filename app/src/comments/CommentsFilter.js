@@ -2,10 +2,11 @@ import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import Select from 'react-dropdown-select'
-import {ColumnSearchFilter, ColumnDropdown} from '../table/AppTable'
-import {setCommentsFilter, removeCommentsFilter, clearCommentsFilters, genCommentsOptions, setCommentsSort} from '../actions/comments'
 import {CommentIdFilter} from './CommentIdList'
+import {ColumnSearchFilter, ColumnDropdown} from '../table/AppTable'
 import ShowFilters from '../table/ShowFilters'
+
+import {setCommentsFilter, removeCommentsFilter, clearCommentsFilters, genCommentsOptions, setCommentsSort} from '../store/actions/comments'
 
 
 const commentFieldLabel = dataKey => ({

@@ -1,8 +1,8 @@
 import React from 'react'
-import {BrowserRouter as Router, Switch, Route, NavLink} from 'react-router-dom'
+import {BrowserRouter as Router, Switch, Route, NavLink, Redirect} from 'react-router-dom'
 import {connect} from 'react-redux'
-import {loginGetState, AccessLevel} from './actions/login'
-import Account from './general/Login'
+import styled from '@emotion/styled'
+import Account, {SignIn} from './general/Login'
 import Users from './users/Users'
 import VotersPools from './voters/VotersPools'
 import Voters from './voters/Voters'
@@ -15,7 +15,7 @@ import ErrorModal from './modals/ErrorModal'
 import ConfirmModal from './modals/ConfirmModal'
 import {init as iconInit} from './general/Icons'
 
-import styled from '@emotion/styled'
+import {loginGetState, AccessLevel} from './store/actions/login'
 
 iconInit()
 
@@ -75,6 +75,15 @@ const Title = styled.h3`
 	text-align: center;
 `;
 
+const RestrictedRoute = ({component: Component, hasAccess, ...rest }) =>
+	<Route
+		{...rest}
+		render={props =>
+			hasAccess?
+				<Component {...props} />:
+				<Redirect to={{ pathname: "/Login", state: { from: props.location } }} />
+		}
+	/>
 
 function App({access, loginGetState}) {
 
@@ -86,32 +95,64 @@ function App({access, loginGetState}) {
 				<Header>
 					<Title>802.11 Comment Resolution Tool</Title>
 					<Nav>
-							{access > AccessLevel.Public &&
-								<React.Fragment>
-									<NavLink to="/Users/" activeClassName='active'>Users</NavLink>
-									{access > AccessLevel.SubgroupAdmin && <NavLink to="/Voters/" activeClassName='active'>Voter Pools</NavLink>}
-									<NavLink to="/Ballots/" activeClassName='active'>Ballots</NavLink>
-									<NavLink to="/Results" activeClassName='active'>Results</NavLink>
-									<NavLink to="/Comments" activeClassName='active'>Comments</NavLink>
-									<NavLink to="/Reports" activeClassName='active'>Reports</NavLink>
-								</React.Fragment>}
+						{access > AccessLevel.SubgroupAdmin && 
+							<React.Fragment>
+								<NavLink to="/Users/" activeClassName='active'>Users</NavLink>
+								<NavLink to="/Voters/" activeClassName='active'>Voter Pools</NavLink>
+							</React.Fragment>}
+						{access > AccessLevel.Public &&
+							<React.Fragment>
+								<NavLink to="/Ballots/" activeClassName='active'>Ballots</NavLink>
+								<NavLink to="/Results" activeClassName='active'>Results</NavLink>
+								<NavLink to="/Comments" activeClassName='active'>Comments</NavLink>
+								<NavLink to="/Reports" activeClassName='active'>Reports</NavLink>
+							</React.Fragment>}
 					</Nav>
 					<Account />
 				</Header>
 				<Main>
 					<Switch>
-						<Route path="/" exact component={null} />
-						{access > AccessLevel.Public &&
-							<React.Fragment>
-								<Route path="/Users/" component={Users} />
-								{access > AccessLevel.SubgroupAdmin && <Route path="/Voters/" exact component={VotersPools} />}
-								{access > AccessLevel.SubgroupAdmin && <Route path="/Voters/:votingPoolType/:votingPoolName" component={Voters} />}
-								<Route path="/Ballots/:ballotId?" component={Ballots} />
-								<Route path="/Epolls/" component={Epolls} />
-								<Route path="/Results/:ballotId?" component={Results} />
-								<Route path="/Comments/:ballotId?" exact component={Comments} />
-								<Route path="/Reports/:ballotId?" exact component={Reports} />
-							</React.Fragment>}
+						<RestrictedRoute
+							path="/Users/"
+							hasAccess={access > AccessLevel.SubgroupAdmin}
+							component={Users}
+						/>
+						<RestrictedRoute
+							path="/Voters/" exact
+							hasAccess={access > AccessLevel.SubgroupAdmin}
+							component={VotersPools}
+						/>
+						<RestrictedRoute
+							path="/Voters/:votingPoolType/:votingPoolName"
+							hasAccess={access > AccessLevel.Public}
+							component={Voters}
+						/>
+						<RestrictedRoute
+							path="/Ballots/:ballotId?"
+							hasAccess={access > AccessLevel.Public}
+							component={Ballots}
+						/>
+						<RestrictedRoute
+							path="/Epolls/"
+							hasAccess={access > AccessLevel.Public}
+							component={Epolls}
+						/>
+						<RestrictedRoute
+							path="/Results/:ballotId?"
+							hasAccess={access > AccessLevel.Public}
+							component={Results}
+						/>
+						<RestrictedRoute
+							path="/Comments/:ballotId?" exact
+							hasAccess={access > AccessLevel.Public}
+							component={Comments} />
+						<RestrictedRoute
+							path="/Reports/:ballotId?" exact
+							hasAccess={access > AccessLevel.Public}
+							component={Reports}
+						/>
+						<Route path="/Login" exact component={SignIn} />
+						<Route path="/" component={SignIn} />
 					</Switch>
 					<ErrorModal />
 					<ConfirmModal />

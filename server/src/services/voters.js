@@ -92,12 +92,12 @@ async function getVotingPoolLocal(votingPoolType, votingPoolName) {
 	return Object.assign({}, results[0], {VotingPoolID: votingPoolName, PoolType: votingPoolType})
 }
 
-async function getVotingPools() {
+export async function getVotingPools() {
 	const votingPools = await getVotingPoolsLocal()
 	return {votingPools}
 }
 
-async function deleteVotingPools(votingPools) {
+export async function deleteVotingPools(votingPools) {
 	let saVotingPoolIds = [], wgVotingPoolIds = []
 	for (let vp of votingPools) {
 		if (vp.PoolType === 'SA') {
@@ -130,7 +130,7 @@ async function getVotersLocal(votingPoolType, votingPoolId) {
 	return db.query('SELECT * FROM ?? WHERE VotingPoolID=?;', [table, votingPoolId])
 }
 
-async function getVoters(votingPoolType, votingPoolId) {
+export async function getVoters(votingPoolType, votingPoolId) {
 	const voters = await getVotersLocal(votingPoolType, votingPoolId)
 	const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
 	return {
@@ -139,7 +139,7 @@ async function getVoters(votingPoolType, votingPoolId) {
 	}
 }
 
-async function addVoter(votingPoolType, votingPoolId, voter) {
+export async function addVoter(votingPoolType, votingPoolId, voter) {
 	let entry = {
 		VotingPoolID: votingPoolId,
 		Email: voter.Email
@@ -192,7 +192,7 @@ async function addVoter(votingPoolType, votingPoolId, voter) {
 	}
 }
 
-async function updateVoter(votingPoolType, votingPoolId, voterId, voter) {
+export async function updateVoter(votingPoolType, votingPoolId, voterId, voter) {
 	
 	let entry = {
 		VotingPoolID: voter.VotingPoolID,
@@ -294,7 +294,7 @@ async function updateVoter(votingPoolType, votingPoolId, voterId, voter) {
 	}
 }
 
-async function deleteVoters(votingPoolType, votingPoolId, voterIds) {
+export async function deleteVoters(votingPoolType, votingPoolId, voterIds) {
 	let SQL
 	if (votingPoolType === 'SA') {
 		SQL = db.format('DELETE FROM saVoters WHERE VotingPoolID=? AND Email IN (?)', [votingPoolId, voterIds])
@@ -307,7 +307,7 @@ async function deleteVoters(votingPoolType, votingPoolId, voterIds) {
 	return {votingPool}
 }
 
-async function uploadVoters(votingPoolType, votingPoolId, file) {
+export async function uploadVoters(votingPoolType, votingPoolId, file) {
 	let table
 	let voters
 	if (votingPoolType === 'SA') {
@@ -344,14 +344,4 @@ async function uploadVoters(votingPoolType, votingPoolId, file) {
 		voters,
 		votingPool
 	}
-}
-
-module.exports = {
-	getVotingPools,
-	deleteVotingPools,
-	getVoters,
-	addVoter,
-	updateVoter,
-	deleteVoters,
-	uploadVoters
 }

@@ -2,9 +2,11 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import styled from '@emotion/styled'
 import {connect} from 'react-redux'
-import {uiSetProperty, uiToggleTableFixed, uiSetTableColumnVisible} from '../actions/ui'
+
 import {Button} from '../general/Icons'
 import {ActionButtonDropdown} from '../general/Dropdown'
+
+import {uiSetProperty, uiToggleTableFixed, uiSetTableColumnVisible} from '../store/actions/ui'
 
 const Row = styled.div`
 	margin: 5px 10px;

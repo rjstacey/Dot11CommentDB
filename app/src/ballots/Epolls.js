@@ -1,14 +1,16 @@
 import React from 'react'
+import {useHistory} from 'react-router-dom'
 import {connect} from 'react-redux'
 import Immutable from 'immutable'
 import styled from '@emotion/styled'
-import {useHistory} from 'react-router-dom'
 import AppTable from '../table/AppTable'
 import BallotDetailModal from './BallotDetail'
 import {ActionButton} from '../general/Icons'
-import {getEpolls} from '../actions/epolls'
-import {getDataMap} from '../selectors/dataMap'
-import {getSyncedEpolls} from '../selectors/epolls'
+
+import {getBallots} from '../store/actions/ballots'
+import {getEpolls} from '../store/actions/epolls'
+import {getDataMap} from '../store/selectors/dataMap'
+import {getSyncedEpolls} from '../store/selectors/epolls'
 
 function renderDate({rowData, dataKey}) {
 	// rowData[key] is an ISO time string. We convert this to eastern time
@@ -52,9 +54,13 @@ function Epolls(props) {
 	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
 
 	React.useEffect(() => {
+		if (!props.ballotsValid)
+			props.getBallots();
 		if (!props.epollsValid)
-			props.getEpolls(numberEpolls.current)
+			props.getEpolls(numberEpolls.current);
 	}, [])
+
+	React.useEffect(() => {console.log('epolls changed')}, [props.epolls]);
 
 	const refresh = () => props.getEpolls(numberEpolls.current)
 	const close = () => history.goBack()
@@ -89,6 +95,8 @@ function Epolls(props) {
 					headerHeight={28}
 					estimatedRowHeight={64}
 					dataSet='epolls'
+					data={props.epolls}
+					dataMap={props.epollsMap}
 					loading={props.loading}
 					rowKey={primaryDataKey}
 				/>
@@ -108,7 +116,8 @@ export default connect(
 	(state, ownProps) => {
 		const s = state[dataSet]
 		return {
-			valid: s.valid,
+			ballotsValid: state.ballots.valid,
+			epollsValid: s.valid,
 			loading: s.loading,
 			epolls: getSyncedEpolls(state),
 			epollsMap: getDataMap(state, dataSet),
@@ -116,5 +125,6 @@ export default connect(
 	},
 	(dispatch, ownProps) => ({
 		getEpolls: (n) => dispatch(getEpolls(n)),
+		getBallots: () => dispatch(getBallots())
 	})
 )(Epolls)

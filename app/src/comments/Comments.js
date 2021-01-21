@@ -4,22 +4,25 @@ import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
 import Immutable from 'immutable'
 import styled from '@emotion/styled'
+import copyToClipboard from 'copy-html-to-clipboard'
+
 import BallotSelector from '../ballots/BallotSelector'
 import ColumnSelector from './ColumnSelector'
 import AppTable from '../table/AppTable'
 import ShowFilters from '../table/ShowFilters'
 import {Button, ActionButton} from '../general/Icons'
-import {getComments} from '../actions/comments'
-import {setSelected} from '../actions/select'
-import {getDataMap} from '../selectors/dataMap'
-import {setBallotId} from '../actions/ballots'
-import {uiSetProperty} from '../actions/ui'
+
 import {editorCss} from './ResolutionEditor'
 import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './CommentDetail'
 import CommentsImport from './CommentsImport'
 import CommentsExport from './CommentsExport'
 import ColumnDropdown from '../table/ColumnDropdown'
-import copyToClipboard from 'copy-html-to-clipboard'
+
+import {getComments} from '../store/actions/comments'
+import {setSelected} from '../store/actions/select'
+import {getDataMap} from '../store/selectors/dataMap'
+import {setBallotId} from '../store/actions/ballots'
+import {uiSetProperty} from '../store/actions/ui'
 
 const FlexRow = styled.div`
 	display: flex;
@@ -369,7 +372,8 @@ function commentsRowGetter({rowIndex, data, dataMap}) {
 function Comments(props) {
 	const history = useHistory()
 	const {ballotId} = useParams()
-	const [split, setSplit] = React.useState(0.5)
+	const [split, setSplit] = React.useState(0.5);
+	const [editKey, setEditKey] = React.useState(new Date().getTime());
 
 	let tableView
 	if (tableViews.includes(props.tableView)) {
@@ -380,6 +384,8 @@ function Comments(props) {
 		props.setTableView(tableView)
 	}
 	const tableConfig = props.tablesConfig[tableView] || defaultTablesConfig[tableView];
+
+	React.useEffect(() => setEditKey(new Date().getTime()), [props.selected])
 
 	/* If we change the table config signficantly we want to remount the table component,
 	 * so we create a key id for the component that depends on signficant parameters */
@@ -433,19 +439,17 @@ function Comments(props) {
 			resizeWidth={tableView === 'Edit'? setTableDetailSplit: undefined}
 		/>
 
-	let body = table;
-	if (tableView === 'Edit') {
-		body =
-			<React.Fragment>
-				<div style={{flex: `${100 - split*100}%`, overflow: 'hidden', boxSizing: 'border-box'}}>
-					{table}
-				</div>
-				<CommentDetail
-					style={{flex: `${split*100}%`, height: '100%', overflow: 'auto', boxSizing: 'border-box'}}
-					key={props.selected}
-				/>
-			</React.Fragment>
-	}
+	const body = (tableView === 'Edit')?
+		<React.Fragment>
+			<div style={{flex: `${100 - split*100}%`, overflow: 'hidden', boxSizing: 'border-box'}}>
+				{table}
+			</div>
+			<CommentDetail
+				style={{flex: `${split*100}%`, height: '100%', overflow: 'auto', boxSizing: 'border-box'}}
+				key={editKey} //props.selected}
+			/>
+		</React.Fragment>:
+		table
 
 	return (
 		<React.Fragment>

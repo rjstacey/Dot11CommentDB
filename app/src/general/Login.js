@@ -1,10 +1,12 @@
 import React, {useState, useEffect} from 'react'
+import {useLocation, useHistory} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {loginGetState, login, logout, AccessLevelOptions} from '../actions/login'
 import {Handle} from '../general/Icons'
 import ClickOutside from '../general/ClickOutside'
 import {Row, Col} from '../general/Form'
+
+import {loginGetState, login, logout, AccessLevelOptions} from '../store/actions/login'
 
 const Wrapper = styled(ClickOutside)`
 	position: relative;
@@ -60,62 +62,115 @@ const Button = styled.button`
 	:hover {background-color: #fafafa}
 `;
 
-const LoginForm = ({loading, statusMsg, login}) => {
-	const [credentials, setCredentials] = useState({username: '', password: ''})
+const SignInContainer = styled.div`
+	padding: 10px;
+	display: flex;
+	flex-direction: column;
+	background: #fff;
+	border: 1px solid #ccc;
+	border-radius: 5px;
+	box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
+	box-sizing: border-box;
+	:focus {outline: none}
+`;
+
+const SignInForm = ({credentials, change, disabled, submit, statusMsg}) =>
+	<React.Fragment>
+		<Row>
+			<Col>
+				<label>Username/Email:</label>
+				<input
+					name="username"
+					type="text"
+					autoComplete="username"
+					size="30"
+					maxLength="100"
+					value={credentials.username}
+					onChange={change}
+				/>
+			</Col>
+		</Row>
+		<Row>
+			<Col>
+				<label>Password:</label>
+				<input
+					name="password"
+					type="password"
+					autoComplete="current-password"
+					size="15"
+					maxLength="30"
+					value={credentials.password}
+					onChange={change}
+				/>
+			</Col>
+		</Row>
+		<Row>
+			<Button value="Sign In" disabled={disabled} onClick={submit}>Sign in</Button>
+		</Row>
+		<Row>
+			<p>{statusMsg}</p>
+		</Row>
+	</React.Fragment>
+
+const _SignIn = ({loading, statusMsg, user, login}) => {
+	const { from } = useLocation().state || { from: { pathname: "/" } };
+	const history = useHistory();
+	const [credentials, setCredentials] = useState({username: '', password: ''});
+
 	const change = e => setCredentials({...credentials, [e.target.name]: e.target.value});
-	const loginSubmit = e => login(credentials.username, credentials.password);
+
+	const loginSubmit = async () => {
+		const user = await login(credentials.username, credentials.password)
+		if (user)
+			history.push(from);
+	}
 
 	return (
+		<SignInContainer>
+			<SignInForm
+				credentials={credentials}
+				change={change}
+				disabled={loading}
+				submit={loginSubmit}
+				statusMsg={statusMsg}
+			/>
+		</SignInContainer>
+	)
+}
+
+export const SignIn = connect(
+	(state, ownProps) => {
+		const {login} = state
+		return {
+			loading: login.loading,
+			statusMsg: login.statusMsg,
+			user: login.user
+		}
+	},
+	(dispatch, ownProps) => ({
+		login: (username, password) => dispatch(login(username, password))
+	})
+)(_SignIn);
+
+const SignOutForm = ({user, logout, loading, close}) => {
+	const submit = async () => {
+		await logout();
+		if (close)
+			close();
+	}
+	return (
 		<React.Fragment>
-			<Row>
-				<Col>
-					<label>Username/Email:</label>
-					<input
-						name="username"
-						type="text"
-						autoComplete="username"
-						size="30"
-						maxLength="100"
-						value={credentials.username}
-						onChange={change}
-					/>
-				</Col>
-			</Row>
-			<Row>
-				<Col>
-					<label>Password:</label>
-					<input
-						name="password"
-						type="password"
-						autoComplete="current-password"
-						size="15"
-						maxLength="30"
-						value={credentials.password}
-						onChange={change}
-					/>
-				</Col>
-			</Row>
-			<Row>
-				<Button value="Sign In" disabled={loading} onClick={loginSubmit}>Sign in</Button>
-			</Row>
-			<Row>
-				<p>{statusMsg}</p>
-			</Row>
+			<label>{user.Name}</label>
+			<label>{user.SAPIN} {user.Username}</label>
+			<label>{AccessLevelOptions.find(o => o.value === user.Access).label}</label>
+			<Button value="Sign Out" disabled={loading} onClick={submit}>Sign out</Button>
 		</React.Fragment>
 	)
 }
 
-const LogoutForm = ({user, loading, logout}) =>
-	<React.Fragment>
-		<label>{user.Name}</label>
-		<label>{user.SAPIN} {user.Username}</label>
-		<label>{AccessLevelOptions.find(o => o.value === user.Access).label}</label>
-		<Button value="Sign Out" disabled={loading} onClick={logout}>Sign out</Button>
-	</React.Fragment>
-
-const Dropdown = (props) => 
+const AccountDropdown = ({user, logout, loading, close}) =>
 	<DropdownContainer>
-		{props.loggedIn? <LogoutForm {...props}/>: <LoginForm {...props}/>}
+		<SignOutForm user={user} logout={logout} loading={loading} close={close} />
 	</DropdownContainer>
 
 function _Account(props) {
@@ -125,20 +180,25 @@ function _Account(props) {
 
 	useEffect(() => {loginGetState()}, []);
 
-	return (
-		<Wrapper
-			ref={containerRef}
-			onClickOutside={() => setOpen(false)}
-		>
-			<AccountButton
-				onClick={() => setOpen(!open)}
+	if (loggedIn) {
+		return (
+			<Wrapper
+				ref={containerRef}
+				onClickOutside={() => setOpen(false)}
 			>
-				<span>{loggedIn? `${user.Name} (${user.SAPIN})`:'Sign in'}</span>
-				<Handle open={open} />
-			</AccountButton>
-			{open && <Dropdown {...props} />}
-		</Wrapper>
-	)
+				<AccountButton
+					onClick={() => setOpen(!open)}
+				>
+					<span>{`${user.Name} (${user.SAPIN})`}</span>
+					<Handle open={open} />
+				</AccountButton>
+				{open && <AccountDropdown {...props} close={() => setOpen(false)} />}
+			</Wrapper>
+		)
+	}
+	else {
+		return null
+	}
 }
 
 const Account = connect(

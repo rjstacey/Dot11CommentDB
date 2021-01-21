@@ -6,11 +6,11 @@ import AppModal from '../modals/AppModal'
 import {Form, Row, Col, Field, List, ListItem, Checkbox, Input, Select, TextArea} from '../general/Form'
 import ConfirmModal from '../modals/ConfirmModal'
 import {renderResultsSummary, renderCommentsSummary} from './Ballots'
-import {updateBallot, addBallot, getBallots, setProject, BallotType} from '../actions/ballots'
-import {getProjectList, getBallotList} from '../selectors/ballots'
-import {getVotingPools} from '../actions/votingPools'
-import {importResults, uploadResults, deleteResults} from '../actions/results'
-import {importComments, uploadComments, deleteComments, setStartCommentId} from '../actions/comments'
+import {updateBallot, addBallot, getBallots, setProject, BallotType} from '../store/actions/ballots'
+import {getProjectList, getBallotList} from '../store/selectors/ballots'
+import {getVotingPools} from '../store/actions/votingPools'
+import {importResults, uploadEpollResults, uploadMyProjectResults, deleteResults} from '../store/actions/results'
+import {importComments, uploadComments, deleteComments, setStartCommentId} from '../store/actions/comments'
 import {shallowDiff} from '../lib/utils'
 
 function defaultBallot() {
@@ -330,6 +330,7 @@ function _BallotDetailForm(props) {
 	const [commentsAction, setCommentsAction] = React.useState(Action.NONE);
 	const [commentsFile, setCommentsFile] = React.useState(null);
 	const [startCID, setStartCID] = React.useState('');
+	const [busy, setBusy] = React.useState(false);
 
 	/* On mount, make sure we have the ballots and voting pools loaded */
 	React.useEffect(() => {
@@ -386,53 +387,58 @@ function _BallotDetailForm(props) {
 	/* All the database manipulation functions are asynchornous. They need to be issued in the right order
 	 * but don't need to complete until the next is started. */
 	async function submit() {
-
+		setBusy(true)
 		// Delete stuff first
 		if (resultsAction === Action.REMOVE) {
 			const ok = await ConfirmModal.show(`Are you sure you want to delete results for ${ballot.BallotID}?`)
 			if (!ok)
 				return
-			props.deleteResults(ballot.BallotID)
+			await props.deleteResults(ballotId, ballot)
 		}
 
 		if (commentsAction === Action.REMOVE) {
 			const ok = await ConfirmModal.show(`Are you sure you want to delete comments for ${ballot.BallotID}?`)
 			if (!ok)
 				return
-			props.deleteComments(ballot.BallotID)
+			await props.deleteComments(ballot.BallotID)
 		}
 
 		// Update or create ballot entry
 		if (ballotId === '+') {
-			props.addBallot(ballot)
+			await props.addBallot(ballot)
 		}
 		else {
 			const b = props.ballots.find(b => b.BallotID === ballotId)
 			if (b) {
 				let changed = shallowDiff(b, ballot)
-				if (changed !== {}) {
-					props.updateBallot(ballotId, changed)
+				if (Object.keys(changed).length) {
+					changed.id = b.id;
+					await props.updateBallot(ballotId, changed)
 				}
 			}
 		}
 
 		// import or update results
 		if (resultsAction === Action.IMPORT_FROM_EPOLL) {
-			props.importResults(ballot.BallotID, ballot.EpollNum)
+			await props.importResults(ballot.BallotID, ballot.EpollNum)
 		}
 		else if (resultsAction === Action.IMPORT_FROM_FILE) {
-			props.uploadResults(ballotId, ballot.Type, resultsFile)
+			if (ballot.Type === BallotType.SA_Initial ||
+				ballot.Type === BallotType.SA_Recirc)
+				await props.uploadMyProjectResults(ballotId, resultsFile)
+			else
+				await props.uploadEpollResults(ballotId, resultsFile)
 		}
 
 		// import or update results
 		if (commentsAction === Action.SET_START_CID) {
-			props.setStartCommentId(ballotId, startCID)
+			await props.setStartCommentId(ballotId, startCID)
 		}
 		else if (commentsAction === Action.IMPORT_FROM_EPOLL) {
-			props.importComments(ballot.BallotID, ballot.EpollNum, 1)
+			await props.importComments(ballot.BallotID, ballot.EpollNum, 1)
 		}
 		else if (commentsAction === Action.IMPORT_FROM_FILE) {
-			props.uploadComments(ballotId, ballot.Type, commentsFile)
+			await props.uploadComments(ballotId, ballot.Type, commentsFile)
 		}
 
 		props.close()
@@ -444,6 +450,7 @@ function _BallotDetailForm(props) {
 			submit={submit}
 			submitText={ballotId === '+'? 'Add': 'Update'}
 			cancel={props.close}
+			busy={busy}
 		>
 			<Row>
 				<Col>
@@ -518,9 +525,10 @@ const BallotDetailForm = connect(
 			addBallot: (ballot) => dispatch(addBallot(ballot)),
 			setProject: (project) => dispatch(setProject(project)),
 			updateBallot: (ballotId, ballot) => dispatch(updateBallot(ballotId, ballot)),
-			deleteResults: (ballotId) => dispatch(deleteResults(ballotId)),
+			deleteResults: (ballotId, ballot) => dispatch(deleteResults(ballotId, ballot)),
 			importResults: (ballotId, epollNum) => dispatch(importResults(ballotId, epollNum)),
-			uploadResults: (ballotId, ballotType, file) => dispatch(uploadResults(ballotId, ballotType, file)),
+			uploadEpollResults: (ballotId, file) => dispatch(uploadEpollResults(ballotId, file)),
+			uploadMyProjectResults: (ballotId, file) => dispatch(uploadMyProjectResults(ballotId, file)),
 			deleteComments: (ballotId) => dispatch(deleteComments(ballotId)),
 			importComments: (ballotId, epollNum) => dispatch(importComments(ballotId, epollNum, 1)),
 			uploadComments: (ballotId, ballotType, file) => dispatch(uploadComments(ballotId, ballotType, file)),

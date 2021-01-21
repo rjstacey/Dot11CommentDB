@@ -1,13 +1,14 @@
 import React from 'react'
 import {Editor, EditorState, RichUtils, getDefaultKeyBinding, KeyBindingUtil,
 	Modifier, ContentState, convertFromHTML} from 'draft-js'
-import 'draft-js/dist/Draft.css'
-import Immutable from 'immutable'
 import {stateToHTML} from 'draft-js-export-html'
-import {debounce} from '../lib/utils'
-import {ActionButton} from '../general/Icons'
+import 'draft-js/dist/Draft.css'
 import {css} from '@emotion/core'
 import styled from '@emotion/styled'
+import Immutable from 'immutable'
+import {debounce} from '../lib/utils'
+import {ActionButton} from '../general/Icons'
+
 
 /* Inline styles */
 const styleMap = {

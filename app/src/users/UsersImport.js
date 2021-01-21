@@ -4,7 +4,8 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {ActionButtonDropdown} from '../general/Dropdown'
 import {Form, Col} from '../general/Form'
-import {uploadUsers} from '../actions/users'
+
+import {uploadUsers} from '../store/actions/users'
 
 const UsersImportForm = styled(Form)`
 	width: 400px;

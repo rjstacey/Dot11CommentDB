@@ -6,12 +6,13 @@ import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
 import BallotSelector from '../ballots/BallotSelector'
-import {getResults} from '../actions/results'
-import {setBallotId, BallotType} from '../actions/ballots'
 import {ActionButton} from '../general/Icons'
 import ResultsSummary from './ResultsSummary'
 import ResultsExport from './ResultsExport'
-import {AccessLevel} from '../actions/login'
+
+import {getResults} from '../store/actions/results'
+import {setBallotId, BallotType} from '../store/actions/ballots'
+import {AccessLevel} from '../store/actions/login'
 
 // The action row height is determined by its content
 const ActionRow = styled.div`

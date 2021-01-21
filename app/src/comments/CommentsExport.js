@@ -2,9 +2,11 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
+
 import {Form, Row, List, ListItem} from '../general/Form'
 import {ActionButtonDropdown} from '../general/Dropdown'
-import {exportCommentsSpreadsheet, CommentsSpreadsheetFormat} from '../actions/comments'
+
+import {exportCommentsSpreadsheet, CommentsSpreadsheetFormat} from '../store/actions/comments'
 
 const CommentsExportForm = styled(Form)`
 	width: 450px;

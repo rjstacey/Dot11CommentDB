@@ -2,7 +2,8 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import styled from '@emotion/styled'
 import {Handle} from '../general/Icons'
-import {BallotType} from '../actions/ballots'
+
+import {BallotType} from '../store/actions/ballots'
 
 function getResultsSummary(ballot, r, votingPoolSize) {
 	const summary = {

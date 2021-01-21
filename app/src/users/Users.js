@@ -6,10 +6,11 @@ import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
 import ConfirmModal from '../modals/ConfirmModal'
 import {ActionButton} from '../general/Icons'
-import {getDataMap} from '../selectors/dataMap'
 import UsersImport from './UsersImport'
 import UserAddEditModal, {EditUserAction} from './UserAddEdit'
-import {getUsers, deleteUsers, AccessLevel, AccessLevelOptions} from '../actions/users'
+
+import {getDataMap} from '../store/selectors/dataMap'
+import {getUsers, deleteUsers, AccessLevel, AccessLevelOptions} from '../store/actions/users'
 
 const DefaultUser = {SAPIN: '', Name: '', Email: '', Access: AccessLevel.Member}
 

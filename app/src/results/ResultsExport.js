@@ -3,9 +3,10 @@ import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {Form, Row} from '../general/Form'
-import fetcher from '../lib/fetcher'
-import {setError} from '../actions/error'
+import fetcher from '../store/lib/fetcher'
 import {ActionButtonDropdown} from '../general/Dropdown'
+
+import {setError} from '../store/actions/error'
 
 const ResultsExportForm = styled(Form)`
 	width: 300px;

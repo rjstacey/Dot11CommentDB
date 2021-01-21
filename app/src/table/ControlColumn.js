@@ -1,16 +1,16 @@
 import PropTypes from 'prop-types'
 import React from 'react'
+import ReactDOM from 'react-dom'
 import {connect} from 'react-redux'
+import styled from '@emotion/styled'
 import {Expander, DoubleExpander, Handle} from '../general/Icons'
 import {Checkbox} from '../general/Form'
-import {setSelected, toggleSelected} from '../actions/select'
-import {setExpanded, toggleExpanded} from '../actions/expand'
-import {getDataMap} from '../selectors/dataMap'
-import styled from '@emotion/styled'
 import ClickOutside from '../general/ClickOutside'
-import ReactDOM from 'react-dom'
 import {CommentIdSelector} from '../comments/CommentIdList'
 
+import {setSelected, toggleSelected} from '../store/actions/select'
+import {setExpanded, toggleExpanded} from '../store/actions/expand'
+import {getDataMap} from '../store/selectors/dataMap'
 
 const RowSelectorContainer = styled(ClickOutside)`
 	height: 22px;

@@ -137,7 +137,7 @@ const ballotsReducer = (state = defaultState, action) => {
 				...state,
 				loading: false,
 				ballots,
-				selected: updateSelected(action.ballots, state.selected)
+				selected: updateSelected(ballots, state.selected)
 			}
 		case ADD_BALLOT_FAILURE:
 			return {...state, addBallot: false}
@@ -148,24 +148,22 @@ const ballotsReducer = (state = defaultState, action) => {
 				updateBallot: true,
 			}
 		case UPDATE_BALLOT_SUCCESS:
-			ballots = state.ballots.map(d => d.BallotID === action.ballotId? {...d, ...action.ballot}: d)
+			ballots = state.ballots.map(d => d.id === action.ballot.id? {...d, ...action.ballot}: d);
 			return {
 				...state,
 				updateBallot: false,
 				ballots,
 			}
 		case UPDATE_BALLOT_FAILURE:
-			ballots = state.ballots.map(d => d.BallotID === action.ballotId? Object.assign({}, d): d)
 			return {
 				...state,
-				updateBallot: false,
-				ballots
+				updateBallot: false
 			}
 
 		case DELETE_BALLOTS:
 			return {...state, deleteBallots: true}
 		case DELETE_BALLOTS_SUCCESS:
-			ballots = state.ballots.filter(b => !action.ballotIds.includes(b.BallotID));
+			ballots = state.ballots.filter(b1 => !action.ballots.find(b2 => b1.id === b2.id));
 			return {
 				...state,
 				deleteBallots: false,

@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import Select from 'react-dropdown-select'
-import {getBallots, setProject, setBallotId} from '../actions/ballots'
-import {getProjectList, getBallotList} from '../selectors/ballots'
 import styled from '@emotion/styled'
+import Select from 'react-dropdown-select'
+import {getBallots, setProject, setBallotId} from '../store/actions/ballots'
+import {getProjectList, getBallotList} from '../store/selectors/ballots'
 
 
 const Label = styled.label`

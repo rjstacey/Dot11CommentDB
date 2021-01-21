@@ -130,17 +130,17 @@ const superUser = {
 	Access: 3
 }
 
-async function init() {
+export async function init() {
 	try {
 		/* Create tables as needed */
-		let existingTables = await db.query('SHOW tables')
+		let [existingTables] = await db.query2('SHOW tables;')
 			.catch(err => {
 				console.log('show tables')
 				throw err
 			})
 
-		existingTables = existingTables.map(t => t[Object.keys(t)[0]])
-		console.log(existingTables)
+		existingTables = existingTables.map(t => Object.values(t)[0])
+		//console.log(existingTables)
 		for (let table of Object.keys(createTables)) {
 			if (!existingTables.includes(table)) {
 				console.log(`create ${table}`)
@@ -163,8 +163,4 @@ async function init() {
 	catch(err) {
 		throw err
 	}
-}
-
-module.exports = {
-	init
 }

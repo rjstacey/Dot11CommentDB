@@ -1,10 +1,15 @@
 'use strict'
 
-const mysql = require('mysql')
+const mysql = require('mysql2');
+let options, pool, ppool;
 
-// Connect to the database
-let options
 if (process.env.NODE_ENV === 'development') {
+	const fs = require('fs'); 
+	var certFileBuf = [
+		fs.readFileSync("IntelCA5A(1)-base64.crt","utf8"),
+		fs.readFileSync("IntelCA5B(1)-base64.crt","utf8"),
+		fs.readFileSync("IntelSHA256RootCA-base64.crt","utf8")
+	];
 	options = {
 		host: process.env.DB_HOST,
 		port: process.env.DB_PORT,
@@ -12,7 +17,11 @@ if (process.env.NODE_ENV === 'development') {
 		password: process.env.DB_PASSWORD,
 		database: process.env.DB_DATABASE,
 		multipleStatements: true,
-		charset: 'UTF8MB4_GENERAL_CI'
+		charset: 'UTF8MB4_GENERAL_CI',
+		ssl: { 
+			ca: certFileBuf, 
+			secureProtocol : 'TLS_method' 
+		} 
 	}
 }
 else {
@@ -27,11 +36,16 @@ else {
 	}
 }
 
-console.log(process.env.NODE_ENV, options)
-const pool = mysql.createPool(options)
+function init() {
+	if (process.env.NODE_ENV === 'production')
+		console.log(process.env.NODE_ENV, options)
+	pool = mysql.createPool(options);
+	ppool = pool.promise();
+}
 
 // Promisified SQL query using connection pool
-function query() {
+// (from prior use of mysql)
+/*function query_old() {
 	if (arguments.length === 0 || arguments.length > 2) {
 		throw new Error('Invalid number of arguments')
 	}
@@ -40,11 +54,13 @@ function query() {
 	return new Promise((resolve, reject) => {
 		pool.query(arg0, arg1, (err, results) => err? reject(err): resolve(results))
 	})
-}
+}*/
 
 module.exports = {
-	pool,
-	query,
+	init,
+	getPool: () => ppool,
+	query: (...args) => ppool.query(...args).then(result => result[0]),
+	query2: (...args) => ppool.query(...args),
 	escape: mysql.escape,
 	format: mysql.format
 }

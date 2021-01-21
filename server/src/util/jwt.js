@@ -5,9 +5,9 @@ const secret = (process.env.NODE_ENV === 'development')?
 	'secret':
 	uuidv4();
 
-module.exports.token = (payload) => jwt.sign(payload, secret);
+export const token = (payload) => jwt.sign(payload, secret);
 
-module.exports.verify = (req, res, next) => {
+export const verify = (req, res, next) => {
 	var bearerHeader = req.headers["authorization"]
 	if (typeof bearerHeader !== 'undefined') {
 		const bearer = bearerHeader.split(" ");

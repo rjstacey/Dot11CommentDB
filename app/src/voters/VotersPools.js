@@ -6,10 +6,11 @@ import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
 import ConfirmModal from '../modals/ConfirmModal'
-import {getVotingPools, deleteVotingPools} from '../actions/votingPools'
-import {getDataMap} from '../selectors/dataMap'
 import {ActionButton} from '../general/Icons'
 import VotersPoolAddModal from './VotersPoolAdd'
+
+import {getVotingPools, deleteVotingPools} from '../store/actions/votingPools'
+import {getDataMap} from '../store/selectors/dataMap'
 
 const ActionCell = styled.div`
 	display: flex;
@@ -69,7 +70,7 @@ function VotersPools(props) {
 	const deleteVotingPool = async (vp) => {
 		const ok = await ConfirmModal.show(`Are you sure you want to delete ${vp.VotingPoolID}?`)
 		if (ok)
-			props.deleteVotingPools([vp.VotingPoolID])
+			props.deleteVotingPools([vp])
 	}
 
 	const addVotingPool = (votingPoolType, votingPoolName) => history.push(`/Voters/${votingPoolType}/${votingPoolName}`)

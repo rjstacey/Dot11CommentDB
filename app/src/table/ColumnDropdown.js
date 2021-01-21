@@ -6,12 +6,13 @@ import styled from '@emotion/styled'
 import {FixedSizeList as List} from 'react-window'
 import {Button, ActionButtonSort, Handle, IconSort} from '../general/Icons'
 import ClickOutside from '../general/ClickOutside'
-import {getAllFieldOptions, getAvailableFieldOptions} from '../selectors/options'
-import {setSort, SortDirection} from '../actions/sort'
-import {SortType, sortOptions} from '../lib/sort'
-import {setFilter, addFilter, removeFilter, FilterType} from '../actions/filter'
 import {CommentIdFilter} from '../comments/CommentIdList'
 import {Checkbox, Input} from '../general/Form'
+
+import {SortType, sortOptions} from '../store/lib/sort'
+import {getAllFieldOptions, getAvailableFieldOptions} from '../store/selectors/options'
+import {setSort, SortDirection} from '../store/actions/sort'
+import {setFilter, addFilter, removeFilter, FilterType} from '../store/actions/filter'
 
 const StyledInput = styled(Input)`
 	margin: 5px 10px;

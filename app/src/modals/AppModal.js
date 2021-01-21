@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import Modal from 'react-modal'
 
-const modalStyle = {
+const defaultModalStyle = {
 	content: {
 		position: 'absolute',
 		top: '20%',
@@ -27,15 +27,18 @@ const modalStyle = {
 		right: 0,
 		top: 0,
 		bottom: 0,
-		backgroundColor: 'rgba(0,0,0,0)' /* Black w/ opacity */
+		backgroundColor: 'rgba(0,0,0,0)', /* Black w/ opacity */
+		zIndex: 10
 	}
 }
 
-function AppModal({isOpen, onRequestClose, children, ...otherProps}) {
+function AppModal({style, overlayStyle, className, isOpen, onRequestClose, children, ...otherProps}) {
+	const modalStyle = {content: {...defaultModalStyle.content, ...style}, overlay: {...defaultModalStyle.overlay, ...overlayStyle}}
 	return (
 		<Modal
 			isOpen={isOpen}
 			style={modalStyle}
+			className={className}
 			appElement={document.querySelector('#root')}
 			onRequestClose={onRequestClose}
 			{...otherProps}

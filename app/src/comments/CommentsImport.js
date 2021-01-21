@@ -4,8 +4,9 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {Form, Row, Col, List, ListItem, Field, Checkbox} from '../general/Form'
 import ConfirmModal from '../modals/ConfirmModal'
-import {uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate} from '../actions/comments'
 import {ActionButtonDropdown} from '../general/Dropdown'
+
+import {uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate} from '../store/actions/comments'
 
 const importFieldOptions = [
 	{value: FieldsToUpdate.CID,
@@ -35,13 +36,13 @@ const matchAlgoOptions = [
 	{value: MatchAlgorithm.CID,
 		label: 'Match CID',
 		description: 'Match CID'},
+	{value: MatchAlgorithm.Comment,
+		label: 'Match comment',
+		description: 'Match Commenter, Category, Page, Line, Comment and Proposed Change'},
 	{value: MatchAlgorithm.Elimination,
 		label: 'Successive elimination',
 		description: 'Successively eliminate rows that do not match until only one row is left by matching, in order, Commenter, Category, Page, ' +
-		'Line, Comment and Proposed Change. Fields that might have issues are only matched if needed.'},
-	{value: MatchAlgorithm.Perfect,
-		label: 'Match comment',
-		description: 'Match Commenter, Category, Page, Line, Comment and Proposed Change'}
+		'Line, Comment and Proposed Change. Fields that might have issues are only matched if needed.'}
 ];
 
 const matchUpdateOptions = [
@@ -141,6 +142,7 @@ function _CommentsImportDropdown({ballotId, close, upload}) {
 	const [matchUpdate, setMatchUpdate] = React.useState(MatchUpdate.All)
 	const [sheetName, setSheetName] = React.useState('Comments')
 	const [errMsg, setErrMsg] = React.useState('')
+	const [busy, setBusy] = React.useState(false)
 
 	async function submit() {
 		const file = fileRef.current.files[0]
@@ -148,15 +150,36 @@ function _CommentsImportDropdown({ballotId, close, upload}) {
 			setErrMsg('Select spreadsheet file')
 			return
 		}
-		const unmatched = await upload(ballotId, fields, algo, matchUpdate, sheetName, file)
+		setBusy(true)
+		const result = await upload(ballotId, fields, algo, matchUpdate, sheetName, file);
 		close()
-		if (unmatched !== null) {
-			const msg = unmatched.length > 1?
-				`${unmatched.length} comments were not updated:\n${unmatched.join(', ')}`:
-				unmatched.length === 1?
-				`${unmatched.length} comment was not updated:\n${unmatched[0]}`:
-				`All comments successfully updated`
-			await ConfirmModal.show(msg, false)
+		if (result) {
+			const {matched, unmatched, added, remaining} = result;
+			let msg = matched.length === 0?
+				'No comments were updated.\n':
+				(unmatched.length === 0?
+					'All comments were updated.\n':
+					(matched.length === 1?
+						`1 comment was updated:\n`:
+						`${matched.length} comments were updated:\n`) +
+						matched.join(', ') + '\n');
+			if (unmatched.length > 0) {
+				msg += (unmatched.length === 1?
+					`1 comments was not updated:\n`:
+					`${unmatched.length} comments were not updated:\n`) +
+					unmatched.join(', ') + '\n';
+			}
+			if (added.length > 0) {
+				msg += (added.length === 1?
+					`1 comments was added:\n`:
+					`${added.length} comments were added:\n`) +
+					added.join(', ') + '\n';
+			}
+			if (remaining.length > 0) {
+				msg += `${remaining.length} comments in spreadsheet were not matched:\n` +
+					remaining.join(', ') + '\n';
+			}
+			await ConfirmModal.show(msg, false);
 		}
 	}
 
@@ -174,6 +197,7 @@ function _CommentsImportDropdown({ballotId, close, upload}) {
 			errorText={errMsg}
 			submit={submit}
 			cancel={close}
+			busy={busy}
 		>
 			<Row>
 				<Col>
