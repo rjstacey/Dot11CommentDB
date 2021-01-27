@@ -149,7 +149,7 @@ function resultsReducer(state = defaultState, action) {
  * Attach higher-order reducers
  */
 const dataSet = 'results'
-export default (state, action) => {
+const resultsReducerAll = (state, action) => {
 	if (state === undefined) {
 		return {
 			...resultsReducer(undefined, {}),
@@ -179,3 +179,5 @@ export default (state, action) => {
 		return resultsReducer(state, action)
 	}
 }
+
+export default resultsReducerAll;

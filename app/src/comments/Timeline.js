@@ -25,7 +25,7 @@ function _CommentTimeline({isOpen, selected, comments, commentsHistory, loading,
 			if (c)
 				getCommentsHistory(c)
 		}
-	}, [isOpen]);
+	}, [isOpen, comments, getCommentsHistory, selected]);
 
 	if (log)
 		console.log(log.Changes)

@@ -33,7 +33,7 @@ function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount
 		// (we don't track position changes during scrolling)
 		window.addEventListener('scroll', close, true);
 		return () => window.removeEventListener('scroll', close);
-	}, [])
+	}, [close])
 
 	React.useEffect(() => {
 		if (!editorState.getSelection().hasFocus) {
@@ -41,7 +41,7 @@ function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount
 			state = EditorState.moveSelectionToEnd(state)
 			setEditorState(state)
 		}
-	}, [cids])
+	}, [cids, editorState])
 
 	function initState() {
 		const decorator = new CompositeDecorator([

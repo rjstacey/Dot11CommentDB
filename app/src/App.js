@@ -87,7 +87,7 @@ const RestrictedRoute = ({component: Component, hasAccess, ...rest }) =>
 
 function App({access, loginGetState}) {
 
-	React.useEffect(() => {loginGetState()}, []);
+	React.useEffect(() => {loginGetState()}, [loginGetState]);
 
 	return (
 		<Router>

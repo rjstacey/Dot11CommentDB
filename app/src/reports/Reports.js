@@ -114,37 +114,38 @@ function renderTable(data, ref) {
 }
 
 function Reports(props) {
+	const {comments, loading, valid, commentBallotId, setBallotId, getComments} = props;
 	const history = useHistory();
 	const {ballotId} = useParams();
 	const [report, setReport] = React.useState('');
 	const tableRef = React.useRef();
-	console.log('reports')
+
 	React.useEffect(() => {
 		if (ballotId) {
 			if (ballotId !== props.ballotId) {
 				// Routed here with parameter ballotId specified, but not matching stored ballotId
 				// Store the ballotId and get comments for this ballotId
-				props.setBallotId(ballotId)
-				props.getComments(ballotId)
+				setBallotId(ballotId)
+				getComments(ballotId)
 			}
-			else if (!props.loading && (!props.valid || props.commentBallotId !== ballotId)) {
-				props.getComments(ballotId)
+			else if (!loading && (!valid || commentBallotId !== ballotId)) {
+				getComments(ballotId)
 			}
 		}
 		else if (props.ballotId) {
 			history.replace(`/Reports/${props.ballotId}`)
 		}
-	}, [ballotId])
+	}, [ballotId, setBallotId, props.ballotId, commentBallotId, loading, valid, getComments, history])
 
 	const data = React.useMemo(() => {
 		if (report === 'commentsbyassignee')
-			return commentsByAssignee(props.comments)
+			return commentsByAssignee(comments)
 		if (report === 'commentsbycommenter')
-			return commentsByCommenter(props.comments)
+			return commentsByCommenter(comments)
 		if (report === 'commentsbyassigneeandcommentgroup')
-			return commentsByAssigneeAndCommentGroup(props.comments)
+			return commentsByAssigneeAndCommentGroup(comments)
 		return []
-	}, [props.comments, report]);
+	}, [comments, report]);
 
 	function ballotSelected(ballotId) {
 		// Redirect to page with selected ballot

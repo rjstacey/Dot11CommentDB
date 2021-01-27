@@ -66,12 +66,14 @@ const TableRow = styled.div`
 `;
 
 function Voters(props) {
+	const {deleteVoters, getVoters, votingPool, loading} = props;
 	const {votingPoolType, votingPoolName} = useParams()
 	const history = useHistory()
 	const [editVoter, setEditVoter] = React.useState({action: null, voter: defaultVoter})
 	const [showImportVoters, setShowImportVoters] = React.useState(false)
 
 	const [columns, primaryDataKey, maxWidth] = React.useMemo(() => {
+
 		let columns, primaryDataKey;
 		if (votingPoolType === 'WG') {
 			columns = wgColumns;
@@ -81,6 +83,13 @@ function Voters(props) {
 			columns = saColumns;
 			primaryDataKey = 'Email';
 		}
+
+		const onDelete = async (voter) => {
+			const ok = await ConfirmModal.show(`Are you sure you want to remove ${voter.FirstName} ${voter.LastName} from the voting pool?`)
+			if (ok)
+				deleteVoters(votingPoolType, votingPoolName, [voter[primaryDataKey]])
+		}
+
 		columns = columns.update('Actions', v => ({
 			...v,
 			cellRenderer: ({rowData}) => 
@@ -91,15 +100,15 @@ function Voters(props) {
 		}));
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
 		return [columns, primaryDataKey, maxWidth]
-	}, [votingPoolType]);
+	}, [deleteVoters, votingPoolType, votingPoolName]);
 
 	React.useEffect(() => {
-		if ((!props.votingPool.VotingPoolID || props.votingPool.VotingPoolID !== votingPoolName ||
-			 !props.votingPool.PoolType || props.votingPool.PoolType !== votingPoolType) &&
-			!props.loading) {
-			props.getVoters(votingPoolType, votingPoolName)
+		if ((!votingPool.VotingPoolID || votingPool.VotingPoolID !== votingPoolName ||
+			 !votingPool.PoolType || votingPool.PoolType !== votingPoolType) &&
+			!loading) {
+			getVoters(votingPoolType, votingPoolName)
 		}
-	}, [votingPoolName, votingPoolType])
+	}, [getVoters, loading, votingPool, votingPoolName, votingPoolType])
 
 	const close = history.goBack;
  	const refresh = () => props.getVoters(votingPoolType, votingPoolName);
@@ -120,12 +129,6 @@ function Voters(props) {
 				await props.deleteVoters(votingPoolType, votingPoolName, ids)
 			}
 		}
-	}
-
-	const onDelete = async (voter) => {
-		const ok = await ConfirmModal.show(`Are you sure you want to remove ${voter.FirstName} ${voter.LastName} from the voting pool?`)
-		if (ok)
-			props.deleteVoters(votingPoolType, votingPoolName, [voter[primaryDataKey]])
 	}
 
 	const handleAddVoter = () => setEditVoter({action: 'add', voter: defaultVoter});

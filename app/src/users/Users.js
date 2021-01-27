@@ -68,6 +68,13 @@ function Users({
 	const [editUser, setEditUser] = React.useState({action: EditUserAction.CLOSED, user: DefaultUser});
 
 	const columns = React.useMemo(() => {
+		
+		const onDelete = async (user) => {
+			const ok = await ConfirmModal.show(`Are you sure you want to delete ${user.Name} (${user.SAPIN})?`)
+			if (ok)
+				deleteUsers([user[primaryDataKey]])
+		}
+
 		let columns = tableColumns;
 		columns = columns
 			.update('Actions', v => ({
@@ -79,18 +86,12 @@ function Users({
 					/>
 			}));
 		return columns
-	}, []);
+	}, [deleteUsers]);
 
 	React.useEffect(() => {
 		if (!valid)
 			getUsers()
-	}, []);
-
-	const onDelete = async (user) => {
-		const ok = await ConfirmModal.show(`Are you sure you want to delete ${user.Name} (${user.SAPIN})?`)
-		if (ok)
-			deleteUsers([user[primaryDataKey]])
-	}
+	}, [valid, getUsers]);
 
 	const handleRemoveSelected = async () => {
 		const ids = [];

@@ -34,9 +34,10 @@ const TableRow = styled.div`
 `;
 
 function Epolls(props) {
-	const history = useHistory()
-	const numberEpolls = React.useRef(20)
-	const [epollNum, setEpollNum] = React.useState(null)
+	const {ballotsValid, getBallots, epollsValid, getEpolls} = props;
+	const history = useHistory();
+	const numberEpolls = React.useRef(20);
+	const [epollNum, setEpollNum] = React.useState(null);
 
 	const columns = Immutable.OrderedMap({
 		EpollNum: 	{label: 'ePoll', 		width: 100},
@@ -54,13 +55,13 @@ function Epolls(props) {
 	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
 
 	React.useEffect(() => {
-		if (!props.ballotsValid)
-			props.getBallots();
-		if (!props.epollsValid)
-			props.getEpolls(numberEpolls.current);
-	}, [])
+		if (!ballotsValid)
+			getBallots();
+		if (!epollsValid)
+			getEpolls(numberEpolls.current);
+	}, [ballotsValid, getBallots, epollsValid, getEpolls])
 
-	React.useEffect(() => {console.log('epolls changed')}, [props.epolls]);
+	//React.useEffect(() => {console.log('epolls changed')}, [props.epolls]);
 
 	const refresh = () => props.getEpolls(numberEpolls.current)
 	const close = () => history.goBack()

@@ -153,10 +153,18 @@ const TableRow = styled.div`
 `;
 
 function Ballots(props) {
+	const {ballotsValid, loading, getBallots, deleteBallots, votingPoolsValid, getVotingPools} = props;
 	const history = useHistory();
 	const {ballotId} = useParams();
 
 	const columns = React.useMemo(() => {
+
+		const deleteBallot = async (ballot) => {
+			const ok = await ConfirmModal.show(`Are you sure you want to delete ${ballot.BallotID}?`)
+			if (ok)
+				await deleteBallots([ballot])
+		}
+
 		return tableColumns.update('Actions', c => ({
 			...c,
 			cellRenderer: ({rowData}) => 
@@ -165,20 +173,15 @@ function Ballots(props) {
 					onDelete={() => deleteBallot(rowData)}
 				/>
 		}));
-	}, []);
+	}, [deleteBallots, history]);
 
 	React.useEffect(() => {
-		if (!props.ballotsValid && !props.loading)
-			props.getBallots()
-		if (!props.votingPoolsValid)
-			props.getVotingPools()
-	}, []);
+		if (!ballotsValid && !loading)
+			getBallots()
+		if (!votingPoolsValid)
+			getVotingPools()
+	}, [ballotsValid, loading, getBallots, votingPoolsValid, getVotingPools]);
 
-	const deleteBallot = async (ballot) => {
-		const ok = await ConfirmModal.show(`Are you sure you want to delete ${ballot.BallotID}?`)
-		if (ok)
-			await props.deleteBallots([ballot])
-	}
 	const addBallot = event => history.push('/Ballots/+')
 	const closeBallot = () => history.push('/Ballots')
 	const showEpolls = () => history.push('/Epolls/')

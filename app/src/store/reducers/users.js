@@ -163,7 +163,7 @@ function usersReducer(state = defaultState, action) {
  * Attach higher-order reducers
  */
 const dataSet = 'users'
-export default (state, action) => {
+const usersReducerAll = (state, action) => {
 	if (state === undefined) {
 		return {
 			...usersReducer(undefined, {}),
@@ -194,3 +194,4 @@ export default (state, action) => {
 	}
 }
 
+export default usersReducerAll;

@@ -1,4 +1,3 @@
-//import {hot} from 'react-hot-loader'
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { createStore, applyMiddleware } from 'redux'
@@ -16,25 +15,11 @@ const store = createStore(
 	applyMiddleware(thunkMiddleware, createLogger({collapsed: true}))
 );
 
-//const App = (props) => <h2>Hi World!</h2>
-//const _App = hot(module)(App)
-
-/*
+ReactDOM.render(
 	<Provider store={store}>
 		<App />
-	</Provider>
-*/
-
-
-ReactDOM.render(
-	<App />,
+	</Provider>,
 	document.getElementById('root')
 );
-
-if (module.hot) {
-   module.hot.accept('./App.js', function() {
-     console.log('Accepting the updated App module!');
-   })
-}
 
 registerServiceWorker();

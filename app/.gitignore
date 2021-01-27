@@ -1,3 +1,4 @@
 .deployment
 .vscode
 /node_modules
+debug.log

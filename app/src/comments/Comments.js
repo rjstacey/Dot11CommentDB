@@ -371,6 +371,7 @@ function commentsRowGetter({rowIndex, data, dataMap}) {
 }
 
 function Comments(props) {
+	const {setBallotId, valid, loading, commentBallotId, getComments} = props;
 	const history = useHistory()
 	const {ballotId} = useParams()
 	const [split, setSplit] = React.useState(0.5);
@@ -407,17 +408,17 @@ function Comments(props) {
 			if (ballotId !== props.ballotId) {
 				/* Routed here with parameter ballotId specified, but not matching stored ballotId.
 				 * Store the ballotId and get comments for this ballotId */
-				props.setBallotId(ballotId)
-				props.getComments(ballotId)
+				setBallotId(ballotId)
+				getComments(ballotId)
 			}
-			else if (!props.loading && (!props.valid || props.commentBallotId !== ballotId)) {
-				props.getComments(ballotId)
+			else if (!loading && (!valid || commentBallotId !== ballotId)) {
+				getComments(ballotId)
 			}
 		}
 		else if (props.ballotId) {
 			history.replace(`/Comments/${props.ballotId}`)
 		}
-	}, [ballotId])
+	}, [ballotId, props.ballotId, setBallotId, commentBallotId, valid, loading, getComments, history])
 
 	const refresh = () => props.getComments(ballotId);
 

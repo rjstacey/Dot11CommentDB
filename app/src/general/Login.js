@@ -178,7 +178,7 @@ function _Account(props) {
 	const containerRef = React.useRef();
 	const [open, setOpen] = React.useState(false);
 
-	useEffect(() => {loginGetState()}, []);
+	useEffect(() => {loginGetState()}, [loginGetState]);
 
 	if (loggedIn) {
 		return (

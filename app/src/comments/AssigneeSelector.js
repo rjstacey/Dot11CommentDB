@@ -91,7 +91,7 @@ function AssigneeSelector({
 	React.useEffect(() => {
 		if (!valid)
 			getUsers()
-	}, [])
+	}, [valid, getUsers])
 
 	const options = React.useMemo(() => {
 		// Produce a unique set of SAPIN/Name mappings. If there is no SAPIN then the name is the key.

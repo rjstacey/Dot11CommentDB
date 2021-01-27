@@ -160,8 +160,8 @@ const votersReducer = (state = defaultState, action) => {
 /*
  * Attach higher-order reducers
  */
-const dataSet = 'voters'
-export default (state, action) => {
+const dataSet = 'voters';
+const votersReducerAll = (state, action) => {
 	if (state === undefined) {
 		return {
 			...votersReducer(undefined, {}),
@@ -191,3 +191,5 @@ export default (state, action) => {
 		return votersReducer(state, action)
 	}
 }
+
+export default votersReducerAll;

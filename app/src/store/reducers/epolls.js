@@ -106,7 +106,7 @@ const epollsReducer = (state = defaultState, action) => {
  * Attach higher-order reducers
  */
 const dataSet = 'epolls'
-export default (state, action) => {
+const epollsReducerAll = (state, action) => {
 	if (state === undefined) {
 		return {
 			...epollsReducer(undefined, {}),
@@ -142,3 +142,4 @@ export default (state, action) => {
 	}
 }
 
+export default epollsReducerAll;

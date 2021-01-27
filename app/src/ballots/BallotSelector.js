@@ -93,7 +93,7 @@ function BallotSelector({
 	React.useEffect(() => {
 		if (!valid)
 			getBallots()
-	}, [])
+	}, [valid, getBallots])
 
 	function handleBallotChange(value) {
 		setBallotId(value)

@@ -323,7 +323,7 @@ const Action = {
  * If the ballotId parameter is '+' and epollNum is provided, then the ballot fields are filled in from the epoll data
  */
 function _BallotDetailForm(props) {
-	const {ballotId, epollNum} = props;
+	const {ballotId, epollNum, ballots, ballotsValid, epolls, votingPoolsValid, getBallots, getVotingPools} = props;
 	const [ballot, setBallot] = React.useState(defaultBallot);
 	const [resultsAction, setResultsAction] = React.useState(Action.NONE);
 	const [resultsFile, setResultsFile] = React.useState('');
@@ -334,20 +334,18 @@ function _BallotDetailForm(props) {
 
 	/* On mount, make sure we have the ballots and voting pools loaded */
 	React.useEffect(() => {
-		if (!props.ballotsValid)
-			props.getBallots()
-		if (!props.votingPoolsValid)
-			props.getVotingPools()
-	}, []);
+		if (!ballotsValid)
+			getBallots()
+		if (!votingPoolsValid)
+			getVotingPools()
+	}, [ballotsValid, votingPoolsValid, getBallots, getVotingPools]);
 
 	/* On mount or if the underlying data changes,
 	 * reload the ballot from ballot data or epoll data as appropriate. */
-	React.useEffect(() => onOpen(), [ballotId, props.ballots, props.epolls]);
-
-	const onOpen = () => {
+	React.useEffect(() => {
 		if (ballotId === '+') {
 			if (epollNum) {
-				const e = props.epolls.find(e => e.EpollNum === epollNum)
+				const e = epolls.find(e => e.EpollNum === epollNum)
 				if (e) {
 					const b = {
 						Project: '',
@@ -371,13 +369,14 @@ function _BallotDetailForm(props) {
 			}
 		}
 		else if (ballotId) {
-			const b = props.ballots.find(b => b.BallotID === ballotId)
+			const b = ballots.find(b => b.BallotID === ballotId)
 			if (b) {
 				setBallot(b)
 				setStartCID(b.Comments? b.Comments.CommentIDMin: 0)
 			}
 		}
-	}
+	}, [ballotId, ballots, epolls, epollNum]);
+
 
 	function changeType(e) {
 		const {name, value} = e.target;

@@ -99,7 +99,7 @@ const _ControlHeader = (props) => {
 			dataMap.length > 0 &&	// not if list is empty
 			dataMap.filter(i => !selected.includes(data[i][rowKey])).length === 0
 		),
-		[data, dataMap, selected]
+		[data, dataMap, selected, rowKey]
 	);
 
 	const isIndeterminate = !allSelected && selected.length;
@@ -109,7 +109,7 @@ const _ControlHeader = (props) => {
 			dataMap.length > 0 &&	// not if list is empty
 			dataMap.filter(i => !expanded.includes(data[i][rowKey])).length === 0
 		),
-		[data, dataMap, expanded]
+		[data, dataMap, expanded, rowKey]
 	);
 
 	const toggleAllSelected = () => setSelected(selected.length? []: dataMap.map(i => data[i][rowKey]));

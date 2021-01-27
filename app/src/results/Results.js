@@ -79,7 +79,7 @@ function Results({
 		}
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40;
 		return [primaryDataKey, columns, primaryDataKey, maxWidth]
-	}, [ballot.Type]);
+	}, [ballot.Type, access]);
 
 	React.useEffect(() => {
 		if (ballotId) {
@@ -96,7 +96,7 @@ function Results({
 		else if (currentBallotId) {
 			history.replace(`/Results/${currentBallotId}`)
 		}
-	}, [ballotId, currentBallotId]);
+	}, [ballotId, currentBallotId, ballot.BallotID, history, loading, resultsValid, setBallotId, getResults]);
 
 	const onBallotSelected = (ballotId) => history.push(`/Results/${ballotId}`); // Redirect to page with selected ballot
 

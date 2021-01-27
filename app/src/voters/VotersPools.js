@@ -48,15 +48,22 @@ const TableRow = styled.div`
 `;
 
 function VotersPools(props) {
-	const history = useHistory()
-	const [showVotersPoolAdd, setShowVotersPoolAdd] = React.useState(false)
+	const {valid, getVotingPools, deleteVotingPools} = props;
+	const history = useHistory();
+	const [showVotersPoolAdd, setShowVotersPoolAdd] = React.useState(false);
 
 	React.useEffect(() => {
-		if (!props.valid)
-			props.getVotingPools()
-	}, [])
+		if (!valid)
+			getVotingPools()
+	}, [valid, getVotingPools]);
 
 	const columns = React.useMemo(() => {
+		const deleteVotingPool = async (vp) => {
+			const ok = await ConfirmModal.show(`Are you sure you want to delete ${vp.VotingPoolID}?`)
+			if (ok)
+				deleteVotingPools([vp])
+		}
+
 		return tableColumns.update('Actions', c => ({
 			...c,
 			cellRenderer: ({rowData}) => 
@@ -65,13 +72,8 @@ function VotersPools(props) {
 					onDelete={() => deleteVotingPool(rowData)}
 				/>
 		}));
-	}, []);
+	}, [history, deleteVotingPools]);
 
-	const deleteVotingPool = async (vp) => {
-		const ok = await ConfirmModal.show(`Are you sure you want to delete ${vp.VotingPoolID}?`)
-		if (ok)
-			props.deleteVotingPools([vp])
-	}
 
 	const addVotingPool = (votingPoolType, votingPoolName) => history.push(`/Voters/${votingPoolType}/${votingPoolName}`)
 

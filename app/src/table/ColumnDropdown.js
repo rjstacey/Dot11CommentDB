@@ -282,7 +282,7 @@ function Dropdown({
 	React.useEffect(() => {
 		window.addEventListener('scroll', close, true);
 		return () => window.removeEventListener('scroll', close);
-	}, [])
+	}, [close])
 
 	React.useEffect(() => {
 		// If the dropdown is outside the viewport, then move it
@@ -292,7 +292,7 @@ function Dropdown({
 		}*/
 		if (bounds.x < 0)
 			setContainerStyle(style => ({...style, left: 0, right: undefined}))
-	});
+	}, [setContainerStyle]);
 
 	return (
 		<DropdownContainer

@@ -111,7 +111,7 @@ const votingPoolsReducer = (state = defaultState, action) => {
  * Attach higher-order reducers
  */
 const dataSet = 'votingPools'
-export default (state, action) => {
+const votingPoolsReducerAll = (state, action) => {
 	if (state === undefined) {
 		return {
 			...votingPoolsReducer(undefined, {}),
@@ -141,3 +141,5 @@ export default (state, action) => {
 		return votingPoolsReducer(state, action)
 	}
 }
+
+export default votingPoolsReducerAll;

@@ -293,7 +293,7 @@ function commentsReducer(state = defaultState, action) {
  * Attach higher-order reducers
  */
 const dataSet = 'comments'
-export default (state, action) => {
+const commentsReducerAll = (state, action) => {
 	if (state === undefined) {
 		return {
 			...commentsReducer(undefined, {}),
@@ -328,3 +328,5 @@ export default (state, action) => {
 		return commentsReducer(state, action)
 	}
 }
+
+export default commentsReducerAll;
