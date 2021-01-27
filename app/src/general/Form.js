@@ -39,7 +39,7 @@ const StyledSelect = styled(ReactDropdownSelect)`
 
 /* Because of the unstyled div wrapper on react-drop-downselect, we need to add another wrapper
  * if we want to style this outer wrapper. Mostly an issue with flex. */
-const Select = ({style, className, readOnly, clearable, dropdownHandle, ...otherProps}) =>
+const Select = ({style, className, readOnly, clearable, dropdownHandle, onChange, ...otherProps}) =>
 	<div
 		style={style}
 		className={className}
@@ -48,6 +48,7 @@ const Select = ({style, className, readOnly, clearable, dropdownHandle, ...other
 			clearable={!readOnly && clearable}
 			dropdownHandle={!readOnly && dropdownHandle}
 			disabled={readOnly}
+			onChange={readOnly? () => {}: onChange}
 			{...otherProps}
 		/>
 	</div>

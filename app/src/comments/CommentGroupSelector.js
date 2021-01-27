@@ -15,13 +15,18 @@ function CommentGroupSelector({
 	width,
 	...otherProps
 }) {
-	const options = fieldOptions.filter(o => o.value !== '');	// remove blank entry (we use 'clear' to set blank)
-	const optionSelected = options.find(o => o.value === value);
+	let options = fieldOptions.filter(o => o.value !== '');	// remove blank entry (we use 'clear' to set blank)
+	let optionSelected = options.find(o => o.value === value);
+	if (value && !optionSelected) {
+		// Make sure the current value is an option
+		options = options.concat({label: value, value});
+		optionSelected = options[options.length - 1];
+	}
 
 	return (
 		<Select
 			width={width}
-			values={(optionSelected && optionSelected.value !== '')? [optionSelected]: []}
+			values={optionSelected? [optionSelected]: []}
 			onChange={(values) => onChange(values.length? values[0].value: '')}
 			options={options}
 			loading={loading}

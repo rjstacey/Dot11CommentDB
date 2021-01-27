@@ -18,10 +18,10 @@ if (process.env.NODE_ENV === 'development') {
 		database: process.env.DB_DATABASE,
 		multipleStatements: true,
 		charset: 'UTF8MB4_GENERAL_CI',
-		ssl: { 
-			ca: certFileBuf, 
-			secureProtocol : 'TLS_method' 
-		} 
+		//ssl: { 
+		//	ca: certFileBuf, 
+		//	secureProtocol : 'TLS_method' 
+		//} 
 	}
 }
 else {
@@ -37,7 +37,7 @@ else {
 }
 
 function init() {
-	if (process.env.NODE_ENV === 'production')
+	//if (process.env.NODE_ENV === 'production')
 		console.log(process.env.NODE_ENV, options)
 	pool = mysql.createPool(options);
 	ppool = pool.promise();

@@ -17,7 +17,8 @@ import {
 	faColumns,
 	faSave,
 	faObjectGroup, faUserCheck, faEdit,
-	faCaretSquareDown, faCaretSquareUp
+	faCaretSquareDown, faCaretSquareUp,
+	faHistory
 } from '@fortawesome/free-solid-svg-icons'
 //import { faCode, faHighlighter } from '@fortawesome/free-regular-svg-icons';
 
@@ -39,7 +40,8 @@ export function init() {
 		faColumns,
 		faSave,
 		faObjectGroup, faUserCheck, faEdit,
-		faCaretSquareDown, faCaretSquareUp
+		faCaretSquareDown, faCaretSquareUp,
+		faHistory
 	)
 }
 
@@ -141,6 +143,7 @@ export const ActionButton = ({name, ...otherProps}) => {
 		'ordered-list-item': 'list-ol',
 		'dropdown-open': 'caret-square-down',
 		'dropdown-close': 'caret-square-up',
+		'history': 'history',
 	}[name] || name;
 
 	return (

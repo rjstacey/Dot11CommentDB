@@ -22,7 +22,7 @@ CREATE VIEW commentResolutions AS SELECT
 		(SELECT COUNT(*) FROM resolutions AS r WHERE c.id = r.comment_id) AS ResolutionCount, 
 		r.id as resolution_id, r.ResolutionID, r.AssigneeSAPIN, r.ResnStatus, r.Resolution, r.Submission, r.ReadyForMotion, r.ApprovedByMotion, 
 		r.EditStatus, r.EditInDraft, r.EditNotes, r.Notes, 
-		CASE WHEN users.Name IS NULL THEN r.AssigneeName ELSE users.Name END AS AssigneeName,
+		COALESCE(users.Name, r.AssigneeName) AS AssigneeName,
         r.LastModifiedBy, r.LastModifiedTime
 	FROM ballots b JOIN comments c ON b.id=c.ballot_id 
 		LEFT JOIN results ON b.id = results.ballot_id AND c.CommenterSAPIN = results.SAPIN 
@@ -136,7 +136,7 @@ async function insertComments(modifiedBy, ballotId, comments) {
 			comments.map(c => `(@ballot_id, ${eBallotId}, ${db.escape(Object.values(c))}, ${eModifiedBy}, NOW())`).join(', ') +
 			';'
 	}
-	SQL += db.format('SELECT * FROM commentResolutions WHERE b.BallotID=? ORDER BY CommentID, ResolutionID;', [ballotId])
+	SQL += db.format('SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID;', [ballotId])
 	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId])
 
 	//console.log(SQL);

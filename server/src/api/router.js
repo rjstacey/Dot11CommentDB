@@ -402,6 +402,16 @@ router.post('/comments/exportSpreadsheet', upload.single('file'), (req, res, nex
 	return exportSpreadsheet(BallotID, Filename, req.file, res).catch(err => next(err))
 })
 
+/*
+ * Comments History API
+ */
+import {getCommentsHistory} from '../services/commentsHistory';
+
+router.get('/commentsHistory/:comment_id', (req, res, next) => {
+	const {comment_id} = req.params
+	return getCommentsHistory(comment_id)
+		.then(data => res.json(data), err => next(err))
+});
 
 /*
  * Voting pools and voters API

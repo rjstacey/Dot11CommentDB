@@ -17,6 +17,7 @@ import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './Com
 import CommentsImport from './CommentsImport'
 import CommentsExport from './CommentsExport'
 import ColumnDropdown from '../table/ColumnDropdown'
+import CommentsTimelineModal from './Timeline'
 
 import {getComments} from '../store/actions/comments'
 import {setSelected} from '../store/actions/select'
@@ -374,6 +375,7 @@ function Comments(props) {
 	const {ballotId} = useParams()
 	const [split, setSplit] = React.useState(0.5);
 	const [editKey, setEditKey] = React.useState(new Date().getTime());
+	const [showHistory, setShowHistory] = React.useState(false);
 
 	let tableView
 	if (tableViews.includes(props.tableView)) {
@@ -465,6 +467,7 @@ function Comments(props) {
 					<CommentsExport ballotId={ballotId} />
 					<CommentsImport ballotId={ballotId} />
 					<ColumnSelector allColumns={allColumns}	/>
+					<ActionButton name='history' title='History' isActive={showHistory} onClick={() => setShowHistory(true)} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>
 			</TopRow>
@@ -476,6 +479,11 @@ function Comments(props) {
 			<TableRow>
 				{body}
 			</TableRow>
+
+			<CommentsTimelineModal
+				isOpen={showHistory}
+				close={() => setShowHistory(false)}
+			/>
 
 		</React.Fragment>
 	)

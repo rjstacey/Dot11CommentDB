@@ -74,6 +74,8 @@ const TextBlockContainer = styled.div`
 `;
 
 const renderTextBlock = (value) => {
+	if (!value)
+		return ''
 	if (isMultiple(value))
 		return <Multiple />
 	return (
@@ -495,7 +497,7 @@ const OtherTabs = ({resolution, setResolution, showEditing, setShowEditing, read
 	</StyledTabs>
 
 
-function Comment({
+export function Comment({
 	cids,
 	resolution,
 	setResolution,
@@ -608,7 +610,6 @@ class CommentDetail extends React.PureComponent {
 		super(props)
 		this.state = this.initState(props);
 		this.save = debounce(this.doSave, 500);
-		console.log('mount')
 	}
 
 	componentWillUnmount() {
