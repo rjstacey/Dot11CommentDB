@@ -25,15 +25,19 @@ function commentsHistoryReducer(state = defaultState, action) {
 		case COMMENTS_HISTORY_GET_SUCCESS:
 			const resolution_ids = [...new Set(action.commentsHistory.map(h => h.resolution_id))];
 			let commentsHistory = action.commentsHistory;
-			console.log(resolution_ids)
 			for (let resId of resolution_ids) {
 				let changes = {};
+				let resolutionCount = 0;
 				commentsHistory = commentsHistory.map(h => {
+					if (h.Action === 'add' && h.resolution_id)
+						resolutionCount++;
+					if (h.Action === 'delete' && h.resolution_id)
+						resolutionCount--;
 					if (h.resolution_id === null || h.resolution_id === resId) {
 						changes = {...changes, ...h.Changes};
 					}
 					if (h.resolution_id &&
-						resolution_ids.length > 2 &&
+						resolutionCount > 1 &&
 						changes.hasOwnProperty('CommentID') &&
 						changes.hasOwnProperty('ResolutionID')) {
 						changes.CID = `${changes.CommentID}.${changes.ResolutionID}`;
@@ -41,6 +45,7 @@ function commentsHistoryReducer(state = defaultState, action) {
 					else { 
 						changes.CID = changes.hasOwnProperty('CommentID')? changes.CommentID.toString(): 'Unknown';
 					}
+					changes.ResolutionCount = resolutionCount;
 					return (h.resolution_id === resId)? {...h, Changes: changes}: h;
 				})
 			}

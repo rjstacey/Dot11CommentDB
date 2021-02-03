@@ -11,7 +11,7 @@ import {
 	faSortAlphaDown, faSortAlphaUp, faSortNumericDown, faSortNumericUp,
 	faFilter,
 	faWindowClose, faAngleDoubleDown,
-	faAngleDown, faAngleUp,
+	faAngleDown, faAngleUp, faAngleLeft, faAngleRight,
 	faArrowCircleRight, faArrowCircleLeft, faArrowCircleUp, faArrowCircleDown,
 	faFileExport,
 	faColumns,
@@ -34,7 +34,7 @@ export function init() {
 		faSortAlphaDown, faSortAlphaUp, faSortNumericDown, faSortNumericUp,
 		faFilter,
 		faWindowClose, faAngleDoubleDown,
-		faAngleDown, faAngleUp,
+		faAngleDown, faAngleUp, faAngleLeft, faAngleRight,
 		faArrowCircleRight, faArrowCircleLeft, faArrowCircleUp, faArrowCircleDown,
 		faFileExport,
 		faColumns,
@@ -44,6 +44,8 @@ export function init() {
 		faHistory
 	)
 }
+
+export const Icon = FontAwesomeIcon;
 
 //export function IconClose(props) { return <FontAwesomeIcon icon='window-close' {...props} /> }
 

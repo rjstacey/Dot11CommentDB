@@ -46,9 +46,9 @@ function initServer(session) {
 		next();
 	});
 
-	app.use('/auth', require('./auth/session'));
+	app.use('/auth', require('./auth/session').default);
 	// secure API with JWT
-	app.use('/api', require('./util/jwt').verify, require('./api/router'));
+	app.use('/api', require('./util/jwt').verify, require('./api/router').default);
 
 	// Error handler
 	app.use((err, req, res, next) => {

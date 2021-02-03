@@ -77,10 +77,14 @@ const GET_COMMENTS_SUMMARY_SQL =
 	'FROM ballots b JOIN comments c ON b.id=c.ballot_id WHERE b.BallotID=?';
 
 const DELETE_COMMENTS_SQL = 
+	'SET @userId=?; ' +
+	'SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?); ' +
+	'UPDATE comments ' +
+		'SET c.LastModifiedBy=? c.LastModifiedTime=NOW() ' +
+		'WHERE c.ballot_id=@ballot_id;' +
 	'DELETE c, r ' +
-		'FROM ballots b JOIN comments c ON c.ballot_id=b.id ' +
-			'LEFT JOIN resolutions r ON r.comment_id=c.id ' +
-		'WHERE b.BallotID=?;';
+		'FROM comments c LEFT JOIN resolutions r ON r.comment_id=c.id ' +
+		'WHERE c.ballot_id=@ballot_id;';
 
 export function getComments(ballotId) {
 	return db.query('SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID;', [ballotId])
@@ -105,39 +109,39 @@ export async function updateComments(modifiedBy, comments) {
 	return {comments: updatedComments}
 }
 
-export async function setStartCommentId(ballotId, startCommentId) {
+export async function setStartCommentId(userId, ballotId, startCommentId) {
 	const SQL = db.format(
+		'SET @userId=?;' +
 		'SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?);' +
 		'SET @startCommentId = ?;' +
 		'SET @offset = @startCommentId - (SELECT MIN(CommentID) FROM comments WHERE ballot_id=@ballot_id);' +
-		'UPDATE c, r ' +
-			'SET c.CommentID=c.CommentID+@offset, r.CommentID=c.CommentID+@offset ' +
-			'FROM comments c JOIN resolutions r ON c.id=r.comment_id ' +
+		'UPDATE comments c ' +
+			'SET c.LastModifiedBy=@userId, c.CommentID=c.CommentID+@offset ' +
 			'WHERE c.ballot_id=@ballot_id;',
-		[ballotId, startCommentId]
+		[userId, ballotId, startCommentId]
 	);
 	const results = await db.query(SQL);
 	return getComments(ballotId);
 }
 
-export async function deleteComments(ballotId) {
-	await db.query(DELETE_COMMENTS_SQL, [ballotId]);
+export async function deleteComments(userId, ballotId) {
+	await db.query(DELETE_COMMENTS_SQL, [userId, ballotId]);
 	return true;
 }
 
-async function insertComments(modifiedBy, ballotId, comments) {
-	let SQL = db.format(DELETE_COMMENTS_SQL, [ballotId]);
+async function insertComments(userId, ballotId, comments) {
+	let SQL = db.format(DELETE_COMMENTS_SQL, [userId, ballotId]);
 	if (comments.length) {
+		const eModifiedBy = db.escape(userId);
 		const eBallotId = db.escape(ballotId);
-		const eModifiedBy = db.escape(modifiedBy);
 		SQL += 
 			db.format('SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?); ', [ballotId]) +
 			db.format('INSERT INTO comments (ballot_id, BallotID, ??, LastModifiedBy, LastModifiedTime) VALUES', [Object.keys(comments[0])]) +
 			comments.map(c => `(@ballot_id, ${eBallotId}, ${db.escape(Object.values(c))}, ${eModifiedBy}, NOW())`).join(', ') +
-			';'
+			';';
 	}
-	SQL += db.format('SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID;', [ballotId])
-	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId])
+	SQL += db.format('SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID;', [ballotId]);
+	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId]);
 
 	//console.log(SQL);
 
@@ -150,10 +154,10 @@ async function insertComments(modifiedBy, ballotId, comments) {
 	}
 }
 
-export async function importEpollComments(sess, ballotId, epollNum, startCommentId) {
+export async function importEpollComments(ieeeCookieJar, userId, ballotId, epollNum, startCommentId) {
 	const options = {
 		url: `https://mentor.ieee.org/802.11/poll-comments.csv?p=${epollNum}`,
-		jar: sess.ieeeCookieJar,
+		jar: ieeeCookieJar,
 		resolveWithFullResponse: true,
 		simple: false
 	}
@@ -166,10 +170,10 @@ export async function importEpollComments(sess, ballotId, epollNum, startComment
 	const comments = parseEpollCommentsCsv(ieeeRes.body, startCommentId);
 	//console.log(comments[0])
 
-	return insertComments(sess.user.SAPIN, ballotId, comments)
+	return insertComments(userId, ballotId, comments)
 }
 
-export async function uploadComments(sess, ballotId, type, startCommentId, file) {
+export async function uploadComments(userId, ballotId, type, startCommentId, file) {
 	let comments
 	if (type < 3) {
 		comments = parseEpollCommentsCsv(file.buffer, startCommentId)
@@ -178,5 +182,5 @@ export async function uploadComments(sess, ballotId, type, startCommentId, file)
 		const isExcel = file.originalname.search(/\.xlsx$/i) !== -1
 		comments = await parseMyProjectComments(startCommentId, file.buffer, isExcel)
 	}
-	return insertComments(sess.user.SAPIN, ballotId, comments)
+	return insertComments(userId, ballotId, comments)
 }

@@ -17,7 +17,7 @@ import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './Com
 import CommentsImport from './CommentsImport'
 import CommentsExport from './CommentsExport'
 import ColumnDropdown from '../table/ColumnDropdown'
-import CommentsTimelineModal from './Timeline'
+import CommentsHistoryModal from './CommentHistory'
 
 import {getComments} from '../store/actions/comments'
 import {setSelected} from '../store/actions/select'
@@ -481,7 +481,7 @@ function Comments(props) {
 				{body}
 			</TableRow>
 
-			<CommentsTimelineModal
+			<CommentsHistoryModal
 				isOpen={showHistory}
 				close={() => setShowHistory(false)}
 			/>

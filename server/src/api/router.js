@@ -262,51 +262,64 @@ import {
 	uploadComments,
 } from '../services/comments'
 
-router.get('/comments/:ballotId', (req, res, next) => {
-	const {ballotId} = req.params
-	return getComments(ballotId)
-		.then(data => res.json(data), err => next(err))
+router.get('/comments/:ballotId', async (req, res, next) => {
+	try {
+		const {ballotId} = req.params;
+		const data = await getComments(ballotId);
+		res.json(data);
+	}
+	catch(err) {next(err)}
 })
 router.put('/comments', async (req, res, next) => {
 	try {
 		if (!req.body.hasOwnProperty('comments'))
-			throw 'Missing comments parameter'
-		const {comments} = req.body
+			throw 'Missing comments parameter';
+		const {comments} = req.body;
 		if (!Array.isArray(comments))
-			throw 'Expect an array for comments parameter'
-		console.log(req.session.user)
-		const data = await updateComments(req.session.user.SAPIN, comments)
-		res.json(data)
+			throw 'Expect an array for comments parameter';
+		const data = await updateComments(req.session.user.SAPIN, comments);
+		res.json(data);
 	}
 	catch(err) {next(err)}
 })
-router.patch('/comments/startCommentId/:ballotId', (req, res, next) => {
-	const {ballotId} = req.params
-	const {StartCommentID} = req.body
-	return setStartCommentId(ballotId, StartCommentID)
-		.then(data => res.json(data), err => next(err))
-})
-router.delete('/comments/:ballotId', (req, res, next) => {
-	const {ballotId} = req.params
-	return deleteComments(ballotId)
-		.then(data => res.json(data), err => next(err))
-})
-router.post('/comments/importFromEpoll/:ballotId/:epollNum', (req, res, next) => {
-	const sess = req.session
-	const {ballotId, epollNum} = req.params
-	const startCommentId = req.body.StartCID || 1
-	return importEpollComments(sess, ballotId, epollNum, startCommentId)
-		.then(data => res.json(data), err => next(err))
-})
-router.post('/comments/upload/:ballotId/:type', upload.single('CommentsFile'), (req, res, next) => {
-	const {ballotId} = req.params
-	const type = parseInt(req.params.type, 10)
-	if (!req.file) {
-		return next('Missing file')
+router.patch('/comments/startCommentId/:ballotId', async (req, res, next) => {
+	try {
+		const {ballotId} = req.params;
+		const {StartCommentID} = req.body;
+		const data = await setStartCommentId(req.session.user.SAPIN, ballotId, StartCommentID);
+		res.json(data);
 	}
-	const startCommentId = req.body.StartCID || 1
-	return uploadComments(req.session, ballotId, type, startCommentId, req.file)
-		.then(data => res.json(data), err => next(err))
+	catch(err) {next(err)}
+})
+router.delete('/comments/:ballotId', async (req, res, next) => {
+	try {
+		const {ballotId} = req.params;
+		const data = await deleteComments(req.session.user.SAPIN, ballotId);
+		res.json(data);
+	}
+	catch (err) {next(err)}
+})
+router.post('/comments/importFromEpoll/:ballotId/:epollNum', async (req, res, next) => {
+	try {
+		const sess = req.session;
+		const {ballotId, epollNum} = req.params;
+		const startCommentId = req.body.StartCID || 1;
+		data = await importEpollComments(sess.ieeeCookieJar, sess.user.SAPIN, ballotId, epollNum, startCommentId);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+})
+router.post('/comments/upload/:ballotId/:type', upload.single('CommentsFile'), async (req, res, next) => {
+	try {
+		const {ballotId} = req.params;
+		const type = parseInt(req.params.type, 10);
+		if (!req.file)
+			throw 'Missing file';
+		const startCommentId = req.body.StartCID || 1;
+		const data = await uploadComments(req.session.user.SAPIN, ballotId, type, startCommentId, req.file);
+		res.json(data);
+	}
+	catch(err) {next(err)}
 })
 
 import {
@@ -514,4 +527,4 @@ router.post('/votersUpload/:votingPoolType(SA|WG)/:votingPoolId', upload.single(
 	catch(err) {next(err)}
 })
 
-module.exports = router;
+export default router;
