@@ -362,7 +362,7 @@ export class ResolutionEditor extends React.Component {
 				/>
 				<EditorContainer
 					className={this.props.className}
-					onClick={e => this.editorRef.focus()}	// a click inside the container places focus on the editor
+					onClick={e => !this.props.readOnly && this.editorRef.focus()}	// a click inside the container places focus on the editor
 				>
 					<Editor
 						ref={ref => this.editorRef = ref}
@@ -389,7 +389,7 @@ export class ResolutionEditor extends React.Component {
 const StyledToolbar = styled(Toolbar)`
 	position: absolute;
 	top: 0;
-	right: 0;
+	right: 16px;
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;

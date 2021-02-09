@@ -18,6 +18,9 @@ const StyledSelect = styled(ReactDropdownSelect)`
 	:hover {
 		border-color: #0074D9;
 	}
+	&.react-dropdown-select-dropdown {
+		z-index: 15;
+	}
 	&.react-dropdown-select {
 		opacity: unset;	/* don't change opacity when disabled */
 	}

@@ -85,13 +85,14 @@ function AssigneeSelector({
 	loading,
 	getUsers,
 	width,
+	readOnly,
 	...otherProps
 }) {
 
 	React.useEffect(() => {
-		if (!valid)
+		if (!valid && !readOnly)
 			getUsers()
-	}, [valid, getUsers])
+	}, [valid, getUsers, readOnly])
 
 	const options = React.useMemo(() => {
 		// Produce a unique set of SAPIN/Name mappings. If there is no SAPIN then the name is the key.
@@ -138,6 +139,7 @@ function AssigneeSelector({
 			create
 			clearable
 			dropdownRenderer={renderDropdown}
+			readOnly={readOnly}
 			{...otherProps}
 		/>
 	)

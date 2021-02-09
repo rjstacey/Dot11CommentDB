@@ -1,4 +1,5 @@
-'use strict';
+
+import {AccessLevel} from '../auth/access'
 
 const csvParse = require('csv-parse/lib/sync')
 const db = require('../util/database')
@@ -30,8 +31,14 @@ function parseUsersCsv(usersCsv) {
 	})
 }
 
-export function getUsers() {
-	return db.query('SELECT * FROM users')
+export function getUsers(user) {
+	const fields = ['SAPIN', 'Name', 'LastName', 'FirstName', 'MI', 'Status'];
+
+	/* Email and Access level are sensitive */
+	if (user.Access >= AccessLevel.WGAdmin)
+		fields.push('Email', 'Access')
+
+	return db.query('SELECT ?? FROM users', [fields]);
 }
 
 export async function getUser(sapin, email) {

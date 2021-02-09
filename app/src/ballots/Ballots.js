@@ -16,7 +16,7 @@ import {setSelected} from '../store/actions/select'
 import {setSort} from '../store/actions/sort'
 import {getDataMap} from '../store/selectors/dataMap'
 import {getVotingPools} from '../store/actions/votingPools'
-
+import {AccessLevel} from '../store/actions/login'
 
 const ActionCell = styled.div`
 	display: flex;
@@ -55,7 +55,7 @@ const renderVotingPool = ({rowData}) => {
 	return ''
 }
 
-export function renderResultsSummary({rowData, dataKey}) {
+export function renderResultsSummary({rowData, dataKey, readOnly}) {
 	const results = rowData[dataKey]
 	let resultsStr = ''
 	if (results && results.TotalReturns) {
@@ -68,7 +68,7 @@ export function renderResultsSummary({rowData, dataKey}) {
 	if (!resultsStr) {
 		resultsStr = 'None'
 	}
-	return <Link to={`/Results/${rowData.BallotID}`}>{resultsStr}</Link>
+	return readOnly? resultsStr: <Link to={`/Results/${rowData.BallotID}`}>{resultsStr}</Link>
 }
 
 export function renderCommentsSummary({rowData, dataKey}) {
@@ -126,14 +126,11 @@ const tableColumns = Immutable.OrderedMap({
 	Results:
 		{label: 'Result',
 			width: 150,	flexShrink: 1, flexGrow: 1,
-			cellRenderer: renderResultsSummary},
+			cellRenderer: (props) => renderResultsSummary({readOnly: true, ...props})},
 	Comments:
 		{label: 'Comments',
 			width: 100,	flexShrink: 1, flexGrow: 1,
 			cellRenderer: renderCommentsSummary},
-	Actions:
-		{label: 'Actions',
-			width: 100,	flexShrink: 1, flexGrow: 1}
 });
 
 const primaryDataKey = 'BallotID';
@@ -153,11 +150,21 @@ const TableRow = styled.div`
 `;
 
 function Ballots(props) {
-	const {ballotsValid, loading, getBallots, deleteBallots, votingPoolsValid, getVotingPools} = props;
+	const {ballotsValid, loading, getBallots, deleteBallots, votingPoolsValid, getVotingPools, access} = props;
 	const history = useHistory();
 	const {ballotId} = useParams();
 
 	const columns = React.useMemo(() => {
+		if (access < AccessLevel.SubgroupAdmin)
+			return tableColumns;
+
+		const resultsSummaryRenderer = (props) => renderResultsSummary({readOnly: false, ...props});
+		let columns = tableColumns
+			.set('Results', 
+				{...tableColumns.get('Results'), cellRenderer: resultsSummaryRenderer});
+
+		if (access < AccessLevel.WGAdmin)
+			return columns;
 
 		const deleteBallot = async (ballot) => {
 			const ok = await ConfirmModal.show(`Are you sure you want to delete ${ballot.BallotID}?`)
@@ -165,15 +172,18 @@ function Ballots(props) {
 				await deleteBallots([ballot])
 		}
 
-		return tableColumns.update('Actions', c => ({
-			...c,
-			cellRenderer: ({rowData}) => 
-				<RowActions
-					onEdit={() => history.push(`/Ballots/${rowData.BallotID}`)}
-					onDelete={() => deleteBallot(rowData)}
-				/>
-		}));
-	}, [deleteBallots, history]);
+		const actionCellRenderer = ({rowData}) => 
+			<RowActions
+				onEdit={() => history.push(`/Ballots/${rowData.BallotID}`)}
+				onDelete={() => deleteBallot(rowData)}
+			/>
+
+		return columns
+			.set('Actions',
+				{label: 'Actions',
+					width: 100,	flexShrink: 1, flexGrow: 1,
+					cellRenderer: actionCellRenderer});
+	}, [deleteBallots, history, access]);
 
 	React.useEffect(() => {
 		if (!ballotsValid && !loading)

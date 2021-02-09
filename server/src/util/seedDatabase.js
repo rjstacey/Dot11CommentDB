@@ -4,85 +4,96 @@ const db = require('../util/database')
 const users = require('../services/users')
 
 const usersTable =
-	'CREATE TABLE `users` (' +
-		'`SAPIN` int(32) NOT NULL,' +
-		'`Access` int(1) NOT NULL DEFAULT "1" COMMENT "1 = View (participant, has IEEE login)\\n2 = Assign, Resolve (voting member)\\n3 = Reassign, Assign, Resolve (voting member, designated manager)\\n4 = Manage, Reassign, Assign, Resolve, Close (voting member, designated manager)",' +
- 		'`Name` varchar(256) NOT NULL,' +
-		'`LastName` varchar(128) DEFAULT NULL,' +
-		'`FirstName` varchar(128) DEFAULT NULL,' +
-		'`MI` varchar(45) DEFAULT NULL,' +
-		'`Email` varchar(128) NOT NULL,' +
-		'`Status` varchar(45) DEFAULT NULL,' +
-		'PRIMARY KEY (`SAPIN`)' +
-	') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+	'CREATE TABLE `users` ( ' +
+  		'`SAPIN` int unsigned NOT NULL, ' +
+  		'`Access` int NOT NULL DEFAULT \'1\' COMMENT \'1 = View (participant, has IEEE login)\\n2 = Assign, Resolve (voting member)\\n3 = Reassign, Assign, Resolve (voting member, designated manager)\\n4 = Manage, Reassign, Assign, Resolve, Close (voting member, designated manager)\', ' +
+  		'`Name` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`LastName` varchar(128) CHARACTER SET utf8 DEFAULT NULL, ' +
+  		'`FirstName` varchar(128) CHARACTER SET utf8 DEFAULT NULL, ' +
+  		'`MI` varchar(45) CHARACTER SET utf8 DEFAULT NULL, ' +
+  		'`Email` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`Status` varchar(45) CHARACTER SET utf8 DEFAULT NULL, ' +
+  		'PRIMARY KEY (`SAPIN`) ' +
+	') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;'
 
 const ballotsTable = 
-	'CREATE TABLE `ballots` (' +
-		'`BallotID` varchar(16) NOT NULL,' +
-		'`Project` varchar(45) NOT NULL,' +
-		'`Type` tinyint(4) DEFAULT NULL,' +
-		'`Document` varchar(1024) NOT NULL,' +
-		'`Topic` varchar(1024) NOT NULL,' +
-		'`Start` datetime DEFAULT NULL,' +
-		'`End` datetime DEFAULT NULL,' +
-		'`EpollNum` varchar(128) DEFAULT NULL,' +
-		'`VotingPoolID` varchar(45) NOT NULL,' +
-		'`PrevBallotID` varchar(16) NOT NULL,' +
-		'`ResultsSummary` varchar(4096) DEFAULT NULL,' +
-		'PRIMARY KEY (`BallotID`)' +
-	') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+	'CREATE TABLE `ballots` ( ' +
+  		'`id` int unsigned NOT NULL AUTO_INCREMENT, ' +
+  		'`BallotID` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL, ' +
+  		'`Project` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL, ' +
+  		'`Type` tinyint DEFAULT NULL, ' +
+  		'`Document` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`Topic` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`Start` datetime DEFAULT NULL, ' +
+  		'`End` datetime DEFAULT NULL, ' +
+  		'`EpollNum` varchar(128) CHARACTER SET utf8 DEFAULT NULL, ' +
+  		'`VotingPoolID` varchar(45) CHARACTER SET utf8 NOT NULL, ' +
+  		'`PrevBallotID` varchar(16) CHARACTER SET utf8 NOT NULL, ' +
+  		'`ResultsSummary` json DEFAULT NULL, ' +
+  		'PRIMARY KEY (`id`), ' +
+  		'UNIQUE KEY `unique_ballot_id` (`BallotID`) ' +
+	') ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;';
 
 const commentsTable =
-	'CREATE TABLE `comments` ('
-		'`BallotID` varchar(16) NOT NULL,'
-		'`CommentID` int(32) NOT NULL,'
-		'`CommenterSAPIN` int(32) DEFAULT NULL,'
-		'`CommenterEmail` varchar(128) DEFAULT NULL,'
-		'`CommenterName` varchar(128) DEFAULT NULL,'
-		'`MustSatisfy` tinyint(1) DEFAULT 0,'
-		'`Category` varchar(1) DEFAULT NULL,'
-		'`Clause` varchar(128) DEFAULT NULL,'
-		'`Page` decimal(10,2) DEFAULT NULL,'
-		'`Comment` varchar(4096) DEFAULT NULL,'
-		'`ProposedChange` varchar(4096) DEFAULT NULL,'
-		'`CommentGroup` varchar(128) DEFAULT NULL,'
-		'`C_Page` varchar(45) DEFAULT NULL,'
-		'`C_Line` varchar(45) DEFAULT NULL,'
-		'`C_Clause` varchar(128) DEFAULT NULL,'
-		'`C_Index` int(32) DEFAULT NULL,'
-		'`AdHoc` varchar(128) DEFAULT NULL,'
-		'PRIMARY KEY (`BallotID`,`CommentID`)'
-	') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+	'CREATE TABLE `comments` (' +
+  		'`id` bigint unsigned NOT NULL AUTO_INCREMENT, ' +
+  		'`ballot_id` int unsigned NOT NULL, ' +
+  		'`CommentID` int NOT NULL, ' +
+  		'`CommenterSAPIN` int DEFAULT NULL, ' +
+  		'`CommenterEmail` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`CommenterName` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`MustSatisfy` tinyint(1) DEFAULT \'0\', '+
+  		'`Category` varchar(1) CHARACTER SET utf8 DEFAULT NULL, ' +
+  		'`Clause` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`Page` decimal(10,2) DEFAULT NULL, ' +
+  		'`Comment` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci, ' +
+  		'`ProposedChange` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci, ' +
+  		'`C_Page` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`C_Line` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`C_Clause` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`C_Index` int DEFAULT NULL, ' +
+  		'`AdHoc` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`CommentGroup` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`Notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci, ' +
+  		'`LastModifiedBy` int DEFAULT NULL, ' +
+  		'`LastModifiedTime` datetime DEFAULT NULL, ' +
+  		'PRIMARY KEY (`id`), ' +
+  		'KEY `ballot_id` (`ballot_id`) ' +
+	') ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;';
 
 const resolutionsTable =
-	'CREATE TABLE `resolutions` (' +
-		'`BallotID` varchar(16) NOT NULL,' +
-		'`CommentID` int(32) NOT NULL,' +
-		'`ResolutionID` int(32) NOT NULL,' +
-		'`AssigneeSAPIN` int(32) DEFAULT NULL,' +
-		'`AssigneeName` varchar(256) DEFAULT NULL,' +
-		'`ResnStatus` varchar(1) DEFAULT NULL,' +
-		'`Resolution` varchar(4096) DEFAULT NULL,' +
-		'`Submission` varchar(256) DEFAULT NULL,' +
-		'`EditStatus` varchar(1) DEFAULT NULL,' +
-		'`EditNotes` varchar(4096) DEFAULT NULL,' +
-		'`EditInDraft` varchar(45) DEFAULT NULL,' +
-		'`ReadyForMotion` tinyint(4) DEFAULT NULL,' +
-		'`ApprovedByMotion` varchar(45) DEFAULT NULL,' +
-		'`Notes` varchar(4096) DEFAULT NULL,' +
-		'PRIMARY KEY (`BallotID`,`CommentID`,`ResolutionID`)' +
-	') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+	'CREATE TABLE `resolutions` ( ' +
+  		'`id` bigint unsigned NOT NULL AUTO_INCREMENT, ' +
+  		'`comment_id` bigint unsigned NOT NULL, ' +
+  		'`ResolutionID` int NOT NULL DEFAULT \'0\', ' +
+  		'`AssigneeSAPIN` int DEFAULT NULL, ' +
+  		'`AssigneeName` varchar(256) CHARACTER SET utf8 DEFAULT NULL, ' + 
+  		'`ResnStatus` varchar(1) CHARACTER SET utf8 DEFAULT NULL, ' +
+  		'`Resolution` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci, ' +
+  		'`Submission` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`EditStatus` varchar(1) CHARACTER SET utf8 DEFAULT NULL, ' +
+  		'`EditNotes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci, ' +
+  		'`EditInDraft` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`ReadyForMotion` tinyint DEFAULT NULL, ' +
+  		'`ApprovedByMotion` varchar(45) CHARACTER SET utf8 DEFAULT NULL, ' +
+  		'`LastModifiedBy` int DEFAULT NULL, ' +
+  		'`LastModifiedTime` datetime DEFAULT NULL, ' +
+  		'PRIMARY KEY (`id`), ' +
+  		'KEY `comment_id` (`comment_id`) ' +
+	') ENGINE=InnoDB AUTO_INCREMENT=146211 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;';
 
 const resultsTable =
-	'CREATE TABLE `results` (' +
-		'`BallotID` varchar(16) NOT NULL,' +
-		'`SAPIN` int(32) NOT NULL,' +
-		'`Email` varchar(128) NOT NULL,' +
-		'`Name` varchar(128) DEFAULT NULL,' +
-		'`Affiliation` varchar(128) DEFAULT NULL,' +
-		'`Vote` varchar(64) DEFAULT NULL,' +
-		'PRIMARY KEY (`BallotID`,`SAPIN`,`Email`)' +
-	') ENGINE=InnoDB DEFAULT CHARSET=utf8;'
+	'CREATE TABLE `results` ( ' +
+  		'`id` bigint unsigned NOT NULL AUTO_INCREMENT, ' +
+  		'`ballot_id` int unsigned NOT NULL, ' +
+  		'`SAPIN` int NOT NULL, ' +
+  		'`Email` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`Name` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`Affiliation` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL, ' +
+  		'`Vote` varchar(64) CHARACTER SET utf8 DEFAULT NULL, ' +
+  		'PRIMARY KEY (`id`), ' +
+  		'KEY `ballot_id` (`ballot_id`) ' +
+	') ENGINE=InnoDB AUTO_INCREMENT=23307 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;';
 
 const saVotersTable =
 	'CREATE TABLE `saVoters` (' +

@@ -14,12 +14,12 @@ export const verify = (req, res, next) => {
 		const bearerToken = bearer[1];
 		jwt.verify(bearerToken, secret, (err, result) => {
 			if (err)
-				res.sendStatus(403);
+				res.status(403).send('Bad token');
 			else
 				next();
 		});
 	}
 	else {
-		res.sendStatus(403)
+		res.status(403).send('No token');
 	}
 };

@@ -54,6 +54,8 @@ function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, 
 					cids={[log.Changes.CID]}
 					resolution={log.Changes}
 					readOnly
+					showEditing
+					showNotes
 				/>
 			</React.Fragment>
 	}

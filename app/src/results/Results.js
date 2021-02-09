@@ -151,7 +151,6 @@ export default connect(
 			votingPoolSize: state[dataSet].votingPoolSize,
 			resultsValid: state[dataSet].valid,
 			loading: state[dataSet].loading,
-			access: user? user.Access: 0
 		}
 	},
 	(dispatch, ownProps) => ({

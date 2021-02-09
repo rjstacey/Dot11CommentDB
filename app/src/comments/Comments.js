@@ -24,6 +24,7 @@ import {setSelected} from '../store/actions/select'
 import {getDataMap} from '../store/selectors/dataMap'
 import {setBallotId} from '../store/actions/ballots'
 import {uiSetProperty} from '../store/actions/ui'
+import {AccessLevel} from '../store/actions/login'
 
 const FlexRow = styled.div`
 	display: flex;
@@ -206,6 +207,10 @@ const allColumns = Immutable.OrderedMap({
 		{label: 'Group',
 			width: 150, flexGrow: 1, flexShrink: 1,
 			dropdownWidth: 300},
+	Notes:
+		{label: 'Notes',
+			width: 150, flexGrow: 1, flexShrink: 1,
+			dropdownWidth: 300},
 	Stack3:
 		{label: 'Assignee/Submission',
 			width: 250, flexGrow: 1, flexShrink: 1,
@@ -371,7 +376,7 @@ function commentsRowGetter({rowIndex, data, dataMap}) {
 }
 
 function Comments(props) {
-	const {setBallotId, valid, loading, commentBallotId, getComments} = props;
+	const {setBallotId, valid, loading, commentBallotId, getComments, access} = props;
 	const history = useHistory()
 	const {ballotId} = useParams()
 	const [split, setSplit] = React.useState(0.5);
@@ -449,7 +454,8 @@ function Comments(props) {
 			</div>
 			<CommentDetail
 				style={{flex: `${split*100}%`, height: '100%', overflow: 'auto', boxSizing: 'border-box'}}
-				key={editKey} //props.selected}
+				key={editKey}
+				access={access}
 			/>
 		</React.Fragment>:
 		table
@@ -465,8 +471,8 @@ function Comments(props) {
 						setTableView={props.setTableView}
 					/>
 					<Button onClick={e => setClipboard(props.selected, props.comments)}>Copy</Button>
-					<CommentsExport ballotId={ballotId} />
-					<CommentsImport ballotId={ballotId} />
+					{access >= AccessLevel.SubgroupAdmin && <CommentsExport ballotId={ballotId} />}
+					{access >= AccessLevel.SubgroupAdmin && <CommentsImport ballotId={ballotId} />}
 					<ColumnSelector allColumns={allColumns}	/>
 					<ActionButton name='history' title='History' isActive={showHistory} onClick={() => setShowHistory(true)} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
@@ -519,6 +525,7 @@ Comments.propTypes = {
 const dataSet = 'comments'
 export default connect(
 	(state, ownProps) => {
+		const user = state.login.user;
 		return {
 			ballotId: state.ballots.ballotId,
 			selected: state[dataSet].selected,

@@ -13,6 +13,7 @@ import {
 	faWindowClose, faAngleDoubleDown,
 	faAngleDown, faAngleUp, faAngleLeft, faAngleRight,
 	faArrowCircleRight, faArrowCircleLeft, faArrowCircleUp, faArrowCircleDown,
+	//faPlusSquare, faMinusSquare,
 	faFileExport,
 	faColumns,
 	faSave,
@@ -20,7 +21,7 @@ import {
 	faCaretSquareDown, faCaretSquareUp,
 	faHistory
 } from '@fortawesome/free-solid-svg-icons'
-//import { faCode, faHighlighter } from '@fortawesome/free-regular-svg-icons';
+import { faPlusSquare, faMinusSquare } from '@fortawesome/free-regular-svg-icons';
 
 import styled from '@emotion/styled'
 
@@ -36,6 +37,7 @@ export function init() {
 		faWindowClose, faAngleDoubleDown,
 		faAngleDown, faAngleUp, faAngleLeft, faAngleRight,
 		faArrowCircleRight, faArrowCircleLeft, faArrowCircleUp, faArrowCircleDown,
+		faPlusSquare, faMinusSquare,
 		faFileExport,
 		faColumns,
 		faSave,
@@ -55,6 +57,8 @@ export function IconSort({direction, isAlpha, ...props}) {
 		(direction === 'ASC'? 'down': 'up')
 	return <FontAwesomeIcon icon={icon} {...props} />
 }
+
+export const IconCollapse = ({isCollapsed, ...props}) => <FontAwesomeIcon icon={['far', isCollapsed? 'plus-square': 'minus-square']} {...props} />
 
 //export const IconFilter = (props) => <FontAwesomeIcon icon='filter' {...props} />
 

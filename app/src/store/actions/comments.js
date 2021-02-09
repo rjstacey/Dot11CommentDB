@@ -353,13 +353,13 @@ export function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchUpdat
 			ResolutionsFile: file
 		}
 		try {
-			const result = await fetcher.postMultipart(`/api/uploadResolutions/${ballotId}`, params)
-			const {comments, summary, matched, unmatched, added, remaining} = result;
+			const result = await fetcher.postMultipart(`/api/resolutions/upload/${ballotId}`, params)
+			const {comments, summary, matched, unmatched, added, remaining, updated} = result;
 			await Promise.all([
 				dispatch(uploadCommentsSuccess(ballotId, comments)),
 				dispatch(updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary}))
 			])
-			return {matched, unmatched, added, remaining};
+			return {matched, unmatched, added, remaining, updated};
 		}
 		catch (error) {
 			await Promise.all([

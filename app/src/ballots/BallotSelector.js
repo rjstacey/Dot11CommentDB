@@ -29,12 +29,12 @@ function ProjectSelect({project, setProject, projectList, loading, readOnly}) {
 	if (readOnly)
 		return project
 
-	const options = projectList.map(p => ({value: p, label: p}))
-	const value = options.find(o => o.value === project)
+	const options = projectList.map(p => ({value: p, label: p}));
+	const value = options.find(o => o.value === project);
 
 	function handleChange(values) {
-		const value = values.length > 0? values[0].value: ''
-		if (value !== project)
+		const value = values.length > 0? values[0].value: '';
+		if (value !== project) 
 			setProject(value)
 	}
 
@@ -51,13 +51,13 @@ function ProjectSelect({project, setProject, projectList, loading, readOnly}) {
 
 function BallotSelect({ballotId, setBallotId, ballotList, loading, readOnly}) {
 
-	const value = ballotList.find(o => o.value === ballotId)
+	const value = ballotList.find(o => o.value === ballotId);
 
 	if (readOnly)
 		return value? value.label: ballotId
 
 	function handleChange(values) {
-		const value = values.length > 0? values[0].value: ''
+		const value = values.length > 0? values[0].value: '';
 		if (value !== ballotId)
 			setBallotId(value)
 	}
@@ -95,7 +95,13 @@ function BallotSelector({
 			getBallots()
 	}, [valid, getBallots])
 
-	function handleBallotChange(value) {
+	const handleProjectChange = (value) => {
+		setProject(value)
+		if (onBallotSelected)
+			onBallotSelected('')
+	}
+
+	const handleBallotChange = (value) => {
 		setBallotId(value)
 		if (onBallotSelected)
 			onBallotSelected(value)
@@ -109,7 +115,7 @@ function BallotSelector({
 			<Label>Project:</Label>
 			<ProjectSelect
 				project={project}
-				setProject={setProject}
+				setProject={handleProjectChange}
 				projectList={projectList}
 				loading={loading}
 				readOnly={readOnly}

@@ -3,7 +3,7 @@
 const db = require('../util/database');
 
 import {parseLegacyCommentsSpreadsheet} from './legacyCommentSpreadsheet'
-import {getComments, GET_COMMENTS_SQL, GET_COMMENTS_SUMMARY_SQL} from './comments'
+import {getComments, GET_COMMENTS_SUMMARY_SQL} from './comments'
 
 const matchClause = (dbValue, sValue) => {
 	if (dbValue === sValue)
@@ -47,8 +47,6 @@ const matchText = (dbValue, sValue) => {
 		return true;
 	const garbledDbValue = Buffer.from(dbValue, 'utf8').toString('latin1');
 	const pattern = /^'|[^(\x20-\x7f)]|\+|-/gm;	// ASCII, no control characters
-	//console.log(garbledDbValue.replace(pattern, ''))
-	//console.log(sValue.replace(pattern, ''))
 	if (garbledDbValue.replace(pattern, '') === sValue.replace(pattern, ''))
 		return true;
 	return false;
@@ -179,6 +177,7 @@ const FieldsToUpdate = {
 	ClausePage: 'clausepage',
 	AdHoc: 'adhoc',
 	CommentGroup: 'commentgroup',
+	Notes: 'notes',
 	Assignee: 'assignee',
 	Resolution: 'resolution',
 	Editing: 'editing'
@@ -204,61 +203,97 @@ function commentUpdate(toUpdate, c, cs) {
 	}
 
 	if (toUpdate.includes(FieldsToUpdate.ClausePage)) {
-		u.Clause = cs['Clause'];
-		u.Page = parseFloat(cs['Page']);
-		if (isNaN(u.Page)) {u.Page = 0}
+		if (c.Clause !== cs['Clause'])
+			u.Clause = cs['Clause'];
+		let page = parseFloat(cs['Page']);
+		if (isNaN(page))
+			page = 0;
+		if (c.Page !== page)
+			u.Page = page;
 	}
 
 	if (toUpdate.includes(FieldsToUpdate.CommentGroup)) {
-		u.CommentGroup = cs['Comment Group'];
+		if (c.CommentGroup !== cs['Comment Group'])
+			u.CommentGroup = cs['Comment Group'] || '';
 	}
 
 	if (toUpdate.includes(FieldsToUpdate.AdHoc)) {
-		u.AdHoc = cs['Owning Ad-hoc'];
+		if (c.AdHoc !== cs['Owning Ad-hoc'])
+			u.AdHoc = cs['Owning Ad-hoc'] || '';
+	}
+
+	if (toUpdate.includes(FieldsToUpdate.Notes)) {
+		if (c.Notes !== cs['Ad-hoc Notes'])
+			u.Notes = cs['Ad-hoc Notes'] || '';
 	}
 
 	return Object.keys(u).length? u: null;
 }
 
+function parseLegacyResolution(cs) {
+	const r = {Resolution: '', ResnStatus: ''};
+	if (typeof cs['Resolution'] === 'string') {
+		
+		// Override 'Resn Status' if the resolution itself has something that looks like a resolution status
+		if (cs['Resolution'].search(/^\s*(ACCEPT|ACCEPTED)/i) >= 0)
+			r.ResnStatus = 'A';
+		else if (cs['Resolution'].search(/^\s*(REVISE|REVISED)/i) >= 0)
+			r.ResnStatus = 'V';
+		else if (cs['Resolution'].search(/^\s*(REJECT|REJECTED)/i) >= 0)
+			r.ResnStatus = 'J';
+
+		// Remove the resolution status if it exists. Also remove "(EDITOR <date>)" and such-like. And leading whitespace or dash.
+		r.Resolution = cs['Resolution'].replace(/^\s*(ACCEPTED|ACCEPT|REVISED|REVISE|REJECTED|REJECT)(\s+\(.*\)){0,1}[-\s]*/i, '')
+	}
+	return r;
+}
+
 function resolutionUpdate(toUpdate, c, cs) {
 	const n = {}
 
-	if (toUpdate.includes(FieldsToUpdate.CID)) {
-		n.CommentID = cs['CID'];
-	}
-
 	if (toUpdate.includes(FieldsToUpdate.Assignee)) {
-		n.AssigneeName = cs['Assinee'] || '';
+		if (c.AssigneeName !== cs['Assignee'])
+			n.AssigneeName = cs['Assignee'] || '';
 	}
 
 	if (toUpdate.includes(FieldsToUpdate.Resolution)) {
-		n.ResnStatus = cs['Resn Status'] || '';
-		n.Resolution = cs['Resolution'] || '';
-		n.ApprovedByMotion = cs['Motion Number'] || '';
+		const r = parseLegacyResolution(cs);
+		if (c.Resolution !== r.Resolution)
+			n.Resolution = r.Resolution;
+		if (r.ResnStatus && c.ResnStatus !== r.ResnStatus)
+			n.ResnStatus = r.ResnStatus;
+		else if (!r.ResnStatus && c.ResnStatus !== cs['Resn Status'])
+			n.ResnStatus = cs['Resn Status'] || '';
+		if (c.ApprovedByMotion !== cs['Motion Number'])
+			n.ApprovedByMotion = cs['Motion Number'] || '';
 	}
 
 	if (toUpdate.includes(FieldsToUpdate.Editing)) {
-		n.EditStatus = cs['Edit Status'] || '';
-		n.EditNotes = cs['Edit Notes'] || '';
-		n.EditInDraft = cs['Edited in Draft'] || '';
+		if (c.EditStatus !== cs['Edit Status'])
+			n.EditStatus = cs['Edit Status'] || '';
+		if (c.EditNotes !== cs['Edit Notes'])
+			n.EditNotes = cs['Edit Notes'] || '';
+		if (c.EditInDraft !== cs['Edited in Draft'])
+			n.EditInDraft = cs['Edited in Draft'] || '';
 	}
 
 	return Object.keys(n).length? n: null;
 }
 
-function updateCommentsSQL(ballotId, matched, toUpdate) {
+function updateCommentsSQL(userId, ballotId, matched, toUpdate) {
 
 	// See if any of the comment fields need updating
 	let updateComments = [],
 		updateResolutions = [],
 		newResolutions = [];
 
+	let count = 0;
 	matched.forEach(m => {
 		const c = m.dbComment
 		const cs = m.sheetComment
 		const u = commentUpdate(toUpdate, c, cs);
 		if (u) {
-			u.id = c.id;
+			u.id = c.comment_id;
 			updateComments.push(u);
 		}
 		const r = resolutionUpdate(toUpdate, c, cs);
@@ -268,39 +303,46 @@ function updateCommentsSQL(ballotId, matched, toUpdate) {
 				updateResolutions.push(r);
 			}
 			else {
-				r.comment_id = c.id;
+				r.comment_id = c.comment_id;
 				newResolutions.push(r);
 			}
 		}
+		if (u || r)
+			count++;
 	});
+
+	console.log('comments updated: ', updateComments.length, 'resolutions updated: ', updateResolutions.length, 'new resolutions: ', newResolutions.length);
 
 	const SQL =
 		updateComments.map(c => {
 			const id = c.id;
 			delete c.id;
-			return db.format('UPDATE comments SET ? WHERE id=?', [c, id]);
+			c.LastModifiedBy = userId;
+			return db.format('UPDATE comments SET ?, LastModifiedTime=NOW() WHERE id=?', [c, id]);
 		})
 		.concat(
 			updateResolutions.map(r => {
 				const id = r.id;
 				delete r.id;
-				return db.format('UPDATE resolutions SET ? WHERE id=?', [r, id]);
+				r.LastModifiedBy = userId;
+				return db.format('UPDATE resolutions SET ?, LastModifiedTime=NOW() WHERE id=?', [r, id]);
 			})
 		)
 		.concat(
 			newResolutions.map(r => {
+				r.LastModifiedBy = userId;
 				return db.format(
-					'INSERT INTO resolutions (BallotID, ??) VALUE (?, ?)',
-					[Object.keys(r), ballotId, Object.values(r)]
+					'INSERT INTO resolutions (??, LastModifiedTime) VALUE (?, NOW())',
+					[Object.keys(r), Object.values(r)]
 				);
 			})
 		)
 		.join(';');
 
-	return SQL;
+	return [SQL, count];
 }
 
-function addCommentsSQL(ballotId, sheetComments, toUpdate) {
+function addCommentsSQL(userId, ballotId, sheetComments, toUpdate) {
 
 	const update = toUpdate.filter(f => f !== FieldsToUpdate.CID).concat(FieldsToUpdate.ClausePage)
 	const newComments = [];
@@ -328,19 +370,23 @@ function addCommentsSQL(ballotId, sheetComments, toUpdate) {
 	});
 
 	const SQL =
-		newComments.map(c => 
-			db.format(
-				'INSERT INTO comments (BallotID, ballot_id, ??) VALUE (?, (SELECT id FROM ballots WHERE BallotID=?), ?)',
-				[Object.keys(c), ballotId, ballotId, Object.values(c)]
+		newComments.map(c => {
+			c.LastModifiedBy = userId;
+			return db.format(
+				'INSERT INTO comments (ballot_id, ??, LastModifiedTime) VALUE ((SELECT id FROM ballots WHERE BallotID=?), ?, NOW())',
+				[Object.keys(c), ballotId, Object.values(c)]
 			)
-		)
+		})
 		.concat(
 			newResolutions.map(r => {
 				const commentId = r.CommentID;
 				delete r.CommentID;
+				r.LastModifiedBy = userId;
 				return db.format(
-					'INSERT INTO resolutions (BallotID, comment_id, ??) VALUE (?, (SELECT c.id FROM comments c JOIN ballots b ON b.id=c.ballot_id WHERE b.BallotID=? AND c.CommentID=?), ?)',
-					[Object.keys(r), ballotId, ballotId, commentId, Object.values(r)]
+					'INSERT INTO resolutions ' +
+						'(comment_id, ??, LastModifiedTime) ' + 
+						'VALUE ((SELECT c.id FROM comments c JOIN ballots b ON b.id=c.ballot_id WHERE b.BallotID=? AND c.CommentID=?), ?, NOW())',
+					[Object.keys(r), ballotId, commentId, Object.values(r)]
 				)
 			})
 		)
@@ -349,7 +395,7 @@ function addCommentsSQL(ballotId, sheetComments, toUpdate) {
 	return SQL;
 }
 
-export async function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, file) {
+export async function uploadResolutions(userId, ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, file) {
 
 	toUpdate.forEach(f => {
 		if (!Object.values(FieldsToUpdate).includes(f)) {
@@ -379,7 +425,7 @@ export async function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matc
 	//console.log(matched.length, dbCommentsRemaining.length, sheetCommentsRemaining.length)
 
 	const t4 = Date.now();
-	let SQL;
+	let SQL, updated = 0;
 	let unmatched = [], added = [], remaining = [];
 	if (matchUpdate === MatchUpdate.All) {
 		if (dbCommentsRemaining.length > 0) {
@@ -391,24 +437,25 @@ export async function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matc
 				sheetCommentsRemaining.map(c => c['CID']).join(', ')
 		}
 
-		SQL = updateCommentsSQL(ballotId, matched, toUpdate);
+		[SQL, updated] = updateCommentsSQL(userId, ballotId, matched, toUpdate);
 		matched = matched.map(m => m.dbComment.CommentID);
 		remaining = sheetCommentsRemaining.map(c => c['CID']);
 	}
 	else if (matchUpdate === MatchUpdate.Any) {
-		SQL = updateCommentsSQL(ballotId, matched, toUpdate);
+		[SQL, updated] = updateCommentsSQL(userId, ballotId, matched, toUpdate);
 		matched = matched.map(m => m.dbComment.CommentID);
 		unmatched = dbCommentsRemaining.map(c => c.CommentID);
 		remaining = sheetCommentsRemaining.map(c => c['CID']);
 	}
 	else if (matchUpdate === MatchUpdate.Add) {
-		SQL = addCommentsSQL(ballotId, sheetCommentsRemaining, toUpdate);
+		SQL = addCommentsSQL(userId, ballotId, sheetCommentsRemaining, toUpdate);
 		matched = [];
 		added = sheetCommentsRemaining.map(c => c['CID']);
 	}
+	console.log(SQL)
 	if (SQL)
 		SQL += ';'
-	SQL += db.format(GET_COMMENTS_SQL + 'WHERE b.BallotID=? ORDER BY c.CommentID;', [ballotId]);
+	SQL += db.format('SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID; ', [ballotId]);
 	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId]);
 	const t5 = Date.now();
 
@@ -433,7 +480,8 @@ export async function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matc
 		summary: results[results.length-1][0],
 		matched,
 		unmatched,
+		remaining,
 		added,
-		remaining
+		updated
 	}
 }

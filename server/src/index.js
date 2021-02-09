@@ -22,7 +22,7 @@ async function initSession() {
 	const sessionStore = new MySQLStore({}, db.getPool());
 	return expressSession({
 		//name: 'id42',
-		secret: 'random_string_goes_here',
+		secret: process.env.SESSION_SECRET || 'i lick cats',
 		resave: false,
 		saveUninitialized: true,
 		//cookie: { secure: true }
@@ -70,7 +70,7 @@ function initServer(session) {
 
 	app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'app', 'index.html')));
 	app.use(express.static(path.join(__dirname, 'app')));
-	app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'app', 'index.html')));
+	app.get('*', (req, res) => res.redirect('/'));
 
 	app.listen(app.get('port'), () => {
 		console.log('App listening on port %s', app.get('port'))

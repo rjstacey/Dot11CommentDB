@@ -45,8 +45,9 @@ export function filterData(data, filters) {
 }
 
 /* Exact match
+ * Exact if truthy true, but any truthy false will match
  */
-const cmpExact = (d, val) => d === val
+const cmpExact = (d, val) => d? d === val: !val;
 
 /* Clause match
  */

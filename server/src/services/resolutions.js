@@ -48,16 +48,15 @@ async function addResolution(userId, resolution) {
 		comment_id: resolution.comment_id,
 		ResolutionID: resolutionId,
 		ResnStatus: resolution.ResnStatus,
-		Resolution: resolution.Resolution || '',
+		Resolution: resolution.Resolution,
 		AssigneeSAPIN: resolution.AssigneeSAPIN,
 		AssigneeName: resolution.AssigneeName,
 		Submission: resolution.Submission,
 		ReadyForMotion: resolution.ReadyForMotion,
 		ApprovedByMotion: resolution.ApprovedByMotion,
 		EditStatus: resolution.EditStatus,
-		EditNotes: resolution.EditNotes || '',
+		EditNotes: resolution.EditNotes,
 		EditInDraft: resolution.EditInDraft,
-		Notes: resolution.Notes || ''
 	}
 	for (let key of Object.keys(entry)) {
 		if (entry[key] === undefined) {
@@ -98,8 +97,7 @@ function updateResolutionSQL(userId, resolution) {
 		ApprovedByMotion: resolution.ApprovedByMotion,
 		EditStatus: resolution.EditStatus,
 		EditNotes: resolution.EditNotes,
-		EditInDraft: resolution.EditInDraft,
-		Notes: resolution.Notes
+		EditInDraft: resolution.EditInDraft
 	}
 	for (let key of Object.keys(entry)) {
 		if (entry[key] === undefined) {
@@ -139,14 +137,14 @@ export async function deleteResolutions(userId, resolutions) {
 	return {comments}
 }
 
-async function exportResolutionsForMyProject(ballotId, filename, file, res) {
+export async function exportResolutionsForMyProject(ballotId, filename, file, res) {
 	
 	const comments = await db.query(
-		GET_COMMENTS_SQL + 
-			"WHERE b.BallotID=? " +
-				"AND r.ApprovedByMotion IS NOT NULL AND r.ApprovedByMotion <> '' " +
-				"AND r.ResnStatus IS NOT NULL AND r.ResnStatus <> ''" +
-			"ORDER BY c.CommentID;",
+		"SELECT * FROM commentResolutions " + 
+			"WHERE BallotID=? " +
+				"AND ApprovedByMotion IS NOT NULL AND ApprovedByMotion <> '' " +
+				"AND ResnStatus IS NOT NULL AND ResnStatus <> '' " +
+			"ORDER BY CommentID, ResolutionID;",
 		[ballotId]
 	);
 
@@ -155,17 +153,16 @@ async function exportResolutionsForMyProject(ballotId, filename, file, res) {
 	res.end()
 }
 
-async function exportSpreadsheet(ballotId, filename, file, res) {
-	
-	const [comments, ballots] = await db.query(
-		GET_COMMENTS_SQL +
-			"WHERE b.BallotID=? ORDER BY c.CommentID;" +
-			"SELECT Document FROM ballots WHERE BallotID=?;",
-		[ballotId, ballotId]
-	);
+export async function exportSpreadsheet(user, ballotId, format, filename, file, res) {
+	console.log(ballotId, format, filename, file)
+	const SQL =
+		db.format('SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID; ', [ballotId]) +
+		db.format('SELECT Document FROM ballots WHERE BallotID=?;', [ballotId]);
+
+	const [comments, ballots] = await db.query(SQL);
 	const doc = ballots.length > 0? ballots[0].Document: ''
 
 	res.attachment(filename || 'comments.xlsx')
-	await genLegacyCommentSpreadsheet(ballotId, doc, comments, file, res)
+	await genLegacyCommentSpreadsheet(user, ballotId, format, doc, comments, file, res)
 	res.end()
 }

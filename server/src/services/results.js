@@ -1,12 +1,13 @@
 'use strict';
 
-const db = require('../util/database')
-const rp = require('request-promise-native')
-
 import {parseEpollResultsCsv} from './ePollCSV'
 import {parseEpollResultsHtml} from './ePollHTML'
 import {parseMyProjectResults} from './myProjectSpreadsheets'
 import {genResultsSpreadsheet} from './resultsSpreadsheet'
+import {AccessLevel} from '../auth/access'
+
+const db = require('../util/database')
+const rp = require('request-promise-native')
 
 function appendStr(toStr, str) {
 	if (typeof toStr === 'string') {
@@ -342,7 +343,7 @@ export const BallotType = {
 	Motion: 5		// motion
 };
 
-export async function getResults(ballotId) {
+export async function getResults(user, ballotId) {
 
 	async function recursiveBallotSeriesGet(ballotSeries, ballotId) {
 		const [ballots, results] = await db.query(
@@ -423,6 +424,14 @@ export async function getResults(ballotId) {
 	delete ballot.ResultsSummary;
 	delete ballot.results;
 	//console.log(ballot)
+
+	if (user.Access < AccessLevel.WGAdmin) {
+		// Strip email addresses if user has insufficient karma
+		results.forEach(r => {
+			delete r.Email;
+		});
+	}
+
 	return {
 		BallotID: ballotId,
 		VotingPoolID: votingPoolId,
@@ -442,7 +451,7 @@ export function deleteResults(ballotId) {
 	);
 }
 
-async function insertResults(ballotId, pollResults) {
+async function insertResults(user, ballotId, pollResults) {
 	const result = await db.query('SELECT id FROM ballots WHERE BallotID=?', [ballotId]);
 	if (result.length === 0)
 		throw `Ballot ${ballotId} does not exist`;
@@ -451,25 +460,25 @@ async function insertResults(ballotId, pollResults) {
 	let SQL = db.format('DELETE FROM results WHERE ballot_id=?;', ballot_id);
 	if (pollResults.length)
 		SQL +=
-			`INSERT INTO results (ballot_id, BallotID, ${Object.keys(pollResults[0])}) VALUES` +
-			pollResults.map(c => `(${ballot_id}, ${db.escape(ballotId)}, ${db.escape(Object.values(c))})`).join(',') +
+			`INSERT INTO results (ballot_id, ${Object.keys(pollResults[0])}) VALUES` +
+			pollResults.map(c => `(${ballot_id}, ${db.escape(Object.values(c))})`).join(',') +
 			';'
 	await db.query(SQL);
-	return getResults(ballotId);
+	return getResults(user, ballotId);
 }
 
-export async function importEpollResults(sess, ballotId, epollNum) {
+export async function importEpollResults(ieeeCookieJar, user, ballotId, epollNum) {
 
 	const p1 = rp.get({
 		url: `https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`,
-		jar: sess.ieeeCookieJar,
+		jar: ieeeCookieJar,
 		resolveWithFullResponse: true,
 		simple: false
 	});
 
 	const p2 = rp.get({
 		url: `https://mentor.ieee.org/802.11/poll-status?p=${epollNum}`,
-		jar: sess.ieeeCookieJar,
+		jar: ieeeCookieJar,
 		resolveWithFullResponse: true,
 		simple: false
 	});
@@ -489,39 +498,39 @@ export async function importEpollResults(sess, ballotId, epollNum) {
 		r.Affiliation = h? h.Affiliation: ''
 	});
 
-	return insertResults(ballotId, pollResults);
+	return insertResults(user, ballotId, pollResults);
 }
 
-export async function uploadEpollResults(ballotId, file) {
+export async function uploadEpollResults(user, ballotId, file) {
 	const pollResults = parseEpollResultsCsv(file.buffer)
-	return insertResults(ballotId, pollResults);
+	return insertResults(user, ballotId, pollResults);
 }
 
-export async function uploadMyProjectResults(ballotId, file) {
+export async function uploadMyProjectResults(user, ballotId, file) {
 	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1
 	const pollResults = await parseMyProjectResults(file.buffer, isExcel)
-	return insertResults(ballotId, pollResults);
+	return insertResults(user, ballotId, pollResults);
 }
 
-export async function exportResults(params, res) {
+export async function exportResults(user, params, res) {
 	let results
 	let fileNamePrefix = ''
 	if (params.hasOwnProperty('BallotID')) {
 		const ballotId = params.BallotID
 		fileNamePrefix = ballotId
-		const result = await getResults(ballotId)
+		const result = await getResults(user, ballotId)
 		results = [result]	// turn parameter into an array
 	}
 	else if (params.hasOwnProperty('BallotIDs')) {
 		const ballotIds = params.BallotIDs
 		fileNamePrefix = ballotIds.join('_')
-		results = await Promise.all(ballotIds.map(ballotId => getResults(ballotId)))
+		results = await Promise.all(ballotIds.map(ballotId => getResults(user, ballotId)))
 	}
 	else if (params.hasOwnProperty('Project')) {
 		const project = params.Project
 		fileNamePrefix = project
 		results = await db.query('SELECT BallotID FROM ballots WHERE Project=?', [project])
-		results = await Promise.all(results.map(r => getResults(r.BallotID)))
+		results = await Promise.all(results.map(r => getResults(user, r.BallotID)))
 	}
 	else {
 		throw 'Missing parameter BallotID, BallotIDs or Project'

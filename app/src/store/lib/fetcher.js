@@ -97,7 +97,6 @@ methods.postForFile = async (url, params, file) => {
 				filename = m[1]
 			}
 		}
-		console.log('save as', filename)
 		saveAs(await res.blob(), filename)
 		return filename
 	}

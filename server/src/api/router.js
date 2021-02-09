@@ -6,6 +6,8 @@
 
 'use strict'
 
+import {AccessLevel} from '../auth/access'
+
 const multer = require('multer')
 const upload = multer()
 const router = require('express').Router()
@@ -15,25 +17,44 @@ const router = require('express').Router()
  */
 router.all('*', (req, res, next) => {
 	const {access} = req.session
+
 	switch (req.method) {
-	case 'GET':
-		// Certain data is sensitive (has email addresses, etc.)
-		if (req.path.match(/^\/votingPool|^\/voters/i)) {
-			console.log('validate access')
-			if (access <= 1) {	// Need read access
-				return next('Insufficient karma')
-			}
-		}
-		break
+	case 'GET': /* read */
+		/* public has read access to ballots, comments and resolutions */
+		if (req.path.match(/^\/ballot|^\/votingPools|^\/comment|^\/resolution/i))
+			return next();
+		/* members have read access to users */
+		if (req.path.match(/^\/users/i) && access >= AccessLevel.Member)
+			return next();
+		/* subgroup admins have read access to results */
+		if (req.path.match(/^\/result/i) && access >= AccessLevel.SubgroupAdmin)
+			return next();
+		break;
+
+	case 'POST': /* add */
+	case 'DELETE': /* delete */
+		if (req.path.match(/^\/comment|^\/resolution/i) && access >= AccessLevel.SubgroupAdmin)
+			return next();
+		if (req.path.match(/^\/ballot/i) && access >= AccessLevel.WGAdmin)
+			return next();
+		break;
+
 	case 'PUT':
-	case 'POST':
-	case 'DELETE':
-		if (access <= 2) {	// Need write access
-			return next('Insufficient karma')
-		}
-		break
+	case 'PATCH': /* modify existing */
+		if (req.path.match(/^\/resolution/i) && access >= AccessLevel.Member)
+			return next();
+		if (req.path.match(/^\/comment/i) && access >= AccessLevel.SubgroupAdmin)
+			return next();
+		if (req.path.match(/^\/ballot/i) && access >= AccessLevel.WGAdmin)
+			return next();
+		break;
 	}
-	next()
+
+	/* WG admin can do anything */
+	if (access === AccessLevel.WGAdmin)
+		return next();
+
+	return res.status(403).send('Insufficient karma');
 })
 
 /*
@@ -57,7 +78,9 @@ import {
 
 router.get('/users', async (req, res, next) => {
 	try {
-		res.json(await getUsers())
+		const user = req.session.user;
+		const data = await getUsers(user);
+		res.json(data);
 	}
 	catch(err) {next(err)}
 })
@@ -114,9 +137,17 @@ import {
 
 router.get('/results/:ballotId', async (req, res, next) => {
 	try {
+		const user = req.session.user;
 		const {ballotId} = req.params
-		const data = await getResults(ballotId)
+		const data = await getResults(user, ballotId)
 		res.json(data)
+	}
+	catch(err) {next(err)}
+})
+router.get('/resultsExport', (req, res, next) => {
+	try {
+		const user = req.session.user;
+		exportResults(user, req.query, res)
 	}
 	catch(err) {next(err)}
 })
@@ -130,39 +161,32 @@ router.delete('/results/:ballotId', async (req, res, next) => {
 })
 router.post('/results/importFromEpoll/:ballotId/:epollNum', async (req, res, next) => {
 	try {
-		const sess = req.session
-		if (sess.access <= 1) {
-			throw 'Insufficient karma'
-		}
+		const {ieeeCookieJar, user} = req.session
 		const {ballotId, epollNum} = req.params
-		const data = await importEpollResults(sess, ballotId, epollNum)
+		const data = await importEpollResults(ieeeCookieJar, user, ballotId, epollNum)
 		res.json(data)
 	}
 	catch(err) {next(err)}
 })
 router.post('/results/uploadEpollResults/:ballotId', upload.single('ResultsFile'), async (req, res, next) => {
 	try {
+		const {user} = req.session
 		const {ballotId} = req.params
 		if (!req.file)
 			throw 'Missing file'
-		const data = await uploadEpollResults(ballotId, req.file)
+		const data = await uploadEpollResults(user, ballotId, req.file)
 		res.json(data)
 	}
 	catch(err) {next(err)}
 })
 router.post('/results/uploadMyProjectResults/:ballotId', upload.single('ResultsFile'), async (req, res, next) => {
 	try {
+		const {user} = req.session
 		const {ballotId} = req.params
 		if (!req.file)
 			throw 'Missing file'
-		const data = await uploadMyProjectResults(ballotId, req.file)
+		const data = await uploadMyProjectResults(user, ballotId, req.file)
 		res.json(data)
-	}
-	catch(err) {next(err)}
-})
-router.get('/exportResults', (req, res, next) => {
-	try {
-		exportResults(req.query, res)
 	}
 	catch(err) {next(err)}
 })
@@ -304,7 +328,7 @@ router.post('/comments/importFromEpoll/:ballotId/:epollNum', async (req, res, ne
 		const sess = req.session;
 		const {ballotId, epollNum} = req.params;
 		const startCommentId = req.body.StartCID || 1;
-		data = await importEpollComments(sess.ieeeCookieJar, sess.user.SAPIN, ballotId, epollNum, startCommentId);
+		const data = await importEpollComments(sess.ieeeCookieJar, sess.user.SAPIN, ballotId, epollNum, startCommentId);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -331,65 +355,65 @@ import {
 } from '../services/resolutions'
 import {uploadResolutions} from '../services/uploadResolutions'
 
-router.post('/resolutions', async (req, res, next) => {
+router.post('/resolutions$', async (req, res, next) => {
 	try {
+		const {user} = req.session;
 		if (!req.body.hasOwnProperty('resolutions'))
 			throw 'Missing resolutions parameter'
 		const {resolutions} = req.body
 		if (!Array.isArray(resolutions))
 			throw 'Expect an array for resolutions parameter'
-		const data = await addResolutions(req.session.user.SAPIN, resolutions)
+		const data = await addResolutions(user.SAPIN, resolutions)
 		res.json(data)
 	}
 	catch(err) {next(err)}
 })
-router.put('/resolutions', async (req, res, next) => {
+router.put('/resolutions$', async (req, res, next) => {
 	try {
+		const {user} = req.session;
 		if (!req.body.hasOwnProperty('resolutions'))
 			throw 'Missing resolutions parameter'
 		const {resolutions} = req.body
 		if (!Array.isArray(resolutions))
 			throw 'Expect an array for resolutions parameter'
-		const data = await updateResolutions(req.session.user.SAPIN, resolutions)
+		const data = await updateResolutions(user.SAPIN, resolutions)
 		res.json(data)
 	}
 	catch(err) {next(err)}
 })
-router.delete('/resolutions', async (req, res, next) => {
+router.delete('/resolutions$', async (req, res, next) => {
 	try {
+		const {user} = req.session;
 		if (!req.body.hasOwnProperty('resolutions'))
 			throw 'Missing resolutions parameter'
 		const {resolutions} = req.body
 		if (!Array.isArray(resolutions))
 			throw 'Expect an array for resolutions parameter'
-		const data = await deleteResolutions(req.session.user.SAPIN, resolutions)
+		const data = await deleteResolutions(user.SAPIN, resolutions)
 		res.json(data)
 	}
 	catch(err) {next(err)}
 })
-router.post('/uploadResolutions/:ballotId', upload.single('ResolutionsFile'), async (req, res, next) => {
+router.post('/resolutions/upload/:ballotId', upload.single('ResolutionsFile'), async (req, res, next) => {
 	try {
+		const {user} = req.session;
 		const {ballotId} = req.params
-		if (!req.body.params) {
+		if (!req.body.params)
 			throw 'Missing parameters'
-		}
 		const {toUpdate, matchAlgorithm, matchUpdate, sheetName} = JSON.parse(req.body.params)
-		if (!Array.isArray(toUpdate)) {
+		if (!Array.isArray(toUpdate))
 			throw 'Missing or invalid parameter toUpdate'
-		}
-		if (!matchAlgorithm || typeof matchAlgorithm !== 'string') {
+		if (!matchAlgorithm || typeof matchAlgorithm !== 'string')
 			throw 'Missing or invalid parameter matchAlgorithm'
-		}
-		if (!matchUpdate || typeof matchUpdate !== 'string') {
+		if (!matchUpdate || typeof matchUpdate !== 'string')
 			throw 'Missing or invalid parameter matchUpdate'
-		}
-		if (!ballotId || typeof ballotId !== 'string') {
+		if (!ballotId || typeof ballotId !== 'string')
 			throw 'Missing or invalid parameter BallotID'
-		}
-		if (!req.file) {
+		if (!req.file)
 			throw 'Missing file'
-		}
-		const data = await uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, req.file)
+
+		const data = await uploadResolutions(user.SAPIN, ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, req.file);
+
 		res.json(data)
 	}
 	catch(err) {next(err)}
@@ -405,14 +429,13 @@ router.post('/comments/exportForMyProject', upload.single('file'), (req, res, ne
 	return exportResolutionsForMyProject(BallotID, Filename, req.file, res).catch(err => next(err))
 })
 router.post('/comments/exportSpreadsheet', upload.single('file'), (req, res, next) => {
-	const {BallotID, Filename} = JSON.parse(req.body.params)
-	if (!BallotID) {
+	const {user} = req.session;
+	const {BallotID, Format, Filename} = JSON.parse(req.body.params)
+	if (!BallotID)
 		return next('Missing parameter BallotID')
-	}
-	if (!req.file) {
-		return next('Missing file')
-	}
-	return exportSpreadsheet(BallotID, Filename, req.file, res).catch(err => next(err))
+	if (!Format)
+		return next('Missing parameter Format')
+	return exportSpreadsheet(user, BallotID, Format, Filename, req.file, res).catch(err => next(err))
 })
 
 /*
@@ -420,10 +443,13 @@ router.post('/comments/exportSpreadsheet', upload.single('file'), (req, res, nex
  */
 import {getCommentsHistory} from '../services/commentsHistory';
 
-router.get('/commentsHistory/:comment_id', (req, res, next) => {
-	const {comment_id} = req.params
-	return getCommentsHistory(comment_id)
-		.then(data => res.json(data), err => next(err))
+router.get('/commentsHistory/:comment_id', async (req, res, next) => {
+	try {
+		const {comment_id} = req.params
+		const data = await getCommentsHistory(comment_id);
+		res.json(data)
+	}
+	catch(err) {next(err)}
 });
 
 /*
@@ -438,12 +464,9 @@ import {
 	deleteVoters,
 	uploadVoters
 } from '../services/voters'
+
 router.get('/votingPools', async (req, res, next) => {
 	try {
-		const {access} = req.session
-		if (access <= 1) {
-			throw 'Insufficient karma'
-		}
 		const data = await getVotingPools()
 		res.json(data)
 	}
@@ -451,14 +474,9 @@ router.get('/votingPools', async (req, res, next) => {
 })
 router.delete('/votingPools', async (req, res, next) => {
 	try {
-		const {access} = req.session
-		if (access <= 2) {
-			throw 'Insufficient karma'
-		}
 		const votingPools = req.body
-		if (!Array.isArray(votingPools)) {
+		if (!Array.isArray(votingPools))
 			throw "Array parameter missing"
-		}
 		const data = deleteVotingPools(votingPools)
 		res.json(data)
 	}
@@ -466,10 +484,6 @@ router.delete('/votingPools', async (req, res, next) => {
 })
 router.get('/voters/:votingPoolType(SA|WG)/:votingPoolId', async (req, res, next) => {
 	try {
-		const {access} = req.session
-		if (access <= 1) {
-			throw 'Insufficient karma'
-		}
 		const {votingPoolType, votingPoolId} = req.params
 		const data = await getVoters(votingPoolType, votingPoolId)
 		res.json(data)
@@ -478,10 +492,6 @@ router.get('/voters/:votingPoolType(SA|WG)/:votingPoolId', async (req, res, next
 })
 router.post('/voter/:votingPoolType(SA|WG)/:votingPoolId', async (req, res, next) => {
 	try {
-		const {access} = req.session
-		if (access <= 2) {
-			throw 'Insufficient karma'
-		}
 		const {votingPoolType, votingPoolId} = req.params
 		const voter = req.body
 		const data = await addVoter(votingPoolType, votingPoolId, voter)
@@ -491,10 +501,6 @@ router.post('/voter/:votingPoolType(SA|WG)/:votingPoolId', async (req, res, next
 })
 router.put('/voter/:votingPoolType(SA|WG)/:votingPoolId/:voterId', async (req, res, next) => {
 	try {
-		const {access} = req.session
-		if (access <= 2) {
-			throw 'Insufficient karma'
-		}
 		const {votingPoolType, votingPoolId, voterId} = req.params
 		const voter = req.body
 		const data = await updateVoter(votingPoolType, votingPoolId, voterId, voter)
@@ -504,10 +510,6 @@ router.put('/voter/:votingPoolType(SA|WG)/:votingPoolId/:voterId', async (req, r
 })
 router.delete('/voters/:votingPoolType(SA|WG)/:votingPoolId', async (req, res, next) => {
 	try {
-		const {access} = req.session
-		if (access <= 2) {
-			throw 'Insufficient karma'
-		}
 		const {votingPoolType, votingPoolId} = req.params
 		const voterIds = votingPoolType === 'SA'? req.body.Emails: req.body.SAPINs
 		const data = await deleteVoters(votingPoolType, votingPoolId, voterIds)
@@ -518,9 +520,8 @@ router.delete('/voters/:votingPoolType(SA|WG)/:votingPoolId', async (req, res, n
 router.post('/votersUpload/:votingPoolType(SA|WG)/:votingPoolId', upload.single('VotersFile'), async (req, res, next) => {
 	try {
 		const {votingPoolType, votingPoolId} = req.params
-		if (!req.file) {
+		if (!req.file)
 			throw 'Missing file'
-		}
 		const data = await uploadVoters(votingPoolType, votingPoolId, req.file)
 		res.json(data)
 	}

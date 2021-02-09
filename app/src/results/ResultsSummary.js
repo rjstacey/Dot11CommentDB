@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import styled from '@emotion/styled'
-import {Handle} from '../general/Icons'
+import {Handle, IconCollapse} from '../general/Icons'
 
 import {BallotType} from '../store/actions/ballots'
 
@@ -106,6 +106,7 @@ const Container = styled.div`
 	position: relative;
 	display: flex;
 	justify-content: space-between;
+	align-items: center;
 	width: 100%;
 	padding: 0 10px 10px 10px;
 	box-sizing: border-box;
@@ -219,12 +220,9 @@ function ResultsSummary({
 		>
 			{showSummary?
 				<DetailedSummary ballot={ballot} summary={summary} />:
-				<BasicSummary ballot={ballot} summary={summary} />}
-			<Handle
-				style={{position: 'absolute', right: 0}}
-				open={showSummary}
-				onClick={() => setShowSummary(!showSummary)}
-			/>
+				<BasicSummary ballot={ballot} summary={summary} />
+			}
+			<IconCollapse isCollapsed={!showSummary} onClick={() => setShowSummary(!showSummary)} />
 		</Container>
 	)
 }

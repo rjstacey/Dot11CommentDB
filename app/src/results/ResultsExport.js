@@ -20,7 +20,7 @@ function _ResultsExportDropdown({close, ballot, setError}) {
 	async function submit(e) {
 		const params = forProject? {Project: project}: {BallotID: ballotId}
 		try {
-			await fetcher.getFile('/api/exportResults', params)
+			await fetcher.getFile('/api/resultsExport', params)
 		}
 		catch (error) {
 			setError(`Unable to export results for ${forProject? project: ballotId}`, error)

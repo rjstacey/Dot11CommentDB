@@ -79,6 +79,10 @@ async function login(req) {
 		}
 	}
 
+	/* Hack: adjust my access */
+	if (user.SAPIN === 5073)
+		user.Access = 3;
+
 	req.session.user = user
 	req.session.access = user.Access
 

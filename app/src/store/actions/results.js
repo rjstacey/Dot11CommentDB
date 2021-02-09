@@ -71,7 +71,7 @@ export function deleteResults(ballotId, ballot) {
 }
 
 const importResultsLocal = (ballotId) => {return {type: IMPORT_RESULTS, ballotId}}
-const importResultsSuccess = (data) => {return {type: IMPORT_RESULTS_SUCCESS, ...data}}
+const importResultsSuccess = (ballotId) => {return {type: IMPORT_RESULTS_SUCCESS, ballotId}}
 const importResultsFailure = (ballotId) => {return {type: IMPORT_RESULTS_FAILURE, ballotId}}
 
 export function importResults(ballotId, epollNum) {

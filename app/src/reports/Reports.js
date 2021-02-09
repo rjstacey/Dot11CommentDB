@@ -114,7 +114,7 @@ function renderTable(data, ref) {
 }
 
 function Reports(props) {
-	const {comments, loading, valid, commentBallotId, setBallotId, getComments} = props;
+	const {comments, loading, valid, commentsBallotId, setBallotId, getComments} = props;
 	const history = useHistory();
 	const {ballotId} = useParams();
 	const [report, setReport] = React.useState('');
@@ -128,14 +128,15 @@ function Reports(props) {
 				setBallotId(ballotId)
 				getComments(ballotId)
 			}
-			else if (!loading && (!valid || commentBallotId !== ballotId)) {
+			else if (!loading && (!valid || commentsBallotId !== ballotId)) {
+				console.log('load', loading, valid, commentsBallotId)
 				getComments(ballotId)
 			}
 		}
 		else if (props.ballotId) {
 			history.replace(`/Reports/${props.ballotId}`)
 		}
-	}, [ballotId, setBallotId, props.ballotId, commentBallotId, loading, valid, getComments, history])
+	}, [ballotId, setBallotId, props.ballotId, commentsBallotId, loading, valid, getComments, history])
 
 	const data = React.useMemo(() => {
 		if (report === 'commentsbyassignee')
@@ -178,7 +179,9 @@ function Reports(props) {
 	return (
 		<React.Fragment>
 			{topRow}
-			{renderTable(data, tableRef)}
+			<div style={{flex: 1, overflow: 'auto'}}>
+				{renderTable(data, tableRef)}
+			</div>
 		</React.Fragment>
 	)
 }

@@ -7,8 +7,8 @@ import AdHocSelector from './AdHocSelector'
 import CommentGroupSelector from './CommentGroupSelector'
 import AssigneeSelector from './AssigneeSelector'
 import SubmissionSelector from './SubmissionSelector'
-import {ResolutionEditor} from './ResolutionEditor'
-import {ActionButton, VoteYesIcon, VoteNoIcon} from '../general/Icons'
+import {editorCss, ResolutionEditor} from './ResolutionEditor'
+import {ActionButton, VoteYesIcon, VoteNoIcon, IconCollapse} from '../general/Icons'
 import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from '../general/Form'
 import {shallowDiff} from '../lib/utils'
 import {debounce} from '../lib/utils'
@@ -16,6 +16,7 @@ import {debounce} from '../lib/utils'
 import {addResolutions, updateResolutions, deleteResolutions, updateComments} from '../store/actions/comments'
 import {uiSetProperty} from '../store/actions/ui'
 import {getDataMap} from '../store/selectors/dataMap'
+import {AccessLevel} from '../store/actions/login'
 
 const MULTIPLE = '<multiple>';
 const isMultiple = (value) => value === MULTIPLE;
@@ -85,31 +86,60 @@ const renderTextBlock = (value) => {
 	)
 }
 
-const Categorization = ({resolution, setResolution, readOnly}) =>
-	<Row>
-		<Col>
-			<Field label='Ad-hoc:'>
-				<AdHocSelector
-					style={{flexBasis: 150}}
-					value={isMultiple(resolution.AdHoc)? '': resolution.AdHoc || ''}
-					onChange={value => setResolution({AdHoc: value})}
-					placeholder={isMultiple(resolution.AdHoc)? MULTIPLE_STR: BLANK_STR}
-					readOnly={readOnly}
-				/>
-			</Field>
-		</Col>
-		<Col>
-			<Field label='Comment group:'>
-				<CommentGroupSelector
-					style={{flexBasis: 300}}
-					value={isMultiple(resolution.CommentGroup)? '': resolution.CommentGroup || ''}
-					onChange={value => setResolution({CommentGroup: value})}
-					placeholder={isMultiple(resolution.CommentGroup)? MULTIPLE_STR: BLANK_STR}
-					readOnly={readOnly}
-				/>
-			</Field>
-		</Col>
-	</Row>
+const ResolutionContainer = styled.div`
+	${editorCss}
+	background-color: ${({color}) => color};
+`;
+
+const Categorization = ({resolution, setResolution, readOnly, showNotes, toggleShowNotes}) =>
+	<React.Fragment>
+		<Row>
+			<Col>
+				<Field label='Ad-hoc:'>
+					<AdHocSelector
+						style={{flexBasis: 150}}
+						value={isMultiple(resolution.AdHoc)? '': resolution.AdHoc || ''}
+						onChange={value => setResolution({AdHoc: value})}
+						placeholder={isMultiple(resolution.AdHoc)? MULTIPLE_STR: BLANK_STR}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Col>
+			<Col>
+				<Field label='Comment group:'>
+					<CommentGroupSelector
+						style={{flexBasis: 300}}
+						value={isMultiple(resolution.CommentGroup)? '': resolution.CommentGroup || ''}
+						onChange={value => setResolution({CommentGroup: value})}
+						placeholder={isMultiple(resolution.CommentGroup)? MULTIPLE_STR: BLANK_STR}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Col>
+		</Row>
+		<Row>
+			<Col
+				style={{
+					width: '100%',
+					position: 'relative',	// position toolbar
+					paddingTop: 15			// make room for toolbar
+				}}
+			>
+				<div style={{display: 'flex', flex: 1, justifyContent: 'space-between'}}>
+					<label>Notes:</label>
+					<IconCollapse isCollapsed={!showNotes} onClick={toggleShowNotes} />
+				</div>
+				{showNotes &&
+					<StyledResolutionEditor
+						value={isMultiple(resolution.Notes)? '': resolution.Notes}
+						onChange={value => setResolution({Notes: value})}
+						placeholder={isMultiple(resolution.Notes)? MULTIPLE_STR: BLANK_STR}
+						readOnly={readOnly}
+					/>
+				}
+			</Col>
+		</Row>
+	</React.Fragment>
 
 const Column1 = ({
 	style,
@@ -279,7 +309,13 @@ const resnColor = {
 	'J': '#f3c0c0'
 }
 
-const Resolution = ({resolution, setResolution, showEditing, setShowEditing, readOnly}) =>
+const EditContainer = styled.div`
+	background-color: #fafafa;
+	border: 1px solid #ddd;
+	border-radius: 0 5px 5px 5px;
+`;
+
+const Resolution = ({resolution, setResolution, showEditing, toggleShowEditing, readOnly}) =>
 	<React.Fragment>
 		<Row>
 			<Column1
@@ -316,13 +352,35 @@ const Resolution = ({resolution, setResolution, showEditing, setShowEditing, rea
 				/>
 			</Col>
 		</Row>
-		<OtherTabs
-			resolution={resolution}
-			setResolution={setResolution}
-			showEditing={showEditing}
-			setShowEditing={setShowEditing}
-			readOnly={readOnly}
-		/>
+		<Row>
+			<Col
+				style={{
+					width: '100%',
+					position: 'relative',	// position toolbar
+					paddingTop: 15			// make room for toolbar
+				}}
+			>
+				<div style={{display: 'flex', flex: 1, justifyContent: 'space-between'}}>
+					<label>Editing:</label>
+					<IconCollapse isCollapsed={!showEditing} onClick={toggleShowEditing} />
+				</div>
+				{showEditing &&
+					<EditContainer>
+						<EditStatus
+							resolution={resolution}
+							setResolution={setResolution}
+							readOnly={readOnly}
+						/>
+						<ResolutionEditor
+							value={isMultiple(resolution.EditNotes)? '': resolution.EditNotes}
+							onChange={value => setResolution({EditNotes: value})}
+							placeholder={isMultiple(resolution.EditNotes)? MULTIPLE_STR: BLANK_STR}
+							readOnly={readOnly}
+						/>
+					</EditContainer>
+				}
+			</Col>
+		</Row>
 	</React.Fragment>
 
 const StyledResnStatus = styled(ResnStatus)`
@@ -463,7 +521,8 @@ const StyledTabs = styled(Tabs)`
 	}
 `;
 
-const OtherTabs = ({resolution, setResolution, showEditing, setShowEditing, readOnly}) =>
+/*
+const OtherTabs = ({resolution, setResolution, showEditing, toggleShowEditing, readOnly}) =>
 	<StyledTabs
 		selectedIndex={showEditing? 1: 0}
 		onSelect={index => setShowEditing(index === 1)}
@@ -495,14 +554,16 @@ const OtherTabs = ({resolution, setResolution, showEditing, setShowEditing, read
 		</TabPanel>
 
 	</StyledTabs>
-
+*/
 
 export function Comment({
 	cids,
 	resolution,
 	setResolution,
+	showNotes,
+	toggleShowNotes,
 	showEditing,
-	setShowEditing,
+	toggleShowEditing,
 	readOnly
 }) {
 	const comment = resolution
@@ -533,13 +594,15 @@ export function Comment({
 				resolution={resolution}
 				setResolution={setResolution}
 				readOnly={readOnly}
+				showNotes={showNotes}
+				toggleShowNotes={toggleShowNotes}
 			/>
 			{resolution.ResolutionID !== null &&
 				<Resolution
 					resolution={resolution}
 					setResolution={setResolution}
 					showEditing={showEditing}
-					setShowEditing={setShowEditing}
+					toggleShowEditing={toggleShowEditing}
 					readOnly={readOnly}
 				/>
 			}
@@ -610,6 +673,7 @@ class CommentDetail extends React.PureComponent {
 		super(props)
 		this.state = this.initState(props);
 		this.save = debounce(this.doSave, 500);
+		this.readOnly = this.props.readOnly || this.props.access < AccessLevel.SubgroupAdmin;
 	}
 
 	componentWillUnmount() {
@@ -636,7 +700,10 @@ class CommentDetail extends React.PureComponent {
 	}
 
 	doResolutionUpdate = (fields) => {
-		console.log('do update', fields)
+		if (this.readOnly) {
+			console.warn("Update in read only component")
+			return;
+		}
 		this.setState((state, props) => {
 			const editedResolution = {...state.editedResolution, ...fields}
 			this.save(state.origResolution, editedResolution, state.comments)
@@ -649,14 +716,13 @@ class CommentDetail extends React.PureComponent {
 	}
 
 	doSave = (origResolution, editedResolution, comments) => {
-		console.log('save')
 		const r = origResolution
 		const d = shallowDiff(r, editedResolution)
 		const commentUpdates = [], resolutionUpdates = [], resolutionAdds = [];
 		for (let c of comments) {
 			let commentUpdate = {}, resolutionUpdate = {};
 			for (let k in d) {
-				if (k === 'AdHoc' || k === 'CommentGroup')
+				if (k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes')
 					commentUpdate[k] = d[k]
 				else
 					resolutionUpdate[k] = d[k]
@@ -715,6 +781,7 @@ class CommentDetail extends React.PureComponent {
  	handleToggleEditComment = () => this.props.setUiEditComment(!this.props.uiEditComment);
 
 	render() {
+		const {style, className, access} = this.props;
 
 		let notAvailableStr
 		if (this.props.loading) {
@@ -727,32 +794,34 @@ class CommentDetail extends React.PureComponent {
 
 		return(
 			<CommentDetailContainer
-				style={this.props.style}
-				className={this.props.className}
+				style={style}
+				className={className}
 			>
 				<TopRow>
 					<span></span>
-					<span>
-						<ActionButton
-							name='edit'
-							title='Edit resolution'
-							disabled={disableButtons}
-							isActive={this.props.uiEditComment}
-							onClick={this.handleToggleEditComment}
-						/>
-						<ActionButton
-							name='add'
-							title='Create alternate resolution'
-							disabled={disableButtons}
-							onClick={this.handleAddResolutions}
-						/>
-						<ActionButton
-							name='delete'
-							title='Delete resolution'
-							disabled={disableButtons}
-							onClick={this.handleDeleteResolutions}
-						/>
-					</span>
+					{!this.readOnly &&
+						<span>
+							<ActionButton
+								name='edit'
+								title='Edit resolution'
+								disabled={disableButtons}
+								isActive={this.props.uiEditComment}
+								onClick={this.handleToggleEditComment}
+							/>
+							<ActionButton
+								name='add'
+								title='Create alternate resolution'
+								disabled={disableButtons}
+								onClick={this.handleAddResolutions}
+							/>
+							<ActionButton
+								name='delete'
+								title='Delete resolution'
+								disabled={disableButtons}
+								onClick={this.handleDeleteResolutions}
+							/>
+						</span>
+					}
 				</TopRow>
 				
 				{notAvailableStr?
@@ -763,9 +832,11 @@ class CommentDetail extends React.PureComponent {
 						cids={this.state.comments.map(c => c.CID)}
 						resolution={this.state.editedResolution}
 						setResolution={this.doResolutionUpdate}
-						showEditing={this.props.uiEditingTabSelected}
-						setShowEditing={this.props.setUiEditingTabSelected}
-						readOnly={!this.props.uiEditComment}
+						showNotes={this.props.uiShowNotes}
+						toggleShowNotes={() => this.props.setUiShowNotes(!this.props.uiShowNotes)}
+						showEditing={this.props.uiShowEditing}
+						toggleShowEditing={() => this.props.setUiShowEditing(!this.props.uiShowEditing)}
+						readOnly={this.readOnly || !this.props.uiEditComment}
 					/>
 				}
 			</CommentDetailContainer>
@@ -775,21 +846,27 @@ class CommentDetail extends React.PureComponent {
 
 const dataSet = 'comments'
 export default connect(
-	(state, ownProps) => ({
-		ballotId: state[dataSet].ballotId,
-		comments: state[dataSet].comments,
-		commentsMap: getDataMap(state, dataSet),
-		loading: state[dataSet].loading,
-		selected: state[dataSet].selected,
-		uiEditingTabSelected: state[dataSet].ui['showEditing'],
-		uiEditComment: state[dataSet].ui['editComment']
-	}),
+	(state, ownProps) => {
+		const user = state.login.user;
+		const data = state[dataSet];
+		return {
+			ballotId: data.ballotId,
+			comments: data.comments,
+			commentsMap: getDataMap(state, dataSet),
+			loading: data.loading,
+			selected: data.selected,
+			uiShowNotes: data.ui['showNotes'],
+			uiShowEditing: data.ui['showEditing'],
+			uiEditComment: data.ui['editComment']
+		}
+	},
 	(dispatch, ownProps) => ({
 		addResolutions: (resolutions) => dispatch(addResolutions(resolutions)),
 		deleteResolutions: (resolutions) => dispatch(deleteResolutions(resolutions)),
 		updateResolutions: (resolutions) => dispatch(updateResolutions(resolutions)),
 		updateComments: (comments) => dispatch(updateComments(comments)),
-		setUiEditingTabSelected: (show) => dispatch(uiSetProperty(dataSet, 'showEditing', show)),
+		setUiShowNotes: (show) => dispatch(uiSetProperty(dataSet, 'showNotes', show)),
+		setUiShowEditing: (show) => dispatch(uiSetProperty(dataSet, 'showEditing', show)),
 		setUiEditComment: (edit) => dispatch(uiSetProperty(dataSet, 'editComment', edit))
 	})
 )(CommentDetail);

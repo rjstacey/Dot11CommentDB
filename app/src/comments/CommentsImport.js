@@ -118,7 +118,7 @@ const MatchAlgoList = ({algo, setAlgo}) =>
 
 const UpdateList = ({matchUpdate, setMatchUpdate}) =>
 	<List
-		label='Update:'
+		label='Update scope:'
 	>
 		{matchUpdateOptions.map(a => 
 			<ListItem
@@ -140,7 +140,7 @@ function _CommentsImportDropdown({ballotId, close, upload}) {
 	const [fields, setFields] = React.useState([])
 	const [algo, setAlgo] = React.useState(MatchAlgorithm.CID)
 	const [matchUpdate, setMatchUpdate] = React.useState(MatchUpdate.All)
-	const [sheetName, setSheetName] = React.useState('Comments')
+	const [sheetName, setSheetName] = React.useState('All Comments')
 	const [errMsg, setErrMsg] = React.useState('')
 	const [busy, setBusy] = React.useState(false)
 
@@ -154,29 +154,40 @@ function _CommentsImportDropdown({ballotId, close, upload}) {
 		const result = await upload(ballotId, fields, algo, matchUpdate, sheetName, file);
 		close()
 		if (result) {
-			const {matched, unmatched, added, remaining} = result;
-			let msg = matched.length === 0?
-				'No comments were updated.\n':
-				(unmatched.length === 0?
-					'All comments were updated.\n':
-					(matched.length === 1?
-						`1 comment was updated:\n`:
-						`${matched.length} comments were updated:\n`) +
-						matched.join(', ') + '\n');
-			if (unmatched.length > 0) {
-				msg += (unmatched.length === 1?
-					`1 comments was not updated:\n`:
-					`${unmatched.length} comments were not updated:\n`) +
-					unmatched.join(', ') + '\n';
+			const {matched, unmatched, added, remaining, updated} = result;
+			let msg  = '';
+			if (matchUpdate === MatchUpdate.All) {
+				if (unmatched.length === 0) {
+					msg = updated === 0?
+							'No comments were updated (no changes identified).':
+							(matched.length === updated?
+								'All comments updated.':
+								`${updated} comments were updated.`);
+				}
+				else {
+					msg = (unmatched.length === 1?
+							`1 comment did not match:\n`:
+							`${unmatched.length} comments did not match:\n`) +
+							unmatched.join(', ');
+				}
 			}
-			if (added.length > 0) {
-				msg += (added.length === 1?
-					`1 comments was added:\n`:
-					`${added.length} comments were added:\n`) +
-					added.join(', ') + '\n';
+			else if (matchUpdate === MatchUpdate.Any) {
+				msg = updated === 0?
+						'No comments were updated.':
+						(updated === 1?
+							'1 comment was updated.':
+							`${updated} comments were updated.`);
+			}
+			else {
+				msg = added.length === 0?
+						'No comments were added.':
+						((added.length === 1?
+							`1 comment was added:\n`:
+							`${added.length} comments were added:\n`) +
+							added.join(', '));
 			}
 			if (remaining.length > 0) {
-				msg += `${remaining.length} comments in spreadsheet were not matched:\n` +
+				msg += `\n${remaining.length} comments in spreadsheet were not matched:\n` +
 					remaining.join(', ') + '\n';
 			}
 			await ConfirmModal.show(msg, false);

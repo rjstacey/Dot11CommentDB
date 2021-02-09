@@ -39,7 +39,8 @@ function reformatBallot(b) {
 	delete b.CommentCount
 	delete b.CommentIDMin
 	delete b.CommentIDMax
-	b.Results = JSON.parse(b.ResultsSummary)
+	//b.Results = JSON.parse(b.ResultsSummary)
+	b.Results = b.ResultsSummary
 	delete b.ResultsSummary
 	return b
 }
