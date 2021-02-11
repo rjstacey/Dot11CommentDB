@@ -4,8 +4,6 @@
  * Robert Stacey
  */
 
-'use strict'
-
 require('dotenv').config();
 //console.log(process.env);
 
@@ -16,21 +14,7 @@ async function initDatabase() {
 	await require('./util/seedDatabase').init();
 }
 
-async function initSession() {
-	const expressSession = require('express-session');
-	const MySQLStore = require('express-mysql-session')(expressSession);
-	const sessionStore = new MySQLStore({}, db.getPool());
-	return expressSession({
-		//name: 'id42',
-		secret: process.env.SESSION_SECRET || 'i lick cats',
-		resave: false,
-		saveUninitialized: true,
-		//cookie: { secure: true }
-		store: sessionStore
-	});
-}
-
-function initServer(session) {
+function initServer() {
 	const path = require('path');
 	const express = require('express');
 	const app = express();
@@ -38,17 +22,18 @@ function initServer(session) {
 	app.set('port', process.env.PORT || 8080);
 	app.use(express.json());
 	app.use(express.urlencoded({extended: true}));
-	app.use(session);
 
-	// Log requests to console
-	app.use((req, res, next) => {
-		console.log(req.method, req.url/*, req.session*/);
-		next();
-	});
+	if (process.env.NODE_ENV === 'development') {
+		// Log requests to console
+		app.use((req, res, next) => {
+			console.log(req.method, req.url);
+			next();
+		});
+	}
 
 	app.use('/auth', require('./auth/session').default);
 	// secure API with JWT
-	app.use('/api', require('./util/jwt').verify, require('./api/router').default);
+	app.use('/api', require('./api/router').default);
 
 	// Error handler
 	app.use((err, req, res, next) => {
@@ -80,8 +65,6 @@ function initServer(session) {
 	return app;
 }
 
-
 initDatabase()
-	.then(initSession)
 	.then(initServer)
 	.catch(error => console.error(error));

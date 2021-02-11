@@ -1,23 +1,18 @@
 const cheerio = require('cheerio')
 const rp = require('request-promise-native')
 const users = require('../services/users')
-const jwt = require('../util/jwt')
+const jwt = require('./jwt')
 
-const getState = (req) => ({user: req.session.user || null});
-  
 async function login(req) {
-	// Server side session for this user
-	// If we haven't already done so, create a cookie jar for ieee.org.
-	//var sess = req.session;
 
+	// credentials
 	const {username, password} = req.body
 
-	if (req.session.ieeeCookieJar === undefined) {
-		req.session.ieeeCookieJar = rp.jar()
-	}
+	const ieeeCookieJar = rp.jar();
+
 	const options = {
 		url: 'https://imat.ieee.org/pub/login',
-		jar: req.session.ieeeCookieJar,
+		jar: ieeeCookieJar,
 		resolveWithFullResponse: true,
 		simple: false,
 		followAllRedirects: true
@@ -46,6 +41,7 @@ async function login(req) {
 		const m = ieeeRes.body.match(/<div class="field_err">(.*)<\/div>/)
 		throw m? m[1]: 'Not logged in'
 	}
+
 	// Update the URL to the user's home and do another get.
 	//options.url = 'https://development.standards.ieee.org/' + req.session.username + '/home';
 	//ieeeRes = await rp.get(options);
@@ -60,7 +56,7 @@ async function login(req) {
 	}
 	const name = n[1]
 	const sapin = parseInt(n[2], 10)
-	let user = await users.getUser(sapin, req.session.username)
+	let user = await users.getUser(sapin, username)
 	if (user === null) {
 		// User not in database; create new entry with default access level
 		if (sapin) {
@@ -83,11 +79,6 @@ async function login(req) {
 	if (user.SAPIN === 5073)
 		user.Access = 3;
 
-	req.session.user = user
-	req.session.access = user.Access
-
-	user.Token = jwt.token(username)
-
 	/*newOptions = {
 		url: `https://mentor.ieee.org/802.11/polls/closed?n=1`,
 		jar: sess.ieeeCookieJar
@@ -96,14 +87,11 @@ async function login(req) {
 	var $ = cheerio.load(ieeeRes);
 	console.log($('div.title').html())*/
 
-	return {user}
+	return {user, ieeeCookieJar};
 }
 
-function logout(req) {
-	req.session.user = null
-	req.session.access = 0
-	rp.get({url: 'https://imat.ieee.org/pub/logout', jar: req.session.ieeeCookieJar})
-	return {user: null}
+function logout(ieeeCookieJar) {
+	return rp.get({url: 'https://imat.ieee.org/pub/logout', jar: ieeeCookieJar})
 }
 
 /*
@@ -114,24 +102,38 @@ function logout(req) {
 * POST /logout: logout
 */
 const router = require('express').Router()
-router.get('/login', (req, res, next) => {
+router.get('/login', async (req, res, next) => {
 	try {
-		const data = getState(req)
-		res.json(data)
+		const userId = jwt.verify(req);
+		const {ieeeCookieJar, ...user} = await users.getUser(userId);
+		res.json({user});
 	}
-	catch (err) {next(err)}
+	catch (err) {
+		res.json({user: null});
+	}
 })
+
 router.post('/login', async (req, res, next) => {
 	try {
-		const data = await login(req)
-		res.json(data)
+		const {user, ieeeCookieJar} = await login(req);
+
+		user.Token = jwt.token(user.SAPIN);
+		users.setUser(user.SAPIN, {...user, ieeeCookieJar});
+
+		res.json({user});
 	}
 	catch (err) {next(err)}
 })
+
 router.post('/logout', async (req, res, next) => {
 	try {
-		const data = await logout(req)
-		res.json(data)
+		const userId = jwt.verify(req);
+		const user = await users.getUser(userId);
+		if (user) {
+			logout(user.ieeeCookieJar);
+			users.delUser(user.SAPIN);
+		}
+		res.json({user: null});
 	}
 	catch (err) {next(err)}
 })

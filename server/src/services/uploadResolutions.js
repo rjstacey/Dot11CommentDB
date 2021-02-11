@@ -313,7 +313,7 @@ function updateCommentsSQL(userId, ballotId, matched, toUpdate) {
 
 	console.log('comments updated: ', updateComments.length, 'resolutions updated: ', updateResolutions.length, 'new resolutions: ', newResolutions.length);
 
-	const SQL =
+	let SQL =
 		updateComments.map(c => {
 			const id = c.id;
 			delete c.id;
@@ -328,7 +328,8 @@ function updateCommentsSQL(userId, ballotId, matched, toUpdate) {
 				return db.format('UPDATE resolutions SET ?, LastModifiedTime=NOW() WHERE id=?', [r, id]);
 			})
 		)
-		.concat(
+		/*.concat(
+
 			newResolutions.map(r => {
 				r.LastModifiedBy = userId;
 				return db.format(
@@ -336,8 +337,26 @@ function updateCommentsSQL(userId, ballotId, matched, toUpdate) {
 					[Object.keys(r), Object.values(r)]
 				);
 			})
-		)
+		)*/
 		.join(';');
+
+	if (SQL)
+		SQL += ';'
+
+	// Create a single statement for each object with the same keys
+	const kvPairs = {};
+	newResolutions.forEach(r => {
+		const keys = db.format('??', [Object.keys(r)]);
+		if (kvPairs.hasOwnProperty(keys))
+			kvPairs[keys].push(Object.values(r));
+		else
+			kvPairs[keys] = [Object.values(r)];
+	});
+	for (const [keys, values] of Object.entries(kvPairs)) {
+		SQL += `INSERT INTO resolutions (${keys}, LastModifiedTime) VALUES ` +
+			values.map(v => db.format('(?, NOW())', [v])).join(', ') +
+			';'
+	}
 
 	return [SQL, count];
 }
@@ -452,9 +471,8 @@ export async function uploadResolutions(userId, ballotId, toUpdate, matchAlgorit
 		matched = [];
 		added = sheetCommentsRemaining.map(c => c['CID']);
 	}
-	console.log(SQL)
-	if (SQL)
-		SQL += ';'
+	//console.log(SQL)
+
 	SQL += db.format('SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID; ', [ballotId]);
 	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId]);
 	const t5 = Date.now();

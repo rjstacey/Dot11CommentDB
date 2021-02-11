@@ -6,17 +6,23 @@
 
 'use strict'
 
-import {AccessLevel} from '../auth/access'
+import {AccessLevel} from '../auth/access';
+import {authorize} from '../auth/jwt'
 
 const multer = require('multer')
 const upload = multer()
 const router = require('express').Router()
 
 /*
- * Enforce basic access
+ * Authorize access to API
+ */
+router.use(authorize);
+
+/*
+ * Enforce access levels
  */
 router.all('*', (req, res, next) => {
-	const {access} = req.session
+	const access = req.user.Access;
 
 	switch (req.method) {
 	case 'GET': /* read */
@@ -78,7 +84,7 @@ import {
 
 router.get('/users', async (req, res, next) => {
 	try {
-		const user = req.session.user;
+		const {user} = req;
 		const data = await getUsers(user);
 		res.json(data);
 	}
@@ -137,7 +143,7 @@ import {
 
 router.get('/results/:ballotId', async (req, res, next) => {
 	try {
-		const user = req.session.user;
+		const {user} = req;
 		const {ballotId} = req.params
 		const data = await getResults(user, ballotId)
 		res.json(data)
@@ -146,7 +152,7 @@ router.get('/results/:ballotId', async (req, res, next) => {
 })
 router.get('/resultsExport', (req, res, next) => {
 	try {
-		const user = req.session.user;
+		const {user} = req;
 		exportResults(user, req.query, res)
 	}
 	catch(err) {next(err)}
@@ -161,17 +167,17 @@ router.delete('/results/:ballotId', async (req, res, next) => {
 })
 router.post('/results/importFromEpoll/:ballotId/:epollNum', async (req, res, next) => {
 	try {
-		const {ieeeCookieJar, user} = req.session
-		const {ballotId, epollNum} = req.params
-		const data = await importEpollResults(ieeeCookieJar, user, ballotId, epollNum)
+		const {user} = req;
+		const {ballotId, epollNum} = req.params;
+		const data = await importEpollResults(user.ieeeCookieJar, user, ballotId, epollNum);
 		res.json(data)
 	}
 	catch(err) {next(err)}
 })
 router.post('/results/uploadEpollResults/:ballotId', upload.single('ResultsFile'), async (req, res, next) => {
 	try {
-		const {user} = req.session
-		const {ballotId} = req.params
+		const {user} = req;
+		const {ballotId} = req.params;
 		if (!req.file)
 			throw 'Missing file'
 		const data = await uploadEpollResults(user, ballotId, req.file)
@@ -181,8 +187,8 @@ router.post('/results/uploadEpollResults/:ballotId', upload.single('ResultsFile'
 })
 router.post('/results/uploadMyProjectResults/:ballotId', upload.single('ResultsFile'), async (req, res, next) => {
 	try {
-		const {user} = req.session
-		const {ballotId} = req.params
+		const {user} = req;
+		const {ballotId} = req.params;
 		if (!req.file)
 			throw 'Missing file'
 		const data = await uploadMyProjectResults(user, ballotId, req.file)
@@ -228,38 +234,42 @@ router.get('/ballots', async (req, res, next) => {
 })
 router.put('/ballots', async (req, res, next) => {
 	try {
+		const {user} = req;
 		const ballots = req.body;
 		if (!Array.isArray(ballots))
 			throw 'Expect an array of ballots'
-		const data = await updateBallots(ballots)
+		const data = await updateBallots(user, ballots)
 		res.json(data)
 	}
 	catch(err) {next(err)}
 })
 router.post('/ballots', async (req, res, next) => {
 	try {
+		const {user} = req;
 		const ballots = req.body;
 		if (!Array.isArray(ballots))
 			throw 'Expect an array of ballots'
-		const data = await addBallots(ballots)
+		const data = await addBallots(user, ballots)
 		res.json(data)
 	}
 	catch(err) {next(err)}
 })
 router.delete('/ballots', async (req, res, next) => {
 	try {
+		const {user} = req;
 		const ballots = req.body
 		if (!Array.isArray(ballots))
 			throw 'Expected array of ballots'
-		await deleteBallots(ballots)
+		await deleteBallots(user, ballots)
 		res.json(null)
 	}
 	catch(err) {next(err)}
 })
 router.get('/epolls', async (req, res, next) => {
 	try {
+		const {user} = req;
 		const n = req.query.hasOwnProperty('n')? parseInt(req.query.n): 0
-		const data = await getEpolls(req.session, n)
+		const data = await getEpolls(user, n)
 		res.json(data)
 	}
 	catch(err) {next(err)}
@@ -301,7 +311,7 @@ router.put('/comments', async (req, res, next) => {
 		const {comments} = req.body;
 		if (!Array.isArray(comments))
 			throw 'Expect an array for comments parameter';
-		const data = await updateComments(req.session.user.SAPIN, comments);
+		const data = await updateComments(req.user.SAPIN, comments);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -310,7 +320,7 @@ router.patch('/comments/startCommentId/:ballotId', async (req, res, next) => {
 	try {
 		const {ballotId} = req.params;
 		const {StartCommentID} = req.body;
-		const data = await setStartCommentId(req.session.user.SAPIN, ballotId, StartCommentID);
+		const data = await setStartCommentId(req.user.SAPIN, ballotId, StartCommentID);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -318,17 +328,17 @@ router.patch('/comments/startCommentId/:ballotId', async (req, res, next) => {
 router.delete('/comments/:ballotId', async (req, res, next) => {
 	try {
 		const {ballotId} = req.params;
-		const data = await deleteComments(req.session.user.SAPIN, ballotId);
+		const data = await deleteComments(req.user.SAPIN, ballotId);
 		res.json(data);
 	}
 	catch (err) {next(err)}
 })
 router.post('/comments/importFromEpoll/:ballotId/:epollNum', async (req, res, next) => {
 	try {
-		const sess = req.session;
+		const {user} = req;
 		const {ballotId, epollNum} = req.params;
 		const startCommentId = req.body.StartCID || 1;
-		const data = await importEpollComments(sess.ieeeCookieJar, sess.user.SAPIN, ballotId, epollNum, startCommentId);
+		const data = await importEpollComments(user.ieeeCookieJar, user.SAPIN, ballotId, epollNum, startCommentId);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -340,7 +350,7 @@ router.post('/comments/upload/:ballotId/:type', upload.single('CommentsFile'), a
 		if (!req.file)
 			throw 'Missing file';
 		const startCommentId = req.body.StartCID || 1;
-		const data = await uploadComments(req.session.user.SAPIN, ballotId, type, startCommentId, req.file);
+		const data = await uploadComments(req.user.SAPIN, ballotId, type, startCommentId, req.file);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -357,7 +367,7 @@ import {uploadResolutions} from '../services/uploadResolutions'
 
 router.post('/resolutions$', async (req, res, next) => {
 	try {
-		const {user} = req.session;
+		const {user} = req;
 		if (!req.body.hasOwnProperty('resolutions'))
 			throw 'Missing resolutions parameter'
 		const {resolutions} = req.body
@@ -370,7 +380,7 @@ router.post('/resolutions$', async (req, res, next) => {
 })
 router.put('/resolutions$', async (req, res, next) => {
 	try {
-		const {user} = req.session;
+		const {user} = req;
 		if (!req.body.hasOwnProperty('resolutions'))
 			throw 'Missing resolutions parameter'
 		const {resolutions} = req.body
@@ -383,7 +393,7 @@ router.put('/resolutions$', async (req, res, next) => {
 })
 router.delete('/resolutions$', async (req, res, next) => {
 	try {
-		const {user} = req.session;
+		const {user} = req;
 		if (!req.body.hasOwnProperty('resolutions'))
 			throw 'Missing resolutions parameter'
 		const {resolutions} = req.body
@@ -396,7 +406,7 @@ router.delete('/resolutions$', async (req, res, next) => {
 })
 router.post('/resolutions/upload/:ballotId', upload.single('ResolutionsFile'), async (req, res, next) => {
 	try {
-		const {user} = req.session;
+		const {user} = req;
 		const {ballotId} = req.params
 		if (!req.body.params)
 			throw 'Missing parameters'
@@ -429,7 +439,7 @@ router.post('/comments/exportForMyProject', upload.single('file'), (req, res, ne
 	return exportResolutionsForMyProject(BallotID, Filename, req.file, res).catch(err => next(err))
 })
 router.post('/comments/exportSpreadsheet', upload.single('file'), (req, res, next) => {
-	const {user} = req.session;
+	const {user} = req;
 	const {BallotID, Format, Filename} = JSON.parse(req.body.params)
 	if (!BallotID)
 		return next('Missing parameter BallotID')

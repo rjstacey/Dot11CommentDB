@@ -55,8 +55,8 @@ async function getBallot(ballotId) {
 	return reformatBallot(ballot)
 }
 
-async function getBallotWithNewResultsSummary(ballotId) {
-	const {ballot, summary} = await getResults(ballotId);
+async function getBallotWithNewResultsSummary(user, ballotId) {
+	const {ballot, summary} = await getResults(user, ballotId);
 	const commentsSummaries = await db.query(GetCommentsSummarySQL(ballotId));
 	console.log(ballot, summary, commentsSummaries)
 	return {
@@ -88,7 +88,7 @@ function ballotEntry(ballot) {
 	return Object.keys(entry).length? entry: null;
 }
 
-async function addBallot(ballot) {
+async function addBallot(user, ballot) {
 
 	const entry = ballotEntry(ballot);
 	console.log(entry)
@@ -109,14 +109,14 @@ async function addBallot(ballot) {
 		throw err.code == 'ER_DUP_ENTRY'? "An entry already exists with this ID": err
 	}
 
-	return getBallotWithNewResultsSummary(entry.BallotID);
+	return getBallotWithNewResultsSummary(user, entry.BallotID);
 }
 
-async function addBallots(ballots) {
-	return Promise.all(ballots.map(b => addBallot(b)));
+async function addBallots(user, ballots) {
+	return Promise.all(ballots.map(b => addBallot(user, b)));
 }
 
-async function updateBallot(ballot) {
+async function updateBallot(user, ballot) {
 	//console.log(req.body);
 
 	if (!ballot || !ballot.id)
@@ -138,14 +138,14 @@ async function updateBallot(ballot) {
 	}
 
 	const results = await db.query('SELECT BallotID FROM ballots WHERE id=?', [ballot.id]);
-	return getBallotWithNewResultsSummary(results[0].BallotID);
+	return getBallotWithNewResultsSummary(user, results[0].BallotID);
 }
 
-function updateBallots(ballots) {
-	return Promise.all(ballots.map(b => updateBallot(b)));
+function updateBallots(user, ballots) {
+	return Promise.all(ballots.map(b => updateBallot(user, b)));
 }
 
-function deleteBallots(ballots) {
+function deleteBallots(user, ballots) {
 	if (ballots.find(b => !b.id))
 		throw 'Ballots to be deleted must have id';
 	const IDs = db.escape(ballots.map(b => b.id));
@@ -163,14 +163,15 @@ function deleteBallots(ballots) {
 *
 * Parameters: n = number of entries to get
 */
-async function getEpolls(sess, n) {
+async function getEpolls(user, n) {
+	console.log(user)
 
 	async function recursivePageGet(epolls, n, page) {
 		//console.log('get epolls n=', n)
 
 		var options = {
 			url: `https://mentor.ieee.org/802.11/polls/closed?n=${page}`,
-			jar: sess.ieeeCookieJar
+			jar: user.ieeeCookieJar
 		}
 		//console.log(options.url);
 

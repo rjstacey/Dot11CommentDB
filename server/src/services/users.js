@@ -31,6 +31,35 @@ function parseUsersCsv(usersCsv) {
 	})
 }
 
+
+const userCache = {};
+
+export async function getUser(sapin, email) {
+
+	let user = userCache[sapin];
+	if (user)
+		return user;
+
+	const SQL = sapin > 0?
+		db.format('SELECT * from users WHERE SAPIN=?', [sapin]):
+		db.format('SELECT * from users WHERE Email=?', [email]);
+	const [rows] = await db.query2(SQL)
+
+	user = rows.length > 0? rows[0]: null
+	if (user)
+		userCache[user.SAPIN] = user;
+
+	return user
+}
+
+export function setUser(sapin, user) {
+	userCache[sapin] = user;
+}
+
+export function delUser(sapin) {
+	delete userCache[sapin];
+}
+
 export function getUsers(user) {
 	const fields = ['SAPIN', 'Name', 'LastName', 'FirstName', 'MI', 'Status'];
 
@@ -39,21 +68,6 @@ export function getUsers(user) {
 		fields.push('Email', 'Access')
 
 	return db.query('SELECT ?? FROM users', [fields]);
-}
-
-export async function getUser(sapin, email) {
-	let SQL
-	if (sapin > 0) {
-		SQL = db.format('SELECT * from users WHERE SAPIN=?', [sapin]);
-	}
-	else {
-		SQL = db.format('SELECT * from users WHERE Email=?', [email]);
-	}
-	console.log(SQL)
-	const [rows] = await db.query2(SQL)
-	console.log(rows)
-	const user = rows.length > 0? rows[0]: null
-	return user
 }
 
 export async function addUser(user) {

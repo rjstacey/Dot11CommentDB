@@ -4,36 +4,158 @@
 
 const ExcelJS = require('exceljs')
 
-const legacyCommentsHeader = [
-	'CID', 'Commenter', 'LB', 'Draft', 'Clause Number(C)', 'Page(C)', 'Line(C)', 'Type of Comment', 'Part of No Vote',
-	'Page', 'Line', 'Clause', 'Duplicate of CID', 'Resn Status', 'Assignee', 'Submission', 'Motion Number',
-	'Comment', 'Proposed Change', 'Resolution',	'Owning Ad-hoc', 'Comment Group', 'Ad-hoc Status', 'Ad-hoc Notes',
-	'Edit Status', 'Edit Notes', 'Edited in Draft', 'Last Updated', 'Last Updated By'
-]
+const legacyColumns = [
+	{	header: 'CID',
+		width: 8,
+		numFmt: '@',
+	},
+	{	header: 'Commenter',
+		width: 14,
+		outlineLevel: 1,
+		numFmt: '@',
+	},
+	{	header: 'LB',
+		width: 8,
+		outlineLevel: 1,
+		numFmt: '@',
+	},
+	{	header: 'Draft',
+		width: 8,
+		outlineLevel: 1,
+		numFmt: '@',
+	},
+	{	header: 'Clause Number(C)',
+		width: 11,
+		outlineLevel: 1,
+		numFmt: '@',
+	},
+	{	header: 'Page(C)',
+		width: 8,
+		outlineLevel: 1,
+		numFmt: '@',
+	},
+	{	header: 'Line(C)',
+		width: 8,
+		outlineLevel: 1,
+		numFmt: '@',
+	},
+	{	header: 'Type of Comment',
+		width: 10,
+		outlineLevel: 1,
+		numFmt: '@',
+	},
+	{	header: 'Part of No Vote',
+		width: 10,
+		outlineLevel: 1,
+		numFmt: '@',
+	},
+	{	header: 'Page',
+		width: 8,
+		numFmt: '#0.00',
+	},
+	{	header: 'Line',
+		width: 7,
+		outlineLevel: 1,
+	},
+	{	header: 'Clause',
+		width: 11,
+		numFmt: '@',
+	},
+	{	header: 'Duplicate of CID',
+		width: 10
+	},
+	{	header: 'Resn Status',
+		width: 8,
+		numFmt: '@',
+	},
+	{	header: 'Assignee',
+		width: 11,
+		outlineLevel: 1,
+		numFmt: '@',
+	},
+	{	header: 'Submission',
+		width: 12,
+		outlineLevel: 1,
+		numFmt: '@',
+	},
+	{	header: 'Motion Number',
+		width: 9,
+		outlineLevel: 1,
+	},
+	{	header: 'Comment',
+		width: 25,
+		numFmt: '@',
+	},
+	{	header: 'Proposed Change',
+		width: 25,
+		numFmt: '@',
+	},
+	{	header: 'Resolution',
+		width: 25,
+		numFmt: '@',
+	},
+	{	header: 'Owning Ad-hoc',
+		width: 9,
+		numFmt: '@',
+	},
+	{	header: 'Comment Group',
+		width: 10,
+		numFmt: '@',
+	},
+	{	header: 'Ad-hoc Status',
+		width: 10,
+		numFmt: '@',
+	},
+	{	header: 'Ad-hoc Notes',
+		width: 25,
+		numFmt: '@',
+	},
+	{	header: 'Edit Status',
+		width: 8,
+		numFmt: '@',
+	},
+	{	header: 'Edit Notes',
+		width: 25,
+		numFmt: '@',
+	},
+	{	header: 'Edited in Draft',
+		width: 9,
+		numFmt: '@',
+	},
+	{	header: 'Last Updated',
+		width: 15,
+		outlineLevel: 1,
+		numFmt: 'yyyy-mm-dd hh:mm',
+	},
+	{	header: 'Last Updated By',
+		numFmt: '@',
+		outlineLevel: 1
+	}
+];
+
 
 export async function parseLegacyCommentsSpreadsheet(buffer, sheetName) {
 
 	var workbook = new ExcelJS.Workbook()
 	await workbook.xlsx.load(buffer)
-	console.log(workbook, buffer)
+	//console.log(workbook, buffer)
 	const worksheet = workbook.getWorksheet(sheetName)
 	if (!worksheet) {
 		let sheets = []
 		workbook.eachSheet((worksheet, sheetId) => {sheets.push(worksheet.name)})
 		throw `Workbook does not have a "${sheetName}" worksheet. It does have the following worksheets:\n${sheets.join(', ')}`
 	}
-	//console.log(worksheet.rowCount)
 
-	// Row 0 is the header
-	var header = worksheet.getRow(1).values;
-	header.shift();	// Remove column 0
-	if (legacyCommentsHeader.reduce((r, v, i) => r || v !== header[i], false)) {
-		throw `Unexpected column headings ${header.join()}. Expected ${legacyCommentsHeader.join()}.`
+	// Row 1 is the header
+	const headerRow = worksheet.getRow(1).values;
+	headerRow.shift();	// Adjust to zero based column numbering
+	if (legacyColumns.reduce((r, v, i) => r || v.header !== headerRow[i], false)) {
+		throw `Unexpected column headings ${headerRow.join(', ')}. \n\nExpected ${legacyColumns.map(v => v.header).join(', ')}.`
 	}
 
 	var comments = [];
 	worksheet.eachRow(row => {
-		const entry = legacyCommentsHeader.reduce((entry, key, i) => {entry[key] = row.getCell(i+1).text || ''; return entry}, {})
+		const entry = legacyColumns.reduce((entry, v, i) => {entry[v.header] = row.getCell(i+1).text || ''; return entry}, {})
 		comments.push(entry)
 	});
 	comments.shift();	// remove header
@@ -69,7 +191,7 @@ const mapResnStatus = {
 
 function genLegacyResolution(c) {
 	let r = '';
-	if (c.ResnStatus) {
+	if (c.ResnStatus && mapResnStatus[c.ResnStatus]) {
 		r += mapResnStatus[c.ResnStatus] + ' - '
 	}
 	if (c.Resolution) {
@@ -80,208 +202,80 @@ function genLegacyResolution(c) {
 
 function genLegacyWorksheetTable(sheet, ballotId, doc, comments) {
 
-	let columns = {
-		'CID': {
-			width: 6,
-			numFmt: '@',
-			value: c => c.CID
-		},
-		'Commenter': {
-			width: 14,
-			outlineLevel: 1,
-			numFmt: '@',
-			value: c => c.CommenterName  || ''
-		},
-		'LB': {
-			width: 8,
-			outlineLevel: 1,
-			numFmt: '@',
-			value: ballotId
-		},
-		'Draft': {
-			width: 8,
-			outlineLevel: 1,
-			numFmt: '@',
-			value: doc
-		},
-		'Clause Number(C)': {
-			width: 11,
-			outlineLevel: 1,
-			numFmt: '@',
-			value: c => c.C_Clause  || ''
-		},
-		'Page(C)': {
-			width: 8,
-			outlineLevel: 1,
-			numFmt: '@',
-			value: c => c.C_Page  || ''
-		},
-		'Line(C)': {
-			width: 8,
-			outlineLevel: 1,
-			numFmt: '@',
-			value: c => c.C_Line  || ''
-		},
-		'Type of Comment': {
-			width: 10,
-			outlineLevel: 1,
-			numFmt: '@',
-			value: c => c.Category  || ''
-		},
-		'Part of No Vote': {
-			width: 10,
-			outlineLevel: 1,
-			numFmt: '@',
-			value: c => c.MustSatisfy? "Yes": "No"
-		},
-		'Page': {
-			width: 8,
-			numFmt: '#0.00',
-			value: c => c.Page
-		},
-		'Line': {
-			width: 7,
-			outlineLevel: 1,
-			value: c => c.C_Line
-		},
-		'Clause': {
-			width: 11,
-			numFmt: '@',
-			value: c => c.Clause || ''
-		},
-		'Duplicate of CID': {width: 10},
-		'Resn Status': {
-			width: 8,
-			numFmt: '@',
-			value: c => c.ResnStatus || ''
-		},
-		'Assignee': {
-			width: 11,
-			outlineLevel: 1,
-			numFmt: '@',
-			value: c => c.AssigneeName || ''
-		},
-		'Submission': {
-			width: 12,
-			outlineLevel: 1,
-			numFmt: '@',
-			value: c => c.Submission || ''
-		},
-		'Motion Number': {
-			width: 9,
-			outlineLevel: 1,
-			value: c => c.ApprovedByMotion || ''
-		},
-		'Comment': {
-			width: 25,
-			numFmt: '@',
-			value: c => c.Comment || ''
-		},
-		'Proposed Change': {
-			width: 25,
-			numFmt: '@',
-			value: c => c.ProposedChange || ''
-		},
-		'Resolution': {
-			width: 25,
-			numFmt: '@',
-			value: c => genLegacyResolution(c)
-		},
-		'Owning Ad-hoc': {
-			width: 9,
-			numFmt: '@',
-			value: c => c.AdHoc || ''
-		},
-		'Comment Group': {
-			width: 10,
-			numFmt: '@',
-			value: c => c.CommentGroup || ''
-		},
-		'Ad-hoc Status': {
-			width: 10,
-			numFmt: '@',
-			value: c => c.Status || ''
-		},
-		'Ad-hoc Notes': {
-			width: 25,
-			numFmt: '@',
-			value: c => processHtml(c.Notes)
-		},
-		'Edit Status': {
-			width: 8,
-			numFmt: '@',
-			value: c => c.EditStatus || ''
-		},
-		'Edit Notes': {
-			width: 25,
-			numFmt: '@',
-			value: c => processHtml(c.EditNotes)
-		},
-		'Edited in Draft': {
-			width: 9,
-			numFmt: '@',
-			value: c => c.EditInDraft || ''
-		},
-		'Last Updated': {
-			width: 15,
-			outlineLevel: 1,
-			numFmt: 'yyyy-mm-dd hh:mm',
-			value: c => c.LastModifiedTime
-		},
-		'Last Updated By': {
-			numFmt: '@',
-			outlineLevel: 1
+	let columnsSet = {
+		'CID': c => c.CID,
+		'Commenter': c => c.CommenterName  || '',
+		'LB': ballotId,
+		'Draft': doc,
+		'Clause Number(C)': c => c.C_Clause  || '',
+		'Page(C)': c => c.C_Page  || '',
+		'Line(C)': c => c.C_Line  || '',
+		'Type of Comment': c => c.Category  || '',
+		'Part of No Vote': c => c.MustSatisfy? "Yes": "No",
+		'Page': c => c.Page,
+		'Line': c => c.C_Line,
+		'Clause': c => c.Clause || '',
+		'Duplicate of CID': '',
+		'Resn Status': c => c.ResnStatus || '',
+		'Assignee': c => c.AssigneeName || '',
+		'Submission': c => c.Submission || '',
+		'Motion Number': c => c.ApprovedByMotion || '',
+		'Comment': c => c.Comment || '',
+		'Proposed Change': c => c.ProposedChange || '',
+		'Resolution': c => genLegacyResolution(c),
+		'Owning Ad-hoc': c => c.AdHoc || '',
+		'Comment Group': c => c.CommentGroup || '',
+		'Ad-hoc Status': c => c.Status || '',
+		'Ad-hoc Notes': c => processHtml(c.Notes),
+		'Edit Status': c => c.EditStatus || '',
+		'Edit Notes': c => processHtml(c.EditNotes),
+		'Edited in Draft': c => c.EditInDraft || '',
+		'Last Updated': c => c.LastModifiedTime,
+		'Last Updated By': ''
+	};
+
+	sheet.addRow(legacyColumns.map(col => col.header));
+
+	// array of unique comments
+	const comment_ids = [...new Set(comments.map(c => c.comment_id))];
+	let n = 2;
+	comment_ids.forEach(id => {
+		const cmts = comments.filter(c => c.comment_id === id);
+		cmts.forEach((c, i) => {
+			const row = sheet.getRow(n);
+			row.values = Object.values(columnsSet).map(value => typeof value === 'function'? value(c): (value || ''));
+			n++;
+		});
+		if (cmts.length > 1) {
+			// Merge cells with the same value
+			['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'R', 'S', 'U', 'V', 'W', 'X'].forEach(col => {
+				sheet.mergeCells(col + (n-cmts.length).toString(), col + (n-1).toString(),);
+			})			
 		}
-	};
+	})
 
-	const colNames = Object.keys(columns);
-
-	let table = {
-		name: 'My Table',
-		ref: 'A1',
-		headerRow: true,
-		totalsRow: false,
-		style: {
-			theme: 'TableStyleLight15',
-			showRowStripes: false,
-		},
-		columns: colNames.map(name => ({name, filterButton: true})),
-		rows: comments.map(c => colNames.map(key => {
-			let col = columns[key]
-			const v = typeof col.value === 'function'? col.value(c): (col.value || '');
-			return v;
-		}))
-	};
-	//sheet.addTable(table)
-
-	sheet.addRow(colNames)
-	sheet.addRows(comments.map(c => colNames.map(key => {
-			let col = columns[key]
-			const v = typeof col.value === 'function'? col.value(c): (col.value || '');
-			return v;
-		})))
 	sheet.autoFilter = 'A1:AC1';
 	// Adjust column width, outlineLevel and style
 	const borderStyle = {style:'thin', color: {argb:'33333300'}}
 	let i = 0
-	for (let key of colNames) {
-		let col = columns[key]
-		i++
-		if (col.width)
-			sheet.getColumn(i).width = col.width
-		if (col.outlineLevel)
-			sheet.getColumn(i).outlineLevel = col.outlineLevel
-		if (col.numFmt)
-			sheet.getColumn(i).numFmt = col.numFmt
-		sheet.getColumn(i).font = {name: 'Arial', size: 10, family: 2}
-		sheet.getColumn(i).alignment = {wrapText: true, vertical: 'top'}
-		sheet.getColumn(i).border = {
+	legacyColumns.forEach((entry, i) => {
+		const column = sheet.getColumn(i+1);
+		if (entry.width)
+			column.width = entry.width;
+		if (entry.outlineLevel)
+			column.outlineLevel = entry.outlineLevel;
+		if (entry.numFmt)
+			column.numFmt = entry.numFmt;
+		column.font = {name: 'Arial', size: 10, family: 2};
+		column.alignment = {wrapText: true, vertical: 'top'};
+		column.border = {
 			top: borderStyle, 
 			left: borderStyle, 
 			bottom: borderStyle, 
 			right: borderStyle
-		}
-	}
+		};
+	})
+	// override the column font style for the header row
 	sheet.getRow(1).font = {bold: true};
 
 	// Table header is frozen
@@ -295,6 +289,9 @@ const CommentsSpreadsheetFormat = {
 }
 
 export async function genLegacyCommentSpreadsheet(user, ballotId, format, doc, comments, file, res) {
+
+	if (!Object.values(CommentsSpreadsheetFormat).includes(format))
+		throw 'Invalid Format parameter: expected one of ' + Object.values(CommentsSpreadsheetFormat).join(', ');
 
 	let workbook = new ExcelJS.Workbook();
 	if (file) {
@@ -326,7 +323,6 @@ export async function genLegacyCommentSpreadsheet(user, ballotId, format, doc, c
 	if (format === CommentsSpreadsheetFormat.TabPerAdHoc) {
 		// List of unique AdHoc values
 		const adhocs = [...new Set(comments.map(c => c.AdHoc || '(Blank)'))].sort();
-		console.log(adhocs)
 		adhocs.forEach(adhoc => {
 			// Sheet name cannot be longer than 31 characters and cannot include: * ? : \ / [ ]
 			const sheetName = adhoc.substr(0,30).replace(/[*.\?:\\\/\[\]]/g, '_');

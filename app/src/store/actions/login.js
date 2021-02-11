@@ -86,12 +86,13 @@ export function logout() {
 	return async (dispatch) => {
 		try {localStorage.removeItem(LOGIN_STORAGE)} catch (err) {};
 		dispatch(logoutStart())
-		fetcher.setJWT(null);
 		try {
 			await fetcher.post('/auth/logout')
+			fetcher.setJWT(null);
 		}
 		catch (error) {
 			console.error(error)
+			fetcher.setJWT(null);
 			return dispatch(loginFailure('Unable to logout'))
 		}
 		return dispatch(loginSuccess(null))
