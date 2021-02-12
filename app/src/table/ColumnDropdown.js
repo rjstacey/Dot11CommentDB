@@ -415,15 +415,6 @@ function _ColumnDropdown(props) {
 			dropdownStyle.right = right
 	}
 
-	let handle = <Handle className='handle'/>
-	/*if (sort && sort.direction !== SortDirection.NONE)
-		handle =
-			<IconSort
-				className='handle'
-				direction={sort.direction}
-				isAlpha={sort.type !== SortType.NUMERIC}
-			/>*/
-
 	return (
 		<Wrapper
 			ref={containerRef}
@@ -446,7 +437,6 @@ function _ColumnDropdown(props) {
 							isAlpha={sort.type !== SortType.NUMERIC}
 							style={{opacity: 0.2, paddingRight: 4}}
 						/>}
-
 					<Handle />
 				</div>
 			</Header>

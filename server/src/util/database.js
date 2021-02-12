@@ -6,12 +6,12 @@ let ppool;
 export function init() {
 	let options;
 	if (process.env.NODE_ENV === 'development') {
-		const fs = require('fs'); 
+		/*const fs = require('fs'); 
 		var certFileBuf = [
 			fs.readFileSync("IntelCA5A(1)-base64.crt","utf8"),
 			fs.readFileSync("IntelCA5B(1)-base64.crt","utf8"),
 			fs.readFileSync("IntelSHA256RootCA-base64.crt","utf8")
-		];
+		];*/
 		options = {
 			host: process.env.DB_HOST,
 			port: process.env.DB_PORT,

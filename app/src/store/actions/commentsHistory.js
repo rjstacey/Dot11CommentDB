@@ -8,7 +8,7 @@ export const COMMENTS_HISTORY_GET_SUCCESS = COMMENTS_HISTORY_PREFIX + 'GET_SUCCE
 export const COMMENTS_HISTORY_GET_FAILURE = COMMENTS_HISTORY_PREFIX + 'GET_FAILURE'
 
 const getCommentsHistoryLocal = (comment_id) => ({type: COMMENTS_HISTORY_GET, comment_id})
-const getCommentsHistorySuccess = (commentsHistory) => ({type: COMMENTS_HISTORY_GET_SUCCESS, commentsHistory})
+const getCommentsHistorySuccess = (commentsHistory, comments, resolutions) => ({type: COMMENTS_HISTORY_GET_SUCCESS, commentsHistory, comments, resolutions})
 const getCommentsHistoryFailure = () => ({type: COMMENTS_HISTORY_GET_FAILURE})
 
 export function getCommentsHistory(comment) {
@@ -24,6 +24,6 @@ export function getCommentsHistory(comment) {
 				dispatch(setError(`Unable to get comments history for ${comment.CID}`, error))
 			]);
 		}
-		return dispatch(getCommentsHistorySuccess(response.commentsHistory))
+		return dispatch(getCommentsHistorySuccess(response.commentsHistory, response.comments, response.resolutions))
 	}
 }

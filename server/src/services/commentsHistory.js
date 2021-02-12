@@ -27,12 +27,24 @@ const GET_COMMENTS_HISTORY_SQL =
 	'FROM resolutionsLog l ' + 
 		'JOIN users u ON l.UserID=u.SAPIN ' + 
 	'WHERE l.comment_id=? ' + 
-	'ORDER BY Timestamp';
+	'ORDER BY Timestamp;';
 
 export async function getCommentsHistory(comment_id) {
-	let [commentsHistory] = await db.query2(GET_COMMENTS_HISTORY_SQL, [comment_id])
-	commentsHistory = commentsHistory.map(h => {
+	const SQL =
+		db.format(GET_COMMENTS_HISTORY_SQL, [comment_id]) +
+		db.format('SELECT * FROM comments WHERE id=?;', [comment_id]) +
+		db.format('SELECT * FROM resolutions WHERE comment_id=?;', [comment_id]);
+	const results = await db.query(SQL);
+	
+	const commentsHistory = results[0].map(h => {
 		return {...h, Changes: JSON.parse(h.Changes)}
 	});
-	return {commentsHistory}
+	const comments = results[1];
+	const resolutions = results[2];
+
+	return {
+		commentsHistory,
+		comments,
+		resolutions
+	}
 }

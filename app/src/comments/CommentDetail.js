@@ -127,7 +127,7 @@ const Categorization = ({resolution, setResolution, readOnly, showNotes, toggleS
 			>
 				<div style={{display: 'flex', flex: 1, justifyContent: 'space-between'}}>
 					<label>Notes:</label>
-					<IconCollapse isCollapsed={!showNotes} onClick={toggleShowNotes} />
+					{toggleShowNotes && <IconCollapse isCollapsed={!showNotes} onClick={toggleShowNotes} />}
 				</div>
 				{showNotes &&
 					<StyledResolutionEditor
@@ -362,7 +362,7 @@ const Resolution = ({resolution, setResolution, showEditing, toggleShowEditing, 
 			>
 				<div style={{display: 'flex', flex: 1, justifyContent: 'space-between'}}>
 					<label>Editing:</label>
-					<IconCollapse isCollapsed={!showEditing} onClick={toggleShowEditing} />
+					{toggleShowEditing && <IconCollapse isCollapsed={!showEditing} onClick={toggleShowEditing} />}
 				</div>
 				{showEditing &&
 					<EditContainer>
@@ -521,40 +521,11 @@ const StyledTabs = styled(Tabs)`
 	}
 `;
 
-/*
-const OtherTabs = ({resolution, setResolution, showEditing, toggleShowEditing, readOnly}) =>
-	<StyledTabs
-		selectedIndex={showEditing? 1: 0}
-		onSelect={index => setShowEditing(index === 1)}
-	>
-		<TabList>
-			<Tab>Notes</Tab>
-			<Tab>Editing</Tab>
-		</TabList>
-		<TabPanel>
-			<ResolutionEditor
-				value={isMultiple(resolution.Notes)? '': resolution.Notes}
-				onChange={value => setResolution({Notes: value})}
-				placeholder={isMultiple(resolution.Notes)? MULTIPLE_STR: BLANK_STR}
-				readOnly={readOnly}
-			/>
-		</TabPanel>
-		<TabPanel>
-			<EditStatus
-				resolution={resolution}
-				setResolution={setResolution}
-				readOnly={readOnly}
-			/>
-			<ResolutionEditor
-				value={isMultiple(resolution.EditNotes)? '': resolution.EditNotes}
-				onChange={value => setResolution({EditNotes: value})}
-				placeholder={isMultiple(resolution.Notes)? MULTIPLE_STR: BLANK_STR}
-				readOnly={readOnly}
-			/>
-		</TabPanel>
-
-	</StyledTabs>
-*/
+const CommentContainer = styled.div`
+	label {
+		font-weight: bold;
+	}
+`;
 
 export function Comment({
 	cids,
@@ -571,7 +542,7 @@ export function Comment({
 	const cidsLabel = cids.length > 1? 'CIDs:': 'CID:'
 
 	return (
-		<React.Fragment>
+		<CommentContainer>
 			<Row>
 				<FieldLeft label={cidsLabel}>{cidsStr}</FieldLeft>
 				<FieldLeft>{renderEntry(comment.Status)}</FieldLeft>
@@ -606,7 +577,7 @@ export function Comment({
 					readOnly={readOnly}
 				/>
 			}
-		</React.Fragment>
+		</CommentContainer>
 	)
 }
 
