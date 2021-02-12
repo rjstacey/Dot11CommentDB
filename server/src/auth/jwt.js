@@ -7,8 +7,14 @@ const secret = (process.env.NODE_ENV === 'development')?
 	'secret':
 	uuidv4();
 
+/*
+ * Sign the user ID (SAPIN) and return as JWT token
+ */
 export const token = (userId) => jwt.sign(userId, secret);
 
+/*
+ * Verify a JWT token and, if valid, return the decoded payload
+ */
 export const verify = (req) => {
 	let token = '';
 	try {
@@ -25,6 +31,11 @@ export const verify = (req) => {
 	}
 }
 
+/*
+ * Express middle middleware to authorize a request.
+ * Validates the token, looks up the user associated with the token
+ * and stores as req.user
+ */
 export const authorize = async (req, res, next) => {
 	try {
 		const userId = verify(req);

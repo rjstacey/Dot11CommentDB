@@ -74,8 +74,8 @@ export function updateUser(SAPIN, user) {
 	return async (dispatch) => {
 		dispatch(updateUserLocal(SAPIN, user))
 		try {
-			const updatedUser = await fetcher.put(`/api/user/${SAPIN}`, user)
-			return dispatch(updateUserSuccess(SAPIN, updatedUser))
+			const response = await fetcher.put(`/api/user/${SAPIN}`, {user})
+			return dispatch(updateUserSuccess(SAPIN, response.user))
 		}
 		catch(error) {
 			return Promise.all([
@@ -94,8 +94,8 @@ export function addUser(user) {
 	return async (dispatch) => {
 		dispatch(addUserLocal(user))
 		try {
-			const updatedUser = await fetcher.post('/api/user', user)
-			return dispatch(addUserSuccess(updatedUser))
+			const response = await fetcher.post('/api/user', {user})
+			return dispatch(addUserSuccess(response.user))
 		}
 		catch(error) {
 			return Promise.all([
@@ -114,7 +114,8 @@ export function deleteUsers(userIds) {
 	return async (dispatch, getState) => {
 		dispatch(deleteUsersLocal(userIds))
 		try {
-			await fetcher.delete('/api/users', userIds)
+			const users = userIds.map(sapin => ({SAPIN: sapin}));
+			await fetcher.delete('/api/users', {users})
 			const {selected} = getState()[dataSet]
 			const newSelected = selected.filter(id => !userIds.includes(id))
 			return Promise.all([

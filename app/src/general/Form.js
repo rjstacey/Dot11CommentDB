@@ -242,7 +242,7 @@ const Form = ({style, className, title, busy, errorText, submit, submitLabel, ca
 		className={className}
 	>
 		{title && <Title>{title}</Title>}
-		<Spinner style={{alignSelf: 'center', visibility: busy? 'visible': 'hidden'}}/>
+		{busy !== undefined && <Spinner style={{alignSelf: 'center', visibility: busy? 'visible': 'hidden'}}/>}
 		{children}
 		{errorText !== undefined && <ErrMsg>{errorText || '\u00a0'}</ErrMsg>}
 		<ButtonRow>

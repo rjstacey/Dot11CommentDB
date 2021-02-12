@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {FixedSizeList as List} from 'react-window'
-import {Button, ActionButtonSort, Handle, IconSort} from '../general/Icons'
+import {Button, ActionButtonSort, Handle, IconSort, IconFilter} from '../general/Icons'
 import ClickOutside from '../general/ClickOutside'
 import {CommentIdFilter} from '../comments/CommentIdList'
 import {Checkbox, Input} from '../general/Form'
@@ -194,7 +194,7 @@ function Filter({
 	const items = searchItems.concat(exactItems);
 
 	const itemHeight = 35;
-	const listHeight = Math.min(items.length * itemHeight, 150);
+	const listHeight = Math.min(items.length * itemHeight, 200);
 
 	return (
 		<React.Fragment>
@@ -371,6 +371,9 @@ const Header = styled.div`
 		position: absolute;
 		right: 0;
 		background: inherit;
+		display: flex;
+		flex-wrap: nowrap;
+		align-items: center;
 	}
 `;
 
@@ -379,11 +382,13 @@ const Label = styled.label`
 `;
 
 function _ColumnDropdown(props) {
-	const {className, style, label, ...otherProps} = props;
-	const {anchorRef, column, sort, filter} = props;
+	const {className, style, filter, label, ...otherProps} = props;
+	const {anchorRef, column, sort} = props;
 	const containerRef = React.useRef();
 	const [open, setOpen] = React.useState(false);
 	let dropdownStyle = {};
+	const isFiltered = filter && filter.values.length > 0;
+	const isSorted = sort && sort.direction !== SortDirection.NONE;
 
 	if (!sort && !filter) {
 		return <Label>{label}</Label>
@@ -411,13 +416,13 @@ function _ColumnDropdown(props) {
 	}
 
 	let handle = <Handle className='handle'/>
-	if (sort && sort.direction !== SortDirection.NONE)
+	/*if (sort && sort.direction !== SortDirection.NONE)
 		handle =
 			<IconSort
 				className='handle'
 				direction={sort.direction}
 				isAlpha={sort.type !== SortType.NUMERIC}
-			/>
+			/>*/
 
 	return (
 		<Wrapper
@@ -430,7 +435,20 @@ function _ColumnDropdown(props) {
 				onClick={() => setOpen(!open)}
 			>
 				<Label>{label}</Label>
-				{handle}
+				<div className='handle'>
+					{isFiltered &&
+						<IconFilter
+							style={{opacity: isFiltered? 0.2: 0}}
+						/>}
+					{isSorted && 
+						<IconSort
+							direction={sort.direction}
+							isAlpha={sort.type !== SortType.NUMERIC}
+							style={{opacity: 0.2, paddingRight: 4}}
+						/>}
+
+					<Handle />
+				</div>
 			</Header>
 			{open && renderDropdown({style: dropdownStyle, close, ...otherProps})}
 		</Wrapper>

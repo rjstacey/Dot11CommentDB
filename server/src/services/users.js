@@ -43,9 +43,9 @@ export async function getUser(sapin, email) {
 	const SQL = sapin > 0?
 		db.format('SELECT * from users WHERE SAPIN=?', [sapin]):
 		db.format('SELECT * from users WHERE Email=?', [email]);
-	const [rows] = await db.query2(SQL)
+	const [users] = await db.query2(SQL)
 
-	user = rows.length > 0? rows[0]: null
+	user = users.length > 0? users[0]: null
 	if (user)
 		userCache[user.SAPIN] = user;
 
@@ -60,14 +60,20 @@ export function delUser(sapin) {
 	delete userCache[sapin];
 }
 
-export function getUsers(user) {
+/*
+ * A list of users is available to any user with access level Member or higher (for
+ * reassigning comments, etc.). However, only access level WG Admin gets sensitive 
+ * information like email address and access level.
+ */
+export async function getUsers(user) {
 	const fields = ['SAPIN', 'Name', 'LastName', 'FirstName', 'MI', 'Status'];
 
 	/* Email and Access level are sensitive */
 	if (user.Access >= AccessLevel.WGAdmin)
 		fields.push('Email', 'Access')
 
-	return db.query('SELECT ?? FROM users', [fields]);
+	const users = await db.query('SELECT ?? FROM users', [fields]);
+	return users;
 }
 
 export async function addUser(user) {
@@ -88,15 +94,19 @@ export async function addUser(user) {
 		}
 	}
 
-	if (!entry.hasOwnProperty('SAPIN')) {
-		throw 'Must provide SAPIN'
-	}
+	if (!entry.SAPIN)
+		throw 'Must provide nonzero SAPIN';
 
 	const SQL = 
 		db.format('INSERT INTO users (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]) +
 		db.format('SELECT * FROM users WHERE SAPIN=?;', [entry.SAPIN])
-	const results = await db.query(SQL)
-	return results[1][0]
+	try {
+		const [noop, users] = await db.query(SQL);
+		return {user: users[0]}
+	}
+	catch (err) {
+		throw err.code === 'ER_DUP_ENTRY'? `A user with SAPIN ${entry.SAPIN} already exists`: err
+	}
 }
 
 export async function updateUser(userId, user) {
@@ -121,25 +131,27 @@ export async function updateUser(userId, user) {
 		const SQL =
 			db.format("UPDATE users SET ? WHERE SAPIN=?;",  [entry, userId]) +
 			db.format("SELECT ?? from users WHERE SAPIN=?;", [Object.keys(entry), entry.SAPIN? entry.SAPIN: userId])
-		const results = await db.query(SQL)
-		entry = results[1][0]
+		const [noop, users] = await db.query(SQL)
+		entry = users[0]
 		if (entry.SAPIN === undefined) {
 			entry.SAPIN = userId
 		}
 	}
 
-	return entry
+	return {user: entry}
 }
 
-export function deleteUsers(userIds) {
-	return db.query('DELETE FROM users WHERE SAPIN IN (?)', [userIds])
+export async function deleteUsers(users) {
+	const sapins = users.map(u => u.SAPIN);
+	await db.query('DELETE FROM users WHERE SAPIN IN (?)', [sapins]);
+	return true;
 }
 
 export async function uploadUsers(file) {
-	const users = parseUsersCsv(file.buffer)
+	let users = parseUsersCsv(file.buffer)
 	//console.log(users)
 
-	let SQL = ''
+	let SQL = '';
 	if (users.length) {
 		SQL =
 			`INSERT INTO users (${Object.keys(users[0])}) VALUES ` +
@@ -147,7 +159,8 @@ export async function uploadUsers(file) {
 			' ON DUPLICATE KEY UPDATE ' +
 			'Name=VALUES(Name), LastName=VALUES(LastName), FirstName=VALUES(FirstName), MI=VALUES(MI), Email=VALUES(Email), Status=VALUES(Status);'
 	}
-	SQL += 'SELECT * FROM users;'
-	const results = await db.query(SQL)
-	return results[results.length - 1]
+	SQL += 'SELECT * FROM users;';
+	const results = await db.query(SQL);
+	users = results[results.length - 1];
+	return users;
 }

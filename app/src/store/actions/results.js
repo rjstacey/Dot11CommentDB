@@ -70,19 +70,23 @@ export function deleteResults(ballotId, ballot) {
 	}
 }
 
-const importResultsLocal = (ballotId) => {return {type: IMPORT_RESULTS, ballotId}}
-const importResultsSuccess = (ballotId) => {return {type: IMPORT_RESULTS_SUCCESS, ballotId}}
-const importResultsFailure = (ballotId) => {return {type: IMPORT_RESULTS_FAILURE, ballotId}}
+const importResultsLocal = (ballotId) => ({type: IMPORT_RESULTS, ballotId})
+const importResultsSuccess = (ballotId, results, summary) => ({type: IMPORT_RESULTS_SUCCESS, ballotId, results, summary})
+const importResultsFailure = (ballotId) => ({type: IMPORT_RESULTS_FAILURE, ballotId})
 
 export function importResults(ballotId, epollNum) {
 	return async (dispatch) => {
 		dispatch(importResultsLocal(ballotId))
 		try {
-			const result = await fetcher.post(`/api/results/importFromEpoll/${ballotId}/${epollNum}`)
-			console.log(result)
+			const response = await fetcher.post(`/api/results/importFromEpoll/${ballotId}/${epollNum}`);
+			if (!response.ballot || !response.ballot.Result)
+				console.error('Unexpected response: missing or bad ballot');
+			if (!response.results || !Array.isArray(response.results))
+				console.error('Unexpected response: missing or bad results');
+			//console.log(response)
 			return Promise.all([
-				dispatch(updateBallotSuccess(ballotId, result.ballot)),
-				dispatch(importResultsSuccess(ballotId))
+				dispatch(updateBallotSuccess(ballotId, response.ballot)),
+				dispatch(importResultsSuccess(ballotId, response.results, response.ballot.Results))
 			])
 		}
 		catch(error) {

@@ -32,12 +32,11 @@ function initServer() {
 	}
 
 	app.use('/auth', require('./auth/session').default);
-	// secure API with JWT
 	app.use('/api', require('./api/router').default);
 
 	// Error handler
 	app.use((err, req, res, next) => {
-		console.error(err)
+		console.warn(err)
 		let message
 		if (typeof err === 'string') {
 			message = err

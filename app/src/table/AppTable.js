@@ -36,6 +36,7 @@ const Table = styled.div`
 	}
 	.AppTable__dataRow {
 		padding: 5px 0;
+		overflow: hidden;
 	}
 	.AppTable__dataRow-even {
 		background-color: #fafafa;
@@ -52,6 +53,7 @@ const Table = styled.div`
 	.AppTable__dataCell {
 		padding-right: 10px;
 		box-sizing: border-box;
+		align-self: start;
 	}
 `;
 

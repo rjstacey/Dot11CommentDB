@@ -4,17 +4,15 @@
  * Robert Stacey
  */
 
-'use strict'
-
 import {AccessLevel} from '../auth/access';
 import {authorize} from '../auth/jwt'
 
-const multer = require('multer')
-const upload = multer()
+const upload = require('multer')()
 const router = require('express').Router()
 
 /*
- * Authorize access to API
+ * Authorize access to the API
+ * Successful authorization leaves authorized user's data in req (in req.user)
  */
 router.use(authorize);
 
@@ -92,29 +90,32 @@ router.get('/users', async (req, res, next) => {
 })
 router.put('/user/:userId', async (req, res, next) => {
 	try {
-		const {userId} = req.params
-		const user = req.body
-		const data = await updateUser(userId, user)
-		res.json(data)
+		const {userId} = req.params;
+		const {user} = req.body;
+		if (!user)
+			throw 'Missing user parameter';
+		const data = await updateUser(userId, user);
+		res.json(data);
 	}
 	catch(err) {next(err)}
 })
 router.post('/user', async (req, res, next) => {
 	try {
-		const user = req.body
-		const data = await addUser(user)
-		res.json(data)
+		const {user} = req.body;
+		if (!user)
+			throw 'Missing user parameter';
+		const data = await addUser(user);
+		res.json(data);
 	}
 	catch(err) {next(err)}
 })
 router.delete('/users', async (req, res, next) => {
 	try {
-		const userIds = req.body
-		if (!Array.isArray(userIds)) {
-			throw 'Expected array parameter'
-		}
-		await deleteUsers(userIds)
-		res.json(null)
+		const {users} = req.body;
+		if (!users || !Array.isArray(users))
+			throw 'Missing or bad users parameter';
+		const data = await deleteUsers(users);
+		res.json(data);
 	}
 	catch(err) {next(err)}
 })
@@ -208,7 +209,6 @@ router.post('/results/uploadMyProjectResults/:ballotId', upload.single('ResultsF
 * DELETE: /ballots - delete ballots
 * GET: /epolls?{n}} - return a list of n epolls by scraping the mentor webpage for closed epolls.
 */
-//const ballots = require('../services/ballots')
 import {
 	getBallot,
 	getBallots,

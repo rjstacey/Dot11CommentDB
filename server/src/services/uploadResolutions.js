@@ -205,9 +205,10 @@ function commentUpdate(toUpdate, c, cs) {
 	if (toUpdate.includes(FieldsToUpdate.ClausePage)) {
 		if (c.Clause !== cs['Clause'])
 			u.Clause = cs['Clause'];
-		let page = parseFloat(cs['Page']);
+		let page = parseFloat(cs['Page'])
 		if (isNaN(page))
 			page = 0;
+		page = page.toFixed(2);
 		if (c.Page !== page)
 			u.Page = page;
 	}
@@ -242,8 +243,8 @@ function parseLegacyResolution(cs) {
 		else if (cs['Resolution'].search(/^\s*(REJECT|REJECTED)/i) >= 0)
 			r.ResnStatus = 'J';
 
-		// Remove the resolution status if it exists. Also remove "(EDITOR <date>)" and such-like. And leading whitespace or dash.
-		r.Resolution = cs['Resolution'].replace(/^\s*(ACCEPTED|ACCEPT|REVISED|REVISE|REJECTED|REJECT)(\s+\(.*\)){0,1}[-\s]*/i, '')
+		// Remove the resolution status if it exists. And leading whitespace or dash.
+		r.Resolution = cs['Resolution'].replace(/^\s*(ACCEPTED|ACCEPT|REVISED|REVISE|REJECTED|REJECT)[-\s]*/i, '')
 	}
 	return r;
 }
@@ -313,7 +314,9 @@ function updateCommentsSQL(userId, ballotId, matched, toUpdate) {
 
 	console.log('comments updated: ', updateComments.length, 'resolutions updated: ', updateResolutions.length, 'new resolutions: ', newResolutions.length);
 
-	let SQL =
+	let SQL = '';
+
+	SQL +=
 		updateComments.map(c => {
 			const id = c.id;
 			delete c.id;
@@ -328,35 +331,65 @@ function updateCommentsSQL(userId, ballotId, matched, toUpdate) {
 				return db.format('UPDATE resolutions SET ?, LastModifiedTime=NOW() WHERE id=?', [r, id]);
 			})
 		)
-		/*.concat(
-
-			newResolutions.map(r => {
-				r.LastModifiedBy = userId;
-				return db.format(
-					'INSERT INTO resolutions (??, LastModifiedTime) VALUE (?, NOW())',
-					[Object.keys(r), Object.values(r)]
-				);
-			})
-		)*/
 		.join(';');
 
 	if (SQL)
 		SQL += ';'
 
-	// Create a single statement for each object with the same keys
-	const kvPairs = {};
-	newResolutions.forEach(r => {
-		const keys = db.format('??', [Object.keys(r)]);
-		if (kvPairs.hasOwnProperty(keys))
-			kvPairs[keys].push(Object.values(r));
-		else
-			kvPairs[keys] = [Object.values(r)];
-	});
+	/* A single insert statement with 'duplicate on key update' is slightly faster than individual update statements.
+	 * But, as an insert, it is logged as an 'add'. And has side effects like failing if there is an unset column
+	 * without a default value. */
+	/*
+	let kvPairs = {};
+	updateComments.forEach(c => {
+		c.LastModifiedBy = userId;
+		const keys = Object.keys(c).join(',');
+		if (!kvPairs[keys])
+			kvPairs[keys] = [];
+		kvPairs[keys].push(db.escape(Object.values(c)));
+	})
 	for (const [keys, values] of Object.entries(kvPairs)) {
-		SQL += `INSERT INTO resolutions (${keys}, LastModifiedTime) VALUES ` +
-			values.map(v => db.format('(?, NOW())', [v])).join(', ') +
+		const K = keys.split(',').filter(k => k !== 'id');
+		SQL += `INSERT INTO comments (${keys},LastModifiedTime) VALUES ` +
+			values.map(v => `(${v}, NOW())`).join(',') +
+			' ON DUPLICATE KEY UPDATE ' +
+			K.map(k => `${k}=VALUES(${k})`).join(', ') + ', LastModifiedTime=VALUES(LastModifiedTime)' +
 			';'
 	}
+
+	kvPairs = {};
+	updateResolutions.forEach(r => {
+		r.LastModifiedBy = userId;
+		const keys = Object.keys(r).join(',');
+		if (!kvPairs[keys])
+			kvPairs[keys] = [];
+		kvPairs[keys].push(db.escape(Object.values(r)));
+	})
+	for (const [keys, values] of Object.entries(kvPairs)) {
+		const K = keys.split(',').filter(k => k !== 'id');
+		SQL += `INSERT INTO resolutions (${keys},LastModifiedTime) VALUES ` +
+			values.map(v => `(${v}, NOW())`).join(',') +
+			' ON DUPLICATE KEY UPDATE ' +
+			K.map(k => `${k}=VALUES(${k})`).join(', ') + ', LastModifiedTime=VALUES(LastModifiedTime)' +
+			';'
+	}
+	*/
+
+	/* A single insert statement is much faster than individual insert statements. */
+	let kvPairs = {};
+	newResolutions.forEach(r => {
+		r.LastModifiedBy = userId;
+		const keys = Object.keys(r).join(',');
+		if (!kvPairs[keys])
+			kvPairs[keys] = [];
+		kvPairs[keys].push(db.escape(Object.values(r)));
+	});
+	for (const [keys, values] of Object.entries(kvPairs)) {
+		SQL += `INSERT INTO resolutions (${keys},LastModifiedTime) VALUES ` +
+			values.map(v => `(${v}, NOW())`).join(',') +
+			';'
+	}
+	console.log(SQL)
 
 	return [SQL, count];
 }

@@ -142,7 +142,8 @@ const BallotColumn = ({ballot, summary}) =>
 		<LabelValue label='Opened:'>{summary.opened}</LabelValue>
 		<LabelValue label='Closed:'>{summary.closed}</LabelValue>
 		<LabelValue label='Duration:'>{summary.duration}</LabelValue>
-		<LabelValue label='Voting pool size:'>{summary.votingPoolSize}</LabelValue>
+		{ballot.Type !== BallotType.CC &&
+			<LabelValue label='Voting pool size:'>{summary.votingPoolSize}</LabelValue>}
 	</Col>
 
 const ResultColumn = ({ballot, summary}) =>

@@ -97,8 +97,8 @@ function logout(ieeeCookieJar) {
 /*
 * Session API
 *
-* GET /login: get current session information
-* POST /login: login with supplied credentials and return session information
+* GET /login: get current user information
+* POST /login: login with supplied credentials and return user information
 * POST /logout: logout
 */
 const router = require('express').Router()

@@ -41,7 +41,7 @@ function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount
 			state = EditorState.moveSelectionToEnd(state)
 			setEditorState(state)
 		}
-	}, [cids, editorState])
+	}, [cids])
 
 	function initState() {
 		const decorator = new CompositeDecorator([

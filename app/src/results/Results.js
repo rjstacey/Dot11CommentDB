@@ -35,11 +35,19 @@ const TableRow = styled.div`
 	}
 `;
 
+const NoWrapItem = styled.div`
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	overflow: hidden;
+`;
+
+const renderItem = ({rowData, dataKey}) => <NoWrapItem>{rowData[dataKey]}</NoWrapItem>
+
 const tableColumns = Immutable.OrderedMap({
 	SAPIN: 			{label: 'SA PIN',		width: 75},
-	Name: 			{label: 'Name',			width: 200},
-	Affiliation: 	{label: 'Affiliation',	width: 200},
-	Email: 			{label: 'Email',		width: 250},
+	Name: 			{label: 'Name',			width: 200, cellRenderer: renderItem},
+	Affiliation: 	{label: 'Affiliation',	width: 200, cellRenderer: renderItem},
+	Email: 			{label: 'Email',		width: 250, cellRenderer: renderItem},
 	Vote: 			{label: 'Vote',			width: 210},
 	CommentCount: 	{label: 'Comments',		width: 110},
 	Notes: 			{label: 'Notes',		width: 250,	flexShrink: 1, flexGrow: 1}
@@ -121,7 +129,7 @@ function Results({
 					columns={columns}
 					headerHeight={28}
 					estimatedRowHeight={32}
-					dataSet={'results'}
+					dataSet='results'
 					rowKey={primaryDataKey}
 				/>
 			</TableRow>
@@ -143,7 +151,6 @@ Results.propTypes = {
 const dataSet = 'results'
 export default connect(
 	(state, ownProps) => {
-		const user = state.login.user;
 		return {
 			ballotId: state.ballots.ballotId,
 			ballot: state[dataSet].ballot,
