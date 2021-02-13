@@ -26,7 +26,7 @@ function _UsersImportDropdown({upload, close}) {
 
 	return (
 		<UsersImportForm
-			title='Upload user spreadsheet'
+			title='Upload MyProject roster spreadsheet'
 			errorText={errMsg}
 			submit={submit}
 			cancel={close}

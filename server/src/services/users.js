@@ -1,5 +1,6 @@
 
 import {AccessLevel} from '../auth/access'
+import {parseMyProjectRosterSpreadsheet} from './myProjectSpreadsheets'
 
 const csvParse = require('csv-parse/lib/sync')
 const db = require('../util/database')
@@ -148,8 +149,20 @@ export async function deleteUsers(users) {
 }
 
 export async function uploadUsers(file) {
-	let users = parseUsersCsv(file.buffer)
-	//console.log(users)
+	//let users = parseUsersCsv(file.buffer)
+	let users = await parseMyProjectRosterSpreadsheet(file.buffer);
+	users = users.filter(u => !u.Status.search(/^Voter|^Potential|^Aspirant/g))
+	users = users.map(u => ({
+		SAPIN: u.SAPIN,
+		Name: u.Name,
+		LastName: u.LastName,
+		FirstName: u.FirstName,
+		MI: u.MI,
+		Status: u.Status,
+		Email: u.Email,
+		//Affiliation: u.Affiliation,
+		//Employer: u.Employer
+	}));
 
 	let SQL = '';
 	if (users.length) {

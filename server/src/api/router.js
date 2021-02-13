@@ -121,10 +121,9 @@ router.delete('/users', async (req, res, next) => {
 })
 router.post('/users/upload', upload.single('UsersFile'), async (req, res, next) => {
 	try {
-		if (!req.file) {
+		if (!req.file)
 			throw 'Missing file'
-		}
-		const data = await uploadUsers(file)
+		const data = await uploadUsers(req.file)
 		res.json(data)
 	}
 	catch(err) {next(err)}

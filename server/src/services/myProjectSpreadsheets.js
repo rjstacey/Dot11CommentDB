@@ -138,7 +138,7 @@ export async function parseMyProjectResults(buffer, isExcel) {
 		await workbook.xlsx.load(buffer)
 
 		workbook.getWorksheet(1).eachRow(row => {
-			p.push(row.values.slice(1, 7))
+			p.push(row.values.slice(1, myProjectResultsHeader.length + 1))
 		})
 	}
 	else {
@@ -165,4 +165,72 @@ export async function parseMyProjectResults(buffer, isExcel) {
 	})
 
 	return results;
+}
+
+
+/*
+ * MyProject Roster
+ */
+const myProjectRosterHeader = [
+	'SA PIN', 'Last Name', 'First Name', 'Middle Name', 'Email Address', 'Street Address/PO Box', 'City',
+	'State/Province', 'Postal Code', 'Country', 'Phone',
+	'Employer', 'Affiliation', 'Officer Role', 'Involvement Level'
+]
+
+const mapInvolvementLevelToStatus = {
+	'Aspirant Member': 'Aspirant',
+	'Corresponding Member': 'Other',
+	'Member': 'Other',
+	'Nearly Member': 'Other',
+	'Non-Voting Member': 'Other',
+	'Observer': 'Observer',
+	'Potential Member': 'Potential Voter',
+	'Voting Member': 'Voter'
+};
+
+const mapStatus = (involvementLevel) => (mapInvolvementLevelToStatus[involvementLevel] || 'Other');
+
+function parseMyProjectMember(u) {
+	let user = {
+		SAPIN: parseInt(u[0]),
+		LastName: u[1] || '',
+		FirstName: u[2] || '',
+		MI: u[3] || '',
+		Email: u[4] || '',
+		Employer: u[11] || '',
+		Affiliation: u[12] || '',
+		OfficerRole: u[13] || '',
+		Status: mapStatus(u[14])
+	}
+	user.Name = user.FirstName;
+	if (user.MI)
+		user.Name += ' ' + user.MI
+	user.Name += ' ' + user.LastName;
+
+	return user
+}
+
+export async function parseMyProjectRosterSpreadsheet(buffer) {
+
+	var p = [] 	// an array of arrays
+	var workbook = new ExcelJS.Workbook()
+	await workbook.xlsx.load(buffer)
+
+	workbook.getWorksheet(1).eachRow(row => {
+		p.push(row.values.slice(1, myProjectRosterHeader.length+1))
+	})
+
+	if (p.length === 0) {
+		throw 'Got empty roster file'
+	}
+
+	// Check the column names to make sure we have the right file
+	// The CSV from MyProject has # replaced by ., so replace '#' with '.' (in the regex this matches anything)
+	if (myProjectRosterHeader.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].search(new RegExp(v, 'i')) === -1, false)) {
+		throw `Unexpected column headings:\n${p[0].join(', ')}\n\nExpected:\n${myProjectRosterHeader.join(', ')}`
+	}
+	p.shift()	// remove column heading row
+
+	// Parse each row and assign CommentID
+	return p.map((u, i) => parseMyProjectMember(u));
 }
