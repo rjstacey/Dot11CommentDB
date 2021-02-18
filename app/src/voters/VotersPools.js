@@ -5,6 +5,7 @@ import {connect} from 'react-redux'
 import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
+import {ControlHeader, ControlCell} from '../table/ControlColumn'
 import ConfirmModal from '../modals/ConfirmModal'
 import {ActionButton} from '../general/Icons'
 import VotersPoolAddModal from './VotersPoolAdd'
@@ -24,6 +25,9 @@ const RowActions = ({onEdit, onDelete}) =>
 	</ActionCell>
 
 const tableColumns = Immutable.OrderedMap({
+	__ctrl__:		{width: 30, flexGrow: 1, flexShrink: 0,
+						headerRenderer: p => <ControlHeader {...p} />,
+						cellRenderer: p => <ControlCell {...p} />},
 	PoolType: 		{label: 'Type',		width: 80, dropdownWidth: 150},
 	VotingPoolID: 	{label: 'Name',		width: 200},
 	VoterCount: 	{label: 'Voters',	width: 100},
@@ -91,7 +95,6 @@ function VotersPools(props) {
 				<AppTable
 					fixed
 					columns={columns}
-					controlColumn
 					estimatedRowHeight={32}
 					headerHeight={36}
 					dataSet='votingPools'

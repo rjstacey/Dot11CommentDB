@@ -4,9 +4,9 @@ import ReactDOM from 'react-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {FixedSizeList as List} from 'react-window'
+
 import {Button, ActionButtonSort, Handle, IconSort, IconFilter} from '../general/Icons'
 import ClickOutside from '../general/ClickOutside'
-import {CommentIdFilter} from '../comments/CommentIdList'
 import {Checkbox, Input} from '../general/Form'
 
 import {SortType, sortOptions} from '../store/lib/sort'
@@ -17,18 +17,6 @@ import {setFilter, addFilter, removeFilter, FilterType} from '../store/actions/f
 const StyledInput = styled(Input)`
 	margin: 5px 10px;
 	padding: 10px;
-`;
-
-const StyledCommandIdFilter = styled(CommentIdFilter)`
-	margin: 10px 10px 0;
-	line-height: 30px;
-	padding-left: 20px;
-	border: 1px solid #ccc;
-	border-radius: 3px;
-	:focus {
-		outline: none;
-		border: 1px solid deepskyblue;
-	}
 `;
 
 const StyledList = styled(List)`
@@ -107,6 +95,7 @@ Sort.propTypes = {
 }
 
 function Filter({
+	rowKey,
 	dataKey,
 	sort,
 	filter,
@@ -116,7 +105,8 @@ function Filter({
 	allOptions,
 	availableOptions,
 	selected,
-	dataRenderer
+	dataRenderer,
+	customFilterElement
 }) {
 	const [search, setSearch] = React.useState('');
 	const inputRef = React.useRef();
@@ -200,7 +190,7 @@ function Filter({
 		<React.Fragment>
 			<Row>
 				<label>Filter:</label>
-				{dataKey === 'CID' &&
+				{dataKey === rowKey &&
 					<Button
 						onClick={() => setFilter(selected)}
 						disabled={selected.length === 0}
@@ -215,7 +205,7 @@ function Filter({
 					Clear
 				</Button>
 			</Row>
-			{dataKey === 'CID' && <StyledCommandIdFilter />}
+			{customFilterElement}
 			<StyledInput
 				type='search'
 				value={search}
@@ -251,15 +241,24 @@ function Filter({
 }
 
 Filter.propTypes = {
+	dataKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+	rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+	sort: PropTypes.object.isRequired,
 	filter: PropTypes.object.isRequired,
 	setFilter: PropTypes.func.isRequired,
+	addFilter: PropTypes.func.isRequired,
+	removeFilter: PropTypes.func.isRequired,
 	allOptions: PropTypes.array.isRequired,
 	availableOptions: PropTypes.array.isRequired,
+	selected: PropTypes.array,
+	dataRenderer: PropTypes.func,
+	customFilterElement: PropTypes.element,
 }
 
 function Dropdown({
 	style,
 	className,
+	rowKey,
 	dataKey,
 	sort,
 	setSort,
@@ -272,7 +271,8 @@ function Dropdown({
 	close,
 	dataSet,
 	selected,
-	dataRenderer
+	dataRenderer,
+	customFilterElement
 }) {
 	const containerRef = React.useRef();
 	const [containerStyle, setContainerStyle] = React.useState(style);
@@ -308,6 +308,7 @@ function Dropdown({
 			}
 			{filter &&
 				<Filter
+					rowKey={rowKey}
 					dataKey={dataKey}
 					selected={selected}
 					sort={sort}
@@ -318,6 +319,7 @@ function Dropdown({
 					allOptions={allOptions}
 					availableOptions={availableOptions}
 					dataRenderer={dataRenderer}
+					customFilterElement={customFilterElement}
 				/>
 			}
 		</DropdownContainer>

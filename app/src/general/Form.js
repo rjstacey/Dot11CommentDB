@@ -152,7 +152,7 @@ const Col = styled.div`
 	:last-child {margin-right: 0}
 `;
 
-const Title = styled.h3`
+export const Title = styled.h3`
 	margin: 5px 0 20px;
 	align-self: center;
 	font-weight: bold;

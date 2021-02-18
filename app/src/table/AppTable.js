@@ -7,7 +7,6 @@ import {VariableSizeGrid as Grid} from 'react-window'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import TableRow from './AppTableRow'
 import TableHeader from './AppTableHeader'
-import {ControlHeader, ControlCell} from './ControlColumn'
 import {debounce, getScrollbarSize} from '../lib/utils'
 
 import {setSelected} from '../store/actions/select'
@@ -65,13 +64,6 @@ const NoRowsBody = styled.div`
 	color: #bdbdbd;
 `;
 
-const controlColumn = {
-	label: 'Control',
-	width: 30, flexGrow: 1, flexShrink: 0,
-	headerRenderer: p => <ControlHeader {...p} />,
-	cellRenderer: p => <ControlCell {...p} />
-}
-
 class AppTableSized extends React.PureComponent {
 
 	constructor(props) {
@@ -89,7 +81,6 @@ class AppTableSized extends React.PureComponent {
 		}
 
 		let columns = props.columns
-			//.filter((col, key) => tableConfig.columns.has(key)? tableConfig.columns.get(key).visible: true)
 			.map((col, key) => (tableConfig.columns.has(key)? {...col, width: tableConfig.columns.get(key).width}: col));
 		if (props.controlColumn)
 			columns = Immutable.OrderedMap({'__ctrl__': controlColumn}).concat(columns);
@@ -150,42 +141,45 @@ class AppTableSized extends React.PureComponent {
 		if (!selected)
 			return
 
-		if (event.keyCode !== 38 && event.keyCode !== 40)
-			return
-
-		if (selected.length === 0) {
-			if (dataMap.length > 0)
-				setSelected([data[dataMap[0]][rowKey]])
-			return
+		// Ctrl-A selects all
+		if ((event.ctrlKey || event.metaKey) && event.keyCode === 65) {
+			setSelected(dataMap.map(i => data[i][rowKey]));
+			event.preventDefault();
 		}
+		else if (event.keyCode === 38 || event.keyCode === 40) {
 
-		let id = selected[0]
-		let i = dataMap.findIndex(i => data[i][rowKey] === id)
-		if (i === -1) {
-			if (dataMap.length > 0)
-				setSelected([data[dataMap[0]][rowKey]])
-			return
+			if (selected.length === 0) {
+				if (dataMap.length > 0)
+					setSelected([data[dataMap[0]][rowKey]])
+				return
+			}
+
+			let id = selected[0]
+			let i = dataMap.findIndex(i => data[i][rowKey] === id)
+			if (i === -1) {
+				if (dataMap.length > 0)
+					setSelected([data[dataMap[0]][rowKey]])
+				return
+			}
+
+			if (event.keyCode === 38) {			// Up arrow
+				if (i === 0) 
+					i = dataMap.length - 1;
+				else
+					i = i - 1 
+			}
+			else {	// Down arrow
+				if (i === (dataMap.length - 1))
+					i = 0
+				else
+					i = i + 1
+			}
+
+			if (this.gridRef)
+				this.gridRef.scrollToItem({rowIndex: i})
+
+			setSelected([data[dataMap[i]][rowKey]])
 		}
-
-		if (event.keyCode === 38) {			// Up arrow
-			if (i === 0) 
-				i = dataMap.length - 1;
-			else
-				i = i - 1 
-		}
-		else if (event.keyCode === 40) {	// Down arrow
-			if (i === (dataMap.length - 1))
-				i = 0
-			else
-				i = i + 1
-		}
-		else
-			return
-
-		if (this.gridRef)
-			this.gridRef.scrollToItem({rowIndex: i})
-
-		setSelected([data[dataMap[i]][rowKey]])
 	}
 
 	handleClick = ({event, rowData}) => {
@@ -322,20 +316,17 @@ class AppTableSized extends React.PureComponent {
 
 /*
  * AppTable
- * Auto sized to container unless contentWidth is true, in which case width is size of content
  */
 function AppTable(props) {
 	return (
-		<AutoSizer disableWidth={props.contentWidth}>
+		<AutoSizer>
 			{({height, width}) => <AppTableSized height={height} width={width} {...props} />}
 		</AutoSizer>
 	)
 }
 
 AppTable.propTypes = {
-	contentWidth: PropTypes.bool,
 	columns: PropTypes.object.isRequired,
-	controlColumn: PropTypes.bool,
 	dataSet: PropTypes.string.isRequired,
 	data: PropTypes.array.isRequired,
 	dataMap: PropTypes.array.isRequired,

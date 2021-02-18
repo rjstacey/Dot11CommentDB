@@ -24,7 +24,7 @@ const Container = styled.div`
 	}*/
 `;
 
-function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount, close, ...otherProps}) {
+function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount, close}) {
 	const editorRef = React.useRef();
 	const [editorState, setEditorState] = React.useState(initState);
 
@@ -106,7 +106,6 @@ function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount
 				ref={editorRef}
 				editorState={editorState}
 				onChange={setEditorState}
-				onFocus={() => console.log('focus')}
 				handleReturn={() => (emitChange(editorState) || 'handled')}	// return 'handled' to prevent default handler
 				onBlur={() => emitChange(editorState)}
 				placeholder={'List of CIDs...'}

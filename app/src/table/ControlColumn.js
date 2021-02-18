@@ -3,22 +3,17 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
+
 import {Expander, DoubleExpander, Handle} from '../general/Icons'
-import {Checkbox} from '../general/Form'
 import ClickOutside from '../general/ClickOutside'
-import {CommentIdSelector} from '../comments/CommentIdList'
+import {Checkbox} from '../general/Form'
 
 import {setSelected, toggleSelected} from '../store/actions/select'
 import {setExpanded, toggleExpanded} from '../store/actions/expand'
 import {getDataMap} from '../store/selectors/dataMap'
 
-const RowSelectorContainer = styled(ClickOutside)`
-	height: 22px;
-	border-radius: 6px;
-	text-align: center;
-`;
 
-const StyledCommentIdSelector = styled(CommentIdSelector)`
+const CustomSelectorDropdown = styled.div`
 	position: absolute;
 	min-width: 400px;
 	margin: 10px 10px 0;
@@ -31,15 +26,23 @@ const StyledCommentIdSelector = styled(CommentIdSelector)`
 	z-index: 9;
 `;
 
-function renderDropdown({anchorRef, ...otherProps}) {
+function renderDropdown({style, close, anchorRef, children}) {
 	return ReactDOM.createPortal(
-		<StyledCommentIdSelector focusOnMount {...otherProps}/>,
+		<CustomSelectorDropdown style={style}>
+			{React.cloneElement(children, { close })}
+		</CustomSelectorDropdown>,
 		anchorRef.current
 	)
 }
 
-function RowSelector(props) {
-	const {anchorRef} = props;
+const CustomSelectorContainer = styled(ClickOutside)`
+	height: 22px;
+	border-radius: 6px;
+	text-align: center;
+`;
+
+function CustomSelector(props) {
+	const {anchorRef, children} = props;
 	const containerRef = React.useRef();
 	const [open, setOpen] = React.useState(false);
 	const [position, setPosition] = React.useState({top: 0, left: 0});
@@ -65,13 +68,13 @@ function RowSelector(props) {
 	}
 
 	return (
-		<RowSelectorContainer
+		<CustomSelectorContainer
 			ref={containerRef}
 			onClickOutside={handleClose}
 		>
 			<Handle title="Select List" open={open} onClick={handleOpen} />
-			{open && renderDropdown({style: position, close: handleClose, ...props})}
-		</RowSelectorContainer>
+			{open && renderDropdown({style: position, close: handleClose, anchorRef, children})}
+		</CustomSelectorContainer>
 	)
 }
 
@@ -93,7 +96,7 @@ const Container = styled.div`
 `;
 
 const _ControlHeader = (props) => {
-	const {rowKey, data, dataMap, selected, setSelected, expanded, setExpanded} = props;
+	const {rowKey, data, dataMap, selected, setSelected, expanded, setExpanded, children} = props;
 
 	const allSelected = React.useMemo(() => (
 			dataMap.length > 0 &&	// not if list is empty
@@ -125,7 +128,11 @@ const _ControlHeader = (props) => {
 					indeterminate={isIndeterminate}
 					onChange={toggleAllSelected}
 				/>
-				{props.dataSet === 'comments' && <RowSelector {...props}/>}
+				{children &&
+					<CustomSelector
+						anchorRef={props.anchorRef}
+						children={children}
+					/>}
 			</Selector>
 			{expanded &&
 				<DoubleExpander

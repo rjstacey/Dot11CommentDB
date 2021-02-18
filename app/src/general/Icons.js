@@ -3,7 +3,7 @@ import {library} from '@fortawesome/fontawesome-svg-core'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 // import what we use
 import {
-	faUpload, faDownload,
+	faFileUpload, faDownload,
 	faHighlighter, faBold, faItalic, faStrikethrough, faUnderline,
 	faUndo, faRedo,
 	faQuoteRight, faListUl, faListOl, faCode,
@@ -19,15 +19,15 @@ import {
 	faSave,
 	faObjectGroup, faUserCheck, faEdit,
 	faCaretSquareDown, faCaretSquareUp,
-	faHistory
+	faHistory,
 } from '@fortawesome/free-solid-svg-icons'
-import { faPlusSquare, faMinusSquare } from '@fortawesome/free-regular-svg-icons';
+import { faPlusSquare, faMinusSquare, faCopy } from '@fortawesome/free-regular-svg-icons';
 
 import styled from '@emotion/styled'
 
 export function init() {
 	library.add(
-		faUpload, faDownload,
+		faFileUpload, faDownload,
 		faQuoteRight, faListUl, faListOl, faCode,
 		faBold, faItalic, faUnderline, faStrikethrough, faHighlighter, 
 		faUndo, faRedo,
@@ -43,7 +43,8 @@ export function init() {
 		faSave,
 		faObjectGroup, faUserCheck, faEdit,
 		faCaretSquareDown, faCaretSquareUp,
-		faHistory
+		faHistory,
+		faCopy
 	)
 }
 
@@ -137,7 +138,7 @@ export const ActionButton = ({name, ...otherProps}) => {
 		'next': 'arrow-circle-right',
 		'prev': 'arrow-circle-left',
 		'import': 'download',
-		'upload': 'upload',
+		'upload': 'file-upload',
 		'more': 'angle-double-down',
 		'export': 'file-export',
 		'columns': 'columns',
@@ -154,6 +155,7 @@ export const ActionButton = ({name, ...otherProps}) => {
 		'dropdown-open': 'caret-square-down',
 		'dropdown-close': 'caret-square-up',
 		'history': 'history',
+		'copy': ['far', 'copy']
 	}[name] || name;
 
 	return (

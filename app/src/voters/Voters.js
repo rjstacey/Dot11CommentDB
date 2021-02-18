@@ -5,6 +5,7 @@ import {connect} from 'react-redux'
 import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
+import {ControlHeader, ControlCell} from '../table/ControlColumn'
 import ConfirmModal from '../modals/ConfirmModal'
 import VotersImportModal from './VotersImport'
 import VoterEditModal from './VoterEdit'
@@ -32,6 +33,12 @@ const defaultVoter = {
 	MI: '',
 	Email: '',
 	Status: 'Voter'
+}
+
+const controlColumn = {
+	width: 30, flexGrow: 1, flexShrink: 0,
+	headerRenderer: p => <ControlHeader {...p} />,
+	cellRenderer: p => <ControlCell {...p} />
 }
 
 const wgColumns = Immutable.OrderedMap({
@@ -74,15 +81,10 @@ function Voters(props) {
 
 	const [columns, primaryDataKey, maxWidth] = React.useMemo(() => {
 
-		let columns, primaryDataKey;
-		if (votingPoolType === 'WG') {
-			columns = wgColumns;
-			primaryDataKey = 'SAPIN';
-		}
-		else {
-			columns = saColumns;
-			primaryDataKey = 'Email';
-		}
+		let columns =
+			Immutable.OrderedMap({__ctrl__: controlColumn})
+			.concat(votingPoolType === 'WG'? wgColumns: saColumns)
+		let primaryDataKey = votingPoolType === 'WG'? 'SAPIN': 'Email';
 
 		const onDelete = async (voter) => {
 			const ok = await ConfirmModal.show(`Are you sure you want to remove ${voter.FirstName} ${voter.LastName} from the voting pool?`)
@@ -152,7 +154,6 @@ function Voters(props) {
 					key={columns}
 					fixed
 					columns={columns}
-					controlColumn
 					dataSet='voters'
 					headerHeight={36}
 					estimatedRowHeight={36}

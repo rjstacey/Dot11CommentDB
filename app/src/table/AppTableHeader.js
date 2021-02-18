@@ -36,14 +36,17 @@ const ResizeHandle = styled.div`
 
 function ColumnResizer({style, setWidth}) {
 	const [drag, setDrag] = React.useState(false)
+	const nodeRef = React.useRef(null);
 	return (
 		<DraggableCore
 			axis="x"
 			onDrag={(event, {deltaX}) => setWidth(deltaX)}
 			onStart={e => setDrag(true)}
 			onStop={e => setDrag(false)}
+			nodeRef={nodeRef}
 		>
 			<ResizeHandle
+				ref={nodeRef}
 				style={style}
 				className={drag? 'dragging': undefined}
 			/>

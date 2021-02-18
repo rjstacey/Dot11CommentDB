@@ -10,6 +10,7 @@ import BallotSelector from '../ballots/BallotSelector'
 import ColumnSelector from './ColumnSelector'
 import AppTable from '../table/AppTable'
 import ShowFilters from '../table/ShowFilters'
+import {ControlHeader, ControlCell} from '../table/ControlColumn'
 import {Button, ActionButton} from '../general/Icons'
 
 import {editorCss} from './ResolutionEditor'
@@ -18,6 +19,7 @@ import CommentsImport from './CommentsImport'
 import CommentsExport from './CommentsExport'
 import ColumnDropdown from '../table/ColumnDropdown'
 import CommentsHistoryModal from './CommentHistory'
+import {CommentIdSelector, CommentIdFilter} from './CommentIdList'
 
 import {getComments} from '../store/actions/comments'
 import {setSelected} from '../store/actions/select'
@@ -93,10 +95,24 @@ const DataSubcomponent = styled.div`
 
 const HeaderSubcomponent = DataSubcomponent.withComponent(ColumnDropdown);
 
+const StyledCommandIdFilter = styled(CommentIdFilter)`
+	margin: 10px 10px 0;
+	line-height: 30px;
+	padding-left: 20px;
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	:focus {
+		outline: none;
+		border: 1px solid deepskyblue;
+	}
+`;
+
 const renderHeaderCellStacked1 = (props) => 
 	<React.Fragment>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={70} dropdownWidth={400} dataKey='CID' label='CID' />
+			<HeaderSubcomponent {...props} width={70} dropdownWidth={400} dataKey='CID' label='CID' 
+				customFilterElement=<StyledCommandIdFilter />
+			/>
 			<HeaderSubcomponent {...props} width={40} dropdownWidth={140} dataKey='Category' label='Cat' />
 		</FlexRow>
 		<FlexRow>
@@ -155,6 +171,12 @@ const renderHeaderCellResolution = (props) =>
 		<HeaderSubcomponent {...props} dropdownWidth={150} dataKey='ResnStatus' label='Resolution Status' />
 		<HeaderSubcomponent {...props} dataKey='Resolution' label='Resolution' />
 	</React.Fragment>
+
+const controlColumn = {
+	width: 30, flexGrow: 1, flexShrink: 0,
+	headerRenderer: p => <ControlHeader {...p} ><CommentIdSelector focusOnMount /></ControlHeader>,
+	cellRenderer: p => <ControlCell {...p} />
+}
 
 const allColumns = Immutable.OrderedMap({
 	Stack1:
@@ -383,14 +405,7 @@ function Comments(props) {
 	const [editKey, setEditKey] = React.useState(new Date().getTime());
 	const [showHistory, setShowHistory] = React.useState(false);
 
-	let tableView
-	if (tableViews.includes(props.tableView)) {
-		tableView = props.tableView
-	}
-	else {
-		tableView = tableViews[0]
-		props.setTableView(tableView)
-	}
+	const tableView = tableViews.includes(props.tableView)? props.tableView: tableViews[0];
 	const tableConfig = props.tablesConfig[tableView] || defaultTablesConfig[tableView];
 
 	React.useEffect(() => setEditKey(new Date().getTime()), [props.selected])
@@ -403,7 +418,11 @@ function Comments(props) {
 			if (tableConfig.fixed) id += 'fixed';
 			tableConfig.columns.forEach((v, k) => {if (v.visible) id += k});
 		}
-		let columns = allColumns.filter((col, key) => tableConfig.columns.has(key)? tableConfig.columns.get(key).visible: true)
+		let columns =
+			Immutable.OrderedMap({__ctrl__: controlColumn})
+			.concat(
+				allColumns.filter((col, key) => tableConfig.columns.has(key)? tableConfig.columns.get(key).visible: true)
+			);
 		return [id, columns]
 	}, [tableView, tableConfig]);
 
@@ -437,8 +456,8 @@ function Comments(props) {
 			columns={columns}
 			defaultTableConfig={defaultTablesConfig[tableView]}
 			tableView={tableView}
-			headerHeight={62} //{isStacked? 66: 22}
-			controlColumn
+			headerHeight={62}
+			//controlColumn
 			estimatedRowHeight={64}
 			rowGetter={commentsRowGetter}
 			loading={props.loading}
@@ -470,7 +489,7 @@ function Comments(props) {
 						tableView={props.tableView}
 						setTableView={props.setTableView}
 					/>
-					<Button onClick={e => setClipboard(props.selected, props.comments)}>Copy</Button>
+					<ActionButton name='copy' title='Copy' disabled={props.selected.length === 0} onClick={e => setClipboard(props.selected, props.comments)} />
 					{access >= AccessLevel.SubgroupAdmin && <CommentsExport ballotId={ballotId} />}
 					{access >= AccessLevel.SubgroupAdmin && <CommentsImport ballotId={ballotId} />}
 					<ColumnSelector allColumns={allColumns}	/>

@@ -4,7 +4,7 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {Handle} from '../general/Icons'
 import ClickOutside from '../general/ClickOutside'
-import {Row, Col} from '../general/Form'
+import {Title, Row, Col} from '../general/Form'
 
 import {loginGetState, login, logout, AccessLevelOptions} from '../store/actions/login'
 
@@ -76,6 +76,9 @@ const SignInContainer = styled.div`
 
 const SignInForm = ({credentials, change, disabled, submit, statusMsg}) =>
 	<React.Fragment>
+		<Title>
+			Sign in
+		</Title>
 		<Row>
 			<Col>
 				<label>Username/Email:</label>
@@ -105,10 +108,10 @@ const SignInForm = ({credentials, change, disabled, submit, statusMsg}) =>
 			</Col>
 		</Row>
 		<Row>
-			<Button value="Sign In" disabled={disabled} onClick={submit}>Sign in</Button>
+			<p>{statusMsg}</p>
 		</Row>
 		<Row>
-			<p>{statusMsg}</p>
+			<Button value="Sign In" disabled={disabled} onClick={submit}>Sign in</Button>
 		</Row>
 	</React.Fragment>
 

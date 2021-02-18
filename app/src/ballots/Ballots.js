@@ -8,6 +8,7 @@ import BallotDetailModal from './BallotDetail'
 import ConfirmModal from '../modals/ConfirmModal'
 import AppTable from '../table/AppTable'
 import ColumnDropdown from '../table/ColumnDropdown'
+import {ControlHeader, ControlCell} from '../table/ControlColumn'
 import {ActionButton} from '../general/Icons'
 import {displayDate} from '../lib/utils'
 
@@ -87,6 +88,11 @@ function renderDate({rowData, dataKey}) {
 }
 
 const tableColumns = Immutable.OrderedMap({
+	__ctrl__:
+		{
+			width: 30, flexGrow: 1, flexShrink: 0,
+			headerRenderer: p => <ControlHeader {...p} />,
+			cellRenderer: p => <ControlCell {...p} />},
 	Project:
 		{label: 'Project',
 			width: 100,	flexShrink: 0, flexGrow: 0,
@@ -210,7 +216,6 @@ function Ballots(props) {
 			<TableRow style={{maxWidth}}>
 				<AppTable
 					columns={columns}
-					controlColumn
 					dataSet={'ballots'}
 					rowKey={primaryDataKey}
 					headerHeight={40}
