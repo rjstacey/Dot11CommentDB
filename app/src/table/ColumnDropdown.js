@@ -6,7 +6,7 @@ import styled from '@emotion/styled'
 import {FixedSizeList as List} from 'react-window'
 
 import {Button, ActionButtonSort, Handle, IconSort, IconFilter} from '../general/Icons'
-import ClickOutside from '../general/ClickOutside'
+import useClickOutside from '../lib/useClickOutside'
 import {Checkbox, Input} from '../general/Form'
 
 import {SortType, sortOptions} from '../store/lib/sort'
@@ -355,7 +355,7 @@ function renderDropdown({anchorRef, ...otherProps}) {
 	)
 }
 
-const Wrapper = styled(ClickOutside)`
+const Wrapper = styled.div`
 	position: relative;
 `;
 
@@ -386,9 +386,37 @@ const Label = styled.label`
 function _ColumnDropdown(props) {
 	const {className, style, filter, label, ...otherProps} = props;
 	const {anchorRef, column, sort} = props;
-	const containerRef = React.useRef();
-	const [open, setOpen] = React.useState(false);
-	let dropdownStyle = {};
+	const [isOpen, setIsOpen] = React.useState(false);
+	const [position, setPosition] = React.useState({});
+
+	const handleClose = (e) => {
+		// ignore if not open or event target is an element inside the dropdown
+		if (!isOpen || (anchorRef.current && anchorRef.current.lastChild.contains(e.target)))
+			return;
+		setIsOpen(false);
+	}
+
+	const toggleOpen = () => {
+		if (!isOpen) {
+			// Update position on open
+			const anchor = anchorRef.current.getBoundingClientRect();
+			const container = wrapperRef.current.getBoundingClientRect();
+			const top = container.y - anchor.y + container.height;
+			const right = (anchor.x + anchor.width) - (container.x + container.width);
+			const width = props.dropdownWidth || column.width;
+			const newPosition = {top, width};
+			if ((right + width) > anchor.width)
+				newPosition.left = 0;
+			else
+				newPosition.right = right;
+			setPosition(newPosition);
+		}
+		setIsOpen(!isOpen);
+	}
+
+	const wrapperRef = React.useRef();
+	useClickOutside(wrapperRef, handleClose);
+
 	const isFiltered = filter && filter.values.length > 0;
 	const isSorted = sort && sort.direction !== SortDirection.NONE;
 
@@ -396,36 +424,14 @@ function _ColumnDropdown(props) {
 		return <Label>{label}</Label>
 	}
 
-	const close = e => {
-		// ignore if not open or event target is an element inside the dropdown
-		if (!open || (anchorRef.current && anchorRef.current.lastChild.contains(e.target)))
-			return		
-		setOpen(false)
-	}
-
-	if (open) {
-		// Update position on open
-		const anchor = anchorRef.current.getBoundingClientRect();
-		const container = containerRef.current.getBoundingClientRect();
-		const top = container.y - anchor.y + container.height;
-		const right = (anchor.x + anchor.width) - (container.x + container.width);
-		const width = props.dropdownWidth || column.width;
-		dropdownStyle = {top, width};
-		if ((right + width) > anchor.width)
-			dropdownStyle.left = 0;
-		else
-			dropdownStyle.right = right
-	}
-
 	return (
 		<Wrapper
-			ref={containerRef}
-			onClickOutside={close}
+			ref={wrapperRef}
 			className={className}
 			style={style}
 		>
 			<Header
-				onClick={() => setOpen(!open)}
+				onClick={toggleOpen}
 			>
 				<Label>{label}</Label>
 				<div className='handle'>
@@ -442,7 +448,7 @@ function _ColumnDropdown(props) {
 					<Handle />
 				</div>
 			</Header>
-			{open && renderDropdown({style: dropdownStyle, close, ...otherProps})}
+			{isOpen && renderDropdown({style: position, close: handleClose, ...otherProps})}
 		</Wrapper>
 	)
 }

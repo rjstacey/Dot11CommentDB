@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import styled from '@emotion/styled'
-import ClickOutside from '../general/ClickOutside'
+import useClickOutside from '../lib/useClickOutside'
 import {ActionButton} from '../general/Icons'
 
-const Wrapper = styled(ClickOutside)`
+const Wrapper = styled.div`
 	display: inline-block;
 	position: relative;
 	user-select: none;
@@ -36,11 +36,14 @@ function ActionButtonDropdown({
 	children
 }) {
 	const [isOpen, setOpen] = React.useState(false);
+	const wrapperRef = React.useRef();
 	const dropdownRef = React.useRef();
 	const [dropdownStyle, setDropdownStyle] = React.useState({});
 
+	const close = () => setOpen(false);
+
 	const childrenWithClose = React.Children.map(children, child =>
-		React.isValidElement(child)? React.cloneElement(child, {close: () => setOpen(false)}): child
+		React.isValidElement(child)? React.cloneElement(child, {close}): child
 	);
 
 	React.useEffect(() => {
@@ -56,11 +59,13 @@ function ActionButtonDropdown({
 		}
 	}, [isOpen]);
 
+	useClickOutside(wrapperRef, close);
+
 	return (
 		<Wrapper
 			className={className}
 			style={style}
-			onClickOutside={() => setOpen(false)}
+			ref={wrapperRef}
 		>
 			<ActionButton
 				name={name}

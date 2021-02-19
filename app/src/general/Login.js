@@ -3,12 +3,12 @@ import {useLocation, useHistory} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {Handle} from '../general/Icons'
-import ClickOutside from '../general/ClickOutside'
+import useClickOutside from '../lib/useClickOutside'
 import {Title, Row, Col} from '../general/Form'
 
 import {loginGetState, login, logout, AccessLevelOptions} from '../store/actions/login'
 
-const Wrapper = styled(ClickOutside)`
+const Wrapper = styled.div`
 	position: relative;
 `;
 
@@ -178,24 +178,26 @@ const AccountDropdown = ({user, logout, loading, close}) =>
 
 function _Account(props) {
 	const {loggedIn, user, loginGetState} = props;
-	const containerRef = React.useRef();
-	const [open, setOpen] = React.useState(false);
+	const [isOpen, setIsOpen] = React.useState(false);
+	const close = () => setIsOpen(false)
 
 	useEffect(() => {loginGetState()}, [loginGetState]);
+
+	const wrapperRef = React.useRef();
+	useClickOutside(wrapperRef, close);
 
 	if (loggedIn) {
 		return (
 			<Wrapper
-				ref={containerRef}
-				onClickOutside={() => setOpen(false)}
+				ref={wrapperRef}
 			>
 				<AccountButton
-					onClick={() => setOpen(!open)}
+					onClick={() => setIsOpen(!isOpen)}
 				>
 					<span>{`${user.Name} (${user.SAPIN})`}</span>
-					<Handle open={open} />
+					<Handle open={isOpen} />
 				</AccountButton>
-				{open && <AccountDropdown {...props} close={() => setOpen(false)} />}
+				{isOpen && <AccountDropdown {...props} close={close} />}
 			</Wrapper>
 		)
 	}

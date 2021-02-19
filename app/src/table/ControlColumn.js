@@ -5,7 +5,7 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 
 import {Expander, DoubleExpander, Handle} from '../general/Icons'
-import ClickOutside from '../general/ClickOutside'
+import useClickOutside from '../lib/useClickOutside'
 import {Checkbox} from '../general/Form'
 
 import {setSelected, toggleSelected} from '../store/actions/select'
@@ -35,7 +35,7 @@ function renderDropdown({style, close, anchorRef, children}) {
 	)
 }
 
-const CustomSelectorContainer = styled(ClickOutside)`
+const CustomSelectorContainer = styled.div`
 	height: 22px;
 	border-radius: 6px;
 	text-align: center;
@@ -43,37 +43,37 @@ const CustomSelectorContainer = styled(ClickOutside)`
 
 function CustomSelector(props) {
 	const {anchorRef, children} = props;
-	const containerRef = React.useRef();
-	const [open, setOpen] = React.useState(false);
+	const [isOpen, setIsOpen] = React.useState(false);
 	const [position, setPosition] = React.useState({top: 0, left: 0});
 
-	const handleOpen = () => {
-		if (!open) {
+	const toggleOpen = () => {
+		if (!isOpen) {
 			// Update position on open
 			const anchor = anchorRef.current.getBoundingClientRect();
-			const container = containerRef.current.getBoundingClientRect();
+			const container = wrapperRef.current.getBoundingClientRect();
 			const top = container.y - anchor.y + container.height;
 			const left = container.x - anchor.x;
-			setPosition(position => (top !== position.top || left !== position.left)? {top, left}: position)
+			setPosition(position => (top !== position.top || left !== position.left)? {top, left}: position);
 		}
-		setOpen(!open)
+		setIsOpen(!isOpen);
 	}
 
 	const handleClose = (e) => {
 		// ignore if not open or event target is an element inside the dropdown
-		if (!open || (anchorRef && anchorRef.current.lastChild.contains(e.target))) {
+		if (!isOpen || (anchorRef && anchorRef.current.lastChild.contains(e.target)))
 			return;
-		}
-		setOpen(false)
+		setIsOpen(false);
 	}
+
+	const wrapperRef = React.useRef();
+	useClickOutside(wrapperRef, handleClose);
 
 	return (
 		<CustomSelectorContainer
-			ref={containerRef}
-			onClickOutside={handleClose}
+			ref={wrapperRef}
 		>
-			<Handle title="Select List" open={open} onClick={handleOpen} />
-			{open && renderDropdown({style: position, close: handleClose, anchorRef, children})}
+			<Handle title="Select List" open={isOpen} onClick={toggleOpen} />
+			{isOpen && renderDropdown({style: position, close: handleClose, anchorRef, children})}
 		</CustomSelectorContainer>
 	)
 }
