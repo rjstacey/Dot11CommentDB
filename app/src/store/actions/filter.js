@@ -10,11 +10,11 @@ export const FILTER_CLEAR_ALL = FILTER_PREFIX + 'CLEAR_ALL'
 export const FilterType = {
 	EXACT: 0,
 	CONTAINS: 1,
-	NUMERIC: 2,
-	STRING: 3,
-	CLAUSE: 4,
-	PAGE: 5,
-	REGEX: 6
+	REGEX: 2,
+	NUMERIC: 3,
+	STRING: 4,
+	CLAUSE: 5,
+	PAGE: 6,
 }
 
 export const setFilter = (dataSet, dataKey, values) => ({type: FILTER_SET, dataSet, dataKey, values})

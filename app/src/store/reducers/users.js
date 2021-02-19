@@ -36,19 +36,10 @@ const userFields = ['SAPIN', 'Name', 'Email', 'Access']
  * Generate a filter for each field (table column)
  */
 const defaultFiltersEntries = userFields.reduce((entries, dataKey) => {
-	let type, options
-	switch (dataKey) {
-		case 'SAPIN':
-			type = FilterType.NUMERIC
-			break
-		case 'Access':
-			type = FilterType.NUMERIC
-			options = AccessLevelOptions
-			break
-		default:
-			type = FilterType.STRING
-	}
-	return {...entries, [dataKey]: {type, options}}
+	let options;
+	if (dataKey === 'Access')
+		options = AccessLevelOptions;
+	return {...entries, [dataKey]: {options}}
 }, {});
 
 

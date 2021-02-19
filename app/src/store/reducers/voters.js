@@ -35,8 +35,7 @@ const voterFields = ['SAPIN', 'Email', 'Name', 'LastName', 'FirstName', 'MI', 'S
  * Generate a filter for each field (table column)
  */
 const defaultFiltersEntries = voterFields.reduce((entries, dataKey) => {
-	const type = dataKey === 'SAPIN'? FilterType.NUMERIC: FilterType.STRING
-	return {...entries, [dataKey]: {type}}
+	return {...entries, [dataKey]: {}}
 }, {});
 
 

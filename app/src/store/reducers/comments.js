@@ -68,25 +68,10 @@ const commentFields = {
  * Generate a filter for each field (table column)
  */
 const defaultFiltersEntries = Object.keys(commentFields).reduce((entries, dataKey) => {
-	let type, options
-	switch (dataKey) {
-		case 'CID':
-			type = FilterType.NUMERIC
-			break
-		case 'Clause':
-			type = FilterType.CLAUSE
-			break
-		case 'Page':
-			type = FilterType.PAGE
-			break
-		case 'MustSatisfy':
-			type = FilterType.NUMERIC
-			options = [{value: 0, label: 'No'}, {value: 1, label: 'Yes'}]
-			break;
-		default:
-			type = FilterType.STRING
-	}
-	return {...entries, [dataKey]: {type, options}}
+	let options
+	if (dataKey === 'MustSatisfy')
+		options = [{value: 0, label: 'No'}, {value: 1, label: 'Yes'}]
+	return {...entries, [dataKey]: {options}}
 }, {});
 
 

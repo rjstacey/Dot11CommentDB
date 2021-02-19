@@ -26,21 +26,7 @@ const epollFields = ['EpollNum', 'BallotID', 'Document', 'Topic', 'Start', 'End'
  * Generate a filter for each field (table column)
  */
 const defaultFiltersEntries = epollFields.reduce((entries, dataKey) => {
-	let type
-	switch (dataKey) {
-		case 'EpollNum':
-		case 'Votes':
-			type = FilterType.NUMERIC
-			break
-		case 'BallotID':
-		case 'Document':
-		case 'Topic':
-			type = FilterType.STRING
-			break
-		default:
-			break
-	}
-	return type !== undefined? {...entries, [dataKey]: {type}}: entries;
+	return {...entries, [dataKey]: {}};
 }, {});
 
 
@@ -54,16 +40,20 @@ const defaultSortEntries = epollFields.reduce((entries, dataKey) => {
 		case 'Votes':
 			type = SortType.NUMERIC
 			break
+
+		case 'Start':
+		case 'End':
+			type = SortType.DATE
+			break
 		case 'BallotID':
 		case 'Document':
 		case 'Topic':
-			type = SortType.STRING
-			break
 		default:
-			break
+			type = SortType.STRING
+			break	
 	}
 	const direction = SortDirection.NONE;
-	return type !== undefined? {...entries, [dataKey]: {type, direction}}: entries;
+	return {...entries, [dataKey]: {type, direction}};
 }, {});
 
 const defaultState = {

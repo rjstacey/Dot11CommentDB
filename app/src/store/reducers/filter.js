@@ -15,18 +15,12 @@ import {
 
 const parseNumber = (value) => {
 	// Return the value as-is if it's already a number
-	if (typeof value === 'number') {
+	if (typeof value === 'number')
 		return value
-	}
 
-	// Build regex to strip out everything except digits, decimal point and
-	// minus sign
+	// Build regex to strip out everything except digits, decimal point and minus sign
 	let regex = new RegExp('[^0-9-.]', ['g']);
-	let unformatted = parseFloat(
-		('' + value)
-			// strip out any cruft
-			.replace(regex, '')
-		);
+	let unformatted = parseFloat((''+value).replace(regex, ''));
 
 	// This will fail silently
 	return !isNaN(unformatted)? unformatted: 0;
@@ -99,31 +93,24 @@ function filterAddValue(filter, value, filterType) {
 	}
 }
 
-function filterCreate(entry) {
-	const {type, options} = entry
-
-	if (!filterTypeValid(type)) {
-		throw new Error('Invalid filter type')
-	}
-
+function filterRemoveValue(filter, value, filterType) {
+	const newValues = filter.values.filter(v => v.value !== value || v.filterType !== filterType)
 	return {
-		type,
-		options,
-		values: [],
-		valid: true
+		...filter,
+		values: newValues
 	}
 }
 
-function filterTypeValid(type) {
-	return Object.values(FilterType).includes(type)
-}
+const filterCreate = ({options}) => ({
+	options,	// Array of {label, value} objects
+	values: [],	// Array of filter value objects where a filter value object is {value, valid, FilterType, compFunc}
+})
 
 function filtersInit(entries) {
 	const filters = {}
 	if (entries) {
-		for (let dataKey of Object.keys(entries)) {
+		for (let dataKey of Object.keys(entries))
 			filters[dataKey] = filterCreate(entries[dataKey])
-		}
 	}
 	return filters;
 }
@@ -133,7 +120,7 @@ function filtersReducer(state = {}, action) {
 
 	switch (action.type) {
 		case FILTER_SET:
-			filter = {...state[action.dateKey], values: []}
+			filter = filterCreate(state[action.dataKey])
 			for (let value of action.values)
 				filter = filterAddValue(filter, value, FilterType.EXACT)
 			return {
@@ -146,25 +133,19 @@ function filtersReducer(state = {}, action) {
 				[action.dataKey]: filterAddValue(state[action.dataKey], action.value, action.filterType)
 			}
 		case FILTER_REMOVE:
-			filter = {...state[action.dataKey]}
-			filter.values = filter.values.filter(v => v.value !== action.value || v.filterType !== action.filterType)
 			return {
 				...state,
-				[action.dataKey]: filter
+				[action.dataKey]: filterRemoveValue(state[action.dataKey], action.value, action.filterType)
 			}
 
 		case FILTER_CLEAR:
 			return {
 				...state,
-				[action.dataKey]: {...state[action.dataKey], values: []}
+				[action.dataKey]: filterCreate(state[action.dataKey])
 			}
 
 		case FILTER_CLEAR_ALL:
-			const filters = {}
-			for (let dataKey in state) {
-				filters[dataKey] = {...state[dataKey], values: []}
-			}
-			return filters
+			return filtersInit(state)
 
 		case FILTER_INIT:
 			return filtersInit(action.entries)

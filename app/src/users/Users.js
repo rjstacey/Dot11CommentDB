@@ -4,6 +4,7 @@ import {connect} from 'react-redux'
 import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
+import {ControlHeader, ControlCell} from '../table/ControlColumn'
 import ConfirmModal from '../modals/ConfirmModal'
 import {ActionButton} from '../general/Icons'
 import UsersImport from './UsersImport'
@@ -46,6 +47,9 @@ const TableRow = styled.div`
 const renderAccess = ({rowData}) => AccessLevelOptions.find(o => o.value === rowData.Access).label;
 
 const tableColumns = Immutable.OrderedMap({
+	__ctrl__:   {width: 30, flexGrow: 1, flexShrink: 0,
+					headerRenderer: p => <ControlHeader {...p} />,
+					cellRenderer: p => <ControlCell {...p} />},
 	SAPIN: 		{label: 'SA PIN', 		width: 100, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
 	Name: 		{label: 'Name', 		width: 300, flexGrow: 1, flexShrink: 1},
 	Email: 		{label: 'eMail Address',width: 300, flexGrow: 1, flexShrink: 1},

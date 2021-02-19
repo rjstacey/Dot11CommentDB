@@ -82,8 +82,6 @@ class AppTableSized extends React.PureComponent {
 
 		let columns = props.columns
 			.map((col, key) => (tableConfig.columns.has(key)? {...col, width: tableConfig.columns.get(key).width}: col));
-		if (props.controlColumn)
-			columns = Immutable.OrderedMap({'__ctrl__': controlColumn}).concat(columns);
 		this.state = {columns};
 
 		this.fixed = tableConfig.fixed;

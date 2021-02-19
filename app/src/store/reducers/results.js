@@ -30,23 +30,7 @@ const resultFields = ['SAPIN', 'Name', 'Affiliation', 'Email', 'Vote', 'CommentC
  * Generate a filter for each field (table column)
  */
 const defaultFiltersEntries = resultFields.reduce((entries, dataKey) => {
-	let type
-	switch (dataKey) {
-		case 'SAPIN':
-		case 'CommentCount':
-			type = FilterType.NUMERIC
-			break
-		case 'Name':
-		case 'Affiliation':
-		case 'Email':
-		case 'Vote':
-		case 'Notes':
-			type = FilterType.STRING
-			break
-		default:
-			break
-	}
-	return type !== undefined? {...entries, [dataKey]: {type}}: entries;
+	return {...entries, [dataKey]: {}};
 }, {});
 
 
@@ -54,7 +38,7 @@ const defaultFiltersEntries = resultFields.reduce((entries, dataKey) => {
  * Generate object that describes the initial sort state
  */
 const defaultSortEntries = resultFields.reduce((entries, dataKey) => {
-	let type
+	let type;
 	switch (dataKey) {
 		case 'SAPIN':
 		case 'CommentCount':
@@ -68,10 +52,10 @@ const defaultSortEntries = resultFields.reduce((entries, dataKey) => {
 			type = SortType.STRING
 			break
 		default:
-			break
+			return entries;
 	}
 	const direction = SortDirection.NONE;
-	return type !== undefined? {...entries, [dataKey]: {type, direction}}: entries;
+	return {...entries, [dataKey]: {type, direction}};
 }, {});
 
 const defaultState = {

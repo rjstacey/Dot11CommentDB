@@ -33,8 +33,7 @@ const votingPoolFields = ['PoolType', 'VotingPoolID', 'VoterCount'];
  * Generate a filter for each field (table column)
  */
 const defaultFiltersEntries = votingPoolFields.reduce((entries, dataKey) => {
-	const type = dataKey === 'VoterCount'? FilterType.NUMERIC: FilterType.STRING;
-	return {...entries, [dataKey]: {type}}
+	return {...entries, [dataKey]: {}}
 }, {});
 
 

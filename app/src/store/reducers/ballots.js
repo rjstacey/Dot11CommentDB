@@ -34,24 +34,9 @@ const ballotFields = ['Project', 'BallotID', 'Document', 'Topic', 'EpollNum', 'S
  * Generate a filter for each field (table column)
  */
 const defaultFiltersEntries = ballotFields.reduce((entries, dataKey) => {
-	let type
-	switch (dataKey) {
-		case 'EpollNum':
-			type = FilterType.NUMERIC
-			break
-		case 'Project':
-		case 'BallotID':
-		case 'Document':
-		case 'Topic':
-		case 'PrevBallotID':
-		case 'VotingPoolID':
-			type = FilterType.STRING
-			break
-		default:
-			type = FilterType.STRING
-			break
-	}
-	return type !== undefined? {...entries, [dataKey]: {type}}: entries
+	if (dataKey === 'Comments' || dataKey === 'Result')
+		return entries;
+	return {...entries, [dataKey]: {}};
 }, {});
 
 
@@ -59,10 +44,16 @@ const defaultFiltersEntries = ballotFields.reduce((entries, dataKey) => {
  * Generate object that describes the initial sort state
  */
 const defaultSortEntries = ballotFields.reduce((entries, dataKey) => {
-	let type
+	if (dataKey === 'Comments' || dataKey === 'Result')
+		return entries;
+	let type = SortType.STRING;
 	switch (dataKey) {
 		case 'EpollNum':
 			type = SortType.NUMERIC
+			break
+		case 'Start':
+		case 'End':
+			type = SortType.DATE
 			break
 		case 'Project':
 		case 'BallotID':
@@ -70,17 +61,12 @@ const defaultSortEntries = ballotFields.reduce((entries, dataKey) => {
 		case 'Topic':
 		case 'PrevBallotID':
 		case 'VotingPoolID':
-			type = SortType.STRING
-			break
-		case 'Start':
-		case 'End':
-			type = SortType.DATE
-			break
 		default:
+			type = SortType.STRING
 			break
 	}
 	const direction = SortDirection.NONE;
-	return type !== undefined? {...entries, [dataKey]: {type, direction}}: entries
+	return {...entries, [dataKey]: {type, direction}};
 }, {});
 
 
