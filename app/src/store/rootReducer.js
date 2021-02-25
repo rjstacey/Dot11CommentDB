@@ -1,4 +1,4 @@
-import { combineReducers } from 'redux'
+import { combineReducers } from '@reduxjs/toolkit'
 import login from './login'
 import users from './users'
 import ballots from './ballots'

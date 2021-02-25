@@ -11,8 +11,8 @@ import VotersImportModal from './VotersImport'
 import VoterEditModal from './VoterEdit'
 import {ActionButton} from '../general/Icons'
 
-import {getVoters, deleteVoters} from '../store/actions/voters'
-import {getDataMap} from '../store/selectors/dataMap'
+import {getVoters, deleteVoters} from '../store/voters'
+import {getDataMap} from '../store/dataMap'
 
 const ActionCell = styled.div`
 	display: flex;

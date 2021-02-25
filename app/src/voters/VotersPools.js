@@ -10,8 +10,8 @@ import ConfirmModal from '../modals/ConfirmModal'
 import {ActionButton} from '../general/Icons'
 import VotersPoolAddModal from './VotersPoolAdd'
 
-import {getVotingPools, deleteVotingPools} from '../store/actions/votingPools'
-import {getDataMap} from '../store/selectors/dataMap'
+import {getVotingPools, deleteVotingPools} from '../store/votingPools'
+import {getDataMap} from '../store/dataMap'
 
 const ActionCell = styled.div`
 	display: flex;

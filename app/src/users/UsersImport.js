@@ -5,7 +5,7 @@ import styled from '@emotion/styled'
 import {ActionButtonDropdown} from '../general/Dropdown'
 import {Form, Col} from '../general/Form'
 
-import {uploadUsers} from '../store/actions/users'
+import {uploadUsers} from '../store/users'
 
 const UsersImportForm = styled(Form)`
 	width: 400px;

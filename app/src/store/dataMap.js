@@ -1,6 +1,6 @@
 import {createCachedSelector} from 're-reselect'
-import {sortData} from '../lib/sort'
-import {filterData} from '../reducers/filter'
+import {sortData} from './lib/sort'
+import {filterData} from './filters'
 import {getSyncedEpolls} from './epolls'
 
 const getData = (state, dataSet) => dataSet === 'epolls'? getSyncedEpolls(state): state[dataSet][dataSet]

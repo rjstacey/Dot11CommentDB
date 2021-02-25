@@ -5,7 +5,7 @@ import AppModal from '../modals/AppModal'
 import {Form, Row, Field, Input} from '../general/Form'
 import AccessSelector from './AccessSelector'
 
-import {updateUser, addUser} from '../store/actions/users'
+import {updateUser, addUser} from '../store/users'
 
 const EditUserAction = {CLOSED: 0, ADD: 1, UPDATE: 2}
 

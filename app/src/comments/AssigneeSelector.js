@@ -4,7 +4,7 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {Select} from '../general/Form'
 
-import {getUsers} from '../store/actions/users'
+import {getUsers} from '../store/users'
 import {strComp} from '../lib/utils'
 
 const StyledItem = styled.span`

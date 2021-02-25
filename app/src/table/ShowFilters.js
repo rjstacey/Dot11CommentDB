@@ -3,8 +3,8 @@ import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 
-import {getDataMap} from '../store/selectors/dataMap'
-import {removeFilter, clearAllFilters} from '../store/actions/filter'
+import {getDataMap} from '../store/dataMap'
+import {removeFilter, clearAllFilters} from '../store/filters'
 
 const ActiveFilterLabel = styled.label`
 	font-weight: bold;

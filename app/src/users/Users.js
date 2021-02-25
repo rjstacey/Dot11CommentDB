@@ -10,8 +10,8 @@ import {ActionButton} from '../general/Icons'
 import UsersImport from './UsersImport'
 import UserAddEditModal, {EditUserAction} from './UserAddEdit'
 
-import {getDataMap} from '../store/selectors/dataMap'
-import {getUsers, deleteUsers, AccessLevel, AccessLevelOptions} from '../store/actions/users'
+import {getDataMap} from '../store/dataMap'
+import {getUsers, deleteUsers, AccessLevel, AccessLevelOptions} from '../store/users'
 
 const DefaultUser = {SAPIN: '', Name: '', Email: '', Access: AccessLevel.Member}
 

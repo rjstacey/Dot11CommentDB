@@ -4,7 +4,7 @@ import {connect} from 'react-redux'
 import AppModal from '../modals/AppModal'
 import {Form, Row, Col, Field, List, ListItem, Input} from '../general/Form'
 
-import {uploadVoters} from '../store/actions/voters'
+import {uploadVoters} from '../store/voters'
 
 const defaultState = {
 	votingPoolName: '',

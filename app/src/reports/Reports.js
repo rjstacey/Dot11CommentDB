@@ -5,8 +5,8 @@ import styled from '@emotion/styled'
 import {connect} from 'react-redux'
 import BallotSelector from '../ballots/BallotSelector'
 
-import {setBallotId} from '../store/actions/ballots'
-import {getComments} from '../store/actions/comments'
+import {setBallotId} from '../store/ballots'
+import {getComments} from '../store/comments'
 
 function countsByCategory(comments) {
 	return {

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
 import {Select} from '../general/Form'
 
-import {getAllFieldOptions} from '../store/selectors/options'
+import {getAllFieldOptions} from '../store/options'
 
 function AdHocSelector({
 	value,

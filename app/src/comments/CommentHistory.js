@@ -4,7 +4,7 @@ import styled from '@emotion/styled'
 import HorizontalTimeline from '../general/HorizontalTimeline'
 import AppModal from '../modals/AppModal'
 import {Comment} from './CommentDetail'
-import {getCommentsHistory} from '../store/actions/commentsHistory'
+import {getCommentsHistory} from '../store/commentsHistory'
 
 const Container = styled.div`
 	width: 80vw;

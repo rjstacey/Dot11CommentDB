@@ -16,7 +16,7 @@ import ErrorModal from './modals/ErrorModal'
 import ConfirmModal from './modals/ConfirmModal'
 import {init as iconInit} from './general/Icons'
 
-import {loginGetState, AccessLevel} from './store/actions/login'
+import {loginGetState, AccessLevel} from './store/login'
 
 iconInit()
 

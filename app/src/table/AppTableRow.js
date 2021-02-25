@@ -67,17 +67,17 @@ class TableRow extends React.Component {
 				overflow: 'hidden'	// necessary to ensure that the content does not affect size
 			}
 			const renderer = cellRenderer || defaultCellRenderer;
-			const props = {rowIndex, rowData, dataSet, rowKey, dataKey: key, ...colProps}
+			const props = {rowIndex, rowData, dataSet, rowKey, dataKey: column.key, ...colProps}
 			return (
 				<div
-					key={key}
+					key={column.key}
 					className='AppTable__dataCell'
 					style={style}
 				>
 					{renderer(props)}
 				</div>
 			)
-		}).toArray()
+		})//.toArray()
 
 		let rowStyle = {...style}
 		if (!this.state.measured && isExpanded) {
@@ -117,7 +117,7 @@ TableRow.propTypes = {
 	className: PropTypes.string,
 	style: PropTypes.object,
 	fixed: PropTypes.bool,
-	columns: PropTypes.object.isRequired,
+	columns: PropTypes.array.isRequired,
 	rowIndex: PropTypes.number.isRequired,
 	rowData: PropTypes.oneOfType([PropTypes.object, PropTypes.func]).isRequired,
 	rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

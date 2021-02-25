@@ -6,11 +6,11 @@ import AppModal from '../modals/AppModal'
 import {Form, Row, Col, Field, List, ListItem, Checkbox, Input, Select, TextArea} from '../general/Form'
 import ConfirmModal from '../modals/ConfirmModal'
 import {renderResultsSummary, renderCommentsSummary} from './Ballots'
-import {updateBallot, addBallot, getBallots, setProject, BallotType} from '../store/actions/ballots'
-import {getProjectList, getBallotList} from '../store/selectors/ballots'
-import {getVotingPools} from '../store/actions/votingPools'
-import {importResults, uploadEpollResults, uploadMyProjectResults, deleteResults} from '../store/actions/results'
-import {importComments, uploadComments, deleteComments, setStartCommentId} from '../store/actions/comments'
+
+import {updateBallot, addBallot, getBallots, setProject, getProjectList, getBallotList, BallotType} from '../store/ballots'
+import {getVotingPools} from '../store/votingPools'
+import {importResults, uploadEpollResults, uploadMyProjectResults, deleteResults} from '../store/results'
+import {importComments, uploadComments, deleteComments, setStartCommentId} from '../store/comments'
 import {shallowDiff} from '../lib/utils'
 
 function defaultBallot() {

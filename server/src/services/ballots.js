@@ -73,8 +73,8 @@ function ballotEntry(ballot) {
 		Type: ballot.Type,
 		Document: ballot.Document,
 		Topic: ballot.Topic,
-		Start: ballot.Start,
-		End: ballot.End,
+		Start: ballot.Start && new Date(ballot.Start),
+		End: ballot.End && new Date(ballot.End),
 		EpollNum: ballot.EpollNum,
 		VotingPoolID: ballot.VotingPoolID,
 		PrevBallotID: ballot.PrevBallotID

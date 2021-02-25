@@ -10,9 +10,9 @@ import {ActionButton} from '../general/Icons'
 import ResultsSummary from './ResultsSummary'
 import ResultsExport from './ResultsExport'
 
-import {getResults} from '../store/actions/results'
-import {setBallotId, BallotType} from '../store/actions/ballots'
-import {AccessLevel} from '../store/actions/login'
+import {getResults} from '../store/results'
+import {setBallotId, BallotType} from '../store/ballots'
+import {AccessLevel} from '../store/login'
 
 // The action row height is determined by its content
 const ActionRow = styled.div`

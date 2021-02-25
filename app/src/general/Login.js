@@ -6,7 +6,7 @@ import {Handle} from '../general/Icons'
 import useClickOutside from '../lib/useClickOutside'
 import {Title, Row, Col} from '../general/Form'
 
-import {loginGetState, login, logout, AccessLevelOptions} from '../store/actions/login'
+import {loginGetState, login, logout, AccessLevelOptions} from '../store/login'
 
 const Wrapper = styled.div`
 	position: relative;

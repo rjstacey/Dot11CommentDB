@@ -9,9 +9,9 @@ import TableRow from './AppTableRow'
 import TableHeader from './AppTableHeader'
 import {debounce, getScrollbarSize} from '../lib/utils'
 
-import {setSelected} from '../store/actions/select'
-import {uiInitTable, uiSetTableColumns} from '../store/actions/ui'
-import {getDataMap} from '../store/selectors/dataMap'
+import {setSelected} from '../store/selected'
+import {getTableConfig, upsertTableColumns} from '../store/ui'
+import {getDataMap} from '../store/dataMap'
 
 const scrollbarSize = getScrollbarSize();
 
@@ -69,19 +69,13 @@ class AppTableSized extends React.PureComponent {
 	constructor(props) {
 		super(props);
 
-		let tableConfig
-		if (!props.tableConfig) {
-			tableConfig = props.defaultTableConfig || {fixed: false, columns: Immutable.Map()};
-			props.initTableConfig(tableConfig.fixed, tableConfig.columns);
-			//console.log('init', props.defaultTableConfig, tableConfig)
-		}
-		else {
-			tableConfig = props.tableConfig;
-			//console.log('state', tableConfig)
-		}
+		const {tableConfig} = props;
 
+		//console.log(props.columns)
 		let columns = props.columns
-			.map((col, key) => (tableConfig.columns.has(key)? {...col, width: tableConfig.columns.get(key).width}: col));
+			.map((col, key) => ({key, ...col}))
+			.map((col, key) => ((tableConfig.columns[key] && tableConfig.columns[key].width)? {...col, width: tableConfig.columns[key].width}: col))
+			.toArray();
 		this.state = {columns};
 
 		this.fixed = tableConfig.fixed;
@@ -109,14 +103,17 @@ class AppTableSized extends React.PureComponent {
 	}
 
 	componentWillUnmount() {
-		//console.log('unmount and emit')
-		const columns = this.state.columns.map((col, key) => ({width: col.width}));
-		this.props.setTableColumns(columns);
+		const columnsConfig = this.state.columns.reduce((cfg, col) => ({...cfg, [col.key]: {width: col.width}}), {});
+		this.props.upsertTableColumns(this.props.tableView, columnsConfig);
 	}
 
 	setColumnWidth = (key, deltaX) => {
 		this.setState(
-			(state, props) => ({columns: state.columns.update(key, c => ({...c, width: c.width + deltaX}))}),
+			(state, props) => {
+				const columns = state.columns.map(c =>
+					c.key === key? {...c, width: c.width + deltaX}: c)
+				return {...state, columns}
+			},
 			() => this.gridRef && this.gridRef.resetAfterColumnIndex(0, true)
 		);
 	}
@@ -227,7 +224,10 @@ class AppTableSized extends React.PureComponent {
 	render() {
 		const {props} = this
 		let totalWidth = 0;
-		this.state.columns.forEach(col => totalWidth = totalWidth + col.width);
+		//this.state.columns.forEach(col => totalWidth = totalWidth + col.width);
+		//for (let col of Object.values(this.state.columns))
+		//	totalWidth = totalWidth + col.width;
+		totalWidth = this.state.columns.reduce((totalWidth, col) => totalWidth = totalWidth + col.width, 0)
 
 		let {width, height} =  props;
 		if (!width) {
@@ -341,7 +341,9 @@ AppTable.propTypes = {
 
 export default connect(
 	(state, ownProps) => {
-		const {dataSet, tableView} = ownProps;
+		const {dataSet} = ownProps;
+		const tableView = state[dataSet].ui.view;
+		const tableConfig = state[dataSet].ui.tablesConfig[tableView];
 		return {
 			selected: state[dataSet].selected,
 			expanded: state[dataSet].expanded,
@@ -349,15 +351,17 @@ export default connect(
 			loading: state[dataSet].loading,
 			data: ownProps.data? ownProps.data: state[dataSet][ownProps.dataSet],
 			dataMap: ownProps.dataMap? ownProps.dataMap: getDataMap(state, dataSet),
-			tableConfig: state[dataSet].ui.tablesConfig? state[dataSet].ui.tablesConfig[tableView]: undefined
+			tableView,
+			tableConfig,
 		}
 	},
 	(dispatch, ownProps) => {
-		const {dataSet, tableView} = ownProps;
+		const {dataSet} = ownProps;
+		//const tableView = ownProps.tableView || 'default';
+		//const tableView = state[dataSet].ui.view;
 		return {
 			setSelected: ids => dispatch(setSelected(dataSet, ids)),
-			initTableConfig: (fixed, columns) => dispatch(uiInitTable(dataSet, tableView, fixed, columns)),
-			setTableColumns: (columns) => dispatch(uiSetTableColumns(dataSet, tableView, columns))
+			upsertTableColumns: (view, columns) => dispatch(upsertTableColumns(dataSet, view, columns))
 		}
 	}
 )(AppTable)

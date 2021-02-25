@@ -9,10 +9,10 @@ import {Button, ActionButtonSort, Handle, IconSort, IconFilter} from '../general
 import useClickOutside from '../lib/useClickOutside'
 import {Checkbox, Input} from '../general/Form'
 
+import {getAllFieldOptions, getAvailableFieldOptions} from '../store/options'
 import {SortType, sortOptions} from '../store/lib/sort'
-import {getAllFieldOptions, getAvailableFieldOptions} from '../store/selectors/options'
-import {setSort, SortDirection} from '../store/actions/sort'
-import {setFilter, addFilter, removeFilter, FilterType} from '../store/actions/filter'
+import {sortSet, SortDirection} from '../store/sort'
+import {setFilter, addFilter, removeFilter, FilterType} from '../store/filters'
 
 const StyledInput = styled(Input)`
 	margin: 5px 10px;
@@ -268,7 +268,6 @@ function Dropdown({
 	removeFilter,
 	allOptions,
 	availableOptions,
-	close,
 	dataSet,
 	selected,
 	dataRenderer,
@@ -276,13 +275,6 @@ function Dropdown({
 }) {
 	const containerRef = React.useRef();
 	const [containerStyle, setContainerStyle] = React.useState(style);
-
-	// Close the dropdown if the user scrolls
-	// (we don't track position changes during scrolling)
-	React.useEffect(() => {
-		window.addEventListener('scroll', close, true);
-		return () => window.removeEventListener('scroll', close);
-	}, [close])
 
 	React.useEffect(() => {
 		// If the dropdown is outside the viewport, then move it
@@ -343,7 +335,7 @@ const ConnectedDropdown = connect(
 			setFilter: (value) => dispatch(setFilter(dataSet, dataKey, value)),
 			addFilter: (value, filterType) => dispatch(addFilter(dataSet, dataKey, value, filterType)),
 			removeFilter: (value, filterType) => dispatch(removeFilter(dataSet, dataKey, value, filterType)),
-			setSort: (direction) => dispatch(setSort(dataSet, dataKey, direction)),
+			setSort: (direction) => dispatch(sortSet(dataSet, dataKey, direction)),
 		}
 	}
 )(Dropdown)
@@ -448,7 +440,7 @@ function _ColumnDropdown(props) {
 					<Handle />
 				</div>
 			</Header>
-			{isOpen && renderDropdown({style: position, close: handleClose, ...otherProps})}
+			{isOpen && renderDropdown({style: position, ...otherProps})}
 		</Wrapper>
 	)
 }

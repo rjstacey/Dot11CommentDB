@@ -3,9 +3,7 @@ import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import Select from 'react-dropdown-select'
-import {getBallots, setProject, setBallotId} from '../store/actions/ballots'
-import {getProjectList, getBallotList} from '../store/selectors/ballots'
-
+import {getBallots, setProject, setBallotId, getProjectList, getBallotList} from '../store/ballots'
 
 const Label = styled.label`
 	font-weight: bold;

@@ -4,8 +4,8 @@ import styled from '@emotion/styled'
 import {Editor, EditorState, ContentState, CompositeDecorator} from 'draft-js'
 import 'draft-js/dist/Draft.css'
 import {Cross} from '../general/Icons'
-import {setSelected} from '../store/actions/select'
-import {setFilter} from '../store/actions/filter'
+import {setSelected} from '../store/selected'
+import {setFilter} from '../store/filters'
 
 const Container = styled.div`
 	display: flex;
@@ -28,12 +28,12 @@ function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount
 	const editorRef = React.useRef();
 	const [editorState, setEditorState] = React.useState(initState);
 
-	React.useEffect(() => {
+	/*React.useEffect(() => {
 		// Close the dropdown if the user scrolls
 		// (we don't track position changes during scrolling)
 		window.addEventListener('scroll', close, true);
 		return () => window.removeEventListener('scroll', close);
-	}, [close])
+	}, [close])*/
 
 	React.useEffect(() => {
 		if (!editorState.getSelection().hasFocus) {

@@ -6,8 +6,8 @@ import AppModal from '../modals/AppModal'
 import {Form, Row, Field, Input, Select} from '../general/Form'
 import {shallowDiff} from '../lib/utils'
 
-import {addVoter, updateVoter} from '../store/actions/voters'
-import {setError} from '../store/actions/error'
+import {addVoter, updateVoter} from '../store/voters'
+import {setError} from '../store/error'
 
 const VoterEditForm = styled(Form)`
 	width: 400px;

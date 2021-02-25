@@ -6,7 +6,7 @@ import styled from '@emotion/styled'
 import {Form, Row, List, ListItem} from '../general/Form'
 import {ActionButtonDropdown} from '../general/Dropdown'
 
-import {exportCommentsSpreadsheet, CommentsSpreadsheetFormat} from '../store/actions/comments'
+import {exportCommentsSpreadsheet, CommentsSpreadsheetFormat} from '../store/comments'
 
 const CommentsExportForm = styled(Form)`
 	width: 450px;

@@ -5,7 +5,7 @@ import styled from '@emotion/styled'
 import AppModal from '../modals/AppModal'
 import {Form, Row} from '../general/Form'
 
-import {uploadVoters} from '../store/actions/voters'
+import {uploadVoters} from '../store/voters'
 
 const VotersImportForm = styled(Form)`
 	width: 400px;

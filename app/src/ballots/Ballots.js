@@ -12,12 +12,12 @@ import {ControlHeader, ControlCell} from '../table/ControlColumn'
 import {ActionButton} from '../general/Icons'
 import {displayDate} from '../lib/utils'
 
-import {getBallots, deleteBallots, BallotType} from '../store/actions/ballots'
-import {setSelected} from '../store/actions/select'
-import {setSort} from '../store/actions/sort'
-import {getDataMap} from '../store/selectors/dataMap'
-import {getVotingPools} from '../store/actions/votingPools'
-import {AccessLevel} from '../store/actions/login'
+import {getBallots, deleteBallots, BallotType} from '../store/ballots'
+import {setSelected} from '../store/selected'
+import {sortSet} from '../store/sort'
+import {getDataMap} from '../store/dataMap'
+import {getVotingPools} from '../store/votingPools'
+import {AccessLevel} from '../store/login'
 
 const ActionCell = styled.div`
 	display: flex;
@@ -269,7 +269,7 @@ export default connect(
 			deleteBallots: (ids) => dispatch(deleteBallots(ids)),
 			getVotingPools: () => dispatch(getVotingPools()),
 			setSelected: (ballotIds) => dispatch(setSelected(dataSet, ballotIds)),
-			setSort: (dataKey, direction) => dispatch(setSort(dataSet, dataKey, direction)),
+			setSort: (dataKey, direction) => dispatch(sortSet(dataSet, dataKey, direction)),
 		}
 	}
 )(Ballots);

@@ -3,15 +3,17 @@
 // Began life here https://github.com/koalyptus/TableFilter
 //
 
-import {
-	FILTER_INIT,
-	FILTER_SET,
-	FILTER_ADD,
-	FILTER_REMOVE,
-	FILTER_CLEAR,
-	FILTER_CLEAR_ALL,
-	FilterType
-} from '../actions/filter'
+import {createSlice} from '@reduxjs/toolkit'
+
+export const FilterType = {
+	EXACT: 0,
+	CONTAINS: 1,
+	REGEX: 2,
+	NUMERIC: 3,
+	STRING: 4,
+	CLAUSE: 5,
+	PAGE: 6,
+}
 
 const parseNumber = (value) => {
 	// Return the value as-is if it's already a number
@@ -106,7 +108,7 @@ const filterCreate = ({options}) => ({
 	values: [],	// Array of filter value objects where a filter value object is {value, valid, FilterType, compFunc}
 })
 
-function filtersInit(entries) {
+function initFilters(entries) {
 	const filters = {}
 	if (entries) {
 		for (let dataKey of Object.keys(entries))
@@ -115,44 +117,59 @@ function filtersInit(entries) {
 	return filters;
 }
 
-function filtersReducer(state = {}, action) {
-	let filter
+const sliceName = 'filters';
 
-	switch (action.type) {
-		case FILTER_SET:
-			filter = filterCreate(state[action.dataKey])
+const filtersSlice = createSlice({
+	name: sliceName,
+	initialState: {},
+	reducers: {
+		set(state, action) {
+			const filter = filterCreate(state[action.dataKey])
 			for (let value of action.values)
 				filter = filterAddValue(filter, value, FilterType.EXACT)
 			return {
 				...state,
 				[action.dataKey]: filter
 			}
-		case FILTER_ADD:
+		},
+		add(state, action) {
 			return {
 				...state,
 				[action.dataKey]: filterAddValue(state[action.dataKey], action.value, action.filterType)
 			}
-		case FILTER_REMOVE:
+		},
+		remove(state, action) {
 			return {
 				...state,
 				[action.dataKey]: filterRemoveValue(state[action.dataKey], action.value, action.filterType)
 			}
-
-		case FILTER_CLEAR:
+		},
+		clear(state, action) {
 			return {
 				...state,
 				[action.dataKey]: filterCreate(state[action.dataKey])
 			}
-
-		case FILTER_CLEAR_ALL:
-			return filtersInit(state)
-
-		case FILTER_INIT:
-			return filtersInit(action.entries)
-
-		default:
-			return state
+		},
+		clearAll(state, action) {
+			return initFilters(state)
+		},
+		init(state, action) {
+			return initFilters(action.entries)
+		}
 	}
+})
+
+export default filtersSlice.reducer;
+
+
+export const setFilter = (dataSet, dataKey, values) => ({type: dataSet + '/' + sliceName + '/' + 'set', dataSet, dataKey, values})
+export const addFilter = (dataSet, dataKey, value, filterType) => ({type: dataSet + '/' + sliceName + '/' + 'add', dataSet, dataKey, value, filterType})
+export const removeFilter = (dataSet, dataKey, value, filterType) => ({type: dataSet + '/' + sliceName + '/' + 'remove', dataSet, dataKey, value, filterType})
+export const clearFilter = (dataSet, dataKey) => ({type: dataSet + '/' + sliceName + '/' + 'clear', dataSet, dataKey})
+export const clearAllFilters = (dataSet) => ({type: dataSet + '/' + sliceName + '/' + 'clearAll', dataSet})
+export const filtersInit = (entries) => ({type: sliceName + '/' + 'init', entries})
+
+export function isFilterable(filters, dataKey) {
+	return filters.hasOwnProperty(dataKey)
 }
 
-export default filtersReducer

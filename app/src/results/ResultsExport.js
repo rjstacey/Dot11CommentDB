@@ -6,7 +6,7 @@ import {Form, Row, List, ListItem} from '../general/Form'
 import fetcher from '../store/lib/fetcher'
 import {ActionButtonDropdown} from '../general/Dropdown'
 
-import {setError} from '../store/actions/error'
+import {setError} from '../store/error'
 
 const ResultsExportForm = styled(Form)`
 	width: 300px;

@@ -8,9 +8,9 @@ import {Expander, DoubleExpander, Handle} from '../general/Icons'
 import useClickOutside from '../lib/useClickOutside'
 import {Checkbox} from '../general/Form'
 
-import {setSelected, toggleSelected} from '../store/actions/select'
-import {setExpanded, toggleExpanded} from '../store/actions/expand'
-import {getDataMap} from '../store/selectors/dataMap'
+import {setSelected, toggleSelected} from '../store/selected'
+import {setExpanded, toggleExpanded} from '../store/expanded'
+import {getDataMap} from '../store/dataMap'
 
 
 const CustomSelectorDropdown = styled.div`

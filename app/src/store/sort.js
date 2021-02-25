@@ -1,11 +1,10 @@
-import {
-	SORT_INIT,
-	SORT_SET,
-	SORT_CLICK,
-	SortDirection
-} from '../actions/sort'
+import {createSlice} from '@reduxjs/toolkit'
 
-function sortClick(sort, dataKey, event) {
+import {SortDirection} from './lib/sort'
+
+export {SortDirection}
+
+function clickSort(sort, dataKey, event) {
 	let by = sort.by
 	let direction = sort.direction
 
@@ -50,7 +49,7 @@ function sortClick(sort, dataKey, event) {
 	return {...sort, by, direction};
 }
 
-function sortSet(state, dataKey, direction) {
+function setSort(state, dataKey, direction) {
 	let by = state.by;
 	if (by.indexOf(dataKey) >= 0) {
 		if (direction === SortDirection.NONE)
@@ -64,7 +63,7 @@ function sortSet(state, dataKey, direction) {
 	return {...state, by, sorts}
 }
 
-function sortInit(entries) {
+function initSort(entries) {
 	const sorts = {};
 	if (entries) {
 		Object.keys(entries).forEach(dataKey => {
@@ -77,26 +76,32 @@ function sortInit(entries) {
 	return {by: [], sorts};
 }
 
-const defaultState = {
-	by: [],
-	sorts: {}
-}
+const sliceName = 'sort';
 
-function sortReducer(state = defaultState, action) {
-
-	switch (action.type) {
-		case SORT_SET:
-			return sortSet(state, action.dataKey, action.direction)
-
-		case SORT_CLICK:
-			return sortClick(state, action.dataKey, action.event)
-
-		case SORT_INIT:
-			return sortInit(action.entries)
-
-		default:
-			return state
+const sortSlice = createSlice({
+	name: sliceName,
+	initialState: {
+		by: [],
+		sorts: {}
+	},
+	reducers: {
+		set(state, action) {
+			return setSort(state, action.dataKey, action.direction)
+		},
+		click(state, action) {
+			return clickSort(state, action.dataKey, action.event)
+		},
+		init(state, action) {
+			return initSort(action.entries)
+		}
 	}
-}
+})
 
-export default sortReducer
+export default sortSlice.reducer
+
+export const sortSet = (dataSet, dataKey, direction) => ({type: dataSet + '/' + sliceName + '/set', dataKey, direction})
+export const sortClick = (dataSet, dataKey, event) => ({type: dataSet + '/' + sliceName + '/click', dataSet, dataKey, event})
+export const sortInit = (entries) => ({type: sliceName + '/' + 'init', entries})
+
+export const isSortable = (sort, dataKey) => sort.hasOwnProperty(dataKey)
+

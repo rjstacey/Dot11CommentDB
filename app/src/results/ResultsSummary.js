@@ -3,7 +3,7 @@ import React from 'react'
 import styled from '@emotion/styled'
 import {Handle, IconCollapse} from '../general/Icons'
 
-import {BallotType} from '../store/actions/ballots'
+import {BallotType} from '../store/ballots'
 
 function getResultsSummary(ballot, r, votingPoolSize) {
 	const summary = {

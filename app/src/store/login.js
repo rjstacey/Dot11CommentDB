@@ -1,4 +1,52 @@
-import fetcher from '../lib/fetcher'
+import {createSlice} from '@reduxjs/toolkit'
+
+import {setError} from './error'
+import fetcher from './lib/fetcher'
+
+const LOGIN_STORAGE = 'User';
+
+function loginUserInit() {
+	// Get user from local storage. This may fail if the browser has certain privacy settings.
+	let user;
+	try {user = JSON.parse(localStorage.getItem(LOGIN_STORAGE))} catch (err) {/* ignore errors */}
+	if (user && user.Token)
+		fetcher.setJWT(user.Token);
+	return user;
+}
+
+const user = loginUserInit();
+
+const loginSlice = createSlice({
+	name: 'login',
+	initialState: {
+		loading: false,
+		user: loginUserInit(),
+		statusMsg: ''
+	},
+	reducers: {
+		getPending(state, action) {
+			state.loading = true;
+		},
+		loginStart(state, action) {
+			state.loading = true;
+			state.user = null;
+			state.statusMsg = '';
+		},
+		loginSuccess(state, action) {
+			state.loading = false;
+			state.user = action.payload;
+		},
+		loginFailure(state, action) {
+			state.loading = false;
+			state.statusMsg = action.payload;
+		},
+		logoutStart(state, action) {
+			state.loading = true;
+			state.user = null;
+			state.statusMsg = '';
+		},
+	}
+})
 
 export const AccessLevel = {
 	Public: 0,
@@ -14,35 +62,13 @@ export const AccessLevelOptions = [
 	{value: AccessLevel.WGAdmin,	label: 'WG Admin'}
 ];
 
-export const LOGIN_PREFIX = 'LOGIN_'
-export const LOGIN_GET_STATE = LOGIN_PREFIX + 'GET_STATE'
-export const LOGIN_START = LOGIN_PREFIX + 'START'
-export const LOGIN_SUCCESS = LOGIN_PREFIX + 'SUCCESS'
-export const LOGIN_FAILURE = LOGIN_PREFIX + 'FAILURE'
-export const LOGOUT_START = 'LOGOUT_START'
-
-const loginGetStateLocal = () => ({type: LOGIN_GET_STATE})
-const loginStart = () => ({type: LOGIN_START})
-const logoutStart = () => ({type: LOGOUT_START})
-const loginSuccess = (user) => ({type: LOGIN_SUCCESS, user})
-const loginFailure = (errMsg) => ({type: LOGIN_FAILURE, errMsg})
-
-export const LOGIN_STORAGE = 'User';
-
-export function loginUserInit() {
-	// Get user from local storage. This may fail if the browser has certain privacy settings.
-	let user;
-	try {user = JSON.parse(localStorage.getItem(LOGIN_STORAGE))} catch (err) {/* ignore errors */}
-	if (user && user.Token)
-		fetcher.setJWT(user.Token);
-	return user;
-}
+const {getPending, loginStart, loginSuccess, loginFailure, logoutStart} = loginSlice.actions;
 
 export function loginGetState() {
 	return async (dispatch, getState) => {
 		if (getState().login.loading)
 			return null
-		dispatch(loginGetStateLocal())
+		dispatch(getPending())
 		let user;
 		try {
 			const response = await fetcher.get('/auth/login');
@@ -98,3 +124,5 @@ export function logout() {
 		return dispatch(loginSuccess(null))
 	}
 }
+
+export default loginSlice.reducer;

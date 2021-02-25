@@ -13,10 +13,10 @@ import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from '../ge
 import {shallowDiff} from '../lib/utils'
 import {debounce} from '../lib/utils'
 
-import {addResolutions, updateResolutions, deleteResolutions, updateComments} from '../store/actions/comments'
-import {uiSetProperty} from '../store/actions/ui'
-import {getDataMap} from '../store/selectors/dataMap'
-import {AccessLevel} from '../store/actions/login'
+import {addResolutions, updateResolutions, deleteResolutions, updateComments} from '../store/comments'
+import {setProperty} from '../store/ui'
+import {getDataMap} from '../store/dataMap'
+import {AccessLevel} from '../store/login'
 
 const MULTIPLE = '<multiple>';
 const isMultiple = (value) => value === MULTIPLE;
@@ -836,9 +836,9 @@ export default connect(
 		deleteResolutions: (resolutions) => dispatch(deleteResolutions(resolutions)),
 		updateResolutions: (resolutions) => dispatch(updateResolutions(resolutions)),
 		updateComments: (comments) => dispatch(updateComments(comments)),
-		setUiShowNotes: (show) => dispatch(uiSetProperty(dataSet, 'showNotes', show)),
-		setUiShowEditing: (show) => dispatch(uiSetProperty(dataSet, 'showEditing', show)),
-		setUiEditComment: (edit) => dispatch(uiSetProperty(dataSet, 'editComment', edit))
+		setUiShowNotes: (show) => dispatch(setProperty(dataSet, 'showNotes', show)),
+		setUiShowEditing: (show) => dispatch(setProperty(dataSet, 'showEditing', show)),
+		setUiEditComment: (edit) => dispatch(setProperty(dataSet, 'editComment', edit))
 	})
 )(CommentDetail);
 

@@ -6,7 +6,7 @@ import {CommentIdFilter} from './CommentIdList'
 import {ColumnSearchFilter, ColumnDropdown} from '../table/AppTable'
 import ShowFilters from '../table/ShowFilters'
 
-import {setCommentsFilter, removeCommentsFilter, clearCommentsFilters, genCommentsOptions, setCommentsSort} from '../store/actions/comments'
+import {setCommentsFilter, removeCommentsFilter, clearCommentsFilters, genCommentsOptions, setCommentsSort} from '../store/comments'
 
 
 const commentFieldLabel = dataKey => ({

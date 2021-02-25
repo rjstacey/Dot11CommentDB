@@ -7,10 +7,9 @@ import AppTable from '../table/AppTable'
 import BallotDetailModal from './BallotDetail'
 import {ActionButton} from '../general/Icons'
 
-import {getBallots} from '../store/actions/ballots'
-import {getEpolls} from '../store/actions/epolls'
-import {getDataMap} from '../store/selectors/dataMap'
-import {getSyncedEpolls} from '../store/selectors/epolls'
+import {getBallots} from '../store/ballots'
+import {getEpolls, getSyncedEpolls} from '../store/epolls'
+import {getDataMap} from '../store/dataMap'
 
 function renderDate({rowData, dataKey}) {
 	// rowData[key] is an ISO time string. We convert this to eastern time

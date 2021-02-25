@@ -6,7 +6,7 @@ import {Form, Row, Col, List, ListItem, Field, Checkbox} from '../general/Form'
 import ConfirmModal from '../modals/ConfirmModal'
 import {ActionButtonDropdown} from '../general/Dropdown'
 
-import {uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate} from '../store/actions/comments'
+import {uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate} from '../store/comments'
 
 const importFieldOptions = [
 	{value: FieldsToUpdate.CID,

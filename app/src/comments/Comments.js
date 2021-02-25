@@ -21,12 +21,12 @@ import ColumnDropdown from '../table/ColumnDropdown'
 import CommentsHistoryModal from './CommentHistory'
 import {CommentIdSelector, CommentIdFilter} from './CommentIdList'
 
-import {getComments} from '../store/actions/comments'
-import {setSelected} from '../store/actions/select'
-import {getDataMap} from '../store/selectors/dataMap'
-import {setBallotId} from '../store/actions/ballots'
-import {uiSetProperty} from '../store/actions/ui'
-import {AccessLevel} from '../store/actions/login'
+import {getComments} from '../store/comments'
+import {setSelected} from '../store/selected'
+import {getDataMap} from '../store/dataMap'
+import {setBallotId} from '../store/ballots'
+import {setTableView, upsertTableColumns} from '../store/ui'
+import {AccessLevel} from '../store/login'
 
 const FlexRow = styled.div`
 	display: flex;
@@ -179,6 +179,11 @@ const controlColumn = {
 }
 
 const allColumns = Immutable.OrderedMap({
+	__ctrl__:
+		{
+			width: 30, flexGrow: 1, flexShrink: 0,
+			headerRenderer: p => <ControlHeader {...p} ><CommentIdSelector focusOnMount /></ControlHeader>,
+			cellRenderer: p => <ControlCell {...p} />},
 	Stack1:
 		{label: 'CID/Cat/MS/...',
 			width: 200, flexGrow: 1, flexShrink: 0,
@@ -304,7 +309,7 @@ const getDefaultColumnsConfig = (view) => allColumns.map((col, key) => {
 		width: (v && v.width)? v.width: col.width,
 		visible: !!v
 	}
-}).toMap();
+}).toObject();
 
 const getDefaultTableConfig = (view) => {
 	let media;
@@ -405,24 +410,46 @@ function Comments(props) {
 	const [editKey, setEditKey] = React.useState(new Date().getTime());
 	const [showHistory, setShowHistory] = React.useState(false);
 
-	const tableView = tableViews.includes(props.tableView)? props.tableView: tableViews[0];
-	const tableConfig = props.tablesConfig[tableView] || defaultTablesConfig[tableView];
+	/* On mount, if the store does not contain default configuration for each of our views, then add them */
+	const {tableView, tableConfig} = props;
+	React.useEffect(() => {
+		for (const view of Object.keys(defaultTablesConfig)) {
+			const columnsConfig = {}
+			for (const key of Object.keys(defaultTablesConfig[view].columns)) {
+				/* Columns with a 'visible' property (identified by a 'label' property) will appear in
+				 * the ColumnSelector. We want to exclude control column since it can't be removed. */
+				if (key !== '__ctrl__' &&
+					(!tableConfig.columns[key] ||
+					 !tableConfig.columns[key].hasOwnProperty('visible')))
+					columnsConfig[key] = {
+						label: allColumns.get(key).label,
+						visible: defaultTablesConfig[view].columns[key].visible
+					};
+			}
+			if (Object.keys(columnsConfig).length)
+				props.upsertTableColumns(view, columnsConfig);
+		}
+		if (!Object.keys(defaultTablesConfig).includes(tableView))
+			props.setTableView(Object.keys(defaultTablesConfig)[0])
+	}, []);
 
 	React.useEffect(() => setEditKey(new Date().getTime()), [props.selected])
 
 	/* If we change the table config signficantly we want to remount the table component,
 	 * so we create a key id for the component that depends on signficant parameters */
 	const [tableId, columns] = React.useMemo(() => {
-		let id = tableView
-		if (tableConfig) {
-			if (tableConfig.fixed) id += 'fixed';
-			tableConfig.columns.forEach((v, k) => {if (v.visible) id += k});
-		}
-		let columns =
+
+		/*let columns =
 			Immutable.OrderedMap({__ctrl__: controlColumn})
 			.concat(
-				allColumns.filter((col, key) => tableConfig.columns.has(key)? tableConfig.columns.get(key).visible: true)
-			);
+				allColumns.filter((col, key) => tableConfig.columns[key]? tableConfig.columns[key].visible: true)
+			);*/
+		const columns = allColumns.filter((col, key) => tableConfig.columns[key]? tableConfig.columns[key].visible: true)
+
+		let id = tableView
+		if (tableConfig.fixed) id += 'fixed';
+		columns.forEach(col => id += col.key);
+
 		return [id, columns]
 	}, [tableView, tableConfig]);
 
@@ -454,10 +481,8 @@ function Comments(props) {
 		<AppTable
 			key={tableId}
 			columns={columns}
-			defaultTableConfig={defaultTablesConfig[tableView]}
 			tableView={tableView}
 			headerHeight={62}
-			//controlColumn
 			estimatedRowHeight={64}
 			rowGetter={commentsRowGetter}
 			loading={props.loading}
@@ -545,6 +570,8 @@ const dataSet = 'comments'
 export default connect(
 	(state, ownProps) => {
 		const user = state.login.user;
+		const tableView = state[dataSet].ui.view;
+		const tableConfig = state[dataSet].ui.tablesConfig[tableView];
 		return {
 			ballotId: state.ballots.ballotId,
 			selected: state[dataSet].selected,
@@ -554,14 +581,15 @@ export default connect(
 			loading: state[dataSet].loading,
 			comments: state[dataSet].comments,
 			commentsMap: getDataMap(state, dataSet),
-			tableView: state[dataSet].ui.tableView,
-			tablesConfig: state[dataSet].ui.tablesConfig
+			tableView,
+			tableConfig
 		}
 	},
 	(dispatch, ownProps) => ({
 		setSelected: ids => dispatch(setSelected(dataSet, ids)),
 		getComments: ballotId => dispatch(getComments(ballotId)),
 		setBallotId: ballotId => dispatch(setBallotId(ballotId)),
-		setTableView: view => dispatch(uiSetProperty(dataSet, 'tableView', view)),
+		setTableView: view => dispatch(setTableView(dataSet, view)),
+		upsertTableColumns: (view, columns) => dispatch(upsertTableColumns(dataSet, view, columns)),
 	})
 )(Comments);
