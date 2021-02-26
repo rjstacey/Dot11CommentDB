@@ -266,11 +266,7 @@ _CommentsImportDropdown.propTypes = {
 
 const CommentsImportDropdown = connect(
 	null,
-	(dispatch, ownProps) => {
-		return {
-			upload: (...args) => dispatch(uploadResolutions(...args))
-		}
-	}
+	{upload: uploadResolutions}
 )(_CommentsImportDropdown)
 
 function CommentsImport({

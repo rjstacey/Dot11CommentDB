@@ -262,7 +262,7 @@ Ballots.propTypes = {
 const dataSet = 'ballots'
 
 export default connect(
-	(state, ownProps) => {
+	(state) => {
 		const {ballots, votingPools} = state
 		return {
 			filters: ballots.filters,
@@ -270,13 +270,13 @@ export default connect(
 			ballotsValid: ballots.valid,
 			loading: ballots.loading,
 			ballots: ballots.ballots,
-			ballotsMap: getDataMap(state, 'ballots'),
+			ballotsMap: getDataMap(state, dataSet),
 			selected: ballots.selected,
 			votingPoolsValid: votingPools.valid,
 			votingPools: votingPools.votingPools,
 		}
 	},
-	(dispatch, ownProps) => {
+	(dispatch) => {
 		return {
 			getBallots: () => dispatch(getBallots()),
 			deleteBallots: (ids) => dispatch(deleteBallots(ids)),

@@ -95,7 +95,5 @@ VotersPoolAddModal.propTypes = {
 
 export default connect(
 	null,
-	(dispatch, ownProps) => ({
-		uploadVoters: (votingPoolType, votingPoolName, file) => dispatch(uploadVoters(votingPoolType, votingPoolName, file))
-	})
+	{uploadVoters}
 )(VotersPoolAddModal)

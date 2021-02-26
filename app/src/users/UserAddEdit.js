@@ -83,10 +83,7 @@ _UserAddEditForm.propTypes = {
 
 const UserAddEditForm = connect(
 	null,
-	(dispatch, ownProps) => ({
-		addUser: (user) => dispatch(addUser(user)),
-		updateUser: (sapin, user) => dispatch(updateUser(sapin, user)),
-	})
+	{addUser, updateUser}
 )(_UserAddEditForm)
 
 function UserAddEditModal({

@@ -119,11 +119,7 @@ _CommentsExportDropdown.propTypes = {
 
 const CommentsExportDropdown = connect(
 	null,
-	(dispatch, ownProps) => {
-		return {
-			exportSpreadsheet: (...args) => dispatch(exportCommentsSpreadsheet(...args)),
-		}
-	} 
+	{exportSpreadsheet: exportCommentsSpreadsheet}
 )(_CommentsExportDropdown)
 
 function CommentsExport({

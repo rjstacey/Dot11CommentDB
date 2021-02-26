@@ -154,9 +154,5 @@ export default connect(
 			loading: s.loading,
 		}
 	},
-	(dispatch) => ({
-		getBallots: () => dispatch(getBallots()),
-		setProject: (project) => dispatch(setProject(project)),
-		setBallotId: (ballotId) => dispatch(setBallotId(ballotId))
-	})
+	{getBallots, setProject, setBallotId}
 )(BallotSelector)

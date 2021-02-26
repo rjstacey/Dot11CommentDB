@@ -40,7 +40,7 @@ SubmissionSelector.propTypes = {
 
 const dataSet = 'comments'
 export default connect(
-	(state, ownProps) => ({
+	(state) => ({
 		fieldOptions: getAllFieldOptions(state, dataSet, 'Submission'),
 		loading: state[dataSet].loading
 	})

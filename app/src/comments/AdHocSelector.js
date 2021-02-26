@@ -48,7 +48,7 @@ AdHocSelector.propTypes = {
 
 const dataSet = 'comments'
 export default connect(
-	(state, ownProps) => ({
+	(state) => ({
 		fieldOptions: getAllFieldOptions(state, dataSet, 'AdHoc'),
 		loading: state[dataSet].loading
 	})

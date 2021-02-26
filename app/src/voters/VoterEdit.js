@@ -166,16 +166,12 @@ VoterEditModal.propTypes = {
 	votingPoolType: PropTypes.oneOf(['SA', 'WG']),
 	voter: PropTypes.object.isRequired,
 	action: PropTypes.oneOf(['add', 'update']),
-	updateVoter: PropTypes.func.isRequired,
 	addVoter: PropTypes.func.isRequired,
+	updateVoter: PropTypes.func.isRequired,
 	setError: PropTypes.func.isRequired,
 }
 
 export default connect(
 	null,
-	(dispatch, ownProps) => ({
-		addVoter: (...args) => dispatch(addVoter(...args)),
-		updateVoter: (votingPoolType, votingPoolId, voterId, voter) => dispatch(updateVoter(votingPoolType, votingPoolId, voterId, voter)),
-		setError: (...args) => dispatch(setError(...args))
-	})
+	{addVoter, updateVoter, setError}
 )(VoterEditModal)

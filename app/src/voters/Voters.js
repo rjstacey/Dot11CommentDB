@@ -205,8 +205,5 @@ export default connect(
 		voters: state[dataSet][dataSet],
 		votersMap: getDataMap(state, dataSet),
 	}),
-	(dispatch, ownProps) => ({
-		getVoters: (...args) => dispatch(getVoters(...args)),
-		deleteVoters: (...args) => dispatch(deleteVoters(...args)),
-	})
+	{getVoters, deleteVoters}
 )(Voters)

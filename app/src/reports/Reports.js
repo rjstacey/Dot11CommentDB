@@ -4,6 +4,7 @@ import {useHistory, useParams} from 'react-router-dom'
 import styled from '@emotion/styled'
 import {connect} from 'react-redux'
 import BallotSelector from '../ballots/BallotSelector'
+import {ActionButton, Button} from '../general/Icons'
 
 import {setBallotId} from '../store/ballots'
 import {getComments} from '../store/comments'
@@ -20,13 +21,13 @@ function countsByCategory(comments) {
 function countsByStatus(statusSet, comments) {
 	const entry = {Total: comments.length}
 	for (let status of statusSet) {
-		entry[status] = comments.filter(c => c.Status === status).length
+		entry[status || '(Blank)'] = comments.filter(c => c.Status === status).length
 	}
 	return entry;
 }
 
 function commentsByCommenter(comments) {
-	const commentersSet = new Set(comments.map(c => c.CommenterName))
+	const commentersSet = [...new Set(comments.map(c => c.CommenterName))].sort()
 	const data = []
 	for (let name of commentersSet) {
 		data.push({
@@ -38,7 +39,7 @@ function commentsByCommenter(comments) {
 }
 
 function commentsByAssignee(comments) {
-	const assigneeSet = new Set(comments.map(c => c.AssigneeName))
+	const assigneeSet = [...new Set(comments.map(c => c.AssigneeName))].sort()
 	const statusSet = new Set(comments.map(c => c.Status))
 	const data = [];
 	for (let name of assigneeSet) {
@@ -53,7 +54,7 @@ function commentsByAssignee(comments) {
 }
 
 function commentsByAssigneeAndCommentGroup(comments) {
-	const assigneeSet = new Set(comments.map(c => c.AssigneeName))
+	const assigneeSet = [...new Set(comments.map(c => c.AssigneeName))].sort()
 	const statusSet = new Set(comments.map(c => c.Status))
 	const data = [];
 	for (let name of assigneeSet) {
@@ -64,7 +65,7 @@ function commentsByAssigneeAndCommentGroup(comments) {
 			...countsByStatus(statusSet, assigneeComments)
 		}
 		data.push(entry)
-		const commentGroupsSet = new Set(assigneeComments.map(c => c.CommentGroup))
+		const commentGroupsSet = [...new Set(assigneeComments.map(c => c.CommentGroup))].sort()
 		for (let group of commentGroupsSet) {
 			const entry = {
 				Assignee: '',
@@ -77,17 +78,20 @@ function commentsByAssigneeAndCommentGroup(comments) {
 	return data;
 }
 
-const Table = styled.table`
-	max-width: 800px;
-	border-collapse: collapse;
-	border: 1px solid grey;
-	border-color: grey;
-	th, td {
+//const Table = styled.table`
+const tableStyle = `
+	table {
+		border-collapse: collapse;
 		border: 1px solid grey;
-		padding: 5px;
-	}
-	td {
-		vertical-align: top;
+		border-color: grey;
+		th, td {
+			border: 1px solid grey;
+			padding: 5px;
+		}
+		td {
+			vertical-align: top;
+			width: 100px;
+		}
 	}
 `;
 
@@ -99,17 +103,17 @@ function renderTable(data, ref) {
 	const header = data.length > 0?
 		<tr key={-1}>{Object.keys(data[0]).map((d, i) => <th key={i}>{d}</th>)}</tr>:
 		null
-	const row = (r, i) => <tr key={i}>{Object.values(r).map((d, i) => <td key={i}>{d}</td>)}</tr>
+	const row = (r, i) => <tr key={i}>{Object.values(r).map((d, i) => <td key={i} width='100px'>{d}</td>)}</tr>
 
 	return (
-		<Table ref={ref}>
+		<table style={{borderCollapse: 'border-collapse'}} cellpadding='5' border='1' ref={ref}>
 			<thead>
 				{header}
 			</thead>
 			<tbody>
 				{data.map(row)}
 			</tbody>
-		</Table>
+		</table>
 	)
 }
 
@@ -129,7 +133,6 @@ function Reports(props) {
 				getComments(ballotId)
 			}
 			else if (!loading && (!valid || commentsBallotId !== ballotId)) {
-				console.log('load', loading, valid, commentsBallotId)
 				getComments(ballotId)
 			}
 		}
@@ -164,44 +167,105 @@ function Reports(props) {
 		}
 	}
 
-	const topRow = (
-		<div style={{display: 'flex', justifyContent: 'space-between'}} >
-			<BallotSelector onBallotSelected={ballotSelected} />
-			<div>
-				<button onClick={() => setReport('commentsbycommenter')}>Comments by Commenter</button>
-				<button onClick={() => setReport('commentsbyassignee')}>Comments by Assignee</button>
-				<button onClick={() => setReport('commentsbyassigneeandcommentgroup')}>Comments by Assignee and Comment Group</button>
-				<button onClick={copy}>Copy</button>
-			</div>
-		</div>
-	)
+	const ReportButton = ({report: thisReport, label}) => 
+		<Button
+			onClick={() => setReport(thisReport)}
+			isActive={thisReport === report}
+		>
+			{label}
+		</Button>
 
 	return (
 		<React.Fragment>
-			{topRow}
-			<div style={{flex: 1, overflow: 'auto'}}>
-				{renderTable(data, tableRef)}
-			</div>
+			<ActionRow>
+				<BallotSelector onBallotSelected={ballotSelected} />
+			</ActionRow>
+			<Body>
+				<ReportSelectCol>
+					<label>Select a report:</label>
+					<ReportButton
+						report='commentsbycommenter'
+						label='Comments by Commenter'
+					/>
+					<ReportButton
+						report='commentsbyassignee'
+						label='Comments by Assignee'
+					/>
+					<ReportButton
+						report='commentsbyassigneeandcommentgroup'
+						label='Comments by Assignee and Comment Group'
+					/>
+				</ReportSelectCol>
+				<ReportCol>
+					{renderTable(data, tableRef)}
+				</ReportCol>
+				<ReportCopyCol>
+					<ActionButton name='copy' onClick={copy} />
+				</ReportCopyCol>
+			</Body>
 		</React.Fragment>
 	)
 }
 
+const ActionRow = styled.div`
+	display: flex;
+	justify-content: space-between;
+	width: 100%;
+	max-width: 1400px;
+	margin: 10px;
+`;
+
+const Body = styled.div`
+	flex: 1;
+	width: 100%;
+	max-width: 1400px;
+	display: flex;
+	flex-direction: row;
+	overflow: hidden;
+`;
+
+const ReportSelectCol = styled.div`
+	flex: 0 0 200px;
+	display: flex;
+	flex-direction: column;
+	padding: 0 20px;
+	& label {
+		font-weight: 700;
+	}
+	& :not(label) {
+		margin: 10px 0;
+	}
+`;
+
+const ReportCol = styled.div`
+	max-height: 100%;
+	overflow: auto;
+`;
+
+const ReportCopyCol = styled.div`
+	flex: 0 0 fit-content;
+	display: flex;
+	flex-direction: column;
+	padding: 0 20px;
+`;
+
 Reports.propTypes = {
 	ballotId: PropTypes.string.isRequired,
-	setBallotId: PropTypes.func.isRequired
+	commentsBallotId: PropTypes.string.isRequired,
+	valid: PropTypes.bool.isRequired,
+	loading: PropTypes.bool.isRequired,
+	setBallotId: PropTypes.func.isRequired,
+	getComments: PropTypes.func.isRequired
 }
 
 const dataSet = 'comments'
 export default connect(
-	(state, ownProps) => ({
+	(state) => ({
 		ballotId: state.ballots.ballotId,
 		commentsBallotId: state[dataSet].ballotId,
 		valid: state[dataSet].valid,
 		loading: state[dataSet].loading,
 		comments: state[dataSet].comments
 	}),
-	(dispatch, ownProps) => ({
-		setBallotId: ballotId => dispatch(setBallotId(ballotId)),
-		getComments: ballotId => dispatch(getComments(ballotId)),
-	})
+	{setBallotId, getComments}
 )(Reports);

@@ -52,9 +52,7 @@ _UsersImportDropdown.propTypes = {
 
 const UsersImportDropdown = connect(
 	null,
-	(dispatch, ownProps) => ({
-		upload: (file) => dispatch(uploadUsers(file))
-	})
+	{upload: uploadUsers}
 )(_UsersImportDropdown)
 
 function UsersImport() {

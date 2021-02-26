@@ -72,9 +72,7 @@ _ResultsExportDropdown.propTypes = {
 
 const ResultsExportDropdown = connect(
 	null,
-	(dispatch, ownProps) => ({
-		setError: (...args) => dispatch(setError(...args))
-	})
+	{setError}
 )(_ResultsExportDropdown);
 
 function ResultsExport({

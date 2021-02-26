@@ -188,7 +188,7 @@ function hasFilter(filters) {
 }
 
 export default connect(
-	(state, ownProps) => {
+	(state) => {
 		const {comments} = state
 		return {
 			data: comments.comments,
@@ -196,11 +196,9 @@ export default connect(
 			filters: state.comments.filters
 		}
 	},
-	(dispatch, ownProps) => {
-		return {
-			setFilter: (dataKey, value) => dispatch(setCommentsFilter(dataKey, value)),
-			removeFilter: (dataKey, value) => dispatch(removeCommentsFilter(dataKey, value)),
-			clearFilters: () => dispatch(clearCommentsFilters())
-		}
+	{
+		setFilter: setCommentsFilter,
+		removeFilter: removeCommentsFilter,
+		clearFilters: clearCommentsFilters
 	}
 )(CommentsFilters)

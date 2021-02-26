@@ -89,7 +89,7 @@ _ColumnSelectorDropdown.propTypes = {
 
 const dataSet = 'comments'
 const ColumnSelectorDropdown = connect(
-	(state, ownProps) => {
+	(state) => {
 		const tableView = state[dataSet].ui.view;
 		const tableConfig = state[dataSet].ui.tablesConfig[tableView];
 		return {
@@ -97,7 +97,7 @@ const ColumnSelectorDropdown = connect(
 			tableConfig
 		}
 	},
-	(dispatch, ownProps) => ({
+	(dispatch) => ({
 		toggleTableFixed: (view) => dispatch(toggleTableFixed(dataSet, view)),
 		upsertTableColumn: (view, key, visible) => dispatch(setTableColumnVisible(dataSet, view, {key, visible}))
 	})

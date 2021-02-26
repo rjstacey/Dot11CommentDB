@@ -17,7 +17,6 @@ function AccessSelector({
 			values={optionSelected? [optionSelected]: []}
 			onChange={handleChange}
 			options={AccessLevelOptions}
-			//portal={document.querySelector('#root')}
 			{...otherProps}
 		/>
 	)

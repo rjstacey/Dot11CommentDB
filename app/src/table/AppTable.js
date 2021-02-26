@@ -288,7 +288,6 @@ class AppTableSized extends React.PureComponent {
 									estimatedRowHeight={props.estimatedRowHeight}
 									onRowHeightChange={this.onRowHeightChange}
 									onRowClick={this.handleClick}
-									onRowDoubleClick={props.onRowDoubleClick}
 								/>
 							)
 						}}
@@ -338,7 +337,6 @@ AppTable.propTypes = {
 	estimatedRowHeight: PropTypes.number.isRequired,
 	loading: PropTypes.bool.isRequired,
 	onRowClick: PropTypes.func,
-	onRowDoubleClick: PropTypes.func,
 }
 
 export default connect(
@@ -359,8 +357,6 @@ export default connect(
 	},
 	(dispatch, ownProps) => {
 		const {dataSet} = ownProps;
-		//const tableView = ownProps.tableView || 'default';
-		//const tableView = state[dataSet].ui.view;
 		return {
 			setSelected: ids => dispatch(setSelected(dataSet, ids)),
 			upsertTableColumns: (view, columns) => dispatch(upsertTableColumns(dataSet, view, columns))

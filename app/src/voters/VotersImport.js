@@ -64,7 +64,5 @@ VotersImportModal.propTypes = {
 
 export default connect(
 	null,
-	(dispatch, ownProps) => ({
-		uploadVoters: (...args) => dispatch(uploadVoters(...args)),
-	})
+	{uploadVoters}
 )(VotersImportModal);

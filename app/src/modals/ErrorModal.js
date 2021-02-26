@@ -41,7 +41,5 @@ export default connect(
 	(state) => ({
 		errMsg: state.errMsg.length? state.errMsg[0]: null
 	}),
-	(dispatch) => ({
-		clearError: () => dispatch(clearError())
-	})
+	{clearError}
 )(ErrorModal)

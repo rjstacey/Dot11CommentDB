@@ -90,8 +90,8 @@ function Users({
 				deleteUsers([user[primaryDataKey]])
 		}
 
-		let columns = tableColumns.map(col => {
-			if (col.id === 'Actions')
+		return tableColumns.map(col => {
+			if (col.key === 'Actions')
 				return {
 					...col,
 					cellRenderer: ({rowData}) => 
@@ -103,7 +103,7 @@ function Users({
 			else
 				return col
 		});
-		return columns
+
 	}, [deleteUsers]);
 
 	React.useEffect(() => {
@@ -127,7 +127,6 @@ function Users({
 	}
 
 	const openAddUser = () => setEditUser({action: EditUserAction.ADD, user: DefaultUser})
-	const openEditUser = ({rowData}) => setEditUser({action: EditUserAction.UPDATE, user: rowData})
 	const closeEditUser = () => setEditUser(s => ({...s, action: EditUserAction.CLOSED}))
 
 	return (
@@ -149,7 +148,6 @@ function Users({
 					controlColumn
 					headerHeight={36}
 					estimatedRowHeight={36}
-					onRowDoubleClick={openEditUser}
 					dataSet='users'
 					rowKey={primaryDataKey}
 				/>
@@ -177,17 +175,12 @@ Users.propTypes = {
 
 const dataSet = 'users'
 export default connect(
-	(state, ownProps) => {
-		return {
+	(state) => ({
 			selected: state[dataSet].selected,
 			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
 			users: state[dataSet][dataSet],
 			usersMap: getDataMap(state, dataSet),
-		}
-	},
-	(dispatch, ownProps) => ({
-		getUsers: () => dispatch(getUsers()),
-		deleteUsers: (ids) => dispatch(deleteUsers(ids)),
-	})
+		}),
+	{getUsers, deleteUsers}
 )(Users)

@@ -504,7 +504,7 @@ _BallotDetailForm.propTypes = {
 }
 
 const BallotDetailForm = connect(
-	(state, ownProps) => {
+	(state) => {
 		const {ballots, votingPools, epolls} = state
 		return {
 			ballotsValid: ballots.valid,
@@ -517,7 +517,7 @@ const BallotDetailForm = connect(
 			epolls: epolls.epolls,
 		}
 	},
-	(dispatch, ownProps) => {
+	(dispatch) => {
 		return {
 			getBallots: () => dispatch(getBallots()),
 			getVotingPools: () => dispatch(getVotingPools()),

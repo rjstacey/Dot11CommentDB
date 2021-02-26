@@ -112,7 +112,7 @@ function Epolls(props) {
 
 const dataSet = 'epolls'
 export default connect(
-	(state, ownProps) => {
+	(state) => {
 		const s = state[dataSet]
 		return {
 			ballotsValid: state.ballots.valid,
@@ -122,7 +122,7 @@ export default connect(
 			epollsMap: getDataMap(state, dataSet),
 		}
 	},
-	(dispatch, ownProps) => ({
+	(dispatch) => ({
 		getEpolls: (n) => dispatch(getEpolls(n)),
 		getBallots: () => dispatch(getBallots())
 	})

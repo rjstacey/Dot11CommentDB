@@ -575,7 +575,7 @@ Comments.propTypes = {
 
 const dataSet = 'comments'
 export default connect(
-	(state, ownProps) => {
+	(state) => {
 		const user = state.login.user;
 		const tableView = state[dataSet].ui.view;
 		const tableConfig = state[dataSet].ui.tablesConfig[tableView];
@@ -592,7 +592,7 @@ export default connect(
 			tableConfig
 		}
 	},
-	(dispatch, ownProps) => ({
+	(dispatch) => ({
 		setSelected: ids => dispatch(setSelected(dataSet, ids)),
 		getComments: ballotId => dispatch(getComments(ballotId)),
 		setBallotId: ballotId => dispatch(setBallotId(ballotId)),

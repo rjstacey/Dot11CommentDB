@@ -166,9 +166,5 @@ export default connect(
 			comments: comments.comments,
 		}
 	},
-	(dispatch) => {
-		return {
-			getUsers: () => dispatch(getUsers())
-		}
-	}
+	{getUsers}
 )(AssigneeSelector)

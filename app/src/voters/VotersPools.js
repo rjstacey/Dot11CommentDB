@@ -125,21 +125,17 @@ VotersPools.propTypes = {
 	votingPools:  PropTypes.array.isRequired,
 	votingPoolsMap: PropTypes.array.isRequired,
 	getVotingPools: PropTypes.func.isRequired,
+	deleteVotingPools: PropTypes.func.isRequired,
 }
 
 const dataSet = 'votingPools'
 export default connect(
-	(state, ownProps) => {
-		return {
-			selected: state[dataSet].selected,
-			valid: state[dataSet].valid,
-			loading: state[dataSet].loading,
-			votingPools: state[dataSet].votingPools,
-			votingPoolsMap: getDataMap(state, dataSet),
-		}
-	},
-	(dispatch, ownProps) => ({
-		getVotingPools: () => dispatch(getVotingPools()),
-		deleteVotingPools: (vps) => dispatch(deleteVotingPools(vps)),
-	})
+	(state, ownProps) => ({
+		selected: state[dataSet].selected,
+		valid: state[dataSet].valid,
+		loading: state[dataSet].loading,
+		votingPools: state[dataSet].votingPools,
+		votingPoolsMap: getDataMap(state, dataSet),
+	}),
+	{getVotingPools, deleteVotingPools}
 )(VotersPools)

@@ -885,7 +885,7 @@ class CommentDetail extends React.PureComponent {
 
 const dataSet = 'comments'
 export default connect(
-	(state, ownProps) => {
+	(state) => {
 		const user = state.login.user;
 		const data = state[dataSet];
 		return {
@@ -899,7 +899,7 @@ export default connect(
 			uiEditComment: data.ui['editComment']
 		}
 	},
-	(dispatch, ownProps) => ({
+	(dispatch) => ({
 		addResolutions: (resolutions) => dispatch(addResolutions(resolutions)),
 		deleteResolutions: (resolutions) => dispatch(deleteResolutions(resolutions)),
 		updateResolutions: (resolutions) => dispatch(updateResolutions(resolutions)),

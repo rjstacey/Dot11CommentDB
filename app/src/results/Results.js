@@ -149,18 +149,13 @@ Results.propTypes = {
 
 const dataSet = 'results'
 export default connect(
-	(state, ownProps) => {
-		return {
+	(state) => ({
 			ballotId: state.ballots.ballotId,
 			ballot: state[dataSet].ballot,
 			resultsSummary: state[dataSet].resultsSummary,
 			votingPoolSize: state[dataSet].votingPoolSize,
 			resultsValid: state[dataSet].valid,
 			loading: state[dataSet].loading,
-		}
-	},
-	(dispatch, ownProps) => ({
-		getResults: ballotId => dispatch(getResults(ballotId)),
-		setBallotId: ballotId => dispatch(setBallotId(ballotId))
-	})
+		}),
+	{getResults, setBallotId}
 )(Results);

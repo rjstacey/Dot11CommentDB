@@ -53,7 +53,6 @@ class TableRow extends React.Component {
 			estimatedRowHeight,
 			onRowHeightChange,
 			onRowClick,
-			onRowDoubleClick,
 			...otherProps
 		} = this.props;
 		/* eslint-enable no-unused-vars */
@@ -85,7 +84,6 @@ class TableRow extends React.Component {
 		}
 
 		const onClick = onRowClick? event => onRowClick({event, rowIndex, rowData}): undefined
-		const onDoubleClick = onRowDoubleClick? event => onRowDoubleClick({event, rowIndex, rowData}): undefined
 
 	  	return (
 			<BodyRow
@@ -94,7 +92,6 @@ class TableRow extends React.Component {
 				className={className}
 				style={rowStyle}
 				onClick={onClick}
-				onDoubleClick={onDoubleClick}
 			>
 				{cells}
 			</BodyRow>

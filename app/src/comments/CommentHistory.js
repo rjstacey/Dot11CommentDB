@@ -78,16 +78,14 @@ function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, 
 }
 
 const CommentHistory = connect(
-	(state, ownProps) => ({
+	(state) => ({
 		selected: state.comments.selected,
 		comments: state.comments.comments,
 		commentsHistory: state.commentsHistory.commentsHistory,
 		loading: state.commentsHistory.loading,
 		valid: state.commentsHistory.selected,
 	}),
-	(dispatch, ownProps) => ({
-		getCommentsHistory: (comment) => dispatch(getCommentsHistory(comment)),
-	})
+	{getCommentsHistory}
 )(_CommentHistory);
 
 function CommentHistoryModal({

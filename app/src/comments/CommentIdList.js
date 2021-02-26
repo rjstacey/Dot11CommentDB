@@ -120,31 +120,27 @@ function cidValid(comments, cid) {
 }
 
 export const CommentIdFilter = connect(
-	(state, ownProps) => {
+	(state) => {
 		const s = state.comments
 		return {
 			cids: s.filters['CID'].values.map(v => v.value) || [],
 			cidValid: (cid) => cidValid(s.comments, cid)
 		}
 	},
-	(dispatch, ownProps) => {
-		return {
+	(dispatch) => ({
 			onChange: cids => dispatch(setFilter('comments', 'CID', cids))
-		}
-	}
+		})
 )(CommentIdList)
 
 export const CommentIdSelector = connect(
-	(state, ownProps) => {
+	(state) => {
 		const s = state.comments
 		return {
 			cids: s.selected,
 			cidValid: (cid) => cidValid(s.comments, cid)
 		}
 	},
-	(dispatch, ownProps) => {
-		return {
+	(dispatch) => ({
 			onChange: cids => dispatch(setSelected('comments', cids))
-		}
-	}
+		})
 )(CommentIdList)
