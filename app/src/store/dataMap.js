@@ -1,5 +1,5 @@
 import {createCachedSelector} from 're-reselect'
-import {sortData} from './lib/sort'
+import {sortData} from './sort'
 import {filterData} from './filters'
 import {getSyncedEpolls} from './epolls'
 

@@ -1,10 +1,9 @@
 import {createSlice} from '@reduxjs/toolkit'
 
 import {setError} from './error'
-import fetcher from './lib/fetcher'
+import fetcher from './fetcher'
 
-import sortReducer, {sortInit, SortDirection} from './sort'
-import {SortType} from './lib/sort'
+import sortReducer, {sortInit, SortDirection, SortType} from './sort'
 import filtersReducer, {filtersInit, FilterType} from './filters'
 import selectedReducer, {setSelected} from './selected'
 import uiReducer from './ui'

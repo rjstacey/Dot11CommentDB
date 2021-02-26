@@ -1,7 +1,7 @@
 import {createSlice} from '@reduxjs/toolkit'
 
 import {setError} from './error'
-import fetcher from './lib/fetcher'
+import fetcher from './fetcher'
 
 const defaultState = {
 	loading: false,

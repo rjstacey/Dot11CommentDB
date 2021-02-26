@@ -69,9 +69,16 @@ const Input = styled.input`
 		box-shadow: 0 0 0 3px rgba(0,116,217,0.2);
 	}
 	:focus,
-	:not([disabled]):hover {
+	:not([disabled]):valid:hover {
 		border-color: #0074D9;
 	}
+	:invalid {
+		background-color: #ff000052;
+	}
+	::placeholder {
+		font-style: italic;
+	}
+
 	&[type='text'],
 	&[type='search'],
 	&[type='date'] {

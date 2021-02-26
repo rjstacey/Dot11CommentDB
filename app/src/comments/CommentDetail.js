@@ -9,6 +9,7 @@ import AssigneeSelector from './AssigneeSelector'
 import SubmissionSelector from './SubmissionSelector'
 import {editorCss, ResolutionEditor} from './ResolutionEditor'
 import {ActionButton, VoteYesIcon, VoteNoIcon, IconCollapse} from '../general/Icons'
+import {ActionButtonDropdown} from '../general/Dropdown'
 import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from '../general/Form'
 import {shallowDiff} from '../lib/utils'
 import {debounce} from '../lib/utils'
@@ -338,18 +339,20 @@ const Resolution = ({resolution, setResolution, showEditing, toggleShowEditing, 
 				}}
 			>
 				<label>Resolution:</label>
-				<StyledResnStatus
-					value={resolution.ResnStatus}
-					onChange={value => setResolution({ResnStatus: value})}
-					readOnly={readOnly}
-				/>
-				<StyledResolutionEditor
-					value={isMultiple(resolution.Resolution)? '': resolution.Resolution}
-					onChange={value => setResolution({Resolution: value})}
-					placeholder={isMultiple(resolution.Resolution)? MULTIPLE_STR: BLANK_STR}
-					resnStatus={resolution.ResnStatus}
-					readOnly={readOnly}
-				/>
+				<StyledResolutionContainer readOnly={readOnly} >
+					<StyledResnStatus
+						value={resolution.ResnStatus}
+						onChange={value => setResolution({ResnStatus: value})}
+						readOnly={readOnly}
+					/>
+					<StyledResolutionEditor
+						value={isMultiple(resolution.Resolution)? '': resolution.Resolution}
+						onChange={value => setResolution({Resolution: value})}
+						placeholder={isMultiple(resolution.Resolution)? MULTIPLE_STR: BLANK_STR}
+						resnStatus={resolution.ResnStatus}
+						readOnly={readOnly}
+					/>
+				</StyledResolutionContainer>
 			</Col>
 		</Row>
 		<Row>
@@ -398,6 +401,12 @@ const StyledResolutionEditor = styled(ResolutionEditor)`
 	background-color: ${({resnStatus}) => resnColor[resnStatus] || '#fafafa'};
 	border: 1px solid #ddd;
 	border-radius: 0 5px 5px 5px;
+`;
+
+const StyledResolutionContainer = styled(Col)`
+	:hover > div {
+		${({readOnly}) => readOnly? '': 'border-color: #0074D9;'}
+	}
 `;
 
 function EditStatus({resolution, setResolution, readOnly}) {
@@ -527,6 +536,54 @@ const CommentContainer = styled.div`
 	}
 `;
 
+function CommentPage({
+	style,
+	className,
+	comment,
+	setComment,
+	readOnly
+}) {
+	const pattern = '^\\d*\\.?\\d{0,2}$';
+
+	function onChange(e) {
+		const {value} = e.target;
+		if (value.search(pattern) !== -1) {
+			setComment({Page: value || null})
+		}
+	}
+
+	return (
+		<Input
+			type='text'
+			size={10}
+			value={isMultiple(comment.Page)? '': comment.Page || ''}
+			onChange={onChange}
+			pattern={pattern}
+			placeholder={isMultiple(comment.Page)? MULTIPLE_STR: ''}
+			readOnly={readOnly}
+		/>
+	)
+}
+
+function CommentClause({
+	style,
+	className,
+	comment,
+	setComment,
+	readOnly
+}) {
+	return (
+		<Input
+			type='text'
+			size={10}
+			value={isMultiple(comment.Clause)? '': comment.Clause || ''}
+			onChange={(e) => setComment({Clause: e.target.value})}
+			placeholder={isMultiple(comment.Clause)? MULTIPLE_STR: ''}
+			readOnly={readOnly}
+		/>
+	)
+}
+
 export function Comment({
 	cids,
 	resolution,
@@ -551,8 +608,22 @@ export function Comment({
 				<FieldLeft label='Commenter:'>{renderCommenter(comment)}</FieldLeft>
 			</Row>
 			<Row>
-				<FieldLeft label='Page/Line:'>{renderPage(comment.Page)} [{comment.C_Page} {comment.C_Line}]</FieldLeft>
-				<FieldLeft label='Clause:'>{renderEntry(comment.Clause)} [{comment.C_Clause}]</FieldLeft>
+				<FieldLeft label='Page/Line:'>
+					<CommentPage
+						comment={resolution}
+						setComment={setResolution}
+						readOnly={readOnly}
+					/>
+					<span>&nbsp;({comment.C_Page} {comment.C_Line})</span>
+				</FieldLeft>
+				<FieldLeft label='Clause:'>
+					<CommentClause
+						comment={resolution}
+						setComment={setResolution}
+						readOnly={readOnly}
+					/>
+					<span>&nbsp;({comment.C_Clause})</span>
+				</FieldLeft>
 				<FieldLeft label='Category:'>{renderEntry(comment.Category)}</FieldLeft>
 			</Row>
 			<Row>
@@ -643,12 +714,12 @@ class CommentDetail extends React.PureComponent {
 	constructor(props) {
 		super(props)
 		this.state = this.initState(props);
-		this.save = debounce(this.doSave, 500);
+		this.triggerSave = debounce(this.save, 500);
 		this.readOnly = this.props.readOnly || this.props.access < AccessLevel.SubgroupAdmin;
 	}
 
 	componentWillUnmount() {
-		this.save.flush();
+		this.triggerSave.flush();
 	}
 
 	initState = (props) => {
@@ -664,7 +735,7 @@ class CommentDetail extends React.PureComponent {
 			}
 		}
 		return {
-			origResolution: diff,
+			savedResolution: diff,
 			editedResolution: diff,
 			comments: originalComments
 		};
@@ -675,25 +746,21 @@ class CommentDetail extends React.PureComponent {
 			console.warn("Update in read only component")
 			return;
 		}
-		this.setState((state, props) => {
-			const editedResolution = {...state.editedResolution, ...fields}
-			this.save(state.origResolution, editedResolution, state.comments)
-			return {
-				...state,
-				origResolution: editedResolution,
-				editedResolution
-			}
-		})
+		// merge in the edits and trigger a debounced save
+		this.setState(
+			(state, props) => ({...state, editedResolution: {...state.editedResolution, ...fields}}),
+			this.triggerSave
+		);
 	}
 
-	doSave = (origResolution, editedResolution, comments) => {
-		const r = origResolution
-		const d = shallowDiff(r, editedResolution)
+	save = () => {
+		const editedResolution = this.state.editedResolution;
+		const d = shallowDiff(this.state.savedResolution, editedResolution)
 		const commentUpdates = [], resolutionUpdates = [], resolutionAdds = [];
-		for (let c of comments) {
+		for (let c of this.state.comments) {
 			let commentUpdate = {}, resolutionUpdate = {};
 			for (let k in d) {
-				if (k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes')
+				if (k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes' || k === 'Page' || k === 'Clause')
 					commentUpdate[k] = d[k]
 				else
 					resolutionUpdate[k] = d[k]
@@ -721,6 +788,7 @@ class CommentDetail extends React.PureComponent {
 			this.props.addResolutions(resolutionAdds)
 		if (resolutionUpdates.length > 0)
 			this.props.updateResolutions(resolutionUpdates)
+		this.setState((state, props) => ({...state, savedResolution: editedResolution}))
 	}
 
 	//handleSave = () => this.doSave(this.state.origResolution, this.state.editedResolution, this.state.comments)

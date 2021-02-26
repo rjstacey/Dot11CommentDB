@@ -1,10 +1,9 @@
 import {createSlice} from '@reduxjs/toolkit'
 
 import {setError} from './error'
-import fetcher from './lib/fetcher'
+import fetcher from './fetcher'
 
-import sortReducer, {sortInit, SortDirection} from './sort'
-import {SortType} from './lib/sort'
+import sortReducer, {sortInit, SortDirection, SortType} from './sort'
 import filtersReducer, {filtersInit, FilterType} from './filters'
 import selectedReducer, {setSelected} from './selected'
 import expandedReducer, {setExpanded} from './expanded'
@@ -148,28 +147,21 @@ const commentsSlice = createSlice({
 		updateFailure(state, action) {
 			state.updateComment = false;
 		},
-		addResolutions(state, action) {
+		afterAddOrDeleteResolutions(state, action) {
 			// Concat new comments
-			const {comments} = actions.payload;
+			const {comments} = action.payload;
 			let newComments = doCommentsUpdate(state.comments, comments);
 			newComments = updateCommentsStatus(newComments);
 			state.comments = newComments;
 			state.updateComment = false;
 		},
-		updateResolutions(state, action) {
-			const {comments} = actions.payload;
+		afterUpdateResolutions(state, action) {
+			const {comments} = action.payload;
 			let newComments = state.comments.map(c1 => {
 				const c2 = comments.find(c2 => c1.resolution_id === c2.resolution_id)
 				return c2? {...c1, ...c2}: c1;
 			})
 			newComments = updateCommentsStatus(newComments);
-			state.comments = newComments;
-			state.updateComment = false;
-		},
-		deleteResolutions(state, action) {
-			const {comments} = actions.payload;
-			let newComments = doCommentsUpdate(state.comments, comments)
-			newComments = updateCommentsStatus(newComments)
 			state.comments = newComments;
 			state.updateComment = false;
 		}
@@ -253,19 +245,18 @@ const {updatePending, updateFailure, updateMany} = commentsSlice.actions;
 
 export function updateComments(comments) {
 	return async (dispatch) => {
-		dispatch(updatePending({ballotId}))
+		dispatch(updatePending())
 		let response;
 		try {
 			response = await fetcher.put(`/api/comments`, {comments})
 		}
 		catch(error) {
 			return Promise.all([
-				dispatch(updateFailure({ballotId})),
+				dispatch(updateFailure()),
 				dispatch(setError(`Unable to update comment${comments.length > 1? 's': ''}`, error))
 			])
 		}
-		const {comments} = response;
-		return dispatch(updateMany({comments}))
+		return dispatch(updateMany(response))
 	}
 }
 
@@ -360,6 +351,8 @@ export function setStartCommentId(ballotId, startCommentId) {
 	}
 }
 
+const {afterAddOrDeleteResolutions} = commentsSlice.actions;
+
 export function addResolutions(resolutions) {
 	return async (dispatch, getState) => {
 		dispatch(updatePending())
@@ -378,7 +371,7 @@ export function addResolutions(resolutions) {
 			])
 			return null
 		}
-		await dispatch(addResolutions(response))
+		await dispatch(afterAddOrDeleteResolutions(response))
 
 		const promises = []
 		const {comments, expanded} = getState()[dataSet]
@@ -391,6 +384,8 @@ export function addResolutions(resolutions) {
 		return response.newComments
 	}
 }
+
+const {afterUpdateResolutions} = commentsSlice.actions;
 
 export function updateResolutions(resolutions) {
 	return async (dispatch, getState) => {
@@ -405,7 +400,7 @@ export function updateResolutions(resolutions) {
 				dispatch(setError(`Unable to update resolution${resolutions.length > 1? 's': ''}`, error))
 			])
 		}
-		await dispatch(updateResolutions(response));
+		await dispatch(afterUpdateResolutions(response));
 
 		const promises = []
 		const {comments, selected, expanded} = getState()[dataSet]
@@ -418,10 +413,6 @@ export function updateResolutions(resolutions) {
 		return Promise.all(promises)
 	}
 }
-
-const deleteResolutionsLocal = (resolutions) => ({type: RESOLUTIONS_DELETE, resolutions})
-const deleteResolutionsSuccess = (comments) => ({type: RESOLUTIONS_DELETE_SUCCESS, comments})
-const deleteResolutionsFailure = () => ({type: RESOLUTIONS_DELETE_FAILURE})
 
 export function deleteResolutions(resolutions) {
 	return async (dispatch, getState) => {
@@ -439,7 +430,7 @@ export function deleteResolutions(resolutions) {
 				dispatch(setError(`Unable to delete resolution${resolutions.length > 1? 's': ''}`, error))
 			])
 		}
-		await dispatch(deleteResolutions(response))
+		await dispatch(afterAddOrDeleteResolutions(response))
 
 		const promises = []
 		const {comments, selected, expanded} = getState()[dataSet]

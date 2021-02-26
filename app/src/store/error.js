@@ -1,6 +1,6 @@
 import {createSlice} from '@reduxjs/toolkit'
 
-import fetcher from './lib/fetcher'
+import fetcher from './fetcher'
 
 const initialState = []
 

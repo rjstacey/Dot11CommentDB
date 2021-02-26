@@ -10,8 +10,7 @@ import useClickOutside from '../lib/useClickOutside'
 import {Checkbox, Input} from '../general/Form'
 
 import {getAllFieldOptions, getAvailableFieldOptions} from '../store/options'
-import {SortType, sortOptions} from '../store/lib/sort'
-import {sortSet, SortDirection} from '../store/sort'
+import {sortSet, sortOptions, SortDirection, SortType} from '../store/sort'
 import {setFilter, addFilter, removeFilter, FilterType} from '../store/filters'
 
 const StyledInput = styled(Input)`
