@@ -103,7 +103,7 @@ const tableColumns = [
 		label: 'Document',
 		width: 150,	flexShrink: 1, flexGrow: 1,
 		dropdownWidth: 300},
-	{key: 'Topic:',
+	{key: 'Topic',
 		label: 'Topic',
 		width: 300,	flexShrink: 1, flexGrow: 1},
 	{key: 'EpollNum',
@@ -178,7 +178,7 @@ function Ballots(props) {
 			});
 		}
 
-		if (access < AccessLevel.WGAdmin) {
+		if (access >= AccessLevel.WGAdmin) {
 			/* Working froup admin can edit ballots so add actions column */
 			const deleteBallot = async (ballot) => {
 				const ok = await ConfirmModal.show(`Are you sure you want to delete ${ballot.BallotID}?`)
@@ -192,7 +192,7 @@ function Ballots(props) {
 					onDelete={() => deleteBallot(rowData)}
 				/>
 
-			return columns.concat({
+			columns = columns.concat({
 				...actionsColumn,
 				cellRenderer: actionCellRenderer
 			})
