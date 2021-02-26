@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
 import {ControlHeader, ControlCell} from '../table/ControlColumn'
@@ -46,17 +45,29 @@ const TableRow = styled.div`
 
 const renderAccess = ({rowData}) => AccessLevelOptions.find(o => o.value === rowData.Access).label;
 
-const tableColumns = Immutable.OrderedMap({
-	__ctrl__:   {width: 30, flexGrow: 1, flexShrink: 0,
-					headerRenderer: p => <ControlHeader {...p} />,
-					cellRenderer: p => <ControlCell {...p} />},
-	SAPIN: 		{label: 'SA PIN', 		width: 100, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
-	Name: 		{label: 'Name', 		width: 300, flexGrow: 1, flexShrink: 1},
-	Email: 		{label: 'eMail Address',width: 300, flexGrow: 1, flexShrink: 1},
-	Access: 	{label: 'Access Level',	width: 150, flexGrow: 1, flexShrink: 1, dropdownWidth: 200,
-					cellRenderer: renderAccess},
-	Actions: 	{label: 'Actions',		width: 100, flexGrow: 1, flexShrink: 1}
-});
+const tableColumns = [
+	{key: '__ctrl__',
+		width: 30, flexGrow: 1, flexShrink: 0,
+		headerRenderer: p => <ControlHeader {...p} />,
+		cellRenderer: p => <ControlCell {...p} />},
+	{key: 'SAPIN', 
+		label: 'SA PIN',
+		width: 100, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
+	{key: 'Name', 
+		label: 'Name',
+		width: 300, flexGrow: 1, flexShrink: 1},
+	{key: 'Email', 
+		label: 'eMail Address',
+		width: 300, flexGrow: 1, flexShrink: 1},
+	{key: 'Access', 
+		label: 'Access Level',
+		width: 150, flexGrow: 1, flexShrink: 1, dropdownWidth: 200,
+		cellRenderer: renderAccess},
+	{key: 'Actions',
+		label: 'Actions',
+		width: 100, flexGrow: 1, flexShrink: 1}
+];
+
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
 const primaryDataKey = 'SAPIN';
 
@@ -79,16 +90,19 @@ function Users({
 				deleteUsers([user[primaryDataKey]])
 		}
 
-		let columns = tableColumns;
-		columns = columns
-			.update('Actions', v => ({
-				...v,
-				cellRenderer: ({rowData}) => 
-					<RowActions
-						onEdit={() => setEditUser({action: EditUserAction.UPDATE, user: rowData})}
-						onDelete={() => onDelete(rowData)}
-					/>
-			}));
+		let columns = tableColumns.map(col => {
+			if (col.id === 'Actions')
+				return {
+					...col,
+					cellRenderer: ({rowData}) => 
+						<RowActions
+							onEdit={() => setEditUser({action: EditUserAction.UPDATE, user: rowData})}
+							onDelete={() => onDelete(rowData)}
+						/>
+				}
+			else
+				return col
+		});
 		return columns
 	}, [deleteUsers]);
 

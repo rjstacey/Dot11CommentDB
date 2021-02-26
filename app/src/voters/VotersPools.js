@@ -2,7 +2,6 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {useHistory} from 'react-router-dom'
 import {connect} from 'react-redux'
-import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
 import {ControlHeader, ControlCell} from '../table/ControlColumn'
@@ -24,15 +23,20 @@ const RowActions = ({onEdit, onDelete}) =>
 		<ActionButton name='delete' title='Delete' onClick={onDelete} />
 	</ActionCell>
 
-const tableColumns = Immutable.OrderedMap({
-	__ctrl__:		{width: 30, flexGrow: 1, flexShrink: 0,
-						headerRenderer: p => <ControlHeader {...p} />,
-						cellRenderer: p => <ControlCell {...p} />},
-	PoolType: 		{label: 'Type',		width: 80, dropdownWidth: 150},
-	VotingPoolID: 	{label: 'Name',		width: 200},
-	VoterCount: 	{label: 'Voters',	width: 100},
-	Actions:  		{label: 'Actions',	width: 100}
-});
+const tableColumns = [
+	{key: '__ctrl__',
+		width: 30, flexGrow: 1, flexShrink: 0,
+		headerRenderer: p => <ControlHeader {...p} />,
+		cellRenderer: p => <ControlCell {...p} />},
+	{key: 'PoolType',
+		label: 'Type',		width: 80, dropdownWidth: 150},
+	{key: 'VotingPoolID',
+		label: 'Name',		width: 200},
+	{key: 'VoterCount',
+		label: 'Voters',	width: 100},
+	{key: 'Actions',
+		label: 'Actions',	width: 100}
+];
 
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
 
@@ -68,14 +72,16 @@ function VotersPools(props) {
 				deleteVotingPools([vp])
 		}
 
-		return tableColumns.update('Actions', c => ({
-			...c,
-			cellRenderer: ({rowData}) => 
-				<RowActions
-					onEdit={() => history.push(`/Voters/${rowData.PoolType}/${rowData.VotingPoolID}`)}
-					onDelete={() => deleteVotingPool(rowData)}
-				/>
-		}));
+		return tableColumns.map(col =>
+			col.key === 'Actions'
+				? {	...col,
+					cellRenderer: ({rowData}) => 
+						<RowActions
+							onEdit={() => history.push(`/Voters/${rowData.PoolType}/${rowData.VotingPoolID}`)}
+							onDelete={() => deleteVotingPool(rowData)}
+						/>}
+				: col
+		);
 	}, [history, deleteVotingPools]);
 
 

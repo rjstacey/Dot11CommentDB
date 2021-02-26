@@ -2,7 +2,6 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
-import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import copyToClipboard from 'copy-html-to-clipboard'
 
@@ -172,103 +171,96 @@ const renderHeaderCellResolution = (props) =>
 		<HeaderSubcomponent {...props} dataKey='Resolution' label='Resolution' />
 	</React.Fragment>
 
-const controlColumn = {
-	width: 30, flexGrow: 1, flexShrink: 0,
-	headerRenderer: p => <ControlHeader {...p} ><CommentIdSelector focusOnMount /></ControlHeader>,
-	cellRenderer: p => <ControlCell {...p} />
-}
-
-const allColumns = Immutable.OrderedMap({
-	__ctrl__:
-		{
-			width: 30, flexGrow: 1, flexShrink: 0,
-			headerRenderer: p => <ControlHeader {...p} ><CommentIdSelector focusOnMount /></ControlHeader>,
-			cellRenderer: p => <ControlCell {...p} />},
-	Stack1:
-		{label: 'CID/Cat/MS/...',
-			width: 200, flexGrow: 1, flexShrink: 0,
-			headerRenderer: renderHeaderCellStacked1,
-			cellRenderer: renderDataCellStacked1},
-	CID:
-		{label: 'CID',
-			width: 60, flexGrow: 1, flexShrink: 0,
-			dropdownWidth: 400},
-	CommenterName:
-		{label: 'Commenter',
-			width: 100, flexGrow: 1, flexShrink: 1},
-	Vote:
-		{label: 'Vote',
-			width: 50, flexGrow: 1, flexShrink: 1},
-	MustSatisfy:
-		{label: 'MS',
-			width: 36, flexGrow: 1, flexShrink: 0,
-			cellRenderer: renderDataCellCheck},
-	Category:
-		{label: 'Cat',
-			width: 36, flexGrow: 1, flexShrink: 0},
-	Clause:
-		{label: 'Clause',
-			width: 100, flexGrow: 1, flexShrink: 0},
-	Page:
-		{label: 'Page',
-			width: 80, flexGrow: 1, flexShrink: 0,
-			dataRenderer: renderPage,
-			cellRenderer: ({rowData, dataKey}) => renderPage(rowData[dataKey])},
-	Comment:
-		{label: 'Comment',
-			width: 400, flexGrow: 1, flexShrink: 1,
-			cellRenderer: ({rowData, dataKey}) => renderTextBlock(rowData[dataKey])},
-	ProposedChange:
-		{label: 'Proposed Change',
-			width: 400, flexGrow: 1, flexShrink: 1,
-			cellRenderer: ({rowData, dataKey}) => renderTextBlock(rowData[dataKey])},
-	Stack2:
-		{label: 'Ad Hoc/Group',
-			width: 150, flexGrow: 1, flexShrink: 1,
-			headerRenderer: renderHeaderCellStacked3,
-			cellRenderer: renderDataCellStacked3},
-	AdHoc:
-		{label: 'Ad Hoc',
-			width: 100, flexGrow: 1, flexShrink: 1},
-	CommentGroup:
-		{label: 'Group',
-			width: 150, flexGrow: 1, flexShrink: 1,
-			dropdownWidth: 300},
-	Notes:
-		{label: 'Notes',
-			width: 150, flexGrow: 1, flexShrink: 1,
-			dropdownWidth: 300},
-	Stack3:
-		{label: 'Assignee/Submission',
-			width: 250, flexGrow: 1, flexShrink: 1,
-			headerRenderer: renderHeaderCellStacked2,
-			cellRenderer: renderDataCellStacked2},
-	AssigneeName:
-		{label: 'Assignee',
-			width: 150, flexGrow: 1, flexShrink: 1},
-	Submission:
-		{label: 'Submission',
-			width: 150, flexGrow: 1, flexShrink: 1,
-			dropdownWidth: 300},
-	Status:
-		{label: 'Status',
-			width: 150, flexGrow: 1, flexShrink: 1,
-			dropdownWidth: 250},
-	ApprovedByMotion:
-		{label: 'Motion Number',
-			width: 80, flexGrow: 1, flexShrink: 1,
-			dropdownWidth: 200},
-	Resolution:
-		{label: 'Resolution',
-			width: 400, flexGrow: 1, flexShrink: 1,
-			headerRenderer: renderHeaderCellResolution,
-			cellRenderer: renderDataCellResolution},
-	Editing:
-		{label: 'Editing',
-			width: 300, flexGrow: 1, flexShrink: 1,
-			headerRenderer: renderHeaderCellEditing,
-			cellRenderer: renderDataCellEditing}
-});
+const allColumns = [
+	{key: '__ctrl__',
+		width: 30, flexGrow: 1, flexShrink: 0,
+		headerRenderer: p => <ControlHeader {...p} ><CommentIdSelector focusOnMount /></ControlHeader>,
+		cellRenderer: p => <ControlCell {...p} />},
+	{key: 'Stack1',
+		label: 'CID/Cat/MS/...',
+		width: 200, flexGrow: 1, flexShrink: 0,
+		headerRenderer: renderHeaderCellStacked1,
+		cellRenderer: renderDataCellStacked1},
+	{key: 'CID',
+		label: 'CID',
+		width: 60, flexGrow: 1, flexShrink: 0,
+		dropdownWidth: 400},
+	{key: 'CommenterName',
+		label: 'Commenter',
+		width: 100, flexGrow: 1, flexShrink: 1},
+	{key: 'Vote',
+		label: 'Vote',
+		width: 50, flexGrow: 1, flexShrink: 1},
+	{key: 'MustSatisfy',
+		label: 'MS',
+		width: 36, flexGrow: 1, flexShrink: 0,
+		cellRenderer: renderDataCellCheck},
+	{key: 'Category',
+		label: 'Cat',
+		width: 36, flexGrow: 1, flexShrink: 0},
+	{key: 'Clause',
+		label: 'Clause',
+		width: 100, flexGrow: 1, flexShrink: 0},
+	{key: 'Page',
+		label: 'Page',
+		width: 80, flexGrow: 1, flexShrink: 0,
+		dataRenderer: renderPage,
+		cellRenderer: ({rowData, dataKey}) => renderPage(rowData[dataKey])},
+	{key: 'Comment',
+		label: 'Comment',
+		width: 400, flexGrow: 1, flexShrink: 1,
+		cellRenderer: ({rowData, dataKey}) => renderTextBlock(rowData[dataKey])},
+	{key: 'ProposedChange',
+		label: 'Proposed Change',
+		width: 400, flexGrow: 1, flexShrink: 1,
+		cellRenderer: ({rowData, dataKey}) => renderTextBlock(rowData[dataKey])},
+	{key: 'Stack2',
+		label: 'Ad Hoc/Group',
+		width: 150, flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCellStacked3,
+		cellRenderer: renderDataCellStacked3},
+	{key: 'AdHoc',
+		label: 'Ad Hoc',
+		width: 100, flexGrow: 1, flexShrink: 1},
+	{key: 'CommentGroup',
+		label: 'Group',
+		width: 150, flexGrow: 1, flexShrink: 1,
+		dropdownWidth: 300},
+	{key: 'Notes',
+		label: 'Notes',
+		width: 150, flexGrow: 1, flexShrink: 1,
+		dropdownWidth: 300},
+	{key: 'Stack3',
+		label: 'Assignee/Submission',
+		width: 250, flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCellStacked2,
+		cellRenderer: renderDataCellStacked2},
+	{key: 'AssigneeName',
+		label: 'Assignee',
+		width: 150, flexGrow: 1, flexShrink: 1},
+	{key: 'Submission',
+		label: 'Submission',
+		width: 150, flexGrow: 1, flexShrink: 1,
+		dropdownWidth: 300},
+	{key: 'Status',
+		label: 'Status',
+		width: 150, flexGrow: 1, flexShrink: 1,
+		dropdownWidth: 250},
+	{key: 'ApprovedByMotion',
+		label: 'Motion Number',
+		width: 80, flexGrow: 1, flexShrink: 1,
+		dropdownWidth: 200},
+	{key: 'Resolution',
+		label: 'Resolution',
+		width: 400, flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCellResolution,
+		cellRenderer: renderDataCellResolution},
+	{key: 'Editing',
+		label: 'Editing',
+		width: 300, flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderCellEditing,
+		cellRenderer: renderDataCellEditing}
+];
 
 const editViewL = [
 	{key: 'Stack1'},
@@ -303,13 +295,16 @@ const viewsByMedia = {
 	S: {'1': view1L, '2': view1L, 'Edit': editViewS}
 };
 
-const getDefaultColumnsConfig = (view) => allColumns.map((col, key) => {
+const getDefaultColumnsConfig = (view) => allColumns.reduce((obj, col) => {
+	const key = col.key;
 	const v = view.find(v => v.key === key);
-	return {
+	obj[key] = {
+		label: col.label,
 		width: (v && v.width)? v.width: col.width,
 		visible: !!v
 	}
-}).toObject();
+	return obj
+}, {});
 
 const getDefaultTableConfig = (view) => {
 	let media;
@@ -331,7 +326,10 @@ const getDefaultTableConfig = (view) => {
 
 const tableViews = ['1', '2', 'Edit'];
 
-const defaultTablesConfig = tableViews.reduce((config, view) => ({...config, [view]: getDefaultTableConfig(view)}), {});
+const defaultTablesConfig = tableViews.reduce((config, view) => {
+	config[view] = getDefaultTableConfig(view);
+	return config;
+}, {})
 
 function ColumnViewSelector({tableView, setTableView}) {
 	return tableViews.map(view => 
@@ -413,18 +411,27 @@ function Comments(props) {
 	/* On mount, if the store does not contain default configuration for each of our views, then add them */
 	const {tableView, tableConfig} = props;
 	React.useEffect(() => {
-		for (const view of Object.keys(defaultTablesConfig)) {
+		for (const view in defaultTablesConfig) {
 			const columnsConfig = {}
-			for (const key of Object.keys(defaultTablesConfig[view].columns)) {
+			for (const key in defaultTablesConfig[view].columns) {
 				/* Columns with a 'visible' property (identified by a 'label' property) will appear in
 				 * the ColumnSelector. We want to exclude control column since it can't be removed. */
-				if (key !== '__ctrl__' &&
-					(!tableConfig.columns[key] ||
-					 !tableConfig.columns[key].hasOwnProperty('visible')))
+				 const defColumnConfig = defaultTablesConfig[view].columns[key]
+				if (!tableConfig.columns[key]) {
 					columnsConfig[key] = {
-						label: allColumns.get(key).label,
-						visible: defaultTablesConfig[view].columns[key].visible
-					};
+						label: defColumnConfig.label,
+						width: defColumnConfig.width
+					}
+					if (key !== '__ctrl__')
+						columnsConfig[key].visible = defColumnConfig.visible;
+				}
+				else {
+					if (key !== '__ctrl__' &&
+						!tableConfig.columns[key].hasOwnProperty('visible'))
+						columnsConfig[key].visible = defColumnConfig.visible
+					if (!tableConfig.columns[key].hasOwnProperty('label'))
+						columnsConfig[key].visible = defColumnConfig.label
+				}
 			}
 			if (Object.keys(columnsConfig).length)
 				props.upsertTableColumns(view, columnsConfig);
@@ -439,19 +446,19 @@ function Comments(props) {
 	 * so we create a key id for the component that depends on signficant parameters */
 	const [tableId, columns] = React.useMemo(() => {
 
-		/*let columns =
-			Immutable.OrderedMap({__ctrl__: controlColumn})
-			.concat(
-				allColumns.filter((col, key) => tableConfig.columns[key]? tableConfig.columns[key].visible: true)
-			);*/
-		const columns = allColumns.filter((col, key) => tableConfig.columns[key]? tableConfig.columns[key].visible: true)
+		const columns = allColumns.filter(col => 
+			(tableConfig.columns[col.key] && tableConfig.columns[col.key].hasOwnProperty('visible'))
+				? tableConfig.columns[col.key].visible
+				: true
+		);
 
-		let id = tableView
-		if (tableConfig.fixed) id += 'fixed';
-		columns.forEach(col => id += col.key);
+		const id = 
+			(tableConfig.fixed? 'fixed': '') +
+			columns.map(col => col.key).join();
 
 		return [id, columns]
 	}, [tableView, tableConfig]);
+
 
 	/* Act on a change to the ballotId in the URL */
 	React.useEffect(() => {
@@ -517,7 +524,7 @@ function Comments(props) {
 					<ActionButton name='copy' title='Copy' disabled={props.selected.length === 0} onClick={e => setClipboard(props.selected, props.comments)} />
 					{access >= AccessLevel.SubgroupAdmin && <CommentsExport ballotId={ballotId} />}
 					{access >= AccessLevel.SubgroupAdmin && <CommentsImport ballotId={ballotId} />}
-					<ColumnSelector allColumns={allColumns}	/>
+					<ColumnSelector />
 					<ActionButton name='history' title='History' isActive={showHistory} onClick={() => setShowHistory(true)} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>

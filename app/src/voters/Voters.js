@@ -2,7 +2,6 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
-import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
 import {ControlHeader, ControlCell} from '../table/ControlColumn'
@@ -36,26 +35,31 @@ const defaultVoter = {
 }
 
 const controlColumn = {
+	key: '__ctrl__',
 	width: 30, flexGrow: 1, flexShrink: 0,
 	headerRenderer: p => <ControlHeader {...p} />,
 	cellRenderer: p => <ControlCell {...p} />
 }
 
-const wgColumns = Immutable.OrderedMap({
-	SAPIN: 		{label: 'SA PIN',		width: 100},
-	LastName: 	{label: 'Last Name',	width: 150, dropdownWidth: 250},
-	FirstName: 	{label: 'First Name',	width: 150, dropdownWidth: 250},
-	MI: 		{label: 'MI',			width: 50},
-	Email: 		{label: 'Email',		width: 250, dropdownWidth: 350},
-	Status: 	{label: 'Status',		width: 100},
-	Actions: 	{label: 'Actions', 		width: 100}
-});
+const actionsColumn = {
+	key: 'Actions',		label: 'Actions', 		width: 100
+}
 
-const saColumns = Immutable.OrderedMap({
-	Email: 		{label: 'Email',		width: 250, dropdownWidth: 350},
-	Name: 		{label: 'Name',			width: 300, dropdownWidth: 350},
-	Actions: 	{label: 'Actions', 		width: 100}
-});
+const wgColumns = [
+	controlColumn,
+	{key: 'SAPIN',		label: 'SA PIN',		width: 100},
+	{key: 'LastName',	label: 'Last Name',		width: 150, dropdownWidth: 250},
+	{key: 'FirstName',	label: 'First Name',	width: 150, dropdownWidth: 250},
+	{key: 'MI',			label: 'MI',			width: 50},
+	{key: 'Email',		label: 'Email',			width: 250, dropdownWidth: 350},
+	{key: 'Status',		label: 'Status',		width: 100},
+];
+
+const saColumns = [
+	controlColumn,
+	{key: 'Email',		label: 'Email',			width: 250, dropdownWidth: 350},
+	{key: 'Name',		label: 'Name',			width: 300, dropdownWidth: 350},
+];
 
 const TopRow = styled.div`
 	display: flex;
@@ -81,9 +85,7 @@ function Voters(props) {
 
 	const [columns, primaryDataKey, maxWidth] = React.useMemo(() => {
 
-		let columns =
-			Immutable.OrderedMap({__ctrl__: controlColumn})
-			.concat(votingPoolType === 'WG'? wgColumns: saColumns)
+		let columns = votingPoolType === 'WG'? wgColumns: saColumns
 		let primaryDataKey = votingPoolType === 'WG'? 'SAPIN': 'Email';
 
 		const onDelete = async (voter) => {
@@ -92,14 +94,14 @@ function Voters(props) {
 				deleteVoters(votingPoolType, votingPoolName, [voter[primaryDataKey]])
 		}
 
-		columns = columns.update('Actions', v => ({
-			...v,
+		columns = columns.concat({
+			...actionsColumn,
 			cellRenderer: ({rowData}) => 
 				<RowActions
 					onEdit={() => setEditVoter({action: 'update', voter: rowData})}
 					onDelete={() => onDelete(rowData)}
 				/>
-		}));
+		});
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
 		return [columns, primaryDataKey, maxWidth]
 	}, [deleteVoters, votingPoolType, votingPoolName]);

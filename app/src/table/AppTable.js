@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import {VariableSizeGrid as Grid} from 'react-window'
 import AutoSizer from 'react-virtualized-auto-sizer'
@@ -72,10 +71,13 @@ class AppTableSized extends React.PureComponent {
 		const {tableConfig} = props;
 
 		//console.log(props.columns)
-		let columns = props.columns
-			.map((col, key) => ({key, ...col}))
-			.map((col, key) => ((tableConfig.columns[key] && tableConfig.columns[key].width)? {...col, width: tableConfig.columns[key].width}: col))
-			.toArray();
+		const columns = props.columns.map(
+			(col) => (
+				(tableConfig.columns[col.key] && tableConfig.columns[col.key].width)
+					? {...col, width: tableConfig.columns[col.key].width}
+					: col
+			)
+		);
 		this.state = {columns};
 
 		this.fixed = tableConfig.fixed;
@@ -324,7 +326,7 @@ function AppTable(props) {
 }
 
 AppTable.propTypes = {
-	columns: PropTypes.object.isRequired,
+	columns: PropTypes.array.isRequired,
 	dataSet: PropTypes.string.isRequired,
 	data: PropTypes.array.isRequired,
 	dataMap: PropTypes.array.isRequired,

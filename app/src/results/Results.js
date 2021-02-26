@@ -2,7 +2,6 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
-import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
 import BallotSelector from '../ballots/BallotSelector'
@@ -43,15 +42,15 @@ const NoWrapItem = styled.div`
 
 const renderItem = ({rowData, dataKey}) => <NoWrapItem>{rowData[dataKey]}</NoWrapItem>
 
-const tableColumns = Immutable.OrderedMap({
-	SAPIN: 			{label: 'SA PIN',		width: 75},
-	Name: 			{label: 'Name',			width: 200, cellRenderer: renderItem},
-	Affiliation: 	{label: 'Affiliation',	width: 200, cellRenderer: renderItem},
-	Email: 			{label: 'Email',		width: 250, cellRenderer: renderItem},
-	Vote: 			{label: 'Vote',			width: 210},
-	CommentCount: 	{label: 'Comments',		width: 110},
-	Notes: 			{label: 'Notes',		width: 250,	flexShrink: 1, flexGrow: 1}
-});
+const tableColumns = [
+	{key: 'SAPIN',			label: 'SA PIN',		width: 75},
+	{key: 'Name', 			label: 'Name',			width: 200, cellRenderer: renderItem},
+	{key: 'Affiliation',	label: 'Affiliation',	width: 200, cellRenderer: renderItem},
+	{key: 'Email', 			label: 'Email',			width: 250, cellRenderer: renderItem},
+	{key: 'Vote', 			label: 'Vote',			width: 210},
+	{key: 'CommentCount', 	label: 'Comments',		width: 110},
+	{key: 'Notes', 			label: 'Notes',			width: 250,	flexShrink: 1, flexGrow: 1}
+];
 
 function Results({
 	access,
@@ -72,18 +71,18 @@ function Results({
 	const [tableId, columns, primaryDataKey, maxWidth] = React.useMemo(() => {
 		let columns, primaryDataKey
 		if (ballot.Type === BallotType.SA_Initial || ballot.Type === BallotType.SA_Recirc) {
-			columns = tableColumns.delete('SAPIN')
+			columns = tableColumns.filter(col => col.key !== 'SAPIN')
 			primaryDataKey = 'Email'
 		}
 		else {
 			columns = tableColumns
 			primaryDataKey = 'SAPIN'
 			if (access <= AccessLevel.SubgroupAdmin) {
-				columns = columns.delete('SAPIN')
+				columns = columns.filter(col => col.key !== 'SAPIN')
 			}
 		}
 		if (access <= AccessLevel.SubgroupAdmin) {
-			columns = columns.delete('Email')
+			columns = columns.filter(col => col.key !== 'Email')
 		}
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40;
 		return [primaryDataKey, columns, primaryDataKey, maxWidth]
@@ -104,7 +103,7 @@ function Results({
 		else if (currentBallotId) {
 			history.replace(`/Results/${currentBallotId}`)
 		}
-	}, [ballotId, currentBallotId, ballot.BallotID, history, loading, resultsValid, setBallotId, getResults]);
+	}, [ballotId, currentBallotId, ballot.BallotID, history, resultsValid, setBallotId, getResults]);
 
 	const onBallotSelected = (ballotId) => history.push(`/Results/${ballotId}`); // Redirect to page with selected ballot
 

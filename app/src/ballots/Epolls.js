@@ -1,7 +1,6 @@
 import React from 'react'
 import {useHistory} from 'react-router-dom'
 import {connect} from 'react-redux'
-import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import AppTable from '../table/AppTable'
 import BallotDetailModal from './BallotDetail'
@@ -38,16 +37,16 @@ function Epolls(props) {
 	const numberEpolls = React.useRef(20);
 	const [epollNum, setEpollNum] = React.useState(null);
 
-	const columns = Immutable.OrderedMap({
-		EpollNum: 	{label: 'ePoll', 		width: 100},
-		BallotID: 	{label: 'ePoll Name',	width: 200},
-		Document: 	{label: 'Document',		width: 200},
-		Topic: 		{label: 'Topic',		width: 500},
-		Start: 		{label: 'Start',		width: 100, 	cellRenderer: renderDate},
-		End: 		{label: 'End',			width: 100,		cellRenderer: renderDate},
-		Votes: 		{label: 'Result',		width: 100},
-		Actions: 	{label: '',				width: 200,		cellRenderer: renderActions}
-	});
+	const columns = [
+		{key: 'EpollNum', 	label: 'ePoll', 		width: 100},
+		{key: 'BallotID', 	label: 'ePoll Name',	width: 200},
+		{key: 'Document', 	label: 'Document',		width: 200},
+		{key: 'Topic', 		label: 'Topic',			width: 500},
+		{key: 'Start', 		label: 'Start',			width: 100, 	cellRenderer: renderDate},
+		{key: 'End', 		label: 'End',			width: 100,		cellRenderer: renderDate},
+		{key: 'Votes',		label: 'Result',		width: 100},
+		{key: 'Actions', 	label: '',				width: 200,		cellRenderer: renderActions}
+	];
 
 	const primaryDataKey = 'EpollNum'
 

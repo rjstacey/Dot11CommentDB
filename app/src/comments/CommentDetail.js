@@ -560,7 +560,7 @@ function CommentPage({
 			onChange={onChange}
 			pattern={pattern}
 			placeholder={isMultiple(comment.Page)? MULTIPLE_STR: ''}
-			readOnly={readOnly}
+			disabled={readOnly}
 		/>
 	)
 }
@@ -579,7 +579,7 @@ function CommentClause({
 			value={isMultiple(comment.Clause)? '': comment.Clause || ''}
 			onChange={(e) => setComment({Clause: e.target.value})}
 			placeholder={isMultiple(comment.Clause)? MULTIPLE_STR: ''}
-			readOnly={readOnly}
+			disabled={readOnly}
 		/>
 	)
 }

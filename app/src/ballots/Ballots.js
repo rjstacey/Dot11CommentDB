@@ -2,7 +2,6 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {Link, useHistory, useParams} from "react-router-dom"
 import {connect} from 'react-redux'
-import Immutable from 'immutable'
 import styled from '@emotion/styled'
 import BallotDetailModal from './BallotDetail'
 import ConfirmModal from '../modals/ConfirmModal'
@@ -87,60 +86,64 @@ function renderDate({rowData, dataKey}) {
 	return displayDate(rowData[dataKey]);
 }
 
-const tableColumns = Immutable.OrderedMap({
-	__ctrl__:
-		{
-			width: 30, flexGrow: 1, flexShrink: 0,
-			headerRenderer: p => <ControlHeader {...p} />,
-			cellRenderer: p => <ControlCell {...p} />},
-	Project:
-		{label: 'Project',
-			width: 100,	flexShrink: 0, flexGrow: 0,
-			dropdownWidth: 200},
-	BallotID: 
-		{label: 'Ballot',
-			width: 100,	flexShrink: 0, flexGrow: 0,
-			dropdownWidth: 200},
-	Document:
-		{label: 'Document',
-			width: 150,	flexShrink: 1, flexGrow: 1,
-			dropdownWidth: 300},
-	Topic:
-		{label: 'Topic',
-			width: 300,	flexShrink: 1, flexGrow: 1},
-	EpollNum:
-		{label: 'ePoll',
-			width: 80,	flexGrow: 0, flexShrink: 0,
-			dropdownWidth: 200},
-	Start:
-		{label: 'Start',
-			width: 86, flexShrink: 0,
-			dataRenderer: displayDate,
-			cellRenderer: renderDate,
-			dropdownWidth: 300},
-	End:
-		{label: 'End',
-			width: 86, flexShrink: 0,
-			dataRenderer: displayDate,
-			cellRenderer: renderDate,
-			dropdownWidth: 300},
-	VotingPool:
-		{label: '',
-			width: 100, flexShrink: 1, flexGrow: 1,
-			headerRenderer: renderHeaderCellVotingPool,
-			cellRenderer: renderVotingPool},
-	Results:
-		{label: 'Result',
-			width: 150,	flexShrink: 1, flexGrow: 1,
-			cellRenderer: (props) => renderResultsSummary({readOnly: true, ...props})},
-	Comments:
-		{label: 'Comments',
-			width: 100,	flexShrink: 1, flexGrow: 1,
-			cellRenderer: renderCommentsSummary},
-});
+const tableColumns = [
+	{key: '__ctrl__',
+		width: 30, flexGrow: 1, flexShrink: 0,
+		headerRenderer: p => <ControlHeader {...p} />,
+		cellRenderer: p => <ControlCell {...p} />},
+	{key: 'Project',
+		label: 'Project',
+		width: 100,	flexShrink: 0, flexGrow: 0,
+		dropdownWidth: 200},
+	{key: 'BallotID',
+		label: 'Ballot',
+		width: 100,	flexShrink: 0, flexGrow: 0,
+		dropdownWidth: 200},
+	{key: 'Document',
+		label: 'Document',
+		width: 150,	flexShrink: 1, flexGrow: 1,
+		dropdownWidth: 300},
+	{key: 'Topic:',
+		label: 'Topic',
+		width: 300,	flexShrink: 1, flexGrow: 1},
+	{key: 'EpollNum',
+		label: 'ePoll',
+		width: 80,	flexGrow: 0, flexShrink: 0,
+		dropdownWidth: 200},
+	{key: 'Start',
+		label: 'Start',
+		width: 86, flexShrink: 0,
+		dataRenderer: displayDate,
+		cellRenderer: renderDate,
+		dropdownWidth: 300},
+	{key: 'End',
+		label: 'End',
+		width: 86, flexShrink: 0,
+		dataRenderer: displayDate,
+		cellRenderer: renderDate,
+		dropdownWidth: 300},
+	{key: 'VotingPool',
+		label: '',
+		width: 100, flexShrink: 1, flexGrow: 1,
+		headerRenderer: renderHeaderCellVotingPool,
+		cellRenderer: renderVotingPool},
+	{key: 'Results',
+		label: 'Result',
+		width: 150,	flexShrink: 1, flexGrow: 1,
+		cellRenderer: (props) => renderResultsSummary({readOnly: true, ...props})},
+	{key: 'Comments',
+		label: 'Comments',
+		width: 100,	flexShrink: 1, flexGrow: 1,
+		cellRenderer: renderCommentsSummary},
+];
+
+const actionsColumn = {
+	key: 'Actions',
+		label: 'Actions',
+		width: 100,	flexShrink: 1, flexGrow: 1
+};
 
 const primaryDataKey = 'BallotID';
-const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
 
 // The action row height is determined by its content
 const ActionRow = styled.div`
@@ -160,35 +163,45 @@ function Ballots(props) {
 	const history = useHistory();
 	const {ballotId} = useParams();
 
-	const columns = React.useMemo(() => {
-		if (access < AccessLevel.SubgroupAdmin)
-			return tableColumns;
+	const [columns, maxWidth] = React.useMemo(() => {
 
-		const resultsSummaryRenderer = (props) => renderResultsSummary({readOnly: false, ...props});
-		let columns = tableColumns
-			.set('Results', 
-				{...tableColumns.get('Results'), cellRenderer: resultsSummaryRenderer});
+		let columns = tableColumns;
 
-		if (access < AccessLevel.WGAdmin)
-			return columns;
-
-		const deleteBallot = async (ballot) => {
-			const ok = await ConfirmModal.show(`Are you sure you want to delete ${ballot.BallotID}?`)
-			if (ok)
-				await deleteBallots([ballot])
+		if (access >= AccessLevel.SubgroupAdmin) {
+			/* Subgroup admin can see results so add link */
+			const resultsSummaryRenderer = (props) => renderResultsSummary({readOnly: false, ...props});
+			columns = columns.map(col => {
+				return (col.key === 'Results')
+					? {...col,
+						cellRenderer: resultsSummaryRenderer}
+					: col
+			});
 		}
 
-		const actionCellRenderer = ({rowData}) => 
-			<RowActions
-				onEdit={() => history.push(`/Ballots/${rowData.BallotID}`)}
-				onDelete={() => deleteBallot(rowData)}
-			/>
+		if (access < AccessLevel.WGAdmin) {
+			/* Working froup admin can edit ballots so add actions column */
+			const deleteBallot = async (ballot) => {
+				const ok = await ConfirmModal.show(`Are you sure you want to delete ${ballot.BallotID}?`)
+				if (ok)
+					await deleteBallots([ballot])
+			}
 
-		return columns
-			.set('Actions',
-				{label: 'Actions',
-					width: 100,	flexShrink: 1, flexGrow: 1,
-					cellRenderer: actionCellRenderer});
+			const actionCellRenderer = ({rowData}) => 
+				<RowActions
+					onEdit={() => history.push(`/Ballots/${rowData.BallotID}`)}
+					onDelete={() => deleteBallot(rowData)}
+				/>
+
+			return columns.concat({
+				...actionsColumn,
+				cellRenderer: actionCellRenderer
+			})
+		}
+
+		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40;
+
+		return [columns, maxWidth];
+
 	}, [deleteBallots, history, access]);
 
 	React.useEffect(() => {
