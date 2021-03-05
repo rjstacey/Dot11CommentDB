@@ -221,8 +221,9 @@ const ScrollIcon = styled(Icon)`
 
 const EventsContainer = styled.div`
 	flex: 1;
-	overflow: hidden;
+	overflow: auto;
 	margin: 0 20px;
+	padding: 2px;
 	display: flex;
 	flex-direction: column;
 `;

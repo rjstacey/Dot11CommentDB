@@ -8,7 +8,7 @@ import ConfirmModal from '../modals/ConfirmModal'
 import {renderResultsSummary, renderCommentsSummary} from './Ballots'
 
 import {updateBallot, addBallot, loadBallots, setProject, getProjectList, getBallotList, BallotType} from '../store/ballots'
-import {getVotingPools} from '../store/votingPools'
+import {loadVotingPools} from '../store/votingPools'
 import {getData} from '../store/dataSelectors'
 import {importResults, uploadEpollResults, uploadMyProjectResults, deleteResults} from '../store/results'
 import {importComments, uploadComments, deleteComments, setStartCommentId} from '../store/comments'
@@ -339,8 +339,8 @@ function _BallotDetailForm(props) {
 		if (!ballotsValid)
 			loadBallots()
 		if (!votingPoolsValid)
-			getVotingPools()
-	}, [ballotsValid, votingPoolsValid, loadBallots, getVotingPools]);
+			loadVotingPools()
+	}, [ballotsValid, votingPoolsValid, loadBallots, loadVotingPools]);
 
 	/* On mount or if the underlying data changes,
 	 * reload the ballot from ballot data or epoll data as appropriate. */
@@ -520,8 +520,7 @@ const BallotDetailForm = connect(
 	},
 	(dispatch) => {
 		return {
-			getBallots: () => dispatch(getBallots()),
-			getVotingPools: () => dispatch(getVotingPools()),
+			loadVotingPools: () => dispatch(loadVotingPools()),
 			addBallot: (ballot) => dispatch(addBallot(ballot)),
 			setProject: (project) => dispatch(setProject(project)),
 			updateBallot: (ballotId, ballot) => dispatch(updateBallot(ballotId, ballot)),

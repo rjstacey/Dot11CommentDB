@@ -20,7 +20,7 @@ import ColumnDropdown from '../table/ColumnDropdown'
 import CommentsHistoryModal from './CommentHistory'
 import {CommentIdSelector, CommentIdFilter} from './CommentIdList'
 
-import {getComments} from '../store/comments'
+import {loadComments} from '../store/comments'
 import {setSelected} from '../store/selected'
 import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 import {setBallotId} from '../store/ballots'
@@ -405,7 +405,7 @@ function commentsRowGetter({rowIndex, data}) {
 }
 
 function Comments(props) {
-	const {setBallotId, valid, loading, commentBallotId, getComments, access} = props;
+	const {setBallotId, valid, loading, commentBallotId, loadComments, access} = props;
 	const history = useHistory()
 	const {ballotId} = useParams()
 	const [split, setSplit] = React.useState(0.5);
@@ -471,18 +471,18 @@ function Comments(props) {
 				/* Routed here with parameter ballotId specified, but not matching stored ballotId.
 				 * Store the ballotId and get comments for this ballotId */
 				setBallotId(ballotId)
-				getComments(ballotId)
+				loadComments(ballotId)
 			}
 			else if (!loading && (!valid || commentBallotId !== ballotId)) {
-				getComments(ballotId)
+				loadComments(ballotId)
 			}
 		}
 		else if (props.ballotId) {
 			history.replace(`/Comments/${props.ballotId}`)
 		}
-	}, [ballotId, props.ballotId, setBallotId, commentBallotId, valid, loading, getComments, history])
+	}, [ballotId, props.ballotId, setBallotId, commentBallotId, valid, loading, loadComments, history])
 
-	const refresh = () => props.getComments(ballotId);
+	const refresh = () => props.loadComments(ballotId);
 
 	const ballotSelected = (ballotId) => history.push(`/Comments/${ballotId}`);
 
@@ -595,7 +595,7 @@ export default connect(
 	},
 	(dispatch) => ({
 		setSelected: ids => dispatch(setSelected(dataSet, ids)),
-		getComments: ballotId => dispatch(getComments(ballotId)),
+		loadComments: ballotId => dispatch(loadComments(ballotId)),
 		setBallotId: ballotId => dispatch(setBallotId(ballotId)),
 		setTableView: view => dispatch(setTableView(dataSet, view)),
 		upsertTableColumns: (view, columns) => dispatch(upsertTableColumns(dataSet, view, columns)),

@@ -10,7 +10,7 @@ import VotersImportModal from './VotersImport'
 import VoterEditModal from './VoterEdit'
 import {ActionButton} from '../general/Icons'
 
-import {getVoters, deleteVoters} from '../store/voters'
+import {loadVoters, deleteVoters} from '../store/voters'
 import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 
 const dataSet = 'voters'
@@ -193,7 +193,7 @@ Voters.propTypes = {
 	loading: PropTypes.bool.isRequired,
 	voters:  PropTypes.array.isRequired,
 	votersMap: PropTypes.array.isRequired,
-	getVoters: PropTypes.func.isRequired,
+	loadVoters: PropTypes.func.isRequired,
 	deleteVoters: PropTypes.func.isRequired
 }
 
@@ -206,5 +206,5 @@ export default connect(
 		voters: getData(state, dataSet),
 		votersMap: getSortedFilteredIds(state, dataSet),
 	}),
-	{getVoters, deleteVoters}
+	{loadVoters, deleteVoters}
 )(Voters)

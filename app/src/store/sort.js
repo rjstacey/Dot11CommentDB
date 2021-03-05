@@ -66,11 +66,11 @@ export const sortFunc = {
 	[SortType.DATE]: cmpDate
 }
 
-export function sortData(sortState, data, ids) {
+export function sortData(state, data, ids) {
 	let sortedIds = ids;
 
-	sortState.by.forEach(key => {
-		const {direction, type} = sortState.sorts[key];
+	state.by.forEach(key => {
+		const {direction, type} = state.settings[key];
 		if (direction !== SortDirection.ASC && direction !== SortDirection.DESC)
 			return
 		const cmpFunc = sortFunc[type]
@@ -102,9 +102,9 @@ export function sortOptions(sort, options) {
 	return sortedOptions;
 }
 
-function clickSort(sort, dataKey, event) {
-	let by = sort.by
-	let direction = sort.direction
+/*function clickSort(state, dataKey, event) {
+	let by = state.by
+	let direction = state.settings[dataKey].direction
 
 	if (event.shiftKey) {
 		// Shift + click appends a column to existing criteria
@@ -145,7 +145,7 @@ function clickSort(sort, dataKey, event) {
 	}
 
 	return {...sort, by, direction};
-}
+}*/
 
 function setSort(state, dataKey, direction) {
 	let by = state.by;
@@ -157,51 +157,44 @@ function setSort(state, dataKey, direction) {
 		by = by.slice();
 		by.push(dataKey);
 	}
-	const sorts = {...state.sorts, [dataKey]: {...state.sorts[dataKey], direction}};
-	return {...state, by, sorts}
+	const settings = {...state.settings, [dataKey]: {...state.settings[dataKey], direction}};
+	return {...state, by, settings}
 }
 
-function initSort(entries) {
-	const sorts = {};
-	if (entries) {
-		Object.keys(entries).forEach(dataKey => {
-			sorts[dataKey] = {
-				type: entries[dataKey].type,
-				direction: entries[dataKey].direction
-			}
-		});
-	}
-	return {by: [], sorts};
+function initSorts(entries) {
+	const settings = {};
+	Object.keys(entries).forEach(dataKey => {
+		settings[dataKey] = {
+			type: entries[dataKey].type,
+			direction: entries[dataKey].direction
+		}
+	});
+	return {by: [], settings};
 }
 
-const sliceName = 'sort';
+const sliceName = 'sorts';
 
-const sortSlice = createSlice({
+const sortsSlice = createSlice({
 	name: sliceName,
-	initialState: {
-		by: [],
-		sorts: {}
-	},
+	initialState: initSorts({}),
 	reducers: {
 		set(state, action) {
 			const {dataKey, direction} = action;
 			return setSort(state, dataKey, direction)
 		},
-		click(state, action) {
-			const {dataKey, event} = action;
-			return clickSort(state, dataKey, event)
-		},
 		init(state, action) {
-			return initSort(action.entries)
+			return initSorts(action.entries)
 		}
 	}
 })
 
-export default sortSlice.reducer
+export default sortsSlice
 
 export const sortSet = (dataSet, dataKey, direction) => ({type: dataSet + '/' + sliceName + '/set', dataKey, direction})
-export const sortClick = (dataSet, dataKey, event) => ({type: dataSet + '/' + sliceName + '/click', dataSet, dataKey, event})
 export const sortInit = (entries) => ({type: sliceName + '/' + 'init', entries})
 
-export const isSortable = (sort, dataKey) => sort.hasOwnProperty(dataKey)
-
+/*
+ * Selectors
+ */
+export const getSorts = (state, dataSet) => state[dataSet][sliceName]
+export const getSort = (state, dataSet, dataKey) => state[dataSet][sliceName].settings[dataKey]

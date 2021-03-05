@@ -10,7 +10,8 @@ import ColumnDropdown from './ColumnDropdown'
 
 import {debounce, getScrollbarSize} from '../lib/utils'
 
-import {setSelected} from '../store/selected'
+import {getSelected, setSelected} from '../store/selected'
+import {getExpanded} from '../store/expanded'
 import {getTableConfig, upsertTableColumns} from '../store/ui'
 import {getSortedFilteredData} from '../store/dataSelectors'
 
@@ -348,8 +349,8 @@ export default connect(
 		const tableView = state[dataSet].ui.view;
 		const tableConfig = state[dataSet].ui.tablesConfig[tableView];
 		return {
-			selected: state[dataSet].selected,
-			expanded: state[dataSet].expanded,
+			selected: getSelected(state, dataSet),
+			expanded: getExpanded(state, dataSet),
 			loading: state[dataSet].loading,
 			data: ownProps.data? ownProps.data: getSortedFilteredData(state, dataSet),
 			tableView,

@@ -8,8 +8,8 @@ import {Expander, DoubleExpander, Handle} from '../general/Icons'
 import useClickOutside from '../lib/useClickOutside'
 import {Checkbox} from '../general/Form'
 
-import {setSelected, toggleSelected} from '../store/selected'
-import {setExpanded, toggleExpanded} from '../store/expanded'
+import {getSelected, setSelected, toggleSelected} from '../store/selected'
+import {getExpanded, setExpanded, toggleExpanded} from '../store/expanded'
 import {getSortedFilteredIds} from '../store/dataSelectors'
 
 
@@ -149,7 +149,6 @@ export const ControlHeader = connect(
 	(state, ownProps) => ({
 		selected: state[ownProps.dataSet].selected,
 		expanded: state[ownProps.dataSet].expanded,
-		//data: getSortedFilteredData(state, ownProps.dataSet),
 		shownIds: getSortedFilteredIds(state, ownProps.dataSet)
 	}),
 	(dispatch, ownProps) => ({
@@ -189,8 +188,8 @@ _ControlCell.propTypes = {
 
 export const ControlCell = connect(
 	(state, ownProps) => ({
-		selected: state[ownProps.dataSet].selected,
-		expanded: state[ownProps.dataSet].expanded
+		selected: getSelected(state, ownProps.dataSet),
+		expanded: getExpanded(state, ownProps.dataSet)
 	}),
 	(dispatch, ownProps) => ({
 		toggleSelected: id => dispatch(toggleSelected(ownProps.dataSet, [id])),

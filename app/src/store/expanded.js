@@ -20,8 +20,14 @@ const expandedSlice = createSlice({
 });
 
 /* Export reducer as default */
-export default expandedSlice.reducer;
+export default expandedSlice;
 
 /* Export actions */
-export const setExpanded = (dataSet, ids) => ({type: dataSet + '/' + sliceName + '/set', ids})
-export const toggleExpanded = (dataSet, ids) => ({type: dataSet + '/' + sliceName + '/toggle', ids})
+export const setExpanded = (dataSet, ids) => ({type: dataSet + '/' + expandedSlice.name + '/set', ids})
+export const toggleExpanded = (dataSet, ids) => ({type: dataSet + '/' + expandedSlice.name + '/toggle', ids})
+
+/*
+ * Selectors
+ */
+export const getExpanded = (state, dataSet) => state[dataSet][sliceName]
+ 

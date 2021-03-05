@@ -7,7 +7,7 @@ import BallotSelector from '../ballots/BallotSelector'
 import {ActionButton, Button} from '../general/Icons'
 
 import {setBallotId} from '../store/ballots'
-import {getComments} from '../store/comments'
+import {loadComments} from '../store/comments'
 import {getData} from '../store/dataSelectors'
 
 function countsByCategory(comments) {
@@ -119,7 +119,7 @@ function renderTable(data, ref) {
 }
 
 function Reports(props) {
-	const {comments, loading, valid, commentsBallotId, setBallotId, getComments} = props;
+	const {comments, loading, valid, commentsBallotId, setBallotId, loadComments} = props;
 	const history = useHistory();
 	const {ballotId} = useParams();
 	const [report, setReport] = React.useState('');
@@ -131,16 +131,16 @@ function Reports(props) {
 				// Routed here with parameter ballotId specified, but not matching stored ballotId
 				// Store the ballotId and get comments for this ballotId
 				setBallotId(ballotId)
-				getComments(ballotId)
+				loadComments(ballotId)
 			}
 			else if (!loading && (!valid || commentsBallotId !== ballotId)) {
-				getComments(ballotId)
+				loadComments(ballotId)
 			}
 		}
 		else if (props.ballotId) {
 			history.replace(`/Reports/${props.ballotId}`)
 		}
-	}, [ballotId, setBallotId, props.ballotId, commentsBallotId, loading, valid, getComments, history])
+	}, [ballotId, setBallotId, props.ballotId, commentsBallotId, loading, valid, loadComments, history])
 
 	const data = React.useMemo(() => {
 		if (report === 'commentsbyassignee')
@@ -256,7 +256,7 @@ Reports.propTypes = {
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
 	setBallotId: PropTypes.func.isRequired,
-	getComments: PropTypes.func.isRequired
+	loadComments: PropTypes.func.isRequired
 }
 
 const dataSet = 'comments'
@@ -268,5 +268,5 @@ export default connect(
 		loading: state[dataSet].loading,
 		comments: getData(state, 'comments')
 	}),
-	{setBallotId, getComments}
+	{setBallotId, loadComments}
 )(Reports);

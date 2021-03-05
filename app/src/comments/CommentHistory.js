@@ -4,8 +4,9 @@ import styled from '@emotion/styled'
 import HorizontalTimeline from '../general/HorizontalTimeline'
 import AppModal from '../modals/AppModal'
 import {Comment} from './CommentDetail'
-import {getCommentsHistory} from '../store/commentsHistory'
+import {loadCommentsHistory} from '../store/commentsHistory'
 import {getData} from '../store/dataSelectors'
+import {getSelected} from '../store/selected'
 
 const Container = styled.div`
 	width: 80vw;
@@ -28,16 +29,16 @@ const NotAvaialble = styled.div`
 	color: #bdbdbd;
 `;
 
-function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, valid, getCommentsHistory}) {
+function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, valid, loadCommentsHistory}) {
 
 	React.useEffect(() => {
 		if (isOpen && selected.length) {
 			const s = selected[0];
 			const c = comments.find(c => c.CID === s);
 			if (c)
-				getCommentsHistory(c);
+				loadCommentsHistory(c);
 		}
-	}, [isOpen, comments, getCommentsHistory, selected]);
+	}, [isOpen, comments, loadCommentsHistory, selected]);
 
 	const [index, setIndex] = React.useState(0);
 	const events = commentsHistory.map(c => ({timestamp: c.Timestamp, type: c.Action, threadId: c.resolution_id, threadLabel: c.resolution_id? c.Changes.ResolutionID: ''}));
@@ -80,13 +81,13 @@ function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, 
 
 const CommentHistory = connect(
 	(state) => ({
-		selected: state.comments.selected,
+		selected: getSelected(state, 'comments'),
 		comments: getData(state, 'comments'),
 		commentsHistory: state.commentsHistory.commentsHistory,
 		loading: state.commentsHistory.loading,
 		valid: state.commentsHistory.selected,
 	}),
-	{getCommentsHistory}
+	{loadCommentsHistory}
 )(_CommentHistory);
 
 function CommentHistoryModal({

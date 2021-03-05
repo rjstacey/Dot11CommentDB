@@ -20,8 +20,13 @@ const selectedSlice = createSlice({
 })
 
 /* Export reducer as default */
-export default selectedSlice.reducer;
+export default selectedSlice;
 
 /* Export actions */
-export const setSelected = (dataSet, ids) => ({type: dataSet + '/' + sliceName + '/set', ids})
-export const toggleSelected = (dataSet, ids) => ({type: dataSet + '/' + sliceName + '/toggle', ids})
+export const setSelected = (dataSet, ids) => ({type: dataSet + '/' + selectedSlice.name + '/set', ids})
+export const toggleSelected = (dataSet, ids) => ({type: dataSet + '/' + selectedSlice.name + '/toggle', ids})
+
+/*
+ * Selectors
+ */
+export const getSelected = (state, dataSet) => state[dataSet][sliceName]

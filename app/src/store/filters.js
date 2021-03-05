@@ -140,7 +140,7 @@ const filtersSlice = createSlice({
 	}
 })
 
-export default filtersSlice.reducer;
+export default filtersSlice;
 
 export const setFilter = (dataSet, dataKey, values) => ({type: dataSet + '/' + sliceName + '/' + 'setAll', dataSet, dataKey, values})
 export const addFilter = (dataSet, dataKey, value, filterType) => ({type: dataSet + '/' + sliceName + '/' + 'addOne', dataSet, dataKey, value, filterType})
@@ -148,3 +148,10 @@ export const removeFilter = (dataSet, dataKey, value, filterType) => ({type: dat
 export const clearFilter = (dataSet, dataKey) => ({type: dataSet + '/' + sliceName + '/' + 'clear', dataSet, dataKey})
 export const clearAllFilters = (dataSet) => ({type: dataSet + '/' + sliceName + '/' + 'clearAll', dataSet})
 export const filtersInit = (entries) => ({type: sliceName + '/' + 'init', entries})
+
+/*
+ * Selectors
+ */
+ export const getFilters = (state, dataSet) => state[dataSet][sliceName]
+ export const getFilter = (state, dataSet, dataKey) => state[dataSet][sliceName][dataKey]
+ 

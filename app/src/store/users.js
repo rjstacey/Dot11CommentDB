@@ -3,10 +3,10 @@ import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 import {setError} from './error'
 import fetcher from './fetcher'
 
-import sortReducer, {sortInit, SortDirection, SortType} from './sort'
-import filtersReducer, {filtersInit, FilterType} from './filters'
-import selectedReducer, {setSelected} from './selected'
-import uiReducer from './ui'
+import sortsSlice, {sortInit, SortDirection, SortType} from './sort'
+import filtersSlice, {filtersInit, FilterType} from './filters'
+import selectedSlice, {setSelected} from './selected'
+import uiSlice from './ui'
 
 import {AccessLevel, AccessLevelOptions} from './login'	// re-export access level constants
 
@@ -23,7 +23,6 @@ const defaultFiltersEntries = userFields.reduce((entries, dataKey) => {
 		options = AccessLevelOptions;
 	return {...entries, [dataKey]: {options}}
 }, {});
-
 
 /*
  * Generate object that describes the initial sort state
@@ -54,14 +53,13 @@ const usersSlice = createSlice({
 	initialState: dataAdapter.getInitialState({
 		valid: false,
 		loading: false,
-		users: [],
-		sort: sortReducer(undefined, sortInit(defaultSortEntries)),
-		filters: filtersReducer(undefined, filtersInit(defaultFiltersEntries)),
-		selected: selectedReducer(undefined, {}),
-		ui: uiReducer(undefined, {})		
+		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
+		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
+		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
+		[uiSlice.name]: uiSlice.reducer(undefined, {})	
 	}),
 	reducers: {
-		get(state, action) {
+		getPending(state, action) {
 			state.loading = true;
 		},
   		getSuccess(state, action) {
@@ -102,10 +100,10 @@ const usersSlice = createSlice({
 			(action) => action.type.startsWith(dataSet + '/'),
 			(state, action) => {
 				const sliceAction = {...action, type: action.type.replace(dataSet + '/', '')}
-				state.sort = sortReducer(state.sort, sliceAction);
-				state.filters = filtersReducer(state.filters, sliceAction);
-				state.selected = selectedReducer(state.selected, sliceAction);
-				state.ui = uiReducer(state.ui, sliceAction);
+				state[sortsSlice.name] = sortsSlice.reducer(state[sortsSlice.name], sliceAction);
+				state[filtersSlice.name] = filtersSlice.reducer(state[filtersSlice.name], sliceAction);
+				state[selectedSlice.name] = selectedSlice.reducer(state[selectedSlice.name], sliceAction);
+				state[uiSlice.name] = uiSlice.reducer(state[uiSlice.name], sliceAction);
 			}
 		)
 	}
@@ -128,11 +126,11 @@ function updateIdList(users, selected) {
 	return selected.filter(id => !users.find(u => u.SAPIN === id))
 }
 
-const {get, getSuccess, getFailure} = usersSlice.actions;
+const {getPending, getSuccess, getFailure} = usersSlice.actions;
 
-export function getUsers() {
+export function loadUsers() {
 	return async (dispatch, getState) => {
-		dispatch(get())
+		dispatch(getPending())
 		let users;
 		try {
 			users = await fetcher.get('/api/users')

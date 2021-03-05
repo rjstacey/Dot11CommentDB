@@ -1,13 +1,15 @@
 import {createSlice} from '@reduxjs/toolkit'
 
-const sliceName = 'tablesConfig';
+const sliceName = 'ui';
+
+const initialTableConfig = {fixed: false, columns: {}}
 
 const tablesConfigSlice = createSlice({
 	name: sliceName,
 	initialState: {
   		view: 'default',
   		tablesConfig: {
-  			default: {fixed: false, columns: {}}
+  			default: initialTableConfig
   		}
   	},
   	reducers: {
@@ -15,7 +17,7 @@ const tablesConfigSlice = createSlice({
   			const {view} = action.payload;
 			state.view = view;
 			if (!state.tablesConfig[view])
-				state.tablesConfig[view] = {fixed: false, columns: {}};
+				state.tablesConfig[view] = initialTableConfig;
   		},
 		initTableConfig(state, action) {
 			const {view, fixed, columns} = action.payload;
@@ -35,7 +37,7 @@ const tablesConfigSlice = createSlice({
 		upsertTableColumn(state, action) {
 			const {view, column} = action.payload;
 			if (!state.tablesConfig[view])
-				state.tablesConfig[view] = {fixed: false, columns: {}}; 
+				state.tablesConfig[view] = initialTableConfig; 
 			const tableConfig = state.tablesConfig[view]
 			const key = column.key;
 			if (!tableConfig.columns[key])
@@ -49,20 +51,18 @@ const tablesConfigSlice = createSlice({
 		setTableColumnVisible(state, action) {
 			const {view, key, visible} = action.payload;
 			if (!state.tablesConfig[view])
-				state.tablesConfig[view] = {fixed: false, columns: {}};
+				state.tablesConfig[view] = initialTableConfig;
 			const col = state.tablesConfig[view].columns[key];
 			state.tablesConfig[view].columns[key] = {...col, visible}
 		},
 		setProperty(state, action) {
 			const {property, value} = action.payload;
-			if (!state.hasOwnProperty(property))
-				console.warn('No property ' + property)
 			state[property] = value;
 		}
   	}
 });
 
-export default tablesConfigSlice.reducer;
+export default tablesConfigSlice;
 
 export const setTableView = (dataSet, view) => ({type: dataSet + '/' + sliceName + '/setTableView', payload: {view}});
 export const upsertTableColumns = (dataSet, view, columns) => ({type: dataSet + '/' + sliceName + '/upsertTableColumns', payload: {view, columns}});

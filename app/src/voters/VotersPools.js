@@ -9,7 +9,7 @@ import ConfirmModal from '../modals/ConfirmModal'
 import {ActionButton} from '../general/Icons'
 import VotersPoolAddModal from './VotersPoolAdd'
 
-import {getVotingPools, deleteVotingPools} from '../store/votingPools'
+import {loadVotingPools, deleteVotingPools} from '../store/votingPools'
 import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 
 const dataSet = 'votingPools'
@@ -58,14 +58,14 @@ const TableRow = styled.div`
 `;
 
 function VotersPools(props) {
-	const {valid, getVotingPools, deleteVotingPools} = props;
+	const {valid, loading, loadVotingPools, deleteVotingPools} = props;
 	const history = useHistory();
 	const [showVotersPoolAdd, setShowVotersPoolAdd] = React.useState(false);
 
 	React.useEffect(() => {
-		if (!valid)
-			getVotingPools()
-	}, [valid, getVotingPools]);
+		if (!valid && !loading)
+			loadVotingPools();
+	}, [valid, loading, loadVotingPools]);
 
 	const columns = React.useMemo(() => {
 		const deleteVotingPool = async (vp) => {
@@ -126,7 +126,7 @@ VotersPools.propTypes = {
 	loading: PropTypes.bool.isRequired,
 	votingPools:  PropTypes.array.isRequired,
 	votingPoolsMap: PropTypes.array.isRequired,
-	getVotingPools: PropTypes.func.isRequired,
+	loadVotingPools: PropTypes.func.isRequired,
 	deleteVotingPools: PropTypes.func.isRequired,
 }
 
@@ -138,5 +138,5 @@ export default connect(
 		votingPools: getData(state, dataSet),
 		votingPoolsMap: getSortedFilteredIds(state, dataSet),
 	}),
-	{getVotingPools, deleteVotingPools}
+	{loadVotingPools, deleteVotingPools}
 )(VotersPools)

@@ -4,7 +4,7 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {Select} from '../general/Form'
 
-import {getUsers} from '../store/users'
+import {loadUsers} from '../store/users'
 import {getData} from '../store/dataSelectors'
 import {strComp} from '../lib/utils'
 
@@ -84,16 +84,16 @@ function AssigneeSelector({
 	comments,
 	valid,
 	loading,
-	getUsers,
+	loadUsers,
 	width,
 	readOnly,
 	...otherProps
 }) {
 
 	React.useEffect(() => {
-		if (!valid && !readOnly)
-			getUsers()
-	}, [valid, getUsers, readOnly])
+		if (!valid && !loading && !readOnly)
+			loadUsers()
+	}, [valid, loadUsers, readOnly])
 
 	const options = React.useMemo(() => {
 		// Produce a unique set of SAPIN/Name mappings. If there is no SAPIN then the name is the key.
@@ -154,7 +154,7 @@ AssigneeSelector.propTypes = {
 	loading: PropTypes.bool.isRequired,
 	users: PropTypes.array.isRequired,
 	comments: PropTypes.array.isRequired,
-	getUsers: PropTypes.func.isRequired
+	loadUsers: PropTypes.func.isRequired
 }
 
 export default connect(
@@ -166,5 +166,5 @@ export default connect(
 			comments: getData(state, 'comments')
 		}
 	},
-	{getUsers}
+	{loadUsers}
 )(AssigneeSelector)

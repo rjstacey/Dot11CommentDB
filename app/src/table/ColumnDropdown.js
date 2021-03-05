@@ -10,8 +10,9 @@ import useClickOutside from '../lib/useClickOutside'
 import {Checkbox, Input} from '../general/Form'
 
 import {getAllFieldOptions, getAvailableFieldOptions} from '../store/dataSelectors'
-import {sortSet, sortOptions, SortDirection, SortType} from '../store/sort'
-import {setFilter, addFilter, removeFilter, FilterType} from '../store/filters'
+import {getSort, sortSet, sortOptions, SortDirection, SortType} from '../store/sort'
+import {getFilter, setFilter, addFilter, removeFilter, FilterType} from '../store/filters'
+import {getSelected} from '../store/selected'
 
 const StyledInput = styled(Input)`
 	margin: 5px 10px;
@@ -431,9 +432,9 @@ const ColumnDropdown = connect(
 	(state, ownProps) => {
 		const {dataSet, dataKey} = ownProps
 		return {
-			filter: state[dataSet].filters[dataKey],
-			sort: state[dataSet].sort.sorts[dataKey],
-			selected: state[dataSet].selected,
+			filter: getFilter(state, dataSet, dataKey),
+			sort: getSort(state, dataSet, dataKey),
+			selected: getSelected(state, dataSet),
 			allOptions: getAllFieldOptions(state, dataSet, dataKey),
 			availableOptions: getAvailableFieldOptions(state, dataSet, dataKey)
 		}

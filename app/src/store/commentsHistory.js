@@ -64,7 +64,7 @@ const commentsHistorySlice = createSlice({
 
 const {getPending, getSuccess, getFailure} = commentsHistorySlice.actions;
 
-export function getCommentsHistory(comment) {
+export function loadCommentsHistory(comment) {
 	return async (dispatch, getState) => {
 		dispatch(getPending());
 		let response;

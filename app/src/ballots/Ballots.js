@@ -15,7 +15,7 @@ import {loadBallots, deleteBallots, BallotType} from '../store/ballots'
 import {setSelected} from '../store/selected'
 import {sortSet} from '../store/sort'
 import {getData, getSortedFilteredIds} from '../store/dataSelectors'
-import {getVotingPools} from '../store/votingPools'
+import {loadVotingPools} from '../store/votingPools'
 import {AccessLevel} from '../store/login'
 
 const dataSet = 'ballots'
@@ -162,7 +162,7 @@ const TableRow = styled.div`
 `;
 
 function Ballots(props) {
-	const {ballotsValid, loading, loadBallots, deleteBallots, votingPoolsValid, getVotingPools, access} = props;
+	const {ballotsValid, loading, loadBallots, deleteBallots, votingPoolsValid, loadVotingPools, access} = props;
 	const history = useHistory();
 	const {ballotId} = useParams();
 
@@ -211,8 +211,8 @@ function Ballots(props) {
 		if (!ballotsValid && !loading)
 			loadBallots()
 		if (!votingPoolsValid)
-			getVotingPools()
-	}, [ballotsValid, loading, loadBallots, votingPoolsValid, getVotingPools]);
+			loadVotingPools()
+	}, [ballotsValid, loading, loadBallots, votingPoolsValid, loadVotingPools]);
 
 	const addBallot = event => history.push('/Ballots/+')
 	const closeBallot = () => history.push('/Ballots')
@@ -232,7 +232,7 @@ function Ballots(props) {
 			<TableRow style={{maxWidth}}>
 				<AppTable
 					columns={columns}
-					dataSet={'ballots'}
+					dataSet={dataSet}
 					rowKey={primaryDataKey}
 					headerHeight={40}
 					rowHeight={40}
@@ -251,11 +251,8 @@ function Ballots(props) {
 }
 
 Ballots.propTypes = {
-	filters: PropTypes.object.isRequired,
-	sort: PropTypes.object.isRequired,
 	ballotsValid: PropTypes.bool.isRequired,
 	ballots: PropTypes.array.isRequired,
-	ballotsMap: PropTypes.array.isRequired,
 	selected: PropTypes.array.isRequired,
 	loading: PropTypes.bool.isRequired,
 	votingPoolsValid: PropTypes.bool.isRequired,
@@ -266,12 +263,9 @@ export default connect(
 	(state) => {
 		const {ballots, votingPools} = state
 		return {
-			filters: ballots.filters,
-			sort: ballots.sort,
 			ballotsValid: ballots.valid,
 			loading: ballots.loading,
 			ballots: getData(state, dataSet),
-			ballotsMap: getSortedFilteredIds(state, dataSet),
 			selected: ballots.selected,
 			votingPoolsValid: votingPools.valid,
 			votingPools: getData(state, 'votingPools'),
@@ -281,7 +275,7 @@ export default connect(
 		return {
 			loadBallots: () => dispatch(loadBallots()),
 			deleteBallots: (ids) => dispatch(deleteBallots(ids)),
-			getVotingPools: () => dispatch(getVotingPools()),
+			loadVotingPools: () => dispatch(loadVotingPools()),
 			setSelected: (ballotIds) => dispatch(setSelected(dataSet, ballotIds)),
 			setSort: (dataKey, direction) => dispatch(sortSet(dataSet, dataKey, direction)),
 		}

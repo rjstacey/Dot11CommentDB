@@ -4,7 +4,7 @@ import {filterData} from './filters'
 
 export const getEntities = (state, dataSet) => state[dataSet].entities
 export const getIds = (state, dataSet) => state[dataSet].ids
-export const getSort = (state, dataSet) => state[dataSet].sort
+export const getSorts = (state, dataSet) => state[dataSet].sorts
 export const getFilters = (state, dataSet) => state[dataSet].filters
 
 /*
@@ -26,7 +26,7 @@ export const getData = createCachedSelector(
 export const getSortedFilteredIds = createCachedSelector(
 	getEntities,
 	getIds,
-	getSort,
+	getSorts,
 	getFilters,
 	(entities, ids, sort, filters) => sortData(sort, entities, filterData(filters, entities, ids))
 )(

@@ -10,7 +10,7 @@ import UsersImport from './UsersImport'
 import UserAddEditModal, {EditUserAction} from './UserAddEdit'
 
 import {getSortedFilteredIds, getData} from '../store/dataSelectors'
-import {getUsers, deleteUsers, AccessLevel, AccessLevelOptions} from '../store/users'
+import {loadUsers, deleteUsers, AccessLevel, AccessLevelOptions} from '../store/users'
 
 const dataSet = 'users'
 
@@ -77,9 +77,8 @@ function Users({
 	selected,
 	valid,
 	loading,
-	users,
-	usersMap,
-	getUsers,
+	showIds,
+	loadUsers,
 	deleteUsers
 }) {
 	const [editUser, setEditUser] = React.useState({action: EditUserAction.CLOSED, user: DefaultUser});
@@ -109,17 +108,15 @@ function Users({
 	}, [deleteUsers]);
 
 	React.useEffect(() => {
-		if (!valid)
-			getUsers()
-	}, [valid, getUsers]);
+		if (!valid && !loading)
+			loadUsers()
+	}, []);
 
 	const handleRemoveSelected = async () => {
 		const ids = [];
-		for (var i = 0; i < usersMap.length; i++) { // only select checked items that are visible
-			let id = users[usersMap[i]][primaryDataKey]
-			if (selected.includes(id)) {
+		for (let id of shownIds) { // only select checked items that are visible
+			if (selected.includes(id))
 				ids.push(id)
-			}
 		}
 		if (ids.length) {
 			const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?')
@@ -139,7 +136,7 @@ function Users({
 					<ActionButton name='add' title='Add User' onClick={openAddUser} />
 					<ActionButton name='delete' title='Remove Selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
 					<UsersImport />
-					<ActionButton name='refresh' title='Refresh' onClick={getUsers} />
+					<ActionButton name='refresh' title='Refresh' onClick={loadUsers} />
 				</div>
 			</TopRow>
 
@@ -147,7 +144,6 @@ function Users({
 				<AppTable
 					fixed
 					columns={columns}
-					controlColumn
 					headerHeight={36}
 					estimatedRowHeight={36}
 					dataSet='users'
@@ -169,9 +165,8 @@ Users.propTypes = {
 	selected: PropTypes.array.isRequired,
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
-	users:  PropTypes.array.isRequired,
-	usersMap: PropTypes.array.isRequired,
-	getUsers: PropTypes.func.isRequired,
+	shownIds: PropTypes.array.isRequired,
+	loadUsers: PropTypes.func.isRequired,
 	deleteUsers: PropTypes.func.isRequired
 }
 
@@ -180,8 +175,7 @@ export default connect(
 			selected: state[dataSet].selected,
 			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
-			users: getData(state, dataSet),
-			usersMap: getSortedFilteredIds(state, dataSet),
+			shownIds: getSortedFilteredIds(state, dataSet),
 		}),
-	{getUsers, deleteUsers}
+	{loadUsers, deleteUsers}
 )(Users)
