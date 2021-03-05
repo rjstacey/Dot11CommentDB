@@ -1,4 +1,4 @@
-import {createSlice} from '@reduxjs/toolkit'
+import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
 import {setError} from './error'
 import fetcher from './fetcher'
@@ -42,11 +42,16 @@ const defaultSortEntries = userFields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {type, direction}}
 }, {});
 
+
+const dataAdapter = createEntityAdapter({
+	selectId: (user) => user.SAPIN
+})
+
 const dataSet = 'users'
 
 const usersSlice = createSlice({
 	name: dataSet,
-	initialState: {
+	initialState: dataAdapter.getInitialState({
 		valid: false,
 		loading: false,
 		users: [],
@@ -54,7 +59,7 @@ const usersSlice = createSlice({
 		filters: filtersReducer(undefined, filtersInit(defaultFiltersEntries)),
 		selected: selectedReducer(undefined, {}),
 		ui: uiReducer(undefined, {})		
-	},
+	}),
 	reducers: {
 		get(state, action) {
 			state.loading = true;
@@ -62,31 +67,30 @@ const usersSlice = createSlice({
   		getSuccess(state, action) {
 			state.loading = false;
 			state.valid = true;
-			state.users = action.payload;
+			dataAdapter.setAll(state, action.payload);
 		},
 		getFailure(state, action) {
 			state.loading = false;
 		},
 		updateOne(state, action) {
 			const {SAPIN, user} = action.payload;
-			state.users = state.users.map(u =>
-				(u.SAPIN === SAPIN)? Object.assign({}, u, user): u
-			);
+			dataAdapter.updateOne(state, user);
 		},
 		addOne(state, action) {
-			state.users.push(action.payload);
+			const user = action.payload;
+			dataAdapter.addOne(state, user);
 		},
 		deleteMany(state, action) {
 			const userIds = action.payload;
-			state.users = state.users.filter(u => !userIds.includes(u.SAPIN));
+			dataAdapter.removeMany(state, userIds);
 		},
 		upload(state, action) {
 			state.loading = true;
 		},
 		uploadSuccess(state, action) {
-			state.users = action.payload;
 			state.valid = true;
 			state.loading = false;
+			dataAdapter.setAll(state, action.payload);
 		},
 		uploadFailure(state, action) {
 			state.loading = false;

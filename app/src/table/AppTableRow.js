@@ -48,7 +48,6 @@ class TableRow extends React.Component {
 			rowIndex,
 			rowData,
 			rowKey,
-			dataSet,
 			isExpanded,
 			estimatedRowHeight,
 			onRowHeightChange,
@@ -57,8 +56,8 @@ class TableRow extends React.Component {
 		} = this.props;
 		/* eslint-enable no-unused-vars */
 
-		const cells = columns.map((column, key) => {
-			const {headerRenderer, cellRenderer, width, flexGrow, flexShrink, ...colProps} = column;
+		const cells = columns.map(column => {
+			const {headerRenderer, cellRenderer, width, flexGrow, flexShrink, key: dataKey, ...colProps} = column;
 			const style = {
 				flexBasis: width,
 				flexGrow: fixed? 0: flexGrow,
@@ -66,22 +65,21 @@ class TableRow extends React.Component {
 				overflow: 'hidden'	// necessary to ensure that the content does not affect size
 			}
 			const renderer = cellRenderer || defaultCellRenderer;
-			const props = {rowIndex, rowData, dataSet, rowKey, dataKey: column.key, ...colProps}
+			const props = {rowIndex, rowData, rowKey, dataKey, ...colProps}
 			return (
 				<div
-					key={column.key}
+					key={dataKey}
 					className='AppTable__dataCell'
 					style={style}
 				>
 					{renderer(props)}
 				</div>
 			)
-		})//.toArray()
+		})
 
 		let rowStyle = {...style}
-		if (!this.state.measured && isExpanded) {
+		if (!this.state.measured && isExpanded)
 			delete rowStyle.height
-		}
 
 		const onClick = onRowClick? event => onRowClick({event, rowIndex, rowData}): undefined
 

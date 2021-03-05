@@ -6,9 +6,9 @@ import AppTable from '../table/AppTable'
 import BallotDetailModal from './BallotDetail'
 import {ActionButton} from '../general/Icons'
 
-import {getBallots} from '../store/ballots'
-import {getEpolls, getSyncedEpolls} from '../store/epolls'
-import {getDataMap} from '../store/dataMap'
+import {loadBallots} from '../store/ballots'
+import {loadEpolls} from '../store/epolls'
+import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 
 function renderDate({rowData, dataKey}) {
 	// rowData[key] is an ISO time string. We convert this to eastern time
@@ -32,7 +32,7 @@ const TableRow = styled.div`
 `;
 
 function Epolls(props) {
-	const {ballotsValid, getBallots, epollsValid, getEpolls} = props;
+	const {ballotsValid, loadBallots, epollsValid, loadEpolls} = props;
 	const history = useHistory();
 	const numberEpolls = React.useRef(20);
 	const [epollNum, setEpollNum] = React.useState(null);
@@ -54,10 +54,10 @@ function Epolls(props) {
 
 	React.useEffect(() => {
 		if (!ballotsValid)
-			getBallots();
+			loadBallots();
 		if (!epollsValid)
-			getEpolls(numberEpolls.current);
-	}, [ballotsValid, getBallots, epollsValid, getEpolls])
+			loadEpolls(numberEpolls.current);
+	}, [ballotsValid, loadBallots, epollsValid, loadEpolls])
 
 	//React.useEffect(() => {console.log('epolls changed')}, [props.epolls]);
 
@@ -95,7 +95,6 @@ function Epolls(props) {
 					estimatedRowHeight={64}
 					dataSet='epolls'
 					data={props.epolls}
-					dataMap={props.epollsMap}
 					loading={props.loading}
 					rowKey={primaryDataKey}
 				/>
@@ -113,17 +112,15 @@ function Epolls(props) {
 const dataSet = 'epolls'
 export default connect(
 	(state) => {
-		const s = state[dataSet]
 		return {
 			ballotsValid: state.ballots.valid,
-			epollsValid: s.valid,
-			loading: s.loading,
-			epolls: getSyncedEpolls(state),
-			epollsMap: getDataMap(state, dataSet),
+			epollsValid: state[dataSet].valid,
+			loading: state[dataSet].loading,
+			epolls: getData(state, dataSet)
 		}
 	},
 	(dispatch) => ({
-		getEpolls: (n) => dispatch(getEpolls(n)),
-		getBallots: () => dispatch(getBallots())
+		loadEpolls: (n) => dispatch(loadEpolls(n)),
+		loadBallots: () => dispatch(loadBallots())
 	})
 )(Epolls)

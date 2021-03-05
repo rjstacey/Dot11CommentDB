@@ -1,4 +1,4 @@
-import {createSlice} from '@reduxjs/toolkit'
+import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
 import {setError} from './error'
 import fetcher from './fetcher'
@@ -8,6 +8,7 @@ import filtersReducer, {filtersInit, FilterType} from './filters'
 import selectedReducer, {setSelected} from './selected'
 import expandedReducer, {setExpanded} from './expanded'
 import uiReducer from './ui'
+import {getData} from './dataSelectors'
 
 import {updateBallotSuccess} from './ballots'
 
@@ -95,21 +96,25 @@ const updateCommentsStatus = (comments) => (
 	})
 )
 
+const dataAdapter = createEntityAdapter({
+	selectId: (c) => c.CID,
+	sortComparer: (c1, c2) => c1.CommentID === c2.CommentID? c1.ResolutionID - c2.ResolutionID: c1.CommentID - c2.CommentID 
+})
+
 const dataSet = 'comments';
 
 const commentsSlice = createSlice({
 	name: dataSet,
-	initialState: {
+	initialState: dataAdapter.getInitialState({
 		ballotId: '',
 		valid: false,
 		loading: false,
-		comments: [],
 		sort: sortReducer(undefined, sortInit(defaultSortEntries)),
 		filters: filtersReducer(undefined, filtersInit(defaultFiltersEntries)),
 		selected: selectedReducer(undefined, {}),
 		expanded: expandedReducer(undefined, {}),
 		ui: uiReducer(undefined, {})
-	},
+	}),
 	reducers: {
 		getPending(state, action) {
 			const {ballotId} = action.payload;
@@ -120,24 +125,20 @@ const commentsSlice = createSlice({
   			const {comments} = action.payload;
 			state.loading = false;
 			state.valid = true;
-			state.comments = updateCommentsStatus(comments)
+			dataAdapter.setAll(state, updateCommentsStatus(comments));
 		},
 		getFailure(state, action) {
 			state.loading = false;
 		},
 		updateMany(state, action) {
 			const {comments} = action.payload;
-			let newComments = state.comments.map(c1 => {
-				const c2 = comments.find(c2 => c2.id === c1.id)
-				return c2? {...c1, ...c2}: c1
-			});
-			newComments = updateCommentsStatus(newComments);
-			state.comments = newComments;
+			const updates = comments.map(c => ({id: c.CID, changes: c}));
+			dataAdapter.updateMany(state, updates);
 		},
 		deleteAll(state, action) {
 			const {ballotId} = actions.payload;
 			if (state.ballotId === ballotId) {
-				state.comments = [];
+				dataAdapter.setAll(state, []);
 				state.valid = false;
 			}
 		},
@@ -150,19 +151,20 @@ const commentsSlice = createSlice({
 		afterAddOrDeleteResolutions(state, action) {
 			// Concat new comments
 			const {comments} = action.payload;
-			let newComments = doCommentsUpdate(state.comments, comments);
-			newComments = updateCommentsStatus(newComments);
-			state.comments = newComments;
+			let newComments = [];
+			for (const id of state.ids) {
+				const c1 = state.entities[id];
+				if (!comments.find(c2 => c2.comment_id === c1.comment_id))
+					newComments.push(c1);
+			}
+			newComments = newComments.concat(comments);
+			dataAdapter.setAll(state, newComments);
 			state.updateComment = false;
 		},
 		afterUpdateResolutions(state, action) {
 			const {comments} = action.payload;
-			let newComments = state.comments.map(c1 => {
-				const c2 = comments.find(c2 => c1.resolution_id === c2.resolution_id)
-				return c2? {...c1, ...c2}: c1;
-			})
-			newComments = updateCommentsStatus(newComments);
-			state.comments = newComments;
+			const updates = updateCommentsStatus(comments).map(c => ({id: c.CID, changes: c}));
+			dataAdapter.updateMany(state, updates);
 			state.updateComment = false;
 		}
 	},
@@ -298,11 +300,11 @@ export function importComments(ballotId, epollNum, startCID) {
 				dispatch(setError(`Unable to import comments for ${ballotId}`, error))
 			])
 		}
-		const {comments, summary} = response;
+		const {comments, ballot} = response;
 		return Promise.all([
 			dispatch(getSuccess({ballotId, comments})),
 			// Update the comments summary for the ballot
-			dispatch(updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary}))
+			dispatch(updateBallotSuccess(ballot.id, ballot))
 		])
 	}
 }
@@ -321,11 +323,11 @@ export function uploadComments(ballotId, type, file) {
 				dispatch(setError(`Unable to upload comments for ${ballotId}`, error))
 			])
 		}
-		const {comments, summary} = response;
+		const {comments, ballot} = response;
 		return Promise.all([
 			dispatch(getSuccess({ballotId, comments})),
 			// Update the comments summary for the ballot
-			dispatch(updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary}))
+			dispatch(updateBallotSuccess(ballot.id, ballot))
 		])
 	}
 }
@@ -402,14 +404,15 @@ export function updateResolutions(resolutions) {
 		}
 		await dispatch(afterUpdateResolutions(response));
 
-		const promises = []
-		const {comments, selected, expanded} = getState()[dataSet]
-		const newSelected = updateIdList(comments, selected)
+		const promises = [];
+		const {selected, expanded} = getState()[dataSet];
+		const comments = getData(getState(), dataSet);
+		const newSelected = updateIdList(comments, selected);
 		if (newSelected !== selected)
-			promises.push(dispatch(setSelected(dataSet, newSelected)))
-		const newExpanded = updateIdList(comments, expanded)
+			promises.push(dispatch(setSelected(dataSet, newSelected)));
+		const newExpanded = updateIdList(comments, expanded);
 		if (newExpanded !== expanded)
-			promises.push(dispatch(setExpanded(dataSet, newExpanded)))
+			promises.push(dispatch(setExpanded(dataSet, newExpanded)));
 		return Promise.all(promises)
 	}
 }
@@ -432,8 +435,9 @@ export function deleteResolutions(resolutions) {
 		}
 		await dispatch(afterAddOrDeleteResolutions(response))
 
-		const promises = []
-		const {comments, selected, expanded} = getState()[dataSet]
+		const promises = [];
+		const {selected, expanded} = getState()[dataSet];
+		const comments = getData(getState(), dataSet);
 		const newSelected = updateIdList(comments, selected)
 		if (newSelected !== selected)
 			promises.push(dispatch(setSelected(dataSet, newSelected)))
@@ -489,10 +493,10 @@ export function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchUpdat
 			])
 			return null
 		}
-		const {comments, summary, matched, unmatched, added, remaining, updated} = response;
+		const {comments, ballot, matched, unmatched, added, remaining, updated} = response;
 		await Promise.all([
 			dispatch(getSuccess({ballotId, comments})),
-			dispatch(updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary}))
+			dispatch(updateBallotSuccess(ballot.id, ballot))
 		])
 		return {matched, unmatched, added, remaining, updated};
 	}

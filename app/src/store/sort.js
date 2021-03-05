@@ -66,8 +66,8 @@ export const sortFunc = {
 	[SortType.DATE]: cmpDate
 }
 
-export function sortData(sortState, dataMap, data) {
-	let sortedDataMap = dataMap;
+export function sortData(sortState, data, ids) {
+	let sortedIds = ids;
 
 	sortState.by.forEach(key => {
 		const {direction, type} = sortState.sorts[key];
@@ -78,14 +78,14 @@ export function sortData(sortState, dataMap, data) {
 			console.warn(`No sort function for ${key} (sort type ${type[key]})`);
 			return
 		}
-		const cmp = (index_a, index_b) => cmpFunc(data[index_a][key], data[index_b][key]);
-		sortedDataMap = sortedDataMap.slice();
-		sortedDataMap.sort(cmp);
+		const cmp = (id_a, id_b) => cmpFunc(data[id_a][key], data[id_b][key]);
+		sortedIds = sortedIds.slice();
+		sortedIds.sort(cmp);
 		if (direction === SortDirection.DESC)
-			sortedDataMap.reverse();
+			sortedIds.reverse();
 	});
 
-	return sortedDataMap;
+	return sortedIds;
 }
 
 export function sortOptions(sort, options) {
@@ -184,10 +184,12 @@ const sortSlice = createSlice({
 	},
 	reducers: {
 		set(state, action) {
-			return setSort(state, action.dataKey, action.direction)
+			const {dataKey, direction} = action;
+			return setSort(state, dataKey, direction)
 		},
 		click(state, action) {
-			return clickSort(state, action.dataKey, action.event)
+			const {dataKey, event} = action;
+			return clickSort(state, dataKey, event)
 		},
 		init(state, action) {
 			return initSort(action.entries)

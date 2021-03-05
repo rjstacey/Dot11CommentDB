@@ -4,7 +4,7 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppModal from '../modals/AppModal'
 import {Form, Row, Field, Input, Select} from '../general/Form'
-import {shallowDiff} from '../lib/utils'
+import {shallowDiff, parseNumber} from '../lib/utils'
 
 import {addVoter, updateVoter} from '../store/voters'
 import {setError} from '../store/error'
@@ -55,7 +55,7 @@ function VoterEditModal({
 	function change(e) {
 		let {name, value} = e.target
 		if (name === 'SAPIN') {
-			value = parseInt(value, 10)
+			value = parseNumber(value)
 		}
 		setState(state => ({...state, [name]: value}))
 	}

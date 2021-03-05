@@ -16,7 +16,7 @@ import {debounce} from '../lib/utils'
 
 import {addResolutions, updateResolutions, deleteResolutions, updateComments} from '../store/comments'
 import {setProperty} from '../store/ui'
-import {getDataMap} from '../store/dataMap'
+import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 import {AccessLevel} from '../store/login'
 
 const MULTIPLE = '<multiple>';
@@ -890,8 +890,8 @@ export default connect(
 		const data = state[dataSet];
 		return {
 			ballotId: data.ballotId,
-			comments: data.comments,
-			commentsMap: getDataMap(state, dataSet),
+			comments: getData(state, dataSet),
+			commentsMap: getSortedFilteredIds(state, dataSet),
 			loading: data.loading,
 			selected: data.selected,
 			uiShowNotes: data.ui['showNotes'],

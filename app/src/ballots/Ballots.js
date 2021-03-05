@@ -11,12 +11,14 @@ import {ControlHeader, ControlCell} from '../table/ControlColumn'
 import {ActionButton} from '../general/Icons'
 import {displayDate} from '../lib/utils'
 
-import {getBallots, deleteBallots, BallotType} from '../store/ballots'
+import {loadBallots, deleteBallots, BallotType} from '../store/ballots'
 import {setSelected} from '../store/selected'
 import {sortSet} from '../store/sort'
-import {getDataMap} from '../store/dataMap'
+import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 import {getVotingPools} from '../store/votingPools'
 import {AccessLevel} from '../store/login'
+
+const dataSet = 'ballots'
 
 const ActionCell = styled.div`
 	display: flex;
@@ -36,7 +38,8 @@ const DataSubcomponent = styled.div`
 	overflow: hidden;
 `;
 
-const HeaderSubcomponent = DataSubcomponent.withComponent(ColumnDropdown);
+const BallotsColumnDropdown = (props) => <ColumnDropdown dataSet={dataSet} {...props}/>;
+const HeaderSubcomponent = DataSubcomponent.withComponent(BallotsColumnDropdown);
 
 const renderHeaderCellVotingPool = (props) =>
 	<React.Fragment>
@@ -89,8 +92,8 @@ function renderDate({rowData, dataKey}) {
 const tableColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <ControlHeader {...p} />,
-		cellRenderer: p => <ControlCell {...p} />},
+		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} />,
+		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
 	{key: 'Project',
 		label: 'Project',
 		width: 100,	flexShrink: 0, flexGrow: 0,
@@ -159,7 +162,7 @@ const TableRow = styled.div`
 `;
 
 function Ballots(props) {
-	const {ballotsValid, loading, getBallots, deleteBallots, votingPoolsValid, getVotingPools, access} = props;
+	const {ballotsValid, loading, loadBallots, deleteBallots, votingPoolsValid, getVotingPools, access} = props;
 	const history = useHistory();
 	const {ballotId} = useParams();
 
@@ -206,10 +209,10 @@ function Ballots(props) {
 
 	React.useEffect(() => {
 		if (!ballotsValid && !loading)
-			getBallots()
+			loadBallots()
 		if (!votingPoolsValid)
 			getVotingPools()
-	}, [ballotsValid, loading, getBallots, votingPoolsValid, getVotingPools]);
+	}, [ballotsValid, loading, loadBallots, votingPoolsValid, getVotingPools]);
 
 	const addBallot = event => history.push('/Ballots/+')
 	const closeBallot = () => history.push('/Ballots')
@@ -222,7 +225,7 @@ function Ballots(props) {
 				<span>
 					<ActionButton name='add' title='Add' onClick={addBallot} />
 					<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
-					<ActionButton name='refresh' title='Refresh' onClick={props.getBallots} disabled={props.loading} />
+					<ActionButton name='refresh' title='Refresh' onClick={props.loadBallots} disabled={props.loading} />
 				</span>
 			</ActionRow>
 
@@ -259,8 +262,6 @@ Ballots.propTypes = {
 	votingPools: PropTypes.array.isRequired,
 }
 
-const dataSet = 'ballots'
-
 export default connect(
 	(state) => {
 		const {ballots, votingPools} = state
@@ -269,16 +270,16 @@ export default connect(
 			sort: ballots.sort,
 			ballotsValid: ballots.valid,
 			loading: ballots.loading,
-			ballots: ballots.ballots,
-			ballotsMap: getDataMap(state, dataSet),
+			ballots: getData(state, dataSet),
+			ballotsMap: getSortedFilteredIds(state, dataSet),
 			selected: ballots.selected,
 			votingPoolsValid: votingPools.valid,
-			votingPools: votingPools.votingPools,
+			votingPools: getData(state, 'votingPools'),
 		}
 	},
 	(dispatch) => {
 		return {
-			getBallots: () => dispatch(getBallots()),
+			loadBallots: () => dispatch(loadBallots()),
 			deleteBallots: (ids) => dispatch(deleteBallots(ids)),
 			getVotingPools: () => dispatch(getVotingPools()),
 			setSelected: (ballotIds) => dispatch(setSelected(dataSet, ballotIds)),

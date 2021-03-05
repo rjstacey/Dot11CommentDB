@@ -28,16 +28,16 @@ const parseNumber = (value) => {
 	return !isNaN(unformatted)? unformatted: 0;
 };
 
-export function filterData(data, filters) {
+export function filterData(filters, data, ids) {
 	// create a 1:1 map of data
-	let filtDataMap = Array.apply(null, {length: data.length}).map(Function.call, Number);
+	let filtIds = ids.slice(); //Array.apply(null, {length: data.length}).map(Function.call, Number);
 	for (const dataKey in filters) {
 		const values = filters[dataKey].values
 		if (values.length) {
-			filtDataMap = filtDataMap.filter(i => values.reduce((result, value) => result || (value.valid && value.compFunc(data[i][dataKey])), false))
+			filtIds = filtIds.filter(id => values.reduce((result, value) => result || (value.valid && value.compFunc(data[id][dataKey])), false))
 		}
 	}
-	return filtDataMap;
+	return filtIds;
 }
 
 /* Exact match
@@ -65,7 +65,7 @@ const cmpPage = (d, val) => {
 
 const cmpRegex = (d, regex) => regex.test(d)
 
-function filterAddValue(filter, value, filterType) {
+function filterNewValue(value, filterType) {
 	let compFunc, regex
 
 	switch (filterType) {
@@ -89,18 +89,7 @@ function filterAddValue(filter, value, filterType) {
 			throw TypeError(`Unexpected filter type ${filterType}`);
 	}
 
-	return {
-		...filter,
-		values: [...filter.values, {value, valid: compFunc !== undefined, filterType, compFunc}]
-	}
-}
-
-function filterRemoveValue(filter, value, filterType) {
-	const newValues = filter.values.filter(v => v.value !== value || v.filterType !== filterType)
-	return {
-		...filter,
-		values: newValues
-	}
+	return {value, valid: compFunc !== undefined, filterType, compFunc}
 }
 
 const filterCreate = ({options}) => ({
@@ -123,53 +112,39 @@ const filtersSlice = createSlice({
 	name: sliceName,
 	initialState: {},
 	reducers: {
-		set(state, action) {
-			const filter = filterCreate(state[action.dataKey])
-			for (let value of action.values)
-				filter = filterAddValue(filter, value, FilterType.EXACT)
-			return {
-				...state,
-				[action.dataKey]: filter
-			}
+		setAll(state, action) {
+			const {dataKey, values} = action;
+			const filter = filterCreate(state[dataKey]);
+			for (let value of values)
+				filter.values.push(filterNewValue(value, FilterType.EXACT));
+			state[action.dataKey] = filter;
 		},
-		add(state, action) {
-			return {
-				...state,
-				[action.dataKey]: filterAddValue(state[action.dataKey], action.value, action.filterType)
-			}
+		addOne(state, action) {
+			const {dataKey, value, filterType} = action;
+			state[dataKey].values.push(filterNewValue(value, filterType));
 		},
-		remove(state, action) {
-			return {
-				...state,
-				[action.dataKey]: filterRemoveValue(state[action.dataKey], action.value, action.filterType)
-			}
+		removeOne(state, action) {
+			const {dataKey, value, filterType} = action;
+			state[dataKey].values = state[dataKey].values.filter(v => v.value !== value || v.filterType !== filterType)
 		},
 		clear(state, action) {
-			return {
-				...state,
-				[action.dataKey]: filterCreate(state[action.dataKey])
-			}
+			const {dataKey} = action;
+			state[dataKey] = filterCreate(state[dataKey]);
 		},
 		clearAll(state, action) {
-			return initFilters(state)
+			return initFilters(state);
 		},
 		init(state, action) {
-			return initFilters(action.entries)
+			return initFilters(action.entries);
 		}
 	}
 })
 
 export default filtersSlice.reducer;
 
-
-export const setFilter = (dataSet, dataKey, values) => ({type: dataSet + '/' + sliceName + '/' + 'set', dataSet, dataKey, values})
-export const addFilter = (dataSet, dataKey, value, filterType) => ({type: dataSet + '/' + sliceName + '/' + 'add', dataSet, dataKey, value, filterType})
-export const removeFilter = (dataSet, dataKey, value, filterType) => ({type: dataSet + '/' + sliceName + '/' + 'remove', dataSet, dataKey, value, filterType})
+export const setFilter = (dataSet, dataKey, values) => ({type: dataSet + '/' + sliceName + '/' + 'setAll', dataSet, dataKey, values})
+export const addFilter = (dataSet, dataKey, value, filterType) => ({type: dataSet + '/' + sliceName + '/' + 'addOne', dataSet, dataKey, value, filterType})
+export const removeFilter = (dataSet, dataKey, value, filterType) => ({type: dataSet + '/' + sliceName + '/' + 'removeOne', dataSet, dataKey, value, filterType})
 export const clearFilter = (dataSet, dataKey) => ({type: dataSet + '/' + sliceName + '/' + 'clear', dataSet, dataKey})
 export const clearAllFilters = (dataSet) => ({type: dataSet + '/' + sliceName + '/' + 'clearAll', dataSet})
 export const filtersInit = (entries) => ({type: sliceName + '/' + 'init', entries})
-
-export function isFilterable(filters, dataKey) {
-	return filters.hasOwnProperty(dataKey)
-}
-

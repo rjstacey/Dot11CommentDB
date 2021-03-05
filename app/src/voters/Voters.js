@@ -11,7 +11,9 @@ import VoterEditModal from './VoterEdit'
 import {ActionButton} from '../general/Icons'
 
 import {getVoters, deleteVoters} from '../store/voters'
-import {getDataMap} from '../store/dataMap'
+import {getData, getSortedFilteredIds} from '../store/dataSelectors'
+
+const dataSet = 'voters'
 
 const ActionCell = styled.div`
 	display: flex;
@@ -37,8 +39,8 @@ const defaultVoter = {
 const controlColumn = {
 	key: '__ctrl__',
 	width: 30, flexGrow: 1, flexShrink: 0,
-	headerRenderer: p => <ControlHeader {...p} />,
-	cellRenderer: p => <ControlCell {...p} />
+	headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} />,
+	cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />
 }
 
 const actionsColumn = {
@@ -195,15 +197,14 @@ Voters.propTypes = {
 	deleteVoters: PropTypes.func.isRequired
 }
 
-const dataSet = 'voters'
 export default connect(
 	(state, ownProps) => ({
 		selected: state[dataSet].selected,
 		votingPool: state[dataSet].votingPool,
 		valid: state[dataSet].valid,
 		loading: state[dataSet].loading,
-		voters: state[dataSet][dataSet],
-		votersMap: getDataMap(state, dataSet),
+		voters: getData(state, dataSet),
+		votersMap: getSortedFilteredIds(state, dataSet),
 	}),
 	{getVoters, deleteVoters}
 )(Voters)

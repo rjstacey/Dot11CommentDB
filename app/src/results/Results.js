@@ -9,7 +9,7 @@ import {ActionButton} from '../general/Icons'
 import ResultsSummary from './ResultsSummary'
 import ResultsExport from './ResultsExport'
 
-import {getResults} from '../store/results'
+import {loadResults} from '../store/results'
 import {setBallotId, BallotType} from '../store/ballots'
 import {AccessLevel} from '../store/login'
 
@@ -59,7 +59,7 @@ function Results({
 	votingPoolSize,
 	resultsValid,
 	loading,
-	getResults,
+	loadResults,
 	setBallotId,
 	ballotId: currentBallotId,
 }) {
@@ -94,16 +94,16 @@ function Results({
 				// Routed here with parameter ballotId specified, but not matching stored ballotId
 				// Store the ballotId and get results for this ballotId
 				setBallotId(ballotId)
-				getResults(ballotId)
+				loadResults(ballotId)
 			}
 			else if (!loading && (!resultsValid || ballot.BallotID !== ballotId)) {
-				getResults(ballotId)
+				loadResults(ballotId)
 			}
 		}
 		else if (currentBallotId) {
 			history.replace(`/Results/${currentBallotId}`)
 		}
-	}, [ballotId, currentBallotId, ballot.BallotID, history, resultsValid, setBallotId, getResults]);
+	}, [ballotId, currentBallotId, ballot.BallotID, history, resultsValid, setBallotId, loadResults]);
 
 	const onBallotSelected = (ballotId) => history.push(`/Results/${ballotId}`); // Redirect to page with selected ballot
 
@@ -113,7 +113,7 @@ function Results({
 				<BallotSelector onBallotSelected={onBallotSelected}	/>
 				<span>
 					<ResultsExport ballotId={ballotId} ballot={ballot} />
-					<ActionButton name='refresh' title='Refresh' onClick={() => getResults(ballotId)} />
+					<ActionButton name='refresh' title='Refresh' onClick={() => loadResults(ballotId)} />
 				</span>
 			</ActionRow>
 			<ResultsSummary
@@ -143,7 +143,7 @@ Results.propTypes = {
 	votingPoolSize: PropTypes.number.isRequired,
 	resultsValid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
-	getResults: PropTypes.func.isRequired,
+	loadResults: PropTypes.func.isRequired,
 	setBallotId: PropTypes.func.isRequired
 }
 
@@ -157,5 +157,5 @@ export default connect(
 			resultsValid: state[dataSet].valid,
 			loading: state[dataSet].loading,
 		}),
-	{getResults, setBallotId}
+	{loadResults, setBallotId}
 )(Results);

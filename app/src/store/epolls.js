@@ -1,4 +1,4 @@
-import {createSlice, createSelector} from '@reduxjs/toolkit'
+import {createSlice, createSelector, createEntityAdapter} from '@reduxjs/toolkit'
 
 import {setError} from './error'
 import fetcher from './fetcher'
@@ -45,12 +45,15 @@ const defaultSortEntries = epollFields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {type, direction}};
 }, {});
 
+const dataAdapter = createEntityAdapter({
+	selectId: d => d.EpollNum
+});
+
 const dataSet = 'epolls';
 
 const epollsSlice = createSlice({
 	name: dataSet,
-	initialState: {
-		epolls: [],
+	initialState: dataAdapter.getInitialState({
 		valid: false,
 		loading: false,
 		sort: sortReducer(undefined, sortInit(defaultSortEntries)),
@@ -58,7 +61,7 @@ const epollsSlice = createSlice({
 		selected: selectedReducer(undefined, {}),
 		expanded: expandedReducer(undefined, {}),
 		ui: uiReducer(undefined, {})
-	},
+	}),
 	reducers: {
 		getPending(state, action) {
 			state.loading = true;
@@ -67,7 +70,7 @@ const epollsSlice = createSlice({
   			const {epolls} = action.payload;
 			state.loading = false;
 			state.valid = true;
-			state.epolls = epolls;
+			dataAdapter.setAll(state, epolls);
 		},
 		getFailure(state, action) {
 			state.loading = false;
@@ -92,7 +95,7 @@ export default epollsSlice.reducer;
 
 const {getPending, getSuccess, getFailure} = epollsSlice.actions;
 
-export function getEpolls(n = 20) {
+export function loadEpolls(n = 20) {
 	return async (dispatch, getState) => {
 		dispatch(getPending())
 		try {
@@ -111,8 +114,8 @@ export function getEpolls(n = 20) {
 /*
  * Selectors
  */
-const getBallots = (state) => state.ballots.ballots
-const getEpollsData = (state) => state.epolls.epolls
+const getBallots = (state) => state.ballots.ids.map(id => state.ballots.entities[id]);
+const getEpollsData = (state) => state.epolls.ids.map(id => state.epolls.entities[id]);
 
 /*
  * Generate epolls list with indicator on each entry of presence in ballots list

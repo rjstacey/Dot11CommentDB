@@ -10,7 +10,7 @@ import {Checkbox} from '../general/Form'
 
 import {setSelected, toggleSelected} from '../store/selected'
 import {setExpanded, toggleExpanded} from '../store/expanded'
-import {getDataMap} from '../store/dataMap'
+import {getSortedFilteredIds} from '../store/dataSelectors'
 
 
 const CustomSelectorDropdown = styled.div`
@@ -96,28 +96,28 @@ const Container = styled.div`
 `;
 
 const _ControlHeader = (props) => {
-	const {rowKey, data, dataMap, selected, setSelected, expanded, setExpanded, children} = props;
+	const {rowKey, shownIds, selected, setSelected, expanded, setExpanded, children} = props;
 
 	const allSelected = React.useMemo(() => (
-			dataMap.length > 0 &&	// not if list is empty
-			dataMap.filter(i => !selected.includes(data[i][rowKey])).length === 0
+			shownIds.length > 0 &&	// not if list is empty
+			shownIds.filter(id => !selected.includes(id)).length === 0
 		),
-		[data, dataMap, selected, rowKey]
+		[shownIds, selected, rowKey]
 	);
 
 	const isIndeterminate = !allSelected && selected.length;
 
 	const allExpanded = React.useMemo(() => (
 			expanded &&
-			dataMap.length > 0 &&	// not if list is empty
-			dataMap.filter(i => !expanded.includes(data[i][rowKey])).length === 0
+			shownIds.length > 0 &&	// not if list is empty
+			shownIds.filter(id => !expanded.includes(id)).length === 0
 		),
-		[data, dataMap, expanded, rowKey]
+		[shownIds, expanded, rowKey]
 	);
 
-	const toggleAllSelected = () => setSelected(selected.length? []: dataMap.map(i => data[i][rowKey]));
+	const toggleAllSelected = () => setSelected(selected.length? []: shownIds);
 
-	const toggleAllExpanded = () => setExpanded(expanded.length? []: dataMap.map(i => data[i][rowKey]));
+	const toggleAllExpanded = () => setExpanded(expanded.length? []: shownIds);
 
 	return (
 		<Container>
@@ -149,8 +149,8 @@ export const ControlHeader = connect(
 	(state, ownProps) => ({
 		selected: state[ownProps.dataSet].selected,
 		expanded: state[ownProps.dataSet].expanded,
-		data: state[ownProps.dataSet][ownProps.dataSet],
-		dataMap: getDataMap(state, ownProps.dataSet),
+		//data: getSortedFilteredData(state, ownProps.dataSet),
+		shownIds: getSortedFilteredIds(state, ownProps.dataSet)
 	}),
 	(dispatch, ownProps) => ({
 		setSelected: ids => dispatch(setSelected(ownProps.dataSet, ids)),

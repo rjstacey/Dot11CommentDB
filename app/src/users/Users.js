@@ -9,8 +9,10 @@ import {ActionButton} from '../general/Icons'
 import UsersImport from './UsersImport'
 import UserAddEditModal, {EditUserAction} from './UserAddEdit'
 
-import {getDataMap} from '../store/dataMap'
+import {getSortedFilteredIds, getData} from '../store/dataSelectors'
 import {getUsers, deleteUsers, AccessLevel, AccessLevelOptions} from '../store/users'
+
+const dataSet = 'users'
 
 const DefaultUser = {SAPIN: '', Name: '', Email: '', Access: AccessLevel.Member}
 
@@ -48,8 +50,8 @@ const renderAccess = ({rowData}) => AccessLevelOptions.find(o => o.value === row
 const tableColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <ControlHeader {...p} />,
-		cellRenderer: p => <ControlCell {...p} />},
+		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} />,
+		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
 	{key: 'SAPIN', 
 		label: 'SA PIN',
 		width: 100, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
@@ -173,14 +175,13 @@ Users.propTypes = {
 	deleteUsers: PropTypes.func.isRequired
 }
 
-const dataSet = 'users'
 export default connect(
 	(state) => ({
 			selected: state[dataSet].selected,
 			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
-			users: state[dataSet][dataSet],
-			usersMap: getDataMap(state, dataSet),
+			users: getData(state, dataSet),
+			usersMap: getSortedFilteredIds(state, dataSet),
 		}),
 	{getUsers, deleteUsers}
 )(Users)

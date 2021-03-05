@@ -10,7 +10,9 @@ import {ActionButton} from '../general/Icons'
 import VotersPoolAddModal from './VotersPoolAdd'
 
 import {getVotingPools, deleteVotingPools} from '../store/votingPools'
-import {getDataMap} from '../store/dataMap'
+import {getData, getSortedFilteredIds} from '../store/dataSelectors'
+
+const dataSet = 'votingPools'
 
 const ActionCell = styled.div`
 	display: flex;
@@ -26,8 +28,8 @@ const RowActions = ({onEdit, onDelete}) =>
 const tableColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <ControlHeader {...p} />,
-		cellRenderer: p => <ControlCell {...p} />},
+		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} />,
+		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
 	{key: 'PoolType',
 		label: 'Type',		width: 80, dropdownWidth: 150},
 	{key: 'VotingPoolID',
@@ -128,14 +130,13 @@ VotersPools.propTypes = {
 	deleteVotingPools: PropTypes.func.isRequired,
 }
 
-const dataSet = 'votingPools'
 export default connect(
 	(state, ownProps) => ({
 		selected: state[dataSet].selected,
 		valid: state[dataSet].valid,
 		loading: state[dataSet].loading,
-		votingPools: state[dataSet].votingPools,
-		votingPoolsMap: getDataMap(state, dataSet),
+		votingPools: getData(state, dataSet),
+		votingPoolsMap: getSortedFilteredIds(state, dataSet),
 	}),
 	{getVotingPools, deleteVotingPools}
 )(VotersPools)

@@ -1,4 +1,4 @@
-import {createSlice, createSelector} from '@reduxjs/toolkit'
+import {createSlice, createSelector, createEntityAdapter} from '@reduxjs/toolkit'
 
 import {setError} from './error'
 import fetcher from './fetcher'
@@ -70,21 +70,25 @@ const defaultSortEntries = ballotFields.reduce((entries, dataKey) => {
 }, {});
 
 
-function getProjectForBallotId(ballots, ballotId) {
-	const b = ballots.find(b => b.BallotID === ballotId)
-	return b? b.Project: ''
+function getProjectForBallotId(state, ballotId) {
+	const id = state.ids.find(id => state.entities[id].BallotID === ballotId)
+	return id? state.entities[id].Project: ''
 }
 
 function updateSelected(ballots, selected) {
 	return selected.filter(s => ballots.find(b => b.BallotID === s))
 }
 
+const dataAdapter = createEntityAdapter({
+	selectId: (b) => b.id,
+	sortComparer: (b1, b2) => b1.Project === b2.Project? b1.BallotID.localeCompare(b2.BallotID): b1.Project.localeCompare(b2.Project) 
+})
+
 const dataSet = 'ballots';
 
 const ballotsSlice = createSlice({
 	name: dataSet,
-	initialState: {
-		ballots: [],
+	initialState: dataAdapter.getInitialState({
 		valid: false,
 		loading: false,
 		project: '',
@@ -93,44 +97,44 @@ const ballotsSlice = createSlice({
 		filters: filtersReducer(undefined, filtersInit(defaultFiltersEntries)),
 		selected: selectedReducer(undefined, {}),
 		ui: uiReducer(undefined, {})
-	},
+	}),
 	reducers: {
 		getPending(state, action) {
 			state.loading = true;
 		},
   		getSuccess(state, action) {
   			const {ballots} = action.payload;
-  			const project = getProjectForBallotId(ballots, state.ballotId)
 			state.loading = false;
 			state.valid = true;
-			state.ballots = ballots;
-			state.project = project;
+			dataAdapter.setAll(state, ballots);
+			state.project = getProjectForBallotId(state, state.ballotId);
 		},
 		getFailure(state, action) {
 			state.loading = false;
 		},
 		addOne(state, action) {
 			const {ballot} = action.payload;
-			state.ballots.push(ballot);
+			dataAdapter.addOne(state, ballot);
 		},
 		updateOne(state, action) {
-			const {ballot} = action.payload;
-			state.ballots = state.ballots.map(d => d.id === ballot.id? {...d, ...ballot}: d);
+			const {id, changes} = action.payload;
+			dataAdapter.updateOne(state, {id, changes});
 		},
 		deleteMany(state, action) {
 			const {ballots} = action.payload;
-			state.ballots = state.ballots.filter(b1 => !ballots.find(b2 => b1.id === b2.id));
+			dataAdapter.removeMany(state, ballots);
+			//state.ballots = state.ballots.filter(b1 => !ballots.find(b2 => b1.id === b2.id));
 		},
 		setProject(state, action) {
 			const project = action.payload;
-			if (getProjectForBallotId(state.ballots, state.ballotId) !== project)
+			if (getProjectForBallotId(state, state.ballotId) !== project)
 				state.ballotId = '';
 			state.project = project;
 		},
 		setBallotId(state, action) {
 			const ballotId = action.payload;
 			state.ballotId = ballotId;
-			state.project = getProjectForBallotId(state.ballots, ballotId);
+			state.project = getProjectForBallotId(state, ballotId);
 		}
 	},
 	extraReducers: builder => {
@@ -160,7 +164,7 @@ export const {setProject, setBallotId} = ballotsSlice.actions;
 
 const {getPending, getSuccess, getFailure} = ballotsSlice.actions;
 
-export function getBallots() {
+export function loadBallots() {
 	return async (dispatch, getState) => {
 		if (getState().ballots.loading)
 			return null
@@ -181,7 +185,7 @@ export function getBallots() {
 }
 
 const {updateOne} = ballotsSlice.actions;
-export const updateBallotSuccess = (ballotId, ballot) => updateOne({ballotId, ballot});
+export const updateBallotSuccess = (id, changes) => updateOne({id, changes});
 
 export function updateBallot(ballotId, ballot) {
 	return async (dispatch, getState) => {
@@ -193,7 +197,7 @@ export function updateBallot(ballotId, ballot) {
 			return dispatch(setError(`Unable to update ballot ${ballotId}`, error.toString()))
 		}
 		const [updatedBallot] = response;
-		return dispatch(updateOne({ballotId, ballot: updatedBallot}))
+		return dispatch(updateOne({id: ballot.id, changes: updatedBallot}))
 	}
 }
 
@@ -231,7 +235,7 @@ export function addBallot(ballot) {
 /*
  * Selectors
  */
-const getBallotsFromStore = (state) => state[dataSet].ballots;
+const getBallotsFromStore = (state) => state[dataSet].ids.map(id => state[dataSet].entities[id]);
 const getProjectFromStore = (state) => state[dataSet].project;
 
 /* Generate project list from the ballot pool */

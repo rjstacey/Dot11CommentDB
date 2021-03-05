@@ -74,6 +74,7 @@ export const GET_COMMENTS_SQL =
 
 export const GET_COMMENTS_SUMMARY_SQL =
 	'SELECT ' +
+		'b.id AS id, ' +
 		'COUNT(*) AS Count, ' +
 		'MIN(CommentID) AS CommentIDMin, ' +
 		'MAX(CommentID) AS CommentIDMax ' +
@@ -98,7 +99,7 @@ async function updateComment(userId, comment) {
 	delete comment.id;
 	let SQL =
 		db.format("UPDATE comments SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=?; ", [comment, userId, id]) +
-		db.format("SELECT id, comment_id, ??, CommentLastModifiedBy, CommentLastModifiedTime FROM commentResolutions WHERE comment_id=?;", [Object.keys(comment), id]);
+		db.format("SELECT id, comment_id, CID, ??, CommentLastModifiedBy, CommentLastModifiedTime FROM commentResolutions WHERE comment_id=?;", [Object.keys(comment), id]);
 	const [results] = await db.query2(SQL)
 	//console.log(rows)
 	return results[1][0]
@@ -148,10 +149,17 @@ async function insertComments(userId, ballotId, comments) {
 
 	const results = await db.query(SQL)
 	//console.log(results)
-	return {
+	const summary = results[results.length-1][0];
+	const ballot_id = summary.id;
+	delete summary.id;
+	const ballot = {
 		BallotID: ballotId,
+		id: ballot_id,
+		Comments: summary
+	};
+	return {
 		comments: results[results.length-2],
-		summary: results[results.length-1][0]
+		ballot,
 	}
 }
 

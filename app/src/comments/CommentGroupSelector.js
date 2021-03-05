@@ -4,7 +4,7 @@ import {connect} from 'react-redux'
 
 import {Select} from '../general/Form'
 
-import {getAllFieldOptions} from '../store/options'
+import {getAllFieldOptions} from '../store/dataSelectors'
 
 function CommentGroupSelector({
 	value,

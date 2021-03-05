@@ -22,10 +22,12 @@ import {CommentIdSelector, CommentIdFilter} from './CommentIdList'
 
 import {getComments} from '../store/comments'
 import {setSelected} from '../store/selected'
-import {getDataMap} from '../store/dataMap'
+import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 import {setBallotId} from '../store/ballots'
 import {setTableView, upsertTableColumns} from '../store/ui'
 import {AccessLevel} from '../store/login'
+
+const dataSet = 'comments'
 
 const FlexRow = styled.div`
 	display: flex;
@@ -85,6 +87,7 @@ function renderDataCellResolution({rowData}) {
 	)
 }
 
+
 const DataSubcomponent = styled.div`
 	flex: 1 1 ${({width}) => width && typeof width === 'string'? width: width + 'px'};
 	padding-right: 5px;
@@ -92,7 +95,8 @@ const DataSubcomponent = styled.div`
 	overflow: hidden;
 `;
 
-const HeaderSubcomponent = DataSubcomponent.withComponent(ColumnDropdown);
+const CommentsColumnDropdown = (props) => <ColumnDropdown dataSet={dataSet} {...props}/>;
+const HeaderSubcomponent = DataSubcomponent.withComponent(CommentsColumnDropdown);
 
 const StyledCommandIdFilter = styled(CommentIdFilter)`
 	margin: 10px 10px 0;
@@ -109,19 +113,19 @@ const StyledCommandIdFilter = styled(CommentIdFilter)`
 const renderHeaderCellStacked1 = (props) => 
 	<React.Fragment>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={70} dropdownWidth={400} dataKey='CID' label='CID' 
+			<HeaderSubcomponent {...props} width={70} dropdownWidth={400} dataSet='comments' dataKey='CID' label='CID' 
 				customFilterElement=<StyledCommandIdFilter />
 			/>
-			<HeaderSubcomponent {...props} width={40} dropdownWidth={140} dataKey='Category' label='Cat' />
+			<HeaderSubcomponent {...props} width={40} dropdownWidth={140} dataSet='comments' dataKey='Category' label='Cat' />
 		</FlexRow>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={70} dropdownWidth={200} dataKey='Clause' label='Clause' />
-			<HeaderSubcomponent {...props} width={40} dropdownWidth={150} dataKey='Page' label='Page' dataRenderer={renderPage} />
+			<HeaderSubcomponent {...props} width={70} dropdownWidth={200} dataSet='comments' dataKey='Clause' label='Clause' />
+			<HeaderSubcomponent {...props} width={40} dropdownWidth={150} dataSet='comments' dataKey='Page' label='Page' dataRenderer={renderPage} />
 		</FlexRow>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={90} dropdownWidth={300} dataKey='CommenterName' label='Commenter' />
-			<HeaderSubcomponent {...props} width={30} dataKey='Vote' label='Vote' />
-			<HeaderSubcomponent {...props} width={30} dataKey='MustSatisfy' label='MS' />
+			<HeaderSubcomponent {...props} width={90} dropdownWidth={300} dataSet='comments' dataKey='CommenterName' label='Commenter' />
+			<HeaderSubcomponent {...props} width={30} dataSet='comments' dataKey='Vote' label='Vote' />
+			<HeaderSubcomponent {...props} width={30} dataSet='comments' dataKey='MustSatisfy' label='MS' />
 		</FlexRow>
 	</React.Fragment>
 
@@ -174,8 +178,8 @@ const renderHeaderCellResolution = (props) =>
 const allColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <ControlHeader {...p} ><CommentIdSelector focusOnMount /></ControlHeader>,
-		cellRenderer: p => <ControlCell {...p} />},
+		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} ><CommentIdSelector focusOnMount /></ControlHeader>,
+		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
 	{key: 'Stack1',
 		label: 'CID/Cat/MS/...',
 		width: 200, flexGrow: 1, flexShrink: 0,
@@ -381,9 +385,9 @@ function setClipboard(selected, comments) {
 	copyToClipboard(text, {asHtml: true});
 }
 
-function commentsRowGetter({rowIndex, data, dataMap}) {
-	const c = data[dataMap[rowIndex]]
-	if (rowIndex > 0 && data[dataMap[rowIndex - 1]].CommentID === c.CommentID) {
+function commentsRowGetter({rowIndex, data}) {
+	const c = data[rowIndex]
+	if (rowIndex > 0 && data[rowIndex - 1].CommentID === c.CommentID) {
 		// Previous row holds the same comment
 		return {
 			...c,
@@ -570,10 +574,8 @@ Comments.propTypes = {
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
 	comments: PropTypes.arrayOf(PropTypes.object).isRequired,
-	commentsMap: PropTypes.arrayOf(PropTypes.number).isRequired,
 }
 
-const dataSet = 'comments'
 export default connect(
 	(state) => {
 		const user = state.login.user;
@@ -586,8 +588,7 @@ export default connect(
 			commentBallotId: state[dataSet].ballotId,
 			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
-			comments: state[dataSet].comments,
-			commentsMap: getDataMap(state, dataSet),
+			comments: getData(state, dataSet),
 			tableView,
 			tableConfig
 		}

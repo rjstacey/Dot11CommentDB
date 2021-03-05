@@ -7,8 +7,9 @@ import {Form, Row, Col, Field, List, ListItem, Checkbox, Input, Select, TextArea
 import ConfirmModal from '../modals/ConfirmModal'
 import {renderResultsSummary, renderCommentsSummary} from './Ballots'
 
-import {updateBallot, addBallot, getBallots, setProject, getProjectList, getBallotList, BallotType} from '../store/ballots'
+import {updateBallot, addBallot, loadBallots, setProject, getProjectList, getBallotList, BallotType} from '../store/ballots'
 import {getVotingPools} from '../store/votingPools'
+import {getData} from '../store/dataSelectors'
 import {importResults, uploadEpollResults, uploadMyProjectResults, deleteResults} from '../store/results'
 import {importComments, uploadComments, deleteComments, setStartCommentId} from '../store/comments'
 import {shallowDiff} from '../lib/utils'
@@ -249,9 +250,10 @@ function Column1({project, setProject, projectList, ballot, setBallot, ballotLis
 		setBallot({...ballot, [name]: value});
 	}
 	const changeProject = (project) => {
-		//const project = values.length > 0? values[0].value: ''
-		setProject(project)
-		setBallot(ballot => ({...ballot, Project: project}))
+		if (ballot.Project !== project) {
+			setProject(project)
+			setBallot(ballot => ({...ballot, Project: project}))
+		}
 	}
 	const changeDate = (e) => {
 		const {name, value} = e.target;
@@ -323,7 +325,7 @@ const Action = {
  * If the ballotId parameter is '+' and epollNum is provided, then the ballot fields are filled in from the epoll data
  */
 function _BallotDetailForm(props) {
-	const {ballotId, epollNum, ballots, ballotsValid, epolls, votingPoolsValid, getBallots, getVotingPools} = props;
+	const {ballotId, epollNum, ballots, ballotsValid, epolls, votingPoolsValid, loadBallots, getVotingPools} = props;
 	const [ballot, setBallot] = React.useState(defaultBallot);
 	const [resultsAction, setResultsAction] = React.useState(Action.NONE);
 	const [resultsFile, setResultsFile] = React.useState('');
@@ -335,17 +337,17 @@ function _BallotDetailForm(props) {
 	/* On mount, make sure we have the ballots and voting pools loaded */
 	React.useEffect(() => {
 		if (!ballotsValid)
-			getBallots()
+			loadBallots()
 		if (!votingPoolsValid)
 			getVotingPools()
-	}, [ballotsValid, votingPoolsValid, getBallots, getVotingPools]);
+	}, [ballotsValid, votingPoolsValid, loadBallots, getVotingPools]);
 
 	/* On mount or if the underlying data changes,
 	 * reload the ballot from ballot data or epoll data as appropriate. */
 	React.useEffect(() => {
 		if (ballotId === '+') {
 			if (epollNum) {
-				const e = epolls.find(e => e.EpollNum === epollNum)
+				const e = epolls[epollNum]
 				if (e) {
 					const b = {
 						Project: '',
@@ -376,7 +378,6 @@ function _BallotDetailForm(props) {
 			}
 		}
 	}, [ballotId, ballots, epolls, epollNum]);
-
 
 	function changeType(e) {
 		const {name, value} = e.target;
@@ -500,21 +501,21 @@ _BallotDetailForm.propTypes = {
 	ballotList: PropTypes.array.isRequired,
 	votingPoolsValid: PropTypes.bool.isRequired,
 	votingPools: PropTypes.array.isRequired,
-	epolls: PropTypes.array.isRequired,
+	epolls: PropTypes.object.isRequired,
 }
 
 const BallotDetailForm = connect(
 	(state) => {
-		const {ballots, votingPools, epolls} = state
+		const {ballots, votingPools} = state
 		return {
 			ballotsValid: ballots.valid,
-			ballots: ballots.ballots,
+			ballots: getData(state, 'ballots'),
 			loading: ballots.loading,
 			projectList: getProjectList(state),
 			ballotList: getBallotList(state),
 			votingPoolsValid: votingPools.valid,
-			votingPools: votingPools.votingPools,
-			epolls: epolls.epolls,
+			votingPools: getData(state, 'votingPools'),
+			epolls: state.epolls.entities,
 		}
 	},
 	(dispatch) => {

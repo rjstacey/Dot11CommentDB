@@ -525,10 +525,19 @@ export async function uploadResolutions(userId, ballotId, toUpdate, matchAlgorit
 	console.log(`total: ${t6-t1}ms`)
 
 	//console.log(results)
+	const summary = results[results.length-1][0];
+	const ballot_id = summary.id;
+	delete summary.id;
+	const ballot = {
+		BallotID: ballotId,
+		id: ballot_id,
+		Comments: summary
+	};
+
 	return {
 		BallotID: ballotId,
 		comments: results[results.length-2],
-		summary: results[results.length-1][0],
+		ballot,
 		matched,
 		unmatched,
 		remaining,

@@ -115,16 +115,14 @@ function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount
 	)
 }
 
-function cidValid(comments, cid) {
-	return comments.filter(c => c.CommentID.toString() === cid || `${c.CommentID}.${c.ResolutionID}` === cid).length > 0
-}
+const cidValid = (cids, cid) => cids.includes(cid)
 
 export const CommentIdFilter = connect(
 	(state) => {
 		const s = state.comments
 		return {
 			cids: s.filters['CID'].values.map(v => v.value) || [],
-			cidValid: (cid) => cidValid(s.comments, cid)
+			cidValid: (cid) => cidValid(s.ids, cid)
 		}
 	},
 	(dispatch) => ({
@@ -137,7 +135,7 @@ export const CommentIdSelector = connect(
 		const s = state.comments
 		return {
 			cids: s.selected,
-			cidValid: (cid) => cidValid(s.comments, cid)
+			cidValid: (cid) => cidValid(s.ids, cid)
 		}
 	},
 	(dispatch) => ({

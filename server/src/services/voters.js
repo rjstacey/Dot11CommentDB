@@ -212,7 +212,7 @@ export async function updateVoter(votingPoolType, votingPoolId, voterId, voter) 
 			throw 'Expected a number for SAPIN'
 		}
 		entry = Object.assign(entry, {
-			SAPIN: voterId,
+			SAPIN: voter.SAPIN,
 			LastName: voter.LastName,
 			FirstName: voter.FirstName,
 			MI: voter.MI,

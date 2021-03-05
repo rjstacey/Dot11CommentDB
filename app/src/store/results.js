@@ -1,4 +1,4 @@
-import {createSlice} from '@reduxjs/toolkit'
+import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
 import {setError} from './error'
 import fetcher from './fetcher'
@@ -42,37 +42,36 @@ const defaultSortEntries = resultFields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {type, direction}};
 }, {});
 
+const dataAdapter = createEntityAdapter()
+
 const dataSet = 'results';
 
 const resultsSlice = createSlice({
 	name: dataSet,
-	initialState: {
+	initialState: dataAdapter.getInitialState({
 		ballotId: '',
-		votingPoolID: '',
-		votingPoolSize: 0,
 		ballot: {},
 		loading: false,
 		valid: false,
-		results: [],
+		votingPoolSize: 0,
 		resultsSummary: {},
 		sort: sortReducer(undefined, sortInit(defaultSortEntries)),
 		filters: filtersReducer(undefined, filtersInit(defaultFiltersEntries)),
 		selected: selectedReducer(undefined, {}),
 		ui: uiReducer(undefined, {})
-	},
+	}),
 	reducers: {
 		getPending(state, action) {
 			state.loading = true;
 		},
   		getSuccess(state, action) {
-  			const {ballotId, ballot, results, summary, votingPoolId, votingPoolSize} = action.payload;
+  			const {ballotId, ballot, results, summary, votingPoolSize} = action.payload;
 			state.loading = false;
 			state.valid = true;
 			state.ballotId = ballotId;
 			state.ballot = ballot;
-			state.results = results;
-			state.resultsSummary =summary;
-			state.votingPoolId = votingPoolId;
+			dataAdapter.setAll(state, results);
+			state.resultsSummary = summary;
 			state.votingPoolSize = votingPoolSize;
 		},
 		getFailure(state, action) {
@@ -82,7 +81,7 @@ const resultsSlice = createSlice({
 			const {ballotId} = action.payload;
 			if (ballotId === state.ballotId) {
 				state.valid = false;
-				state.results = [];
+				dataAdapter.setAll(state, []);
 				state.resultsSummary = {};
 			}
 		},
@@ -109,7 +108,7 @@ export default resultsSlice.reducer;
 
 const {getPending, getSuccess, getFailure} = resultsSlice.actions;
 
-export function getResults(ballotId) {
+export function loadResults(ballotId) {
 	return async (dispatch) => {
 		dispatch(getPending({ballotId}))
 		let response;
@@ -124,7 +123,6 @@ export function getResults(ballotId) {
 		}
 		const payload = {
 			ballotId: response.BallotID,
-			votingPoolId: response.VotingPoolID,
 			votingPoolSize: response.VotingPoolSize,
 			ballot: response.ballot,
 			results: response.results,
@@ -172,7 +170,6 @@ export function importResults(ballotId, epollNum) {
 		//console.log(response)
 		const payload = {
 			ballotId: response.BallotID,
-			votingPoolId: response.VotingPoolID,
 			votingPoolSize: response.VotingPoolSize,
 			ballot: response.ballot,
 			results: response.results,
@@ -200,7 +197,6 @@ export function uploadEpollResults(ballotId, file) {
 		}
 		const payload = {
 			ballotId: response.BallotID,
-			votingPoolId: response.VotingPoolID,
 			votingPoolSize: response.VotingPoolSize,
 			ballot: response.ballot,
 			results: response.results,

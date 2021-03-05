@@ -8,6 +8,7 @@ import {ActionButton, Button} from '../general/Icons'
 
 import {setBallotId} from '../store/ballots'
 import {getComments} from '../store/comments'
+import {getData} from '../store/dataSelectors'
 
 function countsByCategory(comments) {
 	return {
@@ -106,7 +107,7 @@ function renderTable(data, ref) {
 	const row = (r, i) => <tr key={i}>{Object.values(r).map((d, i) => <td key={i} width='100px'>{d}</td>)}</tr>
 
 	return (
-		<table style={{borderCollapse: 'border-collapse'}} cellpadding='5' border='1' ref={ref}>
+		<table style={{borderCollapse: 'collapse'}} cellPadding='5' border='1' ref={ref}>
 			<thead>
 				{header}
 			</thead>
@@ -265,7 +266,7 @@ export default connect(
 		commentsBallotId: state[dataSet].ballotId,
 		valid: state[dataSet].valid,
 		loading: state[dataSet].loading,
-		comments: state[dataSet].comments
+		comments: getData(state, 'comments')
 	}),
 	{setBallotId, getComments}
 )(Reports);

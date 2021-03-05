@@ -6,11 +6,13 @@ import {VariableSizeGrid as Grid} from 'react-window'
 import AutoSizer from 'react-virtualized-auto-sizer'
 import TableRow from './AppTableRow'
 import TableHeader from './AppTableHeader'
+import ColumnDropdown from './ColumnDropdown'
+
 import {debounce, getScrollbarSize} from '../lib/utils'
 
 import {setSelected} from '../store/selected'
 import {getTableConfig, upsertTableColumns} from '../store/ui'
-import {getDataMap} from '../store/dataMap'
+import {getSortedFilteredData} from '../store/dataSelectors'
 
 const scrollbarSize = getScrollbarSize();
 
@@ -55,7 +57,7 @@ const Table = styled.div`
 	}
 `;
 
-const NoRowsBody = styled.div`
+const NoGrid = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -133,40 +135,40 @@ class AppTableSized extends React.PureComponent {
 	handleScroll = ({scrollLeft, scrollTop}) => {if (this.headerRef) this.headerRef.scrollLeft = scrollLeft};
 
 	handleKeyDown = (event) => {
-		const {data, dataMap, selected, setSelected, rowKey} = this.props;
+		const {data, selected, setSelected, rowKey} = this.props;
 
 		if (!selected)
 			return
 
 		// Ctrl-A selects all
 		if ((event.ctrlKey || event.metaKey) && event.keyCode === 65) {
-			setSelected(dataMap.map(i => data[i][rowKey]));
+			setSelected(data.map(d => d[rowKey]));
 			event.preventDefault();
 		}
 		else if (event.keyCode === 38 || event.keyCode === 40) {
 
 			if (selected.length === 0) {
-				if (dataMap.length > 0)
-					setSelected([data[dataMap[0]][rowKey]])
-				return
+				if (data.length > 0)
+					setSelected([data[0][rowKey]]);
+				return;
 			}
 
-			let id = selected[0]
-			let i = dataMap.findIndex(i => data[i][rowKey] === id)
+			let id = selected[0];
+			let i = data.findIndex(d => d[rowKey] === id);
 			if (i === -1) {
 				if (dataMap.length > 0)
-					setSelected([data[dataMap[0]][rowKey]])
-				return
+					setSelected([data[0][rowKey]]);
+				return;
 			}
 
 			if (event.keyCode === 38) {			// Up arrow
-				if (i === 0) 
-					i = dataMap.length - 1;
+				if (i === 0)
+					i = data.length - 1;
 				else
 					i = i - 1 
 			}
 			else {	// Down arrow
-				if (i === (dataMap.length - 1))
+				if (i === (data.length - 1))
 					i = 0
 				else
 					i = i + 1
@@ -175,52 +177,54 @@ class AppTableSized extends React.PureComponent {
 			if (this.gridRef)
 				this.gridRef.scrollToItem({rowIndex: i})
 
-			setSelected([data[dataMap[i]][rowKey]])
+			setSelected([data[i][rowKey]])
 		}
 	}
 
 	handleClick = ({event, rowData}) => {
-		const {data, dataMap, selected, setSelected, rowKey} = this.props
+		const {data, selected, setSelected, rowKey} = this.props
 
 		if (!selected)
-			return
+			return;
 
-		let ids = selected.slice()
-		const id = rowData[rowKey]
+		let ids = selected.slice();
+		const id = rowData[rowKey];
 		if (event.shiftKey) {
 			// Shift + click => include all between last and current
 			if (ids.length === 0) {
-				ids.push(id)
+				ids.push(id);
 			}
 			else {
 				const id_last = ids[ids.length - 1]
-				const i_last = dataMap.findIndex(i => data[i][rowKey] === id_last)
-				const i_selected = dataMap.findIndex(i => data[i][rowKey] === id)
+				const i_last = data.findIndex(d => d[rowKey] === id_last)
+				const i_selected = data.findIndex(d => d[rowKey] === id)
 				if (i_last >= 0 && i_selected >= 0) {
 					if (i_last > i_selected) {
 						for (let i = i_selected; i < i_last; i++) {
-							ids.push(data[dataMap[i]][rowKey])
+							ids.push(data[i][rowKey]);
 						}
 					}
 					else {
 						for (let i = i_last + 1; i <= i_selected; i++) {
-							ids.push(data[dataMap[i]][rowKey])
+							ids.push(data[i][rowKey]);
 						}
 					}
 				}
 			}
-		} else if (event.ctrlKey || event.metaKey) {
+		}
+		else if (event.ctrlKey || event.metaKey) {
 			// Control + click => add or remove
 			if (ids.includes(id)) {
-				ids = ids.filter(s => s !== id)
+				ids = ids.filter(s => s !== id);
 			}
 			else {
-				ids.push(id)
+				ids.push(id);
 			}
-		} else {
+		}
+		else {
 			ids = [id]
 		}
-		setSelected(ids)
+		setSelected(ids);
 	}
 
 	render() {
@@ -252,20 +256,21 @@ class AppTableSized extends React.PureComponent {
 						width={width}
 						columnCount={1}
 						columnWidth={() => (this.fixed? totalWidth: width - scrollbarSize)}
-						rowCount={props.dataMap.length}
+						rowCount={props.data.length}
 						estimatedRowHeight={props.estimatedRowHeight}
 						rowHeight={this.getRowHeight}
 						onScroll={this.handleScroll}
 					>
 						{({rowIndex, style}) => {
 							const rowKey = props.rowKey
-							const rowData = props.rowGetter? 
-								props.rowGetter({rowIndex, data: props.data, dataMap: props.dataMap}): 
-								props.data[props.dataMap[rowIndex]]
+							const rowData = props.rowGetter 
+								? props.rowGetter({rowIndex, data: props.data})
+								: props.data[rowIndex];
+							const rowId = rowKey? rowData[rowKey]: rowIndex;
 								
 							//console.log(rowData)
-							const isSelected = props.selected && props.selected.includes(rowData[props.rowKey]);
-							const isExpanded = props.expanded && props.expanded.includes(rowData[props.rowKey]);
+							const isSelected = props.selected && props.selected.includes(rowId);
+							const isExpanded = props.expanded && props.expanded.includes(rowId);
 
 							// Add appropriate row classNames
 							let classNames = ['AppTable__dataRow']
@@ -275,14 +280,13 @@ class AppTableSized extends React.PureComponent {
 
 							return (
 								<TableRow
-									key={rowKey? rowData[rowKey]: rowIndex}
+									key={rowId}
 									className={classNames.join(' ')}
 									style={style}
 									fixed={this.fixed}
 									rowIndex={rowIndex}
 									rowData={rowData}
-									rowKey={props.rowKey}
-									dataSet={props.dataSet}
+									rowKey={rowKey}
 									isExpanded={isExpanded}
 									columns={this.state.columns}
 									estimatedRowHeight={props.estimatedRowHeight}
@@ -292,9 +296,9 @@ class AppTableSized extends React.PureComponent {
 							)
 						}}
 					</Grid>:
-					<NoRowsBody style={{height: height - props.headerHeight, width}}>
+					<NoGrid style={{height: height - props.headerHeight, width}}>
 						{props.loading? 'Loading...': 'No Data'}
-					</NoRowsBody>
+					</NoGrid>
 				}
 				<TableHeader
 					ref={ref => this.headerRef = ref}
@@ -305,8 +309,8 @@ class AppTableSized extends React.PureComponent {
 					columns={this.state.columns}
 					setColumnWidth={this.setColumnWidth}
 					setTableWidth={this.props.resizeWidth}
-					dataSet={props.dataSet}
 					rowKey={props.rowKey}
+					defaultHeaderCellRenderer={(p) => <ColumnDropdown dataSet={props.dataSet} {...p}/>}
 				/>
 			</Table>
 		)
@@ -328,7 +332,6 @@ AppTable.propTypes = {
 	columns: PropTypes.array.isRequired,
 	dataSet: PropTypes.string.isRequired,
 	data: PropTypes.array.isRequired,
-	dataMap: PropTypes.array.isRequired,
 	selected: PropTypes.array,
 	expanded: PropTypes.array,
 	rowGetter: PropTypes.func,
@@ -347,10 +350,8 @@ export default connect(
 		return {
 			selected: state[dataSet].selected,
 			expanded: state[dataSet].expanded,
-			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
-			data: ownProps.data? ownProps.data: state[dataSet][ownProps.dataSet],
-			dataMap: ownProps.dataMap? ownProps.dataMap: getDataMap(state, dataSet),
+			data: ownProps.data? ownProps.data: getSortedFilteredData(state, dataSet),
 			tableView,
 			tableConfig,
 		}

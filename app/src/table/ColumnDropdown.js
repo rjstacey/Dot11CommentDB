@@ -9,7 +9,7 @@ import {Button, ActionButtonSort, Handle, IconSort, IconFilter} from '../general
 import useClickOutside from '../lib/useClickOutside'
 import {Checkbox, Input} from '../general/Form'
 
-import {getAllFieldOptions, getAvailableFieldOptions} from '../store/options'
+import {getAllFieldOptions, getAvailableFieldOptions} from '../store/dataSelectors'
 import {sortSet, sortOptions, SortDirection, SortType} from '../store/sort'
 import {setFilter, addFilter, removeFilter, FilterType} from '../store/filters'
 
@@ -317,31 +317,9 @@ function Dropdown({
 	);
 }
 
-const ConnectedDropdown = connect(
-	(state, ownProps) => {
-		const {dataSet, dataKey} = ownProps
-		return {
-			filter: state[dataSet].filters[dataKey],
-			sort: state[dataSet].sort.sorts[dataKey],
-			selected: state[dataSet].selected,
-			allOptions: getAllFieldOptions(state, dataSet, dataKey),
-			availableOptions: getAvailableFieldOptions(state, dataSet, dataKey)
-		}
-	},
-	(dispatch, ownProps) => {
-		const {dataSet, dataKey} = ownProps
-		return {
-			setFilter: (value) => dispatch(setFilter(dataSet, dataKey, value)),
-			addFilter: (value, filterType) => dispatch(addFilter(dataSet, dataKey, value, filterType)),
-			removeFilter: (value, filterType) => dispatch(removeFilter(dataSet, dataKey, value, filterType)),
-			setSort: (direction) => dispatch(sortSet(dataSet, dataKey, direction)),
-		}
-	}
-)(Dropdown)
-
 function renderDropdown({anchorRef, ...otherProps}) {
 	return ReactDOM.createPortal(
-		<ConnectedDropdown {...otherProps} />,
+		<Dropdown {...otherProps} />,
 		anchorRef.current
 	)
 }
@@ -375,8 +353,8 @@ const Label = styled.label`
 `;
 
 function _ColumnDropdown(props) {
-	const {className, style, filter, label, ...otherProps} = props;
-	const {anchorRef, column, sort} = props;
+	const {className, style, label, ...otherProps} = props;
+	const {anchorRef, column, filter, sort} = props;
 	const [isOpen, setIsOpen] = React.useState(false);
 	const [position, setPosition] = React.useState({});
 
@@ -444,14 +422,29 @@ function _ColumnDropdown(props) {
 	)
 }
 
+_ColumnDropdown.propTypes = {
+	sort: PropTypes.object,
+	filter: PropTypes.object
+}
+
 const ColumnDropdown = connect(
 	(state, ownProps) => {
 		const {dataSet, dataKey} = ownProps
-		const filter = state[dataSet].filters[dataKey]
-		const sort = state[dataSet].sort.sorts[dataKey]	
 		return {
-			sort,
-			filter
+			filter: state[dataSet].filters[dataKey],
+			sort: state[dataSet].sort.sorts[dataKey],
+			selected: state[dataSet].selected,
+			allOptions: getAllFieldOptions(state, dataSet, dataKey),
+			availableOptions: getAvailableFieldOptions(state, dataSet, dataKey)
+		}
+	},
+	(dispatch, ownProps) => {
+		const {dataSet, dataKey} = ownProps
+		return {
+			setFilter: (values) => dispatch(setFilter(dataSet, dataKey, values)),
+			addFilter: (value, filterType) => dispatch(addFilter(dataSet, dataKey, value, filterType)),
+			removeFilter: (value, filterType) => dispatch(removeFilter(dataSet, dataKey, value, filterType)),
+			setSort: (direction) => dispatch(sortSet(dataSet, dataKey, direction)),
 		}
 	}
 )(_ColumnDropdown)

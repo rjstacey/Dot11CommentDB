@@ -5,6 +5,7 @@ import styled from '@emotion/styled'
 import {Select} from '../general/Form'
 
 import {getUsers} from '../store/users'
+import {getData} from '../store/dataSelectors'
 import {strComp} from '../lib/utils'
 
 const StyledItem = styled.span`
@@ -158,12 +159,11 @@ AssigneeSelector.propTypes = {
 
 export default connect(
 	(state) => {
-		const {users, comments} = state
 		return {
-			valid: users.valid,
-			loading: users.loading,
-			users: users.users,
-			comments: comments.comments,
+			valid: state.users.valid,
+			loading: state.users.loading,
+			users: getData(state, 'users'),
+			comments: getData(state, 'comments')
 		}
 	},
 	{getUsers}

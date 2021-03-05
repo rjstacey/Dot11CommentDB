@@ -1,4 +1,4 @@
-import {createSlice} from '@reduxjs/toolkit'
+import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
 import {setError} from './error'
 import fetcher from './fetcher'
@@ -26,35 +26,39 @@ const defaultSortEntries = votingPoolFields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {type, direction}}
 }, {});
 
+const dataAdapter = createEntityAdapter({
+	selectId: vp => vp.VotingPoolID,
+	sortComparer: (vp1, vp2) => vp1.VotingPoolID.localeCompare(vp2.VotingPoolID)
+});
+
 const dataSet = 'votingPools'
 
 const votingPoolsSlice = createSlice({
 	name: dataSet,
-	initialState: {
+	initialState: dataAdapter.getInitialState({
 		valid: false,
 		loading: false,
-		votingPools: [],
 		sort: sortReducer(undefined, sortInit(defaultSortEntries)),
 		filters: filtersReducer(undefined, filtersInit(defaultFiltersEntries)),
 		selected: selectedReducer(undefined, {}),
 		ui: uiReducer(undefined, {})		
-	},
+	}),
 	reducers: {
-		get(state, action) {
+		getPending(state, action) {
 			state.loading = true;
 		},
 		getSuccess(state, action) {
 			const {votingPools} = action.payload;
 			state.loading = false;
 			state.valid = true;
-			state.votingPools = votingPools;
+			dataAdapter.setAll(state, votingPools);
 		},
 		getFailure(state, action) {
 			state.loading = false;
 		},
-		deleteMany(state, action) {
+		removeMany(state, action) {
 			const {votingPools} = action.payload;
-			state.votingPools = state.votingPools.filter(vp1 => !votingPools.find(vp2 => vp2.PoolType === vp1.PoolType && vp2.VotingPoolID === vp1.VotingPoolID))
+			dataAdapter.removeMany(state, votingPools);
 		}
 	},
 	extraReducers: builder => {
@@ -62,11 +66,8 @@ const votingPoolsSlice = createSlice({
 		.addMatcher(
 			(action) => ['voters/addOne', 'voters/updateOne', 'voters/deleteMany'].includes(action.type),
 			(state, action) => {
-				const {votingPool} = action.payload
-				const vp = state.votingPools.find(vp => (vp.PoolType === votingPool.PoolType && vp.VotingPoolID === votingPool.VotingPoolID))
-				state.votingPools = vp?
-					state.votingPools.map(vp => (vp.PoolType === votingPool.PoolType && vp.VotingPoolID === votingPool.VotingPoolID)? votingPool: vp):
-					state.votingPools.concat([votingPool])
+				const {votingPool} = action.payload;
+				dataAdapter.upsertOne(state, votingPool);
 			}
 		)
 		.addMatcher(
@@ -99,13 +100,13 @@ function updateIdList(votingPools, selected) {
 	return selected.filter(id => !votingPools.find(vp => vp.VotingPoolID === id))
 }
 
-const {get, getSuccess, getFailure} = votingPoolsSlice.actions;
+const {getPending, getSuccess, getFailure} = votingPoolsSlice.actions;
 
 export function getVotingPools() {
 	return async (dispatch, getState) => {
-		if (getState().voters.getVotingPools)
+		if (getState()[dataSet].loading)
 			return null
-		dispatch(get())
+		dispatch(getPending())
 		let response;
 		try {
 			response = await fetcher.get('/api/votingPools')
@@ -128,7 +129,7 @@ export function getVotingPools() {
 	}
 }
 
-const {deleteMany} = votingPoolsSlice.actions;
+const {removeMany} = votingPoolsSlice.actions;
 
 export function deleteVotingPools(votingPools) {
 	return async (dispatch, getState) => {
@@ -141,7 +142,7 @@ export function deleteVotingPools(votingPools) {
 		const {selected} = getState()[dataSet]
 		const newSelected = selected.filter(id => !votingPools.find(vp => vp.VotingPoolID === id))
 		return Promise.all([
-			dispatch(deleteMany({votingPools})),
+			dispatch(removeMany({votingPools})),
 			dispatch(setSelected(dataSet, newSelected))
 		])
 	}

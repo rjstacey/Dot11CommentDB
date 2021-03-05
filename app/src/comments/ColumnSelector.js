@@ -99,7 +99,7 @@ const ColumnSelectorDropdown = connect(
 	},
 	(dispatch) => ({
 		toggleTableFixed: (view) => dispatch(toggleTableFixed(dataSet, view)),
-		upsertTableColumn: (view, key, visible) => dispatch(setTableColumnVisible(dataSet, view, {key, visible}))
+		upsertTableColumn: (view, key, visible) => dispatch(upsertTableColumn(dataSet, view, {key, visible}))
 	})
 )(_ColumnSelectorDropdown);
 

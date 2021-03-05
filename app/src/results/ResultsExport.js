@@ -27,8 +27,8 @@ function _ResultsExportDropdown({close, ballot, setError}) {
 		catch (error) {
 			setError(`Unable to export results for ${forProject? project: ballotId}`, error)
 		}
+		setBusy(false);
 		close();
-		setBusy(true);
 	}
 
 	return (

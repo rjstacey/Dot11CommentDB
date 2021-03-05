@@ -5,6 +5,7 @@ import HorizontalTimeline from '../general/HorizontalTimeline'
 import AppModal from '../modals/AppModal'
 import {Comment} from './CommentDetail'
 import {getCommentsHistory} from '../store/commentsHistory'
+import {getData} from '../store/dataSelectors'
 
 const Container = styled.div`
 	width: 80vw;
@@ -80,7 +81,7 @@ function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, 
 const CommentHistory = connect(
 	(state) => ({
 		selected: state.comments.selected,
-		comments: state.comments.comments,
+		comments: getData(state, 'comments'),
 		commentsHistory: state.commentsHistory.commentsHistory,
 		loading: state.commentsHistory.loading,
 		valid: state.commentsHistory.selected,

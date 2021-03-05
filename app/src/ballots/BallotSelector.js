@@ -3,7 +3,7 @@ import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import Select from 'react-dropdown-select'
-import {getBallots, setProject, setBallotId, getProjectList, getBallotList} from '../store/ballots'
+import {loadBallots, setProject, setBallotId, getProjectList, getBallotList} from '../store/ballots'
 
 const Label = styled.label`
 	font-weight: bold;
@@ -83,15 +83,15 @@ function BallotSelector({
 	ballotId,
 	setBallotId,
 	ballotList,
-	getBallots,
+	loadBallots,
 	readOnly,
 	onBallotSelected
 }) {
 
 	React.useEffect(() => {
 		if (!valid)
-			getBallots()
-	}, [valid, getBallots])
+			loadBallots()
+	}, [valid, loadBallots])
 
 	const handleProjectChange = (value) => {
 		setProject(value)
@@ -137,7 +137,7 @@ BallotSelector.propTypes = {
 	ballotList: PropTypes.array.isRequired,
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
-	getBallots: PropTypes.func.isRequired,
+	loadBallots: PropTypes.func.isRequired,
 	setProject: PropTypes.func.isRequired,
 	setBallotId: PropTypes.func.isRequired,
 }
@@ -154,5 +154,5 @@ export default connect(
 			loading: s.loading,
 		}
 	},
-	{getBallots, setProject, setBallotId}
+	{loadBallots, setProject, setBallotId}
 )(BallotSelector)

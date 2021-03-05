@@ -1,4 +1,4 @@
-import {createSlice} from '@reduxjs/toolkit'
+import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
 import {setError} from './error'
 import fetcher from './fetcher'
@@ -27,58 +27,65 @@ const defaultSortEntries = voterFields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {type, direction}}
 }, {});
 
+const dataAdapter = createEntityAdapter({
+	selectId: v => v.SAPIN,
+	sortComparer: (v1, v2) => v1.SAPIN - v2.SAPIN
+});
+
 const dataSet = 'voters';
 
 const votersSlice = createSlice({
 	name: dataSet,
-	initialState: {
+	initialState: dataAdapter.getInitialState({
 		votingPool: {VotingPool: '', PoolType: '', VotersCount: 0},
 		valid: false,
 		loading: false,
-		voters: [],
 		sort: sortReducer(undefined, sortInit(defaultSortEntries)),
 		filters: filtersReducer(undefined, filtersInit(defaultFiltersEntries)),
 		selected: selectedReducer(undefined, {}),
 		ui: uiReducer(undefined, {})		
-	},
+	}),
 	reducers: {
-		get(state, action) {
+		getPending(state, action) {
 			state.loading = true;
-			state.voters = [];
 			state.votingPool = {
 				VotingPool: action.payload.votingPoolId,
 				PoolType: action.payload.votingPoolType,
 				VotersCount: 0
 			};
+			dataAdapter.setAll(state, []);
 		},
 		getSuccess(state, action) {
+			const {votingPool, voters} = action.payload;
 			state.loading = false;
 			state.valid = true;
-			state.voters = action.payload.voters;
-			state.votingPool = action.payload.votingPool;
+			state.votingPool = votingPool;
+			dataAdapter.setAll(state, voters);
 		},
 		getFailure(state, action) {
 			state.loading = false;
 		},
 		addOne(state, action) {
 			const {votingPool, voter} = action.payload;
-			if (votingPool.PoolType === state.votingPool.PoolType && votingPool.VotingPoolID === state.votingPool.VotingPoolID) {
-				state.voters.push(voter)
+			if (votingPool.PoolType === state.votingPool.PoolType &&
+				votingPool.VotingPoolID === state.votingPool.VotingPoolID) {
+				dataAdapter.addOne(state, voter);
+				state.votingPool = votingPool;
 			}
 		},
 		updateOne(state, action) {
 			const {votingPool, voterId, voter} = action.payload;
-			if (votingPool.PoolType === state.votingPool.PoolType && votingPool.VotingPoolID === state.votingPool.VotingPoolID) {
-				const key = votingPool.PoolType === 'SA'? 'Email': 'SAPIN'
-				state.voters = state.voters.map(v => (v[key] === voterId)? {...v, ...voter}: v)
+			if (votingPool.PoolType === state.votingPool.PoolType &&
+				votingPool.VotingPoolID === state.votingPool.VotingPoolID) {
+				dataAdapter.updateOne(state, {id: voterId, changes: voter});
 				state.votingPool = votingPool;
 			}
 		},
 		deleteMany(state, action) {
 			const {votingPool, voterIds} = action.payload;
-			if (votingPool.PoolType === state.votingPool.PoolType && votingPool.VotingPoolID === state.votingPool.VotingPoolID) {
-				const key = votingPool.PoolType === 'SA'? 'Email': 'SAPIN'
-				state.voters = state.voters.filter(v => !voterIds.includes(v[key]))
+			if (votingPool.PoolType === state.votingPool.PoolType &&
+				votingPool.VotingPoolID === state.votingPool.VotingPoolID) {
+				dataAdapter.removeMany(state, voterIds);
 				state.votingPool = votingPool;
 			}
 		}
@@ -119,11 +126,11 @@ function updateIdList(votingPoolType, voters, selected) {
 	return selected.filter(id => !voters.find(v => v[idKey] === id))
 }
 
-const {get, getSuccess, getFailure} = votersSlice.actions;
+const {getPending, getSuccess, getFailure} = votersSlice.actions;
 
 export function getVoters(votingPoolType, votingPoolId) {
 	return async (dispatch, getState) => {
-		dispatch(get({votingPoolType, votingPoolId}))
+		dispatch(getPending({votingPoolType, votingPoolId}))
 		let response;
 		try {
 			response = await fetcher.get(`/api/voters/${votingPoolType}/${votingPoolId}`)
