@@ -204,13 +204,8 @@ export async function updateVoter(votingPoolType, votingPoolId, voterId, voter) 
 			Name: voter.Name
 		})
 		table = 'saVoters'
-		key = 'Email'
 	}
 	else {
-		voterId = parseInt(voterId, 10)
-		if (voterId === NaN) {
-			throw 'Expected a number for SAPIN'
-		}
 		entry = Object.assign(entry, {
 			SAPIN: voter.SAPIN,
 			LastName: voter.LastName,
@@ -219,7 +214,6 @@ export async function updateVoter(votingPoolType, votingPoolId, voterId, voter) 
 			Status: voter.Status
 		})
 		table = 'wgVoters'
-		key = 'SAPIN'
 	}
 	for (let k of Object.keys(entry)) {
 		if (entry[k] === undefined) {
@@ -230,10 +224,8 @@ export async function updateVoter(votingPoolType, votingPoolId, voterId, voter) 
 		return null
 	}
 	const SQL = 
-		db.format('UPDATE ?? SET ? WHERE VotingPoolID=? AND ??=?;',
-			[table, entry, votingPoolId, key, voterId]) +
-		db.format('SELECT * FROM ?? WHERE VotingPoolID=? AND ??=?',
-			[table, entry.VotingPoolID? entry.VotingPoolID: votingPoolId, key, entry[key]? entry[key]: voterId])
+		db.format('UPDATE ?? SET ? WHERE id=?;', [table, entry, voterId]) +
+		db.format('SELECT * FROM ?? WHERE id=?', [table, voterId]);
 
 	try {
 		const results = await db.query(SQL)
@@ -295,14 +287,10 @@ export async function updateVoter(votingPoolType, votingPoolId, voterId, voter) 
 }
 
 export async function deleteVoters(votingPoolType, votingPoolId, voterIds) {
-	let SQL
-	if (votingPoolType === 'SA') {
-		SQL = db.format('DELETE FROM saVoters WHERE VotingPoolID=? AND Email IN (?)', [votingPoolId, voterIds])
-	}
-	else {
-		SQL = db.format('DELETE FROM wgVoters WHERE VotingPoolID=? AND SAPIN IN (?)', [votingPoolId, voterIds])
-	}
-	await db.query(SQL)
+	const table = votingPoolType === 'SA'? 'saVoters': 'wgVoters';
+	const SQL =
+		db.format('DELETE FROM ?? WHERE VotingPoolID=? AND id IN (?); ', [table, votingPoolId, voterIds]);
+	const results = await db.query(SQL);
 	const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
 	return {votingPool}
 }

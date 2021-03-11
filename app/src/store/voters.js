@@ -28,7 +28,7 @@ const defaultSortEntries = voterFields.reduce((entries, dataKey) => {
 }, {});
 
 const dataAdapter = createEntityAdapter({
-	selectId: v => v.SAPIN,
+	selectId: v => v.id,
 	sortComparer: (v1, v2) => v1.SAPIN - v2.SAPIN
 });
 
@@ -81,7 +81,7 @@ const votersSlice = createSlice({
 				state.votingPool = votingPool;
 			}
 		},
-		deleteMany(state, action) {
+		removeMany(state, action) {
 			const {votingPool, voterIds} = action.payload;
 			if (votingPool.PoolType === state.votingPool.PoolType &&
 				votingPool.VotingPoolID === state.votingPool.VotingPoolID) {
@@ -152,14 +152,13 @@ export function loadVoters(votingPoolType, votingPoolId) {
 	}
 }
 
-const {deleteMany} = votersSlice.actions;
+const {removeMany} = votersSlice.actions;
 
 export function deleteVoters(votingPoolType, votingPoolId, voterIds) {
 	return async (dispatch, getState) => {
-		const idArrayName = votingPoolType === 'SA'? 'Emails': 'SAPINs'
 		let response;
 		try {
-			response = await fetcher.delete(`/api/voters/${votingPoolType}/${votingPoolId}`, {[idArrayName]: voterIds})
+			response = await fetcher.delete(`/api/voters/${votingPoolType}/${votingPoolId}`, {voterIds})
 		}
 		catch(error) {
 			return dispatch(setError(`Unable to delete voters in voting pool ${votingPoolId}`, error))
@@ -169,7 +168,7 @@ export function deleteVoters(votingPoolType, votingPoolId, voterIds) {
 		const newSelected = selected.filter(id => !voterIds.includes(id))
 		return Promise.all([
 			dispatch(setSelected(dataSet, newSelected)),
-			dispatch(deleteMany({votingPool, voterIds}))
+			dispatch(removeMany({votingPool, voterIds}))
 		])
 	}
 }

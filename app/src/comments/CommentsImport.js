@@ -16,11 +16,8 @@ const importFieldOptions = [
 		label: 'Clause & Page',
 		description: 'Update Clause, Page and Line fields of each comment. Original fields as commented are preserved.'},
 	{value: FieldsToUpdate.AdHoc,
-		label: 'Owning Ad-hoc',
-		description: 'Update Owning Ad-hoc field of each comment'},
-	{value: FieldsToUpdate.CommentGroup,
-		label: 'Comment Group',
-		description: 'Update Comment Group field of each comment'},
+		label: 'Ad-hoc, Comment Group, Notes',
+		description: 'Update Owning Ad-hoc, Comment Group and Notes field of each comment'},
 	{value: FieldsToUpdate.Assignee,
 		label: 'Assignee',
 		description: 'Update Assignee field of each comment'},
@@ -276,7 +273,7 @@ function CommentsImport({
 }) {
 	return (
 		<ActionButtonDropdown
-			name='upload'
+			name='import'
 			title='Upload resolutions'
 			disabled={!ballotId}
 		>

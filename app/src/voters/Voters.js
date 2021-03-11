@@ -78,24 +78,29 @@ const TableRow = styled.div`
 	}
 `;
 
-function Voters(props) {
-	const {deleteVoters, getVoters, votingPool, loading} = props;
+function Voters({
+	loadVoters,
+	deleteVoters,
+	uploadVoters,
+	votingPool,
+	loading,
+	shownIds,
+	selected
+}) {
 	const {votingPoolType, votingPoolName} = useParams()
 	const history = useHistory()
 	const [editVoter, setEditVoter] = React.useState({action: null, voter: defaultVoter})
 	const [showImportVoters, setShowImportVoters] = React.useState(false)
 
-	const [columns, primaryDataKey, maxWidth] = React.useMemo(() => {
-
-		let columns = votingPoolType === 'WG'? wgColumns: saColumns
-		let primaryDataKey = votingPoolType === 'WG'? 'SAPIN': 'Email';
+	const [columns, maxWidth] = React.useMemo(() => {
 
 		const onDelete = async (voter) => {
 			const ok = await ConfirmModal.show(`Are you sure you want to remove ${voter.FirstName} ${voter.LastName} from the voting pool?`)
 			if (ok)
-				deleteVoters(votingPoolType, votingPoolName, [voter[primaryDataKey]])
+				deleteVoters(votingPoolType, votingPoolName, [voter.id])
 		}
 
+		let columns = votingPoolType === 'WG'? wgColumns: saColumns
 		columns = columns.concat({
 			...actionsColumn,
 			cellRenderer: ({rowData}) => 
@@ -104,36 +109,31 @@ function Voters(props) {
 					onDelete={() => onDelete(rowData)}
 				/>
 		});
-		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
-		return [columns, primaryDataKey, maxWidth]
+		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40;
+		return [columns, maxWidth];
 	}, [deleteVoters, votingPoolType, votingPoolName]);
 
 	React.useEffect(() => {
 		if ((!votingPool.VotingPoolID || votingPool.VotingPoolID !== votingPoolName ||
 			 !votingPool.PoolType || votingPool.PoolType !== votingPoolType) &&
 			!loading) {
-			getVoters(votingPoolType, votingPoolName)
+			loadVoters(votingPoolType, votingPoolName)
 		}
-	}, [getVoters, loading, votingPool, votingPoolName, votingPoolType])
+	}, [votingPool, votingPoolName, votingPoolType])
 
 	const close = history.goBack;
- 	const refresh = () => props.getVoters(votingPoolType, votingPoolName);
+ 	const refresh = () => loadVoters(votingPoolType, votingPoolName);
 
 	async function handleRemoveSelected() {
-		const {voters, votersMap} = props
-		var ids = []
-		for (var i = 0; i < votersMap.length; i++) { // only select checked items that are visible
-			let id = voters[votersMap[i]][primaryDataKey]
-			if (props.selected.includes(id)) {
-				ids.push(id)
-			}
+		const ids = [];
+		for (let id of shownIds) { // only select checked items that are visible
+			if (selected.includes(id))
+				ids.push(id);
 		}
-
 		if (ids.length) {
-			const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?')
-			if (ok) {
-				await props.deleteVoters(votingPoolType, votingPoolName, ids)
-			}
+			const ok = await ConfirmModal.show('Are you sure you want to delete ' + ids.join(', ') + '?');
+			if (ok)
+				await deleteVoters(votingPoolType, votingPoolName, ids);
 		}
 	}
 
@@ -145,10 +145,10 @@ function Voters(props) {
 			<TopRow style={{maxWidth}}>
 				<span><label>{votingPoolType} ballot voting pool:&nbsp;</label>{votingPoolName}</span>
 				<span>
-					<ActionButton name='add' title='Add Voter' onClick={handleAddVoter} />
-					<ActionButton name='delete' title='Remove Selected' disabled={props.selected.length === 0} onClick={handleRemoveSelected} />
-					<ActionButton name='import' title='Import Voters' onClick={() => setShowImportVoters(true)} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={props.loading} />
+					<ActionButton name='add' title='Add voter' onClick={handleAddVoter} />
+					<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
+					<ActionButton name='import' title='Import voters' onClick={() => setShowImportVoters(true)} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
 					<ActionButton name='close' title='Close' onClick={close} />
 				</span>
 			</TopRow>
@@ -161,8 +161,8 @@ function Voters(props) {
 					dataSet='voters'
 					headerHeight={36}
 					estimatedRowHeight={36}
-					loading={props.loading}
-					rowKey={primaryDataKey}
+					loading={loading}
+					rowKey={'id'}
 				/>
 			</TableRow>
 
@@ -180,7 +180,7 @@ function Voters(props) {
 				close={() => setShowImportVoters(false)}
 				votingPoolName={votingPoolName}
 				votingPoolType={votingPoolType}
-				uploadVoters={props.uploadVoters}
+				uploadVoters={uploadVoters}
 			/>
 		</React.Fragment>
 	)
@@ -191,8 +191,7 @@ Voters.propTypes = {
 	votingPool: PropTypes.object.isRequired,
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
-	voters:  PropTypes.array.isRequired,
-	votersMap: PropTypes.array.isRequired,
+	shownIds: PropTypes.array.isRequired,
 	loadVoters: PropTypes.func.isRequired,
 	deleteVoters: PropTypes.func.isRequired
 }
@@ -203,8 +202,7 @@ export default connect(
 		votingPool: state[dataSet].votingPool,
 		valid: state[dataSet].valid,
 		loading: state[dataSet].loading,
-		voters: getData(state, dataSet),
-		votersMap: getSortedFilteredIds(state, dataSet),
+		shownIds: getSortedFilteredIds(state, dataSet),
 	}),
 	{loadVoters, deleteVoters}
 )(Voters)

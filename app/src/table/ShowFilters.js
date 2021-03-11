@@ -103,8 +103,16 @@ const FiltersContent = styled.div`
 	border-radius: 3px;
 `;
 
-function ShowFilters({style, className, totalRows, shownRows, filters, removeFilter, clearAllFilters, ...otherProps}) {
-
+function ShowFilters({
+	style,
+	className,
+	totalRows,
+	shownRows,
+	filters,
+	removeFilter,
+	clearAllFilters,
+	...otherProps
+}) {
 	const activeFilterElements = renderActiveFilters({filters, removeFilter, clearAllFilters})
 
 	return (

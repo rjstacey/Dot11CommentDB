@@ -57,8 +57,12 @@ const TableRow = styled.div`
 	}
 `;
 
-function VotersPools(props) {
-	const {valid, loading, loadVotingPools, deleteVotingPools} = props;
+function VotersPools({
+	valid,
+	loading,
+	loadVotingPools,
+	deleteVotingPools
+}) {
 	const history = useHistory();
 	const [showVotersPoolAdd, setShowVotersPoolAdd] = React.useState(false);
 
@@ -84,8 +88,7 @@ function VotersPools(props) {
 						/>}
 				: col
 		);
-	}, [history, deleteVotingPools]);
-
+	}, []);
 
 	const addVotingPool = (votingPoolType, votingPoolName) => history.push(`/Voters/${votingPoolType}/${votingPoolName}`)
 
@@ -95,7 +98,7 @@ function VotersPools(props) {
 				<label>Voting Pools</label>
 				<span>
 					<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowVotersPoolAdd(true)} />
-					<ActionButton name='refresh' title='Refresh' onClick={props.getVotingPools} />
+					<ActionButton name='refresh' title='Refresh' onClick={loadVotingPools} />
 				</span>
 			</TopRow>
 
@@ -105,8 +108,8 @@ function VotersPools(props) {
 					columns={columns}
 					estimatedRowHeight={32}
 					headerHeight={36}
-					dataSet='votingPools'
-					loading={props.loading}
+					dataSet={dataSet}
+					loading={loading}
 					rowKey='VotingPoolID'
 				/>
 			</TableRow>
@@ -121,22 +124,16 @@ function VotersPools(props) {
 }
 
 VotersPools.propTypes = {
-	selected: PropTypes.array.isRequired,
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
-	votingPools:  PropTypes.array.isRequired,
-	votingPoolsMap: PropTypes.array.isRequired,
 	loadVotingPools: PropTypes.func.isRequired,
 	deleteVotingPools: PropTypes.func.isRequired,
 }
 
 export default connect(
-	(state, ownProps) => ({
-		selected: state[dataSet].selected,
+	(state) => ({
 		valid: state[dataSet].valid,
-		loading: state[dataSet].loading,
-		votingPools: getData(state, dataSet),
-		votingPoolsMap: getSortedFilteredIds(state, dataSet),
+		loading: state[dataSet].loading
 	}),
 	{loadVotingPools, deleteVotingPools}
 )(VotersPools)

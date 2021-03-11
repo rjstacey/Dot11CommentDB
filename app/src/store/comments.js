@@ -24,6 +24,7 @@ const commentFields = {
 	ProposedChange: 'Proposed Change',
 	AdHoc: 'Ad-hoc',
 	CommentGroup: 'Group',
+	Notes: 'Notes',
 	AssigneeName: 'Assignee',
 	Submission: 'Submission',
 	Status: 'Status',
@@ -453,7 +454,6 @@ export const FieldsToUpdate = {
 	CID: 'cid',
 	ClausePage: 'clausepage',
 	AdHoc: 'adhoc',
-	CommentGroup: 'commentgroup',
 	Assignee: 'assignee',
 	Resolution: 'resolution',
 	Editing: 'editing'
@@ -505,19 +505,24 @@ export function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchUpdat
 
 export const CommentsSpreadsheetFormat = {
 	MyProject: 'MyProject',
+	Legacy: 'Legacy',
+	Modern: 'Modern'
+};
+
+export const CommentsSpreadsheetStyle = {
 	AllComments: 'AllComments',
 	TabPerAdHoc: 'TabPerAdHoc',
 	TabPerCommentGroup: 'TabPerCommentGroup'
 }
 
-export function exportCommentsSpreadsheet(ballotId, file, format) {
+export function exportCommentsSpreadsheet(ballotId, file, format, style) {
 	return async (dispatch) => {
 		try {
 			let Filename;
 			if (file)
 				Filename = file.name
-			const url = '/api/comments/' + (format === CommentsSpreadsheetFormat.MyProject? 'exportForMyProject': 'exportSpreadsheet')
-			await fetcher.postForFile(url, {BallotID: ballotId, Filename, Format: format}, file)
+			const url = '/api/comments/export/' + format
+			await fetcher.postForFile(url, {BallotID: ballotId, Filename, Style: style}, file)
 			return null
 		}
 		catch(error) {

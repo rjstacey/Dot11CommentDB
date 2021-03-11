@@ -2,7 +2,7 @@
 
 const db = require('../util/database');
 
-import {parseLegacyCommentsSpreadsheet} from './legacyCommentSpreadsheet'
+import {parseCommentsSpreadsheet} from './commentsSpreadsheet'
 import {getComments, GET_COMMENTS_SUMMARY_SQL} from './comments'
 
 const matchClause = (dbValue, sValue) => {
@@ -53,13 +53,13 @@ const matchText = (dbValue, sValue) => {
 }
 
 const comparisons = [
-	(dbC, sC) => dbC.Category === sC['Type of Comment'],
-	(dbC, sC) => matchClause(dbC.C_Clause, sC['Clause Number(C)']),
-	(dbC, sC) => matchPageLine(dbC.C_Page, sC['Page(C)']),
-	(dbC, sC) => matchPageLine(dbC.C_Line, sC['Line(C)']),
-	(dbC, sC) => matchText(dbC.Comment, sC['Comment']),
-	(dbC, sC) => matchText(dbC.ProposedChange, sC['Proposed Change']),
-	//(dbC, sC) => dbC.CommenterName === sC['Commenter'],
+	(dbC, sC) => dbC.Category === sC.Category,
+	(dbC, sC) => matchClause(dbC.C_Clause, sC.C_Clause),
+	(dbC, sC) => matchPageLine(dbC.C_Page, sC.C_Page),
+	(dbC, sC) => matchPageLine(dbC.C_Line, sC.C_Line),
+	(dbC, sC) => matchText(dbC.Comment, sC.Comment),
+	(dbC, sC) => matchText(dbC.ProposedChange, sC.ProposedChange),
+	//(dbC, sC) => dbC.CommenterName === sC.CommenterName,
 ];
 
 function findMatchByEliminationUsingTheseComparisons(dbC, sheetComments, comparisons) {
@@ -159,7 +159,7 @@ function matchCID(sheetComments, dbComments) {
 	let dbCommentsRemaining = [];	// dbComments with no match
 	let sheetCommentsRemaining = sheetComments.slice();
 	dbComments.forEach(dbC => {
-		const i = sheetCommentsRemaining.findIndex(sC => parseInt(sC['CID']) === dbC.CommentID);
+		const i = sheetCommentsRemaining.findIndex(sC => parseInt(sC.CID) === dbC.CommentID);
 		if (i >= 0) {
 			matched.push({dbComment: dbC, sheetComment: sheetCommentsRemaining[i]});
 			sheetCommentsRemaining.splice(i, 1);
@@ -176,8 +176,6 @@ const FieldsToUpdate = {
 	CID: 'cid',
 	ClausePage: 'clausepage',
 	AdHoc: 'adhoc',
-	CommentGroup: 'commentgroup',
-	Notes: 'notes',
 	Assignee: 'assignee',
 	Resolution: 'resolution',
 	Editing: 'editing'
@@ -199,83 +197,54 @@ function commentUpdate(toUpdate, c, cs) {
 	const u = {}
 
 	if (toUpdate.includes(FieldsToUpdate.CID)) {
-		u.CommentID = cs['CID'];
+		u.CommentID = cs.CID;
 	}
 
 	if (toUpdate.includes(FieldsToUpdate.ClausePage)) {
-		if (c.Clause !== cs['Clause'])
-			u.Clause = cs['Clause'];
-		let page = parseFloat(cs['Page'])
-		if (isNaN(page))
-			page = 0;
-		page = page.toFixed(2);
-		if (c.Page !== page)
-			u.Page = page;
-	}
-
-	if (toUpdate.includes(FieldsToUpdate.CommentGroup)) {
-		if (c.CommentGroup !== cs['Comment Group'])
-			u.CommentGroup = cs['Comment Group'] || '';
+		if ((c.Clause || cs.Clause) && c.Clause !== cs.Clause)
+			u.Clause = cs.Clause;
+		if ((c.Clause || cs.Clause) && c.Page !== cs.Page)
+			u.Page = c.Page;
 	}
 
 	if (toUpdate.includes(FieldsToUpdate.AdHoc)) {
-		if (c.AdHoc !== cs['Owning Ad-hoc'])
-			u.AdHoc = cs['Owning Ad-hoc'] || '';
-	}
-
-	if (toUpdate.includes(FieldsToUpdate.Notes)) {
-		if (c.Notes !== cs['Ad-hoc Notes'])
-			u.Notes = cs['Ad-hoc Notes'] || '';
+		if ((c.AdHoc || cs.AdHoc) && c.AdHoc !== cs.AdHoc)
+			u.AdHoc = cs.AdHoc || '';
+		if ((c.CommentGroup || cs.CommentGroup) && c.CommentGroup !== cs.CommentGroup)
+			u.CommentGroup = cs.CommentGroup || '';
+		if ((c.Notes || cs.Notes) && c.Notes !== cs.Notes)
+			u.Notes = cs.Notes || '';
 	}
 
 	return Object.keys(u).length? u: null;
-}
-
-function parseLegacyResolution(cs) {
-	const r = {Resolution: '', ResnStatus: ''};
-	if (typeof cs['Resolution'] === 'string') {
-		
-		// Override 'Resn Status' if the resolution itself has something that looks like a resolution status
-		if (cs['Resolution'].search(/^\s*(ACCEPT|ACCEPTED)/i) >= 0)
-			r.ResnStatus = 'A';
-		else if (cs['Resolution'].search(/^\s*(REVISE|REVISED)/i) >= 0)
-			r.ResnStatus = 'V';
-		else if (cs['Resolution'].search(/^\s*(REJECT|REJECTED)/i) >= 0)
-			r.ResnStatus = 'J';
-
-		// Remove the resolution status if it exists. And leading whitespace or dash.
-		r.Resolution = cs['Resolution'].replace(/^\s*(ACCEPTED|ACCEPT|REVISED|REVISE|REJECTED|REJECT)[-\s]*/i, '')
-	}
-	return r;
 }
 
 function resolutionUpdate(toUpdate, c, cs) {
 	const n = {}
 
 	if (toUpdate.includes(FieldsToUpdate.Assignee)) {
-		if (c.AssigneeName !== cs['Assignee'])
-			n.AssigneeName = cs['Assignee'] || '';
+		if ((c.AssigneeName || cs.AssigneeName) && c.AssigneeName !== cs.AssigneeName) {
+			n.AssigneeName = cs.AssigneeName || '';
+			n.AssigneeSAPIN = 0;
+		}
 	}
 
 	if (toUpdate.includes(FieldsToUpdate.Resolution)) {
-		const r = parseLegacyResolution(cs);
-		if (c.Resolution !== r.Resolution)
-			n.Resolution = r.Resolution;
-		if (r.ResnStatus && c.ResnStatus !== r.ResnStatus)
-			n.ResnStatus = r.ResnStatus;
-		else if (!r.ResnStatus && c.ResnStatus !== cs['Resn Status'])
-			n.ResnStatus = cs['Resn Status'] || '';
-		if (c.ApprovedByMotion !== cs['Motion Number'])
-			n.ApprovedByMotion = cs['Motion Number'] || '';
+		if ((c.Resolution || cs.Resolution) && c.Resolution !== cs.Resolution)
+			n.Resolution = cs.Resolution;
+		if ((c.ResnStatus || cs.ResnStatus) && c.ResnStatus !== cs.ResnStatus)
+			n.ResnStatus = cs.ResnStatus;
+		if ((c.ApprovedByMotion || cs.ApprovedByMotion) && c.ApprovedByMotion !== cs.ApprovedByMotion)
+			n.ApprovedByMotion = cs.ApprovedByMotion || '';
 	}
 
 	if (toUpdate.includes(FieldsToUpdate.Editing)) {
-		if (c.EditStatus !== cs['Edit Status'])
-			n.EditStatus = cs['Edit Status'] || '';
-		if (c.EditNotes !== cs['Edit Notes'])
-			n.EditNotes = cs['Edit Notes'] || '';
-		if (c.EditInDraft !== cs['Edited in Draft'])
-			n.EditInDraft = cs['Edited in Draft'] || '';
+		if ((c.EditStatus || cs.EditStatus) && c.EditStatus !== cs.EditStatus)
+			n.EditStatus = cs.EditStatus || '';
+		if ((c.EditNotes || cs.EditNotes) && c.EditNotes !== cs.EditNotes)
+			n.EditNotes = cs.EditNotes || '';
+		if ((c.EditInDraft || cs.EditInDraft) && c.EditInDraft !== cs.EditInDraft)
+			n.EditInDraft = cs.EditInDraft || '';
 	}
 
 	return Object.keys(n).length? n: null;
@@ -402,14 +371,14 @@ function addCommentsSQL(userId, ballotId, sheetComments, toUpdate) {
 
 	sheetComments.forEach(cs => {
 		let c = {
-			CommentID: cs['CID'],
-			CommenterName: cs['Commenter'],
-			Category: cs['Type of Comment'],
-			C_Clause: cs['Clause Number(C)'],
-			C_Page: cs['Page(C)'],
-			C_Line: cs['Line(C)'],
-			Comment: cs['Comment'],
-			ProposedChange: cs['Proposed Change'],
+			CommentID: cs.CID,
+			CommenterName: cs.CommenterName,
+			Category: cs.Category,
+			C_Clause: cs.C_Clause,
+			C_Page: cs.C_Page,
+			C_Line: cs.C_Line,
+			Comment: cs.Comment,
+			ProposedChange: cs.ProposedChange,
 			...commentUpdate(update, {}, cs)
 		}
 		newComments.push(c);
@@ -468,7 +437,7 @@ export async function uploadResolutions(userId, ballotId, toUpdate, matchAlgorit
 	}
 
 	const t1 = Date.now();
-	const sheetComments = await parseLegacyCommentsSpreadsheet(file.buffer, sheetName);
+	const sheetComments = await parseCommentsSpreadsheet(file.buffer, sheetName);
 	const t2 = Date.now();
 	const dbComments = await getComments(ballotId);
 	const t3 = Date.now();
@@ -486,23 +455,23 @@ export async function uploadResolutions(userId, ballotId, toUpdate, matchAlgorit
 				`${dbCommentsRemaining.length} unmatched database entries:\n` +
 				dbCommentsRemaining.map(c => c.CommentID).join(', ') + '\n' +
 				`${sheetCommentsRemaining.length} unmatched spreadsheet entries:\n` +
-				sheetCommentsRemaining.map(c => c['CID']).join(', ')
+				sheetCommentsRemaining.map(c => c.CID).join(', ')
 		}
 
 		[SQL, updated] = updateCommentsSQL(userId, ballotId, matched, toUpdate);
 		matched = matched.map(m => m.dbComment.CommentID);
-		remaining = sheetCommentsRemaining.map(c => c['CID']);
+		remaining = sheetCommentsRemaining.map(c => c.CID);
 	}
 	else if (matchUpdate === MatchUpdate.Any) {
 		[SQL, updated] = updateCommentsSQL(userId, ballotId, matched, toUpdate);
 		matched = matched.map(m => m.dbComment.CommentID);
 		unmatched = dbCommentsRemaining.map(c => c.CommentID);
-		remaining = sheetCommentsRemaining.map(c => c['CID']);
+		remaining = sheetCommentsRemaining.map(c => c.CID);
 	}
 	else if (matchUpdate === MatchUpdate.Add) {
 		SQL = addCommentsSQL(userId, ballotId, sheetCommentsRemaining, toUpdate);
 		matched = [];
-		added = sheetCommentsRemaining.map(c => c['CID']);
+		added = sheetCommentsRemaining.map(c => c.CID);
 	}
 	//console.log(SQL)
 

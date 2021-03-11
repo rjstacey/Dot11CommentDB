@@ -1,7 +1,7 @@
 'use strict';
 
 const db = require('../util/database')
-import {genLegacyCommentSpreadsheet} from './legacyCommentSpreadsheet'
+import {genCommentsSpreadsheet} from './commentsSpreadsheet'
 
 const GET_RESOLUTIONS_SQL =
 	'SELECT ' +
@@ -153,8 +153,8 @@ export async function exportResolutionsForMyProject(ballotId, filename, file, re
 	res.end()
 }
 
-export async function exportSpreadsheet(user, ballotId, format, filename, file, res) {
-	console.log(ballotId, format, filename, file)
+export async function exportSpreadsheet(user, ballotId, filename, format, style, file, res) {
+	console.log(ballotId, format, style, filename, file)
 	const SQL =
 		db.format('SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID; ', [ballotId]) +
 		db.format('SELECT Document FROM ballots WHERE BallotID=?;', [ballotId]);
@@ -163,6 +163,6 @@ export async function exportSpreadsheet(user, ballotId, format, filename, file, 
 	const doc = ballots.length > 0? ballots[0].Document: ''
 
 	res.attachment(filename || 'comments.xlsx')
-	await genLegacyCommentSpreadsheet(user, ballotId, format, doc, comments, file, res)
+	await genCommentsSpreadsheet(user, ballotId, format, style, doc, comments, file, res)
 	res.end()
 }

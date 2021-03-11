@@ -5,7 +5,7 @@ import fetcher from './fetcher'
 
 import sortsSlice, {sortInit, SortDirection, SortType} from './sort'
 import filtersSlice, {filtersInit, FilterType} from './filters'
-import selectedSlice, {setSelected} from './selected'
+import selectedSlice, {getSelected, setSelected} from './selected'
 import uiSlice from './ui'
 
 const votingPoolFields = ['PoolType', 'VotingPoolID', 'VoterCount'];
@@ -57,8 +57,8 @@ const votingPoolsSlice = createSlice({
 			state.loading = false;
 		},
 		removeMany(state, action) {
-			const {votingPools} = action.payload;
-			dataAdapter.removeMany(state, votingPools);
+			const {votingPoolIds} = action.payload;
+			dataAdapter.removeMany(state, votingPoolIds);
 		}
 	},
 	extraReducers: builder => {
@@ -119,7 +119,7 @@ export function loadVotingPools() {
 			])
 		}
 		const {votingPools} = response;
-		const {selected} = getState()[dataSet]
+		const selected = getSelected(getState(), dataSet);
 		const newSelected = updateIdList(votingPools, selected)
 		const p = []
 		if (newSelected !== selected)
@@ -139,10 +139,11 @@ export function deleteVotingPools(votingPools) {
 		catch(error) {
 			return dispatch(setError('Unable to delete voting pool(s)', error))
 		}
-		const {selected} = getState()[dataSet]
-		const newSelected = selected.filter(id => !votingPools.find(vp => vp.VotingPoolID === id))
+		const votingPoolIds = votingPools.map(vp => vp.VotingPoolID);
+		const selected = getSelected(getState(), dataSet);
+		const newSelected = selected.filter(id => !votingPoolIds.includes(id));
 		return Promise.all([
-			dispatch(removeMany({votingPools})),
+			dispatch(removeMany({votingPoolIds})),
 			dispatch(setSelected(dataSet, newSelected))
 		])
 	}

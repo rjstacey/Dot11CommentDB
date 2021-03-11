@@ -1,11 +1,9 @@
 import {createCachedSelector} from 're-reselect'
-import {sortData} from './sort'
-import {filterData} from './filters'
+import {getSorts, sortData} from './sort'
+import {getFilters, filterData} from './filters'
 
 export const getEntities = (state, dataSet) => state[dataSet].entities
 export const getIds = (state, dataSet) => state[dataSet].ids
-export const getSorts = (state, dataSet) => state[dataSet].sorts
-export const getFilters = (state, dataSet) => state[dataSet].filters
 
 /*
  * getData(state, dataSet) selector

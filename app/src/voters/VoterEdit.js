@@ -77,7 +77,7 @@ function VoterEditModal({
 			}
 			else {
 				const changed = shallowDiff(voter, state)
-				a = updateVoter(votingPoolType,	votingPoolName,	voter[key],	changed)
+				a = updateVoter(votingPoolType,	votingPoolName,	voter.id, changed)
 			}
 		}
 		await a

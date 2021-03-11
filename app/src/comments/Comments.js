@@ -21,7 +21,6 @@ import CommentsHistoryModal from './CommentHistory'
 import {CommentIdSelector, CommentIdFilter} from './CommentIdList'
 
 import {loadComments} from '../store/comments'
-import {setSelected} from '../store/selected'
 import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 import {setBallotId} from '../store/ballots'
 import {setTableView, upsertTableColumns} from '../store/ui'
@@ -113,19 +112,19 @@ const StyledCommandIdFilter = styled(CommentIdFilter)`
 const renderHeaderCellStacked1 = (props) => 
 	<React.Fragment>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={70} dropdownWidth={400} dataSet='comments' dataKey='CID' label='CID' 
+			<HeaderSubcomponent {...props} width={70} dropdownWidth={400} dataKey='CID' label='CID' 
 				customFilterElement=<StyledCommandIdFilter />
 			/>
-			<HeaderSubcomponent {...props} width={40} dropdownWidth={140} dataSet='comments' dataKey='Category' label='Cat' />
+			<HeaderSubcomponent {...props} width={40} dropdownWidth={140} dataKey='Category' label='Cat' />
 		</FlexRow>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={70} dropdownWidth={200} dataSet='comments' dataKey='Clause' label='Clause' />
-			<HeaderSubcomponent {...props} width={40} dropdownWidth={150} dataSet='comments' dataKey='Page' label='Page' dataRenderer={renderPage} />
+			<HeaderSubcomponent {...props} width={70} dropdownWidth={200} dataKey='Clause' label='Clause' />
+			<HeaderSubcomponent {...props} width={40} dropdownWidth={150} dataKey='Page' label='Page' dataRenderer={renderPage} />
 		</FlexRow>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={90} dropdownWidth={300} dataSet='comments' dataKey='CommenterName' label='Commenter' />
-			<HeaderSubcomponent {...props} width={30} dataSet='comments' dataKey='Vote' label='Vote' />
-			<HeaderSubcomponent {...props} width={30} dataSet='comments' dataKey='MustSatisfy' label='MS' />
+			<HeaderSubcomponent {...props} width={90} dropdownWidth={300} dataKey='CommenterName' label='Commenter' />
+			<HeaderSubcomponent {...props} width={30} dataKey='Vote' label='Vote' />
+			<HeaderSubcomponent {...props} width={30} dataKey='MustSatisfy' label='MS' />
 		</FlexRow>
 	</React.Fragment>
 
@@ -233,7 +232,8 @@ const allColumns = [
 	{key: 'Notes',
 		label: 'Notes',
 		width: 150, flexGrow: 1, flexShrink: 1,
-		dropdownWidth: 300},
+		dropdownWidth: 300,
+		cellRenderer: ({rowData}) => <ResolutionContainter dangerouslySetInnerHTML={{__html: rowData['Notes']}}/>},
 	{key: 'Stack3',
 		label: 'Assignee/Submission',
 		width: 250, flexGrow: 1, flexShrink: 1,
@@ -404,16 +404,28 @@ function commentsRowGetter({rowIndex, data}) {
 	return c
 }
 
-function Comments(props) {
-	const {setBallotId, valid, loading, commentBallotId, loadComments, access} = props;
-	const history = useHistory()
-	const {ballotId} = useParams()
+function Comments({
+		access,
+		ballotId,
+		setBallotId, 
+		valid,
+		loading,
+		commentBallotId,
+		loadComments, 
+		tableView,
+		setTableView,
+		tableConfig,
+		upsertTableColumns,
+		comments,
+		selected}) {
+
+	const history = useHistory();
+	const queryBallotId = useParams().ballotId;
 	const [split, setSplit] = React.useState(0.5);
 	const [editKey, setEditKey] = React.useState(new Date().getTime());
 	const [showHistory, setShowHistory] = React.useState(false);
 
 	/* On mount, if the store does not contain default configuration for each of our views, then add them */
-	const {tableView, tableConfig} = props;
 	React.useEffect(() => {
 		for (const view in defaultTablesConfig) {
 			const columnsConfig = {}
@@ -438,13 +450,13 @@ function Comments(props) {
 				}
 			}
 			if (Object.keys(columnsConfig).length)
-				props.upsertTableColumns(view, columnsConfig);
+				upsertTableColumns(view, columnsConfig);
 		}
 		if (!Object.keys(defaultTablesConfig).includes(tableView))
-			props.setTableView(Object.keys(defaultTablesConfig)[0])
+			setTableView(Object.keys(defaultTablesConfig)[0])
 	}, []);
 
-	React.useEffect(() => setEditKey(new Date().getTime()), [props.selected])
+	React.useEffect(() => setEditKey(new Date().getTime()), [selected])
 
 	/* If we change the table config signficantly we want to remount the table component,
 	 * so we create a key id for the component that depends on signficant parameters */
@@ -463,26 +475,25 @@ function Comments(props) {
 		return [id, columns]
 	}, [tableView, tableConfig]);
 
-
 	/* Act on a change to the ballotId in the URL */
 	React.useEffect(() => {
-		if (ballotId) {
-			if (ballotId !== props.ballotId) {
+		if (queryBallotId) {
+			if (queryBallotId !== ballotId) {
 				/* Routed here with parameter ballotId specified, but not matching stored ballotId.
 				 * Store the ballotId and get comments for this ballotId */
-				setBallotId(ballotId)
-				loadComments(ballotId)
+				setBallotId(queryBallotId);
+				loadComments(queryBallotId);
 			}
-			else if (!loading && (!valid || commentBallotId !== ballotId)) {
-				loadComments(ballotId)
+			else if (!loading && (!valid || commentBallotId !== queryBallotId)) {
+				loadComments(queryBallotId);
 			}
 		}
-		else if (props.ballotId) {
-			history.replace(`/Comments/${props.ballotId}`)
+		else if (ballotId) {
+			history.replace(`/Comments/${ballotId}`);
 		}
-	}, [ballotId, props.ballotId, setBallotId, commentBallotId, valid, loading, loadComments, history])
+	}, [queryBallotId, commentBallotId, ballotId, valid, loading]);
 
-	const refresh = () => props.loadComments(ballotId);
+	const refresh = () => loadComments(ballotId);
 
 	const ballotSelected = (ballotId) => history.push(`/Comments/${ballotId}`);
 
@@ -496,8 +507,7 @@ function Comments(props) {
 			headerHeight={62}
 			estimatedRowHeight={64}
 			rowGetter={commentsRowGetter}
-			loading={props.loading}
-			dataSet='comments'
+			dataSet={dataSet}
 			rowKey='CID'
 			resizeWidth={tableView === 'Edit'? setTableDetailSplit: undefined}
 		/>
@@ -522,14 +532,14 @@ function Comments(props) {
 				<BallotSelector onBallotSelected={ballotSelected} />
 				<div>
 					<ColumnViewSelector
-						tableView={props.tableView}
-						setTableView={props.setTableView}
+						tableView={tableView}
+						setTableView={setTableView}
 					/>
-					<ActionButton name='copy' title='Copy' disabled={props.selected.length === 0} onClick={e => setClipboard(props.selected, props.comments)} />
-					{access >= AccessLevel.SubgroupAdmin && <CommentsExport ballotId={ballotId} />}
-					{access >= AccessLevel.SubgroupAdmin && <CommentsImport ballotId={ballotId} />}
 					<ColumnSelector />
+					<ActionButton name='copy' title='Copy to clipboard' disabled={selected.length === 0} onClick={e => setClipboard(selected, comments)} />
 					<ActionButton name='history' title='History' isActive={showHistory} onClick={() => setShowHistory(true)} />
+					{access >= AccessLevel.SubgroupAdmin && <CommentsImport ballotId={ballotId} />}
+					{access >= AccessLevel.SubgroupAdmin && <CommentsExport ballotId={ballotId} />}
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>
 			</TopRow>
@@ -568,12 +578,18 @@ const TableRow = styled.div`
 `;
 
 Comments.propTypes = {
-	selected: PropTypes.array.isRequired,
 	ballotId: PropTypes.string.isRequired,
+	selected: PropTypes.array.isRequired,
 	commentBallotId: PropTypes.string.isRequired,
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
 	comments: PropTypes.arrayOf(PropTypes.object).isRequired,
+	tableView: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+	tableConfig: PropTypes.object.isRequired,
+	loadComments: PropTypes.func.isRequired,
+	setBallotId: PropTypes.func.isRequired,
+	setTableView: PropTypes.func.isRequired,
+	upsertTableColumns: PropTypes.func.isRequired
 }
 
 export default connect(
@@ -584,7 +600,6 @@ export default connect(
 		return {
 			ballotId: state.ballots.ballotId,
 			selected: state[dataSet].selected,
-			expanded: state[dataSet].expanded,
 			commentBallotId: state[dataSet].ballotId,
 			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
@@ -594,7 +609,6 @@ export default connect(
 		}
 	},
 	(dispatch) => ({
-		setSelected: ids => dispatch(setSelected(dataSet, ids)),
 		loadComments: ballotId => dispatch(loadComments(ballotId)),
 		setBallotId: ballotId => dispatch(setBallotId(ballotId)),
 		setTableView: view => dispatch(setTableView(dataSet, view)),

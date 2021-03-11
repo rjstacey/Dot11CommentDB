@@ -427,24 +427,36 @@ router.post('/resolutions/upload/:ballotId', upload.single('ResolutionsFile'), a
 	}
 	catch(err) {next(err)}
 })
-router.post('/comments/exportForMyProject', upload.single('file'), (req, res, next) => {
-	const {BallotID, Filename} = JSON.parse(req.body.params)
-	if (!BallotID) {
-		return next('Missing parameter BallotID')
-	}
-	if (!req.file) {
-		return next('Missing file')
-	}
-	return exportResolutionsForMyProject(BallotID, Filename, req.file, res).catch(err => next(err))
-})
-router.post('/comments/exportSpreadsheet', upload.single('file'), (req, res, next) => {
+router.post('/comments/export/:format', upload.single('file'), (req, res, next) => {
 	const {user} = req;
-	const {BallotID, Format, Filename} = JSON.parse(req.body.params)
+	const {format} = req.params;
+	const {BallotID, Filename, Style} = JSON.parse(req.body.params)
+	const CommentsSpreadsheetFormat = {
+		MyProject: 'MyProject',
+		Legacy: 'Legacy',
+		Modern: 'Modern'
+	};
+	if (!CommentsSpreadsheetFormat[format])
+		return next(`Unexpected format: ${format}`)
 	if (!BallotID)
 		return next('Missing parameter BallotID')
-	if (!Format)
-		return next('Missing parameter Format')
-	return exportSpreadsheet(user, BallotID, Format, Filename, req.file, res).catch(err => next(err))
+	if (format === CommentsSpreadsheetFormat.MyProject) {
+		if (!req.file)
+			return next('Missing file')
+		return exportResolutionsForMyProject(BallotID, Filename, req.file, res).catch(err => next(err))
+	}
+	else {
+		let isLegacy;
+		if (format === CommentsSpreadsheetFormat.Legacy)
+			isLegacy = true;
+		else if (format === CommentsSpreadsheetFormat.Modern)
+			isLegacy = false;
+		else
+			return next(`Invalid parameter format ${format}`)
+		if (!Style)
+			return next('Missing parameter Style')
+		return exportSpreadsheet(user, BallotID, Filename, isLegacy, Style, req.file, res).catch(err => next(err))
+	}
 })
 
 /*
@@ -519,10 +531,10 @@ router.put('/voter/:votingPoolType(SA|WG)/:votingPoolId/:voterId', async (req, r
 })
 router.delete('/voters/:votingPoolType(SA|WG)/:votingPoolId', async (req, res, next) => {
 	try {
-		const {votingPoolType, votingPoolId} = req.params
-		const voterIds = votingPoolType === 'SA'? req.body.Emails: req.body.SAPINs
-		const data = await deleteVoters(votingPoolType, votingPoolId, voterIds)
-		res.json(data)
+		const {votingPoolType, votingPoolId} = req.params;
+		const {voterIds} = req.body;
+		const data = await deleteVoters(votingPoolType, votingPoolId, voterIds);
+		res.json(data);
 	}
 	catch(err) {next(err)}
 })

@@ -1,10 +1,12 @@
 /*
  * Handle MyProject spreadsheet files
  */
- 
+
+'use strict'
+
 const ExcelJS = require('exceljs')
 const csvParse = require('csv-parse/lib/sync')
-import {processHtml} from './legacyCommentSpreadsheet'
+import {fromHtml} from './commentsSpreadsheet'
 
 const myProjectCommentsHeader = [
 	'Comment ID', 'Date', 'Comment #', 'Name', 'Email', 'Phone', 'Style', 'Index #', 'Classification', 'Vote',
@@ -115,7 +117,7 @@ export async function myProjectAddResolutions(buffer, dbComments, res) {
 		if (dbC && dbC.ApprovedByMotion) {
 			//console.log(`found ${comment.C_Index}`)
 			row.getCell(20).value = mapResnStatus[dbC.ResnStatus] || '';
-			row.getCell(21).value = processHtml(dbC.Resolution);
+			row.getCell(21).value = fromHtml(dbC.Resolution);
 		}
 	});
 

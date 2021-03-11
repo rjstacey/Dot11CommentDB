@@ -147,8 +147,8 @@ const _ControlHeader = (props) => {
 
 export const ControlHeader = connect(
 	(state, ownProps) => ({
-		selected: state[ownProps.dataSet].selected,
-		expanded: state[ownProps.dataSet].expanded,
+		selected: getSelected(state, ownProps.dataSet),
+		expanded: getExpanded(state, ownProps.dataSet),
 		shownIds: getSortedFilteredIds(state, ownProps.dataSet)
 	}),
 	(dispatch, ownProps) => ({

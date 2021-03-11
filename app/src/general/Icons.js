@@ -3,7 +3,7 @@ import {library} from '@fortawesome/fontawesome-svg-core'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 // import what we use
 import {
-	faFileUpload, faDownload,
+	faFileUpload, faDownload, faFileExport, faFileImport,
 	faHighlighter, faBold, faItalic, faStrikethrough, faUnderline,
 	faUndo, faRedo,
 	faQuoteRight, faListUl, faListOl, faCode,
@@ -14,7 +14,6 @@ import {
 	faAngleDown, faAngleUp, faAngleLeft, faAngleRight,
 	faArrowCircleRight, faArrowCircleLeft, faArrowCircleUp, faArrowCircleDown,
 	//faPlusSquare, faMinusSquare,
-	faFileExport,
 	faColumns,
 	faSave,
 	faObjectGroup, faUserCheck, faEdit,
@@ -27,7 +26,7 @@ import styled from '@emotion/styled'
 
 export function init() {
 	library.add(
-		faFileUpload, faDownload,
+		faFileUpload, faDownload, faFileExport, faFileImport,
 		faQuoteRight, faListUl, faListOl, faCode,
 		faBold, faItalic, faUnderline, faStrikethrough, faHighlighter, 
 		faUndo, faRedo,
@@ -38,7 +37,6 @@ export function init() {
 		faAngleDown, faAngleUp, faAngleLeft, faAngleRight,
 		faArrowCircleRight, faArrowCircleLeft, faArrowCircleUp, faArrowCircleDown,
 		faPlusSquare, faMinusSquare,
-		faFileExport,
 		faColumns,
 		faSave,
 		faObjectGroup, faUserCheck, faEdit,
@@ -137,10 +135,10 @@ export const ActionButton = ({name, ...otherProps}) => {
 		'delete': 'trash-alt',
 		'next': 'arrow-circle-right',
 		'prev': 'arrow-circle-left',
-		'import': 'download',
+		'import': 'file-import',
+		'export': 'file-export',
 		'upload': 'file-upload',
 		'more': 'angle-double-down',
-		'export': 'file-export',
 		'columns': 'columns',
 		'save': 'save',
 		'undo': 'undo',
