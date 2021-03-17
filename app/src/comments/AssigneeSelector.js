@@ -112,6 +112,7 @@ function AssigneeSelector({
 			.map(u => ({value: u.SAPIN, label: u.Name, present: false}))
 			.sort((a, b) => strComp(a.label, b.label))
 		const options = presentOptions.concat(userOptions)
+		//console.log(presentOptions, options)
 		return options
 	}, [comments, users])
 

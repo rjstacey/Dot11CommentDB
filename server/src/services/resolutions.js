@@ -130,11 +130,13 @@ export async function deleteResolutions(userId, resolutions) {
 		return {comments: []};
 	const resolution_ids = resolutions.map(r => r.id)
 	const [rows] = await db.query2('SELECT comment_id FROM resolutions WHERE id IN (?);', [resolution_ids]);
-	const comment_ids = rows.map(r => r.comment_id);
-
-	await db.query2('DELETE FROM resolutions WHERE id IN (?);', [resolution_ids]);
-	const [comments] = await db.query2('SELECT * FROM commentResolutions WHERE comment_id IN (?);', [comment_ids]);
-	return {comments}
+	if (rows.length) {
+		const comment_ids = rows.map(r => r.comment_id);
+		await db.query2('DELETE FROM resolutions WHERE id IN (?);', [resolution_ids]);
+		const [comments] = await db.query2('SELECT * FROM commentResolutions WHERE comment_id IN (?);', [comment_ids]);
+		return {comments}
+	}
+	return {comments: []};
 }
 
 export async function exportResolutionsForMyProject(ballotId, filename, file, res) {

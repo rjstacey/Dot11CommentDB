@@ -353,7 +353,7 @@ const modernColumns = {
 		width: 9,
 		outlineLevel: 1,
 		set: c => c.ReadyForMotion? "Yes": "",
-		get: (v, c) => c.ReadyForMotion = "Yes"
+		get: (v, c) => c.ReadyForMotion = v.search(/y|1/i) >= 0
 	},
 	'Motion Number': {
 		width: 9,

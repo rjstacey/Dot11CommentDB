@@ -14,6 +14,7 @@ import {Button, ActionButton} from '../general/Icons'
 
 import {editorCss} from './ResolutionEditor'
 import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './CommentDetail'
+import {renderSubmission} from './SubmissionSelector'
 import CommentsImport from './CommentsImport'
 import CommentsExport from './CommentsExport'
 import ColumnDropdown from '../table/ColumnDropdown'
@@ -153,7 +154,7 @@ const renderHeaderCellStacked2 = (props) =>
 const renderDataCellStacked2 = ({rowData}) => 
 	<React.Fragment>
 		<div>{rowData['AssigneeName'] || 'Not Assigned'}</div>
-		<div>{rowData['Submission'] || 'None'}</div>
+		<div>{renderSubmission(rowData['Submission'])}</div>
 	</React.Fragment>
 
 const renderHeaderCellStacked3 = (props) => 

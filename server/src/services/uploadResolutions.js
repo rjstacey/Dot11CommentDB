@@ -230,10 +230,16 @@ function resolutionUpdate(toUpdate, c, cs) {
 	}
 
 	if (toUpdate.includes(FieldsToUpdate.Resolution)) {
+		if ((c.Submission || cs.Submission) && c.Submission !== cs.Submission)
+			n.Submission = cs.Submission;
 		if ((c.Resolution || cs.Resolution) && c.Resolution !== cs.Resolution)
 			n.Resolution = cs.Resolution;
 		if ((c.ResnStatus || cs.ResnStatus) && c.ResnStatus !== cs.ResnStatus)
 			n.ResnStatus = cs.ResnStatus;
+		// In the legacy spreadsheet there is no "Ready For Motion" column (value is undefiend)
+		// For the legacy spreadsheet we leave this unchanged
+		if (cs.ReadyForMotion !== undefined && (c.ReadyForMotion || cs.ReadyForMotion) && c.ReadyForMotion !== cs.ReadyForMotion)
+			n.ReadyForMotion = cs.ReadyForMotion || '';
 		if ((c.ApprovedByMotion || cs.ApprovedByMotion) && c.ApprovedByMotion !== cs.ApprovedByMotion)
 			n.ApprovedByMotion = cs.ApprovedByMotion || '';
 	}
