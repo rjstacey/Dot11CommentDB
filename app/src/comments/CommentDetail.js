@@ -156,7 +156,7 @@ const Column1 = ({
 		<Row>
 			<Field label='Assignee:'>
 				<AssigneeSelector
-					style={{flexBasis: 200}}
+					style={{flexBasis: 200, flexGrow: 1}}
 					value={isMultiple(resolution.AssigneeSAPIN || resolution.AssigneeName)?
 						{SAPIN: null, Name: null}:
 						{SAPIN: resolution.AssigneeSAPIN, Name: resolution.AssigneeName}}

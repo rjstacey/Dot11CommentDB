@@ -16,9 +16,10 @@ import {
 	//faPlusSquare, faMinusSquare,
 	faColumns,
 	faSave,
-	faObjectGroup, faUserCheck, faEdit,
+	faObjectGroup, faEdit,
 	faCaretSquareDown, faCaretSquareUp,
 	faHistory,
+	faUserSlash, faUserCheck
 } from '@fortawesome/free-solid-svg-icons'
 import { faPlusSquare, faMinusSquare, faCopy } from '@fortawesome/free-regular-svg-icons';
 
@@ -39,10 +40,11 @@ export function init() {
 		faPlusSquare, faMinusSquare,
 		faColumns,
 		faSave,
-		faObjectGroup, faUserCheck, faEdit,
+		faObjectGroup, faEdit,
 		faCaretSquareDown, faCaretSquareUp,
 		faHistory,
-		faCopy
+		faCopy,
+		faUserSlash, faUserCheck
 	)
 }
 
@@ -144,7 +146,6 @@ export const ActionButton = ({name, ...otherProps}) => {
 		'undo': 'undo',
 		'close': 'window-close',
 		'group': 'object-group',
-		'assignment': 'user-check',
 		'edit': 'edit',
 		'highlight': 'highlighter',
 		'quote': 'quote-right',
@@ -153,7 +154,9 @@ export const ActionButton = ({name, ...otherProps}) => {
 		'dropdown-open': 'caret-square-down',
 		'dropdown-close': 'caret-square-up',
 		'history': 'history',
-		'copy': ['far', 'copy']
+		'copy': ['far', 'copy'],
+		'user-slash': 'user-slash',
+		'user-check': 'user-check'
 	}[name] || name;
 
 	return (

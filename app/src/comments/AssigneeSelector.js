@@ -2,18 +2,26 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
+import {FixedSizeList as List} from 'react-window'
+import Input from 'react-dropdown-select/lib/components/Input'
+
 import {Select} from '../general/Form'
+import {Icon} from '../general/Icons'
 
 import {loadUsers} from '../store/users'
 import {getData} from '../store/dataSelectors'
 import {strComp} from '../lib/utils'
 
-const StyledItem = styled.span`
+const StyledItem = styled.div`
 	padding: 4px 10px;
 	color: #555;
 	border-radius: 3px;
-	margin: 3px;
 	cursor: pointer;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	display: flex;
+	align-items: center;
 	${({ isSelected }) => isSelected? 'color: #fff; background: #0074d9;': 'color: #555; :hover {background: #f2f2f2;}'}
 	& > span {
 		margin: 5px 10px;
@@ -21,12 +29,13 @@ const StyledItem = styled.span`
 	}
 `;
 
-const StyledAdd = styled.span`
+const StyledAdd = styled.div`
 	padding: 4px 10px;
 	border-radius: 3px;
-	margin: 3px;
 	cursor: pointer;
 	color: #0074D9;
+	display: flex;
+	align-items: center;
 	:hover {background: #f2f2f2}
 	& > span {
 		font-style: italic;
@@ -39,20 +48,23 @@ const StyledNoData = styled.div`
     color: #0074D9;
 `;
 
-const renderItem = ({item, props, state, methods}) => (
+const renderItem = ({item, style, props, state, methods}) => (
 	<StyledItem
 		key={item.value}
+		style={style}
 		onClick={() => methods.addItem(item)}
 		isSelected={methods.isSelected(item)}
 		isItalic={typeof item.value === 'string'}
 	>
+		<Icon icon={typeof item.value === 'number'? 'user-check': 'user-slash'} />
 		<span>{item.label}</span>
 	</StyledItem>
 );
 
-const renderAddItem = ({item, props, state, methods}) => (
+const renderAddItem = ({item, style, props, state, methods}) => (
 	<StyledAdd
 		key={'__add__'}
+		style={style}
 		onClick={() => methods.addItem(item)}
 		isSelected={false}
 		isItalic={true}
@@ -62,23 +74,48 @@ const renderAddItem = ({item, props, state, methods}) => (
 );
 
 const renderDropdown = ({props, state, methods}) => {
-	//const {options} = props
 	const options = methods.searchResults()
-	const presentOptions = options.filter(o => o.present).map(item => renderItem({item, props, state, methods}))
-	const additionalOptions = options.filter(o => !o.present).map(item => renderItem({item, props, state, methods}))
 	return (
-		<React.Fragment>
-			{state.search && renderAddItem({item: {value: state.search, label: state.search}, props, state, methods})}
-			{presentOptions}
-			{additionalOptions.length > 0 && <hr key='__hr__' style={{width: '100px'}}/>}
-			{additionalOptions}
-			{presentOptions.length === 0 && additionalOptions.length === 0 && <StyledNoData key='__nodata__'>No Data</StyledNoData>}
-		</React.Fragment>
+		<List
+			height={300}
+			itemCount={options.length + (state.search? 1: 0)}
+			itemSize={30}
+			width='auto'
+		>
+			{({index, style}) => {
+				if (state.search) {
+					if (index === 0)
+						return renderAddItem({item: {value: state.search, label: state.search}, style, props, state, methods})
+					index -= 1;
+				}
+				return renderItem({item: options[index], style, props, state, methods})
+			}}
+		</List>
 	)
 };
 
+const StyledContentItem = styled.div`
+	& > span {
+		margin-left: 10px;
+	}
+`;
+
+const renderContent = ({state, methods, props}) => {
+	const item = state.values.length > 0? state.values[0]: null;
+	return (
+		<React.Fragment>
+			{item &&
+				<StyledContentItem>
+					<Icon icon={typeof item.value === 'number'? 'user-check': 'user-slash'} />
+					<span>{item.label}</span>
+				</StyledContentItem>}
+			<Input props={props} methods={methods} state={state} />
+		</React.Fragment>
+	)
+}
+
 function AssigneeSelector({
-	value,		// value is object {SAPIN: number, Name: string}
+	value,		// value is object with shape {SAPIN: number, Name: string}
 	onChange,
 	users,
 	comments,
@@ -140,6 +177,7 @@ function AssigneeSelector({
 			loading={loading}
 			create
 			clearable
+			contentRenderer={renderContent}
 			dropdownRenderer={renderDropdown}
 			readOnly={readOnly}
 			{...otherProps}

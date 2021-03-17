@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {Select} from '../general/Form'
+import Input from 'react-dropdown-select/lib/components/Input'
 
 import {getAllFieldOptions} from '../store/dataSelectors'
 
@@ -30,7 +31,11 @@ import {getAllFieldOptions} from '../store/dataSelectors'
 	return submission
 }
 
-const contentRenderer = ({state, methods, props}) => state.values.length > 0 && renderSubmission(state.values[0].label);
+const contentRenderer = ({state, methods, props}) => 
+	<React.Fragment>
+		{state.values.length > 0 && renderSubmission(state.values[0].label)}
+		<Input props={props} methods={methods} state={state} />
+	</React.Fragment>
 
 const ReadOnlyContainer = styled.div`
 	background-color: #fafafa;
@@ -64,7 +69,7 @@ function SubmissionSelector({
 				loading={loading}
 				create
 				clearable
-				//contentRenderer={contentRenderer}
+				contentRenderer={contentRenderer}
 				{...otherProps}
 			  />
 	)

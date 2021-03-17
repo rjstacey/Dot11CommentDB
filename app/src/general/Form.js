@@ -27,6 +27,7 @@ const StyledSelect = styled(ReactDropdownSelect)`
 	& .react-dropdown-select-content {
 		flex-wrap: nowrap;
 		line-height: 25px;
+		align-items: center;
 	}
 	& .react-dropdown-select-input {
 		font-size: unset;
