@@ -5,7 +5,7 @@ A component that renderes a heading and provides a dropdown with sort and filter
 The component does not necessary map 1:1 to the actual table columns. A Table column might render multiple data fields with a ColumnDropdown
 component for each field.
 
-In the table header, ColumnDropdown renders the field label along with icons. If the table is sorted by the field data (sort direction is not `None`), then an ascending or descending sort icon is displayed. The sort icon is also alphabetical or numerical based is sort type. If the table is filtered based on the field data, then the filter icon is displayed. If the table is either sortable or filterable (or both) on the field, then a down-caret is displayed to show that the dropdown to perform these functions is availble and the user can open the dropdown by clicking/touching the field label. 
+In the table header, ColumnDropdown renders the field label along with icons. If the table is sorted by the field data (sort direction is not `None`), then an ascending or descending sort icon is displayed. The sort icon is also alphabetical or numerical based is sort type. If the table is filtered based on the field data, then the filter icon is displayed. If the table is either sortable or filterable (or both) on the field, then a down-caret is displayed to show that the these functions are availble and the user can open the dropdown by clicking/touching the field label. 
 
 ## Component props
 
@@ -17,7 +17,7 @@ In the table header, ColumnDropdown renders the field label along with icons. If
 | dropdownWidth      | nummber | Width of the dropdown (optional). If not supplied the dropdown width depends on content.
 | anchorRef          | element | An element (position: relative) to anchor the dropdowns
 
-## Redux store
+## Compoent store
 
 ColumnDropdown is connected to the redux store slice identified by `dataSet` and expects the store slice to provide the following:
 
@@ -25,7 +25,7 @@ The selector `getSort(state, dataSet, dataKey)` from 'store/sort' is used to get
 
 The selector `getFilter(state, dataSet, dataKey)` from 'store/filters' is used to get the filter data for the table column. The actions `setFilter()`, `addFiler()`, `removeFilter()` modify the filter data for the table column.
 
-The selectors `getAllFieldOptions(state, dataSet, dataKey)` and `getAvailableFieldOptions(state, dataSet, dataKey)` from 'store/dataSelectors' return an array of all options and shown options, respectively, from the table data for the `dataKey` provided. Objects in the array have the following shape:
+The selectors `getAllFieldOptions(state, dataSet, dataKey)` and `getAvailableFieldOptions(state, dataSet, dataKey)` from 'store/dataSelectors' return an array of all options and shown options, respectively, from the table data for the `dataKey` provided. Items in the array are objects that have the following shape:
 
 * `value`: The item value
 * `label`: The item label

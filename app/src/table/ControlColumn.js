@@ -151,7 +151,7 @@ function _ControlHeader({
 	)
 }
 
-export const ControlHeader = connect(
+const ControlHeader = connect(
 	(state, ownProps) => ({
 		selected: getSelected(state, ownProps.dataSet),
 		expanded: getExpanded(state, ownProps.dataSet),
@@ -162,6 +162,11 @@ export const ControlHeader = connect(
 		setExpanded: ids => dispatch(setExpanded(ownProps.dataSet, ids))
 	})
 )(_ControlHeader);
+
+ControlHeader.propTypes = {
+	dataSet: PropTypes.string.isRequired,
+	anchorRef: PropTypes.element.isRequired,
+}
 
 function _ControlCell({
 	rowKey,
@@ -191,16 +196,13 @@ function _ControlCell({
 }
 
 _ControlCell.propTypes = {
-	rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-	rowData: PropTypes.object.isRequired,
-	dataSet: PropTypes.string.isRequired,
 	selected: PropTypes.array.isRequired,
 	toggleSelected: PropTypes.func.isRequired,
 	expanded: PropTypes.array,
 	toggleExpanded: PropTypes.func,
 }
 
-export const ControlCell = connect(
+const ControlCell = connect(
 	(state, ownProps) => ({
 		selected: getSelected(state, ownProps.dataSet),
 		expanded: getExpanded(state, ownProps.dataSet)
@@ -210,3 +212,11 @@ export const ControlCell = connect(
 		toggleExpanded: id => dispatch(toggleExpanded(ownProps.dataSet, [id]))
 	})
 )(_ControlCell)
+
+ControlCell.propTypes = {
+	dataSet: PropTypes.string.isRequired,
+	rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+	rowData: PropTypes.object.isRequired,
+}
+
+export {ControlHeader, ControlCell};

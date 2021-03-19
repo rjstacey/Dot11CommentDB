@@ -1,6 +1,6 @@
 # AppTable
 
-A flexible data table built around react-window. It handles large datasets by only rendering the rows in (or nearby) the view port.
+A flexible data table viewing component built around react-window. It handles large datasets by only rendering the rows in (or nearby) the view port.
 
 AppTable supports row selection; a row that appears in the `selected` list will be highlighted. Rows can be selected with a click or touch.
 Shift-click selects a range. Ctrl-click selects multiple entries.
@@ -56,7 +56,7 @@ The `rowGetter` function receives the following props:
 * `rowIndex`: The table data array row index.
 * `data`: The table data array.
 
-## Redux store
+## Component store
 
 AppTable is connected to the redux store slice identified by `dataSet`. The store slice has the following shape:
 
@@ -70,7 +70,7 @@ A row that is present in this array is highlighted.
 The action `setSelected(dataSet, ids)` from 'store/selected' is used to set the set of selected rows.
 A row is selected when the user clicks or touches the row.
 
-The selector `getExpanded(state, dataSet)` from 'store/expanded' is used to obtain an array of row identifier for the expanded rows.
+The selector `getExpanded(state, dataSet)` from 'store/expanded' is used to obtain an array of row identifiers for the expanded rows.
 
 The `ui` subslice of the data set contains the `tableView` and `tablesColumns` entries that identify the selected table configuration and the table
 configuration itself, respectively. `tableView` is a string that defaults to 'default' for data sets where there is only one
