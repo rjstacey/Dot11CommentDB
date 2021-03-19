@@ -11,25 +11,24 @@ in the list is rendered with `estimatedRowHeight` height.
 
 ## Component props
 
-| Prop                   | Type             | Description                                                                                                                            |
-| -----------------------| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| dataSet                | string           | The redux store slice where the table data resides                                                                                     |
-| columns                | array            | An array of objects describing the columns                                                                                             |
-| rowKey                 | number or string | The row data object property that identifies the row                                                                                   |
-| headerHeight           | number           | Header row height                                                                                                                      |
-| estimatedRowHeight     | number           | Estimated height of each data row. This is the actual height unless the row identifier appears in the `expanded` array.                |
-| rowGetter              | func             | Callback function to retrieve row data (optional)                                                                                      |
+| Prop               | Type   | Description
+| -------------------| ------ | -----------
+| dataSet            | string | The redux store slice where the table data resides
+| columns            | array  | An array of objects describing the columns
+| rowKey             | number or string | The row data object property that identifies the row
+| headerHeight       | number | Header row height
+| estimatedRowHeight | number | Estimated height of each data row. This is the actual height unless the row identifier appears in the `expanded` array.
+| rowGetter          | func   | Callback function to retrieve row data (optional)
 
+The `columns` array contains objects, one for each column, that have the following shape:
 
-The `columns` array objects have the following shape:
-
-* `key`: A string that uniquely identifies the column. Might also be the table data object key for that column.
-* `width`: Flex basis for the column width
-* `flexGrow`: Flex grow for the column width
-* `flexShrink`: Flex shrink for the column width
-* `label`: Column header label. Not used if headerRenderer is supplied.
-* `headerRenderer`: A function to render the header cell (optional). If not supplied, renders `label`.
-* `cellRenderer`: A function to render the data cell (optional). If not supplied, renders `data[rowIndex][key]` for the cell.
+* `key`: A string that uniquely identifies the column. If a `cellRenderer` is not provided, then `key` also idenfies the data to render from the table data row object.
+* `width`: Flex basis for the column width.
+* `flexGrow`: Flex grow for the column width.
+* `flexShrink`: Flex shrink for the column width.
+* `label`: Column label if `headerRenderer` is not supplied.
+* `headerRenderer`: A function to render the header cell (optional).
+* `cellRenderer`: A function to render the data cell (optional).
 * `...colProps`: additional props passed to the `headerRenderer` and `cellRenderer` functions
 
 The `headerRenderer` function receives the following props:
@@ -57,7 +56,7 @@ The `rowGetter` function receives the following props:
 * `rowIndex`: The table data array row index.
 * `data`: The table data array.
 
-## Redux store interface
+## Redux store
 
 AppTable is connected to the redux store slice identified by `dataSet`. The store slice has the following shape:
 

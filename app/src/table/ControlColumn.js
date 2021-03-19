@@ -12,7 +12,6 @@ import {getSelected, setSelected, toggleSelected} from '../store/selected'
 import {getExpanded, setExpanded, toggleExpanded} from '../store/expanded'
 import {getSortedFilteredIds} from '../store/dataSelectors'
 
-
 const CustomSelectorDropdown = styled.div`
 	position: absolute;
 	min-width: 400px;
@@ -26,14 +25,13 @@ const CustomSelectorDropdown = styled.div`
 	z-index: 9;
 `;
 
-function renderDropdown({style, close, anchorRef, children}) {
-	return ReactDOM.createPortal(
+const renderDropdown = ({style, close, anchorRef, children}) =>
+	ReactDOM.createPortal(
 		<CustomSelectorDropdown style={style}>
 			{React.cloneElement(children, { close })}
 		</CustomSelectorDropdown>,
 		anchorRef.current
-	)
-}
+	);
 
 const CustomSelectorContainer = styled.div`
 	height: 22px;
@@ -41,8 +39,10 @@ const CustomSelectorContainer = styled.div`
 	text-align: center;
 `;
 
-function CustomSelector(props) {
-	const {anchorRef, children} = props;
+function CustomSelector({
+	anchorRef,
+	children
+}) {
 	const [isOpen, setIsOpen] = React.useState(false);
 	const [position, setPosition] = React.useState({top: 0, left: 0});
 
@@ -95,14 +95,21 @@ const Container = styled.div`
 	align-items: center;
 `;
 
-const _ControlHeader = (props) => {
-	const {rowKey, shownIds, selected, setSelected, expanded, setExpanded, children} = props;
+function _ControlHeader({
+	shownIds,
+	selected,
+	setSelected,
+	expanded,
+	setExpanded,
+	anchorRef,
+	children
+}) {
 
 	const allSelected = React.useMemo(() => (
 			shownIds.length > 0 &&	// not if list is empty
 			shownIds.filter(id => !selected.includes(id)).length === 0
 		),
-		[shownIds, selected, rowKey]
+		[shownIds, selected]
 	);
 
 	const isIndeterminate = !allSelected && selected.length;
@@ -112,11 +119,10 @@ const _ControlHeader = (props) => {
 			shownIds.length > 0 &&	// not if list is empty
 			shownIds.filter(id => !expanded.includes(id)).length === 0
 		),
-		[shownIds, expanded, rowKey]
+		[shownIds, expanded]
 	);
 
 	const toggleAllSelected = () => setSelected(selected.length? []: shownIds);
-
 	const toggleAllExpanded = () => setExpanded(expanded.length? []: shownIds);
 
 	return (
@@ -130,7 +136,7 @@ const _ControlHeader = (props) => {
 				/>
 				{children &&
 					<CustomSelector
-						anchorRef={props.anchorRef}
+						anchorRef={anchorRef}
 						children={children}
 					/>}
 			</Selector>
@@ -157,7 +163,14 @@ export const ControlHeader = connect(
 	})
 )(_ControlHeader);
 
-const _ControlCell = ({rowKey, rowData, selected, toggleSelected, expanded, toggleExpanded}) => {
+function _ControlCell({
+	rowKey,
+	rowData,
+	selected,
+	toggleSelected,
+	expanded,
+	toggleExpanded
+}) {
 	const id = rowData[rowKey]
 	return (
 		<Container onClick={e => e.stopPropagation()} >
@@ -179,6 +192,7 @@ const _ControlCell = ({rowKey, rowData, selected, toggleSelected, expanded, togg
 
 _ControlCell.propTypes = {
 	rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+	rowData: PropTypes.object.isRequired,
 	dataSet: PropTypes.string.isRequired,
 	selected: PropTypes.array.isRequired,
 	toggleSelected: PropTypes.func.isRequired,

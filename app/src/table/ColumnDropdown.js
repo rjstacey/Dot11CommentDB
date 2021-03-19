@@ -178,7 +178,8 @@ function Filter({
 		}
 	}
 
-	exactItems = sortOptions(sort, exactItems)
+	if (sort)
+		exactItems = sortOptions(sort, exactItems)
 
 	// Regex items at the top of the list
 	const items = searchItems.concat(exactItems);
@@ -190,7 +191,7 @@ function Filter({
 		<React.Fragment>
 			<Row>
 				<label>Filter:</label>
-				{dataKey === rowKey &&
+				{selected && dataKey === rowKey &&
 					<Button
 						onClick={() => setFilter(selected)}
 						disabled={selected.length === 0}
@@ -243,7 +244,7 @@ function Filter({
 Filter.propTypes = {
 	dataKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
 	rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-	sort: PropTypes.object.isRequired,
+	sort: PropTypes.object,
 	filter: PropTypes.object.isRequired,
 	setFilter: PropTypes.func.isRequired,
 	addFilter: PropTypes.func.isRequired,
@@ -279,12 +280,9 @@ function Dropdown({
 	React.useEffect(() => {
 		// If the dropdown is outside the viewport, then move it
 		const bounds = containerRef.current.getBoundingClientRect();
-		/*if (bounds.x + bounds.width > window.innerWidth) {
-			setContainerStyle(style => ({...style, left: window.innerWidth - bounds.width}))
-		}*/
 		if (bounds.x < 0)
 			setContainerStyle(style => ({...style, left: 0, right: undefined}))
-	}, [setContainerStyle]);
+	}, []);
 
 	return (
 		<DropdownContainer
@@ -296,8 +294,7 @@ function Dropdown({
 				<Sort
 					sort={sort}
 					setSort={setSort}
-				/>
-			}
+				/>}
 			{filter &&
 				<Filter
 					rowKey={rowKey}
@@ -312,18 +309,16 @@ function Dropdown({
 					availableOptions={availableOptions}
 					dataRenderer={dataRenderer}
 					customFilterElement={customFilterElement}
-				/>
-			}
+				/>}
 		</DropdownContainer>
 	);
 }
 
-function renderDropdown({anchorRef, ...otherProps}) {
-	return ReactDOM.createPortal(
+const renderDropdown = ({anchorRef, ...otherProps}) =>
+	ReactDOM.createPortal(
 		<Dropdown {...otherProps} />,
 		anchorRef.current
-	)
-}
+	);
 
 const Wrapper = styled.div`
 	position: relative;
@@ -353,9 +348,14 @@ const Label = styled.label`
 	font-weight: bold;
 `;
 
-function _ColumnDropdown(props) {
-	const {className, style, label, ...otherProps} = props;
-	const {anchorRef, column, filter, sort} = props;
+function _ColumnDropdown({
+	className,
+	style,
+	label,
+	dropdownWidth,
+	...otherProps
+}) {
+	const {anchorRef, column, filter, sort} = otherProps;
 	const [isOpen, setIsOpen] = React.useState(false);
 	const [position, setPosition] = React.useState({});
 
@@ -373,7 +373,7 @@ function _ColumnDropdown(props) {
 			const container = wrapperRef.current.getBoundingClientRect();
 			const top = container.y - anchor.y + container.height;
 			const right = (anchor.x + anchor.width) - (container.x + container.width);
-			const width = props.dropdownWidth || column.width;
+			const width = dropdownWidth || column.width;
 			const newPosition = {top, width};
 			if ((right + width) > anchor.width)
 				newPosition.left = 0;
@@ -407,13 +407,13 @@ function _ColumnDropdown(props) {
 				<div className='handle'>
 					{isFiltered &&
 						<IconFilter
-							style={{opacity: isFiltered? 0.2: 0}}
+							style={{opacity: 0.2}}
 						/>}
 					{isSorted && 
 						<IconSort
+							style={{opacity: 0.2, paddingRight: 4}}
 							direction={sort.direction}
 							isAlpha={sort.type !== SortType.NUMERIC}
-							style={{opacity: 0.2, paddingRight: 4}}
 						/>}
 					<Handle />
 				</div>
@@ -425,15 +425,22 @@ function _ColumnDropdown(props) {
 
 _ColumnDropdown.propTypes = {
 	sort: PropTypes.object,
-	filter: PropTypes.object
+	filter: PropTypes.object,
+	selected: PropTypes.array.isRequired,
+	allOptions: PropTypes.array.isRequired,
+	availableOptions: PropTypes.array.isRequired,
+	setFilter: PropTypes.func.isRequired,
+	addFilter: PropTypes.func.isRequired,
+	removeFilter: PropTypes.func.isRequired,
+	setSort: PropTypes.func.isRequired,
 }
 
 const ColumnDropdown = connect(
 	(state, ownProps) => {
 		const {dataSet, dataKey} = ownProps
 		return {
-			filter: getFilter(state, dataSet, dataKey),
 			sort: getSort(state, dataSet, dataKey),
+			filter: getFilter(state, dataSet, dataKey),
 			selected: getSelected(state, dataSet),
 			allOptions: getAllFieldOptions(state, dataSet, dataKey),
 			availableOptions: getAvailableFieldOptions(state, dataSet, dataKey)
@@ -448,6 +455,15 @@ const ColumnDropdown = connect(
 			setSort: (direction) => dispatch(sortSet(dataSet, dataKey, direction)),
 		}
 	}
-)(_ColumnDropdown)
+)(_ColumnDropdown);
+
+ColumnDropdown.propTypes = {
+	dataSet: PropTypes.string.isRequired,
+	dataKey: PropTypes.string.isRequired,
+	label: PropTypes.string.isRequired,
+	column: PropTypes.object.isRequired,
+	dropdownWidth: PropTypes.number,
+	anchorRef: PropTypes.object.isRequired
+}
 
 export default ColumnDropdown

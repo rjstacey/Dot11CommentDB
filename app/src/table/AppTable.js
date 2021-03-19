@@ -321,7 +321,7 @@ class AppTableSized extends React.PureComponent {
 /*
  * AppTable
  */
-function AppTable(props) {
+function _AppTable(props) {
 	return (
 		<AutoSizer>
 			{({height, width}) => <AppTableSized height={height} width={width} {...props} />}
@@ -329,7 +329,7 @@ function AppTable(props) {
 	)
 }
 
-AppTable.propTypes = {
+_AppTable.propTypes = {
 	columns: PropTypes.array.isRequired,
 	dataSet: PropTypes.string.isRequired,
 	data: PropTypes.array.isRequired,
@@ -343,7 +343,7 @@ AppTable.propTypes = {
 	onRowClick: PropTypes.func,
 }
 
-export default connect(
+const AppTable = connect(
 	(state, ownProps) => {
 		const {dataSet} = ownProps;
 		const tableView = state[dataSet].ui.view;
@@ -352,7 +352,7 @@ export default connect(
 			selected: getSelected(state, dataSet),
 			expanded: getExpanded(state, dataSet),
 			loading: state[dataSet].loading,
-			data: ownProps.data? ownProps.data: getSortedFilteredData(state, dataSet),
+			data: getSortedFilteredData(state, dataSet),
 			tableView,
 			tableConfig,
 		}
@@ -364,4 +364,16 @@ export default connect(
 			upsertTableColumns: (view, columns) => dispatch(upsertTableColumns(dataSet, view, columns))
 		}
 	}
-)(AppTable)
+)(_AppTable)
+
+AppTable.propTypes = {
+	dataSet: PropTypes.string.isRequired,
+	columns: PropTypes.array.isRequired,
+	rowKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+	rowGetter: PropTypes.func,
+	headerHeight: PropTypes.number.isRequired,
+	estimatedRowHeight: PropTypes.number.isRequired,
+	onRowClick: PropTypes.func,
+}
+
+export default AppTable;
