@@ -1,10 +1,14 @@
-# ControlHeader and ControlCell
+# ControlHeader and ControlCell components
 
 Components to render a header (ControlHeader) and data cell (ControlCell) for the control column of a data table.
 
-ControlHeader provides seelctors and expanders for all the rows and, in each row, ControlCell provides a selector and exander for that row.
+ControlHeader provides a selector and expander to select/expand all the rows and, optional, can render a custom selector component in a dropdown.
 
-## ControlHeader props
+ControlCell provides a selector and expander for table row in which it is rendered.
+
+The expander is only present if the dataset has an expander subslice.
+
+## ControlHeader component props
 
 | Prop               | Type     | Description
 | -------------------| ------   | -----------
@@ -12,7 +16,7 @@ ControlHeader provides seelctors and expanders for all the rows and, in each row
 | anchorRef          | element  | An element (position: relative) to anchor a dropdown (if needed)
 | children           | element  | If present, provides a custom selector element that renders in a dropdown
 
-## ControlHeader store
+## ControlHeader component store
 
 The selector `getSortedFilteredIds(state, dataSet)` from 'store/dataSelectors' is used to obtain an array of sorted and filtered row IDs, i.e., IDs for the rows the are currently shown in the table.
 
@@ -24,7 +28,7 @@ The selector `getExpanded(state, dataSet)` from 'store/expanded' is used to obta
 
 The action `setExpanded(state, dataSet, ids)` is used to set the expanded array.
 
-## ControlCell props
+## ControlCell component props
 
 | Prop               | Type   | Description
 | -------------------| ------ | -----------
@@ -32,7 +36,7 @@ The action `setExpanded(state, dataSet, ids)` is used to set the expanded array.
 | rowKey             | string | The row indentifier key.
 | rowData            | string | The table data row object.
 
-## ControlCell store
+## ControlCell component store
 
 The selector `getSelected(state, dataSet)` from 'store/selected' is used to obtain an array of row identifiers for the selected rows. A row is selected if `rowData[rowKey]` appears in the array.
 
