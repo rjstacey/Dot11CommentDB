@@ -5,7 +5,6 @@
   "homepage": ".",
   "proxy": "http://localhost:8080",
   "dependencies": {
-    "@emotion/core": "^11.0.0",
     "@emotion/react": "^11.1.5",
     "@emotion/styled": "^11.1.5",
     "@reduxjs/toolkit": "^1.5.0",
@@ -17,7 +16,6 @@
     "draft-js": "^0.11.7",
     "draft-js-export-html": "^1.4.1",
     "draft-js-import-html": "^1.4.1",
-    "re-reselect": "^4.0.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-redux": "^7.2.2",
