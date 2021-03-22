@@ -7,7 +7,7 @@ import {css} from '@emotion/react'
 import styled from '@emotion/styled'
 import Immutable from 'immutable'
 import {debounce} from 'dot11-common/lib/utils'
-import {ActionButton} from 'dot11-common/general/Icons'
+import {ActionButton} from 'dot11-common/lib/icons'
 
 
 /* Inline styles */

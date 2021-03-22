@@ -3,7 +3,7 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {Editor, EditorState, ContentState, CompositeDecorator} from 'draft-js'
 import 'draft-js/dist/Draft.css'
-import {Cross} from 'dot11-common/general/Icons'
+import {Cross} from 'dot11-common/lib/icons'
 import {setSelected} from 'dot11-common/store/selected'
 import {setFilter} from 'dot11-common/store/filters'
 

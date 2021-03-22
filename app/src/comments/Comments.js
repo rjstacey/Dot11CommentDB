@@ -6,7 +6,7 @@ import styled from '@emotion/styled'
 import copyToClipboard from 'copy-html-to-clipboard'
 
 import AppTable, {ControlHeader, ControlCell, ColumnDropdown, ShowFilters} from 'dot11-common/table'
-import {Button, ActionButton} from 'dot11-common/general/Icons'
+import {Button, ActionButton} from 'dot11-common/lib/icons'
 import {AccessLevel} from 'dot11-common/store/login'
 import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
 import {setTableView, upsertTableColumns} from 'dot11-common/store/ui'

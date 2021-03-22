@@ -4,7 +4,7 @@ import {Link, useHistory, useParams} from "react-router-dom"
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppTable, {ControlHeader, ControlCell, ColumnDropdown} from 'dot11-common/table'
-import {ActionButton} from 'dot11-common/general/Icons'
+import {ActionButton} from 'dot11-common/lib/icons'
 import {displayDate} from 'dot11-common/lib/utils'
 import {ConfirmModal} from 'dot11-common/modals'
 import {AccessLevel} from 'dot11-common/store/login'

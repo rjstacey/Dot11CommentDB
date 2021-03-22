@@ -5,7 +5,6 @@ import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/
 import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
 import selectedSlice, {setSelected} from 'dot11-common/store/selected'
 import uiSlice from 'dot11-common/store/ui'
-
 import {setError} from 'dot11-common/store/error'
 
 export const BallotType = {
