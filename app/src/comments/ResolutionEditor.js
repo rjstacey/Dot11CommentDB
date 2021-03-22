@@ -3,7 +3,7 @@ import {Editor, EditorState, RichUtils, getDefaultKeyBinding, KeyBindingUtil,
 	Modifier, ContentState, convertFromHTML} from 'draft-js'
 import {stateToHTML} from 'draft-js-export-html'
 import 'draft-js/dist/Draft.css'
-import {css} from '@emotion/core'
+import {css} from '@emotion/react'
 import styled from '@emotion/styled'
 import Immutable from 'immutable'
 import {debounce} from 'dot11-common/lib/utils'
