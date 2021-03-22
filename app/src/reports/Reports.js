@@ -3,12 +3,12 @@ import React from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import styled from '@emotion/styled'
 import {connect} from 'react-redux'
-import BallotSelector from '../ballots/BallotSelector'
-import {ActionButton, Button} from '../general/Icons'
+import {ActionButton, Button} from 'dot11-common/general/Icons'
+import {getData} from 'dot11-common/store/dataSelectors'
 
+import BallotSelector from '../ballots/BallotSelector'
 import {setBallotId} from '../store/ballots'
 import {loadComments} from '../store/comments'
-import {getData} from '../store/dataSelectors'
 
 function countsByCategory(comments) {
 	return {

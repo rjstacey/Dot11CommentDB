@@ -2,8 +2,8 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppModal from '../modals/AppModal'
-import {Form, Row} from '../general/Form'
+import {Form, Row} from 'dot11-common/general/Form'
+import {AppModal} from 'dot11-common/modals'
 
 import {uploadVoters} from '../store/voters'
 

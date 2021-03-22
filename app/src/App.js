@@ -2,8 +2,11 @@ import React from 'react'
 import {BrowserRouter as Router, Switch, Route, NavLink, Redirect} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
+import {init as iconInit} from 'dot11-common/general/Icons'
+import {ErrorModal, ConfirmModal} from 'dot11-common/modals'
+import {loginGetState, AccessLevel} from 'dot11-common/store/login'
 
-import Account, {SignIn} from './general/Login'
+import Account, {SignIn} from 'dot11-common/general/Login'
 import Users from './users/Users'
 import VotersPools from './voters/VotersPools'
 import Voters from './voters/Voters'
@@ -12,11 +15,7 @@ import Epolls from './ballots/Epolls'
 import Results from './results/Results'
 import Comments from './comments/Comments'
 import Reports from './reports/Reports'
-import ErrorModal from './modals/ErrorModal'
-import ConfirmModal from './modals/ConfirmModal'
-import {init as iconInit} from './general/Icons'
 
-import {loginGetState, AccessLevel} from './store/login'
 
 iconInit()
 

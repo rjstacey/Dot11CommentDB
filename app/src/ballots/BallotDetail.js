@@ -2,17 +2,17 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppModal from '../modals/AppModal'
-import {Form, Row, Col, Field, List, ListItem, Checkbox, Input, Select, TextArea} from '../general/Form'
-import ConfirmModal from '../modals/ConfirmModal'
+import {shallowDiff} from 'dot11-common/lib/utils'
+import {Form, Row, Col, Field, List, ListItem, Checkbox, Input, Select, TextArea} from 'dot11-common/general/Form'
+import {getData} from 'dot11-common/store/dataSelectors'
+import {AppModal, ConfirmModal} from 'dot11-common/modals'
+
 import {renderResultsSummary, renderCommentsSummary} from './Ballots'
 
 import {updateBallot, addBallot, loadBallots, setProject, getProjectList, getBallotList, BallotType} from '../store/ballots'
 import {loadVotingPools} from '../store/votingPools'
-import {getData} from '../store/dataSelectors'
 import {importResults, uploadEpollResults, uploadMyProjectResults, deleteResults} from '../store/results'
 import {importComments, uploadComments, deleteComments, setStartCommentId} from '../store/comments'
-import {shallowDiff} from '../lib/utils'
 
 function defaultBallot() {
 	const now = new Date()

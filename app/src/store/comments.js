@@ -1,14 +1,13 @@
 import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
-import {setError} from './error'
-import fetcher from './fetcher'
-
-import sortsSlice, {sortInit, SortDirection, SortType} from './sort'
-import filtersSlice, {filtersInit, FilterType} from './filters'
-import selectedSlice, {setSelected} from './selected'
-import expandedSlice, {setExpanded} from './expanded'
-import uiSlice from './ui'
-import {getData} from './dataSelectors'
+import fetcher from 'dot11-common/store/fetcher'
+import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
+import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
+import selectedSlice, {setSelected} from 'dot11-common/store/selected'
+import expandedSlice, {setExpanded} from 'dot11-common/store/expanded'
+import uiSlice from 'dot11-common/store/ui'
+import {getData} from 'dot11-common/store/dataSelectors'
+import {setError} from 'dot11-common/store/error'
 
 import {updateBallotSuccess} from './ballots'
 

@@ -2,9 +2,8 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
 
-import {Select} from '../general/Form'
-
-import {getAllFieldOptions} from '../store/dataSelectors'
+import {Select} from 'dot11-common/general/Form'
+import {getAllFieldOptions} from 'dot11-common/store/dataSelectors'
 
 function CommentGroupSelector({
 	value,

@@ -5,27 +5,24 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import copyToClipboard from 'copy-html-to-clipboard'
 
+import AppTable, {ControlHeader, ControlCell, ColumnDropdown, ShowFilters} from 'dot11-common/table'
+import {Button, ActionButton} from 'dot11-common/general/Icons'
+import {AccessLevel} from 'dot11-common/store/login'
+import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
+import {setTableView, upsertTableColumns} from 'dot11-common/store/ui'
+
 import BallotSelector from '../ballots/BallotSelector'
 import ColumnSelector from './ColumnSelector'
-import AppTable from '../table/AppTable'
-import ShowFilters from '../table/ShowFilters'
-import {ControlHeader, ControlCell} from '../table/ControlColumn'
-import {Button, ActionButton} from '../general/Icons'
-
 import {editorCss} from './ResolutionEditor'
 import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './CommentDetail'
 import {renderSubmission} from './SubmissionSelector'
 import CommentsImport from './CommentsImport'
 import CommentsExport from './CommentsExport'
-import ColumnDropdown from '../table/ColumnDropdown'
 import CommentsHistoryModal from './CommentHistory'
 import {CommentIdSelector, CommentIdFilter} from './CommentIdList'
 
 import {loadComments} from '../store/comments'
-import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 import {setBallotId} from '../store/ballots'
-import {setTableView, upsertTableColumns} from '../store/ui'
-import {AccessLevel} from '../store/login'
 
 const dataSet = 'comments'
 

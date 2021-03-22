@@ -3,20 +3,20 @@ import React from 'react'
 import {Link, useHistory, useParams} from "react-router-dom"
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
+import AppTable, {ControlHeader, ControlCell, ColumnDropdown} from 'dot11-common/table'
+import {ActionButton} from 'dot11-common/general/Icons'
+import {displayDate} from 'dot11-common/lib/utils'
+import {ConfirmModal} from 'dot11-common/modals'
+import {AccessLevel} from 'dot11-common/store/login'
+
 import BallotDetailModal from './BallotDetail'
-import ConfirmModal from '../modals/ConfirmModal'
-import AppTable from '../table/AppTable'
-import ColumnDropdown from '../table/ColumnDropdown'
-import {ControlHeader, ControlCell} from '../table/ControlColumn'
-import {ActionButton} from '../general/Icons'
-import {displayDate} from '../lib/utils'
+
+import {setSelected} from 'dot11-common/store/selected'
+import {sortSet} from 'dot11-common/store/sort'
+import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
 
 import {loadBallots, deleteBallots, BallotType} from '../store/ballots'
-import {setSelected} from '../store/selected'
-import {sortSet} from '../store/sort'
-import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 import {loadVotingPools} from '../store/votingPools'
-import {AccessLevel} from '../store/login'
 
 const dataSet = 'ballots'
 

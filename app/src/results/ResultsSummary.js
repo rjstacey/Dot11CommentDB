@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import styled from '@emotion/styled'
-import {Handle, IconCollapse} from '../general/Icons'
+import {Handle, IconCollapse} from 'dot11-common/general/Icons'
 
 import {BallotType} from '../store/ballots'
 

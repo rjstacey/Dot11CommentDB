@@ -1,12 +1,12 @@
 import {createSlice, createSelector, createEntityAdapter} from '@reduxjs/toolkit'
 
-import {setError} from './error'
-import fetcher from './fetcher'
+import fetcher from 'dot11-common/store/fetcher'
+import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
+import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
+import selectedSlice, {setSelected} from 'dot11-common/store/selected'
+import uiSlice from 'dot11-common/store/ui'
 
-import sortsSlice, {sortInit, SortDirection, SortType} from './sort'
-import filtersSlice, {filtersInit, FilterType} from './filters'
-import selectedSlice, {setSelected} from './selected'
-import uiSlice from './ui'
+import {setError} from 'dot11-common/store/error'
 
 export const BallotType = {
 	CC: 0,			// comment collection

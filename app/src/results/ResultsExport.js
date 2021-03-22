@@ -2,11 +2,10 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {Form, Row, List, ListItem} from '../general/Form'
-import fetcher from '../store/fetcher'
-import {ActionButtonDropdown} from '../general/Dropdown'
-
-import {setError} from '../store/error'
+import {Form, Row, List, ListItem} from 'dot11-common/general/Form'
+import fetcher from 'dot11-common/store/fetcher'
+import {ActionButtonDropdown} from 'dot11-common/general/Dropdown'
+import {setError} from 'dot11-common/store/error'
 
 const ResultsExportForm = styled(Form)`
 	width: 300px;

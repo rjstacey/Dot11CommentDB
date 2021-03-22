@@ -3,9 +3,9 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {Editor, EditorState, ContentState, CompositeDecorator} from 'draft-js'
 import 'draft-js/dist/Draft.css'
-import {Cross} from '../general/Icons'
-import {setSelected} from '../store/selected'
-import {setFilter} from '../store/filters'
+import {Cross} from 'dot11-common/general/Icons'
+import {setSelected} from 'dot11-common/store/selected'
+import {setFilter} from 'dot11-common/store/filters'
 
 const Container = styled.div`
 	display: flex;

@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import AppModal from '../modals/AppModal'
-import {Form, Row, Col, Field, List, ListItem, Input} from '../general/Form'
+import {Form, Row, Col, Field, List, ListItem, Input} from 'dot11-common/general/Form'
 
+import {AppModal} from 'dot11-common/modals'
 import {uploadVoters} from '../store/voters'
 
 const defaultState = {

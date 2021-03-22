@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import AppModal from '../modals/AppModal'
-import {Form, Row, Field, Input} from '../general/Form'
+import {AppModal} from 'dot11-common/modals'
+import {Form, Row, Field, Input} from 'dot11-common/general/Form'
 import AccessSelector from './AccessSelector'
 
 import {updateUser, addUser} from '../store/users'

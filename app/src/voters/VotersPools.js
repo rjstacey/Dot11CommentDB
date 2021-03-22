@@ -3,14 +3,14 @@ import React from 'react'
 import {useHistory} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable from '../table/AppTable'
-import {ControlHeader, ControlCell} from '../table/ControlColumn'
-import ConfirmModal from '../modals/ConfirmModal'
-import {ActionButton} from '../general/Icons'
+import AppTable,{ControlHeader, ControlCell} from 'dot11-common/table'
+import {ActionButton} from 'dot11-common/general/Icons'
+import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
+import {ConfirmModal} from 'dot11-common/modals'
+
 import VotersPoolAddModal from './VotersPoolAdd'
 
 import {loadVotingPools, deleteVotingPools} from '../store/votingPools'
-import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 
 const dataSet = 'votingPools'
 

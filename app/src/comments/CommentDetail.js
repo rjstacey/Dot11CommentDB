@@ -8,16 +8,15 @@ import CommentGroupSelector from './CommentGroupSelector'
 import AssigneeSelector from './AssigneeSelector'
 import SubmissionSelector from './SubmissionSelector'
 import {editorCss, ResolutionEditor} from './ResolutionEditor'
-import {ActionButton, VoteYesIcon, VoteNoIcon, IconCollapse} from '../general/Icons'
-import {ActionButtonDropdown} from '../general/Dropdown'
-import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from '../general/Form'
-import {shallowDiff} from '../lib/utils'
-import {debounce} from '../lib/utils'
+import {ActionButton, VoteYesIcon, VoteNoIcon, IconCollapse} from 'dot11-common/general/Icons'
+import {ActionButtonDropdown} from 'dot11-common/general/Dropdown'
+import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-common/general/Form'
+import {shallowDiff, debounce} from 'dot11-common/lib/utils'
+import {setProperty} from 'dot11-common/store/ui'
+import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
+import {AccessLevel} from 'dot11-common/store/login'
 
 import {addResolutions, updateResolutions, deleteResolutions, updateComments} from '../store/comments'
-import {setProperty} from '../store/ui'
-import {getData, getSortedFilteredIds} from '../store/dataSelectors'
-import {AccessLevel} from '../store/login'
 
 const MULTIPLE = '<multiple>';
 const isMultiple = (value) => value === MULTIPLE;

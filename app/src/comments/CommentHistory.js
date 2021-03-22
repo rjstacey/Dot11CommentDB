@@ -1,12 +1,12 @@
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import HorizontalTimeline from '../general/HorizontalTimeline'
-import AppModal from '../modals/AppModal'
+import {AppModal} from 'dot11-common/modals'
 import {Comment} from './CommentDetail'
+import HorizontalTimeline from './HorizontalTimeline'
 import {loadCommentsHistory} from '../store/commentsHistory'
-import {getData} from '../store/dataSelectors'
-import {getSelected} from '../store/selected'
+import {getData} from 'dot11-common/store/dataSelectors'
+import {getSelected} from 'dot11-common/store/selected'
 
 const Container = styled.div`
 	width: 80vw;

@@ -2,12 +2,12 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppModal from '../modals/AppModal'
-import {Form, Row, Field, Input, Select} from '../general/Form'
-import {shallowDiff, parseNumber} from '../lib/utils'
+import {Form, Row, Field, Input, Select} from 'dot11-common/general/Form'
+import {shallowDiff, parseNumber} from 'dot11-common/lib/utils'
+import {AppModal} from 'dot11-common/modals'
+import {setError} from 'dot11-common/store/error'
 
 import {addVoter, updateVoter} from '../store/voters'
-import {setError} from '../store/error'
 
 const VoterEditForm = styled(Form)`
 	width: 400px;

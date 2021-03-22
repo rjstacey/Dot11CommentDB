@@ -3,15 +3,15 @@ import React from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable from '../table/AppTable'
-import {ControlHeader, ControlCell} from '../table/ControlColumn'
-import ConfirmModal from '../modals/ConfirmModal'
+import AppTable, {ControlHeader, ControlCell} from 'dot11-common/table'
+import {ActionButton} from 'dot11-common/general/Icons'
+import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
+import {ConfirmModal} from 'dot11-common/modals'
+
 import VotersImportModal from './VotersImport'
 import VoterEditModal from './VoterEdit'
-import {ActionButton} from '../general/Icons'
 
 import {loadVoters, deleteVoters} from '../store/voters'
-import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 
 const dataSet = 'voters'
 

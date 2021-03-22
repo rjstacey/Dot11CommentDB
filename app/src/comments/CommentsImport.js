@@ -2,9 +2,9 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {Form, Row, Col, List, ListItem, Field, Checkbox} from '../general/Form'
-import ConfirmModal from '../modals/ConfirmModal'
-import {ActionButtonDropdown} from '../general/Dropdown'
+import {Form, Row, Col, List, ListItem, Field, Checkbox} from 'dot11-common/general/Form'
+import {ActionButtonDropdown} from 'dot11-common/general/Dropdown'
+import {ConfirmModal} from 'dot11-common/modals'
 
 import {uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate} from '../store/comments'
 

@@ -2,8 +2,8 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {ActionButtonDropdown} from '../general/Dropdown'
-import {Form, Col} from '../general/Form'
+import {ActionButtonDropdown} from 'dot11-common/general/Dropdown'
+import {Form, Col} from 'dot11-common/general/Form'
 
 import {uploadUsers} from '../store/users'
 

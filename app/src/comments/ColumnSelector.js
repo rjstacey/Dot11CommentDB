@@ -3,10 +3,9 @@ import React from 'react'
 import styled from '@emotion/styled'
 import {connect} from 'react-redux'
 
-import {Button} from '../general/Icons'
-import {ActionButtonDropdown} from '../general/Dropdown'
-
-import {toggleTableFixed, upsertTableColumn} from '../store/ui'
+import {Button} from 'dot11-common/general/Icons'
+import {ActionButtonDropdown} from 'dot11-common/general/Dropdown'
+import {toggleTableFixed, upsertTableColumn} from 'dot11-common/store/ui'
 
 const Row = styled.div`
 	margin: 5px 10px;

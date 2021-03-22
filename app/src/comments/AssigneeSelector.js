@@ -4,13 +4,12 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {FixedSizeList as List} from 'react-window'
 import Input from 'react-dropdown-select/lib/components/Input'
-
-import {Select} from '../general/Form'
-import {Icon} from '../general/Icons'
+import {Select} from 'dot11-common/general/Form'
+import {Icon} from 'dot11-common/general/Icons'
+import {getData} from 'dot11-common/store/dataSelectors'
+import {strComp} from 'dot11-common/lib/utils'
 
 import {loadUsers} from '../store/users'
-import {getData} from '../store/dataSelectors'
-import {strComp} from '../lib/utils'
 
 const StyledItem = styled.div`
 	padding: 4px 10px;

@@ -1,12 +1,11 @@
 import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
-import {setError} from './error'
-import fetcher from './fetcher'
-
-import sortsSlice, {sortInit, SortDirection, SortType} from './sort'
-import filtersSlice, {filtersInit, FilterType} from './filters'
-import selectedSlice, {getSelected, setSelected} from './selected'
-import uiSlice from './ui'
+import fetcher from 'dot11-common/store/fetcher'
+import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
+import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
+import selectedSlice, {getSelected, setSelected} from 'dot11-common/store/selected'
+import uiSlice from 'dot11-common/store/ui'
+import {setError} from 'dot11-common/store/error'
 
 const votingPoolFields = ['PoolType', 'VotingPoolID', 'VoterCount'];
 

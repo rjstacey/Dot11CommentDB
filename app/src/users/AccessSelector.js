@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import {Select} from '../general/Form'
+import {Select} from 'dot11-common/general/Form'
 
 import {AccessLevelOptions} from '../store/users'
 

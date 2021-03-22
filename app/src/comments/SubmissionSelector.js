@@ -2,10 +2,9 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {Select} from '../general/Form'
 import Input from 'react-dropdown-select/lib/components/Input'
-
-import {getAllFieldOptions} from '../store/dataSelectors'
+import {Select} from 'dot11-common/general/Form'
+import {getAllFieldOptions} from 'dot11-common/store/dataSelectors'
 
 /*
  * Render submission. If it looks like a DCN then link to mentor.

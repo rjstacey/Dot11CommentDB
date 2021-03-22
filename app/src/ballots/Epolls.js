@@ -2,13 +2,13 @@ import React from 'react'
 import {useHistory} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable from '../table/AppTable'
+import AppTable from 'dot11-common/table'
 import BallotDetailModal from './BallotDetail'
-import {ActionButton} from '../general/Icons'
+import {ActionButton} from 'dot11-common/general/Icons'
+import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
 
 import {loadBallots} from '../store/ballots'
 import {loadEpolls} from '../store/epolls'
-import {getData, getSortedFilteredIds} from '../store/dataSelectors'
 
 function renderDate({rowData, dataKey}) {
 	// rowData[key] is an ISO time string. We convert this to eastern time

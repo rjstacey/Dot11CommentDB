@@ -3,15 +3,15 @@ import React from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable from '../table/AppTable'
+import AppTable from 'dot11-common/table'
+import {ActionButton} from 'dot11-common/general/Icons'
+import {AccessLevel} from 'dot11-common/store/login'
 import BallotSelector from '../ballots/BallotSelector'
-import {ActionButton} from '../general/Icons'
 import ResultsSummary from './ResultsSummary'
 import ResultsExport from './ResultsExport'
 
 import {loadResults} from '../store/results'
 import {setBallotId, BallotType} from '../store/ballots'
-import {AccessLevel} from '../store/login'
 
 // The action row height is determined by its content
 const ActionRow = styled.div`
