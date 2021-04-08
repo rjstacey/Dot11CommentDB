@@ -55,6 +55,11 @@ async function getBallot(ballotId) {
 	return reformatBallot(ballot)
 }
 
+async function getWgBallotsSeries() {
+	const ballots = await db.query(GET_BALLOTS_SQL + ' WHERE Type=3 or Type=4');
+	return ballots.map(b => reformatBallot(b));
+}
+
 async function getBallotWithNewResultsSummary(user, ballotId) {
 	const {ballot, summary} = await getResults(user, ballotId);
 	const commentsSummaries = await db.query(GetCommentsSummarySQL(ballotId));
