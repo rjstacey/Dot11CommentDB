@@ -5,11 +5,11 @@ import styled from '@emotion/styled'
 import AppTable, {ControlHeader, ControlCell} from 'dot11-common/table'
 import {ActionButton} from 'dot11-common/lib/icons'
 import {ConfirmModal} from 'dot11-common/modals'
-import UsersImport from './UsersImport'
-import UserAddEditModal, {EditUserAction} from './UserAddEdit'
+//import UsersImport from './UsersImport'
+//import UserAddEditModal, {EditUserAction} from './UserAddEdit'
 
 import {getSortedFilteredIds, getData} from 'dot11-common/store/dataSelectors'
-import {loadUsers, deleteUsers, AccessLevel, AccessLevelOptions} from '../store/users'
+import {loadUsers, AccessLevel, AccessLevelOptions} from '../store/users'
 
 const dataSet = 'users'
 
@@ -57,16 +57,16 @@ const tableColumns = [
 	{key: 'Name', 
 		label: 'Name',
 		width: 300, flexGrow: 1, flexShrink: 1},
-	{key: 'Email', 
+/*	{key: 'Email', 
 		label: 'eMail Address',
-		width: 300, flexGrow: 1, flexShrink: 1},
+		width: 300, flexGrow: 1, flexShrink: 1},*/
 	{key: 'Access', 
 		label: 'Access Level',
 		width: 150, flexGrow: 1, flexShrink: 1, dropdownWidth: 200,
 		cellRenderer: renderAccess},
-	{key: 'Actions',
+/*	{key: 'Actions',
 		label: 'Actions',
-		width: 100, flexGrow: 1, flexShrink: 1}
+		width: 100, flexGrow: 1, flexShrink: 1}*/
 ];
 
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
@@ -76,13 +76,13 @@ function Users({
 	selected,
 	valid,
 	loading,
-	showIds,
+	//showIds,
 	loadUsers,
-	deleteUsers
+	//deleteUsers
 }) {
-	const [editUser, setEditUser] = React.useState({action: EditUserAction.CLOSED, user: DefaultUser});
+	//const [editUser, setEditUser] = React.useState({action: EditUserAction.CLOSED, user: DefaultUser});
 
-	const columns = React.useMemo(() => {
+/*	const columns = React.useMemo(() => {
 		
 		const onDelete = async (user) => {
 			const ok = await ConfirmModal.show(`Are you sure you want to delete ${user.Name} (${user.SAPIN})?`)
@@ -104,14 +104,15 @@ function Users({
 				return col
 		});
 
-	}, [deleteUsers]);
+	}, [deleteUsers]);*/
+	const columns = tableColumns;
 
 	React.useEffect(() => {
 		if (!valid && !loading)
 			loadUsers()
 	}, []);
 
-	const handleRemoveSelected = async () => {
+	/*const handleRemoveSelected = async () => {
 		const ids = [];
 		for (let id of shownIds) { // only select checked items that are visible
 			if (selected.includes(id))
@@ -126,15 +127,15 @@ function Users({
 
 	const openAddUser = () => setEditUser({action: EditUserAction.ADD, user: DefaultUser})
 	const closeEditUser = () => setEditUser(s => ({...s, action: EditUserAction.CLOSED}))
-
+*/
 	return (
 		<React.Fragment>
 			<TopRow style={{maxWidth}}>
 				<div>Users</div>
 				<div>
-					<ActionButton name='add' title='Add User' onClick={openAddUser} />
+					{/*<ActionButton name='add' title='Add User' onClick={openAddUser} />
 					<ActionButton name='delete' title='Remove Selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
-					<UsersImport />
+					<UsersImport />*/}
 					<ActionButton name='refresh' title='Refresh' onClick={loadUsers} />
 				</div>
 			</TopRow>
@@ -150,12 +151,12 @@ function Users({
 				/>
 			</TableRow>
 
-			<UserAddEditModal
+			{/*<UserAddEditModal
 				isOpen={editUser.action !== EditUserAction.CLOSED}
 				close={closeEditUser}
 				action={editUser.action}
 				user={editUser.user}
-			/>
+			/>*/}
 		</React.Fragment>
 	)
 }
@@ -164,9 +165,9 @@ Users.propTypes = {
 	selected: PropTypes.array.isRequired,
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
-	shownIds: PropTypes.array.isRequired,
+	//shownIds: PropTypes.array.isRequired,
 	loadUsers: PropTypes.func.isRequired,
-	deleteUsers: PropTypes.func.isRequired
+	//deleteUsers: PropTypes.func.isRequired
 }
 
 export default connect(
@@ -174,7 +175,7 @@ export default connect(
 			selected: state[dataSet].selected,
 			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
-			shownIds: getSortedFilteredIds(state, dataSet),
+			//shownIds: getSortedFilteredIds(state, dataSet),
 		}),
-	{loadUsers, deleteUsers}
+	{loadUsers}
 )(Users)

@@ -8,12 +8,12 @@ import uiSlice from 'dot11-common/store/ui'
 import {setError} from 'dot11-common/store/error'
 import {MeetingTypeOptions} from './sessions'
 
-const meetingFields = ['id', 'Start', 'End', 'Name', 'Type', 'TimeZone', 'MeetingNumber']
+const fields = ['id', 'Start', 'End', 'Name', 'Type', 'TimeZone', 'MeetingNumber']
 
 /*
  * Generate a filter for each field (table column)
  */
-const defaultFiltersEntries = meetingFields.reduce((entries, dataKey) => {
+const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
 	let options;
 	if (dataKey === 'Type')
 		options = MeetingTypeOptions;
@@ -23,7 +23,7 @@ const defaultFiltersEntries = meetingFields.reduce((entries, dataKey) => {
 /*
  * Generate object that describes the initial sort state
  */
-const defaultSortEntries = meetingFields.reduce((entries, dataKey) => {
+const defaultSortEntries = fields.reduce((entries, dataKey) => {
 	let type
 	switch (dataKey) {
 		case 'MeetingNumber':
@@ -40,6 +40,15 @@ const defaultSortEntries = meetingFields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {type, direction}}
 }, {});
 
+
+/*
+ * Remove entries that no longer exist from a list. If there
+ * are no changes, return the original list.
+ */
+function filterIdList(idList, allIds) {
+	const newList = idList.filter(id => allIds.includes(id));
+	return newList.length === idList.length? idList: newList;
+}
 
 const dataAdapter = createEntityAdapter({
 	selectId: (meeting) => meeting.MeetingNumber
@@ -65,6 +74,7 @@ const meetingsSlice = createSlice({
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		getFailure(state, action) {
 			state.loading = false;
@@ -90,18 +100,6 @@ const meetingsSlice = createSlice({
  */
 export default meetingsSlice.reducer;
 
-function updateIdList(meetings, selected) {
-	const changed = selected.reduce(
-		(result, id) => result || !meetings.find(m => m.MeetingNumber === id),
-		false
-	);
-
-	if (!changed)
-		return selected
-
-	return selected.filter(id => !meetings.find(u => u.MeetingNumber === id))
-}
-
 const {getPending, getSuccess, getFailure} = meetingsSlice.actions;
 
 export const loadImatMeetings = (n) =>
@@ -110,29 +108,25 @@ export const loadImatMeetings = (n) =>
 		let meetings;
 		try {
 			meetings = await fetcher.get('/api/imat/meetings', {n})
+			if (!Array.isArray(meetings))
+				throw new TypeError('Unexpected response to GET: /api/imat/meetings');
 		}
 		catch(error) {
 			console.log(error)
-			return Promise.all([
+			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError('Unable to get meetings list', error))
-			])
+			]);
+			return;
 		}
 		meetings = meetings.map(m => ({...m, Start: new Date(m.Start), End: new Date(m.End)}));
-		const p = []
-		const {selected} = getState()[dataSet]
-		const newSelected = updateIdList(meetings, selected)
-		if (newSelected !== selected)
-			p.push(dispatch(setSelected(dataSet, newSelected)))
-
-		p.push(dispatch(getSuccess(meetings)))
-		return Promise.all(p)
+		await dispatch(getSuccess(meetings));
 	}
 
 /*
  * Selectors
  */
-const getMeetingsEntities = (state) => state['meetings'].entities;
+const getSessionsEntities = (state) => state['sessions'].entities;
 const getImatMeetingsEntities = (state) => state[dataSet].entities;
 
 /*
@@ -141,13 +135,13 @@ const getImatMeetingsEntities = (state) => state[dataSet].entities;
  * Generate imatMeetings list with indicator on each entry of presence in meetings list
  */
 export const getSyncedImatMeetingsEntities = createSelector(
-	getMeetingsEntities,
+	getSessionsEntities,
 	getImatMeetingsEntities,
-	(meetingsEntities, imatMeetingsEntities) => {
+	(sessionsEntities, imatMeetingsEntities) => {
 		const syncedImatMeetingsEntities = {};
 		for (const id of Object.keys(imatMeetingsEntities))
 			syncedImatMeetingsEntities[id] = {...imatMeetingsEntities[id], InDatabase: false}
-		for (const m of Object.values(meetingsEntities)) {
+		for (const m of Object.values(sessionsEntities)) {
 			if (syncedImatMeetingsEntities[m.MeetingNumber])
 				syncedImatMeetingsEntities[m.MeetingNumber].InDatabase = true
 		}

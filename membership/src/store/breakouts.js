@@ -3,16 +3,17 @@ import {createSlice, createEntityAdapter, createSelector} from '@reduxjs/toolkit
 import fetcher from 'dot11-common/store/fetcher'
 import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
 import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
-import selectedSlice, {setSelected} from 'dot11-common/store/selected'
+import selectedSlice from 'dot11-common/store/selected'
 import uiSlice from 'dot11-common/store/ui'
 import {setError} from 'dot11-common/store/error'
+import {updateSessionSuccess} from './sessions'
 
-const breakoutFields = ['id', 'DayDate', 'Time', 'Location', 'Group', 'Name', 'Credit', 'Attendees']
+const fields = ['id', 'DayDate', 'Time', 'Location', 'Group', 'Name', 'Credit', 'Attendees']
 
 /*
  * Generate a filter for each field (table column)
  */
-const defaultFiltersEntries = breakoutFields.reduce((entries, dataKey) => {
+const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
 	let options;
 	return {...entries, [dataKey]: {options}}
 }, {});
@@ -20,7 +21,7 @@ const defaultFiltersEntries = breakoutFields.reduce((entries, dataKey) => {
 /*
  * Generate object that describes the initial sort state
  */
-const defaultSortEntries = breakoutFields.reduce((entries, dataKey) => {
+const defaultSortEntries = fields.reduce((entries, dataKey) => {
 	let type
 	switch (dataKey) {
 		case 'id':
@@ -39,18 +40,27 @@ const defaultSortEntries = breakoutFields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {type, direction}}
 }, {});
 
+/*
+ * Remove entries that no longer exist from a list. If there
+ * are no changes, return the original list.
+ */
+function filterIdList(idList, allIds) {
+	const newList = idList.filter(id => allIds.includes(id));
+	return newList.length === idList.length? idList: newList;
+}
+
 const dataAdapter = createEntityAdapter({
 	selectId: (meeting) => meeting.id
 })
 
 const dataSet = 'breakouts'
 
-const breakoutsSlice = createSlice({
+const slice = createSlice({
 	name: dataSet,
 	initialState: dataAdapter.getInitialState({
 		valid: false,
 		loading: false,
-		meeting: {},
+		session: {},
 		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
 		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
 		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
@@ -61,11 +71,12 @@ const breakoutsSlice = createSlice({
 			state.loading = true;
 		},
   		getSuccess(state, action) {
-  			const {meeting, breakouts} = action.payload;
+  			const {session, breakouts} = action.payload;
 			state.loading = false;
 			state.valid = true;
-			state.meeting = meeting;
+			state.session = session;
 			dataAdapter.setAll(state, breakouts);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		getFailure(state, action) {
 			state.loading = false;
@@ -89,42 +100,47 @@ const breakoutsSlice = createSlice({
 /*
  * Export reducer as default
  */
-export default breakoutsSlice.reducer;
+export default slice.reducer;
 
-function updateIdList(breakouts, selected) {
-	const changed = selected.reduce(
-		(result, id) => result || !breakouts.find(m => m.id === id),
-		false
-	);
-
-	if (!changed)
-		return selected
-
-	return selected.filter(id => !breakouts.find(m => m.id === id))
-}
-
-const {getPending, getSuccess, getFailure} = breakoutsSlice.actions;
+const {getPending, getSuccess, getFailure} = slice.actions;
 
 export const loadBreakouts = (session_id) =>
 	async (dispatch, getState) => {
-		dispatch(getPending())
+		await dispatch(getPending())
+		const url = `/api/session/${session_id}/breakouts`;
 		let response;
 		try {
-			response = await fetcher.get(`/api/session/${session_id}/breakouts`)
+			response = await fetcher.get(url);
+			if (typeof response !== 'object' || !response.hasOwnProperty('breakouts') || !response.hasOwnProperty('session'))
+				throw new TypeError(`Unexpected response to GET: ${url}`);
 		}
 		catch(error) {
 			console.log(error)
-			return Promise.all([
+			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError(`Unable to get breakouts for ${session_id}`, error))
-			])
+			]);
+			return;
 		}
-		const {meeting, breakouts} = response;
-		const p = []
-		const {selected} = getState()[dataSet]
-		const newSelected = updateIdList(breakouts, selected)
-		if (newSelected !== selected)
-			p.push(dispatch(setSelected(dataSet, newSelected)))
-		p.push(dispatch(getSuccess({meeting, breakouts})))
-		return Promise.all(p)
+		await dispatch(getSuccess(response));
+	}
+
+export const importBreakouts = (session_id) =>
+	async (dispatch, getState) => {
+		const url = `/api/session/${session_id}/breakouts/import`;
+		let response;
+		try {
+			response = await fetcher.post(url);
+			if (typeof response !== 'object' || !response.hasOwnProperty('breakouts') || !response.hasOwnProperty('session'))
+				throw new TypeError(`Unexpected response to POST: ${url}`);
+		}
+		catch(error) {
+			console.log(error)
+			await dispatch(setError('Unable to import breakouts', error))
+			return;
+		}
+		const {session} = response;
+		await Promise.all([
+			dispatch(getSuccess(response)),
+			dispatch(updateSessionSuccess(session.id, session))]);
 	}

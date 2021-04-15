@@ -17,6 +17,7 @@ function StatusSelector({
 			values={optionSelected? [optionSelected]: []}
 			onChange={handleChange}
 			options={StatusOptions}
+			portal={document.querySelector('#root')}
 			{...otherProps}
 		/>
 	)

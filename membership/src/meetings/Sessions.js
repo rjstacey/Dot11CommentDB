@@ -10,7 +10,9 @@ import {displayDate} from 'dot11-common/lib/utils'
 import SessionDialog from './SessionDialog'
 
 import {getSortedFilteredData} from 'dot11-common/store/dataSelectors'
-import {loadSessions, deleteSessions, importSessionBreakouts, MeetingTypeOptions} from '../store/sessions'
+import {loadSessions, deleteSessions, MeetingTypeOptions} from '../store/sessions'
+import {importBreakouts} from '../store/breakouts'
+import {importAttendances} from '../store/attendees'
 
 const DefaultSession = {Date: new Date(), Location: '', Type: MeetingTypeOptions[0].value}
 
@@ -71,15 +73,15 @@ const tableColumns = [
 		width: 60, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
 	{key: 'MeetingNumber', 
 		label: 'Meeting Number',
-		width: 100, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
+		width: 120, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
 	{key: 'Start', 
 		label: 'Start',
-		width: 300, flexGrow: 1, flexShrink: 1,
+		width: 120, flexGrow: 1, flexShrink: 1,
 		dataRenderer: displayDate,
 		cellRenderer: renderDate},
 	{key: 'End', 
 		label: 'End',
-		width: 300, flexGrow: 1, flexShrink: 1,
+		width: 120, flexGrow: 1, flexShrink: 1,
 		dataRenderer: displayDate,
 		cellRenderer: renderDate},
 	{key: 'Name', 
@@ -87,15 +89,18 @@ const tableColumns = [
 		width: 300, flexGrow: 1, flexShrink: 1},
 	{key: 'Type', 
 		label: 'Session Type',
-		width: 300, flexGrow: 1, flexShrink: 1,
+		width: 80, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderMeetingType},
 	{key: 'TimeZone', 
 		label: 'Time Zone',
-		width: 300, flexGrow: 1, flexShrink: 1},
+		width: 200, flexGrow: 1, flexShrink: 1},
 	{key: 'Breakouts', 
 		label: 'Breakouts',
 		width: 100, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderBreakouts},
+	{key: 'TotalCredit', 
+		label: 'Credits',
+		width: 100, flexGrow: 1, flexShrink: 1},
 	{key: 'Attendees', 
 		label: 'Attendance',
 		width: 100, flexGrow: 1, flexShrink: 1,
@@ -108,15 +113,16 @@ const tableColumns = [
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
 const primaryDataKey = 'id';
 
-function Meetings({
+function Sessions({
 	selected,
 	valid,
 	loading,
 	loadSessions,
 	deleteSessions,
-	importSessionBreakouts
+	importBreakouts,
+	importAttendances
 }) {
-	const [sessionDialog, setSessionDialog] = React.useState({action: null});
+	const [sessionDialog, setSessionDialog] = React.useState({action: ''});
 	const history = useHistory();
 
 	const columns = React.useMemo(() => {
@@ -133,9 +139,9 @@ function Meetings({
 					...col,
 					cellRenderer: ({rowData}) => 
 						<RowActions
-							onEdit={() => setSessionDialog({action: 'update', meeting: rowData})}
+							onEdit={() => setSessionDialog({action: 'update', session: rowData})}
 							onDelete={() => onDelete(rowData)}
-							onImport={() => importSessionBreakouts(rowData.id)}
+							onImport={() => importAttendances(rowData.id)}
 						/>
 				}
 			else
@@ -157,8 +163,8 @@ function Meetings({
 		}
 	}
 
-	const addSessionDialog = () => setSessionDialog({action: 'add', meeting: DefaultSession})
-	const closeSessionDialog = () => setSessionDialog(s => ({...s, action: null}))
+	const addSessionDialog = () => setSessionDialog({action: 'add', session: DefaultSession})
+	const closeSessionDialog = () => setSessionDialog(s => ({...s, action: ''}))
 	const showSessions = () => history.push('/ImatSessions/');
 
 	return (
@@ -187,14 +193,14 @@ function Meetings({
 			<SessionDialog
 				isOpen={!!sessionDialog.action}
 				action={sessionDialog.action}
-				meeting={sessionDialog.meeting}
+				session={sessionDialog.session}
 				close={closeSessionDialog}
 			/>
 		</React.Fragment>
 	)
 }
 
-Meetings.propTypes = {
+Sessions.propTypes = {
 	selected: PropTypes.array.isRequired,
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
@@ -209,5 +215,5 @@ export default connect(
 			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
 		}),
-	{loadSessions, deleteSessions, importSessionBreakouts}
-)(Meetings)
+	{loadSessions, deleteSessions, importBreakouts, importAttendances}
+)(Sessions)

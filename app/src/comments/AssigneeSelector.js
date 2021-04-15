@@ -55,7 +55,7 @@ const renderItem = ({item, style, props, state, methods}) => (
 		isSelected={methods.isSelected(item)}
 		isItalic={typeof item.value === 'string'}
 	>
-		<Icon icon={typeof item.value === 'number'? 'user-check': 'user-slash'} />
+		<Icon name={typeof item.value === 'number'? 'user-check': 'user-slash'} />
 		<span>{item.label}</span>
 	</StyledItem>
 );
@@ -105,7 +105,7 @@ const renderContent = ({state, methods, props}) => {
 		<React.Fragment>
 			{item &&
 				<StyledContentItem>
-					<Icon icon={typeof item.value === 'number'? 'user-check': 'user-slash'} />
+					<Icon name={typeof item.value === 'number'? 'user-check': 'user-slash'} />
 					<span>{item.label}</span>
 				</StyledContentItem>}
 			<Input props={props} methods={methods} state={state} />

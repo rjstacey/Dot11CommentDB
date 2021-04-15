@@ -11,7 +11,7 @@ import {AccessLevel, AccessLevelOptions} from 'dot11-common/store/login'	// re-e
 
 export {AccessLevel, AccessLevelOptions};
 
-const userFields = ['SAPIN', 'Name', 'Email', 'Status', 'NewStatus', 'Access']
+const fields = ['SAPIN', 'Name', 'Email', 'Employer', 'Affiliation', 'Status', 'NewStatus', 'Access', 'AttendanceCount']
 
 const Status = {
 	'Non-Voter': 'Non-Voter',
@@ -27,7 +27,7 @@ export const StatusOptions = Object.entries(Status).map(([k, v]) => ({value: k, 
 /*
  * Generate a filter for each field (table column)
  */
-const defaultFiltersEntries = userFields.reduce((entries, dataKey) => {
+const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
 	let options;
 	if (dataKey === 'Access')
 		options = AccessLevelOptions;
@@ -37,11 +37,12 @@ const defaultFiltersEntries = userFields.reduce((entries, dataKey) => {
 /*
  * Generate object that describes the initial sort state
  */
-const defaultSortEntries = userFields.reduce((entries, dataKey) => {
+const defaultSortEntries = fields.reduce((entries, dataKey) => {
 	let type
 	switch (dataKey) {
 		case 'SAPIN':
 		case 'Access':
+		case 'AttendanceCount':
 			type = SortType.NUMERIC
 			break
 		default:
@@ -60,7 +61,7 @@ function filterIdList(idList, allIds) {
 	return newList.length === idList.length? idList: newList;
 }
 
-const dataAdapter = createEntityAdapter({
+const membersAdapter = createEntityAdapter({
 	selectId: (m) => m.SAPIN
 })
 
@@ -68,7 +69,7 @@ const dataSet = 'members'
 
 const slice = createSlice({
 	name: dataSet,
-	initialState: dataAdapter.getInitialState({
+	initialState: membersAdapter.getInitialState({
 		valid: false,
 		validAttendance: false,
 		loading: false,
@@ -88,7 +89,7 @@ const slice = createSlice({
 			state.valid = true;
 			state.validAttendance = false;
 			state.sessions = {};
-			dataAdapter.setAll(state, members);
+			membersAdapter.setAll(state, members);
 			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		getFailure(state, action) {
@@ -100,35 +101,36 @@ const slice = createSlice({
 			state.valid = true;
 			state.validAttendance = true;
 			state.sessions = sessions.reduce((obj, s) => ({...obj, [s.id]: s}), {});
-			dataAdapter.setAll(state, members);
+			membersAdapter.setAll(state, members);
 			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		updateOne(state, action) {
-			const {SAPIN, user} = action.payload;
-			dataAdapter.updateOne(state, {id: SAPIN, changes: user});
+			const {id, changes} = action.payload;
+			membersAdapter.updateOne(state, {id, changes});
 			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		addOne(state, action) {
-			const user = action.payload;
-			dataAdapter.addOne(state, user);
+			const {member} = action.payload;
+			membersAdapter.addOne(state, member);
 		},
 		upsertMany(state, action) {
-			const users = action.payload;
-			dataAdapter.upsertMany(state, users);
+			const {members} = action.payload;
+			membersAdapter.upsertMany(state, members);
 			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		deleteMany(state, action) {
 			const userIds = action.payload;
-			dataAdapter.removeMany(state, userIds);
+			membersAdapter.removeMany(state, userIds);
 			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
-		upload(state, action) {
+		uploadPending(state, action) {
 			state.loading = true;
 		},
 		uploadSuccess(state, action) {
+			const {members} = action.payload;
 			state.valid = true;
 			state.loading = false;
-			dataAdapter.setAll(state, action.payload);
+			membersAdapter.setAll(state, members);
 			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		uploadFailure(state, action) {
@@ -160,18 +162,20 @@ const {getPending, getSuccess, getFailure, getSuccessWithAttendance} = slice.act
 export const loadMembers = () =>
 	async (dispatch, getState) => {
 		dispatch(getPending())
-		let users;
+		let response;
 		try {
-			users = await fetcher.get('/api/users');
+			response = await fetcher.get('/api/members');
+			if (typeof response !== 'object' || !response.hasOwnProperty('members'))
+				throw new TypeError("Unexpected response to GET: /api/members");
 		}
 		catch(error) {
 			console.log(error)
 			return Promise.all([
 				dispatch(getFailure()),
-				dispatch(setError('Unable to get users list', error))
+				dispatch(setError('Unable to get members list', error))
 			])
 		}
-		return dispatch(getSuccess(users))
+		return dispatch(getSuccess(response))
 	}
 
 export const loadMembersWithAttendance = () =>
@@ -179,9 +183,9 @@ export const loadMembersWithAttendance = () =>
 		dispatch(getPending());
 		let response;
 		try {
-			response = await fetcher.get('/api/users/attendance');
-			if (!response.hasOwnProperty('members') || !response.hasOwnProperty('sessions'))
-				throw new TypeError("Unexpected response to get('/api/users/attendance')");
+			response = await fetcher.get('/api/members/attendance');
+			if (typeof response !== 'object' || !response.hasOwnProperty('members'))
+				throw new TypeError("Unexpected response to GET: /api/members/attendance");
 		}
 		catch(error) {
 			console.log(error)
@@ -195,46 +199,55 @@ export const loadMembersWithAttendance = () =>
 
 const {updateOne} = slice.actions;
 
-export const updateMember = (SAPIN, user) =>
+export const updateMember = (id, member) =>
 	async (dispatch) => {
-		dispatch(updateOne({SAPIN, user}));
+		dispatch(updateOne({id, changes: member}));
+		const url = `/api/member/${id}`;
+		let response;
 		try {
-			const response = await fetcher.put(`/api/user/${SAPIN}`, {user});
-			return null
+			response = await fetcher.patch(url, {member});
+			if (typeof response !== 'object' || !response.hasOwnProperty('member'))
+				throw new TypeError('Unexpected response to PATCH: ' + url);
 		}
 		catch(error) {
-			return dispatch(setError(`Unable to update user ${SAPIN}`, error))
+			await dispatch(setError('Unable to update member', error));
+			return;
 		}
+		dispatch(updateOne({id, changes: response.member}));
 	}
 
 const {addOne} = slice.actions;
 
-export const addMember = (user) =>
+export const addMember = (member) =>
 	async (dispatch) => {
-		dispatch(addOne(user))
+		let response;
 		try {
-			const response = await fetcher.post('/api/user', {user})
-			return null;
+			response = await fetcher.post('/api/member', {member});
+			if (typeof response !== 'object' || !response.hasOwnProperty('member'))
+				throw new TypeError("Unexpected response to POST: /api/member");
 		}
 		catch(error) {
-			return dispatch(setError(`Unable to add user ${user.SAPIN}`, error))
+			await dispatch(setError(`Unable to add member SAPIN=${member.SAPIN}`, error))
+			return
 		}
+		dispatch(addOne(response))
 	}
 
 const {upsertMany} = slice.actions;
 
-export const upsertMembers = (users) =>
+export const upsertMembers = (members) =>
 	async (dispatch) => {
 		let response;
 		try {
-			response = await fetcher.post('/api/users', {users})
-			if (!response.hasOwnProperty('users'))
-				throw new TypeError("Unexpected response to post('/api/users')")
+			response = await fetcher.post('/api/members', {members})
+			if (typeof response !== 'object' || !response.hasOwnProperty('members'))
+				throw new TypeError("Unexpected response to POST: /api/members")
 		}
 		catch(error) {
-			return dispatch(setError(`Unable to update/insert users`, error))
+			await dispatch(setError(`Unable to update/insert members`, error));
+			return;
 		}
-		dispatch(upsertMany(response.users))
+		dispatch(upsertMany(response));
 	}
 
 const {deleteMany} = slice.actions;
@@ -243,21 +256,31 @@ export const deleteMembers = (ids) =>
 	async (dispatch, getState) => {
 		dispatch(deleteMany(ids))
 		try {
-			await fetcher.delete('/api/users', ids)
+			await fetcher.delete('/api/members', ids);
 		}
 		catch(error) {
-			return dispatch(setError(`Unable to delete users ${ids}`, error))
+			await dispatch(setError(`Unable to delete members ${ids}`, error));
 		}
 	}
 
-const {upload, uploadSuccess, uploadFailure} = slice.actions;
+const {uploadPending, uploadSuccess, uploadFailure} = slice.actions;
 
-export const uploadMembers = (file) =>
+export const UploadFormat = {
+	Roster: 'roster',
+	Members: 'members',
+	SAPINs: 'sapins',
+	Emails: 'emails'
+};
+
+export const uploadMembers = (format, file) =>
 	async (dispatch) => {
-		dispatch(upload())
-		let users;
+		dispatch(uploadPending())
+		const url = `/api/members/upload/${format}`;
+		let response;
 		try {
-			users = await fetcher.postMultipart('/api/users/upload', {UsersFile: file})
+			response = await fetcher.postMultipart(url, {File: file})
+			if (typeof response !== 'object' || !response.hasOwnProperty('members'))
+				throw new TypeError('Unexpected response to POST: ' + url);
 		}
 		catch(error) {
 			return Promise.all([
@@ -265,7 +288,7 @@ export const uploadMembers = (file) =>
 				dispatch(setError('Unable to upload users', error))
 			])
 		}
-		return dispatch(uploadSuccess(users))
+		return dispatch(uploadSuccess(response))
 	}
 
 export const deleteSelectedMembers = () => 

@@ -76,7 +76,7 @@ function renderTitle(meeting, breakout) {
 function Attendees({
 	valid,
 	loading,
-	meeting,
+	session,
 	breakout,
 	loadAttendees,
 	importSelectedAttendees
@@ -85,16 +85,16 @@ function Attendees({
 	const {session_id, breakout_id} = useParams();
 
 	React.useEffect(() => {
-		if (!valid || meeting.id !== session_id || breakout.id !== breakout_id)
+		if (!valid || session.id !== session_id || breakout.id !== breakout_id)
 			loadAttendees(session_id, breakout_id)
 	}, []);
 
 	const {columns, maxWidth} = React.useMemo(() => {
 		let columns = tableColumns;
 		if (!breakout_id) {
-			const dataRenderer = (d) => (d*100).toFixed(0) + '%';
+			const dataRenderer = (pct) => !isNaN(pct)? `${pct.toFixed(2)}%`: '';
 			columns = columns.concat(
-				{key: 'SessionCreditPct', 
+				{key: 'AttendancePercentage', 
 					label: 'Attendance',
 					width: 150, flexGrow: 1, flexShrink: 1,
 					dataRenderer,
@@ -103,7 +103,7 @@ function Attendees({
 		}
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
 		return {columns, maxWidth};
-	}, [breakout_id]);
+	}, [breakout_id], session);
 
 	const handleImportAttandees = async () => {
 		const ok = await ConfirmModal.show('Import selected to members list?');
@@ -116,7 +116,7 @@ function Attendees({
 	return (
 		<React.Fragment>
 			<TopRow style={{maxWidth}}>
-				{valid? renderTitle(meeting, breakout): null}
+				{valid? renderTitle(session, breakout): null}
 				<div>
 					<ActionButton name='import' title='Add Selected' onClick={handleImportAttandees} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
@@ -141,7 +141,7 @@ function Attendees({
 Attendees.propTypes = {
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
-	meeting: PropTypes.object.isRequired,
+	session: PropTypes.object.isRequired,
 	breakout: PropTypes.object,
 	loadAttendees: PropTypes.func.isRequired,
 	importSelectedAttendees: PropTypes.func.isRequired,
@@ -152,7 +152,7 @@ export default connect(
 	(state) => ({
 			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
-			meeting: state[dataSet].meeting,
+			session: state[dataSet].session,
 			breakout: state[dataSet].breakout,
 		}),
 	{loadAttendees, importSelectedAttendees}

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types'
 import React from 'react'
+import {Link} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppTable, {ControlHeader, ControlCell} from 'dot11-common/table'
@@ -55,7 +56,7 @@ const tableColumns = [
 	{key: 'Name', 
 		label: 'Name',
 		width: 200, flexGrow: 1, flexShrink: 1},
-	{key: 'Attendances', 
+	{key: 'AttendanceCount', 
 		label: 'Attendances',
 		width: 300, flexGrow: 1, flexShrink: 1},
 	{key: 'Status', 
@@ -90,7 +91,7 @@ const SessionsContainer = styled.div`
 function RecentSessions({sessions}) {
 	const P = [], I = [];
 	for (const s of Object.values(sessions)) {
-		const d = <div key={s.id}>{displayDate(s.Start)}</div>;
+		const d = <Link key={s.id} to={`/Session/${s.id}/Attendees`} >{displayDate(s.Start)}</Link>;
 		if (s && s.Type === 'i')
 			I.push(d)
 		else
@@ -124,7 +125,7 @@ const AttendanceContainer = styled.div`
 `;
 
 const _Attendances = ({rowData, dataKey, sessions}) => {
-	const attendances = rowData[dataKey];
+	const attendances = rowData.Attendances;
 	if (!attendances)
 		return 'None'
 	const P = [], I = [];
@@ -135,9 +136,9 @@ const _Attendances = ({rowData, dataKey, sessions}) => {
 		let qualifies = false;
 		/* Plenary session attendance qualifies if the member gets at least 75% attendance credit.
 		 * One interim can be substituted for a plenary. */
-		if (s && v >= 0.75 && (s.Type === 'p' || (s.Type === 'i' && n++ === 0)))
+		if (s && v >= 75 && (s.Type === 'p' || (s.Type === 'i' && n++ === 0)))
 			qualifies = true;
-		const pct = <div key={k} className={qualifies? 'qualifies': undefined}>{(v*100).toFixed(0) + '%'}</div>;
+		const pct = <div key={k} className={qualifies? 'qualifies': undefined}>{v.toFixed(0) + '%'}</div>;
 		if (s && s.Type === 'i')
 			I.push(pct)
 		else
@@ -162,7 +163,7 @@ function MembersAttendanceUpdate({
 	deleteMembers,
 	deleteSelectedMembers
 }) {
-	const [editMember, setEditMember] = React.useState({action: null});
+	const [editMember, setEditMember] = React.useState({action: ''});
 
 	const columns = React.useMemo(() => {
 		
@@ -182,7 +183,7 @@ function MembersAttendanceUpdate({
 							onDelete={() => onDelete(rowData)}
 						/>
 				}
-			else if (col.key === 'Attendances')
+			else if (col.key === 'AttendanceCount')
 				return {...col, cellRenderer: (props) => <Attendances {...props} />}
 			else
 				return col;
@@ -231,7 +232,7 @@ function MembersAttendanceUpdate({
 			</TableRow>
 
 			<MemberUpdateModal
-				isOpen={!!editMember.action}
+				isOpen={editMember.action === 'add' || editMember.action === 'update'}
 				close={closeMemberUpdate}
 				action={editMember.action}
 				member={editMember.member}

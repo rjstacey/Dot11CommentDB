@@ -51,16 +51,16 @@ const renderDropdown = ({props, state, methods}) => {
 function TimeZoneSelector({
 	value,
 	onChange,
-	timeZones,
 	valid,
 	loading,
+	timeZones,
 	loadTimeZones,
 	readOnly,
 	...otherProps
 }) {
 
 	React.useEffect(() => {
-		if (timeZones.length === 0)
+		if (!valid && !loading)
 			loadTimeZones();
 	}, []);
 
@@ -79,6 +79,7 @@ function TimeZoneSelector({
 			clearable
 			dropdownRenderer={renderDropdown}
 			readOnly={readOnly}
+			portal={document.querySelector('#root')}
 			{...otherProps}
 		/>
 	)
@@ -88,13 +89,18 @@ TimeZoneSelector.propTypes = {
 	value: PropTypes.string,
 	onChange: PropTypes.func.isRequired,
 	width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+	valid: PropTypes.bool.isRequired,
+	loading: PropTypes.bool.isRequired,
 	timeZones: PropTypes.array.isRequired,
 	loadTimeZones: PropTypes.func.isRequired
 }
 
+const dataSet = 'sessions'
 export default connect(
 	(state) => ({
-		timeZones: state.meetings.timeZones,
+		valid: state[dataSet].timeZones.length > 0,
+		loading: state[dataSet].loadingTimeZones,
+		timeZones: state[dataSet].timeZones,
 	}),
 	{loadTimeZones}
 )(TimeZoneSelector)

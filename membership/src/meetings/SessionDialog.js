@@ -7,45 +7,41 @@ import TimeZoneSelector from './TimeZoneSelector'
 import {updateSession, addSession, MeetingTypeOptions} from '../store/sessions'
 
 function getDate(d) {
-	const s = typeof d === 'string'? d: d.toISOString()
-	return s.substring(0, 10)
+	const s = d instanceof Date? d.toISOString(): d;
+	return s.substring(0, 10);
 }
 
-function _MeetingDialog({
+function _SessionDialog({
 	action,
 	defaultValue,
 	close,
 	addSession,
 	updateSession
 }) {
-	const [meeting, setMeeting] = React.useState(defaultValue);
+	const [session, setSession] = React.useState(defaultValue);
 	const [errMsg, setErrMsg] = React.useState('');
 
 	const submit = async () => {
 		//console.log(meeting)
-		if (!meeting.Start) {
+		if (!session.Start) {
 			setErrMsg('Start date must be supplied');
 			return;
 		}
-		if (!meeting.Name) {
+		if (!session.Name) {
 			setErrMsg('Session name must be supplied');
 			return;
 		}
-		await action === 'update'? updateSession(meeting.id, meeting): addSession(meeting);
+		await action === 'update'? updateSession(session.id, session): addSession(session);
 		close();
 	};
 
-	const change = e => setMeeting({...meeting, [e.target.name]: e.target.value});
-	const changeDate = e => setMeeting({...meeting, [e.target.name]: new Date(e.target.value)})
+	const change = e => setSession(s => ({...s, [e.target.name]: e.target.value}));
+	const changeDate = e => setSession(s => ({...s, [e.target.name]: new Date(e.target.value)}));
+	const changeType = options => setSession(s => ({...s, Type: options.length? options[0].value: null}));
+	const getTypeOption = session => MeetingTypeOptions.find(o => o.value === session.Type) || [];
+	const changeTimeZone = tz => setSession(s => ({...s, TimeZone: tz}));
 
-	const changeType = options => {
-		console.log(options)
-		setMeeting({...meeting, Type: options.length? options[0].value: null});
-	}
-	const getTypeOption = meeting => MeetingTypeOptions.find(o => o.value === meeting.Type) || [];
-	const changeTimeZone = tz => setMeeting({...meeting, TimeZone: tz});
-
-	const typeOption = MeetingTypeOptions.find(o => o.value === meeting.Type)
+	const typeOption = MeetingTypeOptions.find(o => o.value === session.Type)
 
 	const actionText = action === 'add'? 'Add': 'Update';
 
@@ -60,17 +56,17 @@ function _MeetingDialog({
 		>
 			<Row>
 				<Field label='Start:'>
-					<Input type='date' size={24} name='Start' value={getDate(meeting.Start)} onChange={changeDate}/>
+					<Input type='date' size={24} name='Start' value={getDate(session.Start)} onChange={changeDate}/>
 				</Field>
 			</Row>
 			<Row>
 				<Field label='End:'>
-					<Input type='date' size={24} name='End' value={getDate(meeting.End)} onChange={changeDate}/>
+					<Input type='date' size={24} name='End' value={getDate(session.End)} onChange={changeDate}/>
 				</Field>
 			</Row>
 			<Row>
 				<Field label='Name:'>
-					<Input type='text' size={24} name='Name' value={meeting.Name} onChange={change}/>
+					<Input type='text' size={24} name='Name' value={session.Name} onChange={change}/>
 				</Field>
 			</Row>
 			<Row>
@@ -79,13 +75,14 @@ function _MeetingDialog({
 						options={MeetingTypeOptions}
 						values={typeOption? [typeOption]: []}
 						onChange={changeType}
+						portal={document.querySelector('#root')}
 					/>
 				</Field>
 			</Row>
 			<Row>
 				<Field label='Time zone:'>
 					<TimeZoneSelector
-						value={meeting.TimeZone}
+						value={session.TimeZone}
 						onChange={changeTimeZone}
 						style={{width: 200}}
 					/>
@@ -95,23 +92,23 @@ function _MeetingDialog({
 	)
 }
 
-_MeetingDialog.propTypes = {
-	action: PropTypes.oneOf(['add', 'update']),
+_SessionDialog.propTypes = {
+	action: PropTypes.oneOf(['add', 'update', '']).isRequired,
 	defaultValue: PropTypes.object.isRequired,
 	close: PropTypes.func.isRequired,
 	addSession: PropTypes.func.isRequired,
 	updateSession: PropTypes.func.isRequired
 }
 
-const MeetingDialog = connect(
+const SessionDialog = connect(
 	null,
 	{addSession, updateSession}
-)(_MeetingDialog)
+)(_SessionDialog)
 
-function MeetingDialogModal({
+function SessionDialogModal({
 	isOpen,
 	action,
-	meeting,
+	session,
 	close
 }) {
 	return (
@@ -119,14 +116,14 @@ function MeetingDialogModal({
 			isOpen={isOpen}
 			onRequestClose={close}
 		>
-			<MeetingDialog
+			<SessionDialog
 				key={isOpen}		// remount on open
 				action={action}
-				defaultValue={meeting}
+				defaultValue={session}
 				close={close}
 			/>
 		</AppModal>
 	)
 }
 
-export default MeetingDialogModal;
+export default SessionDialogModal;

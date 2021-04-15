@@ -10,12 +10,12 @@ import {AccessLevel, AccessLevelOptions} from 'dot11-common/store/login'	// re-e
 
 export {AccessLevel, AccessLevelOptions};
 
-const userFields = ['SAPIN', 'Name', 'Email', 'Access']
+const fields = ['SAPIN', 'Name', 'Access']
 
 /*
  * Generate a filter for each field (table column)
  */
-const defaultFiltersEntries = userFields.reduce((entries, dataKey) => {
+const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
 	let options;
 	if (dataKey === 'Access')
 		options = AccessLevelOptions;
@@ -25,7 +25,7 @@ const defaultFiltersEntries = userFields.reduce((entries, dataKey) => {
 /*
  * Generate object that describes the initial sort state
  */
-const defaultSortEntries = userFields.reduce((entries, dataKey) => {
+const defaultSortEntries = fields.reduce((entries, dataKey) => {
 	let type
 	switch (dataKey) {
 		case 'SAPIN':
@@ -39,6 +39,14 @@ const defaultSortEntries = userFields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {type, direction}}
 }, {});
 
+/*
+ * Remove entries that no longer exist from a list. If there
+ * are no changes, return the original list.
+ */
+function filterIdList(idList, allIds) {
+	const newList = idList.filter(id => allIds.includes(id));
+	return newList.length === idList.length? idList: newList;
+}
 
 const dataAdapter = createEntityAdapter({
 	selectId: (user) => user.SAPIN
@@ -46,7 +54,7 @@ const dataAdapter = createEntityAdapter({
 
 const dataSet = 'users'
 
-const usersSlice = createSlice({
+const slice = createSlice({
 	name: dataSet,
 	initialState: dataAdapter.getInitialState({
 		valid: false,
@@ -64,11 +72,12 @@ const usersSlice = createSlice({
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		getFailure(state, action) {
 			state.loading = false;
 		},
-		updateOne(state, action) {
+/*		updateOne(state, action) {
 			const {SAPIN, user} = action.payload;
 			dataAdapter.updateOne(state, user);
 		},
@@ -79,6 +88,7 @@ const usersSlice = createSlice({
 		deleteMany(state, action) {
 			const userIds = action.payload;
 			dataAdapter.removeMany(state, userIds);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		upload(state, action) {
 			state.loading = true;
@@ -87,10 +97,11 @@ const usersSlice = createSlice({
 			state.valid = true;
 			state.loading = false;
 			dataAdapter.setAll(state, action.payload);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		uploadFailure(state, action) {
 			state.loading = false;
-		}
+		}*/
 	},
 	extraReducers: builder => {
 		builder
@@ -110,28 +121,16 @@ const usersSlice = createSlice({
 /*
  * Export reducer as default
  */
-export default usersSlice.reducer;
+export default slice.reducer;
 
-function updateIdList(users, selected) {
-	const changed = selected.reduce(
-		(result, id) => result || !users.find(u => u.SAPIN === id),
-		false
-	);
-
-	if (!changed)
-		return selected
-
-	return selected.filter(id => !users.find(u => u.SAPIN === id))
-}
-
-const {getPending, getSuccess, getFailure} = usersSlice.actions;
+const {getPending, getSuccess, getFailure} = slice.actions;
 
 export function loadUsers() {
 	return async (dispatch, getState) => {
 		dispatch(getPending())
-		let users;
+		let response;
 		try {
-			users = await fetcher.get('/api/users')
+			response = await fetcher.get('/api/users')
 		}
 		catch(error) {
 			console.log(error)
@@ -140,17 +139,11 @@ export function loadUsers() {
 				dispatch(setError('Unable to get users list', error))
 			])
 		}
-		const p = []
-		const {selected} = getState()[dataSet]
-		const newSelected = updateIdList(users, selected)
-		if (newSelected !== selected)
-			p.push(dispatch(setSelected(dataSet, newSelected)))
-
-		p.push(dispatch(getSuccess(users)))
-		return Promise.all(p)
+		return dispatch(getSuccess(response.users))
 	}
 }
 
+/*
 const {updateOne} = usersSlice.actions;
 
 export function updateUser(SAPIN, user) {
@@ -216,3 +209,4 @@ export function uploadUsers(file) {
 		return dispatch(uploadSuccess(users))
 	}
 }
+*/

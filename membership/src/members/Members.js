@@ -43,7 +43,10 @@ const TableRow = styled.div`
 	}
 `;
 
-const renderAccess = ({rowData}) => AccessLevelOptions.find(o => o.value === rowData.Access).label;
+const renderAccess = ({rowData}) => {
+	const item = AccessLevelOptions.find(o => o.value === rowData.Access);
+	return item? item.label: 'error';
+}
 
 const tableColumns = [
 	{key: '__ctrl__',
@@ -53,11 +56,17 @@ const tableColumns = [
 	{key: 'SAPIN', 
 		label: 'SA PIN',
 		width: 80, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
-	{key: 'Name', 
+	{key: 'Name',
 		label: 'Name',
 		width: 200, flexGrow: 1, flexShrink: 1},
 	{key: 'Email', 
 		label: 'eMail Address',
+		width: 300, flexGrow: 1, flexShrink: 1},
+	{key: 'Employer', 
+		label: 'Employer',
+		width: 300, flexGrow: 1, flexShrink: 1},
+	{key: 'Affiliation', 
+		label: 'Affiliation',
 		width: 300, flexGrow: 1, flexShrink: 1},
 	{key: 'Status', 
 		label: 'Status',
@@ -83,7 +92,7 @@ function Members({
 	deleteSelectedMembers
 }) {
 	const history = useHistory();
-	const [editMember, setEditMember] = React.useState({action: null, member: DefaultMember});
+	const [editMember, setEditMember] = React.useState({action: '', member: DefaultMember});
 
 	const columns = React.useMemo(() => {
 		
@@ -121,7 +130,7 @@ function Members({
 	}
 
 	const openAddMember = () => setEditMember({action: 'add', member: DefaultMember})
-	const closeMemberUpdate = () => setEditMember(s => ({...s, action: null}))
+	const closeMemberUpdate = () => setEditMember(s => ({...s, action: ''}))
 
 	const updateStatus = () => history.push('/Members/AttendanceUpdate');
 
@@ -157,7 +166,7 @@ function Members({
 			</TableRow>
 
 			<MemberUpdateModal
-				isOpen={!!editMember.action}
+				isOpen={editMember.action === 'add' || editMember.action === 'update'}
 				close={closeMemberUpdate}
 				action={editMember.action}
 				member={editMember.member}

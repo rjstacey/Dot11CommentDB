@@ -90,7 +90,7 @@ function ImatMeetings({
 	loading,
 	imatMeetings,
 	loadImatMeetings,
-	meetingsValid,
+	sessionsValid,
 	loadSessions
 }) {
 	const history = useHistory();
@@ -109,7 +109,7 @@ function ImatMeetings({
 	}, []);
 
 	React.useEffect(() => {
-		if (!meetingsValid)
+		if (!sessionsValid)
 			loadSessions()
 		if (!valid)
 			loadImatMeetings(numberSessions.current)
@@ -165,7 +165,7 @@ ImatMeetings.propTypes = {
 	loading: PropTypes.bool.isRequired,
 	imatMeetings:  PropTypes.object.isRequired,
 	loadImatMeetings: PropTypes.func.isRequired,
-	meetingsValid: PropTypes.bool.isRequired,
+	sessionsValid: PropTypes.bool.isRequired,
 	loadSessions: PropTypes.func.isRequired,
 }
 

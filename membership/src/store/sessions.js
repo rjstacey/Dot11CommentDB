@@ -54,10 +54,27 @@ const defaultSortEntries = meetingFields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {type, direction}}
 }, {});
 
+/*
+ * Remove entries that no longer exist from a list. If there
+ * are no changes, return the original list.
+ */
+function filterIdList(idList, allIds) {
+	const newList = idList.filter(id => allIds.includes(id));
+	return newList.length === idList.length? idList: newList;
+}
 
 const dataAdapter = createEntityAdapter({
 	selectId: (meeting) => meeting.id
 })
+
+function correctEntry(session) {
+	let s = session;
+	if (typeof s.Start === 'string')
+		s = {...s, Start: new Date(s.Start)};
+	if (typeof s.End === 'string')
+		s = {...s, End: new Date(s.End)};
+	return s;
+}
 
 const dataSet = 'sessions'
 
@@ -66,6 +83,7 @@ const slice = createSlice({
 	initialState: dataAdapter.getInitialState({
 		valid: false,
 		loading: false,
+		loadingTimeZones: false,
 		timeZones: [],
 		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
 		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
@@ -79,24 +97,32 @@ const slice = createSlice({
   		getSuccess(state, action) {
 			state.loading = false;
 			state.valid = true;
-			dataAdapter.setAll(state, action.payload);
+			dataAdapter.setAll(state, action.payload.map(correctEntry));
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		getFailure(state, action) {
 			state.loading = false;
 		},
-		getTimeZonesSuccess(state, action) {
-			state.timeZones = action.payload
-		},
 		updateOne(state, action) {
-			dataAdapter.updateOne(state, action.payload);
+			let {id, changes} = action.payload;
+			dataAdapter.updateOne(state, {id, changes: correctEntry(changes)});
 		},
 		addOne(state, action) {
-			const meeting = action.payload;
-			dataAdapter.addOne(state, meeting);
+			dataAdapter.addOne(state, correctEntry(action.payload));
 		},
 		deleteMany(state, action) {
-			const ids = action.payload;
-			dataAdapter.removeMany(state, ids);
+			dataAdapter.removeMany(state, action.payload);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
+		},
+		getTimeZonesPending(state, action) {
+			state.loadingTimeZones = true;
+		},
+		getTimeZonesSuccess(state, action) {
+			state.loadingTimeZones = false;
+			state.timeZones = action.payload;
+		},
+		getimeZonesFailure(state, action) {
+			state.loadingTimeZones = false;
 		},
 	},
 	extraReducers: builder => {
@@ -119,113 +145,97 @@ const slice = createSlice({
  */
 export default slice.reducer;
 
-function updateIdList(meetings, selected) {
-	const changed = selected.reduce(
-		(result, id) => result || !meetings.find(m => m.id === id),
-		false
-	);
-
-	if (!changed)
-		return selected
-
-	return selected.filter(id => !meetings.find(u => u.id === id))
-}
-
 const {getPending, getSuccess, getFailure} = slice.actions;
 
 export const loadSessions = () =>
 	async (dispatch, getState) => {
-		dispatch(getPending())
-		let meetings;
+		await dispatch(getPending());
+		let sessions;
 		try {
-			meetings = await fetcher.get('/api/sessions');
+			sessions = await fetcher.get('/api/sessions');
+			if (!Array.isArray(sessions))
+				throw new TypeError('Unexpected response to GET: /api/sessions');
 		}
 		catch(error) {
 			console.log(error)
-			return Promise.all([
+			await Promise.all([
 				dispatch(getFailure()),
-				dispatch(setError('Unable to get meetings list', error))
-			])
+				dispatch(setError('Unable to get sessions', error))
+			]);
+			return;
 		}
-		meetings = meetings.map(m => ({...m, Start: new Date(m.Start), End: new Date(m.End)}));
-		const p = []
-		const {selected, timeZones} = getState()[dataSet]
-		const newSelected = updateIdList(meetings, selected)
-		if (newSelected !== selected)
-			p.push(dispatch(setSelected(dataSet, newSelected)))
-		if (timeZones.length === 0)
-			p.push(dispatch(loadTimeZones()))
-		p.push(dispatch(getSuccess(meetings)))
-		return Promise.all(p)
-	}
-
-const {getTimeZonesSuccess} = slice.actions;
-
-export const loadTimeZones = () =>
-	async (dispatch, getState) => {
-		let timeZones;
-		try {
-			timeZones = await fetcher.get('/api/timeZones');
-		}
-		catch(error) {
-			console.log(error)
-			return dispatch(setError('Unable to get time zones list', error))
-		}
-		return dispatch(getTimeZonesSuccess(timeZones))
+		await dispatch(getSuccess(sessions));
 	}
 
 const {updateOne} = slice.actions;
 
-export const updateSession = (id, changes) =>
+export const updateSessionSuccess = (id, session) => updateOne({id, changes: session});
+
+export const updateSession = (id, session) =>
 	async (dispatch) => {
-		dispatch(updateOne({id, changes}))
+		await dispatch(updateOne({id, changes: session}));
+		const url = `/api/session/${id}`;
+		let updatedSession;
 		try {
-			const response = await fetcher.put(`/api/session/${id}`, {meeting: changes})
-			return null
+			updatedSession = await fetcher.patch(url, session);
+			if (typeof updatedSession !== 'object')
+				throw new TypeError('Unexpected response to PATCH: ' + url);
 		}
 		catch(error) {
-			return dispatch(setError(`Unable to update session ${id}`, error))
+			await dispatch(setError(`Unable to update session`, error));
+			return;
 		}
+		await dispatch(updateOne({id, changes: updatedSession}));
 	}
 
 const {addOne} = slice.actions;
 
-export const addSession = (meeting) =>
+export const addSession = (session) =>
 	async (dispatch) => {
-		let response;
+		let newSession;
 		try {
-			response = await fetcher.post('/api/session', {meeting})
+			newSession = await fetcher.post('/api/session', session);
+			if (typeof newSession !== 'object')
+				throw new TypeError('Unexpected response to POST: /api/session');
 		}
 		catch(error) {
-			return dispatch(setError(`Unable to add meeting ${meeting}`, error))
+			await dispatch(setError('Unable to add session', error));
+			return;
 		}
-		dispatch(addOne(response.meeting))
+		dispatch(addOne(newSession));
 	}
 
 const {deleteMany} = slice.actions;
 
 export const deleteSessions = (ids) =>
 	async (dispatch, getState) => {
-		dispatch(deleteMany(ids))
+		await dispatch(deleteMany(ids));
 		try {
-			await fetcher.delete('/api/sessions', ids)
-			const {selected} = getState()[dataSet]
-			const newSelected = selected.filter(id => !ids.includes(id))
-			return dispatch(setSelected(dataSet, newSelected))
+			await fetcher.delete('/api/sessions', ids);
 		}
 		catch(error) {
-			return dispatch(setError(`Unable to delete meetings ${ids}`, error))
+			await dispatch(setError(`Unable to delete meetings ${ids}`, error));
 		}
 	}
 
-export const importSessionBreakouts = (id) =>
+const {getTimeZonesPending, getTimeZonesSuccess, getTimeZonesFailure} = slice.actions;
+
+export const loadTimeZones = () =>
 	async (dispatch, getState) => {
-		let breakouts;
+		await dispatch(getTimeZonesPending());
+		let timeZones;
 		try {
-			breakouts = await fetcher.post(`/api/session/${id}/importBreakouts`)
+			timeZones = await fetcher.get('/api/timeZones');
+			if (!Array.isArray(timeZones))
+				throw new TypeError('Unexpected response to GET: /api/timeZones');
 		}
 		catch(error) {
 			console.log(error)
-			return dispatch(setError('Unable to import breakouts', error))
+			await Promise.all([
+				dispatch(getTimeZonesFailure()),
+				dispatch(setError('Unable to get time zones list', error))
+			])
+			return;
 		}
+		await dispatch(getTimeZonesSuccess(timeZones));
 	}

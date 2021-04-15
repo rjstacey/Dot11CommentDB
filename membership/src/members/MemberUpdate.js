@@ -27,7 +27,7 @@ function _MemberUpdateForm({
 			setErrMsg('Give the member a name');
 			return;
 		}
-		await (action === 'add')? addMember(member): updateMember(member.SAPIN, member)
+		await (action === 'add')? addMember(member): updateMember(member.id, member)
 		close()
 	};
 
@@ -104,7 +104,7 @@ function _MemberUpdateForm({
 }
 
 _MemberUpdateForm.propTypes = {
-	action: PropTypes.oneOf(['add', 'update']).isRequired,
+	action: PropTypes.oneOf(['add', 'update', '']).isRequired,
 	defaultMember: PropTypes.object.isRequired,
 	close: PropTypes.func.isRequired,
 	addMember: PropTypes.func.isRequired,

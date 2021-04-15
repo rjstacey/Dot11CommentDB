@@ -9,8 +9,9 @@ import {setError} from 'dot11-common/store/error'
 import {getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
 
 import {upsertMembers} from './members'
+import {updateSessionSuccess} from './sessions'
 
-const fields = ['id', 'SAPIN', 'Name', 'Email', 'Affiliation', 'Status', 'SessionCreditPct']
+const fields = ['id', 'SAPIN', 'Name', 'Email', 'Affiliation', 'Status', 'SessionCredit']
 
 /*
  * Generate a filter for each field (table column)
@@ -28,6 +29,7 @@ const defaultSortEntries = fields.reduce((entries, dataKey) => {
 	switch (dataKey) {
 		case 'SAPIN':
 		case 'SessionCreditPct':
+		case 'SessionCredit':
 			type = SortType.NUMERIC
 			break
 		default:
@@ -37,6 +39,14 @@ const defaultSortEntries = fields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {type, direction}}
 }, {});
 
+/*
+ * Remove entries that no longer exist from a list. If there
+ * are no changes, return the original list.
+ */
+function filterIdList(idList, allIds) {
+	const newList = idList.filter(id => allIds.includes(id));
+	return newList.length === idList.length? idList: newList;
+}
 
 const dataAdapter = createEntityAdapter({
 	selectId: (member) => member.SAPIN
@@ -49,7 +59,7 @@ const slice = createSlice({
 	initialState: dataAdapter.getInitialState({
 		valid: false,
 		loading: false,
-		meeting: {},
+		session: {},
 		breakout: {},
 		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
 		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
@@ -61,12 +71,13 @@ const slice = createSlice({
 			state.loading = true;
 		},
   		getSuccess(state, action) {
-  			const {meeting, breakout, attendees} = action.payload;
+  			const {session, breakout, attendees} = action.payload;
 			state.loading = false;
 			state.valid = true;
-			state.meeting = meeting;
+			state.session = session;
 			state.breakout = breakout;
 			dataAdapter.setAll(state, attendees);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		getFailure(state, action) {
 			state.loading = false;
@@ -92,18 +103,6 @@ const slice = createSlice({
  */
 export default slice.reducer;
 
-function updateIdList(attendees, selected) {
-	const changed = selected.reduce(
-		(result, id) => result || !attendees.find(a => a.SAPIN === id),
-		false
-	);
-
-	if (!changed)
-		return selected
-
-	return selected.filter(id => !attendees.find(a => a.SAPIN === id))
-}
-
 const {getPending, getSuccess, getFailure} = slice.actions;
 
 export const loadAttendees = (session_id, breakout_id) =>
@@ -115,22 +114,21 @@ export const loadAttendees = (session_id, breakout_id) =>
 		let response;
 		try {
 			response = await fetcher.get(url);
+			if (typeof response !== 'object' || 
+				!response.hasOwnProperty('session') ||
+				!response.hasOwnProperty('attendees') ||
+				(breakout_id && !response.hasOwnProperty('breakout')))
+				throw new TypeError('Unexpected response to GET: ' + url);
 		}
 		catch(error) {
 			console.log(error)
-			return Promise.all([
+			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError(`Unable to get attendees for ${breakout_id}`, error))
-			])
+			]);
+			return;
 		}
-		const {meeting, breakout, attendees} = response;
-		const p = []
-		const {selected} = getState()[dataSet]
-		const newSelected = updateIdList(attendees, selected)
-		if (newSelected !== selected)
-			p.push(dispatch(setSelected(dataSet, newSelected)))
-		p.push(dispatch(getSuccess({meeting, breakout, attendees})))
-		return Promise.all(p)
+		await dispatch(getSuccess(response))
 	}
 
 export const importSelectedAttendees = () =>
@@ -146,3 +144,28 @@ export const importSelectedAttendees = () =>
 		}
 		return dispatch(upsertMembers(newMembers));
 	}
+
+export const importAttendances = (session_id) =>
+	async (dispatch, state) => {
+		dispatch(getPending())
+		const url = `/api/session/${session_id}/attendance_summary/import`;
+		let response;
+		try {
+			response = await fetcher.post(url);
+			if (typeof response !== 'object' || !response.hasOwnProperty('session') || !response.hasOwnProperty('attendees'))
+				throw new TypeError('Unexpected response to GET: ' + url);
+		}
+		catch(error) {
+			console.log(error)
+			await Promise.all([
+				dispatch(getFailure()),
+				dispatch(setError('Unable to get attendance summary', error))
+			]);
+			return;
+		}
+		const {session} = response;
+		await Promise.all([
+			dispatch(getSuccess(response)),
+			dispatch(updateSessionSuccess(session.id, session))]);
+	}
+	

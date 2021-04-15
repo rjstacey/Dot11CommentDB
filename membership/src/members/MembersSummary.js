@@ -13,6 +13,8 @@ function getMembersSummary(members) {
 			case 'Potential Voter': s.pv++; break;
 			case 'Voter': s.v++; break;
 			case 'ExOfficio': s.eo++; break;
+			case 'Obsolete': break;
+			case 'Deceased': break;
 			default:
 				console.warn('Unexpected member status: ', m.Status)
 		}

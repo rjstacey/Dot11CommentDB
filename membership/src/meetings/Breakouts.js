@@ -100,7 +100,7 @@ function breakoutsRowGetter({rowIndex, data}) {
 function Breakouts({
 	valid,
 	loading,
-	meeting,
+	session,
 	loadBreakouts,
 	meetingsValid,
 	loadMeetings
@@ -109,7 +109,7 @@ function Breakouts({
 	const {session_id} = useParams();
 
 	React.useEffect(() => {
-		if (!valid || meeting.id != session_id)
+		if (!valid || session.id != session_id)
 			loadBreakouts(session_id);
 	}, []);
 
@@ -119,7 +119,7 @@ function Breakouts({
 	return (
 		<React.Fragment>
 			<TopRow style={{maxWidth}}>
-				<div>{valid && renderSessionInfo(meeting)}</div>
+				<div>{valid && renderSessionInfo(session)}</div>
 				<div>Breakouts</div>
 				<div>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
@@ -145,7 +145,7 @@ function Breakouts({
 Breakouts.propTypes = {
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
-	meeting: PropTypes.object.isRequired,
+	session: PropTypes.object.isRequired,
 	loadBreakouts: PropTypes.func.isRequired,
 }
 
@@ -154,7 +154,7 @@ export default connect(
 	(state) => ({
 			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
-			meeting: state[dataSet].meeting
+			session: state[dataSet].session
 		}),
 	{loadBreakouts}
 )(Breakouts)
