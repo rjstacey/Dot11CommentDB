@@ -77,6 +77,7 @@ router.all('*', (req, res, next) => {
  * POST /users: insert or update users. Returns the complete entry for the user added.
  */
 import {
+	getUsers,
 	getMembers,
 	getMembersWithAttendance,
 	updateMember,
@@ -86,44 +87,50 @@ import {
 	uploadMembers
 } from '../services/members';
 
-router.get('/users/attendance', async (req, res, next) => {
+router.get('/users$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		const data = await getMembersWithAttendance(user);
+		const data = await getUsers(user);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 })
-router.get('/users', async (req, res, next) => {
+router.get('/members$', async (req, res, next) => {
 	try {
-		const {user} = req;
-		const data = await getMembers(user);
+		const data = await getMembers();
 		res.json(data);
 	}
 	catch(err) {next(err)}
 })
-router.put('/user/:userId', async (req, res, next) => {
+router.get('/members/attendance$', async (req, res, next) => {
 	try {
-		const {userId} = req.params;
-		const {user} = req.body;
-		if (!user)
-			throw 'Missing user parameter';
-		const data = await updateMember(userId, user);
+		const data = await getMembersWithAttendance();
 		res.json(data);
 	}
 	catch(err) {next(err)}
 })
-router.post('/user', async (req, res, next) => {
+router.patch('/member/:id(\\d+)', async (req, res, next) => {
 	try {
-		const {user} = req.body;
-		if (!user)
-			throw 'Missing user parameter';
-		const data = await addMember(user);
+		const {id} = req.params;
+		const {member} = req.body;
+		if (!member)
+			throw 'Missing member parameter';
+		const data = await updateMember(id, member);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 })
-router.delete('/users', async (req, res, next) => {
+router.post('/member', async (req, res, next) => {
+	try {
+		const {member} = req.body;
+		if (!member)
+			throw 'Missing member parameter';
+		const data = await addMember(member);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+})
+router.delete('/members', async (req, res, next) => {
 	try {
 		const ids = req.body;
 		if (!ids || !Array.isArray(ids))
@@ -133,21 +140,23 @@ router.delete('/users', async (req, res, next) => {
 	}
 	catch(err) {next(err)}
 })
-router.post('/users/upload', upload.single('UsersFile'), async (req, res, next) => {
+router.post('/members/upload/:format', upload.single('File'), async (req, res, next) => {
 	try {
+		const {user} = req;
+		const {format} = req.params;
 		if (!req.file)
 			throw 'Missing file'
-		const data = await uploadMembers(req.file)
+		const data = await uploadMembers(format, req.file)
 		res.json(data)
 	}
 	catch(err) {next(err)}
 })
-router.post('/users', async (req, res, next) => {
+router.post('/members', async (req, res, next) => {
 	try {
-		const {users} = req.body;
-		if (!users)
-			throw 'Missing or bad users parameter';
-		const data = await upsertMembers(users);
+		const {members} = req.body;
+		if (!members)
+			throw 'Missing or bad members parameter';
+		const data = await upsertMembers(members);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -159,7 +168,7 @@ router.post('/users', async (req, res, next) => {
  * Maintain sessions list.
  * 
  * GET /sessions: returns the complete list of sessions.
- * PUT /session/{id}: updates the identified session. Returns the updated field values.
+ * PATCH /session/{id}: updates the identified session. Returns the updated field values.
  * POST /session: add a session. Returns the complete entry as added.
  * DELETE /sessions: deletes sessions identified by a list of IDs. Returns null.
  */
@@ -168,13 +177,15 @@ import {
 	updateSession,
 	addSession,
 	deleteSessions,
-	getImatMeetings,
 	getTimeZones,
 	importBreakouts,
+	importAttendances,
 	getBreakouts,
 	getBreakoutAttendees,
 	getSessionAttendees
 } from '../services/sessions';
+
+import {getImatMeetings} from '../services/imat';
 
 router.get('/sessions', async (req, res, next) => {
 	try {
@@ -183,23 +194,23 @@ router.get('/sessions', async (req, res, next) => {
 	}
 	catch(err) {next(err)}
 })
-router.put('/session/:id(\\d+)', async (req, res, next) => {
+router.patch('/session/:id(\\d+)', async (req, res, next) => {
 	try {
 		const id = parseInt(req.params.id, 10);
-		const {meeting} = req.body;
-		if (!meeting)
-			throw 'Missing meeting parameter';
-		const data = await updateSession(id, meeting);
+		const session = req.body;
+		if (typeof session !== 'object')
+			throw 'Missing or bad body; expected object';
+		const data = await updateSession(id, session);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 })
 router.post('/session', async (req, res, next) => {
 	try {
-		const {meeting} = req.body;
-		if (!meeting)
-			throw 'Missing meeting parameter';
-		const data = await addSession(meeting);
+		const session = req.body;
+		if (typeof session !== 'object')
+			throw 'Missing or bad body; expected object';
+		const data = await addSession(session);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -242,11 +253,20 @@ router.get('/session/:id(\\d+)/attendees', async (req, res, next) => {
 	}
 	catch(err) {next(err)}
 })
-router.post('/session/:id(\\d+)/importBreakouts', async (req, res, next) => {
+router.post('/session/:id(\\d+)/breakouts/import', async (req, res, next) => {
 	try {
 		const {user} = req;
 		let id = parseInt(req.params.id, 10);
 		const data = await importBreakouts(user, id);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+})
+router.post('/session/:id(\\d+)/attendance_summary/import', async (req, res, next) => {
+	try {
+		const {user} = req;
+		let id = parseInt(req.params.id, 10);
+		const data = await importAttendances(user, id);
 		res.json(data);
 	}
 	catch(err) {next(err)}

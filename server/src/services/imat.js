@@ -4,6 +4,7 @@
 const cheerio = require('cheerio')
 const moment = require('moment-timezone')
 const csvParse = require('csv-parse/lib/sync')
+const rp = require('request-promise-native')
 
 // Convert date string to UTC
 function parseDateTime(dateStr, timeZone) {
@@ -27,8 +28,9 @@ export function parseMeetingsPage(body) {
 			s.End = parseDateTime($(tds.eq(1)).text(), s.TimeZone);
 			s.Type = tds.eq(3).text();
 			s.Name = tds.eq(4).text();
-			var p = tds.eq(6).html().match(/meeting-detail\?p=(\d+)/);
-			s.MeetingNumber = p? parseInt(p[1]): '';
+			var p = tds.eq(6).html().match(/\/([^\/]+)\/meeting-detail\?p=(\d+)/);
+			s.OrganizerID = p? p[1]: '';
+			s.MeetingNumber = p? parseInt(p[2]): 0;
 			s.Type = s.Type? s.Type[0].toLowerCase(): '';
 			sessions.push(s);
 		});
@@ -43,9 +45,57 @@ export function parseMeetingsPage(body) {
 	}
 }
 
-export function parseBreakouts(buffer, meeting) {
+/*
+ * get IMAT meetings
+ *
+ * Parameters: n = number of entries to get
+ */
+export async function getImatMeetings(user, n) {
+	//console.log(user)
 
-	const p = csvParse(buffer, {columns: false});
+	async function recursivePageGet(meetings, n, page) {
+		//console.log('get epolls n=', n)
+
+		var options = {
+			url: `https://imat.ieee.org/${user.Email}/meetings?n=${page}`,
+			jar: user.ieeeCookieJar
+		}
+		//console.log(options.url);
+
+		const body = await rp.get(options);
+
+		//console.log(body)
+		var meetingsPage = parseMeetingsPage(body);
+		var end = n - meetings.length;
+		if (end > meetingsPage.length) {
+			end = meetingsPage.length;
+		}
+		meetings = meetings.concat(meetingsPage.slice(0, end));
+
+		if (meetings.length === n || meetingsPage.length === 0)
+			return meetings;
+
+		return recursivePageGet(meetings, n, page+1);
+	}
+
+	return await recursivePageGet([], n, 1);
+}
+
+export async function getImatBreakouts(user, session) {
+
+	const options = {
+		url: `https://imat.ieee.org/${session.OrganizerID}/breakouts.csv?p=${session.MeetingNumber}&xls=1`,
+		jar: user.ieeeCookieJar,
+		resolveWithFullResponse: true,
+		simple: false
+	}
+
+	console.log(session, options.url)
+	const response = await rp.get(options);
+	if (response.headers['content-type'] !== 'text/csv')
+		throw 'Not logged in'
+
+	const p = csvParse(response.body, {columns: false});
 	if (p.length === 0)
 		throw 'Got empty breakouts.csv';
 
@@ -60,7 +110,7 @@ export function parseBreakouts(buffer, meeting) {
 
 	return p.map(c => {
 		const eventDay = c[11];	// day offset from start of session
-		const eventDate = moment.tz(meeting.Start, meeting.TimeZone).add(eventDay, 'days')
+		const eventDate = moment.tz(session.Start, session.TimeZone).add(eventDay, 'days')
 		return {
 			BreakoutID: c[0],
 			Day: c[11],
@@ -83,7 +133,17 @@ function getTimestamp(t) {
 	let date = new Date(t);
 	return isNaN(date)? null: date;
 }
-export function parseBreakoutAttendance(body) {
+
+/*
+ * Get IMAT breakout attendance
+ */
+export async function getImatBreakoutAttendance(user, breakoutNumer, meetingNumber) {
+
+	const options = {
+		url: `https://imat.ieee.org/802.11/breakout-members?t=${breakoutNumber}&p=${meetingNumber}`,
+		jar: user.ieeeCookieJar
+	}
+	const body = await rp.get(options);
 	const $ = cheerio.load(body);
 
 	// If we get the "Meeting attendance for" page then parse the data table
@@ -116,4 +176,59 @@ export function parseBreakoutAttendance(body) {
 	else {
 		throw 'Unexpected page returned by imat.ieee.org'
 	}
+}
+
+/*
+ * Get IMAT attendance summary for a session
+ *
+ * The session is identified by a start and end date in the form MM/DD/YYYY
+ */
+export async function getImatAttendanceSummary(user, session) {
+
+	const start = moment(session.Start).tz(session.TimeZone).format('MM/DD/YYYY');
+	const end = moment(session.End).tz(session.TimeZone).format('MM/DD/YYYY');
+
+	const options = {
+		url: `https://imat.ieee.org/802.11/attendance-summary.csv?b=${start}&d=${end}`,
+		jar: user.ieeeCookieJar,
+		resolveWithFullResponse: true,
+		simple: false
+	}
+
+	const response = await rp.get(options);
+	if (response.headers['content-type'] !== 'text/csv')
+		throw 'Not logged in'
+
+	const p = csvParse(response.body, {columns: false});
+	if (p.length === 0)
+		throw 'Got empty attendance_summary.csv';
+
+	const expected = ['SA PIN', 'Last Name', 'First Name', 'Middle Name', 'Email', 'Affiliation', 'Current Involvement Level']
+
+	// Row 0 is the header
+	if (expected.reduce((r, v, i) => v !== p[0][i], false))
+		throw `Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`
+
+	// Column 7 should have the session date in the form "MM-YYYY"
+
+	p.shift();	// remove header
+
+	return p.map(c => {
+
+		const entry = {
+			SAPIN: parseInt(c[0], 10),
+			LastName: c[1],
+			FirstName: c[2],
+			MI: c[3],
+			Email: c[4],
+			Affiliation: c[5],
+			Status: c[6],
+			AttendancePercentage: c[7]
+		}
+		entry.Name = entry.FirstName;
+		if (entry.MI)
+			entry.Name += ' ' + entry.MI;
+		entry.Name += ' ' + entry.LastName;
+		return entry;
+	});
 }

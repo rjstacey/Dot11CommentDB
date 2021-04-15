@@ -181,20 +181,20 @@ const myProjectRosterHeader = [
 
 const mapInvolvementLevelToStatus = {
 	'Aspirant Member': 'Aspirant',
+	'Potential Member': 'Potential Voter',
+	'Voting Member': 'Voter',
+	'Observer': 'Non-Voter',
+	'Non-Voting Member': 'Other',
 	'Corresponding Member': 'Other',
 	'Member': 'Other',
 	'Nearly Member': 'Other',
-	'Non-Voting Member': 'Other',
-	'Observer': 'Observer',
-	'Potential Member': 'Potential Voter',
-	'Voting Member': 'Voter'
 };
 
 const mapStatus = (involvementLevel) => (mapInvolvementLevelToStatus[involvementLevel] || 'Other');
 
-function parseMyProjectMember(u) {
+function parseRosterEntry(u) {
 	let user = {
-		SAPIN: parseInt(u[0]),
+		SAPIN: parseInt(u[0], 10),
 		LastName: u[1] || '',
 		FirstName: u[2] || '',
 		MI: u[3] || '',
@@ -222,9 +222,8 @@ export async function parseMyProjectRosterSpreadsheet(buffer) {
 		p.push(row.values.slice(1, myProjectRosterHeader.length+1))
 	})
 
-	if (p.length === 0) {
+	if (p.length === 0)
 		throw 'Got empty roster file'
-	}
 
 	// Check the column names to make sure we have the right file
 	// The CSV from MyProject has # replaced by ., so replace '#' with '.' (in the regex this matches anything)
@@ -234,5 +233,6 @@ export async function parseMyProjectRosterSpreadsheet(buffer) {
 	p.shift()	// remove column heading row
 
 	// Parse each row and assign CommentID
-	return p.map((u, i) => parseMyProjectMember(u));
+	return p.map(parseRosterEntry);
 }
+

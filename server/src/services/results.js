@@ -1,7 +1,6 @@
 'use strict';
 
-import {parseEpollResultsCsv} from './ePollCSV'
-import {parseEpollResultsHtml} from './ePollHTML'
+import {parseEpollResultsCsv, parseEpollResultsHtml} from './epoll'
 import {parseMyProjectResults} from './myProjectSpreadsheets'
 import {genResultsSpreadsheet} from './resultsSpreadsheet'
 import {AccessLevel} from '../auth/access'

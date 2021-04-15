@@ -1,9 +1,8 @@
 
 const db = require('../util/database')
-const rp = require('request-promise-native')
 const moment = require('moment-timezone')
 
-import {parseMeetingsPage, parseBreakouts, parseBreakoutAttendance} from './imatHtml';
+import {getImatBreakouts, getImatBreakoutAttendance, getImatAttendanceSummary} from './imat';
 
 const getSessionTotalCreditSQL = (session_id) =>
 	'SELECT ' +
@@ -18,7 +17,7 @@ const getSessionsSQL = () =>
 		'*, ' +
 		'(SELECT COUNT(*) FROM breakouts WHERE session_id=m.id) AS Breakouts, ' +
 		'(' + getSessionTotalCreditSQL('m.id') + ') AS TotalCredit, ' +
-		'(SELECT COUNT(DISTINCT(SAPIN)) FROM attendance WHERE session_id=m.id) AS Attendees ' +
+		'(SELECT COUNT(DISTINCT(SAPIN)) FROM attendances WHERE session_id=m.id) AS Attendees ' +
 	'FROM meetings m';
 
 const getSessionSQL = (session_id) =>
@@ -29,100 +28,51 @@ const getSessionSQL = (session_id) =>
  * Return a complete list of meetings
  */
 export async function getSessions() {
-	const sessions = await db.query(getSessionsSQL());
-	return sessions;
+	return await db.query(getSessionsSQL());
 }
 
-export async function addSession(meeting) {
+function sessionEntry(s) {
+	const entry = {
+		Start: s.Start !== undefined? new Date(s.Start): undefined,
+		End: s.End !== undefined? new Date(s.End): undefined,
+		Name: s.Name,
+		Type: s.Type,
+		TimeZone: s.TimeZone,
+		MeetingNumber: s.MeetingNumber,
+		OrganizerID: s.OrganizerID
+	};
 
-	let entry = {
-		Start: meeting.Start !== undefined? new Date(meeting.Start): undefined,
-		End: meeting.End !== undefined? new Date(meeting.End): undefined,
-		Name: meeting.Name,
-		Type: meeting.Type,
-		TimeZone: meeting.TimeZone,
-		MeetingNumber: meeting.MeetingNumber,
-	}
-
-	for (let key of Object.keys(entry)) {
-		if (entry[key] === undefined) {
+	for (const key of Object.keys(entry)) {
+		if (entry[key] === undefined)
 			delete entry[key]
-		}
 	}
 
+	return entry;
+}
+
+export async function addSession(session) {
+	const entry = sessionEntry(session);
 	const {insertId} = await db.query('INSERT INTO meetings (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]);
-	const [insertedMeeting] = await db.query('SELECT * FROM meetings WHERE id=?;', [insertId]);
-	return {meeting: insertedMeeting}
+	const [insertedSession] = await db.query('SELECT * FROM meetings WHERE id=?;', [insertId]);
+	return insertedSession;
 }
 
-export async function updateSession(id, meeting) {
-
-	let entry = {
-		Start: meeting.Start !== undefined? new Date(meeting.Start): undefined,
-		End: meeting.End !== undefined? new Date(meeting.End): undefined,
-		Name: meeting.Name,
-		Type: meeting.Type,
-		TimeZone: meeting.TimeZone,
-		MeetingNumber: meeting.MeetingNumber,
-	}
-
-	for (let key of Object.keys(entry)) {
-		if (entry[key] === undefined) {
-			delete entry[key]
-		}
-	}
-
+export async function updateSession(id, session) {
+	let entry = sessionEntry(session);
 	if (Object.keys(entry).length) {
 		const SQL =
 			db.format("UPDATE meetings SET ? WHERE id=?;",  [entry, id]) +
 			db.format("SELECT ?? from meetings WHERE id=?;", [Object.keys(entry), id])
-		const [noop, meetings] = await db.query(SQL);
-		entry = meetings[0];
+		const [noop, sessions] = await db.query(SQL);
+		entry = sessions[0];
 	}
 
-	return {meeting: entry}
+	return entry;
 }
 
 export async function deleteSessions(ids) {
-	await db.query('DELETE FROM meetings WHERE id IN (?)', [ids]);
-	return true;
-}
-
-/*
-* getImatSessions
-*
-* Parameters: n = number of entries to get
-*/
-export async function getImatMeetings(user, n) {
-	//console.log(user)
-
-	async function recursivePageGet(meetings, n, page) {
-		//console.log('get epolls n=', n)
-
-		var options = {
-			url: `https://imat.ieee.org/${user.Email}/meetings?n=${page}`,
-			jar: user.ieeeCookieJar
-		}
-		//console.log(options.url);
-
-		const body = await rp.get(options);
-
-		//console.log(body)
-		var meetingsPage = parseMeetingsPage(body);
-		var end = n - meetings.length;
-		if (end > meetingsPage.length) {
-			end = meetingsPage.length;
-		}
-		meetings = meetings.concat(meetingsPage.slice(0, end));
-
-		if (meetings.length === n || meetingsPage.length === 0) {
-			return meetings;
-		}
-
-		return recursivePageGet(meetings, n, page+1);
-	}
-
-	return await recursivePageGet([], n, 1);
+	const results = await db.query('DELETE FROM meetings WHERE id IN (?)', [ids]);
+	return results.affectedRows
 }
 
 export const getTimeZones = moment.tz.names;
@@ -135,29 +85,28 @@ const getBreakoutsSQL = (session_id) =>
 	'WHERE session_id=' + session_id + ';';
 
 export async function getBreakouts(session_id) {
-	let [meetings, breakouts] = await db.query(
+	let [sessions, breakouts] = await db.query(
 		getSessionSQL(session_id) + 
 		getBreakoutsSQL(session_id)
 	);
-	if (meetings.length === 0)
+	if (sessions.length === 0)
 		throw `Session ID ${session_id} not recognized`;
-	const meeting = meetings[0];
-	meeting.TotalCredit = 0;
+	const session = sessions[0];
 	for (const b of breakouts) {
 		/* Convert breakout start/end to strings in local time */
-		const start = moment(b.Start).tz(meeting.TimeZone);
+		const start = moment(b.Start).tz(session.TimeZone);
 		b.Date = start.format('YYYY-MM-DD');
 		b.Day = start.format('ddd');
 		b.StartTime = start.format('HH:mm');
-		const end = moment(b.End).tz(meeting.TimeZone);
+		const end = moment(b.End).tz(session.TimeZone);
 		b.EndTime = end.format('HH:mm');
 		b.DayDate = b.Day + ', ' + b.Date;
 		b.Time = b.StartTime + ' - ' + b.EndTime;
 	}
-	return {meeting, breakouts};
+	return {session, breakouts};
 }
 
-const getBreakoutAttendanceSQL = (session_id, breakout_id) =>
+const getBreakoutAttendeesSQL = (session_id, breakout_id) =>
 	'SELECT ' +
 		'a.SAPIN, ' +
 		'IFNULL(u.Name, a.Name) AS Name, ' +
@@ -197,90 +146,196 @@ const getSessionAttendanceSQL = (session_id) =>
 
 export async function getBreakoutAttendees(user, session_id, breakout_id) {
 	const SQL =
-		db.format('SELECT * FROM meetings WHERE id=?; ', [session_id]) +
+		getSessionSQL(session_id) +
 		db.format('SELECT * FROM breakouts WHERE id=?; ', [breakout_id]) +
-		getBreakoutAttendanceSQL(session_id, breakout_id);
-	const [meetings, breakouts, attendees] = await db.query(SQL);
-	if (meetings.length === 0)
+		getBreakoutAttendeesSQL(session_id, breakout_id);
+	const [sessions, breakouts, attendees] = await db.query(SQL);
+	if (sessions.length === 0)
 		throw `No such session: ${session_id}`;
 	if (breakouts.length === 0)
 		throw `No such breakout: ${breakout_id}`;
-	return {meeting: meetings[0], breakout: breakouts[0], attendees};
+	return {session: sessions[0], breakout: breakouts[0], attendees};
 }
 
 export async function getSessionAttendees(session_id) {
 	const SQL =
 		getSessionSQL(session_id) +
-		getSessionAttendanceSQL(session_id);
-	const [meetings, attendees] = await db.query(SQL);
-	if (meetings.length === 0)
+		getSessionAttendeesSQL(session_id);
+	const [sessions, attendees] = await db.query(SQL);
+	if (sessions.length === 0)
 		throw `No such session: ${session_id}`;
-	const meeting = meetings[0];
-	for (const a of attendees)
-		a.SessionCreditPct = a.SessionCredit/meeting.TotalCredit;
-	return {meeting, attendees};
+	const session = sessions[0];
+	return {session, attendees};
+}
+
+export async function getSessionAttendeesCoalesced(session_id) {
+	const SQL =
+		getSessionSQL(session_id) +
+		getSessionAttendeesCoalescedSQL(session_id);
+	const [sessions, attendees] = await db.query(SQL);
+	if (sessions.length === 0)
+		throw `No such session: ${session_id}`;
+	const session = sessions[0];
+	return {session, attendees};
 }
 
 export async function importBreakouts(user, session_id) {
 
-	const [meeting] = await db.query('SELECT * FROM meetings WHERE id=?;', [session_id]);
-	if (!meeting)
-		throw `Unrecognized meeting ${session_id}`
-	const group = meeting.Type === 'p'? 'sp7200043': '802.11';
-	const options = {
-		url: `https://imat.ieee.org/${group}/breakouts.csv?p=${meeting.MeetingNumber}&xls=1`,
-		jar: user.ieeeCookieJar,
-		resolveWithFullResponse: true,
-		simple: false
-	}
+	const [session] = await db.query('SELECT * FROM meetings WHERE id=?;', [session_id]);
+	if (!session)
+		throw `Unrecognized session ${session_id}`
 
-	const response = await rp.get(options);
-	if (response.headers['content-type'] !== 'text/csv')
-		throw 'Not logged in'
-
-	let breakouts = parseBreakouts(response.body, meeting);
+	const imatBreakouts = getImatBreakouts(user, session);
 
 	// Add session ID to each entry
-	breakouts.forEach(b => b.session_id = session_id);
+	imatBreakouts.forEach(b => b.session_id = session_id);
 
 	await db.query('DELETE FROM breakouts WHERE session_id=?; ', [session_id]);
 	//console.log(breakouts)
-	if (breakouts.length) {
-		for (const b of breakouts) {
+	if (imatBreakouts.length) {
+		for (const b of imatBreakouts) {
 			const result = await db.query('INSERT INTO breakouts (??) VALUE (?)', [Object.keys(b), Object.values(b)]);
-			await importBreakoutAttendance(user, meeting.id, result.insertId, meeting.MeetingNumber, b.BreakoutID);
+			await importBreakoutAttendance(user, session, result.insertId, session.MeetingNumber, b.BreakoutID);
 		}
 	}
 
-	const SQL = db.format(
-		'SELECT ' +
-			'*, ' +
-			'(SELECT COUNT(*) FROM attendance a WHERE breakout_id=b.id) AS Attendance ' +
-		'FROM breakouts b ' +
-		'WHERE session_id=?;', [session_id]);
-	//console.log(SQL)
-	breakouts = await db.query(SQL);
-	return {breakouts};
+	const SQL = getSessionSQL(session_id) + getBreakoutsSQL(session_id);
+
+	const [sessions, breakouts] = await db.query(SQL);
+
+	return {session: sessions[0], breakouts};
 }
 
-export async function importBreakoutAttendance(user, session_id, breakout_id, meetingNumber, breakoutNumber) {
+export async function importBreakoutAttendance(user, session, breakout_id, meetingNumber, breakoutNumber) {
 
-	const options = {
-		url: `https://imat.ieee.org/802.11/breakout-members?t=${breakoutNumber}&p=${meetingNumber}`,
-		jar: user.ieeeCookieJar
-	}
-
-	const body = await rp.get(options);
-
-	let attendance = parseBreakoutAttendance(body);
+	const attendance = await getImatBreakoutAttendance(user, breakoutNumber, meetingNumber);
 
 	await db.query('DELETE FROM attendance WHERE breakout_id=?; ', [breakout_id]);
-	//console.log(breakouts)
+
 	if (attendance.length) {
 		const SQL =
 			db.format('INSERT INTO attendance (session_id, breakout_id, ??) VALUES ', [Object.keys(attendance[0])]) +
-			attendance.map(a => db.format('(?, ?, ?)', [session_id, breakout_id, Object.values(a)])).join(', ');
+			attendance.map(a => db.format('(?, ?, ?)', [session.id, breakout_id, Object.values(a)])).join(', ');
 		await db.query(SQL);
 	}
-	//console.log(SQL)
+}
+
+/*
+ * Get session attendees with attendance for obselete SAPINs mapped to the new SAPIN
+ */
+const getSessionAttendeesCoalescedSQL = (session_id) => 
+	'SELECT ' +
+		'COALESCE(o.SAPIN, m.SAPIN) AS SAPIN, ' +
+		'COALESCE(o.MemberID, m.MemberID) AS MemberID, ' +
+		'COALESCE(o.Name, m.Name) AS Name, ' +
+		'COALESCE(o.Email, m.Email) AS Email, ' +
+		'COALESCE(o.Affiliation, m.Affiliation) AS Affiliation, ' +
+		'COALESCE(o.Status, m.Status) AS Status, ' +
+		'a.AttendancePercentage, ' +
+		'a.Attended, ' +
+		'a.session_id ' +
+	'FROM attendances a ' +
+		'LEFT JOIN (SELECT m1.*, m2.SAPIN AS ObsoleteSAPIN FROM members m1 INNER JOIN members m2 ON m2.Status="Obsolete" AND m2.ReplacedBySAPIN=m1.SAPIN) o ON o.ObsoleteSAPIN=a.SAPIN ' +
+		'LEFT JOIN members m ON m.SAPIN=a.SAPIN ' +
+	'WHERE a.session_id=' + session_id;
+
+/*
+ * Get session attendance
+ */
+const getSessionAttendeesSQL = (session_id) => 
+	'SELECT ' +
+		'm.SAPIN, ' +
+		'm.MemberID, ' +
+		'm.Name, ' +
+		'm.Email, ' +
+		'm.Affiliation, ' +
+		'm.Status, ' +
+		'a.AttendancePercentage, ' +
+		'a.Attended, ' +
+		'a.session_id ' +
+	'FROM attendances a ' +
+		'LEFT JOIN members m ON m.SAPIN=a.SAPIN ' +
+	'WHERE a.session_id=' + session_id;
+
+export async function importAttendances(user, session_id) {
+
+	let [session] = await db.query('SELECT * FROM meetings WHERE id=?;', [session_id]);
+	if (!session)
+		throw `Unrecognized session ${session_id}`
+
+	const imatAttendances = await getImatAttendanceSummary(user, session);
+	const sapins = imatAttendances.map(i => i.SAPIN);
+	const members = await db.query('SELECT * FROM members WHERE SAPIN IN (?)', [sapins]);
+
+	const updates = [], inserts = [];
+	for (const i of imatAttendances) {
+		const m = members.find(m => i.SAPIN === m.SAPIN);
+		if (m) {
+			const u = {};
+			if (m.Name !== i.Name) {
+				u.Name = i.Name
+				u.LastName = i.LastName
+				u.FirstName = i.FirstName
+				u.MI = i.MI
+			}
+			if (m.Affiliation !== i.Affiliation)
+				u.Affiliation = i.Affiliation
+			if (m.Email !== i.Email)
+				u.Email = i.Email
+			if (Object.keys(u).length > 0) {
+				u.SAPIN = i.SAPIN;
+				updates.push(u);
+			}
+		}
+		else {
+			const u = {
+				SAPIN: i.SAPIN,
+				Name: i.Name,
+				LastName: i.LastName,
+				FirstName: i.FirstName,
+				MI: i.MI,
+				Affiliation: i.Affiliation,
+				Email: i.Email,
+				Status: 'New'
+			}
+			inserts.push(u);
+		}
+	}
+
+	let SQL;
+
+	if (inserts.length > 0) {
+		SQL = 
+			db.format('INSERT INTO members (??) VALUES ', [Object.keys(inserts[0])]) +
+			inserts.map(m => '(' + db.escape(Object.values(m)) + ')').join(', ') +
+			'; ';
+		await db.query(SQL);
+	}
+
+	if (updates.length > 0) {
+		SQL = updates.map(u => db.format('UPDATE members SET ? WHERE SAPIN=?', [u, u.SAPIN])).join('; ');
+		await db.query(SQL);
+	}
+
+	const attendances = imatAttendances.map(a => (
+			{
+				SAPIN: a.SAPIN,
+				AttendancePercentage: a.AttendancePercentage
+			}
+		));
+
+	await db.query('DELETE FROM attendances WHERE session_id=?; ', [session_id]);
+
+	if (attendances.length) {
+		SQL =
+			db.format('INSERT INTO attendances (session_id, ??) VALUES ', [Object.keys(attendances[0])]) +
+			attendances.map(a => db.format('(?, ?)', [session.id, Object.values(a)])).join(', ');
+		await db.query(SQL);
+	}
+
+	SQL = getSessionSQL(session_id) + getSessionAttendeesSQL(session_id);
+
+	const [sessions, attendees] = await db.query(SQL);
+
+	return {session: sessions[0], attendees};
 }

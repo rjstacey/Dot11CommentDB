@@ -3,7 +3,7 @@
 const db = require('../util/database')
 const rp = require('request-promise-native')
 
-import {parseClosedEpollsPage} from './ePollHTML'
+import {parseClosedEpollsPage} from './epoll'
 import {getResults} from './results'
 
 /*

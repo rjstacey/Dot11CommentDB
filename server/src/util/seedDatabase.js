@@ -1,7 +1,9 @@
 'use strict'
 
+import {getUser} from '../services/users'
+import {addMember, updateMember} from '../services/members'
+
 const db = require('../util/database')
-const users = require('../services/users')
 
 const usersTable =
 	'CREATE TABLE `users` ( ' +
@@ -160,15 +162,15 @@ export async function init() {
 		}
 
 		/* Make sure we have a super user with the right access level */
-		const user = await users.getUser(superUser.SAPIN, superUser.Email)
+		const user = await getUser(superUser.SAPIN, superUser.Email)
 		console.log(user)
 		if (user === null) {						// User does not exist; create user
-			await users.addUser(superUser)
+			await addMember(superUser)
 		}
 		else if (user.Access < superUser.Access) {	// User exists but has insufficient karma; upgrade karma
 			user.Access = superUser.Access
 			console.log('upgrade', user)
-			await users.updateUser(user.SAPIN, user)
+			await updateMember(user.SAPIN, user)
 		}
 	}
 	catch(err) {

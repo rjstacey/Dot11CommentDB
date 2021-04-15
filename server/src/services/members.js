@@ -1,50 +1,62 @@
 
 import {AccessLevel} from '../auth/access'
 import {parseMyProjectRosterSpreadsheet} from './myProjectSpreadsheets'
-import {getSessions, getSessionAttendees} from './sessions'
+import {parseMembersSpreadsheet, parseSAPINsSpreadsheet, parseEmailsSpreadsheet} from './membersSpreadsheets'
+import {getSessions, getSessionAttendeesCoalesced} from './sessions'
 
 const db = require('../util/database')
 const moment = require('moment-timezone')
 
 /*
- * A list of members is available to any user with access level Member or higher (for
- * reassigning comments, etc.). However, only access level WG Admin gets sensitive 
- * information like email address and access level.
+ * A list of members is available to any user with access level Member or higher
+ * (for reassigning comments, etc.). We only care about members with status.
  */
-export async function getMembers(user) {
-	const fields = ['SAPIN', 'Name', 'LastName', 'FirstName', 'MI', 'Status', 'StatusChangeOverride'];
-
-	/* Email and Access level are sensitive */
-	if (user.Access >= AccessLevel.WGAdmin)
-		fields.push('Email', 'Access')
-
-	const members = await db.query('SELECT ?? FROM users', [fields]);
-	return {members};
+export async function getUsers(user) {
+	const SQL = db.format(
+		'SELECT SAPIN, Name, Status, Access FROM members ' +
+		'WHERE ' +
+			'Status="Aspirant" OR ' +
+			'Status="Potential Voter" OR ' +
+			'Status="Voter" OR ' +
+			'Status="ExOfficio"');
+	const users = await db.query(SQL);
+	return {users};
 }
 
-export async function getMembersWithAttendance(user) {
+/*
+ * A detailed list of members is only available with access level WG Admin since it contains
+ * sensitive information like email address.
+ */
+export async function getMembers() {
+	const [members, emails] = await db.query(
+		'SELECT * FROM members ORDER BY SAPIN; ' +
+		'SELECT * FROM emails;');
+	return {members, emails};
+}
+
+export async function getMembersWithAttendance() {
 	let sessions = await getSessions();
 	sessions.forEach(s => s.Start = moment(s.Start).tz(s.TimeZone));
 	sessions = sessions.sort((s1, s2) => s1.Start - s2.Start)	// Oldest to newest
 
-	// Plenary sessions only, last 4
+	// Plenary sessions only, newest 4 with attendance
 	let plenaries = sessions
-		.filter(s => s.Type === 'p' && s.TotalCredit > 0)
+		.filter(s => s.Type === 'p' && s.Attendees > 0)
 		.slice(-4);
 	let fromDate = plenaries[0].Start;
 
 	// Plenary and interim sessions from the oldest plenary date
-	sessions = sessions.filter(s => (s.Type === 'i' || s.Type === 'p') && s.TotalCredit > 0 && s.Start >= fromDate);
+	sessions = sessions.filter(s => (s.Type === 'i' || s.Type === 'p') && s.Start >= fromDate && s.Attendees > 0);
 
 	//console.log(sessions);
 
-	const results = await Promise.all(sessions.map(s => getSessionAttendees(s.id)));
+	const results = await Promise.all(sessions.map(s => getSessionAttendeesCoalesced(s.id)));
 	//console.log(results)
 
 	// Merge attendances with sessions
 	sessions.forEach((s, i) => s.Attendees = results[i].attendees);
 
-	const {members} = await getMembers(user);
+	const {members} = await getMembers();
 
 	for (const m of members) {
 		m.Attendances = {};
@@ -53,8 +65,8 @@ export async function getMembersWithAttendance(user) {
 			m.Attendances[s.id] = 0;
 			const attendance = s.Attendees.find(a => a.SAPIN === m.SAPIN);
 			if (attendance) {
-				m.Attendances[s.id] = attendance.SessionCreditPct;
-				if (attendance.SessionCreditPct >= 0.75) {
+				m.Attendances[s.id] = attendance.AttendancePercentage;
+				if (attendance.AttendancePercentage >= 75) {
 					if (s.Type === 'p')
 						pCount++;
 					else
@@ -62,27 +74,27 @@ export async function getMembersWithAttendance(user) {
 				}
 			}
 		}
+		m.AttendanceCount = pCount + (iCount? 1: 0);
 		m.NewStatus = '';
 		if (!m.StatusChangeOverride && 
 			(m.Status === 'Voter' || m.Status === 'Potential Voter' || m.Status === 'Aspirant' || m.Status === 'Non-Voter')) {
-			const count = pCount + (iCount? 1: 0);
 			const lastIsP = sessions.length > 0 && sessions[0].Type === 'p';
 			/* A Voter, Potential Voter or Aspirant becomes a Non-Voter after failing to attend 1 of the last 4 plenary sessions.
 			 * One interim may be substited for a plenary session. */
-			if (count === 0 && m.Status !== 'Non-Voter')
+			if (m.AttendanceCount === 0 && m.Status !== 'Non-Voter')
 				m.NewStatus = 'Non-Voter'
 			/* A Non-Voter becomes an Aspirant after attending 1 plenary or interim session.
 			 * A Voter or Potential Voter becomes an Aspirant if they have only attended 1 of the last 4 plenary sessions
 			 * or intervening interim sessions. */
-			else if (count === 1 && m.Status !== 'Aspirant')
+			else if (m.AttendanceCount === 1 && m.Status !== 'Aspirant')
 				m.NewStatus = 'Aspirant'
 			/* An Aspirant becomes a Potential Voter after attending 2 of the last 4 plenary sessions. One intervening
 			 * interim meeting may be substituted for a plenary meeting. */
-			else if (count === 2 && m.Status === 'Aspirant')
+			else if (m.AttendanceCount === 2 && m.Status === 'Aspirant')
 				m.NewStatus = 'Potential Voter'
 			/* A Potential Voter becomes a Voter at the next plenary session after attending 2 of the last 4 plenary 
 			 * sessions. One intervening interim meeting may be substituted for a plenary meeting. */
-			else if (((count === 3 && lastIsP) || count > 3) && m.Status === 'Potential Voter')
+			else if (((m.AttendanceCount === 3 && lastIsP) || m.AttendanceCount > 3) && m.Status === 'Potential Voter')
 				m.NewStatus = 'Voter'
 		}
 	}
@@ -197,98 +209,174 @@ function memberEntry(m) {
 	return entry;
 }
 
-export async function addMember(user) {
+export async function addMember(member) {
 
-	let entry = memberEntry(user);
+	let entry = memberEntry(member);
 
 	if (!entry.SAPIN)
 		throw 'Must provide SAPIN';
 
 	const SQL = 
-		db.format('INSERT INTO users (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]) +
-		db.format('SELECT * FROM users WHERE SAPIN=?;', [entry.SAPIN])
+		db.format('INSERT INTO members (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]) +
+		db.format('SELECT * FROM members WHERE SAPIN=?;', [entry.SAPIN])
 	try {
-		const [noop, users] = await db.query(SQL);
-		return {user: users[0]}
+		const [noop, members] = await db.query(SQL);
+		return {member: members[0]}
 	}
 	catch (err) {
-		throw err.code === 'ER_DUP_ENTRY'? `A user with SAPIN ${entry.SAPIN} already exists`: err
+		throw err.code === 'ER_DUP_ENTRY'? `A member with SAPIN ${entry.SAPIN} already exists`: err
 	}
 }
 
-export async function updateMember(id, user) {
+export async function updateMember(id, member) {
 
-	let entry = memberEntry(user);
+	let entry = memberEntry(member);
 
 	if (Object.keys(entry).length) {
 		const SQL =
-			db.format("UPDATE users SET ? WHERE SAPIN=?;",  [entry, id]) +
-			db.format("SELECT ?? from users WHERE SAPIN=?;", [Object.keys(entry), entry.SAPIN? entry.SAPIN: id])
-		const [noop, users] = await db.query(SQL)
-		entry = users[0]
-		if (entry.SAPIN === undefined)
-			entry.SAPIN = id	
+			db.format("UPDATE members SET ? WHERE id=?;",  [entry, id]) +
+			db.format("SELECT ?? from members WHERE id=?;", [Object.keys(entry), id])
+		const [noop, members] = await db.query(SQL);
+		entry = members[0];
 	}
 
-	return {user: entry}
+	return {member: entry}
 }
 
-export async function upsertMembers(users) {
+export async function upsertMembers(attendees) {
 
-	const sapins = Object.keys(users);
-	const existingUsers = await db.query('SELECT * FROM users WHERE SAPIN IN (?)', [Object.keys(users)]);
-	console.log(existingUsers)
-	const insertUsers = {...users};
-	const updateUsers = {};
-	for (const u of existingUsers) {
-		if (insertUsers[u.SAPIN]) {
-			updateUsers[u.SAPIN] = users[u.SAPIN];
-			delete insertUsers[u.SAPIN];
+	const sapins = Object.keys(attendees);
+	const existing = await db.query('SELECT * FROM members WHERE SAPIN IN (?)', [sapins]);
+	console.log(existing)
+	const insert = {...attendees};
+	const update = {};
+	for (const u of existing) {
+		if (insert[u.SAPIN]) {
+			update[u.id] = insert[u.SAPIN];
+			delete insert[u.SAPIN];
 		}
 	}
 
 	const SQL = 
-		Object.values(updateUsers).map(u => db.format('UPDATE users SET ? WHERE SAPIN=?;', [memberEntry(u), u.SAPIN])).join('') +
-		Object.values(insertUsers).map(u => db.format('INSERT users SET ?;', [memberEntry(u)])).join('') +
-		db.format('SELECT * FROM users WHERE SAPIN IN (?);', [sapins]);
+		Object.values(update).map(u => db.format('UPDATE members SET ? WHERE id=?;', [memberEntry(u), u.id])).join(' ') +
+		Object.values(insert).map(u => db.format('INSERT members SET ?;', [memberEntry(u)])).join(' ') +
+		db.format('SELECT * FROM members WHERE SAPIN IN (?);', [sapins]);
 
 	const results = await db.query(SQL);
 
-	return {users: results[results.length-1]}
+	return {members: results[results.length-1]}
 }
 
 export async function deleteMembers(ids) {
 	if (ids.length > 0)
-		await db.query('DELETE FROM users WHERE SAPIN IN (?)', [ids]);
+		await db.query('DELETE FROM members WHERE id IN (?)', [ids]);
 	return null;
 }
 
-export async function uploadMembers(file) {
-	//let users = parseUsersCsv(file.buffer)
-	let users = await parseMyProjectRosterSpreadsheet(file.buffer);
-	users = users.filter(u => !u.Status.search(/^Voter|^Potential|^Aspirant/g))
-	users = users.map(u => ({
-		SAPIN: u.SAPIN,
-		Name: u.Name,
-		LastName: u.LastName,
-		FirstName: u.FirstName,
-		MI: u.MI,
-		Status: u.Status,
-		Email: u.Email,
-		Affiliation: u.Affiliation,
-		Employer: u.Employer
-	}));
+export const UploadFormat = {
+	Roster: 'roster',
+	Members: 'members',
+	SAPINs: 'sapins',
+	Emails: 'emails'
+};
 
-	let SQL = '';
-	if (users.length) {
-		SQL =
-			`INSERT INTO users (${Object.keys(users[0])}) VALUES ` +
-			users.map(u => {return '(' + db.escape(Object.values(u)) + ')'}).join(',') +
-			' ON DUPLICATE KEY UPDATE ' +
-			'Name=VALUES(Name), LastName=VALUES(LastName), FirstName=VALUES(FirstName), MI=VALUES(MI), Email=VALUES(Email), Status=VALUES(Status);'
+export async function uploadMembers(format, file) {
+
+	let roster = [], members = [], sapins = [], emails = [];
+	switch (format) {
+		case UploadFormat.Roster:
+			roster = await parseMyProjectRosterSpreadsheet(file.buffer);
+			break;
+		case UploadFormat.Members:
+			members = await parseMembersSpreadsheet(file.buffer);
+			members = members.filter(m => m.SAPIN > 0);
+			break;
+		case UploadFormat.SAPINs:
+			sapins = await parseSAPINsSpreadsheet(file.buffer);
+			break;
+		case UploadFormat.Emails:
+			emails = await parseEmailsSpreadsheet(file.buffer);
+			break;
+		default:
+			throw `Unknown format: ${format}. Extected: ${Object.values(UploadFormat)}.`
 	}
-	SQL += 'SELECT * FROM users;';
-	const results = await db.query(SQL);
-	users = results[results.length - 1];
-	return users;
+
+	roster = roster
+		.filter(u => typeof u.SAPIN === 'number' && u.SAPIN > 0 && !u.Status.search(/^Voter|^Potential|^Aspirant|^Non-Voter|^ExOfficio/g))
+		.map(u => ({
+			SAPIN: u.SAPIN,
+			Name: u.Name,
+			LastName: u.LastName,
+			FirstName: u.FirstName,
+			MI: u.MI,
+			Status: u.Status,
+			Email: u.Email,
+			Affiliation: u.Affiliation,
+			Employer: u.Employer
+		}));
+
+	//console.log(members);
+	let SQL = '';
+	if (roster.length) {
+		SQL =
+			`INSERT INTO users (${Object.keys(members[0])}) VALUES ` +
+			members.map(u => '(' + db.escape(Object.values(u)) + ')').join(', ') +
+			' ON DUPLICATE KEY UPDATE ' +
+			Object.keys(members[0]).filter(k => k !== 'SAPIN').map(k => k + '=VALUES(' + k + ')') +
+			';';
+		console.log(SQL)
+		await db.query(SQL);
+	}
+	if (members.length) {
+		SQL =
+			'DELETE FROM members; ' +
+			db.format('INSERT INTO members (??) VALUES ', [Object.keys(members[0])]) +
+			members.map(u => '(' + db.escape(Object.values(u)) + ')').join(', ') +
+			';';
+		await db.query(SQL);
+	}
+	if (sapins.length) {
+		const members = await db.query('SELECT MemberID, SAPIN, ReplacedBySAPIN, Status FROM members;')
+		for (const s of sapins) {
+			/* If the member_id and SAPIN match, then update DateAdded */
+			const m1 = members.find(m => m.MemberID === s.MemberID)
+			if (m1) {
+				if (m1.SAPIN === s.SAPIN) {
+					db.query(
+							'UPDATE members SET DateAdded=? WHERE MemberID=?',
+							[s.DateAdded, m1.MemberID]
+						).catch(console.warn);
+				}
+				else {
+					const m2 = members.find(m => m.SAPIN === s.SAPIN);
+					if (m2) {
+						if (m2.MemberID !== s.MemberID) {
+							db.query(
+									'UPDATE members SET Status="Obsolete", ReplacedBySAPIN=? WHERE MemberID=?',
+									[m1.SAPIN, m2.MemberID]
+								).catch(console.warn);
+						}
+					}
+					else {
+						const entry = {
+							SAPIN: s.SAPIN,
+							ReplacedBySAPIN: m1.SAPIN,
+							Status: 'Obsolete',
+							Notes: 'Replaced by SAPIN=' + m1.SAPIN
+						}
+						db.query('INSERT INTO members SET ?, DateAdded=NOW()', [entry]).catch(console.warn);
+					}
+				}
+			}
+		}
+	}
+	if (emails.length) {
+		SQL =
+			'DELETE FROM emails; ' +
+			db.format('INSERT INTO emails (??) VALUES ', [Object.keys(emails[0])]) +
+			emails.map(u => '(' + db.escape(Object.values(u)) + ')').join(', ') +
+			';'
+		await db.query(SQL);
+	}
+	return getMembers();
 }

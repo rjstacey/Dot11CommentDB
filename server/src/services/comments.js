@@ -3,7 +3,7 @@
 const db = require('../util/database')
 const rp = require('request-promise-native')
 
-import {parseEpollCommentsCsv} from './ePollCSV'
+import {parseEpollCommentsCsv} from './epoll'
 import {parseMyProjectComments, myProjectAddResolutions} from './myProjectSpreadsheets'
 
 /*
