@@ -1,0 +1,5 @@
+.deployment
+.vscode
+.eslintcache
+/node_modules
+debug.log

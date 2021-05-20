@@ -1,0 +1,220 @@
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #000;
+  opacity: 0.5;
+}
+
+main {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  margin: 100px auto auto auto;
+  background-color: #fff;
+  font-family: Verdana;
+  padding-bottom: 32px;
+}
+
+.header {
+  width: 100%;
+  height: 48px;
+  background-image: linear-gradient(0deg,#3720f3,#8dabfb);
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+  font-weight: 800;
+  color: #fff;
+}
+
+.corner {
+  width: 10px;
+  height: 10px;
+  border-left: solid 10px black;
+  border-bottom: solid 10px black;
+  border-right: solid 10px transparent;
+  border-top: solid 10px transparent;
+  box-sizing: border-box;
+}
+
+.go_back {
+  margin: 20px auto 20px 0;
+  color: #313332;
+  display: flex;
+  justify-content: left;
+  align-items: center;
+}
+
+.go_back button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.go_back icon {
+  fill: #313332;
+}
+
+.form_title {
+  position: relative;
+  background-color: #767676;
+  /*background-image: url(https://services10.ieee.org/assets/extldap/ieeeimages/bg-modal-right-rail-title.gif);
+  background-repeat: no-repeat;
+  background-position: right top;*/
+  padding: 6px 10px;
+  margin: 32px 32px 0 32px;
+}
+
+.form_title h2 {
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.1em;
+}
+
+form {
+  box-shadow: none;
+  border: 1px solid #767676;
+  margin: 0 32px 32px 32px;
+}
+
+.field {
+  margin: 20px 10px;
+}
+
+.field .input_container {
+  color: #313332;
+  background-color: #fdfefe;
+  line-height: normal;
+  height: 52px;
+  border: 1px solid #f0f5f6;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: solid 1px #999999;
+  padding: 1px;
+  box-sizing: border-box;
+  margin: 5px;
+}
+
+.field label {
+  display: inline-block;
+  /*color: #313332;*/
+  color: #666666;
+  font-weight: bold;
+  margin-bottom: 8px;
+  white-space: nowrap;
+}
+
+.field input {
+  -webkit-box-flex: 1;
+  flex: 1;
+  outline: none;
+  max-width: 100%;
+  width: 100%;
+  height: 100%;
+  padding-left: 16px;
+  padding-right: 16px;
+  border: none;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+}
+
+form button {
+    position: relative;
+    font-size: 12px;
+    height: 32px;
+    width: 120px;
+    font-weight: bold;
+    margin: 20px 20px 20px auto;
+    color: #fff;
+    outline: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border: none;
+    /*background: url(https://services10.ieee.org/assets/extldap/ieeeimages/button-all-sprite.png) no-repeat 0px -68px;*/
+    /*background-image: -webkit-gradient(linear,left top,right top,from(#5082e4),to(#52bcf8));*/
+    background-image: linear-gradient(0deg,#f38120,#fbce8d);
+}
+
+/* Cut off the top right corner; an IEEE SA style */
+form button::after,
+.form_title::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 5px;
+  border-left: solid 5px transparent;
+  border-bottom: solid 5px transparent;
+  border-right: solid 5px white;
+  border-top: solid 5px white;
+  box-sizing: border-box;
+}
+
+form a {
+  color: #428bca;
+  text-decoration: none;
+}
+
+form button span {
+  color: inherit;
+  font-weight: 500;
+  line-height: 20px;
+  margin: 0 8px;
+}
+
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
