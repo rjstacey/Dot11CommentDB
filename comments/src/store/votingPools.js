@@ -7,32 +7,41 @@ import selectedSlice, {getSelected, setSelected} from 'dot11-common/store/select
 import uiSlice from 'dot11-common/store/ui'
 import {setError} from 'dot11-common/store/error'
 
-const votingPoolFields = ['PoolType', 'VotingPoolID', 'VoterCount'];
+const fields = ['VotingPoolID', 'VoterCount'];
 
 /*
  * Generate a filter for each field (table column)
  */
-const defaultFiltersEntries = votingPoolFields.reduce((entries, dataKey) => {
+const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {}}
 }, {});
 
 /*
  * Generate object that describes the initial sort state
  */
-const defaultSortEntries = votingPoolFields.reduce((entries, dataKey) => {
+const defaultSortEntries = fields.reduce((entries, dataKey) => {
 	const type = dataKey === 'VoterCount'? SortType.NUMERIC: SortType.STRING;
 	const direction = SortDirection.NONE;
 	return {...entries, [dataKey]: {type, direction}}
 }, {});
+
+/*
+ * Remove entries that no longer exist from a list. If there
+ * are no changes, return the original list.
+ */
+function filterIdList(idList, allIds) {
+	const newList = idList.filter(id => allIds.includes(id));
+	return newList.length === idList.length? idList: newList;
+}
 
 const dataAdapter = createEntityAdapter({
 	selectId: vp => vp.VotingPoolID,
 	sortComparer: (vp1, vp2) => vp1.VotingPoolID.localeCompare(vp2.VotingPoolID)
 });
 
-const dataSet = 'votingPools'
+const dataSet = 'votingPools';
 
-const votingPoolsSlice = createSlice({
+const slice = createSlice({
 	name: dataSet,
 	initialState: dataAdapter.getInitialState({
 		valid: false,
@@ -51,13 +60,15 @@ const votingPoolsSlice = createSlice({
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, votingPools);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		getFailure(state, action) {
 			state.loading = false;
 		},
 		removeMany(state, action) {
-			const {votingPoolIds} = action.payload;
+			const votingPoolIds = action.payload;
 			dataAdapter.removeMany(state, votingPoolIds);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		}
 	},
 	extraReducers: builder => {
@@ -85,65 +96,45 @@ const votingPoolsSlice = createSlice({
 /*
  * Export reducer as default
  */
-export default votingPoolsSlice.reducer;
+export default slice.reducer;
 
-function updateIdList(votingPools, selected) {
-	const changed = selected.reduce(
-		(result, id) => result || !votingPools.find(vp => vp.VotingPoolID === id),
-		false
-	);
+const {getPending, getSuccess, getFailure} = slice.actions;
 
-	if (!changed)
-		return selected
-
-	return selected.filter(id => !votingPools.find(vp => vp.VotingPoolID === id))
-}
-
-const {getPending, getSuccess, getFailure} = votingPoolsSlice.actions;
-
-export function loadVotingPools() {
-	return async (dispatch, getState) => {
+export const loadVotingPools = () =>
+	async (dispatch, getState) => {
 		if (getState()[dataSet].loading)
-			return null
-		dispatch(getPending())
+			return;
+		dispatch(getPending());
+		const url = '/api/votingPools';
 		let response;
 		try {
-			response = await fetcher.get('/api/votingPools')
+			response = await fetcher.get(url);
+			if (typeof response !== 'object' ||
+				!response.hasOwnProperty('votingPools'))
+				throw new TypeError(`Unexpected response to GET: ${url}`);
 		}
 		catch(error) {
 			console.log(error)
-			return Promise.all([
+			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError('Unable to get voting pool list', error))
-			])
+			]);
+			return;
 		}
-		const {votingPools} = response;
-		const selected = getSelected(getState(), dataSet);
-		const newSelected = updateIdList(votingPools, selected)
-		const p = []
-		if (newSelected !== selected)
-			p.push(dispatch(setSelected(dataSet, newSelected)))
-		p.push(dispatch(getSuccess({votingPools})))
-		return Promise.all(p)
+		await dispatch(getSuccess(response));
 	}
-}
 
-const {removeMany} = votingPoolsSlice.actions;
+const {removeMany} = slice.actions;
 
-export function deleteVotingPools(votingPools) {
-	return async (dispatch, getState) => {
+export const deleteVotingPools = (votingPools) =>
+	async (dispatch, getState) => {
+		const votingPoolIds = votingPools.map(vp => vp.VotingPoolID);
 		try {
-			await fetcher.delete('/api/votingPools', votingPools)
+			await fetcher.delete('/api/votingPools', votingPoolIds);
 		}
 		catch(error) {
-			return dispatch(setError('Unable to delete voting pool(s)', error))
+			await dispatch(setError('Unable to delete voting pool(s)', error));
+			return;
 		}
-		const votingPoolIds = votingPools.map(vp => vp.VotingPoolID);
-		const selected = getSelected(getState(), dataSet);
-		const newSelected = selected.filter(id => !votingPoolIds.includes(id));
-		return Promise.all([
-			dispatch(removeMany({votingPoolIds})),
-			dispatch(setSelected(dataSet, newSelected))
-		])
+		await dispatch(removeMany(votingPoolIds));
 	}
-}

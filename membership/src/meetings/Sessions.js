@@ -5,27 +5,28 @@ import styled from '@emotion/styled'
 import {Link, useHistory, useParams} from "react-router-dom"
 import AppTable, {ControlHeader, ControlCell} from 'dot11-common/table'
 import {ConfirmModal} from 'dot11-common/modals'
-import {ActionButton} from 'dot11-common/lib/icons'
+import {ActionButton, Button} from 'dot11-common/lib/icons'
 import {displayDate} from 'dot11-common/lib/utils'
 import SessionDialog from './SessionDialog'
 
 import {getSortedFilteredData} from 'dot11-common/store/dataSelectors'
-import {loadSessions, deleteSessions, MeetingTypeOptions} from '../store/sessions'
+import {loadSessions, deleteSessions, SessionTypeOptions} from '../store/sessions'
 import {importBreakouts} from '../store/breakouts'
 import {importAttendances} from '../store/attendees'
 
-const DefaultSession = {Date: new Date(), Location: '', Type: MeetingTypeOptions[0].value}
+const DefaultSession = {Date: new Date(), Location: '', Type: SessionTypeOptions[0].value}
 
 const ActionCell = styled.div`
 	display: flex;
 	justify-content: center;
 `;
 
-const RowActions = ({onEdit, onDelete, onImport}) =>
+const RowActions = ({onEdit, onDelete, onImportAttendances, onImportBreakouts}) =>
 	<ActionCell>
 		<ActionButton name='edit' title='Edit' onClick={onEdit} />
 		<ActionButton name='delete' title='Delete' onClick={onDelete} />
-		<ActionButton name='edit' title='Import breakouts' onClick={onImport} />
+		<Button name='edit' title='Import attendance summary' onClick={onImportAttendances}>1</Button>
+		<Button name='edit' title='Import breakouts' onClick={onImportBreakouts}>2</Button>
 	</ActionCell>
 
 const TopRow = styled.div`
@@ -47,7 +48,7 @@ const TableRow = styled.div`
 `;
 
 const renderMeetingType = ({rowData}) => {
-	const option = MeetingTypeOptions.find(o => o.value === rowData.Type)
+	const option = SessionTypeOptions.find(o => o.value === rowData.Type)
 	return option? option.label: '';
 };
 
@@ -107,7 +108,7 @@ const tableColumns = [
 		cellRenderer: renderAttendance},
 	{key: 'Actions',
 		label: 'Actions',
-		width: 100, flexGrow: 1, flexShrink: 1}
+		width: 200, flexGrow: 1, flexShrink: 1}
 ];
 
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
@@ -141,7 +142,8 @@ function Sessions({
 						<RowActions
 							onEdit={() => setSessionDialog({action: 'update', session: rowData})}
 							onDelete={() => onDelete(rowData)}
-							onImport={() => importAttendances(rowData.id)}
+							onImportAttendances={() => importAttendances(rowData.id)}
+							onImportBreakouts={() => importBreakouts(rowData.id)}
 						/>
 				}
 			else

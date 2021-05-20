@@ -85,7 +85,7 @@ const epollsSlice = createSlice({
 				state[filtersSlice.name] = filtersSlice.reducer(state[filtersSlice.name], sliceAction);
 				state[selectedSlice.name] = selectedSlice.reducer(state[selectedSlice.name], sliceAction);
 				state[expandedSlice.name] = expandedSlice.reducer(state[expandedSlice.name], sliceAction);
-				state[uiSlice.name] = uiSlice.reducer(state[usSlice.name], sliceAction);
+				state[uiSlice.name] = uiSlice.reducer(state[uiSlice.name], sliceAction);
 			}
 		)
 	}
@@ -131,4 +131,30 @@ export const getSyncedEpolls = createSelector(
 				return d.InDatabase? {...d, InDatabase: false}: d
 		})
 	)
+);
+
+/*
+ * Selectors
+ */
+const getBallotsEntities = (state) => state['ballots'].entities;
+const getEpollsEntities = (state) => state[dataSet].entities;
+
+/*
+ * getSyncedEpollEntities(state)
+ *
+ * Generate epoll entities objectwith indicator on each entry of presence in ballots list
+ */
+export const getSyncedEpollEntities = createSelector(
+	getBallotsEntities,
+	getEpollsEntities,
+	(ballotEntities, epollEntities) => {
+		const syncedEpollEntities = {};
+		for (const id of Object.keys(epollEntities))
+			syncedEpollEntities[id] = {...epollEntities[id], InDatabase: false}
+		for (const b of Object.values(ballotEntities)) {
+			if (syncedEpollEntities[b.EpollNum])
+				syncedEpollEntities[b.EpollNum].InDatabase = true
+		}
+		return syncedEpollEntities;
+	}
 );

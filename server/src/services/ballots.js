@@ -2,9 +2,11 @@
 
 const db = require('../util/database')
 const rp = require('request-promise-native')
+const moment = require('moment-timezone')
 
 import {parseClosedEpollsPage} from './epoll'
-import {getResults} from './results'
+import {getResults, getResultsCoalesced} from './results'
+import {getVoters} from './voters'
 
 /*
  * Get ballots SQL query.
@@ -31,37 +33,39 @@ const GetCommentsSummarySQL = (ballotId) =>
 	);
 
 function reformatBallot(b) {
+
+	b.Start = moment(b.Start);
+	b.End = moment(b.End);
+
 	b.Comments = {
 		Count: b.CommentCount,
 		CommentIDMin: b.CommentIDMin,
 		CommentIDMax: b.CommentIDMax
-	}
-	delete b.CommentCount
-	delete b.CommentIDMin
-	delete b.CommentIDMax
-	//b.Results = JSON.parse(b.ResultsSummary)
-	b.Results = b.ResultsSummary
-	delete b.ResultsSummary
-	return b
+	};
+	delete b.CommentCount;
+	delete b.CommentIDMin;
+	delete b.CommentIDMax;
+
+	b.Results = b.ResultsSummary;
+	delete b.ResultsSummary;
+
+	return b;
 }
 
-async function getBallots() {
-	const ballots = await db.query(GET_BALLOTS_SQL + ' ORDER BY Project, Start')
-	return ballots.map(b => reformatBallot(b))
+export async function getBallots() {
+	const ballots = await db.query(GET_BALLOTS_SQL + ' ORDER BY Project, Start');
+	return ballots.map(reformatBallot);
 }
 
-async function getBallot(ballotId) {
-	const ballot = await db.query(GET_BALLOTS_SQL + ' WHERE BallotID=?', [ballotId])
-	return reformatBallot(ballot)
-}
-
-async function getWgBallotsSeries() {
-	const ballots = await db.query(GET_BALLOTS_SQL + ' WHERE Type=3 or Type=4');
-	return ballots.map(b => reformatBallot(b));
+export async function getBallot(ballotId) {
+	const [ballot] = await db.query(GET_BALLOTS_SQL + ' WHERE BallotID=?', [ballotId])
+	if (!ballot)
+		throw `No such ballot: ${ballotId}`;
+	return reformatBallot(ballot);
 }
 
 async function getBallotWithNewResultsSummary(user, ballotId) {
-	const {ballot, summary} = await getResults(user, ballotId);
+	const {ballot, summary} = await getResultsCoalesced(user, ballotId);
 	const commentsSummaries = await db.query(GetCommentsSummarySQL(ballotId));
 	console.log(ballot, summary, commentsSummaries)
 	return {
@@ -69,6 +73,41 @@ async function getBallotWithNewResultsSummary(user, ballotId) {
 		Comments: commentsSummaries[0],
 		Results: summary
 	};
+}
+
+export async function getBallotSeriesWithResults(ballotId) {
+
+	async function recursiveBallotSeriesGet(ballotSeries, ballotId) {
+		const ballot = await getBallot(ballotId);
+		ballotSeries.unshift(ballot);
+		return ballot.PrevBallotID && ballotSeries.length < 20?
+			recursiveBallotSeriesGet(ballotSeries, ballot.PrevBallotID):
+			ballotSeries;
+	}
+
+	const ballotSeries = await recursiveBallotSeriesGet([], ballotId);
+	if (ballotSeries.length > 0) {
+		ballotSeries[0].Voters = [];
+		if (ballotSeries[0].VotingPoolID) {
+			const {voters} = await getVoters(ballotSeries[0].VotingPoolID);
+			ballotSeries[0].Voters = voters;
+		}
+		const results = await Promise.all(ballotSeries.map(b => getResults(b.BallotID)));
+		ballotSeries.forEach((ballot, i) => ballot.Results = results[i]);
+	}
+	return ballotSeries;
+}
+
+export async function getRecentBallotSeriesWithResults() {
+	const ballots = await db.query(
+		GET_BALLOTS_SQL + ' WHERE ' +
+			'(Type=2 OR Type=3) AND ' +		// WG ballots
+			'IsComplete=1 ' + 				// series is complete
+			'ORDER BY End DESC ' +			// newest to oldest
+			'LIMIT 3;'						// last 3
+	);
+	const ballotsSeries = await Promise.all(ballots.map(b => getBallotSeriesWithResults(b.BallotID)));
+	return ballotsSeries;
 }
 
 function ballotEntry(ballot) {
@@ -82,7 +121,8 @@ function ballotEntry(ballot) {
 		End: ballot.End && new Date(ballot.End),
 		EpollNum: ballot.EpollNum,
 		VotingPoolID: ballot.VotingPoolID,
-		PrevBallotID: ballot.PrevBallotID
+		PrevBallotID: ballot.PrevBallotID,
+		IsComplete: ballot.IsComplete
 	}
 
 	for (let key of Object.keys(entry)) {
@@ -117,7 +157,7 @@ async function addBallot(user, ballot) {
 	return getBallotWithNewResultsSummary(user, entry.BallotID);
 }
 
-async function addBallots(user, ballots) {
+export async function addBallots(user, ballots) {
 	return Promise.all(ballots.map(b => addBallot(user, b)));
 }
 
@@ -130,86 +170,27 @@ async function updateBallot(user, ballot) {
 	const entry = ballotEntry(ballot);
 	console.log(entry)
 	if (entry) {
-		try {
-			const result = await db.query('UPDATE ballots SET ? WHERE id=?',  [entry, ballot.id]);
-			if (result.affectedRows !== 1)
-				throw new Error(`Unexpected: no update for ballot with id=${ballot_id}`);
-		}
-		catch(err) {
-			if (err.code === 'ER_DUP_ENTRY')
-				throw `Cannot change Ballot ID to ${entry.BallotID}; a ballot with that ID already exists`
-			throw err
-		}
+		const result = await db.query('UPDATE ballots SET ? WHERE id=?',  [entry, ballot.id]);
+		if (result.affectedRows !== 1)
+			throw new Error(`Unexpected: no update for ballot with id=${ballot_id}`);
 	}
 
 	const results = await db.query('SELECT BallotID FROM ballots WHERE id=?', [ballot.id]);
 	return getBallotWithNewResultsSummary(user, results[0].BallotID);
 }
 
-function updateBallots(user, ballots) {
+export function updateBallots(user, ballots) {
 	return Promise.all(ballots.map(b => updateBallot(user, b)));
 }
 
-function deleteBallots(user, ballots) {
-	if (ballots.find(b => !b.id))
-		throw 'Ballots to be deleted must have id';
-	const IDs = db.escape(ballots.map(b => b.id));
-	return db.query(
+export async function deleteBallots(ids) {
+	await db.query(
 		'START TRANSACTION;' +
-		`DELETE c, r FROM ballots b JOIN comments c ON b.id=c.ballot_id JOIN resolutions r ON c.id=r.comment_id WHERE b.id IN (${IDs});` +
-		`DELETE r FROM ballots b JOIN results r ON r.ballot_id=b.id WHERE b.id IN (${IDs});` +
-		`DELETE FROM ballots WHERE id IN (${IDs});` +
+		db.format('DELETE c, r FROM ballots b JOIN comments c ON b.id=c.ballot_id JOIN resolutions r ON c.id=r.comment_id WHERE b.id IN (?);', [ids]) +
+		db.format('DELETE r FROM ballots b JOIN results r ON r.ballot_id=b.id WHERE b.id IN (?);', [ids]) +
+		db.format('DELETE FROM ballots WHERE id IN (?);', [ids]) +
 		'COMMIT;'
 	);
+	return null;
 }
 
-/*
-* getEpolls
-*
-* Parameters: n = number of entries to get
-*/
-async function getEpolls(user, n) {
-	console.log(user)
-
-	async function recursivePageGet(epolls, n, page) {
-		//console.log('get epolls n=', n)
-
-		var options = {
-			url: `https://mentor.ieee.org/802.11/polls/closed?n=${page}`,
-			jar: user.ieeeCookieJar
-		}
-		//console.log(options.url);
-
-		const body = await rp.get(options);
-
-		//console.log(body)
-		var epollsPage = parseClosedEpollsPage(body);
-		var end = n - epolls.length;
-		if (end > epollsPage.length) {
-			end = epollsPage.length;
-		}
-		epolls = epolls.concat(epollsPage.slice(0, end));
-
-		if (epolls.length === n || epollsPage.length === 0) {
-			//console.log('send ', epolls.length);
-			return epolls;
-		}
-
-		return recursivePageGet(epolls, n, page+1);
-	}
-
-	const [epollsList, ballots] = await Promise.all([
-		recursivePageGet([], n, 1),
-		db.query('SELECT BallotId, EpollNum FROM ballots')
-	]);
-	return epollsList.map(epoll => ({...epoll, InDatabase: !!ballots.find(b => b.EpollNum === epoll.EpollNum)}));
-}
-
-export {
-	getBallot,
-	getBallots,
-	addBallots,
-	updateBallots,
-	deleteBallots,
-	getEpolls
-}

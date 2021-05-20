@@ -30,8 +30,6 @@ const tableColumns = [
 		width: 30, flexGrow: 1, flexShrink: 0,
 		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} />,
 		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
-	{key: 'PoolType',
-		label: 'Type',		width: 80, dropdownWidth: 150},
 	{key: 'VotingPoolID',
 		label: 'Name',		width: 200},
 	{key: 'VoterCount',
@@ -69,7 +67,7 @@ function VotersPools({
 	React.useEffect(() => {
 		if (!valid && !loading)
 			loadVotingPools();
-	}, [valid, loading, loadVotingPools]);
+	}, []);
 
 	const columns = React.useMemo(() => {
 		const deleteVotingPool = async (vp) => {
@@ -83,14 +81,14 @@ function VotersPools({
 				? {	...col,
 					cellRenderer: ({rowData}) => 
 						<RowActions
-							onEdit={() => history.push(`/Voters/${rowData.PoolType}/${rowData.VotingPoolID}`)}
+							onEdit={() => history.push(`/Voters/${rowData.VotingPoolID}`)}
 							onDelete={() => deleteVotingPool(rowData)}
 						/>}
 				: col
 		);
 	}, []);
 
-	const addVotingPool = (votingPoolType, votingPoolName) => history.push(`/Voters/${votingPoolType}/${votingPoolName}`)
+	const addVotingPool = (votingPoolName) => history.push(`/Voters/${votingPoolName}`)
 
 	return (
 		<React.Fragment>

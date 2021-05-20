@@ -13,35 +13,31 @@ function getMembersSummary(members) {
 			case 'Potential Voter': s.pv++; break;
 			case 'Voter': s.v++; break;
 			case 'ExOfficio': s.eo++; break;
-			case 'Obsolete': break;
-			case 'Deceased': break;
 			default:
-				console.warn('Unexpected member status: ', m.Status)
+				break;
 		}
 	}
 	return s;
 }
 
 const Container = styled.div`
-	position: relative;
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
-	width: 100%;
+	width: 80%;
 	padding: 0 10px 10px 10px;
 	box-sizing: border-box;
 `;
 
 const LV = styled.div`
 	display: flex;
-	justify-content: space-between;
+	margin-right: 20px;
+	div:first-of-type {
+		font-weight: bold;
+		margin-right: 10px;
+	}
 `;
 
-const LabelValue = ({label, children, ...otherProps}) =>
-	<LV {...otherProps} >
-		<span>{label}</span>
-		{children}
-	</LV>
+const LabelValue = ({label, value}) =>  <LV><div>{label}</div><div>{value}</div></LV>
 
 function MembersSummary({
 	className,
@@ -56,12 +52,11 @@ function MembersSummary({
 			className={className}
 			style={style}
 		>
-			<LabelValue label='Non-Voters:'>{summary.nv}</LabelValue>
-			<LabelValue label='Aspirants:'>{summary.a}</LabelValue>
-			<LabelValue label='Potential Voters:'>{summary.pv}</LabelValue>
-			<LabelValue label='Voters:'>{summary.v}</LabelValue>
-			<LabelValue label='ExOfficio:'>{summary.eo}</LabelValue>
-			<IconCollapse isCollapsed={!showSummary} onClick={() => setShowSummary(!showSummary)} />
+			<LabelValue label='Non-Voters:' value={summary.nv}/>
+			<LabelValue label='Aspirants:' value={summary.a}/>
+			<LabelValue label='Potential Voters:' value={summary.pv}/>
+			<LabelValue label='Voters:' value={summary.v}/>
+			<LabelValue label='ExOfficio:' value={summary.eo}/>
 		</Container>
 	)
 }

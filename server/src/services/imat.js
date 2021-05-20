@@ -92,6 +92,8 @@ export async function getImatBreakouts(user, session) {
 
 	console.log(session, options.url)
 	const response = await rp.get(options);
+	if (response.statusCode !== 200)
+		throw response.statusCode === 404? 'Not found': 'Unexpected result'
 	if (response.headers['content-type'] !== 'text/csv')
 		throw 'Not logged in'
 
@@ -137,7 +139,7 @@ function getTimestamp(t) {
 /*
  * Get IMAT breakout attendance
  */
-export async function getImatBreakoutAttendance(user, breakoutNumer, meetingNumber) {
+export async function getImatBreakoutAttendance(user, breakoutNumber, meetingNumber) {
 
 	const options = {
 		url: `https://imat.ieee.org/802.11/breakout-members?t=${breakoutNumber}&p=${meetingNumber}`,
@@ -159,8 +161,8 @@ export async function getImatBreakoutAttendance(user, breakoutNumer, meetingNumb
 			const entry = {
 				SAPIN: tds.eq(0).text(),
 				Name,
-				FirstName,
-				LastName,
+				//FirstName,
+				//LastName,
 				Email: tds.eq(2).text(),
 				Timestamp: getTimestamp(tds.eq(3).text()),
 				Affiliation: tds.eq(4).text()
@@ -196,6 +198,8 @@ export async function getImatAttendanceSummary(user, session) {
 	}
 
 	const response = await rp.get(options);
+	if (response.statusCode !== 200)
+		throw response.statusCode === 404? 'Not found': 'Unexpected result'
 	if (response.headers['content-type'] !== 'text/csv')
 		throw 'Not logged in'
 

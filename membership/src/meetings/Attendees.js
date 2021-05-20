@@ -3,11 +3,12 @@ import React from 'react'
 import {Link, useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable, {ControlHeader, ControlCell} from 'dot11-common/table'
+import AppTable, {ControlHeader, ControlCell, ColumnDropdown} from 'dot11-common/table'
 import {ConfirmModal} from 'dot11-common/modals'
 import {ActionButton} from 'dot11-common/lib/icons'
 import {displayDate} from 'dot11-common/lib/utils'
 import {loadAttendees, importSelectedAttendees} from '../store/attendees'
+import {renderNameAndEmail} from '../members/Members'
 
 const TopRow = styled.div`
 	display: flex;
@@ -34,20 +35,27 @@ const renderSessionInfo = (meeting) =>
 		<span>{meeting.TimeZone}</span>
 	</div>
 
+const AttendeesColumnDropdown = (props) => <ColumnDropdown dataSet={dataSet} {...props}/>;
+
+const renderHeaderNameAndEmail = (props) =>
+	<React.Fragment>
+		<AttendeesColumnDropdown {...props} dataKey='Name' label='Name' />
+		<AttendeesColumnDropdown {...props} dataKey='Email' label='Email' />
+	</React.Fragment>
+
 const tableColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
 		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} />,
 		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
 	{key: 'SAPIN', 
-		label: 'SAPIN',
+		label: 'SA PIN',
 		width: 80, flexGrow: 1, flexShrink: 1},
 	{key: 'Name', 
 		label: 'Name',
-		width: 200, flexGrow: 1, flexShrink: 1},
-	{key: 'Email', 
-		label: 'Email',
-		width: 300, flexGrow: 1, flexShrink: 1},
+		width: 200, flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderNameAndEmail,
+		cellRenderer: renderNameAndEmail},
 	{key: 'Affiliation', 
 		label: 'Affiliation',
 		width: 300, flexGrow: 1, flexShrink: 1},
@@ -128,8 +136,8 @@ function Attendees({
 				<AppTable
 					fixed
 					columns={columns}
-					headerHeight={36}
-					estimatedRowHeight={36}
+					headerHeight={40}
+					estimatedRowHeight={50}
 					dataSet={dataSet}
 					rowKey={primaryDataKey}
 				/>

@@ -6,17 +6,23 @@ import login from 'dot11-common/store/login'
 
 import members from './members'
 import sessions from './sessions'
+import ballots from './ballots'
 import imatMeetings from './imatMeetings'
 import breakouts from './breakouts'
 import attendees from './attendees'
+import voters from './voters'
+import votingPools from './votingPools'
 
 const rootReducer = combineReducers({
 	login,
 	members,
 	sessions,
+	ballots,
 	imatMeetings,
 	breakouts,
 	attendees,
+	voters,
+	votingPools,
 	errMsg
 })
 

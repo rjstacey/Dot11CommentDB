@@ -4,6 +4,8 @@ import {parseEpollResultsCsv, parseEpollResultsHtml} from './epoll'
 import {parseMyProjectResults} from './myProjectSpreadsheets'
 import {genResultsSpreadsheet} from './resultsSpreadsheet'
 import {AccessLevel} from '../auth/access'
+import {getBallot, getBallotSeriesWithResults} from './ballots'
+import {getVoters} from './voters'
 
 const db = require('../util/database')
 const rp = require('request-promise-native')
@@ -17,74 +19,57 @@ function appendStr(toStr, str) {
 	}
 }
 
-function colateWGResults(ballotSeries, voters) {
+function colateWGResults(ballotSeries) {
 	// Collect each voters last vote
-	let results = []
-	for (let voter of voters) {
-		let v = {}
-		v.SAPIN = voter.SAPIN
-		v.Email = voter.Email
-		v.Status = voter.Status
-		v.Vote = ''
-		v.Notes = ''
-		v.Name = voter.FirstName + ' ' + voter.LastName
-		let r = ballotSeries[ballotSeries.length-1].results.find(r => r.SAPIN === voter.SAPIN)
-		if (r) {
-			// If the voter voted in this round, record the vote
-			v.Vote = r.Vote
-			v.CommentCount = r.CommentCount
-			v.Affiliation = r.Affiliation
+	const ballotSeriesReversed = ballotSeries.slice().reverse();
+	let results = [];
+	let id = 0;
+	for (const voter of ballotSeries[0].Voters) {
+		const v = {
+			...voter,
+			id: id++,
+			Vote: '',
+			CommentCount: 0,
+			Notes: ''
 		}
-		else {
-			// Otherwise, see if they voted under a different SA PIN
-			r = ballotSeries[ballotSeries.length - 1].results.find(r => {
-				// We detect this as a vote with different SA PIN, but same email address
-				return r.SAPIN !== voter.SAPIN &&
-					   r.Email.toLowerCase() === voter.Email.toLowerCase()
-			})
+		for (const ballot of ballotSeriesReversed) {
+			const r = ballot.Results.find(r => r.CurrentSAPIN === voter.CurrentSAPIN)
 			if (r) {
-				v.Notes = 'Voted with SAPIN=' + r.SAPIN
-				v.Vote = r.Vote
-				v.Affiliation = r.Affiliation
-				v.CommentCount = r.CommentCount
-				r.Notes = 'In pool as SAPIN=' + voter.SAPIN
-			}
-			else {
-				// Otherwise, find their last vote and record that
-				for (let i = ballotSeries.length - 2; i >= 0; i--) {
-					r = ballotSeries[i].results.find(r => r.SAPIN === voter.SAPIN)
-					if (r && r.Vote) {
-						v.Vote = r.Vote
-						v.CommentCount = r.CommentCount
-						v.Affiliation = r.Affiliation
-						v.Notes = 'From ' + ballotSeries[i].BallotID
-						break
-					}
-				}
+				// Record the vote
+				v.Vote = r.Vote;
+				v.CommentCount = r.CommentCount;
+				v.Affiliation = r.Affiliation;
+				if (v.SAPIN !== r.SAPIN)
+					v.Notes = appendStr(v.Notes, `Voted with SAPIN=${r.SAPIN}`);
+				// Add note if vote is from a previous ballot
+				if (ballot !== ballotSeriesReversed[0])
+					v.Notes = appendStr(v.Notes, 'From ' + ballot.BallotID);
+				break;
 			}
 		}
 
 		// If this is an ExOfficio voter, then note that
-		if (v.Vote && /^ExOfficio/.test(voter.Status)) {
-			v.Notes = appendStr(v.Notes, voter.Status)
-		}
+		if (v.Vote && /^ExOfficio/.test(v.Status))
+			v.Notes = appendStr(v.Notes, v.Status);
 
-		results.push(v)
+		results.push(v);
 	}
 
 	// Add results for those that voted but are not in the pool)
-	for (let r of ballotSeries[ballotSeries.length - 1].results) {
-		if (results.findIndex(v => v.SAPIN === r.SAPIN) < 0) {
-			if (!r.Notes) {	// might be "In pool as..."
-				r.Notes = 'Not in pool'
+	for (const r of ballotSeries[ballotSeries.length - 1].Results) {
+		if (results.findIndex(v => v.CurrentSAPIN === r.CurrentSAPIN) < 0) {
+			const nv = {
+				...r,
+				id: id++,
+				Notes: 'Not in pool'
 			}
-			results.push(r)
+			results.push(nv);
 		}
 	}
 
 	// Remove ExOfficio if they did not vote
-	results = results.filter(v => (!/^ExOfficio/.test(v.Status) || v.Vote))
-	return results
+	results = results.filter(v => (!/^ExOfficio/.test(v.Status) || v.Vote));
+	return results;
 }
 
 function summarizeWGResults(results) {
@@ -102,22 +87,16 @@ function summarizeWGResults(results) {
 	}
 
 	for (let r of results) {
-		if (/[Ii]n pool/.test(r.Notes)) {
-			if (/Not in pool/.test(r.Notes)) {
-				summary.InvalidVote++
-			}
-		}
+		if (/^Not in pool/.test(r.Notes))
+			summary.InvalidVote++
 		else {
-			if (/^Approve/.test(r.Vote)) {
+			if (/^Approve/.test(r.Vote))
 					summary.Approve++
-			}
 			else if (/^Disapprove/.test(r.Vote)) {
-				if (r.CommentCount) {
+				if (r.CommentCount)
 					summary.Disapprove++
-				}
-				else {
+				else
 					summary.InvalidDisapprove++
-				}
 			}
 			else if (/^Abstain.*expertise/.test(r.Vote)) {
 				summary.Abstain++
@@ -144,19 +123,27 @@ function summarizeWGResults(results) {
 }
 
 function colateSAResults(ballotSeries) {
-	let results = ballotSeries[ballotSeries.length-1].results;
-	for (let r1 of results) {
+	const results = [];
+	let id = 0;
+	console.log(ballotSeries[ballotSeries.length - 1].Results)
+	for (let r1 of ballotSeries[ballotSeries.length - 1].Results) {
+		const v = {
+			...r1,
+			id: id++,
+			Notes: ''
+		}
 		if (r1.Vote === 'Disapprove' && r1.CommentCount === 0) {
 			// See if they have a comment from a previous round
 			for (let i = ballotSeries.length - 2; i >= 0; i--) {
-				const r2 = ballotSeries[i].results.find(r => r.Email === r1.Email)
+				const r2 = ballotSeries[i].Results.find(r => r.Email === r1.Email)
 				if (r2 && r2.CommentCount) {
-					r1.CommentCount = r2.CommentCount
-					r1.Notes = 'Comments from ' + ballotSeries[i].BallotID
+					v.CommentCount = r2.CommentCount
+					v.Notes = 'Comments from ' + ballotSeries[i].BallotID
 					break;
 				}
 			}
 		}
+		results.push(v);
 	}
 
 	return results
@@ -200,56 +187,44 @@ function summarizeSAResults(results) {
 function colateMotionResults(ballotResults, voters) {
 	// Collect each voters last vote
 	let results = []
+	let id = 0;
 	for (let voter of voters) {
-		let v = {}
-		v.SAPIN = voter.SAPIN
-		v.Email = voter.Email
-		v.Status = voter.Status
-		v.Vote = ''
-		v.Notes = ''
-		v.Name = voter.FirstName + ' ' + voter.LastName
-		let r = ballotResults.find(r => r.SAPIN === voter.SAPIN)
+		let v = {
+			...voter,
+			id: id++,
+			Vote: '',
+			Notes: ''
+		}
+		let r = ballotResults.find(r => r.CurrentSAPIN === v.CurrentSAPIN)
 		if (r) {
 			// If the voter voted in this round, record the vote
 			v.Vote = r.Vote
 			v.CommentCount = r.CommentCount
 			v.Affiliation = r.Affiliation
-		}
-		else {
-			// Otherwise, see if they voted under a different SA PIN
-			r = ballotResults.find(r => {
-				// We detect this as a vote with different SA PIN, but same email address
-				return r.SAPIN !== voter.SAPIN &&
-					   r.Email.toLowerCase() === voter.Email.toLowerCase()
-			})
-			if (r) {
-				v.Notes = 'Voted with SAPIN=' + r.SAPIN
-				v.Vote = r.Vote
-				v.Affiliation = r.Affiliation
-				v.CommentCount = r.CommentCount
-				r.Notes = 'In pool as SAPIN=' + voter.SAPIN
-			}
+			if (v.SAPIN !== r.SAPIN)
+				v.Notes = appendStr(v.Notes, `Pool SAPIN=${v.SAPIN} vote SAPIN=${r.SAPIN}`);
 		}
 
 		// If this is an ExOfficio voter, then note that
-		if (v.Vote && /^ExOfficio/.test(voter.Status)) {
+		if (v.Vote && /^ExOfficio/.test(voter.Status))
 			v.Notes = appendStr(v.Notes, voter.Status)
-		}
 
-		results.push(v)
+		results.push(v);
 	}
 
 	// Add results for those that voted but are not in the pool)
 	for (let r of ballotResults) {
-		if (results.findIndex(v => v.SAPIN === r.SAPIN) < 0) {
-			if (!r.Notes) {	// might be "In pool as..."
-				r.Notes = 'Not in pool'
-			}
-			results.push(r)
+		if (results.findIndex(v => v.CurrentSAPIN === r.CurrentSAPIN) < 0) {
+			const nv = {
+				...r,
+				id: id++,
+				Notes: 'Not in pool'
+			};
+			results.push(r);
 		}
 	}
 
-	return results
+	return results;
 }
 
 function summarizeMotionResults(results) {
@@ -266,10 +241,8 @@ function summarizeMotionResults(results) {
 	}
 
 	for (let r of results) {
-		if (/[Ii]n pool/.test(r.Notes)) {
-			if (/Not in pool/.test(r.Notes)) {
-				summary.InvalidVote++
-			}
+		if (/^Not in pool/.test(r.Notes)) {
+			summary.InvalidVote++
 		}
 		else {
 			if (/^Approve/.test(r.Vote)) {
@@ -342,76 +315,45 @@ export const BallotType = {
 	Motion: 5		// motion
 };
 
-export async function getResults(user, ballotId) {
+export async function getResultsCoalesced(user, ballotId) {
 
-	async function recursiveBallotSeriesGet(ballotSeries, ballotId) {
-		const [ballots, results] = await db.query(
-			'SELECT * FROM ballots WHERE BallotID=?; ' +
-			'SELECT ' + 
-				'r.*, ' +
-				'(SELECT ' +
-					'COUNT(*) ' +
-				'FROM comments c WHERE c.ballot_id=b.id AND ((c.CommenterSAPIN IS NOT NULL AND c.CommenterSAPIN = r.SAPIN) OR (c.CommenterEmail IS NOT NULL AND c.CommenterEmail = r.Email) OR c.CommenterName = r.Name)) AS CommentCount ' +
-			'FROM ballots b JOIN results r ON r.ballot_id=b.id WHERE b.BallotID=?;',
-			[ballotId, ballotId]
-		);
+	const ballot = await getBallot(ballotId);
 
-		if (ballots.length === 0)
-			return ballotSeries;
-
-		var b = Object.assign({}, ballots[0], {results})
-		ballotSeries.unshift(b)
-		return b.PrevBallotID? recursiveBallotSeriesGet(ballotSeries, b.PrevBallotID): ballotSeries
-	}
-
-	const ballotSeries = await recursiveBallotSeriesGet([], ballotId)	// then get results from each ballot in series
-	if (ballotSeries.length === 0)
-		throw `No such ballot: ${ballotId}`;
-	const ballot = ballotSeries[ballotSeries.length-1];
-
-	let votingPoolSize, results, summary;
-	const type = ballotSeries[0].Type
-	const votingPoolId  = ballotSeries[0].VotingPoolID
-	if (type === BallotType.WG_Initial) {
-		// if there is a voting pool, get that
-		const voters = await db.query(
-			'SELECT SAPIN, LastName, FirstName, MI, Email, Status FROM wgVoters WHERE VotingPoolID=?',
-			[votingPoolId]
-		);
+	let ballotSeries, votingPoolId, votingPoolSize, voters, results, summary;
+	if (ballot.Type === BallotType.WG_Initial || ballot.Type === BallotType.WG_Recirc) {
+		ballotSeries = await getBallotSeriesWithResults(ballotId);
 		// voting pool size excludes ExOfficio; they are allowed to vote, but don't affect returns
-		votingPoolSize = voters.filter(v => !/^ExOfficio/.test(v.Status)).length;
-		results = colateWGResults(ballotSeries, voters); // colate results against voting pool and prior ballots in series
+		votingPoolId = ballotSeries[0].VotingPoolID;
+		votingPoolSize = ballotSeries[0].Voters.filter(v => !/^ExOfficio/.test(v.Status)).length;
+		results = colateWGResults(ballotSeries); // colate results against voting pool and prior ballots in series
 		summary = summarizeWGResults(results);
-		summary.BallotReturns = ballot.results.length;
+		summary.BallotReturns = ballotSeries[ballotSeries.length-1].Results.length;
 	}
-	else if (type === BallotType.SA_Initial) {
-		// if there is a voting pool, get that
-		const voters = await db.query(
-			'SELECT Email, Name FROM saVoters WHERE VotingPoolID=?',
-			[votingPoolId]
-		);
-		votingPoolSize = ballot.results.length;
+	else if (ballot.Type === BallotType.SA_Initial || ballot.Type === BallotType.SA_Recirc) {
+		ballotSeries = await getBallotSeriesWithResults(ballotId);
+		votingPoolId = '';
+		votingPoolSize = ballotSeries[ballotSeries.length-1].Results.length;
 		results = colateSAResults(ballotSeries); // colate results against previous ballots in series
 		summary = summarizeSAResults(results);
-		summary.BallotReturns = ballot.results.length;
+		summary.BallotReturns = ballotSeries[ballotSeries.length-1].Results.length;
 		summary.ReturnsPoolSize = votingPoolSize;
 	}
-	else if (type === BallotType.Motion) {
+	else if (ballot.Type === BallotType.Motion) {
 		// if there is a voting pool, get that
-		const voters = await db.query(
-			'SELECT SAPIN, LastName, FirstName, MI, Email, Status FROM wgVoters WHERE VotingPoolID=?',
-			[votingPoolId]
-		);
-		votingPoolSize = voters.length
-		results = colateMotionResults(ballot.results, voters)	// colate results for just this ballot
+		voters = await getVoters(ballot.VotingPoolID);
+		results = await getResults(ballotId);
+		votingPoolId = ballot.VotingPoolID;
+		votingPoolSize = voters.length;
+		results = colateMotionResults(results, voters);	// colate results for just this ballot
 		summary = summarizeMotionResults(results)
-		summary.BallotReturns = ballot.results.length;
+		summary.BallotReturns = results.length;
 	}
 	else {
+		votingPoolId = ballot.VotingPoolID;
 		votingPoolSize = 0;
-		results = ballotSeries[ballotSeries.length - 1].results;	// colate results for just this ballot
+		results = await getResults(ballotId);			// colate results for just this ballot
 		summary = summarizeBallotResults(results);
-		summary.BallotReturns = ballot.results.length;
+		summary.BallotReturns = results.length;
 	}
 
 	/* Update results summary in ballots table if different */
@@ -419,16 +361,13 @@ export async function getResults(user, ballotId) {
 	if (ResultsSummary !== ballot.ResultsSummary)
 		await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [ResultsSummary, ballotId])	
 
-	ballot.Results = JSON.parse(ResultsSummary)
+	ballot.Results = JSON.parse(ResultsSummary);
 	delete ballot.ResultsSummary;
-	delete ballot.results;
 	//console.log(ballot)
 
-	if (user.Access < AccessLevel.WGAdmin) {
+	if (!user || user.Access < AccessLevel.WGAdmin) {
 		// Strip email addresses if user has insufficient karma
-		results.forEach(r => {
-			delete r.Email;
-		});
+		results.forEach(r => delete r.Email);
 	}
 
 	return {
@@ -441,8 +380,26 @@ export async function getResults(user, ballotId) {
 	}
 }
 
-export function deleteResults(ballotId) {
-	return db.query(
+export async function getResults(ballotId) {
+	const results = await db.query(
+		'SELECT ' + 
+			'r.*, ' +
+			'(SELECT COUNT(*) ' +
+				'FROM comments c WHERE c.ballot_id=b.id AND ' +
+					'((c.CommenterSAPIN>0 AND c.CommenterSAPIN=r.SAPIN) OR ' +
+					 '(c.CommenterEmail<>\'\' AND c.CommenterEmail=r.Email))) AS CommentCount, ' +
+			'COALESCE(m.ReplacedBySAPIN, r.SAPIN) AS CurrentSAPIN ' +
+		'FROM results r ' +
+			'LEFT JOIN members m ON m.SAPIN=r.SAPIN AND m.Status=\'Obsolete\' ' +
+			'LEFT JOIN ballots b ON r.ballot_id=b.id ' +
+			'WHERE b.BallotID=?',
+		[ballotId]
+	);
+	return results;
+}
+
+export async function deleteResults(ballotId) {
+	await db.query(
 		'SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?); ' +
 		'DELETE FROM results WHERE ballot_id=@ballot_id; ' +
 		'UPDATE ballots SET ResultsSummary=NULL WHERE id=@ballot_id',
@@ -463,7 +420,7 @@ async function insertResults(user, ballotId, pollResults) {
 			pollResults.map(c => `(${ballot_id}, ${db.escape(Object.values(c))})`).join(',') +
 			';'
 	await db.query(SQL);
-	return getResults(user, ballotId);
+	return getResultsCoalesced(user, ballotId);
 }
 
 export async function importEpollResults(ieeeCookieJar, user, ballotId, epollNum) {
@@ -517,19 +474,19 @@ export async function exportResults(user, params, res) {
 	if (params.hasOwnProperty('BallotID')) {
 		const ballotId = params.BallotID
 		fileNamePrefix = ballotId
-		const result = await getResults(user, ballotId)
+		const result = await getResultsCoalesced(user, ballotId)
 		results = [result]	// turn parameter into an array
 	}
 	else if (params.hasOwnProperty('BallotIDs')) {
 		const ballotIds = params.BallotIDs
 		fileNamePrefix = ballotIds.join('_')
-		results = await Promise.all(ballotIds.map(ballotId => getResults(user, ballotId)))
+		results = await Promise.all(ballotIds.map(ballotId => getResultsCoalesced(user, ballotId)))
 	}
 	else if (params.hasOwnProperty('Project')) {
 		const project = params.Project
 		fileNamePrefix = project
 		results = await db.query('SELECT BallotID FROM ballots WHERE Project=?', [project])
-		results = await Promise.all(results.map(r => getResults(user, r.BallotID)))
+		results = await Promise.all(results.map(r => getResultsCoalesced(user, r.BallotID)))
 	}
 	else {
 		throw 'Missing parameter BallotID, BallotIDs or Project'

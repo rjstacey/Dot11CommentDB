@@ -121,7 +121,7 @@ function App({user, access, loginGetState}) {
 							component={VotersPools}
 						/>
 						<RestrictedRoute
-							path="/Voters/:votingPoolType/:votingPoolName"
+							path="/Voters/:votingPoolName"
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Voters}

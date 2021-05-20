@@ -4,7 +4,7 @@ import {connect} from 'react-redux'
 import {AppModal} from 'dot11-common/modals'
 import {Form, Row, Field, Input, Select} from 'dot11-common/general/Form'
 import TimeZoneSelector from './TimeZoneSelector'
-import {updateSession, addSession, MeetingTypeOptions} from '../store/sessions'
+import {updateSession, addSession, SessionTypeOptions} from '../store/sessions'
 
 function getDate(d) {
 	const s = d instanceof Date? d.toISOString(): d;
@@ -38,10 +38,10 @@ function _SessionDialog({
 	const change = e => setSession(s => ({...s, [e.target.name]: e.target.value}));
 	const changeDate = e => setSession(s => ({...s, [e.target.name]: new Date(e.target.value)}));
 	const changeType = options => setSession(s => ({...s, Type: options.length? options[0].value: null}));
-	const getTypeOption = session => MeetingTypeOptions.find(o => o.value === session.Type) || [];
+	const getTypeOption = session => SessionTypeOptions.find(o => o.value === session.Type) || [];
 	const changeTimeZone = tz => setSession(s => ({...s, TimeZone: tz}));
 
-	const typeOption = MeetingTypeOptions.find(o => o.value === session.Type)
+	const typeOption = SessionTypeOptions.find(o => o.value === session.Type)
 
 	const actionText = action === 'add'? 'Add': 'Update';
 
@@ -72,7 +72,7 @@ function _SessionDialog({
 			<Row>
 				<Field label='Session type:' >
 					<Select
-						options={MeetingTypeOptions}
+						options={SessionTypeOptions}
 						values={typeOption? [typeOption]: []}
 						onChange={changeType}
 						portal={document.querySelector('#root')}

@@ -7,12 +7,15 @@ import Account, {SignIn} from 'dot11-common/general/Login'
 import {ErrorModal, ConfirmModal} from 'dot11-common/modals'
 import {loginGetState, AccessLevel} from 'dot11-common/store/login'
 
-import Members from './members/Members'
-import MembersAttendance from './members/MembersAttendance'
-import Sessions from './meetings/Sessions'
 import ImatMeetings from './meetings/ImatMeetings'
 import Breakouts from './meetings/Breakouts'
 import Attendees from './meetings/Attendees'
+import VotersPools from './ballotVoters/VotersPools'
+import Voters from './ballotVoters/Voters'
+
+const Members = React.lazy(() => import('./members/Members'));
+const Sessions = React.lazy(() => import('./meetings/Sessions'));
+const Ballots = React.lazy(() => import('./ballots/Ballots'));
 
 const OuterDiv = styled.div`
 	display: flex;
@@ -75,7 +78,9 @@ const RestrictedRoute = ({component: Component, access, minAccess, ...rest }) =>
 	{...rest}
 	render={props =>
 	  access >= minAccess?
-		<Component access={access} {...props} />:
+		<React.Suspense fallback={<div>Loading...</div>}>
+			<Component access={access} {...props} />
+		</React.Suspense>:
 		<Redirect to={{ pathname: "/Login", state: { from: props.location } }} />
 	}
   />
@@ -91,19 +96,14 @@ function App({user, access, loginGetState}) {
 					<Title>802.11 Member Management</Title>
 					<Nav>
 						<NavLink to="/Members/" activeClassName='active'>Members</NavLink>
-						<NavLink to="/Members/AttendanceUpdate" activeClassName='active'>Attendance</NavLink>
 						<NavLink to="/Sessions/" activeClassName='active'>Sessions</NavLink>
+						<NavLink to="/Ballots/" activeClassName='active'>Ballots</NavLink>
+						<NavLink to="/Voters/" activeClassName='active'>Ballot Voters</NavLink>
 					</Nav>
 					<Account />
 				</Header>
 				<Main>
 					<Switch>
-						<RestrictedRoute
-							path="/Members/AttendanceUpdate"
-							access={access}
-							minAccess={AccessLevel.WGAdmin}
-							component={MembersAttendance}
-						/>
 						<RestrictedRoute
 							path="/Members"
 							access={access}
@@ -115,6 +115,12 @@ function App({user, access, loginGetState}) {
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Sessions}
+						/>
+						<RestrictedRoute
+							path="/Ballots/"
+							access={access}
+							minAccess={AccessLevel.WGAdmin}
+							component={Ballots}
 						/>
 						<RestrictedRoute
 							path="/ImatSessions/"
@@ -139,6 +145,18 @@ function App({user, access, loginGetState}) {
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Attendees}
+						/>
+						<RestrictedRoute
+							path="/Voters" exact
+							access={access}
+							minAccess={AccessLevel.WGAdmin}
+							component={VotersPools}
+						/>
+						<RestrictedRoute
+							path="/Voters/:votingPoolName"
+							access={access}
+							minAccess={AccessLevel.WGAdmin}
+							component={Voters}
 						/>
 						<Route path="/Login" exact component={SignIn} />
 						<Route path="/" component={SignIn} />

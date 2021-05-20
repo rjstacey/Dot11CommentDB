@@ -89,12 +89,20 @@ function getCommentStatus(c) {
 	return Status
 }
 
-const updateCommentsStatus = (comments) => (
+const updateCommentsStatus = (comments) =>
 	comments.map(c => {
 		const Status = getCommentStatus(c)
 		return c.Status !== Status? {...c, Status}: c
-	})
-)
+	});
+
+/*
+ * Remove entries that no longer exist from a list. If there
+ * are no changes, return the original list.
+ */
+function filterIdList(idList, allIds) {
+	const newList = idList.filter(id => allIds.includes(id));
+	return newList.length === idList.length? idList: newList;
+}
 
 const dataAdapter = createEntityAdapter({
 	selectId: (c) => c.CID,
@@ -103,7 +111,7 @@ const dataAdapter = createEntityAdapter({
 
 const dataSet = 'comments';
 
-const commentsSlice = createSlice({
+const slice = createSlice({
 	name: dataSet,
 	initialState: dataAdapter.getInitialState({
 		ballotId: '',
@@ -126,6 +134,8 @@ const commentsSlice = createSlice({
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, updateCommentsStatus(comments));
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
+			state[expandedSlice.name] = filterIdList(state[expandedSlice.name], state.ids);
 		},
 		getFailure(state, action) {
 			state.loading = false;
@@ -140,6 +150,8 @@ const commentsSlice = createSlice({
 			if (state.ballotId === ballotId) {
 				dataAdapter.setAll(state, []);
 				state.valid = false;
+				state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
+				state[expandedSlice.name] = filterIdList(state[expandedSlice.name], state.ids);
 			}
 		},
 		updatePending(state, action) {
@@ -160,12 +172,16 @@ const commentsSlice = createSlice({
 			newComments = newComments.concat(comments);
 			dataAdapter.setAll(state, newComments);
 			state.updateComment = false;
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
+			state[expandedSlice.name] = filterIdList(state[expandedSlice.name], state.ids);
 		},
 		afterUpdateResolutions(state, action) {
 			const {comments} = action.payload;
 			const updates = updateCommentsStatus(comments).map(c => ({id: c.CID, changes: c}));
 			dataAdapter.updateMany(state, updates);
 			state.updateComment = false;
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
+			state[expandedSlice.name] = filterIdList(state[expandedSlice.name], state.ids);
 		}
 	},
 	extraReducers: builder => {
@@ -187,177 +203,137 @@ const commentsSlice = createSlice({
 /*
  * Export reducer as default
  */
-export default commentsSlice.reducer;
+export default slice.reducer;
 
 /*
  * Actions
  */
-function updateIdList(comments, selected) {
-	const changed = selected.reduce(
-		(result, id) => result || !comments.find(c => c.CID === id),
-		false
-	);
 
-	if (!changed)
-		return selected
+const {getPending, getSuccess, getFailure} = slice.actions;
 
-	let newSelected = []
-	for (let s of selected) {
-		if (comments.find(c => c.CID === s)) {
-			// Keep it if it matches a comment exactly
-			newSelected.push(s)
-		}
-		else {
-			// If it is just the comment ID, then keep CIDs for all those comments
-			const cids = comments.filter(c => c.CommentID.toString() === s).map(c => c.CID)
-			newSelected = newSelected.concat(cids)
-		}
-	}
-	return newSelected
-}
-
-const {getPending, getSuccess, getFailure} = commentsSlice.actions;
-
-export function loadComments(ballotId) {
-	return async (dispatch, getState) => {
+export const loadComments = (ballotId) =>
+	async (dispatch, getState) => {
 		dispatch(getPending({ballotId}));
 		let comments;
 		try {
 			comments = await fetcher.get(`/api/comments/${ballotId}`)
 		}
 		catch(error) {
-			return Promise.all([
+			await Promise.all([
 				dispatch(getFailure({ballotId})),
 				dispatch(setError(`Unable to get comments for ${ballotId}`, error))
 			]);
+			return;
 		}
-		const promises = []
-		promises.push(dispatch(getSuccess({ballotId, comments})))
-		const {selected, expanded} = getState()[dataSet]
-		const newSelected = updateIdList(comments, selected)
-		if (newSelected !== selected)
-			promises.push(dispatch(setSelected(dataSet, newSelected)))
-		const newExpanded = updateIdList(comments, expanded)
-		if (newExpanded !== expanded)
-			promises.push(dispatch(setExpanded(dataSet, newExpanded)))
-		return Promise.all(promises)
+		await dispatch(getSuccess({ballotId, comments}));
 	}
-}
 
-const {updatePending, updateFailure, updateMany} = commentsSlice.actions;
+const {updatePending, updateFailure, updateMany} = slice.actions;
 
-export function updateComments(comments) {
-	return async (dispatch) => {
+export const updateComments = (comments) =>
+	async (dispatch) => {
 		dispatch(updatePending())
 		let response;
 		try {
 			response = await fetcher.put(`/api/comments`, {comments})
 		}
 		catch(error) {
-			return Promise.all([
+			await Promise.all([
 				dispatch(updateFailure()),
 				dispatch(setError(`Unable to update comment${comments.length > 1? 's': ''}`, error))
-			])
+			]);
+			return;
 		}
-		return dispatch(updateMany(response))
+		await dispatch(updateMany(response));
 	}
-}
 
-export function deleteComments(ballotId) {
-	return async (dispatch, getState) => {
+export const deleteComments = (ballotId) =>
+	async (dispatch, getState) => {
 		dispatch(updatePending({ballotId}))
 		try {
 			await fetcher.delete(`/api/comments/${ballotId}`)
 		}
 		catch(error) {
-			return Promise.all([
+			await Promise.all([
 				dispatch(updateFailure({ballotId})),
 				dispatch(setError(`Unable to delete comments with ballotId=${ballotId}`, error))
-			])
+			]);
+			return;
 		}
-		const promises = []
-		const {selected, expanded} = getState()[dataSet]
-		if (selected.length)
-			promises.push(dispatch(setSelected(dataSet, [])))
-		if (expanded.length)
-			promises.push(dispatch(setExpanded(dataSet, [])))
-		promises.push(dispatch(deleteAll({ballotId})))
+		await dispatch(deleteAll({ballotId}));
 		const summary = {Count: 0, CommentIDMin: 0, CommentIDMax: 0}
-		promises.push(updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary}))
-		return Promise.all(promises)
+		await updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary});
 	}
-}
 
-export function importComments(ballotId, epollNum, startCID) {
-	return async (dispatch) => {
+export const importComments = (ballotId, epollNum, startCID) =>
+	async (dispatch) => {
 		dispatch(updatePending({ballotId}))
 		let response;
 		try {
 			response = await fetcher.post(`/api/comments/importFromEpoll/${ballotId}/${epollNum}`, {StartCID: startCID})
 		}
 		catch(error) {
-			return Promise.all([
+			await Promise.all([
 				dispatch(updateFailure({ballotId})),
 				dispatch(setError(`Unable to import comments for ${ballotId}`, error))
-			])
+			]);
+			return;
 		}
 		const {comments, ballot} = response;
-		return Promise.all([
+		await Promise.all([
 			dispatch(getSuccess({ballotId, comments})),
 			// Update the comments summary for the ballot
 			dispatch(updateBallotSuccess(ballot.id, ballot))
-		])
+		]);
 	}
-}
 
-export function uploadComments(ballotId, type, file) {
-	return async (dispatch) => {
+export const uploadComments = (ballotId, type, file) =>
+	async (dispatch) => {
 		dispatch(updatePending({ballotId}));
 		let response;
 		try {
-			response = await fetcher.postMultipart(`/api/comments/upload/${ballotId}/${type}`, {CommentsFile: file})
-			
+			response = await fetcher.postMultipart(`/api/comments/upload/${ballotId}/${type}`, {CommentsFile: file});
 		}
 		catch(error) {
-			return Promise.all([
+			await Promise.all([
 				dispatch(updateFailure({ballotId})),
 				dispatch(setError(`Unable to upload comments for ${ballotId}`, error))
-			])
+			]);
+			return
 		}
 		const {comments, ballot} = response;
-		return Promise.all([
+		await Promise.all([
 			dispatch(getSuccess({ballotId, comments})),
 			// Update the comments summary for the ballot
 			dispatch(updateBallotSuccess(ballot.id, ballot))
-		])
+		]);
 	}
-}
 
-export function setStartCommentId(ballotId, startCommentId) {
-	return async (dispatch, getState) => {
-		dispatch(updatePending({ballotId}))
+export const setStartCommentId = (ballotId, startCommentId) =>
+	async (dispatch) => {
+		dispatch(updatePending({ballotId}));
 		let comments;
 		try {
-			comments = await fetcher.patch(`/api/comments/startCommentId/${ballotId}`, {StartCommentID: startCommentId})
+			comments = await fetcher.patch(`/api/comments/startCommentId/${ballotId}`, {StartCommentID: startCommentId});
 		}
 		catch(error) {
-			return Promise.all([
+			await Promise.all([
 				dispatch(updateFailure({ballotId})),
 				dispatch(setError(`Unable to start CID for ${ballotId}`, error))
 			]);
+			return
 		}
-		return Promise.all([
+		await Promise.all([
 			dispatch(setSelected(dataSet, [])),
 			dispatch(setExpanded(dataSet, [])),
 			dispatch(getSuccess({ballotId, comments}))
 		]);
 	}
-}
 
-const {afterAddOrDeleteResolutions} = commentsSlice.actions;
+const {afterAddOrDeleteResolutions} = slice.actions;
 
-export function addResolutions(resolutions) {
-	return async (dispatch, getState) => {
+export const addResolutions = (resolutions) =>
+	async (dispatch) => {
 		dispatch(updatePending())
 		let response;
 		try {
@@ -371,83 +347,51 @@ export function addResolutions(resolutions) {
 			await Promise.all([
 				dispatch(updateFailure()),
 				dispatch(setError('Unable to add resolutions', error))
-			])
-			return null
+			]);
+			return null;
 		}
-		await dispatch(afterAddOrDeleteResolutions(response))
-
-		const promises = []
-		const {comments, expanded} = getState()[dataSet]
-		const newSelected = response.newCIDs;
-		promises.push(dispatch(setSelected(dataSet, newSelected)))
-		const newExpanded = updateIdList(comments, expanded)
-		if (newExpanded !== expanded)
-			promises.push(dispatch(setExpanded(dataSet, newExpanded)))
-		await Promise.all(promises)
-		return response.newComments
+		await dispatch(afterAddOrDeleteResolutions(response));
+		return response.newComments;
 	}
-}
 
-const {afterUpdateResolutions} = commentsSlice.actions;
+const {afterUpdateResolutions} = slice.actions;
 
-export function updateResolutions(resolutions) {
-	return async (dispatch, getState) => {
-		dispatch(updatePending())
+export const updateResolutions = (resolutions) =>
+	async (dispatch) => {
+		dispatch(updatePending());
 		let response;
 		try {
-			response = await fetcher.put('/api/resolutions', {resolutions})
+			response = await fetcher.put('/api/resolutions', {resolutions});
 		}
 		catch(error) {
-			return Promise.all([
+			await Promise.all([
 				dispatch(updateFailure()),
 				dispatch(setError(`Unable to update resolution${resolutions.length > 1? 's': ''}`, error))
-			])
+			]);
+			return;
 		}
 		await dispatch(afterUpdateResolutions(response));
-
-		const promises = [];
-		const {selected, expanded} = getState()[dataSet];
-		const comments = getData(getState(), dataSet);
-		const newSelected = updateIdList(comments, selected);
-		if (newSelected !== selected)
-			promises.push(dispatch(setSelected(dataSet, newSelected)));
-		const newExpanded = updateIdList(comments, expanded);
-		if (newExpanded !== expanded)
-			promises.push(dispatch(setExpanded(dataSet, newExpanded)));
-		return Promise.all(promises)
 	}
-}
 
-export function deleteResolutions(resolutions) {
-	return async (dispatch, getState) => {
-		dispatch(updatePending())
+export const deleteResolutions = (resolutions) =>
+	async (dispatch) => {
+		dispatch(updatePending());
 		let response;
 		try {
-			response = await fetcher.delete(`/api/resolutions`, {resolutions})
+			response = await fetcher.delete(`/api/resolutions`, {resolutions});
 			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments))
 				throw new TypeError('Missing comments array in response')
 		}
 		catch(error) {
 			console.log(error)
-			return Promise.all([
+			await Promise.all([
 				dispatch(updateFailure()),
 				dispatch(setError(`Unable to delete resolution${resolutions.length > 1? 's': ''}`, error))
-			])
+			]);
+			return
 		}
 		await dispatch(afterAddOrDeleteResolutions(response))
-
-		const promises = [];
-		const {selected, expanded} = getState()[dataSet];
-		const comments = getData(getState(), dataSet);
-		const newSelected = updateIdList(comments, selected)
-		if (newSelected !== selected)
-			promises.push(dispatch(setSelected(dataSet, newSelected)))
-		const newExpanded = updateIdList(comments, expanded)
-		if (newExpanded !== expanded)
-			promises.push(dispatch(setExpanded(dataSet, newExpanded)))
-		return Promise.all(promises)
 	}
-}
 
 export const FieldsToUpdate = {
 	CID: 'cid',
@@ -470,9 +414,9 @@ export const MatchUpdate = {
 	Add: 'add'
 }
 
-export function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, file) {
-	return async (dispatch) => {
-		dispatch(updatePending({ballotId}))
+export const uploadResolutions = (ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, file) =>
+	async (dispatch) => {
+		dispatch(updatePending({ballotId}));
 		const params = {
 			params: JSON.stringify({
 				toUpdate,
@@ -500,7 +444,6 @@ export function uploadResolutions(ballotId, toUpdate, matchAlgorithm, matchUpdat
 		])
 		return {matched, unmatched, added, remaining, updated};
 	}
-}
 
 export const CommentsSpreadsheetFormat = {
 	MyProject: 'MyProject',
@@ -514,18 +457,16 @@ export const CommentsSpreadsheetStyle = {
 	TabPerCommentGroup: 'TabPerCommentGroup'
 }
 
-export function exportCommentsSpreadsheet(ballotId, file, format, style) {
-	return async (dispatch) => {
+export const exportCommentsSpreadsheet = (ballotId, file, format, style) =>
+	async (dispatch) => {
 		try {
 			let Filename;
 			if (file)
 				Filename = file.name
 			const url = '/api/comments/export/' + format
 			await fetcher.postForFile(url, {BallotID: ballotId, Filename, Style: style}, file)
-			return null
 		}
 		catch(error) {
-			dispatch(setError(`Unable to export comments for ${ballotId}`, error))
+			await dispatch(setError(`Unable to export comments for ${ballotId}`, error));
 		}
 	}
-}

@@ -5,6 +5,7 @@
 const cheerio = require('cheerio')
 const moment = require('moment-timezone')
 const csvParse = require('csv-parse/lib/sync')
+const rp = require('request-promise-native')
 
 // Convert date string to UTC
 function parseDateTime(dateStr) {
@@ -12,7 +13,7 @@ function parseDateTime(dateStr) {
 	return moment.tz(dateStr, 'DD-MMM-YYYY HH:mm:ss', 'America/New_York').format();
 }
 
-export function parseClosedEpollsPage(body) {
+function parseClosedEpollsPage(body) {
 	var epolls = [];
 	var $ = cheerio.load(body);
           
@@ -42,6 +43,44 @@ export function parseClosedEpollsPage(body) {
 	else {
 		throw 'Unexpected page returned by mentor.ieee.org'
 	}
+}
+
+/*
+ * getEpolls
+ *
+ * Parameters: n = number of entries to get
+ */
+export async function getEpolls(user, n) {
+	console.log(user)
+
+	async function recursivePageGet(epolls, n, page) {
+		//console.log('get epolls n=', n)
+
+		var options = {
+			url: `https://mentor.ieee.org/802.11/polls/closed?n=${page}`,
+			jar: user.ieeeCookieJar
+		}
+		//console.log(options.url);
+
+		const body = await rp.get(options);
+
+		//console.log(body)
+		var epollsPage = parseClosedEpollsPage(body);
+		var end = n - epolls.length;
+		if (end > epollsPage.length) {
+			end = epollsPage.length;
+		}
+		epolls = epolls.concat(epollsPage.slice(0, end));
+
+		if (epolls.length === n || epollsPage.length === 0) {
+			//console.log('send ', epolls.length);
+			return epolls;
+		}
+
+		return recursivePageGet(epolls, n, page+1);
+	}
+
+	return recursivePageGet([], n, 1);
 }
 
 export function parseEpollResultsHtml(body) {

@@ -16,7 +16,7 @@ export const BallotType = {
 	Motion: 5		// motion
 };
 
-const ballotFields = [
+const fields = [
 	'Project',
 	'BallotID',
 	'Document',
@@ -33,7 +33,7 @@ const ballotFields = [
 /*
  * Generate a filter for each field (table column)
  */
-const defaultFiltersEntries = ballotFields.reduce((entries, dataKey) => {
+const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
 	if (dataKey === 'Comments' || dataKey === 'Result')
 		return entries;
 	return {...entries, [dataKey]: {}};
@@ -42,7 +42,7 @@ const defaultFiltersEntries = ballotFields.reduce((entries, dataKey) => {
 /*
  * Generate object that describes the initial sort state
  */
-const defaultSortEntries = ballotFields.reduce((entries, dataKey) => {
+const defaultSortEntries = fields.reduce((entries, dataKey) => {
 	if (dataKey === 'Comments' || dataKey === 'Result')
 		return entries;
 	let type = SortType.STRING;
@@ -68,14 +68,18 @@ const defaultSortEntries = ballotFields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {type, direction}};
 }, {});
 
-
 function getProjectForBallotId(state, ballotId) {
 	const id = state.ids.find(id => state.entities[id].BallotID === ballotId)
 	return id? state.entities[id].Project: ''
 }
 
-function updateSelected(ballots, selected) {
-	return selected.filter(s => ballots.find(b => b.BallotID === s))
+/*
+ * Remove entries that no longer exist from a list. If there
+ * are no changes, return the original list.
+ */
+function filterIdList(idList, allIds) {
+	const newList = idList.filter(id => allIds.includes(id));
+	return newList.length === idList.length? idList: newList;
 }
 
 const dataAdapter = createEntityAdapter({
@@ -85,7 +89,7 @@ const dataAdapter = createEntityAdapter({
 
 const dataSet = 'ballots';
 
-const ballotsSlice = createSlice({
+const slice = createSlice({
 	name: dataSet,
 	initialState: dataAdapter.getInitialState({
 		valid: false,
@@ -107,6 +111,7 @@ const ballotsSlice = createSlice({
 			state.valid = true;
 			dataAdapter.setAll(state, ballots);
 			state.project = getProjectForBallotId(state, state.ballotId);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		getFailure(state, action) {
 			state.loading = false;
@@ -118,11 +123,11 @@ const ballotsSlice = createSlice({
 		updateOne(state, action) {
 			const {id, changes} = action.payload;
 			dataAdapter.updateOne(state, {id, changes});
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		deleteMany(state, action) {
-			const {ballots} = action.payload;
-			dataAdapter.removeMany(state, ballots);
-			//state.ballots = state.ballots.filter(b1 => !ballots.find(b2 => b1.id === b2.id));
+			dataAdapter.removeMany(state, action.payload);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		setProject(state, action) {
 			const project = action.payload;
@@ -154,82 +159,86 @@ const ballotsSlice = createSlice({
 /*
  * Export reducer as default
  */
-export default ballotsSlice.reducer;
+export default slice.reducer;
 
 /*
  * Actions
  */
-export const {setProject, setBallotId} = ballotsSlice.actions;
+export const {setProject, setBallotId} = slice.actions;
 
-const {getPending, getSuccess, getFailure} = ballotsSlice.actions;
+const {getPending, getSuccess, getFailure} = slice.actions;
 
-export function loadBallots() {
-	return async (dispatch, getState) => {
-		if (getState().ballots.loading)
-			return null
-		dispatch(getPending())
+export const loadBallots = () => 
+	async (dispatch, getState) => {
+		if (getState()[dataSet].loading)
+			return;
+		dispatch(getPending());
 		let response;
 		try {
-			response = await fetcher.get('/api/ballots')
+			response = await fetcher.get('/api/ballots');
 		}
 		catch(error) {
 			console.log(error)
-			return Promise.all([
+			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError('Unable to get ballot list', error.toString()))
-			])
+			]);
+			return;
 		}
-		return dispatch(getSuccess({ballots: response}))
+		await dispatch(getSuccess({ballots: response}));
 	}
-}
 
-const {updateOne} = ballotsSlice.actions;
+const {updateOne} = slice.actions;
 export const updateBallotSuccess = (id, changes) => updateOne({id, changes});
 
-export function updateBallot(ballotId, ballot) {
-	return async (dispatch, getState) => {
+export const updateBallot = (ballotId, ballot) =>
+	async (dispatch, getState) => {
+		const url = '/api/ballots';
 		let response;
 		try {
-			response = await fetcher.put(`/api/ballots`, [ballot])
+			response = await fetcher.patch(url, [ballot]);
+			if (!Array.isArray(response))
+				throw new TypeError('Unexpected response to PATCH ' + url);
 		}
 		catch(error) {
-			return dispatch(setError(`Unable to update ballot ${ballotId}`, error.toString()))
+			await dispatch(setError(`Unable to update ballot ${ballotId}`, error.toString()));
+			return;
 		}
 		const [updatedBallot] = response;
-		return dispatch(updateOne({id: ballot.id, changes: updatedBallot}))
+		await dispatch(updateOne({id: ballot.id, changes: updatedBallot}))
 	}
-}
 
-const {deleteMany} = ballotsSlice.actions;
+const {deleteMany} = slice.actions;
 
-export function deleteBallots(ballots) {
-	return async (dispatch, getState) => {
+export const deleteBallots = (ballots) =>
+	async (dispatch, getState) => {
+		const ids = ballots.map(b => b.id);
 		try {
-			await fetcher.delete('/api/ballots', ballots)
+			await fetcher.delete('/api/ballots', ids);
 		}
 		catch(error) {
-			const ballotIdsStr = ballots.map(b => ballots.BallotID).join(', ')
-			return dispatch(setError(`Unable to delete ballots ${ballotIdsStr}`, error.toString()))
+			const ballotIdsStr = ballots.map(b => ballots.BallotID).join(', ');
+			await dispatch(setError(`Unable to delete ballots ${ballotIdsStr}`, error.toString()));
+			return;
 		}
-		return dispatch(deleteMany({ballots}))
+		await dispatch(deleteMany(ids));
 	}
-}
 
-const {addOne} = ballotsSlice.actions;
+const {addOne} = slice.actions;
 
-export function addBallot(ballot) {
-	return async (dispatch, getState) => {
+export const addBallot = (ballot) =>
+	async (dispatch, getState) => {
 		let response;
 		try {
 			response = await fetcher.post('/api/ballots', [ballot])
 		}
 		catch(error) {
-			return dispatch(setError(`Unable to add ballot ${ballot.BallotID}`, error.toString()))
+			await dispatch(setError(`Unable to add ballot ${ballot.BallotID}`, error.toString()));
+			return;
 		}
 		const [updatedBallot] = response;
-		return dispatch(addOne({ballot: updatedBallot}))
+		await dispatch(addOne({ballot: updatedBallot}))
 	}
-}
 
 /*
  * Selectors

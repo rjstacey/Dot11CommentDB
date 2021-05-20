@@ -5,21 +5,19 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import copyToClipboard from 'copy-html-to-clipboard'
 
-import AppTable, {ControlHeader, ControlCell, ColumnDropdown, ShowFilters} from 'dot11-common/table'
+import AppTable, {ControlHeader, ControlCell, ColumnDropdown, ColumnSelector, ShowFilters, IdFilter, IdSelector} from 'dot11-common/table'
 import {Button, ActionButton} from 'dot11-common/lib/icons'
 import {AccessLevel} from 'dot11-common/store/login'
 import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
 import {setTableView, upsertTableColumns} from 'dot11-common/store/ui'
 
 import BallotSelector from '../ballots/BallotSelector'
-import ColumnSelector from './ColumnSelector'
 import {editorCss} from './ResolutionEditor'
 import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './CommentDetail'
 import {renderSubmission} from './SubmissionSelector'
 import CommentsImport from './CommentsImport'
 import CommentsExport from './CommentsExport'
 import CommentsHistoryModal from './CommentHistory'
-import {CommentIdSelector, CommentIdFilter} from './CommentIdList'
 
 import {loadComments} from '../store/comments'
 import {setBallotId} from '../store/ballots'
@@ -95,7 +93,7 @@ const DataSubcomponent = styled.div`
 const CommentsColumnDropdown = (props) => <ColumnDropdown dataSet={dataSet} {...props}/>;
 const HeaderSubcomponent = DataSubcomponent.withComponent(CommentsColumnDropdown);
 
-const StyledCommandIdFilter = styled(CommentIdFilter)`
+const StyledIdFilter = styled(IdFilter)`
 	margin: 10px 10px 0;
 	line-height: 30px;
 	padding-left: 20px;
@@ -111,7 +109,7 @@ const renderHeaderCellStacked1 = (props) =>
 	<React.Fragment>
 		<FlexRow>
 			<HeaderSubcomponent {...props} width={70} dropdownWidth={400} dataKey='CID' label='CID' 
-				customFilterElement=<StyledCommandIdFilter />
+				customFilterElement=<StyledIdFilter dataSet={dataSet} dataKey='CID' />
 			/>
 			<HeaderSubcomponent {...props} width={40} dropdownWidth={140} dataKey='Category' label='Cat' />
 		</FlexRow>
@@ -175,7 +173,7 @@ const renderHeaderCellResolution = (props) =>
 const allColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} ><CommentIdSelector focusOnMount /></ControlHeader>,
+		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} ><IdSelector dataSet={dataSet} focusOnMount /></ControlHeader>,
 		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
 	{key: 'Stack1',
 		label: 'CID/Cat/MS/...',
@@ -333,7 +331,7 @@ const defaultTablesConfig = tableViews.reduce((config, view) => {
 	return config;
 }, {})
 
-function ColumnViewSelector({tableView, setTableView}) {
+function TableViewSelector({tableView, setTableView}) {
 	return tableViews.map(view => 
 		<Button
 			key={view}
@@ -529,11 +527,11 @@ function Comments({
 			<TopRow>
 				<BallotSelector onBallotSelected={ballotSelected} />
 				<div>
-					<ColumnViewSelector
+					<TableViewSelector
 						tableView={tableView}
 						setTableView={setTableView}
 					/>
-					<ColumnSelector />
+					<ColumnSelector dataSet={dataSet} />
 					<ActionButton name='copy' title='Copy to clipboard' disabled={selected.length === 0} onClick={e => setClipboard(selected, comments)} />
 					<ActionButton name='history' title='History' isActive={showHistory} onClick={() => setShowHistory(true)} />
 					{access >= AccessLevel.SubgroupAdmin && <CommentsImport ballotId={ballotId} />}

@@ -4,6 +4,8 @@ const csvParse = require('csv-parse/lib/sync')
 const ExcelJS = require('exceljs')
 const db = require('../util/database')
 
+import {getMembersSnapshot} from './members'
+
 const membersHeader = [
 	'SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'
 ]
@@ -24,10 +26,10 @@ function parseVoters(buffer) {
 	return p.map(c => {
 		return {
 			SAPIN: c[0],
-			LastName: c[1],
-			FirstName: c[2],
-			MI: c[3],
-			Email: c[4],
+			//LastName: c[1],
+			//FirstName: c[2],
+			//MI: c[3],
+			//Email: c[4],
 			Status: c[5]
 		}
 	});
@@ -71,265 +73,158 @@ async function parseMyProjectVoters(buffer, isExcel) {
 	})
 }
 
+const getVotingPoolsSQL = () => 'SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters GROUP BY VotingPoolID;';
 
-async function getVotingPoolsLocal() {
-	const SQL =
-		'SELECT VotingPoolID, COUNT(*) AS VoterCount, \'WG\' AS PoolType FROM wgVoters GROUP BY VotingPoolID;' +
-		'SELECT VotingPoolID, COUNT(*) AS VoterCount, \'SA\' AS PoolType FROM saVoters GROUP BY VotingPoolID;';
-	const results = await db.query(SQL);
-	const votingPools = results[0].concat(results[1]);
-	return votingPools;
-}
+const getVotingPoolSQL = (votingPoolId) => 
+	db.format('SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters WHERE VotingPoolID=?;', [votingPoolId]);
 
-async function getVotingPoolLocal(votingPoolType, votingPoolName) {
-	const table = votingPoolType === 'SA'? 'saVoters': 'wgVoters'
-	const results = await db.query(
-		'SELECT VotingPoolID, COUNT(*) AS VoterCount FROM ?? WHERE VotingPoolID = ?;',
-		[table, votingPoolName])
-	if (results.length !== 1) {
-		throw 'Unexpected result from SQL query'
-	}
-	return Object.assign({}, results[0], {VotingPoolID: votingPoolName, PoolType: votingPoolType})
-}
+const getVotersSQL = (votingPoolId) =>
+	db.format('SELECT * FROM wgVoters WHERE VotingPoolID=?;', [votingPoolId]);
+
+const getVotersFullSQL = (votingPoolId, sapins) =>
+		'SELECT ' +
+			'v.*, ' + 
+			'COALESCE(m.SAPIN, o.CurrentSAPIN) AS CurrentSAPIN, ' +
+			'COALESCE(m.Name, o.Name) AS Name, ' +
+			'COALESCE(m.Email, o.Email) AS Email, ' +
+			'COALESCE(m.Affiliation, o.Affiliation) AS Affiliation ' +
+		'FROM wgVoters v ' + 
+			'LEFT JOIN members m ON m.Status<>\'Obsolete\' AND m.SAPIN=v.SAPIN ' +
+			'LEFT JOIN (SELECT ' + 
+					'm2.SAPIN AS OldSAPIN, m1.SAPIN AS CurrentSAPIN, m1.Name, m1.Email, m1.Affiliation ' + 
+				'FROM members m1 LEFT JOIN members m2 ON m1.SAPIN=m2.ReplacedBySAPIN AND m2.Status=\'Obsolete\') AS o ON v.SAPIN=o.OldSAPIN ' +
+			'WHERE VotingPoolID=' + db.escape(votingPoolId) +
+			(sapins? db.format(' AND v.SAPIN IN (?) ', [sapins]): ' ') +
+		'ORDER BY SAPIN;';
 
 export async function getVotingPools() {
-	const votingPools = await getVotingPoolsLocal()
+	const votingPools = await db.query(getVotingPoolsSQL());
 	return {votingPools}
 }
 
-export async function deleteVotingPools(votingPools) {
-	let saVotingPoolIds = [], wgVotingPoolIds = []
-	for (let vp of votingPools) {
-		if (vp.PoolType === 'SA') {
-			saVotingPoolIds.push(vp.VotingPoolID)
-		}
-		else if (vp.PoolType === 'WG') {
-			wgVotingPoolIds.push(vp.VotingPoolID)
-		}
-		else {
-			throw `Invalid pool type ${vp.PoolType} for ${vp.VotingPool}`
-		}
-	}
-	let SQL = ''
-	if (saVotingPoolIds.length > 0) {
-		SQL += db.format('DELETE FROM saVoters WHERE VotingPoolID IN (?);', [saVotingPoolIds])
-	}
-	if (wgVotingPoolIds.length > 0) {
-		SQL += db.format('DELETE FROM wgVoters WHERE VotingPoolID IN (?);', [wgVotingPoolIds])
-	}
-	if (SQL) {
-		await db.query(SQL)
-	}
-
-	votingPools = await getVotingPoolsLocal()
-	return {votingPools}
+export async function deleteVotingPools(votingPoolIds) {
+	await db.query('DELETE FROM wgVoters WHERE VotingPoolID IN (?);', [votingPoolIds]);
 }
 
-async function getVotersLocal(votingPoolType, votingPoolId) {
-	const table = votingPoolType === 'WG'? 'wgVoters': 'saVoters'
-	return db.query('SELECT * FROM ?? WHERE VotingPoolID=?;', [table, votingPoolId])
-}
-
-export async function getVoters(votingPoolType, votingPoolId) {
-	const voters = await getVotersLocal(votingPoolType, votingPoolId)
-	const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
-	return {
-		voters,
-		votingPool
-	}
-}
-
-export async function addVoter(votingPoolType, votingPoolId, voter) {
-	let entry = {
-		VotingPoolID: votingPoolId,
-		Email: voter.Email
-	}
-	let table, key
-	if (votingPoolType == 'SA') {
-		entry = Object.assign(entry, {
-			Name: voter.Name
-		})
-		table = 'saVoters'
-		key = 'Email'
-	}
-	else {
-		entry = Object.assign(entry, {
-			SAPIN: voter.SAPIN,
-			LastName: voter.LastName,
-			FirstName: voter.FirstName,
-			MI: voter.MI,
-			Status: voter.Status
-		})
-		table = 'wgVoters'
-		key = 'SAPIN'
-	}
-	const SQL =
-		db.format('INSERT INTO ?? (??) VALUES (?);',
-			[table, Object.keys(entry), Object.values(entry)]) +
-		db.format('SELECT * FROM ?? WHERE VotingPoolID = ? AND ?? = ?',
-			[table, votingPoolId, key, entry[key]])
-	try {
-		const results = await db.query(SQL)
-		if (results.length !== 2 && results[1].length === 1) {
-			console.log(results)
-			throw new Error("Unexpected SQL result")
-		}
-		const voter = results[1][0]
-		const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
-		return {
-			voter,
-			votingPool
-		}
-	}
-	catch(err) {
-		if (err.code === 'ER_DUP_ENTRY') {
-			let msg = 
-				`Cannot add voter with ${key} ${entry[key]} to voting pool ${entry.VotingPoolID}; ` +
-				`a voter with that ${key} already exists.`
-			throw new Error(msg)
-		}
-		throw err
-	}
-}
-
-export async function updateVoter(votingPoolType, votingPoolId, voterId, voter) {
-	
-	let entry = {
-		VotingPoolID: voter.VotingPoolID,
-		Email: voter.Email
-	}
-	let table, key
-	if (votingPoolType == 'SA') {
-		entry = Object.assign(entry, {
-			Name: voter.Name
-		})
-		table = 'saVoters'
-	}
-	else {
-		entry = Object.assign(entry, {
-			SAPIN: voter.SAPIN,
-			LastName: voter.LastName,
-			FirstName: voter.FirstName,
-			MI: voter.MI,
-			Status: voter.Status
-		})
-		table = 'wgVoters'
-	}
-	for (let k of Object.keys(entry)) {
-		if (entry[k] === undefined) {
-			delete entry[k]
-		}
-	}
-	if (Object.keys(entry).length === 0) {
-		return null
-	}
-	const SQL = 
-		db.format('UPDATE ?? SET ? WHERE id=?;', [table, entry, voterId]) +
-		db.format('SELECT * FROM ?? WHERE id=?', [table, voterId]);
-
-	try {
-		const results = await db.query(SQL)
-		if (results[0].affectedRows !== 1 || results[1].length !== 1) {
-			console.log(results)
-			throw new Error("Unexpected result from SQL UPDATE")
-		}
-		const voter = results[1][0]
-		const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
-		return {
-			voter,
-			votingPool
-		}
-	}
-	catch(err) {
-		if (err.code === 'ER_DUP_ENTRY') {
-			let msg = null;
-			if (votingPoolType === 'WG') {
-				if (entry.VotingPoolID && entry.SAPIN) {
-					msg = 
-						`Cannot move voter with SAPIN ${entry.SAPIN} to voting pool ${entry.VotingPoolID}. ` +
-						`A voter with SAPIN ${entry.SAPIN} already exists in voting pool ${entry.VotingPoolID}.`
-				}
-				else if (entry.VotingPoolID) {
-					msg = 
-						`Cannot move voter with SAPIN ${id} to voting pool ${entry.VotingPoolID}. ` +
-						`A voter with SAPIN ${id} already exists in voting pool ${entry.VotingPoolID}.`
-				}
-				else if (entry.SAPIN) {
-					msg = 
-						`Cannot change SAPIN from ${id} to ${entry.SAPIN}. ` +
-						`A voter with SAPIN ${entry.SAPIN} already exists in voting pool ${votingPoolId}.`
-				}
-			}
-			else {
-				if (entry.VotingPoolID && entry.Email) {
-					msg = 
-						`Cannot move voter with email ${entry.Email} to voting pool ${entry.VotingPoolID}. ` +
-						`A voter with email ${entry.Email} already exists in voting pool ${entry.VotingPoolID}.`
-				}
-				else if (entry.VotingPoolID) {
-					msg = 
-						`Cannot move voter with email ${id} to voting pool ${entry.VotingPoolID}. ` +
-						`A voter with email ${id} already exists in voting pool ${entry.VotingPoolID}.`
-				}
-				else if (entry.Email) {
-					msg = 
-						`Cannot change email from ${id} to ${entry.Email}. ` +
-						`A voter with email ${entry.Email} already exists in voting pool ${votingPoolId}.`
-				}
-			}
-
-			if (msg) {
-				throw msg
-			}
-		}
-		throw err
-	}
-}
-
-export async function deleteVoters(votingPoolType, votingPoolId, voterIds) {
-	const table = votingPoolType === 'SA'? 'saVoters': 'wgVoters';
-	const SQL =
-		db.format('DELETE FROM ?? WHERE VotingPoolID=? AND id IN (?); ', [table, votingPoolId, voterIds]);
-	const results = await db.query(SQL);
-	const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
+export async function updateVotingPool(votingPoolId, newVotingPool) {
+	const newVotingPoolId = newVotingPool.VotingPoolID;
+	let [votingPool] = await db.query(getVotingPoolSQL(newVotingPoolId));
+	if (votingPool.VotingPoolID !== null)
+		throw `${newVotingPoolId} already in use`;
+	const sql = 
+		db.format('UPDATE wgVoters SET VotingPoolID=? WHERE VotingPoolID=?;', [newVotingPoolId, votingPoolId]) +
+		getVotingPoolSQL(newVotingPoolId);
+	const [noop, votingPools] = await db.query(sql);
+	votingPool = votingPools[0];
 	return {votingPool}
 }
 
-export async function uploadVoters(votingPoolType, votingPoolId, file) {
-	let table
-	let voters
-	if (votingPoolType === 'SA') {
-		table = 'saVoters'
-		const isExcel = file.originalname.search(/\.xlsx$/i) !== -1
-		voters = await parseMyProjectVoters(file.buffer, isExcel)
-	}
-	else {
-		table = 'wgVoters'
-		voters = parseVoters(file.buffer)
-	}
-
-	await db.query('DELETE FROM ?? WHERE VotingPoolID=?', [table, votingPoolId])
-
-	if (voters.length === 0) {
-		return {voters: []}
-	}
-
-	const SQL =
-		db.format('INSERT INTO ?? (VotingPoolID, ??) VALUES ', [table, Object.keys(voters[0])]) +
-		voters.map(v => db.format('(?, ?)', [votingPoolId, Object.values(v)])).join(', ') +
-		';'
-
-	try {
-		await db.query(SQL)
-	}
-	catch(err) {
-		throw err.code === 'ER_DUP_ENTRY'? "Entry already exists with this ID": err
-	}
-
-	voters = await getVotersLocal(votingPoolType, votingPoolId)
-	const votingPool = await getVotingPoolLocal(votingPoolType, votingPoolId)
+export async function getVoters(votingPoolId) {
+	const sql =
+		getVotersFullSQL(votingPoolId) +
+		getVotingPoolSQL(votingPoolId);
+	const [voters, votingPools] = await db.query(sql);
+	const votingPool = votingPools[0];
+	votingPool.VotingPoolID = votingPoolId;
 	return {
 		voters,
 		votingPool
 	}
+}
+
+async function getVoter(votingPoolId, sapin) {
+	const sql = getVotersFullSQL(votingPoolId, [sapin]);
+	const voters = await dq.query(sql);
+	return voters[0];
+}
+
+function votersEntry(v) {
+	const entry = {
+		VotingPoolID: v.VotingPoolID,
+		SAPIN: v.SAPIN,
+		Excused: v.Excused,
+		Status: v.Status
+	}
+	for (const key of Object.keys(entry)) {
+		if (entry[key] === undefined)
+			delete entry[key]
+	}
+	return entry;
+}
+
+export async function addVoter(votingPoolId, voter) {
+
+	if (!voter.SAPIN)
+		throw 'Must provide SAPIN';
+
+	const entry = votersEntry(voter);
+	entry.VotingPoolID = votingPoolId;
+
+	const sql =
+		db.format('INSERT INTO wgVoters SET ?;', [entry]) +
+		getVotersFullSQL(votingPoolId, [voter.SAPIN]) + 
+		getVotingPoolSQL(votingPoolId);
+	const [noop, voters, votingPools] = await db.query(sql);
+	const votingPool = votingPools[0];
+	votingPool.VotingPoolID = votingPoolId;
+	return {
+		voter: voters[0],
+		votingPool
+	}
+}
+
+export async function updateVoter(votingPoolId, sapin, voter) {
+	const sql =
+		db.format(
+			'UPDATE wgVoters SET ? WHERE VotingPoolID=? AND SAPIN=?;',
+			[votersEntry(voter), votingPoolId, sapin]) +
+		getVotersFullSQL(votingPoolId, [voter.SAPIN || sapin]);
+	const [noop, voters] = await db.query(sql);
+	return {voter: voters[0]};
+}
+
+export async function deleteVoters(votingPoolId, ids) {
+	const sql =
+		db.format('DELETE FROM wgVoters WHERE VotingPoolID=?', [votingPoolId]) +
+		(ids? db.format(' AND id IN (?); ', [ids]): '; ') + 
+		getVotersFullSQL(votingPoolId) +
+		getVotingPoolSQL(votingPoolId);
+	const [noop, voters, votingPools] = await db.query(sql);
+	const votingPool = votingPools[0];
+	votingPool.VotingPoolID = votingPoolId;
+	return {
+		voters,
+		votingPool
+	}
+}
+
+async function insertVoters(votingPoolId, voters) {
+	let sql = db.format('DELETE FROM wgVoters WHERE VotingPoolID=?;', [votingPoolId]);
+	if (voters.length > 0) {
+		sql +=
+			db.format('INSERT INTO wgVoters (VotingPoolID, ??) VALUES ', [Object.keys(votersEntry(voters[0]))]) +
+			voters.map(v => db.format('(?, ?)', [votingPoolId, Object.values(votersEntry(v))])).join(', ') +
+			';'
+	}
+	sql +=
+		getVotersFullSQL(votingPoolId) +
+		getVotingPoolSQL(votingPoolId);
+	const results = await db.query(sql);
+	const votingPool = results[results.length-1][0];
+	votingPool.VotingPoolID = votingPoolId;
+	return {
+		voters: results[results.length-2],
+		votingPool
+	}
+}
+
+export async function votersFromSpreadsheet(votingPoolId, file) {
+	let voters = parseVoters(file.buffer);
+	return await insertVoters(votingPoolId, voters);
+}
+
+export async function votersFromMembersSnapshot(votingPoolId, date) {
+	const members = await getMembersSnapshot(date);
+	const voters = members.filter(m => m.Status === 'Voter' || m.Status === 'ExOfficio');
+	return await insertVoters(votingPoolId, voters);
 }

@@ -469,6 +469,12 @@ function _BallotDetailForm(props) {
 						value={ballot.Type}
 						onChange={changeType}
 					/>
+					<Field label='Series complete:'>
+						<Checkbox
+							checked={!!ballot.IsComplete}
+							onChange={e => setBallot(ballot => ({...ballot, IsComplete: e.target.checked}))}
+						/>
+					</Field>
 					<ResultsActions
 						action={resultsAction}
 						setAction={setResultsAction}
@@ -520,6 +526,7 @@ const BallotDetailForm = connect(
 	},
 	(dispatch) => {
 		return {
+			loadBallots: () => dispatch(loadBallots()),
 			loadVotingPools: () => dispatch(loadVotingPools()),
 			addBallot: (ballot) => dispatch(addBallot(ballot)),
 			setProject: (project) => dispatch(setProject(project)),

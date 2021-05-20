@@ -10,9 +10,9 @@ import {displayDate} from 'dot11-common/lib/utils'
 import SessionDialog from './SessionDialog'
 
 import {loadImatMeetings, getSyncedImatMeetingsEntities} from '../store/imatMeetings'
-import {loadSessions, MeetingTypeOptions} from '../store/sessions'
+import {loadSessions, SessionTypeOptions} from '../store/sessions'
 
-const DefaultMeeting = {Date: new Date(), Location: '', Type: MeetingTypeOptions[0].value}
+const DefaultMeeting = {Date: new Date(), Location: '', Type: SessionTypeOptions[0].value}
 
 const ActionCell = styled.div`
 	display: flex;
@@ -44,7 +44,7 @@ const TableRow = styled.div`
 `;
 
 const renderMeetingType = ({rowData}) => {
-	const option = MeetingTypeOptions.find(o => o.value === rowData.Type)
+	const option = SessionTypeOptions.find(o => o.value === rowData.Type)
 	return option? option.label: '';
 };
 
@@ -152,7 +152,7 @@ function ImatMeetings({
 			<SessionDialog
 				isOpen={!!sessionDialog.action}
 				action={sessionDialog.action}
-				meeting={sessionDialog.meeting}
+				session={sessionDialog.meeting}
 				close={closeSessionDialog}
 			/>
 		</React.Fragment>

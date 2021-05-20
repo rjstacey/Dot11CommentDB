@@ -13,16 +13,20 @@ const StyledForm = styled(Form)`
 
 function _MembersUploadDropdown({upload, close}) {
 	const fileRef = React.useRef();
-	const [errMsg, setErrMsg] = React.useState('')
-	const [format, setFormat] = React.useState(UploadFormat.Roster)
+	const [errMsg, setErrMsg] = React.useState('');
+	const [format, setFormat] = React.useState(UploadFormat.Roster);
+	const [busy, setBusy] = React.useState(false);
 
-	const submit = () => {
-		const file = fileRef.current.files[0]
+	const submit = async () => {
+		const file = fileRef.current.files[0];
 		if (!file) {
-			setErrMsg('Select spreadsheet file')
-			return
+			setErrMsg('Select spreadsheet file');
+			return;
 		}
-		upload(format, file).then(close)
+		setBusy(true);
+		await upload(format, file)
+		setBusy(false);
+		close();
 	}
 
 	const changeFormat = e => setFormat(e.target.value);
@@ -33,6 +37,7 @@ function _MembersUploadDropdown({upload, close}) {
 			errorText={errMsg}
 			submit={submit}
 			cancel={close}
+			busy={busy}
 		>
 			<Row>
 				<List
@@ -77,6 +82,16 @@ function _MembersUploadDropdown({upload, close}) {
 							onChange={changeFormat}
 						/>
 						<label>Member email addresses from Access database</label>
+					</ListItem>
+					<ListItem>
+						<input
+							type='radio'
+							title='Import member history (replaces existing)'
+							value={UploadFormat.History}
+							checked={format === UploadFormat.History}
+							onChange={changeFormat}
+						/>
+						<label>Member history from Access database</label>
 					</ListItem>
 				</List>
 			</Row>

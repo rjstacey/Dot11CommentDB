@@ -106,6 +106,8 @@ const {getPending, getSuccess, getFailure} = slice.actions;
 
 export const loadBreakouts = (session_id) =>
 	async (dispatch, getState) => {
+		if (getState()[dataSet].loading)
+			return;
 		await dispatch(getPending())
 		const url = `/api/session/${session_id}/breakouts`;
 		let response;
@@ -127,6 +129,7 @@ export const loadBreakouts = (session_id) =>
 
 export const importBreakouts = (session_id) =>
 	async (dispatch, getState) => {
+		console.log('import breakouts')
 		const url = `/api/session/${session_id}/breakouts/import`;
 		let response;
 		try {

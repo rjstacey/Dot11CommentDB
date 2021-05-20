@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
@@ -19,12 +20,11 @@ const Container = styled.div`
 	:hover {
 		border-color: #0074D9
 	}
-	/*:focus-within {
-		outline: -webkit-focus-ring-color auto 1px;
-	}*/
 `;
 
-function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount, close}) {
+const idRegex = /[^\s,]+/g; // /\d+\.\d+|\d+/g
+
+function IdList({style, className, ids, idValid, onChange, focusOnMount, close}) {
 	const editorRef = React.useRef();
 	const [editorState, setEditorState] = React.useState(initState);
 
@@ -37,35 +37,32 @@ function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount
 
 	React.useEffect(() => {
 		if (!editorState.getSelection().hasFocus) {
-			let state = EditorState.push(editorState, ContentState.createFromText(cids.join(', ')), 'remove-range')
+			let state = EditorState.push(editorState, ContentState.createFromText(ids.join(', ')), 'remove-range')
 			state = EditorState.moveSelectionToEnd(state)
 			setEditorState(state)
 		}
-	}, [cids])
+	}, [ids])
 
 	function initState() {
 		const decorator = new CompositeDecorator([
 			{
-				strategy: findInvalidCIDs,
+				strategy: findInvalidIds,
 				component: props => <span style={{color: "red"}}>{props.children}</span>,
 			}
 		]);
-		let state = EditorState.createWithContent(ContentState.createFromText(cids.join(', ')), decorator)
-		if (focusOnMount) {
+		let state = EditorState.createWithContent(ContentState.createFromText(ids.join(', ')), decorator)
+		if (focusOnMount)
 			state = EditorState.moveFocusToEnd(state)
-		}
 		return state
 	}
 
-	function findInvalidCIDs(contentBlock, callback, contentState) {
-		const regex = /\d+\.\d+|\d+/g
+	function findInvalidIds(contentBlock, callback, contentState) {
 		const text = contentBlock.getText();
 		let matchArr, start;
-		while ((matchArr = regex.exec(text)) !== null) {
+		while ((matchArr = idRegex.exec(text)) !== null) {
 			start = matchArr.index;
-			if (!cidValid(matchArr[0])) {
+			if (!idValid(matchArr[0]))
 				callback(start, start + matchArr[0].length);
-			}
 		}
 	}
 
@@ -90,10 +87,10 @@ function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount
 	}
 
 	function emitChange(state) {
-		const s = state.getCurrentContent().getPlainText()
-		const updatedCids = s.match(/\d+\.\d+|\d+/g) || []	// just the numbers
-		if (updatedCids.join() !== cids.join())
-			onChange(updatedCids)
+		const s = state.getCurrentContent().getPlainText();
+		const updatedIds = s.match(idRegex) || [];
+		if (updatedIds.join() !== ids.join())
+			onChange(updatedIds);
 	}
 
 	return (
@@ -108,37 +105,56 @@ function CommentIdList({style, className, cids, cidValid, onChange, focusOnMount
 				onChange={setEditorState}
 				handleReturn={() => (emitChange(editorState) || 'handled')}	// return 'handled' to prevent default handler
 				onBlur={() => emitChange(editorState)}
-				placeholder={'List of CIDs...'}
+				placeholder={'Enter list...'}
 			/>
 			{editorState.getCurrentContent().hasText() && <Cross onClick={clear} />}
 		</Container>
 	)
 }
 
-const cidValid = (cids, cid) => cids.includes(cid)
+const idValid = (ids, id) => ids.includes(id);
 
-export const CommentIdFilter = connect(
-	(state) => {
-		const s = state.comments
+const IdFilter = connect(
+	(state, ownProps) => {
+		const {dataSet, dataKey} = ownProps;
+		const {ids, filters} = state[dataSet];
 		return {
-			cids: s.filters['CID'].values.map(v => v.value) || [],
-			cidValid: (cid) => cidValid(s.ids, cid)
+			ids: filters[dataKey].values.map(v => v.value) || [],
+			idValid: (id) => idValid(ids, id)
 		}
 	},
-	(dispatch) => ({
-			onChange: cids => dispatch(setFilter('comments', 'CID', cids))
-		})
-)(CommentIdList)
-
-export const CommentIdSelector = connect(
-	(state) => {
-		const s = state.comments
+	(dispatch, ownProps) => {
+		const {dataSet, dataKey} = ownProps;
 		return {
-			cids: s.selected,
-			cidValid: (cid) => cidValid(s.ids, cid)
+			onChange: ids => dispatch(setFilter(dataSet, dataKey, ids))
+		}
+	}
+)(IdList)
+
+IdFilter.propTypes = {
+	dataSet: PropTypes.string.isRequired,
+	dataKey: PropTypes.string.isRequired
+}
+
+const IdSelector = connect(
+	(state, ownProps) => {
+		const {dataSet} = ownProps;
+		const {ids, selected} = state[dataSet];
+		return {
+			ids: selected,
+			idValid: (id) => idValid(ids, id)
 		}
 	},
-	(dispatch) => ({
-			onChange: cids => dispatch(setSelected('comments', cids))
-		})
-)(CommentIdList)
+	(dispatch, ownProps) => {
+		const {dataSet} = ownProps;
+		return {
+			onChange: ids => dispatch(setSelected(dataSet, ids))
+		}
+	}
+)(IdList)
+
+IdSelector.propTypes = {
+	dataSet: PropTypes.string.isRequired
+}
+
+export {IdFilter, IdSelector}

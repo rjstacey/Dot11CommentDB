@@ -8,7 +8,7 @@ import {ActionButton} from 'dot11-common/lib/icons'
 import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
 
 import {loadBallots} from '../store/ballots'
-import {loadEpolls} from '../store/epolls'
+import {loadEpolls, getSyncedEpollEntities} from '../store/epolls'
 
 function renderDate({rowData, dataKey}) {
 	// rowData[key] is an ISO time string. We convert this to eastern time
@@ -32,7 +32,7 @@ const TableRow = styled.div`
 `;
 
 function Epolls(props) {
-	const {ballotsValid, loadBallots, epollsValid, loadEpolls} = props;
+	const {ballotsValid, loadBallots, epollsValid, loadEpolls, epolls} = props;
 	const history = useHistory();
 	const numberEpolls = React.useRef(20);
 	const [epollNum, setEpollNum] = React.useState(null);
@@ -66,7 +66,7 @@ function Epolls(props) {
 
 	function getMore() {
 		numberEpolls.current += 10;
-		props.getEpolls(numberEpolls.current)
+		props.loadEpolls(numberEpolls.current)
 	}
 
 	function renderActions({rowData}) {
@@ -94,8 +94,8 @@ function Epolls(props) {
 					headerHeight={28}
 					estimatedRowHeight={64}
 					dataSet='epolls'
-					data={props.epolls}
 					loading={props.loading}
+					rowGetter={({rowId}) => epolls[rowId]}
 					rowKey={primaryDataKey}
 				/>
 			</TableRow>
@@ -109,18 +109,16 @@ function Epolls(props) {
 	)
 }
 
-const dataSet = 'epolls'
+const dataSet = 'epolls';
+
 export default connect(
 	(state) => {
 		return {
 			ballotsValid: state.ballots.valid,
 			epollsValid: state[dataSet].valid,
 			loading: state[dataSet].loading,
-			epolls: getData(state, dataSet)
+			epolls: getSyncedEpollEntities(state)
 		}
 	},
-	(dispatch) => ({
-		loadEpolls: (n) => dispatch(loadEpolls(n)),
-		loadBallots: () => dispatch(loadBallots())
-	})
+	{loadEpolls, loadBallots}
 )(Epolls)

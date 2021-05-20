@@ -6,7 +6,7 @@ import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
 import selectedSlice, {setSelected} from 'dot11-common/store/selected'
 import uiSlice from 'dot11-common/store/ui'
 import {setError} from 'dot11-common/store/error'
-import {MeetingTypeOptions} from './sessions'
+import {SessionTypeOptions} from './sessions'
 
 const fields = ['id', 'Start', 'End', 'Name', 'Type', 'TimeZone', 'MeetingNumber']
 
@@ -16,7 +16,7 @@ const fields = ['id', 'Start', 'End', 'Name', 'Type', 'TimeZone', 'MeetingNumber
 const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
 	let options;
 	if (dataKey === 'Type')
-		options = MeetingTypeOptions;
+		options = SessionTypeOptions;
 	return {...entries, [dataKey]: {options}}
 }, {});
 
@@ -56,7 +56,7 @@ const dataAdapter = createEntityAdapter({
 
 const dataSet = 'imatMeetings'
 
-const meetingsSlice = createSlice({
+const slice = createSlice({
 	name: dataSet,
 	initialState: dataAdapter.getInitialState({
 		valid: false,
@@ -98,12 +98,14 @@ const meetingsSlice = createSlice({
 /*
  * Export reducer as default
  */
-export default meetingsSlice.reducer;
+export default slice.reducer;
 
-const {getPending, getSuccess, getFailure} = meetingsSlice.actions;
+const {getPending, getSuccess, getFailure} = slice.actions;
 
 export const loadImatMeetings = (n) =>
 	async (dispatch, getState) => {
+		if (getState()[dataSet].loading)
+			return;
 		dispatch(getPending())
 		let meetings;
 		try {

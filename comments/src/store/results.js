@@ -7,12 +7,14 @@ import selectedSlice, {setSelected} from 'dot11-common/store/selected'
 import uiSlice from 'dot11-common/store/ui'
 import {setError} from 'dot11-common/store/error'
 
-const resultFields = ['SAPIN', 'Name', 'Affiliation', 'Email', 'Vote', 'CommentCount', 'Notes'];
+import {updateBallotSuccess} from './ballots'
+
+const fields = ['SAPIN', 'Name', 'Affiliation', 'Email', 'Vote', 'CommentCount', 'Notes'];
 
 /*
  * Generate a filter for each field (table column)
  */
-const defaultFiltersEntries = resultFields.reduce((entries, dataKey) => {
+const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {}};
 }, {});
 
@@ -20,28 +22,30 @@ const defaultFiltersEntries = resultFields.reduce((entries, dataKey) => {
 /*
  * Generate object that describes the initial sort state
  */
-const defaultSortEntries = resultFields.reduce((entries, dataKey) => {
+const defaultSortEntries = fields.reduce((entries, dataKey) => {
 	let type;
 	switch (dataKey) {
 		case 'SAPIN':
 		case 'CommentCount':
-			type = SortType.NUMERIC
-			break
+			type = SortType.NUMERIC;
+			break;
 		case 'Name':
 		case 'Affiliation':
 		case 'Email':
 		case 'Vote':
 		case 'Notes':
-			type = SortType.STRING
-			break
 		default:
-			return entries;
+			type = SortType.STRING;
+			break;
 	}
 	const direction = SortDirection.NONE;
 	return {...entries, [dataKey]: {type, direction}};
 }, {});
 
-const dataAdapter = createEntityAdapter()
+const dataAdapter = createEntityAdapter({
+	selectId: r => r.id,
+	sortComparer: (r1, r2) => r1.SAPIN - r2.SAPIN
+})
 
 const dataSet = 'results';
 
@@ -142,7 +146,7 @@ export function deleteResults(ballotId, ballot) {
 			return dispatch(setError(`Unable to delete results with ballotId=${ballotId}`, error))
 		}
 		return Promise.all([
-			dispatch(updateBallotSuccess(ballotId, {id: ballot.id, Results: {}})),
+			dispatch(updateBallotSuccess(ballot.id, {Results: {}})),
 			dispatch(deleteAll({ballotId}))
 		])
 	}
@@ -175,7 +179,7 @@ export function importResults(ballotId, epollNum) {
 			summary: response.summary
 		}
 		return Promise.all([
-			dispatch(updateBallotSuccess(ballotId, response.ballot)),
+			dispatch(updateBallotSuccess(response.ballot.id, response.ballot)),
 			dispatch(getSuccess(payload))
 		])
 	}
@@ -202,7 +206,7 @@ export function uploadEpollResults(ballotId, file) {
 			summary: response.summary
 		}
 		return Promise.all([
-			dispatch(updateBallotSuccess(ballotId, response.ballot)),
+			dispatch(updateBallotSuccess(response.ballot.id, response.ballot)),
 			dispatch(importResultsSuccess(payload))
 		])
 	}
@@ -230,7 +234,7 @@ export function uploadMyProjectResults(ballotId, file) {
 			summary: response.summary
 		}
 		return Promise.all([
-			dispatch(updateBallotSuccess(ballotId, response.ballot)),
+			dispatch(updateBallotSuccess(response.ballot.id, response.ballot)),
 			dispatch(getSuccess(response))
 		])
 	}

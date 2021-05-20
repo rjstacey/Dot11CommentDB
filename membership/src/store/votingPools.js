@@ -1,40 +1,26 @@
-import {createSlice, createEntityAdapter, createSelector} from '@reduxjs/toolkit'
+import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
 import fetcher from 'dot11-common/store/fetcher'
 import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
 import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
-import selectedSlice, {setSelected} from 'dot11-common/store/selected'
+import selectedSlice, {getSelected, setSelected} from 'dot11-common/store/selected'
 import uiSlice from 'dot11-common/store/ui'
 import {setError} from 'dot11-common/store/error'
-import {getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
 
-import {upsertMembers} from './members'
-import {updateSessionSuccess} from './sessions'
-
-const fields = ['id', 'SAPIN', 'Name', 'Email', 'Affiliation', 'Status', 'SessionCredit']
+const fields = ['VotingPoolID', 'VoterCount'];
 
 /*
  * Generate a filter for each field (table column)
  */
 const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
-	let options;
-	return {...entries, [dataKey]: {options}}
+	return {...entries, [dataKey]: {}}
 }, {});
 
 /*
  * Generate object that describes the initial sort state
  */
 const defaultSortEntries = fields.reduce((entries, dataKey) => {
-	let type
-	switch (dataKey) {
-		case 'SAPIN':
-		case 'SessionCreditPct':
-		case 'SessionCredit':
-			type = SortType.NUMERIC
-			break
-		default:
-			type = SortType.STRING
-	}
+	const type = dataKey === 'VoterCount'? SortType.NUMERIC: SortType.STRING;
 	const direction = SortDirection.NONE;
 	return {...entries, [dataKey]: {type, direction}}
 }, {});
@@ -49,42 +35,55 @@ function filterIdList(idList, allIds) {
 }
 
 const dataAdapter = createEntityAdapter({
-	selectId: (member) => member.SAPIN
-})
+	selectId: vp => vp.VotingPoolID,
+	sortComparer: (vp1, vp2) => vp1.VotingPoolID.localeCompare(vp2.VotingPoolID)
+});
 
-const dataSet = 'attendees'
+const dataSet = 'votingPools';
 
 const slice = createSlice({
 	name: dataSet,
 	initialState: dataAdapter.getInitialState({
 		valid: false,
 		loading: false,
-		session: {},
-		breakout: {},
 		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
 		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
 		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
-		[uiSlice.name]: uiSlice.reducer(undefined, {})
+		[uiSlice.name]: uiSlice.reducer(undefined, {})		
 	}),
 	reducers: {
 		getPending(state, action) {
 			state.loading = true;
 		},
-  		getSuccess(state, action) {
-  			const {session, breakout, attendees} = action.payload;
+		getSuccess(state, action) {
+			const {votingPools} = action.payload;
 			state.loading = false;
 			state.valid = true;
-			state.session = session;
-			state.breakout = breakout;
-			dataAdapter.setAll(state, attendees);
+			dataAdapter.setAll(state, votingPools);
 			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
 		},
 		getFailure(state, action) {
 			state.loading = false;
 		},
+		removeMany(state, action) {
+			const votingPoolIds = action.payload;
+			dataAdapter.removeMany(state, votingPoolIds);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
+		},
+		updateOne(state, action) {
+			dataAdapter.updateOne(state, action.payload);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
+		}
 	},
 	extraReducers: builder => {
 		builder
+		.addMatcher(
+			(action) => ['voters/getSuccess', 'voters/addOne', 'voters/removeMany'].includes(action.type),
+			(state, action) => {
+				const {votingPool} = action.payload;
+				dataAdapter.upsertOne(state, votingPool);
+			}
+		)
 		.addMatcher(
 			(action) => action.type.startsWith(dataSet + '/'),
 			(state, action) => {
@@ -105,74 +104,58 @@ export default slice.reducer;
 
 const {getPending, getSuccess, getFailure} = slice.actions;
 
-export const loadAttendees = (session_id, breakout_id) =>
+export const loadVotingPools = () =>
 	async (dispatch, getState) => {
 		if (getState()[dataSet].loading)
 			return;
-		dispatch(getPending())
-		const url = breakout_id?
-			`/api/session/${session_id}/breakout/${breakout_id}/attendees`:
-			`/api/session/${session_id}/attendees`;
+		dispatch(getPending());
+		const url = '/api/votingPools';
 		let response;
 		try {
 			response = await fetcher.get(url);
-			if (typeof response !== 'object' || 
-				!response.hasOwnProperty('session') ||
-				!response.hasOwnProperty('attendees') ||
-				(breakout_id && !response.hasOwnProperty('breakout')))
-				throw new TypeError('Unexpected response to GET: ' + url);
+			if (typeof response !== 'object' || !response.hasOwnProperty('votingPools'))
+				throw new TypeError(`Unexpected response to GET: ${url}`);
 		}
 		catch(error) {
 			console.log(error)
 			await Promise.all([
 				dispatch(getFailure()),
-				dispatch(setError(`Unable to get attendees for ${breakout_id}`, error))
+				dispatch(setError('Unable to get voting pool list', error))
 			]);
 			return;
 		}
-		await dispatch(getSuccess(response))
+		await dispatch(getSuccess(response));
 	}
 
-export const importSelectedAttendees = () =>
+const {removeMany} = slice.actions;
+
+export const deleteVotingPools = (votingPools) =>
 	async (dispatch, getState) => {
-		const state = getState();
-		const selected = state[dataSet].selected;
-		const attendees = state[dataSet].entities;
-		const shown = getSortedFilteredIds(state, dataSet);
-		const newMembers = {};
-		for (const id of selected) {
-			if (shown.includes(id)) {
-				const a = attendees[id];
-				newMembers[id] = {
-					Name: a.Name,
-					Email: a.Email,
-					Affiliation: a.Affiliation,
-				};
-			}
+		const votingPoolIds = votingPools.map(vp => vp.VotingPoolID);
+		try {
+			await fetcher.delete('/api/votingPools', votingPoolIds);
 		}
-		return dispatch(upsertMembers(newMembers));
+		catch(error) {
+			await dispatch(setError('Unable to delete voting pool(s)', error));
+			return;
+		}
+		await dispatch(removeMany(votingPoolIds));
 	}
 
-export const importAttendances = (session_id) =>
-	async (dispatch, state) => {
-		dispatch(getPending())
-		const url = `/api/session/${session_id}/attendance_summary/import`;
+const {updateOne} = slice.actions;
+
+export const updateVotingPool = (votingPoolId, votingPool) =>
+	async (dispatch) => {
+		const url = `/api/votingPool/${votingPoolId}`;
 		let response;
 		try {
-			response = await fetcher.post(url);
-			if (typeof response !== 'object' || !response.hasOwnProperty('session') || !response.hasOwnProperty('attendees'))
-				throw new TypeError('Unexpected response to GET: ' + url);
+			response = await fetcher.patch(url, votingPool);
+			if (typeof response !== 'object' || !response.hasOwnProperty('votingPool'))
+				throw new TypeError(`Unexpected response to GET: ${url}`);
 		}
 		catch(error) {
-			console.log(error)
-			await Promise.all([
-				dispatch(getFailure()),
-				dispatch(setError('Unable to get attendance summary', error))
-			]);
+			await dispatch(setError('Unable to update voting pool', error));
 			return;
 		}
-		const {session} = response;
-		await Promise.all([
-			dispatch(getSuccess(response)),
-			dispatch(updateSessionSuccess(session.id, session))]);
+		await dispatch(updateOne({id: votingPoolId, changes: response.votingPool}));
 	}

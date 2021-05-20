@@ -1,8 +1,22 @@
 
 import {AccessLevel} from '../auth/access'
-import {parseMyProjectRosterSpreadsheet} from './myProjectSpreadsheets'
-import {parseMembersSpreadsheet, parseSAPINsSpreadsheet, parseEmailsSpreadsheet} from './membersSpreadsheets'
-import {getSessions, getSessionAttendeesCoalesced} from './sessions'
+import {
+	parseMyProjectRosterSpreadsheet,
+	genMyProjectRosterSpreadsheet
+} from './myProjectSpreadsheets'
+import {
+	parseMembersSpreadsheet,
+	parseSAPINsSpreadsheet,
+	parseEmailsSpreadsheet,
+	parseHistorySpreadsheet
+} from './membersSpreadsheets'
+import {
+	getSessions,
+	getRecentSessionsWithAttendees,
+	upsertMemberAttendanceSummaries
+} from './sessions'
+import {getRecentBallotSeriesWithResults} from './ballots'
+import {updateVoter} from './voters'
 
 const db = require('../util/database')
 const moment = require('moment-timezone')
@@ -24,154 +38,218 @@ export async function getUsers(user) {
 }
 
 /*
- * A detailed list of members is only available with access level WG Admin since it contains
- * sensitive information like email address.
+ * A detailed list of members
  */
-export async function getMembers() {
-	const [members, emails] = await db.query(
-		'SELECT * FROM members ORDER BY SAPIN; ' +
-		'SELECT * FROM emails;');
-	return {members, emails};
+export async function getMembers(sapins) {
+	const sql = 
+		'SELECT * FROM members' + 
+			(sapins? db.format(' WHERE sapin IN (?); ', [sapins]): '; ') +
+		'SELECT SAPIN FROM members WHERE Status="Obsolete"' + 
+			(sapins? db.format(' AND ReplacedBySAPIN IN (?);', [sapins]): ';');
+	const [members, obsoleteMembers] = await db.query(sql);
+
+	// For each member, generate a list of obsolete SAPINs
+	members.forEach(m => m.ObsoleteSAPINs = []);
+	obsoleteMembers.forEach(o => {
+		const u = members.find(m => m.SAPIN === o.ReplacedBySAPIN);
+		if (u)
+			u.ObsoleteSAPINs.push(o.SAPIN);
+	});
+
+	members.forEach(m => {
+		m.DateAdded = moment(m.DateAdded);
+		m.StatusChangeDate = moment(m.StatusChangeDate);
+	});
+
+	return members;
 }
 
-export async function getMembersWithAttendance() {
-	let sessions = await getSessions();
-	sessions.forEach(s => s.Start = moment(s.Start).tz(s.TimeZone));
-	sessions = sessions.sort((s1, s2) => s1.Start - s2.Start)	// Oldest to newest
-
-	// Plenary sessions only, newest 4 with attendance
-	let plenaries = sessions
-		.filter(s => s.Type === 'p' && s.Attendees > 0)
-		.slice(-4);
-	let fromDate = plenaries[0].Start;
-
-	// Plenary and interim sessions from the oldest plenary date
-	sessions = sessions.filter(s => (s.Type === 'i' || s.Type === 'p') && s.Start >= fromDate && s.Attendees > 0);
-
-	//console.log(sessions);
-
-	const results = await Promise.all(sessions.map(s => getSessionAttendeesCoalesced(s.id)));
-	//console.log(results)
-
-	// Merge attendances with sessions
-	sessions.forEach((s, i) => s.Attendees = results[i].attendees);
-
-	const {members} = await getMembers();
-
-	for (const m of members) {
-		m.Attendances = {};
-		let pCount = 0, iCount = 0;
-		for (const s of sessions) {
-			m.Attendances[s.id] = 0;
-			const attendance = s.Attendees.find(a => a.SAPIN === m.SAPIN);
-			if (attendance) {
-				m.Attendances[s.id] = attendance.AttendancePercentage;
-				if (attendance.AttendancePercentage >= 75) {
-					if (s.Type === 'p')
-						pCount++;
-					else
-						iCount++;
-				}
-			}
-		}
-		m.AttendanceCount = pCount + (iCount? 1: 0);
-		m.NewStatus = '';
-		if (!m.StatusChangeOverride && 
-			(m.Status === 'Voter' || m.Status === 'Potential Voter' || m.Status === 'Aspirant' || m.Status === 'Non-Voter')) {
-			const lastIsP = sessions.length > 0 && sessions[0].Type === 'p';
-			/* A Voter, Potential Voter or Aspirant becomes a Non-Voter after failing to attend 1 of the last 4 plenary sessions.
-			 * One interim may be substited for a plenary session. */
-			if (m.AttendanceCount === 0 && m.Status !== 'Non-Voter')
-				m.NewStatus = 'Non-Voter'
-			/* A Non-Voter becomes an Aspirant after attending 1 plenary or interim session.
-			 * A Voter or Potential Voter becomes an Aspirant if they have only attended 1 of the last 4 plenary sessions
-			 * or intervening interim sessions. */
-			else if (m.AttendanceCount === 1 && m.Status !== 'Aspirant')
-				m.NewStatus = 'Aspirant'
-			/* An Aspirant becomes a Potential Voter after attending 2 of the last 4 plenary sessions. One intervening
-			 * interim meeting may be substituted for a plenary meeting. */
-			else if (m.AttendanceCount === 2 && m.Status === 'Aspirant')
-				m.NewStatus = 'Potential Voter'
-			/* A Potential Voter becomes a Voter at the next plenary session after attending 2 of the last 4 plenary 
-			 * sessions. One intervening interim meeting may be substituted for a plenary meeting. */
-			else if (((m.AttendanceCount === 3 && lastIsP) || m.AttendanceCount > 3) && m.Status === 'Potential Voter')
-				m.NewStatus = 'Voter'
-		}
-	}
-
-	sessions.forEach((s, i) => delete s.Attendees);
-
-	return {sessions, members}
+async function getMember(sapin) {
+	const members = await getMembers([sapin]);
+	return members[0];
 }
 
-export async function getMembersWithBallots(user) {
-	let ballots = await db.query('SELECT * FROM ballots WHERE Type=3 OR Type=4');
-	sessions.forEach(s => s.Start = moment(s.Start).tz(s.TimeZone));
-	sessions = sessions.sort((s1, s2) => s1.Start - s2.Start)	// Oldest to newest
-
-	// Plenary sessions only, last 4
-	let plenaries = sessions
-		.filter(s => s.Type === 'p' && s.TotalCredit > 0)
-		.slice(-4);
-	let fromDate = plenaries[0].Start;
-
-	// Plenary and interim sessions from the oldest plenary date
-	sessions = sessions.filter(s => (s.Type === 'i' || s.Type === 'p') && s.TotalCredit > 0 && s.Start >= fromDate);
-
-	//console.log(sessions);
-
-	const results = await Promise.all(sessions.map(s => getSessionAttendees(s.id)));
-	//console.log(results)
-
-	// Merge attendances with sessions
-	sessions.forEach((s, i) => s.Attendees = results[i].attendees);
-
-	const {members} = await getMembers(user);
-
-	for (const m of members) {
-		m.Attendances = {};
-		let pCount = 0, iCount = 0;
-		for (const s of sessions) {
-			m.Attendances[s.id] = 0;
-			const attendance = s.Attendees.find(a => a.SAPIN === m.SAPIN);
-			if (attendance) {
-				m.Attendances[s.id] = attendance.SessionCreditPct;
-				if (attendance.SessionCreditPct >= 0.75) {
-					if (s.Type === 'p')
-						pCount++;
-					else
-						iCount++;
-				}
+function getMemberAttendances(m, sessions) {
+	const attendances = {};
+	let pCount = 0, iCount = 0;
+	const sapins = [m.SAPIN].concat(m.ObsoleteSAPINs);
+	for (const s of sessions) {
+		let a;
+		for (const sapin of sapins) {
+			a = s.Attendees.find(a => a.SAPIN === sapin);
+			if (a)
+				break;
+		}
+		if (a) {
+			attendances[s.id] = {
+				id: a.id,
+				session_id: a.session_id,
+				SAPIN: a.SAPIN,
+				AttendancePercentage: a.AttendancePercentage,
+				DidAttend: a.DidAttend,
+				DidNotAttend: a.DidNotAttend,
+				Notes: a.Notes
+			};
+			if ((a.AttendancePercentage >= 75 && !a.DidNotAttend) || a.DidAttend) {
+				if (s.Type === 'p')
+					pCount++;
+				else
+					iCount++;
 			}
 		}
-		m.NewStatus = '';
-		if (!m.StatusChangeOverride && 
-			(m.Status === 'Voter' || m.Status === 'Potential Voter' || m.Status === 'Aspirant' || m.Status === 'Non-Voter')) {
-			const count = pCount + (iCount? 1: 0);
-			const lastIsP = sessions.length > 0 && sessions[0].Type === 'p';
-			/* A Voter, Potential Voter or Aspirant becomes a Non-Voter after failing to attend 1 of the last 4 plenary sessions.
-			 * One interim may be substited for a plenary session. */
-			if (count === 0 && m.Status !== 'Non-Voter')
-				m.NewStatus = 'Non-Voter'
-			/* A Non-Voter becomes an Aspirant after attending 1 plenary or interim session.
-			 * A Voter or Potential Voter becomes an Aspirant if they have only attended 1 of the last 4 plenary sessions
-			 * or intervening interim sessions. */
-			else if (count === 1 && m.Status !== 'Aspirant')
-				m.NewStatus = 'Aspirant'
-			/* An Aspirant becomes a Potential Voter after attending 2 of the last 4 plenary sessions. One intervening
-			 * interim meeting may be substituted for a plenary meeting. */
-			else if (count === 2 && m.Status === 'Aspirant')
-				m.NewStatus = 'Potential Voter'
-			/* A Potential Voter becomes a Voter at the next plenary session after attending 2 of the last 4 plenary 
-			 * sessions. One intervening interim meeting may be substituted for a plenary meeting. */
-			else if (((count === 3 && lastIsP) || count > 3) && m.Status === 'Potential Voter')
-				m.NewStatus = 'Voter'
+		else {
+			attendances[s.id] = {
+				id: null,
+				session_id: s.id,
+				SAPIN: m.SAPIN,
+				AttendancePercentage: 0,
+				DidAttend: 0,
+				DidNotAttend: 0,
+				Notes: ''
+			};
 		}
 	}
+	const attendanceCount = pCount + (iCount? 1: 0);
+	let newStatus = '';
+	if (!m.StatusChangeOverride && 
+		(m.Status === 'Voter' || m.Status === 'Potential Voter' || m.Status === 'Aspirant' || m.Status === 'Non-Voter')) {
+		const lastIsP = sessions.length > 0 && sessions[0].Type === 'p';
+		/* A Voter, Potential Voter or Aspirant becomes a Non-Voter after failing to attend 1 of the last 4 plenary sessions.
+		 * One interim may be substited for a plenary session. */
+		if (m.AttendanceCount === 0 && m.Status !== 'Non-Voter')
+			newStatus = 'Non-Voter'
+		/* A Non-Voter becomes an Aspirant after attending 1 plenary or interim session.
+		 * A Voter or Potential Voter becomes an Aspirant if they have only attended 1 of the last 4 plenary sessions
+		 * or intervening interim sessions. */
+		else if (attendanceCount === 1 && m.Status !== 'Aspirant')
+			newStatus = 'Aspirant'
+		/* An Aspirant becomes a Potential Voter after attending 2 of the last 4 plenary sessions. One intervening
+		 * interim meeting may be substituted for a plenary meeting. */
+		else if (attendanceCount === 2 && m.Status === 'Aspirant')
+			newStatus = 'Potential Voter'
+		/* A Potential Voter becomes a Voter at the next plenary session after attending 2 of the last 4 plenary 
+		 * sessions. One intervening interim meeting may be substituted for a plenary meeting. */
+		else if (((attendanceCount === 3 && lastIsP) || attendanceCount > 3) && m.Status === 'Potential Voter')
+			newStatus = 'Voter'
+	}
 
-	sessions.forEach((s, i) => delete s.Attendees);
+	return {...m, Attendances: attendances, AttendanceCount: attendanceCount, NewStatus: newStatus}
+}
 
-	return {sessions, members}
+function getMemberBallotSeriesParticipation(m, ballotSeries) {
+	const summary = {};
+	const member = {
+		...m,
+		BallotSeriesSummary: summary,
+		BallotSeriesTotal: 0,
+		BallotSeriesCount: 0
+	};
+	let id = 0;
+	const sapins = [m.SAPIN].concat(m.ObsoleteSAPINs);
+	for (const ballots of ballotSeries) {
+		// Ignore if members last status change occured after the ballot series started
+		if (ballots[0].Start < m.StatusChangeDate)
+			continue;
+		let v;
+		for (const sapin of sapins) {
+			v = ballots[0].Voters.find(v => v.SAPIN === sapin);
+			if (v)
+				break;
+		}
+		if (v) {
+			// Member in voting pool, therefore counts toward maintaining voting rights
+			summary[id] = {
+				BallotIDs: ballots.map(b => b.BallotID).join(', '),
+				VotingPoolID: ballots[0].VotingPoolID,
+				Start: ballots[0].Start,
+				End: ballots[ballots.length-1].End,
+				Project: ballots[0].Project,
+				Excused: v.Excused,
+				SAPIN: null,
+				BallotID: null,
+				Vote: null,
+				CommentCount: null,
+			};
+			member.BallotSeriesTotal++;
+			// Find last vote
+			let r, b;
+			for (b of ballots.slice().reverse()) {
+				for (const sapin of sapins) {
+					r = b.Results.find(r => r.SAPIN === sapin);
+					if (r)
+						break;
+				}
+				if (r)
+					break;
+			}
+			if (r) {
+				summary[id].SAPIN = r.SAPIN;
+				summary[id].BallotID = b.BallotID;
+				summary[id].Vote = r.Vote;
+				summary[id].CommentCount = r.CommentCount;
+			}
+			if (r || v.Excused)
+				member.BallotSeriesCount++;
+			id++;
+		}
+	}
+	if (!member.StatusChangeOverride &&
+		member.Status === 'Voter' &&
+		member.BallotSeriesTotal === 3 &&
+		member.BallotSeriesCount < 2)
+			member.NewStatus = 'Non-Voter'
+	return member;
+}
+
+export async function getMembersWithParticipation(sapins) {
+	const sessions = await getRecentSessionsWithAttendees();
+	const ballotSeries = await getRecentBallotSeriesWithResults();
+	let members = await getMembers(sapins);
+	members = members
+		.map(m => getMemberAttendances(m, sessions))
+		.map(m => getMemberBallotSeriesParticipation(m, ballotSeries));
+	return members;
+}
+
+async function getMemberWithParticipation(sapin) {
+	const members = await getMembersWithParticipation([sapin]);
+	console.log(members)
+	return members[0];
+}
+
+/*
+ * Get a snapshot of the members and their status at a specific date 
+ * by walking through the status change history.
+ */
+export async function getMembersSnapshot(date) {
+	let members = await getMembers();
+	date = new Date(date);
+	//console.log(date.toISOString().substr(0,10));
+	members = members
+		.filter(m => m.DateAdded < date)
+		.map(m => {
+			m.StatusChangeHistory.forEach(h => h.Date = new Date(h.Date));
+			let history = m.StatusChangeHistory.sort((h1, h2) => h2.Date - h1.Date);
+			let status = m.Status;
+			//console.log(`${m.SAPIN}:`)
+			for (const h of history) {
+				//console.log(`${h.Date.toISOString().substr(0,10)} ${h.OldStatus} -> ${h.NewStatus}`)
+				if (h.Date > date && h.OldStatus && h.NewStatus) {
+					if (status !== h.NewStatus)
+						console.warn(`${m.SAPIN}: Status mismatch; status=${status} but new status=${h.NewStatus}`);
+					status = h.OldStatus;
+					//console.log(`status=${status}`)
+				}
+			}
+			//console.log(`final Status=${status}`)
+			return {
+				...m,
+				Status: status
+			}
+		});
+
+	//console.log(members);
+	return members
 }
 
 const Status = {
@@ -191,12 +269,22 @@ function memberEntry(m) {
 		FirstName: m.FirstName,
 		MI: m.MI,
 		Email: m.Email,
-		Status: m.Status,
 		Affiliation: m.Affiliation,
 		Employer: m.Employer,
 		Access: m.Access,
-		StatusChangeOverride: m.StatusChangeOverride
+		Status: m.Status,
+		StatusChangeOverride: m.StatusChangeOverride,
+		ReplacedBySAPIN: m.ReplacedBySAPIN
 	};
+
+	if (m.ContactInfo !== undefined)
+		entry.ContactInfo = JSON.stringify(m.ContactInfo)
+
+	if (m.ContactEmails !== undefined)
+		entry.ContactEmails = JSON.stringify(m.ContactEmails)
+
+	if (m.StatusChangeHistory !== undefined)
+		entry.StatusChangeHistory = JSON.stringify(m.StatusChangeHistory)
 
 	for (const key of Object.keys(entry)) {
 		if (entry[key] === undefined)
@@ -211,60 +299,188 @@ function memberEntry(m) {
 
 export async function addMember(member) {
 
-	let entry = memberEntry(member);
-
+	const entry = memberEntry(member);
 	if (!entry.SAPIN)
 		throw 'Must provide SAPIN';
 
-	const SQL = 
-		db.format('INSERT INTO members (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]) +
-		db.format('SELECT * FROM members WHERE SAPIN=?;', [entry.SAPIN])
-	try {
-		const [noop, members] = await db.query(SQL);
-		return {member: members[0]}
-	}
-	catch (err) {
-		throw err.code === 'ER_DUP_ENTRY'? `A member with SAPIN ${entry.SAPIN} already exists`: err
-	}
+	await db.query('INSERT INTO members (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]);
+
+	return await getMemberWithParticipation(entry.SAPIN);
 }
 
-export async function updateMember(id, member) {
-
-	let entry = memberEntry(member);
-
-	if (Object.keys(entry).length) {
-		const SQL =
-			db.format("UPDATE members SET ? WHERE id=?;",  [entry, id]) +
-			db.format("SELECT ?? from members WHERE id=?;", [Object.keys(entry), id])
-		const [noop, members] = await db.query(SQL);
-		entry = members[0];
-	}
-
-	return {member: entry}
+export async function updateMemberStatusChange(sapin, statusChangeEntry) {
+	const member = await getMember(sapin);
+	const history = member.StatusChangeHistory.map(h => h.id === statusChangeEntry.id? {...h, ...statusChangeEntry}: h);
+	await db.query(
+		'UPDATE members SET ' + 
+			'StatusChangeHistory=? ' +
+		'WHERE SAPIN=?;', 
+		[JSON.stringify(history), sapin]
+	);
+	return await getMemberWithParticipation(sapin);
 }
 
+export async function deleteMemberStatusChange(sapin, statusChangeId) {
+	const member = await getMember(sapin);
+	const history = member.StatusChangeHistory.filter(h => h.id !== statusChangeId);
+	await db.query(
+		'UPDATE members SET ' + 
+			'StatusChangeHistory=? ' +
+		'WHERE SAPIN=?;', 
+		[JSON.stringify(history), sapin]
+	);
+	return await getMemberWithParticipation(sapin);
+}
+
+export async function updateMemberContactEmail(sapin, entry) {
+	const member = await getMember(sapin);
+	const emails = member.ContactEmails.map(h => h.id === entry.id? {...h, ...entry}: h);
+	await db.query(
+		'UPDATE members SET ' + 
+			'ContactEmails=? ' +
+		'WHERE SAPIN=?;', 
+		[JSON.stringify(emails), sapin]
+	);
+	return await getMemberWithParticipation(sapin);
+}
+
+export async function addMemberContactEmail(sapin, entry) {
+	const member = await getMember(sapin);
+	const id = member.ContactEmails.reduce((maxId, h) => h.id > maxId? h.id: maxId, 0) + 1;
+	const emails = member.ContactEmails.slice();
+	emails.unshift({id, DateAdded: new Date(), ...entry});
+	await db.query(
+		'UPDATE members SET ' + 
+			'ContactEmails=? ' +
+		'WHERE SAPIN=?;', 
+		[JSON.stringify(emails), sapin]
+	);
+	return await getMemberWithParticipation(sapin);
+}
+
+export async function deleteMemberContactEmail(sapin, entry) {
+	const member = await getMember(sapin);
+	const emails = member.ContactEmails.filter(h => h.id !== entry.id);
+	await db.query(
+		'UPDATE members SET ' + 
+			'ContactEmails=? ' +
+		'WHERE SAPIN=?;', 
+		[JSON.stringify(emails), sapin]
+	);
+	return await getMemberWithParticipation(sapin);
+}
+
+async function updateMemberStatus(member, status, reason) {
+	const date = new Date();
+	const id = member.StatusChangeHistory.reduce((maxId, h) => h.id > maxId? h.id: maxId, 0) + 1;
+	const historyEntry = {
+		id,
+		Date: date,
+		OldStatus: member.Status,
+		NewStatus: status,
+		Reason: reason
+	};
+	const replacedBySAPIN = (member.Status === 'Obsolete' && status !== 'Obsolete')? null: member.ReplacedBySAPIN;
+	await db.query(
+		'UPDATE members SET ' + 
+			'Status=?, ' + 
+			'StatusChangeDate=?, ' +
+			'StatusChangeHistory=JSON_ARRAY_INSERT(StatusChangeHistory, \'$[0]\', CAST(? AS JSON)), ' +
+			'ReplacedBySAPIN=? ' +
+		'WHERE SAPIN=?;', 
+		[status, date, JSON.stringify(historyEntry), replacedBySAPIN, member.SAPIN]
+	);
+}
+
+export async function updateMember(sapin, changes) {
+	const p = [];
+	const {Attendances, BallotSeriesSummary, Status, StatusChangeReason, ...changesRest} = changes;
+
+	if (Attendances && Object.keys(Attendances).length)
+		p.push(upsertMemberAttendanceSummaries(sapin, Attendances));
+
+	if (BallotSeriesSummary && Object.keys(BallotSeriesSummary).length > 0) {
+		for (let summary of Object.values(BallotSeriesSummary))
+			p.push(updateVoter(summary.VotingPoolID, sapin, {Excused: summary.Excused}));
+	}
+
+	/* If the member status changes, then update the status change history */
+	const member = await getMember(sapin);
+	if (Status && Status !== member.Status)
+		p.push(updateMemberStatus(member, Status, StatusChangeReason || ''));
+
+	const entry = memberEntry(changesRest);
+	if (Object.keys(entry).length)
+		p.push(db.query("UPDATE members SET ? WHERE SAPIN=?;",  [entry, sapin]));
+
+	if (p.length)
+		await Promise.all(p);
+
+	return getMemberWithParticipation(sapin);
+}
+
+export async function updateMembers(members) {
+	const newMembers = await Promise.all(members.map(m => updateMember(m.SAPIN, m)));
+	return newMembers;
+}
+
+/*
+ * Update existing member details (Name, Email, Affiliation) and insert as new members
+ */
 export async function upsertMembers(attendees) {
 
 	const sapins = Object.keys(attendees);
 	const existing = await db.query('SELECT * FROM members WHERE SAPIN IN (?)', [sapins]);
-	console.log(existing)
 	const insert = {...attendees};
 	const update = {};
-	for (const u of existing) {
-		if (insert[u.SAPIN]) {
-			update[u.id] = insert[u.SAPIN];
-			delete insert[u.SAPIN];
+	for (const m of existing) {
+		const i = insert[m.SAPIN];
+		if (i) {
+			delete insert[m.SAPIN];
+			const memberUpdate = {};
+			if (m.Name !== i.Name)
+				memberUpdate.Name = i.Name;
+			if (m.Email !== i.Email)
+				memberUpdate.Email = i.Email;
+			if (m.Affiliation !== i.Affiliation)
+				memberUpdate.Affiliation = i.Affiliation;
+			if (Object.keys(memberUpdate).length > 0) {
+				update[m.id] = memberUpdate;
+			}
 		}
 	}
 
-	const SQL = 
-		Object.values(update).map(u => db.format('UPDATE members SET ? WHERE id=?;', [memberEntry(u), u.id])).join(' ') +
-		Object.values(insert).map(u => db.format('INSERT members SET ?;', [memberEntry(u)])).join(' ') +
-		db.format('SELECT * FROM members WHERE SAPIN IN (?);', [sapins]);
+	for (const i of Object.values(insert)) {
+		i.Status = 'Non-Voter';
+		i.DataAdded = new Date();
+		i.StatusChangeHistory = [{
+			Date: i.DateAdded,
+			OldStatus: '',
+			NewStatus: i.Status,
+			Reason: 'New attendee'
+		}];
+		i.ContactEmails = [{
+			Email: i.Email,
+			Primary: 1,
+			Broken: 0,
+			DateAdded: i.DateAdded
+		}];
+	}
+	console.log(update)
 
-	const results = await db.query(SQL);
+	const sql = '';
+	if (Object.entries(update).length > 0)
+		sql += Object.entries(update).map(
+			([id, m]) => db.format('UPDATE members SET ? WHERE id=?;', [memberEntry(m), id])
+		).join('');
+	if (Object.values(insert).length > 0)
+		sql += Object.values(insert).map(
+			m => db.format('INSERT members SET ?;', [memberEntry(m)])
+		).join(' ');
+	if (sql)
+		await db.query(sql);
 
-	return {members: results[results.length-1]}
+	return getMembersWithParticipation(sapins);
 }
 
 export async function deleteMembers(ids) {
@@ -273,36 +489,147 @@ export async function deleteMembers(ids) {
 	return null;
 }
 
+
+async function uploadDatabaseMembers(buffer) {
+	let members = await parseMembersSpreadsheet(file.buffer);
+	members = members.filter(m => m.SAPIN > 0);
+	const sql =
+		'DELETE FROM members; ' +
+		db.format('INSERT INTO members (??) VALUES ', [Object.keys(members[0])]) +
+		members.map(u => '(' + db.escape(Object.values(u)) + ')').join(', ') +
+		';';
+	await db.query(sql);
+}
+
+async function uploadDatabaseMemberSAPINs(buffer) {
+	const [sapins, members] = await Promise.all([
+			parseSAPINsSpreadsheet(buffer),
+			db.query('SELECT MemberID, SAPIN, ReplacedBySAPIN, Status FROM members;')
+		]);
+	let sql = '';
+	for (const s of sapins) {
+		/* Find member with indexed MemberID */
+		const m1 = members.find(m => m.MemberID === s.MemberID);
+		if (m1) {
+			if (m1.SAPIN === s.SAPIN) {
+				sql += db.format(
+						'UPDATE members SET DateAdded=? WHERE MemberID=?;',
+						[s.DateAdded, m1.MemberID]
+					);
+			}
+			else {
+				const m2 = members.find(m => m.SAPIN === s.SAPIN);
+				if (m2) {
+					if (m2.MemberID !== s.MemberID) {
+						sql += db.format(
+								'UPDATE members SET Status="Obsolete", ReplacedBySAPIN=? WHERE MemberID=?;',
+								[m1.SAPIN, m2.MemberID]
+							);
+					}
+				}
+				else {
+					const entry = {
+						SAPIN: s.SAPIN,
+						ReplacedBySAPIN: m1.SAPIN,
+						Status: 'Obsolete',
+						Notes: 'Replaced by SAPIN=' + m1.SAPIN,
+						DateAdded: s.DateAdded
+					}
+					sql += db.format('INSERT INTO members SET ?;', [entry])
+				}
+			}
+		}
+	}
+	await db.query(sql);
+}
+
+async function uploadDatabaseMemberEmails(buffer) {
+	const emailsArray = await parseEmailsSpreadsheet(buffer);
+	const emailsObj = {};
+	for (const entry of emailsArray) {
+		const memberId = entry.MemberID;
+		delete entry.MemberID;
+		if (!emailsObj[memberId])
+			emailsObj[memberId] = [];
+		emailsObj[memberId].push(entry);
+	}
+	const sql =
+		'UPDATE members SET ContactEmails=JSON_ARRAY(); ' +
+		Object.entries(emailsObj).map(([memberId, memberEmails]) => {
+			const emails = memberEmails.map((entry, i) => ({id: i+1, ...entry}))	// Insert id for each entry
+			return db.format(
+				'UPDATE members SET ' +
+					'ContactEmails=? ' +
+				'WHERE MemberID=?; ',
+				[JSON.stringify(emails), memberId]
+			);
+		}).join('');
+	await db.query(sql);
+}
+
+async function uploadDatabaseMemberHistory(buffer) {
+	const historyArray = await parseHistorySpreadsheet(buffer);
+	const historyObj = {};
+	for (const h of historyArray) {
+		const memberId = h.MemberID;
+		delete h.MemberID;
+		if (!historyObj[memberId])
+			historyObj[memberId] = [];
+		historyObj[memberId].push(h);
+	}
+	const sql =
+		'UPDATE members SET StatusChangeHistory=JSON_ARRAY(); ' +
+		Object.entries(historyObj).map(([memberId, h1]) => {
+			const h2 = h1
+				.map((entry, i) => ({id: i+1, ...entry}))	// Insert id for each entry
+				.reverse()									// Latest first
+			return db.format(
+				'UPDATE members SET ' +
+					'StatusChangeHistory=? ' +
+				'WHERE MemberID=?; ',
+				[JSON.stringify(h2), memberId]
+			);
+		}).join('');
+	await db.query(sql);
+}
+
 export const UploadFormat = {
-	Roster: 'roster',
 	Members: 'members',
 	SAPINs: 'sapins',
-	Emails: 'emails'
+	Emails: 'emails',
+	History: 'history'
 };
 
 export async function uploadMembers(format, file) {
 
-	let roster = [], members = [], sapins = [], emails = [];
+	let roster = [], members = [], sapins = [], emails = [], history = [];
 	switch (format) {
-		case UploadFormat.Roster:
-			roster = await parseMyProjectRosterSpreadsheet(file.buffer);
-			break;
 		case UploadFormat.Members:
-			members = await parseMembersSpreadsheet(file.buffer);
-			members = members.filter(m => m.SAPIN > 0);
+			await uploadDatabaseMembers(file.buffer);
 			break;
 		case UploadFormat.SAPINs:
-			sapins = await parseSAPINsSpreadsheet(file.buffer);
+			await uploadDatabaseMemberSAPINs(file.buffer);
 			break;
 		case UploadFormat.Emails:
-			emails = await parseEmailsSpreadsheet(file.buffer);
+			await uploadDatabaseMemberEmails(file.buffer);
+			break;
+		case UploadFormat.History:
+			await uploadDatabaseMemberHistory(file.buffer);
 			break;
 		default:
 			throw `Unknown format: ${format}. Extected: ${Object.values(UploadFormat)}.`
 	}
 
+	return getMembersWithParticipation();
+}
+
+export async function importMyProjectRoster(file) {
+	let roster = await parseMyProjectRosterSpreadsheet(file.buffer);
 	roster = roster
-		.filter(u => typeof u.SAPIN === 'number' && u.SAPIN > 0 && !u.Status.search(/^Voter|^Potential|^Aspirant|^Non-Voter|^ExOfficio/g))
+		.filter(u => 
+			typeof u.SAPIN === 'number' && u.SAPIN > 0 &&
+			!u.Status.search(/^Voter|^Potential|^Aspirant|^Non-Voter/)
+		)
 		.map(u => ({
 			SAPIN: u.SAPIN,
 			Name: u.Name,
@@ -314,69 +641,22 @@ export async function uploadMembers(format, file) {
 			Affiliation: u.Affiliation,
 			Employer: u.Employer
 		}));
+	const insertKeys = Object.keys(roster[0]);
+	const updateKeys = insertKeys.filter(k => k !== 'SAPIN' && k !== 'Status');
+	const sql =
+		`INSERT INTO members (${insertKeys}) VALUES ` +
+		roster.map(m => '(' + db.escape(Object.values(m)) + ')').join(', ') +
+		' ON DUPLICATE KEY UPDATE ' +
+		updateKeys.map(k => k + '=VALUES(' + k + ')') +
+		';';
+	await db.query(sql);
 
-	//console.log(members);
-	let SQL = '';
-	if (roster.length) {
-		SQL =
-			`INSERT INTO users (${Object.keys(members[0])}) VALUES ` +
-			members.map(u => '(' + db.escape(Object.values(u)) + ')').join(', ') +
-			' ON DUPLICATE KEY UPDATE ' +
-			Object.keys(members[0]).filter(k => k !== 'SAPIN').map(k => k + '=VALUES(' + k + ')') +
-			';';
-		console.log(SQL)
-		await db.query(SQL);
-	}
-	if (members.length) {
-		SQL =
-			'DELETE FROM members; ' +
-			db.format('INSERT INTO members (??) VALUES ', [Object.keys(members[0])]) +
-			members.map(u => '(' + db.escape(Object.values(u)) + ')').join(', ') +
-			';';
-		await db.query(SQL);
-	}
-	if (sapins.length) {
-		const members = await db.query('SELECT MemberID, SAPIN, ReplacedBySAPIN, Status FROM members;')
-		for (const s of sapins) {
-			/* If the member_id and SAPIN match, then update DateAdded */
-			const m1 = members.find(m => m.MemberID === s.MemberID)
-			if (m1) {
-				if (m1.SAPIN === s.SAPIN) {
-					db.query(
-							'UPDATE members SET DateAdded=? WHERE MemberID=?',
-							[s.DateAdded, m1.MemberID]
-						).catch(console.warn);
-				}
-				else {
-					const m2 = members.find(m => m.SAPIN === s.SAPIN);
-					if (m2) {
-						if (m2.MemberID !== s.MemberID) {
-							db.query(
-									'UPDATE members SET Status="Obsolete", ReplacedBySAPIN=? WHERE MemberID=?',
-									[m1.SAPIN, m2.MemberID]
-								).catch(console.warn);
-						}
-					}
-					else {
-						const entry = {
-							SAPIN: s.SAPIN,
-							ReplacedBySAPIN: m1.SAPIN,
-							Status: 'Obsolete',
-							Notes: 'Replaced by SAPIN=' + m1.SAPIN
-						}
-						db.query('INSERT INTO members SET ?, DateAdded=NOW()', [entry]).catch(console.warn);
-					}
-				}
-			}
-		}
-	}
-	if (emails.length) {
-		SQL =
-			'DELETE FROM emails; ' +
-			db.format('INSERT INTO emails (??) VALUES ', [Object.keys(emails[0])]) +
-			emails.map(u => '(' + db.escape(Object.values(u)) + ')').join(', ') +
-			';'
-		await db.query(SQL);
-	}
-	return getMembers();
+	return getMembersWithParticipation();
+}
+
+export async function exportMyProjectRoster(res) {
+	let members = await getMembers();
+	members = members.filter(m => !m.Status.search(/^Voter|^Aspirant|^Potential Voter|^Non-Voter/));
+	await genMyProjectRosterSpreadsheet(members, res);
+	res.end();
 }

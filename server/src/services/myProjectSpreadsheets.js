@@ -179,18 +179,70 @@ const myProjectRosterHeader = [
 	'Employer', 'Affiliation', 'Officer Role', 'Involvement Level'
 ]
 
-const mapInvolvementLevelToStatus = {
+const involvementLevelToStatus = {
 	'Aspirant Member': 'Aspirant',
 	'Potential Member': 'Potential Voter',
 	'Voting Member': 'Voter',
 	'Observer': 'Non-Voter',
-	'Non-Voting Member': 'Other',
+	'Non-Voting Member': 'Non-Voter',
 	'Corresponding Member': 'Other',
 	'Member': 'Other',
 	'Nearly Member': 'Other',
 };
 
-const mapStatus = (involvementLevel) => (mapInvolvementLevelToStatus[involvementLevel] || 'Other');
+const mapStatus = (involvementLevel) => 
+	involvementLevelToStatus[involvementLevel] || 'Other';
+
+const statusToInvolvementLevel = {
+	'Aspirant': 'Aspirant Member',
+	'Potential Voter': 'Potential Member',
+	'Voter': 'Voting Member',
+	'Non-Voter': 'Observer'
+}
+
+const myProjectRosterColumns = {
+	'SA PIN': {
+		width: 19,
+		set: m => m.SAPIN
+	},
+	'Last Name': {
+		width: 24,
+		set: m => m.LastName
+	},
+	'First Name': {
+		width: 20,
+		set: m => m.FirstName
+	},
+	'Middle Name': {
+		width: 18,
+		set: m => m.MI
+	},
+	'Email Address': {
+		width: 41,
+		set: m => m.Email
+	},
+	'Street Address/PO Box': {width: 41},
+	'City': {width: 41},
+	'Postal Code': {width: 41},
+	'Country': {width: 41},
+	'Phone': {width: 31},
+	'Employer': {
+		width: 25,
+		set: m => m.Employer
+	},
+	'Affiliation': {
+		width: 30,
+		set: m => m.Affiliation
+	},
+	'Officer Role': {width: 20},
+	'Involvement Level': {
+		width: 26,
+		set: m => mapStatusToInvolvementLevel(m.Status),
+	}
+};
+
+const mapStatusToInvolvementLevel = (status) => 
+	statusToInvolvementLevel[status] || 'Observer';
 
 function parseRosterEntry(u) {
 	let user = {
@@ -236,3 +288,37 @@ export async function parseMyProjectRosterSpreadsheet(buffer) {
 	return p.map(parseRosterEntry);
 }
 
+/*
+ * generate MyProject roster spreadsheet
+ */
+export async function genMyProjectRosterSpreadsheet(members, res) {
+
+	let workbook = new ExcelJS.Workbook()
+	workbook.creator = '802.11'
+	workbook.created = new Date();
+	workbook.lastModifiedBy = '802.11';
+	workbook.modified = new Date();
+
+	let worksheet = workbook.addWorksheet('Roster Upload Template');
+	worksheet.addRow(Object.keys(myProjectRosterColumns));
+	worksheet.getRow(1).font = {bold: true};
+	members.forEach((m, i) => {
+		const row = worksheet.getRow(i + 2);
+		row.values = 
+			Object.values(myProjectRosterColumns)
+				.map(col => typeof col.set === 'function'? col.set(m): (col.set || ''))
+	});
+	Object.values(myProjectRosterColumns).forEach((col, i) => {
+		const column = worksheet.getColumn(i+1);
+		if (col.width)
+			column.width = col.width;
+	});
+
+	res.attachment('RosterUsers.xlsx')
+	try {
+		await workbook.xlsx.write(res)
+	}
+	catch(err) {
+		throw "Unable to regenerate workbook: " + err
+	}
+}

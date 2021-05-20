@@ -7,7 +7,6 @@ import selectedSlice, {setSelected} from 'dot11-common/store/selected'
 import uiSlice from 'dot11-common/store/ui'
 import {setError} from 'dot11-common/store/error'
 
-
 const SessionType = {
 	Plenary: 'p',
 	Interim: 'i',
@@ -15,29 +14,29 @@ const SessionType = {
 	General: 'g',
 }
 
-export const MeetingTypeOptions = [
+export const SessionTypeOptions = [
 	{value: SessionType.Plenary, label: 'Plenary'},
 	{value: SessionType.Interim, label: 'Interim'},
 	{value: SessionType.Other, label: 'Other'},
 	{value: SessionType.General, label: 'General'}
 ]
 
-const meetingFields = ['id', 'Start', 'End', 'Name', 'Type', 'TimeZone']
+const fields = ['id', 'Start', 'End', 'Name', 'Type', 'TimeZone']
 
 /*
  * Generate a filter for each field (table column)
  */
-const defaultFiltersEntries = meetingFields.reduce((entries, dataKey) => {
+const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
 	let options;
 	if (dataKey === 'Type')
-		options = MeetingTypeOptions;
+		options = SessionTypeOptions;
 	return {...entries, [dataKey]: {options}}
 }, {});
 
 /*
  * Generate object that describes the initial sort state
  */
-const defaultSortEntries = meetingFields.reduce((entries, dataKey) => {
+const defaultSortEntries = fields.reduce((entries, dataKey) => {
 	let type
 	switch (dataKey) {
 		case 'id':
@@ -149,6 +148,8 @@ const {getPending, getSuccess, getFailure} = slice.actions;
 
 export const loadSessions = () =>
 	async (dispatch, getState) => {
+		if (getState()[dataSet].loading)
+			return;
 		await dispatch(getPending());
 		let sessions;
 		try {
