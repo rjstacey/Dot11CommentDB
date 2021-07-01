@@ -134,7 +134,7 @@ export async function getVoters(votingPoolId) {
 
 async function getVoter(votingPoolId, sapin) {
 	const sql = getVotersFullSQL(votingPoolId, [sapin]);
-	const voters = await dq.query(sql);
+	const voters = await db.query(sql);
 	return voters[0];
 }
 

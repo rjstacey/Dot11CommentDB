@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {FixedSizeList as List} from 'react-window'
-import {Select} from 'dot11-common/general/Form'
+import {Select} from 'dot11-components/general/Form'
 import {loadTimeZones} from '../store/sessions'
 
 const StyledItem = styled.div`

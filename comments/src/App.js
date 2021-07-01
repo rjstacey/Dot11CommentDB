@@ -3,12 +3,10 @@ import {BrowserRouter as Router, Switch, Route, NavLink, Redirect} from 'react-r
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {ErrorModal, ConfirmModal} from 'dot11-common/modals'
-import {loginGetState, AccessLevel} from 'dot11-common/store/login'
-import Account, {SignIn} from 'dot11-common/general/Login'
+import Account from 'dot11-common/general/Account'
+import {AccessLevel} from 'dot11-common/lib/user'
 
 import Users from './users/Users'
-import VotersPools from './voters/VotersPools'
-import Voters from './voters/Voters'
 import Ballots from './ballots/Ballots'
 import Epolls from './ballots/Epolls'
 import Results from './results/Results'
@@ -81,9 +79,7 @@ const RestrictedRoute = ({component: Component, access, minAccess, ...rest }) =>
 		}
 	/>
 
-function App({user, access, loginGetState}) {
-
-	React.useEffect(() => {loginGetState()}, [loginGetState]);
+function App({user, access}) {
 
 	return (
 		<Router>
@@ -91,52 +87,24 @@ function App({user, access, loginGetState}) {
 				<Header>
 					<Title>802.11 Comment Resolution Tool</Title>
 					<Nav>
-						{(access >= AccessLevel.WGAdmin)&& 
-							<React.Fragment>
-								<NavLink to="/Users/" activeClassName='active'>Users</NavLink>
-								<NavLink to="/Voters/" activeClassName='active'>Voter Pools</NavLink>
-							</React.Fragment>}
-						{(access >= AccessLevel.Public)&& 
-							<React.Fragment>
+						{access >= AccessLevel.Public && 
+							<>
 								<NavLink to="/Ballots/" activeClassName='active'>Ballots</NavLink>
 								{access >= AccessLevel.SubgroupAdmin && <NavLink to="/Results" activeClassName='active'>Results</NavLink>}
 								<NavLink to="/Comments" activeClassName='active'>Comments</NavLink>
 								{access >= AccessLevel.SubgroupAdmin && <NavLink to="/Reports" activeClassName='active'>Reports</NavLink>}
-							</React.Fragment>}
+							</>
+						}
 					</Nav>
-					<Account />
+					<Account user={user} />
 				</Header>
 				<Main>
 					<Switch>
-						<RestrictedRoute
-							path="/Users/"
-							access={access}
-							minAccess={AccessLevel.WGAdmin}
-							component={Users}
-						/>
-						<RestrictedRoute
-							path="/Voters/" exact
-							access={access}
-							minAccess={AccessLevel.WGAdmin}
-							component={VotersPools}
-						/>
-						<RestrictedRoute
-							path="/Voters/:votingPoolName"
-							access={access}
-							minAccess={AccessLevel.WGAdmin}
-							component={Voters}
-						/>
 						<RestrictedRoute
 							path="/Ballots/:ballotId?"
 							access={access}
 							minAccess={AccessLevel.Public}
 							component={Ballots}
-						/>
-						<RestrictedRoute
-							path="/Epolls/"
-							access={access}
-							minAccess={AccessLevel.WGAdmin}
-							component={Epolls}
 						/>
 						<RestrictedRoute
 							path="/Results/:ballotId?"
@@ -155,8 +123,6 @@ function App({user, access, loginGetState}) {
 							minAccess={AccessLevel.SubgroupAdmin}
 							component={Reports}
 						/>
-						<Route path="/Login" exact component={SignIn} />
-						<Route path="/" component={SignIn} />
 					</Switch>
 					<ErrorModal />
 					<ConfirmModal />
@@ -166,17 +132,4 @@ function App({user, access, loginGetState}) {
 	)
 }
 
-export default connect(
-	(state, ownProps) => {
-		const user = state.login.user
-		return {
-			access: user? user.Access: -1,
-			user: user
-		}
-	},
-	(dispatch, ownProps) => {
-		return {
-			loginGetState: () => dispatch(loginGetState())
-		}
-	}
-)(App)
+export default App;

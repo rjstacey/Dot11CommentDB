@@ -1,5 +1,5 @@
-import fetcher from 'dot11-common/store/fetcher'
-import {setError} from 'dot11-common/store/error'
+import fetcher from 'dot11-components/lib/fetcher'
+import {setError} from 'dot11-components/store/error'
 
 import {updateBallotSuccess} from './ballots'
 

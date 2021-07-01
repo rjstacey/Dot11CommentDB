@@ -5,12 +5,12 @@ import styled from '@emotion/styled'
 import {useHistory} from "react-router-dom"
 import copyToClipboard from 'copy-html-to-clipboard'
 
-import AppTable, {ControlHeader, ControlCell, ColumnDropdown, ColumnSelector, ShowFilters, IdSelector} from 'dot11-common/table'
-import {ConfirmModal} from 'dot11-common/modals'
-import {ActionButton, Button} from 'dot11-common/lib/icons'
-import {setTableView, upsertTableColumns, setProperty} from 'dot11-common/store/ui'
-import {Field, Input, Form, Row} from 'dot11-common/general/Form'
-import {ActionButtonDropdown} from 'dot11-common/general/Dropdown'
+import AppTable, {SelectHeader, SelectCell, DataColumnHeader, ColumnSelector, ShowFilters, IdSelector} from 'dot11-components/table'
+import {ConfirmModal} from 'dot11-components/modals'
+import {ActionButton, Button} from 'dot11-components/lib/icons'
+import {setTableView, initTableConfig, setProperty} from 'dot11-components/store/ui'
+import {Field, Input, Form, Row} from 'dot11-components/general/Form'
+import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
 
 import MembersUpload from './MembersUpload'
 import MemberUpdateModal from './MemberUpdate'
@@ -18,7 +18,7 @@ import MembersSummary from './MembersSummary'
 import MemberDetail from './MemberDetail'
 import {RosterImport, RosterExport} from './Roster'
 
-import {loadMembers, deleteSelectedMembers, updateMembers, AccessLevel, AccessLevelOptions} from '../store/members'
+import {fields, loadMembers, deleteSelectedMembers, updateMembers, AccessLevel, AccessLevelOptions} from '../store/members'
 import {loadSessions} from '../store/sessions'
 
 
@@ -102,31 +102,31 @@ const renderAccess = ({rowData}) => {
 	return item? item.label: 'error';
 }
 
-const MembersColumnDropdown = (props) => <ColumnDropdown dataSet={dataSet} {...props}/>;
+const MembersColumnDropdown = (props) => <DataColumnHeader dataSet={dataSet} {...props}/>;
 
 const renderHeaderNameAndEmail = (props) =>
-	<React.Fragment>
+	<>
 		<MembersColumnDropdown {...props} dataKey='Name' label='Name' />
-		<MembersColumnDropdown {...props} dataKey='Email' label='Email' />
-	</React.Fragment>
+		<MembersColumnDropdown {...props} dataKey='Email' label='Email' dropdownWidth={200} />
+	</>
 
 export const renderNameAndEmail = ({rowData}) =>
-	<React.Fragment>
+	<>
 		<DivLineTruncated style={{fontWeight: 'bold'}}>{rowData.Name}</DivLineTruncated>
 		<DivLineTruncated>{rowData.Email}</DivLineTruncated>
-	</React.Fragment>
+	</>
 
 const renderHeaderEmployerAndAffiliation = (props) =>
-	<React.Fragment>
+	<>
 		<MembersColumnDropdown {...props} dataKey='Employer' label='Employer' />
 		<MembersColumnDropdown {...props} dataKey='Affiliation' label='Affiliation' />
-	</React.Fragment>
+	</>
 
 const renderDataEmployerAndAffiliation = ({rowData}) =>
-	<React.Fragment>
+	<>
 		<DivLineTruncated>{rowData.Employer}</DivLineTruncated>
 		<DivLineTruncated>{rowData.Affiliation}</DivLineTruncated>
-	</React.Fragment>
+	</>
 
 const AttendanceContainer = styled.div`
 	display: flex;
@@ -179,10 +179,10 @@ const _Attendances = ({rowData, dataKey, sessions}) => {
 			P.push(el)
 	}
 	return (
-		<React.Fragment>
+		<>
 			<AttendanceContainer><div>P:</div>{P}</AttendanceContainer>
 			<AttendanceContainer><div>I:</div>{I}</AttendanceContainer>
-		</React.Fragment>
+		</>
 	)
 }
 
@@ -193,24 +193,29 @@ const BallotSeriesParticipation = ({rowData, dataKey}) => {
 	return participation;
 }
 
-const allColumns = [
+const tableColumns = [
 	{key: '__ctrl__',
-		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} ><IdSelector dataSet={dataSet} focusOnMount /></ControlHeader>,
-		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
+		width: 48, flexGrow: 0, flexShrink: 0,
+		headerRenderer: p => 
+			<SelectHeader
+				dataSet={dataSet}
+				customSelectorElement=<IdSelector style={{width: '200px'}} dataSet={dataSet} focusOnMount />
+				{...p}
+			/>,
+		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
 	{key: 'SAPIN', 
-		label: 'SA PIN',
-		width: 80, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
+		...fields.SAPIN,
+		width: 90, flexGrow: 0, flexShrink: 0, dropdownWidth: 200},
 	{key: 'Name/Email',
 		label: 'Name/Email',
 		width: 200, flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderNameAndEmail,
 		cellRenderer: renderNameAndEmail},
 	{key: 'Name',
-		label: 'Name',
+		...fields.Name,
 		width: 200, flexGrow: 1, flexShrink: 1},
 	{key: 'Email',
-		label: 'Email',
+		...fields.Email,
 		width: 200, flexGrow: 1, flexShrink: 1},
 	{key: 'Employer/Affiliation', 
 		label: 'Employer/Affiliation',
@@ -218,19 +223,19 @@ const allColumns = [
 		headerRenderer: renderHeaderEmployerAndAffiliation,
 		cellRenderer: renderDataEmployerAndAffiliation},
 	{key: 'Employer', 
-		label: 'Employer',
+		...fields.Employer,
 		width: 300, flexGrow: 1, flexShrink: 1},
 	{key: 'Affiliation', 
 		label: 'Affiliation',
 		width: 300, flexGrow: 1, flexShrink: 1},
 	{key: 'Status', 
-		label: 'Status',
+		...fields.Status,
 		width: 160, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
 	{key: 'NewStatus', 
-		label: 'Expected Status',
+		...fields.NewStatus,
 		width: 160, flexGrow: 1, flexShrink: 1},
 	{key: 'Access', 
-		label: 'Access Level',
+		...fields.Access,
 		width: 150, flexGrow: 1, flexShrink: 1, dropdownWidth: 200,
 		cellRenderer: renderAccess},
 	{key: 'AttendanceCount', 
@@ -244,40 +249,37 @@ const allColumns = [
 ];
 
 const defaultTablesConfig = {
-	General: ['__ctrl__', 'SAPIN', 'Name/Email', 'Employer/Affiliation', 'Status', 'Access'],
-	Participation: ['__ctrl__', 'SAPIN', 'Name/Email', 'Attendance', 'Status', 'NewStatus', 'AttendanceCount', 'BallotSeriesCount']
+	General: {
+		fixed: false,
+		columns: ['__ctrl__', 'SAPIN', 'Name/Email', 'Employer/Affiliation', 'Status', 'Access']
+	},
+	Participation: {
+		fixed: false,
+		columns: ['__ctrl__', 'SAPIN', 'Name/Email', 'Attendance', 'Status', 'NewStatus', 'AttendanceCount', 'BallotSeriesCount']
+	}
 };
 
-function setDefaultTableConfig({tableConfig, tableView, upsertTableColumns, setTableView}) {
-	for (const view of Object.keys(defaultTablesConfig)) {
-		const columnsConfig = {}
-		for (const column of allColumns) {
-			const key = column.key;
-			/* Columns with a 'visible' property will appear in the ColumnSelector. 
-			 * We want to exclude control column since it can't be removed, so we don't give it a 'visible' property. */
-			if (!tableConfig.columns[key]) {
-				columnsConfig[key] = {
-					label: column.label,
-					width: column.width,
-				}
-				if (key !== '__ctrl__')
-					columnsConfig[key].visible = defaultTablesConfig[view].includes(key);
+function setDefaultTableConfig({tablesConfig, initTableConfig, setTableView}) {
+	for (const tableView of Object.keys(defaultTablesConfig)) {
+		const tableConfig = tablesConfig[tableView];
+		if (tableConfig)
+			continue;
+		const columns = tableColumns.reduce((cols, c) => {
+			cols[c.key] = {
+				visible: c.key.startsWith('__') || defaultTablesConfig[tableView].columns.includes(c.key),
+				width: c.width
 			}
-			else {
-				if (key !== '__ctrl__' && !tableConfig.columns[key].hasOwnProperty('visible'))
-					columnsConfig[key].visible = defaultTablesConfig[view].includes(key)
-				if (!tableConfig.columns[key].hasOwnProperty('label'))
-					columnsConfig[key].label = column.label
-			}
+			return cols;
+		}, {});
+		const newTableConfig = {
+			fixed: defaultTablesConfig[tableView].fixed,
+			columns
 		}
-		if (Object.keys(columnsConfig).length)
-			upsertTableColumns(view, columnsConfig);
+		initTableConfig(tableView, newTableConfig);
 	}
-	if (!Object.keys(defaultTablesConfig).includes(tableView))
-		setTableView(Object.keys(defaultTablesConfig)[0]);
 }
 
-function TableViewSelector({tableView, setTableView}) {
+function _TableViewSelector({tableView, setTableView}) {
 	const tableViews = Object.keys(defaultTablesConfig);
 	return tableViews.map(view => 
 		<Button
@@ -289,6 +291,15 @@ function TableViewSelector({tableView, setTableView}) {
 		</Button>
 	)
 }
+
+const TableViewSelector = connect(
+	(state) => ({
+		tableView: state[dataSet].ui.tableView
+	}),
+	(dispatch) => ({
+		setTableView: (view) => dispatch(setTableView(dataSet, view))
+	})
+)(_TableViewSelector)
 
 const ButtonGroup = styled.div`
 	display: flex;
@@ -311,10 +322,8 @@ function Members({
 	loadSessions,
 	updateMembers,
 	deleteSelectedMembers,
-	tableView,
-	tableConfig,
-	setTableView,
-	upsertTableColumns,
+	tablesConfig,
+	initTableConfig,
 	uiProperty,
 	setUiProperty
 }) {
@@ -326,22 +335,12 @@ function Members({
 
 	/* On mount, if the store does not contain default configuration for each of our views, 
 	 * then add them */
-	React.useEffect(() => setDefaultTableConfig({tableConfig, tableView, upsertTableColumns, setTableView}), []);
-
-	/* If we change the table config signficantly we want to remount the table component,
-	 * so we create a key id for the component that depends on signficant parameters */
-	const [tableId, columns] = React.useMemo(() => {
-
-		const columns = allColumns.filter(col => 
-			(tableConfig.columns[col.key] && tableConfig.columns[col.key].hasOwnProperty('visible'))
-				? tableConfig.columns[col.key].visible
-				: true
-		);
-
-		const id = (tableConfig.fixed? 'f-': '') + columns.map(col => col.key).join('-');
-
-		return [id, columns];
-	}, [tableView, tableConfig]);
+	React.useEffect(() => 
+		setDefaultTableConfig({
+			tablesConfig,
+			initTableConfig,
+			setTableView
+		}), []);
 
 	React.useEffect(() => {
 		if (!validMembers)
@@ -371,9 +370,7 @@ function Members({
 
 	const table =
 		<AppTable
-			key={tableId}
-			columns={columns}
-			tableView={tableView}
+			columns={tableColumns}
 			headerHeight={50}
 			estimatedRowHeight={50}
 			dataSet={dataSet}
@@ -381,7 +378,7 @@ function Members({
 		/>
 
 	const body = (uiProperty.editView)?
-		<React.Fragment>
+		<>
 			<div style={{flex: `${100 - split*100}%`, height: '100%', overflow: 'hidden', boxSizing: 'border-box'}}>
 				{table}
 			</div>
@@ -389,24 +386,21 @@ function Members({
 				style={{flex: `${split*100}%`, height: '100%', overflow: 'auto', boxSizing: 'border-box'}}
 				key={selected}
 			/>
-		</React.Fragment>:
+		</>:
 		table
 
 	const FForm = ({close, ...otherProps}) => <Form cancel={close} {...otherProps} />
 
 	return (
-		<React.Fragment>
+		<>
 			<TopRow>
 				<MembersSummary />
 				<div style={{display: 'flex'}}>
 					<ButtonGroup>
 						<div>Table view</div>
 						<div style={{display: 'flex'}}>
-							<TableViewSelector
-								tableView={tableView}
-								setTableView={setTableView}
-							/>
-							<ColumnSelector dataSet={dataSet} />
+							<TableViewSelector dataSet={dataSet} />
+							<ColumnSelector dataSet={dataSet} columns={tableColumns} />
 							<ActionButton
 								name='book-open'
 								title='Show detail'
@@ -456,6 +450,7 @@ function Members({
 
 			<ShowFilters
 				dataSet={dataSet}
+				fields={fields}
 			/>
 
 			<TableRow>
@@ -468,7 +463,7 @@ function Members({
 				action={editMember.action}
 				member={editMember.member}
 			/>
-		</React.Fragment>
+		</>
 	)
 }
 
@@ -486,16 +481,13 @@ Members.propTypes = {
 const dataSet = 'members'
 export default connect(
 	(state) => {
-		const tableView = state[dataSet].ui.view;
-		const tableConfig = state[dataSet].ui.tablesConfig[tableView];
 		return {
 			selected: state[dataSet].selected,
 			members: state[dataSet].entities,
 			validMembers: state[dataSet].valid,
 			validSessions: state.sessions.valid,
 			loading: state[dataSet].loading,
-			tableView,
-			tableConfig,
+			tablesConfig: state[dataSet].ui.tablesConfig,
 			uiProperty: state[dataSet].ui
 		}
 	},
@@ -506,7 +498,7 @@ export default connect(
 			updateMembers: (updates) => dispatch(updateMembers(updates)),
 			deleteSelectedMembers: () => dispatch(deleteSelectedMembers()),
 			setTableView: view => dispatch(setTableView(dataSet, view)),
-			upsertTableColumns: (view, columns) => dispatch(upsertTableColumns(dataSet, view, columns)),
+			initTableConfig: (view, config) => dispatch(initTableConfig(dataSet, view, config)),
 			setUiProperty: (property, value) => dispatch(setProperty(dataSet, property, value))
 		}
 	}

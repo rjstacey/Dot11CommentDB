@@ -590,7 +590,6 @@ Comments.propTypes = {
 
 export default connect(
 	(state) => {
-		const user = state.login.user;
 		const tableView = state[dataSet].ui.view;
 		const tableConfig = state[dataSet].ui.tablesConfig[tableView];
 		return {

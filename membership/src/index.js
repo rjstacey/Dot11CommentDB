@@ -4,6 +4,7 @@ import { Provider } from 'react-redux'
 import store from './store'
 import './index.css';
 import App from './App';
+import {userInit} from 'dot11-components/lib/user'
 import reportWebVitals from './reportWebVitals';
 
 const LOGIN_STORAGE = 'User';
@@ -17,16 +18,16 @@ function loginUserInit() {
 	return user;
 }
 
-const user = loginUserInit();
+const user = userInit();
 console.log('got', user)
 if (!user) {
-	window.location.assign('/login')
+	window.location.assign(`/login?redirect=${window.location}`)
 }
 else {
 	ReactDOM.render(
 	  <React.StrictMode>
 	  	<Provider store={store}>
-			<App />
+			<App user={user} access={user.Access} />
 		</Provider>
 	  </React.StrictMode>,
 	  document.getElementById('root')

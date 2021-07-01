@@ -2,7 +2,7 @@
   "name": "dot11-commentdb",
   "version": "0.1.0",
   "private": true,
-  "homepage": "comments",
+  "homepage": "./comments",
   "proxy": "http://localhost:8080",
   "dependencies": {
     "@emotion/react": "^11.1.5",
@@ -12,7 +12,7 @@
     "@testing-library/react": "^11.2.3",
     "@testing-library/user-event": "^12.6.2",
     "copy-html-to-clipboard": "^4.0.1",
-    "dot11-common": "^1.0.29",
+    "dot11-common": "^1.0.52",
     "draft-js": "^0.11.7",
     "draft-js-export-html": "^1.4.1",
     "draft-js-import-html": "^1.4.1",
@@ -28,7 +28,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build && rm -rf ../build/comments/* && cp -r build/* ../build/comments",
+    "build": "react-scripts build; mv ../build/index.html ../build/comments.html",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

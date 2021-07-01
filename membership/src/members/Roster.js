@@ -2,9 +2,9 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {ActionButtonDropdown} from 'dot11-common/general/Dropdown'
-import {ActionButton} from 'dot11-common/lib/icons'
-import {Form, Row, Col, Input, List, ListItem} from 'dot11-common/general/Form'
+import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
+import {ActionButton} from 'dot11-components/lib/icons'
+import {Form, Row, Col, Input, List, ListItem} from 'dot11-components/general/Form'
 
 import {importMyProjectRoster, exportMyProjectRoster} from '../store/members'
 

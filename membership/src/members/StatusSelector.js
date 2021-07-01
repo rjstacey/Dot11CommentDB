@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import {Select} from 'dot11-common/general/Form'
+import {Select} from 'dot11-components/general/Form'
 
 import {StatusOptions} from '../store/members'
 

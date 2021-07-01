@@ -1,6 +1,6 @@
 import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-common/store/fetcher'
+import fetcher from 'dot11-common/lib/fetcher'
 import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
 import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
 import selectedSlice, {getSelected, setSelected} from 'dot11-common/store/selected'

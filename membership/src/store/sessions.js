@@ -1,11 +1,12 @@
 import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-common/store/fetcher'
-import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
-import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
-import selectedSlice, {setSelected} from 'dot11-common/store/selected'
-import uiSlice from 'dot11-common/store/ui'
-import {setError} from 'dot11-common/store/error'
+import fetcher from 'dot11-components/lib/fetcher'
+import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
+import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
+import selectedSlice, {setSelected} from 'dot11-components/store/selected'
+import uiSlice from 'dot11-components/store/ui'
+import {setError} from 'dot11-components/store/error'
+import {displayDate} from 'dot11-components/lib/utils'
 
 const SessionType = {
 	Plenary: 'p',
@@ -21,12 +22,20 @@ export const SessionTypeOptions = [
 	{value: SessionType.General, label: 'General'}
 ]
 
-const fields = ['id', 'Start', 'End', 'Name', 'Type', 'TimeZone']
+export const fields = {
+	id: {label: 'ID', sortType: SortType.NUMERIC},
+	MeetingNumber: {label: 'Meeting number'},
+	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
+	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE}, 
+	Name: {label: 'Session name'},
+	Type: {label: 'Session type', options: SessionTypeOptions},
+	TimeZone: {label: 'TimeZone'}
+};
 
 /*
  * Generate a filter for each field (table column)
  */
-const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
+const defaultFiltersEntries = Object.keys(fields).reduce((entries, dataKey) => {
 	let options;
 	if (dataKey === 'Type')
 		options = SessionTypeOptions;
@@ -36,7 +45,7 @@ const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
 /*
  * Generate object that describes the initial sort state
  */
-const defaultSortEntries = fields.reduce((entries, dataKey) => {
+const defaultSortEntries = Object.keys(fields).reduce((entries, dataKey) => {
 	let type
 	switch (dataKey) {
 		case 'id':
@@ -84,8 +93,8 @@ const slice = createSlice({
 		loading: false,
 		loadingTimeZones: false,
 		timeZones: [],
-		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
+		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
+		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
 		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
 		[uiSlice.name]: uiSlice.reducer(undefined, {})
 	}),

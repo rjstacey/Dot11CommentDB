@@ -2,9 +2,9 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {shallowDiff, debounce} from 'dot11-common/lib/utils'
-import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-common/general/Form'
-import {IconCollapse, ActionButton, Icon} from 'dot11-common/lib/icons'
+import {shallowDiff, debounce} from 'dot11-components/lib/utils'
+import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/general/Form'
+import {IconCollapse, ActionButton, Icon} from 'dot11-components/lib/icons'
 import {
 	updateMember, 
 	deleteMembers, 
@@ -15,12 +15,12 @@ import {
 	deleteMemberContactEmail,
 	setMemberUiProperty
 } from '../store/members'
-import {setProperty} from 'dot11-common/store/ui'
-import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
+import {setProperty} from 'dot11-components/store/ui'
+import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
 import StatusSelector from './StatusSelector'
 import AccessSelector from './AccessSelector'
 import MemberSelector from './MemberSelector'
-import {displayDate} from 'dot11-common/lib/utils'
+import {displayDate} from 'dot11-components/lib/utils'
 import {SessionTypeOptions} from '../store/sessions'
 import {loadBallots} from '../store/ballots'
 import {loadSessions} from '../store/sessions'

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import styled from '@emotion/styled'
-import {Handle, IconCollapse} from 'dot11-common/lib/icons'
+import {Handle, IconCollapse} from 'dot11-components/lib/icons'
 import {connect} from 'react-redux'
 
 function getMembersSummary(members) {
@@ -30,6 +30,7 @@ const Container = styled.div`
 
 const LV = styled.div`
 	display: flex;
+	align-items: center;
 	margin-right: 20px;
 	div:first-of-type {
 		font-weight: bold;

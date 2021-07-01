@@ -3,19 +3,19 @@ import React from 'react'
 import {Link, useHistory, useParams} from "react-router-dom"
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable, {ControlHeader, ControlCell, ColumnDropdown} from 'dot11-common/table'
-import {ActionButton} from 'dot11-common/lib/icons'
-import {displayDate} from 'dot11-common/lib/utils'
-import {ConfirmModal} from 'dot11-common/modals'
-import {AccessLevel} from 'dot11-common/store/login'
+import AppTable, {SelectHeader, SelectCell, DataColumnHeader, ShowFilters, ColumnSelector} from 'dot11-components/table'
+import {Button, ActionButton} from 'dot11-components/lib/icons'
+import {displayDate} from 'dot11-components/lib/utils'
+import {ConfirmModal} from 'dot11-components/modals'
+import {AccessLevel} from 'dot11-components/lib/user'
 
-import BallotDetailModal from './BallotDetail'
+import BallotDetail from './BallotDetail'
+import BallotAdd from './BallotAdd'
 
-import {setSelected} from 'dot11-common/store/selected'
-import {sortSet} from 'dot11-common/store/sort'
-import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
+import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
+import {setTableView, initTableConfig, setProperty} from 'dot11-components/store/ui'
 
-import {loadBallots, deleteBallots, BallotType} from '../store/ballots'
+import {fields, loadBallots, deleteBallots, BallotType} from '../store/ballots'
 import {loadVotingPools} from '../store/votingPools'
 
 const dataSet = 'ballots'
@@ -38,7 +38,7 @@ const DataSubcomponent = styled.div`
 	overflow: hidden;
 `;
 
-const BallotsColumnDropdown = (props) => <ColumnDropdown dataSet={dataSet} {...props}/>;
+const BallotsColumnDropdown = (props) => <DataColumnHeader dataSet={dataSet} {...props}/>;
 const HeaderSubcomponent = DataSubcomponent.withComponent(BallotsColumnDropdown);
 
 const renderHeaderCellVotingPool = (props) =>
@@ -91,54 +91,96 @@ function renderDate({rowData, dataKey}) {
 
 const tableColumns = [
 	{key: '__ctrl__',
-		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} />,
-		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
+		width: 30, flexGrow: 0, flexShrink: 0,
+		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
+		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
 	{key: 'Project',
-		label: 'Project',
+		...fields.Project,
 		width: 100,	flexShrink: 0, flexGrow: 0,
 		dropdownWidth: 200},
 	{key: 'BallotID',
-		label: 'Ballot',
+		...fields.BallotID,
 		width: 100,	flexShrink: 0, flexGrow: 0,
 		dropdownWidth: 200},
-	{key: 'Document',
-		label: 'Document',
-		width: 150,	flexShrink: 1, flexGrow: 1,
-		dropdownWidth: 300},
-	{key: 'Topic',
-		label: 'Topic',
-		width: 300,	flexShrink: 1, flexGrow: 1},
-	{key: 'EpollNum',
-		label: 'ePoll',
-		width: 80,	flexGrow: 0, flexShrink: 0,
-		dropdownWidth: 200},
 	{key: 'Start',
-		label: 'Start',
+		...fields.Start,
 		width: 86, flexShrink: 0,
-		dataRenderer: displayDate,
 		cellRenderer: renderDate,
 		dropdownWidth: 300},
 	{key: 'End',
-		label: 'End',
+		...fields.End,
 		width: 86, flexShrink: 0,
-		dataRenderer: displayDate,
 		cellRenderer: renderDate,
 		dropdownWidth: 300},
+	{key: 'Document',
+		...fields.Document,
+		width: 150,	flexShrink: 1, flexGrow: 1,
+		dropdownWidth: 300},
+	{key: 'Topic',
+		...fields.Topic,
+		width: 300,	flexShrink: 1, flexGrow: 1},
+	{key: 'EpollNum',
+		...fields.EpollNum,
+		width: 80,	flexGrow: 0, flexShrink: 0,
+		dropdownWidth: 200},
 	{key: 'VotingPool',
 		label: '',
 		width: 100, flexShrink: 1, flexGrow: 1,
 		headerRenderer: renderHeaderCellVotingPool,
 		cellRenderer: renderVotingPool},
 	{key: 'Results',
-		label: 'Result',
+		...fields.Results,
 		width: 150,	flexShrink: 1, flexGrow: 1,
 		cellRenderer: (props) => renderResultsSummary({readOnly: true, ...props})},
 	{key: 'Comments',
-		label: 'Comments',
+		...fields.Comments,
 		width: 100,	flexShrink: 1, flexGrow: 1,
 		cellRenderer: renderCommentsSummary},
 ];
+
+const defaultTablesConfig = {
+	'1': {
+		fixed: false,
+		columns: ['__ctrl__', 'Project', 'BallotID', 'Start', 'End', 'Document', 'VotingPool', 'Results', 'Comments']
+	},
+	'2': {
+		fixed: false,
+		columns: ['__ctrl__', 'Project', 'BallotID', 'Start', 'End', 'Document', 'Topic', 'VotingPool']
+	}
+};
+
+function setDefaultTableConfig({tablesConfig, initTableConfig, setTableView}) {
+	for (const tableView of Object.keys(defaultTablesConfig)) {
+		const tableConfig = tablesConfig[tableView];
+		if (tableConfig)
+			continue;
+		const columns = tableColumns.reduce((cols, c) => {
+			cols[c.key] = {
+				visible: c.key.startsWith('__') || defaultTablesConfig[tableView].columns.includes(c.key),
+				width: c.width
+			}
+			return cols;
+		}, {});
+		const newTableConfig = {
+			fixed: defaultTablesConfig[tableView].fixed,
+			columns
+		}
+		initTableConfig(tableView, newTableConfig);
+	}
+}
+
+function TableViewSelector({tableView, setTableView}) {
+	const tableViews = Object.keys(defaultTablesConfig);
+	return tableViews.map(view => 
+		<Button
+			key={view}
+			isActive={tableView === view}
+			onClick={e => setTableView(view)}
+		>
+			{view}
+		</Button>
+	)
+}
 
 const actionsColumn = {
 	key: 'Actions',
@@ -148,11 +190,24 @@ const actionsColumn = {
 
 const primaryDataKey = 'BallotID';
 
-// The action row height is determined by its content
-const ActionRow = styled.div`
+// The top row height is determined by its content
+const TopRow = styled.div`
 	display: flex;
 	justify-content: space-between;
 	width: 100%;
+	padding: 10px;
+	box-sizing: border-box;
+`;
+
+const ButtonGroup = styled.div`
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	background: linear-gradient(to bottom, #fdfdfd 0%,#f6f7f8 100%);
+	border: 1px solid #999;
+	border-radius: 2px;
+	padding: 5px;
+	margin: 0 5px;
 `;
 
 // The table row grows to the available height
@@ -161,51 +216,30 @@ const TableRow = styled.div`
 	width: 100%;
 `;
 
-function Ballots(props) {
-	const {ballotsValid, loading, loadBallots, deleteBallots, votingPoolsValid, loadVotingPools, access} = props;
+function Ballots({
+	access,
+	ballotsValid,
+	selected,
+	loading,
+	loadBallots,
+	deleteBallots,
+	votingPoolsValid,
+	loadVotingPools,
+	tableView,
+	tablesConfig,
+	setTableView,
+	initTableConfig,
+	uiProperty,
+	setUiProperty
+}) {
 	const history = useHistory();
 	const {ballotId} = useParams();
+	const [split, setSplit] = React.useState(0.5);
+	const setTableDetailSplit = (deltaX) => setSplit(split => split - deltaX/window.innerWidth);
 
-	const [columns, maxWidth] = React.useMemo(() => {
-
-		let columns = tableColumns;
-
-		if (access >= AccessLevel.SubgroupAdmin) {
-			/* Subgroup admin can see results so add link */
-			const resultsSummaryRenderer = (props) => renderResultsSummary({readOnly: false, ...props});
-			columns = columns.map(col => {
-				return (col.key === 'Results')
-					? {...col,
-						cellRenderer: resultsSummaryRenderer}
-					: col
-			});
-		}
-
-		if (access >= AccessLevel.WGAdmin) {
-			/* Working froup admin can edit ballots so add actions column */
-			const deleteBallot = async (ballot) => {
-				const ok = await ConfirmModal.show(`Are you sure you want to delete ${ballot.BallotID}?`)
-				if (ok)
-					await deleteBallots([ballot])
-			}
-
-			const actionCellRenderer = ({rowData}) => 
-				<RowActions
-					onEdit={() => history.push(`/Ballots/${rowData.BallotID}`)}
-					onDelete={() => deleteBallot(rowData)}
-				/>
-
-			columns = columns.concat({
-				...actionsColumn,
-				cellRenderer: actionCellRenderer
-			})
-		}
-
-		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40;
-
-		return [columns, maxWidth];
-
-	}, [deleteBallots, history, access]);
+	/* On mount, if the store does not contain default configuration for each of our views, 
+	 * then add them */
+	React.useEffect(() => setDefaultTableConfig({tablesConfig, initTableConfig, setTableView}), []);
 
 	React.useEffect(() => {
 		if (!ballotsValid && !loading)
@@ -214,38 +248,72 @@ function Ballots(props) {
 			loadVotingPools()
 	}, [ballotsValid, loading, loadBallots, votingPoolsValid, loadVotingPools]);
 
-	const addBallot = event => history.push('/Ballots/+')
 	const closeBallot = () => history.push('/Ballots')
 	const showEpolls = () => history.push('/Epolls/')
 
+	const table =
+		<AppTable
+			columns={tableColumns}
+			tableView={tableView}
+			headerHeight={50}
+			estimatedRowHeight={50}
+			dataSet={dataSet}
+			resizeWidth={uiProperty.editView? setTableDetailSplit: undefined}
+		/>
+
+	const body = (uiProperty.editView)?
+		<React.Fragment>
+			<div style={{flex: `${100 - split*100}%`, height: '100%', overflow: 'hidden', boxSizing: 'border-box'}}>
+				{table}
+			</div>
+			<BallotDetail
+				style={{flex: `${split*100}%`, height: '100%', overflow: 'auto', boxSizing: 'border-box'}}
+				key={selected}
+			/>
+		</React.Fragment>:
+		table
+
 	return (
 		<React.Fragment>
-			<ActionRow style={{maxWidth}}>
-				<span><label>Ballots</label></span>
-				<span>
-					<ActionButton name='add' title='Add' onClick={addBallot} />
-					<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
-					<ActionButton name='refresh' title='Refresh' onClick={props.loadBallots} disabled={props.loading} />
-				</span>
-			</ActionRow>
+			<TopRow>
+				<div><label>Ballots</label></div>
+				<div style={{display: 'flex'}}>
+					<ButtonGroup>
+						<div>Table view</div>
+						<div style={{display: 'flex'}}>
+							<TableViewSelector
+								tableView={tableView}
+								setTableView={setTableView}
+							/>
+							<ColumnSelector dataSet={dataSet} columns={tableColumns} />
+							<ActionButton
+								name='book-open'
+								title='Show detail'
+								isActive={uiProperty.editView} 
+								onClick={() => setUiProperty('editView', !uiProperty.editView)} 
+							/>
+						</div>
+					</ButtonGroup>
+					<ButtonGroup>
+						<div>Edit</div>
+						<div style={{display: 'flex'}}>
+							<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
+							<BallotAdd />
+						</div>
+					</ButtonGroup>
+					<ActionButton name='refresh' title='Refresh' onClick={loadBallots} disabled={loading} />
+				</div>
+			</TopRow>
 
-			<TableRow style={{maxWidth}}>
-				<AppTable
-					columns={columns}
-					dataSet={dataSet}
-					rowKey={primaryDataKey}
-					headerHeight={40}
-					rowHeight={40}
-					estimatedRowHeight={54}
-					loading={props.loading}
-				/>
+			<ShowFilters
+				dataSet={dataSet}
+				fields={fields}
+			/>
+
+			<TableRow>
+				{body}
 			</TableRow>
 
-			<BallotDetailModal
-				isOpen={!!ballotId}
-				ballotId={ballotId || ''}
-				close={closeBallot}
-			/>
 		</React.Fragment>
 	)
 }
@@ -253,7 +321,6 @@ function Ballots(props) {
 Ballots.propTypes = {
 	ballotsValid: PropTypes.bool.isRequired,
 	ballots: PropTypes.array.isRequired,
-	selected: PropTypes.array.isRequired,
 	loading: PropTypes.bool.isRequired,
 	votingPoolsValid: PropTypes.bool.isRequired,
 	votingPools: PropTypes.array.isRequired,
@@ -262,13 +329,18 @@ Ballots.propTypes = {
 export default connect(
 	(state) => {
 		const {ballots, votingPools} = state
+		const tableView = state[dataSet].ui.tableView;
+		const tablesConfig = state[dataSet].ui.tablesConfig;
 		return {
 			ballotsValid: ballots.valid,
+			selected: ballots.selected,
 			loading: ballots.loading,
 			ballots: getData(state, dataSet),
-			selected: ballots.selected,
 			votingPoolsValid: votingPools.valid,
 			votingPools: getData(state, 'votingPools'),
+			tableView,
+			tablesConfig,
+			uiProperty: state[dataSet].ui
 		}
 	},
 	(dispatch) => {
@@ -276,8 +348,9 @@ export default connect(
 			loadBallots: () => dispatch(loadBallots()),
 			deleteBallots: (ids) => dispatch(deleteBallots(ids)),
 			loadVotingPools: () => dispatch(loadVotingPools()),
-			setSelected: (ballotIds) => dispatch(setSelected(dataSet, ballotIds)),
-			setSort: (dataKey, direction) => dispatch(sortSet(dataSet, dataKey, direction)),
+			setTableView: view => dispatch(setTableView(dataSet, view)),
+			initTableConfig: (view, config) => dispatch(initTableConfig(dataSet, view, config)),
+			setUiProperty: (property, value) => dispatch(setProperty(dataSet, property, value))
 		}
 	}
 )(Ballots);

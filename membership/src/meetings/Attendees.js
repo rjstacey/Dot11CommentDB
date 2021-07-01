@@ -3,10 +3,10 @@ import React from 'react'
 import {Link, useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable, {ControlHeader, ControlCell, ColumnDropdown} from 'dot11-common/table'
-import {ConfirmModal} from 'dot11-common/modals'
-import {ActionButton} from 'dot11-common/lib/icons'
-import {displayDate} from 'dot11-common/lib/utils'
+import AppTable, {SelectHeader, SelectCell, DataColumnHeader} from 'dot11-components/table'
+import {ConfirmModal} from 'dot11-components/modals'
+import {ActionButton} from 'dot11-components/lib/icons'
+import {displayDate} from 'dot11-components/lib/utils'
 import {loadAttendees, importSelectedAttendees} from '../store/attendees'
 import {renderNameAndEmail} from '../members/Members'
 
@@ -35,7 +35,7 @@ const renderSessionInfo = (meeting) =>
 		<span>{meeting.TimeZone}</span>
 	</div>
 
-const AttendeesColumnDropdown = (props) => <ColumnDropdown dataSet={dataSet} {...props}/>;
+const AttendeesColumnDropdown = (props) => <DataColumnHeader dataSet={dataSet} {...props}/>;
 
 const renderHeaderNameAndEmail = (props) =>
 	<React.Fragment>
@@ -46,8 +46,8 @@ const renderHeaderNameAndEmail = (props) =>
 const tableColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} />,
-		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
+		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
+		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
 	{key: 'SAPIN', 
 		label: 'SA PIN',
 		width: 80, flexGrow: 1, flexShrink: 1},

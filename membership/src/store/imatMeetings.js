@@ -1,44 +1,22 @@
 import {createSlice, createEntityAdapter, createSelector} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-common/store/fetcher'
-import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
-import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
-import selectedSlice, {setSelected} from 'dot11-common/store/selected'
-import uiSlice from 'dot11-common/store/ui'
-import {setError} from 'dot11-common/store/error'
+import fetcher from 'dot11-components/lib/fetcher'
+import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
+import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
+import selectedSlice, {setSelected} from 'dot11-components/store/selected'
+import uiSlice from 'dot11-components/store/ui'
+import {setError} from 'dot11-components/store/error'
 import {SessionTypeOptions} from './sessions'
 
-const fields = ['id', 'Start', 'End', 'Name', 'Type', 'TimeZone', 'MeetingNumber']
-
-/*
- * Generate a filter for each field (table column)
- */
-const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
-	let options;
-	if (dataKey === 'Type')
-		options = SessionTypeOptions;
-	return {...entries, [dataKey]: {options}}
-}, {});
-
-/*
- * Generate object that describes the initial sort state
- */
-const defaultSortEntries = fields.reduce((entries, dataKey) => {
-	let type
-	switch (dataKey) {
-		case 'MeetingNumber':
-			type = SortType.NUMERIC
-			break
-		case 'Start':
-		case 'End':
-			type = SortType.DATE
-			break
-		default:
-			type = SortType.STRING
-	}
-	const direction = SortDirection.NONE;
-	return {...entries, [dataKey]: {type, direction}}
-}, {});
+const fields = {
+	id: {label: 'ID'},
+	Start: {label: 'Start', sortType: SortType.DATE},
+	End: {label: 'End', sortType: SortType.DATE},
+	Name: {label: 'Name'},
+	Type: {label: 'Type', options: SessionTypeOptions},
+	TimeZone: {label: 'TimeZone'},
+	MeetingNumber: {label: 'MeetingNumber', sortType: SortType.NUMERIC}
+};
 
 
 /*
@@ -61,8 +39,8 @@ const slice = createSlice({
 	initialState: dataAdapter.getInitialState({
 		valid: false,
 		loading: false,
-		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
+		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
+		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
 		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
 		[uiSlice.name]: uiSlice.reducer(undefined, {})
 	}),

@@ -3,14 +3,14 @@ import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {Link, useHistory, useParams} from "react-router-dom"
-import AppTable, {ControlHeader, ControlCell} from 'dot11-common/table'
-import {ConfirmModal} from 'dot11-common/modals'
-import {ActionButton, Button} from 'dot11-common/lib/icons'
-import {displayDate} from 'dot11-common/lib/utils'
+import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table'
+import {ConfirmModal} from 'dot11-components/modals'
+import {ActionButton, Button} from 'dot11-components/lib/icons'
+import {displayDate} from 'dot11-components/lib/utils'
 import SessionDialog from './SessionDialog'
 
-import {getSortedFilteredData} from 'dot11-common/store/dataSelectors'
-import {loadSessions, deleteSessions, SessionTypeOptions} from '../store/sessions'
+import {getSortedFilteredData} from 'dot11-components/store/dataSelectors'
+import {fields, loadSessions, deleteSessions, SessionTypeOptions} from '../store/sessions'
 import {importBreakouts} from '../store/breakouts'
 import {importAttendances} from '../store/attendees'
 
@@ -66,34 +66,32 @@ const renderDate = ({rowData, dataKey}) => displayDate(rowData[dataKey])
 
 const tableColumns = [
 	{key: '__ctrl__',
-		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} />,
-		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
+		width: 30, flexGrow: 0, flexShrink: 0,
+		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
+		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
 	{key: 'id', 
-		label: 'ID',
+		...fields.id,
 		width: 60, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
 	{key: 'MeetingNumber', 
-		label: 'Meeting Number',
+		...fields.MeetingNumber,
 		width: 120, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
 	{key: 'Start', 
-		label: 'Start',
+		...fields.Start,
 		width: 120, flexGrow: 1, flexShrink: 1,
-		dataRenderer: displayDate,
 		cellRenderer: renderDate},
 	{key: 'End', 
-		label: 'End',
+		...fields.End,
 		width: 120, flexGrow: 1, flexShrink: 1,
-		dataRenderer: displayDate,
 		cellRenderer: renderDate},
 	{key: 'Name', 
-		label: 'Session Name',
+		...fields.Name,
 		width: 300, flexGrow: 1, flexShrink: 1},
 	{key: 'Type', 
-		label: 'Session Type',
+		...fields.Type,
 		width: 80, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderMeetingType},
 	{key: 'TimeZone', 
-		label: 'Time Zone',
+		...fields.TimeZone,
 		width: 200, flexGrow: 1, flexShrink: 1},
 	{key: 'Breakouts', 
 		label: 'Breakouts',

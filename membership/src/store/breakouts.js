@@ -1,44 +1,28 @@
 import {createSlice, createEntityAdapter, createSelector} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-common/store/fetcher'
-import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
-import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
-import selectedSlice from 'dot11-common/store/selected'
-import uiSlice from 'dot11-common/store/ui'
-import {setError} from 'dot11-common/store/error'
+import fetcher from 'dot11-components/lib/fetcher'
+import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
+import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
+import selectedSlice from 'dot11-components/store/selected'
+import uiSlice from 'dot11-components/store/ui'
+import {setError} from 'dot11-components/store/error'
 import {updateSessionSuccess} from './sessions'
 
-const fields = ['id', 'DayDate', 'Time', 'Location', 'Group', 'Name', 'Credit', 'Attendees']
+const fields = {
+	id: {label: 'ID', sortType: SortType.NUMERIC},
+	MeetingNumber: {label: 'MeetingNumber', sortType: SortType.NUMERIC},
+	BreakoutID: {label: 'Breakout ID', sortType: SortType.NUMERIC},
+	DayDate: {label: 'DayDate'},
+	Start: {label: 'Start', sortType: SortType.DATE},
+	End: {label: 'End', sortType: SortType.DATE},
+	Time: {label: 'Time'},
+	Location: {label: 'Location'},
+	Group: {label: 'Group'},
+	Name: {label: 'Name'},
+	Credit: {label: 'Credit'},
+	Attendees: {label: 'Attendees'}
+};
 
-/*
- * Generate a filter for each field (table column)
- */
-const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
-	let options;
-	return {...entries, [dataKey]: {options}}
-}, {});
-
-/*
- * Generate object that describes the initial sort state
- */
-const defaultSortEntries = fields.reduce((entries, dataKey) => {
-	let type
-	switch (dataKey) {
-		case 'id':
-		case 'MeetingNumber':
-		case 'BreakoutID':
-			type = SortType.NUMERIC
-			break
-		case 'Start':
-		case 'End':
-			type = SortType.DATE
-			break
-		default:
-			type = SortType.STRING
-	}
-	const direction = SortDirection.NONE;
-	return {...entries, [dataKey]: {type, direction}}
-}, {});
 
 /*
  * Remove entries that no longer exist from a list. If there
@@ -61,8 +45,8 @@ const slice = createSlice({
 		valid: false,
 		loading: false,
 		session: {},
-		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
+		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
+		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
 		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
 		[uiSlice.name]: uiSlice.reducer(undefined, {})
 	}),

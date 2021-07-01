@@ -1,30 +1,21 @@
 import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-common/store/fetcher'
-import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
-import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
-import selectedSlice, {setSelected} from 'dot11-common/store/selected'
-import uiSlice from 'dot11-common/store/ui'
-import {setError} from 'dot11-common/store/error'
+import fetcher from 'dot11-components/lib/fetcher'
+import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
+import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
+import selectedSlice, {setSelected} from 'dot11-components/store/selected'
+import uiSlice from 'dot11-components/store/ui'
+import {setError} from 'dot11-components/store/error'
 
-const fields = ['SAPIN', 'Email', 'Name', 'LastName', 'FirstName', 'MI', 'Status'];
-
-/*
- * Generate a filter for each field (table column)
- */
-const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
-	return {...entries, [dataKey]: {}}
-}, {});
-
-
-/*
- * Generate object that describes the initial sort state
- */
-const defaultSortEntries = fields.reduce((entries, dataKey) => {
-	const type = dataKey === 'SAPIN'? SortType.NUMERIC: SortType.STRING
-	const direction = SortDirection.NONE;
-	return {...entries, [dataKey]: {type, direction}}
-}, {});
+export const fields = {
+	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
+	Email: {label: 'Email'},
+	Name: {label: 'Name'},
+	LastName: {label: 'LastName'},
+	FirstName: {label: 'FirstName'},
+	MI: {label: 'MI'},
+	Status: {label: 'Status'}
+};
 
 const dataAdapter = createEntityAdapter({
 	selectId: v => v.id,
@@ -48,8 +39,8 @@ const slice = createSlice({
 		votingPool: {VotingPoolID: '', VotersCount: 0},
 		valid: false,
 		loading: false,
-		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
+		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
+		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
 		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
 		[uiSlice.name]: uiSlice.reducer(undefined, {})	
 	}),

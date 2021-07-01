@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import {AppModal} from 'dot11-common/modals'
-import {Form, Row, Col, Field, Input, Checkbox} from 'dot11-common/general/Form'
+import {AppModal} from 'dot11-components/modals'
+import {Form, Row, Col, Field, Input, Checkbox} from 'dot11-components/general/Form'
 import AccessSelector from './AccessSelector'
 import StatusSelector from './StatusSelector'
 

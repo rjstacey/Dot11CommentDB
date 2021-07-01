@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import {Form, Row, Col, Field, List, ListItem, Input, Checkbox} from 'dot11-common/general/Form'
+import {Form, Row, Col, Field, List, ListItem, Input, Checkbox} from 'dot11-components/general/Form'
 
-import {AppModal} from 'dot11-common/modals'
+import {AppModal} from 'dot11-components/modals'
 import {votersFromSpreadsheet, votersFromMembersSnapshot} from '../store/voters'
 
 function VotersPoolAddModal({

@@ -1,226 +1,188 @@
-import React, {useState, useEffect} from 'react'
-import {useLocation, useHistory} from 'react-router-dom'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import {Handle} from '../lib/icons'
-import useClickOutside from '../lib/useClickOutside'
-import {Title, Row, Col} from '../general/Form'
+import React from 'react'
+import './App.css';
 
-import {loginGetState, login, logout, AccessLevelOptions} from '../store/login'
+const ieeeSA_forgotPasswordLink =
+  "https://www.ieee.org/profile/public/forgotpassword/forgotUsernamePassword.html?url=https://www.ieee.org"
 
-const Wrapper = styled.div`
-	position: relative;
-`;
+const logoutUrl = '/logout'
 
-const AccountButton = styled.div`
-	display: flex;
-	align-items: center;
-	user-select: none;
-	box-sizing: border-box;
-	padding: 5px;
-	:hover {
-		color: tomato
-	}
-`;
-
-const DropdownContainer = styled.div`
-	position: absolute;
-	right: 0;
-	top: 36px;
-	padding: 10px;
-	min-width: 100%;
-	display: flex;
-	flex-direction: column;
-	background: #fff;
-	border: 1px solid #ccc;
-	border-radius: 5px;
-	box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
-	z-index: 9;
-	overflow: auto;
-	box-sizing: border-box;
-	:focus {outline: none}
-`;
-
-const Button = styled.button`
-	height: 36px;
-	text-align: center;
-	width: 100%;
-	border-radius: 3px;
-	cursor: pointer;
-	transition: all 0.6s ease 0s;
-	white-space: nowrap;
-	vertical-align: middle;
-	background-color: rgb(255, 255, 255);
-	border: 1px solid rgb(235, 235, 235);
-	color: rgb(51, 51, 51);
-	font-size: 11px;
-	line-height: 11px;
-	font-weight: 500;
-	letter-spacing: 0.02em;
-	padding: 11px 12px 8px;
-	text-transform: uppercase;
-	:hover {background-color: #fafafa}
-`;
-
-const SignInContainer = styled.div`
-	padding: 10px;
-	display: flex;
-	flex-direction: column;
-	background: #fff;
-	border: 1px solid #ccc;
-	border-radius: 5px;
-	box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
-	box-sizing: border-box;
-	:focus {outline: none}
-`;
-
-const SignInForm = ({credentials, change, disabled, submit, statusMsg}) =>
-	<React.Fragment>
-		<Title>
-			Sign in
-		</Title>
-		<Row>
-			<Col>
-				<label>Username/Email:</label>
-				<input
-					name="username"
-					type="text"
-					autoComplete="username"
-					size="30"
-					maxLength="100"
-					value={credentials.username}
-					onChange={change}
-				/>
-			</Col>
-		</Row>
-		<Row>
-			<Col>
-				<label>Password:</label>
-				<input
-					name="password"
-					type="password"
-					autoComplete="current-password"
-					size="15"
-					maxLength="30"
-					value={credentials.password}
-					onChange={change}
-				/>
-			</Col>
-		</Row>
-		<Row>
-			<p>{statusMsg}</p>
-		</Row>
-		<Row>
-			<Button value="Sign In" disabled={disabled} onClick={submit}>Sign in</Button>
-		</Row>
-	</React.Fragment>
-
-const _SignIn = ({loading, statusMsg, user, login}) => {
-	const { from } = useLocation().state || { from: { pathname: "/" } };
-	const history = useHistory();
-	const [credentials, setCredentials] = useState({username: '', password: ''});
-
-	const change = e => setCredentials({...credentials, [e.target.name]: e.target.value});
-
-	const loginSubmit = async () => {
-		const user = await login(credentials.username, credentials.password)
-		if (user)
-			history.push(from);
-	}
-
-	return (
-		<SignInContainer>
-			<SignInForm
-				credentials={credentials}
-				change={change}
-				disabled={loading}
-				submit={loginSubmit}
-				statusMsg={statusMsg}
-			/>
-		</SignInContainer>
-	)
+async function errHandler(res) {
+  if (res.status === 400 &&
+    res.headers.get('Content-Type').search('application/json') !== -1) {
+    const ret = await res.json()
+    return Promise.reject(ret.message)
+  }
+  let error = await res.text()
+  if (!error) {
+    error = new Error(res.statusText)
+  }
+  //console.log(detail)
+  return Promise.reject(error)
 }
 
-export const SignIn = connect(
-	(state, ownProps) => {
-		const {login} = state
-		return {
-			loading: login.loading,
-			statusMsg: login.statusMsg,
-			user: login.user
-		}
-	},
-	(dispatch, ownProps) => ({
-		login: (username, password) => dispatch(login(username, password))
-	})
-)(_SignIn);
+async function post(url, params) {
+  const options = {method: 'POST'}
+  if (params)
+    options.body = JSON.stringify(params)
 
-const SignOutForm = ({user, logout, loading, close}) => {
-	const submit = async () => {
-		await logout();
-		if (close)
-			close();
-	}
-	return (
-		<React.Fragment>
-			<label>{user.Name}</label>
-			<label>{user.SAPIN} {user.Username}</label>
-			<label>{AccessLevelOptions.find(o => o.value === user.Access).label}</label>
-			<Button value="Sign Out" disabled={loading} onClick={submit}>Sign out</Button>
-		</React.Fragment>
-	)
+  options.headers = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+  };
+
+  const res = await fetch(url, options)
+
+  return res.ok? res.json(): errHandler(res)
 }
 
-const AccountDropdown = ({user, logout, loading, close}) =>
-	<DropdownContainer>
-		<SignOutForm user={user} logout={logout} loading={loading} close={close} />
-	</DropdownContainer>
+const LOGIN_STORAGE = 'User';
 
-function _Account(props) {
-	const {loggedIn, user, loginGetState} = props;
-	const [isOpen, setIsOpen] = React.useState(false);
-	const close = () => setIsOpen(false)
-
-	useEffect(() => {loginGetState()}, [loginGetState]);
-
-	const wrapperRef = React.useRef();
-	useClickOutside(wrapperRef, close);
-
-	if (loggedIn) {
-		return (
-			<Wrapper
-				ref={wrapperRef}
-			>
-				<AccountButton
-					onClick={() => setIsOpen(!isOpen)}
-				>
-					<span>{`${user.Name} (${user.SAPIN})`}</span>
-					<Handle open={isOpen} />
-				</AccountButton>
-				{isOpen && <AccountDropdown {...props} close={close} />}
-			</Wrapper>
-		)
-	}
-	else {
-		return null
-	}
+async function login(username, password) {
+    try {localStorage.removeItem(LOGIN_STORAGE)} catch (err) {};
+    let user;
+    try {
+      const response = await post('/auth/login', {username, password});
+      user = response.user;
+    }
+    catch (error) {
+      window.alert(error)
+      return null;
+    }
+    user.logoutUrl = logoutUrl;
+    try {localStorage.setItem(LOGIN_STORAGE, JSON.stringify(user))} catch (err) {};
+    return user;
 }
 
-const Account = connect(
-	(state, ownProps) => {
-		const {login} = state
-		return {
-			loading: login.loading,
-			loggedIn: !!login.user,
-			user: login.user,
-			statusMsg: login.statusMsg,
-		}
-	},
-	(dispatch, ownProps) => ({
-		loginGetState: () => dispatch(loginGetState()),
-		login: (username, password) => dispatch(login(username, password)),
-		logout: () => dispatch(logout())
-	})
-)(_Account);
+const leftArrowIcon =
+  <svg className='icon' viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12.636 30.158H58v3.423H12.372l9.148 9.055L19.132 45 6 32l13.132-13 2.388 2.364-8.884 8.794z">
+    </path>
+  </svg>
 
-export default Account
+const rightArrowIcon =
+  <svg className='icon' viewBox="0 0 64 64" fill="white" xmlns="http://www.w3.org/2000/svg" alt="" title="">
+    <path d="M51.364 30.158H6v3.423h45.628l-9.148 9.055L44.868 45 58 32 44.868 19l-2.388 2.364 8.884 8.794z">
+    </path>
+  </svg>
+
+const userIcon =
+  <svg className='icon' viewBox="0 0 64 64" fill="#989BA3" xmlns="http://www.w3.org/2000/svg" alt="" title="">
+    <path fillRule="evenodd" clipRule="evenodd" d="M19.609 57c-2.131 0-4.107-.888-5.562-2.499-1.543-1.707-2.268-4.023-1.988-6.342l.856-7.167c.487-4.11 2.666-7.791 5.985-10.095l1.753 2.454c-2.609 1.812-4.329 4.725-4.715 7.989l-.859 7.17a5.074 5.074 0 0 0 1.242 3.999c.868.96 2.037 1.491 3.288 1.491H45.39c1.251 0 2.42-.531 3.288-1.491a5.074 5.074 0 0 0 1.242-3.999l-.855-7.167c-.39-3.267-2.107-6.177-4.72-7.992l1.754-2.454c3.319 2.307 5.501 5.988 5.989 10.098l.852 7.164c.28 2.319-.445 4.635-1.988 6.342C49.501 56.112 47.523 57 45.391 57H19.61zM18.8 19.5c0-7.443 6.147-13.5 13.7-13.5C40.054 6 46.2 12.057 46.2 19.5S40.053 33 32.5 33c-7.552 0-13.699-6.057-13.699-13.5zm3.045 0c0 5.79 4.78 10.5 10.655 10.5 5.875 0 10.655-4.71 10.655-10.5S38.376 9 32.5 9c-5.876 0-10.655 4.71-10.655 10.5z">
+    </path>
+  </svg>
+
+const passwordIcon =
+  <svg className='icon' viewBox="0 0 24 24" fill="#989BA3" xmlns="http://www.w3.org/2000/svg" alt="" title="">
+    <path fillRule="evenodd" clipRule="evenodd" d="M1.125 11.625c0-2.485 2.05-4.5 4.579-4.5 1.69 0 3.15.911 3.944 2.25h10.938l2.289 2.25-2.29 2.25h-1.717l-1.144-.563-1.145.563h-1.145l-1.144-.563-1.145.563H9.648a4.575 4.575 0 0 1-3.944 2.25c-2.529 0-4.579-2.015-4.579-4.5zm7.534-1.684A3.408 3.408 0 0 0 5.704 8.25c-1.893 0-3.434 1.514-3.434 3.375C2.27 13.485 3.81 15 5.704 15a3.408 3.408 0 0 0 2.955-1.69l.33-.56h3.886l.903-.444.511-.251.512.25.903.445h.605l.903-.444.512-.251.511.25.904.445h.973l1.144-1.125-1.144-1.125H8.989l-.33-.56zm-4.672 1.684c0-.933.77-1.688 1.717-1.688.948 0 1.717.755 1.717 1.688 0 .933-.77 1.688-1.717 1.688-.948 0-1.717-.755-1.717-1.688zm2.29 0a.568.568 0 0 0-.573-.563.568.568 0 0 0-.572.563c0 .31.257.563.572.563a.568.568 0 0 0 .572-.563z">
+    </path>
+  </svg>
+
+const GoBackButton = (props) =>
+  <button>
+    {leftArrowIcon}
+    <span>Go back</span>
+  </button>
+
+const SignInButton = (props) =>
+  <button
+    type='submit'
+  >
+    <span>Sign In</span>
+    {rightArrowIcon}
+  </button>
+
+const InputEmail = ({value, onChange}) =>
+  <div className='field'>
+    <label htmlFor='email'>Email address:</label>
+    <div className='input_container'>
+      {userIcon}
+      <input
+        id="email"
+        type="email"
+        name="email"
+        autoComplete="username"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+      />
+    </div>
+  </div>
+
+const InputPassword = ({value, onChange}) =>
+  <div className='field'>
+    <label htmlFor='password'>Password:</label>
+    <div className='input_container'>
+      {passwordIcon}
+      <input
+        id="password"
+        type="password"
+        name="password"
+        autoComplete="current-password"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+      />
+    </div>
+  </div>
+
+const ForgotPassword = (props) =>
+  <div className='field'>
+    <a 
+      target='_blank'
+      rel='noreferrer'
+      href={ieeeSA_forgotPasswordLink}
+    >
+      &gt;Forgot password
+    </a>
+  </div>
+
+function App() {
+  const [credentials, setCredentials] = React.useState({username: '', password: ''});
+  const urlParams = new URLSearchParams(window.location.search);
+  const redirect = urlParams.get('redirect');
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const user = await login(credentials.username, credentials.password)
+    if (user && redirect) {
+      window.location = redirect;
+    }
+  }
+
+  return (
+    <React.Fragment>
+      <div className='overlay' />
+      
+      <main>
+
+        <div className='header'>
+          IEEE 802.11 - Sign in for access
+        </div>
+
+        <div className='go_back'>
+          <GoBackButton />
+        </div>
+
+        <div className='form_title'>
+          <h2>Sign In</h2>
+        </div>
+
+        <form
+          onSubmit={submit}
+        >
+          <InputEmail
+            value={credentials.username}
+            onChange={value => setCredentials({...credentials, username: value})}
+          />
+          <InputPassword
+            value={credentials.password}
+            onChange={value => setCredentials({...credentials, password: value})}
+          />
+          <ForgotPassword />
+          <SignInButton />
+        </form>
+
+      </main>
+    </React.Fragment>
+  );
+}
+
+export default App;

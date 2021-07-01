@@ -1,17 +1,16 @@
 import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-common/store/fetcher'
-import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
-import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
-import selectedSlice, {setSelected} from 'dot11-common/store/selected'
-import uiSlice, {setProperty} from 'dot11-common/store/ui'
-import {setError} from 'dot11-common/store/error'
-import {getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
-import {AccessLevel, AccessLevelOptions} from 'dot11-common/store/login'	// re-export access level constants
+import fetcher from 'dot11-components/lib/fetcher'
+import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
+import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
+import selectedSlice, {setSelected} from 'dot11-components/store/selected'
+import uiSlice, {setProperty} from 'dot11-components/store/ui'
+import {setError} from 'dot11-components/store/error'
+import {getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
+import {AccessLevel, AccessLevelOptions} from 'dot11-components/lib/user'	// re-export access level constants
 
 export {AccessLevel, AccessLevelOptions};
 
-const fields = ['SAPIN', 'Name', 'Email', 'Employer', 'Affiliation', 'Status', 'NewStatus', 'Access', 'AttendanceCount', 'BallotSeriesCount']
 
 const Status = {
 	'Non-Voter': 'Non-Voter',
@@ -24,10 +23,23 @@ const Status = {
 
 export const StatusOptions = Object.entries(Status).map(([k, v]) => ({value: k, label: v}));
 
+export const fields = {
+	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
+	Name: {label: 'Name'},
+	Email: {label: 'Email'},
+	Employer: {label: 'Employer'},
+	Affiliation: {label: 'Affiliation'}, 
+	Status: {label: 'Status'},
+	NewStatus: {label: 'Expected status'},
+	Access: {label: 'Access level', sortType: SortType.NUMERIC, options: AccessLevelOptions},
+	AttendanceCount: {label: 'Session participation', sortType: SortType.NUMERIC},
+	BallotSeriesCount: {label: 'Ballot participation', sortType: SortType.NUMERIC},
+};
+
 /*
  * Generate a filter for each field (table column)
  */
-const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
+const defaultFiltersEntries = Object.keys(fields).reduce((entries, dataKey) => {
 	let options;
 	if (dataKey === 'Access')
 		options = AccessLevelOptions;
@@ -37,7 +49,7 @@ const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
 /*
  * Generate object that describes the initial sort state
  */
-const defaultSortEntries = fields.reduce((entries, dataKey) => {
+const defaultSortEntries = Object.keys(fields).reduce((entries, dataKey) => {
 	let type
 	switch (dataKey) {
 		case 'SAPIN':
@@ -73,8 +85,8 @@ const slice = createSlice({
 	initialState: membersAdapter.getInitialState({
 		valid: false,
 		loading: false,
-		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
+		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
+		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
 		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
 		[uiSlice.name]: uiSlice.reducer(undefined, {})	
 	}),

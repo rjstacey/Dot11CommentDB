@@ -3,12 +3,12 @@ import React from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable, {ControlHeader, ControlCell} from 'dot11-common/table'
-import {ActionButton} from 'dot11-common/lib/icons'
-import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
-import {ConfirmModal} from 'dot11-common/modals'
-import {Input} from 'dot11-common/general/Form'
-import {ActionButtonDropdown} from 'dot11-common/general/Dropdown'
+import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table'
+import {ActionButton} from 'dot11-components/lib/icons'
+import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
+import {ConfirmModal} from 'dot11-components/modals'
+import {Input} from 'dot11-components/general/Form'
+import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
 import VotersImportModal from './VotersImport'
 import VoterEditModal from './VoterEdit'
 
@@ -36,8 +36,8 @@ const defaultVoter = {
 const controlColumn = {
 	key: '__ctrl__',
 	width: 30, flexGrow: 1, flexShrink: 0,
-	headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} />,
-	cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />
+	headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
+	cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />
 }
 
 const actionsColumn = {

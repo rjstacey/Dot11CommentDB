@@ -186,7 +186,7 @@ function summarizeSAResults(results) {
 
 function colateMotionResults(ballotResults, voters) {
 	// Collect each voters last vote
-	let results = []
+	let results = [];
 	let id = 0;
 	for (let voter of voters) {
 		let v = {
@@ -340,7 +340,7 @@ export async function getResultsCoalesced(user, ballotId) {
 	}
 	else if (ballot.Type === BallotType.Motion) {
 		// if there is a voting pool, get that
-		voters = await getVoters(ballot.VotingPoolID);
+		const {voters} = await getVoters(ballot.VotingPoolID);
 		results = await getResults(ballotId);
 		votingPoolId = ballot.VotingPoolID;
 		votingPoolSize = voters.length;

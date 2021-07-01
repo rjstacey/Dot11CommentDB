@@ -1,43 +1,26 @@
 import {createSlice, createEntityAdapter, createSelector} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-common/store/fetcher'
-import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
-import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
-import selectedSlice, {setSelected} from 'dot11-common/store/selected'
-import uiSlice from 'dot11-common/store/ui'
-import {setError} from 'dot11-common/store/error'
-import {getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
+import fetcher from 'dot11-components/lib/fetcher'
+import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
+import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
+import selectedSlice, {setSelected} from 'dot11-components/store/selected'
+import uiSlice from 'dot11-components/store/ui'
+import {setError} from 'dot11-components/store/error'
+import {getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
 
 import {upsertMembers} from './members'
 import {updateSessionSuccess} from './sessions'
 
-const fields = ['id', 'SAPIN', 'Name', 'Email', 'Affiliation', 'Status', 'SessionCredit']
-
-/*
- * Generate a filter for each field (table column)
- */
-const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
-	let options;
-	return {...entries, [dataKey]: {options}}
-}, {});
-
-/*
- * Generate object that describes the initial sort state
- */
-const defaultSortEntries = fields.reduce((entries, dataKey) => {
-	let type
-	switch (dataKey) {
-		case 'SAPIN':
-		case 'SessionCreditPct':
-		case 'SessionCredit':
-			type = SortType.NUMERIC
-			break
-		default:
-			type = SortType.STRING
-	}
-	const direction = SortDirection.NONE;
-	return {...entries, [dataKey]: {type, direction}}
-}, {});
+const fields = {
+	id: {label: 'id', sortType: SortType.NUMERIC},
+	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
+	Name: {label: 'Name'},
+	Email: {label: 'Email'},
+	Affiliation: {label: 'Affiliation'},
+	Status: {label: 'Status'},
+	SessionCredit: {label: 'Session credit', sortType: SortType.NUMERIC},
+	SessionCreditPct: {label: 'Session credit', sortType: SortType.NUMERIC}
+};
 
 /*
  * Remove entries that no longer exist from a list. If there
@@ -61,8 +44,8 @@ const slice = createSlice({
 		loading: false,
 		session: {},
 		breakout: {},
-		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
+		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
+		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
 		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
 		[uiSlice.name]: uiSlice.reducer(undefined, {})
 	}),

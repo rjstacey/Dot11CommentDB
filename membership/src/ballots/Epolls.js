@@ -2,13 +2,15 @@ import React from 'react'
 import {useHistory} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable from 'dot11-common/table'
+import AppTable from 'dot11-components/table'
 import BallotDetailModal from './BallotDetail'
-import {ActionButton} from 'dot11-common/lib/icons'
-import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
+import {ActionButton} from 'dot11-components/lib/icons'
+import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
 
-import {loadBallots} from '../store/ballots'
-import {loadEpolls, getSyncedEpollEntities} from '../store/epolls'
+import {loadBallots, BallotType} from '../store/ballots'
+import {fields, loadEpolls, getSyncedEpollEntities} from '../store/epolls'
+
+import {BallotAddModal as BallotAdd} from './BallotAdd'
 
 function renderDate({rowData, dataKey}) {
 	// rowData[key] is an ISO time string. We convert this to eastern time
@@ -31,22 +33,57 @@ const TableRow = styled.div`
 	width: 100%;
 `;
 
-function Epolls(props) {
-	const {ballotsValid, loadBallots, epollsValid, loadEpolls, epolls} = props;
+function ePollToBallot(epoll) {
+	// See if the ePoll name has something like CC53 or LB245
+	const m = epoll.BallotID.match(/(CC|LB)\d+/)
+	let type = BallotType.Motion,
+		ballotId = '';
+	if (m) {
+		ballotId = m[0];
+		type = ballotId.startsWith('CC')? BallotType.CC: BallotType.WG_Initial;
+	}
+	return {
+		Project: '',
+		BallotID: ballotId,
+		Type: type,
+		EpollNum: epoll.EpollNum,
+		Start: epoll.Start,
+		End: epoll.End,
+		Document: epoll.Document,
+		Topic: epoll.Topic,
+		VotingPoolID: '',
+		PrevBallotID: ''
+	}
+}
+const renderActions = ({rowData}) => rowData.InDatabase
+	? <span>Already Present</span>
+	: <BallotAdd defaultBallot={ePollToBallot(rowData)}/>
+
+const columns = [
+		{key: 'EpollNum', 	...fields.EpollNum, 	width: 100},
+		{key: 'BallotID', 	...fields.BallotID,		width: 200},
+		{key: 'Start', 		...fields.Start,		width: 100},
+		{key: 'End', 		...fields.End,			width: 100},
+		{key: 'Document', 	...fields.Document,		width: 200},
+		{key: 'Topic', 		...fields.Topic,		width: 500},
+		{key: 'Votes',		...fields.Votes,		width: 100},
+		{key: 'Actions', 	label: '',				width: 200,
+			headerRenderer: () => '',	
+			cellRenderer: renderActions}
+	];
+
+function Epolls({
+	ballotsValid,
+	loadBallots,
+	epollsValid,
+	loadEpolls,
+	epolls,
+	loading
+}) {
 	const history = useHistory();
 	const numberEpolls = React.useRef(20);
 	const [epollNum, setEpollNum] = React.useState(null);
 
-	const columns = [
-		{key: 'EpollNum', 	label: 'ePoll', 		width: 100},
-		{key: 'BallotID', 	label: 'ePoll Name',	width: 200},
-		{key: 'Document', 	label: 'Document',		width: 200},
-		{key: 'Topic', 		label: 'Topic',			width: 500},
-		{key: 'Start', 		label: 'Start',			width: 100, 	cellRenderer: renderDate},
-		{key: 'End', 		label: 'End',			width: 100,		cellRenderer: renderDate},
-		{key: 'Votes',		label: 'Result',		width: 100},
-		{key: 'Actions', 	label: '',				width: 200,		cellRenderer: renderActions}
-	];
 
 	const primaryDataKey = 'EpollNum'
 
@@ -61,52 +98,36 @@ function Epolls(props) {
 
 	//React.useEffect(() => {console.log('epolls changed')}, [props.epolls]);
 
-	const refresh = () => props.getEpolls(numberEpolls.current)
-	const close = () => history.goBack()
+	const refresh = () => loadEpolls(numberEpolls.current);
+	const close = () => history.goBack();
 
 	function getMore() {
 		numberEpolls.current += 10;
-		props.loadEpolls(numberEpolls.current)
+		loadEpolls(numberEpolls.current);
 	}
 
-	function renderActions({rowData}) {
-		if (rowData.InDatabase) {
-			return <span>Already Present</span>
-		}
-		else {
-			return <ActionButton name='import' title='Import' onClick={() => setEpollNum(rowData.EpollNum)} />
-		}
-	}
-	
-	return (
-		<React.Fragment>
-			<ActionRow style={{maxWidth}}>
-				<span><label>Closed ePolls</label></span>
-				<span>
-					<ActionButton name='more' title='Load More' onClick={getMore} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-					<ActionButton name='close' title='Close' onClick={close} />
-				</span>
-			</ActionRow>
-			<TableRow style={{maxWidth}}>
-				<AppTable
-					columns={columns}
-					headerHeight={28}
-					estimatedRowHeight={64}
-					dataSet='epolls'
-					loading={props.loading}
-					rowGetter={({rowId}) => epolls[rowId]}
-					rowKey={primaryDataKey}
-				/>
-			</TableRow>
-			<BallotDetailModal
-				isOpen={epollNum !== null}
-				ballotId='+'
-				epollNum={epollNum}
-				close={() => setEpollNum(null)}
+
+	return <>
+		<ActionRow style={{maxWidth}}>
+			<span><label>Closed ePolls</label></span>
+			<span>
+				<ActionButton name='more' title='Load More' onClick={getMore} />
+				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				<ActionButton name='close' title='Close' onClick={close} />
+			</span>
+		</ActionRow>
+		<TableRow style={{maxWidth}}>
+			<AppTable
+				columns={columns}
+				headerHeight={28}
+				estimatedRowHeight={64}
+				dataSet={dataSet}
+				loading={loading}
+				rowGetter={({rowId}) => epolls[rowId]}
+				rowKey={primaryDataKey}
 			/>
-		</React.Fragment>
-	)
+		</TableRow>
+	</>
 }
 
 const dataSet = 'epolls';

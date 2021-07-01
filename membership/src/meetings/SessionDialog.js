@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import {AppModal} from 'dot11-common/modals'
-import {Form, Row, Field, Input, Select} from 'dot11-common/general/Form'
+import {AppModal} from 'dot11-components/modals'
+import {Form, Row, Field, Input, Select} from 'dot11-components/general/Form'
 import TimeZoneSelector from './TimeZoneSelector'
 import {updateSession, addSession, SessionTypeOptions} from '../store/sessions'
 

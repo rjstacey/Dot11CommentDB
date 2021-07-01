@@ -5,7 +5,7 @@
  */
 
 require('dotenv').config();
-//console.log(process.env);
+console.log(process.env);
 
 const db = require('./util/database');
 
@@ -52,9 +52,9 @@ function initServer() {
 		res.status(400).send(message)
 	});
 
-	app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'app', 'index.html')));
-	app.use(express.static(path.join(__dirname, 'app')));
-	app.get('*', (req, res) => res.redirect('/'));
+	app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+	app.use(express.static(path.join(__dirname, '')));
+	//app.get('*', (req, res) => res.redirect('/'));
 
 	app.listen(app.get('port'), () => {
 		console.log('App listening on port %s', app.get('port'))
