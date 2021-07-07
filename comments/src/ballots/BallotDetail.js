@@ -2,10 +2,10 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {shallowDiff} from 'dot11-common/lib/utils'
-import {Form, Row, Col, Field, List, ListItem, Checkbox, Input, Select, TextArea} from 'dot11-common/general/Form'
-import {getData} from 'dot11-common/store/dataSelectors'
-import {AppModal, ConfirmModal} from 'dot11-common/modals'
+import {shallowDiff} from 'dot11-components/lib/utils'
+import {Form, Row, Col, Field, List, ListItem, Checkbox, Input, Select, TextArea} from 'dot11-components/general/Form'
+import {getData} from 'dot11-components/store/dataSelectors'
+import {AppModal, ConfirmModal} from 'dot11-components/modals'
 
 import {renderResultsSummary, renderCommentsSummary} from './Ballots'
 
@@ -93,7 +93,7 @@ function SelectPrevBallot({width, prevBallotId, ballotList, onChange}) {
 	)
 }
 
-function BallotTypes({value, onChange}) {
+export function BallotTypes({value, onChange}) {
 	const ballotTypeOptions = [
 		{value: BallotType.CC, label: 'Comment collection'},
 		{value: BallotType.WG_Initial, label: 'Initial WG ballot'},
@@ -244,7 +244,15 @@ const TopicTextArea = styled(TextArea)`
 	height: 3.5em;
 `;
 
-function Column1({project, setProject, projectList, ballot, setBallot, ballotList, votingPools}) {
+export function Column1({
+	project,
+	setProject,
+	projectList,
+	ballot,
+	setBallot,
+	ballotList,
+	votingPools
+}) {
 	const change = (e) => {
 		const {name, value} = e.target;
 		setBallot({...ballot, [name]: value});
@@ -564,4 +572,4 @@ function BallotDetailModal({
 	)
 }
 
-export default BallotDetailModal;
+export default BallotDetailForm;
