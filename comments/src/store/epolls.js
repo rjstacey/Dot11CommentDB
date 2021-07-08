@@ -1,48 +1,22 @@
 import {createSlice, createSelector, createEntityAdapter} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-common/lib/fetcher'
-import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
-import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
-import selectedSlice, {setSelected} from 'dot11-common/store/selected'
-import expandedSlice, {setExpanded} from 'dot11-common/store/expanded'
-import uiSlice from 'dot11-common/store/ui'
-import {setError} from 'dot11-common/store/error'
+import fetcher from 'dot11-components/lib/fetcher'
+import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
+import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
+import selectedSlice, {setSelected} from 'dot11-components/store/selected'
+import expandedSlice, {setExpanded} from 'dot11-components/store/expanded'
+import uiSlice from 'dot11-components/store/ui'
+import {setError} from 'dot11-components/store/error'
 
-const epollFields = ['EpollNum', 'BallotID', 'Document', 'Topic', 'Start', 'End', 'Votes']
-
-/*
- * Generate a filter for each field (table column)
- */
-const defaultFiltersEntries = epollFields.reduce((entries, dataKey) => {
-	return {...entries, [dataKey]: {}};
-}, {});
-
-
-/*
- * Generate object that describes the initial sort state
- */
-const defaultSortEntries = epollFields.reduce((entries, dataKey) => {
-	let type
-	switch (dataKey) {
-		case 'EpollNum':
-		case 'Votes':
-			type = SortType.NUMERIC
-			break
-
-		case 'Start':
-		case 'End':
-			type = SortType.DATE
-			break
-		case 'BallotID':
-		case 'Document':
-		case 'Topic':
-		default:
-			type = SortType.STRING
-			break	
-	}
-	const direction = SortDirection.NONE;
-	return {...entries, [dataKey]: {type, direction}};
-}, {});
+const fields = {
+	EpollNum: {label: 'EpollNum', sortType: SortType.NUMERIC},
+	BallotID: {label: 'BallotID'},
+	Document: {label: 'Document'},
+	Topic: {label: 'Topic'},
+	Start: {label: 'Start', sortType: SortType.DATE},
+	End: {label: 'End', sortType: SortType.DATE},
+	Votes: {label: 'Votes', sortType: SortType.NUMERIC}
+};
 
 const dataAdapter = createEntityAdapter({
 	selectId: d => d.EpollNum
@@ -50,13 +24,13 @@ const dataAdapter = createEntityAdapter({
 
 const dataSet = 'epolls';
 
-const epollsSlice = createSlice({
+const slice = createSlice({
 	name: dataSet,
 	initialState: dataAdapter.getInitialState({
 		valid: false,
 		loading: false,
-		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
+		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
+		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
 		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
 		[expandedSlice.name]: expandedSlice.reducer(undefined, {}),
 		[uiSlice.name]: uiSlice.reducer(undefined, {})
@@ -91,12 +65,12 @@ const epollsSlice = createSlice({
 	}
 });
 
-export default epollsSlice.reducer;
+export default slice.reducer;
 
-const {getPending, getSuccess, getFailure} = epollsSlice.actions;
+const {getPending, getSuccess, getFailure} = slice.actions;
 
-export function loadEpolls(n = 20) {
-	return async (dispatch, getState) => {
+export const loadEpolls = (n = 20) => 
+	async (dispatch, getState) => {
 		dispatch(getPending())
 		try {
 			const epolls = await fetcher.get('/api/epolls', {n})
@@ -109,7 +83,6 @@ export function loadEpolls(n = 20) {
 			])
 		}
 	}
-}
 
 /*
  * Selectors
