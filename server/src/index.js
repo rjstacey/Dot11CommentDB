@@ -52,7 +52,9 @@ function initServer() {
 		res.status(400).send(message)
 	});
 
-	app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+	app.get('/$', (req, res) => res.redirect('/comments'));
+	app.get('/comments', (req, res) => res.sendFile(path.join(__dirname, 'comments/index.html')));
+	app.get('/membership', (req, res) => res.sendFile(path.join(__dirname, 'membership/index.html')));
 	app.use(express.static(path.join(__dirname, '')));
 	//app.get('*', (req, res) => res.redirect('/'));
 

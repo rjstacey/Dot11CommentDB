@@ -1,55 +1,31 @@
 import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-common/lib/fetcher'
-import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
-import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
-import selectedSlice, {setSelected} from 'dot11-common/store/selected'
-import uiSlice from 'dot11-common/store/ui'
-import {setError} from 'dot11-common/store/error'
+import fetcher from 'dot11-components/lib/fetcher'
+import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
+import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
+import selectedSlice, {setSelected} from 'dot11-components/store/selected'
+import uiSlice from 'dot11-components/store/ui'
+import {setError} from 'dot11-components/store/error'
 
 import {updateBallotSuccess} from './ballots'
 
-const fields = ['SAPIN', 'Name', 'Affiliation', 'Email', 'Vote', 'CommentCount', 'Notes'];
-
-/*
- * Generate a filter for each field (table column)
- */
-const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
-	return {...entries, [dataKey]: {}};
-}, {});
-
-
-/*
- * Generate object that describes the initial sort state
- */
-const defaultSortEntries = fields.reduce((entries, dataKey) => {
-	let type;
-	switch (dataKey) {
-		case 'SAPIN':
-		case 'CommentCount':
-			type = SortType.NUMERIC;
-			break;
-		case 'Name':
-		case 'Affiliation':
-		case 'Email':
-		case 'Vote':
-		case 'Notes':
-		default:
-			type = SortType.STRING;
-			break;
-	}
-	const direction = SortDirection.NONE;
-	return {...entries, [dataKey]: {type, direction}};
-}, {});
+const fields = {
+	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
+	Name: {label: 'Name'},
+	Affiliation: {label: 'Affiliation'},
+	Email: {label: 'Email'},
+	Vote: {label: 'Vote'},
+	CommentCount: {label: 'Comments', sortType: SortType.NUMERIC},
+	Notes: {label: 'Notes'}
+};
 
 const dataAdapter = createEntityAdapter({
-	selectId: r => r.id,
-	sortComparer: (r1, r2) => r1.SAPIN - r2.SAPIN
-})
+	selectId: r => r.id
+});
 
 const dataSet = 'results';
 
-const resultsSlice = createSlice({
+const slice = createSlice({
 	name: dataSet,
 	initialState: dataAdapter.getInitialState({
 		ballotId: '',
@@ -58,8 +34,8 @@ const resultsSlice = createSlice({
 		valid: false,
 		votingPoolSize: 0,
 		resultsSummary: {},
-		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
+		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
+		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
 		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
 		[uiSlice.name]: uiSlice.reducer(undefined, {})
 	}),
@@ -80,14 +56,6 @@ const resultsSlice = createSlice({
 		getFailure(state, action) {
 			state.loading = false;
 		},
-		deleteAll(state, action) {
-			const {ballotId} = action.payload;
-			if (ballotId === state.ballotId) {
-				state.valid = false;
-				dataAdapter.setAll(state, []);
-				state.resultsSummary = {};
-			}
-		},
 	},
 	extraReducers: builder => {
 		builder
@@ -107,135 +75,37 @@ const resultsSlice = createSlice({
 /*
  * Export reducer as default
  */
-export default resultsSlice.reducer;
+export default slice.reducer;
 
-const {getPending, getSuccess, getFailure} = resultsSlice.actions;
+const {getPending, getSuccess, getFailure} = slice.actions;
 
-export function loadResults(ballotId) {
-	return async (dispatch) => {
-		dispatch(getPending({ballotId}))
+export const loadResults = (ballotId) =>
+	async (dispatch) => {
+		dispatch(getPending({ballotId}));
+		const url = `/api/results/${ballotId}`;
 		let response;
 		try {
-			response = await fetcher.get(`/api/results/${ballotId}`)
+			response = await fetcher.get(url);
+			if (!response.hasOwnProperty('ballot') ||
+				!response.hasOwnProperty('VotingPoolSize') ||
+				!response.hasOwnProperty('results') ||
+				!response.hasOwnProperty('summary'))
+				throw new TypeError('Unexpected response to GET: ' + url);
 		}
 		catch(error) {
-			return Promise.all([
+			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError('Unable to get results list', error))
-			])
+			]);
+			return;
 		}
 		const payload = {
 			ballotId: response.BallotID,
-			votingPoolSize: response.VotingPoolSize,
 			ballot: response.ballot,
+			votingPoolSize: response.VotingPoolSize,
 			results: response.results,
 			summary: response.summary
 		}
-		return dispatch(getSuccess(payload))
+		await dispatch(getSuccess(payload));
 	}
-}
 
-const {deleteAll} = resultsSlice.actions;
-
-export function deleteResults(ballotId, ballot) {
-	return async (dispatch) => {
-		try {
-			await fetcher.delete(`/api/results/${ballotId}`)
-		}
-		catch(error) {
-			return dispatch(setError(`Unable to delete results with ballotId=${ballotId}`, error))
-		}
-		return Promise.all([
-			dispatch(updateBallotSuccess(ballot.id, {Results: {}})),
-			dispatch(deleteAll({ballotId}))
-		])
-	}
-}
-
-export function importResults(ballotId, epollNum) {
-	return async (dispatch) => {
-		dispatch(getPending({ballotId}))
-		let response;
-		try {
-			response = await fetcher.post(`/api/results/importFromEpoll/${ballotId}/${epollNum}`);
-			
-		}
-		catch(error) {
-			return Promise.all([
-				dispatch(getFailure({ballotId})),
-				dispatch(setError(`Unable to import results for ballotId=${ballotId}`, error))
-			])
-		}
-		if (!response.ballot || !response.ballot.Result)
-			console.error('Unexpected response: missing or bad ballot');
-		if (!response.results || !Array.isArray(response.results))
-			console.error('Unexpected response: missing or bad results');
-		//console.log(response)
-		const payload = {
-			ballotId: response.BallotID,
-			votingPoolSize: response.VotingPoolSize,
-			ballot: response.ballot,
-			results: response.results,
-			summary: response.summary
-		}
-		return Promise.all([
-			dispatch(updateBallotSuccess(response.ballot.id, response.ballot)),
-			dispatch(getSuccess(payload))
-		])
-	}
-}
-
-export function uploadEpollResults(ballotId, file) {
-	return async (dispatch) => {
-		dispatch(getPending({ballotId}))
-		let response;
-		try {
-			response = await fetcher.postMultipart(`/api/results/uploadEpollResults/${ballotId}`, {ResultsFile: file})
-		}
-		catch(error) {
-			return Promise.all([
-				dispatch(getFailure({ballotId})),
-				dispatch(setError(`Unable to upload results for ballot ${ballotId}`, error))
-			])
-		}
-		const payload = {
-			ballotId: response.BallotID,
-			votingPoolSize: response.VotingPoolSize,
-			ballot: response.ballot,
-			results: response.results,
-			summary: response.summary
-		}
-		return Promise.all([
-			dispatch(updateBallotSuccess(response.ballot.id, response.ballot)),
-			dispatch(importResultsSuccess(payload))
-		])
-	}
-}
-
-export function uploadMyProjectResults(ballotId, file) {
-	return async (dispatch) => {
-		dispatch(getPending({ballotId}));
-		let response;
-		try {
-			response = await fetcher.postMultipart(`/api/results/uploadMyProjectResults/${ballotId}`, {ResultsFile: file})
-		}
-		catch(error) {
-			return Promise.all([
-				dispatch(getFailure({ballotId})),
-				dispatch(setError(`Unable to upload results for ballot ${ballotId}`, error))
-			])
-		}
-		const payload = {
-			ballotId: response.BallotID,
-			votingPoolId: response.VotingPoolID,
-			votingPoolSize: response.VotingPoolSize,
-			ballot: response.ballot,
-			results: response.results,
-			summary: response.summary
-		}
-		return Promise.all([
-			dispatch(updateBallotSuccess(response.ballot.id, response.ballot)),
-			dispatch(getSuccess(response))
-		])
-	}
-}

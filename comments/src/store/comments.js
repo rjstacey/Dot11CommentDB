@@ -1,80 +1,55 @@
 import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-common/lib/fetcher'
-import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
-import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
-import selectedSlice, {setSelected} from 'dot11-common/store/selected'
-import expandedSlice, {setExpanded} from 'dot11-common/store/expanded'
-import uiSlice from 'dot11-common/store/ui'
-import {getData} from 'dot11-common/store/dataSelectors'
-import {setError} from 'dot11-common/store/error'
+import fetcher from 'dot11-components/lib/fetcher'
+import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
+import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
+import selectedSlice, {setSelected} from 'dot11-components/store/selected'
+import expandedSlice, {setExpanded} from 'dot11-components/store/expanded'
+import uiSlice from 'dot11-components/store/ui'
+import {getData} from 'dot11-components/store/dataSelectors'
+import {setError} from 'dot11-components/store/error'
 
 import {updateBallotSuccess} from './ballots'
 
-const commentFields = {
-	CID: 'CID',
-	CommenterName: 'Commenter',
-	Vote: 'Vote',
-	MustSatisfy: 'Must Satisfy',
-	Category: 'Category',
-	Clause: 'Clause',
-	Page: 'Page',
-	Comment: 'Comment',
-	ProposedChange: 'Proposed Change',
-	AdHoc: 'Ad-hoc',
-	CommentGroup: 'Group',
-	Notes: 'Notes',
-	AssigneeName: 'Assignee',
-	Submission: 'Submission',
-	Status: 'Status',
-	ApprovedByMotion: 'Motion Number',
-	ResnStatus: 'Resn Status',
-	Resolution: 'Resolution',
-	EditStatus: 'Editing Status',
-	EditInDraft: 'In Draft',
-	EditNotes: 'Editing Notes'
-}
+const MustSatisfyOptions = {
+	0: 'No',
+	1: 'Yes'
+};
 
-/*
- * Generate a filter for each field (table column)
- */
-const defaultFiltersEntries = Object.keys(commentFields).reduce((entries, dataKey) => {
-	let options
-	if (dataKey === 'MustSatisfy')
-		options = [{value: 0, label: 'No'}, {value: 1, label: 'Yes'}]
-	return {...entries, [dataKey]: {options}}
-}, {});
-
-
-/*
- * Generate object that describes the initial sort state
- */
-const defaultSortEntries = Object.keys(commentFields).reduce((entries, dataKey) => {
-	let type
-	switch (dataKey) {
-		case 'CommentID':
-		case 'CID':
-		case 'Page':
-			type = SortType.NUMERIC
-			break
-		case 'Clause':
-			type = SortType.CLAUSE
-			break
-		default:
-			type = SortType.STRING
-	}
-	const direction = SortDirection.NONE;
-	return {...entries, [dataKey]: {type, direction}}
-}, {});
-
-
-const doCommentsUpdate = (comments, updatedComments) => (
-	/* Replace comments with the modified CommentID, maintaining increasing CommentID order */
-	comments
-		.filter(c1 => !updatedComments.find(c2 => c2.comment_id === c1.comment_id))
-		.concat(updatedComments)
-		.sort((c1, c2) => c1.CommentID === c2.CommentID? c1.ResolutionID - c2.ResolutionID: c1.CommentID - c2.CommentID)
-)
+export const fields = {
+	CID: {
+		label: 'CID',
+		sortType: SortType.NUMERIC
+	},
+	CommenterName: {
+		label: 'Commenter'
+	},
+	Vote: {
+		label: 'Vote'
+	},
+	MustSatisfy: {
+		label: 'Must Satisfy',
+		dataRenderer: v => MustSatisfyOptions[v],
+		options: Object.entries(MustSatisfyOptions).map(([k, v]) => ({value: k, label: v}))
+	},
+	Category: {label: 'Category'},
+	Clause: {label: 'Clause', sortType: SortType.CLAUSE},
+	Page: {label: 'Page', sortType: SortType.NUMERIC},
+	Comment: {label: 'Comment'},
+	ProposedChange: {label: 'Proposed Change'},
+	AdHoc: {label: 'Ad-hoc'},
+	CommentGroup: {label: 'Group'},
+	Notes: {label: 'Notes'},
+	AssigneeName: {label: 'Assignee'},
+	Submission: {label: 'Submission'},
+	Status: {label: 'Status'},
+	ApprovedByMotion: {label: 'Motion Number'},
+	ResnStatus: {label: 'Resn Status'},
+	Resolution: {label: 'Resolution'},
+	EditStatus: {label: 'Editing Status'},
+	EditInDraft: {label: 'In Draft'},
+	EditNotes: {label: 'Editing Notes'}
+};
 
 function getCommentStatus(c) {
 	let Status = ''
@@ -105,7 +80,7 @@ function filterIdList(idList, allIds) {
 }
 
 const dataAdapter = createEntityAdapter({
-	selectId: (c) => c.CID,
+	//selectId: (c) => c.ResolutionCount <= 1? `${c.comment_id}`: `${c.comment_id}-${c.resolution_id}`,
 	sortComparer: (c1, c2) => c1.CommentID === c2.CommentID? c1.ResolutionID - c2.ResolutionID: c1.CommentID - c2.CommentID 
 })
 
@@ -117,8 +92,8 @@ const slice = createSlice({
 		ballotId: '',
 		valid: false,
 		loading: false,
-		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
+		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
+		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
 		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
 		[expandedSlice.name]: expandedSlice.reducer(undefined, {}),
 		[uiSlice.name]: uiSlice.reducer(undefined, {})
@@ -142,8 +117,20 @@ const slice = createSlice({
 		},
 		updateMany(state, action) {
 			const {comments} = action.payload;
-			const updates = comments.map(c => ({id: c.CID, changes: c}));
+			let updates = comments.map(c => ({id: c.id, changes: c}));
 			dataAdapter.updateMany(state, updates);
+			updates = [];
+			for (const id of comments.map(c => c.id)) {
+				const comment = state.entities[id];
+				if (comment) {
+					const Status = getCommentStatus(comment);
+					if (comment.Status !== Status)
+						updates.push({id: comment.id, changes: {Status}});
+				}
+			}
+			dataAdapter.updateMany(state, updates);
+			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
+			state[expandedSlice.name] = filterIdList(state[expandedSlice.name], state.ids);
 		},
 		deleteAll(state, action) {
 			const {ballotId} = actions.payload;
@@ -161,26 +148,33 @@ const slice = createSlice({
 			state.updateComment = false;
 		},
 		afterAddOrDeleteResolutions(state, action) {
-			// Concat new comments
 			const {comments} = action.payload;
-			let newComments = [];
+			const deletes = [];
+			let selected = state[selectedSlice.name].slice();
+			const selected_comment_ids = [];
+			// Remove comments with affected comment_ids and then add them again
 			for (const id of state.ids) {
-				const c1 = state.entities[id];
-				if (!comments.find(c2 => c2.comment_id === c1.comment_id))
-					newComments.push(c1);
+				const {comment_id} = state.entities[id];
+				if (comments.find(c => c.comment_id === comment_id)) {
+					deletes.push(id);
+					const i = selected.indexOf(id);
+					if (i >= 0) {
+						// Remove the id from the selected list
+						selected.splice(i, 1);
+						// If the associated comment_id appears in the updated list, then add it again as the last entry with this comment_id
+						const x = comments.filter(c => c.comment_id === comment_id);
+						if (x.length) {
+							const newId = x[x.length - 1].id;
+							if (!selected.includes(newId)) {
+								selected.push(newId);
+							}
+						}
+					}
+				}
 			}
-			newComments = newComments.concat(comments);
-			dataAdapter.setAll(state, newComments);
-			state.updateComment = false;
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-			state[expandedSlice.name] = filterIdList(state[expandedSlice.name], state.ids);
-		},
-		afterUpdateResolutions(state, action) {
-			const {comments} = action.payload;
-			const updates = updateCommentsStatus(comments).map(c => ({id: c.CID, changes: c}));
-			dataAdapter.updateMany(state, updates);
-			state.updateComment = false;
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
+			dataAdapter.removeMany(state, deletes);
+			dataAdapter.upsertMany(state, updateCommentsStatus(comments));
+			state[selectedSlice.name] = selected;
 			state[expandedSlice.name] = filterIdList(state[expandedSlice.name], state.ids);
 		}
 	},
@@ -208,15 +202,16 @@ export default slice.reducer;
 /*
  * Actions
  */
-
 const {getPending, getSuccess, getFailure} = slice.actions;
 
 export const loadComments = (ballotId) =>
 	async (dispatch, getState) => {
 		dispatch(getPending({ballotId}));
-		let comments;
+		let response;
 		try {
-			comments = await fetcher.get(`/api/comments/${ballotId}`)
+			response = await fetcher.get(`/api/comments/${ballotId}`);
+			if (!Array.isArray(response))
+				throw new TypeError("Unexpected response to GET: /api/comments")
 		}
 		catch(error) {
 			await Promise.all([
@@ -225,7 +220,7 @@ export const loadComments = (ballotId) =>
 			]);
 			return;
 		}
-		await dispatch(getSuccess({ballotId, comments}));
+		await dispatch(getSuccess({ballotId, comments: response}));
 	}
 
 const {updatePending, updateFailure, updateMany} = slice.actions;
@@ -235,7 +230,9 @@ export const updateComments = (comments) =>
 		dispatch(updatePending())
 		let response;
 		try {
-			response = await fetcher.put(`/api/comments`, {comments})
+			response = await fetcher.put(`/api/comments`, {comments});
+			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments))
+				throw new TypeError("Unexpected response to PUT: /api/comments")
 		}
 		catch(error) {
 			await Promise.all([
@@ -267,10 +264,14 @@ export const deleteComments = (ballotId) =>
 
 export const importComments = (ballotId, epollNum, startCID) =>
 	async (dispatch) => {
-		dispatch(updatePending({ballotId}))
+		dispatch(updatePending({ballotId}));
+		const url = `/api/comments/importFromEpoll/${ballotId}/${epollNum}`;
 		let response;
 		try {
-			response = await fetcher.post(`/api/comments/importFromEpoll/${ballotId}/${epollNum}`, {StartCID: startCID})
+			response = await fetcher.post(url, {StartCID: startCID});
+			if (!response.hasOwnPropery('comments') || !Array.isArray(response.comments) ||
+				!response.hasOwnProperty('ballot') || typeof response.ballot !== 'object')
+				throw new TypeError(`Unexpected response to POST: ${url}`);
 		}
 		catch(error) {
 			await Promise.all([
@@ -290,16 +291,20 @@ export const importComments = (ballotId, epollNum, startCID) =>
 export const uploadComments = (ballotId, type, file) =>
 	async (dispatch) => {
 		dispatch(updatePending({ballotId}));
+		const url = `/api/comments/upload/${ballotId}/${type}`;
 		let response;
 		try {
-			response = await fetcher.postMultipart(`/api/comments/upload/${ballotId}/${type}`, {CommentsFile: file});
+			response = await fetcher.postMultipart(url, {CommentsFile: file});
+			if (!response.hasOwnPropery('comments') || !Array.isArray(response.comments) ||
+				!response.hasOwnProperty('ballot') || typeof response.ballot !== 'object')
+				throw new TypeError(`Unexpected response to POST: ${url}`);
 		}
 		catch(error) {
 			await Promise.all([
 				dispatch(updateFailure({ballotId})),
 				dispatch(setError(`Unable to upload comments for ${ballotId}`, error))
 			]);
-			return
+			return;
 		}
 		const {comments, ballot} = response;
 		await Promise.all([
@@ -312,21 +317,24 @@ export const uploadComments = (ballotId, type, file) =>
 export const setStartCommentId = (ballotId, startCommentId) =>
 	async (dispatch) => {
 		dispatch(updatePending({ballotId}));
-		let comments;
+		const url = `/api/comments/startCommentId/${ballotId}`;
+		let response;
 		try {
-			comments = await fetcher.patch(`/api/comments/startCommentId/${ballotId}`, {StartCommentID: startCommentId});
+			response = await fetcher.patch(url, {StartCommentID: startCommentId});
+			if (!Array.isArray(response))
+				throw new TypeError("Unexpected response to PATCH: /api/comments")
 		}
 		catch(error) {
 			await Promise.all([
 				dispatch(updateFailure({ballotId})),
 				dispatch(setError(`Unable to start CID for ${ballotId}`, error))
 			]);
-			return
+			return;
 		}
 		await Promise.all([
 			dispatch(setSelected(dataSet, [])),
 			dispatch(setExpanded(dataSet, [])),
-			dispatch(getSuccess({ballotId, comments}))
+			dispatch(getSuccess({ballotId, comments: response}))
 		]);
 	}
 
@@ -354,14 +362,14 @@ export const addResolutions = (resolutions) =>
 		return response.newComments;
 	}
 
-const {afterUpdateResolutions} = slice.actions;
-
 export const updateResolutions = (resolutions) =>
 	async (dispatch) => {
 		dispatch(updatePending());
 		let response;
 		try {
 			response = await fetcher.put('/api/resolutions', {resolutions});
+			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments))
+				throw new TypeError('Unexpected response to PUT: /api/resolutions');
 		}
 		catch(error) {
 			await Promise.all([
@@ -370,17 +378,18 @@ export const updateResolutions = (resolutions) =>
 			]);
 			return;
 		}
-		await dispatch(afterUpdateResolutions(response));
+		await dispatch(updateMany(response));
 	}
 
 export const deleteResolutions = (resolutions) =>
 	async (dispatch) => {
 		dispatch(updatePending());
+		const url = '/api/resolutions';
 		let response;
 		try {
-			response = await fetcher.delete(`/api/resolutions`, {resolutions});
+			response = await fetcher.delete(url, {resolutions});
 			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments))
-				throw new TypeError('Missing comments array in response')
+				throw new TypeError('Unexpected response to DELETE: ' + url);
 		}
 		catch(error) {
 			console.log(error)
@@ -388,7 +397,7 @@ export const deleteResolutions = (resolutions) =>
 				dispatch(updateFailure()),
 				dispatch(setError(`Unable to delete resolution${resolutions.length > 1? 's': ''}`, error))
 			]);
-			return
+			return;
 		}
 		await dispatch(afterAddOrDeleteResolutions(response))
 	}

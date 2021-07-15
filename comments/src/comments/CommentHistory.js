@@ -1,16 +1,17 @@
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {AppModal} from 'dot11-common/modals'
+import {AppModal} from 'dot11-components/modals'
 import {Comment} from './CommentDetail'
 import HorizontalTimeline from './HorizontalTimeline'
 import {loadCommentsHistory} from '../store/commentsHistory'
-import {getData} from 'dot11-common/store/dataSelectors'
-import {getSelected} from 'dot11-common/store/selected'
+import {getEntities} from 'dot11-components/store/dataSelectors'
+import {getSelected} from 'dot11-components/store/selected'
 
 const Container = styled.div`
 	width: 80vw;
 	height: 800px;
+	overflow: auto;
 	.action {
 		font-weight: bold;
 		text-transform: capitalize;
@@ -33,12 +34,12 @@ function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, 
 
 	React.useEffect(() => {
 		if (isOpen && selected.length) {
-			const s = selected[0];
-			const c = comments.find(c => c.CID === s);
+			const id = selected[0];
+			const c = comments[id];
 			if (c)
-				loadCommentsHistory(c);
+				loadCommentsHistory(c.comment_id);
 		}
-	}, [isOpen, comments, loadCommentsHistory, selected]);
+	}, [isOpen, comments, selected, loadCommentsHistory]);
 
 	const [index, setIndex] = React.useState(0);
 	const events = commentsHistory.map(c => ({timestamp: c.Timestamp, type: c.Action, threadId: c.resolution_id, threadLabel: c.resolution_id? c.Changes.ResolutionID: ''}));
@@ -48,7 +49,7 @@ function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, 
 	if (log) {
 		const changeTo = log.resolution_id? 'resolution': 'comment';
 		changeBody = 
-			<React.Fragment>
+			<>
 				<div>
 					<span className='action'>{log.Action}</span> {changeTo} by <span className='name'>{log.UserName || log.UserID}</span> on {(new Date(log.Timestamp)).toLocaleString()}
 				</div>
@@ -59,7 +60,7 @@ function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, 
 					showEditing
 					showNotes
 				/>
-			</React.Fragment>
+			</>
 	}
 	else {
 		changeBody = <NotAvaialble>No history</NotAvaialble>
@@ -82,7 +83,7 @@ function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, 
 const CommentHistory = connect(
 	(state) => ({
 		selected: getSelected(state, 'comments'),
-		comments: getData(state, 'comments'),
+		comments: getEntities(state, 'comments'),
 		commentsHistory: state.commentsHistory.commentsHistory,
 		loading: state.commentsHistory.loading,
 		valid: state.commentsHistory.selected,

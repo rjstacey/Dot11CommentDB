@@ -1,5 +1,5 @@
 {
-  "name": "dot11-comment-db",
+  "name": "server",
   "version": "1.0.0",
   "description": "IEEE 802.11 comment tracking tool server",
   "repository": "https://github.com/rjstacey/Dot11CommentDB",

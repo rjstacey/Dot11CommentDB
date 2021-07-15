@@ -8,13 +8,13 @@ import CommentGroupSelector from './CommentGroupSelector'
 import AssigneeSelector from './AssigneeSelector'
 import SubmissionSelector from './SubmissionSelector'
 import {editorCss, ResolutionEditor} from './ResolutionEditor'
-import {ActionButton, VoteYesIcon, VoteNoIcon, IconCollapse} from 'dot11-common/lib/icons'
-import {ActionButtonDropdown} from 'dot11-common/general/Dropdown'
-import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-common/general/Form'
-import {shallowDiff, debounce} from 'dot11-common/lib/utils'
-import {setProperty} from 'dot11-common/store/ui'
-import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
-import {AccessLevel} from 'dot11-common/store/login'
+import {ActionButton, VoteYesIcon, VoteNoIcon, IconCollapse} from 'dot11-components/lib/icons'
+import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
+import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/general/Form'
+import {shallowDiff, debounce} from 'dot11-components/lib/utils'
+import {setProperty} from 'dot11-components/store/ui'
+import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
+import {AccessLevel} from 'dot11-components/lib/user'
 
 import {addResolutions, updateResolutions, deleteResolutions, updateComments} from '../store/comments'
 
@@ -722,15 +722,13 @@ class CommentDetail extends React.PureComponent {
 	}
 
 	initState = (props) => {
-		const {comments, selected} = props;
+		const {entities, selected} = props;
 		let diff = {}, originalComments = [];
-		if (comments.length > 0) {
-			for (let cid of selected) {
-				const comment = comments.find(c => c.CID === cid)
-				if (comment) {
-					diff = recursivelyDiffObjects(diff, comment)
-					originalComments.push(comment)
-				}
+		for (const cid of selected) {
+			const comment = entities[cid];
+			if (comment) {
+				diff = recursivelyDiffObjects(diff, comment)
+				originalComments.push(comment)
 			}
 		}
 		return {
@@ -760,44 +758,44 @@ class CommentDetail extends React.PureComponent {
 			let commentUpdate = {}, resolutionUpdate = {};
 			for (let k in d) {
 				if (k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes' || k === 'Page' || k === 'Clause')
-					commentUpdate[k] = d[k]
+					commentUpdate[k] = d[k];
 				else
-					resolutionUpdate[k] = d[k]
+					resolutionUpdate[k] = d[k];
 			}
 			if (Object.keys(commentUpdate).length > 0) {
-				commentUpdate.id = c.comment_id
-				commentUpdates.push(commentUpdate)
+				commentUpdate.id = c.comment_id;
+				commentUpdates.push(commentUpdate);
 			}
 			if (Object.keys(resolutionUpdate).length > 0) {
 				if (c.resolution_id) {
-					resolutionUpdate.id = c.resolution_id
-					resolutionUpdates.push(resolutionUpdate)
+					resolutionUpdate.id = c.resolution_id;
+					resolutionUpdates.push(resolutionUpdate);
 				}
 				else {
-					resolutionUpdate.BallotID = c.BallotID
-					resolutionUpdate.CommentID = c.CommentID
-					resolutionUpdate.comment_id = c.comment_id
-					resolutionAdds.push(resolutionUpdate)
+					resolutionUpdate.BallotID = c.BallotID;
+					resolutionUpdate.CommentID = c.CommentID;
+					resolutionUpdate.comment_id = c.comment_id;
+					resolutionAdds.push(resolutionUpdate);
 				}
 			}
 		}
 		if (commentUpdates.length > 0)
-			this.props.updateComments(commentUpdates)
+			this.props.updateComments(commentUpdates);
 		if (resolutionAdds.length > 0)
-			this.props.addResolutions(resolutionAdds)
+			this.props.addResolutions(resolutionAdds);
 		if (resolutionUpdates.length > 0)
-			this.props.updateResolutions(resolutionUpdates)
-		this.setState((state, props) => ({...state, savedResolution: editedResolution}))
+			this.props.updateResolutions(resolutionUpdates);
+		this.setState((state, props) => ({...state, savedResolution: editedResolution}));
 	}
 
 	//handleSave = () => this.doSave(this.state.origResolution, this.state.editedResolution, this.state.comments)
 
-	handleAddResolutions = () => {
+	handleAddResolutions = async () => {
 		const {comments} = this.state;
 		//console.log(comments)
 		const resolutions = [];
 		// Add only one entry per CommentID
-		for (let c of comments) {
+		for (const c of comments) {
 			if (!resolutions.find(r => r.comment_id === c.comment_id)) {
 				resolutions.push({
 					BallotID: c.BallotID,
@@ -806,14 +804,18 @@ class CommentDetail extends React.PureComponent {
 				})
 			}
 		}
-		this.props.addResolutions(resolutions)
+		this.triggerSave.flush();
+		await this.props.addResolutions(resolutions);
+		//this.setState(this.initState(this.props));
 	}
 
- 	handleDeleteResolutions = () => {
+ 	handleDeleteResolutions = async () => {
  		const resolutions = this.state.comments
  			.filter(c => c.ResolutionCount > 0)			// only those with resolutions
  			.map(c => ({id: c.resolution_id}));
- 		this.props.deleteResolutions(resolutions)
+ 		this.triggerSave.flush();
+ 		await this.props.deleteResolutions(resolutions);
+ 		//this.setState(this.initState(this.props));
  	}
 
  	handleToggleEditComment = () => this.props.setUiEditComment(!this.props.uiEditComment);
@@ -885,12 +887,12 @@ class CommentDetail extends React.PureComponent {
 const dataSet = 'comments'
 export default connect(
 	(state) => {
-		const user = state.login.user;
 		const data = state[dataSet];
 		return {
 			ballotId: data.ballotId,
 			comments: getData(state, dataSet),
-			commentsMap: getSortedFilteredIds(state, dataSet),
+			ids: getSortedFilteredIds(state, dataSet),
+			entities: data.entities,
 			loading: data.loading,
 			selected: data.selected,
 			uiShowNotes: data.ui['showNotes'],

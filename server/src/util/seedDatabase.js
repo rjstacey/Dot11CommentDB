@@ -2,6 +2,7 @@
 
 import {getUser} from '../services/users'
 import {addMember, updateMember} from '../services/members'
+import {initCommentsTables} from '../services/comments'
 
 const db = require('../util/database')
 
@@ -160,6 +161,8 @@ export async function init() {
 				await db.query(createTables[table])
 			}
 		}
+
+		initCommentsTables();
 
 		/* Make sure we have a super user with the right access level */
 		const user = await getUser(superUser.SAPIN, superUser.Email)

@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'
 import store from './store'
 import App from './App'
-import {userInit} from 'dot11-common/lib/user'
+import {userInit} from 'dot11-components/lib/user'
 import registerServiceWorker from './registerServiceWorker'
 import './index.css'
 

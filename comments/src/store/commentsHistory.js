@@ -1,7 +1,7 @@
 import {createSlice} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-common/lib/fetcher'
-import {setError} from 'dot11-common/store/error'
+import fetcher from 'dot11-components/lib/fetcher'
+import {setError} from 'dot11-components/store/error'
 
 const defaultState = {
 	loading: false,
@@ -11,7 +11,7 @@ const defaultState = {
 
 const dataSet = 'commentsHistory';
 
-const commentsHistorySlice = createSlice({
+const slice = createSlice({
 	name: dataSet,
 	initialState: {
 		loading: false,
@@ -62,23 +62,27 @@ const commentsHistorySlice = createSlice({
 	}
 });
 
-const {getPending, getSuccess, getFailure} = commentsHistorySlice.actions;
+export default slice.reducer;
 
-export function loadCommentsHistory(comment) {
-	return async (dispatch, getState) => {
+const {getPending, getSuccess, getFailure} = slice.actions;
+
+export const loadCommentsHistory = (comment_id) =>
+	async (dispatch, getState) => {
 		dispatch(getPending());
+		const url = `/api/commentsHistory/${comment_id}`;
 		let response;
 		try {
-			response = await fetcher.get(`/api/commentsHistory/${comment.comment_id}`)
+			response = await fetcher.get(url);
+			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments) ||
+				!response.hasOwnProperty('commentsHistory') || !Array.isArray(response.commentsHistory))
+				throw new TypeError('Unexpected response to GET: ' + url);
 		}
 		catch(error) {
-			return Promise.all([
-				dispatch(getCommentsHistoryFailure()),
-				dispatch(setError(`Unable to get comments history for ${comment.CID}`, error))
+			await Promise.all([
+				dispatch(getFailure()),
+				dispatch(setError(`Unable to get comments history for ${comment_id}`, error))
 			]);
+			return;
 		}
-		return dispatch(getSuccess(response))
+		await dispatch(getSuccess(response));
 	}
-}
-
-export default commentsHistorySlice.reducer;

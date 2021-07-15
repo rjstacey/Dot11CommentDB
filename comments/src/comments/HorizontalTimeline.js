@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import styled from '@emotion/styled';
-import {Icon} from 'dot11-common/lib/icons';
+import {Icon} from 'dot11-components/lib/icons';
 
 const Constants = {
 	X_PADDING: 50,
@@ -264,7 +264,7 @@ function HorizontalTimeline({style, className, index, indexClick, events}) {
 
 	return (
 		<Container style={style} className={className} >
-			<ScrollIcon icon='angle-left' onClick={scrollLeft} />
+			<ScrollIcon name='angle-left' onClick={scrollLeft} />
 			<EventsContainer ref={containerRef} >
 				<Events 
 					index={index}
@@ -272,7 +272,7 @@ function HorizontalTimeline({style, className, index, indexClick, events}) {
 					events={events}
 				/>
 			</EventsContainer>
-			<ScrollIcon icon='angle-right' onClick={scrollRight} />
+			<ScrollIcon name='angle-right' onClick={scrollRight} />
 		</Container>
 	)
 }

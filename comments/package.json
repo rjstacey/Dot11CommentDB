@@ -1,8 +1,8 @@
 {
-  "name": "dot11-commentdb",
+  "name": "comments",
   "version": "0.1.0",
   "private": true,
-  "homepage": "./comments",
+  "homepage": "comments",
   "proxy": "http://localhost:8080",
   "dependencies": {
     "@emotion/react": "^11.1.5",
@@ -12,7 +12,7 @@
     "@testing-library/react": "^11.2.3",
     "@testing-library/user-event": "^12.6.2",
     "copy-html-to-clipboard": "^4.0.1",
-    "dot11-common": "^1.0.52",
+    "dot11-components": "^1.0.9",
     "draft-js": "^0.11.7",
     "draft-js-export-html": "^1.4.1",
     "draft-js-import-html": "^1.4.1",
@@ -21,18 +21,18 @@
     "react-redux": "^7.2.2",
     "react-router": "^5.1.2",
     "react-router-dom": "^5.1.2",
-    "react-scripts": "4.0.1",
     "react-tabs": "^3.0.0",
     "react-window": "^1.8.5",
     "web-vitals": "^0.2.4"
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build; mv ../build/index.html ../build/comments.html",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
   "devDependencies": {
+    "react-scripts": "^4.0.3",
     "redux-logger": "^3.0.6"
   },
   "browserslist": {

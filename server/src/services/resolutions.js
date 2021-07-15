@@ -83,7 +83,7 @@ export async function addResolutions(userId, resolutions) {
 	}
 }
 
-function updateResolutionSQL(userId, resolution) {
+function updateResolutionSQL(userId, id, resolution) {
 	const entry = {
 		BallotID: resolution.BallotID,
 		CommentID: resolution.CommentID,
@@ -99,6 +99,7 @@ function updateResolutionSQL(userId, resolution) {
 		EditNotes: resolution.EditNotes,
 		EditInDraft: resolution.EditInDraft
 	}
+
 	for (let key of Object.keys(entry)) {
 		if (entry[key] === undefined) {
 			delete entry[key]
@@ -107,22 +108,29 @@ function updateResolutionSQL(userId, resolution) {
 
 	const SQL = 
 		db.format('UPDATE resolutions SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=?;',
-			[entry, userId, resolution.id]);
+			[entry, userId, id]);
 	return SQL;
 }
 
-export async function updateResolutions(userId, resolutions) {
-	if (resolutions.length === 0)
-		return {comments: []};
-
-	const SQL = 
-		resolutions.map(r => updateResolutionSQL(userId, r)).join('') +
-		db.format('SELECT * FROM commentResolutions WHERE resolution_id IN (?);', [resolutions.map(r => r.id)]);
-	console.log(SQL)
+async function updateResolution(userId, resolution) {
+	if (!resolution.id)
+		throw 'Resolution is missing id'
+	const id = resolution.id;
+	delete resolution.id;
+	let SQL =
+		updateResolutionSQL(userId, id, resolution) +
+		db.format("SELECT id, resolution_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE resolution_id=?;", [Object.keys(resolution), id]);
 	const [results] = await db.query2(SQL);
-	return {
-		comments: results[results.length-1]
-	}
+	return results[1][0]
+}
+
+export async function updateResolutions(userId, resolutions) {
+	const arrayOfArrays = await Promise.all(resolutions.map(r => updateResolution(userId, r)));
+	let updatedComments = [];
+	for (const comments of arrayOfArrays)
+		updatedComments = updatedComments.concat(comments)
+	//console.log(updatedComments)
+	return {comments: updatedComments}
 }
 
 export async function deleteResolutions(userId, resolutions) {

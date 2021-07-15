@@ -4,10 +4,10 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {FixedSizeList as List} from 'react-window'
 import Input from 'react-dropdown-select/lib/components/Input'
-import {Select} from 'dot11-common/general/Form'
-import {Icon} from 'dot11-common/lib/icons'
-import {getData} from 'dot11-common/store/dataSelectors'
-import {strComp} from 'dot11-common/lib/utils'
+import {Select} from 'dot11-components/general/Form'
+import {Icon} from 'dot11-components/lib/icons'
+import {getData} from 'dot11-components/store/dataSelectors'
+import {strComp} from 'dot11-components/lib/utils'
 
 import {loadUsers} from '../store/users'
 
@@ -128,8 +128,8 @@ function AssigneeSelector({
 
 	React.useEffect(() => {
 		if (!valid && !loading && !readOnly)
-			loadUsers()
-	}, [valid, loadUsers, readOnly])
+			loadUsers();
+	}, []);
 
 	const options = React.useMemo(() => {
 		// Produce a unique set of SAPIN/Name mappings. If there is no SAPIN then the name is the key.
@@ -150,7 +150,7 @@ function AssigneeSelector({
 		const options = presentOptions.concat(userOptions)
 		//console.log(presentOptions, options)
 		return options
-	}, [comments, users])
+	}, [comments, users]);
 
 	function handleChange(values) {
 		let newValue;

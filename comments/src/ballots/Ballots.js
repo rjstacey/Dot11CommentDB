@@ -3,33 +3,15 @@ import React from 'react'
 import {Link, useHistory, useParams} from "react-router-dom"
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable, {ControlHeader, ControlCell, ColumnDropdown} from 'dot11-common/table'
-import {ActionButton} from 'dot11-common/lib/icons'
-import {displayDate} from 'dot11-common/lib/utils'
-import {ConfirmModal} from 'dot11-common/modals'
-import {AccessLevel} from 'dot11-common/store/login'
+import AppTable, {SelectHeader, SelectCell, TableColumnHeader, ShowFilters, TableColumnSelector, TableViewSelector} from 'dot11-components/table'
+import {Button, ActionButton} from 'dot11-components/lib/icons'
+import {displayDate} from 'dot11-components/lib/utils'
+import {ConfirmModal} from 'dot11-components/modals'
+import {AccessLevel} from 'dot11-components/lib/user'
 
-import BallotDetailModal from './BallotDetail'
-
-import {setSelected} from 'dot11-common/store/selected'
-import {sortSet} from 'dot11-common/store/sort'
-import {getData, getSortedFilteredIds} from 'dot11-common/store/dataSelectors'
-
-import {loadBallots, deleteBallots, BallotType} from '../store/ballots'
-import {loadVotingPools} from '../store/votingPools'
+import {fields, loadBallots, BallotType} from '../store/ballots'
 
 const dataSet = 'ballots'
-
-const ActionCell = styled.div`
-	display: flex;
-	justify-content: center;
-`;
-
-const RowActions = ({onEdit, onDelete}) =>
-	<ActionCell>
-		<ActionButton name='edit' title='Edit' onClick={onEdit} />
-		<ActionButton name='delete' title='Delete' onClick={onDelete} />
-	</ActionCell>
 
 const DataSubcomponent = styled.div`
 	flex: 1 1 ${({width}) => width && typeof width === 'string'? width: width + 'px'};
@@ -38,14 +20,14 @@ const DataSubcomponent = styled.div`
 	overflow: hidden;
 `;
 
-const BallotsColumnDropdown = (props) => <ColumnDropdown dataSet={dataSet} {...props}/>;
+const BallotsColumnDropdown = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
 const HeaderSubcomponent = DataSubcomponent.withComponent(BallotsColumnDropdown);
 
 const renderHeaderCellVotingPool = (props) =>
-	<React.Fragment>
+	<>
 		<HeaderSubcomponent {...props} dataKey='VotingPoolID' label='Voting Pool' />
 		<HeaderSubcomponent {...props} dataKey='PrevBallotID' label='Prev Ballot' />
-	</React.Fragment>
+	</>
 
 const renderVotingPool = ({rowData}) => {
 	const type = rowData.Type
@@ -57,6 +39,24 @@ const renderVotingPool = ({rowData}) => {
 	}
 	return ''
 }
+
+const renderHeaderStartEnd = (props) =>
+	<>
+		<HeaderSubcomponent {...props} dataKey='Start' label='Start' dataRenderer={displayDate} />
+		<HeaderSubcomponent {...props} dataKey='End' label='End' dataRenderer={displayDate} />
+	</>
+
+const NoWrapItem = styled.div`
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	overflow: hidden;
+`;
+
+const renderStartEnd = ({rowData, dataKey}) =>
+	<>
+		<NoWrapItem>{displayDate(rowData['Start'])}</NoWrapItem>
+		<NoWrapItem>{displayDate(rowData['End'])}</NoWrapItem>
+	</>
 
 export function renderResultsSummary({rowData, dataKey, readOnly}) {
 	const results = rowData[dataKey]
@@ -75,84 +75,112 @@ export function renderResultsSummary({rowData, dataKey, readOnly}) {
 }
 
 export function renderCommentsSummary({rowData, dataKey}) {
-	const comments = rowData[dataKey]
-	let commentStr = 'None'
+	const comments = rowData[dataKey];
+	let commentStr = 'None';
 	if (comments && comments.Count > 0) {
 		commentStr = `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
 	}
 	return <Link to={`/Comments/${rowData.BallotID}`}>{commentStr}</Link>
 }
 
-function renderDate({rowData, dataKey}) {
-	// rowData[key] is an ISO time string. We convert this to eastern time
-	// and display only the date (not time).
-	return displayDate(rowData[dataKey]);
-}
-
 const tableColumns = [
 	{key: '__ctrl__',
-		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} />,
-		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
+		width: 30, flexGrow: 0, flexShrink: 0,
+		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
+		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
 	{key: 'Project',
-		label: 'Project',
+		...fields.Project,
 		width: 100,	flexShrink: 0, flexGrow: 0,
 		dropdownWidth: 200},
 	{key: 'BallotID',
-		label: 'Ballot',
+		...fields.BallotID,
 		width: 100,	flexShrink: 0, flexGrow: 0,
 		dropdownWidth: 200},
+	{key: 'Start/End',
+		width: 120, flexShrink: 0,
+		headerRenderer: renderHeaderStartEnd,
+		cellRenderer: renderStartEnd},
+	{key: 'Start',
+		...fields.Start,
+		width: 120, flexShrink: 0,
+		dropdownWidth: 300},
+	{key: 'End',
+		...fields.End,
+		width: 120, flexShrink: 0,
+		dropdownWidth: 300},
+	{key: 'Type',
+		...fields.Type,
+		width: 80, flexShrink: 0},
 	{key: 'Document',
-		label: 'Document',
+		...fields.Document,
 		width: 150,	flexShrink: 1, flexGrow: 1,
 		dropdownWidth: 300},
 	{key: 'Topic',
-		label: 'Topic',
+		...fields.Topic,
 		width: 300,	flexShrink: 1, flexGrow: 1},
 	{key: 'EpollNum',
-		label: 'ePoll',
+		...fields.EpollNum,
 		width: 80,	flexGrow: 0, flexShrink: 0,
 		dropdownWidth: 200},
-	{key: 'Start',
-		label: 'Start',
-		width: 86, flexShrink: 0,
-		dataRenderer: displayDate,
-		cellRenderer: renderDate,
-		dropdownWidth: 300},
-	{key: 'End',
-		label: 'End',
-		width: 86, flexShrink: 0,
-		dataRenderer: displayDate,
-		cellRenderer: renderDate,
-		dropdownWidth: 300},
-	{key: 'VotingPool',
-		label: '',
+	{key: 'VotingPool/PrevBallotID',
+		label: 'Voting Pool/Prev Ballot',
 		width: 100, flexShrink: 1, flexGrow: 1,
 		headerRenderer: renderHeaderCellVotingPool,
 		cellRenderer: renderVotingPool},
+	{key: 'VotingPoolID',
+		label: 'Voting Pool',
+		width: 100, flexShrink: 1, flexGrow: 1},
+	{key: 'PrevBallotID',
+		label: 'Prev Ballot',
+		width: 100, flexShrink: 1, flexGrow: 1},
 	{key: 'Results',
-		label: 'Result',
+		...fields.Results,
 		width: 150,	flexShrink: 1, flexGrow: 1,
-		cellRenderer: (props) => renderResultsSummary({readOnly: true, ...props})},
+		cellRenderer: renderResultsSummary},
 	{key: 'Comments',
-		label: 'Comments',
+		...fields.Comments,
 		width: 100,	flexShrink: 1, flexGrow: 1,
 		cellRenderer: renderCommentsSummary},
 ];
 
-const actionsColumn = {
-	key: 'Actions',
-		label: 'Actions',
-		width: 100,	flexShrink: 1, flexGrow: 1
+const defaultTablesColumns = {
+	'Tight': ['__ctrl__', 'Project', 'BallotID', 'Start/End', 'Type', 'Document', 'VotingPool/PrevBallotID', 'Results', 'Comments'],
+	'Relaxed': ['__ctrl__', 'Project', 'BallotID', 'Start', 'End', 'Type', 'Document', 'Topic', 'VotingPool/PrevBallotID']
 };
+
+const defaultTablesConfig = {};
+for (const [view, colsArray] of Object.entries(defaultTablesColumns)) {
+	const columns = {};
+	defaultTablesConfig[view] = {fixed: false, columns};
+	for (const column of tableColumns) {
+		columns[column.key] = {
+			unselectable: column.key.startsWith('__'),
+			shown: colsArray.includes(column.key),
+			width: column.width,
+		}
+	}
+}
 
 const primaryDataKey = 'BallotID';
 
-// The action row height is determined by its content
-const ActionRow = styled.div`
+// The top row height is determined by its content
+const TopRow = styled.div`
 	display: flex;
 	justify-content: space-between;
 	width: 100%;
+	padding: 10px;
+	box-sizing: border-box;
+`;
+
+const ButtonGroup = styled.div`
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	background: linear-gradient(to bottom, #fdfdfd 0%,#f6f7f8 100%);
+	border: 1px solid #999;
+	border-radius: 2px;
+	padding: 5px;
+	margin: 0 5px;
 `;
 
 // The table row grows to the available height
@@ -161,123 +189,75 @@ const TableRow = styled.div`
 	width: 100%;
 `;
 
-function Ballots(props) {
-	const {ballotsValid, loading, loadBallots, deleteBallots, votingPoolsValid, loadVotingPools, access} = props;
+function Ballots({
+	access,
+	valid,
+	loading,
+	loadBallots,
+	tableView,
+	tablesConfig,
+}) {
 	const history = useHistory();
 	const {ballotId} = useParams();
 
-	const [columns, maxWidth] = React.useMemo(() => {
-
-		let columns = tableColumns;
-
-		if (access >= AccessLevel.SubgroupAdmin) {
-			/* Subgroup admin can see results so add link */
-			const resultsSummaryRenderer = (props) => renderResultsSummary({readOnly: false, ...props});
-			columns = columns.map(col => {
-				return (col.key === 'Results')
-					? {...col,
-						cellRenderer: resultsSummaryRenderer}
-					: col
-			});
-		}
-
-		if (access >= AccessLevel.WGAdmin) {
-			/* Working froup admin can edit ballots so add actions column */
-			const deleteBallot = async (ballot) => {
-				const ok = await ConfirmModal.show(`Are you sure you want to delete ${ballot.BallotID}?`)
-				if (ok)
-					await deleteBallots([ballot])
-			}
-
-			const actionCellRenderer = ({rowData}) => 
-				<RowActions
-					onEdit={() => history.push(`/Ballots/${rowData.BallotID}`)}
-					onDelete={() => deleteBallot(rowData)}
-				/>
-
-			columns = columns.concat({
-				...actionsColumn,
-				cellRenderer: actionCellRenderer
-			})
-		}
-
-		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40;
-
-		return [columns, maxWidth];
-
-	}, [deleteBallots, history, access]);
-
 	React.useEffect(() => {
-		if (!ballotsValid && !loading)
-			loadBallots()
-		if (!votingPoolsValid)
-			loadVotingPools()
-	}, [ballotsValid, loading, loadBallots, votingPoolsValid, loadVotingPools]);
+		if (!valid && !loading)
+			loadBallots();
+	}, []);
 
-	const addBallot = event => history.push('/Ballots/+')
 	const closeBallot = () => history.push('/Ballots')
-	const showEpolls = () => history.push('/Epolls/')
 
 	return (
-		<React.Fragment>
-			<ActionRow style={{maxWidth}}>
-				<span><label>Ballots</label></span>
-				<span>
-					<ActionButton name='add' title='Add' onClick={addBallot} />
-					<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
-					<ActionButton name='refresh' title='Refresh' onClick={props.loadBallots} disabled={props.loading} />
-				</span>
-			</ActionRow>
+		<>
+			<TopRow>
+				<div><label>Ballots</label></div>
+				<div style={{display: 'flex'}}>
+					<ButtonGroup>
+						<div>Table view</div>
+						<div style={{display: 'flex'}}>
+							<TableViewSelector dataSet={dataSet} />
+							<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+						</div>
+					</ButtonGroup>
+					<ActionButton name='refresh' title='Refresh' onClick={loadBallots} disabled={loading} />
+				</div>
+			</TopRow>
 
-			<TableRow style={{maxWidth}}>
+			<ShowFilters
+				dataSet={dataSet}
+				fields={fields}
+			/>
+
+			<TableRow>
 				<AppTable
-					columns={columns}
+					defaultTablesConfig={defaultTablesConfig}
+					columns={tableColumns}
+					tableView={tableView}
+					headerHeight={50}
+					estimatedRowHeight={50}
 					dataSet={dataSet}
-					rowKey={primaryDataKey}
-					headerHeight={40}
-					rowHeight={40}
-					estimatedRowHeight={54}
-					loading={props.loading}
 				/>
 			</TableRow>
 
-			<BallotDetailModal
-				isOpen={!!ballotId}
-				ballotId={ballotId || ''}
-				close={closeBallot}
-			/>
-		</React.Fragment>
+		</>
 	)
 }
 
 Ballots.propTypes = {
-	ballotsValid: PropTypes.bool.isRequired,
-	ballots: PropTypes.array.isRequired,
-	selected: PropTypes.array.isRequired,
+	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
-	votingPoolsValid: PropTypes.bool.isRequired,
-	votingPools: PropTypes.array.isRequired,
 }
 
 export default connect(
 	(state) => {
-		const {ballots, votingPools} = state
+		const tableView = state[dataSet].ui.tableView;
+		const tablesConfig = state[dataSet].ui.tablesConfig;
 		return {
-			ballotsValid: ballots.valid,
-			loading: ballots.loading,
-			ballots: getData(state, dataSet),
-			selected: ballots.selected,
-			votingPoolsValid: votingPools.valid,
-			votingPools: getData(state, 'votingPools'),
+			valid: state[dataSet].valid,
+			loading: state[dataSet].loading,
+			tableView,
+			tablesConfig,
 		}
 	},
-	(dispatch) => {
-		return {
-			loadBallots: () => dispatch(loadBallots()),
-			deleteBallots: (ids) => dispatch(deleteBallots(ids)),
-			loadVotingPools: () => dispatch(loadVotingPools()),
-			setSelected: (ballotIds) => dispatch(setSelected(dataSet, ballotIds)),
-			setSort: (dataKey, direction) => dispatch(sortSet(dataSet, dataKey, direction)),
-		}
-	}
+	{loadBallots}
 )(Ballots);

@@ -7,28 +7,6 @@ import {parseEpollCommentsCsv} from './epoll'
 import {parseMyProjectComments, myProjectAddResolutions} from './myProjectSpreadsheets'
 
 /*
-CREATE VIEW commentResolutions AS SELECT 
-		b.BallotID, 
-        r.id,
-		IF((SELECT COUNT(*) FROM resolutions AS r WHERE c.id = r.comment_id) > 1, 
-			CONCAT(CONVERT(c.CommentID, CHAR), ".", CONVERT(r.ResolutionID, CHAR)),  
-			CONVERT(c.CommentID, CHAR)) AS CID,
-		c.id AS comment_id,
-		c.CommentID,
-		c.CommenterSAPIN, c.CommenterEmail, c.CommenterName, results.Vote,
-        c.MustSatisfy, c.Category, c.Clause, c.Page, c.Comment, c.ProposedChange,
-        c.C_Page, c.C_Line, c.C_Clause, c.C_Index, c.AdHoc, c.CommentGroup,
-        c.LastModifiedBy AS CommentLastModifiedBy, c.LastModifiedTime AS CommentLastModifiedTime,
-		(SELECT COUNT(*) FROM resolutions AS r WHERE c.id = r.comment_id) AS ResolutionCount, 
-		r.id as resolution_id, r.ResolutionID, r.AssigneeSAPIN, r.ResnStatus, r.Resolution, r.Submission, r.ReadyForMotion, r.ApprovedByMotion, 
-		r.EditStatus, r.EditInDraft, r.EditNotes, r.Notes, 
-		COALESCE(users.Name, r.AssigneeName) AS AssigneeName,
-        r.LastModifiedBy, r.LastModifiedTime
-	FROM ballots b JOIN comments c ON b.id=c.ballot_id 
-		LEFT JOIN results ON b.id = results.ballot_id AND c.CommenterSAPIN = results.SAPIN 
-		LEFT JOIN resolutions AS r ON c.id = r.comment_id 
-		LEFT JOIN users ON r.AssigneeSAPIN = users.SAPIN;
-
 DROP TRIGGER IF EXISTS comments_update;
 DROP TRIGGER IF EXISTS comments_add;
 DROP TRIGGER IF EXISTS comments_delete;
@@ -69,6 +47,108 @@ END;;
 DELIMITER ;
 */
 
+const createTriggerCommentsUpdateSQL =
+	'CREATE TRIGGER comments_update AFTER UPDATE ON comments FOR EACH ROW ' +
+	'BEGIN ' +
+		'SET @action =\'update\'; ' +
+		'SET @changes = JSON_OBJECT( ' +
+        '"CommentID", NEW.CommentID, ' +
+        '"Category", NEW.Category, ' +
+    		'"Clause", NEW.Clause, ' +
+    		'"Page", NEW.Page, ' +
+        '"AdHoc", NEW.AdHoc, ' +
+    		'"CommentGroup", NEW.CommentGroup, ' +
+    		'"Notes", NEW.Notes ' +
+    '); ' +
+		'SET @id = (SELECT id FROM resolutionsLog WHERE comment_id=NEW.id AND resolution_id=NULL AND Action=@action AND UserID=NEW.LastModifiedBy AND Timestamp > DATE_SUB(NEW.LastModifiedTime, INTERVAL 30 MINUTE) ORDER BY Timestamp DESC LIMIT 1); ' +
+		'IF @id IS NULL THEN ' +
+  		'INSERT INTO resolutionsLog (comment_id, Action, Changes, UserID, Timestamp) VALUES (OLD.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime); ' +
+		'ELSE ' +
+  		'UPDATE resolutionsLog SET `Changes`=@changes, `Timestamp`=NEW.LastModifiedTime WHERE id=@id; ' +
+		'END IF; ' +
+	'END;';
+
+const createTriggerCommentsAddSQL =
+	'CREATE TRIGGER comments_add AFTER INSERT ON comments FOR EACH ROW ' + 
+	'BEGIN ' +
+		'SET @action =\'add\'; ' +
+		'SET @changes = JSON_OBJECT( ' +
+      '"CommentID", NEW.CommentID, ' +
+      '"Category", NEW.Category, ' +
+    	'"Clause", NEW.Clause, ' +
+    	'"Page", NEW.Page, ' +
+      '"AdHoc", NEW.AdHoc, ' +
+    	'"CommentGroup", NEW.CommentGroup, ' +
+    	'"Notes", NEW.Notes ' +
+    '); ' +
+		'INSERT INTO resolutionsLog (comment_id, Action, Changes, UserID, Timestamp) VALUES (NEW.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime); ' +
+	'END; ';
+
+const createTriggerCommentsDeleteSQL =
+	'CREATE TRIGGER comments_delete AFTER DELETE ON comments FOR EACH ROW ' +
+	'BEGIN ' +
+		'DELETE FROM resolutionsLog WHERE comment_id=OLD.id; ' +
+	'END; ';
+
+const createViewCommentResolutionsSQL = 
+	'CREATE VIEW commentResolutions AS SELECT ' +
+		'b.id AS ballot_id, ' +
+		'c.id AS comment_id, ' +
+		'r.id AS resolution_id, ' +
+		'IF((SELECT count(0) from resolutions r WHERE (c.id = r.comment_id)) > 1, concat(cast(c.id as CHAR), "-", cast(r.id as CHAR)), cast(c.id as CHAR)) AS id, ' +
+		'IF((SELECT count(0) from resolutions r WHERE (c.id = r.comment_id)) > 1, concat(c.CommentID, ".", r.ResolutionID), c.CommentID) AS CID, ' +
+		'b.BallotID AS BallotID, ' +
+		'c.CommentID AS CommentID, ' +
+		'r.ResolutionID AS ResolutionID, ' +
+		'(SELECT count(0) from resolutions r WHERE (c.id = r.comment_id)) AS ResolutionCount, ' +
+		'c.CommenterSAPIN AS CommenterSAPIN, ' +
+		'c.CommenterEmail AS CommenterEmail, ' +
+		'c.CommenterName AS CommenterName, ' +
+		'results.Vote AS Vote, ' +
+		'c.MustSatisfy AS MustSatisfy, ' +
+		'c.Category AS Category, ' +
+		'c.Clause AS Clause, ' +
+		'c.Page AS Page, ' +
+		'c.Comment AS Comment, ' +
+		'c.ProposedChange AS ProposedChange, ' +
+		'c.C_Page AS C_Page, ' +
+		'c.C_Line AS C_Line, ' +
+		'c.C_Clause AS C_Clause, ' +
+		'c.C_Index AS C_Index, ' +
+		'c.AdHoc AS AdHoc, ' +
+		'c.CommentGroup AS CommentGroup, ' +
+		'c.Notes AS Notes, ' +
+		'r.AssigneeSAPIN AS AssigneeSAPIN, ' +
+		'r.ResnStatus AS ResnStatus, ' +
+		'r.Resolution AS Resolution, ' +
+		'r.Submission AS Submission, ' +
+		'r.ReadyForMotion AS ReadyForMotion, ' +
+		'r.ApprovedByMotion AS ApprovedByMotion, ' +
+		'r.EditStatus AS EditStatus, ' +
+		'r.EditInDraft AS EditInDraft, ' +
+		'r.EditNotes AS EditNotes, ' +
+		'COALESCE(m.Name, r.AssigneeName) AS AssigneeName, ' +
+		'IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) AS LastModifiedBy, ' +
+		'IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedTime, r.LastModifiedTime) AS LastModifiedTime ' +
+	'FROM ballots b JOIN comments c ON (b.id = c.ballot_id) ' + 
+		'LEFT JOIN resolutions r ON (c.id = r.comment_id) ' + 
+		'LEFT JOIN members m ON (r.AssigneeSAPIN = m.SAPIN) ' + 
+		'LEFT JOIN results ON (b.id = results.ballot_id AND c.CommenterSAPIN = results.SAPIN); ';
+
+export async function initCommentsTables() {
+	const SQL =
+		'DROP VIEW IF EXISTS commentResolutions; ' +
+		createViewCommentResolutionsSQL +
+		'DROP TRIGGER IF EXISTS comments_add; ' +
+		createTriggerCommentsAddSQL +
+		'DROP TRIGGER IF EXISTS comments_update; ' +
+		createTriggerCommentsUpdateSQL +
+		'DROP TRIGGER IF EXISTS comments_delete; ' +
+		createTriggerCommentsDeleteSQL;
+		console.log(SQL)
+	await db.query(SQL);
+}
+
 export const GET_COMMENTS_SQL = 
 	'SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID';
 
@@ -99,14 +179,17 @@ async function updateComment(userId, comment) {
 	delete comment.id;
 	let SQL =
 		db.format("UPDATE comments SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=?; ", [comment, userId, id]) +
-		db.format("SELECT id, comment_id, CID, ??, CommentLastModifiedBy, CommentLastModifiedTime FROM commentResolutions WHERE comment_id=?;", [Object.keys(comment), id]);
-	const [results] = await db.query2(SQL)
+		db.format("SELECT id, comment_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE comment_id=?;", [Object.keys(comment), id]);
+	const [noop, comments] = await db.query(SQL);
 	//console.log(rows)
-	return results[1][0]
+	return comments;
 }
 
-export async function updateComments(modifiedBy, comments) {
-	const updatedComments = await Promise.all(comments.map(c => updateComment(modifiedBy, c)))
+export async function updateComments(userId, comments) {
+	const arrayOfArrays = await Promise.all(comments.map(c => updateComment(userId, c)));
+	let updatedComments = [];
+	for (const comments of arrayOfArrays)
+		updatedComments = updatedComments.concat(comments)
 	//console.log(updatedComments)
 	return {comments: updatedComments}
 }

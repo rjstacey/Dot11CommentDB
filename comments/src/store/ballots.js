@@ -1,11 +1,12 @@
 import {createSlice, createSelector, createEntityAdapter} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-common/lib/fetcher'
-import sortsSlice, {sortInit, SortDirection, SortType} from 'dot11-common/store/sort'
-import filtersSlice, {filtersInit, FilterType} from 'dot11-common/store/filters'
-import selectedSlice, {setSelected} from 'dot11-common/store/selected'
-import uiSlice from 'dot11-common/store/ui'
-import {setError} from 'dot11-common/store/error'
+import {displayDate} from 'dot11-components/lib/utils'
+import fetcher from 'dot11-components/lib/fetcher'
+import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
+import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
+import selectedSlice, {setSelected} from 'dot11-components/store/selected'
+import uiSlice from 'dot11-components/store/ui'
+import {setError} from 'dot11-components/store/error'
 
 export const BallotType = {
 	CC: 0,			// comment collection
@@ -16,66 +17,33 @@ export const BallotType = {
 	Motion: 5		// motion
 };
 
-const fields = [
-	'Project',
-	'BallotID',
-	'Document',
-	'Topic',
-	'EpollNum',
-	'Start',
-	'End',
-	'Result',
-	'Comments',
-	'VotingPoolID',
-	'PrevBallotID'
-];
+const BallotTypeLabel = {
+	[BallotType.CC]: 'CC',
+	[BallotType.WG_Initial]: 'WG LB (initial)',
+	[BallotType.WG_Recirc]: 'WG LB (recirc)',
+	[BallotType.SA_Initial]: 'SA ballot (initial)',
+	[BallotType.SA_Recirc]: 'SA ballot (recirc)',
+	[BallotType.Motion]: 'Motion'
+}
 
-/*
- * Generate a filter for each field (table column)
- */
-const defaultFiltersEntries = fields.reduce((entries, dataKey) => {
-	if (dataKey === 'Comments' || dataKey === 'Result')
-		return entries;
-	return {...entries, [dataKey]: {}};
-}, {});
-
-/*
- * Generate object that describes the initial sort state
- */
-const defaultSortEntries = fields.reduce((entries, dataKey) => {
-	if (dataKey === 'Comments' || dataKey === 'Result')
-		return entries;
-	let type = SortType.STRING;
-	switch (dataKey) {
-		case 'EpollNum':
-			type = SortType.NUMERIC
-			break
-		case 'Start':
-		case 'End':
-			type = SortType.DATE
-			break
-		case 'Project':
-		case 'BallotID':
-		case 'Document':
-		case 'Topic':
-		case 'PrevBallotID':
-		case 'VotingPoolID':
-		default:
-			type = SortType.STRING
-			break
-	}
-	const direction = SortDirection.NONE;
-	return {...entries, [dataKey]: {type, direction}};
-}, {});
-
+export const fields = {
+	Project: {label: 'Project'},
+	BallotID: {label: 'Ballot'},
+	Type: {label: 'Type', dataRenderer: (type) => BallotTypeLabel[type] || 'Unknown'},
+	Document: {label: 'Document'},
+	Topic: {label: 'Topic'},
+	EpollNum: {label: 'ePoll', sortType: SortType.NUMERIC},
+	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
+	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
+	Results: {label: 'Results', dontFilter: true, dontSort: true},
+	Comments: {label: 'Comments', dontFilter: true, dontSort: true},
+	VotingPoolID: {label: 'VotingPoolID'},
+	PrevBallotID: {label: 'PrevBallotID'}
+};
 
 function getProjectForBallotId(state, ballotId) {
 	const id = state.ids.find(id => state.entities[id].BallotID === ballotId)
 	return id? state.entities[id].Project: ''
-}
-
-function updateSelected(ballots, selected) {
-	return selected.filter(s => ballots.find(b => b.BallotID === s))
 }
 
 /*
@@ -90,19 +58,19 @@ function filterIdList(idList, allIds) {
 const dataAdapter = createEntityAdapter({
 	selectId: (b) => b.id,
 	sortComparer: (b1, b2) => b1.Project === b2.Project? b1.BallotID.localeCompare(b2.BallotID): b1.Project.localeCompare(b2.Project) 
-})
+});
 
 const dataSet = 'ballots';
 
-const ballotsSlice = createSlice({
+const slice = createSlice({
 	name: dataSet,
 	initialState: dataAdapter.getInitialState({
 		valid: false,
 		loading: false,
 		project: '',
 		ballotId: '',
-		[sortsSlice.name]: sortsSlice.reducer(undefined, sortInit(defaultSortEntries)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, filtersInit(defaultFiltersEntries)),
+		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
+		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
 		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
 		[uiSlice.name]: uiSlice.reducer(undefined, {})
 	}),
@@ -164,86 +132,87 @@ const ballotsSlice = createSlice({
 /*
  * Export reducer as default
  */
-export default ballotsSlice.reducer;
+export default slice.reducer;
 
 /*
  * Actions
  */
-export const {setProject, setBallotId} = ballotsSlice.actions;
+export const {setProject, setBallotId} = slice.actions;
 
-const {getPending, getSuccess, getFailure} = ballotsSlice.actions;
+const {getPending, getSuccess, getFailure} = slice.actions;
 
-export function loadBallots() {
-	return async (dispatch, getState) => {
-		if (getState().ballots.loading)
-			return null
-		dispatch(getPending())
+export const loadBallots = () => 
+	async (dispatch, getState) => {
+		if (getState()[dataSet].loading)
+			return;
+		dispatch(getPending());
 		let response;
 		try {
-			response = await fetcher.get('/api/ballots')
+			response = await fetcher.get('/api/ballots');
+			if (!Array.isArray(response))
+				throw new TypeError("Unexpected response to GET: /api/ballots")
 		}
 		catch(error) {
-			console.log(error)
-			return Promise.all([
-				dispatch(getFailure()),
-				dispatch(setError('Unable to get ballot list', error.toString()))
-			])
+			await dispatch(getFailure());
+			await dispatch(setError('Unable to get ballot list', error));
+			return;
 		}
-		return dispatch(getSuccess({ballots: response}))
+		await dispatch(getSuccess({ballots: response}));
 	}
-}
 
-const {updateOne} = ballotsSlice.actions;
+const {updateOne} = slice.actions;
 export const updateBallotSuccess = (id, changes) => updateOne({id, changes});
 
-export function updateBallot(ballotId, ballot) {
-	return async (dispatch, getState) => {
+export const updateBallot = (ballotId, ballot) =>
+	async (dispatch, getState) => {
+		const url = '/api/ballots';
 		let response;
 		try {
-			response = await fetcher.patch('/api/ballots', [ballot]);
+			response = await fetcher.patch(url, [ballot]);
 			if (!Array.isArray(response))
-				throw new TypeError('Unexpected response to PATCH /api/ballots');
+				throw new TypeError('Unexpected response to PATCH ' + url);
 		}
 		catch(error) {
-			return dispatch(setError(`Unable to update ballot ${ballotId}`, error.toString()))
+			await dispatch(setError(`Unable to update ballot ${ballotId}`, error));
+			return;
 		}
 		const [updatedBallot] = response;
-		return dispatch(updateOne({id: ballot.id, changes: updatedBallot}))
+		await dispatch(updateOne({id: ballot.id, changes: updatedBallot}))
 	}
-}
 
-const {deleteMany} = ballotsSlice.actions;
+const {deleteMany} = slice.actions;
 
-export function deleteBallots(ballots) {
-	return async (dispatch, getState) => {
+export const deleteBallots = (ballots) =>
+	async (dispatch, getState) => {
 		const ids = ballots.map(b => b.id);
 		try {
 			await fetcher.delete('/api/ballots', ids);
 		}
 		catch(error) {
 			const ballotIdsStr = ballots.map(b => ballots.BallotID).join(', ');
-			await dispatch(setError(`Unable to delete ballots ${ballotIdsStr}`, error.toString()));
+			await dispatch(setError(`Unable to delete ballots ${ballotIdsStr}`, error));
 			return;
 		}
 		await dispatch(deleteMany(ids));
 	}
-}
 
-const {addOne} = ballotsSlice.actions;
+const {addOne} = slice.actions;
 
-export function addBallot(ballot) {
-	return async (dispatch, getState) => {
+export const addBallot = (ballot) =>
+	async (dispatch, getState) => {
 		let response;
 		try {
-			response = await fetcher.post('/api/ballots', [ballot])
+			response = await fetcher.post('/api/ballots', [ballot]);
+			if (!Array.isArray(response))
+				throw new TypeError("Unexpected response to POST: /api/ballots");
 		}
 		catch(error) {
-			return dispatch(setError(`Unable to add ballot ${ballot.BallotID}`, error.toString()))
+			await dispatch(setError(`Unable to add ballot ${ballot.BallotID}`, error));
+			return;
 		}
 		const [updatedBallot] = response;
-		return dispatch(addOne({ballot: updatedBallot}))
+		await dispatch(addOne({ballot: updatedBallot}));
 	}
-}
 
 /*
  * Selectors
