@@ -6,90 +6,6 @@ const rp = require('request-promise-native')
 import {parseEpollCommentsCsv} from './epoll'
 import {parseMyProjectComments, myProjectAddResolutions} from './myProjectSpreadsheets'
 
-/*
-DROP TRIGGER IF EXISTS comments_update;
-DROP TRIGGER IF EXISTS comments_add;
-DROP TRIGGER IF EXISTS comments_delete;
-DELIMITER ;;
-CREATE TRIGGER `comments_update` AFTER UPDATE ON `comments` FOR EACH ROW
-BEGIN
-SET @action ='update';
-SET @changes = JSON_OBJECT(
-	"Category", NEW.Category,
-    "Clause", NEW.Clause,
-    "Page", NEW.Page,
-	"AdHoc", NEW.AdHoc,
-    "CommentGroup", NEW.CommentGroup
-    );
-SET @id = (SELECT id FROM resolutionsLog WHERE comment_id=OLD.id AND resolution_id IS NULL AND Action=@action AND UserID=NEW.LastModifiedBy AND Timestamp > DATE_SUB(NEW.LastModifiedTime, INTERVAL 30 MINUTE) ORDER BY Timestamp DESC LIMIT 1);
-IF @id IS NULL THEN
-  INSERT INTO resolutionsLog (comment_id, Action, Changes, UserID, Timestamp) VALUES (OLD.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime);
-ELSE
-  UPDATE resolutionsLog SET `Changes`=@changes, `Timestamp`=NEW.LastModifiedTime WHERE id=@id;
-END IF;
-END;;
-CREATE TRIGGER `comments_add` AFTER INSERT ON `comments` FOR EACH ROW
-BEGIN
-SET @action ='add';
-SET @changes = JSON_OBJECT(
-	"Category", NEW.Category,
-    "Clause", NEW.Clause,
-    "Page", NEW.Page,
-	"AdHoc", NEW.AdHoc,
-    "CommentGroup", NEW.CommentGroup
-    );
-INSERT INTO resolutionsLog (comment_id, Action, Changes, UserID, Timestamp) VALUES (NEW.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime);
-END;;
-CREATE TRIGGER `comments_delete` AFTER DELETE ON `comments` FOR EACH ROW
-BEGIN
-DELETE FROM resolutionsLog WHERE comment_id=OLD.id;
-END;;
-DELIMITER ;
-*/
-
-const createTriggerCommentsUpdateSQL =
-	'CREATE TRIGGER comments_update AFTER UPDATE ON comments FOR EACH ROW ' +
-	'BEGIN ' +
-		'SET @action =\'update\'; ' +
-		'SET @changes = JSON_OBJECT( ' +
-        '"CommentID", NEW.CommentID, ' +
-        '"Category", NEW.Category, ' +
-    		'"Clause", NEW.Clause, ' +
-    		'"Page", NEW.Page, ' +
-        '"AdHoc", NEW.AdHoc, ' +
-    		'"CommentGroup", NEW.CommentGroup, ' +
-    		'"Notes", NEW.Notes ' +
-    '); ' +
-		'SET @id = (SELECT id FROM resolutionsLog WHERE comment_id=NEW.id AND resolution_id=NULL AND Action=@action AND UserID=NEW.LastModifiedBy AND Timestamp > DATE_SUB(NEW.LastModifiedTime, INTERVAL 30 MINUTE) ORDER BY Timestamp DESC LIMIT 1); ' +
-		'IF @id IS NULL THEN ' +
-  		'INSERT INTO resolutionsLog (comment_id, Action, Changes, UserID, Timestamp) VALUES (OLD.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime); ' +
-		'ELSE ' +
-  		'UPDATE resolutionsLog SET `Changes`=@changes, `Timestamp`=NEW.LastModifiedTime WHERE id=@id; ' +
-		'END IF; ' +
-	'END;';
-
-const createTriggerCommentsAddSQL =
-	'CREATE TRIGGER comments_add AFTER INSERT ON comments FOR EACH ROW ' + 
-	'BEGIN ' +
-		'SET @action =\'add\'; ' +
-		'SET @changes = JSON_OBJECT( ' +
-      '"CommentID", NEW.CommentID, ' +
-      '"Category", NEW.Category, ' +
-    	'"Clause", NEW.Clause, ' +
-    	'"Page", NEW.Page, ' +
-      '"AdHoc", NEW.AdHoc, ' +
-    	'"CommentGroup", NEW.CommentGroup, ' +
-    	'"Notes", NEW.Notes ' +
-    '); ' +
-		'INSERT INTO resolutionsLog (comment_id, Action, Changes, UserID, Timestamp) VALUES (NEW.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime); ' +
-	'END; ';
-
-const createTriggerCommentsDeleteSQL =
-	'CREATE TRIGGER comments_delete AFTER DELETE ON comments FOR EACH ROW ' +
-	'BEGIN ' +
-		'DELETE FROM resolutionsLog WHERE comment_id=OLD.id; ' +
-	'END; ';
-
 const createViewCommentResolutionsSQL = 
 	'CREATE VIEW commentResolutions AS SELECT ' +
 		'b.id AS ballot_id, ' +
@@ -137,15 +53,11 @@ const createViewCommentResolutionsSQL =
 
 export async function initCommentsTables() {
 	const SQL =
-		'DROP VIEW IF EXISTS commentResolutions; ' +
-		createViewCommentResolutionsSQL +
-		'DROP TRIGGER IF EXISTS comments_add; ' +
-		createTriggerCommentsAddSQL +
-		'DROP TRIGGER IF EXISTS comments_update; ' +
-		createTriggerCommentsUpdateSQL +
-		'DROP TRIGGER IF EXISTS comments_delete; ' +
-		createTriggerCommentsDeleteSQL;
-		console.log(SQL)
+		'DROP VIEW IF EXISTS commentResolutions;\n' +
+		createViewCommentResolutionsSQL;
+
+	//console.log(SQL);
+
 	await db.query(SQL);
 }
 

@@ -97,6 +97,7 @@ const tableColumns = [
 		width: 100,	flexShrink: 0, flexGrow: 0,
 		dropdownWidth: 200},
 	{key: 'Start/End',
+		label: 'Start/End',
 		width: 120, flexShrink: 0,
 		headerRenderer: renderHeaderStartEnd,
 		cellRenderer: renderStartEnd},
@@ -144,11 +145,11 @@ const tableColumns = [
 ];
 
 const defaultTablesColumns = {
-	'Tight': ['__ctrl__', 'Project', 'BallotID', 'Start/End', 'Type', 'Document', 'VotingPool/PrevBallotID', 'Results', 'Comments'],
-	'Relaxed': ['__ctrl__', 'Project', 'BallotID', 'Start', 'End', 'Type', 'Document', 'Topic', 'VotingPool/PrevBallotID']
+	'default': ['__ctrl__', 'Project', 'BallotID', 'Start/End', 'Type', 'Document', 'VotingPool/PrevBallotID', 'Results', 'Comments'],
 };
 
 const defaultTablesConfig = {};
+
 for (const [view, colsArray] of Object.entries(defaultTablesColumns)) {
 	const columns = {};
 	defaultTablesConfig[view] = {fixed: false, columns};
@@ -205,20 +206,14 @@ function Ballots({
 			loadBallots();
 	}, []);
 
-	const closeBallot = () => history.push('/Ballots')
+	const closeBallot = () => history.push('/ballots')
 
 	return (
 		<>
 			<TopRow>
 				<div><label>Ballots</label></div>
-				<div style={{display: 'flex'}}>
-					<ButtonGroup>
-						<div>Table view</div>
-						<div style={{display: 'flex'}}>
-							<TableViewSelector dataSet={dataSet} />
-							<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-						</div>
-					</ButtonGroup>
+				<div style={{display: 'flex', alignItems: 'center'}}>
+					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
 					<ActionButton name='refresh' title='Refresh' onClick={loadBallots} disabled={loading} />
 				</div>
 			</TopRow>
@@ -238,7 +233,6 @@ function Ballots({
 					dataSet={dataSet}
 				/>
 			</TableRow>
-
 		</>
 	)
 }

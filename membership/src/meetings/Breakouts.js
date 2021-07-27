@@ -3,7 +3,7 @@ import React from 'react'
 import {Link, useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable, {ControlHeader, ControlCell} from 'dot11-components/table'
+import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table'
 import {ConfirmModal} from 'dot11-components/modals'
 import {ActionButton} from 'dot11-components/lib/icons'
 import {displayDate, displayTime, displayDayDate} from 'dot11-components/lib/utils'
@@ -51,8 +51,8 @@ const renderSessionInfo = (meeting) =>
 const columns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <ControlHeader dataSet={dataSet} {...p} />,
-		cellRenderer: p => <ControlCell dataSet={dataSet} {...p} />},
+		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
+		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
 	{key: 'DayDate', 
 		label: 'Date',
 		width: 150, flexGrow: 1, flexShrink: 1},

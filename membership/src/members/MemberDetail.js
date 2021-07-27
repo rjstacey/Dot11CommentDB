@@ -3,6 +3,7 @@ import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {shallowDiff, debounce} from 'dot11-components/lib/utils'
+import {ConfirmModal} from 'dot11-components/modals'
 import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/general/Form'
 import {IconCollapse, ActionButton, Icon} from 'dot11-components/lib/icons'
 import {
@@ -73,7 +74,8 @@ function MemberStatusChangeHistory({
 	updateStatusChange,
 	deleteStatusChange,
 	uiProperties,
-	setUiProperty
+	setUiProperty,
+	readOnly
 }) {
 	const history = Array.isArray(member.StatusChangeHistory)? member.StatusChangeHistory: [];
 
@@ -92,13 +94,16 @@ function MemberStatusChangeHistory({
 					style={{width: '100%'}}
 					value={row.Reason}
 					onChange={e => updateStatusChange(row.id, {Reason: e.target.value})}
+					disabled={readOnly}
 				/>
 			</td>
-			<td style={{textAlign: 'right'}}><Icon name='delete' onClick={() => deleteStatusChange(row.id)} /></td>
+			<td style={{textAlign: 'right'}}>
+				<Icon name='delete' onClick={() => deleteStatusChange(row.id)} disabled={readOnly} />
+			</td>
 		</tr>
 	);
 
-	const empty = <tr><td style={{textAlign: 'center', fontStyle: 'italic', color: 'gray'}} colspan={5}>Empty</td></tr>
+	const empty = <tr><td style={{textAlign: 'center', fontStyle: 'italic', color: 'gray'}} colSpan={5}>Empty</td></tr>
 
 	return (
 		<Col>
@@ -132,7 +137,8 @@ function MemberBallotSeriesParticipation({
 	member,
 	setMember,
 	uiProperties,
-	setUiProperty
+	setUiProperty,
+	readOnly
 }) {
 	const ballotSeriesSummary = member.BallotSeriesSummary;
 
@@ -157,7 +163,8 @@ function MemberBallotSeriesParticipation({
 					<td style={{textAlign: 'center'}}>
 						<Checkbox
 							checked={!!summary.Excused}
-							onChange={e => change(id, 'Excused', e.target.checked? 1: 0)} 
+							onChange={e => change(id, 'Excused', e.target.checked? 1: 0)}
+							disabled={readOnly}
 						/>
 					</td>
 					<td>{summary.SAPIN !== member.SAPIN? summary.SAPIN: ''}</td>
@@ -202,7 +209,14 @@ const sessionTypeLabel = (type) => {
 	return o? o.label: '';
 }
 
-function MemberAttendances({member, setMember, sessions, uiProperties, setUiProperty}) {
+function MemberAttendances({
+	member,
+	setMember,
+	sessions,
+	uiProperties,
+	setUiProperty,
+	readOnly
+}) {
 	const attendances = member.Attendances;
 	if (!attendances)
 		return 'None'
@@ -227,18 +241,21 @@ function MemberAttendances({member, setMember, sessions, uiProperties, setUiProp
 					<Checkbox
 						checked={a.DidAttend}
 						onChange={e => change(session_id, 'DidAttend', e.target.checked)}
+						disabled={readOnly}
 					/>
 				</td>
 				<td style={{textAlign: 'center'}}>
 					<Checkbox
 						checked={a.DidNotAttend}
 						onChange={e => change(session_id, 'DidNotAttend', e.target.checked)}
+						disabled={readOnly}
 					/>
 				</td>
 				<td>
 					<Input type='text'
 						value={a.Notes || ''}
 						onChange={e => change(session_id, 'Notes', e.target.value)}
+						disabled={readOnly}
 					/>
 				</td>
 				<td>
@@ -248,7 +265,7 @@ function MemberAttendances({member, setMember, sessions, uiProperties, setUiProp
 		)
 	});
 
-	const empty = <tr><td style={{textAlign: 'center', fontStyle: 'italic', color: 'gray'}} colspan={6}>Empty</td></tr>
+	const empty = <tr><td style={{textAlign: 'center', fontStyle: 'italic', color: 'gray'}} colSpan={6}>Empty</td></tr>
 
 	const attendance = member.AttendanceCount + '/' + Object.keys(attendances).length;
 
@@ -404,7 +421,7 @@ function MemberContactEmails({
 		</tr>
 	);
 
-	const empty = <tr><td style={{textAlign: 'center', fontStyle: 'italic', color: 'gray'}} colspan={5}>Empty</td></tr>
+	const empty = <tr><td style={{textAlign: 'center', fontStyle: 'italic', color: 'gray'}} colSpan={5}>No contact email</td></tr>
 
 	return (
 		<table>
@@ -508,6 +525,7 @@ function Member({
 							checked={member.StatusChangeOverride}
 							indeterminate={isMultiple(member.StatusChangeOverride)}
 							onChange={e => setMember({StatusChangeOverride: e.target.checked? 1: 0})}
+							disabled={readOnly}
 						/>
 					</div>
 					<div style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
@@ -528,6 +546,7 @@ function Member({
 					deleteStatusChange={deleteStatusChange}
 					uiProperties={uiProperties}
 					setUiProperty={setUiProperty}
+					readOnly={readOnly}
 				/>
 			</Row>
 			{member.Status === 'Obsolete' &&
@@ -553,8 +572,7 @@ function Member({
 					/>
 				</Field>
 			</Row>
-			{sapins.length === 1 && 
-				<React.Fragment>
+				{sapins.length === 1 && <>
 					{member.ObsoleteSAPINs.length > 0 &&
 						<Row>
 							<Col>
@@ -571,6 +589,7 @@ function Member({
 							deleteContactEmail={deleteContactEmail}
 							uiProperties={uiProperties}
 							setUiProperty={setUiProperty}
+							readOnly={readOnly}
 						/>
 					</Row>
 					<Row>
@@ -580,6 +599,7 @@ function Member({
 							sessions={sessions}
 							uiProperties={uiProperties}
 							setUiProperty={setUiProperty}
+							readOnly={readOnly}
 						/>
 					</Row>
 					<Row>
@@ -588,12 +608,19 @@ function Member({
 							setMember={setMember}
 							uiProperties={uiProperties}
 							setUiProperty={setUiProperty}
+							readOnly={readOnly}
 						/>
 					</Row>
-				</React.Fragment>}
+				</>}
 		</MemberContainer>
 	)
 }
+
+const TopRow = styled.div`
+	display: flex;
+	justify-content: flex-end;
+	width: 100%;
+`;
 
 const NotAvaialble = styled.div`
 	display: flex;
@@ -643,7 +670,8 @@ class MemberDetail extends React.Component {
 	}
 
 	updateMember = (changes) => {
-		if (this.props.readOnly) {
+		const {readOnly, uiProperties} = this.props;
+		if (readOnly || !uiProperties.editMember) {
 			console.warn("Update in read-only component")
 			return;
 		}
@@ -658,7 +686,7 @@ class MemberDetail extends React.Component {
 		const {edited} = this.state;
 		this.props.updateMemberStatusChange(edited.SAPIN, {id, ...changes});
 		const StatusChangeHistory = edited.StatusChangeHistory.map(h => h.id === id? {...h, ...changes}: h);
-		this.setState({edited: {...edited, StatusChangeHistory}});
+		this.updateMember({StatusChangeHistory});
 	}
 
 	deleteStatusChange = (id) => {
@@ -677,13 +705,21 @@ class MemberDetail extends React.Component {
 		const {edited} = this.state;
 		this.props.updateMemberContactEmail(edited.SAPIN, {id, ...changes});
 		const ContactEmails = edited.ContactEmails.map(h => h.id === id? {...h, ...changes}: h);
-		this.setState({edited: {...edited, ContactEmails}});
+		this.updateMember({ContactEmails});
 	}
 
 	deleteContactEmail = (id) => {
 		const {edited} = this.state;
 		this.props.deleteMemberContactEmail(edited.SAPIN, id);
 	}
+
+	handleRemoveSelected = async () => {
+		const ok = await ConfirmModal.show('Are you sure you want to delete the selected members?');
+		if (ok)
+			await this.props.deleteSelectedMembers();
+	}
+
+	handleToggleEditMember = () => this.props.setUiProperty('editMember', !this.props.uiProperties.editMember);
 
 	save = () => {
 		const {edited, saved, originals} = this.state;
@@ -692,37 +728,54 @@ class MemberDetail extends React.Component {
 		const memberUpdates = [];
 		for (const m of originals) {
 			if (Object.keys(d).length > 0)
-				memberUpdates.push({...d, SAPIN: m.SAPIN})
+				memberUpdates.push({...d, SAPIN: m.SAPIN});
 		}
 		if (memberUpdates.length > 0)
-			memberUpdates.forEach(u => this.props.updateMember(u.SAPIN, u))
-		this.setState(state => ({...state, saved: edited}))
+			memberUpdates.forEach(u => this.props.updateMember(u.SAPIN, u));
+		this.setState(state => ({...state, saved: edited}));
 	}
 
 	render() {
-		const {style, className} = this.props;
-
-		const {members, selected} = this.props;
+		const {style, className, loading, uiProperties, readOnly, members, selected} = this.props;
 		const {edited} = this.state;
+
 		if (selected.length === 1) {
 			const member = members[selected[0]];
 			if (edited.ContactEmails.length !== member.ContactEmails.length)
-				this.setState({edited: {...edited, ContactEmails: member.ContactEmails}})
+				this.setState({edited: {...edited, ContactEmails: member.ContactEmails}});
 			if (edited.StatusChangeHistory.length !== member.StatusChangeHistory.length)
-				this.setState({edited: {...edited, StatusChangeHistory: member.StatusChangeHistory}})
+				this.setState({edited: {...edited, StatusChangeHistory: member.StatusChangeHistory}});
 		}
 
 		let notAvailableStr
-		if (this.props.loading)
-			notAvailableStr = 'Loading...'
+		if (loading)
+			notAvailableStr = 'Loading...';
 		else if (this.state.originals.length === 0)
-			notAvailableStr = 'Nothing selected'
+			notAvailableStr = 'Nothing selected';
+		const disableButtons = !!notAvailableStr; 	// disable buttons if displaying string
 
 		return (
 			<DetailContainer
 				style={style}
 				className={className}
 			>
+				<TopRow>
+					{!this.readOnly && <>
+						<ActionButton
+							name='edit'
+							title='Edit member'
+							disabled={disableButtons}
+							isActive={uiProperties.editMember}
+							onClick={this.handleToggleEditMember}
+						/>
+						<ActionButton
+							name='delete'
+							title='Delete member'
+							disabled={disableButtons}
+							onClick={this.handleRemoveSelected}
+						/>
+					</>}
+				</TopRow>
 				{notAvailableStr?
 					<NotAvaialble>
 						<span>{notAvailableStr}</span>
@@ -730,7 +783,7 @@ class MemberDetail extends React.Component {
 					<Member 
 						sapins={this.props.selected}
 						member={this.state.edited}
-						members={this.props.members}
+						members={members}
 						sessions={this.props.sessions}
 						setMember={this.updateMember}
 						updateStatusChange={this.updateStatusChange}
@@ -738,9 +791,9 @@ class MemberDetail extends React.Component {
 						addContactEmail={this.addContactEmail}
 						updateContactEmail={this.updateContactEmail}
 						deleteContactEmail={this.deleteContactEmail}
-						uiProperties={this.props.uiProperties}
+						uiProperties={uiProperties}
 						setUiProperty={this.props.setUiProperty}
-						readOnly={this.props.readOnly}
+						readOnly={readOnly || !uiProperties.editMember}
 					/>
 				}
 			</DetailContainer>

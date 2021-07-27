@@ -11,18 +11,21 @@ import {getVoters} from './voters'
 /*
  * Get ballots SQL query.
  */
-const GET_BALLOTS_SQL =
+const getBallotsSQL =
 	'SELECT ' +
-		'b.*, ' +
-		'(SELECT COUNT(*) FROM comments c WHERE b.id=c.ballot_id) AS CommentCount, ' +
-		'(SELECT MIN(CommentID) FROM comments c WHERE b.id=c.ballot_id) AS CommentIDMin, ' +
-		'(SELECT MAX(CommentID) FROM comments c WHERE b.id=c.ballot_id) AS CommentIDMax ' +
+		'id, BallotID, Project, Type, Start, End, Document, Topic, VotingPoolID, PrevBallotID, EpollNum, IsComplete, ' +
+		'ResultsSummary AS Results, ' +
+		'JSON_OBJECT( ' +
+			'"Count", (SELECT COUNT(*) FROM comments c WHERE b.id=c.ballot_id), ' +
+			'"CommentIDMin", (SELECT MIN(CommentID) FROM comments c WHERE b.id=c.ballot_id), ' +
+			'"CommentIDMax", (SELECT MAX(CommentID) FROM comments c WHERE b.id=c.ballot_id) ' +
+		') AS Comments ' +
 	'FROM ballots b';
 
 /*
  * Get comments summary for ballot
  */
-const GetCommentsSummarySQL = (ballotId) =>
+const getCommentsSummarySQL = (ballotId) =>
 	db.format(
 		'SELECT ' +
 			'COUNT(*) AS Count, ' +
@@ -32,41 +35,21 @@ const GetCommentsSummarySQL = (ballotId) =>
 		[ballotId]
 	);
 
-function reformatBallot(b) {
-
-	b.Start = moment(b.Start);
-	b.End = moment(b.End);
-
-	b.Comments = {
-		Count: b.CommentCount,
-		CommentIDMin: b.CommentIDMin,
-		CommentIDMax: b.CommentIDMax
-	};
-	delete b.CommentCount;
-	delete b.CommentIDMin;
-	delete b.CommentIDMax;
-
-	b.Results = b.ResultsSummary;
-	delete b.ResultsSummary;
-
-	return b;
-}
-
 export async function getBallots() {
-	const ballots = await db.query(GET_BALLOTS_SQL + ' ORDER BY Project, Start');
-	return ballots.map(reformatBallot);
+	const ballots = await db.query(getBallotsSQL + ' ORDER BY Project, Start');
+	return ballots;
 }
 
 export async function getBallot(ballotId) {
-	const [ballot] = await db.query(GET_BALLOTS_SQL + ' WHERE BallotID=?', [ballotId])
+	const [ballot] = await db.query(getBallotsSQL + ' WHERE BallotID=?', [ballotId])
 	if (!ballot)
 		throw `No such ballot: ${ballotId}`;
-	return reformatBallot(ballot);
+	return ballot;
 }
 
 async function getBallotWithNewResultsSummary(user, ballotId) {
 	const {ballot, summary} = await getResultsCoalesced(user, ballotId);
-	const commentsSummaries = await db.query(GetCommentsSummarySQL(ballotId));
+	const commentsSummaries = await db.query(getCommentsSummarySQL(ballotId));
 	console.log(ballot, summary, commentsSummaries)
 	return {
 		...ballot,
@@ -100,7 +83,7 @@ export async function getBallotSeriesWithResults(ballotId) {
 
 export async function getRecentBallotSeriesWithResults() {
 	const ballots = await db.query(
-		GET_BALLOTS_SQL + ' WHERE ' +
+		getBallotsSQL + ' WHERE ' +
 			'(Type=2 OR Type=3) AND ' +		// WG ballots
 			'IsComplete=1 ' + 				// series is complete
 			'ORDER BY End DESC ' +			// newest to oldest
@@ -186,8 +169,9 @@ export function updateBallots(user, ballots) {
 export async function deleteBallots(ids) {
 	await db.query(
 		'START TRANSACTION;' +
-		db.format('DELETE c, r FROM ballots b JOIN comments c ON b.id=c.ballot_id JOIN resolutions r ON c.id=r.comment_id WHERE b.id IN (?);', [ids]) +
-		db.format('DELETE r FROM ballots b JOIN results r ON r.ballot_id=b.id WHERE b.id IN (?);', [ids]) +
+		db.format('DELETE r FROM comments c JOIN resolutions r ON c.id=r.comment_id WHERE c.ballot_id IN (?);', [ids]) +
+		db.format('DELETE FROM comments WHERE ballot_id IN (?);', [ids]) +
+		db.format('DELETE FROM results WHERE ballot_id IN (?);', [ids]) +
 		db.format('DELETE FROM ballots WHERE id IN (?);', [ids]) +
 		'COMMIT;'
 	);

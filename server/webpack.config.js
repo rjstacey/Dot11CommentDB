@@ -13,5 +13,5 @@ module.exports = {
 	optimization: {
 		minimize: false
 	},
-	mode: 'development'
+	mode: 'production'
 };

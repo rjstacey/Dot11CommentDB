@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
@@ -8,8 +9,8 @@ import CommentGroupSelector from './CommentGroupSelector'
 import AssigneeSelector from './AssigneeSelector'
 import SubmissionSelector from './SubmissionSelector'
 import {editorCss, ResolutionEditor} from './ResolutionEditor'
+import CommentHistory from './CommentHistory'
 import {ActionButton, VoteYesIcon, VoteNoIcon, IconCollapse} from 'dot11-components/lib/icons'
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
 import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/general/Form'
 import {shallowDiff, debounce} from 'dot11-components/lib/utils'
 import {setProperty} from 'dot11-components/store/ui'
@@ -91,8 +92,14 @@ const ResolutionContainer = styled.div`
 	background-color: ${({color}) => color};
 `;
 
-const Categorization = ({resolution, setResolution, readOnly, showNotes, toggleShowNotes}) =>
-	<React.Fragment>
+const Categorization = ({
+	resolution,
+	setResolution,
+	showNotes,
+	toggleShowNotes,
+	readOnly
+}) =>
+	<>
 		<Row>
 			<Col>
 				<Field label='Ad-hoc:'>
@@ -139,7 +146,7 @@ const Categorization = ({resolution, setResolution, readOnly, showNotes, toggleS
 				}
 			</Col>
 		</Row>
-	</React.Fragment>
+	</>
 
 const Column1 = ({
 	style,
@@ -316,7 +323,7 @@ const EditContainer = styled.div`
 `;
 
 const Resolution = ({resolution, setResolution, showEditing, toggleShowEditing, readOnly}) =>
-	<React.Fragment>
+	<>
 		<Row>
 			<Column1
 				resolution={resolution}
@@ -383,7 +390,7 @@ const Resolution = ({resolution, setResolution, showEditing, toggleShowEditing, 
 				}
 			</Col>
 		</Row>
-	</React.Fragment>
+	</>
 
 const StyledResnStatus = styled(ResnStatus)`
 	width: fit-content;
@@ -634,9 +641,9 @@ export function Comment({
 			<Categorization
 				resolution={resolution}
 				setResolution={setResolution}
-				readOnly={readOnly}
 				showNotes={showNotes}
 				toggleShowNotes={toggleShowNotes}
+				readOnly={readOnly}
 			/>
 			{resolution.ResolutionID !== null &&
 				<Resolution
@@ -696,7 +703,7 @@ const NotAvaialble = styled.div`
 	color: #bdbdbd;
 `;
 
-const CommentDetailContainer = styled.div`
+const DetailContainer = styled.div`
 	padding: 10px;
 	label {
 		font-weight: bold;
@@ -705,7 +712,7 @@ const CommentDetailContainer = styled.div`
 
 const TopRow = styled.div`
 	display: flex;
-	justify-content: space-between;
+	justify-content: flex-end;
 	width: 100%;
 `;
 
@@ -727,8 +734,8 @@ class CommentDetail extends React.PureComponent {
 		for (const cid of selected) {
 			const comment = entities[cid];
 			if (comment) {
-				diff = recursivelyDiffObjects(diff, comment)
-				originalComments.push(comment)
+				diff = recursivelyDiffObjects(diff, comment);
+				originalComments.push(comment);
 			}
 		}
 		return {
@@ -739,8 +746,8 @@ class CommentDetail extends React.PureComponent {
 	}
 
 	doResolutionUpdate = (fields) => {
-		if (this.readOnly) {
-			console.warn("Update in read only component")
+		if (this.readOnly || !this.props.uiProperties.editComment) {
+			console.warn("Update in read only component");
 			return;
 		}
 		// merge in the edits and trigger a debounced save
@@ -788,8 +795,6 @@ class CommentDetail extends React.PureComponent {
 		this.setState((state, props) => ({...state, savedResolution: editedResolution}));
 	}
 
-	//handleSave = () => this.doSave(this.state.origResolution, this.state.editedResolution, this.state.comments)
-
 	handleAddResolutions = async () => {
 		const {comments} = this.state;
 		//console.log(comments)
@@ -801,12 +806,11 @@ class CommentDetail extends React.PureComponent {
 					BallotID: c.BallotID,
 					CommentID: c.CommentID,
 					comment_id: c.comment_id
-				})
+				});
 			}
 		}
 		this.triggerSave.flush();
 		await this.props.addResolutions(resolutions);
-		//this.setState(this.initState(this.props));
 	}
 
  	handleDeleteResolutions = async () => {
@@ -815,53 +819,49 @@ class CommentDetail extends React.PureComponent {
  			.map(c => ({id: c.resolution_id}));
  		this.triggerSave.flush();
  		await this.props.deleteResolutions(resolutions);
- 		//this.setState(this.initState(this.props));
  	}
 
- 	handleToggleEditComment = () => this.props.setUiEditComment(!this.props.uiEditComment);
+ 	toggleUiProperty = (property) => this.props.setUiProperty(property, !this.props.uiProperties[property]);
 
 	render() {
-		const {style, className, access} = this.props;
+		const {style, className, access, loading, uiProperties, setUiProperty} = this.props;
+		const {comments, editedResolution} = this.state;
 
-		let notAvailableStr
-		if (this.props.loading) {
-			notAvailableStr = 'Loading...'
-		}
-		else if (this.state.comments.length === 0) {
-			notAvailableStr = 'Nothing selected'
-		}
-		const disableButtons = !!notAvailableStr 	// disable buttons if displaying string
+		let notAvailableStr;
+		if (loading)
+			notAvailableStr = 'Loading...';
+		else if (comments.length === 0)
+			notAvailableStr = 'Nothing selected';
+		const disableButtons = !!notAvailableStr; 	// disable buttons if displaying string
 
 		return(
-			<CommentDetailContainer
+			<DetailContainer
 				style={style}
 				className={className}
 			>
 				<TopRow>
-					<span></span>
-					{!this.readOnly &&
-						<span>
-							<ActionButton
-								name='edit'
-								title='Edit resolution'
-								disabled={disableButtons}
-								isActive={this.props.uiEditComment}
-								onClick={this.handleToggleEditComment}
-							/>
-							<ActionButton
-								name='add'
-								title='Create alternate resolution'
-								disabled={disableButtons}
-								onClick={this.handleAddResolutions}
-							/>
-							<ActionButton
-								name='delete'
-								title='Delete resolution'
-								disabled={disableButtons}
-								onClick={this.handleDeleteResolutions}
-							/>
-						</span>
-					}
+					{!this.readOnly && <>
+						<CommentHistory />
+						<ActionButton
+							name='edit'
+							title='Edit resolution'
+							disabled={disableButtons}
+							isActive={uiProperties.editComment}
+							onClick={() => this.toggleUiProperty('editComment')}
+						/>
+						<ActionButton
+							name='add'
+							title='Create alternate resolution'
+							disabled={disableButtons}
+							onClick={this.handleAddResolutions}
+						/>
+						<ActionButton
+							name='delete'
+							title='Delete resolution'
+							disabled={disableButtons}
+							onClick={this.handleDeleteResolutions}
+						/>
+					</>}
 				</TopRow>
 				
 				{notAvailableStr?
@@ -869,22 +869,39 @@ class CommentDetail extends React.PureComponent {
 						<span>{notAvailableStr}</span>
 				 	</NotAvaialble>:
 					<Comment 
-						cids={this.state.comments.map(c => c.CID)}
-						resolution={this.state.editedResolution}
+						cids={comments.map(c => c.CID)}
+						resolution={editedResolution}
 						setResolution={this.doResolutionUpdate}
-						showNotes={this.props.uiShowNotes}
-						toggleShowNotes={() => this.props.setUiShowNotes(!this.props.uiShowNotes)}
-						showEditing={this.props.uiShowEditing}
-						toggleShowEditing={() => this.props.setUiShowEditing(!this.props.uiShowEditing)}
-						readOnly={this.readOnly || !this.props.uiEditComment}
+						showNotes={uiProperties.showNotes}
+						toggleShowNotes={() => this.toggleUiProperty('showNotes')}
+						showEditing={uiProperties.showEditing}
+						toggleShowEditing={() => this.toggleUiProperty('showEditing')}
+						readOnly={this.readOnly || !uiProperties.editComment}
 					/>
 				}
-			</CommentDetailContainer>
+			</DetailContainer>
 		)
 	}
+
+
 }
 
-const dataSet = 'comments'
+CommentDetail.propTypes = {
+	ballotId: PropTypes.string.isRequired,
+	comments: PropTypes.array.isRequired,
+	ids: PropTypes.array.isRequired,
+	entities: PropTypes.object.isRequired,
+	loading: PropTypes.bool.isRequired,
+	selected: PropTypes.array.isRequired,
+	uiProperties: PropTypes.object.isRequired,
+	addResolutions: PropTypes.func.isRequired,
+	deleteResolutions: PropTypes.func.isRequired,
+	updateResolutions: PropTypes.func.isRequired,
+	updateComments: PropTypes.func.isRequired,
+	setUiProperty: PropTypes.func.isRequired,
+};
+
+const dataSet = 'comments';
 export default connect(
 	(state) => {
 		const data = state[dataSet];
@@ -895,9 +912,7 @@ export default connect(
 			entities: data.entities,
 			loading: data.loading,
 			selected: data.selected,
-			uiShowNotes: data.ui['showNotes'],
-			uiShowEditing: data.ui['showEditing'],
-			uiEditComment: data.ui['editComment']
+			uiProperties: data.ui,
 		}
 	},
 	(dispatch) => ({
@@ -905,9 +920,7 @@ export default connect(
 		deleteResolutions: (resolutions) => dispatch(deleteResolutions(resolutions)),
 		updateResolutions: (resolutions) => dispatch(updateResolutions(resolutions)),
 		updateComments: (comments) => dispatch(updateComments(comments)),
-		setUiShowNotes: (show) => dispatch(setProperty(dataSet, 'showNotes', show)),
-		setUiShowEditing: (show) => dispatch(setProperty(dataSet, 'showEditing', show)),
-		setUiEditComment: (edit) => dispatch(setProperty(dataSet, 'editComment', edit))
+		setUiProperty: (property, value) => dispatch(setProperty(dataSet, property, value)),
 	})
 )(CommentDetail);
 

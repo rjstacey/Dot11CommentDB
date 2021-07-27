@@ -8,7 +8,7 @@ import copyToClipboard from 'copy-html-to-clipboard'
 import AppTable, {SplitPanel, Panel, SelectExpandHeader, SelectExpandCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, IdFilter} from 'dot11-components/table'
 import {Button, ActionButton, ButtonGroup} from 'dot11-components/lib/icons'
 import {AccessLevel} from 'dot11-components/lib/user'
-import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
+import {getEntities, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
 import {setProperty} from 'dot11-components/store/ui'
 
 import BallotSelector from '../ballots/BallotSelector'
@@ -17,7 +17,7 @@ import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './Com
 import {renderSubmission} from './SubmissionSelector'
 import CommentsImport from './CommentsImport'
 import CommentsExport from './CommentsExport'
-import CommentsHistoryModal from './CommentHistory'
+import CommentHistory from './CommentHistory'
 
 import {fields, loadComments} from '../store/comments'
 import {setBallotId} from '../store/ballots'
@@ -285,8 +285,6 @@ const defaultTablesConfig = {
 
 function setClipboard(selected, comments) {
 
-	const cmts = comments.filter(c => selected.includes(c.CID))
-
 	const td = d => `<td>${d}</td>`
 	const th = d => `<th>${d}</th>`
 	const header = `
@@ -296,7 +294,7 @@ function setClipboard(selected, comments) {
 			${th('Clause')}
 			${th('Comment')}
 			${th('Proposed Change')}
-		</tr>`
+		</tr>`;
 	const row = c => `
 		<tr>
 			${td(c.CID)}
@@ -304,8 +302,8 @@ function setClipboard(selected, comments) {
 			${td(c.Clause)}
 			${td(c.Comment)}
 			${td(c.ProposedChange)}
-		</tr>`
-	const table = t => `
+		</tr>`;
+	const table = `
 		<style>
 			table {border-collapse: collapse;}
 			table, th, td {border: 1px solid black;}
@@ -313,12 +311,10 @@ function setClipboard(selected, comments) {
 		</style>
 		<table>
 			${header}
-			${t.map(c => row(c))}
-		</table>`
+			${selected.map(id => row(comments[id])).join('')}
+		</table>`;
 
-	const text = table(cmts)
-
-	copyToClipboard(text, {asHtml: true});
+	copyToClipboard(table, {asHtml: true});
 }
 
 function commentsRowGetter({rowIndex, data}) {
@@ -376,22 +372,22 @@ function Comments({
 			}
 		}
 		else if (ballotId) {
-			history.replace(`/Comments/${ballotId}`);
+			history.replace(`/comments/${ballotId}`);
 		}
 	}, [queryBallotId, commentBallotId, ballotId, valid, loading]);
 
 	const refresh = () => loadComments(ballotId);
 
-	const ballotSelected = (ballotId) => history.push(`/Comments/${ballotId}`);
+	const ballotSelected = (ballotId) => history.push(`/comments/${ballotId}`);
 
 	return (
 		<>
 			<TopRow>
 				<BallotSelector onBallotSelected={ballotSelected} />
-				<div style={{display: 'flex'}}>
+				<div style={{display: 'flex', alignItems: 'center'}}>
 					<ButtonGroup>
-						<div>Table view</div>
-						<div style={{display: 'flex'}}>
+						<div style={{textAlign: 'center'}}>Table view</div>
+						<div style={{display: 'flex', alignItems: 'center'}}>
 							<TableViewSelector dataSet={dataSet} />
 							<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
 							<ActionButton
@@ -402,10 +398,27 @@ function Comments({
 							/>
 						</div>
 					</ButtonGroup>
-					<ActionButton name='copy' title='Copy to clipboard' disabled={selected.length === 0} onClick={e => setClipboard(selected, comments)} />
-					<ActionButton name='history' title='History' isActive={showHistory} onClick={() => setShowHistory(true)} />
-					{access >= AccessLevel.SubgroupAdmin && <CommentsImport ballotId={ballotId} />}
-					{access >= AccessLevel.SubgroupAdmin && <CommentsExport ballotId={ballotId} />}
+					{access >= AccessLevel.SubgroupAdmin?
+						<ButtonGroup>
+							<div style={{textAlign: 'center'}}>Edit</div>
+							<div style={{display: 'flex', alignItems: 'center'}}>
+								<ActionButton
+									name='copy'
+									title='Copy to clipboard'
+									disabled={selected.length === 0}
+									onClick={e => setClipboard(selected, comments)}
+								/>
+								<CommentsImport ballotId={ballotId} />
+								<CommentsExport ballotId={ballotId} />
+							</div>
+						</ButtonGroup>:
+						<ActionButton
+							name='copy'
+							title='Copy to clipboard'
+							disabled={selected.length === 0}
+							onClick={e => setClipboard(selected, comments)}
+						/>
+					}
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>
 			</TopRow>
@@ -434,11 +447,6 @@ function Comments({
 					/>
 				</Panel>
 			</SplitPanel>
-
-			<CommentsHistoryModal
-				isOpen={showHistory}
-				close={() => setShowHistory(false)}
-			/>
 		</>
 	)
 }
@@ -466,7 +474,7 @@ Comments.propTypes = {
 	commentBallotId: PropTypes.string.isRequired,
 	valid: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
-	comments: PropTypes.arrayOf(PropTypes.object).isRequired,
+	comments: PropTypes.object.isRequired,
 	loadComments: PropTypes.func.isRequired,
 	setBallotId: PropTypes.func.isRequired,
 	setUiProperty: PropTypes.func.isRequired,
@@ -482,7 +490,7 @@ export default connect(
 			commentBallotId: state[dataSet].ballotId,
 			valid: state[dataSet].valid,
 			loading: state[dataSet].loading,
-			comments: getData(state, dataSet),
+			comments: getEntities(state, dataSet),
 			uiProperty: state[dataSet].ui
 		}
 	},

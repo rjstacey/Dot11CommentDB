@@ -1,17 +1,12 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
-import styled from '@emotion/styled'
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
 import {Form, Row, Col, Input, List, ListItem} from 'dot11-components/general/Form'
 
 import {uploadMembers, UploadFormat} from '../store/members'
 
-const StyledForm = styled(Form)`
-	width: 400px;
-`;
-
-function _MembersUploadDropdown({upload, close}) {
+function _MembersUploadForm({upload, close}) {
 	const fileRef = React.useRef();
 	const [errMsg, setErrMsg] = React.useState('');
 	const [format, setFormat] = React.useState(UploadFormat.Roster);
@@ -32,12 +27,13 @@ function _MembersUploadDropdown({upload, close}) {
 	const changeFormat = e => setFormat(e.target.value);
 
 	return (
-		<StyledForm
+		<Form
 			title='Upload spreadsheet'
 			errorText={errMsg}
 			submit={submit}
 			cancel={close}
 			busy={busy}
+			style={{width: 400}}
 		>
 			<Row>
 				<List
@@ -96,37 +92,37 @@ function _MembersUploadDropdown({upload, close}) {
 				</List>
 			</Row>
 			<Row>
-			<Col>
-				<label htmlFor='fileInput'>Spreadsheet:</label>
-				<input
-					type='file'
-					id='fileInput'
-					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-					ref={fileRef}
-					onClick={e => setErrMsg('')}
-				/>
-			</Col>
+				<Col>
+					<label htmlFor='fileInput'>Spreadsheet:</label>
+					<input
+						type='file'
+						id='fileInput'
+						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+						ref={fileRef}
+						onClick={e => setErrMsg('')}
+					/>
+				</Col>
 			</Row>
-		</StyledForm>
+		</Form>
 	)
 }
 
-_MembersUploadDropdown.propTypes = {
+_MembersUploadForm.propTypes = {
 	upload: PropTypes.func.isRequired,
 	close: PropTypes.func.isRequired,
 }
 
-const MembersUploadDropdown = connect(
+const MembersUploadForm = connect(
 	null,
 	{upload: uploadMembers}
-)(_MembersUploadDropdown)
+)(_MembersUploadForm)
 
 const MembersUpload = () =>
 	<ActionButtonDropdown
 		name='upload'
-		title='Upload users' 
+		title='Upload members' 
 	>
-		<MembersUploadDropdown />
+		<MembersUploadForm />
 	</ActionButtonDropdown>
 
 export default MembersUpload;

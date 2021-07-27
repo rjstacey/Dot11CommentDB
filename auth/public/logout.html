@@ -7,7 +7,7 @@
     <script type="text/javascript">
       function logout() {
         localStorage.removeItem('User');
-        window.location = "/";
+        window.location = "/login" + window.location.search;
       }
     </script>
   </head>

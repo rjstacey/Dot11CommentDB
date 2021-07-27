@@ -310,7 +310,7 @@ export async function importAttendances(user, session_id) {
 				MI: i.MI,
 				Affiliation: i.Affiliation,
 				Email: i.Email,
-				Status: 'New'
+				Status: 'Non-Voter'
 			}
 			inserts.push(u);
 		}

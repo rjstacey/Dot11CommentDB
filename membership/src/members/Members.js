@@ -5,20 +5,21 @@ import styled from '@emotion/styled'
 import {useHistory} from "react-router-dom"
 import copyToClipboard from 'copy-html-to-clipboard'
 
-import AppTable, {SelectHeader, SelectCell, DataColumnHeader, ColumnSelector, ShowFilters, IdSelector} from 'dot11-components/table'
+import AppTable, {SelectHeader, SelectCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, SplitPanel, Panel} from 'dot11-components/table'
 import {ConfirmModal} from 'dot11-components/modals'
 import {ActionButton, Button} from 'dot11-components/lib/icons'
 import {setTableView, initTableConfig, setProperty} from 'dot11-components/store/ui'
 import {Field, Input, Form, Row} from 'dot11-components/general/Form'
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
 
+import BulkStatusUpdate from './BulkStatusUpdate'
 import MembersUpload from './MembersUpload'
-import MemberUpdateModal from './MemberUpdate'
+import MemberAdd from './MemberAdd'
 import MembersSummary from './MembersSummary'
 import MemberDetail from './MemberDetail'
 import {RosterImport, RosterExport} from './Roster'
 
-import {fields, loadMembers, deleteSelectedMembers, updateMembers, AccessLevel, AccessLevelOptions} from '../store/members'
+import {fields, loadMembers, deleteSelectedMembers, AccessLevel, AccessLevelOptions} from '../store/members'
 import {loadSessions} from '../store/sessions'
 
 
@@ -50,14 +51,12 @@ function setClipboard(selected, members) {
 		</style>
 		<table>
 			${header}
-			${selected.map(sapin => row(members[sapin]))}
+			${selected.map(sapin => row(members[sapin])).join('')}
 		</table>`
 
 	copyToClipboard(table, {asHtml: true});
 }
 
-
-const DefaultMember = {SAPIN: '', Name: '', Email: '', Status: 'Non-Voter', Access: AccessLevel.Member}
 
 const ActionCell = styled.div`
 	display: flex;
@@ -102,12 +101,12 @@ const renderAccess = ({rowData}) => {
 	return item? item.label: 'error';
 }
 
-const MembersColumnDropdown = (props) => <DataColumnHeader dataSet={dataSet} {...props}/>;
+const MembersColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
 
 const renderHeaderNameAndEmail = (props) =>
 	<>
-		<MembersColumnDropdown {...props} dataKey='Name' label='Name' />
-		<MembersColumnDropdown {...props} dataKey='Email' label='Email' dropdownWidth={200} />
+		<MembersColumnHeader {...props} dataKey='Name' label='Name' />
+		<MembersColumnHeader {...props} dataKey='Email' label='Email' dropdownWidth={200} />
 	</>
 
 export const renderNameAndEmail = ({rowData}) =>
@@ -118,8 +117,8 @@ export const renderNameAndEmail = ({rowData}) =>
 
 const renderHeaderEmployerAndAffiliation = (props) =>
 	<>
-		<MembersColumnDropdown {...props} dataKey='Employer' label='Employer' />
-		<MembersColumnDropdown {...props} dataKey='Affiliation' label='Affiliation' />
+		<MembersColumnHeader {...props} dataKey='Employer' label='Employer' />
+		<MembersColumnHeader {...props} dataKey='Affiliation' label='Affiliation' />
 	</>
 
 const renderDataEmployerAndAffiliation = ({rowData}) =>
@@ -248,58 +247,28 @@ const tableColumns = [
 		cellRenderer: (props) => <BallotSeriesParticipation {...props} />},
 ];
 
-const defaultTablesConfig = {
-	General: {
-		fixed: false,
-		columns: ['__ctrl__', 'SAPIN', 'Name/Email', 'Employer/Affiliation', 'Status', 'Access']
-	},
-	Participation: {
-		fixed: false,
-		columns: ['__ctrl__', 'SAPIN', 'Name/Email', 'Attendance', 'Status', 'NewStatus', 'AttendanceCount', 'BallotSeriesCount']
-	}
+const defaultTablesColumns = {
+	General: ['__ctrl__', 'SAPIN', 'Name/Email', 'Employer/Affiliation', 'Status', 'Access'],
+	Participation: ['__ctrl__', 'SAPIN', 'Name/Email', 'Attendance', 'Status', 'NewStatus', 'AttendanceCount', 'BallotSeriesCount']
 };
 
-function setDefaultTableConfig({tablesConfig, initTableConfig, setTableView}) {
-	for (const tableView of Object.keys(defaultTablesConfig)) {
-		const tableConfig = tablesConfig[tableView];
-		if (tableConfig)
-			continue;
-		const columns = tableColumns.reduce((cols, c) => {
-			cols[c.key] = {
-				visible: c.key.startsWith('__') || defaultTablesConfig[tableView].columns.includes(c.key),
-				width: c.width
-			}
-			return cols;
-		}, {});
-		const newTableConfig = {
-			fixed: defaultTablesConfig[tableView].fixed,
-			columns
-		}
-		initTableConfig(tableView, newTableConfig);
+const defaultTablesConfig = {};
+
+for (const tableView of Object.keys(defaultTablesColumns)) {
+	const tableConfig = {
+		fixed: false,
+		columns: {}
 	}
+	for (const column of tableColumns) {
+		const key = column.key;
+		tableConfig.columns[key] = {
+			unselectable: key.startsWith('__'),
+			shown: defaultTablesColumns[tableView].includes(key),
+			width: column.width
+		}
+	}
+	defaultTablesConfig[tableView] = tableConfig;
 }
-
-function _TableViewSelector({tableView, setTableView}) {
-	const tableViews = Object.keys(defaultTablesConfig);
-	return tableViews.map(view => 
-		<Button
-			key={view}
-			isActive={tableView === view}
-			onClick={e => setTableView(view)}
-		>
-			{view}
-		</Button>
-	)
-}
-
-const TableViewSelector = connect(
-	(state) => ({
-		tableView: state[dataSet].ui.tableView
-	}),
-	(dispatch) => ({
-		setTableView: (view) => dispatch(setTableView(dataSet, view))
-	})
-)(_TableViewSelector)
 
 const ButtonGroup = styled.div`
 	display: flex;
@@ -312,6 +281,8 @@ const ButtonGroup = styled.div`
 	margin: 0 5px;
 `;
 
+const FForm = ({close, ...otherProps}) => <Form cancel={close} {...otherProps} />
+
 function Members({
 	selected,
 	loading,
@@ -320,27 +291,11 @@ function Members({
 	loadMembers,
 	validSessions,
 	loadSessions,
-	updateMembers,
 	deleteSelectedMembers,
-	tablesConfig,
-	initTableConfig,
 	uiProperty,
 	setUiProperty
 }) {
-	const [editMember, setEditMember] = React.useState({action: '', member: DefaultMember});
-	const [split, setSplit] = React.useState(0.5);
-	const setTableDetailSplit = (deltaX) => setSplit(split => split - deltaX/window.innerWidth);
-	const [edit, setEdit] = React.useState(false);
 	const [statusChangeReason, setStatusChangeReason] = React.useState('');
-
-	/* On mount, if the store does not contain default configuration for each of our views, 
-	 * then add them */
-	React.useEffect(() => 
-		setDefaultTableConfig({
-			tablesConfig,
-			initTableConfig,
-			setTableView
-		}), []);
 
 	React.useEffect(() => {
 		if (!validMembers)
@@ -355,42 +310,6 @@ function Members({
 			await deleteSelectedMembers();
 	}
 
-	const openAddMember = () => setEditMember({action: 'add', member: DefaultMember});
-	const closeMemberUpdate = () => setEditMember(s => ({...s, action: ''}));
-
-	const changeStatusOfSelected = () => {
-		const updates = [];
-		for (const sapin of selected) {
-			const m = members[sapin];
-			if (m.NewStatus)
-				updates.push({SAPIN: sapin, Status: m.NewStatus, StatusChangeReason: statusChangeReason})
-		}
-		updateMembers(updates);
-	}
-
-	const table =
-		<AppTable
-			columns={tableColumns}
-			headerHeight={50}
-			estimatedRowHeight={50}
-			dataSet={dataSet}
-			resizeWidth={uiProperty.editView? setTableDetailSplit: undefined}
-		/>
-
-	const body = (uiProperty.editView)?
-		<>
-			<div style={{flex: `${100 - split*100}%`, height: '100%', overflow: 'hidden', boxSizing: 'border-box'}}>
-				{table}
-			</div>
-			<MemberDetail
-				style={{flex: `${split*100}%`, height: '100%', overflow: 'auto', boxSizing: 'border-box'}}
-				key={selected}
-			/>
-		</>:
-		table
-
-	const FForm = ({close, ...otherProps}) => <Form cancel={close} {...otherProps} />
-
 	return (
 		<>
 			<TopRow>
@@ -400,12 +319,12 @@ function Members({
 						<div>Table view</div>
 						<div style={{display: 'flex'}}>
 							<TableViewSelector dataSet={dataSet} />
-							<ColumnSelector dataSet={dataSet} columns={tableColumns} />
+							<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
 							<ActionButton
 								name='book-open'
 								title='Show detail'
-								isActive={uiProperty.editView} 
-								onClick={() => setUiProperty('editView', !uiProperty.editView)} 
+								isActive={uiProperty.editView}
+								onClick={() => setUiProperty('editView', !uiProperty.editView)}
 							/>
 						</div>
 					</ButtonGroup>
@@ -416,32 +335,14 @@ function Members({
 							<RosterExport />
 						</div>
 					</ButtonGroup>
-					<ActionButtonDropdown label='Bulk Status Update'>
-						<FForm
-							title='Bulk status update'
-							submit={changeStatusOfSelected}
-						>
-							<Row>
-								Update selected member status to the expected status
-							</Row>
-							<Row>
-								<Field label='Reason:'>
-									<Input type='text'
-										size={24}
-										value={statusChangeReason}
-										onChange={e => setStatusChangeReason(e.target.value)} 
-									/>
-								</Field>
-							</Row>
-						</FForm>
-					</ActionButtonDropdown>
+					<BulkStatusUpdate />
 					<ButtonGroup>
 						<div>Edit</div>
 						<div style={{display: 'flex'}}>
 							<ActionButton name='copy' title='Copy to clipboard' disabled={selected.length === 0} onClick={e => setClipboard(selected, members)} />
 							<MembersUpload />
-							<ActionButton name='add' title='Add Member' onClick={openAddMember} />
-							<ActionButton name='delete' title='Remove Selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
+							<MemberAdd />
+							<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
 						</div>
 					</ButtonGroup>
 					<ActionButton name='refresh' title='Refresh' onClick={loadMembers} />
@@ -453,16 +354,22 @@ function Members({
 				fields={fields}
 			/>
 
-			<TableRow>
-				{body}
-			</TableRow>
-
-			<MemberUpdateModal
-				isOpen={editMember.action === 'add' || editMember.action === 'update'}
-				close={closeMemberUpdate}
-				action={editMember.action}
-				member={editMember.member}
-			/>
+			<SplitPanel splitView={uiProperty.editView || false} >
+				<Panel>
+					<AppTable
+						defaultTablesConfig={defaultTablesConfig}
+						columns={tableColumns}
+						headerHeight={50}
+						estimatedRowHeight={50}
+						dataSet={dataSet}
+					/>
+				</Panel>
+				<Panel style={{overflow: 'auto'}}>
+					<MemberDetail
+						key={selected}
+					/>
+				</Panel>
+			</SplitPanel>
 		</>
 	)
 }
@@ -473,9 +380,11 @@ Members.propTypes = {
 	validMembers: PropTypes.bool.isRequired,
 	validSessions: PropTypes.bool.isRequired,
 	loading: PropTypes.bool.isRequired,
+	uiProperty: PropTypes.object.isRequired,
 	loadMembers: PropTypes.func.isRequired,
+	loadSessions: PropTypes.func.isRequired,
 	deleteSelectedMembers: PropTypes.func.isRequired,
-	updateMembers: PropTypes.func.isRequired,
+	setUiProperty: PropTypes.func.isRequired,
 }
 
 const dataSet = 'members'
@@ -487,7 +396,6 @@ export default connect(
 			validMembers: state[dataSet].valid,
 			validSessions: state.sessions.valid,
 			loading: state[dataSet].loading,
-			tablesConfig: state[dataSet].ui.tablesConfig,
 			uiProperty: state[dataSet].ui
 		}
 	},
@@ -495,10 +403,7 @@ export default connect(
 		return {
 			loadMembers: () => dispatch(loadMembers()),
 			loadSessions: () => dispatch(loadSessions()),
-			updateMembers: (updates) => dispatch(updateMembers(updates)),
 			deleteSelectedMembers: () => dispatch(deleteSelectedMembers()),
-			setTableView: view => dispatch(setTableView(dataSet, view)),
-			initTableConfig: (view, config) => dispatch(initTableConfig(dataSet, view, config)),
 			setUiProperty: (property, value) => dispatch(setProperty(dataSet, property, value))
 		}
 	}

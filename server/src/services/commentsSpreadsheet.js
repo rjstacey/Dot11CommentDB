@@ -451,7 +451,7 @@ export async function parseCommentsSpreadsheet(buffer, sheetName) {
 	return comments
 }
 
-function fromHtml(html) {
+export function fromHtml(html) {
 	if (typeof html !== 'string') return ''
 
 	html = html.replace(/<p\w[^>]*>(.*)<\/p[^>]*>/g, (match, entity) => `${entity}\n`);

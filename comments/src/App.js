@@ -25,7 +25,7 @@ const Header = styled.header`
 	flex-direction: row;
 	justify-content: space-between;
 	align-items: center;
-	margin: 10px;
+	margin: 5px 10px;
 `;
 
 const Nav = styled.nav`
@@ -61,7 +61,7 @@ const Title = styled.h3`
 	display: inline-block;
 	font-family: "Arial", "Helvetica", sans-serif;
 	font-weight: 400;
-	font-size: 28px;
+	font-size: 24px;
 	margin: 12px 8px 8px 8px;
 	padding: 0;
 	color: #008080;
@@ -74,50 +74,48 @@ const RestrictedRoute = ({component: Component, access, minAccess, ...rest }) =>
 		render={props =>
 			access >= minAccess?
 				<Component access={access} {...props} />:
-				<Redirect to={{ pathname: "/Login", state: { from: props.location } }} />
+				<Redirect to={{ pathname: "/login", state: { from: props.location } }} />
 		}
 	/>
 
 function App({user, access}) {
 
 	return (
-		<Router>
+		<Router basename='/comments'>
 			<OuterDiv>
 				<Header>
 					<Title>802.11 Comment Resolution Tool</Title>
 					<Nav>
-						{access >= AccessLevel.Public && 
-							<>
-								<NavLink to="/Ballots/" activeClassName='active'>Ballots</NavLink>
-								{access >= AccessLevel.SubgroupAdmin && <NavLink to="/Results" activeClassName='active'>Results</NavLink>}
-								<NavLink to="/Comments" activeClassName='active'>Comments</NavLink>
-								{access >= AccessLevel.SubgroupAdmin && <NavLink to="/Reports" activeClassName='active'>Reports</NavLink>}
-							</>
-						}
+						{access >= AccessLevel.Public && <>
+							<NavLink to="/ballots/" activeClassName='active'>Ballots</NavLink>
+							{access >= AccessLevel.SubgroupAdmin && <NavLink to="/results" activeClassName='active'>Results</NavLink>}
+							<NavLink to="/comments" activeClassName='active'>Comments</NavLink>
+							{access >= AccessLevel.SubgroupAdmin && <NavLink to="/reports" activeClassName='active'>Reports</NavLink>}
+						</>}
 					</Nav>
 					<Account user={user} />
 				</Header>
 				<Main>
 					<Switch>
 						<RestrictedRoute
-							path="/Ballots/:ballotId?"
+							path="/ballots/:ballotId?"
 							access={access}
 							minAccess={AccessLevel.Public}
 							component={Ballots}
 						/>
 						<RestrictedRoute
-							path="/Results/:ballotId?"
+							path="/results/:ballotId?"
 							access={access}
 							minAccess={AccessLevel.SubgroupAdmin}
 							component={Results}
 						/>
 						<RestrictedRoute
-							path="/Comments/:ballotId?" exact
+							path="/comments/:ballotId?" exact
 							access={access}
 							minAccess={AccessLevel.Public}
 							component={Comments} />
 						<RestrictedRoute
-							path="/Reports/:ballotId?" exact
+							path="/reports/:ballotId?" exact
 							access={access}
 							minAccess={AccessLevel.SubgroupAdmin}
 							component={Reports}

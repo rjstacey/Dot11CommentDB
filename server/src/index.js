@@ -52,10 +52,17 @@ function initServer() {
 		res.status(400).send(message)
 	});
 
+	let devdir = '';
+	/*if (process.env.NODE_ENV === 'development') {
+		devdir = '../../build'
+		console.log(path.join(__dirname, devdir))
+	}*/
+	app.use(express.static(path.join(__dirname, devdir, '')));
 	app.get('/$', (req, res) => res.redirect('/comments'));
-	app.get('/comments', (req, res) => res.sendFile(path.join(__dirname, 'comments/index.html')));
-	app.get('/membership', (req, res) => res.sendFile(path.join(__dirname, 'membership/index.html')));
-	app.use(express.static(path.join(__dirname, '')));
+	app.get('/login', (req, res) => res.sendFile(path.join(__dirname, devdir, 'auth/index.html')));
+	app.get('/logout', (req, res) => res.sendFile(path.join(__dirname, devdir, 'auth/logout.html')));
+	app.get('/comments*', (req, res) => res.sendFile(path.join(__dirname, devdir, 'comments/index.html')));
+	app.get('/membership*', (req, res) => res.sendFile(path.join(__dirname, devdir, 'membership/index.html')));
 	//app.get('*', (req, res) => res.redirect('/'));
 
 	app.listen(app.get('port'), () => {

@@ -3,7 +3,7 @@ import React from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable from 'dot11-components/table'
+import AppTable, {TableColumnSelector} from 'dot11-components/table'
 import {ActionButton} from 'dot11-components/lib/icons'
 import {AccessLevel} from 'dot11-components/lib/user'
 import BallotSelector from '../ballots/BallotSelector'
@@ -97,7 +97,7 @@ function updateTableConfig(upsertTableColumns, access, type) {
 	}
 }
 
-const maxWidth = 1024;
+const maxWidth = 1600;
 
 function Results({
 	access,
@@ -143,6 +143,7 @@ function Results({
 				<BallotSelector onBallotSelected={onBallotSelected}	/>
 				<div style={{display: 'flex'}}>
 					<ResultsExport ballotId={ballotId} ballot={ballot} />
+					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
 					<ActionButton name='refresh' title='Refresh' onClick={() => loadResults(ballotId)} />
 				</div>
 			</ActionRow>

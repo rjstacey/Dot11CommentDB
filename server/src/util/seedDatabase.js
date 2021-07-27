@@ -3,6 +3,7 @@
 import {getUser} from '../services/users'
 import {addMember, updateMember} from '../services/members'
 import {initCommentsTables} from '../services/comments'
+import {initCommentsHistory} from '../services/commentsHistory'
 
 const db = require('../util/database')
 
@@ -162,7 +163,8 @@ export async function init() {
 			}
 		}
 
-		initCommentsTables();
+		await initCommentsTables();
+		await initCommentsHistory();
 
 		/* Make sure we have a super user with the right access level */
 		const user = await getUser(superUser.SAPIN, superUser.Email)

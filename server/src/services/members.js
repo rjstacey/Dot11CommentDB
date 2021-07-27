@@ -485,13 +485,13 @@ export async function upsertMembers(attendees) {
 
 export async function deleteMembers(ids) {
 	if (ids.length > 0)
-		await db.query('DELETE FROM members WHERE id IN (?)', [ids]);
+		await db.query('DELETE FROM members WHERE SAPIN IN (?)', [ids]);
 	return null;
 }
 
 
 async function uploadDatabaseMembers(buffer) {
-	let members = await parseMembersSpreadsheet(file.buffer);
+	let members = await parseMembersSpreadsheet(buffer);
 	members = members.filter(m => m.SAPIN > 0);
 	const sql =
 		'DELETE FROM members; ' +

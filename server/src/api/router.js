@@ -278,7 +278,7 @@ import {
 	getTimeZones,
 	importBreakouts,
 	importAttendances,
-	updateAttendanceSummaries,
+	upsertMemberAttendanceSummaries,
 	getBreakouts,
 	getBreakoutAttendees,
 	getSessionAttendees
@@ -366,7 +366,7 @@ router.patch('/attendance_summaries', async (req, res, next) => {
 		const {ids, attendances} = req.body;
 		if (!Array.isArray(ids) || typeof attendances !== 'object')
 			throw 'Missing or bad body; expected {ids: [], attendances: {}}';
-		const data = await updateAttendanceSummaries(ids, attendances);
+		const data = await upsertMemberAttendanceSummaries(ids, attendances);
 		res.json(data);
 	}
 	catch(err) {next(err)}

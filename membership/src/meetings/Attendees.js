@@ -3,7 +3,7 @@ import React from 'react'
 import {Link, useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import AppTable, {SelectHeader, SelectCell, DataColumnHeader} from 'dot11-components/table'
+import AppTable, {SelectHeader, SelectCell, TableColumnHeader} from 'dot11-components/table'
 import {ConfirmModal} from 'dot11-components/modals'
 import {ActionButton} from 'dot11-components/lib/icons'
 import {displayDate} from 'dot11-components/lib/utils'
@@ -35,7 +35,7 @@ const renderSessionInfo = (meeting) =>
 		<span>{meeting.TimeZone}</span>
 	</div>
 
-const AttendeesColumnDropdown = (props) => <DataColumnHeader dataSet={dataSet} {...props}/>;
+const AttendeesColumnDropdown = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
 
 const renderHeaderNameAndEmail = (props) =>
 	<React.Fragment>

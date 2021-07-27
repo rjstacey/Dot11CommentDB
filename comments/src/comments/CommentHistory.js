@@ -1,7 +1,8 @@
+import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {AppModal} from 'dot11-components/modals'
+import {ActionButtonModal} from 'dot11-components/modals'
 import {Comment} from './CommentDetail'
 import HorizontalTimeline from './HorizontalTimeline'
 import {loadCommentsHistory} from '../store/commentsHistory'
@@ -30,16 +31,7 @@ const NotAvaialble = styled.div`
 	color: #bdbdbd;
 `;
 
-function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, valid, loadCommentsHistory}) {
-
-	React.useEffect(() => {
-		if (isOpen && selected.length) {
-			const id = selected[0];
-			const c = comments[id];
-			if (c)
-				loadCommentsHistory(c.comment_id);
-		}
-	}, [isOpen, comments, selected, loadCommentsHistory]);
+function CommentHistoryBody({commentsHistory, loading}) {
 
 	const [index, setIndex] = React.useState(0);
 	const events = commentsHistory.map(c => ({timestamp: c.Timestamp, type: c.Action, threadId: c.resolution_id, threadLabel: c.resolution_id? c.Changes.ResolutionID: ''}));
@@ -63,7 +55,7 @@ function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, 
 			</>
 	}
 	else {
-		changeBody = <NotAvaialble>No history</NotAvaialble>
+		changeBody = <NotAvaialble>{loading? 'Loading...': 'No history'}</NotAvaialble>
 	}
 
 	return (
@@ -80,32 +72,47 @@ function _CommentHistory({isOpen, selected, comments, commentsHistory, loading, 
 	)
 }
 
+const _CommentHistory = ({selected, comments, commentsHistory, loading, loadCommentsHistory}) => {
+
+	const onOpen = () => {
+		if (selected.length) {
+			const id = selected[0];
+			const c = comments[id];
+			if (c)
+				loadCommentsHistory(c.comment_id);
+		}
+	}
+
+	return (
+		<ActionButtonModal
+			name='history'
+			title='Comment history'
+			disabled={selected.length === 0}
+			onRequestOpen={onOpen}
+		>
+			<CommentHistoryBody 
+				loading={loading}
+				commentsHistory={commentsHistory}
+			/>
+		</ActionButtonModal>
+	)
+}
+
+_CommentHistory.propTypes = {
+	selected: PropTypes.array.isRequired,
+	comments: PropTypes.object.isRequired,
+	commentsHistory: PropTypes.array.isRequired,
+	loading: PropTypes.bool.isRequired,
+}
+
 const CommentHistory = connect(
 	(state) => ({
 		selected: getSelected(state, 'comments'),
 		comments: getEntities(state, 'comments'),
 		commentsHistory: state.commentsHistory.commentsHistory,
 		loading: state.commentsHistory.loading,
-		valid: state.commentsHistory.selected,
 	}),
 	{loadCommentsHistory}
 )(_CommentHistory);
 
-function CommentHistoryModal({
-	isOpen,
-	close
-}) {
-	return (
-		<AppModal
-			isOpen={isOpen}
-			onRequestClose={close}
-		>
-			<CommentHistory 
-				isOpen={isOpen}
-				close={close}
-			/>
-		</AppModal>
-	)
-}
-
-export default CommentHistoryModal;
+export default CommentHistory;

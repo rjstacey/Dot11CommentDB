@@ -1,20 +1,23 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import {connect} from 'react-redux'
+import {connect, useDispatch} from 'react-redux'
 import styled from '@emotion/styled'
 import {shallowDiff} from 'dot11-components/lib/utils'
-import {Form, Row, Col, Field, List, ListItem, Checkbox, Input, Select, TextArea} from 'dot11-components/general/Form'
-import {getData} from 'dot11-components/store/dataSelectors'
-import {AppModal, ConfirmModal} from 'dot11-components/modals'
+import {Form, Row, Col, Field, FieldLeft, List, ListItem, Checkbox, Input, Select, TextArea} from 'dot11-components/general/Form'
+import {Button, ActionButton} from 'dot11-components/lib/icons'
+import {ConfirmModal} from 'dot11-components/modals'
+import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
+import {getData, getEntities} from 'dot11-components/store/dataSelectors'
+import {setProperty} from 'dot11-components/store/ui'
 
 import {renderResultsSummary, renderCommentsSummary} from './Ballots'
 
-import {updateBallot, addBallot, loadBallots, setProject, getProjectList, getBallotList, BallotType} from '../store/ballots'
+import {updateBallot, addBallot, deleteBallots, loadBallots, setProject, getProjectList, getBallotList, BallotType} from '../store/ballots'
 import {loadVotingPools} from '../store/votingPools'
 import {importResults, uploadEpollResults, uploadMyProjectResults, deleteResults} from '../store/results'
 import {importComments, uploadComments, deleteComments, setStartCommentId} from '../store/comments'
 
-function defaultBallot() {
+function getDefaultBallot() {
 	const now = new Date()
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 	return {
@@ -26,8 +29,10 @@ function defaultBallot() {
 		Start: today.toISOString(),
 		End: today.toISOString(),
 		VotingPoolID: '',
-		PrevBallotID: ''}
+		PrevBallotID: ''
+	}
 }
+
 
 /* Convert an ISO date string to US eastern time and return string in form "YYYY-MM-DD" */
 function dateToShortDate(isoDate) {
@@ -48,7 +53,7 @@ function shortDateToDate(shortDateStr) {
 	return isNaN(newDate)? '': newDate.toISOString()
 }
 
-function SelectProject({width, project, projectList, onChange}) {
+function SelectProject({width, project, projectList, onChange, readOnly}) {
 	const options = projectList.map(p => ({value: p, label: p}))
 	const value = options.find(o => o.value === project)
 	return (
@@ -61,11 +66,12 @@ function SelectProject({width, project, projectList, onChange}) {
 			clearable
 			searchable
 			dropdownPosition='auto'
+			readOnly={readOnly}
 		/>
 	)
 }
 
-function SelectVotingPoolId({width, votingPoolId, votingPools, onChange}) {
+function SelectVotingPoolId({width, votingPoolId, votingPools, onChange, readOnly}) {
 	const options = votingPools.map(i => ({value: i.VotingPoolID, label: i.VotingPoolID}))
 	const value = options.find(o => o.value === votingPoolId)
 	return (
@@ -75,11 +81,12 @@ function SelectVotingPoolId({width, votingPoolId, votingPools, onChange}) {
 			options={options}
 			onChange={(values) => onChange(values.length? values[0].value: '')}
 			dropdownPosition='auto'
+			readOnly={readOnly}
 		/>
 	)
 }
 
-function SelectPrevBallot({width, prevBallotId, ballotList, onChange}) {
+function SelectPrevBallot({width, prevBallotId, ballotList, onChange, readOnly}) {
 	const options = ballotList//.map(i => ({value: i.VotingPoolID, label: i.VotingPoolID}))
 	const value = options.find(o => o.value === prevBallotId)
 	return (
@@ -89,11 +96,12 @@ function SelectPrevBallot({width, prevBallotId, ballotList, onChange}) {
 			options={options}
 			onChange={(values) => onChange(values.length? values[0].value: '')}
 			dropdownPosition='auto'
+			readOnly={readOnly}
 		/>
 	)
 }
 
-export function BallotTypes({value, onChange}) {
+export function BallotTypes({value, onChange, readOnly}) {
 	const ballotTypeOptions = [
 		{value: BallotType.CC, label: 'Comment collection'},
 		{value: BallotType.WG_Initial, label: 'Initial WG ballot'},
@@ -114,6 +122,7 @@ export function BallotTypes({value, onChange}) {
 						value={o.value}
 						checked={value === o.value}
 						onChange={onChange}
+						disabled={readOnly}
 					/>
 					<label htmlFor={o.value} >{o.label}</label>
 				</ListItem>
@@ -122,120 +131,134 @@ export function BallotTypes({value, onChange}) {
 	)
 }
 
-const CommentsActions = ({action, setAction, ballot, file, setFile, startCID, setStartCID}) => {
+const CommentsActions = ({ballot, readOnly}) => {
+	const dispatch = useDispatch();
 	const fileRef = React.useRef();
+	const [startCID, setStartCID] = React.useState(ballot.Comments? ballot.Comments.CommentsIdMin: 1);
+
+	async function handleDeleteComments() {
+		const ok = await ConfirmModal.show(`Are you sure you want to delete comments for ${ballot.BallotID}?`)
+		if (!ok)
+			return;
+		await dispatch(deleteComments(ballot.BallotID));
+	}
+
+	async function handleSetStartCID() {
+		await dispatch(setStartCommentId(ballot.BallotID, startCID));
+	}
+
+	async function handleImportComments() {
+		await dispatch(importComments(ballot.BallotID, ballot.EpollNum, 1));
+	}
+
+	async function handleUploadComments(file) {
+		await dispatch(uploadComments(ballot.BallotID, ballot.Type, file));
+	}
+
+	console.log(ballot);
 	return (
-		<List>
-			<label>Comments: {renderCommentsSummary({rowData: ballot, key: 'Comments'})}</label>
-			<ListItem>
-				<Checkbox
-					id='start'
-					checked={action === Action.SET_START_CID}
-					onChange={e => setAction(action !== Action.SET_START_CID? Action.SET_START_CID: Action.NONE)}
-				/>
-				<label htmlFor='start'>Change starting CID:&nbsp;</label>
-				<Input
-					type='search'
-					width={80}
-					value={startCID || 1}
-					onChange={e => setStartCID(e.target.value)}
-				/>
-			</ListItem>
-			{ballot.Comments &&
+		<>
+			<Row>
+				<FieldLeft label='Comments:'>{renderCommentsSummary({rowData: ballot, dataKey: 'Comments'})}</FieldLeft>
+			</Row>
+			{!readOnly && <Row>
 				<ListItem>
-					<Checkbox
-						id='delete'
-						checked={action === Action.REMOVE}
-						onChange={e => setAction(action !== Action.REMOVE? Action.REMOVE: Action.NONE)}
+					<Button onClick={handleSetStartCID}>Change starting CID:&nbsp;</Button>
+					<Input
+						type='search'
+						width={80}
+						value={startCID || 1}
+						onChange={e => setStartCID(e.target.value)}
 					/>
-					<label htmlFor='delete'>Delete</label>
 				</ListItem>
-			}
-			{ballot.EpollNum &&
-				<ListItem>
-					<Checkbox
-						id='importFromEpoll'
-						checked={action === Action.IMPORT_FROM_EPOLL}
-						onChange={e => setAction(action !== Action.IMPORT_FROM_EPOLL? Action.IMPORT_FROM_EPOLL: Action.NONE)}
-					/>
-					<label htmlFor='importFromEpoll'>{(ballot.Comments? 'Reimport': 'Import') + ' from ePoll'}</label>
-				</ListItem>
-			}
-			<ListItem>
-				<Checkbox
-					id='file'
-					checked={action === Action.IMPORT_FROM_FILE}
-					onChange={e => action !== Action.IMPORT_FROM_FILE? fileRef.current.click(): setAction(Action.NONE)}
+				{ballot.Comments &&
+					<Button
+						onClick={handleDeleteComments}
+					>
+						Delete
+					</Button>}
+				{ballot.EpollNum &&
+					<Button
+						onClick={handleImportComments}
+					>
+						{(ballot.Comments? 'Reimport': 'Import') + ' from ePoll'}
+					</Button>}
+				<Button
+					onClick={() => fileRef.current.click()}
+				>
+					Upload comments
+				</Button>
+				<input
+					type='file'
+					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+					ref={fileRef}
+					onChange={e => {if (e.target.files) handleUploadComments(e.target.files[0])}}
+					style={{display: "none"}}
 				/>
-				<label htmlFor='file'>{'Upload from ' + (file? file.name: 'file')}</label>
-			</ListItem>
-			<input
-				type='file'
-				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-				ref={fileRef}
-				onChange={e => {
-					if (e.target.files) {
-						setAction(Action.IMPORT_FROM_FILE);
-						setFile(e.target.files[0]);
-					}
-					else {
-						setAction(Action.NONE);
-						setFile(null);
-					}
-				}}
-				style={{display: "none"}}
-			/>
-		</List>
+			</Row>}
+		</>
 	)
 }
 
-const ResultsActions = ({action, setAction, ballot, file, setFile}) => {
+const ResultsActions = ({ballot, readOnly}) => {
+
+	const dispatch = useDispatch();
 	const fileRef = React.useRef();
+
+	async function handleDeleteResults() {
+		const ok = await ConfirmModal.show(`Are you sure you want to delete results for ${ballot.BallotID}?`)
+		if (!ok)
+			return;
+		await dispatch(deleteResults(ballot.BallotID, ballot));
+	}
+
+	async function handleImportResults() {
+		await dispatch(importResults(ballot.BallotID, ballot.EpollNum));
+	}
+
+	async function handleUploadResults(file) {
+		if (ballot.Type === BallotType.SA_Initial ||
+			ballot.Type === BallotType.SA_Recirc)
+			await dispatch(uploadMyProjectResults(ballot.BallotID, file));
+		else
+			await dispatch(uploadEpollResults(ballot.BallotID, file));
+	}
+
 	return (
-		<List>
-			<label>Results: {renderResultsSummary({rowData: ballot, key: 'Results'})}</label>
-			<ListItem>
-				<Checkbox
-					id='delete'
-					checked={action === Action.REMOVE}
-					onChange={e => setAction(action !== Action.REMOVE? Action.REMOVE: Action.NONE)}
+		<>
+			<Row>
+				<FieldLeft label='Results:'>{renderResultsSummary({rowData: ballot, dataKey: 'Results'})}</FieldLeft>
+			</Row>
+			{!readOnly && <Row>
+				<Button
+					onClick={handleDeleteResults}
+				>
+					Delete
+				</Button>
+				{ballot.EpollNum &&
+					<Button
+						onClick={handleImportResults}
+					>
+						{(ballot.Results? 'Reimport': 'Import') + ' from ePoll'}
+					</Button>}
+				<Button
+					onClick={() => fileRef.current.click()}
+				>
+					Upload results
+				</Button>
+				<input
+					type='file'
+					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+					ref={fileRef}
+					onChange={e => {
+						if (e.target.files) {
+							handleUploadResults(e.target.files[0]);
+						}
+					}}
+					style={{display: "none"}}
 				/>
-				<label htmlFor='delete'>Delete</label>
-			</ListItem>
-			{ballot.EpollNum &&
-				<ListItem>
-					<Checkbox
-						id='importFromEpoll'
-						checked={action === Action.IMPORT_FROM_EPOLL}
-						onChange={e => setAction(action !== Action.IMPORT_FROM_EPOLL? Action.IMPORT_FROM_EPOLL: Action.NONE)}
-					/>
-					<label htmlFor='importFromEpoll'>{(ballot.Results? 'Reimport': 'Import') + ' from ePoll'}</label>
-				</ListItem>}
-			<ListItem>
-				<Checkbox
-					id='fromFile'
-					checked={action === Action.IMPORT_FROM_FILE}
-					onChange={e => action !== Action.IMPORT_FROM_FILE? fileRef.current.click(): setAction(Action.NONE)}
-				/>
-				<label htmlFor='fromFile'>{'Upload from ' + (file? file.name: 'file')}</label>
-			</ListItem>
-			<input
-				type='file'
-				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-				ref={fileRef}
-				onChange={e => {
-					if (e.target.files) {
-						setAction(Action.IMPORT_FROM_FILE);
-						setFile(e.target.files[0]);
-					}
-					else {
-						setAction(Action.NONE);
-						setFile(null);
-					}
-				}}
-				style={{display: "none"}}
-			/>
-		</List>
+			</Row>}
+		</>
 	)
 }
 
@@ -251,7 +274,8 @@ export function Column1({
 	ballot,
 	setBallot,
 	ballotList,
-	votingPools
+	votingPools,
+	readOnly
 }) {
 	const change = (e) => {
 		const {name, value} = e.target;
@@ -269,33 +293,64 @@ export function Column1({
 		setBallot(ballot => ({...ballot, [name]: dateStr}));
 	}
 	return (
-		<React.Fragment>
+		<>
 			<Field label='Project:'>
 				<SelectProject
 					width={150}
 					project={ballot.Project}
 					projectList={projectList}
 					onChange={changeProject}
+					readOnly={readOnly}
 				/>
 			</Field>
 			<Field label='Ballot ID:'>
-				<Input type='search' name='BallotID' value={ballot.BallotID} onChange={change} />
+				<Input type='search'
+					name='BallotID'
+					value={ballot.BallotID}
+					onChange={change}
+					disabled={readOnly}
+				/>
 			</Field>
 			{(ballot.Type !== BallotType.SA_Initial && ballot.Type !== BallotType.SA_Recirc) &&
 				<Field label='ePoll Number:'>
-					<Input type='search' name='EpollNum' value={ballot.EpollNum} onChange={change} />
+					<Input type='search'
+						name='EpollNum'
+						value={ballot.EpollNum}
+						onChange={change}
+						disabled={readOnly}
+					/>
 				</Field>}
 			<Field label='Document:'>
-				<Input type='search' name='Document' value={ballot.Document} onChange={change}/>
+				<Input type='search'
+					name='Document'
+					value={ballot.Document}
+					onChange={change}
+					disabled={readOnly}
+				/>
 			</Field>
 			<Field label='Topic:'>
-				<TopicTextArea name='Topic' value={ballot.Topic} onChange={change} />
+				<TopicTextArea 
+					name='Topic'
+					value={ballot.Topic}
+					onChange={change}
+					disabled={readOnly}
+				/>
 			</Field>
 			<Field label='Start:'>
-				<Input type='date' name='Start' value={dateToShortDate(ballot.Start)} onChange={changeDate} />
+				<Input type='date'
+					name='Start'
+					value={dateToShortDate(ballot.Start)}
+					onChange={changeDate}
+					disabled={readOnly}
+				/>
 			</Field>
 			<Field label='End:'>
-				<Input type='date' name='End' value={dateToShortDate(ballot.End)} onChange={changeDate} />
+				<Input type='date'
+					name='End'
+					value={dateToShortDate(ballot.End)}
+					onChange={changeDate}
+					disabled={readOnly}
+				/>
 			</Field>
 			{(ballot.Type === BallotType.WG_Initial || ballot.Type === BallotType.SA_Initial || ballot.Type === BallotType.Motion) &&
 				<Field label='Voter Pool:'>
@@ -304,6 +359,7 @@ export function Column1({
 						votingPools={votingPools}
 						onChange={value => setBallot(ballot => ({...ballot, VotingPoolID: value}))}
 						width={150}
+						readOnly={readOnly}
 					/>
 				</Field>}
 			{(ballot.Type === BallotType.WG_Recirc || ballot.Type === BallotType.SA_Recirc) &&
@@ -313,9 +369,72 @@ export function Column1({
 						ballotList={ballotList}
 						onChange={value => setBallot(ballot => ({...ballot, PrevBallotID: value}))}
 						width={150}
+						readOnly={readOnly}
 					/>
 				</Field>}
-		</React.Fragment>
+		</>
+	)
+}
+
+const BallotContainer = styled.div`
+	label {
+		font-weight: bold;
+	}
+`;
+
+function Ballot({
+	project,
+	setProject,
+	projectList,
+	ballot,
+	setBallot,
+	ballotList,
+	votingPools,
+	readOnly
+}) {
+	function changeType(e) {
+		const {name, value} = e.target;
+		setBallot(ballot => ({...ballot, [name]: parseInt(value, 10)}))
+	}
+
+	return (
+		<BallotContainer>
+			<Row>
+				<Col>
+					<Column1
+						project={project}
+						setProject={setProject}
+						projectList={projectList}
+						ballot={ballot}
+						setBallot={setBallot}
+						ballotList={ballotList}
+						votingPools={votingPools}
+						readOnly={readOnly}
+					/>
+				</Col>
+				<Col>
+					<BallotTypes
+						value={ballot.Type}
+						onChange={changeType}
+						readOnly={readOnly}
+					/>
+					<Field label='Series complete:'>
+						<Checkbox
+							checked={!!ballot.IsComplete}
+							onChange={e => setBallot(ballot => ({...ballot, IsComplete: e.target.checked}))}
+						/>
+					</Field>
+				</Col>
+			</Row>
+			<ResultsActions
+				ballot={ballot}
+				readOnly={readOnly}
+			/>
+			<CommentsActions 
+				ballot={ballot}
+				readOnly={readOnly}
+			/>
+		</BallotContainer>
 	)
 }
 
@@ -327,14 +446,49 @@ const Action = {
 	SET_START_CID: 'set_start_CID'
 }
 
+const BallotDetailContainer = styled.div`
+	padding: 10px;
+	label {
+		font-weight: bold;
+	}
+`;
+
+const TopRow = styled.div`
+	display: flex;
+	justify-content: space-between;
+	width: 100%;
+`;
+
+const NotAvaialble = styled.div`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1em;
+	color: #bdbdbd;
+`;
 /*
  * Ballot detail is mounted from
  * The ballotId parameter is '+' to add a new ballot or a ballot ID to update a ballot
  * If the ballotId parameter is '+' and epollNum is provided, then the ballot fields are filled in from the epoll data
  */
-function _BallotDetailForm(props) {
-	const {ballotId, epollNum, ballots, ballotsValid, epolls, votingPoolsValid, loadBallots, getVotingPools} = props;
-	const [ballot, setBallot] = React.useState(defaultBallot);
+function _BallotDetail({
+	ballotId,
+	ballots,
+	ballotsValid,
+	loading,
+	loadBallots,
+	updateBallot,
+	deleteBallots,
+	projectList,
+	ballotList,
+	votingPoolsValid,
+	votingPools,
+	getVotingPools,
+	uiProperty,
+	setUiProperty,
+	readOnly
+}) {
+	const [ballot, setBallot] = React.useState(getDefaultBallot);
 	const [resultsAction, setResultsAction] = React.useState(Action.NONE);
 	const [resultsFile, setResultsFile] = React.useState('');
 	const [commentsAction, setCommentsAction] = React.useState(Action.NONE);
@@ -345,180 +499,106 @@ function _BallotDetailForm(props) {
 	/* On mount, make sure we have the ballots and voting pools loaded */
 	React.useEffect(() => {
 		if (!ballotsValid)
-			loadBallots()
+			loadBallots();
 		if (!votingPoolsValid)
-			loadVotingPools()
-	}, [ballotsValid, votingPoolsValid, loadBallots, loadVotingPools]);
+			loadVotingPools();
+	}, []);
 
 	/* On mount or if the underlying data changes,
 	 * reload the ballot from ballot data or epoll data as appropriate. */
 	React.useEffect(() => {
-		if (ballotId === '+') {
-			if (epollNum) {
-				const e = epolls[epollNum]
-				if (e) {
-					const b = {
-						Project: '',
-						BallotID: e.BallotID,
-						EpollNum: epollNum,
-						Document: e.Document,
-						Topic: e.Topic,
-						Start: e.Start,
-						End: e.End,
-						VotingPoolID: 0,
-						PrevBallotID: ''
-					}
-					setBallot(b)
-				}
-				else {
-					setBallot(defaultBallot)
-				}
-			}
-			else {
-				setBallot(defaultBallot)
-			}
-		}
-		else if (ballotId) {
+		if (ballotId) {
 			const b = ballots.find(b => b.BallotID === ballotId)
 			if (b) {
 				setBallot(b)
 				setStartCID(b.Comments? b.Comments.CommentIDMin: 0)
 			}
 		}
-	}, [ballotId, ballots, epolls, epollNum]);
-
-	function changeType(e) {
-		const {name, value} = e.target;
-		setBallot(ballot => ({...ballot, [name]: parseInt(value, 10)}))
-	}
+	}, [ballotId, ballots]);
 
 	/* All the database manipulation functions are asynchornous. They need to be issued in the right order
 	 * but don't need to complete until the next is started. */
 	async function submit() {
 		setBusy(true)
-		// Delete stuff first
-		if (resultsAction === Action.REMOVE) {
-			const ok = await ConfirmModal.show(`Are you sure you want to delete results for ${ballot.BallotID}?`)
-			if (!ok)
-				return
-			await props.deleteResults(ballotId, ballot)
-		}
-
-		if (commentsAction === Action.REMOVE) {
-			const ok = await ConfirmModal.show(`Are you sure you want to delete comments for ${ballot.BallotID}?`)
-			if (!ok)
-				return
-			await props.deleteComments(ballot.BallotID)
-		}
-
-		// Update or create ballot entry
-		if (ballotId === '+') {
-			await props.addBallot(ballot)
-		}
-		else {
-			const b = props.ballots.find(b => b.BallotID === ballotId)
-			if (b) {
-				let changed = shallowDiff(b, ballot)
-				if (Object.keys(changed).length) {
-					changed.id = b.id;
-					await props.updateBallot(ballotId, changed)
-				}
+		const b = ballots.find(b => b.BallotID === ballotId)
+		if (b) {
+			let changed = shallowDiff(b, ballot)
+			if (Object.keys(changed).length) {
+				changed.id = b.id;
+				await updateBallot(ballotId, changed)
 			}
 		}
-
-		// import or update results
-		if (resultsAction === Action.IMPORT_FROM_EPOLL) {
-			await props.importResults(ballot.BallotID, ballot.EpollNum)
-		}
-		else if (resultsAction === Action.IMPORT_FROM_FILE) {
-			if (ballot.Type === BallotType.SA_Initial ||
-				ballot.Type === BallotType.SA_Recirc)
-				await props.uploadMyProjectResults(ballotId, resultsFile)
-			else
-				await props.uploadEpollResults(ballotId, resultsFile)
-		}
-
-		// import or update results
-		if (commentsAction === Action.SET_START_CID) {
-			await props.setStartCommentId(ballotId, startCID)
-		}
-		else if (commentsAction === Action.IMPORT_FROM_EPOLL) {
-			await props.importComments(ballot.BallotID, ballot.EpollNum, 1)
-		}
-		else if (commentsAction === Action.IMPORT_FROM_FILE) {
-			await props.uploadComments(ballotId, ballot.Type, commentsFile)
-		}
-
-		props.close()
 	}
 
+	async function handleDeleteBallot() {
+		const ok = await ConfirmModal.show(`Are you sure you want to delete ballot ${ballot.BallotID}?`)
+		if (!ok)
+			return;
+		await deleteBallots([ballot]);
+	}
+
+	let notAvailableStr
+	if (loading) {
+		notAvailableStr = 'Loading...'
+	}
+	else if (!ballotId) {
+		notAvailableStr = 'Nothing selected'
+	}
+	const disableButtons = !!notAvailableStr 	// disable buttons if displaying string
+
 	return (
-		<Form
-			title={ballotId === '+'? 'Add ballot': `Edit ballot ${ballotId}`}
-			submit={submit}
-			submitText={ballotId === '+'? 'Add': 'Update'}
-			cancel={props.close}
-			busy={busy}
-		>
-			<Row>
-				<Col>
-					<Column1
-						project={props.project}
-						setProject={props.setProject}
-						projectList={props.projectList}
-						ballot={ballot}
-						setBallot={setBallot}
-						ballotList={props.ballotList}
-						votingPools={props.votingPools}
-					/>
-				</Col>
-				<Col>
-					<BallotTypes
-						value={ballot.Type}
-						onChange={changeType}
-					/>
-					<Field label='Series complete:'>
-						<Checkbox
-							checked={!!ballot.IsComplete}
-							onChange={e => setBallot(ballot => ({...ballot, IsComplete: e.target.checked}))}
+		<BallotDetailContainer>
+			<TopRow>
+				<span></span>
+				{!readOnly &&
+					<span>
+						<ActionButton
+							name='edit'
+							title='Edit ballot'
+							disabled={disableButtons}
+							isActive={uiProperty.editBallot}
+							onClick={() => setUiProperty('editBallot', !uiProperty.editBallot)}
 						/>
-					</Field>
-					<ResultsActions
-						action={resultsAction}
-						setAction={setResultsAction}
-						ballot={ballot}
-						file={resultsFile}
-						setFile={setResultsFile}
-					/>
-					<CommentsActions 
-						action={commentsAction}
-						setAction={setCommentsAction}
-						ballot={ballot}
-						file={commentsFile}
-						setFile={setCommentsFile}
-						startCID={startCID}
-						setStartCID={setStartCID}
-					/>
-				</Col>
-			</Row>
-		</Form>
+						<ActionButton
+							name='delete'
+							title='Delete ballot'
+							disabled={disableButtons}
+							onClick={handleDeleteBallot}
+						/>
+					</span>
+				}
+			</TopRow>
+			{notAvailableStr?
+				<NotAvaialble>
+					<span>{notAvailableStr}</span>
+			 	</NotAvaialble>:
+				<Ballot 
+					ballot={ballot}
+					setBallot={setBallot}
+					projectList={projectList}
+					ballotList={ballotList}
+					votingPools={votingPools}
+					readOnly={readOnly || !uiProperty.editBallot}
+				/>
+			}
+		</BallotDetailContainer>
 	)
 }
 
-_BallotDetailForm.propTypes = {
-	close: PropTypes.func.isRequired,
+_BallotDetail.propTypes = {
 	ballotId: PropTypes.string.isRequired,
-	epollNum: PropTypes.string,
 	ballotsValid: PropTypes.bool.isRequired,
 	ballots: PropTypes.array.isRequired,
 	projectList: PropTypes.array.isRequired,
 	ballotList: PropTypes.array.isRequired,
 	votingPoolsValid: PropTypes.bool.isRequired,
 	votingPools: PropTypes.array.isRequired,
-	epolls: PropTypes.object.isRequired,
+	updateBallot: PropTypes.func.isRequired,
+	deleteBallots: PropTypes.func.isRequired,
+	setUiProperty: PropTypes.func.isRequired,
 }
 
-const BallotDetailForm = connect(
+const BallotDetail = connect(
 	(state) => {
 		const {ballots, votingPools} = state
 		return {
@@ -530,6 +610,7 @@ const BallotDetailForm = connect(
 			votingPoolsValid: votingPools.valid,
 			votingPools: getData(state, 'votingPools'),
 			epolls: state.epolls.entities,
+			uiProperty: state.ballots.ui,
 		}
 	},
 	(dispatch) => {
@@ -539,37 +620,94 @@ const BallotDetailForm = connect(
 			addBallot: (ballot) => dispatch(addBallot(ballot)),
 			setProject: (project) => dispatch(setProject(project)),
 			updateBallot: (ballotId, ballot) => dispatch(updateBallot(ballotId, ballot)),
-			deleteResults: (ballotId, ballot) => dispatch(deleteResults(ballotId, ballot)),
-			importResults: (ballotId, epollNum) => dispatch(importResults(ballotId, epollNum)),
-			uploadEpollResults: (ballotId, file) => dispatch(uploadEpollResults(ballotId, file)),
-			uploadMyProjectResults: (ballotId, file) => dispatch(uploadMyProjectResults(ballotId, file)),
-			deleteComments: (ballotId) => dispatch(deleteComments(ballotId)),
-			importComments: (ballotId, epollNum) => dispatch(importComments(ballotId, epollNum, 1)),
-			uploadComments: (ballotId, ballotType, file) => dispatch(uploadComments(ballotId, ballotType, file)),
-			setStartCommentId: (ballotId, startCommentId) => dispatch(setStartCommentId(ballotId, startCommentId))
+			deleteBallots: (ballot) => dispatch(deleteBallots(ballot)),
+			setUiProperty: (property, value) => dispatch(setProperty('ballots', property, value))
 		}
 	}
-)(_BallotDetailForm)
+)(_BallotDetail)
 
-function BallotDetailModal({
-	isOpen,
-	close,
-	ballotId,
-	epollNum
+const StyledForm = styled(Form)`
+	width: 700px;
+`;
+
+function _BallotAddForm({
+	defaultBallot,
+	project,
+	projectList,
+	ballotList,
+	votingPools,
+	addBallot,
+	setProject,
+	close
 }) {
+	const [ballot, setBallot] = React.useState(defaultBallot || getDefaultBallot());
+	const [errMsg, setErrMsg] = React.useState('');
+	const [busy, setBusy] = React.useState(false);
+
+	const submit = async () => {
+		setBusy(true);
+		await addBallot(ballot);
+		setBusy(false);
+		close();
+	}
+
+	const changeType = (e) => {
+		const {name, value} = e.target;
+		setBallot(ballot => ({...ballot, [name]: parseInt(value, 10)}));
+	}
+
 	return (
-		<AppModal
-			isOpen={isOpen}
-			onRequestClose={close}
+		<StyledForm
+			title='Add ballot'
+			submit={submit}
+			submitText='Add'
+			cancel={close}
+			busy={busy}
 		>
-			<BallotDetailForm 
-				isOpen={isOpen}
-				close={close}
-				ballotId={ballotId}
-				epollNum={epollNum}
-			/>
-		</AppModal>
+			<Row>
+				<Col>
+					<Column1
+						project={project}
+						setProject={setProject}
+						projectList={projectList}
+						ballot={ballot}
+						setBallot={setBallot}
+						ballotList={ballotList}
+						votingPools={votingPools}
+					/>
+				</Col>
+				<Col>
+					<BallotTypes
+						value={ballot.Type}
+						onChange={changeType}
+					/>
+				</Col>
+			</Row>
+		</StyledForm>
 	)
 }
 
-export default BallotDetailForm;
+_BallotAddForm.propTypes = {
+	addBallot: PropTypes.func.isRequired,
+	close: PropTypes.func.isRequired,
+}
+
+const BallotAddForm = connect(
+	(state) => ({
+		projectList: getProjectList(state),
+		ballotList: getBallotList(state),
+		votingPools: getData(state, 'votingPools'),
+	}),
+	{addBallot, setProject}
+)(_BallotAddForm)
+
+const BallotAdd = () => 
+	<ActionButtonDropdown
+		name='add'
+		title='Add ballot' 
+	>
+		<BallotAddForm />
+	</ActionButtonDropdown>
+
+export default BallotDetail;
+export {BallotAdd}

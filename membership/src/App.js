@@ -84,7 +84,7 @@ const RestrictedRoute = ({component: Component, access, minAccess, ...rest }) =>
 				<React.Suspense fallback={<div>Loading...</div>}>
 					<Component access={access} {...props} />
 				</React.Suspense>:
-				<Redirect to={{ pathname: "/Login", state: { from: props.location } }} />
+				<Redirect to={{ pathname: "/login", state: { from: props.location } }} />
 		}
   />
 
@@ -118,7 +118,7 @@ function App({user, access}) {
 							component={Sessions}
 						/>
 						<RestrictedRoute
-							path="/ballots/"
+							path="/ballots/:ballotId?"
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Ballots}

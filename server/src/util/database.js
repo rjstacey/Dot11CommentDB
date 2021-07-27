@@ -38,7 +38,7 @@ export function init() {
 		}
 	}
 
-	console.log(process.env.NODE_ENV, options)
+	console.log('NODE_ENV=', process.env.NODE_ENV, options)
 	const pool = mysql.createPool(options);
 	ppool = pool.promise();
 }
