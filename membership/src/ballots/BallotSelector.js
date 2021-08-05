@@ -33,7 +33,7 @@ function ProjectSelect({project, setProject, projectList, loading, readOnly}) {
 	function handleChange(values) {
 		const value = values.length > 0? values[0].value: '';
 		if (value !== project) 
-			setProject(value)
+			setProject(value);
 	}
 
 	return (
@@ -57,7 +57,7 @@ function BallotSelect({ballotId, setBallotId, ballotList, loading, readOnly}) {
 	function handleChange(values) {
 		const value = values.length > 0? values[0].value: '';
 		if (value !== ballotId)
-			setBallotId(value)
+			setBallotId(value);
 	}
 
 	return (
@@ -90,19 +90,19 @@ function BallotSelector({
 
 	React.useEffect(() => {
 		if (!valid)
-			loadBallots()
-	}, [valid, loadBallots])
+			loadBallots();
+	}, [valid]);
 
 	const handleProjectChange = (value) => {
-		setProject(value)
+		setProject(value);
 		if (onBallotSelected)
-			onBallotSelected('')
+			onBallotSelected('');
 	}
 
 	const handleBallotChange = (value) => {
-		setBallotId(value)
+		setBallotId(value);
 		if (onBallotSelected)
-			onBallotSelected(value)
+			onBallotSelected(value);
 	}
 
 	return (

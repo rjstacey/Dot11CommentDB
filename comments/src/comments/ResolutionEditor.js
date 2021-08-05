@@ -6,8 +6,8 @@ import 'draft-js/dist/Draft.css'
 import {css} from '@emotion/react'
 import styled from '@emotion/styled'
 import Immutable from 'immutable'
-import {debounce} from 'dot11-components/lib/utils'
-import {ActionButton} from 'dot11-components/lib/icons'
+import {debounce} from 'dot11-components/lib'
+import {ActionButton} from 'dot11-components/icons'
 
 
 /* Inline styles */

@@ -48,7 +48,7 @@ const getSessionAttendeesCoalescedSQL = (session_id) =>
  */
 const getSessionAttendeesSQL = (session_id) => 
 	'SELECT ' +
-		'm.SAPIN, ' +
+		'a.SAPIN, ' +
 		'm.MemberID, ' +
 		'm.Name, ' +
 		'm.Email, ' +

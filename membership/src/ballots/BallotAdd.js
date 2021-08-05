@@ -5,13 +5,13 @@ import {AppModal} from 'dot11-components/modals';
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
-import {ActionButton} from 'dot11-components/lib/icons'
+import {ActionButton} from 'dot11-components/icons'
 import {Form, Row, Col, Input, List, ListItem} from 'dot11-components/general/Form'
 import {getData} from 'dot11-components/store/dataSelectors'
 
 import {addBallot, setProject, getProjectList, getBallotList, BallotType} from '../store/ballots'
 
-import {Column1, BallotTypes} from './BallotDetail'
+import {Column1, BallotTypeSelect, BallotStageSelect} from './BallotDetail'
 
 const StyledForm = styled(Form)`
 	width: 700px;
@@ -80,7 +80,11 @@ function _BallotAddDropdown({
 					/>
 				</Col>
 				<Col>
-					<BallotTypes
+					<BallotTypeSelect
+						value={ballot.Type}
+						onChange={changeType}
+					/>
+					<BallotStageSelect
 						value={ballot.Type}
 						onChange={changeType}
 					/>

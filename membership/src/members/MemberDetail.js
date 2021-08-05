@@ -2,10 +2,10 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {shallowDiff, debounce} from 'dot11-components/lib/utils'
+import {shallowDiff, recursivelyDiffObjects, isMultiple, debounce, displayDate} from 'dot11-components/lib'
 import {ConfirmModal} from 'dot11-components/modals'
 import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/general/Form'
-import {IconCollapse, ActionButton, Icon} from 'dot11-components/lib/icons'
+import {IconCollapse, ActionButton, Icon} from 'dot11-components/icons'
 import {
 	updateMember, 
 	deleteMembers, 
@@ -21,52 +21,12 @@ import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelector
 import StatusSelector from './StatusSelector'
 import AccessSelector from './AccessSelector'
 import MemberSelector from './MemberSelector'
-import {displayDate} from 'dot11-components/lib/utils'
 import {SessionTypeOptions} from '../store/sessions'
 import {loadBallots} from '../store/ballots'
 import {loadSessions} from '../store/sessions'
 
-const MULTIPLE = '<multiple>';
-const isMultiple = (value) => value === MULTIPLE;
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
-
-function recursivelyDiffObjects(l, r) {
-	const isObject = o => o != null && typeof o === 'object';
-	const isDate = d => d instanceof Date;
-	const isEmpty = o => Object.keys(o).length === 0;
-
-	if (l === r) return l;
-
-	if (!isObject(l) || !isObject(r))
-		return MULTIPLE;
-
-	if (isDate(l) || isDate(r)) {
-		if (l.valueOf() === r.valueOf()) return l;
-		return MULTIPLE;
-	}
-
-	if (Array.isArray(l) && Array.isArray(r)) {
-		if (l.length === r.length) {
-			return l.map((v, i) => recursivelyDiffObjects(l[i], r[i]))
-		}
-	}
-	else {
-		const deletedValues = Object.keys(l).reduce((acc, key) => {
-			return r.hasOwnProperty(key) ? acc : { ...acc, [key]: MULTIPLE };
-		}, {});
-
-		return Object.keys(r).reduce((acc, key) => {
-			if (!l.hasOwnProperty(key)) return { ...acc, [key]: r[key] }; // return added r key
-
-			const difference = recursivelyDiffObjects(l[key], r[key]);
-
-			if (isObject(difference) && isEmpty(difference) && !isDate(difference)) return acc // return no diff
-
-			return { ...acc, [key]: difference } // return updated key
-		}, deletedValues)
-	}
-}
 
 function MemberStatusChangeHistory({
 	member,
@@ -217,9 +177,12 @@ function MemberAttendances({
 	setUiProperty,
 	readOnly
 }) {
-	const attendances = member.Attendances;
-	if (!attendances)
-		return 'None'
+	const attendances = member.Attendances || [];
+
+	// Sort by session date (newest fist)
+	const session_ids = Object.keys(attendances)
+		.filter(k => sessions[k])
+		.sort((k1, k2) => sessions[k2].Start - sessions[k1].Start);
 
 	const change = (session_id, field, value) => {
 		let attendance = {...attendances[session_id], [field]: value};
@@ -230,7 +193,8 @@ function MemberAttendances({
 		setMember({Attendances: {...attendances, [session_id]: attendance}});
 	}
 
-	const rows = Object.entries(attendances).map(([session_id, a]) => {
+	const rows = session_ids.map((session_id) => {
+		const a = attendances[session_id];
 		const s = sessions[session_id];
 		return (
 			<tr key={session_id}>
@@ -489,8 +453,8 @@ function Member({
 	setUiProperty,
 	readOnly
 }) {
-	const sapinsStr = sapins.join(', ')
-	const sapinsLabel = sapins.length > 1? 'SA PINs:': 'SA PIN:'
+	const sapinsStr = sapins.join(', ');
+	const sapinsLabel = sapins.length > 1? 'SA PINs:': 'SA PIN:';
 
 	return (
 		<MemberContainer>
@@ -658,8 +622,8 @@ class MemberDetail extends React.Component {
 		for (const sapin of selected) {
 			const member = members[sapin];
 			if (member) {
-				diff = recursivelyDiffObjects(diff, member)
-				originals.push(member)
+				diff = recursivelyDiffObjects(diff, member);
+				originals.push(member);
 			}
 		}
 		return {
@@ -672,7 +636,7 @@ class MemberDetail extends React.Component {
 	updateMember = (changes) => {
 		const {readOnly, uiProperties} = this.props;
 		if (readOnly || !uiProperties.editMember) {
-			console.warn("Update in read-only component")
+			console.warn("Update when read-only")
 			return;
 		}
 		// merge in the edits and trigger a debounced save
@@ -725,13 +689,13 @@ class MemberDetail extends React.Component {
 		const {edited, saved, originals} = this.state;
 		const d = shallowDiff(saved, edited);
 		delete d.StatusChangeHistory;
-		const memberUpdates = [];
+		const updates = [];
 		for (const m of originals) {
 			if (Object.keys(d).length > 0)
-				memberUpdates.push({...d, SAPIN: m.SAPIN});
+				updates.push({...d, SAPIN: m.SAPIN});
 		}
-		if (memberUpdates.length > 0)
-			memberUpdates.forEach(u => this.props.updateMember(u.SAPIN, u));
+		if (updates.length > 0)
+			updates.forEach(u => this.props.updateMember(u.SAPIN, u));
 		this.setState(state => ({...state, saved: edited}));
 	}
 

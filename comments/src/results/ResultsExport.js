@@ -2,16 +2,12 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {Form, Row, List, ListItem} from 'dot11-components/general/Form'
 import fetcher from 'dot11-components/lib/fetcher'
+import {Form, Row, List, ListItem} from 'dot11-components/general/Form'
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
 import {setError} from 'dot11-components/store/error'
 
-const ResultsExportForm = styled(Form)`
-	width: 300px;
-`;
-
-function _ResultsExportDropdown({close, ballot, setError}) {
+function _ResultsExportForm({close, ballot, setError}) {
 	const ballotId = ballot.BallotID;
 	const project = ballot.Project;
 	const [forProject, setForProject] = React.useState(false);
@@ -19,19 +15,20 @@ function _ResultsExportDropdown({close, ballot, setError}) {
 
 	async function submit() {
 		setBusy(true);
-		const params = forProject? {Project: project}: {BallotID: ballotId}
+		const params = forProject? {Project: project}: {BallotID: ballotId};
 		try {
-			await fetcher.getFile('/api/resultsExport', params)
+			await fetcher.getFile('/api/resultsExport', params);
 		}
 		catch (error) {
-			setError(`Unable to export results for ${forProject? project: ballotId}`, error)
+			setError(`Unable to export results for ${forProject? project: ballotId}`, error);
 		}
 		setBusy(false);
 		close();
 	}
 
 	return (
-		<ResultsExportForm
+		<Form
+			style={{width: 300}}
 			title='Export results for:'
 			submit={submit}
 			cancel={close}
@@ -59,20 +56,20 @@ function _ResultsExportDropdown({close, ballot, setError}) {
 					</ListItem>
 				</List>
 			</Row>
-		</ResultsExportForm>
+		</Form>
 	)
 }
 
-_ResultsExportDropdown.propTypes = {
+_ResultsExportForm.propTypes = {
 	ballot: PropTypes.object.isRequired,
 	close: PropTypes.func.isRequired,
 	setError: PropTypes.func.isRequired,
 }
 
-const ResultsExportDropdown = connect(
+const ResultsExportForm = connect(
 	null,
 	{setError}
-)(_ResultsExportDropdown);
+)(_ResultsExportForm);
 
 function ResultsExport({
 	ballotId,
@@ -84,7 +81,7 @@ function ResultsExport({
 			title='Export'
 			disabled={!ballotId}
 		>
-			<ResultsExportDropdown
+			<ResultsExportForm
 				ballot={ballot}
 			/>
 		</ActionButtonDropdown>

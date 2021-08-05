@@ -4,7 +4,7 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppTable from 'dot11-components/table'
 import BallotDetailModal from './BallotDetail'
-import {ActionButton} from 'dot11-components/lib/icons'
+import {ActionButton} from 'dot11-components/icons'
 import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
 
 import {loadBallots, BallotType} from '../store/ballots'

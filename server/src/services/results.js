@@ -4,7 +4,7 @@ import {parseEpollResultsCsv, parseEpollResultsHtml} from './epoll'
 import {parseMyProjectResults} from './myProjectSpreadsheets'
 import {genResultsSpreadsheet} from './resultsSpreadsheet'
 import {AccessLevel} from '../auth/access'
-import {getBallot, getBallotSeriesWithResults} from './ballots'
+import {getBallot, getBallotSeriesWithResults, BallotType} from './ballots'
 import {getVoters} from './voters'
 
 const db = require('../util/database')
@@ -84,42 +84,42 @@ function summarizeWGResults(results) {
 		ReturnsPoolSize: 0,
 		TotalReturns: 0,
 		BallotReturns: 0
-	}
+	};
 
 	for (let r of results) {
 		if (/^Not in pool/.test(r.Notes))
-			summary.InvalidVote++
+			summary.InvalidVote++;
 		else {
 			if (/^Approve/.test(r.Vote))
-					summary.Approve++
+					summary.Approve++;
 			else if (/^Disapprove/.test(r.Vote)) {
 				if (r.CommentCount)
-					summary.Disapprove++
+					summary.Disapprove++;
 				else
-					summary.InvalidDisapprove++
+					summary.InvalidDisapprove++;
 			}
 			else if (/^Abstain.*expertise/.test(r.Vote)) {
-				summary.Abstain++
+				summary.Abstain++;
 			}
 			else if (/^Abstain/.test(r.Vote)) {
-				summary.InvalidAbstain++
+				summary.InvalidAbstain++;
 			}
 
 			// All 802.11 members (Status='Voter') count toward the returns pool
 			// Only ExOfficio that cast a valid vote count torward the returns pool
 			if (/^Voter/.test(r.Status)) {
-				summary.ReturnsPoolSize++
+				summary.ReturnsPoolSize++;
 			}
 			else if (/^Approve/.test(r.Vote) ||
 				(/^Disapprove/.test(r.Vote) && r.CommentCount) ||
 				/^Abstain.*expertise/.test(r.Vote)) {
-				summary.ReturnsPoolSize++
+				summary.ReturnsPoolSize++;
 			}
 		}
 	}
 	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain;
 
-	return summary
+	return summary;
 }
 
 function colateSAResults(ballotSeries) {
@@ -131,14 +131,14 @@ function colateSAResults(ballotSeries) {
 			...r1,
 			id: id++,
 			Notes: ''
-		}
+		};
 		if (r1.Vote === 'Disapprove' && r1.CommentCount === 0) {
 			// See if they have a comment from a previous round
 			for (let i = ballotSeries.length - 2; i >= 0; i--) {
 				const r2 = ballotSeries[i].Results.find(r => r.Email === r1.Email)
 				if (r2 && r2.CommentCount) {
-					v.CommentCount = r2.CommentCount
-					v.Notes = 'Comments from ' + ballotSeries[i].BallotID
+					v.CommentCount = r2.CommentCount;
+					v.Notes = 'Comments from ' + ballotSeries[i].BallotID;
 					break;
 				}
 			}
@@ -146,7 +146,7 @@ function colateSAResults(ballotSeries) {
 		results.push(v);
 	}
 
-	return results
+	return results;
 }
 
 function summarizeSAResults(results) {
@@ -161,27 +161,25 @@ function summarizeSAResults(results) {
 		ReturnsPoolSize: 0,
 		TotalReturns: 0,
 		BallotReturns: 0
-	}
+	};
 
 	for (let r of results) {
 		if (/^Approve/.test(r.Vote)) {
-				summary.Approve++
+				summary.Approve++;
 		}
 		else if (/^Disapprove/.test(r.Vote)) {
-			if (r.CommentCount) {
-				summary.Disapprove++
-			}
-			else {
-				summary.InvalidDisapprove++
-			}
+			if (r.CommentCount)
+				summary.Disapprove++;
+			else
+				summary.InvalidDisapprove++;
 		}
 		else if (/^Abstain/.test(r.Vote)) {
-			summary.Abstain++
+			summary.Abstain++;
 		}
 	}
-	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.InvalidDisapprove + summary.Abstain
+	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.InvalidDisapprove + summary.Abstain;
 
-	return summary
+	return summary;
 }
 
 function colateMotionResults(ballotResults, voters) {
@@ -195,19 +193,19 @@ function colateMotionResults(ballotResults, voters) {
 			Vote: '',
 			Notes: ''
 		}
-		let r = ballotResults.find(r => r.CurrentSAPIN === v.CurrentSAPIN)
+		let r = ballotResults.find(r => r.CurrentSAPIN === v.CurrentSAPIN);
 		if (r) {
 			// If the voter voted in this round, record the vote
-			v.Vote = r.Vote
-			v.CommentCount = r.CommentCount
-			v.Affiliation = r.Affiliation
+			v.Vote = r.Vote;
+			v.CommentCount = r.CommentCount;
+			v.Affiliation = r.Affiliation;
 			if (v.SAPIN !== r.SAPIN)
 				v.Notes = appendStr(v.Notes, `Pool SAPIN=${v.SAPIN} vote SAPIN=${r.SAPIN}`);
 		}
 
 		// If this is an ExOfficio voter, then note that
 		if (v.Vote && /^ExOfficio/.test(voter.Status))
-			v.Notes = appendStr(v.Notes, voter.Status)
+			v.Notes = appendStr(v.Notes, voter.Status);
 
 		results.push(v);
 	}
@@ -238,38 +236,35 @@ function summarizeMotionResults(results) {
 		ReturnsPoolSize: 0,
 		TotalReturns: 0,
 		BallotReturns: 0
-	}
+	};
 
 	for (let r of results) {
 		if (/^Not in pool/.test(r.Notes)) {
-			summary.InvalidVote++
+			summary.InvalidVote++;
 		}
 		else {
-			if (/^Approve/.test(r.Vote)) {
-				summary.Approve++
-			}
-			else if (/^Disapprove/.test(r.Vote)) {
-				summary.Disapprove++
-			}
-			else if (/^Abstain/.test(r.Vote)) {
-				summary.Abstain++
-			}
+			if (/^Approve/.test(r.Vote))
+				summary.Approve++;
+			else if (/^Disapprove/.test(r.Vote))
+				summary.Disapprove++;
+			else if (/^Abstain/.test(r.Vote))
+				summary.Abstain++;
 
 			// All 802.11 members (Status='Voter') count toward the returns pool
 			// Only ExOfficio that cast a vote count torward the returns pool
 			if (/^Voter/.test(r.Status)) {
-				summary.ReturnsPoolSize++
+				summary.ReturnsPoolSize++;
 			}
 			else if (/^Approve/.test(r.Vote) ||
 				(/^Disapprove/.test(r.Vote) && r.CommentCount) ||
 				/^Abstain/.test(r.Vote)) {
-				summary.ReturnsPoolSize++
+				summary.ReturnsPoolSize++;
 			}
 		}
 	}
-	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain
+	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain;
 
-	return summary
+	return summary;
 }
 
 function summarizeBallotResults(results) {
@@ -283,44 +278,33 @@ function summarizeBallotResults(results) {
 		ReturnsPoolSize: 0,
 		TotalReturns: 0,
 		BallotReturns: 0
-	}
+	};
 
 	for (let r of results) {
 		if (/^Approve/.test(r.Vote)) {
-			summary.Approve++
+			summary.Approve++;
 		}
 		else if (/^Disapprove/.test(r.Vote)) {
-			if (r.CommentCount) {
-				summary.Disapprove++
-			}
-			else {
+			if (r.CommentCount)
+				summary.Disapprove++;
+			else
 				summary.InvalidDisapprove++
-			}
 		}
 		else if (/^Abstain/.test(r.Vote)) {
-			summary.Abstain++
+			summary.Abstain++;
 		}
 	}
-	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain
+	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain;
 
-	return summary
+	return summary;
 }
-
-export const BallotType = {
-	CC: 0,			// comment collection
-	WG_Initial: 1,	// initial WG ballot
-	WG_Recirc: 2,	// WG ballot recirculation
-	SA_Initial: 3,	// initial SA ballot
-	SA_Recirc: 4,	// SA ballot recirculation
-	Motion: 5		// motion
-};
 
 export async function getResultsCoalesced(user, ballotId) {
 
 	const ballot = await getBallot(ballotId);
 
 	let ballotSeries, votingPoolId, votingPoolSize, voters, results, summary;
-	if (ballot.Type === BallotType.WG_Initial || ballot.Type === BallotType.WG_Recirc) {
+	if (ballot.Type === BallotType.WG ) {
 		ballotSeries = await getBallotSeriesWithResults(ballotId);
 		// voting pool size excludes ExOfficio; they are allowed to vote, but don't affect returns
 		votingPoolId = ballotSeries[0].VotingPoolID;
@@ -329,7 +313,7 @@ export async function getResultsCoalesced(user, ballotId) {
 		summary = summarizeWGResults(results);
 		summary.BallotReturns = ballotSeries[ballotSeries.length-1].Results.length;
 	}
-	else if (ballot.Type === BallotType.SA_Initial || ballot.Type === BallotType.SA_Recirc) {
+	else if (ballot.Type === BallotType.SA) {
 		ballotSeries = await getBallotSeriesWithResults(ballotId);
 		votingPoolId = '';
 		votingPoolSize = ballotSeries[ballotSeries.length-1].Results.length;
@@ -359,7 +343,7 @@ export async function getResultsCoalesced(user, ballotId) {
 	/* Update results summary in ballots table if different */
 	const ResultsSummary = JSON.stringify(summary)
 	if (ResultsSummary !== ballot.ResultsSummary)
-		await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [ResultsSummary, ballotId])	
+		await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [ResultsSummary, ballotId]);
 
 	ballot.Results = JSON.parse(ResultsSummary);
 	delete ballot.ResultsSummary;
@@ -377,7 +361,7 @@ export async function getResultsCoalesced(user, ballotId) {
 		ballot,
 		results,
 		summary
-	}
+	};
 }
 
 export async function getResults(ballotId) {

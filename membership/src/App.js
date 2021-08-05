@@ -33,7 +33,7 @@ const Header = styled.header`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  margin: 10px;
+  margin: 5px 10px;
 `;
 
 const Nav = styled.nav`
@@ -69,7 +69,7 @@ const Title = styled.h3`
   display: inline-block;
   font-family: "Arial", "Helvetica", sans-serif;
   font-weight: 400;
-  font-size: 28px;
+  font-size: 24px;
   margin: 12px 8px 8px 8px;
   padding: 0;
   color: #008080;

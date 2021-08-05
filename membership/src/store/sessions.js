@@ -4,7 +4,7 @@ import fetcher from 'dot11-components/lib/fetcher'
 import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
 import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
 import selectedSlice, {setSelected} from 'dot11-components/store/selected'
-import uiSlice from 'dot11-components/store/ui'
+import uiSlice, {setProperty} from 'dot11-components/store/ui'
 import {setError} from 'dot11-components/store/error'
 import {displayDate} from 'dot11-components/lib/utils'
 
@@ -13,14 +13,18 @@ const SessionType = {
 	Interim: 'i',
 	Other: 'o',
 	General: 'g',
-}
+};
 
-export const SessionTypeOptions = [
-	{value: SessionType.Plenary, label: 'Plenary'},
-	{value: SessionType.Interim, label: 'Interim'},
-	{value: SessionType.Other, label: 'Other'},
-	{value: SessionType.General, label: 'General'}
-]
+export const SessionTypeLabels = {
+	[SessionType.Plenary]: 'Plenary',
+	[SessionType.Interim]: 'Interim',
+	[SessionType.Other]: 'Other',
+	[SessionType.General]: 'General'
+};
+
+export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(([value, label]) => ({value, label}));
+
+export const displaySessionType = (type) => SessionTypeLabels[type] || 'Unknown';
 
 export const fields = {
 	id: {label: 'ID', sortType: SortType.NUMERIC},
@@ -28,7 +32,7 @@ export const fields = {
 	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
 	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE}, 
 	Name: {label: 'Session name'},
-	Type: {label: 'Session type', options: SessionTypeOptions},
+	Type: {label: 'Session type', dataRenderer: displaySessionType, options: SessionTypeOptions},
 	TimeZone: {label: 'TimeZone'}
 };
 
@@ -249,3 +253,5 @@ export const loadTimeZones = () =>
 		}
 		await dispatch(getTimeZonesSuccess(timeZones));
 	}
+
+export const setSessionsUiProperty = (property, value) => setProperty(dataSet, property, value);

@@ -5,8 +5,8 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppTable, {SelectHeader, SelectCell, TableColumnHeader} from 'dot11-components/table'
 import {ConfirmModal} from 'dot11-components/modals'
-import {ActionButton} from 'dot11-components/lib/icons'
-import {displayDate} from 'dot11-components/lib/utils'
+import {ActionButton} from 'dot11-components/icons'
+import {displayDateRange} from 'dot11-components/lib'
 import {loadAttendees, importSelectedAttendees} from '../store/attendees'
 import {renderNameAndEmail} from '../members/Members'
 
@@ -31,7 +31,7 @@ const TableRow = styled.div`
 const renderSessionInfo = (meeting) =>
 	<div>
 		<span>{meeting.Name}</span><br />
-		<span>{displayDate(meeting.Start) + ' - ' + displayDate(meeting.End)}</span><br />
+		<span>{displayDateRange(meeting.Start, meeting.End)}</span><br />
 		<span>{meeting.TimeZone}</span>
 	</div>
 
@@ -66,20 +66,17 @@ const tableColumns = [
 
 const primaryDataKey = 'SAPIN';
 
-function renderTitle(meeting, breakout) {
-	return (
-		<React.Fragment>
-			<div>
-				<span>{meeting.Name}</span><br />
-				<span>{displayDate(meeting.Start) + ' - ' + displayDate(meeting.End)}</span><br />
-				<span>{'Time zone: ' + meeting.TimeZone}</span>
-			</div>
-			<div>
-				<span>{breakout && breakout.Name}</span>
-			</div>
-		</React.Fragment>
-	)
-}
+const renderTitle = (meeting, breakout) =>
+	<>
+		<div>
+			<span>{meeting.Name}</span><br />
+			<span>{displayDateRange(meeting.Start, meeting.End)}</span><br />
+			<span>{'Time zone: ' + meeting.TimeZone}</span>
+		</div>
+		<div>
+			<span>{breakout && breakout.Name}</span>
+		</div>
+	</>
 
 function Attendees({
 	valid,
@@ -94,7 +91,7 @@ function Attendees({
 
 	React.useEffect(() => {
 		if (!valid || session.id !== session_id || breakout.id !== breakout_id)
-			loadAttendees(session_id, breakout_id)
+			loadAttendees(session_id, breakout_id);
 	}, []);
 
 	const {columns, maxWidth} = React.useMemo(() => {
@@ -121,29 +118,27 @@ function Attendees({
 	const refresh = () => loadAttendees(session_id, breakout_id);
 	const close = () => history.goBack();
 
-	return (
-		<React.Fragment>
-			<TopRow style={{maxWidth}}>
-				{valid? renderTitle(session, breakout): null}
-				<div>
-					<ActionButton name='import' title='Add Selected' onClick={handleImportAttandees} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-					<ActionButton name='close' title='Close' onClick={close} />
-				</div>
-			</TopRow>
+	return <>
+		<TopRow style={{maxWidth}}>
+			{valid? renderTitle(session, breakout): null}
+			<div>
+				<ActionButton name='import' title='Add Selected' onClick={handleImportAttandees} />
+				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				<ActionButton name='close' title='Close' onClick={close} />
+			</div>
+		</TopRow>
 
-			<TableRow style={{maxWidth}}>
-				<AppTable
-					fixed
-					columns={columns}
-					headerHeight={40}
-					estimatedRowHeight={50}
-					dataSet={dataSet}
-					rowKey={primaryDataKey}
-				/>
-			</TableRow>
-		</React.Fragment>
-	)
+		<TableRow style={{maxWidth}}>
+			<AppTable
+				fixed
+				columns={columns}
+				headerHeight={40}
+				estimatedRowHeight={50}
+				dataSet={dataSet}
+				rowKey={primaryDataKey}
+			/>
+		</TableRow>
+	</>
 }
 
 Attendees.propTypes = {
@@ -155,7 +150,8 @@ Attendees.propTypes = {
 	importSelectedAttendees: PropTypes.func.isRequired,
 }
 
-const dataSet = 'attendees'
+const dataSet = 'attendees';
+
 export default connect(
 	(state) => ({
 			valid: state[dataSet].valid,
@@ -164,4 +160,4 @@ export default connect(
 			breakout: state[dataSet].breakout,
 		}),
 	{loadAttendees, importSelectedAttendees}
-)(Attendees)
+)(Attendees);

@@ -112,9 +112,9 @@ export async function setStartCommentId(userId, ballotId, startCommentId) {
 		'SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?);' +
 		'SET @startCommentId = ?;' +
 		'SET @offset = @startCommentId - (SELECT MIN(CommentID) FROM comments WHERE ballot_id=@ballot_id);' +
-		'UPDATE comments c ' +
-			'SET c.LastModifiedBy=@userId, c.CommentID=c.CommentID+@offset ' +
-			'WHERE c.ballot_id=@ballot_id;',
+		'UPDATE comments ' +
+			'SET LastModifiedBy=@userId, CommentID=CommentID+@offset ' +
+			'WHERE ballot_id=@ballot_id;',
 		[userId, ballotId, startCommentId]
 	);
 	const results = await db.query(SQL);
@@ -129,18 +129,20 @@ export async function deleteComments(userId, ballotId) {
 async function insertComments(userId, ballotId, comments) {
 	let SQL = db.format(DELETE_COMMENTS_SQL, [userId, ballotId]);
 	if (comments.length) {
-		const eModifiedBy = db.escape(userId);
-		const eBallotId = db.escape(ballotId);
 		SQL += 
 			db.format('SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?); ', [ballotId]) +
-			db.format('INSERT INTO comments (ballot_id, ??, LastModifiedBy, LastModifiedTime) VALUES', [Object.keys(comments[0])]) +
-			comments.map(c => `(@ballot_id, ${db.escape(Object.values(c))}, ${eModifiedBy}, NOW())`).join(', ') +
-			';';
+			db.format('SET @userId = ?; ', [userId]) +
+			comments.map(c => 
+				db.format(
+					'INSERT INTO comments SET ballot_id=@ballot_id, ?, LastModifiedBy=@userId, LastModifiedTime=NOW(); ' +
+					'INSERT INTO resolutions SET comment_id=LAST_INSERT_ID(), ResolutionID=0, LastModifiedBy=@userId, LastModifiedTime=NOW(); ',
+					[c])
+			).join('');
 	}
 	SQL += db.format('SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID;', [ballotId]);
 	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId]);
 
-	//console.log(SQL);
+	console.log(SQL);
 
 	const results = await db.query(SQL)
 	//console.log(results)

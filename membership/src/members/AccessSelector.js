@@ -9,8 +9,8 @@ function AccessSelector({
 	onChange,
 	...otherProps
 }) {
-	const optionSelected = AccessLevelOptions.find(o => o.value === value)
-	const handleChange = value => onChange(value.length === 0? 0: value[0].value)
+	const optionSelected = AccessLevelOptions.find(o => o.value === value);
+	const handleChange = value => onChange(value.length === 0? 0: value[0].value);
 
 	return (
 		<Select

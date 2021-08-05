@@ -53,10 +53,10 @@ function initServer() {
 	});
 
 	let devdir = '';
-	/*if (process.env.NODE_ENV === 'development') {
+	if (process.env.NODE_ENV === 'development') {
 		devdir = '../../build'
 		console.log(path.join(__dirname, devdir))
-	}*/
+	}
 	app.use(express.static(path.join(__dirname, devdir, '')));
 	app.get('/$', (req, res) => res.redirect('/comments'));
 	app.get('/login', (req, res) => res.sendFile(path.join(__dirname, devdir, 'auth/index.html')));

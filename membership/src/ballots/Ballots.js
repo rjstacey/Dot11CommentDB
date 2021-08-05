@@ -4,10 +4,9 @@ import {Link, useHistory, useParams} from "react-router-dom"
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppTable, {SelectHeader, SelectCell, TableColumnHeader, ShowFilters, TableViewSelector, TableColumnSelector, SplitPanel, Panel} from 'dot11-components/table'
-import {Button, ActionButton} from 'dot11-components/lib/icons'
-import {displayDate} from 'dot11-components/lib/utils'
+import {Button, ActionButton} from 'dot11-components/icons'
+import {AccessLevel, displayDate, displayDateRange} from 'dot11-components/lib'
 import {ConfirmModal} from 'dot11-components/modals'
-import {AccessLevel} from 'dot11-components/lib/user'
 
 import BallotDetail, {BallotAdd} from './BallotDetail'
 
@@ -15,21 +14,10 @@ import {getEntities} from 'dot11-components/store/dataSelectors'
 import {setSelected} from 'dot11-components/store/selected'
 import {setProperty} from 'dot11-components/store/ui'
 
-import {fields, loadBallots, deleteBallots, BallotType} from '../store/ballots'
+import {fields, loadBallots, deleteBallots, BallotType, BallotStage} from '../store/ballots'
 import {loadVotingPools} from '../store/votingPools'
 
 const dataSet = 'ballots'
-
-const ActionCell = styled.div`
-	display: flex;
-	justify-content: center;
-`;
-
-const RowActions = ({onEdit, onDelete}) =>
-	<ActionCell>
-		<ActionButton name='edit' title='Edit' onClick={onEdit} />
-		<ActionButton name='delete' title='Delete' onClick={onDelete} />
-	</ActionCell>
 
 const DataSubcomponent = styled.div`
 	flex: 1 1 ${({width}) => width && typeof width === 'string'? width: width + 'px'};
@@ -41,52 +29,69 @@ const DataSubcomponent = styled.div`
 const BallotsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
 const HeaderSubcomponent = DataSubcomponent.withComponent(BallotsColumnHeader);
 
-const renderHeaderCellVotingPool = (props) =>
+const renderHeaderStartEnd = (props) =>
 	<>
-		<HeaderSubcomponent {...props} dataKey='VotingPoolID' label='Voting Pool' />
-		<HeaderSubcomponent {...props} dataKey='PrevBallotID' label='Prev Ballot' />
+		<HeaderSubcomponent {...props} dataKey='Start' {...fields.Start} />
+		<HeaderSubcomponent {...props} dataKey='End' {...fields.End} />
 	</>
 
-const renderVotingPool = ({rowData}) => {
-	const type = rowData.Type
-	if (type === BallotType.WG_Initial || type === BallotType.SA_Initial || type === BallotType.Motion) {
-		return rowData.VotingPoolID
-	}
-	else if (type === BallotType.WG_Recirc || type === BallotType.SA_Recirc) {
-		return rowData.PrevBallotID
-	}
-	return ''
+const renderCellStartEnd = ({rowData, dataKey}) => displayDateRange(rowData.Start, rowData.End);
+
+const NoWrapItem = styled.div`
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	overflow: hidden;
+`;
+
+const renderHeaderTypeStage = (props) =>
+	<>
+		<HeaderSubcomponent {...props} dataKey='Type' {...fields.Type} />
+		<HeaderSubcomponent {...props} dataKey='IsRecirc' {...fields.IsRecirc} />
+	</>
+
+const renderCellTypeStage = ({rowData}) =>
+	<>
+		<NoWrapItem>{fields.Type.dataRenderer(rowData.Type)}</NoWrapItem>
+		<NoWrapItem>{fields.IsRecirc.dataRenderer(rowData.IsRecirc)}</NoWrapItem>
+	</>
+
+const renderHeaderVotingPool = (props) =>
+	<>
+		<HeaderSubcomponent {...props} dataKey='VotingPoolID' {...fields.VotingPoolID} />
+		<HeaderSubcomponent {...props} dataKey='PrevBallotID' {...fields.PrevBallotID} />
+	</>
+
+const renderCellVotingPool = ({rowData}) => {
+	const type = rowData.Type;
+	const isRecirc = rowData.IsRecirc;
+	if ((type === BallotType.WG && !isRecirc) || type === BallotType.Motion)
+		return rowData.VotingPoolID;
+	if (type === BallotType.WG)
+		return rowData.PrevBallotID;
+	return '';
 }
 
-export function renderResultsSummary({rowData, dataKey, readOnly}) {
-	const results = rowData[dataKey]
-	let resultsStr = ''
+export function renderResultsSummary({rowData, readOnly}) {
+	const results = rowData.Results;
+	let str = '';
 	if (results && results.TotalReturns) {
-		let p = parseFloat(100*results.Approve/(results.Approve+results.Disapprove))
-		resultsStr = `${results.Approve}/${results.Disapprove}/${results.Abstain}`
-		if (!isNaN(p)) {
-			resultsStr += ` (${p.toFixed(1)}%)`
-		}
+		str = `${results.Approve}/${results.Disapprove}/${results.Abstain}`;
+		const p = parseFloat(100*results.Approve/(results.Approve+results.Disapprove));
+		if (!isNaN(p))
+			str += ` (${p.toFixed(1)}%)`;
 	}
-	if (!resultsStr) {
-		resultsStr = 'None'
-	}
-	return readOnly? resultsStr: <Link to={`/results/${rowData.BallotID}`}>{resultsStr}</Link>
+	if (!str)
+		str = 'None';
+	return readOnly? str: <Link to={`/results/${rowData.BallotID}`}>{str}</Link>
 }
 
-export function renderCommentsSummary({rowData, dataKey}) {
-	const comments = rowData[dataKey]
-	let commentStr = 'None'
-	if (comments && comments.Count > 0) {
-		commentStr = `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
-	}
-	return <Link to={`/comments/${rowData.BallotID}`}>{commentStr}</Link>
-}
-
-function renderDate({rowData, dataKey}) {
-	// rowData[key] is an ISO time string. We convert this to eastern time
-	// and display only the date (not time).
-	return displayDate(rowData[dataKey]);
+export function renderCommentsSummary({rowData}) {
+	const comments = rowData.Comments;
+	const str =
+		(comments && comments.Count > 0)
+			? `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
+			: 'None';
+	return <Link to={`/comments/${rowData.BallotID}`}>{str}</Link>
 }
 
 const tableColumns = [
@@ -94,23 +99,37 @@ const tableColumns = [
 		width: 30, flexGrow: 0, flexShrink: 0,
 		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
-	{key: 'Project',
-		...fields.Project,
-		width: 100,	flexShrink: 0, flexGrow: 0,
-		dropdownWidth: 200},
 	{key: 'BallotID',
 		...fields.BallotID,
 		width: 100,	flexShrink: 0, flexGrow: 0,
 		dropdownWidth: 200},
+	{key: 'Project',
+		...fields.Project,
+		width: 100,	flexShrink: 0, flexGrow: 0,
+		dropdownWidth: 200},
+	{key: 'Type/Stage',
+		label: 'Type/Stage',
+		width: 120, flexShrink: 0,
+		headerRenderer: renderHeaderTypeStage,
+		cellRenderer: renderCellTypeStage},
+	{key: 'Type',
+		...fields.Type,
+		width: 100,	flexShrink: 0, flexGrow: 0},
+	{key: 'Stage',
+		...fields.IsRecirc,
+		width: 100,	flexShrink: 0, flexGrow: 0},
+	{key: 'Start/End',
+		label: 'Start/End',
+		width: 120, flexShrink: 0,
+		headerRenderer: renderHeaderStartEnd,
+		cellRenderer: renderCellStartEnd},
 	{key: 'Start',
 		...fields.Start,
 		width: 86, flexShrink: 0,
-		cellRenderer: renderDate,
 		dropdownWidth: 300},
 	{key: 'End',
 		...fields.End,
 		width: 86, flexShrink: 0,
-		cellRenderer: renderDate,
 		dropdownWidth: 300},
 	{key: 'Document',
 		...fields.Document,
@@ -124,10 +143,10 @@ const tableColumns = [
 		width: 80,	flexGrow: 0, flexShrink: 0,
 		dropdownWidth: 200},
 	{key: 'VotingPool',
-		label: '',
+		label: 'Voting pool/Prev ballot',
 		width: 100, flexShrink: 1, flexGrow: 1,
-		headerRenderer: renderHeaderCellVotingPool,
-		cellRenderer: renderVotingPool},
+		headerRenderer: renderHeaderVotingPool,
+		cellRenderer: renderCellVotingPool},
 	{key: 'Results',
 		...fields.Results,
 		width: 150,	flexShrink: 1, flexGrow: 1,
@@ -139,8 +158,8 @@ const tableColumns = [
 ];
 
 const defaultTablesColumns = {
-	'1': ['__ctrl__', 'Project', 'BallotID', 'Start', 'End', 'Document', 'VotingPool', 'Results', 'Comments'],
-	'2': ['__ctrl__', 'Project', 'BallotID', 'Start', 'End', 'Document', 'Topic', 'VotingPool']
+	'1': ['__ctrl__', 'BallotID', 'Project', 'Start/End', 'Document', 'VotingPool', 'Results', 'Comments'],
+	'2': ['__ctrl__', 'BallotID', 'Project', 'Start/End', 'Document', 'Topic', 'VotingPool']
 };
 
 const defaultTablesConfig = {};
@@ -280,7 +299,7 @@ function Ballots({
 				</Panel>
 				<Panel style={{overflow: 'auto'}}>
 					<BallotDetail
-						ballotId={ballotId}
+						key={selected}
 					/>
 				</Panel>
 			</SplitPanel>

@@ -1,21 +1,25 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import {connect, useDispatch} from 'react-redux'
+import {connect, useDispatch, useSelector} from 'react-redux'
 import styled from '@emotion/styled'
-import {shallowDiff} from 'dot11-components/lib/utils'
+import {shallowDiff, recursivelyDiffObjects, isMultiple, debounce} from 'dot11-components/lib'
 import {Form, Row, Col, Field, FieldLeft, List, ListItem, Checkbox, Input, Select, TextArea} from 'dot11-components/general/Form'
-import {Button, ActionButton} from 'dot11-components/lib/icons'
-import {ConfirmModal} from 'dot11-components/modals'
+import {Button, ActionButton} from 'dot11-components/icons'
+import {ActionButtonModal, ConfirmModal} from 'dot11-components/modals'
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
 import {getData, getEntities} from 'dot11-components/store/dataSelectors'
 import {setProperty} from 'dot11-components/store/ui'
 
 import {renderResultsSummary, renderCommentsSummary} from './Ballots'
 
-import {updateBallot, addBallot, deleteBallots, loadBallots, setProject, getProjectList, getBallotList, BallotType} from '../store/ballots'
+import {updateBallot, addBallot, deleteBallots, loadBallots, setProject, getProjectList, getBallotList, makeGetBallotList, 
+	BallotType, BallotTypeOptions, BallotStage, BallotStageOptions} from '../store/ballots'
 import {loadVotingPools} from '../store/votingPools'
 import {importResults, uploadEpollResults, uploadMyProjectResults, deleteResults} from '../store/results'
 import {importComments, uploadComments, deleteComments, setStartCommentId} from '../store/comments'
+
+const BLANK_STR = '(Blank)';
+const MULTIPLE_STR = '(Multiple)';
 
 function getDefaultBallot() {
 	const now = new Date()
@@ -32,7 +36,6 @@ function getDefaultBallot() {
 		PrevBallotID: ''
 	}
 }
-
 
 /* Convert an ISO date string to US eastern time and return string in form "YYYY-MM-DD" */
 function dateToShortDate(isoDate) {
@@ -53,98 +56,138 @@ function shortDateToDate(shortDateStr) {
 	return isNaN(newDate)? '': newDate.toISOString()
 }
 
-function SelectProject({width, project, projectList, onChange, readOnly}) {
+function SelectProject({value, onChange, ...otherProps}) {
+	const projectList = useSelector(getProjectList);
 	const options = projectList.map(p => ({value: p, label: p}))
-	const value = options.find(o => o.value === project)
+	const optionSelected = options.find(o => o.value === value)
 	return (
 		<Select
-			width={width}
-			values={value? [value]: []}
+			values={optionSelected? [optionSelected]: []}
 			options={options}
 			onChange={(values) => onChange(values.length > 0? values[0].value: '')}
 			create
 			clearable
 			searchable
 			dropdownPosition='auto'
-			readOnly={readOnly}
+			{...otherProps}
 		/>
 	)
 }
 
-function SelectVotingPoolId({width, votingPoolId, votingPools, onChange, readOnly}) {
-	const options = votingPools.map(i => ({value: i.VotingPoolID, label: i.VotingPoolID}))
-	const value = options.find(o => o.value === votingPoolId)
+function SelectVotingPoolId({value, options, onChange, ...otherProps}) {
+	const optionSelected = options.find(o => o.value === value);
 	return (
 		<Select
-			width={width}
-			values={value? [value]: []}
+			values={optionSelected? [optionSelected]: []}
 			options={options}
 			onChange={(values) => onChange(values.length? values[0].value: '')}
 			dropdownPosition='auto'
-			readOnly={readOnly}
+			{...otherProps}
 		/>
 	)
 }
 
-function SelectPrevBallot({width, prevBallotId, ballotList, onChange, readOnly}) {
-	const options = ballotList//.map(i => ({value: i.VotingPoolID, label: i.VotingPoolID}))
-	const value = options.find(o => o.value === prevBallotId)
+function SelectPrevBallot({value, ballot, onChange, ...otherProps}) {
+	const ballots = useSelector(state => state.ballots.entities);
+	const options = React.useMemo(() => {
+		const list = [];
+		for (const b of Object.values(ballots)) {
+			if (b.Project === ballot.Project && b.Start < ballot.Start)
+				list.push(b.BallotID);
+		}
+		list.sort();
+		return list.map(ballotId => ({value: ballotId, label: ballotId}));
+	}, [ballot, ballots]);
+	const optionSelected = options.find(o => o.value === value);
 	return (
 		<Select
-			width={width}
-			values={value? [value]: []}
+			values={optionSelected? [optionSelected]: []}
 			options={options}
 			onChange={(values) => onChange(values.length? values[0].value: '')}
 			dropdownPosition='auto'
-			readOnly={readOnly}
+			{...otherProps}
 		/>
 	)
 }
 
-export function BallotTypes({value, onChange, readOnly}) {
-	const ballotTypeOptions = [
-		{value: BallotType.CC, label: 'Comment collection'},
-		{value: BallotType.WG_Initial, label: 'Initial WG ballot'},
-		{value: BallotType.WG_Recirc, label: 'Recirc WG ballot'},
-		{value: BallotType.SA_Initial, label: 'Initial SA ballot'},
-		{value: BallotType.SA_Recirc, label: 'Recirc SA ballot'},
-		{value: BallotType.Motion, label: 'Motion'}
-	];
+export const BallotTypeSelect = ({value, onChange, readOnly}) =>
+	<List
+		label='Ballot Type:'
+	>
+		{BallotTypeOptions.map((o) => 
+			<ListItem key={o.value}>
+				<Checkbox
+					id={o.value}
+					name='Type'
+					value={o.value}
+					checked={value === o.value}
+					indeterminate={isMultiple(value)}
+					onChange={e => onChange(e.target.value)}
+					disabled={readOnly}
+				/>
+				<label htmlFor={o.value} >{o.label}</label>
+			</ListItem>
+		)}
+	</List>
+
+export const BallotStageSelect = ({value, onChange, readOnly}) =>
+	<List
+		label='Ballot stage:'
+	>
+		{BallotStageOptions.map((o) => 
+			<ListItem key={o.value}>
+				<Checkbox
+					id={o.value}
+					name='Stage'
+					value={o.value}
+					checked={value === o.value}
+					indeterminate={isMultiple(value)}
+					onChange={e => onChange(e.target.value)}
+					disabled={readOnly}
+				/>
+				<label htmlFor={o.value} >{o.label}</label>
+			</ListItem>
+		)}
+	</List>
+
+const ChangeStartCID = ({close, ballot}) => {
+	const dispatch = useDispatch();
+	const [startCID, setStartCID] = React.useState(ballot.Comments? ballot.Comments.CommentIDMin: 1);
+	const [busy, setBusy] = React.useState(false);
+
+	const handleSetStartCID = async () => {
+		setBusy(true);
+		await dispatch(setStartCommentId(ballot.BallotID, startCID));
+		setBusy(false);
+		close();
+	}
+
 	return (
-		<List
-			label='Ballot Type:'
+		<Form
+			title='Change starting CID'
+			submit={handleSetStartCID}
+			cancel={close}
+			busy={busy}
 		>
-			{ballotTypeOptions.map((o) => 
-				<ListItem key={o.value}>
-					<Checkbox
-						id={o.value}
-						name='Type'
-						value={o.value}
-						checked={value === o.value}
-						onChange={onChange}
-						disabled={readOnly}
-					/>
-					<label htmlFor={o.value} >{o.label}</label>
-				</ListItem>
-			)}
-		</List>
+			<Input
+				type='search'
+				width={80}
+				value={startCID}
+				onChange={e => setStartCID(e.target.value)}
+			/>
+		</Form>
 	)
 }
 
-const CommentsActions = ({ballot, readOnly}) => {
+const CommentsActions = ({multiple, ballot, readOnly}) => {
 	const dispatch = useDispatch();
 	const fileRef = React.useRef();
-	const [startCID, setStartCID] = React.useState(ballot.Comments? ballot.Comments.CommentsIdMin: 1);
 
 	async function handleDeleteComments() {
 		const ok = await ConfirmModal.show(`Are you sure you want to delete comments for ${ballot.BallotID}?`)
 		if (!ok)
 			return;
 		await dispatch(deleteComments(ballot.BallotID));
-	}
-
-	async function handleSetStartCID() {
-		await dispatch(setStartCommentId(ballot.BallotID, startCID));
 	}
 
 	async function handleImportComments() {
@@ -155,52 +198,47 @@ const CommentsActions = ({ballot, readOnly}) => {
 		await dispatch(uploadComments(ballot.BallotID, ballot.Type, file));
 	}
 
-	console.log(ballot);
-	return (
-		<>
-			<Row>
-				<FieldLeft label='Comments:'>{renderCommentsSummary({rowData: ballot, dataKey: 'Comments'})}</FieldLeft>
-			</Row>
-			{!readOnly && <Row>
-				<ListItem>
-					<Button onClick={handleSetStartCID}>Change starting CID:&nbsp;</Button>
-					<Input
-						type='search'
-						width={80}
-						value={startCID || 1}
-						onChange={e => setStartCID(e.target.value)}
-					/>
-				</ListItem>
-				{ballot.Comments &&
-					<Button
-						onClick={handleDeleteComments}
-					>
-						Delete
-					</Button>}
-				{ballot.EpollNum &&
-					<Button
-						onClick={handleImportComments}
-					>
-						{(ballot.Comments? 'Reimport': 'Import') + ' from ePoll'}
-					</Button>}
+	return <>
+		<Row>
+			<FieldLeft label='Comments:'>
+				{multiple? MULTIPLE_STR: renderCommentsSummary({rowData: ballot, dataKey: 'Comments'})}
+			</FieldLeft>
+		</Row>
+		{!readOnly && <Row style={{justifyContent: 'flex-left'}}>
+			<ActionButtonModal 
+				label='Change starting CID'
+			>
+				<ChangeStartCID ballot={ballot} />
+			</ActionButtonModal>
+			{ballot.Comments &&
 				<Button
-					onClick={() => fileRef.current.click()}
+					onClick={handleDeleteComments}
 				>
-					Upload comments
-				</Button>
-				<input
-					type='file'
-					accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-					ref={fileRef}
-					onChange={e => {if (e.target.files) handleUploadComments(e.target.files[0])}}
-					style={{display: "none"}}
-				/>
-			</Row>}
-		</>
-	)
+					Delete
+				</Button>}
+			{ballot.EpollNum &&
+				<Button
+					onClick={handleImportComments}
+				>
+					{(ballot.Comments? 'Reimport': 'Import') + ' from ePoll'}
+				</Button>}
+			<Button
+				onClick={() => fileRef.current.click()}
+			>
+				Upload comments
+			</Button>
+			<input
+				type='file'
+				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+				ref={fileRef}
+				onChange={e => {if (e.target.files) handleUploadComments(e.target.files[0])}}
+				style={{display: "none"}}
+			/>
+		</Row>}
+	</>
 }
 
-const ResultsActions = ({ballot, readOnly}) => {
+const ResultsActions = ({multiple, ballot, readOnly}) => {
 
 	const dispatch = useDispatch();
 	const fileRef = React.useRef();
@@ -217,8 +255,7 @@ const ResultsActions = ({ballot, readOnly}) => {
 	}
 
 	async function handleUploadResults(file) {
-		if (ballot.Type === BallotType.SA_Initial ||
-			ballot.Type === BallotType.SA_Recirc)
+		if (ballot.Type === BallotType.SA)
 			await dispatch(uploadMyProjectResults(ballot.BallotID, file));
 		else
 			await dispatch(uploadEpollResults(ballot.BallotID, file));
@@ -227,9 +264,11 @@ const ResultsActions = ({ballot, readOnly}) => {
 	return (
 		<>
 			<Row>
-				<FieldLeft label='Results:'>{renderResultsSummary({rowData: ballot, dataKey: 'Results'})}</FieldLeft>
+				<FieldLeft label='Results:'>
+					{multiple? MULTIPLE_STR: renderResultsSummary({rowData: ballot, dataKey: 'Results'})}
+				</FieldLeft>
 			</Row>
-			{!readOnly && <Row>
+			{!readOnly && <Row style={{justifyContent: 'flex-left'}}>
 				<Button
 					onClick={handleDeleteResults}
 				>
@@ -268,112 +307,133 @@ const TopicTextArea = styled(TextArea)`
 `;
 
 export function Column1({
-	project,
+	multiple,
+	ballot,
+	updateBallot,
 	setProject,
 	projectList,
-	ballot,
-	setBallot,
 	ballotList,
 	votingPools,
 	readOnly
 }) {
 	const change = (e) => {
 		const {name, value} = e.target;
-		setBallot({...ballot, [name]: value});
+		updateBallot({[name]: value});
 	}
 	const changeProject = (project) => {
 		if (ballot.Project !== project) {
-			setProject(project)
-			setBallot(ballot => ({...ballot, Project: project}))
+			setProject(project);
+			updateBallot({Project: project});
 		}
 	}
 	const changeDate = (e) => {
 		const {name, value} = e.target;
 		const dateStr = shortDateToDate(value);
-		setBallot(ballot => ({...ballot, [name]: dateStr}));
+		updateBallot({[name]: dateStr});
 	}
-	return (
-		<>
+	return <>
+		<Row>
 			<Field label='Project:'>
 				<SelectProject
-					width={150}
-					project={ballot.Project}
-					projectList={projectList}
+					style={{minWidth: 150}}
+					value={isMultiple(ballot.Project)? null: ballot.Project}
 					onChange={changeProject}
+					placeholder={isMultiple(ballot.Project)? MULTIPLE_STR: BLANK_STR}
 					readOnly={readOnly}
 				/>
 			</Field>
+		</Row>
+		<Row>
 			<Field label='Ballot ID:'>
 				<Input type='search'
 					name='BallotID'
-					value={ballot.BallotID}
+					value={isMultiple(ballot.BallotID)? '': ballot.BallotID}
 					onChange={change}
-					disabled={readOnly}
+					placeholder={isMultiple(ballot.BallotID)? MULTIPLE_STR: BLANK_STR}
+					disabled={readOnly || multiple}
 				/>
 			</Field>
-			{(ballot.Type !== BallotType.SA_Initial && ballot.Type !== BallotType.SA_Recirc) &&
-				<Field label='ePoll Number:'>
+		</Row>
+		{ballot.Type !== BallotType.SA &&
+			<Row>
+				<Field label='ePoll number:'>
 					<Input type='search'
 						name='EpollNum'
-						value={ballot.EpollNum}
+						value={isMultiple(ballot.EpollNum)? '': ballot.EpollNum}
 						onChange={change}
-						disabled={readOnly}
+						placeholder={isMultiple(ballot.BallotID)? MULTIPLE_STR: BLANK_STR}
+						disabled={readOnly || multiple}
 					/>
-				</Field>}
+				</Field>
+			</Row>}
+		<Row>
 			<Field label='Document:'>
 				<Input type='search'
 					name='Document'
-					value={ballot.Document}
+					value={isMultiple(ballot.Document)? '': ballot.Document}
+					placeholder={isMultiple(ballot.Document)? MULTIPLE_STR: BLANK_STR}
 					onChange={change}
 					disabled={readOnly}
 				/>
 			</Field>
+		</Row>
+		<Row>
 			<Field label='Topic:'>
 				<TopicTextArea 
 					name='Topic'
-					value={ballot.Topic}
+					value={isMultiple(ballot.Topic)? '': ballot.Topic}
+					placeholder={isMultiple(ballot.Topic)? MULTIPLE_STR: BLANK_STR}
 					onChange={change}
 					disabled={readOnly}
 				/>
 			</Field>
+		</Row>
+		<Row>
 			<Field label='Start:'>
 				<Input type='date'
 					name='Start'
-					value={dateToShortDate(ballot.Start)}
+					value={isMultiple(ballot.Start)? '': dateToShortDate(ballot.Start)}
 					onChange={changeDate}
-					disabled={readOnly}
+					disabled={readOnly || multiple}
 				/>
 			</Field>
+		</Row>
+		<Row>
 			<Field label='End:'>
 				<Input type='date'
 					name='End'
-					value={dateToShortDate(ballot.End)}
+					value={isMultiple(ballot.End)? '': dateToShortDate(ballot.End)}
 					onChange={changeDate}
-					disabled={readOnly}
+					disabled={readOnly || multiple}
 				/>
 			</Field>
-			{(ballot.Type === BallotType.WG_Initial || ballot.Type === BallotType.SA_Initial || ballot.Type === BallotType.Motion) &&
-				<Field label='Voter Pool:'>
+		</Row>
+		{((ballot.Type === BallotType.WG && !ballot.IsRecirc) || ballot.Type === BallotType.Motion) &&
+			<Row>
+				<Field label='Voter pool:'>
 					<SelectVotingPoolId 
-						votingPoolId={ballot.VotingPoolID}
-						votingPools={votingPools}
-						onChange={value => setBallot(ballot => ({...ballot, VotingPoolID: value}))}
+						value={ballot.VotingPoolID}
+						options={votingPools.map(i => ({value: i.VotingPoolID, label: i.VotingPoolID}))}
+						onChange={value => updateBallot({VotingPoolID: value})}
 						width={150}
 						readOnly={readOnly}
 					/>
-				</Field>}
-			{(ballot.Type === BallotType.WG_Recirc || ballot.Type === BallotType.SA_Recirc) &&
-				<Field label='Previous Ballot:'>
+				</Field>
+			</Row>}
+		{(ballot.Type === BallotType.WG || ballot.Type === BallotType.SA) && !!ballot.IsRecirc &&
+			<Row>
+				<Field label='Previous ballot:'>
 					<SelectPrevBallot
-						prevBallotId={ballot.PrevBallotID}
-						ballotList={ballotList}
-						onChange={value => setBallot(ballot => ({...ballot, PrevBallotID: value}))}
+						value={isMultiple(ballot.PrevBallotID)? null: ballot.PrevBallotID}
+						ballot={ballot}
+						placeholder={isMultiple(ballot.PrevBallotID)? MULTIPLE_STR: BLANK_STR}
+						onChange={value => updateBallot({PrevBallotID: value})}
 						width={150}
-						readOnly={readOnly}
+						readOnly={readOnly || multiple}
 					/>
-				</Field>}
-		</>
-	)
+				</Field>
+			</Row>}
+	</>
 }
 
 const BallotContainer = styled.div`
@@ -383,54 +443,64 @@ const BallotContainer = styled.div`
 `;
 
 function Ballot({
-	project,
+	multiple,
+	ballot,
+	updateBallot,
 	setProject,
 	projectList,
-	ballot,
-	setBallot,
 	ballotList,
 	votingPools,
 	readOnly
 }) {
-	function changeType(e) {
-		const {name, value} = e.target;
-		setBallot(ballot => ({...ballot, [name]: parseInt(value, 10)}))
-	}
 
 	return (
 		<BallotContainer>
 			<Row>
 				<Col>
 					<Column1
-						project={project}
+						multiple={multiple}
+						ballot={ballot}
+						updateBallot={updateBallot}
 						setProject={setProject}
 						projectList={projectList}
-						ballot={ballot}
-						setBallot={setBallot}
 						ballotList={ballotList}
 						votingPools={votingPools}
 						readOnly={readOnly}
 					/>
 				</Col>
 				<Col>
-					<BallotTypes
+					<BallotTypeSelect
 						value={ballot.Type}
-						onChange={changeType}
+						onChange={value => updateBallot({Type: parseInt(value, 10)})}
 						readOnly={readOnly}
 					/>
-					<Field label='Series complete:'>
-						<Checkbox
-							checked={!!ballot.IsComplete}
-							onChange={e => setBallot(ballot => ({...ballot, IsComplete: e.target.checked}))}
-						/>
-					</Field>
+					{(ballot.Type === BallotType.WG || ballot.Type === BallotType.SA) &&
+						<>
+							<BallotStageSelect
+								value={ballot.IsRecirc}
+								onChange={value => updateBallot({IsRecirc: parseInt(value, 10)})}
+								readOnly={readOnly}
+							/>
+							<ListItem>
+								<Checkbox
+									id='IsComplete'
+									checked={ballot.IsComplete}
+									indeterminate={isMultiple(ballot.IsComplete)}
+									onChange={e => updateBallot({IsComplete: e.target.checked})}
+									disabled={readOnly}
+								/>
+								<label htmlFor='IsComplete' >Final in ballot series</label>
+							</ListItem>
+						</>}
 				</Col>
 			</Row>
 			<ResultsActions
+				multiple={multiple}
 				ballot={ballot}
 				readOnly={readOnly}
 			/>
 			<CommentsActions 
+				multiple={multiple}
 				ballot={ballot}
 				readOnly={readOnly}
 			/>
@@ -466,136 +536,144 @@ const NotAvaialble = styled.div`
 	font-size: 1em;
 	color: #bdbdbd;
 `;
-/*
- * Ballot detail is mounted from
- * The ballotId parameter is '+' to add a new ballot or a ballot ID to update a ballot
- * If the ballotId parameter is '+' and epollNum is provided, then the ballot fields are filled in from the epoll data
- */
-function _BallotDetail({
-	ballotId,
-	ballots,
-	ballotsValid,
-	loading,
-	loadBallots,
-	updateBallot,
-	deleteBallots,
-	projectList,
-	ballotList,
-	votingPoolsValid,
-	votingPools,
-	getVotingPools,
-	uiProperty,
-	setUiProperty,
-	readOnly
-}) {
-	const [ballot, setBallot] = React.useState(getDefaultBallot);
-	const [resultsAction, setResultsAction] = React.useState(Action.NONE);
-	const [resultsFile, setResultsFile] = React.useState('');
-	const [commentsAction, setCommentsAction] = React.useState(Action.NONE);
-	const [commentsFile, setCommentsFile] = React.useState(null);
-	const [startCID, setStartCID] = React.useState('');
-	const [busy, setBusy] = React.useState(false);
 
-	/* On mount, make sure we have the ballots and voting pools loaded */
-	React.useEffect(() => {
-		if (!ballotsValid)
-			loadBallots();
-		if (!votingPoolsValid)
-			loadVotingPools();
-	}, []);
-
-	/* On mount or if the underlying data changes,
-	 * reload the ballot from ballot data or epoll data as appropriate. */
-	React.useEffect(() => {
-		if (ballotId) {
-			const b = ballots.find(b => b.BallotID === ballotId)
-			if (b) {
-				setBallot(b)
-				setStartCID(b.Comments? b.Comments.CommentIDMin: 0)
-			}
-		}
-	}, [ballotId, ballots]);
-
-	/* All the database manipulation functions are asynchornous. They need to be issued in the right order
-	 * but don't need to complete until the next is started. */
-	async function submit() {
-		setBusy(true)
-		const b = ballots.find(b => b.BallotID === ballotId)
-		if (b) {
-			let changed = shallowDiff(b, ballot)
-			if (Object.keys(changed).length) {
-				changed.id = b.id;
-				await updateBallot(ballotId, changed)
-			}
-		}
+class _BallotDetail extends React.Component {
+	constructor(props) {
+		super(props)
+		this.state = this.initState(props);
+		this.triggerSave = debounce(this.save, 500);
 	}
 
-	async function handleDeleteBallot() {
-		const ok = await ConfirmModal.show(`Are you sure you want to delete ballot ${ballot.BallotID}?`)
+	componentDidMount() {
+		if (!this.props.ballotsValid)
+			this.props.loadBallots();
+		if (!this.props.votingPoolsValid)
+			this.props.loadVotingPools();
+	}
+
+	componentWillUnmount() {
+		this.triggerSave.flush();
+	}
+
+	initState = (props) => {
+		const {ballots, selected} = props;
+		let diff = {}, originals = [];
+		for (const id of selected) {
+			const ballot = ballots[id];
+			if (ballot) {
+				diff = recursivelyDiffObjects(diff, ballot);
+				originals.push(ballot);
+			}
+		}
+		return {
+			saved: diff,
+			edited: diff,
+			originals: originals
+		};
+	}
+
+	updateBallot = (changes) => {
+		const {readOnly, uiProperties} = this.props;
+		if (readOnly || !uiProperties.edit) {
+			console.warn("Update when read-only")
+			return;
+		}
+		// merge in the edits and trigger a debounced save
+		this.setState(
+			state => ({...state, edited: {...state.edited, ...changes}}),
+			this.triggerSave
+		);
+	}
+
+	save = () => {
+		const {edited, saved, originals} = this.state;
+		const d = shallowDiff(saved, edited);
+		const updates = [];
+		for (const o of originals) {
+			if (Object.keys(d).length > 0)
+				updates.push({...d, id: o.id});
+		}
+		console.log(updates)
+		if (updates.length > 0)
+			updates.forEach(u => this.props.updateBallot(u.id, u));
+		this.setState(state => ({...state, saved: edited}));
+	}
+
+	handleRemoveSelected = async () => {
+		const {selected} = this.props;
+		const ok = await ConfirmModal.show(`Are you sure you want to delete ballots ${selected}?`);
 		if (!ok)
 			return;
-		await deleteBallots([ballot]);
+		await deleteBallots(selected);
 	}
 
-	let notAvailableStr
-	if (loading) {
-		notAvailableStr = 'Loading...'
-	}
-	else if (!ballotId) {
-		notAvailableStr = 'Nothing selected'
-	}
-	const disableButtons = !!notAvailableStr 	// disable buttons if displaying string
+	render() {
+		const {style, className, loading, uiProperties, setUiProperty, readOnly, ballots, selected, 
+			votingPools, setProject, ballotList, projectList} = this.props;
 
-	return (
-		<BallotDetailContainer>
-			<TopRow>
-				<span></span>
-				{!readOnly &&
-					<span>
-						<ActionButton
-							name='edit'
-							title='Edit ballot'
-							disabled={disableButtons}
-							isActive={uiProperty.editBallot}
-							onClick={() => setUiProperty('editBallot', !uiProperty.editBallot)}
-						/>
-						<ActionButton
-							name='delete'
-							title='Delete ballot'
-							disabled={disableButtons}
-							onClick={handleDeleteBallot}
-						/>
-					</span>
+		let notAvailableStr
+		if (loading)
+			notAvailableStr = 'Loading...';
+		else if (this.state.originals.length === 0)
+			notAvailableStr = 'Nothing selected';
+		const disableButtons = !!notAvailableStr; 	// disable buttons if displaying string
+
+		return (
+			<BallotDetailContainer
+				style={style}
+				className={className}
+			>
+				<TopRow>
+					<span></span>
+					{!readOnly &&
+						<span>
+							<ActionButton
+								name='edit'
+								title='Edit ballot'
+								disabled={disableButtons}
+								isActive={uiProperties.edit}
+								onClick={() => setUiProperty('edit', !uiProperties.edit)}
+							/>
+							<ActionButton
+								name='delete'
+								title='Delete ballot'
+								disabled={disableButtons}
+								onClick={this.handleRemoveSelected}
+							/>
+						</span>
+					}
+				</TopRow>
+				{notAvailableStr?
+					<NotAvaialble>
+						<span>{notAvailableStr}</span>
+				 	</NotAvaialble>:
+					<Ballot 
+						multiple={this.state.originals.length > 1}
+						ballot={this.state.edited}
+						updateBallot={this.updateBallot}
+						setProject={setProject}
+						projectList={projectList}
+						ballotList={ballotList}
+						votingPools={votingPools}
+						readOnly={readOnly || !uiProperties.edit}
+					/>
 				}
-			</TopRow>
-			{notAvailableStr?
-				<NotAvaialble>
-					<span>{notAvailableStr}</span>
-			 	</NotAvaialble>:
-				<Ballot 
-					ballot={ballot}
-					setBallot={setBallot}
-					projectList={projectList}
-					ballotList={ballotList}
-					votingPools={votingPools}
-					readOnly={readOnly || !uiProperty.editBallot}
-				/>
-			}
-		</BallotDetailContainer>
-	)
-}
+			</BallotDetailContainer>
+		)
+	}
 
-_BallotDetail.propTypes = {
-	ballotId: PropTypes.string.isRequired,
-	ballotsValid: PropTypes.bool.isRequired,
-	ballots: PropTypes.array.isRequired,
-	projectList: PropTypes.array.isRequired,
-	ballotList: PropTypes.array.isRequired,
-	votingPoolsValid: PropTypes.bool.isRequired,
-	votingPools: PropTypes.array.isRequired,
-	updateBallot: PropTypes.func.isRequired,
-	deleteBallots: PropTypes.func.isRequired,
-	setUiProperty: PropTypes.func.isRequired,
+	static propTypes = {
+		ballotsValid: PropTypes.bool.isRequired,
+		ballots: PropTypes.object.isRequired,
+		projectList: PropTypes.array.isRequired,
+		ballotList: PropTypes.array.isRequired,
+		votingPoolsValid: PropTypes.bool.isRequired,
+		votingPools: PropTypes.array.isRequired,
+		setProject: PropTypes.func.isRequired,
+		updateBallot: PropTypes.func.isRequired,
+		deleteBallots: PropTypes.func.isRequired,
+		setUiProperty: PropTypes.func.isRequired,
+	}
 }
 
 const BallotDetail = connect(
@@ -603,14 +681,14 @@ const BallotDetail = connect(
 		const {ballots, votingPools} = state
 		return {
 			ballotsValid: ballots.valid,
-			ballots: getData(state, 'ballots'),
+			ballots: getEntities(state, 'ballots'),
 			loading: ballots.loading,
 			projectList: getProjectList(state),
 			ballotList: getBallotList(state),
 			votingPoolsValid: votingPools.valid,
 			votingPools: getData(state, 'votingPools'),
-			epolls: state.epolls.entities,
-			uiProperty: state.ballots.ui,
+			selected: state.ballots.selected,
+			uiProperties: state.ballots.ui,
 		}
 	},
 	(dispatch) => {
@@ -624,7 +702,7 @@ const BallotDetail = connect(
 			setUiProperty: (property, value) => dispatch(setProperty('ballots', property, value))
 		}
 	}
-)(_BallotDetail)
+)(_BallotDetail);
 
 const StyledForm = styled(Form)`
 	width: 700px;
@@ -651,11 +729,6 @@ function _BallotAddForm({
 		close();
 	}
 
-	const changeType = (e) => {
-		const {name, value} = e.target;
-		setBallot(ballot => ({...ballot, [name]: parseInt(value, 10)}));
-	}
-
 	return (
 		<StyledForm
 			title='Add ballot'
@@ -671,15 +744,19 @@ function _BallotAddForm({
 						setProject={setProject}
 						projectList={projectList}
 						ballot={ballot}
-						setBallot={setBallot}
+						updateBallot={changes => setBallot(ballot => ({...ballot, ...changes}))}
 						ballotList={ballotList}
 						votingPools={votingPools}
 					/>
 				</Col>
 				<Col>
-					<BallotTypes
+					<BallotTypeSelect
 						value={ballot.Type}
-						onChange={changeType}
+						onChange={value => setBallot(ballot => ({...ballot, Type: value}))}
+					/>
+					<BallotStageSelect
+						value={ballot.Stage}
+						onChange={value => setBallot(ballot => ({...ballot, Stage: value}))}
 					/>
 				</Col>
 			</Row>

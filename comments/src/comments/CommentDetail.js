@@ -10,12 +10,11 @@ import AssigneeSelector from './AssigneeSelector'
 import SubmissionSelector from './SubmissionSelector'
 import {editorCss, ResolutionEditor} from './ResolutionEditor'
 import CommentHistory from './CommentHistory'
-import {ActionButton, VoteYesIcon, VoteNoIcon, IconCollapse} from 'dot11-components/lib/icons'
+import {ActionButton, VoteYesIcon, VoteNoIcon, IconCollapse} from 'dot11-components/icons'
 import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/general/Form'
-import {shallowDiff, debounce} from 'dot11-components/lib/utils'
+import {AccessLevel, shallowDiff, debounce} from 'dot11-components/lib'
 import {setProperty} from 'dot11-components/store/ui'
 import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
-import {AccessLevel} from 'dot11-components/lib/user'
 
 import {addResolutions, updateResolutions, deleteResolutions, updateComments} from '../store/comments'
 
@@ -796,24 +795,27 @@ class CommentDetail extends React.PureComponent {
 	}
 
 	handleAddResolutions = async () => {
+		if (this.readOnly || !this.props.uiProperties.editComment) {
+			console.warn("Update in read only component");
+			return;
+		}
 		const {comments} = this.state;
 		//console.log(comments)
 		const resolutions = [];
 		// Add only one entry per CommentID
-		for (const c of comments) {
-			if (!resolutions.find(r => r.comment_id === c.comment_id)) {
-				resolutions.push({
-					BallotID: c.BallotID,
-					CommentID: c.CommentID,
-					comment_id: c.comment_id
-				});
-			}
+		for (const comment_id of comments.map(c => c.comment_id)) {
+			if (!resolutions.find(r => r.comment_id === c.comment_id))
+				resolutions.push({comment_id});
 		}
 		this.triggerSave.flush();
 		await this.props.addResolutions(resolutions);
 	}
 
  	handleDeleteResolutions = async () => {
+ 		if (this.readOnly || !this.props.uiProperties.editComment) {
+			console.warn("Update in read only component");
+			return;
+		}
  		const resolutions = this.state.comments
  			.filter(c => c.ResolutionCount > 0)			// only those with resolutions
  			.map(c => ({id: c.resolution_id}));
@@ -833,6 +835,7 @@ class CommentDetail extends React.PureComponent {
 		else if (comments.length === 0)
 			notAvailableStr = 'Nothing selected';
 		const disableButtons = !!notAvailableStr; 	// disable buttons if displaying string
+		const disableEditButtons = disableButtons || this.readOnly || !uiProperties.editComment;
 
 		return(
 			<DetailContainer
@@ -852,13 +855,13 @@ class CommentDetail extends React.PureComponent {
 						<ActionButton
 							name='add'
 							title='Create alternate resolution'
-							disabled={disableButtons}
+							disabled={disableEditButtons}
 							onClick={this.handleAddResolutions}
 						/>
 						<ActionButton
 							name='delete'
 							title='Delete resolution'
-							disabled={disableButtons}
+							disabled={disableEditButtons}
 							onClick={this.handleDeleteResolutions}
 						/>
 					</>}

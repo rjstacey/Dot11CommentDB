@@ -1,6 +1,6 @@
 import {createSlice, createSelector, createEntityAdapter} from '@reduxjs/toolkit'
 
-import {displayDate} from 'dot11-components/lib/utils'
+import {displayDate} from 'dot11-components/lib'
 import fetcher from 'dot11-components/lib/fetcher'
 import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
 import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
@@ -10,26 +10,40 @@ import {setError} from 'dot11-components/store/error'
 
 export const BallotType = {
 	CC: 0,			// comment collection
-	WG_Initial: 1,	// initial WG ballot
-	WG_Recirc: 2,	// WG ballot recirculation
-	SA_Initial: 3,	// initial SA ballot
-	SA_Recirc: 4,	// SA ballot recirculation
-	Motion: 5		// motion
+	WG: 1,			// WG ballot
+	SA: 2,			// SA ballot
+	Motion: 3		// motion
 };
 
-const BallotTypeLabel = {
-	[BallotType.CC]: 'CC',
-	[BallotType.WG_Initial]: 'WG LB (initial)',
-	[BallotType.WG_Recirc]: 'WG LB (recirc)',
-	[BallotType.SA_Initial]: 'SA ballot (initial)',
-	[BallotType.SA_Recirc]: 'SA ballot (recirc)',
-	[BallotType.Motion]: 'Motion'
-}
+export const BallotTypeLabels = {
+	[BallotType.CC]: 'Comment collection',
+	[BallotType.WG]: 'WG ballot',
+	[BallotType.SA]: 'SA ballot',
+	[BallotType.Motion]: 'Motion',
+};
+
+export const BallotTypeOptions = Object.values(BallotType).map(v => ({value: v, label: BallotTypeLabels[v]}));
+export const renderBallotType = (type) => BallotTypeLabels[type] || 'Unknown';
+
+export const BallotStage = {
+	Initial: 0,
+	Recirc: 1
+};
+
+export const BallotStageLabels = {
+	[BallotStage.Initial]: 'Initial',
+	[BallotStage.Recirc]: 'Recirc',
+};
+
+export const BallotStageOptions = Object.values(BallotStage).map(v => ({value: v, label: BallotStageLabels[v]}));
+export const renderBallotStage = v => BallotStageLabels[v] || 'Unknown';
 
 export const fields = {
 	Project: {label: 'Project'},
 	BallotID: {label: 'Ballot'},
-	Type: {label: 'Type', dataRenderer: (type) => BallotTypeLabel[type] || 'Unknown'},
+	Type: {label: 'Type', sortType: SortType.NUMERIC, options: BallotTypeOptions, dataRenderer: renderBallotType},
+	IsRecirc: {label: 'Stage', sortType: SortType.NUMERIC, options: BallotStageOptions, dataRenderer: renderBallotStage},
+	IsComplete: {label: 'Final', sortType: SortType.NUMERIC},
 	Document: {label: 'Document'},
 	Topic: {label: 'Topic'},
 	EpollNum: {label: 'ePoll', sortType: SortType.NUMERIC},
@@ -37,8 +51,8 @@ export const fields = {
 	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
 	Results: {label: 'Results', dontFilter: true, dontSort: true},
 	Comments: {label: 'Comments', dontFilter: true, dontSort: true},
-	VotingPoolID: {label: 'VotingPoolID'},
-	PrevBallotID: {label: 'PrevBallotID'}
+	VotingPoolID: {label: 'Voting pool'},
+	PrevBallotID: {label: 'Prev ballot'}
 };
 
 function getProjectForBallotId(state, ballotId) {

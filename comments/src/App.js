@@ -84,7 +84,7 @@ function App({user, access}) {
 		<Router basename='/comments'>
 			<OuterDiv>
 				<Header>
-					<Title>802.11 Comment Resolution Tool</Title>
+					<Title>802.11 Comment Resolution</Title>
 					<Nav>
 						{access >= AccessLevel.Public && <>
 							<NavLink to="/ballots/" activeClassName='active'>Ballots</NavLink>

@@ -18,16 +18,16 @@ function VotersImportModal({
 	votersFromSpreadsheet
 }) {
 	const fileInputRef = React.useRef();
-	const [errMsg, setErrMsg] = React.useState('')
+	const [errMsg, setErrMsg] = React.useState('');
 
 	async function submit() {
-		const file = fileInputRef.current.files[0]
+		const file = fileInputRef.current.files[0];
 		if (!file) {
 			setErrMsg('Select file');
-			return
+			return;
 		}
-		await votersFromSpreadsheet(votingPoolName, file)
-		close()
+		await votersFromSpreadsheet(votingPoolName, file);
+		close();
 	}
 
 	return (

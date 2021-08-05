@@ -5,7 +5,7 @@ import styled from '@emotion/styled'
 import {FixedSizeList as List} from 'react-window'
 import Input from 'react-dropdown-select/lib/components/Input'
 import {Select} from 'dot11-components/general/Form'
-import {Icon} from 'dot11-components/lib/icons'
+import {Icon} from 'dot11-components/icons'
 import {getData} from 'dot11-components/store/dataSelectors'
 import {strComp} from 'dot11-components/lib/utils'
 

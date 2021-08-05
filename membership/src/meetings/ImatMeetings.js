@@ -5,11 +5,11 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table'
 import {ConfirmModal} from 'dot11-components/modals'
-import {ActionButton} from 'dot11-components/lib/icons'
-import {displayDate} from 'dot11-components/lib/utils'
-import SessionDialog from './SessionDialog'
+import {ActionButton} from 'dot11-components/icons'
+import {displayDate} from 'dot11-components/lib'
+import {SessionImportModal} from './SessionDialog'
 
-import {loadImatMeetings, getSyncedImatMeetingsEntities} from '../store/imatMeetings'
+import {loadImatMeetings, getSyncedImatMeetingsEntities, fields} from '../store/imatMeetings'
 import {loadSessions, SessionTypeOptions} from '../store/sessions'
 
 const DefaultMeeting = {Date: new Date(), Location: '', Type: SessionTypeOptions[0].value}
@@ -43,38 +43,28 @@ const TableRow = styled.div`
 	}
 `;
 
-const renderMeetingType = ({rowData}) => {
-	const option = SessionTypeOptions.find(o => o.value === rowData.Type)
-	return option? option.label: '';
-};
-
-const renderDate = ({rowData, dataKey}) => displayDate(rowData[dataKey])
-
 const tableColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
 		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
-	{key: 'MeetingNumber', 
-		label: 'Meeting Number',
+	{key: 'MeetingNumber',
+		...fields.MeetingNumber,
 		width: 120, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
 	{key: 'Start', 
-		label: 'Start',
-		width: 150, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderDate},
+		...fields.Start,
+		width: 150, flexGrow: 1, flexShrink: 1},
 	{key: 'End', 
-		label: 'End',
-		width: 150, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderDate},
+		...fields.End,
+		width: 150, flexGrow: 1, flexShrink: 1},
 	{key: 'Name', 
-		label: 'Session Name',
+		...fields.Name,
 		width: 400, flexGrow: 1, flexShrink: 1},
 	{key: 'Type', 
-		label: 'Session Type',
-		width: 100, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderMeetingType},
+		...fields.Type,
+		width: 100, flexGrow: 1, flexShrink: 1},
 	{key: 'TimeZone', 
-		label: 'Time Zone',
+		...fields.TimeZone,
 		width: 200, flexGrow: 1, flexShrink: 1},
 	{key: 'Actions',
 		label: 'Actions',
@@ -94,7 +84,7 @@ function ImatMeetings({
 	loadSessions
 }) {
 	const history = useHistory();
-	const [sessionDialog, setSessionDialog] = React.useState({action: null});
+	const [defaultSession, setDefaultSession] = React.useState(null);
 	const numberSessions = React.useRef(20);
 
 	const columns = React.useMemo(() => {
@@ -110,13 +100,13 @@ function ImatMeetings({
 
 	React.useEffect(() => {
 		if (!sessionsValid)
-			loadSessions()
+			loadSessions();
 		if (!valid)
-			loadImatMeetings(numberSessions.current)
+			loadImatMeetings(numberSessions.current);
 	}, []);
 
-	const importSessionDialog = (meeting) => setSessionDialog({action: 'add', meeting});
-	const closeSessionDialog = () => setSessionDialog(s => ({...s, action: null}));
+	const importSessionDialog = (meeting) => setDefaultSession(meeting);
+	const closeSessionDialog = () => setDefaultSession(null);
 
 	function getMore() {
 		numberSessions.current += 10;
@@ -126,37 +116,34 @@ function ImatMeetings({
 	const close = () => history.goBack();
 	const refresh = () => loadImatMeetings(numberSessions.current);
 
-	return (
-		<>
-			<TopRow style={{maxWidth}}>
-				<div>IMAT Session</div>
-				<div>
-					<ActionButton name='more' title='Load More' onClick={getMore} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-					<ActionButton name='close' title='Close' onClick={close} />
-				</div>
-			</TopRow>
+	return <>
+		<TopRow style={{maxWidth}}>
+			<div>IMAT Session</div>
+			<div>
+				<ActionButton name='more' title='Load More' onClick={getMore} />
+				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				<ActionButton name='close' title='Close' onClick={close} />
+			</div>
+		</TopRow>
 
-			<TableRow style={{maxWidth}}>
-				<AppTable
-					fixed
-					columns={columns}
-					headerHeight={36}
-					estimatedRowHeight={36}
-					dataSet={dataSet}
-					rowGetter={({rowId}) => imatMeetings[rowId]}
-					rowKey={primaryDataKey}
-				/>
-			</TableRow>
-
-			<SessionDialog
-				isOpen={!!sessionDialog.action}
-				action={sessionDialog.action}
-				session={sessionDialog.meeting}
-				close={closeSessionDialog}
+		<TableRow style={{maxWidth}}>
+			<AppTable
+				fixed
+				columns={columns}
+				headerHeight={36}
+				estimatedRowHeight={36}
+				dataSet={dataSet}
+				rowGetter={({rowId}) => imatMeetings[rowId]}
+				rowKey={primaryDataKey}
 			/>
-		</>
-	)
+		</TableRow>
+
+		<SessionImportModal
+			isOpen={!!defaultSession}
+			defaultSession={defaultSession}
+			close={closeSessionDialog}
+		/>
+	</>
 }
 
 ImatMeetings.propTypes = {

@@ -4,7 +4,7 @@ import {useHistory} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppTable,{SelectHeader, SelectCell} from 'dot11-components/table'
-import {ActionButton} from 'dot11-components/lib/icons'
+import {ActionButton} from 'dot11-components/icons'
 import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
 import {ConfirmModal} from 'dot11-components/modals'
 

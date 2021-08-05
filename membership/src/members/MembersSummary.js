@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import styled from '@emotion/styled'
-import {Handle, IconCollapse} from 'dot11-components/lib/icons'
+import {Handle, IconCollapse} from 'dot11-components/icons'
 import {connect} from 'react-redux'
 
 function getMembersSummary(members) {
@@ -30,6 +30,7 @@ const Container = styled.div`
 
 const LV = styled.div`
 	display: flex;
+	flex-direction: column;
 	align-items: center;
 	margin-right: 20px;
 	div:first-of-type {
@@ -53,11 +54,11 @@ function MembersSummary({
 			className={className}
 			style={style}
 		>
-			<LabelValue label='Non-Voters:' value={summary.nv}/>
-			<LabelValue label='Aspirants:' value={summary.a}/>
-			<LabelValue label='Potential Voters:' value={summary.pv}/>
-			<LabelValue label='Voters:' value={summary.v}/>
-			<LabelValue label='ExOfficio:' value={summary.eo}/>
+			<LabelValue label='Non-Voters' value={summary.nv}/>
+			<LabelValue label='Aspirants' value={summary.a}/>
+			<LabelValue label='Potential Voters' value={summary.pv}/>
+			<LabelValue label='Voters' value={summary.v}/>
+			<LabelValue label='ExOfficio' value={summary.eo}/>
 		</Container>
 	)
 }

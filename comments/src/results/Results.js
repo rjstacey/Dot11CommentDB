@@ -4,8 +4,8 @@ import {useHistory, useParams} from 'react-router-dom'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppTable, {TableColumnSelector} from 'dot11-components/table'
-import {ActionButton} from 'dot11-components/lib/icons'
-import {AccessLevel} from 'dot11-components/lib/user'
+import {ActionButton} from 'dot11-components/icons'
+import {AccessLevel} from 'dot11-components/lib'
 import BallotSelector from '../ballots/BallotSelector'
 import ResultsSummary from './ResultsSummary'
 import ResultsExport from './ResultsExport'
@@ -62,7 +62,7 @@ function getDefaultTablesConfig(access, type) {
 			if (c.key === 'SAPIN') {
 				if (access < AccessLevel.SubgroupAdmin)
 					columnConfig.shown = false;
-				if (type === BallotType.SA_Initial || type == BallotType.SA_Recirc)
+				if (type === BallotType.SA)
 					columnConfig.shown = false;
 			}
 			if (c.key === 'Email') {
@@ -84,7 +84,7 @@ function updateTableConfig(upsertTableColumns, access, type) {
 		});
 	}
 	else {
-		if (type === BallotType.SA_Initial || type == BallotType.SA_Recirc)
+		if (type === BallotType.SA)
 			upsertTableColumns(undefined, {
 				SAPIN: {shown: false},
 				Email: {shown: true}
@@ -133,38 +133,36 @@ function Results({
 		else if (currentBallotId) {
 			history.replace(`/Results/${currentBallotId}`);
 		}
-	}, [ballotId, currentBallotId, ballot.BallotID, history, valid, setBallotId, loadResults]);
+	}, [ballotId, currentBallotId, ballot.BallotID]);
 
-	const onBallotSelected = (ballotId) => history.push(`/Results/${ballotId}`); // Redirect to page with selected ballot
+	const onBallotSelected = (ballotId) => history.push(`/results/${ballotId}`); // Redirect to page with selected ballot
 
-	return (
-		<>
-			<ActionRow style={{maxWidth}}>
-				<BallotSelector onBallotSelected={onBallotSelected}	/>
-				<div style={{display: 'flex'}}>
-					<ResultsExport ballotId={ballotId} ballot={ballot} />
-					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-					<ActionButton name='refresh' title='Refresh' onClick={() => loadResults(ballotId)} />
-				</div>
-			</ActionRow>
-			<ResultsSummary
-				style={{maxWidth}}
-				ballot={ballot}
-				resultsSummary={resultsSummary}
-				votingPoolSize={votingPoolSize}
+	return <>
+		<ActionRow style={{maxWidth}}>
+			<BallotSelector onBallotSelected={onBallotSelected}	/>
+			<div style={{display: 'flex'}}>
+				<ResultsExport ballotId={ballotId} ballot={ballot} />
+				<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+				<ActionButton name='refresh' title='Refresh' onClick={() => loadResults(ballotId)} />
+			</div>
+		</ActionRow>
+		<ResultsSummary
+			style={{maxWidth}}
+			ballot={ballot}
+			resultsSummary={resultsSummary}
+			votingPoolSize={votingPoolSize}
+		/>
+		<TableRow style={{maxWidth}}>
+			<AppTable
+				defaultTablesConfig={defaultTablesConfig}
+				columns={tableColumns}
+				headerHeight={28}
+				estimatedRowHeight={32}
+				dataSet={dataSet}
+				rowKey='id'
 			/>
-			<TableRow style={{maxWidth}}>
-				<AppTable
-					defaultTablesConfig={defaultTablesConfig}
-					columns={tableColumns}
-					headerHeight={28}
-					estimatedRowHeight={32}
-					dataSet={dataSet}
-					rowKey='id'
-				/>
-			</TableRow>
-		</>
-	)
+		</TableRow>
+	</>
 }
 
 Results.propTypes = {

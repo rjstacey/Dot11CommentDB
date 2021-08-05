@@ -6,8 +6,8 @@ import styled from '@emotion/styled'
 import copyToClipboard from 'copy-html-to-clipboard'
 
 import AppTable, {SplitPanel, Panel, SelectExpandHeader, SelectExpandCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, IdFilter} from 'dot11-components/table'
-import {Button, ActionButton, ButtonGroup} from 'dot11-components/lib/icons'
-import {AccessLevel} from 'dot11-components/lib/user'
+import {Button, ActionButton, ButtonGroup} from 'dot11-components/icons'
+import {AccessLevel} from 'dot11-components/lib'
 import {getEntities, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
 import {setProperty} from 'dot11-components/store/ui'
 
@@ -457,14 +457,6 @@ const TopRow = styled.div`
 	width: 100%;
 	padding: 10px;
 	box-sizing: border-box;
-`;
-
-const TableRow = styled.div`
-	flex: 1;	/* remaining height */
-	overflow: hidden; /* prevent content increasing height */
-	width: 100%;
-	display: flex;
-	align-content: center;
 `;
 
 Comments.propTypes = {

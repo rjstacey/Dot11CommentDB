@@ -5,7 +5,7 @@ import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table'
 import {ConfirmModal} from 'dot11-components/modals'
-import {ActionButton} from 'dot11-components/lib/icons'
+import {ActionButton} from 'dot11-components/icons'
 import {displayDate, displayTime, displayDayDate} from 'dot11-components/lib/utils'
 
 import {loadBreakouts} from '../store/breakouts'
@@ -116,30 +116,28 @@ function Breakouts({
 	const close = () => history.goBack();
 	const refresh = () => loadBreakouts(session_id);
 
-	return (
-		<React.Fragment>
-			<TopRow style={{maxWidth}}>
-				<div>{valid && renderSessionInfo(session)}</div>
-				<div>Breakouts</div>
-				<div>
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-					<ActionButton name='close' title='Close' onClick={close} />
-				</div>
-			</TopRow>
+	return <>
+		<TopRow style={{maxWidth}}>
+			<div>{valid && renderSessionInfo(session)}</div>
+			<div>Breakouts</div>
+			<div>
+				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				<ActionButton name='close' title='Close' onClick={close} />
+			</div>
+		</TopRow>
 
-			<TableRow style={{maxWidth}}>
-				<AppTable
-					fixed
-					columns={columns}
-					headerHeight={36}
-					estimatedRowHeight={36}
-					dataSet={dataSet}
-					rowKey={primaryDataKey}
-					rowGetter={breakoutsRowGetter}
-				/>
-			</TableRow>
-		</React.Fragment>
-	)
+		<TableRow style={{maxWidth}}>
+			<AppTable
+				fixed
+				columns={columns}
+				headerHeight={36}
+				estimatedRowHeight={36}
+				dataSet={dataSet}
+				rowKey={primaryDataKey}
+				rowGetter={breakoutsRowGetter}
+			/>
+		</TableRow>
+	</>
 }
 
 Breakouts.propTypes = {

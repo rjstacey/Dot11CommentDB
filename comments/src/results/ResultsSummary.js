@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import styled from '@emotion/styled'
-import {Handle, IconCollapse} from 'dot11-components/lib/icons'
+import {Handle, IconCollapse} from 'dot11-components/icons'
 
-import {BallotType} from '../store/ballots'
+import {BallotType, BallotTypeLabels} from '../store/ballots'
 
 function getResultsSummary(ballot, r, votingPoolSize) {
 	const summary = {
@@ -40,7 +40,7 @@ function getResultsSummary(ballot, r, votingPoolSize) {
 		const _MS_PER_DAY = 1000 * 60 * 60 * 24;
 		const dur = Math.floor((dEnd - dStart) / _MS_PER_DAY);
 		if (!isNaN(dur))
-			summary.duration = `${dur} days`
+			summary.duration = `${dur} days`;
 	}
 
 	if (r) {
@@ -48,22 +48,22 @@ function getResultsSummary(ballot, r, votingPoolSize) {
 		if (!isNaN(pct)) {
 			summary.approvalRate = `${(100*pct).toFixed(1)}%`
 			if (ballot.Type !== BallotType.CC) {
-				summary.approvalRatePass = pct > 0.75
-				summary.approvalRateReq = (summary.approvalRatePass? 'Meets': 'Does not meet') + ' approval requirement (>75%)'
+				summary.approvalRatePass = pct > 0.75;
+				summary.approvalRateReq = (summary.approvalRatePass? 'Meets': 'Does not meet') + ' approval requirement (>75%)';
 			}
 		}
-		summary.approve = r.Approve
-		summary.disapprove = r.Disapprove
-		summary.abstain = r.Abstain
-		summary.invalidVote = r.InvalidVote
-		summary.invalidDisapprove = r.InvalidDisapprove
-		summary.invalidAbstain = r.InvalidAbstain
-		summary.returns = r.TotalReturns
-		pct = parseFloat(r.TotalReturns/r.ReturnsPoolSize)
+		summary.approve = r.Approve;
+		summary.disapprove = r.Disapprove;
+		summary.abstain = r.Abstain;
+		summary.invalidVote = r.InvalidVote;
+		summary.invalidDisapprove = r.InvalidDisapprove;
+		summary.invalidAbstain = r.InvalidAbstain;
+		summary.returns = r.TotalReturns;
+		pct = parseFloat(r.TotalReturns/r.ReturnsPoolSize);
 		if (!isNaN(pct)) {
-			summary.returnsRate = `${(100*pct).toFixed(1)}%`
+			summary.returnsRate = `${(100*pct).toFixed(1)}%`;
 			if (ballot.Type !== BallotType.CC) {
-				const threshold = (ballot.Type === BallotType.SA_Initial || ballot.Type === BallotType.SA_Recirc)?
+				const threshold = (ballot.Type === BallotType.SA)?
 					0.75: 	// SA ballot requirement
 					0.5		// WG ballot or motion requirement
 				summary.returnsRatePass = pct > threshold
@@ -124,21 +124,9 @@ const LabelValue = ({label, children, ...otherProps}) =>
 		{(typeof children === 'string' || typeof children === 'number')? <span>{children}</span>: children}
 	</LV>
 
-const ballotTypeLabel = (ballotType) => {
-	const labels = {
-		[BallotType.CC]: 'Comment collection',
-		[BallotType.WG_Initial]: 'Initial WG ballot',
-		[BallotType.WG_Recirc]: 'Recirculation WG ballot',
-		[BallotType.SA_Initial]: 'Initial SA ballot',
-		[BallotType.SA_Recirc]: 'Recirculation SA ballot',
-		[BallotType.Motion]: 'Motion'
-	}
-	return labels[ballotType] || 'Uexpected ballot type';
-}
-
 const BallotColumn = ({ballot, summary}) =>
 	<Col width={260}>
-		<Title>{ballotTypeLabel(ballot.Type)}</Title>
+		<Title>{BallotTypeLabels[ballot.Type] || 'Unexpected'}</Title>
 		<LabelValue label='Opened:'>{summary.opened}</LabelValue>
 		<LabelValue label='Closed:'>{summary.closed}</LabelValue>
 		<LabelValue label='Duration:'>{summary.duration}</LabelValue>
@@ -151,7 +139,7 @@ const ResultColumn = ({ballot, summary}) =>
 		<Title>Result</Title>
 		<LabelValue label='Approve:'>{summary.approve}</LabelValue>
 		<LabelValue label='Disapprove:'>{summary.disapprove}</LabelValue>
-		{(ballot.Type === BallotType.SA_Initial || ballot.Type === BallotType.SA_Recirc) &&
+		{(ballot.Type === BallotType.SA) &&
 			<LabelValue label='Disapprove without MBS comment:'>{summary.invalidDisapprove}</LabelValue>}
 		<LabelValue label='Abstain:'>{summary.abstain}</LabelValue>
 		<LabelValue label='Total returns:'>{summary.returns}</LabelValue>
@@ -185,24 +173,24 @@ const ApprovalCriteriaColumn = ({ballot, summary}) =>
 	</Col>
 
 const DetailedSummary = ({ballot, summary}) =>
-	<React.Fragment>
+	<>
 		<BallotColumn ballot={ballot} summary={summary} />
 		<ResultColumn ballot={ballot} summary={summary} />
-		{(ballot.Type === BallotType.WG_Initial || ballot.Type === BallotType.WG_Recirc) &&
+		{(ballot.Type === BallotType.WG) &&
 			<InvalidVotesColumn summary={summary} />}
 		{ballot.Type !== BallotType.CC &&
 			<ApprovalCriteriaColumn ballot={ballot} summary={summary} />}
-	</React.Fragment>
+	</>
 
 const BasicSummary = ({ballot, summary}) =>
-	<React.Fragment>
+	<>
 		<Col>
-			<Title>{ballotTypeLabel(ballot.Type)}</Title>
+			<Title>{BallotTypeLabels[ballot.Type] || 'Unexpected'}</Title>
 		</Col>
 		<Col>
 			<PassFailSpan pass={summary.approvalRatePass}>{summary.approve}/{summary.disapprove}/{summary.abstain} ({summary.approvalRate})</PassFailSpan>
 		</Col>
-	</React.Fragment>
+	</>
 
 function ResultsSummary({
 	className,

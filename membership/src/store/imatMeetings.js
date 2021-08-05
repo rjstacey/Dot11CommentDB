@@ -6,18 +6,18 @@ import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filt
 import selectedSlice, {setSelected} from 'dot11-components/store/selected'
 import uiSlice from 'dot11-components/store/ui'
 import {setError} from 'dot11-components/store/error'
-import {SessionTypeOptions} from './sessions'
+import {displayDate} from 'dot11-components/lib/utils'
+import {SessionTypeOptions, displaySessionType} from './sessions'
 
-const fields = {
+export const fields = {
 	id: {label: 'ID'},
-	Start: {label: 'Start', sortType: SortType.DATE},
-	End: {label: 'End', sortType: SortType.DATE},
+	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
+	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
 	Name: {label: 'Name'},
-	Type: {label: 'Type', options: SessionTypeOptions},
+	Type: {label: 'Type', dataRenderer: displaySessionType, options: SessionTypeOptions},
 	TimeZone: {label: 'TimeZone'},
 	MeetingNumber: {label: 'MeetingNumber', sortType: SortType.NUMERIC}
 };
-
 
 /*
  * Remove entries that no longer exist from a list. If there

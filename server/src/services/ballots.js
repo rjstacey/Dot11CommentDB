@@ -8,12 +8,19 @@ import {parseClosedEpollsPage} from './epoll'
 import {getResults, getResultsCoalesced} from './results'
 import {getVoters} from './voters'
 
+export const BallotType = {
+	CC: 0,			// comment collection
+	WG: 1,			// WG ballot
+	SA: 2,			// SA ballot
+	Motion: 5		// motion
+};
+
 /*
  * Get ballots SQL query.
  */
 const getBallotsSQL =
 	'SELECT ' +
-		'id, BallotID, Project, Type, Start, End, Document, Topic, VotingPoolID, PrevBallotID, EpollNum, IsComplete, ' +
+		'id, BallotID, Project, Type, IsRecirc, IsComplete, Start, End, Document, Topic, VotingPoolID, PrevBallotID, EpollNum, ' +
 		'ResultsSummary AS Results, ' +
 		'JSON_OBJECT( ' +
 			'"Count", (SELECT COUNT(*) FROM comments c WHERE b.id=c.ballot_id), ' +
@@ -50,7 +57,7 @@ export async function getBallot(ballotId) {
 async function getBallotWithNewResultsSummary(user, ballotId) {
 	const {ballot, summary} = await getResultsCoalesced(user, ballotId);
 	const commentsSummaries = await db.query(getCommentsSummarySQL(ballotId));
-	console.log(ballot, summary, commentsSummaries)
+	//console.log(ballot, summary, commentsSummaries)
 	return {
 		...ballot,
 		Comments: commentsSummaries[0],
@@ -84,8 +91,8 @@ export async function getBallotSeriesWithResults(ballotId) {
 export async function getRecentBallotSeriesWithResults() {
 	const ballots = await db.query(
 		getBallotsSQL + ' WHERE ' +
-			'(Type=2 OR Type=3) AND ' +		// WG ballots
-			'IsComplete=1 ' + 				// series is complete
+			`Type=${BallotType.WG} AND ` +	// WG ballots
+			'IsComplete<>0 ' + 				// series is complete
 			'ORDER BY End DESC ' +			// newest to oldest
 			'LIMIT 3;'						// last 3
 	);
@@ -98,6 +105,8 @@ function ballotEntry(ballot) {
 		BallotID: ballot.BallotID,
 		Project: ballot.Project,
 		Type: ballot.Type,
+		IsRecirc: ballot.IsRecirc,
+		IsComplete: ballot.IsComplete,
 		Document: ballot.Document,
 		Topic: ballot.Topic,
 		Start: ballot.Start && new Date(ballot.Start),
@@ -105,7 +114,6 @@ function ballotEntry(ballot) {
 		EpollNum: ballot.EpollNum,
 		VotingPoolID: ballot.VotingPoolID,
 		PrevBallotID: ballot.PrevBallotID,
-		IsComplete: ballot.IsComplete
 	}
 
 	for (let key of Object.keys(entry)) {
@@ -119,13 +127,11 @@ function ballotEntry(ballot) {
 async function addBallot(user, ballot) {
 
 	const entry = ballotEntry(ballot);
-	console.log(entry)
+
 	if (!entry || !entry.hasOwnProperty('BallotID'))
 		throw 'Ballot must have BallotID';
 
 	try {
-		console.log(db.format('INSERT INTO ballots (??) VALUES (?);',
-			[Object.keys(entry), Object.values(entry)]))
 		const results = await db.query(
 			'INSERT INTO ballots (??) VALUES (?);',
 			[Object.keys(entry), Object.values(entry)]
@@ -133,7 +139,6 @@ async function addBallot(user, ballot) {
 		const id = results.insertedId;
 	}
 	catch(err) {
-		console.log(err)
 		throw err.code == 'ER_DUP_ENTRY'? "An entry already exists with this ID": err
 	}
 
@@ -151,7 +156,7 @@ async function updateBallot(user, ballot) {
 		throw 'Ballot to be updated must have id';
 
 	const entry = ballotEntry(ballot);
-	console.log(entry)
+
 	if (entry) {
 		const result = await db.query('UPDATE ballots SET ? WHERE id=?',  [entry, ballot.id]);
 		if (result.affectedRows !== 1)

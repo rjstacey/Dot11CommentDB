@@ -3,7 +3,7 @@ import React from 'react'
 import {useHistory, useParams} from 'react-router-dom'
 import styled from '@emotion/styled'
 import {connect} from 'react-redux'
-import {ActionButton, Button} from 'dot11-components/lib/icons'
+import {ActionButton, Button} from 'dot11-components/icons'
 import {getData} from 'dot11-components/store/dataSelectors'
 
 import BallotSelector from '../ballots/BallotSelector'

@@ -7,7 +7,7 @@ import copyToClipboard from 'copy-html-to-clipboard'
 
 import AppTable, {SelectHeader, SelectCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, SplitPanel, Panel} from 'dot11-components/table'
 import {ConfirmModal} from 'dot11-components/modals'
-import {ActionButton, Button} from 'dot11-components/lib/icons'
+import {ActionButton, Button} from 'dot11-components/icons'
 import {setTableView, initTableConfig, setProperty} from 'dot11-components/store/ui'
 import {Field, Input, Form, Row} from 'dot11-components/general/Form'
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
@@ -57,18 +57,6 @@ function setClipboard(selected, members) {
 	copyToClipboard(table, {asHtml: true});
 }
 
-
-const ActionCell = styled.div`
-	display: flex;
-	justify-content: center;
-`;
-
-const RowActions = ({onEdit, onDelete}) =>
-	<ActionCell>
-		<ActionButton name='edit' title='Edit' onClick={onEdit} />
-		<ActionButton name='delete' title='Delete' onClick={onDelete} />
-	</ActionCell>
-
 const TopRow = styled.div`
 	display: flex;
 	justify-content: space-between;
@@ -77,29 +65,12 @@ const TopRow = styled.div`
 	box-sizing: border-box;
 `;
 
-const TableRow = styled.div`
-	flex: 1;	/* remaining height */
-	overflow: hidden; /* prevent content increasing height */
-	width: 100%;
-	display: flex;
-	align-content: center;
-	.AppTable__dataRow,
-	.AppTable__headerRow {
-		align-items: center;
-	}
-`;
-
 const DivLineTruncated = styled.div`
 	width: 100%;
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
 `;
-
-const renderAccess = ({rowData}) => {
-	const item = AccessLevelOptions.find(o => o.value === rowData.Access);
-	return item? item.label: 'error';
-}
 
 const MembersColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
 
@@ -135,7 +106,7 @@ const AttendanceContainer = styled.div`
 		flex-basis: 1.5em;
 	}
 	& > div:not(:first-of-type) {
-		width: 40px;
+		width: 46px;
 		margin: 2px;
 		padding: 0 4px;
 		text-align: right;
@@ -146,13 +117,21 @@ const AttendanceContainer = styled.div`
 `;
 
 const _Attendances = ({rowData, dataKey, sessions}) => {
-	const attendances = rowData.Attendances;
-	if (!attendances)
-		return 'None'
+	const attendances = rowData.Attendances || [];
+
+	// Sort by session date (newest fist)
+	const session_ids = Object.keys(attendances)
+		.filter(k => sessions[k])
+		.sort((k1, k2) => sessions[k2].Start - sessions[k1].Start);
+
+	if (session_ids.length === 0)
+		return 'None';
+
 	const P = [], I = [];
 	let iCount = 0;
 	//console.log(sessions)
-	for (const [k, a] of Object.entries(attendances)) {
+	for (const k of session_ids) {
+		const a = attendances[k];
 		const s = sessions[k];
 		/* Plenary session attendance qualifies if the member gets at least 75% attendance credit.
 		 * One interim can be substituted for a plenary. */
@@ -170,19 +149,17 @@ const _Attendances = ({rowData, dataKey, sessions}) => {
 			text = a.AttendancePercentage.toFixed(0) + '%';
 			canQualify = a.AttendancePercentage >= 75;
 		}
-		const qualifies = (canQualify && (s.Type === 'p' || (s.Type === 'i' && iCount++ === 0)))
+		const qualifies = (canQualify && (s.Type === 'p' || (s.Type === 'i' && iCount++ === 0)));
 		const el = <div key={k} className={qualifies? 'qualifies': undefined}>{text}</div>;
 		if (s && s.Type === 'i')
-			I.push(el)
+			I.push(el);
 		else
-			P.push(el)
+			P.push(el);
 	}
-	return (
-		<>
-			<AttendanceContainer><div>P:</div>{P}</AttendanceContainer>
-			<AttendanceContainer><div>I:</div>{I}</AttendanceContainer>
-		</>
-	)
+	return <>
+		<AttendanceContainer><div>P:</div>{P}</AttendanceContainer>
+		<AttendanceContainer><div>I:</div>{I}</AttendanceContainer>
+	</>
 }
 
 const Attendances = connect((state) => ({sessions: state.sessions.entities}))(_Attendances);
@@ -235,8 +212,8 @@ const tableColumns = [
 		width: 160, flexGrow: 1, flexShrink: 1},
 	{key: 'Access', 
 		...fields.Access,
-		width: 150, flexGrow: 1, flexShrink: 1, dropdownWidth: 200,
-		cellRenderer: renderAccess},
+		width: 150, flexGrow: 1, flexShrink: 1, 
+		dropdownWidth: 200},
 	{key: 'AttendanceCount', 
 		label: 'Session participation',
 		width: 300, flexGrow: 1, flexShrink: 1,
@@ -281,8 +258,6 @@ const ButtonGroup = styled.div`
 	margin: 0 5px;
 `;
 
-const FForm = ({close, ...otherProps}) => <Form cancel={close} {...otherProps} />
-
 function Members({
 	selected,
 	loading,
@@ -310,68 +285,66 @@ function Members({
 			await deleteSelectedMembers();
 	}
 
-	return (
-		<>
-			<TopRow>
-				<MembersSummary />
-				<div style={{display: 'flex'}}>
-					<ButtonGroup>
-						<div>Table view</div>
-						<div style={{display: 'flex'}}>
-							<TableViewSelector dataSet={dataSet} />
-							<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-							<ActionButton
-								name='book-open'
-								title='Show detail'
-								isActive={uiProperty.editView}
-								onClick={() => setUiProperty('editView', !uiProperty.editView)}
-							/>
-						</div>
-					</ButtonGroup>
-					<ButtonGroup>
-						<div>Roster</div>
-						<div style={{display: 'flex'}}>
-							<RosterImport />
-							<RosterExport />
-						</div>
-					</ButtonGroup>
-					<BulkStatusUpdate />
-					<ButtonGroup>
-						<div>Edit</div>
-						<div style={{display: 'flex'}}>
-							<ActionButton name='copy' title='Copy to clipboard' disabled={selected.length === 0} onClick={e => setClipboard(selected, members)} />
-							<MembersUpload />
-							<MemberAdd />
-							<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
-						</div>
-					</ButtonGroup>
-					<ActionButton name='refresh' title='Refresh' onClick={loadMembers} />
-				</div>
-			</TopRow>
+	return <>
+		<TopRow>
+			<MembersSummary />
+			<div style={{display: 'flex'}}>
+				<ButtonGroup>
+					<div>Table view</div>
+					<div style={{display: 'flex'}}>
+						<TableViewSelector dataSet={dataSet} />
+						<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+						<ActionButton
+							name='book-open'
+							title='Show detail'
+							isActive={uiProperty.editView}
+							onClick={() => setUiProperty('editView', !uiProperty.editView)}
+						/>
+					</div>
+				</ButtonGroup>
+				<ButtonGroup>
+					<div>Roster</div>
+					<div style={{display: 'flex'}}>
+						<RosterImport />
+						<RosterExport />
+					</div>
+				</ButtonGroup>
+				<BulkStatusUpdate />
+				<ButtonGroup>
+					<div>Edit</div>
+					<div style={{display: 'flex'}}>
+						<ActionButton name='copy' title='Copy to clipboard' disabled={selected.length === 0} onClick={e => setClipboard(selected, members)} />
+						<MembersUpload />
+						<MemberAdd />
+						<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
+					</div>
+				</ButtonGroup>
+				<ActionButton name='refresh' title='Refresh' onClick={loadMembers} />
+			</div>
+		</TopRow>
 
-			<ShowFilters
-				dataSet={dataSet}
-				fields={fields}
-			/>
+		<ShowFilters
+			dataSet={dataSet}
+			fields={fields}
+		/>
 
-			<SplitPanel splitView={uiProperty.editView || false} >
-				<Panel>
-					<AppTable
-						defaultTablesConfig={defaultTablesConfig}
-						columns={tableColumns}
-						headerHeight={50}
-						estimatedRowHeight={50}
-						dataSet={dataSet}
-					/>
-				</Panel>
-				<Panel style={{overflow: 'auto'}}>
-					<MemberDetail
-						key={selected}
-					/>
-				</Panel>
-			</SplitPanel>
-		</>
-	)
+		<SplitPanel splitView={uiProperty.editView || false} >
+			<Panel>
+				<AppTable
+					defaultTablesConfig={defaultTablesConfig}
+					columns={tableColumns}
+					headerHeight={50}
+					estimatedRowHeight={50}
+					dataSet={dataSet}
+				/>
+			</Panel>
+			<Panel style={{overflow: 'auto'}}>
+				<MemberDetail
+					key={selected}
+				/>
+			</Panel>
+		</SplitPanel>
+	</>
 }
 
 Members.propTypes = {
@@ -387,7 +360,8 @@ Members.propTypes = {
 	setUiProperty: PropTypes.func.isRequired,
 }
 
-const dataSet = 'members'
+const dataSet = 'members';
+
 export default connect(
 	(state) => {
 		return {
@@ -407,4 +381,4 @@ export default connect(
 			setUiProperty: (property, value) => dispatch(setProperty(dataSet, property, value))
 		}
 	}
-)(Members)
+)(Members);

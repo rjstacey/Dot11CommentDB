@@ -7,10 +7,9 @@ import selectedSlice, {setSelected} from 'dot11-components/store/selected'
 import uiSlice, {setProperty} from 'dot11-components/store/ui'
 import {setError} from 'dot11-components/store/error'
 import {getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
-import {AccessLevel, AccessLevelOptions} from 'dot11-components/lib/user'	// re-export access level constants
+import {AccessLevel, AccessLevelOptions, AccessLevelLabels, displayAccessLevel} from 'dot11-components/lib/user'	// re-export access level constants
 
-export {AccessLevel, AccessLevelOptions};
-
+export {AccessLevel, AccessLevelOptions, AccessLevelLabels};
 
 const Status = {
 	'Non-Voter': 'Non-Voter',
@@ -31,39 +30,10 @@ export const fields = {
 	Affiliation: {label: 'Affiliation'}, 
 	Status: {label: 'Status'},
 	NewStatus: {label: 'Expected status'},
-	Access: {label: 'Access level', sortType: SortType.NUMERIC, options: AccessLevelOptions},
+	Access: {label: 'Access level', dataRenderer: displayAccessLevel, sortType: SortType.NUMERIC, options: AccessLevelOptions},
 	AttendanceCount: {label: 'Session participation', sortType: SortType.NUMERIC},
 	BallotSeriesCount: {label: 'Ballot participation', sortType: SortType.NUMERIC},
 };
-
-/*
- * Generate a filter for each field (table column)
- */
-const defaultFiltersEntries = Object.keys(fields).reduce((entries, dataKey) => {
-	let options;
-	if (dataKey === 'Access')
-		options = AccessLevelOptions;
-	return {...entries, [dataKey]: {options}}
-}, {});
-
-/*
- * Generate object that describes the initial sort state
- */
-const defaultSortEntries = Object.keys(fields).reduce((entries, dataKey) => {
-	let type
-	switch (dataKey) {
-		case 'SAPIN':
-		case 'Access':
-		case 'AttendanceCount':
-		case 'BallotSeriesCount':
-			type = SortType.NUMERIC
-			break
-		default:
-			type = SortType.STRING
-	}
-	const direction = SortDirection.NONE;
-	return {...entries, [dataKey]: {type, direction}}
-}, {});
 
 /*
  * Remove entries that no longer exist from a list. If there
@@ -76,9 +46,9 @@ function filterIdList(idList, allIds) {
 
 const membersAdapter = createEntityAdapter({
 	selectId: (m) => m.SAPIN
-})
+});
 
-const dataSet = 'members'
+const dataSet = 'members';
 
 const slice = createSlice({
 	name: dataSet,
