@@ -72,7 +72,6 @@ const tableColumns = [
 ];
 
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0);
-const primaryDataKey = 'MeetingNumber';
 
 function ImatMeetings({
 	selected,
@@ -134,7 +133,6 @@ function ImatMeetings({
 				estimatedRowHeight={36}
 				dataSet={dataSet}
 				rowGetter={({rowId}) => imatMeetings[rowId]}
-				rowKey={primaryDataKey}
 			/>
 		</TableRow>
 
@@ -156,7 +154,8 @@ ImatMeetings.propTypes = {
 	loadSessions: PropTypes.func.isRequired,
 }
 
-const dataSet = 'imatMeetings'
+const dataSet = 'imatMeetings';
+
 export default connect(
 	(state) => ({
 			selected: state[dataSet].selected,

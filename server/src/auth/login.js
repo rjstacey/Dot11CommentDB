@@ -1,12 +1,13 @@
 const cheerio = require('cheerio')
 const rp = require('request-promise-native')
-const users = require('../services/users')
+const db = require('../util/database')
+const users = require('./users')
 const jwt = require('./jwt')
 
 async function login(req) {
 
 	// credentials
-	const {username, password} = req.body
+	const {username, password} = req.body;
 
 	const ieeeCookieJar = rp.jar();
 
@@ -54,40 +55,21 @@ async function login(req) {
 	if (!n) {
 		throw 'Unexpected login page'
 	}
-	const name = n[1]
-	const sapin = parseInt(n[2], 10)
-	let user = await users.getUser(sapin, username)
-	if (user === null) {
-		// User not in database; create new entry with default access level
-		if (sapin) {
-			user = await users.addUser({SAPIN: sapin, Name: name, Access: 0})
-		}
-		else {
-			throw 'SAPIN not available'
-		}
-	}
-	else {
-		// User info in database differs from login info; update user
-		if (user.SAPIN !== sapin || user.Email !== username || user.Name !== name) {
-			let newUser = Object.assign({}, user, {SAPIN: sapin, Name: name})
-			user = await users.updateUser(user.SAPIN, newUser)
-			console.log('update user:', user, newUser)
-		}
-	}
+	const Name = n[1];
+	const SAPIN = parseInt(n[2], 10);
 
-	/* Hack: adjust my access */
-	if (user.SAPIN === 5073)
-		user.Access = 3;
-
-	/*newOptions = {
+	/*
+	//Test cookie...
+	newOptions = {
 		url: `https://mentor.ieee.org/802.11/polls/closed?n=1`,
 		jar: sess.ieeeCookieJar
 	}
 	ieeeRes = await rp.get(newOptions)
 	var $ = cheerio.load(ieeeRes);
-	console.log($('div.title').html())*/
+	console.log($('div.title').html())
+	*/
 
-	return {user, ieeeCookieJar};
+	return {SAPIN, Name, Email: username, ieeeCookieJar};
 }
 
 function logout(ieeeCookieJar) {
@@ -95,13 +77,14 @@ function logout(ieeeCookieJar) {
 }
 
 /*
-* Session API
-*
-* GET /login: get current user information
-* POST /login: login with supplied credentials and return user information
-* POST /logout: logout
-*/
-const router = require('express').Router()
+ * login API
+ *
+ * GET /login: get current user information
+ * POST /login: login with supplied credentials and return user information
+ * POST /logout: logout
+ */
+const router = require('express').Router();
+
 router.get('/login', async (req, res, next) => {
 	try {
 		const userId = jwt.verify(req);
@@ -115,7 +98,18 @@ router.get('/login', async (req, res, next) => {
 
 router.post('/login', async (req, res, next) => {
 	try {
-		const {user, ieeeCookieJar} = await login(req);
+		const {SAPIN, Name, Email, ieeeCookieJar} = await login(req);
+
+		const SQL = 'SELECT SAPIN, Name, Email, Status, Access FROM members WHERE ' +
+			(SAPIN > 0? `SAPIN=${db.escape(SAPIN)}`: `Email=${db.escape(Email)}`);
+		const results = await db.query(SQL);
+		const user = (results.length > 0)
+			? results[0]
+			: {SAPIN, Name, Email, Access: 0};
+
+		/* Hack: adjust my access */
+		if (user.SAPIN === 5073)
+			user.Access = 3;
 
 		user.Token = jwt.token(user.SAPIN);
 		users.setUser(user.SAPIN, {...user, ieeeCookieJar});

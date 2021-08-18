@@ -1,9 +1,10 @@
-import {getUser} from '../services/users';
+import {getUser} from './users';
 
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 
 const secret = (process.env.NODE_ENV === 'development')? 'secret': uuidv4();
+//const secret = uuidv4();
 
 /*
  * Sign the user ID (SAPIN) and return as JWT token
@@ -11,16 +12,22 @@ const secret = (process.env.NODE_ENV === 'development')? 'secret': uuidv4();
 export const token = (userId) => jwt.sign(userId, secret);
 
 /*
+ * Get token from header
+ */
+const getToken = (req) => {
+	try {
+		return req.header('Authorization').replace('Bearer ', '');
+	}
+	catch (error) {
+		throw 'No token'
+	}
+}
+
+/*
  * Verify a JWT token and, if valid, return the decoded payload
  */
 export const verify = (req) => {
-	let token = '';
-	try {
-		token = req.header('Authorization').replace('Bearer ', '');
-	}
-	catch (error) {
-		throw 'No token';
-	}
+	const token = getToken(req);
 	try {
 		return jwt.verify(token, secret);
 	}
@@ -29,6 +36,7 @@ export const verify = (req) => {
 	}
 }
 
+
 /*
  * Express middleware to authorize a request.
  * Validates the token, looks up the user associated with the token
@@ -36,8 +44,18 @@ export const verify = (req) => {
  */
 export const authorize = async (req, res, next) => {
 	try {
-		const userId = verify(req);
+		const token = getToken(req);
+		let userId;
+		try {
+			userId = jwt.verify(token, secret);
+		}
+		catch (error) {
+			res.status(401).send('Unauthorized');
+			return;
+		}
 		const user = await getUser(userId);
+		if (!user)
+			throw 'Unknown user'
 		req.user = user;
 		next();
 	}

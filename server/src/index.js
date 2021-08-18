@@ -1,5 +1,5 @@
 /*
- * 802.11 comment database server
+ * 802.11 tools server
  *
  * Robert Stacey
  */
@@ -12,6 +12,10 @@ const db = require('./util/database');
 async function initDatabase() {
 	await db.init();
 	await require('./util/seedDatabase').init();
+}
+
+async function initUsers() {
+	await require('./auth/users').init();
 }
 
 function initServer() {
@@ -31,7 +35,7 @@ function initServer() {
 		});
 	}
 
-	app.use('/auth', require('./auth/session').default);
+	app.use('/auth', require('./auth/login').default);
 	app.use('/api', require('./api/router').default);
 
 	// Error handler
@@ -74,5 +78,6 @@ function initServer() {
 }
 
 initDatabase()
+	.then(initUsers)
 	.then(initServer)
 	.catch(error => console.error(error));

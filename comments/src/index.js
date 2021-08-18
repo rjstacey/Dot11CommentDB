@@ -8,6 +8,7 @@ import registerServiceWorker from './registerServiceWorker'
 import './index.css'
 
 const user = userInit();
+//console.log(user.Token)
 if (!user) {
 	window.location.assign(`/login?redirect=${window.location}`)
 }

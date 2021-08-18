@@ -12,7 +12,7 @@ import VotersPoolAddModal from './VotersPoolAdd'
 
 import {loadVotingPools, deleteVotingPools} from '../store/votingPools'
 
-const dataSet = 'votingPools'
+const dataSet = 'votingPools';
 
 const ActionCell = styled.div`
 	display: flex;
@@ -38,7 +38,7 @@ const tableColumns = [
 		label: 'Actions',	width: 100}
 ];
 
-const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
+const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0);
 
 const TopRow = styled.div`
 	display: flex;
@@ -48,7 +48,9 @@ const TopRow = styled.div`
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
-	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 	.AppTable__dataRow,
 	.AppTable__headerRow {
 		align-items: center;
@@ -73,7 +75,7 @@ function VotersPools({
 		const deleteVotingPool = async (vp) => {
 			const ok = await ConfirmModal.show(`Are you sure you want to delete ${vp.VotingPoolID}?`)
 			if (ok)
-				deleteVotingPools([vp])
+				deleteVotingPools([vp]);
 		}
 
 		return tableColumns.map(col =>
@@ -81,44 +83,41 @@ function VotersPools({
 				? {	...col,
 					cellRenderer: ({rowData}) => 
 						<RowActions
-							onEdit={() => history.push(`/Voters/${rowData.VotingPoolID}`)}
+							onEdit={() => history.push(`/voters/${rowData.VotingPoolID}`)}
 							onDelete={() => deleteVotingPool(rowData)}
 						/>}
 				: col
 		);
 	}, []);
 
-	const addVotingPool = (votingPoolName) => history.push(`/Voters/${votingPoolName}`)
+	const addVotingPool = (votingPoolName) => history.push(`/voters/${votingPoolName}`);
 
-	return (
-		<React.Fragment>
-			<TopRow style={{maxWidth}}>
-				<label>Voting Pools</label>
-				<span>
-					<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowVotersPoolAdd(true)} />
-					<ActionButton name='refresh' title='Refresh' onClick={loadVotingPools} />
-				</span>
-			</TopRow>
+	return <>
+		<TopRow style={{maxWidth}}>
+			<label>Voting Pools</label>
+			<span>
+				<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowVotersPoolAdd(true)} />
+				<ActionButton name='refresh' title='Refresh' onClick={loadVotingPools} />
+			</span>
+		</TopRow>
 
-			<TableRow style={{maxWidth}}>
-				<AppTable
-					fixed
-					columns={columns}
-					estimatedRowHeight={32}
-					headerHeight={36}
-					dataSet={dataSet}
-					loading={loading}
-					rowKey='VotingPoolID'
-				/>
-			</TableRow>
-
-			<VotersPoolAddModal
-				isOpen={showVotersPoolAdd}
-				close={() => setShowVotersPoolAdd(false)}
-				onSubmit={addVotingPool}
+		<TableRow>
+			<AppTable
+				fitWidth
+				fixed
+				columns={columns}
+				estimatedRowHeight={32}
+				headerHeight={36}
+				dataSet={dataSet}
 			/>
-		</React.Fragment>
-	)
+		</TableRow>
+
+		<VotersPoolAddModal
+			isOpen={showVotersPoolAdd}
+			close={() => setShowVotersPoolAdd(false)}
+			onSubmit={addVotingPool}
+		/>
+	</>
 }
 
 VotersPools.propTypes = {

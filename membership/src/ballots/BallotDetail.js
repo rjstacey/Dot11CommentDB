@@ -436,6 +436,17 @@ export function Column1({
 	</>
 }
 
+Column1.propTypes = {
+	multiple: PropTypes.bool,
+	ballot: PropTypes.object.isRequired,
+	updateBallot: PropTypes.func.isRequired,
+	setProject: PropTypes.func.isRequired,
+	projectList: PropTypes.array.isRequired,
+	ballotList: PropTypes.array.isRequired,
+	votingPools: PropTypes.array.isRequired,
+	readOnly: PropTypes.bool
+}
+
 const BallotContainer = styled.div`
 	label {
 		font-weight: bold;
@@ -704,10 +715,6 @@ const BallotDetail = connect(
 	}
 )(_BallotDetail);
 
-const StyledForm = styled(Form)`
-	width: 700px;
-`;
-
 function _BallotAddForm({
 	defaultBallot,
 	project,
@@ -729,8 +736,11 @@ function _BallotAddForm({
 		close();
 	}
 
+	const updateBallot = (changes) => setBallot(ballot => ({...ballot, ...changes}));
+
 	return (
-		<StyledForm
+		<Form
+			style={{width: '700px'}}
 			title='Add ballot'
 			submit={submit}
 			submitText='Add'
@@ -744,7 +754,7 @@ function _BallotAddForm({
 						setProject={setProject}
 						projectList={projectList}
 						ballot={ballot}
-						updateBallot={changes => setBallot(ballot => ({...ballot, ...changes}))}
+						updateBallot={updateBallot}
 						ballotList={ballotList}
 						votingPools={votingPools}
 					/>
@@ -754,13 +764,14 @@ function _BallotAddForm({
 						value={ballot.Type}
 						onChange={value => setBallot(ballot => ({...ballot, Type: value}))}
 					/>
-					<BallotStageSelect
-						value={ballot.Stage}
-						onChange={value => setBallot(ballot => ({...ballot, Stage: value}))}
-					/>
+					{(ballot.Type === BallotType.WG || ballot.Type === BallotType.SA) &&
+						<BallotStageSelect
+							value={ballot.Stage}
+							onChange={value => setBallot(ballot => ({...ballot, Stage: value}))}
+						/>}
 				</Col>
 			</Row>
-		</StyledForm>
+		</Form>
 	)
 }
 
@@ -778,13 +789,23 @@ const BallotAddForm = connect(
 	{addBallot, setProject}
 )(_BallotAddForm)
 
-const BallotAdd = () => 
+const BallotAddDropdown = (props) => 
 	<ActionButtonDropdown
 		name='add'
 		title='Add ballot' 
 	>
-		<BallotAddForm />
+		<BallotAddForm {...props} />
 	</ActionButtonDropdown>
 
+const BallotAddModal = (props) => 
+	<div onClick={e => e.stopPropagation()}>
+		<ActionButtonModal
+			name='add'
+			title='Add ballot' 
+		>
+			<BallotAddForm {...props} />
+		</ActionButtonModal>
+	</div>
+
 export default BallotDetail;
-export {BallotAdd}
+export {BallotAddDropdown, BallotAddModal}

@@ -84,26 +84,30 @@ const DELETE_COMMENTS_SQL =
 
 export const getComments = (ballotId) => db.query(GET_COMMENTS_SQL, [ballotId]);
 
-async function updateComment(userId, comment) {
+/*async function updateComment(userId, comment) {
 	if (!comment.id)
-		throw 'Comment is missing id'
+		throw 'Comment is missing id';
 	const id = comment.id;
 	delete comment.id;
-	let SQL =
+	const SQL =
 		db.format("UPDATE comments SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=?; ", [comment, userId, id]) +
 		db.format("SELECT id, comment_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE comment_id=?;", [Object.keys(comment), id]);
 	const [noop, comments] = await db.query(SQL);
-	//console.log(rows)
 	return comments;
+}*/
+
+function updateCommentsSQL(userId, ids, changes) {
+	const SQL =
+		db.format("UPDATE comments SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id IN (?); ", [changes, userId, ids]);
+	return SQL;
 }
 
-export async function updateComments(userId, comments) {
-	const arrayOfArrays = await Promise.all(comments.map(c => updateComment(userId, c)));
-	let updatedComments = [];
-	for (const comments of arrayOfArrays)
-		updatedComments = updatedComments.concat(comments)
-	//console.log(updatedComments)
-	return {comments: updatedComments}
+export async function updateComments(userId, ids, changes) {
+	const SQL =
+		updateCommentsSQL(userId, ids, changes) +
+		db.format("SELECT id, comment_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE comment_id IN (?);", [Object.keys(changes), ids]);
+	const [noop, comments] = await db.query(SQL);
+	return {comments};
 }
 
 export async function setStartCommentId(userId, ballotId, startCommentId) {
@@ -141,8 +145,6 @@ async function insertComments(userId, ballotId, comments) {
 	}
 	SQL += db.format('SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID;', [ballotId]);
 	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId]);
-
-	console.log(SQL);
 
 	const results = await db.query(SQL)
 	//console.log(results)

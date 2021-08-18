@@ -6,7 +6,7 @@ import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filt
 import selectedSlice, {setSelected} from 'dot11-components/store/selected'
 import uiSlice, {setProperty} from 'dot11-components/store/ui'
 import {setError} from 'dot11-components/store/error'
-import {displayDate} from 'dot11-components/lib/utils'
+import {displayDate} from 'dot11-components/lib'
 
 const SessionType = {
 	Plenary: 'p',

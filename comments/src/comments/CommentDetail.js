@@ -757,40 +757,43 @@ class CommentDetail extends React.PureComponent {
 	}
 
 	save = () => {
-		const editedResolution = this.state.editedResolution;
-		const d = shallowDiff(this.state.savedResolution, editedResolution)
-		const commentUpdates = [], resolutionUpdates = [], resolutionAdds = [];
-		for (let c of this.state.comments) {
-			let commentUpdate = {}, resolutionUpdate = {};
-			for (let k in d) {
-				if (k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes' || k === 'Page' || k === 'Clause')
-					commentUpdate[k] = d[k];
-				else
-					resolutionUpdate[k] = d[k];
-			}
-			if (Object.keys(commentUpdate).length > 0) {
-				commentUpdate.id = c.comment_id;
-				commentUpdates.push(commentUpdate);
-			}
-			if (Object.keys(resolutionUpdate).length > 0) {
+		const {editedResolution, comments} = this.state;
+		const {updateComments, updateResolutions, addResolutions} = this.props;
+
+		/* Find changes */
+		const commentUpdate = {}, resolutionUpdate = {};
+		const d = shallowDiff(this.state.savedResolution, editedResolution);
+		for (let k in d) {
+			if (k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes' || k === 'Page' || k === 'Clause')
+				commentUpdate[k] = d[k];
+			else
+				resolutionUpdate[k] = d[k];
+		}
+		if (Object.keys(commentUpdate).length > 0) {
+			const ids = comments.map(c => c.comment_id);
+			updateComments(ids, commentUpdate);
+		}
+		if (Object.keys(resolutionUpdate).length > 0) {
+			const resolution_ids = [];
+			const resolution_adds = [];
+			for (const c of comments) {
 				if (c.resolution_id) {
-					resolutionUpdate.id = c.resolution_id;
-					resolutionUpdates.push(resolutionUpdate);
+					resolution_ids.push(c.resolution_id);
 				}
 				else {
-					resolutionUpdate.BallotID = c.BallotID;
-					resolutionUpdate.CommentID = c.CommentID;
-					resolutionUpdate.comment_id = c.comment_id;
-					resolutionAdds.push(resolutionUpdate);
+					resolution_adds.push({
+						comment_id: c.comment_id,
+						...resolutionUpdate
+					});
 				}
 			}
+			if (resolution_ids.length > 0){
+				console.log(resolutionUpdate)
+				updateResolutions(resolution_ids, resolutionUpdate);
+			}
+			if (resolution_adds.length > 0)
+				addResolutions(resolution_adds);
 		}
-		if (commentUpdates.length > 0)
-			this.props.updateComments(commentUpdates);
-		if (resolutionAdds.length > 0)
-			this.props.addResolutions(resolutionAdds);
-		if (resolutionUpdates.length > 0)
-			this.props.updateResolutions(resolutionUpdates);
 		this.setState((state, props) => ({...state, savedResolution: editedResolution}));
 	}
 
@@ -886,25 +889,24 @@ class CommentDetail extends React.PureComponent {
 		)
 	}
 
-
+	static propTypes = {
+		ballotId: PropTypes.string.isRequired,
+		comments: PropTypes.array.isRequired,
+		ids: PropTypes.array.isRequired,
+		entities: PropTypes.object.isRequired,
+		loading: PropTypes.bool.isRequired,
+		selected: PropTypes.array.isRequired,
+		uiProperties: PropTypes.object.isRequired,
+		addResolutions: PropTypes.func.isRequired,
+		deleteResolutions: PropTypes.func.isRequired,
+		updateResolutions: PropTypes.func.isRequired,
+		updateComments: PropTypes.func.isRequired,
+		setUiProperty: PropTypes.func.isRequired,
+	}
 }
 
-CommentDetail.propTypes = {
-	ballotId: PropTypes.string.isRequired,
-	comments: PropTypes.array.isRequired,
-	ids: PropTypes.array.isRequired,
-	entities: PropTypes.object.isRequired,
-	loading: PropTypes.bool.isRequired,
-	selected: PropTypes.array.isRequired,
-	uiProperties: PropTypes.object.isRequired,
-	addResolutions: PropTypes.func.isRequired,
-	deleteResolutions: PropTypes.func.isRequired,
-	updateResolutions: PropTypes.func.isRequired,
-	updateComments: PropTypes.func.isRequired,
-	setUiProperty: PropTypes.func.isRequired,
-};
-
 const dataSet = 'comments';
+
 export default connect(
 	(state) => {
 		const data = state[dataSet];
@@ -918,13 +920,13 @@ export default connect(
 			uiProperties: data.ui,
 		}
 	},
-	(dispatch) => ({
-		addResolutions: (resolutions) => dispatch(addResolutions(resolutions)),
-		deleteResolutions: (resolutions) => dispatch(deleteResolutions(resolutions)),
-		updateResolutions: (resolutions) => dispatch(updateResolutions(resolutions)),
-		updateComments: (comments) => dispatch(updateComments(comments)),
-		setUiProperty: (property, value) => dispatch(setProperty(dataSet, property, value)),
-	})
+	{
+		addResolutions,
+		deleteResolutions,
+		updateResolutions,
+		updateComments,
+		setUiProperty: (property, value) => setProperty(dataSet, property, value),
+	}
 )(CommentDetail);
 
 export {renderCommenter, renderPage, renderTextBlock}

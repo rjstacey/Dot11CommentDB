@@ -64,7 +64,7 @@ export async function getMembers(sapins) {
 	return members;
 }
 
-async function getMember(sapin) {
+export async function getMember(sapin) {
 	const members = await getMembers([sapin]);
 	return members[0];
 }

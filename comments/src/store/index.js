@@ -9,7 +9,7 @@ import users from './users'
 import ballots from './ballots'
 import results from './results'
 
-const rootReducer = combineReducers({
+const reducer = combineReducers({
 	comments,
 	commentsHistory,
 	users,
@@ -18,10 +18,13 @@ const rootReducer = combineReducers({
 	errMsg
 })
 
-const store = configureStore({
-	reducer: rootReducer,
-	middleware: [thunk, createLogger({collapsed: true})],
-	devTools: true
-});
+const middleware = [thunk];
+if (process.env.NODE_ENV !== 'production')
+	middleware.push(createLogger({collapsed: true}));
+
+// enable devTool only with development
+const devTools = process.env.NODE_ENV !== 'production';
+
+const store = configureStore({reducer, middleware, devTools});
 
 export default store;

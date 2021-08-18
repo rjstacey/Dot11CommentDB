@@ -20,6 +20,7 @@ import CommentsExport from './CommentsExport'
 import CommentHistory from './CommentHistory'
 
 import {fields, loadComments} from '../store/comments'
+import {loadUsers} from '../store/users'
 import {setBallotId} from '../store/ballots'
 
 const dataSet = 'comments'
@@ -337,20 +338,21 @@ function commentsRowGetter({rowIndex, data}) {
 }
 
 function Comments({
-		access,
-		ballotId,
-		setBallotId, 
-		valid,
-		loading,
-		commentBallotId,
-		loadComments, 
-		tableView,
-		tableConfig,
-		uiProperty,
-		setUiProperty,
-		comments,
-		selected}) {
-
+	access,
+	ballotId,
+	setBallotId, 
+	valid,
+	loading,
+	commentBallotId,
+	loadComments,
+	loadUsers,
+	tableView,
+	tableConfig,
+	uiProperty,
+	setUiProperty,
+	comments,
+	selected
+}) {
 	const history = useHistory();
 	const queryBallotId = useParams().ballotId;
 	const [editKey, setEditKey] = React.useState(new Date().getTime());
@@ -374,81 +376,84 @@ function Comments({
 		else if (ballotId) {
 			history.replace(`/comments/${ballotId}`);
 		}
-	}, [queryBallotId, commentBallotId, ballotId, valid, loading]);
+	}, [queryBallotId, commentBallotId, ballotId]);
 
-	const refresh = () => loadComments(ballotId);
+	React.useEffect(loadUsers, []);
+	
+	const refresh = () => {
+		loadComments(ballotId);
+		loadUsers();
+	}
 
 	const ballotSelected = (ballotId) => history.push(`/comments/${ballotId}`);
 
-	return (
-		<>
-			<TopRow>
-				<BallotSelector onBallotSelected={ballotSelected} />
-				<div style={{display: 'flex', alignItems: 'center'}}>
-					<ButtonGroup>
-						<div style={{textAlign: 'center'}}>Table view</div>
-						<div style={{display: 'flex', alignItems: 'center'}}>
-							<TableViewSelector dataSet={dataSet} />
-							<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-							<ActionButton
-								name='book-open'
-								title='Show detail'
-								isActive={uiProperty.editView} 
-								onClick={() => setUiProperty('editView', !uiProperty.editView)} 
-							/>
-						</div>
-					</ButtonGroup>
-					{access >= AccessLevel.SubgroupAdmin?
-						<ButtonGroup>
-							<div style={{textAlign: 'center'}}>Edit</div>
-							<div style={{display: 'flex', alignItems: 'center'}}>
-								<ActionButton
-									name='copy'
-									title='Copy to clipboard'
-									disabled={selected.length === 0}
-									onClick={e => setClipboard(selected, comments)}
-								/>
-								<CommentsImport ballotId={ballotId} />
-								<CommentsExport ballotId={ballotId} />
-							</div>
-						</ButtonGroup>:
+	return <>
+		<TopRow>
+			<BallotSelector onBallotSelected={ballotSelected} />
+			<div style={{display: 'flex', alignItems: 'center'}}>
+				<ButtonGroup>
+					<div style={{textAlign: 'center'}}>Table view</div>
+					<div style={{display: 'flex', alignItems: 'center'}}>
+						<TableViewSelector dataSet={dataSet} />
+						<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
 						<ActionButton
-							name='copy'
-							title='Copy to clipboard'
-							disabled={selected.length === 0}
-							onClick={e => setClipboard(selected, comments)}
+							name='book-open'
+							title='Show detail'
+							isActive={uiProperty.editView} 
+							onClick={() => setUiProperty('editView', !uiProperty.editView)} 
 						/>
-					}
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-				</div>
-			</TopRow>
-
-			<ShowFilters
-				dataSet={dataSet}
-				fields={fields}
-			/>
-
-			<SplitPanel splitView={uiProperty.editView || false} >
-				<Panel>
-					<AppTable
-						defaultTablesConfig={defaultTablesConfig}
-						columns={tableColumns}
-						headerHeight={62}
-						estimatedRowHeight={64}
-						rowGetter={commentsRowGetter}
-						dataSet={dataSet}
-						rowKey='CID'
+					</div>
+				</ButtonGroup>
+				{access >= AccessLevel.SubgroupAdmin?
+					<ButtonGroup>
+						<div style={{textAlign: 'center'}}>Edit</div>
+						<div style={{display: 'flex', alignItems: 'center'}}>
+							<ActionButton
+								name='copy'
+								title='Copy to clipboard'
+								disabled={selected.length === 0}
+								onClick={e => setClipboard(selected, comments)}
+							/>
+							<CommentsImport ballotId={ballotId} />
+							<CommentsExport ballotId={ballotId} />
+						</div>
+					</ButtonGroup>:
+					<ActionButton
+						name='copy'
+						title='Copy to clipboard'
+						disabled={selected.length === 0}
+						onClick={e => setClipboard(selected, comments)}
 					/>
-				</Panel>
-				<Panel>
-					<CommentDetail
-						key={editKey}
-						access={access}
-					/>
-				</Panel>
-			</SplitPanel>
-		</>
-	)
+				}
+				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+			</div>
+		</TopRow>
+
+		<ShowFilters
+			dataSet={dataSet}
+			fields={fields}
+		/>
+
+		<SplitPanel splitView={uiProperty.editView || false} >
+			<Panel>
+				<AppTable
+					defaultTablesConfig={defaultTablesConfig}
+					columns={tableColumns}
+					headerHeight={62}
+					estimatedRowHeight={64}
+					rowGetter={commentsRowGetter}
+					dataSet={dataSet}
+					rowKey='CID'
+				/>
+			</Panel>
+			<Panel>
+				<CommentDetail
+					key={editKey}
+					access={access}
+				/>
+			</Panel>
+		</SplitPanel>
+	</>
 }
 
 const TopRow = styled.div`
@@ -486,9 +491,10 @@ export default connect(
 			uiProperty: state[dataSet].ui
 		}
 	},
-	(dispatch) => ({
-		loadComments: ballotId => dispatch(loadComments(ballotId)),
-		setBallotId: ballotId => dispatch(setBallotId(ballotId)),
-		setUiProperty: (property, value) => dispatch(setProperty(dataSet, property, value))
-	})
+	{
+		loadComments,
+		loadUsers,
+		setBallotId,
+		setUiProperty: (property, value) => setProperty(dataSet, property, value)
+	}
 )(Comments);

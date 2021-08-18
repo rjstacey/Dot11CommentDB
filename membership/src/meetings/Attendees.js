@@ -20,7 +20,8 @@ const TopRow = styled.div`
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
-	width: 100%;
+	display: flex;
+	flex-direction: column;
 	align-items: center;
 	.AppTable__dataRow,
 	.AppTable__headerRow {
@@ -38,10 +39,10 @@ const renderSessionInfo = (meeting) =>
 const AttendeesColumnDropdown = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
 
 const renderHeaderNameAndEmail = (props) =>
-	<React.Fragment>
+	<>
 		<AttendeesColumnDropdown {...props} dataKey='Name' label='Name' />
 		<AttendeesColumnDropdown {...props} dataKey='Email' label='Email' />
-	</React.Fragment>
+	</>
 
 const tableColumns = [
 	{key: '__ctrl__',
@@ -63,8 +64,6 @@ const tableColumns = [
 		label: 'Status',
 		width: 150, flexGrow: 1, flexShrink: 1}
 ];
-
-const primaryDataKey = 'SAPIN';
 
 const renderTitle = (meeting, breakout) =>
 	<>
@@ -108,7 +107,7 @@ function Attendees({
 		}
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
 		return {columns, maxWidth};
-	}, [breakout_id], session);
+	}, [breakout_id]);
 
 	const handleImportAttandees = async () => {
 		const ok = await ConfirmModal.show('Import selected to members list?');
@@ -128,14 +127,14 @@ function Attendees({
 			</div>
 		</TopRow>
 
-		<TableRow style={{maxWidth}}>
+		<TableRow>
 			<AppTable
+				fitWidth
 				fixed
 				columns={columns}
 				headerHeight={40}
 				estimatedRowHeight={50}
 				dataSet={dataSet}
-				rowKey={primaryDataKey}
 			/>
 		</TableRow>
 	</>

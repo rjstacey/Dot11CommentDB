@@ -10,7 +10,7 @@ import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelector
 import {loadBallots, BallotType} from '../store/ballots'
 import {fields, loadEpolls, getSyncedEpollEntities} from '../store/epolls'
 
-import {BallotAddModal as BallotAdd} from './BallotAdd'
+import {BallotAddModal as BallotAdd} from './BallotDetail'
 
 function renderDate({rowData, dataKey}) {
 	// rowData[key] is an ISO time string. We convert this to eastern time
@@ -84,9 +84,6 @@ function Epolls({
 	const numberEpolls = React.useRef(20);
 	const [epollNum, setEpollNum] = React.useState(null);
 
-
-	const primaryDataKey = 'EpollNum'
-
 	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
 
 	React.useEffect(() => {
@@ -122,9 +119,7 @@ function Epolls({
 				headerHeight={28}
 				estimatedRowHeight={64}
 				dataSet={dataSet}
-				loading={loading}
 				rowGetter={({rowId}) => epolls[rowId]}
-				rowKey={primaryDataKey}
 			/>
 		</TableRow>
 	</>

@@ -7,7 +7,7 @@ import selectedSlice, {setSelected} from 'dot11-components/store/selected'
 import expandedSlice, {setExpanded} from 'dot11-components/store/expanded'
 import uiSlice from 'dot11-components/store/ui'
 import {setError} from 'dot11-components/store/error'
-import {displayDate} from 'dot11-components/lib/utils'
+import {displayDate} from 'dot11-components/lib'
 
 export const fields = {
 	EpollNum: {label: 'ePoll', sortType: SortType.NUMERIC},

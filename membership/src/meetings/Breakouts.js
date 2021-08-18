@@ -6,7 +6,7 @@ import styled from '@emotion/styled'
 import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table'
 import {ConfirmModal} from 'dot11-components/modals'
 import {ActionButton} from 'dot11-components/icons'
-import {displayDate, displayTime, displayDayDate} from 'dot11-components/lib/utils'
+import {displayDate, displayTime, displayDayDate} from 'dot11-components/lib'
 
 import {loadBreakouts} from '../store/breakouts'
 
@@ -20,7 +20,8 @@ const TopRow = styled.div`
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
-	width: 100%;
+	display: flex;
+	flex-direction: column;
 	align-items: center;
 	.AppTable__dataRow,
 	.AppTable__headerRow {
@@ -79,7 +80,6 @@ const columns = [
 ];
 
 const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
-const primaryDataKey = 'BreakoutID';
 
 /*
  * Don't display Data and Time if it is the same as previous line
@@ -126,14 +126,14 @@ function Breakouts({
 			</div>
 		</TopRow>
 
-		<TableRow style={{maxWidth}}>
+		<TableRow>
 			<AppTable
+				fitWidth
 				fixed
 				columns={columns}
 				headerHeight={36}
 				estimatedRowHeight={36}
 				dataSet={dataSet}
-				rowKey={primaryDataKey}
 				rowGetter={breakoutsRowGetter}
 			/>
 		</TableRow>

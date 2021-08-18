@@ -8,7 +8,7 @@ import {Button, ActionButton} from 'dot11-components/icons'
 import {AccessLevel, displayDate, displayDateRange} from 'dot11-components/lib'
 import {ConfirmModal} from 'dot11-components/modals'
 
-import BallotDetail, {BallotAdd} from './BallotDetail'
+import BallotDetail, {BallotAddDropdown as BallotAdd} from './BallotDetail'
 
 import {getEntities} from 'dot11-components/store/dataSelectors'
 import {setSelected} from 'dot11-components/store/selected'
@@ -253,59 +253,56 @@ function Ballots({
 	const closeBallot = () => history.push('/Ballots');
 	const showEpolls = () => history.push('/epolls/');
 
-	return (
-		<React.Fragment>
-			<TopRow>
-				<div><label>Ballots</label></div>
-				<div style={{display: 'flex'}}>
-					<ButtonGroup>
-						<div>Table view</div>
-						<div style={{display: 'flex'}}>
-							<TableViewSelector dataSet={dataSet} />
-							<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-							<ActionButton
-								name='book-open'
-								title='Show detail'
-								isActive={uiProperty.editView} 
-								onClick={() => setUiProperty('editView', !uiProperty.editView)} 
-							/>
-						</div>
-					</ButtonGroup>
-					<ButtonGroup>
-						<div>Edit</div>
-						<div style={{display: 'flex'}}>
-							<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
-							<BallotAdd />
-						</div>
-					</ButtonGroup>
-					<ActionButton name='refresh' title='Refresh' onClick={loadBallots} disabled={loading} />
-				</div>
-			</TopRow>
+	return <>
+		<TopRow>
+			<div><label>Ballots</label></div>
+			<div style={{display: 'flex'}}>
+				<ButtonGroup>
+					<div>Table view</div>
+					<div style={{display: 'flex'}}>
+						<TableViewSelector dataSet={dataSet} />
+						<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+						<ActionButton
+							name='book-open'
+							title='Show detail'
+							isActive={uiProperty.editView} 
+							onClick={() => setUiProperty('editView', !uiProperty.editView)} 
+						/>
+					</div>
+				</ButtonGroup>
+				<ButtonGroup>
+					<div>Edit</div>
+					<div style={{display: 'flex'}}>
+						<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
+						<BallotAdd />
+					</div>
+				</ButtonGroup>
+				<ActionButton name='refresh' title='Refresh' onClick={loadBallots} disabled={loading} />
+			</div>
+		</TopRow>
 
-			<ShowFilters
-				dataSet={dataSet}
-				fields={fields}
-			/>
+		<ShowFilters
+			dataSet={dataSet}
+			fields={fields}
+		/>
 
-			<SplitPanel splitView={uiProperty.editView || false} >
-				<Panel>
-					<AppTable
-						defaultTablesConfig={defaultTablesConfig}
-						columns={tableColumns}
-						headerHeight={50}
-						estimatedRowHeight={50}
-						dataSet={dataSet}
-					/>
-				</Panel>
-				<Panel style={{overflow: 'auto'}}>
-					<BallotDetail
-						key={selected}
-					/>
-				</Panel>
-			</SplitPanel>
-
-		</React.Fragment>
-	)
+		<SplitPanel splitView={uiProperty.editView || false} >
+			<Panel>
+				<AppTable
+					defaultTablesConfig={defaultTablesConfig}
+					columns={tableColumns}
+					headerHeight={50}
+					estimatedRowHeight={50}
+					dataSet={dataSet}
+				/>
+			</Panel>
+			<Panel style={{overflow: 'auto'}}>
+				<BallotDetail
+					key={selected}
+				/>
+			</Panel>
+		</SplitPanel>
+	</>
 }
 
 Ballots.propTypes = {

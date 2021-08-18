@@ -13,8 +13,7 @@ import attendees from './attendees'
 import voters from './voters'
 import votingPools from './votingPools'
 
-const rootReducer = combineReducers({
-	//login,
+const reducer = combineReducers({
 	members,
 	sessions,
 	ballots,
@@ -25,13 +24,15 @@ const rootReducer = combineReducers({
 	voters,
 	votingPools,
 	errMsg
-})
-
-const store = configureStore({
-	reducer: rootReducer,
-	middleware: [thunk, createLogger({collapsed: true})],
-	//middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(createLogger({collapsed: true})),
-	devTools: true
 });
+
+const middleware = [thunk];
+if (process.env.NODE_ENV !== 'production')
+	middleware.push(createLogger({collapsed: true}));
+
+// enable devTool only with development
+const devTools = process.env.NODE_ENV !== 'production';
+
+const store = configureStore({reducer, middleware, devTools});
 
 export default store;

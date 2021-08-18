@@ -1,7 +1,6 @@
 'use strict'
 
-import {getUser} from '../services/users'
-import {addMember, updateMember} from '../services/members'
+import {getMember, addMember, updateMember} from '../services/members'
 import {initCommentsTables} from '../services/comments'
 import {initCommentsHistory} from '../services/commentsHistory'
 
@@ -138,13 +137,6 @@ const createTables = {
 	'sessions': sessionsTable
 }
 
-const superUser = {
-	SAPIN: 5073,
-	Name: 'Robert Stacey',
-	Email: 'rjstacey@gmail.com',
-	Access: 3
-}
-
 export async function init() {
 	try {
 		/* Create tables as needed */
@@ -165,18 +157,6 @@ export async function init() {
 
 		await initCommentsTables();
 		await initCommentsHistory();
-
-		/* Make sure we have a super user with the right access level */
-		const user = await getUser(superUser.SAPIN, superUser.Email)
-		console.log(user)
-		if (user === null) {						// User does not exist; create user
-			await addMember(superUser)
-		}
-		else if (user.Access < superUser.Access) {	// User exists but has insufficient karma; upgrade karma
-			user.Access = superUser.Access
-			console.log('upgrade', user)
-			await updateMember(user.SAPIN, user)
-		}
 	}
 	catch(err) {
 		throw err

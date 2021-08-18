@@ -60,7 +60,9 @@ const TopRow = styled.div`
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
-	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 	.AppTable__dataRow,
 	.AppTable__headerRow {
 		align-items: center;
@@ -137,62 +139,58 @@ function Voters({
 		history.push(`/Voters/${name}`)
 	}
 
-	return (
-		<React.Fragment>
-			<TopRow style={{maxWidth}}>
-				<span>
-					<label>WG ballot voting pool:&nbsp;{votingPoolName}</label>
-					<ActionButtonDropdown
-						name='edit'
-						onClose={updateVotingPoolName}
-					>
-						<Input type='text'
-							size={24}
-							value={name}
-							onChange={e => setName(e.target.value)}
-							onKeyDown={e => {if (e.key === 'Enter') updateVotingPoolName();}}
-						/>
-					</ActionButtonDropdown>
-				</span>
-				<span>
-					<ActionButton name='add' title='Add voter' onClick={handleAddVoter} />
-					<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
-					<ActionButton name='import' title='Import voters' onClick={() => setShowImportVoters(true)} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
-					<ActionButton name='close' title='Close' onClick={close} />
-				</span>
-			</TopRow>
+	return <>
+		<TopRow style={{maxWidth}}>
+			<div style={{display: 'flex', alignItems: 'center'}}>
+				<label>WG ballot voting pool:&nbsp;{votingPoolName}</label>
+				<ActionButtonDropdown
+					name='edit'
+					onClose={updateVotingPoolName}
+				>
+					<Input type='text'
+						size={24}
+						value={name}
+						onChange={e => setName(e.target.value)}
+						onKeyDown={e => {if (e.key === 'Enter') updateVotingPoolName();}}
+					/>
+				</ActionButtonDropdown>
+			</div>
+			<div>
+				<ActionButton name='add' title='Add voter' onClick={handleAddVoter} />
+				<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
+				<ActionButton name='import' title='Import voters' onClick={() => setShowImportVoters(true)} />
+				<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
+				<ActionButton name='close' title='Close' onClick={close} />
+			</div>
+		</TopRow>
 
-			<TableRow style={{maxWidth}}>
-				<AppTable
-					key={columns}
-					fixed
-					columns={columns}
-					dataSet='voters'
-					headerHeight={36}
-					estimatedRowHeight={36}
-					loading={loading}
-					rowKey={'SAPIN'}
-					//rowGetter={rowGetter}
-				/>
-			</TableRow>
-
-			<VoterEditModal
-				isOpen={!!editVoter.action}
-				close={() => setEditVoter(state => ({...state, action: null}))}
-				votingPoolName={votingPoolName}
-				voter={editVoter.voter}
-				action={editVoter.action}
+		<TableRow>
+			<AppTable
+				key={columns}
+				fitWidth
+				fixed
+				columns={columns}
+				dataSet={dataSet}
+				headerHeight={36}
+				estimatedRowHeight={36}
 			/>
+		</TableRow>
 
-			<VotersImportModal
-				isOpen={showImportVoters}
-				close={() => setShowImportVoters(false)}
-				votingPoolName={votingPoolName}
-				uploadVoters={uploadVoters}
-			/>
-		</React.Fragment>
-	)
+		<VoterEditModal
+			isOpen={!!editVoter.action}
+			close={() => setEditVoter(state => ({...state, action: null}))}
+			votingPoolName={votingPoolName}
+			voter={editVoter.voter}
+			action={editVoter.action}
+		/>
+
+		<VotersImportModal
+			isOpen={showImportVoters}
+			close={() => setShowImportVoters(false)}
+			votingPoolName={votingPoolName}
+			uploadVoters={uploadVoters}
+		/>
+	</>
 }
 
 Voters.propTypes = {

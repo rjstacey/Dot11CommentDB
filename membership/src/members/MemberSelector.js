@@ -85,13 +85,13 @@ function MemberSelector({
 
 	React.useEffect(() => {
 		if (!valid && !readOnly)
-			loadMembers()
+			loadMembers();
 	}, [valid, readOnly]);
 
 	const options = React.useMemo(() => 
 		ids.map(id => {
 			const member = entities[id];
-			const label = `${member.SAPIN} ${member.Name} <${member.Email}>`;
+			const label = `${member.SAPIN} ${member.Name || ''} (${member.Status})`;
 			return {value: id, label}
 		})
 	);
@@ -101,7 +101,7 @@ function MemberSelector({
 	function handleChange(values) {
 		const newValue = values.length > 0? values[0].value: null;
 		if (newValue !== value)
-			onChange(newValue)
+			onChange(newValue);
 	}
 
 	return (

@@ -547,7 +547,7 @@ router.get('/epolls', async (req, res, next) => {
  * Ballot comments API
  *
  * GET /comments/{ballotId} - return an array with all comments for a given ballot
- * PUT /comment/{ballotId}/{commentId} - update a comment; returns the updated comment
+ * PUT /comments - update a comments; returns the updated comments
  * DELETE /comments/{ballotId} - delete all comments for a given ballot
  * POST /comments/importFromEpoll/{ballotId}/{epollNum} - replace existing comments (if any) with comments imported from an epoll on mentor
  * POST /comments/upload/{ballotId}/{type} - import comments from a file; file format determined by type
@@ -555,7 +555,6 @@ router.get('/epolls', async (req, res, next) => {
  */
 import {
 	getComments,
-	updateComment,
 	updateComments,
 	setStartCommentId,
 	deleteComments,
@@ -573,12 +572,16 @@ router.get('/comments/:ballotId', async (req, res, next) => {
 })
 router.put('/comments', async (req, res, next) => {
 	try {
-		if (!req.body.hasOwnProperty('comments'))
-			throw 'Missing comments parameter';
-		const {comments} = req.body;
-		if (!Array.isArray(comments))
-			throw 'Expect an array for comments parameter';
-		const data = await updateComments(req.user.SAPIN, comments);
+		if (!req.body.hasOwnProperty('ids'))
+			throw 'Missing ids parameter'
+		if (!req.body.hasOwnProperty('changes'))
+			throw 'Missing changes parameter'
+		const {ids, changes} = req.body
+		if (!Array.isArray(ids))
+			throw 'Expect an array for ids parameter'
+		if (typeof changes !== 'object')
+			throw 'Expect an object for changes parameter'
+		const data = await updateComments(req.user.SAPIN, ids, changes);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -636,25 +639,29 @@ router.post('/resolutions$', async (req, res, next) => {
 	try {
 		const {user} = req;
 		if (!req.body.hasOwnProperty('resolutions'))
-			throw 'Missing resolutions parameter'
-		const {resolutions} = req.body
+			throw 'Missing resolutions parameter';
+		const {resolutions} = req.body;
 		if (!Array.isArray(resolutions))
-			throw 'Expect an array for resolutions parameter'
-		const data = await addResolutions(user.SAPIN, resolutions)
-		res.json(data)
+			throw 'Expect an array for resolutions parameter';
+		const data = await addResolutions(user.SAPIN, resolutions);
+		res.json(data);
 	}
 	catch(err) {next(err)}
 })
 router.put('/resolutions$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		if (!req.body.hasOwnProperty('resolutions'))
-			throw 'Missing resolutions parameter'
-		const {resolutions} = req.body
-		if (!Array.isArray(resolutions))
-			throw 'Expect an array for resolutions parameter'
-		const data = await updateResolutions(user.SAPIN, resolutions)
-		res.json(data)
+		if (!req.body.hasOwnProperty('ids'))
+			throw 'Missing ids parameter';
+		if (!req.body.hasOwnProperty('changes'))
+			throw 'Missing changes parameter';
+		const {ids, changes} = req.body;
+		if (!Array.isArray(ids))
+			throw 'Expect an array for ids parameter';
+		if (typeof changes !== 'object')
+			throw 'Expect an object for changes parameter';
+		const data = await updateResolutions(user.SAPIN, ids, changes);
+		res.json(data);
 	}
 	catch(err) {next(err)}
 })

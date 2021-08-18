@@ -11,10 +11,12 @@ import {setError} from 'dot11-components/store/error'
 
 import {updateBallotSuccess} from './ballots'
 
-const MustSatisfyOptions = {
+const MustSatisfyLabels = {
 	0: 'No',
 	1: 'Yes'
 };
+
+const MustSatisfyOptions = Object.entries(MustSatisfyLabels).map(([k, v]) => ({value: k, label: v}));
 
 export const fields = {
 	CID: {
@@ -29,8 +31,8 @@ export const fields = {
 	},
 	MustSatisfy: {
 		label: 'Must Satisfy',
-		dataRenderer: v => MustSatisfyOptions[v],
-		options: Object.entries(MustSatisfyOptions).map(([k, v]) => ({value: k, label: v}))
+		dataRenderer: v => MustSatisfyLabels[v],
+		options: MustSatisfyOptions
 	},
 	Category: {label: 'Category'},
 	Clause: {label: 'Clause', sortType: SortType.CLAUSE},
@@ -52,16 +54,16 @@ export const fields = {
 };
 
 function getCommentStatus(c) {
-	let Status = ''
+	let Status = '';
 	if (c.ApprovedByMotion)
-		Status = 'Resolution approved'
+		Status = 'Resolution approved';
 	else if (c.ReadyForMotion)
-		Status = 'Ready for motion'
+		Status = 'Ready for motion';
 	else if (c.ResnStatus)
-		Status = 'Resolution drafted'
+		Status = 'Resolution drafted';
 	else if (c.AssigneeName)
-		Status = 'Assigned'
-	return Status
+		Status = 'Assigned';
+	return Status;
 }
 
 const updateCommentsStatus = (comments) =>
@@ -225,19 +227,19 @@ export const loadComments = (ballotId) =>
 
 const {updatePending, updateFailure, updateMany} = slice.actions;
 
-export const updateComments = (comments) =>
+export const updateComments = (ids, changes) =>
 	async (dispatch) => {
 		dispatch(updatePending())
 		let response;
 		try {
-			response = await fetcher.put(`/api/comments`, {comments});
+			response = await fetcher.put(`/api/comments`, {ids, changes});
 			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments))
 				throw new TypeError("Unexpected response to PUT: /api/comments")
 		}
 		catch(error) {
 			await Promise.all([
 				dispatch(updateFailure()),
-				dispatch(setError(`Unable to update comment${comments.length > 1? 's': ''}`, error))
+				dispatch(setError(`Unable to update comment${ids.length > 1? 's': ''}`, error))
 			]);
 			return;
 		}
@@ -362,19 +364,19 @@ export const addResolutions = (resolutions) =>
 		return response.newComments;
 	}
 
-export const updateResolutions = (resolutions) =>
+export const updateResolutions = (ids, changes) =>
 	async (dispatch) => {
 		dispatch(updatePending());
 		let response;
 		try {
-			response = await fetcher.put('/api/resolutions', {resolutions});
+			response = await fetcher.put('/api/resolutions', {ids, changes});
 			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments))
 				throw new TypeError('Unexpected response to PUT: /api/resolutions');
 		}
 		catch(error) {
 			await Promise.all([
 				dispatch(updateFailure()),
-				dispatch(setError(`Unable to update resolution${resolutions.length > 1? 's': ''}`, error))
+				dispatch(setError(`Unable to update resolution${ids.length > 1? 's': ''}`, error))
 			]);
 			return;
 		}
