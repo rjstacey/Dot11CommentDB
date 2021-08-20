@@ -380,12 +380,25 @@ export class ResolutionEditor extends React.Component {
 						spellCheck
 						readOnly={readOnly}
 					/>
-					{!readOnly && <Cross onMouseDown={this.handleClear} />}
+					{!readOnly && <ClearButton onMouseDown={this.handleClear} />}
 				</EditorContainer>
 			</>
 		)
 	}
 }
+
+/*const ClearButton = styled(Cross)`
+	:hover {
+		color: tomato;
+	}
+`;*/
+const ClearButton = styled.span`
+	cursor: pointer;
+	text-align: center;
+	margin: 0 5px;
+	:after {content: "×"}
+	:hover {color: tomato}
+`;
 
 const StyledToolbar = styled(Toolbar)`
 	position: absolute;
