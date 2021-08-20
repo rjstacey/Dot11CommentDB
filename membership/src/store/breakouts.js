@@ -9,7 +9,7 @@ import {setError} from 'dot11-components/store/error'
 import {updateSessionSuccess} from './sessions'
 
 const fields = {
-	id: {label: 'ID', sortType: SortType.NUMERIC},
+	id: {label: 'ID', isId: true, sortType: SortType.NUMERIC},
 	MeetingNumber: {label: 'MeetingNumber', sortType: SortType.NUMERIC},
 	BreakoutID: {label: 'Breakout ID', sortType: SortType.NUMERIC},
 	DayDate: {label: 'DayDate'},

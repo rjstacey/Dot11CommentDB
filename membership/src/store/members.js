@@ -23,7 +23,7 @@ const Status = {
 export const StatusOptions = Object.entries(Status).map(([k, v]) => ({value: k, label: v}));
 
 export const fields = {
-	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
+	SAPIN: {label: 'SA PIN', isId: true, sortType: SortType.NUMERIC},
 	Name: {label: 'Name'},
 	Email: {label: 'Email'},
 	Employer: {label: 'Employer'},

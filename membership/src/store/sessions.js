@@ -27,7 +27,7 @@ export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(([value,
 export const displaySessionType = (type) => SessionTypeLabels[type] || 'Unknown';
 
 export const fields = {
-	id: {label: 'ID', sortType: SortType.NUMERIC},
+	id: {label: 'ID', isId: true, sortType: SortType.NUMERIC},
 	MeetingNumber: {label: 'Meeting number'},
 	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
 	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE}, 

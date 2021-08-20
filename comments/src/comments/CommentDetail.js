@@ -787,10 +787,8 @@ class CommentDetail extends React.PureComponent {
 					});
 				}
 			}
-			if (resolution_ids.length > 0){
-				console.log(resolutionUpdate)
+			if (resolution_ids.length > 0)
 				updateResolutions(resolution_ids, resolutionUpdate);
-			}
 			if (resolution_adds.length > 0)
 				addResolutions(resolution_adds);
 		}

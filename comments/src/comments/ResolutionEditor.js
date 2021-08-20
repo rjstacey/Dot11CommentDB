@@ -7,7 +7,7 @@ import {css} from '@emotion/react'
 import styled from '@emotion/styled'
 import Immutable from 'immutable'
 import {debounce} from 'dot11-components/lib'
-import {ActionButton} from 'dot11-components/icons'
+import {ActionButton, Cross} from 'dot11-components/icons'
 
 
 /* Inline styles */
@@ -29,9 +29,9 @@ const styleMap = {
 	'HIGHLIGHT': {
 		'backgroundColor': '#faed27',
 	}
-}
+};
 
-const blockStyleFn = (contentBlock) => contentBlock.getType()
+const blockStyleFn = (contentBlock) => contentBlock.getType();
 
 const blockStyleCss = css`
 	p {
@@ -105,7 +105,7 @@ const BLOCK_TYPES = [
 	{label: 'Bulleted List', 	name: 'unordered-list-item', 	style: 'unordered-list-item'},
 	{label: 'Numbered List', 	name: 'ordered-list-item',		style: 'ordered-list-item'},
 	{label: 'Code', 			name: 'code', 					style: 'code-block'},
-]
+];
 
 function BlockStyleControls(props) {
 	const {editorState, onChange} = props;
@@ -135,7 +135,7 @@ const INLINE_STYLES = [
 	{label: 'Underline (Ctrl-u)',	name: 'underline', 			style: 'UNDERLINE'},
 	{label: 'Strikethrough (Ctrl-/)', name: 'strikethrough', 	style: 'STRIKETHROUGH'},
 	{label: 'Highlight',			name: 'highlight', 			style: 'HIGHLIGHT'},
-]
+];
 
 function InlineStyleControls(props) {
 	const {editorState, onChange} = props;
@@ -178,29 +178,25 @@ function ActionControls(props) {
 }
 
 
-function Toolbar({style, className, editorState, onChange}) {
-
-	return (
-		<div
-			style={style}
-			className={className}
-			onMouseDown={e => e.preventDefault()}	// don't take focus from editor
-		>
-			<BlockStyleControls
-				editorState={editorState}
-				onChange={onChange}
-			/>
-			<InlineStyleControls
-				editorState={editorState}
-				onChange={onChange}
-			/>
-			<ActionControls
-				editorState={editorState}
-				onChange={onChange}
-			/>
-		</div>
-	)
-}
+const Toolbar = ({style, className, editorState, onChange}) =>
+	<div
+		style={style}
+		className={className}
+		onMouseDown={e => e.preventDefault()}	// don't take focus from editor
+	>
+		<BlockStyleControls
+			editorState={editorState}
+			onChange={onChange}
+		/>
+		<InlineStyleControls
+			editorState={editorState}
+			onChange={onChange}
+		/>
+		<ActionControls
+			editorState={editorState}
+			onChange={onChange}
+		/>
+	</div>
 
 const htmlConversionOptions = {
 	inlineStyles: {
@@ -217,7 +213,7 @@ const htmlConversionOptions = {
 		'blockquote': (block) => '<blockquote>' + block.getText() + '</blockquote>',
 	},
 	defaultBlockTag: 'p'*/
-}
+};
 
 const blockRenderMap = Immutable.Map({
 	'unstyled': {
@@ -241,15 +237,12 @@ const blockRenderMap = Immutable.Map({
 });
 
 function mapKeyToEditorCommand(e) {
-	if (KeyBindingUtil.hasCommandModifier(e) && e.key === '/') {
+	if (KeyBindingUtil.hasCommandModifier(e) && e.key === '/')
 		return 'strikethrough';
-	}
-	if (KeyBindingUtil.hasCommandModifier(e) && e.key === 'h') {
+	if (KeyBindingUtil.hasCommandModifier(e) && e.key === 'h')
 		return 'highlight';
-	}
-	if ((KeyBindingUtil.hasCommandModifier(e) || e.shiftKey) && e.keyCode === 13) {
+	if ((KeyBindingUtil.hasCommandModifier(e) || e.shiftKey) && e.keyCode === 13)
 		return 'soft-newline';
-	}
 	return getDefaultKeyBinding(e);
 }
 
@@ -295,13 +288,18 @@ export class ResolutionEditor extends React.Component {
 		}
 	}
 
+	focus = () => {
+		if (!this.props.readOnly)
+			this.editorRef.focus();
+	}
+
 	initEditorState = (value) => {
 		const html = value? value.split('\n').map(t => `<p>${t}</p>`).join(''): '';
-		const blocksFromHTML = convertFromHTML(html)
+		const blocksFromHTML = convertFromHTML(html);
 		const contentState = ContentState.createFromBlockArray(
 			blocksFromHTML.contentBlocks,
 			blocksFromHTML.entityMap,
-		)
+		);
 		return EditorState.createWithContent(contentState);
 	}
 
@@ -310,29 +308,29 @@ export class ResolutionEditor extends React.Component {
 			const content = state.editorState.getCurrentContent();
 			const value = content.hasText()? stateToHTML(content, htmlConversionOptions): '';
 			if (value !== state.value) {
-				props.onChange(value)
-				return {...state, value}
+				props.onChange(value);
+				return {...state, value};
 			}
 			return state;
 		})
 	}
 
-	onChange = (editorState) => {
-		this.setState({editorState});
-		this.debouncedSave();
+	onChange = (editorState) => this.setState(state => ({...state, editorState}), this.debouncedSave);
+
+	handleClear = (event) => {
+		event.preventDefault();	// don't take focus from editor
+		const editorState = EditorState.push(this.state.editorState, ContentState.createFromText(''), 'remove-fragment');
+		this.onChange(editorState);
 	}
 
 	handleKeyCommand  = (command, state) => {
-		let newState = RichUtils.handleKeyCommand(state, command)
-		if (!newState && command === 'strikethrough') {
-			newState = RichUtils.toggleInlineStyle(state, 'STRIKETHROUGH')
-		}
-		if (!newState && command === 'highlight') {
-			newState = RichUtils.toggleInlineStyle(state, 'HIGHLIGHT')
-		}
-		if (!newState && command === 'soft-newline') {
-			newState = RichUtils.insertSoftNewline(state)
-		}
+		let newState = RichUtils.handleKeyCommand(state, command);
+		if (!newState && command === 'strikethrough')
+			newState = RichUtils.toggleInlineStyle(state, 'STRIKETHROUGH');
+		if (!newState && command === 'highlight')
+			newState = RichUtils.toggleInlineStyle(state, 'HIGHLIGHT');
+		if (!newState && command === 'soft-newline')
+			newState = RichUtils.insertSoftNewline(state);
 		if (newState) {
 			this.onChange(newState);
 			return 'handled';
@@ -353,16 +351,17 @@ export class ResolutionEditor extends React.Component {
 	}
 
 	render() {
+		const {className, readOnly, placeholder} = this.props;
 		return (
-			<React.Fragment>
+			<>
 				<StyledToolbar
 					style={{visibility: this.state.showToolbar? 'visible': 'hidden'}}
 					editorState={this.state.editorState}
 					onChange={this.onChange}
 				/>
 				<EditorContainer
-					className={this.props.className}
-					onClick={e => !this.props.readOnly && this.editorRef.focus()}	// a click inside the container places focus on the editor
+					className={className}
+					onClick={this.focus}	// a click inside the container places focus on the editor
 				>
 					<Editor
 						ref={ref => this.editorRef = ref}
@@ -374,14 +373,16 @@ export class ResolutionEditor extends React.Component {
 						keyBindingFn={mapKeyToEditorCommand}
 						handleKeyCommand={this.handleKeyCommand}
 						handlePastedText={this.handlePastedText}
-						placeholder={this.props.placeholder || 'Enter some text...'}
+						placeholder={placeholder || 'Enter some text...'}
 						onBlur={() => this.setState({showToolbar: false})}
 						onFocus={() => this.setState({showToolbar: true})}
+						preserveSelectionOnBlur
 						spellCheck
-						readOnly={this.props.readOnly}
+						readOnly={readOnly}
 					/>
+					{!readOnly && <Cross onMouseDown={this.handleClear} />}
 				</EditorContainer>
-			</React.Fragment>
+			</>
 		)
 	}
 }
@@ -392,17 +393,22 @@ const StyledToolbar = styled(Toolbar)`
 	right: 16px;
 	display: flex;
 	flex-direction: row;
-	justify-content: space-between;
 	align-content: bottom;
 	z-index: 2;
 `;
 
 const EditorContainer = styled.div`
 
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding-right: 5px;
+
 	.DraftEditor-root {
 		cursor: text;
 		font-size: 16px;
 		padding: 5px;
+		width: 100%; /* fixes issue where caret not present with no content */
 	}
 
 	.public-DraftEditor-content {

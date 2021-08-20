@@ -32,7 +32,7 @@ const dataAdapter = createEntityAdapter({
 	selectId: (meeting) => meeting.MeetingNumber
 })
 
-const dataSet = 'imatMeetings'
+const dataSet = 'imatMeetings';
 
 const slice = createSlice({
 	name: dataSet,
@@ -120,10 +120,10 @@ export const getSyncedImatMeetingsEntities = createSelector(
 	(sessionsEntities, imatMeetingsEntities) => {
 		const syncedImatMeetingsEntities = {};
 		for (const id of Object.keys(imatMeetingsEntities))
-			syncedImatMeetingsEntities[id] = {...imatMeetingsEntities[id], InDatabase: false}
+			syncedImatMeetingsEntities[id] = {...imatMeetingsEntities[id], InDatabase: false};
 		for (const m of Object.values(sessionsEntities)) {
 			if (syncedImatMeetingsEntities[m.MeetingNumber])
-				syncedImatMeetingsEntities[m.MeetingNumber].InDatabase = true
+				syncedImatMeetingsEntities[m.MeetingNumber].InDatabase = true;
 		}
 		return syncedImatMeetingsEntities;
 	}

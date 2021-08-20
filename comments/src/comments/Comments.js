@@ -37,7 +37,7 @@ const FlexRow = styled.div`
 /*
  * The data cell rendering functions are pure functions (dependent only on input parameters)
  */
-const renderDataCellCheck = ({rowData, dataKey}) => rowData[dataKey]? '\u2714': ''
+const renderDataCellCheck = ({rowData, dataKey}) => rowData[dataKey]? '\u2714': '';
 
 const renderHeaderCellEditing = (props) =>
 	<>
@@ -97,7 +97,7 @@ const HeaderSubcomponent = DataSubcomponent.withComponent(CommentsTableColumnHea
 const renderHeaderCellStacked1 = (props) => 
 	<>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={70} dropdownWidth={400} dataKey='CID' label='CID' 
+			<HeaderSubcomponent {...props} width={70} dropdownWidth={400} dataKey='CID' label='CID' isId
 				customFilterElement=<IdFilter dataSet={dataSet} dataKey='CID' />
 			/>
 			<HeaderSubcomponent {...props} width={40} dropdownWidth={140} dataKey='Category' label='Cat' />
@@ -161,7 +161,7 @@ const renderHeaderCellResolution = (props) =>
 
 const tableColumns = [
 	{key: '__ctrl__',
-		width: 48, flexGrow: 1, flexShrink: 0,
+		width: 48, flexGrow: 0, flexShrink: 0,
 		headerRenderer: p =>
 			<SelectExpandHeader
 				dataSet={dataSet} 
@@ -175,7 +175,7 @@ const tableColumns = [
 		headerRenderer: renderHeaderCellStacked1,
 		cellRenderer: renderDataCellStacked1},
 	{key: 'CID',
-		label: 'CID',
+		...fields.CID,
 		width: 60, flexGrow: 1, flexShrink: 0,
 		dropdownWidth: 400},
 	{key: 'CommenterName',
@@ -443,7 +443,6 @@ function Comments({
 					estimatedRowHeight={64}
 					rowGetter={commentsRowGetter}
 					dataSet={dataSet}
-					rowKey='CID'
 				/>
 			</Panel>
 			<Panel>

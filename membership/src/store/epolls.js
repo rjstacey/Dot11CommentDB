@@ -10,7 +10,7 @@ import {setError} from 'dot11-components/store/error'
 import {displayDate} from 'dot11-components/lib'
 
 export const fields = {
-	EpollNum: {label: 'ePoll', sortType: SortType.NUMERIC},
+	EpollNum: {label: 'ePoll', isId: true, sortType: SortType.NUMERIC},
 	BallotID: {label: 'BallotID'},
 	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
 	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},

@@ -21,6 +21,7 @@ const MustSatisfyOptions = Object.entries(MustSatisfyLabels).map(([k, v]) => ({v
 export const fields = {
 	CID: {
 		label: 'CID',
+		isId: true,
 		sortType: SortType.NUMERIC
 	},
 	CommenterName: {
@@ -82,7 +83,7 @@ function filterIdList(idList, allIds) {
 }
 
 const dataAdapter = createEntityAdapter({
-	//selectId: (c) => c.ResolutionCount <= 1? `${c.comment_id}`: `${c.comment_id}-${c.resolution_id}`,
+	selectId: (c) => c.CID,
 	sortComparer: (c1, c2) => c1.CommentID === c2.CommentID? c1.ResolutionID - c2.ResolutionID: c1.CommentID - c2.CommentID 
 })
 
@@ -119,7 +120,7 @@ const slice = createSlice({
 		},
 		updateMany(state, action) {
 			const {comments} = action.payload;
-			let updates = comments.map(c => ({id: c.id, changes: c}));
+			let updates = comments.map(c => ({id: c.CID, changes: c}));
 			dataAdapter.updateMany(state, updates);
 			updates = [];
 			for (const id of comments.map(c => c.id)) {
@@ -127,7 +128,7 @@ const slice = createSlice({
 				if (comment) {
 					const Status = getCommentStatus(comment);
 					if (comment.Status !== Status)
-						updates.push({id: comment.id, changes: {Status}});
+						updates.push({id: comment.CID, changes: {Status}});
 				}
 			}
 			dataAdapter.updateMany(state, updates);
@@ -156,20 +157,19 @@ const slice = createSlice({
 			const selected_comment_ids = [];
 			// Remove comments with affected comment_ids and then add them again
 			for (const id of state.ids) {
-				const {comment_id} = state.entities[id];
+				const {comment_id, CID} = state.entities[id];
 				if (comments.find(c => c.comment_id === comment_id)) {
-					deletes.push(id);
-					const i = selected.indexOf(id);
+					deletes.push(CID);
+					const i = selected.indexOf(CID);
 					if (i >= 0) {
-						// Remove the id from the selected list
+						// Remove the CID from the selected list
 						selected.splice(i, 1);
 						// If the associated comment_id appears in the updated list, then add it again as the last entry with this comment_id
 						const x = comments.filter(c => c.comment_id === comment_id);
 						if (x.length) {
-							const newId = x[x.length - 1].id;
-							if (!selected.includes(newId)) {
-								selected.push(newId);
-							}
+							const newCID = x[x.length - 1].CID;
+							if (!selected.includes(newCID))
+								selected.push(newCID);
 						}
 					}
 				}

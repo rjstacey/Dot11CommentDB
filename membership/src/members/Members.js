@@ -5,7 +5,7 @@ import styled from '@emotion/styled'
 import {useHistory} from "react-router-dom"
 import copyToClipboard from 'copy-html-to-clipboard'
 
-import AppTable, {SelectHeader, SelectCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, SplitPanel, Panel} from 'dot11-components/table'
+import AppTable, {SelectHeader, SelectCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, IdFilter, SplitPanel, Panel} from 'dot11-components/table'
 import {ConfirmModal} from 'dot11-components/modals'
 import {ActionButton, Button} from 'dot11-components/icons'
 import {setTableView, initTableConfig, setProperty} from 'dot11-components/store/ui'
@@ -22,6 +22,7 @@ import {RosterImport, RosterExport} from './Roster'
 import {fields, loadMembers, deleteSelectedMembers, AccessLevel, AccessLevelOptions} from '../store/members'
 import {loadSessions} from '../store/sessions'
 
+const dataSet = 'members';
 
 function setClipboard(selected, members) {
 
@@ -164,10 +165,7 @@ const _Attendances = ({rowData, dataKey, sessions}) => {
 
 const Attendances = connect((state) => ({sessions: state.sessions.entities}))(_Attendances);
 
-const BallotSeriesParticipation = ({rowData, dataKey}) => {
-	const participation = `${rowData.BallotSeriesCount}/${rowData.BallotSeriesTotal}`;
-	return participation;
-}
+const BallotSeriesParticipation = ({rowData, dataKey}) => `${rowData.BallotSeriesCount}/${rowData.BallotSeriesTotal}`;
 
 const tableColumns = [
 	{key: '__ctrl__',
@@ -181,7 +179,11 @@ const tableColumns = [
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
 	{key: 'SAPIN', 
 		...fields.SAPIN,
-		width: 90, flexGrow: 0, flexShrink: 0, dropdownWidth: 200},
+		width: 90, flexGrow: 0, flexShrink: 0, dropdownWidth: 200,
+		headerRenderer: p => 
+			<TableColumnHeader {...p} dataSet={dataSet}  
+				customFilterElement=<IdFilter dataSet={dataSet} dataKey='SAPIN' />
+			/>},
 	{key: 'Name/Email',
 		label: 'Name/Email',
 		width: 200, flexGrow: 1, flexShrink: 1,
@@ -360,8 +362,6 @@ Members.propTypes = {
 	setUiProperty: PropTypes.func.isRequired,
 }
 
-const dataSet = 'members';
-
 export default connect(
 	(state) => {
 		return {
@@ -373,12 +373,10 @@ export default connect(
 			uiProperty: state[dataSet].ui
 		}
 	},
-	(dispatch) => {
-		return {
-			loadMembers: () => dispatch(loadMembers()),
-			loadSessions: () => dispatch(loadSessions()),
-			deleteSelectedMembers: () => dispatch(deleteSelectedMembers()),
-			setUiProperty: (property, value) => dispatch(setProperty(dataSet, property, value))
-		}
+	{
+		loadMembers,
+		loadSessions,
+		deleteSelectedMembers,
+		setUiProperty: (property, value) => setProperty(dataSet, property, value)
 	}
 )(Members);
