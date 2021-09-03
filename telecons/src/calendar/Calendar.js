@@ -3,14 +3,21 @@ import styled from '@emotion/styled'
 
 import Header from './Header';
 import Month from './Month';
+import {isEqual} from './utils';
 
 function Calendar({
   style,
   className,
   value,
   onChange,
+  disablePast,
+  multi,
+  dual,
+  minDate,
+  maxDate
 }) {
   const [viewDate, setViewDate] = React.useState(new Date());
+  const selectedDates = value;
 
   const onPrevClick = () => {
     const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
@@ -22,6 +29,28 @@ function Calendar({
     setViewDate(newDate);
   }
 
+  const onDateClick = (date) => {
+    let newSelectedDates;
+    if (multi) {
+      const i = selectedDates.findIndex(d => isEqual(d, date));
+      if (i >= 0) {
+        newSelectedDates = selectedDates.slice();
+        newSelectedDates.splice(i, 1);
+      }
+      else {
+        newSelectedDates = selectedDates.concat(date);
+      }
+    }
+    else {
+      newSelectedDates = [date];
+    }
+
+    if (onChange)
+      onChange(newSelectedDates);
+  };
+
+  const options = {disablePast, multi, dual, minDate, maxDate};
+
   return (
     <Container
       style={style}
@@ -31,18 +60,22 @@ function Calendar({
         onClickPrev={onPrevClick}
         onClickNext={onNextClick}
         viewDate={viewDate}
+        options={options}
       />
-      <div style={{display: 'flex', width: '100%'}} >
+      <div style={{display: 'flex'}} >
         <Month
           selectedDates={value}
-          setSelectedDates={onChange}
+          onDateClick={onDateClick}
           viewDate={viewDate}
+          options={options}
         />
-        <Month
-          selectedDates={value}
-          setSelectedDates={onChange}
-          viewDate={new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1)}
-        />
+        {dual &&
+          <Month
+            selectedDates={value}
+            onDateClick={onDateClick}
+            viewDate={new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1)}
+            options={options}
+          />}
       </div>
     </Container>
   );
@@ -53,7 +86,7 @@ const Container = styled.div`
   align-items: flex-start;
   flex-direction: column;
   box-sizing: border-box;
-
+ 
   cursor: default;
 
   button {
@@ -110,10 +143,10 @@ const Container = styled.div`
   );
 
     /* Context Specific */
-  --rc-color-border-root: var(--rc-color-border);
-  --rc-color-bg-text-hover-header-button: var(--calendar-color-text-hover);
+  --calendar-color-border-root: var(--calendar-color-border);
+  --calendar-color-bg-text-hover-header-button: var(--calendar-color-text-hover);
   --calendar-color-text-today: var(--calendar-color-primary);
-  --rc-color-border-weekdays: var(--rc-color-border);
+  --calendar-color-border-weekdays: var(--calendar-color-border);
 
   --calendar-color-text-column-labels: var(--calendar-color-text-inactive);
   --calendar-color-text-column-weekend-labels: var(--calendar-color-accent-light);
@@ -136,7 +169,7 @@ const Container = styled.div`
 
   & {
     background-color: var(--calendar-color-bg-light);
-    border: 1px solid var(--calendar-color-border-root);
+    border: 1px solid var(--calendar-color-border);
     font-size: 1rem;
     border-radius: 8px;
   }
@@ -149,7 +182,7 @@ const Container = styled.div`
   
   .calendar_header span {
     font-size: 0.85em;
-    color: var(--rc-color-text-dark);
+    color: var(--calendar-color-text-dark);
   }
 
   .calendar_header button:hover {
@@ -170,7 +203,7 @@ const Container = styled.div`
     color: var(--calendar-color-text-column-weekend-labels);
   }
 
-  .calendar_date:not(.calendar_inactive) {
+  .calendar_date:not(.calendar_disabled) {
     cursor: pointer;
     border-radius: 2px;
   }
@@ -179,7 +212,7 @@ const Container = styled.div`
     border-radius: 2px;
   }
 
-  .calendar_date:not(.calendar_inactive):hover {
+  .calendar_date:not(.calendar_disabled):hover {
     opacity: 0.5;
   }
 
@@ -191,6 +224,10 @@ const Container = styled.div`
   /* Color for weekend dates */
   .calendar_date.calendar_weekend span {
     color: var(--calendar-color-text-date-weekend-active);
+  }
+
+  .calendar_date.calendar_disabled {
+    opacity: 0.5;
   }
 
   /* Color for inactive dates */

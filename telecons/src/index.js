@@ -7,17 +7,13 @@ import App from './App'
 import {userInit} from 'dot11-components/lib/user'
 import reportWebVitals from './reportWebVitals'
 
-const user = {
-  SAPIN: 5073,
-  Name: "Robert Stacey",
-  Access: 3,
-  Username: "a.b.c"
+const user = userInit();
+if (!user) {
+  if (!window.location.pathname.startsWith('/login'))
+    window.location.assign(`/login?redirect=${window.location}`);
+  ReactDOM.render(<p>Endlessly redirection for login</p>, document.getElementById('root'));
 }
-//const user = userInit();
-//if (!user) {
-//  window.location.assign(`/login?redirect=${window.location}`)
-//}
-//else {
+else {
   ReactDOM.render(
     <React.StrictMode>
       <Provider store={store}>
@@ -31,4 +27,4 @@ const user = {
   // to log results (for example: reportWebVitals(console.log))
   // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
   reportWebVitals();
-//}
+}

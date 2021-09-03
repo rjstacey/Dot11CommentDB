@@ -39,13 +39,17 @@ function Header({
   onClickPrev,
   onClickNext,
   viewDate,
+  options
 }) {
   const date1 = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
-  const date2 = new Date(date1.getFullYear(), date1.getMonth() + 1, 1);
-  const months = [date1.getMonth(), date2.getMonth()];
+  const months = [date1.getMonth()]
   const years = [date1.getFullYear()];
-  if (date2.getFullYear() !== date1.getFullYear())
-    years.push(date2.getFullYear());
+  if (options.dual) {
+    const date2 = new Date(date1.getFullYear(), date1.getMonth() + 1, 1);
+    months.push(date2.getMonth());
+    if (date2.getFullYear() !== date1.getFullYear())
+      years.push(date2.getFullYear());
+  }
   return (
     <HeaderContainer className="calendar_header">
       <ArrowLeft
@@ -69,7 +73,7 @@ function Header({
         </Label>
       )}
       <ArrowRight
-        className="calendar_arrow calendar_arrow-left"
+        className="calendar_arrow calendar_arrow-right"
         onClick={onClickNext}
       />
     </HeaderContainer>

@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled'
 
-import {getMonthGrid, isEqual, weekdayLabels} from './utils';
+import {getMonthGrid, weekdayLabels} from './utils';
 
 const Week = styled.div`
   display: flex;
@@ -23,7 +23,7 @@ const DayInner = styled.div`
   justify-content: center;
 `;
 
-function WeekdayLabel({cell}) {
+function DayLabel({cell}) {
 
   const classNames = ['calendar_day'];
   if (cell.isWeekend)
@@ -49,6 +49,8 @@ function Day({cell, onClick}) {
   const classNames = ['calendar_date'];
   if (cell.isInactive)
     classNames.push('calendar_inactive')
+  if (cell.isDisabled)
+    classNames.push('calendar_disabled')
   if (cell.isWeekend)
     classNames.push('calendar_weekend')
   if (cell.isToday) 
@@ -59,8 +61,8 @@ function Day({cell, onClick}) {
   return (
     <DayOuter 
       className={classNames.join(' ')}
-      tabIndex={cell.isInactive ? -1 : 0}
-      onClick={cell.isInactive? undefined: () => onClick(cell)}
+      tabIndex={cell.isDisabled ? -1 : 0}
+      onClick={cell.isDisabled? undefined: () => onClick(cell)}
     >
       <DayInner className='calendar_date_inner'>
         <span
@@ -77,35 +79,37 @@ const MonthOuter = styled.div`
   padding: 5px;
 `;
 
-function onKeyPress(cells, e) {
-  if (cells.length === 0)
+/* onKeyPress is called with an array of nodes representing the active dates in the month.
+ * Navigate these nodes using arrow keys, etc. */
+function onKeyPress(nodes, e) {
+  if (nodes.length === 0)
     return;
 
   if (e.key === 'Escape') {
-    e.preventDefault();
+    //e.preventDefault();
     // hack so browser focuses the next tabbable element when
     // tab is pressed
-    cells[cells.length-1].focus();
-    cells[cells.length-1].blur();
+    nodes[nodes.length-1].focus();
+    nodes[nodes.length-1].blur();
   }
 
-  let i = cells.findIndex((cell) => cell === e.target);
+  let i = nodes.findIndex((cell) => cell === e.target);
   if (i < 0) {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'Home' || e.key === 'End') {
-      cells[0].focus();
+      nodes[0].focus();
     }
     return;
   }
 
   if (e.key === ' ' || e.key === 'Enter') {
-    cells[i].click();
+    nodes[i].click();
     return;
   }
 
   if (e.key === 'ArrowDown') {
     i += 7;
-    if (i >= cells.length)
-      i = cells.length - 1;
+    if (i >= nodes.length)
+      i = nodes.length - 1;
   }
   else if (e.key === 'ArrowUp') {
     i -= 7;
@@ -114,8 +118,8 @@ function onKeyPress(cells, e) {
   }
   else if (e.key === 'ArrowRight') {
     i++;
-    if (i >= cells.length)
-      i = cells.length - 1;
+    if (i >= nodes.length)
+      i = nodes.length - 1;
   }
   else if (e.key === 'ArrowLeft') {
     i--;
@@ -126,49 +130,44 @@ function onKeyPress(cells, e) {
     i = 0;
   }
   else if (e.key === 'End') {
-    i = cells.length - 1;
+    i = nodes.length - 1;
   }
   else {
     return;
   }
-  cells[i].focus();
+  nodes[i].focus();
 }
 
 function Month({
   style,
   className,
   selectedDates,
-  setSelectedDates,
+  onDateClick,
   viewDate,
+  options
 }) {
-  const datesRef = React.useRef();
-  const matrix = getMonthGrid({selectedDates, viewDate});
-
-  React.useEffect(() => {
-    const currentRef = datesRef.current;
-    if (!currentRef)
-      return;
-    const cells = Array.from(currentRef.querySelectorAll('.calendar_date:not(.calendar_inactive)'));
-    const listener = (e) => onKeyPress(cells, e);
-    currentRef.addEventListener('keydown', listener);
-    return () => currentRef.removeEventListener('keydown', listener);
-  }, [datesRef.current]);
-
-  const onDateClicked = (cell) => {
-    const clickedDate = cell.date;
-
-    let newSelectedDates;
-    const i = selectedDates.findIndex(d => isEqual(d, clickedDate));
-    if (i >= 0) {
-      newSelectedDates = selectedDates.slice();
-      newSelectedDates.splice(i, 1);
+  /* Use a callback ref instead of useEffect. The callback ref, by definition, is called
+   * when the referenced node changes. useEffect doesn't necessarily trigger with ref changes. */
+  const ref = React.useRef(null);
+  const setRef = React.useCallback(node => {
+    if (ref.current) {
+      // Already set; do some cleanup
+      const {node, listener} = ref.current;
+      node.removeEventListener('keydown', listener);
+    }
+    
+    if (node) {
+      const nodes = Array.from(node.querySelectorAll('.calendar_date:not(.calendar_disabled)'));
+      const listener = (e) => onKeyPress(nodes, e);
+      node.addEventListener('keydown', listener);
+      ref.current = {node, listener};
     }
     else {
-      newSelectedDates = selectedDates.concat(clickedDate);
+      ref.current = null;
     }
+  }, []);
 
-    setSelectedDates(newSelectedDates);
-  };
+  const matrix = React.useMemo(() => getMonthGrid({selectedDates, viewDate, options}), [selectedDates, viewDate, options]);
 
   return (
     <MonthOuter 
@@ -179,14 +178,14 @@ function Month({
         className="calendar_weekdays"
       >
         {matrix[0].map((cell) => 
-          <WeekdayLabel
+          <DayLabel
             key={cell.date.getDay()}
             cell={cell}
           />
         )}
       </Week>
       <div
-        ref={datesRef}
+        ref={setRef}
         className="calendar_month_dates"
         role="grid"
       >
@@ -199,7 +198,7 @@ function Month({
               <Day
                 key={cell.date.toString()}
                 cell={cell}
-                onClick={() => onDateClicked(cell)}
+                onClick={() => onDateClick(cell.date)}
               />
             )}
           </Week>

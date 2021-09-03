@@ -2,18 +2,21 @@
   "name": "telecons",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:8080",
   "dependencies": {
-    "@natscale/react-calendar": "^0.0.0-beta.8",
     "@reduxjs/toolkit": "^1.6.1",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
-    "dot11-components": "^1.0.34",
+    "dot11-components": "^1.0.36",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
+    "react-expanding-textarea": "^2.3.2",
+    "react-number-format": "^4.7.3",
     "react-router": "^5.2.0",
     "react-router-dom": "^5.2.0",
     "react-scripts": "4.0.3",
+    "redux-logger": "^3.0.6",
     "web-vitals": "^1.1.2"
   },
   "scripts": {

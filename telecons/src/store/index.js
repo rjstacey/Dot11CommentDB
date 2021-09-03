@@ -2,9 +2,11 @@ import { configureStore, combineReducers } from '@reduxjs/toolkit'
 import { createLogger } from 'redux-logger'
 import thunk from 'redux-thunk'
 import errMsg from 'dot11-components/store/error'
+import telecons from './telecons'
 
 const reducer = combineReducers({
-	errMsg
+	errMsg,
+	telecons
 });
 
 const middleware = [thunk];

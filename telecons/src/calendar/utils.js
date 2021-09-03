@@ -41,16 +41,16 @@ const weekdayOrder = [0, 1, 2, 3, 4, 5, 6];
 //const weekdayOrder = [1, 2, 3, 4, 5, 6, 0];
 
 
-/**
- * Test if two dates are equal
- */
+/* Test if two dates are equal */
 export const isEqual = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
 
 export function getMonthGrid({
     selectedDates,
-    viewDate
+    viewDate,
+    options,
 }) {
-  const today = new Date();
+  let today = new Date();
+  today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const month = viewDate.getMonth();
   const year = viewDate.getFullYear();
   const monthStart = new Date(year, month, 1);
@@ -59,13 +59,25 @@ export function getMonthGrid({
   for (let rowIndex = 0; rowIndex < 6; rowIndex++) {
     matrix[rowIndex] = [];
     for (let colIndex = 0; colIndex < 7; colIndex++) {
+      // The date constructor itself corrects for dates outside the current month
       const date = new Date(year, month, day);
+      // inactive if the month is not the view month
+      const isInactive = month !== date.getMonth();
+      // disabled for various reasons, including if inactive
+      let isDisabled = isInactive;
+      if (options.disablePast && date < today)
+        isDisabled = true;
+      if (options.minDate && date < options.minDate)
+        isDisabled = true;
+      if (options.maxDate && date > options.maxDate)
+        isDisabled = true;
       const cell = {
         date,
         isSelected: selectedDates.findIndex(d => isEqual(d, date)) >= 0,
         isToday: isEqual(date, today),
         isWeekend: isWeekend(date.getDay()),
-        isInactive: month !== date.getMonth(),
+        isInactive,
+        isDisabled,
       }
       matrix[rowIndex][colIndex] = cell;
       day++;
