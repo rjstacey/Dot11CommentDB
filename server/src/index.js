@@ -1,5 +1,5 @@
 /*
- * 802.11 tools server
+ * 802 tools server
  *
  * Robert Stacey
  */
@@ -14,8 +14,9 @@ async function initDatabase() {
 	await require('./util/seedDatabase').init();
 }
 
-async function initUsers() {
+async function initServices() {
 	await require('./auth/users').init();
+	await require('./services/webex').init();
 }
 
 function initServer() {
@@ -78,6 +79,6 @@ function initServer() {
 }
 
 initDatabase()
-	.then(initUsers)
+	.then(initServices)
 	.then(initServer)
 	.catch(error => console.error(error));

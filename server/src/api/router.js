@@ -1,5 +1,5 @@
 /*
- * 802.11 comment database API
+ * 802 tools server API
  *
  * Robert Stacey
  */
@@ -12,7 +12,7 @@ const router = require('express').Router()
 
 /*
  * Authorize access to the API
- * Successful authorization leaves authorized user's data in req (in req.user)
+ * Successful authorization leaves authorized user's context in req (in req.user)
  */
 router.use(authorize);
 
@@ -36,6 +36,9 @@ router.all('*', (req, res, next) => {
 		/* subgroup admins have read access to results */
 		if (req.path.match(/^\/result/i) && access >= AccessLevel.SubgroupAdmin)
 			return next();
+		/* subgroup admins have read access to telecons */
+		if (req.path.match(/^\/telecons/i) && access >= AccessLevel.SubgroupAdmin)
+			return next();
 		break;
 
 	case 'POST': /* add */
@@ -43,6 +46,9 @@ router.all('*', (req, res, next) => {
 		if (req.path.match(/^\/comment|^\/resolution/i) && access >= AccessLevel.SubgroupAdmin)
 			return next();
 		if (req.path.match(/^\/ballot/i) && access >= AccessLevel.WGAdmin)
+			return next();
+		/* subgroup admins have create/delete access to telecons */
+		if (req.path.match(/^\/telecons/i) && access >= AccessLevel.SubgroupAdmin)
 			return next();
 		break;
 
@@ -54,6 +60,9 @@ router.all('*', (req, res, next) => {
 			return next();
 		if (req.path.match(/^\/ballot/i) && access >= AccessLevel.WGAdmin)
 			return next();
+		/* subgroup admins have modify access to telecons */
+		if (req.path.match(/^\/telecons/i) && access >= AccessLevel.SubgroupAdmin)
+			return next();
 		break;
 	}
 
@@ -62,7 +71,63 @@ router.all('*', (req, res, next) => {
 		return next();
 
 	return res.status(403).send('Insufficient karma');
-})
+});
+
+/*
+ */
+import {
+	webexInitAccess,
+	getWebexAccounts,
+	updateWebexAccount,
+	addWebexAccount,
+	deleteWebexAccount
+} from '../services/webex';
+
+router.get('/webex/auth', async (req, res, next) => {
+	try {
+		const {code, state} = req.query;
+		const data = await webexInitAccess(code, state);
+		res.json(data);
+	}
+	catch (err) {next(err)}
+});
+router.get('/webex/accounts', async (req, res, next) => {
+	try {
+		const data = await getWebexAccounts();
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+router.patch('/webex/account/:id', async (req, res, next) => {
+	try {
+		const {id} = req.params;
+		const changes = req.body;
+		if (typeof changes !== 'object')
+			throw 'Missing or bad body; expected object';
+		const data = await updateWebexAccount(id, changes);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+router.post('/webex/account', async (req, res, next) => {
+	try {
+		const {id} = req.params;
+		const entry = req.body;
+		if (typeof entry !== 'object')
+			throw 'Missing or bad body; expected object';
+		const data = await addWebexAccount(entry);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+router.delete('/webex/account/:id', async (req, res, next) => {
+	try {
+		const {id} = req.params;
+		const data = await deleteWebexAccount(id);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
 
 /*
  * Members API
@@ -102,14 +167,14 @@ router.get('/users$', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.get('/members$', async (req, res, next) => {
 	try {
 		const data = await getMembersWithParticipation();
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.get('/members/snapshot$', async (req, res, next) => {
 	try {
 		const {date} = req.body;
@@ -117,7 +182,7 @@ router.get('/members/snapshot$', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.patch('/member/:id(\\d+)$', async (req, res, next) => {
 	try {
 		const {id} = req.params;
@@ -128,7 +193,7 @@ router.patch('/member/:id(\\d+)$', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.patch('/member/:id(\\d+)/StatusChangeHistory', async (req, res, next) => {
 	try {
 		const {id} = req.params;
@@ -139,7 +204,7 @@ router.patch('/member/:id(\\d+)/StatusChangeHistory', async (req, res, next) => 
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.delete('/member/:id(\\d+)/StatusChangeHistory', async (req, res, next) => {
 	try {
 		const {id} = req.params;
@@ -150,7 +215,7 @@ router.delete('/member/:id(\\d+)/StatusChangeHistory', async (req, res, next) =>
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.patch('/member/:id(\\d+)/ContactEmails', async (req, res, next) => {
 	try {
 		const {id} = req.params;
@@ -161,7 +226,7 @@ router.patch('/member/:id(\\d+)/ContactEmails', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/member/:id(\\d+)/ContactEmails', async (req, res, next) => {
 	try {
 		const {id} = req.params;
@@ -172,7 +237,7 @@ router.post('/member/:id(\\d+)/ContactEmails', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.delete('/member/:id(\\d+)/ContactEmails', async (req, res, next) => {
 	try {
 		const {id} = req.params;
@@ -183,7 +248,7 @@ router.delete('/member/:id(\\d+)/ContactEmails', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.patch('/members$', async (req, res, next) => {
 	try {
 		const {id} = req.params;
@@ -194,7 +259,7 @@ router.patch('/members$', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/member', async (req, res, next) => {
 	try {
 		const {member} = req.body;
@@ -204,7 +269,7 @@ router.post('/member', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.delete('/members', async (req, res, next) => {
 	try {
 		const ids = req.body;
@@ -214,7 +279,7 @@ router.delete('/members', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/members/upload/:format', upload.single('File'), async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -225,7 +290,7 @@ router.post('/members/upload/:format', upload.single('File'), async (req, res, n
 		res.json(data)
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/members/MyProjectRoster$', upload.single('File'), async (req, res, next) => {
 	try {
 		if (!req.file)
@@ -234,13 +299,13 @@ router.post('/members/MyProjectRoster$', upload.single('File'), async (req, res,
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.get('/members/MyProjectRoster$', async (req, res, next) => {
 	try {
 		exportMyProjectRoster(res);
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/members$', async (req, res, next) => {
 	try {
 		const {members} = req.body;
@@ -250,7 +315,7 @@ router.post('/members$', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 
 /*
  * Sessions API
@@ -292,7 +357,7 @@ router.get('/sessions', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.patch('/session/:id(\\d+)', async (req, res, next) => {
 	try {
 		const id = parseInt(req.params.id, 10);
@@ -303,7 +368,7 @@ router.patch('/session/:id(\\d+)', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/session', async (req, res, next) => {
 	try {
 		const session = req.body;
@@ -313,7 +378,7 @@ router.post('/session', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.delete('/sessions', async (req, res, next) => {
 	try {
 		const ids = req.body;
@@ -323,7 +388,7 @@ router.delete('/sessions', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.get('/session/:id(\\d+)/breakouts', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -332,7 +397,7 @@ router.get('/session/:id(\\d+)/breakouts', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.get('/session/:id(\\d+)/breakout/:breakout_id(\\d+)/attendees', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -342,7 +407,7 @@ router.get('/session/:id(\\d+)/breakout/:breakout_id(\\d+)/attendees', async (re
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.get('/session/:id(\\d+)/attendees', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -351,7 +416,7 @@ router.get('/session/:id(\\d+)/attendees', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/session/:id(\\d+)/breakouts/import', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -360,7 +425,7 @@ router.post('/session/:id(\\d+)/breakouts/import', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.patch('/attendance_summaries', async (req, res, next) => {
 	try {
 		const {ids, attendances} = req.body;
@@ -370,7 +435,7 @@ router.patch('/attendance_summaries', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/session/:id(\\d+)/attendance_summary/import', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -379,14 +444,14 @@ router.post('/session/:id(\\d+)/attendance_summary/import', async (req, res, nex
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.get('/timeZones', async (req, res, next) => {
 	try {
 		const data = await getTimeZones();
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.get('/imat/meetings', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -395,7 +460,66 @@ router.get('/imat/meetings', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
+
+/*
+ * Telecons API
+ *
+ * Maintain telecons list.
+ * 
+ * GET /telecons/{group}: return the complete list of telecons for a particular group.
+ * PATCH /telecons: update the identified telecon and returns the updated field values.
+ * POST /telecons: add a telecon and returns the complete entry as added.
+ * DELETE /telecons: delete telecon identified by a list of IDs. Returns null.
+ */
+import {
+	getTelecons,
+	updateTelecons,
+	addTelecons,
+	deleteTelecons
+} from '../services/telecons'
+
+router.get('/telecons/:group', async (req, res, next) => {
+	try {
+		const {group} = req.params;
+		const data = await getTelecons(group);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+router.patch('/telecons', async (req, res, next) => {
+	try {
+		const {user} = req;
+		const changes = req.body;
+		if (!Array.isArray(changes))
+			throw 'Missing or bad body; expected array';
+		const data = await updateTelecons(user, changes);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+router.post('/telecons', async (req, res, next) => {
+	try {
+		const {user} = req;
+		const telecons = req.body;
+		if (!Array.isArray(telecons))
+			throw 'Missing or bad body; expected array';
+		const data = await addTelecons(user, telecons);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+router.delete('/telecons', async (req, res, next) => {
+	try {
+		const {user} = req;
+		const ids = req.body;
+		if (!Array.isArray(ids))
+			throw 'Missing or bad body; expected array';
+		const data = await deleteTelecons(user, ids);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
 
 /*
  * Ballot results API
@@ -417,14 +541,14 @@ router.get('/results/:ballotId', async (req, res, next) => {
 		res.json(data)
 	}
 	catch(err) {next(err)}
-})
+});
 router.get('/resultsExport', (req, res, next) => {
 	try {
 		const {user} = req;
 		exportResults(user, req.query, res)
 	}
 	catch(err) {next(err)}
-})
+});
 router.delete('/results/:ballotId', async (req, res, next) => {
 	try {
 		const {ballotId} = req.params
@@ -432,7 +556,7 @@ router.delete('/results/:ballotId', async (req, res, next) => {
 		res.json(data)
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/results/importFromEpoll/:ballotId/:epollNum', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -441,7 +565,7 @@ router.post('/results/importFromEpoll/:ballotId/:epollNum', async (req, res, nex
 		res.json(data)
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/results/uploadEpollResults/:ballotId', upload.single('ResultsFile'), async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -452,7 +576,7 @@ router.post('/results/uploadEpollResults/:ballotId', upload.single('ResultsFile'
 		res.json(data)
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/results/uploadMyProjectResults/:ballotId', upload.single('ResultsFile'), async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -463,7 +587,7 @@ router.post('/results/uploadMyProjectResults/:ballotId', upload.single('ResultsF
 		res.json(data)
 	}
 	catch(err) {next(err)}
-})
+});
 
 
 /*
@@ -493,13 +617,13 @@ router.get('/ballot/:ballotId', async (req, res, next) => {
 		res.json(data)
 	}
 	catch(err) {next(err)}
-})
+});
 router.get('/ballots', async (req, res, next) => {
 	try {
 		res.json(await getBallots())
 	}
 	catch(err) {next(err)}
-})
+});
 router.patch('/ballots', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -510,7 +634,7 @@ router.patch('/ballots', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/ballots', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -521,7 +645,7 @@ router.post('/ballots', async (req, res, next) => {
 		res.json(data)
 	}
 	catch(err) {next(err)}
-})
+});
 router.delete('/ballots', async (req, res, next) => {
 	try {
 		const ids = req.body;
@@ -531,7 +655,7 @@ router.delete('/ballots', async (req, res, next) => {
 		res.json(null)
 	}
 	catch(err) {next(err)}
-})
+});
 router.get('/epolls', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -540,7 +664,7 @@ router.get('/epolls', async (req, res, next) => {
 		res.json(data)
 	}
 	catch(err) {next(err)}
-})
+});
 
 
 /*
@@ -569,7 +693,7 @@ router.get('/comments/:ballotId', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.put('/comments', async (req, res, next) => {
 	try {
 		if (!req.body.hasOwnProperty('ids'))
@@ -585,7 +709,7 @@ router.put('/comments', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.patch('/comments/startCommentId/:ballotId', async (req, res, next) => {
 	try {
 		const {ballotId} = req.params;
@@ -594,7 +718,7 @@ router.patch('/comments/startCommentId/:ballotId', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.delete('/comments/:ballotId', async (req, res, next) => {
 	try {
 		const {ballotId} = req.params;
@@ -602,7 +726,7 @@ router.delete('/comments/:ballotId', async (req, res, next) => {
 		res.json(data);
 	}
 	catch (err) {next(err)}
-})
+});
 router.post('/comments/importFromEpoll/:ballotId/:epollNum', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -612,7 +736,7 @@ router.post('/comments/importFromEpoll/:ballotId/:epollNum', async (req, res, ne
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/comments/upload/:ballotId/:type', upload.single('CommentsFile'), async (req, res, next) => {
 	try {
 		const {ballotId} = req.params;
@@ -624,7 +748,7 @@ router.post('/comments/upload/:ballotId/:type', upload.single('CommentsFile'), a
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 
 import {
 	addResolutions,
@@ -647,7 +771,7 @@ router.post('/resolutions$', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.put('/resolutions$', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -664,7 +788,7 @@ router.put('/resolutions$', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.delete('/resolutions$', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -677,7 +801,7 @@ router.delete('/resolutions$', async (req, res, next) => {
 		res.json(data)
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/resolutions/upload/:ballotId', upload.single('ResolutionsFile'), async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -701,7 +825,7 @@ router.post('/resolutions/upload/:ballotId', upload.single('ResolutionsFile'), a
 		res.json(data)
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/comments/export/:format', upload.single('file'), (req, res, next) => {
 	const {user} = req;
 	const {format} = req.params;
@@ -732,7 +856,7 @@ router.post('/comments/export/:format', upload.single('file'), (req, res, next) 
 			return next('Missing parameter Style')
 		return exportSpreadsheet(user, BallotID, Filename, isLegacy, Style, req.file, res).catch(err => next(err))
 	}
-})
+});
 
 /*
  * Comments History API
@@ -769,7 +893,7 @@ router.get('/votingPools', async (req, res, next) => {
 		res.json(data)
 	}
 	catch(err) {next(err)}
-})
+});
 router.delete('/votingPools', async (req, res, next) => {
 	try {
 		const votingPoolIds = req.body
@@ -779,7 +903,7 @@ router.delete('/votingPools', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.patch('/votingPool/:votingPoolId', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
@@ -790,7 +914,7 @@ router.patch('/votingPool/:votingPoolId', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.get('/voters/:votingPoolId', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
@@ -798,7 +922,7 @@ router.get('/voters/:votingPoolId', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/voter/:votingPoolId', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
@@ -807,7 +931,7 @@ router.post('/voter/:votingPoolId', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.patch('/voter/:votingPoolId/:sapin', async (req, res, next) => {
 	try {
 		const {votingPoolId, sapin} = req.params;
@@ -816,7 +940,7 @@ router.patch('/voter/:votingPoolId/:sapin', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.delete('/voters/:votingPoolId$', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
@@ -827,7 +951,7 @@ router.delete('/voters/:votingPoolId$', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/voters/:votingPoolId/upload', upload.single('File'), async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
@@ -837,7 +961,7 @@ router.post('/voters/:votingPoolId/upload', upload.single('File'), async (req, r
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 router.post('/voters/:votingPoolId/membersSnapshot', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
@@ -848,6 +972,6 @@ router.post('/voters/:votingPoolId/membersSnapshot', async (req, res, next) => {
 		res.json(data);
 	}
 	catch(err) {next(err)}
-})
+});
 
 export default router;

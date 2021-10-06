@@ -2,294 +2,17 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect, useDispatch, useSelector} from 'react-redux'
 import styled from '@emotion/styled'
-import {DateTime} from 'luxon'
-import Calendar from './calendar'
-import TextArea from 'react-expanding-textarea'
-import {Form, List, ListItem, Input, Row, Col, Checkbox} from 'dot11-components/general/Form'
-import {ActionIcon, Button} from 'dot11-components/icons'
-import Dropdown from 'dot11-components/general/Dropdown'
-import {parseNumber, displayDate, displayTime} from 'dot11-components/lib'
+import {ActionButton, ButtonGroup} from 'dot11-components/icons'
+import {displayDate, displayTime} from 'dot11-components/lib'
 import {ConfirmModal} from 'dot11-components/modals'
-import {setError} from 'dot11-components/store/error'
-import {loadTelecons, addTelecons, updateTelecons, deleteTelecons, getTeleconsForSubgroup} from './store/telecons'
+import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, TableColumnHeader, ShowFilters, TableColumnSelector, TableViewSelector} from 'dot11-components/table'
+import {fields, loadTelecons, addTelecons, deleteTelecons} from './store/telecons'
 import WebexAccountSelector from './WebexAccountSelector'
+import {setProperty} from 'dot11-components/store/ui'
+import TeleconUpdate from './TeleconUpdate'
+import TeleconAdd from './TeleconAdd'
 
 const group = '802.11';
-
-function timeToStr(time) {
-	if (!time)
-		return '';
-	return ('0' + time.HH).substr(0,2) + ':' + ('0' + time.MM).substr(0,2);
-}
-
-function TimeInput({style, defaultValue, onChange, ...otherProps}) {
-	const [value, setValue] = React.useState(timeToStr(defaultValue));
-	const [valid, setValid] = React.useState(false);
-
-	const handleChange = (e) => {
-		const {value} = e.target;
-		const [hourStr, minStr] = value.split(':');
-
-		let isValid = false;
-		let time = null;
-		if (hourStr && minStr) {
-			time = {
-				HH: parseNumber(hourStr),
-				MM: parseNumber(minStr)
-			};
-			if (time.HH >= 0 && time.HH < 24 && time.MM >= 0 && time.MM < 60)
-				isValid = true;
-		}
-		else if (!hourStr && !minStr) {
-			isValid = true;
-		}
-
-		setValid(isValid);
-		setValue(value);
-
-		if (onChange)
-			onChange(isValid? time: null);
-	}
-
-	const newStyle = {...style, color: valid? 'inherit': 'red'}
-	return <Input type='search' style={newStyle} {...otherProps} value={value} onChange={handleChange} placeholder="HH:MM" />
-}
-
-
-const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-
-const InputDatesWrapper = styled.div`
-	display: flex;
-	align-items: center;
-	border: solid 1px #ddd;
-	background-color: #fafafa;
-	box-sizing: border-box;
-	border-radius: 3px;
-	line-height: 25px;
-	padding: 0 5px;
-
-	.clear {
-		visibility: hidden;
-		margin: 0 5px;
-	}
-
-	.calendar {
-		margin: 0 5px;
-	}
-
-	:hover .clear.active,
-	:focus-within .clear.active {
-		visibility: visible;
-	}
-
-	:focus-within {
-		outline: 0;
-		box-shadow: 0 0 0 3px rgba(0,116,217,0.2);
-	}
-	:focus-within,
-	:not([disabled]):valid:hover {
-		border-color: #0074D9;
-	}
-	:invalid {
-		background-color: #ff000052;
-	}
-	::placeholder {
-		font-style: italic;
-	}
-`;
-
-const StyledTextArea = styled(TextArea)`
-	font-family: inherit;
-	border: none;
-	resize: none;
-
-	:focus-visible {
-		outline: none;
-	}
-`;
-
-function DatesInput({value: datesArray, onChange: setDatesArray}) {
-	const [datesStr, setDatesStr] = React.useState();
-	const [focus, setFocus] = React.useState(false);
-
-	const changeDatesStr = (str) => {
-		const datesArray = [];
-		const now = new Date();
-		let currentMonth = now.getMonth();
-		let currentYear = now.getFullYear();
-		const strArray = str.split(',');
-		for (let s of strArray) {
-			let date = null;
-			s = s.trim();
-			const matches = s.match(/([a-z]*)\s*([\d]+)/i);
-			if (matches) {
-				const monthStr = matches[1];
-				const dayStr = matches[2];
-				if (monthStr) {
-					currentMonth = months.indexOf(monthStr.substr(0,3).toLowerCase());
-					if (currentMonth < now.getMonth())
-						currentYear = now.getFullYear() + 1;
-				}
-				if (currentMonth >= 0 && dayStr)
-					date = new Date(currentYear, currentMonth, dayStr);
-			}
-			if (date)
-				datesArray.push(date);
-		}
-		setDatesArray(datesArray);
-		setDatesStr(str);
-	}
-
-	const changeDatesArray = (array) => {
-		const now = new Date();
-		let currentMonth = now.getMonth();
-		const dates = array.slice().sort((a, b) => a - b);
-		const list = [];
-		for (const date of dates) {
-			let s = '';
-			const month = Intl.DateTimeFormat('en-US', {month: 'short'}).format(date);
-			if (month !== currentMonth) {
-				s += month;
-				currentMonth = month;
-			}
-			const day = date.getDate();
-			s += ' ' + day;
-			list.push(s);
-		}
-		setDatesStr(list.join(', '));
-		setDatesArray(dates);
-	}
-
-	const today = new Date();
-	const minDate = new Date(today.getFullYear(), today.getMonth(), 1);
-	const maxDate = new Date(today.getFullYear() + 1, today.getMonth(), 0);
-
-	return (
-		<InputDatesWrapper
-			onFocus={() => setFocus(true)}
-			onBlur={() => setFocus(false)}
-		>
-			<StyledTextArea
-				value={datesStr}
-				onChange={(e) => changeDatesStr(e.target.value)}
-				placeholder='Enter date(s)...'
-			/>
-			<ActionIcon
-				className={'clear' + (datesStr? ' active': '')}
-				type='clear'
-				onClick={() => changeDatesArray([])}
-			/>
-			<Dropdown
-				className='calendar'
-				selectRenderer={({isOpen, open, close}) =>
-					<ActionIcon
-						type='calendar'
-						title='Select date'
-						//disabled={disabled} 
-						onClick={isOpen? close: open}
-					/>}
-				dropdownRenderer={
-					() => <Calendar
-						multi
-						dual
-						disablePast
-						minDate={minDate}
-						maxDate={maxDate}
-						value={datesArray}
-						onChange={changeDatesArray}
-					/>
-				}
-			/>
-		</InputDatesWrapper>
-	);
-}
-
-const defaultEntry = {
-	Dates: [],
-	StartTime: null,
-	Duration: 1,
-	Motions: false,
-}
-
-function AddEntry({addEntry}) {
-	const [entry, setEntry] = React.useState(defaultEntry);
-
-	const handleAddEntry = async () => {
-		let errMsg = '';
-		if (entry.Dates.length === 0)
-			errMsg = 'Date(s) not set';
-		else if (!entry.StartTime)
-			errMsg = 'Start time not set'
-		else if (!entry.Duration)
-			errMsg = 'Duration not set';
-		if (errMsg)
-			ConfirmModal.show(errMsg, false);
-		else
-			addEntry(entry);
-	};
-
-	return (
-		<Row>
-			<Col>
-				<Label>Dates:</Label>
-				<DatesInput
-					value={entry.Dates}
-					onChange={value => setEntry(state => ({...state, Dates: value}))}
-				/>
-			</Col>
-			<Col>
-				<Label>Start time:</Label>
-				<TimeInput
-					defaultValue={entry.StartTime}
-					onChange={value => setEntry(state => ({...state, StartTime: value}))}
-				/>
-			</Col>
-			<Col>
-				<Label>Duration:</Label>
-				<Input type='search'
-					value={entry.Duration || ''}
-					onChange={e => setEntry(state => ({...state, Duration: e.target.value}))}
-				/>
-			</Col>
-			<Col>
-				<Label>Motions:</Label>
-				<Checkbox
-					checked={entry.HasMotions}
-					onClick={() => setEntry(state => ({...state, HasMotions: !state.HasMotions}))}
-				/>
-			</Col>
-			<Col>
-				<Label>Webex:</Label>
-				<WebexAccountSelector
-					type='search'
-					value={entry.webex_id || ''}
-					onChange={value => setEntry(state => ({...state, webex_id: value}))}
-				/>
-			</Col>
-			<Button
-				onClick={handleAddEntry}
-			>
-				Add
-			</Button>
-		</Row>
-	)
-}
-
-function displayEntry(entry) {
-	return (
-		<Row>
-			<div>
-				{new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long', timeZone: 'America/New_York' }).format(entry.Start)}
-			</div>
-			<div>
-				{entry.Duration}
-			</div>
-			<div>
-				{'Motions: ' + (entry.motions? 'yes': 'no')}
-			</div>
-		</Row>
-	)
-}
 
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -308,41 +31,6 @@ const columns = [
 	getValue: entry => entry.HasMotions},
 ]
 
-function EditTelecon({entry}) {
-	return (
-		<Dropdown
-			selectRenderer={({isOpen, open, close}) => <ActionIcon name='edit' onClick={isOpen? close: open}/>}
-			portal
-			anchorEl={document.querySelector('#root')}
-		>
-			<div>Hi There</div>
-		</Dropdown>
-	)
-}
-
-function TeleconTable({entries, deleteEntry}) {
-
-	return (
-		<table>
-			<thead>
-				<tr>
-					{columns.map(col => <th key={col.label}>{col.label}</th>)}
-				</tr>
-			</thead>
-			<tbody>
-				{entries.map(entry => (
-					<tr key={entry.id}>
-						{columns.map((col, i) => <td key={i}>{col.getValue(entry)}</td>)}
-						<td style={{display: 'flex'}}>
-							<EditTelecon entry={entry} />
-							<ActionIcon type='delete' onClick={() => deleteEntry(entry)} />
-						</td>
-					</tr>))}
-			</tbody>
-		</table>
-	)
-}
-
 const TopRow = styled.div`
 	display: flex;
 	justify-content: space-between;
@@ -351,96 +39,185 @@ const TopRow = styled.div`
 	box-sizing: border-box;
 `;
 
-const Label = styled.div`
-	font-weight: bold;
+const Container = styled.div`
+	padding: 10px;
 `;
 
-const subgroups = [
-	'TGme',
-	/*'TGaz',
-	'TGbb',
-	'TGbc',
-	'TGbd',
-	'TGbe',
-	'TGbh',
-	'TGbi',
-	'ARC',
-	'WNG',
-	'AANI',
-	'ITU'*/
-];
+const NotAvailable = styled.div`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1em;
+	color: #bdbdbd;
+`;
 
-function Subgroup(props) {
+function TeleconDetail() {
+	const [actionAdd, setActionAdd] = React.useState(false)
 	const dispatch = useDispatch();
-	const entries = useSelector(state => {
-		const ids = getTeleconsForSubgroup(state.telecons, props.subgroup);
-		return ids.map(id => state.telecons.entities[id]);
-	});
+	const loading = useSelector(state => state[dataSet].loading);
+	const selected = useSelector(state => state[dataSet].selected);
+	const uiProperties = useSelector(state => state[dataSet].ui);
+	const setUiProperty = React.useCallback((property, value) => dispatch(setProperty(property, value)), [dispatch]);
 
-	const handleAddEntry = (entry) => {
-		const newEntries = entry.Dates.map(date => {
-			console.log(entry)
-			const start = DateTime.local(date.getFullYear(), date.getMonth()+1, date.getDate(), entry.StartTime.HH, entry.StartTime.MM, {zone: "America/New_York"});
-			console.log(start.toISO())
-			const en = {
-				Group: group,
-				Subgroup: props.subgroup,
-				Start: start.toISO(),
-				Duration: entry.Duration,
-				HasMotions: !!entry.HasMotions,
-				webex_id: entry.webex_id
-			};
-			console.log(en);
-			return en;
-		});
-		dispatch(addTelecons(newEntries));
-	}
+	const handleRemoveSelected = React.useCallback(async () => {
+		const ok = await ConfirmModal.show(`Are you sure you want to delete ${selected}?`);
+		if (!ok)
+			return;
+		await dispatch(deleteTelecons(selected));
+	}, [dispatch, selected]);
 
-	const handleDeleteEntry = (entry) => {
-		dispatch(deleteTelecons([entry.id]));
-	}
-
+	const disableButtons = loading;
 	return (
-		<ListItem>
-			<Col>
-				<Row>
-					<Label>{props.subgroup}</Label>
-				</Row>
-				<Row>
-					<AddEntry
-						addEntry={handleAddEntry}
-					/>
-				</Row>
-				<TeleconTable entries={entries} deleteEntry={handleDeleteEntry} />
-			</Col>
-		</ListItem>
+		<Container>
+			<TopRow>
+					<span>
+						<ActionButton
+							name='add'
+							title='Add telecon'
+							disabled={disableButtons}
+							isActive={actionAdd}
+							onClick={() => setActionAdd(!actionAdd)}
+						/>
+						<ActionButton
+							name='edit'
+							title='Edit telecon'
+							disabled={disableButtons}
+							isActive={uiProperties.edit}
+							onClick={() => setUiProperty('edit', !uiProperties.edit)}
+						/>
+						<ActionButton
+							name='delete'
+							title='Delete telecon'
+							disabled={disableButtons}
+							onClick={handleRemoveSelected}
+						/>
+					</span>
+			</TopRow>
+			{loading?
+				<NotAvailable>Loading...</NotAvailable>:
+				(actionAdd?
+					<TeleconAdd 
+						close={() => setActionAdd(false)}
+					/>:
+					selected.length === 0?
+						<NotAvailable>Nothing selected</NotAvailable>:
+						<TeleconUpdate
+							key={selected}
+							loading={loading}
+							readOnly={!uiProperties.edit}
+						/>)
+			}
+		</Container>
 	)
 }
 
-function Telecons({telecons, valid, loading, loadTelecons}) {
+const tableColumns = [
+	{key: '__ctrl__',
+		width: 30, flexGrow: 0, flexShrink: 0,
+		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
+		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
+	{key: 'Subgroup',
+		label: 'Subgroup',
+		width: 200, flexGrow: 1, flexShrink: 0},
+	{key: 'Day',
+		label: 'Day',
+		width: 200, flexGrow: 1, flexShrink: 0,
+		cellRenderer: ({rowData, dataKey}) => days[rowData.Start.getDay()]},
+	{key: 'Date',
+		label: 'Date',
+		width: 200, flexGrow: 1, flexShrink: 0,
+		cellRenderer: ({rowData, dataKey}) => displayDate(rowData.Start)},
+	{key: 'Time',
+		label: 'Time',
+		width: 200, flexGrow: 1, flexShrink: 0,
+		cellRenderer: ({rowData, dataKey}) => displayTime(rowData.Start)},
+	{key: 'Duration',
+		width: 200, flexGrow: 1, flexShrink: 0,
+		...fields.Duration},
+	{key: 'HasMotions',
+		width: 40, flexGrow: 1, flexShrink: 0,
+		...fields.HasMotions}
+];
+
+function Telecons({telecons, valid, loading, selected, loadTelecons, uiProperties, setUiProperty}) {
+
 	React.useEffect(() => {
 		if (!loading)
 			loadTelecons(group);
 	}, []);
 
-	return (
-		<Form
-			title='Telecon schedule'
-		>
-			<List
-				title='Subgroups'
-			>
-				{subgroups.map(s => <Subgroup key={s} subgroup={s} />)}
-			</List>
-		</Form>
-	)
+	const refresh = () => {
+		loadTelecons(group);
+	}
+
+
+	return <>
+		<TopRow>
+			<div style={{display: 'flex', alignItems: 'center'}}>
+				<ButtonGroup>
+					<div style={{textAlign: 'center'}}>Table view</div>
+					<div style={{display: 'flex', alignItems: 'center'}}>
+						<TableViewSelector dataSet={dataSet} />
+						<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+						<ActionButton
+							name='book-open'
+							title='Show detail'
+							isActive={uiProperties.showDetail} 
+							onClick={() => setUiProperty('showDetail', !uiProperties.showDetail)} 
+						/>
+					</div>
+				</ButtonGroup>
+				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+			</div>
+		</TopRow>
+
+		<ShowFilters
+			dataSet={dataSet}
+			fields={fields}
+		/>
+
+		<SplitPanel splitView={uiProperties.showDetail || false} >
+			<Panel>
+				<AppTable
+					columns={tableColumns}
+					headerHeight={62}
+					estimatedRowHeight={64}
+					dataSet={dataSet}
+				/>
+			</Panel>
+			<Panel>
+				<TeleconDetail
+					key={selected}
+					loading={loading}
+					uiProperties={uiProperties}
+				/>
+			</Panel>
+		</SplitPanel>
+	</>
 }
 
 const dataSet = 'telecons';
 
+Telecons.propTypes = {
+	valid: PropTypes.bool.isRequired,
+	loading: PropTypes.bool.isRequired,
+}
+
 export default connect(
 	(state) => {
-		return state[dataSet];
+		const data = state[dataSet];
+
+		return {
+			valid: data.valid,
+			loading: data.loading,
+			selected: data.selected,
+			tableView: data.ui.tableView,
+			tablesConfig: data.ui.tablesConfig,
+			uiProperties: data.ui
+		}
 	},
-	{loadTelecons, addTelecons}
+	{
+		loadTelecons,
+		setUiProperty: (property, value) => setProperty(dataSet, property, value),
+	}
 )(Telecons);

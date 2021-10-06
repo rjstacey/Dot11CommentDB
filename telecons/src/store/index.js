@@ -3,10 +3,12 @@ import { createLogger } from 'redux-logger'
 import thunk from 'redux-thunk'
 import errMsg from 'dot11-components/store/error'
 import telecons from './telecons'
+import webex from './webex'
 
 const reducer = combineReducers({
 	errMsg,
-	telecons
+	telecons,
+	webex
 });
 
 const middleware = [thunk];

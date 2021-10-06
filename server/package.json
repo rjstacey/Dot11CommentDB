@@ -14,6 +14,7 @@
   "author": "Robert Stacey",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.21.4",
     "cheerio": "^1.0.0-rc.2",
     "cors": "^2.8.5",
     "csv-parse": "^4.16.0",
