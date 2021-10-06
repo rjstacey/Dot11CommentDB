@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import {connect, useDispatch} from 'react-redux'
+import {connect, useDispatch, useSelector} from 'react-redux'
 import styled from '@emotion/styled'
+import {DateTime} from 'luxon'
 import Calendar from './calendar'
 import TextArea from 'react-expanding-textarea'
 import {Form, List, ListItem, Input, Row, Col, Checkbox} from 'dot11-components/general/Form'
@@ -10,7 +11,10 @@ import Dropdown from 'dot11-components/general/Dropdown'
 import {parseNumber, displayDate, displayTime} from 'dot11-components/lib'
 import {ConfirmModal} from 'dot11-components/modals'
 import {setError} from 'dot11-components/store/error'
-import {loadTelecons} from './store/telecons'
+import {loadTelecons, addTelecons, updateTelecons, deleteTelecons, getTeleconsForSubgroup} from './store/telecons'
+import WebexAccountSelector from './WebexAccountSelector'
+
+const group = '802.11';
 
 function timeToStr(time) {
 	if (!time)
@@ -182,7 +186,6 @@ function DatesInput({value: datesArray, onChange: setDatesArray}) {
 						type='calendar'
 						title='Select date'
 						//disabled={disabled} 
-						active={isOpen}
 						onClick={isOpen? close: open}
 					/>}
 				dropdownRenderer={
@@ -251,8 +254,16 @@ function AddEntry({addEntry}) {
 			<Col>
 				<Label>Motions:</Label>
 				<Checkbox
-					checked={entry.Motions}
-					onClick={() => setEntry(state => ({...state, Motions: !state.Motions}))}
+					checked={entry.HasMotions}
+					onClick={() => setEntry(state => ({...state, HasMotions: !state.HasMotions}))}
+				/>
+			</Col>
+			<Col>
+				<Label>Webex:</Label>
+				<WebexAccountSelector
+					type='search'
+					value={entry.webex_id || ''}
+					onChange={value => setEntry(state => ({...state, webex_id: value}))}
 				/>
 			</Col>
 			<Button
@@ -268,7 +279,7 @@ function displayEntry(entry) {
 	return (
 		<Row>
 			<div>
-				{new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long' }).format(entry.Start)}
+				{new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long', timeZone: 'America/New_York' }).format(entry.Start)}
 			</div>
 			<div>
 				{entry.Duration}
@@ -291,11 +302,25 @@ const columns = [
 	getValue: entry => displayTime(entry.Start)},
 	{label: 'Duration',
 	getValue: entry => entry.Duration},
+	{label: 'Webex',
+	getValue: entry => entry.webex_id},
 	{label: 'Motions',
-	getValue: entry => entry.Motions}
+	getValue: entry => entry.HasMotions},
 ]
 
-function TeleconTable({entries}) {
+function EditTelecon({entry}) {
+	return (
+		<Dropdown
+			selectRenderer={({isOpen, open, close}) => <ActionIcon name='edit' onClick={isOpen? close: open}/>}
+			portal
+			anchorEl={document.querySelector('#root')}
+		>
+			<div>Hi There</div>
+		</Dropdown>
+	)
+}
+
+function TeleconTable({entries, deleteEntry}) {
 
 	return (
 		<table>
@@ -305,7 +330,14 @@ function TeleconTable({entries}) {
 				</tr>
 			</thead>
 			<tbody>
-				{entries.map(entry => <tr key={entry.Start.toString()}>{columns.map((col, i) => <td key={i}>{col.getValue(entry)}</td>)}</tr>)}
+				{entries.map(entry => (
+					<tr key={entry.id}>
+						{columns.map((col, i) => <td key={i}>{col.getValue(entry)}</td>)}
+						<td style={{display: 'flex'}}>
+							<EditTelecon entry={entry} />
+							<ActionIcon type='delete' onClick={() => deleteEntry(entry)} />
+						</td>
+					</tr>))}
 			</tbody>
 		</table>
 	)
@@ -339,20 +371,33 @@ const subgroups = [
 ];
 
 function Subgroup(props) {
-	const [entries, setEntries] = React.useState([]);
+	const dispatch = useDispatch();
+	const entries = useSelector(state => {
+		const ids = getTeleconsForSubgroup(state.telecons, props.subgroup);
+		return ids.map(id => state.telecons.entities[id]);
+	});
 
 	const handleAddEntry = (entry) => {
 		const newEntries = entry.Dates.map(date => {
 			console.log(entry)
+			const start = DateTime.local(date.getFullYear(), date.getMonth()+1, date.getDate(), entry.StartTime.HH, entry.StartTime.MM, {zone: "America/New_York"});
+			console.log(start.toISO())
 			const en = {
-				Start: new Date(date.getFullYear(), date.getMonth(), date.getDate(), entry.StartTime.HH, entry.StartTime.MM),
+				Group: group,
+				Subgroup: props.subgroup,
+				Start: start.toISO(),
 				Duration: entry.Duration,
-				Motions: entry.motions
+				HasMotions: !!entry.HasMotions,
+				webex_id: entry.webex_id
 			};
 			console.log(en);
 			return en;
-		})
-		setEntries(entries => entries.slice().concat(newEntries));
+		});
+		dispatch(addTelecons(newEntries));
+	}
+
+	const handleDeleteEntry = (entry) => {
+		dispatch(deleteTelecons([entry.id]));
 	}
 
 	return (
@@ -366,7 +411,7 @@ function Subgroup(props) {
 						addEntry={handleAddEntry}
 					/>
 				</Row>
-				<TeleconTable entries={entries} />
+				<TeleconTable entries={entries} deleteEntry={handleDeleteEntry} />
 			</Col>
 		</ListItem>
 	)
@@ -375,7 +420,7 @@ function Subgroup(props) {
 function Telecons({telecons, valid, loading, loadTelecons}) {
 	React.useEffect(() => {
 		if (!loading)
-			loadTelecons();
+			loadTelecons(group);
 	}, []);
 
 	return (
@@ -397,5 +442,5 @@ export default connect(
 	(state) => {
 		return state[dataSet];
 	},
-	{loadTelecons}
+	{loadTelecons, addTelecons}
 )(Telecons);
