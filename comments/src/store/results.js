@@ -1,10 +1,7 @@
 import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
 
 import fetcher from 'dot11-components/lib/fetcher'
-import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
-import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
-import selectedSlice, {setSelected} from 'dot11-components/store/selected'
-import uiSlice from 'dot11-components/store/ui'
+import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData'
 import {setError} from 'dot11-components/store/error'
 
 import {updateBallotSuccess} from './ballots'
@@ -19,57 +16,26 @@ const fields = {
 	Notes: {label: 'Notes'}
 };
 
-const dataAdapter = createEntityAdapter({
-	selectId: r => r.id
-});
-
 const dataSet = 'results';
 
-const slice = createSlice({
+const slice = createAppTableDataSlice({
 	name: dataSet,
-	initialState: dataAdapter.getInitialState({
+	fields,
+	initialState: {
 		ballotId: '',
 		ballot: {},
-		loading: false,
-		valid: false,
 		votingPoolSize: 0,
 		resultsSummary: {},
-		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
-		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
-		[uiSlice.name]: uiSlice.reducer(undefined, {})
-	}),
+	},
 	reducers: {
-		getPending(state, action) {
-			state.loading = true;
-		},
-  		getSuccess(state, action) {
-  			const {ballotId, ballot, results, summary, votingPoolSize} = action.payload;
-			state.loading = false;
-			state.valid = true;
+  		setDetails(state, action) {
+  			const {ballotId, ballot, summary, votingPoolSize} = action.payload;
 			state.ballotId = ballotId;
 			state.ballot = ballot;
-			dataAdapter.setAll(state, results);
 			state.resultsSummary = summary;
 			state.votingPoolSize = votingPoolSize;
 		},
-		getFailure(state, action) {
-			state.loading = false;
-		},
 	},
-	extraReducers: builder => {
-		builder
-		.addMatcher(
-			(action) => action.type.startsWith(dataSet + '/'),
-			(state, action) => {
-				const sliceAction = {...action, type: action.type.replace(dataSet + '/', '')}
-				state[sortsSlice.name] = sortsSlice.reducer(state[sortsSlice.name], sliceAction);
-				state[filtersSlice.name] = filtersSlice.reducer(state[filtersSlice.name], sliceAction);
-				state[selectedSlice.name] = selectedSlice.reducer(state[selectedSlice.name], sliceAction);
-				state[uiSlice.name] = uiSlice.reducer(state[uiSlice.name], sliceAction);
-			}
-		)
-	}
 });
 
 /*
@@ -77,11 +43,11 @@ const slice = createSlice({
  */
 export default slice.reducer;
 
-const {getPending, getSuccess, getFailure} = slice.actions;
+const {getPending, getSuccess, getFailure, setDetails} = slice.actions;
 
 export const loadResults = (ballotId) =>
 	async (dispatch) => {
-		dispatch(getPending({ballotId}));
+		dispatch(getPending());
 		const url = `/api/results/${ballotId}`;
 		let response;
 		try {
@@ -103,9 +69,9 @@ export const loadResults = (ballotId) =>
 			ballotId: response.BallotID,
 			ballot: response.ballot,
 			votingPoolSize: response.VotingPoolSize,
-			results: response.results,
 			summary: response.summary
 		}
-		await dispatch(getSuccess(payload));
+		await dispatch(getSuccess(response.results));
+		await dispatch(setDetails(payload));
 	}
 

@@ -7,8 +7,8 @@
 import {AccessLevel} from '../auth/access';
 import {authorize} from '../auth/jwt'
 
-const upload = require('multer')()
-const router = require('express').Router()
+const upload = require('multer')();
+const router = require('express').Router();
 
 /*
  * Authorize access to the API
@@ -73,61 +73,20 @@ router.all('*', (req, res, next) => {
 	return res.status(403).send('Insufficient karma');
 });
 
-/*
- */
-import {
-	webexInitAccess,
-	getWebexAccounts,
-	updateWebexAccount,
-	addWebexAccount,
-	deleteWebexAccount
-} from '../services/webex';
+/* Webex accounts API */
+router.use('/webex', require('./webexAccounts').default);
 
-router.get('/webex/auth', async (req, res, next) => {
-	try {
-		const {code, state} = req.query;
-		const data = await webexInitAccess(code, state);
-		res.json(data);
-	}
-	catch (err) {next(err)}
-});
-router.get('/webex/accounts', async (req, res, next) => {
-	try {
-		const data = await getWebexAccounts();
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.patch('/webex/account/:id', async (req, res, next) => {
-	try {
-		const {id} = req.params;
-		const changes = req.body;
-		if (typeof changes !== 'object')
-			throw 'Missing or bad body; expected object';
-		const data = await updateWebexAccount(id, changes);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.post('/webex/account', async (req, res, next) => {
-	try {
-		const {id} = req.params;
-		const entry = req.body;
-		if (typeof entry !== 'object')
-			throw 'Missing or bad body; expected object';
-		const data = await addWebexAccount(entry);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.delete('/webex/account/:id', async (req, res, next) => {
-	try {
-		const {id} = req.params;
-		const data = await deleteWebexAccount(id);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+/* Google calendar accounts API */
+router.use('/calendar', require('./calendarAccounts').default);
+
+/* Telecons API */
+router.use('/telecons', require('./telecons').default);
+
+/* Voting pools API */
+router.use('/votingPools', require('./votingPools').default);
+
+/* Voters API */
+router.use('/voters', require('./voters').default);
 
 /*
  * Members API
@@ -462,64 +421,7 @@ router.get('/imat/meetings', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-/*
- * Telecons API
- *
- * Maintain telecons list.
- * 
- * GET /telecons/{group}: return the complete list of telecons for a particular group.
- * PATCH /telecons: update the identified telecon and returns the updated field values.
- * POST /telecons: add a telecon and returns the complete entry as added.
- * DELETE /telecons: delete telecon identified by a list of IDs. Returns null.
- */
-import {
-	getTelecons,
-	updateTelecons,
-	addTelecons,
-	deleteTelecons
-} from '../services/telecons'
 
-router.get('/telecons/:group', async (req, res, next) => {
-	try {
-		const {group} = req.params;
-		const data = await getTelecons(group);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.patch('/telecons', async (req, res, next) => {
-	try {
-		const {user} = req;
-		const changes = req.body;
-		if (!Array.isArray(changes))
-			throw 'Missing or bad body; expected array';
-		const data = await updateTelecons(user, changes);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.post('/telecons', async (req, res, next) => {
-	try {
-		const {user} = req;
-		const telecons = req.body;
-		if (!Array.isArray(telecons))
-			throw 'Missing or bad body; expected array';
-		const data = await addTelecons(user, telecons);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.delete('/telecons', async (req, res, next) => {
-	try {
-		const {user} = req;
-		const ids = req.body;
-		if (!Array.isArray(ids))
-			throw 'Missing or bad body; expected array';
-		const data = await deleteTelecons(user, ids);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
 
 /*
  * Ballot results API
@@ -872,106 +774,5 @@ router.get('/commentsHistory/:comment_id', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-/*
- * Voting pools and voters API
- */
-import {
-	getVotingPools,
-	deleteVotingPools,
-	updateVotingPool,
-	getVoters,
-	addVoter,
-	updateVoter,
-	deleteVoters,
-	votersFromSpreadsheet,
-	votersFromMembersSnapshot
-} from '../services/voters'
-
-router.get('/votingPools', async (req, res, next) => {
-	try {
-		const data = await getVotingPools()
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-router.delete('/votingPools', async (req, res, next) => {
-	try {
-		const votingPoolIds = req.body
-		if (!Array.isArray(votingPoolIds))
-			throw "Array parameter missing"
-		const data = await deleteVotingPools(votingPoolIds);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.patch('/votingPool/:votingPoolId', async (req, res, next) => {
-	try {
-		const {votingPoolId} = req.params;
-		const votingPool = req.body;
-		if (typeof votingPool !== 'object')
-			throw 'Missing or bad body; expected votingPool object';
-		const data = await updateVotingPool(votingPoolId, votingPool);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.get('/voters/:votingPoolId', async (req, res, next) => {
-	try {
-		const {votingPoolId} = req.params;
-		const data = await getVoters(votingPoolId);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.post('/voter/:votingPoolId', async (req, res, next) => {
-	try {
-		const {votingPoolId} = req.params;
-		const voter = req.body;
-		const data = await addVoter(votingPoolId, voter);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.patch('/voter/:votingPoolId/:sapin', async (req, res, next) => {
-	try {
-		const {votingPoolId, sapin} = req.params;
-		const voter = req.body;
-		const data = await updateVoter(votingPoolId, sapin, voter);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.delete('/voters/:votingPoolId$', async (req, res, next) => {
-	try {
-		const {votingPoolId} = req.params;
-		const ids = req.body;
-		if (ids && !Array.isArray(ids))
-			throw 'Missing or bad body; expected either nothing or an array of IDs';
-		const data = await deleteVoters(votingPoolId, ids);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.post('/voters/:votingPoolId/upload', upload.single('File'), async (req, res, next) => {
-	try {
-		const {votingPoolId} = req.params;
-		if (!req.file)
-			throw 'Missing file';
-		const data = await votersFromSpreadsheet(votingPoolId, req.file);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.post('/voters/:votingPoolId/membersSnapshot', async (req, res, next) => {
-	try {
-		const {votingPoolId} = req.params;
-		if (typeof req.body !== 'object' || !req.body.hasOwnProperty('date'))
-			throw 'Missing or bad body; expected "{date: <string>}"';
-		const {date} = req.body;
-		const data = await votersFromMembersSnapshot(votingPoolId, date);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
 
 export default router;

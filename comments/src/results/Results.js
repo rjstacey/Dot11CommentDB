@@ -9,7 +9,7 @@ import {AccessLevel} from 'dot11-components/lib'
 import BallotSelector from '../ballots/BallotSelector'
 import ResultsSummary from './ResultsSummary'
 import ResultsExport from './ResultsExport'
-import {upsertTableColumns} from 'dot11-components/store/ui'
+import {upsertTableColumns} from 'dot11-components/store/appTableData'
 
 import {loadResults} from '../store/results'
 import {setBallotId, BallotType} from '../store/ballots'

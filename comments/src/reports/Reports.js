@@ -4,7 +4,7 @@ import {useHistory, useParams} from 'react-router-dom'
 import styled from '@emotion/styled'
 import {connect} from 'react-redux'
 import {ActionButton, Button} from 'dot11-components/icons'
-import {getData} from 'dot11-components/store/dataSelectors'
+import {getData} from 'dot11-components/store/appTableData'
 
 import BallotSelector from '../ballots/BallotSelector'
 import {setBallotId} from '../store/ballots'

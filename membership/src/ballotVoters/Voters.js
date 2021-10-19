@@ -15,7 +15,7 @@ import VoterEditModal from './VoterEdit'
 import {loadVoters, deleteVoters} from '../store/voters'
 import {updateVotingPool} from '../store/votingPools'
 
-const dataSet = 'voters'
+const dataSet = 'voters';
 
 const ActionCell = styled.div`
 	display: flex;
@@ -131,8 +131,6 @@ function Voters({
 
 	const handleAddVoter = () => setEditVoter({action: 'add', voter: defaultVoter});
 	//const handleUpdateVoter = ({rowData}) => setEditVoter({action: 'update', voter: rowData});
-
-	const rowGetter = ({rowId, rowData}) => ({...members[rowId], ...rowData});
 
 	const updateVotingPoolName = async () => {
 		await updateVotingPool(votingPoolName, {VotingPoolID: name});

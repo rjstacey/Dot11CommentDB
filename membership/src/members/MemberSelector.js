@@ -1,12 +1,12 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import {connect} from 'react-redux'
+import {connect, useDispatch, useSelector} from 'react-redux'
 import styled from '@emotion/styled'
 import {FixedSizeList as List} from 'react-window'
 import Input from 'react-dropdown-select/lib/components/Input'
 import {Select} from 'dot11-components/general/Form'
 
-import {loadMembers} from '../store/members'
+import {dataSet, loadMembers} from '../store/members';
 
 const StyledItem = styled.div`
 	padding: 4px 10px;
@@ -74,19 +74,16 @@ function MemberSelector({
 	className,
 	value,
 	onChange,
-	entities,
-	ids,
-	valid,
-	loading,
-	loadMembers,
 	readOnly,
 	...otherProps
 }) {
+	const {valid, loading, ids, entities} = useSelector(state => state[dataSet]);
+	const dispatch = useDispatch();
 
 	React.useEffect(() => {
 		if (!valid && !readOnly)
-			loadMembers();
-	}, [valid, readOnly]);
+			dispatch(loadMembers());
+	}, [dispatch, valid, readOnly]);
 
 	const options = React.useMemo(() => 
 		ids.map(id => {
@@ -124,24 +121,7 @@ function MemberSelector({
 MemberSelector.propTypes = {
 	value: PropTypes.number,
 	onChange: PropTypes.func.isRequired,
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	entities: PropTypes.object.isRequired,
-	ids: PropTypes.array.isRequired,
-	loadMembers: PropTypes.func.isRequired,
 	readOnly: PropTypes.bool
 }
 
-const dataSet = 'members';
-
-export default connect(
-	(state) => {
-		return {
-			valid: state[dataSet].valid,
-			loading: state[dataSet].loading,
-			entities: state[dataSet].entities,
-			ids: state[dataSet].ids,
-		}
-	},
-	{loadMembers}
-)(MemberSelector)
+export default MemberSelector;

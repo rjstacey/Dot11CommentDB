@@ -1,10 +1,5 @@
-import {createSlice, createEntityAdapter, createSelector} from '@reduxjs/toolkit'
-
-import fetcher from 'dot11-components/lib/fetcher'
-import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
-import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
-import selectedSlice, {setSelected} from 'dot11-components/store/selected'
-import uiSlice from 'dot11-components/store/ui'
+import fetcher from 'dot11-components/lib/fetcher';
+import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error'
 import {getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
 
@@ -22,63 +17,25 @@ const fields = {
 	SessionCreditPct: {label: 'Session credit', sortType: SortType.NUMERIC}
 };
 
-/*
- * Remove entries that no longer exist from a list. If there
- * are no changes, return the original list.
- */
-function filterIdList(idList, allIds) {
-	const newList = idList.filter(id => allIds.includes(id));
-	return newList.length === idList.length? idList: newList;
-}
+const dataSet = 'attendees';
+const selectId = (member) => member.SAPIN;
 
-const dataAdapter = createEntityAdapter({
-	selectId: (member) => member.SAPIN
-})
-
-const dataSet = 'attendees'
-
-const slice = createSlice({
+const slice = createAppTableDataSlice({
 	name: dataSet,
-	initialState: dataAdapter.getInitialState({
-		valid: false,
-		loading: false,
+	fields,
+	selectId,
+	initialState: {
 		session: {},
 		breakout: {},
-		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
-		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
-		[uiSlice.name]: uiSlice.reducer(undefined, {})
-	}),
+	},
 	reducers: {
-		getPending(state, action) {
-			state.loading = true;
+		setSession(state, action) {
+			state.session = action.payload;
 		},
-  		getSuccess(state, action) {
-  			const {session, breakout, attendees} = action.payload;
-			state.loading = false;
-			state.valid = true;
-			state.session = session;
-			state.breakout = breakout;
-			dataAdapter.setAll(state, attendees);
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
-		getFailure(state, action) {
-			state.loading = false;
+		setBreakout(state, action) {
+			state.breakout = action.payload || {};
 		},
 	},
-	extraReducers: builder => {
-		builder
-		.addMatcher(
-			(action) => action.type.startsWith(dataSet + '/'),
-			(state, action) => {
-				const sliceAction = {...action, type: action.type.replace(dataSet + '/', '')}
-				state[sortsSlice.name] = sortsSlice.reducer(state[sortsSlice.name], sliceAction);
-				state[filtersSlice.name] = filtersSlice.reducer(state[filtersSlice.name], sliceAction);
-				state[selectedSlice.name] = selectedSlice.reducer(state[selectedSlice.name], sliceAction);
-				state[uiSlice.name] = uiSlice.reducer(state[uiSlice.name], sliceAction);
-			}
-		)
-	}
 });
 
 /*
@@ -86,13 +43,19 @@ const slice = createSlice({
  */
 export default slice.reducer;
 
-const {getPending, getSuccess, getFailure} = slice.actions;
+const {
+	getPending,
+	getSuccess,
+	getFailure,
+	setSession,
+	setBreakout
+} = slice.actions;
 
 export const loadAttendees = (session_id, breakout_id) =>
 	async (dispatch, getState) => {
 		if (getState()[dataSet].loading)
 			return;
-		dispatch(getPending())
+		dispatch(getPending());
 		const url = breakout_id?
 			`/api/session/${session_id}/breakout/${breakout_id}/attendees`:
 			`/api/session/${session_id}/attendees`;
@@ -106,14 +69,17 @@ export const loadAttendees = (session_id, breakout_id) =>
 				throw new TypeError('Unexpected response to GET: ' + url);
 		}
 		catch(error) {
-			console.log(error)
 			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError(`Unable to get attendees for ${breakout_id}`, error))
 			]);
 			return;
 		}
-		await dispatch(getSuccess(response))
+		await Promise.all([
+			dispatch(setSession(response.session)),
+			dispatch(setBreakout(response.breakout)),
+			dispatch(getSuccess(response.attendees)),
+		]);
 	}
 
 export const importSelectedAttendees = () =>
@@ -138,16 +104,17 @@ export const importSelectedAttendees = () =>
 
 export const importAttendances = (session_id) =>
 	async (dispatch, state) => {
-		dispatch(getPending())
+		dispatch(getPending());
 		const url = `/api/session/${session_id}/attendance_summary/import`;
 		let response;
 		try {
 			response = await fetcher.post(url);
-			if (typeof response !== 'object' || !response.hasOwnProperty('session') || !response.hasOwnProperty('attendees'))
+			if (typeof response !== 'object' ||
+				!response.hasOwnProperty('session') ||
+				!response.hasOwnProperty('attendees') || Array.isArray(response.attendees))
 				throw new TypeError('Unexpected response to GET: ' + url);
 		}
 		catch(error) {
-			console.log(error)
 			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError('Unable to get attendance summary', error))
@@ -156,6 +123,6 @@ export const importAttendances = (session_id) =>
 		}
 		const {session} = response;
 		await Promise.all([
-			dispatch(getSuccess(response)),
+			dispatch(getSuccess(response.attendees)),
 			dispatch(updateSessionSuccess(session.id, session))]);
 	}

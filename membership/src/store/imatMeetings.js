@@ -1,10 +1,7 @@
 import {createSlice, createEntityAdapter, createSelector} from '@reduxjs/toolkit'
 
-import fetcher from 'dot11-components/lib/fetcher'
-import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
-import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
-import selectedSlice, {setSelected} from 'dot11-components/store/selected'
-import uiSlice from 'dot11-components/store/ui'
+import fetcher from 'dot11-components/lib/fetcher';
+import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error'
 import {displayDate} from 'dot11-components/lib'
 import {SessionTypeOptions, displaySessionType} from './sessions'
@@ -33,44 +30,13 @@ const dataAdapter = createEntityAdapter({
 })
 
 const dataSet = 'imatMeetings';
+const selectId = (meeting) => meeting.MeetingNumber;
 
-const slice = createSlice({
+const slice = createAppTableDataSlice({
 	name: dataSet,
-	initialState: dataAdapter.getInitialState({
-		valid: false,
-		loading: false,
-		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
-		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
-		[uiSlice.name]: uiSlice.reducer(undefined, {})
-	}),
-	reducers: {
-		getPending(state, action) {
-			state.loading = true;
-		},
-  		getSuccess(state, action) {
-			state.loading = false;
-			state.valid = true;
-			dataAdapter.setAll(state, action.payload);
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
-		getFailure(state, action) {
-			state.loading = false;
-		},
-	},
-	extraReducers: builder => {
-		builder
-		.addMatcher(
-			(action) => action.type.startsWith(dataSet + '/'),
-			(state, action) => {
-				const sliceAction = {...action, type: action.type.replace(dataSet + '/', '')}
-				state[sortsSlice.name] = sortsSlice.reducer(state[sortsSlice.name], sliceAction);
-				state[filtersSlice.name] = filtersSlice.reducer(state[filtersSlice.name], sliceAction);
-				state[selectedSlice.name] = selectedSlice.reducer(state[selectedSlice.name], sliceAction);
-				state[uiSlice.name] = uiSlice.reducer(state[uiSlice.name], sliceAction);
-			}
-		)
-	}
+	fields,
+	selectId,
+	initialState: {},
 });
 
 /*
@@ -78,7 +44,11 @@ const slice = createSlice({
  */
 export default slice.reducer;
 
-const {getPending, getSuccess, getFailure} = slice.actions;
+const {
+	getPending,
+	getSuccess,
+	getFailure
+} = slice.actions;
 
 export const loadImatMeetings = (n) =>
 	async (dispatch, getState) => {

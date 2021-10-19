@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import {connect} from 'react-redux'
 import {Select} from 'dot11-components/general/Form'
-import {getAllFieldValues} from 'dot11-components/store/dataSelectors'
+import {getAllFieldValues} from 'dot11-components/store/appTableData'
 
 function AdHocSelector({
 	value,

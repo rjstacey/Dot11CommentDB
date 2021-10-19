@@ -6,8 +6,10 @@ import Account from 'dot11-components/general/Account'
 import {ErrorModal, ConfirmModal} from 'dot11-components/modals'
 import {AccessLevel} from 'dot11-components/lib/user'
 
+import Accounts from './Accounts'
 import Telecons from './Telecons'
-import WebexAccounts, {WebexAuth} from './WebexAccounts'
+import {WebexAccountAuth} from './WebexAccounts'
+import {CalendarAccountAuth} from './CalendarAccounts'
 
 const OuterDiv = styled.div`
   display: flex;
@@ -85,8 +87,8 @@ function App({user, access}) {
         <Header>
           <Title>802.11 Telecon Scheduling</Title>  
           <Nav>
+            <NavLink to="/accounts" activeClassName='active'>Accounts</NavLink>
             <NavLink to="/telecons/" activeClassName='active'>Telecons</NavLink>
-            <NavLink to="/webex/accounts" activeClassName='active'>Webex Accounts</NavLink>
           </Nav>
           <Account user={user} />
         </Header>
@@ -99,16 +101,22 @@ function App({user, access}) {
               component={Telecons}
             />
             <RestrictedRoute
-              path="/webex/accounts"
+              path="/accounts"
               access={access}
               minAccess={AccessLevel.WGAdmin}
-              component={WebexAccounts}
+              component={Accounts}
             />
             <RestrictedRoute
               path="/webex/auth"
               access={access}
               minAccess={AccessLevel.WGAdmin}
-              component={WebexAuth}
+              component={WebexAccountAuth}
+            />
+            <RestrictedRoute
+              path="/calendar/auth"
+              access={access}
+              minAccess={AccessLevel.WGAdmin}
+              component={CalendarAccountAuth}
             />
           </Switch>
           <ErrorModal />

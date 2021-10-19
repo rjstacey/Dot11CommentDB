@@ -1,30 +1,27 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import {connect} from 'react-redux'
+import {useDispatch, useSelector} from 'react-redux'
 import {Select} from 'dot11-components/general/Form'
 
-import {loadWebexAccounts} from './store/webex'
+import {loadWebexAccounts, dataSet} from './store/webexAccounts'
 
 function WebexAccountSelector({
 	style,
 	className,
 	value,
 	onChange,
-	entities,
-	ids,
-	valid,
-	loading,
-	loadWebexAccounts,
 	readOnly,
 	...otherProps
 }) {
+	const dispatch = useDispatch();
+	const {loading, valid, ids, entities} = useSelector(state => state[dataSet]);
 
 	React.useEffect(() => {
 		if (!valid && !readOnly)
-			loadWebexAccounts();
-	}, [valid, readOnly]);
+			dispatch(loadWebexAccounts());
+	}, [dispatch, valid, readOnly]);
 
-	const options = React.useMemo(() => ids.map(id => ({value: id, label: entities[id].shortName})));
+	const options = React.useMemo(() => ids.map(id => ({value: id, label: entities[id].name})), [ids, entities]);
 	const optionSelected = options.find(o => o.value === value);
 
 	function handleChange(values) {
@@ -51,24 +48,7 @@ function WebexAccountSelector({
 WebexAccountSelector.propTypes = {
 	value: PropTypes.number,
 	onChange: PropTypes.func.isRequired,
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	entities: PropTypes.object.isRequired,
-	ids: PropTypes.array.isRequired,
-	loadWebexAccounts: PropTypes.func.isRequired,
 	readOnly: PropTypes.bool
 }
 
-const dataSet = 'webex';
-
-export default connect(
-	(state) => {
-		return {
-			valid: state[dataSet].valid,
-			loading: state[dataSet].loading,
-			entities: state[dataSet].entities,
-			ids: state[dataSet].ids,
-		}
-	},
-	{loadWebexAccounts}
-)(WebexAccountSelector);
+export default WebexAccountSelector;

@@ -1,12 +1,7 @@
-import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
-
-import fetcher from 'dot11-components/lib/fetcher'
-import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
-import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
-import selectedSlice, {setSelected} from 'dot11-components/store/selected'
-import uiSlice, {setProperty} from 'dot11-components/store/ui'
-import {setError} from 'dot11-components/store/error'
-import {displayDate} from 'dot11-components/lib'
+import fetcher from 'dot11-components/lib/fetcher';
+import {createAppTableDataSlice, SortType, SortDirection} from 'dot11-components/store/appTableData';
+import {setError} from 'dot11-components/store/error';
+import {displayDate} from 'dot11-components/lib';
 
 const SessionType = {
 	Plenary: 'p',
@@ -66,18 +61,6 @@ const defaultSortEntries = Object.keys(fields).reduce((entries, dataKey) => {
 	return {...entries, [dataKey]: {type, direction}}
 }, {});
 
-/*
- * Remove entries that no longer exist from a list. If there
- * are no changes, return the original list.
- */
-function filterIdList(idList, allIds) {
-	const newList = idList.filter(id => allIds.includes(id));
-	return newList.length === idList.length? idList: newList;
-}
-
-const dataAdapter = createEntityAdapter({
-	selectId: (meeting) => meeting.id
-})
 
 function correctEntry(session) {
 	let s = session;
@@ -90,42 +73,14 @@ function correctEntry(session) {
 
 const dataSet = 'sessions'
 
-const slice = createSlice({
+const slice = createAppTableDataSlice({
 	name: dataSet,
-	initialState: dataAdapter.getInitialState({
-		valid: false,
-		loading: false,
+	fields,
+	initialState: {
 		loadingTimeZones: false,
 		timeZones: [],
-		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
-		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
-		[uiSlice.name]: uiSlice.reducer(undefined, {})
-	}),
+	},
 	reducers: {
-		getPending(state, action) {
-			state.loading = true;
-		},
-  		getSuccess(state, action) {
-			state.loading = false;
-			state.valid = true;
-			dataAdapter.setAll(state, action.payload.map(correctEntry));
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
-		getFailure(state, action) {
-			state.loading = false;
-		},
-		updateOne(state, action) {
-			let {id, changes} = action.payload;
-			dataAdapter.updateOne(state, {id, changes: correctEntry(changes)});
-		},
-		addOne(state, action) {
-			dataAdapter.addOne(state, correctEntry(action.payload));
-		},
-		deleteMany(state, action) {
-			dataAdapter.removeMany(state, action.payload);
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
 		getTimeZonesPending(state, action) {
 			state.loadingTimeZones = true;
 		},
@@ -137,19 +92,6 @@ const slice = createSlice({
 			state.loadingTimeZones = false;
 		},
 	},
-	extraReducers: builder => {
-		builder
-		.addMatcher(
-			(action) => action.type.startsWith(dataSet + '/'),
-			(state, action) => {
-				const sliceAction = {...action, type: action.type.replace(dataSet + '/', '')}
-				state[sortsSlice.name] = sortsSlice.reducer(state[sortsSlice.name], sliceAction);
-				state[filtersSlice.name] = filtersSlice.reducer(state[filtersSlice.name], sliceAction);
-				state[selectedSlice.name] = selectedSlice.reducer(state[selectedSlice.name], sliceAction);
-				state[uiSlice.name] = uiSlice.reducer(state[uiSlice.name], sliceAction);
-			}
-		)
-	}
 });
 
 /*
@@ -157,7 +99,14 @@ const slice = createSlice({
  */
 export default slice.reducer;
 
-const {getPending, getSuccess, getFailure} = slice.actions;
+const {
+	getPending,
+	getSuccess,
+	getFailure,
+	updateOne,
+	addOne,
+	removeMany,
+} = slice.actions;
 
 export const loadSessions = () =>
 	async (dispatch, getState) => {
@@ -171,7 +120,6 @@ export const loadSessions = () =>
 				throw new TypeError('Unexpected response to GET: /api/sessions');
 		}
 		catch(error) {
-			console.log(error)
 			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError('Unable to get sessions', error))
@@ -181,9 +129,7 @@ export const loadSessions = () =>
 		await dispatch(getSuccess(sessions));
 	}
 
-const {updateOne} = slice.actions;
-
-export const updateSessionSuccess = (id, session) => updateOne({id, changes: session});
+export const updateSessionSuccess = (id, changes) => updateOne({id, changes});
 
 export const updateSession = (id, session) =>
 	async (dispatch) => {
@@ -202,8 +148,6 @@ export const updateSession = (id, session) =>
 		await dispatch(updateOne({id, changes: updatedSession}));
 	}
 
-const {addOne} = slice.actions;
-
 export const addSession = (session) =>
 	async (dispatch) => {
 		let newSession;
@@ -219,11 +163,9 @@ export const addSession = (session) =>
 		dispatch(addOne(newSession));
 	}
 
-const {deleteMany} = slice.actions;
-
 export const deleteSessions = (ids) =>
 	async (dispatch, getState) => {
-		await dispatch(deleteMany(ids));
+		await dispatch(removeMany(ids));
 		try {
 			await fetcher.delete('/api/sessions', ids);
 		}
@@ -254,4 +196,4 @@ export const loadTimeZones = () =>
 		await dispatch(getTimeZonesSuccess(timeZones));
 	}
 
-export const setSessionsUiProperty = (property, value) => setProperty(dataSet, property, value);
+export const setSessionsUiProperty = (property, value) => slice.actions.setProperty({property, value});

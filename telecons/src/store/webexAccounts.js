@@ -5,7 +5,7 @@ import {setError} from 'dot11-components/store/error'
 
 const dataAdapter = createEntityAdapter({})
 
-const dataSet = 'webex'
+export const dataSet = 'webexAccounts'
 
 const slice = createSlice({
 	name: dataSet,
@@ -113,33 +113,18 @@ export const deleteWebexAccount = (id) =>
 		}
 	}
 
-export const getWebexAccountAuthLink = (id) => {
-	const url = 'https://webexapis.com/v1/authorize';
-	const params = {
-		client_id: 'C9fddb660a36460a2df8a381418f7ef3c541483e8f44b092d32b4e8a480c91a3b',
-		response_type: 'code',
-		redirect_uri: window.location.origin + '/telecons/webex/auth',
-		scope:
-			"spark:kms " + 
-			"meeting:controls_write meeting:schedules_read meeting:participants_read meeting:controls_read " +
-			"meeting:preferences_write meeting:preferences_read meeting:participants_write meeting:schedules_write",
-		state: id,
-	}
-	return url + '?' + new URLSearchParams(params);
-}
-
-export const authWebexAccount = (code, state) =>
+export const authWebexAccount = (id, code, redirect_uri) =>
 	async (dispatch) => {
 		let updates;
 		try {
-			const url = '/api/webex/auth';
-			updates = await fetcher.get(url, {code, state});
+			const url = `/api/webex/auth/${id}`;
+			updates = await fetcher.post(url, {code, redirect_uri});
 			if (typeof updates !== 'object')
-				throw new TypeError('Unexpected response to GET: ' + url);
+				throw new TypeError('Unexpected response to POST: ' + url);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to authorize webex account`, error));
 			return;
 		}
-		await dispatch(updateOne({id: updates.id, updates}));
+		await dispatch(updateOne({id, updates}));
 	}

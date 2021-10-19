@@ -45,7 +45,7 @@ function VoterEditModal({
 			}
 			else {
 				const changes = shallowDiff(voter, state);
-				await updateVoter(votingPoolName, voter.SAPIN, changes);
+				await updateVoter(voter.id, changes);
 			}
 			close();
 		}

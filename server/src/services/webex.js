@@ -1,15 +1,23 @@
 const axios = require('axios');
 const db = require('../util/database');
 
-axios.defaults.baseURL = 'https://webexapis.com/v1';
+const webexApiBaseUrl = 'https://webexapis.com/v1';
+const webexAuthUrl = 'https://webexapis.com/v1/authorize';
+const webexTokenUrl = 'https://webexapis.com/v1/access_token';
+
+const webexAuthScope =
+			"spark:kms " + 
+			"meeting:controls_write meeting:schedules_read meeting:participants_read meeting:controls_read " +
+			"meeting:preferences_write meeting:preferences_read meeting:participants_write meeting:schedules_write";
+
+axios.defaults.baseURL = webexApiBaseUrl;
 
 // Webex account cache
-const webex = {};
+const accounts = {};
 
 export async function init() {
 	// Cache the active webex accounts and create an axios api for each
-	const rows = await db.query('SELECT * FROM webex;');
-	const now = new Date();
+	const rows = await db.query('SELECT * FROM oauth_accounts WHERE type="webex";');
 	for (const account of rows) {
 		const {authParams} = account;
 		if (authParams) {
@@ -21,48 +29,56 @@ export async function init() {
 				}
 			});
 			// Cache the account details
-			webex[account.id] = {
-				id: account.id,
-				group: account.group,
-				...account.authParams,
+			accounts[account.id] = {
+				authParams,
 				api,
 			};
 		}
 	}
 }
 
-export async function webexInitAccess(code, state) {
+async function getAccounts(params) {
+	let sql = 'SELECT `id`, `name`, `type`, `groups`, `authDate` FROM oauth_accounts';
+	if (params)
+		sql += ' WHERE ' + Object.entries(params).map(([key, value]) => db.format(' ??=?', [key, value])).join(' AND ');
+	const accounts = await db.query(sql);
+	for (const account of accounts) {
+		account.client_id = process.env.WEBEX_CLIENT_ID;
+		account.auth_url = webexAuthUrl;
+		account.auth_scope = webexAuthScope;
+	}
+	return accounts;
+}
+
+export async function authWebexAccount(id, entry) {
 	const params = {
 		grant_type: 'authorization_code',
 		client_id: process.env.WEBEX_CLIENT_ID,
 		client_secret: process.env.WEBEX_CLIENT_SECRET,
-		code,
-		redirect_uri: 'http://localhost:3000/telecons/webex/auth'
+		code: entry.code,
+		redirect_uri: entry.redirect_uri
 	};
 
-	const {data} = await axios.post('/access_token', params);
-	access_token = data.access_token;
-	refresh_token = data.refresh_token;
+	const response = await axios.post(webexTokenUrl, params);
+	const authParams = response.data;
 
-	//console.log(access_token)
+	await db.query('UPDATE oauth_accounts SET authParams=?, authDate=NOW() WHERE id=?', [JSON.stringify(authParams), id]);
 
-	await db.query('UPDATE webex SET authParams=?, lastAuth=NOW() WHERE id=?', [JSON.stringify(data), state]);
-
-	// Create and axios api for this account
+	// Create an axios instance for this account
 	const api = axios.create({
 		headers: {
-			'Authorization': `Bearer ${access_token}`,
+			'Authorization': `Bearer ${authParams.access_token}`,
 			'Accept': 'application/json'
 		}
 	});
 
-	// Cache the account details
-	webex[account.id] = {
-		...data,
+	// Update the account cache
+	accounts[id] = {
+		authParams,
 		api,
 	};
 
-	const [account] = await db.query('SELECT * FROM webex WHERE id=?', [state]);
+	const [account] = await getAccounts({id});
 	return account;
 }
 
@@ -80,29 +96,16 @@ async function webexRefreshAccess() {
 }
 
 export async function getWebexAccounts() {
-	const accounts = await db.query('SELECT * FROM webex;');
-	/* Indicate whether or not the account is (still) active */
-	const now = new Date();
-	for (let account of accounts) {
-		let {lastAuth, authParams} = account;
-		account.isActive = false;
-		if (lastAuth && authParams) {
-			lastAuth = new Date(lastAuth);
-			const expires = lastAuth.setSeconds(lastAuth.getSeconds() + authParams.expires_in);
-			if (expires > now)
-				account.isActive = true;
-		}
-	}
-	return accounts;
+	return await getAccounts({type: "webex"});
 }
 
-function webexAccountEntry(s) {
+function accountEntry(s) {
 	const entry = {
-		group: s.group,
-		shortName: s.shortName,
-		template: s.template,
-		authParams: s.authParams
+		name: s.name,
 	};
+
+	if (Array.isArray(s.groups))
+		entry.groups = JSON.stringify(s.groups);
 
 	for (const key of Object.keys(entry)) {
 		if (entry[key] === undefined)
@@ -113,32 +116,33 @@ function webexAccountEntry(s) {
 }
 
 export async function addWebexAccount(entry) {
-	entry = webexAccountEntry(entry);
-	const {insertId} = await db.query('INSERT INTO webex (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]);
-	const [account] = await db.query('SELECT * FROM webex WHERE id=?;', [insertId]);
+	entry = accountEntry(entry);
+	entry.type = 'webex';
+	const {insertId} = await db.query('INSERT INTO oauth_accounts (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]);
+	const [account] = await getAccounts({id: insertId});
 	return account;
 }
 
-export async function updateWebexAccount(entry) {
-	const id = entry.id;
+export async function updateWebexAccount(id, entry) {
 	if (!id)
 		throw 'Must provide id with update';
-	entry = webexAccountEntry(entry);
+	entry = accountEntry(entry);
 	if (Object.keys(entry).length)
-		await db.query('UPDATE webex SET ? WHERE id=?;', [entry, id]);
-	const [account] = await db.query('SELECT * FROM webex WHERE id=?;', [id]);
+		await db.query('UPDATE oauth_accounts SET ? WHERE id=?;', [entry, id]);
+	const [account] = await db.getAccounts({id});
 	return account;
 }
 
 export async function deleteWebexAccount(id) {
-	const {affectedRows} = await db.query('DELETE FROM webex WHERE id=?', [id]);
+	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=?', [id]);
+	delete accounts[id];
 	return affectedRows;
 }
 
 export async function getWebexMeetings(group) {
 	let allMeetings = [];
-	for (const [webex_id, account] of Object.entries(webex)) {
-		if (account.group !== group)
+	for (const [webex_id, account] of Object.entries(accounts)) {
+		if (account.groups && !accounts.groups.includes(group))
 			continue;
 		console.log('got', group)
 		const response = await account.api.get(`/meetings`, {params: {integrationTag: group}});
@@ -151,17 +155,17 @@ export async function getWebexMeetings(group) {
 	return allMeetings;
 }
 
-export async function getWebexMeeting(id, meeting_id) {
-	const account = webex[id];
+export async function getWebexMeeting(webex_id, meeting_id) {
+	const account = accounts[webex_id];
 	if (!account)
-		throw `Invalid webex id=${id}`;
+		throw `Invalid account id=${account_id}`;
 	return await account.api.get(`/meetings/${meeting_id}`);
 }
 
-export async function addWebexMeeting(id, params) {
-	const account = webex[id];
+export async function addWebexMeeting(webex_id, params) {
+	const account = accounts[webex_id];
 	if (!account)
-		throw `Invalid webex id=${id}`;
+		throw `Invalid account id=${webex_id}`;
 	try {
 		const response = await account.api.post('/meetings', params);
 		return response.data;
@@ -174,16 +178,16 @@ export async function addWebexMeeting(id, params) {
 	}
 }
 
-export async function updateWebexMeeting(id, meeting_id, params) {
-	const account = webex[id];
+export async function updateWebexMeeting(webex_id, meeting_id, params) {
+	const account = accounts[webex_id];
 	if (!account)
-		throw `Invalid webex id=${id}`;
+		throw `Invalid account id=${webex_id}`;
 	return await account.api.put(`/meetings/${meeting_id}`, params);
 }
 
-export async function deleteWebexMeeting(id, meeting_id) {
-	const account = webex[id];
+export async function deleteWebexMeeting(webex_id, meeting_id) {
+	const account = accounts[webex_id];
 	if (!account)
-		throw `Invalid webex id=${id}`;
+		throw `Invalid account id=${webex_id}`;
 	return await account.api.delete(`/meetings/${meeting_id}`);
 }

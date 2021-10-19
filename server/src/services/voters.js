@@ -81,7 +81,8 @@ const getVotingPoolSQL = (votingPoolId) =>
 const getVotersSQL = (votingPoolId) =>
 	db.format('SELECT * FROM wgVoters WHERE VotingPoolID=?;', [votingPoolId]);
 
-const getVotersFullSQL = (votingPoolId, sapins) =>
+const getVotersFullSQL = (votingPoolId, sapins, ids) => {
+	let sql =
 		'SELECT ' +
 			'v.*, ' + 
 			'COALESCE(m.SAPIN, o.CurrentSAPIN) AS CurrentSAPIN, ' +
@@ -92,10 +93,19 @@ const getVotersFullSQL = (votingPoolId, sapins) =>
 			'LEFT JOIN members m ON m.Status<>\'Obsolete\' AND m.SAPIN=v.SAPIN ' +
 			'LEFT JOIN (SELECT ' + 
 					'm2.SAPIN AS OldSAPIN, m1.SAPIN AS CurrentSAPIN, m1.Name, m1.Email, m1.Affiliation ' + 
-				'FROM members m1 LEFT JOIN members m2 ON m1.SAPIN=m2.ReplacedBySAPIN AND m2.Status=\'Obsolete\') AS o ON v.SAPIN=o.OldSAPIN ' +
-			'WHERE VotingPoolID=' + db.escape(votingPoolId) +
-			(sapins? db.format(' AND v.SAPIN IN (?) ', [sapins]): ' ') +
-		'ORDER BY SAPIN;';
+				'FROM members m1 LEFT JOIN members m2 ON m1.SAPIN=m2.ReplacedBySAPIN AND m2.Status=\'Obsolete\') AS o ON v.SAPIN=o.OldSAPIN';
+	let conditions = [];
+	if (votingPoolId)
+		conditions.push(db.format('VotingPoolID=?', [votingPoolId]));
+	if (sapins && sapins.length)
+		conditions.push(db.format('v.SAPIN IN (?)', [sapins]));
+	if (ids && ids.length)
+		conditions.push(db.format('v.id in (?)', [ids]));
+	if (conditions.length)
+		sql += ' WHERE ' + conditions.join(' AND ');
+	sql += ' ORDER BY SAPIN;';
+	return sql;
+}
 
 export async function getVotingPools() {
 	const votingPools = await db.query(getVotingPoolsSQL());
@@ -152,48 +162,41 @@ function votersEntry(v) {
 	return entry;
 }
 
-export async function addVoter(votingPoolId, voter) {
-
-	if (!voter.SAPIN)
-		throw 'Must provide SAPIN';
-
-	const entry = votersEntry(voter);
-	entry.VotingPoolID = votingPoolId;
-
-	const sql =
-		db.format('INSERT INTO wgVoters SET ?;', [entry]) +
-		getVotersFullSQL(votingPoolId, [voter.SAPIN]) + 
-		getVotingPoolSQL(votingPoolId);
-	const [noop, voters, votingPools] = await db.query(sql);
-	const votingPool = votingPools[0];
-	votingPool.VotingPoolID = votingPoolId;
+export async function addVoters(votingPoolId, voters) {
+	let results = [];
+	for (const voter of voters) {
+		if (!voter.SAPIN)
+			throw 'Must provide SAPIN';
+		voter.VotingPoolID = votingPoolId;
+		results.push(db.query('INSERT INTO wgVoters SET ?;', [voter]))
+	}
+	results = await Promise.all(results);
+	console.log(results);
+	const ids = results.map(r => r.insertId);
+	voters = await db.query(getVotersFullSQL(undefined, undefined, ids));
+	const [votingPool] = await db.query(getVotingPoolSQL(votingPoolId));
 	return {
-		voter: voters[0],
+		voters,
 		votingPool
 	}
 }
 
-export async function updateVoter(votingPoolId, sapin, voter) {
-	const sql =
-		db.format(
-			'UPDATE wgVoters SET ? WHERE VotingPoolID=? AND SAPIN=?;',
-			[votersEntry(voter), votingPoolId, sapin]) +
-		getVotersFullSQL(votingPoolId, [voter.SAPIN || sapin]);
-	const [noop, voters] = await db.query(sql);
-	return {voter: voters[0]};
+export async function updateVoters(updates) {
+	let results = [];
+	for (const {id, changes} of updates) {
+		if (!id || !changes)
+			throw 'Expect updates with shape {id, changes}';
+		results.push(db.query('UPDATE wgVoters SET ? WHERE id=?', [changes, id]));
+	}
+	await Promise.all(results);
+	const voters = await db.query(getVotersFullSQL(undefined, undefined, updates.map(u => u.id)));
+	return voters.map(v => ({id: v.id, changes: v}));
 }
 
 export async function deleteVoters(votingPoolId, ids) {
-	const sql =
-		db.format('DELETE FROM wgVoters WHERE VotingPoolID=?', [votingPoolId]) +
-		(ids? db.format(' AND id IN (?); ', [ids]): '; ') + 
-		getVotersFullSQL(votingPoolId) +
-		getVotingPoolSQL(votingPoolId);
-	const [noop, voters, votingPools] = await db.query(sql);
-	const votingPool = votingPools[0];
-	votingPool.VotingPoolID = votingPoolId;
+	await db.query('DELETE FROM wgVoters WHERE id IN (?)', [ids]);
+	const [votingPool] = await db.query(getVotingPoolSQL(votingPoolId));
 	return {
-		voters,
 		votingPool
 	}
 }

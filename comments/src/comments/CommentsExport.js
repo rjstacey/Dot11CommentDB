@@ -2,7 +2,7 @@ import PropTypes from 'prop-types'
 import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
-import {Form, Row, List, ListItem} from 'dot11-components/general/Form'
+import {Form, Row, List, ListItem} from 'dot11-components/form'
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
 
 import {exportCommentsSpreadsheet, CommentsSpreadsheetFormat, CommentsSpreadsheetStyle} from '../store/comments'

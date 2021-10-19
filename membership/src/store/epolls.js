@@ -1,11 +1,6 @@
 import {createSlice, createSelector, createEntityAdapter} from '@reduxjs/toolkit'
-
-import fetcher from 'dot11-components/lib/fetcher'
-import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
-import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
-import selectedSlice, {setSelected} from 'dot11-components/store/selected'
-import expandedSlice, {setExpanded} from 'dot11-components/store/expanded'
-import uiSlice from 'dot11-components/store/ui'
+import fetcher from 'dot11-components/lib/fetcher';
+import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error'
 import {displayDate} from 'dot11-components/lib'
 
@@ -19,72 +14,37 @@ export const fields = {
 	Votes: {label: 'Result', sortType: SortType.NUMERIC}
 };
 
-const dataAdapter = createEntityAdapter({
-	selectId: d => d.EpollNum
-});
-
 const dataSet = 'epolls';
 
-const slice = createSlice({
+const slice = createAppTableDataSlice({
 	name: dataSet,
-	initialState: dataAdapter.getInitialState({
-		valid: false,
-		loading: false,
-		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
-		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
-		[expandedSlice.name]: expandedSlice.reducer(undefined, {}),
-		[uiSlice.name]: uiSlice.reducer(undefined, {})
-	}),
-	reducers: {
-		getPending(state, action) {
-			state.loading = true;
-		},
-  		getSuccess(state, action) {
-  			const {epolls} = action.payload;
-			state.loading = false;
-			state.valid = true;
-			dataAdapter.setAll(state, epolls);
-		},
-		getFailure(state, action) {
-			state.loading = false;
-		},
-	},
-	extraReducers: builder => {
-		builder
-		.addMatcher(
-			(action) => action.type.startsWith(dataSet + '/'),
-			(state, action) => {
-				const sliceAction = {...action, type: action.type.replace(dataSet + '/', '')}
-				state[sortsSlice.name] = sortsSlice.reducer(state[sortsSlice.name], sliceAction);
-				state[filtersSlice.name] = filtersSlice.reducer(state[filtersSlice.name], sliceAction);
-				state[selectedSlice.name] = selectedSlice.reducer(state[selectedSlice.name], sliceAction);
-				state[expandedSlice.name] = expandedSlice.reducer(state[expandedSlice.name], sliceAction);
-				state[uiSlice.name] = uiSlice.reducer(state[uiSlice.name], sliceAction);
-			}
-		)
-	}
+	fields,
+	initialState: {},
+	selectId: d => d.EpollNum
 });
 
 export default slice.reducer;
 
 const {getPending, getSuccess, getFailure} = slice.actions;
 
-export function loadEpolls(n = 20) {
-	return async (dispatch, getState) => {
-		dispatch(getPending())
+export const loadEpolls = (n = 20) =>
+	async (dispatch) => {
+		dispatch(getPending());
+		let epolls;
 		try {
-			const epolls = await fetcher.get('/api/epolls', {n})
-			return dispatch(getSuccess({n, epolls}))
+			epolls = await fetcher.get('/api/epolls', {n});
+			if (!Array.isArray(epolls))
+				throw new TypeError("Unexpected response to GET: /api/epolls");
 		}
 		catch(error) {
-			return Promise.all([
+			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError('Unable to get a list of epolls', error))
-			])
+			]);
+			return;
 		}
+		await dispatch(getSuccess(epolls));
 	}
-}
 
 /*
  * Selectors

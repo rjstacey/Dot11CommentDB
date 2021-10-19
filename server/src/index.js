@@ -5,7 +5,7 @@
  */
 
 require('dotenv').config();
-console.log(process.env);
+//console.log(process.env);
 
 const db = require('./util/database');
 
@@ -17,6 +17,7 @@ async function initDatabase() {
 async function initServices() {
 	await require('./auth/users').init();
 	await require('./services/webex').init();
+	await require('./services/calendar').init();
 }
 
 function initServer() {

@@ -3,7 +3,7 @@ import React from 'react'
 import {connect} from 'react-redux'
 import styled from '@emotion/styled'
 import fetcher from 'dot11-components/lib/fetcher'
-import {Form, Row, List, ListItem} from 'dot11-components/general/Form'
+import {Form, Row, List, ListItem} from 'dot11-components/form'
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
 import {setError} from 'dot11-components/store/error'
 

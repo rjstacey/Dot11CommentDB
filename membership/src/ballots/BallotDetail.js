@@ -604,7 +604,6 @@ class _BallotDetail extends React.Component {
 			if (Object.keys(d).length > 0)
 				updates.push({...d, id: o.id});
 		}
-		console.log(updates)
 		if (updates.length > 0)
 			updates.forEach(u => this.props.updateBallot(u.id, u));
 		this.setState(state => ({...state, saved: edited}));

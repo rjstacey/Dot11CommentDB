@@ -50,6 +50,7 @@ export const authorize = async (req, res, next) => {
 			userId = jwt.verify(token, secret);
 		}
 		catch (error) {
+			console.warn('unauthorized');
 			res.status(401).send('Unauthorized');
 			return;
 		}

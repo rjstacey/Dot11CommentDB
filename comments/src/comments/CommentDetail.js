@@ -10,11 +10,10 @@ import AssigneeSelector from './AssigneeSelector'
 import SubmissionSelector from './SubmissionSelector'
 import {editorCss, ResolutionEditor} from './ResolutionEditor'
 import CommentHistory from './CommentHistory'
-import {ActionButton, VoteYesIcon, VoteNoIcon, IconCollapse} from 'dot11-components/icons'
+import {ActionButton, Icon, IconCollapse} from 'dot11-components/icons'
 import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/general/Form'
-import {AccessLevel, shallowDiff, debounce} from 'dot11-components/lib'
-import {setProperty} from 'dot11-components/store/ui'
-import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
+import {AccessLevel, shallowDiff, recursivelyDiffObjects, debounce} from 'dot11-components/lib'
+import {setProperty, getData, getSortedFilteredIds} from 'dot11-components/store/appTableData'
 
 import {addResolutions, updateResolutions, deleteResolutions, updateComments} from '../store/comments'
 
@@ -37,10 +36,10 @@ const renderCommenter = (comment) => {
 	}
 	let vote, mbs
 	if (comment.Vote === 'Approve') {
-		vote = <VoteYesIcon />
+		vote = <Icon type='vote-yes' />
 	}
 	else if (comment.Vote === 'Disapprove') {
-		vote = <VoteNoIcon />
+		vote = <Icon type='vote-no' />
 		if (comment.MustSatisfy)
 			mbs = <span style={{color: 'red', fontSize: 'smaller', fontWeight: 'bold'}}>MBS</span>
 	}
@@ -655,43 +654,6 @@ export function Comment({
 			}
 		</CommentContainer>
 	)
-}
-
-function recursivelyDiffObjects(l, r) {
-	const isObject = o => o != null && typeof o === 'object';
-	const isDate = d => d instanceof Date;
-	const isEmpty = o => Object.keys(o).length === 0;
-
-	if (l === r) return l;
-
-	if (!isObject(l) || !isObject(r))
-		return MULTIPLE;
-
-	if (isDate(l) || isDate(r)) {
-		if (l.valueOf() === r.valueOf()) return l;
-		return MULTIPLE;
-	}
-
-	if (Array.isArray(l) && Array.isArray(r)) {
-		if (l.length === r.length) {
-			return l.map((v, i) => recursivelyDiffObjects(l[i], r[i]))
-		}
-	}
-	else {
-		const deletedValues = Object.keys(l).reduce((acc, key) => {
-			return r.hasOwnProperty(key) ? acc : { ...acc, [key]: MULTIPLE };
-		}, {});
-
-		return Object.keys(r).reduce((acc, key) => {
-			if (!l.hasOwnProperty(key)) return { ...acc, [key]: r[key] }; // return added r key
-
-			const difference = recursivelyDiffObjects(l[key], r[key]);
-
-			if (isObject(difference) && isEmpty(difference) && !isDate(difference)) return acc // return no diff
-
-			return { ...acc, [key]: difference } // return updated key
-		}, deletedValues)
-	}
 }
 
 const NotAvaialble = styled.div`

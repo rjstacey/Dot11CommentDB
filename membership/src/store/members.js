@@ -1,12 +1,6 @@
-import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
-
-import fetcher from 'dot11-components/lib/fetcher'
-import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
-import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
-import selectedSlice, {setSelected} from 'dot11-components/store/selected'
-import uiSlice, {setProperty} from 'dot11-components/store/ui'
-import {setError} from 'dot11-components/store/error'
-import {getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
+import fetcher from 'dot11-components/lib/fetcher';
+import {createAppTableDataSlice, SortType, getSortedFilteredIds} from 'dot11-components/store/appTableData';
+import {setError} from 'dot11-components/store/error';
 import {AccessLevel, AccessLevelOptions, AccessLevelLabels, displayAccessLevel} from 'dot11-components/lib/user'	// re-export access level constants
 
 export {AccessLevel, AccessLevelOptions, AccessLevelLabels};
@@ -35,96 +29,14 @@ export const fields = {
 	BallotSeriesCount: {label: 'Ballot participation', sortType: SortType.NUMERIC},
 };
 
-/*
- * Remove entries that no longer exist from a list. If there
- * are no changes, return the original list.
- */
-function filterIdList(idList, allIds) {
-	const newList = idList.filter(id => allIds.includes(id));
-	return newList.length === idList.length? idList: newList;
-}
+export const dataSet = 'members';
+const selectId = (m) => m.SAPIN;
 
-const membersAdapter = createEntityAdapter({
-	selectId: (m) => m.SAPIN
-});
-
-const dataSet = 'members';
-
-const slice = createSlice({
+const slice = createAppTableDataSlice({
 	name: dataSet,
-	initialState: membersAdapter.getInitialState({
-		valid: false,
-		loading: false,
-		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
-		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
-		[uiSlice.name]: uiSlice.reducer(undefined, {})	
-	}),
-	reducers: {
-		getPending(state, action) {
-			state.loading = true;
-		},
-		getSuccess(state, action) {
-			const members = action.payload;
-			state.loading = false;
-			state.valid = true;
-			membersAdapter.setAll(state, members);
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
-		getFailure(state, action) {
-			state.loading = false;
-		},
-		updateOne(state, action) {
-			const {id, changes} = action.payload;
-			membersAdapter.updateOne(state, {id, changes});
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
-		addOne(state, action) {
-			const member = action.payload;
-			membersAdapter.addOne(state, member);
-		},
-		updateMany(state, action) {
-			const members = action.payload;
-			membersAdapter.updateMany(state, members);
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
-		upsertMany(state, action) {
-			const members = action.payload;
-			membersAdapter.upsertMany(state, members);
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
-		deleteMany(state, action) {
-			const sapins = action.payload;
-			membersAdapter.removeMany(state, sapins);
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
-		uploadPending(state, action) {
-			state.loading = true;
-		},
-		uploadSuccess(state, action) {
-			const members = action.payload;
-			state.valid = true;
-			state.loading = false;
-			membersAdapter.setAll(state, members);
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
-		uploadFailure(state, action) {
-			state.loading = false;
-		}
-	},
-	extraReducers: builder => {
-		builder
-		.addMatcher(
-			(action) => action.type.startsWith(dataSet + '/'),
-			(state, action) => {
-				const sliceAction = {...action, type: action.type.replace(dataSet + '/', '')}
-				state[sortsSlice.name] = sortsSlice.reducer(state[sortsSlice.name], sliceAction);
-				state[filtersSlice.name] = filtersSlice.reducer(state[filtersSlice.name], sliceAction);
-				state[selectedSlice.name] = selectedSlice.reducer(state[selectedSlice.name], sliceAction);
-				state[uiSlice.name] = uiSlice.reducer(state[uiSlice.name], sliceAction);
-			}
-		)
-	}
+	fields,
+	initialState: {},
+	selectId,
 });
 
 /*
@@ -132,7 +44,16 @@ const slice = createSlice({
  */
 export default slice.reducer;
 
-const {getPending, getSuccess, getFailure} = slice.actions;
+const {
+	getPending,
+	getSuccess,
+	getFailure,
+	updateOne,
+	updateMany,
+	addOne,
+	upsertMany,
+	removeMany
+} = slice.actions;
 
 export const loadMembers = () =>
 	async (dispatch, getState) => {
@@ -146,7 +67,6 @@ export const loadMembers = () =>
 				throw new TypeError("Unexpected response to GET: /api/members");
 		}
 		catch(error) {
-			console.log(error)
 			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError('Unable to get members list', error))
@@ -155,8 +75,6 @@ export const loadMembers = () =>
 		}
 		await dispatch(getSuccess(response));
 	}
-
-const {updateOne} = slice.actions;
 
 export const updateMember = (sapin, changes) =>
 	async (dispatch) => {
@@ -175,11 +93,8 @@ export const updateMember = (sapin, changes) =>
 		await dispatch(updateOne({id: sapin, changes: response}));
 	}
 
-const {updateMany} = slice.actions;
-
 export const updateMembers = (members) =>
 	async (dispatch) => {
-		//dispatch(updateMany(members));
 		const url = `/api/members`;
 		let response;
 		try {
@@ -275,8 +190,6 @@ export const deleteMemberContactEmail = (sapin, id) =>
 		await dispatch(updateOne({id: sapin, changes: response}));
 	}
 
-const {addOne} = slice.actions;
-
 export const addMember = (member) =>
 	async (dispatch) => {
 		let response;
@@ -291,8 +204,6 @@ export const addMember = (member) =>
 		}
 		await dispatch(addOne(response));
 	}
-
-const {upsertMany} = slice.actions;
 
 export const upsertMembers = (members) =>
 	async (dispatch) => {
@@ -309,11 +220,9 @@ export const upsertMembers = (members) =>
 		await dispatch(upsertMany(response));
 	}
 
-const {deleteMany} = slice.actions;
-
 export const deleteMembers = (ids) =>
 	async (dispatch, getState) => {
-		dispatch(deleteMany(ids));
+		dispatch(removeMany(ids));
 		try {
 			await fetcher.delete('/api/members', ids);
 		}
@@ -321,8 +230,6 @@ export const deleteMembers = (ids) =>
 			await dispatch(setError(`Unable to delete members ${ids}`, error));
 		}
 	}
-
-const {uploadPending, uploadSuccess, uploadFailure} = slice.actions;
 
 export const UploadFormat = {
 	Members: 'members',
@@ -333,7 +240,7 @@ export const UploadFormat = {
 
 export const uploadMembers = (format, file) =>
 	async (dispatch) => {
-		dispatch(uploadPending());
+		dispatch(getPending());
 		const url = `/api/members/upload/${format}`;
 		let response;
 		try {
@@ -343,12 +250,12 @@ export const uploadMembers = (format, file) =>
 		}
 		catch(error) {
 			await Promise.all([
-				dispatch(uploadFailure()),
+				dispatch(getFailure()),
 				dispatch(setError('Unable to upload users', error))
 			]);
 			return;
 		}
-		await dispatch(uploadSuccess(response));
+		await dispatch(getSuccess(response));
 	}
 
 export const deleteSelectedMembers = () => 
@@ -372,7 +279,7 @@ export const exportMyProjectRoster = () =>
 
 export const importMyProjectRoster = (file) =>
 	async (dispatch) => {
-		dispatch(uploadPending());
+		dispatch(getPending());
 		const url = `/api/members/MyProjectRoster`;
 		let response;
 		try {
@@ -382,12 +289,12 @@ export const importMyProjectRoster = (file) =>
 		}
 		catch(error) {
 			await Promise.all([
-				dispatch(uploadFailure()),
+				dispatch(getFailure()),
 				dispatch(setError('Unable to upload roster', error))
 			]);
 			return;
 		}
-		await dispatch(uploadSuccess(response));
+		await dispatch(getSuccess(response));
 	}
 
-export const setMemberUiProperty = (property, value) => setProperty(dataSet, property, value);
+export const setMemberUiProperty = (property, value) => slice.actions.setProperty({property, value});

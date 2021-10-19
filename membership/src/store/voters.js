@@ -1,11 +1,7 @@
-import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
-
-import fetcher from 'dot11-components/lib/fetcher'
-import sortsSlice, {initSorts, SortDirection, SortType} from 'dot11-components/store/sort'
-import filtersSlice, {initFilters, FilterType} from 'dot11-components/store/filters'
-import selectedSlice, {setSelected} from 'dot11-components/store/selected'
-import uiSlice from 'dot11-components/store/ui'
-import {setError} from 'dot11-components/store/error'
+import fetcher from 'dot11-components/lib/fetcher';
+import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
+import {setError} from 'dot11-components/store/error';
+import {upsertVotingPool} from './votingPools';
 
 export const fields = {
 	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
@@ -17,89 +13,32 @@ export const fields = {
 	Status: {label: 'Status'}
 };
 
-const dataAdapter = createEntityAdapter({
-	selectId: v => v.id,
-	sortComparer: (v1, v2) => v1.SAPIN - v2.SAPIN
-});
-
-/*
- * Remove entries that no longer exist from a list. If there
- * are no changes, return the original list.
- */
-function filterIdList(idList, allIds) {
-	const newList = idList.filter(id => allIds.includes(id));
-	return newList.length === idList.length? idList: newList;
-}
-
 const dataSet = 'voters';
+const sortComparer = (v1, v2) => v1.SAPIN - v2.SAPIN;
 
-const slice = createSlice({
+const slice = createAppTableDataSlice({
 	name: dataSet,
-	initialState: dataAdapter.getInitialState({
+	fields,
+	sortComparer,
+	initialState: {
 		votingPool: {VotingPoolID: '', VotersCount: 0},
-		valid: false,
-		loading: false,
-		[sortsSlice.name]: sortsSlice.reducer(undefined, initSorts(fields)),
-		[filtersSlice.name]: filtersSlice.reducer(undefined, initFilters(fields)),
-		[selectedSlice.name]: selectedSlice.reducer(undefined, {}),
-		[uiSlice.name]: uiSlice.reducer(undefined, {})	
-	}),
-	reducers: {
-		getPending(state, action) {
-			const {votingPoolId} = action.payload;
-			state.loading = true;
-			state.votingPool = {
-				VotingPoolID: votingPoolId,
-				VotersCount: 0
-			};
-			dataAdapter.setAll(state, []);
-		},
-		getSuccess(state, action) {
-			const {votingPool, voters} = action.payload;
-			state.loading = false;
-			state.valid = true;
-			state.votingPool = votingPool;
-			dataAdapter.setAll(state, voters);
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
-		getFailure(state, action) {
-			state.loading = false;
-			state[selectedSlice.name] = [];
-		},
-		addOne(state, action) {
-			const {votingPool, voter} = action.payload;
-			if (votingPool.VotingPoolID === state.votingPool.VotingPoolID) {
-				dataAdapter.addOne(state, voter);
-				state.votingPool = votingPool;
-			}
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
-		updateOne(state, action) {
-			const {id, voter} = action.payload;
-			dataAdapter.updateOne(state, {id, changes: voter});
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		},
-		removeMany(state, action) {
-			const {votingPool, ids} = action.payload;
-			if (votingPool.VotingPoolID === state.votingPool.VotingPoolID) {
-				dataAdapter.removeMany(state, ids);
-				state.votingPool = votingPool;
-			}
-			state[selectedSlice.name] = filterIdList(state[selectedSlice.name], state.ids);
-		}
 	},
-	extraReducers: builder => {
+	reducers: {
+		setVotingPool(state, action) {
+			state.votingPool = action.payload;
+		},
+	},
+	extraReducers: (builder) => {
 		builder
 		.addMatcher(
-			(action) => action.type.startsWith(dataSet + '/'),
+			(action) => ['votingPools/upsertVotingPool', 'votingPools/updateVotingPool'].includes(action.type),
 			(state, action) => {
-				const sliceAction = {...action, type: action.type.replace(dataSet + '/', '')}
-				state[sortsSlice.name] = sortsSlice.reducer(state[sortsSlice.name], sliceAction);
-				state[filtersSlice.name] = filtersSlice.reducer(state[filtersSlice.name], sliceAction);
-				state[selectedSlice.name] = selectedSlice.reducer(state[selectedSlice.name], sliceAction);
-				state[uiSlice.name] = uiSlice.reducer(state[uiSlice.name], sliceAction);
+				const votingPool = action.payload;
+				if (state.votingPool.VotingPoolID === votingPool.VotingPoolID) {
+					state.votingPool = {...state.votingPool, ...votingPool};
+				}
 			}
-		)
+		);
 	}
 });
 
@@ -111,13 +50,22 @@ export default slice.reducer;
 /*
  * Actions
  */
-const {getPending, getSuccess, getFailure} = slice.actions;
+const {
+	setVotingPool,
+	getPending,
+	getSuccess,
+	getFailure,
+	removeMany,
+	addOne,
+	updateOne
+} = slice.actions;
 
 export const loadVoters = (votingPoolId) =>
 	async (dispatch, getState) => {
 		if (getState()[dataSet].loading)
 			return;
-		dispatch(getPending({votingPoolId}));
+		dispatch(getPending());
+		dispatch(setVotingPool({VotingPoolID: votingPoolId, VotersCount: 0}));
 		const url = `/api/voters/${votingPoolId}`;
 		let response;
 		try {
@@ -134,10 +82,11 @@ export const loadVoters = (votingPoolId) =>
 			]);
 			return;
 		}
-		await dispatch(getSuccess(response));
+		await Promise.all([
+			dispatch(setVotingPool(response.votingPool)),
+			dispatch(getSuccess(response.voters))
+		]);
 	}
-
-const {removeMany} = slice.actions;
 
 export const deleteVoters = (votingPoolId, ids) =>
 	async (dispatch) => {
@@ -153,13 +102,16 @@ export const deleteVoters = (votingPoolId, ids) =>
 			await dispatch(setError(`Unable to delete voters in voting pool ${votingPoolId}`, error));
 			return;
 		}
-		const {votingPool} = response;
-		await dispatch(removeMany({votingPool, ids}))
+		await Promise.all([
+			dispatch(upsertVotingPool(response.votingPool)),
+			dispatch(removeMany(ids))
+		]);
 	}
 
 export const votersFromSpreadsheet = (votingPoolId, file) =>
 	async (dispatch) => {
-		dispatch(getPending({votingPoolId}));
+		dispatch(getPending());
+		dispatch(setVotingPool({VotingPoolID: votingPoolId, VotersCount: 0}));
 		const url = `/api/voters/${votingPoolId}/upload`;
 		let response;
 		try {
@@ -176,12 +128,16 @@ export const votersFromSpreadsheet = (votingPoolId, file) =>
 			]);
 			return;
 		}
-		await dispatch(getSuccess(response));
+		await Promise.all([
+			dispatch(upsertVotingPool(response.votingPool)),
+			dispatch(getSuccess(response.voters))
+		]);
 	}
 
 export const votersFromMembersSnapshot = (votingPoolId, date) =>
 	async (dispatch) => {
-		dispatch(getPending({votingPoolId}));
+		dispatch(getPending());
+		dispatch(setVotingPool({VotingPoolID: votingPoolId, VotersCount: 0}));
 		const url = `/api/voters/${votingPoolId}/membersSnapshot`;
 		let response;
 		try {
@@ -198,45 +154,45 @@ export const votersFromMembersSnapshot = (votingPoolId, date) =>
 			]);
 			return;
 		}
-		await dispatch(getSuccess(response));
+		await Promise.all([
+			dispatch(upsertVotingPool(response.votingPool)),
+			dispatch(getSuccess(response.voters))
+		]);
 	}
-
-const {addOne} = slice.actions;
 
 export const addVoter = (votingPoolId, voter) =>
 	async (dispatch) => {
-		const url = `/api/voter/${votingPoolId}`;
+		const url = `/api/voters/${votingPoolId}`;
 		let response;
 		try {
-			response = await fetcher.post(url, voter);
+			response = await fetcher.post(url, [voter]);
 			if (typeof response !== 'object' ||
 				!response.hasOwnProperty('votingPool') ||
-				!response.hasOwnProperty('voter'))
+				!response.hasOwnProperty('voters') || !Array.isArray(response.voters))
 				throw new TypeError(`Unexpected response to POST: ${url}`);
 		}
 		catch(error) {
-			console.warn(error)
 			await dispatch(setError('Unable to add voter', error));
 			return;
 		}
-		await dispatch(addOne(response));
+		await Promise.all([
+			dispatch(upsertVotingPool(response.votingPool)),
+			dispatch(addOne(response.voters[0]))
+		]);
 	}
 
-const {updateOne} = slice.actions;
-
-export const updateVoter = (votingPoolId, sapin, voter) =>
+export const updateVoter = (id, changes) =>
 	async (dispatch) => {
-		const url = `/api/voter/${votingPoolId}/${sapin}`;
-		let response;
+		const url = `/api/voters`;
 		try {
-			response = await fetcher.patch(url, voter);
-			if (typeof response !== 'object' ||
-				!response.hasOwnProperty('voter'))
+			const response = await fetcher.patch(url, [{id, changes}]);
+			if (!Array.isArray(response) || response.length !== 1)
 				throw new TypeError(`Unexpected response to PATCH: ${url}`);
+			changes = response[0].changes;
 		}
 		catch(error) {
 			await dispatch(setError('Unable to update voter', error));
 			return;
 		}
-		await dispatch(updateOne({id: response.voter.id, voter: response.voter}));
+		await dispatch(updateOne({id, changes}));
 	}
