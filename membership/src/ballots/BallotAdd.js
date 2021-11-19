@@ -9,13 +9,12 @@ import {ActionButton} from 'dot11-components/icons'
 import {Form, Row, Col, Input, List, ListItem} from 'dot11-components/general/Form'
 import {getData} from 'dot11-components/store/dataSelectors'
 
+import BallotTypeSelect from './BallotTypeSelect'
+import BallotStageSelect from './BallotStageSelect'
+
 import {addBallot, setProject, getProjectList, getBallotList, BallotType} from '../store/ballots'
 
-import {Column1, BallotTypeSelect, BallotStageSelect} from './BallotDetail'
-
-const StyledForm = styled(Form)`
-	width: 700px;
-`;
+import {Column1} from './BallotDetail'
 
 function getDefaultBallot() {
 	const now = new Date()
@@ -29,7 +28,9 @@ function getDefaultBallot() {
 		Start: today.toISOString(),
 		End: today.toISOString(),
 		VotingPoolID: '',
-		PrevBallotID: ''
+		PrevBallotID: '',
+		Type: BallotType.WG,
+		IsRecirc: false,
 	}
 }
 
@@ -60,7 +61,8 @@ function _BallotAddDropdown({
 	}
 
 	return (
-		<StyledForm
+		<Form
+			style={{width: 700}}
 			title='Add ballot'
 			submit={submit}
 			submitText='Add'
@@ -82,11 +84,11 @@ function _BallotAddDropdown({
 				<Col>
 					<BallotTypeSelect
 						value={ballot.Type}
-						onChange={changeType}
+						onChange={Type => setBallot(ballot => ({...ballot, Type}))}
 					/>
 					<BallotStageSelect
-						value={ballot.Type}
-						onChange={changeType}
+						value={ballot.IsRecirc}
+						onChange={IsRecirc => setBallot(ballot => ({...ballot, IsRecirc}))}
 					/>
 				</Col>
 			</Row>
