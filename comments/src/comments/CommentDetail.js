@@ -15,7 +15,7 @@ import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11
 import {AccessLevel, shallowDiff, recursivelyDiffObjects, debounce} from 'dot11-components/lib'
 import {setProperty, getData, getSortedFilteredIds} from 'dot11-components/store/appTableData'
 
-import {addResolutions, updateResolutions, deleteResolutions, updateComments} from '../store/comments'
+import {addResolutions, updateResolutions, deleteResolutions, updateComments, getCommentsDataSet} from '../store/comments'
 
 const MULTIPLE = '<multiple>';
 const isMultiple = (value) => value === MULTIPLE;
@@ -556,16 +556,30 @@ function CommentPage({
 		}
 	}
 
+	// Check if original page number is diffent
+	let page = parseFloat(comment.C_Page) + parseFloat(comment.C_Line)/100
+	if (isNaN(page))
+		page = 0;
+	page = page.toFixed(2);
+	const hasChanged = page !== comment.Page;
+
 	return (
-		<Input
-			type='text'
-			size={10}
-			value={isMultiple(comment.Page)? '': comment.Page || ''}
-			onChange={onChange}
-			pattern={pattern}
-			placeholder={isMultiple(comment.Page)? MULTIPLE_STR: ''}
-			disabled={readOnly}
-		/>
+		<>
+			<Input
+				type='text'
+				size={10}
+				value={isMultiple(comment.Page)? '': comment.Page || ''}
+				onChange={onChange}
+				pattern={pattern}
+				placeholder={isMultiple(comment.Page)? MULTIPLE_STR: ''}
+				disabled={readOnly}
+			/>
+			{hasChanged &&
+				<div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: 'x-small', marginLeft: 5}} >
+					<span>originally</span>
+					<span>{comment.C_Page}.{comment.C_Line}</span>
+				</div>}
+		</>
 	)
 }
 
@@ -576,15 +590,25 @@ function CommentClause({
 	setComment,
 	readOnly
 }) {
+	// Check if original clause is different
+	const hasChanged = comment.Clause !== comment.C_Clause;
+
 	return (
-		<Input
-			type='text'
-			size={10}
-			value={isMultiple(comment.Clause)? '': comment.Clause || ''}
-			onChange={(e) => setComment({Clause: e.target.value})}
-			placeholder={isMultiple(comment.Clause)? MULTIPLE_STR: ''}
-			disabled={readOnly}
-		/>
+		<>
+			<Input
+				type='text'
+				size={10}
+				value={isMultiple(comment.Clause)? '': comment.Clause || ''}
+				onChange={(e) => setComment({Clause: e.target.value})}
+				placeholder={isMultiple(comment.Clause)? MULTIPLE_STR: ''}
+				disabled={readOnly}
+			/>
+			{hasChanged &&
+				<div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: 'x-small', marginLeft: 5}} >
+					<span>originally</span>
+					<span>{comment.C_Clause}</span>
+				</div>}
+		</>
 	)
 }
 
@@ -618,7 +642,6 @@ export function Comment({
 						setComment={setResolution}
 						readOnly={readOnly}
 					/>
-					<span>&nbsp;({comment.C_Page} {comment.C_Line})</span>
 				</FieldLeft>
 				<FieldLeft label='Clause:'>
 					<CommentClause
@@ -626,7 +649,6 @@ export function Comment({
 						setComment={setResolution}
 						readOnly={readOnly}
 					/>
-					<span>&nbsp;({comment.C_Clause})</span>
 				</FieldLeft>
 				<FieldLeft label='Category:'>{renderEntry(comment.Category)}</FieldLeft>
 			</Row>
@@ -732,8 +754,8 @@ class CommentDetail extends React.PureComponent {
 				resolutionUpdate[k] = d[k];
 		}
 		if (Object.keys(commentUpdate).length > 0) {
-			const ids = comments.map(c => c.comment_id);
-			updateComments(ids, commentUpdate);
+			const updates = comments.map(c => ({id: c.comment_id, changes: commentUpdate}));
+			updateComments(updates);
 		}
 		if (Object.keys(resolutionUpdate).length > 0) {
 			const resolution_ids = [];
@@ -850,9 +872,6 @@ class CommentDetail extends React.PureComponent {
 	}
 
 	static propTypes = {
-		ballotId: PropTypes.string.isRequired,
-		comments: PropTypes.array.isRequired,
-		ids: PropTypes.array.isRequired,
 		entities: PropTypes.object.isRequired,
 		loading: PropTypes.bool.isRequired,
 		selected: PropTypes.array.isRequired,
@@ -869,11 +888,8 @@ const dataSet = 'comments';
 
 export default connect(
 	(state) => {
-		const data = state[dataSet];
+		const data = getCommentsDataSet(state);
 		return {
-			ballotId: data.ballotId,
-			comments: getData(state, dataSet),
-			ids: getSortedFilteredIds(state, dataSet),
 			entities: data.entities,
 			loading: data.loading,
 			selected: data.selected,

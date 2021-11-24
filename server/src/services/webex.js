@@ -1,52 +1,99 @@
 const axios = require('axios');
 const db = require('../util/database');
+const Webex = require('webex');
 
 const webexApiBaseUrl = 'https://webexapis.com/v1';
 const webexAuthUrl = 'https://webexapis.com/v1/authorize';
 const webexTokenUrl = 'https://webexapis.com/v1/access_token';
 
-const webexAuthScope =
-			"spark:kms " + 
-			"meeting:controls_write meeting:schedules_read meeting:participants_read meeting:controls_read " +
-			"meeting:preferences_write meeting:preferences_read meeting:participants_write meeting:schedules_write";
+const webexAuthScope = [
+	"spark:kms",
+	"meeting:controls_write",
+	"meeting:schedules_read",
+	"meeting:participants_read",
+	"meeting:controls_read",
+	"meeting:preferences_write",
+	"meeting:preferences_read",
+	"meeting:participants_write",
+	"meeting:schedules_write"
+].join(' ');
 
-axios.defaults.baseURL = webexApiBaseUrl;
+// Webex account apis
+const apis = {};
 
-// Webex account cache
-const accounts = {};
+function createWebexApi(id, authParams) {
+	// Create axios instance with appropriate defaults
+	const api = axios.create({
+		headers: {
+			'Authorization': `Bearer ${authParams.access_token}`,
+			'Accept': 'application/json'
+		},
+		baseURL: webexApiBaseUrl,
+		refresh_token: authParams.refresh_token
+	});
+
+	// Add a response interceptor
+	api.interceptors.response.use(
+		(response) => response, 
+		async (error) => {
+			if (error.response && error.response.status === 401) {
+				// If we get 'Unauthorized' then refresh the access token
+				console.log('unauthorized')
+				const request = error.config;
+				const params = {
+					grant_type: 'refresh_token',
+					client_id: process.env.WEBEX_CLIENT_ID,
+					client_secret: process.env.WEBEX_CLIENT_SECRET,
+					refresh_token: api.defaults.refresh_token,
+				};
+				const response = await axios.post(webexTokenUrl, params);
+				const authParams = response.data;
+				await updateWebexAccountAuthParams(id, authParams);
+				api.defaults.refresh_token = authParams.refresh_token;
+				api.defaults.headers['Authorization'] = `Bearer ${authParams.access_token}`;
+
+				// Resubmit request with updated access token
+				request.headers['Authorization'] = api.defaults.headers['Authorization'];
+				return axios(request);
+			}
+			return Promise.reject(error);
+		}
+	);
+
+	apis[id] = api;
+}
+
+function updateWebexAccountAuthParams(id, authParams) {
+	return db.query('UPDATE oauth_accounts SET authParams=?, authDate=NOW() WHERE id=?', [JSON.stringify(authParams), id]);
+}
 
 export async function init() {
 	// Cache the active webex accounts and create an axios api for each
-	const rows = await db.query('SELECT * FROM oauth_accounts WHERE type="webex";');
-	for (const account of rows) {
-		const {authParams} = account;
+	const accounts = await db.query('SELECT * FROM oauth_accounts WHERE type="webex";');
+	for (const account of accounts) {
+		const {id, authParams} = account;
 		if (authParams) {
 			// Create and axios api for this account
-			const api = axios.create({
-				headers: {
-					'Authorization': `Bearer ${authParams.access_token}`,
-					'Accept': 'application/json'
-				}
-			});
-			// Cache the account details
-			accounts[account.id] = {
-				authParams,
-				api,
-			};
+			createWebexApi(id, authParams);
 		}
 	}
 }
 
-async function getAccounts(params) {
+async function getAccounts(constraints) {
 	let sql = 'SELECT `id`, `name`, `type`, `groups`, `authDate` FROM oauth_accounts';
-	if (params)
-		sql += ' WHERE ' + Object.entries(params).map(([key, value]) => db.format(' ??=?', [key, value])).join(' AND ');
+	if (constraints)
+		sql += ' WHERE ' + Object.entries(constraints).map(([key, value]) => db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])).join(' AND ');
 	const accounts = await db.query(sql);
+
 	for (const account of accounts) {
-		account.client_id = process.env.WEBEX_CLIENT_ID;
 		account.auth_url = webexAuthUrl;
-		account.auth_scope = webexAuthScope;
+		account.auth_params = {
+			client_id: process.env.WEBEX_CLIENT_ID,
+			response_type: 'code',
+			scope: webexAuthScope
+		}
 	}
+
 	return accounts;
 }
 
@@ -62,38 +109,15 @@ export async function authWebexAccount(id, entry) {
 	const response = await axios.post(webexTokenUrl, params);
 	const authParams = response.data;
 
-	await db.query('UPDATE oauth_accounts SET authParams=?, authDate=NOW() WHERE id=?', [JSON.stringify(authParams), id]);
+	await updateWebexAccountAuthParams(id, authParams);
 
 	// Create an axios instance for this account
-	const api = axios.create({
-		headers: {
-			'Authorization': `Bearer ${authParams.access_token}`,
-			'Accept': 'application/json'
-		}
-	});
-
-	// Update the account cache
-	accounts[id] = {
-		authParams,
-		api,
-	};
+	createWebexApi(id, authParams);
 
 	const [account] = await getAccounts({id});
 	return account;
 }
 
-async function webexRefreshAccess() {
-	const params = {
-		grant_type: 'refresh_token',
-		client_id: process.env.WEBEX_CLIENT_ID,
-		client_secret: process.env.WEBEX_CLIENT_SECRET,
-		refresh_token,
-	};
-	const {data} = await axios.post('/access_token', params);
-	access_token = data.access_token;
-	refresh_token = data.refresh_token;
-	webexApi.headers['Authorization'] = `Bearer ${access_token}`;
-}
 
 export async function getWebexAccounts() {
 	return await getAccounts({type: "webex"});
@@ -155,39 +179,34 @@ export async function getWebexMeetings(group) {
 	return allMeetings;
 }
 
-export async function getWebexMeeting(webex_id, meeting_id) {
-	const account = accounts[webex_id];
-	if (!account)
-		throw `Invalid account id=${account_id}`;
-	return await account.api.get(`/meetings/${meeting_id}`);
+export async function getWebexMeeting(id, meeting_id) {
+	const api = apis[id];
+	if (!api)
+		throw `Invalid account id=${id}`;
+	let response = await api.get(`/meetings/${meeting_id}`)
+	return response.data;
 }
 
-export async function addWebexMeeting(webex_id, params) {
-	const account = accounts[webex_id];
-	if (!account)
-		throw `Invalid account id=${webex_id}`;
-	try {
-		const response = await account.api.post('/meetings', params);
-		return response.data;
-	}
-	catch(error) {
-		//console.log('Got error', error.response.data.errors)
-		if (error.response && error.response.data && error.response.data.message)
-			throw error.response.data.message;
-		throw error;
-	}
+export async function addWebexMeeting(id, params) {
+	const api = apis[id];
+	if (!api)
+		throw `Invalid account id=${id}`;
+	const response = await api.post('/meetings', params);
+	return response.data;
 }
 
-export async function updateWebexMeeting(webex_id, meeting_id, params) {
-	const account = accounts[webex_id];
-	if (!account)
-		throw `Invalid account id=${webex_id}`;
-	return await account.api.put(`/meetings/${meeting_id}`, params);
+export async function updateWebexMeeting(id, meeting_id, params) {
+	const api = apis[id];
+	if (!api)
+		throw `Invalid account id=${id}`;
+	const response = await api.put(`/meetings/${meeting_id}`, params);
+	return response.data;
 }
 
-export async function deleteWebexMeeting(webex_id, meeting_id) {
-	const account = accounts[webex_id];
-	if (!account)
-		throw `Invalid account id=${webex_id}`;
-	return await account.api.delete(`/meetings/${meeting_id}`);
+export async function deleteWebexMeeting(id, meeting_id) {
+	const api = apis[id];
+	if (!api)
+		throw `Invalid account id=${id}`;
+	const response = await api.delete(`/meetings/${meeting_id}`);
+	return response.data;
 }

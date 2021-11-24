@@ -1,13 +1,13 @@
-import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
+import {createSlice, createEntityAdapter} from '@reduxjs/toolkit';
 
-import fetcher from 'dot11-components/lib/fetcher'
-import {setError} from 'dot11-components/store/error'
+import {fetcher} from 'dot11-components/lib';
+import {setError} from 'dot11-components/store/error';
 
 const dataAdapter = createEntityAdapter({
 	selectId: (user) => user.SAPIN
 })
 
-const dataSet = 'users'
+export const dataSet = 'users';
 
 const slice = createSlice({
 	name: dataSet,
@@ -53,3 +53,9 @@ export const loadUsers = () =>
 		}
 		await dispatch(getSuccess(response.users));
 	}
+
+/*
+ * Selectors
+ */
+export const getUsersDataSet = (state) => state[dataSet];
+ 

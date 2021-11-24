@@ -1,11 +1,12 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import {Form, Row} from 'dot11-components/general/Form'
-import {AppModal} from 'dot11-components/modals'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch} from 'react-redux';
+import styled from '@emotion/styled';
 
-import {votersFromSpreadsheet} from '../store/voters'
+import {Form, Row} from 'dot11-components/form';
+import {AppModal} from 'dot11-components/modals';
+
+import {votersFromSpreadsheet} from '../store/voters';
 
 const VotersImportForm = styled(Form)`
 	width: 400px;
@@ -15,18 +16,19 @@ function VotersImportModal({
 	isOpen,
 	close,
 	votingPoolName,
-	votersFromSpreadsheet
 }) {
 	const fileInputRef = React.useRef();
 	const [errMsg, setErrMsg] = React.useState('');
 
+	const dispatch = useDispatch();
+	
 	async function submit() {
 		const file = fileInputRef.current.files[0];
 		if (!file) {
 			setErrMsg('Select file');
 			return;
 		}
-		await votersFromSpreadsheet(votingPoolName, file);
+		await dispatch(votersFromSpreadsheet(votingPoolName, file));
 		close();
 	}
 
@@ -57,10 +59,6 @@ VotersImportModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
 	votingPoolName: PropTypes.string.isRequired,
-	votersFromSpreadsheet: PropTypes.func.isRequired
 }
 
-export default connect(
-	null,
-	{votersFromSpreadsheet}
-)(VotersImportModal);
+export default VotersImportModal;

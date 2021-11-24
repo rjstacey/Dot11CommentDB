@@ -16,7 +16,7 @@ const reducer = combineReducers({
 	ballots,
 	results,
 	errMsg
-})
+});
 
 const middleware = [thunk];
 if (process.env.NODE_ENV !== 'production')

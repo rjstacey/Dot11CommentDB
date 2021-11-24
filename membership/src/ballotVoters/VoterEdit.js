@@ -1,14 +1,15 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import {Form, Row, Field, Input, Select} from 'dot11-components/general/Form'
-import {shallowDiff, parseNumber} from 'dot11-components/lib/utils'
-import {AppModal} from 'dot11-components/modals'
-import {setError} from 'dot11-components/store/error'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch} from 'react-redux';
+import styled from '@emotion/styled';
 
-import MemberSelector from '../members/MemberSelector'
-import {addVoter, updateVoter} from '../store/voters'
+import {Form, Row, Field, Input, Select} from 'dot11-components/form';
+import {shallowDiff, parseNumber} from 'dot11-components/lib';
+import {AppModal} from 'dot11-components/modals';
+
+import MemberSelector from '../members/MemberSelector';
+
+import {addVoter, updateVoter} from '../store/voters';
 
 const statusOptions = [
 	{value: 'Voter', label: 'Voter'},
@@ -21,12 +22,11 @@ function VoterEditModal({
 	votingPoolName,
 	voter,
 	action,
-	updateVoter,
-	addVoter,
-	setError,
 }) {
 	const [state, setState] = React.useState(voter);
 	const [errMsg, setErrMsg] = React.useState('');
+
+	const dispatch = useDispatch();
 
 	const onOpen = () => setState(voter);
 
@@ -41,11 +41,11 @@ function VoterEditModal({
 		}
 		else {
 			if (action === 'add') {
-				await addVoter(votingPoolName, state);
+				await dispatch(addVoter(votingPoolName, state));
 			}
 			else {
 				const changes = shallowDiff(voter, state);
-				await updateVoter(voter.id, changes);
+				await dispatch(updateVoter(voter.id, changes));
 			}
 			close();
 		}
@@ -100,12 +100,6 @@ VoterEditModal.propTypes = {
 	votingPoolName: PropTypes.string.isRequired,
 	voter: PropTypes.object.isRequired,
 	action: PropTypes.oneOf(['add', 'update']),
-	addVoter: PropTypes.func.isRequired,
-	updateVoter: PropTypes.func.isRequired,
-	setError: PropTypes.func.isRequired,
 }
 
-export default connect(
-	null,
-	{addVoter, updateVoter, setError}
-)(VoterEditModal)
+export default VoterEditModal;

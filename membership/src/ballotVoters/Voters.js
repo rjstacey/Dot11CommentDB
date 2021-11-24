@@ -1,18 +1,20 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {useHistory, useParams} from 'react-router-dom'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table'
-import {ActionButton} from 'dot11-components/icons'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useHistory, useParams} from 'react-router-dom';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+
+import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
+import {ActionButton} from 'dot11-components/icons';
 import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
-import {ConfirmModal} from 'dot11-components/modals'
-import {Input} from 'dot11-components/general/Form'
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
+import {ConfirmModal} from 'dot11-components/modals';
+import {Input} from 'dot11-components/form';
+import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
+
 import VotersImportModal from './VotersImport'
 import VoterEditModal from './VoterEdit'
 
-import {loadVoters, deleteVoters} from '../store/voters'
+import {loadVoters, deleteVoters, getVotersDataSet} from '../store/voters'
 import {updateVotingPool} from '../store/votingPools'
 
 const dataSet = 'voters';
@@ -29,7 +31,7 @@ const RowActions = ({onEdit, onDelete}) =>
 	</ActionCell>
 
 const defaultVoter = {
-	SAPIN: '',
+	SAPIN: 0,
 	Status: 'Voter'
 }
 
@@ -69,29 +71,26 @@ const TableRow = styled.div`
 	}
 `;
 
-function Voters({
-	loadVoters,
-	deleteVoters,
-	uploadVoters,
-	votingPool,
-	updateVotingPool,
-	loading,
-	shownIds,
-	selected,
-	members
-}) {
+function Voters() {
+
 	const {votingPoolName} = useParams();
 	const [name, setName] = React.useState(votingPoolName);
 	const history = useHistory();
 	const [editVoter, setEditVoter] = React.useState({action: null, voter: defaultVoter});
 	const [showImportVoters, setShowImportVoters] = React.useState(false);
 
+	const {valid, loading, selected, votingPool} = useSelector(getVotersDataSet);
+	const shownIds = useSelector(state => getSortedFilteredIds(state, dataSet));
+
+	const dispatch = useDispatch();
+	const load = React.useCallback((votingPoolName) => dispatch(loadVoters(votingPoolName)), [dispatch]);
+
 	const [columns, maxWidth] = React.useMemo(() => {
 
 		const onDelete = async (voter) => {
-			const ok = await ConfirmModal.show(`Are you sure you want to remove ${voter.SAPIN} ${voter.Name} from the voting pool?`)
+			const ok = await ConfirmModal.show(`Are you sure you want to remove ${voter.SAPIN} ${voter.Name} from the voting pool?`);
 			if (ok)
-				deleteVoters(votingPoolName, [voter.id])
+				dispatch(deleteVoters(votingPoolName, [voter.id]));
 		}
 
 		const columns = tableColumns.concat({
@@ -107,14 +106,12 @@ function Voters({
 	}, [votingPoolName]);
 
 	React.useEffect(() => {
-		if ((!votingPool.VotingPoolID || votingPool.VotingPoolID !== votingPoolName) &&
-			!loading) {
-			loadVoters(votingPoolName)
-		}
+		if ((!votingPool.VotingPoolID || votingPool.VotingPoolID !== votingPoolName) && !loading)
+			load(votingPoolName);
 	}, [votingPool, votingPoolName]);
 
 	const close = history.goBack;
- 	const refresh = () => loadVoters(votingPoolName);
+ 	const refresh = () => load(votingPoolName);
 
 	async function handleRemoveSelected() {
 		const ids = [];
@@ -125,91 +122,79 @@ function Voters({
 		if (ids.length) {
 			const ok = await ConfirmModal.show(`Are you sure you want to delete ${ids.length} entries?`);
 			if (ok)
-				await deleteVoters(votingPoolName, ids);
+				await dispatch(deleteVoters(votingPoolName, ids));
 		}
 	}
 
 	const handleAddVoter = () => setEditVoter({action: 'add', voter: defaultVoter});
-	//const handleUpdateVoter = ({rowData}) => setEditVoter({action: 'update', voter: rowData});
 
-	const updateVotingPoolName = async () => {
-		await updateVotingPool(votingPoolName, {VotingPoolID: name});
-		history.push(`/Voters/${name}`)
-	}
+	const updateVotingPoolName = React.useCallback(async (name) => {
+		console.log('set name')
+		const votingPool = await dispatch(updateVotingPool(votingPoolName, {VotingPoolID: name}));
+		console.log(votingPool)
+		if (votingPool) {
+			setName(votingPool.VotingPoolID);
+			history.replace(`/voters/${votingPool.VotingPoolID}`);
+		}
+		else {
+			setName(votingPoolName);
+		}
+	}, [dispatch, history, votingPoolName]);
 
-	return <>
-		<TopRow style={{maxWidth}}>
-			<div style={{display: 'flex', alignItems: 'center'}}>
-				<label>WG ballot voting pool:&nbsp;{votingPoolName}</label>
-				<ActionButtonDropdown
-					name='edit'
-					onClose={updateVotingPoolName}
-				>
-					<Input type='text'
-						size={24}
-						value={name}
-						onChange={e => setName(e.target.value)}
-						onKeyDown={e => {if (e.key === 'Enter') updateVotingPoolName();}}
-					/>
-				</ActionButtonDropdown>
-			</div>
-			<div>
-				<ActionButton name='add' title='Add voter' onClick={handleAddVoter} />
-				<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
-				<ActionButton name='import' title='Import voters' onClick={() => setShowImportVoters(true)} />
-				<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
-				<ActionButton name='close' title='Close' onClick={close} />
-			</div>
-		</TopRow>
+	return (
+		<>
+			<TopRow style={{maxWidth}}>
+				<div style={{display: 'flex', alignItems: 'center'}}>
+					<label>WG ballot voting pool:&nbsp;{votingPoolName}</label>
+					<ActionButtonDropdown
+						name='edit'
+						onClose={() => updateVotingPoolName(name)}
+					>
+						<Input
+							type='text'
+							size={24}
+							value={name}
+							onChange={e => setName(e.target.value)}
+							onKeyDown={e => {if (e.key === 'Enter') updateVotingPoolName(name);}}
+						/>
+					</ActionButtonDropdown>
+				</div>
+				<div>
+					<ActionButton name='add' title='Add voter' onClick={handleAddVoter} />
+					<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
+					<ActionButton name='import' title='Import voters' onClick={() => setShowImportVoters(true)} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
+					<ActionButton name='close' title='Close' onClick={close} />
+				</div>
+			</TopRow>
 
-		<TableRow>
-			<AppTable
-				key={columns}
-				fitWidth
-				fixed
-				columns={columns}
-				dataSet={dataSet}
-				headerHeight={36}
-				estimatedRowHeight={36}
+			<TableRow>
+				<AppTable
+					key={columns}
+					fitWidth
+					fixed
+					columns={columns}
+					dataSet={dataSet}
+					headerHeight={36}
+					estimatedRowHeight={36}
+				/>
+			</TableRow>
+
+			<VoterEditModal
+				isOpen={!!editVoter.action}
+				close={() => setEditVoter(state => ({...state, action: null}))}
+				votingPoolName={votingPoolName}
+				voter={editVoter.voter}
+				action={editVoter.action}
 			/>
-		</TableRow>
 
-		<VoterEditModal
-			isOpen={!!editVoter.action}
-			close={() => setEditVoter(state => ({...state, action: null}))}
-			votingPoolName={votingPoolName}
-			voter={editVoter.voter}
-			action={editVoter.action}
-		/>
-
-		<VotersImportModal
-			isOpen={showImportVoters}
-			close={() => setShowImportVoters(false)}
-			votingPoolName={votingPoolName}
-			uploadVoters={uploadVoters}
-		/>
-	</>
+			<VotersImportModal
+				isOpen={showImportVoters}
+				close={() => setShowImportVoters(false)}
+				votingPoolName={votingPoolName}
+			/>
+		</>
+	)
 }
 
-Voters.propTypes = {
-	selected: PropTypes.array.isRequired,
-	votingPool: PropTypes.object.isRequired,
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	shownIds: PropTypes.array.isRequired,
-	loadVoters: PropTypes.func.isRequired,
-	deleteVoters: PropTypes.func.isRequired,
-	updateVotingPool: PropTypes.func.isRequired
-}
-
-export default connect(
-	(state, ownProps) => ({
-		selected: state[dataSet].selected,
-		votingPool: state[dataSet].votingPool,
-		valid: state[dataSet].valid,
-		loading: state[dataSet].loading,
-		shownIds: getSortedFilteredIds(state, dataSet),
-		members: state.members.entities
-	}),
-	{loadVoters, deleteVoters, updateVotingPool}
-)(Voters)
+export default Voters;

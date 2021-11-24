@@ -1,16 +1,15 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {Link, useHistory, useParams} from "react-router-dom"
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import AppTable, {SelectHeader, SelectCell, TableColumnHeader, ShowFilters, TableColumnSelector, TableViewSelector} from 'dot11-components/table'
-import {Button, ActionButton} from 'dot11-components/icons'
-import {AccessLevel, displayDate, displayDateRange} from 'dot11-components/lib'
-import {ConfirmModal} from 'dot11-components/modals'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {Link, useHistory, useParams} from 'react-router-dom';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
 
-import {fields, loadBallots, BallotType} from '../store/ballots'
+import AppTable, {SelectHeader, SelectCell, TableColumnHeader, ShowFilters, TableColumnSelector, TableViewSelector} from 'dot11-components/table';
+import {ActionButton} from 'dot11-components/icons';
+import {AccessLevel, displayDate, displayDateRange} from 'dot11-components/lib';
+import {ConfirmModal} from 'dot11-components/modals';
 
-const dataSet = 'ballots';
+import {fields, loadBallots, getBallotsDataSet, BallotType, dataSet} from '../store/ballots';
 
 const DataSubcomponent = styled.div`
 	flex: 1 1 ${({width}) => width && typeof width === 'string'? width: width + 'px'};
@@ -170,8 +169,6 @@ for (const [view, colsArray] of Object.entries(defaultTablesColumns)) {
 	}
 }
 
-const primaryDataKey = 'BallotID';
-
 // The top row height is determined by its content
 const TopRow = styled.div`
 	display: flex;
@@ -181,40 +178,25 @@ const TopRow = styled.div`
 	box-sizing: border-box;
 `;
 
-const ButtonGroup = styled.div`
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	background: linear-gradient(to bottom, #fdfdfd 0%,#f6f7f8 100%);
-	border: 1px solid #999;
-	border-radius: 2px;
-	padding: 5px;
-	margin: 0 5px;
-`;
-
 // The table row grows to the available height
 const TableRow = styled.div`
 	flex: 1;
 	width: 100%;
 `;
 
-function Ballots({
-	access,
-	valid,
-	loading,
-	loadBallots,
-	tableView,
-	tablesConfig,
-}) {
+function Ballots() {
+
 	const history = useHistory();
 	const {ballotId} = useParams();
+	const dispatch = useDispatch();
+	const {valid, loading} = useSelector(getBallotsDataSet);
+	const load = React.useCallback(() => dispatch(loadBallots()));
+	const closeBallot = () => history.push('/ballots');
 
 	React.useEffect(() => {
 		if (!valid && !loading)
-			loadBallots();
+			load();
 	}, []);
-
-	const closeBallot = () => history.push('/ballots')
 
 	return (
 		<>
@@ -222,7 +204,7 @@ function Ballots({
 				<div><label>Ballots</label></div>
 				<div style={{display: 'flex', alignItems: 'center'}}>
 					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-					<ActionButton name='refresh' title='Refresh' onClick={loadBallots} disabled={loading} />
+					<ActionButton name='refresh' title='Refresh' onClick={load} disabled={loading} />
 				</div>
 			</TopRow>
 
@@ -235,7 +217,6 @@ function Ballots({
 				<AppTable
 					defaultTablesConfig={defaultTablesConfig}
 					columns={tableColumns}
-					tableView={tableView}
 					headerHeight={50}
 					estimatedRowHeight={50}
 					dataSet={dataSet}
@@ -245,21 +226,4 @@ function Ballots({
 	)
 }
 
-Ballots.propTypes = {
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-}
-
-export default connect(
-	(state) => {
-		const tableView = state[dataSet].ui.tableView;
-		const tablesConfig = state[dataSet].ui.tablesConfig;
-		return {
-			valid: state[dataSet].valid,
-			loading: state[dataSet].loading,
-			tableView,
-			tablesConfig,
-		}
-	},
-	{loadBallots}
-)(Ballots);
+export default Ballots;

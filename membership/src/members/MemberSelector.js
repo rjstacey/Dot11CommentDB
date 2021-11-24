@@ -1,5 +1,5 @@
-import React from 'react'
-import PropTypes from 'prop-types'
+import PropTypes from 'prop-types';
+import React from 'react';
 import {connect, useDispatch, useSelector} from 'react-redux'
 import styled from '@emotion/styled'
 import {FixedSizeList as List} from 'react-window'

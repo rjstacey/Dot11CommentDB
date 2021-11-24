@@ -1,27 +1,20 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import {connect} from 'react-redux'
+import {connect, useDispatch} from 'react-redux'
 import styled from '@emotion/styled'
-import fetcher from 'dot11-components/lib/fetcher'
 import {Form, Row, List, ListItem} from 'dot11-components/form'
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
-import {setError} from 'dot11-components/store/error'
+import {exportResultsForProject, exportResultsForBallot} from '../store/results'
 
-function _ResultsExportForm({close, ballot, setError}) {
-	const ballotId = ballot.BallotID;
-	const project = ballot.Project;
+function ResultsExportForm({close, ballot}) {
 	const [forProject, setForProject] = React.useState(false);
 	const [busy, setBusy] = React.useState(false);
 
+	const dispatch = useDispatch();
+
 	async function submit() {
 		setBusy(true);
-		const params = forProject? {Project: project}: {BallotID: ballotId};
-		try {
-			await fetcher.getFile('/api/resultsExport', params);
-		}
-		catch (error) {
-			setError(`Unable to export results for ${forProject? project: ballotId}`, error);
-		}
+		await dispatch(forProject? exportResultsForProject(ballot.Project): exportResultsForBallot(ballot.id));
 		setBusy(false);
 		close();
 	}
@@ -39,20 +32,20 @@ function _ResultsExportForm({close, ballot, setError}) {
 					<ListItem>
 						<input
 							type="radio"
-							title={ballotId}
+							title={ballot.BallotID}
 							checked={!forProject}
 							onChange={e => setForProject(!forProject)}
 						/>
-						<label>This ballot {ballotId}</label>
+						<label>This ballot {ballot.BallotID}</label>
 					</ListItem>
 					<ListItem>
 						<input
 							type="radio"
-							title={project}
+							title={ballot.Project}
 							checked={forProject}
 							onChange={e => setForProject(!forProject)}
 						/>
-						<label>This project {project}</label>
+						<label>This project {ballot.Project}</label>
 					</ListItem>
 				</List>
 			</Row>
@@ -60,31 +53,24 @@ function _ResultsExportForm({close, ballot, setError}) {
 	)
 }
 
-_ResultsExportForm.propTypes = {
-	ballot: PropTypes.object.isRequired,
-	close: PropTypes.func.isRequired,
-	setError: PropTypes.func.isRequired,
+ResultsExportForm.propTypes = {
+	ballot: PropTypes.object,
+	//close: PropTypes.func.isRequired,
 }
 
-const ResultsExportForm = connect(
-	null,
-	{setError}
-)(_ResultsExportForm);
+const ResultsExport = ({ballot}) => 
+	<ActionButtonDropdown
+		name='export'
+		title='Export'
+		disabled={!ballot}
+	>
+		<ResultsExportForm
+			ballot={ballot}
+		/>
+	</ActionButtonDropdown>
 
-function ResultsExport({
-	ballotId,
-	ballot
-}) {
-	return (
-		<ActionButtonDropdown
-			name='export'
-			title='Export'
-			disabled={!ballotId}
-		>
-			<ResultsExportForm
-				ballot={ballot}
-			/>
-		</ActionButtonDropdown>
-	)
+ResultsExport.propTypes = {
+	ballot: PropTypes.object,
 }
+
 export default ResultsExport;

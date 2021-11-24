@@ -1,14 +1,14 @@
-import React from 'react'
-import {useHistory} from 'react-router-dom'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import AppTable from 'dot11-components/table'
-import BallotDetailModal from './BallotDetail'
-import {ActionButton} from 'dot11-components/icons'
-import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
+import React from 'react';
+import {useHistory} from 'react-router-dom';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
 
-import {loadBallots, BallotType} from '../store/ballots'
-import {fields, loadEpolls, getSyncedEpollEntities} from '../store/epolls'
+import AppTable from 'dot11-components/table';
+import {ActionButton} from 'dot11-components/icons';
+import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors';
+
+import {loadBallots, BallotType, getBallotsDataSet} from '../store/ballots'
+import {fields, loadEpolls, selectSyncedEpollsEntities, getEpollsDataSet, dataSet} from '../store/epolls'
 
 import {BallotAddModal as BallotAdd} from './BallotDetail'
 
@@ -40,7 +40,7 @@ function ePollToBallot(epoll) {
 		ballotId = '';
 	if (m) {
 		ballotId = m[0];
-		type = ballotId.startsWith('CC')? BallotType.CC: BallotType.WG_Initial;
+		type = ballotId.startsWith('CC')? BallotType.CC: BallotType.WG;
 	}
 	return {
 		Project: '',
@@ -52,7 +52,9 @@ function ePollToBallot(epoll) {
 		Document: epoll.Document,
 		Topic: epoll.Topic,
 		VotingPoolID: '',
-		PrevBallotID: ''
+		PrevBallotID: '',
+		IsRecirc: 0,
+		IsComplete: 0,
 	}
 }
 const renderActions = ({rowData}) => rowData.InDatabase
@@ -72,37 +74,36 @@ const columns = [
 			cellRenderer: renderActions}
 	];
 
-function Epolls({
-	ballotsValid,
-	loadBallots,
-	epollsValid,
-	loadEpolls,
-	epolls,
-	loading
-}) {
+function Epolls() {
+
 	const history = useHistory();
 	const numberEpolls = React.useRef(20);
-	const [epollNum, setEpollNum] = React.useState(null);
+
+	const {valid: ballotsValid, loading: ballotsLoading} = useSelector(getBallotsDataSet);
+	const {valid, loading} = useSelector(getEpollsDataSet);
+	const epolls = useSelector(selectSyncedEpollsEntities)
+
+	const dispatch = useDispatch();
+	const load = React.useCallback((n) => dispatch(loadEpolls(n)), [dispatch]);
 
 	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
 
 	React.useEffect(() => {
-		if (!ballotsValid)
-			loadBallots();
-		if (!epollsValid)
-			loadEpolls(numberEpolls.current);
-	}, [ballotsValid, loadBallots, epollsValid, loadEpolls])
+		if (!ballotsValid && !ballotsLoading)
+			dispatch(loadBallots());
+		if (!valid && !loading)
+			load(numberEpolls.current);
+	}, []);
 
 	//React.useEffect(() => {console.log('epolls changed')}, [props.epolls]);
 
-	const refresh = () => loadEpolls(numberEpolls.current);
-	const close = () => history.goBack();
+	const refresh = () => load(numberEpolls.current);
+	const close = () => history.push('/ballots');
 
 	function getMore() {
 		numberEpolls.current += 10;
-		loadEpolls(numberEpolls.current);
+		load(numberEpolls.current);
 	}
-
 
 	return <>
 		<ActionRow style={{maxWidth}}>
@@ -125,16 +126,4 @@ function Epolls({
 	</>
 }
 
-const dataSet = 'epolls';
-
-export default connect(
-	(state) => {
-		return {
-			ballotsValid: state.ballots.valid,
-			epollsValid: state[dataSet].valid,
-			loading: state[dataSet].loading,
-			epolls: getSyncedEpollEntities(state)
-		}
-	},
-	{loadEpolls, loadBallots}
-)(Epolls)
+export default Epolls;

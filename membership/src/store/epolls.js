@@ -14,7 +14,7 @@ export const fields = {
 	Votes: {label: 'Result', sortType: SortType.NUMERIC}
 };
 
-const dataSet = 'epolls';
+export const dataSet = 'epolls';
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
@@ -49,6 +49,8 @@ export const loadEpolls = (n = 20) =>
 /*
  * Selectors
  */
+export const getEpollsDataSet = (state) => state[dataSet];
+
 const getBallots = (state) => state.ballots.ids.map(id => state.ballots.entities[id]);
 const getEpollsData = (state) => state.epolls.ids.map(id => state.epolls.entities[id]);
 
@@ -75,11 +77,11 @@ const getBallotsEntities = (state) => state['ballots'].entities;
 const getEpollsEntities = (state) => state[dataSet].entities;
 
 /*
- * getSyncedEpollEntities(state)
+ * selectSyncedEpollEntities(state)
  *
  * Generate epoll entities objectwith indicator on each entry of presence in ballots list
  */
-export const getSyncedEpollEntities = createSelector(
+export const selectSyncedEpollsEntities = createSelector(
 	getBallotsEntities,
 	getEpollsEntities,
 	(ballotEntities, epollEntities) => {

@@ -1,12 +1,13 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import {Form, Row, Col, List, ListItem, Field, Checkbox} from 'dot11-components/form'
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
-import {ConfirmModal} from 'dot11-components/modals'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch} from 'react-redux';
+import styled from '@emotion/styled';
 
-import {uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate} from '../store/comments'
+import {Form, Row, Col, List, ListItem, Field, Checkbox} from 'dot11-components/form';
+import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
+import {ConfirmModal} from 'dot11-components/modals';
+
+import {uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate} from '../store/comments';
 
 const importFieldOptions = [
 	{value: FieldsToUpdate.CID,
@@ -132,24 +133,25 @@ const UpdateList = ({matchUpdate, setMatchUpdate}) =>
 		)}
 	</List>
 
-function _CommentsImportDropdown({ballotId, close, upload}) {
-	const fileRef = React.useRef()
-	const [fields, setFields] = React.useState([])
-	const [algo, setAlgo] = React.useState(MatchAlgorithm.CID)
-	const [matchUpdate, setMatchUpdate] = React.useState(MatchUpdate.All)
-	const [sheetName, setSheetName] = React.useState('All Comments')
-	const [errMsg, setErrMsg] = React.useState('')
-	const [busy, setBusy] = React.useState(false)
+function CommentsImportDropdown({ballot, close, upload}) {
+	const dispatch = useDispatch();
+	const fileRef = React.useRef();
+	const [fields, setFields] = React.useState([]);
+	const [algo, setAlgo] = React.useState(MatchAlgorithm.CID);
+	const [matchUpdate, setMatchUpdate] = React.useState(MatchUpdate.All);
+	const [sheetName, setSheetName] = React.useState('All Comments');
+	const [errMsg, setErrMsg] = React.useState('');
+	const [busy, setBusy] = React.useState(false);
 
 	async function submit() {
-		const file = fileRef.current.files[0]
+		const file = fileRef.current.files[0];
 		if (!file) {
-			setErrMsg('Select spreadsheet file')
-			return
+			setErrMsg('Select spreadsheet file');
+			return;
 		}
-		setBusy(true)
-		const result = await upload(ballotId, fields, algo, matchUpdate, sheetName, file);
-		close()
+		setBusy(true);
+		const result = await dispatch(uploadResolutions(ballot.id, fields, algo, matchUpdate, sheetName, file));
+		close();
 		if (result) {
 			const {matched, unmatched, added, remaining, updated} = result;
 			let msg  = '';
@@ -201,7 +203,7 @@ function _CommentsImportDropdown({ballotId, close, upload}) {
 
 	return (
 		<CommentsImportForm
-			title={`Import fields for ${ballotId} from Excel spreadsheet`}
+			title={`Import fields for ${ballot.BallotID} from Excel spreadsheet`}
 			errorText={errMsg}
 			submit={submit}
 			cancel={close}
@@ -255,32 +257,23 @@ function _CommentsImportDropdown({ballotId, close, upload}) {
 	)
 }
 
-_CommentsImportDropdown.propTypes = {
-	close: PropTypes.func.isRequired,
-	ballotId: PropTypes.string.isRequired,
-	upload: PropTypes.func.isRequired
+CommentsImportDropdown.propTypes = {
+	//close: PropTypes.func.isRequired,
+	ballot: PropTypes.object,
 }
 
-const CommentsImportDropdown = connect(
-	null,
-	{upload: uploadResolutions}
-)(_CommentsImportDropdown)
-
-function CommentsImport({
-	className,
-	style,
-	ballotId
-}) {
+function CommentsImport({ballot}) {
 	return (
 		<ActionButtonDropdown
 			name='import'
 			title='Upload resolutions'
-			disabled={!ballotId}
+			disabled={!ballot}
 		>
 			<CommentsImportDropdown
-				ballotId={ballotId}
+				ballot={ballot}
 			/>
 		</ActionButtonDropdown>
 	)
 }
+
 export default CommentsImport;

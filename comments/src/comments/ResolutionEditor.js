@@ -387,11 +387,6 @@ export class ResolutionEditor extends React.Component {
 	}
 }
 
-/*const ClearButton = styled(Cross)`
-	:hover {
-		color: tomato;
-	}
-`;*/
 const ClearButton = styled.span`
 	cursor: pointer;
 	text-align: center;

@@ -1,10 +1,8 @@
-import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
+import {fetcher} from 'dot11-components/lib';
+import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
+import {setError} from 'dot11-components/store/error';
 
-import fetcher from 'dot11-components/lib/fetcher'
-import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData'
-import {setError} from 'dot11-components/store/error'
-
-import {updateBallotSuccess} from './ballots'
+import {updateBallotSuccess} from './ballots';
 
 const fields = {
 	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
@@ -16,21 +14,19 @@ const fields = {
 	Notes: {label: 'Notes'}
 };
 
-const dataSet = 'results';
+export const dataSet = 'results';
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	initialState: {
-		ballotId: '',
 		ballot: {},
 		votingPoolSize: 0,
 		resultsSummary: {},
 	},
 	reducers: {
   		setDetails(state, action) {
-  			const {ballotId, ballot, summary, votingPoolSize} = action.payload;
-			state.ballotId = ballotId;
+  			const {ballot, summary, votingPoolSize} = action.payload;
 			state.ballot = ballot;
 			state.resultsSummary = summary;
 			state.votingPoolSize = votingPoolSize;
@@ -45,10 +41,10 @@ export default slice.reducer;
 
 const {getPending, getSuccess, getFailure, setDetails} = slice.actions;
 
-export const loadResults = (ballotId) =>
+export const loadResults = (ballot_id) =>
 	async (dispatch) => {
 		dispatch(getPending());
-		const url = `/api/results/${ballotId}`;
+		const url = `/api/results/${ballot_id}`;
 		let response;
 		try {
 			response = await fetcher.get(url);
@@ -65,13 +61,36 @@ export const loadResults = (ballotId) =>
 			]);
 			return;
 		}
+		await dispatch(getSuccess(response.results));
 		const payload = {
-			ballotId: response.BallotID,
 			ballot: response.ballot,
 			votingPoolSize: response.VotingPoolSize,
 			summary: response.summary
 		}
-		await dispatch(getSuccess(response.results));
 		await dispatch(setDetails(payload));
 	}
 
+export const clearResults = slice.actions.removeAll;
+
+export const exportResultsForProject  = (project) =>
+	async (dispatch) => {
+		try {
+			await fetcher.getFile('/api/results/exportForProject', {Project: project});
+		}
+		catch (error) {
+			dispatch(setError(`Unable to export results for ${project}`, error));
+		}
+	}
+
+export const exportResultsForBallot  = (ballot_id) =>
+	async (dispatch, getState) => {
+		try {
+			await fetcher.getFile('/api/results/${ballot_id}/export');
+		}
+		catch (error) {
+			const ballot = getState()[dataSet].entities[ballot_id];
+			dispatch(setError(`Unable to export results for ${ballot.BallotID}`, error));
+		}
+	}
+
+export const getResultsDataSet = (state) => state[dataSet];

@@ -1,20 +1,14 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import Select from 'react-dropdown-select'
-import {loadBallots, setProject, setBallotId, getProjectList, getBallotList} from '../store/ballots'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+
+import {Select} from 'dot11-components/form';
+import {loadBallots, setCurrentProject, setCurrentId, getBallotsDataSet, selectProjectOptions, selectBallotOptions} from '../store/ballots';
 
 const Label = styled.label`
 	font-weight: bold;
 	margin-right: 10px;
-`;
-
-const StyledSelect = styled(Select)`
-	min-height: unset;
-	width: unset;
-	flex: 0 1 ${({width}) => width}px;
-	margin-right: 20px;
 `;
 
 const Container = styled.div`
@@ -22,24 +16,24 @@ const Container = styled.div`
 	align-items: center;
 `;
 
-function ProjectSelect({project, setProject, projectList, loading, readOnly}) {
+function ProjectSelect({style, className, value, onChange, options, loading, readOnly}) {
+
+	const optionSelected = options.find(o => o.value === value);
 
 	if (readOnly)
-		return project
-
-	const options = projectList.map(p => ({value: p, label: p}));
-	const value = options.find(o => o.value === project);
+		return value
 
 	function handleChange(values) {
-		const value = values.length > 0? values[0].value: '';
-		if (value !== project) 
-			setProject(value)
+		const newValue = values.length > 0? values[0].value: '';
+		if (value !== newValue) 
+			onChange(newValue)
 	}
 
 	return (
-		<StyledSelect
-			width={100}
-			values={value? [value]: []}
+		<Select
+			style={style}
+			className={className}
+			values={optionSelected? [optionSelected]: []}
 			onChange={handleChange}
 			options={options}
 			loading={loading}
@@ -47,27 +41,28 @@ function ProjectSelect({project, setProject, projectList, loading, readOnly}) {
 	)
 }
 
-function BallotSelect({ballotId, setBallotId, ballotList, loading, readOnly}) {
+function BallotSelect({style, className, value, onChange, options, loading, readOnly}) {
 
-	const value = ballotList.find(o => o.value === ballotId);
+	const optionSelected = options.find(o => o.value === value);
 
 	if (readOnly)
-		return value? value.label: ballotId
+		return optionSelected? optionSelected.label: value
 
 	function handleChange(values) {
-		const value = values.length > 0? values[0].value: '';
-		if (value !== ballotId)
-			setBallotId(value)
+		const newValue = values.length > 0? values[0].value: 0;
+		if (value !== newValue)
+			onChange(newValue);
 	}
 
 	return (
-		<StyledSelect
-			width={250}
-			values={value? [value]: []}
+		<Select
+			style={style}
+			className={className}
+			values={optionSelected? [optionSelected]: []}
 			onChange={handleChange}
-			options={ballotList}
+			options={options}
 			loading={loading}
-			disabled={ballotList.length === 0}
+			disabled={options.length === 0}
 		/>
 	)
 }
@@ -75,34 +70,29 @@ function BallotSelect({ballotId, setBallotId, ballotList, loading, readOnly}) {
 function BallotSelector({
 	className,
 	style,
-	valid,
-	loading,
-	project,
-	setProject,
-	projectList,
-	ballotId,
-	setBallotId,
-	ballotList,
-	loadBallots,
 	readOnly,
 	onBallotSelected
 }) {
+	const dispatch = useDispatch();
+	const {valid, loading, currentProject, currentId} = useSelector(getBallotsDataSet);
+	const projectOptions = useSelector(selectProjectOptions);
+	const ballotOptions = useSelector(selectBallotOptions);
 
 	React.useEffect(() => {
-		if (!valid)
-			loadBallots()
-	}, [valid, loadBallots])
+		if (!valid && !loading)
+			dispatch(loadBallots());
+	}, [dispatch, valid, loading]);
 
 	const handleProjectChange = (value) => {
-		setProject(value)
+		dispatch(setCurrentProject(value));
 		if (onBallotSelected)
-			onBallotSelected('')
+			onBallotSelected(0);
 	}
 
 	const handleBallotChange = (value) => {
-		setBallotId(value)
+		dispatch(setCurrentId(value));
 		if (onBallotSelected)
-			onBallotSelected(value)
+			onBallotSelected(value);
 	}
 
 	return (
@@ -112,17 +102,19 @@ function BallotSelector({
 		>
 			<Label>Project:</Label>
 			<ProjectSelect
-				project={project}
-				setProject={handleProjectChange}
-				projectList={projectList}
+				style={{minWidth: 150, marginRight: 20}}
+				value={currentProject}
+				onChange={handleProjectChange}
+				options={projectOptions}
 				loading={loading}
 				readOnly={readOnly}
 			/>
 			<Label>Ballot:</Label>
 			<BallotSelect
-				ballotId={ballotId}
-				setBallotId={handleBallotChange}
-				ballotList={ballotList}
+				style={{minWidth: 250}}
+				value={currentId}
+				onChange={handleBallotChange}
+				options={ballotOptions}
 				loading={loading}
 				readOnly={readOnly}
 			/>
@@ -131,28 +123,8 @@ function BallotSelector({
 }
 
 BallotSelector.propTypes = {
-	project: PropTypes.string.isRequired,
-	ballotId: PropTypes.string.isRequired,
-	projectList: PropTypes.array.isRequired,
-	ballotList: PropTypes.array.isRequired,
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	loadBallots: PropTypes.func.isRequired,
-	setProject: PropTypes.func.isRequired,
-	setBallotId: PropTypes.func.isRequired,
+	readOnly: PropTypes.bool,
+	onBallotSelected: PropTypes.func,
 }
 
-export default connect(
-	(state) => {
-		const s = state.ballots
-		return {
-			project: s.project,
-			ballotId: s.ballotId,
-			projectList: getProjectList(state),
-			ballotList: getBallotList(state),
-			valid: s.valid,
-			loading: s.loading,
-		}
-	},
-	{loadBallots, setProject, setBallotId}
-)(BallotSelector)
+export default BallotSelector;

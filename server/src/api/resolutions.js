@@ -9,7 +9,7 @@ import {uploadResolutions} from '../services/uploadResolutions';
 const upload = require('multer')();
 const router = require('express').Router();
 
-router.post('/resolutions$', async (req, res, next) => {
+router.post('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
 		if (!req.body.hasOwnProperty('resolutions'))
@@ -23,7 +23,7 @@ router.post('/resolutions$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.put('/resolutions$', async (req, res, next) => {
+router.put('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
 		if (!req.body.hasOwnProperty('ids'))
@@ -41,7 +41,7 @@ router.put('/resolutions$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.delete('/resolutions$', async (req, res, next) => {
+router.delete('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
 		if (!req.body.hasOwnProperty('resolutions'))
@@ -55,10 +55,10 @@ router.delete('/resolutions$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.post('/resolutions/upload/:ballotId', upload.single('ResolutionsFile'), async (req, res, next) => {
+router.post('/:ballot_id(\\d+)/upload/', upload.single('ResolutionsFile'), async (req, res, next) => {
 	try {
 		const {user} = req;
-		const {ballotId} = req.params
+		const {ballot_id} = req.params
 		if (!req.body.params)
 			throw 'Missing parameters'
 		const {toUpdate, matchAlgorithm, matchUpdate, sheetName} = JSON.parse(req.body.params)
@@ -68,14 +68,14 @@ router.post('/resolutions/upload/:ballotId', upload.single('ResolutionsFile'), a
 			throw 'Missing or invalid parameter matchAlgorithm'
 		if (!matchUpdate || typeof matchUpdate !== 'string')
 			throw 'Missing or invalid parameter matchUpdate'
-		if (!ballotId || typeof ballotId !== 'string')
-			throw 'Missing or invalid parameter BallotID'
 		if (!req.file)
 			throw 'Missing file'
 
-		const data = await uploadResolutions(user.SAPIN, ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, req.file);
+		const data = await uploadResolutions(user.SAPIN, ballot_id, toUpdate, matchAlgorithm, matchUpdate, sheetName, req.file);
 
 		res.json(data)
 	}
 	catch(err) {next(err)}
 });
+
+export default router;

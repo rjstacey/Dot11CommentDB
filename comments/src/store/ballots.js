@@ -1,9 +1,8 @@
-import {createSlice, createSelector, createEntityAdapter} from '@reduxjs/toolkit'
+import {createSelector} from '@reduxjs/toolkit';
 
-import {displayDate} from 'dot11-components/lib'
-import fetcher from 'dot11-components/lib/fetcher'
-import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData'
-import {setError} from 'dot11-components/store/error'
+import {fetcher, displayDate} from 'dot11-components/lib';
+import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
+import {setError} from 'dot11-components/store/error';
 
 export const BallotType = {
 	CC: 0,			// comment collection
@@ -52,32 +51,29 @@ export const fields = {
 	PrevBallotID: {label: 'Prev ballot'}
 };
 
-function getProjectForBallotId(state, ballotId) {
-	const id = state.ids.find(id => state.entities[id].BallotID === ballotId)
-	return id? state.entities[id].Project: ''
-}
-
-const dataSet = 'ballots';
+export const dataSet = 'ballots';
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	sortComparer: (b1, b2) => b1.Project === b2.Project? b1.BallotID.localeCompare(b2.BallotID): b1.Project.localeCompare(b2.Project),
 	initialState: {
-		project: '',
-		ballotId: '',
+		currentProject: '',
+		currentId: 0
 	},
 	reducers: {
-		setProject(state, action) {
+		setCurrentProject(state, action) {
 			const project = action.payload;
-			if (getProjectForBallotId(state, state.ballotId) !== project)
-				state.ballotId = '';
-			state.project = project;
+			const {entities, currentId} = state;
+			if (currentId && entities[currentId].Project !== project)
+				state.currentId = 0;
+			state.currentProject = project;
 		},
-		setBallotId(state, action) {
-			const ballotId = action.payload;
-			state.ballotId = ballotId;
-			state.project = getProjectForBallotId(state, ballotId);
+		setCurrentId(state, action) {
+			const id = action.payload;
+			state.currentId = id;
+			if (id)
+				state.currentProject = state.entities[id].Project;
 		}
 	},
 	extraReducers: builder => {
@@ -85,7 +81,15 @@ const slice = createAppTableDataSlice({
 		.addMatcher(
 			(action) => action.type === dataSet + '/getSuccess',
 			(state, action) => {
-				state.project = getProjectForBallotId(state, state.ballotId);
+				if (state.currentId) {
+					if (state.ids.includes(state.currentId)) {
+						state.currentProject = state.entities[state.currentId];
+					}
+					else {
+						state.currentId = 0;
+						state.currentProject = '';
+					}
+				}
 			}
 		)
 	}
@@ -99,9 +103,16 @@ export default slice.reducer;
 /*
  * Actions
  */
-export const {setProject, setBallotId} = slice.actions;
+export const {setCurrentProject, setCurrentId} = slice.actions;
 
-const {getPending, getSuccess, getFailure} = slice.actions;
+const {
+	getPending,
+	getSuccess,
+	getFailure,
+	addOne,
+	updateOne,
+	removeMany
+} = slice.actions;
 
 export const loadBallots = () => 
 	async (dispatch, getState) => {
@@ -122,43 +133,36 @@ export const loadBallots = () =>
 		await dispatch(getSuccess(response));
 	}
 
-const {updateOne} = slice.actions;
 export const updateBallotSuccess = (id, changes) => updateOne({id, changes});
 
-export const updateBallot = (ballotId, ballot) =>
-	async (dispatch, getState) => {
+export const updateBallot = (id, changes) =>
+	async (dispatch) => {
 		const url = '/api/ballots';
 		let response;
 		try {
-			response = await fetcher.patch(url, [ballot]);
+			response = await fetcher.patch(url, [{id, changes}]);
 			if (!Array.isArray(response))
 				throw new TypeError('Unexpected response to PATCH ' + url);
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to update ballot ${ballotId}`, error));
+			await dispatch(setError(`Unable to update ballot`, error));
 			return;
 		}
 		const [updatedBallot] = response;
-		await dispatch(updateOne({id: ballot.id, changes: updatedBallot}))
+		await dispatch(updateOne({id, changes: updatedBallot}));
 	}
 
-const {removeMany} = slice.actions;
-
-export const deleteBallots = (ballots) =>
-	async (dispatch, getState) => {
-		const ids = ballots.map(b => b.id);
+export const deleteBallots = (ids) =>
+	async (dispatch) => {
 		try {
 			await fetcher.delete('/api/ballots', ids);
 		}
 		catch(error) {
-			const ballotIdsStr = ballots.map(b => ballots.BallotID).join(', ');
-			await dispatch(setError(`Unable to delete ballots ${ballotIdsStr}`, error));
+			await dispatch(setError("Unable to delete ballot(s)", error));
 			return;
 		}
 		await dispatch(removeMany(ids));
 	}
-
-const {addOne} = slice.actions;
 
 export const addBallot = (ballot) =>
 	async (dispatch, getState) => {
@@ -176,30 +180,47 @@ export const addBallot = (ballot) =>
 		await dispatch(addOne(updatedBallot));
 	}
 
+export const setBallotId = (ballotId) =>
+	async (dispatch, getState) => {
+		const {ids, entities} = getState()[dataSet];
+		const id = ids.find(id => entities[id].BallotID === ballotId);
+		if (id)
+			await dispatch(setCurrentId(id));
+	}
+
+
 /*
  * Selectors
  */
-const getBallots = (state) => state[dataSet].ids.map(id => state[dataSet].entities[id]);
-const getProject = (state) => state[dataSet].project;
+export const getBallotsDataSet = (state) => state[dataSet];
 
 /* Generate project list from the ballot pool */
-export const getProjectList = createSelector(
-	getBallots,
-	(ballots) => [...new Set(ballots.map(b => b.Project))].sort()
+export const selectProjectOptions = createSelector(
+	state => state[dataSet].ids,
+	state => state[dataSet].entities,
+	(ids, entities) => [...new Set(ids.map(id => entities[id].Project))].sort().map(p => ({value: p, label: p}))
 );
 
-/* Generate ballot list from the ballot pool */
-export const getBallotList = createSelector(
-	getBallots,
-	getProject,
-	(ballots, project) => {
-		const compare = (a, b) => {
-			const A = a.label.toUpperCase()
-			const B = b.label.toUpperCase()
-			return A < B? -1: (A > B? 1: 0)
-		}
-		return ballots.filter(b => b.Project === project)
-			.map(b => ({value: b.BallotID, label: `${b.BallotID} ${b.Document}`}))
-			.sort(compare)
+/* Generate ballot list for current project or all ballots if current project not set */
+export const selectBallotOptions = createSelector(
+	state => state[dataSet].ids,
+	state => state[dataSet].entities,
+	state => state[dataSet].currentProject,
+	(ids, entities, currentProject) => {
+		let ballotIds = ids;
+		if (currentProject)
+			ballotIds = ballotIds.filter(id => entities[id].Project === currentProject);
+		return ballotIds.map(id => ({value: id, label: `${entities[id].BallotID} ${entities[id].Document}`}));
 	}
 );
+
+export const getBallot = (state, ballot_id) => {
+	const {entities} = state[dataSet];
+	return entities[ballot_id];
+}
+
+export const getCurrentBallot = (state) => {
+	const {entities, currentId} = state[dataSet];
+	return entities[currentId];
+}
+

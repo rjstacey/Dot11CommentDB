@@ -25,79 +25,73 @@ import {
 const upload = require('multer')();
 const router = require('express').Router();
 
-router.get('/:ballotId', async (req, res, next) => {
+router.get('/:ballot_id(\\d+)', async (req, res, next) => {
 	try {
-		const {ballotId} = req.params;
-		const data = await getComments(ballotId);
+		const {ballot_id} = req.params;
+		const data = await getComments(ballot_id);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.put('/$', async (req, res, next) => {
+router.patch('/$', async (req, res, next) => {
 	try {
-		if (!req.body.hasOwnProperty('ids'))
-			throw 'Missing ids parameter'
-		if (!req.body.hasOwnProperty('changes'))
-			throw 'Missing changes parameter'
-		const {ids, changes} = req.body
-		if (!Array.isArray(ids))
-			throw 'Expect an array for ids parameter'
-		if (typeof changes !== 'object')
-			throw 'Expect an object for changes parameter'
-		const data = await updateComments(req.user.SAPIN, ids, changes);
+		const updates = req.body;
+		if (!Array.isArray(updates))
+			throw 'Missing or bad body; expected array';
+		const data = await updateComments(req.user.SAPIN, updates);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.patch('/startCommentId/:ballotId', async (req, res, next) => {
+router.patch('/:ballot_id(\\d+)/startCommentId', async (req, res, next) => {
 	try {
-		const {ballotId} = req.params;
+		const {ballot_id} = req.params;
 		const {StartCommentID} = req.body;
-		const data = await setStartCommentId(req.user.SAPIN, ballotId, StartCommentID);
+		const data = await setStartCommentId(req.user.SAPIN, ballot_id, StartCommentID);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.delete('/:ballotId', async (req, res, next) => {
+router.delete('/:ballot_id(\\d+)', async (req, res, next) => {
 	try {
-		const {ballotId} = req.params;
-		const data = await deleteComments(req.user.SAPIN, ballotId);
+		const {ballot_id} = req.params;
+		const data = await deleteComments(req.user.SAPIN, ballot_id);
 		res.json(data);
 	}
 	catch (err) {next(err)}
 });
 
-router.post('/importFromEpoll/:ballotId/:epollNum', async (req, res, next) => {
+router.post('/:ballot_id(\\d+)/importFromEpoll/:epollNum', async (req, res, next) => {
 	try {
 		const {user} = req;
-		const {ballotId, epollNum} = req.params;
+		const {ballot_id, epollNum} = req.params;
 		const startCommentId = req.body.StartCID || 1;
-		const data = await importEpollComments(user.ieeeCookieJar, user.SAPIN, ballotId, epollNum, startCommentId);
+		const data = await importEpollComments(user.ieeeCookieJar, user.SAPIN, ballot_id, epollNum, startCommentId);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.post('/upload/:ballotId/:type', upload.single('CommentsFile'), async (req, res, next) => {
+router.post('/:ballot_id(\\d+)/upload/:type', upload.single('CommentsFile'), async (req, res, next) => {
 	try {
-		const {ballotId} = req.params;
+		const {ballot_id} = req.params;
 		const type = parseInt(req.params.type, 10);
 		if (!req.file)
 			throw 'Missing file';
 		const startCommentId = req.body.StartCID || 1;
-		const data = await uploadComments(req.user.SAPIN, ballotId, type, startCommentId, req.file);
+		const data = await uploadComments(req.user.SAPIN, ballot_id, type, startCommentId, req.file);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.post('/export/:format', upload.single('file'), (req, res, next) => {
+router.post('/:ballot_id(\\d+)/export/:format', upload.single('file'), (req, res, next) => {
 	const {user} = req;
-	const {format} = req.params;
-	const {BallotID, Filename, Style} = JSON.parse(req.body.params)
+	const {ballot_id, format} = req.params;
+	const {Filename, Style} = JSON.parse(req.body.params)
 	const CommentsSpreadsheetFormat = {
 		MyProject: 'MyProject',
 		Legacy: 'Legacy',
@@ -105,12 +99,10 @@ router.post('/export/:format', upload.single('file'), (req, res, next) => {
 	};
 	if (!CommentsSpreadsheetFormat[format])
 		return next(`Unexpected format: ${format}`)
-	if (!BallotID)
-		return next('Missing parameter BallotID')
 	if (format === CommentsSpreadsheetFormat.MyProject) {
 		if (!req.file)
 			return next('Missing file')
-		return exportResolutionsForMyProject(BallotID, Filename, req.file, res).catch(err => next(err))
+		return exportResolutionsForMyProject(ballot_id, Filename, req.file, res).catch(err => next(err))
 	}
 	else {
 		let isLegacy;
@@ -122,7 +114,7 @@ router.post('/export/:format', upload.single('file'), (req, res, next) => {
 			return next(`Invalid parameter format ${format}`)
 		if (!Style)
 			return next('Missing parameter Style')
-		return exportSpreadsheet(user, BallotID, Filename, isLegacy, Style, req.file, res).catch(err => next(err))
+		return exportSpreadsheet(user, ballot_id, Filename, isLegacy, Style, req.file, res).catch(err => next(err))
 	}
 });
 

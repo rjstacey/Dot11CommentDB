@@ -1,9 +1,10 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import styled from '@emotion/styled'
-import {Handle, IconCollapse} from 'dot11-components/icons'
+import React from 'react';
+import {useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+import {Handle, IconCollapse} from 'dot11-components/icons';
 
-import {BallotType, BallotTypeLabels} from '../store/ballots'
+import {BallotType, BallotTypeLabels} from '../store/ballots';
+import {getResultsDataSet} from '../store/results';
 
 function getResultsSummary(ballot, r, votingPoolSize) {
 	const summary = {
@@ -194,12 +195,14 @@ const BasicSummary = ({ballot, summary}) =>
 
 function ResultsSummary({
 	className,
-	style,
-	ballot,
-	resultsSummary,
-	votingPoolSize
+	style
 }) {
 	const [showSummary, setShowSummary] = React.useState(true);
+	const {resultsSummary, votingPoolSize, ballot} = useSelector(getResultsDataSet);
+
+	if (!ballot)
+		return null;
+
 	const summary = getResultsSummary(ballot, resultsSummary, votingPoolSize);
 
 	return (
@@ -214,12 +217,6 @@ function ResultsSummary({
 			<IconCollapse isCollapsed={!showSummary} onClick={() => setShowSummary(!showSummary)} />
 		</Container>
 	)
-}
-
-ResultsSummary.propTypes = {
-	ballot: PropTypes.object.isRequired,
-	resultsSummary: PropTypes.object.isRequired,
-	votingPoolSize: PropTypes.number.isRequired
 }
 
 export default ResultsSummary

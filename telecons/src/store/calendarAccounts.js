@@ -128,3 +128,17 @@ export const authCalendarAccount = (id, code, redirect_uri) =>
 		}
 		await dispatch(updateOne({id, updates}));
 	}
+
+export const getCalendars = (id) =>
+	async (dispatch) => {
+		let response;
+		try {
+			const url = `/api/calendar/list/${id}`;
+			response = await fetcher.get(url);
+			console.log(response);
+		}
+		catch(error) {
+			await dispatch(setError(`Unable to authorize google calendar account`, error));
+			return;
+		}
+	}

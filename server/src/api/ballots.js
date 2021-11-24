@@ -19,18 +19,18 @@ import {
 
 const router = require('express').Router();
 
-router.get('/:ballotId', async (req, res, next) => {
+router.get('/:ballot_id(\\d+)', async (req, res, next) => {
 	try {
-		const {ballotId} = req.params
-		const data = await getBallot(ballotId)
-		res.json(data)
+		const {ballot_id} = req.params;
+		const data = await getBallot(ballot_id);
+		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
 router.get('/$', async (req, res, next) => {
 	try {
-		res.json(await getBallots())
+		res.json(await getBallots());
 	}
 	catch(err) {next(err)}
 });
@@ -38,10 +38,10 @@ router.get('/$', async (req, res, next) => {
 router.patch('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		const ballots = req.body;
-		if (!Array.isArray(ballots))
+		const updates = req.body;
+		if (!Array.isArray(updates))
 			throw 'Bad or missing body; expected an array of ballots';
-		const data = await updateBallots(user, ballots);
+		const data = await updateBallots(user, updates);
 		res.json(data);
 	}
 	catch(err) {next(err)}

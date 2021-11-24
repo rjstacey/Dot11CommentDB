@@ -113,19 +113,19 @@ export async function getVotingPools() {
 }
 
 export async function deleteVotingPools(votingPoolIds) {
-	await db.query('DELETE FROM wgVoters WHERE VotingPoolID IN (?);', [votingPoolIds]);
+	const result = await db.query('DELETE FROM wgVoters WHERE VotingPoolID IN (?);', [votingPoolIds]);
+	return result.affectedRows;
 }
 
-export async function updateVotingPool(votingPoolId, newVotingPool) {
-	const newVotingPoolId = newVotingPool.VotingPoolID;
-	let [votingPool] = await db.query(getVotingPoolSQL(newVotingPoolId));
-	if (votingPool.VotingPoolID !== null)
-		throw `${newVotingPoolId} already in use`;
-	const sql = 
-		db.format('UPDATE wgVoters SET VotingPoolID=? WHERE VotingPoolID=?;', [newVotingPoolId, votingPoolId]) +
-		getVotingPoolSQL(newVotingPoolId);
-	const [noop, votingPools] = await db.query(sql);
-	votingPool = votingPools[0];
+export async function updateVotingPool(votingPoolId, changes) {
+	if (changes.hasOwnProperty('VotingPoolID')) {
+		const [votingPool] = await db.query(getVotingPoolSQL(changes.VotingPoolID));
+		if (votingPool.VotingPoolID !== null)
+			throw `${changes.VotingPoolID} already in use`;
+		await db.query('UPDATE wgVoters SET VotingPoolID=? WHERE VotingPoolID=?;', [changes.VotingPoolID, votingPoolId]);
+		votingPoolId = changes.VotingPoolID;
+	}
+	const [votingPool] = await db.query(getVotingPoolSQL(votingPoolId));
 	return {votingPool}
 }
 

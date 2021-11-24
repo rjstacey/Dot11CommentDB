@@ -1,28 +1,26 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {useHistory, useParams} from 'react-router-dom'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import copyToClipboard from 'copy-html-to-clipboard'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useHistory, useParams} from 'react-router-dom';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
 
 import AppTable, {SplitPanel, Panel, SelectExpandHeader, SelectExpandCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, IdFilter} from 'dot11-components/table'
 import {Button, ActionButton, ButtonGroup} from 'dot11-components/icons'
 import {AccessLevel} from 'dot11-components/lib'
 import {getEntities, getSortedFilteredIds, setProperty} from 'dot11-components/store/appTableData'
 
-import BallotSelector from '../ballots/BallotSelector'
-import {editorCss} from './ResolutionEditor'
-import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './CommentDetail'
-import {renderSubmission} from './SubmissionSelector'
-import CommentsImport from './CommentsImport'
-import CommentsExport from './CommentsExport'
-import CommentHistory from './CommentHistory'
+import BallotSelector from '../ballots/BallotSelector';
+import {editorCss} from './ResolutionEditor';
+import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './CommentDetail';
+import {renderSubmission} from './SubmissionSelector';
+import CommentsImport from './CommentsImport';
+import CommentsExport from './CommentsExport';
+import CommentHistory from './CommentHistory';
+import CommentsCopy from './CommentsCopy';
 
-import {fields, loadComments} from '../store/comments'
-import {loadUsers} from '../store/users'
-import {setBallotId} from '../store/ballots'
-
-const dataSet = 'comments'
+import {fields, loadComments, clearComments, getCommentsDataSet, dataSet} from '../store/comments';
+import {loadUsers, getUsersDataSet} from '../store/users';
+import {setBallotId, loadBallots, getCurrentBallot, getBallotsDataSet} from '../store/ballots';
 
 const FlexRow = styled.div`
 	display: flex;
@@ -283,46 +281,17 @@ const defaultTablesConfig = {
 	'Edit': getDefaultTableConfig(defaultEditColumns)
 };
 
-function setClipboard(selected, comments) {
 
-	const td = d => `<td>${d}</td>`
-	const th = d => `<th>${d}</th>`
-	const header = `
-		<tr>
-			${th('CID')}
-			${th('Page')}
-			${th('Clause')}
-			${th('Comment')}
-			${th('Proposed Change')}
-		</tr>`;
-	const row = c => `
-		<tr>
-			${td(c.CID)}
-			${td(c.Page)}
-			${td(c.Clause)}
-			${td(c.Comment)}
-			${td(c.ProposedChange)}
-		</tr>`;
-	const table = `
-		<style>
-			table {border-collapse: collapse;}
-			table, th, td {border: 1px solid black;}
-			td {vertical-align: top;}
-		</style>
-		<table>
-			${header}
-			${selected.map(id => row(comments[id])).join('')}
-		</table>`;
-
-	copyToClipboard(table, {asHtml: true});
-}
-
-function commentsRowGetter({rowIndex, data}) {
-	const c = data[rowIndex]
-	if (rowIndex > 0 && data[rowIndex - 1].CommentID === c.CommentID) {
-		// Previous row holds the same comment
-		return {
-			...c,
+function commentsRowGetter({rowIndex, ids, entities}) {
+	const currData = entities[ids[rowIndex]];
+	if (rowIndex === 0)
+		return currData;
+	const prevData = entities[ids[rowIndex-1]];
+	if (currData.CommentID !== prevData.CommentID)
+		return currData;
+	// Previous row holds the same comment
+	return {
+			...currData,
 			CommenterName: '',
 			Vote: '',
 			MustSatisfy: '',
@@ -331,64 +300,69 @@ function commentsRowGetter({rowIndex, data}) {
 			Page: '',
 			Comment: '',
 			ProposedChange: ''
-		}
 	}
-	return c
 }
 
-function Comments({
-	access,
-	ballotId,
-	setBallotId, 
-	valid,
-	loading,
-	commentBallotId,
-	loadComments,
-	loadUsers,
-	tableView,
-	tableConfig,
-	uiProperty,
-	setUiProperty,
-	comments,
-	selected
-}) {
+function Comments({access}) {
+
 	const history = useHistory();
-	const queryBallotId = useParams().ballotId;
-	const [editKey, setEditKey] = React.useState(new Date().getTime());
-	const [showHistory, setShowHistory] = React.useState(false);
+	const {ballotId} = useParams();
 
-	React.useEffect(() => setEditKey(new Date().getTime()), [selected])
+	const {valid, loading, ballot: commentsBallot, ui: uiProperty, selected} = useSelector(getCommentsDataSet);
+	const {valid: ballotsValid, loading: ballotsLoading, entities: ballotEntities} = useSelector(getBallotsDataSet);
+	const currentBallot = useSelector(getCurrentBallot);
+	const {valid: usersValid, loading: usersLoading} = useSelector(getUsersDataSet);
 
-	/* Act on a change to the ballotId in the URL */
+	const dispatch = useDispatch();
+	const load = (ballot_id) => dispatch(loadComments(ballot_id));
+	const clear = () => dispatch(clearComments());
+	const setUiProperty = (property, value) => dispatch(setProperty(dataSet, property, value));
+
 	React.useEffect(() => {
-		if (queryBallotId) {
-			if (queryBallotId !== ballotId) {
-				/* Routed here with parameter ballotId specified, but not matching stored ballotId.
-				 * Store the ballotId and get comments for this ballotId */
-				setBallotId(queryBallotId);
-				loadComments(queryBallotId);
-			}
-			else if (!loading && (!valid || commentBallotId !== queryBallotId)) {
-				loadComments(queryBallotId);
-			}
-		}
-		else if (ballotId) {
-			history.replace(`/comments/${ballotId}`);
-		}
-	}, [queryBallotId, commentBallotId, ballotId]);
+		if (!ballotsValid && !ballotsLoading)
+			dispatch(loadBallots());
+	}, []);
 
-	React.useEffect(loadUsers, []);
+	React.useEffect(() => {
+		if (ballotId) {
+			if (!currentBallot || ballotId !== currentBallot.BallotID) {
+				// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
+				dispatch(setBallotId(ballotId));
+			}
+		}
+		else if (currentBallot) {
+			// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
+			history.replace(`/comments/${currentBallot.BallotID}`);
+		}
+	}, [ballotId, ballotsValid]);
+
+	React.useEffect(() => {
+		if (loading)
+			return;
+		if ((!commentsBallot && currentBallot) ||
+		    (commentsBallot && currentBallot && commentsBallot.id !== currentBallot.id)) {
+			load(currentBallot.id);
+		}
+	}, [currentBallot, commentsBallot]);
+
+	React.useEffect(() => dispatch(loadUsers()), []);
 	
 	const refresh = () => {
-		loadComments(ballotId);
-		loadUsers();
+		load(currentBallot.id);
+		dispatch(loadUsers());
 	}
 
-	const ballotSelected = (ballotId) => history.push(`/comments/${ballotId}`);
+	const onBallotSelected = (ballot_id) => {
+		const ballot = ballotEntities[ballot_id];
+		if (ballot)
+			history.push(`/comments/${ballot.BallotID}`); // Redirect to page with selected ballot
+		else
+			clear();
+	}
 
 	return <>
 		<TopRow>
-			<BallotSelector onBallotSelected={ballotSelected} />
+			<BallotSelector onBallotSelected={onBallotSelected} />
 			<div style={{display: 'flex', alignItems: 'center'}}>
 				<ButtonGroup>
 					<div style={{textAlign: 'center'}}>Table view</div>
@@ -407,24 +381,19 @@ function Comments({
 					<ButtonGroup>
 						<div style={{textAlign: 'center'}}>Edit</div>
 						<div style={{display: 'flex', alignItems: 'center'}}>
-							<ActionButton
-								name='copy'
-								title='Copy to clipboard'
-								disabled={selected.length === 0}
-								onClick={e => setClipboard(selected, comments)}
-							/>
-							<CommentsImport ballotId={ballotId} />
-							<CommentsExport ballotId={ballotId} />
+							<CommentsCopy />
+							<CommentsImport ballot={currentBallot} />
+							<CommentsExport ballot={currentBallot} />
 						</div>
 					</ButtonGroup>:
-					<ActionButton
-						name='copy'
-						title='Copy to clipboard'
-						disabled={selected.length === 0}
-						onClick={e => setClipboard(selected, comments)}
-					/>
+					<CommentsCopy />
 				}
-				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				<ActionButton
+					name='refresh'
+					title='Refresh'
+					disabled={!currentBallot}
+					onClick={refresh}
+				/>
 			</div>
 		</TopRow>
 
@@ -446,7 +415,7 @@ function Comments({
 			</Panel>
 			<Panel>
 				<CommentDetail
-					key={editKey}
+					key={selected.join()}
 					access={access}
 				/>
 			</Panel>
@@ -464,35 +433,6 @@ const TopRow = styled.div`
 
 Comments.propTypes = {
 	access: PropTypes.number.isRequired,
-	ballotId: PropTypes.string.isRequired,
-	selected: PropTypes.array.isRequired,
-	commentBallotId: PropTypes.string.isRequired,
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	comments: PropTypes.object.isRequired,
-	loadComments: PropTypes.func.isRequired,
-	setBallotId: PropTypes.func.isRequired,
-	setUiProperty: PropTypes.func.isRequired,
 }
 
-export default connect(
-	(state) => {
-		const tableView = state[dataSet].ui.view;
-		const tableConfig = state[dataSet].ui.tablesConfig[tableView];
-		return {
-			ballotId: state.ballots.ballotId,
-			selected: state[dataSet].selected,
-			commentBallotId: state[dataSet].ballotId,
-			valid: state[dataSet].valid,
-			loading: state[dataSet].loading,
-			comments: getEntities(state, dataSet),
-			uiProperty: state[dataSet].ui
-		}
-	},
-	{
-		loadComments,
-		loadUsers,
-		setBallotId,
-		setUiProperty: (property, value) => setProperty(dataSet, property, value)
-	}
-)(Comments);
+export default Comments;

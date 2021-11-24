@@ -4,8 +4,10 @@ import styled from '@emotion/styled'
 import {ActionButton, ButtonGroup} from 'dot11-components/icons'
 import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, ShowFilters, TableColumnSelector, TableViewSelector} from 'dot11-components/table'
 import {fields, loadTelecons, setUiProperty, dataSet} from './store/telecons'
+import {setTimezone, dataSet as timeZoneDataSet} from './store/timeZones'
 import TeleconDetail from './TeleconDetail'
-import {DateTime} from 'luxon'
+import ShowCalendar from './ShowCalendar'
+import TimeZoneSelector from './TimeZoneSelector'
 
 const group = '802.11';
 
@@ -23,40 +25,37 @@ const tableColumns = [
 		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
 	{key: 'group',
-		label: 'Group',
-		width: 200, flexGrow: 1, flexShrink: 0},
+	...fields.group,
+		width: 80, flexGrow: 1, flexShrink: 0},
 	{key: 'subgroup',
 		label: 'Subgroup',
-		width: 200, flexGrow: 1, flexShrink: 0},
-	{key: 'Day',
-		label: 'Day',
-		width: 200, flexGrow: 1, flexShrink: 0,
-		cellRenderer: ({rowData, dataKey}) => DateTime.fromISO(rowData.start).weekdayShort},
-	{key: 'Date',
-		label: 'Date',
-		width: 200, flexGrow: 1, flexShrink: 0,
-		cellRenderer: ({rowData, dataKey}) => DateTime.fromISO(rowData.start).toFormat('yyyy LLL dd')},
-	{key: 'Time',
-		label: 'Time',
-		width: 200, flexGrow: 1, flexShrink: 0,
-		cellRenderer: ({rowData, dataKey}) => DateTime.fromISO(rowData.start).toFormat('HH:mm')},
-	{key: 'Duration',
-		label: 'Duration',
-		width: 200, flexGrow: 1, flexShrink: 0,
-		cellRenderer: ({rowData, dataKey}) => DateTime.fromISO(rowData.end).diff(DateTime.fromISO(rowData.start), 'hours').hours},
+		width: 100, flexGrow: 1, flexShrink: 0},
+	{key: 'day',
+		...fields.day,
+		width: 60, flexGrow: 1, flexShrink: 0},
+	{key: 'date',
+		...fields.date,
+		width: 100, flexGrow: 1, flexShrink: 0},
+	{key: 'time',
+		...fields.time,
+		width: 70, flexGrow: 1, flexShrink: 0},
+	{key: 'duration',
+		...fields.duration,
+		width: 100, flexGrow: 1, flexShrink: 0},
 	{key: 'hasMotions',
-		label: 'Motions',
-		width: 40, flexGrow: 1, flexShrink: 0}
+		...fields.hasMotions,
+		width: 90, flexGrow: 1, flexShrink: 0}
 ];
 
 function Telecons() {
 
 	const dispatch = useDispatch();
-	const {loading, ui: uiProperties} = useSelector(state => state[dataSet]);
+	const {valid, loading, ui: uiProperties} = useSelector(state => state[dataSet]);
 	const setProperty = React.useCallback((property, value) => dispatch(setUiProperty({property, value})), [dispatch]);
+	const {timeZone} = useSelector(state => state[timeZoneDataSet]);
 
 	React.useEffect(() => {
-		if (!loading)
+		if (!valid && !loading)
 			dispatch(loadTelecons(group));
 	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
 
@@ -64,6 +63,14 @@ function Telecons() {
 
 	return <>
 		<TopRow>
+			<ShowCalendar group={group} />
+		</TopRow>
+		<TopRow>
+			<TimeZoneSelector
+				style={{width: 200}}
+				value={timeZone}
+				onChange={(tz) => dispatch(setTimezone(tz))}
+			/>
 			<div style={{display: 'flex', alignItems: 'center'}}>
 				<ButtonGroup>
 					<div style={{textAlign: 'center'}}>Table view</div>
@@ -73,7 +80,7 @@ function Telecons() {
 						<ActionButton
 							name='book-open'
 							title='Show detail'
-							isActive={uiProperties.showDetail} 
+							isActive={uiProperties.showDetail}
 							onClick={() => setProperty('showDetail', !uiProperties.showDetail)} 
 						/>
 					</div>
@@ -91,8 +98,8 @@ function Telecons() {
 			<Panel>
 				<AppTable
 					columns={tableColumns}
-					headerHeight={62}
-					estimatedRowHeight={64}
+					headerHeight={32}
+					estimatedRowHeight={32}
 					dataSet={dataSet}
 				/>
 			</Panel>

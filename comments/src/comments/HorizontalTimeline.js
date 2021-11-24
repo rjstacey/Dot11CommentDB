@@ -199,7 +199,7 @@ function Events({index, events, onClick}) {
 		});
 
 	return (
-		<React.Fragment>
+		<>
 			<LabelsContainer style={{width: totalWidth}}>
 				{labels}
 			</LabelsContainer>
@@ -208,7 +208,7 @@ function Events({index, events, onClick}) {
 					{t.elements}
 				</ThreadContainer>
 			)}
-		</React.Fragment>
+		</>
 	)
 }
 

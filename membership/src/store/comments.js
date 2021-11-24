@@ -3,55 +3,69 @@ import {setError} from 'dot11-components/store/error'
 
 import {updateBallotSuccess} from './ballots'
 
-export const deleteComments = (ballotId) =>
-	async (dispatch, getState) => {
+export const deleteComments = (ballot_id) =>
+	async (dispatch) => {
 		try {
-			await fetcher.delete(`/api/comments/${ballotId}`)
+			await fetcher.delete(`/api/comments/${ballot_id}`)
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to delete comments with ballotId=${ballotId}`, error));
+			await dispatch(setError(`Unable to delete comments`, error));
 			return;
 		}
 		const summary = {Count: 0, CommentIDMin: 0, CommentIDMax: 0}
-		await updateBallotSuccess(ballotId, {BallotID: ballotId, Comments: summary});
+		await dispatch(updateBallotSuccess(ballot_id, {Comments: summary}));
 	}
 
-export const importComments = (ballotId, epollNum, startCID) =>
+export const importComments = (ballot_id, epollNum, startCID) =>
 	async (dispatch) => {
+		const url = `/api/comments/${ballot_id}/importFromEpoll//${epollNum}`;
 		let response;
 		try {
-			response = await fetcher.post(`/api/comments/importFromEpoll/${ballotId}/${epollNum}`, {StartCID: startCID});
+			response = await fetcher.post(url, {StartCID: startCID});
+			if (typeof response !== 'object' ||
+				typeof response.ballot !== 'object') {
+				throw 'Unexpected response to POST: ' + url;
+			}
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to import comments for ${ballotId}`, error));
+			await dispatch(setError(`Unable to import comments`, error));
 			return;
 		}
-		const {ballot} = response;
-		await dispatch(updateBallotSuccess(ballot.id, ballot))
+		await dispatch(updateBallotSuccess(ballot_id, response.ballot))
 	}
 
-export const uploadComments = (ballotId, type, file) =>
+export const uploadComments = (ballot_id, type, file) =>
 	async (dispatch) => {
+		const url = `/api/comments/${ballot_id}/upload/${type}`;
 		let response;
 		try {
-			response = await fetcher.postMultipart(`/api/comments/upload/${ballotId}/${type}`, {CommentsFile: file});
+			response = await fetcher.postMultipart(url, {CommentsFile: file});
+			if (typeof response !== 'object' ||
+				typeof response.ballot !== 'object') {
+				throw 'Unexpected response to POST: ' + url;
+			}
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to upload comments for ${ballotId}`, error));
+			await dispatch(setError(`Unable to upload comments`, error));
 			return
 		}
-		const {ballot} = response;
-		await dispatch(updateBallotSuccess(ballot.id, ballot));
+		await dispatch(updateBallotSuccess(ballot_id, response.ballot));
 	}
 
-export const setStartCommentId = (ballotId, startCommentId) =>
+export const setStartCommentId = (ballot_id, startCommentId) =>
 	async (dispatch) => {
-		let comments;
+		const url = `/api/comments/${ballot_id}/startCommentId`;
+		let response;
 		try {
-			comments = await fetcher.patch(`/api/comments/startCommentId/${ballotId}`, {StartCommentID: startCommentId});
+			response = await fetcher.patch(url, {StartCommentID: startCommentId});
+			if (typeof response !== 'object' ||
+				typeof response.ballot !== 'object') {
+				throw 'Unexpected response to PATCH: ' + url;
+			}
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to start CID for ${ballotId}`, error));
-			return
+			await dispatch(setError(`Unable to set start CID`, error));
+			return;
 		}
+		await dispatch(updateBallotSuccess(ballot_id, response.ballot));
 	}

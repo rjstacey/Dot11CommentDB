@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import {connect} from 'react-redux'
+import {useDispatch} from 'react-redux'
 import styled from '@emotion/styled'
 import {Form, Row, List, ListItem} from 'dot11-components/form'
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
@@ -11,32 +11,36 @@ const CommentsExportForm = styled(Form)`
 	width: 450px;
 `;
 
-function _CommentsExportDropdown({
+function CommentsExportDropdown({
 	close,
-	ballotId,
-	exportSpreadsheet
+	ballot,
 }) {
-	const fileRef = React.useRef()
-	const [errMsg, setErrMsg] = React.useState('')
-	const [spreadsheetFormat, setSpreadsheetFormat] = React.useState(CommentsSpreadsheetFormat.Modern)
-	const [spreadsheetStyle, setSpreadsheetStyle] = React.useState(CommentsSpreadsheetStyle.AllComments)
+	const dispatch = useDispatch();
+	const fileRef = React.useRef();
+	const [errMsg, setErrMsg] = React.useState('');
+	const [spreadsheetFormat, setSpreadsheetFormat] = React.useState(CommentsSpreadsheetFormat.Modern);
+	const [spreadsheetStyle, setSpreadsheetStyle] = React.useState(CommentsSpreadsheetStyle.AllComments);
+	const [busy, setBusy] = React.useState(false);
 
 	async function submit(e) {
-		const file = fileRef.current.files[0]
+		const file = fileRef.current.files[0];
 		if (spreadsheetFormat === CommentsSpreadsheetFormat.MyProject && !file) {
-			setErrMsg('Select MyProject comment spreadsheet file')
-			return
+			setErrMsg('Select MyProject comment spreadsheet file');
+			return;
 		}
-		await exportSpreadsheet(ballotId, file, spreadsheetFormat, spreadsheetStyle)
-		close()
+		setBusy(true);
+		await dispatch(exportCommentsSpreadsheet(ballot.id, file, spreadsheetFormat, spreadsheetStyle));
+		setBusy(false);
+		close();
 	}
 
 	return (
 		<CommentsExportForm
-			title={`Export comments for ${ballotId} to Excel spreadsheet`}
+			title={`Export comments for ${ballot.BallotID} to Excel spreadsheet`}
 			errorText={errMsg}
 			submit={submit}
 			cancel={close}
+			busy={busy}
 		>
 			<Row>
 				<List
@@ -135,30 +139,25 @@ function _CommentsExportDropdown({
 	)
 }
 
-_CommentsExportDropdown.propTypes = {
-	ballotId: PropTypes.string.isRequired,
-	close: PropTypes.func.isRequired,
-	exportSpreadsheet: PropTypes.func.isRequired
+CommentsExportDropdown.propTypes = {
+	ballot: PropTypes.object,
+	//close: PropTypes.func.isRequired, Can't check for close; only available at render
 }
 
-const CommentsExportDropdown = connect(
-	null,
-	{exportSpreadsheet: exportCommentsSpreadsheet}
-)(_CommentsExportDropdown)
-
 function CommentsExport({
-	ballotId
+	ballot
 }) {
 	return (
 		<ActionButtonDropdown
 			name='export'
 			title='Export to file'
-			disabled={!ballotId}
+			disabled={!ballot}
 		>
 			<CommentsExportDropdown
-				ballotId={ballotId}
+				ballot={ballot}
 			/>
 		</ActionButtonDropdown>
 	)
 }
+
 export default CommentsExport;

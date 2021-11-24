@@ -5,13 +5,14 @@ import errMsg from 'dot11-components/store/error'
 import telecons from './telecons'
 import webexAccounts from './webexAccounts'
 import calendarAccounts from './calendarAccounts'
-
+import timeZones from './timeZones'
 
 const reducer = combineReducers({
 	errMsg,
 	telecons,
 	webexAccounts,
-	calendarAccounts
+	calendarAccounts,
+	timeZones
 });
 
 const middleware = [thunk];

@@ -11,6 +11,13 @@ const upload = require('multer')();
 const router = require('express').Router();
 
 /*
+ * The open part of the API is satisfied here
+ */
+router.use('/timezones', require('./timezones').default);
+
+/*
+ * The remainder of the API requires an authorized user
+ *
  * Authorize access to the API
  * Successful authorization leaves authorized user's context in req (in req.user)
  */
@@ -87,6 +94,24 @@ router.use('/votingPools', require('./votingPools').default);
 
 /* Voters API */
 router.use('/voters', require('./voters').default);
+
+/* Ballot API */
+router.use('/ballots', require('./ballots').default);
+
+/* ePolls API */
+router.use('/epolls', require('./epolls').default);
+
+/* Ballot results API */
+router.use('/results', require('./results').default);
+
+/* Ballot comments API */
+router.use('/comments', require('./comments').default);
+
+/* Comment resolutions API */
+router.use('/resolutions', require('./resolutions').default);
+
+/* Comment history API */
+router.use('/commentHistory', require('./commentHistory').default);
 
 /*
  * Members API
@@ -291,7 +316,6 @@ router.post('/members$', async (req, res, next) => {
  * POST /session/{id}/breakouts/import: import from IMAT the breakouts for a session.
  * POST /session/{id}/attendance_summary/import: import from IMAT the attendance summary for a session.
  * PATCH /session/{id}/attendance_summary: update attendance summary
- * GET /timeZones: get a list of timeZones
  * GET /imat/meetings: get a list of meetings from IMAT
  */
 import {
@@ -299,7 +323,6 @@ import {
 	updateSession,
 	addSession,
 	deleteSessions,
-	getTimeZones,
 	importBreakouts,
 	importAttendances,
 	upsertMemberAttendanceSummaries,
@@ -404,372 +427,12 @@ router.post('/session/:id(\\d+)/attendance_summary/import', async (req, res, nex
 	}
 	catch(err) {next(err)}
 });
-router.get('/timeZones', async (req, res, next) => {
-	try {
-		const data = await getTimeZones();
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
 router.get('/imat/meetings', async (req, res, next) => {
 	try {
 		const {user} = req;
 		const n = req.query.hasOwnProperty('n')? parseInt(req.query.n): 10;
 		const data = await getImatMeetings(user, n);
 		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-
-
-/*
- * Ballot results API
- */
-import {
-	getResultsCoalesced,
-	deleteResults,
-	importEpollResults,
-	uploadEpollResults,
-	uploadMyProjectResults,
-	exportResults
-} from '../services/results';
-
-router.get('/results/:ballotId', async (req, res, next) => {
-	try {
-		const {user} = req;
-		const {ballotId} = req.params
-		const data = await getResultsCoalesced(user, ballotId)
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-router.get('/resultsExport', (req, res, next) => {
-	try {
-		const {user} = req;
-		exportResults(user, req.query, res)
-	}
-	catch(err) {next(err)}
-});
-router.delete('/results/:ballotId', async (req, res, next) => {
-	try {
-		const {ballotId} = req.params
-		const data = await deleteResults(ballotId)
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-router.post('/results/importFromEpoll/:ballotId/:epollNum', async (req, res, next) => {
-	try {
-		const {user} = req;
-		const {ballotId, epollNum} = req.params;
-		const data = await importEpollResults(user.ieeeCookieJar, user, ballotId, epollNum);
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-router.post('/results/uploadEpollResults/:ballotId', upload.single('ResultsFile'), async (req, res, next) => {
-	try {
-		const {user} = req;
-		const {ballotId} = req.params;
-		if (!req.file)
-			throw 'Missing file'
-		const data = await uploadEpollResults(user, ballotId, req.file)
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-router.post('/results/uploadMyProjectResults/:ballotId', upload.single('ResultsFile'), async (req, res, next) => {
-	try {
-		const {user} = req;
-		const {ballotId} = req.params;
-		if (!req.file)
-			throw 'Missing file'
-		const data = await uploadMyProjectResults(user, ballotId, req.file)
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-
-
-/*
-* Ballots API
-*
-* GET /ballot/{ballotId} - return details on a specific ballot
-* GET /ballots - return the complete list of ballots
-* PUT /ballots - update select fields in ballot entries
-* POST: /ballots - add ballot entries
-* DELETE: /ballots - delete ballots
-* GET: /epolls?{n} - return a list of n epolls by scraping the mentor webpage for closed epolls.
-*/
-import {
-	getBallot,
-	getBallots,
-	updateBallots,
-	addBallots,
-	deleteBallots
-} from '../services/ballots';
-
-import {getEpolls} from '../services/epoll';
-
-router.get('/ballot/:ballotId', async (req, res, next) => {
-	try {
-		const {ballotId} = req.params
-		const data = await getBallot(ballotId)
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-router.get('/ballots', async (req, res, next) => {
-	try {
-		res.json(await getBallots())
-	}
-	catch(err) {next(err)}
-});
-router.patch('/ballots', async (req, res, next) => {
-	try {
-		const {user} = req;
-		const ballots = req.body;
-		if (!Array.isArray(ballots))
-			throw 'Bad or missing body; expected an array of ballots';
-		const data = await updateBallots(user, ballots);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.post('/ballots', async (req, res, next) => {
-	try {
-		const {user} = req;
-		const ballots = req.body;
-		if (!Array.isArray(ballots))
-			throw 'Bad or missing body; expected an array of ballots';
-		const data = await addBallots(user, ballots);
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-router.delete('/ballots', async (req, res, next) => {
-	try {
-		const ids = req.body;
-		if (!Array.isArray(ids))
-			throw 'Missing or bad body; expected an array of ids';
-		await deleteBallots(ids)
-		res.json(null)
-	}
-	catch(err) {next(err)}
-});
-router.get('/epolls', async (req, res, next) => {
-	try {
-		const {user} = req;
-		const n = req.query.hasOwnProperty('n')? parseInt(req.query.n): 0
-		const data = await getEpolls(user, n)
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-
-
-/*
- * Ballot comments API
- *
- * GET /comments/{ballotId} - return an array with all comments for a given ballot
- * PUT /comments - update a comments; returns the updated comments
- * DELETE /comments/{ballotId} - delete all comments for a given ballot
- * POST /comments/importFromEpoll/{ballotId}/{epollNum} - replace existing comments (if any) with comments imported from an epoll on mentor
- * POST /comments/upload/{ballotId}/{type} - import comments from a file; file format determined by type
- * GET /exportComments/myProject - export resolved comments in a form suitable for MyProject upload
- */
-import {
-	getComments,
-	updateComments,
-	setStartCommentId,
-	deleteComments,
-	importEpollComments,
-	uploadComments,
-} from '../services/comments'
-
-router.get('/comments/:ballotId', async (req, res, next) => {
-	try {
-		const {ballotId} = req.params;
-		const data = await getComments(ballotId);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.put('/comments', async (req, res, next) => {
-	try {
-		if (!req.body.hasOwnProperty('ids'))
-			throw 'Missing ids parameter'
-		if (!req.body.hasOwnProperty('changes'))
-			throw 'Missing changes parameter'
-		const {ids, changes} = req.body
-		if (!Array.isArray(ids))
-			throw 'Expect an array for ids parameter'
-		if (typeof changes !== 'object')
-			throw 'Expect an object for changes parameter'
-		const data = await updateComments(req.user.SAPIN, ids, changes);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.patch('/comments/startCommentId/:ballotId', async (req, res, next) => {
-	try {
-		const {ballotId} = req.params;
-		const {StartCommentID} = req.body;
-		const data = await setStartCommentId(req.user.SAPIN, ballotId, StartCommentID);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.delete('/comments/:ballotId', async (req, res, next) => {
-	try {
-		const {ballotId} = req.params;
-		const data = await deleteComments(req.user.SAPIN, ballotId);
-		res.json(data);
-	}
-	catch (err) {next(err)}
-});
-router.post('/comments/importFromEpoll/:ballotId/:epollNum', async (req, res, next) => {
-	try {
-		const {user} = req;
-		const {ballotId, epollNum} = req.params;
-		const startCommentId = req.body.StartCID || 1;
-		const data = await importEpollComments(user.ieeeCookieJar, user.SAPIN, ballotId, epollNum, startCommentId);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.post('/comments/upload/:ballotId/:type', upload.single('CommentsFile'), async (req, res, next) => {
-	try {
-		const {ballotId} = req.params;
-		const type = parseInt(req.params.type, 10);
-		if (!req.file)
-			throw 'Missing file';
-		const startCommentId = req.body.StartCID || 1;
-		const data = await uploadComments(req.user.SAPIN, ballotId, type, startCommentId, req.file);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-import {
-	addResolutions,
-	updateResolutions,
-	deleteResolutions,
-	exportResolutionsForMyProject,
-	exportSpreadsheet
-} from '../services/resolutions'
-import {uploadResolutions} from '../services/uploadResolutions'
-
-router.post('/resolutions$', async (req, res, next) => {
-	try {
-		const {user} = req;
-		if (!req.body.hasOwnProperty('resolutions'))
-			throw 'Missing resolutions parameter';
-		const {resolutions} = req.body;
-		if (!Array.isArray(resolutions))
-			throw 'Expect an array for resolutions parameter';
-		const data = await addResolutions(user.SAPIN, resolutions);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.put('/resolutions$', async (req, res, next) => {
-	try {
-		const {user} = req;
-		if (!req.body.hasOwnProperty('ids'))
-			throw 'Missing ids parameter';
-		if (!req.body.hasOwnProperty('changes'))
-			throw 'Missing changes parameter';
-		const {ids, changes} = req.body;
-		if (!Array.isArray(ids))
-			throw 'Expect an array for ids parameter';
-		if (typeof changes !== 'object')
-			throw 'Expect an object for changes parameter';
-		const data = await updateResolutions(user.SAPIN, ids, changes);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-router.delete('/resolutions$', async (req, res, next) => {
-	try {
-		const {user} = req;
-		if (!req.body.hasOwnProperty('resolutions'))
-			throw 'Missing resolutions parameter'
-		const {resolutions} = req.body
-		if (!Array.isArray(resolutions))
-			throw 'Expect an array for resolutions parameter'
-		const data = await deleteResolutions(user.SAPIN, resolutions)
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-router.post('/resolutions/upload/:ballotId', upload.single('ResolutionsFile'), async (req, res, next) => {
-	try {
-		const {user} = req;
-		const {ballotId} = req.params
-		if (!req.body.params)
-			throw 'Missing parameters'
-		const {toUpdate, matchAlgorithm, matchUpdate, sheetName} = JSON.parse(req.body.params)
-		if (!Array.isArray(toUpdate))
-			throw 'Missing or invalid parameter toUpdate'
-		if (!matchAlgorithm || typeof matchAlgorithm !== 'string')
-			throw 'Missing or invalid parameter matchAlgorithm'
-		if (!matchUpdate || typeof matchUpdate !== 'string')
-			throw 'Missing or invalid parameter matchUpdate'
-		if (!ballotId || typeof ballotId !== 'string')
-			throw 'Missing or invalid parameter BallotID'
-		if (!req.file)
-			throw 'Missing file'
-
-		const data = await uploadResolutions(user.SAPIN, ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, req.file);
-
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-router.post('/comments/export/:format', upload.single('file'), (req, res, next) => {
-	const {user} = req;
-	const {format} = req.params;
-	const {BallotID, Filename, Style} = JSON.parse(req.body.params)
-	const CommentsSpreadsheetFormat = {
-		MyProject: 'MyProject',
-		Legacy: 'Legacy',
-		Modern: 'Modern'
-	};
-	if (!CommentsSpreadsheetFormat[format])
-		return next(`Unexpected format: ${format}`)
-	if (!BallotID)
-		return next('Missing parameter BallotID')
-	if (format === CommentsSpreadsheetFormat.MyProject) {
-		if (!req.file)
-			return next('Missing file')
-		return exportResolutionsForMyProject(BallotID, Filename, req.file, res).catch(err => next(err))
-	}
-	else {
-		let isLegacy;
-		if (format === CommentsSpreadsheetFormat.Legacy)
-			isLegacy = true;
-		else if (format === CommentsSpreadsheetFormat.Modern)
-			isLegacy = false;
-		else
-			return next(`Invalid parameter format ${format}`)
-		if (!Style)
-			return next('Missing parameter Style')
-		return exportSpreadsheet(user, BallotID, Filename, isLegacy, Style, req.file, res).catch(err => next(err))
-	}
-});
-
-/*
- * Comments History API
- */
-import {getCommentsHistory} from '../services/commentsHistory';
-
-router.get('/commentsHistory/:comment_id', async (req, res, next) => {
-	try {
-		const {comment_id} = req.params
-		const data = await getCommentsHistory(comment_id);
-		res.json(data)
 	}
 	catch(err) {next(err)}
 });

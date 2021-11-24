@@ -11,12 +11,10 @@ import GroupsSelector from './GroupsSelector'
 
 /* Generate URL for account authorization */
 const getWebexAccountAuthLink = (account) => {
-	const {id, auth_url, client_id, auth_scope} = account;
+	const {id, auth_url, auth_params} = account;
 	const params = {
-		client_id: client_id,
-		response_type: 'code',
+		...auth_params,
 		redirect_uri: window.location.origin + '/telecons/webex/auth',
-		scope: auth_scope,
 		state: id,
 	}
 	return auth_url + '?' + new URLSearchParams(params);

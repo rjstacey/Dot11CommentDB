@@ -1,4 +1,4 @@
-import {createSlice} from '@reduxjs/toolkit'
+import {createSlice} from '@reduxjs/toolkit';
 
 import fetcher from 'dot11-components/lib/fetcher'
 import {setError} from 'dot11-components/store/error'
@@ -69,7 +69,7 @@ const {getPending, getSuccess, getFailure} = slice.actions;
 export const loadCommentsHistory = (comment_id) =>
 	async (dispatch, getState) => {
 		dispatch(getPending());
-		const url = `/api/commentsHistory/${comment_id}`;
+		const url = `/api/commentHistory/${comment_id}`;
 		let response;
 		try {
 			response = await fetcher.get(url);
@@ -86,3 +86,5 @@ export const loadCommentsHistory = (comment_id) =>
 		}
 		await dispatch(getSuccess(response));
 	}
+
+export const getCommentsHistoryDataSet = (state) => state[dataSet];

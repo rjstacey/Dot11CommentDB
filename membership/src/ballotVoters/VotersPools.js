@@ -1,18 +1,16 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {useHistory} from 'react-router-dom'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import AppTable,{SelectHeader, SelectCell} from 'dot11-components/table'
-import {ActionButton} from 'dot11-components/icons'
-import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
-import {ConfirmModal} from 'dot11-components/modals'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useHistory} from 'react-router-dom';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
 
-import VotersPoolAddModal from './VotersPoolAdd'
+import AppTable,{SelectHeader, SelectCell} from 'dot11-components/table';
+import {ActionButton} from 'dot11-components/icons';
+import {ConfirmModal} from 'dot11-components/modals';
 
-import {loadVotingPools, deleteVotingPools} from '../store/votingPools'
+import VotersPoolAddModal from './VotersPoolAdd';
 
-const dataSet = 'votingPools';
+import {loadVotingPools, deleteVotingPools, getVotingPoolsDataSet, dataSet} from '../store/votingPools'
 
 const ActionCell = styled.div`
 	display: flex;
@@ -57,25 +55,25 @@ const TableRow = styled.div`
 	}
 `;
 
-function VotersPools({
-	valid,
-	loading,
-	loadVotingPools,
-	deleteVotingPools
-}) {
+function VotersPools() {
+
 	const history = useHistory();
 	const [showVotersPoolAdd, setShowVotersPoolAdd] = React.useState(false);
 
+	const {valid, loading} = useSelector(getVotingPoolsDataSet);
+	const dispatch = useDispatch();
+	const load = React.useCallback(() => dispatch(loadVotingPools()), [dispatch]);
+
 	React.useEffect(() => {
 		if (!valid && !loading)
-			loadVotingPools();
+			load();
 	}, []);
 
 	const columns = React.useMemo(() => {
 		const deleteVotingPool = async (vp) => {
 			const ok = await ConfirmModal.show(`Are you sure you want to delete ${vp.VotingPoolID}?`)
 			if (ok)
-				deleteVotingPools([vp]);
+				dispatch(deleteVotingPools([vp.VotingPoolID]));
 		}
 
 		return tableColumns.map(col =>
@@ -88,7 +86,7 @@ function VotersPools({
 						/>}
 				: col
 		);
-	}, []);
+	}, [dispatch]);
 
 	const addVotingPool = (votingPoolName) => history.push(`/voters/${votingPoolName}`);
 
@@ -97,7 +95,7 @@ function VotersPools({
 			<label>Voting Pools</label>
 			<span>
 				<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowVotersPoolAdd(true)} />
-				<ActionButton name='refresh' title='Refresh' onClick={loadVotingPools} />
+				<ActionButton name='refresh' title='Refresh' onClick={load} />
 			</span>
 		</TopRow>
 
@@ -120,17 +118,4 @@ function VotersPools({
 	</>
 }
 
-VotersPools.propTypes = {
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	loadVotingPools: PropTypes.func.isRequired,
-	deleteVotingPools: PropTypes.func.isRequired,
-}
-
-export default connect(
-	(state) => ({
-		valid: state[dataSet].valid,
-		loading: state[dataSet].loading
-	}),
-	{loadVotingPools, deleteVotingPools}
-)(VotersPools)
+export default VotersPools;

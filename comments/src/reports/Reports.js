@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {useHistory, useParams} from 'react-router-dom'
-import styled from '@emotion/styled'
-import {connect} from 'react-redux'
-import {ActionButton, Button} from 'dot11-components/icons'
-import {getData} from 'dot11-components/store/appTableData'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useHistory, useParams} from 'react-router-dom';
+import styled from '@emotion/styled';
+import {useDispatch, useSelector} from 'react-redux';
 
-import BallotSelector from '../ballots/BallotSelector'
-import {setBallotId} from '../store/ballots'
-import {loadComments} from '../store/comments'
+import {ActionButton, Button} from 'dot11-components/icons';
+
+import BallotSelector from '../ballots/BallotSelector';
+import {loadComments, clearComments, getCommentsDataSet} from '../store/comments';
+import {setBallotId, loadBallots, getCurrentBallot, getBallotsDataSet} from '../store/ballots';
 
 function countsByCategory(comments) {
 	return {
@@ -118,31 +118,49 @@ function renderTable(data, ref) {
 	)
 }
 
-function Reports(props) {
-	const {comments, loading, valid, commentsBallotId, setBallotId, loadComments} = props;
+function Reports() {
 	const history = useHistory();
 	const {ballotId} = useParams();
 	const [report, setReport] = React.useState('');
 	const tableRef = React.useRef();
 
+	const {valid: ballotsValid, loading: ballotsLoading, entities: ballotEntities} = useSelector(getBallotsDataSet);
+	const currentBallot = useSelector(getCurrentBallot);
+	const {valid, loading, ballot: commentsBallot, ids, entities} = useSelector(getCommentsDataSet);
+
+	const dispatch = useDispatch();
+	const load = (ballot_id) => dispatch(loadComments(ballot_id));
+	const clear = () => dispatch(clearComments());
+
+	React.useEffect(() => {
+		if (!ballotsValid && !ballotsLoading)
+			dispatch(loadBallots());
+	}, []);
+
 	React.useEffect(() => {
 		if (ballotId) {
-			if (ballotId !== props.ballotId) {
-				// Routed here with parameter ballotId specified, but not matching stored ballotId
-				// Store the ballotId and get comments for this ballotId
-				setBallotId(ballotId)
-				loadComments(ballotId)
-			}
-			else if (!loading && (!valid || commentsBallotId !== ballotId)) {
-				loadComments(ballotId)
+			if (!currentBallot || ballotId !== currentBallot.BallotID) {
+				// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
+				dispatch(setBallotId(ballotId));
 			}
 		}
-		else if (props.ballotId) {
-			history.replace(`/Reports/${props.ballotId}`)
+		else if (currentBallot) {
+			// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
+			history.replace(`/reports/${currentBallot.BallotID}`);
 		}
-	}, [ballotId, setBallotId, props.ballotId, commentsBallotId, loading, valid, loadComments, history])
+	}, [ballotId, ballotsValid]);
+
+	React.useEffect(() => {
+		if (loading)
+			return;
+		if ((!commentsBallot && currentBallot) ||
+		    (commentsBallot && currentBallot && commentsBallot.id !== currentBallot.id)) {
+			load(currentBallot.id);
+		}
+	}, [currentBallot, commentsBallot]);
 
 	const data = React.useMemo(() => {
+		const comments = ids.map(id => entities[id]);
 		if (report === 'commentsbyassignee')
 			return commentsByAssignee(comments)
 		if (report === 'commentsbycommenter')
@@ -150,11 +168,14 @@ function Reports(props) {
 		if (report === 'commentsbyassigneeandcommentgroup')
 			return commentsByAssigneeAndCommentGroup(comments)
 		return []
-	}, [comments, report]);
+	}, [ids, entities, report]);
 
-	function ballotSelected(ballotId) {
-		// Redirect to page with selected ballot
-		history.push(`/Reports/${ballotId}`)
+	const onBallotSelected = (ballot_id) => {
+		const ballot = ballotEntities[ballot_id];
+		if (ballot)
+			history.push(`/reports/${ballot.BallotID}`); // Redirect to page with selected ballot
+		else
+			clear();
 	}
 
 	function copy() {
@@ -177,9 +198,9 @@ function Reports(props) {
 		</Button>
 
 	return (
-		<React.Fragment>
+		<>
 			<ActionRow>
-				<BallotSelector onBallotSelected={ballotSelected} />
+				<BallotSelector onBallotSelected={onBallotSelected} />
 			</ActionRow>
 			<Body>
 				<ReportSelectCol>
@@ -204,7 +225,7 @@ function Reports(props) {
 					<ActionButton name='copy' onClick={copy} />
 				</ReportCopyCol>
 			</Body>
-		</React.Fragment>
+		</>
 	)
 }
 
@@ -250,23 +271,4 @@ const ReportCopyCol = styled.div`
 	padding: 0 20px;
 `;
 
-Reports.propTypes = {
-	ballotId: PropTypes.string.isRequired,
-	commentsBallotId: PropTypes.string.isRequired,
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	setBallotId: PropTypes.func.isRequired,
-	loadComments: PropTypes.func.isRequired
-}
-
-const dataSet = 'comments'
-export default connect(
-	(state) => ({
-		ballotId: state.ballots.ballotId,
-		commentsBallotId: state[dataSet].ballotId,
-		valid: state[dataSet].valid,
-		loading: state[dataSet].loading,
-		comments: getData(state, 'comments')
-	}),
-	{setBallotId, loadComments}
-)(Reports);
+export default Reports;

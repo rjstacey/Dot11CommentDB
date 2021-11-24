@@ -299,13 +299,13 @@ function summarizeBallotResults(results) {
 	return summary;
 }
 
-export async function getResultsCoalesced(user, ballotId) {
+export async function getResultsCoalesced(user, ballot_id) {
 
-	const ballot = await getBallot(ballotId);
+	const ballot = await getBallot(ballot_id);
 
 	let ballotSeries, votingPoolId, votingPoolSize, voters, results, summary;
 	if (ballot.Type === BallotType.WG ) {
-		ballotSeries = await getBallotSeriesWithResults(ballotId);
+		ballotSeries = await getBallotSeriesWithResults(ballot_id);
 		// voting pool size excludes ExOfficio; they are allowed to vote, but don't affect returns
 		votingPoolId = ballotSeries[0].VotingPoolID;
 		votingPoolSize = ballotSeries[0].Voters.filter(v => !/^ExOfficio/.test(v.Status)).length;
@@ -314,7 +314,7 @@ export async function getResultsCoalesced(user, ballotId) {
 		summary.BallotReturns = ballotSeries[ballotSeries.length-1].Results.length;
 	}
 	else if (ballot.Type === BallotType.SA) {
-		ballotSeries = await getBallotSeriesWithResults(ballotId);
+		ballotSeries = await getBallotSeriesWithResults(ballot_id);
 		votingPoolId = '';
 		votingPoolSize = ballotSeries[ballotSeries.length-1].Results.length;
 		results = colateSAResults(ballotSeries); // colate results against previous ballots in series
@@ -325,17 +325,17 @@ export async function getResultsCoalesced(user, ballotId) {
 	else if (ballot.Type === BallotType.Motion) {
 		// if there is a voting pool, get that
 		const {voters} = await getVoters(ballot.VotingPoolID);
-		results = await getResults(ballotId);
+		results = await getResults(ballot_id);
 		votingPoolId = ballot.VotingPoolID;
 		votingPoolSize = voters.length;
 		results = colateMotionResults(results, voters);	// colate results for just this ballot
-		summary = summarizeMotionResults(results)
+		summary = summarizeMotionResults(results);
 		summary.BallotReturns = results.length;
 	}
 	else {
 		votingPoolId = ballot.VotingPoolID;
 		votingPoolSize = 0;
-		results = await getResults(ballotId);			// colate results for just this ballot
+		results = await getResults(ballot_id);			// colate results for just this ballot
 		summary = summarizeBallotResults(results);
 		summary.BallotReturns = results.length;
 	}
@@ -343,7 +343,7 @@ export async function getResultsCoalesced(user, ballotId) {
 	/* Update results summary in ballots table if different */
 	const ResultsSummary = JSON.stringify(summary)
 	if (ResultsSummary !== ballot.ResultsSummary)
-		await db.query('UPDATE ballots SET ResultsSummary=? WHERE BallotID=?', [ResultsSummary, ballotId]);
+		await db.query('UPDATE ballots SET ResultsSummary=? WHERE id=?', [ResultsSummary, ballot_id]);
 
 	ballot.Results = JSON.parse(ResultsSummary);
 	delete ballot.ResultsSummary;
@@ -355,7 +355,7 @@ export async function getResultsCoalesced(user, ballotId) {
 	}
 
 	return {
-		BallotID: ballotId,
+		BallotID: ballot.BallotID,
 		VotingPoolID: votingPoolId,
 		VotingPoolSize: votingPoolSize,
 		ballot,
@@ -364,39 +364,35 @@ export async function getResultsCoalesced(user, ballotId) {
 	};
 }
 
-export async function getResults(ballotId) {
+export async function getResults(ballot_id) {
 	const results = await db.query(
 		'SELECT ' + 
 			'r.*, ' +
 			'(SELECT COUNT(*) ' +
-				'FROM comments c WHERE c.ballot_id=b.id AND ' +
+				'FROM comments c WHERE c.ballot_id=r.ballot_id AND ' +
 					'((c.CommenterSAPIN>0 AND c.CommenterSAPIN=r.SAPIN) OR ' +
 					 '(c.CommenterEmail<>\'\' AND c.CommenterEmail=r.Email))) AS CommentCount, ' +
 			'COALESCE(m.ReplacedBySAPIN, r.SAPIN) AS CurrentSAPIN ' +
 		'FROM results r ' +
 			'LEFT JOIN members m ON m.SAPIN=r.SAPIN AND m.Status=\'Obsolete\' ' +
-			'LEFT JOIN ballots b ON r.ballot_id=b.id ' +
-			'WHERE b.BallotID=?',
-		[ballotId]
+			//'LEFT JOIN ballots b ON r.ballot_id=b.id ' +
+			'WHERE r.ballot_id=?',
+		[ballot_id]
 	);
 	return results;
 }
 
-export async function deleteResults(ballotId) {
-	await db.query(
-		'SET @ballot_id = (SELECT id FROM ballots WHERE BallotID=?); ' +
+export async function deleteResults(ballot_id) {
+	const results = await db.query(
+		'SET @ballot_id = ?; ' +
 		'DELETE FROM results WHERE ballot_id=@ballot_id; ' +
 		'UPDATE ballots SET ResultsSummary=NULL WHERE id=@ballot_id',
-		[ballotId]
+		[ballot_id]
 	);
+	return results[1].affectedRows;
 }
 
-async function insertResults(user, ballotId, pollResults) {
-	const result = await db.query('SELECT id FROM ballots WHERE BallotID=?', [ballotId]);
-	if (result.length === 0)
-		throw `Ballot ${ballotId} does not exist`;
-	const ballot_id = result[0].id;
-
+async function insertResults(user, ballot_id, pollResults) {
 	let SQL = db.format('DELETE FROM results WHERE ballot_id=?;', ballot_id);
 	if (pollResults.length)
 		SQL +=
@@ -404,10 +400,10 @@ async function insertResults(user, ballotId, pollResults) {
 			pollResults.map(c => `(${ballot_id}, ${db.escape(Object.values(c))})`).join(',') +
 			';'
 	await db.query(SQL);
-	return getResultsCoalesced(user, ballotId);
+	return getResultsCoalesced(user, ballot_id);
 }
 
-export async function importEpollResults(ieeeCookieJar, user, ballotId, epollNum) {
+export async function importEpollResults(ieeeCookieJar, user, ballot_id, epollNum) {
 
 	const p1 = rp.get({
 		url: `https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`,
@@ -438,7 +434,7 @@ export async function importEpollResults(ieeeCookieJar, user, ballotId, epollNum
 		r.Affiliation = h? h.Affiliation: ''
 	});
 
-	return insertResults(user, ballotId, pollResults);
+	return insertResults(user, ballot_id, pollResults);
 }
 
 export async function uploadEpollResults(user, ballotId, file) {
@@ -452,31 +448,17 @@ export async function uploadMyProjectResults(user, ballotId, file) {
 	return insertResults(user, ballotId, pollResults);
 }
 
-export async function exportResults(user, params, res) {
-	let results
-	let fileNamePrefix = ''
-	if (params.hasOwnProperty('BallotID')) {
-		const ballotId = params.BallotID
-		fileNamePrefix = ballotId
-		const result = await getResultsCoalesced(user, ballotId)
-		results = [result]	// turn parameter into an array
-	}
-	else if (params.hasOwnProperty('BallotIDs')) {
-		const ballotIds = params.BallotIDs
-		fileNamePrefix = ballotIds.join('_')
-		results = await Promise.all(ballotIds.map(ballotId => getResultsCoalesced(user, ballotId)))
-	}
-	else if (params.hasOwnProperty('Project')) {
-		const project = params.Project
-		fileNamePrefix = project
-		results = await db.query('SELECT BallotID FROM ballots WHERE Project=?', [project])
-		results = await Promise.all(results.map(r => getResultsCoalesced(user, r.BallotID)))
-	}
-	else {
-		throw 'Missing parameter BallotID, BallotIDs or Project'
-	}
+export async function exportResultsForBallot(user, ballot_id, res) {
+	const result = await getResultsCoalesced(user, ballot_id);
+	res.attachment(result.ballot.BallotID + '_results.xlsx');
+	await genResultsSpreadsheet([result], res);
+	res.end();
+}
 
-	res.attachment(fileNamePrefix + '_results.xlsx')
-	await genResultsSpreadsheet(results, res)
-	res.end()
+export async function exportResultsForProject(user, project, res) {
+	let results = await db.query('SELECT id FROM ballots WHERE Project=?', [project]);
+	results = await Promise.all(results.map(r => getResultsCoalesced(user, r.id)));
+	res.attachment(project + '_results.xlsx');
+	await genResultsSpreadsheet(results, res);
+	res.end();
 }

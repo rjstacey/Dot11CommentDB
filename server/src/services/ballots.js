@@ -4,9 +4,10 @@ const db = require('../util/database')
 const rp = require('request-promise-native')
 const moment = require('moment-timezone')
 
-import {parseClosedEpollsPage} from './epoll'
-import {getResults, getResultsCoalesced} from './results'
-import {getVoters} from './voters'
+import {parseClosedEpollsPage} from './epoll';
+import {getResults, getResultsCoalesced} from './results';
+import {getVoters} from './voters';
+import {getCommentsSummary} from './comments';
 
 export const BallotType = {
 	CC: 0,			// comment collection
@@ -32,57 +33,47 @@ const getBallotsSQL =
 /*
  * Get comments summary for ballot
  */
-const getCommentsSummarySQL = (ballotId) =>
-	db.format(
-		'SELECT ' +
-			'COUNT(*) AS Count, ' +
-			'MIN(CommentID) AS CommentIDMin, ' + 
-			'MAX(CommentID) AS CommentIDMax ' +
-		'FROM ballots b JOIN comments c ON b.id=c.ballot_id WHERE b.BallotID=?;',
-		[ballotId]
-	);
 
 export async function getBallots() {
 	const ballots = await db.query(getBallotsSQL + ' ORDER BY Project, Start');
 	return ballots;
 }
 
-export async function getBallot(ballotId) {
-	const [ballot] = await db.query(getBallotsSQL + ' WHERE BallotID=?', [ballotId])
+export async function getBallot(id) {
+	const [ballot] = await db.query(getBallotsSQL + ' WHERE id=?', [id])
 	if (!ballot)
-		throw `No such ballot: ${ballotId}`;
+		throw `No such ballot: ${id}`;
 	return ballot;
 }
 
-async function getBallotWithNewResultsSummary(user, ballotId) {
-	const {ballot, summary} = await getResultsCoalesced(user, ballotId);
-	const commentsSummaries = await db.query(getCommentsSummarySQL(ballotId));
-	//console.log(ballot, summary, commentsSummaries)
+async function getBallotWithNewResultsSummary(user, ballot_id) {
+	const {ballot, summary: resultsSummary} = await getResultsCoalesced(user, ballot_id);
+	const commentsSummary = await getCommentsSummary(ballot_id);
 	return {
 		...ballot,
-		Comments: commentsSummaries[0],
-		Results: summary
+		Comments: commentsSummary,
+		Results: resultsSummary
 	};
 }
 
-export async function getBallotSeriesWithResults(ballotId) {
+export async function getBallotSeriesWithResults(id) {
 
-	async function recursiveBallotSeriesGet(ballotSeries, ballotId) {
-		const ballot = await getBallot(ballotId);
+	async function recursiveBallotSeriesGet(ballotSeries, id) {
+		const ballot = await getBallot(id);
 		ballotSeries.unshift(ballot);
-		return ballot.PrevBallotID && ballotSeries.length < 20?
-			recursiveBallotSeriesGet(ballotSeries, ballot.PrevBallotID):
+		return (ballot.prev_id && ballotSeries.length < 20)?
+			recursiveBallotSeriesGet(ballotSeries, ballot.prev_id):
 			ballotSeries;
 	}
 
-	const ballotSeries = await recursiveBallotSeriesGet([], ballotId);
+	const ballotSeries = await recursiveBallotSeriesGet([], id);
 	if (ballotSeries.length > 0) {
 		ballotSeries[0].Voters = [];
 		if (ballotSeries[0].VotingPoolID) {
 			const {voters} = await getVoters(ballotSeries[0].VotingPoolID);
 			ballotSeries[0].Voters = voters;
 		}
-		const results = await Promise.all(ballotSeries.map(b => getResults(b.BallotID)));
+		const results = await Promise.all(ballotSeries.map(b => getResults(b.id)));
 		ballotSeries.forEach((ballot, i) => ballot.Results = results[i]);
 	}
 	return ballotSeries;
@@ -96,7 +87,7 @@ export async function getRecentBallotSeriesWithResults() {
 			'ORDER BY End DESC ' +			// newest to oldest
 			'LIMIT 3;'						// last 3
 	);
-	const ballotsSeries = await Promise.all(ballots.map(b => getBallotSeriesWithResults(b.BallotID)));
+	const ballotsSeries = await Promise.all(ballots.map(b => getBallotSeriesWithResults(b.id)));
 	return ballotsSeries;
 }
 
@@ -131,44 +122,46 @@ async function addBallot(user, ballot) {
 	if (!entry || !entry.hasOwnProperty('BallotID'))
 		throw 'Ballot must have BallotID';
 
+	let id;
 	try {
 		const results = await db.query(
 			'INSERT INTO ballots (??) VALUES (?);',
 			[Object.keys(entry), Object.values(entry)]
 		);
-		const id = results.insertedId;
+		console.log(results)
+		id = results.insertId;
 	}
 	catch(err) {
 		throw err.code == 'ER_DUP_ENTRY'? "An entry already exists with this ID": err
 	}
 
-	return getBallotWithNewResultsSummary(user, entry.BallotID);
+	return getBallotWithNewResultsSummary(user, id);
 }
 
 export async function addBallots(user, ballots) {
 	return Promise.all(ballots.map(b => addBallot(user, b)));
 }
 
-async function updateBallot(user, ballot) {
-	//console.log(req.body);
+async function updateBallot(user, update) {
+	const {id, changes} = update;
+	if (!id)
+		throw 'Missing id';
+	if (!changes || typeof changes !== 'object')
+		throw 'Missing or bad changes';
 
-	if (!ballot || !ballot.id)
-		throw 'Ballot to be updated must have id';
-
-	const entry = ballotEntry(ballot);
+	const entry = ballotEntry(changes);
 
 	if (entry) {
-		const result = await db.query('UPDATE ballots SET ? WHERE id=?',  [entry, ballot.id]);
+		const result = await db.query('UPDATE ballots SET ? WHERE id=?',  [entry, id]);
 		if (result.affectedRows !== 1)
-			throw new Error(`Unexpected: no update for ballot with id=${ballot_id}`);
+			throw new Error(`Unexpected: no update for ballot with id=${id}`);
 	}
 
-	const results = await db.query('SELECT BallotID FROM ballots WHERE id=?', [ballot.id]);
-	return getBallotWithNewResultsSummary(user, results[0].BallotID);
+	return getBallotWithNewResultsSummary(user, id);
 }
 
-export function updateBallots(user, ballots) {
-	return Promise.all(ballots.map(b => updateBallot(user, b)));
+export function updateBallots(user, updates) {
+	return Promise.all(updates.map(u => updateBallot(user, u)));
 }
 
 export async function deleteBallots(ids) {

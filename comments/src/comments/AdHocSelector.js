@@ -1,22 +1,20 @@
-import React from 'react'
-import PropTypes from 'prop-types'
-import {connect} from 'react-redux'
-import {Select} from 'dot11-components/general/Form'
-import {getAllFieldValues} from 'dot11-components/store/appTableData'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useSelector} from 'react-redux';
+
+import {Select} from 'dot11-components/general/Form';
+import {getAllFieldValues} from 'dot11-components/store/appTableData';
+
+const dataSet = 'comments';
 
 function AdHocSelector({
 	value,
 	onChange,
-	fieldValues,
-	loading,
 	placeholder,
-	width,
 	...otherProps
 }) {
-
-	let options = fieldValues
-		.map(v => ({value: v, label: v}))
-		.filter(o => o.value !== '');	// remove blank entry (we use 'clear' to set blank)
+	const loading = useSelector(state => state[dataSet].loading);
+	let options = useSelector(state => getAllFieldValues(state, dataSet, 'AdHoc').filter(v => v !== '').map(v => ({label: v, value: v}))); // remove blank entry (we use 'clear' to set blank)
 	let optionSelected = options.find(o => o.value === value);
 	if (value && !optionSelected) {
 		// Make sure the current value is an option
@@ -26,7 +24,6 @@ function AdHocSelector({
 
 	return (
 		<Select
-			width={width}
 			values={optionSelected? [optionSelected]: []}
 			onChange={(values) => onChange(values.length? values[0].value: '')}
 			options={options}
@@ -42,17 +39,7 @@ function AdHocSelector({
 AdHocSelector.propTypes = {
 	value: PropTypes.string.isRequired,
 	onChange: PropTypes.func.isRequired,
-	width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 	placeholder: PropTypes.string,
-	fieldValues: PropTypes.array.isRequired,
-	loading: PropTypes.bool.isRequired,
 }
 
-const dataSet = 'comments';
-
-export default connect(
-	(state) => ({
-		fieldValues: getAllFieldValues(state, dataSet, 'AdHoc'),
-		loading: state[dataSet].loading
-	})
-)(AdHocSelector)
+export default AdHocSelector;

@@ -6,7 +6,8 @@ import {
 	getCalendarAccounts,
 	updateCalendarAccount,
 	addCalendarAccount,
-	deleteCalendarAccount
+	deleteCalendarAccount,
+	getPrimaryCalendar,
 } from '../services/calendar';
 
 const router = require('express').Router();
@@ -59,6 +60,15 @@ router.delete('/account/:id', async (req, res, next) => {
 	try {
 		const {id} = req.params;
 		const data = await deleteCalendarAccount(id);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.get('/list/:id', async (req, res, next) => {
+	try {
+		const {id} = req.params;
+		const data = await getPrimaryCalendar(id);
 		res.json(data);
 	}
 	catch(err) {next(err)}

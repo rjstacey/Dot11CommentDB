@@ -1,7 +1,8 @@
 'use strict';
 
 const db = require('../util/database')
-import {genCommentsSpreadsheet} from './commentsSpreadsheet'
+import {genCommentsSpreadsheet} from './commentsSpreadsheet';
+import {myProjectAddResolutions} from './myProjectSpreadsheets';
 
 const GET_RESOLUTIONS_SQL =
 	'SELECT ' +
@@ -156,21 +157,24 @@ export async function exportResolutionsForMyProject(ballotId, filename, file, re
 		[ballotId]
 	);
 
-	res.attachment(filename || 'comments_resolved.xlsx')
-	await myProjectAddResolutions(file.buffer, comments, res)
-	res.end()
+	res.attachment(filename || 'comments_resolved.xlsx');
+	await myProjectAddResolutions(file.buffer, comments, res);
+	res.end();
 }
 
-export async function exportSpreadsheet(user, ballotId, filename, format, style, file, res) {
-	console.log(ballotId, format, style, filename, file)
+export async function exportSpreadsheet(user, ballot_id, filename, format, style, file, res) {
 	const SQL =
-		db.format('SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID; ', [ballotId]) +
-		db.format('SELECT Document FROM ballots WHERE BallotID=?;', [ballotId]);
-
+		db.format('SELECT * FROM commentResolutions WHERE ballot_id=? ORDER BY CommentID, ResolutionID; ', [ballot_id]) +
+		db.format('SELECT BallotID, Document FROM ballots WHERE id=?;', [ballot_id]);
 	const [comments, ballots] = await db.query(SQL);
-	const doc = ballots.length > 0? ballots[0].Document: ''
+	let doc = '';
+	let ballotId = '';
+	if (ballots.length > 0) {
+		doc = ballots[0].Document;
+		ballotId = ballots[0].BallotID;
+	}
 
-	res.attachment(filename || 'comments.xlsx')
-	await genCommentsSpreadsheet(user, ballotId, format, style, doc, comments, file, res)
-	res.end()
+	res.attachment(filename || 'comments.xlsx');
+	await genCommentsSpreadsheet(user, ballotId, format, style, doc, comments, file, res);
+	res.end();
 }

@@ -1,7 +1,8 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {Link, useHistory, useParams} from "react-router-dom"
-import {connect} from 'react-redux'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {Link, useHistory, useParams} from "react-router-dom";
+import {useDispatch, useSelector} from 'react-redux';
+
 import styled from '@emotion/styled'
 import AppTable, {SelectHeader, SelectCell, TableColumnHeader, ShowFilters, TableViewSelector, TableColumnSelector, SplitPanel, Panel} from 'dot11-components/table'
 import {Button, ActionButton} from 'dot11-components/icons'
@@ -14,8 +15,8 @@ import {getEntities} from 'dot11-components/store/dataSelectors'
 import {setSelected} from 'dot11-components/store/selected'
 import {setProperty} from 'dot11-components/store/ui'
 
-import {fields, loadBallots, deleteBallots, BallotType, BallotStage} from '../store/ballots'
-import {loadVotingPools} from '../store/votingPools'
+import {fields, loadBallots, deleteBallots, BallotType, BallotStage, getBallotsDataSet} from '../store/ballots'
+import {loadVotingPools, getVotingPoolsDataSet} from '../store/votingPools'
 
 const dataSet = 'ballots'
 
@@ -207,51 +208,37 @@ const TableRow = styled.div`
 `;
 
 function Ballots({
-	access,
-	ballots,
-	ballotsValid,
-	selected,
-	setSelected,
-	loading,
-	loadBallots,
-	deleteBallots,
-	votingPoolsValid,
-	loadVotingPools,
-	uiProperty,
-	setUiProperty
+	access
 }) {
+
 	const history = useHistory();
 	const {ballotId} = useParams();
 
+	const {valid, loading, entities: ballots, ui: uiProperty, selected} = useSelector(getBallotsDataSet);
+	const {valid: votingPoolsValid, loading: votingPoolsLoading} = useSelector(getVotingPoolsDataSet);
+
+	const dispatch = useDispatch();
+	const load = React.useCallback(() => dispatch(loadBallots()));
+	const setUiProperty = React.useCallback((property, value) => dispatch(setProperty(dataSet, property, value)), [dispatch]);
+
+	const closeBallot = () => history.push('/ballots');
+	const showEpolls = () => history.push('/epolls/');
+
 	React.useEffect(() => {
-		if (!ballotsValid && !loading)
-			loadBallots();
-		if (!votingPoolsValid)
-			loadVotingPools();
+		if (!valid && !loading)
+			load();
+		if (!votingPoolsValid && !votingPoolsLoading)
+			dispatch(loadVotingPools());
+	}, []);
+
+	/*React.useEffect(() => {
 		if (ballotsValid && ballotId && selected.length === 0) {
 			for (const ballot of Object.values(ballots)) {
 				if (ballot.BallotID === ballotId)
 					setSelected([ballot.id]);
 			}
 		}
-	}, [ballotsValid, loading, loadBallots, votingPoolsValid, loadVotingPools]);
-
-	React.useEffect(() => {
-		if (!ballotsValid)
-			return;
-		if (selected.length === 1) {
-			const ballot = ballots[selected[0]];
-			if (ballot.BallotID !== ballotId)
-				history.push(`/ballots/${ballot.BallotID}`);
-		}
-		else {
-			if (ballotId)
-				history.push('/ballots');
-		}
-	}, [ballotId, selected]);
-
-	const closeBallot = () => history.push('/Ballots');
-	const showEpolls = () => history.push('/epolls/');
+	}, [ballotsValid, ballotId, selected]);*/
 
 	return <>
 		<TopRow>
@@ -277,7 +264,7 @@ function Ballots({
 						<BallotAdd />
 					</div>
 				</ButtonGroup>
-				<ActionButton name='refresh' title='Refresh' onClick={loadBallots} disabled={loading} />
+				<ActionButton name='refresh' title='Refresh' onClick={load} disabled={loading} />
 			</div>
 		</TopRow>
 
@@ -298,40 +285,11 @@ function Ballots({
 			</Panel>
 			<Panel style={{overflow: 'auto'}}>
 				<BallotDetail
-					key={selected}
+					key={selected.join()}
 				/>
 			</Panel>
 		</SplitPanel>
 	</>
 }
 
-Ballots.propTypes = {
-	ballotsValid: PropTypes.bool.isRequired,
-	ballots: PropTypes.object.isRequired,
-	loading: PropTypes.bool.isRequired,
-	selected: PropTypes.array.isRequired,
-	votingPoolsValid: PropTypes.bool.isRequired,
-}
-
-export default connect(
-	(state) => {
-		const {ballots, votingPools} = state
-		return {
-			ballotsValid: ballots.valid,
-			selected: ballots.selected,
-			loading: ballots.loading,
-			ballots: getEntities(state, dataSet),
-			votingPoolsValid: votingPools.valid,
-			uiProperty: state[dataSet].ui
-		}
-	},
-	(dispatch) => {
-		return {
-			loadBallots: () => dispatch(loadBallots()),
-			deleteBallots: (ids) => dispatch(deleteBallots(ids)),
-			loadVotingPools: () => dispatch(loadVotingPools()),
-			setSelected: (ids) => dispatch(setSelected('ballots', ids)),
-			setUiProperty: (property, value) => dispatch(setProperty(dataSet, property, value))
-		}
-	}
-)(Ballots);
+export default Ballots;

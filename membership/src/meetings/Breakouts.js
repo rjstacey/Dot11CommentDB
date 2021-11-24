@@ -29,8 +29,8 @@ const TableRow = styled.div`
 	}
 `;
 
-const renderDate = ({rowData}) => displayDayDate(rowData.Start)
-const renderTime = ({rowData}) => displayTime(rowData.Start) + ' - ' + displayTime(rowData.End)
+const renderDate = ({rowData}) => displayDayDate(rowData.Start);
+const renderTime = ({rowData}) => displayTime(rowData.Start) + ' - ' + displayTime(rowData.End);
 
 const renderGroup = ({rowData}) => {
 	const parts = rowData.Group.split('/');

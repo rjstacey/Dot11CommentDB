@@ -95,7 +95,7 @@ const createTriggerResolutionsDeleteSQL =
 		'INSERT INTO resolutionsLog (comment_id, resolution_id, Action, Changes, UserID, Timestamp) VALUES (OLD.comment_id, OLD.id, @action, @changes, OLD.LastModifiedBy, NOW()); ' +
 	'END; ';
 
-export async function initCommentsHistory() {
+export async function initCommentHistory() {
 	const SQL =
 		'DROP TRIGGER IF EXISTS comments_add;\n' +
 		createTriggerCommentsAddSQL + '\n' +
@@ -124,7 +124,7 @@ const GET_COMMENTS_HISTORY_SQL =
 	'WHERE l.comment_id=? ' + 
 	'ORDER BY Timestamp;';
 
-export async function getCommentsHistory(comment_id) {
+export async function getCommentHistory(comment_id) {
 	const SQL =
 		db.format(GET_COMMENTS_HISTORY_SQL, [comment_id]) +
 		db.format('SELECT * FROM comments WHERE id=?;', [comment_id]) +

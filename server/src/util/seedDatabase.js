@@ -2,7 +2,7 @@
 
 import {getMember, addMember, updateMember} from '../services/members'
 import {initCommentsTables} from '../services/comments'
-import {initCommentsHistory} from '../services/commentsHistory'
+import {initCommentHistory} from '../services/commentHistory'
 
 const db = require('../util/database')
 
@@ -156,7 +156,7 @@ export async function init() {
 		}
 
 		await initCommentsTables();
-		await initCommentsHistory();
+		await initCommentHistory();
 	}
 	catch(err) {
 		throw err

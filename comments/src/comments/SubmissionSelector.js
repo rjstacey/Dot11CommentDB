@@ -1,10 +1,12 @@
-import React from 'react'
-import PropTypes from 'prop-types'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import Input from 'react-dropdown-select/lib/components/Input'
-import {Select} from 'dot11-components/form'
-import {getAllFieldValues} from 'dot11-components/store/appTableData'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+
+import Input from 'react-dropdown-select/lib/components/Input';
+import {Select} from 'dot11-components/form';
+import {getAllFieldValues} from 'dot11-components/store/appTableData';
+import {dataSet} from '../store/comments';
 
 /*
  * Render submission. If it looks like a DCN then link to mentor.
@@ -48,20 +50,17 @@ const ReadOnlyContainer = styled.div`
 function SubmissionSelector({
 	value,
 	onChange,
-	fieldValues,
-	loading,
 	readOnly,
-	width,
 	...otherProps
 }) {
-	const options = fieldValues.map(v => ({value: v, label: v})).filter(o => o.value !== '');	// remove blank entry (we use 'clear' to set blank)
+	const loading = useSelector(state => state[dataSet].loading);
+	const options = useSelector(state => getAllFieldValues(state, dataSet, 'Submission').filter(v => v !== '').map(v => ({value: v, label: v})));
 	const optionSelected = options.find(o => o.value === value);
 
 	return (
 		readOnly
 			? <ReadOnlyContainer {...otherProps}>{renderSubmission(value)}</ReadOnlyContainer>
 			: <Select
-				width={width}
 				values={(optionSelected && optionSelected.value !== '')? [optionSelected]: []}
 				onChange={(values) => onChange(values.length? values[0].value: '')}
 				options={options}
@@ -77,16 +76,7 @@ function SubmissionSelector({
 SubmissionSelector.propTypes = {
 	value: PropTypes.string.isRequired,
 	onChange: PropTypes.func.isRequired,
-	width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 	placeholder: PropTypes.string,
-	fieldValues: PropTypes.array.isRequired,
-	loading: PropTypes.bool.isRequired,
 }
 
-const dataSet = 'comments'
-export default connect(
-	(state) => ({
-		fieldValues: getAllFieldValues(state, dataSet, 'Submission'),
-		loading: state[dataSet].loading
-	})
-)(SubmissionSelector)
+export default SubmissionSelector;

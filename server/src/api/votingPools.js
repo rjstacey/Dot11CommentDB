@@ -32,10 +32,10 @@ router.delete('/$', async (req, res, next) => {
 router.patch('/:votingPoolId$', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
-		const votingPool = req.body;
-		if (typeof votingPool !== 'object')
-			throw 'Missing or bad body; expected votingPool object';
-		const data = await updateVotingPool(votingPoolId, votingPool);
+		const changes = req.body;
+		if (typeof changes !== 'object')
+			throw 'Missing or bad body; expected object';
+		const data = await updateVotingPool(votingPoolId, changes);
 		res.json(data);
 	}
 	catch(err) {next(err)}

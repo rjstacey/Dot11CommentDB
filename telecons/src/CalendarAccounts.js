@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import React from 'react'
 import {Redirect} from 'react-router-dom'
 import {useDispatch, useSelector} from 'react-redux'
@@ -6,19 +7,17 @@ import {ActionButton} from 'dot11-components/icons'
 import {Form, Field, Row, Input} from  'dot11-components/general/Form'
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
 import {shallowDiff, displayDate} from 'dot11-components/lib'
-import {loadCalendarAccounts, updateCalendarAccount, addCalendarAccount, deleteCalendarAccount, authCalendarAccount, dataSet} from './store/calendarAccounts'
+import {loadCalendarAccounts, updateCalendarAccount, addCalendarAccount, deleteCalendarAccount, authCalendarAccount, getCalendars, dataSet} from './store/calendarAccounts'
 import GroupsSelector from './GroupsSelector'
 
 /* Generate URL for account authorization */
 const getCalendarAccountAuthLink = (account) => {
-	const {id, auth_url, client_id, auth_scope} = account;
+	const {id, auth_url, auth_params} = account;
 	const params = {
-		client_id: client_id,
-		response_type: 'code',
+		...auth_params,
 		redirect_uri: window.location.origin + '/telecons/calendar/auth',
-		scope: auth_scope,
-		state: id,
-	}
+		state: id
+	};
 	return auth_url + '?' + new URLSearchParams(params);
 }
 
@@ -76,6 +75,7 @@ function CalendarAccountRow({account}) {
 					dropdownRenderer={(props) => <CalendarAccountAddEdit type='edit' defaultValue={account} {...props} />}
 				/>
 				<ActionButton name='delete' onClick={() => onDelete(account.id)} />
+				<ActionButton name='edit' onClick={() => dispatch(getCalendars(account.id))} />
 			</div>
 
 		</div>
@@ -138,6 +138,12 @@ function CalendarAccountAddEdit({close, type, defaultValue}) {
 	)
 }
 
+CalendarAccountAddEdit.propTypes = {
+	close: PropTypes.func.isRequired,
+	type: PropTypes.string.isRequired,
+	defaultValue: PropTypes.object.isRequired
+}
+
 
 function CalendarAccounts() {
 
@@ -159,7 +165,7 @@ function CalendarAccounts() {
 					<ActionButtonDropdown
 						name='add'
 						title='Add account'
-						dropdownRenderer={(props) => <CalendarAccountAddEdit {...props} />}
+						dropdownRenderer={(props) => <CalendarAccountAddEdit type='add' {...props} />}
 					/>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
 				</div>

@@ -1,18 +1,20 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {useHistory, useParams} from 'react-router-dom'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import AppTable, {TableColumnSelector} from 'dot11-components/table'
-import {ActionButton} from 'dot11-components/icons'
-import {AccessLevel} from 'dot11-components/lib'
-import BallotSelector from '../ballots/BallotSelector'
-import ResultsSummary from './ResultsSummary'
-import ResultsExport from './ResultsExport'
-import {upsertTableColumns} from 'dot11-components/store/appTableData'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useHistory, useParams} from 'react-router-dom';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
 
-import {loadResults} from '../store/results'
-import {setBallotId, BallotType} from '../store/ballots'
+import AppTable, {TableColumnSelector} from 'dot11-components/table';
+import {ActionButton} from 'dot11-components/icons';
+import {AccessLevel} from 'dot11-components/lib';
+import {upsertTableColumns} from 'dot11-components/store/appTableData';
+
+import BallotSelector from '../ballots/BallotSelector';
+import ResultsSummary from './ResultsSummary';
+import ResultsExport from './ResultsExport';
+
+import {loadResults, clearResults, getResultsDataSet, dataSet} from '../store/results';
+import {setBallotId, loadBallots, getBallotsDataSet, getCurrentBallot, BallotType} from '../store/ballots';
 
 // The action row height is determined by its content
 const ActionRow = styled.div`
@@ -76,120 +78,111 @@ function getDefaultTablesConfig(access, type) {
 	return {default: {fixed: false, columns}};
 }
 
-function updateTableConfig(upsertTableColumns, access, type) {
-	if (access < AccessLevel.SubgroupAdmin) {
-		upsertTableColumns(undefined, {
-			SAPIN: {shown: false},
-			Email: {shown: false}
-		});
-	}
-	else {
-		if (type === BallotType.SA)
-			upsertTableColumns(undefined, {
-				SAPIN: {shown: false},
-				Email: {shown: true}
-			});
-		else
-			upsertTableColumns(undefined, {
-				SAPIN: {shown: true},
-				Email: {shown: true}
-			});
-	}
+function updateTableConfigAction(access, type) {
+	if (access < AccessLevel.SubgroupAdmin)
+		return upsertTableColumns(dataSet, undefined, {SAPIN: {shown: false}, Email: {shown: false}});
+
+	if (type === BallotType.SA)
+		return upsertTableColumns(dataSet, undefined, {SAPIN: {shown: false}, Email: {shown: true}});
+
+	return upsertTableColumns(dataSet, undefined, {SAPIN: {shown: true}, Email: {shown: true}});
 }
 
 const maxWidth = 1600;
 
 function Results({
 	access,
-	ballot,
-	resultsSummary,
-	votingPoolSize,
-	valid,
-	loading,
-	loadResults,
-	setBallotId,
-	ballotId: currentBallotId,
-	upsertTableColumns
 }) {
 	const {ballotId} = useParams();
 	const history = useHistory();
 
-	const defaultTablesConfig = React.useMemo(() => getDefaultTablesConfig(access, ballot.Type));
+	const dispatch = useDispatch();
+	const {valid, loading, ballot: resultsBallot} = useSelector(getResultsDataSet);
+	const {valid: ballotsValid, loading: ballotsLoading, entities: ballotEntities} = useSelector(getBallotsDataSet);
+	const currentBallot = useSelector(getCurrentBallot);
 
-	React.useEffect(() => updateTableConfig(upsertTableColumns, access, ballot.Type), [access, ballot.Type]);
+	const load = (ballot_id) => dispatch(loadResults(ballot_id));
+	const clear = () => dispatch(clearResults());
+
+	const defaultTablesConfig = React.useMemo(() => {
+		if (currentBallot)
+			return getDefaultTablesConfig(access, currentBallot.Type);
+	}, [access, currentBallot]);
+
+	React.useEffect(() => {
+		if (currentBallot)
+			dispatch(updateTableConfigAction(access, currentBallot.Type));
+	}, [dispatch, access, currentBallot]);
+
+	React.useEffect(() => {
+		if (!ballotsValid && !ballotsLoading)
+			dispatch(loadBallots());
+	}, []);
 
 	React.useEffect(() => {
 		if (ballotId) {
-			if (ballotId !== currentBallotId) {
-				// Routed here with parameter ballotId specified, but not matching stored ballotId
-				// Store the ballotId and get results for this ballotId
-				setBallotId(ballotId);
-				loadResults(ballotId);
-			}
-			else if (!loading && (!valid || ballot.BallotID !== ballotId)) {
-				loadResults(ballotId);
+			if (!currentBallot || ballotId !== currentBallot.BallotID) {
+				// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
+				dispatch(setBallotId(ballotId));
 			}
 		}
-		else if (currentBallotId) {
-			history.replace(`/Results/${currentBallotId}`);
+		else if (currentBallot) {
+			// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
+			history.replace(`/results/${currentBallot.BallotID}`);
 		}
-	}, [ballotId, currentBallotId, ballot.BallotID]);
+	}, [ballotId, ballotsValid]);
 
-	const onBallotSelected = (ballotId) => history.push(`/results/${ballotId}`); // Redirect to page with selected ballot
+	React.useEffect(() => {
+		if (loading)
+			return;
+		if ((!resultsBallot && currentBallot) ||
+		    (resultsBallot && currentBallot && resultsBallot.id !== currentBallot.id)) {
+			load(currentBallot.id);
+		}
+	}, [dispatch, currentBallot, resultsBallot]);
 
-	return <>
-		<ActionRow style={{maxWidth}}>
-			<BallotSelector onBallotSelected={onBallotSelected}	/>
-			<div style={{display: 'flex'}}>
-				<ResultsExport ballotId={ballotId} ballot={ballot} />
-				<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-				<ActionButton name='refresh' title='Refresh' onClick={() => loadResults(ballotId)} />
-			</div>
-		</ActionRow>
-		<ResultsSummary
-			style={{maxWidth}}
-			ballot={ballot}
-			resultsSummary={resultsSummary}
-			votingPoolSize={votingPoolSize}
-		/>
-		<TableRow style={{maxWidth}}>
-			<AppTable
-				defaultTablesConfig={defaultTablesConfig}
-				columns={tableColumns}
-				headerHeight={28}
-				estimatedRowHeight={32}
-				dataSet={dataSet}
-				rowKey='id'
+	const onBallotSelected = (ballot_id) => {
+		const ballot = ballotEntities[ballot_id];
+		if (ballot)
+			history.push(`/results/${ballot.BallotID}`); // Redirect to page with selected ballot
+		else
+			clear();
+	}
+
+	return (
+		<>
+			<ActionRow style={{maxWidth}}>
+				<BallotSelector onBallotSelected={onBallotSelected}	/>
+				<div style={{display: 'flex'}}>
+					<ResultsExport ballot={currentBallot} />
+					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+					<ActionButton
+						name='refresh'
+						title='Refresh'
+						disabled={!currentBallot}
+						onClick={() => load(currentBallot.id)}
+					/>
+				</div>
+			</ActionRow>
+			<ResultsSummary
+				style={{maxWidth}}
 			/>
-		</TableRow>
-	</>
+			<TableRow style={{maxWidth}}>
+				<AppTable
+					defaultTablesConfig={defaultTablesConfig}
+					columns={tableColumns}
+					headerHeight={28}
+					estimatedRowHeight={32}
+					dataSet={dataSet}
+					rowKey='id'
+				/>
+			</TableRow>
+		</>
+	)
 }
 
 Results.propTypes = {
-	ballotId: PropTypes.string.isRequired,
-	ballot: PropTypes.object.isRequired,
-	resultsSummary: PropTypes.object.isRequired,
-	votingPoolSize: PropTypes.number.isRequired,
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	loadResults: PropTypes.func.isRequired,
-	setBallotId: PropTypes.func.isRequired,
-	upsertTableColumns: PropTypes.func.isRequired
+	access: PropTypes.number.isRequired
 }
 
-const dataSet = 'results'
-export default connect(
-	(state) => ({
-			ballotId: state.ballots.ballotId,
-			ballot: state[dataSet].ballot,
-			resultsSummary: state[dataSet].resultsSummary,
-			votingPoolSize: state[dataSet].votingPoolSize,
-			valid: state[dataSet].valid,
-			loading: state[dataSet].loading,
-		}),
-	{
-		loadResults,
-		setBallotId,
-		upsertTableColumns: (tableView, tableColumns) => upsertTableColumns(dataSet, tableView, tableColumns)
-	}
-)(Results);
+export default Results;

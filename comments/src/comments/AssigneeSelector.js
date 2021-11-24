@@ -1,15 +1,16 @@
-import React from 'react'
-import PropTypes from 'prop-types'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import {FixedSizeList as List} from 'react-window'
-import Input from 'react-dropdown-select/lib/components/Input'
-import {Select} from 'dot11-components/general/Form'
-import {Icon} from 'dot11-components/icons'
-import {getData} from 'dot11-components/store/appTableData'
-import {strComp} from 'dot11-components/lib/utils'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+import {FixedSizeList as List} from 'react-window';
+import Input from 'react-dropdown-select/lib/components/Input';
 
-import {loadUsers} from '../store/users'
+import {Select} from 'dot11-components/form';
+import {Icon} from 'dot11-components/icons';
+import {strComp} from 'dot11-components/lib';
+
+import {loadUsers, getUsersDataSet} from '../store/users';
+import {getCommentsDataSet} from '../store/comments';
 
 const StyledItem = styled.div`
 	padding: 4px 10px;
@@ -116,24 +117,23 @@ const renderContent = ({state, methods, props}) => {
 function AssigneeSelector({
 	value,		// value is object with shape {SAPIN: number, Name: string}
 	onChange,
-	users,
-	comments,
-	valid,
-	loading,
-	loadUsers,
-	width,
 	readOnly,
 	...otherProps
 }) {
+	const dispatch = useDispatch();
+	const {ids: commentIds, entities: commentEntities} = useSelector(getCommentsDataSet);
+	const {valid, loading, ids: userIds, entities: userEntities} = useSelector(getUsersDataSet);
 
 	React.useEffect(() => {
 		if (!valid && !loading && !readOnly)
-			loadUsers();
+			dispatch(loadUsers());
 	}, []);
 
 	const options = React.useMemo(() => {
 		// Produce a unique set of SAPIN/Name mappings. If there is no SAPIN then the name is the key.
-		const presentOptions = comments.reduce((arr, c) => {
+		const presentOptions = commentIds
+			.reduce((arr, id) => {
+				const c = commentEntities[id];
 				if (c.AssigneeSAPIN) {
 					return arr.find(o => o.value === c.AssigneeSAPIN)? arr: [...arr, {value: c.AssigneeSAPIN, label: c.AssigneeName, present: true}];
 				}
@@ -142,15 +142,13 @@ function AssigneeSelector({
 				}
 				return arr
 			}, [])
-			.sort((a, b) => strComp(a.label, b.label))
-		const userOptions =
-			users.filter(u => !presentOptions.find(o => o.value === u.SAPIN))
-			.map(u => ({value: u.SAPIN, label: u.Name, present: false}))
-			.sort((a, b) => strComp(a.label, b.label))
-		const options = presentOptions.concat(userOptions)
-		//console.log(presentOptions, options)
-		return options
-	}, [comments, users]);
+			.sort((a, b) => strComp(a.label, b.label));
+		const userOptions =	userIds
+			.filter(sapin => !presentOptions.find(o => o.value === sapin))
+			.map(sapin => ({value: sapin, label: userEntities[sapin].Name, present: false}))
+			.sort((a, b) => strComp(a.label, b.label));
+		return presentOptions.concat(userOptions);
+	}, [commentEntities, commentIds, userEntities, userIds]);
 
 	function handleChange(values) {
 		let newValue;
@@ -169,7 +167,6 @@ function AssigneeSelector({
 
 	return (
 		<Select
-			width={width}
 			values={optionSelected? [optionSelected]: []}
 			onChange={handleChange}
 			options={options}
@@ -187,22 +184,7 @@ function AssigneeSelector({
 AssigneeSelector.propTypes = {
 	value: PropTypes.object.isRequired,
 	onChange: PropTypes.func.isRequired,
-	width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	users: PropTypes.array.isRequired,
-	comments: PropTypes.array.isRequired,
-	loadUsers: PropTypes.func.isRequired
+	readOnly: PropTypes.bool,
 }
 
-export default connect(
-	(state) => {
-		return {
-			valid: state.users.valid,
-			loading: state.users.loading,
-			users: getData(state, 'users'),
-			comments: getData(state, 'comments')
-		}
-	},
-	{loadUsers}
-)(AssigneeSelector)
+export default AssigneeSelector;

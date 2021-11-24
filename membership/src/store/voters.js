@@ -196,3 +196,8 @@ export const updateVoter = (id, changes) =>
 		}
 		await dispatch(updateOne({id, changes}));
 	}
+
+/*
+ * Selectors
+ */
+export const getVotersDataSet = (state) => state[dataSet];

@@ -1,13 +1,15 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import {ActionButtonModal} from 'dot11-components/modals'
-import {Comment} from './CommentDetail'
-import HorizontalTimeline from './HorizontalTimeline'
-import {loadCommentsHistory} from '../store/commentsHistory'
-import {getEntities} from 'dot11-components/store/dataSelectors'
-import {getSelected} from 'dot11-components/store/selected'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+
+import {ActionButtonModal} from 'dot11-components/modals';
+
+import {Comment} from './CommentDetail';
+import HorizontalTimeline from './HorizontalTimeline';
+
+import {getCommentsDataSet} from '../store/comments';
+import {loadCommentsHistory, getCommentsHistoryDataSet} from '../store/commentsHistory';
 
 const Container = styled.div`
 	width: 80vw;
@@ -72,14 +74,18 @@ function CommentHistoryBody({commentsHistory, loading}) {
 	)
 }
 
-const _CommentHistory = ({selected, comments, commentsHistory, loading, loadCommentsHistory}) => {
+function CommentHistory() {
+
+	const dispatch = useDispatch();
+	const {selected, entities} = useSelector(getCommentsDataSet);
+	const {loading, commentsHistory} = useSelector(getCommentsHistoryDataSet);
 
 	const onOpen = () => {
 		if (selected.length) {
 			const id = selected[0];
-			const c = comments[id];
+			const c = entities[id];
 			if (c)
-				loadCommentsHistory(c.comment_id);
+				dispatch(loadCommentsHistory(c.comment_id));
 		}
 	}
 
@@ -97,22 +103,5 @@ const _CommentHistory = ({selected, comments, commentsHistory, loading, loadComm
 		</ActionButtonModal>
 	)
 }
-
-_CommentHistory.propTypes = {
-	selected: PropTypes.array.isRequired,
-	comments: PropTypes.object.isRequired,
-	commentsHistory: PropTypes.array.isRequired,
-	loading: PropTypes.bool.isRequired,
-}
-
-const CommentHistory = connect(
-	(state) => ({
-		selected: getSelected(state, 'comments'),
-		comments: getEntities(state, 'comments'),
-		commentsHistory: state.commentsHistory.commentsHistory,
-		loading: state.commentsHistory.loading,
-	}),
-	{loadCommentsHistory}
-)(_CommentHistory);
 
 export default CommentHistory;

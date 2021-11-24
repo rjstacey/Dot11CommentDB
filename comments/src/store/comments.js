@@ -1,4 +1,4 @@
-import fetcher from 'dot11-components/lib/fetcher';
+import {fetcher} from 'dot11-components/lib';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 import {updateBallotSuccess} from './ballots';
@@ -47,7 +47,7 @@ export const fields = {
 };
 
 
-const dataSet = 'comments';
+export const dataSet = 'comments';
 const selectId = (c) => c.CID;
 
 const slice = createAppTableDataSlice({
@@ -56,12 +56,12 @@ const slice = createAppTableDataSlice({
 	selectId,
 	sortComparer: (c1, c2) => c1.CommentID === c2.CommentID? c1.ResolutionID - c2.ResolutionID: c1.CommentID - c2.CommentID,
 	initialState: {
-		ballotId: '',
+		ballot_id: 0,
 	},
 	reducers: {
-		setBallotId(state, action) {
-			const {ballotId} = action.payload;
-			state.ballotId = ballotId;
+		setDetails(state, action) {
+  			const {ballot_id} = action.payload;
+			state.ballot_id = ballot_id;
 		},
 	},
 });
@@ -75,13 +75,14 @@ export default slice.reducer;
  * Actions
  */
 const {
-	setBallotId,
+	setDetails,
 	getPending,
 	getSuccess,
 	getFailure,
 	updateMany,
 	upsertMany,
 	removeMany,
+	removeAll,
 	setSelected
 } = slice.actions;
 
@@ -122,15 +123,15 @@ const updateCommentsStatus = (comments) =>
 		return c.Status !== Status? {...c, Status}: c;
 	});
 
-export const loadComments = (ballotId) =>
+export const loadComments = (ballot_id) =>
 	async (dispatch, getState) => {
-		dispatch(setBallotId({ballotId}));
 		dispatch(getPending());
+		const url = `/api/comments/${ballot_id}`;
 		let response;
 		try {
-			response = await fetcher.get(`/api/comments/${ballotId}`);
+			response = await fetcher.get(url);
 			if (!Array.isArray(response))
-				throw new TypeError("Unexpected response to GET: /api/comments");
+				throw new TypeError("Unexpected response to GET: " + url);
 		}
 		catch(error) {
 			await Promise.all([
@@ -140,18 +141,25 @@ export const loadComments = (ballotId) =>
 			return;
 		}
 		await dispatch(getSuccess(updateCommentsStatus(response)));
+		await dispatch(setDetails({ballot_id}));
 	}
 
-export const updateComments = (ids, changes) =>
+export const clearComments = () =>
+	async (dispatch) => {
+		await dispatch(removeAll);
+		await dispatch(setDetails({ballot_id: 0}));
+	}
+
+export const updateComments = (updates) =>
 	async (dispatch, getState) => {
 		let response;
 		try {
-			response = await fetcher.put(`/api/comments`, {ids, changes});
+			response = await fetcher.patch(`/api/comments`, updates);
 			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments))
-				throw new TypeError("Unexpected response to PUT: /api/comments")
+				throw new TypeError("Unexpected response to PATCH: /api/comments")
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to update comment${ids.length > 1? 's': ''}`, error));
+			await dispatch(setError(`Unable to update comment${updates.length > 1? 's': ''}`, error));
 			return;
 		}
 		await dispatch(updateMany(getCommentUpdates(getState()[dataSet], response.comments)));
@@ -182,27 +190,27 @@ export const uploadComments = (ballotId, type, file) =>
 		]);
 	}
 
-export const setStartCommentId = (ballotId, startCommentId) =>
+export const setStartCommentId = (ballot_id, startCommentId) =>
 	async (dispatch) => {
-		dispatch(updatePending({ballotId}));
-		const url = `/api/comments/startCommentId/${ballotId}`;
+		dispatch(updatePending());
+		const url = `/api/comments/${ballot_id}/startCommentId`;
 		let response;
 		try {
 			response = await fetcher.patch(url, {StartCommentID: startCommentId});
 			if (!Array.isArray(response))
-				throw new TypeError("Unexpected response to PATCH: /api/comments")
+				throw new TypeError("Unexpected response to PATCH: " + url)
 		}
 		catch(error) {
 			await Promise.all([
-				dispatch(updateFailure({ballotId})),
-				dispatch(setError(`Unable to start CID for ${ballotId}`, error))
+				dispatch(updateFailure()),
+				dispatch(setError("Unable to set start CID", error))
 			]);
 			return;
 		}
 		await Promise.all([
 			dispatch(setSelected(dataSet, [])),
 			dispatch(setExpanded(dataSet, [])),
-			dispatch(getSuccess({ballotId, comments: response}))
+			dispatch(getSuccess(response.comments))
 		]);
 	}
 
@@ -306,7 +314,7 @@ export const MatchUpdate = {
 	Add: 'add'
 };
 
-export const uploadResolutions = (ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, file) =>
+export const uploadResolutions = (ballot_id, toUpdate, matchAlgorithm, matchUpdate, sheetName, file) =>
 	async (dispatch) => {
 		const params = {
 			params: JSON.stringify({
@@ -319,16 +327,16 @@ export const uploadResolutions = (ballotId, toUpdate, matchAlgorithm, matchUpdat
 		}
 		let response;
 		try {
-			response = await fetcher.postMultipart(`/api/resolutions/upload/${ballotId}`, params);
+			response = await fetcher.postMultipart(`/api/resolutions/${ballot_id}/upload`, params);
 		}
 		catch (error) {
-			await dispatch(setError(`Unable to upload resolutions for ballot ${ballotId}`, error));
+			await dispatch(setError("Unable to upload resolutions", error));
 			return;
 		}
 		const {comments, ballot, matched, unmatched, added, remaining, updated} = response;
 		await Promise.all([
-			dispatch(setBallotId(ballotId)),
 			dispatch(getSuccess(updateCommentsStatus(response.comments))),
+			dispatch(setDetails({ballot_id})),
 			dispatch(updateBallotSuccess(ballot.id, ballot))
 		]);
 		return {matched, unmatched, added, remaining, updated};
@@ -346,16 +354,21 @@ export const CommentsSpreadsheetStyle = {
 	TabPerCommentGroup: 'TabPerCommentGroup'
 };
 
-export const exportCommentsSpreadsheet = (ballotId, file, format, style) =>
+export const exportCommentsSpreadsheet = (ballot_id, file, format, style) =>
 	async (dispatch) => {
 		try {
 			let Filename;
 			if (file)
 				Filename = file.name;
-			const url = '/api/comments/export/' + format;
-			await fetcher.postForFile(url, {BallotID: ballotId, Filename, Style: style}, file);
+			const url = `/api/comments/${ballot_id}/export/` + format;
+			await fetcher.postForFile(url, {Filename, Style: style}, file);
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to export comments for ${ballotId}`, error));
+			await dispatch(setError("Unable to export comments", error));
 		}
 	}
+
+/*
+ * Selectors
+ */
+export const getCommentsDataSet = (state) => state[dataSet];

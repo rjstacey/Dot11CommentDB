@@ -1,17 +1,16 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import {Form, Row, Col, Field, List, ListItem, Input, Checkbox} from 'dot11-components/general/Form'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch} from 'react-redux';
 
-import {AppModal} from 'dot11-components/modals'
-import {votersFromSpreadsheet, votersFromMembersSnapshot} from '../store/voters'
+import {Form, Row, Col, Field, List, ListItem, Input, Checkbox} from 'dot11-components/form';
+import {AppModal} from 'dot11-components/modals';
+
+import {votersFromSpreadsheet, votersFromMembersSnapshot} from '../store/voters';
 
 function VotersPoolAddModal({
 	isOpen,
 	close,
 	onSubmit,
-	votersFromSpreadsheet,
-	votersFromMembersSnapshot
 }) {
 	const [votingPoolId, setVotingPoolId] = React.useState('');
 	const [source, setSource] = React.useState('members');
@@ -19,7 +18,8 @@ function VotersPoolAddModal({
 	const [errMsg, setErrMsg] = React.useState('');
 	const fileRef = React.useRef();
 	const file = (fileRef.current && fileRef.current.files)? fileRef.current.files[0]: '';
-	console.log(snapshotDate)
+
+	const dispatch = useDispatch();
 
 	// Reset votingPool data to default on each open
 	const onOpen = () => setVotingPoolId('');
@@ -27,12 +27,12 @@ function VotersPoolAddModal({
 	async function submit() {
 		if (!votingPoolId) {
 			setErrMsg('Voter pool must have a name');
-			return
+			return;
 		}
-		if (source === 'members')
-			await votersFromMembersSnapshot(votingPoolId, snapshotDate);
-		else if (source === 'spreadsheet')
-			await votersFromSpreadsheet(votingPoolId, file);
+		await dispatch(source === 'members'?
+			votersFromMembersSnapshot(votingPoolId, snapshotDate)
+			:votersFromSpreadsheet(votingPoolId, file)
+		);
 		onSubmit(votingPoolId);
 	}
 
@@ -103,11 +103,6 @@ VotersPoolAddModal.propTypes = {
 	isOpen: PropTypes.bool.isRequired,
 	close: PropTypes.func.isRequired,
 	onSubmit: PropTypes.func.isRequired,
-	votersFromSpreadsheet: PropTypes.func.isRequired,
-	votersFromMembersSnapshot: PropTypes.func.isRequired,
 }
 
-export default connect(
-	null,
-	{votersFromSpreadsheet, votersFromMembersSnapshot}
-)(VotersPoolAddModal)
+export default VotersPoolAddModal;

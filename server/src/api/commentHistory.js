@@ -1,14 +1,14 @@
 /*
  * Comments History API
  */
-import {getCommentsHistory} from '../services/commentsHistory';
+import {getCommentHistory} from '../services/commentHistory';
 
 const router = require('express').Router();
 
-router.get('/commentsHistory/:comment_id', async (req, res, next) => {
+router.get('/:comment_id', async (req, res, next) => {
 	try {
 		const {comment_id} = req.params
-		const data = await getCommentsHistory(comment_id);
+		const data = await getCommentHistory(comment_id);
 		res.json(data)
 	}
 	catch(err) {next(err)}

@@ -13,51 +13,72 @@ import {
 	getTelecons,
 	updateTelecons,
 	addTelecons,
-	deleteTelecons
+	deleteTelecons,
+	syncTeleconsWithWebex,
+	syncTeleconsWithCalendar
 } from '../services/telecons'
 
 const router = require('express').Router();
 
-router.get('/:group', async (req, res, next) => {
+router.get('/:group?', async (req, res, next) => {
 	try {
 		const {group} = req.params;
-		const data = await getTelecons(group);
+		const data = await getTelecons({group});
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.patch('/', async (req, res, next) => {
+router.patch('/$', async (req, res, next) => {
 	try {
-		const {user} = req;
 		const updates = req.body;
 		if (!Array.isArray(updates))
 			throw 'Missing or bad body; expected array';
-		const data = await updateTelecons(user, updates);
+		const data = await updateTelecons(updates);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.post('/', async (req, res, next) => {
+router.patch('/syncWebex$', async (req, res, next) => {
 	try {
-		const {user} = req;
-		const telecons = req.body;
-		if (!Array.isArray(telecons))
-			throw 'Missing or bad body; expected array';
-		const data = await addTelecons(user, telecons);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.delete('/', async (req, res, next) => {
-	try {
-		const {user} = req;
 		const ids = req.body;
 		if (!Array.isArray(ids))
 			throw 'Missing or bad body; expected array';
-		const data = await deleteTelecons(user, ids);
+		const data = await syncTeleconsWithWebex(ids);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.patch('/syncCalendar$', async (req, res, next) => {
+	try {
+		const ids = req.body;
+		if (!Array.isArray(ids))
+			throw 'Missing or bad body; expected array';
+		const data = await syncTeleconsWithCalendar(ids);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.post('/$', async (req, res, next) => {
+	try {
+		const telecons = req.body;
+		if (!Array.isArray(telecons))
+			throw 'Missing or bad body; expected array';
+		const data = await addTelecons(telecons);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.delete('/$', async (req, res, next) => {
+	try {
+		const ids = req.body;
+		if (!Array.isArray(ids))
+			throw 'Missing or bad body; expected array';
+		const data = await deleteTelecons(ids);
 		res.json(data);
 	}
 	catch(err) {next(err)}

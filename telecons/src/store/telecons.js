@@ -2,12 +2,17 @@ import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 import {displayDate} from 'dot11-components/lib';
+import {DateTime} from 'luxon';
 
 export const fields = {
 	group: {label: 'Group'},
 	subgroup: {label: 'Subgroup'},
 	start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
 	end: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
+	day: {label: 'Day', getField: (rowData) => DateTime.fromISO(rowData.start, {zone: rowData.timezone}).weekdayShort},
+	date: {label: 'Date', getField: (rowData) => DateTime.fromISO(rowData.start, {zone: rowData.timezone}).toFormat('yyyy LLL dd')},
+	time: {label: 'Time', getField: (rowData) => DateTime.fromISO(rowData.start, {zone: rowData.timezone}).toFormat('HH:mm')},
+	duration: {label: 'Duration', getField: (rowData) => DateTime.fromISO(rowData.end).diff(DateTime.fromISO(rowData.start), 'hours').hours},
 	hasMotions: {label: 'Motions'},
 	webex_id: {label: 'Webex account'},
 };
@@ -84,10 +89,11 @@ export const addTelecons = (telecons) =>
 				throw new TypeError('Unexpected response to POST: /api/telecons');
 		}
 		catch(error) {
-			await dispatch(setError('Unable to add telecons', error));
+			await dispatch(setError('Unable to add telecons:', error));
 			return;
 		}
-		dispatch(addMany(newTelecons));
+		await dispatch(addMany(newTelecons));
+		return newTelecons.map(e => e.id);
 	}
 
 export const deleteTelecons = (ids) =>
@@ -100,6 +106,38 @@ export const deleteTelecons = (ids) =>
 			return;
 		}
 		await dispatch(removeMany(ids));
+	}
+
+export const syncTeleconsWithWebex = (ids) =>
+	async (dispatch) => {
+		let telecons;
+		try {
+			telecons = await fetcher.patch('/api/telecons/syncWebex', ids);
+			if (!Array.isArray(telecons))
+				throw new TypeError('Unexpected response');
+		}
+		catch(error) {
+			await dispatch(setError(`Unable to sync telecons ${ids}`, error));
+			return;
+		}
+		const updates = telecons.map(t => ({id: t.id, changes: t}));
+		await dispatch(updateMany(updates));
+	}
+
+export const syncTeleconsWithCalendar = (ids) =>
+	async (dispatch) => {
+		let telecons;
+		try {
+			telecons = await fetcher.patch('/api/telecons/syncCalendar', ids);
+			if (!Array.isArray(telecons))
+				throw new TypeError('Unexpected response');
+		}
+		catch(error) {
+			await dispatch(setError(`Unable to sync telecons ${ids}`, error));
+			return;
+		}
+		const updates = telecons.map(t => ({id: t.id, changes: t}));
+		await dispatch(updateMany(updates));
 	}
 
 /*
