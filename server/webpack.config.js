@@ -13,5 +13,14 @@ module.exports = {
 	optimization: {
 		minimize: false
 	},
-	mode: 'production'
+	mode: 'production',
+	module: {
+    rules: [
+      {
+        test: /\.mjs$/,
+        include: /node_modules/,
+        type: 'javascript/auto'
+      }
+    ]
+  	}
 };
