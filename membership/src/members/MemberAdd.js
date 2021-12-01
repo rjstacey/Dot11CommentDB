@@ -1,20 +1,20 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import {connect} from 'react-redux'
+import {useDispatch} from 'react-redux'
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
 import {Form, Row, Col, Field, Input, Checkbox} from 'dot11-components/general/Form'
 import AccessSelector from './AccessSelector'
 import StatusSelector from './StatusSelector'
 
-import {addMember, AccessLevel} from '../store/members'
+import {addMembers, AccessLevel} from '../store/members'
 
 const defaultMember = {SAPIN: '', Name: '', Email: '', Status: 'Non-Voter', Access: AccessLevel.Member}
 
-function _MemberAddForm({
+function MemberAddForm({
 	action,
-	addMember,
 	close
 }) {
+	const dispatch = useDispatch();
 	const [member, setMember] = React.useState(defaultMember);
 	const [errMsg, setErrMsg] = React.useState('');
 
@@ -27,7 +27,7 @@ function _MemberAddForm({
 			setErrMsg('Give the member a name');
 			return;
 		}
-		await addMember(member);
+		await dispatch(addMembers([member]));
 		close();
 	};
 
@@ -79,15 +79,9 @@ function _MemberAddForm({
 	)
 }
 
-_MemberAddForm.propTypes = {
-	close: PropTypes.func.isRequired,
-	addMember: PropTypes.func.isRequired,
+MemberAddForm.propTypes = {
+	close: PropTypes.func,
 }
-
-const MemberAddForm = connect(
-	null,
-	{addMember}
-)(_MemberAddForm)
 
 const MemberAdd = () =>
 	<ActionButtonDropdown

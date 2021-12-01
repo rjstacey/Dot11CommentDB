@@ -197,3 +197,8 @@ export const loadTimeZones = () =>
 	}
 
 export const setSessionsUiProperty = (property, value) => slice.actions.setProperty({property, value});
+
+/*
+ * Selectors
+ */
+export const getSessionsDataSet = (state) => state[dataSet];

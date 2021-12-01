@@ -51,7 +51,7 @@ export function parseMeetingsPage(body) {
  * Parameters: n = number of entries to get
  */
 export async function getImatMeetings(user, n) {
-	//console.log(user)
+	console.log(user)
 
 	async function recursivePageGet(meetings, n, page) {
 		//console.log('get epolls n=', n)

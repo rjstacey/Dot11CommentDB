@@ -1,18 +1,16 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import {ActionButton} from 'dot11-components/icons'
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
-import {Form, Row, Col, Input, List, ListItem} from 'dot11-components/general/Form'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch} from 'react-redux';
 
-import {importMyProjectRoster, exportMyProjectRoster} from '../store/members'
+import {ActionButton} from 'dot11-components/icons';
+import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
+import {Form, Row, Col, Input, List, ListItem} from 'dot11-components/form';
 
-const StyledForm = styled(Form)`
-	width: 400px;
-`;
+import {importMyProjectRoster, exportMyProjectRoster} from '../store/members';
 
-function _RosterImportDropdown({importRoster, close}) {
+function RosterImportDropdown({close}) {
+
+	const dispatch = useDispatch();
 	const fileRef = React.useRef();
 	const [errMsg, setErrMsg] = React.useState('');
 	const [busy, setBusy] = React.useState(false);
@@ -24,13 +22,14 @@ function _RosterImportDropdown({importRoster, close}) {
 			return;
 		}
 		setBusy(true);
-		await importRoster(file);
+		await dispatch(importMyProjectRoster(file));
 		setBusy(false);
 		close();
 	}
 
 	return (
-		<StyledForm
+		<Form
+			style={{width: 400}}
 			title='Import roster'
 			errorText={errMsg}
 			submit={submit}
@@ -54,19 +53,13 @@ function _RosterImportDropdown({importRoster, close}) {
 					/>
 				</Col>
 			</Row>
-		</StyledForm>
+		</Form>
 	)
 }
 
-_RosterImportDropdown.propTypes = {
-	importRoster: PropTypes.func.isRequired,
-	close: PropTypes.func.isRequired,
+RosterImportDropdown.propTypes = {
+	close: PropTypes.func,
 }
-
-const RosterImportDropdown = connect(
-	null,
-	{importRoster: importMyProjectRoster}
-)(_RosterImportDropdown);
 
 const RosterImport = () =>
 	<ActionButtonDropdown
@@ -76,16 +69,16 @@ const RosterImport = () =>
 		<RosterImportDropdown />
 	</ActionButtonDropdown>
 
-const _RosterExport = ({exportRoster}) =>
-	<ActionButton
-		name='export'
-		title='Export roster'
-		onClick={exportRoster}
-	/>
+function RosterExport() {
+	const dispatch = useDispatch();
 
-const RosterExport = connect(
-	null,
-	{exportRoster: exportMyProjectRoster}
-)(_RosterExport);
+	return (
+		<ActionButton
+			name='export'
+			title='Export roster'
+			onClick={() => dispatch(exportMyProjectRoster())}
+		/>
+	)
+}
 
 export {RosterImport, RosterExport};

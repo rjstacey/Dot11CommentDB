@@ -1,12 +1,15 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
-import {Form, Row, Col, Input, List, ListItem} from 'dot11-components/general/Form'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch} from 'react-redux';
 
-import {uploadMembers, UploadFormat} from '../store/members'
+import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
+import {Form, Row, Col, Input, List, ListItem} from 'dot11-components/form';
 
-function _MembersUploadForm({upload, close}) {
+import {uploadMembers, UploadFormat} from '../store/members';
+
+function MembersUploadForm({close}) {
+
+	const dispatch = useDispatch();
 	const fileRef = React.useRef();
 	const [errMsg, setErrMsg] = React.useState('');
 	const [format, setFormat] = React.useState(UploadFormat.Roster);
@@ -19,7 +22,7 @@ function _MembersUploadForm({upload, close}) {
 			return;
 		}
 		setBusy(true);
-		await upload(format, file)
+		await dispatch(uploadMembers(format, file));
 		setBusy(false);
 		close();
 	}
@@ -107,15 +110,9 @@ function _MembersUploadForm({upload, close}) {
 	)
 }
 
-_MembersUploadForm.propTypes = {
-	upload: PropTypes.func.isRequired,
-	close: PropTypes.func.isRequired,
+MembersUploadForm.propTypes = {
+	close: PropTypes.func,
 }
-
-const MembersUploadForm = connect(
-	null,
-	{upload: uploadMembers}
-)(_MembersUploadForm)
 
 const MembersUpload = () =>
 	<ActionButtonDropdown

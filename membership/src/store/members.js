@@ -50,7 +50,7 @@ const {
 	getFailure,
 	updateOne,
 	updateMany,
-	addOne,
+	addMany,
 	upsertMany,
 	removeMany
 } = slice.actions;
@@ -76,29 +76,12 @@ export const loadMembers = () =>
 		await dispatch(getSuccess(response));
 	}
 
-export const updateMember = (sapin, changes) =>
-	async (dispatch) => {
-		dispatch(updateOne({id: sapin, changes}));
-		const url = `/api/member/${sapin}`;
-		let response;
-		try {
-			response = await fetcher.patch(url, changes);
-			if (typeof response !== 'object')
-				throw new TypeError('Unexpected response to PATCH: ' + url);
-		}
-		catch(error) {
-			await dispatch(setError('Unable to update member', error));
-			return;
-		}
-		await dispatch(updateOne({id: sapin, changes: response}));
-	}
-
-export const updateMembers = (members) =>
+export const updateMembers = (updates) =>
 	async (dispatch) => {
 		const url = `/api/members`;
 		let response;
 		try {
-			response = await fetcher.patch(url, members);
+			response = await fetcher.patch(url, updates);
 			if (!Array.isArray(response))
 				throw new TypeError('Unexpected response to PATCH: ' + url);
 		}
@@ -106,13 +89,13 @@ export const updateMembers = (members) =>
 			await dispatch(setError('Unable to update members', error));
 			return;
 		}
-		const updates = response.map(m => ({id: m.SAPIN, changes: m}));
-		await dispatch(updateMany(updates));
+		const asUpdated = response.map(m => ({id: m.SAPIN, changes: m}));
+		await dispatch(updateMany(asUpdated));
 	}
 
 export const updateMemberStatusChange = (sapin, statusChangeEntry) =>
 	async (dispatch, getState) => {
-		const url = `/api/member/${sapin}/StatusChangeHistory`;
+		const url = `/api/members/${sapin}/StatusChangeHistory`;
 		let response;
 		try {
 			response = await fetcher.patch(url, statusChangeEntry);
@@ -128,7 +111,7 @@ export const updateMemberStatusChange = (sapin, statusChangeEntry) =>
 
 export const deleteMemberStatusChange = (sapin, statusChangeId) =>
 	async (dispatch, getState) => {
-		const url = `/api/member/${sapin}/StatusChangeHistory`;
+		const url = `/api/members/${sapin}/StatusChangeHistory`;
 		let response;
 		try {
 			response = await fetcher.delete(url, {id: statusChangeId});
@@ -144,7 +127,7 @@ export const deleteMemberStatusChange = (sapin, statusChangeId) =>
 
 export const addMemberContactEmail = (sapin, entry) =>
 	async (dispatch, getState) => {
-		const url = `/api/member/${sapin}/ContactEmails`;
+		const url = `/api/members/${sapin}/ContactEmails`;
 		let response;
 		try {
 			response = await fetcher.post(url, entry);
@@ -160,7 +143,7 @@ export const addMemberContactEmail = (sapin, entry) =>
 
 export const updateMemberContactEmail = (sapin, entry) =>
 	async (dispatch, getState) => {
-		const url = `/api/member/${sapin}/ContactEmails`;
+		const url = `/api/members/${sapin}/ContactEmails`;
 		let response;
 		try {
 			response = await fetcher.patch(url, entry);
@@ -176,7 +159,7 @@ export const updateMemberContactEmail = (sapin, entry) =>
 
 export const deleteMemberContactEmail = (sapin, id) =>
 	async (dispatch, getState) => {
-		const url = `/api/member/${sapin}/ContactEmails`;
+		const url = `/api/members/${sapin}/ContactEmails`;
 		let response;
 		try {
 			response = await fetcher.delete(url, {id});
@@ -190,26 +173,26 @@ export const deleteMemberContactEmail = (sapin, id) =>
 		await dispatch(updateOne({id: sapin, changes: response}));
 	}
 
-export const addMember = (member) =>
+export const addMembers = (members) =>
 	async (dispatch) => {
 		let response;
 		try {
-			response = await fetcher.post('/api/member', {member});
-			if (typeof response !== 'object')
-				throw new TypeError("Unexpected response to POST: /api/member");
+			response = await fetcher.post('/api/members', members);
+			if (!Array.isArray(response))
+				throw new TypeError("Unexpected response to POST: /api/members");
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to add member SAPIN=${member.SAPIN}`, error));
+			await dispatch(setError('Unable to add members', error));
 			return;
 		}
-		await dispatch(addOne(response));
+		await dispatch(addMany(response));
 	}
 
 export const upsertMembers = (members) =>
 	async (dispatch) => {
 		let response;
 		try {
-			response = await fetcher.post('/api/members', {members})
+			response = await fetcher.put('/api/members', {members})
 			if (!Array.isArray(response))
 				throw new TypeError("Unexpected response to POST: /api/members")
 		}
@@ -297,4 +280,7 @@ export const importMyProjectRoster = (file) =>
 		await dispatch(getSuccess(response));
 	}
 
-export const setMemberUiProperty = (property, value) => slice.actions.setProperty({property, value});
+/*
+ * Selectors
+ */
+export const getMembersDataSet = (state) => state[dataSet];

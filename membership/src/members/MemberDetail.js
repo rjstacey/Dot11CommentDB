@@ -7,7 +7,7 @@ import {ConfirmModal} from 'dot11-components/modals'
 import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/general/Form'
 import {IconCollapse, ActionButton, Icon} from 'dot11-components/icons'
 import {
-	updateMember, 
+	updateMembers, 
 	deleteMembers, 
 	updateMemberStatusChange,
 	deleteMemberStatusChange,
@@ -692,10 +692,10 @@ class MemberDetail extends React.Component {
 		const updates = [];
 		for (const m of originals) {
 			if (Object.keys(d).length > 0)
-				updates.push({...d, SAPIN: m.SAPIN});
+				updates.push({id: m.SAPIN, changes: d});
 		}
 		if (updates.length > 0)
-			updates.forEach(u => this.props.updateMember(u.SAPIN, u));
+			this.props.updateMembers(updates);
 		this.setState(state => ({...state, saved: edited}));
 	}
 
@@ -773,7 +773,7 @@ class MemberDetail extends React.Component {
 		ballotsValid: PropTypes.bool.isRequired,
 		ballots: PropTypes.object.isRequired,
 		uiProperties: PropTypes.object.isRequired,
-		updateMember: PropTypes.func.isRequired,
+		updateMembers: PropTypes.func.isRequired,
 		updateMemberStatusChange: PropTypes.func.isRequired,
 		deleteMemberStatusChange: PropTypes.func.isRequired,
 		loadBallots: PropTypes.func.isRequired,
@@ -799,7 +799,7 @@ const ConnectedMemberDetail = connect(
 		}
 	},
 	{
-		updateMember,
+		updateMembers,
 		updateMemberStatusChange,
 		deleteMemberStatusChange,
 		addMemberContactEmail,
@@ -807,7 +807,7 @@ const ConnectedMemberDetail = connect(
 		deleteMemberContactEmail,
 		loadBallots,
 		loadSessions,
-		setUiProperty: setMemberUiProperty,
+		setUiProperty: (property, value) => setProperty(dataSet, property, value),
 	}
 )(MemberDetail);
 

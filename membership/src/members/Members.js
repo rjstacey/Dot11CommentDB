@@ -1,9 +1,9 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import {useHistory} from "react-router-dom"
-import copyToClipboard from 'copy-html-to-clipboard'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+import {useHistory} from "react-router-dom";
+import copyToClipboard from 'copy-html-to-clipboard';
 
 import AppTable, {SelectHeader, SelectCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, IdFilter, SplitPanel, Panel} from 'dot11-components/table'
 import {ConfirmModal} from 'dot11-components/modals'
@@ -19,8 +19,8 @@ import MembersSummary from './MembersSummary'
 import MemberDetail from './MemberDetail'
 import {RosterImport, RosterExport} from './Roster'
 
-import {fields, loadMembers, deleteSelectedMembers, AccessLevel, AccessLevelOptions} from '../store/members'
-import {loadSessions} from '../store/sessions'
+import {fields, loadMembers, deleteSelectedMembers, getMembersDataSet, AccessLevel, AccessLevelOptions} from '../store/members';
+import {loadSessions, getSessionsDataSet} from '../store/sessions';
 
 const dataSet = 'members';
 
@@ -117,7 +117,8 @@ const AttendanceContainer = styled.div`
 	}
 `;
 
-const _Attendances = ({rowData, dataKey, sessions}) => {
+function Attendances({rowData, dataKey}) {
+	const {entities: sessions} = useSelector(getSessionsDataSet);
 	const attendances = rowData.Attendances || [];
 
 	// Sort by session date (newest fist)
@@ -162,8 +163,6 @@ const _Attendances = ({rowData, dataKey, sessions}) => {
 		<AttendanceContainer><div>I:</div>{I}</AttendanceContainer>
 	</>
 }
-
-const Attendances = connect((state) => ({sessions: state.sessions.entities}))(_Attendances);
 
 const BallotSeriesParticipation = ({rowData, dataKey}) => `${rowData.BallotSeriesCount}/${rowData.BallotSeriesTotal}`;
 
@@ -260,31 +259,27 @@ const ButtonGroup = styled.div`
 	margin: 0 5px;
 `;
 
-function Members({
-	selected,
-	loading,
-	members,
-	validMembers,
-	loadMembers,
-	validSessions,
-	loadSessions,
-	deleteSelectedMembers,
-	uiProperty,
-	setUiProperty
-}) {
+function Members() {
+
+	const dispatch = useDispatch();
 	const [statusChangeReason, setStatusChangeReason] = React.useState('');
+	const {selected, entities: members, valid, loading, ui: uiProperty} = useSelector(getMembersDataSet);
+	const {valid: validSessions} = useSelector(getSessionsDataSet);
+
+	const load = React.useCallback(() => dispatch(loadMembers()), [dispatch]);
+	const setUiProperty = React.useCallback((property, value) => dispatch(setProperty(dataSet, property, value)), [dispatch]);
 
 	React.useEffect(() => {
-		if (!validMembers)
-			loadMembers();
+		if (!valid)
+			load();
 		if (!validSessions)
-			loadSessions();
+			dispatch(loadSessions());
 	}, []);
 
 	const handleRemoveSelected = async () => {
 		const ok = await ConfirmModal.show('Are you sure you want to delete the selected members?');
 		if (ok)
-			await deleteSelectedMembers();
+			await dispatch(deleteSelectedMembers());
 	}
 
 	return <>
@@ -321,7 +316,7 @@ function Members({
 						<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
 					</div>
 				</ButtonGroup>
-				<ActionButton name='refresh' title='Refresh' onClick={loadMembers} />
+				<ActionButton name='refresh' title='Refresh' onClick={load} />
 			</div>
 		</TopRow>
 
@@ -342,41 +337,11 @@ function Members({
 			</Panel>
 			<Panel style={{overflow: 'auto'}}>
 				<MemberDetail
-					key={selected}
+					key={selected.join()}
 				/>
 			</Panel>
 		</SplitPanel>
 	</>
 }
 
-Members.propTypes = {
-	selected: PropTypes.array.isRequired,
-	members: PropTypes.object.isRequired,
-	validMembers: PropTypes.bool.isRequired,
-	validSessions: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	uiProperty: PropTypes.object.isRequired,
-	loadMembers: PropTypes.func.isRequired,
-	loadSessions: PropTypes.func.isRequired,
-	deleteSelectedMembers: PropTypes.func.isRequired,
-	setUiProperty: PropTypes.func.isRequired,
-}
-
-export default connect(
-	(state) => {
-		return {
-			selected: state[dataSet].selected,
-			members: state[dataSet].entities,
-			validMembers: state[dataSet].valid,
-			validSessions: state.sessions.valid,
-			loading: state[dataSet].loading,
-			uiProperty: state[dataSet].ui
-		}
-	},
-	{
-		loadMembers,
-		loadSessions,
-		deleteSelectedMembers,
-		setUiProperty: (property, value) => setProperty(dataSet, property, value)
-	}
-)(Members);
+export default Members;

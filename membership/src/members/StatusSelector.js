@@ -1,8 +1,9 @@
-import React from 'react'
-import PropTypes from 'prop-types'
-import {Select} from 'dot11-components/general/Form'
+import PropTypes from 'prop-types';
+import React from 'react';
 
-import {StatusOptions} from '../store/members'
+import {Select} from 'dot11-components/form';
+
+import {StatusOptions} from '../store/members';
 
 function StatusSelector({
 	value,

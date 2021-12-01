@@ -57,8 +57,8 @@ export const loadAttendees = (session_id, breakout_id) =>
 			return;
 		dispatch(getPending());
 		const url = breakout_id?
-			`/api/session/${session_id}/breakout/${breakout_id}/attendees`:
-			`/api/session/${session_id}/attendees`;
+			`/api/sessions/${session_id}/breakout/${breakout_id}/attendees`:
+			`/api/sessions/${session_id}/attendees`;
 		let response;
 		try {
 			response = await fetcher.get(url);
@@ -105,14 +105,12 @@ export const importSelectedAttendees = () =>
 export const importAttendances = (session_id) =>
 	async (dispatch, state) => {
 		dispatch(getPending());
-		const url = `/api/session/${session_id}/attendance_summary/import`;
+		const url = `/api/sessions/${session_id}/attendance_summary/import`;
 		let response;
 		try {
 			response = await fetcher.post(url);
-			if (typeof response !== 'object' ||
-				!response.hasOwnProperty('session') ||
-				!response.hasOwnProperty('attendees') || Array.isArray(response.attendees))
-				throw new TypeError('Unexpected response to GET: ' + url);
+			if (typeof response !== 'object' ||	typeof response.session !== 'object' ||	!Array.isArray(response.attendees))
+				throw new TypeError('Unexpected response to POST: ' + url);
 		}
 		catch(error) {
 			await Promise.all([

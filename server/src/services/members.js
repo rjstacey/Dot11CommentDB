@@ -27,7 +27,7 @@ const moment = require('moment-timezone')
  */
 export async function getUsers(user) {
 	const SQL = db.format(
-		'SELECT SAPIN, Name, Status, Access FROM members ' +
+		'SELECT SAPIN, Name, Email, Status, Access FROM members ' +
 		'WHERE ' +
 			'Status="Aspirant" OR ' +
 			'Status="Potential Voter" OR ' +
@@ -297,7 +297,7 @@ function memberEntry(m) {
 	return entry;
 }
 
-export async function addMember(member) {
+async function addMember(member) {
 
 	const entry = memberEntry(member);
 	if (!entry.SAPIN)
@@ -306,6 +306,10 @@ export async function addMember(member) {
 	await db.query('INSERT INTO members (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]);
 
 	return await getMemberWithParticipation(entry.SAPIN);
+}
+
+export async function addMembers(members) {
+	return await Promise.all(members.map(addMember));
 }
 
 export async function updateMemberStatusChange(sapin, statusChangeEntry) {
@@ -419,8 +423,13 @@ export async function updateMember(sapin, changes) {
 	return getMemberWithParticipation(sapin);
 }
 
-export async function updateMembers(members) {
-	const newMembers = await Promise.all(members.map(m => updateMember(m.SAPIN, m)));
+export async function updateMembers(updates) {
+	// Validate request
+	for (const u of updates) {
+		if (typeof u !== 'object' || !u.id || typeof u.changes !== 'object')
+			throw 'Expected array of objects with shape {id, changes}'
+	}
+	const newMembers = await Promise.all(updates.map(u => updateMember(u.id, u.changes)));
 	return newMembers;
 }
 
@@ -484,9 +493,11 @@ export async function upsertMembers(attendees) {
 }
 
 export async function deleteMembers(ids) {
-	if (ids.length > 0)
-		await db.query('DELETE FROM members WHERE SAPIN IN (?)', [ids]);
-	return null;
+	if (ids.length > 0) {
+		const result = await db.query('DELETE FROM members WHERE SAPIN IN (?)', [ids]);
+		return result.affectedRows;
+	}
+	return 0;
 }
 
 

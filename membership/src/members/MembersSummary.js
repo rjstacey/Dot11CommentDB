@@ -1,8 +1,11 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import styled from '@emotion/styled'
-import {Handle, IconCollapse} from 'dot11-components/icons'
-import {connect} from 'react-redux'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+
+import {Handle, IconCollapse} from 'dot11-components/icons';
+
+import {getMembersDataSet} from '../store/members';
 
 function getMembersSummary(members) {
 	const s = {nv: 0, a: 0, pv: 0, v: 0, eo: 0}
@@ -44,8 +47,8 @@ const LabelValue = ({label, value}) =>  <LV><div>{label}</div><div>{value}</div>
 function MembersSummary({
 	className,
 	style,
-	members,
 }) {
+	const {entities: members} = useSelector(getMembersDataSet);
 	const [showSummary, setShowSummary] = React.useState(true);
 	const summary = getMembersSummary(members);
 
@@ -63,10 +66,4 @@ function MembersSummary({
 	)
 }
 
-MembersSummary.propTypes = {
-	members: PropTypes.object.isRequired,
-}
-
-export default connect(
-	(state) => ({members: state.members.entities})
-)(MembersSummary);
+export default MembersSummary;

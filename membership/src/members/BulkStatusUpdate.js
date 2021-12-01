@@ -1,31 +1,30 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
-import {Form, Row, Col, Field, Input, Checkbox} from 'dot11-components/general/Form'
-import AccessSelector from './AccessSelector'
-import StatusSelector from './StatusSelector'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch, useSelector} from 'react-redux';
 
-import {updateMembers} from '../store/members'
+import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
+import {Form, Row, Col, Field, Input, Checkbox} from 'dot11-components/form';
+import AccessSelector from './AccessSelector';
+import StatusSelector from './StatusSelector';
 
-function _BulkStatusUpdateForm({
-	members,
-	selected,
-	updateMembers,
-	close
-}) {
+import {updateMembers, getMembersDataSet} from '../store/members';
+
+function BulkStatusUpdateForm({close}) {
+
+	const dispatch = useDispatch();
+	const {selected, entities: members} = useSelector(getMembersDataSet);
 	const [statusChangeReason, setStatusChangeReason] = React.useState('');
 	const [busy, setBusy] = React.useState(false);
 
 	const submit = async () => {
 		const updates = [];
-		for (const sapin of selected) {
-			const m = members[sapin];
+		for (const id of selected) {
+			const m = members[id];
 			if (m.NewStatus)
-				updates.push({SAPIN: sapin, Status: m.NewStatus, StatusChangeReason: statusChangeReason})
+				updates.push({id, changes: {Status: m.NewStatus, StatusChangeReason: statusChangeReason}});
 		}
 		setBusy(true);
-		await updateMembers(updates);
+		await dispatch(updateMembers(updates));
 		setBusy(false);
 		close();
 	}
@@ -53,23 +52,9 @@ function _BulkStatusUpdateForm({
 	)
 }
 
-_BulkStatusUpdateForm.propTypes = {
-	close: PropTypes.func.isRequired,
-	selected: PropTypes.array.isRequired,
-	members: PropTypes.object.isRequired,
-	updateMembers: PropTypes.func.isRequired,
+BulkStatusUpdateForm.propTypes = {
+	close: PropTypes.func
 }
-
-const dataSet = 'members';
-const BulkStatusUpdateForm = connect(
-	(state) => {
-		return {
-			selected: state[dataSet].selected,
-			members: state[dataSet].entities,
-		}
-	},
-	{updateMembers}
-)(_BulkStatusUpdateForm)
 
 const BulkStatusUpdate = () =>
 	<ActionButtonDropdown
