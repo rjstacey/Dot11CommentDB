@@ -309,7 +309,7 @@ function Comments({access}) {
 	const {ballotId} = useParams();
 
 	const {valid, loading, ballot: commentsBallot, ui: uiProperty, selected} = useSelector(getCommentsDataSet);
-	const {valid: ballotsValid, loading: ballotsLoading, entities: ballotEntities} = useSelector(getBallotsDataSet);
+	const {valid: ballotsValid, entities: ballotEntities} = useSelector(getBallotsDataSet);
 	const currentBallot = useSelector(getCurrentBallot);
 	const {valid: usersValid, loading: usersLoading} = useSelector(getUsersDataSet);
 
@@ -319,7 +319,7 @@ function Comments({access}) {
 	const setUiProperty = (property, value) => dispatch(setProperty(dataSet, property, value));
 
 	React.useEffect(() => {
-		if (!ballotsValid && !ballotsLoading)
+		if (!ballotsValid)
 			dispatch(loadBallots());
 	}, []);
 

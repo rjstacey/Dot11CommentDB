@@ -64,6 +64,20 @@ const slice = createAppTableDataSlice({
 			state.ballot_id = ballot_id;
 		},
 	},
+	extraReducers: (builder, dataAdapter) => {
+		builder
+		.addMatcher(
+			(action) => action.type === 'ballots/setCurrentId',
+			(state, action) => {
+				const id = action.payload;
+				if (state.ballot_id !== id) {
+					state.valid = false;
+					state.ballot_id = 0;
+					dataAdapter.removeAll(state);
+				}
+			}
+		)
+	}
 });
 
 /*
@@ -134,6 +148,8 @@ export const loadComments = (ballot_id) =>
 				throw new TypeError("Unexpected response to GET: " + url);
 		}
 		catch(error) {
+			const ballot = getState()[dataSet].entities[ballot_id];
+			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
 			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError(`Unable to get comments for ${ballotId}`, error))
@@ -355,7 +371,7 @@ export const CommentsSpreadsheetStyle = {
 };
 
 export const exportCommentsSpreadsheet = (ballot_id, file, format, style) =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
 		try {
 			let Filename;
 			if (file)
@@ -364,7 +380,9 @@ export const exportCommentsSpreadsheet = (ballot_id, file, format, style) =>
 			await fetcher.postForFile(url, {Filename, Style: style}, file);
 		}
 		catch(error) {
-			await dispatch(setError("Unable to export comments", error));
+			const ballot = getState()[dataSet].entities[ballot_id];
+			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
+			await dispatch(setError(`Unable to export comments for ${ballotId}`, error));
 		}
 	}
 

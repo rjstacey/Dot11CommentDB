@@ -83,7 +83,7 @@ const slice = createAppTableDataSlice({
 			(state, action) => {
 				if (state.currentId) {
 					if (state.ids.includes(state.currentId)) {
-						state.currentProject = state.entities[state.currentId];
+						state.currentProject = state.entities[state.currentId].Project;
 					}
 					else {
 						state.currentId = 0;

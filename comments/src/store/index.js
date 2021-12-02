@@ -1,19 +1,23 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit'
-import { createLogger } from 'redux-logger'
-import thunk from 'redux-thunk'
-import errMsg from 'dot11-components/store/error'
+import thunk from 'redux-thunk';
+import { createLogger } from 'redux-logger';
+import { persistStore, persistReducer } from 'redux-persist';
+import storage from 'redux-persist/lib/storage'; // defaults to localStorage for web
 
-import comments from './comments'
-import commentsHistory from './commentsHistory'
-import users from './users'
-import ballots from './ballots'
-import results from './results'
+import {version} from '../../package.json';
+
+import users from './users';
+import ballots from './ballots';
+import comments from './comments';
+import commentsHistory from './commentsHistory';
+import results from './results';
+import errMsg from 'dot11-components/store/error';
 
 const reducer = combineReducers({
-	comments,
-	commentsHistory,
 	users,
 	ballots,
+	comments,
+	commentsHistory,
 	results,
 	errMsg
 });
@@ -22,9 +26,19 @@ const middleware = [thunk];
 if (process.env.NODE_ENV !== 'production')
 	middleware.push(createLogger({collapsed: true}));
 
-// enable devTool only with development
-const devTools = process.env.NODE_ENV !== 'production';
+const persistConfig = {
+	key: 'root',
+	version: 1,
+	storage,
+	blacklist: ['errMsg', 'commentsHistory']
+};
 
-const store = configureStore({reducer, middleware, devTools});
+const store = configureStore({
+	reducer: persistReducer(persistConfig, reducer),
+	//middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware),
+	middleware
+});
 
-export default store;
+const persistor = persistStore(store);
+
+export {store, persistor} 

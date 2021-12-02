@@ -571,7 +571,7 @@ function genWorksheet(sheet, columns, ballotId, doc, comments) {
 
 	addResolutionFormatting(sheet, columns, n);
 
-	addStatus(sheet, columns, n);
+	//addStatus(sheet, columns, n);
 
 	// Enable auto filter on heading row
 	sheet.autoFilter = {from: {row: 1, column: 1}, to: {row: 1, column: Object.keys(columns).length}};

@@ -32,6 +32,19 @@ const slice = createAppTableDataSlice({
 			state.votingPoolSize = votingPoolSize;
 		},
 	},
+	extraReducers: (builder, dataAdapter) => {
+		builder
+		.addMatcher(
+			(action) => action.type === 'ballots/setCurrentId',
+			(state, action) => {
+				const id = action.payload;
+				if (state.ballot.id !== id) {
+					state.valid = false;
+					dataAdapter.removeAll(state);
+				}
+			}
+		)
+	}
 });
 
 /*
@@ -55,9 +68,11 @@ export const loadResults = (ballot_id) =>
 				throw new TypeError('Unexpected response to GET: ' + url);
 		}
 		catch(error) {
+			const ballot = getState()[dataSet].entities[ballot_id];
+			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
 			await Promise.all([
 				dispatch(getFailure()),
-				dispatch(setError('Unable to get results list', error))
+				dispatch(setError(`Unable to get results list for ${ballotId}`, error))
 			]);
 			return;
 		}
@@ -89,7 +104,8 @@ export const exportResultsForBallot  = (ballot_id) =>
 		}
 		catch (error) {
 			const ballot = getState()[dataSet].entities[ballot_id];
-			dispatch(setError(`Unable to export results for ${ballot.BallotID}`, error));
+			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
+			dispatch(setError(`Unable to export results for ${ballotId}`, error));
 		}
 	}
 

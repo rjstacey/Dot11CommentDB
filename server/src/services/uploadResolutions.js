@@ -3,7 +3,7 @@
 const db = require('../util/database');
 
 import {parseCommentsSpreadsheet} from './commentsSpreadsheet'
-import {getComments, GET_COMMENTS_SUMMARY_SQL} from './comments'
+import {getComments, getCommentsSummary} from './comments'
 
 const matchClause = (dbValue, sValue) => {
 	if (dbValue === sValue)
@@ -256,7 +256,7 @@ function resolutionUpdate(toUpdate, c, cs) {
 	return Object.keys(n).length? n: null;
 }
 
-function updateCommentsSQL(userId, ballotId, matched, toUpdate) {
+async function updateComments(userId, ballot_id, matched, toUpdate) {
 
 	// See if any of the comment fields need updating
 	let updateComments = [],
@@ -287,7 +287,7 @@ function updateCommentsSQL(userId, ballotId, matched, toUpdate) {
 			count++;
 	});
 
-	console.log('comments updated: ', updateComments.length, 'resolutions updated: ', updateResolutions.length, 'new resolutions: ', newResolutions.length);
+	//console.log('comments updated: ', updateComments.length, 'resolutions updated: ', updateResolutions.length, 'new resolutions: ', newResolutions.length);
 
 	let SQL = '';
 
@@ -314,7 +314,7 @@ function updateCommentsSQL(userId, ballotId, matched, toUpdate) {
 	/* A single insert statement with 'duplicate on key update' is slightly faster than individual update statements.
 	 * But, as an insert, it is logged as an 'add'. And has side effects like failing if there is an unset column
 	 * without a default value. */
-	/*
+/*
 	let kvPairs = {};
 	updateComments.forEach(c => {
 		c.LastModifiedBy = userId;
@@ -348,7 +348,7 @@ function updateCommentsSQL(userId, ballotId, matched, toUpdate) {
 			K.map(k => `${k}=VALUES(${k})`).join(', ') + ', LastModifiedTime=VALUES(LastModifiedTime)' +
 			';'
 	}
-	*/
+*/
 
 	/* A single insert statement is much faster than individual insert statements. */
 	let kvPairs = {};
@@ -364,12 +364,15 @@ function updateCommentsSQL(userId, ballotId, matched, toUpdate) {
 			values.map(v => `(${v}, NOW())`).join(',') +
 			';'
 	}
-	console.log(SQL)
 
-	return [SQL, count];
+	//console.log(SQL)
+	if (SQL)
+		await db.query(SQL);
+
+	return count;
 }
 
-function addCommentsSQL(userId, ballotId, sheetComments, toUpdate) {
+async function addComments(userId, ballot_id, sheetComments, toUpdate) {
 
 	const update = toUpdate.filter(f => f !== FieldsToUpdate.CID).concat(FieldsToUpdate.ClausePage)
 	const newComments = [];
@@ -400,8 +403,8 @@ function addCommentsSQL(userId, ballotId, sheetComments, toUpdate) {
 		newComments.map(c => {
 			c.LastModifiedBy = userId;
 			return db.format(
-				'INSERT INTO comments (ballot_id, ??, LastModifiedTime) VALUE ((SELECT id FROM ballots WHERE BallotID=?), ?, NOW())',
-				[Object.keys(c), ballotId, Object.values(c)]
+				'INSERT INTO comments (ballot_id, ??, LastModifiedTime) VALUE (?, ?, NOW())',
+				[Object.keys(c), ballot_id, Object.values(c)]
 			)
 		})
 		.concat(
@@ -412,17 +415,17 @@ function addCommentsSQL(userId, ballotId, sheetComments, toUpdate) {
 				return db.format(
 					'INSERT INTO resolutions ' +
 						'(comment_id, ??, LastModifiedTime) ' + 
-						'VALUE ((SELECT c.id FROM comments c JOIN ballots b ON b.id=c.ballot_id WHERE b.BallotID=? AND c.CommentID=?), ?, NOW())',
-					[Object.keys(r), ballotId, commentId, Object.values(r)]
+						'VALUE ((SELECT id FROM comments WHERE ballot_id=? AND CommentID=?), ?, NOW())',
+					[Object.keys(r), ballot_id, commentId, Object.values(r)]
 				)
 			})
 		)
 		.join(';');
 
-	return SQL;
+	await db.query(SQL);
 }
 
-export async function uploadResolutions(userId, ballotId, toUpdate, matchAlgorithm, matchUpdate, sheetName, file) {
+export async function uploadResolutions(userId, ballot_id, toUpdate, matchAlgorithm, matchUpdate, sheetName, file) {
 
 	toUpdate.forEach(f => {
 		if (!Object.values(FieldsToUpdate).includes(f)) {
@@ -445,7 +448,7 @@ export async function uploadResolutions(userId, ballotId, toUpdate, matchAlgorit
 	const t1 = Date.now();
 	const sheetComments = await parseCommentsSpreadsheet(file.buffer, sheetName);
 	const t2 = Date.now();
-	const dbComments = await getComments(ballotId);
+	const dbComments = await getComments(ballot_id);
 	const t3 = Date.now();
 
 	let [matched, dbCommentsRemaining, sheetCommentsRemaining] = MatchAlgo[matchAlgorithm](sheetComments, dbComments);
@@ -464,54 +467,44 @@ export async function uploadResolutions(userId, ballotId, toUpdate, matchAlgorit
 				sheetCommentsRemaining.map(c => c.CID).join(', ')
 		}
 
-		[SQL, updated] = updateCommentsSQL(userId, ballotId, matched, toUpdate);
+		updated = await updateComments(userId, ballot_id, matched, toUpdate);
 		matched = matched.map(m => m.dbComment.CommentID);
 		remaining = sheetCommentsRemaining.map(c => c.CID);
 	}
 	else if (matchUpdate === MatchUpdate.Any) {
-		[SQL, updated] = updateCommentsSQL(userId, ballotId, matched, toUpdate);
+		updated = await updateComments(userId, ballot_id, matched, toUpdate);
 		matched = matched.map(m => m.dbComment.CommentID);
 		unmatched = dbCommentsRemaining.map(c => c.CommentID);
 		remaining = sheetCommentsRemaining.map(c => c.CID);
 	}
 	else if (matchUpdate === MatchUpdate.Add) {
-		SQL = addCommentsSQL(userId, ballotId, sheetCommentsRemaining, toUpdate);
+		await addComments(userId, ballot_id, sheetCommentsRemaining, toUpdate);
 		matched = [];
 		added = sheetCommentsRemaining.map(c => c.CID);
 	}
-	//console.log(SQL)
 
-	SQL += db.format('SELECT * FROM commentResolutions WHERE BallotID=? ORDER BY CommentID, ResolutionID; ', [ballotId]);
-	SQL += db.format(GET_COMMENTS_SUMMARY_SQL, [ballotId]);
 	const t5 = Date.now();
 
-	//const fs = require('fs');
-	//fs.writeFile("sql.txt", SQL, (err) => {if (err) {console.log(err)}})
-	//console.log(SQL);
+	const comments = await getComments(ballot_id);
+	const summary = await getCommentsSummary(ballot_id);
+	delete summary.id;
 
-	const results = await db.query(SQL)
 	const t6 = Date.now();
 
 	console.log(`parse spreadsheet: ${t2-t1}ms`)
 	console.log(`get comments: ${t3-t2}ms`)
 	console.log(`match algo: ${t4-t3}ms`)
-	console.log(`generate sql: ${t5-t4}ms`)
-	console.log(`update database: ${t6-t5}ms`)
+	console.log(`update database: ${t5-t4}ms`)
+	console.log(`get updated comments: ${t6-t5}ms`)
 	console.log(`total: ${t6-t1}ms`)
 
-	//console.log(results)
-	const summary = results[results.length-1][0];
-	const ballot_id = summary.id;
-	delete summary.id;
 	const ballot = {
-		BallotID: ballotId,
 		id: ballot_id,
 		Comments: summary
 	};
 
 	return {
-		BallotID: ballotId,
-		comments: results[results.length-2],
+		comments,
 		ballot,
 		matched,
 		unmatched,
