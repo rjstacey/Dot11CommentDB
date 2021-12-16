@@ -1,5 +1,7 @@
 'use strict'
 
+import { v4 as uuid, validate as validateUUID } from 'uuid';
+
 const csvParse = require('csv-parse/lib/sync')
 const ExcelJS = require('exceljs')
 const db = require('../util/database')
@@ -63,28 +65,22 @@ async function parseMyProjectVoters(buffer, isExcel) {
 	}
 	p.shift()	// remove heading row
 
-	return p.map(c => {
-		return {
-			Name: c[0],
-			Email: c[1],
-			//Affiliation: c[2],
-			//Vote: c[4]
-		}
-	})
+	return p.map(c => ({
+		Name: c[0],
+		Email: c[1],
+		//Affiliation: c[2],
+		//Vote: c[4]
+	}))
 }
-
-const getVotingPoolsSQL = () => 'SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters GROUP BY VotingPoolID;';
 
 const getVotingPoolSQL = (votingPoolId) => 
 	db.format('SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters WHERE VotingPoolID=?;', [votingPoolId]);
 
-const getVotersSQL = (votingPoolId) =>
-	db.format('SELECT * FROM wgVoters WHERE VotingPoolID=?;', [votingPoolId]);
-
 const getVotersFullSQL = (votingPoolId, sapins, ids) => {
-	let sql =
+	/*let sql =
 		'SELECT ' +
 			'v.*, ' + 
+			'BIN_TO_UUID(v.id) AS id, ' +
 			'COALESCE(m.SAPIN, o.CurrentSAPIN) AS CurrentSAPIN, ' +
 			'COALESCE(m.Name, o.Name) AS Name, ' +
 			'COALESCE(m.Email, o.Email) AS Email, ' +
@@ -93,14 +89,19 @@ const getVotersFullSQL = (votingPoolId, sapins, ids) => {
 			'LEFT JOIN members m ON m.Status<>\'Obsolete\' AND m.SAPIN=v.SAPIN ' +
 			'LEFT JOIN (SELECT ' + 
 					'm2.SAPIN AS OldSAPIN, m1.SAPIN AS CurrentSAPIN, m1.Name, m1.Email, m1.Affiliation ' + 
-				'FROM members m1 LEFT JOIN members m2 ON m1.SAPIN=m2.ReplacedBySAPIN AND m2.Status=\'Obsolete\') AS o ON v.SAPIN=o.OldSAPIN';
+				'FROM members m1 LEFT JOIN members m2 ON m1.SAPIN=m2.ReplacedBySAPIN AND m2.Status=\'Obsolete\') AS o ON v.SAPIN=o.OldSAPIN';*/
+	let sql = 
+		'SELECT ' +
+			'v.*, ' + 
+			'BIN_TO_UUID(v.id) AS id ' +
+		'FROM wgVoters v'
 	let conditions = [];
 	if (votingPoolId)
 		conditions.push(db.format('VotingPoolID=?', [votingPoolId]));
 	if (sapins && sapins.length)
 		conditions.push(db.format('v.SAPIN IN (?)', [sapins]));
 	if (ids && ids.length)
-		conditions.push(db.format('v.id in (?)', [ids]));
+		conditions.push('v.id in (' + ids.map(id => `UUID_TO_BIN('${id}')`).join(',') + ')');
 	if (conditions.length)
 		sql += ' WHERE ' + conditions.join(' AND ');
 	sql += ' ORDER BY SAPIN;';
@@ -108,7 +109,7 @@ const getVotersFullSQL = (votingPoolId, sapins, ids) => {
 }
 
 export async function getVotingPools() {
-	const votingPools = await db.query(getVotingPoolsSQL());
+	const votingPools = await db.query('SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters GROUP BY VotingPoolID;');
 	return {votingPools}
 }
 
@@ -164,15 +165,17 @@ function votersEntry(v) {
 
 export async function addVoters(votingPoolId, voters) {
 	let results = [];
+	let ids = [];
 	for (const voter of voters) {
 		if (!voter.SAPIN)
 			throw 'Must provide SAPIN';
 		voter.VotingPoolID = votingPoolId;
-		results.push(db.query('INSERT INTO wgVoters SET ?;', [voter]))
+		const id = validateUUID(voter.id)? voter.id: uuid();
+		delete voter.id;
+		results.push(db.query('INSERT INTO wgVoters SET ?, id=UUID_TO_BIN(?);', [voter, id]));
+		ids.push(id);
 	}
 	results = await Promise.all(results);
-	console.log(results);
-	const ids = results.map(r => r.insertId);
 	voters = await db.query(getVotersFullSQL(undefined, undefined, ids));
 	const [votingPool] = await db.query(getVotingPoolSQL(votingPoolId));
 	return {
@@ -186,7 +189,7 @@ export async function updateVoters(updates) {
 	for (const {id, changes} of updates) {
 		if (!id || !changes)
 			throw 'Expect updates with shape {id, changes}';
-		results.push(db.query('UPDATE wgVoters SET ? WHERE id=?', [changes, id]));
+		results.push(db.query('UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)', [changes, id]));
 	}
 	await Promise.all(results);
 	const voters = await db.query(getVotersFullSQL(undefined, undefined, updates.map(u => u.id)));
@@ -194,11 +197,15 @@ export async function updateVoters(updates) {
 }
 
 export async function deleteVoters(votingPoolId, ids) {
-	await db.query('DELETE FROM wgVoters WHERE id IN (?)', [ids]);
-	const [votingPool] = await db.query(getVotingPoolSQL(votingPoolId));
+	const sql = 'DELETE FROM wgVoters WHERE id IN (' +
+		ids.map(id => `UUID_TO_BIN('${id}')`).join(',') +
+		')';
+	const result = await db.query(sql);
+	return result.affectedRows;
+	/*const [votingPool] = await db.query(getVotingPoolSQL(votingPoolId));
 	return {
 		votingPool
-	}
+	}*/
 }
 
 async function insertVoters(votingPoolId, voters) {

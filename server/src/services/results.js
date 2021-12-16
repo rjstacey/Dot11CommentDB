@@ -1,11 +1,12 @@
 'use strict';
 
-import {parseEpollResultsCsv, parseEpollResultsHtml} from './epoll'
-import {parseMyProjectResults} from './myProjectSpreadsheets'
-import {genResultsSpreadsheet} from './resultsSpreadsheet'
-import {AccessLevel} from '../auth/access'
-import {getBallot, getBallotSeriesWithResults, BallotType} from './ballots'
-import {getVoters} from './voters'
+import { v4 as uuid } from 'uuid';
+import {parseEpollResultsCsv, parseEpollResultsHtml} from './epoll';
+import {parseMyProjectResults} from './myProjectSpreadsheets';
+import {genResultsSpreadsheet} from './resultsSpreadsheet';
+import {AccessLevel} from '../auth/access';
+import {getBallot, getBallotSeriesWithResults, BallotType} from './ballots';
+import {getVoters} from './voters';
 
 const db = require('../util/database')
 const rp = require('request-promise-native')
@@ -23,11 +24,10 @@ function colateWGResults(ballotSeries) {
 	// Collect each voters last vote
 	const ballotSeriesReversed = ballotSeries.slice().reverse();
 	let results = [];
-	let id = 0;
 	for (const voter of ballotSeries[0].Voters) {
 		const v = {
 			...voter,
-			id: id++,
+			id: uuid(),
 			Vote: '',
 			CommentCount: 0,
 			Notes: ''
@@ -60,7 +60,7 @@ function colateWGResults(ballotSeries) {
 		if (results.findIndex(v => v.CurrentSAPIN === r.CurrentSAPIN) < 0) {
 			const nv = {
 				...r,
-				id: id++,
+				id: uuid(),
 				Notes: 'Not in pool'
 			}
 			results.push(nv);
@@ -124,12 +124,11 @@ function summarizeWGResults(results) {
 
 function colateSAResults(ballotSeries) {
 	const results = [];
-	let id = 0;
-	console.log(ballotSeries[ballotSeries.length - 1].Results)
+	//console.log(ballotSeries[ballotSeries.length - 1].Results)
 	for (let r1 of ballotSeries[ballotSeries.length - 1].Results) {
 		const v = {
 			...r1,
-			id: id++,
+			id: uuid(),
 			Notes: ''
 		};
 		if (r1.Vote === 'Disapprove' && r1.CommentCount === 0) {
@@ -185,11 +184,10 @@ function summarizeSAResults(results) {
 function colateMotionResults(ballotResults, voters) {
 	// Collect each voters last vote
 	let results = [];
-	let id = 0;
 	for (let voter of voters) {
 		let v = {
 			...voter,
-			id: id++,
+			id: uuid(),
 			Vote: '',
 			Notes: ''
 		}
@@ -215,7 +213,7 @@ function colateMotionResults(ballotResults, voters) {
 		if (results.findIndex(v => v.CurrentSAPIN === r.CurrentSAPIN) < 0) {
 			const nv = {
 				...r,
-				id: id++,
+				id: uuid(),
 				Notes: 'Not in pool'
 			};
 			results.push(r);
@@ -306,12 +304,14 @@ export async function getResultsCoalesced(user, ballot_id) {
 	let ballotSeries, votingPoolId, votingPoolSize, voters, results, summary;
 	if (ballot.Type === BallotType.WG ) {
 		ballotSeries = await getBallotSeriesWithResults(ballot_id);
+		//console.log(ballotSeries);
 		// voting pool size excludes ExOfficio; they are allowed to vote, but don't affect returns
 		votingPoolId = ballotSeries[0].VotingPoolID;
 		votingPoolSize = ballotSeries[0].Voters.filter(v => !/^ExOfficio/.test(v.Status)).length;
 		results = colateWGResults(ballotSeries); // colate results against voting pool and prior ballots in series
 		summary = summarizeWGResults(results);
 		summary.BallotReturns = ballotSeries[ballotSeries.length-1].Results.length;
+		summary.VotingPoolSize = votingPoolSize;
 	}
 	else if (ballot.Type === BallotType.SA) {
 		ballotSeries = await getBallotSeriesWithResults(ballot_id);
@@ -321,6 +321,7 @@ export async function getResultsCoalesced(user, ballot_id) {
 		summary = summarizeSAResults(results);
 		summary.BallotReturns = ballotSeries[ballotSeries.length-1].Results.length;
 		summary.ReturnsPoolSize = votingPoolSize;
+		summary.VotingPoolSize = votingPoolSize;
 	}
 	else if (ballot.Type === BallotType.Motion) {
 		// if there is a voting pool, get that
@@ -331,6 +332,7 @@ export async function getResultsCoalesced(user, ballot_id) {
 		results = colateMotionResults(results, voters);	// colate results for just this ballot
 		summary = summarizeMotionResults(results);
 		summary.BallotReturns = results.length;
+		summary.VotingPoolSize = votingPoolSize;
 	}
 	else {
 		votingPoolId = ballot.VotingPoolID;
@@ -338,6 +340,7 @@ export async function getResultsCoalesced(user, ballot_id) {
 		results = await getResults(ballot_id);			// colate results for just this ballot
 		summary = summarizeBallotResults(results);
 		summary.BallotReturns = results.length;
+		summary.VotingPoolSize = votingPoolSize;
 	}
 
 	/* Update results summary in ballots table if different */
@@ -354,6 +357,7 @@ export async function getResultsCoalesced(user, ballot_id) {
 		results.forEach(r => delete r.Email);
 	}
 
+	console.log('I think..', results[0])
 	return {
 		BallotID: ballot.BallotID,
 		VotingPoolID: votingPoolId,
@@ -365,9 +369,11 @@ export async function getResultsCoalesced(user, ballot_id) {
 }
 
 export async function getResults(ballot_id) {
+	console.log('get results')
 	const results = await db.query(
 		'SELECT ' + 
 			'r.*, ' +
+			'BIN_TO_UUID(r.uuid) AS id, ' +
 			'(SELECT COUNT(*) ' +
 				'FROM comments c WHERE c.ballot_id=r.ballot_id AND ' +
 					'((c.CommenterSAPIN>0 AND c.CommenterSAPIN=r.SAPIN) OR ' +
@@ -375,10 +381,10 @@ export async function getResults(ballot_id) {
 			'COALESCE(m.ReplacedBySAPIN, r.SAPIN) AS CurrentSAPIN ' +
 		'FROM results r ' +
 			'LEFT JOIN members m ON m.SAPIN=r.SAPIN AND m.Status=\'Obsolete\' ' +
-			//'LEFT JOIN ballots b ON r.ballot_id=b.id ' +
 			'WHERE r.ballot_id=?',
 		[ballot_id]
 	);
+	console.log(results[0])
 	return results;
 }
 

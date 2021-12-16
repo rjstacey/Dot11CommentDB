@@ -98,7 +98,7 @@ function Results({
 
 	const dispatch = useDispatch();
 	const {valid, loading, ballot: resultsBallot} = useSelector(getResultsDataSet);
-	const {valid: ballotsValid, loading: ballotsLoading, entities: ballotEntities} = useSelector(getBallotsDataSet);
+	const {valid: ballotsValid, entities: ballotEntities} = useSelector(getBallotsDataSet);
 	const currentBallot = useSelector(getCurrentBallot);
 
 	const load = (ballot_id) => dispatch(loadResults(ballot_id));
@@ -115,7 +115,7 @@ function Results({
 	}, [dispatch, access, currentBallot]);
 
 	React.useEffect(() => {
-		if (!ballotsValid && !ballotsLoading)
+		if (!ballotsValid)
 			dispatch(loadBallots());
 	}, []);
 
@@ -136,7 +136,8 @@ function Results({
 		if (loading)
 			return;
 		if ((!resultsBallot && currentBallot) ||
-		    (resultsBallot && currentBallot && resultsBallot.id !== currentBallot.id)) {
+		    (resultsBallot && currentBallot && resultsBallot.id != currentBallot.id)) {
+			console.log('load', resultsBallot, currentBallot)
 			load(currentBallot.id);
 		}
 	}, [dispatch, currentBallot, resultsBallot]);

@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 
 import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
 import {ActionButton} from 'dot11-components/icons';
-import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
+import {selectSortedFilteredIds} from 'dot11-components/store/appTableData'
 import {ConfirmModal} from 'dot11-components/modals';
 import {Input} from 'dot11-components/form';
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
@@ -14,8 +14,8 @@ import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
 import VotersImportModal from './VotersImport'
 import VoterEditModal from './VoterEdit'
 
-import {loadVoters, deleteVoters, getVotersDataSet} from '../store/voters'
-import {updateVotingPool} from '../store/votingPools'
+import {loadVoters, deleteVoters, getVotersDataSet, fields} from '../store/voters';
+import {updateVotingPool} from '../store/votingPools';
 
 const dataSet = 'voters';
 
@@ -52,6 +52,7 @@ const tableColumns = [
 	{key: 'Name',		label: 'Name',			width: 200, dropdownWidth: 250},
 	{key: 'Email',		label: 'Email',			width: 250, dropdownWidth: 350},
 	{key: 'Status',		label: 'Status',		width: 100},
+	{key: 'Excused',	...fields.Excused,		width: 100},
 ];
 
 const TopRow = styled.div`
@@ -71,6 +72,12 @@ const TableRow = styled.div`
 	}
 `;
 
+function selectVotersInfo(state) {
+	const {valid, loading, ids, selected, votingPoolId} = state[dataSet];
+	const shownIds = selectSortedFilteredIds(state, dataSet);
+	return {valid, loading, ids, selected, shownIds, votingPoolId};
+}
+
 function Voters() {
 
 	const {votingPoolName} = useParams();
@@ -79,8 +86,7 @@ function Voters() {
 	const [editVoter, setEditVoter] = React.useState({action: null, voter: defaultVoter});
 	const [showImportVoters, setShowImportVoters] = React.useState(false);
 
-	const {valid, loading, selected, votingPool} = useSelector(getVotersDataSet);
-	const shownIds = useSelector(state => getSortedFilteredIds(state, dataSet));
+	const {valid, loading, ids, selected, shownIds, votingPoolId} = useSelector(selectVotersInfo);
 
 	const dispatch = useDispatch();
 	const load = React.useCallback((votingPoolName) => dispatch(loadVoters(votingPoolName)), [dispatch]);
@@ -106,9 +112,9 @@ function Voters() {
 	}, [votingPoolName]);
 
 	React.useEffect(() => {
-		if ((!votingPool.VotingPoolID || votingPool.VotingPoolID !== votingPoolName) && !loading)
+		if ((!votingPoolId || votingPoolId !== votingPoolName) && !loading)
 			load(votingPoolName);
-	}, [votingPool, votingPoolName]);
+	}, [votingPoolId, votingPoolName]);
 
 	const close = history.goBack;
  	const refresh = () => load(votingPoolName);
@@ -129,9 +135,7 @@ function Voters() {
 	const handleAddVoter = () => setEditVoter({action: 'add', voter: defaultVoter});
 
 	const updateVotingPoolName = React.useCallback(async (name) => {
-		console.log('set name')
 		const votingPool = await dispatch(updateVotingPool(votingPoolName, {VotingPoolID: name}));
-		console.log(votingPool)
 		if (votingPool) {
 			setName(votingPool.VotingPoolID);
 			history.replace(`/voters/${votingPool.VotingPoolID}`);
@@ -145,7 +149,7 @@ function Voters() {
 		<>
 			<TopRow style={{maxWidth}}>
 				<div style={{display: 'flex', alignItems: 'center'}}>
-					<label>WG ballot voting pool:&nbsp;{votingPoolName}</label>
+					<label>Ballot series voting pool: {votingPoolName} ({ids.length} voters)</label>
 					<ActionButtonDropdown
 						name='edit'
 						onClose={() => updateVotingPoolName(name)}

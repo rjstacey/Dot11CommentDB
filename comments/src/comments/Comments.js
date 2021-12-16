@@ -408,7 +408,7 @@ function Comments({access}) {
 					defaultTablesConfig={defaultTablesConfig}
 					columns={tableColumns}
 					headerHeight={62}
-					estimatedRowHeight={64}
+					estimatedRowHeight={56}
 					rowGetter={commentsRowGetter}
 					dataSet={dataSet}
 				/>

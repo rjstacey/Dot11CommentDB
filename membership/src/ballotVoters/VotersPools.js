@@ -12,6 +12,14 @@ import VotersPoolAddModal from './VotersPoolAdd';
 
 import {loadVotingPools, deleteVotingPools, getVotingPoolsDataSet, dataSet} from '../store/votingPools'
 
+const Title = styled.h2`
+	font-weight: 600;
+	font-size: 18px;
+	margin: 0;
+	padding: 0;
+	color: #005979;
+`;
+
 const ActionCell = styled.div`
 	display: flex;
 	justify-content: center;
@@ -92,7 +100,7 @@ function VotersPools() {
 
 	return <>
 		<TopRow style={{maxWidth}}>
-			<label>Voting Pools</label>
+			<Title>Ballot series voting pools</Title>
 			<span>
 				<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowVotersPoolAdd(true)} />
 				<ActionButton name='refresh' title='Refresh' onClick={load} />

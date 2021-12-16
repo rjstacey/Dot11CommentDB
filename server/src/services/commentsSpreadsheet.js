@@ -571,6 +571,7 @@ function genWorksheet(sheet, columns, ballotId, doc, comments) {
 
 	addResolutionFormatting(sheet, columns, n);
 
+	/* This replaces the text version of the Status column with a formula. However, some people prefer the text version. */
 	//addStatus(sheet, columns, n);
 
 	// Enable auto filter on heading row

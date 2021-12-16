@@ -15,7 +15,7 @@ import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11
 import {AccessLevel, shallowDiff, recursivelyDiffObjects, debounce} from 'dot11-components/lib'
 import {setProperty, getData, getSortedFilteredIds} from 'dot11-components/store/appTableData'
 
-import {addResolutions, updateResolutions, deleteResolutions, updateComments, getCommentsDataSet} from '../store/comments'
+import {addResolutions, updateResolutions, deleteResolutions, updateComments, getCommentsDataSet, getCommentStatus} from '../store/comments'
 
 const MULTIPLE = '<multiple>';
 const isMultiple = (value) => value === MULTIPLE;
@@ -65,6 +65,7 @@ const renderPage = (page) => {
 }
 
 const TextBlockContainer = styled.div`
+	overflow-wrap: break-word;
 	& p {
 		margin: 8px 0;
 	}
@@ -630,7 +631,7 @@ export function Comment({
 		<CommentContainer>
 			<Row>
 				<FieldLeft label={cidsLabel}>{cidsStr}</FieldLeft>
-				<FieldLeft>{renderEntry(comment.Status)}</FieldLeft>
+				<FieldLeft>{renderEntry(getCommentStatus(comment))}</FieldLeft>
 			</Row>
 			<Row>
 				<FieldLeft label='Commenter:'>{renderCommenter(comment)}</FieldLeft>

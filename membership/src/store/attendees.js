@@ -1,10 +1,9 @@
 import fetcher from 'dot11-components/lib/fetcher';
-import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
+import {createAppTableDataSlice, SortType, selectSortedFilteredIds} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error'
-import {getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
 
-import {upsertMembers} from './members'
-import {updateSessionSuccess} from './sessions'
+import {upsertMembers} from './members';
+import {updateSessionSuccess} from './sessions';
 
 const fields = {
 	id: {label: 'id', sortType: SortType.NUMERIC},
@@ -87,7 +86,7 @@ export const importSelectedAttendees = () =>
 		const state = getState();
 		const selected = state[dataSet].selected;
 		const attendees = state[dataSet].entities;
-		const shown = getSortedFilteredIds(state, dataSet);
+		const shown = selectSortedFilteredIds(state, dataSet);
 		const newMembers = {};
 		for (const id of selected) {
 			if (shown.includes(id)) {

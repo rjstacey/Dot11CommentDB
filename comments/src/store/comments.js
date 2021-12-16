@@ -50,6 +50,30 @@ export const fields = {
 export const dataSet = 'comments';
 const selectId = (c) => c.CID;
 
+function transformEntities(state) {
+	const hasChange = false;
+	const {entities} = state;
+	const transformedEntities = {...entities};
+	for (const id of Object.keys(entities)) {
+		const entity = entities[id];
+		const Status = getCommentStatus(entity);
+		if (entity.Status !== Status) {
+			transformedEntities[id] = {...entity, Status};
+			hasChange = true;
+		}
+		else {
+			transformedEntities[id] = entity;
+		}
+	}
+	return hasChange? transformedEntities: entities;
+}
+
+export const getField = (entity, dataKey) => {
+	if (dataKey === 'Status')
+		return getCommentStatus(entity)
+	return entity[dataKey];
+}
+
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -58,6 +82,7 @@ const slice = createAppTableDataSlice({
 	initialState: {
 		ballot_id: 0,
 	},
+	selectField: getField,
 	reducers: {
 		setDetails(state, action) {
   			const {ballot_id} = action.payload;
@@ -100,7 +125,7 @@ const {
 	setSelected
 } = slice.actions;
 
-function getCommentStatus(c) {
+export function getCommentStatus(c) {
 	let Status = '';
 	if (c.ApprovedByMotion)
 		Status = 'Resolution approved';
@@ -113,7 +138,7 @@ function getCommentStatus(c) {
 	return Status;
 }
 
-function getCommentUpdates(state, comments) {
+/*function getCommentUpdates(state, comments) {
 	const updates = [];
 	for (let changes of comments) {
 		const id = selectId(changes);
@@ -129,13 +154,13 @@ function getCommentUpdates(state, comments) {
 		updates.push({id, changes});
 	}
 	return updates;
-}
+}*/
 
-const updateCommentsStatus = (comments) =>
+/*const updateCommentsStatus = (comments) =>
 	comments.map(c => {
 		const Status = getCommentStatus(c);
 		return c.Status !== Status? {...c, Status}: c;
-	});
+	});*/
 
 export const loadComments = (ballot_id) =>
 	async (dispatch, getState) => {
@@ -156,7 +181,9 @@ export const loadComments = (ballot_id) =>
 			]);
 			return;
 		}
-		await dispatch(getSuccess(updateCommentsStatus(response)));
+		//await dispatch(getSuccess(updateCommentsStatus(response)));
+		response.forEach(c => delete c.Status);
+		await dispatch(getSuccess(response));
 		await dispatch(setDetails({ballot_id}));
 	}
 
@@ -178,7 +205,8 @@ export const updateComments = (updates) =>
 			await dispatch(setError(`Unable to update comment${updates.length > 1? 's': ''}`, error));
 			return;
 		}
-		await dispatch(updateMany(getCommentUpdates(getState()[dataSet], response.comments)));
+		//await dispatch(updateMany(getCommentUpdates(getState()[dataSet], response.comments)));
+		await dispatch(updateMany(response.comments));
 	}
 
 export const uploadComments = (ballotId, type, file) =>
@@ -255,7 +283,8 @@ async function afterAddOrDeleteResolutions(dispatch, state, comments) {
 	}
 	await Promise.all([
 		dispatch(removeMany(deletes)),
-		dispatch(upsertMany(updateCommentsStatus(comments))),
+		//dispatch(upsertMany(updateCommentsStatus(comments))),
+		dispatch(upsertMany(comments)),
 		dispatch(setSelected(selected))
 	]);
 }
@@ -290,7 +319,8 @@ export const updateResolutions = (ids, changes) =>
 			await dispatch(setError(`Unable to update resolution${ids.length > 1? 's': ''}`, error));
 			return;
 		}
-		await dispatch(updateMany(getCommentUpdates(getState()[dataSet], response.comments)));
+		//await dispatch(updateMany(getCommentUpdates(getState()[dataSet], response.comments)));
+		await dispatch(updateMany(response.comments));
 	}
 
 export const deleteResolutions = (resolutions) =>
@@ -351,7 +381,8 @@ export const uploadResolutions = (ballot_id, toUpdate, matchAlgorithm, matchUpda
 		}
 		const {comments, ballot, matched, unmatched, added, remaining, updated} = response;
 		await Promise.all([
-			dispatch(getSuccess(updateCommentsStatus(response.comments))),
+			//dispatch(getSuccess(updateCommentsStatus(response.comments))),
+			dispatch(getSuccess(response.comments)),
 			dispatch(setDetails({ballot_id})),
 			dispatch(updateBallotSuccess(ballot.id, ballot))
 		]);

@@ -51,11 +51,6 @@ export const fields = {
 	PrevBallotID: {label: 'Prev ballot'}
 };
 
-function getProjectForBallotId(state, ballotId) {
-	const id = state.ids.find(id => state.entities[id].BallotID === ballotId);
-	return id? state.entities[id].Project: ''
-}
-
 const dataSet = 'ballots';
 const sortComparer = (b1, b2) => b1.Project === b2.Project? b1.BallotID.localeCompare(b2.BallotID): b1.Project.localeCompare(b2.Project);
 
@@ -82,12 +77,30 @@ const slice = createAppTableDataSlice({
 				state.currentProject = state.entities[id].Project;
 		}
 	},
-	extraReducers: builder => {
+	extraReducers: (builder, dataAdapter) => {
 		builder
 		.addMatcher(
-			(action) => action.type.startsWith(dataSet + '/getSuccess'),
+			(action) => action.type === dataSet + '/getSuccess',
 			(state, action) => {
-				state.project = getProjectForBallotId(state, state.ballotId);
+				if (state.currentId) {
+					if (state.ids.includes(state.currentId)) {
+						state.currentProject = state.entities[state.currentId].Project;
+					}
+					else {
+						state.currentId = 0;
+						state.currentProject = '';
+					}
+				}
+			}
+		)
+		.addMatcher(
+			(action) => action.type.startsWith(dataSet + '/') && /(getSuccess|addOne|updateOne)$/.test(action.type),
+			(state, action) => {
+				// Create 'PrevBallotID' field for each 'prev_id' field
+				const {entities} = state;
+				for (const b of Object.values(entities)) {
+					b.PrevBallotID = b.prev_id? entities[b.prev_id].BallotID: '';
+				}
 			}
 		)
 	}

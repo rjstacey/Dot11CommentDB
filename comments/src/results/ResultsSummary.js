@@ -3,15 +3,15 @@ import {useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 import {Handle, IconCollapse} from 'dot11-components/icons';
 
-import {BallotType, BallotTypeLabels} from '../store/ballots';
-import {getResultsDataSet} from '../store/results';
+import {BallotType, BallotTypeLabels, getCurrentBallot} from '../store/ballots';
+//import {getResultsDataSet} from '../store/results';
 
-function getResultsSummary(ballot, r, votingPoolSize) {
+function getResultsSummary(ballot) {
 	const summary = {
 		opened: '',
 		closed: '',
 		duration: '',
-		votingPoolSize,
+		votingPoolSize: 0,
 
 		approvalRate: '',
 		approvalRateReq: '',
@@ -44,7 +44,9 @@ function getResultsSummary(ballot, r, votingPoolSize) {
 			summary.duration = `${dur} days`;
 	}
 
+	const r = ballot.Results;
 	if (r) {
+		summary.votingPoolSize = r.ReturnsPoolSize;
 		let pct = parseFloat(r.Approve/(r.Approve+r.Disapprove));
 		if (!isNaN(pct)) {
 			summary.approvalRate = `${(100*pct).toFixed(1)}%`
@@ -71,7 +73,7 @@ function getResultsSummary(ballot, r, votingPoolSize) {
 				summary.returnsRateReq = (summary.returnsRatePass? 'Meets': 'Does not meet') + ` return requirement (>${threshold*100}%)`
 			}
 		}
-		pct = parseFloat(r.Abstain/votingPoolSize)
+		pct = parseFloat(r.Abstain/r.ReturnsPoolSize)
 		if (!isNaN(pct)) {
 			summary.abstainsRate = `${(100*pct).toFixed(1)}%`
 			if (ballot.Type !== BallotType.CC) {
@@ -198,12 +200,12 @@ function ResultsSummary({
 	style
 }) {
 	const [showSummary, setShowSummary] = React.useState(true);
-	const {resultsSummary, votingPoolSize, ballot} = useSelector(getResultsDataSet);
+	const ballot = useSelector(getCurrentBallot);
 
 	if (!ballot)
 		return null;
 
-	const summary = getResultsSummary(ballot, resultsSummary, votingPoolSize);
+	const summary = getResultsSummary(ballot);
 
 	return (
 		<Container

@@ -1,16 +1,16 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import {Link, useHistory, useParams} from "react-router-dom"
+import PropTypes from 'prop-types';
+import React from 'react';
+import {connect} from 'react-redux';
+import styled from '@emotion/styled';
+import {Link, useHistory, useParams} from "react-router-dom";
+
 import AppTable, {SelectHeader, SelectCell, TableColumnSelector, TableColumnHeader, SplitPanel, Panel} from 'dot11-components/table'
 import {ConfirmModal} from 'dot11-components/modals'
 import {ActionButton, Button} from 'dot11-components/icons'
 import {displayDate, displayDateRange} from 'dot11-components/lib'
 import SessionDetail from './SessionDialog'
 
-import {getSortedFilteredData} from 'dot11-components/store/dataSelectors'
-import {fields, loadSessions, deleteSessions, setSessionsUiProperty, SessionTypeOptions} from '../store/sessions'
+import {fields, loadSessions, deleteSessions, setSessionsUiProperty, SessionTypeOptions} from '../store/sessions';
 import {importBreakouts} from '../store/breakouts'
 import {importAttendances} from '../store/attendees'
 

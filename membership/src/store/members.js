@@ -57,8 +57,6 @@ const {
 
 export const loadMembers = () =>
 	async (dispatch, getState) => {
-		if (getState()[dataSet].loading)
-			return;
 		dispatch(getPending());
 		let response;
 		try {

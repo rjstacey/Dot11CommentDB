@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 
 import AppTable from 'dot11-components/table';
 import {ActionButton} from 'dot11-components/icons';
-import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors';
 
 import {loadBallots, BallotType, getBallotsDataSet} from '../store/ballots'
 import {fields, loadEpolls, selectSyncedEpollsEntities, getEpollsDataSet, dataSet} from '../store/epolls'

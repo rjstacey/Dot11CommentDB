@@ -1,17 +1,20 @@
-import { configureStore, combineReducers } from '@reduxjs/toolkit'
-import { createLogger } from 'redux-logger'
-import thunk from 'redux-thunk'
-import errMsg from 'dot11-components/store/error'
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
+import { createLogger } from 'redux-logger';
+import thunk from 'redux-thunk';
+import { persistStore, persistReducer } from 'redux-persist';
+import { get, set, del } from 'idb-keyval';
 
-import members from './members'
-import sessions from './sessions'
-import ballots from './ballots'
-import epolls from './epolls'
-import imatMeetings from './imatMeetings'
-import breakouts from './breakouts'
-import attendees from './attendees'
-import voters from './voters'
-import votingPools from './votingPools'
+import errMsg from 'dot11-components/store/error';
+
+import members from './members';
+import sessions from './sessions';
+import ballots from './ballots';
+import epolls from './epolls';
+import imatMeetings from './imatMeetings';
+import breakouts from './breakouts';
+import attendees from './attendees';
+import voters from './voters';
+import votingPools from './votingPools';
 
 const reducer = combineReducers({
 	members,
@@ -33,6 +36,26 @@ if (process.env.NODE_ENV !== 'production')
 // enable devTool only with development
 const devTools = process.env.NODE_ENV !== 'production';
 
-const store = configureStore({reducer, middleware, devTools});
+const storage = {
+	setItem: set, //(key, value) => {console.log(key, value); set(key, value)},
+	getItem: get,
+	removeItem: del
+};
+
+const persistConfig = {
+	key: 'root',
+	version: 1,
+	storage,
+	blacklist: ['errMsg', 'attendees', 'breakouts', 'sessions', 'voters', 'votingPools']
+};
+
+const store = configureStore({
+	reducer: persistReducer(persistConfig, reducer),
+	//reducer,
+	middleware,
+	devTools
+});
+
+const persistor = persistStore(store);
 
 export default store;

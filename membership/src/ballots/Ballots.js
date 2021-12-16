@@ -11,7 +11,6 @@ import {ConfirmModal} from 'dot11-components/modals'
 
 import BallotDetail, {BallotAddDropdown as BallotAdd} from './BallotDetail'
 
-import {getEntities} from 'dot11-components/store/dataSelectors'
 import {setSelected} from 'dot11-components/store/selected'
 import {setProperty} from 'dot11-components/store/ui'
 
@@ -207,9 +206,7 @@ const TableRow = styled.div`
 	width: 100%;
 `;
 
-function Ballots({
-	access
-}) {
+function Ballots({access}) {
 
 	const history = useHistory();
 	const {ballotId} = useParams();
@@ -218,7 +215,7 @@ function Ballots({
 	const {valid: votingPoolsValid, loading: votingPoolsLoading} = useSelector(getVotingPoolsDataSet);
 
 	const dispatch = useDispatch();
-	const load = React.useCallback(() => dispatch(loadBallots()));
+	const load = React.useCallback(() => dispatch(loadBallots()), [dispatch]);
 	const setUiProperty = React.useCallback((property, value) => dispatch(setProperty(dataSet, property, value)), [dispatch]);
 
 	const closeBallot = () => history.push('/ballots');

@@ -1,3 +1,4 @@
+import {createSelector} from '@reduxjs/toolkit';
 import {fetcher} from 'dot11-components/lib';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
@@ -16,9 +17,33 @@ const fields = {
 
 export const dataSet = 'results';
 
+/* Entities selector with join on users to get Name, Affiliation and Email.
+ * If the entry is obsolete find the member entry that replaces it. */
+const selectEntities = createSelector(
+	state => state['users'].entities,
+	state => state[dataSet].entities,
+	(members, results) => {
+		const entities = {};
+		for (const [id, voter] of Object.entries(results)) {
+			const member = members[voter.SAPIN];
+			//while (member && member.Status === 'Obsolete') {
+			//	member = members[member.ReplacedBySAPIN]
+			//}
+			entities[id] = {
+				...voter,
+				Name: (member && member.Name) || '',
+				Affiliation: (member && member.Affiliation) || '',
+				Email: (member && member.Email) || ''
+			};
+		}
+		return entities;
+	}
+);
+
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
+	selectEntities,
 	initialState: {
 		ballot: {},
 		votingPoolSize: 0,
@@ -55,7 +80,7 @@ export default slice.reducer;
 const {getPending, getSuccess, getFailure, setDetails} = slice.actions;
 
 export const loadResults = (ballot_id) =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
 		dispatch(getPending());
 		const url = `/api/results/${ballot_id}`;
 		let response;
@@ -68,7 +93,7 @@ export const loadResults = (ballot_id) =>
 				throw new TypeError('Unexpected response to GET: ' + url);
 		}
 		catch(error) {
-			const ballot = getState()[dataSet].entities[ballot_id];
+			const ballot = getState()['ballots'].entities[ballot_id];
 			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
 			await Promise.all([
 				dispatch(getFailure()),

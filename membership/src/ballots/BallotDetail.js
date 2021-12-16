@@ -9,8 +9,7 @@ import {Button, ActionButton} from 'dot11-components/icons';
 import {ActionButtonModal, ConfirmModal} from 'dot11-components/modals';
 import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
 
-import {getData, getEntities} from 'dot11-components/store/dataSelectors'
-import {setProperty} from 'dot11-components/store/ui'
+import {selectEntities, setProperty} from 'dot11-components/store/appTableData';
 
 import {renderResultsSummary, renderCommentsSummary} from './Ballots';
 import CheckboxListSelect from './CheckboxListSelect';
@@ -98,10 +97,10 @@ function SelectPrevBallot({value, ballot, onChange, ...otherProps}) {
 		const list = [];
 		for (const b of Object.values(ballots)) {
 			if (b.Project === ballot.Project && b.Start < ballot.Start)
-				list.push(b.BallotID);
+				list.push(b);
 		}
 		list.sort();
-		return list.map(ballotId => ({value: ballotId, label: ballotId}));
+		return list.map(b => ({value: b.id, label: b.BallotID}));
 	}, [ballot, ballots]);
 	const optionSelected = options.find(o => o.value === value);
 	return (
@@ -230,10 +229,10 @@ export function Column1({
 			<Row>
 				<Field label='Previous ballot:'>
 					<SelectPrevBallot
-						value={isMultiple(ballot.PrevBallotID)? null: ballot.PrevBallotID}
+						value={isMultiple(ballot.prev_id)? null: ballot.prev_id}
 						ballot={ballot}
-						placeholder={isMultiple(ballot.PrevBallotID)? MULTIPLE_STR: BLANK_STR}
-						onChange={value => updateBallot({PrevBallotID: value})}
+						placeholder={isMultiple(ballot.prev_id)? MULTIPLE_STR: BLANK_STR}
+						onChange={value => updateBallot({prev_id: value})}
 						width={150}
 						readOnly={readOnly || isMultiple(ballot.id)}
 					/>
@@ -479,7 +478,7 @@ const BallotDetail = connect(
 		const {ballots, votingPools} = state
 		return {
 			ballotsValid: ballots.valid,
-			ballots: getEntities(state, 'ballots'),
+			ballots: selectEntities(state, 'ballots'),
 			loading: ballots.loading,
 			selected: state.ballots.selected,
 			uiProperties: state.ballots.ui,

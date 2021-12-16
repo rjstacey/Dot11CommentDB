@@ -1,10 +1,8 @@
-import { configureStore, combineReducers } from '@reduxjs/toolkit'
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import thunk from 'redux-thunk';
 import { createLogger } from 'redux-logger';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage'; // defaults to localStorage for web
-
-import {version} from '../../package.json';
 
 import users from './users';
 import ballots from './ballots';
@@ -34,11 +32,12 @@ const persistConfig = {
 };
 
 const store = configureStore({
-	reducer: persistReducer(persistConfig, reducer),
+	//reducer: persistReducer(persistConfig, reducer),
+	reducer,
 	//middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware),
 	middleware
 });
 
-const persistor = persistStore(store);
+const persistor = undefined; //persistStore(store);
 
 export {store, persistor} 

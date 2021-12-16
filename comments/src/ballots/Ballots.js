@@ -9,7 +9,7 @@ import {ActionButton} from 'dot11-components/icons';
 import {AccessLevel, displayDate, displayDateRange} from 'dot11-components/lib';
 import {ConfirmModal} from 'dot11-components/modals';
 
-import {fields, loadBallots, getBallotsDataSet, BallotType, dataSet} from '../store/ballots';
+import {fields, loadBallots, getBallotsDataSet, selectBallotEntities, BallotType, dataSet} from '../store/ballots';
 
 const DataSubcomponent = styled.div`
 	flex: 1 1 ${({width}) => width && typeof width === 'string'? width: width + 'px'};
@@ -18,7 +18,12 @@ const DataSubcomponent = styled.div`
 	overflow: hidden;
 `;
 
-const BallotsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
+//const BallotsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
+
+function BallotsColumnHeader(props) {
+	const entities = useSelector(selectBallotEntities);
+	return <TableColumnHeader dataSet={dataSet} entities={entities} {...props}/>
+}
 const HeaderSubcomponent = DataSubcomponent.withComponent(BallotsColumnHeader);
 
 const renderHeaderVotingPool = (props) =>
@@ -136,7 +141,7 @@ const tableColumns = [
 		...fields.EpollNum,
 		width: 80,	flexGrow: 0, flexShrink: 0,
 		dropdownWidth: 200},
-	{key: 'VotingPool',
+	{key: 'VotingPool/PrevBallotID',
 		label: 'Voting pool/Prev ballot',
 		width: 100, flexShrink: 1, flexGrow: 1,
 		headerRenderer: renderHeaderVotingPool,
@@ -189,14 +194,11 @@ function Ballots() {
 	const history = useHistory();
 	const {ballotId} = useParams();
 	const dispatch = useDispatch();
-	const {valid, loading} = useSelector(getBallotsDataSet);
+	const {loading} = useSelector(getBallotsDataSet);
+	const entities = useSelector(selectBallotEntities);
+
 	const load = React.useCallback(() => dispatch(loadBallots()));
 	const closeBallot = () => history.push('/ballots');
-
-	React.useEffect(() => {
-		if (!valid && !loading)
-			load();
-	}, []);
 
 	return (
 		<>
@@ -220,6 +222,7 @@ function Ballots() {
 					headerHeight={50}
 					estimatedRowHeight={50}
 					dataSet={dataSet}
+					entities={entities}
 				/>
 			</TableRow>
 		</>

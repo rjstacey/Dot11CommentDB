@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import Input from 'react-dropdown-select/lib/components/Input';
 import {Select} from 'dot11-components/form';
-import {getAllFieldValues} from 'dot11-components/store/appTableData';
+import {selectAllFieldValues} from 'dot11-components/store/appTableData';
 import {dataSet} from '../store/comments';
 
 /*
@@ -54,7 +54,7 @@ function SubmissionSelector({
 	...otherProps
 }) {
 	const loading = useSelector(state => state[dataSet].loading);
-	const options = useSelector(state => getAllFieldValues(state, dataSet, 'Submission').filter(v => v !== '').map(v => ({value: v, label: v})));
+	const options = useSelector(state => selectAllFieldValues(state, dataSet, 'Submission').filter(v => v !== '').map(v => ({value: v, label: v})));
 	const optionSelected = options.find(o => o.value === value);
 
 	return (

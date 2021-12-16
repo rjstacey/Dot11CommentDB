@@ -3,9 +3,17 @@ import React from 'react';
 import {useSelector} from 'react-redux';
 
 import {Select} from 'dot11-components/general/Form';
-import {getAllFieldValues} from 'dot11-components/store/appTableData';
+import {selectAllFieldValues} from 'dot11-components/store/appTableData';
 
 const dataSet = 'comments';
+const field = 'CommentGroup';
+
+const selectFieldValues = state => 
+	selectAllFieldValues(state, dataSet, field)
+		.filter(v => v !== '')
+		.map(v => ({label: v, value: v})); // remove blank entry (we use 'clear' to set blank)
+
+const selectLoading = state => state[dataSet].loading;
 
 function CommentGroupSelector({
 	value,
@@ -13,8 +21,8 @@ function CommentGroupSelector({
 	placeholder,
 	...otherProps
 }) {
-	const loading = useSelector(state => state[dataSet].loading);
-	let options = useSelector(state => getAllFieldValues(state, dataSet, 'CommentGroup').filter(v => v !== '').map(v => ({label: v, value: v}))); // remove blank entry (we use 'clear' to set blank)
+	const loading = useSelector(selectLoading);
+	let options = useSelector(selectFieldValues);
 	let optionSelected = options.find(o => o.value === value);
 	if (value && !optionSelected) {
 		// Make sure the current value is an option

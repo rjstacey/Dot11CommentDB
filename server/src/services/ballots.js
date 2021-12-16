@@ -21,7 +21,7 @@ export const BallotType = {
  */
 const getBallotsSQL =
 	'SELECT ' +
-		'id, BallotID, Project, Type, IsRecirc, IsComplete, Start, End, Document, Topic, VotingPoolID, PrevBallotID, EpollNum, ' +
+		'id, BallotID, Project, Type, IsRecirc, IsComplete, Start, End, Document, Topic, VotingPoolID, prev_id, EpollNum, ' +
 		'ResultsSummary AS Results, ' +
 		'JSON_OBJECT( ' +
 			'"Count", (SELECT COUNT(*) FROM comments c WHERE b.id=c.ballot_id), ' +
@@ -75,6 +75,7 @@ export async function getBallotSeriesWithResults(id) {
 		}
 		const results = await Promise.all(ballotSeries.map(b => getResults(b.id)));
 		ballotSeries.forEach((ballot, i) => ballot.Results = results[i]);
+		console.log('here...', ballotSeries[0].Results[0])
 	}
 	return ballotSeries;
 }
@@ -103,8 +104,15 @@ function ballotEntry(ballot) {
 		Start: ballot.Start && new Date(ballot.Start),
 		End: ballot.End && new Date(ballot.End),
 		EpollNum: ballot.EpollNum,
-		VotingPoolID: ballot.VotingPoolID,
-		PrevBallotID: ballot.PrevBallotID,
+	}
+
+	if (ballot.prev_id) {
+		entry.VotingPoolID = '';
+		entry.prev_id = ballot.prev_id;
+	}
+	else if (ballot.VotingPoolID) {
+		entry.VotingPoolID = ballot.VotingPoolID;
+		entry.prev_id = 0;
 	}
 
 	for (let key of Object.keys(entry)) {

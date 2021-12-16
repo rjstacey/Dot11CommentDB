@@ -1,11 +1,13 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import {shallowDiff, recursivelyDiffObjects, isMultiple, debounce, displayDate} from 'dot11-components/lib'
-import {ConfirmModal} from 'dot11-components/modals'
-import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/general/Form'
-import {IconCollapse, ActionButton, Icon} from 'dot11-components/icons'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {connect} from 'react-redux';
+import styled from '@emotion/styled';
+
+import {shallowDiff, recursivelyDiffObjects, isMultiple, debounce, displayDate} from 'dot11-components/lib';
+import {ConfirmModal} from 'dot11-components/modals';
+import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/form';
+import {IconCollapse, ActionButton, Icon} from 'dot11-components/icons';
+import {setProperty} from 'dot11-components/store/appTableData';
 import {
 	updateMembers, 
 	deleteMembers, 
@@ -15,9 +17,8 @@ import {
 	updateMemberContactEmail,
 	deleteMemberContactEmail,
 	setMemberUiProperty
-} from '../store/members'
-import {setProperty} from 'dot11-components/store/ui'
-import {getData, getSortedFilteredIds} from 'dot11-components/store/dataSelectors'
+} from '../store/members';
+
 import StatusSelector from './StatusSelector'
 import AccessSelector from './AccessSelector'
 import MemberSelector from './MemberSelector'

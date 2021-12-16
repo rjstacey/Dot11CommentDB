@@ -1,31 +1,67 @@
+import {createSelector} from '@reduxjs/toolkit';
+import { v4 as uuid } from 'uuid';
 import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 import {upsertVotingPool} from './votingPools';
 
+const dataSet = 'voters';
+
+export const excusedOptions = [
+	{value: 0, label: 'No'},
+	{value: 1, label: 'Yes'}
+];
+
+const renderExcused = value => {
+	const o = excusedOptions.find(o => o.value === value);
+	return o? o.label: value;
+}
+
 export const fields = {
 	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
 	Email: {label: 'Email'},
 	Name: {label: 'Name'},
-	LastName: {label: 'LastName'},
-	FirstName: {label: 'FirstName'},
-	MI: {label: 'MI'},
-	Status: {label: 'Status'}
+	Status: {label: 'Status'},
+	Excused: {label: 'Excused', options: excusedOptions, dataRenderer: renderExcused}
 };
 
-const dataSet = 'voters';
+/* Entities selector with join on members to get Name, Affiliation and Email.
+ * If the member entry is obsolete find the member entry that replaces it. */
+const selectEntities = createSelector(
+	state => state['members'].entities,
+	state => state[dataSet].entities,
+	(members, voters) => {
+		const entities = {};
+		for (const [id, voter] of Object.entries(voters)) {
+			const v = {...voter, Name: 'Unknown', Affiliation: 'Unknown', Email: 'Unknown'}
+			const member = members[voter.SAPIN];
+			while (member && member.Status === 'Obsolete') {
+				member = members[member.ReplacedBySAPIN]
+			}
+			entities[id] = {
+				...voter,
+				Name: (member && member.Name) || 'Unknown',
+				Affiliation: (member && member.Affiliation) || 'Unknown',
+				Email: (member && member.Email)
+			};
+		}
+		return entities;
+	}
+);
+
 const sortComparer = (v1, v2) => v1.SAPIN - v2.SAPIN;
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	sortComparer,
+	selectEntities,
 	initialState: {
-		votingPool: {VotingPoolID: '', VotersCount: 0},
+		votingPoolId: '',
 	},
 	reducers: {
-		setVotingPool(state, action) {
-			state.votingPool = action.payload;
+		setVotingPoolID(state, action) {
+			state.votingPoolId = action.payload;
 		},
 	},
 	extraReducers: (builder) => {
@@ -51,7 +87,7 @@ export default slice.reducer;
  * Actions
  */
 const {
-	setVotingPool,
+	setVotingPoolID,
 	getPending,
 	getSuccess,
 	getFailure,
@@ -65,14 +101,12 @@ export const loadVoters = (votingPoolId) =>
 		if (getState()[dataSet].loading)
 			return;
 		dispatch(getPending());
-		dispatch(setVotingPool({VotingPoolID: votingPoolId, VotersCount: 0}));
+		dispatch(setVotingPoolID(votingPoolId));
 		const url = `/api/voters/${votingPoolId}`;
 		let response;
 		try {
 			response = await fetcher.get(url);
-			if (typeof response !== 'object' ||
-				!response.hasOwnProperty('votingPool') ||
-				!response.hasOwnProperty('voters'))
+			if (typeof response !== 'object' || !response.hasOwnProperty('voters'))
 				throw new TypeError(`Unexpected response to GET: ${url}`);
 		}
 		catch(error) {
@@ -82,36 +116,28 @@ export const loadVoters = (votingPoolId) =>
 			]);
 			return;
 		}
-		await Promise.all([
-			dispatch(setVotingPool(response.votingPool)),
-			dispatch(getSuccess(response.voters))
-		]);
+		await dispatch(getSuccess(response.voters));
 	}
 
 export const deleteVoters = (votingPoolId, ids) =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		dispatch(removeMany(ids));
+		const count = getState()[dataSet].ids.length;
+		dispatch(upsertVotingPool({VotingPoolID: votingPoolId, VoterCount: count}));
 		const url = `/api/voters/${votingPoolId}`;
-		let response;
 		try {
-			response = await fetcher.delete(url, ids);
-			if (typeof response !== 'object' ||
-				!response.hasOwnProperty('votingPool'))
-				throw new TypeError(`Unexpected response to DELETE: ${url}`);
+			await fetcher.delete(url, ids);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to delete voters in voting pool ${votingPoolId}`, error));
 			return;
 		}
-		await Promise.all([
-			dispatch(upsertVotingPool(response.votingPool)),
-			dispatch(removeMany(ids))
-		]);
 	}
 
 export const votersFromSpreadsheet = (votingPoolId, file) =>
 	async (dispatch) => {
 		dispatch(getPending());
-		dispatch(setVotingPool({VotingPoolID: votingPoolId, VotersCount: 0}));
+		dispatch(setVotingPoolID(votingPoolId));
 		const url = `/api/voters/${votingPoolId}/upload`;
 		let response;
 		try {
@@ -137,7 +163,7 @@ export const votersFromSpreadsheet = (votingPoolId, file) =>
 export const votersFromMembersSnapshot = (votingPoolId, date) =>
 	async (dispatch) => {
 		dispatch(getPending());
-		dispatch(setVotingPool({VotingPoolID: votingPoolId, VotersCount: 0}));
+		dispatch(setVotingPoolID(votingPoolId));
 		const url = `/api/voters/${votingPoolId}/membersSnapshot`;
 		let response;
 		try {
@@ -161,40 +187,33 @@ export const votersFromMembersSnapshot = (votingPoolId, date) =>
 	}
 
 export const addVoter = (votingPoolId, voter) =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		voter = {id: uuid(), Excused: 0, ...voter};
+		dispatch(addOne(voter));
+		const count = getState()[dataSet].ids.length;
+		dispatch(upsertVotingPool({VotingPoolID: votingPoolId, VoterCount: count}));
+
 		const url = `/api/voters/${votingPoolId}`;
-		let response;
 		try {
-			response = await fetcher.post(url, [voter]);
-			if (typeof response !== 'object' ||
-				!response.hasOwnProperty('votingPool') ||
-				!response.hasOwnProperty('voters') || !Array.isArray(response.voters))
-				throw new TypeError(`Unexpected response to POST: ${url}`);
+			await fetcher.post(url, [voter]);
 		}
 		catch(error) {
 			await dispatch(setError('Unable to add voter', error));
 			return;
 		}
-		await Promise.all([
-			dispatch(upsertVotingPool(response.votingPool)),
-			dispatch(addOne(response.voters[0]))
-		]);
 	}
 
 export const updateVoter = (id, changes) =>
 	async (dispatch) => {
+		dispatch(updateOne({id, changes}));
 		const url = `/api/voters`;
 		try {
-			const response = await fetcher.patch(url, [{id, changes}]);
-			if (!Array.isArray(response) || response.length !== 1)
-				throw new TypeError(`Unexpected response to PATCH: ${url}`);
-			changes = response[0].changes;
+			await fetcher.patch(url, [{id, changes}]);
 		}
 		catch(error) {
 			await dispatch(setError('Unable to update voter', error));
 			return;
 		}
-		await dispatch(updateOne({id, changes}));
 	}
 
 /*

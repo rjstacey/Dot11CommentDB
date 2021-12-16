@@ -1,4 +1,4 @@
-import {createSlice, createEntityAdapter, createSelector} from '@reduxjs/toolkit'
+import {createSelector} from '@reduxjs/toolkit';
 
 import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
@@ -15,19 +15,6 @@ export const fields = {
 	TimeZone: {label: 'TimeZone'},
 	MeetingNumber: {label: 'MeetingNumber', sortType: SortType.NUMERIC}
 };
-
-/*
- * Remove entries that no longer exist from a list. If there
- * are no changes, return the original list.
- */
-function filterIdList(idList, allIds) {
-	const newList = idList.filter(id => allIds.includes(id));
-	return newList.length === idList.length? idList: newList;
-}
-
-const dataAdapter = createEntityAdapter({
-	selectId: (meeting) => meeting.MeetingNumber
-})
 
 const dataSet = 'imatMeetings';
 const selectId = (meeting) => meeting.MeetingNumber;

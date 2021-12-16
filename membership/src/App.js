@@ -1,11 +1,10 @@
-import React from 'react'
-import {BrowserRouter as Router, Switch, Route, NavLink, Redirect} from 'react-router-dom'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
+import React from 'react';
+import {BrowserRouter as Router, Switch, Route, NavLink, Redirect} from 'react-router-dom';
+import styled from '@emotion/styled';
 
-import Account from 'dot11-components/general/Account'
-import {ErrorModal, ConfirmModal} from 'dot11-components/modals'
-import {AccessLevel} from 'dot11-components/lib/user'
+import Account from 'dot11-components/general/Account';
+import {ErrorModal, ConfirmModal} from 'dot11-components/modals';
+import {AccessLevel} from 'dot11-components/lib/user';
 
 const Members = React.lazy(() => import('./members/Members'));
 
@@ -28,12 +27,17 @@ const OuterDiv = styled.div`
 `;
 
 const Header = styled.header`
-  max-width: 1400px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  margin: 5px 10px;
+  /*box-shadow: 0 4px 13px -3px rgb(0 0 0 / 10%);
+  border-bottom: 1px solid #d2d2d2;*/
+  width: 100%;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  box-sizing: border-box;
+  height: 50px;
 `;
 
 const Nav = styled.nav`
@@ -44,13 +48,19 @@ const Nav = styled.nav`
   justify-content: center;
   & > a {
 		display: inline-block;
-		width: 100px;
-		padding: 4px;
+		/*width: 100px;*/
+		padding: 0.25rem 1.25rem;
 		margin: 0 4px;
-		background: #efefef;
+		/*background: #efefef;*/
 		text-align: center;
+		color: #005979;
+		font-size: 18px;
+		font-weight: 600;
+		text-decoration: none;
+		cursor: pointer;
 		&.active, :hover {
-		  background-color: rgba(0, 0, 0, 0.1);
+		  /*background-color: rgba(0, 0, 0, 0.1);*/
+		  color: black;
 		}
   }
 `;
@@ -70,7 +80,7 @@ const Title = styled.h3`
   font-family: "Arial", "Helvetica", sans-serif;
   font-weight: 400;
   font-size: 24px;
-  margin: 12px 8px 8px 8px;
+  margin: 0;
   padding: 0;
   color: #008080;
   text-align: center;
