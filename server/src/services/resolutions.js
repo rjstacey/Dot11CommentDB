@@ -84,15 +84,14 @@ export async function addResolutions(userId, resolutions) {
 	}
 }
 
-function updateResolutionsSQL(userId, ids, changes) {
+function resolutionEntry(userId, changes) {
 	const entry = {
-		BallotID: changes.BallotID,
-		CommentID: changes.CommentID,
+		comment_id: changes.comment_id,
 		ResolutionID: changes.ResolutionID,
-		ResnStatus: changes.ResnStatus,
-		Resolution: changes.Resolution,
 		AssigneeSAPIN: changes.AssigneeSAPIN,
 		AssigneeName: changes.AssigneeName,
+		ResnStatus: changes.ResnStatus,
+		Resolution: changes.Resolution,
 		Submission: changes.Submission,
 		ReadyForMotion: changes.ReadyForMotion,
 		ApprovedByMotion: changes.ApprovedByMotion,
@@ -106,42 +105,35 @@ function updateResolutionsSQL(userId, ids, changes) {
 			delete entry[key]
 	}
 
-	const SQL = 
-		db.format('UPDATE resolutions SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id IN (?);',
-			[entry, userId, ids]);
-	return SQL;
+	return entry;
 }
 
-/*async function updateResolution(userId, resolution) {
-	if (!resolution.id)
-		throw 'Resolution is missing id'
-	const id = resolution.id;
-	delete resolution.id;
-	let SQL =
-		updateResolutionSQL(userId, id, resolution) +
-		db.format("SELECT id, resolution_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE resolution_id=?;", [Object.keys(resolution), id]);
-	const [results] = await db.query2(SQL);
-	return results[1][0]
-}*/
-
-export async function updateResolutions(userId, ids, changes) {
-	const SQL = 
-		updateResolutionsSQL(userId, ids, changes) +
-		db.format("SELECT id, resolution_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE resolution_id IN (?);", [Object.keys(changes), ids]);
-	const [noop, comments] = await db.query(SQL);
-	return {comments}
+async function updateResolution(userId, id, changes) {
+	const resolution = resolutionEntry(changes);
+	if (Object.keys(resolution).length > 0)
+		await db.query('UPDATE resolutions SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=?;', [entry, userId, id]);
+	return await db.query("SELECT id, resolution_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE resolution_id=?;", [Object.keys(changes), id]);
 }
 
-export async function deleteResolutions(userId, resolutions) {
-	if (resolutions.length === 0)
-		return {comments: []};
-	const resolution_ids = resolutions.map(r => r.id)
-	const [rows] = await db.query2('SELECT comment_id FROM resolutions WHERE id IN (?);', [resolution_ids]);
-	if (rows.length) {
-		const comment_ids = rows.map(r => r.comment_id);
-		await db.query2('DELETE FROM resolutions WHERE id IN (?);', [resolution_ids]);
-		const [comments] = await db.query2('SELECT * FROM commentResolutions WHERE comment_id IN (?);', [comment_ids]);
-		return {comments}
+export async function updateResolutions(userId, updates) {
+	// Validate request
+	for (const u of updates) {
+		if (typeof u !== 'object' || !u.id || typeof u.changes !== 'object')
+			throw 'Expected array of objects with shape {id, changes}'
+	}
+	const comments = await Promise.all(updates.map(u => updateResolution(userId, u.id, u.changes)));
+	return {comments};
+}
+
+export async function deleteResolutions(userId, ids) {
+	if (ids.length > 0) {
+		const rows = await db.query('SELECT comment_id FROM resolutions WHERE id IN (?);', [ids]);
+		if (rows.length) {
+			const comment_ids = rows.map(r => r.comment_id);
+			await db.query('DELETE FROM resolutions WHERE id IN (?);', [ids]);
+			const comments = await db.query('SELECT * FROM commentResolutions WHERE comment_id IN (?);', [comment_ids]);
+			return {comments}
+		}
 	}
 	return {comments: []};
 }

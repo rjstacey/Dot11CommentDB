@@ -19,7 +19,7 @@ export const BallotTypeLabels = {
 };
 
 export const BallotTypeOptions = Object.values(BallotType).map(v => ({value: v, label: BallotTypeLabels[v]}));
-const renderBallotType = (type) => BallotTypeLabels[type] || 'Unknown';
+export const renderBallotType = (type) => BallotTypeLabels[type] || 'Unknown';
 
 export const BallotStage = {
 	Initial: 0,
@@ -32,7 +32,7 @@ export const BallotStageLabels = {
 };
 
 export const BallotStageOptions = Object.values(BallotStage).map(v => ({value: v, label: BallotStageLabels[v]}));
-const renderBallotStage = v => BallotStageLabels[v] || 'Unknown';
+export const renderBallotStage = v => BallotStageLabels[v] || 'Unknown';
 
 export const fields = {
 	Project: {label: 'Project'},
@@ -45,13 +45,13 @@ export const fields = {
 	EpollNum: {label: 'ePoll', sortType: SortType.NUMERIC},
 	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
 	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
-	Results: {label: 'Results'},
-	Comments: {label: 'Comments'},
+	Results: {label: 'Results', dontFilter: true, dontSort: true},
+	Comments: {label: 'Comments', dontFilter: true, dontSort: true},
 	VotingPoolID: {label: 'Voting pool'},
 	PrevBallotID: {label: 'Prev ballot'}
 };
 
-const dataSet = 'ballots';
+export const dataSet = 'ballots';
 const sortComparer = (b1, b2) => b1.Project === b2.Project? b1.BallotID.localeCompare(b2.BallotID): b1.Project.localeCompare(b2.Project);
 
 const slice = createAppTableDataSlice({
@@ -127,8 +127,6 @@ const {
 
 export const loadBallots = () => 
 	async (dispatch, getState) => {
-		if (getState()[dataSet].loading)
-			return;
 		dispatch(getPending());
 		let response;
 		try {
@@ -137,11 +135,8 @@ export const loadBallots = () =>
 				throw new TypeError("Unexpected response to GET: /api/ballots");
 		}
 		catch(error) {
-			console.log(error)
-			await Promise.all([
-				dispatch(getFailure()),
-				dispatch(setError('Unable to get ballot list', error.toString()))
-			]);
+			await dispatch(getFailure());
+			await dispatch(setError('Unable to get ballot list', error));
 			return;
 		}
 		await dispatch(getSuccess(response));
@@ -156,7 +151,7 @@ export const updateBallot = (id, changes) =>
 		try {
 			response = await fetcher.patch(url, [{id, changes}]);
 			if (!Array.isArray(response))
-				throw new TypeError('Unexpected response to PATCH ' + url);
+				throw new TypeError('Unexpected response to PATCH: ' + url);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to update ballot`, error));
@@ -183,6 +178,8 @@ export const addBallot = (ballot) =>
 		let response;
 		try {
 			response = await fetcher.post('/api/ballots', [ballot]);
+			if (!Array.isArray(response))
+				throw new TypeError("Unexpected response to POST: /api/ballots");
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to add ballot ${ballot.BallotID}`, error.toString()));
@@ -205,18 +202,39 @@ export const setBallotId = (ballotId) =>
  */
 export const getBallotsDataSet = (state) => state[dataSet];
 
-/* Generate project list from the ballot pool */
-export const selectProjectOptions = createSelector(
+const selectIds = (state) => state[dataSet].ids;
+const selectEntities = (state) => state[dataSet].entities;
+const selectCurrentProject = (state) => state[dataSet].currentProject
+
+/* Get ballot entities with derived data */
+export const selectBallotEntities = createSelector(
 	state => state[dataSet].ids,
 	state => state[dataSet].entities,
+	(ids, entities) => {
+		const transformedEntities = {};
+		for (const id of ids) {
+			const ballot = entities[id];
+			const PrevBallotID = ballot.prev_id?
+				entities[ballot.prev_id].BallotID || 'Unknown':
+				'';
+			transformedEntities[id] = {...ballot, PrevBallotID};
+		}
+		return transformedEntities;
+	}
+);
+
+/* Generate project list from the ballot pool */
+export const selectProjectOptions = createSelector(
+	selectIds,
+	selectEntities,
 	(ids, entities) => [...new Set(ids.map(id => entities[id].Project))].sort().map(p => ({value: p, label: p}))
 );
 
 /* Generate ballot list for current project or all ballots if current project not set */
 export const selectBallotOptions = createSelector(
-	state => state[dataSet].ids,
-	state => state[dataSet].entities,
-	state => state[dataSet].currentProject,
+	selectIds,
+	selectEntities,
+	selectCurrentProject,
 	(ids, entities, currentProject) => {
 		let ballotIds = ids;
 		if (currentProject)
@@ -224,6 +242,7 @@ export const selectBallotOptions = createSelector(
 		return ballotIds.map(id => ({value: id, label: `${entities[id].BallotID} ${entities[id].Document}`}));
 	}
 );
+
 export const getBallot = (state, ballot_id) => {
 	const {entities} = state[dataSet];
 	return entities[ballot_id];
@@ -233,4 +252,3 @@ export const getCurrentBallot = (state) => {
 	const {entities, currentId} = state[dataSet];
 	return entities[currentId];
 }
-

@@ -1,21 +1,29 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import {Tab, Tabs, TabList, TabPanel} from 'react-tabs'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {connect} from 'react-redux';
+import styled from '@emotion/styled';
+import {Tab, Tabs, TabList, TabPanel} from 'react-tabs';
 
-import AdHocSelector from './AdHocSelector'
-import CommentGroupSelector from './CommentGroupSelector'
-import AssigneeSelector from './AssigneeSelector'
-import SubmissionSelector from './SubmissionSelector'
-import {editorCss, ResolutionEditor} from './ResolutionEditor'
-import CommentHistory from './CommentHistory'
-import {ActionButton, Icon, IconCollapse} from 'dot11-components/icons'
-import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/general/Form'
-import {AccessLevel, shallowDiff, recursivelyDiffObjects, debounce} from 'dot11-components/lib'
-import {setProperty, getData, getSortedFilteredIds} from 'dot11-components/store/appTableData'
+import AdHocSelector from './AdHocSelector';
+import CommentGroupSelector from './CommentGroupSelector';
+import AssigneeSelector from './AssigneeSelector';
+import SubmissionSelector from './SubmissionSelector';
+import {editorCss, ResolutionEditor} from './ResolutionEditor';
+import CommentHistory from './CommentHistory';
+import {ActionButton, Icon, IconCollapse} from 'dot11-components/icons';
+import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/form';
+import {AccessLevel, shallowDiff, recursivelyDiffObjects, debounce} from 'dot11-components/lib';
+import {setProperty, getData, getSortedFilteredIds} from 'dot11-components/store/appTableData';
 
-import {addResolutions, updateResolutions, deleteResolutions, updateComments, getCommentsDataSet, getCommentStatus} from '../store/comments'
+import {
+	addResolutions,
+	updateResolutions,
+	deleteResolutions,
+	updateComments,
+	getCommentsDataSet,
+	getCID,
+	getCommentStatus
+} from '../store/comments';
 
 const MULTIPLE = '<multiple>';
 const isMultiple = (value) => value === MULTIPLE;
@@ -557,12 +565,17 @@ function CommentPage({
 		}
 	}
 
-	// Check if original page number is diffent
-	let page = parseFloat(comment.C_Page) + parseFloat(comment.C_Line)/100
-	if (isNaN(page))
-		page = 0;
-	page = page.toFixed(2);
-	const hasChanged = page !== comment.Page;
+	let showOriginal = false;
+	let original = '';
+	if (!isMultiple(comment.Page) && !isMultiple(comment.C_Page) && !isMultiple(comment.C_Line)) {
+		// Check if original page number is diffent
+		let page = parseFloat(comment.C_Page) + parseFloat(comment.C_Line)/100
+		if (isNaN(page))
+			page = 0;
+		page = page.toFixed(2);
+		showOriginal = page !== comment.Page;
+		original = comment.C_Page + '.' + comment.C_Line;
+	}
 
 	return (
 		<>
@@ -575,10 +588,10 @@ function CommentPage({
 				placeholder={isMultiple(comment.Page)? MULTIPLE_STR: ''}
 				disabled={readOnly}
 			/>
-			{hasChanged &&
+			{showOriginal &&
 				<div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: 'x-small', marginLeft: 5}} >
 					<span>originally</span>
-					<span>{comment.C_Page}.{comment.C_Line}</span>
+					<span>{original}</span>
 				</div>}
 		</>
 	)
@@ -759,23 +772,20 @@ class CommentDetail extends React.PureComponent {
 			updateComments(updates);
 		}
 		if (Object.keys(resolutionUpdate).length > 0) {
-			const resolution_ids = [];
-			const resolution_adds = [];
+			const updates = [];
+			const adds = [];
 			for (const c of comments) {
 				if (c.resolution_id) {
-					resolution_ids.push(c.resolution_id);
+					updates.push({id: c.resolution_id, changes: resolutionUpdate});
 				}
 				else {
-					resolution_adds.push({
-						comment_id: c.comment_id,
-						...resolutionUpdate
-					});
+					adds.push({comment_id: c.comment_id, ...resolutionUpdate});
 				}
 			}
-			if (resolution_ids.length > 0)
-				updateResolutions(resolution_ids, resolutionUpdate);
-			if (resolution_adds.length > 0)
-				addResolutions(resolution_adds);
+			if (updates.length > 0)
+				updateResolutions(updates);
+			if (adds.length > 0)
+				addResolutions(adds);
 		}
 		this.setState((state, props) => ({...state, savedResolution: editedResolution}));
 	}
@@ -790,7 +800,7 @@ class CommentDetail extends React.PureComponent {
 		const resolutions = [];
 		// Add only one entry per CommentID
 		for (const comment_id of comments.map(c => c.comment_id)) {
-			if (!resolutions.find(r => r.comment_id === c.comment_id))
+			if (!resolutions.find(r => r.comment_id === comment_id))
 				resolutions.push({comment_id});
 		}
 		this.triggerSave.flush();
@@ -802,11 +812,11 @@ class CommentDetail extends React.PureComponent {
 			console.warn("Update in read only component");
 			return;
 		}
- 		const resolutions = this.state.comments
- 			.filter(c => c.ResolutionCount > 0)			// only those with resolutions
- 			.map(c => ({id: c.resolution_id}));
+ 		const ids = this.state.comments
+ 			.filter(c => c.ResolutionCount > 0)	// only those with resolutions
+ 			.map(c => c.resolution_id);
  		this.triggerSave.flush();
- 		await this.props.deleteResolutions(resolutions);
+ 		await this.props.deleteResolutions(ids);
  	}
 
  	toggleUiProperty = (property) => this.props.setUiProperty(property, !this.props.uiProperties[property]);
@@ -858,7 +868,7 @@ class CommentDetail extends React.PureComponent {
 						<span>{notAvailableStr}</span>
 				 	</NotAvaialble>:
 					<Comment 
-						cids={comments.map(c => c.CID)}
+						cids={comments.map(getCID)}
 						resolution={editedResolution}
 						setResolution={this.doResolutionUpdate}
 						showNotes={uiProperties.showNotes}

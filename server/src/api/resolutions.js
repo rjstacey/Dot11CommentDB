@@ -26,16 +26,10 @@ router.post('/$', async (req, res, next) => {
 router.put('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		if (!req.body.hasOwnProperty('ids'))
-			throw 'Missing ids parameter';
-		if (!req.body.hasOwnProperty('changes'))
-			throw 'Missing changes parameter';
-		const {ids, changes} = req.body;
-		if (!Array.isArray(ids))
-			throw 'Expect an array for ids parameter';
-		if (typeof changes !== 'object')
-			throw 'Expect an object for changes parameter';
-		const data = await updateResolutions(user.SAPIN, ids, changes);
+		const updates = req.body;
+		if (!Array.isArray(updates))
+			throw 'Missing or bad array parameter';
+		const data = await updateResolutions(user.SAPIN, updates);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -44,12 +38,10 @@ router.put('/$', async (req, res, next) => {
 router.delete('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		if (!req.body.hasOwnProperty('resolutions'))
-			throw 'Missing resolutions parameter'
-		const {resolutions} = req.body
-		if (!Array.isArray(resolutions))
-			throw 'Expect an array for resolutions parameter'
-		const data = await deleteResolutions(user.SAPIN, resolutions)
+		const ids = req.body;
+		if (!Array.isArray(ids))
+			throw 'Missing or bad array parameter';
+		const data = await deleteResolutions(user.SAPIN, ids)
 		res.json(data)
 	}
 	catch(err) {next(err)}

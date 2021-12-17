@@ -162,7 +162,7 @@ const tableColumns = [
 		headerRenderer: p =>
 			<SelectExpandHeader
 				dataSet={dataSet} 
-				customSelectorElement=<IdSelector style={{width: '200px'}} dataSet={dataSet} focusOnMount />
+				customSelectorElement=<IdSelector style={{width: '200px'}} dataSet={dataSet} dataKey='CID' focusOnMount />
 				{...p}
 			/>,
 		cellRenderer: p => <SelectExpandCell dataSet={dataSet} {...p} />},

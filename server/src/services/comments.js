@@ -86,21 +86,22 @@ export async function getCommentsSummary(ballot_id) {
 	return summary;
 }
 
-async function updateComment(userId, update) {
-	const {id, changes} = update;
-	if (!id)
-		throw 'Missing id';
-	if (!changes || typeof changes !== 'object')
-		throw 'Missing or bad changes object';
-	const sql = 
-		db.format("UPDATE comments SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=?; ", [changes, userId, id]) +
-		db.format("SELECT id, comment_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE comment_id=?;", [Object.keys(changes), id]);
-	const [noop, comments] = await db.query(sql);
-	return comments[0];
+/* Update comment and return an array of comments (from commentResolutions) that change */
+async function updateComment(userId, id, changes) {
+	if (Object.keys(changes).length > 0)
+		await db.query("UPDATE comments SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=?; ", [changes, userId, id]);
+	const comments = await db.query("SELECT id, comment_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE comment_id=?;", [Object.keys(changes), id]);
+	return comments;
 }
 
 export async function updateComments(userId, updates) {
-	const comments = await Promise.all(updates.map(u => updateComment(userId, u)));
+	for (const u of updates) {
+		if (typeof u !== 'object' || !u.id || typeof u.changes !== 'object')
+			throw 'Expected array of objects with shape {id, changes}'
+	}
+	const results = await Promise.all(updates.map(u => updateComment(userId, u.id, u.changes)));
+	/* reduce the results array of arrays to a single array */
+	const comments = results.reduce((all, comments) => all.concat(comments), []);
 	return {comments};
 }
 

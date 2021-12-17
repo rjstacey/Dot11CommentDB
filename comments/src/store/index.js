@@ -2,7 +2,7 @@ import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import thunk from 'redux-thunk';
 import { createLogger } from 'redux-logger';
 import { persistStore, persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage'; // defaults to localStorage for web
+import { get, set, del } from 'idb-keyval';
 
 import users from './users';
 import ballots from './ballots';
@@ -24,6 +24,12 @@ const middleware = [thunk];
 if (process.env.NODE_ENV !== 'production')
 	middleware.push(createLogger({collapsed: true}));
 
+const storage = {
+	setItem: set,
+	getItem: get,
+	removeItem: del
+};
+
 const persistConfig = {
 	key: 'root',
 	version: 1,
@@ -32,12 +38,12 @@ const persistConfig = {
 };
 
 const store = configureStore({
-	//reducer: persistReducer(persistConfig, reducer),
+	reducer: persistReducer(persistConfig, reducer),
 	reducer,
 	//middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware),
 	middleware
 });
 
-const persistor = undefined; //persistStore(store);
+const persistor = persistStore(store);
 
 export {store, persistor} 

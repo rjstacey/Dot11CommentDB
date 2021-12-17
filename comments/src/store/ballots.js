@@ -43,8 +43,8 @@ export const fields = {
 	Document: {label: 'Document'},
 	Topic: {label: 'Topic'},
 	EpollNum: {label: 'ePoll', sortType: SortType.NUMERIC},
-	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
-	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
+	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.STRING},
+	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.STRING},
 	Results: {label: 'Results', dontFilter: true, dontSort: true},
 	Comments: {label: 'Comments', dontFilter: true, dontSort: true},
 	VotingPoolID: {label: 'Voting pool'},
@@ -127,8 +127,6 @@ const {
 
 export const loadBallots = () => 
 	async (dispatch, getState) => {
-		if (getState()[dataSet].loading)
-			return;
 		dispatch(getPending());
 		let response;
 		try {
@@ -153,7 +151,7 @@ export const updateBallot = (id, changes) =>
 		try {
 			response = await fetcher.patch(url, [{id, changes}]);
 			if (!Array.isArray(response))
-				throw new TypeError('Unexpected response to PATCH ' + url);
+				throw new TypeError('Unexpected response to PATCH: ' + url);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to update ballot`, error));
@@ -198,7 +196,6 @@ export const setBallotId = (ballotId) =>
 		if (id)
 			await dispatch(setCurrentId(id));
 	}
-
 
 /*
  * Selectors
@@ -255,4 +252,3 @@ export const getCurrentBallot = (state) => {
 	const {entities, currentId} = state[dataSet];
 	return entities[currentId];
 }
-
