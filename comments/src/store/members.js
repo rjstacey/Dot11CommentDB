@@ -7,7 +7,7 @@ const dataAdapter = createEntityAdapter({
 	selectId: (user) => user.SAPIN
 })
 
-export const dataSet = 'users';
+export const dataSet = 'members';
 
 const slice = createSlice({
 	name: dataSet,
@@ -37,7 +37,7 @@ export default slice.reducer;
 
 const {getPending, getSuccess, getFailure} = slice.actions;
 
-export const loadUsers = () => 
+export const loadMembers = () => 
 	async (dispatch, getState) => {
 		dispatch(getPending());
 		let response;
@@ -57,5 +57,5 @@ export const loadUsers = () =>
 /*
  * Selectors
  */
-export const getUsersDataSet = (state) => state[dataSet];
+export const getMembersDataSet = (state) => state[dataSet];
  

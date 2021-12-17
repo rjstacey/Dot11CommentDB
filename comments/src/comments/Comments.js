@@ -19,7 +19,7 @@ import CommentHistory from './CommentHistory';
 import CommentsCopy from './CommentsCopy';
 
 import {fields, loadComments, clearComments, getCommentsDataSet, dataSet} from '../store/comments';
-import {loadUsers, getUsersDataSet} from '../store/users';
+import {loadMembers, getMembersDataSet} from '../store/members';
 import {setBallotId, loadBallots, getCurrentBallot, getBallotsDataSet} from '../store/ballots';
 
 const FlexRow = styled.div`
@@ -311,7 +311,7 @@ function Comments({access}) {
 	const {valid, loading, ballot: commentsBallot, ui: uiProperty, selected} = useSelector(getCommentsDataSet);
 	const {valid: ballotsValid, entities: ballotEntities} = useSelector(getBallotsDataSet);
 	const currentBallot = useSelector(getCurrentBallot);
-	const {valid: usersValid, loading: usersLoading} = useSelector(getUsersDataSet);
+	const {valid: usersValid, loading: usersLoading} = useSelector(getMembersDataSet);
 
 	const dispatch = useDispatch();
 	const load = (ballot_id) => dispatch(loadComments(ballot_id));
@@ -345,11 +345,11 @@ function Comments({access}) {
 		}
 	}, [currentBallot, commentsBallot]);
 
-	React.useEffect(() => dispatch(loadUsers()), []);
+	React.useEffect(() => dispatch(loadMembers()), []);
 	
 	const refresh = () => {
 		load(currentBallot.id);
-		dispatch(loadUsers());
+		dispatch(loadMembers());
 	}
 
 	const onBallotSelected = (ballot_id) => {

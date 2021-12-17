@@ -93,7 +93,7 @@ const slice = createAppTableDataSlice({
 				}
 			}
 		)
-		.addMatcher(
+		/*.addMatcher(
 			(action) => action.type.startsWith(dataSet + '/') && /(getSuccess|addOne|updateOne)$/.test(action.type),
 			(state, action) => {
 				// Create 'PrevBallotID' field for each 'prev_id' field
@@ -102,7 +102,7 @@ const slice = createAppTableDataSlice({
 					b.PrevBallotID = b.prev_id? entities[b.prev_id].BallotID: '';
 				}
 			}
-		)
+		)*/
 	}
 });
 
@@ -128,10 +128,10 @@ const {
 export const loadBallots = () => 
 	async (dispatch, getState) => {
 		dispatch(getPending());
-		let response;
+		let ballots;
 		try {
-			response = await fetcher.get('/api/ballots');
-			if (!Array.isArray(response))
+			ballots = await fetcher.get('/api/ballots');
+			if (!Array.isArray(ballots))
 				throw new TypeError("Unexpected response to GET: /api/ballots")
 		}
 		catch(error) {
@@ -139,13 +139,17 @@ export const loadBallots = () =>
 			await dispatch(setError('Unable to get ballot list', error));
 			return;
 		}
-		await dispatch(getSuccess(response));
+		for (const b1 of ballots) {
+			const bPrev = ballots.find(b2 => b2.id === b1.prev_id);
+			b1.PrevBallotID = bPrev? bPrev.BallotID: '';
+		}
+		await dispatch(getSuccess(ballots));
 	}
 
 export const updateBallotSuccess = (id, changes) => updateOne({id, changes});
 
 export const updateBallot = (id, changes) =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
 		const url = '/api/ballots';
 		let response;
 		try {
@@ -158,6 +162,10 @@ export const updateBallot = (id, changes) =>
 			return;
 		}
 		const [updatedBallot] = response;
+		if (updatedBallot.prev_id) {
+			const {entities} = getState()[dataSet];
+			updatedBallot.PrevBallotID = entities[updatedBallot.prev_id] || '';
+		}
 		await dispatch(updateOne({id, changes: updatedBallot}));
 	}
 
@@ -186,6 +194,10 @@ export const addBallot = (ballot) =>
 			return;
 		}
 		const [updatedBallot] = response;
+		if (updatedBallot.prev_id) {
+			const {entities} = getState()[dataSet];
+			updatedBallot.PrevBallotID = entities[updatedBallot.prev_id] || '';
+		}
 		await dispatch(addOne(updatedBallot));
 	}
 

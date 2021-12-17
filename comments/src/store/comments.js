@@ -174,6 +174,37 @@ export const updateComments = (updates) =>
 		await dispatch(updateMany(updates));
 	}
 
+export const deleteComments = (ballot_id) =>
+	async (dispatch) => {
+		try {
+			await fetcher.delete(`/api/comments/${ballot_id}`)
+		}
+		catch(error) {
+			await dispatch(setError(`Unable to delete comments`, error));
+			return;
+		}
+		const summary = {Count: 0, CommentIDMin: 0, CommentIDMax: 0}
+		await dispatch(updateBallotSuccess(ballot_id, {Comments: summary}));
+	}
+
+export const importComments = (ballot_id, epollNum, startCID) =>
+	async (dispatch) => {
+		const url = `/api/comments/${ballot_id}/importFromEpoll//${epollNum}`;
+		let response;
+		try {
+			response = await fetcher.post(url, {StartCID: startCID});
+			if (typeof response !== 'object' ||
+				typeof response.ballot !== 'object') {
+				throw 'Unexpected response to POST: ' + url;
+			}
+		}
+		catch(error) {
+			await dispatch(setError(`Unable to import comments`, error));
+			return;
+		}
+		await dispatch(updateBallotSuccess(ballot_id, response.ballot))
+	}
+
 export const uploadComments = (ballotId, type, file) =>
 	async (dispatch) => {
 		const url = `/api/comments/upload/${ballotId}/${type}`;

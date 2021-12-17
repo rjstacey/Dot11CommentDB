@@ -6,10 +6,15 @@ import Account from 'dot11-components/general/Account';
 import {AccessLevel} from 'dot11-components/lib/user';
 import {ErrorModal, ConfirmModal} from 'dot11-components/modals';
 
-import Ballots from './ballots/Ballots';
-import Results from './results/Results';
-import Comments from './comments/Comments';
-import Reports from './reports/Reports';
+const Comments = React.lazy(() => import('./comments/Comments'));
+const Results = React.lazy(() => import('./results/Results'));
+const Reports = React.lazy(() => import('./reports/Reports'));
+
+const Ballots = React.lazy(() => import('./ballots/Ballots'));
+const Epolls = React.lazy(() => import('./ballots/Epolls'));
+
+const VotersPools = React.lazy(() => import('./ballotVoters/VotersPools'));
+const Voters = React.lazy(() => import('./ballotVoters/Voters'));
 
 const OuterDiv = styled.div`
 	display: flex;
@@ -83,8 +88,10 @@ const RestrictedRoute = ({component: Component, access, minAccess, ...rest }) =>
 		{...rest}
 		render={props =>
 			access >= minAccess?
-				<Component access={access} {...props} />:
-				<Redirect to={{ pathname: "/login", state: { from: props.location } }} />
+				<React.Suspense fallback={<div>Loading...</div>}>
+					<Component access={access} {...props} />
+				</React.Suspense>:
+				<span>You do not have permission to view this data</span>
 		}
 	/>
 
@@ -96,12 +103,11 @@ function App({user, access}) {
 				<Header>
 					<Title>802.11 Comment Resolution</Title>
 					<Nav>
-						{access >= AccessLevel.Public && <>
-							<NavLink to="/ballots/" activeClassName='active'>Ballots</NavLink>
-							{access >= AccessLevel.SubgroupAdmin && <NavLink to="/results" activeClassName='active'>Results</NavLink>}
-							<NavLink to="/comments" activeClassName='active'>Comments</NavLink>
-							{access >= AccessLevel.SubgroupAdmin && <NavLink to="/reports" activeClassName='active'>Reports</NavLink>}
-						</>}
+						{access >= AccessLevel.Public && <NavLink to="/ballots/" activeClassName='active'>Ballots</NavLink>}
+						{access >= AccessLevel.WGAdmin && <NavLink to="/voters/" activeClassName='active'>Ballot voters</NavLink>}
+						{access >= AccessLevel.SubgroupAdmin && <NavLink to="/results" activeClassName='active'>Results</NavLink>}
+						{access >= AccessLevel.Public && <NavLink to="/comments" activeClassName='active'>Comments</NavLink>}
+						{access >= AccessLevel.Public && <NavLink to="/reports" activeClassName='active'>Reports</NavLink>}
 					</Nav>
 					<Account user={user} />
 				</Header>
@@ -127,8 +133,20 @@ function App({user, access}) {
 						<RestrictedRoute
 							path="/reports/:ballotId?" exact
 							access={access}
-							minAccess={AccessLevel.SubgroupAdmin}
+							minAccess={AccessLevel.Public}
 							component={Reports}
+						/>
+						<RestrictedRoute
+							path="/voters" exact
+							access={access}
+							minAccess={AccessLevel.WGAdmin}
+							component={VotersPools}
+						/>
+						<RestrictedRoute
+							path="/voters/:votingPoolName"
+							access={access}
+							minAccess={AccessLevel.WGAdmin}
+							component={Voters}
 						/>
 					</Switch>
 					<ErrorModal />

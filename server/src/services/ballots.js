@@ -75,7 +75,6 @@ export async function getBallotSeriesWithResults(id) {
 		}
 		const results = await Promise.all(ballotSeries.map(b => getResults(b.id)));
 		ballotSeries.forEach((ballot, i) => ballot.Results = results[i]);
-		console.log('here...', ballotSeries[0].Results[0])
 	}
 	return ballotSeries;
 }

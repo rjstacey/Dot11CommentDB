@@ -7,7 +7,7 @@ import {Form, Row, Field, Input, Select} from 'dot11-components/form';
 import {shallowDiff, parseNumber} from 'dot11-components/lib';
 import {AppModal} from 'dot11-components/modals';
 
-import MemberSelector from '../members/MemberSelector';
+import MemberSelector from '../comments/AssigneeSelector';
 
 import {addVoter, updateVoter} from '../store/voters';
 

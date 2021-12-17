@@ -1,7 +1,8 @@
-import PropTypes from 'prop-types'
-import React from 'react'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+
 import {Select} from 'dot11-components/form'
-import {useDispatch, useSelector} from 'react-redux'
 import {loadVotingPools, getVotingPoolsDataSet, selectVotingPoolsOptions} from '../store/votingPools'
 
 function VotingPoolSelector({

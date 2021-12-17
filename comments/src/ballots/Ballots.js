@@ -1,15 +1,22 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link, useHistory, useParams} from 'react-router-dom';
+import {Link, useHistory, useParams} from "react-router-dom";
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
-import AppTable, {SelectHeader, SelectCell, TableColumnHeader, ShowFilters, TableColumnSelector, TableViewSelector} from 'dot11-components/table';
-import {ActionButton} from 'dot11-components/icons';
+import AppTable, {SelectHeader, SelectCell, TableColumnHeader, ShowFilters, TableViewSelector, TableColumnSelector, SplitPanel, Panel} from 'dot11-components/table';
+import {Button, ActionButton} from 'dot11-components/icons';
 import {AccessLevel, displayDate, displayDateRange} from 'dot11-components/lib';
 import {ConfirmModal} from 'dot11-components/modals';
 
-import {fields, loadBallots, getBallotsDataSet, selectBallotEntities, BallotType, dataSet} from '../store/ballots';
+import BallotDetail, {BallotAddDropdown as BallotAdd} from './BallotDetail';
+
+import {setSelected} from 'dot11-components/store/selected'
+import {setProperty} from 'dot11-components/store/ui'
+
+import {fields, loadBallots, deleteBallots, BallotType, BallotStage, getBallotsDataSet, dataSet} from '../store/ballots'
+import {loadVotingPools, getVotingPoolsDataSet} from '../store/votingPools'
+
 
 const DataSubcomponent = styled.div`
 	flex: 1 1 ${({width}) => width && typeof width === 'string'? width: width + 'px'};
@@ -18,29 +25,8 @@ const DataSubcomponent = styled.div`
 	overflow: hidden;
 `;
 
-//const BallotsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
-
-function BallotsColumnHeader(props) {
-	const entities = useSelector(selectBallotEntities);
-	return <TableColumnHeader dataSet={dataSet} entities={entities} {...props}/>
-}
+const BallotsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
 const HeaderSubcomponent = DataSubcomponent.withComponent(BallotsColumnHeader);
-
-const renderHeaderVotingPool = (props) =>
-	<>
-		<HeaderSubcomponent {...props} dataKey='VotingPoolID' {...fields.VotingPoolID} />
-		<HeaderSubcomponent {...props} dataKey='PrevBallotID' {...fields.PrevBallotID} />
-	</>
-
-const renderCellVotingPool = ({rowData}) => {
-	const type = rowData.Type;
-	const isRecirc = rowData.IsRecirc;
-	if ((type === BallotType.WG && !isRecirc) || type === BallotType.Motion)
-		return rowData.VotingPoolID;
-	if (type === BallotType.WG)
-		return rowData.PrevBallotID;
-	return '';
-}
 
 const renderHeaderStartEnd = (props) =>
 	<>
@@ -68,29 +54,50 @@ const renderCellTypeStage = ({rowData}) =>
 		<NoWrapItem>{fields.IsRecirc.dataRenderer(rowData.IsRecirc)}</NoWrapItem>
 	</>
 
-export function renderResultsSummary({rowData, dataKey, readOnly}) {
-	const results = rowData[dataKey]
-	let resultsStr = ''
-	if (results && results.TotalReturns) {
-		let p = parseFloat(100*results.Approve/(results.Approve+results.Disapprove))
-		resultsStr = `${results.Approve}/${results.Disapprove}/${results.Abstain}`
-		if (!isNaN(p)) {
-			resultsStr += ` (${p.toFixed(1)}%)`
-		}
+const renderHeaderVotingPool = (props) =>
+	<>
+		<HeaderSubcomponent {...props} dataKey='VotingPoolID' {...fields.VotingPoolID} />
+		<HeaderSubcomponent {...props} dataKey='PrevBallotID' {...fields.PrevBallotID} />
+	</>
+
+const renderCellVotingPool = ({rowData}) => {
+	const type = rowData.Type;
+	const isRecirc = rowData.IsRecirc;
+	if ((type === BallotType.WG && !isRecirc) || type === BallotType.Motion) {
+		const access = window.user.Access;
+		return access >= AccessLevel.SubgroupAdmin?
+			<Link to={`/voters/${rowData.VotingPoolID}`}>{rowData.VotingPoolID}</Link>:
+			rowData.VotingPoolID;
 	}
-	if (!resultsStr) {
-		resultsStr = 'None'
-	}
-	return readOnly? resultsStr: <Link to={`/Results/${rowData.BallotID}`}>{resultsStr}</Link>
+	if (type === BallotType.WG)
+		return rowData.PrevBallotID;
+	return '';
 }
 
-export function renderCommentsSummary({rowData, dataKey}) {
-	const comments = rowData[dataKey];
-	let commentStr = 'None';
-	if (comments && comments.Count > 0) {
-		commentStr = `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
+export function renderResultsSummary({rowData, readOnly}) {
+	const access = window.user.Access;
+	const results = rowData.Results;
+	let str = '';
+	if (results && results.TotalReturns) {
+		str = `${results.Approve}/${results.Disapprove}/${results.Abstain}`;
+		const p = parseFloat(100*results.Approve/(results.Approve+results.Disapprove));
+		if (!isNaN(p))
+			str += ` (${p.toFixed(1)}%)`;
 	}
-	return <Link to={`/Comments/${rowData.BallotID}`}>{commentStr}</Link>
+	if (!str)
+		str = 'None';
+	return access >= AccessLevel.SubgroupAdmin?
+		<Link to={`/results/${rowData.BallotID}`}>{str}</Link>:
+		str;
+}
+
+export function renderCommentsSummary({rowData}) {
+	const comments = rowData.Comments;
+	const str =
+		(comments && comments.Count > 0)
+			? `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
+			: 'None';
+	return <Link to={`/comments/${rowData.BallotID}`}>{str}</Link>
 }
 
 const tableColumns = [
@@ -98,12 +105,12 @@ const tableColumns = [
 		width: 30, flexGrow: 0, flexShrink: 0,
 		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
-	{key: 'BallotID',
-		...fields.BallotID,
-		width: 100,	flexShrink: 0, flexGrow: 0,
-		dropdownWidth: 200},
 	{key: 'Project',
 		...fields.Project,
+		width: 100,	flexShrink: 0, flexGrow: 0,
+		dropdownWidth: 200},
+	{key: 'BallotID',
+		...fields.BallotID,
 		width: 100,	flexShrink: 0, flexGrow: 0,
 		dropdownWidth: 200},
 	{key: 'Type/Stage',
@@ -114,7 +121,7 @@ const tableColumns = [
 	{key: 'Type',
 		...fields.Type,
 		width: 100,	flexShrink: 0, flexGrow: 0},
-	{key: 'Stage',
+	{key: 'IsRecirc',
 		...fields.IsRecirc,
 		width: 100,	flexShrink: 0, flexGrow: 0},
 	{key: 'Start/End',
@@ -141,7 +148,7 @@ const tableColumns = [
 		...fields.EpollNum,
 		width: 80,	flexGrow: 0, flexShrink: 0,
 		dropdownWidth: 200},
-	{key: 'VotingPool/PrevBallotID',
+	{key: 'VotingPool',
 		label: 'Voting pool/Prev ballot',
 		width: 100, flexShrink: 1, flexGrow: 1,
 		headerRenderer: renderHeaderVotingPool,
@@ -157,21 +164,26 @@ const tableColumns = [
 ];
 
 const defaultTablesColumns = {
-	'default': ['__ctrl__', 'Project', 'BallotID', 'Start/End', 'Type', 'Document', 'VotingPool/PrevBallotID', 'Results', 'Comments'],
+	'Basic': ['__ctrl__', 'BallotID', 'Project', 'Start/End', 'Document', 'Results', 'Comments'],
+	'Detailed': ['__ctrl__', 'BallotID', 'Project', 'Start/End', 'Document', 'Topic', 'VotingPool', 'Results', 'Comments']
 };
 
 const defaultTablesConfig = {};
 
-for (const [view, colsArray] of Object.entries(defaultTablesColumns)) {
-	const columns = {};
-	defaultTablesConfig[view] = {fixed: false, columns};
+for (const tableView of Object.keys(defaultTablesColumns)) {
+	const tableConfig = {
+		fixed: false,
+		columns: {}
+	}
 	for (const column of tableColumns) {
-		columns[column.key] = {
-			unselectable: column.key.startsWith('__'),
-			shown: colsArray.includes(column.key),
-			width: column.width,
+		const key = column.key;
+		tableConfig.columns[key] = {
+			unselectable: key.startsWith('__'),
+			shown: defaultTablesColumns[tableView].includes(key),
+			width: column.width
 		}
 	}
+	defaultTablesConfig[tableView] = tableConfig;
 }
 
 // The top row height is determined by its content
@@ -183,48 +195,110 @@ const TopRow = styled.div`
 	box-sizing: border-box;
 `;
 
+const ButtonGroup = styled.div`
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	background: linear-gradient(to bottom, #fdfdfd 0%,#f6f7f8 100%);
+	border: 1px solid #999;
+	border-radius: 2px;
+	padding: 5px;
+	margin: 0 5px;
+`;
+
 // The table row grows to the available height
 const TableRow = styled.div`
 	flex: 1;
 	width: 100%;
 `;
 
-function Ballots() {
+function getRow({rowIndex, ids, entities}) {
+	const currData = entities[ids[rowIndex]];
+	if (rowIndex === 0)
+		return currData;
+	const prevData = entities[ids[rowIndex-1]];
+	if (currData.Project !== prevData.Project)
+		return currData;
+	// Previous row holds the same comment
+	return {
+			...currData,
+			Project: '',
+	}
+}
+
+function Ballots({access}) {
 
 	const history = useHistory();
 	const {ballotId} = useParams();
-	const dispatch = useDispatch();
-	const {loading} = useSelector(getBallotsDataSet);
-	const entities = useSelector(selectBallotEntities);
 
-	const load = React.useCallback(() => dispatch(loadBallots()));
+	const {valid, loading, entities: ballots, ui: uiProperty, selected} = useSelector(getBallotsDataSet);
+	const {valid: votingPoolsValid, loading: votingPoolsLoading} = useSelector(getVotingPoolsDataSet);
+
+	const dispatch = useDispatch();
+
+	const load = React.useCallback(() => {
+		dispatch(loadBallots());
+		dispatch(loadVotingPools());
+	}, [dispatch]);
+
+	const setUiProperty = React.useCallback((property, value) => dispatch(setProperty(dataSet, property, value)), [dispatch]);
+
 	const closeBallot = () => history.push('/ballots');
+	const showEpolls = () => history.push('/epolls/');
 
 	return (
 		<>
-			<TopRow>
-				<div><label>Ballots</label></div>
-				<div style={{display: 'flex', alignItems: 'center'}}>
-					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-					<ActionButton name='refresh' title='Refresh' onClick={load} disabled={loading} />
-				</div>
-			</TopRow>
+		<TopRow>
+			<div><label>Ballots</label></div>
+			<div style={{display: 'flex'}}>
+				<ButtonGroup>
+					<div>Table view</div>
+					<div style={{display: 'flex'}}>
+						<TableViewSelector dataSet={dataSet} />
+						<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+						{access >= AccessLevel.WGAdmin && 
+							<ActionButton
+								name='book-open'
+								title='Show detail'
+								isActive={uiProperty.editView} 
+								onClick={() => setUiProperty('editView', !uiProperty.editView)} 
+							/>}
+					</div>
+				</ButtonGroup>
+				{access >= AccessLevel.WGAdmin &&
+					<ButtonGroup>
+						<div>Edit</div>
+						<div style={{display: 'flex'}}>
+							<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
+							<BallotAdd />
+						</div>
+					</ButtonGroup>}
+				<ActionButton name='refresh' title='Refresh' onClick={load} disabled={loading} />
+			</div>
+		</TopRow>
 
-			<ShowFilters
-				dataSet={dataSet}
-				fields={fields}
-			/>
+		<ShowFilters
+			dataSet={dataSet}
+			fields={fields}
+		/>
 
-			<TableRow>
+		<SplitPanel splitView={(access >= AccessLevel.WGAdmin && uiProperty.editView) || false} >
+			<Panel>
 				<AppTable
 					defaultTablesConfig={defaultTablesConfig}
 					columns={tableColumns}
 					headerHeight={50}
 					estimatedRowHeight={50}
 					dataSet={dataSet}
-					entities={entities}
+					rowGetter={getRow}
 				/>
-			</TableRow>
+			</Panel>
+			<Panel style={{overflow: 'auto'}}>
+				<BallotDetail
+					key={selected.join()}
+				/>
+			</Panel>
+		</SplitPanel>
 		</>
 	)
 }

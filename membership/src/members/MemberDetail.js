@@ -607,8 +607,6 @@ class MemberDetail extends React.Component {
 	}
 
 	componentDidMount() {
-		if (!this.props.ballotsValid)
-			this.props.loadBallots();
 		if (!this.props.sessionsValid)
 			this.props.loadSessions();
 	}
@@ -771,13 +769,10 @@ class MemberDetail extends React.Component {
 		selected: PropTypes.array.isRequired,
 		sessionsValid: PropTypes.bool.isRequired,
 		sessions: PropTypes.object.isRequired,
-		ballotsValid: PropTypes.bool.isRequired,
-		ballots: PropTypes.object.isRequired,
 		uiProperties: PropTypes.object.isRequired,
 		updateMembers: PropTypes.func.isRequired,
 		updateMemberStatusChange: PropTypes.func.isRequired,
 		deleteMemberStatusChange: PropTypes.func.isRequired,
-		loadBallots: PropTypes.func.isRequired,
 		loadSessions: PropTypes.func.isRequired,
 		setUiProperty: PropTypes.func.isRequired
 	}
@@ -795,8 +790,6 @@ const ConnectedMemberDetail = connect(
 			uiProperties: members.ui,
 			sessionsValid: state.sessions.valid,
 			sessions: state.sessions.entities,
-			ballotsValid: state.ballots.valid,
-			ballots: state.ballots.entities,
 		}
 	},
 	{
@@ -806,7 +799,6 @@ const ConnectedMemberDetail = connect(
 		addMemberContactEmail,
 		updateMemberContactEmail,
 		deleteMemberContactEmail,
-		loadBallots,
 		loadSessions,
 		setUiProperty: (property, value) => setProperty(dataSet, property, value),
 	}

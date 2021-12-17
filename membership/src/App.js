@@ -13,12 +13,6 @@ const ImatMeetings = React.lazy(() => import('./meetings/ImatMeetings'));
 const Attendees = React.lazy(() => import('./meetings/Attendees'));
 const Breakouts = React.lazy(() => import('./meetings/Breakouts'));
 
-const Ballots = React.lazy(() => import('./ballots/Ballots'));
-const Epolls = React.lazy(() => import('./ballots/Epolls'));
-
-const VotersPools = React.lazy(() => import('./ballotVoters/VotersPools'));
-const Voters = React.lazy(() => import('./ballotVoters/Voters'));
-
 const OuterDiv = styled.div`
 	display: flex;
 	flex-direction: column;
@@ -108,8 +102,6 @@ function App({user, access}) {
 					<Nav>
 						<NavLink to="/members/" activeClassName='active'>Members</NavLink>
 						<NavLink to="/sessions/" activeClassName='active'>Sessions</NavLink>
-						<NavLink to="/ballots/" activeClassName='active'>Ballots</NavLink>
-						<NavLink to="/voters/" activeClassName='active'>Ballot Voters</NavLink>
 					</Nav>
 					<Account user={user} />
 				</Header>
@@ -126,18 +118,6 @@ function App({user, access}) {
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Sessions}
-						/>
-						<RestrictedRoute
-							path="/ballots/:ballotId?"
-							access={access}
-							minAccess={AccessLevel.WGAdmin}
-							component={Ballots}
-						/>
-						<RestrictedRoute
-							path="/epolls/"
-							access={access}
-							minAccess={AccessLevel.WGAdmin}
-							component={Epolls}
 						/>
 						<RestrictedRoute
 							path="/ImatSessions/"
@@ -162,18 +142,6 @@ function App({user, access}) {
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Attendees}
-						/>
-						<RestrictedRoute
-							path="/voters" exact
-							access={access}
-							minAccess={AccessLevel.WGAdmin}
-							component={VotersPools}
-						/>
-						<RestrictedRoute
-							path="/voters/:votingPoolName"
-							access={access}
-							minAccess={AccessLevel.WGAdmin}
-							component={Voters}
 						/>
 					</Switch>
 					<ErrorModal />

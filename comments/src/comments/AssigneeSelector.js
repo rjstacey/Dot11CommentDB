@@ -9,7 +9,7 @@ import {Select} from 'dot11-components/form';
 import {Icon} from 'dot11-components/icons';
 import {strComp} from 'dot11-components/lib';
 
-import {loadUsers, getUsersDataSet} from '../store/users';
+import {loadMembers, getMembersDataSet} from '../store/members';
 import {getCommentsDataSet} from '../store/comments';
 
 const StyledItem = styled.div`
@@ -122,11 +122,11 @@ function AssigneeSelector({
 }) {
 	const dispatch = useDispatch();
 	const {ids: commentIds, entities: commentEntities} = useSelector(getCommentsDataSet);
-	const {valid, loading, ids: userIds, entities: userEntities} = useSelector(getUsersDataSet);
+	const {valid, loading, ids: userIds, entities: userEntities} = useSelector(getMembersDataSet);
 
 	React.useEffect(() => {
 		if (!valid && !loading && !readOnly)
-			dispatch(loadUsers());
+			dispatch(loadMembers());
 	}, []);
 
 	const options = React.useMemo(() => {

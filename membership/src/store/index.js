@@ -8,24 +8,18 @@ import errMsg from 'dot11-components/store/error';
 
 import members from './members';
 import sessions from './sessions';
-import ballots from './ballots';
-import epolls from './epolls';
 import imatMeetings from './imatMeetings';
 import breakouts from './breakouts';
 import attendees from './attendees';
-import voters from './voters';
-import votingPools from './votingPools';
+import ballots from './ballots';
 
 const reducer = combineReducers({
 	members,
 	sessions,
-	ballots,
-	epolls,
 	imatMeetings,
 	breakouts,
 	attendees,
-	voters,
-	votingPools,
+	ballots,
 	errMsg
 });
 
@@ -37,7 +31,8 @@ if (process.env.NODE_ENV !== 'production')
 const devTools = process.env.NODE_ENV !== 'production';
 
 const storage = {
-	setItem: set, //(key, value) => {console.log(key, value); set(key, value)},
+	setItem: set,
+	//setItem: (key, value) => {console.log(key, value); set(key, value)},
 	getItem: get,
 	removeItem: del
 };

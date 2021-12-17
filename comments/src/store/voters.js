@@ -1,9 +1,10 @@
 import {createSelector} from '@reduxjs/toolkit';
 import { v4 as uuid } from 'uuid';
-import fetcher from 'dot11-components/lib/fetcher';
+import {fetcher} from 'dot11-components/lib';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 import {upsertVotingPool} from './votingPools';
+import {dataSet as membersDataSet} from './members';
 
 const dataSet = 'voters';
 
@@ -28,20 +29,19 @@ export const fields = {
 /* Entities selector with join on members to get Name, Affiliation and Email.
  * If the member entry is obsolete find the member entry that replaces it. */
 const selectEntities = createSelector(
-	state => state['members'].entities,
+	state => state[membersDataSet].entities,
 	state => state[dataSet].entities,
 	(members, voters) => {
 		const entities = {};
 		for (const [id, voter] of Object.entries(voters)) {
-			const v = {...voter, Name: 'Unknown', Affiliation: 'Unknown', Email: 'Unknown'}
 			const member = members[voter.SAPIN];
 			while (member && member.Status === 'Obsolete') {
 				member = members[member.ReplacedBySAPIN]
 			}
 			entities[id] = {
 				...voter,
-				Name: (member && member.Name) || 'Unknown',
-				Affiliation: (member && member.Affiliation) || 'Unknown',
+				Name: (member && member.Name) || '',
+				Affiliation: (member && member.Affiliation) || '',
 				Email: (member && member.Email)
 			};
 		}

@@ -4,16 +4,17 @@ import {connect} from 'react-redux';
 import styled from '@emotion/styled';
 import {Tab, Tabs, TabList, TabPanel} from 'react-tabs';
 
+import {ActionButton, Icon, IconCollapse} from 'dot11-components/icons';
+import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/form';
+import {AccessLevel, shallowDiff, recursivelyDiffObjects, debounce} from 'dot11-components/lib';
+import {setProperty, getData, getSortedFilteredIds} from 'dot11-components/store/appTableData';
+
 import AdHocSelector from './AdHocSelector';
 import CommentGroupSelector from './CommentGroupSelector';
 import AssigneeSelector from './AssigneeSelector';
 import SubmissionSelector from './SubmissionSelector';
 import {editorCss, ResolutionEditor} from './ResolutionEditor';
 import CommentHistory from './CommentHistory';
-import {ActionButton, Icon, IconCollapse} from 'dot11-components/icons';
-import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/form';
-import {AccessLevel, shallowDiff, recursivelyDiffObjects, debounce} from 'dot11-components/lib';
-import {setProperty, getData, getSortedFilteredIds} from 'dot11-components/store/appTableData';
 
 import {
 	addResolutions,

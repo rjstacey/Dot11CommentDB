@@ -357,7 +357,6 @@ export async function getResultsCoalesced(user, ballot_id) {
 		results.forEach(r => delete r.Email);
 	}
 
-	console.log('I think..', results[0])
 	return {
 		BallotID: ballot.BallotID,
 		VotingPoolID: votingPoolId,
@@ -369,7 +368,6 @@ export async function getResultsCoalesced(user, ballot_id) {
 }
 
 export async function getResults(ballot_id) {
-	console.log('get results')
 	const results = await db.query(
 		'SELECT ' + 
 			'r.*, ' +
@@ -384,7 +382,6 @@ export async function getResults(ballot_id) {
 			'WHERE r.ballot_id=?',
 		[ballot_id]
 	);
-	console.log(results[0])
 	return results;
 }
 

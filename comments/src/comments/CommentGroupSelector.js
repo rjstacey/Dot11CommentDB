@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {useSelector} from 'react-redux';
 
-import {Select} from 'dot11-components/general/Form';
+import {Select} from 'dot11-components/form';
 import {selectAllFieldValues} from 'dot11-components/store/appTableData';
 
 const dataSet = 'comments';
