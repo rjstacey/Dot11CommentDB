@@ -84,7 +84,7 @@ export async function addResolutions(userId, resolutions) {
 	}
 }
 
-function resolutionEntry(userId, changes) {
+function resolutionEntry(changes) {
 	const entry = {
 		comment_id: changes.comment_id,
 		ResolutionID: changes.ResolutionID,
@@ -109,10 +109,11 @@ function resolutionEntry(userId, changes) {
 }
 
 async function updateResolution(userId, id, changes) {
-	const resolution = resolutionEntry(changes);
-	if (Object.keys(resolution).length > 0)
+	const entry = resolutionEntry(changes);
+	if (Object.keys(entry).length > 0)
 		await db.query('UPDATE resolutions SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=?;', [entry, userId, id]);
-	return await db.query("SELECT id, resolution_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE resolution_id=?;", [Object.keys(changes), id]);
+	const [comment] = await db.query("SELECT id, resolution_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE resolution_id=?;", [Object.keys(changes), id]);
+	return comment;
 }
 
 export async function updateResolutions(userId, updates) {

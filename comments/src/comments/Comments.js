@@ -319,11 +319,6 @@ function Comments({access}) {
 	const setUiProperty = (property, value) => dispatch(setProperty(dataSet, property, value));
 
 	React.useEffect(() => {
-		if (!ballotsValid)
-			dispatch(loadBallots());
-	}, []);
-
-	React.useEffect(() => {
 		if (ballotId) {
 			if (!currentBallot || ballotId !== currentBallot.BallotID) {
 				// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
@@ -345,8 +340,6 @@ function Comments({access}) {
 		}
 	}, [currentBallot, commentsBallot]);
 
-	React.useEffect(() => dispatch(loadMembers()), []);
-	
 	const refresh = () => {
 		load(currentBallot.id);
 		dispatch(loadMembers());
