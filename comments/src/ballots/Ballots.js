@@ -221,8 +221,8 @@ function getRow({rowIndex, ids, entities}) {
 		return currData;
 	// Previous row holds the same comment
 	return {
-			...currData,
-			Project: '',
+		...currData,
+		Project: '',
 	}
 }
 

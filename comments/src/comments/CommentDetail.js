@@ -797,6 +797,7 @@ class CommentDetail extends React.PureComponent {
 			return;
 		}
 		const {comments} = this.state;
+		const {addResolutions} = this.props;
 		//console.log(comments)
 		const resolutions = [];
 		// Add only one entry per CommentID
@@ -805,7 +806,7 @@ class CommentDetail extends React.PureComponent {
 				resolutions.push({comment_id});
 		}
 		this.triggerSave.flush();
-		await this.props.addResolutions(resolutions);
+		await addResolutions(resolutions);
 	}
 
  	handleDeleteResolutions = async () => {

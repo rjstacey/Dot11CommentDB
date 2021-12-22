@@ -120,6 +120,12 @@ function App({user, access}) {
 							component={Ballots}
 						/>
 						<RestrictedRoute
+							path="/epolls"
+							access={access}
+							minAccess={AccessLevel.WGAdmin}
+							component={Epolls}
+						/>
+						<RestrictedRoute
 							path="/results/:ballotId?"
 							access={access}
 							minAccess={AccessLevel.SubgroupAdmin}

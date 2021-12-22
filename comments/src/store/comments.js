@@ -1,7 +1,7 @@
 import {fetcher} from 'dot11-components/lib';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
-import {updateBallotSuccess} from './ballots';
+import {updateBallotSuccess, getCurrentBallotId} from './ballots';
 
 const mustSatisfyOptions = [
 	{value: 0, label: 'No'},
@@ -110,7 +110,8 @@ const {
 	upsertMany,
 	removeMany,
 	removeAll,
-	setSelected
+	setSelected,
+	setExpanded
 } = slice.actions;
 
 export const getCID = (c) => c.CommentID + (c.ResolutionCount > 1? '.' + c.ResolutionID: '');
@@ -198,7 +199,7 @@ export const importComments = (ballot_id, epollNum, startCID) =>
 				throw 'Unexpected response to POST: ' + url;
 			}
 		}
-		catch(error) {
+		catch (error) {
 			await dispatch(setError(`Unable to import comments`, error));
 			return;
 		}
@@ -211,15 +212,12 @@ export const uploadComments = (ballotId, type, file) =>
 		let response;
 		try {
 			response = await fetcher.postMultipart(url, {CommentsFile: file});
-			if (!response.hasOwnPropery('comments') || !Array.isArray(response.comments) ||
+			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments) ||
 				!response.hasOwnProperty('ballot') || typeof response.ballot !== 'object')
 				throw new TypeError(`Unexpected response to POST: ${url}`);
 		}
-		catch(error) {
-			await Promise.all([
-				dispatch(updateFailure({ballotId})),
-				dispatch(setError(`Unable to upload comments for ${ballotId}`, error))
-			]);
+		catch (error) {
+			await dispatch(setError(`Unable to upload comments for ${ballotId}`, error));
 			return;
 		}
 		const {comments, ballot} = response;
@@ -230,25 +228,25 @@ export const uploadComments = (ballotId, type, file) =>
 	}
 
 export const setStartCommentId = (ballot_id, startCommentId) =>
-	async (dispatch) => {
-		dispatch(updatePending());
+	async (dispatch, getState) => {
 		const url = `/api/comments/${ballot_id}/startCommentId`;
 		let response;
 		try {
 			response = await fetcher.patch(url, {StartCommentID: startCommentId});
-			if (!Array.isArray(response))
-				throw new TypeError("Unexpected response to PATCH: " + url)
+			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments) ||
+				!response.hasOwnProperty('ballot') || typeof response.ballot !== 'object')
+				throw new TypeError(`Unexpected response to PATCH: ${url}`);
 		}
-		catch(error) {
-			await dispatch(updateFailure());
+		catch (error) {
 			await dispatch(setError("Unable to set start CID", error));
 			return;
 		}
-		await Promise.all([
-			dispatch(setSelected(dataSet, [])),
-			dispatch(setExpanded(dataSet, [])),
-			dispatch(getSuccess(response.comments))
-		]);
+		const {comments, ballot} = response;
+		dispatch(updateBallotSuccess(ballot.id, ballot));
+		const currentBallotId = getCurrentBallotId(getState());
+		if (ballot.id === currentBallotId) {
+			dispatch(getSuccess(comments));
+		}
 	}
 
 async function afterAddOrDeleteResolutions(dispatch, state, comments) {
@@ -288,15 +286,12 @@ export const addResolutions = (resolutions) =>
 			response = await fetcher.post('/api/resolutions', {resolutions})
 			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments))
 				throw new TypeError('Missing comments array in response');
-			if (!response.hasOwnProperty('newCIDs') || !Array.isArray(response.newCIDs))
-				throw new TypeError('Missing newCIDs array in response');
 		}
 		catch(error) {
 			await dispatch(setError('Unable to add resolutions', error));
 			return;
 		}
 		await afterAddOrDeleteResolutions(dispatch, getState()[dataSet], response.comments);
-		return response.newComments;
 	}
 
 export const updateResolutions = (updates) =>

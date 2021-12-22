@@ -5,8 +5,11 @@ import { persistStore, persistReducer } from 'redux-persist';
 import { get, set, del } from 'idb-keyval';
 //import storage from 'redux-persist/lib/storage';
 
+import {version} from '../../package.json';
+
 import members, {loadMembers} from './members';
 import ballots, {loadBallots} from './ballots';
+import epolls from './epolls';
 import comments from './comments';
 import commentsHistory from './commentsHistory';
 import results from './results';
@@ -14,9 +17,11 @@ import voters from './voters';
 import votingPools, {loadVotingPools} from './votingPools';
 import errMsg from 'dot11-components/store/error';
 
+
 const reducer = combineReducers({
 	members,
 	ballots,
+	epolls,
 	comments,
 	commentsHistory,
 	results,
@@ -39,7 +44,7 @@ const storage = {
 
 const persistConfig = {
 	key: 'root',
-	version: 1,
+	version,
 	storage,
 	blacklist: ['errMsg', 'commentsHistory', 'epolls']
 };

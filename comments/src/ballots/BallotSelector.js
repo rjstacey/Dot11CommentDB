@@ -4,7 +4,15 @@ import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
 import {Select} from 'dot11-components/form';
-import {loadBallots, setCurrentProject, setCurrentId, getBallotsDataSet, selectProjectOptions, selectBallotOptions} from '../store/ballots';
+
+import {
+	loadBallots,
+	setCurrentProject,
+	setCurrentId,
+	getBallotsDataSet,
+	selectProjectOptions,
+	selectBallotOptions
+} from '../store/ballots';
 
 const Label = styled.label`
 	font-weight: bold;

@@ -43,7 +43,7 @@ const selectEntities = createSelector(
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	selectEntities,
+	//selectEntities,
 	initialState: {
 		ballot: {},
 		votingPoolSize: 0,

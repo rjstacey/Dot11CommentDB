@@ -17,9 +17,18 @@ import ResultsActions from './ResultsActions';
 import CommentsActions from './CommentsActions';
 import VotingPoolSelector from './VotingPoolSelector';
 
-import {updateBallot, addBallot, deleteBallots, loadBallots, setCurrentProject, selectProjectOptions, 
-	BallotType, BallotTypeOptions, BallotStageOptions} from '../store/ballots';
 import {loadVotingPools} from '../store/votingPools';
+import {
+	updateBallot,
+	addBallot,
+	deleteBallots,
+	loadBallots,
+	setCurrentProject,
+	selectProjectOptions, 
+	BallotType,
+	BallotTypeOptions,
+	BallotStageOptions
+} from '../store/ballots';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
@@ -407,8 +416,9 @@ class _BallotDetail extends React.Component {
 	}
 
 	handleRemoveSelected = async () => {
-		const {selected} = this.props;
-		const ok = await ConfirmModal.show(`Are you sure you want to delete ballots ${selected}?`);
+		const {selected, ballots} = this.props;
+		const list = selected.map(id => ballots[id].BallotID).join(', ');
+		const ok = await ConfirmModal.show(`Are you sure you want to delete ballot${selected.length > 0? 's': ''} ${list}?`);
 		if (!ok)
 			return;
 		await this.props.deleteBallots(selected);
@@ -494,13 +504,12 @@ const BallotDetail = connect(
 	}
 )(_BallotDetail);
 
-function BallotAddForm({
+export function BallotAddForm({
 	defaultBallot,
 	close
 }) {
 	const dispatch = useDispatch();
 	const [ballot, setBallot] = React.useState(defaultBallot || getDefaultBallot());
-	const [errMsg, setErrMsg] = React.useState('');
 	const [busy, setBusy] = React.useState(false);
 
 	const submit = async () => {
@@ -543,15 +552,5 @@ export const BallotAddDropdown = (props) =>
 	>
 		<BallotAddForm {...props} />
 	</ActionButtonDropdown>
-
-export const BallotAddModal = (props) => 
-	<div onClick={e => e.stopPropagation()}>
-		<ActionButtonModal
-			name='add'
-			title='Add ballot' 
-		>
-			<BallotAddForm {...props} />
-		</ActionButtonModal>
-	</div>
 
 export default BallotDetail;

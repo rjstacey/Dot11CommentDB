@@ -23,7 +23,9 @@ function appendStr(toStr, str) {
 function colateWGResults(ballotSeries) {
 	// Collect each voters last vote
 	const ballotSeriesReversed = ballotSeries.slice().reverse();
+	console.log(ballotSeries.length)
 	let results = [];
+	let i = 0;
 	for (const voter of ballotSeries[0].Voters) {
 		const v = {
 			...voter,
@@ -32,9 +34,15 @@ function colateWGResults(ballotSeries) {
 			CommentCount: 0,
 			Notes: ''
 		}
+		if (i === 0)
+			console.log(voter)
 		for (const ballot of ballotSeriesReversed) {
+			//console.log(ballot.Results[0])
 			const r = ballot.Results.find(r => r.CurrentSAPIN === voter.CurrentSAPIN)
 			if (r) {
+				if (i === 0)
+					console.log(r.SAPIN)
+				i++;
 				// Record the vote
 				v.Vote = r.Vote;
 				v.CommentCount = r.CommentCount;
@@ -56,8 +64,12 @@ function colateWGResults(ballotSeries) {
 	}
 
 	// Add results for those that voted but are not in the pool)
+	i = 0;
 	for (const r of ballotSeries[ballotSeries.length - 1].Results) {
 		if (results.findIndex(v => v.CurrentSAPIN === r.CurrentSAPIN) < 0) {
+			if (i === 0)
+				console.log(r)
+			i++;
 			const nv = {
 				...r,
 				id: uuid(),
@@ -370,7 +382,8 @@ export async function getResultsCoalesced(user, ballot_id) {
 export async function getResults(ballot_id) {
 	const results = await db.query(
 		'SELECT ' + 
-			'r.*, ' +
+			'r.ballot_id, ' +
+			'r.SAPIN, r.Email, r.Name, r.Affiliation, r.Vote, ' +
 			'BIN_TO_UUID(r.uuid) AS id, ' +
 			'(SELECT COUNT(*) ' +
 				'FROM comments c WHERE c.ballot_id=r.ballot_id AND ' +

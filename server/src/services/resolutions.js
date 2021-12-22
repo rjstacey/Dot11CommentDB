@@ -74,14 +74,7 @@ export async function addResolutions(userId, resolutions) {
 	const resolution_ids = await Promise.all(resolutions.map(r => addResolution(userId, r)));
 	const comment_ids = resolutions.map(r => r.comment_id)
 	const comments = await db.query('SELECT * FROM commentResolutions WHERE comment_id IN (?);', [comment_ids]);
-	const newCIDs = resolution_ids.map(id => {
-		const c = comments.find(c => c.resolution_id === id)
-		return c? c.CID: '';
-	})
-	return {
-		comments,
-		newCIDs
-	}
+	return {comments}
 }
 
 function resolutionEntry(changes) {

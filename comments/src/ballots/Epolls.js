@@ -5,11 +5,12 @@ import styled from '@emotion/styled';
 
 import AppTable from 'dot11-components/table';
 import {ActionButton} from 'dot11-components/icons';
+import {AppModal} from 'dot11-components/modals';
 
-import {loadBallots, BallotType, getBallotsDataSet} from '../store/ballots'
-import {fields, loadEpolls, selectSyncedEpollsEntities, getEpollsDataSet, dataSet} from '../store/epolls'
+import {loadBallots, BallotType, getBallotsDataSet} from '../store/ballots';
+import {fields, loadEpolls, selectSyncedEpollsEntities, getEpollsDataSet, dataSet} from '../store/epolls';
 
-import {BallotAddModal as BallotAdd} from './BallotDetail'
+import {BallotAddForm} from './BallotDetail';
 
 function renderDate({rowData, dataKey}) {
 	// rowData[key] is an ISO time string. We convert this to eastern time
@@ -60,7 +61,7 @@ const renderActions = ({rowData}) => rowData.InDatabase
 	? <span>Already Present</span>
 	: <BallotAdd defaultBallot={ePollToBallot(rowData)}/>
 
-const columns = [
+const tableColumns = [
 		{key: 'EpollNum', 	...fields.EpollNum, 	width: 100},
 		{key: 'BallotID', 	...fields.BallotID,		width: 200},
 		{key: 'Start', 		...fields.Start,		width: 100},
@@ -69,23 +70,22 @@ const columns = [
 		{key: 'Topic', 		...fields.Topic,		width: 500},
 		{key: 'Votes',		...fields.Votes,		width: 100},
 		{key: 'Actions', 	label: '',				width: 200,
-			headerRenderer: () => '',	
-			cellRenderer: renderActions}
+			headerRenderer: () => ''}
 	];
+
+const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40
 
 function Epolls() {
 
 	const history = useHistory();
-	const numberEpolls = React.useRef(20);
 
 	const {valid: ballotsValid, loading: ballotsLoading} = useSelector(getBallotsDataSet);
 	const {valid, loading} = useSelector(getEpollsDataSet);
-	const epolls = useSelector(selectSyncedEpollsEntities)
 
 	const dispatch = useDispatch();
-	const load = React.useCallback((n) => dispatch(loadEpolls(n)), [dispatch]);
 
-	const maxWidth = columns.reduce((acc, col) => acc + col.width, 0) + 40
+	const numberEpolls = React.useRef(20);
+	const load = React.useCallback(() => dispatch(loadEpolls(numberEpolls.current)), [dispatch]);
 
 	React.useEffect(() => {
 		if (!ballotsValid && !ballotsLoading)
@@ -94,22 +94,38 @@ function Epolls() {
 			load(numberEpolls.current);
 	}, []);
 
-	//React.useEffect(() => {console.log('epolls changed')}, [props.epolls]);
-
-	const refresh = () => load(numberEpolls.current);
 	const close = () => history.push('/ballots');
 
-	function getMore() {
+	function loadMore() {
 		numberEpolls.current += 10;
-		load(numberEpolls.current);
+		load();
 	}
 
-	return <>
+	const [addBallot, setAddBallot] = React.useState(null);
+
+	const columns = React.useMemo(() => {
+		const columns = tableColumns.slice();
+		const cellRenderer = ({rowData}) => rowData.InDatabase?
+			<span>Already Present</span>:
+			<ActionButton
+				name='add'
+				title='Add ballot' 
+				onClick={() => setAddBallot(ePollToBallot(rowData))}
+			/>
+		columns[columns.length-1] = {
+			...columns[columns.length-1],
+			cellRenderer
+		};
+		return columns;
+	});
+
+	return (
+		<>
 		<ActionRow style={{maxWidth}}>
 			<span><label>Closed ePolls</label></span>
 			<span>
-				<ActionButton name='more' title='Load More' onClick={getMore} />
-				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				<ActionButton name='more' title='Load More' onClick={loadMore} />
+				<ActionButton name='refresh' title='Refresh' onClick={load} />
 				<ActionButton name='close' title='Close' onClick={close} />
 			</span>
 		</ActionRow>
@@ -119,10 +135,19 @@ function Epolls() {
 				headerHeight={28}
 				estimatedRowHeight={64}
 				dataSet={dataSet}
-				rowGetter={({rowId}) => epolls[rowId]}
 			/>
 		</TableRow>
-	</>
+		<AppModal
+			isOpen={addBallot !== null}
+			onRequestClose={() => setAddBallot(null)}
+		>
+			<BallotAddForm
+				defaultBallot={addBallot}
+				close={() => setAddBallot(null)}
+			/>
+		</AppModal>
+		</>
+	)
 }
 
-export default Epolls;
+export default React.memo(Epolls);

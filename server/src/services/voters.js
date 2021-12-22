@@ -77,7 +77,7 @@ const getVotingPoolSQL = (votingPoolId) =>
 	db.format('SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters WHERE VotingPoolID=?;', [votingPoolId]);
 
 const getVotersFullSQL = (votingPoolId, sapins, ids) => {
-	/*let sql =
+	let sql =
 		'SELECT ' +
 			'v.*, ' + 
 			'BIN_TO_UUID(v.id) AS id, ' +
@@ -89,12 +89,7 @@ const getVotersFullSQL = (votingPoolId, sapins, ids) => {
 			'LEFT JOIN members m ON m.Status<>\'Obsolete\' AND m.SAPIN=v.SAPIN ' +
 			'LEFT JOIN (SELECT ' + 
 					'm2.SAPIN AS OldSAPIN, m1.SAPIN AS CurrentSAPIN, m1.Name, m1.Email, m1.Affiliation ' + 
-				'FROM members m1 LEFT JOIN members m2 ON m1.SAPIN=m2.ReplacedBySAPIN AND m2.Status=\'Obsolete\') AS o ON v.SAPIN=o.OldSAPIN';*/
-	let sql = 
-		'SELECT ' +
-			'v.*, ' + 
-			'BIN_TO_UUID(v.id) AS id ' +
-		'FROM wgVoters v'
+				'FROM members m1 LEFT JOIN members m2 ON m1.SAPIN=m2.ReplacedBySAPIN AND m2.Status=\'Obsolete\') AS o ON v.SAPIN=o.OldSAPIN';
 	let conditions = [];
 	if (votingPoolId)
 		conditions.push(db.format('VotingPoolID=?', [votingPoolId]));

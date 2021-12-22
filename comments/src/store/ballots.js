@@ -214,9 +214,9 @@ export const setBallotId = (ballotId) =>
  */
 export const getBallotsDataSet = (state) => state[dataSet];
 
-const selectIds = (state) => state[dataSet].ids;
-const selectEntities = (state) => state[dataSet].entities;
-const selectCurrentProject = (state) => state[dataSet].currentProject
+export const selectIds = (state) => state[dataSet].ids;
+export const selectEntities = (state) => state[dataSet].entities;
+export const selectCurrentProject = (state) => state[dataSet].currentProject
 
 /* Get ballot entities with derived data */
 export const selectBallotEntities = createSelector(
@@ -259,6 +259,8 @@ export const getBallot = (state, ballot_id) => {
 	const {entities} = state[dataSet];
 	return entities[ballot_id];
 }
+
+export const getCurrentBallotId = (state) => state[dataSet].currentId;
 
 export const getCurrentBallot = (state) => {
 	const {entities, currentId} = state[dataSet];
