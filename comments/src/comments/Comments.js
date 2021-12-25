@@ -18,7 +18,7 @@ import CommentsExport from './CommentsExport';
 import CommentHistory from './CommentHistory';
 import CommentsCopy from './CommentsCopy';
 
-import {fields, loadComments, clearComments, getCommentsDataSet, dataSet} from '../store/comments';
+import {fields, loadComments, clearComments, getCID, getCommentStatus, getCommentsDataSet, dataSet} from '../store/comments';
 import {loadMembers, getMembersDataSet} from '../store/members';
 import {setBallotId, loadBallots, getCurrentBallot, getBallotsDataSet} from '../store/ballots';
 
@@ -114,7 +114,7 @@ const renderDataCellStacked1 = ({rowData}) => {
 	return (
 		<>
 			<FlexRow>
-				<DataSubcomponent width={70} style={{fontWeight: 'bold'}}>{rowData.CID}</DataSubcomponent>
+				<DataSubcomponent width={70} style={{fontWeight: 'bold'}}>{getCID(rowData)}</DataSubcomponent>
 				<DataSubcomponent width={40}>{rowData.Category}</DataSubcomponent>
 			</FlexRow>
 			<FlexRow>
@@ -406,7 +406,7 @@ function Comments({access}) {
 					dataSet={dataSet}
 				/>
 			</Panel>
-			<Panel>
+			<Panel style={{overflow: 'auto'}}>
 				<CommentDetail
 					key={selected.join()}
 					access={access}

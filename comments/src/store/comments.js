@@ -1,3 +1,4 @@
+import { v4 as uuid } from 'uuid';
 import {fetcher} from 'dot11-components/lib';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
@@ -107,6 +108,8 @@ const {
 	getSuccess,
 	getFailure,
 	updateMany,
+	addMany,
+	addOne,
 	upsertMany,
 	removeMany,
 	removeAll,
@@ -249,81 +252,150 @@ export const setStartCommentId = (ballot_id, startCommentId) =>
 		}
 	}
 
-async function afterAddOrDeleteResolutions(dispatch, state, comments) {
-	const deletes = [];
-	let selected = state.selected.slice();
-	const selected_comment_ids = [];
-	// Remove comments with affected comment_ids and then add them again
-	for (const id of state.ids) {
-		const {comment_id} = state.entities[id];
-		if (comments.find(c => c.comment_id === comment_id)) {
-			deletes.push(id);
-			const i = selected.indexOf(id);
-			if (i >= 0) {
-				// Remove from the selected list
-				selected.splice(i, 1);
-				// If the associated comment_id appears in the updated list, then add it again as the last entry with this comment_id
-				const x = comments.filter(c => c.comment_id === comment_id);
-				if (x.length) {
-					const newId = selectId(x[x.length - 1]);
-					if (!selected.includes(newId))
-						selected.push(newId);
-				}
-			}
-		}
-	}
-	await Promise.all([
-		dispatch(removeMany(deletes)),
-		dispatch(upsertMany(comments)),
-		dispatch(setSelected(selected))
-	]);
-}
+const defaultResolution = {
+	AssigneeSAPIN: 0,
+	AssigneeName: '',
+	ResnStatus: '',
+	Resolution: '',
+	Submission: '',
+	ReadyForMotion: 0,
+	ApprovedByMotion: '',
+	EditStatus: '',
+	EditInDraft: '',
+	EditNotes: '',
+};
 
 export const addResolutions = (resolutions) =>
 	async (dispatch, getState) => {
-		let response;
+
+		const selected = [],
+			  updates = [],
+			  adds = [],
+			  remoteAdds = [];
+		const {entities} = getCommentsDataSet(getState());
+		for (const r of resolutions) {
+			// Find all entries for this comment_id
+			const comments = [];
+			for (const c of Object.values(entities)) {
+				if (c.comment_id === r.comment_id)
+					comments.push(c);
+			}
+
+			if (comments.length === 0) {
+				console.error('Invalid comment_id=', r.comment_id);
+				continue;
+			}
+
+			// Find a unique ResolutionID
+			const existingResolutionIDs = new Set(comments.map(c => c.ResolutionID));
+			let ResolutionID = 0;
+			while (existingResolutionIDs.has(ResolutionID))
+				ResolutionID++;
+
+			const resolution_id = uuid();
+			const resolution = {
+				...defaultResolution,
+				...r,
+				ResolutionID,
+				id: resolution_id,
+			};
+			remoteAdds.push(resolution);
+			const ResolutionCount = comments.length + 1;
+			const newComment = {
+				...comments[0],		// Duplicate the comment fields
+				...resolution,
+				ResolutionCount,
+				resolution_id,
+				id: resolution_id
+			}
+			adds.push(newComment);
+			// Update ResolutionCount for other comments
+			updates.push(...comments.map(c => ({id: c.id, changes: {ResolutionCount}})));
+			// Select the newly added entry
+			selected.push(resolution_id);
+		}
+		dispatch(addMany(adds));
+		dispatch(updateMany(updates));
+		dispatch(setSelected(selected));
+
 		try {
-			response = await fetcher.post('/api/resolutions', {resolutions})
-			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments))
-				throw new TypeError('Missing comments array in response');
+			fetcher.post('/api/resolutions', {resolutions: remoteAdds});
 		}
 		catch(error) {
 			await dispatch(setError('Unable to add resolutions', error));
-			return;
 		}
-		await afterAddOrDeleteResolutions(dispatch, getState()[dataSet], response.comments);
 	}
 
 export const updateResolutions = (updates) =>
 	async (dispatch, getState) => {
-		let response;
+		await dispatch(updateMany(updates));
 		try {
-			response = await fetcher.put('/api/resolutions', updates);
-			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments))
-				throw new TypeError('Unexpected response to PUT: /api/resolutions');
+			await fetcher.patch('/api/resolutions', updates);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to update resolution${updates.length > 1? 's': ''}`, error));
-			return;
 		}
-		updates = response.comments.map(c => ({id: selectId(c), changes: c}));
-		await dispatch(updateMany(updates));
 	}
 
 export const deleteResolutions = (ids) =>
 	async (dispatch, getState) => {
+		const selected = [];
+		let entities = getCommentsDataSet(getState()).entities;
+		// Keep a copy of the resolutions about to be deleted
+		const resolutions = [];
+		for (const id of ids)
+			resolutions.push(entities[id]);
+		// Order by ResolutionID so that we keep the resolution with the lowest ResolutionID.
+		resolutions.sort(r => r.ResolutionID);	// order by ResolutionID
+		// Delete them
+		await dispatch(removeMany(ids));
+		// Re-add a single entry with defaults if all deleted otherwise update ResolutionCount
+		// For the remote entries, delete if there are multiple, update if there is only one
+		const deletes = [];
+		const updates = [];
+		for (const r of resolutions) {
+			entities = getCommentsDataSet(getState()).entities;
+			const comments = [];
+			for (const c of Object.values(entities)) {
+				if (c.comment_id === r.comment_id)
+					comments.push(c);
+			}
+			if (comments.length === 0) {
+				// No resolutions remain for this comment_id
+				// Re-add a resolution with defatuls locally (same id) and update it remotely (i.e., don't delete the remote copy)
+				updates.push({id: r.id, changes: defaultResolution});
+				const resolution = {
+					...r,
+					...defaultResolution,
+					ResolutionID: 0,
+					ResolutionCount: 1
+				}
+				await dispatch(addOne(resolution));
+				selected.push(resolution.id);
+			}
+			else {
+				// Resolutions still exist for this comment_id
+				// Delete the remote entries
+				deletes.push(r.id);
+				// Update the ResolutionCount for the local copies with the same comment_id
+				const commentUpdates = comments.map(c => ({id: c.id, changes: {ResolutionCount: comments.length}}));
+				await dispatch(updateMany(commentUpdates));
+				if (updates.length)
+					selected.push(updates[0].id);
+			}
+		}
+		dispatch(setSelected(selected));
+
 		const url = '/api/resolutions';
-		let response;
 		try {
-			response = await fetcher.delete(url, ids);
-			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments))
-				throw new TypeError('Unexpected response to DELETE: ' + url);
+			if (deletes.length > 0)
+				await fetcher.delete(url, deletes);
+			if (updates.length > 0)
+				await fetcher.patch(url, updates);
 		}
-		catch(error) {
+		catch (error) {
 			await dispatch(setError(`Unable to delete resolution${ids.length > 1? 's': ''}`, error));
-			return;
 		}
-		await afterAddOrDeleteResolutions(dispatch, getState()[dataSet], response.comments);
 	}
 
 export const FieldsToUpdate = {

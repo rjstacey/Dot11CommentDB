@@ -11,8 +11,9 @@ const createViewCommentResolutionsSQL =
 	'CREATE VIEW commentResolutions AS SELECT ' +
 		'b.id AS ballot_id, ' +
 		'c.id AS comment_id, ' +
-		'r.id AS resolution_id, ' +
-		'IF((SELECT count(0) from resolutions r WHERE (c.id = r.comment_id)) > 1, concat(cast(c.id as CHAR), "-", cast(r.id as CHAR)), cast(c.id as CHAR)) AS id, ' +
+		'BIN_TO_UUID(r.id) AS resolution_id, ' +
+		//'IF((SELECT count(0) from resolutions r WHERE (c.id = r.comment_id)) > 1, concat(cast(c.id as CHAR), "-", cast(r.id as CHAR)), cast(c.id as CHAR)) AS id, ' +
+		'IF(r.id IS NOT NULL, BIN_TO_UUID(r.id), cast(c.id as CHAR)) AS id, ' +
 		'IF((SELECT count(0) from resolutions r WHERE (c.id = r.comment_id)) > 1, concat(c.CommentID, ".", r.ResolutionID), c.CommentID) AS CID, ' +
 		'b.BallotID AS BallotID, ' +
 		'c.CommentID AS CommentID, ' +

@@ -23,7 +23,7 @@ router.post('/$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.put('/$', async (req, res, next) => {
+router.patch('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
 		const updates = req.body;

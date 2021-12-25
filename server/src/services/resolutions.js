@@ -1,34 +1,47 @@
 'use strict';
 
-const db = require('../util/database')
+import { v4 as uuid, validate as validateUUID } from 'uuid';
+
 import {genCommentsSpreadsheet} from './commentsSpreadsheet';
 import {myProjectAddResolutions} from './myProjectSpreadsheets';
 
-const GET_RESOLUTIONS_SQL =
-	'SELECT ' +
-		'r.id, b.BallotID, c.CommentID, r.ResolutionID, r.AssigneeSAPIN, r.ResnStatus, r.Resolution, r.Submission, r.ReadyForMotion, r.ApprovedByMotion, ' + 
-		'r.EditStatus, r.EditInDraft, r.EditNotes, r.Notes, ' +
-		'users.Name AS AssigneeName ' +
-	'FROM ballots b JOIN comments c ON b.id=c.ballot_id JOIN resolutions r ON c.id=r.comment_id ' +
-		'LEFT JOIN users ON r.AssigneeSAPIN = users.SAPIN ';
+const db = require('../util/database');
+
+const defaultResolution = {
+	ResolutionID: 0,
+	AssigneeSAPIN: 0,
+	AssigneeName: '',
+	ResnStatus: '',
+	Resolution: '',
+	Submission: '',
+	ReadyForMotion: 0,
+	ApprovedByMotion: '',
+	EditStatus: '',
+	EditInDraft: '',
+	EditNotes: '',
+};
 
 async function addResolution(userId, resolution) {
-	let resolutionId
-	if (!resolution.comment_id) {
+
+	if (!resolution.comment_id)
 		throw 'Missing comment_id'
-	}
-	if (!resolution.hasOwnProperty('ResolutionID') || resolution.ResolutionID === null) {
+
+	const id = validateUUID(resolution.id)? resolution.id: uuid();
+	delete resolution.id;
+
+	let {ResolutionID} = resolution;
+	if (ResolutionID === undefined) {
 		/* Find smallest unused ResolutionID */
 		let result = await db.query(
 			'SELECT MIN(r.ResolutionID)-1 AS ResolutionID FROM resolutions r WHERE comment_id=?;',
 			[resolution.comment_id]
 		);
-		resolutionId = result[0].ResolutionID
+		ResolutionID = result[0].ResolutionID
 		//console.log(result)
-		if (resolutionId === null) {
-			resolutionId = 0
+		if (ResolutionID === null) {
+			ResolutionID = 0;
 		}
-		else if (resolutionId < 0) {
+		else if (ResolutionID < 0) {
 			result = await db.query(
 				'SELECT ' +
 					'r1.ResolutionID+1 AS ResolutionID ' +
@@ -37,36 +50,22 @@ async function addResolution(userId, resolution) {
 				[resolution.comment_id]
 			);
 			//console.log(result)
-			resolutionId = result[0].ResolutionID
+			ResolutionID = result[0].ResolutionID
 		}
 	}
-	else {
-		resolutionId = resolution.ResolutionID
+	else if (typeof ResolutionID !== 'number') {
+		throw 'Invalid ResolutionID; must be number';
 	}
 	//console.log(resolutionId)
 
 	const entry = {
-		comment_id: resolution.comment_id,
-		ResolutionID: resolutionId,
-		ResnStatus: resolution.ResnStatus,
-		Resolution: resolution.Resolution,
-		AssigneeSAPIN: resolution.AssigneeSAPIN,
-		AssigneeName: resolution.AssigneeName,
-		Submission: resolution.Submission,
-		ReadyForMotion: resolution.ReadyForMotion,
-		ApprovedByMotion: resolution.ApprovedByMotion,
-		EditStatus: resolution.EditStatus,
-		EditNotes: resolution.EditNotes,
-		EditInDraft: resolution.EditInDraft,
-	}
-	for (let key of Object.keys(entry)) {
-		if (entry[key] === undefined) {
-			delete entry[key]
-		}
+		...defaultResolution,
+		...resolution,
+		ResolutionID
 	}
 
-	const [result] = await db.query2('INSERT INTO resolutions SET ?, LastModifiedBy=?, LastModifiedTime=NOW();', [entry, userId]);
-	return result.insertId
+	await db.query2('INSERT INTO resolutions SET id=UUID_TO_BIN(?), ?, LastModifiedBy=?, LastModifiedTime=NOW();', [id, entry, userId]);
+	return id;
 }
 
 export async function addResolutions(userId, resolutions) {
@@ -102,9 +101,8 @@ function resolutionEntry(changes) {
 }
 
 async function updateResolution(userId, id, changes) {
-	const entry = resolutionEntry(changes);
-	if (Object.keys(entry).length > 0)
-		await db.query('UPDATE resolutions SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=?;', [entry, userId, id]);
+	if (Object.keys(changes).length > 0)
+		await db.query('UPDATE resolutions SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=UUID_TO_BIN(?);', [changes, userId, id]);
 	const [comment] = await db.query("SELECT id, resolution_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE resolution_id=?;", [Object.keys(changes), id]);
 	return comment;
 }
@@ -113,23 +111,15 @@ export async function updateResolutions(userId, updates) {
 	// Validate request
 	for (const u of updates) {
 		if (typeof u !== 'object' || !u.id || typeof u.changes !== 'object')
-			throw 'Expected array of objects with shape {id, changes}'
+			throw 'Expected array of objects with shape {id, changes}';
 	}
 	const comments = await Promise.all(updates.map(u => updateResolution(userId, u.id, u.changes)));
 	return {comments};
 }
 
 export async function deleteResolutions(userId, ids) {
-	if (ids.length > 0) {
-		const rows = await db.query('SELECT comment_id FROM resolutions WHERE id IN (?);', [ids]);
-		if (rows.length) {
-			const comment_ids = rows.map(r => r.comment_id);
-			await db.query('DELETE FROM resolutions WHERE id IN (?);', [ids]);
-			const comments = await db.query('SELECT * FROM commentResolutions WHERE comment_id IN (?);', [comment_ids]);
-			return {comments}
-		}
-	}
-	return {comments: []};
+	const results = await db.query('DELETE FROM resolutions WHERE BIN_TO_UUID(id) IN (?)', [ids]);
+	return results.affectedRows;
 }
 
 export async function exportResolutionsForMyProject(ballotId, filename, file, res) {

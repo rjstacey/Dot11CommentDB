@@ -117,7 +117,7 @@ export async function initCommentHistory() {
 
 const GET_COMMENTS_HISTORY_SQL = 
 	'SELECT ' +
-		'l.id, l.comment_id, l.resolution_id, l.UserID, l.Action, l.Changes, l.Timestamp, ' +
+		'l.id, l.comment_id, BIN_TO_UUID(l.resolution_id) as resolution_id, l.UserID, l.Action, l.Changes, l.Timestamp, ' +
 		'm.Name AS UserName ' +
 	'FROM resolutionsLog l ' + 
 		'LEFT JOIN members m ON l.UserID=m.SAPIN ' + 
