@@ -118,6 +118,8 @@ export async function updateResolutions(userId, updates) {
 }
 
 export async function deleteResolutions(userId, ids) {
+	if (ids.length === 0)
+		return 0;
 	const results = await db.query('DELETE FROM resolutions WHERE BIN_TO_UUID(id) IN (?)', [ids]);
 	return results.affectedRows;
 }

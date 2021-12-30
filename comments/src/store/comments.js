@@ -1,8 +1,10 @@
 import { v4 as uuid } from 'uuid';
 import {fetcher} from 'dot11-components/lib';
+//import fetcher from './fetcher';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
-import {updateBallotSuccess, getCurrentBallotId} from './ballots';
+
+import {updateBallotSuccess, getCurrentBallotId, getBallotsDataSet} from './ballots';
 
 const mustSatisfyOptions = [
 	{value: 0, label: 'No'},
@@ -27,7 +29,7 @@ export const fields = {
 		label: 'Vote'
 	},
 	MustSatisfy: {
-		label: 'Must Satisfy',
+		label: 'Must satisfy',
 		dataRenderer: v => mustSatisfyLabels[v],
 		options: mustSatisfyOptions,
 		sortType: SortType.NUMERIC
@@ -36,14 +38,14 @@ export const fields = {
 	Clause: {label: 'Clause', sortType: SortType.CLAUSE},
 	Page: {label: 'Page', sortType: SortType.NUMERIC},
 	Comment: {label: 'Comment'},
-	ProposedChange: {label: 'Proposed Change'},
+	ProposedChange: {label: 'Proposed change'},
 	AdHoc: {label: 'Ad-hoc'},
 	CommentGroup: {label: 'Group'},
 	Notes: {label: 'Notes'},
 	AssigneeName: {label: 'Assignee'},
 	Submission: {label: 'Submission'},
 	Status: {label: 'Status'},
-	ApprovedByMotion: {label: 'Motion Number'},
+	ApprovedByMotion: {label: 'Approval motion'},
 	ResnStatus: {label: 'Resn Status'},
 	Resolution: {label: 'Resolution'},
 	EditStatus: {label: 'Editing Status'},
@@ -63,6 +65,21 @@ export const getField = (entity, dataKey) => {
 	return entity[dataKey];
 }
 
+function getResolutionCountUpdates(ids, entities, comment_ids) {
+	const updates = [];
+	for (const comment_id of comment_ids) {
+		const comments = [];
+		for (const id of ids) {
+			const c = entities[id];
+			if (c.comment_id === comment_id)
+				comments.push(c);
+		}
+		const ResolutionCount = comments.length;
+		updates.push(...comments.map(c => ({id: c.id, changes: {ResolutionCount}})));
+	}
+	return updates;
+}
+
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -76,7 +93,7 @@ const slice = createAppTableDataSlice({
 		setDetails(state, action) {
   			const {ballot_id} = action.payload;
 			state.ballot_id = ballot_id;
-		},
+		}
 	},
 	extraReducers: (builder, dataAdapter) => {
 		builder
@@ -89,6 +106,48 @@ const slice = createAppTableDataSlice({
 					state.ballot_id = 0;
 					dataAdapter.removeAll(state);
 				}
+			}
+		)
+		.addMatcher(
+			(action) => action.type.startsWith(dataSet + '/') && /(addManyCommit|updateManyCommit)$/.test(action.type),
+			(state, action) => {
+				const {comments} = action.payload;
+				const updates = comments.map(c => ({id: c.id, changes: {LastModifiedBy: c.LastModifiedBy, LastModifiedTime: c.LastModifiedTime}}));
+				dataAdapter.updateMany(state, updates);
+			}
+		)
+		.addMatcher(
+			(action) => action.type.startsWith(dataSet + '/') && /(updateManyRollback)$/.test(action.type),
+			(state, action) => {
+				// Reverse previous updates
+				const {updates} = action.meta;
+				dataAdapter.updateMany(state, updates);
+			}
+		)
+		.addMatcher(
+			(action) => action.type.startsWith(dataSet + '/') && /(addManyRollback)$/.test(action.type),
+			(state, action) => {
+				const added_ids = action.meta.ids;
+				if (!Array.isArray(added_ids))
+					console.error('missing or bad action.meta.ids');
+				const comment_ids = added_ids.map(id => state.entities[id].comment_id);
+				dataAdapter.removeMany(state, added_ids);
+				const {ids, entities} = state;
+				const updates = getResolutionCountUpdates(ids, entities, comment_ids);
+				dataAdapter.updateMany(state, updates);
+			}
+		)
+		.addMatcher(
+			(action) => action.type.startsWith(dataSet + '/') && /(removeManyRollback)$/.test(action.type),
+			(state, action) => {
+				const {comments} = action.meta;
+				if (!Array.isArray(comments))
+					console.error('missing or bad action.meta.comments');
+				dataAdapter.addMany(state, comments);
+				const {ids, entities} = state;
+				const comment_ids = comments.map(c => c.comment_id);
+				const updates = getResolutionCountUpdates(ids, entities, comment_ids);
+				dataAdapter.updateMany(state, updates);
 			}
 		)
 	}
@@ -107,11 +166,9 @@ const {
 	getPending,
 	getSuccess,
 	getFailure,
-	updateMany,
-	addMany,
-	addOne,
-	upsertMany,
-	removeMany,
+	addMany: localAddMany,
+	updateMany: localUpdateMany,
+	removeMany: localRemoveMany,
 	removeAll,
 	setSelected,
 	setExpanded
@@ -142,8 +199,8 @@ export const loadComments = (ballot_id) =>
 			if (!Array.isArray(response))
 				throw new TypeError("Unexpected response to GET: " + url);
 		}
-		catch(error) {
-			const ballot = getState()[dataSet].entities[ballot_id];
+		catch (error) {
+			const ballot = getBallotsDataSet(getState()).entities[ballot_id];
 			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
 			await Promise.all([
 				dispatch(getFailure()),
@@ -151,7 +208,6 @@ export const loadComments = (ballot_id) =>
 			]);
 			return;
 		}
-		response.forEach(c => delete c.Status);
 		await dispatch(getSuccess(response));
 		await dispatch(setDetails({ballot_id}));
 	}
@@ -163,32 +219,69 @@ export const clearComments = () =>
 	}
 
 export const updateComments = (updates) =>
-	async (dispatch, getState) => {
-		let response;
-		try {
-			response = await fetcher.patch(`/api/comments`, updates);
-			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments))
-				throw new TypeError("Unexpected response to PATCH: /api/comments")
+	(dispatch, getState) => {
+		const {ids, entities} = getCommentsDataSet(getState());
+		const localUpdates = [], 
+		      rollbackUpdates = [];
+		for (const id of ids) {
+			const c = entities[id];
+			const comment_id = c.comment_id;
+			const u = updates.find(u => u.id === comment_id);
+			if (u) {
+				localUpdates.push({id, changes: u.changes});
+				const changes = {};
+				for (const key of Object.keys(u.changes))
+					changes[key] = c[key];
+				rollbackUpdates.push({id, changes});
+			}
 		}
-		catch(error) {
-			await dispatch(setError(`Unable to update comment${updates.length > 1? 's': ''}`, error));
-			return;
-		}
-		updates = response.comments.map(c => ({id: selectId(c), changes: c}));
-		await dispatch(updateMany(updates));
+		dispatch({
+			type: localUpdateMany.toString(),
+			payload: localUpdates,
+			meta: {
+				offline: {
+					effect: {url: '/api/comments', method: 'PATCH', params: updates},
+					commit: {type: dataSet + '/updateManyCommit'},
+					rollback: {type: dataSet + '/updateManyRollback', meta: {updates: rollbackUpdates}}
+				}
+			}
+		});
 	}
 
+/*export const updateComments = (updates) =>
+	async (dispatch, getState) => {
+		/*const {entities} = getCommentsDataSet(getState());
+		const updates = [];
+		for (const u of commentUpdates) {
+			// Find all entries for this comment_id
+			for (const c of Object.values(entities)) {
+				if (c.comment_id === u.id)
+					updates.push({id: c.id, changes: u.changes});
+			}
+		}* /
+		dispatch(commentsUpdateMany(updates));
+
+		/*try {
+			await fetcher.patch(`/api/comments`, commentUpdates);
+		}
+		catch (error) {
+			await dispatch(setError(`Unable to update comment${updates.length > 1? 's': ''}`, error));
+		}* /
+ 	}*/
+
 export const deleteComments = (ballot_id) =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		if (getCommentsDataSet(getState()).ballot_id === ballot_id)
+			await dispatch(clearComments());
+		const summary = {Count: 0, CommentIDMin: 0, CommentIDMax: 0}
+		await dispatch(updateBallotSuccess(ballot_id, {Comments: summary}));
+
 		try {
 			await fetcher.delete(`/api/comments/${ballot_id}`)
 		}
-		catch(error) {
+		catch (error) {
 			await dispatch(setError(`Unable to delete comments`, error));
-			return;
 		}
-		const summary = {Count: 0, CommentIDMin: 0, CommentIDMax: 0}
-		await dispatch(updateBallotSuccess(ballot_id, {Comments: summary}));
 	}
 
 export const importComments = (ballot_id, epollNum, startCID) =>
@@ -225,7 +318,8 @@ export const uploadComments = (ballotId, type, file) =>
 		}
 		const {comments, ballot} = response;
 		await Promise.all([
-			dispatch(getSuccess({ballotId, comments})),
+			dispatch(getSuccess(comments)),
+			dispatch(setDetails({ballot_id})),
 			dispatch(updateBallotSuccess(ballot.id, ballot))
 		]);
 	}
@@ -246,8 +340,7 @@ export const setStartCommentId = (ballot_id, startCommentId) =>
 		}
 		const {comments, ballot} = response;
 		dispatch(updateBallotSuccess(ballot.id, ballot));
-		const currentBallotId = getCurrentBallotId(getState());
-		if (ballot.id === currentBallotId) {
+		if (ballot_id === getCommentsDataSet(getState()).ballot_id) {
 			dispatch(getSuccess(comments));
 		}
 	}
@@ -265,24 +358,76 @@ const defaultResolution = {
 	EditNotes: '',
 };
 
+const addMany = (localAdds, remoteAdds) => ({
+	type: localAddMany.toString(),
+	payload: localAdds,
+	meta: {
+		offline: {
+			effect: {url: '/api/resolutions', method: 'POST', params: remoteAdds},
+			commit: {type: dataSet + '/addManyCommit'},
+  			rollback: {type: dataSet + '/addManyRollback', meta: {ids: localAdds.map(c => c.id)}}
+  		}
+  	}
+});
+
+const updateMany = (updates) => 
+	(dispatch, getState) => {
+		const {entities} = getCommentsDataSet(getState());
+		const rollbackUpdates = updates.map(u => {
+			const id = u.id;
+			const changes = {};
+			const entity = entities[id];
+			for (const key of Object.keys(u.changes))
+				changes[key] = entity[key];
+			return {id, changes};
+		});
+		return dispatch({
+			type: localUpdateMany.toString(),
+			payload: updates,
+			meta: {
+				offline: {
+					effect: {url: '/api/resolutions', method: 'PATCH', params: updates},
+					commit: {type: dataSet + '/updateManyCommit'},
+					rollback: {type: dataSet + '/updateManyRollback', meta: {updates: rollbackUpdates}}
+				}
+			}
+		});
+	}
+
+const removeMany = (ids) => 
+	(dispatch, getState) => {
+		const {entities} = getCommentsDataSet(getState());
+		const comments = ids.map(id => entities[id]);
+		return dispatch({
+			type: localRemoveMany.toString(),
+			payload: ids,
+			meta: {
+				offline: {
+					effect: {url: '/api/resolutions', method: 'DELETE', params: ids},
+					rollback: {type: dataSet + '/removeManyRollback', meta: {comments}}
+				}
+			}
+		});
+	}
+
 export const addResolutions = (resolutions) =>
 	async (dispatch, getState) => {
-
+		const {ids, entities} = getCommentsDataSet(getState());
 		const selected = [],
 			  updates = [],
 			  adds = [],
 			  remoteAdds = [];
-		const {entities} = getCommentsDataSet(getState());
 		for (const r of resolutions) {
 			// Find all entries for this comment_id
 			const comments = [];
-			for (const c of Object.values(entities)) {
+			for (const id of ids) {
+				const c = entities[id];
 				if (c.comment_id === r.comment_id)
 					comments.push(c);
 			}
 
 			if (comments.length === 0) {
-				console.error('Invalid comment_id=', r.comment_id);
+				console.warn('Invalid comment_id=', r.comment_id);
 				continue;
 			}
 
@@ -300,6 +445,7 @@ export const addResolutions = (resolutions) =>
 				id: resolution_id,
 			};
 			remoteAdds.push(resolution);
+
 			const ResolutionCount = comments.length + 1;
 			const newComment = {
 				...comments[0],		// Duplicate the comment fields
@@ -309,84 +455,108 @@ export const addResolutions = (resolutions) =>
 				id: resolution_id
 			}
 			adds.push(newComment);
+
 			// Update ResolutionCount for other comments
 			updates.push(...comments.map(c => ({id: c.id, changes: {ResolutionCount}})));
+
 			// Select the newly added entry
 			selected.push(resolution_id);
 		}
-		dispatch(addMany(adds));
-		dispatch(updateMany(updates));
+		dispatch(addMany(adds, remoteAdds));
+		dispatch(localUpdateMany(updates));
 		dispatch(setSelected(selected));
 
-		try {
+		/*try {
 			fetcher.post('/api/resolutions', {resolutions: remoteAdds});
 		}
 		catch(error) {
 			await dispatch(setError('Unable to add resolutions', error));
-		}
+		}*/
 	}
 
-export const updateResolutions = (updates) =>
-	async (dispatch, getState) => {
-		await dispatch(updateMany(updates));
-		try {
+/*export const updateResolutions = (updates) =>
+	(dispatch, getState) => {
+		dispatch(updateMany(updates));
+
+		/*try {
 			await fetcher.patch('/api/resolutions', updates);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to update resolution${updates.length > 1? 's': ''}`, error));
-		}
-	}
+		}* /
+	}*/
 
-export const deleteResolutions = (ids) =>
+export const updateResolutions = updateMany;
+
+export const deleteResolutions = (delete_ids) =>
 	async (dispatch, getState) => {
-		const selected = [];
-		let entities = getCommentsDataSet(getState()).entities;
-		// Keep a copy of the resolutions about to be deleted
-		const resolutions = [];
-		for (const id of ids)
-			resolutions.push(entities[id]);
-		// Order by ResolutionID so that we keep the resolution with the lowest ResolutionID.
-		resolutions.sort(r => r.ResolutionID);	// order by ResolutionID
-		// Delete them
-		await dispatch(removeMany(ids));
-		// Re-add a single entry with defaults if all deleted otherwise update ResolutionCount
-		// For the remote entries, delete if there are multiple, update if there is only one
-		const deletes = [];
-		const updates = [];
-		for (const r of resolutions) {
-			entities = getCommentsDataSet(getState()).entities;
-			const comments = [];
-			for (const c of Object.values(entities)) {
-				if (c.comment_id === r.comment_id)
-					comments.push(c);
-			}
-			if (comments.length === 0) {
-				// No resolutions remain for this comment_id
-				// Re-add a resolution with defatuls locally (same id) and update it remotely (i.e., don't delete the remote copy)
-				updates.push({id: r.id, changes: defaultResolution});
-				const resolution = {
-					...r,
-					...defaultResolution,
-					ResolutionID: 0,
-					ResolutionCount: 1
-				}
-				await dispatch(addOne(resolution));
-				selected.push(resolution.id);
+		const {ids, entities} = getCommentsDataSet(getState());
+
+		// Organize by comment_id
+		const toDelete = {},
+		      toDeleteCommentIDs = [];
+		for (const id of delete_ids) {
+			const comment_id = entities[id].comment_id;
+			if (toDeleteCommentIDs.includes(comment_id)) {
+				toDelete[comment_id].push(id);
 			}
 			else {
-				// Resolutions still exist for this comment_id
-				// Delete the remote entries
-				deletes.push(r.id);
-				// Update the ResolutionCount for the local copies with the same comment_id
-				const commentUpdates = comments.map(c => ({id: c.id, changes: {ResolutionCount: comments.length}}));
-				await dispatch(updateMany(commentUpdates));
-				if (updates.length)
-					selected.push(updates[0].id);
+				toDelete[comment_id] = [id];
+				toDeleteCommentIDs.push(comment_id);
 			}
 		}
+
+		const deletes = [],
+		      updates = [],
+		      commentUpdates = [],
+		      selected = [];
+		for (const comment_id of toDeleteCommentIDs) {
+			const resolution_ids = toDelete[comment_id];
+
+			// Sort by ResolutionID
+			resolution_ids.sort(id => entities[id].ResolutionID);
+
+			// Find all comments that would remain
+			const remainingComments = [];
+			for (const id of ids) {
+				const c = entities[id];
+				if (c.comment_id === comment_id && !resolution_ids.includes(c.id))
+					remainingComments.push(c);
+			}
+
+			if (remainingComments.length === 0) {
+				// No resolutions would remain with this comment_id
+				// Update the first to defaults and delete the rest
+				const id = resolution_ids.shift();
+				updates.push({id, changes: defaultResolution});
+				if (resolution_ids.length > 0)
+					deletes.push(...resolution_ids);
+
+				// Select the remaining comment
+				selected.push(id);
+			}
+			else {
+				// Resolutions still exist for this comment_id, delete all
+				deletes.push(...resolution_ids);
+
+				// Update the ResolutionCount for the remaining comments
+				const ResolutionCount = remainingComments.length;
+				commentUpdates.push(...remainingComments.map(c => ({id: c.id, changes: {ResolutionCount}})));
+
+				// Select the first of the remaining comments
+				selected.push(remainingComments[0].id);
+			}
+		}
+
+		if (deletes.length)
+			dispatch(removeMany(deletes));
+		if (updates.length)
+			dispatch(updateMany(updates));
+		if (commentUpdates.length)
+			dispatch(localUpdateMany(commentUpdates));
 		dispatch(setSelected(selected));
 
-		const url = '/api/resolutions';
+		/*const url = '/api/resolutions';
 		try {
 			if (deletes.length > 0)
 				await fetcher.delete(url, deletes);
@@ -395,7 +565,7 @@ export const deleteResolutions = (ids) =>
 		}
 		catch (error) {
 			await dispatch(setError(`Unable to delete resolution${ids.length > 1? 's': ''}`, error));
-		}
+		}*/
 	}
 
 export const FieldsToUpdate = {

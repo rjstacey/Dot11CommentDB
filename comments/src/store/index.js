@@ -1,4 +1,4 @@
-import { configureStore, combineReducers } from '@reduxjs/toolkit';
+import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 import { createLogger } from 'redux-logger';
 import { persistStore, persistReducer } from 'redux-persist';
@@ -6,6 +6,8 @@ import { get, set, del } from 'idb-keyval';
 //import storage from 'redux-persist/lib/storage';
 
 import {version} from '../../package.json';
+
+import createOffline from './offline';
 
 import members, {loadMembers} from './members';
 import ballots, {loadBallots} from './ballots';
@@ -17,49 +19,59 @@ import voters from './voters';
 import votingPools, {loadVotingPools} from './votingPools';
 import errMsg from 'dot11-components/store/error';
 
+function configureStore() {
 
-const reducer = combineReducers({
-	members,
-	ballots,
-	epolls,
-	comments,
-	commentsHistory,
-	results,
-	voters,
-	votingPools,
-	errMsg
-});
+	const reducer = combineReducers({
+		members,
+		ballots,
+		epolls,
+		comments,
+		commentsHistory,
+		results,
+		voters,
+		votingPools,
+		errMsg,
+	});
 
-const middleware = [thunk];
-if (process.env.NODE_ENV !== 'production')
-	middleware.push(createLogger({collapsed: true}));
+	const {middleware: offlineMiddleware, enhanceReducer: offlineReducer, enhanceStore: offlineEnhancer} = createOffline();
 
-const storage = {
-	setItem: set,
-	//setItem: (key, value) => {console.log(key, value); return set(key, value)},
-	getItem: get,
-	//getItem: (key) => {console.log(key); return get(key)},
-	removeItem: del
-};
+	const composeEnhancer = () => {
+		const enhancers = [
+			applyMiddleware(thunk, offlineMiddleware),
+			offlineEnhancer,
+		];
 
-const persistConfig = {
-	key: 'root',
-	version,
-	storage,
-	blacklist: ['errMsg', 'commentsHistory', 'epolls']
-};
+		if (process.env.NODE_ENV !== 'production')
+			enhancers.push(applyMiddleware(createLogger({collapsed: true})))	// logger after offline so that we can track its activity
 
-const store = configureStore({
-	reducer: persistReducer(persistConfig, reducer),
-	//reducer,
-	//middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware),
-	middleware
-});
+		return compose(...enhancers);
+	}
 
-const persistor = persistStore(store, null, () => {
-	store.dispatch(loadMembers());
-	store.dispatch(loadBallots());
-	store.dispatch(loadVotingPools());
-});
+	const persistConfig = {
+		key: 'root',
+		version,
+		storage: {	// IndexedDB for storage using idb-keyval
+			setItem: set,
+			getItem: get,
+			removeItem: del
+		},
+		blacklist: ['errMsg', 'commentsHistory', 'epolls']
+	};
 
-export {store, persistor} 
+	const store = createStore(
+		persistReducer(persistConfig, offlineReducer(reducer)),
+		undefined,
+		composeEnhancer()
+	);
+
+	const persistor = persistStore(store, null, () => {
+		// After hydryte, load the latest
+		store.dispatch(loadMembers());
+		store.dispatch(loadBallots());
+		store.dispatch(loadVotingPools());
+	});
+
+	return {store, persistor}
+}
+
+export default configureStore;

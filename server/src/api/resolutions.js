@@ -12,11 +12,9 @@ const router = require('express').Router();
 router.post('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		if (!req.body.hasOwnProperty('resolutions'))
-			throw 'Missing resolutions parameter';
-		const {resolutions} = req.body;
+		const resolutions = req.body;
 		if (!Array.isArray(resolutions))
-			throw 'Expect an array for resolutions parameter';
+			throw 'Missing or bad array parameter';
 		const data = await addResolutions(user.SAPIN, resolutions);
 		res.json(data);
 	}

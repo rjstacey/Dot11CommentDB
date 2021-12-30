@@ -80,6 +80,9 @@ router.all('*', (req, res, next) => {
 	return res.status(403).send('Insufficient karma');
 });
 
+/* A get on root returns OK: tests connect availability */
+router.get('/$', (req, res, next) => res.json(null));
+
 /* Webex accounts API */
 router.use('/webex', require('./webexAccounts').default);
 

@@ -15,7 +15,7 @@ const commentFields = [
 	'Notes'
 ];
 
-const createTriggerCommentsUpdateSQL =
+/*const createTriggerCommentsUpdateSQL =
 	'CREATE TRIGGER comments_update AFTER UPDATE ON comments FOR EACH ROW ' +
 	'BEGIN ' +
 		'SET @action =\'update\'; ' +
@@ -27,6 +27,20 @@ const createTriggerCommentsUpdateSQL =
   			'INSERT INTO resolutionsLog (comment_id, Action, Changes, UserID, Timestamp) VALUES (OLD.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime); ' +
 		'ELSE ' +
   			'UPDATE resolutionsLog SET `Changes`=@changes, `Timestamp`=NEW.LastModifiedTime WHERE id=@id; ' +
+		'END IF; ' +
+	'END;';*/
+
+const createTriggerCommentsUpdateSQL =
+	'CREATE TRIGGER comments_update AFTER UPDATE ON comments FOR EACH ROW ' +
+	'BEGIN ' +
+		'SET @action =\'update\'; ' +
+		'SET @changes = JSON_OBJECT(); ' +
+		commentFields.map(f => `IF NEW.${f} <> OLD.${f} THEN SET @changes = JSON_INSERT(@changes, '$.${f}', NEW.${f}); END IF; `).join('') +
+		'SET @id = (SELECT id FROM resolutionsLog WHERE comment_id=NEW.id AND resolution_id=NULL AND Action=@action AND UserID=NEW.LastModifiedBy AND Timestamp > DATE_SUB(NEW.LastModifiedTime, ' + updateIntervalSQL + ') ORDER BY Timestamp DESC LIMIT 1); ' +
+		'IF @id IS NULL THEN ' +
+  			'INSERT INTO resolutionsLog (comment_id, Action, Changes, UserID, Timestamp) VALUES (OLD.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime); ' +
+		'ELSE ' +
+  			'UPDATE resolutionsLog SET `Changes`=JSON_MERGE_PATCH(`Changes`, @changes), `Timestamp`=NEW.LastModifiedTime WHERE id=@id; ' +
 		'END IF; ' +
 	'END;';
 
@@ -70,7 +84,7 @@ const createTriggerResolutionsAddSQL =
 		'INSERT INTO resolutionsLog (comment_id, resolution_id, Action, Changes, UserID, Timestamp) VALUES (NEW.comment_id, NEW.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime); ' +
 	'END; ';
 
-const createTriggerResolutionsUpdateSQL =
+/*const createTriggerResolutionsUpdateSQL =
 	'CREATE TRIGGER resolutions_update AFTER UPDATE ON resolutions FOR EACH ROW ' +
 	'BEGIN ' +
 		'SET @action ="update"; ' +
@@ -82,6 +96,20 @@ const createTriggerResolutionsUpdateSQL =
 			'INSERT INTO resolutionsLog (comment_id, resolution_id, Action, Changes, UserID, Timestamp) VALUES (OLD.comment_id, OLD.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime); ' +
 		'ELSE ' +
 			'UPDATE resolutionsLog SET `Changes`=@changes, `Timestamp`=NEW.LastModifiedTime WHERE id=@id; ' +
+		'END IF; ' +
+	'END; ';*/
+
+const createTriggerResolutionsUpdateSQL =
+	'CREATE TRIGGER resolutions_update AFTER UPDATE ON resolutions FOR EACH ROW ' +
+	'BEGIN ' +
+		'SET @action ="update"; ' +
+		'SET @changes = JSON_OBJECT(); ' +
+		resolutionFields.map(f => `IF NEW.${f} <> OLD.${f} THEN SET @changes = JSON_INSERT(@changes, '$.${f}', NEW.${f}); END IF; `).join('') +
+		'SET @id = (SELECT id FROM resolutionsLog WHERE resolution_id=OLD.id AND Action=@action AND UserID=NEW.LastModifiedBy AND Timestamp > DATE_SUB(NEW.LastModifiedTime, ' + updateIntervalSQL + ') ORDER BY Timestamp DESC LIMIT 1); ' +
+		'IF @id IS NULL THEN ' +
+			'INSERT INTO resolutionsLog (comment_id, resolution_id, Action, Changes, UserID, Timestamp) VALUES (OLD.comment_id, OLD.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime); ' +
+		'ELSE ' +
+			'UPDATE resolutionsLog SET `Changes`=JSON_MERGE_PATCH(`Changes`, @changes), `Timestamp`=NEW.LastModifiedTime WHERE id=@id; ' +
 		'END IF; ' +
 	'END; ';
 

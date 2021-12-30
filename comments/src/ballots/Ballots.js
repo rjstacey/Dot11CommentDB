@@ -148,7 +148,7 @@ const tableColumns = [
 		...fields.EpollNum,
 		width: 80,	flexGrow: 0, flexShrink: 0,
 		dropdownWidth: 200},
-	{key: 'VotingPool',
+	{key: 'VotingPool/PrevBallot',
 		label: 'Voting pool/Prev ballot',
 		width: 100, flexShrink: 1, flexGrow: 1,
 		headerRenderer: renderHeaderVotingPool,
@@ -165,7 +165,7 @@ const tableColumns = [
 
 const defaultTablesColumns = {
 	'Basic': ['__ctrl__', 'BallotID', 'Project', 'Start/End', 'Document', 'Results', 'Comments'],
-	'Detailed': ['__ctrl__', 'BallotID', 'Project', 'Start/End', 'Document', 'Topic', 'VotingPool', 'Results', 'Comments']
+	'Detailed': ['__ctrl__', 'BallotID', 'Project', 'Type/Stage', 'Start/End', 'Document', 'Topic', 'VotingPool/PrevBallot', 'Results', 'Comments']
 };
 
 const defaultTablesConfig = {};
