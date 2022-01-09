@@ -28,7 +28,8 @@ const router = require('express').Router();
 router.get('/:ballot_id(\\d+)', async (req, res, next) => {
 	try {
 		const {ballot_id} = req.params;
-		const data = await getComments(ballot_id);
+		const {modifiedSince} = req.query;
+		const data = await getComments(ballot_id, modifiedSince);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -36,10 +37,11 @@ router.get('/:ballot_id(\\d+)', async (req, res, next) => {
 
 router.patch('/$', async (req, res, next) => {
 	try {
-		const updates = req.body;
+		const {user} = req;
+		const {updates, ballot_id, modifiedSince} = req.body;
 		if (!Array.isArray(updates))
-			throw 'Missing or bad body; expected array';
-		const data = await updateComments(req.user.SAPIN, updates);
+			throw 'Missing or bad parameter "updates"; expected array';
+		const data = await updateComments(user.SAPIN, updates, ballot_id, modifiedSince);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -47,9 +49,10 @@ router.patch('/$', async (req, res, next) => {
 
 router.patch('/:ballot_id(\\d+)/startCommentId', async (req, res, next) => {
 	try {
+		const {user} = req;
 		const {ballot_id} = req.params;
 		const {StartCommentID} = req.body;
-		const data = await setStartCommentId(req.user.SAPIN, ballot_id, StartCommentID);
+		const data = await setStartCommentId(user.SAPIN, ballot_id, StartCommentID);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -57,8 +60,9 @@ router.patch('/:ballot_id(\\d+)/startCommentId', async (req, res, next) => {
 
 router.delete('/:ballot_id(\\d+)', async (req, res, next) => {
 	try {
+		const {user} = req;
 		const {ballot_id} = req.params;
-		const data = await deleteComments(req.user.SAPIN, ballot_id);
+		const data = await deleteComments(user.SAPIN, ballot_id);
 		res.json(data);
 	}
 	catch (err) {next(err)}

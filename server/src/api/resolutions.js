@@ -9,13 +9,17 @@ import {uploadResolutions} from '../services/uploadResolutions';
 const upload = require('multer')();
 const router = require('express').Router();
 
+const isPlainObject = o => (!Array.isArray(o) && typeof o === 'object');
+
 router.post('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		const resolutions = req.body;
-		if (!Array.isArray(resolutions))
-			throw 'Missing or bad array parameter';
-		const data = await addResolutions(user.SAPIN, resolutions);
+		if (!isPlainObject(req.body))
+			throw 'Bad body; expected plain object';
+		const {entities, ballot_id, modifiedSince} = req.body;
+		if (!Array.isArray(entities))
+			throw 'Missing or bad entities parameter; expected array';
+		const data = await addResolutions(user.SAPIN, entities, ballot_id, modifiedSince);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -24,10 +28,12 @@ router.post('/$', async (req, res, next) => {
 router.patch('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		const updates = req.body;
+		if (!isPlainObject(req.body))
+			throw 'Bad body; expected plain object';
+		const {updates, ballot_id, modifiedSince} = req.body;
 		if (!Array.isArray(updates))
-			throw 'Missing or bad array parameter';
-		const data = await updateResolutions(user.SAPIN, updates);
+			throw 'Missing or bad updates parameter; expected array';
+		const data = await updateResolutions(user.SAPIN, updates, ballot_id, modifiedSince);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -36,10 +42,12 @@ router.patch('/$', async (req, res, next) => {
 router.delete('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		const ids = req.body;
+		if (!isPlainObject(req.body))
+			throw 'Bad body; expected plain object';
+		const {ids, ballot_id, modifiedSince} = req.body;
 		if (!Array.isArray(ids))
-			throw 'Missing or bad array parameter';
-		const data = await deleteResolutions(user.SAPIN, ids)
+			throw 'Missing or bad ids parameter; expected array';
+		const data = await deleteResolutions(user.SAPIN, ids, ballot_id, modifiedSince)
 		res.json(data)
 	}
 	catch(err) {next(err)}

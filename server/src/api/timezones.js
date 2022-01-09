@@ -3,8 +3,12 @@
  */
 
 const router = require('express').Router();
-const tzdata = require('tzdata');
-const timezones = Object.keys(tzdata.zones).sort();
+const {DateTime} = require('luxon');
+const {zones} = require('tzdata');
+
+const timezones = Object.keys(zones)
+    .filter(tz => DateTime.local().setZone(tz).isValid)
+    .sort();
 
 router.get('/', async (req, res, next) => res.json(timezones));
 
