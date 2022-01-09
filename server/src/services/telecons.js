@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon';
+
 import {
 	getWebexMeetings,
 	getWebexMeeting,
@@ -14,7 +16,6 @@ import {
 } from './calendar';
 
 const db = require('../util/database');
-const { DateTime } = require('luxon');
 
 async function selectTelecons(constraints) {
 	let sql = 'SELECT * FROM telecons';

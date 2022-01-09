@@ -3,7 +3,7 @@
   */
 'use strict'
 
-const ExcelJS = require('exceljs')
+const ExcelJS = require('exceljs');
 
 /*
  * Valid status mappings

@@ -1,16 +1,17 @@
 /*
  * ePoll HTML scraping
  */
+import { DateTime } from 'luxon';
 
-const cheerio = require('cheerio')
-const moment = require('moment-timezone')
-const csvParse = require('csv-parse/lib/sync')
-const rp = require('request-promise-native')
+const cheerio = require('cheerio');
+const csvParse = require('csv-parse/lib/sync');
+const rp = require('request-promise-native');
 
 // Convert date string to UTC
 function parseDateTime(dateStr) {
 	// Date is in format: "11-Dec-2018 23:59:59 ET" and is always eastern time
-	return moment.tz(dateStr, 'DD-MMM-YYYY HH:mm:ss', 'America/New_York').format();
+	dateStr = dateStr.substr(0, 20);
+	return DateTime.fromFormat(dateStr, 'dd-MMM-yyyy HH:mm:ss', {zone: 'America/New_York'}).toISO();
 }
 
 function parseClosedEpollsPage(body) {
@@ -51,7 +52,7 @@ function parseClosedEpollsPage(body) {
  * Parameters: n = number of entries to get
  */
 export async function getEpolls(user, n) {
-	console.log(user)
+	//console.log(user)
 
 	async function recursivePageGet(epolls, n, page) {
 		//console.log('get epolls n=', n)

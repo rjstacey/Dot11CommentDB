@@ -1,22 +1,24 @@
 /*
  * imat.ieee.org HTML scraping
  */
+import { DateTime, Duration } from 'luxon';
+
 const cheerio = require('cheerio')
-const moment = require('moment-timezone')
+//const moment = require('moment-timezone')
 const csvParse = require('csv-parse/lib/sync')
 const rp = require('request-promise-native')
 
-// Convert date string to UTC
-function parseDateTime(dateStr, timeZone) {
-	// Date is in format: "11-Dec-2018" and time zone is in another column
-	return moment.tz(dateStr, 'DD-MMM-YYYY', timeZone).format();
+// Convert date to ISO format
+function dateToISODate(dateStr) {
+	// Date is in format: "11-Dec-2018"
+	return DateTime.fromFormat(dateStr, 'dd-MMM-yyyy').toISODate();
 }
 
 export function parseMeetingsPage(body) {
 	const $ = cheerio.load(body);
 
 	// If we get the "Sessions" page then parse the data table
-	// (use cheerio, which provides jQuery parsing)
+	// (use cheerio, which provides jQuery-like parsing)
 	if ($('div.title').length && $('div.title').html() == "Sessions") {
 		//console.log('GOT Sessions page');
 		const sessions = [];
@@ -24,8 +26,8 @@ export function parseMeetingsPage(body) {
 			var tds = $(this).find('td');
 			var s = {};
 			s.TimeZone = tds.eq(5).text();
-			s.Start = parseDateTime($(tds.eq(0)).text(), s.TimeZone);
-			s.End = parseDateTime($(tds.eq(1)).text(), s.TimeZone);
+			s.Start = dateToISODate(tds.eq(0).text());
+			s.End = dateToISODate(tds.eq(1).text());
 			s.Type = tds.eq(3).text();
 			s.Name = tds.eq(4).text();
 			var p = tds.eq(6).html().match(/\/([^\/]+)\/meeting-detail\?p=(\d+)/);
@@ -51,7 +53,7 @@ export function parseMeetingsPage(body) {
  * Parameters: n = number of entries to get
  */
 export async function getImatMeetings(user, n) {
-	console.log(user)
+	//console.log(user)
 
 	async function recursivePageGet(meetings, n, page) {
 		//console.log('get epolls n=', n)
@@ -112,21 +114,24 @@ export async function getImatBreakouts(user, session) {
 
 	return p.map(c => {
 		const eventDay = c[11];	// day offset from start of session
-		const eventDate = moment.tz(session.Start, session.TimeZone).add(eventDay, 'days')
+		//const eventDate = moment.tz(session.Start, session.TimeZone).add(eventDay, 'days')
+		const eventDate = DateTime.fromJSDate(session.Start, {zone: session.TimeZone}).plus(Duration.fromObject({days: eventDay}));
 		return {
 			BreakoutID: c[0],
 			Day: c[11],
 			StartSlot: c[1],
 			EndSlot: c[2],
-			Start: eventDate.set({hours: c[3].substr(0, 2), minutes: c[3].substr(3)}).format(),
-			End: eventDate.set({hours: c[4].substr(0, 2), minutes: c[4].substr(3)}).format(),
+			//Start: eventDate.set({hours: c[3].substr(0, 2), minutes: c[3].substr(3)}).format(),
+			//End: eventDate.set({hours: c[4].substr(0, 2), minutes: c[4].substr(3)}).format(),
+			Start: eventDate.set({hour: c[3].substr(0, 2), minute: c[3].substr(3)}).toISO(),
+			End: eventDate.set({hour: c[4].substr(0, 2), minute: c[4].substr(3)}).toISO(),
 			Location: c[5],
 			Group: c[6],
 			Name: c[7],
 			Credit: c[8],
 			OverrideCreditNumerator: c[9],
 			OverrideCreditDenominator: c[10],
-			Facilitator: c[12]
+			Facilitator: c[12],
 		}
 	});
 }
@@ -187,8 +192,18 @@ export async function getImatBreakoutAttendance(user, breakoutNumber, meetingNum
  */
 export async function getImatAttendanceSummary(user, session) {
 
-	const start = moment(session.Start).tz(session.TimeZone).format('MM/DD/YYYY');
-	const end = moment(session.End).tz(session.TimeZone).format('MM/DD/YYYY');
+	//const start = moment(session.Start).tz(session.TimeZone).format('MM/DD/YYYY');
+	//const end = moment(session.End).tz(session.TimeZone).format('MM/DD/YYYY');
+
+	let start = DateTime.fromJSDate(session.Start, {zone: session.TimeZone});
+	if (!start.isValid)
+		throw new TypeError(`Invalid session Start (${session.Start}) or TimeZone (${session.TimeZone})`)
+	start = start.toFormat('MM/dd/yyyy');
+
+	let end = DateTime.fromJSDate(session.End, {zone: session.TimeZone});
+	if (!end.isValid)
+		throw new TypeError(`Invalid session End (${session.End}) or TimeZone (${session.TimeZone})`)
+	end = end.toFormat('MM/dd/yyyy');
 
 	const options = {
 		url: `https://imat.ieee.org/802.11/attendance-summary.csv?b=${start}&d=${end}`,
@@ -196,6 +211,7 @@ export async function getImatAttendanceSummary(user, session) {
 		resolveWithFullResponse: true,
 		simple: false
 	}
+	console.log(options.url);
 
 	const response = await rp.get(options);
 	if (response.statusCode !== 200)
@@ -218,7 +234,8 @@ export async function getImatAttendanceSummary(user, session) {
 	p.shift();	// remove header
 
 	return p.map(c => {
-
+		if (isNaN(parseInt(c[0], 10)))
+			console.log(c);
 		const entry = {
 			SAPIN: parseInt(c[0], 10),
 			LastName: c[1],

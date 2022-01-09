@@ -1,11 +1,13 @@
 'use strict';
 
-const db = require('../util/database')
-const rp = require('request-promise-native')
+import { DateTime } from 'luxon';
 
-import {parseEpollCommentsCsv} from './epoll'
-import {parseMyProjectComments, myProjectAddResolutions} from './myProjectSpreadsheets'
-import {BallotType} from './ballots'
+import {parseEpollCommentsCsv} from './epoll';
+import {parseMyProjectComments, myProjectAddResolutions} from './myProjectSpreadsheets';
+import {BallotType} from './ballots';
+
+const db = require('../util/database');
+const rp = require('request-promise-native');
 
 const createViewCommentResolutionsSQL = 
 	'CREATE VIEW commentResolutions AS SELECT ' +
@@ -65,14 +67,32 @@ export async function initCommentsTables() {
 
 function selectComments(constraints) {
 	let sql = 'SELECT * FROM commentResolutions';
-	if (constraints)
-		sql += ' WHERE ' + Object.entries(constraints).map(([key, value]) => db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])).join(' AND ');
-	sql += ' ORDER BY CommentID, ResolutionID'
+	if (constraints) {
+		sql += ' WHERE ' + Object.entries(constraints).map(
+			([key, value]) => {
+				if (key === 'modifiedSince')
+					return db.format('LastModifiedTime > ?', [value]);
+				return db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value]);
+			}
+		).join(' AND ');
+	}
+	sql += ' ORDER BY CommentID, ResolutionID';
 	return db.query(sql);
 }
 
-export function getComments(ballot_id) {
-	return selectComments({ballot_id});
+async function getLastUpdate(ballot_id) {
+	const row = await db.query('SELECT MAX(LastModifiedTime) as LastUdpate FROM commentResolutions WHERE ballot_id=?;', [ballot_id]);
+	console.log(row);
+	return row.LastUdpate;
+}
+
+export function getComments(ballot_id, modifiedSince) {
+	const constraints = {};
+	if (ballot_id)
+		constraints.ballot_id = ballot_id;
+	if (modifiedSince)
+		constraints.modifiedSince = DateTime.fromISO(modifiedSince).toSQL({includeOffset: false});
+	return selectComments(constraints);
 }
 
 export async function getCommentsSummary(ballot_id) {
@@ -95,14 +115,15 @@ async function updateComment(userId, id, changes) {
 	return comments;
 }
 
-export async function updateComments(userId, updates) {
+export async function updateComments(userId, updates, ballot_id, lastModified) {
 	for (const u of updates) {
 		if (typeof u !== 'object' || !u.id || typeof u.changes !== 'object')
 			throw 'Expected array of objects with shape {id, changes}'
 	}
 	const results = await Promise.all(updates.map(u => updateComment(userId, u.id, u.changes)));
 	/* reduce the results array of arrays to a single array */
-	const comments = results.reduce((all, comments) => all.concat(comments), []);
+	//const comments = results.reduce((all, comments) => all.concat(comments), []);
+	const comments = await getComments(ballot_id, lastModified);
 	return {comments};
 }
 

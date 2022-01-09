@@ -46,7 +46,8 @@ const matchText = (dbValue, sValue) => {
 	if (dbValue === sValue)
 		return true;
 	const garbledDbValue = Buffer.from(dbValue, 'utf8').toString('latin1');
-	const pattern = /^'|[^(\x20-\x7f)]|\+|-/gm;	// ASCII, no control characters
+	//const pattern = /^'|[^(\x20-\x7f)]|\+|-/gm;	// ASCII, no control characters
+	const pattern = /^'|[^(\x20-\x7f)]|\+|-| /gm;	// ASCII, no control characters, no space (myProject converts newline to space)
 	if (garbledDbValue.replace(pattern, '') === sValue.replace(pattern, ''))
 		return true;
 	return false;

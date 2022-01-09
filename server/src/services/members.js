@@ -1,25 +1,24 @@
 
-import {AccessLevel} from '../auth/access'
+import {AccessLevel} from '../auth/access';
 import {
 	parseMyProjectRosterSpreadsheet,
 	genMyProjectRosterSpreadsheet
-} from './myProjectSpreadsheets'
+} from './myProjectSpreadsheets';
 import {
 	parseMembersSpreadsheet,
 	parseSAPINsSpreadsheet,
 	parseEmailsSpreadsheet,
 	parseHistorySpreadsheet
-} from './membersSpreadsheets'
+} from './membersSpreadsheets';
 import {
 	getSessions,
 	getRecentSessionsWithAttendees,
 	upsertMemberAttendanceSummaries
-} from './sessions'
+} from './sessions';
 import {getRecentBallotSeriesWithResults} from './ballots'
-import {updateVoter} from './voters'
+import {updateVoter} from './voters';
 
-const db = require('../util/database')
-const moment = require('moment-timezone')
+const db = require('../util/database');
 
 /*
  * A list of members is available to any user with access level Member or higher
@@ -54,11 +53,6 @@ export async function getMembers(sapins) {
 		const u = members.find(m => m.SAPIN === o.ReplacedBySAPIN);
 		if (u)
 			u.ObsoleteSAPINs.push(o.SAPIN);
-	});
-
-	members.forEach(m => {
-		m.DateAdded = moment(m.DateAdded);
-		m.StatusChangeDate = moment(m.StatusChangeDate);
 	});
 
 	return members;

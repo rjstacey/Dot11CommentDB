@@ -1,13 +1,9 @@
-'user strict'
 
-const db = require('../util/database')
-const rp = require('request-promise-native')
-const moment = require('moment-timezone')
-
-import {parseClosedEpollsPage} from './epoll';
 import {getResults, getResultsCoalesced} from './results';
 import {getVoters} from './voters';
 import {getCommentsSummary} from './comments';
+
+const db = require('../util/database');
 
 export const BallotType = {
 	CC: 0,			// comment collection
@@ -135,7 +131,7 @@ async function addBallot(user, ballot) {
 			'INSERT INTO ballots (??) VALUES (?);',
 			[Object.keys(entry), Object.values(entry)]
 		);
-		console.log(results)
+		//console.log(results)
 		id = results.insertId;
 	}
 	catch(err) {

@@ -2,6 +2,7 @@
 
 import { v4 as uuid, validate as validateUUID } from 'uuid';
 
+import {getComments} from './comments';
 import {genCommentsSpreadsheet} from './commentsSpreadsheet';
 import {myProjectAddResolutions} from './myProjectSpreadsheets';
 
@@ -68,11 +69,12 @@ async function addResolution(userId, resolution) {
 	return id;
 }
 
-export async function addResolutions(userId, resolutions) {
+export async function addResolutions(userId, resolutions, ballot_id, modifiedSince) {
 	//console.log(resolutions)
 	const resolution_ids = await Promise.all(resolutions.map(r => addResolution(userId, r)));
 	const comment_ids = resolutions.map(r => r.comment_id)
-	const comments = await db.query('SELECT * FROM commentResolutions WHERE comment_id IN (?);', [comment_ids]);
+	//const comments = await db.query('SELECT * FROM commentResolutions WHERE comment_id IN (?);', [comment_ids]);
+	const comments = await getComments(ballot_id, modifiedSince);
 	return {comments}
 }
 
@@ -103,25 +105,28 @@ function resolutionEntry(changes) {
 async function updateResolution(userId, id, changes) {
 	if (Object.keys(changes).length > 0)
 		await db.query('UPDATE resolutions SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=UUID_TO_BIN(?);', [changes, userId, id]);
-	const [comment] = await db.query("SELECT id, resolution_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE resolution_id=?;", [Object.keys(changes), id]);
-	return comment;
+	//const [comment] = await db.query("SELECT id, resolution_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE resolution_id=?;", [Object.keys(changes), id]);
+	//return comment;
 }
 
-export async function updateResolutions(userId, updates) {
+export async function updateResolutions(userId, updates, ballot_id, modifiedSince) {
 	// Validate request
 	for (const u of updates) {
 		if (typeof u !== 'object' || !u.id || typeof u.changes !== 'object')
 			throw 'Expected array of objects with shape {id, changes}';
 	}
-	const comments = await Promise.all(updates.map(u => updateResolution(userId, u.id, u.changes)));
+	await Promise.all(updates.map(u => updateResolution(userId, u.id, u.changes)));
+	const comments = await getComments(ballot_id, modifiedSince);
 	return {comments};
 }
 
-export async function deleteResolutions(userId, ids) {
+export async function deleteResolutions(userId, ids, ballot_id, modifiedSince) {
 	if (ids.length === 0)
 		return 0;
 	const results = await db.query('DELETE FROM resolutions WHERE BIN_TO_UUID(id) IN (?)', [ids]);
-	return results.affectedRows;
+	const comments = await getComments(ballot_id, modifiedSince);
+	//return results.affectedRows;
+	return {comments};
 }
 
 export async function exportResolutionsForMyProject(ballotId, filename, file, res) {

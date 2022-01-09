@@ -1,8 +1,10 @@
+/*
+ * Manage sessions and session attendance
+ */
+import { DateTime } from 'luxon';
+import {getImatBreakouts, getImatBreakoutAttendance, getImatAttendanceSummary} from './imat';
 
 const db = require('../util/database')
-const moment = require('moment-timezone')
-
-import {getImatBreakouts, getImatBreakoutAttendance, getImatAttendanceSummary} from './imat';
 
 const getSessionTotalCreditSQL = (session_id) =>
 	'SELECT ' +
@@ -115,20 +117,44 @@ const getSessionAttendanceSQL = (session_id) =>
 /*
  * Return a complete list of meetings
  */
-export function getSessions() {
-	return db.query(getSessionsSQL());
+export function getSessions(constraints) {
+	let sql = getSessionsSQL();
+	if (constraints) {
+		sql += ' WHERE ' + Object.entries(constraints).map(
+			([key, value]) => db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
+		).join(' AND ');
+	}
+	return db.query(sql);
 }
 
 function sessionEntry(s) {
 	const entry = {
-		Start: s.Start !== undefined? new Date(s.Start): undefined,
-		End: s.End !== undefined? new Date(s.End): undefined,
 		Name: s.Name,
 		Type: s.Type,
-		TimeZone: s.TimeZone,
 		MeetingNumber: s.MeetingNumber,
 		OrganizerID: s.OrganizerID
 	};
+
+	if (typeof s.TimeZone !== 'undefined') {
+		if (DateTime.local().setZone(s.TimeZone).isValid)
+			entry.TimeZone = s.TimeZone;
+		else
+			throw new TypeError('Invalid parameter TimeZone: ' + s.TimeZone);
+	}
+
+	if (typeof s.Start !== 'undefined') {
+		if (DateTime.fromISO(s.Start).isValid)
+			entry.Start = new Date(s.Start);
+		else
+			throw new TypeError('Invlid parameter Start: ' + s.Start);
+	}
+
+	if (typeof s.End !== 'undefined') {
+		if (DateTime.fromISO(s.End).isValid)
+			entry.End = new Date(s.End);
+		else
+			throw new TypeError('Invlid parameter End: ' + s.End);
+	}
 
 	for (const key of Object.keys(entry)) {
 		if (entry[key] === undefined)
@@ -159,31 +185,20 @@ export async function updateSession(id, session) {
 }
 
 export async function deleteSessions(ids) {
-	const results = await db.query('DELETE FROM meetings WHERE id IN (?)', [ids]);
-	return results.affectedRows
+	const results = await db.query(
+		db.format('DELETE FROM meetings WHERE id IN (?);', [ids]) +
+		db.format('DELETE FROM attendance WHERE session_id IN (?);', [ids]) +
+		db.format('DELETE FROM attendance_summary WHERE session_id IN (?);', [ids]) +
+		db.format('DELETE FROM breakouts WHERE session_id IN (?);', [ids])
+	);
+	return results[0].affectedRows;
 }
 
-export const getTimeZones = moment.tz.names;
-
 export async function getBreakouts(session_id) {
-	let [sessions, breakouts] = await db.query(
-		getSessionSQL(session_id) + 
-		getBreakoutsSQL(session_id)
-	);
-	if (sessions.length === 0)
+	const [session] = await(getSessions({id: session_id}));
+	if (!session)
 		throw `Session ID ${session_id} not recognized`;
-	const session = sessions[0];
-	for (const b of breakouts) {
-		/* Convert breakout start/end to strings in local time */
-		const start = moment(b.Start).tz(session.TimeZone);
-		b.Date = start.format('YYYY-MM-DD');
-		b.Day = start.format('ddd');
-		b.StartTime = start.format('HH:mm');
-		const end = moment(b.End).tz(session.TimeZone);
-		b.EndTime = end.format('HH:mm');
-		b.DayDate = b.Day + ', ' + b.Date;
-		b.Time = b.StartTime + ' - ' + b.EndTime;
-	}
+	const breakouts = await db.query(getBreakoutsSQL(session_id));
 	return {session, breakouts};
 }
 
@@ -212,24 +227,29 @@ export async function getSessionAttendees(session_id) {
 }
 
 export async function getRecentSessionsWithAttendees() {
-	let sessions = await getSessions();
-	sessions.forEach(s => s.Start = moment(s.Start).tz(s.TimeZone));
-	sessions = sessions.sort((s1, s2) => s1.Start - s2.Start)	// Oldest to newest
+	let sessions = (await getSessions())
+		.map(s => ({...s, timestamp: Date.parse(s.Start)}))
+		.sort((s1, s2) => s1.timestamp - s2.timestamp)	// Oldest to newest
 
 	// Plenary sessions only, newest 4 with attendance
 	let plenaries = sessions
 		.filter(s => s.Type === 'p' && s.Attendees > 0)
 		.slice(-4);
-	let fromDate = plenaries[0].Start;
+	if (plenaries.length === 0)
+		return [];
 
-	// Plenary and interim sessions from the oldest plenary date
-	sessions = sessions.filter(s => (s.Type === 'i' || s.Type === 'p') && s.Start >= fromDate && s.Attendees > 0);
+	// Plenary and interim sessions (with attendance) from the oldest plenary date
+	let fromTimestamp = plenaries[0].timestamp;
+	sessions = sessions.filter(s => (s.Type === 'i' || s.Type === 'p') && s.timestamp >= fromTimestamp && s.Attendees > 0);
 
 	const results = await Promise.all(sessions.map(s => getSessionAttendees(s.id)));
 	//console.log(results)
 
 	// Merge attendees with sessions
-	sessions.forEach((s, i) => s.Attendees = results[i].attendees);
+	sessions.forEach((s, i) => {
+		s.Attendees = results[i].attendees;
+		delete s.timestamp;
+	});
 
 	return sessions;
 }
@@ -240,12 +260,12 @@ export async function importBreakouts(user, session_id) {
 	if (!session)
 		throw `Unrecognized session ${session_id}`
 
-	const imatBreakouts = await getImatBreakouts(user, session);
-
-	// Add session ID to each entry
-	imatBreakouts.forEach(b => b.session_id = session_id);
-
+	const imatBreakouts =
+		(await getImatBreakouts(user, session))
+			.map(b => ({...b, session_id}));	// Add session ID to each entry
+	
 	await db.query('DELETE FROM breakouts WHERE session_id=?; ', [session_id]);
+	
 	//console.log(breakouts)
 	if (imatBreakouts.length) {
 		for (const b of imatBreakouts) {
@@ -254,7 +274,7 @@ export async function importBreakouts(user, session_id) {
 		}
 	}
 
-	return getBreakouts(session_id)
+	return getBreakouts(session_id);
 }
 
 export async function importBreakoutAttendance(user, session, breakout_id, meetingNumber, breakoutNumber) {

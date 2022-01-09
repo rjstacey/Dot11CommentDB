@@ -1,12 +1,12 @@
 'use strict'
 
 import { v4 as uuid, validate as validateUUID } from 'uuid';
+import {getMembersSnapshot} from './members';
 
 const csvParse = require('csv-parse/lib/sync')
 const ExcelJS = require('exceljs')
 const db = require('../util/database')
 
-import {getMembersSnapshot} from './members'
 
 const membersHeader = [
 	'SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'
