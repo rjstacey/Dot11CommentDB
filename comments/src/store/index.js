@@ -1,23 +1,58 @@
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 import { createLogger } from 'redux-logger';
-import { persistStore, persistReducer } from 'redux-persist';
+import { persistStore, persistReducer, createTransform } from 'redux-persist';
+import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import { get, set, del } from 'idb-keyval';
-//import storage from 'redux-persist/lib/storage';
+import { composeWithDevTools } from 'redux-devtools-extension';
 
 import {version} from '../../package.json';
-
-import createOffline from './offline';
 
 import members, {loadMembers} from './members';
 import ballots, {loadBallots} from './ballots';
 import epolls from './epolls';
-import comments from './comments';
+import comments, {persistTransforms} from './comments';
 import commentsHistory from './commentsHistory';
 import results from './results';
 import voters from './voters';
 import votingPools, {loadVotingPools} from './votingPools';
 import errMsg from 'dot11-components/store/error';
+import offline, {registerOffline} from './offline';
+import liveUpdate, {registerLiveUpdate} from './liveUpdate';
+
+function dataAdapterToStorage(state, key) {
+	// don't store 'loading' state, map entities to an array
+	let {entities, ids, loading, ...rest} = state;
+	entities = ids.map(id => entities[id]);
+	return {
+		...rest,
+		entities
+	}
+}
+
+function dataAdapterFromStorage(state, key) {
+	// don't modify 'loading' state, map entities from array
+	const {entities, ids, loading, ...rest} = state;
+	let dataAdapterState = {ids, entities};
+	if (Array.isArray(entities)) {
+		dataAdapterState = entities.reduce((s, e) => {
+			const id = e.id;
+			s.ids.push(id);
+			s.entities[id] = e;
+			return s;
+		}, {ids: [], entities: {}});
+	}
+	return {
+		...rest,
+		...dataAdapterState,
+	}
+}
+
+const dataAdapterTansform = createTransform(
+	dataAdapterToStorage,
+	dataAdapterFromStorage,
+	{whitelist: ['comments', 'ballots', 'results', 'voters', 'votingPools']}
+);
 
 function configureStore() {
 
@@ -31,41 +66,40 @@ function configureStore() {
 		voters,
 		votingPools,
 		errMsg,
+		offline,
+		liveUpdate
 	});
 
-	const {middleware: offlineMiddleware, enhanceReducer: offlineReducer, enhanceStore: offlineEnhancer} = createOffline();
-
-	const composeEnhancer = () => {
-		const enhancers = [
-			applyMiddleware(thunk, offlineMiddleware),
-			offlineEnhancer,
-		];
-
-		if (process.env.NODE_ENV !== 'production')
-			enhancers.push(applyMiddleware(createLogger({collapsed: true})))	// logger after offline so that we can track its activity
-
-		return compose(...enhancers);
-	}
+	const middleware = [thunk];
+	if (process.env.NODE_ENV !== 'production')
+		middleware.push(createLogger({collapsed: true}));
 
 	const persistConfig = {
-		key: 'root',
+		key: 'comments',
 		version,
 		storage: {	// IndexedDB for storage using idb-keyval
 			setItem: set,
 			getItem: get,
 			removeItem: del
 		},
-		blacklist: ['errMsg', 'commentsHistory', 'epolls']
+		whitelist: ['members', 'bellots', 'comments', 'results', 'voters', 'votingPools'],
+		transforms: [dataAdapterTansform],
+		stateReconciler: autoMergeLevel2
 	};
 
+	const composeEnhancers = composeWithDevTools();
+
 	const store = createStore(
-		persistReducer(persistConfig, offlineReducer(reducer)),
-		undefined,
-		composeEnhancer()
+		persistReducer(persistConfig, reducer),
+		composeEnhancers(applyMiddleware(...middleware))
 	);
 
 	const persistor = persistStore(store, null, () => {
-		// After hydryte, load the latest
+
+		registerOffline(store);
+		registerLiveUpdate(store);
+
+		// After hydrate, load the latest
 		store.dispatch(loadMembers());
 		store.dispatch(loadBallots());
 		store.dispatch(loadVotingPools());

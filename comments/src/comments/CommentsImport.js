@@ -4,7 +4,7 @@ import {useDispatch} from 'react-redux';
 import styled from '@emotion/styled';
 
 import {Form, Row, Col, List, ListItem, Field, Checkbox} from 'dot11-components/form';
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
+import {ActionButtonDropdown} from 'dot11-components/general';
 import {ConfirmModal} from 'dot11-components/modals';
 
 import {uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate} from '../store/comments';

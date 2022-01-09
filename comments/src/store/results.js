@@ -3,6 +3,7 @@ import {fetcher} from 'dot11-components/lib';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 
+import {selectMemebersState} from './members';
 import {updateBallotSuccess} from './ballots';
 
 const fields = {
@@ -17,11 +18,16 @@ const fields = {
 
 export const dataSet = 'results';
 
+/*
+ * Selectors
+ */
+export const selectResultsState = (state) => state[dataSet];
+
 /* Entities selector with join on users to get Name, Affiliation and Email.
  * If the entry is obsolete find the member entry that replaces it. */
 const selectEntities = createSelector(
-	state => state['members'].entities,
-	state => state[dataSet].entities,
+	state => selectMembersState(state).entities,
+	state => selectResultsState(state).entities,
 	(members, results) => {
 		const entities = {};
 		for (const [id, voter] of Object.entries(results)) {
@@ -72,11 +78,15 @@ const slice = createAppTableDataSlice({
 	}
 });
 
+
 /*
- * Export reducer as default
+ * Reducer
  */
 export default slice.reducer;
 
+/*
+ * Actions
+ */
 const {getPending, getSuccess, getFailure, setDetails} = slice.actions;
 
 export const loadResults = (ballot_id) =>
@@ -125,7 +135,7 @@ export const exportResultsForProject  = (project) =>
 export const exportResultsForBallot  = (ballot_id) =>
 	async (dispatch, getState) => {
 		try {
-			await fetcher.getFile('/api/results/${ballot_id}/export');
+			await fetcher.getFile(`/api/results/${ballot_id}/export`);
 		}
 		catch (error) {
 			const ballot = getState()['ballots'].entities[ballot_id];
@@ -194,5 +204,3 @@ export const uploadMyProjectResults = (ballot_id, file) =>
 		await dispatch(updateBallotSuccess(ballot_id, response.ballot));
 	}
 	
-
-export const getResultsDataSet = (state) => state[dataSet];

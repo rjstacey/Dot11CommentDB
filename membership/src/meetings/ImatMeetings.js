@@ -1,18 +1,41 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {useHistory} from 'react-router-dom'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table'
-import {ConfirmModal} from 'dot11-components/modals'
-import {ActionButton} from 'dot11-components/icons'
-import {displayDate} from 'dot11-components/lib'
-import {SessionImportModal} from './SessionDialog'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useHistory} from 'react-router-dom';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+import {DateTime} from 'luxon';
+import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
+import {ConfirmModal} from 'dot11-components/modals';
+import {ActionButton} from 'dot11-components/form';
+import {displayDate} from 'dot11-components/lib';
+import {SessionImportModal} from './SessionDialog';
 
-import {loadImatMeetings, getSyncedImatMeetingsEntities, fields} from '../store/imatMeetings'
-import {loadSessions, SessionTypeOptions} from '../store/sessions'
+import {loadImatMeetings, selectSyncedImatMeetingsEntities, selectImatMeetingsState, fields, dataSet} from '../store/imatMeetings';
+import {loadSessions, SessionTypeOptions, selectSessionsState} from '../store/sessions';
 
 const DefaultMeeting = {Date: new Date(), Location: '', Type: SessionTypeOptions[0].value}
+
+function imatMeetingToSession(meeting) {
+	// Luxon can't handle some of these shorter timezone names
+	const map = {
+		'EST5EDT': 'America/New_York',
+		'EST': 'America/New_York',
+		'CST6CDT': 'America/Chicago',
+		'MST7MDT': 'America/Denver',
+		'PST8PDT': 'America/Los_Angeles',
+		'HST': 'Pacific/Honolulu',
+		'CET': 'Europe/Vienna'
+	};
+	const TimeZone = map[meeting.TimeZone] || meeting.TimeZone;
+	const Start = DateTime.fromISO(meeting.Start, {zone: TimeZone}).toISO();
+	const End = DateTime.fromISO(meeting.End, {zone: TimeZone}).toISO();
+	return {
+		...meeting,
+		TimeZone,
+		Start,
+		End
+	}
+}
 
 const ActionCell = styled.div`
 	display: flex;
@@ -73,18 +96,15 @@ const tableColumns = [
 
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0);
 
-function ImatMeetings({
-	selected,
-	valid,
-	loading,
-	imatMeetings,
-	loadImatMeetings,
-	sessionsValid,
-	loadSessions
-}) {
+function ImatMeetings() {
 	const history = useHistory();
 	const [defaultSession, setDefaultSession] = React.useState(null);
 	const numberSessions = React.useRef(20);
+
+	const dispatch = useDispatch();
+	const {valid, loading, selected} = useSelector(selectImatMeetingsState);
+	const imatMeetings = useSelector(selectSyncedImatMeetingsEntities);
+	const {valid: sessionsValid} = useSelector(selectSessionsState);
 
 	const columns = React.useMemo(() => {
 
@@ -99,23 +119,24 @@ function ImatMeetings({
 
 	React.useEffect(() => {
 		if (!sessionsValid)
-			loadSessions();
+			dispatch(loadSessions());
 		if (!valid)
-			loadImatMeetings(numberSessions.current);
+			dispatch(loadImatMeetings(numberSessions.current));
 	}, []);
 
-	const importSessionDialog = (meeting) => setDefaultSession(meeting);
+	const importSessionDialog = (meeting) => setDefaultSession(imatMeetingToSession(meeting));
 	const closeSessionDialog = () => setDefaultSession(null);
 
 	function getMore() {
 		numberSessions.current += 10;
-		loadImatMeetings(numberSessions.current)
+		dispatch(loadImatMeetings(numberSessions.current));
 	}
 
-	const close = () => history.goBack();
-	const refresh = () => loadImatMeetings(numberSessions.current);
+	const close = () => history.push('/sessions');
+	const refresh = () => dispatch(loadImatMeetings(numberSessions.current));
 
-	return <>
+	return (
+		<>
 		<TopRow style={{maxWidth}}>
 			<div>IMAT Session</div>
 			<div>
@@ -141,28 +162,8 @@ function ImatMeetings({
 			defaultSession={defaultSession}
 			close={closeSessionDialog}
 		/>
-	</>
+		</>
+	)
 }
 
-ImatMeetings.propTypes = {
-	selected: PropTypes.array.isRequired,
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	imatMeetings:  PropTypes.object.isRequired,
-	loadImatMeetings: PropTypes.func.isRequired,
-	sessionsValid: PropTypes.bool.isRequired,
-	loadSessions: PropTypes.func.isRequired,
-}
-
-const dataSet = 'imatMeetings';
-
-export default connect(
-	(state) => ({
-			selected: state[dataSet].selected,
-			valid: state[dataSet].valid,
-			loading: state[dataSet].loading,
-			imatMeetings: getSyncedImatMeetingsEntities(state),
-			sessionsValid: state['sessions'].valid
-		}),
-	{loadImatMeetings, loadSessions}
-)(ImatMeetings)
+export default ImatMeetings;

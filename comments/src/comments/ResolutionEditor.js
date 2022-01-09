@@ -1,13 +1,14 @@
-import React from 'react'
+import React from 'react';
 import {Editor, EditorState, RichUtils, getDefaultKeyBinding, KeyBindingUtil,
-	Modifier, ContentState, convertFromHTML} from 'draft-js'
-import {stateToHTML} from 'draft-js-export-html'
-import 'draft-js/dist/Draft.css'
-import {css} from '@emotion/react'
-import styled from '@emotion/styled'
-import Immutable from 'immutable'
-import {debounce} from 'dot11-components/lib'
-import {ActionButton, Cross} from 'dot11-components/icons'
+	Modifier, ContentState, convertFromHTML} from 'draft-js';
+import {stateToHTML} from 'draft-js-export-html';
+import 'draft-js/dist/Draft.css';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+import Immutable from 'immutable';
+import {debounce} from 'dot11-components/lib';
+import {Cross} from 'dot11-components/icons';
+import {ActionButton} from 'dot11-components/form';
 
 
 /* Inline styles */
@@ -280,7 +281,6 @@ export class ResolutionEditor extends React.Component {
 			this.debouncedSave.flush();
 
 			// Reinitialize state from props
-			console.log('reinit from ', this.props.value)
 			this.setState({
 				value: this.props.value,
 				editorState: this.initEditorState(this.props.value)

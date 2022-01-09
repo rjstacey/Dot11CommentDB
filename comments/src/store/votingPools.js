@@ -9,6 +9,7 @@ export const fields = {
 };
 
 export const dataSet = 'votingPools';
+
 const selectId = vp => vp.VotingPoolID;
 const sortComparer = (vp1, vp2) => vp1.VotingPoolID.localeCompare(vp2.VotingPoolID);
 
@@ -35,6 +36,22 @@ const slice = createAppTableDataSlice({
  */
 export default slice.reducer;
 
+/*
+ * Selectors
+ */
+export const selectVotingPoolsState = (state) => state[dataSet];
+
+export const selectVotingPoolsOptions = createSelector(
+	selectVotingPoolsState,
+	(votingPools) => {
+		const {ids, entities} = votingPools;
+		return ids.map(id => ({value: id, label: entities[id].VotingPoolID}));
+	}
+);
+
+/*
+ * Actions
+ */
 const {
 	getPending,
 	getSuccess,
@@ -46,7 +63,7 @@ const {
 
 export const loadVotingPools = () =>
 	async (dispatch, getState) => {
-		if (getState()[dataSet].loading)
+		if (selectVotingPoolsState(getState()).loading)
 			return;
 		dispatch(getPending());
 		const url = '/api/votingPools';
@@ -57,7 +74,6 @@ export const loadVotingPools = () =>
 				throw new TypeError(`Unexpected response to GET: ${url}`);
 		}
 		catch(error) {
-			console.log(error)
 			await Promise.all([
 				dispatch(getFailure()),
 				dispatch(setError('Unable to get voting pool list', error))
@@ -98,15 +114,3 @@ export const updateVotingPool = (votingPoolId, changes) =>
 
 export {upsertOne as upsertVotingPool};
 
-/*
- * Selectors
- */
-export const getVotingPoolsDataSet = (state) => state[dataSet];
-
-export const selectVotingPoolsOptions = createSelector(
-	getVotingPoolsDataSet,
-	(votingPools) => {
-		const {ids, entities} = votingPools;
-		return ids.map(id => ({value: id, label: entities[id].VotingPoolID}));
-	}
-);

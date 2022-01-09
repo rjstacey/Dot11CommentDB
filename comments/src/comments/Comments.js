@@ -4,10 +4,10 @@ import {useHistory, useParams} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
-import AppTable, {SplitPanel, Panel, SelectExpandHeader, SelectExpandCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, IdFilter} from 'dot11-components/table'
-import {Button, ActionButton, ButtonGroup} from 'dot11-components/icons'
-import {AccessLevel} from 'dot11-components/lib'
-import {getEntities, getSortedFilteredIds, setProperty} from 'dot11-components/store/appTableData'
+import AppTable, {SplitPanel, Panel, SelectExpandHeader, SelectExpandCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, IdFilter} from 'dot11-components/table';
+import {Button, ActionButton, ButtonGroup} from 'dot11-components/form';
+import {AccessLevel} from 'dot11-components/lib';
+import {getEntities, getSortedFilteredIds, setProperty} from 'dot11-components/store/appTableData';
 
 import BallotSelector from '../ballots/BallotSelector';
 import {editorCss} from './ResolutionEditor';
@@ -18,9 +18,9 @@ import CommentsExport from './CommentsExport';
 import CommentHistory from './CommentHistory';
 import CommentsCopy from './CommentsCopy';
 
-import {fields, loadComments, clearComments, getCID, getCommentStatus, getCommentsDataSet, dataSet} from '../store/comments';
-import {loadMembers, getMembersDataSet} from '../store/members';
-import {setBallotId, loadBallots, getCurrentBallot, getBallotsDataSet} from '../store/ballots';
+import {fields, loadComments, loadCommentsSinceLastUpdate, clearComments, getCID, getCommentStatus, selectCommentsState, dataSet} from '../store/comments';
+import {loadMembers, selectMembersState} from '../store/members';
+import {setBallotId, loadBallots, getCurrentBallot, selectBallotsState} from '../store/ballots';
 
 const FlexRow = styled.div`
 	display: flex;
@@ -308,10 +308,10 @@ function Comments({access}) {
 	const history = useHistory();
 	const {ballotId} = useParams();
 
-	const {valid, loading, ballot: commentsBallot, ui: uiProperty, selected} = useSelector(getCommentsDataSet);
-	const {valid: ballotsValid, entities: ballotEntities} = useSelector(getBallotsDataSet);
+	const {valid, loading, ballot_id: commentsBallot_id, ui: uiProperty, selected} = useSelector(selectCommentsState);
+	const {valid: ballotsValid, entities: ballotEntities} = useSelector(selectBallotsState);
 	const currentBallot = useSelector(getCurrentBallot);
-	const {valid: usersValid, loading: usersLoading} = useSelector(getMembersDataSet);
+	const {valid: usersValid, loading: usersLoading} = useSelector(selectMembersState);
 
 	const dispatch = useDispatch();
 	const load = (ballot_id) => dispatch(loadComments(ballot_id));
@@ -334,11 +334,11 @@ function Comments({access}) {
 	React.useEffect(() => {
 		if (loading)
 			return;
-		if ((!commentsBallot && currentBallot) ||
-		    (commentsBallot && currentBallot && commentsBallot.id !== currentBallot.id)) {
+		if ((!commentsBallot_id && currentBallot) ||
+		    (currentBallot && commentsBallot_id !== currentBallot.id)) {
 			load(currentBallot.id);
 		}
-	}, [currentBallot, commentsBallot]);
+	}, [currentBallot, commentsBallot_id]);
 
 	const refresh = () => {
 		load(currentBallot.id);
@@ -358,7 +358,7 @@ function Comments({access}) {
 			<BallotSelector onBallotSelected={onBallotSelected} />
 			<div style={{display: 'flex', alignItems: 'center'}}>
 				<ButtonGroup>
-					<div style={{textAlign: 'center'}}>Table view</div>
+					<div>Table view</div>
 					<div style={{display: 'flex', alignItems: 'center'}}>
 						<TableViewSelector dataSet={dataSet} />
 						<TableColumnSelector dataSet={dataSet} columns={tableColumns} />

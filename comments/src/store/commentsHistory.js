@@ -9,7 +9,7 @@ const defaultState = {
 	commentsHistory: []
 };
 
-const dataSet = 'commentsHistory';
+export const dataSet = 'commentsHistory';
 
 const slice = createSlice({
 	name: dataSet,
@@ -62,8 +62,19 @@ const slice = createSlice({
 	}
 });
 
+/*
+ * Reducer
+ */
 export default slice.reducer;
 
+/*
+ * Selectors
+ */
+export const selectCommentsHistoryState = (state) => state[dataSet];
+
+/*
+ * Actions
+ */
 const {getPending, getSuccess, getFailure} = slice.actions;
 
 export const loadCommentsHistory = (comment_id) =>
@@ -86,5 +97,3 @@ export const loadCommentsHistory = (comment_id) =>
 		}
 		await dispatch(getSuccess(response));
 	}
-
-export const getCommentsHistoryDataSet = (state) => state[dataSet];

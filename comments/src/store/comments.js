@@ -1,10 +1,11 @@
 import { v4 as uuid } from 'uuid';
+import {createSelector} from '@reduxjs/toolkit';
 import {fetcher} from 'dot11-components/lib';
-//import fetcher from './fetcher';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 
-import {updateBallotSuccess, getCurrentBallotId, getBallotsDataSet} from './ballots';
+import {updateBallotSuccess, selectBallot, selectBallotsState} from './ballots';
+import {offlineFetch} from './offline';
 
 const mustSatisfyOptions = [
 	{value: 0, label: 'No'},
@@ -22,12 +23,8 @@ export const fields = {
 		isId: true,
 		sortType: SortType.NUMERIC
 	},
-	CommenterName: {
-		label: 'Commenter'
-	},
-	Vote: {
-		label: 'Vote'
-	},
+	CommenterName: {label: 'Commenter'},
+	Vote: {label: 'Vote'},
 	MustSatisfy: {
 		label: 'Must satisfy',
 		dataRenderer: v => mustSatisfyLabels[v],
@@ -52,7 +49,6 @@ export const fields = {
 	EditInDraft: {label: 'In Draft'},
 	EditNotes: {label: 'Editing Notes'}
 };
-
 
 export const dataSet = 'comments';
 const selectId = (c) => c.id; //c.CID;
@@ -80,19 +76,21 @@ function getResolutionCountUpdates(ids, entities, comment_ids) {
 	return updates;
 }
 
+const initialState = {
+	ballot_id: 0
+};
+
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	//selectId,
 	sortComparer: (c1, c2) => c1.CommentID === c2.CommentID? c1.ResolutionID - c2.ResolutionID: c1.CommentID - c2.CommentID,
-	initialState: {
-		ballot_id: 0,
-	},
+	initialState,
 	selectField: getField,
 	reducers: {
 		setDetails(state, action) {
-  			const {ballot_id} = action.payload;
-			state.ballot_id = ballot_id;
+			const changes = action.payload;
+			return {...state, ...changes};
 		}
 	},
 	extraReducers: (builder, dataAdapter) => {
@@ -109,27 +107,28 @@ const slice = createAppTableDataSlice({
 			}
 		)
 		.addMatcher(
-			(action) => action.type.startsWith(dataSet + '/') && /(addManyCommit|updateManyCommit)$/.test(action.type),
+			(action) => action.type === dataSet + '/getCommit',
 			(state, action) => {
-				const {comments} = action.payload;
-				const updates = comments.map(c => ({id: c.id, changes: {LastModifiedBy: c.LastModifiedBy, LastModifiedTime: c.LastModifiedTime}}));
+				const comments = action.payload;
+				const updates = comments.map(c => ({id: c.id, changes: c}));
 				dataAdapter.updateMany(state, updates);
 			}
 		)
 		.addMatcher(
-			(action) => action.type.startsWith(dataSet + '/') && /(updateManyRollback)$/.test(action.type),
+			(action) => action.type === dataSet + '/updateCommit',
 			(state, action) => {
-				// Reverse previous updates
-				const {updates} = action.meta;
+				const {comments} = action.payload;
+				//const updates = comments.map(c => ({id: c.id, changes: {LastModifiedBy: c.LastModifiedBy, LastModifiedTime: c.LastModifiedTime}}));
+				const updates = comments.map(c => ({id: c.id, changes: c}));
 				dataAdapter.updateMany(state, updates);
 			}
 		)
 		.addMatcher(
 			(action) => action.type.startsWith(dataSet + '/') && /(addManyRollback)$/.test(action.type),
 			(state, action) => {
-				const added_ids = action.meta.ids;
+				const added_ids = action.payload;
 				if (!Array.isArray(added_ids))
-					console.error('missing or bad action.meta.ids');
+					console.error('missing or bad payload; expected array');
 				const comment_ids = added_ids.map(id => state.entities[id].comment_id);
 				dataAdapter.removeMany(state, added_ids);
 				const {ids, entities} = state;
@@ -140,9 +139,9 @@ const slice = createAppTableDataSlice({
 		.addMatcher(
 			(action) => action.type.startsWith(dataSet + '/') && /(removeManyRollback)$/.test(action.type),
 			(state, action) => {
-				const {comments} = action.meta;
+				const comments = action.payload;
 				if (!Array.isArray(comments))
-					console.error('missing or bad action.meta.comments');
+					console.error('missing or bad payload; expected array');
 				dataAdapter.addMany(state, comments);
 				const {ids, entities} = state;
 				const comment_ids = comments.map(c => c.comment_id);
@@ -154,9 +153,33 @@ const slice = createAppTableDataSlice({
 });
 
 /*
- * Export reducer as default
+ * Reducer
  */
 export default slice.reducer;
+
+/*
+ * Selectors
+ */
+export const selectCommentsState = state => state[dataSet];
+const selectCommentsIds = state => state[dataSet].ids;
+const selectCommentsEntities = state => state[dataSet].entities;
+const selectCommentsBallotId = state => state[dataSet].ballot_id;
+
+const selectCommentsLastModified = createSelector(
+	selectCommentsIds,
+	selectCommentsEntities,
+	(ids, entities) => {
+		let lastModified = 0;
+		for (const id of ids) {
+			const c = entities[id];
+			const d = Date.parse(c.LastModifiedTime)
+			if (d > lastModified)
+				lastModified = d;
+		}
+		return new Date(lastModified).toISOString();
+	}
+);
+
 
 /*
  * Actions
@@ -200,7 +223,7 @@ export const loadComments = (ballot_id) =>
 				throw new TypeError("Unexpected response to GET: " + url);
 		}
 		catch (error) {
-			const ballot = getBallotsDataSet(getState()).entities[ballot_id];
+			const ballot = selectBallot(getState(), ballot_id);
 			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
 			await Promise.all([
 				dispatch(getFailure()),
@@ -208,8 +231,21 @@ export const loadComments = (ballot_id) =>
 			]);
 			return;
 		}
-		await dispatch(getSuccess(response));
-		await dispatch(setDetails({ballot_id}));
+		dispatch(getSuccess(response));
+		dispatch(setDetails({ballot_id}));
+	}
+
+export const getCommentUpdates = () =>
+	(dispatch, getState) => {
+		const state = getState();
+		const ballot_id = selectCommentsBallotId(state);
+		if (!ballot_id)
+			return;
+		const lastModified = selectCommentsLastModified(state);
+		dispatch(offlineFetch({
+			effect: {url: `/api/comments/${ballot_id}`, method: 'GET', params: {modifiedSince: lastModified}},
+			commit: {type: dataSet + '/getCommit'},
+		}));
 	}
 
 export const clearComments = () =>
@@ -220,7 +256,10 @@ export const clearComments = () =>
 
 export const updateComments = (updates) =>
 	(dispatch, getState) => {
-		const {ids, entities} = getCommentsDataSet(getState());
+		const state = getState();
+		const {ids, entities, ballot_id} = selectCommentsState(state);
+		const lastModified = selectCommentsLastModified(state);
+
 		const localUpdates = [], 
 		      rollbackUpdates = [];
 		for (const id of ids) {
@@ -235,49 +274,23 @@ export const updateComments = (updates) =>
 				rollbackUpdates.push({id, changes});
 			}
 		}
-		dispatch({
-			type: localUpdateMany.toString(),
-			payload: localUpdates,
-			meta: {
-				offline: {
-					effect: {url: '/api/comments', method: 'PATCH', params: updates},
-					commit: {type: dataSet + '/updateManyCommit'},
-					rollback: {type: dataSet + '/updateManyRollback', meta: {updates: rollbackUpdates}}
-				}
-			}
-		});
+		dispatch(localUpdateMany(localUpdates));
+		dispatch(offlineFetch({
+			effect: {url: '/api/comments', method: 'PATCH', params: {updates, ballot_id, modifiedSince: lastModified}},
+			commit: {type: dataSet + '/updateCommit'},
+			rollback: {type: localUpdateMany.toString(), payload: rollbackUpdates} 
+		}));
 	}
-
-/*export const updateComments = (updates) =>
-	async (dispatch, getState) => {
-		/*const {entities} = getCommentsDataSet(getState());
-		const updates = [];
-		for (const u of commentUpdates) {
-			// Find all entries for this comment_id
-			for (const c of Object.values(entities)) {
-				if (c.comment_id === u.id)
-					updates.push({id: c.id, changes: u.changes});
-			}
-		}* /
-		dispatch(commentsUpdateMany(updates));
-
-		/*try {
-			await fetcher.patch(`/api/comments`, commentUpdates);
-		}
-		catch (error) {
-			await dispatch(setError(`Unable to update comment${updates.length > 1? 's': ''}`, error));
-		}* /
- 	}*/
 
 export const deleteComments = (ballot_id) =>
 	async (dispatch, getState) => {
-		if (getCommentsDataSet(getState()).ballot_id === ballot_id)
+		if (selectCommentsBallotId(getState()) === ballot_id)
 			await dispatch(clearComments());
-		const summary = {Count: 0, CommentIDMin: 0, CommentIDMax: 0}
+		const summary = {Count: 0, CommentIDMin: 0, CommentIDMax: 0};
 		await dispatch(updateBallotSuccess(ballot_id, {Comments: summary}));
 
 		try {
-			await fetcher.delete(`/api/comments/${ballot_id}`)
+			await fetcher.delete(`/api/comments/${ballot_id}`);
 		}
 		catch (error) {
 			await dispatch(setError(`Unable to delete comments`, error));
@@ -299,7 +312,7 @@ export const importComments = (ballot_id, epollNum, startCID) =>
 			await dispatch(setError(`Unable to import comments`, error));
 			return;
 		}
-		await dispatch(updateBallotSuccess(ballot_id, response.ballot))
+		await dispatch(updateBallotSuccess(ballot_id, response.ballot));
 	}
 
 export const uploadComments = (ballotId, type, file) =>
@@ -340,7 +353,7 @@ export const setStartCommentId = (ballot_id, startCommentId) =>
 		}
 		const {comments, ballot} = response;
 		dispatch(updateBallotSuccess(ballot.id, ballot));
-		if (ballot_id === getCommentsDataSet(getState()).ballot_id) {
+		if (ballot_id === selectCommentsBallotId(getState())) {
 			dispatch(getSuccess(comments));
 		}
 	}
@@ -358,21 +371,12 @@ const defaultResolution = {
 	EditNotes: '',
 };
 
-const addMany = (localAdds, remoteAdds) => ({
-	type: localAddMany.toString(),
-	payload: localAdds,
-	meta: {
-		offline: {
-			effect: {url: '/api/resolutions', method: 'POST', params: remoteAdds},
-			commit: {type: dataSet + '/addManyCommit'},
-  			rollback: {type: dataSet + '/addManyRollback', meta: {ids: localAdds.map(c => c.id)}}
-  		}
-  	}
-});
-
 const updateMany = (updates) => 
 	(dispatch, getState) => {
-		const {entities} = getCommentsDataSet(getState());
+		const state = getState();
+		const {ids, entities, ballot_id} = selectCommentsState(state);
+		const lastModified = selectCommentsLastModified(state);
+
 		const rollbackUpdates = updates.map(u => {
 			const id = u.id;
 			const changes = {};
@@ -381,38 +385,35 @@ const updateMany = (updates) =>
 				changes[key] = entity[key];
 			return {id, changes};
 		});
-		return dispatch({
-			type: localUpdateMany.toString(),
-			payload: updates,
-			meta: {
-				offline: {
-					effect: {url: '/api/resolutions', method: 'PATCH', params: updates},
-					commit: {type: dataSet + '/updateManyCommit'},
-					rollback: {type: dataSet + '/updateManyRollback', meta: {updates: rollbackUpdates}}
-				}
-			}
-		});
+		dispatch(localUpdateMany(updates));
+		dispatch(offlineFetch({
+			effect: {url: '/api/resolutions', method: 'PATCH', params: {updates, ballot_id, modifiedSince: lastModified}},
+			commit: {type: dataSet + '/updateCommit'},
+			rollback: {type: localUpdateMany.toString(), payload: rollbackUpdates}
+		}));
 	}
 
 const removeMany = (ids) => 
 	(dispatch, getState) => {
-		const {entities} = getCommentsDataSet(getState());
+		const state = getState();
+		const {entities, ballot_id} = selectCommentsState(state);
+		const lastModified = selectCommentsLastModified(state);
+
 		const comments = ids.map(id => entities[id]);
-		return dispatch({
-			type: localRemoveMany.toString(),
-			payload: ids,
-			meta: {
-				offline: {
-					effect: {url: '/api/resolutions', method: 'DELETE', params: ids},
-					rollback: {type: dataSet + '/removeManyRollback', meta: {comments}}
-				}
-			}
-		});
+		dispatch(localRemoveMany(ids));
+		dispatch(offlineFetch({
+			effect: {url: '/api/resolutions', method: 'DELETE', params: {ids, ballot_id, modifiedSince: lastModified}},
+			commit: {type: dataSet + '/updateCommit'},
+			rollback: {type: dataSet + '/removeManyRollback', payload: comments}
+		}));
 	}
 
 export const addResolutions = (resolutions) =>
 	async (dispatch, getState) => {
-		const {ids, entities} = getCommentsDataSet(getState());
+		const state = getState();
+		const {ids, entities, ballot_id} = selectCommentsState(state);
+		const lastModified = selectCommentsLastModified(state);
+
 		const selected = [],
 			  updates = [],
 			  adds = [],
@@ -462,35 +463,21 @@ export const addResolutions = (resolutions) =>
 			// Select the newly added entry
 			selected.push(resolution_id);
 		}
-		dispatch(addMany(adds, remoteAdds));
 		dispatch(localUpdateMany(updates));
+		dispatch(localAddMany(adds));
+		dispatch(offlineFetch({
+			effect: {url: '/api/resolutions', method: 'POST', params: {entities: remoteAdds, ballot_id, modifiedSince: lastModified}},
+			commit: {type: dataSet + '/updateCommit'},
+			rollback: {type: dataSet + '/addManyRollback', payload: adds.map(c => c.id)}
+		}));
 		dispatch(setSelected(selected));
-
-		/*try {
-			fetcher.post('/api/resolutions', {resolutions: remoteAdds});
-		}
-		catch(error) {
-			await dispatch(setError('Unable to add resolutions', error));
-		}*/
 	}
-
-/*export const updateResolutions = (updates) =>
-	(dispatch, getState) => {
-		dispatch(updateMany(updates));
-
-		/*try {
-			await fetcher.patch('/api/resolutions', updates);
-		}
-		catch(error) {
-			await dispatch(setError(`Unable to update resolution${updates.length > 1? 's': ''}`, error));
-		}* /
-	}*/
 
 export const updateResolutions = updateMany;
 
 export const deleteResolutions = (delete_ids) =>
 	async (dispatch, getState) => {
-		const {ids, entities} = getCommentsDataSet(getState());
+		const {ids, entities} = selectCommentsState(getState());
 
 		// Organize by comment_id
 		const toDelete = {},
@@ -547,7 +534,6 @@ export const deleteResolutions = (delete_ids) =>
 				selected.push(remainingComments[0].id);
 			}
 		}
-
 		if (deletes.length)
 			dispatch(removeMany(deletes));
 		if (updates.length)
@@ -555,17 +541,6 @@ export const deleteResolutions = (delete_ids) =>
 		if (commentUpdates.length)
 			dispatch(localUpdateMany(commentUpdates));
 		dispatch(setSelected(selected));
-
-		/*const url = '/api/resolutions';
-		try {
-			if (deletes.length > 0)
-				await fetcher.delete(url, deletes);
-			if (updates.length > 0)
-				await fetcher.patch(url, updates);
-		}
-		catch (error) {
-			await dispatch(setError(`Unable to delete resolution${ids.length > 1? 's': ''}`, error));
-		}*/
 	}
 
 export const FieldsToUpdate = {
@@ -603,6 +578,8 @@ export const uploadResolutions = (ballot_id, toUpdate, matchAlgorithm, matchUpda
 		let response;
 		try {
 			response = await fetcher.postMultipart(`/api/resolutions/${ballot_id}/upload`, params);
+			if (!Array.isArray(response.comments) || typeof response.ballot !== 'object')
+				throw 'Unexpected response';
 		}
 		catch (error) {
 			await dispatch(setError("Unable to upload resolutions", error));
@@ -610,7 +587,7 @@ export const uploadResolutions = (ballot_id, toUpdate, matchAlgorithm, matchUpda
 		}
 		const {comments, ballot, matched, unmatched, added, remaining, updated} = response;
 		await Promise.all([
-			dispatch(getSuccess(response.comments)),
+			dispatch(getSuccess(comments)),
 			dispatch(setDetails({ballot_id})),
 			dispatch(updateBallotSuccess(ballot.id, ballot))
 		]);
@@ -639,13 +616,8 @@ export const exportCommentsSpreadsheet = (ballot_id, file, format, style) =>
 			await fetcher.postForFile(url, {Filename, Style: style}, file);
 		}
 		catch(error) {
-			const ballot = getState()[dataSet].entities[ballot_id];
+			const ballot = selectBallot(getState(), ballot_id);
 			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
 			await dispatch(setError(`Unable to export comments for ${ballotId}`, error));
 		}
 	}
-
-/*
- * Selectors
- */
-export const getCommentsDataSet = (state) => state[dataSet];

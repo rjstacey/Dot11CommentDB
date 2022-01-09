@@ -3,7 +3,7 @@ import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
 import {Select} from 'dot11-components/form'
-import {loadVotingPools, getVotingPoolsDataSet, selectVotingPoolsOptions} from '../store/votingPools'
+import {loadVotingPools, selectVotingPoolsState, selectVotingPoolsOptions} from '../store/votingPools'
 
 function VotingPoolSelector({
 	value,
@@ -11,7 +11,7 @@ function VotingPoolSelector({
 	...otherProps
 }) {
 	const dispatch = useDispatch();
-	const {valid, loading} = useSelector(getVotingPoolsDataSet);
+	const {valid, loading} = useSelector(selectVotingPoolsState);
 	const options = useSelector(selectVotingPoolsOptions);
 
 	React.useEffect(() => {

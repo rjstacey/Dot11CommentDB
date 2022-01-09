@@ -7,7 +7,6 @@ import {ErrorModal, ConfirmModal} from 'dot11-components/modals';
 import {AccessLevel} from 'dot11-components/lib/user';
 
 const Members = React.lazy(() => import('./members/Members'));
-
 const Sessions = React.lazy(() => import('./meetings/Sessions'));
 const ImatMeetings = React.lazy(() => import('./meetings/ImatMeetings'));
 const Attendees = React.lazy(() => import('./meetings/Attendees'));
@@ -100,8 +99,8 @@ function App({user, access}) {
 				<Header>
 					<Title>802.11 Member Management</Title>
 					<Nav>
-						<NavLink to="/members/" activeClassName='active'>Members</NavLink>
-						<NavLink to="/sessions/" activeClassName='active'>Sessions</NavLink>
+						<NavLink to="/members" activeClassName='active'>Members</NavLink>
+						<NavLink to="/sessions" activeClassName='active'>Sessions</NavLink>
 					</Nav>
 					<Account user={user} />
 				</Header>
@@ -109,36 +108,41 @@ function App({user, access}) {
 					<Switch>
 						<RestrictedRoute
 							path="/members"
+							exact
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Members}
 						/>
 						<RestrictedRoute
-							path="/sessions/"
+							path="/sessions"
+							exact
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Sessions}
 						/>
 						<RestrictedRoute
-							path="/ImatSessions/"
+							path="/sessions/imat"
+							exact
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={ImatMeetings}
 						/>
 						<RestrictedRoute
-							path="/session/:session_id/Breakouts"
+							path="/sessions/:session_id/breakouts"
+							exact
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Breakouts}
 						/>
 						<RestrictedRoute
-							path="/session/:session_id/Breakout/:breakout_id/Attendees"
+							path="/sessions/:session_id/breakout/:breakout_id/attendees"
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Attendees}
 						/>
 						<RestrictedRoute
-							path="/session/:session_id/Attendees"
+							path="/sessions/:session_id/attendees"
+							exact
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Attendees}

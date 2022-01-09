@@ -4,7 +4,7 @@ import {useDispatch} from 'react-redux';
 import styled from '@emotion/styled';
 
 import {Form, Row, List, ListItem} from 'dot11-components/form';
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
+import {ActionButtonDropdown} from 'dot11-components/general';
 
 import {exportCommentsSpreadsheet, CommentsSpreadsheetFormat, CommentsSpreadsheetStyle} from '../store/comments';
 

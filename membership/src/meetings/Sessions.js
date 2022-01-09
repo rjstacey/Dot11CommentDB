@@ -1,20 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {connect} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
-import {Link, useHistory, useParams} from "react-router-dom";
+import {Link, useHistory, useParams} from 'react-router-dom';
 
-import AppTable, {SelectHeader, SelectCell, TableColumnSelector, TableColumnHeader, SplitPanel, Panel} from 'dot11-components/table'
-import {ConfirmModal} from 'dot11-components/modals'
-import {ActionButton, Button} from 'dot11-components/icons'
-import {displayDate, displayDateRange} from 'dot11-components/lib'
-import SessionDetail from './SessionDialog'
+import AppTable, {SelectHeader, SelectCell, TableColumnSelector, TableColumnHeader, SplitPanel, Panel} from 'dot11-components/table';
+import {ConfirmModal} from 'dot11-components/modals';
+import {ActionButton, Button} from 'dot11-components/form';
+import {displayDateRange} from 'dot11-components/lib';
+import SessionDetail from './SessionDialog';
 
-import {fields, loadSessions, deleteSessions, setSessionsUiProperty, SessionTypeOptions} from '../store/sessions';
-import {importBreakouts} from '../store/breakouts'
-import {importAttendances} from '../store/attendees'
-
-const DefaultSession = {Date: new Date(), Location: '', Type: SessionTypeOptions[0].value}
+import {fields, loadSessions, deleteSessions, setSessionsUiProperty, SessionTypeOptions, selectSessionsState, dataSet} from '../store/sessions';
 
 const TopRow = styled.div`
 	display: flex;
@@ -38,8 +34,8 @@ const SessionsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {..
 
 const renderHeaderStartEnd = (props) =>
 	<>
-		<SessionsColumnHeader {...props} dataKey='Start' label='Start' dataRenderer={displayDate} />
-		<SessionsColumnHeader {...props} dataKey='End' label='End' dataRenderer={displayDate} />
+		<SessionsColumnHeader {...props} dataKey='Start' label='Start' />
+		<SessionsColumnHeader {...props} dataKey='End' label='End' />
 	</>
 
 export const renderCellStartEnd = ({rowData}) => displayDateRange(rowData.Start, rowData.End);
@@ -50,12 +46,12 @@ const renderMeetingType = ({rowData}) => {
 };
 
 const renderBreakouts = ({rowData, dataKey}) =>
-	<Link to={`/Session/${rowData.id}/Breakouts`}>
+	<Link to={`/sessions/${rowData.id}/breakouts`}>
 		{rowData[dataKey]}
 	</Link>
 
 const renderAttendance = ({rowData, dataKey}) =>
-	<Link to={`/Session/${rowData.id}/Attendees`}>
+	<Link to={`/sessions/${rowData.id}/attendees`}>
 		{rowData[dataKey]}
 	</Link>
 
@@ -126,35 +122,29 @@ for (const tableView of Object.keys(defaultTablesColumns)) {
 }
 
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
-const primaryDataKey = 'id';
 
-function Sessions({
-	selected,
-	valid,
-	loading,
-	uiProperty,
-	setUiProperty,
-	loadSessions,
-	deleteSessions,
-	importBreakouts,
-	importAttendances
-}) {
+function Sessions() {
 	const history = useHistory();
+	const dispatch = useDispatch();
+	const setUiProperty = React.useCallback((property, value) => dispatch(setSessionsUiProperty(property, value)), [dispatch]);
+	const {valid, loading, selected, ui: uiProperty} = useSelector(selectSessionsState);
 
 	React.useEffect(() => {
 		if (!valid)
-			loadSessions();
+			dispatch(loadSessions());
 	}, []);
+
+	const refresh = () => dispatch(loadSessions());
 
 	const handleRemoveSelected = async () => {
 		if (selected.length) {
 			const ok = await ConfirmModal.show('Are you sure you want to delete ' + selected.join(', ') + '?');
 			if (ok)
-				await deleteSessions(selected);
+				await dispatch(deleteSessions(selected));
 		}
 	}
 
-	const showSessions = () => history.push('/ImatSessions/');
+	const showSessions = () => history.push('/sessions/imat');
 
 	return (
 		<>
@@ -170,7 +160,7 @@ function Sessions({
 					/>
 					<ActionButton name='import' title='Import session' onClick={showSessions} />
 					<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
-					<ActionButton name='refresh' title='Refresh' onClick={loadSessions} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>
 			</TopRow>
 
@@ -194,23 +184,4 @@ function Sessions({
 	)
 }
 
-Sessions.propTypes = {
-	selected: PropTypes.array.isRequired,
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	uiProperty: PropTypes.object.isRequired,
-	loadSessions: PropTypes.func.isRequired,
-	deleteSessions: PropTypes.func.isRequired
-}
-
-const dataSet = 'sessions';
-
-export default connect(
-	(state) => ({
-			selected: state[dataSet].selected,
-			valid: state[dataSet].valid,
-			loading: state[dataSet].loading,
-			uiProperty: state[dataSet].ui
-		}),
-	{loadSessions, deleteSessions, importBreakouts, importAttendances, setUiProperty: setSessionsUiProperty}
-)(Sessions)
+export default Sessions;

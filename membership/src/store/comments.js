@@ -1,8 +1,11 @@
-import fetcher from 'dot11-components/lib/fetcher'
-import {setError} from 'dot11-components/store/error'
+import fetcher from 'dot11-components/lib/fetcher';
+import {setError} from 'dot11-components/store/error';
 
-import {updateBallotSuccess} from './ballots'
+import {updateBallotSuccess} from './ballots';
 
+/*
+ * Actions
+ */
 export const deleteComments = (ballot_id) =>
 	async (dispatch) => {
 		try {

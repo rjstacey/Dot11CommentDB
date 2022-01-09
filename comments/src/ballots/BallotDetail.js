@@ -4,10 +4,9 @@ import {connect, useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
 import {shallowDiff, recursivelyDiffObjects, isMultiple, debounce} from 'dot11-components/lib';
-import {Form, Row, Col, Field, FieldLeft, List, ListItem, Checkbox, Input, Select, TextArea} from 'dot11-components/form';
-import {Button, ActionButton} from 'dot11-components/icons';
+import {Button, ActionButton, Form, Row, Col, Field, FieldLeft, List, ListItem, Checkbox, Input, Select, TextArea} from 'dot11-components/form';
 import {ActionButtonModal, ConfirmModal} from 'dot11-components/modals';
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
+import {ActionButtonDropdown} from 'dot11-components/general';
 
 import {selectEntities, setProperty} from 'dot11-components/store/appTableData';
 

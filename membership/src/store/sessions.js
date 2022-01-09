@@ -1,3 +1,4 @@
+import {createSelector} from '@reduxjs/toolkit';
 import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType, SortDirection} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
@@ -31,47 +32,7 @@ export const fields = {
 	TimeZone: {label: 'TimeZone'}
 };
 
-/*
- * Generate a filter for each field (table column)
- */
-const defaultFiltersEntries = Object.keys(fields).reduce((entries, dataKey) => {
-	let options;
-	if (dataKey === 'Type')
-		options = SessionTypeOptions;
-	return {...entries, [dataKey]: {options}}
-}, {});
-
-/*
- * Generate object that describes the initial sort state
- */
-const defaultSortEntries = Object.keys(fields).reduce((entries, dataKey) => {
-	let type
-	switch (dataKey) {
-		case 'id':
-			type = SortType.NUMERIC
-			break
-		case 'Start':
-		case 'End':
-			type = SortType.DATE
-			break
-		default:
-			type = SortType.STRING
-	}
-	const direction = SortDirection.NONE;
-	return {...entries, [dataKey]: {type, direction}}
-}, {});
-
-
-function correctEntry(session) {
-	let s = session;
-	if (typeof s.Start === 'string')
-		s = {...s, Start: new Date(s.Start)};
-	if (typeof s.End === 'string')
-		s = {...s, End: new Date(s.End)};
-	return s;
-}
-
-const dataSet = 'sessions'
+export const dataSet = 'sessions';
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
@@ -95,10 +56,28 @@ const slice = createAppTableDataSlice({
 });
 
 /*
- * Export reducer as default
+ * Reducer
  */
 export default slice.reducer;
 
+/*
+ * Selectors
+ */
+export const selectSessionsState = (state) => state[dataSet];
+export const selectSessionsEntities = (state) => selectSessionsState(state).entities;
+
+export const selectTimeZonesState = createSelector(
+	selectSessionsState,
+	(state) => ({
+		timeZones: state.timeZones,
+		loading: state.loadingTimeZones,
+		valid: state.timeZones.length > 0
+	})
+);
+
+/*
+ * Actions
+ */
 const {
 	getPending,
 	getSuccess,
@@ -134,7 +113,7 @@ export const updateSessionSuccess = (id, changes) => updateOne({id, changes});
 export const updateSession = (id, session) =>
 	async (dispatch) => {
 		await dispatch(updateOne({id, changes: session}));
-		const url = `/api/session/${id}`;
+		const url = `/api/sessions/${id}`;
 		let updatedSession;
 		try {
 			updatedSession = await fetcher.patch(url, session);
@@ -152,7 +131,7 @@ export const addSession = (session) =>
 	async (dispatch) => {
 		let newSession;
 		try {
-			newSession = await fetcher.post('/api/session', session);
+			newSession = await fetcher.post('/api/sessions', session);
 			if (typeof newSession !== 'object')
 				throw new TypeError('Unexpected response to POST: /api/session');
 		}
@@ -165,13 +144,13 @@ export const addSession = (session) =>
 
 export const deleteSessions = (ids) =>
 	async (dispatch, getState) => {
-		await dispatch(removeMany(ids));
 		try {
 			await fetcher.delete('/api/sessions', ids);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to delete meetings ${ids}`, error));
 		}
+		await dispatch(removeMany(ids));
 	}
 
 const {getTimeZonesPending, getTimeZonesSuccess, getTimeZonesFailure} = slice.actions;
@@ -186,11 +165,8 @@ export const loadTimeZones = () =>
 				throw new TypeError('Unexpected response to GET: /api/timeZones');
 		}
 		catch(error) {
-			console.log(error)
-			await Promise.all([
-				dispatch(getTimeZonesFailure()),
-				dispatch(setError('Unable to get time zones list', error))
-			])
+			dispatch(getTimeZonesFailure());
+			dispatch(setError('Unable to get time zones list', error));
 			return;
 		}
 		await dispatch(getTimeZonesSuccess(timeZones));
@@ -198,7 +174,3 @@ export const loadTimeZones = () =>
 
 export const setSessionsUiProperty = (property, value) => slice.actions.setProperty({property, value});
 
-/*
- * Selectors
- */
-export const getSessionsDataSet = (state) => state[dataSet];

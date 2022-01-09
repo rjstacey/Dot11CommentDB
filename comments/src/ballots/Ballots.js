@@ -5,17 +5,17 @@ import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
 import AppTable, {SelectHeader, SelectCell, TableColumnHeader, ShowFilters, TableViewSelector, TableColumnSelector, SplitPanel, Panel} from 'dot11-components/table';
-import {Button, ActionButton} from 'dot11-components/icons';
+import {Button, ActionButton, ButtonGroup} from 'dot11-components/form';
 import {AccessLevel, displayDate, displayDateRange} from 'dot11-components/lib';
 import {ConfirmModal} from 'dot11-components/modals';
 
 import BallotDetail, {BallotAddDropdown as BallotAdd} from './BallotDetail';
 
-import {setSelected} from 'dot11-components/store/selected'
-import {setProperty} from 'dot11-components/store/ui'
+import {setSelected} from 'dot11-components/store/selected';
+import {setProperty} from 'dot11-components/store/ui';
 
-import {fields, loadBallots, deleteBallots, BallotType, BallotStage, getBallotsDataSet, dataSet} from '../store/ballots'
-import {loadVotingPools, getVotingPoolsDataSet} from '../store/votingPools'
+import {fields, loadBallots, deleteBallots, BallotType, BallotStage, selectBallotsState, dataSet} from '../store/ballots';
+import {loadVotingPools, selectVotingPoolsState} from '../store/votingPools';
 
 
 const DataSubcomponent = styled.div`
@@ -195,17 +195,6 @@ const TopRow = styled.div`
 	box-sizing: border-box;
 `;
 
-const ButtonGroup = styled.div`
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	background: linear-gradient(to bottom, #fdfdfd 0%,#f6f7f8 100%);
-	border: 1px solid #999;
-	border-radius: 2px;
-	padding: 5px;
-	margin: 0 5px;
-`;
-
 // The table row grows to the available height
 const TableRow = styled.div`
 	flex: 1;
@@ -231,8 +220,8 @@ function Ballots({access}) {
 	const history = useHistory();
 	const {ballotId} = useParams();
 
-	const {valid, loading, entities: ballots, ui: uiProperty, selected} = useSelector(getBallotsDataSet);
-	const {valid: votingPoolsValid, loading: votingPoolsLoading} = useSelector(getVotingPoolsDataSet);
+	const {valid, loading, entities: ballots, ui: uiProperty, selected} = useSelector(selectBallotsState);
+	const {valid: votingPoolsValid, loading: votingPoolsLoading} = useSelector(selectVotingPoolsState);
 
 	const dispatch = useDispatch();
 
@@ -287,8 +276,8 @@ function Ballots({access}) {
 				<AppTable
 					defaultTablesConfig={defaultTablesConfig}
 					columns={tableColumns}
-					headerHeight={50}
-					estimatedRowHeight={50}
+					headerHeight={42}
+					estimatedRowHeight={42}
 					dataSet={dataSet}
 					rowGetter={getRow}
 				/>

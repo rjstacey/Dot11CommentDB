@@ -5,24 +5,21 @@ import styled from '@emotion/styled';
 import {useHistory} from "react-router-dom";
 import copyToClipboard from 'copy-html-to-clipboard';
 
-import AppTable, {SelectHeader, SelectCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, IdFilter, SplitPanel, Panel} from 'dot11-components/table'
-import {ConfirmModal} from 'dot11-components/modals'
-import {ActionButton, Button} from 'dot11-components/icons'
-import {setTableView, initTableConfig, setProperty} from 'dot11-components/store/ui'
-import {Field, Input, Form, Row} from 'dot11-components/general/Form'
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
+import AppTable, {SelectHeader, SelectCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, IdFilter, SplitPanel, Panel} from 'dot11-components/table';
+import {ConfirmModal} from 'dot11-components/modals';
+import {setTableView, initTableConfig, setProperty} from 'dot11-components/store/ui';
+import {ButtonGroup, ActionButton, Button, Field, Input, Form, Row} from 'dot11-components/form';
+import {ActionButtonDropdown} from 'dot11-components/general';
 
-import BulkStatusUpdate from './BulkStatusUpdate'
-import MembersUpload from './MembersUpload'
-import MemberAdd from './MemberAdd'
-import MembersSummary from './MembersSummary'
-import MemberDetail from './MemberDetail'
-import {RosterImport, RosterExport} from './Roster'
+import BulkStatusUpdate from './BulkStatusUpdate';
+import MembersUpload from './MembersUpload';
+import MemberAdd from './MemberAdd';
+import MembersSummary from './MembersSummary';
+import MemberDetail from './MemberDetail';
+import {RosterImport, RosterExport} from './Roster';
 
-import {fields, loadMembers, deleteSelectedMembers, getMembersDataSet, AccessLevel, AccessLevelOptions} from '../store/members';
-import {loadSessions, getSessionsDataSet} from '../store/sessions';
-
-const dataSet = 'members';
+import {fields, loadMembers, deleteSelectedMembers, AccessLevel, AccessLevelOptions, selectMembersState, dataSet} from '../store/members';
+import {loadSessions, selectSessionsState} from '../store/sessions';
 
 function setClipboard(selected, members) {
 
@@ -118,7 +115,7 @@ const AttendanceContainer = styled.div`
 `;
 
 function Attendances({rowData, dataKey}) {
-	const {entities: sessions} = useSelector(getSessionsDataSet);
+	const {entities: sessions} = useSelector(selectSessionsState);
 	const attendances = rowData.Attendances || [];
 
 	// Sort by session date (newest fist)
@@ -248,23 +245,12 @@ for (const tableView of Object.keys(defaultTablesColumns)) {
 	defaultTablesConfig[tableView] = tableConfig;
 }
 
-const ButtonGroup = styled.div`
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	background: linear-gradient(to bottom, #fdfdfd 0%,#f6f7f8 100%);
-	border: 1px solid #999;
-	border-radius: 2px;
-	padding: 5px;
-	margin: 0 5px;
-`;
-
 function Members() {
 
 	const dispatch = useDispatch();
 	const [statusChangeReason, setStatusChangeReason] = React.useState('');
-	const {selected, entities: members, valid, loading, ui: uiProperty} = useSelector(getMembersDataSet);
-	const {valid: validSessions} = useSelector(getSessionsDataSet);
+	const {selected, entities: members, valid, loading, ui: uiProperty} = useSelector(selectMembersState);
+	const {valid: validSessions} = useSelector(selectSessionsState);
 
 	const load = React.useCallback(() => dispatch(loadMembers()), [dispatch]);
 	const setUiProperty = React.useCallback((property, value) => dispatch(setProperty(dataSet, property, value)), [dispatch]);
@@ -282,7 +268,8 @@ function Members() {
 			await dispatch(deleteSelectedMembers());
 	}
 
-	return <>
+	return (
+		<>
 		<TopRow>
 			<MembersSummary />
 			<div style={{display: 'flex'}}>
@@ -341,7 +328,8 @@ function Members() {
 				/>
 			</Panel>
 		</SplitPanel>
-	</>
+		</>
+	)
 }
 
 export default Members;

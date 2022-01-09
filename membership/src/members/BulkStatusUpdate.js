@@ -2,17 +2,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
+import {ActionButtonDropdown} from 'dot11-components/general';
 import {Form, Row, Col, Field, Input, Checkbox} from 'dot11-components/form';
 import AccessSelector from './AccessSelector';
 import StatusSelector from './StatusSelector';
 
-import {updateMembers, getMembersDataSet} from '../store/members';
+import {updateMembers, selectMembersState} from '../store/members';
 
 function BulkStatusUpdateForm({close}) {
 
 	const dispatch = useDispatch();
-	const {selected, entities: members} = useSelector(getMembersDataSet);
+	const {selected, entities: members} = useSelector(selectMembersState);
 	const [statusChangeReason, setStatusChangeReason] = React.useState('');
 	const [busy, setBusy] = React.useState(false);
 

@@ -1,14 +1,15 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {Link, useHistory, useParams} from 'react-router-dom'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table'
-import {ConfirmModal} from 'dot11-components/modals'
-import {ActionButton} from 'dot11-components/icons'
-import {displayDate, displayTime, displayDayDate} from 'dot11-components/lib'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {Link, useHistory, useParams} from 'react-router-dom';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
 
-import {loadBreakouts} from '../store/breakouts'
+import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
+import {ConfirmModal} from 'dot11-components/modals';
+import {ActionButton} from 'dot11-components/form';
+import {displayDate, displayTime, displayDayDate} from 'dot11-components/lib';
+
+import {loadBreakouts, selectBreakoutsState, getField, dataSet} from '../store/breakouts';
 
 const TopRow = styled.div`
 	display: flex;
@@ -38,7 +39,7 @@ const renderGroup = ({rowData}) => {
 }
 
 const renderAttendance = ({rowData, dataKey}) =>
-	<Link to={`/Session/${rowData.session_id}/Breakout/${rowData.id}/Attendees`}>
+	<Link to={`/sessions/${rowData.session_id}/breakout/${rowData.id}/attendees`}>
 		{rowData[dataKey]}
 	</Link>
 
@@ -60,9 +61,6 @@ const columns = [
 	{key: 'Time',
 		label: 'Time',
 		width: 120, flexGrow: 1, flexShrink: 1},
-	{key: 'Location', 
-		label: 'Location',
-		width: 250, flexGrow: 1, flexShrink: 1},
 	{key: 'Group', 
 		label: 'Group',
 		width: 150, flexGrow: 1, flexShrink: 1,
@@ -70,6 +68,9 @@ const columns = [
 	{key: 'Name', 
 		label: 'Name',
 		width: 150, flexGrow: 1, flexShrink: 1},
+	{key: 'Location', 
+		label: 'Location',
+		width: 250, flexGrow: 1, flexShrink: 1},
 	{key: 'Credit', 
 		label: 'Credit',
 		width: 100, flexGrow: 1, flexShrink: 1},
@@ -84,41 +85,47 @@ const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
 /*
  * Don't display Data and Time if it is the same as previous line
  */
-function breakoutsRowGetter({rowIndex, data}) {
-	let b = data[rowIndex];
+function breakoutsRowGetter({rowIndex, ids, entities}) {
+	let b = entities[ids[rowIndex]];
+	b = {
+		...b,
+		DayDate: getField(b, 'DayDate'),
+		Time: getField(b, 'Time')
+	};
 	if (rowIndex > 0) {
-		const b_prev = data[rowIndex - 1];
+		let b_prev = entities[ids[rowIndex - 1]];
+		b_prev = {
+			...b_prev,
+			DayDate: getField(b_prev, 'DayDate'),
+			Time: getField(b_prev, 'Time')
+		};
 		if (b.DayDate === b_prev.DayDate) {
 			b = {...b, DayDate: ''};
-			if (b.StartTime === b_prev.StartTime)
+			if (b.Time === b_prev.Time)
 				b = {...b, Time: ''};
 		}
 	}
 	return b;
 }
 
-function Breakouts({
-	valid,
-	loading,
-	session,
-	loadBreakouts,
-	meetingsValid,
-	loadMeetings
-}) {
+function Breakouts() {
 	const history = useHistory();
 	const {session_id} = useParams();
 
+	const dispatch = useDispatch();
+	const {valid, loading, session} = useSelector(selectBreakoutsState);
+
 	React.useEffect(() => {
-		if (!valid || session.id != session_id)
-			loadBreakouts(session_id);
+		if (!valid || (session && session.id != session_id))
+			dispatch(loadBreakouts(session_id));
 	}, []);
 
 	const close = () => history.goBack();
-	const refresh = () => loadBreakouts(session_id);
+	const refresh = () => dispatch(loadBreakouts(session_id));
 
 	return <>
 		<TopRow style={{maxWidth}}>
-			<div>{valid && renderSessionInfo(session)}</div>
+			<div>{session && renderSessionInfo(session)}</div>
 			<div>Breakouts</div>
 			<div>
 				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
@@ -140,19 +147,4 @@ function Breakouts({
 	</>
 }
 
-Breakouts.propTypes = {
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	session: PropTypes.object.isRequired,
-	loadBreakouts: PropTypes.func.isRequired,
-}
-
-const dataSet = 'breakouts'
-export default connect(
-	(state) => ({
-			valid: state[dataSet].valid,
-			loading: state[dataSet].loading,
-			session: state[dataSet].session
-		}),
-	{loadBreakouts}
-)(Breakouts)
+export default Breakouts;

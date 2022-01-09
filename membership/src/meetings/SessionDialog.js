@@ -1,17 +1,17 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {connect, useDispatch} from 'react-redux'
-import styled from '@emotion/styled'
-import {Link} from "react-router-dom"
-import {shallowDiff, debounce} from 'dot11-components/lib'
-import {ConfirmModal} from 'dot11-components/modals'
-import {Button, ActionButton} from 'dot11-components/icons'
-import {Form, Row, Field, Input, Select} from 'dot11-components/general/Form'
-import {AppModal} from 'dot11-components/modals'
-import TimeZoneSelector from './TimeZoneSelector'
-import {addSession, updateSession, loadSessions, deleteSessions, setSessionsUiProperty, SessionTypeOptions} from '../store/sessions'
-import {importBreakouts} from '../store/breakouts'
-import {importAttendances} from '../store/attendees'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {connect, useDispatch} from 'react-redux';
+import styled from '@emotion/styled';
+import {Link} from "react-router-dom";
+import {DateTime} from 'luxon';
+import {shallowDiff, debounce} from 'dot11-components/lib';
+import {ConfirmModal} from 'dot11-components/modals';
+import {Button, ActionButton, Form, Row, Field, Input, Select} from 'dot11-components/form';
+import {AppModal} from 'dot11-components/modals';
+import TimeZoneSelector from './TimeZoneSelector';
+import {addSession, updateSession, loadSessions, deleteSessions, setSessionsUiProperty, SessionTypeOptions, selectSessionsState} from '../store/sessions';
+import {importBreakouts} from '../store/breakouts';
+import {importAttendances} from '../store/attendees';
 
 const MULTIPLE = '<multiple>';
 const isMultiple = (value) => value === MULTIPLE;
@@ -55,9 +55,15 @@ function recursivelyDiffObjects(l, r) {
 	}
 }
 
-function getDate(d) {
+/*function getDate(d) {
 	const s = d instanceof Date? d.toISOString(): d;
 	return s.substring(0, 10);
+}*/
+function getDate(session, field) {
+	return DateTime.fromISO(session[field], {zone: session.TimeZone}).toISODate();
+}
+function setDate(session, value) {
+	return DateTime.fromISO(value, {zone: session.TimeZone}).toISO();
 }
 
 function SessionBreakouts({
@@ -128,7 +134,7 @@ function Session({
 	const [errMsg, setErrMsg] = React.useState('');
 
 	const change = e => setSession({[e.target.name]: e.target.value});
-	const changeDate = e => setSession({[e.target.name]: new Date(e.target.value)});
+	const changeDate = e => setSession({[e.target.name]: setDate(session, e.target.value)});
 	const changeType = options => setSession({Type: options.length? options[0].value: null});
 	const getTypeOption = session => SessionTypeOptions.find(o => o.value === session.Type) || [];
 	const changeTimeZone = tz => setSession({TimeZone: tz});
@@ -141,7 +147,7 @@ function Session({
 				<Field label='Start:'>
 					<Input type='date' size={24}
 						name='Start'
-						value={isMultiple(session.Start)? null: getDate(session.Start)}
+						value={isMultiple(session.Start)? null: getDate(session, 'Start')}
 						placeholder={isMultiple(session.Start)? MULTIPLE_STR: BLANK_STR}
 						onChange={changeDate}
 						disabled={readOnly}
@@ -152,7 +158,7 @@ function Session({
 				<Field label='End:'>
 					<Input type='date' size={24}
 						name='End'
-						value={isMultiple(session.End)? null: getDate(session.End)}
+						value={isMultiple(session.End)? null: getDate(session, 'End')}
 						placeholder={isMultiple(session.End)? MULTIPLE_STR: BLANK_STR}
 						onChange={changeDate}
 						disabled={readOnly}
@@ -177,7 +183,7 @@ function Session({
 						values={typeOption? [typeOption]: []}
 						onChange={changeType}
 						portal={document.querySelector('#root')}
-						disabled={readOnly}
+						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
@@ -199,7 +205,7 @@ function Session({
 						placeholder={isMultiple(session.TimeZone)? MULTIPLE_STR: BLANK_STR}
 						onChange={changeTimeZone}
 						style={{width: 200}}
-						disabled={readOnly}
+						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
@@ -275,6 +281,8 @@ class SessionDetail extends React.Component {
 			return;
 		}
 		// merge in the edits and trigger a debounced save
+		if (changes.Start)
+			console.log(changes.Start)
 		this.setState(
 			state => ({...state, edited: {...state.edited, ...changes}}),
 			this.triggerSave
@@ -295,9 +303,11 @@ class SessionDetail extends React.Component {
 	}
 
 	handleRemoveSelected = async () => {
+		const {selected, deleteSessions} = this.props;
 		const ok = await ConfirmModal.show('Are you sure you want to delete the selected sessions?');
-		if (ok)
-			await this.props.deleteSelectedSessions();
+		if (ok) {
+			await deleteSessions(selected);
+		}
 	}
 
 	handleToggleEditSession = () => this.props.setUiProperty('editSession', !this.props.uiProperties.editSession);
@@ -364,11 +374,9 @@ class SessionDetail extends React.Component {
 	}
 }
 
-const dataSet = 'sessions';
-
 const ConnectedSessionDetail = connect(
 	(state) => {
-		const sessions = state[dataSet];
+		const sessions = selectSessionsState(state);
 		return {
 			sessions: sessions.entities,
 			loading: sessions.loading,
@@ -384,6 +392,7 @@ const ConnectedSessionDetail = connect(
 		setUiProperty: setSessionsUiProperty,
 	}
 )(SessionDetail);
+
 
 function SessionImportModal({
 	isOpen,

@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 
 import {shallowDiff, recursivelyDiffObjects, isMultiple, debounce, displayDate} from 'dot11-components/lib';
 import {ConfirmModal} from 'dot11-components/modals';
-import {Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/form';
-import {IconCollapse, ActionButton, Icon} from 'dot11-components/icons';
+import {ActionButton, Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/form';
+import {IconCollapse, Icon} from 'dot11-components/icons';
 import {setProperty} from 'dot11-components/store/appTableData';
 import {
 	updateMembers, 
@@ -16,15 +16,16 @@ import {
 	addMemberContactEmail,
 	updateMemberContactEmail,
 	deleteMemberContactEmail,
-	setMemberUiProperty
+	setMemberUiProperty,
+	selectMembersState,
+	dataSet,
 } from '../store/members';
 
-import StatusSelector from './StatusSelector'
-import AccessSelector from './AccessSelector'
-import MemberSelector from './MemberSelector'
-import {SessionTypeOptions} from '../store/sessions'
-import {loadBallots} from '../store/ballots'
-import {loadSessions} from '../store/sessions'
+import StatusSelector from './StatusSelector';
+import AccessSelector from './AccessSelector';
+import MemberSelector from './MemberSelector';
+import {SessionTypeOptions} from '../store/sessions';
+import {loadSessions} from '../store/sessions';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
@@ -778,11 +779,9 @@ class MemberDetail extends React.Component {
 	}
 }
 
-const dataSet = 'members';
-
 const ConnectedMemberDetail = connect(
 	(state) => {
-		const members = state[dataSet];
+		const members = selectMembersState(state);
 		return {
 			members: members.entities,
 			loading: members.loading,

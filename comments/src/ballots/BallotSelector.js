@@ -9,7 +9,7 @@ import {
 	loadBallots,
 	setCurrentProject,
 	setCurrentId,
-	getBallotsDataSet,
+	selectBallotsState,
 	selectProjectOptions,
 	selectBallotOptions
 } from '../store/ballots';
@@ -82,7 +82,7 @@ function BallotSelector({
 	onBallotSelected
 }) {
 	const dispatch = useDispatch();
-	const {valid, loading, currentProject, currentId} = useSelector(getBallotsDataSet);
+	const {valid, loading, currentProject, currentId} = useSelector(selectBallotsState);
 	const projectOptions = useSelector(selectProjectOptions);
 	const ballotOptions = useSelector(selectBallotOptions);
 

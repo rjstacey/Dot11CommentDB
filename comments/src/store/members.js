@@ -31,10 +31,18 @@ const slice = createSlice({
 });
 
 /*
- * Export reducer as default
+ * Reducer
  */
 export default slice.reducer;
 
+/*
+ * Selectors
+ */
+export const selectMembersState = (state) => state[dataSet];
+ 
+ /*
+  * Actions
+  */
 const {getPending, getSuccess, getFailure} = slice.actions;
 
 export const loadMembers = () => 
@@ -54,8 +62,3 @@ export const loadMembers = () =>
 		await dispatch(getSuccess(response.users));
 	}
 
-/*
- * Selectors
- */
-export const getMembersDataSet = (state) => state[dataSet];
- 

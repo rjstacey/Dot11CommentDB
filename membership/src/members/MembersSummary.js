@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {Handle, IconCollapse} from 'dot11-components/icons';
 
-import {getMembersDataSet} from '../store/members';
+import {selectMembersState} from '../store/members';
 
 function getMembersSummary(members) {
 	const s = {nv: 0, a: 0, pv: 0, v: 0, eo: 0}
@@ -48,7 +48,7 @@ function MembersSummary({
 	className,
 	style,
 }) {
-	const {entities: members} = useSelector(getMembersDataSet);
+	const {entities: members} = useSelector(selectMembersState);
 	const [showSummary, setShowSummary] = React.useState(true);
 	const summary = getMembersSummary(members);
 

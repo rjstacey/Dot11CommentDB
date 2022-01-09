@@ -6,6 +6,9 @@ import Account from 'dot11-components/general/Account';
 import {AccessLevel} from 'dot11-components/lib/user';
 import {ErrorModal, ConfirmModal} from 'dot11-components/modals';
 
+import LiveUpdateSwitch from './LiveUpdateSwitch';
+import OnlineIndicator from './OnlineIndicator';
+
 const Comments = React.lazy(() => import('./comments/Comments'));
 const Results = React.lazy(() => import('./results/Results'));
 const Reports = React.lazy(() => import('./reports/Reports'));
@@ -109,6 +112,8 @@ function App({user, access}) {
 						{access >= AccessLevel.Public && <NavLink to="/comments" activeClassName='active'>Comments</NavLink>}
 						{access >= AccessLevel.Public && <NavLink to="/reports" activeClassName='active'>Reports</NavLink>}
 					</Nav>
+					<OnlineIndicator />
+					<LiveUpdateSwitch />
 					<Account user={user} />
 				</Header>
 				<Main>

@@ -1,19 +1,18 @@
-import PropTypes from 'prop-types'
-import React from 'react'
+import PropTypes from 'prop-types';
+import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {Form, Row, Col, Field, FieldLeft, List, ListItem, Checkbox, Input, Select, TextArea} from 'dot11-components/form';
+import {Button, Form, Row, Col, Field, FieldLeft, List, ListItem, Checkbox, Input, Select, TextArea} from 'dot11-components/form';
 import {ConfirmModal} from 'dot11-components/modals';
-import {Button} from 'dot11-components/icons';
 import {isMultiple, MULTIPLE_STR} from 'dot11-components/lib';
 
-import {renderResultsSummary} from './Ballots'
-import {importResults, uploadEpollResults, uploadMyProjectResults, deleteResults} from '../store/results'
-import {BallotType, getBallot} from '../store/ballots'
+import {renderResultsSummary} from './Ballots';
+import {importResults, uploadEpollResults, uploadMyProjectResults, deleteResults} from '../store/results';
+import {BallotType, selectBallot} from '../store/ballots';
 
 function ResultsActions({ballot_id, readOnly}) {
 	const dispatch = useDispatch();
 	const fileRef = React.useRef();
-	const ballot = useSelector(state => getBallot(state, ballot_id));
+	const ballot = useSelector(state => selectBallot(state, ballot_id));
 
 	async function handleDeleteResults() {
 		const ok = await ConfirmModal.show(`Are you sure you want to delete results for ${ballot.BallotID}?`)

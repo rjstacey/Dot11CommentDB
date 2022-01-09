@@ -1,8 +1,8 @@
-import React from 'react'
-import PropTypes from 'prop-types'
-import {Select} from 'dot11-components/general/Form'
+import React from 'react';
+import PropTypes from 'prop-types';
+import {Select} from 'dot11-components/form';
 
-import {AccessLevelOptions} from '../store/members'
+import {AccessLevelOptions} from '../store/members';
 
 function AccessSelector({
 	value,

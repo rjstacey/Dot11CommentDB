@@ -21,7 +21,7 @@ export const dataSet = 'epolls';
 /*
  * Selectors
  */
- export const getEpollsDataSet = (state) => state[dataSet];
+export const selectEpollsState = (state) => state[dataSet];
 
 export const selectIds = (state) => state[dataSet].ids;
 export const selectEntities = (state) => state[dataSet].entities;
@@ -54,8 +54,14 @@ const slice = createAppTableDataSlice({
 	selectEntities: selectSyncedEntities
 });
 
+/*
+ * Reducer
+ */
 export default slice.reducer;
 
+/*
+ * Actions
+ */
 const {getPending, getSuccess, getFailure} = slice.actions;
 
 export const loadEpolls = (n = 20) =>

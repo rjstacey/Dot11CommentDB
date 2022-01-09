@@ -9,8 +9,8 @@ import {Select} from 'dot11-components/form';
 import {Icon} from 'dot11-components/icons';
 import {strComp} from 'dot11-components/lib';
 
-import {loadMembers, getMembersDataSet} from '../store/members';
-import {getCommentsDataSet} from '../store/comments';
+import {loadMembers, selectMembersState} from '../store/members';
+import {selectCommentsState} from '../store/comments';
 
 const StyledItem = styled.div`
 	padding: 4px 10px;
@@ -121,8 +121,8 @@ function AssigneeSelector({
 	...otherProps
 }) {
 	const dispatch = useDispatch();
-	const {ids: commentIds, entities: commentEntities} = useSelector(getCommentsDataSet);
-	const {valid, loading, ids: userIds, entities: userEntities} = useSelector(getMembersDataSet);
+	const {ids: commentIds, entities: commentEntities} = useSelector(selectCommentsState);
+	const {valid, loading, ids: userIds, entities: userEntities} = useSelector(selectMembersState);
 
 	React.useEffect(() => {
 		if (!valid && !loading && !readOnly)

@@ -1,21 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
-import thunk from 'redux-thunk';
-import { createLogger } from 'redux-logger';
 import { PersistGate } from 'redux-persist/integration/react';
 
 import configureStore from './store';
-import {loadMembers} from './store/members';
-import {loadBallots} from './store/ballots';
-import {loadVotingPools} from './store/votingPools';
 
+import './index.css';
 import App from './App';
 import {getUser, logout} from 'dot11-components/lib/user';
-import registerServiceWorker from './registerServiceWorker';
-import './index.css';
-
 import {fetcher} from 'dot11-components/lib';
+import registerServiceWorker from './registerServiceWorker';
+
 
 getUser()
 	.then(user => {
@@ -38,6 +33,5 @@ getUser()
 		registerServiceWorker();
 	})
 	.catch(error => {
-		console.warn(error);
-		//window.location.assign(`/login?redirect=${window.location}`);
+		logout();
 	})

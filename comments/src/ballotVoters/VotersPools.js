@@ -4,13 +4,13 @@ import {useHistory} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
-import AppTable,{SelectHeader, SelectCell} from 'dot11-components/table';
-import {ActionButton} from 'dot11-components/icons';
+import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
+import {ActionButton} from 'dot11-components/form';
 import {ConfirmModal} from 'dot11-components/modals';
 
 import VotersPoolAddModal from './VotersPoolAdd';
 
-import {loadVotingPools, deleteVotingPools, getVotingPoolsDataSet, dataSet} from '../store/votingPools'
+import {loadVotingPools, deleteVotingPools, selectVotingPoolsState, dataSet} from '../store/votingPools';
 
 const Title = styled.h2`
 	font-weight: 600;
@@ -68,7 +68,7 @@ function VotersPools() {
 	const history = useHistory();
 	const [showVotersPoolAdd, setShowVotersPoolAdd] = React.useState(false);
 
-	const {valid, loading} = useSelector(getVotingPoolsDataSet);
+	const {valid, loading} = useSelector(selectVotingPoolsState);
 	const dispatch = useDispatch();
 	const load = React.useCallback(() => dispatch(loadVotingPools()), [dispatch]);
 

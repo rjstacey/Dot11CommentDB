@@ -1,56 +1,66 @@
-import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import { createLogger } from 'redux-logger';
+import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
-import { persistStore, persistReducer } from 'redux-persist';
+import { createLogger } from 'redux-logger';
+import { persistStore, persistReducer, createTransform } from 'redux-persist';
+import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import { get, set, del } from 'idb-keyval';
+import { composeWithDevTools } from 'redux-devtools-extension';
 
-import errMsg from 'dot11-components/store/error';
+import {version} from '../../package.json';
 
-import members from './members';
-import sessions from './sessions';
+import members, {loadMembers} from './members';
+import sessions, {loadSessions, loadTimeZones} from './sessions';
 import imatMeetings from './imatMeetings';
 import breakouts from './breakouts';
 import attendees from './attendees';
 import ballots from './ballots';
+import errMsg from 'dot11-components/store/error';
 
-const reducer = combineReducers({
-	members,
-	sessions,
-	imatMeetings,
-	breakouts,
-	attendees,
-	ballots,
-	errMsg
-});
+function configureStore() {
 
-const middleware = [thunk];
-if (process.env.NODE_ENV !== 'production')
-	middleware.push(createLogger({collapsed: true}));
+	const reducer = combineReducers({
+		members,
+		sessions,
+		imatMeetings,
+		breakouts,
+		attendees,
+		ballots,
+		errMsg
+	});
 
-// enable devTool only with development
-const devTools = process.env.NODE_ENV !== 'production';
+	const middleware = [thunk];
+	if (process.env.NODE_ENV !== 'production')
+		middleware.push(createLogger({collapsed: true}));
 
-const storage = {
-	setItem: set,
-	//setItem: (key, value) => {console.log(key, value); set(key, value)},
-	getItem: get,
-	removeItem: del
-};
+	// enable devTool only with development
+	const devTools = process.env.NODE_ENV !== 'production';
 
-const persistConfig = {
-	key: 'root',
-	version: 1,
-	storage,
-	blacklist: ['errMsg', 'attendees', 'breakouts', 'sessions', 'voters', 'votingPools']
-};
+	const persistConfig = {
+		key: 'membership',
+		version,
+		storage: {	// IndexedDB for storage using idb-keyval
+			setItem: set,
+			getItem: get,
+			removeItem: del
+		},
+		whitelist: ['members', 'sessions'],
+		stateReconciler: autoMergeLevel2
+	};
 
-const store = configureStore({
-	reducer: persistReducer(persistConfig, reducer),
-	//reducer,
-	middleware,
-	devTools
-});
+	const composeEnhancers = composeWithDevTools();
 
-const persistor = persistStore(store);
+	const store = createStore(
+		persistReducer(persistConfig, reducer),
+		compose(applyMiddleware(...middleware))
+	);
 
-export default store;
+	const persistor = persistStore(store, null, () => {
+		store.dispatch(loadTimeZones());
+		store.dispatch(loadSessions());
+		store.dispatch(loadMembers());
+	});
+
+	return {store, persistor};
+}
+
+export default configureStore;

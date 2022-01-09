@@ -8,8 +8,8 @@ import {ActionButtonModal} from 'dot11-components/modals';
 import {Comment} from './CommentDetail';
 import HorizontalTimeline from './HorizontalTimeline';
 
-import {getCommentsDataSet} from '../store/comments';
-import {loadCommentsHistory, getCommentsHistoryDataSet} from '../store/commentsHistory';
+import {selectCommentsState} from '../store/comments';
+import {loadCommentsHistory, selectCommentsHistoryState} from '../store/commentsHistory';
 
 const Container = styled.div`
 	width: 80vw;
@@ -77,8 +77,8 @@ function CommentHistoryBody({commentsHistory, loading}) {
 function CommentHistory() {
 
 	const dispatch = useDispatch();
-	const {selected, entities} = useSelector(getCommentsDataSet);
-	const {loading, commentsHistory} = useSelector(getCommentsHistoryDataSet);
+	const {selected, entities} = useSelector(selectCommentsState);
+	const {loading, commentsHistory} = useSelector(selectCommentsHistoryState);
 
 	const onOpen = () => {
 		if (selected.length) {

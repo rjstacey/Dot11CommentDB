@@ -5,7 +5,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
 import AppTable, {TableColumnSelector} from 'dot11-components/table';
-import {ActionButton} from 'dot11-components/icons';
+import {ActionButton} from 'dot11-components/form';
 import {AccessLevel} from 'dot11-components/lib';
 import {upsertTableColumns} from 'dot11-components/store/appTableData';
 
@@ -13,8 +13,8 @@ import BallotSelector from '../ballots/BallotSelector';
 import ResultsSummary from './ResultsSummary';
 import ResultsExport from './ResultsExport';
 
-import {loadResults, clearResults, getResultsDataSet, dataSet} from '../store/results';
-import {setBallotId, loadBallots, getBallotsDataSet, getCurrentBallot, BallotType} from '../store/ballots';
+import {loadResults, clearResults, selectResultsState, dataSet} from '../store/results';
+import {setBallotId, loadBallots, selectBallotsState, getCurrentBallot, BallotType} from '../store/ballots';
 
 // The action row height is determined by its content
 const ActionRow = styled.div`
@@ -97,8 +97,8 @@ function Results({
 	const history = useHistory();
 
 	const dispatch = useDispatch();
-	const {valid, loading, ballot: resultsBallot} = useSelector(getResultsDataSet);
-	const {valid: ballotsValid, entities: ballotEntities} = useSelector(getBallotsDataSet);
+	const {valid, loading, ballot: resultsBallot} = useSelector(selectResultsState);
+	const {valid: ballotsValid, entities: ballotEntities} = useSelector(selectBallotsState);
 	const currentBallot = useSelector(getCurrentBallot);
 
 	const load = (ballot_id) => dispatch(loadResults(ballot_id));

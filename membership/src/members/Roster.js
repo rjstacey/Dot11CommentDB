@@ -2,9 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch} from 'react-redux';
 
-import {ActionButton} from 'dot11-components/icons';
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
-import {Form, Row, Col, Input, List, ListItem} from 'dot11-components/form';
+import {ActionButtonDropdown} from 'dot11-components/general';
+import {ActionButton, Form, Row, Col, Input, List, ListItem} from 'dot11-components/form';
 
 import {importMyProjectRoster, exportMyProjectRoster} from '../store/members';
 

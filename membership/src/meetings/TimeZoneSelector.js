@@ -1,10 +1,10 @@
-import React from 'react'
-import PropTypes from 'prop-types'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import {FixedSizeList as List} from 'react-window'
-import {Select} from 'dot11-components/general/Form'
-import {loadTimeZones} from '../store/sessions'
+import React from 'react';
+import PropTypes from 'prop-types';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+import {FixedSizeList as List} from 'react-window';
+import {Select} from 'dot11-components/form';
+import {loadTimeZones, selectTimeZonesState} from '../store/sessions';
 
 const StyledItem = styled.div`
 	padding: 4px 10px;
@@ -51,20 +51,17 @@ const renderDropdown = ({props, state, methods}) => {
 function TimeZoneSelector({
 	value,
 	onChange,
-	valid,
-	loading,
-	timeZones,
-	loadTimeZones,
-	readOnly,
 	...otherProps
 }) {
+	const dispatch = useDispatch();
+	const {valid, loading, timeZones} = useSelector(selectTimeZonesState);
 
 	React.useEffect(() => {
 		if (!valid && !loading)
-			loadTimeZones();
+			dispatch(loadTimeZones());
 	}, []);
 
-	const options = React.useMemo(() => timeZones.map(tz => ({value: tz, label: tz})), [timeZones]);
+	let options = React.useMemo(() => timeZones.map(tz => ({value: tz, label: tz})), [timeZones]);
 
 	const handleChange = (values) => onChange(values.length > 0? values[0].value: null);
 
@@ -78,8 +75,6 @@ function TimeZoneSelector({
 			loading={timeZones.length === 0}
 			clearable
 			dropdownRenderer={renderDropdown}
-			readOnly={readOnly}
-			portal={document.querySelector('#root')}
 			{...otherProps}
 		/>
 	)
@@ -88,19 +83,6 @@ function TimeZoneSelector({
 TimeZoneSelector.propTypes = {
 	value: PropTypes.string,
 	onChange: PropTypes.func.isRequired,
-	width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	timeZones: PropTypes.array.isRequired,
-	loadTimeZones: PropTypes.func.isRequired
 }
 
-const dataSet = 'sessions'
-export default connect(
-	(state) => ({
-		valid: state[dataSet].timeZones.length > 0,
-		loading: state[dataSet].loadingTimeZones,
-		timeZones: state[dataSet].timeZones,
-	}),
-	{loadTimeZones}
-)(TimeZoneSelector)
+export default TimeZoneSelector;

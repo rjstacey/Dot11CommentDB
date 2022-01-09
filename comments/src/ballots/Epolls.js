@@ -4,11 +4,11 @@ import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
 import AppTable from 'dot11-components/table';
-import {ActionButton} from 'dot11-components/icons';
+import {ActionButton} from 'dot11-components/form';
 import {AppModal} from 'dot11-components/modals';
 
-import {loadBallots, BallotType, getBallotsDataSet} from '../store/ballots';
-import {fields, loadEpolls, selectSyncedEpollsEntities, getEpollsDataSet, dataSet} from '../store/epolls';
+import {loadBallots, BallotType, selectBallotsState} from '../store/ballots';
+import {fields, loadEpolls, selectSyncedEpollsEntities, selectEpollsState, dataSet} from '../store/epolls';
 
 import {BallotAddForm} from './BallotDetail';
 
@@ -79,8 +79,8 @@ function Epolls() {
 
 	const history = useHistory();
 
-	const {valid: ballotsValid, loading: ballotsLoading} = useSelector(getBallotsDataSet);
-	const {valid, loading} = useSelector(getEpollsDataSet);
+	const {valid: ballotsValid, loading: ballotsLoading} = useSelector(selectBallotsState);
+	const {valid, loading} = useSelector(selectEpollsState);
 
 	const dispatch = useDispatch();
 

@@ -112,6 +112,65 @@ const slice = createAppTableDataSlice({
 export default slice.reducer;
 
 /*
+ * Selectors
+ */
+export const selectBallotsState = (state) => state[dataSet];
+
+export const selectIds = (state) => state[dataSet].ids;
+export const selectEntities = (state) => state[dataSet].entities;
+export const selectCurrentProject = (state) => state[dataSet].currentProject
+
+/* Get ballot entities with derived data */
+export const selectBallotEntities = createSelector(
+	state => state[dataSet].ids,
+	state => state[dataSet].entities,
+	(ids, entities) => {
+		const transformedEntities = {};
+		for (const id of ids) {
+			const ballot = entities[id];
+			const PrevBallotID = ballot.prev_id?
+				entities[ballot.prev_id].BallotID || 'Unknown':
+				'';
+			transformedEntities[id] = {...ballot, PrevBallotID};
+		}
+		return transformedEntities;
+	}
+);
+
+/* Generate project list from the ballot pool */
+export const selectProjectOptions = createSelector(
+	selectIds,
+	selectEntities,
+	(ids, entities) => [...new Set(ids.map(id => entities[id].Project))].sort().map(p => ({value: p, label: p}))
+);
+
+/* Generate ballot list for current project or all ballots if current project not set */
+export const selectBallotOptions = createSelector(
+	selectIds,
+	selectEntities,
+	selectCurrentProject,
+	(ids, entities, currentProject) => {
+		let ballotIds = ids;
+		if (currentProject)
+			ballotIds = ballotIds.filter(id => entities[id].Project === currentProject);
+		return ballotIds.map(id => ({value: id, label: `${entities[id].BallotID} ${entities[id].Document}`}));
+	}
+);
+
+export const selectBallot = (state, ballot_id) => {
+	const {entities} = state[dataSet];
+	return entities[ballot_id];
+}
+
+export const getCurrentBallotId = (state) => state[dataSet].currentId;
+
+export const getCurrentBallot = (state) => {
+	const {entities, currentId} = state[dataSet];
+	return entities[currentId];
+}
+
+
+/*
  * Actions
  */
 export const {setCurrentProject, setCurrentId} = slice.actions;
@@ -163,7 +222,7 @@ export const updateBallot = (id, changes) =>
 		}
 		const [updatedBallot] = response;
 		if (updatedBallot.prev_id) {
-			const {entities} = getState()[dataSet];
+			const {entities} = selectBallotsState(getState());
 			updatedBallot.PrevBallotID = entities[updatedBallot.prev_id] || '';
 		}
 		await dispatch(updateOne({id, changes: updatedBallot}));
@@ -195,7 +254,7 @@ export const addBallot = (ballot) =>
 		}
 		const [updatedBallot] = response;
 		if (updatedBallot.prev_id) {
-			const {entities} = getState()[dataSet];
+			const {entities} = selectBallotsState(getState());
 			updatedBallot.PrevBallotID = entities[updatedBallot.prev_id] || '';
 		}
 		await dispatch(addOne(updatedBallot));
@@ -203,66 +262,9 @@ export const addBallot = (ballot) =>
 
 export const setBallotId = (ballotId) =>
 	async (dispatch, getState) => {
-		const {ids, entities} = getState()[dataSet];
+		const {ids, entities} = selectBallotsState(getState());
 		const id = ids.find(id => entities[id].BallotID === ballotId);
 		if (id)
 			await dispatch(setCurrentId(id));
 	}
 
-/*
- * Selectors
- */
-export const getBallotsDataSet = (state) => state[dataSet];
-
-export const selectIds = (state) => state[dataSet].ids;
-export const selectEntities = (state) => state[dataSet].entities;
-export const selectCurrentProject = (state) => state[dataSet].currentProject
-
-/* Get ballot entities with derived data */
-export const selectBallotEntities = createSelector(
-	state => state[dataSet].ids,
-	state => state[dataSet].entities,
-	(ids, entities) => {
-		const transformedEntities = {};
-		for (const id of ids) {
-			const ballot = entities[id];
-			const PrevBallotID = ballot.prev_id?
-				entities[ballot.prev_id].BallotID || 'Unknown':
-				'';
-			transformedEntities[id] = {...ballot, PrevBallotID};
-		}
-		return transformedEntities;
-	}
-);
-
-/* Generate project list from the ballot pool */
-export const selectProjectOptions = createSelector(
-	selectIds,
-	selectEntities,
-	(ids, entities) => [...new Set(ids.map(id => entities[id].Project))].sort().map(p => ({value: p, label: p}))
-);
-
-/* Generate ballot list for current project or all ballots if current project not set */
-export const selectBallotOptions = createSelector(
-	selectIds,
-	selectEntities,
-	selectCurrentProject,
-	(ids, entities, currentProject) => {
-		let ballotIds = ids;
-		if (currentProject)
-			ballotIds = ballotIds.filter(id => entities[id].Project === currentProject);
-		return ballotIds.map(id => ({value: id, label: `${entities[id].BallotID} ${entities[id].Document}`}));
-	}
-);
-
-export const getBallot = (state, ballot_id) => {
-	const {entities} = state[dataSet];
-	return entities[ballot_id];
-}
-
-export const getCurrentBallotId = (state) => state[dataSet].currentId;
-
-export const getCurrentBallot = (state) => {
-	const {entities, currentId} = state[dataSet];
-	return entities[currentId];
-}

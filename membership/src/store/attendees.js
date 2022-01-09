@@ -1,11 +1,12 @@
 import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType, selectSortedFilteredIds} from 'dot11-components/store/appTableData';
-import {setError} from 'dot11-components/store/error'
+import {setError} from 'dot11-components/store/error';
 
 import {upsertMembers} from './members';
 import {updateSessionSuccess} from './sessions';
 
-const fields = {
+const renderPct = (pct) => !isNaN(pct)? `${pct.toFixed(2)}%`: '';
+export const fields = {
 	id: {label: 'id', sortType: SortType.NUMERIC},
 	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
 	Name: {label: 'Name'},
@@ -13,10 +14,11 @@ const fields = {
 	Affiliation: {label: 'Affiliation'},
 	Status: {label: 'Status'},
 	SessionCredit: {label: 'Session credit', sortType: SortType.NUMERIC},
-	SessionCreditPct: {label: 'Session credit', sortType: SortType.NUMERIC}
+	SessionCreditPct: {label: 'Session credit', sortType: SortType.NUMERIC},
+	AttendancePercentage: {label: 'Attendance', dataRenderer: renderPct, sortType: SortType.NUMERIC}
 };
 
-const dataSet = 'attendees';
+export const dataSet = 'attendees';
 const selectId = (member) => member.SAPIN;
 
 const slice = createAppTableDataSlice({
@@ -38,9 +40,18 @@ const slice = createAppTableDataSlice({
 });
 
 /*
- * Export reducer as default
+ * Reducer
  */
 export default slice.reducer;
+
+/*
+ * Selectors
+ */
+export const selectAttendeesState = (state) => state[dataSet];
+
+/*
+ * Actions
+ */
 
 const {
 	getPending,

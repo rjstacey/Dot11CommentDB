@@ -6,7 +6,7 @@ import {setError} from 'dot11-components/store/error';
 import {upsertVotingPool} from './votingPools';
 import {dataSet as membersDataSet} from './members';
 
-const dataSet = 'voters';
+export const dataSet = 'voters';
 
 export const excusedOptions = [
 	{value: 0, label: 'No'},
@@ -84,6 +84,12 @@ const slice = createAppTableDataSlice({
 export default slice.reducer;
 
 /*
+ * Selectors
+ */
+export const selectVotersState = (state) => state[dataSet];
+const selectVotersCount = (state) => state[dataSet].ids.length;
+
+/*
  * Actions
  */
 const {
@@ -98,7 +104,7 @@ const {
 
 export const loadVoters = (votingPoolId) =>
 	async (dispatch, getState) => {
-		if (getState()[dataSet].loading)
+		if (selectVotersState(getState()).loading)
 			return;
 		dispatch(getPending());
 		dispatch(setVotingPoolID(votingPoolId));
@@ -122,7 +128,7 @@ export const loadVoters = (votingPoolId) =>
 export const deleteVoters = (votingPoolId, ids) =>
 	async (dispatch, getState) => {
 		dispatch(removeMany(ids));
-		const count = getState()[dataSet].ids.length;
+		const count = selectVotersCount(getState());
 		dispatch(upsertVotingPool({VotingPoolID: votingPoolId, VoterCount: count}));
 		const url = `/api/voters/${votingPoolId}`;
 		try {
@@ -190,7 +196,7 @@ export const addVoter = (votingPoolId, voter) =>
 	async (dispatch, getState) => {
 		voter = {id: uuid(), Excused: 0, ...voter};
 		dispatch(addOne(voter));
-		const count = getState()[dataSet].ids.length;
+		const count = selectVotersCount(getState());
 		dispatch(upsertVotingPool({VotingPoolID: votingPoolId, VoterCount: count}));
 
 		const url = `/api/voters/${votingPoolId}`;
@@ -215,8 +221,3 @@ export const updateVoter = (id, changes) =>
 			return;
 		}
 	}
-
-/*
- * Selectors
- */
-export const getVotersDataSet = (state) => state[dataSet];

@@ -4,11 +4,11 @@ import {useHistory, useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {useDispatch, useSelector} from 'react-redux';
 
-import {ActionButton, Button} from 'dot11-components/icons';
+import {ActionButton, Button} from 'dot11-components/form';
 
 import BallotSelector from '../ballots/BallotSelector';
-import {loadComments, clearComments, getCommentsDataSet} from '../store/comments';
-import {setBallotId, loadBallots, getCurrentBallot, getBallotsDataSet} from '../store/ballots';
+import {loadComments, clearComments, selectCommentsState} from '../store/comments';
+import {setBallotId, loadBallots, getCurrentBallot, selectBallotsState} from '../store/ballots';
 
 function countsByCategory(comments) {
 	return {
@@ -124,9 +124,9 @@ function Reports() {
 	const [report, setReport] = React.useState('');
 	const tableRef = React.useRef();
 
-	const {valid: ballotsValid, loading: ballotsLoading, entities: ballotEntities} = useSelector(getBallotsDataSet);
+	const {valid: ballotsValid, loading: ballotsLoading, entities: ballotEntities} = useSelector(selectBallotsState);
 	const currentBallot = useSelector(getCurrentBallot);
-	const {valid, loading, ballot: commentsBallot, ids, entities} = useSelector(getCommentsDataSet);
+	const {valid, loading, ballot: commentsBallot, ids, entities} = useSelector(selectCommentsState);
 
 	const dispatch = useDispatch();
 	const load = (ballot_id) => dispatch(loadComments(ballot_id));

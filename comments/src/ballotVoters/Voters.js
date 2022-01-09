@@ -5,19 +5,17 @@ import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
 import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
-import {ActionButton} from 'dot11-components/icons';
 import {selectSortedFilteredIds} from 'dot11-components/store/appTableData'
 import {ConfirmModal} from 'dot11-components/modals';
-import {Input} from 'dot11-components/form';
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
+import {ActionButton, Input} from 'dot11-components/form';
+import {ActionButtonDropdown} from 'dot11-components/general';
 
-import VotersImportModal from './VotersImport'
-import VoterEditModal from './VoterEdit'
+import VotersImportModal from './VotersImport';
+import VoterEditModal from './VoterEdit';
 
-import {loadVoters, deleteVoters, getVotersDataSet, fields} from '../store/voters';
+import {loadVoters, deleteVoters, selectVotersState, fields, dataSet} from '../store/voters';
 import {updateVotingPool} from '../store/votingPools';
 
-const dataSet = 'voters';
 
 const ActionCell = styled.div`
 	display: flex;
@@ -73,7 +71,7 @@ const TableRow = styled.div`
 `;
 
 function selectVotersInfo(state) {
-	const {valid, loading, ids, selected, votingPoolId} = state[dataSet];
+	const {valid, loading, ids, selected, votingPoolId} = selectVotersState(state);
 	const shownIds = selectSortedFilteredIds(state, dataSet);
 	return {valid, loading, ids, selected, shownIds, votingPoolId};
 }

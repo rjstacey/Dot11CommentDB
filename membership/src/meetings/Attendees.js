@@ -1,14 +1,16 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {Link, useHistory, useParams} from 'react-router-dom'
-import {connect} from 'react-redux'
-import styled from '@emotion/styled'
-import AppTable, {SelectHeader, SelectCell, TableColumnHeader} from 'dot11-components/table'
-import {ConfirmModal} from 'dot11-components/modals'
-import {ActionButton} from 'dot11-components/icons'
-import {displayDateRange} from 'dot11-components/lib'
-import {loadAttendees, importSelectedAttendees} from '../store/attendees'
-import {renderNameAndEmail} from '../members/Members'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {Link, useHistory, useParams} from 'react-router-dom';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+
+import AppTable, {SelectHeader, SelectCell, TableColumnHeader} from 'dot11-components/table';
+import {ConfirmModal} from 'dot11-components/modals';
+import {ActionButton} from 'dot11-components/form';
+import {displayDateRange} from 'dot11-components/lib';
+
+import {loadAttendees, importSelectedAttendees, selectAttendeesState, dataSet, fields} from '../store/attendees';
+import {renderNameAndEmail} from '../members/Members';
 
 const TopRow = styled.div`
 	display: flex;
@@ -62,8 +64,13 @@ const tableColumns = [
 		width: 300, flexGrow: 1, flexShrink: 1},
 	{key: 'Status', 
 		label: 'Status',
-		width: 150, flexGrow: 1, flexShrink: 1}
+		width: 150, flexGrow: 1, flexShrink: 1},
 ];
+
+const attendanceColumn =
+	{key: 'AttendancePercentage', 
+		...fields.AttendancePercentage,
+		width: 150, flexGrow: 1, flexShrink: 1};
 
 const renderTitle = (meeting, breakout) =>
 	<>
@@ -77,33 +84,21 @@ const renderTitle = (meeting, breakout) =>
 		</div>
 	</>
 
-function Attendees({
-	valid,
-	loading,
-	session,
-	breakout,
-	loadAttendees,
-	importSelectedAttendees
-}) {
+function Attendees() {
 	const history = useHistory();
 	const {session_id, breakout_id} = useParams();
+	const dispatch = useDispatch();
+	const {valid, loading, session, breakout} = useSelector(selectAttendeesState);
 
 	React.useEffect(() => {
 		if (!valid || session.id !== session_id || breakout.id !== breakout_id)
-			loadAttendees(session_id, breakout_id);
+			dispatch(loadAttendees(session_id, breakout_id));
 	}, []);
 
 	const {columns, maxWidth} = React.useMemo(() => {
 		let columns = tableColumns;
 		if (!breakout_id) {
-			const dataRenderer = (pct) => !isNaN(pct)? `${pct.toFixed(2)}%`: '';
-			columns = columns.concat(
-				{key: 'AttendancePercentage', 
-					label: 'Attendance',
-					width: 150, flexGrow: 1, flexShrink: 1,
-					dataRenderer,
-					cellRenderer: ({rowData, dataKey}) => dataRenderer(rowData[dataKey])}
-			)
+			columns = columns.concat(attendanceColumn);
 		}
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
 		return {columns, maxWidth};
@@ -112,12 +107,13 @@ function Attendees({
 	const handleImportAttandees = async () => {
 		const ok = await ConfirmModal.show('Import selected to members list?');
 		if (ok)
-			importSelectedAttendees();
+			dispatch(importSelectedAttendees());
 	}
 	const refresh = () => loadAttendees(session_id, breakout_id);
 	const close = () => history.goBack();
 
-	return <>
+	return (
+		<>
 		<TopRow style={{maxWidth}}>
 			{valid? renderTitle(session, breakout): null}
 			<div>
@@ -137,26 +133,8 @@ function Attendees({
 				dataSet={dataSet}
 			/>
 		</TableRow>
-	</>
+		</>
+	)
 }
 
-Attendees.propTypes = {
-	valid: PropTypes.bool.isRequired,
-	loading: PropTypes.bool.isRequired,
-	session: PropTypes.object.isRequired,
-	breakout: PropTypes.object,
-	loadAttendees: PropTypes.func.isRequired,
-	importSelectedAttendees: PropTypes.func.isRequired,
-}
-
-const dataSet = 'attendees';
-
-export default connect(
-	(state) => ({
-			valid: state[dataSet].valid,
-			loading: state[dataSet].loading,
-			session: state[dataSet].session,
-			breakout: state[dataSet].breakout,
-		}),
-	{loadAttendees, importSelectedAttendees}
-)(Attendees);
+export default Attendees;

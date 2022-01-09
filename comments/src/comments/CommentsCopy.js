@@ -2,9 +2,9 @@ import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import copyToClipboard from 'copy-html-to-clipboard';
 
-import {ActionButton} from 'dot11-components/icons'
+import {ActionButton} from 'dot11-components/form';
 
-import {getCommentsDataSet} from '../store/comments';
+import {selectCommentsState} from '../store/comments';
 
 function setClipboard(selected, comments) {
 
@@ -41,7 +41,7 @@ function setClipboard(selected, comments) {
 }
 
 function CommentsCopy() {
-	const {selected, entities} = useSelector(getCommentsDataSet);
+	const {selected, entities} = useSelector(selectCommentsState);
 
 	return (
 		<ActionButton

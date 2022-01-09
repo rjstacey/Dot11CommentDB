@@ -107,7 +107,7 @@ const slice = createAppTableDataSlice({
 });
 
 /*
- * Export reducer as default
+ * Reducer
  */
 export default slice.reducer;
 
@@ -200,7 +200,7 @@ export const setBallotId = (ballotId) =>
 /*
  * Selectors
  */
-export const getBallotsDataSet = (state) => state[dataSet];
+export const selectBallotsState = (state) => state[dataSet];
 
 const selectIds = (state) => state[dataSet].ids;
 const selectEntities = (state) => state[dataSet].entities;

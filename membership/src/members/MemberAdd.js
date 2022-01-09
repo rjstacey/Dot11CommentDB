@@ -1,12 +1,12 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {useDispatch} from 'react-redux'
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
-import {Form, Row, Col, Field, Input, Checkbox} from 'dot11-components/general/Form'
-import AccessSelector from './AccessSelector'
-import StatusSelector from './StatusSelector'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch} from 'react-redux';
+import {ActionButtonDropdown} from 'dot11-components/general';
+import {Form, Row, Col, Field, Input, Checkbox} from 'dot11-components/form';
+import AccessSelector from './AccessSelector';
+import StatusSelector from './StatusSelector';
 
-import {addMembers, AccessLevel} from '../store/members'
+import {addMembers, AccessLevel} from '../store/members';
 
 const defaultMember = {SAPIN: '', Name: '', Email: '', Status: 'Non-Voter', Access: AccessLevel.Member}
 

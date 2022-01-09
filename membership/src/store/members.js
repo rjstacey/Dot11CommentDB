@@ -40,10 +40,20 @@ const slice = createAppTableDataSlice({
 });
 
 /*
- * Export reducer as default
+ * Reducer
  */
 export default slice.reducer;
 
+
+/*
+ * Selectors
+ */
+export const selectMembersState = (state) => state[dataSet];
+export const selectMembersEntities = (state) => selectMembersState(state).entities;
+
+/*
+ * Actions
+ */
 const {
 	getPending,
 	getSuccess,
@@ -277,8 +287,3 @@ export const importMyProjectRoster = (file) =>
 		}
 		await dispatch(getSuccess(response));
 	}
-
-/*
- * Selectors
- */
-export const getMembersDataSet = (state) => state[dataSet];

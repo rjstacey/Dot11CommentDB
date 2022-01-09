@@ -9,7 +9,7 @@ import {isMultiple, MULTIPLE_STR} from 'dot11-components/lib';
 
 import {renderCommentsSummary} from './Ballots';
 import {importComments, uploadComments, deleteComments, setStartCommentId} from '../store/comments';
-import {getBallot} from '../store/ballots';
+import {selectBallot} from '../store/ballots';
 
 const ChangeStartCID = ({close, ballot}) => {
 	const dispatch = useDispatch();
@@ -43,7 +43,7 @@ const ChangeStartCID = ({close, ballot}) => {
 const CommentsActions = ({ballot_id, readOnly}) => {
 	const dispatch = useDispatch();
 	const fileRef = React.useRef();
-	const ballot = useSelector(state => getBallot(state, ballot_id));
+	const ballot = useSelector(state => selectBallot(state, ballot_id));
 
 	async function handleDeleteComments() {
 		const ok = await ConfirmModal.show(`Are you sure you want to delete comments for ${ballot.BallotID}?`)

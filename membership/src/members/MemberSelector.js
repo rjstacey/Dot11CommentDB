@@ -6,7 +6,7 @@ import {FixedSizeList as List} from 'react-window'
 import Input from 'react-dropdown-select/lib/components/Input'
 import {Select} from 'dot11-components/general/Form'
 
-import {dataSet, loadMembers} from '../store/members';
+import {loadMembers, selectMembersState} from '../store/members';
 
 const StyledItem = styled.div`
 	padding: 4px 10px;
@@ -77,7 +77,7 @@ function MemberSelector({
 	readOnly,
 	...otherProps
 }) {
-	const {valid, loading, ids, entities} = useSelector(state => state[dataSet]);
+	const {valid, loading, ids, entities} = useSelector(selectMembersState);
 	const dispatch = useDispatch();
 
 	React.useEffect(() => {
