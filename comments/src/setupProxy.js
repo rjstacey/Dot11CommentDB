@@ -4,8 +4,8 @@ module.exports = function(app) {
   app.use(
     '/api|/auth|/login|/logout',
     createProxyMiddleware({
-      //target: 'https://802tools.org',
-      target: 'http://localhost:8080',
+      target: 'https://802tools.org',
+      //target: 'http://localhost:8080',
       changeOrigin: true,
     })
   );

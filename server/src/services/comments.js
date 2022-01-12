@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 
 import {parseEpollCommentsCsv} from './epoll';
 import {parseMyProjectComments, myProjectAddResolutions} from './myProjectSpreadsheets';
-import {BallotType} from './ballots';
+import {BallotType, getBallot} from './ballots';
 
 const db = require('../util/database');
 const rp = require('request-promise-native');
@@ -210,10 +210,11 @@ export async function importEpollComments(ieeeCookieJar, userId, ballot_id, epol
 	return insertComments(userId, ballot_id, comments);
 }
 
-export async function uploadComments(userId, ballot_id, type, startCommentId, file) {
+export async function uploadComments(userId, ballot_id, startCommentId, file) {
+	const ballot = await getBallot(ballot_id);
 	let comments
 	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1;
-	if (type === BallotType.SA) {
+	if (ballot.Type === BallotType.SA) {
 		comments = await parseMyProjectComments(startCommentId, file.buffer, isExcel);
 	}
 	else {

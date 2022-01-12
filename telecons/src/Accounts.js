@@ -1,6 +1,6 @@
-import React from 'react'
-import CalendarAccounts from './CalendarAccounts'
-import WebexAccounts from './WebexAccounts'
+import React from 'react';
+import CalendarAccounts from './CalendarAccounts';
+import WebexAccounts from './WebexAccounts';
 
 function Accounts() {
 	return (

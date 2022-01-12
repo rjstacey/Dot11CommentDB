@@ -38,10 +38,13 @@ const slice = createSlice({
 });
 
 /*
- * Export reducer as default
+ * Reducer
  */
 export default slice.reducer;
 
+/*
+ * Actions
+ */
 const {getPending, getSuccess, getFailure} = slice.actions;
 
 export const loadCalendarAccounts = () => 

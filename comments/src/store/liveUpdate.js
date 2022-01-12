@@ -113,6 +113,7 @@ export function registerLiveUpdate(store) {
 	else
 		store.dispatch(visibilityChange(false));
 
+	console.log(store)
 	store.subscribe(() => storeChange(store.dispatch, store.getState));
 }
 

@@ -1,14 +1,15 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {Redirect} from 'react-router-dom'
-import {useDispatch, useSelector} from 'react-redux'
-import styled from '@emotion/styled'
-import {ActionButton} from 'dot11-components/icons'
-import {Form, Field, Row, Input} from  'dot11-components/general/Form'
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown'
-import {shallowDiff, displayDate} from 'dot11-components/lib'
-import {loadCalendarAccounts, updateCalendarAccount, addCalendarAccount, deleteCalendarAccount, authCalendarAccount, getCalendars, dataSet} from './store/calendarAccounts'
-import GroupsSelector from './GroupsSelector'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {Redirect} from 'react-router-dom';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+
+import {ActionButton, Form, Field, Row, Input} from  'dot11-components/form';
+import {ActionButtonDropdown} from 'dot11-components/general';
+import {shallowDiff, displayDate} from 'dot11-components/lib';
+
+import {loadCalendarAccounts, updateCalendarAccount, addCalendarAccount, deleteCalendarAccount, authCalendarAccount, getCalendars, dataSet} from './store/calendarAccounts';
+import GroupsSelector from './GroupsSelector';
 
 /* Generate URL for account authorization */
 const getCalendarAccountAuthLink = (account) => {

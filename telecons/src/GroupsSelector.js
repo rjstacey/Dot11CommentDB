@@ -1,6 +1,6 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import {Select} from 'dot11-components/general/Form'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {Select} from 'dot11-components/form';
 
 const groups = ["802.11", "802.15"];
 

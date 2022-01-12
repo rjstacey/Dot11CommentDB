@@ -1,9 +1,9 @@
-import React from 'react'
-import PropTypes from 'prop-types'
-import {useDispatch, useSelector} from 'react-redux'
-import {Select} from 'dot11-components/general/Form'
+import PropTypes from 'prop-types';
+import React from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import {Select} from 'dot11-components/form';
 
-import {loadWebexAccounts, dataSet} from './store/webexAccounts'
+import {loadWebexAccounts, dataSet} from './store/webexAccounts';
 
 function WebexAccountSelector({
 	style,

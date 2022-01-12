@@ -26,10 +26,13 @@ const slice = createAppTableDataSlice({
 });
 
 /*
- * Export reducer as default
+ * Reducer
  */
 export default slice.reducer;
 
+/*
+ * Actions
+ */
 const {
 	getPending,
 	getSuccess,

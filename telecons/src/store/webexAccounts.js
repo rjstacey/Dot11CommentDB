@@ -1,11 +1,11 @@
-import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
+import {createSlice, createEntityAdapter} from '@reduxjs/toolkit';
 
-import fetcher from 'dot11-components/lib/fetcher'
-import {setError} from 'dot11-components/store/error'
+import fetcher from 'dot11-components/lib/fetcher';
+import {setError} from 'dot11-components/store/error';
 
-const dataAdapter = createEntityAdapter({})
+const dataAdapter = createEntityAdapter({});
 
-export const dataSet = 'webexAccounts'
+export const dataSet = 'webexAccounts';
 
 const slice = createSlice({
 	name: dataSet,
@@ -38,10 +38,13 @@ const slice = createSlice({
 });
 
 /*
- * Export reducer as default
+ * Reducer
  */
 export default slice.reducer;
 
+/*
+ * Actions
+ */
 const {getPending, getSuccess, getFailure} = slice.actions;
 
 export const loadWebexAccounts = () => 

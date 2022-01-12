@@ -315,9 +315,9 @@ export const importComments = (ballot_id, epollNum, startCID) =>
 		await dispatch(updateBallotSuccess(ballot_id, response.ballot));
 	}
 
-export const uploadComments = (ballotId, type, file) =>
+export const uploadComments = (ballot_id, type, file) =>
 	async (dispatch) => {
-		const url = `/api/comments/upload/${ballotId}/${type}`;
+		const url = `/api/comments/${ballot_id}/upload`;
 		let response;
 		try {
 			response = await fetcher.postMultipart(url, {CommentsFile: file});
@@ -326,15 +326,13 @@ export const uploadComments = (ballotId, type, file) =>
 				throw new TypeError(`Unexpected response to POST: ${url}`);
 		}
 		catch (error) {
-			await dispatch(setError(`Unable to upload comments for ${ballotId}`, error));
+			await dispatch(setError(`Unable to upload comments for ${ballot_id}`, error));
 			return;
 		}
 		const {comments, ballot} = response;
-		await Promise.all([
-			dispatch(getSuccess(comments)),
-			dispatch(setDetails({ballot_id})),
-			dispatch(updateBallotSuccess(ballot.id, ballot))
-		]);
+		dispatch(getSuccess(comments));
+		dispatch(setDetails({ballot_id}));
+		dispatch(updateBallotSuccess(ballot.id, ballot));
 	}
 
 export const setStartCommentId = (ballot_id, startCommentId) =>
@@ -586,11 +584,9 @@ export const uploadResolutions = (ballot_id, toUpdate, matchAlgorithm, matchUpda
 			return;
 		}
 		const {comments, ballot, matched, unmatched, added, remaining, updated} = response;
-		await Promise.all([
-			dispatch(getSuccess(comments)),
-			dispatch(setDetails({ballot_id})),
-			dispatch(updateBallotSuccess(ballot.id, ballot))
-		]);
+		await dispatch(getSuccess(comments));
+		await dispatch(setDetails({ballot_id}));
+		await dispatch(updateBallotSuccess(ballot.id, ballot));
 		return {matched, unmatched, added, remaining, updated};
 	}
 
@@ -618,6 +614,6 @@ export const exportCommentsSpreadsheet = (ballot_id, file, format, style) =>
 		catch(error) {
 			const ballot = selectBallot(getState(), ballot_id);
 			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
-			await dispatch(setError(`Unable to export comments for ${ballotId}`, error));
+			await dispatch(setError(`Unable to export comments for ballot ${ballotId}`, error));
 		}
 	}

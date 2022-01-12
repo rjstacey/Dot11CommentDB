@@ -47,11 +47,9 @@ function configureStore() {
 		stateReconciler: autoMergeLevel2
 	};
 
-	const composeEnhancers = composeWithDevTools();
-
 	const store = createStore(
 		persistReducer(persistConfig, reducer),
-		compose(applyMiddleware(...middleware))
+		composeWithDevTools(applyMiddleware(...middleware))
 	);
 
 	const persistor = persistStore(store, null, () => {

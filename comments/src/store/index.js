@@ -82,16 +82,14 @@ function configureStore() {
 			getItem: get,
 			removeItem: del
 		},
-		whitelist: ['members', 'bellots', 'comments', 'results', 'voters', 'votingPools'],
+		whitelist: ['members', 'ballots', 'comments', 'results', 'voters', 'votingPools'],
 		transforms: [dataAdapterTansform],
 		stateReconciler: autoMergeLevel2
 	};
 
-	const composeEnhancers = composeWithDevTools();
-
 	const store = createStore(
 		persistReducer(persistConfig, reducer),
-		composeEnhancers(applyMiddleware(...middleware))
+		composeWithDevTools(applyMiddleware(...middleware))
 	);
 
 	const persistor = persistStore(store, null, () => {
