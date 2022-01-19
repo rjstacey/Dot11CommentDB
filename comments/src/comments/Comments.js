@@ -336,6 +336,7 @@ function Comments({access}) {
 			return;
 		if ((!commentsBallot_id && currentBallot) ||
 		    (currentBallot && commentsBallot_id !== currentBallot.id)) {
+			console.log(commentsBallot_id, currentBallot);
 			load(currentBallot.id);
 		}
 	}, [currentBallot, commentsBallot_id]);

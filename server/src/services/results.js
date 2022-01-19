@@ -8,8 +8,7 @@ import {AccessLevel} from '../auth/access';
 import {getBallot, getBallotSeriesWithResults, BallotType} from './ballots';
 import {getVoters} from './voters';
 
-const db = require('../util/database')
-const rp = require('request-promise-native')
+const db = require('../util/database');
 
 function appendStr(toStr, str) {
 	if (typeof toStr === 'string') {
@@ -23,7 +22,7 @@ function appendStr(toStr, str) {
 function colateWGResults(ballotSeries) {
 	// Collect each voters last vote
 	const ballotSeriesReversed = ballotSeries.slice().reverse();
-	console.log(ballotSeries.length)
+
 	let results = [];
 	let i = 0;
 	for (const voter of ballotSeries[0].Voters) {
@@ -34,14 +33,11 @@ function colateWGResults(ballotSeries) {
 			CommentCount: 0,
 			Notes: ''
 		}
-		if (i === 0)
-			console.log(voter)
+
 		for (const ballot of ballotSeriesReversed) {
 			//console.log(ballot.Results[0])
 			const r = ballot.Results.find(r => r.CurrentSAPIN === voter.CurrentSAPIN)
 			if (r) {
-				if (i === 0)
-					console.log(r.SAPIN)
 				i++;
 				// Record the vote
 				v.Vote = r.Vote;
@@ -67,8 +63,6 @@ function colateWGResults(ballotSeries) {
 	i = 0;
 	for (const r of ballotSeries[ballotSeries.length - 1].Results) {
 		if (results.findIndex(v => v.CurrentSAPIN === r.CurrentSAPIN) < 0) {
-			if (i === 0)
-				console.log(r)
 			i++;
 			const nv = {
 				...r,
@@ -419,29 +413,22 @@ async function insertResults(user, ballot_id, pollResults) {
 	return getResultsCoalesced(user, ballot_id);
 }
 
-export async function importEpollResults(ieeeCookieJar, user, ballot_id, epollNum) {
+export async function importEpollResults(user, ballot_id, epollNum) {
 
-	const p1 = rp.get({
-		url: `https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`,
-		jar: ieeeCookieJar,
-		resolveWithFullResponse: true,
-		simple: false
-	});
+	const {ieeeClient} = user;
+	if (!ieeeClient)
+		throw new Error('Not logged in');
 
-	const p2 = rp.get({
-		url: `https://mentor.ieee.org/802.11/poll-status?p=${epollNum}`,
-		jar: ieeeCookieJar,
-		resolveWithFullResponse: true,
-		simple: false
-	});
+	const p1 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`, {responseType: 'text/csv'});
+	const p2 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-status?p=${epollNum}`);
 
-	var ieeeRes = await p1;
-	if (ieeeRes.headers['content-type'] !== 'text/csv')
-		throw 'Not logged in';
-	var pollResults = parseEpollResultsCsv(ieeeRes.body);
+	let response = await p1;
+	if (response.headers['content-type'] !== 'text/csv')
+		throw new Error('Not logged in');
+	var pollResults = parseEpollResultsCsv(response.data);
 
-	ieeeRes = await p2;
-	var pollResults2 = parseEpollResultsHtml(ieeeRes.body);
+	response = await p2;
+	var pollResults2 = parseEpollResultsHtml(response.data);
 
 	// Update poll results with Name and Affiliation from HTML (not present in .csv)
 	pollResults.forEach(r => {

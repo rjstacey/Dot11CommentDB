@@ -1,10 +1,9 @@
 /*
  * Handle the legacy (Adrian's comment database) spreadsheet file
  */
-'use strict'
+'use strict';
 
 const ExcelJS = require('exceljs')
-
 
 function parseResolution(v, c) {
 	if (typeof v === 'string') {

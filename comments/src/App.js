@@ -9,6 +9,8 @@ import {ErrorModal, ConfirmModal} from 'dot11-components/modals';
 import LiveUpdateSwitch from './LiveUpdateSwitch';
 import OnlineIndicator from './OnlineIndicator';
 
+import logo from './logo.svg';
+
 const Comments = React.lazy(() => import('./comments/Comments'));
 const Results = React.lazy(() => import('./results/Results'));
 const Reports = React.lazy(() => import('./reports/Reports'));
@@ -19,6 +21,7 @@ const Epolls = React.lazy(() => import('./ballots/Epolls'));
 const VotersPools = React.lazy(() => import('./ballotVoters/VotersPools'));
 const Voters = React.lazy(() => import('./ballotVoters/Voters'));
 
+
 const OuterDiv = styled.div`
 	display: flex;
 	flex-direction: column;
@@ -27,17 +30,17 @@ const OuterDiv = styled.div`
 `;
 
 const Header = styled.header`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  /*box-shadow: 0 4px 13px -3px rgb(0 0 0 / 10%);
-  border-bottom: 1px solid #d2d2d2;*/
-  width: 100%;
-  padding-left: 2rem;
-  padding-right: 2rem;
-  box-sizing: border-box;
-  height: 50px;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	/*box-shadow: 0 4px 13px -3px rgb(0 0 0 / 10%);
+	border-bottom: 1px solid #d2d2d2;*/
+	width: 100%;
+	padding-left: 2rem;
+	padding-right: 2rem;
+	box-sizing: border-box;
+	height: 50px;
 `;
 
 const Nav = styled.nav`
@@ -66,24 +69,24 @@ const Nav = styled.nav`
 `;
 
 const Main = styled.main`
-  flex: 1;
-  width: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  margin: 0 auto;
-  align-items: center;
+	flex: 1;
+	width: 100%;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	margin: 0 auto;
+	align-items: center;
 `;
 
 const Title = styled.h3`
-  display: inline-block;
-  font-family: "Arial", "Helvetica", sans-serif;
-  font-weight: 400;
-  font-size: 24px;
-  margin: 0;
-  padding: 0;
-  color: #008080;
-  text-align: center;
+	display: inline-block;
+	font-family: "Arial", "Helvetica", sans-serif;
+	font-weight: 400;
+	font-size: 24px;
+	margin: 0;
+	padding: 0;
+	color: #008080;
+	text-align: center;
 `;
 
 const RestrictedRoute = ({component: Component, access, minAccess, ...rest }) =>
@@ -104,6 +107,7 @@ function App({user, access}) {
 		<Router basename='/comments'>
 			<OuterDiv>
 				<Header>
+					{/*<img src={logo} height='100%' />*/}
 					<Title>802.11 Comment Resolution</Title>
 					<Nav>
 						{access >= AccessLevel.Public && <NavLink to="/ballots/" activeClassName='active'>Ballots</NavLink>}

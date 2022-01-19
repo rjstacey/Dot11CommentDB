@@ -1,30 +1,24 @@
-const cheerio = require('cheerio')
-const rp = require('request-promise-native')
-const db = require('../util/database')
-const users = require('./users')
-const jwt = require('./jwt')
+import {createFetcher} from '../util/fetcher';
+
+const cheerio = require('cheerio');
+const db = require('../util/database');
+const users = require('./users');
+const jwt = require('./jwt');
+
 
 async function login(req) {
 
 	// credentials
 	const {username, password} = req.body;
 
-	const ieeeCookieJar = rp.jar();
-
-	const options = {
-		url: 'https://imat.ieee.org/pub/login',
-		jar: ieeeCookieJar,
-		resolveWithFullResponse: true,
-		simple: false,
-		followAllRedirects: true
-	}
+	const ieeeClient = createFetcher();
 
 	// Do an initial GET on /pub/login so that we get cookies. We can do a login without this, but
 	// if we don't get the cookies associated with this GET, then the server seems to get confused
 	// and won't have the approriate state post login.
-	let ieeeRes = await rp.get(options)
+	let response = await ieeeClient.get('https://imat.ieee.org/pub/login');
 
-	const $ = cheerio.load(ieeeRes.body)
+	const $ = cheerio.load(response.data);
 	const loginForm = {
 		v: $('input[name="v"]').val(),
 		c: $('input[name="c"]').val(),
@@ -37,43 +31,28 @@ async function login(req) {
 
 	// Now post the login data. There will be a bunch of redirects, but we should get a logged in page.
 	// options.form = loginForm;
-	ieeeRes = await rp.post(Object.assign({}, options, {form: loginForm}));
-	if (ieeeRes.statusCode === 200 && ieeeRes.body.search(/<div class="title">Sign In<\/div>/) !== -1) {
-		const m = ieeeRes.body.match(/<div class="field_err">(.*)<\/div>/)
-		throw m? m[1]: 'Not logged in'
+	response = await ieeeClient.post('https://imat.ieee.org/pub/login', new URLSearchParams(loginForm));
+	//console.log(response)
+
+	if (response.data.search(/<div class="title">Sign In<\/div>/) !== -1) {
+		const m = response.data.match(/<div class="field_err">(.*)<\/div>/);
+		throw new Error(m? m[1]: 'Not logged in');
 	}
 
-	// Update the URL to the user's home and do another get.
-	//options.url = 'https://development.standards.ieee.org/' + req.session.username + '/home';
-	//ieeeRes = await rp.get(options);
+	const n = response.data.match(/<span class="attendance_nav">Home - (.*), SA PIN: ([0-9]+)<\/span>/)
+	if (!n)
+		throw new Error('Unexpected login page');
 
-	// We should receive a bold message: Welcome: <name> (SA PIN: <sapin>)
-	//var n = ieeeRes.body.match(/<big>Welcome: (.*) \(SA PIN: ([0-9]+)\)<\/big>/);
-	// We should receive a message: Home - <name>, SA PIN: <sapin>
-	//console.log(ieeeRes.body)
-	const n = ieeeRes.body.match(/<span class="attendance_nav">Home - (.*), SA PIN: ([0-9]+)<\/span>/)
-	if (!n) {
-		throw 'Unexpected login page'
-	}
 	const Name = n[1];
 	const SAPIN = parseInt(n[2], 10);
 
-	/*
-	//Test cookie...
-	newOptions = {
-		url: `https://mentor.ieee.org/802.11/polls/closed?n=1`,
-		jar: sess.ieeeCookieJar
-	}
-	ieeeRes = await rp.get(newOptions)
-	var $ = cheerio.load(ieeeRes);
-	console.log($('div.title').html())
-	*/
 
-	return {SAPIN, Name, Email: username, ieeeCookieJar};
+	return {SAPIN, Name, Email: username, ieeeClient};
 }
 
-function logout(ieeeCookieJar) {
-	return rp.get({url: 'https://imat.ieee.org/pub/logout', jar: ieeeCookieJar})
+function logout({ieeeClient}) {
+	if (ieeeClient)
+		return ieeeClient.get('https://imat.ieee.org/pub/logout');
 }
 
 /*
@@ -88,7 +67,7 @@ const router = require('express').Router();
 router.get('/login', async (req, res, next) => {
 	try {
 		const userId = jwt.verify(req);
-		const {ieeeCookieJar, ...user} = await users.getUser(userId);
+		const {ieeeClient, ...user} = await users.getUser(userId);
 		res.json({user});
 	}
 	catch (err) {
@@ -98,7 +77,7 @@ router.get('/login', async (req, res, next) => {
 
 router.post('/login', async (req, res, next) => {
 	try {
-		const {SAPIN, Name, Email, ieeeCookieJar} = await login(req);
+		const {SAPIN, Name, Email, ieeeClient} = await login(req);
 
 		const SQL = 'SELECT SAPIN, Name, Email, Status, Access FROM members WHERE ' +
 			(SAPIN > 0? `SAPIN=${db.escape(SAPIN)}`: `Email=${db.escape(Email)}`);
@@ -112,7 +91,7 @@ router.post('/login', async (req, res, next) => {
 			user.Access = 3;
 
 		user.Token = jwt.token(user.SAPIN);
-		users.setUser(user.SAPIN, {...user, ieeeCookieJar});
+		users.setUser(user.SAPIN, {...user, ieeeClient});
 
 		res.json({user});
 	}
@@ -124,7 +103,7 @@ router.post('/logout', async (req, res, next) => {
 		const userId = jwt.verify(req);
 		const user = await users.getUser(userId);
 		if (user) {
-			logout(user.ieeeCookieJar);
+			logout(user);
 			users.delUser(user.SAPIN);
 		}
 		res.json({user: null});

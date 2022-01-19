@@ -7,7 +7,6 @@ import {parseMyProjectComments, myProjectAddResolutions} from './myProjectSpread
 import {BallotType, getBallot} from './ballots';
 
 const db = require('../util/database');
-const rp = require('request-promise-native');
 
 const createViewCommentResolutionsSQL = 
 	'CREATE VIEW commentResolutions AS SELECT ' +
@@ -67,7 +66,7 @@ export async function initCommentsTables() {
 
 function selectComments(constraints) {
 	let sql = 'SELECT * FROM commentResolutions';
-	if (constraints) {
+	if (Object.keys(constraints).length > 0) {
 		sql += ' WHERE ' + Object.entries(constraints).map(
 			([key, value]) => {
 				if (key === 'modifiedSince')
@@ -78,12 +77,6 @@ function selectComments(constraints) {
 	}
 	sql += ' ORDER BY CommentID, ResolutionID';
 	return db.query(sql);
-}
-
-async function getLastUpdate(ballot_id) {
-	const row = await db.query('SELECT MAX(LastModifiedTime) as LastUdpate FROM commentResolutions WHERE ballot_id=?;', [ballot_id]);
-	console.log(row);
-	return row.LastUdpate;
 }
 
 export function getComments(ballot_id, modifiedSince) {
@@ -148,36 +141,36 @@ export async function setStartCommentId(userId, ballot_id, startCommentId) {
 }
 
 export async function deleteComments(userId, ballot_id) {
+	// The order of the deletes is import; from resolutions table first and then from comments table.
+	// This is because the a delete from resolutions tables adds a history log and a delete from comments then removes it.
 	const sql = db.format(
-		'SET @userId=?; ' +
-		'SET @ballot_id = ?; ' +
-		'UPDATE comments ' +
-			'SET LastModifiedBy=@userId, LastModifiedTime=NOW() ' +
-			'WHERE ballot_id=@ballot_id;' +
-		'DELETE c, r ' +
+		'DELETE r, c ' +
 			'FROM comments c LEFT JOIN resolutions r ON r.comment_id=c.id ' +
-			'WHERE c.ballot_id=@ballot_id;',
-		[userId, ballot_id]
+			'WHERE c.ballot_id=?;',
+		[ballot_id]
 	);
-	const results = await db.query(sql);
-	return results[results.length-1].affectedRows;
+	const result = await db.query(sql);
+	return result.affectedRows;
 }
 
 async function insertComments(userId, ballot_id, comments) {
+
+	// Delete existing comments (and resolutions) for this ballot_id
 	await deleteComments(userId, ballot_id);
-	let SQL = '';
+
 	if (comments.length) {
-		const SQL = 
-			db.format('SET @ballot_id = ?; ', [ballot_id]) +
-			db.format('SET @userId = ?; ', [userId]) +
-			comments.map(c => 
-				db.format(
-					'INSERT INTO comments SET ballot_id=@ballot_id, ?, LastModifiedBy=@userId, LastModifiedTime=NOW(); ' +
-					'INSERT INTO resolutions SET comment_id=LAST_INSERT_ID(), ResolutionID=0, LastModifiedBy=@userId, LastModifiedTime=NOW(); ',
-					[c])
-			).join('');
-		await db.query(SQL);
+		// Insert the comments
+		const sql1 =
+			db.format('INSERT INTO comments (`ballot_id`, ??) VALUES ', [Object.keys(comments[0])]) +
+			comments.map(c => db.format('(?, ?)', [ballot_id, Object.values(c)])).join(', ');
+		await db.query(sql1);
+
+		// Insert a null resolution for each comment
+		const sql2 =
+			db.format('INSERT INTO resolutions (`comment_id`, `ResolutionID`, `LastModifiedBy`, `LastModifiedTime`) SELECT id, 0, ?, NOW() FROM comments WHERE `ballot_id`=?;', [userId, ballot_id]);
+		await db.query(sql2);
 	}
+
 	comments = await getComments(ballot_id);
 	const summary = await getCommentsSummary(ballot_id);
 
@@ -185,29 +178,27 @@ async function insertComments(userId, ballot_id, comments) {
 		id: ballot_id,
 		Comments: summary
 	};
+	
 	return {
 		comments,
 		ballot,
 	}
 }
 
-export async function importEpollComments(ieeeCookieJar, userId, ballot_id, epollNum, startCommentId) {
-	const options = {
-		url: `https://mentor.ieee.org/802.11/poll-comments.csv?p=${epollNum}`,
-		jar: ieeeCookieJar,
-		resolveWithFullResponse: true,
-		simple: false
-	}
-	const ieeeRes = await rp.get(options);
-	//console.log(ieeeRes.headers)
-	if (ieeeRes.headers['content-type'] !== 'text/csv') {
-		throw 'Not logged in';
-	}
+export async function importEpollComments(user, ballot_id, epollNum, startCommentId) {
 
-	const comments = parseEpollCommentsCsv(ieeeRes.body, startCommentId);
+	if (!user.ieeeClient)
+		throw new Error('Not logged in');
+
+	const response = await user.ieeeClient.get(`https://mentor.ieee.org/802.11/poll-comments.csv?p=${epollNum}`, {responseType: 'text/csv'});
+
+	if (response.headers['content-type'] !== 'text/csv')
+		throw new Error('Not logged in');
+
+	const comments = parseEpollCommentsCsv(response.data, startCommentId);
 	//console.log(comments[0])
 
-	return insertComments(userId, ballot_id, comments);
+	return insertComments(user.SAPIN, ballot_id, comments);
 }
 
 export async function uploadComments(userId, ballot_id, startCommentId, file) {

@@ -1,7 +1,9 @@
 const path = require('path');
 
 module.exports = {
-	entry: path.join(__dirname, 'src/index.js'),
+	entry: {
+		main: path.join(__dirname, 'src/index.js')
+	},
 	output: {
 		path: path.join(__dirname, '../build'),
 		filename: 'server.js'
@@ -11,16 +13,17 @@ module.exports = {
 		__dirname: false,
 	},
 	optimization: {
-		minimize: false
+		//minimize: true,
+		usedExports: true
 	},
 	mode: 'production',
 	module: {
     rules: [
       {
-        test: /\.mjs$/,
-        include: /node_modules/,
-        type: 'javascript/auto'
-      }
-    ]
-  	}
+        test: /\.m?js$/,
+        exclude: /node_modules/,
+        type: 'javascript/auto',
+      },
+   ]
+  }
 };

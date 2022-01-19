@@ -2,8 +2,8 @@
 
 const db = require('../util/database');
 
-import {parseCommentsSpreadsheet} from './commentsSpreadsheet'
-import {getComments, getCommentsSummary} from './comments'
+import {parseCommentsSpreadsheet} from './commentsSpreadsheet';
+import {getComments, getCommentsSummary} from './comments';
 
 const matchClause = (dbValue, sValue) => {
 	if (dbValue === sValue)

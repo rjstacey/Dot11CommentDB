@@ -1,7 +1,7 @@
  /*
   * Handle spreadsheets from Adrian's members database
   */
-'use strict'
+'use strict';
 
 const ExcelJS = require('exceljs');
 

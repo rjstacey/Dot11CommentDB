@@ -1,11 +1,14 @@
 /*
  * ePoll HTML scraping
  */
+
+'use strict';
+
 import { DateTime } from 'luxon';
+import csvParse from 'csv-parse/lib/sync';
 
 const cheerio = require('cheerio');
-const csvParse = require('csv-parse/lib/sync');
-const rp = require('request-promise-native');
+//const csvParse = require('csv-parse/lib/sync');
 
 // Convert date string to UTC
 function parseDateTime(dateStr) {
@@ -52,21 +55,18 @@ function parseClosedEpollsPage(body) {
  * Parameters: n = number of entries to get
  */
 export async function getEpolls(user, n) {
+	const {ieeeClient} = user;
+	if (!ieeeClient)
+		throw new Error('Not logged in');
+
 	//console.log(user)
 
 	async function recursivePageGet(epolls, n, page) {
 		//console.log('get epolls n=', n)
 
-		var options = {
-			url: `https://mentor.ieee.org/802.11/polls/closed?n=${page}`,
-			jar: user.ieeeCookieJar
-		}
-		//console.log(options.url);
+		const {data} = await ieeeClient.get(`https://mentor.ieee.org/802.11/polls/closed?n=${page}`);
 
-		const body = await rp.get(options);
-
-		//console.log(body)
-		var epollsPage = parseClosedEpollsPage(body);
+		var epollsPage = parseClosedEpollsPage(data);
 		var end = n - epolls.length;
 		if (end > epollsPage.length) {
 			end = epollsPage.length;
@@ -114,23 +114,21 @@ export function parseEpollResultsHtml(body) {
 
 const epollCommentsHeader = [
 	'Index', 'Date', 'SA PIN', 'Name', 'Comment', 'Category', 'Page Number', 'Subclause', 'Line Number', 'Proposed Change'//, 'Must Be Satisfied'
-]
+];
 
 export function parseEpollCommentsCsv(buffer, startCommentId) {
 	var cid = startCommentId;
 
-	const p = csvParse(buffer, {columns: false});
-	if (p.length === 0) {
-		throw 'Got empty poll-comments.csv';
-	}
+	const p = csvParse(buffer, {columns: false, bom: true, encoding: 'latin1'});
+	if (p.length === 0)
+		throw new Error('Empty CSV file');
 
 	// Row 0 is the header
-	if (epollCommentsHeader.reduce((r, v, i) => r || v !== p[0][i], false)) {
-		throw `Unexpected column headings ${p[0].join()}. Expected ${epollCommentsHeader.join()}.`
-	}
+	if (epollCommentsHeader.reduce((r, v, i) => r || v !== p[0][i], false))
+		throw new Error(`Unexpected column headings ${p[0].join()}. Expected ${epollCommentsHeader.join()}.`);
 	p.shift();
 
-	return p.map(c => {
+	const comments = p.map(c => {
 		var e = {
 			CommentID: cid++,
 			C_Index: parseInt(c[0]),
@@ -146,23 +144,27 @@ export function parseEpollCommentsCsv(buffer, startCommentId) {
 			ProposedChange: c[9]? c[9]: '',
 			MustSatisfy: !!(c[10] === '1')
 		};
-		if (isNaN(e.Page)) {e.Page = 0}
+		if (isNaN(e.Page)) 
+			e.Page = 0;
 		return e;
-	})
+	});
+
+	return comments;
 }
+
+const epollResultsHeader = [
+	'SA PIN', 'Date', 'Vote', 'Email'
+];
 
 export function parseEpollResultsCsv(buffer) {
 
-	const p = csvParse(buffer, {columns: false});
-	if (p.length === 0) {
-		throw 'Got empty poll-results.csv';
-	}
+	const p = csvParse(buffer, {columns: false, bom: true, encoding: 'latin1'});
+	if (p.length === 0)
+		throw new Error('Empty CSV file');
 
 	// Row 0 is the header
-	const expected = ['SA PIN', 'Date', 'Vote', 'Email'];
-	if (expected.reduce((r, v, i) => v !== p[0][i], false)) {
-		throw `Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`
-	}
+	if (epollResultsHeader.reduce((r, v, i) => v !== p[0][i], false))
+		throw new Error(`Unexpected column headings ${p[0].join()}. Expected ${epollResultsHeader.join()}.`);
 	p.shift();
 
 	return p.map(c => {

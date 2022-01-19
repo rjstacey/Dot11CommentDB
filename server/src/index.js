@@ -12,15 +12,21 @@ const db = require('./util/database');
 async function initDatabase() {
 	await db.init();
 	await require('./util/seedDatabase').init();
+	console.log('init database complete');
 }
 
 async function initServices() {
+	console.log('init users...');
 	await require('./auth/users').init();
+	console.log('init webex...');
 	await require('./services/webex').init();
+	console.log('init calendar...');
 	await require('./services/calendar').init();
+	console.log('init services complete');
 }
 
 function initServer() {
+	console.log('init server...');
 	const path = require('path');
 	const express = require('express');
 	const app = express();
@@ -37,33 +43,54 @@ function initServer() {
 		});
 	}
 
+	// Default is to expire immediately
+	app.all('*', (req, res, next) => {
+		res.setHeader('Cache-Control', 'max-age=0');
+		next();
+	});
+
 	app.use('/auth', require('./auth/login').default);
 	app.use('/api', require('./api/router').default);
 
 	// Error handler
 	app.use((err, req, res, next) => {
-		console.warn(err)
-		let message
+		if (process.env.NODE_ENV === 'development')
+			console.warn(err);
+		let message;
 		if (typeof err === 'string') {
-			message = err
+			message = err;
+		}
+		else if (err.hasOwnProperty('message')) {
+			// Error and its ilk caught here
+			message = err.message;
 		}
 		else {
 			try {
-				message = err.toString()
+				message = err.toString();
 			}
 			catch(e) {
-				message = JSON.stringify(err)
+				message = JSON.stringify(err);
 			}
 		}
-		res.status(400).send(message)
+		res.status(400).send(message);
 	});
+
+
+	//app.get('*/static*', (req, res, next) => {
+	//	res.setHeader('Cache-Control', 'max-age=31536000');
+	//	next();
+	//});
 
 	let devdir = '';
 	if (process.env.NODE_ENV === 'development') {
 		devdir = '../../build'
 		console.log(path.join(__dirname, devdir))
 	}
-	app.use(express.static(path.join(__dirname, devdir, '')));
+
+	app.use(
+		express.static(path.join(__dirname, devdir, ''), {maxAge: 31536000})
+	);
+
 	app.get('/$', (req, res) => res.redirect('/comments'));
 	app.get('/login', (req, res) => res.sendFile(path.join(__dirname, devdir, 'auth/index.html')));
 	app.get('/logout', (req, res) => res.sendFile(path.join(__dirname, devdir, 'auth/logout.html')));

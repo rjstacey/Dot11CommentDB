@@ -38,7 +38,7 @@ export async function getBallots() {
 export async function getBallot(id) {
 	const [ballot] = await db.query(getBallotsSQL + ' WHERE id=?', [id])
 	if (!ballot)
-		throw `No such ballot: ${id}`;
+		throw new Error(`No such ballot: ${id}`);
 	return ballot;
 }
 

@@ -3,10 +3,8 @@
  */
 import { DateTime, Duration } from 'luxon';
 
-const cheerio = require('cheerio')
-//const moment = require('moment-timezone')
-const csvParse = require('csv-parse/lib/sync')
-const rp = require('request-promise-native')
+const cheerio = require('cheerio');
+const csvParse = require('csv-parse/lib/sync');
 
 // Convert date to ISO format
 function dateToISODate(dateStr) {
@@ -40,10 +38,10 @@ export function parseMeetingsPage(body) {
 	}
 	else if ($('div.title').length && $('div.title').html() == "Sign In") {
 		// If we get the "Sign In" page then the user is not logged in
-		throw 'Not logged in'
+		throw new Error('Not logged in');
 	}
 	else {
-		throw 'Unexpected page returned by imat.ieee.org'
+		throw new Error('Unexpected page returned by imat.ieee.org');
 	}
 }
 
@@ -53,21 +51,17 @@ export function parseMeetingsPage(body) {
  * Parameters: n = number of entries to get
  */
 export async function getImatMeetings(user, n) {
-	//console.log(user)
+	const {ieeeClient} = user;
+	if (!ieeeClient)
+		throw new Error('Not logged in');
 
 	async function recursivePageGet(meetings, n, page) {
 		//console.log('get epolls n=', n)
 
-		var options = {
-			url: `https://imat.ieee.org/${user.Email}/meetings?n=${page}`,
-			jar: user.ieeeCookieJar
-		}
-		//console.log(options.url);
-
-		const body = await rp.get(options);
+		const {data} = await ieeeClient.get(`https://imat.ieee.org/${user.Email}/meetings?n=${page}`);
 
 		//console.log(body)
-		var meetingsPage = parseMeetingsPage(body);
+		var meetingsPage = parseMeetingsPage(data);
 		var end = n - meetings.length;
 		if (end > meetingsPage.length) {
 			end = meetingsPage.length;
@@ -85,23 +79,17 @@ export async function getImatMeetings(user, n) {
 
 export async function getImatBreakouts(user, session) {
 
-	const options = {
-		url: `https://imat.ieee.org/${session.OrganizerID}/breakouts.csv?p=${session.MeetingNumber}&xls=1`,
-		jar: user.ieeeCookieJar,
-		resolveWithFullResponse: true,
-		simple: false
-	}
+	const {ieeeClient} = user;
+	if (!ieeeClient)
+		throw new Error('Not logged in');
 
-	console.log(session, options.url)
-	const response = await rp.get(options);
-	if (response.statusCode !== 200)
-		throw response.statusCode === 404? 'Not found': 'Unexpected result'
+	const response = await ieeeClient.get(`https://imat.ieee.org/${session.OrganizerID}/breakouts.csv?p=${session.MeetingNumber}&xls=1`, {responseType: 'text/csv'});
 	if (response.headers['content-type'] !== 'text/csv')
-		throw 'Not logged in'
+		throw new Error('Not logged in');
 
-	const p = csvParse(response.body, {columns: false});
+	const p = csvParse(response.data, {columns: false});
 	if (p.length === 0)
-		throw 'Got empty breakouts.csv';
+		throw new Error('Got empty breakouts.csv');
 
 	const expected = ['Breakout ID', 'Start Timeslot Name', 'End Timeslot Name', 'Start', 'End', 
 		'Location', 'Group Symbol', 'Breakout Name', 'Credit', 'Override Credit Numerator', 'Override Credit Denominator',
@@ -109,7 +97,7 @@ export async function getImatBreakouts(user, session) {
 
 	// Row 0 is the header
 	if (expected.reduce((r, v, i) => v !== p[0][i], false))
-		throw `Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`
+		throw new Error(`Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`);
 	p.shift();
 
 	return p.map(c => {
@@ -146,12 +134,12 @@ function getTimestamp(t) {
  */
 export async function getImatBreakoutAttendance(user, breakoutNumber, meetingNumber) {
 
-	const options = {
-		url: `https://imat.ieee.org/802.11/breakout-members?t=${breakoutNumber}&p=${meetingNumber}`,
-		jar: user.ieeeCookieJar
-	}
-	const body = await rp.get(options);
-	const $ = cheerio.load(body);
+	const {ieeeClient} = user;
+	if (!ieeeClient)
+		throw new Error('Not logged in');
+
+	const {data} = await ieeeClient.get(`https://imat.ieee.org/802.11/breakout-members?t=${breakoutNumber}&p=${meetingNumber}`);
+	const $ = cheerio.load(data);
 
 	// If we get the "Meeting attendance for" page then parse the data table
 	// (use cheerio, which provides jQuery parsing)
@@ -178,10 +166,10 @@ export async function getImatBreakoutAttendance(user, breakoutNumber, meetingNum
 	}
 	else if ($('div.title').length && $('div.title').html() == "Sign In") {
 		// If we get the "Sign In" page then the user is not logged in
-		throw 'Not logged in'
+		throw new Error('Not logged in');
 	}
 	else {
-		throw 'Unexpected page returned by imat.ieee.org'
+		throw new Error('Unexpected page returned by imat.ieee.org');
 	}
 }
 
@@ -191,9 +179,6 @@ export async function getImatBreakoutAttendance(user, breakoutNumber, meetingNum
  * The session is identified by a start and end date in the form MM/DD/YYYY
  */
 export async function getImatAttendanceSummary(user, session) {
-
-	//const start = moment(session.Start).tz(session.TimeZone).format('MM/DD/YYYY');
-	//const end = moment(session.End).tz(session.TimeZone).format('MM/DD/YYYY');
 
 	let start = DateTime.fromJSDate(session.Start, {zone: session.TimeZone});
 	if (!start.isValid)
@@ -205,29 +190,23 @@ export async function getImatAttendanceSummary(user, session) {
 		throw new TypeError(`Invalid session End (${session.End}) or TimeZone (${session.TimeZone})`)
 	end = end.toFormat('MM/dd/yyyy');
 
-	const options = {
-		url: `https://imat.ieee.org/802.11/attendance-summary.csv?b=${start}&d=${end}`,
-		jar: user.ieeeCookieJar,
-		resolveWithFullResponse: true,
-		simple: false
-	}
-	console.log(options.url);
+	const {ieeeClient} = user;
+	if (!ieeeClient)
+		throw new Error('Not logged in');
 
-	const response = await rp.get(options);
-	if (response.statusCode !== 200)
-		throw response.statusCode === 404? 'Not found': 'Unexpected result'
+	const response = await ieeeClient.get(`https://imat.ieee.org/802.11/attendance-summary.csv?b=${start}&d=${end}`);
 	if (response.headers['content-type'] !== 'text/csv')
 		throw 'Not logged in'
 
-	const p = csvParse(response.body, {columns: false});
+	const p = csvParse(response.data, {columns: false});
 	if (p.length === 0)
-		throw 'Got empty attendance_summary.csv';
+		throw new Error('Got empty attendance_summary.csv');
 
 	const expected = ['SA PIN', 'Last Name', 'First Name', 'Middle Name', 'Email', 'Affiliation', 'Current Involvement Level']
 
 	// Row 0 is the header
 	if (expected.reduce((r, v, i) => v !== p[0][i], false))
-		throw `Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`
+		throw new Error(`Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`);
 
 	// Column 7 should have the session date in the form "MM-YYYY"
 

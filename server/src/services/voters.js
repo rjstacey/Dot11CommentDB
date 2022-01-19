@@ -1,12 +1,11 @@
-'use strict'
+'use strict';
 
 import { v4 as uuid, validate as validateUUID } from 'uuid';
 import {getMembersSnapshot} from './members';
 
-const csvParse = require('csv-parse/lib/sync')
-const ExcelJS = require('exceljs')
-const db = require('../util/database')
-
+const csvParse = require('csv-parse/lib/sync');
+const ExcelJS = require('exceljs');
+const db = require('../util/database');
 
 const membersHeader = [
 	'SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'
@@ -177,6 +176,12 @@ export async function addVoters(votingPoolId, voters) {
 		voters,
 		votingPool
 	}
+}
+
+export async function updateVoter(votingPoolId, sapin, changes) {
+	await db.query('UPDATE wgVoters SET ? WHERE VotingPoolID=? AND SAPIN=?', [changes, votingPoolId, sapin]);
+	const [voter] = await db.query(getVotersFullSQL(votingPoolId, [sapin]));
+	return voter;
 }
 
 export async function updateVoters(updates) {

@@ -4,7 +4,7 @@
 import { DateTime } from 'luxon';
 import {getImatBreakouts, getImatBreakoutAttendance, getImatAttendanceSummary} from './imat';
 
-const db = require('../util/database')
+const db = require('../util/database');
 
 const getSessionTotalCreditSQL = (session_id) =>
 	'SELECT ' +
@@ -265,7 +265,7 @@ export async function importBreakouts(user, session_id) {
 			.map(b => ({...b, session_id}));	// Add session ID to each entry
 	
 	await db.query('DELETE FROM breakouts WHERE session_id=?; ', [session_id]);
-	
+
 	//console.log(breakouts)
 	if (imatBreakouts.length) {
 		for (const b of imatBreakouts) {

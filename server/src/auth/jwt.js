@@ -32,7 +32,7 @@ export const verify = (req) => {
 		return jwt.verify(token, secret);
 	}
 	catch (error) {
-		throw 'Bad token';
+		throw new Error('Bad token');
 	}
 }
 
@@ -56,7 +56,7 @@ export const authorize = async (req, res, next) => {
 		}
 		const user = await getUser(userId);
 		if (!user)
-			throw 'Unknown user'
+			throw new Error('Unknown user');
 		req.user = user;
 		next();
 	}

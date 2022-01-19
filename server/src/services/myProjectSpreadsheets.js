@@ -2,11 +2,11 @@
  * Handle MyProject spreadsheet files
  */
 
-'use strict'
+'use strict';
 
-const ExcelJS = require('exceljs')
-const csvParse = require('csv-parse/lib/sync')
-import {fromHtml} from './commentsSpreadsheet'
+const ExcelJS = require('exceljs');
+const csvParse = require('csv-parse/lib/sync');
+import {fromHtml} from './commentsSpreadsheet';
 
 const myProjectCommentsHeader = [
 	'Comment ID', 'Date', 'Comment #', 'Name', 'Email', 'Phone', 'Style', 'Index #', 'Classification', 'Vote',

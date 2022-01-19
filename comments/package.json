@@ -1,9 +1,8 @@
 {
   "name": "comments",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "private": true,
   "homepage": "comments",
-  "proxy": "https://802tools.org",
   "dependencies": {
     "@emotion/react": "^11.1.5",
     "@emotion/styled": "^11.1.5",

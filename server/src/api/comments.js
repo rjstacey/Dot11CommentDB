@@ -73,7 +73,7 @@ router.post('/:ballot_id(\\d+)/importFromEpoll/:epollNum', async (req, res, next
 		const {user} = req;
 		const {ballot_id, epollNum} = req.params;
 		const startCommentId = req.body.StartCID || 1;
-		const data = await importEpollComments(user.ieeeCookieJar, user.SAPIN, ballot_id, epollNum, startCommentId);
+		const data = await importEpollComments(user, ballot_id, epollNum, startCommentId);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -82,7 +82,7 @@ router.post('/:ballot_id(\\d+)/importFromEpoll/:epollNum', async (req, res, next
 router.post('/:ballot_id(\\d+)/upload', upload.single('CommentsFile'), async (req, res, next) => {
 	try {
 		const {user} = req;
-		const {ballot_id} = req.params;
+		const ballot_id = parseInt(req.params.ballot_id, 10);
 		if (!req.file)
 			throw new Error('Missing file');
 		const startCommentId = req.body.StartCID || 1;

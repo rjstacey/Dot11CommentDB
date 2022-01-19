@@ -56,7 +56,7 @@ router.delete('/$', async (req, res, next) => {
 router.post('/:ballot_id(\\d+)/upload/', upload.single('ResolutionsFile'), async (req, res, next) => {
 	try {
 		const {user} = req;
-		const {ballot_id} = req.params
+		const ballot_id = parseInt(req.params.ballot_id, 10);
 		if (!req.body.params)
 			throw 'Missing parameters'
 		const {toUpdate, matchAlgorithm, matchUpdate, sheetName} = JSON.parse(req.body.params)

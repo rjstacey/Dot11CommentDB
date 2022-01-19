@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const mysql = require('mysql2');
 let ppool;
@@ -29,7 +29,9 @@ export function init() {
 		charset: 'UTF8MB4_GENERAL_CI',
 	}
 
-	console.log('NODE_ENV=', process.env.NODE_ENV, options)
+	console.log('NODE_ENV=', process.env.NODE_ENV);
+	console.log(options);
+	
 	const pool = mysql.createPool(options);
 	ppool = pool.promise();
 }

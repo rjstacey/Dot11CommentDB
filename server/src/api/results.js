@@ -55,7 +55,7 @@ router.post('/:ballot_id(\\d+)/importFromEpoll/:epollNum(\\d+)$', async (req, re
 	try {
 		const {user} = req;
 		const {ballot_id, epollNum} = req.params;
-		const data = await importEpollResults(user.ieeeCookieJar, user, ballot_id, epollNum);
+		const data = await importEpollResults(user, ballot_id, epollNum);
 		res.json(data)
 	}
 	catch(err) {next(err)}
