@@ -7,7 +7,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import {ActionButton, Button} from 'dot11-components/form';
 
 import BallotSelector from '../ballots/BallotSelector';
-import {loadComments, clearComments, selectCommentsState} from '../store/comments';
+import {loadComments, clearComments, selectCommentsState, getCID, getCommentStatus} from '../store/comments';
 import {setBallotId, loadBallots, getCurrentBallot, selectBallotsState} from '../store/ballots';
 
 function countsByCategory(comments) {
@@ -160,14 +160,21 @@ function Reports() {
 	}, [currentBallot, commentsBallot]);
 
 	const data = React.useMemo(() => {
-		const comments = ids.map(id => entities[id]);
+		const comments = ids.map(id => {
+			const c = entities[id];
+			return {
+				...c,
+				CID: getCID(c),
+				Status: getCommentStatus(c)
+			}
+		});
 		if (report === 'commentsbyassignee')
-			return commentsByAssignee(comments)
+			return commentsByAssignee(comments);
 		if (report === 'commentsbycommenter')
-			return commentsByCommenter(comments)
+			return commentsByCommenter(comments);
 		if (report === 'commentsbyassigneeandcommentgroup')
-			return commentsByAssigneeAndCommentGroup(comments)
-		return []
+			return commentsByAssigneeAndCommentGroup(comments);
+		return [];
 	}, [ids, entities, report]);
 
 	const onBallotSelected = (ballot_id) => {
