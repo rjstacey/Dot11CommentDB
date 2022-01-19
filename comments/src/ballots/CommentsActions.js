@@ -48,18 +48,15 @@ const CommentsActions = ({ballot_id, readOnly}) => {
 		const ok = await ConfirmModal.show(`Are you sure you want to delete comments for ${ballot.BallotID}?`)
 		if (!ok)
 			return;
-		await dispatch(deleteComments(ballot_id));
+		dispatch(deleteComments(ballot_id));
 	}
 
-	async function handleImportComments() {
-		await dispatch(importComments(ballot_id, ballot.EpollNum, 1));
-	}
+	const handleImportComments = () => dispatch(importComments(ballot_id, ballot.EpollNum, 1));
 
-	async function handleUploadComments(file) {
-		await dispatch(uploadComments(ballot_id, ballot.Type, file));
-	}
+	const handleUploadComments = (file) => dispatch(uploadComments(ballot_id, ballot.Type, file));
 
-	return <>
+	return (
+		<>
 		<Row>
 			<FieldLeft label='Comments:'>
 				{isMultiple(ballot_id)? MULTIPLE_STR: renderCommentsSummary({rowData: ballot, dataKey: 'Comments'})}
@@ -93,14 +90,16 @@ const CommentsActions = ({ballot_id, readOnly}) => {
 				Upload comments
 			</Button>
 			<input
-				type='file'
-				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 				ref={fileRef}
-				onChange={e => {if (e.target.files) handleUploadComments(e.target.files[0])}}
+				type='file'
 				style={{display: "none"}}
+				accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+				onChange={e => {if (e.target.files) handleUploadComments(e.target.files[0])}}
+				onClick={e => e.target.value = null}	// necessary otherwise with the same file selected there is no onChange call
 			/>
 		</Row>}
-	</>
+		</>
+	)
 }
 
 CommentsActions.propTypes = {
