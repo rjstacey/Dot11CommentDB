@@ -1,7 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import {createSelector} from '@reduxjs/toolkit';
 import {fetcher} from 'dot11-components/lib';
-import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
+import {createAppTableDataSlice, SortType, selectCurrentPanelConfig, setPanelIsSplit} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 
 import {updateBallotSuccess, selectBallot, selectBallotsState} from './ballots';
@@ -180,10 +180,14 @@ const selectCommentsLastModified = createSelector(
 	}
 );
 
+export const selectCommentsCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
 
 /*
  * Actions
  */
+
+export const setCommentsCurrentPanelIsSplit = (value) => setPanelIsSplit(dataSet, undefined, value);
+
 const {
 	setDetails,
 	getPending,
@@ -299,7 +303,7 @@ export const deleteComments = (ballot_id) =>
 
 export const importComments = (ballot_id, epollNum, startCID) =>
 	async (dispatch) => {
-		const url = `/api/comments/${ballot_id}/importFromEpoll//${epollNum}`;
+		const url = `/api/comments/${ballot_id}/importFromEpoll/${epollNum}`;
 		let response;
 		try {
 			response = await fetcher.post(url, {StartCID: startCID});

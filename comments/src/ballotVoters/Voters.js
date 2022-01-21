@@ -145,56 +145,55 @@ function Voters() {
 
 	return (
 		<>
-			<TopRow style={{maxWidth}}>
-				<div style={{display: 'flex', alignItems: 'center'}}>
-					<label>Ballot series voting pool: {votingPoolName} ({ids.length} voters)</label>
-					<ActionButtonDropdown
-						name='edit'
-						onClose={() => updateVotingPoolName(name)}
-					>
-						<Input
-							type='text'
-							size={24}
-							value={name}
-							onChange={e => setName(e.target.value)}
-							onKeyDown={e => {if (e.key === 'Enter') updateVotingPoolName(name);}}
-						/>
-					</ActionButtonDropdown>
-				</div>
-				<div>
-					<ActionButton name='add' title='Add voter' onClick={handleAddVoter} />
-					<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
-					<ActionButton name='import' title='Import voters' onClick={() => setShowImportVoters(true)} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
-					<ActionButton name='close' title='Close' onClick={close} />
-				</div>
-			</TopRow>
+		<TopRow style={{maxWidth}}>
+			<div style={{display: 'flex', alignItems: 'center'}}>
+				<label>Ballot series voting pool: {votingPoolName} ({ids.length} voters)</label>
+				<ActionButtonDropdown
+					name='edit'
+					onClose={() => updateVotingPoolName(name)}
+				>
+					<Input
+						type='text'
+						size={24}
+						value={name}
+						onChange={e => setName(e.target.value)}
+						onKeyDown={e => {if (e.key === 'Enter') updateVotingPoolName(name);}}
+					/>
+				</ActionButtonDropdown>
+			</div>
+			<div>
+				<ActionButton name='add' title='Add voter' onClick={handleAddVoter} />
+				<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
+				<ActionButton name='import' title='Import voters' onClick={() => setShowImportVoters(true)} />
+				<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
+				<ActionButton name='close' title='Close' onClick={close} />
+			</div>
+		</TopRow>
 
-			<TableRow>
-				<AppTable
-					key={columns}
-					fitWidth
-					fixed
-					columns={columns}
-					dataSet={dataSet}
-					headerHeight={36}
-					estimatedRowHeight={36}
-				/>
-			</TableRow>
-
-			<VoterEditModal
-				isOpen={!!editVoter.action}
-				close={() => setEditVoter(state => ({...state, action: null}))}
-				votingPoolName={votingPoolName}
-				voter={editVoter.voter}
-				action={editVoter.action}
+		<TableRow>
+			<AppTable
+				fitWidth
+				fixed
+				columns={columns}
+				dataSet={dataSet}
+				headerHeight={36}
+				estimatedRowHeight={36}
 			/>
+		</TableRow>
 
-			<VotersImportModal
-				isOpen={showImportVoters}
-				close={() => setShowImportVoters(false)}
-				votingPoolName={votingPoolName}
-			/>
+		<VoterEditModal
+			isOpen={!!editVoter.action}
+			close={() => setEditVoter(state => ({...state, action: null}))}
+			votingPoolName={votingPoolName}
+			voter={editVoter.voter}
+			action={editVoter.action}
+		/>
+
+		<VotersImportModal
+			isOpen={showImportVoters}
+			close={() => setShowImportVoters(false)}
+			votingPoolName={votingPoolName}
+		/>
 		</>
 	)
 }

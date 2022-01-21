@@ -18,7 +18,19 @@ import CommentsExport from './CommentsExport';
 import CommentHistory from './CommentHistory';
 import CommentsCopy from './CommentsCopy';
 
-import {fields, loadComments, loadCommentsSinceLastUpdate, clearComments, getCID, getCommentStatus, selectCommentsState, dataSet} from '../store/comments';
+import {
+	fields,
+	loadComments,
+	loadCommentsSinceLastUpdate,
+	clearComments,
+	getCID,
+	getCommentStatus,
+	selectCommentsState,
+	selectCommentsCurrentPanelConfig,
+	setCommentsCurrentPanelIsSplit,
+	dataSet
+} from '../store/comments';
+
 import {loadMembers, selectMembersState} from '../store/members';
 import {setBallotId, loadBallots, getCurrentBallot, selectBallotsState} from '../store/ballots';
 
@@ -309,6 +321,7 @@ function Comments({access}) {
 	const {ballotId} = useParams();
 
 	const {valid, loading, ballot_id: commentsBallot_id, ui: uiProperty, selected} = useSelector(selectCommentsState);
+	const {isSplit} = useSelector(selectCommentsCurrentPanelConfig);
 	const {valid: ballotsValid, entities: ballotEntities} = useSelector(selectBallotsState);
 	const currentBallot = useSelector(getCurrentBallot);
 	const {valid: usersValid, loading: usersLoading} = useSelector(selectMembersState);
@@ -316,7 +329,7 @@ function Comments({access}) {
 	const dispatch = useDispatch();
 	const load = (ballot_id) => dispatch(loadComments(ballot_id));
 	const clear = () => dispatch(clearComments());
-	const setUiProperty = (property, value) => dispatch(setProperty(dataSet, property, value));
+	const setIsSplit = (value) => dispatch(setCommentsCurrentPanelIsSplit(value));
 
 	React.useEffect(() => {
 		if (ballotId) {
@@ -336,7 +349,6 @@ function Comments({access}) {
 			return;
 		if ((!commentsBallot_id && currentBallot) ||
 		    (currentBallot && commentsBallot_id !== currentBallot.id)) {
-			console.log(commentsBallot_id, currentBallot);
 			load(currentBallot.id);
 		}
 	}, [currentBallot, commentsBallot_id]);
@@ -366,8 +378,8 @@ function Comments({access}) {
 						<ActionButton
 							name='book-open'
 							title='Show detail'
-							isActive={uiProperty.editView} 
-							onClick={() => setUiProperty('editView', !uiProperty.editView)} 
+							isActive={isSplit} 
+							onClick={() => setIsSplit(!isSplit)} 
 						/>
 					</div>
 				</ButtonGroup>
@@ -396,7 +408,7 @@ function Comments({access}) {
 			fields={fields}
 		/>
 
-		<SplitPanel splitView={uiProperty.editView || false} >
+		<SplitPanel dataSet={dataSet} >
 			<Panel>
 				<AppTable
 					defaultTablesConfig={defaultTablesConfig}

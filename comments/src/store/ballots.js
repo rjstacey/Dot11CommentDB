@@ -1,7 +1,7 @@
 import {createSelector} from '@reduxjs/toolkit';
 
 import {fetcher, displayDate} from 'dot11-components/lib';
-import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
+import {createAppTableDataSlice, SortType, selectCurrentPanelConfig, setPanelIsSplit} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 
 export const BallotType = {
@@ -169,10 +169,13 @@ export const getCurrentBallot = (state) => {
 	return entities[currentId];
 }
 
+export const selectBallotsCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
 
 /*
  * Actions
  */
+export const setBallotsCurrentPanelIsSplit = (value) => setPanelIsSplit(dataSet, undefined, value);
+
 export const {setCurrentProject, setCurrentId} = slice.actions;
 
 const {

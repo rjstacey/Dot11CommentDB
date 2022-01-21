@@ -14,7 +14,7 @@ import BallotDetail, {BallotAddDropdown as BallotAdd} from './BallotDetail';
 import {setSelected} from 'dot11-components/store/selected';
 import {setProperty} from 'dot11-components/store/ui';
 
-import {fields, loadBallots, deleteBallots, BallotType, BallotStage, selectBallotsState, dataSet} from '../store/ballots';
+import {fields, loadBallots, deleteBallots, BallotType, BallotStage, selectBallotsState, selectBallotsCurrentPanelConfig, setBallotsCurrentPanelIsSplit, dataSet} from '../store/ballots';
 import {loadVotingPools, selectVotingPoolsState} from '../store/votingPools';
 
 
@@ -222,6 +222,7 @@ function Ballots({access}) {
 
 	const {valid, loading, entities: ballots, ui: uiProperty, selected} = useSelector(selectBallotsState);
 	const {valid: votingPoolsValid, loading: votingPoolsLoading} = useSelector(selectVotingPoolsState);
+	const {isSplit} = useSelector(selectBallotsCurrentPanelConfig);
 
 	const dispatch = useDispatch();
 
@@ -230,7 +231,7 @@ function Ballots({access}) {
 		dispatch(loadVotingPools());
 	}, [dispatch]);
 
-	const setUiProperty = React.useCallback((property, value) => dispatch(setProperty(dataSet, property, value)), [dispatch]);
+	const setIsSplit = (value) => dispatch(setBallotsCurrentPanelIsSplit(value));
 
 	const closeBallot = () => history.push('/ballots');
 	const showEpolls = () => history.push('/epolls/');
@@ -249,8 +250,8 @@ function Ballots({access}) {
 							<ActionButton
 								name='book-open'
 								title='Show detail'
-								isActive={uiProperty.editView} 
-								onClick={() => setUiProperty('editView', !uiProperty.editView)} 
+								isActive={isSplit}
+								onClick={() => setIsSplit(!isSplit)} 
 							/>}
 					</div>
 				</ButtonGroup>
@@ -271,7 +272,7 @@ function Ballots({access}) {
 			fields={fields}
 		/>
 
-		<SplitPanel splitView={(access >= AccessLevel.WGAdmin && uiProperty.editView) || false} >
+		<SplitPanel dataSet={dataSet} >
 			<Panel>
 				<AppTable
 					defaultTablesConfig={defaultTablesConfig}

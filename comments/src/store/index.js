@@ -11,7 +11,7 @@ import {version} from '../../package.json';
 import members, {loadMembers} from './members';
 import ballots, {loadBallots} from './ballots';
 import epolls from './epolls';
-import comments, {persistTransforms} from './comments';
+import comments, {migrateComments} from './comments';
 import commentsHistory from './commentsHistory';
 import results from './results';
 import voters from './voters';
@@ -76,7 +76,7 @@ function configureStore() {
 
 	const persistConfig = {
 		key: 'comments',
-		version,
+		version: 1,
 		storage: {	// IndexedDB for storage using idb-keyval
 			setItem: set,
 			getItem: get,
@@ -84,7 +84,12 @@ function configureStore() {
 		},
 		whitelist: ['members', 'ballots', 'comments', 'results', 'voters', 'votingPools'],
 		transforms: [dataAdapterTansform],
-		stateReconciler: autoMergeLevel2
+		stateReconciler: autoMergeLevel2,
+		migrate: (state) => {
+			if (state && state._persist && state._persist.version !== 1)
+				return Promise.reject('Discard old version')
+			return Promise.resolve(state);
+		}
 	};
 
 	const store = createStore(

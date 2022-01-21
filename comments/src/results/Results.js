@@ -137,7 +137,6 @@ function Results({
 			return;
 		if ((!resultsBallot && currentBallot) ||
 		    (resultsBallot && currentBallot && resultsBallot.id != currentBallot.id)) {
-			console.log('load', resultsBallot, currentBallot)
 			load(currentBallot.id);
 		}
 	}, [dispatch, currentBallot, resultsBallot]);
@@ -152,32 +151,32 @@ function Results({
 
 	return (
 		<>
-			<ActionRow style={{maxWidth}}>
-				<BallotSelector onBallotSelected={onBallotSelected}	/>
-				<div style={{display: 'flex'}}>
-					<ResultsExport ballot={currentBallot} />
-					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-					<ActionButton
-						name='refresh'
-						title='Refresh'
-						disabled={!currentBallot}
-						onClick={() => load(currentBallot.id)}
-					/>
-				</div>
-			</ActionRow>
-			<ResultsSummary
-				style={{maxWidth}}
-			/>
-			<TableRow style={{maxWidth}}>
-				<AppTable
-					defaultTablesConfig={defaultTablesConfig}
-					columns={tableColumns}
-					headerHeight={28}
-					estimatedRowHeight={32}
-					dataSet={dataSet}
-					rowKey='id'
+		<ActionRow style={{maxWidth}}>
+			<BallotSelector onBallotSelected={onBallotSelected}	/>
+			<div style={{display: 'flex'}}>
+				<ResultsExport ballot={currentBallot} />
+				<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+				<ActionButton
+					name='refresh'
+					title='Refresh'
+					disabled={!currentBallot}
+					onClick={() => load(currentBallot.id)}
 				/>
-			</TableRow>
+			</div>
+		</ActionRow>
+		<ResultsSummary
+			style={{maxWidth}}
+		/>
+		<TableRow style={{maxWidth}}>
+			<AppTable
+				defaultTablesConfig={defaultTablesConfig}
+				columns={tableColumns}
+				headerHeight={28}
+				estimatedRowHeight={32}
+				dataSet={dataSet}
+				rowKey='id'
+			/>
+		</TableRow>
 		</>
 	)
 }
