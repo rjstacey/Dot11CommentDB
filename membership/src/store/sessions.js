@@ -1,6 +1,6 @@
 import {createSelector} from '@reduxjs/toolkit';
 import fetcher from 'dot11-components/lib/fetcher';
-import {createAppTableDataSlice, SortType, SortDirection} from 'dot11-components/store/appTableData';
+import {createAppTableDataSlice, SortType, SortDirection, selectCurrentPanelConfig, setPanelIsSplit} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 import {displayDate} from 'dot11-components/lib';
 
@@ -75,9 +75,13 @@ export const selectTimeZonesState = createSelector(
 	})
 );
 
+export const selectSessionsCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
+
 /*
  * Actions
  */
+export const setSessionsCurrentPanelIsSplit = (value) => setPanelIsSplit(dataSet, undefined, value);
+
 const {
 	getPending,
 	getSuccess,

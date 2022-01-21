@@ -10,7 +10,17 @@ import {ActionButton, Button} from 'dot11-components/form';
 import {displayDateRange} from 'dot11-components/lib';
 import SessionDetail from './SessionDialog';
 
-import {fields, loadSessions, deleteSessions, setSessionsUiProperty, SessionTypeOptions, selectSessionsState, dataSet} from '../store/sessions';
+import {
+	fields,
+	loadSessions,
+	deleteSessions,
+	setSessionsUiProperty,
+	SessionTypeOptions,
+	selectSessionsState,
+	selectSessionsCurrentPanelConfig,
+	setSessionsCurrentPanelIsSplit,
+	dataSet
+} from '../store/sessions';
 
 const TopRow = styled.div`
 	display: flex;
@@ -126,8 +136,10 @@ const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
 function Sessions() {
 	const history = useHistory();
 	const dispatch = useDispatch();
-	const setUiProperty = React.useCallback((property, value) => dispatch(setSessionsUiProperty(property, value)), [dispatch]);
-	const {valid, loading, selected, ui: uiProperty} = useSelector(selectSessionsState);
+
+	const {valid, loading, selected} = useSelector(selectSessionsState);
+	const {isSplit} = useSelector(selectSessionsCurrentPanelConfig);
+	const setIsSplit = React.useCallback((value) => dispatch(setSessionsCurrentPanelIsSplit(value)), [dispatch]);
 
 	React.useEffect(() => {
 		if (!valid)
@@ -148,38 +160,38 @@ function Sessions() {
 
 	return (
 		<>
-			<TopRow style={{maxWidth}}>
-				<div>Sessions</div>
-				<div style={{display: 'flex'}}>
-					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-					<ActionButton
-						name='book-open'
-						title='Show detail'
-						isActive={uiProperty.editView}
-						onClick={() => setUiProperty('editView', !uiProperty.editView)}
-					/>
-					<ActionButton name='import' title='Import session' onClick={showSessions} />
-					<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-				</div>
-			</TopRow>
+		<TopRow style={{maxWidth}}>
+			<div>Sessions</div>
+			<div style={{display: 'flex'}}>
+				<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+				<ActionButton
+					name='book-open'
+					title='Show detail'
+					isActive={isSplit}
+					onClick={() => setIsSplit(!isSplit)}
+				/>
+				<ActionButton name='import' title='Import session' onClick={showSessions} />
+				<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
+				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+			</div>
+		</TopRow>
 
-			<SplitPanel splitView={uiProperty.editView || false} >
-				<Panel>
-					<AppTable
-						defaultTablesConfig={defaultTablesConfig}
-						columns={tableColumns}
-						headerHeight={36}
-						estimatedRowHeight={44}
-						dataSet={dataSet}
-					/>
-				</Panel>
-				<Panel style={{overflow: 'auto'}}>
-					<SessionDetail
-						key={selected}
-					/>
-				</Panel>
-			</SplitPanel>
+		<SplitPanel dataSet={dataSet} >
+			<Panel>
+				<AppTable
+					defaultTablesConfig={defaultTablesConfig}
+					columns={tableColumns}
+					headerHeight={36}
+					estimatedRowHeight={44}
+					dataSet={dataSet}
+				/>
+			</Panel>
+			<Panel style={{overflow: 'auto'}}>
+				<SessionDetail
+					key={selected}
+				/>
+			</Panel>
+		</SplitPanel>
 		</>
 	)
 }

@@ -18,7 +18,18 @@ import MembersSummary from './MembersSummary';
 import MemberDetail from './MemberDetail';
 import {RosterImport, RosterExport} from './Roster';
 
-import {fields, loadMembers, deleteSelectedMembers, AccessLevel, AccessLevelOptions, selectMembersState, dataSet} from '../store/members';
+import {
+	fields,
+	loadMembers,
+	deleteSelectedMembers,
+	AccessLevel,
+	AccessLevelOptions,
+	selectMembersState,
+	selectMembersCurrentPanelConfig,
+	setMembersCurrentPanelIsSplit,
+	dataSet
+} from '../store/members';
+
 import {loadSessions, selectSessionsState} from '../store/sessions';
 
 function setClipboard(selected, members) {
@@ -249,11 +260,12 @@ function Members() {
 
 	const dispatch = useDispatch();
 	const [statusChangeReason, setStatusChangeReason] = React.useState('');
-	const {selected, entities: members, valid, loading, ui: uiProperty} = useSelector(selectMembersState);
+	const {selected, entities: members, valid, loading} = useSelector(selectMembersState);
 	const {valid: validSessions} = useSelector(selectSessionsState);
+	const {isSplit} = useSelector(selectMembersCurrentPanelConfig);
 
 	const load = React.useCallback(() => dispatch(loadMembers()), [dispatch]);
-	const setUiProperty = React.useCallback((property, value) => dispatch(setProperty(dataSet, property, value)), [dispatch]);
+	const setIsSplit = React.useCallback((value) => dispatch(setMembersCurrentPanelIsSplit(value)), [dispatch]);
 
 	React.useEffect(() => {
 		if (!valid)
@@ -281,8 +293,8 @@ function Members() {
 						<ActionButton
 							name='book-open'
 							title='Show detail'
-							isActive={uiProperty.editView}
-							onClick={() => setUiProperty('editView', !uiProperty.editView)}
+							isActive={isSplit}
+							onClick={() => setIsSplit(!isSplit)}
 						/>
 					</div>
 				</ButtonGroup>
@@ -312,7 +324,7 @@ function Members() {
 			fields={fields}
 		/>
 
-		<SplitPanel splitView={uiProperty.editView || false} >
+		<SplitPanel dataSet={dataSet} >
 			<Panel>
 				<AppTable
 					defaultTablesConfig={defaultTablesConfig}

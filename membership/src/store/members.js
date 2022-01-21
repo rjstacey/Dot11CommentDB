@@ -1,7 +1,7 @@
 import fetcher from 'dot11-components/lib/fetcher';
-import {createAppTableDataSlice, SortType, getSortedFilteredIds} from 'dot11-components/store/appTableData';
+import {createAppTableDataSlice, SortType, getSortedFilteredIds, selectCurrentPanelConfig, setPanelIsSplit} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
-import {AccessLevel, AccessLevelOptions, AccessLevelLabels, displayAccessLevel} from 'dot11-components/lib/user'	// re-export access level constants
+import {AccessLevel, AccessLevelOptions, AccessLevelLabels, displayAccessLevel} from 'dot11-components/lib/user';	// re-export access level constants
 
 export {AccessLevel, AccessLevelOptions, AccessLevelLabels};
 
@@ -51,9 +51,13 @@ export default slice.reducer;
 export const selectMembersState = (state) => state[dataSet];
 export const selectMembersEntities = (state) => selectMembersState(state).entities;
 
+export const selectMembersCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
+
 /*
  * Actions
  */
+export const setMembersCurrentPanelIsSplit = (value) => setPanelIsSplit(dataSet, undefined, value);
+
 const {
 	getPending,
 	getSuccess,

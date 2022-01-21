@@ -37,14 +37,19 @@ function configureStore() {
 
 	const persistConfig = {
 		key: 'membership',
-		version,
+		version: 1,
 		storage: {	// IndexedDB for storage using idb-keyval
 			setItem: set,
 			getItem: get,
 			removeItem: del
 		},
 		whitelist: ['members', 'sessions'],
-		stateReconciler: autoMergeLevel2
+		stateReconciler: autoMergeLevel2,
+		migrate: (state) => {
+			if (state && state._persist && state._persist.version !== 1)
+				return Promise.reject('Discard old version')
+			return Promise.resolve(state);
+		}
 	};
 
 	const store = createStore(
