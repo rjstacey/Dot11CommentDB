@@ -415,13 +415,13 @@ function headingsMatch(headingRow, expectedHeadings) {
 
 export async function parseCommentsSpreadsheet(buffer, sheetName) {
 
-	var workbook = new ExcelJS.Workbook()
-	await workbook.xlsx.load(buffer)
+	var workbook = new ExcelJS.Workbook();
+	await workbook.xlsx.load(buffer);
 	//console.log(workbook, buffer)
-	const worksheet = workbook.getWorksheet(sheetName)
+	const worksheet = workbook.getWorksheet(sheetName);
 	if (!worksheet) {
-		let sheets = []
-		workbook.eachSheet((worksheet, sheetId) => {sheets.push(worksheet.name)})
+		let sheets = [];
+		workbook.eachSheet((worksheet, sheetId) => {sheets.push(worksheet.name)});
 		throw `Workbook does not have a "${sheetName}" worksheet. It does have the following worksheets:\n${sheets.join(', ')}`
 	}
 

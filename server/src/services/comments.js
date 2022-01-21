@@ -190,7 +190,7 @@ export async function importEpollComments(user, ballot_id, epollNum, startCommen
 	if (!user.ieeeClient)
 		throw new Error('Not logged in');
 
-	const response = await user.ieeeClient.get(`https://mentor.ieee.org/802.11/poll-comments.csv?p=${epollNum}`, {responseType: 'text/csv'});
+	const response = await user.ieeeClient.get(`https://mentor.ieee.org/802.11/poll-comments.csv?p=${epollNum}`, {responseType: 'arraybuffer'});
 
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new Error('Not logged in');
