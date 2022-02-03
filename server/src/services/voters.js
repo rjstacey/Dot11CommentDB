@@ -2,26 +2,24 @@
 
 import { v4 as uuid, validate as validateUUID } from 'uuid';
 import {getMembersSnapshot} from './members';
+import csvParse from '../util/csvParse';
+import ExcelJS from 'exceljs';
 
-const csvParse = require('csv-parse/lib/sync');
-const ExcelJS = require('exceljs');
 const db = require('../util/database');
 
 const membersHeader = [
 	'SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'
-]
+];
 
-function parseVoters(buffer) {
+async function parseVoters(buffer) {
 
-	const p = csvParse(buffer, {columns: false});
-	if (p.length === 0) {
-		throw 'Got empty .csv file';
-	}
+	const p = await csvParse(buffer, {columns: false});
+	if (p.length === 0)
+		throw Error('Got empty .csv file');
 
 	// Row 0 is the header
-	if (membersHeader.reduce((r, v, i) => v !== p[0][i], false)) {
-		throw `Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`
-	}
+	if (membersHeader.reduce((r, v, i) => v !== p[0][i], false))
+		throw new Error(`Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`);
 	p.shift();
 
 	return p.map(c => {
@@ -229,7 +227,7 @@ async function insertVoters(votingPoolId, voters) {
 }
 
 export async function votersFromSpreadsheet(votingPoolId, file) {
-	let voters = parseVoters(file.buffer);
+	let voters = await parseVoters(file.buffer);
 	return await insertVoters(votingPoolId, voters);
 }
 

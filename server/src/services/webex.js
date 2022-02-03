@@ -182,7 +182,7 @@ export async function getWebexMeetings(group) {
 export async function getWebexMeeting(id, meeting_id) {
 	const api = apis[id];
 	if (!api)
-		throw `Invalid account id=${id}`;
+		throw new Error(`Invalid account id=${id}`);
 	let response = await api.get(`/meetings/${meeting_id}`)
 	return response.data;
 }
@@ -190,7 +190,7 @@ export async function getWebexMeeting(id, meeting_id) {
 export async function addWebexMeeting(id, params) {
 	const api = apis[id];
 	if (!api)
-		throw `Invalid account id=${id}`;
+		throw new Error(`Invalid account id=${id}`);
 	const response = await api.post('/meetings', params);
 	return response.data;
 }
@@ -198,7 +198,7 @@ export async function addWebexMeeting(id, params) {
 export async function updateWebexMeeting(id, meeting_id, params) {
 	const api = apis[id];
 	if (!api)
-		throw `Invalid account id=${id}`;
+		throw new Error(`Invalid account id=${id}`);
 	const response = await api.put(`/meetings/${meeting_id}`, params);
 	return response.data;
 }
@@ -206,7 +206,7 @@ export async function updateWebexMeeting(id, meeting_id, params) {
 export async function deleteWebexMeeting(id, meeting_id) {
 	const api = apis[id];
 	if (!api)
-		throw `Invalid account id=${id}`;
+		throw new Error(`Invalid account id=${id}`);
 	const response = await api.delete(`/meetings/${meeting_id}`);
 	return response.data;
 }

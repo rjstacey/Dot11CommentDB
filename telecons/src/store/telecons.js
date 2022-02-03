@@ -1,5 +1,5 @@
 import fetcher from 'dot11-components/lib/fetcher';
-import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
+import {createAppTableDataSlice, SortType, selectCurrentPanelConfig, setPanelIsSplit} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 import {displayDate} from 'dot11-components/lib';
 import {DateTime} from 'luxon';
@@ -9,19 +9,32 @@ export const fields = {
 	subgroup: {label: 'Subgroup'},
 	start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
 	end: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
-	day: {label: 'Day', getField: (rowData) => DateTime.fromISO(rowData.start, {zone: rowData.timezone}).weekdayShort},
-	date: {label: 'Date', getField: (rowData) => DateTime.fromISO(rowData.start, {zone: rowData.timezone}).toFormat('yyyy LLL dd')},
-	time: {label: 'Time', getField: (rowData) => DateTime.fromISO(rowData.start, {zone: rowData.timezone}).toFormat('HH:mm')},
-	duration: {label: 'Duration', getField: (rowData) => DateTime.fromISO(rowData.end).diff(DateTime.fromISO(rowData.start), 'hours').hours},
+	day: {label: 'Day'},
+	date: {label: 'Date'},
+	time: {label: 'Time'},
+	duration: {label: 'Duration'},
 	hasMotions: {label: 'Motions'},
 	webex_id: {label: 'Webex account'},
 };
+
+export function getField(entity, key) {
+	if (key === 'day')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).weekdayShort;
+	else if (key === 'date')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('yyyy LLL dd');
+	else if (key === 'time')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('HH:mm');
+	else if (key === 'duration')
+		return DateTime.fromISO(entity.end).diff(DateTime.fromISO(entity.start), 'hours').hours;
+	return entity[key];
+}
 
 export const dataSet = 'telecons';
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
+	selectField: getField,
 	initialState: {},
 });
 
@@ -31,8 +44,18 @@ const slice = createAppTableDataSlice({
 export default slice.reducer;
 
 /*
+ * Selectors
+ */
+export const selectTeleconsState = (state) => state[dataSet];
+export const getTeleconsForSubgroup = (state, subgroup) => state.ids.filter(id => state.entities[id].Subgroup === subgroup);
+
+export const selectTeleconsCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
+
+/*
  * Actions
  */
+export const setTeleconsCurrentPanelIsSplit = (value) => setPanelIsSplit(dataSet, undefined, value);
+
 const {
 	getPending,
 	getSuccess,
@@ -143,7 +166,3 @@ export const syncTeleconsWithCalendar = (ids) =>
 		await dispatch(updateMany(updates));
 	}
 
-/*
- * Selectors
- */
-export const getTeleconsForSubgroup = (state, subgroup) => state.ids.filter(id => state.entities[id].Subgroup === subgroup);

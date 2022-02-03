@@ -3,7 +3,7 @@
  */
 'use strict';
 
-const ExcelJS = require('exceljs')
+const ExcelJS = require('exceljs');
 
 function parseResolution(v, c) {
 	if (typeof v === 'string') {
@@ -17,8 +17,8 @@ function parseResolution(v, c) {
 			c.ResnStatus = 'J';
 
 		// Remove the resolution status if it exists. And leading whitespace or dash.
-		c.Resolution = v.replace(/^\s*(ACCEPTED|ACCEPT|REVISED|REVISE|REJECTED|REJECT)[:-\s\n]*/i, '')
-		c.Resolution = toHtml(c.Resolution)
+		c.Resolution = v.replace(/^\s*(ACCEPTED|ACCEPT|REVISED|REVISE|REJECTED|REJECT)[:-\s\n]*/i, '');
+		c.Resolution = toHtml(c.Resolution);
 	}
 }
 
@@ -33,32 +33,32 @@ function genResolution(c) {
 	if (c.ResnStatus && mapResnStatus[c.ResnStatus]) {
 		r += mapResnStatus[c.ResnStatus];
 		if (c.Resolution)
-			r += '\n'
+			r += '\n';
 	}
 	if (c.Resolution) {
-		r += fromHtml(c.Resolution)
+		r += fromHtml(c.Resolution);
 	}
 	return r;
 }
 
 function parsePage(v) {
-	let page = parseFloat(v)
+	let page = parseFloat(v);
 	if (isNaN(page))
 		page = 0;
 	return page.toFixed(2);
 }
 
 function genStatus(c) {
-	let Status = ''
+	let Status = '';
 	if (c.ApprovedByMotion)
-		Status = 'Resolution approved'
+		Status = 'Resolution approved';
 	else if (c.ReadyForMotion)
-		Status = 'Ready for motion'
+		Status = 'Ready for motion';
 	else if (c.ResnStatus)
-		Status = 'Resolution drafted'
+		Status = 'Resolution drafted';
 	else if (c.AssigneeName)
-		Status = 'Assigned'
-	return Status
+		Status = 'Assigned';
+	return Status;
 }
 
 
@@ -422,7 +422,7 @@ export async function parseCommentsSpreadsheet(buffer, sheetName) {
 	if (!worksheet) {
 		let sheets = [];
 		workbook.eachSheet((worksheet, sheetId) => {sheets.push(worksheet.name)});
-		throw `Workbook does not have a "${sheetName}" worksheet. It does have the following worksheets:\n${sheets.join(', ')}`
+		throw new Error(`Workbook does not have a "${sheetName}" worksheet. It does have the following worksheets:\n${sheets.join(', ')}`);
 	}
 
 	// Row 1 is the header
@@ -432,9 +432,11 @@ export async function parseCommentsSpreadsheet(buffer, sheetName) {
 	const modernHeadings = Object.keys(modernColumns);
 	const isLegacy = headingsMatch(headerRow, legacyHeadings)
 	if (!isLegacy && !headingsMatch(headerRow, modernHeadings)) {
-		throw `Unexpected column headings ${headerRow.join(', ')}. ` +
+		throw new Error(
+			`Unexpected column headings ${headerRow.join(', ')}. ` +
 			`\n\nExpected legacy headings: ${legacyHeadings.join(', ')}.` +
 			`\n\nOr modern headings: ${modernHeadings.join(', ')}.`
+		);
 	}
 
 	var comments = [];
@@ -466,12 +468,12 @@ export function fromHtml(html) {
 	};
 	html = html.replace(translate_re, (match, entity) => translate[entity]);
 
-	return html
+	return html;
 }
 
 function toHtml(value) {
 	if (!value)
-		return ''
+		return '';
 
 	const s = value
 		.split('&').join('&amp;')
@@ -532,7 +534,7 @@ function addStatus(sheet, columns, nRows) {
 			ref: `${statusCol}2:${statusCol}${nRows-1}`
 		};
 	for (let rowIndex = 3; rowIndex < nRows; rowIndex += 1) {
-		sheet.getCell(rowIndex, statusIndex+1).value = {sharedFormula: `${statusCol}2`, result: ''}
+		sheet.getCell(rowIndex, statusIndex+1).value = {sharedFormula: `${statusCol}2`, result: ''};
 	}
 }
 
@@ -548,13 +550,13 @@ function genWorksheet(sheet, columns, ballotId, doc, comments) {
 		cmts.forEach((c, i) => {
 			const row = sheet.getRow(n);
 			row.values = Object.keys(columns).map(key => {
-				const column = columns[key]
+				const column = columns[key];
 				if (key === 'LB')
-					return ballotId
+					return ballotId;
 				else if (key === 'Draft')
-					return doc
+					return doc;
 				else
-					return typeof column.set === 'function'? column.set(c): (column.set || '')
+					return typeof column.set === 'function'? column.set(c): (column.set || '');
 			});
 			n++;
 		});
@@ -612,7 +614,7 @@ const CommentsSpreadsheetStyle = {
 export async function genCommentsSpreadsheet(user, ballotId, isLegacy, style, doc, comments, file, res) {
 
 	if (!Object.values(CommentsSpreadsheetStyle).includes(style))
-		throw 'Invalid Style parameter: expected one of ' + Object.values(CommentsSpreadsheetStyle).join(', ');
+		throw new TypeError('Invalid Style parameter: expected one of ' + Object.values(CommentsSpreadsheetStyle).join(', '));
 
 	let workbook = new ExcelJS.Workbook();
 	if (file) {
@@ -620,16 +622,16 @@ export async function genCommentsSpreadsheet(user, ballotId, isLegacy, style, do
 			await workbook.xlsx.load(file.buffer)
 		}
 		catch(err) {
-			throw "Invalid workbook: " + err
+			throw new TypeError("Invalid workbook: " + err);
 		}
-		let ids = []
+		let ids = [];
 		workbook.eachSheet(sheet => {
 			if (sheet.name !== 'Title' && sheet.name !== 'Revision History') {
-				ids.push(sheet.id)
+				ids.push(sheet.id);
 			}
 		});
 		for (let id of ids) {
-			workbook.removeWorksheet(id)
+			workbook.removeWorksheet(id);
 		}
 	}
 	else {
@@ -666,9 +668,9 @@ export async function genCommentsSpreadsheet(user, ballotId, isLegacy, style, do
 	}
 
 	try {
-		await workbook.xlsx.write(res)
+		await workbook.xlsx.write(res);
 	}
 	catch(err) {
-		throw "Unable to regenerate workbook: " + err
+		throw Error("Unable to regenerate workbook: " + err);
 	}
 }

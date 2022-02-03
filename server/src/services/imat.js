@@ -2,9 +2,8 @@
  * imat.ieee.org HTML scraping
  */
 import { DateTime, Duration } from 'luxon';
-
-const cheerio = require('cheerio');
-const csvParse = require('csv-parse/lib/sync');
+import cheerio from 'cheerio';
+import csvParse from '../util/csvParse';
 
 // Convert date to ISO format
 function dateToISODate(dateStr) {
@@ -87,7 +86,7 @@ export async function getImatBreakouts(user, session) {
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new Error('Not logged in');
 
-	const p = csvParse(response.data, {columns: false});
+	const p = await csvParse(response.data, {columns: false});
 	if (p.length === 0)
 		throw new Error('Got empty breakouts.csv');
 
@@ -198,7 +197,7 @@ export async function getImatAttendanceSummary(user, session) {
 	if (response.headers['content-type'] !== 'text/csv')
 		throw 'Not logged in'
 
-	const p = csvParse(response.data, {columns: false});
+	const p = await csvParse(response.data, {columns: false});
 	if (p.length === 0)
 		throw new Error('Got empty attendance_summary.csv');
 

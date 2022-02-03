@@ -161,8 +161,8 @@ async function insertComments(userId, ballot_id, comments) {
 	if (comments.length) {
 		// Insert the comments
 		const sql1 =
-			db.format('INSERT INTO comments (`ballot_id`, ??) VALUES ', [Object.keys(comments[0])]) +
-			comments.map(c => db.format('(?, ?)', [ballot_id, Object.values(c)])).join(', ');
+			db.format('INSERT INTO comments (`ballot_id`, LastModifiedBy, LastModifiedTime, ??) VALUES ', [Object.keys(comments[0])]) +
+			comments.map(c => db.format('(?, ?, NOW(), ?)', [ballot_id, userId, Object.values(c)])).join(', ');
 		await db.query(sql1);
 
 		// Insert a null resolution for each comment
@@ -195,7 +195,7 @@ export async function importEpollComments(user, ballot_id, epollNum, startCommen
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new Error('Not logged in');
 
-	const comments = parseEpollCommentsCsv(response.data, startCommentId);
+	const comments = await parseEpollCommentsCsv(response.data, startCommentId);
 	//console.log(comments[0])
 
 	return insertComments(user.SAPIN, ballot_id, comments);
@@ -210,12 +210,12 @@ export async function uploadComments(userId, ballot_id, startCommentId, file) {
 	}
 	else {
 		if (isExcel)
-			throw 'Expecting .csv file'
+			throw new TypeError('Expecting .csv file');
 		try {
-			comments = parseEpollCommentsCsv(file.buffer, startCommentId);
+			comments = await parseEpollCommentsCsv(file.buffer, startCommentId);
 		}
 		catch (error) {
-			throw 'Parse error: ' + error.toString();
+			throw new TypeError('Parse error: ' + error.toString());
 		}
 	}
 	return insertComments(userId, ballot_id, comments);

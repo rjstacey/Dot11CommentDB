@@ -90,7 +90,7 @@ function parseSAPINsEntry(u) {
 		SAPIN: parseInt(u[1], 10),
 		DateAdded: new Date(u[2])
 	}
-	return entry
+	return entry;
 }
 
 export async function parseSAPINsSpreadsheet(buffer) {

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {ActionButton, ButtonGroup} from 'dot11-components/form';
 import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, ShowFilters, TableColumnSelector, TableViewSelector} from 'dot11-components/table';
 
-import {fields, loadTelecons, setUiProperty, dataSet} from './store/telecons';
+import {fields, loadTelecons, selectTeleconsState, selectTeleconsCurrentPanelConfig, setTeleconsCurrentPanelIsSplit, dataSet} from './store/telecons';
 import {setTimezone, dataSet as timeZoneDataSet} from './store/timeZones';
 import TeleconDetail from './TeleconDetail';
 import ShowCalendar from './ShowCalendar';
@@ -52,8 +52,9 @@ const tableColumns = [
 function Telecons() {
 
 	const dispatch = useDispatch();
-	const {valid, loading, ui: uiProperties} = useSelector(state => state[dataSet]);
-	const setProperty = React.useCallback((property, value) => dispatch(setUiProperty({property, value})), [dispatch]);
+	const {valid, loading} = useSelector(selectTeleconsState);
+	const {isSplit} = useSelector(selectTeleconsCurrentPanelConfig);
+	const setIsSplit = React.useCallback((value) => dispatch(setTeleconsCurrentPanelIsSplit(value)), [dispatch]);
 	const {timeZone} = useSelector(state => state[timeZoneDataSet]);
 
 	React.useEffect(() => {
@@ -63,7 +64,8 @@ function Telecons() {
 
 	const refresh = () => dispatch(loadTelecons(group));
 
-	return <>
+	return (
+		<>
 		<TopRow>
 			<ShowCalendar group={group} />
 		</TopRow>
@@ -82,8 +84,8 @@ function Telecons() {
 						<ActionButton
 							name='book-open'
 							title='Show detail'
-							isActive={uiProperties.showDetail}
-							onClick={() => setProperty('showDetail', !uiProperties.showDetail)} 
+							isActive={isSplit}
+							onClick={() => setIsSplit(!isSplit)} 
 						/>
 					</div>
 				</ButtonGroup>
@@ -96,7 +98,7 @@ function Telecons() {
 			fields={fields}
 		/>
 
-		<SplitPanel splitView={uiProperties.showDetail || false} >
+		<SplitPanel dataSet={dataSet} >
 			<Panel>
 				<AppTable
 					columns={tableColumns}
@@ -109,7 +111,8 @@ function Telecons() {
 				<TeleconDetail />
 			</Panel>
 		</SplitPanel>
-	</>
+		</>
+	)
 }
 
 export default Telecons;

@@ -22,7 +22,7 @@ async function createCalendar(id, authParams) {
 	oauth2Client.on('tokens', (authParams) => {
 		// Listen for token updates and record the latest
 		console.log('update received', authParams);
-		db.query('UPDATE oauth_accounts SET authParams=JSON_PATCH(authParams, ?), authDate=NOW() WHERE id=?', [JSON.stringify(authParams), id]);
+		db.query('UPDATE oauth_accounts SET authParams=JSON_MERGE_PATCH(authParams, ?), authDate=NOW() WHERE id=?', [JSON.stringify(authParams), id]);
 	});
 	const calendar = google.calendar({
 		version: 'v3',

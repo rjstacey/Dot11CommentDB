@@ -27,7 +27,7 @@ const defaultLocalEntry = {
 
 const toTimeStr = (hour, min) => ('0' + hour).substr(-2) + ':' + ('0' + min).substr(-2);
 const fromTimeStr = (str) => {
-	const m = str.match(/(\d):(\d)/);
+	const m = str.match(/(\d+):(\d+)/);
 	return m? {hour: parseInt(m[1], 10), minute: parseInt(m[2], 10)}: {hour: 0, minute: 0};
 }
 
@@ -338,6 +338,7 @@ function TeleconDetail(props) {
 		const updates = [];
 		for (const id of ids) {
 			const changesLocal = {...originals[id], ...diff};
+			console.log(changesLocal)
 			console.log(entities[id], convertFromLocal(changesLocal))
 			const changes = deepDiff(entities[id], convertFromLocal(changesLocal));
 			console.log(changes)
@@ -436,7 +437,7 @@ function TeleconDetail(props) {
 	if (loading)
 		notAvailableStr = 'Loading...';
 	else if (state.action !== 'add' && selected.length === 0)
-		notAvailableStr = 'Nothing selected'
+		notAvailableStr = 'Nothing selected';
 
 	return (
 		<Container>

@@ -4,9 +4,9 @@
 
 'use strict';
 
-const ExcelJS = require('exceljs');
-const csvParse = require('csv-parse/lib/sync');
-import {fromHtml} from './commentsSpreadsheet';
+import ExcelJS from 'exceljs';
+import csvParse from '../util/csvParse';
+import { fromHtml } from './commentsSpreadsheet';
 
 const myProjectCommentsHeader = [
 	'Comment ID', 'Date', 'Comment #', 'Name', 'Email', 'Phone', 'Style', 'Index #', 'Classification', 'Vote',
@@ -27,40 +27,44 @@ function parseMyProjectComment(c) {
 		Comment: c[15] || '',						// Comment
 		ProposedChange: c[18] || '',				// Proposed Change
 		MustSatisfy: c[17].toLowerCase() === 'yes'	// Must be Satisfied
-	}
-	comment.Clause = comment.C_Clause
-	comment.Page = parseFloat(comment.C_Page) + parseFloat(comment.C_Line)/100
-	if (isNaN(comment.Page)) {comment.Page = 0}
+	};
+	comment.Clause = comment.C_Clause;
+	comment.Page = parseFloat(comment.C_Page) + parseFloat(comment.C_Line)/100;
+	if (isNaN(comment.Page)) 
+		comment.Page = 0;
 
-	return comment
+	return comment;
 }
 
 export async function parseMyProjectComments(startCommentId, buffer, isExcel) {
 
 	var p = [] 	// an array of arrays
 	if (isExcel) {
-		var workbook = new ExcelJS.Workbook()
-		await workbook.xlsx.load(buffer)
+		var workbook = new ExcelJS.Workbook();
+		try {
+			await workbook.xlsx.load(buffer);
+		}
+		catch (error) {
+			throw new Error("Invalid workbook: " + err);
+		}
 
 		workbook.getWorksheet(1).eachRow(row => {
 			p.push(row.values.slice(1, 26))
-		})
+		});
 	}
 	else {
-		p = csvParse(buffer, {columns: false})
+		p = await csvParse(buffer, {columns: false});
 	}
 	//console.log(p)
 
-	if (p.length === 0) {
-		throw 'Got empty comments file'
-	}
+	if (p.length === 0)
+		throw new Error('Got an empty file');
 
 	// Check the column names to make sure we have the right file
 	// The CSV from MyProject has # replaced by ., so replace '#' with '.' (in the regex this matches anything)
 	var expected = myProjectCommentsHeader.map(r => r.replace('#', '.'))
-	if (expected.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].search(new RegExp(v, 'i')) === -1, false)) {
-		throw `Unexpected column headings:\n${p[0].join(', ')}\n\nExpected:\n${myProjectCommentsHeader.join(', ')}`
-	}
+	if (expected.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].search(new RegExp(v, 'i')) === -1, false))
+		throw new Error(`Unexpected column headings:\n${p[0].join(', ')}\n\nExpected:\n${myProjectCommentsHeader.join(', ')}`);
 	p.shift()	// remove column heading row
 
 	// Parse each row and assign CommentID
@@ -79,34 +83,32 @@ const mapResnStatus = {
  */
 export async function myProjectAddResolutions(buffer, dbComments, res) {
 
-	let workbook = new ExcelJS.Workbook()
+	let workbook = new ExcelJS.Workbook();
 	try {
-		await workbook.xlsx.load(buffer)
+		await workbook.xlsx.load(buffer);
 	}
 	catch(err) {
-		throw "Invalid workbook: " + err
+		throw new Error("Invalid workbook: " + err);
 	}
 
 	let worksheet = workbook.getWorksheet(1);
-	if (!worksheet) {
-		'Unexpected file format; worksheet not found'
-	}
+	if (!worksheet)
+		throw new TypeError('Unexpected file format; worksheet not found');
 
 	// Check the column names to make sure we have the right file
 	let row = worksheet.getRow(1);
-	if (!row) {
-		throw 'Unexpected file format; header row not found'
-	}
+	if (!row)
+		throw new TypeError('Unexpected file format; header row not found');
 	const header = row.values.slice(1, 26);
 
 	if (myProjectCommentsHeader.reduce((r, v, i) => r || typeof header[i] !== 'string' || header[i].search(new RegExp(v, 'i')) === -1, false)) {
-		throw `Unexpected column headings:\n${header.join(', ')}\n\nExpected:\n${myProjectCommentsHeader.join(', ')}`
+		throw new Error(`Unexpected column headings:\n${header.join(', ')}\n\nExpected:\n${myProjectCommentsHeader.join(', ')}`);
 	}
 
 	worksheet.eachRow((row, i) => {
-		if (i === 1) {	// skip header
-			return
-		}
+		if (i === 1)	// skip header
+			return;
+
 		let comment = parseMyProjectComment(row.values.slice(1, 26));
 
 		/* Find comment with matching identifier. If can't be found by identifier then match on comment fields. */
@@ -122,10 +124,10 @@ export async function myProjectAddResolutions(buffer, dbComments, res) {
 	});
 
 	try {
-		await workbook.xlsx.write(res)
+		await workbook.xlsx.write(res);
 	}
 	catch(err) {
-		throw "Unable to regenerate workbook: " + err
+		throw new Error("Unable to regenerate workbook: " + err);
 	}
 }
 
@@ -141,21 +143,20 @@ export async function parseMyProjectResults(buffer, isExcel) {
 
 		workbook.getWorksheet(1).eachRow(row => {
 			p.push(row.values.slice(1, myProjectResultsHeader.length + 1))
-		})
+		});
 	}
 	else {
-		throw "Can't handle .csv file"
+		throw new Error("Can't handle .csv file");
 	}
 
 	if (p.length < 2) {
-		throw 'File has less than 2 rows'
+		throw new Error('File has less than 2 rows');
 	}
 
-	p.shift()	// PAR #
-	if (myProjectResultsHeader.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].search(new RegExp(v, 'i')) === -1, false)) {
-		throw `Unexpected column headings ${p[0].join()}. Expected ${myProjectResultsHeader.join()}.`
-	}
-	p.shift()	// remove heading row
+	p.shift();	// PAR #
+	if (myProjectResultsHeader.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].search(new RegExp(v, 'i')) === -1, false))
+		throw new Error(`Unexpected column headings ${p[0].join()}. Expected ${myProjectResultsHeader.join()}.`);
+	p.shift();	// remove heading row
 
 	const results = p.map(c => {
 		return {
@@ -164,7 +165,7 @@ export async function parseMyProjectResults(buffer, isExcel) {
 			Affiliation: c[2],
 			Vote: c[4]
 		}
-	})
+	});
 
 	return results;
 }
@@ -258,7 +259,7 @@ function parseRosterEntry(u) {
 	}
 	user.Name = user.FirstName;
 	if (user.MI)
-		user.Name += ' ' + user.MI
+		user.Name += ' ' + user.MI;
 	user.Name += ' ' + user.LastName;
 
 	return user
@@ -267,8 +268,8 @@ function parseRosterEntry(u) {
 export async function parseMyProjectRosterSpreadsheet(buffer) {
 
 	var p = [] 	// an array of arrays
-	var workbook = new ExcelJS.Workbook()
-	await workbook.xlsx.load(buffer)
+	var workbook = new ExcelJS.Workbook();
+	await workbook.xlsx.load(buffer);
 
 	workbook.getWorksheet(1).eachRow(row => {
 		p.push(row.values.slice(1, myProjectRosterHeader.length+1))
@@ -306,7 +307,7 @@ export async function genMyProjectRosterSpreadsheet(members, res) {
 		const row = worksheet.getRow(i + 2);
 		row.values = 
 			Object.values(myProjectRosterColumns)
-				.map(col => typeof col.set === 'function'? col.set(m): (col.set || ''))
+				.map(col => typeof col.set === 'function'? col.set(m): (col.set || ''));
 	});
 	Object.values(myProjectRosterColumns).forEach((col, i) => {
 		const column = worksheet.getColumn(i+1);
@@ -314,11 +315,11 @@ export async function genMyProjectRosterSpreadsheet(members, res) {
 			column.width = col.width;
 	});
 
-	res.attachment('RosterUsers.xlsx')
+	res.attachment('RosterUsers.xlsx');
 	try {
-		await workbook.xlsx.write(res)
+		await workbook.xlsx.write(res);
 	}
 	catch(err) {
-		throw "Unable to regenerate workbook: " + err
+		throw new Error("Unable to regenerate workbook: " + err);
 	}
 }

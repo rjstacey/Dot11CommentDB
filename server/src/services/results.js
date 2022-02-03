@@ -425,7 +425,7 @@ export async function importEpollResults(user, ballot_id, epollNum) {
 	let response = await p1;
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new Error('Not logged in');
-	var pollResults = parseEpollResultsCsv(response.data);
+	var pollResults = await parseEpollResultsCsv(response.data);
 
 	response = await p2;
 	var pollResults2 = parseEpollResultsHtml(response.data);
@@ -441,7 +441,7 @@ export async function importEpollResults(user, ballot_id, epollNum) {
 }
 
 export async function uploadEpollResults(user, ballotId, file) {
-	const pollResults = parseEpollResultsCsv(file.buffer)
+	const pollResults = await parseEpollResultsCsv(file.buffer)
 	return insertResults(user, ballotId, pollResults);
 }
 

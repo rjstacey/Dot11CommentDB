@@ -4,24 +4,24 @@
 const ExcelJS = require('exceljs');
 
 function populateResultsWorksheet(ws, results) {
-	const b = results.ballot, r = results.summary
-	const votingPoolSize = results.VotingPoolSize
+	const b = results.ballot, r = results.summary;
+	const votingPoolSize = results.VotingPoolSize;
 
 	const dStart = new Date(b.Start);
 	const opened = dStart.toLocaleString('en-US', {year: 'numeric', month: 'numeric', day: 'numeric' , timeZone: 'America/New_York'});
 	const dEnd = new Date(b.End);
-	const closed = dEnd.toLocaleString('en-US', {year: 'numeric', month: 'numeric', day: 'numeric' , timeZone: 'America/New_York'})
+	const closed = dEnd.toLocaleString('en-US', {year: 'numeric', month: 'numeric', day: 'numeric' , timeZone: 'America/New_York'});
 	const _MS_PER_DAY = 1000 * 60 * 60 * 24;
 	const dur = Math.floor((dEnd - dStart) / _MS_PER_DAY);
-	const duration = isNaN(dur)? '': `${dur} days`
+	const duration = isNaN(dur)? '': `${dur} days`;
 
 	const approvalRate = r.Approve/(r.Approve+r.Disapprove);
 
 	const returns = r.TotalReturns;
 	const returnsPct = returns/r.ReturnsPoolSize;
-	const returnsReqStr = (returnsPct > 0.5? 'Meets': 'Does not meet') + ' return requirement (>50%)'
+	const returnsReqStr = (returnsPct > 0.5? 'Meets': 'Does not meet') + ' return requirement (>50%)';
 	const abstainsPct = r.Abstain/votingPoolSize;
-	const abstainsReqStr = (abstainsPct < 0.3? 'Meets': 'Does not meet') + ' abstain requirement (<30%)'
+	const abstainsReqStr = (abstainsPct < 0.3? 'Meets': 'Does not meet') + ' abstain requirement (<30%)';
 
 	/* Create a table with the results */
 	const columns = [
@@ -75,9 +75,9 @@ function populateResultsWorksheet(ws, results) {
 			'', returns, returnsPct,, abstainsPct
 		]);
 	}
-	ws.getColumn(colNum+1).values = dataCol
+	ws.getColumn(colNum+1).values = dataCol;
 
-	var sectNameRows = [1, 7]
+	var sectNameRows = [1, 7];
 	if (votingPoolSize) {sectNameRows = sectNameRows.concat([13, 18])}
 	sectNameRows.forEach(rowNum => {
 		ws.getCell(rowNum, colNum).font = {bold: true}
@@ -101,11 +101,11 @@ function populateResultsWorksheet(ws, results) {
 }
 
 export async function genResultsSpreadsheet(results, res) {
-	const workbook = new ExcelJS.Workbook()
-	workbook.creator = '802.11'
+	const workbook = new ExcelJS.Workbook();
+	workbook.creator = '802.11';
 	for (let r of results) {
 		let ws = workbook.addWorksheet(r.BallotID);
 		populateResultsWorksheet(ws, r);
 	}
-	return workbook.xlsx.write(res)
+	return workbook.xlsx.write(res);
 }
