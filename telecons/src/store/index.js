@@ -8,6 +8,9 @@ import telecons from './telecons';
 import webexAccounts from './webexAccounts';
 import calendarAccounts from './calendarAccounts';
 import timeZones from './timeZones';
+import groups from './groups';
+import officers from './officers';
+import members from './members';
 
 function configureStore() {
 
@@ -16,7 +19,10 @@ function configureStore() {
 		telecons,
 		webexAccounts,
 		calendarAccounts,
-		timeZones
+		timeZones,
+		groups,
+		officers,
+		members
 	});
 
 	const middleware = [thunk];

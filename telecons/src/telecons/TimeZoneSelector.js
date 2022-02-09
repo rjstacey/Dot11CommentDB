@@ -6,7 +6,7 @@ import {FixedSizeList as List} from 'react-window';
 
 import {Select} from 'dot11-components/form';
 
-import {loadTimeZones, dataSet} from './store/timeZones';
+import {loadTimeZones, dataSet} from '../store/timeZones';
 
 const StyledItem = styled.div`
 	padding: 4px 10px;

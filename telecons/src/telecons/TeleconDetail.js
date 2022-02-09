@@ -8,9 +8,9 @@ import {IconCollapse} from 'dot11-components/icons';
 import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, MULTIPLE} from 'dot11-components/lib';
 import {ActionButton, Button, Form, Row, Field, Input, InputDates, InputTime, Checkbox} from 'dot11-components/form';
 
-import {addTelecons, updateTelecons, deleteTelecons, syncTeleconsWithWebex, syncTeleconsWithCalendar, setSelected, setUiProperty, dataSet} from './store/telecons';
-import WebexAccountSelector from './WebexAccountSelector';
-import CalendarAccountSelector from './CalendarAccountSelector';
+import {addTelecons, updateTelecons, deleteTelecons, syncTeleconsWithWebex, syncTeleconsWithCalendar, setSelected, setUiProperty, dataSet} from '../store/telecons';
+import WebexAccountSelector from '../accounts/WebexAccountSelector';
+import CalendarAccountSelector from '../accounts/CalendarAccountSelector';
 import TimeZoneSelector from './TimeZoneSelector';
 
 const MULTIPLE_STR = '(Multiple)';

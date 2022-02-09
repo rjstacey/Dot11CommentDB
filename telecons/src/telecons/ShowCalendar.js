@@ -1,6 +1,6 @@
 import React from 'react'
 import {useDispatch, useSelector} from 'react-redux'
-import {loadCalendarAccounts, dataSet} from './store/calendarAccounts';
+import {loadCalendarAccounts, dataSet} from '../store/calendarAccounts';
 
 function ShowCalendar({group}) {
 	const dispatch = useDispatch();

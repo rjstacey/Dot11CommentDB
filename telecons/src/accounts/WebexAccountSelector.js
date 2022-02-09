@@ -3,7 +3,7 @@ import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {Select} from 'dot11-components/form';
 
-import {loadWebexAccounts, dataSet} from './store/webexAccounts';
+import {loadWebexAccounts, dataSet} from '../store/webexAccounts';
 
 function WebexAccountSelector({
 	style,

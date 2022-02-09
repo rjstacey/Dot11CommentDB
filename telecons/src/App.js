@@ -1,15 +1,16 @@
-import React from 'react'
-import {BrowserRouter as Router, Switch, Route, NavLink, Redirect} from 'react-router-dom'
-import styled from '@emotion/styled'
+import React from 'react';
+import {BrowserRouter as Router, Switch, Route, NavLink, Redirect} from 'react-router-dom';
+import styled from '@emotion/styled';
 
-import Account from 'dot11-components/general/Account'
-import {ErrorModal, ConfirmModal} from 'dot11-components/modals'
-import {AccessLevel} from 'dot11-components/lib/user'
+import Account from 'dot11-components/general/Account';
+import {ErrorModal, ConfirmModal} from 'dot11-components/modals';
+import {AccessLevel} from 'dot11-components/lib/user';
 
-import Accounts from './Accounts'
-import Telecons from './Telecons'
-import {WebexAccountAuth} from './WebexAccounts'
-import {CalendarAccountAuth} from './CalendarAccounts'
+import Accounts from './accounts/Accounts';
+import Telecons from './telecons/Telecons';
+import {WebexAccountAuth} from './accounts/WebexAccounts';
+import {CalendarAccountAuth} from './accounts/CalendarAccounts';
+import Organization from './organization/Organization';
 
 const OuterDiv = styled.div`
 	display: flex;
@@ -98,6 +99,7 @@ function App({user, access}) {
 				<Header>
 					<Title>802.11 Telecon Scheduling</Title>  
 					<Nav>
+						<NavLink to="/organization" activeClassName='active'>Organization</NavLink>
 						<NavLink to="/accounts" activeClassName='active'>Accounts</NavLink>
 						<NavLink to="/telecons/" activeClassName='active'>Telecons</NavLink>
 					</Nav>
@@ -116,6 +118,12 @@ function App({user, access}) {
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Accounts}
+						/>
+						<RestrictedRoute
+							path="/organization"
+							access={access}
+							minAccess={AccessLevel.WGAdmin}
+							component={Organization}
 						/>
 						<RestrictedRoute
 							path="/webex/auth"

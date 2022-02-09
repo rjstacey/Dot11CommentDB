@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import {ActionButton, ButtonGroup} from 'dot11-components/form';
 import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, ShowFilters, TableColumnSelector, TableViewSelector} from 'dot11-components/table';
 
-import {fields, loadTelecons, selectTeleconsState, selectTeleconsCurrentPanelConfig, setTeleconsCurrentPanelIsSplit, dataSet} from './store/telecons';
-import {setTimezone, dataSet as timeZoneDataSet} from './store/timeZones';
+import {fields, loadTelecons, selectTeleconsState, selectTeleconsCurrentPanelConfig, setTeleconsCurrentPanelIsSplit, dataSet} from '../store/telecons';
+import {setTimezone, dataSet as timeZoneDataSet} from '../store/timeZones';
 import TeleconDetail from './TeleconDetail';
 import ShowCalendar from './ShowCalendar';
 import TimeZoneSelector from './TimeZoneSelector';

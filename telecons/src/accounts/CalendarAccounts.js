@@ -8,7 +8,7 @@ import {ActionButton, Form, Field, Row, Input} from  'dot11-components/form';
 import {ActionButtonDropdown} from 'dot11-components/general';
 import {shallowDiff, displayDate} from 'dot11-components/lib';
 
-import {loadCalendarAccounts, updateCalendarAccount, addCalendarAccount, deleteCalendarAccount, authCalendarAccount, getCalendars, dataSet} from './store/calendarAccounts';
+import {loadCalendarAccounts, updateCalendarAccount, addCalendarAccount, deleteCalendarAccount, authCalendarAccount, getCalendars, dataSet} from '../store/calendarAccounts';
 import GroupsSelector from './GroupsSelector';
 
 /* Generate URL for account authorization */

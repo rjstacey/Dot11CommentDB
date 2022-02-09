@@ -7,7 +7,7 @@ import {ActionButton, Form, Field, Row, Input} from  'dot11-components/form';
 import {ActionButtonDropdown} from 'dot11-components/general';
 import {shallowDiff, displayDate} from 'dot11-components/lib';
 
-import {loadWebexAccounts, updateWebexAccount, addWebexAccount, deleteWebexAccount, authWebexAccount, dataSet} from './store/webexAccounts';
+import {loadWebexAccounts, updateWebexAccount, addWebexAccount, deleteWebexAccount, authWebexAccount, dataSet} from '../store/webexAccounts';
 import GroupsSelector from './GroupsSelector';
 
 /* Generate URL for account authorization */
