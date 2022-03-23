@@ -92,6 +92,12 @@ router.use('/calendar', require('./calendarAccounts').default);
 /* Telecons API */
 router.use('/telecons', require('./telecons').default);
 
+/* Groups API */
+router.use('/groups', require('./groups').default);
+
+/* Officers API */
+router.use('/officers', require('./officers').default);
+
 /* Voting pools API */
 router.use('/votingPools', require('./votingPools').default);
 
