@@ -53,7 +53,7 @@ export const selectGroupHierarchy = createSelector(
 			for (const id of ids) {
 				const node = entities[id];
 				if (node.parent_id === parent_id)
-					nodes.push({node, children: findChildren(id)});
+					nodes.push({...node, children: findChildren(id)});
 			}
 			return nodes;
 		}
@@ -65,40 +65,72 @@ export const selectGroupHierarchy = createSelector(
 /*
  * Actions
  */
-const {getPending, getSuccess, getFailure, addOne} = slice.actions;
+const {getPending, getSuccess, getFailure, addOne, updateOne, removeOne} = slice.actions;
 
-export const loadGroups1 = () => 
-	async (dispatch, getState) => {
+const url = '/api/groups';
+
+export const loadGroups = () => 
+	(dispatch, getState) => {
 		dispatch(getPending());
-		const url = '/api/groups';
-		let entities;
-		try {
-			entities = await fetcher.get(url);
-			if (!Array.isArray(entities))
-				throw new TypeError(`Unexpected response to GET ${url}`);
-		}
-		catch(error) {
-			await dispatch(getFailure());
-			await dispatch(setError('Unable to get groups', error));
-			return;
-		}
-		await dispatch(getSuccess(entities));
+		fetcher.get(url)
+			.then(entities => {
+				if (!Array.isArray(entities))
+					throw new TypeError(`Unexpected response to GET ${url}`);
+				dispatch(getSuccess(entities));
+			})
+			.catch(error => {
+				dispatch(getFailure());
+				dispatch(setError('Unable to get groups', error));
+			});
 	}
 
-export const loadGroups = () => {
-	const groups = [
-		{id: 1, name: '802', parent_id: null},
-		{id: 2, name: '802.1', parent_id: 1},
-		{id: 3, name: '802.11', parent_id: 1},
-		{id: 4, name: 'TGbb', parent_id: 3},
-		{id: 5, name: 'TGbc', parent_id: 3},
-		{id: 6, name: 'TGbd', parent_id: 3}
-	];
-	return {type: slice.actions.getSuccess.toString(), payload: groups};
-}
+export const addGroup = (group) => 
+	(dispatch, getState) => {
+		if (!group.id)
+			group = {...group, id: uuid()};
+		dispatch(addOne(group));
+		fetcher.post(url, [group])
+			.then(entities => {
+				if (!Array.isArray(entities) || entities.length !== 1)
+					throw new TypeError(`Unexpected response to POST ${url}`);
+				const group = entities[0];
+				dispatch(updateOne({id: group.id, changes: group}));
+			})
+			.catch(error => {
+				dispatch(setError('Unable to add group', error));
+				dispatch(removeOne(group.id));
+			});
+		return group;
+	}
 
-export const addGroup = (group) => {
-	if (!group.id)
-		group = {...group, id: uuid()};
-	return addOne(group);
-}
+export const updateGroup = (update) => 
+	(dispatch, getState) => {
+		const {entities} = selectGroupsState(getState());
+		const original = entities[update.id];
+		dispatch(updateOne(update));
+		fetcher.put(url, [update])
+			.then(entities => {
+				if (!Array.isArray(entities) || entities.length !== 1)
+					throw new TypeError(`Unexpected response to POST ${url}`);
+				const group = entities[0];
+				dispatch(updateOne({id: group.id, changes: group}));
+			})
+			.catch(error => {
+				dispatch(setError('Unable to update group', error));
+				if (original)
+					dispatch(updateOne({id: update.id, changes: original}));
+			});
+	}
+
+export const deleteGroup = (id) =>
+	(dispatch, getState) => {
+		const {entities} = selectGroupsState(getState());
+		const original = entities[id];
+		dispatch(removeOne(id));
+		fetcher.delete(url, [id])
+			.catch(error => {
+				dispatch(setError('Unable to delete group', error));
+				if (original)
+					dispatch(addOne(original));
+			});
+	}

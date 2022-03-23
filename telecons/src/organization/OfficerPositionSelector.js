@@ -1,8 +1,29 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Select} from 'dot11-components/form';
+//import {Select} from 'dot11-components/form';
+import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
 
 const positions = ["Chair", "Vice chair", "Secretary", "Technical editor", "Other"];
+
+function Dropdown({close, positions, onChange}) {
+
+	function handleChange(value) {
+		onChange(value);
+		close();
+	}
+
+	return (
+		<div>
+			{positions.map(pos => 
+				<div
+					key={pos}
+					onClick={() => handleChange(pos)}
+				>
+					{pos}
+				</div>)}
+		</div>
+	)
+}
 
 function OfficerPositionSelector({
 	style,
@@ -12,23 +33,12 @@ function OfficerPositionSelector({
 	readOnly,
 	...otherProps
 }) {
-	const options = positions.map(v=> ({value: v, label: v}));
-	const optionsSelected = value? value.map(v => options.find(o => o.value === v)): [];
-
-	function handleChange(values) {
-		const newValue = values.map(v => v.value);
-		onChange(newValue);
-	}
-
 	return (
-		<Select
-			style={style}
-			className={className}
-			values={optionsSelected}
-			onChange={handleChange}
-			options={options}
-			readOnly={readOnly}
-			{...otherProps}
+		<ActionButtonDropdown
+			name='add'
+			portal
+			anchorEl={document.querySelector('#root')}
+			dropdownRenderer={props => <Dropdown positions={positions} onChange={onChange} {...props} />}
 		/>
 	)
 }
@@ -40,4 +50,3 @@ OfficerPositionSelector.propTypes = {
 }
 
 export default OfficerPositionSelector;
-

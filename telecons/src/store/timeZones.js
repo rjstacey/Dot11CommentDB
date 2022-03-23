@@ -30,6 +30,19 @@ const slice = createSlice({
 	}
 });
 
+/*
+ * Reducer
+ */
+export default slice.reducer;
+
+/*
+ * Selectors
+ */
+export const selectTimeZonesState = (state) => state[dataSet];
+
+/*
+ * Actions
+ */
 const {getSuccess, getPending, getFailure, setTimezone} = slice.actions;
 
 export const loadTimeZones = () =>
@@ -53,4 +66,3 @@ export const loadTimeZones = () =>
 
 export {setTimezone};
 
-export default slice.reducer;

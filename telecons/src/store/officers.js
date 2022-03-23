@@ -58,39 +58,72 @@ export const createGroupOfficersSelector = (state, group_id) => createSelector(
 /*
  * Actions
  */
-const {getPending, getSuccess, getFailure, addOne} = slice.actions;
+const url = '/api/officers';
 
-export const loadOfficers2 = () => 
-	async (dispatch, getState) => {
+const {getPending, getSuccess, getFailure, addOne, updateOne, removeOne} = slice.actions;
+
+export const loadOfficers = () => 
+	(dispatch, getState) => {
 		dispatch(getPending());
-		const url = '/api/officers';
-		let entities;
-		try {
-			entities = await fetcher.get(url);
-			if (!Array.isArray(entities))
-				throw new TypeError(`Unexpected response to GET ${url}`);
-		}
-		catch(error) {
-			await dispatch(getFailure());
-			await dispatch(setError('Unable to get groups', error));
-			return;
-		}
-		await dispatch(getSuccess(entities));
+		fetcher.get(url)
+			.then(entities => {
+				if (!Array.isArray(entities))
+					throw new TypeError(`Unexpected response to GET ${url}`);
+				dispatch(getSuccess(entities));
+			})
+			.catch(error => {
+				dispatch(getFailure());
+				dispatch(setError('Unable to get groups', error));
+			});
 	}
 
-export const loadOfficers = () => {
-	const entities = [
-		{id: 1, sapin: 5073, group_id: 3, position: 'Chair'},
-		{id: 2, sapin: 2044, group_id: 3, position: 'Vice chair'},
-		{id: 3, sapin: 2044, group_id: 3, position: 'Vice chair'},
-		{id: 4, sapin: 2044, group_id: 4, position: 'Chair'},
-		{id: 5, sapin: 2044, group_id: 4, position: 'Vice chair'},
-	];
-	return {type: slice.actions.getSuccess.toString(), payload: entities};
-}
+export const addOfficer = (officer) => 
+	(dispatch, getState) => {
+		if (!officer.id)
+			officer = {...officer, id: uuid()};
+		dispatch(addOne(officer));
+		fetcher.post(url, [officer])
+			.then(entities => {
+				if (!Array.isArray(entities) || entities.length !== 1)
+					throw new TypeError(`Unexpected response to POST ${url}`);
+				const officer = entities[0];
+				dispatch(updateOne({id: officer.id, changes: officer}));
+			})
+			.catch(error => {
+				dispatch(setError('Unable to add officer', error));
+				dispatch(removeOne(officer.id));
+			});
+		return officer;
+	}
 
-export const addOfficer = (officer) => {
-	if (!officer.id)
-		officer = {...officer, id: uuid()};
-	return addOne(officer);
-}
+export const updateOfficer = (update) => 
+	(dispatch, getState) => {
+		const {entities} = selectOfficersState(getState());
+		const original = entities[update.id];
+		dispatch(updateOne(update));
+		fetcher.put(url, [update])
+			.then(entities => {
+				if (!Array.isArray(entities) || entities.length !== 1)
+					throw new TypeError(`Unexpected response to POST ${url}`);
+				const officer = entities[0];
+				dispatch(updateOne({id: update.id, changes: officer}));
+			})
+			.catch(error => {
+				dispatch(setError('Unable to update officer', error));
+				if (original)
+					dispatch(updateOne({id: update.id, changes: original}));
+			});
+	}
+
+export const deleteOfficer = (id) =>
+	(dispatch, getState) => {
+		const {entities} = selectOfficersState(getState());
+		const original = entities[id];
+		dispatch(removeOne(id));
+		fetcher.delete(url, [id])
+			.catch(error => {
+				dispatch(setError('Unable to delete officer', error));
+				if (original)
+					dispatch(addOne(original));
+			});
+	}

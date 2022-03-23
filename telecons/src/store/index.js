@@ -10,7 +10,7 @@ import calendarAccounts from './calendarAccounts';
 import timeZones from './timeZones';
 import groups from './groups';
 import officers from './officers';
-import members from './members';
+import members, {loadMembers} from './members';
 
 function configureStore() {
 
@@ -33,6 +33,8 @@ function configureStore() {
 		reducer,
 		composeWithDevTools(applyMiddleware(...middleware))
 	);
+
+	store.dispatch(loadMembers());
 
 	return {store};
 }
