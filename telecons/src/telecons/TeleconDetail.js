@@ -4,25 +4,49 @@ import styled from '@emotion/styled';
 import {DateTime} from 'luxon';
 
 import {ConfirmModal} from 'dot11-components/modals';
-import {IconCollapse} from 'dot11-components/icons';
 import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, MULTIPLE} from 'dot11-components/lib';
-import {ActionButton, Button, Form, Row, Field, Input, InputDates, InputTime, Checkbox} from 'dot11-components/form';
+import {ActionButton, Button, Form, Row, Col, Field, Input, InputDates, InputTime, Checkbox} from 'dot11-components/form';
+import {AppModal} from 'dot11-components/modals';
 
-import {addTelecons, updateTelecons, deleteTelecons, syncTeleconsWithWebex, syncTeleconsWithCalendar, setSelected, setUiProperty, dataSet} from '../store/telecons';
+import {
+	addTelecons, 
+	updateTelecons, 
+	deleteTelecons, 
+	addWebexMeetingToTelecons,
+	removeWebexMeetingFromTelecons,
+	setSelected, 
+	selectTeleconsState, 
+	selectTeleconDefaults
+} from '../store/telecons';
+
+import {selectGroupsState} from '../store/groups';
 import WebexAccountSelector from '../accounts/WebexAccountSelector';
-import CalendarAccountSelector from '../accounts/CalendarAccountSelector';
+import WebexTemplateSelector from '../accounts/WebexTemplateSelector';
 import TimeZoneSelector from './TimeZoneSelector';
+import GroupSelector from '../organization/GroupSelector';
 
 const MULTIPLE_STR = '(Multiple)';
 
 const defaultLocalEntry = {
-	group: '802.11',
-	subgroup: '',
 	dates: [],
 	time: '',
 	duration: 1,
 	hasMotions: false,
-	timezone: 'America/New_York'
+}
+
+const defaultWebexMeeting = {
+	password: 'wireless',
+	enabledJoinBeforeHost: true,
+	joinBeforeHostMinutes: 5,
+	enableConnectAudioBeforeHost: true,
+	meetingOptions: {
+		enabledChat: true,
+		enabledVideo: true,
+		enabledPolling: true,
+		enabledNote: false,
+		enabledClosedCaptions: true,
+		enabledFileTransfer: false
+	}
 }
 
 const toTimeStr = (hour, min) => ('0' + hour).substr(-2) + ':' + ('0' + min).substr(-2);
@@ -32,7 +56,7 @@ const fromTimeStr = (str) => {
 }
 
 export function convertFromLocal(entry) {
-	const {dates, time, duration, ...rest} = entry;
+	let {dates, time, duration, webexMeeting, calendarEvent, ...rest} = entry;
 	
 	let start = MULTIPLE,
 	    end = MULTIPLE;
@@ -43,11 +67,24 @@ export function convertFromLocal(entry) {
 			end = start.plus({hours: duration}).toISO();
 		start = start.toISO();
 	}
-	return {
+
+	let localEntry = {
 		start,
 		end,
 		...rest
 	}
+
+	if (webexMeeting) {
+		let params = {};
+		if (webexMeeting.enableJoinBeforeHost) {
+			params.enableJoinBeforeHost = true;
+			params.joinBeforeHostMinutes = webexMeeting.joinBeforeHostMinutes || 5;
+		}
+		params.password = webexMeeting.password;
+		localEntry.webexMeeting = params;
+	}
+
+	return localEntry;
 }
 
 function convertFromLocalMultipleDates(entry) {
@@ -74,89 +111,241 @@ function convertToLocal(entry) {
 	}
 }
 
-function WebexEntry({
+function WebexCreateScheduleEntry({
 	entry,
 	changeEntry,
-	readOnly
+	readOnly,
 }) {
-	if (!entry)
-		return null;
+	console.log(entry)
+	const webexMeeting = entry.webexMeeting || {};
+	const meetingOptions = webexMeeting.meetingOptions || {};
 
-	return <>
-		<Row>
-			<Field label='Meeting number:'>
-				<span>{entry.meetingNumber}</span>
+	const changeWebexMeeting = (changes) => {
+		console.log(changes)
+		const u = {...webexMeeting, ...changes};
+		changeEntry({webexMeeting: u});
+	}
+
+	const changeWebexMeetingOptions = (changes) => {
+		const u = {...meetingOptions, ...changes};
+		changeWebexMeeting({meetingOptions: u});
+	}
+
+	return (
+		<Col
+			style={{marginLeft: 10}}
+		>
+			<Field label='Webex account'>
+				<WebexAccountSelector
+					value={isMultiple(entry.webex_id)? null: entry.webex_id}
+					onChange={webex_id => changeEntry({webex_id})}
+					placeholder={isMultiple(entry.webex_id)? MULTIPLE_STR: undefined}
+					readOnly={readOnly}
+				/>
 			</Field>
-		</Row>
-		<Row>
-			<Field label='Host key:'>
-				<span>{entry.hostKey}</span>
+			<Field label='Template'>
+				<WebexTemplateSelector
+					value={webexMeeting.templateId}
+					onChange={templateId => changeWebexMeeting({templateId})}
+					accountId={isMultiple(entry.webex_id)? null: entry.webex_id}
+					readOnly={readOnly}
+				/>
 			</Field>
-		</Row>
-		<Row>
+			<Field label='Password:'>
+				<Input 
+					type='search'
+					value={webexMeeting.password}
+					onChange={e => changeWebexMeeting({password: e.target.value})}
+					disabled={readOnly}
+				/>
+			</Field>
 			<Field label='Join before host (minutes):'>
 				<Checkbox
-					checked={entry.enabledJoinBeforeHost}
-					onChange={e => changeEntry({enabledJoinBeforeHost: e.target.checked})}
+					checked={webexMeeting.enabledJoinBeforeHost}
+					onChange={e => changeWebexMeeting({enabledJoinBeforeHost: e.target.checked})}
 					disabled={readOnly}
 				/>
 				<Input 
 					type='text'
-					value={entry.joinBeforeHostMinutes}
-					onChange={e => changeEntry({joinBeforeHostMinutes: e.target.value})}
+					value={webexMeeting.joinBeforeHostMinutes}
+					onChange={e => changeWebexMeeting({joinBeforeHostMinutes: e.target.value})}
 					disabled={readOnly || !entry.enabledJoinBeforeHost}
 				/>
 			</Field>
-		</Row>
-		<Row>
 			<Field label='Connect audio before host:'>
 				<Checkbox 
-					checked={entry.enableConnectAudioBeforeHost}
-					onChange={e => changeEntry({enableConnectAudioBeforeHost: e.target.checked})}
+					checked={webexMeeting.enableConnectAudioBeforeHost}
+					onChange={e => changeWebexMeeting({enableConnectAudioBeforeHost: e.target.checked})}
 					disabled={readOnly}
 				/>
 			</Field>
-		</Row>
-		<Row>
+			<Field label='Enable chat:'>
+				<Checkbox 
+					checked={meetingOptions.enabledChat}
+					onChange={e => changeWebexMeetingOptions({enabledChat: e.target.checked})}
+					disabled={readOnly}
+				/>
+			</Field>
+			<Field label='Enable video:'>
+				<Checkbox 
+					checked={meetingOptions.enabledVideo}
+					onChange={e => changeWebexMeetingOptions({enabledVideo: e.target.checked})}
+					disabled={readOnly}
+				/>
+			</Field>
+			<Field label='Enable polling:'>
+				<Checkbox 
+					checked={meetingOptions.enabledPolling}
+					onChange={e => changeWebexMeetingOptions({enabledPolling: e.target.checked})}
+					disabled={readOnly}
+				/>
+			</Field>
+			<Field label='Enable notes:'>
+				<Checkbox 
+					checked={meetingOptions.enabledNote}
+					onChange={e => changeWebexMeetingOptions({enabledNote: e.target.checked})}
+					disabled={readOnly}
+				/>
+			</Field>
+			<Field label='Enable closed captions:'>
+				<Checkbox 
+					checked={meetingOptions.enabledClosedCaptions}
+					onChange={e => changeWebexMeetingOptions({enabledClosedCaptions: e.target.checked})}
+					disabled={readOnly}
+				/>
+			</Field>
+			<Field label='Enable file transfer:'>
+				<Checkbox 
+					checked={meetingOptions.enabledFileTransfer}
+					onChange={e => changeWebexMeetingOptions({enabledFileTransfer: e.target.checked})}
+					disabled={readOnly}
+				/>
+			</Field>
+		</Col>
+	)
+}
+
+function WebexCreateSchedule({
+	ids,
+	defaultEntry,
+	close,
+}) {
+	const dispatch = useDispatch();
+	const [entry, setEntry] = React.useState(defaultEntry);
+
+	const onSubmit = () => {
+		const updates = ids.map(id => ({id, changes: {webex_meeting_id: null, webexMeeting: entry.webexMeeting}}));
+		dispatch(addWebexMeetingToTelecons(updates));
+		close();
+	}
+
+	const changeEntry = (changes) => {
+		const u = {...entry, ...changes};
+		setEntry(u);
+	}
+
+	return (
+		<Form
+			title={'Schedule Webex'}
+			submit={onSubmit}
+			cancel={close}
+		>
+			<WebexCreateScheduleEntry
+				entry={entry}
+				changeEntry={changeEntry}
+			/>
+		</Form>
+	)
+}
+
+function WebexUpdateScheduleEntry({
+	entry,
+	webexMeeting,
+	changeWebexMeeting,
+	readOnly
+}) {
+	if (!webexMeeting)
+		return null;
+
+	return (
+		<Col>
+			<Field label='Webex account'>
+				<WebexAccountSelector
+					value={isMultiple(entry.webex_id)? null: entry.webex_id}
+					onChange={() => {}}
+					placeholder={isMultiple(entry.webex_id)? MULTIPLE_STR: undefined}
+					readOnly={true}
+				/>
+			</Field>
+			<Field label='Meeting number:'>
+				{webexMeeting.meetingNumber}
+			</Field>
+			<Field label='Host key:'>
+				{webexMeeting.hostKey}
+			</Field>
+			<Field label='Join before host (enable/minutes):'>
+				<Checkbox
+					checked={webexMeeting.enabledJoinBeforeHost}
+					onChange={e => changeWebexMeeting({enabledJoinBeforeHost: e.target.checked})}
+					disabled={readOnly}
+				/>
+				<Input 
+					type='text'
+					value={webexMeeting.joinBeforeHostMinutes}
+					onChange={e => changeWebexMeeting({joinBeforeHostMinutes: e.target.value})}
+					disabled={readOnly || !webexMeeting.enabledJoinBeforeHost}
+				/>
+			</Field>
+			<Field label='Connect audio before host:'>
+				<Checkbox 
+					checked={webexMeeting.enableConnectAudioBeforeHost}
+					onChange={e => changeWebexMeeting({enableConnectAudioBeforeHost: e.target.checked})}
+					disabled={readOnly}
+				/>
+			</Field>
 			<Field label='Password:'>
 				<Input 
 					type='search'
-					value={entry.password}
-					onChange={e => changeEntry({password: e.target.value})}
+					value={webexMeeting.password}
+					onChange={e => changeWebexMeeting({password: e.target.value})}
 					disabled={readOnly}
 				/>
 			</Field>
-		</Row>
-	</>
+		</Col>
+	)
 }
 
 function TeleconEntry({
+	groupId,
 	entry,
 	changeEntry,
 	action,
-	actionSyncWebex,
-	actionSyncCalendar,
-	actionOk,
+	actionAddWithWebex,
+	actionAddWithoutWebex,
+	actionAddWebex,
+	actionRemoveWebex,
+	actionUpdate,
 	actionCancel,
 }) {
-	const dispatch = useDispatch();
-	const uiProperties = useSelector(state => state[dataSet].ui);
 	const readOnly = action === 'view';
-	console.log(entry)
+
+	const changeWebexMeeting = (changes) => {
+		const webexMeeting = {...entry.webexMeeting, ...changes};
+		changeEntry({webexMeeting})
+	}
+
 	return (
 		<Form
 			submitLabel={action === 'add'? 'Add': 'Update'}
-			submit={readOnly? undefined: actionOk}
-			cancel={readOnly? undefined: actionCancel}
 		>
 			<Row>
-				<Field label='Subgroup:'>
-					<Input
-						type='text'
-						value={isMultiple(entry.subgroup)? '': entry.subgroup || ''}
-						onChange={e => changeEntry({subgroup: e.target.value})}
-						placeholder={isMultiple(entry.subgroup)? MULTIPLE_STR: undefined}
-						disabled={readOnly}
+				<Field label='Group:'>
+					<GroupSelector
+						value={isMultiple(entry.group_id)? '': entry.group_id || ''}
+						onChange={(group_id) => changeEntry({group_id})}
+						placeholder={isMultiple(entry.group_id)? MULTIPLE_STR: undefined}
+						parent_id={groupId}
+						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
@@ -167,6 +356,18 @@ function TeleconEntry({
 						value={isMultiple(entry.timezone)? '': entry.timezone || ''}
 						onChange={(timezone) => changeEntry({timezone})}
 						placeholder={isMultiple(entry.timezone)? MULTIPLE_STR: undefined}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Summary:'>
+					<Input
+						type='search'
+						style={{width: 200}}
+						value={isMultiple(entry.summary)? '': entry.summary || ''}
+						onChange={(e) => changeEntry({summary: e.target.value})}
+						placeholder={isMultiple(entry.summary)? MULTIPLE_STR: undefined}
 						disabled={readOnly}
 					/>
 				</Field>
@@ -205,49 +406,34 @@ function TeleconEntry({
 				</Field>
 			</Row>
 			<Row>
-				<Field label='Webex:'>
-					<WebexAccountSelector
-						value={isMultiple(entry.webex_id)? null: entry.webex_id}
-						onChange={value => changeEntry({webex_id: value})}
-						placeholder={isMultiple(entry.webex_id)? MULTIPLE_STR: undefined}
-						disabled={readOnly}
-					/>
-				</Field>
-				<IconCollapse
-					isCollapsed={!uiProperties.showWebexDetail}
-					onClick={() => dispatch(setUiProperty({property: 'showWebexDetail', value: !uiProperties.showWebexDetail}))}
-				/>
+				{action === 'add'?
+					<WebexCreateScheduleEntry
+						entry={entry}
+						changeEntry={changeEntry}
+						readOnly={readOnly}
+					/>:
+					<WebexUpdateScheduleEntry
+						entry={entry}
+						webexMeeting={entry.webexMeeting}
+						changeWebexMeeting={changeWebexMeeting}
+						readOnly={readOnly}
+					/>}
 			</Row>
-			{uiProperties.showWebexDetail &&
-				<WebexEntry
-					entry={entry.webexMeeting}
-					changeEntry={(changes) => changeEntry({webexMeeting: changes})}
-					readOnly={readOnly}
-				/>}
+			{(action === 'add' || action === 'update') &&
 			<Row>
-				<Field label='Calendar:'>
-					<CalendarAccountSelector
-						value={isMultiple(entry.calendar_id)? null: entry.calendar_id}
-						onChange={value => changeEntry({calendar_id: value})}
-						placeholder={isMultiple(entry.calendar_id)? MULTIPLE_STR: undefined}
-						disabled={readOnly}
-					/>
-				</Field>
-				<IconCollapse
-					isCollapsed={!uiProperties.showCalendarDetail}
-					onClick={() => dispatch(setUiProperty({property: 'showCalendarDetail', value: !uiProperties.showCalendarDetail}))}
-				/>
-			</Row>
-			{uiProperties.showCalendarDetail &&
-				<Row>
-					
-				</Row>}
-			<Row>
-				<Button onClick={actionSyncWebex}>Sync webex</Button>
-			</Row>
-			<Row>
-				<Button onClick={actionSyncCalendar}>Sync calendar</Button>
-			</Row>
+				{action === 'add'?
+					<>
+						<Button onClick={actionAddWithWebex}>Add with Webex</Button>
+						<Button onClick={actionAddWithoutWebex}>Add without Webex</Button>
+					</>:
+					<>
+						{entry.webex_meeting_id?
+							<Button onClick={actionRemoveWebex}>Remove Webex</Button>:
+							<Button onClick={actionAddWebex}>Schedule Webex</Button>}
+						<Button onClick={actionUpdate}>Update</Button>
+					</>}
+				<Button onClick={actionCancel}>Cancel</Button>
+			</Row>}
 		</Form>
 	)
 }
@@ -262,6 +448,9 @@ const TopRow = styled.div`
 
 const Container = styled.div`
 	padding: 10px;
+	label {
+		font-weight: bold;
+	}
 `;
 
 const NotAvailable = styled.div`
@@ -272,10 +461,26 @@ const NotAvailable = styled.div`
 	color: #bdbdbd;
 `;
 
-function TeleconDetail(props) {
+function TeleconDetail({groupId}) {
 	const dispatch = useDispatch();
-	const {loading, selected, entities} = useSelector(state => state[dataSet]);
-	const {timeZone} = useSelector(state => state.timeZones);
+	const {loading, selected, entities} = useSelector(selectTeleconsState);
+	const defaults = useSelector(selectTeleconDefaults);
+	const {entities: groupEntities} = useSelector(selectGroupsState);
+
+	const defaultSummary = React.useCallback((subgroup_id) => {
+		let subgroup, group;
+		subgroup = groupEntities[subgroup_id];
+		if (subgroup &&
+			subgroup.type.search(/^(tg|sg|sc|ah)/) !== -1 &&
+			subgroup.parent_id) {
+			group = groupEntities[subgroup.parent_id];
+		}
+		if (group && subgroup)
+			return `${group.name} ${subgroup.name}`;
+		if (subgroup)
+			return subgroup.name;
+		return '';
+	}, [groupEntities]);
 
 	const initState = React.useCallback((action) => {
 		const ids = selected;
@@ -293,19 +498,29 @@ function TeleconDetail(props) {
 					entry.time = '';
 				if (isMultiple(entry.hasMotions))
 					entry.hasMotions = false;
-				if (isMultiple(entry.subgroup))
-					entry.subgroup = '';
+				entry.summary = defaultSummary(entry.group_id);
+				entry.timezone = defaults.timezone;
+				entry.calendar_id = defaults.calendar_id;
+				entry.webex_id = defaults.webex_id;
+				entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webex_template_id};
+				console.log('init add', entry)
 			}
 		}
 		else {
-			entry = {...defaultLocalEntry, timeZone};
+			entry = {...defaultLocalEntry, group_id: groupId};
+			entry.summary = defaultSummary(entry.group_id);
+			entry.timezone = defaults.timezone;
+			entry.calendar_id = defaults.calendar_id;
+			entry.webex_id = defaults.webex_id;
+			entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webex_template_id};
+			console.log(entry)
 		}
 		return {
 			action,
 			entry,
 			ids
 		};
-	}, [selected, entities, timeZone]);
+	}, [selected, entities, defaults, groupId, defaultSummary]);
 
 	const [state, setState] = React.useState(() => initState('view'));
 
@@ -358,8 +573,8 @@ function TeleconDetail(props) {
 			}
 		}
 		if (state.action !== 'add') {
-			dispatch(setSelected([]));
 			setState(initState('add'));
+			dispatch(setSelected([]));
 		}
 		else {
 			setState(initState('view'));
@@ -391,13 +606,15 @@ function TeleconDetail(props) {
 		setState(state => {
 			console.log('before:', state.entry);
 			console.log('changes:', changes);
+			if (changes.hasOwnProperty('group_id'))
+				changes.summary = defaultSummary(changes.group_id);
 			const entry = deepMerge(state.entry, changes);
 			console.log('after:', entry);
 			return {...state, entry}
 		});
-	}, [state, setState]);
+	}, [state, setState, defaultSummary]);
 
-	const add = React.useCallback(async () => {
+	const add = React.useCallback(async (withWebex) => {
 		const {entry} = state;
 		let errMsg = '';
 		if (entry.dates.length === 0)
@@ -412,6 +629,11 @@ function TeleconDetail(props) {
 			ConfirmModal.show(errMsg, false);
 		else {
 			const ids = await dispatch(addTelecons(convertFromLocalMultipleDates(entry)));
+			if (withWebex) {
+				const {webexMeeting} = entry;
+				const updates = ids.map(id => ({id, changes: {webex_meeting_id: null, webexMeeting}}));
+				await dispatch(addWebexMeetingToTelecons(updates));
+			}
 			if (ids)
 				dispatch(setSelected(ids));
 		}
@@ -430,8 +652,12 @@ function TeleconDetail(props) {
 		await dispatch(deleteTelecons(ids));
 	}, [state, dispatch]);
 
-	const syncWebex = () => dispatch(syncTeleconsWithWebex(selected));
-	const syncCalendar = () => dispatch(syncTeleconsWithCalendar(selected));
+	const removeWebex = React.useCallback(async () => {
+		const ids = state.ids;
+		await dispatch(removeWebexMeetingFromTelecons(ids));
+	}, [state, dispatch]);
+
+	const [reschedule, setReschedule] = React.useState(false);
 
 	let notAvailableStr = '';
 	if (loading)
@@ -466,15 +692,26 @@ function TeleconDetail(props) {
 			{notAvailableStr?
 				<NotAvailable>{notAvailableStr}</NotAvailable>:
 				<TeleconEntry
+					groupId={groupId}
 					entry={state.entry}
 					changeEntry={changeEntry}
 					action={state.action}
-					actionSyncWebex={syncWebex}
-					actionSyncCalendar={syncCalendar}
-					actionOk={state.action === 'add'? add: update}
+					actionAddWithWebex={() => add(true)}
+					actionAddWithoutWebex={() => add(false)}
+					actionAddWebex={() => setReschedule(true)}
+					actionRemoveWebex={removeWebex}
+					actionUpdate={update}
 					actionCancel={clickCancel}
+				/>}
+			<AppModal
+				isOpen={reschedule}
+			>
+				<WebexCreateSchedule
+					ids={state.ids}
+					defaultEntry={state.entry}
+					close={() => setReschedule(false)}
 				/>
-			}
+			</AppModal>
 		</Container>
 	)
 }

@@ -5,14 +5,28 @@ import {Select} from 'dot11-components/form';
 
 import {selectWebexAccountsState} from '../store/webexAccounts';
 
-function WebexAccountSelector({
+function WebexTemplateSelector({
 	value,
 	onChange,
+	accountId,
 	...otherProps
 }) {
-	const {loading, ids, entities} = useSelector(selectWebexAccountsState);
-	const options = React.useMemo(() => ids.map(id => entities[id]), [ids, entities]);
-	const values = options.filter(o => o.id === value);
+	const {loading, entities} = useSelector(selectWebexAccountsState);
+
+	const options = React.useMemo(() => {
+		const account = entities[accountId];
+		return account? account.templates: [];
+	}, [accountId, entities]);
+
+	let values = options.filter(o => o.id === value);
+
+	React.useEffect(() => {
+		if (values.length === 0) {
+			const defaults = options.filter(o => o.isDefault);
+			if (defaults.length > 0)
+				onChange(defaults[0].id);
+		}
+	}, [options]);
 
 	const handleChange = React.useCallback((selected) => {
 		const id = selected.length > 0? selected[0].id: null;
@@ -34,10 +48,11 @@ function WebexAccountSelector({
 	)
 }
 
-WebexAccountSelector.propTypes = {
+WebexTemplateSelector.propTypes = {
 	value: PropTypes.any,
 	onChange: PropTypes.func.isRequired,
+	accountId: PropTypes.any,
 	readOnly: PropTypes.bool
 }
 
-export default WebexAccountSelector;
+export default WebexTemplateSelector;

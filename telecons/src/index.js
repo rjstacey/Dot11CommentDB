@@ -1,11 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+
 import configureStore from './store'
+import App from './App';
 import {getUser, logout} from 'dot11-components/lib/user';
 import {fetcher} from 'dot11-components/lib';
 import './index.css';
-import App from './App';
 
 import registerServiceWorker from './registerServiceWorker';
 import reportWebVitals from './reportWebVitals';
@@ -15,11 +17,13 @@ getUser()
 		try {
 			window.user = user;
 			fetcher.setAuth(user.Token, logout);
-			const {store} = configureStore();
+			const {store, persistor} = configureStore();
 			ReactDOM.render(
 				<React.StrictMode>
 					<Provider store={store}>
-						<App user={user} access={user.Access} />
+						<PersistGate loading={'loading...'} persistor={persistor} >
+							<App user={user} access={user.Access} />
+						</PersistGate>
 					</Provider>
 				</React.StrictMode>,
 				document.getElementById('root')

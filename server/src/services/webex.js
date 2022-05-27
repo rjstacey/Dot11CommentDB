@@ -91,6 +91,12 @@ async function getAccounts(constraints) {
 			client_id: process.env.WEBEX_CLIENT_ID,
 			response_type: 'code',
 			scope: webexAuthScope
+		};
+		try {
+			account.templates = await getWebexTemplates(account.id);
+		}
+		catch (error) {
+			console.log(error);
 		}
 	}
 
@@ -153,14 +159,24 @@ export async function updateWebexAccount(id, entry) {
 	entry = accountEntry(entry);
 	if (Object.keys(entry).length)
 		await db.query('UPDATE oauth_accounts SET ? WHERE id=?;', [entry, id]);
-	const [account] = await db.getAccounts({id});
+	const [account] = await getAccounts({id});
 	return account;
 }
 
 export async function deleteWebexAccount(id) {
 	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=?', [id]);
-	delete accounts[id];
+	delete apis[id];
 	return affectedRows;
+}
+
+async function getWebexTemplates(id) {
+	const api = apis[id];
+	if (!api)
+		throw new Error(`Invalid account id=${id}`);
+	let response = await api.get(`/meetings/templates`, {params: {templateType: "meeting"}});
+	console.log(response.data)
+	let templates = response.data.items;
+	return templates;
 }
 
 export async function getWebexMeetings(group) {

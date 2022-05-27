@@ -1,4 +1,5 @@
 import { DateTime } from 'luxon';
+import {parse as uuidToBin} from 'uuid';
 
 import {
 	getWebexMeetings,
@@ -18,10 +19,39 @@ import {
 const db = require('../util/database');
 
 async function selectTelecons(constraints) {
-	let sql = 'SELECT * FROM telecons';
-	if (constraints)
-		sql += ' WHERE ' + Object.entries(constraints).map(([key, value]) => db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])).join(' AND ');
-	console.log(sql)
+
+	let sql =
+		'SELECT ' + 
+			't.id as id, ' +
+			'BIN_TO_UUID(group_id) AS group_id,' +
+			'summary, start, end, timezone, ' +
+			'hasMotions, ' +
+			'webex_id, webex_meeting_id, ' +
+			'calendar_id, calendar_event_id ' +
+		'FROM telecons t';
+
+	const {parent_id, ...rest} = constraints;
+	console.log(rest)
+	if (parent_id) {
+		sql += db.format(' LEFT JOIN `groups` g ON g.id=t.group_id WHERE g.parent_id=UUID_TO_BIN(?)', [parent_id]);
+		if (Object.entries(rest).length)
+			sql += ', '
+	}
+	else {
+		if (Object.entries(rest).length)
+			sql += ' WHERE '
+	}
+
+	if (Object.entries(rest).length) {
+		sql += Object.entries(rest).map(
+			([key, value]) => 
+				(key === 'group_id')?
+					db.format(Array.isArray(value)? 'BIN_TO_UUID(??) IN (?)': '??=UUID_TO_BIN(?)', [key, value]):
+					db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
+		).join(' AND ');
+	}
+	console.log(sql);
+
 	const telecons = await db.query(sql);
 	for (const entry of telecons) {
 		entry.start = DateTime.fromJSDate(entry.start, {zone: entry.timezone}).toISO();
@@ -60,10 +90,11 @@ export async function getTelecons(constraints) {
 }
 
 function teleconEntry(e) {
+
 	const opt = e.timezone? {zone: e.timezone}: {setZone: true};
 	const entry = {
-		group: e.group,
-		subgroup: e.subgroup,
+		group_id: e.group_id,
+		summary: e.summary,
 		start: e.start? DateTime.fromISO(e.start, opt).toJSDate(): undefined,
 		end: e.end? DateTime.fromISO(e.end, opt).toJSDate(): undefined,
 		timezone: e.timezone,
@@ -79,30 +110,126 @@ function teleconEntry(e) {
 			delete entry[key];
 	}
 
-	return entry;
+	const sets = [];
+	for (const [key, value] of Object.entries(entry)) {
+		let sql;
+		if (key === 'group_id')
+			sql = db.format('??=UUID_TO_BIN(?)', [key, value]);
+		else
+			sql = db.format('??=?', [key, value]);
+		sets.push(sql);
+	}
+
+	return sets.join(', ');
 }
 
-const title = (entry) => entry.group + ' ' + entry.subgroup + (entry.hasMotions? '*': '');
-
 function teleconToWebexMeeting(entry) {
-	const webexMeeting = entry.webexMeeting || {};
-	const timezone = entry.timezone || 'America/New_York';
-	return {
+	const webexMeeting = {
 		password: 'wireless',
 		enabledAutoRecordMeeting: false,
-		...webexMeeting,
-		title: title(entry),
+		...(entry.webexMeeting || {}),
+		title: entry.summary,
 		start: entry.start,
 		end: entry.end,
-		timezone,
-		integrationTags: [entry.group],
-	}
+		timezone: entry.timezone || 'America/New_York',
+		integrationTags: [entry.group_id],
+	};
+	if (entry.webex_template_id)
+		webexMeeting.templateId = entry.webex_template_id;
+	return webexMeeting;
+}
+
+function alphToNum(word) {
+	const alph_num_dict = {'a': '2', 'b': '2', 'c': '2',
+					'd': '3', 'e': '3', 'f': '3',
+					'g': '4', 'h': '4', 'i': '4',
+					'j': '5', 'k': '5', 'l': '5',
+					'm': '6', 'n': '6', 'o': '6',
+					'p': '7', 'q': '7', 'r': '7', 's': '7',
+					'u': '8', 'w': '9', 'v': '8',
+					'w': '9', 'x': '9', 'y': '9', 'z': '9'};
+	let s = ''
+	for (let p of word.toLowerCase())
+		s += alph_num_dict[p] || p;
+	return s;
+}
+
+const formatMeetingNumber = (n) => n.substr(0, 4) + ' ' + n.substr(4, 3) + ' ' + n.substr(7);
+
+const meetingDescriptionStyle = `
+	<style>
+		* {
+			font-family: arial;
+			font-size: 16px;
+			color: #666666;
+		}
+		p {
+			margin: 20px;
+		}
+		a {
+			color: #049FD9; 
+			text-decoration: none;
+		}
+		.intro {
+			font-size: 18px;
+		}
+	</style>`;
+
+function teleconWebexDescription(webexMeeting) {
+	console.log(webexMeeting)
+	if (Object.keys(webexMeeting).length === 0)
+		return '';
+
+	const {
+		meetingNumber,
+		webLink,
+		password,
+		phoneAndVideoSystemPassword,
+		sipAddress,
+		siteUrl,
+		dialInIpAddress
+	} = webexMeeting;
+
+	const siteName = siteUrl.replace('.webex.com', '');
+	const lyncUrl = `${meetingNumber}.${siteName}@lync.webex.com`;
+
+	const description = `
+		${meetingDescriptionStyle}
+		<p>
+			Join the Webex meeting here:<br>
+			<a href="${webLink}">${webLink}</a>
+		</p>
+		<p>
+			Meeting number: ${formatMeetingNumber(meetingNumber || '')}<br>
+			Meeting password: ${password} (${phoneAndVideoSystemPassword} from phones and video systems)
+		</p>
+		<p>
+			Join from a video system or application<br>
+			Dial <a href="sip:${sipAddress}">${sipAddress}</a><br>
+			You can also dial ${dialInIpAddress} and enter your meeting number.
+		</p>
+		<p>
+			Join using Microsoft Lync or Microsoft Skype for Business<br>
+			Dial <a href="sip:${lyncUrl}">${lyncUrl}</a>
+		</p>
+		<p>
+			Need help? Go to <a href="http://help.webex.com">http://help.webex.com</a>
+		</p>`.replace(/\t|\n/g, '');	// strip tabs and newline (helps with embedded google calendar formating)
+
+	return description;
 }
 
 function teleconToCalendarEvent(entry) {
+	let location = '',
+	    description = '';
+	if (entry.webexMeeting) {
+		description = teleconWebexDescription(entry.webexMeeting);
+		location = entry.webexMeeting.webLink;
+	}
 	return {
-		summary: title(entry),
-		description: 'Fred',
+		summary: entry.summary,
+		location,
+		description,
 		start: {
 			dateTime: entry.start,
 			timeZone: entry.timezone
@@ -117,13 +244,22 @@ function teleconToCalendarEvent(entry) {
 async function addTelecon(entry) {
 
 	let response, params;
-	if (entry.webex_id) {
+	/*if (entry.webex_id) {
+		console.log(entry)
 		params = teleconToWebexMeeting(entry);
 		console.log(params)
-		response = await addWebexMeeting(entry.webex_id, params);
+		try {
+			response = await addWebexMeeting(entry.webex_id, params);
+		}
+		catch (error) {
+			console.error(error);
+			console.log(`status: ${error.response.status} ${error.response.statusText}`);
+			console.log(error.response.data.message);
+			console.log(error.response.data.errors);
+		}
 		console.log(response);
 		entry.webex_meeting_id = response.id;
-	}
+	}*/
 
 	if (entry.calendar_id) {
 		params = teleconToCalendarEvent(entry);
@@ -132,17 +268,17 @@ async function addTelecon(entry) {
 		console.log(response)
 		entry.calendar_event_id = response.id;
 	}
-	entry = teleconEntry(entry);
-	console.log(db.format('INSERT INTO telecons (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]));
 
-	const {insertId} = await db.query('INSERT INTO telecons (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]);
+	const sql = 'INSERT INTO telecons SET ' + teleconEntry(entry);
+	console.log(sql);
+	const {insertId} = await db.query(sql);
 	return insertId;
 }
 
 export async function addTelecons(entries) {
 	const ids = await Promise.all(entries.map(e => addTelecon(e)));
 	const insertedTelecons = await db.query('SELECT * FROM telecons WHERE id IN (?);', [ids]);
-	return insertedTelecons;
+	return await getTelecons({id: ids});
 }
 
 async function updateTelecon(id, changes) {
@@ -154,96 +290,80 @@ async function updateTelecon(id, changes) {
 		throw new Error(`Telecon entry ${id} does not exist`);
 
 	/* Make Webex changes */
-	let webexMeeting = {};
-	if (teleconChanges.hasOwnProperty('webex_id') && !teleconChanges.webex_id && telecon.webex_id) {
-		// delete current and don't replace
-		if (telecon.webex_meeting_id)
+	let webexMeeting = teleconToWebexMeeting({...telecon, ...teleconChanges});
+	webexMeeting = {...webexMeeting, ...webexMeetingChanges};
+	console.log('webexMeeting', webexMeeting);
+	if (telecon.webex_id && telecon.webex_meeting_id) {
+		// Webex meeting exists
+		if ((teleconChanges.hasOwnProperty('webex_id') && teleconChanges.webex_id !== telecon.webex_id) ||
+			(teleconChanges.hasOwnProperty('webex_meeting_id') && !teleconChanges.webex_meeting_id))
+		{
+			// Delete current webex meeting
+			console.log('delete webex meeting', telecon.webex_meeting_id);
 			await deleteWebexMeeting(telecon.webex_id, telecon.webex_meeting_id);
-		teleconChanges.webex_meeting_id = null;
+			teleconChanges.webex_meeting_id = null;
+			const webex_id = teleconChanges.webex_id || telecon.webex_id;
+			if (webex_id && webexMeetingChanges) {
+				// Add new webex meeting
+				console.log('add webex meeting');
+				webexMeeting = await addWebexMeeting(telecon.webex_id, webexMeeting);
+				teleconChanges.webexMeeting = webexMeeting;
+				teleconChanges.webex_meeting_id = webexMeeting.id;
+			}
+		}
+		else {
+			// Update existing webex meeting
+			try {
+				teleconChanges.webexMeeting = await updateWebexMeeting(telecon.webex_id, telecon.webex_meeting_id, webexMeeting);
+			}
+			catch (error) {
+				if (error.response && error.response.status === 404)	// Webex meeting does not exist
+					teleconChanges.webex_meeting_id = null;
+			}
+		}
 	}
 	else {
-		webexMeeting = teleconToWebexMeeting({...telecon, ...teleconChanges});
-		if (webexMeetingChanges)
-			webexMeeting = {...webexMeeting, ...webexMeetingChanges};
-
-		if ((teleconChanges.hasOwnProperty('webex_id') && telecon.webex_id && teleconChanges.webex_id === telecon.webex_id) ||
-			 (!teleconChanges.hasOwnProperty('webex_id') && telecon.webex_id)) {
-			if (telecon.webex_meeting_id) {
-				// update only
-				console.log('update webex', webexMeeting)
-				try {
-					webexMeeting = await updateWebexMeeting(telecon.webex_id, telecon.webex_meeting_id, webexMeeting);
-				}
-				catch (error) {
-					if (error.response && error.response.status === 404)
-						webexMeeting = await addWebexMeeting(telecon.webex_id, webexMeeting);
-				}
-			}
-			else {
-				// add only
-				console.log('add webex', webexMeeting)
-				webexMeeting = await addWebexMeeting(telecon.webex_id, webexMeeting);
-			}
+		// Webex meeting does not exist
+		const webex_id = teleconChanges.webex_id || telecon.webex_id;
+		if (webex_id && webexMeetingChanges) {
+			// Add new webex meeting
+			webexMeeting = await addWebexMeeting(telecon.webex_id, webexMeeting);
+			teleconChanges.webexMeeting = webexMeeting;
+			teleconChanges.webex_meeting_id = webexMeeting.id;
 		}
-		else if (teleconChanges.hasOwnProperty('webex_id') && teleconChanges.webex_id && !telecon.webex_id) {
-			// add only
-			webexMeeting = await addWebexMeeting(teleconChanges.webex_id, webexMeeting);
-		}
-		else if (teleconChanges.hasOwnProperty('webex_id') && teleconChanges.webex_id && telecon.webex_id && teleconChanges.webex_id !== telecon.webex_id) {
-			// get current
-			let webexMeetingCurrent = await getWebexMeeting(telecon.webex_id, telecon.webex_meeting_id);
-			delete webexMeetingCurrent.id;
-			delete webexMeetingCurrent.meetingNumber;
-			delete webexMeetingCurrent.state;
-			// delete current
-			await deleteWebexMeeting(telecon.webex_id, telecon.webex_meeting_id);
-			// merge changes
-			webexMeeting = {...webexMeetingCurrent, ...webexMeeting};
-			// add new
-			webexMeeting = await addWebexMeeting(webex_id, webexMeeting);
-		}
-		teleconChanges.webex_meeting_id = webexMeeting.id;
 	}
 
 	/* Make calendar changes */
-	let calendarEvent = {};
-	if (teleconChanges.hasOwnProperty('calendar_id') && !teleconChanges.calendar_id && telecon.calendar_id) {
-		// delete current and don't replace
-		await deleteCalendarEvent(telecon.calendar_id, telecon.calendar_event_id);
-		teleconChanges.calendar_event_id = null;
-	}
-	else {
-		calendarEvent = teleconToCalendarEvent({...telecon, ...teleconChanges});
-		if (calendarEventChanges)
-			calendarEvent = {...calendarEvent, calendarEventChanges};
-
-		if ((teleconChanges.hasOwnProperty('calendar_id') && telecon.calendar_id && teleconChanges.calendar_id === telecon.calendar_id) ||
-			(!teleconChanges.hasOwnProperty('calendar_id') && telecon.calendar_id)) {
-			if (telecon.calendar_event_id) {
-				// If somebody deletes the event it still exists with status 'cancelled'. So set the status to 'confirmed'.
-				calendarEvent.status = 'confirmed';
-				calendarEvent = await updateCalendarEvent(telecon.calendar_id, telecon.calendar_event_id, calendarEvent);
-				console.log(calendarEvent)
-				//if (calendarEvent.status === 'cancelled')
-				//	calendarEvent = await addCalendarEvent(telecon.calendar_id, calendarEvent);
+	let calendarEvent = teleconToCalendarEvent({...telecon, ...teleconChanges});
+	if (telecon.calendar_id && telecon.calendar_event_id) {
+		// Calendar event exists
+		if (teleconChanges.hasOwnProperty('calendar_id') && teleconChanges.calendar_id !== telecon.calendar_id) {
+			await deleteCalendarEvent(telecon.calendar_id, telecon.calendar_event_id);
+			teleconChanges.calendar_event_id = null;
+			if (teleconChanges.calendar_id) {
+				calendarEvent = await addCalendarEvent(teleconChanges.calendar_id, calendarEvent);
+				teleconChanges.calendar_event_id = calendarEvent.id;
 			}
 		}
-		else if (teleconChanges.hasOwnProperty('calendar_id') && teleconChanges.calendar_id && !telecon.calendar_id) {
-			// add only
-			calendarEvent = await addCalendarEvent(teleconChanges.calendar_id, calendarEvent);
+		else {
+			// If somebody deletes the event it still exists with status 'cancelled'. So set the status to 'confirmed'.
+			calendarEvent.status = 'confirmed';
+			calendarEvent = await updateCalendarEvent(telecon.calendar_id, telecon.calendar_event_id, calendarEvent);
 		}
-		else if (teleconChanges.hasOwnProperty('calendar_id') && teleconChanges.calendar_id && telecon.calendar_id && teleconChanges.calendar_id !== telecon.calendar_id) {
-			// delete current
-			await deleteWebexMeeting(telecon.calendar_id, telecon.calendar_event_id);
-			// add new
-			calendarEvent = await addCalendarEvent(teleconChanges.calendar_id, calendarEvent);
+	}
+	else {
+		// Calendar event does not exist
+		const calendar_id = teleconChanges.calendar_id || telecon.calendar_id;
+		if (calendar_id) {
+			calendarEvent = await addCalendarEvent(calendar_id, calendarEvent);
+			teleconChanges.calendar_event_id = calendarEvent.id;
 		}
-		teleconChanges.calendar_event_id = calendarEvent.id;
 	}
 
-	if (Object.keys(teleconChanges).length) {
-		await db.query('UPDATE telecons SET ? WHERE id=?;', [teleconChanges, id]);
-	}
+	console.log('teleconChanges', teleconChanges)
+	const setSql = teleconEntry(teleconChanges);
+	if (setSql)
+		await db.query('UPDATE telecons SET ' + setSql + ' WHERE id=?;', [id]);
 	return id;
 }
 
@@ -280,6 +400,61 @@ function teleconWebexMeetingDiff(telecon, webexMeeting) {
 	changes.password = entry.password;
 	changes.enabledAutoRecordMeeting = false;
 	return changes;
+}
+
+async function addWebexMeetingToTelecon(id, webexMeeting) {
+	/*let [telecon] = await selectTelecons({id});
+	if (!telecon)
+		throw new Error(`Telecon entry ${id} does not exist`);
+	if (telecon.webex_meeting_id)
+		await deleteWebexMeeting(telecon.webex_id, telecon.webex_meeting_id);
+	webexMeeting = teleconToWebexMeeting({...telecon, webexMeeting});
+	webexMeeting = await addWebexMeeting(telecon.webex_id, webexMeeting);
+	await updateTelecon(id, {webex_id: telecon.webex_id, webex_meeting_id: webexMeeting.id, webexMeeting});*/
+	await updateTelecon(id, {webex_meeting_id: null, webexMeeting});
+	return id;
+}
+
+export async function addWebexMeetingToTelecons(telecons) {
+	// Validate request
+	if (telecons.length === 0)
+		return [];
+	for (const t of telecons) {
+		if (typeof t !== 'object' || !t.id || !t.webexMeeting)
+			throw new TypeError('Expected array of objects with shape {id, webexMeeting}');
+	}
+	const ids = await Promise.all(telecons.map(t => addWebexMeetingToTelecon(t.id, t.webexMeeting)));
+	return await getTelecons({id: ids});
+}
+
+async function removeWebexMeetingFromTelecon(id) {
+	/*let [telecon] = await selectTelecons({id});
+	if (!telecon)
+		throw new Error(`Telecon entry ${id} does not exist`);
+	if (telecon.webex_meeting_id) {
+		try {
+			await deleteWebexMeeting(telecon.webex_id, telecon.webex_meeting_id);
+		}
+		catch (error) {
+			if (!error.response || error.response.status !== 404)
+				throw error;
+		}
+	}
+	await updateTelecon(id, {webex_id: telecon.webex_id, webex_meeting_id: null});*/
+	await updateTelecon(id, {webex_meeting_id: null});
+	return id;
+}
+
+export async function removeWebexMeetingFromTelecons(telecons) {
+	// Validate request
+	if (telecons.length === 0)
+		return [];
+	for (const t of telecons) {
+		if (typeof t !== 'object' || !t.id)
+			throw new TypeError('Expected array of objects with shape {id}');
+	}
+	const ids = await Promise.all(telecons.map(t => removeWebexMeetingFromTelecon(t.id)));
+	return await getTelecons({id: ids});
 }
 
 async function syncTeleconWithWebex(telecon) {

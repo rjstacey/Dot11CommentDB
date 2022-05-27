@@ -1,394 +1,141 @@
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import styled from '@emotion/styled';
 
-import {Form, Row, Field, ActionButton} from 'dot11-components/form';
-import {ActionButtonDropdown} from 'dot11-components/general';
-import {IconCollapse} from 'dot11-components/icons';
+import {ButtonGroup, ActionButton} from 'dot11-components/form';
+import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, TableColumnSelector} from 'dot11-components/table';
+import {setFilter, clearFilter} from 'dot11-components/store/filters';
 
-import {loadGroups, addGroup} from '../store/groups';
-import {loadOfficers, addOfficer, updateOfficer, deleteOfficer, selectOfficersState, selectGroupOfficers} from '../store/officers';
-import OfficerPositionSelector from './OfficerPositionSelector';
-import MemberSelector from './MemberSelector';
+import {loadGroups, addGroup, setSelected, selectGroupsState, dataSet, fields, selectGroupsPanelConfig, setGroupsPanelIsSplit} from '../store/groups';
+import {loadOfficers, selectOfficersState, selectGroupOfficers} from '../store/officers';
+import {loadMembers, selectMembersState} from '../store/members';
+
 import GroupSelector from './GroupSelector';
+import OrginzationDetail from './OrganizationDetail';
 
-// The top row height is determined by its content
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
 
-function OfficerAdd({close, type, group}) {
-	const [officer, setOfficer] = React.useState({});
-	const dispatch = useDispatch();
+function Officers({group}) {
 
-	const submit = async () => {
-		officer.group_id = group.id;
-		await dispatch(addOfficer(officer));
-		close();
-	};
+	const officers = useSelector(state => group? selectGroupOfficers(selectOfficersState(state), group.id): []);
+	const members = useSelector(selectMembersState).entities;
 
 	return (
-		<Form
-			title={'Add officer position for ' + group.name}
-			submitLabel='Add'
-			submit={submit}
-			cancel={close}
-			onClick={e => e.stopPropagation()}
-			style={{height: '400px'}}
-		>
-			<Row>
-				<Field
-					label='Position:'
-				>
-					<OfficerPositionSelector
-						value={officer.position}
-						onChange={(position) => setOfficer({officer, position})}
-						//portal={document.querySelector('#root')}
-					/>
-				</Field>
-			</Row>
-		</Form>
-	)
-}
-
-const OfficerTable = styled.table`
-	display: grid;
-	grid-template-columns: 1fr 3fr;
-	border-collapse: collapse;
-
-	& * {
-		box-sizing: border-box;
-	}
-
-	thead, tbody, tr {
-		display: contents;
-	}
-
-	th, td {
-		padding: 10px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		border: gray solid 1px;
-	}
-
-	tr:first-of-type td {
-		border-top: none;
-	}
-
-	tr:not(:last-of-type) td {
-		border-bottom: none;
-	}
-
-	th:not(:last-of-type),
-	td:not(:last-of-type) {
-		border-right: none;
-	}
-
-	th {
-		position: sticky;
-		top: 0;
-		background: #f6f6f6;
-		text-align: left;
-		font-weight: bold;
-		font-size: 1rem;
-	}
-
-	td {
-		padding-top: 5px;
-		padding-bottom: 5px;
-	}
-
-	td.empty {
-		grid-column: 1 / -1;
-		color: gray;
-		font-style: italic;
-	}
-
-	tr:nth-of-type(even) td {
-		background: #fafafa;
-	}
-`;
-
-function OfficerTableHeader({group}) {
-	const dispatch = useDispatch();
-
-	const handleAddPosition = (position) => {
-		const officer = {
-			group_id: group.id,
-			position
-		};
-		dispatch(addOfficer(officer));
-	};
-
-	return (
-		<thead>
-			<tr>
-				<th style={{display: 'flex', justifyContent: 'space-between'}}>
-					<span>Position</span>
-					<OfficerPositionSelector
-						//value={officer.position}
-						onChange={handleAddPosition}
-						contentRenderer={(props) => <ActionButton name='add' title='Add position'/>}
-						placeholder=''
-						portal={document.querySelector('#root')}
-					/>
-				</th>
-				<th>
-					<span>Member</span>
-				</th>
-			</tr>
-		</thead>
-	);
-}
-
-function OfficerPosition({officer}) {
-	const dispatch = useDispatch();
-	const handleDelete = () => dispatch(deleteOfficer(officer));
-	return (
-		<div style={{display: 'flex', justifyContent: 'space-between'}}>
-			<span>{officer.position}</span>
-			<ActionButton name='delete' onClick={handleDelete}/>
+		<div style={{display: 'grid', gridTemplateColumns: '150px auto'}}>
+			{officers.map(officer => {
+				const member = members[officer.sapin];
+				const name = member? member.Name: '';
+				return (
+					<React.Fragment key={officer.id}>
+						<div>{officer.position}</div>
+						<div>{name}</div>
+					</React.Fragment>
+				)
+			})}
 		</div>
 	)
 }
 
+const tableColumns = [
+	{key: '__ctrl__',
+		width: 30, flexGrow: 0, flexShrink: 0,
+		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
+		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
+	{key: 'name',
+		...fields.name,
+		width: 80, flexGrow: 1, flexShrink: 0},
+	{key: 'type',
+		...fields.type,
+		width: 100, flexGrow: 1, flexShrink: 0},
+	{key: 'status',
+		...fields.status,
+		width: 60, flexGrow: 1, flexShrink: 0},
+	{key: 'officers',
+		label: 'Officers',
+		cellRenderer: ({rowData}) => <Officers group={rowData} />,
+		width: 400, flexGrow: 1, flexShrink: 0}
+];
 
-function OfficerTableRow({officer}) {
+function Organization(props) {
 	const dispatch = useDispatch();
-	function handleUpdateSAPIN(sapin) {
-		const {id} = officer;
-		dispatch(updateOfficer({id, changes: {sapin}}));
-	}
-	return (
-		<tr>
-			<td>
-				<OfficerPosition officer={officer} />
-			</td>
-			<td>
-				<MemberSelector
-					value={officer.sapin}
-					onChange={handleUpdateSAPIN}
-				/>
-			</td>
-		</tr>
-	)
-}
+	const {isSplit} = useSelector(selectGroupsPanelConfig);
+	const setIsSplit = React.useCallback((value) => dispatch(setGroupsPanelIsSplit(value)), [dispatch]);
 
-function EmptyOfficerTableRow() {
-	return (
-		<tr>
-			<td className='empty'>Empty</td>
-		</tr>
-	)
-}
-
-function Officers({group}) {
-	const officers = useSelector(state => selectGroupOfficers(selectOfficersState(state), group.id));
-	return (
-		<OfficerTable>
-			<OfficerTableHeader group={group} />
-			<tbody>
-				{officers.length?
-					officers.map(officer => <OfficerTableRow key={officer.id} officer={officer} />):
-					<EmptyOfficerTableRow />}
-			</tbody>
-		</OfficerTable>
-	)
-}
-
-
-const GroupRow = styled.div`
-	padding-left: 50px;
-	min-width: 300px;
-`;
-
-function Group({level, group, subgroups, clickAdd}) {
-	const officers = useSelector(state => selectGroupOfficers(selectOfficersState(state), group.id));
-	const [showContent, setShowContent] = React.useState(level === 1? true: false);
-	const [showOfficers, setShowOfficers] = React.useState(false);
-	const [showSubgroups, setShowSubgroups] = React.useState(level === 1? true: false);
-	return (
-		<GroupRow id='group'>
-			<Row>
-				<h2>
-					<IconCollapse isCollapsed={!showContent} onClick={() => setShowContent(!showContent)} />
-					{group.name}
-				</h2>
-			</Row>
-			{showContent &&
-				<>
-					<Row>
-						<h3>
-							<IconCollapse isCollapsed={!showOfficers} onClick={() => setShowOfficers(!showOfficers)} />
-							Officers
-						</h3>
-						<ActionButtonDropdown
-							name='add'
-							title='Add officer'
-							dropdownRenderer={(props) => <OfficerAdd group={group} {...props} />}
-						/>
-					</Row>
-					{showOfficers &&
-						<OfficerTable>
-							<OfficerTableHeader />
-							<tbody>
-								{officers.length?
-									officers.map(officer => <OfficerTableRow key={officer.id} officer={officer} />):
-									<EmptyOfficerTableRow />}
-							</tbody>
-						</OfficerTable>
-					}
-					{level < 3 && 
-						<>
-							<Row>
-								<h3>
-									{subgroups.length > 0 && <IconCollapse isCollapsed={!showSubgroups} onClick={() => setShowSubgroups(!showSubgroups)} />}
-									Subgroups
-								</h3>
-							</Row>
-							{showSubgroups &&
-								<>
-									{subgroups.map(entry => <Group key={entry.id} level={level + 1} group={entry} subgroups={entry.children} />)}
-								</>
-							}
-						</>
-					}
-				</>}
-		</GroupRow>
-	)
-}
-
-const Container = styled.div`
-	width: 1000px;
-`;
-
-
-function Organization() {
-
-	const dispatch = useDispatch();
-	const {loading: groupsLoading, entities: groupEntities, ids: groupIds} = useSelector(state => state['groups']);
-	const {loading: officersLoading} = useSelector(state => state['officers']);
-	const [state, setState] = React.useState({
-		sponsor: null,
-		workingGroups: [],
-		selectedWorkingGroup: null,
-		subgroups: [],
-		selectedSubgroup: null,
-	});
-
-	React.useEffect(() => {
-		let sponsor;
-		for (const id of groupIds) {
-			if (!groupEntities[id].parent_id)
-				sponsor = groupEntities[id];
+	function createCommittee({props, state, methods}) {
+		const group = {
+			parent_id: null,
+			name: state.search,
 		}
-		const workingGroups = [];
-		if (sponsor) {
-			for (const id of groupIds) {
-				const group = groupEntities[id];
-				if (group.parent_id === sponsor.id)
-					workingGroups.push(group);
-			}
+		return dispatch(addGroup(group));
+	}
+
+	const {entities, ids, selected} = useSelector(selectGroupsState);
+
+	const [groupId, setGroupId] = React.useState();
+
+	function handleSetGroupId(groupId) {
+		if (!groupId) {
+			dispatch(clearFilter(dataSet, 'id'));
 		}
-		setState(state => ({...state, sponsor, workingGroups}));
-	}, [groupEntities, groupIds]);
-
-	React.useEffect(() => {
-		const subgroups = [];
-		let {selectedSubgroup} = state;
-		if (state.selectedWorkingGroup) {
-			for (const id of groupIds) {
-				const group = groupEntities[id];
-				if (group.parent_id === state.selectedWorkingGroup.id)
-					subgroups.push(group);
-			}
+		else {
+			const groupIds = ids.filter(id => id === groupId || entities[id].parent_id === groupId);
+			dispatch(setFilter(dataSet, 'id', groupIds));
 		}
-		if (subgroups.indexOf(selectedSubgroup) < 0)
-			selectedSubgroup = null;
-		setState(state => ({...state, subgroups, selectedSubgroup}));
-	}, [groupEntities, groupIds, state.workingGroups, state.selectedWorkingGroup]);
-
-	let groupStr = '';
-	if (state.sponsor) {
-		groupStr = state.sponsor.name;
-		if (state.selectedWorkingGroup) {
-			groupStr = state.selectedWorkingGroup.name;
-			if (state.selectedSubgroup)
-				groupStr += ' ' + state.selectedSubgroup.name;
-		}
-		groupStr = 'Officer positions for ' + groupStr;
+		
+		dispatch(setSelected([]));
+		setGroupId(groupId);
 	}
 
-	const handleSetWorkingGroup = (id) => setState(state => ({...state, selectedWorkingGroup: groupEntities[id]}));
+	const committeeId = React.useMemo(() => {
+		const committee = ids
+			.map(id => entities[id])
+			.find(group => group.name === '802')
+		return committee? committee.id: undefined;
+	}, [entities, ids]);
 
-	const handleSetSubgroup = (id) => setState(state => ({...state, selectedSubgroup: groupEntities[id]}));
-
-	const addSponsor = async ({state: selectState}) => {
-		return await dispatch(addGroup({name: selectState.search, parent_id: null}));
+	const refresh = () => {
+		dispatch(loadGroups());
+		dispatch(loadOfficers());
+		dispatch(loadMembers());
 	}
-
-	const addWorkingGroup = async ({state: selectState}) => {
-		return await dispatch(addGroup({name: selectState.search, parent_id: state.sponsor.id}));
-	}
-
-	const addSubgroup = async ({state: selectState}) => {
-		return await dispatch(addGroup({name: selectState.search, parent_id: state.selectedWorkingGroup.id}));
-	}
-
-	const currentGroup = state.selectedSubgroup || state.selectedWorkingGroup || state.sponsor;
-
-	React.useEffect(() => {
-		if (!groupsLoading)
-			dispatch(loadGroups());
-		if (!officersLoading)
-			dispatch(loadOfficers());
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-	const refresh = () => dispatch(loadGroups());
 
 	return (
-		<Container>
-			<TopRow>
-				<h2>Groups</h2>
-				<GroupSelector
-					value={state.sponsor? state.sponsor.id: 0}
-					options={state.sponsor? [state.sponsor]: []}
-					create
-					createOption={addSponsor}
-					valueField='id'
-					labelField='name'
-				/>
-				<GroupSelector
-					value={state.selectedWorkingGroup? state.selectedWorkingGroup.id: 0}
-					options={state.workingGroups}
-					onChange={handleSetWorkingGroup}
-					create
-					createOption={addWorkingGroup}
-					valueField='id'
-					labelField='name'
-				/>
-				<GroupSelector
-					value={state.selectedSubgroup? state.selectedSubgroup.id: 0}
-					options={state.subgroups}
-					onChange={handleSetSubgroup}
-					create
-					createOption={addSubgroup}
-					valueField='id'
-					labelField='name'
-				/>
+		<>
+			<div style={{width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
 				<div style={{display: 'flex'}}>
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={groupsLoading} />
+					<label>Group:</label>
+					<GroupSelector
+						value={groupId}
+						onChange={handleSetGroupId}
+						parent_id={committeeId}
+						create={!committeeId}
+						createOption={createCommittee}
+					/>
 				</div>
-			</TopRow>
-			{groupStr && <p>{groupStr}</p>}
-			{currentGroup && <Officers group={currentGroup} />}
-		</Container>
+				<ButtonGroup>
+					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+					<ActionButton
+						name='book-open'
+						title='Show detail'
+						isActive={isSplit}
+						onClick={() => setIsSplit(!isSplit)} 
+					/>
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				</ButtonGroup>
+			</div>
+			<SplitPanel dataSet={dataSet} >
+				<Panel>
+					<AppTable
+						columns={tableColumns}
+						headerHeight={32}
+						estimatedRowHeight={32}
+						measureRowHeight
+						dataSet={dataSet}
+					/>
+				</Panel>
+				<Panel>
+					<OrginzationDetail key={selected.join()} />
+				</Panel>
+			</SplitPanel>
+		</>
 	);
 }
 

@@ -14,16 +14,18 @@ import {
 	updateTelecons,
 	addTelecons,
 	deleteTelecons,
+	addWebexMeetingToTelecons,
+	removeWebexMeetingFromTelecons,
 	syncTeleconsWithWebex,
 	syncTeleconsWithCalendar
 } from '../services/telecons'
 
 const router = require('express').Router();
 
-router.get('/:group?', async (req, res, next) => {
+router.get('/:parent_id?', async (req, res, next) => {
 	try {
-		const {group} = req.params;
-		const data = await getTelecons({group});
+		const {parent_id} = req.params;
+		const data = await getTelecons({parent_id});
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -35,6 +37,28 @@ router.patch('/$', async (req, res, next) => {
 		if (!Array.isArray(updates))
 			throw 'Missing or bad body; expected array';
 		const data = await updateTelecons(updates);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.post('/webexMeeting$', async (req, res, next) => {
+	try {
+		const telecons = req.body;
+		if (!Array.isArray(telecons))
+			throw 'Missing or bad body; expected array';
+		const data = await addWebexMeetingToTelecons(telecons);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.delete('/webexMeeting$', async (req, res, next) => {
+	try {
+		const telecons = req.body;
+		if (!Array.isArray(telecons))
+			throw 'Missing or bad body; expected array';
+		const data = await removeWebexMeetingFromTelecons(telecons);
 		res.json(data);
 	}
 	catch(err) {next(err)}

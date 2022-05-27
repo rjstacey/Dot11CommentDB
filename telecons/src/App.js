@@ -108,7 +108,7 @@ function App({user, access}) {
 				<Main>
 					<Switch>
 						<RestrictedRoute
-							path="/telecons"
+							path="/telecons/:groupName?"
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Telecons}

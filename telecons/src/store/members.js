@@ -45,14 +45,16 @@ export const selectMembersState = (state) => state[dataSet];
   */
 const {getPending, getSuccess, getFailure} = slice.actions;
 
+const url = '/api/users';
+
 export const loadMembers = () => 
 	async (dispatch, getState) => {
 		dispatch(getPending());
 		let response;
 		try {
-			response = await fetcher.get('/api/users');
-			if (!response.hasOwnProperty('users') || typeof response.users !== 'object')
-				throw new TypeError("Unexpected response to GET: /api/users");
+			response = await fetcher.get(url);
+			if (!Array.isArray(response.users))
+				throw new TypeError("Unexpected response to GET: " + url);
 		}
 		catch(error) {
 			await dispatch(getFailure());

@@ -1,19 +1,19 @@
 import React from 'react'
 import {useDispatch, useSelector} from 'react-redux'
-import {loadCalendarAccounts, dataSet} from '../store/calendarAccounts';
+import {loadCalendarAccounts, selectCalendarAccountsState} from '../store/calendarAccounts';
 
-function ShowCalendar({group}) {
+function ShowCalendar({groupId}) {
 	const dispatch = useDispatch();
-	const {entities, valid, loading} = useSelector(state => state[dataSet]);
+	const {entities, valid, loading} = useSelector(selectCalendarAccountsState);
 
 	React.useEffect(() => {
 		if (!valid && !loading)
-			dispatch(loadCalendarAccounts(group));
-	}, [valid, loading, dispatch, group]);
+			dispatch(loadCalendarAccounts());
+	}, [valid, loading, dispatch]);
 
 	const calendarLink = React.useMemo(() => {
 		for (const account of Object.values(entities)) {
-			if (account.groups.includes(group) && account.details) {
+			if (account.groups.includes(groupId) && account.details) {
 				const {details} = account;
 				// see https://support.google.com/calendar/thread/23205641/advanced-embed-option-descriptions?hl=en
 				const params = {
@@ -29,7 +29,7 @@ function ShowCalendar({group}) {
 			}
 		}
 		return null;
-	}, [entities, group]);
+	}, [entities, groupId]);
 
 	return (
 		<iframe 

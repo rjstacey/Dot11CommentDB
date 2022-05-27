@@ -1,12 +1,15 @@
+import {createSelector} from '@reduxjs/toolkit';
 import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType, selectCurrentPanelConfig, setPanelIsSplit} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 import {displayDate} from 'dot11-components/lib';
 import {DateTime} from 'luxon';
 
+import {selectEntities as selectGroupEntities} from './groups';
+
 export const fields = {
-	group: {label: 'Group'},
-	subgroup: {label: 'Subgroup'},
+	group_id: {label: 'Group ID'},
+	groupName: {label: 'Group'},
 	start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
 	end: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
 	day: {label: 'Day'},
@@ -31,11 +34,55 @@ export function getField(entity, key) {
 
 export const dataSet = 'telecons';
 
+/*
+ * Selectors
+ */
+export const selectTeleconsState = (state) => state[dataSet];
+export const selectEntities = state => selectTeleconsState(state).entities;
+
+export const getTeleconsForSubgroup = (state, subgroup) => state.ids.filter(id => state.entities[id].Subgroup === subgroup);
+export const selectTeleconsCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
+
+export const selectEntitiesWithGroupName = createSelector(
+	selectGroupEntities,
+	selectEntities,
+	(groups, telecons) => {
+		const entities = {};
+		for (const id of Object.keys(telecons)) {
+			const telecon = telecons[id];
+			const group = groups[telecon.group_id];
+			entities[id] = {...telecon, groupName: group? group.name: 'Unknown'}
+		}
+		return entities;
+	}
+);
+
+export const selectTeleconDefaults = state => {
+	const telecons = selectTeleconsState(state);
+	const groupId = telecons.groupId;
+	const defaults = telecons.defaults[groupId] || {};
+	return defaults;
+}
+
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	selectField: getField,
-	initialState: {},
+	initialState: {groupId: null, defaults: {}},
+	selectEntities: selectEntitiesWithGroupName,
+	reducers: {
+		setGroupId(state, action) {
+			state.groupId = action.payload;
+		},
+		setDefaults(state, action) {
+			const groupId = state.groupId;
+			state.defaults[groupId] = action.payload;
+		},
+		clearDefaults(state, action) {
+			const groupId = state.groupId;
+			delete state.defaults[groupId];
+		}
+	},
 });
 
 /*
@@ -43,13 +90,6 @@ const slice = createAppTableDataSlice({
  */
 export default slice.reducer;
 
-/*
- * Selectors
- */
-export const selectTeleconsState = (state) => state[dataSet];
-export const getTeleconsForSubgroup = (state, subgroup) => state.ids.filter(id => state.entities[id].Subgroup === subgroup);
-
-export const selectTeleconsCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
 
 /*
  * Actions
@@ -57,22 +97,33 @@ export const selectTeleconsCurrentPanelConfig = (state) => selectCurrentPanelCon
 export const setTeleconsCurrentPanelIsSplit = (value) => setPanelIsSplit(dataSet, undefined, value);
 
 const {
+	setGroupId,
+	setDefaults,
+	clearDefaults,
 	getPending,
 	getSuccess,
 	getFailure,
 	updateMany,
+	setMany,
 	addMany,
 	removeMany,
+	removeAll,
 	setProperty,
 	setSelected
 } = slice.actions;
 
-export {setProperty as setUiProperty, setSelected};
+export {setProperty as setUiProperty, setSelected, setGroupId};
 
-export const loadTelecons = (group) => 
+export const setTeleconDefaults = setDefaults;
+export const clearTeleconDefaults = clearDefaults;
+
+const baseUrl = '/api/telecons';
+
+export const loadTelecons = (parent_id) => 
 	async (dispatch, getState) => {
+		dispatch(setGroupId(parent_id));
 		dispatch(getPending());
-		const url = '/api/telecons' + (group? `/${group}`: '');
+		const url = baseUrl + (parent_id? `/${parent_id}`: '');
 		let telecons;
 		try {
 			telecons = await fetcher.get(url);
@@ -80,39 +131,42 @@ export const loadTelecons = (group) =>
 				throw new TypeError(`Unexpected response to GET ${url}`);
 		}
 		catch(error) {
-			await Promise.all([
-				dispatch(getFailure()),
-				dispatch(setError('Unable to get list of telecons', error))
-			]);
+			dispatch(getFailure());
+			dispatch(setError('Unable to get list of telecons', error));
 			return;
 		}
 		await dispatch(getSuccess(telecons));
 	}
 
+export const removeTelecons = () =>
+	async (dispatch, getState) => {
+		dispatch(removeAll());
+		dispatch(setGroupId(0));
+	}
+
 export const updateTelecons = (updates) =>
 	async (dispatch) => {
 		await dispatch(updateMany(updates));
-		const url = `/api/telecons`;
-		let asUpdated;
+		let telecons;
 		try {
-			asUpdated = await fetcher.patch(url, updates);
-			if (!Array.isArray(asUpdated))
-				throw new TypeError('Unexpected response to PATCH: ' + url);
+			telecons = await fetcher.patch(baseUrl, updates);
+			if (!Array.isArray(telecons))
+				throw new TypeError('Unexpected response to PATCH: ' + baseUrl);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to update telecons`, error));
 			return;
 		}
-		await dispatch(updateMany(asUpdated));
+		await dispatch(setMany(telecons));
 	}
 
 export const addTelecons = (telecons) =>
 	async (dispatch) => {
 		let newTelecons;
 		try {
-			newTelecons = await fetcher.post('/api/telecons', telecons);
+			newTelecons = await fetcher.post(baseUrl, telecons);
 			if (!Array.isArray(newTelecons))
-				throw new TypeError('Unexpected response to POST: /api/telecons');
+				throw new TypeError('Unexpected response to POST: ' + baseUrl);
 		}
 		catch(error) {
 			await dispatch(setError('Unable to add telecons:', error));
@@ -125,13 +179,44 @@ export const addTelecons = (telecons) =>
 export const deleteTelecons = (ids) =>
 	async (dispatch) => {
 		try {
-			await fetcher.delete('/api/telecons', ids);
+			await fetcher.delete(baseUrl, ids);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to delete telecons ${ids}`, error));
 			return;
 		}
 		await dispatch(removeMany(ids));
+	}
+
+export const addWebexMeetingToTelecons = (updates) =>
+	async (dispatch) => {
+		let telecons;
+		try {
+			telecons = await fetcher.patch(baseUrl, updates);
+			if (!Array.isArray(telecons))
+				throw new TypeError('Unexpected response');
+		}
+		catch(error) {
+			await dispatch(setError(`Unable to add webex meeting to telecons ${updates.map(u => u.id)}`, error));
+			return;
+		}
+		await dispatch(setMany(telecons));
+	}
+
+export const removeWebexMeetingFromTelecons = (ids) =>
+	async (dispatch) => {
+		const updates = ids.map(id => ({id, changes: {webex_meeting_id: null}}));
+		let telecons;
+		try {
+			telecons = await fetcher.patch(baseUrl, updates);
+			if (!Array.isArray(telecons))
+				throw new TypeError('Unexpected response');
+		}
+		catch(error) {
+			await dispatch(setError(`Unable to remove webex meeting from telecons ${ids}`, error));
+			return;
+		}
+		await dispatch(setMany(telecons));
 	}
 
 export const syncTeleconsWithWebex = (ids) =>

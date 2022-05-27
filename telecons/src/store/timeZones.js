@@ -45,14 +45,16 @@ export const selectTimeZonesState = (state) => state[dataSet];
  */
 const {getSuccess, getPending, getFailure, setTimezone} = slice.actions;
 
+const url = '/api/timeZones';
+
 export const loadTimeZones = () =>
 	async (dispatch, getState) => {
 		await dispatch(getPending());
 		let timeZones;
 		try {
-			timeZones = await fetcher.get('/api/timeZones');
+			timeZones = await fetcher.get(url);
 			if (!Array.isArray(timeZones))
-				throw new TypeError('Unexpected response to GET: /api/timeZones');
+				throw new TypeError('Unexpected response to GET ' + url);
 		}
 		catch(error) {
 			await Promise.all([

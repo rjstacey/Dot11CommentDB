@@ -38,6 +38,11 @@ const slice = createSlice({
 });
 
 /*
+ * Selector
+ */
+export const selectCalendarAccountsState = state => state[dataSet];
+
+/*
  * Reducer
  */
 export default slice.reducer;

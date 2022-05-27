@@ -41,7 +41,7 @@ router.delete('/$', async (req, res, next) => {
 		const ids = req.body;
 		if (!Array.isArray(ids))
 			throw TypeError('Bad or missing array of ids');
-		const data = await removeGroup(ids);
+		const data = await removeGroups(ids);
 		res.json(data);
 	}
 	catch(err) {next(err)}

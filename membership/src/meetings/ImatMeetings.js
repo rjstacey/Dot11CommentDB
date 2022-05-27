@@ -19,10 +19,10 @@ function imatMeetingToSession(meeting) {
 	// Luxon can't handle some of these shorter timezone names
 	const map = {
 		'EST5EDT': 'America/New_York',
-		'EST': 'America/New_York',
 		'CST6CDT': 'America/Chicago',
 		'MST7MDT': 'America/Denver',
 		'PST8PDT': 'America/Los_Angeles',
+		'EST': 'America/New_York',
 		'HST': 'Pacific/Honolulu',
 		'CET': 'Europe/Vienna'
 	};

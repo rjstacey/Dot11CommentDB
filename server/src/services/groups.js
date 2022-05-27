@@ -8,11 +8,16 @@ export function getGroups(constraints) {
 		'SELECT ' + 
 			'BIN_TO_UUID(`id`) AS `id`,' +
 			'BIN_TO_UUID(`parent_id`) AS `parent_id`, ' +
-			'`name` ' +
+			'`name`, ' +
+			'`type`, ' +
+			'`status` ' +
 		'FROM `groups`';
 	if (constraints) {
 		sql += ' WHERE ' + Object.entries(constraints).map(
-			([key, value]) => db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
+			([key, value]) => 
+				(key === 'id' || key === 'parent_id')?
+					db.format(Array.isArray(value)? 'BIN_TO_UUID(??) IN (?)': 'BIN_TO_UUID(??)=?', [key, value]):
+					db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
 		).join(' AND ');
 	}
 	return db.query(sql);
@@ -30,7 +35,9 @@ async function addGroup({id, parent_id, ...rest}) {
 
 	await db.query(sql);
 
-	return getGroups({id});
+	const groups = await getGroups({id});
+
+	return groups[0];
 }
 
 export function addGroups(groups) {
@@ -41,8 +48,24 @@ async function updateGroup(update) {
 	const {id, changes} = update;
 	if (!id)
 		throw TypeError('Missing id in update');
-	await db.query('UPDATE `groups` SET ? WHERE `id`=UUID_TO_BIN(?)', [changes, id]);
-	return getGroups({id});
+
+	const sets = [];
+	for (const [key, value] of Object.entries(changes)) {
+		let sql;
+		if (key === 'parent_id')
+			sql = db.format('??=UUID_TO_BIN(?)', [key, value]);
+		else
+			sql = db.format('??=?', [key, value]);
+		sets.push(sql);
+	}
+
+	if (sets.length !== 0) {
+		await db.query('UPDATE `groups` SET ' + sets.join(', ') + ' WHERE `id`=UUID_TO_BIN(?)', [id])
+	}
+
+	const groups = await getGroups({id});
+
+	return groups[0];
 }
 
 export function updateGroups(updates) {
@@ -50,6 +73,7 @@ export function updateGroups(updates) {
 }
 
 export async function removeGroups(ids) {
-	const result = await db.query('DELETE FROM `groups` WHERE BIN_TO_UUID(`id`) IN (?)', [ids]);
-	return result.affectedRows;
+	const result1 = await db.query('DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)', [ids]);
+	const result2 = await db.query('DELETE FROM `groups` WHERE BIN_TO_UUID(id) IN (?)', [ids]);
+	return result1.affectedRows + result2.affectedRows;
 }

@@ -1,0 +1,3 @@
+[submodule "telecons/src/select"]
+	path = telecons/src/select
+	url = https://github.com/rjstacey/react-dropdown-select

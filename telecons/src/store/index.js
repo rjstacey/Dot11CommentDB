@@ -1,15 +1,18 @@
 import { combineReducers, createStore, applyMiddleware } from 'redux';
-import { createLogger } from 'redux-logger';
 import thunk from 'redux-thunk';
+import { createLogger } from 'redux-logger';
+import { persistStore, persistReducer } from 'redux-persist';
+import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
+import { get, set, del } from 'idb-keyval';
 import { composeWithDevTools } from 'redux-devtools-extension';
 
 import errMsg from 'dot11-components/store/error';
 import telecons from './telecons';
-import webexAccounts from './webexAccounts';
-import calendarAccounts from './calendarAccounts';
-import timeZones from './timeZones';
-import groups from './groups';
-import officers from './officers';
+import webexAccounts, {loadWebexAccounts} from './webexAccounts';
+import calendarAccounts, {loadCalendarAccounts} from './calendarAccounts';
+import timeZones, {loadTimeZones} from './timeZones';
+import groups, {loadGroups} from './groups';
+import officers, {loadOfficers} from './officers';
 import members, {loadMembers} from './members';
 
 function configureStore() {
@@ -29,14 +32,39 @@ function configureStore() {
 	if (process.env.NODE_ENV !== 'production')
 		middleware.push(createLogger({collapsed: true}));
 
+	const persistConfig = {
+		key: 'telecons',
+		version: 1,
+		storage: {	// IndexedDB for storage using idb-keyval
+			setItem: set,
+			getItem: get,
+			removeItem: del
+		},
+		whitelist: ['telecons', 'webexAccounts', 'calendarAccounts', 'timeZones', 'groups', 'officers', 'members'],
+		stateReconciler: autoMergeLevel2,
+		migrate: (state) => {
+			if (state && state._persist && state._persist.version !== 1)
+				return Promise.reject('Discard old version')
+			return Promise.resolve(state);
+		}
+	};
+
 	const store = createStore(
-		reducer,
+		persistReducer(persistConfig, reducer),
 		composeWithDevTools(applyMiddleware(...middleware))
 	);
 
-	store.dispatch(loadMembers());
+	const persistor = persistStore(store, null, () => {
+		// After hydrate, load the latest
+		store.dispatch(loadWebexAccounts());
+		store.dispatch(loadCalendarAccounts());
+		store.dispatch(loadTimeZones());
+		store.dispatch(loadGroups());
+		store.dispatch(loadOfficers());
+		store.dispatch(loadMembers());
+	});
 
-	return {store};
+	return {store, persistor};
 }
 
 export default configureStore;

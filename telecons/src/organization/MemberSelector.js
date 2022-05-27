@@ -45,7 +45,7 @@ function MemberSelector({
 	React.useEffect(() => {
 		if (!valid && !loading && !readOnly)
 			dispatch(loadMembers());
-	}, []);
+	}, [dispatch, valid, loading, readOnly]);
 
 	const options = React.useMemo(() => {
 		// Produce a unique set of SAPIN/Name mappings. If there is no SAPIN then the name is the key.

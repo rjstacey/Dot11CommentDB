@@ -3,12 +3,12 @@ import {Redirect} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
-import {ActionButton, Form, Field, Row, Input} from  'dot11-components/form';
-import {ActionButtonDropdown} from 'dot11-components/general';
-import {shallowDiff, displayDate} from 'dot11-components/lib';
+import {ActionButton, Input} from  'dot11-components/form';
+import {displayDate} from 'dot11-components/lib';
+import {ActionIcon} from 'dot11-components/icons';
 
-import {loadWebexAccounts, updateWebexAccount, addWebexAccount, deleteWebexAccount, authWebexAccount, dataSet} from '../store/webexAccounts';
-import GroupsSelector from './GroupsSelector';
+import {loadWebexAccounts, updateWebexAccount, addWebexAccount, deleteWebexAccount, authWebexAccount, selectWebexAccountsState} from '../store/webexAccounts';
+import GroupsSelector from '../organization/GroupSelector';
 
 /* Generate URL for account authorization */
 const getWebexAccountAuthLink = (account) => {
@@ -44,128 +44,166 @@ const TopRow = styled.div`
 	box-sizing: border-box;
 `;
 
-function WebexAccountHeader() {
-	return (
-		<div style={{display: 'flex'}}>
-			<div style={{flex: '0 0 200px'}}>Name</div>
-			<div style={{flex: '0 0 200px'}}>Groups</div>
-			<div style={{flex: '0 0 300px'}}>Last authorized</div>
-		</div>
-	)
-}
+const Table = styled.table`
+	display: grid;
+	grid-template-columns: minmax(200px, auto) minmax(200px, auto) minmax(300px, 1fr) 40px;
+	border-spacing: 1px;
 
-function WebexAccountRow({account}) {
-	const dispatch = useDispatch();
-	const onDelete = (id) => dispatch(deleteWebexAccount(id));
+	thead, tbody, tr {
+		display: contents;
+	}
 
-	const groups = account.groups? account.groups.join(', '): '';
-	const lastAuth = account.authDate? displayDate(account.authDate): '';
+	th, td {
+		padding: 10px;
+		border: gray solid 1px;
+		vertical-align: top;
+	}
 
-	return (
-		<div style={{display: 'flex'}}>
-			<div style={{flex: '0 0 200px'}}>{account.name}</div>
-			<div style={{flex: '0 0 200px'}}>{groups}</div>
-			<div style={{flex: '0 0 300px'}}>
-				{lastAuth}
-				<a style={{padding: '0 1em'}} href={getWebexAccountAuthLink(account)}>{account.authDate? 'Reauthorize': 'Authorize'}</a>
-			</div>
-			<div style={{flex: '0 0 200px', display: 'flex'}}>
-				<ActionButtonDropdown
-					name='edit'
-					title='Update account'
-					dropdownRenderer={(props) => <WebexAccountAddEdit type='edit' defaultValue={account} {...props} />}
-				/>
-				<ActionButton name='delete' onClick={() => onDelete(account.id)} />
-			</div>
+	th:first-of-type, td:first-of-type {
+		grid-column: 1;
+	}
 
-		</div>
-	)
-}
+	tr:first-of-type td {
+		border-top: none;
+	}
+
+	tr:not(:last-of-type) td {
+		border-bottom: none;
+	}
+
+	th:not(:last-of-type),
+	td:not(:last-of-type) {
+		border-right: none;
+	}
+
+	th {
+		background: #f6f6f6;
+		text-align: left;
+		font-weight: bold;
+		font-size: 1rem;
+	}
+
+	td {
+		padding-top: 5px;
+		padding-bottom: 5px;
+	}
+
+	td.empty {
+		grid-column: 1 / -1;
+		colspan: 0;
+		color: gray;
+		font-style: italic;
+	}
+
+	tr:nth-of-type(even) td {
+		background: #fafafa;
+	}
+`;
 
 const defaultAccount = {
 	name: '',
+	groups: []
 };
 
-function WebexAccountAddEdit({close, type, defaultValue}) {
-	const [account, setAccount] = React.useState(defaultValue || defaultAccount);
+function WebexAccountsTableHeader({readOnly}) {
 	const dispatch = useDispatch();
-
-	const submit = async () => {
-		await dispatch(type === 'add'?
-			addWebexAccount(account):
-			updateWebexAccount(account.id, shallowDiff(defaultValue, account))
-		);
-		close();
-	};
-
-	const change = e => {
-		const {name, value} = e.target;
-		setAccount(account => ({...account, [name]: value}));
-	}
+	const handleAdd = () => dispatch(addWebexAccount(defaultAccount));
+	const headerColumns = [
+		'Name',
+		'Groups',
+		'Last authorized',
+	];
+	if (!readOnly)
+		headerColumns.push(<ActionIcon type='add' title='Add account' onClick={handleAdd} />);
 
 	return (
-		<Form
-			title={(type === 'add'? 'Add': 'Update') + ' Webex account'}
-			submitLabel={type === 'add'? 'Add': 'Update'}
-			submit={submit}
-			cancel={close}
-		>
-			<Row>
-				<Field
-					label='Name:'
-				>
-					<Input
-						type='search'
-						name='name'
-						value={account.name}
-						onChange={change}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field
-					label='Groups:'
-				>
-					<GroupsSelector
-						portal={document.querySelector('#root')}
-						value={account.groups}
-						onChange={value => setAccount(account => ({...account, groups: value}))}
-					/>
-				</Field>
-			</Row>
-		</Form>
+		<thead>
+			<tr>
+				{headerColumns.map((element, i) => <th key={i}>{element}</th>)}
+			</tr>
+		</thead>
+	);
+}
+
+function WebexAccountsTableRow({account, readOnly}) {
+	const dispatch = useDispatch();
+	const handleDelete = () => dispatch(deleteWebexAccount(account.id));
+	const handleChange = (changes) => dispatch(updateWebexAccount(account.id, changes));
+
+	const rowColumns = [
+		<Input 
+			type='text'
+			value={account.name}
+			onChange={e => handleChange({name: e.target.value})}
+			readOnly={readOnly}
+		/>,
+		<GroupsSelector
+			multi
+			value={account.groups}
+			onChange={groups => handleChange({groups})}
+			types={['wg', 'c']}
+			portal={document.querySelector('#root')}
+			readOnly={readOnly}
+		/>,
+		<>
+			{account.authDate? displayDate(account.authDate): ''}
+			<a style={{padding: '0 1em'}} href={getWebexAccountAuthLink(account)}>
+				{account.authDate? 'Reauthorize': 'Authorize'}
+			</a>
+		</>
+	];
+
+	if (!readOnly)
+		rowColumns.push(<ActionIcon type='delete' onClick={handleDelete}/>);
+
+	return (
+		<tr>
+			{rowColumns.map((element, i) => <td key={i}>{element}</td>)}
+		</tr>
 	)
 }
 
-function WebexAccounts() {
+const WebexAccountsTableEmpty = () => 
+	<tr>
+		<td className='empty'>Empty</td>
+	</tr>
 
+const WebexAccountsTable = ({accounts, readOnly}) => 
+	<Table>
+		<WebexAccountsTableHeader readOnly={readOnly} />
+		<tbody>
+			{accounts.length > 0?
+				accounts.map(account => <WebexAccountsTableRow key={account.id} account={account} readOnly={readOnly} />):
+				<WebexAccountsTableEmpty />}
+		</tbody>
+	</Table>
+
+function WebexAccounts() {
 	const dispatch = useDispatch();
-	const {loading, ids, entities} = useSelector(state => state[dataSet]);
+	const {loading, ids, entities} = useSelector(selectWebexAccountsState);
+	const [edit, setEdit] = React.useState(false);
+	const refresh = () => dispatch(loadWebexAccounts());
 
 	React.useEffect(() => {
 		if (!loading)
-			dispatch(loadWebexAccounts());
+			refresh();
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-	const refresh = () => dispatch(loadWebexAccounts());
-	return <>
-		<TopRow>
-			<h3>Webex accounts</h3>
-			<div style={{display: 'flex'}}>
-				<ActionButtonDropdown
-					name='add'
-					title='Add account'
-					dropdownRenderer={(props) => <WebexAccountAddEdit type='add' {...props} />}
-				/>
-				<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
-			</div>
-		</TopRow>
-		<div style={{display: 'flex', flexDirection: 'column', width: '100%'}}>
-			<WebexAccountHeader />
-			{ids.map(id => <WebexAccountRow key={id} account={entities[id]} />)}
-		</div>
-	</>
+	return (
+		<>
+			<TopRow>
+				<h3>Webex accounts</h3>
+				<div style={{display: 'flex'}}>
+					<ActionButton name='edit' title='Edit' isActive={edit} onClick={() => setEdit(!edit)} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
+				</div>
+			</TopRow>
+			<WebexAccountsTable
+				accounts={ids.map(id => entities[id])}
+				readOnly={!edit}
+			/>
+		</>
+	)
 }
-
 
 export default WebexAccounts;

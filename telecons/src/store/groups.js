@@ -1,35 +1,90 @@
-import {createSlice, createEntityAdapter, createSelector} from '@reduxjs/toolkit';
+import {createSelector} from '@reduxjs/toolkit';
 import { v4 as uuid } from 'uuid';
+
+import {createAppTableDataSlice, setPanelIsSplit, selectCurrentPanelConfig} from 'dot11-components/store/appTableData';
 
 import fetcher from 'dot11-components/lib/fetcher';
 import {setError} from 'dot11-components/store/error';
 
-const dataAdapter = createEntityAdapter({});
+const GroupType = {
+	c: 'Committee',
+	wg: 'Working Group',
+	sg: 'Study Group',
+	tg: 'Task Group',
+	sc: 'Standing Committee',
+	ah: 'Ad-hoc Group'
+};
+
+export const GroupTypeOptions = Object.entries(GroupType).map(([value, label]) => ({value, label}));
+
+export const GroupStatusOptions = [
+	{value: 0, label: 'Inactive'},
+	{value: 1, label: 'Active'}
+];
+
+export const fields = {
+	id: {},
+	parent_id: {},
+	name: {label: 'Group'},
+	type: {label: 'Type', dataRenderer: v => GroupType[v]},
+	status: {label: 'Status', dataRenderer: v => v? 'Active': 'Inactive'},
+};
+
+
+function treeSortedIds(ids, entities) {
+
+	function compare(n1, n2) {
+		const g1 = entities[n1.id];
+		const g2 = entities[n2.id];
+		const keys = Object.keys(GroupType);
+		let cmp = keys.indexOf(g1.type) - keys.indexOf(g2.type);
+		if (cmp === 0)
+			cmp = g1.name.localeCompare(g2.name);
+		return cmp;
+	}
+
+	function findChildren(parent_id) {
+		const nodes = [];
+		for (const id of ids) {
+			if (entities[id].parent_id === parent_id) {
+				const children = findChildren(id).sort(compare);
+				nodes.push({id, children});
+			}
+		}
+		return nodes;
+	}
+
+	const nodes = findChildren(null);
+
+	function concat(nodes) {
+		let ids = [];
+		for (const node of nodes)
+			ids = [...ids, node.id, ...concat(node.children)];
+		return ids;
+	}
+	const sortedIds = concat(nodes);
+
+	return sortedIds;
+}
 
 export const dataSet = 'groups';
 
-const slice = createSlice({
+const slice = createAppTableDataSlice({
 	name: dataSet,
-	initialState: dataAdapter.getInitialState({
-		valid: false,
-		loading: false,
-	}),
-	reducers: {
-		getPending(state, action) {
-			state.loading = true;
-		},
-  		getSuccess(state, action) {
-			state.loading = false;
-			state.valid = true;
-			dataAdapter.setAll(state, action.payload);
-		},
-		getFailure(state, action) {
-			state.loading = false;
-		},
-		updateOne: dataAdapter.updateOne,
-		addOne: dataAdapter.addOne,
-		removeOne: dataAdapter.removeOne
-	},
+	fields,
+	initialState: {},
+	extraReducers: (builder, dataAdapter) => {
+		builder
+		.addMatcher(
+			(action) => action.type === (dataSet + '/getSuccess'),
+			(state, action) => {
+				const {ids, entities} = state;
+				const sortedIds = treeSortedIds(ids, entities);
+				if (sortedIds.join() !== ids.join())
+					state.ids = sortedIds;
+			}
+		)
+	}
 });
 
 /*
@@ -40,7 +95,9 @@ export default slice.reducer;
 /*
  * Selectors
  */
+export const selectGroupsPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
 export const selectGroupsState = (state) => state[dataSet];
+export const selectEntities = (state) => selectGroupsState(state).entities;
 
 /* Produces an array of {node: {}, children: array of <node>} */
 export const selectGroupHierarchy = createSelector(
@@ -65,7 +122,11 @@ export const selectGroupHierarchy = createSelector(
 /*
  * Actions
  */
-const {getPending, getSuccess, getFailure, addOne, updateOne, removeOne} = slice.actions;
+export const setGroupsPanelIsSplit = (value) => setPanelIsSplit(dataSet, undefined, value);
+
+const {getPending, getSuccess, getFailure, addOne, addMany, updateOne, updateMany, removeOne, removeMany, setSelected} = slice.actions;
+
+export {setSelected};
 
 const url = '/api/groups';
 
@@ -103,34 +164,31 @@ export const addGroup = (group) =>
 		return group;
 	}
 
-export const updateGroup = (update) => 
+export const updateGroups = (updates) => 
 	(dispatch, getState) => {
 		const {entities} = selectGroupsState(getState());
-		const original = entities[update.id];
-		dispatch(updateOne(update));
-		fetcher.put(url, [update])
+		const originals = updates.map(u => entities[u.id]);
+		dispatch(updateMany(updates));
+		fetcher.put(url, updates)
 			.then(entities => {
-				if (!Array.isArray(entities) || entities.length !== 1)
+				if (!Array.isArray(entities))
 					throw new TypeError(`Unexpected response to POST ${url}`);
-				const group = entities[0];
-				dispatch(updateOne({id: group.id, changes: group}));
+				dispatch(updateMany(entities.map(e => ({id: e.id, changes: e}))));
 			})
 			.catch(error => {
-				dispatch(setError('Unable to update group', error));
-				if (original)
-					dispatch(updateOne({id: update.id, changes: original}));
+				dispatch(setError('Unable to update groups', error));
+				dispatch(updateMany(originals.map(e => ({id: e.id, changes: e}))));
 			});
 	}
 
-export const deleteGroup = (id) =>
+export const deleteGroups = (ids) =>
 	(dispatch, getState) => {
 		const {entities} = selectGroupsState(getState());
-		const original = entities[id];
-		dispatch(removeOne(id));
-		fetcher.delete(url, [id])
+		const originals = ids.map(id => entities[id]);
+		dispatch(removeMany(ids));
+		fetcher.delete(url, ids)
 			.catch(error => {
 				dispatch(setError('Unable to delete group', error));
-				if (original)
-					dispatch(addOne(original));
+				dispatch(addMany(originals));
 			});
 	}

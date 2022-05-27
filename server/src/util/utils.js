@@ -12,3 +12,5 @@ export const parseNumber = (value) => {
   // This will fail silently
   return !isNaN(unformatted)? unformatted: 0;
 };
+
+export const isPlainObject = (obj) => obj !== null && typeof obj == "object" && Object.getPrototypeOf(obj) == Object.prototype;
