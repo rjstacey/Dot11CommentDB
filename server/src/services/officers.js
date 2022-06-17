@@ -1,7 +1,7 @@
 
 import { v4 as uuid } from 'uuid';
 
-const db = require('../util/database');
+const db = require('../utils/database');
 
 export function getOfficers(constraints) {
 	let sql =

@@ -5,7 +5,7 @@
 'use strict';
 
 import ExcelJS from 'exceljs';
-import csvParse from '../util/csvParse';
+import { csvParse } from '../utils';
 import { fromHtml } from './commentsSpreadsheet';
 
 const myProjectCommentsHeader = [

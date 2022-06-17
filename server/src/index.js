@@ -7,11 +7,11 @@
 require('dotenv').config();
 //console.log(process.env);
 
-const db = require('./util/database');
+const db = require('./utils/database');
 
 async function initDatabase() {
 	await db.init();
-	await require('./util/seedDatabase').init();
+	await require('./utils/seedDatabase').init();
 	console.log('init database complete');
 }
 
@@ -72,7 +72,12 @@ function initServer() {
 				message = JSON.stringify(err);
 			}
 		}
-		res.status(400).send(message);
+		let status = 400;
+		if (err.name === "AuthError")
+			status = 401;
+		else if (err.name === "NotFoundError")
+			status = 404;
+		res.status(status).send(message);
 	});
 
 

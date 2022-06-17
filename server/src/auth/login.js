@@ -1,7 +1,7 @@
-import {createFetcher} from '../util/fetcher';
+import { createFetcher } from '../utils';
 
 const cheerio = require('cheerio');
-const db = require('../util/database');
+const db = require('../utils/database');
 const users = require('./users');
 const jwt = require('./jwt');
 

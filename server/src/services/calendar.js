@@ -1,6 +1,6 @@
 const axios = require('axios');
-const db = require('../util/database');
 const {google} = require('googleapis');
+const db = require('../utils/database');
 
 const calendarApiBaseUrl = 'https://www.googleapis.com/calendar/v3';
 const calendarAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth';

@@ -14,6 +14,10 @@ import timeZones, {loadTimeZones} from './timeZones';
 import groups, {loadGroups} from './groups';
 import officers, {loadOfficers} from './officers';
 import members, {loadMembers} from './members';
+import imatCommittees from './imatCommittees';
+import imatMeetings from './imatMeetings';
+import imatBreakouts from './imatBreakouts';
+import imatBreakoutAttendance from './imatBreakoutAttendance';
 
 function configureStore() {
 
@@ -25,7 +29,11 @@ function configureStore() {
 		timeZones,
 		groups,
 		officers,
-		members
+		members,
+		imatCommittees,
+		imatMeetings,
+		imatBreakouts,
+		imatBreakoutAttendance,
 	});
 
 	const middleware = [thunk];
@@ -34,16 +42,16 @@ function configureStore() {
 
 	const persistConfig = {
 		key: 'telecons',
-		version: 1,
+		version: 2,
 		storage: {	// IndexedDB for storage using idb-keyval
 			setItem: set,
 			getItem: get,
 			removeItem: del
 		},
-		whitelist: ['telecons', 'webexAccounts', 'calendarAccounts', 'timeZones', 'groups', 'officers', 'members'],
+		whitelist: ['telecons', 'webexAccounts', 'calendarAccounts', 'timeZones', 'groups', 'officers', 'members', 'imatMeetings'],
 		stateReconciler: autoMergeLevel2,
 		migrate: (state) => {
-			if (state && state._persist && state._persist.version !== 1)
+			if (state && state._persist && state._persist.version !== 2)
 				return Promise.reject('Discard old version')
 			return Promise.resolve(state);
 		}

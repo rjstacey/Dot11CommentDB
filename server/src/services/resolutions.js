@@ -6,7 +6,7 @@ import {getComments} from './comments';
 import {genCommentsSpreadsheet} from './commentsSpreadsheet';
 import {myProjectAddResolutions} from './myProjectSpreadsheets';
 
-const db = require('../util/database');
+const db = require('../utils/database');
 
 const defaultResolution = {
 	ResolutionID: 0,

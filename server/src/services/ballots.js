@@ -3,7 +3,7 @@ import {getResults, getResultsCoalesced} from './results';
 import {getVoters} from './voters';
 import {getCommentsSummary} from './comments';
 
-const db = require('../util/database');
+const db = require('../utils/database');
 
 export const BallotType = {
 	CC: 0,			// comment collection

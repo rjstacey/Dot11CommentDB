@@ -1,6 +1,6 @@
 const axios = require('axios');
-const db = require('../util/database');
 const Webex = require('webex');
+const db = require('../utils/database');
 
 const webexApiBaseUrl = 'https://webexapis.com/v1';
 const webexAuthUrl = 'https://webexapis.com/v1/authorize';
@@ -207,7 +207,19 @@ export async function addWebexMeeting(id, params) {
 	const api = apis[id];
 	if (!api)
 		throw new Error(`Invalid account id=${id}`);
-	const response = await api.post('/meetings', params);
+	let response;
+	try {
+		response = await api.post('/meetings', params);
+	}
+	catch (error) {
+		if (error.response && error.response.status === 400) {
+			const {message, errors} = error.response.data;
+			console.error(message, errors);
+			const description = `${message}\n` + errors.join('\n');
+			throw new Error('Bad response', {description});
+		}
+		throw error;
+	}
 	return response.data;
 }
 
@@ -215,7 +227,19 @@ export async function updateWebexMeeting(id, meeting_id, params) {
 	const api = apis[id];
 	if (!api)
 		throw new Error(`Invalid account id=${id}`);
-	const response = await api.put(`/meetings/${meeting_id}`, params);
+	let response;
+	try {
+		response = await api.put(`/meetings/${meeting_id}`, params);
+	}
+	catch (error) {
+		if (error.response && error.response.status === 400) {
+			const {message, errors} = error.response.data;
+			console.error(message, errors);
+			const description = `${message}\n` + errors.join('\n');
+			throw new Error('Bad response', {description});
+		}
+		throw error;
+	}
 	return response.data;
 }
 

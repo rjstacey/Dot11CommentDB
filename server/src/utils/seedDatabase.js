@@ -4,7 +4,7 @@ import {getMember, addMember, updateMember} from '../services/members';
 import {initCommentsTables} from '../services/comments';
 import {initCommentHistory} from '../services/commentHistory';
 
-const db = require('../util/database');
+const db = require('../utils/database');
 
 const usersTable =
 	'CREATE TABLE `users` ( ' +

@@ -5,7 +5,7 @@
  */
 import parse from 'csv-parse';
 
-function csvParse(buffer, options) {
+export function csvParse(buffer, options) {
 	return new Promise((resolve, reject) => {
 		parse(buffer, options, (error, records) => {
 			if (error)
@@ -15,5 +15,3 @@ function csvParse(buffer, options) {
 		});
 	});
 }
-
-export default csvParse;

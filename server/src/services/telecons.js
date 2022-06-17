@@ -16,7 +16,7 @@ import {
 	deleteCalendarEvent
 } from './calendar';
 
-const db = require('../util/database');
+const db = require('../utils/database');
 
 async function selectTelecons(constraints) {
 
@@ -26,8 +26,9 @@ async function selectTelecons(constraints) {
 			'BIN_TO_UUID(group_id) AS group_id,' +
 			'summary, start, end, timezone, ' +
 			'hasMotions, ' +
-			'webex_id, webex_meeting_id, ' +
-			'calendar_id, calendar_event_id ' +
+			'webexAccountId, webexMeetingId, ' +
+			'calendarAccountId, calendarEventId, ' +
+			'imatMeetingId, imatBreakoutId ' +
 		'FROM telecons t';
 
 	const {parent_id, ...rest} = constraints;
@@ -67,11 +68,11 @@ export async function getTelecons(constraints) {
 	const telecons = await selectTelecons(constraints);
 	let webexMeetings = [], calendarEvents = [];
 	for (const telecon of telecons) {
-		if (telecon.webex_id && telecon.webex_meeting_id) {
+		if (telecon.webexAccountId && telecon.webexMeetingId) {
 			telecon.webexMeeting = 
-				getWebexMeeting(telecon.webex_id, telecon.webex_meeting_id)
+				getWebexMeeting(telecon.webexAccountId, telecon.webexMeetingId)
 				.catch(error => {
-					console.warn(`Can't get webex meeting id=${telecon.webex_meeting_id}:`, error.toString())
+					console.warn(`Can't get webex meeting id=${telecon.webexMeetingId}:`, error.toString())
 				});
 		}
 		if (telecon.calendar_id && telecon.calendar_event_id) {
@@ -99,10 +100,12 @@ function teleconEntry(e) {
 		end: e.end? DateTime.fromISO(e.end, opt).toJSDate(): undefined,
 		timezone: e.timezone,
 		hasMotions: e.hasMotions,
-		webex_id: e.webex_id,
-		webex_meeting_id: e.webex_meeting_id,
-		calendar_id: e.calendar_id,
-		calendar_event_id: e.calendar_event_id,
+		webexAccountId: e.webexAccountId,
+		webexMeetingId: e.webexMeetingId,
+		calendarAccountId: e.calendarAccountId,
+		calendarEventId: e.calendarEventId,
+		imatMeetingId: e.imatMeetingId,
+		imatBreakoutId: e.imatBreakoutId,
 	};
 
 	for (const key of Object.keys(entry)) {
@@ -176,9 +179,10 @@ const meetingDescriptionStyle = `
 	</style>`;
 
 function teleconWebexDescription(webexMeeting) {
-	console.log(webexMeeting)
-	if (Object.keys(webexMeeting).length === 0)
+
+	if (Object.keys(webexMeeting).length === 0 || !webexMeeting.hasOwnProperty('meetingNumber')) {
 		return '';
+	}
 
 	const {
 		meetingNumber,
@@ -214,7 +218,7 @@ function teleconWebexDescription(webexMeeting) {
 		</p>
 		<p>
 			Need help? Go to <a href="http://help.webex.com">http://help.webex.com</a>
-		</p>`.replace(/\t|\n/g, '');	// strip tabs and newline (helps with embedded google calendar formating)
+		</p>`.replace(/\t|\n/g, '');	// strip tabs and newline (helps with google calendar description formating)
 
 	return description;
 }
@@ -224,7 +228,7 @@ function teleconToCalendarEvent(entry) {
 	    description = '';
 	if (entry.webexMeeting) {
 		description = teleconWebexDescription(entry.webexMeeting);
-		location = entry.webexMeeting.webLink;
+		location = entry.webexMeeting.webLink || '';
 	}
 	return {
 		summary: entry.summary,
@@ -243,41 +247,25 @@ function teleconToCalendarEvent(entry) {
 
 async function addTelecon(entry) {
 
-	let response, params;
-	/*if (entry.webex_id) {
-		console.log(entry)
-		params = teleconToWebexMeeting(entry);
-		console.log(params)
-		try {
-			response = await addWebexMeeting(entry.webex_id, params);
-		}
-		catch (error) {
-			console.error(error);
-			console.log(`status: ${error.response.status} ${error.response.statusText}`);
-			console.log(error.response.data.message);
-			console.log(error.response.data.errors);
-		}
-		console.log(response);
-		entry.webex_meeting_id = response.id;
-	}*/
+	/* If a webex account is given and the webexMeeting object exists then add a webex meeting */
+	if (entry.webexAccountId && entry.webexMeeting) {
+		const webexMeeting = await addWebexMeeting(entry.webexAccountId, teleconToWebexMeeting(entry));
+		entry.webexMeetingId = webexMeeting.id;
+		entry.webexMeeting = webexMeeting;
+	}
 
 	if (entry.calendar_id) {
-		params = teleconToCalendarEvent(entry);
-		console.log(params)
-		response = await addCalendarEvent(entry.calendar_id, params);
-		console.log(response)
-		entry.calendar_event_id = response.id;
+		const calendarEvent = await addCalendarEvent(entry.calendar_id, teleconToCalendarEvent(entry));
+		entry.calendar_event_id = calendarEvent.id;
 	}
 
 	const sql = 'INSERT INTO telecons SET ' + teleconEntry(entry);
-	console.log(sql);
 	const {insertId} = await db.query(sql);
 	return insertId;
 }
 
 export async function addTelecons(entries) {
 	const ids = await Promise.all(entries.map(e => addTelecon(e)));
-	const insertedTelecons = await db.query('SELECT * FROM telecons WHERE id IN (?);', [ids]);
 	return await getTelecons({id: ids});
 }
 
@@ -289,47 +277,60 @@ async function updateTelecon(id, changes) {
 	if (!telecon)
 		throw new Error(`Telecon entry ${id} does not exist`);
 
-	/* Make Webex changes */
+	/* Make Webex changes.
+	 * Remove an existing webex meeting if the webexMeetingId is changed to null.
+	 * Add a webex meeting if one does not exist and webexMeeting object is present.
+	 * Remove an existing webex meeting and add new webex meeting if the webex account is changed and webexMeeting is present.
+	 * Otherwise, update existing meeting. */
 	let webexMeeting = teleconToWebexMeeting({...telecon, ...teleconChanges});
 	webexMeeting = {...webexMeeting, ...webexMeetingChanges};
-	console.log('webexMeeting', webexMeeting);
-	if (telecon.webex_id && telecon.webex_meeting_id) {
+	if (telecon.webexAccountId && telecon.webexMeetingId) {
 		// Webex meeting exists
-		if ((teleconChanges.hasOwnProperty('webex_id') && teleconChanges.webex_id !== telecon.webex_id) ||
-			(teleconChanges.hasOwnProperty('webex_meeting_id') && !teleconChanges.webex_meeting_id))
+		if ((teleconChanges.hasOwnProperty('webexAccountId') && teleconChanges.webexAccountId !== telecon.webexAccountId) ||
+			(teleconChanges.hasOwnProperty('webexMeetingId') && !teleconChanges.webexMeetingId))
 		{
-			// Delete current webex meeting
-			console.log('delete webex meeting', telecon.webex_meeting_id);
-			await deleteWebexMeeting(telecon.webex_id, telecon.webex_meeting_id);
-			teleconChanges.webex_meeting_id = null;
-			const webex_id = teleconChanges.webex_id || telecon.webex_id;
-			if (webex_id && webexMeetingChanges) {
-				// Add new webex meeting
+			// Delete the webex meeting if the webex account changes or
+			// the webexMeetingId is set to null.
+			console.log('delete webex meeting', telecon.webexMeetingId);
+			try {
+				await deleteWebexMeeting(telecon.webexAccountId, telecon.webexMeetingId);
+			}
+			catch (error) {
+				// Ignore "meeting does not" exist error (may already be deleted)
+				if (!error.response || error.response.status !== 404)	// Webex meeting does not exist
+					throw error;
+			}
+			teleconChanges.webexMeetingId = null;
+			const webexAccountId = teleconChanges.webexAccountId || telecon.webexAccountId;
+			if (webexAccountId && webexMeetingChanges) {
+				// Add new webex meeting if the webexMeeting object is present
 				console.log('add webex meeting');
-				webexMeeting = await addWebexMeeting(telecon.webex_id, webexMeeting);
+				webexMeeting = await addWebexMeeting(telecon.webexAccountId, webexMeeting);
 				teleconChanges.webexMeeting = webexMeeting;
-				teleconChanges.webex_meeting_id = webexMeeting.id;
+				teleconChanges.webexMeetingId = webexMeeting.id;
 			}
 		}
 		else {
 			// Update existing webex meeting
 			try {
-				teleconChanges.webexMeeting = await updateWebexMeeting(telecon.webex_id, telecon.webex_meeting_id, webexMeeting);
+				teleconChanges.webexMeeting = await updateWebexMeeting(telecon.webexAccountId, telecon.webexMeetingId, webexMeeting);
 			}
 			catch (error) {
 				if (error.response && error.response.status === 404)	// Webex meeting does not exist
-					teleconChanges.webex_meeting_id = null;
+					teleconChanges.webexMeetingId = null;
+				else
+					throw error;
 			}
 		}
 	}
 	else {
 		// Webex meeting does not exist
-		const webex_id = teleconChanges.webex_id || telecon.webex_id;
-		if (webex_id && webexMeetingChanges) {
+		const webexAccountId = teleconChanges.webexAccountId || telecon.webexAccountId;
+		if (webexAccountId && webexMeetingChanges) {
 			// Add new webex meeting
-			webexMeeting = await addWebexMeeting(telecon.webex_id, webexMeeting);
+			webexMeeting = await addWebexMeeting(telecon.webexAccountId, webexMeeting);
 			teleconChanges.webexMeeting = webexMeeting;
-			teleconChanges.webex_meeting_id = webexMeeting.id;
+			teleconChanges.webexMeetingId = webexMeeting.id;
 		}
 	}
 
@@ -360,7 +361,6 @@ async function updateTelecon(id, changes) {
 		}
 	}
 
-	console.log('teleconChanges', teleconChanges)
 	const setSql = teleconEntry(teleconChanges);
 	if (setSql)
 		await db.query('UPDATE telecons SET ' + setSql + ' WHERE id=?;', [id]);
@@ -380,10 +380,10 @@ export async function updateTelecons(updates) {
 }
 
 export async function deleteTelecons(ids) {
-	const entries = await db.query('SELECT webex_id, webex_meeting_id, calendar_id, calendar_event_id FROM telecons WHERE id IN (?);', [ids]);
+	const entries = await db.query('SELECT webexAccountId, webexMeetingId, calendar_id, calendar_event_id FROM telecons WHERE id IN (?);', [ids]);
 	for (const entry of entries) {
-		if (entry.webex_id && entry.webex_meeting_id)
-			await deleteWebexMeeting(entry.webex_id, entry.webex_meeting_id);
+		if (entry.webexAccountId && entry.webexMeetingId)
+			await deleteWebexMeeting(entry.webexAccountId, entry.webexMeetingId);
 		if (entry.calendar_id && entry.calendar_event_id)
 			await deleteCalendarEvent(entry.calendar_id, entry.calendar_event_id);
 	}
@@ -403,16 +403,7 @@ function teleconWebexMeetingDiff(telecon, webexMeeting) {
 }
 
 async function addWebexMeetingToTelecon(id, webexMeeting) {
-	/*let [telecon] = await selectTelecons({id});
-	if (!telecon)
-		throw new Error(`Telecon entry ${id} does not exist`);
-	if (telecon.webex_meeting_id)
-		await deleteWebexMeeting(telecon.webex_id, telecon.webex_meeting_id);
-	webexMeeting = teleconToWebexMeeting({...telecon, webexMeeting});
-	webexMeeting = await addWebexMeeting(telecon.webex_id, webexMeeting);
-	await updateTelecon(id, {webex_id: telecon.webex_id, webex_meeting_id: webexMeeting.id, webexMeeting});*/
-	await updateTelecon(id, {webex_meeting_id: null, webexMeeting});
-	return id;
+	return await updateTelecon(id, {webexMeetingId: null, webexMeeting});
 }
 
 export async function addWebexMeetingToTelecons(telecons) {
@@ -428,21 +419,7 @@ export async function addWebexMeetingToTelecons(telecons) {
 }
 
 async function removeWebexMeetingFromTelecon(id) {
-	/*let [telecon] = await selectTelecons({id});
-	if (!telecon)
-		throw new Error(`Telecon entry ${id} does not exist`);
-	if (telecon.webex_meeting_id) {
-		try {
-			await deleteWebexMeeting(telecon.webex_id, telecon.webex_meeting_id);
-		}
-		catch (error) {
-			if (!error.response || error.response.status !== 404)
-				throw error;
-		}
-	}
-	await updateTelecon(id, {webex_id: telecon.webex_id, webex_meeting_id: null});*/
-	await updateTelecon(id, {webex_meeting_id: null});
-	return id;
+	return await updateTelecon(id, {webexMeetingId: null});
 }
 
 export async function removeWebexMeetingFromTelecons(telecons) {
@@ -458,26 +435,26 @@ export async function removeWebexMeetingFromTelecons(telecons) {
 }
 
 async function syncTeleconWithWebex(telecon) {
-	if (!telecon.webex_id)
+	if (!telecon.webexAccountId)
 		return telecon;
 	const entry = {};
 	const webexMeetingEntry = teleconToWebexMeeting(telecon);
-	if (!telecon.webex_meeting_id) {
-		telecon.webexMeeting = await addWebexMeeting(telecon.webex_id, webexMeetingEntry);
-		entry.webex_meeting_id = telecon.webexMeeting.id;
+	if (!telecon.webexMeetingId) {
+		telecon.webexMeeting = await addWebexMeeting(telecon.webexAccountId, webexMeetingEntry);
+		entry.webexMeetingId = telecon.webexMeeting.id;
 	}
 	else {
-		let webexMeeting = await getWebexMeeting(telecon.webex_id, telecon.webex_meeting_id);
+		let webexMeeting = await getWebexMeeting(telecon.webexAccountId, telecon.webexMeetingId);
 		const changes = teleconWebexMeetingDiff(telecon, webexMeeting);
-		telecon.webexMeeting = await updateWebexMeeting(telecon.webex_id, telecon.webex_meeting_id, changes);
-		entry.webex_meeting_id = telecon.webexMeeting.id;
+		telecon.webexMeeting = await updateWebexMeeting(telecon.webexAccountId, telecon.webexMeetingId, changes);
+		entry.webexMeetingId = telecon.webexMeeting.id;
 	}
 	await db.query('UPDATE telecons SET ? WHERE id=?;', [entry, telecon.id]);
 	return {...telecon, ...entry};
 }
 
 export async function syncTeleconsWithWebex(ids) {
-	let telecons = await selectTelecons({id: ids}); //db.query(getTeleconsSql({id: ids}));
+	let telecons = await selectTelecons({id: ids});
 	telecons = await Promise.all(telecons.map(telecon => syncTeleconWithWebex(telecon)));
 	return telecons;
 }

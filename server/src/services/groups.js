@@ -1,7 +1,7 @@
 
 import { v4 as uuid } from 'uuid';
 
-const db = require('../util/database');
+const db = require('../utils/database');
 
 export function getGroups(constraints) {
 	let sql =
@@ -10,8 +10,10 @@ export function getGroups(constraints) {
 			'BIN_TO_UUID(`parent_id`) AS `parent_id`, ' +
 			'`name`, ' +
 			'`type`, ' +
-			'`status` ' +
-		'FROM `groups`';
+			'`status`, ' +
+			'`imatCommitteeId` ' +
+		'FROM `organization`';
+
 	if (constraints) {
 		sql += ' WHERE ' + Object.entries(constraints).map(
 			([key, value]) => 
@@ -20,6 +22,7 @@ export function getGroups(constraints) {
 					db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
 		).join(' AND ');
 	}
+
 	return db.query(sql);
 }
 
@@ -27,7 +30,7 @@ async function addGroup({id, parent_id, ...rest}) {
 	if (!id)
 		id = uuid();
 
-	let sql = db.format('INSERT INTO `groups` SET `id`=UUID_TO_BIN(?)', [id]);
+	let sql = db.format('INSERT INTO organization SET `id`=UUID_TO_BIN(?)', [id]);
 	if (parent_id)
 		sql += db.format(', `parent_id`=UUID_TO_BIN(?)', [parent_id]);
 	if (Object.keys(rest).length > 0)
@@ -59,9 +62,8 @@ async function updateGroup(update) {
 		sets.push(sql);
 	}
 
-	if (sets.length !== 0) {
-		await db.query('UPDATE `groups` SET ' + sets.join(', ') + ' WHERE `id`=UUID_TO_BIN(?)', [id])
-	}
+	if (sets.length !== 0)
+		await db.query('UPDATE organization SET ' + sets.join(', ') + ' WHERE `id`=UUID_TO_BIN(?)', [id])
 
 	const groups = await getGroups({id});
 
@@ -74,6 +76,6 @@ export function updateGroups(updates) {
 
 export async function removeGroups(ids) {
 	const result1 = await db.query('DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)', [ids]);
-	const result2 = await db.query('DELETE FROM `groups` WHERE BIN_TO_UUID(id) IN (?)', [ids]);
+	const result2 = await db.query('DELETE FROM organization WHERE BIN_TO_UUID(id) IN (?)', [ids]);
 	return result1.affectedRows + result2.affectedRows;
 }

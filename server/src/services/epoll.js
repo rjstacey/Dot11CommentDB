@@ -5,8 +5,8 @@
 'use strict';
 
 import { DateTime } from 'luxon';
-import csvParse from '../util/csvParse';
 import cheerio from 'cheerio';
+import { csvParse } from '../utils';
 
 // Convert date string to UTC
 function parseDateTime(dateStr) {

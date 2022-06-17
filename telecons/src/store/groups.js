@@ -28,6 +28,7 @@ export const fields = {
 	name: {label: 'Group'},
 	type: {label: 'Type', dataRenderer: v => GroupType[v]},
 	status: {label: 'Status', dataRenderer: v => v? 'Active': 'Inactive'},
+	imatCommitteeId: {label: 'IMAT Committee'},
 };
 
 

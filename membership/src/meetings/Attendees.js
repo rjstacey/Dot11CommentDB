@@ -114,25 +114,25 @@ function Attendees() {
 
 	return (
 		<>
-		<TopRow style={{maxWidth}}>
-			{valid? renderTitle(session, breakout): null}
-			<div>
-				<ActionButton name='import' title='Add Selected' onClick={handleImportAttandees} />
-				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-				<ActionButton name='close' title='Close' onClick={close} />
-			</div>
-		</TopRow>
+			<TopRow style={{maxWidth}}>
+				{valid? renderTitle(session, breakout): null}
+				<div>
+					<ActionButton name='import' title='Add Selected' onClick={handleImportAttandees} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+					<ActionButton name='close' title='Close' onClick={close} />
+				</div>
+			</TopRow>
 
-		<TableRow>
-			<AppTable
-				fitWidth
-				fixed
-				columns={columns}
-				headerHeight={40}
-				estimatedRowHeight={50}
-				dataSet={dataSet}
-			/>
-		</TableRow>
+			<TableRow>
+				<AppTable
+					fitWidth
+					fixed
+					columns={columns}
+					headerHeight={40}
+					estimatedRowHeight={50}
+					dataSet={dataSet}
+				/>
+			</TableRow>
 		</>
 	)
 }

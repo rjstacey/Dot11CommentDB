@@ -6,6 +6,12 @@ import {displayDate} from 'dot11-components/lib';
 import {DateTime} from 'luxon';
 
 import {selectEntities as selectGroupEntities} from './groups';
+import {selectWebexAccountEntities} from './webexAccounts';
+
+export function displayMeetingNumber(meetingNumber) {
+	const s = meetingNumber.toString();
+	return s.substring(0,4) + ' ' + s.substring(4,7) + ' ' + s.substring(7);
+}
 
 export const fields = {
 	group_id: {label: 'Group ID'},
@@ -17,18 +23,25 @@ export const fields = {
 	time: {label: 'Time'},
 	duration: {label: 'Duration'},
 	hasMotions: {label: 'Motions'},
-	webex_id: {label: 'Webex account'},
+	webexAccountId: {label: 'Webex account'},
 };
 
+/*
+ * Fields derived from other fields
+ */
 export function getField(entity, key) {
 	if (key === 'day')
 		return DateTime.fromISO(entity.start, {zone: entity.timezone}).weekdayShort;
-	else if (key === 'date')
+	if (key === 'date')
 		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('yyyy LLL dd');
-	else if (key === 'time')
+	if (key === 'time')
 		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('HH:mm');
-	else if (key === 'duration')
+	if (key === 'duration')
 		return DateTime.fromISO(entity.end).diff(DateTime.fromISO(entity.start), 'hours').hours;
+	if (key === 'location')
+		return entity.webexMeeting? `${entity.webexAccountName}: ${displayMeetingNumber(entity.webexMeeting.meetingNumber)}`: '';
+	if (key === 'meetingNumber')
+		return entity.webexMeeting? displayMeetingNumber(entity.webexMeeting.meetingNumber): '';
 	return entity[key];
 }
 
@@ -38,20 +51,26 @@ export const dataSet = 'telecons';
  * Selectors
  */
 export const selectTeleconsState = (state) => state[dataSet];
-export const selectEntities = state => selectTeleconsState(state).entities;
+export const selectTeleconEntities = state => selectTeleconsState(state).entities;
 
 export const getTeleconsForSubgroup = (state, subgroup) => state.ids.filter(id => state.entities[id].Subgroup === subgroup);
 export const selectTeleconsCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
 
-export const selectEntitiesWithGroupName = createSelector(
+export const selectSyncedTeleconEntities = createSelector(
 	selectGroupEntities,
-	selectEntities,
-	(groups, telecons) => {
+	selectWebexAccountEntities,
+	selectTeleconEntities,
+	(groups, webexAccounts, telecons) => {
 		const entities = {};
 		for (const id of Object.keys(telecons)) {
 			const telecon = telecons[id];
 			const group = groups[telecon.group_id];
-			entities[id] = {...telecon, groupName: group? group.name: 'Unknown'}
+			const webexAccount = webexAccounts[telecon.webexAccountId];
+			entities[id] = {
+				...telecon,
+				groupName: group? group.name: 'Unknown',
+				webexAccountName: webexAccount? webexAccount.name: 'None'
+			};
 		}
 		return entities;
 	}
@@ -69,7 +88,7 @@ const slice = createAppTableDataSlice({
 	fields,
 	selectField: getField,
 	initialState: {groupId: null, defaults: {}},
-	selectEntities: selectEntitiesWithGroupName,
+	selectEntities: selectSyncedTeleconEntities,
 	reducers: {
 		setGroupId(state, action) {
 			state.groupId = action.payload;
@@ -146,12 +165,12 @@ export const removeTelecons = () =>
 
 export const updateTelecons = (updates) =>
 	async (dispatch) => {
-		await dispatch(updateMany(updates));
+		//await dispatch(updateMany(updates));
 		let telecons;
 		try {
 			telecons = await fetcher.patch(baseUrl, updates);
 			if (!Array.isArray(telecons))
-				throw new TypeError('Unexpected response to PATCH: ' + baseUrl);
+				throw new TypeError('Unexpected response to PATCH ' + baseUrl);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to update telecons`, error));
@@ -166,7 +185,7 @@ export const addTelecons = (telecons) =>
 		try {
 			newTelecons = await fetcher.post(baseUrl, telecons);
 			if (!Array.isArray(newTelecons))
-				throw new TypeError('Unexpected response to POST: ' + baseUrl);
+				throw new TypeError('Unexpected response to POST ' + baseUrl);
 		}
 		catch(error) {
 			await dispatch(setError('Unable to add telecons:', error));
@@ -186,37 +205,6 @@ export const deleteTelecons = (ids) =>
 			return;
 		}
 		await dispatch(removeMany(ids));
-	}
-
-export const addWebexMeetingToTelecons = (updates) =>
-	async (dispatch) => {
-		let telecons;
-		try {
-			telecons = await fetcher.patch(baseUrl, updates);
-			if (!Array.isArray(telecons))
-				throw new TypeError('Unexpected response');
-		}
-		catch(error) {
-			await dispatch(setError(`Unable to add webex meeting to telecons ${updates.map(u => u.id)}`, error));
-			return;
-		}
-		await dispatch(setMany(telecons));
-	}
-
-export const removeWebexMeetingFromTelecons = (ids) =>
-	async (dispatch) => {
-		const updates = ids.map(id => ({id, changes: {webex_meeting_id: null}}));
-		let telecons;
-		try {
-			telecons = await fetcher.patch(baseUrl, updates);
-			if (!Array.isArray(telecons))
-				throw new TypeError('Unexpected response');
-		}
-		catch(error) {
-			await dispatch(setError(`Unable to remove webex meeting from telecons ${ids}`, error));
-			return;
-		}
-		await dispatch(setMany(telecons));
 	}
 
 export const syncTeleconsWithWebex = (ids) =>

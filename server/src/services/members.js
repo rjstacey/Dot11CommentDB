@@ -18,7 +18,7 @@ import {
 import {getRecentBallotSeriesWithResults} from './ballots'
 import {updateVoter} from './voters';
 
-const db = require('../util/database');
+const db = require('../utils/database');
 
 /*
  * A list of members is available to any user with access level Member or higher

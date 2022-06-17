@@ -8,7 +8,7 @@ import {AccessLevel} from '../auth/access';
 import {getBallot, getBallotSeriesWithResults, BallotType} from './ballots';
 import {getVoters} from './voters';
 
-const db = require('../util/database');
+const db = require('../utils/database');
 
 function appendStr(toStr, str) {
 	if (typeof toStr === 'string') {

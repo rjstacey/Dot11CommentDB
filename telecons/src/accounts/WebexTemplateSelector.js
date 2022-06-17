@@ -26,7 +26,7 @@ function WebexTemplateSelector({
 			if (defaults.length > 0)
 				onChange(defaults[0].id);
 		}
-	}, [options]);
+	}, [options, onChange, values.length]);
 
 	const handleChange = React.useCallback((selected) => {
 		const id = selected.length > 0? selected[0].id: null;

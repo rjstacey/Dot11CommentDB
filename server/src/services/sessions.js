@@ -4,7 +4,7 @@
 import { DateTime } from 'luxon';
 import {getImatBreakouts, getImatBreakoutAttendance, getImatAttendanceSummary} from './imat';
 
-const db = require('../util/database');
+const db = require('../utils/database');
 
 const getSessionTotalCreditSQL = (session_id) =>
 	'SELECT ' +

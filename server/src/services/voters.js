@@ -2,10 +2,10 @@
 
 import { v4 as uuid, validate as validateUUID } from 'uuid';
 import {getMembersSnapshot} from './members';
-import csvParse from '../util/csvParse';
+import { csvParse } from '../utils';
 import ExcelJS from 'exceljs';
 
-const db = require('../util/database');
+const db = require('../utils/database');
 
 const membersHeader = [
 	'SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'

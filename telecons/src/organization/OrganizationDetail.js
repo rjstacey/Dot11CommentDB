@@ -10,6 +10,7 @@ import {addGroup, updateGroups, deleteGroups, selectGroupsState, GroupTypeOption
 
 import GroupSelector from './GroupSelector';
 import Officers from './Officers';
+import ImatCommitteeSelector from './ImatCommitteeSelector';
 
 const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';
@@ -114,6 +115,16 @@ function GroupEntry({
 						value={isMultiple(entry.status)? 1: entry.status}
 						onChange={status => changeEntry({status})}
 						placeholder={isMultiple(entry.status)? MULTIPLE_STR: undefined}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='IMAT committee:'>
+					<ImatCommitteeSelector
+						value={isMultiple(entry.imatCommitteeId)? '': entry.imatCommitteeId}
+						onChange={imatCommitteeId => changeEntry({imatCommitteeId})}
+						placeholder={isMultiple(entry.imatCommitteeId)? MULTIPLE_STR: undefined}
 						readOnly={readOnly}
 					/>
 				</Field>

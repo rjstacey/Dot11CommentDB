@@ -1,9 +1,11 @@
 'use strict'
 
-const db = require('../util/database');
+import { v4 as uuid } from 'uuid';
 
 import {parseCommentsSpreadsheet} from './commentsSpreadsheet';
 import {getComments, getCommentsSummary} from './comments';
+
+const db = require('../utils/database');
 
 const matchClause = (dbValue, sValue) => {
 	if (dbValue === sValue)
@@ -297,14 +299,14 @@ async function updateComments(userId, ballot_id, matched, toUpdate) {
 			const id = c.id;
 			delete c.id;
 			c.LastModifiedBy = userId;
-			return db.format('UPDATE comments SET ?, LastModifiedTime=NOW() WHERE id=?', [c, id]);
+			return db.format('UPDATE comments SET ?, LastModifiedTime=NOW() WHERE id=UUID_TO_BIN(?)', [c, id]);
 		})
 		.concat(
 			updateResolutions.map(r => {
 				const id = r.id;
 				delete r.id;
 				r.LastModifiedBy = userId;
-				return db.format('UPDATE resolutions SET ?, LastModifiedTime=NOW() WHERE id=?', [r, id]);
+				return db.format('UPDATE resolutions SET ?, LastModifiedTime=NOW() WHERE id=UUID_TO_BIN(?)', [r, id]);
 			})
 		)
 		.join(';');
@@ -361,8 +363,8 @@ async function updateComments(userId, ballot_id, matched, toUpdate) {
 		kvPairs[keys].push(db.escape(Object.values(r)));
 	});
 	for (const [keys, values] of Object.entries(kvPairs)) {
-		SQL += `INSERT INTO resolutions (${keys},LastModifiedTime) VALUES ` +
-			values.map(v => `(${v}, NOW())`).join(',') +
+		SQL += `INSERT INTO resolutions (id,${keys},LastModifiedTime) VALUES ` +
+			values.map(v => `(UUID_TO_BIN(${uuid()}), ${v}, NOW())`).join(',') +
 			';'
 	}
 
@@ -453,7 +455,7 @@ export async function uploadResolutions(userId, ballot_id, toUpdate, matchAlgori
 	const t3 = Date.now();
 
 	let [matched, dbCommentsRemaining, sheetCommentsRemaining] = MatchAlgo[matchAlgorithm](sheetComments, dbComments);
-	//console.log(matched.length, dbCommentsRemaining.length, sheetCommentsRemaining.length)
+	console.log(matched.length, dbCommentsRemaining.length, sheetCommentsRemaining.length)
 
 	const t4 = Date.now();
 	let SQL, updated = 0;
