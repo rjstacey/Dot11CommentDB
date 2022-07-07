@@ -9,7 +9,9 @@ import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, ShowFilters, Tabl
 
 import {fields, loadTelecons, removeTelecons, selectTeleconsState, selectTeleconsCurrentPanelConfig, setTeleconsCurrentPanelIsSplit, dataSet} from '../store/telecons';
 import {selectGroupsState} from '../store/groups';
-import {selectWebexAccountsState} from '../store/webexAccounts';
+import {selectImatMeetingEntities} from '../store/imatMeetings';
+import {selectWebexAccountEntities} from '../store/webexAccounts';
+import {displayMeetingNumber} from '../store/webexMeetings';
 
 import TeleconDetail from './TeleconDetail';
 import TeleconDefaults from './TeleconDefaults';
@@ -25,22 +27,20 @@ const TopRow = styled.div`
 `;
 
 
-function WebexAccount({rowData}) {
-	const {webexAccountId} = rowData;
-	const {entities} = useSelector(selectWebexAccountsState);
-	const account = entities[webexAccountId];
-	const accountName = account? account.name: '-';
-
-	return accountName;
+function WebexMeeting({rowData}) {
+	const {webexAccountId, webexMeeting} = rowData;
+	const webexAccount = useSelector(selectWebexAccountEntities)[webexAccountId];
+	if (!webexAccount || !webexMeeting)
+		return '';
+	return webexAccount.name + ': ' + displayMeetingNumber(webexMeeting.meetingNumber);
 }
 
-function WebexMeeting({rowData}) {
-	const {webexMeeting} = rowData;
-	if (webexMeeting) {
-		const {meetingNumber, hostKey} = webexMeeting;
-		return `${meetingNumber}: ${hostKey}`;
-	}
-	return '';
+function ImatDetail({rowData}) {
+	const {imatMeetingId} = rowData;
+	const meeting = useSelector(selectImatMeetingEntities)[imatMeetingId];
+	if (!imatMeetingId)
+		return 'None';
+	return meeting? meeting.name: '';
 }
 
 const tableColumns = [
@@ -66,14 +66,18 @@ const tableColumns = [
 	{key: 'hasMotions',
 		...fields.hasMotions,
 		width: 90, flexGrow: 1, flexShrink: 0},
-	{key: 'webexAccountId',
-		label: 'Webex account',
-		width: 150, flexGrow: 1, flexShrink: 0,
-		cellRenderer: p => <WebexAccount {...p} />},
 	{key: 'webexMeeting',
 		label: 'Webex meeting',
 		width: 150, flexGrow: 1, flexShrink: 0,
-		cellRenderer: p => <WebexMeeting {...p} />}
+		cellRenderer: p => <WebexMeeting {...p} />},
+	{key: 'imatBreakoutId',
+		label: 'IMAT',
+		width: 50, flexGrow: 1, flexShrink: 0,
+		cellRenderer: p => <ImatDetail {...p} />},
+	{key: 'calendarAccountId',
+		label: 'Calendar',
+		width: 50, flexGrow: 1, flexShrink: 0,
+		cellRenderer: ({rowData}) => rowData.calendarAccountId? 'Yes': 'No'}
 ];
 
 function Telecons(props) {

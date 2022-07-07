@@ -20,25 +20,20 @@ function ImatCommitteeSelector({
 	React.useEffect(() => {
 		if (!valid)
 			dispatch(loadCommittees('802.11'));
-	}, []);
+	}, [dispatch, valid]);
 
 	const options = React.useMemo(() => ids.map(id => entities[id]), [ids, entities]);
 
-	const values = options.filter(o => o.id === value);
+	const values = options.filter(o => o.symbol === value);
 
-	const handleChange = React.useCallback((values) => {
-		if (values.length)
-			onChange(values[0].id);
-		else
-			onChange(null);
-	}, [onChange]);
+	const handleChange = React.useCallback((values) => onChange(values.length? values[0].symbol: null), [onChange]);
 
 	return (
 		<Select
 			values={values}
 			onChange={handleChange}
 			options={options}
-			valueField='id'
+			valueField='symbol'
 			labelField='shortName'
 			{...otherProps}
 		/>

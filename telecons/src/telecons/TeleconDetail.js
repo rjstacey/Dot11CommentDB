@@ -21,6 +21,8 @@ import WebexAccountSelector from '../accounts/WebexAccountSelector';
 import WebexTemplateSelector from '../accounts/WebexTemplateSelector';
 import TimeZoneSelector from './TimeZoneSelector';
 import GroupSelector from '../organization/GroupSelector';
+import CalendarAccountSelector from '../accounts/CalendarAccountSelector';
+import ImatMeetingSelector from '../imatMeetings/ImatMeetingSelector';
 
 const MULTIPLE_STR = '(Multiple)';
 
@@ -112,13 +114,15 @@ function convertToLocal(entry) {
 	}
 }
 
-function WebexMeetingEdit({
-	entry,
-	changeEntry,
+export function WebexMeetingEdit({
+	value,
+	onChange,
+	webexAccountId,
+	onChangeWebexAccountId,
 	readOnly,
 	isNew,
 }) {
-	const webexMeeting = entry.webexMeeting || {};
+	const webexMeeting = value || {};
 	const meetingOptions = webexMeeting.meetingOptions || {};
 
 	const changeWebexMeeting = (changes) => {
@@ -126,8 +130,7 @@ function WebexMeetingEdit({
 			changes.joinBeforeHostMinutes = 0;
 			changes.enableConnectAudioBeforeHost = false;
 		}
-		const u = {...webexMeeting, ...changes};
-		changeEntry({webexMeeting: u});
+		onChange(changes);
 	}
 
 	const changeWebexMeetingOptions = (changes) => {
@@ -141,18 +144,18 @@ function WebexMeetingEdit({
 		>
 			<Field label='Webex account'>
 				<WebexAccountSelector
-					value={isMultiple(entry.webexAccountId)? null: entry.webexAccountId}
-					onChange={webexAccountId => changeEntry({webexAccountId})}
-					placeholder={isMultiple(entry.webexAccountId)? MULTIPLE_STR: undefined}
+					value={isMultiple(webexAccountId)? null: webexAccountId}
+					onChange={webexAccountId => onChangeWebexAccountId({webexAccountId})}
+					placeholder={isMultiple(webexAccountId)? MULTIPLE_STR: undefined}
 					readOnly={readOnly || !isNew}
 				/>
 			</Field>
-			{!entry.webex_meeting_id &&
+			{!webexMeeting.id &&
 				<Field label='Template'>
 					<WebexTemplateSelector
 						value={webexMeeting.templateId}
 						onChange={templateId => changeWebexMeeting({templateId})}
-						accountId={isMultiple(entry.webexAccountId)? null: entry.webexAccountId}
+						accountId={isMultiple(webexAccountId)? null: webexAccountId}
 						readOnly={readOnly}
 					/>
 				</Field>}
@@ -174,14 +177,14 @@ function WebexMeetingEdit({
 					type='text'
 					value={webexMeeting.joinBeforeHostMinutes}
 					onChange={e => changeWebexMeeting({joinBeforeHostMinutes: e.target.value})}
-					disabled={readOnly || !entry.enabledJoinBeforeHost}
+					disabled={readOnly || !webexMeeting.enabledJoinBeforeHost}
 				/>
 			</Field>
 			<Field label='Connect audio before host:'>
 				<Checkbox 
 					checked={webexMeeting.enableConnectAudioBeforeHost}
 					onChange={e => changeWebexMeeting({enableConnectAudioBeforeHost: e.target.checked})}
-					disabled={readOnly || !entry.enabledJoinBeforeHost}
+					disabled={readOnly || !webexMeeting.enabledJoinBeforeHost}
 				/>
 			</Field>
 			<Row>
@@ -225,7 +228,7 @@ function WebexMeetingEdit({
 	)
 }
 
-function TeleconEntry({
+export function TeleconEntry({
 	groupId,
 	entry,
 	changeEntry,
@@ -238,7 +241,7 @@ function TeleconEntry({
 
 	const toggleWebexMeeting = () => {
 		if (entry.webexMeeting)
-			changeEntry({webex_meeting_id: null, webexMeeting: null});
+			changeEntry({webexMeetingId: null, webexMeeting: null});
 		else
 			changeEntry({webexMeeting: defaultWebexMeeting});
 	}
@@ -325,12 +328,30 @@ function TeleconEntry({
 			{entry.webexMeeting &&
 				<Row>
 					<WebexMeetingEdit
-						entry={entry}
-						changeEntry={changeEntry}
+						value={entry.webexMeeting}
+						onChange={changes => changeEntry({webexMeeting: {...entry.webexMeeting, ...changes}})}
+						webexAccountId={entry.webexAccountId}
+						onChangeWebexAccountId={webexAccountId => changeEntry({webexAccountId})}
 						readOnly={readOnly}
 						isNew={action === 'add'}
 					/>
 				</Row>}
+			<Row>
+				<Field label='Calendar:'>
+					<CalendarAccountSelector
+						value={entry.calendarAccountId}
+						onChange={calendarAccountId => changeEntry({calendarAccountId})}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='IMAT:'>
+					<ImatMeetingSelector
+						value={entry.imatMeetingId}
+						onChange={imatMeetingId => changeEntry({imatMeetingId})}
+					/>
+				</Field>
+			</Row>
 			{(action === 'add' || action === 'update') &&
 			<Row>
 				<Button onClick={action === 'add'? actionAdd: actionUpdate}>{action === 'add'? 'Add': 'Update'}</Button>
@@ -392,8 +413,8 @@ function TeleconDetail({groupId}) {
 				entry = deepMergeTagMultiple(entry, convertToLocal(entities[id]));
 			if (action === 'add') {
 				delete entry.id;
-				delete entry.calendar_event_id;
-				delete entry.webex_meeting_id;
+				delete entry.calendarEventId;
+				delete entry.webexMeetingId;
 				if (isMultiple(entry.dates))
 					entry.dates = [];
 				if (isMultiple(entry.time))
@@ -402,7 +423,7 @@ function TeleconDetail({groupId}) {
 					entry.hasMotions = false;
 				entry.summary = defaultSummary(entry.group_id);
 				entry.timezone = defaults.timezone;
-				entry.calendar_id = defaults.calendar_id;
+				entry.calendarAccountId = defaults.calendarAccountId;
 				entry.webexAccountId = defaults.webexAccountId;
 				entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webex_template_id};
 			}
@@ -411,10 +432,11 @@ function TeleconDetail({groupId}) {
 			entry = {...defaultLocalEntry, group_id: groupId};
 			entry.summary = defaultSummary(entry.group_id);
 			entry.timezone = defaults.timezone;
-			entry.calendar_id = defaults.calendar_id;
+			entry.calendarAccountId = defaults.calendarAccountId;
 			entry.webexAccountId = defaults.webexAccountId;
 			entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webex_template_id};
 		}
+		console.log(action)
 		return {
 			action,
 			entry,
@@ -425,7 +447,8 @@ function TeleconDetail({groupId}) {
 	const [state, setState] = React.useState(() => initState('update'));
 
 	const getUpdates = React.useCallback(() => {
-		const {entry, ids} = state;
+		let {entry, ids} = state;
+		ids = ids.filter(id => entities[id]);
 
 		let diff = {}, originals = {};
 		for (const id of ids) {
@@ -460,9 +483,10 @@ function TeleconDetail({groupId}) {
 					return;
 				}
 			}
+			console.log('hu?')
 			setState(initState('update'));
 		}
-		if (state.ids !== selected)
+		if (state.ids.join() !== selected.join())
 			changeWithConfirmation();
 	}, [state, selected, initState, getUpdates, dispatch]);
 
@@ -476,8 +500,8 @@ function TeleconDetail({groupId}) {
 			}
 		}
 		if (state.action !== 'add') {
-			setState(initState('add'));
 			dispatch(setSelected([]));
+			setState(initState('add'));
 		}
 	}, [state, setState, initState, dispatch, getUpdates]);
 
@@ -492,7 +516,8 @@ function TeleconDetail({groupId}) {
 		if (!ok)
 			return;
 		await dispatch(deleteTelecons(ids));
-	}, [state, dispatch]);
+		setState(initState('update'));
+	}, [state.ids, dispatch]);
 
 	const changeEntry = React.useCallback((changes) => {
 		if (state.actions === 'view') {

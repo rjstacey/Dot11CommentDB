@@ -12,22 +12,21 @@ function displayDate(isoDate) {
 }
 
 export const fields = {
-	id: {label: 'ID'},
-	Start: {label: 'Start', dataRenderer: displayDate},
-	End: {label: 'End', dataRenderer: displayDate},
-	Name: {label: 'Name'},
-	Type: {label: 'Type'/*, dataRenderer: displaySessionType, options: SessionTypeOptions*/},
-	TimeZone: {label: 'TimeZone'},
-	MeetingNumber: {label: 'MeetingNumber', sortType: SortType.NUMERIC}
+	id: {label: 'Meeting number', sortType: SortType.NUMERIC},
+	start: {label: 'Start', dataRenderer: displayDate},
+	end: {label: 'End', dataRenderer: displayDate},
+	name: {label: 'Name'},
+	type: {label: 'Type'/*, dataRenderer: displaySessionType, options: SessionTypeOptions*/},
+	timezone: {label: 'Time zone'},
 };
 
 export const dataSet = 'imatMeetings';
-const selectId = (meeting) => meeting.MeetingNumber;
+//const selectId = (meeting) => meeting.MeetingNumber;
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	selectId,
+	//selectId,
 	initialState: {},
 });
 
@@ -40,7 +39,7 @@ export default slice.reducer;
  * Selectors
  */
 export const selectImatMeetingsState = (state) => state[dataSet];
-export const selectImatMeetingsEntities = (state) => selectImatMeetingsState(state).entities;
+export const selectImatMeetingEntities = (state) => selectImatMeetingsState(state).entities;
 
 /*
  * Actions

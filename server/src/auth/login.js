@@ -1,4 +1,4 @@
-import { createFetcher } from '../utils';
+import { createIeeeFetcher } from '../utils';
 
 const cheerio = require('cheerio');
 const db = require('../utils/database');
@@ -11,7 +11,7 @@ async function login(req) {
 	// credentials
 	const {username, password} = req.body;
 
-	const ieeeClient = createFetcher();
+	const ieeeClient = createIeeeFetcher();
 
 	// Do an initial GET on /pub/login so that we get cookies. We can do a login without this, but
 	// if we don't get the cookies associated with this GET, then the server seems to get confused
@@ -31,7 +31,8 @@ async function login(req) {
 
 	// Now post the login data. There will be a bunch of redirects, but we should get a logged in page.
 	// options.form = loginForm;
-	response = await ieeeClient.post('https://imat.ieee.org/pub/login', new URLSearchParams(loginForm));
+	//response = await ieeeClient.post('https://imat.ieee.org/pub/login', new URLSearchParams(loginForm));
+	response = await ieeeClient.post('https://imat.ieee.org/pub/login', loginForm);
 	//console.log(response)
 
 	if (response.data.search(/<div class="title">Sign In<\/div>/) !== -1) {
@@ -45,7 +46,6 @@ async function login(req) {
 
 	const Name = n[1];
 	const SAPIN = parseInt(n[2], 10);
-
 
 	return {SAPIN, Name, Email: username, ieeeClient};
 }

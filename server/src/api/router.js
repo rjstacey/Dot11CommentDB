@@ -84,10 +84,10 @@ router.all('*', (req, res, next) => {
 router.get('/$', (req, res, next) => res.json(null));
 
 /* Webex accounts API */
-router.use('/webex', require('./webexAccounts').default);
+router.use('/webex', require('./webex').default);
 
 /* Google calendar accounts API */
-router.use('/calendar', require('./calendarAccounts').default);
+router.use('/calendar', require('./calendar').default);
 
 /* Telecons API */
 router.use('/telecons', require('./telecons').default);
@@ -133,5 +133,8 @@ router.use('/epolls', require('./epolls').default);
 
 /* imat API */
 router.use('/imat', require('./imat').default);
+
+/* Access to schedule802world.com */
+router.use('/802world', require('./802world').default);
 
 export default router;

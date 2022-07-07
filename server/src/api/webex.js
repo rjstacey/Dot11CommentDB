@@ -7,7 +7,8 @@ import {
 	getWebexAccounts,
 	updateWebexAccount,
 	addWebexAccount,
-	deleteWebexAccount
+	deleteWebexAccount,
+	getWebexMeetings
 } from '../services/webex';
 
 const router = require('express').Router();
@@ -59,6 +60,15 @@ router.delete('/account/:id', async (req, res, next) => {
 	try {
 		const {id} = req.params;
 		const data = await deleteWebexAccount(id);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.get('/meetings/:group', async (req, res, next) => {
+	try {
+		const {group} = req.params;
+		const data = await getWebexMeetings(group);
 		res.json(data);
 	}
 	catch(err) {next(err)}

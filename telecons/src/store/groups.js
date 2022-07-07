@@ -98,7 +98,7 @@ export default slice.reducer;
  */
 export const selectGroupsPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
 export const selectGroupsState = (state) => state[dataSet];
-export const selectEntities = (state) => selectGroupsState(state).entities;
+export const selectGroupEntities = (state) => selectGroupsState(state).entities;
 
 /* Produces an array of {node: {}, children: array of <node>} */
 export const selectGroupHierarchy = createSelector(

@@ -5,7 +5,7 @@ import {setError} from 'dot11-components/store/error';
 import {displayDate} from 'dot11-components/lib';
 import {DateTime} from 'luxon';
 
-import {selectEntities as selectGroupEntities} from './groups';
+import {selectGroupEntities} from './groups';
 import {selectWebexAccountEntities} from './webexAccounts';
 
 export function displayMeetingNumber(meetingNumber) {
@@ -38,11 +38,20 @@ export function getField(entity, key) {
 		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('HH:mm');
 	if (key === 'duration')
 		return DateTime.fromISO(entity.end).diff(DateTime.fromISO(entity.start), 'hours').hours;
+	if (key === 'timeRange')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('HH:mm') + '-' +
+			DateTime.fromISO(entity.end, {zone: entity.timezone}).toFormat('HH:mm');
 	if (key === 'location')
 		return entity.webexMeeting? `${entity.webexAccountName}: ${displayMeetingNumber(entity.webexMeeting.meetingNumber)}`: '';
 	if (key === 'meetingNumber')
 		return entity.webexMeeting? displayMeetingNumber(entity.webexMeeting.meetingNumber): '';
 	return entity[key];
+}
+
+export function summarizeTelecon(entity) {
+	const date = getField(entity, 'date');
+	const timeRange = getField(entity, 'timeRange');
+	return `${date} ${timeRange} ${entity.summary}`;
 }
 
 export const dataSet = 'telecons';

@@ -1,14 +1,12 @@
 import {createSelector} from '@reduxjs/toolkit';
 import {DateTime} from 'luxon';
-import { v4 as genUuid } from 'uuid';
 
 import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 import {isObject} from 'dot11-components/lib';
 
-import {selectSyncedTeleconEntities} from './telecons';
-import {selectImatMeetingsEntities} from './imatMeetings';
+import {selectTeleconEntities} from './telecons';
 
 const fields = {
 	uuid: {label: 'ID', isId: true},
@@ -29,16 +27,16 @@ export const dataSet = 'imatBreakouts';
 export const getField = (entity, dataKey) => {
 	if (!entity.hasOwnProperty(dataKey)) {
 		if (dataKey === 'dayDate') {
-			const start = DateTime.fromISO(entity.start, {zone: entity.TimeZone});
+			const start = DateTime.fromISO(entity.start, {zone: entity.timezone});
 			return start.toFormat('EEE, d LLL yyyy');
 		}
 		if (dataKey === 'weekDay') {
-			const start = DateTime.fromISO(entity.start, {zone: entity.TimeZone});
+			const start = DateTime.fromISO(entity.start, {zone: entity.timezone});
 			return start.weekdayShort();
 		}
 		if (dataKey === 'time') {
-			const start = DateTime.fromISO(entity.start, {zone: entity.TimeZone});
-			const end = DateTime.fromISO(entity.end, {zone: entity.TimeZone});
+			const start = DateTime.fromISO(entity.start, {zone: entity.timezone});
+			const end = DateTime.fromISO(entity.end, {zone: entity.timezone});
 			return start.toFormat('HH:mm') + ' - ' + end.toFormat('HH:mm');
 		}
 	}
@@ -50,78 +48,40 @@ export const getField = (entity, dataKey) => {
  */
 export const selectBreakoutsState = (state) => state[dataSet];
 export const selectBreakoutEntities = (state) => selectBreakoutsState(state).entities;
-const selectBreakoutMeetingNumber = (state) => selectBreakoutsState(state).meetingNumber;
+const selectBreakoutMeetingId = (state) => selectBreakoutsState(state).meetingId;
 
 /*
- * selectSyncedBreakouts(state)
- *
+ * selectSyncedBreakoutEntities(state)
  */
 export const selectSyncedBreakoutEntities = createSelector(
-	selectBreakoutMeetingNumber,
-	selectImatMeetingsEntities,
+	selectBreakoutMeetingId,
 	selectBreakoutEntities,
-	selectSyncedTeleconEntities,
-	(meetingNumber, meetingEntities, breakoutEntities, teleconEntities) => {
-		const meeting = meetingEntities[meetingNumber];
-		const tEntities = {};
-		if (meeting) {
-			for (const t of Object.values(teleconEntities)) {
-				if (DateTime.fromISO(t.start) >= DateTime.fromISO(meeting.Start) &&
-					DateTime.fromISO(t.end) <= DateTime.fromISO(meeting.End))
-					tEntities[t.id] = t;
-			}
-		}
-		const bEntities = {};
-		for (const breakout of Object.values(breakoutEntities)) {
-			let b = {...breakout, meetingNumber};
-			for (const t of Object.values(tEntities)) {
-				if (t.imatMeetingId === meetingNumber && t.imatBreakoutId === b.id) {
-					b.teleconId = t.id;
-					break;
-				}
-			}
-			bEntities[b.uuid] = b;
-		}
-		for (const t of Object.values(tEntities)) {
-			if (!t.imatBreakoutId) {
-				const uuid = genUuid();
-				bEntities[uuid] = {
-					uuid,
-					name: t.groupName,
-					location: "location",
-					group: t.groupName,
-					start: t.start,
-					end: t.end,
-					credit: "Zero",
-					teleconId: t.id,
-				}
-			}
-		}
-		return bEntities;
-	}
-);
-
-export const selectBreakoutIds = createSelector(
-	selectSyncedBreakoutEntities,
-	(entities) => Object.keys(entities)
-			.sort((a, b) => (entities[a].start < entities[b].start) ? -1 : ((entities[a].start > entities[b].start) ? 1 : 0))
+	selectTeleconEntities,
+	(meetingId, breakoutEntities, teleconEntities) =>
+		Object.values(breakoutEntities).reduce((entities, breakout) => {
+			const telecon = Object.values(teleconEntities).find(t => t.imatMeetingId === meetingId && t.imatBreakoutId === breakout.id);
+			entities[breakout.id] = {
+				...breakout,
+				meetingId,
+				teleconId: telecon? telecon.id: null
+			};
+			return entities;
+		}, {})
 );
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	selectId: (entity) => entity.uuid,
 	selectField: getField,
 	selectEntities: selectSyncedBreakoutEntities,
-	selectIds: selectBreakoutIds,
 	initialState: {
-		meetingNumber: 0,
+		meetingId: 0,
 		timeslots: [],
 		committees: [],
 	},
 	reducers: {
 		setDetails(state, action) {
-			state.meetingNumber = action.payload.meetingNumber;
+			state.meetingId = action.payload.meetingId;
 			state.timeslots = action.payload.timeslots;
 			state.committees = action.payload.committees;
 		},
@@ -141,16 +101,19 @@ const {
 	getPending,
 	getSuccess,
 	getFailure,
-	setDetails
+	setDetails,
+	addMany
 } = slice.actions;
 
-export const loadBreakouts = (meetingNumber) =>
+const baseUrl = '/api/imat/breakouts';
+
+export const loadBreakouts = (meetingId) =>
 	async (dispatch, getState) => {
 		const state = getState();
 		if (selectBreakoutsState(state).loading)
 			return;
 		dispatch(getPending());
-		const url = `/api/imat/breakouts/${meetingNumber}`;
+		const url = `${baseUrl}/${meetingId}`;
 		let response;
 		try {
 			response = await fetcher.get(url);
@@ -159,18 +122,48 @@ export const loadBreakouts = (meetingNumber) =>
 				!Array.isArray(response.timeslots) ||
 				!Array.isArray(response.committees) ||
 				!isObject(response.session) ||
-				response.session.MeetingNumber != meetingNumber) {
-				console.log(typeof meetingNumber, typeof response.session.MeetingNumber)
+				response.session.id !== meetingId) {
 				throw new TypeError(`Unexpected response to GET ${url}`);
 			}
 		}
 		catch(error) {
 			console.log(error)
 			dispatch(getFailure());
-			dispatch(setError(`Unable to get breakouts for ${meetingNumber}`, error));
+			dispatch(setError(`Unable to get breakouts for ${meetingId}`, error));
 			return;
 		}
-		const breakouts = response.breakouts.map(b => ({uuid: genUuid(), ...b}));
-		dispatch(getSuccess(breakouts));
-		dispatch(setDetails({...response, meetingNumber, breakouts}));
+		dispatch(getSuccess(response.breakouts));
+		dispatch(setDetails({...response, meetingId}));
+	}
+
+export const addBreakouts = (meetingId, breakouts) => 
+	async (dispatch, getState) => {
+		const url = `${baseUrl}/${meetingId}`;
+		let response;
+		try {
+			response = await fetcher.post(url, breakouts);
+			if (!Array.isArray(response))
+				throw new TypeError(`Unexpected response to POST ${url}`);
+		}
+		catch (error) {
+			dispatch(setError('Unable to add breakouts', error));
+			return;
+		}
+		dispatch(addMany(response.breakouts));
+	}
+
+export const updateBreakout = (meetingId, updates) => 
+	async (dispatch, getState) => {
+		const url = `${baseUrl}/${meetingId}`;
+		let response;
+		try {
+			response = await fetcher.put(url, updates);
+			if (!Array.isArray(response))
+				throw new TypeError(`Unexpected response to PUT ${url}`);
+		}
+		catch (error) {
+			dispatch(setError('Unable to update breakouts', error));
+			return;
+		}
+		//dispatch(updateMany(response));
 	}

@@ -32,9 +32,9 @@ async function selectTelecons(constraints) {
 		'FROM telecons t';
 
 	const {parent_id, ...rest} = constraints;
-	console.log(rest)
+	//console.log(rest)
 	if (parent_id) {
-		sql += db.format(' LEFT JOIN `groups` g ON g.id=t.group_id WHERE g.parent_id=UUID_TO_BIN(?)', [parent_id]);
+		sql += db.format(' LEFT JOIN organization o ON o.id=t.group_id WHERE o.parent_id=UUID_TO_BIN(?)', [parent_id]);
 		if (Object.entries(rest).length)
 			sql += ', '
 	}
@@ -51,7 +51,7 @@ async function selectTelecons(constraints) {
 					db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
 		).join(' AND ');
 	}
-	console.log(sql);
+	//console.log(sql);
 
 	const telecons = await db.query(sql);
 	for (const entry of telecons) {
@@ -249,14 +249,25 @@ async function addTelecon(entry) {
 
 	/* If a webex account is given and the webexMeeting object exists then add a webex meeting */
 	if (entry.webexAccountId && entry.webexMeeting) {
-		const webexMeeting = await addWebexMeeting(entry.webexAccountId, teleconToWebexMeeting(entry));
-		entry.webexMeetingId = webexMeeting.id;
-		entry.webexMeeting = webexMeeting;
+		let webexMeeting = teleconToWebexMeeting(entry);
+		if (!entry.webexMeetingId) {
+			entry.webexMeeting = await addWebexMeeting(entry.webexAccountId, webexMeeting);
+			entry.webexMeetingId = entry.webexMeeting.id;
+		}
+		else {
+			entry.webexMeeting = await updateWebexMeeting(entry.webexAccountId, entry.webexMeetingId, webexMeeting);
+		}
 	}
 
-	if (entry.calendar_id) {
-		const calendarEvent = await addCalendarEvent(entry.calendar_id, teleconToCalendarEvent(entry));
-		entry.calendar_event_id = calendarEvent.id;
+	if (entry.calendarAccountId) {
+		let calendarEvent = teleconToCalendarEvent(entry);
+		if (entry.calendarEventId) {
+			await updateCalendarEvent(entry.calendarAccountId, entry.calendarEventId, calendarEvent);
+		}
+		else {
+			calendarEvent = await addCalendarEvent(entry.calendarAccountId, calendarEvent);
+			entry.calendarEventId = calendarEvent.id;
+		}
 	}
 
 	const sql = 'INSERT INTO telecons SET ' + teleconEntry(entry);
@@ -336,28 +347,28 @@ async function updateTelecon(id, changes) {
 
 	/* Make calendar changes */
 	let calendarEvent = teleconToCalendarEvent({...telecon, ...teleconChanges});
-	if (telecon.calendar_id && telecon.calendar_event_id) {
+	if (telecon.calendarAccountId && telecon.calendarEventId) {
 		// Calendar event exists
-		if (teleconChanges.hasOwnProperty('calendar_id') && teleconChanges.calendar_id !== telecon.calendar_id) {
-			await deleteCalendarEvent(telecon.calendar_id, telecon.calendar_event_id);
-			teleconChanges.calendar_event_id = null;
-			if (teleconChanges.calendar_id) {
-				calendarEvent = await addCalendarEvent(teleconChanges.calendar_id, calendarEvent);
-				teleconChanges.calendar_event_id = calendarEvent.id;
+		if (teleconChanges.hasOwnProperty('calendar_id') && teleconChanges.calendarAccountId !== telecon.calendarAccountId) {
+			await deleteCalendarEvent(telecon.calendarAccountId, telecon.calendarEventId);
+			teleconChanges.calendarEventId = null;
+			if (teleconChanges.calendarAccountId) {
+				calendarEvent = await addCalendarEvent(teleconChanges.calendarAccountId, calendarEvent);
+				teleconChanges.calendarEventId = calendarEvent.id;
 			}
 		}
 		else {
 			// If somebody deletes the event it still exists with status 'cancelled'. So set the status to 'confirmed'.
 			calendarEvent.status = 'confirmed';
-			calendarEvent = await updateCalendarEvent(telecon.calendar_id, telecon.calendar_event_id, calendarEvent);
+			calendarEvent = await updateCalendarEvent(telecon.calendarAccountId, telecon.calendarEventId, calendarEvent);
 		}
 	}
 	else {
 		// Calendar event does not exist
-		const calendar_id = teleconChanges.calendar_id || telecon.calendar_id;
-		if (calendar_id) {
-			calendarEvent = await addCalendarEvent(calendar_id, calendarEvent);
-			teleconChanges.calendar_event_id = calendarEvent.id;
+		const calendarAccountId = teleconChanges.calendarAccountId || telecon.calendarAccountId;
+		if (calendarAccountId) {
+			calendarEvent = await addCalendarEvent(calendarAccountId, calendarEvent);
+			teleconChanges.calendarEventId = calendarEvent.id;
 		}
 	}
 
@@ -380,12 +391,20 @@ export async function updateTelecons(updates) {
 }
 
 export async function deleteTelecons(ids) {
-	const entries = await db.query('SELECT webexAccountId, webexMeetingId, calendar_id, calendar_event_id FROM telecons WHERE id IN (?);', [ids]);
+	const entries = await db.query('SELECT webexAccountId, webexMeetingId, calendarAccountId, calendarEventId FROM telecons WHERE id IN (?);', [ids]);
 	for (const entry of entries) {
-		if (entry.webexAccountId && entry.webexMeetingId)
-			await deleteWebexMeeting(entry.webexAccountId, entry.webexMeetingId);
-		if (entry.calendar_id && entry.calendar_event_id)
-			await deleteCalendarEvent(entry.calendar_id, entry.calendar_event_id);
+		if (entry.webexAccountId && entry.webexMeetingId) {
+			try {
+				await deleteWebexMeeting(entry.webexAccountId, entry.webexMeetingId);
+			}
+			catch (error) {
+				if (error.response && error.response.status !== 404)
+					throw error;
+			}
+		}
+		if (entry.calendarAccountId && entry.calendarEventId) {
+			await deleteCalendarEvent(entry.calendarAccountId, entry.calendarEventId);
+		}
 	}
 	const {affectedRows} = await db.query('DELETE FROM telecons WHERE id IN (?);', [ids]);
 	return affectedRows;
@@ -432,71 +451,4 @@ export async function removeWebexMeetingFromTelecons(telecons) {
 	}
 	const ids = await Promise.all(telecons.map(t => removeWebexMeetingFromTelecon(t.id)));
 	return await getTelecons({id: ids});
-}
-
-async function syncTeleconWithWebex(telecon) {
-	if (!telecon.webexAccountId)
-		return telecon;
-	const entry = {};
-	const webexMeetingEntry = teleconToWebexMeeting(telecon);
-	if (!telecon.webexMeetingId) {
-		telecon.webexMeeting = await addWebexMeeting(telecon.webexAccountId, webexMeetingEntry);
-		entry.webexMeetingId = telecon.webexMeeting.id;
-	}
-	else {
-		let webexMeeting = await getWebexMeeting(telecon.webexAccountId, telecon.webexMeetingId);
-		const changes = teleconWebexMeetingDiff(telecon, webexMeeting);
-		telecon.webexMeeting = await updateWebexMeeting(telecon.webexAccountId, telecon.webexMeetingId, changes);
-		entry.webexMeetingId = telecon.webexMeeting.id;
-	}
-	await db.query('UPDATE telecons SET ? WHERE id=?;', [entry, telecon.id]);
-	return {...telecon, ...entry};
-}
-
-export async function syncTeleconsWithWebex(ids) {
-	let telecons = await selectTelecons({id: ids});
-	telecons = await Promise.all(telecons.map(telecon => syncTeleconWithWebex(telecon)));
-	return telecons;
-}
-
-function teleconCalendarEventDiff(telecon, calendarEvent) {
-	const entry = teleconToCalendarEvent(telecon);
-	const changes = {};
-	if (calendarEvent.summary !== entry.summary)
-		changes.summary = entry.summary;
-	if (calendarEvent.start.dateTime.toString() !== entry.start.dateTime.toString() ||
-		calendarEvent.start.timeZone !== entry.start.timeZone) {
-		changes.start = entry.start;
-	}
-	if (calendarEvent.end.dateTime.toString() !== entry.end.dateTime.toString() ||
-		calendarEvent.end.timeZone !== entry.end.timeZone) {
-		changes.end = entry.end;
-		console.log(calendarEvent, entry)
-	}
-	return changes;
-}
-
-async function syncTeleconWithCalendar(telecon) {
-	if (!telecon.calendar_id)
-		return telecon;
-	const entry = {};
-	const calendarEventEntry = teleconToCalendarEvent(telecon);
-	if (!telecon.calendar_event_id) {
-		telecon.calendarEvent = await addCalendarEvent(telecon.calendar_id, calendarEventEntry);
-		entry.calendar_event_id = telecon.calendarEvent.id;
-	}
-	else {
-		let calendarEvent = await getCalendarEvent(telecon.calendar_id, telecon.calendar_event_id);
-		const changes = teleconCalendarEventDiff(telecon, calendarEvent);
-		telecon.calendarEvent = await updateCalendarEvent(telecon.calendar_id, telecon.calendar_event_id, changes);
-		entry.calendar_event_id = telecon.calendarEvent.id;
-	}
-	await db.query('UPDATE telecons SET ? WHERE id=?;', [entry, telecon.id]);
-	return {...telecon, ...entry};
-}
-
-export async function syncTeleconsWithCalendar(ids) {
-	let telecons = await selectTelecons({id: ids}); //db.query(getTeleconsSql({id: ids}));
-	telecons = await Promise.all(telecons.map(telecon => syncTeleconWithCalendar(telecon)));
-	return telecons;
 }

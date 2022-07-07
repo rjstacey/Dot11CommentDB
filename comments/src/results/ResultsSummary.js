@@ -201,7 +201,7 @@ function ResultsSummary({
 }) {
 	const [showSummary, setShowSummary] = React.useState(true);
 	const ballot = useSelector(getCurrentBallot);
-
+	console.log(ballot)
 	if (!ballot)
 		return null;
 

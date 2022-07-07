@@ -12,11 +12,18 @@ export const fields = {
 };
 
 export const dataSet = 'imatCommittees';
+const selectId = (d) => d.symbol;
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	initialState: {},
+	selectId,
+	initialState: {group: null},
+	reducers: {
+		setDetails(state, action) {
+			state.group = action.payload.group;
+		},
+	},
 });
 
 /*
@@ -37,25 +44,27 @@ const {
 	getPending,
 	getSuccess,
 	getFailure,
+	setDetails,
 } = slice.actions;
+
+const baseUrl = '/api/imat/committees';
 
 export const loadCommittees = (group) =>
 	async (dispatch, getState) => {
-		const state = getState();
 		dispatch(getPending());
-		const url = `/api/imat/committees/${group}`;
-		let response;
+		const url = `${baseUrl}/${group}`;
+		let committees;
 		try {
-			response = await fetcher.get(url);
-			if (!Array.isArray(response)) {
+			committees = await fetcher.get(url);
+			if (!Array.isArray(committees))
 				throw new TypeError(`Unexpected response to GET ${url}`);
-			}
 		}
 		catch(error) {
 			dispatch(getFailure());
 			dispatch(setError(`Unable to get committees for ${group}`, error));
 			return;
 		}
-		dispatch(getSuccess(response));
+		dispatch(getSuccess(committees));
+		dispatch(setDetails({group}));
 	}
 

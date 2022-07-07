@@ -11,10 +11,11 @@ import Telecons from './telecons/Telecons';
 import {WebexAccountAuth} from './accounts/WebexAccounts';
 import {CalendarAccountAuth} from './accounts/CalendarAccounts';
 import Organization from './organization/Organization';
-import ImatMeetings from './meetings/ImatMeetings';
-import ImatBreakouts from './meetings/ImatBreakouts';
-import ImatBreakoutAttendance from './meetings/ImatBreakoutAttendance';
-
+import ImatMeetings from './imatMeetings/ImatMeetings';
+import ImatBreakouts from './imatMeetings/ImatBreakouts';
+import ImatBreakoutAttendance from './imatMeetings/ImatBreakoutAttendance';
+import WebexMeetings from './webexMeetings/WebexMeetings';
+import Ieee802WorldSchedule from './ieee802WorldSchedule/Ieee802WorldSchedule';
 
 const OuterDiv = styled.div`
 	display: flex;
@@ -106,7 +107,9 @@ function App({user, access}) {
 						<NavLink to="/organization" activeClassName='active'>Organization</NavLink>
 						<NavLink to="/accounts" activeClassName='active'>Accounts</NavLink>
 						<NavLink to="/telecons/" activeClassName='active'>Telecons</NavLink>
-						<NavLink to="/imat/" activeClassName='active'>IMAT</NavLink>
+						<NavLink to="/webexMeetings/" activeClassName='active'>Webex</NavLink>
+						<NavLink to="/imatMeetings/" activeClassName='active'>IMAT</NavLink>
+						<NavLink to="/ieee802WorldSchedule/" activeClassName='active'>802 World Schedule</NavLink>
 					</Nav>
 					<Account user={user} />
 				</Header>
@@ -119,24 +122,38 @@ function App({user, access}) {
 							component={Telecons}
 						/>
 						<RestrictedRoute
-							path="/imat"
+							path="/webexMeetings/:groupName?"
+							access={access}
+							exact
+							minAccess={AccessLevel.WGAdmin}
+							component={WebexMeetings}
+						/>
+						<RestrictedRoute
+							path="/imatMeetings"
 							access={access}
 							exact
 							minAccess={AccessLevel.WGAdmin}
 							component={ImatMeetings}
 						/>
 						<RestrictedRoute
-							path="/imat/:meetingNumber"
+							path="/imatMeetings/:meetingNumber"
 							access={access}
 							exact
 							minAccess={AccessLevel.WGAdmin}
 							component={ImatBreakouts}
 						/>
 						<RestrictedRoute
-							path="/imat/:meetingNumber/:breakoutNumber"
+							path="/imatMeetings/:meetingNumber/:breakoutNumber"
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={ImatBreakoutAttendance}
+						/>
+						<RestrictedRoute
+							path="/ieee802WorldSchedule"
+							access={access}
+							exact
+							minAccess={AccessLevel.WGAdmin}
+							component={Ieee802WorldSchedule}
 						/>
 						<RestrictedRoute
 							path="/accounts"

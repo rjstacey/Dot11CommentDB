@@ -18,6 +18,8 @@ import imatCommittees from './imatCommittees';
 import imatMeetings from './imatMeetings';
 import imatBreakouts from './imatBreakouts';
 import imatBreakoutAttendance from './imatBreakoutAttendance';
+import webexMeetings from './webexMeetings';
+import ieee802WorldSchedule from './ieee802WorldSchedule';
 
 function configureStore() {
 
@@ -34,6 +36,8 @@ function configureStore() {
 		imatMeetings,
 		imatBreakouts,
 		imatBreakoutAttendance,
+		webexMeetings,
+		ieee802WorldSchedule
 	});
 
 	const middleware = [thunk];
