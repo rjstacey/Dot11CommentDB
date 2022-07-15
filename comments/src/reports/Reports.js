@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {useHistory, useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
@@ -8,7 +7,7 @@ import {ActionButton, Button} from 'dot11-components/form';
 
 import BallotSelector from '../ballots/BallotSelector';
 import {loadComments, clearComments, selectCommentsState, getCID, getCommentStatus} from '../store/comments';
-import {setBallotId, loadBallots, getCurrentBallot, selectBallotsState} from '../store/ballots';
+import {setBallotId, getCurrentBallot, selectBallotsState} from '../store/ballots';
 
 function countsByCategory(comments) {
 	return {
@@ -79,23 +78,6 @@ function commentsByAssigneeAndCommentGroup(comments) {
 	return data;
 }
 
-//const Table = styled.table`
-const tableStyle = `
-	table {
-		border-collapse: collapse;
-		border: 1px solid grey;
-		border-color: grey;
-		th, td {
-			border: 1px solid grey;
-			padding: 5px;
-		}
-		td {
-			vertical-align: top;
-			width: 100px;
-		}
-	}
-`;
-
 function renderTable(data, ref) {
 
 	if (data.length === 0)
@@ -124,18 +106,11 @@ function Reports() {
 	const [report, setReport] = React.useState('');
 	const tableRef = React.useRef();
 
-	const {valid: ballotsValid, loading: ballotsLoading, entities: ballotEntities} = useSelector(selectBallotsState);
+	const {valid: ballotsValid, entities: ballotEntities} = useSelector(selectBallotsState);
 	const currentBallot = useSelector(getCurrentBallot);
-	const {valid, loading, ballot: commentsBallot, ids, entities} = useSelector(selectCommentsState);
+	const {loading, ballot_id: commentsBallot_id, ids, entities} = useSelector(selectCommentsState);
 
 	const dispatch = useDispatch();
-	const load = (ballot_id) => dispatch(loadComments(ballot_id));
-	const clear = () => dispatch(clearComments());
-
-	React.useEffect(() => {
-		if (!ballotsValid && !ballotsLoading)
-			dispatch(loadBallots());
-	}, []);
 
 	React.useEffect(() => {
 		if (ballotId) {
@@ -148,16 +123,20 @@ function Reports() {
 			// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
 			history.replace(`/reports/${currentBallot.BallotID}`);
 		}
-	}, [ballotId, ballotsValid]);
+	}, [dispatch, history, ballotId, ballotsValid, currentBallot]);
 
 	React.useEffect(() => {
-		if (loading)
-			return;
-		if ((!commentsBallot && currentBallot) ||
-		    (commentsBallot && currentBallot && commentsBallot.id !== currentBallot.id)) {
-			load(currentBallot.id);
-		}
-	}, [currentBallot, commentsBallot]);
+		if (!loading && currentBallot && commentsBallot_id !== currentBallot.id)
+			dispatch(loadComments(currentBallot.id));
+	}, [dispatch, currentBallot, commentsBallot_id, loading]);
+
+	const onBallotSelected = (ballot_id) => {
+		const ballot = ballotEntities[ballot_id];
+		if (ballot)
+			history.push(`/reports/${ballot.BallotID}`); // Redirect to page with selected ballot
+		else
+			dispatch(clearComments());
+	}
 
 	const data = React.useMemo(() => {
 		const comments = ids.map(id => {
@@ -176,14 +155,6 @@ function Reports() {
 			return commentsByAssigneeAndCommentGroup(comments);
 		return [];
 	}, [ids, entities, report]);
-
-	const onBallotSelected = (ballot_id) => {
-		const ballot = ballotEntities[ballot_id];
-		if (ballot)
-			history.push(`/reports/${ballot.BallotID}`); // Redirect to page with selected ballot
-		else
-			clear();
-	}
 
 	function copy() {
 		if (tableRef.current) {

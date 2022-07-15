@@ -14,7 +14,7 @@ import ResultsSummary from './ResultsSummary';
 import ResultsExport from './ResultsExport';
 
 import {loadResults, clearResults, selectResultsState, dataSet} from '../store/results';
-import {setBallotId, loadBallots, selectBallotsState, getCurrentBallot, BallotType} from '../store/ballots';
+import {setBallotId, selectBallotsState, getCurrentBallot, BallotType} from '../store/ballots';
 
 // The action row height is determined by its content
 const ActionRow = styled.div`
@@ -93,16 +93,14 @@ const maxWidth = 1600;
 function Results({
 	access,
 }) {
-	const {ballotId} = useParams();
 	const history = useHistory();
+	const {ballotId} = useParams();
 
-	const dispatch = useDispatch();
-	const {valid, loading, ballot: resultsBallot} = useSelector(selectResultsState);
-	const {valid: ballotsValid, entities: ballotEntities} = useSelector(selectBallotsState);
+	const {loading, ballot_id: resultsBallot_id} = useSelector(selectResultsState);
+	const {entities: ballotEntities} = useSelector(selectBallotsState);
 	const currentBallot = useSelector(getCurrentBallot);
-
-	const load = (ballot_id) => dispatch(loadResults(ballot_id));
-	const clear = () => dispatch(clearResults());
+	
+	const dispatch = useDispatch();
 
 	const defaultTablesConfig = React.useMemo(() => {
 		if (currentBallot)
@@ -115,11 +113,6 @@ function Results({
 	}, [dispatch, access, currentBallot]);
 
 	React.useEffect(() => {
-		if (!ballotsValid)
-			dispatch(loadBallots());
-	}, []);
-
-	React.useEffect(() => {
 		if (ballotId) {
 			if (!currentBallot || ballotId !== currentBallot.BallotID) {
 				// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
@@ -130,23 +123,23 @@ function Results({
 			// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
 			history.replace(`/results/${currentBallot.BallotID}`);
 		}
-	}, [ballotId, ballotsValid]);
+	}, [dispatch, history, ballotId, currentBallot]);
 
 	React.useEffect(() => {
-		if (loading)
-			return;
-		if ((!resultsBallot && currentBallot) ||
-		    (resultsBallot && currentBallot && resultsBallot.id != currentBallot.id)) {
-			load(currentBallot.id);
-		}
-	}, [dispatch, currentBallot, resultsBallot]);
+		if (!loading && currentBallot && resultsBallot_id !== currentBallot.id)
+			dispatch(loadResults(currentBallot.id));
+	}, [dispatch, loading, currentBallot, resultsBallot_id]);
 
 	const onBallotSelected = (ballot_id) => {
 		const ballot = ballotEntities[ballot_id];
 		if (ballot)
 			history.push(`/results/${ballot.BallotID}`); // Redirect to page with selected ballot
 		else
-			clear();
+			dispatch(clearResults());
+	}
+
+	const refresh = () => {
+		dispatch(loadResults(currentBallot.id));
 	}
 
 	return (
@@ -160,7 +153,7 @@ function Results({
 					name='refresh'
 					title='Refresh'
 					disabled={!currentBallot}
-					onClick={() => load(currentBallot.id)}
+					onClick={refresh}
 				/>
 			</div>
 		</ActionRow>
@@ -174,7 +167,6 @@ function Results({
 				headerHeight={28}
 				estimatedRowHeight={32}
 				dataSet={dataSet}
-				rowKey='id'
 			/>
 		</TableRow>
 		</>

@@ -1,7 +1,7 @@
 import React from 'react';
 import {useSelector} from 'react-redux';
 import styled from '@emotion/styled';
-import {Handle, IconCollapse} from 'dot11-components/icons';
+import {IconCollapse} from 'dot11-components/icons';
 
 import {BallotType, BallotTypeLabels, getCurrentBallot} from '../store/ballots';
 //import {getResultsDataSet} from '../store/results';
@@ -201,7 +201,7 @@ function ResultsSummary({
 }) {
 	const [showSummary, setShowSummary] = React.useState(true);
 	const ballot = useSelector(getCurrentBallot);
-	console.log(ballot)
+	//console.log(ballot)
 	if (!ballot)
 		return null;
 

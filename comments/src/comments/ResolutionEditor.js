@@ -7,7 +7,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import Immutable from 'immutable';
 import {debounce} from 'dot11-components/lib';
-import {Cross} from 'dot11-components/icons';
 import {ActionButton} from 'dot11-components/form';
 
 

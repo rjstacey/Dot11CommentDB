@@ -4,19 +4,17 @@ import {connect, useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
 import {shallowDiff, recursivelyDiffObjects, isMultiple, debounce} from 'dot11-components/lib';
-import {Button, ActionButton, Form, Row, Col, Field, FieldLeft, List, ListItem, Checkbox, Input, Select, TextArea} from 'dot11-components/form';
-import {ActionButtonModal, ConfirmModal} from 'dot11-components/modals';
+import {ActionButton, Form, Row, Col, Field, ListItem, Checkbox, Input, Select, TextArea} from 'dot11-components/form';
+import {ConfirmModal} from 'dot11-components/modals';
 import {ActionButtonDropdown} from 'dot11-components/general';
 
 import {selectEntities, setProperty} from 'dot11-components/store/appTableData';
 
-import {renderResultsSummary, renderCommentsSummary} from './Ballots';
 import CheckboxListSelect from './CheckboxListSelect';
 import ResultsActions from './ResultsActions';
 import CommentsActions from './CommentsActions';
 import VotingPoolSelector from './VotingPoolSelector';
 
-import {loadVotingPools} from '../store/votingPools';
 import {
 	updateBallot,
 	addBallot,
@@ -86,19 +84,6 @@ function SelectProject({value, onChange, ...otherProps}) {
 	)
 }
 
-function SelectVotingPoolId({value, options, onChange, ...otherProps}) {
-	const optionSelected = options.find(o => o.value === value);
-	return (
-		<Select
-			values={optionSelected? [optionSelected]: []}
-			options={options}
-			onChange={(values) => onChange(values.length? values[0].value: '')}
-			dropdownPosition='auto'
-			{...otherProps}
-		/>
-	)
-}
-
 function SelectPrevBallot({value, ballot, onChange, ...otherProps}) {
 	const ballots = useSelector(state => state.ballots.entities);
 	const options = React.useMemo(() => {
@@ -132,8 +117,6 @@ export function Column1({
 	updateBallot,
 	readOnly
 }) {
-	const dispatch = useDispatch();
-
 	const change = (e) => {
 		const {name, value} = e.target;
 		updateBallot({[name]: value});
@@ -424,7 +407,7 @@ class _BallotDetail extends React.Component {
 	}
 
 	render() {
-		const {style, className, loading, uiProperties, setUiProperty, readOnly, ballots, selected} = this.props;
+		const {style, className, loading, uiProperties, setUiProperty, readOnly} = this.props;
 
 		let notAvailableStr
 		if (loading)
@@ -484,7 +467,7 @@ class _BallotDetail extends React.Component {
 
 const BallotDetail = connect(
 	(state) => {
-		const {ballots, votingPools} = state
+		const {ballots} = state
 		return {
 			ballotsValid: ballots.valid,
 			ballots: selectEntities(state, 'ballots'),

@@ -1,4 +1,4 @@
-import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
+import { combineReducers, createStore, applyMiddleware } from 'redux';
 import thunk from 'redux-thunk';
 import { createLogger } from 'redux-logger';
 import { persistStore, persistReducer, createTransform } from 'redux-persist';
@@ -6,12 +6,10 @@ import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import { get, set, del } from 'idb-keyval';
 import { composeWithDevTools } from 'redux-devtools-extension';
 
-import {version} from '../../package.json';
-
 import members, {loadMembers} from './members';
 import ballots, {loadBallots} from './ballots';
 import epolls from './epolls';
-import comments, {migrateComments} from './comments';
+import comments from './comments';
 import commentsHistory from './commentsHistory';
 import results from './results';
 import voters from './voters';

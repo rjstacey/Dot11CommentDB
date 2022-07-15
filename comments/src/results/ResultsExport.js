@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {connect, useDispatch} from 'react-redux';
-import styled from '@emotion/styled';
+import {useDispatch} from 'react-redux';
 
 import {Form, Row, List, ListItem} from 'dot11-components/form';
 import {ActionButtonDropdown} from 'dot11-components/general';

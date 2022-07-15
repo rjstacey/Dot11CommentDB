@@ -2,8 +2,7 @@ import React from 'react';
 import {useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
-import Dropdown from 'dot11-components/general/Dropdown';
-import {Button} from 'dot11-components/icons';
+import Dropdown from 'dot11-components/dropdown';
 
 import {selectOfflineStatus, selectOfflineOutbox} from './store/offline';
 

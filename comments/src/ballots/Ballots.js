@@ -1,21 +1,25 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import {Link, useHistory, useParams} from "react-router-dom";
+import {Link, useHistory} from "react-router-dom";
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
 import AppTable, {SelectHeader, SelectCell, TableColumnHeader, ShowFilters, TableViewSelector, TableColumnSelector, SplitPanel, Panel} from 'dot11-components/table';
-import {Button, ActionButton, ButtonGroup} from 'dot11-components/form';
-import {AccessLevel, displayDate, displayDateRange} from 'dot11-components/lib';
-import {ConfirmModal} from 'dot11-components/modals';
+import {ActionButton, ButtonGroup} from 'dot11-components/form';
+import {AccessLevel, displayDateRange} from 'dot11-components/lib';
 
 import BallotDetail, {BallotAddDropdown as BallotAdd} from './BallotDetail';
 
-import {setSelected} from 'dot11-components/store/selected';
-import {setProperty} from 'dot11-components/store/ui';
+import {
+	fields,
+	loadBallots,
+	BallotType,
+	selectBallotsState,
+	selectBallotsCurrentPanelConfig,
+	setBallotsCurrentPanelIsSplit,
+	dataSet
+} from '../store/ballots';
 
-import {fields, loadBallots, deleteBallots, BallotType, BallotStage, selectBallotsState, selectBallotsCurrentPanelConfig, setBallotsCurrentPanelIsSplit, dataSet} from '../store/ballots';
-import {loadVotingPools, selectVotingPoolsState} from '../store/votingPools';
+import {loadVotingPools} from '../store/votingPools';
 
 
 const DataSubcomponent = styled.div`
@@ -195,12 +199,6 @@ const TopRow = styled.div`
 	box-sizing: border-box;
 `;
 
-// The table row grows to the available height
-const TableRow = styled.div`
-	flex: 1;
-	width: 100%;
-`;
-
 function getRow({rowIndex, ids, entities}) {
 	const currData = entities[ids[rowIndex]];
 	if (rowIndex === 0)
@@ -218,10 +216,8 @@ function getRow({rowIndex, ids, entities}) {
 function Ballots({access}) {
 
 	const history = useHistory();
-	const {ballotId} = useParams();
 
-	const {valid, loading, entities: ballots, ui: uiProperty, selected} = useSelector(selectBallotsState);
-	const {valid: votingPoolsValid, loading: votingPoolsLoading} = useSelector(selectVotingPoolsState);
+	const {loading, selected} = useSelector(selectBallotsState);
 	const {isSplit} = useSelector(selectBallotsCurrentPanelConfig);
 
 	const dispatch = useDispatch();
@@ -233,7 +229,6 @@ function Ballots({access}) {
 
 	const setIsSplit = (value) => dispatch(setBallotsCurrentPanelIsSplit(value));
 
-	const closeBallot = () => history.push('/ballots');
 	const showEpolls = () => history.push('/epolls/');
 
 	return (

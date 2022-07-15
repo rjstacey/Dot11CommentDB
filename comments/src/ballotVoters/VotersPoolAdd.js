@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch} from 'react-redux';
 
-import {Form, Row, Col, Field, List, ListItem, Input, Checkbox} from 'dot11-components/form';
+import {Form, Row, Field, List, ListItem, Input, Checkbox} from 'dot11-components/form';
 import {AppModal} from 'dot11-components/modals';
 
 import {votersFromSpreadsheet, votersFromMembersSnapshot} from '../store/voters';

@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {useHistory, useParams} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
@@ -84,7 +83,7 @@ function Voters() {
 	const [editVoter, setEditVoter] = React.useState({action: null, voter: defaultVoter});
 	const [showImportVoters, setShowImportVoters] = React.useState(false);
 
-	const {valid, loading, ids, selected, shownIds, votingPoolId} = useSelector(selectVotersInfo);
+	const {loading, ids, selected, shownIds, votingPoolId} = useSelector(selectVotersInfo);
 
 	const dispatch = useDispatch();
 	const load = React.useCallback((votingPoolName) => dispatch(loadVoters(votingPoolName)), [dispatch]);
@@ -107,12 +106,12 @@ function Voters() {
 		});
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
 		return [columns, maxWidth];
-	}, [votingPoolName]);
+	}, [dispatch, votingPoolName]);
 
 	React.useEffect(() => {
 		if ((!votingPoolId || votingPoolId !== votingPoolName) && !loading)
 			load(votingPoolName);
-	}, [votingPoolId, votingPoolName]);
+	}, [load, loading, votingPoolId, votingPoolName]);
 
 	const close = history.goBack;
  	const refresh = () => load(votingPoolName);

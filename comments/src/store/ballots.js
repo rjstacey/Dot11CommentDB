@@ -169,6 +169,12 @@ export const getCurrentBallot = (state) => {
 	return entities[currentId];
 }
 
+export const getBallotId = (state) => {
+	const {entities, currentId} = state[dataSet];
+	const ballot = entities[currentId];
+	return ballot? ballot.BallotID: '';
+}
+
 export const selectBallotsCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
 
 /*
@@ -187,14 +193,16 @@ const {
 	removeMany
 } = slice.actions;
 
+const baseUrl = '/api/ballots';
+
 export const loadBallots = () => 
 	async (dispatch, getState) => {
 		dispatch(getPending());
 		let ballots;
 		try {
-			ballots = await fetcher.get('/api/ballots');
+			ballots = await fetcher.get(baseUrl);
 			if (!Array.isArray(ballots))
-				throw new TypeError("Unexpected response to GET: /api/ballots")
+				throw new TypeError("Unexpected response to GET: " + baseUrl)
 		}
 		catch(error) {
 			await dispatch(getFailure());
@@ -212,12 +220,11 @@ export const updateBallotSuccess = (id, changes) => updateOne({id, changes});
 
 export const updateBallot = (id, changes) =>
 	async (dispatch, getState) => {
-		const url = '/api/ballots';
 		let response;
 		try {
-			response = await fetcher.patch(url, [{id, changes}]);
+			response = await fetcher.patch(baseUrl, [{id, changes}]);
 			if (!Array.isArray(response))
-				throw new TypeError('Unexpected response to PATCH: ' + url);
+				throw new TypeError('Unexpected response to PATCH: ' + baseUrl);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to update ballot`, error));
@@ -234,7 +241,7 @@ export const updateBallot = (id, changes) =>
 export const deleteBallots = (ids) =>
 	async (dispatch) => {
 		try {
-			await fetcher.delete('/api/ballots', ids);
+			await fetcher.delete(baseUrl, ids);
 		}
 		catch(error) {
 			await dispatch(setError("Unable to delete ballot(s)", error));
@@ -247,9 +254,9 @@ export const addBallot = (ballot) =>
 	async (dispatch, getState) => {
 		let response;
 		try {
-			response = await fetcher.post('/api/ballots', [ballot]);
+			response = await fetcher.post(baseUrl, [ballot]);
 			if (!Array.isArray(response))
-				throw new TypeError("Unexpected response to POST: /api/ballots");
+				throw new TypeError("Unexpected response to POST: " + baseUrl);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to add ballot ${ballot.BallotID}`, error));

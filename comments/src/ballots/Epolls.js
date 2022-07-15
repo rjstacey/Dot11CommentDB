@@ -8,17 +8,9 @@ import {ActionButton} from 'dot11-components/form';
 import {AppModal} from 'dot11-components/modals';
 
 import {loadBallots, BallotType, selectBallotsState} from '../store/ballots';
-import {fields, loadEpolls, selectSyncedEpollsEntities, selectEpollsState, dataSet} from '../store/epolls';
+import {fields, loadEpolls, selectEpollsState, dataSet} from '../store/epolls';
 
 import {BallotAddForm} from './BallotDetail';
-
-function renderDate({rowData, dataKey}) {
-	// rowData[key] is an ISO time string. We convert this to eastern time
-	// and display only the date (not time).
-	const d = new Date(rowData[dataKey])
-	const str = d.toLocaleString('en-US', {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/New_York'})
-	return str
-}
 
 // The action row height is determined by its content
 const ActionRow = styled.div`
@@ -57,9 +49,6 @@ function ePollToBallot(epoll) {
 		IsComplete: 0,
 	}
 }
-const renderActions = ({rowData}) => rowData.InDatabase
-	? <span>Already Present</span>
-	: <BallotAdd defaultBallot={ePollToBallot(rowData)}/>
 
 const tableColumns = [
 		{key: 'EpollNum', 	...fields.EpollNum, 	width: 100},
@@ -87,12 +76,17 @@ function Epolls() {
 	const numberEpolls = React.useRef(20);
 	const load = React.useCallback(() => dispatch(loadEpolls(numberEpolls.current)), [dispatch]);
 
+	const [hasMounted, setHasMounted] = React.useState(false);
+
 	React.useEffect(() => {
+		if (hasMounted)
+			return;
 		if (!ballotsValid && !ballotsLoading)
 			dispatch(loadBallots());
 		if (!valid && !loading)
 			load(numberEpolls.current);
-	}, []);
+		setHasMounted(true);
+	}, [dispatch, load, setHasMounted, hasMounted, ballotsValid, ballotsLoading, valid, loading]);
 
 	const close = () => history.push('/ballots');
 
@@ -117,7 +111,7 @@ function Epolls() {
 			cellRenderer
 		};
 		return columns;
-	});
+	}, [setAddBallot]);
 
 	return (
 		<>

@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import AutoSizer from 'react-virtualized-auto-sizer';
 import styled from '@emotion/styled';
 import {Icon} from 'dot11-components/icons';
 

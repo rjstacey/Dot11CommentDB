@@ -5,9 +5,8 @@ import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
 import AppTable, {SplitPanel, Panel, SelectExpandHeader, SelectExpandCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, IdFilter} from 'dot11-components/table';
-import {Button, ActionButton, ButtonGroup} from 'dot11-components/form';
+import {ActionButton, ButtonGroup} from 'dot11-components/form';
 import {AccessLevel} from 'dot11-components/lib';
-import {getEntities, getSortedFilteredIds, setProperty} from 'dot11-components/store/appTableData';
 
 import BallotSelector from '../ballots/BallotSelector';
 import {editorCss} from './ResolutionEditor';
@@ -15,24 +14,21 @@ import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './Com
 import {renderSubmission} from './SubmissionSelector';
 import CommentsImport from './CommentsImport';
 import CommentsExport from './CommentsExport';
-import CommentHistory from './CommentHistory';
 import CommentsCopy from './CommentsCopy';
 
 import {
 	fields,
 	loadComments,
-	loadCommentsSinceLastUpdate,
 	clearComments,
 	getCID,
-	getCommentStatus,
 	selectCommentsState,
 	selectCommentsCurrentPanelConfig,
 	setCommentsCurrentPanelIsSplit,
 	dataSet
 } from '../store/comments';
 
-import {loadMembers, selectMembersState} from '../store/members';
-import {setBallotId, loadBallots, getCurrentBallot, selectBallotsState} from '../store/ballots';
+import {loadMembers} from '../store/members';
+import {setBallotId, getCurrentBallot, selectBallotsState} from '../store/ballots';
 
 const FlexRow = styled.div`
 	display: flex;
@@ -320,15 +316,13 @@ function Comments({access}) {
 	const history = useHistory();
 	const {ballotId} = useParams();
 
-	const {valid, loading, ballot_id: commentsBallot_id, ui: uiProperty, selected} = useSelector(selectCommentsState);
-	const {isSplit} = useSelector(selectCommentsCurrentPanelConfig);
-	const {valid: ballotsValid, entities: ballotEntities} = useSelector(selectBallotsState);
+	const {loading, ballot_id: commentsBallot_id, selected} = useSelector(selectCommentsState);
+	const {entities: ballotEntities} = useSelector(selectBallotsState);
 	const currentBallot = useSelector(getCurrentBallot);
-	const {valid: usersValid, loading: usersLoading} = useSelector(selectMembersState);
 
 	const dispatch = useDispatch();
-	const load = (ballot_id) => dispatch(loadComments(ballot_id));
-	const clear = () => dispatch(clearComments());
+
+	const {isSplit} = useSelector(selectCommentsCurrentPanelConfig);
 	const setIsSplit = (value) => dispatch(setCommentsCurrentPanelIsSplit(value));
 
 	React.useEffect(() => {
@@ -342,28 +336,24 @@ function Comments({access}) {
 			// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
 			history.replace(`/comments/${currentBallot.BallotID}`);
 		}
-	}, [ballotId, ballotsValid]);
+	}, [dispatch, history, ballotId, currentBallot]);
 
 	React.useEffect(() => {
-		if (loading)
-			return;
-		if ((!commentsBallot_id && currentBallot) ||
-		    (currentBallot && commentsBallot_id !== currentBallot.id)) {
-			load(currentBallot.id);
-		}
-	}, [currentBallot, commentsBallot_id]);
-
-	const refresh = () => {
-		load(currentBallot.id);
-		dispatch(loadMembers());
-	}
+		if (!loading && currentBallot && commentsBallot_id !== currentBallot.id)
+			dispatch(loadComments(currentBallot.id));
+	}, [dispatch, loading, currentBallot, commentsBallot_id]);
 
 	const onBallotSelected = (ballot_id) => {
 		const ballot = ballotEntities[ballot_id];
 		if (ballot)
 			history.push(`/comments/${ballot.BallotID}`); // Redirect to page with selected ballot
 		else
-			clear();
+			dispatch(clearComments());
+	}
+
+	const refresh = () => {
+		dispatch(loadComments(currentBallot.id));
+		dispatch(loadMembers());
 	}
 
 	return <>

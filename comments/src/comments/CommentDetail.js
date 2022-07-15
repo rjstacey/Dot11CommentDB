@@ -2,18 +2,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 import styled from '@emotion/styled';
-import {Tab, Tabs, TabList, TabPanel} from 'react-tabs';
 
 import {Icon, IconCollapse} from 'dot11-components/icons';
 import {ActionButton, Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/form';
 import {AccessLevel, shallowDiff, recursivelyDiffObjects, debounce} from 'dot11-components/lib';
-import {setProperty, getData, getSortedFilteredIds} from 'dot11-components/store/appTableData';
+import {setProperty} from 'dot11-components/store/appTableData';
 
 import AdHocSelector from './AdHocSelector';
 import CommentGroupSelector from './CommentGroupSelector';
 import AssigneeSelector from './AssigneeSelector';
 import SubmissionSelector from './SubmissionSelector';
-import {editorCss, ResolutionEditor} from './ResolutionEditor';
+import {ResolutionEditor} from './ResolutionEditor';
 import CommentHistory from './CommentHistory';
 
 import {
@@ -94,11 +93,6 @@ const renderTextBlock = (value) => {
 		</TextBlockContainer>
 	)
 }
-
-const ResolutionContainer = styled.div`
-	${editorCss}
-	background-color: ${({color}) => color};
-`;
 
 const Categorization = ({
 	resolution,
@@ -495,55 +489,6 @@ function EditStatus({resolution, setResolution, readOnly}) {
 	)
 }
 
-const StyledTabs = styled(Tabs)`
-	position: relative; /* toolbar anchors to top */
-	padding-top: 5px;	/* room for toolbar */
-	.react-tabs {
-		-webkit-tap-highlight-color: transparent;
-	}
-	.react-tabs__tab-list {
-		margin: 0;
-		padding: 0;
-	}
-	.react-tabs__tab {
-		display: inline-block;
-		border: 1px solid transparent;
-		border-bottom: none;
-		border-radius: 5px 5px 0 0;
-		position: relative;
-		bottom: -1px;
-		list-style: none;
-		padding: 5px 5px;
-		cursor: pointer;
-		:focus {
-			outline: none;
-		}
-	}
-	.react-tabs__tab--selected {
-		background: #fafafa;
-		border-color: #ddd;
-		font-weight: bold;
-	}
-	.react-tabs__tab--disabled {
-		color: GrayText;
-		cursor: default;
-		font-weight: normal;
-	}
-	.react-tabs__tab-panel {
-		display: none;
-		box-sizing: border-box;
-		border: 1px solid #ddd;
-		background-color: #fafafa;
-		border-radius: 5px 5px 5px 5px;
-		:first-of-type {
-			border-radius: 0 5px 5px 5px;
-		}
-	}
-	.react-tabs__tab-panel--selected {
-		display: block;
-	}
-`;
-
 const CommentContainer = styled.div`
 	label {
 		font-weight: bold;
@@ -824,7 +769,7 @@ class CommentDetail extends React.PureComponent {
  	toggleUiProperty = (property) => this.props.setUiProperty(property, !this.props.uiProperties[property]);
 
 	render() {
-		const {style, className, access, loading, uiProperties, setUiProperty} = this.props;
+		const {style, className, loading, uiProperties} = this.props;
 		const {comments, editedResolution} = this.state;
 
 		let notAvailableStr;

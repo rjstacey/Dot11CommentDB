@@ -2,8 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
-import {FixedSizeList as List} from 'react-window';
-import Input from 'react-dropdown-select/lib/components/Input';
 
 import {Select} from 'dot11-components/form';
 import {Icon} from 'dot11-components/icons';
@@ -29,90 +27,68 @@ const StyledItem = styled.div`
 	}
 `;
 
-const StyledAdd = styled.div`
-	padding: 4px 10px;
-	border-radius: 3px;
-	cursor: pointer;
-	color: #0074D9;
-	display: flex;
-	align-items: center;
-	:hover {background: #f2f2f2}
-	& > span {
-		font-style: italic;
-	}
-`;
+const itemRenderer = ({index, item, style, props, state, methods}) => {
+	const name = item[props.labelField];
+	const sapin = item[props.valueField];
+	const isUser = sapin > 0;
+	const isNew = props.create && state.search && index === 0;
 
-const StyledNoData = styled.div`
-	padding: 10px;
-    text-align: center;
-    color: #0074D9;
-`;
+	const addItem = isNew?
+		() => methods.addSearchItem():
+		() => methods.addItem(item);
 
-const renderItem = ({item, style, props, state, methods}) => (
-	<StyledItem
-		key={item.value}
-		style={style}
-		onClick={() => methods.addItem(item)}
-		isSelected={methods.isSelected(item)}
-		isItalic={typeof item.value === 'string'}
-	>
-		<Icon name={typeof item.value === 'number'? 'user-check': 'user-slash'} />
-		<span>{item.label}</span>
-	</StyledItem>
-);
-
-const renderAddItem = ({item, style, props, state, methods}) => (
-	<StyledAdd
-		key={'__add__'}
-		style={style}
-		onClick={() => methods.addItem(item)}
-		isSelected={false}
-		isItalic={true}
-	>
-		{'add "'}<span>{item.label}</span>{'"'}
-	</StyledAdd>
-);
-
-const renderDropdown = ({props, state, methods}) => {
-	const options = methods.searchResults()
 	return (
-		<List
-			height={300}
-			itemCount={options.length + (state.search? 1: 0)}
-			itemSize={30}
-			width='auto'
+		<StyledItem
+			style={style}
+			onClick={addItem}
+			isSelected={methods.isSelected(item)}
+			isItalic={!isUser}
 		>
-			{({index, style}) => {
-				if (state.search) {
-					if (index === 0)
-						return renderAddItem({item: {value: state.search, label: state.search}, style, props, state, methods})
-					index -= 1;
-				}
-				return renderItem({item: options[index], style, props, state, methods})
-			}}
-		</List>
-	)
-};
-
-const StyledContentItem = styled.div`
-	& > span {
-		margin-left: 10px;
-	}
-`;
-
-const renderContent = ({state, methods, props}) => {
-	const item = state.values.length > 0? state.values[0]: null;
-	return (
-		<React.Fragment>
-			{item &&
-				<StyledContentItem>
-					<Icon name={typeof item.value === 'number'? 'user-check': 'user-slash'} />
-					<span>{item.label}</span>
-				</StyledContentItem>}
-			<Input props={props} methods={methods} state={state} />
-		</React.Fragment>
+			{isNew? 'Add ': <Icon name={isUser? 'user-check': 'user-slash'} />}
+			<span>{name}</span>
+		</StyledItem>
 	)
 }
+
+const selectItemRenderer = ({item, state, methods, props}) => {
+	const name = item[props.labelField];
+	const sapin = item[props.valueField];
+	const isUser = sapin > 0;
+	return (
+		<div>
+			<Icon name={isUser? 'user-check': 'user-slash'} />
+			<span style={{marginLeft: 10}}>{name}</span>
+		</div>
+	)
+}
+
+function assigneeOptionsSelector(state) {
+	const {ids: commentIds, entities: commentEntities} = selectCommentsState(state);
+	const {ids: userIds, entities: userEntities} = selectMembersState(state);
+
+	// Produce a unique set of SAPIN/Name mappings. If there is no SAPIN then the name is the key.
+	const presentOptions = commentIds
+		.reduce((arr, id) => {
+			const c = commentEntities[id];
+			if (!c.AssigneeSAPIN && !c.AssigneeName)
+				return arr;
+			if (c.AssigneeSAPIN && arr.find(o => o.SAPIN === c.AssigneeSAPIN))
+				return arr;
+			if (arr.find(o => o.Name === c.AssigneeName))
+				return arr;
+			return [...arr, {SAPIN: c.AssigneeSAPIN || 0, Name: c.AssigneeName || ''}];
+		}, [])
+		.sort((a, b) => strComp(a.Name, b.Name));
+
+	const userOptions =	userIds
+		.filter(sapin => !presentOptions.find(o => o.SAPIN === sapin))
+		.map(sapin => ({SAPIN: sapin, Name: userEntities[sapin].Name}))
+		.sort((a, b) => strComp(a.Name, b.Name));
+
+	return presentOptions.concat(userOptions);
+}
+
+const nullAssignee = {SAPIN: 0, Name: ''};
 
 function AssigneeSelector({
 	value,		// value is object with shape {SAPIN: number, Name: string}
@@ -121,68 +97,59 @@ function AssigneeSelector({
 	...otherProps
 }) {
 	const dispatch = useDispatch();
-	const {ids: commentIds, entities: commentEntities} = useSelector(selectCommentsState);
-	const {valid, loading, ids: userIds, entities: userEntities} = useSelector(selectMembersState);
+	const {valid, loading} = useSelector(selectMembersState);
+	const existingOptions = useSelector(assigneeOptionsSelector);
+	const [options, setOptions] = React.useState([]);
 
 	React.useEffect(() => {
 		if (!valid && !loading && !readOnly)
 			dispatch(loadMembers());
-	}, []);
+	}, []);	// eslint-disable-line
 
-	const options = React.useMemo(() => {
-		// Produce a unique set of SAPIN/Name mappings. If there is no SAPIN then the name is the key.
-		const presentOptions = commentIds
-			.reduce((arr, id) => {
-				const c = commentEntities[id];
-				if (c.AssigneeSAPIN) {
-					return arr.find(o => o.value === c.AssigneeSAPIN)? arr: [...arr, {value: c.AssigneeSAPIN, label: c.AssigneeName, present: true}];
-				}
-				if (c.AssigneeName) {
-					return arr.find(o => o.value === c.AssigneeName)? arr: [...arr, {value: c.AssigneeName, label: c.AssigneeName, present: true}];
-				}
-				return arr
-			}, [])
-			.sort((a, b) => strComp(a.label, b.label));
-		const userOptions =	userIds
-			.filter(sapin => !presentOptions.find(o => o.value === sapin))
-			.map(sapin => ({value: sapin, label: userEntities[sapin].Name, present: false}))
-			.sort((a, b) => strComp(a.label, b.label));
-		return presentOptions.concat(userOptions);
-	}, [commentEntities, commentIds, userEntities, userIds]);
+	React.useEffect(() => setOptions(existingOptions), [existingOptions]);
 
-	function handleChange(values) {
-		let newValue;
-		if (values.length > 0) {
-			const v = values[0]
-			newValue = {SAPIN: typeof v.value === 'number'? v.value: null, Name: v.label}
-		}
-		else {
-			newValue = {SAPIN: null, Name: null}
-		}
-		if (newValue.SAPIN !== value.SAPIN || newValue.Name !== value.Name)
-			onChange(newValue)
-	}
+	const handleChange = React.useCallback((values) => onChange(values.length? values[0]: nullAssignee), [onChange]);
 
-	const optionSelected = options.find(o => o.value === (value.SAPIN || value.Name))
+	const createOption = React.useCallback(({props, state, methods}) => {
+		const value = {SAPIN: 0, Name: state.search};
+		setOptions(options => {
+			if (options.find(o => o.SAPIN === value.SAPIN && o.Name === value.Name))
+				return options;
+			return [value, ...options];
+		});
+		return value;
+	}, [setOptions]);
+
+	const values = options.filter(
+		value.SAPIN?
+			o => o.SAPIN === value.SAPIN:
+			o => o.SAPIN === 0 && o.Name === value.Name
+	);
 
 	return (
 		<Select
-			values={optionSelected? [optionSelected]: []}
+			values={values}
 			onChange={handleChange}
 			options={options}
 			loading={loading}
 			create
 			clearable
-			contentRenderer={renderContent}
-			dropdownRenderer={renderDropdown}
+			createOption={createOption}
+			selectItemRenderer={selectItemRenderer}
+			itemRenderer={itemRenderer}
 			readOnly={readOnly}
+			valueField='SAPIN'
+			labelField='Name'
 			{...otherProps}
 		/>
 	)
 }
 
 AssigneeSelector.propTypes = {
-	value: PropTypes.object.isRequired,
+	value: PropTypes.shape({
+		SAPIN: PropTypes.number,
+		Name: PropTypes.string
+	}).isRequired,
 	onChange: PropTypes.func.isRequired,
 	readOnly: PropTypes.bool,
 }

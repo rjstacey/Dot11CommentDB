@@ -89,7 +89,7 @@ function BallotSelector({
 	React.useEffect(() => {
 		if (!valid && !loading)
 			dispatch(loadBallots());
-	}, [dispatch, valid, loading]);
+	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
 
 	const handleProjectChange = (value) => {
 		dispatch(setCurrentProject(value));

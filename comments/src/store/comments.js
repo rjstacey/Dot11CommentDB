@@ -4,7 +4,7 @@ import {fetcher} from 'dot11-components/lib';
 import {createAppTableDataSlice, SortType, selectCurrentPanelConfig, setPanelIsSplit} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 
-import {updateBallotSuccess, selectBallot, selectBallotsState} from './ballots';
+import {updateBallotSuccess, selectBallot} from './ballots';
 import {offlineFetch} from './offline';
 
 const mustSatisfyOptions = [
@@ -51,7 +51,7 @@ export const fields = {
 };
 
 export const dataSet = 'comments';
-const selectId = (c) => c.id; //c.CID;
+//const selectId = (c) => c.id; //c.CID;
 
 export const getField = (entity, dataKey) => {
 	if (dataKey === 'CID')
@@ -198,7 +198,6 @@ const {
 	removeMany: localRemoveMany,
 	removeAll,
 	setSelected,
-	setExpanded
 } = slice.actions;
 
 export const getCID = (c) => c.CommentID + (c.ResolutionCount > 1? '.' + c.ResolutionID: '');
@@ -309,7 +308,7 @@ export const importComments = (ballot_id, epollNum, startCID) =>
 			response = await fetcher.post(url, {StartCID: startCID});
 			if (typeof response !== 'object' ||
 				typeof response.ballot !== 'object') {
-				throw 'Unexpected response to POST: ' + url;
+				throw new TypeError('Unexpected response to POST: ' + url);
 			}
 		}
 		catch (error) {
@@ -327,7 +326,7 @@ export const uploadComments = (ballot_id, type, file) =>
 			response = await fetcher.postMultipart(url, {CommentsFile: file});
 			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments) ||
 				!response.hasOwnProperty('ballot') || typeof response.ballot !== 'object')
-				throw new TypeError(`Unexpected response to POST: ${url}`);
+				throw new TypeError('Unexpected response to POST: ' + url);
 		}
 		catch (error) {
 			await dispatch(setError(`Unable to upload comments for ${ballot_id}`, error));
@@ -347,7 +346,7 @@ export const setStartCommentId = (ballot_id, startCommentId) =>
 			response = await fetcher.patch(url, {StartCommentID: startCommentId});
 			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments) ||
 				!response.hasOwnProperty('ballot') || typeof response.ballot !== 'object')
-				throw new TypeError(`Unexpected response to PATCH: ${url}`);
+				throw new TypeError('Unexpected response to PATCH: ' + url);
 		}
 		catch (error) {
 			await dispatch(setError("Unable to set start CID", error));
@@ -376,7 +375,7 @@ const defaultResolution = {
 const updateMany = (updates) => 
 	(dispatch, getState) => {
 		const state = getState();
-		const {ids, entities, ballot_id} = selectCommentsState(state);
+		const {entities, ballot_id} = selectCommentsState(state);
 		const lastModified = selectCommentsLastModified(state);
 
 		const rollbackUpdates = updates.map(u => {
@@ -581,7 +580,7 @@ export const uploadResolutions = (ballot_id, toUpdate, matchAlgorithm, matchUpda
 		try {
 			response = await fetcher.postMultipart(`/api/resolutions/${ballot_id}/upload`, params);
 			if (!Array.isArray(response.comments) || typeof response.ballot !== 'object')
-				throw 'Unexpected response';
+				throw new TypeError('Unexpected response');
 		}
 		catch (error) {
 			await dispatch(setError("Unable to upload resolutions", error));

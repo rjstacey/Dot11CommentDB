@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {useHistory} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
@@ -75,7 +74,7 @@ function VotersPools() {
 	React.useEffect(() => {
 		if (!valid && !loading)
 			load();
-	}, []);
+	}, [valid, loading, load]);
 
 	const columns = React.useMemo(() => {
 		const deleteVotingPool = async (vp) => {
@@ -94,7 +93,7 @@ function VotersPools() {
 						/>}
 				: col
 		);
-	}, [dispatch]);
+	}, [dispatch, history]);
 
 	const addVotingPool = (votingPoolName) => history.push(`/voters/${votingPoolName}`);
 

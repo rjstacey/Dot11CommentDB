@@ -1,5 +1,5 @@
 import React from 'react';
-import {BrowserRouter as Router, Switch, Route, NavLink, Redirect} from 'react-router-dom';
+import {BrowserRouter as Router, Switch, Route, NavLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import Account from 'dot11-components/general/Account';
@@ -9,7 +9,7 @@ import {ErrorModal, ConfirmModal} from 'dot11-components/modals';
 import LiveUpdateSwitch from './LiveUpdateSwitch';
 import OnlineIndicator from './OnlineIndicator';
 
-import logo from './logo.svg';
+//import logo from './logo.svg';
 
 const Comments = React.lazy(() => import('./comments/Comments'));
 const Results = React.lazy(() => import('./results/Results'));
@@ -45,6 +45,7 @@ const Header = styled.header`
 
 const Nav = styled.nav`
   display: flex;
+  flex: 1;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;

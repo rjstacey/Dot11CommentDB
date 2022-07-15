@@ -32,7 +32,7 @@ export const selectLiveUpdateState = (state) => state[dataSet];
 /*
  * Actions
  */
-const {start, stop, setLive} = slice.actions;
+const {setLive} = slice.actions;
 
 export const setLiveUpdate = setLive;
 

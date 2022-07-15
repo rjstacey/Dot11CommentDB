@@ -1,10 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch} from 'react-redux';
-import styled from '@emotion/styled';
 
-import {Form, Row, Field, Input, Select} from 'dot11-components/form';
-import {shallowDiff, parseNumber} from 'dot11-components/lib';
+import {Form, Row, Field, Select} from 'dot11-components/form';
+import {shallowDiff} from 'dot11-components/lib';
 import {AppModal} from 'dot11-components/modals';
 
 import MemberSelector from './MemberSelector';

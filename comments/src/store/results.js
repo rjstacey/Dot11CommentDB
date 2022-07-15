@@ -1,9 +1,9 @@
-import {createSelector} from '@reduxjs/toolkit';
+//import {createSelector} from '@reduxjs/toolkit';
 import {fetcher} from 'dot11-components/lib';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 
-import {selectMemebersState} from './members';
+//import {selectMembersState} from './members';
 import {updateBallotSuccess} from './ballots';
 
 const fields = {
@@ -25,7 +25,7 @@ export const selectResultsState = (state) => state[dataSet];
 
 /* Entities selector with join on users to get Name, Affiliation and Email.
  * If the entry is obsolete find the member entry that replaces it. */
-const selectEntities = createSelector(
+/*const selectEntities = createSelector(
 	state => selectMembersState(state).entities,
 	state => selectResultsState(state).entities,
 	(members, results) => {
@@ -44,21 +44,21 @@ const selectEntities = createSelector(
 		}
 		return entities;
 	}
-);
+);*/
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	//selectEntities,
 	initialState: {
-		ballot: {},
+		ballot_id: 0,
 		votingPoolSize: 0,
 		resultsSummary: {},
 	},
 	reducers: {
   		setDetails(state, action) {
-  			const {ballot, summary, votingPoolSize} = action.payload;
-			state.ballot = ballot;
+  			const {ballot_id, summary, votingPoolSize} = action.payload;
+			state.ballot_id = ballot_id;
 			state.resultsSummary = summary;
 			state.votingPoolSize = votingPoolSize;
 		},
@@ -69,7 +69,7 @@ const slice = createAppTableDataSlice({
 			(action) => action.type === 'ballots/setCurrentId',
 			(state, action) => {
 				const id = action.payload;
-				if (state.ballot.id !== id) {
+				if (state.ballot_id !== id) {
 					state.valid = false;
 					dataAdapter.removeAll(state);
 				}
@@ -89,10 +89,12 @@ export default slice.reducer;
  */
 const {getPending, getSuccess, getFailure, setDetails} = slice.actions;
 
+const baseUrl = '/api/results';
+
 export const loadResults = (ballot_id) =>
 	async (dispatch, getState) => {
 		dispatch(getPending());
-		const url = `/api/results/${ballot_id}`;
+		const url = `${baseUrl}/${ballot_id}`;
 		let response;
 		try {
 			response = await fetcher.get(url);
@@ -112,12 +114,12 @@ export const loadResults = (ballot_id) =>
 			return;
 		}
 		await dispatch(getSuccess(response.results));
-		const payload = {
-			ballot: response.ballot,
+		const details = {
+			ballot_id: response.ballot.id,
 			votingPoolSize: response.VotingPoolSize,
 			summary: response.summary
 		}
-		await dispatch(setDetails(payload));
+		await dispatch(setDetails(details));
 	}
 
 export const clearResults = slice.actions.removeAll;
@@ -125,7 +127,7 @@ export const clearResults = slice.actions.removeAll;
 export const exportResultsForProject  = (project) =>
 	async (dispatch) => {
 		try {
-			await fetcher.getFile('/api/results/exportForProject', {Project: project});
+			await fetcher.getFile(`${baseUrl}/exportForProject`, {Project: project});
 		}
 		catch (error) {
 			dispatch(setError(`Unable to export results for ${project}`, error));
@@ -135,7 +137,7 @@ export const exportResultsForProject  = (project) =>
 export const exportResultsForBallot  = (ballot_id) =>
 	async (dispatch, getState) => {
 		try {
-			await fetcher.getFile(`/api/results/${ballot_id}/export`);
+			await fetcher.getFile(`${baseUrl}/${ballot_id}/export`);
 		}
 		catch (error) {
 			const ballot = getState()['ballots'].entities[ballot_id];
@@ -147,7 +149,7 @@ export const exportResultsForBallot  = (ballot_id) =>
 export const deleteResults = (ballot_id) =>
 	async (dispatch) => {
 		try {
-			await fetcher.delete(`/api/results/${ballot_id}`);
+			await fetcher.delete(`${baseUrl}/${ballot_id}`);
 		}
 		catch(error) {
 			await dispatch(setError("Unable to delete results", error));
@@ -158,12 +160,12 @@ export const deleteResults = (ballot_id) =>
 
 export const importResults = (ballot_id, epollNum) =>
 	async (dispatch) => {
-		const url = `/api/results/${ballot_id}/importFromEpoll/${epollNum}`;
+		const url = `${baseUrl}/${ballot_id}/importFromEpoll/${epollNum}`;
 		let response;
 		try {
 			response = await fetcher.post(url);
 			if (typeof response !== 'object' || typeof response.ballot !== 'object')
-				throw "Unexpected reponse to POST: " + url;
+				throw new TypeError("Unexpected reponse to POST: " + url);
 		}
 		catch(error) {
 			await dispatch(setError("Unable to import results", error));
@@ -174,12 +176,12 @@ export const importResults = (ballot_id, epollNum) =>
 
 export const uploadEpollResults = (ballot_id, file) =>
 	async (dispatch) => {
-		const url = `/api/results/${ballot_id}/uploadEpollResults`;
+		const url = `${baseUrl}/${ballot_id}/uploadEpollResults`;
 		let response;
 		try {
 			response = await fetcher.postMultipart(url, {ResultsFile: file})
 			if (typeof response !== 'object' || typeof response.ballot !== 'object')
-				throw "Unexpected reponse to POST: " + url;
+				throw TypeError("Unexpected reponse to POST: " + url);
 		}
 		catch(error) {
 			await dispatch(setError("Unable to upload results", error));
@@ -190,12 +192,12 @@ export const uploadEpollResults = (ballot_id, file) =>
 
 export const uploadMyProjectResults = (ballot_id, file) =>
 	async (dispatch) => {
-		const url = `/api/results/${ballot_id}/uploadMyProjectResults`;
+		const url = `${baseUrl}/${ballot_id}/uploadMyProjectResults`;
 		let response;
 		try {
 			response = await fetcher.postMultipart(url, {ResultsFile: file});
 			if (typeof response !== 'object' || typeof response.ballot !== 'object')
-				throw "Unexpected reponse to POST: " + url;
+				throw new TypeError("Unexpected reponse to POST: " + url);
 		}
 		catch(error) {
 			await dispatch(setError("Unable to upload results", error));

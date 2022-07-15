@@ -1,18 +1,18 @@
 {
   "name": "comments",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "homepage": "comments",
   "dependencies": {
     "@emotion/react": "^11.1.5",
     "@emotion/styled": "^11.1.5",
     "@redux-offline/redux-offline": "^2.6.0",
-    "@reduxjs/toolkit": "^1.5.0",
+    "@reduxjs/toolkit": "^1.8.3",
     "@testing-library/jest-dom": "^5.11.9",
     "@testing-library/react": "^11.2.3",
     "@testing-library/user-event": "^12.6.2",
     "copy-html-to-clipboard": "^4.0.1",
-    "dot11-components": "^1.0.81",
+    "dot11-components": "^1.0.104",
     "draft-js": "^0.11.7",
     "draft-js-export-html": "^1.4.1",
     "draft-js-import-html": "^1.4.1",
@@ -26,6 +26,7 @@
     "react-tabs": "^3.0.0",
     "react-window": "^1.8.5",
     "redux-persist": "^6.0.0",
+    "typescript": "^4.7.4",
     "web-vitals": "^0.2.4"
   },
   "scripts": {
@@ -50,5 +51,15 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "rules": {
+      "eqeqeq": 1,
+      "no-unused-vars": 1
+    }
   }
 }

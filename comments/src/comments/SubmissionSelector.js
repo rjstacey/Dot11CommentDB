@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {useSelector} from 'react-redux';
+import {createSelector} from '@reduxjs/toolkit';
 
-import Input from 'react-dropdown-select/lib/components/Input';
 import {Select} from 'dot11-components/form';
 import {selectAllFieldValues} from 'dot11-components/store/appTableData';
+import {selectCommentsState, dataSet} from '../store/comments';
 
-const dataSet = 'comments';
 const field = 'Submission';
 
 /*
@@ -33,18 +33,16 @@ const field = 'Submission';
 	return submission;
 }
 
-const contentRenderer = ({state, methods, props}) => 
-	<>
-		{state.values.length > 0 && renderSubmission(state.values[0].label)}
-		<Input props={props} methods={methods} state={state} />
-	</>
+const selectItemRenderer = ({item, state, methods, props}) => renderSubmission(item.label);
 
-const selectFieldValues = state => 
-	selectAllFieldValues(state, dataSet, field)
+const selectFieldValues = createSelector(
+	state => selectAllFieldValues(state, dataSet, field),
+	values => values
 		.filter(v => v !== '') // remove blank entry (we use 'clear' to set blank)
-		.map(v => ({label: v, value: v}));
+		.map(v => ({label: v, value: v}))
+);
 
-const selectLoading = state => state[dataSet].loading;
+const selectLoading = state => selectCommentsState(state).loading;
 
 function SubmissionSelector({
 	value,
@@ -52,18 +50,27 @@ function SubmissionSelector({
 	...otherProps
 }) {
 	const loading = useSelector(selectLoading);
-	const options = useSelector(selectFieldValues);
-	const optionSelected = options.find(o => o.value === value);
+	let options = useSelector(selectFieldValues);
+	let values = options.filter(o => o.value === value);
+
+	if (value && values.length === 0) {
+		// Make sure the current value is an option
+		const option = {label: value, value};
+		options = options.concat(value);
+		values = [option];
+	}
+
+	const handleChange = (values) => onChange(values.length? values[0].value: '');
 
 	return (
 		<Select
-			values={optionSelected? [optionSelected]: []}
-			onChange={(values) => onChange(values.length? values[0].value: '')}
+			values={values}
+			onChange={handleChange}
 			options={options}
 			loading={loading}
 			create
 			clearable
-			contentRenderer={contentRenderer}
+			selectItemRenderer={selectItemRenderer}
 			{...otherProps}
 		/>
 	)

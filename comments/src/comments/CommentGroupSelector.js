@@ -1,44 +1,49 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {useSelector} from 'react-redux';
+import {createSelector} from '@reduxjs/toolkit';
 
 import {Select} from 'dot11-components/form';
 import {selectAllFieldValues} from 'dot11-components/store/appTableData';
+import {selectCommentsState, dataSet} from '../store/comments';
 
-const dataSet = 'comments';
 const field = 'CommentGroup';
 
-const selectFieldValues = state => 
-	selectAllFieldValues(state, dataSet, field)
-		.filter(v => v !== '')
-		.map(v => ({label: v, value: v})); // remove blank entry (we use 'clear' to set blank)
+const selectFieldValues = createSelector(
+	state => selectAllFieldValues(state, dataSet, field),
+	values => values
+		.filter(v => v !== '') // remove blank entry (we use 'clear' to set blank)
+		.map(v => ({label: v, value: v}))
+);
 
-const selectLoading = state => state[dataSet].loading;
+const selectLoading = state => selectCommentsState(state).loading;
 
 function CommentGroupSelector({
 	value,
 	onChange,
-	placeholder,
 	...otherProps
 }) {
 	const loading = useSelector(selectLoading);
 	let options = useSelector(selectFieldValues);
-	let optionSelected = options.find(o => o.value === value);
-	if (value && !optionSelected) {
+	let values = options.filter(o => o.value === value);
+
+	if (value && values.length === 0) {
 		// Make sure the current value is an option
-		options = options.concat({label: value, value});
-		optionSelected = options[options.length - 1];
+		const option = {label: value, value};
+		options = options.concat(value);
+		values = [option];
 	}
+
+	const handleChange = (values) => onChange(values.length? values[0].value: '');
 
 	return (
 		<Select
-			values={optionSelected? [optionSelected]: []}
-			onChange={(values) => onChange(values.length? values[0].value: '')}
+			values={values}
+			onChange={handleChange}
 			options={options}
 			loading={loading}
 			create
 			clearable
-			placeholder={placeholder}
 			{...otherProps}
 		/>
 	)

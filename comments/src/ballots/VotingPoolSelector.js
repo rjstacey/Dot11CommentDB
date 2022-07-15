@@ -15,15 +15,15 @@ function VotingPoolSelector({
 	const options = useSelector(selectVotingPoolsOptions);
 
 	React.useEffect(() => {
-		if (!valid)
+		if (!valid && !loading)
 			dispatch(loadVotingPools());
-	}, []);
+	}, [dispatch, valid, loading]);
 
-	const optionSelected = options.find(o => o.value === value);
+	const values = options.filter(o => o.value === value);
 
 	return (
 		<Select
-			values={optionSelected? [optionSelected]: []}
+			values={values}
 			options={options}
 			loading={loading}
 			onChange={(values) => onChange(values.length? values[0].value: '')}

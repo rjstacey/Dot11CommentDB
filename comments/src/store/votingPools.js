@@ -5,7 +5,7 @@ import {setError} from 'dot11-components/store/error';
 
 export const fields = {
 	VotingPoolID: {label: 'VotingPoolID'},
-	VoterCount: {label: 'VoterCount'}
+	VoterCount: {label: 'VoterCount', sortType: SortType.NUMERIC}
 };
 
 export const dataSet = 'votingPools';
@@ -40,13 +40,13 @@ export default slice.reducer;
  * Selectors
  */
 export const selectVotingPoolsState = (state) => state[dataSet];
+const selectVotingPoolEntities = (state) => selectVotingPoolsState(state).entities;
+const selectVotingPoolIds = (state) => selectVotingPoolsState(state).ids;
 
 export const selectVotingPoolsOptions = createSelector(
-	selectVotingPoolsState,
-	(votingPools) => {
-		const {ids, entities} = votingPools;
-		return ids.map(id => ({value: id, label: entities[id].VotingPoolID}));
-	}
+	selectVotingPoolIds,
+	selectVotingPoolEntities,
+	(ids, entities) => ids.map(id => ({value: id, label: entities[id].VotingPoolID}))
 );
 
 /*

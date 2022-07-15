@@ -34,7 +34,7 @@ const selectEntities = createSelector(
 	(members, voters) => {
 		const entities = {};
 		for (const [id, voter] of Object.entries(voters)) {
-			const member = members[voter.SAPIN];
+			let member = members[voter.SAPIN];
 			while (member && member.Status === 'Obsolete') {
 				member = members[member.ReplacedBySAPIN]
 			}
@@ -102,13 +102,15 @@ const {
 	updateOne
 } = slice.actions;
 
+const baseUrl = '/api/voters';
+
 export const loadVoters = (votingPoolId) =>
 	async (dispatch, getState) => {
 		if (selectVotersState(getState()).loading)
 			return;
 		dispatch(getPending());
 		dispatch(setVotingPoolID(votingPoolId));
-		const url = `/api/voters/${votingPoolId}`;
+		const url = `${baseUrl}/${votingPoolId}`;
 		let response;
 		try {
 			response = await fetcher.get(url);
@@ -130,7 +132,7 @@ export const deleteVoters = (votingPoolId, ids) =>
 		dispatch(removeMany(ids));
 		const count = selectVotersCount(getState());
 		dispatch(upsertVotingPool({VotingPoolID: votingPoolId, VoterCount: count}));
-		const url = `/api/voters/${votingPoolId}`;
+		const url = `${baseUrl}/${votingPoolId}`;
 		try {
 			await fetcher.delete(url, ids);
 		}
@@ -144,7 +146,7 @@ export const votersFromSpreadsheet = (votingPoolId, file) =>
 	async (dispatch) => {
 		dispatch(getPending());
 		dispatch(setVotingPoolID(votingPoolId));
-		const url = `/api/voters/${votingPoolId}/upload`;
+		const url = `${baseUrl}/${votingPoolId}/upload`;
 		let response;
 		try {
 			response = await fetcher.postMultipart(url, {File: file});
@@ -170,7 +172,7 @@ export const votersFromMembersSnapshot = (votingPoolId, date) =>
 	async (dispatch) => {
 		dispatch(getPending());
 		dispatch(setVotingPoolID(votingPoolId));
-		const url = `/api/voters/${votingPoolId}/membersSnapshot`;
+		const url = `${baseUrl}/${votingPoolId}/membersSnapshot`;
 		let response;
 		try {
 			response = await fetcher.post(url, {date});
@@ -199,7 +201,7 @@ export const addVoter = (votingPoolId, voter) =>
 		const count = selectVotersCount(getState());
 		dispatch(upsertVotingPool({VotingPoolID: votingPoolId, VoterCount: count}));
 
-		const url = `/api/voters/${votingPoolId}`;
+		const url = `${baseUrl}/${votingPoolId}`;
 		try {
 			await fetcher.post(url, [voter]);
 		}
@@ -212,9 +214,8 @@ export const addVoter = (votingPoolId, voter) =>
 export const updateVoter = (id, changes) =>
 	async (dispatch) => {
 		dispatch(updateOne({id, changes}));
-		const url = `/api/voters`;
 		try {
-			await fetcher.patch(url, [{id, changes}]);
+			await fetcher.patch(baseUrl, [{id, changes}]);
 		}
 		catch(error) {
 			await dispatch(setError('Unable to update voter', error));

@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {List, ListItem, Checkbox} from 'dot11-components/form';
 import {isMultiple} from 'dot11-components/lib';
-import {BallotTypeOptions} from '../store/ballots';
 
 const CheckboxListSelect = ({value, onChange, label, options, readOnly}) =>
 	<List
