@@ -4,10 +4,10 @@ import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
 import {Select} from 'dot11-components/form';
+import {displayDateRange} from 'dot11-components/lib';
 
 import {loadImatMeetings, selectImatMeetingsState} from '../store/imatMeetings';
 
-import {displayDateRange} from './ImatBreakouts';
 
 const StyledItem = styled.div`
 	overflow: hidden;
@@ -46,17 +46,11 @@ function ImatMeetingSelector({
 	React.useEffect(() => {
 		if (!valid && !loading && !readOnly)
 			dispatch(loadImatMeetings());
-	}, [dispatch, valid, loading, readOnly]);
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const options = React.useMemo(() => ids.map(id => entities[id]), [entities, ids]);
-
-	function handleChange(values) {
-		const newValue = values.length > 0? values[0].id: 0;
-		if (newValue !== value)
-			onChange(newValue);
-	}
-
 	const values = options.filter(o => o.id === value);
+	const handleChange = (values) => onChange(values.length > 0? values[0].id: 0);
 
 	return (
 		<Select
@@ -77,7 +71,7 @@ function ImatMeetingSelector({
 }
 
 ImatMeetingSelector.propTypes = {
-	value: PropTypes.number.isRequired,
+	value: PropTypes.number,
 	onChange: PropTypes.func.isRequired,
 	readOnly: PropTypes.bool,
 }

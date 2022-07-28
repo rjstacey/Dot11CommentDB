@@ -18,11 +18,15 @@ export const fields = {
 	groupName: {label: 'Group'},
 	start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
 	end: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
+	startTime: {label: 'Start time'},
+	endTime: {label: 'End time'},
 	day: {label: 'Day'},
 	date: {label: 'Date'},
-	time: {label: 'Time'},
+	dayDate: {label: 'Day/Date'},
+	timeRange: {label: 'Time'},
 	duration: {label: 'Duration'},
 	hasMotions: {label: 'Motions'},
+	isCancelled: {label: 'Cancelled'},
 	webexAccountId: {label: 'Webex account'},
 };
 
@@ -33,18 +37,24 @@ export function getField(entity, key) {
 	if (key === 'day')
 		return DateTime.fromISO(entity.start, {zone: entity.timezone}).weekdayShort;
 	if (key === 'date')
-		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('yyyy LLL dd');
-	if (key === 'time')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('dd LLL yyyy');
+	if (key === 'dayDate')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('EEE, dd LLL yyyy');
+	if (key === 'startTime')
 		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('HH:mm');
-	if (key === 'duration')
-		return DateTime.fromISO(entity.end).diff(DateTime.fromISO(entity.start), 'hours').hours;
+	if (key === 'endTime')
+		return DateTime.fromISO(entity.end, {zone: entity.timezone}).toFormat('HH:mm');
 	if (key === 'timeRange')
 		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('HH:mm') + '-' +
-			DateTime.fromISO(entity.end, {zone: entity.timezone}).toFormat('HH:mm');
+			   DateTime.fromISO(entity.end, {zone: entity.timezone}).toFormat('HH:mm');
+	if (key === 'duration')
+		return DateTime.fromISO(entity.end).diff(DateTime.fromISO(entity.start), 'hours').hours;
 	if (key === 'location')
 		return entity.webexMeeting? `${entity.webexAccountName}: ${displayMeetingNumber(entity.webexMeeting.meetingNumber)}`: '';
 	if (key === 'meetingNumber')
 		return entity.webexMeeting? displayMeetingNumber(entity.webexMeeting.meetingNumber): '';
+	if (!entity.hasOwnProperty(key))
+		console.warn(dataSet + 'has not field ' + key);
 	return entity[key];
 }
 
@@ -92,10 +102,13 @@ export const selectTeleconDefaults = state => {
 	return defaults;
 }
 
+const sortComparer = (a, b) => DateTime.fromISO(a.start).toMillis() - DateTime.fromISO(b.start).toMillis(); 
+
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	selectField: getField,
+	sortComparer,
 	initialState: {groupId: null, defaults: {}},
 	selectEntities: selectSyncedTeleconEntities,
 	reducers: {
@@ -132,6 +145,7 @@ const {
 	getSuccess,
 	getFailure,
 	updateMany,
+	upsertMany,
 	setMany,
 	addMany,
 	removeMany,
@@ -140,21 +154,21 @@ const {
 	setSelected
 } = slice.actions;
 
-export {setProperty as setUiProperty, setSelected, setGroupId};
+export {setProperty as setUiProperty, setSelected, setGroupId, upsertMany as upsertTelecons};
 
 export const setTeleconDefaults = setDefaults;
 export const clearTeleconDefaults = clearDefaults;
 
 const baseUrl = '/api/telecons';
 
-export const loadTelecons = (parent_id) => 
+export const loadTelecons = ({parent_id, ...params}) => 
 	async (dispatch, getState) => {
 		dispatch(setGroupId(parent_id));
 		dispatch(getPending());
 		const url = baseUrl + (parent_id? `/${parent_id}`: '');
 		let telecons;
 		try {
-			telecons = await fetcher.get(url);
+			telecons = await fetcher.get(url, params);
 			if (!Array.isArray(telecons))
 				throw new TypeError(`Unexpected response to GET ${url}`);
 		}
@@ -198,7 +212,7 @@ export const addTelecons = (telecons) =>
 		}
 		catch(error) {
 			await dispatch(setError('Unable to add telecons:', error));
-			return;
+			return [];
 		}
 		await dispatch(addMany(newTelecons));
 		return newTelecons.map(e => e.id);

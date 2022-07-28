@@ -11,19 +11,13 @@ function CalendarAccountSelector({
 	...otherProps
 }) {
 	const {loading, ids, entities} = useSelector(selectCalendarAccountsState);
-
 	const options = React.useMemo(() => ids.map(id => ({value: id, label: entities[id].name})), [ids, entities]);
-	const optionSelected = options.find(o => o.value === value);
-
-	function handleChange(values) {
-		const newValue = values.length > 0? values[0].value: null;
-		if (newValue !== value)
-			onChange(newValue);
-	}
+	const values = options.filter(o => o.value === value);
+	const handleChange = (values) => onChange(values.length > 0? values[0].value: null)
 
 	return (
 		<Select
-			values={optionSelected? [optionSelected]: []}
+			values={values}
 			onChange={handleChange}
 			options={options}
 			loading={loading}

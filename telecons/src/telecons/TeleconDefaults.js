@@ -4,10 +4,10 @@ import {useDispatch, useSelector} from 'react-redux';
 import {Form, Row, Field} from 'dot11-components/form';
 import {selectTeleconDefaults, setTeleconDefaults} from '../store/telecons';
 
-import CalendarAccountSelector from '../accounts/CalendarAccountSelector';
-import WebexAccountSelector from '../accounts/WebexAccountSelector';
-import WebexTemplateSelector from '../accounts/WebexTemplateSelector';
-import TimeZoneSelector from './TimeZoneSelector';
+import CalendarAccountSelector from '../components/CalendarAccountSelector';
+import WebexAccountSelector from '../components/WebexAccountSelector';
+import WebexTemplateSelector from '../components/WebexTemplateSelector';
+import TimeZoneSelector from '../components/TimeZoneSelector';
 
 
 function TeleconDefaults({

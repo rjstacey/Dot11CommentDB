@@ -1,5 +1,6 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import {connect} from 'react-redux';
 import styled from '@emotion/styled';
 import {DateTime} from 'luxon';
 
@@ -13,16 +14,18 @@ import {
 	deleteTelecons, 
 	setSelected, 
 	selectTeleconsState, 
-	selectTeleconDefaults
+	selectTeleconDefaults,
+	selectSyncedTeleconEntities
 } from '../store/telecons';
 
 import {selectGroupsState} from '../store/groups';
-import WebexAccountSelector from '../accounts/WebexAccountSelector';
-import WebexTemplateSelector from '../accounts/WebexTemplateSelector';
-import TimeZoneSelector from './TimeZoneSelector';
-import GroupSelector from '../organization/GroupSelector';
-import CalendarAccountSelector from '../accounts/CalendarAccountSelector';
-import ImatMeetingSelector from '../imatMeetings/ImatMeetingSelector';
+
+import WebexAccountSelector from '../components/WebexAccountSelector';
+import WebexTemplateSelector from '../components/WebexTemplateSelector';
+import TimeZoneSelector from '../components/TimeZoneSelector';
+import GroupSelector from '../components/GroupSelector';
+import CalendarAccountSelector from '../components/CalendarAccountSelector';
+import ImatMeetingSelector from '../components/ImatMeetingSelector';
 
 const MULTIPLE_STR = '(Multiple)';
 
@@ -53,65 +56,109 @@ const fromTimeStr = (str) => {
 	return m? {hour: parseInt(m[1], 10), minute: parseInt(m[2], 10)}: {hour: 0, minute: 0};
 }
 
+function webexMeetingParams(webexMeeting) {
+
+	function getProperties(template, input) {
+		const output = {};
+		for (const key of Object.keys(template)) {
+			if (typeof template[key] === 'object' && typeof input[key] === 'object')
+				output[key] = getProperties(template[key], input[key])
+			else if (template.hasOwnProperty(key) && input.hasOwnProperty(key))
+				output[key] = input[key];
+		}
+		return output;
+	}
+
+	const w = getProperties(defaultWebexMeeting, webexMeeting);
+	if (webexMeeting.hasOwnProperty('templateId'))
+		w.templateId = webexMeeting.templateId;
+	return w;
+}
+
 export function convertFromLocal(entry) {
-	let {dates, time, duration, webexMeeting, calendarEvent, ...rest} = entry;
+	let {date, time, duration, webexMeeting, calendarEvent, ...rest} = entry;
 	
 	let start = MULTIPLE,
 	    end = MULTIPLE;
-	if (!isMultiple(dates) && !isMultiple(entry.timezone) && !isMultiple(time)) {
-		const [date] = dates;
+	if (!isMultiple(date) && !isMultiple(entry.timezone) && !isMultiple(time)) {
 		start = DateTime.fromISO(date, {zone: entry.timezone}).set(fromTimeStr(time));
 		if (!isMultiple(duration))
 			end = start.plus({hours: duration}).toISO();
 		start = start.toISO();
 	}
 
-	let localEntry = {
+	return {
 		start,
 		end,
+		webexMeeting: webexMeetingParams(webexMeeting),
 		...rest
-	}
-
-	if (webexMeeting) {
-		let params = {
-			enabledJoinBeforeHost: webexMeeting.enabledJoinBeforeHost,
-			joinBeforeHostMinutes: webexMeeting.joinBeforeHostMinutes,
-			enableConnectAudioBeforeHost: webexMeeting.enableConnectAudioBeforeHost,
-			password: webexMeeting.password,
-			meetingOptions: webexMeeting.meetingOptions,
-		}
-		if (!params.enabledJoinBeforeHost) {
-			params.joinBeforeHostMinutes = 0;
-			params.enableConnectAudioBeforeHost = false;
-		}
-		localEntry.webexMeeting = params;
-	}
-
-	return localEntry;
+	};
 }
 
 function convertFromLocalMultipleDates(entry) {
 	const {dates, ...rest} = entry;
-	return dates.map(date => convertFromLocal({dates: [date], ...rest}));
+	return dates.map(date => convertFromLocal({...rest, date}));
 }
 
 function convertToLocal(entry) {
-	const {start, end, ...rest} = entry;
-	let dates = MULTIPLE,
+	let {start, end, webexMeeting, ...rest} = entry;
+	let date = MULTIPLE,
 	    time = MULTIPLE,
 	    duration = MULTIPLE;
-	if (!isMultiple(start) && !isMultiple(end) && !isMultiple(entry.timezone)) {
-		const date = DateTime.fromISO(start, {zone: entry.timezone});
-		dates = [date.toISODate({zone: entry.timezone})];
+	if (!isMultiple(entry.timezone)) {
+		date = DateTime.fromISO(start, {zone: entry.timezone});
 		time = toTimeStr(date.hour, date.minute);
 		duration = DateTime.fromISO(end).diff(DateTime.fromISO(start), 'hours').hours;
+		date = date.toISODate({zone: entry.timezone});
 	}
+
+	if (webexMeeting) {
+		// Only care about certain properties
+		webexMeeting = webexMeetingParams(webexMeeting);
+	}
+
 	return {
-		dates,
+		date,
 		time,
 		duration,
+		webexMeeting,
 		...rest
 	}
+}
+
+function convertToLocalTagMultiple(ids, entities) {
+
+	let entry = {}, dates = [];
+	for (const id of ids) {
+		const original = convertToLocal(entities[id]);
+		dates.push(original.date);
+		entry = deepMergeTagMultiple(entry, original);
+	}
+	entry.dates = [...new Set(dates.sort())];	// array of unique dates
+
+	return entry;
+}
+
+function cancelUpdates(selected, entities) {
+	/* Default is to set all entries to cancelled.
+	 * However, if they are already all cancelled, then uncancel. */
+	let isCancelled = 1;
+	if (selected.every(id => entities[id].isCancelled))
+		isCancelled = 0;
+	const updates = [];
+	for (const id of selected) {
+		const entity = entities[id];
+		// Remove "cancelled" (or "canceled") and any leading or trailing " - "
+		let summary = entity.summary.replace(/cancelled|canceled/i, '').replace(/^[\s-]*/, '').replace(/[\s-]*$/, '');
+		if (isCancelled)
+			summary = 'CANCELLED - ' + summary;
+		const changes = {
+			isCancelled,
+			summary
+		}
+		updates.push({id, changes});
+	}
+	return updates;
 }
 
 export function WebexMeetingEdit({
@@ -239,6 +286,14 @@ export function TeleconEntry({
 }) {
 	const readOnly = action === 'view';
 
+	const changeHasMotions = (hasMotions) => {
+		let summary = entry.summary;
+		summary = summary.replace(/[*]$/, '');	// Remove trailing asterisk
+		if (hasMotions)
+			summary += '*';				// Add trailing asterisk
+		changeEntry({hasMotions, summary});
+	}
+
 	const toggleWebexMeeting = () => {
 		if (entry.webexMeeting)
 			changeEntry({webexMeetingId: null, webexMeeting: null});
@@ -318,6 +373,16 @@ export function TeleconEntry({
 				</Field>
 			</Row>
 			<Row>
+				<Field label='Agenda includes motions:'>
+					<Checkbox
+						indeterminate={isMultiple(entry.hasMotions)}
+						checked={!!entry.hasMotions}
+						onChange={e => changeHasMotions(e.target.checked)}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
 				<Field label='Include Webex:'>
 					<Checkbox
 						checked={!!entry.webexMeeting}
@@ -384,13 +449,86 @@ const NotAvailable = styled.div`
 	color: #bdbdbd;
 `;
 
-function TeleconDetail({groupId}) {
-	const dispatch = useDispatch();
-	const {loading, selected, entities} = useSelector(selectTeleconsState);
-	const defaults = useSelector(selectTeleconDefaults);
-	const {entities: groupEntities} = useSelector(selectGroupsState);
+class TeleconDetail extends React.Component {
+	constructor(props) {
+		super(props);
+		this.state = this.initState('update');
+	}
 
-	const defaultSummary = React.useCallback((subgroup_id) => {
+	componentDidUpdate(prevProps, prevState) {
+		const prevSelected = prevProps.selected;
+		const {selected, setSelected} = this.props;
+		const {action, ids} = this.state;
+
+		const changeWithConfirmation = async () => {
+			console.log('check for changes')
+			const updates = this.getUpdates();
+			if (updates.length > 0) {
+				console.log(updates)
+				const ok = await ConfirmModal.show('Changes not applied! Do you want to discard changes?');
+				if (!ok) {
+					setSelected(ids);
+					return;
+				}
+			}
+			this.setState(this.initState('update'));
+		}
+
+		if (action !== 'add' && selected.join() !== prevSelected.join()) {
+			changeWithConfirmation();
+		}
+	}
+	
+	initState = (action) => {
+		const {entities, selected, defaults, groupId} = this.props;
+
+		console.log('initState')
+		const ids = selected;
+		let entry;
+		if (ids.length > 0) {
+			entry = convertToLocalTagMultiple(ids, entities);
+			console.log(entities[ids[0]], entry)
+			if (action === 'add') {
+				delete entry.id;
+				delete entry.calendarEventId;
+				delete entry.webexMeetingId;
+				if (isMultiple(entry.time))
+					entry.time = '';
+				if (isMultiple(entry.hasMotions))
+					entry.hasMotions = false;
+				entry.isCancelled = false;
+				entry.summary = this.defaultSummary(entry.group_id);
+				entry.timezone = defaults.timezone;
+				entry.calendarAccountId = defaults.calendarAccountId;
+				entry.webexAccountId = defaults.webexAccountId;
+				entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webex_template_id};
+			}
+			else {
+				if (isMultiple(entry.date))
+					entry.dates = MULTIPLE;
+				else
+					entry.dates = [entry.date];
+			}
+		}
+		else {
+			entry = {...defaultLocalEntry, group_id: groupId};
+			entry.summary = this.defaultSummary(entry.group_id);
+			entry.timezone = defaults.timezone;
+			entry.calendarAccountId = defaults.calendarAccountId;
+			entry.webexAccountId = defaults.webexAccountId;
+			entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webex_template_id};
+		}
+		console.log(ids.length > 0, action, entry)
+		return {
+			action,
+			entry,
+			ids
+		};
+	}
+
+	defaultSummary = (subgroup_id) => {
+		const {groupEntities} = this.props;
+
 		let subgroup, group;
 		subgroup = groupEntities[subgroup_id];
 		if (subgroup &&
@@ -403,110 +541,68 @@ function TeleconDetail({groupId}) {
 		if (subgroup)
 			return subgroup.name;
 		return '';
-	}, [groupEntities]);
+	}
 
-	const initState = React.useCallback((action) => {
-		const ids = selected;
-		let entry = {};
-		if (ids.length > 0) {
-			for (const id of ids)
-				entry = deepMergeTagMultiple(entry, convertToLocal(entities[id]));
-			if (action === 'add') {
-				delete entry.id;
-				delete entry.calendarEventId;
-				delete entry.webexMeetingId;
-				if (isMultiple(entry.dates))
-					entry.dates = [];
-				if (isMultiple(entry.time))
-					entry.time = '';
-				if (isMultiple(entry.hasMotions))
-					entry.hasMotions = false;
-				entry.summary = defaultSummary(entry.group_id);
-				entry.timezone = defaults.timezone;
-				entry.calendarAccountId = defaults.calendarAccountId;
-				entry.webexAccountId = defaults.webexAccountId;
-				entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webex_template_id};
-			}
-		}
-		else {
-			entry = {...defaultLocalEntry, group_id: groupId};
-			entry.summary = defaultSummary(entry.group_id);
-			entry.timezone = defaults.timezone;
-			entry.calendarAccountId = defaults.calendarAccountId;
-			entry.webexAccountId = defaults.webexAccountId;
-			entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webex_template_id};
-		}
-		console.log(action)
-		return {
-			action,
-			entry,
-			ids
-		};
-	}, [selected, entities, defaults, groupId, defaultSummary]);
+	getUpdates = () => {
+		let {entry, ids} = this.state;
+		const {entities} = this.props;
 
-	const [state, setState] = React.useState(() => initState('update'));
+		console.log('getUpdates')
+		ids = ids.filter(id => entities[id]);	// Only ids that exist
+		
+		// Collapse selection to local format
+		const collapsed = convertToLocalTagMultiple(ids, entities);
 
-	const getUpdates = React.useCallback(() => {
-		let {entry, ids} = state;
-		ids = ids.filter(id => entities[id]);
+		// Get modified local entry without dates and webexMeeting.templateId
+		let {webexMeeting, dates, ...e} = entry;
+		e.webexMeeting = {...webexMeeting};
+		if (dates.length === 1)
+			e.date = dates[0];
+		delete e.webexMeeting.templateId;
 
-		let diff = {}, originals = {};
-		for (const id of ids) {
-			const original = convertToLocal(entities[id]);
-			originals[id] = original;
-			diff = deepMergeTagMultiple(diff, original);
-		}
-		diff = deepDiff(diff, entry);
-		//console.log(diff)
+		// Find differences
+		const diff = deepDiff(collapsed, e);
 
 		const updates = [];
 		for (const id of ids) {
-			const changesLocal = {...originals[id], ...diff};
-			//console.log(changesLocal)
+			// Get original without superfluous webex params
+			const {webexMeeting, ...entity} = entities[id];
+			entity.webexMeeting = webexMeetingParams(webexMeeting);
+
+			const local = deepMerge(convertToLocal(entity), diff);
+			const updated = convertFromLocal(local);
+			console.log(updated)
 			//console.log(entities[id], convertFromLocal(changesLocal))
-			const changes = deepDiff(entities[id], convertFromLocal(changesLocal));
-			//console.log(changes)
+			const changes = deepDiff(entity, updated);
+			console.log(changes)
 			if (Object.keys(changes).length > 0)
 				updates.push({id, changes});
 		}
 		return updates;
-	}, [state, entities]);
+	}
 
-	React.useEffect(() => {
-		async function changeWithConfirmation() {
-			const updates = getUpdates();
-			if (updates.length > 0) {
-				console.log(updates)
-				const ok = await ConfirmModal.show('Changes not applied! Do you want to discard changes?');
-				if (!ok) {
-					dispatch(setSelected(state.ids))
-					return;
-				}
-			}
-			console.log('hu?')
-			setState(initState('update'));
-		}
-		if (state.ids.join() !== selected.join())
-			changeWithConfirmation();
-	}, [state, selected, initState, getUpdates, dispatch]);
+	clickAdd = async () => {
+		const {setSelected} = this.props;
+		const {action} = this.state;
 
-	const clickAdd = React.useCallback(async () => {
-		if (state.action === 'update') {
-			const updates = getUpdates();
+		console.log('clickAdd')
+		if (action === 'update') {
+			const updates = this.getUpdates();
 			if (updates.length > 0) {
 				const ok = await ConfirmModal.show(`Changes not applied! Do you want to discard changes?`);
 				if (!ok)
 					return;
 			}
 		}
-		if (state.action !== 'add') {
-			dispatch(setSelected([]));
-			setState(initState('add'));
+		if (action !== 'add') {
+			setSelected([]);
+			this.setState(this.initState('add'));
 		}
-	}, [state, setState, initState, dispatch, getUpdates]);
+	}
 
-	const clickDelete = React.useCallback(async () => {
-		const ids = state.ids;
+	clickDelete = async () => {
+		const {deleteTelecons} = this.props;
+		const ids = this.state.ids;
 		const ok = await ConfirmModal.show(
 			'Are you sure you want to delete the ' + 
 				(ids.length > 1?
@@ -515,25 +611,37 @@ function TeleconDetail({groupId}) {
 		);
 		if (!ok)
 			return;
-		await dispatch(deleteTelecons(ids));
-		setState(initState('update'));
-	}, [state.ids, dispatch]);
+		await deleteTelecons(ids);
+		this.setState(this.initState('update'));
+	}
 
-	const changeEntry = React.useCallback((changes) => {
-		if (state.actions === 'view') {
+	clickCancel = async () => {
+		const {updateTelecons, entities} = this.props;
+		const ids = this.state.ids;
+		const updates = cancelUpdates(ids, entities);
+		await updateTelecons(updates);
+		this.setState(this.initState('update'));
+	}
+
+	changeEntry = (changes) => {
+		const {action} = this.state;
+		if (action === 'view') {
 			console.warn("Update when read-only");
 			return;
 		}
-		setState(state => {
-			if (changes.hasOwnProperty('group_id'))
-				changes.summary = defaultSummary(changes.group_id);
+		changes = {...changes};
+		if (changes.hasOwnProperty('group_id'))
+			changes.summary = this.defaultSummary(changes.group_id);
+		this.setState(state => {
 			const entry = deepMerge(state.entry, changes);
 			return {...state, entry}
 		});
-	}, [state, setState, defaultSummary]);
+	}
 
-	const add = React.useCallback(async () => {
-		const {entry} = state;
+	add = async () => {
+		const {addTelecons, setSelected} = this.props;
+		const {entry} = this.state;
+
 		let errMsg = '';
 		if (entry.dates.length === 0)
 			errMsg = 'Date(s) not set';
@@ -550,57 +658,102 @@ function TeleconDetail({groupId}) {
 			ConfirmModal.show(errMsg, false);
 			return;
 		}
-		const ids = await dispatch(addTelecons(convertFromLocalMultipleDates(entry)));
-		dispatch(setSelected(ids));
-		setState(initState('update'));
-	}, [state, dispatch, initState]);
 
-	const update = React.useCallback(async () => {
-		const updates = getUpdates();
-		await dispatch(updateTelecons(updates));
-		setState(initState('update'));
-	}, [getUpdates, dispatch, initState]);
+		addTelecons(convertFromLocalMultipleDates(entry))
+			.then(ids => setSelected(ids))
+			.then(() => this.setState(this.initState('update')));
+	}
 
-	const cancel = React.useCallback(() => {
-		setState(initState('update'));
-	}, [setState, initState]);
+	update = async () => {
+		const {updateTelecons} = this.props;
 
-	let notAvailableStr = '';
-	if (loading)
-		notAvailableStr = 'Loading...';
-	else if (state.action === 'update' && selected.length === 0)
-		notAvailableStr = 'Nothing selected';
+		const updates = this.getUpdates();
+		console.log(updates)
+		await updateTelecons(updates);
+		this.setState(this.initState('update'));
+	}
 
-	return (
-		<Container>
-			<TopRow>
-				<ActionButton
-					name='add'
-					title='Add telecon'
-					disabled={loading}
-					isActive={state.action === 'add'}
-					onClick={clickAdd}
-				/>
-				<ActionButton
-					name='delete'
-					title='Delete telecon'
-					disabled={loading || selected.length === 0}
-					onClick={clickDelete}
-				/>
-			</TopRow>
-			{notAvailableStr?
-				<NotAvailable>{notAvailableStr}</NotAvailable>:
-				<TeleconEntry
-					groupId={groupId}
-					entry={state.entry}
-					changeEntry={changeEntry}
-					action={state.action}
-					actionAdd={add}
-					actionUpdate={update}
-					actionCancel={cancel}
-				/>}
-		</Container>
-	)
+	render() {
+		const {loading, selected, groupId} = this.props;
+		const {action, entry} = this.state;
+
+		let notAvailableStr = '';
+		if (loading)
+			notAvailableStr = 'Loading...';
+		else if (action === 'update' && selected.length === 0)
+			notAvailableStr = 'Nothing selected';
+
+		return (
+			<Container>
+				<TopRow>
+					<ActionButton
+						name='add'
+						title='Add telecon'
+						disabled={loading}
+						isActive={action === 'add'}
+						onClick={this.clickAdd}
+					/>
+					<ActionButton
+						name='cancel'
+						title={(entry.isCancelled === 1? 'Uncancel': 'Cancel') + ' telecon'}
+						disabled={loading}
+						isActive={entry.isCancelled === 1}
+						onClick={this.clickCancel}
+					/>
+					<ActionButton
+						name='delete'
+						title='Delete telecon'
+						disabled={loading || selected.length === 0}
+						onClick={this.clickDelete}
+					/>
+				</TopRow>
+				{notAvailableStr?
+					<NotAvailable>{notAvailableStr}</NotAvailable>:
+					<TeleconEntry
+						groupId={groupId}
+						entry={entry}
+						changeEntry={this.changeEntry}
+						action={action}
+						actionAdd={this.add}
+						actionUpdate={this.update}
+						//actionCancel={cancel}
+					/>}
+			</Container>
+		)
+	}
+
+	static propTypes = {
+		groupId: PropTypes.any,
+		loading: PropTypes.bool.isRequired,
+		selected: PropTypes.array.isRequired,
+		entities: PropTypes.object.isRequired,
+		defaults: PropTypes.object.isRequired,
+		groupEntities: PropTypes.object.isRequired,
+		setSelected: PropTypes.func.isRequired,
+		updateTelecons: PropTypes.func.isRequired,
+		addTelecons: PropTypes.func.isRequired,
+		deleteTelecons: PropTypes.func.isRequired
+	}
 }
 
-export default TeleconDetail;
+const ConnectedTeleconDetail = connect(
+	(state) => ({
+		loading: selectTeleconsState(state).loading,
+		selected: selectTeleconsState(state).selected,
+		entities: selectSyncedTeleconEntities(state),
+		defaults: selectTeleconDefaults(state),
+		groupEntities: selectGroupsState(state).entities
+	}),
+	{
+		setSelected,
+		updateTelecons,
+		addTelecons,
+		deleteTelecons
+	}
+)(TeleconDetail);
+
+ConnectedTeleconDetail.propTypes = {
+	groupId: PropTypes.any
+}
+
+export default ConnectedTeleconDetail;

@@ -1,5 +1,4 @@
 import React from 'react';
-import {Link, useHistory} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
@@ -53,7 +52,6 @@ const columns = [
 const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
 
 function Ieee802WorldSchedule() {
-	const history = useHistory();
 	const dispatch = useDispatch();
 	const {valid} = useSelector(select802WorldScheduleState);
 

@@ -9,18 +9,13 @@ function OfficerPositionSelector({
 	onChange,
 	...otherProps
 }) {
-	function handleChange(values) {
-		const newValue = values.length > 0? values[0].value: '';
-		if (newValue !== value)
-			onChange(newValue);
-	}
-
 	const options = positions.map(v => ({value: v, label: v}));
-	const optionSelected = options.find(o => o.value === value);
+	const values = options.filter(o => o.value === value);
+	const handleChange = (values) => onChange(values.length > 0? values[0].value: '');
 
 	return (
 		<Select
-			values={optionSelected? [optionSelected]: []}
+			values={values}
 			onChange={handleChange}
 			options={options}
 			clearable

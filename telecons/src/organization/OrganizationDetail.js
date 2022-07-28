@@ -8,9 +8,10 @@ import {ActionButton, Form, Row, Field, Input, Select} from 'dot11-components/fo
 
 import {addGroup, updateGroups, deleteGroups, selectGroupsState, GroupTypeOptions, GroupStatusOptions, setSelected} from '../store/groups';
 
-import GroupSelector from './GroupSelector';
+import GroupSelector from '../components/GroupSelector';
+import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
+
 import Officers from './Officers';
-import ImatCommitteeSelector from './ImatCommitteeSelector';
 
 const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';

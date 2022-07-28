@@ -6,10 +6,16 @@ import styled from '@emotion/styled';
 import {Field, Col} from 'dot11-components/form';
 import {ActionIcon} from 'dot11-components/icons';
 
-import {addOfficer, updateOfficer, deleteOfficer, selectOfficersState, selectGroupOfficers} from '../store/officers';
+import {
+	addOfficer,
+	updateOfficer,
+	deleteOfficer,
+	selectOfficersState,
+	selectGroupOfficers
+} from '../store/officers';
 
+import MemberSelector from '../components/MemberSelector';
 import OfficerPositionSelector from './OfficerPositionSelector';
-import MemberSelector from './MemberSelector';
 
 const OfficerTable = styled.table`
 	display: grid;

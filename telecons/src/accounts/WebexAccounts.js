@@ -7,8 +7,16 @@ import {ActionButton, Input} from  'dot11-components/form';
 import {displayDate} from 'dot11-components/lib';
 import {ActionIcon} from 'dot11-components/icons';
 
-import {loadWebexAccounts, updateWebexAccount, addWebexAccount, deleteWebexAccount, authWebexAccount, selectWebexAccountsState} from '../store/webexAccounts';
-import GroupsSelector from '../organization/GroupSelector';
+import {
+	loadWebexAccounts,
+	updateWebexAccount,
+	addWebexAccount,
+	deleteWebexAccount,
+	authWebexAccount,
+	selectWebexAccountsState
+} from '../store/webexAccounts';
+
+import GroupsSelector from '../components/GroupSelector';
 
 /* Generate URL for account authorization */
 const getWebexAccountAuthLink = (account) => {

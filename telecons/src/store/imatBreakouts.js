@@ -6,18 +6,26 @@ import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTable
 import {setError} from 'dot11-components/store/error';
 import {isObject} from 'dot11-components/lib';
 
-import {selectTeleconEntities} from './telecons';
+import {selectTeleconEntities, upsertTelecons} from './telecons';
 
-const fields = {
-	uuid: {label: 'ID', isId: true},
+const displayGroup = (group) => {
+	const parts = group.split('/');
+	return parts[parts.length-1];
+}
+
+export const fields = {
 	id: {label: 'Breakout ID', sortType: SortType.NUMERIC},
+	meetingId: {label: 'Meeting number', sortType: SortType.NUMERIC},
 	start: {label: 'Start', sortType: SortType.DATE},
 	end: {label: 'End', sortType: SortType.DATE},
 	weekDay: {label: 'Day'},
+	date: {label: 'Date'},
 	dayDate: {label: 'Date'},
-	time: {label: 'Time'},
+	timeRange: {label: 'Time'},
+	startTime: {label: 'Start time'},
+	endTime: {label: 'End time'},
 	location: {label: 'Location'},
-	group: {label: 'Group'},
+	group: {label: 'Group', dataRenderer: displayGroup},
 	name: {label: 'Name'},
 	credit: {label: 'Credit'},
 };
@@ -25,21 +33,21 @@ const fields = {
 export const dataSet = 'imatBreakouts';
 
 export const getField = (entity, dataKey) => {
-	if (!entity.hasOwnProperty(dataKey)) {
-		if (dataKey === 'dayDate') {
-			const start = DateTime.fromISO(entity.start, {zone: entity.timezone});
-			return start.toFormat('EEE, d LLL yyyy');
-		}
-		if (dataKey === 'weekDay') {
-			const start = DateTime.fromISO(entity.start, {zone: entity.timezone});
-			return start.weekdayShort();
-		}
-		if (dataKey === 'time') {
-			const start = DateTime.fromISO(entity.start, {zone: entity.timezone});
-			const end = DateTime.fromISO(entity.end, {zone: entity.timezone});
-			return start.toFormat('HH:mm') + ' - ' + end.toFormat('HH:mm');
-		}
-	}
+	if (dataKey === 'weekDay')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).weekdayShort;
+	if (dataKey === 'date')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('dd LLL yyyy');
+	if (dataKey === 'dayDate')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('EEE, d LLL yyyy');
+	if (dataKey === 'startTime')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('HH:mm');
+	if (dataKey === 'endTime')
+		return DateTime.fromISO(entity.end, {zone: entity.timezone}).toFormat('HH:mm');
+	if (dataKey === 'timeRange')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('HH:mm') + '-' +
+			   DateTime.fromISO(entity.end, {zone: entity.timezone}).toFormat('HH:mm');
+	if (dataKey === 'duration')
+		return DateTime.fromISO(entity.end).diff(DateTime.fromISO(entity.start), 'hours').hours;
 	return entity[dataKey];
 }
 
@@ -142,7 +150,9 @@ export const addBreakouts = (meetingId, breakouts) =>
 		let response;
 		try {
 			response = await fetcher.post(url, breakouts);
-			if (!Array.isArray(response))
+			if (!isObject(response) ||
+				!Array.isArray(response.breakouts) ||
+				!Array.isArray(response.telecons))
 				throw new TypeError(`Unexpected response to POST ${url}`);
 		}
 		catch (error) {
@@ -150,6 +160,7 @@ export const addBreakouts = (meetingId, breakouts) =>
 			return;
 		}
 		dispatch(addMany(response.breakouts));
+		dispatch(upsertTelecons(response.telecons));
 	}
 
 export const updateBreakout = (meetingId, updates) => 

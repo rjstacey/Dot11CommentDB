@@ -7,8 +7,16 @@ import {ActionButton, Input} from  'dot11-components/form';
 import {ActionIcon} from 'dot11-components/icons';
 import {displayDate} from 'dot11-components/lib';
 
-import {loadCalendarAccounts, updateCalendarAccount, addCalendarAccount, deleteCalendarAccount, authCalendarAccount, selectCalendarAccountsState} from '../store/calendarAccounts';
-import GroupsSelector from '../organization/GroupSelector';
+import {
+	loadCalendarAccounts,
+	updateCalendarAccount,
+	addCalendarAccount,
+	deleteCalendarAccount,
+	authCalendarAccount,
+	selectCalendarAccountsState
+} from '../store/calendarAccounts';
+
+import GroupsSelector from '../components/GroupSelector';
 
 /* Generate URL for account authorization */
 const getCalendarAccountAuthLink = (account) => {

@@ -2,33 +2,34 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
+import {DateTime} from 'luxon';
 
 import {Select} from 'dot11-components/form';
 
-import {loadTelecons, selectTeleconsState, getField} from '../store/telecons';
+import {
+	loadTelecons,
+	selectTeleconsState,
+	getField
+} from '../store/telecons';
 
 const StyledItem = styled.div`
-	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
 	display: flex;
-	flex-direction: column;
-	align-items: left;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	padding: 3px 0;
 	${({ isSelected }) => isSelected? 'color: #fff; background: #0074d9;': 'color: #555; :hover {background: #f2f2f2;}'}
-	& > span {
-		margin: 5px 10px;
-	}
 `;
 
-const renderItem = ({item, style, props, state, methods}) => (
+const renderItem = ({item, style, className, props, state, methods}) => (
 	<StyledItem
 		key={item.value}
 		style={style}
+		className={className}
 		onClick={(e) => {methods.addItem(item)}}
-		isSelected={methods.isSelected(item)}
+		//isSelected={methods.isSelected(item)}
 	>
 		<span>{item.summary}</span>
-		<span style={{fontStyle: 'italic', fontSize: 'smaller'}}>{getField(item, 'date')} {getField(item, 'timeRange')}</span>
+		<span style={{fontStyle: 'italic', fontSize: 'smaller', marginLeft: '1rem'}}>{`${getField(item, 'date')} ${getField(item, 'timeRange')}`}</span>
 	</StyledItem>
 );
 
@@ -36,6 +37,8 @@ function TeleconSelector({
 	value,
 	onChange,
 	readOnly,
+	fromDate,
+	toDate,
 	...otherProps
 }) {
 	const dispatch = useDispatch();
@@ -44,18 +47,23 @@ function TeleconSelector({
 	React.useEffect(() => {
 		if (!valid && !loading && !readOnly)
 			dispatch(loadTelecons());
-	}, [dispatch, valid, loading, readOnly]);
+	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
 
-	const options = React.useMemo(() => ids.map(id => entities[id]), [entities, ids]);
-	//const widthCh = options.reduce((maxCh, o) => Math.max(maxCh, o.label.length), 12);
-
-	function handleChange(values) {
-		const newValue = values.length > 0? values[0].id: 0;
-		if (newValue !== value)
-			onChange(newValue);
-	}
+	const options = React.useMemo(() => {
+		let options = ids.map(id => entities[id]);
+		if (fromDate) {
+			const date = DateTime.fromISO(fromDate);
+			options = options.filter(o => DateTime.fromISO(o.start) >= date);
+		}
+		if (toDate) {
+			const date = DateTime.fromISO(toDate);
+			options = options.filter(o => DateTime.fromISO(o.end) <= date);
+		}
+		return options;
+	}, [entities, ids, fromDate, toDate]);
 
 	const values = options.filter(o => o.id === value);
+	const handleChange = (values) => onChange(values.length > 0? values[0].id: 0);
 
 	return (
 		<Select
@@ -66,6 +74,7 @@ function TeleconSelector({
 			loading={loading}
 			clearable
 			itemRenderer={renderItem}
+			selectItemRenderer={renderItem}
 			readOnly={readOnly}
 			portal={document.querySelector('#root')}
 			valueField='id'

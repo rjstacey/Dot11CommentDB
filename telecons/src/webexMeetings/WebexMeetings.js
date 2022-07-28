@@ -3,9 +3,11 @@ import {useHistory, useParams} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 import {DateTime} from 'luxon';
+import copyToClipboard from 'copy-html-to-clipboard';
+
 import AppTable, {SelectHeader, SelectCell, TableColumnHeader, TableColumnSelector, SplitPanel, Panel} from 'dot11-components/table';
 import {ActionButton, Form} from 'dot11-components/form';
-import {AppModal} from 'dot11-components/modals';
+import {AppModal, ConfirmModal} from 'dot11-components/modals';
 
 import {selectGroupsState} from '../store/groups';
 import {displayMeetingNumber} from '../store/webexMeetings';
@@ -20,7 +22,9 @@ import {
 
 import {
 	loadWebexMeetings,
+	deleteWebexMeetings,
 	selectWebexMeetingsState,
+	selectSyncedWebexMeetingEntities,
 	selectWebexMeetingsCurrentPanelConfig,
 	setWebexMeetingsCurrentPanelIsSplit,
 	fields,
@@ -28,11 +32,50 @@ import {
 	dataSet
 } from '../store/webexMeetings';
 
+import GroupSelector from '../components/GroupSelector';
+import TeleconSelector from '../components/TeleconSelector';
+
 import WebexMeetingDetail from './WebexMeetingDetail';
-import GroupSelector from '../organization/GroupSelector';
-import TeleconSelector from '../telecons/TeleconSelector';
 import {TeleconEntry, convertFromLocal} from '../telecons/TeleconDetail';
 
+
+function displayDateTime(entity) {
+	const start = DateTime.fromISO(entity.start, {zone: entity.timezone});
+	const end = DateTime.fromISO(entity.end, {zone: entity.timezone});
+	return start.toFormat('EEE, d LLL yyyy HH:mm') + '-' + end.toFormat('HH:mm');
+}
+
+function setClipboard(selected, entities) {
+
+	const td = d => `<td>${d}</td>`
+	const th = d => `<th>${d}</th>`
+	const header = `
+		<tr>
+			${th('When')}
+			${th('Title')}
+			${th('Meeting')}
+			${th('Host key')}
+		</tr>`
+	const row = m => `
+		<tr>
+			${td(displayDateTime(m))}
+			${td(m.title)}
+			${td(`${m.webexAccountName}: <a href="${m.webLink}">${displayMeetingNumber(m.meetingNumber)}</a>`)}
+			${td(m.hostKey)}
+		</tr>`
+	const table = `
+		<style>
+			table {border-collapse: collapse;}
+			table, th, td {border: 1px solid gray;}
+			td {vertical-align: top;}
+		</style>
+		<table>
+			${header}
+			${selected.map(id => row(entities[id])).join('')}
+		</table>`
+
+	copyToClipboard(table, {asHtml: true});
+}
 
 function TeleconLink({webexMeeting, close}) {
 	const dispatch = useDispatch();
@@ -167,6 +210,9 @@ const tableColumns = [
 	{key: 'meetingNumber', 
 		...fields.meetingNumber,
 		width: 200, flexGrow: 1, flexShrink: 1},
+	{key: 'hostKey',
+		...fields.hostKey,
+		width: 100, flexGrow: 1, flexShrink: 1},
 	{key: 'dayDate',
 		...fields.dayDate,
 		width: 100, flexGrow: 1, flexShrink: 0},
@@ -197,6 +243,7 @@ const defaultColumns = tableColumns.reduce((obj, col) => {
 	return obj;
 }, {});
 const defaultTablesConfig = {default: {fixed: false, columns: defaultColumns}};
+
 /*
  * Don't display date and time if it is the same as previous line
  */
@@ -209,14 +256,9 @@ function webexMeetingsRowGetter({rowIndex, ids, entities}) {
 	};
 	if (rowIndex > 0) {
 		let b_prev = entities[ids[rowIndex - 1]];
-		b_prev = {
-			...b_prev,
-			dayDate: getField(b_prev, 'dayDate'),
-			time: getField(b_prev, 'time')
-		};
-		if (b.dayDate === b_prev.dayDate) {
+		if (b.dayDate === getField(b_prev, 'dayDate')) {
 			b = {...b, dayDate: ''};
-			if (b.Time === b_prev.Time)
+			if (b.Time === getField(b_prev, 'time'))
 				b = {...b, time: ''};
 		}
 	}
@@ -228,7 +270,8 @@ function WebexMeetings() {
 	const dispatch = useDispatch();
 	const {groupName} = useParams();
 	const {entities, ids} = useSelector(selectGroupsState);
-	const {entities: wmEntities, ids: wmIds} = useSelector(selectWebexMeetingsState);
+	const {ids: wmIds, selected: wmSelected} = useSelector(selectWebexMeetingsState);
+	const wmEntities = useSelector(selectSyncedWebexMeetingEntities);
 	const webexMeeting2 = wmIds.length? wmEntities[wmIds[0]]: null;
 	console.log(webexMeeting2)
 	const {groupId} = useSelector(selectTeleconsState);
@@ -258,6 +301,13 @@ function WebexMeetings() {
 			.sort((groupA, groupB) => groupA.name.localeCompare(groupB.name))
 	}, [entities, ids]);
 
+	async function deleteSelected() {
+		const numbers = wmSelected.map(id => displayMeetingNumber(wmEntities[id].meetingNumber));
+		const ok = await ConfirmModal.show('Are you sure you want to delete ' + numbers.join(', ') + '?');
+		if (ok)
+			dispatch(deleteWebexMeetings(wmSelected))
+	}
+
 	const columns = React.useMemo(() => {
 		function renderActions({rowData}) {
 			if (rowData.teleconId)
@@ -272,6 +322,7 @@ function WebexMeetings() {
 						name='add'
 						onClick={() => setWebexMeetingToAdd(rowData)}
 					/>
+					
 				</>
 			)
 		}
@@ -287,6 +338,10 @@ function WebexMeetings() {
 
 	const closeToLink = () => setWebexMeetingToLink(null);
 	const closeToAdd = () => setWebexMeetingToAdd(null);
+
+	const copyHostKeys = () => {
+		setClipboard(wmSelected, wmEntities);
+	}
 
 	function handleSetGroupId(groupId) {
 		if (groupId) {
@@ -318,6 +373,18 @@ function WebexMeetings() {
 						title='Show detail'
 						isActive={isSplit}
 						onClick={() => setIsSplit(!isSplit)} 
+					/>
+					<ActionButton
+						name='delete'
+						title='Delete selected'
+						isActive={wmSelected.length > 0}
+						onClick={deleteSelected}
+					/>
+					<ActionButton
+						name='copy'
+						title='Copy host keys'
+						isActive={wmSelected.length > 0}
+						onClick={copyHostKeys}
 					/>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>

@@ -5,7 +5,12 @@ import styled from '@emotion/styled';
 import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
 import {ActionButton} from 'dot11-components/form';
 
-import {loadImatMeetings, selectImatMeetingsState, fields, dataSet} from '../store/imatMeetings';
+import {
+	loadImatMeetings,
+	selectImatMeetingsState,
+	fields,
+	dataSet
+} from '../store/imatMeetings';
 
 const TopRow = styled.div`
 	display: flex;

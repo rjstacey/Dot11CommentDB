@@ -2,21 +2,32 @@ import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {useHistory, useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {DateTime} from 'luxon';
 
 import {ActionButton, ButtonGroup} from 'dot11-components/form';
 import {ActionButtonDropdown} from 'dot11-components/general';
-import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, ShowFilters, TableColumnSelector, TableViewSelector} from 'dot11-components/table';
+import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, ShowFilters, TableColumnSelector, TableViewSelector, TableColumnHeader} from 'dot11-components/table';
 
-import {fields, loadTelecons, removeTelecons, selectTeleconsState, selectTeleconsCurrentPanelConfig, setTeleconsCurrentPanelIsSplit, dataSet} from '../store/telecons';
+import {
+	fields,
+	loadTelecons,
+	removeTelecons,
+	selectTeleconsState,
+	selectTeleconsCurrentPanelConfig,
+	setTeleconsCurrentPanelIsSplit,
+	dataSet,
+	getField
+} from '../store/telecons';
+
 import {selectGroupsState} from '../store/groups';
 import {selectImatMeetingEntities} from '../store/imatMeetings';
 import {selectWebexAccountEntities} from '../store/webexAccounts';
 import {displayMeetingNumber} from '../store/webexMeetings';
 
+import GroupSelector from '../components/GroupSelector';
+
 import TeleconDetail from './TeleconDetail';
 import TeleconDefaults from './TeleconDefaults';
-import ShowCalendar from './ShowCalendar';
-import GroupSelector from '../organization/GroupSelector';
 
 const TopRow = styled.div`
 	display: flex;
@@ -43,26 +54,42 @@ function ImatDetail({rowData}) {
 	return meeting? meeting.name: '';
 }
 
+const TeleconsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
+
+const renderDateHeader = (props) =>
+	<>
+		<TeleconsColumnHeader {...props} dataKey='day' label='Day' />
+		<TeleconsColumnHeader {...props} dataKey='date' label='Date' />
+	</>
+
+const renderTimeRangeHeader = (props) =>
+	<>
+		<TeleconsColumnHeader {...props} dataKey='startTime' label='Start time' />
+		<TeleconsColumnHeader {...props} dataKey='endTime' label='End time' />
+	</>
+
 const tableColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 0, flexShrink: 0,
 		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
-	{key: 'groupName',
-		...fields.groupName,
-		width: 200, flexGrow: 1, flexShrink: 0},
 	{key: 'day',
 		...fields.day,
 		width: 60, flexGrow: 1, flexShrink: 0},
-	{key: 'date',
-		...fields.date,
-		width: 100, flexGrow: 1, flexShrink: 0},
-	{key: 'time',
-		...fields.time,
-		width: 70, flexGrow: 1, flexShrink: 0},
+	{key: 'dayDate',
+		...fields.dayDate,
+		width: 100, flexGrow: 1, flexShrink: 0,
+		headerRenderer: renderDateHeader},
+	{key: 'timeRange',
+		...fields.timeRange,
+		width: 70, flexGrow: 1, flexShrink: 0,
+		headerRenderer: renderTimeRangeHeader},
 	{key: 'duration',
 		...fields.duration,
 		width: 100, flexGrow: 1, flexShrink: 0},
+	{key: 'groupName',
+		...fields.groupName,
+		width: 200, flexGrow: 1, flexShrink: 0},
 	{key: 'hasMotions',
 		...fields.hasMotions,
 		width: 90, flexGrow: 1, flexShrink: 0},
@@ -80,6 +107,49 @@ const tableColumns = [
 		cellRenderer: ({rowData}) => rowData.calendarAccountId? 'Yes': 'No'}
 ];
 
+const defaultTablesColumns = {
+	default: ['__ctrl__', 'groupName', 'dayDate', 'timeRange', 'duration'],
+};
+
+const defaultTablesConfig = {};
+
+for (const tableView of Object.keys(defaultTablesColumns)) {
+	const tableConfig = {
+		fixed: false,
+		columns: {}
+	}
+	for (const column of tableColumns) {
+		const key = column.key;
+		tableConfig.columns[key] = {
+			unselectable: key.startsWith('__'),
+			shown: defaultTablesColumns[tableView].includes(key),
+			width: column.width
+		}
+	}
+	defaultTablesConfig[tableView] = tableConfig;
+}
+
+/*
+ * Don't display date and time if it is the same as previous line
+ */
+function teleconsRowGetter({rowIndex, ids, entities}) {
+	let b = entities[ids[rowIndex]];
+	b = {
+		...b,
+		dayDate: getField(b, 'dayDate'),
+		timeRange: getField(b, 'timeRange')
+	};
+	if (rowIndex > 0) {
+		let b_prev = entities[ids[rowIndex - 1]];
+		if (b.dayDate === getField(b_prev, 'dayDate')) {
+			b = {...b, dayDate: ''};
+			if (b.timeRange === getField(b_prev, 'timeRange'))
+				b = {...b, timeRange: ''};
+		}
+	}
+	return b;
+}
+
 function Telecons(props) {
 	const dispatch = useDispatch();
 	const {isSplit} = useSelector(selectTeleconsCurrentPanelConfig);
@@ -94,7 +164,7 @@ function Telecons(props) {
 			const pathGroupId = ids.find(id => entities[id].name === groupName);
 			if (pathGroupId && groupId !== pathGroupId) {
 				// Routed here with groupName in path, but not matching stored groupId; load telecons for groupName
-				dispatch(loadTelecons(pathGroupId));
+				dispatch(loadTelecons({parent_id: pathGroupId, fromDate: DateTime.now().toISO()}));
 			}
 		}
 		else if (groupId) {
@@ -122,13 +192,10 @@ function Telecons(props) {
 		}
 	}
 
-	const refresh = () => dispatch(loadTelecons(groupId));
+	const refresh = () => dispatch(loadTelecons({parent_id: groupId, fromDate: DateTime.now().toISO()}));
 
 	return (
 		<>
-			<TopRow>
-				<ShowCalendar groupId={groupId} />
-			</TopRow>
 			<TopRow>
 				<div style={{display: 'flex'}}>
 					<label>Group:</label>
@@ -171,10 +238,13 @@ function Telecons(props) {
 			<SplitPanel dataSet={dataSet} >
 				<Panel>
 					<AppTable
+						defaultTablesConfig={defaultTablesConfig}
 						columns={tableColumns}
-						headerHeight={32}
+						headerHeight={46}
 						estimatedRowHeight={32}
+						measureRowHeight={true}
 						dataSet={dataSet}
+						rowGetter={teleconsRowGetter}
 					/>
 				</Panel>
 				<Panel>

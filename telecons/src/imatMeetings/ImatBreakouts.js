@@ -4,27 +4,34 @@ import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 import {DateTime} from 'luxon';
 
-import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
+import AppTable, {SelectHeader, SelectCell, TableColumnHeader} from 'dot11-components/table';
 import {Button, ActionButton, Form, Row, Field, Input, InputTime, Select} from 'dot11-components/form';
 import {AppModal} from 'dot11-components/modals';
-import {parseNumber} from 'dot11-components/lib';
+import {parseNumber, displayDateRange} from 'dot11-components/lib';
 
-import {loadBreakouts, addBreakouts, selectBreakoutsState, selectSyncedBreakoutEntities, getField, dataSet} from '../store/imatBreakouts';
-import {selectImatMeetingEntities} from '../store/imatMeetings';
+import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
+import TeleconSelector from '../components/TeleconSelector';
+
 import {
-	selectTeleconsState,
+	loadBreakouts,
+	addBreakouts,
+	selectBreakoutsState,
+	getField,
+	dataSet,
+	fields
+} from '../store/imatBreakouts';
+
+import {selectImatMeetingEntities} from '../store/imatMeetings';
+
+import {
 	selectSyncedTeleconEntities,
 	selectTeleconEntities,
-	selectTeleconDefaults,
-	updateTelecons,
-	addTelecons,
-	getField as getTeleconField
+	selectTeleconsState,
+	getField as getTeleconField,
+	updateTelecons
 } from '../store/telecons';
 
 import {selectGroupEntities} from '../store/groups';
-
-import ImatCommitteeSelector from '../organization/ImatCommitteeSelector';
-import TeleconSelector from '../telecons/TeleconSelector';
 
 const TopRow = styled.div`
 	display: flex;
@@ -32,6 +39,7 @@ const TopRow = styled.div`
 	width: 100%;
 	padding: 10px;
 	box-sizing: border-box;
+	align-items: center;
 `;
 
 const TableRow = styled.div`
@@ -53,37 +61,7 @@ const renderGroup = ({rowData}) => {
 }
 
 const renderAttendanceLink = ({rowData}) =>
-	rowData.meetingNumber && rowData.id &&
-	<Link to={`/imat/${rowData.meetingNumber}/${rowData.id}`}>view attendance</Link>
-
-function parseISODate(isoDate) {
-	// ISO date: "YYYY-MM-DD"
-	const year = parseInt(isoDate.substring(0, 4));
-	const month = parseInt(isoDate.substring(5, 7));
-	const day = parseInt(isoDate.substring(8, 10));
-	const monthStr = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-	return {
-		year,
-		monthShort: monthStr[month] || '???',
-		month,
-		day
-	}
-}
-
-/*function displayDate(isoDate) {
-	const {year, monthShort, day} = parseISODate(isoDate);
-	return `${year} ${monthShort} ${day}`; 
-}*/
-
-export const displayDateRange = (start, end) => {
-	const s = parseISODate(start);
-	const e = parseISODate(end);
-	if (s.year !== e.year)
-		return `${s.year} ${s.monthShort} ${s.day}-${e.year} ${e.monthShort} ${e.day}`;
-	if (s.month !== e.month)
-		return `${s.year} ${s.monthShort} ${s.day}-${e.monthShort} ${e.day}`;
-	return `${s.year} ${s.monthShort} ${s.day}-${e.day}`;
-}
+	rowData.meetingId && rowData.id && <Link to={`/imatMeetings/${rowData.meetingId}/${rowData.id}`}>view attendance</Link>
 
 export const renderSessionInfo = (session) =>
 	<div style={{display: 'flex', flexDirection: 'column'}}>
@@ -152,16 +130,43 @@ function GroupIdSelector({value, onChange}) {
 	)
 }
 
-function BreakoutAdd({close, breakout, setBreakout, session}) {
-	const dispatch = useDispatch();
+const getDefaultBreakout = () => ({
+	teleconId: null,
+	name: "",
+	day: 0,
+	startTime: "",
+	startSlotId: null,
+	endTime: "",
+	endSlotId: null,
+	groupId: null,
+	location: "",
+	credit: "Zero",
+	overrideCreditDenominator: 0,
+	overrideCreditNumerator: 0,
+	facilitator: window.user? window.user.Email: ''
+});
 
-	function submit() {
-		dispatch(addBreakouts(session.id, [breakout]));
+function BreakoutAdd({close, session, committees, timeslots, groups, teleconEntities}) {
+	const dispatch = useDispatch();
+	const [teleconId, setTeleconId] = React.useState(0);
+	const [breakout, setBreakout] = React.useState(getDefaultBreakout);
+
+	console.log(breakout)
+	async function submit() {
+		await dispatch(addBreakouts(session.id, [breakout]));
 		close();
 	}
 
-	if (!breakout)
-		return null;
+	function handleTeleconSelect(id) {
+		setTeleconId(id);
+		const telecon = teleconEntities[id];
+		setBreakout(telecon?
+			teleconToBreakout(telecon, session, groups, committees, timeslots):
+			getDefaultBreakout()
+		);
+	}
+
+	const updateBreakout = (changes) => setBreakout(breakout => ({...breakout, ...changes}));
 
 	return (
 		<Form
@@ -170,11 +175,21 @@ function BreakoutAdd({close, breakout, setBreakout, session}) {
 			cancel={close}
 		>
 			<Row>
+				<Field label='Telecon:'>
+					<TeleconSelector
+						value={teleconId}
+						onChange={handleTeleconSelect}
+						fromDate={session.start}
+						toDate={session.end}
+					/>
+				</Field>
+			</Row>
+			<Row>
 				<Field label='Meeting name:'>
 					<Input
 						type='text'
 						value={breakout.name}
-						onChange={e => setBreakout({name: e.target.value})}
+						onChange={e => updateBreakout({name: e.target.value})}
 					/>
 				</Field>
 			</Row>
@@ -182,7 +197,7 @@ function BreakoutAdd({close, breakout, setBreakout, session}) {
 				<Field label='Group:'>
 					<GroupIdSelector
 						value={breakout.groupId}
-						onChange={groupId => setBreakout({groupId})}
+						onChange={groupId => updateBreakout({groupId})}
 					/>
 				</Field>
 			</Row>
@@ -190,7 +205,7 @@ function BreakoutAdd({close, breakout, setBreakout, session}) {
 				<Field label='Session day:'>
 					<SessionDaySelector
 						value={breakout.day}
-						onChange={day => setBreakout({day})}
+						onChange={day => updateBreakout({day})}
 						session={session}
 					/>
 				</Field>
@@ -199,7 +214,7 @@ function BreakoutAdd({close, breakout, setBreakout, session}) {
 				<Field label='Start slot:'>
 					<StartSlotSelector
 						value={breakout.startSlotId}
-						onChange={startSlotId => setBreakout({startSlotId})}
+						onChange={startSlotId => updateBreakout({startSlotId})}
 					/>
 				</Field>
 			</Row>
@@ -207,7 +222,7 @@ function BreakoutAdd({close, breakout, setBreakout, session}) {
 				<Field label='Override start time:'>
 					<InputTime
 						value={breakout.startTime}
-						onChange={startTime => setBreakout({startTime})}
+						onChange={startTime => updateBreakout({startTime})}
 						placeholder='No override'
 					/>
 				</Field>
@@ -216,7 +231,7 @@ function BreakoutAdd({close, breakout, setBreakout, session}) {
 				<Field label='End slot:'>
 					<EndSlotSelector
 						value={breakout.endSlotId}
-						onChange={endSlotId => setBreakout({endSlotId})}
+						onChange={endSlotId => updateBreakout({endSlotId})}
 					/>
 				</Field>
 			</Row>
@@ -224,7 +239,7 @@ function BreakoutAdd({close, breakout, setBreakout, session}) {
 				<Field label='Override end time:'>
 					<InputTime
 						value={breakout.endTime}
-						onChange={endTime => setBreakout({endTime})}
+						onChange={endTime => updateBreakout({endTime})}
 						placeholder='No override'
 					/>
 				</Field>
@@ -234,45 +249,53 @@ function BreakoutAdd({close, breakout, setBreakout, session}) {
 					<Input
 						type='text'
 						value={breakout.location}
-						onChange={e => setBreakout({location: e.target.value})}
+						onChange={e => updateBreakout({location: e.target.value})}
 					/>
 				</Field>
 			</Row>
 			<Row>
 				<Field label='Credit:'>
-					<div>
-						<input
-							type='radio'
-							id='extra'
-							value='Extra'
-							checked={breakout.credit === 'Extra'}
-							onChange={e => setBreakout({credit: e.target.value})}
-						/>
-						<label htmlFor='extra'>Extra</label>
-						<input
-							type='radio'
-							id='normal'
-							value='Normal'
-							checked={breakout.credit === 'Normal'}
-							onChange={e => setBreakout({Credit: e.target.value})}
-						/>
-						<label htmlFor='normal'>Normal</label>
-						<input
-							type='radio'
-							id='other'
-							value='Other'
-							checked={breakout.credit === 'Other'}
-							onChange={e => setBreakout({credit: e.target.value})}
-						/>
-						<label htmlFor='other'>Other</label>
-						<input
-							type='radio'
-							id='zero'
-							value='Zero'
-							checked={breakout.credit === 'Zero'}
-							onChange={e => setBreakout({credit: e.target.value})}
-						/>
-						<label htmlFor='zero'>Zero</label>
+					<div style={{display: 'flex', justifyContent: 'space-between'}}>
+						<div style={{margin: '0 5px'}}>
+							<input
+								type='radio'
+								id='extra'
+								value='Extra'
+								checked={breakout.credit === 'Extra'}
+								onChange={e => updateBreakout({credit: e.target.value})}
+							/>
+							<label htmlFor='extra'>Extra</label>
+						</div>
+						<div style={{margin: '0 5px'}}>
+							<input
+								type='radio'
+								id='normal'
+								value='Normal'
+								checked={breakout.credit === 'Normal'}
+								onChange={e => updateBreakout({credit: e.target.value})}
+							/>
+							<label htmlFor='normal'>Normal</label>
+						</div>
+						<div style={{margin: '0 5px'}}>
+							<input
+								type='radio'
+								id='other'
+								value='Other'
+								checked={breakout.credit === 'Other'}
+								onChange={e => updateBreakout({credit: e.target.value})}
+							/>
+							<label htmlFor='other'>Other</label>
+						</div>
+						<div style={{margin: '0 5px'}}>
+							<input
+								type='radio'
+								id='zero'
+								value='Zero'
+								checked={breakout.credit === 'Zero'}
+								onChange={e => updateBreakout({credit: e.target.value})}
+							/>
+							<label htmlFor='zero'>Zero</label>
+						</div>
 					</div>
 				</Field>
 			</Row>
@@ -282,7 +305,7 @@ function BreakoutAdd({close, breakout, setBreakout, session}) {
 						type='text'
 						size={4}
 						value={breakout.overrideCreditNumerator}
-						onChange={e => setBreakout({overrideCreditNumerator: e.target.value})}
+						onChange={e => updateBreakout({overrideCreditNumerator: e.target.value})}
 						disabled={breakout.credit !== "Other"}
 					/>
 					<label>/</label>
@@ -290,7 +313,7 @@ function BreakoutAdd({close, breakout, setBreakout, session}) {
 						type='text'
 						size={4}
 						value={breakout.overrideCreditDenominator}
-						onChange={e => setBreakout({overrideCreditDenominator: e.target.value})}
+						onChange={e => updateBreakout({overrideCreditDenominator: e.target.value})}
 						disabled={breakout.credit !== "Other"}
 					/>
 				</Field>
@@ -300,7 +323,7 @@ function BreakoutAdd({close, breakout, setBreakout, session}) {
 					<Input
 						type='text'
 						value={breakout.facilitator}
-						onChange={e => setBreakout({facilitator: e.target.value})}
+						onChange={e => updateBreakout({facilitator: e.target.value})}
 					/>
 				</Field>
 			</Row>
@@ -308,12 +331,16 @@ function BreakoutAdd({close, breakout, setBreakout, session}) {
 	)
 }
 
-function TeleconLink({breakout, close}) {
+function BreakoutLink({session, breakout, close}) {
 	const dispatch = useDispatch();
-	const [id, setTeleconId] = React.useState();
+	const [teleconId, setTeleconId] = React.useState();
 
-	async function submit() {
-		await dispatch(updateTelecons([{id, changes: {imatMeetingId: breakout.meetingId, imatBreakoutId: breakout.id}}]));
+	function submit() {
+		const update = {
+			id: teleconId,
+			changes: {imatBreakoutId: breakout.id}
+		}
+		dispatch(updateTelecons([update]));
 		close();
 	}
 
@@ -323,8 +350,10 @@ function TeleconLink({breakout, close}) {
 			cancel={close}
 		>
 			<TeleconSelector
-				value={id}
+				value={teleconId}
 				onChange={setTeleconId}
+				fromDate={session.start}
+				toDate={session.end}
 			/>
 		</Form>
 	)
@@ -344,6 +373,20 @@ function TeleconSummary({teleconId}) {
 	)
 }
 
+const BreakoutsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
+
+const renderDateHeader = (props) =>
+	<>
+		<BreakoutsColumnHeader {...props} dataKey='weekDay' label='Day' />
+		<BreakoutsColumnHeader {...props} dataKey='date' label='Date' />
+	</>
+
+const renderTimeRangeHeader = (props) =>
+	<>
+		<BreakoutsColumnHeader {...props} dataKey='startTime' label='Start time' />
+		<BreakoutsColumnHeader {...props} dataKey='endTime' label='End time' />
+	</>
+
 const tableColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
@@ -351,12 +394,15 @@ const tableColumns = [
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
 	{key: 'dayDate', 
 		label: 'Date',
-		width: 150, flexGrow: 1, flexShrink: 1},
-	{key: 'time',
+		width: 150, flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderDateHeader},
+	{key: 'timeRange',
 		label: 'Time',
-		width: 120, flexGrow: 1, flexShrink: 1},
+		width: 120, flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderTimeRangeHeader},
 	{key: 'group', 
 		label: 'Group',
+		...fields.group,
 		width: 150, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderGroup},
 	{key: 'name', 
@@ -364,17 +410,17 @@ const tableColumns = [
 		width: 150, flexGrow: 1, flexShrink: 1},
 	{key: 'location', 
 		label: 'Location',
-		width: 200, flexGrow: 1, flexShrink: 1},
+		width: 250, flexGrow: 1, flexShrink: 1},
 	{key: 'credit', 
 		label: 'Credit',
 		width: 100, flexGrow: 1, flexShrink: 1},
-	{key: 'status', 
-		label: 'Status',
+	{key: 'telecon',
+		label: 'Telecon',
 		width: 100, flexGrow: 1, flexShrink: 1},
-	{key: 'actions', 
+	{key: 'actions',
 		label: 'Actions',
-		width: 150, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderAttendanceLink},
+		width: 100, flexGrow: 1, flexShrink: 1,
+		cellRenderer: renderAttendanceLink}
 ];
 
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0);
@@ -395,6 +441,10 @@ function teleconToBreakout(telecon, session, groups, committees, timeslots) {
 	const day = Math.floor(start.diff(sessionStart, 'days').get('day'));
 	let startTime = start.toFormat('HH:mm');
 	let endTime = end.toFormat('HH:mm');
+
+	// If breakout straddles a day, then end at midnight
+	if (end.toISODate() !== start.toISODate())
+		endTime = '23:59';
 
 	const breakoutDate = sessionStart.plus({days: day});
 	let startSlot, endSlot;
@@ -419,6 +469,12 @@ function teleconToBreakout(telecon, session, groups, committees, timeslots) {
 		}
 	}
 
+	// If we still don't have a start slot, choose the first (or last) and override time
+	if (!startSlot)
+		startSlot = timeslots[0];
+	if(!endSlot)
+		endSlot = timeslots[timeslots.length-1];
+
 	// If the startTime/endTime aligns with slot start/end then clear time
 	if (startSlot && slotDateTime(breakoutDate, startSlot)[0].toFormat("HH:mm") === startTime)
 		startTime = '';
@@ -438,6 +494,7 @@ function teleconToBreakout(telecon, session, groups, committees, timeslots) {
 	const groupId = committee? committee.id: 0;
 
 	return {
+		teleconId: telecon.id,
 		name,
 		location,
 		groupId,
@@ -448,30 +505,9 @@ function teleconToBreakout(telecon, session, groups, committees, timeslots) {
 		endTime,
 		credit: "Zero",
 		creditOverideNumerator: 0,
-		creditOverideDenominator: 0
+		creditOverideDenominator: 0,
+		facilitator: window.user? window.user.Email: ''
 	}
-}
-
-function getBreakoutStatus(breakout, teleconEntities) {
-	const telecon = teleconEntities[breakout.teleconId];
-
-	if (!telecon)
-		return 'Orphan';
-
-	const isCancelled = breakout.name.search(/cancel/i) !== -1;
-	if (telecon.isCancelled !== isCancelled)
-		return 'cancelled';
-
-	if (telecon.start !== breakout.start)
-		return 'start';
-
-	if (telecon.end !== breakout.end)
-		return 'end';
-
-	if (getTeleconField(telecon, 'location') !== breakout.location)
-		return 'location';
-
-	return 'OK'
 }
 
 /*
@@ -486,14 +522,9 @@ function breakoutsRowGetter({rowIndex, ids, entities}) {
 	};
 	if (rowIndex > 0) {
 		let b_prev = entities[ids[rowIndex - 1]];
-		b_prev = {
-			...b_prev,
-			dayDate: getField(b_prev, 'dayDate'),
-			time: getField(b_prev, 'time')
-		};
-		if (b.dayDate === b_prev.dayDate) {
+		if (b.dayDate === getField(b_prev, 'dayDate')) {
 			b = {...b, dayDate: ''};
-			if (b.Time === b_prev.Time)
+			if (b.time === getField(b_prev, 'time'))
 				b = {...b, time: ''};
 		}
 	}
@@ -504,65 +535,68 @@ function Breakouts() {
 	const history = useHistory();
 	const params = useParams();
 	const urlMeetingId = parseNumber(params.meetingNumber);
-	const [breakout, setBreakout] = React.useState(null);
 
 	const dispatch = useDispatch();
-	const {valid, meetingId, selected, committees, timeslots} = useSelector(selectBreakoutsState);
-	const entities = useSelector(selectSyncedBreakoutEntities);
+	const {valid, meetingId, committees, timeslots} = useSelector(selectBreakoutsState);
 	const meeting = useSelector(selectImatMeetingEntities)[meetingId];
+	const teleconsIds = useSelector(selectTeleconsState).ids;
 	const teleconEntities = useSelector(selectSyncedTeleconEntities);
 	const groups = useSelector(selectGroupEntities);
-	const [breakoutToLink, setBreakoutToLink] = React.useState(null);
 
 	React.useEffect(() => {
 		if (!valid || (urlMeetingId && urlMeetingId !== meetingId))
 			dispatch(loadBreakouts(urlMeetingId));
 	}, [dispatch, valid, urlMeetingId, meetingId]);
 
-	const columns = React.useMemo(() => {
-		function renderActions({rowData}) {
-			if (rowData.teleconId)
-				return <TeleconSummary teleconId={rowData.teleconId} />
-			return (
-				<>
-					<ActionButton
-						name='link'
-						onClick={() => setBreakoutToLink(rowData)}
-					/>
-				</>
-			)
-		}
-		const columns = [...tableColumns];
-		columns[columns.length-1] = {
-			...columns[columns.length-1],
-			cellRenderer: renderActions
-		}
-		return columns;
-	}, [setBreakoutToLink]);
-
-	const rowGetter = React.useCallback((props) => {
-		let b = breakoutsRowGetter(props);
-		return {...b, status: getBreakoutStatus(b, teleconEntities)}
-	}, [teleconEntities]);
-
-	const onImport = () => {
-		if (selected.length) {
-			const entry = entities[selected[0]];
-			const telecon = teleconEntities[entry.teleconId];
-			const breakout = teleconToBreakout(telecon, meeting, groups, committees, timeslots);
-			console.log(breakout);
-			setBreakout(breakout);
-		}
-	}
+	const [addBreakout, setAddBreakout] = React.useState(false);
 
 	const close = () => history.push('/imatMeetings');
 	const refresh = () => dispatch(loadBreakouts(urlMeetingId));
 
-	const closeBreakoutAdd = () => setBreakout(null);
-	const closeToLink = () => setBreakoutToLink(null);
+	const openBreakoutAdd = () => setAddBreakout(true);
+	const closeBreakoutAdd = () => setAddBreakout(false);
+	
+	const [breakoutToLink, setBreakoutToLink] = React.useState(null);
+	const closeBreakoutToLink = () => setBreakoutToLink(null);
 
-	function updateBreakout(update) {
-		setBreakout({...breakout, ...update});
+	const columns = React.useMemo(() => {
+		function renderTelecon({rowData}) {
+			if (rowData.teleconId)
+				return <TeleconSummary teleconId={rowData.teleconId} />
+			return (
+				<ActionButton
+					name='link'
+					onClick={() => setBreakoutToLink(rowData)}
+				/>
+			)
+		}
+		const columns = tableColumns.map(c => {
+			if (c.key === 'telecon')
+				return {...c, cellRenderer: renderTelecon};
+			return c;
+		});
+		return columns;
+	}, [setBreakoutToLink]);
+
+	const syncTelecons = () => {
+		const sessionStart = DateTime.fromISO(meeting.start);
+		const sessionEnd = DateTime.fromISO(meeting.end).endOf('day');
+		//console.log(sessionStart.toFormat('EEE, dd-MM-yyyy'), sessionEnd.toFormat('EEE, dd-MM-yyyy HH:mm'))
+		const breakouts = [];
+		for (const id of teleconsIds) {
+			const telecon = teleconEntities[id];
+			const teleconStart = DateTime.fromISO(telecon.start);
+			if (!telecon.breakoutId && teleconStart >= sessionStart && teleconStart < sessionEnd) {
+				const breakout = teleconToBreakout(telecon, meeting, groups, committees, timeslots);
+				if (!breakout.startSlotId)
+					console.warn('Missing start slot')
+				if (!breakout.endSlotId)
+					console.warn('Missing end slot')
+				breakouts.push(breakout);
+			}
+		}
+		console.log(breakouts);
+		dispatch(addBreakouts(meeting.id, breakouts));
 	}
 
 	return (
@@ -571,8 +605,8 @@ function Breakouts() {
 				<div>{meeting && renderSessionInfo(meeting)}</div>
 				<div>Breakouts</div>
 				<div>
-					<Button>Sync</Button>
-					<ActionButton name='import' title='Add' onClick={onImport} />
+					<Button onClick={syncTelecons}>Sync</Button>
+					<ActionButton name='add' title='Add breakout' onClick={openBreakoutAdd} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 					<ActionButton name='close' title='Close' onClick={close} />
 				</div>
@@ -583,32 +617,35 @@ function Breakouts() {
 					fitWidth
 					fixed
 					columns={columns}
-					headerHeight={36}
-					estimatedRowHeight={36}
+					headerHeight={46}
+					estimatedRowHeight={56}
 					dataSet={dataSet}
-					rowGetter={rowGetter}
+					rowGetter={breakoutsRowGetter}
 				/>
 			</TableRow>
 
 			<AppModal
-				isOpen={!!breakout}
+				isOpen={addBreakout}
 				onRequestClose={closeBreakoutAdd}
 			>
 				<BreakoutAdd
-					breakout={breakout}
-					setBreakout={updateBreakout}
 					close={closeBreakoutAdd}
 					session={meeting}
+					committees={committees}
+					timeslots={timeslots}
+					groups={groups}
+					teleconEntities={teleconEntities}
 				/>
 			</AppModal>
 
 			<AppModal
 				isOpen={!!breakoutToLink}
-				onRequestClose={closeToLink}
+				onRequestClose={closeBreakoutToLink}
 			>
-				<TeleconLink
+				<BreakoutLink
+					session={meeting}
 					breakout={breakoutToLink}
-					close={closeToLink}
+					close={closeBreakoutToLink}
 				/>
 			</AppModal>
 		</>

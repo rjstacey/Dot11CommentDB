@@ -9,7 +9,8 @@ import {loadGroups, addGroup, setSelected, selectGroupsState, dataSet, fields, s
 import {loadOfficers, selectOfficersState, selectGroupOfficers} from '../store/officers';
 import {loadMembers, selectMembersState} from '../store/members';
 
-import GroupSelector from './GroupSelector';
+import GroupSelector from '../components/GroupSelector';
+
 import OrginzationDetail from './OrganizationDetail';
 
 

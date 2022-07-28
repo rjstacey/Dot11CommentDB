@@ -24,8 +24,9 @@ export const fields = {
 	time: {label: 'Time'},
 	timezone: {label: 'Time zone'},
 	duration: {label: 'Duration'},
-	meetingNumber: {label: 'Meeting number'},
 	webexAccountName: {label: 'Webex account'},
+	meetingNumber: {label: 'Meeting number', sortType: SortType.NUMERIC},
+	hostKey: {label: 'Host key', sortType: SortType.NUMERIC},
 };
 
 /*
@@ -130,9 +131,16 @@ export const loadWebexMeetings = (groupId) =>
 	}
 
 export const deleteWebexMeetings = (ids) =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const {entities} = selectWebexMeetingsState(getState());
+		const meetings = ids.map(id => {
+			return {
+				accountId: entities[id].webexAccountId,
+				meetingId: entities[id].id,
+			}
+		});
 		try {
-			await fetcher.delete(baseUrl, ids);
+			await fetcher.delete(baseUrl, meetings);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to delete webex meetings ${ids}`, error));

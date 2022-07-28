@@ -8,6 +8,7 @@ import {AccessLevel} from 'dot11-components/lib/user';
 
 import Accounts from './accounts/Accounts';
 import Telecons from './telecons/Telecons';
+import Calendar from './calendar/Calendar';
 import {WebexAccountAuth} from './accounts/WebexAccounts';
 import {CalendarAccountAuth} from './accounts/CalendarAccounts';
 import Organization from './organization/Organization';
@@ -107,6 +108,7 @@ function App({user, access}) {
 						<NavLink to="/organization" activeClassName='active'>Organization</NavLink>
 						<NavLink to="/accounts" activeClassName='active'>Accounts</NavLink>
 						<NavLink to="/telecons/" activeClassName='active'>Telecons</NavLink>
+						<NavLink to="/calendar/" activeClassName='active'>Calendar</NavLink>
 						<NavLink to="/webexMeetings/" activeClassName='active'>Webex</NavLink>
 						<NavLink to="/imatMeetings/" activeClassName='active'>IMAT</NavLink>
 						<NavLink to="/ieee802WorldSchedule/" activeClassName='active'>802 World Schedule</NavLink>
@@ -120,6 +122,26 @@ function App({user, access}) {
 							access={access}
 							minAccess={AccessLevel.WGAdmin}
 							component={Telecons}
+						/>
+						<RestrictedRoute
+							path="/calendar/auth"
+							exact
+							access={access}
+							minAccess={AccessLevel.WGAdmin}
+							component={CalendarAccountAuth}
+						/>
+						<RestrictedRoute
+							path="/calendar/:groupName?"
+							access={access}
+							minAccess={AccessLevel.WGAdmin}
+							component={Calendar}
+						/>
+						<RestrictedRoute
+							path="/webex/auth"
+							access={access}
+							exact
+							minAccess={AccessLevel.WGAdmin}
+							component={WebexAccountAuth}
 						/>
 						<RestrictedRoute
 							path="/webexMeetings/:groupName?"
@@ -167,18 +189,7 @@ function App({user, access}) {
 							minAccess={AccessLevel.WGAdmin}
 							component={Organization}
 						/>
-						<RestrictedRoute
-							path="/webex/auth"
-							access={access}
-							minAccess={AccessLevel.WGAdmin}
-							component={WebexAccountAuth}
-						/>
-						<RestrictedRoute
-							path="/calendar/auth"
-							access={access}
-							minAccess={AccessLevel.WGAdmin}
-							component={CalendarAccountAuth}
-						/>
+						
 					</Switch>
 					<ErrorModal />
 					<ConfirmModal />
