@@ -8,7 +8,8 @@ import AppTable, {SplitPanel, Panel, SelectExpandHeader, SelectExpandCell, Table
 import {ActionButton, ButtonGroup} from 'dot11-components/form';
 import {AccessLevel} from 'dot11-components/lib';
 
-import BallotSelector from '../ballots/BallotSelector';
+import TopRow from '../components/TopRow';
+import BallotSelector from '../components/BallotSelector';
 import {editorCss} from './ResolutionEditor';
 import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './CommentDetail';
 import {renderSubmission} from './SubmissionSelector';
@@ -347,8 +348,10 @@ function Comments({access}) {
 		const ballot = ballotEntities[ballot_id];
 		if (ballot)
 			history.push(`/comments/${ballot.BallotID}`); // Redirect to page with selected ballot
-		else
+		else {
+			history.push('/comments');
 			dispatch(clearComments());
+		}
 	}
 
 	const refresh = () => {
@@ -356,76 +359,70 @@ function Comments({access}) {
 		dispatch(loadMembers());
 	}
 
-	return <>
-		<TopRow>
-			<BallotSelector onBallotSelected={onBallotSelected} />
-			<div style={{display: 'flex', alignItems: 'center'}}>
-				<ButtonGroup>
-					<div>Table view</div>
-					<div style={{display: 'flex', alignItems: 'center'}}>
-						<TableViewSelector dataSet={dataSet} />
-						<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-						<ActionButton
-							name='book-open'
-							title='Show detail'
-							isActive={isSplit} 
-							onClick={() => setIsSplit(!isSplit)} 
-						/>
-					</div>
-				</ButtonGroup>
-				{access >= AccessLevel.SubgroupAdmin?
+	return (
+		<>
+			<TopRow>
+				<BallotSelector onBallotSelected={onBallotSelected} />
+				<div style={{display: 'flex', alignItems: 'center'}}>
 					<ButtonGroup>
-						<div style={{textAlign: 'center'}}>Edit</div>
+						<div>Table view</div>
 						<div style={{display: 'flex', alignItems: 'center'}}>
-							<CommentsCopy />
-							<CommentsImport ballot={currentBallot} />
-							<CommentsExport ballot={currentBallot} />
+							<TableViewSelector dataSet={dataSet} />
+							<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+							<ActionButton
+								name='book-open'
+								title='Show detail'
+								isActive={isSplit} 
+								onClick={() => setIsSplit(!isSplit)} 
+							/>
 						</div>
-					</ButtonGroup>:
-					<CommentsCopy />
-				}
-				<ActionButton
-					name='refresh'
-					title='Refresh'
-					disabled={!currentBallot}
-					onClick={refresh}
-				/>
-			</div>
-		</TopRow>
+					</ButtonGroup>
+					{access >= AccessLevel.SubgroupAdmin?
+						<ButtonGroup>
+							<div style={{textAlign: 'center'}}>Edit</div>
+							<div style={{display: 'flex', alignItems: 'center'}}>
+								<CommentsCopy />
+								<CommentsImport ballot={currentBallot} />
+								<CommentsExport ballot={currentBallot} />
+							</div>
+						</ButtonGroup>:
+						<CommentsCopy />
+					}
+					<ActionButton
+						name='refresh'
+						title='Refresh'
+						disabled={!currentBallot}
+						onClick={refresh}
+					/>
+				</div>
+			</TopRow>
 
-		<ShowFilters
-			dataSet={dataSet}
-			fields={fields}
-		/>
+			<ShowFilters
+				dataSet={dataSet}
+				fields={fields}
+			/>
 
-		<SplitPanel dataSet={dataSet} >
-			<Panel>
-				<AppTable
-					defaultTablesConfig={defaultTablesConfig}
-					columns={tableColumns}
-					headerHeight={62}
-					estimatedRowHeight={56}
-					rowGetter={commentsRowGetter}
-					dataSet={dataSet}
-				/>
-			</Panel>
-			<Panel style={{overflow: 'auto'}}>
-				<CommentDetail
-					key={selected.join()}
-					access={access}
-				/>
-			</Panel>
-		</SplitPanel>
-	</>
+			<SplitPanel dataSet={dataSet} >
+				<Panel>
+					<AppTable
+						defaultTablesConfig={defaultTablesConfig}
+						columns={tableColumns}
+						headerHeight={62}
+						estimatedRowHeight={56}
+						rowGetter={commentsRowGetter}
+						dataSet={dataSet}
+					/>
+				</Panel>
+				<Panel style={{overflow: 'auto'}}>
+					<CommentDetail
+						key={selected.join()}
+						access={access}
+					/>
+				</Panel>
+			</SplitPanel>
+		</>
+	)
 }
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
 
 Comments.propTypes = {
 	access: PropTypes.number.isRequired,

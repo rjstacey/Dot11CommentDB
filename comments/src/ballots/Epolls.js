@@ -115,31 +115,31 @@ function Epolls() {
 
 	return (
 		<>
-		<ActionRow style={{maxWidth}}>
-			<span><label>Closed ePolls</label></span>
-			<span>
-				<ActionButton name='more' title='Load More' onClick={loadMore} />
-				<ActionButton name='refresh' title='Refresh' onClick={load} />
-				<ActionButton name='close' title='Close' onClick={close} />
-			</span>
-		</ActionRow>
-		<TableRow style={{maxWidth}}>
-			<AppTable
-				columns={columns}
-				headerHeight={28}
-				estimatedRowHeight={64}
-				dataSet={dataSet}
-			/>
-		</TableRow>
-		<AppModal
-			isOpen={addBallot !== null}
-			onRequestClose={() => setAddBallot(null)}
-		>
-			<BallotAddForm
-				defaultBallot={addBallot}
-				close={() => setAddBallot(null)}
-			/>
-		</AppModal>
+			<ActionRow style={{maxWidth}}>
+				<span><label>Closed ePolls</label></span>
+				<span>
+					<ActionButton name='more' title='Load More' onClick={loadMore} />
+					<ActionButton name='refresh' title='Refresh' onClick={load} />
+					<ActionButton name='close' title='Close' onClick={close} />
+				</span>
+			</ActionRow>
+			<TableRow style={{maxWidth}}>
+				<AppTable
+					columns={columns}
+					headerHeight={28}
+					estimatedRowHeight={64}
+					dataSet={dataSet}
+				/>
+			</TableRow>
+			<AppModal
+				isOpen={addBallot !== null}
+				onRequestClose={() => setAddBallot(null)}
+			>
+				<BallotAddForm
+					defaultBallot={addBallot}
+					close={() => setAddBallot(null)}
+				/>
+			</AppModal>
 		</>
 	)
 }

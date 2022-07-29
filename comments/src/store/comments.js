@@ -253,7 +253,7 @@ export const getCommentUpdates = () =>
 
 export const clearComments = () =>
 	async (dispatch) => {
-		await dispatch(removeAll);
+		await dispatch(removeAll());
 		await dispatch(setDetails({ballot_id: 0}));
 	}
 

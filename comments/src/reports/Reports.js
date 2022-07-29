@@ -5,7 +5,8 @@ import {useDispatch, useSelector} from 'react-redux';
 
 import {ActionButton, Button} from 'dot11-components/form';
 
-import BallotSelector from '../ballots/BallotSelector';
+import TopRow from '../components/TopRow';
+import BallotSelector from '../components/BallotSelector';
 import {loadComments, clearComments, selectCommentsState, getCID, getCommentStatus} from '../store/comments';
 import {setBallotId, getCurrentBallot, selectBallotsState} from '../store/ballots';
 
@@ -177,9 +178,9 @@ function Reports() {
 
 	return (
 		<>
-			<ActionRow>
+			<TopRow>
 				<BallotSelector onBallotSelected={onBallotSelected} />
-			</ActionRow>
+			</TopRow>
 			<Body>
 				<ReportSelectCol>
 					<label>Select a report:</label>
@@ -206,14 +207,6 @@ function Reports() {
 		</>
 	)
 }
-
-const ActionRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-	max-width: 1400px;
-	margin: 10px;
-`;
 
 const Body = styled.div`
 	flex: 1;

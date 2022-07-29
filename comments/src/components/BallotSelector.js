@@ -26,22 +26,18 @@ const Container = styled.div`
 
 function ProjectSelect({style, className, value, onChange, options, loading, readOnly}) {
 
-	const optionSelected = options.find(o => o.value === value);
+	const values = options.filter(o => o.value === value);
 
 	if (readOnly)
-		return value
+		return values.length? values[0].label: value
 
-	function handleChange(values) {
-		const newValue = values.length > 0? values[0].value: '';
-		if (value !== newValue) 
-			onChange(newValue)
-	}
+	const handleChange = (values) => onChange(values.length > 0? values[0].value: 0);
 
 	return (
 		<Select
 			style={style}
 			className={className}
-			values={optionSelected? [optionSelected]: []}
+			values={values}
 			onChange={handleChange}
 			options={options}
 			loading={loading}
@@ -51,22 +47,18 @@ function ProjectSelect({style, className, value, onChange, options, loading, rea
 
 function BallotSelect({style, className, value, onChange, options, loading, readOnly}) {
 
-	const optionSelected = options.find(o => o.value === value);
+	const values = options.filter(o => o.value === value);
 
 	if (readOnly)
-		return optionSelected? optionSelected.label: value
+		return values.length? values[0].label: value
 
-	function handleChange(values) {
-		const newValue = values.length > 0? values[0].value: 0;
-		if (value !== newValue)
-			onChange(newValue);
-	}
+	const handleChange = (values) => onChange(values.length > 0? values[0].value: 0);
 
 	return (
 		<Select
 			style={style}
 			className={className}
-			values={optionSelected? [optionSelected]: []}
+			values={values}
 			onChange={handleChange}
 			options={options}
 			loading={loading}

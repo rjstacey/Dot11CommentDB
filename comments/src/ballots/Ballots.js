@@ -7,6 +7,7 @@ import AppTable, {SelectHeader, SelectCell, TableColumnHeader, ShowFilters, Tabl
 import {ActionButton, ButtonGroup} from 'dot11-components/form';
 import {AccessLevel, displayDateRange} from 'dot11-components/lib';
 
+import TopRow from '../components/TopRow';
 import BallotDetail, {BallotAddDropdown as BallotAdd} from './BallotDetail';
 
 import {
@@ -190,15 +191,6 @@ for (const tableView of Object.keys(defaultTablesColumns)) {
 	defaultTablesConfig[tableView] = tableConfig;
 }
 
-// The top row height is determined by its content
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
-
 function getRow({rowIndex, ids, entities}) {
 	const currData = entities[ids[rowIndex]];
 	if (rowIndex === 0)
@@ -233,57 +225,57 @@ function Ballots({access}) {
 
 	return (
 		<>
-		<TopRow>
-			<div><label>Ballots</label></div>
-			<div style={{display: 'flex'}}>
-				<ButtonGroup>
-					<div>Table view</div>
-					<div style={{display: 'flex'}}>
-						<TableViewSelector dataSet={dataSet} />
-						<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-						{access >= AccessLevel.WGAdmin && 
-							<ActionButton
-								name='book-open'
-								title='Show detail'
-								isActive={isSplit}
-								onClick={() => setIsSplit(!isSplit)} 
-							/>}
-					</div>
-				</ButtonGroup>
-				{access >= AccessLevel.WGAdmin &&
+			<TopRow>
+				<div />
+				<div style={{display: 'flex'}}>
 					<ButtonGroup>
-						<div>Edit</div>
+						<div>Table view</div>
 						<div style={{display: 'flex'}}>
-							<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
-							<BallotAdd />
+							<TableViewSelector dataSet={dataSet} />
+							<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+							{access >= AccessLevel.WGAdmin && 
+								<ActionButton
+									name='book-open'
+									title='Show detail'
+									isActive={isSplit}
+									onClick={() => setIsSplit(!isSplit)} 
+								/>}
 						</div>
-					</ButtonGroup>}
-				<ActionButton name='refresh' title='Refresh' onClick={load} disabled={loading} />
-			</div>
-		</TopRow>
+					</ButtonGroup>
+					{access >= AccessLevel.WGAdmin &&
+						<ButtonGroup>
+							<div>Edit</div>
+							<div style={{display: 'flex'}}>
+								<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
+								<BallotAdd />
+							</div>
+						</ButtonGroup>}
+					<ActionButton name='refresh' title='Refresh' onClick={load} disabled={loading} />
+				</div>
+			</TopRow>
 
-		<ShowFilters
-			dataSet={dataSet}
-			fields={fields}
-		/>
+			<ShowFilters
+				dataSet={dataSet}
+				fields={fields}
+			/>
 
-		<SplitPanel dataSet={dataSet} >
-			<Panel>
-				<AppTable
-					defaultTablesConfig={defaultTablesConfig}
-					columns={tableColumns}
-					headerHeight={42}
-					estimatedRowHeight={42}
-					dataSet={dataSet}
-					rowGetter={getRow}
-				/>
-			</Panel>
-			<Panel style={{overflow: 'auto'}}>
-				<BallotDetail
-					key={selected.join()}
-				/>
-			</Panel>
-		</SplitPanel>
+			<SplitPanel dataSet={dataSet} >
+				<Panel>
+					<AppTable
+						defaultTablesConfig={defaultTablesConfig}
+						columns={tableColumns}
+						headerHeight={42}
+						estimatedRowHeight={42}
+						dataSet={dataSet}
+						rowGetter={getRow}
+					/>
+				</Panel>
+				<Panel style={{overflow: 'auto'}}>
+					<BallotDetail
+						key={selected.join()}
+					/>
+				</Panel>
+			</SplitPanel>
 		</>
 	)
 }

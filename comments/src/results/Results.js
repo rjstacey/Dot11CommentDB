@@ -9,22 +9,13 @@ import {ActionButton} from 'dot11-components/form';
 import {AccessLevel} from 'dot11-components/lib';
 import {upsertTableColumns} from 'dot11-components/store/appTableData';
 
-import BallotSelector from '../ballots/BallotSelector';
+import TopRow from '../components/TopRow';
+import BallotSelector from '../components/BallotSelector';
 import ResultsSummary from './ResultsSummary';
 import ResultsExport from './ResultsExport';
 
 import {loadResults, clearResults, selectResultsState, dataSet} from '../store/results';
 import {setBallotId, selectBallotsState, getCurrentBallot, BallotType} from '../store/ballots';
-
-// The action row height is determined by its content
-const ActionRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
 
 // The table row grows to the available height
 const TableRow = styled.div`
@@ -144,31 +135,31 @@ function Results({
 
 	return (
 		<>
-		<ActionRow style={{maxWidth}}>
-			<BallotSelector onBallotSelected={onBallotSelected}	/>
-			<div style={{display: 'flex'}}>
-				<ResultsExport ballot={currentBallot} />
-				<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-				<ActionButton
-					name='refresh'
-					title='Refresh'
-					disabled={!currentBallot}
-					onClick={refresh}
-				/>
-			</div>
-		</ActionRow>
-		<ResultsSummary
-			style={{maxWidth}}
-		/>
-		<TableRow style={{maxWidth}}>
-			<AppTable
-				defaultTablesConfig={defaultTablesConfig}
-				columns={tableColumns}
-				headerHeight={28}
-				estimatedRowHeight={32}
-				dataSet={dataSet}
+			<TopRow style={{maxWidth}}>
+				<BallotSelector onBallotSelected={onBallotSelected}	/>
+				<div style={{display: 'flex'}}>
+					<ResultsExport ballot={currentBallot} />
+					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+					<ActionButton
+						name='refresh'
+						title='Refresh'
+						disabled={!currentBallot}
+						onClick={refresh}
+					/>
+				</div>
+			</TopRow>
+			<ResultsSummary
+				style={{maxWidth}}
 			/>
-		</TableRow>
+			<TableRow style={{maxWidth}}>
+				<AppTable
+					defaultTablesConfig={defaultTablesConfig}
+					columns={tableColumns}
+					headerHeight={28}
+					estimatedRowHeight={32}
+					dataSet={dataSet}
+				/>
+			</TableRow>
 		</>
 	)
 }
