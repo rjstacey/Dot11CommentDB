@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import Dropdown from 'dot11-components/dropdown';
 
-import {selectOfflineStatus, selectOfflineOutbox} from './store/offline';
+import {selectOfflineStatus, selectOfflineOutbox} from '../store/offline';
 
 const Container = styled.div`
 	display: flex;
@@ -61,6 +61,7 @@ function Outbox(props) {
 function SyncIndicator({className}) {
 	return (
 		<Dropdown
+			className={className}
 			selectRenderer={(props) => <Selector {...props} />}
 			dropdownRenderer={(props) => <Outbox {...props} />}
 		/>

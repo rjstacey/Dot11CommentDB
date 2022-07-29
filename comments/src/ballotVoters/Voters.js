@@ -12,7 +12,7 @@ import {ActionButtonDropdown} from 'dot11-components/general';
 import VotersImportModal from './VotersImport';
 import VoterEditModal from './VoterEdit';
 
-import {loadVoters, deleteVoters, selectVotersState, fields, dataSet} from '../store/voters';
+import {loadVoters, deleteVoters, exportVoters, selectVotersState, fields, dataSet} from '../store/voters';
 import {updateVotingPool} from '../store/votingPools';
 
 
@@ -164,6 +164,7 @@ function Voters() {
 				<ActionButton name='add' title='Add voter' onClick={handleAddVoter} />
 				<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
 				<ActionButton name='import' title='Import voters' onClick={() => setShowImportVoters(true)} />
+				<ActionButton name='export' title='Export voters' onClick={() => dispatch(exportVoters(votingPoolName))} />
 				<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
 				<ActionButton name='close' title='Close' onClick={close} />
 			</div>

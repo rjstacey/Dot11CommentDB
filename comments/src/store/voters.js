@@ -222,3 +222,15 @@ export const updateVoter = (id, changes) =>
 			return;
 		}
 	}
+
+export const exportVoters = (votingPoolId) =>
+	async (dispatch) => {
+		const url = `${baseUrl}/${votingPoolId}/export`;
+		try {
+			await fetcher.getFile(url);
+		}
+		catch(error) {
+			await dispatch(setError('Unable to export voters', error));
+			return;
+		}
+	}
