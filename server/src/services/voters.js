@@ -2,7 +2,7 @@
 
 import { v4 as uuid, validate as validateUUID } from 'uuid';
 import {getMembersSnapshot} from './members';
-import { csvParse } from '../utils';
+import { csvParse, csvStringify } from '../utils';
 import ExcelJS from 'exceljs';
 
 const db = require('../utils/database');
@@ -235,4 +235,13 @@ export async function votersFromMembersSnapshot(votingPoolId, date) {
 	const members = await getMembersSnapshot(date);
 	const voters = members.filter(m => m.Status === 'Voter' || m.Status === 'ExOfficio');
 	return await insertVoters(votingPoolId, voters);
+}
+
+export async function exportVoters(votingPoolId, res) {
+	const {voters, votingPool} = await getVoters(votingPoolId);
+	const arr = voters.map(v => [v.SAPIN, v.Name, v.Email]);
+	arr.unshift(['SA PIN', 'Name', 'Email']);
+	const csv = await csvStringify(arr, {});
+	res.attachment(votingPoolId + '_voters.csv');
+	res.status(200).send(csv);
 }

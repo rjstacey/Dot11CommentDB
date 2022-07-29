@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import { DateTime, Duration } from 'luxon';
 import cheerio from 'cheerio';
 import { csvParse, AuthError, NotFoundError } from '../utils';
+import { getTelecons, updateTelecon } from './telecons';
 
 const FormData = require('form-data');
 
@@ -373,6 +374,7 @@ async function parseImatBreakoutsCsv(session, buffer) {
 			day: parseInt(c[11], 10),
 			start: eventDate.set({hour: c[3].substring(0, 2), minute: c[3].substring(3)}).toISO(),
 			end: eventDate.set({hour: c[4].substring(0, 2), minute: c[4].substring(3)}).toISO(),
+			timezone: session.timezone,
 			location: c[5],
 			group: c[6],
 			name: c[7],
@@ -468,12 +470,15 @@ const breakoutProps = {
 	endTime: PropTypes.string.isRequired,
 	location: PropTypes.string.isRequired,
 	credit: PropTypes.oneOf(Object.keys(breakoutCredit)).isRequired,
-	facilitator: PropTypes.string
+	facilitator: PropTypes.string,
+	teleconId: PropTypes.number,
 };
 
 async function addImatBreakout(user, session, breakout) {
 
 	PropTypes.checkPropTypes(breakoutProps, breakout, 'breakout', 'addImatBreakout');
+
+	const teleconId = breakout.teleconId;
 
 	const params = {
 		v: 1,
@@ -499,11 +504,19 @@ async function addImatBreakout(user, session, breakout) {
 		throw new Error(m? m[1]: 'An unexpected error occured');
 	}
 
+	/* From the response, find the breakout we just added */
 	const breakouts = parseImatBreakoutsPage(response.data);
 	//console.log(breakouts);
 
-	const b = breakouts.find(b => breakout.name === b.name && breakout.location === b.location && breakout.startSlotId === b.startSlotId);
+	let b = breakouts.find(b => breakout.name === b.name && breakout.location === b.location && breakout.startSlotId === b.startSlotId);
 	//console.log(breakout, b);
+
+	/* Link to telecon */
+	if (b) {
+		if (teleconId)
+			await updateTelecon(teleconId, {imatMeetingId: session.id, imatBreakoutId: b.id});
+		b = {...b, teleconId};
+	}
 
 	return b;
 }
@@ -516,12 +529,21 @@ export async function addImatBreakouts(user, meetingId, breakouts) {
 	const session = await getImatMeeting(user, meetingId);
 	//console.log(session);
 
-	return await Promise.all(breakouts.map(breakout => addImatBreakout(user, session, breakout)));
+	breakouts = await Promise.all(breakouts.map(breakout => addImatBreakout(user, session, breakout)));
+	const telecons = await getTelecons({id: breakouts.map(b => b.teleconId)});
+	return {breakouts, telecons};
+}
+
+export async function deleteImatBreakout(user, meetingId, breakoutId) {
+	if (!user.ieeeClient)
+		throw new AuthError('Not logged in');
 }
 
 async function updateImatBreakout(user, session, breakout) {
 
 	PropTypes.checkPropTypes(breakoutProps, breakout, 'breakout', 'updateImatBreakout');
+
+	const teleconId = breakout.teleconId;
 
 	const params = {
 		tz: 420,
@@ -539,13 +561,21 @@ async function updateImatBreakout(user, session, breakout) {
 		f12: "OK/Done"
 	};
 
-	await user.ieeeClient.post(`https://imat.ieee.org/${session.organizerId}/breakout-edit?p=${session.id}&t=${breakout.id}`, params);
+	const response = await user.ieeeClient.post(`https://imat.ieee.org/${session.organizerId}/breakout-edit?p=${session.id}&t=${breakout.id}`, params);
 
+	/* From the response, find the breakout we just update */
 	const breakouts = parseImatBreakoutsPage(response.data);
 	//console.log(breakouts);
 
-	const b = breakouts.find(b => breakout.name === b.name && breakout.location === b.location && breakout.startSlotId === b.startSlotId);
+	const b = breakouts.find(b => breakout.id === b.id);
 	//console.log(breakout, b);
+
+	/* Link to telecon */
+	if (b) {
+		if (teleconId)
+			await updateTelecon(teleconId, {imatMeetingId: session.id, imatBreakoutId: b.id});
+		b = {...b, teleconId};
+	}
 
 	return b;
 }
@@ -558,7 +588,9 @@ export async function updateImatBreakouts(user, meetingId, breakouts) {
 	const session = await getImatMeeting(user, meetingId);
 	//console.log(session);
 
-	await Promise.all(breakouts.map(breakout => updateImatBreakout(user, session, breakout)))
+	breakouts = await Promise.all(breakouts.map(breakout => updateImatBreakout(user, session, breakout)));
+	const telecons = await getTelecons({id: breakouts.map(b => b.teleconId)});
+	return {breakouts, telecons};
 }
 
 function getTimestamp(t) {

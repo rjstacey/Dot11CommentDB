@@ -8,7 +8,8 @@ import {
 	updateWebexAccount,
 	addWebexAccount,
 	deleteWebexAccount,
-	getWebexMeetings
+	getWebexMeetings,
+	deleteWebexMeetings
 } from '../services/webex';
 
 const router = require('express').Router();
@@ -18,7 +19,7 @@ router.post('/auth/:id', async (req, res, next) => {
 		const {id} = req.params;
 		const entry = req.body;
 		if (typeof entry !== 'object')
-			throw 'Missing or bad body; expected object';
+			throw new Error('Missing or bad body; expected object');
 		const data = await authWebexAccount(id, entry);
 		res.json(data);
 	}
@@ -38,7 +39,7 @@ router.patch('/account/:id', async (req, res, next) => {
 		const {id} = req.params;
 		const changes = req.body;
 		if (typeof changes !== 'object')
-			throw 'Missing or bad body; expected object';
+			throw new Error('Missing or bad body; expected object');
 		const data = await updateWebexAccount(id, changes);
 		res.json(data);
 	}
@@ -49,7 +50,7 @@ router.post('/account', async (req, res, next) => {
 	try {
 		const entry = req.body;
 		if (typeof entry !== 'object')
-			throw 'Missing or bad body; expected object';
+			throw new Error('Missing or bad body; expected object');
 		const data = await addWebexAccount(entry);
 		res.json(data);
 	}
@@ -69,6 +70,17 @@ router.get('/meetings/:group', async (req, res, next) => {
 	try {
 		const {group} = req.params;
 		const data = await getWebexMeetings(group);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.delete('/meetings', async (req, res, next) => {
+	try {
+		const meetings = req.body;
+		if (!Array.isArray(meetings))
+			throw new Error('Missing or bad body; expected array')
+		const data = await deleteWebexMeetings(meetings);
 		res.json(data);
 	}
 	catch(err) {next(err)}

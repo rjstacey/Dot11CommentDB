@@ -193,11 +193,16 @@ export async function getWebexMeetings(groupId) {
 		const meetingType = 'scheduledMeeting';
 		const state = 'scheduled';
 		let from = new Date();
-		const to = new Date(from.getFullYear() + 1, from.getMonth(), from.getDate()).toISOString();
-		from = from.toISOString();
+		const to = new Date(from.getFullYear() + 1, from.getMonth(), from.getDate());
+		const params = {
+			meetingType: 'scheduledMeeting',
+			from: from.toISOString(),
+			to: to.toISOString(),
+			max: 100
+		}
 		let response;
 		try {
-			response = await api.get('/meetings', {params: {meetingType, from, to}});
+			response = await api.get('/meetings', {params});
 		}
 		catch(error) {
 			if (error.response) {
@@ -210,12 +215,12 @@ export async function getWebexMeetings(groupId) {
 				console.log(error)
 			throw Error("can't get meetings")
 		}
-		console.log(response)
+		console.log(response.config.params)
 		let meetings = response.data.items;
 		meetings = meetings.map(m => ({...m, groupId, webexAccountId: account.id, webexAccountName: account.name}));
 		allMeetings = allMeetings.concat(meetings);
 	}
-	console.log(allMeetings);
+	console.log(allMeetings.map(m => `Title: ${m.title}\t\tStart: ${m.start}`));
 	return allMeetings;
 }
 
@@ -273,4 +278,15 @@ export async function deleteWebexMeeting(id, meetingId) {
 		throw new Error(`Invalid account id=${id}`);
 	const response = await api.delete(`/meetings/${meetingId}`);
 	return response.data;
+}
+
+export async function deleteWebexMeetings(meetings) {
+	for (const m of meetings) {
+		const api = apis[m.accountId];
+		if (!api)
+			throw new Error(`Invalid account id=${id}`);
+		if (!m.meetingId)
+			throw new Error('Missing meetingId');
+	}
+	return await meetings.map(m => deleteWebexMeeting(m.accountId, m.meetingId));
 }

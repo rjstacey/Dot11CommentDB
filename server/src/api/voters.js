@@ -8,13 +8,14 @@ import {
 	updateVoters,
 	deleteVoters,
 	votersFromSpreadsheet,
-	votersFromMembersSnapshot
+	votersFromMembersSnapshot,
+	exportVoters
 } from '../services/voters'
 
 const upload = require('multer')();
 const router = require('express').Router();
 
-router.get('/:votingPoolId', async (req, res, next) => {
+router.get('/:votingPoolId$', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
 		const data = await getVoters(votingPoolId);
@@ -77,6 +78,14 @@ router.post('/:votingPoolId/membersSnapshot$', async (req, res, next) => {
 		const {date} = req.body;
 		const data = await votersFromMembersSnapshot(votingPoolId, date);
 		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.get('/:votingPoolId/export$', async (req, res, next) => {
+	try {
+		const {votingPoolId} = req.params;
+		await exportVoters(votingPoolId, res);
 	}
 	catch(err) {next(err)}
 });
