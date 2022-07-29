@@ -1,7 +1,7 @@
-import {createSlice, createEntityAdapter} from '@reduxjs/toolkit'
+import {createSlice, createEntityAdapter} from '@reduxjs/toolkit';
 
-import fetcher from 'dot11-components/lib/fetcher'
-import {setError} from 'dot11-components/store/error'
+import fetcher from 'dot11-components/lib/fetcher';
+import {setError} from 'dot11-components/store/error';
 
 const dataAdapter = createEntityAdapter({});
 
@@ -41,6 +41,7 @@ const slice = createSlice({
  * Selector
  */
 export const selectCalendarAccountsState = state => state[dataSet];
+export const selectCalendarAccountEntities = state => selectCalendarAccountsState(state).entities;
 
 /*
  * Reducer

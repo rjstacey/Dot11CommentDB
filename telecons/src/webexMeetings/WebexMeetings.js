@@ -1,7 +1,6 @@
 import React from 'react';
 import {useHistory, useParams} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
-import styled from '@emotion/styled';
 import {DateTime} from 'luxon';
 import copyToClipboard from 'copy-html-to-clipboard';
 
@@ -14,10 +13,8 @@ import {displayMeetingNumber} from '../store/webexMeetings';
 
 import {
 	selectTeleconsState,
-	selectTeleconEntities,
 	updateTelecons,
 	addTelecons,
-	getField as getTeleconField
 } from '../store/telecons';
 
 import {
@@ -34,6 +31,8 @@ import {
 
 import GroupSelector from '../components/GroupSelector';
 import TeleconSelector from '../components/TeleconSelector';
+import TopRow from '../components/TopRow';
+import TeleconSummary from '../components/TeleconSummary';
 
 import WebexMeetingDetail from './WebexMeetingDetail';
 import {TeleconEntry, convertFromLocal} from '../telecons/TeleconDetail';
@@ -157,14 +156,6 @@ function TeleconAdd({webexMeeting, close, groupId, groupEntities}) {
 	)
 }
 
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
-
 const WebexMeetingsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props} />;
 
 function WebexMeetingHeading(props) {
@@ -181,24 +172,17 @@ function renderWebexMeeting({rowData}) {
 	return `${webexAccountName}: ${displayMeetingNumber(meetingNumber)}`;
 }
 
-function TeleconSummary({teleconId}) {
-	const teleconEntities = useSelector(selectTeleconEntities);
-	const telecon = teleconEntities[teleconId];
-	return (
-		<div style={{display: 'flex', flexDirection: 'column'}}>
-			<span>{telecon.summary}</span>
-			<span style={{fontStyle: 'italic', fontSize: 'smaller'}}>
-				{getTeleconField(telecon, 'date')} {getTeleconField(telecon, 'timeRange')}
-			</span>
-		</div>
-	)
-}
-
 const tableColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
 		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
+	{key: 'dayDate',
+		...fields.dayDate,
+		width: 100, flexGrow: 1, flexShrink: 0},
+	{key: 'time',
+		...fields.time,
+		width: 70, flexGrow: 1, flexShrink: 0},
 	{key: 'webexMeeting',
 		label: 'Meeting',
 		width: 200, flexGrow: 1, flexShrink: 1,
@@ -213,12 +197,6 @@ const tableColumns = [
 	{key: 'hostKey',
 		...fields.hostKey,
 		width: 100, flexGrow: 1, flexShrink: 1},
-	{key: 'dayDate',
-		...fields.dayDate,
-		width: 100, flexGrow: 1, flexShrink: 0},
-	{key: 'time',
-		...fields.time,
-		width: 70, flexGrow: 1, flexShrink: 0},
 	{key: 'title', 
 		...fields.title,
 		width: 200, flexGrow: 1, flexShrink: 1, dropdownWidth: 300},
@@ -226,11 +204,9 @@ const tableColumns = [
 		...fields.timezone,
 		width: 200, flexGrow: 1, flexShrink: 1},
 	{key: 'Actions',
-		label: '',
+		label: 'Telecon',
 		width: 200, flexGrow: 1, flexShrink: 1}
 ];
-
-const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0);
 
 const defaultColumns = tableColumns.reduce((obj, col) => {
 	let unselectable = false,
@@ -356,8 +332,7 @@ function WebexMeetings() {
 
 	return (
 		<>
-			<TopRow style={{maxWidth}}>
-				<div>IMAT Session</div>
+			<TopRow>
 				<div style={{display: 'flex'}}>
 					<label>Group:</label>
 					<GroupSelector

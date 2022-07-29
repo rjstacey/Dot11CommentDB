@@ -10,7 +10,7 @@
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
     "copy-html-to-clipboard": "^4.0.1",
-    "dot11-components": "^1.0.106",
+    "dot11-components": "^1.0.108",
     "idb-keyval": "^6.1.0",
     "luxon": "^2.0.2",
     "react": "^17.0.2",

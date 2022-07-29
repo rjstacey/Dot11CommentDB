@@ -8,14 +8,7 @@ import {selectTeleconsState} from '../store/telecons';
 import {loadCalendarAccounts, selectCalendarAccountsState} from '../store/calendarAccounts';
 
 import GroupSelector from '../components/GroupSelector';
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
+import TopRow from '../components/TopRow';
 
 const MainIframe = styled.iframe`
 	flex: 1;

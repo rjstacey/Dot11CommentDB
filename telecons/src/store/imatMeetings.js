@@ -1,32 +1,33 @@
 import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
-import {setError} from 'dot11-components/store/error'
-
-function displayDate(isoDate) {
-	// ISO date: "YYYY-MM-DD"
-	const year = parseInt(isoDate.substr(0, 4));
-	const month = parseInt(isoDate.substr(5, 7));
-	const date = parseInt(isoDate.substr(8, 10));
-	const monthStr = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-	return `${year} ${monthStr[month] || '???'} ${date}`; 
-}
+import {setError} from 'dot11-components/store/error';
+import {displayDate, displayDateRange} from 'dot11-components/lib';
 
 export const fields = {
 	id: {label: 'Meeting number', sortType: SortType.NUMERIC},
 	start: {label: 'Start', dataRenderer: displayDate},
 	end: {label: 'End', dataRenderer: displayDate},
+	dateRange: {label: 'Dates'},
 	name: {label: 'Name'},
 	type: {label: 'Type'/*, dataRenderer: displaySessionType, options: SessionTypeOptions*/},
 	timezone: {label: 'Time zone'},
 };
 
 export const dataSet = 'imatMeetings';
-//const selectId = (meeting) => meeting.MeetingNumber;
+
+/*
+ * Fields derived from other fields
+ */
+export function getField(entity, dataKey) {
+	if (dataKey === 'dateRange')
+		return displayDateRange(entity.start, entity.end);
+	return entity[dataKey];
+}
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	//selectId,
+	selectField: getField,
 	initialState: {},
 });
 
@@ -61,7 +62,7 @@ export const loadImatMeetings = (n) =>
 			if (!Array.isArray(meetings))
 				throw new TypeError('Unexpected response to GET ' + baseUrl);
 		}
-		catch(error) {
+		catch (error) {
 			dispatch(getFailure());
 			dispatch(setError('Unable to get meetings list', error));
 			return;

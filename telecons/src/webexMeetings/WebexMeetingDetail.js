@@ -10,6 +10,7 @@ import {selectWebexMeetingsState, deleteWebexMeetings} from '../store/webexMeeti
 
 import WebexAccountSelector from '../components/WebexAccountSelector';
 import WebexTemplateSelector from '../components/WebexTemplateSelector';
+import TopRow from '../components/TopRow';
 
 const MULTIPLE_STR = '(Multiple)';
 
@@ -140,14 +141,6 @@ function WebexMeetingEntry({value, onChange}) {
 		</Form>
 	)
 }
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: flex-end;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
 
 const Container = styled.div`
 	padding: 10px;

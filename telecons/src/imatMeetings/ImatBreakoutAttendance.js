@@ -11,15 +11,9 @@ import {loadBreakoutAttendance, selectBreakoutAttendanceState, dataSet} from '..
 import {selectImatMeetingEntities} from '../store/imatMeetings';
 import {selectBreakoutEntities} from '../store/imatBreakouts';
 
-import {renderSessionInfo} from './ImatBreakouts';
+import TopRow from '../components/TopRow';
 
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
+import {renderSessionInfo} from './ImatBreakouts';
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */

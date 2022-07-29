@@ -1,7 +1,6 @@
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {useHistory, useParams} from 'react-router-dom';
-import styled from '@emotion/styled';
+import {useHistory, useParams, Link} from 'react-router-dom';
 import {DateTime} from 'luxon';
 
 import {ActionButton, ButtonGroup} from 'dot11-components/form';
@@ -20,52 +19,39 @@ import {
 } from '../store/telecons';
 
 import {selectGroupsState} from '../store/groups';
-import {selectImatMeetingEntities} from '../store/imatMeetings';
-import {selectWebexAccountEntities} from '../store/webexAccounts';
 import {displayMeetingNumber} from '../store/webexMeetings';
 
 import GroupSelector from '../components/GroupSelector';
+import TopRow from '../components/TopRow';
 
 import TeleconDetail from './TeleconDetail';
 import TeleconDefaults from './TeleconDefaults';
 
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
-
-
-function WebexMeeting({rowData}) {
-	const {webexAccountId, webexMeeting} = rowData;
-	const webexAccount = useSelector(selectWebexAccountEntities)[webexAccountId];
-	if (!webexAccount || !webexMeeting)
-		return '';
-	return webexAccount.name + ': ' + displayMeetingNumber(webexMeeting.meetingNumber);
-}
-
-function ImatDetail({rowData}) {
-	const {imatMeetingId} = rowData;
-	const meeting = useSelector(selectImatMeetingEntities)[imatMeetingId];
-	if (!imatMeetingId)
+function renderWebexMeeting({rowData}) {
+	const {webexAccountId, webexAccountName, webexMeeting} = rowData;
+	if (!webexAccountId || !webexMeeting)
 		return 'None';
-	return meeting? meeting.name: '';
+	return rowData.webexAccountName + ': ' + displayMeetingNumber(webexMeeting.meetingNumber);
 }
 
-const TeleconsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
+function renderImatMeeting({rowData}) {
+	return rowData.imatMeetingId?
+		<Link to={`/imatMeetings/${rowData.imatMeetingId}`}>{rowData.imatMeetingName}</Link>:
+		'None';
+}
+
+const ColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
 
 const renderDateHeader = (props) =>
 	<>
-		<TeleconsColumnHeader {...props} dataKey='day' label='Day' />
-		<TeleconsColumnHeader {...props} dataKey='date' label='Date' />
+		<ColumnHeader {...props} dataKey='day' label='Day' />
+		<ColumnHeader {...props} dataKey='date' label='Date' />
 	</>
 
 const renderTimeRangeHeader = (props) =>
 	<>
-		<TeleconsColumnHeader {...props} dataKey='startTime' label='Start time' />
-		<TeleconsColumnHeader {...props} dataKey='endTime' label='End time' />
+		<ColumnHeader {...props} dataKey='startTime' label='Start time' />
+		<ColumnHeader {...props} dataKey='endTime' label='End time' />
 	</>
 
 const tableColumns = [
@@ -93,22 +79,21 @@ const tableColumns = [
 	{key: 'hasMotions',
 		...fields.hasMotions,
 		width: 90, flexGrow: 1, flexShrink: 0},
-	{key: 'webexMeeting',
+	{key: 'webexAccountName',
 		label: 'Webex meeting',
 		width: 150, flexGrow: 1, flexShrink: 0,
-		cellRenderer: p => <WebexMeeting {...p} />},
-	{key: 'imatBreakoutId',
+		cellRenderer: renderWebexMeeting},
+	{key: 'imatMeetingName',
 		label: 'IMAT',
 		width: 50, flexGrow: 1, flexShrink: 0,
-		cellRenderer: p => <ImatDetail {...p} />},
-	{key: 'calendarAccountId',
+		cellRenderer: renderImatMeeting},
+	{key: 'calendarAccountName',
 		label: 'Calendar',
-		width: 50, flexGrow: 1, flexShrink: 0,
-		cellRenderer: ({rowData}) => rowData.calendarAccountId? 'Yes': 'No'}
+		width: 50, flexGrow: 1, flexShrink: 0}
 ];
 
 const defaultTablesColumns = {
-	default: ['__ctrl__', 'groupName', 'dayDate', 'timeRange', 'duration'],
+	default: ['__ctrl__', 'dayDate', 'timeRange', 'groupName', 'hasMotions', 'webexAccountName', 'imatMeetingName'],
 };
 
 const defaultTablesConfig = {};

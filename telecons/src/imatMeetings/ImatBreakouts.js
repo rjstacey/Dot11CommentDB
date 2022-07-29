@@ -11,6 +11,8 @@ import {parseNumber, displayDateRange} from 'dot11-components/lib';
 
 import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
 import TeleconSelector from '../components/TeleconSelector';
+import TopRow from '../components/TopRow';
+import TeleconSummary from '../components/TeleconSummary';
 
 import {
 	loadBreakouts,
@@ -25,22 +27,12 @@ import {selectImatMeetingEntities} from '../store/imatMeetings';
 
 import {
 	selectSyncedTeleconEntities,
-	selectTeleconEntities,
 	selectTeleconsState,
 	getField as getTeleconField,
 	updateTelecons
 } from '../store/telecons';
 
 import {selectGroupEntities} from '../store/groups';
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-	align-items: center;
-`;
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
@@ -356,20 +348,6 @@ function BreakoutLink({session, breakout, close}) {
 				toDate={session.end}
 			/>
 		</Form>
-	)
-}
-
-
-function TeleconSummary({teleconId}) {
-	const teleconEntities = useSelector(selectTeleconEntities);
-	const telecon = teleconEntities[teleconId];
-	return (
-		<div style={{display: 'flex', flexDirection: 'column'}}>
-			<span>{telecon.summary}</span>
-			<span style={{fontStyle: 'italic', fontSize: 'smaller'}}>
-				{getTeleconField(telecon, 'date')} {getTeleconField(telecon, 'timeRange')}
-			</span>
-		</div>
 	)
 }
 

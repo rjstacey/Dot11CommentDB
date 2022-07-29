@@ -7,6 +7,8 @@ import {DateTime} from 'luxon';
 
 import {selectGroupEntities} from './groups';
 import {selectWebexAccountEntities} from './webexAccounts';
+import {selectCalendarAccountEntities} from './calendarAccounts';
+import {selectImatMeetingEntities} from './imatMeetings';
 
 export function displayMeetingNumber(meetingNumber) {
 	const s = meetingNumber.toString();
@@ -14,7 +16,7 @@ export function displayMeetingNumber(meetingNumber) {
 }
 
 export const fields = {
-	group_id: {label: 'Group ID'},
+	organizationId: {label: 'Group ID'},
 	groupName: {label: 'Group'},
 	start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
 	end: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
@@ -27,7 +29,9 @@ export const fields = {
 	duration: {label: 'Duration'},
 	hasMotions: {label: 'Motions'},
 	isCancelled: {label: 'Cancelled'},
-	webexAccountId: {label: 'Webex account'},
+	webexAccountName: {label: 'Webex account'},
+	calendarAccountName: {label: 'Calendar account'},
+	imatMeetingName: {label: 'IMAT session'}
 };
 
 /*
@@ -78,17 +82,23 @@ export const selectTeleconsCurrentPanelConfig = (state) => selectCurrentPanelCon
 export const selectSyncedTeleconEntities = createSelector(
 	selectGroupEntities,
 	selectWebexAccountEntities,
+	selectCalendarAccountEntities,
+	selectImatMeetingEntities,
 	selectTeleconEntities,
-	(groups, webexAccounts, telecons) => {
+	(groups, webexAccounts, calendarAccounts, imatMeetings, telecons) => {
 		const entities = {};
 		for (const id of Object.keys(telecons)) {
 			const telecon = telecons[id];
-			const group = groups[telecon.group_id];
+			const group = groups[telecon.organizationId];
 			const webexAccount = webexAccounts[telecon.webexAccountId];
+			const calendarAccount = calendarAccounts[telecon.calendarAccountId];
+			const imatMeeting = imatMeetings[telecon.imatMeetingId];
 			entities[id] = {
 				...telecon,
 				groupName: group? group.name: 'Unknown',
-				webexAccountName: webexAccount? webexAccount.name: 'None'
+				webexAccountName: webexAccount? webexAccount.name: 'None',
+				calendarAccountName: calendarAccount? calendarAccount.name: 'None',
+				imatMeetingName: imatMeeting? imatMeeting.name: 'None'
 			};
 		}
 		return entities;
@@ -102,7 +112,15 @@ export const selectTeleconDefaults = state => {
 	return defaults;
 }
 
-const sortComparer = (a, b) => DateTime.fromISO(a.start).toMillis() - DateTime.fromISO(b.start).toMillis(); 
+const sortComparer = (a, b) => {
+	// Sort by start
+	const v1 = DateTime.fromISO(a.start).toMillis() - DateTime.fromISO(b.start).toMillis();
+	if (v1 === 0) {
+		// If equal, sort by end
+		return DateTime.fromISO(a.end).toMillis() - DateTime.fromISO(b.end).toMillis();
+	}
+	return v1;
+}
 
 const slice = createAppTableDataSlice({
 	name: dataSet,

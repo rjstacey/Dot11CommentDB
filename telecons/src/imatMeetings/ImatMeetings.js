@@ -2,8 +2,10 @@ import React from 'react';
 import {Link, useHistory} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
-import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
+import AppTable, {SelectHeader, SelectCell, TableColumnHeader} from 'dot11-components/table';
 import {ActionButton} from 'dot11-components/form';
+
+import TopRow from '../components/TopRow';
 
 import {
 	loadImatMeetings,
@@ -11,14 +13,6 @@ import {
 	fields,
 	dataSet
 } from '../store/imatMeetings';
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
@@ -32,17 +26,23 @@ const TableRow = styled.div`
 
 const renderBreakoutsLink = ({rowData}) => <Link to={`/imatMeetings/${rowData.id}`}>view breakouts</Link>
 
+const ColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
+
+const renderDateRangeHeader = (props) =>
+	<>
+		<ColumnHeader {...props} dataKey='start' label='Start date' />
+		<ColumnHeader {...props} dataKey='end' label='End date' />
+	</>
+
 const columns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
 		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
-	{key: 'start', 
-		...fields.start,
-		width: 150, flexGrow: 1, flexShrink: 1},
-	{key: 'end', 
-		...fields.end,
-		width: 150, flexGrow: 1, flexShrink: 1},
+	{key: 'dateRange', 
+		...fields.dateRange,
+		width: 200, flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderDateRangeHeader},
 	{key: 'name', 
 		...fields.name,
 		width: 400, flexGrow: 1, flexShrink: 1, dropdownWidth: 300},
@@ -87,7 +87,7 @@ function ImatMeetings() {
 				<AppTable
 					fixed
 					columns={columns}
-					headerHeight={36}
+					headerHeight={46}
 					estimatedRowHeight={36}
 					dataSet={dataSet}
 				/>

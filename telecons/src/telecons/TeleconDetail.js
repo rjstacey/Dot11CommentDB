@@ -87,10 +87,13 @@ export function convertFromLocal(entry) {
 		start = start.toISO();
 	}
 
+	if (webexMeeting)
+		webexMeeting = webexMeetingParams(webexMeeting);
+
 	return {
 		start,
 		end,
-		webexMeeting: webexMeetingParams(webexMeeting),
+		webexMeeting,
 		...rest
 	};
 }
@@ -308,9 +311,9 @@ export function TeleconEntry({
 			<Row>
 				<Field label='Group:'>
 					<GroupSelector
-						value={isMultiple(entry.group_id)? '': entry.group_id || ''}
-						onChange={(group_id) => changeEntry({group_id})}
-						placeholder={isMultiple(entry.group_id)? MULTIPLE_STR: undefined}
+						value={isMultiple(entry.organizationId)? '': entry.organizationId || ''}
+						onChange={(organizationId) => changeEntry({organizationId})}
+						placeholder={isMultiple(entry.organizationId)? MULTIPLE_STR: undefined}
 						parent_id={groupId}
 						readOnly={readOnly}
 					/>
@@ -497,7 +500,7 @@ class TeleconDetail extends React.Component {
 				if (isMultiple(entry.hasMotions))
 					entry.hasMotions = false;
 				entry.isCancelled = false;
-				entry.summary = this.defaultSummary(entry.group_id);
+				entry.summary = this.defaultSummary(entry.organizationId);
 				entry.timezone = defaults.timezone;
 				entry.calendarAccountId = defaults.calendarAccountId;
 				entry.webexAccountId = defaults.webexAccountId;
@@ -511,8 +514,8 @@ class TeleconDetail extends React.Component {
 			}
 		}
 		else {
-			entry = {...defaultLocalEntry, group_id: groupId};
-			entry.summary = this.defaultSummary(entry.group_id);
+			entry = {...defaultLocalEntry, organizationId: groupId};
+			entry.summary = this.defaultSummary(entry.organizationId);
 			entry.timezone = defaults.timezone;
 			entry.calendarAccountId = defaults.calendarAccountId;
 			entry.webexAccountId = defaults.webexAccountId;
@@ -526,11 +529,11 @@ class TeleconDetail extends React.Component {
 		};
 	}
 
-	defaultSummary = (subgroup_id) => {
+	defaultSummary = (organizationId) => {
 		const {groupEntities} = this.props;
 
 		let subgroup, group;
-		subgroup = groupEntities[subgroup_id];
+		subgroup = groupEntities[organizationId];
 		if (subgroup &&
 			subgroup.type.search(/^(tg|sg|sc|ah)/) !== -1 &&
 			subgroup.parent_id) {
@@ -555,10 +558,12 @@ class TeleconDetail extends React.Component {
 
 		// Get modified local entry without dates and webexMeeting.templateId
 		let {webexMeeting, dates, ...e} = entry;
-		e.webexMeeting = {...webexMeeting};
+		if (webexMeeting) {
+			e.webexMeeting = {...webexMeeting};
+			delete e.webexMeeting.templateId;
+		}
 		if (dates.length === 1)
 			e.date = dates[0];
-		delete e.webexMeeting.templateId;
 
 		// Find differences
 		const diff = deepDiff(collapsed, e);
@@ -567,7 +572,8 @@ class TeleconDetail extends React.Component {
 		for (const id of ids) {
 			// Get original without superfluous webex params
 			const {webexMeeting, ...entity} = entities[id];
-			entity.webexMeeting = webexMeetingParams(webexMeeting);
+			if (webexMeeting)
+				entity.webexMeeting = webexMeetingParams(webexMeeting);
 
 			const local = deepMerge(convertToLocal(entity), diff);
 			const updated = convertFromLocal(local);
@@ -630,8 +636,8 @@ class TeleconDetail extends React.Component {
 			return;
 		}
 		changes = {...changes};
-		if (changes.hasOwnProperty('group_id'))
-			changes.summary = this.defaultSummary(changes.group_id);
+		if (changes.hasOwnProperty('organizationId'))
+			changes.summary = this.defaultSummary(changes.organizationId);
 		this.setState(state => {
 			const entry = deepMerge(state.entry, changes);
 			return {...state, entry}
