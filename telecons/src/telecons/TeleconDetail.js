@@ -26,6 +26,7 @@ import TimeZoneSelector from '../components/TimeZoneSelector';
 import GroupSelector from '../components/GroupSelector';
 import CalendarAccountSelector from '../components/CalendarAccountSelector';
 import ImatMeetingSelector from '../components/ImatMeetingSelector';
+import TopRow from '../components/TopRow';
 
 const MULTIPLE_STR = '(Multiple)';
 
@@ -39,7 +40,7 @@ const defaultLocalEntry = {
 const defaultWebexMeeting = {
 	password: 'wireless',
 	enabledJoinBeforeHost: true,
-	joinBeforeHostMinutes: 5,
+	joinBeforeHostMinutes: 10,
 	enableConnectAudioBeforeHost: true,
 	meetingOptions: {
 		enabledChat: true,
@@ -429,14 +430,6 @@ export function TeleconEntry({
 	)
 }
 
-const TopRow = styled.div`
-	display: flex;
-	justify-content: flex-end;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
-
 const Container = styled.div`
 	padding: 10px;
 	label {
@@ -691,7 +684,7 @@ class TeleconDetail extends React.Component {
 
 		return (
 			<Container>
-				<TopRow>
+				<TopRow style={{justifyContent: 'flex-end'}}>
 					<ActionButton
 						name='add'
 						title='Add telecon'

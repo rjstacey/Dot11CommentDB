@@ -3,7 +3,6 @@ import {Switch, Route} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {AccessLevel} from 'dot11-components/lib/user';
-import {ErrorModal, ConfirmModal} from 'dot11-components/modals';
 
 import Accounts from '../accounts/Accounts';
 import Telecons from '../telecons/Telecons';
@@ -116,10 +115,7 @@ function Body({user, access}) {
 					minAccess={AccessLevel.WGAdmin}
 					component={Organization}
 				/>
-				
 			</Switch>
-			<ErrorModal />
-			<ConfirmModal />
 		</Main>
 	)
 }

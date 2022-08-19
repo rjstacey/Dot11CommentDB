@@ -143,7 +143,6 @@ function BreakoutAdd({close, session, committees, timeslots, groups, teleconEnti
 	const [teleconId, setTeleconId] = React.useState(0);
 	const [breakout, setBreakout] = React.useState(getDefaultBreakout);
 
-	console.log(breakout)
 	async function submit() {
 		await dispatch(addBreakouts(session.id, [breakout]));
 		close();
@@ -467,7 +466,7 @@ function teleconToBreakout(telecon, session, groups, committees, timeslots) {
 	if (telecon.isCancelled)
 		location = 'CANCELLED';
 
-	const group = groups[telecon.group_id];
+	const group = groups[telecon.organizationId];
 	const committee = committees.find(c => c.symbol === group.imatCommitteeId);
 	const groupId = committee? committee.id: 0;
 

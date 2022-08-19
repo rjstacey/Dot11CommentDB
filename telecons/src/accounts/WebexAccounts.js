@@ -1,10 +1,8 @@
 import React from 'react';
 import {Redirect} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
-import styled from '@emotion/styled';
 
-import {ActionButton, Input} from  'dot11-components/form';
-import {displayDate} from 'dot11-components/lib';
+import {Button, ActionButton, Input} from  'dot11-components/form';
 import {ActionIcon} from 'dot11-components/icons';
 
 import {
@@ -12,101 +10,28 @@ import {
 	updateWebexAccount,
 	addWebexAccount,
 	deleteWebexAccount,
-	authWebexAccount,
+	completeAuthWebexAccount,
 	selectWebexAccountsState
 } from '../store/webexAccounts';
 
-import GroupsSelector from '../components/GroupSelector';
+import {GroupSelector} from '../components/GroupSelector';
+import TopRow from '../components/TopRow';
+import {Table, TableBodyEmpty} from './AccountsTable';
 
-/* Generate URL for account authorization */
-const getWebexAccountAuthLink = (account) => {
-	const {id, auth_url, auth_params} = account;
-	const params = {
-		...auth_params,
-		redirect_uri: window.location.origin + '/telecons/webex/auth',
-		state: id,
-	}
-	return auth_url + '?' + new URLSearchParams(params);
-}
+const displayDate = (d) =>
+	new Intl.DateTimeFormat('default', {weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric'}).format(new Date(d));
 
-/* Following auth, the user is redirected to redirect_uri above, which renders this component */
+/* Following auth, the user is redirected to redirect_uri, which renders this component */
 export function WebexAccountAuth(props) {
 	const dispatch = useDispatch();
-	const query = new URLSearchParams(props.location.search);
-	const code = query.get('code');
-	const id = query.get('state');
-	const redirect_url = window.location.origin + window.location.pathname;
 
-	React.useEffect(() => dispatch(authWebexAccount(id, code, redirect_url)), [dispatch, id, code, redirect_url]);
+	React.useEffect(() => {
+		const params = Object.fromEntries(new URLSearchParams(props.location.search));
+		dispatch(completeAuthWebexAccount(params));
+	}, [dispatch, props]);
 
 	return <Redirect to="/accounts" />
 }
-
-// The top row height is determined by its content
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
-
-const Table = styled.table`
-	display: grid;
-	grid-template-columns: minmax(200px, auto) minmax(200px, auto) minmax(300px, 1fr) 40px;
-	border-spacing: 1px;
-
-	thead, tbody, tr {
-		display: contents;
-	}
-
-	th, td {
-		padding: 10px;
-		border: gray solid 1px;
-		vertical-align: top;
-	}
-
-	th:first-of-type, td:first-of-type {
-		grid-column: 1;
-	}
-
-	tr:first-of-type td {
-		border-top: none;
-	}
-
-	tr:not(:last-of-type) td {
-		border-bottom: none;
-	}
-
-	th:not(:last-of-type),
-	td:not(:last-of-type) {
-		border-right: none;
-	}
-
-	th {
-		background: #f6f6f6;
-		text-align: left;
-		font-weight: bold;
-		font-size: 1rem;
-	}
-
-	td {
-		padding-top: 5px;
-		padding-bottom: 5px;
-	}
-
-	td.empty {
-		grid-column: 1 / -1;
-		colspan: 0;
-		color: gray;
-		font-style: italic;
-	}
-
-	tr:nth-of-type(even) td {
-		background: #fafafa;
-	}
-`;
 
 const defaultAccount = {
 	name: '',
@@ -116,18 +41,18 @@ const defaultAccount = {
 function WebexAccountsTableHeader({readOnly}) {
 	const dispatch = useDispatch();
 	const handleAdd = () => dispatch(addWebexAccount(defaultAccount));
-	const headerColumns = [
+	const header = [
 		'Name',
 		'Groups',
 		'Last authorized',
 	];
 	if (!readOnly)
-		headerColumns.push(<ActionIcon type='add' title='Add account' onClick={handleAdd} />);
+		header.push(<ActionIcon type='add' title='Add account' onClick={handleAdd} />);
 
 	return (
 		<thead>
 			<tr>
-				{headerColumns.map((element, i) => <th key={i}>{element}</th>)}
+				{header.map((element, i) => <th key={i}>{element}</th>)}
 			</tr>
 		</thead>
 	);
@@ -138,14 +63,14 @@ function WebexAccountsTableRow({account, readOnly}) {
 	const handleDelete = () => dispatch(deleteWebexAccount(account.id));
 	const handleChange = (changes) => dispatch(updateWebexAccount(account.id, changes));
 
-	const rowColumns = [
+	const row = [
 		<Input 
 			type='text'
 			value={account.name}
 			onChange={e => handleChange({name: e.target.value})}
 			readOnly={readOnly}
 		/>,
-		<GroupsSelector
+		<GroupSelector
 			multi
 			value={account.groups}
 			onChange={groups => handleChange({groups})}
@@ -155,26 +80,21 @@ function WebexAccountsTableRow({account, readOnly}) {
 		/>,
 		<>
 			{account.authDate? displayDate(account.authDate): ''}
-			<a style={{padding: '0 1em'}} href={getWebexAccountAuthLink(account)}>
+			<Button style={{marginLeft: '1em'}} onClick={() => window.location = account.authUrl}>
 				{account.authDate? 'Reauthorize': 'Authorize'}
-			</a>
+			</Button>
 		</>
 	];
 
 	if (!readOnly)
-		rowColumns.push(<ActionIcon type='delete' onClick={handleDelete}/>);
+		row.push(<ActionIcon type='delete' onClick={handleDelete}/>);
 
 	return (
 		<tr>
-			{rowColumns.map((element, i) => <td key={i}>{element}</td>)}
+			{row.map((element, i) => <td key={i}>{element}</td>)}
 		</tr>
 	)
 }
-
-const WebexAccountsTableEmpty = () => 
-	<tr>
-		<td className='empty'>Empty</td>
-	</tr>
 
 const WebexAccountsTable = ({accounts, readOnly}) => 
 	<Table>
@@ -182,20 +102,23 @@ const WebexAccountsTable = ({accounts, readOnly}) =>
 		<tbody>
 			{accounts.length > 0?
 				accounts.map(account => <WebexAccountsTableRow key={account.id} account={account} readOnly={readOnly} />):
-				<WebexAccountsTableEmpty />}
+				<TableBodyEmpty />}
 		</tbody>
 	</Table>
 
+const selectWebexAccounts = (state) => {
+	const {loading, ids, entities} = selectWebexAccountsState(state);
+	return {
+		loading,
+		accounts: ids.map(id => entities[id])
+	}
+}
+
 function WebexAccounts() {
 	const dispatch = useDispatch();
-	const {loading, ids, entities} = useSelector(selectWebexAccountsState);
+	const {loading, accounts} = useSelector(selectWebexAccounts);
 	const [edit, setEdit] = React.useState(false);
 	const refresh = () => dispatch(loadWebexAccounts());
-
-	React.useEffect(() => {
-		if (!loading)
-			refresh();
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	return (
 		<>
@@ -207,7 +130,7 @@ function WebexAccounts() {
 				</div>
 			</TopRow>
 			<WebexAccountsTable
-				accounts={ids.map(id => entities[id])}
+				accounts={accounts}
 				readOnly={!edit}
 			/>
 		</>

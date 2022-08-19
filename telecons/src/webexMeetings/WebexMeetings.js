@@ -6,7 +6,7 @@ import copyToClipboard from 'copy-html-to-clipboard';
 
 import AppTable, {SelectHeader, SelectCell, TableColumnHeader, TableColumnSelector, SplitPanel, Panel} from 'dot11-components/table';
 import {ActionButton, Form} from 'dot11-components/form';
-import {AppModal, ConfirmModal} from 'dot11-components/modals';
+import {AppModal} from 'dot11-components/modals';
 
 import {selectGroupsState} from '../store/groups';
 import {displayMeetingNumber} from '../store/webexMeetings';
@@ -19,7 +19,6 @@ import {
 
 import {
 	loadWebexMeetings,
-	deleteWebexMeetings,
 	selectWebexMeetingsState,
 	selectSyncedWebexMeetingEntities,
 	selectWebexMeetingsCurrentPanelConfig,
@@ -246,10 +245,8 @@ function WebexMeetings() {
 	const dispatch = useDispatch();
 	const {groupName} = useParams();
 	const {entities, ids} = useSelector(selectGroupsState);
-	const {ids: wmIds, selected: wmSelected} = useSelector(selectWebexMeetingsState);
+	const {selected: wmSelected} = useSelector(selectWebexMeetingsState);
 	const wmEntities = useSelector(selectSyncedWebexMeetingEntities);
-	const webexMeeting2 = wmIds.length? wmEntities[wmIds[0]]: null;
-	console.log(webexMeeting2)
 	const {groupId} = useSelector(selectTeleconsState);
 	const {isSplit} = useSelector(selectWebexMeetingsCurrentPanelConfig);
 	const setIsSplit = React.useCallback((value) => dispatch(setWebexMeetingsCurrentPanelIsSplit(value)), [dispatch]);
@@ -269,20 +266,6 @@ function WebexMeetings() {
 			history.replace(`/webexMeetings/${entities[groupId].name}`);
 		}
 	}, [groupId, groupName, entities, ids, dispatch, history]);
-
-	const groups = React.useMemo(() => {
-		return ids
-			.map(id => entities[id])
-			.filter(group => group.type === 'c' || group.type === 'wg')
-			.sort((groupA, groupB) => groupA.name.localeCompare(groupB.name))
-	}, [entities, ids]);
-
-	async function deleteSelected() {
-		const numbers = wmSelected.map(id => displayMeetingNumber(wmEntities[id].meetingNumber));
-		const ok = await ConfirmModal.show('Are you sure you want to delete ' + numbers.join(', ') + '?');
-		if (ok)
-			dispatch(deleteWebexMeetings(wmSelected))
-	}
 
 	const columns = React.useMemo(() => {
 		function renderActions({rowData}) {
@@ -333,14 +316,11 @@ function WebexMeetings() {
 	return (
 		<>
 			<TopRow>
-				<div style={{display: 'flex'}}>
-					<label>Group:</label>
-					<GroupSelector
-						value={groupId}
-						onChange={handleSetGroupId}
-						options={groups}
-					/>
-				</div>
+				<GroupSelector
+					value={groupId}
+					onChange={handleSetGroupId}
+					types={['c', 'wg']}
+				/>
 				<div style={{display: 'flex'}}>
 					<TableColumnSelector dataSet={dataSet} columns={columns} />
 					<ActionButton
@@ -350,15 +330,8 @@ function WebexMeetings() {
 						onClick={() => setIsSplit(!isSplit)} 
 					/>
 					<ActionButton
-						name='delete'
-						title='Delete selected'
-						isActive={wmSelected.length > 0}
-						onClick={deleteSelected}
-					/>
-					<ActionButton
 						name='copy'
 						title='Copy host keys'
-						isActive={wmSelected.length > 0}
 						onClick={copyHostKeys}
 					/>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
@@ -378,10 +351,7 @@ function WebexMeetings() {
 					/>
 				</Panel>
 				<Panel>
-					<WebexMeetingDetail
-						value={webexMeeting2}
-						onChange={() => {}}
-					/>
+					<WebexMeetingDetail />
 				</Panel>
 			</SplitPanel>
 

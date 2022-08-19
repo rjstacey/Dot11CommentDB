@@ -4,7 +4,7 @@ import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 
 import configureStore from './store'
-import App from './App';
+import App from './app/App';
 import {getUser, logout} from 'dot11-components/lib/user';
 import {fetcher} from 'dot11-components/lib';
 import './index.css';

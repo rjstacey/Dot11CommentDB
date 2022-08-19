@@ -6,7 +6,7 @@ import {Select} from 'dot11-components/form';
 
 import {selectGroupsState} from '../store/groups';
 
-function GroupSelector({
+export function GroupSelector({
 	value,
 	onChange,
 	parent_id,
@@ -20,10 +20,9 @@ function GroupSelector({
 		let groups = ids.map(id => entities[id]);
 		if (types)
 			groups = groups.filter(group => types.includes(group.type));
-		if (parent_id === undefined)
-			return groups;
-		return groups
-			.filter(group => group.id === parent_id || group.parent_id === parent_id);
+		if (parent_id)
+			groups = groups.filter(group => group.id === parent_id || group.parent_id === parent_id);
+		return groups;
 	}, [entities, ids, types, parent_id]);
 
 	const handleChange = React.useCallback((values) => {
@@ -63,7 +62,16 @@ function GroupSelector({
 GroupSelector.propTypes = {
 	value: PropTypes.any,
 	onChange: PropTypes.func.isRequired,
+	parent_id: PropTypes.any,
+	types: PropTypes.array,
+	multi: PropTypes.bool,
 	readOnly: PropTypes.bool,
 }
 
-export default GroupSelector;
+const LabeledGroupSelector = (props) =>
+	<div style={{display: 'flex'}}>
+		<label style={{marginRight: 10}}>Group:</label>
+		<GroupSelector {...props} />
+	</div>
+
+export default LabeledGroupSelector;

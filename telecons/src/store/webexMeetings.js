@@ -90,6 +90,13 @@ const slice = createAppTableDataSlice({
 	selectField: getField,
 	selectEntities: selectSyncedWebexMeetingEntities,
 	initialState: {},
+	extraReducers(builder, dataAdapter) {
+		builder
+			.addMatcher(
+				(action) => action.type === dataSet + '/getPending',
+				(state, action) => dataAdapter.setAll(state, [])
+			)
+	}
 });
 
 /*
@@ -106,7 +113,10 @@ const {
 	getSuccess,
 	getFailure,
 	removeMany,
+	setSelected,
 } = slice.actions;
+
+export {setSelected};
 
 const baseUrl = '/api/webex/meetings';
 

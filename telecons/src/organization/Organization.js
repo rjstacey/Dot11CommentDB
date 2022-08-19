@@ -5,7 +5,18 @@ import {ButtonGroup, ActionButton} from 'dot11-components/form';
 import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, TableColumnSelector} from 'dot11-components/table';
 import {setFilter, clearFilter} from 'dot11-components/store/filters';
 
-import {loadGroups, addGroup, setSelected, selectGroupsState, dataSet, fields, selectGroupsPanelConfig, setGroupsPanelIsSplit} from '../store/groups';
+import {
+	loadGroups,
+	addGroup,
+	setGroupId,
+	setSelected,
+	selectGroupsState,
+	dataSet,
+	fields,
+	selectGroupsPanelConfig,
+	setGroupsPanelIsSplit
+} from '../store/groups';
+
 import {loadOfficers, selectOfficersState, selectGroupOfficers} from '../store/officers';
 import {loadMembers, selectMembersState} from '../store/members';
 
@@ -68,9 +79,7 @@ function Organization(props) {
 		return dispatch(addGroup(group));
 	}
 
-	const {entities, ids, selected} = useSelector(selectGroupsState);
-
-	const [groupId, setGroupId] = React.useState();
+	const {entities, ids, selected, groupId} = useSelector(selectGroupsState);
 
 	function handleSetGroupId(groupId) {
 		if (!groupId) {
@@ -82,7 +91,7 @@ function Organization(props) {
 		}
 		
 		dispatch(setSelected([]));
-		setGroupId(groupId);
+		dispatch(setGroupId(groupId));
 	}
 
 	const committeeId = React.useMemo(() => {
@@ -101,16 +110,13 @@ function Organization(props) {
 	return (
 		<>
 			<div style={{width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-				<div style={{display: 'flex'}}>
-					<label>Group:</label>
-					<GroupSelector
-						value={groupId}
-						onChange={handleSetGroupId}
-						parent_id={committeeId}
-						create={!committeeId}
-						createOption={createCommittee}
-					/>
-				</div>
+				<GroupSelector
+					value={groupId}
+					onChange={handleSetGroupId}
+					parent_id={committeeId}
+					create={!committeeId}
+					createOption={createCommittee}
+				/>
 				<ButtonGroup>
 					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
 					<ActionButton

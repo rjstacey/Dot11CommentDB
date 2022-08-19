@@ -1,12 +1,18 @@
 import React from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import {connect} from 'react-redux';
 import styled from '@emotion/styled';
 
 import {ActionButton, Form, Row, Col, Field, FieldLeft, Input, Checkbox} from 'dot11-components/form';
 import {ConfirmModal} from 'dot11-components/modals';
-import {isMultiple} from 'dot11-components/lib';
+import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple} from 'dot11-components/lib';
 
-import {selectWebexMeetingsState, deleteWebexMeetings} from '../store/webexMeetings';
+import {
+	selectWebexMeetingsState,
+	deleteWebexMeetings,
+	setSelected
+} from '../store/webexMeetings';
+
+import {selectTeleconDefaults} from '../store/telecons';
 
 import WebexAccountSelector from '../components/WebexAccountSelector';
 import WebexTemplateSelector from '../components/WebexTemplateSelector';
@@ -14,11 +20,9 @@ import TopRow from '../components/TopRow';
 
 const MULTIPLE_STR = '(Multiple)';
 
-export function WebexMeetingEdit({
+function WebexMeetingEdit({
 	value,
 	onChange,
-	webexAccountId,
-	onChangeWebexAccountId,
 	readOnly,
 	isNew,
 }) {
@@ -44,9 +48,9 @@ export function WebexMeetingEdit({
 		>
 			<Field label='Webex account'>
 				<WebexAccountSelector
-					value={isMultiple(webexAccountId)? null: webexAccountId}
-					onChange={webexAccountId => onChangeWebexAccountId({webexAccountId})}
-					placeholder={isMultiple(webexAccountId)? MULTIPLE_STR: undefined}
+					value={isMultiple(webexMeeting.webexAccountId)? null: webexMeeting.webexAccountId}
+					onChange={webexAccountId => changeWebexMeeting({webexAccountId})}
+					placeholder={isMultiple(webexMeeting.webexAccountId)? MULTIPLE_STR: undefined}
 					readOnly={readOnly || !isNew}
 				/>
 			</Field>
@@ -55,7 +59,7 @@ export function WebexMeetingEdit({
 					<WebexTemplateSelector
 						value={webexMeeting.templateId}
 						onChange={templateId => changeWebexMeeting({templateId})}
-						accountId={isMultiple(webexAccountId)? null: webexAccountId}
+						accountId={isMultiple(webexMeeting.webexAccountId)? null: webexMeeting.webexAccountId}
 						readOnly={readOnly}
 					/>
 				</Field>}
@@ -128,15 +132,25 @@ export function WebexMeetingEdit({
 	)
 }
 
-function WebexMeetingEntry({value, onChange}) {
+function WebexMeetingEntry({
+	action,
+	entry,
+	onChange,
+	actionAdd,
+	actionUpdate,
+	actionCancel
+}) {
 
-	console.log(value)
 	return (
 		<Form
+			submitLabel={action === 'add'? 'Add': 'Update'}
+			submit={action === 'add'? actionAdd: actionUpdate}
+			cancel={actionCancel}
 		>
 			<WebexMeetingEdit
-				value={value}
+				value={entry}
 				onChange={onChange}
+				isNew={action === 'add'}
 			/>
 		</Form>
 	)
@@ -157,12 +171,89 @@ const NotAvailable = styled.div`
 	color: #bdbdbd;
 `;
 
-function WebexMeetingDetail({value, onChange}) {
-	const dispatch = useDispatch();
-	const {loading, selected} = useSelector(selectWebexMeetingsState);
+const defaultWebexMeeting = {
+	password: 'wireless',
+	enabledJoinBeforeHost: true,
+	joinBeforeHostMinutes: 10,
+	enableConnectAudioBeforeHost: true,
+	meetingOptions: {
+		enabledChat: true,
+		enabledVideo: true,
+		enabledNote: false,
+		enabledClosedCaptions: true,
+		enabledFileTransfer: false
+	}
+}
 
-	const clickDelete = React.useCallback(async () => {
+function addWebexMeeting(webexMeeting) {
+	console.log('add: ', webexMeeting);
+	return Promise.resolve('ok')
+}
+
+function updateWebexMeetings(webexMeeting) {
+	console.log('update: ', webexMeeting);
+	return Promise.resolve('ok')
+}
+
+class WebexMeetingDetail extends React.Component {
+
+	constructor(props) {
+		super(props);
+		this.state = this.initState('update');
+	}
+
+	initState = (action) => {
+		const {entities, selected, defaults} = this.props;
+
 		const ids = selected;
+		let entry;
+		if (ids.length > 0) {
+			entry = ids.reduce((entry, id) => deepMergeTagMultiple(entry, entities[id]), {});
+			if (action === 'add') {
+				delete entry.id;
+				entry.isCancelled = false;
+				entry.timezone = defaults.timezone;
+				entry.calendarAccountId = defaults.calendarAccountId;
+				entry.webexAccountId = defaults.webexAccountId;
+				entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webex_template_id};
+			}
+		}
+		else {
+			entry = {
+				...defaultWebexMeeting,
+				webexAccountId: defaults.webexAccountId,
+				templateId: defaults.webex_template_id
+			};
+		}
+
+		return {
+			action,
+			entry,
+			ids
+		}
+	}
+
+	clickAdd = async () => {
+		const {setSelected} = this.props;
+		const {action} = this.state;
+
+		console.log('clickAdd')
+		if (action === 'update') {
+			const updates = this.getUpdates();
+			if (updates.length > 0) {
+				const ok = await ConfirmModal.show(`Changes not applied! Do you want to discard changes?`);
+				if (!ok)
+					return;
+			}
+		}
+		if (action !== 'add') {
+			this.setState(this.initState('add'));
+			setSelected([]);
+		}
+	}
+
+	clickDelete = async () => {
+		const ids = this.props.selected;
 		const ok = await ConfirmModal.show(
 			'Are you sure you want to delete the ' + 
 				(ids.length > 1?
@@ -171,43 +262,137 @@ function WebexMeetingDetail({value, onChange}) {
 		);
 		if (!ok)
 			return;
-		await dispatch(deleteWebexMeetings(ids));
-	}, [selected, dispatch]);
+		await this.props.deleteWebexMeetings(ids);
+	}
 
-	let notAvailableStr = '';
-	if (loading)
-		notAvailableStr = 'Loading...';
-	else if (selected.length === 0)
-		notAvailableStr = 'Nothing selected';
+	changeEntry = (changes) => {
+		const {action} = this.state;
+		if (action === 'view') {
+			console.warn("Update when read-only");
+			return;
+		}
+		this.setState(state => {
+			const entry = deepMerge(state.entry, changes);
+			return {...state, entry}
+		});
+	}
 
-	return (
-		<Container>
-			<TopRow>
-				<ActionButton
-					name='add'
-					title='Add as telecon'
-					disabled={loading}
-				/>
-				<ActionButton
-					name='delete'
-					title='Link to telecon'
-					disabled={loading || selected.length === 0}
-				/>
-				<ActionButton
-					name='delete'
-					title='Delete webex meeting'
-					disabled={loading || selected.length === 0}
-					onClick={clickDelete}
-				/>
-			</TopRow>
-			{notAvailableStr?
-				<NotAvailable>{notAvailableStr}</NotAvailable>:
-				<WebexMeetingEntry
-					value={value}
-					onChange={() => {}}
-				/>}
-		</Container>
-	)
+	getUpdates = () => {
+		let {entry, ids} = this.state;
+		const {entities} = this.props;
+
+		console.log('getUpdates')
+		const collapsed = ids.reduce((entry, id) => deepMergeTagMultiple(entry, entities[id]), {});
+		
+		// Find differences
+
+		const updates = [];
+		for (const id of ids) {
+			const changes = deepDiff(collapsed, entry);
+			console.log(changes)
+			if (Object.keys(changes).length > 0)
+				updates.push({id, changes});
+		}
+		return updates;
+	}
+
+	add = async () => {
+		const {setSelected} = this.props;
+		const {entry} = this.state;
+
+		let errMsg = '';
+		if (entry.dates.length === 0)
+			errMsg = 'Date(s) not set';
+		else if (!entry.time)
+			errMsg = 'Start time not set'
+		else if (!entry.duration)
+			errMsg = 'Duration not set';
+		else if (!entry.timezone)
+			errMsg = 'Time zone not set';
+		else if (entry.webexMeeting && !entry.webexAccountId)
+			errMsg = 'Must select Webex account to schedule webex meeting';
+
+		if (errMsg) {
+			ConfirmModal.show(errMsg, false);
+			return;
+		}
+
+		addWebexMeeting(entry)
+			.then(ids => setSelected(ids))
+			.then(() => this.setState(this.initState('update')));
+	}
+
+	update = async () => {
+		//const {updateTelecons} = this.props;
+
+		const updates = this.getUpdates();
+		console.log(updates)
+		await updateWebexMeetings(updates);
+		this.setState(this.initState('update'));
+	}
+
+	cancel = () => {
+		this.setState(this.initState('update'));
+	}
+
+	render() {
+		const {loading, selected} = this.props;
+		const {action, entry} = this.state;
+
+		let notAvailableStr = '';
+		if (loading)
+			notAvailableStr = 'Loading...';
+		else if (action === 'update' && selected.length === 0)
+			notAvailableStr = 'Nothing selected';
+
+		return (
+			<Container>
+				<TopRow style={{justifyContent: 'flex-end'}}>
+					<ActionButton
+						name='add'
+						title='Add Webex meeting'
+						disabled={loading}
+						onClick={this.clickAdd}
+					/>
+					<ActionButton
+						name='link'
+						title='Link to telecon'
+						disabled={loading || selected.length === 0}
+					/>
+					<ActionButton
+						name='delete'
+						title='Delete webex meeting'
+						disabled={loading || selected.length === 0}
+						onClick={this.clickDelete}
+					/>
+				</TopRow>
+				{notAvailableStr?
+					<NotAvailable>{notAvailableStr}</NotAvailable>:
+					<WebexMeetingEntry
+						action={action}
+						entry={entry}
+						onChange={this.changeEntry}
+						webexAccountId={entry.webexAccountId}
+						actionAdd={this.add}
+						actionUpdate={this.update}
+						actionCancel={this.cancel}
+					/>}
+			</Container>
+		)
+	}
 }
 
-export default WebexMeetingDetail;
+const ConnectedWebexMeetingDetail = connect(
+	(state) => ({
+		loading: selectWebexMeetingsState(state).loading,
+		selected: selectWebexMeetingsState(state).selected,
+		entities: selectWebexMeetingsState(state).entities,
+		defaults: selectTeleconDefaults(state),
+	}),
+	{
+		deleteWebexMeetings,
+		setSelected,
+	}
+)(WebexMeetingDetail);
+
+export default ConnectedWebexMeetingDetail;

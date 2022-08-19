@@ -73,7 +73,12 @@ export const dataSet = 'groups';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	initialState: {},
+	initialState: {groupId: null},
+	reducers: {
+		setGroupId(state, action) {
+			state.groupId = action.payload;
+		}
+	},
 	extraReducers: (builder, dataAdapter) => {
 		builder
 		.addMatcher(
@@ -125,9 +130,21 @@ export const selectGroupHierarchy = createSelector(
  */
 export const setGroupsPanelIsSplit = (value) => setPanelIsSplit(dataSet, undefined, value);
 
-const {getPending, getSuccess, getFailure, addOne, addMany, updateOne, updateMany, removeOne, removeMany, setSelected} = slice.actions;
+const {
+	getPending,
+	getSuccess,
+	getFailure,
+	addOne,
+	addMany,
+	updateOne,
+	updateMany,
+	removeOne,
+	removeMany,
+	setSelected,
+	setGroupId
+} = slice.actions;
 
-export {setSelected};
+export {setSelected, setGroupId};
 
 const url = '/api/groups';
 

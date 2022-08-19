@@ -73,8 +73,6 @@
 	color:  black;
 }
 
-.online-indicator,
-.live-update,
 .account {
 	padding: 0 5px;
 }
@@ -98,33 +96,4 @@
 /* Change the background color of the dropdown button when the dropdown content is shown */
 .nav-button:hover {
 	background-color: #3e484e66;
-}
-
-/* Submenu (hidden by default) */
-.nav-submenu {
-	display: none;
-	position: absolute;
-	background-color: #f9f9f9;
-	min-width: 200px;
-	box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-	z-index: 1;
-}
-
-/* Show the submenu on hover (mouse) or focus (keyboard tabbing) */
-.nav-submenu.visible {
-	display: block;
-}
-
-/* Links inside the dropdown */
-.nav-submenu a {
-	color: black;
-	padding: 12px 16px;
-	text-decoration: none;
-	display: block;
-}
-
-
-/* Change color of submenu links on hover */
-.nav-submenu a:hover {
-	background-color: #3e484ea0
 }

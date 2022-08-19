@@ -1,37 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import styled from '@emotion/styled';
 
 import {Select} from 'dot11-components/form';
-import {Icon} from 'dot11-components/icons';
 import {strComp} from 'dot11-components/lib';
 
 import {loadMembers, selectMembersState} from '../store/members';
-
-const StyledItem = styled.div`
-	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
-	display: flex;
-	align-items: center;
-	${({ isSelected }) => isSelected? 'color: #fff; background: #0074d9;': 'color: #555; :hover {background: #f2f2f2;}'}
-	& > span {
-		margin: 5px 10px;
-	}
-`;
-
-const renderItem = ({item, style, props, state, methods}) => (
-	<StyledItem
-		key={item.value}
-		style={style}
-		onClick={(e) => {methods.addItem(item)}}
-		isSelected={methods.isSelected(item)}
-	>
-		<Icon name='user-check' />
-		<span>{item.label}</span>
-	</StyledItem>
-);
 
 function MemberSelector({
 	value,		// value is SAPIN
@@ -45,7 +19,7 @@ function MemberSelector({
 	React.useEffect(() => {
 		if (!valid && !loading && !readOnly)
 			dispatch(loadMembers());
-	}, [dispatch, valid, loading, readOnly]);
+	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
 
 	const options = React.useMemo(() => {
 		// Produce a unique set of SAPIN/Name mappings. If there is no SAPIN then the name is the key.
@@ -55,23 +29,17 @@ function MemberSelector({
 		return userOptions;
 	}, [userEntities, userIds]);
 
-	function handleChange(values) {
-		const newValue = values.length > 0? values[0].value: 0;
-		if (newValue !== value)
-			onChange(newValue);
-	}
-
-	const optionSelected = options.find(o => o.value === value);
+	const values = options.filter(o => o.value === value);
+	const handleChange = (values) => onChange(values.length > 0? values[0].value: 0);
 
 	return (
 		<Select
-			values={optionSelected? [optionSelected]: []}
+			values={values}
 			onChange={handleChange}
 			options={options}
 			loading={loading}
 			create
 			clearable
-			itemRenderer={renderItem}
 			readOnly={readOnly}
 			portal={document.querySelector('#root')}
 			{...otherProps}
@@ -80,7 +48,7 @@ function MemberSelector({
 }
 
 MemberSelector.propTypes = {
-	value: PropTypes.number.isRequired,
+	value: PropTypes.number,
 	onChange: PropTypes.func.isRequired,
 	readOnly: PropTypes.bool,
 }

@@ -31,7 +31,7 @@ function renderWebexMeeting({rowData}) {
 	const {webexAccountId, webexAccountName, webexMeeting} = rowData;
 	if (!webexAccountId || !webexMeeting)
 		return 'None';
-	return rowData.webexAccountName + ': ' + displayMeetingNumber(webexMeeting.meetingNumber);
+	return webexAccountName + ': ' + displayMeetingNumber(webexMeeting.meetingNumber);
 }
 
 function renderImatMeeting({rowData}) {
@@ -158,13 +158,6 @@ function Telecons(props) {
 		}
 	}, [groupId, groupName, entities, ids, dispatch, history]);
 
-	const groups = React.useMemo(() => {
-		return ids
-			.map(id => entities[id])
-			.filter(group => group.type === 'c' || group.type === 'wg')
-			.sort((groupA, groupB) => groupA.name.localeCompare(groupB.name))
-	}, [entities, ids]);
-
 	function handleSetGroupId(groupId) {
 		dispatch(removeTelecons());
 		if (groupId) {
@@ -182,14 +175,11 @@ function Telecons(props) {
 	return (
 		<>
 			<TopRow>
-				<div style={{display: 'flex'}}>
-					<label>Group:</label>
-					<GroupSelector
-						value={groupId}
-						onChange={handleSetGroupId}
-						options={groups}
-					/>
-				</div>
+				<GroupSelector
+					value={groupId}
+					onChange={handleSetGroupId}
+					types={['c', 'wg']}
+				/>
 				<ActionButtonDropdown label='Set Defaults'>
 					<TeleconDefaults
 						groupId={groupId}

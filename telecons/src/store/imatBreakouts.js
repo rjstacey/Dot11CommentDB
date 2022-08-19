@@ -77,9 +77,20 @@ export const selectSyncedBreakoutEntities = createSelector(
 		}, {})
 );
 
+const sortComparer = (a, b) => {
+	// Sort by start
+	const v1 = DateTime.fromISO(a.start).toMillis() - DateTime.fromISO(b.start).toMillis();
+	if (v1 === 0) {
+		// If equal, sort by end
+		return DateTime.fromISO(a.end).toMillis() - DateTime.fromISO(b.end).toMillis();
+	}
+	return v1;
+}
+
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
+	sortComparer,
 	selectField: getField,
 	selectEntities: selectSyncedBreakoutEntities,
 	initialState: {

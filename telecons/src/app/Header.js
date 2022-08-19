@@ -15,6 +15,11 @@ const fullMenu = [
 	},
 	{
 		minAccess: AccessLevel.WGAdmin,
+		link: '/accounts',
+		label: 'Accounts',
+	},
+	{
+		minAccess: AccessLevel.WGAdmin,
 		link: '/telecons',
 		label: 'Telecons',
 	},
@@ -81,7 +86,7 @@ function Header({user, access}) {
 					dropdownRenderer={(props) => <NavMenu className='nav-menu-vertical' access={access} {...props} />}
 					dropdownAlign='left'
 				/>:
-				<div className='title'>802.11 CR</div>
+				<div className='title'>Telecons</div>
 			}
 			<div className='nav-menu-container'>
 				{isSmall?

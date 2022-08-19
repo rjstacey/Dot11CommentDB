@@ -34,6 +34,9 @@ const slice = createSlice({
 		removeOne(state, action) {
 			dataAdapter.removeOne(state, action.payload);
 		},
+		setOne(state, action) {
+			dataAdapter.setOne(state, action.payload);
+		},
 	},
 });
 
@@ -51,17 +54,27 @@ export default slice.reducer;
 /*
  * Actions
  */
-const {getPending, getSuccess, getFailure} = slice.actions;
+const {
+	getPending,
+	getSuccess,
+	getFailure,
+	updateOne,
+	addOne,
+	removeOne,
+	setOne,
+} = slice.actions;
+
+const webexAuthUrl = '/api/webex/auth';
+const webexAccountsUrl = '/api/webex/accounts';
 
 export const loadWebexAccounts = () => 
 	async (dispatch, getState) => {
 		dispatch(getPending());
-		const url = '/api/webex/accounts';
 		let telecons;
 		try {
-			telecons = await fetcher.get(url);
+			telecons = await fetcher.get(webexAccountsUrl);
 			if (!Array.isArray(telecons))
-				throw new TypeError(`Unexpected response to GET ${url}`);
+				throw new TypeError(`Unexpected response to GET ${webexAccountsUrl}`);
 		}
 		catch(error) {
 			await dispatch(getFailure());
@@ -71,17 +84,15 @@ export const loadWebexAccounts = () =>
 		await dispatch(getSuccess(telecons));
 	}
 
-const {updateOne} = slice.actions;
-
 export const updateWebexAccount = (id, changes) =>
 	async (dispatch) => {
 		await dispatch(updateOne({id, changes}));
-		const url = `/api/webex/account/${id}`;
+		const url = `${webexAccountsUrl}/${id}`;
 		let updates;
 		try {
 			updates = await fetcher.patch(url, changes);
 			if (typeof updates !== 'object')
-				throw new TypeError('Unexpected response to PATCH: ' + url);
+				throw new TypeError('Unexpected response to PATCH ' + url);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to update webex account`, error));
@@ -90,16 +101,13 @@ export const updateWebexAccount = (id, changes) =>
 		await dispatch(updateOne({id, updates}));
 	}
 
-const {addOne} = slice.actions;
-
 export const addWebexAccount = (account) =>
 	async (dispatch) => {
-		const url = `/api/webex/account`;
 		let newAccount;
 		try {
-			newAccount = await fetcher.post(url, account);
+			newAccount = await fetcher.post(webexAccountsUrl, account);
 			if (typeof newAccount !== 'object')
-				throw new TypeError('Unexpected response to POST: ' + url);
+				throw new TypeError('Unexpected response to POST ' + webexAccountsUrl);
 		}
 		catch(error) {
 			await dispatch(setError('Unable to add webex account', error));
@@ -108,13 +116,11 @@ export const addWebexAccount = (account) =>
 		dispatch(addOne(newAccount));
 	}
 
-const {removeOne} = slice.actions;
-
 export const deleteWebexAccount = (id) =>
 	async (dispatch) => {
 		await dispatch(removeOne(id));
 		try {
-			const url = `/api/webex/account/${id}`;
+			const url = `${webexAccountsUrl}/${id}`;
 			await fetcher.delete(url);
 		}
 		catch(error) {
@@ -122,18 +128,17 @@ export const deleteWebexAccount = (id) =>
 		}
 	}
 
-export const authWebexAccount = (id, code, redirect_uri) =>
+export const completeAuthWebexAccount = (params) =>
 	async (dispatch) => {
-		let updates;
+		let account;
 		try {
-			const url = `/api/webex/auth/${id}`;
-			updates = await fetcher.post(url, {code, redirect_uri});
-			if (typeof updates !== 'object')
-				throw new TypeError('Unexpected response to POST: ' + url);
+			account = await fetcher.post(webexAuthUrl, params);
+			if (typeof account !== 'object')
+				throw new TypeError('Unexpected response to POST ' + webexAuthUrl);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to authorize webex account`, error));
 			return;
 		}
-		await dispatch(updateOne({id, updates}));
+		await dispatch(setOne(account));
 	}

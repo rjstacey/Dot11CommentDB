@@ -19,7 +19,7 @@ const MainIframe = styled.iframe`
 function Calendar() {
 	const dispatch = useDispatch();
 	const {entities, valid, loading} = useSelector(selectCalendarAccountsState);
-	const {entities: groupEntities, ids: groupIds} = useSelector(selectGroupsState);
+	const {entities: groupEntities} = useSelector(selectGroupsState);
 	const history = useHistory();
 	const {groupId} = useSelector(selectTeleconsState);
 
@@ -27,13 +27,6 @@ function Calendar() {
 		if (!valid && !loading)
 			dispatch(loadCalendarAccounts());
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-	const groups = React.useMemo(() => {
-		return groupIds
-			.map(id => groupEntities[id])
-			.filter(group => group.type === 'c' || group.type === 'wg')
-			.sort((groupA, groupB) => groupA.name.localeCompare(groupB.name))
-	}, [groupEntities, groupIds]);
 
 	const calendarLink = React.useMemo(() => {
 		for (const account of Object.values(entities)) {
@@ -68,14 +61,11 @@ function Calendar() {
 	return (
 		<>
 			<TopRow>
-				<div style={{display: 'flex'}}>
-					<label>Group:</label>
-					<GroupSelector
-						value={groupId}
-						onChange={handleSetGroupId}
-						options={groups}
-					/>
-				</div>
+				<GroupSelector
+					value={groupId}
+					onChange={handleSetGroupId}
+					types={['c', 'wg']}
+				/>
 			</TopRow>
 			<MainIframe 
 				title='Google calendar'
