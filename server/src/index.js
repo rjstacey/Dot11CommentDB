@@ -16,12 +16,27 @@ async function initDatabase() {
 }
 
 async function initServices() {
-	console.log('init users...');
-	await require('./auth/users').init();
-	console.log('init webex...');
-	await require('./services/webex').init();
-	console.log('init calendar...');
-	await require('./services/calendar').init();
+	try {
+		console.log('init users...');
+		await require('./auth/users').init();
+	}
+	catch (error) {
+		console.error('init users failed', error);
+	}
+	try {
+		console.log('init webex...');
+		await require('./services/webex').init();
+	}
+	catch (error) {
+		console.error('init webex failed', error);
+	}
+	try {
+		console.log('init calendar...');
+		await require('./services/calendar').init();
+	}
+	catch (error) {
+		console.error('init calendar failed', error);
+	}
 	console.log('init services complete');
 }
 

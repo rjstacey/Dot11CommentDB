@@ -16,8 +16,6 @@ import {
 	deleteTelecons,
 	addWebexMeetingToTelecons,
 	removeWebexMeetingFromTelecons,
-	syncTeleconsWithWebex,
-	syncTeleconsWithCalendar
 } from '../services/telecons'
 
 const router = require('express').Router();
@@ -59,28 +57,6 @@ router.delete('/webexMeeting$', async (req, res, next) => {
 		if (!Array.isArray(telecons))
 			throw 'Missing or bad body; expected array';
 		const data = await removeWebexMeetingFromTelecons(telecons);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.patch('/syncWebex$', async (req, res, next) => {
-	try {
-		const ids = req.body;
-		if (!Array.isArray(ids))
-			throw 'Missing or bad body; expected array';
-		const data = await syncTeleconsWithWebex(ids);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.patch('/syncCalendar$', async (req, res, next) => {
-	try {
-		const ids = req.body;
-		if (!Array.isArray(ids))
-			throw 'Missing or bad body; expected array';
-		const data = await syncTeleconsWithCalendar(ids);
 		res.json(data);
 	}
 	catch(err) {next(err)}

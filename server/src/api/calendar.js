@@ -2,7 +2,9 @@
  * Google calendar accounts API
  */
 import {
-	authCalendarAccount,
+	getAuthCalendarAccount,
+	completeAuthCalendarAccount,
+	revokeAuthCalendarAccount,
 	getCalendarAccounts,
 	updateCalendarAccount,
 	addCalendarAccount,
@@ -12,13 +14,31 @@ import {
 
 const router = require('express').Router();
 
-router.post('/auth/:id', async (req, res, next) => {
+router.get('/auth/:id', async (req, res, next) => {
 	try {
 		const {id} = req.params;
-		const entry = req.body;
-		if (typeof entry !== 'object')
-			throw 'Missing or bad body; expected object';
-		const data = await authCalendarAccount(id, entry);
+		const params = req.query;
+		const data = await getAuthCalendarAccount(id, params);
+		res.json(data);
+	}
+	catch (err) {next(err)}
+});
+
+router.post('/auth', async (req, res, next) => {
+	try {
+		const params = req.body;
+		if (typeof params !== 'object')
+			throw new Error('Missing or bad body; expected object');
+		const data = await completeAuthCalendarAccount(params);
+		res.json(data);
+	}
+	catch (err) {next(err)}
+});
+
+router.delete('/auth/:id', async (req, res, next) => {
+	try {
+		const {id} = req.params;
+		const data = await revokeAuthCalendarAccount(id);
 		res.json(data);
 	}
 	catch (err) {next(err)}
@@ -32,7 +52,7 @@ router.get('/accounts', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.patch('/account/:id', async (req, res, next) => {
+router.patch('/accounts/:id', async (req, res, next) => {
 	try {
 		const {id} = req.params;
 		const changes = req.body;
@@ -44,7 +64,7 @@ router.patch('/account/:id', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.post('/account', async (req, res, next) => {
+router.post('/accounts', async (req, res, next) => {
 	try {
 		const {id} = req.params;
 		const entry = req.body;
@@ -56,7 +76,7 @@ router.post('/account', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.delete('/account/:id', async (req, res, next) => {
+router.delete('/accounts/:id', async (req, res, next) => {
 	try {
 		const {id} = req.params;
 		const data = await deleteCalendarAccount(id);

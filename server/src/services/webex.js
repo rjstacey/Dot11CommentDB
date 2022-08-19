@@ -18,8 +18,19 @@ const webexAuthScope = [
 	"meeting:schedules_write"
 ].join(' ');
 
+const webexAuthRedirectUri = process.env.NODE_ENV === 'development'?
+	'http://localhost:3000/telecons/webex/auth':
+	'https://802tools.org/telecons/webex/auth';
+
 // Webex account apis
 const apis = {};
+
+function getWebexApi(id) {
+	const api = apis[id];
+	if (!api)
+		throw new Error(`Invalid account id=${id}`);
+	return api;
+}
 
 function createWebexApi(id, authParams) {
 	// Create axios instance with appropriate defaults
@@ -48,7 +59,7 @@ function createWebexApi(id, authParams) {
 				};
 				const response = await axios.post(webexTokenUrl, params);
 				const authParams = response.data;
-				await updateWebexAccountAuthParams(id, authParams);
+				await updateAuthParams(id, authParams);
 				api.defaults.refresh_token = authParams.refresh_token;
 				api.defaults.headers['Authorization'] = `Bearer ${authParams.access_token}`;
 
@@ -63,7 +74,11 @@ function createWebexApi(id, authParams) {
 	apis[id] = api;
 }
 
-function updateWebexAccountAuthParams(id, authParams) {
+function deleteWebexApi(id) {
+	delete apis[id];
+}
+
+function updateAuthParams(id, authParams) {
 	return db.query('UPDATE oauth_accounts SET authParams=?, authDate=NOW() WHERE id=?', [JSON.stringify(authParams), id]);
 }
 
@@ -86,12 +101,7 @@ async function getAccounts(constraints) {
 	const accounts = await db.query(sql);
 
 	for (const account of accounts) {
-		account.auth_url = webexAuthUrl;
-		account.auth_params = {
-			client_id: process.env.WEBEX_CLIENT_ID,
-			response_type: 'code',
-			scope: webexAuthScope
-		};
+		account.authUrl = getAuthWebexAccount(account.id);
 		try {
 			account.templates = await getWebexTemplates(account.id);
 		}
@@ -103,19 +113,36 @@ async function getAccounts(constraints) {
 	return accounts;
 }
 
-export async function authWebexAccount(id, entry) {
-	const params = {
+/*
+ * Get the URL for authorizing webex access
+ * @id {number} Webex account identifier
+ */
+export function getAuthWebexAccount(id) {
+	return webexAuthUrl +
+		'?' + new URLSearchParams({
+				client_id: process.env.WEBEX_CLIENT_ID,
+				response_type: 'code',
+				scope: webexAuthScope,
+				redirect_uri: webexAuthRedirectUri,
+				state: id,
+			});
+}
+
+export async function completeAuthWebexAccount(params) {
+	const {state, code} = params;
+	const id = parseInt(state);
+	params = {
 		grant_type: 'authorization_code',
 		client_id: process.env.WEBEX_CLIENT_ID,
 		client_secret: process.env.WEBEX_CLIENT_SECRET,
-		code: entry.code,
-		redirect_uri: entry.redirect_uri
+		code: code,
+		redirect_uri: webexAuthRedirectUri
 	};
 
 	const response = await axios.post(webexTokenUrl, params);
 	const authParams = response.data;
 
-	await updateWebexAccountAuthParams(id, authParams);
+	await updateAuthParams(id, authParams);
 
 	// Create an axios instance for this account
 	createWebexApi(id, authParams);
@@ -125,8 +152,8 @@ export async function authWebexAccount(id, entry) {
 }
 
 
-export async function getWebexAccounts() {
-	return await getAccounts({type: "webex"});
+export function getWebexAccounts() {
+	return getAccounts({type: "webex"});
 }
 
 function accountEntry(s) {
@@ -165,34 +192,37 @@ export async function updateWebexAccount(id, entry) {
 
 export async function deleteWebexAccount(id) {
 	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=?', [id]);
-	delete apis[id];
+	deleteWebexApi(id);
 	return affectedRows;
 }
 
+function webexApiError(error) {
+	const {response, code} = error;
+	if (response && code >= 400 && code < 500) {
+		const {message, errors} = response.data;
+		console.error(message, errors);
+		const description = `${message}\n` + errors.join('\n');
+		throw new Error(`Webex API error ${code}`, {description});
+	}
+	throw new Error(error);
+}
+
 async function getWebexTemplates(id) {
-	const api = apis[id];
-	if (!api)
-		throw new Error(`Invalid account id=${id}`);
-	let response = await api.get(`/meetings/templates`, {params: {templateType: "meeting"}});
-	//console.log(response.data)
-	let templates = response.data.items;
-	return templates;
+	const api = getWebexApi(id);
+	return api.get(`/meetings/templates`, {params: {templateType: "meeting"}})
+		.then(response => response.data.items)
+		.catch(webexApiError);
 }
 
 export async function getWebexMeetings(groupId) {
 	let allMeetings = [];
 	const accounts = await getWebexAccounts();
 	for (const account of accounts) {
-		console.log(account)
 		if (account.groups && !account.groups.includes(groupId))
 			continue;
-		console.log('got', groupId)
-		const api = apis[account.id];
-		if (!api)
-			throw new Error(`Invalid account id=${id}`);
-		const meetingType = 'scheduledMeeting';
-		const state = 'scheduled';
-		let from = new Date();
+		const api = getWebexApi(account.id);
+
+		const from = new Date();
 		const to = new Date(from.getFullYear() + 1, from.getMonth(), from.getDate());
 		const params = {
 			meetingType: 'scheduledMeeting',
@@ -200,91 +230,48 @@ export async function getWebexMeetings(groupId) {
 			to: to.toISOString(),
 			max: 100
 		}
-		let response;
-		try {
-			response = await api.get('/meetings', {params});
-		}
-		catch(error) {
-			if (error.response) {
-				if (error.response.data)
-					console.log(error.response.data.message, error.response.data.errors);
-				else
-					console.log(error.response);
-			}
-			else
-				console.log(error)
-			throw Error("can't get meetings")
-		}
-		console.log(response.config.params)
+		const response = await api.get('/meetings', {params}).catch(webexApiError);
+
+		//console.log(response.config.params)
 		let meetings = response.data.items;
 		meetings = meetings.map(m => ({...m, groupId, webexAccountId: account.id, webexAccountName: account.name}));
 		allMeetings = allMeetings.concat(meetings);
 	}
-	console.log(allMeetings.map(m => `Title: ${m.title}\t\tStart: ${m.start}`));
+	//console.log(allMeetings.map(m => `Title: ${m.title}\t\tStart: ${m.start}`));
 	return allMeetings;
 }
 
 export async function getWebexMeeting(id, meetingId) {
-	const api = apis[id];
-	if (!api)
-		throw new Error(`Invalid account id=${id}`);
-	let response = await api.get(`/meetings/${meetingId}`)
-	return response.data;
+	const api = getWebexApi(id);
+	return api.get(`/meetings/${meetingId}`)
+		.then(response => response.data)
+		.catch(webexApiError);
 }
 
 export async function addWebexMeeting(id, params) {
-	const api = apis[id];
-	if (!api)
-		throw new Error(`Invalid account id=${id}`);
-	let response;
-	try {
-		response = await api.post('/meetings', params);
-	}
-	catch (error) {
-		if (error.response && error.response.status === 400) {
-			const {message, errors} = error.response.data;
-			console.error(message, errors);
-			const description = `${message}\n` + errors.join('\n');
-			throw new Error('Bad response', {description});
-		}
-		throw error;
-	}
-	return response.data;
+	const api = getWebexApi(id);
+	return api.post('/meetings', params)
+		.then(response => response.data)
+		.catch(webexApiError);
 }
 
 export async function updateWebexMeeting(id, meetingId, params) {
-	const api = apis[id];
-	if (!api)
-		throw new Error(`Invalid account id=${id}`);
-	let response;
-	try {
-		response = await api.put(`/meetings/${meetingId}`, params);
-	}
-	catch (error) {
-		if (error.response && error.response.status === 400) {
-			const {message, errors} = error.response.data;
-			console.error(message, errors);
-			const description = `${message}\n` + errors.join('\n');
-			throw new Error('Bad response', {description});
-		}
-		throw error;
-	}
-	return response.data;
+	const api = getWebexApi(id);
+	return api.put(`/meetings/${meetingId}`, params)
+		.then(response => response.data)
+		.catch(webexApiError);
 }
 
 export async function deleteWebexMeeting(id, meetingId) {
-	const api = apis[id];
-	if (!api)
-		throw new Error(`Invalid account id=${id}`);
-	const response = await api.delete(`/meetings/${meetingId}`);
-	return response.data;
+	const api = getWebexApi(id);
+	return api.delete(`/meetings/${meetingId}`)
+		.then(response => response.data)
+		.catch(webexApiError);
 }
 
 export async function deleteWebexMeetings(meetings) {
 	for (const m of meetings) {
-		const api = apis[m.accountId];
-		if (!api)
-			throw new Error(`Invalid account id=${id}`);
+		getWebexApi(m.accountId);
 		if (!m.meetingId)
 			throw new Error('Missing meetingId');
 	}

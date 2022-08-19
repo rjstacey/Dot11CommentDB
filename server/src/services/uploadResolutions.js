@@ -299,7 +299,7 @@ async function updateComments(userId, ballot_id, matched, toUpdate) {
 			const id = c.id;
 			delete c.id;
 			c.LastModifiedBy = userId;
-			return db.format('UPDATE comments SET ?, LastModifiedTime=NOW() WHERE id=UUID_TO_BIN(?)', [c, id]);
+			return db.format('UPDATE comments SET ?, LastModifiedTime=NOW() WHERE id=?', [c, id]);
 		})
 		.concat(
 			updateResolutions.map(r => {

@@ -3,7 +3,7 @@
  */
 
 import {
-	authWebexAccount,
+	completeAuthWebexAccount,
 	getWebexAccounts,
 	updateWebexAccount,
 	addWebexAccount,
@@ -14,13 +14,12 @@ import {
 
 const router = require('express').Router();
 
-router.post('/auth/:id', async (req, res, next) => {
+router.post('/auth', async (req, res, next) => {
 	try {
-		const {id} = req.params;
-		const entry = req.body;
-		if (typeof entry !== 'object')
+		const params = req.body;
+		if (typeof params !== 'object')
 			throw new Error('Missing or bad body; expected object');
-		const data = await authWebexAccount(id, entry);
+		const data = await completeAuthWebexAccount(params);
 		res.json(data);
 	}
 	catch (err) {next(err)}
@@ -34,7 +33,7 @@ router.get('/accounts', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.patch('/account/:id', async (req, res, next) => {
+router.patch('/accounts/:id', async (req, res, next) => {
 	try {
 		const {id} = req.params;
 		const changes = req.body;
@@ -46,7 +45,7 @@ router.patch('/account/:id', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.post('/account', async (req, res, next) => {
+router.post('/accounts', async (req, res, next) => {
 	try {
 		const entry = req.body;
 		if (typeof entry !== 'object')
@@ -57,7 +56,7 @@ router.post('/account', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.delete('/account/:id', async (req, res, next) => {
+router.delete('/accounts/:id', async (req, res, next) => {
 	try {
 		const {id} = req.params;
 		const data = await deleteWebexAccount(id);
