@@ -6,6 +6,7 @@ import { DateTime, Duration } from 'luxon';
 import cheerio from 'cheerio';
 import { csvParse, AuthError, NotFoundError } from '../utils';
 import { getTelecons, updateTelecon } from './telecons';
+import { getGroups } from './groups';
 
 const FormData = require('form-data');
 
@@ -148,7 +149,6 @@ export async function getImatMeetings(user, n) {
 	return await recursivePageGet([], n, 1);*/
 
 	const response = await ieeeClient.get(`https://imat.ieee.org/${user.Email}/meeting.csv`, {responseType: 'arraybuffer'});
-
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 
@@ -258,7 +258,7 @@ export async function getImatCommittees(user, group) {
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const response = await ieeeClient.get(`https://imat.ieee.org/${group}/committees.csv`, {responseType: 'text/csv'});
+	const response = await ieeeClient.get(`https://imat.ieee.org/${group}/committees.csv`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 
@@ -273,14 +273,14 @@ const breakoutsCvsHeader = [
 	'Event Day', 'Facilitator Web Id'
 ];
 
-export function parseImatBreakoutsPage(body) {
+export function parseImatSessionDetailsPage(body) {
 	const $ = cheerio.load(body);
-	let m;
+	let m, rx;
 
 	// If we get the "Session detail" page then parse the data table
 	// (use cheerio, which provides jQuery-like parsing)
 	if ($('div.title').length && $('div.title').html() == "Session detail") {
-		console.log('Got Session detail page');
+		//console.log('Got Session detail page');
 		m = body.match(/<td>(.*) Time Zone<\/td>/);
 		if (!m)
 			throw Error("Can't find timezone");
@@ -291,6 +291,7 @@ export function parseImatBreakoutsPage(body) {
 		const sessionStart = DateTime.fromFormat(m[1], 'dd-MMM-yyyy', {zone: timezone});
 		const breakouts = [];
 		const timeslots = {};
+		let editBreakoutContext = '';
 		$('.b_data_row').each(function(index) {  // each table data row
 			var tds = $(this).find('td');
 			//console.log(tds.length)
@@ -308,8 +309,10 @@ export function parseImatBreakoutsPage(body) {
 			}
 			if (tds.length === 9) {	// Breakouts table
 				var b = {};
+
+				rx = /(.+)&nbsp;[a-zA-Z]{3}, (\d{2}-[a-zA-Z]{3}-\d{4})<br>(\d{2}:\d{2})&nbsp;-&nbsp;(\d{2}:\d{2})/;
 				const timePeriod = tds.eq(0).html();
-				m = timePeriod.match(/(.+)&nbsp;[a-zA-Z]{3}, (\d{2}-[a-zA-Z]{3}-\d{4})<br>(\d{2}:\d{2})&nbsp;-&nbsp;(\d{2}:\d{2})/);
+				m = rx.exec(timePeriod);
 				if (!m) 
 					throw Error("Can't parse Time Period column; got " + timePeriod)
 				const slotsRange = m[1];
@@ -332,22 +335,34 @@ export function parseImatBreakoutsPage(body) {
 				b.name = tds.eq(4).text();
 				b.credit = tds.eq(5).text();
 				//console.log(tds.eq(7).html())
-				m = tds.eq(7).html().match(/breakout-edit\?t=(\d+)&amp;p=(\d+)/);
+
+				rx = /\?t=(\d+)&p=(\d+)&fc=(.+)/g;
+				const editLink = tds.eq(7).find('a[href*="breakout-edit"]').attr('href');
+				m = rx.exec(editLink);
 				if (!m)
 					throw Error("Can't parse breakouts table links column");
 				b.id = parseInt(m[1]);
 				b.meetingId = parseInt(m[2]);
+				b.editContext = decodeURIComponent(m[3]);
+
+				rx = /f5_(\d+)/;
+				const inputName = $(`input[value="${b.id}"]`).attr('name');
+				m = rx.exec(inputName);
+				if (!m)
+					throw new Error("Can't parse input fields");
+				b.formIndex = m[1];
+				//console.log(b);
 				breakouts.push(b);
 			}
 		});
-		return breakouts;
+		return {breakouts, timeslots};
 	}
 
 	if ($('div.title').length && $('div.title').html() == "Sign In") {
 		// If we get the "Sign In" page then the user is not logged in
 		throw new AuthError('Not logged in');
 	}
-
+	console.log($('div.title').html())
 	throw new Error('Unexpected page returned by imat.ieee.org');
 }
 
@@ -356,8 +371,6 @@ async function parseImatBreakoutsCsv(session, buffer) {
 
 	if (p.length === 0)
 		throw new Error('Empty breakouts.csv file');
-
-	
 
 	// Row 0 is the header
 	if (breakoutsCvsHeader.reduce((r, v, i) => r || v !== p[0][i], false))
@@ -416,27 +429,31 @@ export async function getImatBreakouts(user, meetingId) {
 
 	const session = await getImatMeeting(user, meetingId);
 	//console.log(session);
-	
+
 	let response;
-	response = await ieeeClient.get(`https://imat.ieee.org/${session.organizerId}/breakouts.csv?p=${meetingId}&xls=1`, {responseType: 'text/csv'});
+
+	/*
+	response = await ieeeClient.get(`https://imat.ieee.org/${session.organizerId}/breakouts.csv?p=${meetingId}&xls=1`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
-
 	const breakouts = await parseImatBreakoutsCsv(session, response.data);
+	*/
+	response = await ieeeClient.get(`https://imat.ieee.org/${session.organizerId}/meeting-detail?p=${meetingId}`);
+	const {breakouts} = parseImatSessionDetailsPage(response.data);
 
-	/*response = await ieeeClient.get(`https://imat.ieee.org/${session.organizerId}/timeslot.csv?p=${session.id}&xls=1`, {responseType: 'text/csv'});
+	/*response = await ieeeClient.get(`https://imat.ieee.org/${session.organizerId}/timeslot.csv?p=${session.id}&xls=1`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 
 	const timeslots = await parseImatTimeslotCsv(session, response.data);*/
 
-	response = await ieeeClient.get(`https://imat.ieee.org/802.11/committees.csv`, {responseType: 'text/csv'});
+	response = await ieeeClient.get(`https://imat.ieee.org/802.11/committees.csv`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 	const committees = await parseImatCommitteesCsv(response.data);
 
-	const {data} = await ieeeClient.get(`https://imat.ieee.org/802.11/breakout?p=${meetingId}`);
-	const {timeslots, committees: committees2} = parseAddMeetingPage(data);
+	response = await ieeeClient.get(`https://imat.ieee.org/802.11/breakout?p=${meetingId}`);
+	const {timeslots, committees: committees2} = parseAddMeetingPage(response.data);
 
 	//console.log(timeslots, committees, committees2)
 
@@ -478,8 +495,6 @@ async function addImatBreakout(user, session, breakout) {
 
 	PropTypes.checkPropTypes(breakoutProps, breakout, 'breakout', 'addImatBreakout');
 
-	const teleconId = breakout.teleconId;
-
 	const params = {
 		v: 1,
 		f2: breakout.name,
@@ -505,18 +520,11 @@ async function addImatBreakout(user, session, breakout) {
 	}
 
 	/* From the response, find the breakout we just added */
-	const breakouts = parseImatBreakoutsPage(response.data);
+	const {breakouts} = parseImatSessionDetailsPage(response.data);
 	//console.log(breakouts);
 
 	let b = breakouts.find(b => breakout.name === b.name && breakout.location === b.location && breakout.startSlotId === b.startSlotId);
 	//console.log(breakout, b);
-
-	/* Link to telecon */
-	if (b) {
-		if (teleconId)
-			await updateTelecon(teleconId, {imatMeetingId: session.id, imatBreakoutId: b.id});
-		b = {...b, teleconId};
-	}
 
 	return b;
 }
@@ -529,25 +537,56 @@ export async function addImatBreakouts(user, meetingId, breakouts) {
 	const session = await getImatMeeting(user, meetingId);
 	//console.log(session);
 
-	breakouts = await Promise.all(breakouts.map(breakout => addImatBreakout(user, session, breakout)));
+	breakouts = await Promise.all(breakouts.map(async (breakout) => {
+		const b = await addImatBreakout(user, session, breakout);
+		if (breakout.teleconId) {
+			await updateTelecon(breakout.teleconId, {imatMeetingId: session.id, imatBreakoutId: b.id});
+			b.teleconId = breakout.teleconId;
+		}
+		return b;
+	}));
+
 	const telecons = await getTelecons({id: breakouts.map(b => b.teleconId)});
+
 	return {breakouts, telecons};
 }
 
 export async function deleteImatBreakout(user, meetingId, breakoutId) {
-	if (!user.ieeeClient)
+
+	const {ieeeClient} = user;
+	if (!ieeeClient)
 		throw new AuthError('Not logged in');
+
+	const session = await getImatMeeting(user, meetingId);
+
+	const response = await ieeeClient.get(`https://imat.ieee.org/${session.organizerId}/meeting-detail?p=${meetingId}`);
+	const {breakouts} = parseImatSessionDetailsPage(response.data);
+
+	const breakout = breakouts.find(b => b.id === breakoutId);
+	if (!breakout)
+		throw new NotFoundError(`Breakout ${breakoutId} not found`);
+
+	const params = {
+		tz: 420,
+		v: 1,
+		f3: '',
+		f4: 0,
+		f2: 'Delete'
+	}
+	breakouts.forEach(b => params['f5_' + b.formIndex] = b.id);
+	params['f1_' + breakout.formIndex] = 'on';
+
+	await ieeeClient.post(`https://imat.ieee.org/802.11/meeting-detail?p=${meetingId}`, params)
 }
 
 async function updateImatBreakout(user, session, breakout) {
 
 	PropTypes.checkPropTypes(breakoutProps, breakout, 'breakout', 'updateImatBreakout');
 
-	const teleconId = breakout.teleconId;
-
 	const params = {
 		tz: 420,
 		v: 1,
+		c: breakout.editContext,	// necessary!
 		f4: breakout.name,
 		f3: breakout.groupId,
 		f8: breakout.day,
@@ -557,25 +596,26 @@ async function updateImatBreakout(user, session, breakout) {
 		f9: breakout.endTime,
 		f2: breakout.location,
 		f6: breakoutCredit[breakout.credit],
+		f1: breakout.creditOverrideNumerator || 0,
+		f0: breakout.creditOverrideDenominator || 0,
 		f10: breakout.facilitator || user.Email,
 		f12: "OK/Done"
 	};
+	//console.log(params)
 
-	const response = await user.ieeeClient.post(`https://imat.ieee.org/${session.organizerId}/breakout-edit?p=${session.id}&t=${breakout.id}`, params);
+	const response = await user.ieeeClient.post(`https://imat.ieee.org/${session.organizerId}/breakout-edit?t=${breakout.id}&p=${session.id}`, params);
+
+	if (response.data.search(/<title>IEEE Standards Association - Event detail<\/title>/) === -1) {
+		const m = response.data.match(/<div class="field_err">(.*)<\/div>/);
+		throw new Error(m? m[1]: 'An unexpected error occured');
+	}
 
 	/* From the response, find the breakout we just update */
-	const breakouts = parseImatBreakoutsPage(response.data);
+	const {breakouts} = parseImatSessionDetailsPage(response.data);
 	//console.log(breakouts);
 
 	const b = breakouts.find(b => breakout.id === b.id);
 	//console.log(breakout, b);
-
-	/* Link to telecon */
-	if (b) {
-		if (teleconId)
-			await updateTelecon(teleconId, {imatMeetingId: session.id, imatBreakoutId: b.id});
-		b = {...b, teleconId};
-	}
 
 	return b;
 }
@@ -588,8 +628,17 @@ export async function updateImatBreakouts(user, meetingId, breakouts) {
 	const session = await getImatMeeting(user, meetingId);
 	//console.log(session);
 
-	breakouts = await Promise.all(breakouts.map(breakout => updateImatBreakout(user, session, breakout)));
+	breakouts = await Promise.all(breakouts.map(async (breakout) => {
+		const b = await updateImatBreakout(user, session, breakout);
+		if (breakout.teleconId) {
+			await updateTelecon(breakout.teleconId, {imatMeetingId: session.id, imatBreakoutId: b.id});
+			b.teleconId = breakout.teleconId;
+		}
+		return b;
+	}));
+
 	const telecons = await getTelecons({id: breakouts.map(b => b.teleconId)});
+
 	return {breakouts, telecons};
 }
 
@@ -684,12 +733,12 @@ async function parseImatAttendanceSummary(buffer) {
  */
 export async function getImatAttendanceSummary(user, session) {
 
-	let start = DateTime.fromJSDate(session.Start, {zone: session.TimeZone});
+	let start = DateTime.fromJSDate(session.etart, {zone: session.timezone});
 	if (!start.isValid)
 		throw new TypeError(`Invalid session start (${session.start}) or timezone (${session.timezone})`)
 	start = start.toFormat('MM/dd/yyyy');
 
-	let end = DateTime.fromJSDate(session.End, {zone: session.timezone});
+	let end = DateTime.fromJSDate(session.end, {zone: session.timezone});
 	if (!end.isValid)
 		throw new TypeError(`Invalid session end (${session.end}) or timezone (${session.timezone})`)
 	end = end.toFormat('MM/dd/yyyy');
@@ -712,4 +761,125 @@ async function addSession(user, session) {
 		throw new AuthError('Not logged in');
 
 	const response = await ieeeClient.post(`https://imat.ieee.org/${user.Email}/meeting`);
+}
+
+function slotDateTime(date, slot) {
+	return [
+		date.set({hour: slot.startTime.substring(0,2), minute: slot.startTime.substring(3,5)}),
+		date.set({hour: slot.endTime.substring(0,2), minute: slot.endTime.substring(3,5)})
+	];
+}
+
+async function teleconToBreakout(user, telecon, session, timeslots, committees) {
+
+	const sessionStart = DateTime.fromISO(session.start, {zone: session.timezone});
+	const sessionEnd = DateTime.fromISO(session.end, {zone: session.timezone});
+	const start = DateTime.fromISO(telecon.start, {zone: session.timezone});
+	const end = DateTime.fromISO(telecon.end, {zone: session.timezone});
+	//console.log(session.start, telecon.start)
+
+	// Verify that the telecon is within the date range of the session
+	if (start < sessionStart || start > sessionEnd)
+		throw new TypeError('Telecon outside data range for session');
+
+	const day = Math.floor(start.diff(sessionStart, 'days').get('day'));
+	let startTime = start.toFormat('HH:mm');
+	let endTime = end.toFormat('HH:mm');
+
+	// If breakout straddles a day, then end at midnight
+	if (end.toISODate() !== start.toISODate())
+		endTime = '23:59';
+
+	const breakoutDate = sessionStart.plus({days: day});
+	let startSlot, endSlot;
+
+	// Go through slots looking for exact match
+	for (const slot of timeslots) {
+		const [slotStart, slotEnd] = slotDateTime(breakoutDate, slot);
+		if (start === slotStart && end <= slotEnd) {
+			startSlot = slot;
+			endSlot = slot;
+		}
+	}
+
+	if (!startSlot) {
+		// Go through slots again, this time looking for approx match
+		for (const slot of timeslots) {
+			const [slotStart, slotEnd] = slotDateTime(breakoutDate, slot);
+			if (!startSlot && start >= slotStart && start < slotEnd)
+				startSlot = slot;
+			if (end > slotStart && end <= slotEnd)
+				endSlot = slot;
+		}
+	}
+
+	// If we still don't have a start slot, choose the first (or last) and override time
+	if (!startSlot)
+		startSlot = timeslots[0];
+	if(!endSlot)
+		endSlot = timeslots[timeslots.length-1];
+
+	// If the startTime/endTime aligns with slot start/end then clear time
+	if (startSlot && slotDateTime(breakoutDate, startSlot)[0].toFormat("HH:mm") === startTime)
+		startTime = '';
+	if (endSlot && slotDateTime(breakoutDate, endSlot)[1].toFormat("HH:mm") === endTime)
+		endTime = '';
+
+	let location = telecon.location || '';
+	if (telecon.isCancelled)
+		location = 'CANCELLED';
+
+	const [group] = await getGroups({id: telecon.organizationId});
+	if (!group)
+		throw new TypeError(`Can't find group id=${telecon.organizationId}`);
+
+	const committee = committees.find(c => c.symbol === group.imatCommitteeId);
+	const groupId = committee? committee.id: 0;
+
+	let name = group.name;
+	if (telecon.isCancelled)
+		name = 'CANCELLED - ' + name;
+
+	return {
+		name,
+		location,
+		groupId,
+		day,
+		startSlotId: startSlot? startSlot.id: 0,
+		endSlotId: endSlot? endSlot.id: 0,
+		startTime,
+		endTime,
+		credit: "Zero",
+		creditOverideNumerator: 0,
+		creditOverideDenominator: 0,
+		facilitator: user.Email
+	}
+}
+
+export async function addImatBreakoutFromTelecon(user, meetingId, telecon) {
+	const {session, breakouts, timeslots, committees} = await getImatBreakouts(user, meetingId);
+
+	const breakout = await teleconToBreakout(user, telecon, session, timeslots, committees);
+
+	//console.log('added breakout: ', breakout);
+	//return breakout;
+
+	return addImatBreakout(user, session, breakout);
+}
+
+export async function updateImatBreakoutFromTelecon(user, meetingId, breakoutId, telecon) {
+	const {session, breakouts, timeslots, committees} = await getImatBreakouts(user, meetingId);
+
+	const breakout = breakouts.find(b => b.id === breakoutId);
+	if (!breakout)
+		throw new NotFoundError(`Breakout id=${breakoutId} does not exist for meetingId=${meetingId}`);
+
+	const updatedBreakout = await teleconToBreakout(user, telecon, session, timeslots, committees);
+	updatedBreakout.id = breakoutId;
+	updatedBreakout.editContext = breakout.editContext;
+
+	//console.log('updated breakout: ', updatedBreakout);
+	//return updatedBreakout;
+
+	return updateImatBreakout(user, session, updatedBreakout);
 }

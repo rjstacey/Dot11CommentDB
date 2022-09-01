@@ -9,6 +9,7 @@ import {
 	addWebexAccount,
 	deleteWebexAccount,
 	getWebexMeetings,
+	addWebexMeetings,
 	deleteWebexMeetings
 } from '../services/webex';
 
@@ -65,10 +66,21 @@ router.delete('/accounts/:id', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.get('/meetings/:group', async (req, res, next) => {
+router.get('/meetings/:groupId?', async (req, res, next) => {
 	try {
-		const {group} = req.params;
-		const data = await getWebexMeetings(group);
+		const {groupId} = req.params;
+		const data = await getWebexMeetings({groupId, ...req.query});
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.post('/meetings', async (req, res, next) => {
+	try {
+		const meetings = req.body;
+		if (!Array.isArray(meetings))
+			throw new Error('Missing or bad body; expected array')
+		const data = await addWebexMeetings(meetings);
 		res.json(data);
 	}
 	catch(err) {next(err)}

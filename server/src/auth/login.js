@@ -5,18 +5,15 @@ const db = require('../utils/database');
 const users = require('./users');
 const jwt = require('./jwt');
 
+const loginUrl = 'https://imat.ieee.org/pub/login';
+const logoutUrl = 'https://imat.ieee.org/pub/logout';
 
-async function login(req) {
-
-	// credentials
-	const {username, password} = req.body;
-
-	const ieeeClient = createIeeeFetcher();
+async function login(ieeeClient, username, password) {
 
 	// Do an initial GET on /pub/login so that we get cookies. We can do a login without this, but
 	// if we don't get the cookies associated with this GET, then the server seems to get confused
 	// and won't have the approriate state post login.
-	let response = await ieeeClient.get('https://imat.ieee.org/pub/login');
+	let response = await ieeeClient.get(loginUrl);
 
 	const $ = cheerio.load(response.data);
 	const loginForm = {
@@ -31,8 +28,7 @@ async function login(req) {
 
 	// Now post the login data. There will be a bunch of redirects, but we should get a logged in page.
 	// options.form = loginForm;
-	//response = await ieeeClient.post('https://imat.ieee.org/pub/login', new URLSearchParams(loginForm));
-	response = await ieeeClient.post('https://imat.ieee.org/pub/login', loginForm);
+	response = await ieeeClient.post(loginUrl, loginForm);
 	//console.log(response)
 
 	if (response.data.search(/<div class="title">Sign In<\/div>/) !== -1) {
@@ -47,12 +43,36 @@ async function login(req) {
 	const Name = n[1];
 	const SAPIN = parseInt(n[2], 10);
 
-	return {SAPIN, Name, Email: username, ieeeClient};
+	// Add an interceptor that will login again if a request returns the login page
+	ieeeClient.interceptors.response.use(
+		(response) => {
+			console.log(response.status)
+			console.log(typeof response.data)
+			if (headers['content-type'] === 'text/html' &&
+				typeof response.data === 'string' && 
+				response.data.search(/<div class="title">Sign In<\/div>/) !== -1) {
+				console.log('Try login again')
+				const $ = cheerio.load(response.data);
+				const loginForm = {
+					v: $('input[name="v"]').val(),
+					c: $('input[name="c"]').val(),
+					x1: username,
+					x2: password,
+					f0: 1,
+					privacyconsent: 'on',
+					ok_button: 'Sign+In'
+				}
+				return ieeeClient.post(loginUrl, loginForm);
+			}
+			return response;
+		}
+	);
+
+	return {SAPIN, Name, Email: username};
 }
 
-function logout({ieeeClient}) {
-	if (ieeeClient)
-		return ieeeClient.get('https://imat.ieee.org/pub/logout');
+function logout(ieeeClient) {
+	return ieeeClient.get('https://imat.ieee.org/pub/logout');
 }
 
 /*
@@ -77,7 +97,12 @@ router.get('/login', async (req, res, next) => {
 
 router.post('/login', async (req, res, next) => {
 	try {
-		const {SAPIN, Name, Email, ieeeClient} = await login(req);
+		// credentials
+		const {username, password} = req.body;
+
+		const ieeeClient = createIeeeFetcher();
+
+		const {SAPIN, Name, Email} = await login(ieeeClient, username, password);
 
 		const SQL = 'SELECT SAPIN, Name, Email, Status, Access FROM members WHERE ' +
 			(SAPIN > 0? `SAPIN=${db.escape(SAPIN)}`: `Email=${db.escape(Email)}`);
@@ -103,7 +128,8 @@ router.post('/logout', async (req, res, next) => {
 		const userId = jwt.verify(req);
 		const user = await users.getUser(userId);
 		if (user) {
-			logout(user);
+			if (user.ieeeClient)
+				logout(user.ieeeClient);
 			users.delUser(user.SAPIN);
 		}
 		res.json({user: null});

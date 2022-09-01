@@ -7,8 +7,8 @@ const calendarRevokeUrl = 'https://oauth2.googleapis.com/revoke';
 const calendarAuthScope = 'https://www.googleapis.com/auth/calendar';	// string or array of strings
 
 const calendarAuthRedirectUri = process.env.NODE_ENV === 'development'?
-	'http://localhost:3000/telecons/calendar/auth':
-	'https://802tools.org/telecons/calednar/auth';
+	'http://localhost:3000/oauth2/calendar':
+	'https://802tools.org/oauth2/calendar';
 
 // Calendar account cache
 const calendars = {};
@@ -96,7 +96,7 @@ export async function init() {
  * Get the URL for authorizing calendar access
  * @id {number} Calendar account identifier
  */
-export function getAuthCalendarAccount(id) {
+function getAuthUrl(id) {
 	const auth = getAuthApi(id);
 	return auth.generateAuthUrl({
 		access_type: 'offline',
@@ -118,29 +118,10 @@ export async function completeAuthCalendarAccount(params) {
 	const {tokens} = await auth.getToken(params.code);
 	console.log('get tokens: ', tokens)
 	auth.setCredentials(tokens);
-	updateAuthParams(id, tokens);
+	await updateAuthParams(id, tokens);
 	
 	// Create a google calendar api for this account
 	createCalendarApi(id, auth);
-
-	const [account] = await getAccounts({id});
-	return account;
-}
-
-/*
- * Revoke calendar authorization
- * @id {number} Calendar account identifier
- */
-export async function revokeAuthCalendarAccount(id) {
-	const auth = getAuthApi(id);
-
-	console.log('revoke: ', auth.credentials);
-	axios.post(calendarRevokeUrl, {token: auth.credentials.access_token})
-		.then(response => console.log('revoke calendar token success:', response.data))
-		.catch(error => console.log('revoke calendar token error:', error));
-	await updateAuthParams(id, null);
-	deleteCalendarApi(id);
-	createAuthApi(id);		// replace current auth context with clean one
 
 	const [account] = await getAccounts({id});
 	return account;
@@ -155,7 +136,7 @@ async function getAccounts(constraints) {
 
 	for (const account of accounts) {
 		try {
-			account.authUrl = getAuthCalendarAccount(account.id);
+			account.authUrl = getAuthUrl(account.id);
 		}
 		catch (error) {
 			console.warn(error);
@@ -182,6 +163,10 @@ export async function getCalendarAccounts(constraints) {
 	return accounts;
 }
 
+/*
+ * Convert calendar account object into a form sutable for database storage
+ * @s {object} Calendar account object
+ */
 function accountEntry(s) {
 	const entry = {
 		name: s.name,
@@ -198,6 +183,10 @@ function accountEntry(s) {
 	return entry;
 }
 
+/*
+ * Update calendar account
+ * @entry {object} Calendar account object
+ */
 export async function addCalendarAccount(entry) {
 	entry = accountEntry(entry);
 	entry.type = 'calendar';
@@ -206,6 +195,11 @@ export async function addCalendarAccount(entry) {
 	return account;
 }
 
+/*
+ * Update calendar account
+ * @id {number} Calendar account identifier
+ * @entry {object} Calendar account object with fields to be updated
+ */
 export async function updateCalendarAccount(id, entry) {
 	if (!id)
 		throw new Error('Must provide id with update');
@@ -216,6 +210,29 @@ export async function updateCalendarAccount(id, entry) {
 	return account;
 }
 
+/*
+ * Revoke calendar account authorization
+ * @id {number} Calendar account identifier
+ */
+export async function revokeAuthCalendarAccount(id) {
+	const auth = getAuthApi(id);
+
+	console.log('revoke: ', auth.credentials);
+	axios.post(calendarRevokeUrl, {token: auth.credentials.access_token})
+		.then(response => console.log('revoke calendar token success:', response.data))
+		.catch(error => console.log('revoke calendar token error:', error));
+	await updateAuthParams(id, null);
+	deleteCalendarApi(id);
+	createAuthApi(id);		// replace current auth context with clean one
+
+	const [account] = await getAccounts({id});
+	return account;
+}
+
+/*
+ * Delete calendar account
+ * @id {number} Calendar account identifier
+ */
 export async function deleteCalendarAccount(id) {
 	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=?', [id]);
 	deleteCalendarApi(id);
@@ -225,16 +242,16 @@ export async function deleteCalendarAccount(id) {
 
 function calendarApiError(error) {
 	const {response, code} = error;
-	if (response && code > 400 && code < 500) {
-		const {error} = response.data;
-		throw new Error(`calendar api error: code=${code} message=${error.message}`); 
+	if (response && code >= 400 && code < 500) {
+		const {error, error_description} = response.data;
+		console.log(response.config)
+		throw new Error(`calendar api: code=${code} ${error}: ${error_description}`); 
 	}
 	throw new Error(error);
 }
 
 export async function getPrimaryCalendar(id) {
 	const calendar = getCalendarApi(id);
-	let response;
 	return calendar.calendars.get({calendarId: 'primary'})
 		.then(response => response.data)
 		.catch(calendarApiError);

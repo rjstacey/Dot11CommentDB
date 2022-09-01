@@ -34,12 +34,13 @@ router.patch('/$', async (req, res, next) => {
 		const updates = req.body;
 		if (!Array.isArray(updates))
 			throw 'Missing or bad body; expected array';
-		const data = await updateTelecons(updates);
+		const data = await updateTelecons(req.user, updates);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
+/*
 router.post('/webexMeeting$', async (req, res, next) => {
 	try {
 		const telecons = req.body;
@@ -61,13 +62,14 @@ router.delete('/webexMeeting$', async (req, res, next) => {
 	}
 	catch(err) {next(err)}
 });
+*/
 
 router.post('/$', async (req, res, next) => {
 	try {
 		const telecons = req.body;
 		if (!Array.isArray(telecons))
 			throw 'Missing or bad body; expected array';
-		const data = await addTelecons(telecons);
+		const data = await addTelecons(req.user, telecons);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -78,7 +80,7 @@ router.delete('/$', async (req, res, next) => {
 		const ids = req.body;
 		if (!Array.isArray(ids))
 			throw 'Missing or bad body; expected array';
-		const data = await deleteTelecons(ids);
+		const data = await deleteTelecons(req.user, ids);
 		res.json(data);
 	}
 	catch(err) {next(err)}

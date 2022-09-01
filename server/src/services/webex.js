@@ -19,8 +19,10 @@ const webexAuthScope = [
 ].join(' ');
 
 const webexAuthRedirectUri = process.env.NODE_ENV === 'development'?
-	'http://localhost:3000/telecons/webex/auth':
-	'https://802tools.org/telecons/webex/auth';
+//	'http://localhost:3000/telecons/webex/auth':
+//	'https://802tools.org/telecons/webex/auth';
+	'http://localhost:3000/oauth2/webex':
+	'https://802tools.org/oauth2/webex';
 
 // Webex account apis
 const apis = {};
@@ -147,13 +149,13 @@ export async function completeAuthWebexAccount(params) {
 	// Create an axios instance for this account
 	createWebexApi(id, authParams);
 
-	const [account] = await getAccounts({id});
-	return account;
+//	const [account] = await getAccounts({id});
+//	return account;
 }
 
 
-export function getWebexAccounts() {
-	return getAccounts({type: "webex"});
+export function getWebexAccounts(constraints) {
+	return getAccounts({type: "webex", ...constraints});
 }
 
 function accountEntry(s) {
@@ -214,31 +216,31 @@ async function getWebexTemplates(id) {
 		.catch(webexApiError);
 }
 
-export async function getWebexMeetings(groupId) {
-	let allMeetings = [];
+export async function getWebexMeetings({groupId, fromDate, toDate}) {
+	let webexMeetings = [];
 	const accounts = await getWebexAccounts();
 	for (const account of accounts) {
-		if (account.groups && !account.groups.includes(groupId))
+		if (groupId && account.groups && !account.groups.includes(groupId))
 			continue;
 		const api = getWebexApi(account.id);
 
-		const from = new Date();
-		const to = new Date(from.getFullYear() + 1, from.getMonth(), from.getDate());
+		const from = fromDate? new Date(fromDate): new Date();
+		const to = toDate? new Date(toDate): new Date(from.getFullYear() + 1, from.getMonth(), from.getDate());
 		const params = {
 			meetingType: 'scheduledMeeting',
+			scheduledType: 'meeting',
 			from: from.toISOString(),
 			to: to.toISOString(),
-			max: 100
+			max: 100,
 		}
 		const response = await api.get('/meetings', {params}).catch(webexApiError);
+		//console.log(account.name, params, response.data.items.length)
 
-		//console.log(response.config.params)
 		let meetings = response.data.items;
 		meetings = meetings.map(m => ({...m, groupId, webexAccountId: account.id, webexAccountName: account.name}));
-		allMeetings = allMeetings.concat(meetings);
+		webexMeetings = webexMeetings.concat(meetings);
 	}
-	//console.log(allMeetings.map(m => `Title: ${m.title}\t\tStart: ${m.start}`));
-	return allMeetings;
+	return webexMeetings;
 }
 
 export async function getWebexMeeting(id, meetingId) {
@@ -253,6 +255,15 @@ export async function addWebexMeeting(id, params) {
 	return api.post('/meetings', params)
 		.then(response => response.data)
 		.catch(webexApiError);
+}
+
+export async function addWebexMeetings(meetings) {
+	for (const m of meetings) {
+		getWebexApi(m.accountId);
+		if (typeof m.webexMeeting !== 'object')
+			throw new Error('Missing webexMeeting');
+	}
+	return meetings.map(m => addWebexMeeting(m.accountId, m.webexMeeting));
 }
 
 export async function updateWebexMeeting(id, meetingId, params) {
@@ -275,5 +286,5 @@ export async function deleteWebexMeetings(meetings) {
 		if (!m.meetingId)
 			throw new Error('Missing meetingId');
 	}
-	return await meetings.map(m => deleteWebexMeeting(m.accountId, m.meetingId));
+	return meetings.map(m => deleteWebexMeeting(m.accountId, m.meetingId));
 }

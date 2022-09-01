@@ -65,6 +65,11 @@ function initServer() {
 	});
 
 	app.use('/auth', require('./auth/login').default);
+
+	// The /oauth2 interface is used for oauth2 completion callbacks
+	app.use('/oauth2', require('./auth/oauth2').default);
+
+	// The /api interface provides secure access to the REST API
 	app.use('/api', require('./api/router').default);
 
 	// Error handler

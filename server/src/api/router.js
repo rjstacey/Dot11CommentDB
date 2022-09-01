@@ -137,4 +137,7 @@ router.use('/imat', require('./imat').default);
 /* Access to schedule802world.com */
 router.use('/802world', require('./802world').default);
 
+/* Send Email API */
+router.use('/email', require('./email').default);
+
 export default router;

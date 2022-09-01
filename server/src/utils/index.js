@@ -1,4 +1,4 @@
 export * from './csv';
-export * from './fetcher';
+export * from './ieeeFetcher';
 export * from './general';
 export * from './error';
