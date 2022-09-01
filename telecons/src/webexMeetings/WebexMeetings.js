@@ -254,17 +254,17 @@ function WebexMeetings() {
 	const [webexMeetingToAdd, setWebexMeetingToAdd] = React.useState(null);
 
 	React.useEffect(() => {
-		if (groupName) {
+		//if (groupName) {
 			const pathGroupId = ids.find(id => entities[id].name === groupName);
-			if (pathGroupId && groupId !== pathGroupId) {
+			//if (pathGroupId && groupId !== pathGroupId) {
 				// Routed here with groupName in path, but not matching stored groupId; load telecons for groupName
-				dispatch(loadWebexMeetings(pathGroupId));
-			}
-		}
-		else if (groupId) {
+				dispatch(loadWebexMeetings(pathGroupId? {groupId: pathGroupId}: {}));
+			//}
+		//}
+		//else if (groupId) {
 			// Routed here without groupName in path, but group has previously been selected; re-route to current group
-			history.replace(`/webexMeetings/${entities[groupId].name}`);
-		}
+		//	history.replace(`/webexMeetings/${entities[groupId].name}`);
+		//}
 	}, [groupId, groupName, entities, ids, dispatch, history]);
 
 	const columns = React.useMemo(() => {
@@ -293,7 +293,7 @@ function WebexMeetings() {
 		return columns;
 	}, [setWebexMeetingToLink, setWebexMeetingToAdd]);
 
-	const refresh = () => dispatch(loadWebexMeetings(groupId));
+	const refresh = () => dispatch(loadWebexMeetings({groupId}));
 
 	const closeToLink = () => setWebexMeetingToLink(null);
 	const closeToAdd = () => setWebexMeetingToAdd(null);

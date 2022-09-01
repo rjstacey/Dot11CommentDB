@@ -13,12 +13,7 @@ function WebexAccountSelector({
 	const {loading, ids, entities} = useSelector(selectWebexAccountsState);
 	const options = React.useMemo(() => ids.map(id => entities[id]), [ids, entities]);
 	const values = options.filter(o => o.id === value);
-
-	const handleChange = React.useCallback((selected) => {
-		const id = selected.length > 0? selected[0].id: null;
-		if (id !== value)
-			onChange(id);
-	}, [value, onChange]);
+	const handleChange = (values) => onChange(values.length > 0? values[0].id: null);
 
 	return (
 		<Select

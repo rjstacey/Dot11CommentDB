@@ -1,5 +1,4 @@
 import React from 'react';
-import {Redirect} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 
 import {Button, ActionButton, Input} from  'dot11-components/form';
@@ -10,7 +9,6 @@ import {
 	updateCalendarAccount,
 	addCalendarAccount,
 	deleteCalendarAccount,
-	completeAuthCalendarAccount,
 	revokeAuthCalendarAccount,
 	selectCalendarAccountsState
 } from '../store/calendarAccounts';
@@ -21,17 +19,6 @@ import {Table, TableBodyEmpty} from './AccountsTable';
 
 const displayDate = (d) =>
 	new Intl.DateTimeFormat('default', {weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric'}).format(new Date(d));
-
-export function CalendarAccountAuth(props) {
-	const dispatch = useDispatch();
-
-	React.useEffect(() => {
-		const params = Object.fromEntries(new URLSearchParams(props.location.search));
-		dispatch(completeAuthCalendarAccount(params));
-	}, [dispatch, props]);
-
-	return <Redirect to="/accounts" />
-}
 
 const defaultAccount = {
 	name: '',

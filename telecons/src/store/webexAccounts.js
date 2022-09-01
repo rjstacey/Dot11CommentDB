@@ -40,16 +40,13 @@ const slice = createSlice({
 	},
 });
 
+export default slice;
+
 /*
  * Selector
  */
 export const selectWebexAccountsState = state => state[dataSet];
 export const selectWebexAccountEntities = state => selectWebexAccountsState(state).entities;
-
-/*
- * Reducer
- */
-export default slice.reducer;
 
 /*
  * Actions

@@ -13,13 +13,12 @@ const OuterDiv = styled.div`
 	align-items: center;
 `;
 
-function App({user, access}) {
-
+function App() {
 	return (
 		<Router basename='/telecons'>
 			<OuterDiv>
-				<Header user={user} access={access} />
-				<Body user={user} access={access} />
+				<Header />
+				<Body />
 				<ErrorModal />
 				<ConfirmModal />
 			</OuterDiv>

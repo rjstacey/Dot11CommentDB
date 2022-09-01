@@ -33,13 +33,18 @@ const slice = createSlice({
 /*
  * Reducer
  */
-export default slice.reducer;
+export default slice;
 
 /*
  * Selectors
  */
 export const selectMembersState = (state) => state[dataSet];
- 
+
+export const selectMemberName = (state, sapin) => {
+	const m = selectMembersState(state).entities[sapin];
+	return m? m.Name: 'Unknown';
+}
+
  /*
   * Actions
   */

@@ -1,11 +1,14 @@
 import React from 'react';
 import {NavLink, useLocation} from 'react-router-dom';
+import {useSelector} from 'react-redux';
 
 import Account from 'dot11-components/general/Account';
 import {AccessLevel} from 'dot11-components/lib/user';
 import Dropdown from 'dot11-components/dropdown';
 
 import './header.css';
+
+import {selectUser} from '../store/user';
 
 const fullMenu = [
 	{
@@ -40,6 +43,11 @@ const fullMenu = [
 	},
 	{
 		minAccess: AccessLevel.WGAdmin,
+		link: '/email',
+		label: 'Send eMail',
+	},
+	{
+		minAccess: AccessLevel.WGAdmin,
 		link: '/ieee802WorldSchedule',
 		label: '802 World Schedule',
 	},
@@ -66,7 +74,8 @@ function NavMenu({className, access, methods}) {
 
 const smallScreenQuery = window.matchMedia('(max-width: 992px');
 
-function Header({user, access}) {
+function Header() {
+	const user = useSelector(selectUser);
 	const [isSmall, setIsSmall] = React.useState(smallScreenQuery.matches);
 
 	React.useEffect(() => {
@@ -83,7 +92,7 @@ function Header({user, access}) {
 			{isSmall?
 				<Dropdown
 					selectRenderer={({isOpen, open, close}) => <div className='nav-menu-icon' onClick={isOpen? close: open}/>}
-					dropdownRenderer={(props) => <NavMenu className='nav-menu-vertical' access={access} {...props} />}
+					dropdownRenderer={(props) => <NavMenu className='nav-menu-vertical' access={user.Access} {...props} />}
 					dropdownAlign='left'
 				/>:
 				<div className='title'>Telecons</div>
@@ -91,7 +100,7 @@ function Header({user, access}) {
 			<div className='nav-menu-container'>
 				{isSmall?
 					<label className='nav-link active'>{menuItem? menuItem.label: ''}</label>:
-					<NavMenu className='nav-menu-horizontal' access={access} />
+					<NavMenu className='nav-menu-horizontal' access={user.Access} />
 				}
 			</div>
 			<Account className='account' user={user} />

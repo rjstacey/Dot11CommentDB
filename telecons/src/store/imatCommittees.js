@@ -26,16 +26,12 @@ const slice = createAppTableDataSlice({
 	},
 });
 
+export default slice;
+
 /*
  * Selector
  */
 export const selectImatCommitteesState = state => state[dataSet];
-
-/*
- * Reducer
- */
-export default slice.reducer;
-
 
 /*
  * Actions

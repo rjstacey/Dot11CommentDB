@@ -5,21 +5,18 @@
   "homepage": "telecons",
   "proxy": "http://localhost:8080",
   "dependencies": {
-    "@reduxjs/toolkit": "^1.6.1",
-    "@testing-library/jest-dom": "^5.14.1",
-    "@testing-library/react": "^11.2.7",
-    "@testing-library/user-event": "^12.8.3",
+    "@reduxjs/toolkit": "^1.8.4",
     "copy-html-to-clipboard": "^4.0.1",
-    "dot11-components": "^1.0.111",
-    "idb-keyval": "^6.1.0",
-    "luxon": "^2.0.2",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-expanding-textarea": "^2.3.2",
-    "react-number-format": "^4.7.3",
+    "dot11-components": "^1.0.120",
+    "idb-keyval": "^6.2.0",
+    "luxon": "^2.5.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-redux": "^8.0.2",
     "react-router": "^5.2.0",
-    "react-router-dom": "^5.2.0",
-    "react-scripts": "4.0.3",
+    "react-router-dom": "^5.3.3",
+    "react-scripts": "^5.0.1",
+    "react-tabs": "^5.1.0",
     "redux-devtools-extension": "^2.13.9",
     "redux-logger": "^3.0.6",
     "redux-persist": "^6.0.0",
@@ -51,6 +48,6 @@
     ]
   },
   "devDependencies": {
-    "http-proxy-middleware": "^0.19.1"
+    "http-proxy-middleware": "^0.19.2"
   }
 }

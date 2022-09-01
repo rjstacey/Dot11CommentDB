@@ -10,8 +10,8 @@ import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, ShowFilters, Tabl
 import {
 	fields,
 	loadTelecons,
-	removeTelecons,
-	selectTeleconsState,
+	clearTelecons,
+	selectGroupId,
 	selectTeleconsCurrentPanelConfig,
 	setTeleconsCurrentPanelIsSplit,
 	dataSet,
@@ -142,14 +142,14 @@ function Telecons(props) {
 	const {entities, ids} = useSelector(selectGroupsState);
 	const history = useHistory();
 	const {groupName} = useParams();
-	const {groupId} = useSelector(selectTeleconsState);
+	const groupId = useSelector(selectGroupId);
 
 	React.useEffect(() => {
 		if (groupName) {
 			const pathGroupId = ids.find(id => entities[id].name === groupName);
 			if (pathGroupId && groupId !== pathGroupId) {
 				// Routed here with groupName in path, but not matching stored groupId; load telecons for groupName
-				dispatch(loadTelecons({parent_id: pathGroupId, fromDate: DateTime.now().toISO()}));
+				dispatch(loadTelecons({groupId: pathGroupId, fromDate: DateTime.now().toISO()}));
 			}
 		}
 		else if (groupId) {
@@ -159,7 +159,7 @@ function Telecons(props) {
 	}, [groupId, groupName, entities, ids, dispatch, history]);
 
 	function handleSetGroupId(groupId) {
-		dispatch(removeTelecons());
+		dispatch(clearTelecons());
 		if (groupId) {
 			const group = entities[groupId];
 			const groupName = group? group.name: 'Unknown';
@@ -170,7 +170,7 @@ function Telecons(props) {
 		}
 	}
 
-	const refresh = () => dispatch(loadTelecons({parent_id: groupId, fromDate: DateTime.now().toISO()}));
+	const refresh = () => dispatch(loadTelecons({groupId, fromDate: DateTime.now().toISO()}));
 
 	return (
 		<>
@@ -180,7 +180,7 @@ function Telecons(props) {
 					onChange={handleSetGroupId}
 					types={['c', 'wg']}
 				/>
-				<ActionButtonDropdown label='Set Defaults'>
+				<ActionButtonDropdown label='Set defaults'>
 					<TeleconDefaults
 						groupId={groupId}
 						groupName={groupName}
@@ -217,7 +217,7 @@ function Telecons(props) {
 						columns={tableColumns}
 						headerHeight={46}
 						estimatedRowHeight={32}
-						measureRowHeight={true}
+						measureRowHeight
 						dataSet={dataSet}
 						rowGetter={teleconsRowGetter}
 					/>

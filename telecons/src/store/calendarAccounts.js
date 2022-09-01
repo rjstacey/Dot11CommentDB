@@ -40,16 +40,13 @@ const slice = createSlice({
 	},
 });
 
+export default slice;
+
 /*
  * Selector
  */
 export const selectCalendarAccountsState = state => state[dataSet];
 export const selectCalendarAccountEntities = state => selectCalendarAccountsState(state).entities;
-
-/*
- * Reducer
- */
-export default slice.reducer;
 
 /*
  * Actions
@@ -64,17 +61,16 @@ const {
 	addOne,
 } = slice.actions;
 
-const calendarAuthUrl = '/api/calendar/auth';
-const calendarAccountUrl = '/api/calendar/accounts';
+const baseUrl = '/api/calendar/accounts';
 
 export const loadCalendarAccounts = () => 
 	async (dispatch, getState) => {
 		dispatch(getPending());
 		let accounts;
 		try {
-			accounts = await fetcher.get(calendarAccountUrl);
+			accounts = await fetcher.get(baseUrl);
 			if (!Array.isArray(accounts))
-				throw new TypeError(`Unexpected response to GET ${calendarAccountUrl}`);
+				throw new TypeError(`Unexpected response to GET ${baseUrl}`);
 		}
 		catch(error) {
 			await dispatch(getFailure());
@@ -83,11 +79,26 @@ export const loadCalendarAccounts = () =>
 		}
 		await dispatch(getSuccess(accounts));
 	}
+	
+export const addCalendarAccount = (account) =>
+	async (dispatch) => {
+		let newAccount;
+		try {
+			newAccount = await fetcher.post(baseUrl, account);
+			if (typeof newAccount !== 'object')
+				throw new TypeError('Unexpected response to POST: ' + baseUrl);
+		}
+		catch(error) {
+			await dispatch(setError('Unable to add Google calendar account', error));
+			return;
+		}
+		dispatch(addOne(newAccount));
+	}
 
 export const updateCalendarAccount = (id, changes) =>
 	async (dispatch) => {
 		await dispatch(updateOne({id, changes}));
-		const url = `${calendarAccountUrl}/${id}`;
+		const url = `${baseUrl}/${id}`;
 		let updates;
 		try {
 			updates = await fetcher.patch(url, changes);
@@ -101,54 +112,12 @@ export const updateCalendarAccount = (id, changes) =>
 		await dispatch(updateOne({id, updates}));
 	}
 
-export const addCalendarAccount = (account) =>
-	async (dispatch) => {
-		let newAccount;
-		try {
-			newAccount = await fetcher.post(calendarAccountUrl, account);
-			if (typeof newAccount !== 'object')
-				throw new TypeError('Unexpected response to POST: ' + calendarAccountUrl);
-		}
-		catch(error) {
-			await dispatch(setError('Unable to add Google calendar account', error));
-			return;
-		}
-		dispatch(addOne(newAccount));
-	}
-
-export const deleteCalendarAccount = (id) =>
-	async (dispatch) => {
-		await dispatch(removeOne(id));
-		const url = `${calendarAccountUrl}/${id}`;
-		try {
-			await fetcher.delete(url);
-		}
-		catch(error) {
-			await dispatch(setError(`Unable to delete Google calendar account`, error));
-		}
-	}
-
-export const completeAuthCalendarAccount = (params) =>
-	async (dispatch) => {
-		let account;
-		try {
-			account = await fetcher.post(calendarAuthUrl, params);
-			if (typeof account !== 'object')
-				throw new TypeError('Unexpected response to POST: ' + calendarAuthUrl);
-		}
-		catch(error) {
-			await dispatch(setError(`Unable to authorize google calendar account`, error));
-			return;
-		}
-		await dispatch(setOne(account));
-	}
-
 export const revokeAuthCalendarAccount = (id) =>
 	async (dispatch) => {
-		const url = `${calendarAuthUrl}/${id}`;
+		const url = `${baseUrl}/${id}/revoke`;
 		let account;
 		try {
-			account = await fetcher.delete(url);
+			account = await fetcher.patch(url);
 			if (typeof account !== 'object')
 				throw new TypeError('Unexpected response to DELETE: ' + url);
 		}
@@ -157,4 +126,16 @@ export const revokeAuthCalendarAccount = (id) =>
 			return;
 		}
 		await dispatch(setOne(account));
+	}
+
+export const deleteCalendarAccount = (id) =>
+	async (dispatch) => {
+		const url = `${baseUrl}/${id}`;
+		try {
+			await fetcher.delete(url);
+		}
+		catch(error) {
+			await dispatch(setError(`Unable to delete Google calendar account`, error));
+		}
+		await dispatch(removeOne(id));
 	}

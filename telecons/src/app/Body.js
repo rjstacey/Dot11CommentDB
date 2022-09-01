@@ -1,5 +1,6 @@
 import React from 'react';
 import {Switch, Route} from 'react-router-dom';
+import {useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
 import {AccessLevel} from 'dot11-components/lib/user';
@@ -7,14 +8,15 @@ import {AccessLevel} from 'dot11-components/lib/user';
 import Accounts from '../accounts/Accounts';
 import Telecons from '../telecons/Telecons';
 import Calendar from '../calendar/Calendar';
-import {WebexAccountAuth} from '../accounts/WebexAccounts';
-import {CalendarAccountAuth} from '../accounts/CalendarAccounts';
 import Organization from '../organization/Organization';
 import ImatMeetings from '../imatMeetings/ImatMeetings';
 import ImatBreakouts from '../imatMeetings/ImatBreakouts';
 import ImatBreakoutAttendance from '../imatMeetings/ImatBreakoutAttendance';
 import WebexMeetings from '../webexMeetings/WebexMeetings';
 import Ieee802WorldSchedule from '../ieee802WorldSchedule/Ieee802WorldSchedule';
+import SendEmail from '../telecons/TeleconsEmail';
+
+import {selectUser} from '../store/user';
 
 const Main = styled.main`
 	flex: 1;
@@ -38,7 +40,8 @@ const RestrictedRoute = ({component: Component, access, minAccess, ...rest }) =>
 		}
 	/>
 
-function Body({user, access}) {
+function Body() {
+	const access = useSelector(selectUser).Access;
 
 	return (
 		<Main>
@@ -50,24 +53,10 @@ function Body({user, access}) {
 					component={Telecons}
 				/>
 				<RestrictedRoute
-					path="/calendar/auth"
-					exact
-					access={access}
-					minAccess={AccessLevel.WGAdmin}
-					component={CalendarAccountAuth}
-				/>
-				<RestrictedRoute
 					path="/calendar/:groupName?"
 					access={access}
 					minAccess={AccessLevel.WGAdmin}
 					component={Calendar}
-				/>
-				<RestrictedRoute
-					path="/webex/auth"
-					access={access}
-					exact
-					minAccess={AccessLevel.WGAdmin}
-					component={WebexAccountAuth}
 				/>
 				<RestrictedRoute
 					path="/webexMeetings/:groupName?"
@@ -114,6 +103,12 @@ function Body({user, access}) {
 					access={access}
 					minAccess={AccessLevel.WGAdmin}
 					component={Organization}
+				/>
+				<RestrictedRoute
+					path="/email"
+					access={access}
+					minAccess={AccessLevel.WGAdmin}
+					component={SendEmail}
 				/>
 			</Switch>
 		</Main>

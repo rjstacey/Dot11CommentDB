@@ -107,10 +107,7 @@ const slice = createAppTableDataSlice({
 	},
 });
 
-/*
- * Reducer
- */
-export default slice.reducer;
+export default slice;
 
 
 /*
@@ -174,7 +171,7 @@ export const addBreakouts = (meetingId, breakouts) =>
 		dispatch(upsertTelecons(response.telecons));
 	}
 
-export const updateBreakout = (meetingId, updates) => 
+export const updateBreakouts = (meetingId, updates) => 
 	async (dispatch, getState) => {
 		const url = `${baseUrl}/${meetingId}`;
 		let response;

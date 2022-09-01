@@ -30,10 +30,7 @@ const slice = createAppTableDataSlice({
 	},
 });
 
-/*
- * Reducer
- */
-export default slice.reducer;
+export default slice;
 
 /*
  * Selectors

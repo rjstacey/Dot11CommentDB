@@ -12,7 +12,7 @@ import {
 	addTelecons, 
 	updateTelecons, 
 	deleteTelecons, 
-	setSelected, 
+	setSelectedTelecons, 
 	selectTeleconsState, 
 	selectTeleconDefaults,
 	selectSyncedTeleconEntities
@@ -134,6 +134,10 @@ function convertToLocalTagMultiple(ids, entities) {
 
 	let entry = {}, dates = [];
 	for (const id of ids) {
+		if (!entities[id]) {
+			console.warn('bad id=' + id)
+			continue;
+		}
 		const original = convertToLocal(entities[id]);
 		dates.push(original.date);
 		entry = deepMergeTagMultiple(entry, original);
@@ -196,7 +200,7 @@ export function WebexMeetingEdit({
 			<Field label='Webex account'>
 				<WebexAccountSelector
 					value={isMultiple(webexAccountId)? null: webexAccountId}
-					onChange={webexAccountId => onChangeWebexAccountId({webexAccountId})}
+					onChange={webexAccountId => onChangeWebexAccountId(webexAccountId)}
 					placeholder={isMultiple(webexAccountId)? MULTIPLE_STR: undefined}
 					readOnly={readOnly || !isNew}
 				/>
@@ -453,7 +457,7 @@ class TeleconDetail extends React.Component {
 
 	componentDidUpdate(prevProps, prevState) {
 		const prevSelected = prevProps.selected;
-		const {selected, setSelected} = this.props;
+		const {selected, setSelectedTelecons} = this.props;
 		const {action, ids} = this.state;
 
 		const changeWithConfirmation = async () => {
@@ -463,7 +467,7 @@ class TeleconDetail extends React.Component {
 				console.log(updates)
 				const ok = await ConfirmModal.show('Changes not applied! Do you want to discard changes?');
 				if (!ok) {
-					setSelected(ids);
+					setSelectedTelecons(ids);
 					return;
 				}
 			}
@@ -581,7 +585,7 @@ class TeleconDetail extends React.Component {
 	}
 
 	clickAdd = async () => {
-		const {setSelected} = this.props;
+		const {setSelectedTelecons} = this.props;
 		const {action} = this.state;
 
 		console.log('clickAdd')
@@ -594,7 +598,7 @@ class TeleconDetail extends React.Component {
 			}
 		}
 		if (action !== 'add') {
-			setSelected([]);
+			setSelectedTelecons([]);
 			this.setState(this.initState('add'));
 		}
 	}
@@ -638,7 +642,7 @@ class TeleconDetail extends React.Component {
 	}
 
 	add = async () => {
-		const {addTelecons, setSelected} = this.props;
+		const {addTelecons, setSelectedTelecons} = this.props;
 		const {entry} = this.state;
 
 		let errMsg = '';
@@ -659,7 +663,7 @@ class TeleconDetail extends React.Component {
 		}
 
 		addTelecons(convertFromLocalMultipleDates(entry))
-			.then(ids => setSelected(ids))
+			.then(ids => setSelectedTelecons(ids))
 			.then(() => this.setState(this.initState('update')));
 	}
 
@@ -669,6 +673,10 @@ class TeleconDetail extends React.Component {
 		const updates = this.getUpdates();
 		console.log(updates)
 		await updateTelecons(updates);
+		this.setState(this.initState('update'));
+	}
+
+	cancel = () => {
 		this.setState(this.initState('update'));
 	}
 
@@ -715,7 +723,7 @@ class TeleconDetail extends React.Component {
 						action={action}
 						actionAdd={this.add}
 						actionUpdate={this.update}
-						//actionCancel={cancel}
+						actionCancel={this.cancel}
 					/>}
 			</Container>
 		)
@@ -728,7 +736,7 @@ class TeleconDetail extends React.Component {
 		entities: PropTypes.object.isRequired,
 		defaults: PropTypes.object.isRequired,
 		groupEntities: PropTypes.object.isRequired,
-		setSelected: PropTypes.func.isRequired,
+		setSelectedTelecons: PropTypes.func.isRequired,
 		updateTelecons: PropTypes.func.isRequired,
 		addTelecons: PropTypes.func.isRequired,
 		deleteTelecons: PropTypes.func.isRequired
@@ -744,7 +752,7 @@ const ConnectedTeleconDetail = connect(
 		groupEntities: selectGroupsState(state).entities
 	}),
 	{
-		setSelected,
+		setSelectedTelecons,
 		updateTelecons,
 		addTelecons,
 		deleteTelecons

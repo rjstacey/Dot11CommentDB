@@ -30,10 +30,7 @@ const slice = createSlice({
 	}
 });
 
-/*
- * Reducer
- */
-export default slice.reducer;
+export default slice;
 
 /*
  * Selectors
