@@ -1,24 +1,36 @@
 import { createIeeeFetcher } from '../utils';
 
-const cheerio = require('cheerio');
+//const cheerio = require('cheerio');
 const db = require('../utils/database');
 const users = require('./users');
 const jwt = require('./jwt');
 
-const loginUrl = 'https://imat.ieee.org/pub/login';
-const logoutUrl = 'https://imat.ieee.org/pub/logout';
+const loginUrl = '/pub/login';
+const logoutUrl = '/pub/logout';
 
 async function login(ieeeClient, username, password) {
+	let m, response;
 
 	// Do an initial GET on /pub/login so that we get cookies. We can do a login without this, but
 	// if we don't get the cookies associated with this GET, then the server seems to get confused
 	// and won't have the approriate state post login.
-	let response = await ieeeClient.get(loginUrl);
+	response = await ieeeClient.get(loginUrl);
 
-	const $ = cheerio.load(response.data);
+	if (response.headers['content-type'] !== 'text/html' ||
+		typeof response.data !== 'string' ||
+		response.data.search(/<div class="title">Sign In<\/div>/) === -1) {
+		throw new Error('Unexpected login page');
+	}
+
+	//const $ = cheerio.load(response.data);
+	m = /name="v" value="(.*)"/.exec(response.data);
+	const v = m? m[1]: '1';
+	m = /name="c" value="(.*)"/.exec(response.data);
+	const c = m? m[1]: '';
+
 	const loginForm = {
-		v: $('input[name="v"]').val(),
-		c: $('input[name="c"]').val(),
+		v: '1', //: $('input[name="v"]').val(),
+		c: 'aNA__', //: $('input[name="c"]').val(),
 		x1: username,
 		x2: password,
 		f0: 1, // "Sign In To" selector (1 = Attendance Tool, 2 = Mentor, 3 = My Project, 4 = Standards Dictionary)
@@ -36,26 +48,27 @@ async function login(ieeeClient, username, password) {
 		throw new Error(m? m[1]: 'Not logged in');
 	}
 
-	const n = response.data.match(/<span class="attendance_nav">Home - (.*), SA PIN: ([0-9]+)<\/span>/)
-	if (!n)
+	m = /<span class="attendance_nav">Home - (.*), SA PIN: (\d+)<\/span>/.exec(response.data);
+	if (!m)
 		throw new Error('Unexpected login page');
 
-	const Name = n[1];
-	const SAPIN = parseInt(n[2], 10);
+	const Name = m[1];
+	const SAPIN = parseInt(m[2], 10);
 
 	// Add an interceptor that will login again if a request returns the login page
 	ieeeClient.interceptors.response.use(
 		(response) => {
-			console.log(response.status)
-			console.log(typeof response.data)
-			if (headers['content-type'] === 'text/html' &&
+			if (response.headers['content-type'] === 'text/html' &&
 				typeof response.data === 'string' && 
 				response.data.search(/<div class="title">Sign In<\/div>/) !== -1) {
 				console.log('Try login again')
-				const $ = cheerio.load(response.data);
+				m = /name="v" value="(.*)"/.exec(response.data);
+				const v = m? m[1]: '1';
+				m = /name="c" value="(.*)"/.exec(response.data);
+				const c = m? m[1]: 'aNA__';
 				const loginForm = {
-					v: $('input[name="v"]').val(),
-					c: $('input[name="c"]').val(),
+					v,
+					c,
 					x1: username,
 					x2: password,
 					f0: 1,
@@ -72,7 +85,7 @@ async function login(ieeeClient, username, password) {
 }
 
 function logout(ieeeClient) {
-	return ieeeClient.get('https://imat.ieee.org/pub/logout');
+	return ieeeClient.get(logoutUrl);
 }
 
 /*

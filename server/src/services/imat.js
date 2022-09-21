@@ -35,38 +35,55 @@ function luxonTimeZone(timeZone) {
 	return map[timeZone] || timeZone;
 }
 
-export function parseMeetingsPage(body) {
+function getPage(body, title) {
+	// Use cheerio, which provides jQuery-like parsing
 	const $ = cheerio.load(body);
 
-	// If we get the "Sessions" page then parse the data table
-	// (use cheerio, which provides jQuery-like parsing)
-	if ($('div.title').length && $('div.title').html() == "Sessions") {
-		//console.log('GOT Sessions page');
-		const sessions = [];
-		$('.b_data_row').each(function(index) {  // each table data row
-			var tds = $(this).find('td');
-			var s = {};
-			s.timezone = tds.eq(5).text();
-			s.start = dateToISODate(tds.eq(0).text());
-			s.end = dateToISODate(tds.eq(1).text());
-			s.type = tds.eq(3).text();
-			s.name = tds.eq(4).text();
-			var p = tds.eq(6).html().match(/\/([^\/]+)\/meeting-detail\?p=(\d+)/);
-			s.organizerId = p? p[1]: '';
-			s.id = p? parseInt(p[2]): 0;
-			s.type = s.type? s.type[0].toLowerCase(): '';
-			sessions.push(s);
-		});
-		return sessions;
-	}
+	const titleHtml = $('div.title').html();
 
-	if ($('div.title').length && $('div.title').html() == "Sign In") {
-		// If we get the "Sign In" page then the user is not logged in
+	// If we get the "Sign In" page then the user is not logged in
+	if (titleHtml == "Sign In")
 		throw new AuthError('Not logged in');
-	}
 
-	throw new Error('Unexpected page returned by imat.ieee.org');
+	// Make sure we got the expected page
+	if (titleHtml != title)
+		throw new Error('Unexpected page returned by imat.ieee.org');
+
+	return $;
 }
+
+/*
+function parseMeetingsPage(body) {
+
+	const $ = getPage(body, "Sessions");
+
+	const sessions = [];
+	$('.b_data_row').each(function(index) {  // each table data row
+		var tds = $(this).find('td');
+		const s = {
+			id: 0,
+			start: dateToISODate(tds.eq(0).text()),
+			end: dateToISODate(tds.eq(1).text()),
+			type: tds.eq(3).text(),	// Plenary, Interim, Other
+			name: tds.eq(4).text(),
+			timezone: tds.eq(5).text(),
+			organizerId: '',
+		};
+		s.type = s.type? s.type[0].toLowerCase(): '';
+
+		const href = $(this).find('a[href*="/meeting-detail?"]').attr('href');
+		const m = /\/([^\/]+)\/meeting-detail\?p=(\d+)/.exec(href);
+		if (m) {
+			s.organizerId = m[1];
+			s.id = m[2];
+		}
+
+		sessions.push(s);
+	});
+
+	return sessions;
+}
+*/
 
 const meetingsCsvHeader = [
 	'Sponsor ID',
@@ -122,7 +139,7 @@ async function parseMeetingsCsv(buffer) {
  *
  * Parameters: n = number of entries to get
  */
-export async function getImatMeetings(user, n) {
+export async function getImatMeetings(user) {
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
@@ -148,7 +165,7 @@ export async function getImatMeetings(user, n) {
 
 	return await recursivePageGet([], n, 1);*/
 
-	const response = await ieeeClient.get(`https://imat.ieee.org/${user.Email}/meeting.csv`, {responseType: 'arraybuffer'});
+	const response = await ieeeClient.get(`/${user.Email}/meeting.csv`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 
@@ -175,46 +192,37 @@ async function getImatMeeting(user, id) {
  * symbol and name that are hard to separate.
  */
 function parseAddMeetingPage(body) {
-	const $ = cheerio.load(body);
 
-	// If we get the "Add a new Meeting" page then parse the table
-	// (use cheerio, which provides jQuery-like parsing)
-	if ($('div.title').length && $('div.title').html() == "Add a new Meeting") {
+	const $ = getPage(body, "Add a new Meeting");
 
-		// f1 selects the committee
-		const committees = [];
-		$('select[name="f1"] > option').each(function(index) {  // each option
-			const id = parseInt($(this).attr('value'));
-			const symbolName = $(this).text();
-			committees.push({id, symbolName});
-		});
+	// f1 selects the committee
+	const committees = [];
+	$('select[name="f1"] > option').each(function(index) {  // each option
+		const id = parseInt($(this).attr('value'));
+		const symbolName = $(this).text();
+		committees.push({id, symbolName});
+	});
 
-		let timeslots = {};
-		// f12 selects timeslot start
-		$('select[name="f12"] > option').each(function(index) {
-			const id = parseInt($(this).attr('value'));
-			const p = $(this).html().split('&nbsp;');
-			const name = p[0];
-			const startTime = p[1];
-			timeslots[id] = {id, name, startTime};
-		});
-		// f11 selects timeslot end
-		$('select[name="f11"] > option').each(function(index) {
-			const id = $(this).attr('value');
-			const p = $(this).html().split('&nbsp;');
-			timeslots[id].endTime = p[1];
-		});
-		timeslots = Object.values(timeslots);	// convert to array
+	let timeslots = {};
+	// f12 selects timeslot start
+	$('select[name="f12"] > option').each(function(index) {
+		const id = parseInt($(this).attr('value'));
+		const p = $(this).html().split('&nbsp;');
+		const name = p[0];
+		const startTime = p[1];
+		timeslots[id] = {id, name, startTime};
+	});
 
-		return {committees, timeslots}
-	}
+	// f11 selects timeslot end
+	$('select[name="f11"] > option').each(function(index) {
+		const id = $(this).attr('value');
+		const p = $(this).html().split('&nbsp;');
+		timeslots[id].endTime = p[1];
+	});
 
-	if ($('div.title').length && $('div.title').html() == "Sign In") {
-		// If we get the "Sign In" page then the user is not logged in
-		throw new AuthError('Not logged in');
-	}
+	timeslots = Object.values(timeslots);	// convert to array
 
-	throw new Error('Unexpected page returned by imat.ieee.org');
+	return {committees, timeslots}
 }
 
 const committeesCsvHeader = [
@@ -231,7 +239,6 @@ async function parseImatCommitteesCsv(buffer) {
 
 	if (p.length === 0)
 		throw new Error('Empty committees.csv file');
-
 
 	// Row 0 is the header
 	if (committeesCsvHeader.reduce((r, v, i) => v !== p[0][i], false))
@@ -258,7 +265,7 @@ export async function getImatCommittees(user, group) {
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const response = await ieeeClient.get(`https://imat.ieee.org/${group}/committees.csv`, {responseType: 'arraybuffer'});
+	const response = await ieeeClient.get(`/${group}/committees.csv`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 
@@ -273,97 +280,105 @@ const breakoutsCvsHeader = [
 	'Event Day', 'Facilitator Web Id'
 ];
 
-export function parseImatSessionDetailsPage(body) {
-	const $ = cheerio.load(body);
-	let m, rx;
+export function parseSessionDetailPage(body) {
+	let m, href;
 
-	// If we get the "Session detail" page then parse the data table
-	// (use cheerio, which provides jQuery-like parsing)
-	if ($('div.title').length && $('div.title').html() == "Session detail") {
-		//console.log('Got Session detail page');
-		m = body.match(/<td>(.*) Time Zone<\/td>/);
-		if (!m)
-			throw Error("Can't find timezone");
-		const timezone = m[1];
-		m = body.match(/<td>(\d{2}-[a-zA-Z]{3}-\d{4}) - (\d{2}-[a-zA-Z]{3}-\d{4})<\/td>/);
-		if (!m)
-			throw Error("Can't find session dates");
-		const sessionStart = DateTime.fromFormat(m[1], 'dd-MMM-yyyy', {zone: timezone});
-		const breakouts = [];
-		const timeslots = {};
-		let editBreakoutContext = '';
-		$('.b_data_row').each(function(index) {  // each table data row
-			var tds = $(this).find('td');
-			//console.log(tds.length)
-			if (tds.length === 4) {	// Timeslots table
-				const t = {};
-				t.name = tds.eq(0).text();
-				t.startTime = tds.eq(1).text();
-				t.endTime = tds.eq(1).text();
-				m = tds.eq(3).html().match(/timeslot-edit\?t=(\d+)&amp;p=(\d+)/);
+	const $ = getPage(body, "Session detail");
+
+	m = /<td>(.*) Time Zone<\/td>/.exec(body);
+	if (!m)
+		throw new Error("Can't find timezone");
+	const timezone = m[1];
+
+	m = /<td>(\d{2}-[a-zA-Z]{3}-\d{4}) - (\d{2}-[a-zA-Z]{3}-\d{4})<\/td>/.exec(body);
+	if (!m)
+		throw new Error("Can't find session dates");
+	const sessionStart = DateTime.fromFormat(m[1], 'dd-MMM-yyyy', {zone: timezone});
+
+	// Find "Add a new Meeting" link
+	href = $('a[href*="/breakout?"]').attr('href');
+	m = /p=(\d+)/.exec(href);
+	if (!m)
+		throw new Error("Can't find session ID");
+	const meetingId = parseInt(m[1]);
+
+	const breakouts = [];
+	const timeslots = {};
+
+	$('.b_data_row').each(function(index) {  // each table data row
+		var tds = $(this).find('td');
+		//console.log(tds.length)
+		if (tds.length === 4) {	// Timeslots table
+			const t = {
+				id: 0,
+				meetingId,
+				name: tds.eq(0).text(),
+				startTime: tds.eq(1).text(),
+				endTime: tds.eq(2).text()
+			};
+			href = tds.eq(3).find('a[href*="timeslot-edit"]').attr('href');
+			if (href) {
+				m = /t=(\d+)/.exec(href);
 				if (!m)
-					throw Error("Can't parse timeslots table links column");
+					throw Error("Can't parse timeslot-edit link");
 				t.id = parseInt(m[1]);
-				t.meetingId = parseInt(m[2]);
-				timeslots[t.name] = t;
 			}
-			if (tds.length === 9) {	// Breakouts table
-				var b = {};
 
-				rx = /(.+)&nbsp;[a-zA-Z]{3}, (\d{2}-[a-zA-Z]{3}-\d{4})<br>(\d{2}:\d{2})&nbsp;-&nbsp;(\d{2}:\d{2})/;
-				const timePeriod = tds.eq(0).html();
-				m = rx.exec(timePeriod);
-				if (!m) 
-					throw Error("Can't parse Time Period column; got " + timePeriod)
-				const slotsRange = m[1];
-				const eventDate = DateTime.fromFormat(m[2], 'dd-MMM-yyyy', {zone: timezone});
-				b.day = eventDate.diff(sessionStart, 'days').get('days');
-				b.start = eventDate.set({hour: m[3].substring(0, 2), minute: m[3].substring(3)}).toISO();
-				b.end = eventDate.set({hour: m[4].substring(0, 2), minute: m[4].substring(3)}).toISO();
+			timeslots[t.name] = t;
+		}
 
-				m = slotsRange.match(/(.+)&nbsp;-&nbsp;(.+)/);
-				b.startSlot = m? m[1]: slotsRange;
-				b.endSlot = m? m[2]: slotsRange;
-				const startSlot = timeslots[b.startSlot];
-				const endSlot = timeslots[b.endSlot];
-				b.startSlotId = startSlot? startSlot.id: null;
-				b.endSlotId = endSlot? endSlot.id: null;
+		if (tds.length === 9) {	// Breakouts table
+			var b = {};
 
-				b.location = tds.eq(1).text();
-				b.facilitatorName = tds.eq(2).text();
-				b.groupShortName = tds.eq(3).text();
-				b.name = tds.eq(4).text();
-				b.credit = tds.eq(5).text();
-				//console.log(tds.eq(7).html())
+			const timePeriod = tds.eq(0).html();
+			m = /(.+)&nbsp;[a-zA-Z]{3}, (\d{2}-[a-zA-Z]{3}-\d{4})<br>(\d{2}:\d{2})&nbsp;-&nbsp;(\d{2}:\d{2})/.exec(timePeriod);
+			if (!m) 
+				throw Error("Can't parse Time Period column; got " + timePeriod)
+			const slotsRange = m[1];
+			const eventDate = DateTime.fromFormat(m[2], 'dd-MMM-yyyy', {zone: timezone});
+			b.day = eventDate.diff(sessionStart, 'days').get('days');
+			b.start = eventDate.set({hour: m[3].substring(0, 2), minute: m[3].substring(3)}).toISO();
+			b.end = eventDate.set({hour: m[4].substring(0, 2), minute: m[4].substring(3)}).toISO();
 
-				rx = /\?t=(\d+)&p=(\d+)&fc=(.+)/g;
-				const editLink = tds.eq(7).find('a[href*="breakout-edit"]').attr('href');
-				m = rx.exec(editLink);
-				if (!m)
-					throw Error("Can't parse breakouts table links column");
-				b.id = parseInt(m[1]);
-				b.meetingId = parseInt(m[2]);
-				b.editContext = decodeURIComponent(m[3]);
+			m = /(.+)&nbsp;-&nbsp;(.+)/.exec(slotsRange);
+			b.startSlot = m? m[1]: slotsRange;
+			b.endSlot = m? m[2]: slotsRange;
+			const startSlot = timeslots[b.startSlot];
+			const endSlot = timeslots[b.endSlot];
+			b.startSlotId = startSlot? startSlot.id: null;
+			b.endSlotId = endSlot? endSlot.id: null;
 
-				rx = /f5_(\d+)/;
-				const inputName = $(`input[value="${b.id}"]`).attr('name');
-				m = rx.exec(inputName);
-				if (!m)
-					throw new Error("Can't parse input fields");
-				b.formIndex = m[1];
-				//console.log(b);
-				breakouts.push(b);
-			}
-		});
-		return {breakouts, timeslots};
-	}
+			b.location = tds.eq(1).text();
+			b.facilitatorName = tds.eq(2).text();
+			b.groupShortName = tds.eq(3).text();
+			b.name = tds.eq(4).text();
+			b.credit = tds.eq(5).text();
+			//console.log(tds.eq(7).html())
 
-	if ($('div.title').length && $('div.title').html() == "Sign In") {
-		// If we get the "Sign In" page then the user is not logged in
-		throw new AuthError('Not logged in');
-	}
-	console.log($('div.title').html())
-	throw new Error('Unexpected page returned by imat.ieee.org');
+			href = tds.eq(7).find('a[href*="breakout-edit"]').attr('href');
+			if (!href)
+				throw new Error("Can't find edit breakout link");
+			m = /\?t=(\d+)&p=(\d+)&fc=(.+)/.exec(href);
+			if (!m)
+				throw new Error("Can't parse edit breakout link");
+			b.id = parseInt(m[1]);
+			b.meetingId = parseInt(m[2]);
+			b.editContext = decodeURIComponent(m[3]);
+
+			const inputName = $(`input[value="${b.id}"]`).attr('name');
+			if (!inputName)
+				throw new Error("Can't find breakout delete checkbox");
+			m = /f5_(\d+)/.exec(inputName);
+			if (!m)
+				throw new Error("Can't parse input field");
+			b.formIndex = m[1];
+
+			//console.log(b);
+			breakouts.push(b);
+		}
+	});
+
+	return {breakouts, timeslots};
 }
 
 async function parseImatBreakoutsCsv(session, buffer) {
@@ -407,7 +422,6 @@ async function parseImatTimeslotCsv(session, buffer) {
 	if (p.length === 0)
 		throw new Error('Empty timeslot.csv file');
 
-
 	// Row 0 is the header
 	if (timeslotsCsvHeader.reduce((r, v, i) => r || v !== p[0][i], false))
 		throw new Error(`Unexpected column headings ${p[0].join()}. Expected ${timeslotsCsvHeader.join()}.`);
@@ -433,26 +447,26 @@ export async function getImatBreakouts(user, meetingId) {
 	let response;
 
 	/*
-	response = await ieeeClient.get(`https://imat.ieee.org/${session.organizerId}/breakouts.csv?p=${meetingId}&xls=1`, {responseType: 'arraybuffer'});
+	response = await ieeeClient.get(`/${session.organizerId}/breakouts.csv?p=${meetingId}&xls=1`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 	const breakouts = await parseImatBreakoutsCsv(session, response.data);
 	*/
-	response = await ieeeClient.get(`https://imat.ieee.org/${session.organizerId}/meeting-detail?p=${meetingId}`);
-	const {breakouts} = parseImatSessionDetailsPage(response.data);
+	response = await ieeeClient.get(`/${session.organizerId}/meeting-detail?p=${meetingId}`);
+	const {breakouts} = parseSessionDetailPage(response.data);
 
-	/*response = await ieeeClient.get(`https://imat.ieee.org/${session.organizerId}/timeslot.csv?p=${session.id}&xls=1`, {responseType: 'arraybuffer'});
+	/*response = await ieeeClient.get(`/${session.organizerId}/timeslot.csv?p=${session.id}&xls=1`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 
 	const timeslots = await parseImatTimeslotCsv(session, response.data);*/
 
-	response = await ieeeClient.get(`https://imat.ieee.org/802.11/committees.csv`, {responseType: 'arraybuffer'});
+	response = await ieeeClient.get(`/802.11/committees.csv`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 	const committees = await parseImatCommitteesCsv(response.data);
 
-	response = await ieeeClient.get(`https://imat.ieee.org/802.11/breakout?p=${meetingId}`);
+	response = await ieeeClient.get(`/802.11/breakout?p=${meetingId}`);
 	const {timeslots, committees: committees2} = parseAddMeetingPage(response.data);
 
 	//console.log(timeslots, committees, committees2)
@@ -511,7 +525,7 @@ async function addImatBreakout(user, session, breakout) {
 	};
 
 	const {ieeeClient} = user;
-	const response = await ieeeClient.post(`https://imat.ieee.org/${session.organizerId}/breakout?p=${session.id}`, params);
+	const response = await ieeeClient.post(`/${session.organizerId}/breakout?p=${session.id}`, params);
 	//console.log(response)
 
 	if (response.data.search(/<title>IEEE Standards Association - Event detail<\/title>/) === -1) {
@@ -520,7 +534,7 @@ async function addImatBreakout(user, session, breakout) {
 	}
 
 	/* From the response, find the breakout we just added */
-	const {breakouts} = parseImatSessionDetailsPage(response.data);
+	const {breakouts} = parseSessionDetailPage(response.data);
 	//console.log(breakouts);
 
 	let b = breakouts.find(b => breakout.name === b.name && breakout.location === b.location && breakout.startSlotId === b.startSlotId);
@@ -551,7 +565,7 @@ export async function addImatBreakouts(user, meetingId, breakouts) {
 	return {breakouts, telecons};
 }
 
-export async function deleteImatBreakout(user, meetingId, breakoutId) {
+export async function deleteImatBreakouts(user, meetingId, ids) {
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
@@ -559,12 +573,16 @@ export async function deleteImatBreakout(user, meetingId, breakoutId) {
 
 	const session = await getImatMeeting(user, meetingId);
 
-	const response = await ieeeClient.get(`https://imat.ieee.org/${session.organizerId}/meeting-detail?p=${meetingId}`);
-	const {breakouts} = parseImatSessionDetailsPage(response.data);
+	const response = await ieeeClient.get(`/${session.organizerId}/meeting-detail?p=${meetingId}`);
+	const {breakouts} = parseSessionDetailPage(response.data);
 
-	const breakout = breakouts.find(b => b.id === breakoutId);
-	if (!breakout)
-		throw new NotFoundError(`Breakout ${breakoutId} not found`);
+	const breakoutsToDelete = [];
+	for (const id of ids) {
+		const b = breakouts.find(b => b.id === id);
+		if (!b)
+			throw new NotFoundError(`Breakout ${id} not found`);
+		breakoutsToDelete.push(b);
+	}
 
 	const params = {
 		tz: 420,
@@ -572,11 +590,12 @@ export async function deleteImatBreakout(user, meetingId, breakoutId) {
 		f3: '',
 		f4: 0,
 		f2: 'Delete'
-	}
-	breakouts.forEach(b => params['f5_' + b.formIndex] = b.id);
-	params['f1_' + breakout.formIndex] = 'on';
+	};
 
-	await ieeeClient.post(`https://imat.ieee.org/802.11/meeting-detail?p=${meetingId}`, params)
+	breakouts.forEach(b => params['f5_' + b.formIndex] = b.id);
+	breakoutsToDelete.forEach(b => params['f1_' + b.formIndex] = 'on');
+
+	await ieeeClient.post(`/802.11/meeting-detail?p=${meetingId}`, params)
 }
 
 async function updateImatBreakout(user, session, breakout) {
@@ -603,15 +622,15 @@ async function updateImatBreakout(user, session, breakout) {
 	};
 	//console.log(params)
 
-	const response = await user.ieeeClient.post(`https://imat.ieee.org/${session.organizerId}/breakout-edit?t=${breakout.id}&p=${session.id}`, params);
+	const response = await user.ieeeClient.post(`/${session.organizerId}/breakout-edit?t=${breakout.id}&p=${session.id}`, params);
 
 	if (response.data.search(/<title>IEEE Standards Association - Event detail<\/title>/) === -1) {
-		const m = response.data.match(/<div class="field_err">(.*)<\/div>/);
+		const m = /<div class="field_err">(.*)<\/div>/.exec(response.data);
 		throw new Error(m? m[1]: 'An unexpected error occured');
 	}
 
 	/* From the response, find the breakout we just update */
-	const {breakouts} = parseImatSessionDetailsPage(response.data);
+	const {breakouts} = parseSessionDetailPage(response.data);
 	//console.log(breakouts);
 
 	const b = breakouts.find(b => breakout.id === b.id);
@@ -656,39 +675,34 @@ export async function getImatBreakoutAttendance(user, meetingId, breakoutId) {
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const {data} = await ieeeClient.get(`https://imat.ieee.org/802.11/breakout-members?t=${breakoutId}&p=${meetingId}`);
+	const {data} = await ieeeClient.get(`/802.11/breakout-members?t=${breakoutId}&p=${meetingId}`);
 	const $ = cheerio.load(data);
 
-	// If we get the "Meeting attendance for" page then parse the data table
-	// (use cheerio, which provides jQuery parsing)
-	if ($('div.title').length && $('div.title').html().startsWith('Meeting attendance for')) {
-		const attendance = [];
-		$('.b_data_row').each(function (index) {  // each table data row
-			var tds = $(this).find('td');
-			const parts = tds.eq(1).text().split(',');
-			const LastName = parts[0].trim();
-			const FirstName = parts.length > 1? parts[1].trim(): '';
-			const Name = FirstName? FirstName + ' ' + LastName: LastName;
-			const entry = {
-				SAPIN: tds.eq(0).text(),
-				Name,
-				//FirstName,
-				//LastName,
-				Email: tds.eq(2).text(),
-				Timestamp: getTimestamp(tds.eq(3).text()),
-				Affiliation: tds.eq(4).text()
-			}
-			attendance.push(entry);
-		});
-		return attendance;
-	}
-	else if ($('div.title').length && $('div.title').html() == "Sign In") {
-		// If we get the "Sign In" page then the user is not logged in
+	const title = $('div.title').html();
+	if (title === "Sign In")
 		throw new AuthError('Not logged in');
-	}
-	else {
+
+	if (!title.startsWith('Meeting attendance for'))
 		throw new Error('Unexpected page returned by imat.ieee.org');
-	}
+
+	const attendance = [];
+	$('.b_data_row').each(function (index) {  // each table data row
+		var tds = $(this).find('td');
+		const parts = tds.eq(1).text().split(',');
+		const LastName = parts[0].trim();
+		const FirstName = parts.length > 1? parts[1].trim(): '';
+		const Name = FirstName? FirstName + ' ' + LastName: LastName;
+		const entry = {
+			SAPIN: tds.eq(0).text(),
+			Name,
+			Email: tds.eq(2).text(),
+			Timestamp: getTimestamp(tds.eq(3).text()),
+			Affiliation: tds.eq(4).text()
+		}
+		attendance.push(entry);
+	});
+
+	return attendance;
 }
 
 async function parseImatAttendanceSummary(buffer) {
@@ -733,7 +747,7 @@ async function parseImatAttendanceSummary(buffer) {
  */
 export async function getImatAttendanceSummary(user, session) {
 
-	let start = DateTime.fromJSDate(session.etart, {zone: session.timezone});
+	let start = DateTime.fromJSDate(session.start, {zone: session.timezone});
 	if (!start.isValid)
 		throw new TypeError(`Invalid session start (${session.start}) or timezone (${session.timezone})`)
 	start = start.toFormat('MM/dd/yyyy');
@@ -747,7 +761,7 @@ export async function getImatAttendanceSummary(user, session) {
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const response = await ieeeClient.get(`https://imat.ieee.org/802.11/attendance-summary.csv?b=${start}&d=${end}`);
+	const response = await ieeeClient.get(`/802.11/attendance-summary.csv?b=${start}&d=${end}`);
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 
@@ -760,7 +774,7 @@ async function addSession(user, session) {
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const response = await ieeeClient.post(`https://imat.ieee.org/${user.Email}/meeting`);
+	const response = await ieeeClient.post(`/${user.Email}/meeting`);
 }
 
 function slotDateTime(date, slot) {
@@ -773,7 +787,7 @@ function slotDateTime(date, slot) {
 async function teleconToBreakout(user, telecon, session, timeslots, committees) {
 
 	const sessionStart = DateTime.fromISO(session.start, {zone: session.timezone});
-	const sessionEnd = DateTime.fromISO(session.end, {zone: session.timezone});
+	const sessionEnd = DateTime.fromISO(session.end, {zone: session.timezone}).plus({days: 1});
 	const start = DateTime.fromISO(telecon.start, {zone: session.timezone});
 	const end = DateTime.fromISO(telecon.end, {zone: session.timezone});
 	//console.log(session.start, telecon.start)

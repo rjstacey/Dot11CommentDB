@@ -20,10 +20,10 @@ import {
 
 const router = require('express').Router();
 
-router.get('/:parent_id?', async (req, res, next) => {
+router.get('/:groupId?', async (req, res, next) => {
 	try {
-		const {parent_id} = req.params;
-		const data = await getTelecons({parent_id, ...req.query});
+		const {groupId} = req.params;
+		const data = await getTelecons({groupId, ...req.query});
 		res.json(data);
 	}
 	catch(err) {next(err)}

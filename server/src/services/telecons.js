@@ -13,7 +13,7 @@ import {
 } from './webex';
 
 import {
-	deleteImatBreakout,
+	deleteImatBreakouts,
 	addImatBreakoutFromTelecon,
 	updateImatBreakoutFromTelecon
 } from './imat';
@@ -38,19 +38,20 @@ async function selectTelecons(constraints) {
 			//'DATE_FORMAT(end, "%Y-%m-%dT%TZ") AS end, ' +
 			'start, end, ' +
 			'timezone, ' +
+			'location, ' +
 			'isCancelled, hasMotions, ' +
 			'webexAccountId, webexMeetingId, ' +
 			'calendarAccountId, calendarEventId, ' +
 			'imatMeetingId, imatBreakoutId ' +
 		'FROM telecons t';
 
-	const {parent_id, fromDate, toDate, ...rest} = constraints;
+	const {groupId, fromDate, toDate, ...rest} = constraints;
 	//console.log(rest)
 
 	let wheres = [];
-	if (parent_id) {
+	if (groupId) {
 		sql += ' LEFT JOIN organization o ON o.id=t.organizationId';
-		wheres.push(db.format('o.parent_id=UUID_TO_BIN(?)', [parent_id]));
+		wheres.push(db.format('(o.parent_id=UUID_TO_BIN(?) OR o.id=UUID_TO_BIN(?))', [groupId, groupId]));
 	}
 
 	if (fromDate)
@@ -72,7 +73,7 @@ async function selectTelecons(constraints) {
 
 	if (wheres.length)
 		sql += ' WHERE ' + wheres.join(' AND ');
-	//console.log(sql);
+	console.log(sql);
 
 	const telecons = await db.query(sql);
 	for (const entry of telecons) {
@@ -100,6 +101,7 @@ function teleconEntry(e) {
 		start: e.start? DateTime.fromISO(e.start, opt).toJSDate(): undefined,
 		end: e.end? DateTime.fromISO(e.end, opt).toJSDate(): undefined,
 		timezone: e.timezone,
+		location: e.location,
 		isCancelled: e.isCancelled,
 		hasMotions: e.hasMotions,
 		webexAccountId: e.webexAccountId,
@@ -268,22 +270,19 @@ async function addTelecon(user, entry) {
 	/* If a webex account is given and the webexMeeting object exists then add a webex meeting */
 	if (entry.webexAccountId && entry.webexMeeting) {
 		let webexMeeting = teleconToWebexMeeting(entry);
-		if (!entry.webexMeetingId) {
+		if (entry.webexMeetingId === '$add') {
 			entry.webexMeeting = await addWebexMeeting(entry.webexAccountId, webexMeeting);
 			entry.webexMeetingId = entry.webexMeeting.id;
 		}
 		else {
 			entry.webexMeeting = await updateWebexMeeting(entry.webexAccountId, entry.webexMeetingId, webexMeeting);
 		}
-
+		entry.location = await webexMeetingImatLocation(entry.webexAccountId, entry.webexMeeting);
 	}
 
 	/* If meetingId is given then add a breakout for this telecon */
 	if (entry.imatMeetingId) {
-		// 'Location' for IMAT breakout
-		if (entry.webexAccountId && entry.webexMeeting)
-			entry.location = await webexMeetingImatLocation(entry.webexAccountId, entry.webexMeeting);
-		if (!entry.imatBreakoutId) {
+		if (entry.imatBreakoutId === '$add') {
 			const breakout = await addImatBreakoutFromTelecon(user, entry.imatMeetingId, entry);
 			entry.imatBreakoutId = breakout.id;
 		}
@@ -315,12 +314,13 @@ export async function addTelecons(user, entries) {
 		throw new AuthError('Not logged in');
 
 	const ids = await Promise.all(entries.map(e => addTelecon(user, e)));
-	return await getTelecons({id: ids});
+
+	return getTelecons({id: ids});
 }
 
 export async function updateTelecon(user, id, changes) {
 
-	let {webexMeeting: webexMeetingChanges, calendarEvent: calendarEventChanges, ...teleconChanges} = changes;
+	let {webexMeeting: webexMeetingChanges, ...teleconChanges} = changes;
 	let [telecon] = await selectTelecons({id});
 
 	if (!telecon)
@@ -333,25 +333,26 @@ export async function updateTelecon(user, id, changes) {
 	 * Otherwise, update existing meeting. */
 	let webexMeeting = teleconToWebexMeeting({...telecon, ...teleconChanges});
 	webexMeeting = {...webexMeeting, ...webexMeetingChanges};
+	const webexAccountId = teleconChanges.webexAccountId || telecon.webexAccountId;
 	if (telecon.webexAccountId && telecon.webexMeetingId) {
 		// Webex meeting exists
-		if ((teleconChanges.hasOwnProperty('webexAccountId') && teleconChanges.webexAccountId !== telecon.webexAccountId) ||
-			(teleconChanges.hasOwnProperty('webexMeetingId') && !teleconChanges.webexMeetingId))
+		if (('webexAccountId' in teleconChanges && teleconChanges.webexAccountId !== telecon.webexAccountId) ||
+			('webexMeetingId' in teleconChanges && teleconChanges.webexMeetingId !== telecon.webexMeetingId))
 		{
-			// Delete the webex meeting if the webex account changes or
-			// the webexMeetingId is set to null.
+			// Delete the webex meeting if the webex account or webex meeting ID changes
 			console.log('delete webex meeting', telecon.webexMeetingId);
 			try {
 				await deleteWebexMeeting(telecon.webexAccountId, telecon.webexMeetingId);
 			}
 			catch (error) {
+				console.log(error instanceof NotFoundError)
 				// Ignore "meeting does not" exist error (may already be deleted)
-				if (!error.response || error.response.status !== 404)	// Webex meeting does not exist
+				if (!(error instanceof NotFoundError))	// Webex meeting does not exist
 					throw error;
 			}
 			teleconChanges.webexMeetingId = null;
-			const webexAccountId = teleconChanges.webexAccountId || telecon.webexAccountId;
-			if (webexAccountId && webexMeetingChanges) {
+			webexMeeting = null;
+			if (webexAccountId && teleconChanges.webexMeetingId === '$add') {
 				// Add new webex meeting if the webexMeeting object is present
 				console.log('add webex meeting');
 				webexMeeting = await addWebexMeeting(telecon.webexAccountId, webexMeeting);
@@ -362,41 +363,51 @@ export async function updateTelecon(user, id, changes) {
 		else {
 			// Update existing webex meeting
 			try {
-				teleconChanges.webexMeeting = await updateWebexMeeting(telecon.webexAccountId, telecon.webexMeetingId, webexMeeting);
+				webexMeeting = await updateWebexMeeting(telecon.webexAccountId, telecon.webexMeetingId, webexMeeting);
 			}
 			catch (error) {
-				if (error.response && error.response.status === 404)	// Webex meeting does not exist
+				if (error instanceof NotFoundError)	// Webex meeting does not exist
 					teleconChanges.webexMeetingId = null;
 				else
 					throw error;
 			}
 		}
+		teleconChanges.webexMeeting = webexMeeting;
+		if (webexMeeting)
+			teleconChanges.location = await webexMeetingImatLocation(webexAccountId, webexMeeting);
+		else
+			teleconChanges.location = null;
 	}
 	else {
 		// Webex meeting does not exist
-		const webexAccountId = teleconChanges.webexAccountId || telecon.webexAccountId;
-		if (webexAccountId && webexMeetingChanges) {
+		if (webexAccountId && teleconChanges.webexMeetingId === '$add') {
 			// Add new webex meeting
 			webexMeeting = await addWebexMeeting(telecon.webexAccountId, webexMeeting);
 			teleconChanges.webexMeeting = webexMeeting;
 			teleconChanges.webexMeetingId = webexMeeting.id;
+			teleconChanges.location = await webexMeetingImatLocation(webexAccountId, webexMeeting);
 		}
 	}
 
 	/* Make IMAT breakout changes */
 	try {
+		const imatMeetingId = telecon.imatMeetingId || teleconChanges.imatMeetingId;
 		if (telecon.imatMeetingId && telecon.imatBreakoutId) {
 			// IMAT breakout exists
-			if (teleconChanges.hasOwnProperty('imatMeetingId') && teleconChanges.imatMeetingId !== telecon.imatMeetingId) {
-				// Session changed
-				await deleteImatBreakout(user, telecon.imatMeetingId, telecon.imatBreakoutId);
-				teleconChanges.imatBreakoutId = null;
-				const imatMeetingId = teleconChanges.imatMeetingId;
-				if (imatMeetingId) {
+			if (('imatMeetingId' in teleconChanges && teleconChanges.imatMeetingId !== telecon.imatMeetingId) ||
+				('imatBreakoutId' in teleconChanges && teleconChanges.imatBreakoutId !== telecon.imatBreakoutId))
+			{
+				// Session or linked breakout has changed
+				await deleteImatBreakouts(user, telecon.imatMeetingId, [telecon.imatBreakoutId]);
+				if (teleconChanges.imatBreakoutId === '$add') {
 					// Different session
 					console.log('add breakout')
 					const breakout = await addImatBreakoutFromTelecon(user, imatMeetingId, {...telecon, ...teleconChanges});
 					teleconChanges.imatBreakoutId = breakout.id;
+				}
+				else if (teleconChanges.imatBreakoutId) {
+					console.log('update breakout')
+					await updateImatBreakoutFromTelecon(user, imatMeetingId, teleconChanges.imatBreakoutId, {...telecon, ...teleconChanges});
 				}
 			}
 			else {
@@ -406,12 +417,17 @@ export async function updateTelecon(user, id, changes) {
 			}
 		}
 		else {
-			// IMAT breakout does not exist
-			if (teleconChanges.imatMeetingId || (!teleconChanges.hasOwnProperty('imatMeetingId') && telecon.imatMeetingId)) {
-				const imatMeetingId = teleconChanges.imatMeetingId || telecon.imatMeetingId;
-				console.log('add breakout')
-				const breakout = await addImatBreakoutFromTelecon(user, imatMeetingId, {...telecon, ...teleconChanges});
-				teleconChanges.imatBreakoutId = breakout.id;
+			// IMAT breakout does not exist (or not previously linked)
+			if (imatMeetingId) {
+				if (teleconChanges.imatBreakoutId === '$add') {
+					console.log('add breakout')
+					const breakout = await addImatBreakoutFromTelecon(user, imatMeetingId, {...telecon, ...teleconChanges});
+					teleconChanges.imatBreakoutId = breakout.id;
+				}
+				else if (teleconChanges.imatBreakoutId) {
+					console.log('update breakout')
+					await updateImatBreakoutFromTelecon(user, imatMeetingId, teleconChanges.imatBreakoutId, {...telecon, ...teleconChanges});
+				}
 			}
 		}
 	}
@@ -424,7 +440,7 @@ export async function updateTelecon(user, id, changes) {
 	try {
 		if (telecon.calendarAccountId && telecon.calendarEventId) {
 			// Calendar event exists
-			if (teleconChanges.hasOwnProperty('calendar_id') && teleconChanges.calendarAccountId !== telecon.calendarAccountId) {
+			if ('calendarAccountId' in teleconChanges && teleconChanges.calendarAccountId !== telecon.calendarAccountId) {
 				await deleteCalendarEvent(telecon.calendarAccountId, telecon.calendarEventId);
 				teleconChanges.calendarEventId = null;
 				if (teleconChanges.calendarAccountId) {
@@ -487,13 +503,14 @@ export async function deleteTelecons(user, ids) {
 				await deleteWebexMeeting(entry.webexAccountId, entry.webexMeetingId);
 			}
 			catch (error) {
-				if (error.response && error.response.status !== 404)
-					throw error;
+				if (error instanceof NotFoundError)	// Webex meeting does not exist
+					return;
+				throw error;
 			}
 		}
 		if (entry.imatMeetingId && entry.imatBreakoutId) {
 			try {
-				await deleteImatBreakout(user, entry.imatMeetingId, entry.imatBreakoutId);
+				await deleteImatBreakouts(user, entry.imatMeetingId, [entry.imatBreakoutId]);
 			}
 			catch (error) {
 				console.log(error);

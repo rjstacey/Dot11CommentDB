@@ -4,7 +4,7 @@ const {SESClient, SendEmailCommand} = require("@aws-sdk/client-ses");
 const region = 'us-west-2';
 let credentials;
 //if (process.env.NODE_ENV === 'development') {
-	credentials = fromIni({profile: '914756154702_SystemAdministrator'});
+	credentials = fromIni({profile: 'profile eb-cli'});
 //}
 console.log(region, credentials)
 const sesClient = new SESClient({region, credentials});
@@ -45,24 +45,10 @@ const defaultParams = {
 	],
 };
 
-/*
-const run = async () => {
-	try {
-		const data = await sesClient.send(new SendEmailCommand(params));
-		console.log("Success", data);
-		return data; // For unit tests.
-	} catch (err) {
-		console.log("Error", err);
-	}
-};
-run();
-*/
-
 export async function sendEmail(user, email) {
 	const params = {
 		...email,
 		Source: "noreply@802tools.org",
-		ReplyToAddresses: [user.Email]
 	}
 	console.log(params)
 	const data = await sesClient.send(new SendEmailCommand(params));

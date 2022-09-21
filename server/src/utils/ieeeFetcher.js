@@ -27,8 +27,22 @@ export function createIeeeFetcher() {
 		jar: new CookieJar(),
 		withCredentials: true,
 		responseType: 'text',
-		transformRequest, 
+		transformRequest,
+		baseURL: 'https://imat.ieee.org'
 	}
 
-	return wrapper(axios.create(config));
+	const client = wrapper(axios.create(config));
+
+	if (process.env.NODE_ENV === 'development') {
+		client.interceptors.request.use(
+			config => {
+				console.log(config.method, config.url)
+				if (config.data)
+					console.log('data=', config.data)
+				return config;
+			}
+		);
+	}
+
+	return client;
 }

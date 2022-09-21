@@ -10,6 +10,7 @@ import {
 	getImatBreakouts,
 	addImatBreakouts,
 	updateImatBreakouts,
+	deleteImatBreakouts,
 	getImatBreakoutAttendance
 } from '../services/imat';
 
@@ -17,9 +18,8 @@ const router = require('express').Router();
 
 router.get('/committees/:group', async (req, res, next) => {
 	try {
-		const {user} = req;
 		const {group} = req.params;
-		const data = await getImatCommittees(user, group);
+		const data = await getImatCommittees(req.user, group);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -27,9 +27,7 @@ router.get('/committees/:group', async (req, res, next) => {
 
 router.get('/meetings$', async (req, res, next) => {
 	try {
-		const {user} = req;
-		const n = req.query.hasOwnProperty('n')? parseInt(req.query.n): 10;
-		const data = await getImatMeetings(user, n);
+		const data = await getImatMeetings(req.user);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -37,9 +35,8 @@ router.get('/meetings$', async (req, res, next) => {
 
 router.get('/breakouts/:meetingNumber(\\d+)', async (req, res, next) => {
 	try {
-		const {user} = req;
-		const meetingNumber = parseInt(req.params.meetingNumber, 10);
-		const data = await getImatBreakouts(user, meetingNumber);
+		const meetingNumber = parseInt(req.params.meetingNumber);
+		const data = await getImatBreakouts(req.user, meetingNumber);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -47,12 +44,11 @@ router.get('/breakouts/:meetingNumber(\\d+)', async (req, res, next) => {
 
 router.put('/breakouts/:meetingNumber(\\d+)', async (req, res, next) => {
 	try {
-		const {user} = req;
-		const meetingNumber = parseInt(req.params.meetingNumber, 10);
+		const meetingNumber = parseInt(req.params.meetingNumber);
 		const breakouts = req.body;
 		if (!Array.isArray(breakouts))
 			throw new TypeError('Bad or missing body; expected array of breakouts');
-		const data = await updateImatBreakouts(user, meetingNumber, breakouts);
+		const data = await updateImatBreakouts(req.user, meetingNumber, breakouts);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -60,12 +56,23 @@ router.put('/breakouts/:meetingNumber(\\d+)', async (req, res, next) => {
 
 router.post('/breakouts/:meetingNumber(\\d+)', async (req, res, next) => {
 	try {
-		const {user} = req;
-		const meetingNumber = parseInt(req.params.meetingNumber, 10);
+		const meetingNumber = parseInt(req.params.meetingNumber);
 		const breakouts = req.body;
 		if (!Array.isArray(breakouts))
 			throw new TypeError('Bad or missing body; expected array of breakouts');
-		const data = await addImatBreakouts(user, meetingNumber, breakouts);
+		const data = await addImatBreakouts(req.user, meetingNumber, breakouts);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.delete('/breakouts/:meetingNumber(\\d+)', async (req, res, next) => {
+	try {
+		const meetingNumber = parseInt(req.params.meetingNumber);
+		const ids = req.body;
+		if (!Array.isArray(ids))
+			throw new TypeError('Bad or missing body; expected array of breakout IDs');
+		const data = await deleteImatBreakouts(req.user, meetingNumber, ids);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -73,10 +80,9 @@ router.post('/breakouts/:meetingNumber(\\d+)', async (req, res, next) => {
 
 router.get('/attendance/:meetingNumber(\\d+)/:breakoutNumber(\\d+)', async (req, res, next) => {
 	try {
-		const {user} = req;
-		const meetingNumber = parseInt(req.params.meetingNumber, 10);
-		const breakoutNumber = parseInt(req.params.breakoutNumber, 10);
-		const data = await getImatBreakoutAttendance(user, meetingNumber, breakoutNumber);
+		const meetingNumber = parseInt(req.params.meetingNumber);
+		const breakoutNumber = parseInt(req.params.breakoutNumber);
+		const data = await getImatBreakoutAttendance(req.user, meetingNumber, breakoutNumber);
 		res.json(data);
 	}
 	catch(err) {next(err)}

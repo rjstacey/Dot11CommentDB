@@ -1,3 +1,6 @@
+import { DateTime } from 'luxon';
+import { AuthError, NotFoundError } from '../utils';
+
 const axios = require('axios');
 const Webex = require('webex');
 const db = require('../utils/database');
@@ -27,6 +30,8 @@ const webexAuthRedirectUri = process.env.NODE_ENV === 'development'?
 // Webex account apis
 const apis = {};
 
+const defaultTimezone = 'America/New_York';
+
 function getWebexApi(id) {
 	const api = apis[id];
 	if (!api)
@@ -39,11 +44,23 @@ function createWebexApi(id, authParams) {
 	const api = axios.create({
 		headers: {
 			'Authorization': `Bearer ${authParams.access_token}`,
-			'Accept': 'application/json'
+			'Accept': 'application/json',
+			'Timezone': defaultTimezone
 		},
 		baseURL: webexApiBaseUrl,
 		refresh_token: authParams.refresh_token
 	});
+
+	if (process.env.NODE_ENV === 'development') {
+		api.interceptors.request.use(
+			config => {
+				console.log(id, config.method, config.url)
+				if (config.data)
+					console.log('data=', config.data)
+				return config;
+			}
+		);
+	}
 
 	// Add a response interceptor
 	api.interceptors.response.use(
@@ -199,12 +216,14 @@ export async function deleteWebexAccount(id) {
 }
 
 function webexApiError(error) {
-	const {response, code} = error;
-	if (response && code >= 400 && code < 500) {
+	const {response} = error;
+	if (response && response.status >= 400 && response.status < 500) {
 		const {message, errors} = response.data;
 		console.error(message, errors);
+		if (response.status === 404)
+			throw new NotFoundError('Webex meeting not found');
 		const description = `${message}\n` + errors.join('\n');
-		throw new Error(`Webex API error ${code}`, {description});
+		throw new Error(`Webex API error ${response.status}`, {description});
 	}
 	throw new Error(error);
 }
@@ -216,30 +235,33 @@ async function getWebexTemplates(id) {
 		.catch(webexApiError);
 }
 
-export async function getWebexMeetings({groupId, fromDate, toDate}) {
+export async function getWebexMeetings({groupId, fromDate, toDate, timezone}) {
 	let webexMeetings = [];
 	const accounts = await getWebexAccounts();
+	if (!timezone)
+		timezone = defaultTimezone;
 	for (const account of accounts) {
 		if (groupId && account.groups && !account.groups.includes(groupId))
 			continue;
 		const api = getWebexApi(account.id);
 
-		const from = fromDate? new Date(fromDate): new Date();
-		const to = toDate? new Date(toDate): new Date(from.getFullYear() + 1, from.getMonth(), from.getDate());
+		const from = fromDate? DateTime.fromISO(fromDate, {zone: timezone}): DateTime.now().setZone(timezone);
+		const to = toDate? DateTime.fromISO(toDate, {zone: timezone}): from.plus({years: 1});
 		const params = {
 			meetingType: 'scheduledMeeting',
 			scheduledType: 'meeting',
-			from: from.toISOString(),
-			to: to.toISOString(),
+			from: from.toISO(),
+			to: to.toISO(),
 			max: 100,
 		}
-		const response = await api.get('/meetings', {params}).catch(webexApiError);
+		const response = await api.get('/meetings', {params, headers: {timezone}}).catch(webexApiError);
 		//console.log(account.name, params, response.data.items.length)
 
 		let meetings = response.data.items;
 		meetings = meetings.map(m => ({...m, groupId, webexAccountId: account.id, webexAccountName: account.name}));
 		webexMeetings = webexMeetings.concat(meetings);
 	}
+	webexMeetings = webexMeetings.sort((a, b) => DateTime.fromISO(a.start) - DateTime.fromISO(b.start));
 	return webexMeetings;
 }
 
