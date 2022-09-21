@@ -8,6 +8,7 @@ import { composeWithDevTools } from 'redux-devtools-extension';
 
 import errMsg from 'dot11-components/store/error';
 import userSlice from './user';
+import currentSlice from './current';
 import membersSlice, {loadMembers} from './members';
 import calendarAccountsSlice, {loadCalendarAccounts} from './calendarAccounts';
 import webexAccountsSlice, {loadWebexAccounts} from './webexAccounts';
@@ -27,6 +28,7 @@ export function configureStore() {
 	const reducer = combineReducers({
 		errMsg,
 		[userSlice.name]: userSlice.reducer,
+		[currentSlice.name]: currentSlice.reducer,
 		[membersSlice.name]: membersSlice.reducer,
 		[officersSlice.name]: officersSlice.reducer,
 		[webexAccountsSlice.name]: webexAccountsSlice.reducer,
@@ -55,6 +57,7 @@ export function configureStore() {
 			removeItem: del
 		},
 		whitelist: [
+			currentSlice.name,
 			membersSlice.name,
 			webexAccountsSlice.name,
 			calendarAccountsSlice.name,

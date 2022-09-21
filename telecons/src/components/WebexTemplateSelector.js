@@ -15,7 +15,8 @@ function WebexTemplateSelector({
 
 	const options = React.useMemo(() => {
 		const account = entities[accountId];
-		return account? account.templates: [];
+		return account? account.templates || []: [];
+		//return account?.template || [];
 	}, [accountId, entities]);
 
 	let values = options.filter(o => o.id === value);

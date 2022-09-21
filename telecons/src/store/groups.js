@@ -6,6 +6,8 @@ import {createAppTableDataSlice, setPanelIsSplit, selectCurrentPanelConfig} from
 import fetcher from 'dot11-components/lib/fetcher';
 import {setError} from 'dot11-components/store/error';
 
+import {selectCurrentGroupId} from './current';
+
 const GroupType = {
 	c: 'Committee',
 	wg: 'Working Group',
@@ -73,12 +75,6 @@ export const dataSet = 'groups';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	initialState: {groupId: null},
-	reducers: {
-		setGroupId(state, action) {
-			state.groupId = action.payload;
-		}
-	},
 	extraReducers: (builder, dataAdapter) => {
 		builder
 		.addMatcher(
@@ -101,6 +97,17 @@ export default slice;
 export const selectGroupsPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
 export const selectGroupsState = (state) => state[dataSet];
 export const selectGroupEntities = (state) => selectGroupsState(state).entities;
+
+export const selectCurrentGroup = createSelector(
+	selectCurrentGroupId,
+	selectGroupEntities,
+	(groupId, entities) => entities[groupId]
+);
+
+export const selectGroupName = (state) => {
+	const group = selectCurrentGroup(state);
+	return group? group.name: '';
+}
 
 /* Produces an array of {node: {}, children: array of <node>} */
 export const selectGroupHierarchy = createSelector(
@@ -138,10 +145,9 @@ const {
 	removeOne,
 	removeMany,
 	setSelected,
-	setGroupId
 } = slice.actions;
 
-export {setSelected, setGroupId};
+export {setSelected};
 
 const url = '/api/groups';
 

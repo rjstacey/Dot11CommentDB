@@ -19,21 +19,7 @@ const slice = createAppTableDataSlice({
 	fields,
 	selectField: getField,
 	sortComparer,
-	initialState: {groupId: null, defaults: {}},
 	selectEntities: selectSyncedTeleconEntities,
-	reducers: {
-		setGroupId(state, action) {
-			state.groupId = action.payload;
-		},
-		setDefaults(state, action) {
-			const groupId = state.groupId;
-			state.defaults[groupId] = action.payload;
-		},
-		clearDefaults(state, action) {
-			const groupId = state.groupId;
-			delete state.defaults[groupId];
-		}
-	},
 });
 
 export default slice;

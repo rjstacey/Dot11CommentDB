@@ -34,18 +34,18 @@ export const dataSet = 'imatBreakouts';
 
 export const getField = (entity, dataKey) => {
 	if (dataKey === 'weekDay')
-		return DateTime.fromISO(entity.start, {zone: entity.timezone}).weekdayShort;
+		return DateTime.fromISO(entity.start, {setZone: true}).weekdayShort;
 	if (dataKey === 'date')
-		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('dd LLL yyyy');
+		return DateTime.fromISO(entity.start, {setZone: true}).toFormat('dd LLL yyyy');
 	if (dataKey === 'dayDate')
-		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('EEE, d LLL yyyy');
+		return DateTime.fromISO(entity.start, {setZone: true}).toFormat('EEE, d LLL yyyy');
 	if (dataKey === 'startTime')
-		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('HH:mm');
+		return DateTime.fromISO(entity.start, {setZone: true}).toFormat('HH:mm');
 	if (dataKey === 'endTime')
-		return DateTime.fromISO(entity.end, {zone: entity.timezone}).toFormat('HH:mm');
+		return DateTime.fromISO(entity.end, {setZone: true}).toFormat('HH:mm');
 	if (dataKey === 'timeRange')
-		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('HH:mm') + '-' +
-			   DateTime.fromISO(entity.end, {zone: entity.timezone}).toFormat('HH:mm');
+		return DateTime.fromISO(entity.start, {setZone: true}).toFormat('HH:mm') + '-' +
+			   DateTime.fromISO(entity.end, {setZone: true}).toFormat('HH:mm');
 	if (dataKey === 'duration')
 		return DateTime.fromISO(entity.end).diff(DateTime.fromISO(entity.start), 'hours').hours;
 	return entity[dataKey];
@@ -118,7 +118,8 @@ const {
 	getSuccess,
 	getFailure,
 	setDetails,
-	addMany
+	addMany,
+	removeMany
 } = slice.actions;
 
 const baseUrl = '/api/imat/breakouts';
@@ -185,4 +186,17 @@ export const updateBreakouts = (meetingId, updates) =>
 			return;
 		}
 		//dispatch(updateMany(response));
+	}
+
+export const deleteBreakouts = (meetingId, ids) => 
+	async (dispatch, getState) => {
+		const url = `${baseUrl}/${meetingId}`;
+		try {
+			await fetcher.delete(url, ids);
+		}
+		catch (error) {
+			dispatch(setError('Unable to delete breakouts', error));
+			return;
+		}
+		dispatch(removeMany(ids));
 	}

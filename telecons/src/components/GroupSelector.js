@@ -15,7 +15,7 @@ export function GroupSelector({
 	...otherProps
 }) {
 	const {entities, ids} = useSelector(selectGroupsState);
-	
+
 	const groups = React.useMemo(() => {
 		let groups = ids.map(id => entities[id]);
 		if (types)
@@ -68,10 +68,4 @@ GroupSelector.propTypes = {
 	readOnly: PropTypes.bool,
 }
 
-const LabeledGroupSelector = (props) =>
-	<div style={{display: 'flex'}}>
-		<label style={{marginRight: 10}}>Group:</label>
-		<GroupSelector {...props} />
-	</div>
-
-export default LabeledGroupSelector;
+export default GroupSelector;

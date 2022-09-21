@@ -40,8 +40,10 @@ export default slice;
  */
 export const selectMembersState = (state) => state[dataSet];
 
+export const selectMember = (state, sapin) => selectMembersState(state).entities[sapin];
+
 export const selectMemberName = (state, sapin) => {
-	const m = selectMembersState(state).entities[sapin];
+	const m = selectMember(state, sapin);
 	return m? m.Name: 'Unknown';
 }
 

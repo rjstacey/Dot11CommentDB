@@ -14,11 +14,12 @@ import {
 	deleteTelecons, 
 	setSelectedTelecons, 
 	selectTeleconsState, 
-	selectTeleconDefaults,
 	selectSyncedTeleconEntities
 } from '../store/telecons';
+import {selectCurrentGroupId, selectCurrentGroupDefaults} from '../store/current';
 
-import {selectGroupsState} from '../store/groups';
+import {selectGroupEntities} from '../store/groups';
+import {selectCurrentSession} from '../store/imatMeetings';
 
 import WebexAccountSelector from '../components/WebexAccountSelector';
 import WebexTemplateSelector from '../components/WebexTemplateSelector';
@@ -42,6 +43,7 @@ const defaultWebexMeeting = {
 	enabledJoinBeforeHost: true,
 	joinBeforeHostMinutes: 10,
 	enableConnectAudioBeforeHost: true,
+	publicMeeting: false,
 	meetingOptions: {
 		enabledChat: true,
 		enabledVideo: true,
@@ -83,13 +85,20 @@ export function convertFromLocal(entry) {
 	    end = MULTIPLE;
 	if (!isMultiple(date) && !isMultiple(entry.timezone) && !isMultiple(time)) {
 		start = DateTime.fromISO(date, {zone: entry.timezone}).set(fromTimeStr(time));
-		if (!isMultiple(duration))
-			end = start.plus({hours: duration}).toISO();
+		if (!isMultiple(duration)) {
+			const m = /(\d+):(\d+)/.exec(duration);
+			if (m)
+				end = start.plus({hours: m[1], minutes: m[2]}).toISO();
+			else
+				end = start.plus({hours: duration}).toISO();
+		}
 		start = start.toISO();
 	}
 
-	if (webexMeeting)
+	if (webexMeeting) {
 		webexMeeting = webexMeetingParams(webexMeeting);
+		webexMeeting.publicMeeting = false;
+	}
 
 	return {
 		start,
@@ -287,6 +296,7 @@ export function TeleconEntry({
 	groupId,
 	entry,
 	changeEntry,
+	busy,
 	action,
 	actionAdd,
 	actionUpdate,
@@ -312,9 +322,10 @@ export function TeleconEntry({
 	return (
 		<Form
 			submitLabel={action === 'add'? 'Add': 'Update'}
+			busy={busy}
 		>
 			<Row>
-				<Field label='Group:'>
+				<Field label='Subgroup:'>
 					<GroupSelector
 						value={isMultiple(entry.organizationId)? '': entry.organizationId || ''}
 						onChange={(organizationId) => changeEntry({organizationId})}
@@ -480,7 +491,7 @@ class TeleconDetail extends React.Component {
 	}
 	
 	initState = (action) => {
-		const {entities, selected, defaults, groupId} = this.props;
+		const {entities, selected, defaults, groupId, session} = this.props;
 
 		console.log('initState')
 		const ids = selected;
@@ -498,10 +509,11 @@ class TeleconDetail extends React.Component {
 					entry.hasMotions = false;
 				entry.isCancelled = false;
 				entry.summary = this.defaultSummary(entry.organizationId);
-				entry.timezone = defaults.timezone;
+				entry.timezone = session? session.timezone: defaults.timezone;
 				entry.calendarAccountId = defaults.calendarAccountId;
 				entry.webexAccountId = defaults.webexAccountId;
-				entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webex_template_id};
+				entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webexTemplateId};
+				entry.imatMeetingId = session?.id;
 			}
 			else {
 				if (isMultiple(entry.date))
@@ -513,16 +525,18 @@ class TeleconDetail extends React.Component {
 		else {
 			entry = {...defaultLocalEntry, organizationId: groupId};
 			entry.summary = this.defaultSummary(entry.organizationId);
-			entry.timezone = defaults.timezone;
+			entry.timezone = session? session.timezone: defaults.timezone;
 			entry.calendarAccountId = defaults.calendarAccountId;
 			entry.webexAccountId = defaults.webexAccountId;
-			entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webex_template_id};
+			entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webexTemplateId};
+			entry.imatMeetingId = session?.id;
 		}
 		console.log(ids.length > 0, action, entry)
 		return {
 			action,
 			entry,
-			ids
+			ids,
+			busy: false
 		};
 	}
 
@@ -578,6 +592,15 @@ class TeleconDetail extends React.Component {
 			//console.log(entities[id], convertFromLocal(changesLocal))
 			const changes = deepDiff(entity, updated);
 			console.log(changes)
+
+			// If a (new) webex account is given, add a webex meeting
+			if (changes.webexAccountId)
+				changes.webexMeetingId = '$add';
+
+			// If a (new) meeting ID is given, add a breakout
+			if (changes.imatMeetingId)
+				changes.imatBreakoutId = '$add';
+
 			if (Object.keys(changes).length > 0)
 				updates.push({id, changes});
 		}
@@ -643,7 +666,7 @@ class TeleconDetail extends React.Component {
 
 	add = async () => {
 		const {addTelecons, setSelectedTelecons} = this.props;
-		const {entry} = this.state;
+		let {entry} = this.state;
 
 		let errMsg = '';
 		if (entry.dates.length === 0)
@@ -662,6 +685,15 @@ class TeleconDetail extends React.Component {
 			return;
 		}
 
+		// If a webex account is given, then add a webex meeting
+		if (entry.webexAccountId)
+			entry = {...entry, webexMeetingId: '$add'};
+
+		// If an IMAT meeting ID is given then create a breakout
+		if (entry.imatMeetingId)
+			entry = {...entry, imatBreakoutId: '$add'};
+
+		this.setState({busy: true});
 		addTelecons(convertFromLocalMultipleDates(entry))
 			.then(ids => setSelectedTelecons(ids))
 			.then(() => this.setState(this.initState('update')));
@@ -672,8 +704,9 @@ class TeleconDetail extends React.Component {
 
 		const updates = this.getUpdates();
 		console.log(updates)
-		await updateTelecons(updates);
-		this.setState(this.initState('update'));
+		this.setState({busy: true});
+		updateTelecons(updates)
+			.then(() => this.setState(this.initState('update')));
 	}
 
 	cancel = () => {
@@ -720,6 +753,7 @@ class TeleconDetail extends React.Component {
 						groupId={groupId}
 						entry={entry}
 						changeEntry={this.changeEntry}
+						busy={this.state.busy}
 						action={action}
 						actionAdd={this.add}
 						actionUpdate={this.update}
@@ -731,6 +765,7 @@ class TeleconDetail extends React.Component {
 
 	static propTypes = {
 		groupId: PropTypes.any,
+		session: PropTypes.object,
 		loading: PropTypes.bool.isRequired,
 		selected: PropTypes.array.isRequired,
 		entities: PropTypes.object.isRequired,
@@ -745,11 +780,13 @@ class TeleconDetail extends React.Component {
 
 const ConnectedTeleconDetail = connect(
 	(state) => ({
+		groupId: selectCurrentGroupId(state),
+		session: selectCurrentSession(state),
 		loading: selectTeleconsState(state).loading,
 		selected: selectTeleconsState(state).selected,
 		entities: selectSyncedTeleconEntities(state),
-		defaults: selectTeleconDefaults(state),
-		groupEntities: selectGroupsState(state).entities
+		defaults: selectCurrentGroupDefaults(state),
+		groupEntities: selectGroupEntities(state)
 	}),
 	{
 		setSelectedTelecons,
@@ -758,9 +795,5 @@ const ConnectedTeleconDetail = connect(
 		deleteTelecons
 	}
 )(TeleconDetail);
-
-ConnectedTeleconDetail.propTypes = {
-	groupId: PropTypes.any
-}
 
 export default ConnectedTeleconDetail;

@@ -112,12 +112,3 @@ export const selectSyncedTeleconEntities = createSelector(
 	}
 );
 
-export const selectGroupId = (state) => selectTeleconsState(state).groupId;
-
-export function selectTeleconDefaults(state) {
-	const telecons = selectTeleconsState(state);
-	const groupId = telecons.groupId;
-	const defaults = telecons.defaults[groupId] || {};
-	return defaults;
-}
-

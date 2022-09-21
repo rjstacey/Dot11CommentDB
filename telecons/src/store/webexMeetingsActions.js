@@ -10,12 +10,14 @@ const {
 	getSuccess,
 	getFailure,
 	removeMany,
+	removeAll,
 	addMany,
+	upsertMany,
 	setSelected,
 	setPanelIsSplit
 } = slice.actions;
 
-export {getSuccess as setWebexMeetings, setSelected};
+export {getSuccess as setWebexMeetings, upsertMany as upsertWebexMeetings, setSelected};
 
 const baseUrl = '/api/webex/meetings';
 
@@ -42,6 +44,8 @@ export const loadWebexMeetings = ({groupId, ...params}) =>
 		}
 		await dispatch(getSuccess(meetings));
 	}
+
+export const clearWebexMeetings = () => (dispatch) => dispatch(removeAll());
 
 export const addWebexMeeting = (accountId, webexMeeting) =>
 	async (dispatch, getState) => {

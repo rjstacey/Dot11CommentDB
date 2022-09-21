@@ -6,7 +6,7 @@ import {DateTime} from 'luxon';
 
 import AppTable, {SelectHeader, SelectCell, TableColumnHeader} from 'dot11-components/table';
 import {Button, ActionButton, Form, Row, Field, Input, InputTime, Select} from 'dot11-components/form';
-import {AppModal} from 'dot11-components/modals';
+import {AppModal, ConfirmModal} from 'dot11-components/modals';
 import {parseNumber, displayDateRange} from 'dot11-components/lib';
 
 import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
@@ -17,6 +17,7 @@ import TeleconSummary from '../components/TeleconSummary';
 import {
 	loadBreakouts,
 	addBreakouts,
+	deleteBreakouts,
 	selectBreakoutsState,
 	getField,
 	dataSet,
@@ -36,9 +37,9 @@ import {selectGroupEntities} from '../store/groups';
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
+	width: 100%;
 	display: flex;
 	flex-direction: column;
-	align-items: center;
 	.AppTable__dataRow,
 	.AppTable__headerRow {
 		align-items: center;
@@ -51,9 +52,6 @@ const renderGroup = ({rowData}) => {
 	const parts = rowData.group.split('/');
 	return parts[parts.length-1];
 }
-
-const renderAttendanceLink = ({rowData}) =>
-	rowData.meetingId && rowData.id && <Link to={`/imatMeetings/${rowData.meetingId}/${rowData.id}`}>view attendance</Link>
 
 export const renderSessionInfo = (session) =>
 	<div style={{display: 'flex', flexDirection: 'column'}}>
@@ -326,12 +324,12 @@ function BreakoutLink({session, breakout, close}) {
 	const dispatch = useDispatch();
 	const [teleconId, setTeleconId] = React.useState();
 
-	function submit() {
+	async function submit() {
 		const update = {
 			id: teleconId,
-			changes: {imatBreakoutId: breakout.id}
+			changes: {imatMeetingId: session.id, imatBreakoutId: breakout.id}
 		}
-		dispatch(updateTelecons([update]));
+		await dispatch(updateTelecons([update]));
 		close();
 	}
 
@@ -396,8 +394,7 @@ const tableColumns = [
 		width: 100, flexGrow: 1, flexShrink: 1},
 	{key: 'actions',
 		label: 'Actions',
-		width: 100, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderAttendanceLink}
+		width: 100, flexGrow: 1, flexShrink: 1}
 ];
 
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0);
@@ -527,8 +524,15 @@ function Breakouts() {
 
 	const [addBreakout, setAddBreakout] = React.useState(false);
 
-	const close = () => history.push('/imatMeetings');
+	const close = () => history.push(`/${params.groupName}/imatMeetings`);
 	const refresh = () => dispatch(loadBreakouts(urlMeetingId));
+	const deleteClick = async (breakout) => {
+		const ok = await ConfirmModal.show('Are you sure you want to delete breakout?');
+		if (ok) {
+			console.log(meetingId)
+			dispatch(deleteBreakouts(meetingId, [breakout.id]))
+		}
+	}
 
 	const openBreakoutAdd = () => setAddBreakout(true);
 	const closeBreakoutAdd = () => setAddBreakout(false);
@@ -541,19 +545,31 @@ function Breakouts() {
 			if (rowData.teleconId)
 				return <TeleconSummary teleconId={rowData.teleconId} />
 			return (
-				<ActionButton
-					name='link'
-					onClick={() => setBreakoutToLink(rowData)}
-				/>
+				<>
+					<ActionButton
+						name='link'
+						onClick={() => setBreakoutToLink(rowData)}
+					/>
+					<ActionButton
+						name='delete'
+						onClick={() => deleteClick(rowData)}
+					/>
+				</>
 			)
 		}
+		function renderAttendanceLink({rowData}) {
+			return rowData.meetingId && rowData.id && <Link to={`/${params.groupName}/imatMeetings/${rowData.meetingId}/${rowData.id}`}>view attendance</Link>
+		}
+
 		const columns = tableColumns.map(c => {
 			if (c.key === 'telecon')
 				return {...c, cellRenderer: renderTelecon};
+			if (c.key === 'actions')
+				return {...c, cellRenderer: renderAttendanceLink}
 			return c;
 		});
 		return columns;
-	}, [setBreakoutToLink]);
+	}, [setBreakoutToLink, params.groupName]);
 
 	const syncTelecons = () => {
 		const sessionStart = DateTime.fromISO(meeting.start);
@@ -578,7 +594,7 @@ function Breakouts() {
 
 	return (
 		<>
-			<TopRow style={{maxWidth}}>
+			<TopRow>
 				<div>{meeting && renderSessionInfo(meeting)}</div>
 				<div>Breakouts</div>
 				<div>
@@ -591,7 +607,6 @@ function Breakouts() {
 
 			<TableRow>
 				<AppTable
-					fitWidth
 					fixed
 					columns={columns}
 					headerHeight={46}

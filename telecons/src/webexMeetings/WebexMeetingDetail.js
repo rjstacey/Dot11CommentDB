@@ -12,7 +12,7 @@ import {
 	setSelected
 } from '../store/webexMeetings';
 
-import {selectTeleconDefaults} from '../store/telecons';
+import {selectCurrentState} from '../store/current';
 
 import WebexAccountSelector from '../components/WebexAccountSelector';
 import WebexTemplateSelector from '../components/WebexTemplateSelector';
@@ -387,7 +387,7 @@ const ConnectedWebexMeetingDetail = connect(
 		loading: selectWebexMeetingsState(state).loading,
 		selected: selectWebexMeetingsState(state).selected,
 		entities: selectWebexMeetingsState(state).entities,
-		defaults: selectTeleconDefaults(state),
+		defaults: selectCurrentState(state),
 	}),
 	{
 		deleteWebexMeetings,

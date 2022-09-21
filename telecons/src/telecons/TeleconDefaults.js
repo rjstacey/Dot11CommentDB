@@ -2,6 +2,13 @@ import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
 import {Form, Row, Field} from 'dot11-components/form';
+
+import {
+	selectCurrentGroupDefaults,
+	setCurrentGroupDefaults
+} from '../store/current';
+import {selectGroupName} from '../store/groups';
+
 import {selectTeleconDefaults, setTeleconDefaults} from '../store/telecons';
 
 import CalendarAccountSelector from '../components/CalendarAccountSelector';
@@ -10,23 +17,20 @@ import WebexTemplateSelector from '../components/WebexTemplateSelector';
 import TimeZoneSelector from '../components/TimeZoneSelector';
 
 
-function TeleconDefaults({
-	groupName,
-}) {
+function TeleconDefaults() {
 	const dispatch = useDispatch();
-	const defaults = useSelector(selectTeleconDefaults);
-	const changeEntry = (changes) => {
-		const newDefaults = {...defaults, ...changes};
-		dispatch(setTeleconDefaults(newDefaults));
-	}
+	const defaults = useSelector(selectCurrentGroupDefaults);
+	const groupName = useSelector(selectGroupName);
+	const changeEntry = (changes) => dispatch(setCurrentGroupDefaults(changes));
+
 	return (
 		<Form
 			title={`Defaults for ${groupName}`}
+			style={{minWidth: 400}}
 		>
 			<Row>
 				<Field label='Timezone:'>
 					<TimeZoneSelector
-						style={{width: 200}}
 						value={defaults.timezone}
 						onChange={timezone => changeEntry({timezone})}
 					/>
@@ -51,8 +55,8 @@ function TeleconDefaults({
 			<Row>
 				<Field label='Template'>
 					<WebexTemplateSelector
-						value={defaults.webex_template_id}
-						onChange={webex_template_id => changeEntry({webex_template_id})}
+						value={defaults.webexTemplateId}
+						onChange={webexTemplateId => changeEntry({webexTemplateId})}
 						accountId={defaults.webexAccountId}
 					/>
 				</Field>

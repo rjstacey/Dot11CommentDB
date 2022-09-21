@@ -9,6 +9,7 @@ import Dropdown from 'dot11-components/dropdown';
 import './header.css';
 
 import {selectUser} from '../store/user';
+import {selectGroupName} from '../store/groups';
 
 const fullMenu = [
 	{
@@ -23,28 +24,27 @@ const fullMenu = [
 	},
 	{
 		minAccess: AccessLevel.WGAdmin,
+		prefixGroupName: true,
 		link: '/telecons',
 		label: 'Telecons',
 	},
 	{
 		minAccess: AccessLevel.WGAdmin,
-		link: '/calendar',
-		label: 'Calendar',
-	},
-	{
-		minAccess: AccessLevel.WGAdmin,
+		prefixGroupName: true,
 		link: '/webexMeetings',
 		label: 'Webex',
 	},
 	{
 		minAccess: AccessLevel.WGAdmin,
+		prefixGroupName: true,
 		link: '/imatMeetings',
 		label: 'IMAT',
 	},
 	{
 		minAccess: AccessLevel.WGAdmin,
-		link: '/email',
-		label: 'Send eMail',
+		prefixGroupName: true,
+		link: '/calendar',
+		label: 'Calendar',
 	},
 	{
 		minAccess: AccessLevel.WGAdmin,
@@ -56,11 +56,15 @@ const fullMenu = [
 const NavItem = (props) => <NavLink className={'nav-link' + (props.isActive? ' active': '')} {...props} />
 
 function NavMenu({className, access, methods}) {
+	const groupName = useSelector(selectGroupName);
+
 	let classNames = 'nav-menu';
 	if (className)
 		classNames += ' ' + className;
 
-	const menu = fullMenu.filter(m => access >= m.minAccess);
+	const menu = fullMenu
+		.filter(m => access >= m.minAccess)
+		.map(m => m.prefixGroupName? {...m, link: `/${groupName || '*'}` + m.link}: m);
 
 	return (
 		<nav

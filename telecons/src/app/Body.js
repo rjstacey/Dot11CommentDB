@@ -14,7 +14,6 @@ import ImatBreakouts from '../imatMeetings/ImatBreakouts';
 import ImatBreakoutAttendance from '../imatMeetings/ImatBreakoutAttendance';
 import WebexMeetings from '../webexMeetings/WebexMeetings';
 import Ieee802WorldSchedule from '../ieee802WorldSchedule/Ieee802WorldSchedule';
-import SendEmail from '../telecons/TeleconsEmail';
 
 import {selectUser} from '../store/user';
 
@@ -47,40 +46,40 @@ function Body() {
 		<Main>
 			<Switch>
 				<RestrictedRoute
-					path="/telecons/:groupName?"
+					path="/:groupName/telecons"
 					access={access}
 					minAccess={AccessLevel.WGAdmin}
 					component={Telecons}
 				/>
 				<RestrictedRoute
-					path="/calendar/:groupName?"
+					path="/:groupName/calendar"
 					access={access}
 					minAccess={AccessLevel.WGAdmin}
 					component={Calendar}
 				/>
 				<RestrictedRoute
-					path="/webexMeetings/:groupName?"
+					path="/:groupName/webexMeetings"
 					access={access}
 					exact
 					minAccess={AccessLevel.WGAdmin}
 					component={WebexMeetings}
 				/>
 				<RestrictedRoute
-					path="/imatMeetings"
+					path="/:groupName/imatMeetings"
 					access={access}
 					exact
 					minAccess={AccessLevel.WGAdmin}
 					component={ImatMeetings}
 				/>
 				<RestrictedRoute
-					path="/imatMeetings/:meetingNumber"
+					path="/:groupName/imatMeetings/:meetingNumber"
 					access={access}
 					exact
 					minAccess={AccessLevel.WGAdmin}
 					component={ImatBreakouts}
 				/>
 				<RestrictedRoute
-					path="/imatMeetings/:meetingNumber/:breakoutNumber"
+					path="/:groupName/imatMeetings/:meetingNumber/:breakoutNumber"
 					access={access}
 					minAccess={AccessLevel.WGAdmin}
 					component={ImatBreakoutAttendance}
@@ -103,12 +102,6 @@ function Body() {
 					access={access}
 					minAccess={AccessLevel.WGAdmin}
 					component={Organization}
-				/>
-				<RestrictedRoute
-					path="/email"
-					access={access}
-					minAccess={AccessLevel.WGAdmin}
-					component={SendEmail}
 				/>
 			</Switch>
 		</Main>

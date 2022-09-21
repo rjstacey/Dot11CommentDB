@@ -4,7 +4,8 @@ import {DateTime} from 'luxon';
 import {displayDate} from 'dot11-components/lib';
 import {SortType, selectCurrentPanelConfig} from 'dot11-components/store/appTableData';
 
-import {selectTeleconDefaults, selectTeleconEntities} from './teleconsSelectors';
+import {selectCurrentSession} from './imatMeetings';
+import {selectTeleconEntities} from './teleconsSelectors';
 
 export function displayMeetingNumber(meetingNumber) {
 	const s = meetingNumber.toString();
@@ -58,12 +59,15 @@ export const dataSet = 'webexMeetings';
 export const selectWebexMeetingsState = (state) => state[dataSet];
 export const selectWebexMeetingEntities = (state) => selectWebexMeetingsState(state).entities;
 
-const selectDefaultTimezone = (state) => selectTeleconDefaults(state).timezone || 'UTC';
+const selectTimezone = (state) => {
+	const session = selectCurrentSession(state);
+	return session? session.timezone: 'America/New_York';
+}
 
 export const selectSyncedWebexMeetingEntities = createSelector(
 	selectWebexMeetingEntities,
 	selectTeleconEntities,
-	selectDefaultTimezone,
+	selectTimezone,
 	(webexMeetings, telecons, timezone) => {
 		const entities = {...webexMeetings};
 		for (const id in telecons) {

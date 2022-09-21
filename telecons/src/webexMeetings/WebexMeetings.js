@@ -1,5 +1,4 @@
 import React from 'react';
-import {useHistory, useParams} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import {DateTime} from 'luxon';
 import copyToClipboard from 'copy-html-to-clipboard';
@@ -8,17 +7,18 @@ import AppTable, {SelectHeader, SelectCell, TableColumnHeader, TableColumnSelect
 import {ActionButton, Form} from 'dot11-components/form';
 import {AppModal} from 'dot11-components/modals';
 
-import {selectGroupsState} from '../store/groups';
+import {selectCurrentGroupId} from '../store/current';
+import {selectGroupEntities} from '../store/groups';
 import {displayMeetingNumber} from '../store/webexMeetings';
 
 import {
-	selectTeleconsState,
 	updateTelecons,
 	addTelecons,
 } from '../store/telecons';
 
 import {
 	loadWebexMeetings,
+	clearWebexMeetings,
 	selectWebexMeetingsState,
 	selectSyncedWebexMeetingEntities,
 	selectWebexMeetingsCurrentPanelConfig,
@@ -28,7 +28,10 @@ import {
 	dataSet
 } from '../store/webexMeetings';
 
-import GroupSelector from '../components/GroupSelector';
+import {selectCurrentSession} from '../store/imatMeetings';
+
+import GroupPathSelector from '../components/GroupPathSelector';
+import CurrentSessionSelector from '../components/CurrentSessionSelector';
 import TeleconSelector from '../components/TeleconSelector';
 import TopRow from '../components/TopRow';
 import TeleconSummary from '../components/TeleconSummary';
@@ -96,10 +99,11 @@ function TeleconLink({webexMeeting, close}) {
 	)
 }
 
-const toTimeStr = (hour, min) => ('0' + hour).substring(-2) + ':' + ('0' + min).substring(-2);
+const toTimeStr = (hour, min) => ('' + hour).padStart(2, '0') + ':' + ('' + min).padStart(2, '0');
 
-function TeleconAdd({webexMeeting, close, groupId, groupEntities}) {
+function TeleconAdd({webexMeeting, close, groupId}) {
 	const dispatch = useDispatch();
+	const groupEntities = useSelector(selectGroupEntities);
 	const [entry, setEntry] = React.useState(initState);
 
 	function initState() {
@@ -241,31 +245,21 @@ function webexMeetingsRowGetter({rowIndex, ids, entities}) {
 }
 
 function WebexMeetings() {
-	const history = useHistory();
 	const dispatch = useDispatch();
-	const {groupName} = useParams();
-	const {entities, ids} = useSelector(selectGroupsState);
+	const groupId = useSelector(selectCurrentGroupId);
+	const session = useSelector(selectCurrentSession);
 	const {selected: wmSelected} = useSelector(selectWebexMeetingsState);
 	const wmEntities = useSelector(selectSyncedWebexMeetingEntities);
-	const {groupId} = useSelector(selectTeleconsState);
 	const {isSplit} = useSelector(selectWebexMeetingsCurrentPanelConfig);
 	const setIsSplit = React.useCallback((value) => dispatch(setWebexMeetingsCurrentPanelIsSplit(value)), [dispatch]);
 	const [webexMeetingToLink, setWebexMeetingToLink] = React.useState(null);
 	const [webexMeetingToAdd, setWebexMeetingToAdd] = React.useState(null);
 
+	const load = () => dispatch(loadWebexMeetings({groupId, timezone: session?.timezone, fromDate: session?.start, toDate: session?.end}));
+
 	React.useEffect(() => {
-		//if (groupName) {
-			const pathGroupId = ids.find(id => entities[id].name === groupName);
-			//if (pathGroupId && groupId !== pathGroupId) {
-				// Routed here with groupName in path, but not matching stored groupId; load telecons for groupName
-				dispatch(loadWebexMeetings(pathGroupId? {groupId: pathGroupId}: {}));
-			//}
-		//}
-		//else if (groupId) {
-			// Routed here without groupName in path, but group has previously been selected; re-route to current group
-		//	history.replace(`/webexMeetings/${entities[groupId].name}`);
-		//}
-	}, [groupId, groupName, entities, ids, dispatch, history]);
+		load();
+	}, [dispatch, groupId]);
 
 	const columns = React.useMemo(() => {
 		function renderActions({rowData}) {
@@ -293,7 +287,6 @@ function WebexMeetings() {
 		return columns;
 	}, [setWebexMeetingToLink, setWebexMeetingToAdd]);
 
-	const refresh = () => dispatch(loadWebexMeetings({groupId}));
 
 	const closeToLink = () => setWebexMeetingToLink(null);
 	const closeToAdd = () => setWebexMeetingToAdd(null);
@@ -303,24 +296,17 @@ function WebexMeetings() {
 	}
 
 	function handleSetGroupId(groupId) {
-		if (groupId) {
-			const group = entities[groupId];
-			const groupName = group? group.name: 'Unknown';
-			history.push(`/webexMeetings/${groupName}`); // Redirect to page for selected group
-		}
-		else {
-			history.push(`/webexMeetings`);
-		}
+		dispatch(clearWebexMeetings());
 	}
 
 	return (
 		<>
 			<TopRow>
-				<GroupSelector
-					value={groupId}
+				<GroupPathSelector
 					onChange={handleSetGroupId}
-					types={['c', 'wg']}
 				/>
+				<CurrentSessionSelector/>
+
 				<div style={{display: 'flex'}}>
 					<TableColumnSelector dataSet={dataSet} columns={columns} />
 					<ActionButton
@@ -334,7 +320,7 @@ function WebexMeetings() {
 						title='Copy host keys'
 						onClick={copyHostKeys}
 					/>
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+					<ActionButton name='refresh' title='Refresh' onClick={load} />
 				</div>
 			</TopRow>
 
@@ -373,7 +359,6 @@ function WebexMeetings() {
 					webexMeeting={webexMeetingToAdd}
 					close={closeToAdd}
 					groupId={groupId}
-					groupEntities={entities}
 				/>
 			</AppModal>
 		</>

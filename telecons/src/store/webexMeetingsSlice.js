@@ -7,7 +7,6 @@ const slice = createAppTableDataSlice({
 	fields,
 	selectField: getField,
 	selectEntities: selectSyncedWebexMeetingEntities,
-	initialState: {},
 	extraReducers(builder, dataAdapter) {
 		builder
 			.addMatcher(

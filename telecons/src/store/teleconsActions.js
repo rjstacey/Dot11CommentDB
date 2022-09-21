@@ -3,10 +3,9 @@ import {setError} from 'dot11-components/store/error';
 
 import slice from './teleconsSlice';
 
-import {setWebexMeetings} from './webexMeetings';
+import {setWebexMeetings, upsertWebexMeetings} from './webexMeetings';
 
 const {
-	setGroupId,
 	setDefaults,
 	clearDefaults,
 	getPending,
@@ -24,23 +23,22 @@ const {
 
 export const setTeleconsCurrentPanelIsSplit = (isSplit) => setPanelIsSplit({isSplit});
 
-export {setProperty as setUiProperty, setSelected as setSelectedTelecons, setGroupId, upsertMany as upsertTelecons};
+export {setProperty as setUiProperty, setSelected as setSelectedTelecons, upsertMany as upsertTelecons};
 
 export const setTeleconDefaults = setDefaults;
 export const clearTeleconDefaults = clearDefaults;
 
 const baseUrl = '/api/telecons';
 
-export const loadTelecons = ({groupId, ...params}) => 
+export const loadTelecons = (groupId, constraints) => 
 	async (dispatch, getState) => {
-		dispatch(setGroupId(groupId));
 		dispatch(getPending());
 		let url = baseUrl;
 		if (groupId)
 			url += `/${groupId}`;
 		let response;
 		try {
-			response = await fetcher.get(url, params);
+			response = await fetcher.get(url, constraints);
 			if (!Array.isArray(response.telecons))
 				throw new TypeError(`Unexpected response to GET ${url}`);
 		}
@@ -57,7 +55,6 @@ export const loadTelecons = ({groupId, ...params}) =>
 export const clearTelecons = () =>
 	async (dispatch, getState) => {
 		dispatch(removeAll());
-		dispatch(setGroupId(0));
 	}
 
 export const updateTelecons = (updates) =>
@@ -88,6 +85,8 @@ export const addTelecons = (telecons) =>
 			return [];
 		}
 		await dispatch(addMany(response.telecons));
+		if (response.webexMeetings)
+			await dispatch(upsertWebexMeetings(response.webexMeetings));
 		return response.telecons.map(e => e.id);
 	}
 

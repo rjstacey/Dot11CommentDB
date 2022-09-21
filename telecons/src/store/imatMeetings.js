@@ -3,6 +3,8 @@ import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTable
 import {setError} from 'dot11-components/store/error';
 import {displayDate, displayDateRange} from 'dot11-components/lib';
 
+import {selectCurrentMeetingId} from './current';
+
 export const fields = {
 	id: {label: 'Meeting number', sortType: SortType.NUMERIC},
 	start: {label: 'Start', dataRenderer: displayDate},
@@ -28,7 +30,6 @@ const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	selectField: getField,
-	initialState: {},
 });
 
 export default slice;
@@ -39,18 +40,25 @@ export default slice;
 export const selectImatMeetingsState = (state) => state[dataSet];
 export const selectImatMeetingEntities = (state) => selectImatMeetingsState(state).entities;
 
+export const selectCurrentSession = (state) => {
+	const meetingId = selectCurrentMeetingId(state);
+	const entities = selectImatMeetingEntities(state);
+	return entities[meetingId];
+}
+
 /*
  * Actions
  */
 const {
 	getPending,
 	getSuccess,
-	getFailure
+	getFailure,
+	removeAll,
 } = slice.actions;
 
 const baseUrl = '/api/imat/meetings';
 
-export const loadImatMeetings = (n) =>
+export const loadImatMeetings = () =>
 	async (dispatch, getState) => {
 		dispatch(getPending());
 		let meetings;
@@ -67,3 +75,4 @@ export const loadImatMeetings = (n) =>
 		await dispatch(getSuccess(meetings));
 	}
 
+export const clearImatMeetings = () => (dispatch) => dispatch(removeAll());

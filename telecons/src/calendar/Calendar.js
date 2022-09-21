@@ -1,13 +1,11 @@
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {useHistory} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {selectGroupsState} from '../store/groups';
-import {selectTeleconsState} from '../store/telecons';
+import {selectCurrentGroupId} from '../store/current';
 import {loadCalendarAccounts, selectCalendarAccountsState} from '../store/calendarAccounts';
 
-import GroupSelector from '../components/GroupSelector';
+import GroupPathSelector from '../components/GroupPathSelector';
 import TopRow from '../components/TopRow';
 
 const MainIframe = styled.iframe`
@@ -18,15 +16,12 @@ const MainIframe = styled.iframe`
 
 function Calendar() {
 	const dispatch = useDispatch();
-	const {entities, valid, loading} = useSelector(selectCalendarAccountsState);
-	const {entities: groupEntities} = useSelector(selectGroupsState);
-	const history = useHistory();
-	const {groupId} = useSelector(selectTeleconsState);
+	const {entities} = useSelector(selectCalendarAccountsState);
+	const groupId = useSelector(selectCurrentGroupId);
 
 	React.useEffect(() => {
-		if (!valid && !loading)
-			dispatch(loadCalendarAccounts());
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+		dispatch(loadCalendarAccounts());
+	}, [groupId]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const calendarLink = React.useMemo(() => {
 		for (const account of Object.values(entities)) {
@@ -48,24 +43,10 @@ function Calendar() {
 		return null;
 	}, [entities, groupId]);
 
-	function handleSetGroupId(groupId) {
-		let url = '/telecons';
-		const group = groupEntities[groupId];
-		if (group) {
-			const groupName = group? group.name: 'Unknown';
-			url += `/${groupName}`;
-		}
-		history.push(url); // Redirect to page for selected group
-	}
-
 	return (
 		<>
 			<TopRow>
-				<GroupSelector
-					value={groupId}
-					onChange={handleSetGroupId}
-					types={['c', 'wg']}
-				/>
+				<GroupPathSelector />
 			</TopRow>
 			<MainIframe 
 				title='Google calendar'

@@ -1,6 +1,6 @@
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {useHistory, useParams, Link} from 'react-router-dom';
+import {Link} from 'react-router-dom';
 import {DateTime} from 'luxon';
 
 import {ActionButton, ButtonGroup} from 'dot11-components/form';
@@ -11,21 +11,25 @@ import {
 	fields,
 	loadTelecons,
 	clearTelecons,
-	selectGroupId,
 	selectTeleconsCurrentPanelConfig,
 	setTeleconsCurrentPanelIsSplit,
 	dataSet,
 	getField
 } from '../store/telecons';
 
-import {selectGroupsState} from '../store/groups';
+import {selectCurrentGroupId, selectCurrentMeetingId} from '../store/current';
+
 import {displayMeetingNumber} from '../store/webexMeetings';
 
-import GroupSelector from '../components/GroupSelector';
+import {selectImatMeetingEntities} from '../store/imatMeetings';
+
+import GroupPathSelector from '../components/GroupPathSelector';
+import CurrentSessionSelector from '../components/CurrentSessionSelector';
 import TopRow from '../components/TopRow';
 
 import TeleconDetail from './TeleconDetail';
 import TeleconDefaults from './TeleconDefaults';
+import TeleconEmail from './TeleconsEmail';
 
 function renderWebexMeeting({rowData}) {
 	const {webexAccountId, webexAccountName, webexMeeting} = rowData;
@@ -84,7 +88,7 @@ const tableColumns = [
 		width: 150, flexGrow: 1, flexShrink: 0,
 		cellRenderer: renderWebexMeeting},
 	{key: 'imatMeetingName',
-		label: 'IMAT',
+		label: 'Session',
 		width: 50, flexGrow: 1, flexShrink: 0,
 		cellRenderer: renderImatMeeting},
 	{key: 'calendarAccountName',
@@ -139,54 +143,49 @@ function Telecons(props) {
 	const dispatch = useDispatch();
 	const {isSplit} = useSelector(selectTeleconsCurrentPanelConfig);
 	const setIsSplit = React.useCallback((value) => dispatch(setTeleconsCurrentPanelIsSplit(value)), [dispatch]);
-	const {entities, ids} = useSelector(selectGroupsState);
-	const history = useHistory();
-	const {groupName} = useParams();
-	const groupId = useSelector(selectGroupId);
+	const groupId = useSelector(selectCurrentGroupId);
+	const meetingId = useSelector(selectCurrentMeetingId);
+	const imatMeetingEntities = useSelector(selectImatMeetingEntities);
 
-	React.useEffect(() => {
-		if (groupName) {
-			const pathGroupId = ids.find(id => entities[id].name === groupName);
-			if (pathGroupId && groupId !== pathGroupId) {
-				// Routed here with groupName in path, but not matching stored groupId; load telecons for groupName
-				dispatch(loadTelecons({groupId: pathGroupId, fromDate: DateTime.now().toISO()}));
+	const load = React.useCallback((groupId, meetingId) => {
+		const fromDate = DateTime.now().toISO();
+		const constraints = {fromDate};
+		if (meetingId) {
+			const session = imatMeetingEntities[meetingId];
+			if (session) {
+				constraints.fromDate = session.start;
+				constraints.toDate = session.end;
 			}
 		}
-		else if (groupId) {
-			// Routed here without groupName in path, but group has previously been selected; re-route to current group
-			history.replace(`/telecons/${entities[groupId].name}`);
-		}
-	}, [groupId, groupName, entities, ids, dispatch, history]);
+		dispatch(loadTelecons(groupId, constraints));
+	}, [dispatch, imatMeetingEntities]);
 
-	function handleSetGroupId(groupId) {
-		dispatch(clearTelecons());
-		if (groupId) {
-			const group = entities[groupId];
-			const groupName = group? group.name: 'Unknown';
-			history.push(`/telecons/${groupName}`); // Redirect to page for selected group
-		}
-		else {
-			history.push(`/telecons`);
-		}
-	}
+	React.useEffect(() => {
+		if (groupId) 
+			load(groupId, meetingId)
+	}, [groupId, meetingId]);
 
-	const refresh = () => dispatch(loadTelecons({groupId, fromDate: DateTime.now().toISO()}));
+	const refresh = () => load(groupId, meetingId);
+	const clear = () => dispatch(clearTelecons());
 
 	return (
 		<>
 			<TopRow>
-				<GroupSelector
-					value={groupId}
-					onChange={handleSetGroupId}
-					types={['c', 'wg']}
+				<GroupPathSelector
+					onChange={clear}
 				/>
+
+				<CurrentSessionSelector/>
+
 				<ActionButtonDropdown label='Set defaults'>
-					<TeleconDefaults
-						groupId={groupId}
-						groupName={groupName}
-					/>
+					<TeleconDefaults/>
 				</ActionButtonDropdown>
-				
+
+				<ActionButtonDropdown
+					label='Send email'
+					dropdownRenderer={({methods}) => <TeleconEmail close={methods.close} />}
+				/>
+			
 				<div style={{display: 'flex', alignItems: 'center'}}>
 					<ButtonGroup>
 						<div style={{textAlign: 'center'}}>Table view</div>

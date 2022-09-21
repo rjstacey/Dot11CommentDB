@@ -16,23 +16,19 @@ const StyledItem = styled.div`
 	display: flex;
 	flex-direction: column;
 	align-items: left;
-	${({ isSelected }) => isSelected? 'color: #fff; background: #0074d9;': 'color: #555; :hover {background: #f2f2f2;}'}
-	& > span {
-		margin: 5px 10px;
+	& > span:last-of-type {
+		font-style: italic;
+		font-size: smaller;
 	}
 `;
 
-const renderItem = ({item, style, props, state, methods}) => (
+const renderItem = ({item, style, props, state, methods}) =>
 	<StyledItem
-		key={item.value}
 		style={style}
-		onClick={(e) => {methods.addItem(item)}}
-		isSelected={methods.isSelected(item)}
 	>
 		<span>{item.name}</span>
-		<span style={{fontStyle: 'italic', fontSize: 'smaller'}}>{displayDateRange(item.start, item.end)}</span>
+		<span>{displayDateRange(item.start, item.end)}</span>
 	</StyledItem>
-);
 
 function ImatMeetingSelector({
 	value,
@@ -61,6 +57,7 @@ function ImatMeetingSelector({
 			loading={loading}
 			clearable
 			itemRenderer={renderItem}
+			selectItemRenderer={renderItem}
 			readOnly={readOnly}
 			portal={document.querySelector('#root')}
 			valueField='id'

@@ -5,14 +5,18 @@ import styled from '@emotion/styled';
 import AppTable, {SelectHeader, SelectCell, TableColumnHeader} from 'dot11-components/table';
 import {ActionButton} from 'dot11-components/form';
 
+import {selectGroupName} from '../store/groups';
+
 import TopRow from '../components/TopRow';
 
 import {
 	loadImatMeetings,
-	selectImatMeetingsState,
+	clearImatMeetings,
 	fields,
 	dataSet
 } from '../store/imatMeetings';
+
+import GroupPathSelector from '../components/GroupPathSelector';
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
@@ -24,7 +28,6 @@ const TableRow = styled.div`
 	}
 `;
 
-const renderBreakoutsLink = ({rowData}) => <Link to={`/imatMeetings/${rowData.id}`}>view breakouts</Link>
 
 const ColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
 
@@ -34,7 +37,7 @@ const renderDateRangeHeader = (props) =>
 		<ColumnHeader {...props} dataKey='end' label='End date' />
 	</>
 
-const columns = [
+const tableColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
 		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
@@ -54,28 +57,43 @@ const columns = [
 		width: 200, flexGrow: 1, flexShrink: 1},
 	{key: 'Actions',
 		label: '',
-		width: 200, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderBreakoutsLink}
+		width: 200, flexGrow: 1, flexShrink: 1}
 ];
 
-const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
+const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0);
 
 function ImatMeetings() {
 	const history = useHistory();
 	const dispatch = useDispatch();
-	const {valid} = useSelector(selectImatMeetingsState);
+	const groupName = useSelector(selectGroupName);
 
 	React.useEffect(() => {
-		if (!valid)
-			dispatch(loadImatMeetings());
-	}, [valid, dispatch]);
+		dispatch(loadImatMeetings());
+	}, [dispatch, groupName]);
+
+	const columns = React.useMemo(() => {
+		const renderBreakoutsLink = ({rowData}) => <Link to={`/${groupName}/imatMeetings/${rowData.id}`}>view breakouts</Link>
+		const columns = [...tableColumns];
+		const i = columns.length - 1;
+		columns[i] =
+			{
+				...columns[i],
+				cellRenderer: renderBreakoutsLink
+			}
+		return columns;
+
+	}, [groupName]);
 
 	const close = () => history.push('/sessions');
 	const refresh = () => dispatch(loadImatMeetings());
+	const clear = () => dispatch(clearImatMeetings());
 
 	return (
 		<>
 			<TopRow style={{maxWidth}}>
+				<GroupPathSelector
+					onChange={clear}
+				/>
 				<div>IMAT Session</div>
 				<div>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />

@@ -75,7 +75,7 @@ function BreakoutAttendance() {
 			dispatch(loadBreakoutAttendance(params.meetingNumber, params.breakoutNumber));
 	}, [dispatch, valid, params.meetingNumber, meetingNumber, params.breakoutNumber, breakoutNumber]);
 
-	const close = () => history.push(`/imatMeetings/${meetingNumber}`);
+	const close = () => history.push(`${params.groupName}/imatMeetings/${meetingNumber}`);
 	const refresh = () => dispatch(loadBreakoutAttendance(meetingNumber, breakoutNumber));
 
 	return (

@@ -5,10 +5,11 @@ import {ButtonGroup, ActionButton} from 'dot11-components/form';
 import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, TableColumnSelector} from 'dot11-components/table';
 import {setFilter, clearFilter} from 'dot11-components/store/filters';
 
+import {setCurrentGroupId} from '../store/current';
+
 import {
 	loadGroups,
 	addGroup,
-	setGroupId,
 	setSelected,
 	selectGroupsState,
 	dataSet,
@@ -91,7 +92,7 @@ function Organization(props) {
 		}
 		
 		dispatch(setSelected([]));
-		dispatch(setGroupId(groupId));
+		dispatch(setCurrentGroupId(groupId));
 	}
 
 	const committeeId = React.useMemo(() => {
