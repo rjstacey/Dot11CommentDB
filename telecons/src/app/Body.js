@@ -14,6 +14,7 @@ import ImatBreakouts from '../imatMeetings/ImatBreakouts';
 import ImatBreakoutAttendance from '../imatMeetings/ImatBreakoutAttendance';
 import WebexMeetings from '../webexMeetings/WebexMeetings';
 import Ieee802WorldSchedule from '../ieee802WorldSchedule/Ieee802WorldSchedule';
+import SessionPrep from '../session/SessionPrep';
 
 import {selectUser} from '../store/user';
 
@@ -98,10 +99,16 @@ function Body() {
 					component={Accounts}
 				/>
 				<RestrictedRoute
-					path="/organization"
+					path="/:groupName/organization"
 					access={access}
 					minAccess={AccessLevel.WGAdmin}
 					component={Organization}
+				/>
+				<RestrictedRoute
+					path="/:groupName/sessionPrep"
+					access={access}
+					minAccess={AccessLevel.WGAdmin}
+					component={SessionPrep}
 				/>
 			</Switch>
 		</Main>

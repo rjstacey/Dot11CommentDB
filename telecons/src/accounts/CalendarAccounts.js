@@ -15,7 +15,7 @@ import {
 
 import {GroupSelector} from '../components/GroupSelector';
 import TopRow from '../components/TopRow';
-import {Table, TableBodyEmpty} from './AccountsTable';
+import {EditTable as Table} from '../components/Table';
 
 const displayDate = (d) =>
 	new Intl.DateTimeFormat('default', {weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric'}).format(new Date(d));
@@ -25,78 +25,24 @@ const defaultAccount = {
 	groups: []
 };
 
-function CalendarAccountsTableHeader({readOnly}) {
-	const dispatch = useDispatch();
-	const handleAdd = () => dispatch(addCalendarAccount(defaultAccount));
-	const header = [
-		'Name',
-		'Groups',
-		'Last authorized',
-	];
-	if (!readOnly)
-		header.push(<ActionIcon type='add' title='Add account' onClick={handleAdd} />);
-
-	return (
-		<thead>
-			<tr>
-				{header.map((element, i) => <th key={i}>{element}</th>)}
-			</tr>
-		</thead>
-	);
-}
-
-function CalendarAccountsTableRow({account, readOnly}) {
-	const dispatch = useDispatch();
-	const handleDelete = () => dispatch(deleteCalendarAccount(account.id));
-	const handleChange = (changes) => dispatch(updateCalendarAccount(account.id, changes));
-
-	const row = [
-		<Input 
-			type='text'
-			value={account.name}
-			onChange={e => handleChange({name: e.target.value})}
-			readOnly={readOnly}
-		/>,
-		<GroupSelector
-			multi
-			value={account.groups}
-			onChange={groups => handleChange({groups})}
-			types={['wg', 'c']}
-			portal={document.querySelector('#root')}
-			readOnly={readOnly}
-		/>,
-		<>
-			{account.authDate? displayDate(account.authDate): ''}
-			{account.authUrl &&
-				<Button style={{marginLeft: '1em'}} onClick={() => window.location = account.authUrl}>
-					{account.authDate? 'Reauthorize': 'Authorize'}
-				</Button>}
-			{account.authDate &&
-				<Button style={{marginLeft: '1em'}} onClick={() => dispatch(revokeAuthCalendarAccount(account.id))}>
-					{'Revoke'}
-				</Button>}
-		</>
-	];
-
-	if (!readOnly)
-		row.push(<ActionIcon type='delete' onClick={handleDelete}/>);
-
-	return (
-		<tr>
-			{row.map((element, i) => <td key={i}>{element}</td>)}
-		</tr>
-	)
-}
-
-const CalendarAccountsTable = ({accounts, readOnly}) => 
-	<Table>
-		<CalendarAccountsTableHeader readOnly={readOnly} />
-		<tbody>
-			{accounts.length > 0?
-				accounts.map(account => <CalendarAccountsTableRow key={account.id} account={account} readOnly={readOnly} />):
-				<TableBodyEmpty />}
-		</tbody>
-	</Table>
+const tableColumns = {
+	name: {
+		label: 'Name',
+		gridTemplate: 'minmax(200px, auto)'
+	},
+	groups: {
+		label: 'Groups',
+		gridTemplate: 'minmax(200px, auto)'
+	},
+	authorized: {
+		label: 'Last authorized',
+		gridTemplate: 'minmax(300px, 1fr)'
+	},
+	actions: {
+		label: '',
+		gridTemplate: '40px'
+	}
+};
 
 const selectCalendarAccounts = (state) => {
 	const {loading, ids, entities} = selectCalendarAccountsState(state);
@@ -109,21 +55,81 @@ const selectCalendarAccounts = (state) => {
 function CalendarAccounts() {
 	const dispatch = useDispatch();
 	const {loading, accounts} = useSelector(selectCalendarAccounts);
-	const [edit, setEdit] = React.useState(false);
+	const [readOnly, setReadOnly] = React.useState(true);
 	const refresh = () => dispatch(loadCalendarAccounts());
+
+	const columns = React.useMemo(() => {
+		
+		let keys = Object.keys(tableColumns);
+		if (readOnly)
+			keys = keys.filter(key => key !== 'actions');
+
+		const handleAdd = () => dispatch(addCalendarAccount(defaultAccount));
+		const handleDelete = (id) => dispatch(deleteCalendarAccount(id));
+		const handleChange = (id, changes) => dispatch(updateCalendarAccount(id, changes));
+		const handleRevoke = (id) => dispatch(revokeAuthCalendarAccount(id))
+
+		const columns = keys.map(key => {
+			const col = {...tableColumns[key]};
+			col.key = key;
+			if (key === 'name') {
+				col.renderCell = (account) =>
+					<Input
+						type='search'
+						value={account.name}
+						onChange={(e) => handleChange(account.id, {name: e.target.value})}
+						readOnly={readOnly}
+					/>;
+			}
+			else if (key === 'groups') {
+				col.renderCell = (account) =>
+					<GroupSelector
+						multi
+						value={account.groups}
+						onChange={groups => handleChange(account.id, {groups})}
+						types={['wg', 'c']}
+						portal={document.querySelector('#root')}
+						readOnly={readOnly}
+					/>;
+			}
+			else if (key === 'authorized') {
+				col.renderCell = (account) =>
+					<>
+						{account.authDate? displayDate(account.authDate): ''}
+						{account.authUrl &&
+							<Button style={{marginLeft: '1em'}} onClick={() => window.location = account.authUrl}>
+								{account.authDate? 'Reauthorize': 'Authorize'}
+							</Button>}
+						{account.authDate &&
+							<Button style={{marginLeft: '1em'}} onClick={() => handleRevoke(account.id)}>
+								{'Revoke'}
+							</Button>}
+					</>;
+			}
+			else if (key === 'actions') {
+				col.renderCell = (account) => 
+					<ActionIcon type='delete' onClick={() => handleDelete(account.id)} />
+				col.label = 
+					<ActionIcon type='add' onClick={handleAdd} />
+			}
+			return col;
+		});
+
+		return columns;
+	}, [dispatch, readOnly]);
 
 	return (
 		<>
 			<TopRow>
 				<h3>Calendar accounts</h3>
 				<div style={{display: 'flex'}}>
-					<ActionButton name='edit' title='Edit' isActive={edit} onClick={() => setEdit(!edit)} />
+					<ActionButton name='edit' title='Edit' isActive={!readOnly} onClick={() => setReadOnly(!readOnly)} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
 				</div>
 			</TopRow>
-			<CalendarAccountsTable
-				accounts={accounts}
-				readOnly={!edit}
+			<Table
+				values={accounts}
+				columns={columns}
 			/>
 		</>
 	)

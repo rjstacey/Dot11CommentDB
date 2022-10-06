@@ -5,11 +5,10 @@ import {ButtonGroup, ActionButton} from 'dot11-components/form';
 import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, TableColumnSelector} from 'dot11-components/table';
 import {setFilter, clearFilter} from 'dot11-components/store/filters';
 
-import {setCurrentGroupId} from '../store/current';
+import {selectCurrentGroupId} from '../store/current';
 
 import {
 	loadGroups,
-	addGroup,
 	setSelected,
 	selectGroupsState,
 	dataSet,
@@ -21,7 +20,7 @@ import {
 import {loadOfficers, selectOfficersState, selectGroupOfficers} from '../store/officers';
 import {loadMembers, selectMembersState} from '../store/members';
 
-import GroupSelector from '../components/GroupSelector';
+import GroupPathSelector from '../components/GroupPathSelector';
 
 import OrginzationDetail from './OrganizationDetail';
 
@@ -47,6 +46,8 @@ function Officers({group}) {
 	)
 }
 
+const renderName = ({rowData}) => <div style={{background: rowData.color || 'transparent'}}>{rowData.name}</div>
+
 const tableColumns = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 0, flexShrink: 0,
@@ -54,7 +55,8 @@ const tableColumns = [
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
 	{key: 'name',
 		...fields.name,
-		width: 80, flexGrow: 1, flexShrink: 0},
+		width: 80, flexGrow: 1, flexShrink: 0,
+		cellRenderer: renderName},
 	{key: 'type',
 		...fields.type,
 		width: 100, flexGrow: 1, flexShrink: 0},
@@ -71,18 +73,11 @@ function Organization(props) {
 	const dispatch = useDispatch();
 	const {isSplit} = useSelector(selectGroupsPanelConfig);
 	const setIsSplit = React.useCallback((value) => dispatch(setGroupsPanelIsSplit(value)), [dispatch]);
+	const {entities, ids, selected} = useSelector(selectGroupsState);
+	const groupId = useSelector(selectCurrentGroupId);
+	const prevGroupIdRef = React.useRef();
 
-	function createCommittee({props, state, methods}) {
-		const group = {
-			parent_id: null,
-			name: state.search,
-		}
-		return dispatch(addGroup(group));
-	}
-
-	const {entities, ids, selected, groupId} = useSelector(selectGroupsState);
-
-	function handleSetGroupId(groupId) {
+	React.useEffect(() => {
 		if (!groupId) {
 			dispatch(clearFilter(dataSet, 'id'));
 		}
@@ -90,17 +85,11 @@ function Organization(props) {
 			const groupIds = ids.filter(id => id === groupId || entities[id].parent_id === groupId);
 			dispatch(setFilter(dataSet, 'id', groupIds));
 		}
-		
-		dispatch(setSelected([]));
-		dispatch(setCurrentGroupId(groupId));
-	}
-
-	const committeeId = React.useMemo(() => {
-		const committee = ids
-			.map(id => entities[id])
-			.find(group => group.name === '802')
-		return committee? committee.id: undefined;
-	}, [entities, ids]);
+		if (prevGroupIdRef.current !== groupId) {
+			dispatch(setSelected([]));
+			prevGroupIdRef.current = groupId;
+		}
+	}, [groupId, entities, ids]);	 // eslint-disable-line react-hooks/exhaustive-deps
 
 	const refresh = () => {
 		dispatch(loadGroups());
@@ -111,13 +100,7 @@ function Organization(props) {
 	return (
 		<>
 			<div style={{width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-				<GroupSelector
-					value={groupId}
-					onChange={handleSetGroupId}
-					parent_id={committeeId}
-					create={!committeeId}
-					createOption={createCommittee}
-				/>
+				<GroupPathSelector />
 				<ButtonGroup>
 					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
 					<ActionButton

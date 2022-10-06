@@ -397,8 +397,6 @@ const tableColumns = [
 		width: 100, flexGrow: 1, flexShrink: 1}
 ];
 
-const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0);
-
 function slotDateTime(date, slot) {
 	return [
 		date.set({hour: slot.startTime.substring(0,2), minute: slot.startTime.substring(3,5)}),
@@ -526,13 +524,13 @@ function Breakouts() {
 
 	const close = () => history.push(`/${params.groupName}/imatMeetings`);
 	const refresh = () => dispatch(loadBreakouts(urlMeetingId));
-	const deleteClick = async (breakout) => {
+	const deleteClick = React.useCallback(async (breakout) => {
 		const ok = await ConfirmModal.show('Are you sure you want to delete breakout?');
 		if (ok) {
 			console.log(meetingId)
 			dispatch(deleteBreakouts(meetingId, [breakout.id]))
 		}
-	}
+	}, [dispatch, meetingId]);
 
 	const openBreakoutAdd = () => setAddBreakout(true);
 	const closeBreakoutAdd = () => setAddBreakout(false);
@@ -569,7 +567,7 @@ function Breakouts() {
 			return c;
 		});
 		return columns;
-	}, [setBreakoutToLink, params.groupName]);
+	}, [setBreakoutToLink, deleteClick, params.groupName]);
 
 	const syncTelecons = () => {
 		const sessionStart = DateTime.fromISO(meeting.start);

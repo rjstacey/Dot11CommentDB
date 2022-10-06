@@ -58,4 +58,36 @@ const Table = styled.table`
 	}
 `;
 
+export const TableEmpty = () => <tr><td className='empty'>Empty</td></tr>
+
+/*
+ * Edit a simple array of objects.
+ *
+ * The columns arrays has one entry per column with properties:
+ *  key - A unique key for the column
+ *  label - The column label (string or element)
+ *  renderCell(entry) - A function to render the contents of the cell for a given entry (obtained from values)
+ *  gridTemplate - The gridTemplateColumns entry for the column (e.g., '200px' or 'minmax(200px, auto)')
+ *
+ * The values array is a list of entries (array of objects)
+ */
+export function EditTable({columns, values}) {
+	const gridTemplateColumns = columns.map(col => col.gridTemplate).join(' ');
+
+	return (
+		<Table style={{gridTemplateColumns}} >
+			<thead>
+				<tr>
+					{columns.map((col, i) => <th key={col.key}>{col.label}</th>)}
+				</tr>
+			</thead>
+			<tbody>
+				{values.length > 0?
+					values.map((entry, i) => <tr key={i}>{columns.map((col) => <td key={col.key}>{col.renderCell(entry)}</td>)}</tr>):
+					<TableEmpty />}
+			</tbody>
+		</Table>
+	)
+}
+
 export default Table;

@@ -9,8 +9,6 @@ import {
 } from '../store/current';
 import {selectGroupName} from '../store/groups';
 
-import {selectTeleconDefaults, setTeleconDefaults} from '../store/telecons';
-
 import CalendarAccountSelector from '../components/CalendarAccountSelector';
 import WebexAccountSelector from '../components/WebexAccountSelector';
 import WebexTemplateSelector from '../components/WebexTemplateSelector';

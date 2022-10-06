@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import styled from '@emotion/styled';
 
 import {Field, Col} from 'dot11-components/form';
 import {ActionIcon} from 'dot11-components/icons';
@@ -16,143 +15,80 @@ import {
 
 import MemberSelector from '../components/MemberSelector';
 import OfficerPositionSelector from './OfficerPositionSelector';
+import {EditTable as Table} from '../components/Table';
 
-const OfficerTable = styled.table`
-	display: grid;
-	grid-template-columns: minmax(200px, auto) minmax(300px, 1fr) 40px;
-	border-spacing: 1px;
-
-	& * {
-		box-sizing: border-box;
+const tableColumns = {
+	position: {
+		label: 'Position',
+		gridTemplate: 'minmax(200px, auto)'
+	},
+	member: {
+		label: 'Member',
+		gridTemplate: 'minmax(300px, 1fr)'
+	},
+	action: {
+		label: '',
+		gridTemplate: '40px'
 	}
+};
 
-	thead, tbody, tr {
-		display: contents;
-	}
-
-	th, td {
-		padding: 10px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		border: gray solid 1px;
-		vertical-align: top;
-	}
-
-	th:first-of-type, td:first-of-type {
-		grid-column: 1;
-	}
-
-	tr:first-of-type td {
-		border-top: none;
-	}
-
-	tr:not(:last-of-type) td {
-		border-bottom: none;
-	}
-
-	th:not(:last-of-type),
-	td:not(:last-of-type) {
-		border-right: none;
-	}
-
-	th {
-		background: #f6f6f6;
-		text-align: left;
-		font-weight: bold;
-		font-size: 1rem;
-	}
-
-	td {
-		padding-top: 5px;
-		padding-bottom: 5px;
-	}
-
-	td.empty {
-		grid-column: 1 / -1;
-		color: gray;
-		font-style: italic;
-	}
-
-	tr:nth-of-type(even) td {
-		background: #fafafa;
-	}
-`;
-
-function OfficerTableHeader({group, readOnly}) {
+function Officers({group, readOnly}) {
 	const dispatch = useDispatch();
-	const handleAdd = () => {
+	const selectOfficers = React.useCallback((state) => selectGroupOfficers(selectOfficersState(state), group.id), [group.id]);
+	const officers = useSelector(selectOfficers);
+
+	const columns = React.useMemo(() => {
+		let keys = Object.keys(tableColumns);
+		if (readOnly)
+			keys = keys.filter(key => key === 'actions');
+
 		const officer = {
 			group_id: group.id,
 			position: '',
 		};
-		dispatch(addOfficer(officer));
-	};
 
-	const headerColumns = [
-		'Position',
-		'Member'
-	];
+		const addOne = () => dispatch(addOfficer(officer));
+		const updateOne = (id, changes) => dispatch(updateOfficer({id, changes}));
+		const removeOne = (id) => dispatch(deleteOfficer(id));
 
-	if (!readOnly)
-		headerColumns.push(<ActionIcon type='add' onClick={handleAdd}/>);
+		const columns = keys.map(key => {
+			const col = {...tableColumns[key]};
+			col.key = key;
+			if (key === 'position') {
+				col.renderCell = (entry) =>
+					<OfficerPositionSelector
+						value={entry.position}
+						onChange={(position) => updateOne(entry.id, {position})}
+						readOnly={readOnly}
+					/>;
+			}
+			else if (key === 'member') {
+				col.renderCell = (entry) =>
+					<MemberSelector
+						value={entry.sapin}
+						onChange={(sapin) => updateOne(entry.id, {sapin})}
+						readOnly={readOnly}
+					/>;
+			}
+			else if (key === 'action') {
+				col.renderCell = (entry) => 
+					<ActionIcon type='delete' onClick={() => removeOne(entry.id)} />
+				col.label = 
+					<ActionIcon type='add' onClick={addOne} />
+			}
+			return col;
+		});
 
-	return (
-		<thead>
-			<tr>
-				{headerColumns.map((element, i) => <th key={i}>{element}</th>)}
-			</tr>
-		</thead>
-	);
-}
+		return columns;
+	}, [dispatch, readOnly, group.id]);
 
-function OfficerTableRow({officer, readOnly}) {
-	const dispatch = useDispatch();
-	const handleUpdate = (changes) => dispatch(updateOfficer({id: officer.id, changes}));
-	const handleDelete = () => dispatch(deleteOfficer(officer.id));
-
-	const rowColumns = [
-		<OfficerPositionSelector
-			value={officer.position}
-			onChange={(position) => handleUpdate({position})}
-			readOnly={readOnly}
-		/>,
-		<MemberSelector
-			value={officer.sapin}
-			onChange={(sapin) => handleUpdate({sapin})}
-			readOnly={readOnly}
-		/>
-	];
-
-	if (!readOnly)
-		rowColumns.push(<ActionIcon type='delete' onClick={handleDelete}/>);
-
-	return (
-		<tr>
-			{rowColumns.map((element, i) => <td key={i}>{element}</td>)}
-		</tr>
-	)
-}
-
-const OfficerTableEmpty = () => 
-	<tr>
-		<td className='empty'>Empty</td>
-	</tr>
-
-function Officers({group, readOnly}) {
-	const selectOfficers = React.useCallback((state) => selectGroupOfficers(selectOfficersState(state), group.id), [group.id]);
-	const officers = useSelector(selectOfficers);
 	return (
 		<Col>
 			<Field label='Officers:' />
-			<OfficerTable>
-				<OfficerTableHeader group={group} readOnly={readOnly} />
-				<tbody>
-					{officers.length > 0?
-						officers.map(officer => <OfficerTableRow key={officer.id} officer={officer} readOnly={readOnly} />):
-						<OfficerTableEmpty />}
-				</tbody>
-			</OfficerTable>
+			<Table
+				columns={columns}
+				values={officers}
+			/>
 		</Col>
 	)
 }

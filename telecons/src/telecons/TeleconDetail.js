@@ -38,7 +38,7 @@ const defaultLocalEntry = {
 	hasMotions: false,
 }
 
-const defaultWebexMeeting = {
+export const defaultWebexMeeting = {
 	password: 'wireless',
 	enabledJoinBeforeHost: true,
 	joinBeforeHostMinutes: 10,

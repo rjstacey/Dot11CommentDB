@@ -14,6 +14,7 @@ import {selectGroupName} from '../store/groups';
 const fullMenu = [
 	{
 		minAccess: AccessLevel.WGAdmin,
+		prefixGroupName: true,
 		link: '/organization',
 		label: 'Organization',
 	},
@@ -37,6 +38,12 @@ const fullMenu = [
 	{
 		minAccess: AccessLevel.WGAdmin,
 		prefixGroupName: true,
+		link: '/sessionPrep',
+		label: 'Session preparation',
+	},
+	{
+		minAccess: AccessLevel.WGAdmin,
+		prefixGroupName: true,
 		link: '/imatMeetings',
 		label: 'IMAT',
 	},
@@ -51,6 +58,7 @@ const fullMenu = [
 		link: '/ieee802WorldSchedule',
 		label: '802 World Schedule',
 	},
+
 ];
 
 const NavItem = (props) => <NavLink className={'nav-link' + (props.isActive? ' active': '')} {...props} />

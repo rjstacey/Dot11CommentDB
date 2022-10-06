@@ -6,8 +6,6 @@ import slice from './teleconsSlice';
 import {setWebexMeetings, upsertWebexMeetings} from './webexMeetings';
 
 const {
-	setDefaults,
-	clearDefaults,
 	getPending,
 	getSuccess,
 	getFailure,
@@ -24,9 +22,6 @@ const {
 export const setTeleconsCurrentPanelIsSplit = (isSplit) => setPanelIsSplit({isSplit});
 
 export {setProperty as setUiProperty, setSelected as setSelectedTelecons, upsertMany as upsertTelecons};
-
-export const setTeleconDefaults = setDefaults;
-export const clearTeleconDefaults = clearDefaults;
 
 const baseUrl = '/api/telecons';
 

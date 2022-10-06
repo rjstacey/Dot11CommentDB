@@ -1,17 +1,22 @@
 import React from 'react';
 import {useSelector, connect} from 'react-redux';
 import styled from '@emotion/styled';
+import {GithubPicker} from 'react-color';
 
 import {ConfirmModal} from 'dot11-components/modals';
 import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, debounce} from 'dot11-components/lib';
 import {ActionButton, Form, Row, Field, Input, Select} from 'dot11-components/form';
+import {setError} from 'dot11-components/store/error';
 
 import {addGroup, updateGroups, deleteGroups, selectGroupsState, GroupTypeOptions, GroupStatusOptions, setSelected} from '../store/groups';
+import {selectCurrentGroupId} from '../store/current';
 
 import GroupSelector from '../components/GroupSelector';
 import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
+import ColorPicker from '../components/ColorPicker';
 
 import Officers from './Officers';
+import TopRow from '../components/TopRow';
 
 const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';
@@ -82,8 +87,16 @@ function GroupEntry({
 						type='text'
 						value={isMultiple(entry.name)? '': entry.name || ''}
 						onChange={e => changeEntry({name: e.target.value})}
-						placeholder={isMultiple(entry.name)? MULTIPLE_STR: undefined}
+						placeholder={isMultiple(entry.name)? MULTIPLE_STR: BLANK_STR}
 						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Color:'>
+					<ColorPicker
+						value={isMultiple(entry.color)? '': entry.color}
+						onChange={(color) => changeEntry({color})}
 					/>
 				</Field>
 			</Row>
@@ -104,12 +117,13 @@ function GroupEntry({
 						style={{width: 200}}
 						value={isMultiple(entry.parent_id)? '': entry.parent_id || ''}
 						onChange={(parent_id) => changeEntry({parent_id})}
-						placeholder={isMultiple(entry.parent_id)? MULTIPLE_STR: undefined}
+						placeholder={isMultiple(entry.parent_id)? MULTIPLE_STR: "(None)"}
 						readOnly={readOnly}
 						options={parentGroups}
 					/>
 				</Field>
 			</Row>
+
 			<Row>
 				<Field label='Status:'>
 					<GroupStatusSelector
@@ -123,16 +137,15 @@ function GroupEntry({
 			<Row>
 				<Field label='IMAT committee:'>
 					<ImatCommitteeSelector
-						value={isMultiple(entry.imatCommitteeId)? '': entry.imatCommitteeId}
-						onChange={imatCommitteeId => changeEntry({imatCommitteeId})}
-						placeholder={isMultiple(entry.imatCommitteeId)? MULTIPLE_STR: undefined}
+						value={isMultiple(entry.symbol)? '': entry.symbol}
+						onChange={symbol => changeEntry({symbol})}
+						placeholder={isMultiple(entry.symbol)? MULTIPLE_STR: undefined}
 						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
 			{!isMultiple(entry.id) &&
 				<Row>
-				
 					<Officers
 						group={entry}
 						readOnly={readOnly}
@@ -141,14 +154,6 @@ function GroupEntry({
 		</Form>
 	)
 }
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: flex-end;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
 
 const Container = styled.div`
 	padding: 10px;
@@ -207,11 +212,17 @@ class GroupDetail extends React.PureComponent {
 	};
 
 	addEntry = async () => {
-		const {addGroup} = this.props;
-		const entry = {...defaultEntry};
-		const group = await addGroup(entry);
-		if (group)
-			setSelected([group.id]);
+		const {addGroup, setSelected, setError, groupId, entities} = this.props;
+		const entry = {...defaultEntry, parent_id: groupId};
+		let group;
+		for (group of Object.values(entities)) {
+			if (group.parent_id === groupId && group.name === entry.name) {
+				setError('Unable to add entry', 'Entry already exists for ' + (group.name || BLANK_STR));
+				return;
+			}
+		}
+		group = await addGroup(entry);
+		setSelected([group.id]);
 	}
 
 	updateEntries = (changes) => {
@@ -259,7 +270,7 @@ class GroupDetail extends React.PureComponent {
 
 		return (
 			<Container>
-				<TopRow>
+				<TopRow style={{justifyContent: 'flex-end'}}>
 					<ActionButton
 						name='add'
 						title='Add group'
@@ -293,6 +304,7 @@ export default connect(
 			loading: data.loading,
 			selected: data.selected,
 			entities: data.entities,
+			groupId: selectCurrentGroupId(state)
 		}
 	},
 	{
@@ -300,6 +312,7 @@ export default connect(
 		updateGroups,
 		deleteGroups,
 		setSelected,
+		setError
 	}
 )(GroupDetail);
 

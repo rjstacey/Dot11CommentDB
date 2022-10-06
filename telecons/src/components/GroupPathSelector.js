@@ -75,8 +75,8 @@ GroupPathSelector.propTypes = {
 }
 
 const LabeledGroupPathSelector = (props) =>
-	<div style={{display: 'flex'}}>
-		<label style={{marginRight: 10}}>Group:</label>
+	<div style={{display: 'flex', alignItems: 'center'}}>
+		<label style={{marginRight: 10, fontWeight: 'bold'}}>Group:</label>
 		<GroupPathSelector {...props} />
 	</div>
 

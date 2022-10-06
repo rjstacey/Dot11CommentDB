@@ -22,6 +22,7 @@ import imatBreakoutsSlice from './imatBreakouts';
 import webexMeetingsSlice from './webexMeetingsSlice';
 import imatBreakoutAttendanceSlice from './imatBreakoutAttendance';
 import ieee802WorldScheduleSlice from './ieee802WorldSchedule';
+import sessionPrepSlice from './sessionPrep';
 
 export function configureStore() {
 
@@ -41,7 +42,8 @@ export function configureStore() {
 		[imatMeetingsSlice.name]: imatMeetingsSlice.reducer,
 		[imatBreakoutsSlice.name]: imatBreakoutsSlice.reducer,
 		[imatBreakoutAttendanceSlice.name]: imatBreakoutAttendanceSlice.reducer,
-		[ieee802WorldScheduleSlice.name]: ieee802WorldScheduleSlice.reducer
+		[ieee802WorldScheduleSlice.name]: ieee802WorldScheduleSlice.reducer,
+		[sessionPrepSlice.name]: sessionPrepSlice.reducer
 	});
 
 	const middleware = [thunk];

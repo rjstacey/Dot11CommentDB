@@ -259,7 +259,7 @@ function WebexMeetings() {
 
 	React.useEffect(() => {
 		load();
-	}, [dispatch, groupId]);
+	}, [groupId]);  // eslint-disable-line react-hooks/exhaustive-deps
 
 	const columns = React.useMemo(() => {
 		function renderActions({rowData}) {

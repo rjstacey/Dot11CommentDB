@@ -163,7 +163,7 @@ function Telecons(props) {
 	React.useEffect(() => {
 		if (groupId) 
 			load(groupId, meetingId)
-	}, [groupId, meetingId]);
+	}, [groupId, meetingId]);  // eslint-disable-line react-hooks/exhaustive-deps
 
 	const refresh = () => load(groupId, meetingId);
 	const clear = () => dispatch(clearTelecons());

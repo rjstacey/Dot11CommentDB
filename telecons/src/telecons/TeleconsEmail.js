@@ -85,6 +85,19 @@ function selectOfficers(state, groupId) {
 	return officers;
 }
 
+function selectGroups(state) {
+	const {ids, entities} = selectTeleconsState(state);
+	const {entities: groupEntities} = selectGroupsState(state);
+
+	const groupIds = new Set();
+	for (const id of ids) {
+		groupIds.add(entities[id].organizationId);
+	}
+	return [...groupIds]
+		.map(id => groupEntities[id])
+		.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function selectEmails(state, groupIds) {
 	const {entities: groupEntities} = selectGroupsState(state);
 	const teleconEntities = selectSyncedTeleconEntities(state);
@@ -95,7 +108,9 @@ function selectEmails(state, groupIds) {
 	for (const id of groupIds) {
 		const group = groupEntities[id];
 
-		const telecons = teleconIds.map(id => teleconEntities[id]).filter(t => t.organizationId === id);
+		const telecons = teleconIds
+			.map(id => teleconEntities[id])
+			.filter(t => t.organizationId === id && DateTime.fromISO(t.start) >= DateTime.now());
 		const table = genTable(telecons);
 
 		const officers = selectOfficers(state, id);
@@ -131,15 +146,6 @@ function selectEmails(state, groupIds) {
 	return emails;
 }
 
-function selectGroups(state) {
-	const {ids, entities} = selectTeleconsState(state);
-	const {entities: groupEntities} = selectGroupsState(state);
-
-	const groupIds = new Set();
-	for (const id of ids)
-		groupIds.add(entities[id].organizationId);
-	return [...groupIds].map(id => groupEntities[id]).sort((a, b) => a.name.localeCompare(b.name));
-}
 
 const Grid = styled.div`
 	display: grid;
