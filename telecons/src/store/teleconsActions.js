@@ -16,12 +16,22 @@ const {
 	removeAll,
 	setProperty,
 	setSelected,
+	toggleSelected,
+	setSelectedSlots,
+	toggleSelectedSlots,
 	setPanelIsSplit
 } = slice.actions;
 
 export const setTeleconsCurrentPanelIsSplit = (isSplit) => setPanelIsSplit({isSplit});
 
-export {setProperty as setUiProperty, setSelected as setSelectedTelecons, upsertMany as upsertTelecons};
+export {
+	setProperty as setUiProperty,
+	setSelected as setSelectedTelecons,
+	toggleSelected as toggleSelectedTelecons,
+	setSelectedSlots,
+	toggleSelectedSlots,
+	upsertMany as upsertTelecons
+}
 
 const baseUrl = '/api/telecons';
 

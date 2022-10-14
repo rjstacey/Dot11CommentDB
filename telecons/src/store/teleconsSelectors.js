@@ -29,6 +29,7 @@ export const fields = {
 	dayDate: {label: 'Day/Date'},
 	timeRange: {label: 'Time'},
 	duration: {label: 'Duration'},
+	location: {label: 'Location/Room'},
 	hasMotions: {label: 'Motions'},
 	isCancelled: {label: 'Cancelled'},
 	webexAccountName: {label: 'Webex account'},
@@ -112,3 +113,6 @@ export const selectSyncedTeleconEntities = createSelector(
 	}
 );
 
+export const selectSelectedTelecons = (state) => selectTeleconsState(state).selected;
+
+export const selectSelectedSlots = (state) => selectTeleconsState(state).selectedSlots;

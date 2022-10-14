@@ -6,15 +6,16 @@ import styled from '@emotion/styled';
 import {AccessLevel} from 'dot11-components/lib/user';
 
 import Accounts from '../accounts/Accounts';
-import Telecons from '../telecons/Telecons';
-import Calendar from '../calendar/Calendar';
 import Organization from '../organization/Organization';
-import ImatMeetings from '../imatMeetings/ImatMeetings';
-import ImatBreakouts from '../imatMeetings/ImatBreakouts';
-import ImatBreakoutAttendance from '../imatMeetings/ImatBreakoutAttendance';
+import Sessions from '../sessions/Sessions';
+import Telecons from '../meetings/Telecons';
+import SessionMeetings from '../meetings/SessionMeetings';
+import Calendar from '../calendar/Calendar';
 import WebexMeetings from '../webexMeetings/WebexMeetings';
+import ImatMeetings from '../imat/ImatMeetings';
+import ImatBreakouts from '../imat/ImatBreakouts';
+import ImatBreakoutAttendance from '../imat/ImatBreakoutAttendance';
 import Ieee802WorldSchedule from '../ieee802WorldSchedule/Ieee802WorldSchedule';
-import SessionPrep from '../session/SessionPrep';
 
 import {selectUser} from '../store/user';
 
@@ -47,7 +48,25 @@ function Body() {
 		<Main>
 			<Switch>
 				<RestrictedRoute
-					path="/:groupName/telecons"
+					path="/accounts"
+					access={access}
+					minAccess={AccessLevel.WGAdmin}
+					component={Accounts}
+				/>
+				<RestrictedRoute
+					path="/:groupName/organization"
+					access={access}
+					minAccess={AccessLevel.WGAdmin}
+					component={Organization}
+				/>
+				<RestrictedRoute
+					path="/:groupName/sessions"
+					access={access}
+					minAccess={AccessLevel.WGAdmin}
+					component={Sessions}
+				/>
+				<RestrictedRoute
+					path="/:groupName/meetings"
 					access={access}
 					minAccess={AccessLevel.WGAdmin}
 					component={Telecons}
@@ -86,29 +105,17 @@ function Body() {
 					component={ImatBreakoutAttendance}
 				/>
 				<RestrictedRoute
-					path="/ieee802WorldSchedule"
+					path="/:groupName/ieee802WorldSchedule"
 					access={access}
 					exact
 					minAccess={AccessLevel.WGAdmin}
 					component={Ieee802WorldSchedule}
 				/>
 				<RestrictedRoute
-					path="/accounts"
+					path="/:groupName/sessionMeetings"
 					access={access}
 					minAccess={AccessLevel.WGAdmin}
-					component={Accounts}
-				/>
-				<RestrictedRoute
-					path="/:groupName/organization"
-					access={access}
-					minAccess={AccessLevel.WGAdmin}
-					component={Organization}
-				/>
-				<RestrictedRoute
-					path="/:groupName/sessionPrep"
-					access={access}
-					minAccess={AccessLevel.WGAdmin}
-					component={SessionPrep}
+					component={SessionMeetings}
 				/>
 			</Switch>
 		</Main>

@@ -1,50 +1,37 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import {useSelector} from 'react-redux';
 import {connect} from 'react-redux';
 import styled from '@emotion/styled';
 import {DateTime} from 'luxon';
 
 import {ConfirmModal} from 'dot11-components/modals';
-import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, MULTIPLE} from 'dot11-components/lib';
-import {ActionButton, Button, Form, Row, Col, Field, FieldLeft, Input, InputDates, InputTime, Checkbox, Select} from 'dot11-components/form';
+import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple} from 'dot11-components/lib';
+import {ActionButton, Button, Form, Row, Field, Input, InputTime, Checkbox, Select} from 'dot11-components/form';
 import TopRow from '../components/TopRow';
+
+import {selectCurrentGroupId, selectCurrentGroupDefaults} from '../store/current';
+import {selectGroupEntities} from '../store/groups';
+import {
+	fromSlotId,
+	selectCurrentSession,
+	selectCurrentSessionDates,
+} from '../store/sessions';
 
 import {
 	addTelecons, 
 	updateTelecons, 
 	deleteTelecons, 
-	setSelectedTelecons, 
+	setSelectedTelecons,
+	setSelectedSlots,
 	selectTeleconsState, 
-	selectSyncedTeleconEntities
+	selectTeleconEntities,
+	selectSelectedTelecons,
+	selectSelectedSlots,
 } from '../store/telecons';
 
-import {
-	loadBreakouts,
-	addMeetings,
-	updateMeetings,
-	deleteMeetings,
-	setSelectedMeetings,
-	setSelectedSlots,
-	selectSession,
-	selectSessionPrepState,
-	selectSessionPrepEntities,
-	selectSessionPrepDates,
-	selectSelectedMeetings,
-	selectSelectedSlots,
-	selectSessionPrepTimeslots as selectTimeslots,
-	selectSessionPrepRooms as selectRooms,
-	toSlotId,
-	fromSlotId
-} from '../store/sessionPrep';
-
-import {selectCurrentGroupId, selectCurrentGroupDefaults} from '../store/current';
-
-import {selectGroupEntities} from '../store/groups';
-import {selectCurrentSession} from '../store/imatMeetings';
-
 import GroupSelector from '../components/GroupSelector';
-import {WebexMeetingEdit, defaultWebexMeeting} from '../telecons/TeleconDetail';
+import {WebexMeetingEdit, defaultWebexMeeting} from './TeleconDetail';
 
 const MULTIPLE_STR = '(Multiple)';
 
@@ -57,7 +44,7 @@ const defaultLocalEntry = {
 }
 
 function DateSelector({value, onChange, ...otherProps}) {
-	const options = useSelector(selectSessionPrepDates).map(date => ({value: date, label: date}))
+	const options = useSelector(selectCurrentSessionDates).map(date => ({value: date, label: date}))
 	const handleChange = (values) => onChange(values.length > 0? values[0].value: null);
 	const values = options.filter(d => d.value === value);
 	return (
@@ -71,7 +58,7 @@ function DateSelector({value, onChange, ...otherProps}) {
 }
 
 function TimeslotSelector({value, onChange, ...otherProps}) {
-	const timeslots = useSelector(selectTimeslots);
+	const {timeslots} = useSelector(selectCurrentSession);
 	const handleChange = (values) => onChange(values.length > 0? values[0].id: null);
 	const values = timeslots.filter(slot => slot.id === value);
 	return (
@@ -87,7 +74,7 @@ function TimeslotSelector({value, onChange, ...otherProps}) {
 }
 
 function RoomSelector({value, onChange, options, ...otherProps}) {
-	const rooms = useSelector(selectRooms);
+	const {rooms} = useSelector(selectCurrentSession);
 	const handleChange = (values) => onChange(values.length > 0? values[0].id: null);
 	const values = rooms.filter(room => room.id === value);
 	return (
@@ -286,7 +273,7 @@ const NotAvailable = styled.div`
 	color: #bdbdbd;
 `;
 
-function convertMeetingToEntry(meeting, session, rooms, timeslots) {
+function convertMeetingToEntry(meeting, session) {
 	let {start, end, ...rest} = meeting;
 	const entry = {...rest};
 	start = DateTime.fromISO(start, {zone: session.timezone});
@@ -294,9 +281,9 @@ function convertMeetingToEntry(meeting, session, rooms, timeslots) {
 	entry.date = start.toISODate();
 	entry.startTime = start.toFormat('HH:mm');
 	entry.endTime = end.toFormat('HH:mm');
-	const room = rooms.find(r => r.name === meeting.location);
+	const room = session.rooms.find(r => r.name === meeting.location);
 	entry.roomId =  room.id || 0;
-	const slot = timeslots.find(s => {
+	const slot = session.timeslots.find(s => {
 		const slotStart = start.set({hour: parseInt(s.startTime.substring(0, 2)), minute: parseInt(s.startTime.substring(3, 5))});
 		const slotEnd = start.set({hour: parseInt(s.endTime.substring(0, 2)), minute: parseInt(s.endTime.substring(3, 5))});
 		return start >= slotStart && start < slotEnd;
@@ -305,19 +292,19 @@ function convertMeetingToEntry(meeting, session, rooms, timeslots) {
 	return entry;
 }
 
-function convertEntryToMeeting(entry, session, rooms, timeslots) {
+function convertEntryToMeeting(entry, session) {
 	let {date, startTime, endTime, startSlotId, roomId, ...rest} = entry;
 	const meeting = {...rest};
 	meeting.start = DateTime.fromFormat(`${date} ${startTime}`, 'yyyy-MM-dd HH:mm', {zone: session.timezone}).toISO();
 	meeting.end = DateTime.fromFormat(`${date} ${endTime}`, 'yyyy-MM-dd HH:mm', {zone: session.timezone}).toISO();
-	const room = rooms.find(r => r.id === roomId);
+	const room = session.rooms.find(r => r.id === roomId);
 	meeting.location = room? room.name: '';
 	meeting.timezone = session.timezone;
 	return meeting;
 }
 
-function convertMultipleMeetingsToEntry(ids, entities, session, rooms, timeslots) {
-	return ids.reduce((entry, id) => deepMergeTagMultiple(entry, convertMeetingToEntry(entities[id], session, rooms, timeslots)), {});
+function convertMultipleMeetingsToEntry(ids, entities, session) {
+	return ids.reduce((entry, id) => deepMergeTagMultiple(entry, convertMeetingToEntry(entities[id], session)), {});
 }
 
 class MeetingDetails extends React.Component {
@@ -327,15 +314,14 @@ class MeetingDetails extends React.Component {
 	}
 
 	componentDidMount() {
-		const {setSelectedMeetings, setSelectedSlots} = this.props;
-		setSelectedMeetings([]);
+		const {setSelectedTelecons, setSelectedSlots} = this.props;
+		setSelectedTelecons([]);
 		setSelectedSlots([]);
 		this.setState(this.initState('view'));
 	}
 
 	componentDidUpdate(prevProps, prevState) {
 		const {props} = this;
-		const {action, ids} = this.state;
 
 		const changeWithConfirmation = async () => {
 			console.log('check for changes')
@@ -349,7 +335,7 @@ class MeetingDetails extends React.Component {
 				}
 			}*/
 			let action;
-			if (props.selectedMeetings.length > 0)
+			if (props.selectedTelecons.length > 0)
 				action = 'update';
 			else if (props.selectedSlots.length > 0)
 				action = 'add';
@@ -357,19 +343,20 @@ class MeetingDetails extends React.Component {
 				action = 'view';
 			this.setState(this.initState(action));
 		}
-
-		if (props.selectedMeetings.join() !== prevProps.selectedMeetings.join() ||
+		console.log(prevProps)
+		if (props.selectedTelecons.join() !== prevProps.selectedTelecons.join() ||
 			props.selectedSlots.join() !== prevProps.selectedSlots.join()) {
 			changeWithConfirmation();
 		}
 	}
 
 	initState = (action) => {
-		const {selectedMeetings, selectedSlots, entities, rooms, timeslots, session, defaults, groupId} = this.props;
-		console.log(this.props)
+		const {selectedTelecons, selectedSlots, entities, session, defaults, groupId} = this.props;
+		const {rooms, timeslots} = session;
+
 		let entry = {};
-		if (action === 'update' && selectedMeetings.length) {
-			entry = convertMultipleMeetingsToEntry(selectedMeetings, entities, session, rooms, timeslots);
+		if (action === 'update' && selectedTelecons.length) {
+			entry = convertMultipleMeetingsToEntry(selectedTelecons, entities, session);
 		}
 		else if (action === 'add') {
 			entry.organizationId = groupId;
@@ -407,7 +394,7 @@ class MeetingDetails extends React.Component {
 				changes.endTime = slot.endTime;
 			}
 		}
-		console.log(changes)
+		//console.log(changes)
 		this.setState(state => {
 			const entry = deepMerge(state.entry, changes);
 			return {...state, entry}
@@ -415,9 +402,10 @@ class MeetingDetails extends React.Component {
 	}
 
 	add = async () => {
-		const {selectedSlots, setSelectedSlots, setSelectedMeetings, addMeetings, rooms, timeslots, session} = this.props;
+		const {selectedSlots, setSelectedSlots, setSelectedTelecons, addTelecons, session} = this.props;
+		const {rooms, timeslots} = session;
 		const {entry} = this.state;
-		console.log(entry)
+		//console.log(entry)
 
 		let errMsg = '';
 		if (!entry.name)
@@ -438,33 +426,38 @@ class MeetingDetails extends React.Component {
 
 			const meeting = {
 				name: entry.name,
+				summary: entry.name,
 				organizationId: entry.organizationId,
 				roomId: roomId,
 				startSlotId: slotId,
 				timezone: session.timezone,
+				hasMotions: false,
+				isCancelled: false,
+				calendarAccountId: null,
+				webexAccountId: null,
 			};
 			const startTime = isMultiple(entry.startTime)? slot.startTime: entry.startTime;
 			const endTime = isMultiple(entry.endTime)? slot.endTime: entry.endTime;
 			meeting.start = DateTime.fromFormat(`${date} ${startTime}`, 'yyyy-MM-dd HH:mm', {zone: session.timezone}).toISO();
 			meeting.end = DateTime.fromFormat(`${date} ${endTime}`, 'yyyy-MM-dd HH:mm', {zone: session.timezone}).toISO();
 			meeting.location = room.name;
-			console.log(meeting)
+			//console.log(meeting)
 			return meeting;
 		});
-		meetings = await addMeetings(meetings);
+		const ids = await addTelecons(meetings);
 		setSelectedSlots([]);
-		setSelectedMeetings(meetings.map(m => m.id));
+		setSelectedTelecons(ids);
 	}
 
 	getUpdates = () => {
 		let {entry, ids} = this.state;
-		const {entities, selectedMeetings, session, rooms, timeslots} = this.props;
+		const {entities, selectedTelecons, session} = this.props;
 
 		console.log('getUpdates')
-		ids = selectedMeetings.filter(id => entities[id]);	// Only ids that exist
+		ids = selectedTelecons.filter(id => entities[id]);	// Only ids that exist
 		
 		// Collapse selection to local format
-		const collapsed = convertMultipleMeetingsToEntry(ids, entities, session, rooms, timeslots);
+		const collapsed = convertMultipleMeetingsToEntry(ids, entities, session);
 
 		// Find differences
 		const diff = deepDiff(collapsed, entry);
@@ -472,11 +465,11 @@ class MeetingDetails extends React.Component {
 		const updates = [];
 		for (const id of ids) {
 			const entity = entities[id];
-			const local = deepMerge(convertMeetingToEntry(entity, session, rooms, timeslots), diff);
-			const meeting = convertEntryToMeeting(local, session, rooms, timeslots);
-			console.log(meeting)
+			const local = deepMerge(convertMeetingToEntry(entity, session), diff);
+			const meeting = convertEntryToMeeting(local, session);
+			//console.log(meeting)
 			const changes = deepDiff(entity, meeting);
-			console.log(changes)
+			//console.log(changes)
 
 			if (Object.keys(changes).length > 0)
 				updates.push({id, changes});
@@ -485,12 +478,12 @@ class MeetingDetails extends React.Component {
 	}
 
 	update = () => {
-		const {updateMeetings} = this.props;
+		const {updateTelecons} = this.props;
 
 		const updates = this.getUpdates();
 		console.log(updates)
 		if (updates.length > 0)
-			updateMeetings(updates);
+			updateTelecons(updates);
 	}
 
 	cancel = () => {
@@ -498,38 +491,38 @@ class MeetingDetails extends React.Component {
 	}
 
 	clickAdd = () => {
-		const {setSelectedMeetings, setSelectedSlots} = this.props;
-		setSelectedMeetings([]);
+		const {setSelectedTelecons, setSelectedSlots} = this.props;
+		setSelectedTelecons([]);
 		setSelectedSlots([]);
 		this.initState('add');
 	}
 
 	clickDelete = async () => {
-		const {deleteMeetings, selectedMeetings, setSelectedMeetings} = this.props;
+		const {deleteTelecons, selectedTelecons, setSelectedTelecons} = this.props;
 		const ok = await ConfirmModal.show('Are you sure you want to delete the selected meetings?');
 		if (ok) {
-			deleteMeetings(selectedMeetings);
-			setSelectedMeetings([]);
+			deleteTelecons(selectedTelecons);
+			setSelectedTelecons([]);
 			this.initState('view');
 		}
 	}
 
 	render() {
-		const {loading, selectedMeetings, selectedSlots, groupId} = this.props;
+		const {loading, selectedTelecons, selectedSlots, groupId} = this.props;
 		const {action, entry} = this.state;
 
 		console.log(action)
 		let notAvailableStr = '';
 		if (loading)
 			notAvailableStr = 'Loading...';
-		else if (action === 'view' && selectedMeetings.length === 0 && selectedSlots.length === 0)
+		else if (action === 'view' && selectedTelecons.length === 0 && selectedSlots.length === 0)
 			notAvailableStr = 'Nothing selected';
 
 		return (
 			<>
 				<TopRow style={{justifyContent: 'flex-end'}}>
 					<ActionButton name='add' onClick={this.clickAdd} />
-					<ActionButton name='delete' onClick={this.clickDelete} disabled={selectedMeetings.length === 0} />
+					<ActionButton name='delete' onClick={this.clickDelete} disabled={selectedTelecons.length === 0} />
 				</TopRow>
 				{notAvailableStr?
 					<NotAvailable>{notAvailableStr}</NotAvailable>:
@@ -549,29 +542,29 @@ class MeetingDetails extends React.Component {
 
 	static propTypes = {
 		groupId: PropTypes.any,
-		selectedBreakouts: PropTypes.array.isRequired,
+		selectedTelecons: PropTypes.array.isRequired,
 		selectedSlots: PropTypes.array.isRequired,
 	}
 }
 
 const ConnectedMeetingDetails = connect(
-	(state) => ({
-		groupId: selectCurrentGroupId(state),
-		session: selectSession(state),
-		loading: selectSessionPrepState(state).loading,
-		timeslots: selectTimeslots(state),
-		rooms: selectRooms(state),
-		selectedMeetings: selectSelectedMeetings(state),
-		selectedSlots: selectSelectedSlots(state),
-		entities: selectSessionPrepEntities(state),
-		defaults: selectCurrentGroupDefaults(state),
-		groupEntities: selectGroupEntities(state)
-	}),
+	(state) => {
+		return {
+			groupId: selectCurrentGroupId(state),
+			session: selectCurrentSession(state),
+			selectedTelecons: selectSelectedTelecons(state),
+			selectedSlots: selectSelectedSlots(state),
+			loading: selectTeleconsState(state).loading,
+			entities: selectTeleconEntities(state),
+			defaults: selectCurrentGroupDefaults(state),
+			groupEntities: selectGroupEntities(state)
+		}
+	},
 	{
-		updateMeetings,
-		addMeetings,
-		deleteMeetings,
-		setSelectedMeetings,
+		updateTelecons,
+		addTelecons,
+		deleteTelecons,
+		setSelectedTelecons,
 		setSelectedSlots
 	}
 )(MeetingDetails);

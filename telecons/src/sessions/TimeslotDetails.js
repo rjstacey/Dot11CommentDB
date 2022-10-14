@@ -1,14 +1,6 @@
 import React from 'react';
-import {useDispatch, useSelector} from 'react-redux';
 
-import {
-	selectSessionPrepTimeslots as selectTimeslots,
-	addTimeslot,
-	updateTimeslot,
-	removeTimeslot
-} from '../store/sessionPrep';
-
-import {Input} from 'dot11-components/form';
+import {Input, Row, Field} from 'dot11-components/form';
 import {ActionIcon} from 'dot11-components/icons';
 
 import {EditTable as Table} from '../components/Table';
@@ -34,19 +26,13 @@ const tableColumns = {
 
 const defaultEntry = {name: '', startTime: '', endTime: ''};
 
-function TimeslotDetails({readOnly}) {
-	const dispatch = useDispatch();
-	const timeslots = useSelector(selectTimeslots);
+function TimeslotDetails({timeslots, addTimeslot, removeTimeslot, updateTimeslot, readOnly}) {
 
 	const columns = React.useMemo(() => {
 		
 		let keys = Object.keys(tableColumns);
 		if (readOnly)
-			keys = keys.filter(key => key === 'actions');
-
-		const add = (slot) => dispatch(addTimeslot(slot));
-		const update = (id, changes) => dispatch(updateTimeslot({id, changes}));
-		const remove = (id) => dispatch(removeTimeslot(id));
+			keys = keys.filter(key => key !== 'action');
 
 		const columns = keys.map(key => {
 			const col = {...tableColumns[key]};
@@ -56,7 +42,8 @@ function TimeslotDetails({readOnly}) {
 					<Input
 						type='search'
 						value={entry.name}
-						onChange={(e) => update(entry.id, {name: e.target.value})}
+						onChange={(e) => updateTimeslot(entry.id, {name: e.target.value})}
+						disabled={readOnly}
 					/>;
 			}
 			else if (key === 'startTime') {
@@ -64,8 +51,8 @@ function TimeslotDetails({readOnly}) {
 					<Input
 						type='time'
 						value={entry.startTime}
-						onChange={(e) => update(entry.id, {startTime: e.target.value})}
-						readOnly={readOnly}
+						onChange={(e) => updateTimeslot(entry.id, {startTime: e.target.value})}
+						disabled={readOnly}
 					/>;
 			}
 			else if (key === 'endTime') {
@@ -73,24 +60,35 @@ function TimeslotDetails({readOnly}) {
 					<Input
 						type='time'
 						value={entry.endTime}
-						onChange={(e) => update(entry.id, {endTime: e.target.value})}
-						readOnly={readOnly}
+						onChange={(e) => updateTimeslot(entry.id, {endTime: e.target.value})}
+						disabled={readOnly}
 					/>;
 			}
 			else if (key === 'action') {
 				col.renderCell = (entry) => 
-					<ActionIcon type='delete' onClick={() => remove(entry.id)} />
+					<ActionIcon type='delete' onClick={() => removeTimeslot(entry.id)} />
 				col.label = 
-					<ActionIcon type='add' onClick={() => add(defaultEntry)} />
+					<ActionIcon type='add' onClick={() => addTimeslot(defaultEntry)} />
 			}
 			return col;
 		});
 
 		return columns;
-	}, [dispatch, readOnly]);
+	}, [addTimeslot, removeTimeslot, updateTimeslot, readOnly]);
 
 	return (
-		<Table columns={columns} values={timeslots} />
+		<Row>
+			<Field
+				style={{flexWrap: 'wrap'}}
+				label='Timeslots:'
+			>
+				<Table
+					columns={columns}
+					values={timeslots} 
+					readOnly={readOnly}
+				/>
+			</Field>
+		</Row>
 	)
 }
 

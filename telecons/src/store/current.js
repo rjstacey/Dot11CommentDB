@@ -13,6 +13,7 @@ const slice = createSlice({
 	name: dataSet,
 	initialState: {
 		groupId: null,
+		sessionId: null,
 		meetingId: null,
 		groupDefaults: {null: initDefaults}
 	},
@@ -26,6 +27,10 @@ const slice = createSlice({
 		setCurrentMeetingId(state, action) {
 			const meetingId = action.payload;
 			state.meetingId = meetingId;
+		},
+		setCurrentSessionId(state, action) {
+			const sessionId = action.payload;
+			state.sessionId = sessionId;
 		},
 		setGroupDefaults(state, action) {
 			const {groupId, defaults} = action.payload;
@@ -41,6 +46,7 @@ export default slice;
 export const selectCurrentState = (state) => state[dataSet];
 export const selectCurrentGroupId = (state) => selectCurrentState(state).groupId;
 export const selectCurrentMeetingId = (state) => selectCurrentState(state).meetingId;
+export const selectCurrentSessionId = (state) => selectCurrentState(state).sessionId;
 //export const selectCurrentCalendarAccountId = (state) => selectCurrentState(state).calendarAccountId;
 //export const selectCurrentWebexAccountId = (state) => selectCurrentState(state).webexAccountId;
 //export const selectCurrentWebexTemplateId = (state) => selectCurrentState(state).webexTemplateId;
@@ -51,7 +57,7 @@ export const selectCurrentGroupDefaults = (state) => {
 };
 
 /* Actions */
-export const {setCurrentGroupId, setCurrentMeetingId, setGroupDefaults} = slice.actions;
+export const {setCurrentGroupId, setCurrentMeetingId, setCurrentSessionId, setGroupDefaults} = slice.actions;
 
 //export const setCurrentGroupId = (groupId) => setCurrent({groupId});
 //export const setCurrentMeetingId = (meetingId) => setCurrent({meetingId});

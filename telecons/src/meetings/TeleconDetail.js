@@ -359,6 +359,18 @@ export function TeleconEntry({
 				</Field>
 			</Row>
 			<Row>
+				<Field label='Location:'>
+					<Input
+						type='search'
+						style={{width: 200}}
+						value={isMultiple(entry.location)? '': entry.location || ''}
+						onChange={(e) => changeEntry({location: e.target.value})}
+						placeholder={isMultiple(entry.location)? MULTIPLE_STR: undefined}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
 				<Field label='Date:'>
 					<InputDates
 						disablePast

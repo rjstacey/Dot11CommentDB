@@ -4,37 +4,56 @@ import styled from '@emotion/styled';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import {DateTime} from 'luxon';
 import {FixedSizeList} from 'react-window';
+import AutoSizer from 'react-virtualized-auto-sizer';
 
 import {SplitPanel, Panel} from 'dot11-components/table';
-import {Checkbox, Button} from 'dot11-components/form';
-import {AppModal} from 'dot11-components/modals';
+import {Checkbox, Select} from 'dot11-components/form';
+import {ActionIcon} from 'dot11-components/icons';
 
 import {
-	selectSessionPrepState,
-	selectSession,
-	selectSessionPrepEntities,
-	selectSessionPrepRooms as selectRooms,
-	selectSessionPrepTimeslots as selectTimeslots,
-	selectSessionPrepDates,
-	selectSelectedMeetings,
-	selectSelectedSlots,
-	toggleSelectedMeetings,
-	toggleSelectedSlots,
+	selectCurrentSessionId,
+} from '../store/current';
+
+import {
 	toSlotId,
-	fromSlotId,
-} from '../store/sessionPrep';
+	selectCurrentSession,
+	selectCurrentSessionDates,
+} from '../store/sessions';
+
+import {
+	selectSelectedSlots,
+	toggleSelectedSlots,
+	selectSelectedTelecons,
+	toggleSelectedTelecons,
+	selectTeleconEntities
+} from '../store/telecons';
 
 import {selectGroupEntities} from '../store/groups';
-import {selectCurrentSession} from '../store/imatMeetings';
 
 import GroupPathSelector from '../components/GroupPathSelector';
 import CurrentSessionSelector from '../components/CurrentSessionSelector';
 import TopRow from '../components/TopRow';
 
 import MeetingDetails from './MeetingDetails';
-import TimeslotDetails from './TimeslotDetails';
-import RoomDetails from './RoomDetails';
-import SessionDetails from './SessionDetails';
+import SessionDetails from '../sessions/SessionDetails';
+
+const options = [
+	{label: '5 Day', value: 5},
+	{label: '3 Day', value: 3},
+	{label: '1 Day', value: 1}
+];
+
+function WeekSelector({value, onChange}) {
+	const values = options.filter(o => o.value === value);
+	const handleChange = (values) => onChange(values.length > 0? values[0].value: 0);
+	return (
+		<Select
+			options={options}
+			values={values}
+			onChange={handleChange}
+		/>
+	)
+}
 
 const time = ['12 AM', '1 AM', '2 AM', '3 AM', '4 AM', '5 AM', '6 AM', '7 AM', '8 AM', '9 AM', '10 AM', '11 AM',
 	'12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM', '8 PM', '9 PM', '10 PM', '11 PM'];
@@ -88,15 +107,6 @@ const LeftMarginColumn = styled.div`
 	border-right: #dadce0 1px solid;
 `;
 
-const timeslots = [
-	{id: 0, name: 'AM0', startTime: '07:00', endTime: '08:00'},
-	{id: 1, name: 'AM1', startTime: '08:00', endTime: '10:00'},
-	{id: 2, name: 'AM2', startTime: '10:30', endTime: '12:30'},
-	{id: 3, name: 'PM1', startTime: '13:30', endTime: '15:30'},
-	{id: 4, name: 'PM2', startTime: '16:00', endTime: '18:00'},
-	{id: 5, name: 'EVE', startTime: '19:30', endTime: '21:30'},
-];
-
 const Slot = styled.div`
 	position: absolute;
 	width: calc(100%);
@@ -115,7 +125,7 @@ function timeToHours(time) {
 
 function Timeslot({date, room, slot}) {
 	const dispatch = useDispatch();
-	const selectedMeetings = useSelector(selectSelectedMeetings);
+	const selectedMeetings = useSelector(selectSelectedTelecons);
 	const selectedSlots = useSelector(selectSelectedSlots);
 
 	if (!slot.startTime || !slot.endTime)
@@ -133,7 +143,7 @@ function Timeslot({date, room, slot}) {
 	const isReadOnly = selectedSlots.length === 0 && selectedMeetings.length > 0;
 
 	return (
-		<Slot key={'slt' + id} style={style} >
+		<Slot style={style} >
 			<span style={{color: 'gray'}}>{slot.name}</span>
 			<Checkbox
 				checked={selectedSlots.includes(id)}
@@ -146,13 +156,13 @@ function Timeslot({date, room, slot}) {
 
 function Meeting({date, room, meeting, meetings}) {
 	const dispatch = useDispatch();
-	const session = useSelector(selectSession);
-	const selectedMeetings = useSelector(selectSelectedMeetings);
+	const session = useSelector(selectCurrentSession);
+	const selectedMeetings = useSelector(selectSelectedTelecons);
 	const selectedSlots = useSelector(selectSelectedSlots);
 	const groupEntities = useSelector(selectGroupEntities);
 
-	const start = DateTime.fromISO(meeting.start, {zone: meeting.timezone || session.timezone});
-	const end = DateTime.fromISO(meeting.end, {zone: meeting.timezone || session.timezone});
+	const start = DateTime.fromISO(meeting.start, {zone: session.timezone});
+	const end = DateTime.fromISO(meeting.end, {zone: session.timezone});
 	//console.log(meeting.start, start.toFormat('HH:mm'))
 	const startTime = start.toFormat('HH:mm');
 	const endTime = end.toFormat('HH:mm');
@@ -180,105 +190,148 @@ function Meeting({date, room, meeting, meetings}) {
 	const isReadOnly = selectedMeetings.length === 0 && selectedSlots.length > 0;
 
 	return (
-		<Slot key={'mtg' + meeting.id} style={style}>
-			<span>{meeting.name}</span>
-			<Checkbox
-				checked={selectedMeetings.includes(meeting.id)}
-				onChange={() => dispatch(toggleSelectedMeetings([meeting.id]))}
-				disabled={isReadOnly}
-			/>
+		<Slot style={style}>
+			<span style={{width: '100%'}}>
+				<Checkbox
+					style={{float: 'right'}}
+					checked={selectedMeetings.includes(meeting.id)}
+					onChange={() => dispatch(toggleSelectedTelecons([meeting.id]))}
+					disabled={isReadOnly}
+				/>
+				{meeting.summary}
+			</span>
 		</Slot>
 	)
 }
 
 function RoomColumn({date, room}) {
-	const session = useSelector(selectSession);
-	const timeslots = useSelector(selectTimeslots);
-	const rooms = useSelector(selectRooms);
-	const meetingEntities = useSelector(selectSessionPrepEntities);
+	const {timezone, timeslots, rooms} = useSelector(selectCurrentSession);
+	const meetingEntities = useSelector(selectTeleconEntities);
 
 	// Meetings for this date with roomId added
 	const meetings = React.useMemo(() => {
 		return Object.values(meetingEntities)
-			.filter(m => date === DateTime.fromISO(m.start).toISODate())
+			.filter(m => date === DateTime.fromISO(m.start, {zone: timezone}).toISODate())
 			.map(m => {
 				const room = rooms.find(r => r.name === m.location) || rooms[0];
 				return {...m, roomId: room.id};
 			})
 			.filter(m => m.roomId === room.id)
-	}, [meetingEntities, date]);
+	}, [meetingEntities, date, room.id, rooms]);
 
 	return (
 		<Column key={room.id}>
 			<span>{room.name}</span>
-			{timeslots.map((slot) => <Timeslot date={date} room={room} slot={slot}/>)}
-			{meetings.map((meeting) => <Meeting date={date} room={room} meeting={meeting} meetings={meetings}/>)}
+			{timeslots.map((slot) => <Timeslot key={slot.id} date={date} room={room} slot={slot}/>)}
+			{meetings.map((meeting) => <Meeting key={meeting.id} date={date} room={room} meeting={meeting} meetings={meetings}/>)}
 		</Column>
 	)
 }
 
 function SessionDay({style, date}) {
-	const rooms = useSelector(selectRooms);
+	const {rooms} = useSelector(selectCurrentSession);
 
 	return (
-		<div style={{...style, display: 'flex', flex: '1 1 auto', alignItems: 'flex-start'}}>
+		<div style={{...style, display: 'flex', flex: '1 1 auto', flexDirection: 'column', alignItems: 'flex-start'}}>
+			<div style={{width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+				<span style={{textTransform: 'uppercase'}}>
+					{DateTime.fromISO(date).weekdayShort}
+				</span>
+				<span>
+					{DateTime.fromISO(date).day}
+				</span>
+			</div>
 			<div role='row' style={{minWidth: '100%', flex: 'none', display: 'inline-flex', position: 'relative', overflow: 'hidden', verticalAlign: 'top'}}>
 				<div>
 					{time.map(t => <BorderRowCell key={t}/>)}
 				</div>
 				<LeftMarginColumn />
-				{rooms.map((room) => <RoomColumn date={date} room={room} />)}
+				{rooms.map((room) => <RoomColumn key={room.id} date={date} room={room} />)}
 			</div>
 		</div>
 	)
 }
 
+function SessionMeetings() {
+	const dispatch = useDispatch();
+	const dates = useSelector(selectCurrentSessionDates);
+	const sessionId = useSelector(selectCurrentSessionId);
+	const [nDays, setNDays] = React.useState(1);
+	const [day, setDay] = React.useState(0);
 
-function SessionBreakouts() {
-	const dates = useSelector(selectSessionPrepDates);
+	function clickLeft() {
+		let d = day - 1;
+		if (d < 0)
+			d = 0;
+		setDay(d);
+	}
+
+	function clickRight() {
+		let d = day + 1;
+		if (d >= (dates.length - nDays))
+			d = dates.length - nDays;
+		setDay(d);
+	}
+
+	const shownDates = dates.slice(day, day + nDays);
 
 	return (
 		<>
 			<TopRow>
 				<GroupPathSelector/>
-				<CurrentSessionSelector/>
+				<CurrentSessionSelector />
+
+				<ActionIcon type='angle-left' onClick={clickLeft} />
+				<ActionIcon type='angle-right' onClick={clickRight} />
+				<WeekSelector
+					value={nDays}
+					onChange={setNDays}
+				/>
 			</TopRow>
 
 			<SplitPanel dataSet='telecons' >
 				<Panel>
 					<Container>
 						<TimeColumn />
-						<FixedSizeList
-							itemCount={dates.length}
-							itemSize={600}
-							layout='horizontal'
-							width={1000}
-						>
-							{({index, style}) => 
-								<SessionDay
-									style={style}
-									date={dates[index]}
-								/>
-							}
-						</FixedSizeList>
+						<div style={{flex: 1}}>
+							<AutoSizer>
+								{({height, width}) => 
+									<div style={{display: 'flex'}}>
+										{shownDates.map(date => 
+											<SessionDay
+												key={date}
+												style={{minWidth: width/shownDates.length, height}}
+												date={date}
+											/>
+										)}
+									</div>
+								}
+								{/*<FixedSizeList
+										itemCount={dates.length}
+										itemSize={width/nDays}
+										layout='horizontal'
+										width={width}
+										height={height}
+									>
+										{({index, style}) => 
+											<SessionDay
+												style={style}
+												date={dates[index]}
+											/>
+										}
+									</FixedSizeList>*/}
+							</AutoSizer>
+						</div>
 					</Container>
 				</Panel>
 				<Panel>
 					<Tabs>
 						<TabList>
 							<Tab>Session</Tab>
-							<Tab>Time slots</Tab>
-							<Tab>Rooms</Tab>
 							<Tab>Meetings</Tab>
 						</TabList>
 						<TabPanel>
-							<SessionDetails />
-						</TabPanel>
-						<TabPanel>
-							<TimeslotDetails />
-						</TabPanel>
-						<TabPanel>
-							<RoomDetails />
+							<SessionDetails key={sessionId} />
 						</TabPanel>
 						<TabPanel>
 							<MeetingDetails />
@@ -290,4 +343,4 @@ function SessionBreakouts() {
 	)
 }
 
-export default SessionBreakouts;
+export default SessionMeetings;

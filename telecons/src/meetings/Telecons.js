@@ -17,11 +17,11 @@ import {
 	getField
 } from '../store/telecons';
 
-import {selectCurrentGroupId, selectCurrentMeetingId} from '../store/current';
+import {selectCurrentGroupId, selectCurrentSessionId} from '../store/current';
 
 import {displayMeetingNumber} from '../store/webexMeetings';
 
-import {selectImatMeetingEntities} from '../store/imatMeetings';
+import {selectSessionEntities} from '../store/sessions';
 
 import GroupPathSelector from '../components/GroupPathSelector';
 import CurrentSessionSelector from '../components/CurrentSessionSelector';
@@ -79,6 +79,9 @@ const tableColumns = [
 		width: 100, flexGrow: 1, flexShrink: 0},
 	{key: 'groupName',
 		...fields.groupName,
+		width: 200, flexGrow: 1, flexShrink: 0},
+	{key: 'location',
+		...fields.location,
 		width: 200, flexGrow: 1, flexShrink: 0},
 	{key: 'hasMotions',
 		...fields.hasMotions,
@@ -144,28 +147,29 @@ function Telecons(props) {
 	const {isSplit} = useSelector(selectTeleconsCurrentPanelConfig);
 	const setIsSplit = React.useCallback((value) => dispatch(setTeleconsCurrentPanelIsSplit(value)), [dispatch]);
 	const groupId = useSelector(selectCurrentGroupId);
-	const meetingId = useSelector(selectCurrentMeetingId);
-	const imatMeetingEntities = useSelector(selectImatMeetingEntities);
+	const sessionId = useSelector(selectCurrentSessionId);
+	const sessionEntities = useSelector(selectSessionEntities);
 
-	const load = React.useCallback((groupId, meetingId) => {
+	const load = React.useCallback((groupId, sessionId) => {
 		const fromDate = DateTime.now().toISO();
 		const constraints = {fromDate};
-		if (meetingId) {
-			const session = imatMeetingEntities[meetingId];
+		if (sessionId) {
+			const session = sessionEntities[sessionId];
 			if (session) {
-				constraints.fromDate = session.start;
-				constraints.toDate = session.end;
+				constraints.fromDate = session.startDate;
+				constraints.toDate = session.endDate;
 			}
 		}
+		console.log(groupId, constraints)
 		dispatch(loadTelecons(groupId, constraints));
-	}, [dispatch, imatMeetingEntities]);
+	}, [dispatch, sessionEntities]);
 
 	React.useEffect(() => {
 		if (groupId) 
-			load(groupId, meetingId)
-	}, [groupId, meetingId]);  // eslint-disable-line react-hooks/exhaustive-deps
+			load(groupId, sessionId)
+	}, [groupId, sessionId]);  // eslint-disable-line react-hooks/exhaustive-deps
 
-	const refresh = () => load(groupId, meetingId);
+	const refresh = () => load(groupId, sessionId);
 	const clear = () => dispatch(clearTelecons());
 
 	return (

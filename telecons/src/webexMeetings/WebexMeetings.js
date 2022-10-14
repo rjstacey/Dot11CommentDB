@@ -28,7 +28,7 @@ import {
 	dataSet
 } from '../store/webexMeetings';
 
-import {selectCurrentSession} from '../store/imatMeetings';
+import {selectCurrentSession} from '../store/sessions';
 
 import GroupPathSelector from '../components/GroupPathSelector';
 import CurrentSessionSelector from '../components/CurrentSessionSelector';
@@ -37,7 +37,7 @@ import TopRow from '../components/TopRow';
 import TeleconSummary from '../components/TeleconSummary';
 
 import WebexMeetingDetail from './WebexMeetingDetail';
-import {TeleconEntry, convertFromLocal} from '../telecons/TeleconDetail';
+import {TeleconEntry, convertFromLocal} from '../meetings/TeleconDetail';
 
 
 function displayDateTime(entity) {
@@ -255,11 +255,11 @@ function WebexMeetings() {
 	const [webexMeetingToLink, setWebexMeetingToLink] = React.useState(null);
 	const [webexMeetingToAdd, setWebexMeetingToAdd] = React.useState(null);
 
-	const load = () => dispatch(loadWebexMeetings({groupId, timezone: session?.timezone, fromDate: session?.start, toDate: session?.end}));
+	const load = () => dispatch(loadWebexMeetings({groupId, timezone: session?.timezone, fromDate: session?.startDate, toDate: session?.endDate}));
 
 	React.useEffect(() => {
 		load();
-	}, [groupId]);  // eslint-disable-line react-hooks/exhaustive-deps
+	}, [groupId, session]);  // eslint-disable-line react-hooks/exhaustive-deps
 
 	const columns = React.useMemo(() => {
 		function renderActions({rowData}) {

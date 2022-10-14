@@ -14,32 +14,38 @@ import {selectGroupName} from '../store/groups';
 const fullMenu = [
 	{
 		minAccess: AccessLevel.WGAdmin,
-		prefixGroupName: true,
-		link: '/organization',
-		label: 'Organization',
-	},
-	{
-		minAccess: AccessLevel.WGAdmin,
 		link: '/accounts',
 		label: 'Accounts',
 	},
 	{
 		minAccess: AccessLevel.WGAdmin,
 		prefixGroupName: true,
-		link: '/telecons',
-		label: 'Telecons',
+		link: '/organization',
+		label: 'Organization',
+	},
+	{
+		minAccess: AccessLevel.WGAdmin,
+		prefixGroupName: true,
+		link: '/sessions',
+		label: 'Sessions',
+	},
+	{
+		minAccess: AccessLevel.WGAdmin,
+		prefixGroupName: true,
+		link: '/meetings',
+		label: 'Meetings',
+	},
+	{
+		minAccess: AccessLevel.WGAdmin,
+		prefixGroupName: true,
+		link: '/sessionMeetings',
+		label: 'Session meetings',
 	},
 	{
 		minAccess: AccessLevel.WGAdmin,
 		prefixGroupName: true,
 		link: '/webexMeetings',
 		label: 'Webex',
-	},
-	{
-		minAccess: AccessLevel.WGAdmin,
-		prefixGroupName: true,
-		link: '/sessionPrep',
-		label: 'Session preparation',
 	},
 	{
 		minAccess: AccessLevel.WGAdmin,
@@ -55,6 +61,7 @@ const fullMenu = [
 	},
 	{
 		minAccess: AccessLevel.WGAdmin,
+		prefixGroupName: true,
 		link: '/ieee802WorldSchedule',
 		label: '802 World Schedule',
 	},

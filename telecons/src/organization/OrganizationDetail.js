@@ -1,7 +1,6 @@
 import React from 'react';
 import {useSelector, connect} from 'react-redux';
 import styled from '@emotion/styled';
-import {GithubPicker} from 'react-color';
 
 import {ConfirmModal} from 'dot11-components/modals';
 import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, debounce} from 'dot11-components/lib';

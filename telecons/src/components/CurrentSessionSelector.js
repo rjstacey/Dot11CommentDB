@@ -1,19 +1,19 @@
 import {useDispatch, useSelector} from 'react-redux';
 
-import {selectCurrentMeetingId, setCurrentMeetingId} from '../store/current';
-import ImatMeetingSelector from './ImatMeetingSelector';
+import {selectCurrentSessionId, setCurrentSessionId} from '../store/current';
+import SessionSelector from './SessionSelector';
 
 export function CurrentSessionSelector({onChange, ...otherProps}) {
 	const dispatch = useDispatch();
-	const meetingId = useSelector(selectCurrentMeetingId);
-	const handleChange = (meetingId) => {
-		dispatch(setCurrentMeetingId(meetingId));
+	const sessionId = useSelector(selectCurrentSessionId);
+	const handleChange = (sessionId) => {
+		dispatch(setCurrentSessionId(sessionId));
 		if (onChange)
-			onChange(meetingId);
+			onChange(sessionId);
 	}
 	return (
-		<ImatMeetingSelector
-			value={meetingId}
+		<SessionSelector
+			value={sessionId}
 			onChange={handleChange}
 			{...otherProps}
 		/>

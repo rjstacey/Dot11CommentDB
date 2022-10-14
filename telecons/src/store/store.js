@@ -10,6 +10,7 @@ import errMsg from 'dot11-components/store/error';
 import userSlice from './user';
 import currentSlice from './current';
 import membersSlice, {loadMembers} from './members';
+import sessionsSlice from './sessions';
 import calendarAccountsSlice, {loadCalendarAccounts} from './calendarAccounts';
 import webexAccountsSlice, {loadWebexAccounts} from './webexAccounts';
 import officersSlice, {loadOfficers} from './officers';
@@ -22,7 +23,6 @@ import imatBreakoutsSlice from './imatBreakouts';
 import webexMeetingsSlice from './webexMeetingsSlice';
 import imatBreakoutAttendanceSlice from './imatBreakoutAttendance';
 import ieee802WorldScheduleSlice from './ieee802WorldSchedule';
-import sessionPrepSlice from './sessionPrep';
 
 export function configureStore() {
 
@@ -36,14 +36,14 @@ export function configureStore() {
 		[calendarAccountsSlice.name]: calendarAccountsSlice.reducer,
 		[timeZonesSlice.name]: timeZonesSlice.reducer,
 		[groupsSlice.name]: groupsSlice.reducer,
-		[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
+		[sessionsSlice.name]: sessionsSlice.reducer,
 		[teleconsSlice.name]: teleconsSlice.reducer,
 		[webexMeetingsSlice.name]: webexMeetingsSlice.reducer,
+		[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
 		[imatMeetingsSlice.name]: imatMeetingsSlice.reducer,
 		[imatBreakoutsSlice.name]: imatBreakoutsSlice.reducer,
 		[imatBreakoutAttendanceSlice.name]: imatBreakoutAttendanceSlice.reducer,
 		[ieee802WorldScheduleSlice.name]: ieee802WorldScheduleSlice.reducer,
-		[sessionPrepSlice.name]: sessionPrepSlice.reducer
 	});
 
 	const middleware = [thunk];
@@ -66,6 +66,7 @@ export function configureStore() {
 			timeZonesSlice.name,
 			groupsSlice.name,
 			officersSlice.name,
+			sessionsSlice.name,
 			teleconsSlice.name,
 			webexMeetingsSlice.name,
 			imatMeetingsSlice.name,
@@ -80,7 +81,7 @@ export function configureStore() {
 
 	const store = createStore(
 		persistReducer(persistConfig, reducer),
-		composeWithDevTools(applyMiddleware(...middleware))
+		applyMiddleware(...middleware)
 	);
 
 	const persistor = persistStore(store, null, () => {

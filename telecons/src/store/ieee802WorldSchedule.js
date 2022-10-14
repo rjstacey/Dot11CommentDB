@@ -1,6 +1,14 @@
+import {createSelector} from '@reduxjs/toolkit';
+
 import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error'
+import {DateTime} from 'luxon';
+
+import {selectTeleconEntities, addTelecons} from './telecons';
+import {selectGroupsState} from './groups';
+import {selectCurrentSessionId} from './current';
+import {selectSessionEntities} from './sessions';
 
 function displayDate(isoDate) {
 	// ISO date: "YYYY-MM-DD"
@@ -11,11 +19,16 @@ function displayDate(isoDate) {
 	return `${year} ${monthStr[month] || '???'} ${date}`; 
 }
 
+export const dataSet = 'ieee802WorldSchedule';
+
 export const fields = {
 	id: {label: 'ID', sortType: SortType.NUMERIC},
 	breakoutDate: {label: 'Date', dataRenderer: displayDate},
+	date: {label: 'Date'},
+	day: {label: 'Day'},
 	startTime: {label: 'Start time'},
 	endTime: {label: 'End time'},
+	timeRange: {label: 'Time'},
 	postAs: {label: 'Summary'},
 	meeting: {label: 'Meeting'},
 	comments: {label: 'Comments'},
@@ -26,11 +39,27 @@ export const fields = {
 	groupName: {label: 'Group'}
 };
 
-export const dataSet = 'ieee802WorldSchedule';
+/*
+ * Fields derived from other fields
+ */
+export function getField(entity, key) {
+	if (key === 'day')
+		return DateTime.fromISO(entity.breakoutDate).weekdayShort;
+	if (key === 'date')
+		return DateTime.fromISO(entity.breakoutDate).toFormat('dd LLL yyyy');
+	if (key === 'dayDate')
+		return DateTime.fromISO(entity.breakoutDate).toFormat('EEE, dd LLL yyyy');
+	if (key === 'timeRange')
+		return entity.startTime.substring(0, 5) + '-' + entity.endTime.substring(0, 5);
+	if (!entity.hasOwnProperty(key))
+		console.warn(dataSet + ' has no field ' + key);
+	return entity[key];
+}
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
+	selectField: getField,
 	initialState: {},
 });
 
@@ -66,3 +95,56 @@ export const load802WorldSchedule = () =>
 		await dispatch(getSuccess(response));
 	}
 
+export const importSelectedAsTelecons = () =>
+	async (dispatch, getState) => {
+		const state = getState();
+		const {selected, entities} = select802WorldScheduleState(state);
+		const {ids: groupIds, entities: groupEntities} = selectGroupsState(state);
+		const sessionId = selectCurrentSessionId(state);
+		const session = selectSessionEntities(state)[sessionId];
+
+		if (!session) {
+			dispatch(setError('Session not selected'));
+			return;
+		}
+
+		const telecons = [];
+		for (const id of selected) {
+			const entry = entities[id];
+			const telecon = {sessionId};
+
+			let groupNames = entry.groupName.split('/');
+			groupNames = groupNames.map(name => '802.' + name);
+			const orgIds = groupNames.map(groupName => groupIds.find(id => groupEntities[id].name === groupName));
+			if (!orgIds.every(name => typeof name !== 'undefined')) {
+				dispatch(setError("Unknown groups in groupName", entry.groupName));
+				return;
+			}
+			const groupName = groupEntities[orgIds[0]].name;
+
+			/* Meeting name is in the form:
+			 *   TGbe (Joint) - Extremely High Throughput
+			 *   Opening Plenary
+			 *   Mid-week Plenary
+			 *   etc.
+			 */
+			const [subgroupName] = entry.meeting.split(' - ');
+			telecon.organizationId = groupIds.find(id => groupEntities[id].name === subgroupName && orgIds.includes(groupEntities[id].parent_id));
+			if (!telecon.organizationId) {
+				telecon.organizationId = orgIds[0];
+				if (!telecon.organizationId) {
+					dispatch(setError("Can't determine group/subgroup", `group=${entry.groupName} meeting=${entry.meeting}`));
+					return;
+				}
+			}
+
+			telecon.summary = `${groupName} ${subgroupName}`;
+			telecon.start = DateTime.fromFormat(`${entry.breakoutDate} ${entry.startTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: session.timezone});
+			telecon.end = DateTime.fromFormat(`${entry.breakoutDate} ${entry.endTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: session.timezone});
+			telecon.timezone = session.timezone;
+			telecon.location = entry.mtgRoom;
+			telecons.push(telecon);
+		}
+		//console.log(telecons);
+		dispatch(addTelecons(telecons));
+	}
