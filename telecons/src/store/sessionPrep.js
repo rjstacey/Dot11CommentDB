@@ -2,11 +2,10 @@ import {createSlice, createEntityAdapter, createSelector} from '@reduxjs/toolkit
 import {DateTime} from 'luxon';
 
 import fetcher from 'dot11-components/lib/fetcher';
-import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 import {isObject} from 'dot11-components/lib';
 
-import {selectTeleconEntities, upsertTelecons} from './telecons';
+import {selectSessionEntities, setSessionsSelected} from './sessions';
 
 export const dataSet = 'sessionPrep';
 
@@ -22,24 +21,34 @@ export const fromSlotId = (id) => {
 export const selectSessionPrepState = (state) => state[dataSet];
 export const selectSessionPrepEntities = (state) => selectSessionPrepState(state).entities;
 export const selectSessionPrepIds = (state) => selectSessionPrepState(state).ids;
-export const selectSessionPrepRooms = (state) => selectSessionPrepState(state).rooms;
-export const selectSessionPrepTimeslots = (state) => selectSessionPrepState(state).timeslots;
-export const selectSession = (state) => selectSessionPrepState(state).session;
-export const selectSessionPrepDates = createSelector(
+export const selectSessionId = (state) => selectSessionPrepState(state).sessionId;
+
+export const selectSession = (state) => {
+	const entities = selectSessionEntities(state);
+	const id = selectSessionId(state);
+	return entities[id];
+}
+
+export const selectSessionDates = createSelector(
 	selectSession,
 	(session) => {
-		const start = DateTime.fromISO(session.start);
-		const end = DateTime.fromISO(session.end).plus({days: 1});
-		const nDays = end.diff(start, 'days').days;
 		let dates = [];
-		if (nDays >= 0) {
-			dates = new Array(nDays)
-				.fill(null)
-				.map((d, i) => start.plus({days: i}).toISODate());
+		if (session) {
+			const start = DateTime.fromISO(session.startDate);
+			const end = DateTime.fromISO(session.endDate).plus({days: 1});
+			const nDays = end.diff(start, 'days').days;
+			if (nDays > 0) {
+				dates = new Array(nDays)
+					.fill(null)
+					.map((d, i) => start.plus({days: i}).toISODate());
+			}
 		}
 		return dates;
 	}
 );
+
+export const selectRooms = (state) => selectSession(state)?.rooms;
+export const selectTimeslots = (state) => selectSession(state)?.timeslots;
 
 export const selectSelectedMeetings = (state) => selectSessionPrepState(state).selectedMeetings;
 export const selectSelectedSlots = (state) => selectSessionPrepState(state).selectedSlots;
@@ -54,8 +63,6 @@ const sortComparer = (a, b) => {
 	return v1;
 }
 
-const otherRoom = {id: 0, name: 'Other', description: 'Not a room'};
-
 function toggleListItems(list, items) {
 	for (let id of items) {
 		const i = list.indexOf(id);
@@ -66,24 +73,12 @@ function toggleListItems(list, items) {
 	}
 }
 
-const defaultSession = {
-	name: '',
-	type: 'p',
-	start: new Date().toISOString().substring(0,10),
-	end: new Date().toISOString().substring(0,10),
-	timezone: 'America/New_York'
-}
-
 const dataAdapter = createEntityAdapter({sortComparer});
 
 const slice = createSlice({
 	name: dataSet,
 	initialState: {
-		meetingId: 0,
-		session: defaultSession,
-		timeslots: [],
-		committees: [],
-		rooms: [otherRoom],
+		sessionId: 0,
 		selectedSlots: [],
 		selectedMeetings: [],
 		loading: false,
@@ -120,58 +115,8 @@ const slice = createSlice({
 		setSession(state, action) {
 			state.session = action.payload;
 		},
-		updateSession(state, action) {
-			const {session} = state;
-			state.session = {...session, ...action.payload};
-		},
-		addTimeslot(state, action) {
-			const slot = action.payload;
-			const {timeslots} = state;
-			const id = timeslots.reduce((maxId, slot) => Math.max(maxId, slot.id), 0) + 1;
-			timeslots.push({...slot, id});
-		},
-		removeTimeslot(state, action) {
-			const id = action.payload;
-			const {timeslots} = state;
-			const i = timeslots.findIndex(slot => slot.id === id);
-			if (i >= 0)
-				timeslots.splice(i, 1);
-		},
-		updateTimeslot(state, action) {
-			const {id, changes} = action.payload;
-			const {timeslots} = state;
-			const i = timeslots.findIndex(slot => slot.id === id);
-			if (i >= 0)
-				timeslots[i] = {...timeslots[i], ...changes};
-		},
-		setRooms(state, action) {
-			const rooms = action.payload.slice();
-			rooms.unshift(otherRoom);
-			state.rooms = rooms;
-		},
-		addRoom(state, action) {
-			const room = action.payload;
-			const {rooms} = state;
-			const id = rooms.reduce((maxId, room) => Math.max(maxId, room.id), 0) + 1;
-			rooms.push({...room, id});
-		},
-		removeRoom(state, action) {
-			const id = action.payload;
-			if (id) {
-				const {rooms} = state;
-				const i = rooms.findIndex(room => room.id === id);
-				if (i >= 0)
-					rooms.splice(i, 1);
-			}
-		},
-		updateRoom(state, action) {
-			const {id, changes} = action.payload;
-			if (id) {
-				const {rooms} = state;
-				const i = rooms.findIndex(room => room.id === id);
-				if (i >= 0)
-					rooms[i] = {...rooms[i], ...changes};
-			}
+		setSessionId(state, action) {
+			state.sessionId = action.payload;
 		},
 		setSelectedMeetings(state, action) {
 			state.selectedMeetings = action.payload;
@@ -202,8 +147,7 @@ const {
 	addMany,
 	updateMany,
 	removeMany,
-	setSession,
-	updateSession,
+	setSessionId: setLocalSessionId,
 	setSelectedSlots,
 	toggleSelectedSlots,
 	setSelectedMeetings,
@@ -212,7 +156,11 @@ const {
 
 export {setSelectedSlots, toggleSelectedSlots, setSelectedMeetings, toggleSelectedMeetings};
 
-export {setSession, updateSession};
+export const setSessionId = (id) =>
+	async (dispatch, getState) => {
+		dispatch(setLocalSessionId(id));
+		dispatch(setSessionsSelected([id]));
+	}
 
 const baseUrl = '/api/imat/breakouts';
 
@@ -297,24 +245,3 @@ export const deleteMeetings = (ids) =>
 		}*/
 		dispatch(removeMany(ids));
 	}
-
-const {setRooms, addRoom, updateRoom, removeRoom} = slice.actions;
-
-export {addRoom, updateRoom, removeRoom};
-
-export const deriveRoomsFromBreakouts = () =>
-	async (dispatch, getState) => {
-		const entities = selectSessionPrepEntities(getState());
-		let rooms = Object.values(entities).reduce((rooms, breakout) => {
-			if (breakout.location)
-				rooms.add(breakout.location)
-			return rooms;
-		}, new Set());
-		rooms = [...rooms].map((name, i) => ({id: i+1, name, description: ''}));
-		dispatch(setRooms(rooms));
-	}
-
-
-const {addTimeslot, updateTimeslot, removeTimeslot} = slice.actions;
-
-export {addTimeslot, updateTimeslot, removeTimeslot};
