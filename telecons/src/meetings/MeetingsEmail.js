@@ -91,7 +91,9 @@ function selectGroups(state) {
 
 	const groupIds = new Set();
 	for (const id of ids) {
-		groupIds.add(entities[id].organizationId);
+		const t = entities[id];
+		if (t.organizationId === id && DateTime.fromISO(t.start) >= DateTime.now() && t.webexMeetingId)
+			groupIds.add(t.organizationId);
 	}
 	return [...groupIds]
 		.map(id => groupEntities[id])
@@ -110,7 +112,7 @@ function selectEmails(state, groupIds) {
 
 		const telecons = teleconIds
 			.map(id => teleconEntities[id])
-			.filter(t => t.organizationId === id && DateTime.fromISO(t.start) >= DateTime.now());
+			.filter(t => t.organizationId === id && DateTime.fromISO(t.start) >= DateTime.now() && t.webexMeetingId);
 		const table = genTable(telecons);
 
 		const officers = selectOfficers(state, id);

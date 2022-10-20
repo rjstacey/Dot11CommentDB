@@ -27,9 +27,10 @@ import GroupPathSelector from '../components/GroupPathSelector';
 import CurrentSessionSelector from '../components/CurrentSessionSelector';
 import TopRow from '../components/TopRow';
 
-import TeleconDetail from './TeleconDetail';
-import TeleconDefaults from './TeleconDefaults';
-import TeleconEmail from './TeleconsEmail';
+import MeetingsCalendar from './MeetingsCalendar';
+import MeetingDetails from './MeetingDetails';
+import MeetingDefaults from './MeetingDefaults';
+import MeetingsEmail from './MeetingsEmail';
 
 function renderWebexMeeting({rowData}) {
 	const {webexAccountId, webexAccountName, webexMeeting} = rowData;
@@ -65,42 +66,45 @@ const tableColumns = [
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
 	{key: 'day',
 		...fields.day,
-		width: 60, flexGrow: 1, flexShrink: 0},
+		width: 60, flexGrow: 1, flexShrink: 1},
 	{key: 'dayDate',
 		...fields.dayDate,
-		width: 100, flexGrow: 1, flexShrink: 0,
+		width: 100, flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderDateHeader},
 	{key: 'timeRange',
 		...fields.timeRange,
-		width: 70, flexGrow: 1, flexShrink: 0,
+		width: 70, flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderTimeRangeHeader},
 	{key: 'duration',
 		...fields.duration,
-		width: 100, flexGrow: 1, flexShrink: 0},
+		width: 100, flexGrow: 1, flexShrink: 1},
 	{key: 'groupName',
 		...fields.groupName,
-		width: 200, flexGrow: 1, flexShrink: 0},
+		width: 200, flexGrow: 1, flexShrink: 1},
+	{key: 'summary',
+		...fields.summary,
+		width: 200, flexGrow: 1, flexShrink: 1},
 	{key: 'location',
 		...fields.location,
 		width: 200, flexGrow: 1, flexShrink: 0},
 	{key: 'hasMotions',
 		...fields.hasMotions,
-		width: 90, flexGrow: 1, flexShrink: 0},
+		width: 90, flexGrow: 1, flexShrink: 1},
 	{key: 'webexAccountName',
 		label: 'Webex meeting',
-		width: 150, flexGrow: 1, flexShrink: 0,
+		width: 150, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderWebexMeeting},
 	{key: 'imatMeetingName',
 		label: 'Session',
-		width: 50, flexGrow: 1, flexShrink: 0,
+		width: 50, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderImatMeeting},
 	{key: 'calendarAccountName',
 		label: 'Calendar',
-		width: 50, flexGrow: 1, flexShrink: 0}
+		width: 50, flexGrow: 1, flexShrink: 1}
 ];
 
 const defaultTablesColumns = {
-	default: ['__ctrl__', 'dayDate', 'timeRange', 'groupName', 'hasMotions', 'webexAccountName', 'imatMeetingName'],
+	default: ['__ctrl__', 'dayDate', 'timeRange', 'groupName', 'summary', 'hasMotions', 'webexAccountName', 'imatMeetingName'],
 };
 
 const defaultTablesConfig = {};
@@ -142,13 +146,14 @@ function teleconsRowGetter({rowIndex, ids, entities}) {
 	return b;
 }
 
-function Telecons(props) {
+function Meetings(props) {
 	const dispatch = useDispatch();
 	const {isSplit} = useSelector(selectTeleconsCurrentPanelConfig);
 	const setIsSplit = React.useCallback((value) => dispatch(setTeleconsCurrentPanelIsSplit(value)), [dispatch]);
 	const groupId = useSelector(selectCurrentGroupId);
 	const sessionId = useSelector(selectCurrentSessionId);
 	const sessionEntities = useSelector(selectSessionEntities);
+	const [calView, setCalView] = React.useState(false);
 
 	const load = React.useCallback((groupId, sessionId) => {
 		const fromDate = DateTime.now().toISO();
@@ -160,7 +165,6 @@ function Telecons(props) {
 				constraints.toDate = session.endDate;
 			}
 		}
-		console.log(groupId, constraints)
 		dispatch(loadTelecons(groupId, constraints));
 	}, [dispatch, sessionEntities]);
 
@@ -182,12 +186,12 @@ function Telecons(props) {
 				<CurrentSessionSelector/>
 
 				<ActionButtonDropdown label='Set defaults'>
-					<TeleconDefaults/>
+					<MeetingDefaults/>
 				</ActionButtonDropdown>
 
 				<ActionButtonDropdown
 					label='Send email'
-					dropdownRenderer={({methods}) => <TeleconEmail close={methods.close} />}
+					dropdownRenderer={({methods}) => <MeetingsEmail close={methods.close} />}
 				/>
 			
 				<div style={{display: 'flex', alignItems: 'center'}}>
@@ -204,35 +208,37 @@ function Telecons(props) {
 							/>
 						</div>
 					</ButtonGroup>
+					<ActionButton name='calendar' isActive={calView} onClick={() => setCalView(!calView)} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>
 			</TopRow>
 
-			<ShowFilters
-				dataSet={dataSet}
-				fields={fields}
-			/>
-
 			<SplitPanel dataSet={dataSet} >
 				<Panel>
-					<AppTable
-						defaultTablesConfig={defaultTablesConfig}
-						columns={tableColumns}
-						headerHeight={46}
-						estimatedRowHeight={32}
-						measureRowHeight
-						dataSet={dataSet}
-						rowGetter={teleconsRowGetter}
-					/>
+					{calView?
+						<MeetingsCalendar />:
+						<>
+							<ShowFilters
+								dataSet={dataSet}
+								fields={fields}
+							/>
+							<AppTable
+								defaultTablesConfig={defaultTablesConfig}
+								columns={tableColumns}
+								headerHeight={46}
+								estimatedRowHeight={32}
+								measureRowHeight
+								dataSet={dataSet}
+								rowGetter={teleconsRowGetter}
+							/>
+						</>}
 				</Panel>
 				<Panel>
-					<TeleconDetail
-						groupId={groupId}
-					/>
+					<MeetingDetails />
 				</Panel>
 			</SplitPanel>
 		</>
 	)
 }
 
-export default Telecons;
+export default Meetings;

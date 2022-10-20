@@ -38,12 +38,6 @@ const fullMenu = [
 	{
 		minAccess: AccessLevel.WGAdmin,
 		prefixGroupName: true,
-		link: '/sessionMeetings',
-		label: 'Session meetings',
-	},
-	{
-		minAccess: AccessLevel.WGAdmin,
-		prefixGroupName: true,
 		link: '/webexMeetings',
 		label: 'Webex',
 	},
@@ -63,7 +57,7 @@ const fullMenu = [
 		minAccess: AccessLevel.WGAdmin,
 		prefixGroupName: true,
 		link: '/ieee802WorldSchedule',
-		label: '802 World Schedule',
+		label: '802 world schedule',
 	},
 
 ];
@@ -114,7 +108,7 @@ function Header() {
 					dropdownRenderer={(props) => <NavMenu className='nav-menu-vertical' access={user.Access} {...props} />}
 					dropdownAlign='left'
 				/>:
-				<div className='title'>Telecons</div>
+				<div className='title'>Meetings</div>
 			}
 			<div className='nav-menu-container'>
 				{isSmall?

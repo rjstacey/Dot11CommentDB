@@ -44,14 +44,14 @@ const SessionsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {..
 
 const renderHeaderStartEnd = (props) =>
 	<>
-		<SessionsColumnHeader {...props} dataKey='Start' label='Start' />
-		<SessionsColumnHeader {...props} dataKey='End' label='End' />
+		<SessionsColumnHeader {...props} dataKey='startDate' label='Start' />
+		<SessionsColumnHeader {...props} dataKey='endDate' label='End' />
 	</>
 
-export const renderCellStartEnd = ({rowData}) => displayDateRange(rowData.Start, rowData.End);
+export const renderCellStartEnd = ({rowData}) => displayDateRange(rowData.startDate, rowData.endDate);
 
 const renderMeetingType = ({rowData}) => {
-	const option = SessionTypeOptions.find(o => o.value === rowData.Type)
+	const option = SessionTypeOptions.find(o => o.value === rowData.type)
 	return option? option.label: '';
 };
 
@@ -73,28 +73,28 @@ const tableColumns = [
 	{key: 'id', 
 		...fields.id,
 		width: 60, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
-	{key: 'MeetingNumber', 
-		...fields.MeetingNumber,
+	{key: 'imatMeetingId', 
+		...fields.imatMeetingId,
 		width: 120, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
-	{key: 'Start', 
-		...fields.Start,
+	{key: 'startDate', 
+		...fields.startDate,
 		width: 120, flexGrow: 1, flexShrink: 1},
-	{key: 'End', 
-		...fields.End,
+	{key: 'endDate', 
+		...fields.endDate,
 		width: 120, flexGrow: 1, flexShrink: 1},
 	{key: 'Start/End', 
 		label: 'Start/End',
 		width: 120, flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderStartEnd,
 		cellRenderer: renderCellStartEnd},
-	{key: 'Name', 
-		...fields.Name,
+	{key: 'name', 
+		...fields.name,
 		width: 300, flexGrow: 1, flexShrink: 1},
-	{key: 'Type', 
-		...fields.Type,
+	{key: 'type', 
+		...fields.type,
 		width: 80, flexGrow: 1, flexShrink: 1},
-	{key: 'TimeZone', 
-		...fields.TimeZone,
+	{key: 'timezone', 
+		...fields.timezone,
 		width: 200, flexGrow: 1, flexShrink: 1},
 	{key: 'Breakouts', 
 		label: 'Breakouts',
@@ -110,7 +110,7 @@ const tableColumns = [
 ];
 
 const defaultTablesColumns = {
-	default: ['__ctrl__', 'Start/End', 'Name', 'Type', 'TypeZone', 'Breakouts', 'Attendance'],
+	default: ['__ctrl__', 'Start/End', 'name', 'type', 'timezone', 'Breakouts', 'Attendance'],
 };
 
 const defaultTablesConfig = {};

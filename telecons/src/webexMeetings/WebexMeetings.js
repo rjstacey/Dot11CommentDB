@@ -37,7 +37,7 @@ import TopRow from '../components/TopRow';
 import TeleconSummary from '../components/TeleconSummary';
 
 import WebexMeetingDetail from './WebexMeetingDetail';
-import {TeleconEntry, convertFromLocal} from '../meetings/TeleconDetail';
+import {MeetingEntry, convertEntryToMeeting} from '../meetings/MeetingDetails';
 
 
 function displayDateTime(entity) {
@@ -142,14 +142,13 @@ function TeleconAdd({webexMeeting, close, groupId}) {
 	}
 
 	function add() {
-		const telecon = convertFromLocal(entry);
-		dispatch(addTelecons([telecon]));
+		const meeting = convertEntryToMeeting(entry);
+		dispatch(addTelecons([meeting]));
 		close();
 	}
 
 	return (
-		<TeleconEntry
-			groupId={groupId}
+		<MeetingEntry
 			entry={entry}
 			changeEntry={changes => setEntry(state => ({...state, ...changes}))}
 			action='add'

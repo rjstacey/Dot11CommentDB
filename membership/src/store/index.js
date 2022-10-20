@@ -6,15 +6,31 @@ import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import { get, set, del } from 'idb-keyval';
 import { composeWithDevTools } from 'redux-devtools-extension';
 
-import {version} from '../../package.json';
-
+import timezonesSlice, {loadTimeZones} from './timezones';
 import members, {loadMembers} from './members';
-import sessions, {loadSessions, loadTimeZones} from './sessions';
+import sessions, {loadSessions} from './sessions';
 import imatMeetings from './imatMeetings';
 import breakouts from './breakouts';
 import attendees from './attendees';
 import ballots from './ballots';
 import errMsg from 'dot11-components/store/error';
+
+const transformState = createTransform(
+	(state, key) => {
+		if (['members', 'sessions'].includes(key)) {
+			const {loading, ...rest} = state;
+			return rest;
+		}
+		return state;
+	},
+	(state, key) => {
+		if (['members', 'sessions'].includes(key)) {
+			return {...state, loading: false};
+		}
+		return state;
+	},
+	['members', 'sessions']
+);
 
 function configureStore() {
 
@@ -25,6 +41,7 @@ function configureStore() {
 		breakouts,
 		attendees,
 		ballots,
+		[timezonesSlice.name]: timezonesSlice.reducer,
 		errMsg
 	});
 
@@ -37,7 +54,7 @@ function configureStore() {
 
 	const persistConfig = {
 		key: 'membership',
-		version: 1,
+		version: 2,
 		storage: {	// IndexedDB for storage using idb-keyval
 			setItem: set,
 			getItem: get,
@@ -45,8 +62,9 @@ function configureStore() {
 		},
 		whitelist: ['members', 'sessions'],
 		stateReconciler: autoMergeLevel2,
+		transforms: [transformState],
 		migrate: (state) => {
-			if (state && state._persist && state._persist.version !== 1)
+			if (state && state._persist && state._persist.version !== 2)
 				return Promise.reject('Discard old version')
 			return Promise.resolve(state);
 		}

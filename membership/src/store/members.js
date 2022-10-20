@@ -37,6 +37,7 @@ const slice = createAppTableDataSlice({
 	fields,
 	initialState: {},
 	selectId,
+	reducers: {}
 });
 
 /*

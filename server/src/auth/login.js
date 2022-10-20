@@ -29,8 +29,8 @@ async function login(ieeeClient, username, password) {
 	const c = m? m[1]: '';
 
 	const loginForm = {
-		v: '1', //: $('input[name="v"]').val(),
-		c: 'aNA__', //: $('input[name="c"]').val(),
+		v: v, //: $('input[name="v"]').val(),
+		c: c, //: $('input[name="c"]').val(),
 		x1: username,
 		x2: password,
 		f0: 1, // "Sign In To" selector (1 = Attendance Tool, 2 = Mentor, 3 = My Project, 4 = Standards Dictionary)
@@ -44,13 +44,16 @@ async function login(ieeeClient, username, password) {
 	//console.log(response)
 
 	if (response.data.search(/<div class="title">Sign In<\/div>/) !== -1) {
-		const m = response.data.match(/<div class="field_err">(.*)<\/div>/);
+		m = /<div class="field_err">([^<]*)<\/div>/.exec(response.data);
+		//console.log(response.data)
 		throw new Error(m? m[1]: 'Not logged in');
 	}
 
 	m = /<span class="attendance_nav">Home - (.*), SA PIN: (\d+)<\/span>/.exec(response.data);
-	if (!m)
-		throw new Error('Unexpected login page');
+	if (!m) {
+		m = /<div class="title">([^<]*)<\/div>/.exec(response.data);
+		throw new Error(m? m[1]: 'Unexpected login page');
+	}
 
 	const Name = m[1];
 	const SAPIN = parseInt(m[2], 10);

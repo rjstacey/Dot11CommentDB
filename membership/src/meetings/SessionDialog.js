@@ -8,7 +8,7 @@ import {shallowDiff, debounce} from 'dot11-components/lib';
 import {ConfirmModal} from 'dot11-components/modals';
 import {Button, ActionButton, Form, Row, Field, Input, Select} from 'dot11-components/form';
 import {AppModal} from 'dot11-components/modals';
-import TimeZoneSelector from './TimeZoneSelector';
+import TimeZoneSelector from '../components/TimeZoneSelector';
 import {addSession, updateSession, loadSessions, deleteSessions, setSessionsUiProperty, SessionTypeOptions, selectSessionsState} from '../store/sessions';
 import {importBreakouts} from '../store/breakouts';
 import {importAttendances} from '../store/attendees';
@@ -64,6 +64,19 @@ function getDate(session, field) {
 }
 function setDate(session, value) {
 	return DateTime.fromISO(value, {zone: session.TimeZone}).toISO();
+}
+
+function SessionTypeSelector({value, onChange, ...otherProps}) {
+	const values = SessionTypeOptions.filter(o => o.value === value);
+	const handleChange = (values) => onChange(values.length > 0? values[0].value: null);
+	return (
+		<Select
+			values={values}
+			options={SessionTypeOptions}
+			onChange={handleChange}
+			{...otherProps}
+		/>
+	)
 }
 
 function SessionBreakouts({
@@ -125,31 +138,22 @@ const SessionContainer = styled.div`
 	}
 `;
 
-function Session({
+function SessionEdit({
 	session,
 	selected,
-	setSession,
+	updateSession,
 	readOnly,
 }) {
 	const [errMsg, setErrMsg] = React.useState('');
-
-	const change = e => setSession({[e.target.name]: e.target.value});
-	const changeDate = e => setSession({[e.target.name]: setDate(session, e.target.value)});
-	const changeType = options => setSession({Type: options.length? options[0].value: null});
-	const getTypeOption = session => SessionTypeOptions.find(o => o.value === session.Type) || [];
-	const changeTimeZone = tz => setSession({TimeZone: tz});
-
-	const typeOption = SessionTypeOptions.find(o => o.value === session.Type)
 
 	return (
 		<SessionContainer>
 			<Row>
 				<Field label='Start:'>
 					<Input type='date' size={24}
-						name='Start'
-						value={isMultiple(session.Start)? null: getDate(session, 'Start')}
-						placeholder={isMultiple(session.Start)? MULTIPLE_STR: BLANK_STR}
-						onChange={changeDate}
+						value={isMultiple(session.startDate)? null: session.startDate}
+						placeholder={isMultiple(session.startDate)? MULTIPLE_STR: BLANK_STR}
+						onChange={e => updateSession({startDate: e.target.value})}
 						disabled={readOnly}
 					/>
 				</Field>
@@ -157,32 +161,29 @@ function Session({
 			<Row>
 				<Field label='End:'>
 					<Input type='date' size={24}
-						name='End'
-						value={isMultiple(session.End)? null: getDate(session, 'End')}
-						placeholder={isMultiple(session.End)? MULTIPLE_STR: BLANK_STR}
-						onChange={changeDate}
+						value={isMultiple(session.endDate)? null: session.endDate}
+						placeholder={isMultiple(session.endDate)? MULTIPLE_STR: BLANK_STR}
+						onChange={e => updateSession({endDate: e.target.value})}
 						disabled={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
 				<Field label='Name:'>
-					<Input type='text' size={24}
+					<Input type='text' size={Math.max(session.name.length, 34)}
 						name='Name'
-						value={isMultiple(session.Name)? '': session.Name}
-						placeholder={isMultiple(session.Name)? MULTIPLE_STR: BLANK_STR}
-						onChange={change}
+						value={isMultiple(session.name)? '': session.name}
+						placeholder={isMultiple(session.name)? MULTIPLE_STR: BLANK_STR}
+						onChange={e => updateSession({name: e.target.value})}
 						disabled={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
 				<Field label='Session type:' >
-					<Select
-						options={SessionTypeOptions}
-						values={typeOption? [typeOption]: []}
-						onChange={changeType}
-						portal={document.querySelector('#root')}
+					<SessionTypeSelector
+						value={isMultiple(session.type)? null: session.type}
+						onChange={type => updateSession({type})}
 						readOnly={readOnly}
 					/>
 				</Field>
@@ -190,10 +191,9 @@ function Session({
 			<Row>
 				<Field label='IMAT meeting number:' >
 					<Input type='text'
-						name='MeetingNumber'
-						value={isMultiple(session.MeetingNumber)? '': session.MeetingNumber}
-						placeholder={isMultiple(session.MeetingNumber)? MULTIPLE_STR: BLANK_STR}
-						onChange={change}
+						value={isMultiple(session.imatMeetingId)? '': session.imatMeetingId}
+						placeholder={isMultiple(session.imatMeetingId)? MULTIPLE_STR: BLANK_STR}
+						onChange={imatMeetingId => updateSession({imatMeetingId})}
 						disabled={readOnly}
 					/>
 				</Field>
@@ -201,9 +201,9 @@ function Session({
 			<Row>
 				<Field label='Time zone:'>
 					<TimeZoneSelector
-						value={isMultiple(session.TimeZone)? null: session.TimeZone}
-						placeholder={isMultiple(session.TimeZone)? MULTIPLE_STR: BLANK_STR}
-						onChange={changeTimeZone}
+						value={isMultiple(session.timezone)? null: session.timezone}
+						placeholder={isMultiple(session.timezone)? MULTIPLE_STR: BLANK_STR}
+						onChange={timezone => updateSession({timezone})}
 						style={{width: 200}}
 						readOnly={readOnly}
 					/>
@@ -349,13 +349,10 @@ class SessionDetail extends React.Component {
 						<NotAvaialble>
 							<span>{notAvailableStr}</span>
 					 	</NotAvaialble>:
-						<Session 
+						<SessionEdit
 							session={edited}
-							sessions={sessions}
 							selected={selected}
-							setSession={this.updateSession}
-							uiProperties={uiProperties}
-							setUiProperty={setUiProperty}
+							updateSession={this.updateSession}
 							readOnly={readOnly || !uiProperties.editSession}
 						/>
 					}
@@ -420,10 +417,10 @@ function SessionImportModal({
 				submit={submit}
 				cancel={close}
 			>
-				<Session
+				<SessionEdit
 					session={session}
 					selected={[]}
-					setSession={(changes) => setSession(s => ({...s, changes}))}
+					updateSession={(changes) => setSession(s => ({...s, ...changes}))}
 				/>
 			</Form>
 		</AppModal>

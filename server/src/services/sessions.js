@@ -3,6 +3,7 @@
  */
 import { DateTime } from 'luxon';
 import {getImatBreakouts, getImatBreakoutAttendance, getImatAttendanceSummary} from './imat';
+import {NotFoundError} from '../utils';
 
 const db = require('../utils/database');
 
@@ -16,7 +17,16 @@ const getSessionTotalCreditSQL = (session_id) =>
 
 const getSessionsSQL = () =>
 	'SELECT ' +
-		'*, ' +
+		'id, ' +
+		'name, ' +
+		'type, ' +
+		'startDate, ' +
+		'endDate, ' +
+		'timezone, ' +
+		'imatMeetingId, ' +
+		'OrganizerID, ' +
+		'timeslots, ' +
+		'rooms, ' +
 		'(SELECT COUNT(*) FROM breakouts WHERE session_id=m.id) AS Breakouts, ' +
 		'(' + getSessionTotalCreditSQL('m.id') + ') AS TotalCredit, ' +
 		'(SELECT COUNT(DISTINCT(SAPIN)) FROM attendance_summary WHERE session_id=m.id) AS Attendees ' +
@@ -124,36 +134,50 @@ export function getSessions(constraints) {
 			([key, value]) => db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
 		).join(' AND ');
 	}
-	return db.query(sql);
+	sql += ' ORDER BY startDate DESC';
+	console.log(sql)
+	return db.query({sql, dateStrings: true});
 }
 
 function sessionEntry(s) {
 	const entry = {
-		Name: s.Name,
-		Type: s.Type,
-		MeetingNumber: s.MeetingNumber,
+		name: s.name,
+		type: s.type,
+		imatMeetingId: s.imatMeetingId,
 		OrganizerID: s.OrganizerID
 	};
 
-	if (typeof s.TimeZone !== 'undefined') {
-		if (DateTime.local().setZone(s.TimeZone).isValid)
-			entry.TimeZone = s.TimeZone;
+	if (typeof s.timezone !== 'undefined') {
+		if (DateTime.local().setZone(s.timezone).isValid)
+			entry.timezone = s.timezone;
 		else
-			throw new TypeError('Invalid parameter TimeZone: ' + s.TimeZone);
+			throw new TypeError('Invalid parameter timezone: ' + s.timezone);
 	}
 
-	if (typeof s.Start !== 'undefined') {
-		if (DateTime.fromISO(s.Start).isValid)
-			entry.Start = new Date(s.Start);
+	if (typeof s.startDate !== 'undefined') {
+		if (DateTime.fromISO(s.startDate).isValid)
+			entry.startDate = s.startDate;
 		else
-			throw new TypeError('Invlid parameter Start: ' + s.Start);
+			throw new TypeError('Invlid parameter startDate: ' + s.startDate);
 	}
 
-	if (typeof s.End !== 'undefined') {
-		if (DateTime.fromISO(s.End).isValid)
-			entry.End = new Date(s.End);
+	if (typeof s.endDate !== 'undefined') {
+		if (DateTime.fromISO(s.endDate).isValid)
+			entry.endDate = s.endDate;
 		else
-			throw new TypeError('Invlid parameter End: ' + s.End);
+			throw new TypeError('Invlid parameter endDate: ' + s.endDate);
+	}
+
+	if (typeof s.timeslots !== 'undefined') {
+		if (!Array.isArray(s.timeslots))
+			throw new TypeError('Invlid parameter timeslots: ' + s.timeslots);
+		entry.timeslots = JSON.stringify(s.timeslots);
+	}
+
+	if (typeof s.rooms !== 'undefined') {
+		if (!Array.isArray(s.rooms))
+			throw new TypeError('Invlid parameter rooms: ' + s.rooms);
+		entry.rooms = JSON.stringify(s.rooms);
 	}
 
 	for (const key of Object.keys(entry)) {
@@ -166,18 +190,18 @@ function sessionEntry(s) {
 
 export async function addSession(session) {
 	const entry = sessionEntry(session);
-	const {insertId} = await db.query('INSERT INTO meetings (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]);
-	const [insertedSession] = await db.query('SELECT * FROM meetings WHERE id=?;', [insertId]);
+	const {insertId} = await db.query({sql: 'INSERT INTO meetings (??) VALUES (?);', dateStrings: true}, [Object.keys(entry), Object.values(entry)]);
+	const [insertedSession] = await db.query({sql: 'SELECT * FROM meetings WHERE id=?;', dateStrings: true}, [insertId]);
 	return insertedSession;
 }
 
 export async function updateSession(id, session) {
 	let entry = sessionEntry(session);
 	if (Object.keys(entry).length) {
-		const SQL =
+		const sql =
 			db.format("UPDATE meetings SET ? WHERE id=?;",  [entry, id]) +
-			db.format("SELECT ?? from meetings WHERE id=?;", [Object.keys(entry), id])
-		const [noop, sessions] = await db.query(SQL);
+			db.format("SELECT ?? from meetings WHERE id=?;", [Object.keys(entry), id]);
+		const [noop, sessions] = await db.query({sql, dateStrings: true});
 		entry = sessions[0];
 	}
 
@@ -203,11 +227,11 @@ export async function getBreakouts(session_id) {
 }
 
 export async function getBreakoutAttendees(user, session_id, breakout_id) {
-	const SQL =
+	const sql =
 		getSessionSQL(session_id) +
 		db.format('SELECT * FROM breakouts WHERE id=?; ', [breakout_id]) +
 		getBreakoutAttendeesSQL(session_id, breakout_id);
-	const [sessions, breakouts, attendees] = await db.query(SQL);
+	const [sessions, breakouts, attendees] = await db.query(sql);
 	if (sessions.length === 0)
 		throw `No such session: ${session_id}`;
 	if (breakouts.length === 0)
@@ -216,10 +240,10 @@ export async function getBreakoutAttendees(user, session_id, breakout_id) {
 }
 
 export async function getSessionAttendees(session_id) {
-	const SQL =
+	const sql =
 		getSessionSQL(session_id) +
 		getSessionAttendeesSQL(session_id);
-	const [sessions, attendees] = await db.query(SQL);
+	const [sessions, attendees] = await db.query(sql);
 	if (sessions.length === 0)
 		throw `No such session: ${session_id}`;
 	const session = sessions[0];
@@ -254,27 +278,25 @@ export async function getRecentSessionsWithAttendees() {
 	return sessions;
 }
 
-export async function importBreakouts(user, session_id) {
+export async function importBreakouts(user, sessionId) {
 
-	const [session] = await db.query('SELECT * FROM meetings WHERE id=?;', [session_id]);
+	const [session] = await db.query('SELECT * FROM meetings WHERE id=?;', [sessionId]);
 	if (!session)
-		throw `Unrecognized session ${session_id}`
+		throw new NotFoundError(`Session id=${sessionId} does not exist`);
+	console.log(session)
 
-	const imatBreakouts =
-		(await getImatBreakouts(user, session))
-			.map(b => ({...b, session_id}));	// Add session ID to each entry
+	let {breakouts} = await getImatBreakouts(user, session.imatMeetingId);
+	breakouts = breakouts.map(b => ({...b, session_id: sessionId}));	// Add session ID to each entry
 	
-	await db.query('DELETE FROM breakouts WHERE session_id=?; ', [session_id]);
+	await db.query('DELETE FROM breakouts WHERE session_id=?; ', [sessionId]);
 
 	//console.log(breakouts)
-	if (imatBreakouts.length) {
-		for (const b of imatBreakouts) {
-			const result = await db.query('INSERT INTO breakouts (??) VALUE (?)', [Object.keys(b), Object.values(b)]);
-			await importBreakoutAttendance(user, session, result.insertId, session.MeetingNumber, b.BreakoutID);
-		}
+	for (const b of breakouts) {
+		const result = await db.query('INSERT INTO breakouts (??) VALUE (?)', [Object.keys(b), Object.values(b)]);
+		await importBreakoutAttendance(user, session, result.insertId, session.imatMeetingId, b.BreakoutID);
 	}
 
-	return getBreakouts(session_id);
+	return getBreakouts(sessionId);
 }
 
 export async function importBreakoutAttendance(user, session, breakout_id, meetingNumber, breakoutNumber) {

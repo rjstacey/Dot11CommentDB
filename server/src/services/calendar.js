@@ -26,9 +26,20 @@ function hasCalendarApi(id) {
 }
 
 function createCalendarApi(id, auth) {
+	google.options({
+		http2: true,
+		retryConfig: {
+			currentRetryAttempt: 0,
+			retry: 3,
+			retryDelay: 100,
+			httpMethodsToRetry: ['GET', 'PATCH', 'PUT', 'POST', 'DELETE'],
+			noResponseRetries: 2,
+			statusCodesToRetry: [[100, 199], [403, 403], [429, 429], [500, 599]],
+		},
+	});
 	const calendar = google.calendar({
 		version: 'v3',
-		auth
+		auth,
 	});
 	calendars[id] = calendar;
 	return calendar;
@@ -52,7 +63,7 @@ function createAuthApi(id) {
 		calendarAuthRedirectUri
 	).on('tokens', (tokens) => {
 		// Listen for token updates and record the latest
-		console.log(`update credentials for ${id}:`, tokens);
+		//console.log(`update credentials for ${id}:`, tokens);
 		updateAuthParams(id, tokens);
 	});
 	auths[id] = auth;
@@ -85,7 +96,7 @@ export async function init() {
 		const {id, authParams} = account;
 		const auth = createAuthApi(id);
 		if (authParams) {
-			console.log(`create calendar context ${id}:`, authParams);
+			//console.log(`create calendar context ${id}:`, authParams);
 			auth.setCredentials(authParams);
 			createCalendarApi(id, auth);
 		}
@@ -116,7 +127,6 @@ export async function completeAuthCalendarAccount(params) {
 	const auth = getAuthApi(id);
 	
 	const {tokens} = await auth.getToken(params.code);
-	console.log('get tokens: ', tokens)
 	auth.setCredentials(tokens);
 	await updateAuthParams(id, tokens);
 	
@@ -217,7 +227,6 @@ export async function updateCalendarAccount(id, entry) {
 export async function revokeAuthCalendarAccount(id) {
 	const auth = getAuthApi(id);
 
-	console.log('revoke: ', auth.credentials);
 	axios.post(calendarRevokeUrl, {token: auth.credentials.access_token})
 		.then(response => console.log('revoke calendar token success:', response.data))
 		.catch(error => console.log('revoke calendar token error:', error));
@@ -243,9 +252,10 @@ export async function deleteCalendarAccount(id) {
 function calendarApiError(error) {
 	const {response, code} = error;
 	if (response && code >= 400 && code < 500) {
-		const {error, error_description} = response.data;
-		console.log(response.config)
-		throw new Error(`calendar api: code=${code} ${error}: ${error_description}`); 
+		//console.log(response.config)
+		const {error} = response.data;
+		const message = error?.message;
+		throw new Error(`calendar api: code=${code} ${message}`); 
 	}
 	throw new Error(error);
 }

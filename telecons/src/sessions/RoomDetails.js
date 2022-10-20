@@ -1,9 +1,13 @@
 import React from 'react';
+import {useSelector} from 'react-redux';
 
 import {Input, Row, Field} from 'dot11-components/form';
 import {ActionIcon} from 'dot11-components/icons';
 
 import {EditTable as Table} from '../components/Table';
+import {RawSessionSelector} from '../components/SessionSelector';
+
+import {selectSessionEntities} from '../store/sessions';
 
 const tableColumns = {
 	name: {
@@ -22,18 +26,67 @@ const tableColumns = {
 
 const defaultEntry = {name: '', description: ''};
 
+
+
 function RoomDetails({
 	rooms,
-	addRoom,
-	removeRoom,
-	updateRoom,
-	moveRoomUp,
-	moveRoomDown,
-	getRoomsFromLocations,
+	setRooms,
 	readOnly
 }) {
+	const entities = useSelector(selectSessionEntities);
 
 	const columns = React.useMemo(() => {
+
+		const importRoomsFromSession = (sessionId) => {
+			const session = entities[sessionId];
+			if (session)
+				setRooms(session.rooms);
+		}
+
+		const addRoom = (room) => {
+			const updatedRooms = rooms.slice();
+			const id = rooms.reduce((maxId, room) => Math.max(maxId, room.id), 0) + 1;
+			updatedRooms.push({...room, id});
+			setRooms(updatedRooms);
+		}
+
+		const updateRoom = (id, changes) => {
+			const updatedRooms = rooms.slice();
+			const i = rooms.findIndex(room => room.id === id);
+			if (i >= 0) {
+				updatedRooms[i] = {...rooms[i], ...changes};
+				setRooms(updatedRooms);
+			}
+		}
+
+		const removeRoom = (id) => {
+			const updatedRooms = rooms.slice();
+			const i = rooms.findIndex(room => room.id === id);
+			if (i >= 0) {
+				updatedRooms.splice(i, 1);
+				setRooms(updatedRooms);
+			}
+		}
+
+		const moveRoomUp = (id) => {
+			const updatedRooms = rooms.slice();
+			const i = rooms.findIndex(room => room.id === id);
+			if (i > 0) {
+				const [room] = updatedRooms.splice(i, 1);
+				updatedRooms.splice(i - 1, 0, room);
+				setRooms(updatedRooms);
+			}
+		}
+
+		const moveRoomDown = (id) => {
+			const updatedRooms = rooms.slice();
+			const i = rooms.findIndex(room => room.id === id);
+			if (i >= 0) {
+				const [room] = updatedRooms.splice(i, 1);
+				updatedRooms.splice(i + 1, 0, room);
+				setRooms(updatedRooms);
+			}
+		}
 
 		let keys = Object.keys(tableColumns);
 		if (readOnly)
@@ -70,14 +123,14 @@ function RoomDetails({
 				col.label = 
 					<div style={{width: '100%', display: 'flex', justifyContent: 'space-evenly'}}>
 						<ActionIcon type='add' onClick={() => addRoom(defaultEntry)} />
-						<ActionIcon type='import' onClick={getRoomsFromLocations} />
+						<RawSessionSelector onChange={importRoomsFromSession} />
 					</div>
 			}
 			return col;
 		});
 
 		return columns;
-	}, [addRoom, removeRoom, updateRoom, readOnly]);
+	}, [setRooms, rooms, entities, readOnly]);
 
 	return (
 		<Row>

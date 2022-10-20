@@ -29,6 +29,7 @@ export const fields = {
 	dayDate: {label: 'Day/Date'},
 	timeRange: {label: 'Time'},
 	duration: {label: 'Duration'},
+	summary: {label: 'Summary'},
 	location: {label: 'Location/Room'},
 	hasMotions: {label: 'Motions'},
 	isCancelled: {label: 'Cancelled'},

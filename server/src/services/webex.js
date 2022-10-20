@@ -235,7 +235,7 @@ async function getWebexTemplates(id) {
 		.catch(webexApiError);
 }
 
-export async function getWebexMeetings({groupId, fromDate, toDate, timezone}) {
+export async function getWebexMeetings({groupId, fromDate, toDate, timezone, ids}) {
 	let webexMeetings = [];
 	const accounts = await getWebexAccounts();
 	if (!timezone)
@@ -261,6 +261,9 @@ export async function getWebexMeetings({groupId, fromDate, toDate, timezone}) {
 		meetings = meetings.map(m => ({...m, groupId, webexAccountId: account.id, webexAccountName: account.name}));
 		webexMeetings = webexMeetings.concat(meetings);
 	}
+	// Looking for specific meetings
+	if (ids)
+		webexMeetings = webexMeetings.filter(m => ids.includes(m.id));
 	webexMeetings = webexMeetings.sort((a, b) => DateTime.fromISO(a.start) - DateTime.fromISO(b.start));
 	return webexMeetings;
 }

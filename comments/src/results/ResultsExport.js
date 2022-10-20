@@ -7,7 +7,7 @@ import {ActionButtonDropdown} from 'dot11-components/general';
 
 import {exportResultsForProject, exportResultsForBallot} from '../store/results'
 
-function ResultsExportForm({close, ballot}) {
+function ResultsExportForm({ballot, methods}) {
 	const [forProject, setForProject] = React.useState(false);
 	const [busy, setBusy] = React.useState(false);
 
@@ -17,7 +17,7 @@ function ResultsExportForm({close, ballot}) {
 		setBusy(true);
 		await dispatch(forProject? exportResultsForProject(ballot.Project): exportResultsForBallot(ballot.id));
 		setBusy(false);
-		close();
+		methods.close();
 	}
 
 	return (
@@ -25,7 +25,7 @@ function ResultsExportForm({close, ballot}) {
 			style={{width: 300}}
 			title='Export results for:'
 			submit={submit}
-			cancel={close}
+			cancel={methods.close}
 			busy={busy}
 		>
 			<Row>
@@ -56,7 +56,7 @@ function ResultsExportForm({close, ballot}) {
 
 ResultsExportForm.propTypes = {
 	ballot: PropTypes.object,
-	//close: PropTypes.func.isRequired,
+	methods: PropTypes.object.isRequired,
 }
 
 const ResultsExport = ({ballot}) => 
@@ -64,11 +64,8 @@ const ResultsExport = ({ballot}) =>
 		name='export'
 		title='Export'
 		disabled={!ballot}
-	>
-		<ResultsExportForm
-			ballot={ballot}
-		/>
-	</ActionButtonDropdown>
+		dropdownRenderer={(props) => <ResultsExportForm	ballot={ballot} {...props} />}
+	/>
 
 ResultsExport.propTypes = {
 	ballot: PropTypes.object,

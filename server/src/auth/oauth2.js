@@ -16,7 +16,7 @@ router.get('/calendar', async (req, res, next) => {
         res.redirect('/telecons/accounts');
     }
     catch (err) {
-        res.next(err);
+        next(err);
     }
 });
 
@@ -26,7 +26,7 @@ router.get('/webex', async (req, res, next) => {
         res.redirect('/telecons/accounts');
     }
     catch (err) {
-        res.next(err);
+        next(err);
     }
 });
 

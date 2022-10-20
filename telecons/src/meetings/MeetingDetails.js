@@ -1,12 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {connect} from 'react-redux';
+import {connect, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 import {DateTime} from 'luxon';
 
 import {ConfirmModal} from 'dot11-components/modals';
 import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, MULTIPLE} from 'dot11-components/lib';
-import {ActionButton, Button, Form, Row, Col, Field, FieldLeft, Input, InputDates, InputTime, Checkbox} from 'dot11-components/form';
+import {ActionButton, Form, Row, Col, Field, FieldLeft, Select, Input, InputDates, InputTime, Checkbox} from 'dot11-components/form';
+
+import {
+	selectCurrentSession,
+	selectCurrentSessionDates,
+} from '../store/sessions';
 
 import {
 	addTelecons, 
@@ -19,7 +24,6 @@ import {
 import {selectCurrentGroupId, selectCurrentGroupDefaults} from '../store/current';
 
 import {selectGroupEntities} from '../store/groups';
-import {selectCurrentSession} from '../store/imatMeetings';
 
 import WebexAccountSelector from '../components/WebexAccountSelector';
 import WebexTemplateSelector from '../components/WebexTemplateSelector';
@@ -59,6 +63,8 @@ const fromTimeStr = (str) => {
 	return m? {hour: parseInt(m[1], 10), minute: parseInt(m[2], 10)}: {hour: 0, minute: 0};
 }
 
+const isSessionMeeting = (session) => session && (session.type === 'p' || session.type === 'i');
+
 function webexMeetingParams(webexMeeting) {
 
 	function getProperties(template, input) {
@@ -78,76 +84,91 @@ function webexMeetingParams(webexMeeting) {
 	return w;
 }
 
-export function convertFromLocal(entry) {
-	let {date, time, duration, webexMeeting, calendarEvent, ...rest} = entry;
-	
-	let start = MULTIPLE,
-	    end = MULTIPLE;
-	if (!isMultiple(date) && !isMultiple(entry.timezone) && !isMultiple(time)) {
-		start = DateTime.fromISO(date, {zone: entry.timezone}).set(fromTimeStr(time));
-		if (!isMultiple(duration)) {
-			const m = /(\d+):(\d+)/.exec(duration);
-			if (m)
-				end = start.plus({hours: m[1], minutes: m[2]}).toISO();
-			else
-				end = start.plus({hours: duration}).toISO();
-		}
-		start = start.toISO();
+export function convertEntryToMeeting(entry, session) {
+	let {date, startTime, endTime, startSlotId, endSlotId, duration, roomId, webexMeeting, ...rest} = entry;
+	const meeting = {...rest};
+
+	if (isSessionMeeting(session)) {
+		const zone = session.timezone;
+		meeting.timezone = zone;
+		meeting.start = DateTime.fromISO(date, {zone}).set(fromTimeStr(startTime)).toISO();
+		meeting.end = DateTime.fromISO(date, {zone}).set(fromTimeStr(endTime)).toISO();
+
+		const room = session.rooms.find(r => r.id === roomId);
+		if (room)
+			meeting.location = room.name;
+	}
+	else {
+		const zone = entry.timezone;
+		const start = DateTime.fromISO(date, {zone}).set(fromTimeStr(startTime));
+		meeting.start = start.toISO();
+		const m = /(\d+):(\d+)/.exec(duration);
+		meeting.end = start.plus(m? {hours: m[1], minutes: m[2]}: {hours: duration}).toISO();
 	}
 
 	if (webexMeeting) {
-		webexMeeting = webexMeetingParams(webexMeeting);
-		webexMeeting.publicMeeting = false;
+		meeting.webexMeeting = webexMeetingParams(webexMeeting);
+		meeting.webexMeeting.publicMeeting = false;
 	}
 
-	return {
-		start,
-		end,
-		webexMeeting,
-		...rest
-	};
+	return meeting;
 }
 
-function convertFromLocalMultipleDates(entry) {
+function convertEntryToMeetingMultipleDates(entry, session) {
 	const {dates, ...rest} = entry;
-	return dates.map(date => convertFromLocal({...rest, date}));
+	return dates.map(date => convertEntryToMeeting({...rest, date}, session));
 }
 
-function convertToLocal(entry) {
-	let {start, end, webexMeeting, ...rest} = entry;
-	let date = MULTIPLE,
-	    time = MULTIPLE,
-	    duration = MULTIPLE;
-	if (!isMultiple(entry.timezone)) {
-		date = DateTime.fromISO(start, {zone: entry.timezone});
-		time = toTimeStr(date.hour, date.minute);
-		duration = DateTime.fromISO(end).diff(DateTime.fromISO(start), 'hours').hours;
-		date = date.toISODate({zone: entry.timezone});
+function convertMeetingToEntry(meeting, session) {
+	let {start, end, webexMeeting, ...rest} = meeting;
+	let entry = {...rest};
+
+	if (isSessionMeeting(session)) {
+		const room = session.rooms.find(r => r.name === meeting.location);
+		entry.roomId =  room? room.id: 0;
+
+		const zone = session.timezone;
+		start = DateTime.fromISO(start, {zone});
+		end = DateTime.fromISO(end, {zone});
+		entry.date = start.toISODate({zone});
+		entry.startTime = start.toFormat('HH:mm');
+		entry.endTime = end.toFormat('HH:mm');
+		let startSlot = session.timeslots.find(s => {
+			const slotStart = start.set(fromTimeStr(s.startTime));
+			const slotEnd = start.set(fromTimeStr(s.endTime));
+			return start >= slotStart && start < slotEnd;
+		});
+		if (!startSlot) {
+			// If we can't find a slot that includes the startTime then find best match
+			startSlot = session.timeslots.find(s => {
+				const slotStart = start.set(fromTimeStr(s.startTime));
+				return start >= slotStart;
+			});
+		}
+		entry.startSlotId = startSlot? startSlot.id: 0;
+	}
+	else {
+		const zone = meeting.timezone;
+		start = DateTime.fromISO(start, {zone});
+		entry.date = start.toISODate({zone});
+		entry.startTime = start.toFormat('HH:mm');
+		end = DateTime.fromISO(end, {zone});
+		entry.duration = DateTime.fromISO(end, {zone}).diff(start, 'hours').hours;
 	}
 
 	if (webexMeeting) {
-		// Only care about certain properties
-		webexMeeting = webexMeetingParams(webexMeeting);
+		// We only care about certain configurable properties
+		entry.webexMeeting = webexMeetingParams(webexMeeting);
 	}
 
-	return {
-		date,
-		time,
-		duration,
-		webexMeeting,
-		...rest
-	}
+	return entry;
 }
 
-function convertToLocalTagMultiple(ids, entities) {
+function convertMeetingsToEntryTagMultiple(meetings, session) {
 
 	let entry = {}, dates = [];
-	for (const id of ids) {
-		if (!entities[id]) {
-			console.warn('bad id=' + id)
-			continue;
-		}
-		const original = convertToLocal(entities[id]);
+	for (const meeting of meetings) {
+		const original = convertMeetingToEntry(meeting, session);
 		dates.push(original.date);
 		entry = deepMergeTagMultiple(entry, original);
 	}
@@ -176,6 +197,198 @@ function cancelUpdates(selected, entities) {
 		updates.push({id, changes});
 	}
 	return updates;
+}
+
+function TeleconMeetingTime({action, entry, changeEntry, readOnly}) {
+
+	return (
+		<>
+			<Row>
+				<Field label='Time zone:'>
+					<TimeZoneSelector
+						style={{width: 200}}
+						value={isMultiple(entry.timezone)? '': entry.timezone || ''}
+						onChange={(timezone) => changeEntry({timezone})}
+						placeholder={isMultiple(entry.timezone)? MULTIPLE_STR: undefined}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Date:'>
+					<InputDates
+						disablePast
+						multi={action === 'add'}
+						value={isMultiple(entry.dates)? []: entry.dates}
+						onChange={dates => changeEntry({dates})}
+						placeholder={isMultiple(entry.dates)? MULTIPLE_STR: undefined}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Start time:'>
+					<InputTime
+						value={isMultiple(entry.startTime)? '': entry.startTime}
+						onChange={startTime => changeEntry({startTime})}
+						placeholder={isMultiple(entry.startTime)? MULTIPLE_STR: undefined}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Duration:'>
+					<Input
+						type='search'
+						value={isMultiple(entry.duration)? '': entry.duration || ''}
+						onChange={e => changeEntry({duration: e.target.value})}
+						placeholder={isMultiple(entry.duration)? MULTIPLE_STR: undefined}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+		</>
+	)
+}
+
+function SessionDateSelector({value, onChange, ...otherProps}) {
+	const options = useSelector(selectCurrentSessionDates).map(date => ({value: date, label: date}))
+	const handleChange = (values) => onChange(values.length > 0? values[0].value: null);
+	const values = options.filter(d => d.value === value);
+	return (
+		<Select
+			options={options}
+			values={values}
+			onChange={handleChange}
+			{...otherProps}
+		/>
+	)
+}
+
+function TimeslotSelector({value, onChange, ...otherProps}) {
+	const {timeslots} = useSelector(selectCurrentSession);
+	const handleChange = (values) => onChange(values.length > 0? values[0].id: null);
+	const values = timeslots.filter(slot => slot.id === value);
+	return (
+		<Select
+			options={timeslots}
+			values={values}
+			onChange={handleChange}
+			labelField='name'
+			valueField='id'
+			{...otherProps}
+		/>
+	)
+}
+
+function RoomSelector({value, onChange, options, ...otherProps}) {
+	const {rooms} = useSelector(selectCurrentSession);
+	const handleChange = (values) => onChange(values.length > 0? values[0].id: null);
+	const values = rooms.filter(room => room.id === value);
+	return (
+		<Select
+			options={rooms}
+			values={values}
+			onChange={handleChange}
+			labelField='name'
+			valueField='id'
+			{...otherProps}
+		/>
+	)
+}
+
+function SessionMeetingTime({action, entry, changeEntry, readOnly}) {
+	return (
+		<>
+			<Row>
+				<Field label='Session day:'>
+					<SessionDateSelector
+						value={isMultiple(entry.date)? []: entry.date}
+						onChange={date => changeEntry({date})}
+						placeholder={isMultiple(entry.date)? MULTIPLE_STR: undefined}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Start slot:'>
+					<TimeslotSelector
+						value={isMultiple(entry.startSlotId)? []: entry.startSlotId}
+						onChange={startSlotId => changeEntry({startSlotId})}
+						placeholder={isMultiple(entry.startSlotId)? MULTIPLE_STR: undefined}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Start time:'>
+					<InputTime
+						value={isMultiple(entry.startTime)? '': entry.startTime}
+						onChange={startTime => changeEntry({startTime})}
+						placeholder={isMultiple(entry.startTime)? MULTIPLE_STR: undefined}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='End time:'>
+					<InputTime
+						value={isMultiple(entry.endTime)? '': entry.endTime}
+						onChange={endTime => changeEntry({endTime})}
+						placeholder={isMultiple(entry.endTime)? MULTIPLE_STR: undefined}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+		</>
+	)
+}
+
+function CreditSelector({value, onChange}) {
+	return (
+		<div style={{display: 'flex', justifyContent: 'space-between'}}>
+			<div style={{margin: '0 5px'}}>
+				<input
+					type='radio'
+					id='extra'
+					value='Extra'
+					checked={value === 'Extra'}
+					onChange={e => onChange(e.target.value)}
+				/>
+				<label htmlFor='extra'>Extra</label>
+			</div>
+			<div style={{margin: '0 5px'}}>
+				<input
+					type='radio'
+					id='normal'
+					value='Normal'
+					checked={value === 'Normal'}
+					onChange={e => onChange(e.target.value)}
+				/>
+				<label htmlFor='normal'>Normal</label>
+			</div>
+			<div style={{margin: '0 5px'}}>
+				<input
+					type='radio'
+					id='other'
+					value='Other'
+					checked={value === 'Other'}
+					onChange={e => onChange(e.target.value)}
+				/>
+				<label htmlFor='other'>Other</label>
+			</div>
+			<div style={{margin: '0 5px'}}>
+				<input
+					type='radio'
+					id='zero'
+					value='Zero'
+					checked={value === 'Zero'}
+					onChange={e => onChange(e.target.value)}
+				/>
+				<label htmlFor='zero'>Zero</label>
+			</div>
+		</div>
+	)
 }
 
 export function WebexMeetingEdit({
@@ -211,7 +424,7 @@ export function WebexMeetingEdit({
 					value={isMultiple(webexAccountId)? null: webexAccountId}
 					onChange={webexAccountId => onChangeWebexAccountId(webexAccountId)}
 					placeholder={isMultiple(webexAccountId)? MULTIPLE_STR: undefined}
-					readOnly={readOnly || !isNew}
+					readOnly={readOnly}
 				/>
 			</Field>
 			{!webexMeeting.id &&
@@ -292,8 +505,8 @@ export function WebexMeetingEdit({
 	)
 }
 
-export function TeleconEntry({
-	groupId,
+export function MeetingEntry({
+	session,
 	entry,
 	changeEntry,
 	busy,
@@ -303,26 +516,15 @@ export function TeleconEntry({
 	actionCancel,
 }) {
 	const readOnly = action === 'view';
-
-	const changeHasMotions = (hasMotions) => {
-		let summary = entry.summary;
-		summary = summary.replace(/[*]$/, '');	// Remove trailing asterisk
-		if (hasMotions)
-			summary += '*';				// Add trailing asterisk
-		changeEntry({hasMotions, summary});
-	}
-
-	const toggleWebexMeeting = () => {
-		if (entry.webexMeeting)
-			changeEntry({webexMeetingId: null, webexMeeting: null});
-		else
-			changeEntry({webexMeeting: defaultWebexMeeting});
-	}
+	const isSession = isSessionMeeting(session);
 
 	return (
 		<Form
-			submitLabel={action === 'add'? 'Add': 'Update'}
+			title={isSession? 'Session meeting': 'Telecon'}
 			busy={busy}
+			submitLabel={action === 'add'? 'Add': 'Update'}
+			submit={action === 'add'? actionAdd: actionUpdate}
+			cancel={actionCancel}
 		>
 			<Row>
 				<Field label='Subgroup:'>
@@ -330,18 +532,6 @@ export function TeleconEntry({
 						value={isMultiple(entry.organizationId)? '': entry.organizationId || ''}
 						onChange={(organizationId) => changeEntry({organizationId})}
 						placeholder={isMultiple(entry.organizationId)? MULTIPLE_STR: undefined}
-						parent_id={groupId}
-						readOnly={readOnly}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Time zone:'>
-					<TimeZoneSelector
-						style={{width: 200}}
-						value={isMultiple(entry.timezone)? '': entry.timezone || ''}
-						onChange={(timezone) => changeEntry({timezone})}
-						placeholder={isMultiple(entry.timezone)? MULTIPLE_STR: undefined}
 						readOnly={readOnly}
 					/>
 				</Field>
@@ -358,66 +548,63 @@ export function TeleconEntry({
 					/>
 				</Field>
 			</Row>
+			{isSession?
+				<SessionMeetingTime
+					action={action}
+					entry={entry}
+					changeEntry={changeEntry}
+					readOnly={readOnly}
+				/>:
+				<TeleconMeetingTime
+					action={action}
+					entry={entry}
+					changeEntry={changeEntry}
+					readOnly={readOnly}
+				/>}
 			<Row>
 				<Field label='Location:'>
-					<Input
-						type='search'
-						style={{width: 200}}
-						value={isMultiple(entry.location)? '': entry.location || ''}
-						onChange={(e) => changeEntry({location: e.target.value})}
-						placeholder={isMultiple(entry.location)? MULTIPLE_STR: undefined}
-						disabled={readOnly}
-					/>
+					{isSession?
+						<RoomSelector
+							value={isMultiple(entry.roomId)? []: entry.roomId}
+							onChange={roomId => changeEntry({roomId})}
+							placeholder={isMultiple(entry.roomId)? MULTIPLE_STR: undefined}
+							disabled={readOnly}
+						/>:
+						<Input
+							type='search'
+							style={{width: 200}}
+							value={isMultiple(entry.location)? '': entry.location || ''}
+							onChange={(e) => changeEntry({location: e.target.value})}
+							placeholder={isMultiple(entry.location)? MULTIPLE_STR: undefined}
+							disabled={readOnly}
+						/>}
 				</Field>
 			</Row>
+			{isSession && 
+				<Row>
+					<Field label='Credit:'>
+						<CreditSelector
+							value={isMultiple(entry.credit)? '': entry.credit || ''}
+							onChange={(credit) => changeEntry({credit})}
+						/>
+					</Field>
+				</Row>}
+			{!isSession &&
+				<Row>
+					<Field label='Agenda includes motions:'>
+						<Checkbox
+							indeterminate={isMultiple(entry.hasMotions)}
+							checked={!!entry.hasMotions}
+							onChange={e => changeEntry({hasMotions: e.target.checked})}
+							disabled={readOnly}
+						/>
+					</Field>
+				</Row>}
 			<Row>
-				<Field label='Date:'>
-					<InputDates
-						disablePast
-						multi={action === 'add'}
-						value={isMultiple(entry.dates)? []: entry.dates}
-						onChange={dates => changeEntry({dates})}
-						placeholder={isMultiple(entry.dates)? MULTIPLE_STR: undefined}
-						disabled={readOnly}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Time:'>
-					<InputTime
-						value={isMultiple(entry.time)? '': entry.time}
-						onChange={time => changeEntry({time})}
-						placeholder={isMultiple(entry.time)? MULTIPLE_STR: undefined}
-						disabled={readOnly}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Duration:'>
-					<Input
-						type='search'
-						value={isMultiple(entry.duration)? '': entry.duration || ''}
-						onChange={e => changeEntry({duration: e.target.value})}
-						placeholder={isMultiple(entry.duration)? MULTIPLE_STR: undefined}
-						disabled={readOnly}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Agenda includes motions:'>
-					<Checkbox
-						indeterminate={isMultiple(entry.hasMotions)}
-						checked={!!entry.hasMotions}
-						onChange={e => changeHasMotions(e.target.checked)}
-						disabled={readOnly}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Include Webex:'>
+				<Field label='Webex:'>
 					<Checkbox
 						checked={!!entry.webexMeeting}
-						onChange={toggleWebexMeeting}
+						onChange={e => changeEntry({webexMeeting: e.target.checked? {}: null})}
 					/>
 				</Field>
 			</Row>
@@ -441,18 +628,13 @@ export function TeleconEntry({
 				</Field>
 			</Row>
 			<Row>
-				<Field label='IMAT:'>
+				<Field label='IMAT meeting:'>
 					<ImatMeetingSelector
 						value={entry.imatMeetingId}
 						onChange={imatMeetingId => changeEntry({imatMeetingId})}
 					/>
 				</Field>
 			</Row>
-			{(action === 'add' || action === 'update') &&
-			<Row>
-				<Button onClick={action === 'add'? actionAdd: actionUpdate}>{action === 'add'? 'Add': 'Update'}</Button>
-				<Button onClick={actionCancel}>Cancel</Button>
-			</Row>}
 		</Form>
 	)
 }
@@ -472,7 +654,7 @@ const NotAvailable = styled.div`
 	color: #bdbdbd;
 `;
 
-class TeleconDetail extends React.Component {
+class MeetingDetails extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = this.initState('update');
@@ -505,27 +687,25 @@ class TeleconDetail extends React.Component {
 	initState = (action) => {
 		const {entities, selected, defaults, groupId, session} = this.props;
 
-		console.log('initState')
-		const ids = selected;
 		let entry;
-		if (ids.length > 0) {
-			entry = convertToLocalTagMultiple(ids, entities);
-			console.log(entities[ids[0]], entry)
+		const meetings = selected.map(id => entities[id]);
+		if (meetings.length > 0) {
+			entry = convertMeetingsToEntryTagMultiple(meetings, session);
 			if (action === 'add') {
 				delete entry.id;
 				delete entry.calendarEventId;
 				delete entry.webexMeetingId;
-				if (isMultiple(entry.time))
-					entry.time = '';
+				if (isMultiple(entry.starTime))
+					entry.starTime = '';
 				if (isMultiple(entry.hasMotions))
 					entry.hasMotions = false;
 				entry.isCancelled = false;
-				entry.summary = this.defaultSummary(entry.organizationId);
+				entry.summary = this.defaultSummary(entry.organizationId, entry.hasMotions);
 				entry.timezone = session? session.timezone: defaults.timezone;
 				entry.calendarAccountId = defaults.calendarAccountId;
 				entry.webexAccountId = defaults.webexAccountId;
 				entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webexTemplateId};
-				entry.imatMeetingId = session?.id;
+				entry.imatMeetingId = session? session.imatMeetingId: null;
 			}
 			else {
 				if (isMultiple(entry.date))
@@ -536,23 +716,24 @@ class TeleconDetail extends React.Component {
 		}
 		else {
 			entry = {...defaultLocalEntry, organizationId: groupId};
-			entry.summary = this.defaultSummary(entry.organizationId);
+			entry.summary = this.defaultSummary(entry.organizationId, entry.hasMotions);
 			entry.timezone = session? session.timezone: defaults.timezone;
 			entry.calendarAccountId = defaults.calendarAccountId;
 			entry.webexAccountId = defaults.webexAccountId;
 			entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webexTemplateId};
-			entry.imatMeetingId = session?.id;
+			entry.imatMeetingId = session? session.imatMeetingId: null;
 		}
-		console.log(ids.length > 0, action, entry)
+		//console.log(entry)
 		return {
 			action,
 			entry,
-			ids,
+			saved: entry,
+			meetings,
 			busy: false
 		};
 	}
 
-	defaultSummary = (organizationId) => {
+	defaultSummary = (organizationId, hasMotions) => {
 		const {groupEntities} = this.props;
 
 		let subgroup, group;
@@ -562,22 +743,20 @@ class TeleconDetail extends React.Component {
 			subgroup.parent_id) {
 			group = groupEntities[subgroup.parent_id];
 		}
+
+		let summary = '';
 		if (group && subgroup)
-			return `${group.name} ${subgroup.name}`;
-		if (subgroup)
-			return subgroup.name;
-		return '';
+			summary = `${group.name} ${subgroup.name}`;
+		else if (subgroup)
+			summary = subgroup.name;
+		if (hasMotions)
+			summary += '*';
+		return summary;
 	}
 
 	getUpdates = () => {
-		let {entry, ids} = this.state;
-		const {entities} = this.props;
-
-		console.log('getUpdates')
-		ids = ids.filter(id => entities[id]);	// Only ids that exist
-		
-		// Collapse selection to local format
-		const collapsed = convertToLocalTagMultiple(ids, entities);
+		let {entry, saved, meetings} = this.state;
+		const {session} = this.props;		
 
 		// Get modified local entry without dates and webexMeeting.templateId
 		let {webexMeeting, dates, ...e} = entry;
@@ -589,21 +768,22 @@ class TeleconDetail extends React.Component {
 			e.date = dates[0];
 
 		// Find differences
-		const diff = deepDiff(collapsed, e);
-
+		const diff = deepDiff(saved, e);
+		//console.log(diff)
 		const updates = [];
-		for (const id of ids) {
+		for (const meeting of meetings) {
 			// Get original without superfluous webex params
-			const {webexMeeting, ...entity} = entities[id];
+			const {webexMeeting, ...entity} = meeting;
 			if (webexMeeting)
 				entity.webexMeeting = webexMeetingParams(webexMeeting);
 
-			const local = deepMerge(convertToLocal(entity), diff);
-			const updated = convertFromLocal(local);
-			console.log(updated)
+			const local = deepMerge(convertMeetingToEntry(entity, session), diff);
+			//console.log(local)
+			const updated = convertEntryToMeeting(local, session);
+			//console.log(updated)
 			//console.log(entities[id], convertFromLocal(changesLocal))
 			const changes = deepDiff(entity, updated);
-			console.log(changes)
+			//console.log(local, updated, changes)
 
 			// If a (new) webex account is given, add a webex meeting
 			if (changes.webexAccountId)
@@ -614,7 +794,7 @@ class TeleconDetail extends React.Component {
 				changes.imatBreakoutId = '$add';
 
 			if (Object.keys(changes).length > 0)
-				updates.push({id, changes});
+				updates.push({id: meeting.id, changes});
 		}
 		return updates;
 	}
@@ -662,14 +842,39 @@ class TeleconDetail extends React.Component {
 	}
 
 	changeEntry = (changes) => {
-		const {action} = this.state;
+		const {session, defaults} = this.props;
+		const {action, entry} = this.state;
 		if (action === 'view') {
 			console.warn("Update when read-only");
 			return;
 		}
 		changes = {...changes};
-		if (changes.hasOwnProperty('organizationId'))
-			changes.summary = this.defaultSummary(changes.organizationId);
+		if ('organizationId' in changes) {
+			changes.summary = this.defaultSummary(changes.organizationId, entry.hasMotions);
+		}
+		if ('hasMotions' in changes) {
+			let summary = entry.summary;
+			summary = summary.replace(/[*]$/, '');	// Remove trailing asterisk
+			if (changes.hasMotions)
+				summary += '*';				// Add trailing asterisk
+			changes.summary = summary;
+		}
+		if ('startSlotId' in changes) {
+			const slot = session.timeslots.find(slot => slot.id === changes.startSlotId);
+			if (slot) {
+				changes.startTime = slot.startTime;
+				changes.endTime = slot.endTime;
+			}
+		}
+		if ('webexMeeting' in changes) {
+			if (!changes.webexMeeting) {
+				changes.webexAccountId = null;
+			}
+			else if (Object.keys(changes.webexMeeting).length === 0) {
+				changes.webexAccountId = defaults.webexAccountId;
+				changes.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webexTemplateId};
+			}
+		}
 		this.setState(state => {
 			const entry = deepMerge(state.entry, changes);
 			return {...state, entry}
@@ -677,7 +882,7 @@ class TeleconDetail extends React.Component {
 	}
 
 	add = async () => {
-		const {addTelecons, setSelectedTelecons} = this.props;
+		const {addTelecons, setSelectedTelecons, session} = this.props;
 		let {entry} = this.state;
 
 		let errMsg = '';
@@ -705,8 +910,11 @@ class TeleconDetail extends React.Component {
 		if (entry.imatMeetingId)
 			entry = {...entry, imatBreakoutId: '$add'};
 
+		const meetings = convertEntryToMeetingMultipleDates(entry, session);
+		//console.log(meetings);
+		
 		this.setState({busy: true});
-		addTelecons(convertFromLocalMultipleDates(entry))
+		addTelecons(meetings)
 			.then(ids => setSelectedTelecons(ids))
 			.then(() => this.setState(this.initState('update')));
 	}
@@ -715,7 +923,8 @@ class TeleconDetail extends React.Component {
 		const {updateTelecons} = this.props;
 
 		const updates = this.getUpdates();
-		console.log(updates)
+		//console.log(updates)
+
 		this.setState({busy: true});
 		updateTelecons(updates)
 			.then(() => this.setState(this.initState('update')));
@@ -726,7 +935,7 @@ class TeleconDetail extends React.Component {
 	}
 
 	render() {
-		const {loading, selected, groupId} = this.props;
+		const {loading, selected, session} = this.props;
 		const {action, entry} = this.state;
 
 		let notAvailableStr = '';
@@ -739,30 +948,30 @@ class TeleconDetail extends React.Component {
 			<Container>
 				<TopRow style={{justifyContent: 'flex-end'}}>
 					<ActionButton
-						name='add'
-						title='Add telecon'
-						disabled={loading}
-						isActive={action === 'add'}
-						onClick={this.clickAdd}
-					/>
-					<ActionButton
 						name='cancel'
-						title={(entry.isCancelled === 1? 'Uncancel': 'Cancel') + ' telecon'}
+						title={(entry.isCancelled === 1? 'Uncancel': 'Cancel') + ' meeting'}
 						disabled={loading}
 						isActive={entry.isCancelled === 1}
 						onClick={this.clickCancel}
 					/>
 					<ActionButton
+						name='add'
+						title='Add meeting'
+						disabled={loading}
+						isActive={action === 'add'}
+						onClick={this.clickAdd}
+					/>
+					<ActionButton
 						name='delete'
-						title='Delete telecon'
+						title='Delete meeting'
 						disabled={loading || selected.length === 0}
 						onClick={this.clickDelete}
 					/>
 				</TopRow>
 				{notAvailableStr?
 					<NotAvailable>{notAvailableStr}</NotAvailable>:
-					<TeleconEntry
-						groupId={groupId}
+					<MeetingEntry
+						session={session}
 						entry={entry}
 						changeEntry={this.changeEntry}
 						busy={this.state.busy}
@@ -790,7 +999,7 @@ class TeleconDetail extends React.Component {
 	}
 }
 
-const ConnectedTeleconDetail = connect(
+const ConnectedMeetingDetails = connect(
 	(state) => ({
 		groupId: selectCurrentGroupId(state),
 		session: selectCurrentSession(state),
@@ -806,6 +1015,6 @@ const ConnectedTeleconDetail = connect(
 		addTelecons,
 		deleteTelecons
 	}
-)(TeleconDetail);
+)(MeetingDetails);
 
-export default ConnectedTeleconDetail;
+export default ConnectedMeetingDetails;

@@ -5,25 +5,26 @@ import {useSelector} from 'react-redux';
 import {Select} from 'dot11-components/form';
 
 import {selectGroupsState} from '../store/groups';
+import {selectCurrentGroupId} from '../store/current';
 
 export function GroupSelector({
 	value,
 	onChange,
-	parent_id,
 	types,
 	multi,
 	...otherProps
 }) {
+	const parentId = useSelector(selectCurrentGroupId);
 	const {entities, ids} = useSelector(selectGroupsState);
 
 	const groups = React.useMemo(() => {
 		let groups = ids.map(id => entities[id]);
 		if (types)
 			groups = groups.filter(group => types.includes(group.type));
-		if (parent_id)
-			groups = groups.filter(group => group.id === parent_id || group.parent_id === parent_id);
+		if (parentId)
+			groups = groups.filter(group => group.id === parentId || group.parent_id === parentId);
 		return groups;
-	}, [entities, ids, types, parent_id]);
+	}, [parentId, entities, ids, types]);
 
 	const handleChange = React.useCallback((values) => {
 		let newValues;

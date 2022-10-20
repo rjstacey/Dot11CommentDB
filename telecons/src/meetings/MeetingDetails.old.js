@@ -35,14 +35,6 @@ import {WebexMeetingEdit, defaultWebexMeeting} from './TeleconDetail';
 
 const MULTIPLE_STR = '(Multiple)';
 
-const defaultLocalEntry = {
-	date: '',
-	roomId: '',
-	slotId: '',
-	startTime: '',
-	endTime: '',
-}
-
 function DateSelector({value, onChange, ...otherProps}) {
 	const options = useSelector(selectCurrentSessionDates).map(date => ({value: date, label: date}))
 	const handleChange = (values) => onChange(values.length > 0? values[0].value: null);
@@ -89,6 +81,53 @@ function RoomSelector({value, onChange, options, ...otherProps}) {
 	)
 }
 
+function CreditSelector({value, onChange}) {
+	return (
+		<div style={{display: 'flex', justifyContent: 'space-between'}}>
+			<div style={{margin: '0 5px'}}>
+				<input
+					type='radio'
+					id='extra'
+					value='Extra'
+					checked={value === 'Extra'}
+					onChange={e => onChange(e.target.value)}
+				/>
+				<label htmlFor='extra'>Extra</label>
+			</div>
+			<div style={{margin: '0 5px'}}>
+				<input
+					type='radio'
+					id='normal'
+					value='Normal'
+					checked={value === 'Normal'}
+					onChange={e => onChange(e.target.value)}
+				/>
+				<label htmlFor='normal'>Normal</label>
+			</div>
+			<div style={{margin: '0 5px'}}>
+				<input
+					type='radio'
+					id='other'
+					value='Other'
+					checked={value === 'Other'}
+					onChange={e => onChange(e.target.value)}
+				/>
+				<label htmlFor='other'>Other</label>
+			</div>
+			<div style={{margin: '0 5px'}}>
+				<input
+					type='radio'
+					id='zero'
+					value='Zero'
+					checked={value === 'Zero'}
+					onChange={e => onChange(e.target.value)}
+				/>
+				<label htmlFor='zero'>Zero</label>
+			</div>
+		</div>
+	)
+}
+
 export function EditMeeting({
 	action,
 	groupId,
@@ -109,7 +148,6 @@ export function EditMeeting({
 			changeEntry({webexMeeting: defaultWebexMeeting});
 	}
 
-	console.log(entry)
 	return (
 		<Form
 			title={action === 'add'? "Add meeting": "Update meeting"}
@@ -193,48 +231,11 @@ export function EditMeeting({
 			</Row>
 			<Row>
 				<Field label='Credit:'>
-					<div style={{display: 'flex', justifyContent: 'space-between'}}>
-						<div style={{margin: '0 5px'}}>
-							<input
-								type='radio'
-								id='extra'
-								value='Extra'
-								checked={entry.credit === 'Extra'}
-								onChange={e => changeEntry({credit: e.target.value})}
-							/>
-							<label htmlFor='extra'>Extra</label>
-						</div>
-						<div style={{margin: '0 5px'}}>
-							<input
-								type='radio'
-								id='normal'
-								value='Normal'
-								checked={entry.credit === 'Normal'}
-								onChange={e => changeEntry({credit: e.target.value})}
-							/>
-							<label htmlFor='normal'>Normal</label>
-						</div>
-						<div style={{margin: '0 5px'}}>
-							<input
-								type='radio'
-								id='other'
-								value='Other'
-								checked={entry.credit === 'Other'}
-								onChange={e => changeEntry({credit: e.target.value})}
-							/>
-							<label htmlFor='other'>Other</label>
-						</div>
-						<div style={{margin: '0 5px'}}>
-							<input
-								type='radio'
-								id='zero'
-								value='Zero'
-								checked={entry.credit === 'Zero'}
-								onChange={e => changeEntry({credit: e.target.value})}
-							/>
-							<label htmlFor='zero'>Zero</label>
-						</div>
-					</div>
+					<CreditSelector
+						value={entry.credit}
+						onChange={credit => changeEntry({credit})}
+						disabled={readOnly}
+					/>
 				</Field>
 			</Row>
 			<Row>
@@ -314,8 +315,7 @@ class MeetingDetails extends React.Component {
 	}
 
 	componentDidMount() {
-		const {setSelectedTelecons, setSelectedSlots} = this.props;
-		setSelectedTelecons([]);
+		const {setSelectedSlots} = this.props;
 		setSelectedSlots([]);
 		this.setState(this.initState('view'));
 	}
@@ -352,7 +352,7 @@ class MeetingDetails extends React.Component {
 
 	initState = (action) => {
 		const {selectedTelecons, selectedSlots, entities, session, defaults, groupId} = this.props;
-		const {rooms, timeslots} = session;
+		const {timeslots} = session;
 
 		let entry = {};
 		if (action === 'update' && selectedTelecons.length) {

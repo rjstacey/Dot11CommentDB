@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import {Select} from 'dot11-components/form';
 import {displayDateRange} from 'dot11-components/lib';
+import {ActionIcon} from 'dot11-components/icons';
 
 import {loadSessions, selectSessionsState} from '../store/sessions';
 
@@ -72,4 +73,28 @@ SessionSelector.propTypes = {
 	readOnly: PropTypes.bool,
 }
 
+function RawSessionSelector({onChange}) {
+	const {ids, entities} = useSelector(selectSessionsState);
+	const options = React.useMemo(() => ids.map(id => entities[id]), [entities, ids]);
+	return (
+		<Select
+			style={{border: 'none', padding: 'none'}}
+			options={options}
+			values={[]}
+			onChange={(values) => onChange(values.length? values[0].id: null)}
+			itemRenderer={renderItem}
+			selectItemRenderer={renderItem}
+			valueField='id'
+			labelField='name'
+			placeholder=''
+			searchable={false}
+			handle={false}
+			dropdownWidth={300}
+			dropdownAlign='right'
+			contentRenderer={() => <ActionIcon name='import' />}
+		/>
+	)
+}
+
 export default SessionSelector;
+export {RawSessionSelector};

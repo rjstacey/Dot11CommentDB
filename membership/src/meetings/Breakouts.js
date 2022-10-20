@@ -45,9 +45,9 @@ const renderAttendance = ({rowData, dataKey}) =>
 
 const renderSessionInfo = (meeting) =>
 	<div style={{display: 'flex', flexDirection: 'column'}}>
-		<span>{meeting.Name}</span>
-		<span>{displayDate(meeting.Start) + ' - ' + displayDate(meeting.End)}</span>
-		<span>{meeting.TimeZone}</span>
+		<span>{meeting.name}</span>
+		<span>{displayDate(meeting.startDate) + ' - ' + displayDate(meeting.endDate)}</span>
+		<span>{meeting.timezone}</span>
 	</div>
 
 const columns = [

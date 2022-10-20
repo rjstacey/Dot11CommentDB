@@ -137,7 +137,7 @@ function Epolls() {
 			>
 				<BallotAddForm
 					defaultBallot={addBallot}
-					close={() => setAddBallot(null)}
+					methods={{close: () => setAddBallot(null)}}
 				/>
 			</AppModal>
 		</>

@@ -54,11 +54,15 @@ async function selectTelecons(constraints) {
 		wheres.push(db.format('(o.parent_id=UUID_TO_BIN(?) OR o.id=UUID_TO_BIN(?))', [groupId, groupId]));
 	}
 
-	if (fromDate)
-		wheres.push(db.format('end > ?', [new Date(fromDate)]));
+	if (fromDate) {
+		//wheres.push(db.format('end > ?', [new Date(fromDate)]));
+		wheres.push(db.format('end > ?', fromDate));
+	}
 
-	if (toDate)
-		wheres.push(db.format('start < ?', [new Date(toDate)]));
+	if (toDate) {
+		//wheres.push(db.format('start <= ?', [new Date(toDate)]));
+		wheres.push(db.format('start <= ?', toDate));
+	}
 
 	if (Object.entries(rest).length) {
 		wheres = wheres.concat(
@@ -88,11 +92,14 @@ async function selectTelecons(constraints) {
  */
 export async function getTelecons(constraints) {
 	const telecons = await selectTelecons(constraints);
-	const webexMeetings = await getWebexMeetings({groupId: constraints.parent_id});
+	const ids = telecons.map(t => t.webexMeetingId);
+	const webexMeetings = ids.length > 0?
+		await getWebexMeetings({groupId: constraints.parent_id, ids}):
+		[];
 	return {telecons, webexMeetings};
 }
 
-function teleconEntry(e) {
+function teleconEntrySetSql(e) {
 
 	const opt = e.timezone? {zone: e.timezone}: {setZone: true};
 	const entry = {
@@ -146,24 +153,10 @@ function teleconToWebexMeeting(entry) {
 	return webexMeeting;
 }
 
-function alphToNum(word) {
-	const alph_num_dict = {'a': '2', 'b': '2', 'c': '2',
-					'd': '3', 'e': '3', 'f': '3',
-					'g': '4', 'h': '4', 'i': '4',
-					'j': '5', 'k': '5', 'l': '5',
-					'm': '6', 'n': '6', 'o': '6',
-					'p': '7', 'q': '7', 'r': '7', 's': '7',
-					'u': '8', 'w': '9', 'v': '8',
-					'w': '9', 'x': '9', 'y': '9', 'z': '9'};
-	let s = ''
-	for (let p of word.toLowerCase())
-		s += alph_num_dict[p] || p;
-	return s;
-}
-
+// Format Webex meeting number (e.g., 1234 567 8901)
 const formatMeetingNumber = (n) => n.substr(0, 4) + ' ' + n.substr(4, 3) + ' ' + n.substr(7);
 
-async function webexMeetingImatLocation(webexAccountId, webexMeeting) {
+export async function webexMeetingImatLocation(webexAccountId, webexMeeting) {
 	let location = '';
 	const [webexAccount] = await getWebexAccounts({id: webexAccountId});
 	if (webexAccount)
@@ -191,7 +184,7 @@ const meetingDescriptionStyle = `
 		}
 	</style>`;
 
-function teleconWebexDescription(entry) {
+function teleconCalendarDescription(entry) {
 
 	const {webexMeeting} = entry;
 
@@ -244,11 +237,12 @@ function teleconWebexDescription(entry) {
 
 
 function teleconToCalendarEvent(entry) {
-	let location = '',
+	let location = entry.location || '',
 	    description = '';
 	if (entry.webexMeeting) {
-		description = teleconWebexDescription(entry);
-		location = entry.webexMeeting.webLink || '';
+		description = teleconCalendarDescription(entry);
+		if (!location)
+			location = entry.webexMeeting.webLink || '';
 	}
 	return {
 		summary: entry.summary,
@@ -277,7 +271,6 @@ async function addTelecon(user, entry) {
 		else {
 			entry.webexMeeting = await updateWebexMeeting(entry.webexAccountId, entry.webexMeetingId, webexMeeting);
 		}
-		entry.location = await webexMeetingImatLocation(entry.webexAccountId, entry.webexMeeting);
 	}
 
 	/* If meetingId is given then add a breakout for this telecon */
@@ -303,7 +296,7 @@ async function addTelecon(user, entry) {
 		}
 	}
 
-	const sql = 'INSERT INTO telecons SET ' + teleconEntry(entry);
+	const sql = 'INSERT INTO telecons SET ' + teleconEntrySetSql(entry);
 	const {insertId} = await db.query(sql);
 	return insertId;
 }
@@ -327,26 +320,27 @@ export async function updateTelecon(user, id, changes) {
 		throw new Error(`Telecon entry ${id} does not exist`);
 
 	/* Make Webex changes.
-	 * Remove an existing webex meeting if the webexMeetingId is changed to null.
-	 * Add a webex meeting if one does not exist and webexMeeting object is present.
-	 * Remove an existing webex meeting and add new webex meeting if the webex account is changed and webexMeeting is present.
-	 * Otherwise, update existing meeting. */
+	 * If a Webex meeting was previously created (current entry has webexAccountId and webexMeetingId):
+	 *   Remove existing Webex meeting if webexMeetingId is changed to null.
+	 *   Remove existing Webex meeting and add a new webex meeting if webexMeetingId is changed to '$add'.
+	 *   Otherwise, update the existing meeting
+	 * If a Webex meeting has not yet been created (current entry is missing webexAccountId and/or webexMeetingId):
+	 *   Add Webex meeting if webexMeetingId is '$add'
+	 */
 	let webexMeeting = teleconToWebexMeeting({...telecon, ...teleconChanges});
 	webexMeeting = {...webexMeeting, ...webexMeetingChanges};
 	const webexAccountId = teleconChanges.webexAccountId || telecon.webexAccountId;
 	if (telecon.webexAccountId && telecon.webexMeetingId) {
-		// Webex meeting exists
+		// Webex meeting previously created
 		if (('webexAccountId' in teleconChanges && teleconChanges.webexAccountId !== telecon.webexAccountId) ||
 			('webexMeetingId' in teleconChanges && teleconChanges.webexMeetingId !== telecon.webexMeetingId))
 		{
 			// Delete the webex meeting if the webex account or webex meeting ID changes
-			console.log('delete webex meeting', telecon.webexMeetingId);
 			try {
 				await deleteWebexMeeting(telecon.webexAccountId, telecon.webexMeetingId);
 			}
 			catch (error) {
-				console.log(error instanceof NotFoundError)
-				// Ignore "meeting does not" exist error (may already be deleted)
+				// Ignore "meeting does not" exist error (probably delete through other means)
 				if (!(error instanceof NotFoundError))	// Webex meeting does not exist
 					throw error;
 			}
@@ -373,51 +367,74 @@ export async function updateTelecon(user, id, changes) {
 			}
 		}
 		teleconChanges.webexMeeting = webexMeeting;
-		if (webexMeeting)
-			teleconChanges.location = await webexMeetingImatLocation(webexAccountId, webexMeeting);
-		else
-			teleconChanges.location = null;
 	}
 	else {
-		// Webex meeting does not exist
+		// Webex meeting not created yet
 		if (webexAccountId && teleconChanges.webexMeetingId === '$add') {
 			// Add new webex meeting
 			webexMeeting = await addWebexMeeting(telecon.webexAccountId, webexMeeting);
 			teleconChanges.webexMeeting = webexMeeting;
 			teleconChanges.webexMeetingId = webexMeeting.id;
-			teleconChanges.location = await webexMeetingImatLocation(webexAccountId, webexMeeting);
 		}
 	}
 
-	/* Make IMAT breakout changes */
+	/* Make IMAT breakout changes
+	 * If IMAT breakout was previously created (current entry has imatMeetingId and imatBreakoutId):
+	 *   If the imatMeetingId or imatBreakoutId is changed:
+	 *     Remove existing IMAT breakout if imatBreakoutId is set to null.
+	 *     Remove existing IMAT breakout and add a new IMAT breakout if imatBreakoutId === '$add'.
+	 *     Remove existing IMAT breakout and update specified IMAT breakout if imatBreakoutId is not null and not '$add'
+	 *       (the user is linking a telecon entry to an existing IMAT breakout entry)
+	 *   If the imatMeetingId and imatBreakoutId remain unchanged:
+	 *     Update existing IMAT breakout
+	 * If IMAT breakout has not yet been created (current entry is missing imatMeetingId and/or imatBreakoutId):
+	 *   Add IMAT breakout if imatBreakoutId is '$add'
+	 *   Update specified IMAT breakout if imatBreakoutId is not '$add'
+	 *      (the user is linking a telecon entry to an existing IMAT breakout entry)
+	 */
 	try {
 		const imatMeetingId = telecon.imatMeetingId || teleconChanges.imatMeetingId;
 		if (telecon.imatMeetingId && telecon.imatBreakoutId) {
-			// IMAT breakout exists
+			// IMAT breakout previously created
 			if (('imatMeetingId' in teleconChanges && teleconChanges.imatMeetingId !== telecon.imatMeetingId) ||
 				('imatBreakoutId' in teleconChanges && teleconChanges.imatBreakoutId !== telecon.imatBreakoutId))
 			{
-				// Session or linked breakout has changed
-				await deleteImatBreakouts(user, telecon.imatMeetingId, [telecon.imatBreakoutId]);
+				// Delete existing breakout if the breakout meeting or breakout ID changes
+				try {
+					await deleteImatBreakouts(user, telecon.imatMeetingId, [telecon.imatBreakoutId]);
+				}
+				catch (error) {
+					if (!(error instanceof NotFoundError))
+						throw error;
+				}
 				if (teleconChanges.imatBreakoutId === '$add') {
 					// Different session
-					console.log('add breakout')
 					const breakout = await addImatBreakoutFromTelecon(user, imatMeetingId, {...telecon, ...teleconChanges});
 					teleconChanges.imatBreakoutId = breakout.id;
 				}
 				else if (teleconChanges.imatBreakoutId) {
+					// User is linking telecon to an existing IMAT breakout
 					console.log('update breakout')
 					await updateImatBreakoutFromTelecon(user, imatMeetingId, teleconChanges.imatBreakoutId, {...telecon, ...teleconChanges});
 				}
 			}
 			else {
-				// Update existing breakout
+				// Update previously created breakout
 				console.log('update breakout')
-				await updateImatBreakoutFromTelecon(user, telecon.imatMeetingId, telecon.imatBreakoutId, {...telecon, ...teleconChanges});
+				try {
+					await updateImatBreakoutFromTelecon(user, telecon.imatMeetingId, telecon.imatBreakoutId, {...telecon, ...teleconChanges});
+				}
+				catch (error) {
+					// If the IMAT breakout no longer exists
+					if (error instanceof NotFoundError)
+						teleconChanges.imatBreakoutId = null;
+					else
+						throw error;
+				}
 			}
 		}
 		else {
-			// IMAT breakout does not exist (or not previously linked)
+			// IMAT breakout not prevoiusly created
 			if (imatMeetingId) {
 				if (teleconChanges.imatBreakoutId === '$add') {
 					console.log('add breakout')
@@ -456,7 +473,9 @@ export async function updateTelecon(user, id, changes) {
 		}
 		else {
 			// Calendar event does not exist
-			const calendarAccountId = teleconChanges.calendarAccountId || telecon.calendarAccountId;
+			const calendarAccountId = 'calendarAccountId' in teleconChanges?
+				teleconChanges.calendarAccountId:
+				telecon.calendarAccountId;
 			if (calendarAccountId) {
 				calendarEvent = await addCalendarEvent(calendarAccountId, calendarEvent);
 				teleconChanges.calendarEventId = calendarEvent.id;
@@ -465,13 +484,13 @@ export async function updateTelecon(user, id, changes) {
 	}
 	catch (error) {
 		console.log('Unable to update clendar');
+		console.log(error)
 	}
 
-	const setSql = teleconEntry(teleconChanges);
-	if (setSql) {
-		console.log(setSql, id)
+	const setSql = teleconEntrySetSql(teleconChanges);
+	if (setSql)
 		await db.query('UPDATE telecons SET ' + setSql + ' WHERE id=?;', [id]);
-	}
+
 	return id;
 }
 
@@ -523,48 +542,3 @@ export async function deleteTelecons(user, ids) {
 	const {affectedRows} = await db.query('DELETE FROM telecons WHERE id IN (?);', [ids]);
 	return affectedRows;
 }
-
-/*
-function teleconWebexMeetingDiff(telecon, webexMeeting) {
-	const entry = teleconToWebexMeeting(telecon);
-	const changes = {};
-	changes.title = entry.title;
-	changes.start = entry.start;
-	changes.end = entry.end;
-	changes.password = entry.password;
-	changes.enabledAutoRecordMeeting = false;
-	return changes;
-}
-
-async function addWebexMeetingToTelecon(id, webexMeeting) {
-	return await updateTelecon(id, {webexMeetingId: null, webexMeeting});
-}
-
-export async function addWebexMeetingToTelecons(telecons) {
-	// Validate request
-	if (telecons.length === 0)
-		return [];
-	for (const t of telecons) {
-		if (typeof t !== 'object' || !t.id || !t.webexMeeting)
-			throw new TypeError('Expected array of objects with shape {id, webexMeeting}');
-	}
-	const ids = await Promise.all(telecons.map(t => addWebexMeetingToTelecon(t.id, t.webexMeeting)));
-	return await getTelecons({id: ids});
-}
-
-async function removeWebexMeetingFromTelecon(id) {
-	return await updateTelecon(id, {webexMeetingId: null});
-}
-
-export async function removeWebexMeetingFromTelecons(telecons) {
-	// Validate request
-	if (telecons.length === 0)
-		return [];
-	for (const t of telecons) {
-		if (typeof t !== 'object' || !t.id)
-			throw new TypeError('Expected array of objects with shape {id}');
-	}
-	const ids = await Promise.all(telecons.map(t => removeWebexMeetingFromTelecon(t.id)));
-	return await getTelecons({id: ids});
-}
-*/

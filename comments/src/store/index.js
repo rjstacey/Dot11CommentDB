@@ -74,7 +74,7 @@ function configureStore() {
 
 	const persistConfig = {
 		key: 'comments',
-		version: 1,
+		version: 2,
 		storage: {	// IndexedDB for storage using idb-keyval
 			setItem: set,
 			getItem: get,
@@ -84,7 +84,7 @@ function configureStore() {
 		transforms: [dataAdapterTansform],
 		stateReconciler: autoMergeLevel2,
 		migrate: (state) => {
-			if (state && state._persist && state._persist.version !== 1)
+			if (state && state._persist && state._persist.version !== 2)
 				return Promise.reject('Discard old version')
 			return Promise.resolve(state);
 		}

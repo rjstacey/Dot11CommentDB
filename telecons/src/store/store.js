@@ -1,10 +1,9 @@
 import { combineReducers, createStore, applyMiddleware } from 'redux';
 import thunk from 'redux-thunk';
 import { createLogger } from 'redux-logger';
-import { persistStore, persistReducer } from 'redux-persist';
+import { persistStore, persistReducer, createTransform } from 'redux-persist';
 import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import { get, set, del } from 'idb-keyval';
-import { composeWithDevTools } from 'redux-devtools-extension';
 
 import errMsg from 'dot11-components/store/error';
 import userSlice from './user';
@@ -21,8 +20,38 @@ import imatCommitteesSlice from './imatCommittees';
 import imatMeetingsSlice from './imatMeetings';
 import imatBreakoutsSlice from './imatBreakouts';
 import webexMeetingsSlice from './webexMeetingsSlice';
-import imatBreakoutAttendanceSlice from './imatBreakoutAttendance';
+import imatAttendanceSlice from './imatBreakoutAttendance';
 import ieee802WorldScheduleSlice from './ieee802WorldSchedule';
+
+const dataAppSliceNames = [
+	membersSlice.name,
+	groupsSlice.name,
+	officersSlice.name,
+	sessionsSlice.name,
+	teleconsSlice.name,
+	webexMeetingsSlice.name,
+	imatCommitteesSlice.name,
+	imatMeetingsSlice.name,
+	imatBreakoutsSlice.name,
+	imatAttendanceSlice.name,
+	ieee802WorldScheduleSlice.name
+];
+
+/*
+ * For the dataApp slices (anything that maintains a 'loading' state)
+ * clear the loading state when restoring from cache.
+ */
+const transformState = createTransform(
+	(state, key) => {
+		const {loading, ...rest} = state;
+		return rest;
+	},
+	(state, key) => {
+		return {...state, loading: false};
+	},
+	dataAppSliceNames
+);
+
 
 export function configureStore() {
 
@@ -31,18 +60,18 @@ export function configureStore() {
 		[userSlice.name]: userSlice.reducer,
 		[currentSlice.name]: currentSlice.reducer,
 		[membersSlice.name]: membersSlice.reducer,
-		[officersSlice.name]: officersSlice.reducer,
 		[webexAccountsSlice.name]: webexAccountsSlice.reducer,
 		[calendarAccountsSlice.name]: calendarAccountsSlice.reducer,
 		[timeZonesSlice.name]: timeZonesSlice.reducer,
 		[groupsSlice.name]: groupsSlice.reducer,
+		[officersSlice.name]: officersSlice.reducer,
 		[sessionsSlice.name]: sessionsSlice.reducer,
 		[teleconsSlice.name]: teleconsSlice.reducer,
 		[webexMeetingsSlice.name]: webexMeetingsSlice.reducer,
 		[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
 		[imatMeetingsSlice.name]: imatMeetingsSlice.reducer,
 		[imatBreakoutsSlice.name]: imatBreakoutsSlice.reducer,
-		[imatBreakoutAttendanceSlice.name]: imatBreakoutAttendanceSlice.reducer,
+		[imatAttendanceSlice.name]: imatAttendanceSlice.reducer,
 		[ieee802WorldScheduleSlice.name]: ieee802WorldScheduleSlice.reducer,
 	});
 
@@ -71,6 +100,7 @@ export function configureStore() {
 			webexMeetingsSlice.name,
 			imatMeetingsSlice.name,
 		],
+		transforms: [transformState],
 		stateReconciler: autoMergeLevel2,
 		migrate: (state) => {
 			if (state && state._persist && state._persist.version !== 2)

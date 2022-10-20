@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import { DateTime, Duration } from 'luxon';
 import cheerio from 'cheerio';
 import { csvParse, AuthError, NotFoundError } from '../utils';
-import { getTelecons, updateTelecon } from './telecons';
+import { getTelecons, updateTelecon, webexMeetingImatLocation } from './telecons';
 import { getGroups } from './groups';
 
 const FormData = require('form-data');
@@ -215,7 +215,7 @@ function parseAddMeetingPage(body) {
 
 	// f11 selects timeslot end
 	$('select[name="f11"] > option').each(function(index) {
-		const id = $(this).attr('value');
+		const id = parseInt($(this).attr('value'));
 		const p = $(this).html().split('&nbsp;');
 		timeslots[id].endTime = p[1];
 	});
@@ -337,6 +337,8 @@ export function parseSessionDetailPage(body) {
 			const slotsRange = m[1];
 			const eventDate = DateTime.fromFormat(m[2], 'dd-MMM-yyyy', {zone: timezone});
 			b.day = eventDate.diff(sessionStart, 'days').get('days');
+			b.startTime = m[3];
+			b.endTime = m[4];
 			b.start = eventDate.set({hour: m[3].substring(0, 2), minute: m[3].substring(3)}).toISO();
 			b.end = eventDate.set({hour: m[4].substring(0, 2), minute: m[4].substring(3)}).toISO();
 
@@ -466,8 +468,17 @@ export async function getImatBreakouts(user, meetingId) {
 		throw new AuthError('Not logged in');
 	const committees = await parseImatCommitteesCsv(response.data);
 
-	response = await ieeeClient.get(`/802.11/breakout?p=${meetingId}`);
+	response = await ieeeClient.get(`/${session.organizerId}/breakout?p=${meetingId}`);
 	const {timeslots, committees: committees2} = parseAddMeetingPage(response.data);
+
+	for (const b of breakouts) {
+		const startSlot = timeslots.find(t => t.name === b.startSlot);
+		if (startSlot)
+			b.startSlotId = startSlot.id;
+		const endSlot = timeslots.find(t => t.name === b.startSlot);
+		if (endSlot)
+			b.endSlotId = endSlot.id;
+	}
 
 	//console.log(timeslots, committees, committees2)
 
@@ -480,6 +491,11 @@ export async function getImatBreakouts(user, meetingId) {
 				c1.id = c2.id;
 		}
 	}
+
+	breakouts.forEach(b => {
+		const c = committees.find(c => c.shortName === b.groupShortName);
+		b.symbol = c?.symbol;
+	});
 
 	return {session, breakouts, timeslots, committees};
 }
@@ -843,12 +859,17 @@ async function teleconToBreakout(user, telecon, session, timeslots, committees) 
 	if (telecon.isCancelled)
 		location = 'CANCELLED';
 
+	if (!location && telecon.webexMeeting)
+		location = webexMeetingImatLocation(telecon.webexAccountId, telecon.webexMeeting);
+	
 	const [group] = await getGroups({id: telecon.organizationId});
 	if (!group)
 		throw new TypeError(`Can't find group id=${telecon.organizationId}`);
 
-	const committee = committees.find(c => c.symbol === group.imatCommitteeId);
-	const groupId = committee? committee.id: 0;
+	const committee = committees.find(c => c.symbol === group.symbol);
+	if (!committee)
+		throw new TypeError(`Can't find committee symbol=${group.symbol}`);
+	const groupId = committee.id;
 
 	let name = group.name;
 	if (telecon.isCancelled)

@@ -6,12 +6,12 @@
   "proxy": "https://localhost:8080",
   "dependencies": {
     "@emotion/styled": "^11.1.5",
-    "@reduxjs/toolkit": "^1.5.0",
+    "@reduxjs/toolkit": "^1.8.3",
     "@testing-library/jest-dom": "^5.11.9",
     "@testing-library/react": "^11.2.5",
     "@testing-library/user-event": "^12.7.1",
     "copy-html-to-clipboard": "^4.0.1",
-    "dot11-components": "^1.0.81",
+    "dot11-components": "^1.0.111",
     "idb-keyval": "^6.0.3",
     "luxon": "^2.3.0",
     "react": "^17.0.2",
@@ -19,7 +19,6 @@
     "react-redux": "^7.2.2",
     "react-router": "^5.2.0",
     "react-router-dom": "^5.2.0",
-    "react-scripts": "^4.0.2",
     "react-window": "^1.8.6",
     "redux": "^4.0.5",
     "redux-devtools-extension": "^2.13.9",
@@ -54,6 +53,7 @@
     ]
   },
   "devDependencies": {
-    "http-proxy-middleware": "^0.19.1"
+    "http-proxy-middleware": "^0.19.1",
+    "react-scripts": "^5.0.1"
   }
 }

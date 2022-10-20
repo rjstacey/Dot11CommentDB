@@ -488,7 +488,7 @@ const BallotDetail = connect(
 
 export function BallotAddForm({
 	defaultBallot,
-	close
+	methods
 }) {
 	const dispatch = useDispatch();
 	const [ballot, setBallot] = React.useState(defaultBallot || getDefaultBallot());
@@ -499,7 +499,7 @@ export function BallotAddForm({
 		await dispatch(addBallot(ballot));
 		await dispatch(setCurrentProject(ballot.Project));
 		setBusy(false);
-		close();
+		methods.close();
 	}
 
 	const updateBallot = (changes) => setBallot(ballot => ({...ballot, ...changes}));
@@ -510,7 +510,7 @@ export function BallotAddForm({
 			title='Add ballot'
 			submit={submit}
 			submitText='Add'
-			cancel={close}
+			cancel={methods.close}
 			busy={busy}
 		>
 			<Ballot
@@ -530,9 +530,8 @@ BallotAddForm.propTypes = {
 export const BallotAddDropdown = (props) => 
 	<ActionButtonDropdown
 		name='add'
-		title='Add ballot' 
-	>
-		<BallotAddForm {...props} />
-	</ActionButtonDropdown>
+		title='Add ballot'
+		dropdownRenderer={(props) => <BallotAddForm {...props} />}
+	/>
 
 export default BallotDetail;

@@ -33,9 +33,9 @@ const TableRow = styled.div`
 
 const renderSessionInfo = (meeting) =>
 	<div>
-		<span>{meeting.Name}</span><br />
-		<span>{displayDateRange(meeting.Start, meeting.End)}</span><br />
-		<span>{meeting.TimeZone}</span>
+		<span>{meeting.name}</span><br />
+		<span>{displayDateRange(meeting.startDate, meeting.endDate)}</span><br />
+		<span>{meeting.timezone}</span>
 	</div>
 
 const AttendeesColumnDropdown = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
@@ -75,9 +75,9 @@ const attendanceColumn =
 const renderTitle = (meeting, breakout) =>
 	<>
 		<div>
-			<span>{meeting.Name}</span><br />
-			<span>{displayDateRange(meeting.Start, meeting.End)}</span><br />
-			<span>{'Time zone: ' + meeting.TimeZone}</span>
+			<span>{meeting.name}</span><br />
+			<span>{displayDateRange(meeting.startDate, meeting.endDate)}</span><br />
+			<span>{'Time zone: ' + meeting.timezone}</span>
 		</div>
 		<div>
 			<span>{breakout && breakout.Name}</span>

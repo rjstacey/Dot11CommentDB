@@ -18,21 +18,21 @@ function displayDate(isoDate) {
 
 export const fields = {
 	id: {label: 'ID'},
-	Start: {label: 'Start', dataRenderer: displayDate},
-	End: {label: 'End', dataRenderer: displayDate},
-	Name: {label: 'Name'},
-	Type: {label: 'Type', dataRenderer: displaySessionType, options: SessionTypeOptions},
-	TimeZone: {label: 'TimeZone'},
-	MeetingNumber: {label: 'MeetingNumber', sortType: SortType.NUMERIC}
+	start: {label: 'Start', dataRenderer: displayDate},
+	end: {label: 'End', dataRenderer: displayDate},
+	name: {label: 'Name'},
+	type: {label: 'Type', options: SessionTypeOptions},
+	timezone: {label: 'Time zone'},
+	MeetingNumber: {label: 'Meeting number', sortType: SortType.NUMERIC}
 };
 
 export const dataSet = 'imatMeetings';
-const selectId = (meeting) => meeting.MeetingNumber;
+//const selectId = (meeting) => meeting.MeetingNumber;
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	selectId,
+	//selectId,
 	initialState: {},
 });
 
@@ -58,10 +58,10 @@ export const selectSyncedImatMeetingsEntities = createSelector(
 	(sessionsEntities, imatMeetingsEntities) => {
 		const syncedImatMeetingsEntities = {};
 		for (const id of Object.keys(imatMeetingsEntities))
-			syncedImatMeetingsEntities[id] = {...imatMeetingsEntities[id], InDatabase: false};
+			syncedImatMeetingsEntities[id] = {...imatMeetingsEntities[id], sessionId: null};
 		for (const m of Object.values(sessionsEntities)) {
-			if (syncedImatMeetingsEntities[m.MeetingNumber])
-				syncedImatMeetingsEntities[m.MeetingNumber].InDatabase = true;
+			if (syncedImatMeetingsEntities[m.imatMeetingId])
+				syncedImatMeetingsEntities[m.imatMeetingId].sessionId = m.id;
 		}
 		return syncedImatMeetingsEntities;
 	}
@@ -76,6 +76,8 @@ const {
 	getFailure
 } = slice.actions;
 
+const baseUrl = '/api/imat/meetings';
+
 export const loadImatMeetings = (n) =>
 	async (dispatch, getState) => {
 		if (selectImatMeetingsState(getState()).loading)
@@ -83,9 +85,9 @@ export const loadImatMeetings = (n) =>
 		dispatch(getPending())
 		let meetings;
 		try {
-			meetings = await fetcher.get('/api/imat/meetings', {n})
+			meetings = await fetcher.get(baseUrl)
 			if (!Array.isArray(meetings))
-				throw new TypeError('Unexpected response to GET: /api/imat/meetings');
+				throw new TypeError('Unexpected response to GET ' + baseUrl);
 		}
 		catch(error) {
 			console.log(error)
@@ -93,7 +95,6 @@ export const loadImatMeetings = (n) =>
 			dispatch(setError('Unable to get meetings list', error));
 			return;
 		}
-		//meetings = meetings.map(m => ({...m, Start: new Date(m.Start), End: new Date(m.End)}));
 		await dispatch(getSuccess(meetings));
 	}
 

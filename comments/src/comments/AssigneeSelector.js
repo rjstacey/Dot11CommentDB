@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import styled from '@emotion/styled';
 
 import {Select} from 'dot11-components/form';
 import {Icon} from 'dot11-components/icons';
@@ -10,55 +9,16 @@ import {strComp} from 'dot11-components/lib';
 import {loadMembers, selectMembersState} from '../store/members';
 import {selectCommentsState} from '../store/comments';
 
-const StyledItem = styled.div`
-	padding: 4px 10px;
-	color: #555;
-	border-radius: 3px;
-	cursor: pointer;
-	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
-	display: flex;
-	align-items: center;
-	${({ isSelected }) => isSelected? 'color: #fff; background: #0074d9;': 'color: #555; :hover {background: #f2f2f2;}'}
-	& > span {
-		margin: 5px 10px;
-		${({ isItalic }) => isItalic && 'font-style: italic;'}
-	}
-`;
-
 const itemRenderer = ({index, item, style, props, state, methods}) => {
 	const name = item[props.labelField];
 	const sapin = item[props.valueField];
 	const isUser = sapin > 0;
-	const isNew = props.create && state.search && index === 0;
-
-	const addItem = isNew?
-		() => methods.addSearchItem():
-		() => methods.addItem(item);
 
 	return (
-		<StyledItem
-			style={style}
-			onClick={addItem}
-			isSelected={methods.isSelected(item)}
-			isItalic={!isUser}
-		>
-			{isNew? 'Add ': <Icon name={isUser? 'user-check': 'user-slash'} />}
-			<span>{name}</span>
-		</StyledItem>
-	)
-}
-
-const selectItemRenderer = ({item, state, methods, props}) => {
-	const name = item[props.labelField];
-	const sapin = item[props.valueField];
-	const isUser = sapin > 0;
-	return (
-		<div>
+		<>
 			<Icon name={isUser? 'user-check': 'user-slash'} />
 			<span style={{marginLeft: 10}}>{name}</span>
-		</div>
+		</>
 	)
 }
 
@@ -135,7 +95,7 @@ function AssigneeSelector({
 			create
 			clearable
 			createOption={createOption}
-			selectItemRenderer={selectItemRenderer}
+			selectItemRenderer={itemRenderer}
 			itemRenderer={itemRenderer}
 			readOnly={readOnly}
 			valueField='SAPIN'

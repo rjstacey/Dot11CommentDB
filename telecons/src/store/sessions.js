@@ -26,20 +26,25 @@ export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(([value,
 
 export const displaySessionType = (type) => SessionTypeLabels[type] || 'Unknown';
 
+const displayImatMeetingId = (imatMeetingId) => imatMeetingId || <span style={{fontStyle: 'italic'}}>(Blank)</span>
+
 export const fields = {
 	id: {label: 'ID', isId: true, sortType: SortType.NUMERIC},
-	imatMeetingId: {label: 'Meeting number'},
-	startDate: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
-	endDate: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE}, 
 	name: {label: 'Session name'},
 	type: {label: 'Session type', dataRenderer: displaySessionType, options: SessionTypeOptions},
+	imatMeetingId: {label: 'IMAT meeting', dataRenderer: displayImatMeetingId},
+	startDate: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
+	endDate: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE}, 
 	timezone: {label: 'Timezone'}
 };
 
 export const dataSet = 'sessions';
 
+const sortComparer = (a, b) => DateTime.fromISO(b.startDate).toMillis() - DateTime.fromISO(a.startDate).toMillis();
+
 const slice = createAppTableDataSlice({
 	name: dataSet,
+	sortComparer,
 	fields,
 });
 

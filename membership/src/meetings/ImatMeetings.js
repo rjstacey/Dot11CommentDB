@@ -26,14 +26,18 @@ function imatMeetingToSession(meeting) {
 		'HST': 'Pacific/Honolulu',
 		'CET': 'Europe/Vienna'
 	};
-	const TimeZone = map[meeting.TimeZone] || meeting.TimeZone;
-	const Start = DateTime.fromISO(meeting.Start, {zone: TimeZone}).toISO();
-	const End = DateTime.fromISO(meeting.End, {zone: TimeZone}).toISO();
+	const timezone = map[meeting.timezone] || meeting.timezone;
+	const startDate = DateTime.fromISO(meeting.start, {zone: timezone}).toISODate();
+	const endDate = DateTime.fromISO(meeting.end, {zone: timezone}).toISODate();
 	return {
 		...meeting,
-		TimeZone,
-		Start,
-		End
+		timezone,
+		startDate,
+		endDate,
+		imatMeetingId: meeting.id,
+		name: meeting.name,
+		OrganizerID: meeting.organizerId,
+		type: meeting.type[0].toLowerCase()
 	}
 }
 
@@ -71,23 +75,23 @@ const tableColumns = [
 		width: 30, flexGrow: 1, flexShrink: 0,
 		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
-	{key: 'MeetingNumber',
-		...fields.MeetingNumber,
+	{key: 'id',
+		...fields.id,
 		width: 120, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
-	{key: 'Start', 
-		...fields.Start,
+	{key: 'start', 
+		...fields.start,
 		width: 150, flexGrow: 1, flexShrink: 1},
-	{key: 'End', 
-		...fields.End,
+	{key: 'end', 
+		...fields.end,
 		width: 150, flexGrow: 1, flexShrink: 1},
-	{key: 'Name', 
-		...fields.Name,
+	{key: 'name', 
+		...fields.name,
 		width: 400, flexGrow: 1, flexShrink: 1},
-	{key: 'Type', 
-		...fields.Type,
+	{key: 'type', 
+		...fields.type,
 		width: 100, flexGrow: 1, flexShrink: 1},
-	{key: 'TimeZone', 
-		...fields.TimeZone,
+	{key: 'timezone', 
+		...fields.timezone,
 		width: 200, flexGrow: 1, flexShrink: 1},
 	{key: 'Actions',
 		label: 'Actions',
@@ -109,7 +113,7 @@ function ImatMeetings() {
 	const columns = React.useMemo(() => {
 
 		const renderActions = ({rowData}) => 
-			(rowData.InDatabase)
+			(rowData.sessionId)
 				? <span>Already Present</span>
 				: <ActionButton name='import' title='Import' onClick={() => importSessionDialog(rowData)} />
 

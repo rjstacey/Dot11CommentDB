@@ -11,7 +11,8 @@ export function getGroups(constraints) {
 			'`name`, ' +
 			'`type`, ' +
 			'`status`, ' +
-			'`imatCommitteeId` ' +
+			'`color`, ' +
+			'`symbol` ' +
 		'FROM `organization`';
 
 	if (constraints) {

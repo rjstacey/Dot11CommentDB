@@ -69,7 +69,7 @@ function Header({user, access}) {
 	}, []);
 
 	const location = useLocation();
-	const menuItem = fullMenu.find(m => location.pathname.search(m.link) >=0)
+	const menuItem = fullMenu.find(m => location.pathname.search(m.link) >= 0);
 	
 	return (
 		<header className='header'>

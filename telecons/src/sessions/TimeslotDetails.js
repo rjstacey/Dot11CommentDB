@@ -1,9 +1,13 @@
 import React from 'react';
+import {useSelector} from 'react-redux';
 
 import {Input, Row, Field} from 'dot11-components/form';
 import {ActionIcon} from 'dot11-components/icons';
 
 import {EditTable as Table} from '../components/Table';
+import {RawSessionSelector} from '../components/SessionSelector';
+
+import {selectSessionEntities} from '../store/sessions';
 
 const tableColumns = {
 	name: {
@@ -20,15 +24,45 @@ const tableColumns = {
 	},
 	action: {
 		label: '',
-		gridTemplate: '40px'
+		gridTemplate: '60px'
 	}
 };
 
 const defaultEntry = {name: '', startTime: '', endTime: ''};
 
-function TimeslotDetails({timeslots, addTimeslot, removeTimeslot, updateTimeslot, readOnly}) {
+function TimeslotDetails({timeslots, setTimeslots, readOnly}) {
+	const entities = useSelector(selectSessionEntities);
 
 	const columns = React.useMemo(() => {
+
+		const importTimeslotsFromSession = (sessionId) => {
+			const session = entities[sessionId];
+			if (session)
+				setTimeslots(session.timeslots);
+		}
+
+		const addTimeslot = (slot) => {
+			const updateTimeslots = timeslots.slice();
+			const id = timeslots.reduce((maxId, slot) => Math.max(maxId, slot.id), 0) + 1;
+			updateTimeslots.push({...slot, id});
+			setTimeslots(updateTimeslots);
+		}
+
+		const updateTimeslot = (id, changes) => {
+			const updateTimeslots = timeslots.slice();
+			const i = timeslots.findIndex(slot => slot.id === id);
+			if (i >= 0)
+				updateTimeslots[i] = {...timeslots[i], ...changes};
+			setTimeslots(updateTimeslots);
+		}
+
+		const removeTimeslot = (id) => {
+			const updateTimeslots = timeslots.slice();
+			const i = timeslots.findIndex(slot => slot.id === id);
+			if (i >= 0)
+				updateTimeslots.splice(i, 1);
+			setTimeslots(updateTimeslots);
+		}
 		
 		let keys = Object.keys(tableColumns);
 		if (readOnly)
@@ -68,13 +102,16 @@ function TimeslotDetails({timeslots, addTimeslot, removeTimeslot, updateTimeslot
 				col.renderCell = (entry) => 
 					<ActionIcon type='delete' onClick={() => removeTimeslot(entry.id)} />
 				col.label = 
-					<ActionIcon type='add' onClick={() => addTimeslot(defaultEntry)} />
+					<div style={{width: '100%', display: 'flex', justifyContent: 'space-evenly'}}>
+						<ActionIcon type='add' onClick={() => addTimeslot(defaultEntry)} />
+						<RawSessionSelector onChange={importTimeslotsFromSession} />
+					</div>
 			}
 			return col;
 		});
 
 		return columns;
-	}, [addTimeslot, removeTimeslot, updateTimeslot, readOnly]);
+	}, [setTimeslots, timeslots, entities, readOnly]);
 
 	return (
 		<Row>

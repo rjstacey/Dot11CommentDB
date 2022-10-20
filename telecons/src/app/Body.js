@@ -8,8 +8,7 @@ import {AccessLevel} from 'dot11-components/lib/user';
 import Accounts from '../accounts/Accounts';
 import Organization from '../organization/Organization';
 import Sessions from '../sessions/Sessions';
-import Telecons from '../meetings/Telecons';
-import SessionMeetings from '../meetings/SessionMeetings';
+import Meetings from '../meetings/Meetings';
 import Calendar from '../calendar/Calendar';
 import WebexMeetings from '../webexMeetings/WebexMeetings';
 import ImatMeetings from '../imat/ImatMeetings';
@@ -69,7 +68,7 @@ function Body() {
 					path="/:groupName/meetings"
 					access={access}
 					minAccess={AccessLevel.WGAdmin}
-					component={Telecons}
+					component={Meetings}
 				/>
 				<RestrictedRoute
 					path="/:groupName/calendar"
@@ -110,12 +109,6 @@ function Body() {
 					exact
 					minAccess={AccessLevel.WGAdmin}
 					component={Ieee802WorldSchedule}
-				/>
-				<RestrictedRoute
-					path="/:groupName/sessionMeetings"
-					access={access}
-					minAccess={AccessLevel.WGAdmin}
-					component={SessionMeetings}
 				/>
 			</Switch>
 		</Main>

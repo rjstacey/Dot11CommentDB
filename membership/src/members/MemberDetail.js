@@ -48,7 +48,7 @@ function MemberStatusChangeHistory({
 
 	const rows = history.map(row =>
 		<tr key={row.id}>
-			<td>{displayDate(row.Date)}</td>
+			<td>{displayDate(row.Date || '')}</td>
 			<td>{row.OldStatus}</td>
 			<td>{row.NewStatus}</td>
 			<td>
@@ -499,7 +499,7 @@ function Member({
 						<div>
 							{isMultiple(member.StatusChangeDate)?
 								MULTIPLE_STR:
-								displayDate(member.StatusChangeDate) || BLANK_STR}
+								displayDate(member.StatusChangeDate || '') || BLANK_STR}
 						</div>
 					</div>
 				</Field>

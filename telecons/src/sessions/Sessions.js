@@ -1,6 +1,6 @@
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {Link, useHistory} from 'react-router-dom';
+import {useHistory} from 'react-router-dom';
 
 import AppTable, {SelectHeader, SelectCell, TableColumnSelector, TableColumnHeader, SplitPanel, Panel} from 'dot11-components/table';
 import {ConfirmModal} from 'dot11-components/modals';
@@ -30,16 +30,6 @@ const renderHeaderStartEnd = (props) =>
 	</>
 
 export const renderCellStartEnd = ({rowData}) => displayDateRange(rowData.startDate, rowData.endDate);
-
-const renderBreakouts = ({rowData, dataKey}) =>
-	<Link to={`/sessions/${rowData.id}/breakouts`}>
-		{rowData[dataKey]}
-	</Link>
-
-const renderAttendance = ({rowData, dataKey}) =>
-	<Link to={`/sessions/${rowData.id}/attendees`}>
-		{rowData[dataKey]}
-	</Link>
 
 const tableColumns = [
 	{key: '__ctrl__',
@@ -72,17 +62,6 @@ const tableColumns = [
 	{key: 'timezone', 
 		...fields.timezone,
 		width: 200, flexGrow: 1, flexShrink: 1},
-	{key: 'Breakouts', 
-		label: 'Breakouts',
-		width: 100, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderBreakouts},
-	{key: 'TotalCredit', 
-		label: 'Credits',
-		width: 100, flexGrow: 1, flexShrink: 1},
-	{key: 'Attendees', 
-		label: 'Attendance',
-		width: 100, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderAttendance},
 ];
 
 const defaultTablesColumns = {
@@ -113,14 +92,13 @@ function Sessions() {
 	const history = useHistory();
 	const dispatch = useDispatch();
 
-	const {valid, loading, selected} = useSelector(selectSessionsState);
+	const {selected} = useSelector(selectSessionsState);
 	const {isSplit} = useSelector(selectSessionsCurrentPanelConfig);
 	const setIsSplit = React.useCallback((value) => dispatch(setSessionsCurrentPanelIsSplit(value)), [dispatch]);
 
 	React.useEffect(() => {
-		if (!valid)
-			dispatch(loadSessions());
-	}, []);
+		dispatch(loadSessions());
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const refresh = () => dispatch(loadSessions());
 
@@ -157,15 +135,13 @@ function Sessions() {
 					<AppTable
 						defaultTablesConfig={defaultTablesConfig}
 						columns={tableColumns}
-						headerHeight={36}
+						headerHeight={44}
 						estimatedRowHeight={44}
 						dataSet={dataSet}
 					/>
 				</Panel>
 				<Panel style={{overflow: 'auto'}}>
-					<SessionDetails
-						key={selected}
-					/>
+					<SessionDetails />
 				</Panel>
 			</SplitPanel>
 		</>

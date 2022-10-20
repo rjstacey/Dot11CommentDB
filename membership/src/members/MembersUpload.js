@@ -2,12 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch} from 'react-redux';
 
-import {ActionButtonDropdown} from 'dot11-components/general/Dropdown';
+import {ActionButtonDropdown} from 'dot11-components/dropdown';
 import {Form, Row, Col, Input, List, ListItem} from 'dot11-components/form';
 
 import {uploadMembers, UploadFormat} from '../store/members';
 
-function MembersUploadForm({close}) {
+function MembersUploadForm({props, state, methods}) {
 
 	const dispatch = useDispatch();
 	const fileRef = React.useRef();
@@ -24,7 +24,7 @@ function MembersUploadForm({close}) {
 		setBusy(true);
 		await dispatch(uploadMembers(format, file));
 		setBusy(false);
-		close();
+		methods.close();
 	}
 
 	const changeFormat = e => setFormat(e.target.value);
@@ -34,7 +34,7 @@ function MembersUploadForm({close}) {
 			title='Upload spreadsheet'
 			errorText={errMsg}
 			submit={submit}
-			cancel={close}
+			cancel={methods.close}
 			busy={busy}
 			style={{width: 400}}
 		>
@@ -117,9 +117,8 @@ MembersUploadForm.propTypes = {
 const MembersUpload = () =>
 	<ActionButtonDropdown
 		name='upload'
-		title='Upload members' 
-	>
-		<MembersUploadForm />
-	</ActionButtonDropdown>
+		title='Upload members'
+		dropdownRenderer={(props) => <MembersUploadForm {...props} />}
+	/>
 
 export default MembersUpload;

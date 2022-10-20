@@ -133,7 +133,7 @@ const UpdateList = ({matchUpdate, setMatchUpdate}) =>
 		)}
 	</List>
 
-function CommentsImportDropdown({ballot, close, upload}) {
+function CommentsImportDropdown({ballot, methods}) {
 	const dispatch = useDispatch();
 	const fileRef = React.useRef();
 	const [fields, setFields] = React.useState([]);
@@ -151,7 +151,7 @@ function CommentsImportDropdown({ballot, close, upload}) {
 		}
 		setBusy(true);
 		const result = await dispatch(uploadResolutions(ballot.id, fields, algo, matchUpdate, sheetName, file));
-		close();
+		methods.close();
 		if (result) {
 			const {matched, unmatched, added, remaining, updated} = result;
 			let msg  = '';
@@ -206,7 +206,7 @@ function CommentsImportDropdown({ballot, close, upload}) {
 			title={`Import fields for ${ballot.BallotID} from Excel spreadsheet`}
 			errorText={errMsg}
 			submit={submit}
-			cancel={close}
+			cancel={methods.close}
 			busy={busy}
 		>
 			<Row>
@@ -260,6 +260,7 @@ function CommentsImportDropdown({ballot, close, upload}) {
 CommentsImportDropdown.propTypes = {
 	//close: PropTypes.func.isRequired,
 	ballot: PropTypes.object,
+	methods: PropTypes.object.isRequired
 }
 
 function CommentsImport({ballot}) {
@@ -268,11 +269,8 @@ function CommentsImport({ballot}) {
 			name='import'
 			title='Upload resolutions'
 			disabled={!ballot}
-		>
-			<CommentsImportDropdown
-				ballot={ballot}
-			/>
-		</ActionButtonDropdown>
+			dropdownRenderer={(props) => <CommentsImportDropdown ballot={ballot} {...props} />}
+		/>
 	)
 }
 

@@ -1,4 +1,5 @@
 import {createSelector} from '@reduxjs/toolkit';
+import {DateTime} from 'luxon';
 import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType, SortDirection, selectCurrentPanelConfig, setPanelIsSplit} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
@@ -24,19 +25,22 @@ export const displaySessionType = (type) => SessionTypeLabels[type] || 'Unknown'
 
 export const fields = {
 	id: {label: 'ID', isId: true, sortType: SortType.NUMERIC},
-	MeetingNumber: {label: 'Meeting number'},
-	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
-	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE}, 
-	Name: {label: 'Session name'},
-	Type: {label: 'Session type', dataRenderer: displaySessionType, options: SessionTypeOptions},
-	TimeZone: {label: 'TimeZone'}
+	imatMeetingId: {label: 'IMAT meeting number'},
+	startDate: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
+	endDate: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE}, 
+	name: {label: 'Session name'},
+	type: {label: 'Session type', dataRenderer: displaySessionType, options: SessionTypeOptions},
+	timezone: {label: 'Time zone'}
 };
 
 export const dataSet = 'sessions';
 
+const sortComparer = (s1, s2) => DateTime.fromISO(s2.startDate).valueOf() - DateTime.fromISO(s1.startDate).valueOf();
+
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
+	sortComparer,
 	initialState: {
 		loadingTimeZones: false,
 		timeZones: [],
