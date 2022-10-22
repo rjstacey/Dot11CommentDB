@@ -95,7 +95,7 @@ const tableColumns = [
 		width: 150, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderWebexMeeting},
 	{key: 'imatMeetingName',
-		label: 'Session',
+		label: 'IMAT meeting',
 		width: 50, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderImatMeeting},
 	{key: 'calendarAccountName',

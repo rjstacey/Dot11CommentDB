@@ -33,7 +33,7 @@ export {
 	upsertMany as upsertTelecons
 }
 
-const baseUrl = '/api/telecons';
+const baseUrl = '/api/meetings';
 
 export const loadTelecons = (groupId, constraints) => 
 	async (dispatch, getState) => {
@@ -44,7 +44,7 @@ export const loadTelecons = (groupId, constraints) =>
 		let response;
 		try {
 			response = await fetcher.get(url, constraints);
-			if (!Array.isArray(response.telecons))
+			if (!Array.isArray(response.meetings))
 				throw new TypeError(`Unexpected response to GET ${url}`);
 		}
 		catch(error) {
@@ -52,7 +52,7 @@ export const loadTelecons = (groupId, constraints) =>
 			dispatch(setError('Unable to get list of telecons', error));
 			return;
 		}
-		await dispatch(getSuccess(response.telecons));
+		await dispatch(getSuccess(response.meetings));
 		if (response.webexMeetings)
 			await dispatch(setWebexMeetings(response.webexMeetings));
 	}
@@ -67,32 +67,32 @@ export const updateTelecons = (updates) =>
 		let response;
 		try {
 			response = await fetcher.patch(baseUrl, updates);
-			if (!Array.isArray(response.telecons))
+			if (!Array.isArray(response.meetings))
 				throw new TypeError('Unexpected response to PATCH ' + baseUrl);
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to update telecons`, error));
+			await dispatch(setError(`Unable to update meetings`, error));
 			return;
 		}
-		await dispatch(setMany(response.telecons));
+		await dispatch(setMany(response.meetings));
 	}
 
-export const addTelecons = (telecons) =>
+export const addTelecons = (meetings) =>
 	async (dispatch) => {
 		let response;
 		try {
-			response = await fetcher.post(baseUrl, telecons);
-			if (!Array.isArray(response.telecons))
+			response = await fetcher.post(baseUrl, meetings);
+			if (!Array.isArray(response.meetings))
 				throw new TypeError('Unexpected response to POST ' + baseUrl);
 		}
 		catch(error) {
-			await dispatch(setError('Unable to add telecons:', error));
+			await dispatch(setError('Unable to add meetings:', error));
 			return [];
 		}
-		await dispatch(addMany(response.telecons));
+		await dispatch(addMany(response.meetings));
 		if (response.webexMeetings)
 			await dispatch(upsertWebexMeetings(response.webexMeetings));
-		return response.telecons.map(e => e.id);
+		return response.meetings.map(e => e.id);
 	}
 
 export const deleteTelecons = (ids) =>
@@ -101,7 +101,7 @@ export const deleteTelecons = (ids) =>
 			await fetcher.delete(baseUrl, ids);
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to delete telecons ${ids}`, error));
+			await dispatch(setError(`Unable to delete meetings ${ids}`, error));
 			return;
 		}
 		await dispatch(removeMany(ids));

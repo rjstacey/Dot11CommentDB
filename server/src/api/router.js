@@ -89,8 +89,11 @@ router.use('/webex', require('./webex').default);
 /* Google calendar accounts API */
 router.use('/calendar', require('./calendar').default);
 
-/* Telecons API */
-router.use('/telecons', require('./telecons').default);
+/* Sessions API */
+router.use('/sessions', require('./sessions').default);
+
+/* Meetings API */
+router.use('/meetings', require('./meetings').default);
 
 /* Groups API */
 router.use('/groups', require('./groups').default);
@@ -124,9 +127,6 @@ router.use('/users', require('./users').default);
 
 /* Members API */
 router.use('/members', require('./members').default);
-
-/* Sessions API */
-router.use('/sessions', require('./sessions').default);
 
 /* ePolls API */
 router.use('/epolls', require('./epolls').default);

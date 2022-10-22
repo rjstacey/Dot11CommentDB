@@ -31,6 +31,8 @@ const webexAuthRedirectUri = process.env.NODE_ENV === 'development'?
 const apis = {};
 
 const defaultTimezone = 'America/New_York';
+let webexClientId;
+let webexClientSecret;
 
 function getWebexApi(id) {
 	const api = apis[id];
@@ -72,8 +74,8 @@ function createWebexApi(id, authParams) {
 				const request = error.config;
 				const params = {
 					grant_type: 'refresh_token',
-					client_id: process.env.WEBEX_CLIENT_ID,
-					client_secret: process.env.WEBEX_CLIENT_SECRET,
+					client_id: webexClientId,
+					client_secret: webexClientSecret,
 					refresh_token: api.defaults.refresh_token,
 				};
 				const response = await axios.post(webexTokenUrl, params);
@@ -102,6 +104,14 @@ function updateAuthParams(id, authParams) {
 }
 
 export async function init() {
+
+	if (!process.env.WEBEX_CLIENT_ID)
+		console.warn("Missing variable WEBEX_CLIENT_ID");
+	if (!process.env.WEBEX_CLIENT_SECRET)
+		console.warn("Missing variable WEBEX_CLIENT_SECRET");
+	webexClientId = process.env.WEBEX_CLIENT_ID;
+	webexClientSecret = process.env.WEBEX_CLIENT_SECRET;
+
 	// Cache the active webex accounts and create an axios api for each
 	const accounts = await db.query('SELECT * FROM oauth_accounts WHERE type="webex";');
 	for (const account of accounts) {
@@ -139,7 +149,7 @@ async function getAccounts(constraints) {
 export function getAuthWebexAccount(id) {
 	return webexAuthUrl +
 		'?' + new URLSearchParams({
-				client_id: process.env.WEBEX_CLIENT_ID,
+				client_id: webexClientId,
 				response_type: 'code',
 				scope: webexAuthScope,
 				redirect_uri: webexAuthRedirectUri,
@@ -152,8 +162,8 @@ export async function completeAuthWebexAccount(params) {
 	const id = parseInt(state);
 	params = {
 		grant_type: 'authorization_code',
-		client_id: process.env.WEBEX_CLIENT_ID,
-		client_secret: process.env.WEBEX_CLIENT_SECRET,
+		client_id: webexClientId,
+		client_secret: webexClientSecret,
 		code: code,
 		redirect_uri: webexAuthRedirectUri
 	};

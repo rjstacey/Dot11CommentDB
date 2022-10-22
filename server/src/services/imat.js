@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import { DateTime, Duration } from 'luxon';
 import cheerio from 'cheerio';
 import { csvParse, AuthError, NotFoundError } from '../utils';
-import { getTelecons, updateTelecon, webexMeetingImatLocation } from './telecons';
+import { getMeetings, updateMeeting, webexMeetingImatLocation } from './meetings';
 import { getGroups } from './groups';
 
 const FormData = require('form-data');
@@ -570,13 +570,13 @@ export async function addImatBreakouts(user, meetingId, breakouts) {
 	breakouts = await Promise.all(breakouts.map(async (breakout) => {
 		const b = await addImatBreakout(user, session, breakout);
 		if (breakout.teleconId) {
-			await updateTelecon(breakout.teleconId, {imatMeetingId: session.id, imatBreakoutId: b.id});
+			await updateMeeting(breakout.teleconId, {imatMeetingId: session.id, imatBreakoutId: b.id});
 			b.teleconId = breakout.teleconId;
 		}
 		return b;
 	}));
 
-	const telecons = await getTelecons({id: breakouts.map(b => b.teleconId)});
+	const telecons = await getMeetings({id: breakouts.map(b => b.teleconId)});
 
 	return {breakouts, telecons};
 }
@@ -666,13 +666,13 @@ export async function updateImatBreakouts(user, meetingId, breakouts) {
 	breakouts = await Promise.all(breakouts.map(async (breakout) => {
 		const b = await updateImatBreakout(user, session, breakout);
 		if (breakout.teleconId) {
-			await updateTelecon(breakout.teleconId, {imatMeetingId: session.id, imatBreakoutId: b.id});
+			await updateMeeting(breakout.teleconId, {imatMeetingId: session.id, imatBreakoutId: b.id});
 			b.teleconId = breakout.teleconId;
 		}
 		return b;
 	}));
 
-	const telecons = await getTelecons({id: breakouts.map(b => b.teleconId)});
+	const telecons = await getMeetings({id: breakouts.map(b => b.teleconId)});
 
 	return {breakouts, telecons};
 }

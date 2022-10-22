@@ -27,7 +27,7 @@ import {
 
 const db = require('../utils/database');
 
-async function selectTelecons(constraints) {
+async function selectMeetings(constraints) {
 
 	let sql =
 		'SELECT ' + 
@@ -43,7 +43,7 @@ async function selectTelecons(constraints) {
 			'webexAccountId, webexMeetingId, ' +
 			'calendarAccountId, calendarEventId, ' +
 			'imatMeetingId, imatBreakoutId ' +
-		'FROM telecons t';
+		'FROM meetings t';
 
 	const {groupId, fromDate, toDate, ...rest} = constraints;
 	//console.log(rest)
@@ -79,27 +79,27 @@ async function selectTelecons(constraints) {
 		sql += ' WHERE ' + wheres.join(' AND ');
 	console.log(sql);
 
-	const telecons = await db.query(sql);
-	for (const entry of telecons) {
+	const meetings = await db.query(sql);
+	for (const entry of meetings) {
 		entry.start = DateTime.fromJSDate(entry.start, {zone: entry.timezone}).toISO();
 		entry.end = DateTime.fromJSDate(entry.end, {zone: entry.timezone}).toISO();
 	}
-	return telecons;
+	return meetings;
 }
 
 /*
- * Return a list of telecons
+ * Return a list of meetings
  */
-export async function getTelecons(constraints) {
-	const telecons = await selectTelecons(constraints);
-	const ids = telecons.map(t => t.webexMeetingId);
+export async function getMeetings(constraints) {
+	const meetings = await selectMeetings(constraints);
+	const ids = meetings.map(t => t.webexMeetingId);
 	const webexMeetings = ids.length > 0?
 		await getWebexMeetings({groupId: constraints.parent_id, ids}):
 		[];
-	return {telecons, webexMeetings};
+	return {meetings, webexMeetings};
 }
 
-function teleconEntrySetSql(e) {
+function meetingEntrySetSql(e) {
 
 	const opt = e.timezone? {zone: e.timezone}: {setZone: true};
 	const entry = {
@@ -137,7 +137,7 @@ function teleconEntrySetSql(e) {
 	return sets.join(', ');
 }
 
-function teleconToWebexMeeting(entry) {
+function meetingToWebexMeeting(entry) {
 	const webexMeeting = {
 		password: 'wireless',
 		enabledAutoRecordMeeting: false,
@@ -184,7 +184,7 @@ const meetingDescriptionStyle = `
 		}
 	</style>`;
 
-function teleconCalendarDescription(entry) {
+function meetingCalendarDescription(entry) {
 
 	const {webexMeeting} = entry;
 
@@ -236,11 +236,11 @@ function teleconCalendarDescription(entry) {
 }
 
 
-function teleconToCalendarEvent(entry) {
+function meetingToCalendarEvent(entry) {
 	let location = entry.location || '',
 	    description = '';
 	if (entry.webexMeeting) {
-		description = teleconCalendarDescription(entry);
+		description = meetingCalendarDescription(entry);
 		if (!location)
 			location = entry.webexMeeting.webLink || '';
 	}
@@ -259,11 +259,11 @@ function teleconToCalendarEvent(entry) {
 	}
 }
 
-async function addTelecon(user, entry) {
+async function addMeeting(user, entry) {
 
 	/* If a webex account is given and the webexMeeting object exists then add a webex meeting */
 	if (entry.webexAccountId && entry.webexMeeting) {
-		let webexMeeting = teleconToWebexMeeting(entry);
+		let webexMeeting = meetingToWebexMeeting(entry);
 		if (entry.webexMeetingId === '$add') {
 			entry.webexMeeting = await addWebexMeeting(entry.webexAccountId, webexMeeting);
 			entry.webexMeetingId = entry.webexMeeting.id;
@@ -286,7 +286,7 @@ async function addTelecon(user, entry) {
 
 	/* If a calendar account is given, then add calendar event for this telecon */
 	if (entry.calendarAccountId) {
-		let calendarEvent = teleconToCalendarEvent(entry);
+		let calendarEvent = meetingToCalendarEvent(entry);
 		if (!entry.calendarEventId) {
 			calendarEvent = await addCalendarEvent(entry.calendarAccountId, calendarEvent);
 			entry.calendarEventId = calendarEvent.id;
@@ -296,28 +296,28 @@ async function addTelecon(user, entry) {
 		}
 	}
 
-	const sql = 'INSERT INTO telecons SET ' + teleconEntrySetSql(entry);
+	const sql = 'INSERT INTO meetings SET ' + meetingEntrySetSql(entry);
 	const {insertId} = await db.query(sql);
 	return insertId;
 }
 
-export async function addTelecons(user, entries) {
+export async function addMeetings(user, meetings) {
 
 	if (!user.ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const ids = await Promise.all(entries.map(e => addTelecon(user, e)));
+	const ids = await Promise.all(meetings.map(e => addMeeting(user, e)));
 
-	return getTelecons({id: ids});
+	return getMeetings({id: ids});
 }
 
-export async function updateTelecon(user, id, changes) {
+export async function updateMeeting(user, id, changes) {
 
 	let {webexMeeting: webexMeetingChanges, ...teleconChanges} = changes;
-	let [telecon] = await selectTelecons({id});
+	let [telecon] = await selectMeetings({id});
 
 	if (!telecon)
-		throw new Error(`Telecon entry ${id} does not exist`);
+		throw new Error(`Meeting with id=${id} does not exist`);
 
 	/* Make Webex changes.
 	 * If a Webex meeting was previously created (current entry has webexAccountId and webexMeetingId):
@@ -327,7 +327,7 @@ export async function updateTelecon(user, id, changes) {
 	 * If a Webex meeting has not yet been created (current entry is missing webexAccountId and/or webexMeetingId):
 	 *   Add Webex meeting if webexMeetingId is '$add'
 	 */
-	let webexMeeting = teleconToWebexMeeting({...telecon, ...teleconChanges});
+	let webexMeeting = meetingToWebexMeeting({...telecon, ...teleconChanges});
 	webexMeeting = {...webexMeeting, ...webexMeetingChanges};
 	const webexAccountId = teleconChanges.webexAccountId || telecon.webexAccountId;
 	if (telecon.webexAccountId && telecon.webexMeetingId) {
@@ -453,7 +453,7 @@ export async function updateTelecon(user, id, changes) {
 	}
 
 	/* Make calendar changes */
-	let calendarEvent = teleconToCalendarEvent({...telecon, ...teleconChanges});
+	let calendarEvent = meetingToCalendarEvent({...telecon, ...teleconChanges});
 	try {
 		if (telecon.calendarAccountId && telecon.calendarEventId) {
 			// Calendar event exists
@@ -487,14 +487,14 @@ export async function updateTelecon(user, id, changes) {
 		console.log(error)
 	}
 
-	const setSql = teleconEntrySetSql(teleconChanges);
+	const setSql = meetingEntrySetSql(teleconChanges);
 	if (setSql)
-		await db.query('UPDATE telecons SET ' + setSql + ' WHERE id=?;', [id]);
+		await db.query('UPDATE meetings SET ' + setSql + ' WHERE id=?;', [id]);
 
 	return id;
 }
 
-export async function updateTelecons(user, updates) {
+export async function updateMeetings(user, updates) {
 
 	if (!user.ieeeClient)
 		throw new AuthError('Not logged in');
@@ -506,16 +506,16 @@ export async function updateTelecons(user, updates) {
 		if (typeof u !== 'object' || !u.id || typeof u.changes !== 'object')
 			throw new TypeError('Expected array of objects with shape {id, changes}');
 	}
-	const ids = await Promise.all(updates.map(u => updateTelecon(user, u.id, u.changes)));
-	return await getTelecons({id: ids});
+	const ids = await Promise.all(updates.map(u => updateMeeting(user, u.id, u.changes)));
+	return getMeetings({id: ids});
 }
 
-export async function deleteTelecons(user, ids) {
+export async function deleteMeetings(user, ids) {
 
 	if (!user.ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const entries = await db.query('SELECT webexAccountId, webexMeetingId, calendarAccountId, calendarEventId, imatMeetingId, imatBreakoutId FROM telecons WHERE id IN (?);', [ids]);
+	const entries = await db.query('SELECT webexAccountId, webexMeetingId, calendarAccountId, calendarEventId, imatMeetingId, imatBreakoutId FROM meetings WHERE id IN (?);', [ids]);
 	for (const entry of entries) {
 		if (entry.webexAccountId && entry.webexMeetingId) {
 			try {
@@ -539,6 +539,6 @@ export async function deleteTelecons(user, ids) {
 			await deleteCalendarEvent(entry.calendarAccountId, entry.calendarEventId);
 		}
 	}
-	const {affectedRows} = await db.query('DELETE FROM telecons WHERE id IN (?);', [ids]);
+	const {affectedRows} = await db.query('DELETE FROM meetings WHERE id IN (?);', [ids]);
 	return affectedRows;
 }

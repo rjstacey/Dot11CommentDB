@@ -56,10 +56,10 @@ function getAuthApi(id) {
 	return auth;
 }
 
-function createAuthApi(id) {
+function createAuthApi(id, googleClientId, googleClientSecret) {
 	const auth = new google.auth.OAuth2(
-		process.env.GOOGLE_CLIENT_ID,
-		process.env.GOOGLE_CLIENT_SECRET,
+		googleClientId,
+		googleClientSecret,
 		calendarAuthRedirectUri
 	).on('tokens', (tokens) => {
 		// Listen for token updates and record the latest
@@ -90,11 +90,17 @@ const updateAuthParams = (id, authParams) => {
 }
 
 export async function init() {
+	// Ensure that we have CLIENT_ID and 
+	if (!process.env.GOOGLE_CLIENT_ID)
+		console.warn("Missing variable GOOGLE_CLIENT_ID");
+	if (!process.env.GOOGLE_CLIENT_SECRET)
+		console.warn("Missing variable GOOGLE_CLIENT_SECRET");
+
 	// Cache the active calendar accounts and create an api instance for each
 	const accounts = await db.query('SELECT * FROM oauth_accounts WHERE type="calendar";');
 	for (const account of accounts) {
 		const {id, authParams} = account;
-		const auth = createAuthApi(id);
+		const auth = createAuthApi(id, process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
 		if (authParams) {
 			//console.log(`create calendar context ${id}:`, authParams);
 			auth.setCredentials(authParams);
@@ -254,7 +260,12 @@ function calendarApiError(error) {
 	if (response && code >= 400 && code < 500) {
 		//console.log(response.config)
 		const {error} = response.data;
-		const message = error?.message;
+		console.log(response.data)
+		let message = '';
+		if (typeof error === 'string')
+			message = error;
+		if (typeof error === 'object')
+			message = error.message;
 		throw new Error(`calendar api: code=${code} ${message}`); 
 	}
 	throw new Error(error);

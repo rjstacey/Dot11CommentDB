@@ -39,9 +39,6 @@ const tableColumns = [
 	{key: 'id', 
 		...fields.id,
 		width: 60, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
-	{key: 'imatMeetingId', 
-		...fields.imatMeetingId,
-		width: 120, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
 	{key: 'startDate', 
 		...fields.startDate,
 		width: 120, flexGrow: 1, flexShrink: 1},
@@ -59,13 +56,19 @@ const tableColumns = [
 	{key: 'type', 
 		...fields.type,
 		width: 80, flexGrow: 1, flexShrink: 1},
+	{key: 'groupName', 
+		...fields.groupName,
+		width: 150, flexGrow: 1, flexShrink: 1},
 	{key: 'timezone', 
 		...fields.timezone,
 		width: 200, flexGrow: 1, flexShrink: 1},
+	{key: 'imatMeetingId', 
+		...fields.imatMeetingId,
+		width: 120, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
 ];
 
 const defaultTablesColumns = {
-	default: ['__ctrl__', 'Start/End', 'name', 'type', 'timezone', 'Breakouts', 'Attendance'],
+	default: ['__ctrl__', 'Start/End', 'name', 'type', 'groupName', 'timezone', 'Breakouts', 'Attendance'],
 };
 
 const defaultTablesConfig = {};

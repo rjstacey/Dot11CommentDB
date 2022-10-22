@@ -21,6 +21,7 @@ import {
 	selectTeleconsState, 
 	selectSyncedTeleconEntities
 } from '../store/telecons';
+
 import {selectCurrentGroupId, selectCurrentGroupDefaults} from '../store/current';
 
 import {selectGroupEntities} from '../store/groups';

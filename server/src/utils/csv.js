@@ -18,12 +18,12 @@ export function csvParse(buffer, options) {
 }
 
 export function csvStringify(records, options) {
-  return new Promise((resolve, reject) => {
-    stringify(records, options, (error, output) => {
-      if (error)
-        reject(error);
-      else
-        resolve(output);
-    });
-  });
+	return new Promise((resolve, reject) => {
+		stringify(records, options, (error, output) => {
+			if (error)
+				reject(error);
+			else
+				resolve(output);
+		});
+	});
 }

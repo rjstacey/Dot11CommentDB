@@ -8,11 +8,6 @@ import {isPlainObject} from './general';
 /* Send using form-data */
 function transformRequest(data, headers) {
 	if (isPlainObject(data)) {
-		const params = new URLSearchParams();
-params.append('param1', 'value1');
-params.append('param2', 'value2');
-axios.post('/foo', params);
-
 		/* convert data to form data */
 		//console.log(data)
 		const form = new FormData();

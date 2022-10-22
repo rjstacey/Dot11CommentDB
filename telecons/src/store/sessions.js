@@ -7,6 +7,7 @@ import {setError} from 'dot11-components/store/error';
 import {displayDate} from 'dot11-components/lib';
 
 import {selectCurrentSessionId} from './current';
+import {selectGroupEntities} from './groups';
 
 const SessionType = {
 	Plenary: 'p',
@@ -32,6 +33,8 @@ export const fields = {
 	id: {label: 'ID', isId: true, sortType: SortType.NUMERIC},
 	name: {label: 'Session name'},
 	type: {label: 'Session type', dataRenderer: displaySessionType, options: SessionTypeOptions},
+	groupId: {label: 'Organizing group ID'},
+	groupName: {label: 'Organizing group'},
 	imatMeetingId: {label: 'IMAT meeting', dataRenderer: displayImatMeetingId},
 	startDate: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
 	endDate: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE}, 
@@ -39,16 +42,6 @@ export const fields = {
 };
 
 export const dataSet = 'sessions';
-
-const sortComparer = (a, b) => DateTime.fromISO(b.startDate).toMillis() - DateTime.fromISO(a.startDate).toMillis();
-
-const slice = createAppTableDataSlice({
-	name: dataSet,
-	sortComparer,
-	fields,
-});
-
-export default slice;
 
 /*
  * Selectors
@@ -83,6 +76,40 @@ export const selectCurrentSessionDates = createSelector(
 		return dates;
 	}
 );
+
+export const selectSyncedSessionEntities = createSelector(
+	selectSessionEntities,
+	selectGroupEntities,
+	(sessions, groups) => {
+		const entities = Object.entries(sessions).reduce((entities, [id, session]) => {
+			const group = groups[session.groupId];
+			return {
+				...entities,
+				[id]: {
+					...session,
+					groupName: group? group.name: 'Unknown',
+				}
+			}
+		}, {})
+		//console.log(entities)
+		return entities;
+	}
+);
+
+/*
+ * Slice
+ */
+const sortComparer = (a, b) => DateTime.fromISO(b.startDate).toMillis() - DateTime.fromISO(a.startDate).toMillis();
+
+const slice = createAppTableDataSlice({
+	name: dataSet,
+	sortComparer,
+	fields,
+	selectEntities: selectSyncedSessionEntities,
+});
+
+export default slice;
+
 
 /*
  * Actions

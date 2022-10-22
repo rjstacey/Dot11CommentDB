@@ -20,6 +20,7 @@ const getSessionsSQL = () =>
 		'id, ' +
 		'name, ' +
 		'type, ' +
+		'BIN_TO_UUID(`groupId`) AS `groupId`, ' +
 		'startDate, ' +
 		'endDate, ' +
 		'timezone, ' +
@@ -30,7 +31,7 @@ const getSessionsSQL = () =>
 		'(SELECT COUNT(*) FROM breakouts WHERE session_id=m.id) AS Breakouts, ' +
 		'(' + getSessionTotalCreditSQL('m.id') + ') AS TotalCredit, ' +
 		'(SELECT COUNT(DISTINCT(SAPIN)) FROM attendance_summary WHERE session_id=m.id) AS Attendees ' +
-	'FROM meetings m';
+	'FROM sessions m';
 
 /*
  * Get session attendees with attendance for obselete SAPINs mapped to the new SAPIN
@@ -125,7 +126,7 @@ const getSessionAttendanceSQL = (session_id) =>
 	'ORDER BY a.SAPIN;';
 
 /*
- * Return a complete list of meetings
+ * Return a complete list of sessions
  */
 export function getSessions(constraints) {
 	let sql = getSessionsSQL();
@@ -135,14 +136,14 @@ export function getSessions(constraints) {
 		).join(' AND ');
 	}
 	sql += ' ORDER BY startDate DESC';
-	console.log(sql)
 	return db.query({sql, dateStrings: true});
 }
 
-function sessionEntry(s) {
+function sessionEntrySetSql(s) {
 	const entry = {
 		name: s.name,
 		type: s.type,
+		groupId: s.groupId,
 		imatMeetingId: s.imatMeetingId,
 		OrganizerID: s.OrganizerID
 	};
@@ -185,32 +186,40 @@ function sessionEntry(s) {
 			delete entry[key]
 	}
 
-	return entry;
+	const sets = [];
+	for (const [key, value] of Object.entries(entry)) {
+		let sql;
+		if (key === 'groupId')
+			sql = db.format('??=UUID_TO_BIN(?)', [key, value]);
+		else
+			sql = db.format('??=?', [key, value]);
+		sets.push(sql);
+	}
+
+	return sets.join(', ');
 }
 
 export async function addSession(session) {
-	const entry = sessionEntry(session);
-	const {insertId} = await db.query({sql: 'INSERT INTO meetings (??) VALUES (?);', dateStrings: true}, [Object.keys(entry), Object.values(entry)]);
-	const [insertedSession] = await db.query({sql: 'SELECT * FROM meetings WHERE id=?;', dateStrings: true}, [insertId]);
+	const setSql = sessionEntrySetSql(session);
+	const {insertId} = await db.query({sql: `INSERT INTO sessions ${setSql};`, dateStrings: true});
+	const [insertedSession] = await getSessions({id: insertId});
 	return insertedSession;
 }
 
-export async function updateSession(id, session) {
-	let entry = sessionEntry(session);
-	if (Object.keys(entry).length) {
-		const sql =
-			db.format("UPDATE meetings SET ? WHERE id=?;",  [entry, id]) +
-			db.format("SELECT ?? from meetings WHERE id=?;", [Object.keys(entry), id]);
-		const [noop, sessions] = await db.query({sql, dateStrings: true});
-		entry = sessions[0];
+export async function updateSession(id, changes) {
+	const setSql = sessionEntrySetSql(changes);
+	if (setSql) {
+		await db.query({sql: `UPDATE sessions SET ${setSql} WHERE id=?;`, dateStrings: true},  [id]);
+		const sessions = await getSessions({id});
+		return sessions[0];
 	}
 
-	return entry;
+	return {id};
 }
 
 export async function deleteSessions(ids) {
 	const results = await db.query(
-		db.format('DELETE FROM meetings WHERE id IN (?);', [ids]) +
+		db.format('DELETE FROM sessions WHERE id IN (?);', [ids]) +
 		db.format('DELETE FROM attendance WHERE session_id IN (?);', [ids]) +
 		db.format('DELETE FROM attendance_summary WHERE session_id IN (?);', [ids]) +
 		db.format('DELETE FROM breakouts WHERE session_id IN (?);', [ids])
@@ -280,7 +289,7 @@ export async function getRecentSessionsWithAttendees() {
 
 export async function importBreakouts(user, sessionId) {
 
-	const [session] = await db.query('SELECT * FROM meetings WHERE id=?;', [sessionId]);
+	const [session] = await db.query('SELECT * FROM sessions WHERE id=?;', [sessionId]);
 	if (!session)
 		throw new NotFoundError(`Session id=${sessionId} does not exist`);
 	console.log(session)
@@ -315,7 +324,7 @@ export async function importBreakoutAttendance(user, session, breakout_id, meeti
 
 export async function importAttendances(user, session_id) {
 
-	let [session] = await db.query('SELECT * FROM meetings WHERE id=?;', [session_id]);
+	let [session] = await db.query('SELECT * FROM sessions WHERE id=?;', [session_id]);
 	if (!session)
 		throw `Unrecognized session ${session_id}`
 

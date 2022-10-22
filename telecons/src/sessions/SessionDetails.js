@@ -13,6 +13,7 @@ import ImatMeetingSelector from '../components/ImatMeetingSelector';
 import TopRow from '../components/TopRow';
 import RoomDetails from './RoomDetails';
 import TimeslotDetails from './TimeslotDetails';
+import GroupSelector from '../components/GroupSelector';
 
 import {
 	loadSessions,
@@ -92,7 +93,7 @@ function SessionEdit({
 	return (
 		<>
 			<Row>
-				<Field label='Name:'>
+				<Field label='Session name:'>
 					<TextArea 
 						style={{width: `${nameMinWidthCh}ch`}}
 						name='Name'
@@ -108,6 +109,15 @@ function SessionEdit({
 					<SessionTypeSelector
 						value={isMultiple(session.type)? null: session.type}
 						onChange={type => handleChange({type})}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Organizing group:' >
+					<GroupSelector
+						value={isMultiple(session.groupId)? null: session.groupId}
+						onChange={groupId => handleChange({groupId})}
 						readOnly={readOnly}
 					/>
 				</Field>
