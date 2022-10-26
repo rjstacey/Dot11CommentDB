@@ -14,7 +14,7 @@ import WebexMeetings from '../webexMeetings/WebexMeetings';
 import ImatMeetings from '../imat/ImatMeetings';
 import ImatBreakouts from '../imat/ImatBreakouts';
 import ImatBreakoutAttendance from '../imat/ImatBreakoutAttendance';
-import Ieee802WorldSchedule from '../ieee802WorldSchedule/Ieee802WorldSchedule';
+import Ieee802World from '../ieee802World/Ieee802World';
 
 import {selectUser} from '../store/user';
 
@@ -104,11 +104,11 @@ function Body() {
 					component={ImatBreakoutAttendance}
 				/>
 				<RestrictedRoute
-					path="/:groupName/ieee802WorldSchedule"
+					path="/:groupName/ieee802World"
 					access={access}
 					exact
 					minAccess={AccessLevel.WGAdmin}
-					component={Ieee802WorldSchedule}
+					component={Ieee802World}
 				/>
 			</Switch>
 		</Main>

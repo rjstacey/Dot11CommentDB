@@ -6,7 +6,7 @@ import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTable
 import {setError} from 'dot11-components/store/error';
 import {isObject} from 'dot11-components/lib';
 
-import {selectTeleconEntities, upsertTelecons} from './telecons';
+import {selectMeetingEntities, upsertMeetings} from './meetings';
 
 const displayGroup = (group) => {
 	const parts = group.split('/');
@@ -66,14 +66,14 @@ export const selectBreakoutTimeslots = (state) => selectBreakoutsState(state).ti
 export const selectSyncedBreakoutEntities = createSelector(
 	selectBreakoutMeetingId,
 	selectBreakoutEntities,
-	selectTeleconEntities,
-	(meetingId, breakoutEntities, teleconEntities) =>
+	selectMeetingEntities,
+	(meetingId, breakoutEntities, meetingEntities) =>
 		Object.values(breakoutEntities).reduce((entities, breakout) => {
-			const telecon = Object.values(teleconEntities).find(t => t.imatMeetingId === meetingId && t.imatBreakoutId === breakout.id);
+			const meeting = Object.values(meetingEntities).find(m => m.imatMeetingId === meetingId && m.imatBreakoutId === breakout.id);
 			entities[breakout.id] = {
 				...breakout,
 				meetingId,
-				teleconId: telecon? telecon.id: null
+				teleconId: meeting? meeting.id: null
 			};
 			return entities;
 		}, {})
@@ -225,7 +225,7 @@ export const addBreakouts = (meetingId, breakouts) =>
 			return;
 		}
 		dispatch(addMany(response.breakouts));
-		dispatch(upsertTelecons(response.telecons));
+		dispatch(upsertMeetings(response.telecons));
 	}
 
 export const updateBreakouts = (meetingId, updates) => 

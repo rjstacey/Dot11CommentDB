@@ -1,7 +1,7 @@
 import fetcher from 'dot11-components/lib/fetcher';
 import {setError} from 'dot11-components/store/error';
 
-import slice from './teleconsSlice';
+import slice from './meetingsSlice';
 
 import {setWebexMeetings, upsertWebexMeetings} from './webexMeetings';
 
@@ -22,20 +22,20 @@ const {
 	setPanelIsSplit
 } = slice.actions;
 
-export const setTeleconsCurrentPanelIsSplit = (isSplit) => setPanelIsSplit({isSplit});
+export const setMeetingsCurrentPanelIsSplit = (isSplit) => setPanelIsSplit({isSplit});
 
 export {
 	setProperty as setUiProperty,
-	setSelected as setSelectedTelecons,
-	toggleSelected as toggleSelectedTelecons,
+	setSelected as setSelectedMeetings,
+	toggleSelected as toggleSelectedMeetings,
 	setSelectedSlots,
 	toggleSelectedSlots,
-	upsertMany as upsertTelecons
+	upsertMany as upsertMeetings
 }
 
 const baseUrl = '/api/meetings';
 
-export const loadTelecons = (groupId, constraints) => 
+export const loadMeetings = (groupId, constraints) => 
 	async (dispatch, getState) => {
 		dispatch(getPending());
 		let url = baseUrl;
@@ -49,7 +49,7 @@ export const loadTelecons = (groupId, constraints) =>
 		}
 		catch(error) {
 			dispatch(getFailure());
-			dispatch(setError('Unable to get list of telecons', error));
+			dispatch(setError('Unable to get list of meetings', error));
 			return;
 		}
 		await dispatch(getSuccess(response.meetings));
@@ -57,12 +57,12 @@ export const loadTelecons = (groupId, constraints) =>
 			await dispatch(setWebexMeetings(response.webexMeetings));
 	}
 
-export const clearTelecons = () =>
-	async (dispatch, getState) => {
+export const clearMeetings = () =>
+	async (dispatch) => {
 		dispatch(removeAll());
 	}
 
-export const updateTelecons = (updates) =>
+export const updateMeetings = (updates) =>
 	async (dispatch) => {
 		let response;
 		try {
@@ -75,9 +75,11 @@ export const updateTelecons = (updates) =>
 			return;
 		}
 		await dispatch(setMany(response.meetings));
+		if (response.webexMeetings)
+			await dispatch(upsertWebexMeetings(response.webexMeetings));
 	}
 
-export const addTelecons = (meetings) =>
+export const addMeetings = (meetings) =>
 	async (dispatch) => {
 		let response;
 		try {
@@ -95,7 +97,7 @@ export const addTelecons = (meetings) =>
 		return response.meetings.map(e => e.id);
 	}
 
-export const deleteTelecons = (ids) =>
+export const deleteMeetings = (ids) =>
 	async (dispatch) => {
 		try {
 			await fetcher.delete(baseUrl, ids);

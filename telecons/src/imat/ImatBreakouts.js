@@ -10,9 +10,9 @@ import {AppModal, ConfirmModal} from 'dot11-components/modals';
 import {parseNumber, displayDateRange} from 'dot11-components/lib';
 
 import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
-import TeleconSelector from '../components/TeleconSelector';
+import MeetingSelector from '../components/MeetingSelector';
+import MeetingSummary from '../components/MeetingSummary';
 import TopRow from '../components/TopRow';
-import TeleconSummary from '../components/TeleconSummary';
 
 import {
 	loadBreakouts,
@@ -27,11 +27,11 @@ import {
 import {selectImatMeetingEntities} from '../store/imatMeetings';
 
 import {
-	selectSyncedTeleconEntities,
-	selectTeleconsState,
+	selectSyncedMeetingEntities,
+	selectMeetingIds,
 	getField as getTeleconField,
-	updateTelecons
-} from '../store/telecons';
+	updateMeetings
+} from '../store/meetings';
 
 import {selectGroupEntities} from '../store/groups';
 
@@ -165,7 +165,7 @@ function BreakoutAdd({close, session, committees, timeslots, groups, teleconEnti
 		>
 			<Row>
 				<Field label='Telecon:'>
-					<TeleconSelector
+					<MeetingSelector
 						value={teleconId}
 						onChange={handleTeleconSelect}
 						fromDate={session.start}
@@ -329,7 +329,7 @@ function BreakoutLink({session, breakout, close}) {
 			id: teleconId,
 			changes: {imatMeetingId: session.id, imatBreakoutId: breakout.id}
 		}
-		await dispatch(updateTelecons([update]));
+		await dispatch(updateMeetings([update]));
 		close();
 	}
 
@@ -338,7 +338,7 @@ function BreakoutLink({session, breakout, close}) {
 			submit={submit}
 			cancel={close}
 		>
-			<TeleconSelector
+			<MeetingSelector
 				value={teleconId}
 				onChange={setTeleconId}
 				fromDate={session.start}
@@ -511,8 +511,8 @@ function Breakouts() {
 	const dispatch = useDispatch();
 	const {valid, meetingId, committees, timeslots} = useSelector(selectBreakoutsState);
 	const meeting = useSelector(selectImatMeetingEntities)[meetingId];
-	const teleconsIds = useSelector(selectTeleconsState).ids;
-	const teleconEntities = useSelector(selectSyncedTeleconEntities);
+	const teleconsIds = useSelector(selectMeetingIds);
+	const teleconEntities = useSelector(selectSyncedMeetingEntities);
 	const groups = useSelector(selectGroupEntities);
 
 	React.useEffect(() => {
@@ -541,7 +541,7 @@ function Breakouts() {
 	const columns = React.useMemo(() => {
 		function renderTelecon({rowData}) {
 			if (rowData.teleconId)
-				return <TeleconSummary teleconId={rowData.teleconId} />
+				return <MeetingSummary meetingId={rowData.teleconId} />
 			return (
 				<>
 					<ActionButton

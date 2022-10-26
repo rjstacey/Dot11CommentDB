@@ -10,10 +10,10 @@ import userSlice from './user';
 import currentSlice from './current';
 import membersSlice, {loadMembers} from './members';
 import sessionsSlice from './sessions';
+import meetingsSlice from './meetingsSlice';
 import calendarAccountsSlice, {loadCalendarAccounts} from './calendarAccounts';
 import webexAccountsSlice, {loadWebexAccounts} from './webexAccounts';
 import officersSlice, {loadOfficers} from './officers';
-import teleconsSlice from './teleconsSlice';
 import timeZonesSlice, {loadTimeZones} from './timeZones';
 import groupsSlice, {loadGroups} from './groups';
 import imatCommitteesSlice from './imatCommittees';
@@ -21,20 +21,20 @@ import imatMeetingsSlice from './imatMeetings';
 import imatBreakoutsSlice from './imatBreakouts';
 import webexMeetingsSlice from './webexMeetingsSlice';
 import imatAttendanceSlice from './imatBreakoutAttendance';
-import ieee802WorldScheduleSlice from './ieee802WorldSchedule';
+import ieee802WorldSlice from './ieee802World';
 
 const dataAppSliceNames = [
 	membersSlice.name,
 	groupsSlice.name,
 	officersSlice.name,
 	sessionsSlice.name,
-	teleconsSlice.name,
+	meetingsSlice.name,
 	webexMeetingsSlice.name,
 	imatCommitteesSlice.name,
 	imatMeetingsSlice.name,
 	imatBreakoutsSlice.name,
 	imatAttendanceSlice.name,
-	ieee802WorldScheduleSlice.name
+	ieee802WorldSlice.name
 ];
 
 /*
@@ -66,13 +66,13 @@ export function configureStore() {
 		[groupsSlice.name]: groupsSlice.reducer,
 		[officersSlice.name]: officersSlice.reducer,
 		[sessionsSlice.name]: sessionsSlice.reducer,
-		[teleconsSlice.name]: teleconsSlice.reducer,
+		[meetingsSlice.name]: meetingsSlice.reducer,
 		[webexMeetingsSlice.name]: webexMeetingsSlice.reducer,
 		[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
 		[imatMeetingsSlice.name]: imatMeetingsSlice.reducer,
 		[imatBreakoutsSlice.name]: imatBreakoutsSlice.reducer,
 		[imatAttendanceSlice.name]: imatAttendanceSlice.reducer,
-		[ieee802WorldScheduleSlice.name]: ieee802WorldScheduleSlice.reducer,
+		[ieee802WorldSlice.name]: ieee802WorldSlice.reducer,
 	});
 
 	const middleware = [thunk];
@@ -96,7 +96,7 @@ export function configureStore() {
 			groupsSlice.name,
 			officersSlice.name,
 			sessionsSlice.name,
-			teleconsSlice.name,
+			meetingsSlice.name,
 			webexMeetingsSlice.name,
 			imatMeetingsSlice.name,
 		],

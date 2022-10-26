@@ -9,13 +9,13 @@ import AppTable, {SplitPanel, Panel, SelectHeader, SelectCell, ShowFilters, Tabl
 
 import {
 	fields,
-	loadTelecons,
-	clearTelecons,
-	selectTeleconsCurrentPanelConfig,
-	setTeleconsCurrentPanelIsSplit,
+	loadMeetings,
+	clearMeetings,
+	selectMeetingsCurrentPanelConfig,
+	setMeetingsCurrentPanelIsSplit,
 	dataSet,
 	getField
-} from '../store/telecons';
+} from '../store/meetings';
 
 import {selectCurrentGroupId, selectCurrentSessionId} from '../store/current';
 
@@ -148,8 +148,8 @@ function teleconsRowGetter({rowIndex, ids, entities}) {
 
 function Meetings(props) {
 	const dispatch = useDispatch();
-	const {isSplit} = useSelector(selectTeleconsCurrentPanelConfig);
-	const setIsSplit = React.useCallback((value) => dispatch(setTeleconsCurrentPanelIsSplit(value)), [dispatch]);
+	const {isSplit} = useSelector(selectMeetingsCurrentPanelConfig);
+	const setIsSplit = React.useCallback((value) => dispatch(setMeetingsCurrentPanelIsSplit(value)), [dispatch]);
 	const groupId = useSelector(selectCurrentGroupId);
 	const sessionId = useSelector(selectCurrentSessionId);
 	const sessionEntities = useSelector(selectSessionEntities);
@@ -165,7 +165,7 @@ function Meetings(props) {
 				constraints.toDate = session.endDate;
 			}
 		}
-		dispatch(loadTelecons(groupId, constraints));
+		dispatch(loadMeetings(groupId, constraints));
 	}, [dispatch, sessionEntities]);
 
 	React.useEffect(() => {
@@ -174,7 +174,7 @@ function Meetings(props) {
 	}, [groupId, sessionId]);  // eslint-disable-line react-hooks/exhaustive-deps
 
 	const refresh = () => load(groupId, sessionId);
-	const clear = () => dispatch(clearTelecons());
+	const clear = () => dispatch(clearMeetings());
 
 	return (
 		<>

@@ -2,7 +2,7 @@ import {DateTime} from 'luxon';
 
 import {createAppTableDataSlice} from 'dot11-components/store/appTableData';
 
-import {dataSet, fields, getField, selectSyncedTeleconEntities} from './teleconsSelectors';
+import {dataSet, fields, getField, selectSyncedMeetingEntities} from './meetingsSelectors';
 
 const sortComparer = (a, b) => {
 	// Sort by start
@@ -29,7 +29,7 @@ const slice = createAppTableDataSlice({
 	fields,
 	selectField: getField,
 	sortComparer,
-	selectEntities: selectSyncedTeleconEntities,
+	selectEntities: selectSyncedMeetingEntities,
 	initialState: {
 		selectedSlots: []
 	},

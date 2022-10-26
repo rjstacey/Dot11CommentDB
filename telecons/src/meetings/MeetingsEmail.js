@@ -8,7 +8,7 @@ import 'react-tabs/style/react-tabs.css';
 import {Form, Field, Checkbox} from 'dot11-components/form';
 
 import {selectUser} from '../store/user';
-import {selectTeleconsState, selectSyncedTeleconEntities, selectTeleconIds} from '../store/telecons';
+import {selectSyncedMeetingEntities, selectMeetingIds} from '../store/meetings';
 import {selectOfficersState} from '../store/officers';
 import {selectMember} from '../store/members';
 import {selectGroupsState} from '../store/groups';
@@ -86,14 +86,15 @@ function selectOfficers(state, groupId) {
 }
 
 function selectGroups(state) {
-	const {ids, entities} = selectTeleconsState(state);
 	const {entities: groupEntities} = selectGroupsState(state);
+	const meetingEntities = selectSyncedMeetingEntities(state);
+	const meetingIds = selectMeetingIds(state);
 
 	const groupIds = new Set();
-	for (const id of ids) {
-		const t = entities[id];
-		if (t.organizationId === id && DateTime.fromISO(t.start) >= DateTime.now() && t.webexMeetingId)
-			groupIds.add(t.organizationId);
+	for (const id of meetingIds) {
+		const m = meetingEntities[id];
+		if (DateTime.fromISO(m.start) >= DateTime.now() && m.webexMeetingId)
+			groupIds.add(m.organizationId);
 	}
 	return [...groupIds]
 		.map(id => groupEntities[id])
@@ -102,18 +103,18 @@ function selectGroups(state) {
 
 function selectEmails(state, groupIds) {
 	const {entities: groupEntities} = selectGroupsState(state);
-	const teleconEntities = selectSyncedTeleconEntities(state);
-	const teleconIds = selectTeleconIds(state);
+	const meetingEntities = selectSyncedMeetingEntities(state);
+	const meetingIds = selectMeetingIds(state);
 	const user = selectUser(state);
 
 	const emails = {};
 	for (const id of groupIds) {
 		const group = groupEntities[id];
 
-		const telecons = teleconIds
-			.map(id => teleconEntities[id])
+		const meetings = meetingIds
+			.map(id => meetingEntities[id])
 			.filter(t => t.organizationId === id && DateTime.fromISO(t.start) >= DateTime.now() && t.webexMeetingId);
-		const table = genTable(telecons);
+		const table = genTable(meetings);
 
 		const officers = selectOfficers(state, id);
 
@@ -157,7 +158,7 @@ const Grid = styled.div`
 	max-width: 500px;
 `;
 
-function TeleconEmail({close}) {
+function MeetingEmail({close}) {
 	const dispatch = useDispatch();
 	const groups = useSelector(selectGroups);
 	const nRows = Math.round(groups.length / 3) + 1;
@@ -210,4 +211,4 @@ function TeleconEmail({close}) {
 	)
 }
 
-export default TeleconEmail;
+export default MeetingEmail;

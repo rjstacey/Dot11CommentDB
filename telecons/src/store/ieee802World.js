@@ -1,12 +1,13 @@
+import {createSelector} from '@reduxjs/toolkit';
 import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error'
 import {DateTime} from 'luxon';
 
-import {addTelecons} from './telecons';
 import {selectGroupsState} from './groups';
 import {selectCurrentSessionId} from './current';
 import {selectSessionEntities} from './sessions';
+import {addMeetings, selectMeetingEntities} from './meetings';
 
 function displayDate(isoDate) {
 	// ISO date: "YYYY-MM-DD"
@@ -17,7 +18,7 @@ function displayDate(isoDate) {
 	return `${year} ${monthStr[month] || '???'} ${date}`; 
 }
 
-export const dataSet = 'ieee802WorldSchedule';
+export const dataSet = 'ieee802World';
 
 export const fields = {
 	id: {label: 'ID', sortType: SortType.NUMERIC},
@@ -34,7 +35,8 @@ export const fields = {
 	mtgHotel: {label: 'Hotel'},
 	mtgLevel: {label: 'Level'},
 	mtgLocation: {label: 'Location'},
-	groupName: {label: 'Group'}
+	groupName: {label: 'Group'},
+	meetingId: {label: 'Meeting ID'}
 };
 
 /*
@@ -54,20 +56,45 @@ export function getField(entity, key) {
 	return entity[key];
 }
 
+/*
+ * Selectors
+ */
+export const select802WorldState = (state) => state[dataSet];
+export const select802WorldEntities = (state) => select802WorldState(state).entities;
+
+export const selectSynced802WorldEntities = createSelector(
+	select802WorldEntities,
+	selectMeetingEntities,
+	(entities, meetingEntities) => 
+		Object.entries(entities).reduce((entities, [key, entry]) => {
+			/* Find a meeting that matches start, end and name */
+			const m = Object.values(meetingEntities).find(m => {
+				const entryStart = DateTime.fromFormat(`${entry.breakoutDate} ${entry.startTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: m.timezone});
+				const entryEnd = DateTime.fromFormat(`${entry.breakoutDate} ${entry.endTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: m.timezone});
+				const meetingSummary = m.summary.replace('802.11', '').trim();
+				return (entryStart.equals(DateTime.fromISO(m.start, {zone: m.timezone})) &&
+						entryEnd.equals(DateTime.fromISO(m.end, {zone: m.timezone})) &&
+						entry.meeting.startsWith(meetingSummary));
+			});
+			const meetingId = m? m.id: null;
+			return {...entities, [key]: {...entry, meetingId}};
+		}, {})
+);
+
+/*
+ * Slice
+ */
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	selectField: getField,
 	initialState: {},
+	selectEntities: selectSynced802WorldEntities,
 });
 
 export default slice;
 
-/*
- * Selectors
- */
-export const select802WorldScheduleState = (state) => state[dataSet];
- 
+
  /*
   * Actions
   */
@@ -93,10 +120,10 @@ export const load802WorldSchedule = () =>
 		await dispatch(getSuccess(response));
 	}
 
-export const importSelectedAsTelecons = () =>
+export const importSelectedAsMeetings = () =>
 	async (dispatch, getState) => {
 		const state = getState();
-		const {selected, entities} = select802WorldScheduleState(state);
+		const {selected, entities} = select802WorldState(state);
 		const {ids: groupIds, entities: groupEntities} = selectGroupsState(state);
 		const sessionId = selectCurrentSessionId(state);
 		const session = selectSessionEntities(state)[sessionId];
@@ -144,5 +171,5 @@ export const importSelectedAsTelecons = () =>
 			telecons.push(telecon);
 		}
 		//console.log(telecons);
-		dispatch(addTelecons(telecons));
+		dispatch(addMeetings(telecons));
 	}

@@ -5,7 +5,7 @@ import {displayDate} from 'dot11-components/lib';
 import {SortType, selectCurrentPanelConfig} from 'dot11-components/store/appTableData';
 
 import {selectCurrentSession} from './imatMeetings';
-import {selectTeleconEntities} from './teleconsSelectors';
+import {selectMeetingEntities} from './meetingsSelectors';
 
 export function displayMeetingNumber(meetingNumber) {
 	const s = meetingNumber.toString();
@@ -66,23 +66,17 @@ const selectTimezone = (state) => {
 
 export const selectSyncedWebexMeetingEntities = createSelector(
 	selectWebexMeetingEntities,
-	selectTeleconEntities,
+	selectMeetingEntities,
 	selectTimezone,
-	(webexMeetings, telecons, timezone) => {
-		const entities = {...webexMeetings};
-		for (const id in telecons) {
-			const telecon = telecons[id];
-			const webexMeeting = entities[telecon.webexMeetingId];
-			if (webexMeeting)
-				entities[telecon.webexMeetingId] = {...webexMeeting, teleconId: telecon.id, timezone: telecon.timezone};
-		}
-		// For webex meetings without an associated telecon entry, add the default timezone
-		for (const id in entities) {
-			const webexMeeting = entities[id];
-			if (!webexMeeting.teleconId)
-				entities[id] = {...webexMeeting, teleconId: null, timezone};
-		}
-		return entities;
+	(webexMeetingEntities, meetingEntities, timezone) => {
+		const meetings = Object.values(meetingEntities);
+		return Object.values(webexMeetingEntities).reduce((entities, webexMeeting) => {
+			const entry = {...webexMeeting};
+			const meeting = meetings.find(m => m.webexMeetingId === webexMeeting.id);
+			entry.meetingId = meeting? meeting.id: null;
+			entry.timezone = meeting? meeting.timezone: timezone;
+			return {...entities, [entry.id]: entry};
+		}, {});
 	}
 );
 

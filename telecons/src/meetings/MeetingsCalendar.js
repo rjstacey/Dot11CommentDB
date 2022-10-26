@@ -16,10 +16,10 @@ import {
 import {
 	selectSelectedSlots,
 	toggleSelectedSlots,
-	selectSelectedTelecons,
-	toggleSelectedTelecons,
-	selectTeleconEntities
-} from '../store/telecons';
+	selectSelectedMeetings,
+	toggleSelectedMeetings,
+	selectMeetingEntities
+} from '../store/meetings';
 
 import {selectGroupEntities} from '../store/groups';
 
@@ -113,7 +113,7 @@ function timeToHours(time) {
 
 function Timeslot({date, room, slot}) {
 	const dispatch = useDispatch();
-	const selectedMeetings = useSelector(selectSelectedTelecons);
+	const selectedMeetings = useSelector(selectSelectedMeetings);
 	const selectedSlots = useSelector(selectSelectedSlots);
 
 	if (!slot.startTime || !slot.endTime)
@@ -145,7 +145,7 @@ function Timeslot({date, room, slot}) {
 function Meeting({date, room, meeting, meetings}) {
 	const dispatch = useDispatch();
 	const session = useSelector(selectCurrentSession);
-	const selectedMeetings = useSelector(selectSelectedTelecons);
+	const selectedMeetings = useSelector(selectSelectedMeetings);
 	const selectedSlots = useSelector(selectSelectedSlots);
 	const groupEntities = useSelector(selectGroupEntities);
 
@@ -183,7 +183,7 @@ function Meeting({date, room, meeting, meetings}) {
 				<Checkbox
 					style={{float: 'right'}}
 					checked={selectedMeetings.includes(meeting.id)}
-					onChange={() => dispatch(toggleSelectedTelecons([meeting.id]))}
+					onChange={() => dispatch(toggleSelectedMeetings([meeting.id]))}
 					disabled={isReadOnly}
 				/>
 				{meeting.summary}
@@ -194,7 +194,7 @@ function Meeting({date, room, meeting, meetings}) {
 
 function RoomColumn({date, room}) {
 	const {timezone, timeslots, rooms} = useSelector(selectCurrentSession);
-	const meetingEntities = useSelector(selectTeleconEntities);
+	const meetingEntities = useSelector(selectMeetingEntities);
 
 	// Meetings for this date with roomId added
 	const meetings = React.useMemo(() => {

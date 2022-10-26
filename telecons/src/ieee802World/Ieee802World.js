@@ -7,7 +7,9 @@ import AppTable, {SelectHeader, SelectCell, TableColumnSelector, TableColumnHead
 import {ActionButton, ButtonGroup} from 'dot11-components/form';
 import {ConfirmModal} from 'dot11-components/modals';
 
-import {load802WorldSchedule, importSelectedAsTelecons, select802WorldScheduleState, fields, getField, dataSet} from '../store/ieee802WorldSchedule';
+import {load802WorldSchedule, importSelectedAsMeetings, select802WorldState, fields, getField, dataSet} from '../store/ieee802World';
+
+import {selectMeetingEntities} from '../store/meetings';
 
 import GroupPathSelector from '../components/GroupPathSelector';
 import CurrentSessionSelector from '../components/CurrentSessionSelector';
@@ -36,6 +38,12 @@ const renderTimeRangeHeader = (props) =>
 		<ColumnHeader {...props} dataKey='startTime' label='Start time' />
 		<ColumnHeader {...props} dataKey='endTime' label='End time' />
 	</>
+
+function ShowMeeting({rowData}) {
+	const meetingEntities = useSelector(selectMeetingEntities);
+	const meeting = meetingEntities[rowData.meetingId];
+	return meeting? `${meeting.id} ${meeting.summary}`: '';
+}
 
 const tableColumns = [
 	{key: '__ctrl__',
@@ -71,6 +79,10 @@ const tableColumns = [
 	{key: 'mtgLocation', 
 		...fields.mtgLocation,
 		width: 300, flexGrow: 1, flexShrink: 1},
+	{key: 'meetingId',
+		...fields.meetingId,
+		width: 200, flexGrow: 1, flexShrink: 1,
+		cellRenderer: (props) => <ShowMeeting {...props} />}
 ];
 
 const defaultTablesColumns = {
@@ -118,7 +130,7 @@ function schedRowGetter({rowIndex, ids, entities}) {
 
 function Ieee802WorldSchedule() {
 	const dispatch = useDispatch();
-	const {valid} = useSelector(select802WorldScheduleState);
+	const {valid} = useSelector(select802WorldState);
 
 
 	React.useEffect(() => {
@@ -131,7 +143,7 @@ function Ieee802WorldSchedule() {
 	const importSelected = async () => {
 		const ok = await ConfirmModal.show('Import selected?');
 		if (ok)
-			dispatch(importSelectedAsTelecons());
+			dispatch(importSelectedAsMeetings());
 	}
 
 	return (

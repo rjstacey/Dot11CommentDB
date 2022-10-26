@@ -14,13 +14,13 @@ import {
 } from '../store/sessions';
 
 import {
-	addTelecons, 
-	updateTelecons, 
-	deleteTelecons, 
-	setSelectedTelecons, 
-	selectTeleconsState, 
-	selectSyncedTeleconEntities
-} from '../store/telecons';
+	addMeetings, 
+	updateMeetings, 
+	deleteMeetings, 
+	setSelectedMeetings, 
+	selectMeetingsState, 
+	selectSyncedMeetingEntities
+} from '../store/meetings';
 
 import {selectCurrentGroupId, selectCurrentGroupDefaults} from '../store/current';
 
@@ -58,7 +58,7 @@ export const defaultWebexMeeting = {
 	}
 }
 
-const toTimeStr = (hour, min) => ('0' + hour).substr(-2) + ':' + ('0' + min).substr(-2);
+//const toTimeStr = (hour, min) => ('0' + hour).substr(-2) + ':' + ('0' + min).substr(-2);
 const fromTimeStr = (str) => {
 	const m = str.match(/(\d+):(\d+)/);
 	return m? {hour: parseInt(m[1], 10), minute: parseInt(m[2], 10)}: {hour: 0, minute: 0};
@@ -663,7 +663,7 @@ class MeetingDetails extends React.Component {
 
 	componentDidUpdate(prevProps, prevState) {
 		const prevSelected = prevProps.selected;
-		const {selected, setSelectedTelecons} = this.props;
+		const {selected, setSelectedMeetings} = this.props;
 		const {action, ids} = this.state;
 
 		const changeWithConfirmation = async () => {
@@ -673,7 +673,7 @@ class MeetingDetails extends React.Component {
 				console.log(updates)
 				const ok = await ConfirmModal.show('Changes not applied! Do you want to discard changes?');
 				if (!ok) {
-					setSelectedTelecons(ids);
+					setSelectedMeetings(ids);
 					return;
 				}
 			}
@@ -801,7 +801,7 @@ class MeetingDetails extends React.Component {
 	}
 
 	clickAdd = async () => {
-		const {setSelectedTelecons} = this.props;
+		const {setSelectedMeetings} = this.props;
 		const {action} = this.state;
 
 		console.log('clickAdd')
@@ -814,13 +814,13 @@ class MeetingDetails extends React.Component {
 			}
 		}
 		if (action !== 'add') {
-			setSelectedTelecons([]);
+			setSelectedMeetings([]);
 			this.setState(this.initState('add'));
 		}
 	}
 
 	clickDelete = async () => {
-		const {deleteTelecons} = this.props;
+		const {deleteMeetings} = this.props;
 		const ids = this.state.ids;
 		const ok = await ConfirmModal.show(
 			'Are you sure you want to delete the ' + 
@@ -830,15 +830,15 @@ class MeetingDetails extends React.Component {
 		);
 		if (!ok)
 			return;
-		await deleteTelecons(ids);
+		await deleteMeetings(ids);
 		this.setState(this.initState('update'));
 	}
 
 	clickCancel = async () => {
-		const {updateTelecons, entities} = this.props;
+		const {updateMeetings, entities} = this.props;
 		const ids = this.state.ids;
 		const updates = cancelUpdates(ids, entities);
-		await updateTelecons(updates);
+		await updateMeetings(updates);
 		this.setState(this.initState('update'));
 	}
 
@@ -883,7 +883,7 @@ class MeetingDetails extends React.Component {
 	}
 
 	add = async () => {
-		const {addTelecons, setSelectedTelecons, session} = this.props;
+		const {addMeetings, setSelectedMeetings, session} = this.props;
 		let {entry} = this.state;
 
 		let errMsg = '';
@@ -915,19 +915,19 @@ class MeetingDetails extends React.Component {
 		//console.log(meetings);
 		
 		this.setState({busy: true});
-		addTelecons(meetings)
-			.then(ids => setSelectedTelecons(ids))
+		addMeetings(meetings)
+			.then(ids => setSelectedMeetings(ids))
 			.then(() => this.setState(this.initState('update')));
 	}
 
 	update = async () => {
-		const {updateTelecons} = this.props;
+		const {updateMeetings} = this.props;
 
 		const updates = this.getUpdates();
 		//console.log(updates)
 
 		this.setState({busy: true});
-		updateTelecons(updates)
+		updateMeetings(updates)
 			.then(() => this.setState(this.initState('update')));
 	}
 
@@ -993,10 +993,10 @@ class MeetingDetails extends React.Component {
 		entities: PropTypes.object.isRequired,
 		defaults: PropTypes.object.isRequired,
 		groupEntities: PropTypes.object.isRequired,
-		setSelectedTelecons: PropTypes.func.isRequired,
-		updateTelecons: PropTypes.func.isRequired,
-		addTelecons: PropTypes.func.isRequired,
-		deleteTelecons: PropTypes.func.isRequired
+		setSelectedMeetings: PropTypes.func.isRequired,
+		updateMeetings: PropTypes.func.isRequired,
+		addMeetings: PropTypes.func.isRequired,
+		deleteMeetings: PropTypes.func.isRequired
 	}
 }
 
@@ -1004,17 +1004,17 @@ const ConnectedMeetingDetails = connect(
 	(state) => ({
 		groupId: selectCurrentGroupId(state),
 		session: selectCurrentSession(state),
-		loading: selectTeleconsState(state).loading,
-		selected: selectTeleconsState(state).selected,
-		entities: selectSyncedTeleconEntities(state),
+		loading: selectMeetingsState(state).loading,
+		selected: selectMeetingsState(state).selected,
+		entities: selectSyncedMeetingEntities(state),
 		defaults: selectCurrentGroupDefaults(state),
 		groupEntities: selectGroupEntities(state)
 	}),
 	{
-		setSelectedTelecons,
-		updateTelecons,
-		addTelecons,
-		deleteTelecons
+		setSelectedMeetings,
+		updateMeetings,
+		addMeetings,
+		deleteMeetings
 	}
 )(MeetingDetails);
 

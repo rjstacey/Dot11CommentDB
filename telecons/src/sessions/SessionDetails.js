@@ -26,7 +26,7 @@ import {
 	selectSessionsState
 } from '../store/sessions';
 
-import {selectTeleconsState} from '../store/telecons';
+import {selectMeetingsState} from '../store/meetings';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
@@ -341,7 +341,7 @@ class SessionDetail extends React.Component {
 const ConnectedSessionDetail = connect(
 	(state) => {
 		const sessions = selectSessionsState(state);
-		const {entities, ids} = selectTeleconsState(state);
+		const {entities, ids} = selectMeetingsState(state);
 		const telecons = ids.map(id => entities[id]);
 		return {
 			sessions: sessions.entities,

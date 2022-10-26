@@ -10,7 +10,7 @@ import {selectCalendarAccountEntities} from './calendarAccounts';
 import {selectImatMeetingEntities} from './imatMeetings';
 import {selectWebexMeetingEntities} from './webexMeetingsSelectors';
 
-export const dataSet = 'telecons';
+export const dataSet = 'meetings';
 
 export function displayMeetingNumber(meetingNumber) {
 	const s = meetingNumber.toString();
@@ -75,45 +75,42 @@ export function summarizeTelecon(entity) {
 /*
  * Selectors
  */
-export const selectTeleconsState = (state) => state[dataSet];
+export const selectMeetingsState = (state) => state[dataSet];
 
-export function selectTeleconEntities(state) {
-	return selectTeleconsState(state).entities;
-}
-export const selectTeleconIds = (state) => selectTeleconsState(state).ids;
+export function selectMeetingEntities(state) {return selectMeetingsState(state).entities}
 
-export const getTeleconsForSubgroup = (state, subgroup) => state.ids.filter(id => state.entities[id].Subgroup === subgroup);
-export const selectTeleconsCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
+export const selectMeetingIds = (state) => selectMeetingsState(state).ids;
 
-export const selectSyncedTeleconEntities = createSelector(
-	selectTeleconEntities,
+export const selectMeetingsCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
+
+export const selectSyncedMeetingEntities = createSelector(
+	selectMeetingEntities,
 	selectGroupEntities,
 	selectWebexAccountEntities,
 	selectCalendarAccountEntities,
 	selectImatMeetingEntities,
 	selectWebexMeetingEntities,
-	(telecons, groups, webexAccounts, calendarAccounts, imatMeetings, webexMeetings) => {
-		const entities = {};
-		for (const id in telecons) {
-			const telecon = telecons[id];
-			const group = groups[telecon.organizationId];
-			const webexAccount = webexAccounts[telecon.webexAccountId];
-			const calendarAccount = calendarAccounts[telecon.calendarAccountId];
-			const imatMeeting = imatMeetings[telecon.imatMeetingId];
-			const webexMeeting = webexMeetings[telecon.webexMeetingId];
-			entities[id] = {
-				...telecon,
-				groupName: group? group.name: 'Unknown',
-				webexAccountName: webexAccount? webexAccount.name: 'None',
-				calendarAccountName: calendarAccount? calendarAccount.name: 'None',
-				imatMeetingName: imatMeeting? imatMeeting.name: 'None',
-				webexMeeting
-			};
-		}
-		return entities;
-	}
+	(meetingEntities, groupEntities, webexAccountEntities, calendarAccountEntities, imatMeetingEntities, webexMeetingEntities) =>
+		Object.values(meetingEntities).reduce((entities, meeting) => {
+			const group = groupEntities[meeting.organizationId];
+			const webexAccount = webexAccountEntities[meeting.webexAccountId];
+			const calendarAccount = calendarAccountEntities[meeting.calendarAccountId];
+			const imatMeeting = imatMeetingEntities[meeting.imatMeetingId];
+			const webexMeeting = webexMeetingEntities[meeting.webexMeetingId];
+			return {
+				...entities,
+				[meeting.id]: {
+					...meeting,
+					groupName: group? group.name: 'Unknown',
+					webexAccountName: webexAccount? webexAccount.name: 'None',
+					calendarAccountName: calendarAccount? calendarAccount.name: 'None',
+					imatMeetingName: imatMeeting? imatMeeting.name: 'None',
+					webexMeeting
+				}
+			}
+		}, {})
 );
 
-export const selectSelectedTelecons = (state) => selectTeleconsState(state).selected;
+export const selectSelectedMeetings = (state) => selectMeetingsState(state).selected;
 
-export const selectSelectedSlots = (state) => selectTeleconsState(state).selectedSlots;
+export const selectSelectedSlots = (state) => selectMeetingsState(state).selectedSlots;

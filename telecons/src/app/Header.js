@@ -56,7 +56,7 @@ const fullMenu = [
 	{
 		minAccess: AccessLevel.WGAdmin,
 		prefixGroupName: true,
-		link: '/ieee802WorldSchedule',
+		link: '/ieee802World',
 		label: '802 world schedule',
 	},
 

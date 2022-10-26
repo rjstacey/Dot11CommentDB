@@ -356,8 +356,9 @@ class WebexMeetingDetail extends React.Component {
 					/>
 					<ActionButton
 						name='link'
-						title='Link to telecon'
+						title='Link to meeting'
 						disabled={loading || selected.length === 0}
+						onClick={() => alert('missing functionality')}
 					/>
 					<ActionButton
 						name='delete'

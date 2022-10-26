@@ -7,10 +7,10 @@ import {DateTime} from 'luxon';
 import {Select} from 'dot11-components/form';
 
 import {
-	loadTelecons,
-	selectTeleconsState,
+	loadMeetings,
+	selectMeetingsState,
 	getField
-} from '../store/telecons';
+} from '../store/meetings';
 
 const StyledItem = styled.div`
 	display: flex;
@@ -49,11 +49,11 @@ function TeleconSelector({
 	...otherProps
 }) {
 	const dispatch = useDispatch();
-	const {valid, loading, ids, entities} = useSelector(selectTeleconsState);
+	const {valid, loading, ids, entities} = useSelector(selectMeetingsState);
 
 	React.useEffect(() => {
 		if (!valid && !loading && !readOnly)
-			dispatch(loadTelecons());
+			dispatch(loadMeetings());
 	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
 
 	const options = React.useMemo(() => {

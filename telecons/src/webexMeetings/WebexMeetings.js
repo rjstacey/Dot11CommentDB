@@ -12,9 +12,9 @@ import {selectGroupEntities} from '../store/groups';
 import {displayMeetingNumber} from '../store/webexMeetings';
 
 import {
-	updateTelecons,
-	addTelecons,
-} from '../store/telecons';
+	updateMeetings,
+	addMeetings,
+} from '../store/meetings';
 
 import {
 	loadWebexMeetings,
@@ -32,9 +32,9 @@ import {selectCurrentSession} from '../store/sessions';
 
 import GroupPathSelector from '../components/GroupPathSelector';
 import CurrentSessionSelector from '../components/CurrentSessionSelector';
-import TeleconSelector from '../components/TeleconSelector';
+import MeetingSelector from '../components/MeetingSelector';
+import MeetingSummary from '../components/MeetingSummary';
 import TopRow from '../components/TopRow';
-import TeleconSummary from '../components/TeleconSummary';
 
 import WebexMeetingDetail from './WebexMeetingDetail';
 import {MeetingEntry, convertEntryToMeeting} from '../meetings/MeetingDetails';
@@ -78,12 +78,12 @@ function setClipboard(selected, entities) {
 	copyToClipboard(table, {asHtml: true});
 }
 
-function TeleconLink({webexMeeting, close}) {
+function MeetingLink({webexMeeting, close}) {
 	const dispatch = useDispatch();
-	const [id, setTeleconId] = React.useState();
+	const [id, setId] = React.useState();
 
 	function submit() {
-		dispatch(updateTelecons([{id, changes: {webexAccountId: webexMeeting.webexAccountId, webexMeetingId: webexMeeting.id}}]));
+		dispatch(updateMeetings([{id, changes: {webexAccountId: webexMeeting.webexAccountId, webexMeetingId: webexMeeting.id}}]));
 	}
 
 	return (
@@ -91,9 +91,9 @@ function TeleconLink({webexMeeting, close}) {
 			submit={submit}
 			cancel={close}
 		>
-			<TeleconSelector
+			<MeetingSelector
 				value={id}
-				onChange={setTeleconId}
+				onChange={setId}
 			/>
 		</Form>
 	)
@@ -101,7 +101,7 @@ function TeleconLink({webexMeeting, close}) {
 
 const toTimeStr = (hour, min) => ('' + hour).padStart(2, '0') + ':' + ('' + min).padStart(2, '0');
 
-function TeleconAdd({webexMeeting, close, groupId}) {
+function MeetingAdd({webexMeeting, close, groupId}) {
 	const dispatch = useDispatch();
 	const groupEntities = useSelector(selectGroupEntities);
 	const [entry, setEntry] = React.useState(initState);
@@ -143,7 +143,7 @@ function TeleconAdd({webexMeeting, close, groupId}) {
 
 	function add() {
 		const meeting = convertEntryToMeeting(entry);
-		dispatch(addTelecons([meeting]));
+		dispatch(addMeetings([meeting]));
 		close();
 	}
 
@@ -206,7 +206,7 @@ const tableColumns = [
 		...fields.timezone,
 		width: 200, flexGrow: 1, flexShrink: 1},
 	{key: 'Actions',
-		label: 'Telecon',
+		label: 'Meeting',
 		width: 200, flexGrow: 1, flexShrink: 1}
 ];
 
@@ -262,8 +262,8 @@ function WebexMeetings() {
 
 	const columns = React.useMemo(() => {
 		function renderActions({rowData}) {
-			if (rowData.teleconId)
-				return <TeleconSummary teleconId={rowData.teleconId} />
+			if (rowData.meetingId)
+				return <MeetingSummary meetingId={rowData.meetingId} />
 			return (
 				<>
 					<ActionButton
@@ -344,7 +344,7 @@ function WebexMeetings() {
 				isOpen={!!webexMeetingToLink}
 				onRequestClose={closeToLink}
 			>
-				<TeleconLink
+				<MeetingLink
 					webexMeeting={webexMeetingToLink}
 					close={closeToLink}
 				/>
@@ -354,7 +354,7 @@ function WebexMeetings() {
 				isOpen={!!webexMeetingToAdd}
 				onRequestClose={closeToAdd}
 			>
-				<TeleconAdd
+				<MeetingAdd
 					webexMeeting={webexMeetingToAdd}
 					close={closeToAdd}
 					groupId={groupId}
