@@ -7,9 +7,7 @@ import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
 import {ActionButton} from 'dot11-components/form';
 import {displayDayDate, displayTime} from 'dot11-components/lib';
 
-import {loadBreakoutAttendance, selectBreakoutAttendanceState, dataSet} from '../store/imatBreakoutAttendance';
-import {selectImatMeetingEntities} from '../store/imatMeetings';
-import {selectBreakoutEntities} from '../store/imatBreakouts';
+import {loadBreakoutAttendance, selectBreakoutAttendanceState, selectImatMeeting, selectImatBreakout, dataSet} from '../store/imatBreakoutAttendance';
 
 import TopRow from '../components/TopRow';
 
@@ -64,24 +62,24 @@ function BreakoutAttendance() {
 	const params = useParams();
 
 	const dispatch = useDispatch();
-	const {valid, meetingNumber, breakoutNumber} = useSelector(selectBreakoutAttendanceState);
-	const meeting = useSelector(selectImatMeetingEntities)[meetingNumber];
-	const breakout = useSelector(selectBreakoutEntities)[breakoutNumber];
+	const {valid, imatMeetingId, imatBreakoutId} = useSelector(selectBreakoutAttendanceState);
+	const imatMeeting = useSelector(selectImatMeeting);
+	const breakout = useSelector(selectImatBreakout);
 
 	React.useEffect(() => {
 		if (!valid ||
-			(params.meetingNumber && params.meetingNumber !== meetingNumber) ||
-			(params.breakoutNumber && params.breakoutNumber !== breakoutNumber))
+			(params.meetingNumber && params.meetingNumber !== imatMeetingId) ||
+			(params.breakoutNumber && params.breakoutNumber !== imatBreakoutId))
 			dispatch(loadBreakoutAttendance(params.meetingNumber, params.breakoutNumber));
-	}, [dispatch, valid, params.meetingNumber, meetingNumber, params.breakoutNumber, breakoutNumber]);
+	}, [dispatch, valid, params.meetingNumber, imatMeetingId, params.breakoutNumber, imatBreakoutId]);
 
-	const close = () => history.push(`${params.groupName}/imatMeetings/${meetingNumber}`);
-	const refresh = () => dispatch(loadBreakoutAttendance(meetingNumber, breakoutNumber));
+	const close = () => history.push(`/${params.groupName}/imatMeetings/${imatMeetingId}`);
+	const refresh = () => dispatch(loadBreakoutAttendance(imatMeetingId, imatBreakoutId));
 
 	return (
 		<>
 			<TopRow style={{maxWidth}}>
-				<div>{meeting && renderSessionInfo(meeting)}</div>
+				<div>{imatMeeting && renderSessionInfo(imatMeeting)}</div>
 				<div>{breakout && renderBreakoutInfo(breakout)}</div>
 				<div>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />

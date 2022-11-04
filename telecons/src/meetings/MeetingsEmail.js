@@ -36,7 +36,7 @@ function genTable(telecons) {
 		<tr>
 			${td(displayDateTime(m, timezone))}
 			${td(m.title)}
-			${td(`${m.webexAccountName}: <a href="${m.webLink}">${displayMeetingNumber(m.meetingNumber)}</a>`)}
+			${td(`${m.accountName}: <a href="${m.webLink}">${displayMeetingNumber(m.meetingNumber)}</a>`)}
 			${td(m.hostKey)}
 		</tr>`;
 	const table = `

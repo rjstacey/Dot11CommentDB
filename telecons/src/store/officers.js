@@ -1,7 +1,7 @@
 import {createSlice, createEntityAdapter, createSelector} from '@reduxjs/toolkit';
-import { v4 as uuid } from 'uuid';
+import {v4 as uuid} from 'uuid';
 
-import fetcher from 'dot11-components/lib/fetcher';
+import {fetcher} from 'dot11-components/lib';
 import {setError} from 'dot11-components/store/error';
 
 const dataAdapter = createEntityAdapter({});
@@ -57,7 +57,14 @@ export const createGroupOfficersSelector = (state, group_id) => createSelector(
  */
 const url = '/api/officers';
 
-const {getPending, getSuccess, getFailure, addOne, updateOne, removeOne} = slice.actions;
+const {
+	getPending,
+	getSuccess,
+	getFailure,
+	addOne,
+	updateOne,
+	removeOne
+} = slice.actions;
 
 export const loadOfficers = () => 
 	(dispatch, getState) => {
@@ -98,7 +105,7 @@ export const updateOfficer = (update) =>
 		const {entities} = selectOfficersState(getState());
 		const original = entities[update.id];
 		dispatch(updateOne(update));
-		fetcher.put(url, [update])
+		fetcher.patch(url, [update])
 			.then(entities => {
 				if (!Array.isArray(entities) || entities.length !== 1)
 					throw new TypeError(`Unexpected response to POST ${url}`);

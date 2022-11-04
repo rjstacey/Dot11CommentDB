@@ -84,6 +84,13 @@ function Body() {
 					component={WebexMeetings}
 				/>
 				<RestrictedRoute
+					path="/:groupName/imatBreakouts"
+					access={access}
+					exact
+					minAccess={AccessLevel.WGAdmin}
+					component={ImatBreakouts}
+				/>
+				<RestrictedRoute
 					path="/:groupName/imatMeetings"
 					access={access}
 					exact

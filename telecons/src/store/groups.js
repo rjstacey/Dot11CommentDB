@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid';
 
 import {createAppTableDataSlice, setPanelIsSplit, selectCurrentPanelConfig} from 'dot11-components/store/appTableData';
 
-import fetcher from 'dot11-components/lib/fetcher';
+import {fetcher} from 'dot11-components/lib';
 import {setError} from 'dot11-components/store/error';
 
 import {selectCurrentGroupId} from './current';

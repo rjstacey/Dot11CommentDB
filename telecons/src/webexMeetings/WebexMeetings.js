@@ -83,7 +83,7 @@ function MeetingLink({webexMeeting, close}) {
 	const [id, setId] = React.useState();
 
 	function submit() {
-		dispatch(updateMeetings([{id, changes: {webexAccountId: webexMeeting.webexAccountId, webexMeetingId: webexMeeting.id}}]));
+		dispatch(updateMeetings([{id, changes: {webexAccountId: webexMeeting.accountId, webexMeetingId: webexMeeting.id}}]));
 	}
 
 	return (
@@ -163,35 +163,35 @@ const WebexMeetingsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet
 function WebexMeetingHeading(props) {
 	return (
 		<>
-			<WebexMeetingsColumnHeader {...props} label='Webex account' dataKey='webexAccountName' />
+			<WebexMeetingsColumnHeader {...props} label='Webex account' dataKey='accountName' />
 			<WebexMeetingsColumnHeader {...props} label='Meeting number' dataKey='meetingNumber' />
 		</>
 	)
 }
 
 function renderWebexMeeting({rowData}) {
-	const {webexAccountName, meetingNumber} = rowData;
-	return `${webexAccountName}: ${displayMeetingNumber(meetingNumber)}`;
+	const {accountName, meetingNumber} = rowData;
+	return `${accountName}: ${displayMeetingNumber(meetingNumber)}`;
 }
 
 const tableColumns = [
 	{key: '__ctrl__',
-		width: 30, flexGrow: 1, flexShrink: 0,
+		width: 30, flexGrow: 0, flexShrink: 0,
 		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
 		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
 	{key: 'dayDate',
 		...fields.dayDate,
-		width: 100, flexGrow: 1, flexShrink: 0},
-	{key: 'time',
-		...fields.time,
-		width: 70, flexGrow: 1, flexShrink: 0},
+		width: 100, flexGrow: 1, flexShrink: 1},
+	{key: 'timeRange',
+		...fields.timeRange,
+		width: 70, flexGrow: 1, flexShrink: 1},
 	{key: 'webexMeeting',
 		label: 'Meeting',
 		width: 200, flexGrow: 1, flexShrink: 1,
 		headerRenderer: p => <WebexMeetingHeading {...p}/>,
 		cellRenderer: renderWebexMeeting},
-	{key: 'webexAccountName', 
-		...fields.webexAccountName,
+	{key: 'accountName', 
+		...fields.accountName,
 		width: 150, flexGrow: 1, flexShrink: 1},
 	{key: 'meetingNumber', 
 		...fields.meetingNumber,
@@ -205,9 +205,10 @@ const tableColumns = [
 	{key: 'timezone', 
 		...fields.timezone,
 		width: 200, flexGrow: 1, flexShrink: 1},
-	{key: 'Actions',
-		label: 'Meeting',
-		width: 200, flexGrow: 1, flexShrink: 1}
+	{key: 'meeting',
+		label: 'Associated meeting',
+		width: 100, flexGrow: 1, flexShrink: 1,
+		cellRenderer: ({rowData}) => rowData.meetingId && <MeetingSummary meetingId={rowData.meetingId} />},
 ];
 
 const defaultColumns = tableColumns.reduce((obj, col) => {
@@ -215,7 +216,7 @@ const defaultColumns = tableColumns.reduce((obj, col) => {
 	    shown = true; 
 	if (col.key === '__ctrl__')
 		unselectable = true;
-	if (col.key in ['webexAccountName', 'meetingNumber'])
+	if (col.key in ['accountName', 'meetingNumber'])
 		shown = false;
 	obj[col.key] = {unselectable, shown, width: col.width};
 	return obj;
@@ -230,14 +231,14 @@ function webexMeetingsRowGetter({rowIndex, ids, entities}) {
 	b = {
 		...b,
 		dayDate: getField(b, 'dayDate'),
-		time: getField(b, 'time')
+		timeRange: getField(b, 'timeRange')
 	};
 	if (rowIndex > 0) {
 		let b_prev = entities[ids[rowIndex - 1]];
 		if (b.dayDate === getField(b_prev, 'dayDate')) {
 			b = {...b, dayDate: ''};
-			if (b.Time === getField(b_prev, 'time'))
-				b = {...b, time: ''};
+			if (b.Time === getField(b_prev, 'timeRange'))
+				b = {...b, timeRange: ''};
 		}
 	}
 	return b;
@@ -260,33 +261,6 @@ function WebexMeetings() {
 		load();
 	}, [groupId, session]);  // eslint-disable-line react-hooks/exhaustive-deps
 
-	const columns = React.useMemo(() => {
-		function renderActions({rowData}) {
-			if (rowData.meetingId)
-				return <MeetingSummary meetingId={rowData.meetingId} />
-			return (
-				<>
-					<ActionButton
-						name='link'
-						onClick={() => setWebexMeetingToLink(rowData)}
-					/>
-					<ActionButton
-						name='add'
-						onClick={() => setWebexMeetingToAdd(rowData)}
-					/>
-					
-				</>
-			)
-		}
-		const columns = [...tableColumns];
-		columns[columns.length-1] = {
-			...columns[columns.length-1],
-			cellRenderer: renderActions
-		}
-		return columns;
-	}, [setWebexMeetingToLink, setWebexMeetingToAdd]);
-
-
 	const closeToLink = () => setWebexMeetingToLink(null);
 	const closeToAdd = () => setWebexMeetingToAdd(null);
 
@@ -307,7 +281,7 @@ function WebexMeetings() {
 				<CurrentSessionSelector/>
 
 				<div style={{display: 'flex'}}>
-					<TableColumnSelector dataSet={dataSet} columns={columns} />
+					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
 					<ActionButton
 						name='book-open'
 						title='Show detail'
@@ -327,8 +301,7 @@ function WebexMeetings() {
 				<Panel>
 					<AppTable
 						defaultTablesConfig={defaultTablesConfig}
-						fixed
-						columns={columns}
+						columns={tableColumns}
 						headerHeight={46}
 						estimatedRowHeight={36}
 						rowGetter={webexMeetingsRowGetter}

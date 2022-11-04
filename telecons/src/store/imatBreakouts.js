@@ -1,12 +1,12 @@
 import {createSelector} from '@reduxjs/toolkit';
 import {DateTime} from 'luxon';
 
-import fetcher from 'dot11-components/lib/fetcher';
-import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
+import {fetcher, isObject} from 'dot11-components/lib';
+import {createAppTableDataSlice, SortType, selectCurrentPanelConfig} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
-import {isObject} from 'dot11-components/lib';
 
-import {selectMeetingEntities, upsertMeetings} from './meetings';
+import {selectMeetingEntities} from './meetings';
+import {selectImatMeetingEntities} from './imatMeetings';
 
 const displayGroup = (group) => {
 	const parts = group.split('/');
@@ -56,9 +56,14 @@ export const getField = (entity, dataKey) => {
  */
 export const selectBreakoutsState = (state) => state[dataSet];
 export const selectBreakoutEntities = (state) => selectBreakoutsState(state).entities;
-const selectBreakoutMeetingId = (state) => selectBreakoutsState(state).meetingId;
+export const selectBreakoutMeetingId = (state) => selectBreakoutsState(state).imatMeetingId;
 export const selectBreakoutRooms = (state) => selectBreakoutsState(state).rooms;
 export const selectBreakoutTimeslots = (state) => selectBreakoutsState(state).timeslots;
+export const selectImatMeeting = (state) => {
+	const imatMeetingId = selectBreakoutMeetingId(state);
+	const imatMeetingEntities = selectImatMeetingEntities(state);
+	return imatMeetingEntities[imatMeetingId];
+}
 
 /*
  * selectSyncedBreakoutEntities(state)
@@ -67,13 +72,13 @@ export const selectSyncedBreakoutEntities = createSelector(
 	selectBreakoutMeetingId,
 	selectBreakoutEntities,
 	selectMeetingEntities,
-	(meetingId, breakoutEntities, meetingEntities) =>
+	(imatMeetingId, breakoutEntities, meetingEntities) =>
 		Object.values(breakoutEntities).reduce((entities, breakout) => {
-			const meeting = Object.values(meetingEntities).find(m => m.imatMeetingId === meetingId && m.imatBreakoutId === breakout.id);
+			const meeting = Object.values(meetingEntities).find(m => m.imatMeetingId === imatMeetingId && m.imatBreakoutId === breakout.id);
 			entities[breakout.id] = {
 				...breakout,
-				meetingId,
-				teleconId: meeting? meeting.id: null
+				imatMeetingId,
+				meetingId: meeting? meeting.id: null
 			};
 			return entities;
 		}, {})
@@ -89,8 +94,6 @@ const sortComparer = (a, b) => {
 	return v1;
 }
 
-const otherRoom = {id: 0, name: 'Other', description: 'Not a room'};
-
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -98,64 +101,14 @@ const slice = createAppTableDataSlice({
 	selectField: getField,
 	selectEntities: selectSyncedBreakoutEntities,
 	initialState: {
-		meetingId: 0,
+		imatMeetingId: 0,
 		timeslots: [],
 		committees: [],
-		rooms: [otherRoom]
 	},
 	reducers: {
 		setDetails(state, action) {
 			return {...state, ...action.payload};
 		},
-		addTimeslot(state, action) {
-			const slot = action.payload;
-			const {timeslots} = state;
-			const id = timeslots.reduce((maxId, slot) => Math.max(maxId, slot.id), 0) + 1;
-			timeslots.push({...slot, id});
-		},
-		removeTimeslot(state, action) {
-			const id = action.payload;
-			const {timeslots} = state;
-			const i = timeslots.findIndex(slot => slot.id === id);
-			if (i >= 0)
-				timeslots.splice(i, 1);
-		},
-		updateTimeslot(state, action) {
-			const {id, changes} = action.payload;
-			const {timeslots} = state;
-			const i = timeslots.findIndex(slot => slot.id === id);
-			if (i >= 0)
-				timeslots[i] = {...timeslots[i], ...changes};
-		},
-		setRooms(state, action) {
-			const rooms = action.payload.slice();
-			rooms.unshift(otherRoom);
-			state.rooms = rooms;
-		},
-		addRoom(state, action) {
-			const room = action.payload;
-			const {rooms} = state;
-			const id = rooms.reduce((maxId, room) => Math.max(maxId, room.id), 0) + 1;
-			rooms.push({...room, id});
-		},
-		removeRoom(state, action) {
-			const id = action.payload;
-			if (id) {
-				const {rooms} = state;
-				const i = rooms.findIndex(room => room.id === id);
-				if (i >= 0)
-					rooms.splice(i, 1);
-			}
-		},
-		updateRoom(state, action) {
-			const {id, changes} = action.payload;
-			if (id) {
-				const {rooms} = state;
-				const i = rooms.findIndex(room => room.id === id);
-				if (i >= 0)
-					rooms[i] = {...rooms[i], ...changes};
-			}
-		}
 	},
 });
 
@@ -171,69 +124,78 @@ const {
 	getFailure,
 	setDetails,
 	addMany,
+	updateMany,
 	removeMany,
+	removeAll,
 	setSelected,
-	toggleSelected
+	toggleSelected,
+	setPanelIsSplit
 } = slice.actions;
 
 export {setSelected as setSelectedBreakouts, toggleSelected as toggleSelectedBreakouts};
 
+export const setBreakoutsCurrentPanelIsSplit = (isSplit) => setPanelIsSplit({isSplit});
+
 const baseUrl = '/api/imat/breakouts';
 
-export const loadBreakouts = (meetingId) =>
+export const loadBreakouts = (imatMeetingId) =>
 	async (dispatch, getState) => {
 		const state = getState();
 		if (selectBreakoutsState(state).loading)
 			return;
 		dispatch(getPending());
-		const url = `${baseUrl}/${meetingId}`;
+		const url = `${baseUrl}/${imatMeetingId}`;
 		let response;
 		try {
 			response = await fetcher.get(url);
 			if (!isObject(response) ||
 				!Array.isArray(response.breakouts) ||
 				!Array.isArray(response.timeslots) ||
-				!Array.isArray(response.committees) ||
-				!isObject(response.session) ||
-				response.session.id !== meetingId) {
+				!Array.isArray(response.committees) /* ||
+				!isObject(response.imatMeeting) ||
+				response.imatMeeting.id !== imatMeetingId*/) {
 				throw new TypeError(`Unexpected response to GET ${url}`);
 			}
 		}
 		catch(error) {
 			console.log(error)
 			dispatch(getFailure());
-			dispatch(setError(`Unable to get breakouts for ${meetingId}`, error));
+			dispatch(setError(`Unable to get breakouts for ${imatMeetingId}`, error));
 			return;
 		}
 		dispatch(getSuccess(response.breakouts));
-		dispatch(setDetails({...response, meetingId}));
+		const {timeslots, committees} = response;
+		dispatch(setDetails({timeslots, committees, imatMeetingId}));
 	}
 
-export const addBreakouts = (meetingId, breakouts) => 
+export const clearBreakouts = () =>
+	async (dispatch) => {
+		dispatch(removeAll());
+		dispatch(setDetails({timeslots: [], committees: [], imatMeetingId: null}));
+	}
+
+export const addBreakouts = (imatMeetingId, breakouts) => 
 	async (dispatch, getState) => {
-		const url = `${baseUrl}/${meetingId}`;
+		const url = `${baseUrl}/${imatMeetingId}`;
 		let response;
 		try {
 			response = await fetcher.post(url, breakouts);
-			if (!isObject(response) ||
-				!Array.isArray(response.breakouts) ||
-				!Array.isArray(response.telecons))
+			if (!Array.isArray(response))
 				throw new TypeError(`Unexpected response to POST ${url}`);
 		}
 		catch (error) {
 			dispatch(setError('Unable to add breakouts', error));
 			return;
 		}
-		dispatch(addMany(response.breakouts));
-		dispatch(upsertMeetings(response.telecons));
+		dispatch(addMany(response));
 	}
 
-export const updateBreakouts = (meetingId, updates) => 
+export const updateBreakouts = (imatMeetingId, breakouts) => 
 	async (dispatch, getState) => {
-		const url = `${baseUrl}/${meetingId}`;
+		const url = `${baseUrl}/${imatMeetingId}`;
 		let response;
 		try {
-			response = await fetcher.put(url, updates);
+			response = await fetcher.put(url, breakouts);
 			if (!Array.isArray(response))
 				throw new TypeError(`Unexpected response to PUT ${url}`);
 		}
@@ -241,12 +203,12 @@ export const updateBreakouts = (meetingId, updates) =>
 			dispatch(setError('Unable to update breakouts', error));
 			return;
 		}
-		//dispatch(updateMany(response));
+		dispatch(updateMany(response));
 	}
 
-export const deleteBreakouts = (meetingId, ids) => 
+export const deleteBreakouts = (imatMeetingId, ids) => 
 	async (dispatch, getState) => {
-		const url = `${baseUrl}/${meetingId}`;
+		const url = `${baseUrl}/${imatMeetingId}`;
 		try {
 			await fetcher.delete(url, ids);
 		}
@@ -257,23 +219,4 @@ export const deleteBreakouts = (meetingId, ids) =>
 		dispatch(removeMany(ids));
 	}
 
-const {setRooms, addRoom, updateRoom, removeRoom} = slice.actions;
-
-export {addRoom, updateRoom, removeRoom};
-
-export const deriveRoomsFromBreakouts = () =>
-	async (dispatch, getState) => {
-		const entities = selectBreakoutEntities(getState());
-		let rooms = Object.values(entities).reduce((rooms, breakout) => {
-			if (breakout.location)
-				rooms.add(breakout.location)
-			return rooms;
-		}, new Set());
-		rooms = [...rooms].map((name, i) => ({id: i+1, name, description: ''}));
-		dispatch(setRooms(rooms));
-	}
-
-
-const {addTimeslot, updateTimeslot, removeTimeslot} = slice.actions;
-
-export {addTimeslot, updateTimeslot, removeTimeslot};
+export const selectBreakoutsCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);

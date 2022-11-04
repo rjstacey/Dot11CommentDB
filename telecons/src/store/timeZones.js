@@ -1,5 +1,6 @@
 import {createSlice} from '@reduxjs/toolkit'
-import fetcher from 'dot11-components/lib/fetcher';
+
+import {fetcher} from 'dot11-components/lib';
 import {setError} from 'dot11-components/store/error';
 
 export const dataSet = 'timeZones';

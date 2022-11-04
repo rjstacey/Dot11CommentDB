@@ -40,7 +40,7 @@ const renderItem = ({item, style, className, props, state, methods}) => {
 	)
 }
 
-function TeleconSelector({
+function MeetingSelector({
 	value,
 	onChange,
 	readOnly,
@@ -91,10 +91,10 @@ function TeleconSelector({
 	)
 }
 
-TeleconSelector.propTypes = {
-	value: PropTypes.number.isRequired,
+MeetingSelector.propTypes = {
+	value: PropTypes.number,
 	onChange: PropTypes.func.isRequired,
 	readOnly: PropTypes.bool,
 }
 
-export default TeleconSelector;
+export default MeetingSelector;

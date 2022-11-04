@@ -11,7 +11,7 @@ const slice = createAppTableDataSlice({
 		builder
 			.addMatcher(
 				(action) => action.type === dataSet + '/getPending',
-				(state, action) => dataAdapter.setAll(state, [])
+				(state, action) => {dataAdapter.setAll(state, [])}
 			)
 	}
 });

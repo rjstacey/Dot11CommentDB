@@ -1,4 +1,4 @@
-import fetcher from 'dot11-components/lib/fetcher';
+import {fetcher, isObject} from 'dot11-components/lib';
 import {setError} from 'dot11-components/store/error';
 
 import slice from './meetingsSlice';
@@ -35,66 +35,68 @@ export {
 
 const baseUrl = '/api/meetings';
 
-export const loadMeetings = (groupId, constraints) => 
+function validateResponse(method, response) {
+	if (!isObject(response) ||
+		!Array.isArray(response.meetings) ||
+		(response.webexMeetings && !Array.isArray(response.webexMeetings))) {
+		throw new TypeError(`Unexpected response to ${method} ${baseUrl}`);
+	}
+}
+
+export const loadMeetings = (constraints) => 
 	async (dispatch, getState) => {
 		dispatch(getPending());
-		let url = baseUrl;
-		if (groupId)
-			url += `/${groupId}`;
 		let response;
 		try {
-			response = await fetcher.get(url, constraints);
-			if (!Array.isArray(response.meetings))
-				throw new TypeError(`Unexpected response to GET ${url}`);
+			response = await fetcher.get(baseUrl, constraints);
+			validateResponse('GET', response);
 		}
 		catch(error) {
 			dispatch(getFailure());
 			dispatch(setError('Unable to get list of meetings', error));
 			return;
 		}
-		await dispatch(getSuccess(response.meetings));
-		if (response.webexMeetings)
-			await dispatch(setWebexMeetings(response.webexMeetings));
+		const {meetings, webexMeetings} = response;
+		await dispatch(getSuccess(meetings));
+		if (webexMeetings)
+			await dispatch(setWebexMeetings(webexMeetings));
 	}
 
-export const clearMeetings = () =>
-	async (dispatch) => {
-		dispatch(removeAll());
-	}
+export const clearMeetings = () => (dispatch) => {dispatch(removeAll());}
 
 export const updateMeetings = (updates) =>
 	async (dispatch) => {
 		let response;
 		try {
 			response = await fetcher.patch(baseUrl, updates);
-			if (!Array.isArray(response.meetings))
-				throw new TypeError('Unexpected response to PATCH ' + baseUrl);
+			validateResponse('PATCH', response);
 		}
 		catch(error) {
 			await dispatch(setError(`Unable to update meetings`, error));
 			return;
 		}
-		await dispatch(setMany(response.meetings));
-		if (response.webexMeetings)
-			await dispatch(upsertWebexMeetings(response.webexMeetings));
+		const {meetings, webexMeetings} = response;
+		await dispatch(setMany(meetings));
+		if (webexMeetings)
+			await dispatch(upsertWebexMeetings(webexMeetings));
 	}
 
-export const addMeetings = (meetings) =>
+export const addMeetings = (meetings_) =>
 	async (dispatch) => {
 		let response;
 		try {
-			response = await fetcher.post(baseUrl, meetings);
-			if (!Array.isArray(response.meetings))
-				throw new TypeError('Unexpected response to POST ' + baseUrl);
+			response = await fetcher.post(baseUrl, meetings_);
+			validateResponse('POST', response);
 		}
 		catch(error) {
 			await dispatch(setError('Unable to add meetings:', error));
 			return [];
 		}
-		await dispatch(addMany(response.meetings));
-		if (response.webexMeetings)
-			await dispatch(upsertWebexMeetings(response.webexMeetings));
-		return response.meetings.map(e => e.id);
+		const {meetings, webexMeetings} = response;
+		await dispatch(addMany(meetings));
+		if (webexMeetings)
+			await dispatch(upsertWebexMeetings(webexMeetings));
+		return meetings.map(e => e.id);
 	}
 
 export const deleteMeetings = (ids) =>

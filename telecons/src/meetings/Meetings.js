@@ -34,9 +34,9 @@ import MeetingsEmail from './MeetingsEmail';
 
 function renderWebexMeeting({rowData}) {
 	const {webexAccountId, webexAccountName, webexMeeting} = rowData;
-	if (!webexAccountId || !webexMeeting)
+	if (!webexAccountId)
 		return 'None';
-	return webexAccountName + ': ' + displayMeetingNumber(webexMeeting.meetingNumber);
+	return webexAccountName + (webexMeeting? ': ' + displayMeetingNumber(webexMeeting.meetingNumber): '');
 }
 
 function renderImatMeeting({rowData}) {
@@ -157,7 +157,7 @@ function Meetings(props) {
 
 	const load = React.useCallback((groupId, sessionId) => {
 		const fromDate = DateTime.now().toISO();
-		const constraints = {fromDate};
+		const constraints = {groupId, fromDate};
 		if (sessionId) {
 			const session = sessionEntities[sessionId];
 			if (session) {
@@ -165,7 +165,7 @@ function Meetings(props) {
 				constraints.toDate = session.endDate;
 			}
 		}
-		dispatch(loadMeetings(groupId, constraints));
+		dispatch(loadMeetings(constraints));
 	}, [dispatch, sessionEntities]);
 
 	React.useEffect(() => {
@@ -214,24 +214,26 @@ function Meetings(props) {
 			</TopRow>
 
 			<SplitPanel dataSet={dataSet} >
-				<Panel>
+				<Panel style={{display: 'flex'}}>
 					{calView?
 						<MeetingsCalendar />:
-						<>
+						<div style={{display: 'flex', flexDirection: 'column', width: '100%'}}>
 							<ShowFilters
 								dataSet={dataSet}
 								fields={fields}
 							/>
-							<AppTable
-								defaultTablesConfig={defaultTablesConfig}
-								columns={tableColumns}
-								headerHeight={46}
-								estimatedRowHeight={32}
-								measureRowHeight
-								dataSet={dataSet}
-								rowGetter={teleconsRowGetter}
-							/>
-						</>}
+							<div style={{flex: 1}}>
+								<AppTable
+									defaultTablesConfig={defaultTablesConfig}
+									columns={tableColumns}
+									headerHeight={46}
+									estimatedRowHeight={32}
+									measureRowHeight
+									dataSet={dataSet}
+									rowGetter={teleconsRowGetter}
+								/>
+							</div>
+						</div>}
 				</Panel>
 				<Panel>
 					<MeetingDetails />

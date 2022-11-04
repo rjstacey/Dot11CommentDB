@@ -44,8 +44,14 @@ const fullMenu = [
 	{
 		minAccess: AccessLevel.WGAdmin,
 		prefixGroupName: true,
+		link: '/imatBreakouts',
+		label: 'IMAT breakouts',
+	},
+	{
+		minAccess: AccessLevel.WGAdmin,
+		prefixGroupName: true,
 		link: '/imatMeetings',
-		label: 'IMAT',
+		label: 'IMAT sessions',
 	},
 	{
 		minAccess: AccessLevel.WGAdmin,

@@ -15,35 +15,39 @@ export function displayMeetingNumber(meetingNumber) {
 export const fields = {
 	id: {label: 'Group ID'},
 	groupName: {label: 'Group'},
+	title: {label: 'Title'},
 	start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
 	end: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
 	day: {label: 'Day'},
-	dayDate: {label: 'Date'},
-	title: {label: 'Title'},
 	date: {label: 'Date'},
-	time: {label: 'Time'},
-	timezone: {label: 'Time zone'},
+	dayDate: {label: 'Date'},
+	timeRange: {label: 'Time'},
 	duration: {label: 'Duration'},
-	webexAccountName: {label: 'Webex account'},
+	timezone: {label: 'Time zone'},
+	accountId: {label: 'Webex account ID'},
+	accountName: {label: 'Webex account'},
 	meetingNumber: {label: 'Meeting number', sortType: SortType.NUMERIC},
 	hostKey: {label: 'Host key', sortType: SortType.NUMERIC},
+	meeting: {label: 'Associated meeting'}
 };
 
 /*
  * Fields derived from other fields
  */
 export function getField(entity, key) {
-	if (key === 'dayDate')
-		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('EEE, d LLL yyyy');
-	if (key === 'time') {
-		const start = DateTime.fromISO(entity.start, {zone: entity.timezone});
-		const end = DateTime.fromISO(entity.end, {zone: entity.timezone});
-		return start.toFormat('HH:mm') + ' - ' + end.toFormat('HH:mm');
-	}
 	if (key === 'day')
 		return DateTime.fromISO(entity.start, {zone: entity.timezone}).weekdayShort;
 	if (key === 'date')
-		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('yyyy LLL dd');
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('dd LLL yyyy');
+	if (key === 'dayDate')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('EEE, dd LLL yyyy');
+	if (key === 'startTime')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('HH:mm');
+	if (key === 'endTime')
+		return DateTime.fromISO(entity.end, {zone: entity.timezone}).toFormat('HH:mm');
+	if (key === 'timeRange')
+		return DateTime.fromISO(entity.start, {zone: entity.timezone}).toFormat('HH:mm') + '-' +
+			   DateTime.fromISO(entity.end, {zone: entity.timezone}).toFormat('HH:mm');
 	if (key === 'duration')
 		return DateTime.fromISO(entity.end).diff(DateTime.fromISO(entity.start), 'hours').hours;
 	if (key === 'meetingNumber')

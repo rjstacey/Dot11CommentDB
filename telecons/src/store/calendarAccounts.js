@@ -1,6 +1,6 @@
 import {createSlice, createEntityAdapter} from '@reduxjs/toolkit';
 
-import fetcher from 'dot11-components/lib/fetcher';
+import {fetcher, isObject} from 'dot11-components/lib';
 import {setError} from 'dot11-components/store/error';
 
 const dataAdapter = createEntityAdapter({});
@@ -64,7 +64,7 @@ const {
 const baseUrl = '/api/calendar/accounts';
 
 export const loadCalendarAccounts = () => 
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		dispatch(getPending());
 		let accounts;
 		try {
@@ -85,7 +85,7 @@ export const addCalendarAccount = (account) =>
 		let newAccount;
 		try {
 			newAccount = await fetcher.post(baseUrl, account);
-			if (typeof newAccount !== 'object')
+			if (!isObject(newAccount))
 				throw new TypeError('Unexpected response to POST: ' + baseUrl);
 		}
 		catch(error) {
@@ -102,7 +102,7 @@ export const updateCalendarAccount = (id, changes) =>
 		let updates;
 		try {
 			updates = await fetcher.patch(url, changes);
-			if (typeof updates !== 'object')
+			if (!isObject(updates))
 				throw new TypeError('Unexpected response to PATCH: ' + url);
 		}
 		catch(error) {
@@ -118,7 +118,7 @@ export const revokeAuthCalendarAccount = (id) =>
 		let account;
 		try {
 			account = await fetcher.patch(url);
-			if (typeof account !== 'object')
+			if (!isObject(account))
 				throw new TypeError('Unexpected response to DELETE: ' + url);
 		}
 		catch(error) {

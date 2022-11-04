@@ -1,4 +1,4 @@
-import fetcher from 'dot11-components/lib/fetcher';
+import {fetcher} from 'dot11-components/lib';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 

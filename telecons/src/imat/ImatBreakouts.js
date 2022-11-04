@@ -1,50 +1,30 @@
 import React from 'react';
-import {Link, useHistory, useParams} from 'react-router-dom';
+import {Link} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
-import styled from '@emotion/styled';
-import {DateTime} from 'luxon';
 
-import AppTable, {SelectHeader, SelectCell, TableColumnHeader} from 'dot11-components/table';
-import {Button, ActionButton, Form, Row, Field, Input, InputTime, Select} from 'dot11-components/form';
-import {AppModal, ConfirmModal} from 'dot11-components/modals';
-import {parseNumber, displayDateRange} from 'dot11-components/lib';
+import AppTable, {SelectHeader, SelectCell, TableColumnHeader, SplitPanel, Panel, TableColumnSelector} from 'dot11-components/table';
+import {ActionButton} from 'dot11-components/form';
+import {displayDateRange} from 'dot11-components/lib';
 
-import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
-import MeetingSelector from '../components/MeetingSelector';
 import MeetingSummary from '../components/MeetingSummary';
+import ImatBreakoutDetails from './ImatBreakoutDetails';
+import GroupPathSelector from '../components/GroupPathSelector';
+import CurrentSessionSelector from '../components/CurrentSessionSelector';
 import TopRow from '../components/TopRow';
+
+import {selectCurrentSession} from '../store/sessions';
 
 import {
 	loadBreakouts,
-	addBreakouts,
-	deleteBreakouts,
+	clearBreakouts,
 	selectBreakoutsState,
+	selectImatMeeting,
 	getField,
 	dataSet,
-	fields
+	fields,
+	selectBreakoutsCurrentPanelConfig,
+	setBreakoutsCurrentPanelIsSplit
 } from '../store/imatBreakouts';
-
-import {selectImatMeetingEntities} from '../store/imatMeetings';
-
-import {
-	selectSyncedMeetingEntities,
-	selectMeetingIds,
-	getField as getTeleconField,
-	updateMeetings
-} from '../store/meetings';
-
-import {selectGroupEntities} from '../store/groups';
-
-const TableRow = styled.div`
-	flex: 1;	/* remaining height */
-	width: 100%;
-	display: flex;
-	flex-direction: column;
-	.AppTable__dataRow,
-	.AppTable__headerRow {
-		align-items: center;
-	}
-`;
 
 const renderGroup = ({rowData}) => {
 	if (rowData.groupShortName)
@@ -59,294 +39,6 @@ export const renderSessionInfo = (session) =>
 		<span>{displayDateRange(session.start, session.end)}</span>
 		<span>{session.timezone}</span>
 	</div>
-
-function SlotSelector({value, onChange, isStart}) {
-	const {timeslots} = useSelector(selectBreakoutsState);
-	const options = timeslots.map(s => ({value: s.id, label: `${s.name} ${isStart? s.startTime: s.endTime}`}))
-	const widthCh = options.reduce((maxCh, o) => Math.max(maxCh, o.label.length), 12);
-	const values = options.filter(o => o.value === value);
-	const handleChange = React.useCallback((values) => onChange(values.length? values[0].value: 0), [onChange]);
-
-	return (
-		<Select
-			style={{minWidth: `calc(${widthCh}ch + 30px)`}}
-			options={options}
-			values={values}
-			onChange={handleChange}
-		/>
-	)
-}
-
-const StartSlotSelector = (props) => SlotSelector({...props, isStart: true});
-const EndSlotSelector = SlotSelector;
-
-function SessionDaySelector({value, onChange, session}) {
-
-	const options = React.useMemo(() => {
-		const sessionStart = DateTime.fromISO(session.start);
-		const days = Math.floor(DateTime.fromISO(session.end).diff(sessionStart, 'days').days);
-		const options = Array.from({length: days}, (_, i) => ({value: i, label: sessionStart.plus({days: i}).toFormat('EEE, d LLL yyyy')}));
-		return options;
-	}, [session]);
-
-	const widthCh = options.reduce((maxCh, o) => Math.max(maxCh, o.label.length), 12);
-	
-	const values = options.filter(o => o.value === value);
-
-	const handleChange = React.useCallback((values) => onChange(values.length? values[0].id: 0), [onChange]);
-
-	return (
-		<Select
-			style={{minWidth: `calc(${widthCh}ch + 30px)`}}
-			options={options}
-			values={values}
-			onChange={handleChange}
-		/>
-	)
-}
-
-function GroupIdSelector({value, onChange}) {
-	const {committees} = useSelector(selectBreakoutsState);
-	const committee = committees.find(c => c.id === value);
-	function handleChange(symbol) {
-		const committee = committees.find(c => c.symbol === symbol);
-		onChange(committee? committee.id: 0);
-	}
-	return (
-		<ImatCommitteeSelector
-			value={committee? committee.symbol: ''}
-			onChange={handleChange}
-		/>
-	)
-}
-
-const getDefaultBreakout = () => ({
-	teleconId: null,
-	name: "",
-	day: 0,
-	startTime: "",
-	startSlotId: null,
-	endTime: "",
-	endSlotId: null,
-	groupId: null,
-	location: "",
-	credit: "Zero",
-	overrideCreditDenominator: 0,
-	overrideCreditNumerator: 0,
-	facilitator: window.user? window.user.Email: ''
-});
-
-function BreakoutAdd({close, session, committees, timeslots, groups, teleconEntities}) {
-	const dispatch = useDispatch();
-	const [teleconId, setTeleconId] = React.useState(0);
-	const [breakout, setBreakout] = React.useState(getDefaultBreakout);
-
-	async function submit() {
-		await dispatch(addBreakouts(session.id, [breakout]));
-		close();
-	}
-
-	function handleTeleconSelect(id) {
-		setTeleconId(id);
-		const telecon = teleconEntities[id];
-		setBreakout(telecon?
-			teleconToBreakout(telecon, session, groups, committees, timeslots):
-			getDefaultBreakout()
-		);
-	}
-
-	const updateBreakout = (changes) => setBreakout(breakout => ({...breakout, ...changes}));
-
-	return (
-		<Form
-			title={`Add breakout`}
-			submit={submit}
-			cancel={close}
-		>
-			<Row>
-				<Field label='Telecon:'>
-					<MeetingSelector
-						value={teleconId}
-						onChange={handleTeleconSelect}
-						fromDate={session.start}
-						toDate={session.end}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Meeting name:'>
-					<Input
-						type='text'
-						value={breakout.name}
-						onChange={e => updateBreakout({name: e.target.value})}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Group:'>
-					<GroupIdSelector
-						value={breakout.groupId}
-						onChange={groupId => updateBreakout({groupId})}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Session day:'>
-					<SessionDaySelector
-						value={breakout.day}
-						onChange={day => updateBreakout({day})}
-						session={session}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Start slot:'>
-					<StartSlotSelector
-						value={breakout.startSlotId}
-						onChange={startSlotId => updateBreakout({startSlotId})}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Override start time:'>
-					<InputTime
-						value={breakout.startTime}
-						onChange={startTime => updateBreakout({startTime})}
-						placeholder='No override'
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='End slot:'>
-					<EndSlotSelector
-						value={breakout.endSlotId}
-						onChange={endSlotId => updateBreakout({endSlotId})}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Override end time:'>
-					<InputTime
-						value={breakout.endTime}
-						onChange={endTime => updateBreakout({endTime})}
-						placeholder='No override'
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Location/room:'>
-					<Input
-						type='text'
-						value={breakout.location}
-						onChange={e => updateBreakout({location: e.target.value})}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Credit:'>
-					<div style={{display: 'flex', justifyContent: 'space-between'}}>
-						<div style={{margin: '0 5px'}}>
-							<input
-								type='radio'
-								id='extra'
-								value='Extra'
-								checked={breakout.credit === 'Extra'}
-								onChange={e => updateBreakout({credit: e.target.value})}
-							/>
-							<label htmlFor='extra'>Extra</label>
-						</div>
-						<div style={{margin: '0 5px'}}>
-							<input
-								type='radio'
-								id='normal'
-								value='Normal'
-								checked={breakout.credit === 'Normal'}
-								onChange={e => updateBreakout({credit: e.target.value})}
-							/>
-							<label htmlFor='normal'>Normal</label>
-						</div>
-						<div style={{margin: '0 5px'}}>
-							<input
-								type='radio'
-								id='other'
-								value='Other'
-								checked={breakout.credit === 'Other'}
-								onChange={e => updateBreakout({credit: e.target.value})}
-							/>
-							<label htmlFor='other'>Other</label>
-						</div>
-						<div style={{margin: '0 5px'}}>
-							<input
-								type='radio'
-								id='zero'
-								value='Zero'
-								checked={breakout.credit === 'Zero'}
-								onChange={e => updateBreakout({credit: e.target.value})}
-							/>
-							<label htmlFor='zero'>Zero</label>
-						</div>
-					</div>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Override credit numerator/denominator:'>
-					<Input
-						type='text'
-						size={4}
-						value={breakout.overrideCreditNumerator}
-						onChange={e => updateBreakout({overrideCreditNumerator: e.target.value})}
-						disabled={breakout.credit !== "Other"}
-					/>
-					<label>/</label>
-					<Input
-						type='text'
-						size={4}
-						value={breakout.overrideCreditDenominator}
-						onChange={e => updateBreakout({overrideCreditDenominator: e.target.value})}
-						disabled={breakout.credit !== "Other"}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label='Facilitator:'>
-					<Input
-						type='text'
-						value={breakout.facilitator}
-						onChange={e => updateBreakout({facilitator: e.target.value})}
-					/>
-				</Field>
-			</Row>
-		</Form>
-	)
-}
-
-function BreakoutLink({session, breakout, close}) {
-	const dispatch = useDispatch();
-	const [teleconId, setTeleconId] = React.useState();
-
-	async function submit() {
-		const update = {
-			id: teleconId,
-			changes: {imatMeetingId: session.id, imatBreakoutId: breakout.id}
-		}
-		await dispatch(updateMeetings([update]));
-		close();
-	}
-
-	return (
-		<Form
-			submit={submit}
-			cancel={close}
-		>
-			<MeetingSelector
-				value={teleconId}
-				onChange={setTeleconId}
-				fromDate={session.start}
-				toDate={session.end}
-			/>
-		</Form>
-	)
-}
 
 const BreakoutsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
 
@@ -389,13 +81,39 @@ const tableColumns = [
 	{key: 'credit', 
 		label: 'Credit',
 		width: 100, flexGrow: 1, flexShrink: 1},
-	{key: 'telecon',
-		label: 'Telecon',
-		width: 100, flexGrow: 1, flexShrink: 1},
-	{key: 'actions',
-		label: 'Actions',
-		width: 100, flexGrow: 1, flexShrink: 1}
+	{key: 'meeting',
+		label: 'Associated meeting',
+		width: 100, flexGrow: 1, flexShrink: 1,
+		cellRenderer: ({rowData}) => <MeetingSummary meetingId={rowData.meetingId} />},
+	{key: 'attendance',
+		label: 'Attendance',
+		width: 100, flexGrow: 1, flexShrink: 1,
+		cellRenderer: ({rowData}) => <Link to={`${rowData.id}`}>view attendance</Link>},
 ];
+
+const defaultTablesColumns = {
+	default: ['__ctrl__', 'dayDate', 'timeRange', 'group', 'name', 'location', 'credit'],
+};
+
+const defaultTablesConfig = {};
+
+for (const tableView of Object.keys(defaultTablesColumns)) {
+	const tableConfig = {
+		fixed: false,
+		columns: {}
+	}
+	for (const column of tableColumns) {
+		const key = column.key;
+		tableConfig.columns[key] = {
+			unselectable: key.startsWith('__'),
+			shown: defaultTablesColumns[tableView].includes(key),
+			width: column.width
+		}
+	}
+	defaultTablesConfig[tableView] = tableConfig;
+}
+
+/*
 
 function slotDateTime(date, slot) {
 	return [
@@ -481,6 +199,7 @@ function teleconToBreakout(telecon, session, groups, committees, timeslots) {
 		facilitator: window.user? window.user.Email: ''
 	}
 }
+*/
 
 /*
  * Don't display Data and Time if it is the same as previous line
@@ -504,140 +223,67 @@ function breakoutsRowGetter({rowIndex, ids, entities}) {
 }
 
 function Breakouts() {
-	const history = useHistory();
-	const params = useParams();
-	const urlMeetingId = parseNumber(params.meetingNumber);
-
 	const dispatch = useDispatch();
-	const {valid, meetingId, committees, timeslots} = useSelector(selectBreakoutsState);
-	const meeting = useSelector(selectImatMeetingEntities)[meetingId];
-	const teleconsIds = useSelector(selectMeetingIds);
-	const teleconEntities = useSelector(selectSyncedMeetingEntities);
-	const groups = useSelector(selectGroupEntities);
+	const session = useSelector(selectCurrentSession);
+	const {valid, imatMeetingId} = useSelector(selectBreakoutsState);
+
+	const imatMeeting = useSelector(selectImatMeeting);
 
 	React.useEffect(() => {
-		if (!valid || (urlMeetingId && urlMeetingId !== meetingId))
-			dispatch(loadBreakouts(urlMeetingId));
-	}, [dispatch, valid, urlMeetingId, meetingId]);
-
-	const [addBreakout, setAddBreakout] = React.useState(false);
-
-	const close = () => history.push(`/${params.groupName}/imatMeetings`);
-	const refresh = () => dispatch(loadBreakouts(urlMeetingId));
-	const deleteClick = React.useCallback(async (breakout) => {
-		const ok = await ConfirmModal.show('Are you sure you want to delete breakout?');
-		if (ok) {
-			console.log(meetingId)
-			dispatch(deleteBreakouts(meetingId, [breakout.id]))
+		if (session && session.imatMeetingId !== imatMeetingId) {
+			if (session.imatMeetingId)
+				dispatch(loadBreakouts(session.imatMeetingId));
+			else
+				dispatch(clearBreakouts());
 		}
-	}, [dispatch, meetingId]);
+	}, [dispatch, valid, session, imatMeetingId]);
 
-	const openBreakoutAdd = () => setAddBreakout(true);
-	const closeBreakoutAdd = () => setAddBreakout(false);
-	
-	const [breakoutToLink, setBreakoutToLink] = React.useState(null);
-	const closeBreakoutToLink = () => setBreakoutToLink(null);
+	const refresh = () => dispatch(loadBreakouts(imatMeetingId));
 
-	const columns = React.useMemo(() => {
-		function renderTelecon({rowData}) {
-			if (rowData.teleconId)
-				return <MeetingSummary meetingId={rowData.teleconId} />
-			return (
-				<>
-					<ActionButton
-						name='link'
-						onClick={() => setBreakoutToLink(rowData)}
-					/>
-					<ActionButton
-						name='delete'
-						onClick={() => deleteClick(rowData)}
-					/>
-				</>
-			)
-		}
-		function renderAttendanceLink({rowData}) {
-			return rowData.meetingId && rowData.id && <Link to={`/${params.groupName}/imatMeetings/${rowData.meetingId}/${rowData.id}`}>view attendance</Link>
-		}
-
-		const columns = tableColumns.map(c => {
-			if (c.key === 'telecon')
-				return {...c, cellRenderer: renderTelecon};
-			if (c.key === 'actions')
-				return {...c, cellRenderer: renderAttendanceLink}
-			return c;
-		});
-		return columns;
-	}, [setBreakoutToLink, deleteClick, params.groupName]);
-
-	const syncTelecons = () => {
-		const sessionStart = DateTime.fromISO(meeting.start);
-		const sessionEnd = DateTime.fromISO(meeting.end).endOf('day');
-		//console.log(sessionStart.toFormat('EEE, dd-MM-yyyy'), sessionEnd.toFormat('EEE, dd-MM-yyyy HH:mm'))
-		const breakouts = [];
-		for (const id of teleconsIds) {
-			const telecon = teleconEntities[id];
-			const teleconStart = DateTime.fromISO(telecon.start);
-			if (!telecon.breakoutId && teleconStart >= sessionStart && teleconStart < sessionEnd) {
-				const breakout = teleconToBreakout(telecon, meeting, groups, committees, timeslots);
-				if (!breakout.startSlotId)
-					console.warn('Missing start slot')
-				if (!breakout.endSlotId)
-					console.warn('Missing end slot')
-				breakouts.push(breakout);
-			}
-		}
-		console.log(breakouts);
-		dispatch(addBreakouts(meeting.id, breakouts));
-	}
+	const {isSplit} = useSelector(selectBreakoutsCurrentPanelConfig);
+	const setIsSplit = React.useCallback((value) => dispatch(setBreakoutsCurrentPanelIsSplit(value)), [dispatch]);
 
 	return (
 		<>
 			<TopRow>
-				<div>{meeting && renderSessionInfo(meeting)}</div>
-				<div>Breakouts</div>
-				<div>
+				<GroupPathSelector
+					//onChange={clear}
+				/>
+
+				<CurrentSessionSelector/>
+
+				<div>{imatMeeting && renderSessionInfo(imatMeeting)}</div>
+				{/*<div>
 					<Button onClick={syncTelecons}>Sync</Button>
-					<ActionButton name='add' title='Add breakout' onClick={openBreakoutAdd} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-					<ActionButton name='close' title='Close' onClick={close} />
+				</div>*/}
+				<div style={{display: 'flex'}}>
+					<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+					<ActionButton
+						name='book-open'
+						title='Show detail'
+						isActive={isSplit}
+						onClick={() => setIsSplit(!isSplit)} 
+					/>
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={!imatMeetingId} />
 				</div>
 			</TopRow>
 
-			<TableRow>
-				<AppTable
-					fixed
-					columns={columns}
-					headerHeight={46}
-					estimatedRowHeight={56}
-					dataSet={dataSet}
-					rowGetter={breakoutsRowGetter}
-				/>
-			</TableRow>
-
-			<AppModal
-				isOpen={addBreakout}
-				onRequestClose={closeBreakoutAdd}
-			>
-				<BreakoutAdd
-					close={closeBreakoutAdd}
-					session={meeting}
-					committees={committees}
-					timeslots={timeslots}
-					groups={groups}
-					teleconEntities={teleconEntities}
-				/>
-			</AppModal>
-
-			<AppModal
-				isOpen={!!breakoutToLink}
-				onRequestClose={closeBreakoutToLink}
-			>
-				<BreakoutLink
-					session={meeting}
-					breakout={breakoutToLink}
-					close={closeBreakoutToLink}
-				/>
-			</AppModal>
+			<SplitPanel dataSet={dataSet} >
+				<Panel>
+					<AppTable
+						fixed
+						columns={tableColumns}
+						headerHeight={46}
+						estimatedRowHeight={56}
+						dataSet={dataSet}
+						rowGetter={breakoutsRowGetter}
+						defaultTablesConfig={defaultTablesConfig}
+					/>
+				</Panel>
+				<Panel>
+					<ImatBreakoutDetails />
+				</Panel>
+			</SplitPanel>
 		</>
 	)
 }

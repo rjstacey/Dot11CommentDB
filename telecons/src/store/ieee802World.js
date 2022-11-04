@@ -1,8 +1,9 @@
 import {createSelector} from '@reduxjs/toolkit';
-import fetcher from 'dot11-components/lib/fetcher';
+import {DateTime} from 'luxon';
+
+import {fetcher} from 'dot11-components/lib';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error'
-import {DateTime} from 'luxon';
 
 import {selectGroupsState} from './groups';
 import {selectCurrentSessionId} from './current';

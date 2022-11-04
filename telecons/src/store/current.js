@@ -1,5 +1,8 @@
 import {createSlice} from '@reduxjs/toolkit';
 
+import {selectImatMeetingEntities} from './imatMeetings';
+import {selectSessionEntities} from './sessions';
+
 const dataSet = 'current';
 
 const initDefaults = {
@@ -14,7 +17,7 @@ const slice = createSlice({
 	initialState: {
 		groupId: null,
 		sessionId: null,
-		meetingId: null,
+		imatMeetingId: null,
 		groupDefaults: {null: initDefaults}
 	},
 	reducers: {
@@ -24,9 +27,9 @@ const slice = createSlice({
 			if (!state.groupDefaults[groupId])
 				state.groupDefaults[groupId] = initDefaults;
 		},
-		setCurrentMeetingId(state, action) {
-			const meetingId = action.payload;
-			state.meetingId = meetingId;
+		setImatMeetingId(state, action) {
+			const imatMeetingId = action.payload;
+			state.imatMeetingId = imatMeetingId;
 		},
 		setCurrentSessionId(state, action) {
 			const sessionId = action.payload;
@@ -44,25 +47,37 @@ export default slice;
 
 /* Selectors */
 export const selectCurrentState = (state) => state[dataSet];
-export const selectCurrentGroupId = (state) => selectCurrentState(state).groupId;
-export const selectCurrentMeetingId = (state) => selectCurrentState(state).meetingId;
+export function selectCurrentGroupId(state) {return selectCurrentState(state).groupId};
+export const selectCurrentImatMeetingId = (state) => selectCurrentState(state).imatMeetingId;
 export const selectCurrentSessionId = (state) => selectCurrentState(state).sessionId;
-//export const selectCurrentCalendarAccountId = (state) => selectCurrentState(state).calendarAccountId;
-//export const selectCurrentWebexAccountId = (state) => selectCurrentState(state).webexAccountId;
-//export const selectCurrentWebexTemplateId = (state) => selectCurrentState(state).webexTemplateId;
 export const selectGroupDefaults = (state, groupId) => selectCurrentState(state).groupDefaults[groupId] || initDefaults;
+
 export const selectCurrentGroupDefaults = (state) => {
 	const groupId = selectCurrentGroupId(state);
 	return selectGroupDefaults(state, groupId);
 };
 
 /* Actions */
-export const {setCurrentGroupId, setCurrentMeetingId, setCurrentSessionId, setGroupDefaults} = slice.actions;
+const {setImatMeetingId} = slice.actions;
+export const {setCurrentGroupId, setCurrentSessionId, setGroupDefaults} = slice.actions;
 
-//export const setCurrentGroupId = (groupId) => setCurrent({groupId});
-//export const setCurrentMeetingId = (meetingId) => setCurrent({meetingId});
 export const setCurrentGroupDefaults = (defaults) =>
 	(dispatch, getState) => {
 		const groupId = selectCurrentGroupId(getState());
 		return dispatch(setGroupDefaults({groupId, defaults}));
 	}
+
+export function setCurrentImatMeetingId(imatMeetingId) {
+	return (dispatch, getState) => {
+		const state = getState();
+		const imatMeetingEntities = selectImatMeetingEntities(state);
+		const sessionEntities = selectSessionEntities(state);
+		const imatMeeting = imatMeetingEntities[imatMeetingId];
+		if (imatMeeting) {
+			const session = Object.values(sessionEntities).find(session => session.startDate === imatMeeting.startDate)
+			if (session)
+				dispatch(setCurrentSessionId(session.id));
+		}
+		dispatch(setImatMeetingId(imatMeetingId));
+	}
+}

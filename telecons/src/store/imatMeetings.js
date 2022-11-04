@@ -3,7 +3,7 @@ import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTable
 import {setError} from 'dot11-components/store/error';
 import {displayDate, displayDateRange} from 'dot11-components/lib';
 
-import {selectCurrentMeetingId} from './current';
+import {selectCurrentImatMeetingId} from './current';
 
 export const fields = {
 	id: {label: 'Meeting number', sortType: SortType.NUMERIC},
@@ -41,9 +41,9 @@ export const selectImatMeetingsState = (state) => state[dataSet];
 export const selectImatMeetingEntities = (state) => selectImatMeetingsState(state).entities;
 
 export const selectCurrentSession = (state) => {
-	const meetingId = selectCurrentMeetingId(state);
+	const imatMeetingId = selectCurrentImatMeetingId(state);
 	const entities = selectImatMeetingEntities(state);
-	return entities[meetingId];
+	return entities[imatMeetingId];
 }
 
 /*

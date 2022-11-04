@@ -2,6 +2,9 @@ import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 
+import {selectImatMeetingEntities} from './imatMeetings';
+import {selectBreakoutMeetingId, selectBreakoutEntities} from './imatBreakouts';
+
 export const fields = {
 	id: {label: 'id', sortType: SortType.NUMERIC},
 	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
@@ -19,13 +22,12 @@ const slice = createAppTableDataSlice({
 	fields,
 	selectId,
 	initialState: {
-		meetingNumber: 0,
-		breakoutNumber: 0,
+		imatMeetingId: 0,
+		imatBreakoutId: 0,
 	},
 	reducers: {
 		setDetails(state, action) {
-			state.meetingNumber = action.payload.meetingNumber;
-			state.breakoutNumber = action.payload.breakoutNumber;
+			return {...state, ...action.payload};
 		},
 	},
 });
@@ -36,6 +38,20 @@ export default slice;
  * Selectors
  */
 export const selectBreakoutAttendanceState = (state) => state[dataSet];
+
+export const selectImatMeeting = (state) => {
+	const {imatMeetingId} = selectBreakoutAttendanceState(state);
+	const imatMeetingEntities = selectImatMeetingEntities(state);
+	return imatMeetingEntities[imatMeetingId];
+}
+
+export const selectImatBreakout = (state) => {
+	const {imatMeetingId, imatBreakoutId} = selectBreakoutAttendanceState(state);
+	if (imatMeetingId === selectBreakoutMeetingId(state)) {
+		const imatBreakoutEntities = selectBreakoutEntities(state);
+		return imatBreakoutEntities[imatBreakoutId];
+	}
+}
 
 /*
  * Actions
@@ -49,12 +65,12 @@ const {
 
 const baseUrl = '/api/imat/attendance';
 
-export const loadBreakoutAttendance = (meetingNumber, breakoutNumber) =>
+export const loadBreakoutAttendance = (imatMeetingId, imatBreakoutId) =>
 	async (dispatch, getState) => {
 		if (getState()[dataSet].loading)
 			return;
 		dispatch(getPending());
-		const url = `${baseUrl}/${meetingNumber}/${breakoutNumber}`;
+		const url = `${baseUrl}/${imatMeetingId}/${imatBreakoutId}`;
 		let response;
 		try {
 			response = await fetcher.get(url);
@@ -63,10 +79,10 @@ export const loadBreakoutAttendance = (meetingNumber, breakoutNumber) =>
 		}
 		catch(error) {
 			dispatch(getFailure());
-			dispatch(setError(`Unable to get attendance for ${breakoutNumber}`, error));
+			dispatch(setError(`Unable to get attendance for ${imatMeetingId}/${imatBreakoutId}`, error));
 			return;
 		}
-		dispatch(setDetails({meetingNumber, breakoutNumber}));
+		dispatch(setDetails({imatMeetingId, imatBreakoutId}));
 		await dispatch(getSuccess(response));
 	}
 

@@ -1,157 +1,470 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import {connect} from 'react-redux';
+import {connect, useSelector, useDispatch} from 'react-redux';
 import styled from '@emotion/styled';
+import {DateTime} from 'luxon';
 
-import {ActionButton, Form, Row, Col, Field, FieldLeft, Input, Checkbox} from 'dot11-components/form';
+import {ActionButton, Form, Row, Field, FieldLeft, Input, InputTime, Checkbox} from 'dot11-components/form';
 import {ConfirmModal} from 'dot11-components/modals';
-import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple} from 'dot11-components/lib';
+import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, isObject} from 'dot11-components/lib';
+
+import {setError} from 'dot11-components/store/error';
 
 import {
 	selectWebexMeetingsState,
+	selectSyncedWebexMeetingEntities,
+	addWebexMeeting,
+	updateWebexMeetings,
 	deleteWebexMeetings,
 	setSelected
 } from '../store/webexMeetings';
 
-import {selectCurrentState} from '../store/current';
+import {updateMeetings} from '../store/meetings';
+
+import {selectWebexAccountEntities} from '../store/webexAccounts';
+
+import {selectCurrentGroupDefaults} from '../store/current';
+
+import {selectCurrentSession} from '../store/sessions';
 
 import WebexAccountSelector from '../components/WebexAccountSelector';
 import WebexTemplateSelector from '../components/WebexTemplateSelector';
 import TopRow from '../components/TopRow';
+import TimeZoneSelector from '../components/TimeZoneSelector';
+import InputTimeRangeAsDuration from '../components/InputTimeRangeAsDuration';
+import MeetingSelector from '../components/MeetingSelector';
 
 const MULTIPLE_STR = '(Multiple)';
+const BLANK_STR = '(Blank)';
 
-function WebexMeetingEdit({
-	value,
-	onChange,
-	readOnly,
-	isNew,
+export const defaultWebexMeeting = {
+	title: '',
+	timezone: '',
+	date: '',
+	startTime: '',
+	endTime: '02:00',
+	password: 'wireless',
+	enabledJoinBeforeHost: true,
+	joinBeforeHostMinutes: 10,
+	enableConnectAudioBeforeHost: true,
+	publicMeeting: false,
+	meetingOptions: {
+		enabledChat: true,
+		enabledVideo: true,
+		enabledNote: false,
+		enabledClosedCaptions: true,
+		enabledFileTransfer: false
+	},
+	meetingId: null
+}
+
+/*
+ * Remove unnecessary parameters
+ */
+export function webexMeetingConfigParams(webexMeeting) {
+
+	function getProperties(template, input) {
+		const output = {};
+		for (const key of Object.keys(template)) {
+			if (isObject(template[key]) && isObject(input[key]))
+				output[key] = getProperties(template[key], input[key])
+			else if (key in template && key in input)
+				output[key] = input[key];
+		}
+		return output;
+	}
+
+	const w = getProperties(defaultWebexMeeting, webexMeeting);
+	if ('templateId' in webexMeeting)
+		w.templateId = webexMeeting.templateId;
+	if ('accountId' in webexMeeting)
+		w.accountId = webexMeeting.accountId;
+
+	return w;
+}
+
+
+export function WebexMeetingAccount({
+	entry,
+	changeEntry,
+	readOnly
 }) {
-	const webexMeeting = value || {};
-	const meetingOptions = webexMeeting.meetingOptions || {};
+	const webexAccountEntities = useSelector(selectWebexAccountEntities);
+	const defaults = useSelector(selectCurrentGroupDefaults);
 
-	const changeWebexMeeting = (changes) => {
+	function onChange(accountId) {
+		let changes = {accountId};
+
+		// If the account is changed to the default webex account, select the default template.
+		// If not, try to find the default template for the account.
+		if (accountId === defaults.webexAccountId && defaults.webexTemplateId) {
+			changes.templateId = defaults.webexTemplateId;
+		}
+		else {
+			const webexAccount = webexAccountEntities[accountId];
+			if (webexAccount) {
+				const template = webexAccount.templates.find(t => t.isDefault);
+				if (template)
+					changes.templateId = template.id;
+			}
+		}
+		// If account was not previously selected, revert to defaults
+		if (!entry.accountId && accountId) {
+			changes = {
+				...defaultWebexMeeting,
+				...changes
+			};
+		}
+
+		changeEntry(changes);
+	}
+
+	return (
+		<Row>
+			<Field label='Webex account'>
+				<WebexAccountSelector
+					value={isMultiple(entry.accountId)? null: entry.accountId}
+					onChange={onChange}
+					placeholder={isMultiple(entry.accountId)? MULTIPLE_STR: undefined}
+					readOnly={readOnly}
+				/>
+			</Field>
+		</Row>
+	)
+}
+
+WebexMeetingAccount.propTypes = {
+	entry: PropTypes.shape({
+		accountId: PropTypes.any,
+	}),
+	changeEntry: PropTypes.func.isRequired,
+	readOnly: PropTypes.bool,
+}
+
+function WebexMeetingTitleDateTime({
+	entry,
+	changeEntry,
+	readOnly
+}) {
+	return (
+		<>
+			<Row>
+				<Field label='Title:'>
+					<Input
+						type='text'
+						value={isMultiple(entry.title)? '': entry.title}
+						onChange={e => changeEntry({title: e.target.value})}
+						placeholder={isMultiple(entry.title)? MULTIPLE_STR: BLANK_STR}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Time zone:'>
+					<TimeZoneSelector
+						style={{width: 200}}
+						value={isMultiple(entry.timezone)? '': entry.timezone}
+						onChange={(timezone) => changeEntry({timezone})}
+						placeholder={isMultiple(entry.timezone)? MULTIPLE_STR: undefined}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Date:'>
+					<Input
+						type='date'
+						disablePast
+						value={isMultiple(entry.date)? '': entry.date}
+						onChange={e => changeEntry({date: e.target.value})}
+						placeholder={isMultiple(entry.date)? MULTIPLE_STR: undefined}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Start time:'>
+					<InputTime
+						value={isMultiple(entry.startTime)? '': entry.startTime}
+						onChange={(startTime) => changeEntry({startTime})}
+						placeholder={isMultiple(entry.startTime)? MULTIPLE_STR: undefined}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Duration:'>
+					<InputTimeRangeAsDuration
+						entry={(isMultiple(entry.startTime) || isMultiple(entry.endTime))? {startTime: '', endTime: ''}: entry}
+						changeEntry={changeEntry}
+						disabled={readOnly}
+						placeholder={(isMultiple(entry.startTime) || isMultiple(entry.endTime))? MULTIPLE_STR: undefined}
+					/>
+				</Field>
+			</Row>
+		</>
+	)
+}
+
+WebexMeetingTitleDateTime.propTypes = {
+	entry: PropTypes.shape({
+		title: PropTypes.string.isRequired,
+		timezone: PropTypes.string.isRequired,
+		date: PropTypes.string.isRequired,
+		startTime: PropTypes.string.isRequired,
+		endTime: PropTypes.string.isRequired,
+	}),
+	changeEntry: PropTypes.func.isRequired,
+	readOnly: PropTypes.bool,
+}
+
+function WebexMeetingOptions({
+	entry,
+	changeEntry,
+	readOnly,
+}) {
+	return (
+		<Row style={{flexWrap: 'wrap'}}>
+			<FieldLeft label='Chat:'>
+				<Checkbox 
+					checked={entry.enabledChat}
+					onChange={e => changeEntry({enabledChat: e.target.checked})}
+					disabled={readOnly}
+				/>
+			</FieldLeft>
+			<FieldLeft label='Video:'>
+				<Checkbox 
+					checked={entry.enabledVideo}
+					onChange={e => changeEntry({enabledVideo: e.target.checked})}
+					disabled={readOnly}
+				/>
+			</FieldLeft>
+			<FieldLeft label='Notes:'>
+				<Checkbox 
+					checked={entry.enabledNote}
+					onChange={e => changeEntry({enabledNote: e.target.checked})}
+					disabled={readOnly}
+				/>
+			</FieldLeft>
+			<FieldLeft label='Closed captions:'>
+				<Checkbox 
+					checked={entry.enabledClosedCaptions}
+					onChange={e => changeEntry({enabledClosedCaptions: e.target.checked})}
+					disabled={readOnly}
+				/>
+			</FieldLeft>
+			<FieldLeft label='File transfer:'>
+				<Checkbox 
+					checked={entry.enabledFileTransfer}
+					onChange={e => changeEntry({enabledFileTransfer: e.target.checked})}
+					disabled={readOnly}
+				/>
+			</FieldLeft>
+		</Row>
+	)
+}
+
+WebexMeetingOptions.propTypes = {
+	entry: PropTypes.shape({
+		enabledChat: PropTypes.bool.isRequired,
+		enabledVideo: PropTypes.bool.isRequired,
+		enabledNote: PropTypes.bool.isRequired,
+		enabledClosedCaptions: PropTypes.bool.isRequired,
+		enabledFileTransfer: PropTypes.bool.isRequired,
+	}),
+	changeEntry: PropTypes.func.isRequired,
+	readOnly: PropTypes.bool,
+}
+
+export function WebexMeetingParams({
+	entry,
+	changeEntry,
+	readOnly,
+}) {
+
+	function handleChange(changes) {
 		if (changes.enabledJoinBeforeHost === false) {
 			changes.joinBeforeHostMinutes = 0;
 			changes.enableConnectAudioBeforeHost = false;
 		}
-		onChange(changes);
+		changeEntry(changes);
 	}
 
-	const changeWebexMeetingOptions = (changes) => {
-		const u = {...meetingOptions, ...changes};
-		changeWebexMeeting({meetingOptions: u});
+	function changeMeetingOptions(changes) {
+		let {meetingOptions} = entry;
+		meetingOptions = {
+			...meetingOptions,
+			...changes
+		}
+		changeEntry({meetingOptions});
 	}
 
 	return (
-		<Col
-			style={{marginLeft: 10}}
-		>
-			<Field label='Webex account'>
-				<WebexAccountSelector
-					value={isMultiple(webexMeeting.webexAccountId)? null: webexMeeting.webexAccountId}
-					onChange={webexAccountId => changeWebexMeeting({webexAccountId})}
-					placeholder={isMultiple(webexMeeting.webexAccountId)? MULTIPLE_STR: undefined}
-					readOnly={readOnly || !isNew}
-				/>
-			</Field>
-			{!webexMeeting.id &&
-				<Field label='Template'>
-					<WebexTemplateSelector
-						value={webexMeeting.templateId}
-						onChange={templateId => changeWebexMeeting({templateId})}
-						accountId={isMultiple(webexMeeting.webexAccountId)? null: webexMeeting.webexAccountId}
-						readOnly={readOnly}
-					/>
-				</Field>}
-			<Field label='Password:'>
-				<Input 
-					type='search'
-					value={webexMeeting.password}
-					onChange={e => changeWebexMeeting({password: e.target.value})}
-					disabled={readOnly}
-				/>
-			</Field>
-			<Field label='Join before host (minutes):'>
-				<Checkbox
-					checked={webexMeeting.enabledJoinBeforeHost}
-					onChange={e => changeWebexMeeting({enabledJoinBeforeHost: e.target.checked})}
-					disabled={readOnly}
-				/>
-				<Input 
-					type='text'
-					value={webexMeeting.joinBeforeHostMinutes}
-					onChange={e => changeWebexMeeting({joinBeforeHostMinutes: e.target.value})}
-					disabled={readOnly || !webexMeeting.enabledJoinBeforeHost}
-				/>
-			</Field>
-			<Field label='Connect audio before host:'>
-				<Checkbox 
-					checked={webexMeeting.enableConnectAudioBeforeHost}
-					onChange={e => changeWebexMeeting({enableConnectAudioBeforeHost: e.target.checked})}
-					disabled={readOnly || !webexMeeting.enabledJoinBeforeHost}
-				/>
-			</Field>
+		<>
+			{entry.templateId &&
+				<Row>
+					<Field label='Template'>
+						<WebexTemplateSelector
+							value={entry.templateId}
+							onChange={templateId => handleChange({templateId})}
+							accountId={isMultiple(entry.accountId)? null: entry.accountId}
+							readOnly={readOnly}
+						/>
+					</Field>
+				</Row>}
 			<Row>
-				<FieldLeft label='Chat:'>
-					<Checkbox 
-						checked={meetingOptions.enabledChat}
-						onChange={e => changeWebexMeetingOptions({enabledChat: e.target.checked})}
+				<Field label='Password:'>
+					<Input 
+						type='search'
+						value={entry.password}
+						onChange={e => handleChange({password: e.target.value})}
 						disabled={readOnly}
 					/>
-				</FieldLeft>
-				<FieldLeft label='Video:'>
-					<Checkbox 
-						checked={meetingOptions.enabledVideo}
-						onChange={e => changeWebexMeetingOptions({enabledVideo: e.target.checked})}
-						disabled={readOnly}
-					/>
-				</FieldLeft>
+				</Field>
 			</Row>
-			<Field label='Notes:'>
-				<Checkbox 
-					checked={meetingOptions.enabledNote}
-					onChange={e => changeWebexMeetingOptions({enabledNote: e.target.checked})}
-					disabled={readOnly}
-				/>
-			</Field>
-			<Field label='Closed captions:'>
-				<Checkbox 
-					checked={meetingOptions.enabledClosedCaptions}
-					onChange={e => changeWebexMeetingOptions({enabledClosedCaptions: e.target.checked})}
-					disabled={readOnly}
-				/>
-			</Field>
-			<Field label='File transfer:'>
-				<Checkbox 
-					checked={meetingOptions.enabledFileTransfer}
-					onChange={e => changeWebexMeetingOptions({enabledFileTransfer: e.target.checked})}
-					disabled={readOnly}
-				/>
-			</Field>
-		</Col>
+			<Row>
+				<Field label='Join before host (minutes):'>
+					<div>
+						<Checkbox
+							checked={entry.enabledJoinBeforeHost}
+							onChange={e => handleChange({enabledJoinBeforeHost: e.target.checked})}
+							disabled={readOnly}
+						/>
+						<Input 
+							type='text'
+							value={entry.joinBeforeHostMinutes}
+							onChange={e => handleChange({joinBeforeHostMinutes: e.target.value})}
+							disabled={readOnly || !entry.enabledJoinBeforeHost}
+						/>
+					</div>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Connect audio before host:'>
+					<Checkbox 
+						checked={entry.enableConnectAudioBeforeHost}
+						onChange={e => handleChange({enableConnectAudioBeforeHost: e.target.checked})}
+						disabled={readOnly || !entry.enabledJoinBeforeHost}
+					/>
+				</Field>
+			</Row>
+			<WebexMeetingOptions
+				entry={entry.meetingOptions || {}}
+				changeEntry={changeMeetingOptions}
+				readOnly={readOnly}
+			/>
+		</>
+	)
+}
+
+WebexMeetingParams.propTypes = {
+	entry: PropTypes.shape({
+		password: PropTypes.string.isRequired,
+		enabledJoinBeforeHost: PropTypes.bool.isRequired,
+		joinBeforeHostMinutes: PropTypes.number.isRequired,
+		enableConnectAudioBeforeHost: PropTypes.bool.isRequired,
+	}),
+	changeEntry: PropTypes.func.isRequired,
+	readOnly: PropTypes.bool,
+}
+
+function AssociatedMeetingSelector({value, onChange, ...otherProps}) {
+	const session = useSelector(selectCurrentSession);
+
+	function handleChange(v) {
+		if (v !== value)
+			onChange(v);
+	}
+
+	return (
+		<MeetingSelector
+			value={value}
+			onChange={handleChange}
+			fromDate={session.start}
+			toDate={session.end}
+			{...otherProps}
+		/>
 	)
 }
 
 function WebexMeetingEntry({
 	action,
 	entry,
-	onChange,
-	actionAdd,
-	actionUpdate,
-	actionCancel
+	changeEntry,
+	submit,
+	cancel,
 }) {
+	const dispatch = useDispatch();
+	const readOnly = action !== 'add' && action !== 'update';
+
+	let submitForm, cancelForm, submitLabel, errMsg = '';
+	let title = "Webex meeting";
+	if (submit) {
+		if (!entry.date)
+			errMsg = 'Date not set';
+		else if (!entry.startTime)
+			errMsg = 'Start time not set'
+		else if (!entry.endTime)
+			errMsg = 'Duration not set';
+		else if (!entry.timezone)
+			errMsg = 'Time zone not set';
+		else if (entry.webexMeeting && !entry.webexAccountId)
+			errMsg = 'Must select Webex account to schedule webex meeting';
+
+		if (action === 'add') {
+			submitLabel = "Add";
+			title = "Add Webex meeting";
+		}
+		else {
+			submitLabel = "Update";
+			title = "Update Webex meeting";
+		}
+
+		submitForm = () => {
+			if (errMsg) {
+				dispatch(setError("Fix error", errMsg));
+				return;
+			}
+			submit();
+		};
+
+		cancelForm = cancel;
+	}
+
+	console.log(entry)
 
 	return (
 		<Form
-			submitLabel={action === 'add'? 'Add': 'Update'}
-			submit={action === 'add'? actionAdd: actionUpdate}
-			cancel={actionCancel}
+			title={title}
+			submitLabel={submitLabel}
+			submit={submitForm}
+			cancel={cancelForm}
+			errorText={errMsg}
 		>
-			<WebexMeetingEdit
-				value={entry}
-				onChange={onChange}
-				isNew={action === 'add'}
+			<WebexMeetingAccount
+				entry={entry}
+				changeEntry={changeEntry}
+				readOnly={readOnly}
 			/>
+			<WebexMeetingTitleDateTime
+				entry={entry}
+				changeEntry={changeEntry}
+				readOnly={readOnly}
+			/>
+			<WebexMeetingParams
+				entry={entry}
+				changeEntry={changeEntry}
+				readOnly={readOnly}
+			/>
+			<Row>
+				<Field label='Associate with meeting:'>
+					<AssociatedMeetingSelector
+						value={isMultiple(entry.meetingId)? null: entry.meetingId}
+						onChange={meetingId => changeEntry({meetingId})}
+						placeholder={isMultiple(entry.meetingId)? MULTIPLE_STR: BLANK_STR} 
+					/>
+				</Field>
+			</Row>
 		</Form>
 	)
 }
@@ -171,28 +484,36 @@ const NotAvailable = styled.div`
 	color: #bdbdbd;
 `;
 
-const defaultWebexMeeting = {
-	password: 'wireless',
-	enabledJoinBeforeHost: true,
-	joinBeforeHostMinutes: 10,
-	enableConnectAudioBeforeHost: true,
-	meetingOptions: {
-		enabledChat: true,
-		enabledVideo: true,
-		enabledNote: false,
-		enabledClosedCaptions: true,
-		enabledFileTransfer: false
-	}
+function convertWebexMeetingToEntry(webexMeeting) {
+	let {start, end, ...rest} = webexMeeting;
+	let entry = {...rest};
+
+	const zone = webexMeeting.timezone;
+	start = DateTime.fromISO(start, {zone});
+	end = DateTime.fromISO(end, {zone});
+	entry.date = start.toISODate({zone});
+	entry.startTime = start.toFormat('HH:mm');
+	entry.endTime = end.toFormat('HH:mm');
+
+	if (end.diff(start, 'days').days > 1)
+		console.warn("Duration greater than one day")
+
+	return entry;
 }
 
-function addWebexMeeting(webexMeeting) {
-	console.log('add: ', webexMeeting);
-	return Promise.resolve('ok')
-}
+export function convertEntryToWebexMeeting(entry) {
+	let {date, startTime, endTime, ...rest} = entry;
+	const webexMeeting = {...rest};
 
-function updateWebexMeetings(webexMeeting) {
-	console.log('update: ', webexMeeting);
-	return Promise.resolve('ok')
+	const zone = webexMeeting.timezone;
+	let start = DateTime.fromFormat(`${date} ${startTime}`, 'yyyy-MM-dd HH:mm', {zone});
+	let end = DateTime.fromFormat(`${date} ${endTime}`, 'yyyy-MM-dd HH:mm', {zone});
+	if (end.toMillis() < start.toMillis())
+		end = end.plus({days: 1});
+	webexMeeting.start = start.toISO();
+	webexMeeting.end = end.toISO();
+
+	return webexMeeting;
 }
 
 class WebexMeetingDetail extends React.Component {
@@ -202,58 +523,121 @@ class WebexMeetingDetail extends React.Component {
 		this.state = this.initState('update');
 	}
 
+	componentDidUpdate(prevProps, prevState) {
+		const {selected, setSelected} = this.props;
+		const {action, webexMeetings} = this.state;
+		const ids = webexMeetings.map(b => b.id);
+
+		const changeWithConfirmation = async () => {
+			if (action === 'update' && this.hasUpdates()) {
+				const ok = await ConfirmModal.show('Changes not applied! Do you want to discard changes?');
+				if (!ok) {
+					setSelected(ids);
+					return;
+				}
+			}
+			this.reinitState('update');
+		}
+
+		if (selected.join() !== ids.join())
+			changeWithConfirmation();
+	}
+
 	initState = (action) => {
 		const {entities, selected, defaults} = this.props;
 
-		const ids = selected;
+		const webexMeetings = selected
+			.filter(id => entities[id])
+			.map(id => {
+				// Redo 'start' and 'end' - there is an extra zero on the milliseconds
+				const webexMeeting = entities[id];
+				console.log(webexMeeting)
+				return {
+					id: webexMeeting.id,
+					...webexMeetingConfigParams(webexMeeting),
+					start: DateTime.fromISO(webexMeeting.start, {zone: webexMeeting.timezone}).toISO(),
+					end: DateTime.fromISO(webexMeeting.end, {zone: webexMeeting.timezone}).toISO(),
+				}
+			});
 		let entry;
-		if (ids.length > 0) {
-			entry = ids.reduce((entry, id) => deepMergeTagMultiple(entry, entities[id]), {});
-			if (action === 'add') {
-				delete entry.id;
-				entry.isCancelled = false;
-				entry.timezone = defaults.timezone;
-				entry.calendarAccountId = defaults.calendarAccountId;
-				entry.webexAccountId = defaults.webexAccountId;
-				entry.webexMeeting = {...defaultWebexMeeting, templateId: defaults.webex_template_id};
-			}
+		if (action === 'update') {
+			entry = webexMeetings.reduce((entry, webexMeeting) => deepMergeTagMultiple(entry, convertWebexMeetingToEntry(webexMeeting)), {});
 		}
 		else {
 			entry = {
 				...defaultWebexMeeting,
-				webexAccountId: defaults.webexAccountId,
-				templateId: defaults.webex_template_id
+				accountId: defaults.webexAccountId,
+				templateId: defaults.webexTemplateId
 			};
 		}
-
+		//console.log(action, entry)
 		return {
 			action,
 			entry,
-			ids
+			saved: action === 'add'? {}: entry,
+			webexMeetings,
+		};
+	}
+
+	reinitState = (action) => {this.setState(this.initState(action))}
+
+	getUpdates = () => {
+		let {entry, saved, webexMeetings} = this.state;
+
+		// Find differences
+		const diff = deepDiff(saved, entry) || {};
+		const webexMeetingUpdates = [], meetingUpdates = [];
+		for (const webexMeeting of webexMeetings) {
+			const local = deepMerge(convertWebexMeetingToEntry(webexMeeting), diff);
+			const updated = convertEntryToWebexMeeting(local);
+			const changes = deepDiff(webexMeeting, updated) || {};
+			if ('meetingId' in changes) {
+				meetingUpdates.push({id: changes.meetingId, changes: {webexAccountId: updated.accountId, webexMeetingId: updated.id}});
+				delete changes.meetingId;
+			}
+			if (Object.keys(changes).length > 0) {
+				webexMeetingUpdates.push(updated);
+			}
 		}
+		return {webexMeetingUpdates, meetingUpdates};
+	}
+
+	hasUpdates = () => this.state.saved !== this.state.entry; 
+	/*{
+		const {webexMeetingUpdates, meetingUpdates} = this.getUpdates();
+		return webexMeetingUpdates.length > 0 || meetingUpdates.length > 0;
+	}*/
+
+	changeEntry = (changes) => {
+		//console.log('change', changes)
+		this.setState(state => {
+			let entry = {...state.entry, ...changes};
+			// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
+			changes = deepDiff(state.saved, entry) || {};
+			if (Object.keys(changes).length === 0)
+				entry = state.saved;
+			return {...state, entry}
+		});
 	}
 
 	clickAdd = async () => {
 		const {setSelected} = this.props;
 		const {action} = this.state;
 
-		console.log('clickAdd')
-		if (action === 'update') {
-			const updates = this.getUpdates();
-			if (updates.length > 0) {
-				const ok = await ConfirmModal.show(`Changes not applied! Do you want to discard changes?`);
-				if (!ok)
-					return;
-			}
+		if (action === 'update' && this.hasUpdates) {
+			const ok = await ConfirmModal.show(`Changes not applied! Do you want to discard changes?`);
+			if (!ok)
+				return;
 		}
-		if (action !== 'add') {
-			this.setState(this.initState('add'));
-			setSelected([]);
-		}
+
+		this.reinitState('add');
+		setSelected([]);
 	}
 
 	clickDelete = async () => {
-		const ids = this.props.selected;
+		const {deleteWebexMeetings} = this.props;
+		const {webexMeetings} = this.state;
+		const ids = webexMeetings.map(m => m.id);
 		const ok = await ConfirmModal.show(
 			'Are you sure you want to delete the ' + 
 				(ids.length > 1?
@@ -262,88 +646,56 @@ class WebexMeetingDetail extends React.Component {
 		);
 		if (!ok)
 			return;
-		await this.props.deleteWebexMeetings(ids);
-	}
-
-	changeEntry = (changes) => {
-		const {action} = this.state;
-		if (action === 'view') {
-			console.warn("Update when read-only");
-			return;
-		}
-		this.setState(state => {
-			const entry = deepMerge(state.entry, changes);
-			return {...state, entry}
-		});
-	}
-
-	getUpdates = () => {
-		let {entry, ids} = this.state;
-		const {entities} = this.props;
-
-		console.log('getUpdates')
-		const collapsed = ids.reduce((entry, id) => deepMergeTagMultiple(entry, entities[id]), {});
-		
-		// Find differences
-
-		const updates = [];
-		for (const id of ids) {
-			const changes = deepDiff(collapsed, entry);
-			console.log(changes)
-			if (Object.keys(changes).length > 0)
-				updates.push({id, changes});
-		}
-		return updates;
+		await deleteWebexMeetings(webexMeetings);
+		this.reinitState('update');
 	}
 
 	add = async () => {
-		const {setSelected} = this.props;
+		const {setSelected, addWebexMeeting, updateMeetings} = this.props;
 		const {entry} = this.state;
 
-		let errMsg = '';
-		if (entry.dates.length === 0)
-			errMsg = 'Date(s) not set';
-		else if (!entry.time)
-			errMsg = 'Start time not set'
-		else if (!entry.duration)
-			errMsg = 'Duration not set';
-		else if (!entry.timezone)
-			errMsg = 'Time zone not set';
-		else if (entry.webexMeeting && !entry.webexAccountId)
-			errMsg = 'Must select Webex account to schedule webex meeting';
-
-		if (errMsg) {
-			ConfirmModal.show(errMsg, false);
-			return;
-		}
-
-		addWebexMeeting(entry)
-			.then(ids => setSelected(ids))
-			.then(() => this.setState(this.initState('update')));
+		const id = await addWebexMeeting(entry.accountId, entry);
+		if (entry.meetingId)
+			await updateMeetings([{id: entry.meetingId, changes: {webexAccountId: entry.accountId, webexMeetingId: id}}]);
+		await setSelected([id]);
+		this.reinitState('update');
 	}
 
 	update = async () => {
-		//const {updateTelecons} = this.props;
+		const {updateWebexMeetings, updateMeetings} = this.props;
 
-		const updates = this.getUpdates();
-		console.log(updates)
-		await updateWebexMeetings(updates);
-		this.setState(this.initState('update'));
+		const {webexMeetingUpdates, meetingUpdates} = this.getUpdates();
+		//console.log(webexMeetingUpdates, meetingUpdates)
+		if (webexMeetingUpdates.length > 0)
+			await updateWebexMeetings(webexMeetingUpdates);
+		if (meetingUpdates.length > 0)
+			await updateMeetings(meetingUpdates);
+		this.reinitState('update');
 	}
 
 	cancel = () => {
-		this.setState(this.initState('update'));
+		this.reinitState('update');
 	}
 
 	render() {
-		const {loading, selected} = this.props;
-		const {action, entry} = this.state;
+		const {loading} = this.props;
+		const {action, entry, webexMeetings} = this.state;
 
 		let notAvailableStr = '';
 		if (loading)
 			notAvailableStr = 'Loading...';
-		else if (action === 'update' && selected.length === 0)
+		else if (action === 'update' && webexMeetings.length === 0)
 			notAvailableStr = 'Nothing selected';
+
+		let submit, cancel;
+		if (action === 'add') {
+			submit = this.add;
+			cancel = this.cancel;
+		}
+		else if (this.hasUpdates()) {
+			submit = this.update;
+			cancel = this.cancel;
+		}
 
 		return (
 			<Container>
@@ -355,15 +707,9 @@ class WebexMeetingDetail extends React.Component {
 						onClick={this.clickAdd}
 					/>
 					<ActionButton
-						name='link'
-						title='Link to meeting'
-						disabled={loading || selected.length === 0}
-						onClick={() => alert('missing functionality')}
-					/>
-					<ActionButton
 						name='delete'
 						title='Delete webex meeting'
-						disabled={loading || selected.length === 0}
+						disabled={loading || webexMeetings.length === 0}
 						onClick={this.clickDelete}
 					/>
 				</TopRow>
@@ -372,14 +718,24 @@ class WebexMeetingDetail extends React.Component {
 					<WebexMeetingEntry
 						action={action}
 						entry={entry}
-						onChange={this.changeEntry}
-						webexAccountId={entry.webexAccountId}
-						actionAdd={this.add}
-						actionUpdate={this.update}
-						actionCancel={this.cancel}
+						changeEntry={this.changeEntry}
+						submit={submit}
+						cancel={cancel}
 					/>}
 			</Container>
 		)
+	}
+
+	static propTypes = {
+		loading: PropTypes.bool.isRequired,
+		selected: PropTypes.array.isRequired,
+		entities: PropTypes.object.isRequired,
+		defaults: PropTypes.object.isRequired,
+		setSelected: PropTypes.func.isRequired,
+		addWebexMeeting: PropTypes.func.isRequired,
+		updateWebexMeetings: PropTypes.func.isRequired,
+		deleteWebexMeetings: PropTypes.func.isRequired,
+		updateMeetings: PropTypes.func.isRequired
 	}
 }
 
@@ -387,12 +743,15 @@ const ConnectedWebexMeetingDetail = connect(
 	(state) => ({
 		loading: selectWebexMeetingsState(state).loading,
 		selected: selectWebexMeetingsState(state).selected,
-		entities: selectWebexMeetingsState(state).entities,
-		defaults: selectCurrentState(state),
+		entities: selectSyncedWebexMeetingEntities(state),
+		defaults: selectCurrentGroupDefaults(state),
 	}),
 	{
-		deleteWebexMeetings,
 		setSelected,
+		addWebexMeeting,
+		updateWebexMeetings,
+		deleteWebexMeetings,
+		updateMeetings,
 	}
 )(WebexMeetingDetail);
 
