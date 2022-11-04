@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { AuthError, NotFoundError } from '../utils';
+import { AuthError, NotFoundError, isPlainObject } from '../utils';
 
 const axios = require('axios');
 const Webex = require('webex');
@@ -27,9 +27,7 @@ const webexAuthRedirectUri = process.env.NODE_ENV === 'development'?
 	'http://localhost:3000/oauth2/webex':
 	'https://802tools.org/oauth2/webex';
 
-// Webex account apis
-const apis = {};
-
+const apis = {};	// Webex account APIs indexed by account ID.
 const defaultTimezone = 'America/New_York';
 let webexClientId;
 let webexClientSecret;
@@ -37,10 +35,17 @@ let webexClientSecret;
 function getWebexApi(id) {
 	const api = apis[id];
 	if (!api)
-		throw new Error(`Invalid account id=${id}`);
+		throw new TypeError(`Invalid account id=${id}`);
 	return api;
 }
 
+/*
+ * Create Webex API.
+ *
+ * Instantiate an Axios instance to access a Webex account.
+ * Create a response interceptor that will reaquire a token if the current token expires.
+ * Keep the accounts database updated with the current tokens.
+ */
 function createWebexApi(id, authParams) {
 	// Create axios instance with appropriate defaults
 	const api = axios.create({
@@ -95,14 +100,25 @@ function createWebexApi(id, authParams) {
 	apis[id] = api;
 }
 
+/*
+ * Delete Webex API.
+ */
 function deleteWebexApi(id) {
 	delete apis[id];
 }
 
+/*
+ * Store autherization parameters in oauth_accounts table.
+ */
 function updateAuthParams(id, authParams) {
 	return db.query('UPDATE oauth_accounts SET authParams=?, authDate=NOW() WHERE id=?', [JSON.stringify(authParams), id]);
 }
 
+/*
+ * Init routine, run at startup.
+ *
+ * Instantiate an API for each of the configured Webex accounts.
+ */
 export async function init() {
 
 	if (!process.env.WEBEX_CLIENT_ID)
@@ -123,6 +139,11 @@ export async function init() {
 	}
 }
 
+/*
+ * Get a list of Webex accounts.
+ * Set the autherization URL for each.
+ * Try to get a list of templates for each.
+ */
 async function getAccounts(constraints) {
 	let sql = 'SELECT `id`, `name`, `type`, `groups`, `authDate` FROM oauth_accounts';
 	if (constraints)
@@ -157,6 +178,12 @@ export function getAuthWebexAccount(id) {
 			});
 }
 
+/*
+ * Callback for OAuth2 process.
+ *
+ * Completes mutual authentication for access to a Webex account.
+ * Instantiate an API for accessing the Webex account.
+ */
 export async function completeAuthWebexAccount(params) {
 	const {state, code} = params;
 	const id = parseInt(state);
@@ -175,9 +202,6 @@ export async function completeAuthWebexAccount(params) {
 
 	// Create an axios instance for this account
 	createWebexApi(id, authParams);
-
-//	const [account] = await getAccounts({id});
-//	return account;
 }
 
 
@@ -201,6 +225,14 @@ function accountEntry(s) {
 	return entry;
 }
 
+/*
+ * Add a Webex account.
+ * Just creates a database entry. Instatiation occurs following OAuth2 process.
+ *
+ * @entry:object 	An account object.
+ *
+ * Returns an object that is the account as added.
+ */
 export async function addWebexAccount(entry) {
 	entry = accountEntry(entry);
 	entry.type = 'webex';
@@ -209,9 +241,15 @@ export async function addWebexAccount(entry) {
 	return account;
 }
 
+/*
+ * Update a Webex account.
+ *
+ * @id:any 			The account ID.
+ * @entry:object 	An object with paramter changes for the account.
+ */
 export async function updateWebexAccount(id, entry) {
 	if (!id)
-		throw 'Must provide id with update';
+		throw new TypeError('Must provide id with update');
 	entry = accountEntry(entry);
 	if (Object.keys(entry).length)
 		await db.query('UPDATE oauth_accounts SET ? WHERE id=?;', [entry, id]);
@@ -219,12 +257,25 @@ export async function updateWebexAccount(id, entry) {
 	return account;
 }
 
+/*
+ * Delete a Webex account.
+ * If an API has been instatiated, delete that too.
+ *
+ * @id:any 	The Webex account ID.
+ *
+ * Returns 1.
+ */
 export async function deleteWebexAccount(id) {
 	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=?', [id]);
 	deleteWebexApi(id);
 	return affectedRows;
 }
 
+/*
+ * Handle Webex API error.
+ *
+ * @error:object 	The error object returned by the Axios instance.
+ */
 function webexApiError(error) {
 	const {response} = error;
 	if (response && response.status >= 400 && response.status < 500) {
@@ -245,6 +296,17 @@ async function getWebexTemplates(id) {
 		.catch(webexApiError);
 }
 
+/*
+ * Get Webex meetings.
+ *
+ * @groupId?:any 		If present, List meetings from Webex accounts associated with this groupId.
+ * @fromDate?:string 	If present, Webex meetings scheduled for on or after this date (ISO date string)
+ * @toDate?:string 		If present, Webex meetings scheduled before this date (ISO date string)
+ * @timezone?:string 	If present, return Webex meetings with schedule in timezone specified.
+ * @ids?:array 			If present, return Webex meetings with IDs in list.
+ *
+ * Returns an array of Webex meeting objects.
+ */
 export async function getWebexMeetings({groupId, fromDate, toDate, timezone, ids}) {
 	let webexMeetings = [];
 	const accounts = await getWebexAccounts();
@@ -268,7 +330,7 @@ export async function getWebexMeetings({groupId, fromDate, toDate, timezone, ids
 		//console.log(account.name, params, response.data.items.length)
 
 		let meetings = response.data.items;
-		meetings = meetings.map(m => ({...m, groupId, webexAccountId: account.id, webexAccountName: account.name}));
+		meetings = meetings.map(m => ({...m, groupId, accountId: account.id, accountName: account.name}));
 		webexMeetings = webexMeetings.concat(meetings);
 	}
 	// Looking for specific meetings
@@ -278,48 +340,105 @@ export async function getWebexMeetings({groupId, fromDate, toDate, timezone, ids
 	return webexMeetings;
 }
 
-export async function getWebexMeeting(id, meetingId) {
-	const api = getWebexApi(id);
-	return api.get(`/meetings/${meetingId}`)
+export function getWebexMeeting(accountId, id) {
+	const api = getWebexApi(accountId);
+	return api.get(`/meetings/${id}`)
 		.then(response => response.data)
 		.catch(webexApiError);
 }
 
-export async function addWebexMeeting(id, params) {
-	const api = getWebexApi(id);
+/*
+ * Validate the @meetings parameter for addWebexMeetings(), updateWebexMeeting() and deleteWebexMeetings()
+ *
+ * @meetings:array 	The meetings array to validate. Each entry is expected to be an object with a
+ *					a parameter @accountId that is a valid Webex account ID.
+ */
+function validateMeetingsArray(meetings) {
+	for (const m of meetings) {
+		if (!isPlainObject(m))
+			throw new TypeError('Badly formed meetings array, expected array of objects');
+		getWebexApi(m.accountId);
+	}
+}
+
+/*
+ * Add a Webex meeting.
+ *
+ * @accountId:any 	Webex account ID.
+ * @params:object 	Webex meeting object.
+ *
+ * Returns an object that is the Webex meeting as added.
+ */
+export function addWebexMeeting({accountId, ...params}) {
+	const api = getWebexApi(accountId);
 	return api.post('/meetings', params)
 		.then(response => response.data)
 		.catch(webexApiError);
 }
 
+/*
+ * Add Webex meetings.
+ *
+ * @meetings:array 	An array of Webex meeting objects.
+ *
+ * Returns and array of Webex meeting objects as added.
+ */
 export async function addWebexMeetings(meetings) {
-	for (const m of meetings) {
-		getWebexApi(m.accountId);
-		if (typeof m.webexMeeting !== 'object')
-			throw new Error('Missing webexMeeting');
-	}
-	return meetings.map(m => addWebexMeeting(m.accountId, m.webexMeeting));
+	validateMeetingsArray(meetings);
+	return Promise.all(meetings.map(addWebexMeeting));
 }
 
-export async function updateWebexMeeting(id, meetingId, params) {
-	const api = getWebexApi(id);
-	return api.put(`/meetings/${meetingId}`, params)
+/*
+ * Update a Webex meeting.
+ *
+ * @accountId:any 	Webex account ID
+ * @id:any 			Webex meeting ID
+ * @params:object 	Webex meeting parameters to change
+ *
+ * Returns an object that is the Webex meeting as updated.
+ */
+export function updateWebexMeeting({accountId, id, ...params}) {
+	const api = getWebexApi(accountId);
+	return api.put(`/meetings/${id}`, params)
+		.then(response => ({accountId, ...response.data}))
+		.catch(webexApiError);
+}
+
+/*
+ * Update Webex meetings.
+ *
+ * @meetings:array 	An array of Webex meeting objects.
+ *
+ * Returns an array of Webex meeting objects.
+ */
+export async function updateWebexMeetings(meetings) {
+	validateMeetingsArray(meetings);
+	return Promise.all(meetings.map(updateWebexMeeting));
+}
+
+/*
+ * Delete a Webex meeting.
+ *
+ * @accountId:any 	Webex account ID
+ * @id: any 		Webex meeting ID
+ *
+ */
+export function deleteWebexMeeting({accountId, id}) {
+	const api = getWebexApi(accountId);
+	return api.delete(`/meetings/${id}`)
 		.then(response => response.data)
 		.catch(webexApiError);
 }
 
-export async function deleteWebexMeeting(id, meetingId) {
-	const api = getWebexApi(id);
-	return api.delete(`/meetings/${meetingId}`)
-		.then(response => response.data)
-		.catch(webexApiError);
-}
-
+/*
+ * Delete Webex meetings.
+ *
+ * @meetings:array 	An array of objects with shape {accountId, id}.
+ *
+ * Returns the number of meetings deleted.
+ */
 export async function deleteWebexMeetings(meetings) {
-	for (const m of meetings) {
-		getWebexApi(m.accountId);
-		if (!m.meetingId)
-			throw new Error('Missing meetingId');
-	}
-	return meetings.map(m => deleteWebexMeeting(m.accountId, m.meetingId));
+	validateMeetingsArray(meetings);
+	await Promise.all(meetings.map(deleteWebexMeeting));
+	return meetings.length;
 }

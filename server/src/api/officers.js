@@ -1,8 +1,30 @@
 /*
- * officers API
+ * Officers API
+ *
+ * GET /officers
+ *		Get a list of officers
+ *		Returns an array of officer objects.
+ *
+ * POST /officers (officers[])
+ *		Add officers. Body is an array of officer objects to be added.
+ *		Returns an array of officer objects.
+ *
+ * PATCH /officers (updates[])
+ *		Update officers. Body is an array of update objects in shape {id, changes}, where id identifies the officer and
+ *		changes is an object with paramters to change.
+ *		Returns an array of officer objects.
+ *
+ * DELETE /officers (ids[])
+ *		Delete officers. Body is an array of ids identifying the officers to be deleted.
+ *		Returns the number of officers deleted.
  */
 
-import {getOfficers, addOfficers, updateOfficers, removeOfficers} from '../services/officers';
+import {
+	getOfficers,
+	addOfficers,
+	updateOfficers,
+	removeOfficers
+} from '../services/officers';
 
 const router = require('express').Router();
 
@@ -25,7 +47,7 @@ router.post('/$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.put('/$', async (req, res, next) => {
+router.patch('/$', async (req, res, next) => {
 	try {
 		const updates = req.body;
 		if (!Array.isArray(updates))

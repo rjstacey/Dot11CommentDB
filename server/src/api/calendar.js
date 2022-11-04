@@ -1,6 +1,27 @@
 /*
  * Google calendar accounts API
+ *
+ * GET /calendar/accounts 
+ *		Get a list of calendar accounts
+ *
+ * POST /calendar/accounts (account)
+ *		Add a calendar account. Body contains an object that is the account to be added.
+ *		Returns an object that is the account added.
+ *
+ * PATCH /calendar/accounts/{accountId} (changes)
+ *		Update a calendar account identified by accountId. Body contains an object with parameters to change.
+ *		Returns an object that is the updated account.
+ *
+ * PATCH /calendar/accounts/{accountId}/revoke
+ *		Revoke access to a calendar account identified by accountId.
+ *		Returns an object that is the updated account.
+ *
+ * DELETE /calendar/accounts/{accountId}
+ * 		Delete the calendar account identified by accountId.
+ *		Returns 1.
  */
+import {isPlainObject} from '../utils';
+
 import {
 	getAuthCalendarAccount,
 	getCalendarAccounts,
@@ -22,41 +43,40 @@ router.get('/accounts', async (req, res, next) => {
 
 router.post('/accounts', async (req, res, next) => {
 	try {
-		const {id} = req.params;
-		const entry = req.body;
-		if (typeof entry !== 'object')
+		const account = req.body;
+		if (!isPlainObject(account))
 			throw 'Missing or bad body; expected object';
-		const data = await addCalendarAccount(entry);
+		const data = await addCalendarAccount(account);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.patch('/accounts/:id$', async (req, res, next) => {
+router.patch('/accounts/:accountId$', async (req, res, next) => {
 	try {
-		const {id} = req.params;
+		const {accountId} = req.params;
 		const changes = req.body;
-		if (typeof changes !== 'object')
+		if (!isPlainObject(changes))
 			throw 'Missing or bad body; expected object';
-		const data = await updateCalendarAccount(id, changes);
+		const data = await updateCalendarAccount(accountId, changes);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.patch('/accounts/:id/revoke$', async (req, res, next) => {
+router.patch('/accounts/:accountId/revoke$', async (req, res, next) => {
 	try {
-		const {id} = req.params;
-		const data = await revokeAuthCalendarAccount(id);
+		const {accountId} = req.params;
+		const data = await revokeAuthCalendarAccount(accountId);
 		res.json(data);
 	}
 	catch (err) {next(err)}
 });
 
-router.delete('/accounts/:id$', async (req, res, next) => {
+router.delete('/accounts/:accountId$', async (req, res, next) => {
 	try {
-		const {id} = req.params;
-		const data = await deleteCalendarAccount(id);
+		const {accountId} = req.params;
+		const data = await deleteCalendarAccount(accountId);
 		res.json(data);
 	}
 	catch(err) {next(err)}

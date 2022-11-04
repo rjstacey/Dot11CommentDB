@@ -1,7 +1,9 @@
-
 /*
  * ePolls API
- * GET: /epolls?{n} - return a list of n epolls by scraping the mentor webpage for closed epolls.
+ *
+ * GET /epolls?{n}
+ *		Get a list of ePolls by scraping the mentor webpage for closed epolls.
+ *		Returns an array of epoll objects.
  */
 
 import {getEpolls} from '../services/epoll';

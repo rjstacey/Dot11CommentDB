@@ -1,8 +1,28 @@
 /*
- * groups API
+ * Groups API
+ *
+ * GET /groups
+ *		Returns an array of groups
+ *
+ * POST /groups (groups[])
+ *		Add groups. Body contains an array of group objects.
+ *		Returns an array of groups added
+ *
+ * PUT /groups (updates[])
+ *		Update groups. Body contains an array of updates, objects with shape {id, changes}, where changes is an object with parameters that are changed.
+ *		Returns an arrays of groups updated.
+ *
+ * DELETE /groups (ids[])
+ *		Delete groups. Body contains an array of group IDs.
+ *		Returns the number of groups deleted.
  */
 
-import {getGroups, addGroups, updateGroups, removeGroups} from '../services/groups';
+import {
+	getGroups,
+	addGroups,
+	updateGroups,
+	removeGroups
+} from '../services/groups';
 
 const router = require('express').Router();
 

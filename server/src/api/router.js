@@ -43,8 +43,8 @@ router.all('*', (req, res, next) => {
 		/* subgroup admins have read access to results */
 		if (req.path.match(/^\/result/i) && access >= AccessLevel.SubgroupAdmin)
 			return next();
-		/* subgroup admins have read access to telecons */
-		if (req.path.match(/^\/telecons/i) && access >= AccessLevel.SubgroupAdmin)
+		/* subgroup admins have read access to meetings */
+		if (req.path.match(/^\/meetings/i) && access >= AccessLevel.SubgroupAdmin)
 			return next();
 		break;
 
@@ -54,8 +54,8 @@ router.all('*', (req, res, next) => {
 			return next();
 		if (req.path.match(/^\/ballot/i) && access >= AccessLevel.WGAdmin)
 			return next();
-		/* subgroup admins have create/delete access to telecons */
-		if (req.path.match(/^\/telecons/i) && access >= AccessLevel.SubgroupAdmin)
+		/* subgroup admins have create/delete access to meetings */
+		if (req.path.match(/^\/meetings/i) && access >= AccessLevel.SubgroupAdmin)
 			return next();
 		break;
 
@@ -67,8 +67,8 @@ router.all('*', (req, res, next) => {
 			return next();
 		if (req.path.match(/^\/ballot/i) && access >= AccessLevel.WGAdmin)
 			return next();
-		/* subgroup admins have modify access to telecons */
-		if (req.path.match(/^\/telecons/i) && access >= AccessLevel.SubgroupAdmin)
+		/* subgroup admins have modify access to meetings */
+		if (req.path.match(/^\/meetings/i) && access >= AccessLevel.SubgroupAdmin)
 			return next();
 		break;
 	}
@@ -83,61 +83,35 @@ router.all('*', (req, res, next) => {
 /* A get on root returns OK: tests connect availability */
 router.get('/$', (req, res, next) => res.json(null));
 
-/* Webex accounts API */
-router.use('/webex', require('./webex').default);
+/*
+ * APIs for managing the organization
+ */
+router.use('/members', require('./members').default);			// Manage membership
+router.use('/users', require('./users').default);				// Limited access to member information for various uses (comment resolution, meeting setup, etc.)
+router.use('/groups', require('./groups').default);				// Groups and subgroups
+router.use('/officers', require('./officers').default);			// Group and subgroup officers
+router.use('/email', require('./email').default);				// Sending email
 
-/* Google calendar accounts API */
-router.use('/calendar', require('./calendar').default);
+/*
+ * APIs for managing meetings
+ */
+router.use('/sessions', require('./sessions').default);			// Sessions
+router.use('/meetings', require('./meetings').default);			// Session meetings and telecons
+router.use('/webex', require('./webex').default);				// Webex account and meetings
+router.use('/calendar', require('./calendar').default);			// Google calendar accounts and events
+router.use('/imat', require('./imat').default);					// Access to IEEE SA attendance system (IMAT)
+router.use('/802world', require('./802world').default);			// Access to schedule802world.com (meeting organizer schedule)
 
-/* Sessions API */
-router.use('/sessions', require('./sessions').default);
-
-/* Meetings API */
-router.use('/meetings', require('./meetings').default);
-
-/* Groups API */
-router.use('/groups', require('./groups').default);
-
-/* Officers API */
-router.use('/officers', require('./officers').default);
-
-/* Voting pools API */
-router.use('/votingPools', require('./votingPools').default);
-
-/* Voters API */
-router.use('/voters', require('./voters').default);
-
-/* Ballot API */
-router.use('/ballots', require('./ballots').default);
-
-/* Ballot results API */
-router.use('/results', require('./results').default);
-
-/* Comments API */
-router.use('/comments', require('./comments').default);
-
-/* Comment resolutions API */
-router.use('/resolutions', require('./resolutions').default);
-
-/* Comment history API */
-router.use('/commentHistory', require('./commentHistory').default);
-
-/* Users API */
-router.use('/users', require('./users').default);
-
-/* Members API */
-router.use('/members', require('./members').default);
-
-/* ePolls API */
-router.use('/epolls', require('./epolls').default);
-
-/* imat API */
-router.use('/imat', require('./imat').default);
-
-/* Access to schedule802world.com */
-router.use('/802world', require('./802world').default);
-
-/* Send Email API */
-router.use('/email', require('./email').default);
+/*
+ * APIs for balloting and comment resolution
+ */
+router.use('/ballots', require('./ballots').default);			// Ballots
+router.use('/votingPools', require('./votingPools').default);	// Ballot voting pools
+router.use('/voters', require('./voters').default);				// Ballot voters
+router.use('/results', require('./results').default);			// Ballot results
+router.use('/comments', require('./comments').default);			// Ballot comments
+router.use('/resolutions', require('./resolutions').default);	// Comment resolutions
+router.use('/commentHistory', require('./commentHistory').default);	// Comment change history
+router.use('/epolls', require('./epolls').default);				// Access to ePolls balloting tool
 
 export default router;

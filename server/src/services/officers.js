@@ -1,5 +1,5 @@
-
 import { v4 as uuid } from 'uuid';
+import { isPlainObject } from '../utils';
 
 const db = require('../utils/database');
 
@@ -40,8 +40,13 @@ export function addOfficers(officers) {
 
 async function updateOfficer({id, changes}) {
 	if (!id)
-		throw TypeError('Missing id in update');
-	await db.query('UPDATE `officers` SET ? WHERE `id`=UUID_TO_BIN(?)', [changes, id]);
+		throw new TypeError('Missing id in update');
+	if (!isPlainObject(changes))
+		throw new TypeError('Missing or bad changes object in update');
+
+	if (Object.keys(changes).length > 0)
+		await db.query('UPDATE `officers` SET ? WHERE `id`=UUID_TO_BIN(?)', [changes, id]);
+
 	return getOfficers({id});
 }
 

@@ -1,12 +1,22 @@
 /*
  * Sessions API
  *
- * Maintain sessions list.
- * 
- * GET /sessions: return the complete list of sessions.
- * PATCH /session/{id}: update the identified session and returns the updated field values.
- * POST /session: add a session and returns the complete entry as added.
- * DELETE /sessions: delete sessions identified by a list of IDs. Returns null.
+ * GET /sessions
+ *		Get sessions.
+ *		Return and array of session objects.
+ *
+ * POST /sessions (session{})
+ *		Add a session. Body contains the session object to be added.
+ *		Returns the session object as added.
+ *
+ * PATCH /sessions/{id} (changes{})
+ * 		Update a session. Body contains an object with the parameters to change.
+ *		Returns the session object as updated.
+ *
+ * DELETE /sessions (ids[])
+ *		Delete sessions. Body contains an array of session IDs.
+ *		Returns the number of sessions deleted.
+ *
  * GET /session/{id}/breakouts: get list of breakouts for a session.
  * GET /session/{id}/breakout/{breakout_id}/attendees: get list of attendess for a specific breakout.
  * GET /session/{id}/attendees: get a list of attendees for a session.
@@ -14,6 +24,7 @@
  * POST /session/{id}/attendance_summary/import: import from IMAT the attendance summary for a session.
  * PATCH /session/{id}/attendance_summary: update attendance summary
  */
+import {isPlainObject} from '../utils';
 import {
 	getSessions,
 	updateSession,
@@ -37,24 +48,24 @@ router.get('/$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.patch('/:id(\\d+)$', async (req, res, next) => {
+router.post('/$', async (req, res, next) => {
 	try {
-		const id = parseInt(req.params.id, 10);
 		const session = req.body;
-		if (typeof session !== 'object')
+		if (!isPlainObject(session))
 			throw 'Missing or bad body; expected object';
-		const data = await updateSession(id, session);
+		const data = await addSession(session);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.post('/$', async (req, res, next) => {
+router.patch('/:id(\\d+)$', async (req, res, next) => {
 	try {
-		const session = req.body;
-		if (typeof session !== 'object')
+		const id = parseInt(req.params.id, 10);
+		const changes = req.body;
+		if (!isPlainObject(changes))
 			throw 'Missing or bad body; expected object';
-		const data = await addSession(session);
+		const data = await updateSession(id, changes);
 		res.json(data);
 	}
 	catch(err) {next(err)}

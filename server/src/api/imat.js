@@ -1,6 +1,38 @@
 /*
- * imat API
- * GET /imat/meetings: get a list of meetings from IMAT
+ * IMAT API
+ * (IEEE SA attendance system)
+ *
+ * GET /imat/committees/{group}
+ *		Get committees for a specified group.
+ *		Returns an array of committee objects.
+ *
+ * GET /imat/meetings
+ *		Get sessions (IMAT meetings).
+ *		Returns an array of IMAT meeting objects.
+ *
+ * GET /imat/breakouts/{imatMeetingId}
+ *		Get breakouts, timeslots and committees for the session (IMAT meeting) identified by the imatMeetingId parameter.
+ *		Returns an object with shape {imatMeeting{}, breakouts[], timeouts[], committees[]}, where imatMeeting is an object with 
+ *		session (IMAT meeting) information, breakouts is an array of breakout objects, timeslots is an array of timeslot objects
+ *		and committees is an array of committee objects.
+ *
+ * POST /imat/breakouts/{imatMeetingId}
+ *		Add breakouts to the session (IMAT meeting) identified by the imatMeetingId parameter.
+ *		Returns an array of breakout objects as added.
+ *
+ * PUT /imat/breakouts/{imatMeetingId}
+ *		Update breakouts for the session (IMAT meeting) identified by the imatMeetingId parameter.
+ *		The body contains an array of breakout objects.
+ *		Returns an array of breakout objects as updated.
+ *
+ * DELETE /imat/breakouts/{imatMeetingId}
+ *		Delete breakouts from the session (IMAT meeting) identified by the imatMeetingId parameter
+ *		The body contains an array of breakout IDs.
+ *		Returns the number of breakouts deleted.
+ *
+ * GET /imat/attendance/{imatMeetingId}/{imatBreakoutId}
+ *		Get a list of attendees for a specified breakout.
+ *		Returns an array of attendance objects (user info with timestamp).
  */
 
 import {isPlainObject} from '../utils';
@@ -33,56 +65,56 @@ router.get('/meetings$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.get('/breakouts/:meetingNumber(\\d+)', async (req, res, next) => {
+router.get('/breakouts/:imatMeetingId(\\d+)', async (req, res, next) => {
 	try {
-		const meetingNumber = parseInt(req.params.meetingNumber);
-		const data = await getImatBreakouts(req.user, meetingNumber);
+		const imatMeetingId = parseInt(req.params.imatMeetingId);
+		const data = await getImatBreakouts(req.user, imatMeetingId);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.put('/breakouts/:meetingNumber(\\d+)', async (req, res, next) => {
+router.post('/breakouts/:imatMeetingId(\\d+)', async (req, res, next) => {
 	try {
-		const meetingNumber = parseInt(req.params.meetingNumber);
+		const imatMeetingId = parseInt(req.params.imatMeetingId);
 		const breakouts = req.body;
 		if (!Array.isArray(breakouts))
 			throw new TypeError('Bad or missing body; expected array of breakouts');
-		const data = await updateImatBreakouts(req.user, meetingNumber, breakouts);
+		const data = await addImatBreakouts(req.user, imatMeetingId, breakouts);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.post('/breakouts/:meetingNumber(\\d+)', async (req, res, next) => {
+router.put('/breakouts/:imatMeetingId(\\d+)', async (req, res, next) => {
 	try {
-		const meetingNumber = parseInt(req.params.meetingNumber);
+		const imatMeetingId = parseInt(req.params.imatMeetingId);
 		const breakouts = req.body;
 		if (!Array.isArray(breakouts))
 			throw new TypeError('Bad or missing body; expected array of breakouts');
-		const data = await addImatBreakouts(req.user, meetingNumber, breakouts);
+		const data = await updateImatBreakouts(req.user, imatMeetingId, breakouts);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.delete('/breakouts/:meetingNumber(\\d+)', async (req, res, next) => {
+router.delete('/breakouts/:imatMeetingId(\\d+)', async (req, res, next) => {
 	try {
-		const meetingNumber = parseInt(req.params.meetingNumber);
+		const imatMeetingId = parseInt(req.params.imatMeetingId);
 		const ids = req.body;
 		if (!Array.isArray(ids))
 			throw new TypeError('Bad or missing body; expected array of breakout IDs');
-		const data = await deleteImatBreakouts(req.user, meetingNumber, ids);
+		const data = await deleteImatBreakouts(req.user, imatMeetingId, ids);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.get('/attendance/:meetingNumber(\\d+)/:breakoutNumber(\\d+)', async (req, res, next) => {
+router.get('/attendance/:imatMeetingId(\\d+)/:imatBreakoutId(\\d+)', async (req, res, next) => {
 	try {
-		const meetingNumber = parseInt(req.params.meetingNumber);
-		const breakoutNumber = parseInt(req.params.breakoutNumber);
-		const data = await getImatBreakoutAttendance(req.user, meetingNumber, breakoutNumber);
+		const imatMeetingId = parseInt(req.params.imatMeetingId);
+		const imatBreakoutId = parseInt(req.params.imatBreakoutId);
+		const data = await getImatBreakoutAttendance(req.user, imatMeetingId, imatBreakoutId);
 		res.json(data);
 	}
 	catch(err) {next(err)}

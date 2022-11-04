@@ -1,3 +1,6 @@
+/*
+ * 802 World schedule API
+ */
 import axios from 'axios';
 
 const router = require('express').Router();

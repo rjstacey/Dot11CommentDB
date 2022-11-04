@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import { DateTime, Duration } from 'luxon';
 import cheerio from 'cheerio';
 import { csvParse, AuthError, NotFoundError } from '../utils';
-import { getMeetings, updateMeeting, webexMeetingImatLocation } from './meetings';
+import { webexMeetingImatLocation } from './meetings';
 import { getGroups } from './groups';
 
 const FormData = require('form-data');
@@ -300,7 +300,7 @@ export function parseSessionDetailPage(body) {
 	m = /p=(\d+)/.exec(href);
 	if (!m)
 		throw new Error("Can't find session ID");
-	const meetingId = parseInt(m[1]);
+	const imatMeetingId = parseInt(m[1]);
 
 	const breakouts = [];
 	const timeslots = {};
@@ -311,17 +311,21 @@ export function parseSessionDetailPage(body) {
 		if (tds.length === 4) {	// Timeslots table
 			const t = {
 				id: 0,
-				meetingId,
 				name: tds.eq(0).text(),
 				startTime: tds.eq(1).text(),
 				endTime: tds.eq(2).text()
 			};
+			/* The user may not have permission to edit the timeslots, in which case the timeslot edit link and thus
+			 * the ID is not available. */
 			href = tds.eq(3).find('a[href*="timeslot-edit"]').attr('href');
 			if (href) {
 				m = /t=(\d+)/.exec(href);
 				if (!m)
 					throw Error("Can't parse timeslot-edit link");
 				t.id = parseInt(m[1]);
+			}
+			else {
+				t.id = t.name;
 			}
 
 			timeslots[t.name] = t;
@@ -343,12 +347,12 @@ export function parseSessionDetailPage(body) {
 			b.end = eventDate.set({hour: m[4].substring(0, 2), minute: m[4].substring(3)}).toISO();
 
 			m = /(.+)&nbsp;-&nbsp;(.+)/.exec(slotsRange);
-			b.startSlot = m? m[1]: slotsRange;
-			b.endSlot = m? m[2]: slotsRange;
-			const startSlot = timeslots[b.startSlot];
-			const endSlot = timeslots[b.endSlot];
-			b.startSlotId = startSlot? startSlot.id: null;
-			b.endSlotId = endSlot? endSlot.id: null;
+			b.startSlotName = m? m[1]: slotsRange;
+			b.endSlotName = m? m[2]: slotsRange;
+			b.startSlot = timeslots[b.startSlotName];
+			b.endSlot = timeslots[b.endSlotName];
+			b.startSlotId = b.startSlot? b.startSlot.id: null;
+			b.endSlotId = b.endSlot? b.endSlot.id: null;
 
 			b.location = tds.eq(1).text();
 			b.facilitatorName = tds.eq(2).text();
@@ -360,12 +364,13 @@ export function parseSessionDetailPage(body) {
 			href = tds.eq(7).find('a[href*="breakout-edit"]').attr('href');
 			if (!href)
 				throw new Error("Can't find edit breakout link");
-			m = /\?t=(\d+)&p=(\d+)&fc=(.+)/.exec(href);
+			m = /\/(.*)\/breakout-edit\?t=(\d+)&p=(\d+)&fc=(.+)/.exec(href);
 			if (!m)
 				throw new Error("Can't parse edit breakout link");
-			b.id = parseInt(m[1]);
-			b.meetingId = parseInt(m[2]);
-			b.editContext = decodeURIComponent(m[3]);
+			b.id = parseInt(m[2]);
+			b.imatMeetingId = parseInt(m[3]);
+			b.editContext = decodeURIComponent(m[4]);
+			b.editGroupId = m[1];
 
 			const inputName = $(`input[value="${b.id}"]`).attr('name');
 			if (!inputName)
@@ -399,8 +404,8 @@ async function parseImatBreakoutsCsv(session, buffer) {
 		const eventDate = DateTime.fromISO(session.start, {zone: session.timezone}).plus(Duration.fromObject({days: eventDay}));
 		return {
 			id: parseInt(c[0], 10),
-			startSlot: c[1],
-			endSlot: c[2],
+			startSlotName: c[1],
+			endSlotName: c[2],
 			day: parseInt(c[11], 10),
 			start: eventDate.set({hour: c[3].substring(0, 2), minute: c[3].substring(3)}).toISO(),
 			end: eventDate.set({hour: c[4].substring(0, 2), minute: c[4].substring(3)}).toISO(),
@@ -437,50 +442,39 @@ async function parseImatTimeslotCsv(session, buffer) {
 	}));
 }
 
-export async function getImatBreakouts(user, meetingId) {
+export async function getImatBreakouts(user, imatMeetingId) {
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const session = await getImatMeeting(user, meetingId);
-	//console.log(session);
+	const imatMeeting = await getImatMeeting(user, imatMeetingId);
+	//console.log(imatMeeting);
 
 	let response;
 
 	/*
-	response = await ieeeClient.get(`/${session.organizerId}/breakouts.csv?p=${meetingId}&xls=1`, {responseType: 'arraybuffer'});
+	response = await ieeeClient.get(`/${imatMeeting.organizerId}/breakouts.csv?p=${imatMeetingId}&xls=1`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
-	const breakouts = await parseImatBreakoutsCsv(session, response.data);
+	const breakouts = await parseImatBreakoutsCsv(imatMeeting, response.data);
 	*/
-	response = await ieeeClient.get(`/${session.organizerId}/meeting-detail?p=${meetingId}`);
+	response = await ieeeClient.get(`/${imatMeeting.organizerId}/meeting-detail?p=${imatMeetingId}`);
 	const {breakouts} = parseSessionDetailPage(response.data);
 
-	/*response = await ieeeClient.get(`/${session.organizerId}/timeslot.csv?p=${session.id}&xls=1`, {responseType: 'arraybuffer'});
+	/*response = await ieeeClient.get(`/${imatMeeting.organizerId}/timeslot.csv?p=${imatMeeting.id}&xls=1`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 
-	const timeslots = await parseImatTimeslotCsv(session, response.data);*/
+	const timeslots = await parseImatTimeslotCsv(imatMeeting, response.data);*/
 
 	response = await ieeeClient.get(`/802.11/committees.csv`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 	const committees = await parseImatCommitteesCsv(response.data);
 
-	response = await ieeeClient.get(`/${session.organizerId}/breakout?p=${meetingId}`);
+	response = await ieeeClient.get(`/${imatMeeting.organizerId}/breakout?p=${imatMeetingId}`);
 	const {timeslots, committees: committees2} = parseAddMeetingPage(response.data);
-
-	for (const b of breakouts) {
-		const startSlot = timeslots.find(t => t.name === b.startSlot);
-		if (startSlot)
-			b.startSlotId = startSlot.id;
-		const endSlot = timeslots.find(t => t.name === b.startSlot);
-		if (endSlot)
-			b.endSlotId = endSlot.id;
-	}
-
-	//console.log(timeslots, committees, committees2)
 
 	/* The committees in the committees.csv file do not have the same ID as that used
 	 * for the committee options in the "Add a new meeting" form. The committee options
@@ -492,12 +486,25 @@ export async function getImatBreakouts(user, meetingId) {
 		}
 	}
 
-	breakouts.forEach(b => {
-		const c = committees.find(c => c.shortName === b.groupShortName);
-		b.symbol = c?.symbol;
-	});
+	/* Override the timeslots from session detail page; if the user may not have permission to modify the timeslots
+	 * and thus might not get the slot ID. */
+	for (const b of breakouts) {
+		const startSlot = timeslots.find(t => t.name === b.startSlot.name);
+		if (startSlot)
+			b.startSlotId = startSlot.id;
+		const endSlot = timeslots.find(t => t.name === b.startSlot.name);
+		if (endSlot)
+			b.endSlotId = endSlot.id;
+		const committee = committees.find(c => c.shortName === b.groupShortName);
+		if (committee) {
+			b.groupId = committee.id;
+			b.symbol = committee.symbol;
+		}
+	}
 
-	return {session, breakouts, timeslots, committees};
+	//console.log(timeslots, committees, committees2)
+
+	return {imatMeeting, breakouts, timeslots, committees};
 }
 
 const breakoutCredit = {
@@ -521,7 +528,7 @@ const breakoutProps = {
 	teleconId: PropTypes.number,
 };
 
-async function addImatBreakout(user, session, breakout) {
+async function addImatBreakout(user, imatMeeting, breakout) {
 
 	PropTypes.checkPropTypes(breakoutProps, breakout, 'breakout', 'addImatBreakout');
 
@@ -541,7 +548,7 @@ async function addImatBreakout(user, session, breakout) {
 	};
 
 	const {ieeeClient} = user;
-	const response = await ieeeClient.post(`/${session.organizerId}/breakout?p=${session.id}`, params);
+	let response = await ieeeClient.post(`/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`, params);
 	//console.log(response)
 
 	if (response.data.search(/<title>IEEE Standards Association - Event detail<\/title>/) === -1) {
@@ -551,45 +558,44 @@ async function addImatBreakout(user, session, breakout) {
 
 	/* From the response, find the breakout we just added */
 	const {breakouts} = parseSessionDetailPage(response.data);
-	//console.log(breakouts);
 
-	let b = breakouts.find(b => breakout.name === b.name && breakout.location === b.location && breakout.startSlotId === b.startSlotId);
-	//console.log(breakout, b);
+	let b = breakouts.find(b =>
+		breakout.name === b.name &&
+		breakout.location === b.location &&
+		breakout.day === b.day &&
+		breakout.startSlot.name === b.startSlot.name
+	);
+
+	if (!b) {
+		console.log(breakouts, breakout);
+		throw new Error("Can't find the breakout we just added");
+	}
 
 	return b;
 }
 
-export async function addImatBreakouts(user, meetingId, breakouts) {
+export async function addImatBreakouts(user, imatMeetingId, breakouts) {
 
 	if (!user.ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const session = await getImatMeeting(user, meetingId);
-	//console.log(session);
+	const imatMeeting = await getImatMeeting(user, imatMeetingId);
+	//console.log(imatMeeting);
 
-	breakouts = await Promise.all(breakouts.map(async (breakout) => {
-		const b = await addImatBreakout(user, session, breakout);
-		if (breakout.teleconId) {
-			await updateMeeting(breakout.teleconId, {imatMeetingId: session.id, imatBreakoutId: b.id});
-			b.teleconId = breakout.teleconId;
-		}
-		return b;
-	}));
+	breakouts = await Promise.all(breakouts.map((breakout) => addImatBreakout(user, imatMeeting, breakout)));
 
-	const telecons = await getMeetings({id: breakouts.map(b => b.teleconId)});
-
-	return {breakouts, telecons};
+	return {breakouts};
 }
 
-export async function deleteImatBreakouts(user, meetingId, ids) {
+export async function deleteImatBreakouts(user, imatMeetingId, ids) {
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const session = await getImatMeeting(user, meetingId);
+	const imatMeeting = await getImatMeeting(user, imatMeetingId);
 
-	const response = await ieeeClient.get(`/${session.organizerId}/meeting-detail?p=${meetingId}`);
+	const response = await ieeeClient.get(`/${imatMeeting.organizerId}/meeting-detail?p=${imatMeetingId}`);
 	const {breakouts} = parseSessionDetailPage(response.data);
 
 	const breakoutsToDelete = [];
@@ -611,10 +617,12 @@ export async function deleteImatBreakouts(user, meetingId, ids) {
 	breakouts.forEach(b => params['f5_' + b.formIndex] = b.id);
 	breakoutsToDelete.forEach(b => params['f1_' + b.formIndex] = 'on');
 
-	await ieeeClient.post(`/802.11/meeting-detail?p=${meetingId}`, params)
+	await ieeeClient.post(`/802.11/meeting-detail?p=${imatMeetingId}`, params);
+
+	return ids.length;
 }
 
-async function updateImatBreakout(user, session, breakout) {
+async function updateImatBreakout(user, imatMeeting, breakout) {
 
 	PropTypes.checkPropTypes(breakoutProps, breakout, 'breakout', 'updateImatBreakout');
 
@@ -638,7 +646,7 @@ async function updateImatBreakout(user, session, breakout) {
 	};
 	//console.log(params)
 
-	const response = await user.ieeeClient.post(`/${session.organizerId}/breakout-edit?t=${breakout.id}&p=${session.id}`, params);
+	const response = await user.ieeeClient.post(`/${breakout.editGroupId}/breakout-edit?t=${breakout.id}&p=${imatMeeting.id}`, params);
 
 	if (response.data.search(/<title>IEEE Standards Association - Event detail<\/title>/) === -1) {
 		const m = /<div class="field_err">(.*)<\/div>/.exec(response.data);
@@ -655,26 +663,17 @@ async function updateImatBreakout(user, session, breakout) {
 	return b;
 }
 
-export async function updateImatBreakouts(user, meetingId, breakouts) {
+export async function updateImatBreakouts(user, imatMeetingId, breakouts) {
 
 	if (!user.ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const session = await getImatMeeting(user, meetingId);
-	//console.log(session);
+	const imatMeeting = await getImatMeeting(user, imatMeetingId);
+	//console.log(imatMeeting);
 
-	breakouts = await Promise.all(breakouts.map(async (breakout) => {
-		const b = await updateImatBreakout(user, session, breakout);
-		if (breakout.teleconId) {
-			await updateMeeting(breakout.teleconId, {imatMeetingId: session.id, imatBreakoutId: b.id});
-			b.teleconId = breakout.teleconId;
-		}
-		return b;
-	}));
+	breakouts = await Promise.all(breakouts.map((breakout) => updateImatBreakout(user, imatMeeting, breakout)))
 
-	const telecons = await getMeetings({id: breakouts.map(b => b.teleconId)});
-
-	return {breakouts, telecons};
+	return breakouts;
 }
 
 function getTimestamp(t) {
@@ -685,13 +684,13 @@ function getTimestamp(t) {
 /*
  * Get IMAT breakout attendance
  */
-export async function getImatBreakoutAttendance(user, meetingId, breakoutId) {
+export async function getImatBreakoutAttendance(user, imatMeetingId, breakoutId) {
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const {data} = await ieeeClient.get(`/802.11/breakout-members?t=${breakoutId}&p=${meetingId}`);
+	const {data} = await ieeeClient.get(`/802.11/breakout-members?t=${breakoutId}&p=${imatMeetingId}`);
 	const $ = cheerio.load(data);
 
 	const title = $('div.title').html();
@@ -800,17 +799,17 @@ function slotDateTime(date, slot) {
 	];
 }
 
-async function teleconToBreakout(user, telecon, session, timeslots, committees) {
+async function meetingToBreakout(user, meeting, imatMeeting, timeslots, committees) {
 
-	const sessionStart = DateTime.fromISO(session.start, {zone: session.timezone});
-	const sessionEnd = DateTime.fromISO(session.end, {zone: session.timezone}).plus({days: 1});
-	const start = DateTime.fromISO(telecon.start, {zone: session.timezone});
-	const end = DateTime.fromISO(telecon.end, {zone: session.timezone});
-	//console.log(session.start, telecon.start)
+	const sessionStart = DateTime.fromISO(imatMeeting.start, {zone: imatMeeting.timezone});
+	const sessionEnd = DateTime.fromISO(imatMeeting.end, {zone: imatMeeting.timezone}).plus({days: 1});
+	const start = DateTime.fromISO(meeting.start, {zone: imatMeeting.timezone});
+	const end = DateTime.fromISO(meeting.end, {zone: imatMeeting.timezone});
+	//console.log(imatMeeting.start, meeting.start)
 
-	// Verify that the telecon is within the date range of the session
+	// Verify that the meeting is within the date range of the session
 	if (start < sessionStart || start > sessionEnd)
-		throw new TypeError('Telecon outside data range for session');
+		throw new TypeError('Meeting outside date range for session');
 
 	const day = Math.floor(start.diff(sessionStart, 'days').get('day'));
 	let startTime = start.toFormat('HH:mm');
@@ -826,20 +825,30 @@ async function teleconToBreakout(user, telecon, session, timeslots, committees) 
 	// Go through slots looking for exact match
 	for (const slot of timeslots) {
 		const [slotStart, slotEnd] = slotDateTime(breakoutDate, slot);
-		if (start === slotStart && end <= slotEnd) {
+		if (start >= slotStart && end <= slotEnd) {
 			startSlot = slot;
 			endSlot = slot;
+			break;
 		}
 	}
 
 	if (!startSlot) {
-		// Go through slots again, this time looking for approx match
+		// Look for the last slot that starts after the meeting starts
 		for (const slot of timeslots) {
 			const [slotStart, slotEnd] = slotDateTime(breakoutDate, slot);
-			if (!startSlot && start >= slotStart && start < slotEnd)
+			if (start >= slotStart)
 				startSlot = slot;
-			if (end > slotStart && end <= slotEnd)
+		}
+	}
+
+	if (!endSlot) {
+		// Look for the first slot that ends before meeting ends
+		for (const slot of timeslots) {
+			const [slotStart, slotEnd] = slotDateTime(breakoutDate, slot);
+			if (end <= slotEnd) {
 				endSlot = slot;
+				break;
+			}
 		}
 	}
 
@@ -849,39 +858,50 @@ async function teleconToBreakout(user, telecon, session, timeslots, committees) 
 	if(!endSlot)
 		endSlot = timeslots[timeslots.length-1];
 
+	if (!startSlot)
+		throw new TypeError("Can't find start slot");
+
+	if (!endSlot)
+		throw new TypeError("Can't find end slot");
+
 	// If the startTime/endTime aligns with slot start/end then clear time
 	if (startSlot && slotDateTime(breakoutDate, startSlot)[0].toFormat("HH:mm") === startTime)
 		startTime = '';
 	if (endSlot && slotDateTime(breakoutDate, endSlot)[1].toFormat("HH:mm") === endTime)
 		endTime = '';
 
-	let location = telecon.location || '';
-	if (telecon.isCancelled)
+	let location = meeting.location || '';
+	if (meeting.isCancelled)
 		location = 'CANCELLED';
 
-	if (!location && telecon.webexMeeting)
-		location = webexMeetingImatLocation(telecon.webexAccountId, telecon.webexMeeting);
+	if (!location && meeting.webexMeeting)
+		location = await webexMeetingImatLocation(meeting.webexAccountId, meeting.webexMeeting);
 	
-	const [group] = await getGroups({id: telecon.organizationId});
+	const [group] = await getGroups({id: meeting.organizationId});
 	if (!group)
-		throw new TypeError(`Can't find group id=${telecon.organizationId}`);
+		throw new TypeError(`Can't find group id=${meeting.organizationId}`);
 
 	const committee = committees.find(c => c.symbol === group.symbol);
 	if (!committee)
 		throw new TypeError(`Can't find committee symbol=${group.symbol}`);
 	const groupId = committee.id;
 
-	let name = group.name;
-	if (telecon.isCancelled)
+	let name = meeting.summary;
+	name = name.replace(/^802.11/, '');
+	name = name.trim();
+	if (meeting.isCancelled)
 		name = 'CANCELLED - ' + name;
 
 	return {
 		name,
 		location,
 		groupId,
+		committee,
 		day,
-		startSlotId: startSlot? startSlot.id: 0,
-		endSlotId: endSlot? endSlot.id: 0,
+		startSlot,
+		startSlotId: startSlot.id,
+		endSlot,
+		endSlotId: endSlot.id,
 		startTime,
 		endTime,
 		credit: "Zero",
@@ -891,30 +911,46 @@ async function teleconToBreakout(user, telecon, session, timeslots, committees) 
 	}
 }
 
-export async function addImatBreakoutFromTelecon(user, meetingId, telecon) {
-	const {session, breakouts, timeslots, committees} = await getImatBreakouts(user, meetingId);
+export async function addImatBreakoutFromMeeting(user, imatMeetingId, meeting) {
+	const {imatMeeting, breakouts, timeslots, committees} = await getImatBreakouts(user, imatMeetingId);
 
-	const breakout = await teleconToBreakout(user, telecon, session, timeslots, committees);
+	const breakout = await meetingToBreakout(user, meeting, imatMeeting, timeslots, committees);
 
 	//console.log('added breakout: ', breakout);
-	//return breakout;
-
-	return addImatBreakout(user, session, breakout);
+	return addImatBreakout(user, imatMeeting, breakout, timeslots);
 }
 
-export async function updateImatBreakoutFromTelecon(user, meetingId, breakoutId, telecon) {
-	const {session, breakouts, timeslots, committees} = await getImatBreakouts(user, meetingId);
+export async function updateImatBreakoutFromMeeting(user, imatMeetingId, breakoutId, meeting) {
+	const {imatMeeting, breakouts, timeslots, committees} = await getImatBreakouts(user, imatMeetingId);
 
 	const breakout = breakouts.find(b => b.id === breakoutId);
 	if (!breakout)
-		throw new NotFoundError(`Breakout id=${breakoutId} does not exist for meetingId=${meetingId}`);
+		throw new NotFoundError(`Breakout id=${breakoutId} does not exist for imatMeetingId=${imatMeetingId}`);
 
-	const updatedBreakout = await teleconToBreakout(user, telecon, session, timeslots, committees);
+	const updatedBreakout = await meetingToBreakout(user, meeting, imatMeeting, timeslots, committees);
 	updatedBreakout.id = breakoutId;
 	updatedBreakout.editContext = breakout.editContext;
+	updatedBreakout.editGroupId = breakout.editGroupId;
 
-	//console.log('updated breakout: ', updatedBreakout);
-	//return updatedBreakout;
+	let doUpdate =
+		breakout.name !== updatedBreakout.name ||
+		breakout.groupShortName !== updatedBreakout.committee.shortName ||
+		breakout.day !== updatedBreakout.day ||
+		breakout.location !== updatedBreakout.location ||
+		//breakout.facilitator !== updatedBreakout.facilitator ||
+		//breakout.credit !== updatedBreakout.creadit ||
+		//(breakout.credit === 'Other' &&
+		// (breakout.creditOverrideNumerator !== updatedBreakout.creditOverrideNumerator ||
+		//  breakout.creditOverrideDenominator !== updatedBreakout.creditOverrideDenominator)) ||
+		breakout.startSlotId !== updatedBreakout.startSlotId ||
+		breakout.endSlotId !== updatedBreakout.endSlotId ||
+		breakout.startTime !== (updatedBreakout.startTime || updatedBreakout.startSlot.startTime) ||
+		breakout.endTime !== (updatedBreakout.endTime || updatedBreakout.endSlot.endTime);
 
-	return updateImatBreakout(user, session, updatedBreakout);
+	if (doUpdate)
+		console.log(breakout, updatedBreakout);
+
+	console.log('IMAT breakout update ' + (doUpdate? 'needed': 'not needed'));
+
+	return doUpdate? updateImatBreakout(user, imatMeeting, updatedBreakout): breakout;
 }
