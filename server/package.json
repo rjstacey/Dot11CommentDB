@@ -24,7 +24,7 @@
     "deasync": "^0.1.28",
     "dotenv": "^8.2.0",
     "exceljs": "^4.2.1",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "form-data": "^4.0.0",
     "googleapis": "^108.0.0",
     "http-cookie-agent": "^4.0.2",
