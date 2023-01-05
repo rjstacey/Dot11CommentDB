@@ -4,7 +4,7 @@ import fetcher from 'dot11-components/lib/fetcher';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error'
 //import {displayDate} from 'dot11-components/lib'
-import {SessionTypeOptions, displaySessionType, selectSessionsEntities} from './sessions'
+import {SessionTypeOptions, selectSessionEntities} from './sessions'
 
 const monthStr = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -53,7 +53,7 @@ const selectImatMeetingsEntities = (state) => selectImatMeetingsState(state).ent
  * Generate imatMeetings list with indicator on each entry of presence in meetings list
  */
 export const selectSyncedImatMeetingsEntities = createSelector(
-	selectSessionsEntities,
+	selectSessionEntities,
 	selectImatMeetingsEntities,
 	(sessionsEntities, imatMeetingsEntities) => {
 		const syncedImatMeetingsEntities = {};

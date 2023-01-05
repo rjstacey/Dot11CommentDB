@@ -10,7 +10,6 @@ import App from './App';
 import {getUser, logout} from 'dot11-components/lib/user';
 import {fetcher} from 'dot11-components/lib';
 import * as serviceWorker from './serviceWorkerRegistration';
-import reportWebVitals from './reportWebVitals';
 
 getUser()
 	.then(user => {
@@ -33,5 +32,6 @@ getUser()
 		serviceWorker.register();
 	})
 	.catch(error => {
+		console.error(error)
 		logout();
 	});

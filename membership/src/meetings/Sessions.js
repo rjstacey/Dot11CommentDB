@@ -1,12 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
-import {Link, useHistory, useParams} from 'react-router-dom';
+import {Link, useHistory} from 'react-router-dom';
 
-import AppTable, {SelectHeader, SelectCell, TableColumnSelector, TableColumnHeader, SplitPanel, Panel} from 'dot11-components/table';
+import AppTable, {SelectHeader, SelectCell, TableColumnSelector, SplitPanelButton, TableColumnHeader, SplitPanel, Panel} from 'dot11-components/table';
 import {ConfirmModal} from 'dot11-components/modals';
-import {ActionButton, Button} from 'dot11-components/form';
+import {ActionButton} from 'dot11-components/form';
 import {displayDateRange} from 'dot11-components/lib';
 import SessionDetail from './SessionDialog';
 
@@ -14,11 +13,7 @@ import {
 	fields,
 	loadSessions,
 	deleteSessions,
-	setSessionsUiProperty,
-	SessionTypeOptions,
 	selectSessionsState,
-	selectSessionsCurrentPanelConfig,
-	setSessionsCurrentPanelIsSplit,
 	dataSet
 } from '../store/sessions';
 
@@ -30,16 +25,6 @@ const TopRow = styled.div`
 	box-sizing: border-box;
 `;
 
-const TableRow = styled.div`
-	flex: 1;	/* remaining height */
-	width: 100%;
-	align-items: center;
-	.AppTable__dataRow,
-	.AppTable__headerRow {
-		align-items: center;
-	}
-`;
-
 const SessionsColumnHeader = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
 
 const renderHeaderStartEnd = (props) =>
@@ -49,11 +34,6 @@ const renderHeaderStartEnd = (props) =>
 	</>
 
 export const renderCellStartEnd = ({rowData}) => displayDateRange(rowData.startDate, rowData.endDate);
-
-const renderMeetingType = ({rowData}) => {
-	const option = SessionTypeOptions.find(o => o.value === rowData.type)
-	return option? option.label: '';
-};
 
 const renderBreakouts = ({rowData, dataKey}) =>
 	<Link to={`/sessions/${rowData.id}/breakouts`}>
@@ -137,14 +117,12 @@ function Sessions() {
 	const history = useHistory();
 	const dispatch = useDispatch();
 
-	const {valid, loading, selected} = useSelector(selectSessionsState);
-	const {isSplit} = useSelector(selectSessionsCurrentPanelConfig);
-	const setIsSplit = React.useCallback((value) => dispatch(setSessionsCurrentPanelIsSplit(value)), [dispatch]);
+	const {valid, selected} = useSelector(selectSessionsState);
 
 	React.useEffect(() => {
 		if (!valid)
 			dispatch(loadSessions());
-	}, []);
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const refresh = () => dispatch(loadSessions());
 
@@ -164,12 +142,7 @@ function Sessions() {
 			<div>Sessions</div>
 			<div style={{display: 'flex'}}>
 				<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-				<ActionButton
-					name='book-open'
-					title='Show detail'
-					isActive={isSplit}
-					onClick={() => setIsSplit(!isSplit)}
-				/>
+				<SplitPanelButton dataSet={dataSet} />
 				<ActionButton name='import' title='Import session' onClick={showSessions} />
 				<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
 				<ActionButton name='refresh' title='Refresh' onClick={refresh} />

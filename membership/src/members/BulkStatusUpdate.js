@@ -2,14 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 
-import {ActionButtonDropdown} from 'dot11-components/general';
-import {Form, Row, Col, Field, Input, Checkbox} from 'dot11-components/form';
-import AccessSelector from './AccessSelector';
-import StatusSelector from './StatusSelector';
+import {Dropdown} from 'dot11-components/general';
+import {Form, Row, Field, Input, Button} from 'dot11-components/form';
 
 import {updateMembers, selectMembersState} from '../store/members';
 
-function BulkStatusUpdateForm({close}) {
+
+function BulkStatusUpdateForm({methods}) {
 
 	const dispatch = useDispatch();
 	const {selected, entities: members} = useSelector(selectMembersState);
@@ -26,14 +25,14 @@ function BulkStatusUpdateForm({close}) {
 		setBusy(true);
 		await dispatch(updateMembers(updates));
 		setBusy(false);
-		close();
+		methods.close();
 	}
 
 	return (
 		<Form
 			title='Bulk status update'
 			submit={submit}
-			cancel={close}
+			cancel={methods.close}
 			busy={busy}
 		>
 			<Row>
@@ -53,14 +52,26 @@ function BulkStatusUpdateForm({close}) {
 }
 
 BulkStatusUpdateForm.propTypes = {
-	close: PropTypes.func
+	methods: PropTypes.object.isRequired
 }
 
-const BulkStatusUpdate = () =>
-	<ActionButtonDropdown
-		label='Bulk Status Update'
-	>
-		<BulkStatusUpdateForm />
-	</ActionButtonDropdown>
+const label = 'Bulk Status Update';
+const title = label;
+
+const BulkStatusUpdate = ({disabled, ...rest}) =>
+	<Dropdown
+		handle={false}
+		selectRenderer={({isOpen, open, close}) =>
+			<Button
+				title={title}
+				disabled={disabled} 
+				active={isOpen}
+				onClick={isOpen? close: open}
+			>
+				{label}
+			</Button>}
+		dropdownRenderer={(props) => <BulkStatusUpdateForm {...props}/>}
+		{...rest}
+	/>
 
 export default BulkStatusUpdate;

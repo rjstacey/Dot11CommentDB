@@ -1,15 +1,25 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
-import {useHistory} from "react-router-dom";
 import copyToClipboard from 'copy-html-to-clipboard';
 
-import AppTable, {SelectHeader, SelectCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, IdFilter, SplitPanel, Panel} from 'dot11-components/table';
+import {
+	AppTable,
+	SelectHeader,
+	SelectCell,
+	TableColumnHeader,
+	TableColumnSelector,
+	TableViewSelector,
+	SplitPanelButton,
+	ShowFilters,
+	IdSelector,
+	IdFilter,
+	SplitPanel,
+	Panel
+} from 'dot11-components/table';
+
 import {ConfirmModal} from 'dot11-components/modals';
-import {setTableView, initTableConfig, setProperty} from 'dot11-components/store/ui';
-import {ButtonGroup, ActionButton, Button, Field, Input, Form, Row} from 'dot11-components/form';
-import {ActionButtonDropdown} from 'dot11-components/general';
+import {ButtonGroup, ActionButton, Button} from 'dot11-components/form';
 
 import BulkStatusUpdate from './BulkStatusUpdate';
 import MembersUpload from './MembersUpload';
@@ -22,11 +32,9 @@ import {
 	fields,
 	loadMembers,
 	deleteSelectedMembers,
-	AccessLevel,
-	AccessLevelOptions,
+	toggleNewStatusFromAttendances,
+	toggleNewStatusFromBallotSeriesParticipation,
 	selectMembersState,
-	selectMembersCurrentPanelConfig,
-	setMembersCurrentPanelIsSplit,
 	dataSet
 } from '../store/members';
 
@@ -107,73 +115,6 @@ const renderDataEmployerAndAffiliation = ({rowData}) =>
 		<DivLineTruncated>{rowData.Affiliation}</DivLineTruncated>
 	</>
 
-const AttendanceContainer = styled.div`
-	display: flex;
-	flex-direction: row;
-	flex-wrap: nowrap;
-	& > div:first-of-type {
-		flex-basis: 1.5em;
-	}
-	& > div:not(:first-of-type) {
-		width: 46px;
-		margin: 2px;
-		padding: 0 4px;
-		text-align: right;
-	}
-	& .qualifies {
-		background-color: #aaddaa;
-	}
-`;
-
-function Attendances({rowData, dataKey}) {
-	const {entities: sessions} = useSelector(selectSessionsState);
-	const attendances = rowData.Attendances || [];
-
-	// Sort by session date (newest fist)
-	const session_ids = Object.keys(attendances)
-		.filter(k => sessions[k])
-		.sort((k1, k2) => sessions[k2].Start - sessions[k1].Start);
-
-	if (session_ids.length === 0)
-		return 'None';
-
-	const P = [], I = [];
-	let iCount = 0;
-	//console.log(sessions)
-	for (const k of session_ids) {
-		const a = attendances[k];
-		const s = sessions[k];
-		/* Plenary session attendance qualifies if the member gets at least 75% attendance credit.
-		 * One interim can be substituted for a plenary. */
-		let canQualify;
-		let text;
-		if (a.DidAttend) {
-			text = 'Yes';
-			canQualify = true;
-		}
-		else if (a.DidNotAttend) {
-			text = 'No';
-			canQualify = false;
-		}
-		else {
-			text = a.AttendancePercentage.toFixed(0) + '%';
-			canQualify = a.AttendancePercentage >= 75;
-		}
-		const qualifies = (canQualify && (s.Type === 'p' || (s.Type === 'i' && iCount++ === 0)));
-		const el = <div key={k} className={qualifies? 'qualifies': undefined}>{text}</div>;
-		if (s && s.Type === 'i')
-			I.push(el);
-		else
-			P.push(el);
-	}
-	return <>
-		<AttendanceContainer><div>P:</div>{P}</AttendanceContainer>
-		<AttendanceContainer><div>I:</div>{I}</AttendanceContainer>
-	</>
-}
-
-const BallotSeriesParticipation = ({rowData, dataKey}) => `${rowData.BallotSeriesCount}/${rowData.BallotSeriesTotal}`;
-
 const tableColumns = [
 	{key: '__ctrl__',
 		width: 48, flexGrow: 0, flexShrink: 0,
@@ -223,19 +164,18 @@ const tableColumns = [
 		...fields.Access,
 		width: 150, flexGrow: 1, flexShrink: 1, 
 		dropdownWidth: 200},
-	{key: 'AttendanceCount', 
+	{key: 'AttendancesSummary',
+		...fields.AttendancesSummary,
 		label: 'Session participation',
-		width: 300, flexGrow: 1, flexShrink: 1,
-		cellRenderer: (props) => <Attendances {...props} />},
-	{key: 'BallotSeriesCount', 
+		width: 100, flexGrow: 1, flexShrink: 1},
+	{key: 'BallotSeriesSummary', 
 		label: 'Ballot participation',
-		width: 150, flexGrow: 1, flexShrink: 1,
-		cellRenderer: (props) => <BallotSeriesParticipation {...props} />},
+		width: 100, flexGrow: 1, flexShrink: 1},
 ];
 
 const defaultTablesColumns = {
 	General: ['__ctrl__', 'SAPIN', 'Name/Email', 'Employer/Affiliation', 'Status', 'Access'],
-	Participation: ['__ctrl__', 'SAPIN', 'Name/Email', 'Attendance', 'Status', 'NewStatus', 'AttendanceCount', 'BallotSeriesCount']
+	Participation: ['__ctrl__', 'SAPIN', 'Name/Email', 'Attendance', 'Status', 'NewStatus', 'AttendancesSummary', 'BallotSeriesSummary']
 };
 
 const defaultTablesConfig = {};
@@ -259,20 +199,17 @@ for (const tableView of Object.keys(defaultTablesColumns)) {
 function Members() {
 
 	const dispatch = useDispatch();
-	const [statusChangeReason, setStatusChangeReason] = React.useState('');
-	const {selected, entities: members, valid, loading} = useSelector(selectMembersState);
+	const {selected, entities: members, valid, newStatusFromAttendances, newStatusFromBallotSeriesParticipation} = useSelector(selectMembersState);
 	const {valid: validSessions} = useSelector(selectSessionsState);
-	const {isSplit} = useSelector(selectMembersCurrentPanelConfig);
 
 	const load = React.useCallback(() => dispatch(loadMembers()), [dispatch]);
-	const setIsSplit = React.useCallback((value) => dispatch(setMembersCurrentPanelIsSplit(value)), [dispatch]);
 
 	React.useEffect(() => {
 		if (!valid)
 			load();
 		if (!validSessions)
 			dispatch(loadSessions());
-	}, []);
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const handleRemoveSelected = async () => {
 		const ok = await ConfirmModal.show('Are you sure you want to delete the selected members?');
@@ -282,64 +219,71 @@ function Members() {
 
 	return (
 		<>
-		<TopRow>
-			<MembersSummary />
-			<div style={{display: 'flex'}}>
-				<ButtonGroup>
-					<div>Table view</div>
-					<div style={{display: 'flex'}}>
-						<TableViewSelector dataSet={dataSet} />
-						<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
-						<ActionButton
-							name='book-open'
-							title='Show detail'
-							isActive={isSplit}
-							onClick={() => setIsSplit(!isSplit)}
-						/>
-					</div>
-				</ButtonGroup>
-				<ButtonGroup>
-					<div>Roster</div>
-					<div style={{display: 'flex'}}>
-						<RosterImport />
-						<RosterExport />
-					</div>
-				</ButtonGroup>
-				<BulkStatusUpdate />
-				<ButtonGroup>
-					<div>Edit</div>
-					<div style={{display: 'flex'}}>
-						<ActionButton name='copy' title='Copy to clipboard' disabled={selected.length === 0} onClick={e => setClipboard(selected, members)} />
-						<MembersUpload />
-						<MemberAdd />
-						<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
-					</div>
-				</ButtonGroup>
-				<ActionButton name='refresh' title='Refresh' onClick={load} />
-			</div>
-		</TopRow>
+			<TopRow>
+				<MembersSummary />
+				<div style={{display: 'flex'}}>
+					<ButtonGroup>
+						<div>Table view</div>
+						<div style={{display: 'flex'}}>
+							<TableViewSelector dataSet={dataSet} />
+							<TableColumnSelector dataSet={dataSet} columns={tableColumns} />
+							<SplitPanelButton dataSet={dataSet} />
+						</div>
+					</ButtonGroup>
+					<ButtonGroup>
+						<div>Roster</div>
+						<div style={{display: 'flex'}}>
+							<RosterImport />
+							<RosterExport />
+						</div>
+					</ButtonGroup>
+					<Button
+						isActive={newStatusFromAttendances}
+						onClick={e => dispatch(toggleNewStatusFromAttendances())}
+					>
+						Post Session Status
+					</Button>
+					<Button
+						isActive={newStatusFromBallotSeriesParticipation}
+						onClick={e => dispatch(toggleNewStatusFromBallotSeriesParticipation())}
+					>
+						Post Ballot Series Status
+					</Button>
+					<BulkStatusUpdate />
+					<ButtonGroup>
+						<div>Edit</div>
+						<div style={{display: 'flex'}}>
+							<ActionButton name='copy' title='Copy to clipboard' disabled={selected.length === 0} onClick={e => setClipboard(selected, members)} />
+							<MembersUpload />
+							<MemberAdd />
+							<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
+						</div>
+					</ButtonGroup>
+					<ActionButton name='refresh' title='Refresh' onClick={load} />
+				</div>
+			</TopRow>
 
-		<ShowFilters
-			dataSet={dataSet}
-			fields={fields}
-		/>
+			<ShowFilters
+				dataSet={dataSet}
+				fields={fields}
+			/>
 
-		<SplitPanel dataSet={dataSet} >
-			<Panel>
-				<AppTable
-					defaultTablesConfig={defaultTablesConfig}
-					columns={tableColumns}
-					headerHeight={50}
-					estimatedRowHeight={50}
-					dataSet={dataSet}
-				/>
-			</Panel>
-			<Panel style={{overflow: 'auto'}}>
-				<MemberDetail
-					key={selected.join()}
-				/>
-			</Panel>
-		</SplitPanel>
+			<SplitPanel dataSet={dataSet} >
+				<Panel>
+					<AppTable
+						defaultTablesConfig={defaultTablesConfig}
+						columns={tableColumns}
+						headerHeight={50}
+						estimatedRowHeight={50}
+						dataSet={dataSet}
+					/>
+				</Panel>
+				<Panel style={{overflow: 'auto'}}>
+					<MemberDetail
+						key={selected.join()}
+					/>
+				</Panel>
+			</SplitPanel>
 		</>
 	)
 }

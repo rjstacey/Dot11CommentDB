@@ -1,415 +1,45 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {connect} from 'react-redux';
+import {connect, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
+import {DateTime} from 'luxon';
+import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import 'react-tabs/style/react-tabs.css';
 
-import {shallowDiff, recursivelyDiffObjects, isMultiple, debounce, displayDate} from 'dot11-components/lib';
+import {shallowDiff, recursivelyDiffObjects, isMultiple, debounce} from 'dot11-components/lib';
 import {ConfirmModal} from 'dot11-components/modals';
-import {ActionButton, Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input} from 'dot11-components/form';
-import {IconCollapse, Icon} from 'dot11-components/icons';
+import {ActionButton, Row, Col, Field, FieldLeft, Checkbox} from 'dot11-components/form';
 import {setProperty} from 'dot11-components/store/appTableData';
 import {
-	updateMembers, 
-	deleteMembers, 
+	updateMembers,
+	deleteMembers,
 	updateMemberStatusChange,
 	deleteMemberStatusChange,
-	addMemberContactEmail,
-	updateMemberContactEmail,
-	deleteMemberContactEmail,
-	setMemberUiProperty,
 	selectMembersState,
+	selectMemberEntities,
 	dataSet,
+	getField
 } from '../store/members';
 
-import StatusSelector from './StatusSelector';
-import AccessSelector from './AccessSelector';
-import MemberSelector from './MemberSelector';
-import {SessionTypeOptions} from '../store/sessions';
 import {loadSessions} from '../store/sessions';
+
+import StatusSelector from './StatusSelector';
+import MemberSelector from './MemberSelector';
+import MemberStatusChangeHistory from './MemberStatusChange';
+import MemberContactInfo from './MemberContactInfo';
+import MemberPermissions from './MemberPermissions';
+import MemberAttendances from './MemberAttendances';
+import MemberBallotParticipation from './MemberBallotParticipation';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
 
-function MemberStatusChangeHistory({
-	member,
-	setMember,
-	updateStatusChange,
-	deleteStatusChange,
-	uiProperties,
-	setUiProperty,
-	readOnly
-}) {
-	const history = Array.isArray(member.StatusChangeHistory)? member.StatusChangeHistory: [];
+const displayDate = (isoDateTime) => DateTime.fromISO(isoDateTime).toLocaleString(DateTime.DATE_MED);
 
-	/*const addRow = () => {
-		const defaultEmail = {Email: '', Primary: false, Broken: false, DateAdded: new Date()};
-		setMember({ContactEmails: [defaultEmail, ...contactEmails]})
-	}*/
 
-	const rows = history.map(row =>
-		<tr key={row.id}>
-			<td>{displayDate(row.Date || '')}</td>
-			<td>{row.OldStatus}</td>
-			<td>{row.NewStatus}</td>
-			<td>
-				<Input type='text'
-					style={{width: '100%'}}
-					value={row.Reason}
-					onChange={e => updateStatusChange(row.id, {Reason: e.target.value})}
-					disabled={readOnly}
-				/>
-			</td>
-			<td style={{textAlign: 'right'}}>
-				<Icon name='delete' onClick={() => deleteStatusChange(row.id)} disabled={readOnly} />
-			</td>
-		</tr>
-	);
+function ShortMemberSummary({sapins}) {
+	const members = useSelector(selectMemberEntities);
 
-	const empty = <tr><td style={{textAlign: 'center', fontStyle: 'italic', color: 'gray'}} colSpan={5}>Empty</td></tr>
-
-	return (
-		<Col>
-			<Row>
-				<label>Status change history:</label>
-				<IconCollapse
-					isCollapsed={!uiProperties.showStatusChangeHistory}
-					onClick={() => setUiProperty('showStatusChangeHistory', !uiProperties.showStatusChangeHistory)}
-				/>
-			</Row>
-			{uiProperties.showStatusChangeHistory && rows.length > 0 &&
-				<table>
-					<thead>
-						<tr>
-							<td>Date</td>
-							<td>Old status</td>
-							<td>New status</td>
-							<td>Reason</td>
-							<td style={{textAlign: 'right'}}></td>
-						</tr>
-					</thead>
-					<tbody>
-						{rows}
-					</tbody>
-				</table>}
-		</Col>
-	)
-}
-
-function MemberBallotSeriesParticipation({
-	member,
-	setMember,
-	uiProperties,
-	setUiProperty,
-	readOnly
-}) {
-	const ballotSeriesSummary = member.BallotSeriesSummary;
-
-	const change = (id, field, value) => {
-		let summary = {...ballotSeriesSummary[id], [field]: value};
-		setMember({BallotSeriesSummary: {...ballotSeriesSummary, [id]: summary}});
-	}
-
-	let rows = [], participation = '';
-	if (ballotSeriesSummary) {
-		rows = Object.entries(ballotSeriesSummary).map(([id, summary]) => {
-			const voteSummary = summary.Vote?
-					summary.BallotID + '/' + summary.Vote + '/' + summary.CommentCount:
-					'Did not vote';
-			return (
-				<tr key={id}>
-					<td>{summary.Project}</td>
-					<td>{summary.BallotIDs}</td>
-					<td>{displayDate(summary.Start)}</td>
-					<td>{displayDate(summary.End)}</td>
-					<td>{voteSummary}</td>
-					<td style={{textAlign: 'center'}}>
-						<Checkbox
-							checked={!!summary.Excused}
-							onChange={e => change(id, 'Excused', e.target.checked? 1: 0)}
-							disabled={readOnly}
-						/>
-					</td>
-					<td>{summary.SAPIN !== member.SAPIN? summary.SAPIN: ''}</td>
-				</tr>
-			)
-		});
-		participation = `${member.BallotSeriesCount}/${member.BallotSeriesTotal}`;
-	}
-
-	return (
-		<Col>
-			<Row>
-				<label>Recent ballot series participation: {participation}</label>
-				<IconCollapse
-					isCollapsed={!uiProperties.showBallotParticipation}
-					onClick={() => setUiProperty('showBallotParticipation', !uiProperties.showBallotParticipation)}
-				/>
-			</Row>
-			{uiProperties.showBallotParticipation && rows.length > 0 &&
-				<table>
-					<thead>
-						<tr>
-							<td>Project</td>
-							<td>Ballot series</td>
-							<td>Start</td>
-							<td>End</td>
-							<td>Last vote</td>
-							<td style={{textAlign: 'center'}}>Excused</td>
-							<td>SA PIN</td>
-						</tr>
-					</thead>
-					<tbody>
-						{rows}
-					</tbody>
-				</table>}
-		</Col>
-	)
-}
-
-const sessionTypeLabel = (type) => {
-	const o = SessionTypeOptions.find(s => s.value === type);
-	return o? o.label: '';
-}
-
-function MemberAttendances({
-	member,
-	setMember,
-	sessions,
-	uiProperties,
-	setUiProperty,
-	readOnly
-}) {
-	const attendances = member.Attendances || [];
-
-	// Sort by session date (newest fist)
-	const session_ids = Object.keys(attendances)
-		.filter(k => sessions[k])
-		.sort((k1, k2) => sessions[k2].Start - sessions[k1].Start);
-
-	const change = (session_id, field, value) => {
-		let attendance = {...attendances[session_id], [field]: value};
-		if (field === 'DidAttend' && value && attendance.DidNotAttend)
-			attendance = {...attendance, DidNotAttend: 0}
-		if (field === 'DidNotAttend' && value && attendance.DidAttend)
-			attendance = {...attendance, DidAttend: 0}
-		setMember({Attendances: {...attendances, [session_id]: attendance}});
-	}
-
-	const rows = session_ids.map((session_id) => {
-		const a = attendances[session_id];
-		const s = sessions[session_id];
-		return (
-			<tr key={session_id}>
-				<td>{displayDate(s.Start)}</td>
-				<td>{sessionTypeLabel(s.Type)}</td>
-				<td style={{textAlign: 'right'}}>{a.AttendancePercentage.toFixed(0)}%</td>
-				<td style={{textAlign: 'center'}}>
-					<Checkbox
-						checked={a.DidAttend}
-						onChange={e => change(session_id, 'DidAttend', e.target.checked)}
-						disabled={readOnly}
-					/>
-				</td>
-				<td style={{textAlign: 'center'}}>
-					<Checkbox
-						checked={a.DidNotAttend}
-						onChange={e => change(session_id, 'DidNotAttend', e.target.checked)}
-						disabled={readOnly}
-					/>
-				</td>
-				<td>
-					<Input type='text'
-						value={a.Notes || ''}
-						onChange={e => change(session_id, 'Notes', e.target.value)}
-						disabled={readOnly}
-					/>
-				</td>
-				<td>
-					{a.SAPIN !== member.SAPIN? a.SAPIN: ''}
-				</td>
-			</tr>
-		)
-	});
-
-	const empty = <tr><td style={{textAlign: 'center', fontStyle: 'italic', color: 'gray'}} colSpan={6}>Empty</td></tr>
-
-	const attendance = member.AttendanceCount + '/' + Object.keys(attendances).length;
-
-	return (
-		<Col>
-			<Row>
-				<label>Recent session attendance: {attendance}</label>
-				<IconCollapse
-					isCollapsed={!uiProperties.showAttendance}
-					onClick={() => setUiProperty('showAttendance', !uiProperties.showAttendance)}
-				/>
-			</Row>
-			{uiProperties.showAttendance &&
-				<table>
-					<thead>
-						<tr>
-							<td>Date</td>
-							<td>Type</td>
-							<td style={{textAlign: 'right'}}>Attendance</td>
-							<td style={{textAlign: 'center'}}>Did Attend</td>
-							<td style={{textAlign: 'center'}}>Did Not Attend</td>
-							<td>Notes</td>
-							<td>SA PIN</td>
-						</tr>
-					</thead>
-					<tbody>
-						{rows.length > 0? rows: empty}
-					</tbody>
-				</table>}
-		</Col>
-	)
-}
-
-const ContactInfoField = styled.div`
-	display: flex;
-	align-items: center;
-	div:first-of-type {
-		font-weight: bold;
-		width: 100px;
-	}
-`;
-
-const ContactInfoFields = [
-	{key: 'StreetLine1', label: 'Street', size: 36},
-	{key: 'StreetLine2', label: '', size: 36},
-	{key: 'City', label: 'City', size: 20},
-	{key: 'State', label: 'State', size: 20},
-	{key: 'Zip', label: 'Zip/Code'},
-	{key: 'Country', label: 'Country'},
-	{key: 'Phone', label: 'Phone'},
-];
-
-function MemberContactInfo({
-	member,
-	setMember,
-	addContactEmail,
-	updateContactEmail,
-	deleteContactEmail,
-	uiProperties,
-	setUiProperty
-}) {
-	const i = member.ContactInfo || {};
-
-	const rows = ContactInfoFields.map(f => 
-		<ContactInfoField key={f.key} >
-			<div>{f.label}</div>
-			<Input
-				type='text'
-				size={f.size}
-				value={i[f.key]}
-				onChange={e => setMember({ContactInfo: {...i, [f.key]: e.target.value}})}
-			/>
-		</ContactInfoField>
-	);
-
-	return (
-		<Col>
-			<Row>
-				<label>Contact information:</label>
-				<IconCollapse
-					isCollapsed={!uiProperties.showContactInfo}
-					onClick={() => setUiProperty('showContactInfo', !uiProperties.showContactInfo)}
-				/>
-			</Row>
-			{uiProperties.showContactInfo &&
-				<Col style={{marginLeft: 10}}>
-					<MemberContactEmails
-						member={member}
-						setMember={setMember}
-						addContactEmail={addContactEmail}
-						updateContactEmail={updateContactEmail}
-						deleteContactEmail={deleteContactEmail}
-					/>
-					{rows}
-				</Col>}
-		</Col>
-	)
-}
-
-function MemberContactEmails({
-	member,
-	setMember,
-	addContactEmail,
-	updateContactEmail,
-	deleteContactEmail
-}) {
-	const contactEmails = Array.isArray(member.ContactEmails)? member.ContactEmails: [];
-	const disableAdd = contactEmails.length > 0 && contactEmails[0].Email === ''; 
-
-	const addRow = () => {
-		const defaultEmail = {Email: '', Primary: false, Broken: false, DateAdded: new Date()};
-		setMember({ContactEmails: [defaultEmail, ...contactEmails]})
-	}
-
-	const deleteRow = (index) => {
-		const newContactEmails = contactEmails.filter((e, i) => i !== index);
-		setMember({ContactEmails: newContactEmails});
-	}
-
-	const changeRow = (index, field, value) => {
-		const newContactEmails = contactEmails.slice();
-		newContactEmails[index] = {...newContactEmails[index], [field]: value};
-		setMember({ContactEmails: newContactEmails});
-	}
-
-	const rows = contactEmails.map(row =>
-		<tr key={row.id}>
-			<td>
-				<Input type='text'
-					style={{width: '100%'}}
-					value={row.Email}
-					onChange={e => updateContactEmail(row.id, {Email: e.target.value})}
-				/>
-			</td>
-			<td style={{textAlign: 'center'}}>
-				<Checkbox 
-					checked={row.Primary}
-					onChange={e => updateContactEmail(row.id, {Primary: e.target.checked})}
-				/>
-			</td>
-			<td style={{textAlign: 'center'}}>
-				<Checkbox
-					checked={row.Broken}
-					onChange={e => updateContactEmail(row.id, {Broken: e.target.checked})}
-				/>
-			</td>
-			<td style={{textAlign: 'right'}}>
-				{displayDate(row.DateAdded)}
-			</td>
-			<td style={{textAlign: 'right'}}>
-				<Icon name='delete' onClick={() => deleteContactEmail(row.id)} />
-			</td>
-		</tr>
-	);
-
-	const empty = <tr><td style={{textAlign: 'center', fontStyle: 'italic', color: 'gray'}} colSpan={5}>No contact email</td></tr>
-
-	return (
-		<table>
-			<thead>
-				<tr>
-					<td>Email</td>
-					<td style={{textAlign: 'center'}}>Primary</td>
-					<td style={{textAlign: 'center'}}>Broken</td>
-					<td style={{textAlign: 'right'}}>Date Added</td>
-					<td style={{textAlign: 'right'}}>
-						<Icon name='add' disabled={disableAdd} onClick={() => addContactEmail({})} />
-					</td>
-				</tr>
-			</thead>
-			<tbody>
-				{rows.length > 0? rows: empty}
-			</tbody>
-		</table>
-	)
-}
-
-function ShortMemberSummary({sapins, members}) {
 	const rows = sapins.map(sapin => {
 		const m = members[sapin];
 		if (!m)
@@ -434,6 +64,71 @@ function ShortMemberSummary({sapins, members}) {
 	)
 }
 
+const renderString = (value) => isMultiple(value)? <i>{MULTIPLE_STR}</i>: (value === null || value === '')? <i>{BLANK_STR}</i>: value;
+
+const renderDate = (value) => isMultiple(value)? <i>{MULTIPLE_STR}</i>: (value === null || value === '')? <i>{BLANK_STR}</i>: displayDate(value);
+
+const renderEmail = (value) => isMultiple(value)? <i>{MULTIPLE_STR}</i>: (value === null || value === '')? <i>{BLANK_STR}</i>: <a href={'mailto:' + value}>{value}</a>;
+
+function MemberDetailInfo({
+	sapins,
+	member,
+	updateMember,
+	updateStatusChange,
+	deleteStatusChange,
+	readOnly
+}) {
+
+	return (
+		<Tabs style={{width: '100%'}}>
+			<TabList>
+				<Tab>Contact info</Tab>
+				<Tab>Permissions</Tab>
+				<Tab>Status history</Tab>
+				<Tab>Session participation {getField(member, 'AttendancesSummary')}</Tab>
+				<Tab>Ballot participation {getField(member, 'BallotSeriesSummary')}</Tab>
+			</TabList>
+			<TabPanel>
+				<MemberContactInfo
+					member={member} 
+					updateMember={updateMember}
+					readOnly={readOnly}
+				/>
+			</TabPanel>
+			<TabPanel>
+				<MemberPermissions
+					member={member}
+					updateMember={updateMember}
+					readOnly={readOnly}
+				/>
+			</TabPanel>
+			<TabPanel>
+				<MemberStatusChangeHistory
+					member={member}
+					updateMember={updateMember}
+					updateStatusChange={updateStatusChange}
+					deleteStatusChange={deleteStatusChange}
+					readOnly={readOnly}
+				/>
+			</TabPanel>
+			<TabPanel>
+				<MemberAttendances
+					member={member}
+					updateMember={updateMember}
+					readOnly={readOnly}
+				/>
+			</TabPanel>
+			<TabPanel>
+				<MemberBallotParticipation
+					member={member}
+					updateMember={updateMember}
+					readOnly={readOnly}
+				/>
+			</TabPanel>
+		</Tabs>
+	)
+}
+
 const MemberContainer = styled.div`
 	label {
 		font-weight: bold;
@@ -442,15 +137,10 @@ const MemberContainer = styled.div`
 
 function Member({
 	sapins,
-	members,
-	sessions,
 	member,
-	setMember,
+	updateMember,
 	updateStatusChange,
 	deleteStatusChange,
-	addContactEmail,
-	updateContactEmail,
-	deleteContactEmail,
 	uiProperties,
 	setUiProperty,
 	readOnly
@@ -462,26 +152,26 @@ function Member({
 		<MemberContainer>
 			<Row>
 				<FieldLeft label={sapinsLabel}>{sapinsStr}</FieldLeft>
-				<FieldLeft label='Date added:'>{isMultiple(member.DateAdded)? MULTIPLE_STR: displayDate(member.DateAdded)}</FieldLeft>
+				<FieldLeft label='Date added:'>{renderDate(member.DateAdded)}</FieldLeft>
 			</Row>
 			<Row>
-				<FieldLeft label='Name:'>{member.Name}</FieldLeft>
+				<FieldLeft label='Name:'>{renderString(member.Name)}</FieldLeft>
 			</Row>
 			<Row>
-				<FieldLeft label='Email:'>{member.Email}</FieldLeft>
+				<FieldLeft label='Email:'>{renderEmail(member.Email)}</FieldLeft>
 			</Row>
 			<Row>
-				<FieldLeft label='Employer:'>{member.Employer}</FieldLeft>
+				<FieldLeft label='Employer:'>{renderString(member.Employer)}</FieldLeft>
 			</Row>
 			<Row>
-				<FieldLeft label='Affiliation:'>{member.Affiliation}</FieldLeft>
+				<FieldLeft label='Affiliation:'>{renderString(member.Affiliation)}</FieldLeft>
 			</Row>
 			<Row>
 				<Field label='Status:'>
 					<StatusSelector
 						style={{flexBasis: 200}}
 						value={isMultiple(member.Status)? null: member.Status}
-						onChange={value => setMember({Status: value})}
+						onChange={value => updateMember({Status: value})}
 						placeholder={isMultiple(member.Status)? MULTIPLE_STR: BLANK_STR}
 						readOnly={readOnly}
 					/>
@@ -490,94 +180,50 @@ function Member({
 						<Checkbox 
 							checked={member.StatusChangeOverride}
 							indeterminate={isMultiple(member.StatusChangeOverride)}
-							onChange={e => setMember({StatusChangeOverride: e.target.checked? 1: 0})}
+							onChange={e => updateMember({StatusChangeOverride: e.target.checked? 1: 0})}
 							disabled={readOnly}
 						/>
 					</div>
 					<div style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 						<label>Last change</label>
 						<div>
-							{isMultiple(member.StatusChangeDate)?
-								MULTIPLE_STR:
-								displayDate(member.StatusChangeDate || '') || BLANK_STR}
+							{renderDate(member.StatusChangeDate)}
 						</div>
 					</div>
 				</Field>
 			</Row>
-			<Row>
-				<MemberStatusChangeHistory
-					member={member}
-					setMember={setMember}
-					updateStatusChange={updateStatusChange}
-					deleteStatusChange={deleteStatusChange}
-					uiProperties={uiProperties}
-					setUiProperty={setUiProperty}
-					readOnly={readOnly}
-				/>
-			</Row>
-			{member.Status === 'Obsolete' &&
+			{member.Status === 'Obsolete'?
 				<Row>
 					<Field label='Replaced by:'>
 						<MemberSelector
 							style={{maxWidth: 400, flex: 1}}
 							value={isMultiple(member.ReplacedBySAPIN)? null: member.ReplacedBySAPIN}
-							onChange={value => setMember({ReplacedBySAPIN: value})}
-							placeholder={isMultiple(member.Status)? MULTIPLE_STR: BLANK_STR}
+							onChange={value => updateMember({ReplacedBySAPIN: value})}
+							placeholder={isMultiple(member.ReplacedBySAPIN)? MULTIPLE_STR: BLANK_STR}
 							readOnly={readOnly}
 						/>
 					</Field>
-				</Row>}
-			<Row>
-				<Field label='Access:'>
-					<AccessSelector
-						style={{flexBasis: 200}}
-						value={isMultiple(member.Access)? null: member.Access}
-						onChange={value => setMember({Access: value})}
-						placeholder={isMultiple(member.Access)? MULTIPLE_STR: BLANK_STR}
-						readOnly={readOnly}
-					/>
-				</Field>
-			</Row>
-				{sapins.length === 1 && <>
-					{member.ObsoleteSAPINs.length > 0 &&
+				</Row>:
+				sapins.length === 1 &&
+					<>
+						{member.ObsoleteSAPINs.length > 0 &&
+							<Row>
+								<Col>
+									<label>Replaces:</label>
+									<ShortMemberSummary sapins={member.ObsoleteSAPINs} />
+								</Col>
+							</Row>}
 						<Row>
-							<Col>
-								<label>Replaces:</label>
-								<ShortMemberSummary sapins={member.ObsoleteSAPINs} members={members} />
-							</Col>
-						</Row>}
-					<Row>
-						<MemberContactInfo
-							member={member} 
-							setMember={setMember}
-							addContactEmail={addContactEmail}
-							updateContactEmail={updateContactEmail}
-							deleteContactEmail={deleteContactEmail}
-							uiProperties={uiProperties}
-							setUiProperty={setUiProperty}
-							readOnly={readOnly}
-						/>
-					</Row>
-					<Row>
-						<MemberAttendances
-							member={member}
-							setMember={setMember}
-							sessions={sessions}
-							uiProperties={uiProperties}
-							setUiProperty={setUiProperty}
-							readOnly={readOnly}
-						/>
-					</Row>
-					<Row>
-						<MemberBallotSeriesParticipation
-							member={member}
-							setMember={setMember}
-							uiProperties={uiProperties}
-							setUiProperty={setUiProperty}
-							readOnly={readOnly}
-						/>
-					</Row>
-				</>}
+							<MemberDetailInfo
+								member={member} 
+								updateMember={updateMember}
+								updateStatusChange={updateStatusChange}
+								deleteStatusChange={deleteStatusChange}
+								readOnly={readOnly}
+							/>
+						</Row>
+					</>
+			}
 		</MemberContainer>
 	)
 }
@@ -639,7 +285,7 @@ class MemberDetail extends React.Component {
 			console.warn("Update when read-only")
 			return;
 		}
-		// merge in the edits and trigger a debounced save
+		// merge the edits and trigger a debounced save
 		this.setState(
 			state => ({...state, edited: {...state.edited, ...changes}}),
 			this.triggerSave
@@ -660,27 +306,17 @@ class MemberDetail extends React.Component {
 		this.setState({edited: {...edited, StatusChangeHistory}});
 	}
 
-	addContactEmail = (entry) => {
-		const {edited} = this.state;
-		this.props.addMemberContactEmail(edited.SAPIN, entry);
-	}
-
-	updateContactEmail = (id, changes) => {
-		const {edited} = this.state;
-		this.props.updateMemberContactEmail(edited.SAPIN, {id, ...changes});
-		const ContactEmails = edited.ContactEmails.map(h => h.id === id? {...h, ...changes}: h);
-		this.updateMember({ContactEmails});
-	}
-
-	deleteContactEmail = (id) => {
-		const {edited} = this.state;
-		this.props.deleteMemberContactEmail(edited.SAPIN, id);
-	}
-
 	handleRemoveSelected = async () => {
-		const ok = await ConfirmModal.show('Are you sure you want to delete the selected members?');
+		const {originals} = this.state;
+		if (originals.length === 0)
+			return;
+		const sapins = originals.map(o => o.SAPIN);
+		const str =
+			'Are you sure you want to delete:\n' +
+			originals.map(o => `${o.SAPIN} ${o.Name}`).join('\n');
+		const ok = await ConfirmModal.show(str);
 		if (ok)
-			await this.props.deleteSelectedMembers();
+			await this.props.deleteMembers(sapins);
 	}
 
 	handleToggleEditMember = () => this.props.setUiProperty('editMember', !this.props.uiProperties.editMember);
@@ -688,6 +324,7 @@ class MemberDetail extends React.Component {
 	save = () => {
 		const {edited, saved, originals} = this.state;
 		const d = shallowDiff(saved, edited);
+		console.log(d)
 		delete d.StatusChangeHistory;
 		const updates = [];
 		for (const m of originals) {
@@ -700,21 +337,13 @@ class MemberDetail extends React.Component {
 	}
 
 	render() {
-		const {style, className, loading, uiProperties, readOnly, members, selected} = this.props;
-		const {edited} = this.state;
-
-		if (selected.length === 1) {
-			const member = members[selected[0]];
-			if (edited.ContactEmails.length !== member.ContactEmails.length)
-				this.setState({edited: {...edited, ContactEmails: member.ContactEmails}});
-			if (edited.StatusChangeHistory.length !== member.StatusChangeHistory.length)
-				this.setState({edited: {...edited, StatusChangeHistory: member.StatusChangeHistory}});
-		}
+		const {style, className, loading, uiProperties, readOnly} = this.props;
+		const {originals} = this.state;
 
 		let notAvailableStr
 		if (loading)
 			notAvailableStr = 'Loading...';
-		else if (this.state.originals.length === 0)
+		else if (originals.length === 0)
 			notAvailableStr = 'Nothing selected';
 		const disableButtons = !!notAvailableStr; 	// disable buttons if displaying string
 
@@ -724,21 +353,22 @@ class MemberDetail extends React.Component {
 				className={className}
 			>
 				<TopRow>
-					{!this.readOnly && <>
-						<ActionButton
-							name='edit'
-							title='Edit member'
-							disabled={disableButtons}
-							isActive={uiProperties.editMember}
-							onClick={this.handleToggleEditMember}
-						/>
-						<ActionButton
-							name='delete'
-							title='Delete member'
-							disabled={disableButtons}
-							onClick={this.handleRemoveSelected}
-						/>
-					</>}
+					{!this.readOnly &&
+						<>
+							<ActionButton
+								name='edit'
+								title='Edit member'
+								disabled={disableButtons}
+								isActive={uiProperties.editMember}
+								onClick={this.handleToggleEditMember}
+							/>
+							<ActionButton
+								name='delete'
+								title='Delete member'
+								disabled={disableButtons}
+								onClick={this.handleRemoveSelected}
+							/>
+						</>}
 				</TopRow>
 				{notAvailableStr?
 					<NotAvaialble>
@@ -747,14 +377,9 @@ class MemberDetail extends React.Component {
 					<Member 
 						sapins={this.props.selected}
 						member={this.state.edited}
-						members={members}
-						sessions={this.props.sessions}
-						setMember={this.updateMember}
+						updateMember={this.updateMember}
 						updateStatusChange={this.updateStatusChange}
 						deleteStatusChange={this.deleteStatusChange}
-						addContactEmail={this.addContactEmail}
-						updateContactEmail={this.updateContactEmail}
-						deleteContactEmail={this.deleteContactEmail}
 						uiProperties={uiProperties}
 						setUiProperty={this.props.setUiProperty}
 						readOnly={readOnly || !uiProperties.editMember}
@@ -795,10 +420,8 @@ const ConnectedMemberDetail = connect(
 		updateMembers,
 		updateMemberStatusChange,
 		deleteMemberStatusChange,
-		addMemberContactEmail,
-		updateMemberContactEmail,
-		deleteMemberContactEmail,
 		loadSessions,
+		deleteMembers,
 		setUiProperty: (property, value) => setProperty(dataSet, property, value),
 	}
 )(MemberDetail);

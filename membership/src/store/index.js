@@ -1,4 +1,4 @@
-import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
+import { combineReducers, createStore, applyMiddleware } from 'redux';
 import thunk from 'redux-thunk';
 import { createLogger } from 'redux-logger';
 import { persistStore, persistReducer, createTransform } from 'redux-persist';
@@ -7,6 +7,7 @@ import { get, set, del } from 'idb-keyval';
 import { composeWithDevTools } from 'redux-devtools-extension';
 
 import timezonesSlice, {loadTimeZones} from './timezones';
+import permissionsSlice, {loadPermissions} from './permissions';
 import members, {loadMembers} from './members';
 import sessions, {loadSessions} from './sessions';
 import imatMeetings from './imatMeetings';
@@ -42,15 +43,13 @@ function configureStore() {
 		attendees,
 		ballots,
 		[timezonesSlice.name]: timezonesSlice.reducer,
+		[permissionsSlice.name]: permissionsSlice.reducer,
 		errMsg
 	});
 
 	const middleware = [thunk];
 	if (process.env.NODE_ENV !== 'production')
 		middleware.push(createLogger({collapsed: true}));
-
-	// enable devTool only with development
-	const devTools = process.env.NODE_ENV !== 'production';
 
 	const persistConfig = {
 		key: 'membership',
@@ -77,6 +76,7 @@ function configureStore() {
 
 	const persistor = persistStore(store, null, () => {
 		store.dispatch(loadTimeZones());
+		store.dispatch(loadPermissions());
 		store.dispatch(loadSessions());
 		store.dispatch(loadMembers());
 	});

@@ -1,13 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
-import {Handle, IconCollapse} from 'dot11-components/icons';
+import {selectMemberEntities} from '../store/members';
 
-import {selectMembersState} from '../store/members';
-
-function getMembersSummary(members) {
+function selectMembersSummary(state) {
+	const members = selectMemberEntities(state);
 	const s = {nv: 0, a: 0, pv: 0, v: 0, eo: 0}
 	for (const m of Object.values(members)) {
 		switch (m.Status) {
@@ -48,9 +46,7 @@ function MembersSummary({
 	className,
 	style,
 }) {
-	const {entities: members} = useSelector(selectMembersState);
-	const [showSummary, setShowSummary] = React.useState(true);
-	const summary = getMembersSummary(members);
+	const summary = useSelector(selectMembersSummary);
 
 	return (
 		<Container

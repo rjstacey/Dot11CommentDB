@@ -3,11 +3,11 @@ import React from 'react';
 import {useDispatch} from 'react-redux';
 
 import {ActionButtonDropdown} from 'dot11-components/general';
-import {ActionButton, Form, Row, Col, Input, List, ListItem} from 'dot11-components/form';
+import {ActionButton, Form, Row, Col} from 'dot11-components/form';
 
 import {importMyProjectRoster, exportMyProjectRoster} from '../store/members';
 
-function RosterImportDropdown({close}) {
+function RosterImportDropdown({methods}) {
 
 	const dispatch = useDispatch();
 	const fileRef = React.useRef();
@@ -23,7 +23,7 @@ function RosterImportDropdown({close}) {
 		setBusy(true);
 		await dispatch(importMyProjectRoster(file));
 		setBusy(false);
-		close();
+		methods.close();
 	}
 
 	return (
@@ -32,7 +32,7 @@ function RosterImportDropdown({close}) {
 			title='Import roster'
 			errorText={errMsg}
 			submit={submit}
-			cancel={close}
+			cancel={methods.close}
 			busy={busy}
 		>
 			<Row>
@@ -57,16 +57,15 @@ function RosterImportDropdown({close}) {
 }
 
 RosterImportDropdown.propTypes = {
-	close: PropTypes.func,
+	methods: PropTypes.object.isRequired,
 }
 
 const RosterImport = () =>
 	<ActionButtonDropdown
 		name='import'
-		title='Import roster' 
-	>
-		<RosterImportDropdown />
-	</ActionButtonDropdown>
+		title='Import roster'
+		dropdownRenderer={(props) => <RosterImportDropdown {...props}/>}
+	/>
 
 function RosterExport() {
 	const dispatch = useDispatch();

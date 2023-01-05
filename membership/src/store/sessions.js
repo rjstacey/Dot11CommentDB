@@ -1,7 +1,7 @@
 import {createSelector} from '@reduxjs/toolkit';
 import {DateTime} from 'luxon';
 import fetcher from 'dot11-components/lib/fetcher';
-import {createAppTableDataSlice, SortType, SortDirection, selectCurrentPanelConfig, setPanelIsSplit} from 'dot11-components/store/appTableData';
+import {createAppTableDataSlice, SortType, selectCurrentPanelConfig, setPanelIsSplit} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 import {displayDate} from 'dot11-components/lib';
 
@@ -68,7 +68,7 @@ export default slice.reducer;
  * Selectors
  */
 export const selectSessionsState = (state) => state[dataSet];
-export const selectSessionsEntities = (state) => selectSessionsState(state).entities;
+export const selectSessionEntities = (state) => selectSessionsState(state).entities;
 
 export const selectTimeZonesState = createSelector(
 	selectSessionsState,

@@ -1,13 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {Link, useHistory, useParams} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
 import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
-import {ConfirmModal} from 'dot11-components/modals';
 import {ActionButton} from 'dot11-components/form';
-import {displayDate, displayTime, displayDayDate} from 'dot11-components/lib';
+import {displayDate} from 'dot11-components/lib';
 
 import {loadBreakouts, selectBreakoutsState, getField, dataSet} from '../store/breakouts';
 
@@ -29,9 +27,6 @@ const TableRow = styled.div`
 		align-items: center;
 	}
 `;
-
-const renderDate = ({rowData}) => displayDayDate(rowData.Start);
-const renderTime = ({rowData}) => displayTime(rowData.Start) + ' - ' + displayTime(rowData.End);
 
 const renderGroup = ({rowData}) => {
 	const parts = rowData.Group.split('/');
@@ -113,12 +108,12 @@ function Breakouts() {
 	const {session_id} = useParams();
 
 	const dispatch = useDispatch();
-	const {valid, loading, session} = useSelector(selectBreakoutsState);
+	const {valid, session} = useSelector(selectBreakoutsState);
 
 	React.useEffect(() => {
 		if (!valid || (session && session.id != session_id))
 			dispatch(loadBreakouts(session_id));
-	}, []);
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const close = () => history.goBack();
 	const refresh = () => dispatch(loadBreakouts(session_id));

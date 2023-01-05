@@ -3,7 +3,7 @@ import React from 'react';
 import {useDispatch} from 'react-redux';
 
 import {ActionButtonDropdown} from 'dot11-components/dropdown';
-import {Form, Row, Col, Input, List, ListItem} from 'dot11-components/form';
+import {Form, Row, Col, List, ListItem} from 'dot11-components/form';
 
 import {uploadMembers, UploadFormat} from '../store/members';
 

@@ -3,7 +3,7 @@ import React from 'react';
 import {connect, useDispatch} from 'react-redux';
 import styled from '@emotion/styled';
 import {Link} from "react-router-dom";
-import {DateTime} from 'luxon';
+
 import {shallowDiff, debounce} from 'dot11-components/lib';
 import {ConfirmModal} from 'dot11-components/modals';
 import {Button, ActionButton, Form, Row, Field, Input, Select} from 'dot11-components/form';
@@ -53,17 +53,6 @@ function recursivelyDiffObjects(l, r) {
 			return { ...acc, [key]: difference } // return updated key
 		}, deletedValues)
 	}
-}
-
-/*function getDate(d) {
-	const s = d instanceof Date? d.toISOString(): d;
-	return s.substring(0, 10);
-}*/
-function getDate(session, field) {
-	return DateTime.fromISO(session[field], {zone: session.TimeZone}).toISODate();
-}
-function setDate(session, value) {
-	return DateTime.fromISO(value, {zone: session.TimeZone}).toISO();
 }
 
 function SessionTypeSelector({value, onChange, ...otherProps}) {
@@ -144,8 +133,6 @@ function SessionEdit({
 	updateSession,
 	readOnly,
 }) {
-	const [errMsg, setErrMsg] = React.useState('');
-
 	return (
 		<SessionContainer>
 			<Row>
@@ -313,7 +300,7 @@ class SessionDetail extends React.Component {
 	handleToggleEditSession = () => this.props.setUiProperty('editSession', !this.props.uiProperties.editSession);
 
 	render() {
-		const {style, className, loading, sessions, selected, uiProperties, setUiProperty, readOnly} = this.props;
+		const {style, className, loading, selected, uiProperties, readOnly} = this.props;
 		const {edited} = this.state;
 
 		let notAvailableStr
@@ -397,7 +384,6 @@ function SessionImportModal({
 	defaultSession,
 }) {
 	const [session, setSession] = React.useState({});
-	const [errMsg, setErrMsg] = React.useState('');
 	const dispatch = useDispatch();
 	React.useEffect(() => setSession(defaultSession), [isOpen]);
 
@@ -413,7 +399,6 @@ function SessionImportModal({
 		>
 			<Form
 				title={`Add session`}
-				errorText={errMsg}
 				submit={submit}
 				cancel={close}
 			>

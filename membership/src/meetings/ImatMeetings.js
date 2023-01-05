@@ -1,19 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {useHistory} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 import {DateTime} from 'luxon';
 import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
-import {ConfirmModal} from 'dot11-components/modals';
 import {ActionButton} from 'dot11-components/form';
-import {displayDate} from 'dot11-components/lib';
 import {SessionImportModal} from './SessionDialog';
 
 import {loadImatMeetings, selectSyncedImatMeetingsEntities, selectImatMeetingsState, fields, dataSet} from '../store/imatMeetings';
-import {loadSessions, SessionTypeOptions, selectSessionsState} from '../store/sessions';
-
-const DefaultMeeting = {Date: new Date(), Location: '', Type: SessionTypeOptions[0].value}
+import {loadSessions, selectSessionsState} from '../store/sessions';
 
 function imatMeetingToSession(meeting) {
 	// Luxon can't handle some of these shorter timezone names
@@ -40,17 +35,6 @@ function imatMeetingToSession(meeting) {
 		type: meeting.type[0].toLowerCase()
 	}
 }
-
-const ActionCell = styled.div`
-	display: flex;
-	justify-content: center;
-`;
-
-const RowActions = ({onEdit, onDelete}) =>
-	<ActionCell>
-		<ActionButton name='edit' title='Edit' onClick={onEdit} />
-		<ActionButton name='delete' title='Delete' onClick={onDelete} />
-	</ActionCell>
 
 const TopRow = styled.div`
 	display: flex;
@@ -106,7 +90,7 @@ function ImatMeetings() {
 	const numberSessions = React.useRef(20);
 
 	const dispatch = useDispatch();
-	const {valid, loading, selected} = useSelector(selectImatMeetingsState);
+	const {valid} = useSelector(selectImatMeetingsState);
 	const imatMeetings = useSelector(selectSyncedImatMeetingsEntities);
 	const {valid: sessionsValid} = useSelector(selectSessionsState);
 
@@ -126,7 +110,7 @@ function ImatMeetings() {
 			dispatch(loadSessions());
 		if (!valid)
 			dispatch(loadImatMeetings(numberSessions.current));
-	}, []);
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const importSessionDialog = (meeting) => setDefaultSession(imatMeetingToSession(meeting));
 	const closeSessionDialog = () => setDefaultSession(null);

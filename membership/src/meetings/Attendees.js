@@ -1,6 +1,5 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import {Link, useHistory, useParams} from 'react-router-dom';
+import {useHistory, useParams} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
@@ -30,13 +29,6 @@ const TableRow = styled.div`
 		align-items: center;
 	}
 `;
-
-const renderSessionInfo = (meeting) =>
-	<div>
-		<span>{meeting.name}</span><br />
-		<span>{displayDateRange(meeting.startDate, meeting.endDate)}</span><br />
-		<span>{meeting.timezone}</span>
-	</div>
 
 const AttendeesColumnDropdown = (props) => <TableColumnHeader dataSet={dataSet} {...props}/>;
 
@@ -88,12 +80,12 @@ function Attendees() {
 	const history = useHistory();
 	const {session_id, breakout_id} = useParams();
 	const dispatch = useDispatch();
-	const {valid, loading, session, breakout} = useSelector(selectAttendeesState);
+	const {valid, session, breakout} = useSelector(selectAttendeesState);
 
 	React.useEffect(() => {
 		if (!valid || session.id !== session_id || breakout.id !== breakout_id)
 			dispatch(loadAttendees(session_id, breakout_id));
-	}, []);
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const {columns, maxWidth} = React.useMemo(() => {
 		let columns = tableColumns;
