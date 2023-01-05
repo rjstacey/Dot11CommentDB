@@ -1,9 +1,7 @@
 /*
  * Handle the legacy (Adrian's comment database) spreadsheet file
  */
-'use strict';
-
-const ExcelJS = require('exceljs');
+import ExcelJS from 'exceljs';
 
 function parseResolution(v, c) {
 	if (typeof v === 'string') {

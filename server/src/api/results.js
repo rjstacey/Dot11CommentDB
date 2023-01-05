@@ -1,6 +1,50 @@
 /*
  * Ballot results API
+ *
+ * GET /{ballotId}
+ * 		Get results for a given ballot
+ *		URL parameters:
+ *			ballotId:number		Identifies the ballot
+ *		Returns an array of result objects that is the results for the speficied ballot
+ *
+ * GET /{ballotId}/export
+ *		Get results for a given ballot as a spreadsheet
+ *		URL parameters:
+ *			ballotId:number		Identifies the ballot
+ *		Returns a spreadsheet file
+ *
+ * DELETE /{ballotId}
+ *		Delete results for a given ballot
+ *		URL parameters:
+ *			ballotId:number		Identifies the ballot
+ *		Returns the number of result objects deleted
+ *
+ * GET /exportForProject
+ *		Export results for project as a spreadsheet, one ballot per sheet
+ *		Query parameters:
+ *			project:string		Identifies the ballot
+ *
+ * POST /{ballotId}/importFromEpoll/{epollNum}
+ *		Import ballot results for a given ballot from ePoll
+ *		URL parameters:
+ *			ballotId:number		Identifies the ballot
+ *			epollNum:number		Identifies the ePoll
+ *		Returns an array of result objects that is the results as imported
+ *
+ * POST /{ballotId}/uploadEpollResults
+ *		Upload ballot results for a given ballot from ePoll CSV file
+ *		URL parameters:
+ *			ballotId:number		Identifies the ballot
+ *		Returns an array of result objects that is the results as uploaded
+ *
+ * POST /{ballotId}/uploadMyProjectResults
+ *		Upload ballot results for a given ballot from MyProject CSV file
+ *		URL parameters:
+ *			ballotId:number		Identifies the ballot
+ *		Returns an array of result objects that is the results as uploaded
  */
+import {Router} from 'express';
+
 import {
 	getResultsCoalesced,
 	deleteResults,
@@ -12,7 +56,7 @@ import {
 } from '../services/results';
 
 const upload = require('multer')();
-const router = require('express').Router();
+const router = Router();
 
 router.get('/:ballot_id(\\d+)$', async (req, res, next) => {
 	try {

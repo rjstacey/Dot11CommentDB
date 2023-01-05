@@ -1,3 +1,5 @@
+import {Router} from 'express';
+
 import {completeAuthCalendarAccount} from '../services/calendar';
 import {completeAuthWebexAccount} from '../services/webex';
 
@@ -8,7 +10,7 @@ import {completeAuthWebexAccount} from '../services/webex';
  * GET /calendar: oauth2 calback for calendar authorizations
  * GET /webex: oauth2 callback for webex authorizations
  */
-const router = require('express').Router();
+const router = Router();
 
 router.get('/calendar', async (req, res, next) => {
     try {

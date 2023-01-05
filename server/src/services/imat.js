@@ -762,14 +762,14 @@ async function parseImatAttendanceSummary(buffer) {
  */
 export async function getImatAttendanceSummary(user, session) {
 
-	let start = DateTime.fromJSDate(session.start, {zone: session.timezone});
+	let start = DateTime.fromISO(session.startDate, {zone: session.timezone});
 	if (!start.isValid)
-		throw new TypeError(`Invalid session start (${session.start}) or timezone (${session.timezone})`)
+		throw new TypeError(`Invalid session start (${session.startDate}) or timezone (${session.timezone})`)
 	start = start.toFormat('MM/dd/yyyy');
 
-	let end = DateTime.fromJSDate(session.end, {zone: session.timezone});
+	let end = DateTime.fromISO(session.endDate, {zone: session.timezone});
 	if (!end.isValid)
-		throw new TypeError(`Invalid session end (${session.end}) or timezone (${session.timezone})`)
+		throw new TypeError(`Invalid session end (${session.endDate}) or timezone (${session.timezone})`)
 	end = end.toFormat('MM/dd/yyyy');
 
 	const {ieeeClient} = user;
@@ -799,7 +799,7 @@ function slotDateTime(date, slot) {
 	];
 }
 
-async function meetingToBreakout(user, meeting, imatMeeting, timeslots, committees) {
+async function meetingToBreakout(user, imatMeeting, timeslots, committees, meeting, webexMeeting) {
 
 	const sessionStart = DateTime.fromISO(imatMeeting.start, {zone: imatMeeting.timezone});
 	const sessionEnd = DateTime.fromISO(imatMeeting.end, {zone: imatMeeting.timezone}).plus({days: 1});
@@ -874,9 +874,9 @@ async function meetingToBreakout(user, meeting, imatMeeting, timeslots, committe
 	if (meeting.isCancelled)
 		location = 'CANCELLED';
 
-	if (!location && meeting.webexMeeting)
-		location = await webexMeetingImatLocation(meeting.webexAccountId, meeting.webexMeeting);
-	
+	if (!location && meeting.webexAccountId && webexMeeting)
+		location = await webexMeetingImatLocation(meeting.webexAccountId, webexMeeting);
+	console.log(meeting)
 	const [group] = await getGroups({id: meeting.organizationId});
 	if (!group)
 		throw new TypeError(`Can't find group id=${meeting.organizationId}`);
@@ -911,23 +911,23 @@ async function meetingToBreakout(user, meeting, imatMeeting, timeslots, committe
 	}
 }
 
-export async function addImatBreakoutFromMeeting(user, imatMeetingId, meeting) {
+export async function addImatBreakoutFromMeeting(user, imatMeetingId, meeting, webexMeeting) {
 	const {imatMeeting, breakouts, timeslots, committees} = await getImatBreakouts(user, imatMeetingId);
 
-	const breakout = await meetingToBreakout(user, meeting, imatMeeting, timeslots, committees);
+	const breakout = await meetingToBreakout(user, imatMeeting, timeslots, committees, meeting, webexMeeting);
 
 	//console.log('added breakout: ', breakout);
 	return addImatBreakout(user, imatMeeting, breakout, timeslots);
 }
 
-export async function updateImatBreakoutFromMeeting(user, imatMeetingId, breakoutId, meeting) {
+export async function updateImatBreakoutFromMeeting(user, imatMeetingId, breakoutId, meeting, webexMeeting) {
 	const {imatMeeting, breakouts, timeslots, committees} = await getImatBreakouts(user, imatMeetingId);
 
 	const breakout = breakouts.find(b => b.id === breakoutId);
 	if (!breakout)
 		throw new NotFoundError(`Breakout id=${breakoutId} does not exist for imatMeetingId=${imatMeetingId}`);
 
-	const updatedBreakout = await meetingToBreakout(user, meeting, imatMeeting, timeslots, committees);
+	const updatedBreakout = await meetingToBreakout(user, imatMeeting, timeslots, committees, meeting, webexMeeting);
 	updatedBreakout.id = breakoutId;
 	updatedBreakout.editContext = breakout.editContext;
 	updatedBreakout.editGroupId = breakout.editGroupId;

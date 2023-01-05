@@ -1,3 +1,42 @@
+/*
+ * Resolutions API
+ *
+ * POST /
+ *		Add resolutions.
+ *		Body is an object with parameters:
+ *			entities:array
+ *			ballot_id:				Identifies the ballot
+ *			modifiedSince:string 	Datetime in ISO format
+ *		Returns an array of resolution objects that is the complete list of resolutions for the comments affected.
+ *
+ * PATCH /
+ *		Update resolutions.
+ *		Body is an object with parameters:
+ *			entities:object
+ *			ballot_id:any 			Identifies the ballot
+ *			modifiedSince:string 	Datetime in ISO format
+ *		Returns resulutions that were modified after modifiedSince.
+ *
+ * DELETE / ({ids, ballot_id, modifiedSince})
+ *		Delete resolutions.
+ *		Body is an object with parameters:
+ *			ids:array 			An array of ballot identifiers
+ *
+ * POST /resolutions/{ballotId}/upload (resolutionFile, params)
+ *		URL parameters:
+ *			ballotId:any 	Identifies the ballot
+ *		Multipart body:
+ *			resolutionFile:	the resolution spreadsheet
+ *			params: JSON object with parameters:
+ *				toUpdate:array
+ *				matchAlgorithm:string
+ *				matchUpdate:string
+ *				sheetName:string		The sheet name with the resolutions
+ *		Update existing and add missing resolutions from spreadsheet.
+ */
+import {Router} from 'express';
+
+import {isPlainObject} from '../utils';
 import {
 	addResolutions,
 	updateResolutions,
@@ -7,9 +46,7 @@ import {
 import {uploadResolutions} from '../services/uploadResolutions';
 
 const upload = require('multer')();
-const router = require('express').Router();
-
-const isPlainObject = o => (!Array.isArray(o) && typeof o === 'object');
+const router = Router();
 
 router.post('/$', async (req, res, next) => {
 	try {

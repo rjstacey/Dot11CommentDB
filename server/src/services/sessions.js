@@ -2,10 +2,15 @@
  * Manage sessions and session attendance
  */
 import { DateTime } from 'luxon';
-import {getImatBreakouts, getImatBreakoutAttendance, getImatAttendanceSummary} from './imat';
-import {NotFoundError} from '../utils';
+import {NotFoundError, shallowDiff} from '../utils';
 
-const db = require('../utils/database');
+import db from '../utils/database';
+
+import {
+	getImatBreakouts,
+	getImatBreakoutAttendance,
+	getImatAttendanceSummary
+} from './imat';
 
 const getSessionTotalCreditSQL = (session_id) =>
 	'SELECT ' +
@@ -61,6 +66,7 @@ const getSessionAttendeesCoalescedSQL = (session_id) =>
  */
 const getSessionAttendeesSQL = (session_id) => 
 	'SELECT ' +
+		'a.id, ' +
 		'a.SAPIN, ' +
 		'm.MemberID, ' +
 		'm.Name, ' +
@@ -248,40 +254,33 @@ export async function getBreakoutAttendees(user, session_id, breakout_id) {
 	return {session: sessions[0], breakout: breakouts[0], attendees};
 }
 
-export async function getSessionAttendees(session_id) {
-	const sql =
-		getSessionSQL(session_id) +
-		getSessionAttendeesSQL(session_id);
-	const [sessions, attendees] = await db.query(sql);
-	if (sessions.length === 0)
-		throw `No such session: ${session_id}`;
-	const session = sessions[0];
-	return {session, attendees};
+function getSessionAttendees(session_id) {
+	return db.query(getSessionAttendeesSQL(session_id));
 }
 
 export async function getRecentSessionsWithAttendees() {
-	let sessions = (await getSessions())
-		.map(s => ({...s, timestamp: Date.parse(s.Start)}))
-		.sort((s1, s2) => s1.timestamp - s2.timestamp)	// Oldest to newest
+	const now = Date.now();
 
-	// Plenary sessions only, newest 4 with attendance
+	let sessions = (await getSessions())
+		.filter(s => Date.parse(s.endDate) < now)
+		.sort((s1, s2) => Date.parse(s1.startDate) - Date.parse(s2.startDate));	// Oldest to newest
+
+	// Plenary sessions only, newest 4 with attendees
 	let plenaries = sessions
-		.filter(s => s.Type === 'p' && s.Attendees > 0)
+		.filter(s => s.type === 'p' && s.Attendees > 0)
 		.slice(-4);
 	if (plenaries.length === 0)
 		return [];
 
 	// Plenary and interim sessions (with attendance) from the oldest plenary date
-	let fromTimestamp = plenaries[0].timestamp;
-	sessions = sessions.filter(s => (s.Type === 'i' || s.Type === 'p') && s.timestamp >= fromTimestamp && s.Attendees > 0);
+	let fromTimestamp = Date.parse(plenaries[0].startDate);
+	sessions = sessions.filter(s => (s.type === 'i' || s.type === 'p') && Date.parse(s.startDate) >= fromTimestamp && s.Attendees > 0);
 
 	const results = await Promise.all(sessions.map(s => getSessionAttendees(s.id)));
-	//console.log(results)
 
 	// Merge attendees with sessions
 	sessions.forEach((s, i) => {
-		s.Attendees = results[i].attendees;
-		delete s.timestamp;
+		s.attendees = results[i];
 	});
 
 	return sessions;
@@ -289,10 +288,10 @@ export async function getRecentSessionsWithAttendees() {
 
 export async function importBreakouts(user, sessionId) {
 
-	const [session] = await db.query('SELECT * FROM sessions WHERE id=?;', [sessionId]);
+	const [session] = await db.query({sql: 'SELECT * FROM sessions WHERE id=?;', dateStrings: true}, [sessionId]);
 	if (!session)
 		throw new NotFoundError(`Session id=${sessionId} does not exist`);
-	console.log(session)
+	//console.log(session)
 
 	let {breakouts} = await getImatBreakouts(user, session.imatMeetingId);
 	breakouts = breakouts.map(b => ({...b, session_id: sessionId}));	// Add session ID to each entry
@@ -324,9 +323,9 @@ export async function importBreakoutAttendance(user, session, breakout_id, meeti
 
 export async function importAttendances(user, session_id) {
 
-	let [session] = await db.query('SELECT * FROM sessions WHERE id=?;', [session_id]);
+	let [session] = await db.query({sql: 'SELECT * FROM sessions WHERE id=?;', dateStrings: true}, [session_id]);
 	if (!session)
-		throw `Unrecognized session ${session_id}`
+		throw new NotFoundError(`Session id=${sessionId} does not exist`);
 
 	const imatAttendances = await getImatAttendanceSummary(user, session);
 	const sapins = imatAttendances.map(i => i.SAPIN);
@@ -428,27 +427,36 @@ function attendanceSummaryEntry(a) {
 
 export async function upsertMemberAttendanceSummaries(sapin, attendances) {
 
-	const session_ids = Object.keys(attendances);
-	const existing = await db.query(
+	const session_ids = attendances.map(a => a.session_id);
+
+	const existingAttendances = await db.query(
 		'SELECT * FROM attendance_summary WHERE SAPIN=? AND session_id IN (?);', 
 		[sapin, session_ids]
 	);
-	let insert = {...attendances};
-	let update = {};
-	for (const a of existing) {
-		if (insert[a.session_id]) {
-			update[a.id] = insert[a.session_id];
-			delete insert[a.session_id];
+
+	let inserts = [],
+		updates = [];
+	for (const attendance of attendances) {
+		const existingAttendance = existingAttendances.find(a => a.id === attendance.id);
+		const summary = attendanceSummaryEntry(attendance);
+		if (existingAttendance) {
+			const existingSummary = attendanceSummaryEntry(existingAttendance);
+			const changes = shallowDiff(existingSummary, summary);
+			if (Object.keys(changes).length > 0)
+				updates.push({id: existingAttendance.id, changes});
+		}
+		else {
+			inserts.push(summary);
 		}
 	}
-	insert = Object.values(insert).map(a => ({...a, SAPIN: sapin}));
 
-	const SQL = 
-		Object.keys(update).map(id => db.format('UPDATE attendance_summary SET ? WHERE id=?;', [attendanceSummaryEntry(update[id]), id])).join(' ') +
-		insert.map(a => db.format('INSERT attendance_summary SET ?;', [attendanceSummaryEntry(a)])).join(' ') +
-		db.format('SELECT * FROM attendance_summary WHERE SAPIN=? AND session_id IN (?);', [sapin, session_ids]);
-	console.log(SQL)
-	const results = await db.query(SQL);
+	const sql = []
+		.concat(updates.map(u => db.format('UPDATE attendance_summary SET ? WHERE id=?', [u.changes, u.id])))
+		.concat(inserts.map(a => db.format('INSERT attendance_summary SET ?', [a])))
+		.concat(db.format('SELECT * FROM attendance_summary WHERE SAPIN=? AND session_id IN (?)', [sapin, session_ids]))
+		.join('; ');
+
+	const results = await db.query(sql);
 
 	return {attendances: results[results.length-1]}
 }

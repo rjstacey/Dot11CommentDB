@@ -1,12 +1,11 @@
-'use strict';
 
 import { v4 as uuid, validate as validateUUID } from 'uuid';
+
+import db from '../utils/database';
 
 import {getComments} from './comments';
 import {genCommentsSpreadsheet} from './commentsSpreadsheet';
 import {myProjectAddResolutions} from './myProjectSpreadsheets';
-
-const db = require('../utils/database');
 
 const defaultResolution = {
 	ResolutionID: 0,

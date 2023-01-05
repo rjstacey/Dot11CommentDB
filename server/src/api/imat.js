@@ -2,38 +2,52 @@
  * IMAT API
  * (IEEE SA attendance system)
  *
- * GET /imat/committees/{group}
+ * GET /committees/{group}
  *		Get committees for a specified group.
+ *		URL parameters:
+ *			group:string 		Identifies the group
  *		Returns an array of committee objects.
  *
- * GET /imat/meetings
- *		Get sessions (IMAT meetings).
- *		Returns an array of IMAT meeting objects.
+ * GET /meetings
+ *		Get a list of IMAT meetings (sessions).
+ *		Returns an array of imatMeeting objects.
  *
- * GET /imat/breakouts/{imatMeetingId}
- *		Get breakouts, timeslots and committees for the session (IMAT meeting) identified by the imatMeetingId parameter.
- *		Returns an object with shape {imatMeeting{}, breakouts[], timeouts[], committees[]}, where imatMeeting is an object with 
- *		session (IMAT meeting) information, breakouts is an array of breakout objects, timeslots is an array of timeslot objects
- *		and committees is an array of committee objects.
+ * GET /breakouts/{imatMeetingId}
+ *		Get meeting details, breakouts, timeslots and committees for an IMAT meeting.
+ *		URL parameters:
+ *			imatMeetingId:number 	Identifies the IMAT meeting
+ *		Returns an object with parameters:
+ *			imatMeeting:object		IMAT meeting (session) details
+ *			breakouts:array			an array of breakout objects
+ *			timeouts:array			an array of timeslot objects
+ *			committees:array 		an array of committee objects
  *
- * POST /imat/breakouts/{imatMeetingId}
- *		Add breakouts to the session (IMAT meeting) identified by the imatMeetingId parameter.
- *		Returns an array of breakout objects as added.
+ * POST /breakouts/{imatMeetingId}
+ *		Add breakouts to an IMAT meeting.
+ *		URL parameters:
+ *			imatMeetingId:number 	Identifies the IMAT meeting
+ *		Body is an array of breakout objects.
+ *		Returns the array of breakout objects as added.
  *
- * PUT /imat/breakouts/{imatMeetingId}
- *		Update breakouts for the session (IMAT meeting) identified by the imatMeetingId parameter.
- *		The body contains an array of breakout objects.
+ * PUT /breakouts/{imatMeetingId}
+ *		Update breakouts for an IMAT meeting.
+ *		URL parameters:
+ *			imatMeetingId:number 	Identifies the IMAT meeting
+ *		Body is an array of breakout objects to update.
  *		Returns an array of breakout objects as updated.
  *
- * DELETE /imat/breakouts/{imatMeetingId}
- *		Delete breakouts from the session (IMAT meeting) identified by the imatMeetingId parameter
- *		The body contains an array of breakout IDs.
+ * DELETE /breakouts/{imatMeetingId}
+ *		Delete breakouts for an IMAT meeting.
+ *		URL parameters:
+ *			imatMeetingId:number 	Identifies the IMAT meeting
+ *		Body is an array of breakout IDs.
  *		Returns the number of breakouts deleted.
  *
- * GET /imat/attendance/{imatMeetingId}/{imatBreakoutId}
+ * GET /attendance/{imatMeetingId}/{imatBreakoutId}
  *		Get a list of attendees for a specified breakout.
  *		Returns an array of attendance objects (user info with timestamp).
  */
+import {Router} from 'express';
 
 import {isPlainObject} from '../utils';
 import {
@@ -46,7 +60,7 @@ import {
 	getImatBreakoutAttendance
 } from '../services/imat';
 
-const router = require('express').Router();
+const router = Router();
 
 router.get('/committees/:group', async (req, res, next) => {
 	try {

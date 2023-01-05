@@ -1,20 +1,25 @@
 /*
  * Sessions API
  *
- * GET /sessions
+ * GET /
  *		Get sessions.
  *		Return and array of session objects.
  *
- * POST /sessions (session{})
- *		Add a session. Body contains the session object to be added.
+ * POST /
+ *		Add a session.
+ *		Body is the session object to be added.
  *		Returns the session object as added.
  *
- * PATCH /sessions/{id} (changes{})
- * 		Update a session. Body contains an object with the parameters to change.
+ * PATCH /{id}
+ * 		Update a session.
+ *		URL parameters:
+ *			id:any 		Identifies the session
+ *		Body is an object with the session parameters to change.
  *		Returns the session object as updated.
  *
- * DELETE /sessions (ids[])
- *		Delete sessions. Body contains an array of session IDs.
+ * DELETE /
+ *		Delete sessions.
+ *		Body contains an array of session identifiers.
  *		Returns the number of sessions deleted.
  *
  * GET /session/{id}/breakouts: get list of breakouts for a session.
@@ -24,6 +29,8 @@
  * POST /session/{id}/attendance_summary/import: import from IMAT the attendance summary for a session.
  * PATCH /session/{id}/attendance_summary: update attendance summary
  */
+import {Router} from 'express';
+
 import {isPlainObject} from '../utils';
 import {
 	getSessions,
@@ -38,7 +45,7 @@ import {
 	getSessionAttendees
 } from '../services/sessions';
 
-const router = require('express').Router();
+const router = Router();
 
 router.get('/$', async (req, res, next) => {
 	try {

@@ -1,10 +1,11 @@
 /*
  * Webex accounts and meetings API
  */
+import {Router} from 'express';
+
 import {isPlainObject} from '../utils';
 
 import {
-	completeAuthWebexAccount,
 	getWebexAccounts,
 	updateWebexAccount,
 	addWebexAccount,
@@ -15,37 +16,32 @@ import {
 	deleteWebexMeetings
 } from '../services/webex';
 
-const router = require('express').Router();
+const router = Router();
 
 /*
  * Webex accounts API
  *
- * GET /webex/accounts
+ * GET /accounts
  *		Get a list of calendar accounts
  *
- * POST /webex/accounts (account)
- *		Add a Webex account. Body contains an object that is the account to be added.
- *		Returns an object that is the account added.
+ * POST /accounts
+ *		Add a Webex account.
+ *		Body is an object that is the account to be added.
+ *		Returns an object that is the account as added.
  *
- * PATCH /webex/accounts/{accountId} (changes)
- *		Update a Webex account identified by accountId. Body contains an object with parameters to change.
- *		Returns an object that is the updated account.
+ * PATCH /accounts/{accountId}
+ *		Update a Webex account.
+ *		URL parameters:
+ *			accountId:number 	Identifies the account.
+ *		Body is an object with parameters to change.
+ *		Returns an object that is the account as updated.
  *
- * DELETE /webex/accounts/{accountId} ()
- * 		Delete the Webex account identified by accountId.
+ * DELETE /accounts/{accountId}
+ * 		Delete a Webex account.
+ *		URL parameters:
+ *			accountId:number 	Identifies the account.
  *		Returns 1.
  */
-router.post('/auth', async (req, res, next) => {
-	try {
-		const params = req.body;
-		if (typeof params !== 'object')
-			throw new Error('Missing or bad body; expected object');
-		const data = await completeAuthWebexAccount(params);
-		res.json(data);
-	}
-	catch (err) {next(err)}
-});
-
 router.get('/accounts$', async (req, res, next) => {
 	try {
 		const data = await getWebexAccounts();
@@ -90,22 +86,29 @@ router.delete('/accounts/:accountId', async (req, res, next) => {
 /*
  * Webex Meetings API
  *
- * GET /webex/meetings?constraints
- * 		Get a list of webex meetings. Optionally specify constraints (such as groupId, fromDate, toDate) for which the meetings are requested.
+ * GET /meetings
+ * 		Get a list of webex meetings.
+ *		Query parameters:
+ *			groupId:any 	Identifies the parent group to which the meetings belong (optional).
+ *			fromDate:string ISO date. Meetings that start after this date (optional).
+ *			toDate:string 	ISO date. Meetings that start before this date (optional).
  *		Returns an array of meetings.
  *
- * POST /webex/meetings (meetings[])
- * 		Create webex meetings. Body contains an array of meetings with shape {accountId, ...meeting}, where accountId identifies
+ * POST /meetings
+ * 		Create webex meetings.
+ *		Body is an array of meetings with shape {accountId, ...meeting}, where accountId identifies
  *		the Webex account and the remaining parameters are the meeting parameters.
- *		Returns an array of meetings that were added.
+ *		Returns an array of meetings as added.
  *
- * PATCH /webex/meetings (meetings[])
- *		Update Webex meetings. Body contains an array of meetings with shape {accountId, id, ...meeting}, where accountId identifies
- *		the Webex account, id identifies the meeting instance and remaining parameters are meeting parameters.
+ * PATCH /meetings
+ *		Update Webex meetings.
+ *		Body is an array of meetings with shape {accountId, id, ...meeting}, where accountId identifies
+ *		the Webex account, id identifies the meeting instance and the remaining parameters are meeting parameters.
  *		Returns an array of meetings that were updated.
  * 
- * DELETE /webex/meetings (meetings[])
- *		Delete Webex meetings. Body contains an array of meetings with shape {accountId, id}, where the accountId identifies
+ * DELETE /meetings
+ *		Delete Webex meetings.
+ *		Body is an array of meetings with shape {accountId, id}, where the accountId identifies
  *		the Webex account and the id identifies the meeting instance.
  *		Returns the number of meetings deleted.
  */

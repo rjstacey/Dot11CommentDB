@@ -1,10 +1,8 @@
-'use strict';
+import db from '../utils/database';
 
 import {getMember, addMember, updateMember} from '../services/members';
 import {initCommentsTables} from '../services/comments';
 import {initCommentHistory} from '../services/commentHistory';
-
-const db = require('../utils/database');
 
 const usersTable =
 	'CREATE TABLE `users` ( ' +

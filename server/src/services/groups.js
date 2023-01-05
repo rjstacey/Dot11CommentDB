@@ -1,7 +1,7 @@
 
 import { v4 as uuid } from 'uuid';
 
-const db = require('../utils/database');
+import db from '../utils/database';
 
 export function getGroups(constraints) {
 	let sql =

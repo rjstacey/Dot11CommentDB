@@ -1,9 +1,10 @@
 import { DateTime } from 'luxon';
 import { AuthError, NotFoundError, isPlainObject } from '../utils';
 
-const axios = require('axios');
-const Webex = require('webex');
-const db = require('../utils/database');
+import axios from 'axios';
+import webex from 'webex';
+
+import db from '../utils/database';
 
 const webexApiBaseUrl = 'https://webexapis.com/v1';
 const webexAuthUrl = 'https://webexapis.com/v1/authorize';

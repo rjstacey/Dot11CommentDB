@@ -1,6 +1,7 @@
 /*
  * Voters API
  */
+import {Router} from 'express';
 
 import {
 	getVoters,
@@ -13,7 +14,7 @@ import {
 } from '../services/voters'
 
 const upload = require('multer')();
-const router = require('express').Router();
+const router = Router();
 
 router.get('/:votingPoolId$', async (req, res, next) => {
 	try {

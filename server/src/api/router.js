@@ -3,17 +3,41 @@
  *
  * Robert Stacey
  */
+import {Router} from 'express';
 
 import {AccessLevel} from '../auth/access';
 import {authorize} from '../auth/jwt'
 
-const upload = require('multer')();
-const router = require('express').Router();
+import timezones from './timezones';
+import members from './members';
+import users from './users';
+import groups from './groups';
+import officers from './officers';
+import email from './email';
+import permissions from './permissions';
+
+import sessions from './sessions';
+import meetings from './meetings';
+import webex from './webex';
+import calendar from './calendar';
+import imat from './imat';
+import ieee802world from './802world';
+
+import ballots from './ballots';
+import votingPools from './votingPools';
+import voters from './voters';
+import results from './results';
+import comments from './comments';
+import resolutions from './resolutions';
+import commentHistory from './commentHistory';
+import epolls from './epolls';
+
+const router = Router();
 
 /*
  * The open part of the API is satisfied here
  */
-router.use('/timezones', require('./timezones').default);
+router.use('/timezones', timezones);
 
 /*
  * The remainder of the API requires an authorized user
@@ -86,32 +110,33 @@ router.get('/$', (req, res, next) => res.json(null));
 /*
  * APIs for managing the organization
  */
-router.use('/members', require('./members').default);			// Manage membership
-router.use('/users', require('./users').default);				// Limited access to member information for various uses (comment resolution, meeting setup, etc.)
-router.use('/groups', require('./groups').default);				// Groups and subgroups
-router.use('/officers', require('./officers').default);			// Group and subgroup officers
-router.use('/email', require('./email').default);				// Sending email
+router.use('/members', members);			// Manage membership
+router.use('/users', users);				// Limited access to member information for various uses (comment resolution, meeting setup, etc.)
+router.use('/groups', groups);				// Groups and subgroups
+router.use('/officers', officers);			// Group and subgroup officers
+router.use('/email', email);				// Sending email
+router.use('/permissions', permissions);	// Get list of permissions
 
 /*
  * APIs for managing meetings
  */
-router.use('/sessions', require('./sessions').default);			// Sessions
-router.use('/meetings', require('./meetings').default);			// Session meetings and telecons
-router.use('/webex', require('./webex').default);				// Webex account and meetings
-router.use('/calendar', require('./calendar').default);			// Google calendar accounts and events
-router.use('/imat', require('./imat').default);					// Access to IEEE SA attendance system (IMAT)
-router.use('/802world', require('./802world').default);			// Access to schedule802world.com (meeting organizer schedule)
+router.use('/sessions', sessions);			// Sessions
+router.use('/meetings', meetings);			// Session meetings and telecons
+router.use('/webex', webex);				// Webex account and meetings
+router.use('/calendar', calendar);			// Google calendar accounts and events
+router.use('/imat', imat);					// Access to IEEE SA attendance system (IMAT)
+router.use('/802world', ieee802world);		// Access to schedule802world.com (meeting organizer schedule)
 
 /*
  * APIs for balloting and comment resolution
  */
-router.use('/ballots', require('./ballots').default);			// Ballots
-router.use('/votingPools', require('./votingPools').default);	// Ballot voting pools
-router.use('/voters', require('./voters').default);				// Ballot voters
-router.use('/results', require('./results').default);			// Ballot results
-router.use('/comments', require('./comments').default);			// Ballot comments
-router.use('/resolutions', require('./resolutions').default);	// Comment resolutions
-router.use('/commentHistory', require('./commentHistory').default);	// Comment change history
-router.use('/epolls', require('./epolls').default);				// Access to ePolls balloting tool
+router.use('/ballots', ballots);			// Ballots
+router.use('/votingPools', votingPools);	// Ballot voting pools
+router.use('/voters', voters);				// Ballot voters
+router.use('/results', results);			// Ballot results
+router.use('/comments', comments);			// Ballot comments
+router.use('/resolutions', resolutions);	// Comment resolutions
+router.use('/commentHistory', commentHistory);	// Comment change history
+router.use('/epolls', epolls);				// Access to ePolls balloting tool
 
 export default router;

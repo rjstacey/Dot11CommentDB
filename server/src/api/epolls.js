@@ -5,10 +5,11 @@
  *		Get a list of ePolls by scraping the mentor webpage for closed epolls.
  *		Returns an array of epoll objects.
  */
+import {Router} from 'express';
 
 import {getEpolls} from '../services/epoll';
 
-const router = require('express').Router();
+const router = Router();
 
 router.get('/$', async (req, res, next) => {
 	try {

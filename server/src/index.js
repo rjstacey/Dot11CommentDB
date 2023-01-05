@@ -4,46 +4,72 @@
  * Robert Stacey
  */
 
-require('dotenv').config();
+import dotenv from 'dotenv';
+import path from 'path';
+import express from 'express';
+
+import login from './auth/login';
+import oauth2 from './auth/oauth2';
+import api from './api/router';
+
+import {init as databaseInit} from './utils/database';
+import {init as seedDatabase} from './utils/seedDatabase';
+import {init as usersInit} from './auth/users';
+import {init as webexInit} from './services/webex';
+import {init as calendarInit} from './services/calendar';
+import {init as emailInit} from './services/email';
+
+dotenv.config();
 //console.log(process.env);
 
-const db = require('./utils/database');
-
 async function initDatabase() {
-	await db.init();
-	await require('./utils/seedDatabase').init();
+	await databaseInit();
+	await seedDatabase();
 	console.log('init database complete');
 }
 
 async function initServices() {
+	
+	process.stdout.write('init users... ');
 	try {
-		console.log('init users...');
-		await require('./auth/users').init();
+		await usersInit();
+		process.stdout.write('success\n');
 	}
 	catch (error) {
 		console.error('init users failed', error);
 	}
+
+	process.stdout.write('init webex... ');
 	try {
-		console.log('init webex...');
-		await require('./services/webex').init();
+		await webexInit();
+		process.stdout.write('success\n');
 	}
 	catch (error) {
 		console.error('init webex failed', error);
 	}
+
+	process.stdout.write('init calendar... ');
 	try {
-		console.log('init calendar...');
-		await require('./services/calendar').init();
+		await calendarInit();
+		process.stdout.write('success\n');
 	}
 	catch (error) {
 		console.error('init calendar failed', error);
+	}
+
+	process.stdout.write('init email... ');
+	try {
+		await emailInit();
+		process.stdout.write('success\n');
+	}
+	catch (error) {
+		console.error('init email service failed')
 	}
 	console.log('init services complete');
 }
 
 function initServer() {
 	console.log('init server...');
-	const path = require('path');
-	const express = require('express');
 	const app = express();
 
 	app.set('port', process.env.PORT || 8080);
@@ -64,13 +90,13 @@ function initServer() {
 		next();
 	});
 
-	app.use('/auth', require('./auth/login').default);
+	app.use('/auth', login);
 
 	// The /oauth2 interface is used for oauth2 completion callbacks
-	app.use('/oauth2', require('./auth/oauth2').default);
+	app.use('/oauth2', oauth2);
 
 	// The /api interface provides secure access to the REST API
-	app.use('/api', require('./api/router').default);
+	app.use('/api', api);
 
 	// Error handler
 	app.use((err, req, res, next) => {

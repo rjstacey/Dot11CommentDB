@@ -1,7 +1,8 @@
+import {Router} from 'express';
 
 import {getUsers} from '../services/members';
 
-const router = require('express').Router();
+const router = Router();
 
 router.get('/$', async (req, res, next) => {
 	try {

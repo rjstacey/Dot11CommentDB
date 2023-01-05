@@ -1,14 +1,14 @@
-'use strict';
 
 import { v4 as uuid } from 'uuid';
+
+import db from '../utils/database';
+
+import {AccessLevel} from '../auth/access';
 import {parseEpollResultsCsv, parseEpollResultsHtml} from './epoll';
 import {parseMyProjectResults} from './myProjectSpreadsheets';
 import {genResultsSpreadsheet} from './resultsSpreadsheet';
-import {AccessLevel} from '../auth/access';
 import {getBallot, getBallotSeriesWithResults, BallotType} from './ballots';
 import {getVoters} from './voters';
-
-const db = require('../utils/database');
 
 function appendStr(toStr, str) {
 	if (typeof toStr === 'string') {
@@ -140,7 +140,10 @@ function colateSAResults(ballotSeries) {
 		if (r1.Vote === 'Disapprove' && r1.CommentCount === 0) {
 			// See if they have a comment from a previous round
 			for (let i = ballotSeries.length - 2; i >= 0; i--) {
-				const r2 = ballotSeries[i].Results.find(r => r.Email === r1.Email)
+				const r2 = ballotSeries[i].Results.find(r => 
+					(r.Email && r1.Email && r.Email === r1.Email) ||
+					(r.Name === r1.Name)
+				);
 				if (r2 && r2.CommentCount) {
 					v.CommentCount = r2.CommentCount;
 					v.Notes = 'Comments from ' + ballotSeries[i].BallotID;
@@ -382,7 +385,8 @@ export async function getResults(ballot_id) {
 			'(SELECT COUNT(*) ' +
 				'FROM comments c WHERE c.ballot_id=r.ballot_id AND ' +
 					'((c.CommenterSAPIN>0 AND c.CommenterSAPIN=r.SAPIN) OR ' +
-					 '(c.CommenterEmail<>\'\' AND c.CommenterEmail=r.Email))) AS CommentCount, ' +
+					 '(c.CommenterEmail<>\'\' AND c.CommenterEmail=r.Email) OR ' +
+					 '(c.CommenterName<>\'\' AND c.CommenterName=r.Name))) AS CommentCount, ' +
 			'COALESCE(m.ReplacedBySAPIN, r.SAPIN) AS CurrentSAPIN ' +
 		'FROM results r ' +
 			'LEFT JOIN members m ON m.SAPIN=r.SAPIN AND m.Status=\'Obsolete\' ' +

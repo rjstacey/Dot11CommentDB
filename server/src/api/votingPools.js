@@ -1,6 +1,7 @@
 /*
  * Voting pools API
  */
+import {Router} from 'express';
 
 import {
 	getVotingPools,
@@ -8,7 +9,7 @@ import {
 	updateVotingPool,
 } from '../services/voters'
 
-const router = require('express').Router();
+const router = Router();
 
 router.get('/$', async (req, res, next) => {
 	try {

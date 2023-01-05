@@ -10,6 +10,8 @@
  * POST /users/upload: insert users from file. Returns the complete array of user entries in the database.
  * POST /users: insert or update users. Returns the complete entry for the user added.
  */
+import {Router} from 'express';
+
 import {
 	getMembersWithParticipation,
 	getMembersSnapshot,
@@ -28,7 +30,7 @@ import {
 } from '../services/members';
 
 const upload = require('multer')();
-const router = require('express').Router();
+const router = Router();
 
 router.get('/$', async (req, res, next) => {
 	try {

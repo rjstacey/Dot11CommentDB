@@ -1,12 +1,11 @@
-'use strict';
 
 import { DateTime } from 'luxon';
+
+import db from '../utils/database';
 
 import {parseEpollCommentsCsv} from './epoll';
 import {parseMyProjectComments, myProjectAddResolutions} from './myProjectSpreadsheets';
 import {BallotType, getBallot} from './ballots';
-
-const db = require('../utils/database');
 
 const createViewCommentResolutionsSQL = 
 	'CREATE VIEW commentResolutions AS SELECT ' +

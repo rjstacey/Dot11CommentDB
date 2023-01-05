@@ -1,6 +1,7 @@
+import db from '../utils/database';
+
 const axios = require('axios');
 const {google} = require('googleapis');
-const db = require('../utils/database');
 
 const calendarRevokeUrl = 'https://oauth2.googleapis.com/revoke';
 
@@ -27,7 +28,6 @@ function hasCalendarApi(id) {
 
 function createCalendarApi(id, auth) {
 	google.options({
-		http2: true,
 		retryConfig: {
 			currentRetryAttempt: 0,
 			retry: 3,

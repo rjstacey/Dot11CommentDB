@@ -1,14 +1,34 @@
-
 /*
  * Ballots API
  *
- * GET /ballot/{ballotId} - return details on a specific ballot
- * GET /ballots - return the complete list of ballots
- * PUT /ballots - update select fields in ballot entries
- * POST: /ballots - add ballot entries
- * DELETE: /ballots - delete ballots
- * GET: /epolls?{n} - return a list of n epolls by scraping the mentor webpage for closed epolls.
+ * GET /ballots/{ballotId}
+ *		Get ballot details
+ *		URL parameters:
+ *			ballotId:any 	The ballot identifier
+ *		Return an object that is the identified ballot
+ *
+ * GET /ballots
+ *		Get ballots
+ *		Returns an array of ballot objects
+ *
+ * POST /ballots
+ *		Add ballots
+ *		Body is an array of ballot objects
+ *		Returns an array of ballot objects as added
+ *
+ * PATCH /ballots
+ *		Update ballots
+ *		Body is an array of objects with shape {id:number, changes:object}
+ *		Returns and array of ballot objects as updated
+ *
+ * DELETE /ballots
+ *		Delete ballots
+ *		Body is an array of ballot identifiers.
+ *		Returns the number of ballots deleted.
  */
+
+import {Router} from 'express';
+
 import {
 	getBallot,
 	getBallots,
@@ -17,7 +37,7 @@ import {
 	deleteBallots
 } from '../services/ballots';
 
-const router = require('express').Router();
+const router = Router();
 
 router.get('/:ballot_id(\\d+)', async (req, res, next) => {
 	try {
@@ -35,6 +55,18 @@ router.get('/$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
+router.post('/$', async (req, res, next) => {
+	try {
+		const {user} = req;
+		const ballots = req.body;
+		if (!Array.isArray(ballots))
+			throw 'Bad or missing body; expected an array of ballots';
+		const data = await addBallots(user, ballots);
+		res.json(data)
+	}
+	catch(err) {next(err)}
+});
+
 router.patch('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
@@ -47,17 +79,6 @@ router.patch('/$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.post('/$', async (req, res, next) => {
-	try {
-		const {user} = req;
-		const ballots = req.body;
-		if (!Array.isArray(ballots))
-			throw 'Bad or missing body; expected an array of ballots';
-		const data = await addBallots(user, ballots);
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
 
 router.delete('/$', async (req, res, next) => {
 	try {

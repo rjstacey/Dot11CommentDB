@@ -1,24 +1,38 @@
 /*
  * Meetings API
  *
- * GET /meetings?constraints
- *		Get a list of meetings, optionally satisfying certain constraints (e.g., groupId, toDate, fromDate, id).
- *		Returns at object {meetings[], webexMeetings[]}, where meetings is an array of meetings that meet the constraints and
- *		webexMeetings is an array of Webex meetings associated with the meetings.
+ * GET /
+ *		Get a list of meetings that meet an optionally specified set of constraints (e.g., groupId, toDate, fromDate, id).
+ *		Query parameters:
+ *			groupId:any 		Identifies the parent group for the meetings
+ *			fromDate:string 	An ISO date string that is the earliest meeting date
+ *			toDate:string 		An IDO date string that is the latest meeting date
+ *			id:string or array 	A meeting identifier or array of meeting identifiers
+ *		Returns an object with parameters:
+ *			meetings:array		An array of meetings that meet the constraints
+ *			webexMeetings:array	An array of Webex meetings associated with the meetings
  *
- * POST /meetings (meetings[])
- *		Add a meetings
- *		Returns an object {meetings[], webexMeetings[]}, where meetings is an array of meetings added and webexMeetings is the the associated Webex meetings.
+ * POST /
+ *		Add meetings
+ *		Body is an array of objects that are the meetings to add
+ *		Returns an object with parameters:
+ *			meetings:array 		An array of objects that are the meetings as added
+ *			webexMeetings:array An array of Webex meeting objects associated with the meetings added
  *
- * PATCH /meetings (updates[])
- *		Update meetings. The body contains an array of updates with shape {id, changes}, where id identifies the meeting and changes is an object
- *		with parameters changes.
- *		Returns an object {meetings[], webexMeetings[]},
+ * PATCH /
+ *		Update meetings.
+ *		Body is an array of objects with shape {id, changes}, where id identifies the meeting and changes is an object
+ *		with parameters that change.
+ *		Returns an object with parameters:
+ *			meetings:array 		An array of objects that are the updated meetings
+ *			webexMeetings:array An array of Webex meeting objects associated with the updated meetings
  * 
- * DELETE /meetings (ids[])
- *		Delete meetings. The body contains an array of meeting IDs.
+ * DELETE /
+ *		Delete meetings.
+ *		Body is an array of meeting IDs.
  *		Returns the number of meetings deleted.
  */
+import {Router} from 'express';
 
 import {
 	getMeetings,
@@ -27,7 +41,7 @@ import {
 	deleteMeetings,
 } from '../services/meetings';
 
-const router = require('express').Router();
+const router = Router();
 
 router.get('/$', async (req, res, next) => {
 	try {

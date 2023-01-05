@@ -1,10 +1,14 @@
 /*
  * Supply a list of time zones
+ *
+ * GET /
+ *      Returns an array of strings that is the set of valid timezones.
  */
+import {Router} from 'express';
+import {DateTime} from 'luxon';
+import {zones} from 'tzdata';
 
-const router = require('express').Router();
-const {DateTime} = require('luxon');
-const {zones} = require('tzdata');
+const router = Router();
 
 const timezones = Object.keys(zones)
     .filter(tz => DateTime.local().setZone(tz).isValid)

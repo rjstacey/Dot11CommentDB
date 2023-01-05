@@ -15,10 +15,15 @@ const myProjectCommentsHeader = [
 ]
 
 function parseMyProjectComment(c) {
+
+	// MyProject uses <last name>, <first name> for comments but <first name> <last name> for results
+	let [lastName, firstName] = c[3].split(', ');
+	let name = (firstName? firstName + ' ': '') + lastName;
+
 	let comment = {
 		C_Index: c[0],								// Comment ID
 		CommenterSAPIN: null,
-		CommenterName: c[3],						// Name
+		CommenterName: name,						// Name
 		CommenterEmail: c[4],						// Email
 		Category: c[11]? c[11].charAt(0): '',		// Category: first letter only (G, T or E)
 		C_Page: c[12] || '',						// Page

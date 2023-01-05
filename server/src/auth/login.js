@@ -1,8 +1,9 @@
+import {Router} from 'express';
 import { createIeeeFetcher } from '../utils';
+import users from './users';
 
 //const cheerio = require('cheerio');
 const db = require('../utils/database');
-const users = require('./users');
 const jwt = require('./jwt');
 
 const loginUrl = '/pub/login';
@@ -98,7 +99,7 @@ function logout(ieeeClient) {
  * POST /login: login with supplied credentials and return user information
  * POST /logout: logout
  */
-const router = require('express').Router();
+const router = Router();
 
 router.get('/login', async (req, res, next) => {
 	try {

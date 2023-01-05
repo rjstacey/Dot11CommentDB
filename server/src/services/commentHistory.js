@@ -1,4 +1,4 @@
-const db = require('../utils/database');
+import db from '../utils/database';
 
 const jsonField = (field) => `JSON_UNQUOTE(JSON_EXTRACT(Changes, "$.${field}")) AS ${field}`;
 

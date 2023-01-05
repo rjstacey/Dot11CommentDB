@@ -1,7 +1,7 @@
 /*
  * Handle results spreadsheet
  */
-const ExcelJS = require('exceljs');
+import ExcelJS from 'exceljs';
 
 function populateResultsWorksheet(ws, results) {
 	const b = results.ballot, r = results.summary;

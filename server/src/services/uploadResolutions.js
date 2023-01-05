@@ -1,11 +1,10 @@
-'use strict'
 
 import { v4 as uuid } from 'uuid';
 
+import db from '../utils/database';
+
 import {parseCommentsSpreadsheet} from './commentsSpreadsheet';
 import {getComments, getCommentsSummary} from './comments';
-
-const db = require('../utils/database');
 
 const matchClause = (dbValue, sValue) => {
 	if (dbValue === sValue)

@@ -3,11 +3,14 @@ const {SESClient, SendEmailCommand} = require("@aws-sdk/client-ses");
 
 const region = 'us-west-2';
 let credentials;
-//if (process.env.NODE_ENV === 'development') {
-	credentials = fromIni({profile: 'profile eb-cli'});
-//}
-console.log(region, credentials)
-const sesClient = new SESClient({region, credentials});
+let sesClient;
+
+export function init() {
+	if (process.env.NODE_ENV === 'development')
+		credentials = fromIni({profile: 'profile eb-cli'});
+
+	sesClient = new SESClient({region, credentials});
+}
 
 // Set the parameters
 const defaultParams = {
@@ -46,11 +49,13 @@ const defaultParams = {
 };
 
 export async function sendEmail(user, email) {
+	if (!sesClient)
+		throw new Error('eMail service has not been initialized');
+
 	const params = {
 		...email,
 		Source: "noreply@802tools.org",
 	}
-	console.log(params)
 	const data = await sesClient.send(new SendEmailCommand(params));
 	return data;
 }

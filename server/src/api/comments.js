@@ -1,13 +1,68 @@
 /*
  * Comments API
  *
- * GET /comments/{ballotId} - return an array with all comments for a given ballot
- * PUT /comments - update a comments; returns the updated comments
- * DELETE /comments/{ballotId} - delete all comments for a given ballot
- * POST /comments/importFromEpoll/{ballotId}/{epollNum} - replace existing comments (if any) with comments imported from an epoll on mentor
- * POST /comments/upload/{ballotId}/{type} - import comments from a file; file format determined by type
- * GET /exportComments/myProject - export resolved comments in a form suitable for MyProject upload
+ * GET /{ballotId}
+ *		Get list of comments for given ballot
+ *		Query string paramters:
+ *			modifiedSince:string - Optional date as ISO string.
+ *		Return an array with all comments for a given ballot. If the modifiedSince parameter is provided, then returns comments for the given ballot
+ *		that were modified after the modifiedSince timestamp.
+ *
+ * PATCH /{ballotId}
+ *		Update comments
+ *		URL parameters:
+ *			ballotId:any 			Identifies the ballot
+ *		Body is object with parameters:
+ *			updates:array 			Array of objects with shape {id:any, changes:object}
+ *			ballot_id				The ballot identifier
+ *			modifiedSince:string 	Optional. Datetime in ISO format.
+ *		Returns an array of resolution objects that were updated after the modidifiedSince timestamp.
+ *
+ * PATCH /{ballotId}/startCommentId
+ *		Renumber comments
+ *		URL parameters:
+ *			ballotId:any 	Identifies the ballot
+ *		Body is object with parameters:
+ *			StartCommentID:number 	The number to begin comment numbering from
+ *		Returns an array of resolution objects that is the complete list of resolutions for the identified ballot.
+ *
+ * DELETE /{ballotId}
+ *		Delete all comments (and resolutions) for a given ballot
+ *		URL parameters:
+ *			ballotId:any 	Identifies the ballot
+ *
+ * POST /{ballotId}/importFromEpoll/{epollNum}
+ * 		Replace existing comments (if any) with comments imported from an ePoll ballot
+ *		URL parameters:
+ *			ballotId:any 	Identifies the ballot
+ *			epollNum:number Identifies teh ePoll
+ *		Returns an array of resolution objects that is the complete list of resolutions for the identified ballot.
+ *
+ * POST /{ballotId}/upload
+ *		Import comments from a file
+ *		URL parameters:
+ *			ballotId:any 	Identifies the ballot
+ *		Multipart body parameters:
+ *			The spreadsheet file
+ *			params - a JSON object {StartCID:number}
+ *		The format of the spreadsheet file is determined by the ballot type.
+ *		For an SA ballot, the file is MyProject format.
+ *		For WG ballot, the file is ePoll comments .csv file.
+ *		Returns an array of resolution objects that is the complete list of resolutions for the identified ballot.
+ *
+ * POST /{ballotId}/export/{format} Multipart: file
+ *		Export comments for a given ballot in specified format.
+ *		URL parameters:
+ *			format:string 	One of 'MyProject', 'Legacy', or 'Modern'
+ *		Multipart body parameters:
+ *			spreadsheet file - optional for @format == 'Legacy' and @format == 'Modern', mandatory for @format == 'MyProject'
+ *			params - JSON object {Filename:string, Style:string}
+ *		If the spreadsheet is provided, then the spreadsheet is updated with the resolutions
+ *		Returns an array of resolution objects that is the complete list of resolutions for the identified ballot.
+ *
  */
+import {Router} from 'express';
+
 import {
 	getComments,
 	updateComments,
@@ -23,7 +78,7 @@ import {
 } from '../services/resolutions';
 
 const upload = require('multer')();
-const router = require('express').Router();
+const router = Router();
 
 router.get('/:ballot_id(\\d+)', async (req, res, next) => {
 	try {

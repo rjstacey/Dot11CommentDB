@@ -1,25 +1,35 @@
 /*
  * Google calendar accounts API
  *
- * GET /calendar/accounts 
+ * GET /accounts 
  *		Get a list of calendar accounts
  *
- * POST /calendar/accounts (account)
- *		Add a calendar account. Body contains an object that is the account to be added.
+ * POST /accounts
+ *		Add a calendar account.
+ *		Body is an object that is the account to be added.
  *		Returns an object that is the account added.
  *
- * PATCH /calendar/accounts/{accountId} (changes)
- *		Update a calendar account identified by accountId. Body contains an object with parameters to change.
+ * PATCH /accounts/{accountId}
+ *		Update a calendar account
+ *		URL parameters:
+ *			accoundId:any 	Identified the account
+ *		Body is an object with parameters to be changed.
  *		Returns an object that is the updated account.
  *
- * PATCH /calendar/accounts/{accountId}/revoke
- *		Revoke access to a calendar account identified by accountId.
+ * PATCH /accounts/{accountId}/revoke
+ *		Revoke access to a calendar account.
+ *		URL parameters:
+ *			accoundId:any 	Identifies the account
  *		Returns an object that is the updated account.
  *
- * DELETE /calendar/accounts/{accountId}
- * 		Delete the calendar account identified by accountId.
+ * DELETE /accounts/{accountId}
+ * 		Delete a calendar account.
+ *		URL parameters:
+ *			accoundId:any 	Identifies the account
  *		Returns 1.
  */
+import {Router} from 'express';
+
 import {isPlainObject} from '../utils';
 
 import {
@@ -31,7 +41,7 @@ import {
 	deleteCalendarAccount,
 } from '../services/calendar';
 
-const router = require('express').Router();
+const router = Router();
 
 router.get('/accounts', async (req, res, next) => {
 	try {

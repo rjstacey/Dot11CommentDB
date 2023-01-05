@@ -1,6 +1,5 @@
-'use strict';
+import mysql from 'mysql2';
 
-const mysql = require('mysql2');
 let ppool;
 
 export function init() {
@@ -12,6 +11,7 @@ export function init() {
 			user: process.env.DB_USER,
 			password: process.env.DB_PASSWORD,
 			database: process.env.DB_DATABASE,
+			timezone: '-08:00'
 		}
 	}
 	else {
@@ -34,6 +34,7 @@ export function init() {
 	
 	const pool = mysql.createPool(options);
 	ppool = pool.promise();
+	ppool.query("SET time_zone='-08:00';");
 }
 
 export const getPool = () => ppool;
@@ -42,3 +43,12 @@ export const query2 = (...args) => ppool.query(...args);
 export const escape = mysql.escape;
 export const escapeId = mysql.escapeId;
 export const format = mysql.format;
+
+export default {
+	init,
+	query,
+	query2,
+	escape,
+	escapeId,
+	format
+};

@@ -1,21 +1,26 @@
 /*
  * Groups API
  *
- * GET /groups
- *		Returns an array of groups
+ * GET /
+ *		Returns an array of group objects.
  *
- * POST /groups (groups[])
- *		Add groups. Body contains an array of group objects.
- *		Returns an array of groups added
+ * POST /
+ *		Add groups.
+ *		Body is an array of group objects to be added.
+ *		Returns an array of group objects as added
  *
- * PUT /groups (updates[])
- *		Update groups. Body contains an array of updates, objects with shape {id, changes}, where changes is an object with parameters that are changed.
- *		Returns an arrays of groups updated.
+ * PUT /
+ *		Update groups.
+ *		Body is an array of objects with shape {id, changes}, where id identifies the group and changes is an object
+ *		with parameters to be changed.
+ *		Returns an array of group objects as updated.
  *
- * DELETE /groups (ids[])
- *		Delete groups. Body contains an array of group IDs.
+ * DELETE /
+ *		Delete groups.
+ *		Body is an array of group identifiers.
  *		Returns the number of groups deleted.
  */
+import {Router} from 'express';
 
 import {
 	getGroups,
@@ -24,7 +29,7 @@ import {
 	removeGroups
 } from '../services/groups';
 
-const router = require('express').Router();
+const router = Router();
 
 router.get('/$', async (req, res, next) => {
 	try {

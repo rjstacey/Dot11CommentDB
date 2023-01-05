@@ -1,9 +1,10 @@
 /*
  * 802 World schedule API
  */
+import {Router} from 'express';
 import axios from 'axios';
 
-const router = require('express').Router();
+const router = Router();
 
 const url = 'https://schedule.802world.com/schedule/schedule/show.json';
 
