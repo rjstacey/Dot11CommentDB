@@ -29,7 +29,7 @@
     "googleapis": "^108.0.0",
     "http-cookie-agent": "^4.0.2",
     "jsonwebtoken": "^8.5.1",
-    "luxon": "^2.4.0",
+    "luxon": "^2.5.2",
     "multer": "^1.4.1",
     "mysql2": "^2.2.5",
     "prop-types": "^15.8.1",
