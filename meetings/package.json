@@ -1,0 +1,52 @@
+{
+  "name": "meetings",
+  "version": "0.1.0",
+  "private": true,
+  "homepage": "meetings",
+  "proxy": "http://localhost:8080",
+  "dependencies": {
+    "@reduxjs/toolkit": "^1.9.1",
+    "copy-html-to-clipboard": "^4.0.1",
+    "dot11-components": "^1.0.133",
+    "idb-keyval": "^6.2.0",
+    "luxon": "^3.2.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-helmet": "^6.1.0",
+    "react-router-dom": "^5.3.4",
+    "react-scripts": "^5.0.1",
+    "react-tabs": "^5.1.0",
+    "react-virtualized-auto-sizer": "^1.0.7",
+    "redux-logger": "^3.0.6",
+    "redux-persist": "^6.0.0",
+    "uuid": "^8.3.2",
+    "web-vitals": "^1.1.2"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "http-proxy-middleware": "^0.19.2"
+  }
+}
