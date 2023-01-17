@@ -9,7 +9,7 @@
     "copy-html-to-clipboard": "^4.0.1",
     "dot11-components": "^1.0.122",
     "idb-keyval": "^6.2.0",
-    "luxon": "^2.5.0",
+    "luxon": "^2.5.2",
     "react": "^18.2.0",
     "react-color": "^2.19.3",
     "react-dom": "^18.2.0",
