@@ -7,6 +7,7 @@ import cheerio from 'cheerio';
 import { csvParse, AuthError, NotFoundError } from '../utils';
 import { webexMeetingImatLocation } from './meetings';
 import { getGroups } from './groups';
+import { getSessions } from './sessions';
 
 const FormData = require('form-data');
 
@@ -617,7 +618,8 @@ export async function deleteImatBreakouts(user, imatMeetingId, ids) {
 	breakouts.forEach(b => params['f5_' + b.formIndex] = b.id);
 	breakoutsToDelete.forEach(b => params['f1_' + b.formIndex] = 'on');
 
-	await ieeeClient.post(`/802.11/meeting-detail?p=${imatMeetingId}`, params);
+	console.log(params)
+	await ieeeClient.post(`/${imatMeeting.organizerId}/meeting-detail?p=${imatMeetingId}`, params);
 
 	return ids.length;
 }
@@ -653,7 +655,7 @@ async function updateImatBreakout(user, imatMeeting, breakout) {
 		throw new Error(m? m[1]: 'An unexpected error occured');
 	}
 
-	/* From the response, find the breakout we just update */
+	/* From the response, find the breakout we just updated */
 	const {breakouts} = parseSessionDetailPage(response.data);
 	//console.log(breakouts);
 
@@ -799,7 +801,7 @@ function slotDateTime(date, slot) {
 	];
 }
 
-async function meetingToBreakout(user, imatMeeting, timeslots, committees, meeting, webexMeeting) {
+async function meetingToBreakout(user, imatMeeting, timeslots, committees, session, meeting, webexMeeting, breakout) {
 
 	const sessionStart = DateTime.fromISO(imatMeeting.start, {zone: imatMeeting.timezone});
 	const sessionEnd = DateTime.fromISO(imatMeeting.end, {zone: imatMeeting.timezone}).plus({days: 1});
@@ -870,13 +872,6 @@ async function meetingToBreakout(user, imatMeeting, timeslots, committees, meeti
 	if (endSlot && slotDateTime(breakoutDate, endSlot)[1].toFormat("HH:mm") === endTime)
 		endTime = '';
 
-	let location = meeting.location || '';
-	if (meeting.isCancelled)
-		location = 'CANCELLED';
-
-	if (!location && meeting.webexAccountId && webexMeeting)
-		location = await webexMeetingImatLocation(meeting.webexAccountId, webexMeeting);
-	console.log(meeting)
 	const [group] = await getGroups({id: meeting.organizationId});
 	if (!group)
 		throw new TypeError(`Can't find group id=${meeting.organizationId}`);
@@ -886,11 +881,53 @@ async function meetingToBreakout(user, imatMeeting, timeslots, committees, meeti
 		throw new TypeError(`Can't find committee symbol=${group.symbol}`);
 	const groupId = committee.id;
 
+	let location = meeting.location;
+	let credit,
+		creditOverideNumerator = 0,
+		creditOverideDenominator = 0;
+
+	if (breakout) {
+		credit = breakout.credit;
+		creditOverideNumerator = breakout.creditOverideNumerator;
+		creditOverideDenominator = breakout.creditOverideDenominator;
+	}
+
+	if (session && (session.type === 'p' || session.type === 'i')) {
+		if (Array.isArray(session.rooms)) {
+			const room = session.rooms.find(room => room.id === meeting.roomId);
+			if (room)
+				location = room.name;
+		}
+
+		if (!credit && Array.isArray(session.defaultCredits)) {
+			const dayCredits = session.defaultCredits[day];
+			if (typeof dayCredits === 'object') {
+				credit = dayCredits[startSlot.name];
+				creditOverideNumerator = 0;
+				creditOverideDenominator = 0;
+			}
+		}
+	}
+
+	if (!location && meeting.webexAccountId && webexMeeting)
+		location = await webexMeetingImatLocation(meeting.webexAccountId, webexMeeting);
+
+	if (!credit) {
+		credit = 'Zero';
+		creditOverideNumerator = 0;
+		creditOverideDenominator = 0;
+	}
+
 	let name = meeting.summary;
-	name = name.replace(/^802.11/, '');
-	name = name.trim();
-	if (meeting.isCancelled)
+	name = name.replace(/^802.11/, '').trim();
+
+	if (meeting.isCancelled) {
 		name = 'CANCELLED - ' + name;
+		location = 'CANCELLED';
+		credit = 'Zero';
+		creditOverideNumerator = 0;
+		creditOverideDenominator = 0;
+	}
 
 	return {
 		name,
@@ -904,33 +941,48 @@ async function meetingToBreakout(user, imatMeeting, timeslots, committees, meeti
 		endSlotId: endSlot.id,
 		startTime,
 		endTime,
-		credit: "Zero",
-		creditOverideNumerator: 0,
-		creditOverideDenominator: 0,
+		credit,
+		creditOverideNumerator,
+		creditOverideDenominator,
 		facilitator: user.Email
 	}
 }
 
-export async function addImatBreakoutFromMeeting(user, imatMeetingId, meeting, webexMeeting) {
+export async function addImatBreakoutFromMeeting(user, session, meeting, webexMeeting) {
+
+	const {imatMeetingId} = meeting;
+
 	const {imatMeeting, breakouts, timeslots, committees} = await getImatBreakouts(user, imatMeetingId);
 
-	const breakout = await meetingToBreakout(user, imatMeeting, timeslots, committees, meeting, webexMeeting);
+	const breakout = await meetingToBreakout(user, imatMeeting, timeslots, committees, session, meeting, webexMeeting);
 
 	//console.log('added breakout: ', breakout);
 	return addImatBreakout(user, imatMeeting, breakout, timeslots);
 }
 
-export async function updateImatBreakoutFromMeeting(user, imatMeetingId, breakoutId, meeting, webexMeeting) {
+export async function updateImatBreakoutFromMeeting(user, session, meeting, webexMeeting) {
+
+	const {imatMeetingId, imatBreakoutId} = meeting;
+	if (!imatMeetingId)
+		throw new TypeError('IMAT meeting ID not specified');
+	if (!imatBreakoutId)
+		throw new TypeError('IMAT breakout ID not specified');
+
 	const {imatMeeting, breakouts, timeslots, committees} = await getImatBreakouts(user, imatMeetingId);
 
-	const breakout = breakouts.find(b => b.id === breakoutId);
+	const breakout = breakouts.find(b => b.id === imatBreakoutId);
 	if (!breakout)
-		throw new NotFoundError(`Breakout id=${breakoutId} does not exist for imatMeetingId=${imatMeetingId}`);
+		throw new NotFoundError(`Breakout id=${imatBreakoutId} does not exist for imatMeetingId=${imatMeetingId}`);
 
-	const updatedBreakout = await meetingToBreakout(user, imatMeeting, timeslots, committees, meeting, webexMeeting);
-	updatedBreakout.id = breakoutId;
+	console.log(meeting)
+	const updatedBreakout = await meetingToBreakout(user, imatMeeting, timeslots, committees, session, meeting, webexMeeting, breakout);
+	updatedBreakout.id = imatBreakoutId;
 	updatedBreakout.editContext = breakout.editContext;
 	updatedBreakout.editGroupId = breakout.editGroupId;
+	updatedBreakout.credit = breakout.credit;	// don't update credit (this is often overriden in imat itself)
+	updatedBreakout.creditOverideNumerator = breakout.creditOverideNumerator;
+	updatedBreakout.creditOverideDenominator = breakout.creditOverideDenominator;
+
 
 	let doUpdate =
 		breakout.name !== updatedBreakout.name ||

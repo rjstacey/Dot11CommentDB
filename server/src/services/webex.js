@@ -319,7 +319,7 @@ export async function getWebexMeetings({groupId, fromDate, toDate, timezone, ids
 		const api = getWebexApi(account.id);
 
 		const from = fromDate? DateTime.fromISO(fromDate, {zone: timezone}): DateTime.now().setZone(timezone);
-		const to = toDate? DateTime.fromISO(toDate, {zone: timezone}): from.plus({years: 1});
+		const to = toDate? DateTime.fromISO(toDate, {zone: timezone}).plus({days: 1}): from.plus({years: 1});
 		const params = {
 			meetingType: 'scheduledMeeting',
 			scheduledType: 'meeting',

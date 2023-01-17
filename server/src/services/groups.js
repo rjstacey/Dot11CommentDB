@@ -27,6 +27,21 @@ export function getGroups(constraints) {
 	return db.query(sql);
 }
 
+export async function getGroup(groupId) {
+	const groups = await getGroups({id: groupId});
+	return groups[0];
+}
+
+export async function getWorkingGroup(groupId) {
+	const group = await getGroup(groupId);
+	if (group &&
+		group.type.search(/^(tg|sg|sc|ah)/) !== -1 &&
+		group.parent_id) {
+		return getGroup({id: group.parent_id});
+	}
+	return group;
+}
+
 async function addGroup({id, parent_id, ...rest}) {
 	if (!id)
 		id = uuid();

@@ -32,11 +32,19 @@ const getSessionsSQL = () =>
 		'imatMeetingId, ' +
 		'OrganizerID, ' +
 		'timeslots, ' +
-		'rooms, ' +
-		'(SELECT COUNT(*) FROM breakouts WHERE session_id=m.id) AS Breakouts, ' +
-		'(' + getSessionTotalCreditSQL('m.id') + ') AS TotalCredit, ' +
-		'(SELECT COUNT(DISTINCT(SAPIN)) FROM attendance_summary WHERE session_id=m.id) AS Attendees ' +
-	'FROM sessions m';
+		'defaultCredits, ' +
+		'COALESCE(r.rooms, JSON_ARRAY()) AS rooms, ' +
+		'(SELECT COUNT(*) FROM breakouts WHERE session_id=s.id) AS Breakouts, ' +
+		'(' + getSessionTotalCreditSQL('s.id') + ') AS TotalCredit, ' +
+		'(SELECT COUNT(DISTINCT(SAPIN)) FROM attendance_summary WHERE session_id=s.id) AS Attendees ' +
+	'FROM sessions s ' +
+	'LEFT JOIN (' +
+			'SELECT ' +
+				'sessionId, ' +
+				'JSON_ARRAYAGG(JSON_OBJECT("id", id, "name", name, "description", description)) AS rooms ' +
+			'FROM rooms GROUP BY sessionId' +
+		') AS r ON s.id=r.sessionId';
+
 
 /*
  * Get session attendees with attendance for obselete SAPINs mapped to the new SAPIN
@@ -145,6 +153,11 @@ export function getSessions(constraints) {
 	return db.query({sql, dateStrings: true});
 }
 
+export async function getSession(id) {
+	const sessions = await getSessions({id});
+	return sessions[0];
+}
+
 function sessionEntrySetSql(s) {
 	const entry = {
 		name: s.name,
@@ -155,24 +168,21 @@ function sessionEntrySetSql(s) {
 	};
 
 	if (typeof s.timezone !== 'undefined') {
-		if (DateTime.local().setZone(s.timezone).isValid)
-			entry.timezone = s.timezone;
-		else
+		if (!DateTime.local().setZone(s.timezone).isValid)
 			throw new TypeError('Invalid parameter timezone: ' + s.timezone);
+		entry.timezone = s.timezone;
 	}
 
 	if (typeof s.startDate !== 'undefined') {
-		if (DateTime.fromISO(s.startDate).isValid)
-			entry.startDate = s.startDate;
-		else
+		if (!DateTime.fromISO(s.startDate).isValid)
 			throw new TypeError('Invlid parameter startDate: ' + s.startDate);
+		entry.startDate = s.startDate;
 	}
 
 	if (typeof s.endDate !== 'undefined') {
-		if (DateTime.fromISO(s.endDate).isValid)
-			entry.endDate = s.endDate;
-		else
+		if (!DateTime.fromISO(s.endDate).isValid)
 			throw new TypeError('Invlid parameter endDate: ' + s.endDate);
+		entry.endDate = s.endDate;
 	}
 
 	if (typeof s.timeslots !== 'undefined') {
@@ -181,10 +191,15 @@ function sessionEntrySetSql(s) {
 		entry.timeslots = JSON.stringify(s.timeslots);
 	}
 
+	if (typeof s.defaultCredits !== 'undefined') {
+		if (!Array.isArray(s.defaultCredits))
+			throw new TypeError('Invlid parameter defaultCredits: ' + s.defaultCredits);
+		entry.defaultCredits = JSON.stringify(s.defaultCredits);
+	}
+
 	if (typeof s.rooms !== 'undefined') {
 		if (!Array.isArray(s.rooms))
 			throw new TypeError('Invlid parameter rooms: ' + s.rooms);
-		entry.rooms = JSON.stringify(s.rooms);
 	}
 
 	for (const key of Object.keys(entry)) {
@@ -205,27 +220,39 @@ function sessionEntrySetSql(s) {
 	return sets.join(', ');
 }
 
+function replaceSessionRooms(sessionId, rooms) {
+	let sql = db.format('DELETE FROM rooms WHERE sessionId=?;', [sessionId]);
+	if (rooms.length > 0)
+		sql += rooms.map(room => db.format('INSERT INTO rooms SET ?;', [{sessionId, ...room}])).join('');
+	console.log(sql)
+	return db.query(sql);
+}
+
 export async function addSession(session) {
 	const setSql = sessionEntrySetSql(session);
-	const {insertId} = await db.query({sql: `INSERT INTO sessions ${setSql};`, dateStrings: true});
+	const {insertId} = await db.query({sql: `INSERT INTO sessions SET ${setSql};`, dateStrings: true});
+	if (session.rooms)
+		await replaceSessionRooms(insertId, rooms);
 	const [insertedSession] = await getSessions({id: insertId});
 	return insertedSession;
 }
 
 export async function updateSession(id, changes) {
 	const setSql = sessionEntrySetSql(changes);
-	if (setSql) {
+	if (setSql)
 		await db.query({sql: `UPDATE sessions SET ${setSql} WHERE id=?;`, dateStrings: true},  [id]);
-		const sessions = await getSessions({id});
-		return sessions[0];
-	}
 
-	return {id};
+	if (changes.rooms)
+		await replaceSessionRooms(id, changes.rooms);
+
+	const sessions = await getSessions({id});
+	return sessions[0];
 }
 
 export async function deleteSessions(ids) {
 	const results = await db.query(
 		db.format('DELETE FROM sessions WHERE id IN (?);', [ids]) +
+		db.format('DELETE FROM rooms WHERE sessionId IN (?);', [ids]) +
 		db.format('DELETE FROM attendance WHERE session_id IN (?);', [ids]) +
 		db.format('DELETE FROM attendance_summary WHERE session_id IN (?);', [ids]) +
 		db.format('DELETE FROM breakouts WHERE session_id IN (?);', [ids])
