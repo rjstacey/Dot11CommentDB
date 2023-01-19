@@ -37,7 +37,7 @@ export async function getWorkingGroup(groupId) {
 	if (group &&
 		group.type.search(/^(tg|sg|sc|ah)/) !== -1 &&
 		group.parent_id) {
-		return getGroup({id: group.parent_id});
+		return getGroup(group.parent_id);
 	}
 	return group;
 }
