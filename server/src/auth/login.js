@@ -1,6 +1,7 @@
 import {Router} from 'express';
 import { createIeeeFetcher } from '../utils';
 import users from './users';
+import {getUser} from '../services/members';
 
 //const cheerio = require('cheerio');
 const db = require('../utils/database');
@@ -121,12 +122,7 @@ router.post('/login', async (req, res, next) => {
 
 		const {SAPIN, Name, Email} = await login(ieeeClient, username, password);
 
-		const SQL = 'SELECT SAPIN, Name, Email, Status, Access FROM members WHERE ' +
-			(SAPIN > 0? `SAPIN=${db.escape(SAPIN)}`: `Email=${db.escape(Email)}`);
-		const results = await db.query(SQL);
-		const user = (results.length > 0)
-			? results[0]
-			: {SAPIN, Name, Email, Access: 0};
+		const user = (await getUser({SAPIN, Email})) || {SAPIN, Name, Email, Access: 0, Permissions: []};
 
 		/* Hack: adjust my access */
 		if (user.SAPIN === 5073)
