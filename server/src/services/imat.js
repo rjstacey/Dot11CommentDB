@@ -493,7 +493,7 @@ export async function getImatBreakouts(user, imatMeetingId) {
 		const startSlot = timeslots.find(t => t.name === b.startSlot.name);
 		if (startSlot)
 			b.startSlotId = startSlot.id;
-		const endSlot = timeslots.find(t => t.name === b.startSlot.name);
+		const endSlot = timeslots.find(t => t.name === b.endSlot.name);
 		if (endSlot)
 			b.endSlotId = endSlot.id;
 		const committee = committees.find(c => c.shortName === b.groupShortName);
