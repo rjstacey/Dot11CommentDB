@@ -1,6 +1,7 @@
 import React from 'react';
 import {BrowserRouter as Router} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {Helmet} from 'react-helmet';
 
 import {ErrorModal, ConfirmModal} from 'dot11-components/modals';
 import Header from './Header';
@@ -13,16 +14,25 @@ const OuterDiv = styled.div`
 	align-items: center;
 `;
 
+const title = '802.11 Members';
+const description = 'Manage 802.11 membership';
+
 function App() {
 	return (
-		<Router basename='/telecons'>
-			<OuterDiv>
-				<Header />
-				<Body />
-				<ErrorModal />
-				<ConfirmModal />
-			</OuterDiv>
-		</Router>
+		<>
+			<Helmet>
+				<title>{title}</title>
+				<meta name='description' content={description} />
+			</Helmet>
+			<Router basename='/membership'>
+				<OuterDiv>
+					<Header />
+					<Body />
+					<ErrorModal />
+					<ConfirmModal />
+				</OuterDiv>
+			</Router>
+		</>
 	)
 }
 

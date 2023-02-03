@@ -3,83 +3,36 @@ import {NavLink, useLocation} from 'react-router-dom';
 import {useSelector} from 'react-redux';
 
 import Account from 'dot11-components/general/Account';
-import {AccessLevel} from 'dot11-components/lib/user';
 import Dropdown from 'dot11-components/dropdown';
 
 import './header.css';
 
-import {selectUser} from '../store/user';
-import {selectGroupName} from '../store/groups';
+import {selectUser, selectUserMembershipAccess, AccessLevel} from '../store/user';
 
 const fullMenu = [
 	{
-		minAccess: AccessLevel.WGAdmin,
-		link: '/accounts',
-		label: 'Accounts',
+		minAccess: AccessLevel.admin,
+		link: '/members',
+		label: 'Members',
 	},
 	{
-		minAccess: AccessLevel.WGAdmin,
-		prefixGroupName: true,
-		link: '/organization',
-		label: 'Organization',
-	},
-	{
-		minAccess: AccessLevel.WGAdmin,
-		prefixGroupName: true,
+		minAccess: AccessLevel.ro,
 		link: '/sessions',
 		label: 'Sessions',
 	},
-	{
-		minAccess: AccessLevel.WGAdmin,
-		prefixGroupName: true,
-		link: '/meetings',
-		label: 'Meetings',
-	},
-	{
-		minAccess: AccessLevel.WGAdmin,
-		prefixGroupName: true,
-		link: '/webexMeetings',
-		label: 'Webex',
-	},
-	{
-		minAccess: AccessLevel.WGAdmin,
-		prefixGroupName: true,
-		link: '/imatBreakouts',
-		label: 'IMAT breakouts',
-	},
-	{
-		minAccess: AccessLevel.WGAdmin,
-		prefixGroupName: true,
-		link: '/imatMeetings',
-		label: 'IMAT sessions',
-	},
-	{
-		minAccess: AccessLevel.WGAdmin,
-		prefixGroupName: true,
-		link: '/calendar',
-		label: 'Calendar',
-	},
-	{
-		minAccess: AccessLevel.WGAdmin,
-		prefixGroupName: true,
-		link: '/ieee802World',
-		label: '802 world schedule',
-	},
-
 ];
 
 const NavItem = (props) => <NavLink className={'nav-link' + (props.isActive? ' active': '')} {...props} />
 
-function NavMenu({className, access, methods}) {
-	const groupName = useSelector(selectGroupName);
+function NavMenu({className, methods}) {
+	const access = useSelector(selectUserMembershipAccess);
 
 	let classNames = 'nav-menu';
 	if (className)
 		classNames += ' ' + className;
 
 	const menu = fullMenu
-		.filter(m => access >= m.minAccess)
-		.map(m => m.prefixGroupName? {...m, link: `/${groupName || '*'}` + m.link}: m);
+		.filter(m => access >= m.minAccess);
 
 	return (
 		<nav
@@ -111,15 +64,15 @@ function Header() {
 			{isSmall?
 				<Dropdown
 					selectRenderer={({isOpen, open, close}) => <div className='nav-menu-icon' onClick={isOpen? close: open}/>}
-					dropdownRenderer={(props) => <NavMenu className='nav-menu-vertical' access={user.Access} {...props} />}
+					dropdownRenderer={(props) => <NavMenu className='nav-menu-vertical' {...props} />}
 					dropdownAlign='left'
 				/>:
-				<div className='title'>Meetings</div>
+				<div className='title'>Membership</div>
 			}
 			<div className='nav-menu-container'>
 				{isSmall?
 					<label className='nav-link active'>{menuItem? menuItem.label: ''}</label>:
-					<NavMenu className='nav-menu-horizontal' access={user.Access} />
+					<NavMenu className='nav-menu-horizontal' />
 				}
 			</div>
 			<Account className='account' user={user} />
