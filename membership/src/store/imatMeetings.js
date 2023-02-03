@@ -29,6 +29,9 @@ export const fields = {
 export const dataSet = 'imatMeetings';
 //const selectId = (meeting) => meeting.MeetingNumber;
 
+/*
+ * Slice
+ */
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -36,10 +39,7 @@ const slice = createAppTableDataSlice({
 	initialState: {},
 });
 
-/*
- * Reducer
- */
-export default slice.reducer;
+export default slice;
 
 /*
  * Selectors

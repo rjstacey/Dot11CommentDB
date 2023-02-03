@@ -35,8 +35,10 @@ function MemberPermissions({
 
 	function addPermission(scope) {
 		const Permissions = member.Permissions.slice();
-		Permissions.push(scope);
-		updateMember({Permissions});
+		if (!Permissions.includes(scope)) {
+			Permissions.push(scope);
+			updateMember({Permissions});
+		}
 	}
 
 	const columns = React.useMemo(() => {

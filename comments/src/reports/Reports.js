@@ -2,6 +2,7 @@ import React from 'react';
 import {useHistory, useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {useDispatch, useSelector} from 'react-redux';
+import copyToClipboard from 'copy-html-to-clipboard';
 
 import {ActionButton, Button} from 'dot11-components/form';
 
@@ -9,6 +10,69 @@ import TopRow from '../components/TopRow';
 import BallotSelector from '../components/BallotSelector';
 import {loadComments, clearComments, selectCommentsState, getCID, getCommentStatus} from '../store/comments';
 import {setBallotId, getCurrentBallot, selectBallotsState} from '../store/ballots';
+
+const Table = styled.table`
+	display: grid;
+	grid-template-columns: auto auto auto auto auto;
+	border-spacing: 1px;
+	max-height: 100%;
+	overflow: auto;
+
+	thead, tbody, tr {
+		display: contents;
+	}
+
+	th, td {
+		padding: 10px;
+		border: gray solid 1px;
+		vertical-align: top;
+	}
+
+	th:first-of-type, td:first-of-type {
+		grid-column: 1;
+	}
+
+	tr:first-of-type td {
+		border-top: none;
+	}
+
+	tr:not(:last-of-type) td {
+		border-bottom: none;
+	}
+
+	th:not(:last-of-type),
+	td:not(:last-of-type) {
+		border-right: none;
+	}
+
+	th {
+		position: sticky;
+		top: 0;
+		background: #f6f6f6;
+		text-align: left;
+		font-weight: bold;
+		font-size: 1rem;
+	}
+
+	td {
+		display: flex;
+		align-items: center;	// vertical
+		justify-content: right;	// horizontal
+		padding-top: 5px;
+		padding-bottom: 5px;
+	}
+
+	td.empty {
+		grid-column: 1 / -1;
+		colspan: 0;
+		color: gray;
+		font-style: italic;
+	}
+
+	tr:nth-of-type(even) td {
+		background: #fafafa;
+	}
+`;
 
 function countsByCategory(comments) {
 	return {
@@ -79,26 +143,71 @@ function commentsByAssigneeAndCommentGroup(comments) {
 	return data;
 }
 
+function commentsByAdHocAndCommentGroup(comments) {
+	const adhocSet = [...new Set(comments.map(c => c.AdHoc))].sort()
+	const statusSet = new Set(comments.map(c => c.Status))
+	const data = [];
+	for (let name of adhocSet) {
+		const adhocComments = comments.filter(c => c.AdHoc === name)
+		const entry ={
+			'Ad-Hoc': name || '(Blank)',
+			'Comment Group': '',
+			...countsByStatus(statusSet, adhocComments)
+		}
+		data.push(entry)
+		const commentGroupsSet = [...new Set(adhocComments.map(c => c.CommentGroup))].sort()
+		for (let group of commentGroupsSet) {
+			const entry = {
+				Assignee: '',
+				'Comment Group': group || '(Blank)',
+				...countsByStatus(statusSet, adhocComments.filter(c => c.CommentGroup === group))
+			}
+			data.push(entry);
+		}
+	}
+	return data;
+}
+
+const commentsReport = {
+	'Comments by Commenter': commentsByCommenter,
+	'Comments by Assignee': commentsByAssignee,
+	'Comments by Assignee and Comment Group': commentsByAssigneeAndCommentGroup,
+	'Comments by Ad-Hoc and Comment Group': commentsByAdHocAndCommentGroup
+}
+
 function renderTable(data, ref) {
 
 	if (data.length === 0)
 		return <span>Empty</span>
 
-	const header = data.length > 0?
-		<tr key={-1}>{Object.keys(data[0]).map((d, i) => <th key={i}>{d}</th>)}</tr>:
-		null
-	const row = (r, i) => <tr key={i}>{Object.values(r).map((d, i) => <td key={i} width='100px'>{d}</td>)}</tr>
-
+	const header = <tr>{Object.keys(data[0]).map((d, i) => <th key={i}><span>{d}</span></th>)}</tr>;
+	const row = (r, i) => <tr key={i}>{Object.values(r).map((d, i) => <td key={i} ><span>{d}</span></td>)}</tr>;
 	return (
-		<table style={{borderCollapse: 'collapse'}} cellPadding='5' border='1' ref={ref}>
-			<thead>
-				{header}
-			</thead>
-			<tbody>
-				{data.map(row)}
-			</tbody>
-		</table>
+		<Table style={{borderCollapse: 'collapse'}} cellPadding='5' border='1' ref={ref}>
+			<thead>{header}</thead>
+			<tbody>{data.map(row)}</tbody>
+		</Table>
 	)
+}
+
+function renderTableToClipboard(data) {
+
+	if (data.length === 0)
+		return;
+
+	const header = `<tr>${Object.keys(data[0]).map((d) => `<th>${d}</th>`).join('')}</tr>`;
+	const row = (r) => `<tr>${Object.values(r).map((d) => `<td>${d}</td>`).join('')}</tr>`;
+	const table = `
+		<style>
+			table {border-collapse: collapse;}
+			table, th, td {border: 1px solid black;}
+			td {vertical-align: top; text-align: right;}
+		</style>
+		<table cellpadding="5" border="1">
+			<thead>${header}</thead>
+			<tbody>${data.map(row).join('')}</tbody>
+		</table>`;
+	copyToClipboard(table, {asHtml: true});
 }
 
 function Reports() {
@@ -148,16 +257,11 @@ function Reports() {
 				Status: getCommentStatus(c)
 			}
 		});
-		if (report === 'commentsbyassignee')
-			return commentsByAssignee(comments);
-		if (report === 'commentsbycommenter')
-			return commentsByCommenter(comments);
-		if (report === 'commentsbyassigneeandcommentgroup')
-			return commentsByAssigneeAndCommentGroup(comments);
-		return [];
+		const generateReport = commentsReport[report];
+		return generateReport? generateReport(comments): [];
 	}, [ids, entities, report]);
 
-	function copy() {
+	/*function copy() {
 		if (tableRef.current) {
 			var r = document.createRange();
 			r.selectNode(tableRef.current);
@@ -166,7 +270,7 @@ function Reports() {
 			document.execCommand('copy');
 			window.getSelection().removeAllRanges();
 		}
-	}
+	}*/
 
 	const ReportButton = ({report: thisReport, label}) => 
 		<Button
@@ -184,24 +288,18 @@ function Reports() {
 			<Body>
 				<ReportSelectCol>
 					<label>Select a report:</label>
-					<ReportButton
-						report='commentsbycommenter'
-						label='Comments by Commenter'
-					/>
-					<ReportButton
-						report='commentsbyassignee'
-						label='Comments by Assignee'
-					/>
-					<ReportButton
-						report='commentsbyassigneeandcommentgroup'
-						label='Comments by Assignee and Comment Group'
-					/>
+					{Object.keys(commentsReport).map(report => 
+							<ReportButton
+								report={report}
+								label={report}
+							/>
+						)}
 				</ReportSelectCol>
 				<ReportCol>
 					{renderTable(data, tableRef)}
 				</ReportCol>
 				<ReportCopyCol>
-					<ActionButton name='copy' onClick={copy} />
+					<ActionButton name='copy' onClick={() => renderTableToClipboard(data)} />
 				</ReportCopyCol>
 			</Body>
 		</>

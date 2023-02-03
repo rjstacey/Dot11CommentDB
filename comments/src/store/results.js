@@ -1,5 +1,5 @@
 //import {createSelector} from '@reduxjs/toolkit';
-import {fetcher} from 'dot11-components/lib';
+import {fetcher, isObject} from 'dot11-components/lib';
 import {createAppTableDataSlice, SortType} from 'dot11-components/store/appTableData';
 import {setError} from 'dot11-components/store/error';
 
@@ -98,11 +98,12 @@ export const loadResults = (ballot_id) =>
 		let response;
 		try {
 			response = await fetcher.get(url);
-			if (!response.hasOwnProperty('ballot') ||
-				!response.hasOwnProperty('VotingPoolSize') ||
-				!response.hasOwnProperty('results') ||
-				!response.hasOwnProperty('summary'))
-				throw new TypeError('Unexpected response to GET: ' + url);
+			if (!isObject(response) ||
+				!isObject(response.ballot) ||
+				typeof response.VotingPoolSize !== 'number' ||
+				!Array.isArray(response.results) ||
+				!isObject(response.summary))
+				throw new TypeError('Unexpected response to GET ' + url);
 		}
 		catch(error) {
 			const ballot = getState()['ballots'].entities[ballot_id];
@@ -164,7 +165,7 @@ export const importResults = (ballot_id, epollNum) =>
 		let response;
 		try {
 			response = await fetcher.post(url);
-			if (typeof response !== 'object' || typeof response.ballot !== 'object')
+			if (!isObject(response) || !isObject(response.ballot))
 				throw new TypeError("Unexpected reponse to POST: " + url);
 		}
 		catch(error) {
@@ -180,8 +181,8 @@ export const uploadEpollResults = (ballot_id, file) =>
 		let response;
 		try {
 			response = await fetcher.postMultipart(url, {ResultsFile: file})
-			if (typeof response !== 'object' || typeof response.ballot !== 'object')
-				throw TypeError("Unexpected reponse to POST: " + url);
+			if (!isObject(response) || !isObject(response.ballot))
+				throw TypeError("Unexpected reponse to POST " + url);
 		}
 		catch(error) {
 			await dispatch(setError("Unable to upload results", error));
@@ -196,8 +197,8 @@ export const uploadMyProjectResults = (ballot_id, file) =>
 		let response;
 		try {
 			response = await fetcher.postMultipart(url, {ResultsFile: file});
-			if (typeof response !== 'object' || typeof response.ballot !== 'object')
-				throw new TypeError("Unexpected reponse to POST: " + url);
+			if (!isObject(response) || !isObject(response.ballot))
+				throw new TypeError("Unexpected reponse to POST " + url);
 		}
 		catch(error) {
 			await dispatch(setError("Unable to upload results", error));

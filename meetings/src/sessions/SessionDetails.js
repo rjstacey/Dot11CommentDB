@@ -31,6 +31,8 @@ import {
 
 import {selectMeetingsState} from '../store/meetings';
 
+import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
+
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
 
@@ -162,7 +164,7 @@ function SessionBasics({
 						value={isMultiple(session.imatMeetingId)? '': session.imatMeetingId}
 						onChange={imatMeetingId => handleChange({imatMeetingId})}
 						placeholder={isMultiple(session.imatMeetingId)? MULTIPLE_STR: BLANK_STR}
-						disabled={readOnly}
+						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
@@ -314,7 +316,7 @@ class SessionDetail extends React.Component {
 	handleToggleEditEnabled = () => this.props.setUiProperty('editEnabled', !this.props.uiProperties.editEnabled);
 
 	render() {
-		const {style, className, loading, uiProperties, readOnly} = this.props;
+		const {style, className, loading, uiProperties, access} = this.props;
 		const {edited, ids} = this.state;
 
 		let notAvailableStr
@@ -323,6 +325,8 @@ class SessionDetail extends React.Component {
 		else if (ids.length === 0)
 			notAvailableStr = 'Nothing selected';
 		const disableButtons = !!notAvailableStr; 	// disable buttons if displaying string
+
+		const readOnly = access <= AccessLevel.ro;
 
 		return (
 				<DetailContainer
@@ -336,19 +340,19 @@ class SessionDetail extends React.Component {
 									name='edit'
 									title='Edit session'
 									disabled={disableButtons}
-									isActive={uiProperties.editEnabled}
+									isActive={uiProperties.editEnabled || readOnly}
 									onClick={this.handleToggleEditEnabled}
 								/>
 								<ActionButton
 									name='add'
 									title='Add a session'
-									disabled={disableButtons || !uiProperties.editEnabled}
+									disabled={disableButtons || !uiProperties.editEnabled || readOnly}
 									onClick={this.add}
 								/>
 								<ActionButton
 									name='delete'
 									title='Delete session'
-									disabled={disableButtons || !uiProperties.editEnabled}
+									disabled={disableButtons || !uiProperties.editEnabled || readOnly}
 									onClick={this.handleRemoveSelected}
 								/>
 							</>}
@@ -380,14 +384,12 @@ class SessionDetail extends React.Component {
 const ConnectedSessionDetail = connect(
 	(state) => {
 		const sessions = selectSessionsState(state);
-		const {entities, ids} = selectMeetingsState(state);
-		const telecons = ids.map(id => entities[id]);
 		return {
 			sessions: sessions.entities,
-			telecons,
 			loading: sessions.loading,
 			selected: sessions.selected,
 			uiProperties: sessions.ui,
+			access: selectUserMeetingsAccess(state)
 		}
 	},
 	{

@@ -205,6 +205,7 @@ function SessionCredit({
 							style={{width: '100%', background: 'transparent'}}
 							onClick={() => toggleDefaultCredit(x, timeslot.name)}
 							credit={defaultCredits[x][timeslot.name]}
+							disabled={readOnly}
 						/>
 					</GridCell>
 				))}

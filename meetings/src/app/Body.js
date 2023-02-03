@@ -3,8 +3,6 @@ import {Switch, Route} from 'react-router-dom';
 import {useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
-import {AccessLevel} from 'dot11-components/lib/user';
-
 import Accounts from '../accounts/Accounts';
 import Organization from '../organization/Organization';
 import Sessions from '../sessions/Sessions';
@@ -16,7 +14,7 @@ import ImatBreakouts from '../imat/ImatBreakouts';
 import ImatBreakoutAttendance from '../imat/ImatBreakoutAttendance';
 import Ieee802World from '../ieee802World/Ieee802World';
 
-import {selectUser} from '../store/user';
+import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
 
 const Main = styled.main`
 	flex: 1;
@@ -41,7 +39,7 @@ const RestrictedRoute = ({component: Component, access, minAccess, ...rest }) =>
 	/>
 
 function Body() {
-	const access = useSelector(selectUser).Access;
+	const access = useSelector(selectUserMeetingsAccess);
 
 	return (
 		<Main>
@@ -49,72 +47,72 @@ function Body() {
 				<RestrictedRoute
 					path="/accounts"
 					access={access}
-					minAccess={AccessLevel.WGAdmin}
+					minAccess={AccessLevel.admin}
 					component={Accounts}
 				/>
 				<RestrictedRoute
 					path="/:groupName/organization"
 					access={access}
-					minAccess={AccessLevel.WGAdmin}
+					minAccess={AccessLevel.ro}
 					component={Organization}
 				/>
 				<RestrictedRoute
 					path="/:groupName/sessions"
 					access={access}
-					minAccess={AccessLevel.WGAdmin}
+					minAccess={AccessLevel.ro}
 					component={Sessions}
 				/>
 				<RestrictedRoute
 					path="/:groupName/:sessionId/meetings"
 					access={access}
-					minAccess={AccessLevel.WGAdmin}
+					minAccess={AccessLevel.ro}
 					component={Meetings}
 				/>
 				<RestrictedRoute
 					path="/:groupName/:sessionId/webexMeetings"
 					access={access}
 					exact
-					minAccess={AccessLevel.WGAdmin}
+					minAccess={AccessLevel.ro}
 					component={WebexMeetings}
 				/>
 				<RestrictedRoute
 					path="/:groupName/:sessionId/imatBreakouts"
 					access={access}
 					exact
-					minAccess={AccessLevel.WGAdmin}
+					minAccess={AccessLevel.ro}
 					component={ImatBreakouts}
 				/>
 				<RestrictedRoute
 					path="/:groupName/calendar"
 					access={access}
-					minAccess={AccessLevel.WGAdmin}
+					minAccess={AccessLevel.ro}
 					component={Calendar}
 				/>
 				<RestrictedRoute
 					path="/:groupName/imatMeetings"
 					access={access}
 					exact
-					minAccess={AccessLevel.WGAdmin}
+					minAccess={AccessLevel.ro}
 					component={ImatMeetings}
 				/>
 				<RestrictedRoute
 					path="/:groupName/imatMeetings/:meetingNumber"
 					access={access}
 					exact
-					minAccess={AccessLevel.WGAdmin}
+					minAccess={AccessLevel.ro}
 					component={ImatBreakouts}
 				/>
 				<RestrictedRoute
 					path="/:groupName/imatMeetings/:meetingNumber/:breakoutNumber"
 					access={access}
-					minAccess={AccessLevel.WGAdmin}
+					minAccess={AccessLevel.ro}
 					component={ImatBreakoutAttendance}
 				/>
 				<RestrictedRoute
 					path="/:groupName/ieee802World"
 					access={access}
 					exact
-					minAccess={AccessLevel.WGAdmin}
+					minAccess={AccessLevel.ro}
 					component={Ieee802World}
 				/>
 			</Switch>

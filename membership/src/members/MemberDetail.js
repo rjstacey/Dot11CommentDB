@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {connect, useSelector} from 'react-redux';
+import {connect, useSelector, useDispatch} from 'react-redux';
 import styled from '@emotion/styled';
 import {DateTime} from 'luxon';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
@@ -70,6 +70,11 @@ const renderDate = (value) => isMultiple(value)? <i>{MULTIPLE_STR}</i>: (value =
 
 const renderEmail = (value) => isMultiple(value)? <i>{MULTIPLE_STR}</i>: (value === null || value === '')? <i>{BLANK_STR}</i>: <a href={'mailto:' + value}>{value}</a>;
 
+function selectMemberDetailTabIndex(state) {
+	const members = selectMembersState(state);
+	return members.ui.tabIndex;
+}
+
 function MemberDetailInfo({
 	sapins,
 	member,
@@ -78,9 +83,16 @@ function MemberDetailInfo({
 	deleteStatusChange,
 	readOnly
 }) {
+	const dispatch = useDispatch();
+	const tabIndex = useSelector(selectMemberDetailTabIndex);
+	const setTabIndex = (index) => dispatch(setProperty(dataSet, 'tabIndex', index));
 
 	return (
-		<Tabs style={{width: '100%'}}>
+		<Tabs
+			style={{width: '100%'}}
+			onSelect={setTabIndex}
+			selectedIndex={tabIndex}
+		>
 			<TabList>
 				<Tab>Contact info</Tab>
 				<Tab>Permissions</Tab>

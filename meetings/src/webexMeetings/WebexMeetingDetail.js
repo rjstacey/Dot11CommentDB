@@ -4,7 +4,7 @@ import {connect, useSelector, useDispatch} from 'react-redux';
 import styled from '@emotion/styled';
 import {DateTime} from 'luxon';
 
-import {ActionButton, Form, Row, Field, FieldLeft, Input, InputTime, Checkbox} from 'dot11-components/form';
+import {ActionButton, Form, Row, Field, FieldLeft, Input, InputTime, Checkbox, Select} from 'dot11-components/form';
 import {ConfirmModal} from 'dot11-components/modals';
 import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, isObject} from 'dot11-components/lib';
 
@@ -27,6 +27,8 @@ import {selectCurrentGroupDefaults} from '../store/current';
 
 import {selectCurrentSession} from '../store/sessions';
 
+import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
+
 import WebexAccountSelector from '../components/WebexAccountSelector';
 import WebexTemplateSelector from '../components/WebexTemplateSelector';
 import TopRow from '../components/TopRow';
@@ -48,6 +50,16 @@ export const defaultWebexMeeting = {
 	joinBeforeHostMinutes: 10,
 	enableConnectAudioBeforeHost: true,
 	publicMeeting: false,
+	audioConnectionOptions: {
+		allowAttendeeToUnmuteSelf: true,
+		allowHostToUnmuteParticipants: false,
+		audioConnectionType: "webexAudio",
+		enabledAudienceCallBack: false,
+		enabledGlobalCallIn: true,
+		enabledTollFreeCallIn: false,
+		entryAndExitTone: "noTone",
+		muteAttendeeUponEntry: true
+	},
 	meetingOptions: {
 		enabledChat: true,
 		enabledVideo: true,
@@ -127,6 +139,7 @@ export function WebexMeetingAccount({
 					onChange={onChange}
 					placeholder={isMultiple(entry.accountId)? MULTIPLE_STR: undefined}
 					readOnly={readOnly}
+					portal={document.querySelector('#root')}
 				/>
 			</Field>
 		</Row>
@@ -139,6 +152,58 @@ WebexMeetingAccount.propTypes = {
 	}),
 	changeEntry: PropTypes.func.isRequired,
 	readOnly: PropTypes.bool,
+}
+
+const entryToneOptions = [
+	{value: 'noTone', label: 'No tone'},
+	{value: 'beep', label: 'Beep'},
+	{value: 'announceName', label: 'Announce name'}
+];
+
+function SelectEntryAndExitTone({
+	value,
+	onChange,
+	...otherProps
+}) {
+	const values = entryToneOptions.filter(e => e.value === value);
+	const handleChange = (values) => onChange(values.length > 0? values[0].value: null);
+	return (
+		<Select
+			values={values}
+			options={entryToneOptions}
+			onChange={handleChange}
+			{...otherProps}
+		/>
+	)
+}
+
+const joinMinutesOptions = [
+	{value: 0, label: '0'},
+	{value: 5, label: '5'},
+	{value: 10, label: '10'},
+	{value: 15, label: '15'},
+];
+
+function SelectJoinBeforeHostMinutes({
+	value,
+	onChange,
+	...otherProps
+}) {
+	let options = joinMinutesOptions;
+	let values = options.filter(e => e.value === value);
+	if (values.length === 0) {
+		options = joinMinutesOptions.slice().push({value, label: value.toString()});
+		values = options.filter(e => e.value === value);
+	}
+	const handleChange = (values) => onChange(values.length > 0? values[0].value: 0);
+	return (
+		<Select
+			values={values}
+			options={options}
+			onChange={handleChange}
+			{...otherProps}
+		/>
+	)
 }
 
 function WebexMeetingTitleDateTime({
@@ -213,6 +278,55 @@ WebexMeetingTitleDateTime.propTypes = {
 		date: PropTypes.string.isRequired,
 		startTime: PropTypes.string.isRequired,
 		endTime: PropTypes.string.isRequired,
+	}),
+	changeEntry: PropTypes.func.isRequired,
+	readOnly: PropTypes.bool,
+}
+
+function WebexMeetingAudioOptions({
+	entry,
+	changeEntry,
+	readOnly,
+}) {
+	return (
+		<>
+			<Row>
+				<Field label='Allow unmute self:'>
+					<Checkbox 
+						checked={entry.allowAttendeeToUnmuteSelf}
+						onChange={e => changeEntry({allowAttendeeToUnmuteSelf: e.target.checked})}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Mute attendee on entry:'>
+					<Checkbox 
+						checked={entry.muteAttendeeUponEntry}
+						onChange={e => changeEntry({muteAttendeeUponEntry: e.target.checked})}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Entry and exit tone:'>
+					<SelectEntryAndExitTone
+						value={entry.entryAndExitTone}
+						onChange={entryAndExitTone => changeEntry({entryAndExitTone})}
+						portal={document.querySelector('#root')}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Row>
+		</>
+	)
+}
+
+WebexMeetingAudioOptions.propTypes = {
+	entry: PropTypes.shape({
+		allowAttendeeToUnmuteSelf: PropTypes.bool.isRequired,
+		muteAttendeeUponEntry: PropTypes.bool.isRequired,
+		entryAndExitTone: PropTypes.string.isRequired,
 	}),
 	changeEntry: PropTypes.func.isRequired,
 	readOnly: PropTypes.bool,
@@ -299,6 +413,15 @@ export function WebexMeetingParams({
 		changeEntry({meetingOptions});
 	}
 
+	function changeMeetingAudioOptions(changes) {
+		let {audioConnectionOptions} = entry;
+		audioConnectionOptions = {
+			...audioConnectionOptions,
+			...changes
+		}
+		changeEntry({audioConnectionOptions});
+	}
+
 	return (
 		<>
 			{entry.templateId &&
@@ -324,17 +447,17 @@ export function WebexMeetingParams({
 			</Row>
 			<Row>
 				<Field label='Join before host (minutes):'>
-					<div>
+					<div style={{display: 'flex', alignItems: 'center'}}>
 						<Checkbox
 							checked={entry.enabledJoinBeforeHost}
 							onChange={e => handleChange({enabledJoinBeforeHost: e.target.checked})}
 							disabled={readOnly}
 						/>
-						<Input 
-							type='number'
-							value={'' + entry.joinBeforeHostMinutes}
-							onChange={e => handleChange({joinBeforeHostMinutes: parseInt(e.target.value)})}
+						<SelectJoinBeforeHostMinutes
+							value={entry.joinBeforeHostMinutes || 0}
+							onChange={joinBeforeHostMinutes => handleChange({joinBeforeHostMinutes})}
 							disabled={readOnly || !entry.enabledJoinBeforeHost}
+							readOnly={readOnly}
 						/>
 					</div>
 				</Field>
@@ -348,6 +471,11 @@ export function WebexMeetingParams({
 					/>
 				</Field>
 			</Row>
+			<WebexMeetingAudioOptions
+				entry={entry.audioConnectionOptions || {}}
+				changeEntry={changeMeetingAudioOptions}
+				readOnly={readOnly}
+			/>
 			<WebexMeetingOptions
 				entry={entry.meetingOptions || {}}
 				changeEntry={changeMeetingOptions}
@@ -398,9 +526,9 @@ function WebexMeetingEntry({
 	changeEntry,
 	submit,
 	cancel,
+	readOnly
 }) {
 	const dispatch = useDispatch();
-	const readOnly = action !== 'add' && action !== 'update';
 
 	let submitForm, cancelForm, submitLabel, errMsg = '';
 	let title = "Webex meeting";
@@ -464,7 +592,8 @@ function WebexMeetingEntry({
 					<AssociatedMeetingSelector
 						value={isMultiple(entry.meetingId)? null: entry.meetingId}
 						onChange={meetingId => changeEntry({meetingId})}
-						placeholder={isMultiple(entry.meetingId)? MULTIPLE_STR: BLANK_STR} 
+						placeholder={isMultiple(entry.meetingId)? MULTIPLE_STR: BLANK_STR}
+						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
@@ -623,6 +752,11 @@ class WebexMeetingDetail extends React.Component {
 	}
 
 	clickAdd = async () => {
+		if (this.props.access <= AccessLevel.ro) {
+			console.warn("Insufficient access for clickAdd()");
+			return;
+		}
+
 		const {setSelected} = this.props;
 		const {action} = this.state;
 
@@ -637,6 +771,12 @@ class WebexMeetingDetail extends React.Component {
 	}
 
 	clickDelete = async () => {
+
+		if (this.props.access <= AccessLevel.ro) {
+			console.warn("Insufficient access for clickDelete()");
+			return;
+		}
+
 		const {deleteWebexMeetings} = this.props;
 		const {webexMeetings} = this.state;
 		const ids = webexMeetings.map(m => m.id);
@@ -680,7 +820,7 @@ class WebexMeetingDetail extends React.Component {
 	}
 
 	render() {
-		const {loading} = this.props;
+		const {loading, access} = this.props;
 		const {action, entry, webexMeetings} = this.state;
 
 		let notAvailableStr = '';
@@ -699,19 +839,21 @@ class WebexMeetingDetail extends React.Component {
 			cancel = this.cancel;
 		}
 
+		const readOnly = access <= AccessLevel.ro;
+
 		return (
 			<Container>
 				<TopRow style={{justifyContent: 'flex-end'}}>
 					<ActionButton
 						name='add'
 						title='Add Webex meeting'
-						disabled={loading}
+						disabled={loading || readOnly}
 						onClick={this.clickAdd}
 					/>
 					<ActionButton
 						name='delete'
 						title='Delete webex meeting'
-						disabled={loading || webexMeetings.length === 0}
+						disabled={loading || webexMeetings.length === 0 || readOnly}
 						onClick={this.clickDelete}
 					/>
 				</TopRow>
@@ -723,6 +865,7 @@ class WebexMeetingDetail extends React.Component {
 						changeEntry={this.changeEntry}
 						submit={submit}
 						cancel={cancel}
+						readOnly={readOnly}
 					/>}
 			</Container>
 		)
@@ -747,6 +890,7 @@ const ConnectedWebexMeetingDetail = connect(
 		selected: selectWebexMeetingsState(state).selected,
 		entities: selectSyncedWebexMeetingEntities(state),
 		defaults: selectCurrentGroupDefaults(state),
+		access: selectUserMeetingsAccess(state)
 	}),
 	{
 		setSelected,

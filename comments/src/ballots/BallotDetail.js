@@ -62,8 +62,6 @@ function shortDateToDate(shortDateStr) {
 	const utcDate = new Date(date.toLocaleString("en-US", {timeZone: "UTC"}))
 	const diff = utcDate - easternDate
 	let newDate = new Date(date.getTime() + diff)
-	console.log(newDate)
-	console.log(newDate instanceof Date && !isNaN(newDate))
 	return isNaN(newDate)? '': newDate.toISOString()
 }
 

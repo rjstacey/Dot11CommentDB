@@ -15,7 +15,6 @@ import reportWebVitals from './reportWebVitals';
 
 getUser()
 	.then(user => {
-		window.user = user;
 		const root = createRoot(document.getElementById('root'));
 		try {
 			fetcher.setAuth(user.Token, logout);

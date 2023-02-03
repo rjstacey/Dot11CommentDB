@@ -4,7 +4,7 @@ import {useHistory, useParams} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
-import AppTable, {SplitPanel, Panel, SelectExpandHeader, SelectExpandCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, IdSelector, IdFilter} from 'dot11-components/table';
+import AppTable, {SplitPanel, Panel, SelectExpandHeader, SelectExpandCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, GlobalFilter, IdSelector, IdFilter} from 'dot11-components/table';
 import {ActionButton, ButtonGroup} from 'dot11-components/form';
 import {AccessLevel} from 'dot11-components/lib';
 
@@ -397,10 +397,15 @@ function Comments({access}) {
 				</div>
 			</TopRow>
 
-			<ShowFilters
-				dataSet={dataSet}
-				fields={fields}
-			/>
+			<div style={{width: '100%', display: 'flex', alignItems: 'center'}}>
+				<ShowFilters
+					dataSet={dataSet}
+					fields={fields}
+				/>
+				<GlobalFilter
+					dataSet={dataSet}
+				/>
+			</div>
 
 			<SplitPanel dataSet={dataSet} >
 				<Panel>

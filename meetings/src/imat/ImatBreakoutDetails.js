@@ -32,6 +32,8 @@ import {updateMeetings, addMeetings} from '../store/meetings';
 
 import {selectGroupEntities} from '../store/groups';
 
+import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
+
 const MULTIPLE_STR = "(Multiple)";
 const BLANK_STR = "(Blank)";
 
@@ -197,7 +199,7 @@ const getDefaultBreakout = () => ({
 	facilitator: window.user? window.user.Email: ''
 });
 
-export function BreakoutCredit({entry, changeEntry}) {
+export function BreakoutCredit({entry, changeEntry, readOnly}) {
 	return (
 		<>
 			<Row>
@@ -211,6 +213,7 @@ export function BreakoutCredit({entry, changeEntry}) {
 								checked={entry.credit === 'Extra'}
 								indeterminate={isMultiple(entry.credit).toString()}
 								onChange={e => changeEntry({credit: e.target.value})}
+								disabled={readOnly}
 							/>
 							<label htmlFor='extra'>Extra</label>
 						</div>
@@ -222,6 +225,7 @@ export function BreakoutCredit({entry, changeEntry}) {
 								checked={entry.credit === 'Normal'}
 								indeterminate={isMultiple(entry.credit).toString()}
 								onChange={e => changeEntry({credit: e.target.value})}
+								disabled={readOnly}
 							/>
 							<label htmlFor='normal'>Normal</label>
 						</div>
@@ -233,6 +237,7 @@ export function BreakoutCredit({entry, changeEntry}) {
 								checked={entry.credit === 'Other'}
 								indeterminate={isMultiple(entry.credit).toString()}
 								onChange={e => changeEntry({credit: e.target.value})}
+								disabled={readOnly}
 							/>
 							<label htmlFor='other'>Other</label>
 						</div>
@@ -244,6 +249,7 @@ export function BreakoutCredit({entry, changeEntry}) {
 								checked={entry.credit === 'Zero'}
 								indeterminate={isMultiple(entry.credit).toString()}
 								onChange={e => changeEntry({credit: e.target.value})}
+								disabled={readOnly}
 							/>
 							<label htmlFor='zero'>Zero</label>
 						</div>
@@ -258,7 +264,7 @@ export function BreakoutCredit({entry, changeEntry}) {
 							size={4}
 							value={isMultiple(entry.overrideCreditNumerator)? '': entry.overrideCreditNumerator || ''}
 							onChange={e => changeEntry({overrideCreditNumerator: e.target.value})}
-							disabled={entry.credit !== "Other"}
+							disabled={entry.credit !== "Other" || readOnly}
 							placeholder={isMultiple(entry.overrideCreditNumerator)? MULTIPLE_STR: undefined}
 						/>
 						<label>/</label>
@@ -267,7 +273,7 @@ export function BreakoutCredit({entry, changeEntry}) {
 							size={4}
 							value={isMultiple(entry.overrideCreditDenominator)? '': entry.overrideCreditDenominator || ''}
 							onChange={e => changeEntry({overrideCreditDenominator: e.target.value})}
-							disabled={entry.credit !== "Other"}
+							disabled={entry.credit !== "Other" || readOnly}
 							placeholder={isMultiple(entry.overrideCreditDenominator)? MULTIPLE_STR: undefined}
 						/>
 					</div>
@@ -284,10 +290,10 @@ function BreakoutEntry({
 	action,
 	submit,
 	cancel,
+	readOnly
 }) {
 	const dispatch = useDispatch();
 	const {timeslots} = useSelector(selectBreakoutsState);
-	const readOnly = action === 'view';
 
 	let errMsg;
 	if (!entry.name)
@@ -427,7 +433,11 @@ function BreakoutEntry({
 					/>
 				</Field>
 			</Row>
-			<BreakoutCredit entry={entry} changeEntry={handleChange} />
+			<BreakoutCredit
+				entry={entry}
+				changeEntry={handleChange}
+				readOnly={readOnly}
+			/>
 			<Row>
 				<Field label='Facilitator:'>
 					<Input
@@ -444,7 +454,8 @@ function BreakoutEntry({
 					<AssociatedMeetingSelector
 						value={isMultiple(entry.meetingId)? null: entry.meetingId}
 						onChange={meetingId => handleChange({meetingId})}
-						placeholder={isMultiple(entry.meetingId)? MULTIPLE_STR: BLANK_STR} 
+						placeholder={isMultiple(entry.meetingId)? MULTIPLE_STR: BLANK_STR}
+						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
@@ -653,7 +664,7 @@ class BreakoutDetails extends React.Component {
 	}
 
 	render() {
-		const {loading} = this.props;
+		const {loading, access} = this.props;
 		const {action, entry, breakouts, busy} = this.state;
 
 		let notAvailableStr = '';
@@ -672,26 +683,28 @@ class BreakoutDetails extends React.Component {
 			cancel = this.cancel;
 		}
 
+		const readOnly = access >= AccessLevel.ro;
+
 		return (
 			<Container>
 				<TopRow style={{justifyContent: 'flex-end'}}>
 					<ActionButton
 						name='import'
 						title='Import as meeting'
-						disabled={loading || busy}
+						disabled={loading || busy || readOnly}
 						onClick={this.clickImport}
 					/>
 					<ActionButton
 						name='add'
 						title='Add breakout'
-						disabled={loading || busy}
+						disabled={loading || busy || readOnly}
 						isActive={action === 'add'}
 						onClick={this.clickAdd}
 					/>
 					<ActionButton
 						name='delete'
 						title='Delete breakout'
-						disabled={loading || breakouts.length === 0 || busy}
+						disabled={loading || breakouts.length === 0 || busy || readOnly}
 						onClick={this.clickDelete}
 					/>
 				</TopRow>
@@ -713,6 +726,7 @@ class BreakoutDetails extends React.Component {
 							action={action}
 							submit={submit}
 							cancel={cancel}
+							readOnly={readOnly}
 						/>
 				}
 			</Container>
@@ -743,7 +757,8 @@ const ConnectedBreakoutDetails = connect(
 		entities: selectSyncedBreakoutEntities(state),
 		imatMeeting: selectImatMeeting(state),
 		session: selectCurrentSession(state),
-		groupEntities: selectGroupEntities(state)
+		groupEntities: selectGroupEntities(state),
+		access: selectUserMeetingsAccess(state)
 	}),
 	{
 		setSelected: setSelectedBreakouts,

@@ -1,19 +1,18 @@
-import { combineReducers, createStore, applyMiddleware } from 'redux';
-import thunk from 'redux-thunk';
+import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { createLogger } from 'redux-logger';
 import { persistStore, persistReducer, createTransform } from 'redux-persist';
 import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import { get, set, del } from 'idb-keyval';
-import { composeWithDevTools } from 'redux-devtools-extension';
 
+import userSlice from './user';
 import timezonesSlice, {loadTimeZones} from './timezones';
 import permissionsSlice, {loadPermissions} from './permissions';
-import members, {loadMembers} from './members';
-import sessions, {loadSessions} from './sessions';
-import imatMeetings from './imatMeetings';
-import breakouts from './breakouts';
-import attendees from './attendees';
-import ballots from './ballots';
+import membersSlice, {loadMembers} from './members';
+import sessionsSlice, {loadSessions} from './sessions';
+import imatMeetingsSlice from './imatMeetings';
+import breakoutsSlice from './breakouts';
+import attendeesSlice from './attendees';
+import ballotsSlice from './ballots';
 import errMsg from 'dot11-components/store/error';
 
 const transformState = createTransform(
@@ -33,23 +32,20 @@ const transformState = createTransform(
 	['members', 'sessions']
 );
 
-function configureStore() {
+function configureStore2() {
 
 	const reducer = combineReducers({
-		members,
-		sessions,
-		imatMeetings,
-		breakouts,
-		attendees,
-		ballots,
+		[userSlice.name]: userSlice.reducer,
+		[membersSlice.name]: membersSlice.reducer,
+		[sessionsSlice.name]: sessionsSlice.reducer,
+		[imatMeetingsSlice.name]: imatMeetingsSlice.reducer,
+		[breakoutsSlice.name]: breakoutsSlice.reducer,
+		[attendeesSlice.name]: attendeesSlice.reducer,
+		[ballotsSlice.name]: ballotsSlice.reducer,
 		[timezonesSlice.name]: timezonesSlice.reducer,
 		[permissionsSlice.name]: permissionsSlice.reducer,
 		errMsg
 	});
-
-	const middleware = [thunk];
-	if (process.env.NODE_ENV !== 'production')
-		middleware.push(createLogger({collapsed: true}));
 
 	const persistConfig = {
 		key: 'membership',
@@ -59,7 +55,10 @@ function configureStore() {
 			getItem: get,
 			removeItem: del
 		},
-		whitelist: ['members', 'sessions'],
+		whitelist: [
+			membersSlice.name,
+			sessionsSlice.name
+		],
 		stateReconciler: autoMergeLevel2,
 		transforms: [transformState],
 		migrate: (state) => {
@@ -69,10 +68,17 @@ function configureStore() {
 		}
 	};
 
-	const store = createStore(
-		persistReducer(persistConfig, reducer),
-		composeWithDevTools(applyMiddleware(...middleware))
-	);
+	const middleware = []; //[thunk];
+	if (process.env.NODE_ENV !== 'production')
+		middleware.push(createLogger({collapsed: true}));
+
+	const store = configureStore({
+		reducer: persistReducer(persistConfig, reducer),
+		middleware: (getDefaultMiddleware) => getDefaultMiddleware({
+			immutableCheck: false,
+			serializableCheck: false,
+		}).concat(middleware)
+	});
 
 	const persistor = persistStore(store, null, () => {
 		store.dispatch(loadTimeZones());
@@ -84,4 +90,4 @@ function configureStore() {
 	return {store, persistor};
 }
 
-export default configureStore;
+export default configureStore2;

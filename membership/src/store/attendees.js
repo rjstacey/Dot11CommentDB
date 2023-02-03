@@ -19,6 +19,10 @@ export const fields = {
 };
 
 export const dataSet = 'attendees';
+
+/*
+ * Slice
+ */
 const selectId = (member) => member.SAPIN;
 
 const slice = createAppTableDataSlice({
@@ -39,10 +43,7 @@ const slice = createAppTableDataSlice({
 	},
 });
 
-/*
- * Reducer
- */
-export default slice.reducer;
+export default slice;
 
 /*
  * Selectors

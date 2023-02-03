@@ -533,7 +533,7 @@ async function meetingMakeWebexUpdates(meeting, changes) {
 			if (webexAccountId && changes.webexMeetingId === '$add') {
 				// Add new webex meeting if the webexMeeting object is present
 				console.log('add webex meeting');
-				webexMeeting = await addWebexMeeting(meeting.webexAccountId, webexMeetingParams);
+				webexMeeting = await addWebexMeeting(webexMeetingParams);
 				changes.webexMeetingId = webexMeeting.id;
 			}
 			else {

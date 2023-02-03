@@ -19,28 +19,25 @@ const ColorBox = styled.div`
 	width: 25px;
 	height: 25px;
 	outline: none;
-	cursor: pointer;
 	${({ isSelected }) => isSelected? outline: undefined}
-	:hover {
-		${outline}
-	}
+	${({ readOnly }) => readOnly? undefined: `cursor: pointer; :hover {${outline}}`}
 `;
 
-function ColorPicker({options, value, onChange}) {
+function ColorPicker({options, value, onChange, readOnly}) {
 
-	function handleClick(v) {
-		if (onChange)
-			onChange(v) 
-	}
+	const handleChange = onChange?
+		(v) => onChange(v):
+		() => {};
 
 	return (
 		<Container>
 			{options.map(v => 
 				<ColorBox
 					key={v}
-					onClick={() => handleClick(v)}
+					onClick={readOnly? undefined: () => handleChange(v)}
 					style={{background: v}}
 					isSelected={v === value}
+					readOnly={readOnly}
 				/>
 			)}
 		</Container>

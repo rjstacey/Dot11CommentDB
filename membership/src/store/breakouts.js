@@ -40,6 +40,9 @@ export const getField = (entity, dataKey) => {
 	return entity[dataKey];
 }
 
+/*
+ * Slice
+ */
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -52,10 +55,7 @@ const slice = createAppTableDataSlice({
 	},
 });
 
-/*
- * Reducer
- */
-export default slice.reducer;
+export default slice;
 
 /*
  * Selectors

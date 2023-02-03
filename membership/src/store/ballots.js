@@ -52,6 +52,10 @@ export const fields = {
 };
 
 export const dataSet = 'ballots';
+
+/*
+ * Slice
+ */
 const sortComparer = (b1, b2) => b1.Project === b2.Project? b1.BallotID.localeCompare(b2.BallotID): b1.Project.localeCompare(b2.Project);
 
 const slice = createAppTableDataSlice({
@@ -106,10 +110,7 @@ const slice = createAppTableDataSlice({
 	}
 });
 
-/*
- * Reducer
- */
-export default slice.reducer;
+export default slice;
 
 /*
  * Actions

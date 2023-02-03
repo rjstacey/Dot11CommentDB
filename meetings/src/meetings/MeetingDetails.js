@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 import styled from '@emotion/styled';
-import {DateTime} from 'luxon';
+import {DateTime, Duration} from 'luxon';
 
 import {ConfirmModal} from 'dot11-components/modals';
 import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, MULTIPLE} from 'dot11-components/lib';
@@ -29,6 +29,8 @@ import {selectCurrentGroupId, selectCurrentGroupDefaults} from '../store/current
 
 import {selectGroupEntities} from '../store/groups';
 
+import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
+
 import TopRow from '../components/TopRow';
 
 import {webexMeetingConfigParams, defaultWebexMeeting} from '../webexMeetings/WebexMeetingDetail';
@@ -40,6 +42,20 @@ import MeetingEntry from './MeetingEntry';
 const fromTimeStr = (str) => {
 	const m = str.match(/(\d+):(\d+)/);
 	return m? {hour: parseInt(m[1], 10), minute: parseInt(m[2], 10)}: {hour: 0, minute: 0};
+}
+
+function timeRangeToDuration(startTime, endTime) {
+	let d = DateTime.fromFormat(endTime, 'HH:mm')
+		.diff(DateTime.fromFormat(startTime, 'HH:mm'))
+		.shiftTo('hours', 'minutes');
+	return d.toFormat(d.minutes? 'h:mm': 'h');
+}
+
+function endTimeFromDuration(startTime, duration) {
+	let d = duration.trim();
+	let m = /^(\d*):(\d{2})$/.exec(d);
+	d = Duration.fromObject(m? {hours: m[1]? m[1]: 0, minutes: m[2]}: {hours: d});
+	return DateTime.fromFormat(startTime, 'HH:mm').plus(d).toFormat('HH:mm');
 }
 
 const isSessionMeeting = (session) => session && (session.type === 'p' || session.type === 'i');
@@ -75,12 +91,15 @@ function convertMeetingToEntry(meeting, session) {
 		}
 		entry.startSlotId = startSlot? startSlot.id: 0;
 	}
+	else {
+		entry.duration = timeRangeToDuration(entry.startTime, entry.endTime);
+	}
 
 	return entry;
 }
 
 export function convertEntryToMeeting(entry, session) {
-	let {date, startTime, endTime, startSlotId, ...meeting} = entry;
+	let {date, startTime, endTime, startSlotId, duration, ...meeting} = entry;
 
 	let zone;
 	if (isSessionMeeting(session)) {
@@ -88,6 +107,7 @@ export function convertEntryToMeeting(entry, session) {
 	}
 	else {
 		zone = entry.timezone;
+		endTime = endTimeFromDuration(startTime, duration);
 	}
 	let start = DateTime.fromISO(date, {zone}).set(fromTimeStr(startTime));
 	let end = DateTime.fromISO(date, {zone}).set(fromTimeStr(endTime));
@@ -101,6 +121,9 @@ export function convertEntryToMeeting(entry, session) {
 }
 
 const Container = styled.div`
+	display: flex;
+	flex-direction: column;
+	flex: 1;
 	padding: 10px;
 	label {
 		font-weight: bold;
@@ -151,13 +174,9 @@ class MeetingDetails extends React.Component {
 		const meetings = selectedMeetings
 			.map(id => entities[id])
 			.filter(meeting => meeting)
-			.map(meeting => ({
-					...meeting,
-					webexMeeting: {
-						accountId: meeting.webexAccountId,
-						...webexMeetingConfigParams(meeting.webexMeeting || {})
-					}
-				})
+			.map(meeting => meeting.webexMeeting?
+				{...meeting, webexMeeting: webexMeetingConfigParams(meeting.webexMeeting)}:
+				meeting
 			);
 
 		let entry;
@@ -211,7 +230,10 @@ class MeetingDetails extends React.Component {
 					entry.startSlotId = 0;
 					entry.roomId = 0;
 					entry.startTime = '';
-					entry.endTime = '';
+					if (isSessionMeeting)
+						entry.endTime = '';
+					else
+						entry.duration = '';
 				}
 				entry.organizationId = null;
 				entry.hasMotions = 0;
@@ -258,16 +280,11 @@ class MeetingDetails extends React.Component {
 
 		// Find differences
 		const diff = deepDiff(saved, e);
-		//console.log(diff)
 		const updates = [];
 		for (const meeting of meetings) {
 			const local = deepMerge(convertMeetingToEntry(meeting, session), diff);
-			//console.log(local)
 			const updated = convertEntryToMeeting(local, session);
-			//console.log(updated)
-			//console.log(entities[id], convertFromLocal(changesLocal))
 			const changes = deepDiff(meeting, updated);
-			//console.log(local, updated, changes)
 
 			// If a (new) webex account is given, add a webex meeting
 			if (changes.webexAccountId)
@@ -284,7 +301,6 @@ class MeetingDetails extends React.Component {
 			if (Object.keys(changes).length > 0)
 				updates.push({id: meeting.id, changes});
 		}
-		//console.log(updates)
 		return updates;
 	}
 
@@ -292,7 +308,6 @@ class MeetingDetails extends React.Component {
 	hasUpdates = () => this.state.saved !== this.state.entry;
 
 	changeEntry = (changes) => {
-		console.log(changes)
 		this.setState(state => {
 			let entry = {...state.entry, ...changes};
 			// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
@@ -409,7 +424,7 @@ class MeetingDetails extends React.Component {
 	}
 
 	render() {
-		const {loading} = this.props;
+		const {loading, access} = this.props;
 		const {action, entry, meetings, busy} = this.state;
 
 		let notAvailableStr = '';
@@ -417,6 +432,8 @@ class MeetingDetails extends React.Component {
 			notAvailableStr = 'Loading...';
 		else if (action === 'update' && meetings.length === 0)
 			notAvailableStr = 'Nothing selected';
+
+		const readOnly = access <= AccessLevel.ro;
 
 		let submit, cancel;
 		if (action === 'add') {
@@ -434,20 +451,20 @@ class MeetingDetails extends React.Component {
 					<ActionButton
 						name='upload'
 						title='Sync meeting'
-						disabled={loading || busy}
+						disabled={loading || busy || readOnly}
 						onClick={this.clickSync}
 					/>
 					<ActionButton
 						name='add'
 						title='Add meeting'
-						disabled={loading || busy}
+						disabled={loading || busy || readOnly}
 						isActive={action === 'add'}
 						onClick={this.clickAdd}
 					/>
 					<ActionButton
 						name='delete'
 						title='Delete meeting'
-						disabled={loading || meetings.length === 0 || busy}
+						disabled={loading || meetings.length === 0 || busy || readOnly}
 						onClick={this.clickDelete}
 					/>
 				</TopRow>
@@ -460,6 +477,7 @@ class MeetingDetails extends React.Component {
 						action={action}
 						submit={submit}
 						cancel={cancel}
+						readOnly={readOnly}
 					/>}
 			</Container>
 		)
@@ -490,7 +508,8 @@ const ConnectedMeetingDetails = connect(
 		selectedSlots: selectSelectedSlots(state),
 		entities: selectSyncedMeetingEntities(state),
 		defaults: selectCurrentGroupDefaults(state),
-		groupEntities: selectGroupEntities(state)
+		groupEntities: selectGroupEntities(state),
+		access: selectUserMeetingsAccess(state)
 	}),
 	{
 		setSelectedMeetings,

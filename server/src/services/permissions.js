@@ -1,10 +1,12 @@
 
 const permissionsObj = {
-	'wgAdmin': 'Working group admin',
-	'tgAdmin': 'Task group admin',
-	'results_ro': 'Ability to view ballot results',
-	'results_rw': 'Ability to adjust ballot results',
-	'comment_rw': 'Ability to modify comments'
+	'wg_admin': 'Working group admin',
+	'tg_admin': 'Task group admin',
+	'meetings_ro': 'View meetings',
+	'meetings_rw': 'Add, remove and modify meetings',
+	'results_ro': 'View ballot results',
+	'results_rw': 'Import and modify ballot results',
+	'comment_rw': 'Import comments',
 };
 
 const permissions = Object.entries(permissionsObj).map(([scope, description]) => ({scope, description}));

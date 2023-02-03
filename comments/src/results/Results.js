@@ -50,17 +50,23 @@ function getDefaultTablesConfig(access, type) {
 	const columns = tableColumns.reduce((o, c) => {
 			const columnConfig = {
 				shown: true,
-				width: c.width
+				width: c.width,
+				unselectable: false
 			};
 			if (c.key === 'SAPIN') {
-				if (access < AccessLevel.SubgroupAdmin)
+				if (access < AccessLevel.SubgroupAdmin) {
 					columnConfig.shown = false;
-				if (type === BallotType.SA)
+					columnConfig.unselectable = true;
+				}
+				if (type === BallotType.SA) {
 					columnConfig.shown = false;
+					columnConfig.unselectable = true;
+				}
 			}
 			if (c.key === 'Email') {
 				if (access < AccessLevel.SubgroupAdmin) {
 					columnConfig.shown = false;
+					columnConfig.unselectable = true;
 				}
 			}
 			o[c.key] = columnConfig;

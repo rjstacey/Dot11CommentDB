@@ -58,10 +58,10 @@ function ImatMeetingSelector({
 			clearable
 			itemRenderer={renderItem}
 			selectItemRenderer={renderItem}
-			readOnly={readOnly}
 			portal={document.querySelector('#root')}
 			valueField='id'
 			labelField='name'
+			readOnly={readOnly}
 			{...otherProps}
 		/>
 	)

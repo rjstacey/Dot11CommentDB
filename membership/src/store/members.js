@@ -157,6 +157,9 @@ export const selectNewStatusFromBallotSeriesParticipation = (state) => selectMem
 
 export const selectMembersCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);
 
+/*
+ * Slice
+ */
 const reMatchEntityChange = new RegExp(dataSet + '/(getSuccess|updateMany|updateOne|addMany|upsertMany|removeMany|toggleNewStatusFromAttendances|toggleNewStatusFromBallotSeriesParticipation)');
 
 const slice = createAppTableDataSlice({
@@ -199,10 +202,7 @@ const slice = createAppTableDataSlice({
 	}
 });
 
-/*
- * Reducer
- */
-export default slice.reducer;
+export default slice;
 
 
 

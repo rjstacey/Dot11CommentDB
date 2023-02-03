@@ -12,6 +12,7 @@ function getResultsSummary(ballot) {
 		closed: '',
 		duration: '',
 		votingPoolSize: 0,
+		comments: 0,
 
 		approvalRate: '',
 		approvalRateReq: '',
@@ -42,6 +43,10 @@ function getResultsSummary(ballot) {
 		const dur = Math.floor((dEnd - dStart) / _MS_PER_DAY);
 		if (!isNaN(dur))
 			summary.duration = `${dur} days`;
+	}
+
+	if (ballot.Comments) {
+		summary.comments = ballot.Comments.Count;
 	}
 
 	const r = ballot.Results;
@@ -133,8 +138,11 @@ const BallotColumn = ({ballot, summary}) =>
 		<LabelValue label='Opened:'>{summary.opened}</LabelValue>
 		<LabelValue label='Closed:'>{summary.closed}</LabelValue>
 		<LabelValue label='Duration:'>{summary.duration}</LabelValue>
-		{ballot.Type !== BallotType.CC &&
+		{ballot.Type === BallotType.SA &&
+			<LabelValue label='Ballot group members:'>{summary.votingPoolSize}</LabelValue>}
+		{(ballot.Type === BallotType.WG || ballot.Type === BallotType.Motion) &&
 			<LabelValue label='Voting pool size:'>{summary.votingPoolSize}</LabelValue>}
+		<LabelValue label='Comments:'>{summary.comments}</LabelValue>
 	</Col>
 
 const ResultColumn = ({ballot, summary}) =>

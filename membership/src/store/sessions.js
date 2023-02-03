@@ -35,6 +35,9 @@ export const fields = {
 
 export const dataSet = 'sessions';
 
+/*
+ * Slice
+ */
 const sortComparer = (s1, s2) => DateTime.fromISO(s2.startDate).valueOf() - DateTime.fromISO(s1.startDate).valueOf();
 
 const slice = createAppTableDataSlice({
@@ -59,10 +62,7 @@ const slice = createAppTableDataSlice({
 	},
 });
 
-/*
- * Reducer
- */
-export default slice.reducer;
+export default slice;
 
 /*
  * Selectors

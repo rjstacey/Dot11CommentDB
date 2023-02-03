@@ -229,7 +229,7 @@ function Meetings(props) {
 							/>
 						</div>
 					</Panel>}
-				<Panel style={{overflow: 'auto'}}>
+				<Panel style={{display: 'flex'}}>
 					<MeetingDetails />
 				</Panel>
 			</SplitPanel>

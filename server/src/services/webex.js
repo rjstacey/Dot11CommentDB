@@ -373,7 +373,7 @@ function validateMeetingsArray(meetings) {
 export function addWebexMeeting({accountId, ...params}) {
 	const api = getWebexApi(accountId);
 	return api.post('/meetings', params)
-		.then(response => response.data)
+		.then(response => ({accountId, ...response.data}))
 		.catch(webexApiError);
 }
 

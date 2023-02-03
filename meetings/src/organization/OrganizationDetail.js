@@ -9,6 +9,7 @@ import {setError} from 'dot11-components/store/error';
 
 import {addGroup, updateGroups, deleteGroups, selectGroupsState, GroupTypeOptions, GroupStatusOptions, setSelected} from '../store/groups';
 import {selectCurrentGroupId} from '../store/current';
+import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
 
 import GroupSelector from '../components/GroupSelector';
 import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
@@ -96,6 +97,7 @@ function GroupEntry({
 					<ColorPicker
 						value={isMultiple(entry.color)? '': entry.color}
 						onChange={(color) => changeEntry({color})}
+						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
@@ -211,6 +213,10 @@ class GroupDetail extends React.PureComponent {
 	};
 
 	addEntry = async () => {
+		if (this.props.access <= AccessLevel.ro) {
+			console.warn("Insufficient access for addEntry()");
+			return;
+		}
 		const {addGroup, setSelected, setError, groupId, entities} = this.props;
 		const entry = {...defaultEntry, parent_id: groupId};
 		let group;
@@ -225,6 +231,10 @@ class GroupDetail extends React.PureComponent {
 	}
 
 	updateEntries = (changes) => {
+		if (this.props.access <= AccessLevel.ro) {
+			console.warn("Insufficient access for updateEntries()");
+			return;
+		}
 		this.setState(state => {
 			const entry = deepMerge(state.entry, changes);
 			const {originals, ids} = state;
@@ -248,6 +258,10 @@ class GroupDetail extends React.PureComponent {
 	}
 
 	removeEntries = async () => {
+		if (this.props.access <= AccessLevel.ro) {
+			console.warn("Insufficient access for removeEntries()");
+			return;
+		}
 		const {ids} = this.state;
 		const {entities, deleteGroups} = this.props;
 		const groupNames = ids.map(id => entities[id].name || BLANK_STR);
@@ -258,7 +272,7 @@ class GroupDetail extends React.PureComponent {
 	}
 
 	render() {
-		const {selected, loading} = this.props;
+		const {selected, loading, access} = this.props;
 		const {entry} = this.state;
 
 		let notAvailableStr = '';
@@ -267,19 +281,22 @@ class GroupDetail extends React.PureComponent {
 		else if (selected.length === 0)
 			notAvailableStr = 'Nothing selected';
 
+		const readOnly = access <= AccessLevel.ro;
+		console.log(readOnly, access)
+
 		return (
 			<Container>
 				<TopRow style={{justifyContent: 'flex-end'}}>
 					<ActionButton
 						name='add'
 						title='Add group'
-						disabled={loading}
+						disabled={loading || readOnly}
 						onClick={this.addEntry}
 					/>
 					<ActionButton
 						name='delete'
 						title='Delete group'
-						disabled={loading || selected.length === 0}
+						disabled={loading || selected.length === 0 || readOnly}
 						onClick={this.removeEntries}
 					/>
 				</TopRow>
@@ -288,7 +305,7 @@ class GroupDetail extends React.PureComponent {
 					<GroupEntry
 						entry={entry}
 						changeEntry={this.updateEntries}
-						readOnly={false}
+						readOnly={readOnly}
 					/>
 				}
 			</Container>
@@ -303,7 +320,8 @@ export default connect(
 			loading: data.loading,
 			selected: data.selected,
 			entities: data.entities,
-			groupId: selectCurrentGroupId(state)
+			groupId: selectCurrentGroupId(state),
+			access: selectUserMeetingsAccess(state)
 		}
 	},
 	{

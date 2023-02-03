@@ -21,8 +21,16 @@ import {
 	selectSyncedWebexMeetingEntities,
 	fields,
 	getField,
-	dataSet
+	dataSet,
+	loadWebexMeetings
 } from '../store/webexMeetings';
+
+import {
+	selectCurrentSessionId,
+	selectShowDateRange
+} from '../store/current';
+
+import {selectSessionEntities} from '../store/sessions';
 
 import PathGroupAndSessionSelector from '../components/PathGroupAndSessionSelector';
 import MeetingSelector from '../components/MeetingSelector';
@@ -240,13 +248,36 @@ function webexMeetingsRowGetter({rowIndex, ids, entities}) {
 
 function WebexMeetings() {
 	const dispatch = useDispatch();
-	const groupId = useSelector(selectCurrentGroupId);
+	//const groupId = useSelector(selectCurrentGroupId);
 	const {selected: wmSelected} = useSelector(selectWebexMeetingsState);
 	const wmEntities = useSelector(selectSyncedWebexMeetingEntities);
 	const [webexMeetingToLink, setWebexMeetingToLink] = React.useState(null);
 	const [webexMeetingToAdd, setWebexMeetingToAdd] = React.useState(null);
 
-	const refresh = () => dispatch(refreshCurrent());
+	const groupId = useSelector(selectCurrentGroupId);
+	const sessionId = useSelector(selectCurrentSessionId);
+	const showDateRange = useSelector(selectShowDateRange);
+	const session = useSelector(selectSessionEntities)[sessionId];
+	
+	const refresh = () => {
+		const constraints = {};
+		if (groupId)
+			constraints.groupId = groupId;
+		if (showDateRange) {
+			if (session) {
+				constraints.fromDate = session.startDate;
+				constraints.toDate = session.endDate;
+				constraints.timezone = session.timezone;
+			}
+			else {
+				constraints.fromDate = DateTime.now().toISODate();
+			}
+		}
+		else {
+			constraints.sessionId = sessionId;
+		}
+		dispatch(loadWebexMeetings(constraints));
+	}
 
 	const closeToLink = () => setWebexMeetingToLink(null);
 	const closeToAdd = () => setWebexMeetingToAdd(null);
