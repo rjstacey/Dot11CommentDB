@@ -294,10 +294,6 @@ class MeetingDetails extends React.Component {
 			if (changes.imatMeetingId)
 				changes.imatBreakoutId = '$add';
 
-			// If we change any webex meeting parameters, then include all parameters
-			if (changes.webexMeeting)
-				changes.webexMeeting = updated.webexMeeting;
-
 			if (Object.keys(changes).length > 0)
 				updates.push({id: meeting.id, changes});
 		}
@@ -385,13 +381,10 @@ class MeetingDetails extends React.Component {
 
 		let meetings;
 		if (slots.length > 0) {
-			const {dates, startSlotId, roomId, startTime, endTime, ...rest} = entry;
+			const {dates, startSlotId, roomId, ...rest} = entry;
 			meetings = slots.map(id => {
 				const [date, startSlotId, roomId] = fromSlotId(id);
-				const slot = session.timeslots.find(slot => slot.id === startSlotId);
-				const startTime = slot? slot.startTime: '';
-				const endTime = slot? slot.endTime: '';
-				return convertEntryToMeeting({...rest, date, startSlotId, startTime, endTime, roomId}, session);
+				return convertEntryToMeeting({...rest, date, startSlotId, roomId}, session);
 			});
 		}
 		else {

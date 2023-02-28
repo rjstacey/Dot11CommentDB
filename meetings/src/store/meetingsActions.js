@@ -16,6 +16,7 @@ const {
 	removeMany,
 	removeAll,
 	setProperty,
+	setUiProperties,
 	setSelected,
 	toggleSelected,
 	setSelectedSlots,
@@ -27,6 +28,7 @@ export const setMeetingsCurrentPanelIsSplit = (isSplit) => setPanelIsSplit({isSp
 
 export {
 	setProperty as setUiProperty,
+	setUiProperties,
 	setSelected as setSelectedMeetings,
 	toggleSelected as toggleSelectedMeetings,
 	setSelectedSlots,

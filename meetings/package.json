@@ -7,7 +7,7 @@
   "dependencies": {
     "@reduxjs/toolkit": "^1.9.1",
     "copy-html-to-clipboard": "^4.0.1",
-    "dot11-components": "^1.0.133",
+    "dot11-components": "^1.0.135",
     "idb-keyval": "^6.2.0",
     "luxon": "^3.2.1",
     "react": "^18.2.0",

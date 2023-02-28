@@ -13,9 +13,10 @@ const {
 	upsertMany,
 	updateMany,
 	setSelected,
+	setProperty,
 } = slice.actions;
 
-export {getSuccess as setWebexMeetings, upsertMany as upsertWebexMeetings, setSelected};
+export {getSuccess as setWebexMeetings, upsertMany as upsertWebexMeetings, setSelected, setProperty as setUiProperty};
 
 const baseUrl = '/api/webex/meetings';
 

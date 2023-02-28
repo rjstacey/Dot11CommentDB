@@ -1,5 +1,5 @@
 import React from 'react';
-import {useDispatch} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 import {Link} from 'react-router-dom';
 
 import {ActionButton, Select} from 'dot11-components/form';
@@ -9,7 +9,9 @@ import {AppTable, SplitPanel, Panel, TableColumnSelector, SplitPanelButton, Sele
 import {
 	fields,
 	dataSet,
-	getField
+	getField,
+	selectUiProperties,
+	setUiProperties,
 } from '../store/meetings';
 
 import {refresh as refreshCurrent} from '../store/current';
@@ -178,8 +180,10 @@ function rowGetter({rowIndex, ids, entities}) {
 
 function Meetings(props) {
 	const dispatch = useDispatch();
-	const [showDays, setShowDays] = React.useState(0);
-
+	let {showDays} = useSelector(selectUiProperties);
+	if (!showDays)
+		showDays = 0;
+	const setShowDays = (showDays) => dispatch(setUiProperties({showDays}));
 	const refresh = () => dispatch(refreshCurrent());
 
 	return (

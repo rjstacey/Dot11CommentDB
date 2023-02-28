@@ -122,3 +122,5 @@ export const selectSyncedMeetingEntities = createSelector(
 export const selectSelectedMeetings = (state) => selectMeetingsState(state).selected;
 
 export const selectSelectedSlots = (state) => selectMeetingsState(state).selectedSlots;
+
+export const selectUiProperties = (state) => selectMeetingsState(state).ui;
