@@ -5,7 +5,7 @@
  *      Returns an array of objects with shape {scope, desciption} that is the complete set of permission options.
  */
 import {Router} from 'express';
-import permissions from '../services/permissions';
+import {permissions} from '../services/users';
 
 const router = Router();
 

@@ -35,7 +35,6 @@
  *		Update existing and add missing resolutions from spreadsheet.
  */
 import {Router} from 'express';
-
 import {isPlainObject} from '../utils';
 import {
 	addResolutions,

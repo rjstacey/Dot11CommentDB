@@ -1,4 +1,4 @@
-import {getUser} from './users';
+import {getUser} from '../services/users';
 
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');

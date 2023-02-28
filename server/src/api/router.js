@@ -5,7 +5,7 @@
  */
 import {Router} from 'express';
 
-import {AccessLevel} from '../auth/access';
+import {userIsMember, userIsSubgroupAdmin, userIsWGAdmin} from '../services/users';
 import {authorize} from '../auth/jwt'
 
 import timezones from './timezones';
@@ -50,11 +50,19 @@ router.use(authorize);
 /*
  * Enforce access levels
  *
- * Default is to deny access (status(403) at end of routine) unless permission is explicitly granted
+ * The philosophy here is to deny access (status(403) at end of routine) unless permission is explicitly granted
  * through one the "return next()" statements.
  */
 router.all('*', (req, res, next) => {
-	const access = req.user.Access;
+	const {user} = req;
+	const access = user.Access;
+
+	// WG Admin can do anything
+	if (userIsWGAdmin(user))
+		return next();
+
+	const isMember = userIsMember(user);
+	const isSubgroupAdmin = userIsSubgroupAdmin(user);
 
 	switch (req.method) {
 	case 'GET': /* read */
@@ -62,49 +70,41 @@ router.all('*', (req, res, next) => {
 		if (req.path.match(/^\/ballot|^\/votingPools|^\/comment|^\/resolution/i))
 			return next();
 		/* members have read access to users */
-		if (req.path.match(/^\/users/i) && access >= AccessLevel.Member)
+		if (req.path.match(/^\/users/i) && isMember)
 			return next();
 		/* subgroup admins have read access to results */
-		if (req.path.match(/^\/result/i) && access >= AccessLevel.SubgroupAdmin)
+		if (req.path.match(/^\/result/i) && isSubgroupAdmin)
 			return next();
 		/* subgroup admins have read access to meetings */
-		if (req.path.match(/^\/meetings/i) && access >= AccessLevel.SubgroupAdmin)
+		if (req.path.match(/^\/meetings/i) && isSubgroupAdmin)
 			return next();
 		break;
 
 	case 'POST': /* add */
 	case 'DELETE': /* delete */
-		if (req.path.match(/^\/comment|^\/resolution/i) && access >= AccessLevel.SubgroupAdmin)
-			return next();
-		if (req.path.match(/^\/ballot/i) && access >= AccessLevel.WGAdmin)
+		if (req.path.match(/^\/comment|^\/resolution/i) && isSubgroupAdmin)
 			return next();
 		/* subgroup admins have create/delete access to meetings */
-		if (req.path.match(/^\/meetings/i) && access >= AccessLevel.SubgroupAdmin)
+		if (req.path.match(/^\/meetings/i) && access >= isSubgroupAdmin)
 			return next();
 		break;
 
 	case 'PUT':
 	case 'PATCH': /* modify existing */
-		if (req.path.match(/^\/resolution/i) && access >= AccessLevel.Member)
+		if (req.path.match(/^\/resolution/i) && isMember)
 			return next();
-		if (req.path.match(/^\/comment/i) && access >= AccessLevel.SubgroupAdmin)
-			return next();
-		if (req.path.match(/^\/ballot/i) && access >= AccessLevel.WGAdmin)
+		if (req.path.match(/^\/comment/i) && isSubgroupAdmin)
 			return next();
 		/* subgroup admins have modify access to meetings */
-		if (req.path.match(/^\/meetings/i) && access >= AccessLevel.SubgroupAdmin)
+		if (req.path.match(/^\/meetings/i) && isSubgroupAdmin)
 			return next();
 		break;
 	}
 
-	/* WG admin can do anything */
-	if (access === AccessLevel.WGAdmin)
-		return next();
-
 	return res.status(403).send('Insufficient karma');
 });
 
-/* A get on root returns OK: tests connect availability */
+/* A get on root returns OK: tests connectivity */
 router.get('/$', (req, res, next) => res.json(null));
 
 /*

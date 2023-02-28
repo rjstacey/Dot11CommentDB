@@ -15,7 +15,7 @@ const router = Router();
 router.get('/calendar', async (req, res, next) => {
     try {
         await completeAuthCalendarAccount(req.query);
-        res.redirect('/telecons/accounts');
+        res.redirect('/meetings/accounts');
     }
     catch (err) {
         next(err);
@@ -25,7 +25,7 @@ router.get('/calendar', async (req, res, next) => {
 router.get('/webex', async (req, res, next) => {
     try {
         await completeAuthWebexAccount(req.query);
-        res.redirect('/telecons/accounts');
+        res.redirect('/meetings/accounts');
     }
     catch (err) {
         next(err);

@@ -1,14 +1,14 @@
 import {Router} from 'express';
 
-import {getUsers} from '../services/members';
+import {selectUsers} from '../services/users';
 
 const router = Router();
 
 router.get('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		const data = await getUsers(user);
-		res.json(data);
+		const users = await selectUsers(user);
+		res.json({users});
 	}
 	catch(err) {next(err)}
 });

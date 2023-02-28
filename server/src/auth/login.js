@@ -1,7 +1,6 @@
 import {Router} from 'express';
 import { createIeeeFetcher } from '../utils';
-import users from './users';
-import {getUser} from '../services/members';
+import {selectUser, getUser, setUser, delUser} from '../services/users';
 
 //const cheerio = require('cheerio');
 const db = require('../utils/database');
@@ -105,7 +104,7 @@ const router = Router();
 router.get('/login', async (req, res, next) => {
 	try {
 		const userId = jwt.verify(req);
-		const {ieeeClient, ...user} = await users.getUser(userId);
+		const {ieeeClient, ...user} = await getUser(userId);
 		res.json({user});
 	}
 	catch (err) {
@@ -122,14 +121,10 @@ router.post('/login', async (req, res, next) => {
 
 		const {SAPIN, Name, Email} = await login(ieeeClient, username, password);
 
-		const user = (await getUser({SAPIN, Email})) || {SAPIN, Name, Email, Access: 0, Permissions: []};
-
-		/* Hack: adjust my access */
-		if (user.SAPIN === 5073)
-			user.Access = 3;
+		const user = (await selectUser({SAPIN, Email})) || {SAPIN, Name, Email, Access: 0, Permissions: []};
 
 		user.Token = jwt.token(user.SAPIN);
-		users.setUser(user.SAPIN, {...user, ieeeClient});
+		setUser(user.SAPIN, {...user, ieeeClient});
 
 		res.json({user});
 	}
@@ -139,11 +134,11 @@ router.post('/login', async (req, res, next) => {
 router.post('/logout', async (req, res, next) => {
 	try {
 		const userId = jwt.verify(req);
-		const user = await users.getUser(userId);
+		const user = await getUser(userId);
 		if (user) {
 			if (user.ieeeClient)
 				logout(user.ieeeClient);
-			users.delUser(user.SAPIN);
+			delUser(user.SAPIN);
 		}
 		res.json({user: null});
 	}

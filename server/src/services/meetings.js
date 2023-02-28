@@ -518,21 +518,35 @@ async function meetingMakeWebexUpdates(meeting, changes) {
 
 	if (meeting.webexAccountId && meeting.webexMeetingId) {
 		// Webex meeting previously created
+
+		// Get parameters for existing meeting
+		try {
+			webexMeeting = await getWebexMeeting(meeting.webexAccountId, meeting.webexMeetingId);
+			webexMeetingParams = {...webexMeeting, ...webexMeetingParams};
+		}
+		catch (error) {
+			if (!(error instanceof NotFoundError))
+				throw error;
+			// meeting not found
+		}
+
 		if (('webexAccountId' in changes && changes.webexAccountId !== meeting.webexAccountId) ||
 			('webexMeetingId' in changes && changes.webexMeetingId !== meeting.webexMeetingId))
 		{
-			// Delete the webex meeting if the webex account or webex meeting ID changes
+			// Webex account or webex meeting ID changed
+
+			// Delete exisitng webex meeting
 			try {
 				await deleteWebexMeeting({accountId: meeting.webexAccountId, id: meeting.webexMeetingId});
 			}
 			catch (error) {
-				// Ignore "meeting does not" exist error (probably deleted through other means)
-				if (!(error instanceof NotFoundError))	// Webex meeting does not exist
+				if (!(error instanceof NotFoundError))
 					throw error;
+				// Ignore meeting not found error (probably deleted through other means)
 			}
+
 			if (webexAccountId && changes.webexMeetingId === '$add') {
-				// Add new webex meeting if the webexMeeting object is present
-				console.log('add webex meeting');
+				// Changes indicate that a new webex meeting should be added
 				webexMeeting = await addWebexMeeting(webexMeetingParams);
 				changes.webexMeetingId = webexMeeting.id;
 			}
@@ -548,7 +562,7 @@ async function meetingMakeWebexUpdates(meeting, changes) {
 			catch (error) {
 				if (!(error instanceof NotFoundError))
 					throw error;
-				// Webex meeting does not exist
+				// meeting not found
 				changes.webexMeetingId = null;
 			}
 		}
@@ -556,20 +570,21 @@ async function meetingMakeWebexUpdates(meeting, changes) {
 	else {
 		if (webexAccountId && changes.webexMeetingId) {
 			if (changes.webexMeetingId === '$add') {
-				// Add new webex meeting
-				console.log('add webexMeeting', webexMeeting)
+				// Add new meeting
 				webexMeeting = await addWebexMeeting(webexMeetingParams);
 				changes.webexMeetingId = webexMeeting.id;
 			}
 			else {
 				// Link to existing webex meeting
 				try {
+					webexMeeting = await getWebexMeeting(webexAccountId, changes.webexMeetingId);
+					webexMeetingParams = {...webexMeeting, ...webexMeetingParams};
 					webexMeeting = await updateWebexMeeting(webexMeetingParams);
 				}
 				catch (error) {
 					if (!(error instanceof NotFoundError))
 						throw error;
-					// Webex meeting does not exist
+					// meeting not found
 					changes.webexMeetingId = null;
 				}
 			}

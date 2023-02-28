@@ -1,9 +1,10 @@
 /*
  * Comments History API
  */
+import {Router} from 'express';
 import {getCommentHistory} from '../services/commentHistory';
 
-const router = require('express').Router();
+const router = Router();
 
 router.get('/:comment_id', async (req, res, next) => {
 	try {

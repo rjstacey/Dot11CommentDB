@@ -14,7 +14,7 @@ import api from './api/router';
 
 import {init as databaseInit} from './utils/database';
 import {init as seedDatabase} from './utils/seedDatabase';
-import {init as usersInit} from './auth/users';
+import {init as usersInit} from './services/users';
 import {init as webexInit} from './services/webex';
 import {init as calendarInit} from './services/calendar';
 import {init as emailInit} from './services/email';

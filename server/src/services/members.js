@@ -23,37 +23,6 @@ import {getRecentBallotSeriesWithResults} from './ballots';
 
 import {updateVoter} from './voters';
 
-/*
- * A list of members is available to any user with access level Member or higher
- * (for reassigning comments, etc.). We only care about members with status.
- */
-export async function getUsers(user) {
-	const SQL = db.format(
-		'SELECT ' +
-			'm.SAPIN, Name, Email, Status, Access, ' +
-			'COALESCE(Permissions, JSON_ARRAY()) AS Permissions ' +
-		'FROM members m ' +
-		'LEFT JOIN (SELECT SAPIN, JSON_ARRAYAGG(scope) AS Permissions FROM permissions GROUP BY SAPIN) AS p ON m.SAPIN=p.SAPIN ' +
-		'WHERE ' +
-			'Status="Aspirant" OR ' +
-			'Status="Potential Voter" OR ' +
-			'Status="Voter" OR ' +
-			'Status="ExOfficio"');
-	const users = await db.query(SQL);
-	return {users};
-}
-
-export async function getUser({SAPIN, Email}) {
-	const sql =
-		'SELECT ' +
-			'm.SAPIN, Name, Email, Status, Access, ' +
-			'COALESCE(Permissions, JSON_ARRAY()) AS Permissions ' +
-		'FROM members m ' +
-		'LEFT JOIN (SELECT SAPIN, JSON_ARRAYAGG(scope) AS Permissions FROM permissions GROUP BY SAPIN) AS p ON m.SAPIN=p.SAPIN ' +
-		'WHERE ' + (SAPIN > 0? `m.SAPIN=${db.escape(SAPIN)}`: `m.Email=${db.escape(Email)}`);
-	const [user] = await db.query(sql);
-	return user;
-}
 
 function selectMembersSql({sapins}) {
 	let sql =
