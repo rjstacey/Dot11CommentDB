@@ -1,5 +1,5 @@
 import React from 'react';
-import {Link, useHistory} from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 import AppTable, {SelectHeader, SelectCell, TableColumnHeader} from 'dot11-components/table';
@@ -63,7 +63,7 @@ const tableColumns = [
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0);
 
 function ImatMeetings() {
-	const history = useHistory();
+	const navigate = useNavigate();
 	const dispatch = useDispatch();
 	const groupName = useSelector(selectGroupName);
 
@@ -84,7 +84,7 @@ function ImatMeetings() {
 
 	}, [groupName]);
 
-	const close = () => history.push('/sessions');
+	const close = () => navigate('/sessions');
 	const refresh = () => dispatch(loadImatMeetings());
 	const clear = () => dispatch(clearImatMeetings());
 

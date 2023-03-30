@@ -1,6 +1,6 @@
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {useHistory} from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 
 import AppTable, {SelectHeader, SelectCell, TableColumnSelector, TableColumnHeader, SplitPanelButton, SplitPanel, Panel} from 'dot11-components/table';
 import {ConfirmModal} from 'dot11-components/modals';
@@ -88,7 +88,7 @@ for (const tableView of Object.keys(defaultTablesColumns)) {
 }
 
 function Sessions() {
-	const history = useHistory();
+	const navigate = useNavigate();
 	const dispatch = useDispatch();
 
 	const {selected} = useSelector(selectSessionsState);
@@ -107,7 +107,7 @@ function Sessions() {
 		}
 	}
 
-	const showSessions = () => history.push('/sessions/imat');
+	const showSessions = () => navigate('/sessions/imat');
 
 	return (
 		<>

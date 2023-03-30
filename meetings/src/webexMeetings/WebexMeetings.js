@@ -7,7 +7,7 @@ import AppTable, {SelectHeader, SelectCell, TableColumnHeader, TableColumnSelect
 import {ActionButton, Form} from 'dot11-components/form';
 import {AppModal} from 'dot11-components/modals';
 
-import {selectCurrentGroupId, refresh as refreshCurrent} from '../store/current';
+import {selectCurrentGroupId} from '../store/current';
 import {selectGroupEntities} from '../store/groups';
 import {displayMeetingNumber} from '../store/webexMeetings';
 

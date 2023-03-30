@@ -1,5 +1,5 @@
-import {createSelector} from '@reduxjs/toolkit';
-import {DateTime} from 'luxon';
+import { createSelector } from '@reduxjs/toolkit';
+import { DateTime } from 'luxon';
 
 import {fetcher, displayDate} from 'dot11-components/lib';
 import {createAppTableDataSlice, SortType, selectCurrentPanelConfig} from 'dot11-components/store/appTableData';

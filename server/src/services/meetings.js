@@ -514,7 +514,7 @@ async function meetingMakeWebexUpdates(meeting, changes) {
 	if (!webexAccountId)
 		return webexMeeting;
 
-	const webexMeetingParams = meetingToWebexMeeting({...meeting, ...changes});
+	let webexMeetingParams = meetingToWebexMeeting({...meeting, ...changes});
 
 	if (meeting.webexAccountId && meeting.webexMeetingId) {
 		// Webex meeting previously created

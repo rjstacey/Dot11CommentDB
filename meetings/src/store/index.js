@@ -1,5 +1,5 @@
 
-export {configureStore} from './store.js';
+export {configureStore} from './store';
 
 //export * from './meetingsActions';
 //export * from './meetingsSelectors';

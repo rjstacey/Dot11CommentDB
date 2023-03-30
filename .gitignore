@@ -4,3 +4,4 @@ build/*
 *.sublime-workspace
 *.sublime-project
 .vscode
+node_modules

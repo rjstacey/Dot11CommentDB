@@ -3,23 +3,22 @@ import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 
-//import {configureStore} from './store'
-import { store, persistor } from './store/store';
-import App from './app';
-import {getUser, logout} from 'dot11-components/lib/user';
-import {setUser} from './store/user';
-import {fetcher} from 'dot11-components/lib';
-import './index.css';
+import configureStore from './store';
 
-import registerServiceWorker from './registerServiceWorker';
-import reportWebVitals from './reportWebVitals';
+import './index.css';
+import App from './app/App';
+import {getUser, logout, fetcher} from 'dot11-components';
+import {setUser} from './store/user';
+
+// @ts-ignore
+import * as serviceWorker from './serviceWorkerRegistration';
 
 getUser()
 	.then(user => {
-		const root = createRoot(document.getElementById('root'));
+		const root = createRoot(document.getElementById('root')!);
 		try {
 			fetcher.setAuth(user.Token, logout);
-			//const {store, persistor} = configureStore();
+			const {store, persistor} = configureStore();
 			store.dispatch(setUser(user));
 			root.render(
 				<React.StrictMode>
@@ -30,8 +29,8 @@ getUser()
 					</Provider>
 				</React.StrictMode>
 			);
-			registerServiceWorker();
-			reportWebVitals();
+
+			serviceWorker.register();
 		}
 		catch (error) {
 			console.log(error);

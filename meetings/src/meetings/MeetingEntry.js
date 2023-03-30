@@ -19,7 +19,6 @@ import TimeZoneSelector from '../components/TimeZoneSelector';
 import GroupSelector from '../components/GroupSelector';
 import CalendarAccountSelector from '../components/CalendarAccountSelector';
 import ImatMeetingSelector from '../components/ImatMeetingSelector';
-import InputTimeRangeAsDuration from '../components/InputTimeRangeAsDuration';
 
 import {WebexMeetingAccount, WebexMeetingParams} from '../webexMeetings/WebexMeetingDetail';
 

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
-import {useHistory, useLocation} from 'react-router-dom';
+import {useNavigate, useLocation} from 'react-router-dom';
 
 import {selectCurrentSessionId, setCurrentSessionId} from '../store/current';
 import SessionSelector from './SessionSelector';
@@ -9,7 +9,7 @@ import SessionSelector from './SessionSelector';
 export function PathSessionSelector({onChange, ...otherProps}) {
 	const dispatch = useDispatch();
 	const sessionId = useSelector(selectCurrentSessionId);
-	const history = useHistory();
+	const navigate = useNavigate();
 	const location = useLocation();
 
 	React.useEffect(() => {
@@ -32,7 +32,7 @@ export function PathSessionSelector({onChange, ...otherProps}) {
 			onChange(sessionId);
 		const components = location.pathname.split('/');
 		components[2] = sessionId || '*';
-		history.push(components.join('/'));
+		navigate(components.join('/'));
 	}
 
 	return (

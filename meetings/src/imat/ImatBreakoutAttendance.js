@@ -1,5 +1,5 @@
 import React from 'react';
-import {useHistory, useParams} from 'react-router-dom';
+import {useNavigate, useParams} from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
@@ -58,7 +58,7 @@ const columns = [
 const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
 
 function BreakoutAttendance() {
-	const history = useHistory();
+	const navigate = useNavigate();
 	const params = useParams();
 
 	const dispatch = useDispatch();
@@ -73,7 +73,7 @@ function BreakoutAttendance() {
 			dispatch(loadBreakoutAttendance(params.meetingNumber, params.breakoutNumber));
 	}, [dispatch, valid, params.meetingNumber, imatMeetingId, params.breakoutNumber, imatBreakoutId]);
 
-	const close = () => history.push(`/${params.groupName}/imatMeetings/${imatMeetingId}`);
+	const close = () => navigate(`/${params.groupName}/imatMeetings/${imatMeetingId}`);
 	const refresh = () => dispatch(loadBreakoutAttendance(imatMeetingId, imatBreakoutId));
 
 	return (

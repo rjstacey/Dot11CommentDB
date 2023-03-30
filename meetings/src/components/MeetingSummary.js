@@ -15,6 +15,7 @@ function MeetingSummary({meetingId}) {
 			<span style={{textDecoration}}>
 				{meeting.summary}
 			</span>
+			<span>{getField(meeting, 'location')}</span>
 			<span style={{fontStyle: 'italic', fontSize: 'smaller', textDecoration}}>
 				{getField(meeting, 'date')} {getField(meeting, 'timeRange')}
 			</span>

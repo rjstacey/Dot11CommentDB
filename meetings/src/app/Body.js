@@ -1,5 +1,5 @@
 import React from 'react';
-import {Switch, Route} from 'react-router-dom';
+import {Routes, Route} from 'react-router-dom';
 import {useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 
@@ -26,96 +26,73 @@ const Main = styled.main`
 	align-items: center;
 `;
 
-const RestrictedRoute = ({component: Component, access, minAccess, ...rest }) =>
-	<Route
-		{...rest}
-		render={props =>
-			access >= minAccess?
-				<React.Suspense fallback={<div>Loading...</div>}>
-					<Component access={access} {...props} />
-				</React.Suspense>:
-				<span>You do not have permission to view this data</span>
-		}
-	/>
-
 function Body() {
 	const access = useSelector(selectUserMeetingsAccess);
 
+	function renderComponent(minAccess, Component) {
+		if (access < minAccess)
+			return <span>You do not have permission to view this data</span>
+		return (
+			<React.Suspense fallback={<div>Loading...</div>}>
+				<Component />
+			</React.Suspense>
+		)
+	}
+
 	return (
 		<Main>
-			<Switch>
-				<RestrictedRoute
+			<Routes>
+				<Route
 					path="/accounts"
-					access={access}
-					minAccess={AccessLevel.admin}
-					component={Accounts}
+					element={renderComponent(AccessLevel.admin, Accounts)}
 				/>
-				<RestrictedRoute
+				<Route
 					path="/:groupName/organization"
-					access={access}
-					minAccess={AccessLevel.ro}
-					component={Organization}
+					element={renderComponent(AccessLevel.ro, Organization)}
 				/>
-				<RestrictedRoute
+
+				<Route
 					path="/:groupName/sessions"
-					access={access}
-					minAccess={AccessLevel.ro}
-					component={Sessions}
+					element={renderComponent(AccessLevel.ro, Sessions)}
 				/>
-				<RestrictedRoute
+				<Route
 					path="/:groupName/:sessionId/meetings"
-					access={access}
-					minAccess={AccessLevel.ro}
-					component={Meetings}
+					element={renderComponent(AccessLevel.ro, Meetings)}
 				/>
-				<RestrictedRoute
+				<Route
 					path="/:groupName/:sessionId/webexMeetings"
-					access={access}
 					exact
-					minAccess={AccessLevel.ro}
-					component={WebexMeetings}
+					element={renderComponent(AccessLevel.ro, WebexMeetings)}
 				/>
-				<RestrictedRoute
+				<Route
 					path="/:groupName/:sessionId/imatBreakouts"
-					access={access}
 					exact
-					minAccess={AccessLevel.ro}
-					component={ImatBreakouts}
+					element={renderComponent(AccessLevel.ro, ImatBreakouts)}
 				/>
-				<RestrictedRoute
+				<Route
 					path="/:groupName/calendar"
-					access={access}
-					minAccess={AccessLevel.ro}
-					component={Calendar}
+					element={renderComponent(AccessLevel.ro, Calendar)}
 				/>
-				<RestrictedRoute
+				<Route
 					path="/:groupName/imatMeetings"
-					access={access}
 					exact
-					minAccess={AccessLevel.ro}
-					component={ImatMeetings}
+					element={renderComponent(AccessLevel.ro, ImatMeetings)}
 				/>
-				<RestrictedRoute
+				<Route
 					path="/:groupName/imatMeetings/:meetingNumber"
-					access={access}
 					exact
-					minAccess={AccessLevel.ro}
-					component={ImatBreakouts}
+					element={renderComponent(AccessLevel.ro, ImatBreakouts)}
 				/>
-				<RestrictedRoute
+				<Route
 					path="/:groupName/imatMeetings/:meetingNumber/:breakoutNumber"
-					access={access}
-					minAccess={AccessLevel.ro}
-					component={ImatBreakoutAttendance}
+					element={renderComponent(AccessLevel.ro, ImatBreakoutAttendance)}
 				/>
-				<RestrictedRoute
+				<Route
 					path="/:groupName/ieee802World"
-					access={access}
 					exact
-					minAccess={AccessLevel.ro}
-					component={Ieee802World}
+					element={renderComponent(AccessLevel.ro, Ieee802World)}
 				/>
-			</Switch>
+			</Routes>
 		</Main>
 	)
 }

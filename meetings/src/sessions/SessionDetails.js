@@ -29,8 +29,6 @@ import {
 	selectSessionsState
 } from '../store/sessions';
 
-import {selectMeetingsState} from '../store/meetings';
-
 import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
 
 const BLANK_STR = '(Blank)';

@@ -282,7 +282,6 @@ class GroupDetail extends React.PureComponent {
 			notAvailableStr = 'Nothing selected';
 
 		const readOnly = access <= AccessLevel.ro;
-		console.log(readOnly, access)
 
 		return (
 			<Container>

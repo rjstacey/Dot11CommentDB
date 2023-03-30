@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {useSelector, useDispatch} from 'react-redux';
-import {useHistory, useLocation} from 'react-router-dom';
+import {useNavigate, useLocation} from 'react-router-dom';
 
 import {Select} from 'dot11-components/form';
 
@@ -17,7 +17,7 @@ export function PathGroupSelector({
 	const dispatch = useDispatch();
 	const {entities, ids} = useSelector(selectGroupsState);
 	const groupId = useSelector(selectCurrentGroupId);
-	const history = useHistory();
+	const navigate = useNavigate();
 	const location = useLocation();
 
 	React.useEffect(() => {
@@ -52,7 +52,7 @@ export function PathGroupSelector({
 		const components = location.pathname.split('/');
 		const group = entities[newGroupId];
 		components[1] = group? group.name: '*';
-		history.push(components.join('/'));
+		navigate(components.join('/'));
 	};
 
 	const values = groups.filter(g => g.id === groupId);

@@ -1,0 +1,216 @@
+import React from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import styled from '@emotion/styled';
+import {Link, useNavigate} from 'react-router-dom';
+
+import {
+	AppTable, 
+	SelectHeader,
+	SelectCell,
+	TableColumnSelector,
+	SplitPanelButton,
+	TableColumnHeader,
+	SplitPanel,
+	Panel,
+	ConfirmModal,
+	ActionButton,
+	displayDateRange,
+	ColumnProperties,
+	TablesConfig,
+	TableConfig
+} from 'dot11-components';
+
+// @ts-ignore
+import SessionDetail from './SessionDialog';
+
+import {
+	fields,
+	loadSessions,
+	deleteSessions,
+	selectSessionsState,
+	sessionsSelectors,
+	sessionsActions,
+	Session
+} from '../store/sessions';
+
+const TopRow = styled.div`
+	display: flex;
+	justify-content: space-between;
+	width: 100%;
+	padding: 10px;
+	box-sizing: border-box;
+`;
+
+const SessionsColumnHeader = (props: Omit<React.ComponentProps<typeof TableColumnHeader>, 'selectors' | 'actions'>) =>
+	<TableColumnHeader
+		selectors={sessionsSelectors}
+		actions={sessionsActions}
+		{...props}
+	/>;
+
+const renderHeaderStartEnd = (props: Omit<React.ComponentProps<typeof SessionsColumnHeader>, 'dataKey' | 'label'>) =>
+	<>
+		<SessionsColumnHeader {...props} dataKey='startDate' label='Start' />
+		<SessionsColumnHeader {...props} dataKey='endDate' label='End' />
+	</>
+
+export const renderCellStartEnd = ({rowData}: {rowData: Session}) => displayDateRange(rowData.startDate, rowData.endDate);
+
+const renderBreakouts = ({rowData, dataKey}: {rowData: Session; dataKey: keyof Session}) =>
+	<Link to={`/sessions/${rowData.id}/breakouts`}>
+		{rowData[dataKey]}
+	</Link>
+
+const renderAttendance = ({rowData, dataKey}: {rowData: Session; dataKey: keyof Session}) =>
+	<Link to={`/sessions/${rowData.id}/attendees`}>
+		{rowData[dataKey]}
+	</Link>
+
+type ColumnPropertiesWidth = ColumnProperties & { width: number };	// width required
+
+const tableColumns: ColumnPropertiesWidth[] = [
+	{key: '__ctrl__',
+		width: 30, flexGrow: 0, flexShrink: 0,
+		headerRenderer: p => 
+			<SelectHeader
+				selectors={sessionsSelectors}
+				actions={sessionsActions}
+				{...p}
+			/>,
+		cellRenderer: p =>
+			<SelectCell
+				selectors={sessionsSelectors}
+				actions={sessionsActions}
+				{...p}
+			/>},
+	{key: 'id', 
+		...fields.id,
+		width: 60, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
+	{key: 'imatMeetingId', 
+		...fields.imatMeetingId,
+		width: 120, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
+	{key: 'startDate', 
+		...fields.startDate,
+		width: 120, flexGrow: 1, flexShrink: 1},
+	{key: 'endDate', 
+		...fields.endDate,
+		width: 120, flexGrow: 1, flexShrink: 1},
+	{key: 'Start/End', 
+		label: 'Start/End',
+		width: 120, flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderStartEnd,
+		cellRenderer: renderCellStartEnd as (props: { rowData: object }) => string},
+	{key: 'name', 
+		...fields.name,
+		width: 300, flexGrow: 1, flexShrink: 1},
+	{key: 'type', 
+		...fields.type,
+		width: 80, flexGrow: 1, flexShrink: 1},
+	{key: 'timezone', 
+		...fields.timezone,
+		width: 200, flexGrow: 1, flexShrink: 1},
+	{key: 'Breakouts', 
+		label: 'Breakouts',
+		width: 100, flexGrow: 1, flexShrink: 1,
+		cellRenderer: renderBreakouts as (props: { rowData: object }) => JSX.Element},
+	{key: 'TotalCredit', 
+		label: 'Credits',
+		width: 100, flexGrow: 1, flexShrink: 1},
+	{key: 'Attendees', 
+		label: 'Attendance',
+		width: 100, flexGrow: 1, flexShrink: 1,
+		cellRenderer: renderAttendance as (props: { rowData: object }) => JSX.Element},
+];
+
+const defaultTablesColumns = {
+	default: ['__ctrl__', 'Start/End', 'name', 'type', 'timezone', 'Breakouts', 'Attendance'],
+};
+
+const defaultTablesConfig: TablesConfig = {};
+let tableView: keyof typeof defaultTablesColumns;
+for (tableView in defaultTablesColumns) {
+	const tableConfig: TableConfig = {
+		fixed: false,
+		columns: {}
+	}
+	for (const column of tableColumns) {
+		const key = column.key;
+		tableConfig.columns[key] = {
+			unselectable: key.startsWith('__'),
+			shown: defaultTablesColumns[tableView].includes(key),
+			width: column.width
+		}
+	}
+	defaultTablesConfig[tableView] = tableConfig;
+}
+
+const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
+
+function Sessions() {
+	const navigate = useNavigate();
+	const dispatch = useDispatch();
+
+	const {valid, selected} = useSelector(selectSessionsState);
+
+	React.useEffect(() => {
+		if (!valid)
+			dispatch(loadSessions());
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+	const refresh = () => dispatch(loadSessions());
+
+	const handleRemoveSelected = async () => {
+		if (selected.length) {
+			const ok = await ConfirmModal.show('Are you sure you want to delete ' + selected.join(', ') + '?');
+			if (ok)
+				await dispatch(deleteSessions(selected as number[]));
+		}
+	}
+
+	const showSessions = () => navigate('/sessions/imat');
+
+	return (
+		<>
+			<TopRow style={{maxWidth}}>
+				<div>Sessions</div>
+				<div style={{display: 'flex'}}>
+					<TableColumnSelector
+						selectors={sessionsSelectors}
+						actions={sessionsActions}
+						columns={tableColumns}
+					/>
+					<SplitPanelButton
+						selectors={sessionsSelectors}
+						actions={sessionsActions}
+					/>
+					<ActionButton name='import' title='Import session' onClick={showSessions} />
+					<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				</div>
+			</TopRow>
+
+			<SplitPanel 
+				selectors={sessionsSelectors}
+				actions={sessionsActions}
+			>
+				<Panel>
+					<AppTable
+						defaultTablesConfig={defaultTablesConfig}
+						columns={tableColumns}
+						headerHeight={36}
+						estimatedRowHeight={44}
+						selectors={sessionsSelectors}
+						actions={sessionsActions}
+					/>
+				</Panel>
+				<Panel style={{overflow: 'auto'}}>
+					<SessionDetail
+						key={selected.join()}
+					/>
+				</Panel>
+			</SplitPanel>
+		</>
+	)
+}
+
+export default Sessions;
