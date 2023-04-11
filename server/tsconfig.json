@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true,
+        "checkJs": false,
+        "allowJs": true,
+        "allowSyntheticDefaultImports": true,
+        "noImplicitAny": false,
+        "noImplicitThis": false,
+        "lib": ["es2015"],
+        "target": "es6",
+        "sourceMap": true,
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "noEmit": false
+    },
+    "include": ["src/**/*"],
+    "exclude": ["src/setupTests.*", "src/**/*.test.*"]
+}

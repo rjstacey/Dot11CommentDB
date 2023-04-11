@@ -2,11 +2,14 @@ const path = require('path');
 
 module.exports = {
 	entry: {
-		main: path.join(__dirname, 'src/index.js')
+		main: path.join(__dirname, 'src/index.ts')
 	},
 	output: {
 		path: path.join(__dirname, '../build'),
 		filename: 'server.js'
+	},
+	resolve: {
+		extensions: ['.ts', '.js'],
 	},
 	target: 'node',
 	node: {
@@ -17,13 +20,17 @@ module.exports = {
 		usedExports: true
 	},
 	mode: 'production',
+	//mode: 'development',
 	module: {
-    rules: [
-      {
-        test: /\.m?js$/,
-        exclude: /node_modules/,
-        type: 'javascript/auto',
-      },
-   ]
-  }
+		rules: [
+			{
+				test: /\.ts$/,
+				loader: 'ts-loader',
+			},
+			{
+				test: /\.js$/,
+				type: 'javascript/auto',
+			},
+		]
+	}
 };
