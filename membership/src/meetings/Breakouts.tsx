@@ -5,11 +5,12 @@ import styled from '@emotion/styled';
 
 import {
 	AppTable,
-	SelectHeader,
+	SelectHeaderCell,
 	SelectCell,
 	ColumnProperties,
 	ActionButton,
 	displayDate,
+	CellRendererProps
 } from 'dot11-components';
 
 import {
@@ -44,14 +45,14 @@ const TableRow = styled.div`
 	}
 `;
 
-const renderGroup = ({rowData}: {rowData: Breakout}) => {
+const renderGroup = ({rowData}: CellRendererProps<Breakout>) => {
 	const parts = rowData.Group.split('/');
 	return parts[parts.length-1]
 }
 
-const renderAttendance = ({rowData, dataKey}: {rowData: Breakout; dataKey: keyof Breakout}) =>
+const renderAttendance = ({rowData, dataKey}: CellRendererProps<Breakout>) =>
 	<Link to={`/sessions/${rowData.session_id}/breakout/${rowData.id}/attendees`}>
-		{rowData[dataKey]}
+		{rowData[dataKey as keyof Breakout]}
 	</Link>
 
 const renderSessionInfo = (meeting: Session) =>
@@ -65,12 +66,7 @@ type ColumnPropertiesWidth = ColumnProperties & { width: number };	// width requ
 
 const columns: ColumnPropertiesWidth[] = [	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p =>
-			<SelectHeader
-				selectors={breakoutsSelectors}
-				actions={breakoutsActions}
-				{...p}
-			/>,
+		headerRenderer: SelectHeaderCell,
 		cellRenderer: p =>
 			<SelectCell
 				selectors={breakoutsSelectors}
@@ -86,7 +82,7 @@ const columns: ColumnPropertiesWidth[] = [	{key: '__ctrl__',
 	{key: 'Group', 
 		label: 'Group',
 		width: 150, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderGroup as (props: { rowData: object }) => React.ReactNode},
+		cellRenderer: renderGroup},
 	{key: 'Name', 
 		label: 'Name',
 		width: 150, flexGrow: 1, flexShrink: 1},
@@ -99,7 +95,7 @@ const columns: ColumnPropertiesWidth[] = [	{key: '__ctrl__',
 	{key: 'Attendees', 
 		label: 'Attendance',
 		width: 100, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderAttendance as (props: { rowData: object }) => React.ReactNode}
+		cellRenderer: renderAttendance}
 ];
 
 const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);

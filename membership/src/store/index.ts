@@ -14,6 +14,8 @@ import sessionsSlice, {loadSessions} from './sessions';
 import imatMeetingsSlice from './imatMeetings';
 import breakoutsSlice from './breakouts';
 import attendeesSlice from './attendees';
+import attendancesSlice from './attendances';
+import ballotParticipationSlice from './ballotParticipation';
 
 import {errorsSlice} from 'dot11-components';
 
@@ -35,6 +37,8 @@ function configureStore2() {
 		[imatMeetingsSlice.name]: imatMeetingsSlice.reducer,
 		[breakoutsSlice.name]: breakoutsSlice.reducer,
 		[attendeesSlice.name]: attendeesSlice.reducer,
+		[attendancesSlice.name]: attendancesSlice.reducer,
+		[ballotParticipationSlice.name]: ballotParticipationSlice.reducer,
 		[timeZonesSlice.name]: timeZonesSlice.reducer,
 		[permissionsSlice.name]: permissionsSlice.reducer,
 		[errorsSlice.name]: errorsSlice.reducer

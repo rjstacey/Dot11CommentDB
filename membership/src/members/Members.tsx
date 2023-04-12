@@ -6,7 +6,7 @@ import copyToClipboard from 'copy-html-to-clipboard';
 
 import {
 	AppTable,
-	SelectHeader,
+	SelectHeaderCell,
 	SelectCell,
 	TableColumnHeader,
 	TableColumnSelector,
@@ -20,8 +20,11 @@ import {
 	ColumnProperties,
 	ConfirmModal,
 	TableConfig,
-	TablesConfig
+	TablesConfig,
+	CellRendererProps
 } from 'dot11-components';
+
+import type { HeaderCellRendererProps } from 'dot11-components';
 
 import { ButtonGroup, ActionButton, Button } from 'dot11-components';
 
@@ -30,7 +33,6 @@ import MembersUpload from './MembersUpload';
 import MemberAdd from './MemberAdd';
 import MembersSummary from './MembersSummary';
 import MemberDetail from './MemberDetail';
-/* @ts-ignore */
 import {RosterImport, RosterExport} from './Roster';
 
 import {
@@ -46,7 +48,6 @@ import {
 
 import type {Member, EntityId, MembersDictionary} from '../store/members';
 
-/* @ts-ignore */
 import {loadSessions, selectSessionsState} from '../store/sessions';
 
 function setClipboard(selected: EntityId[], members: MembersDictionary) {
@@ -98,27 +99,25 @@ const DivLineTruncated = styled.div`
 	text-overflow: ellipsis;
 `;
 
-const MembersColumnHeader = (props: Omit<React.ComponentProps<typeof TableColumnHeader>, 'selectors' | 'actions'>) => <TableColumnHeader selectors={membersSelectors} actions={membersActions} {...props}/>;
-
-const renderHeaderNameAndEmail = (props: Omit<React.ComponentProps<typeof MembersColumnHeader>, 'dataKey' | 'label'>) =>
+const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) =>
 	<>
-		<MembersColumnHeader {...props} dataKey='Name' label='Name' />
-		<MembersColumnHeader {...props} dataKey='Email' label='Email' /*dropdownWidth={200}*/ />
+		<TableColumnHeader {...props} dataKey='Name' label='Name' />
+		<TableColumnHeader {...props} dataKey='Email' label='Email' /*dropdownWidth={200}*/ />
 	</>
 
-export const renderNameAndEmail = ({rowData}: {rowData: Member}) =>
+export const renderNameAndEmail = ({rowData}: CellRendererProps<Member>) =>
 	<>
 		<DivLineTruncated style={{fontWeight: 'bold'}}>{rowData.Name}</DivLineTruncated>
 		<DivLineTruncated>{rowData.Email}</DivLineTruncated>
 	</>
 
-const renderHeaderEmployerAndAffiliation = (props: Omit<React.ComponentProps<typeof MembersColumnHeader>, 'dataKey' | 'label'>) =>
+const renderHeaderEmployerAndAffiliation = (props: HeaderCellRendererProps) =>
 	<>
-		<MembersColumnHeader {...props} dataKey='Employer' label='Employer' />
-		<MembersColumnHeader {...props} dataKey='Affiliation' label='Affiliation' />
+		<TableColumnHeader {...props} dataKey='Employer' label='Employer' />
+		<TableColumnHeader {...props} dataKey='Affiliation' label='Affiliation' />
 	</>
 
-const renderDataEmployerAndAffiliation = ({rowData}: {rowData: Member}) =>
+const renderDataEmployerAndAffiliation = ({rowData}: CellRendererProps<Member>) =>
 	<>
 		<DivLineTruncated>{rowData.Employer}</DivLineTruncated>
 		<DivLineTruncated>{rowData.Affiliation}</DivLineTruncated>
@@ -128,28 +127,40 @@ const tableColumns: ColumnProperties[] = [
 	{key: '__ctrl__',
 		width: 48, flexGrow: 0, flexShrink: 0,
 		headerRenderer: p => 
-			<SelectHeader
-				selectors={membersSelectors}
-				actions={membersActions}
-				customSelectorElement=<IdSelector style={{width: '200px'}} selectors={membersSelectors} actions={membersActions} focusOnMount />
+			<SelectHeaderCell
+				customSelectorElement=
+					<IdSelector
+						style={{width: '200px'}}
+						selectors={membersSelectors}
+						actions={membersActions}
+						focusOnMount
+					/>
 				{...p}
 			/>,
-		cellRenderer: p => <SelectCell selectors={membersSelectors} actions={membersActions} {...p} />},
+		cellRenderer: p =>
+			<SelectCell
+				selectors={membersSelectors}
+				actions={membersActions}
+				{...p}
+			/>},
 	{key: 'SAPIN', 
 		...fields.SAPIN,
 		width: 90, flexGrow: 0, flexShrink: 0, dropdownWidth: 200,
 		headerRenderer: p => 
 			<TableColumnHeader
+				customFilterElement=
+					<IdFilter
+						selectors={membersSelectors}
+						actions={membersActions}
+						dataKey='SAPIN'
+					/>
 				{...p}
-				selectors={membersSelectors}
-				actions={membersActions}  
-				customFilterElement=<IdFilter selectors={membersSelectors} actions={membersActions} dataKey='SAPIN' />
 			/>},
 	{key: 'Name/Email',
 		label: 'Name/Email',
 		width: 200, flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderNameAndEmail,
-		cellRenderer: renderNameAndEmail as (props: { rowData: object }) => JSX.Element},
+		cellRenderer: renderNameAndEmail},
 	{key: 'Name',
 		...fields.Name,
 		width: 200, flexGrow: 1, flexShrink: 1},
@@ -160,7 +171,7 @@ const tableColumns: ColumnProperties[] = [
 		label: 'Employer/Affiliation',
 		width: 300, flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderEmployerAndAffiliation,
-		cellRenderer: renderDataEmployerAndAffiliation as (props: { rowData: object }) => JSX.Element},
+		cellRenderer: renderDataEmployerAndAffiliation},
 	{key: 'Employer', 
 		...fields.Employer,
 		width: 300, flexGrow: 1, flexShrink: 1},
@@ -262,13 +273,13 @@ function Members() {
 					</ButtonGroup>
 					<Button
 						isActive={newStatusFromAttendances}
-						onClick={e => dispatch(toggleNewStatusFromAttendances())}
+						onClick={() => dispatch(toggleNewStatusFromAttendances())}
 					>
 						Post Session Status
 					</Button>
 					<Button
 						isActive={newStatusFromBallotSeriesParticipation}
-						onClick={e => dispatch(toggleNewStatusFromBallotSeriesParticipation())}
+						onClick={() => dispatch(toggleNewStatusFromBallotSeriesParticipation())}
 					>
 						Post Ballot Series Status
 					</Button>

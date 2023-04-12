@@ -6,9 +6,10 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 
 import {
 	AppTable, 
-	SelectHeader,
+	SelectHeaderCell,
 	SelectCell,
 	TableColumnHeader,
+	HeaderCellRendererProps,
 	ColumnProperties,
 	ConfirmModal,
 	ActionButton,
@@ -48,17 +49,10 @@ const TableRow = styled.div`
 	}
 `;
 
-const AttendeesColumnDropdown = (props: Omit<React.ComponentProps<typeof TableColumnHeader>, "selectors" | "actions">) =>
-	<TableColumnHeader
-		selectors={attendeesSelectors}
-		actions={attendeesActions}
-		{...props}
-	/>;
-
-const renderHeaderNameAndEmail = (props: Omit<React.ComponentProps<typeof AttendeesColumnDropdown>, "dataKey" | "label">) =>
+const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) =>
 	<>
-		<AttendeesColumnDropdown {...props} dataKey='Name' label='Name' />
-		<AttendeesColumnDropdown {...props} dataKey='Email' label='Email' />
+		<TableColumnHeader {...props} dataKey='Name' label='Name' />
+		<TableColumnHeader {...props} dataKey='Email' label='Email' />
 	</>
 
 type ColumnPropertiesWidth = ColumnProperties & { width: number };	// width required
@@ -66,12 +60,7 @@ type ColumnPropertiesWidth = ColumnProperties & { width: number };	// width requ
 const tableColumns: ColumnPropertiesWidth[] = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p =>
-			<SelectHeader
-				selectors={attendeesSelectors}
-				actions={attendeesActions}
-				{...p}
-			/>,
+		headerRenderer: SelectHeaderCell,
 		cellRenderer: p =>
 			<SelectCell
 				selectors={attendeesSelectors}
@@ -85,7 +74,7 @@ const tableColumns: ColumnPropertiesWidth[] = [
 		label: 'Name',
 		width: 200, flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderNameAndEmail,
-		cellRenderer: renderNameAndEmail as (props: { rowData: object }) => React.ReactNode},
+		cellRenderer: renderNameAndEmail},
 	{key: 'Affiliation', 
 		label: 'Affiliation',
 		width: 300, flexGrow: 1, flexShrink: 1},

@@ -224,10 +224,10 @@ function memberNewStatusFromBallotSeriesParticipation(member: Member) {
  * Fields derived from other fields
  */
 export function getField(entity: Member, key: string): any {
-	if (key === 'AttendancesSummary') {
+	/*if (key === 'AttendancesSummary') {
 		const {count, total} = memberAttendancesCount(entity);
 		return `${count}/${total}`;
-	}
+	}*/
 	if (key === 'BallotSeriesSummary') {
 		const {count, total} = memberBallotSeriesCount(entity);
 		return `${count}/${total}`;
@@ -244,6 +244,9 @@ export const selectMembersState = (state: RootState): MembersState => state[data
 
 export const membersSelectors = getAppTableDataSelectors(selectMembersState);
 
+export const selectUiProperties = membersSelectors.selectUiProperties;
+
+export const selectMemberIds = (state: RootState) => selectMembersState(state).ids;
 export const selectMemberEntities = (state: RootState) => selectMembersState(state).entities;
 export const selectNewStatusFromAttendances = (state: RootState) => selectMembersState(state).newStatusFromAttendances;
 export const selectNewStatusFromBallotSeriesParticipation = (state: RootState) => selectMembersState(state).newStatusFromBallotSeriesParticipation;
@@ -330,10 +333,10 @@ const {
 	removeMany,
 	toggleNewStatusFromAttendances,
 	toggleNewStatusFromBallotSeriesParticipation,
-	setProperty
+	setUiProperties
 } = slice.actions;
 
-export {toggleNewStatusFromAttendances, toggleNewStatusFromBallotSeriesParticipation, setProperty};
+export {toggleNewStatusFromAttendances, toggleNewStatusFromBallotSeriesParticipation, setUiProperties};
 
 export const loadMembers = (): AppThunk =>
 	async (dispatch) => {

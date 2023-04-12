@@ -3,7 +3,9 @@ import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {DateTime} from 'luxon';
 import {
-	AppTable, SelectHeader, SelectCell,
+	AppTable,
+	SelectHeaderCell,
+	SelectCell,
 	ColumnProperties,
 	ActionButton
 } from 'dot11-components';
@@ -75,12 +77,7 @@ type ColumnPropertiesWidth = ColumnProperties & { width: number };
 const tableColumns: ColumnPropertiesWidth[] = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p =>
-			<SelectHeader
-				selectors={imatMeetingsSelectors}
-				actions={imatMeetingsActions}
-				{...p}
-			/>,
+		headerRenderer: SelectHeaderCell,
 		cellRenderer: p =>
 			<SelectCell
 				selectors={imatMeetingsSelectors}

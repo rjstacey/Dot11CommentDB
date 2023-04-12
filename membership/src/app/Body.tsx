@@ -9,6 +9,8 @@ import Sessions from '../meetings/Sessions';
 import ImatMeetings from '../meetings/ImatMeetings';
 import Breakouts from '../meetings/Breakouts';
 import Attendees from '../meetings/Attendees';
+import Attendances from '../meetings/Attendances';
+import BallotParticipation from '../ballotParticipation/BallotParticipation';
 
 import {selectUserMembershipAccess, AccessLevel} from '../store/user';
 
@@ -61,6 +63,14 @@ function Body() {
 				<Route
 					path="/sessions/:session_id/attendees"
 					element={renderComponent(AccessLevel.admin, Attendees)}
+				/>
+				<Route
+					path="/attendances"
+					element={renderComponent(AccessLevel.admin, Attendances)}
+				/>
+				<Route
+					path="/ballotParticipation"
+					element={renderComponent(AccessLevel.admin, BallotParticipation)}
 				/>
 			</Routes>
 		</Main>

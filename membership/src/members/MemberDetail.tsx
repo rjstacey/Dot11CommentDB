@@ -1,8 +1,8 @@
 import React from 'react';
-import {connect, ConnectedProps} from 'react-redux';
+import { connect, ConnectedProps } from 'react-redux';
+import type { EntityId } from '@reduxjs/toolkit';
 import styled from '@emotion/styled';
 import { DateTime } from 'luxon';
-// @ts-ignore
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
 
@@ -16,19 +16,22 @@ import {
 } from 'dot11-components';
 
 import {
-	setProperty,
+	setUiProperties,
+	selectUiProperties,
 	updateMembers,
 	deleteMembers,
 	updateMemberStatusChange,
 	deleteMemberStatusChange,
 	selectMembersState,
 	selectMemberEntities,
-	getField,
 	Member,
 	StatusChangeType
 } from '../store/members';
 
 import { loadSessions, selectSessionsState } from '../store/sessions';
+
+import { selectMemberAttendancesCount } from '../store/attendances';
+import { selectMemberBallotParticipationCount } from '../store/ballotParticipation';
 
 import StatusSelector from './StatusSelector';
 import MemberSelector from './MemberSelector';
@@ -36,7 +39,7 @@ import MemberStatusChangeHistory from './MemberStatusChange';
 import MemberContactInfo from './MemberContactInfo';
 import MemberPermissions from './MemberPermissions';
 import MemberAttendances from './MemberAttendances';
-import MemberBallotParticipation from './MemberBallotParticipation';
+import MemberBallotParticipation from '../ballotParticipation/MemberBallotParticipation';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
@@ -76,11 +79,6 @@ const renderDate = (value: any) => isMultiple(value)? <i>{MULTIPLE_STR}</i>: (va
 
 const renderEmail = (value: any) => isMultiple(value)? <i>{MULTIPLE_STR}</i>: (value === null || value === '')? <i>{BLANK_STR}</i>: <a href={'mailto:' + value}>{value}</a>;
 
-function selectMemberDetailTabIndex(state: RootState) {
-	const members = selectMembersState(state);
-	return members.ui.tabIndex;
-}
-
 function MemberDetailInfo({
 	member,
 	updateMember,
@@ -95,8 +93,10 @@ function MemberDetailInfo({
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
-	const tabIndex = useAppSelector(selectMemberDetailTabIndex);
-	const setTabIndex = (index: number) => {dispatch(setProperty({property: 'tabIndex', value: index}))};
+	const {tabIndex} = useAppSelector(selectUiProperties);
+	const setTabIndex = (tabIndex: number) => {dispatch(setUiProperties({tabIndex}))};
+	const {count: sessionCount, total: sessionTotal} = useAppSelector((state) => selectMemberAttendancesCount(state, member));
+	const {count: ballotCount, total: ballotTotal} = useAppSelector((state) => selectMemberBallotParticipationCount(state, member));
 
 	return (
 		<Tabs
@@ -108,8 +108,8 @@ function MemberDetailInfo({
 				<Tab>Contact info</Tab>
 				<Tab>Permissions</Tab>
 				<Tab>Status history</Tab>
-				<Tab>Session participation {getField(member, 'AttendancesSummary')}</Tab>
-				<Tab>Ballot participation {getField(member, 'BallotSeriesSummary')}</Tab>
+				<Tab>{`Session participation ${sessionCount}/${sessionTotal}`}</Tab>
+				<Tab>{`Ballot participation ${ballotCount}/${ballotTotal}`}</Tab>
 			</TabList>
 			<TabPanel>
 				<MemberContactInfo
@@ -136,14 +136,12 @@ function MemberDetailInfo({
 			<TabPanel>
 				<MemberAttendances
 					member={member}
-					updateMember={updateMember}
 					readOnly={readOnly}
 				/>
 			</TabPanel>
 			<TabPanel>
 				<MemberBallotParticipation
 					member={member}
-					updateMember={updateMember}
 					readOnly={readOnly}
 				/>
 			</TabPanel>
@@ -363,7 +361,7 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 			await this.props.deleteMembers(sapins);
 	}
 
-	handleToggleEditMember = () => this.props.setUiProperty('editMember', !this.props.uiProperties.editMember);
+	handleToggleEditMember = () => this.props.setUiProperties({editMember: !this.props.uiProperties.editMember});
 
 	save = () => {
 		const {edited, saved, originals} = this.state;
@@ -433,14 +431,14 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 }
 
 const connector = connect(
-	(state: RootState) => {
+	(state: RootState, props: {selected?: EntityId[]}) => {
 		const members = selectMembersState(state);
 		const sessionsState = selectSessionsState(state);
 		return {
 			members: members.entities,
 			loading: members.loading,
-			selected: members.selected,
-			uiProperties: members.ui,
+			selected: props.selected? props.selected: members.selected,
+			uiProperties: selectUiProperties(state),
 			sessionsValid: sessionsState.valid,
 			sessions: sessionsState.entities,
 		}
@@ -451,7 +449,7 @@ const connector = connect(
 		deleteMemberStatusChange,
 		loadSessions,
 		deleteMembers,
-		setUiProperty: (property: string, value: any) => setProperty({property, value}),
+		setUiProperties,
 	}
 );
 

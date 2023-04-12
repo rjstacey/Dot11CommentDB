@@ -5,7 +5,7 @@ import {Link, useNavigate} from 'react-router-dom';
 
 import {
 	AppTable, 
-	SelectHeader,
+	SelectHeaderCell,
 	SelectCell,
 	TableColumnSelector,
 	SplitPanelButton,
@@ -15,12 +15,16 @@ import {
 	ConfirmModal,
 	ActionButton,
 	displayDateRange,
-	ColumnProperties,
-	TablesConfig,
-	TableConfig
 } from 'dot11-components';
 
-// @ts-ignore
+import type {
+	CellRendererProps,
+	HeaderCellRendererProps,
+	TablesConfig,
+	TableConfig,
+	ColumnProperties
+} from 'dot11-components';
+
 import SessionDetail from './SessionDialog';
 
 import {
@@ -41,29 +45,22 @@ const TopRow = styled.div`
 	box-sizing: border-box;
 `;
 
-const SessionsColumnHeader = (props: Omit<React.ComponentProps<typeof TableColumnHeader>, 'selectors' | 'actions'>) =>
-	<TableColumnHeader
-		selectors={sessionsSelectors}
-		actions={sessionsActions}
-		{...props}
-	/>;
-
-const renderHeaderStartEnd = (props: Omit<React.ComponentProps<typeof SessionsColumnHeader>, 'dataKey' | 'label'>) =>
+const renderHeaderStartEnd = (props: HeaderCellRendererProps) =>
 	<>
-		<SessionsColumnHeader {...props} dataKey='startDate' label='Start' />
-		<SessionsColumnHeader {...props} dataKey='endDate' label='End' />
+		<TableColumnHeader {...props} dataKey='startDate' label='Start' />
+		<TableColumnHeader {...props} dataKey='endDate' label='End' />
 	</>
 
-export const renderCellStartEnd = ({rowData}: {rowData: Session}) => displayDateRange(rowData.startDate, rowData.endDate);
+export const renderCellStartEnd = ({rowData}: CellRendererProps<Session>) => displayDateRange(rowData.startDate, rowData.endDate);
 
-const renderBreakouts = ({rowData, dataKey}: {rowData: Session; dataKey: keyof Session}) =>
+const renderBreakouts = ({rowData, dataKey}: CellRendererProps<Session>) =>
 	<Link to={`/sessions/${rowData.id}/breakouts`}>
-		{rowData[dataKey]}
+		{rowData[dataKey as keyof Session]}
 	</Link>
 
-const renderAttendance = ({rowData, dataKey}: {rowData: Session; dataKey: keyof Session}) =>
+const renderAttendance = ({rowData, dataKey}: CellRendererProps<Session>) =>
 	<Link to={`/sessions/${rowData.id}/attendees`}>
-		{rowData[dataKey]}
+		{rowData[dataKey as keyof Session]}
 	</Link>
 
 type ColumnPropertiesWidth = ColumnProperties & { width: number };	// width required
@@ -71,12 +68,7 @@ type ColumnPropertiesWidth = ColumnProperties & { width: number };	// width requ
 const tableColumns: ColumnPropertiesWidth[] = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 0, flexShrink: 0,
-		headerRenderer: p => 
-			<SelectHeader
-				selectors={sessionsSelectors}
-				actions={sessionsActions}
-				{...p}
-			/>,
+		headerRenderer: SelectHeaderCell,
 		cellRenderer: p =>
 			<SelectCell
 				selectors={sessionsSelectors}
@@ -99,7 +91,7 @@ const tableColumns: ColumnPropertiesWidth[] = [
 		label: 'Start/End',
 		width: 120, flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderStartEnd,
-		cellRenderer: renderCellStartEnd as (props: { rowData: object }) => string},
+		cellRenderer: renderCellStartEnd},
 	{key: 'name', 
 		...fields.name,
 		width: 300, flexGrow: 1, flexShrink: 1},
@@ -112,14 +104,14 @@ const tableColumns: ColumnPropertiesWidth[] = [
 	{key: 'Breakouts', 
 		label: 'Breakouts',
 		width: 100, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderBreakouts as (props: { rowData: object }) => JSX.Element},
+		cellRenderer: renderBreakouts},
 	{key: 'TotalCredit', 
 		label: 'Credits',
 		width: 100, flexGrow: 1, flexShrink: 1},
 	{key: 'Attendees', 
 		label: 'Attendance',
 		width: 100, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderAttendance as (props: { rowData: object }) => JSX.Element},
+		cellRenderer: renderAttendance},
 ];
 
 const defaultTablesColumns = {
@@ -163,7 +155,7 @@ function Sessions() {
 		if (selected.length) {
 			const ok = await ConfirmModal.show('Are you sure you want to delete ' + selected.join(', ') + '?');
 			if (ok)
-				await dispatch(deleteSessions(selected as number[]));
+				dispatch(deleteSessions(selected as number[]));
 		}
 	}
 

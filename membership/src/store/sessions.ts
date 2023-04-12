@@ -1,5 +1,5 @@
-import {createSelector, PayloadAction, EntityId} from '@reduxjs/toolkit';
-import {DateTime} from 'luxon';
+import { createSelector, PayloadAction, EntityId, Dictionary } from '@reduxjs/toolkit';
+import { DateTime } from 'luxon';
 import {
 	createAppTableDataSlice,
 	SortType,
@@ -11,8 +11,6 @@ import {
 import type { AppTableDataState } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-
-//import {createAppTableDataSlice, SortType, selectCurrentPanelConfig, setPanelIsSplit} from 'dot11-components';
 
 const SessionType = {
 	Plenary: 'p',
@@ -40,6 +38,8 @@ export type Session = {
 	Breakouts?: any[];
 	OrganizerID: string;
 };
+
+export type { Dictionary };
 
 export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(([value, label]) => ({value, label}));
 
@@ -124,17 +124,18 @@ const {
 	updateOne,
 	addOne,
 	removeMany,
+	upsertMany,
 	setProperty
 } = slice.actions;
 
-export {setProperty};
+export {setProperty, upsertMany as upsertSessions};
 
 export const loadSessions = (): AppThunk =>
 	async (dispatch, getState) => {
 		const {loading} = selectSessionsState(getState());
 		if (loading)
 			return;
-		await dispatch(getPending());
+		dispatch(getPending());
 		let sessions;
 		try {
 			sessions = await fetcher.get('/api/sessions');
@@ -142,20 +143,18 @@ export const loadSessions = (): AppThunk =>
 				throw new TypeError('Unexpected response to GET: /api/sessions');
 		}
 		catch(error) {
-			await Promise.all([
-				dispatch(getFailure()),
-				dispatch(setError('Unable to get sessions', error))
-			]);
+			dispatch(getFailure());
+			dispatch(setError('Unable to get sessions', error));
 			return;
 		}
-		await dispatch(getSuccess(sessions));
+		dispatch(getSuccess(sessions));
 	}
 
 export const updateSessionSuccess = (id: EntityId, changes: Partial<Session>) => updateOne({id, changes});
 
 export const updateSession = (id: number, session: Partial<Session>): AppThunk =>
 	async (dispatch) => {
-		await dispatch(updateOne({id, changes: session}));
+		dispatch(updateOne({id, changes: session}));
 		const url = `/api/sessions/${id}`;
 		let updatedSession;
 		try {
@@ -164,10 +163,10 @@ export const updateSession = (id: number, session: Partial<Session>): AppThunk =
 				throw new TypeError('Unexpected response to PATCH: ' + url);
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to update session`, error));
+			dispatch(setError(`Unable to update session`, error));
 			return;
 		}
-		await dispatch(updateOne({id, changes: updatedSession}));
+		dispatch(updateOne({id, changes: updatedSession}));
 	}
 
 export const addSession = (session: Session): AppThunk =>
@@ -179,7 +178,7 @@ export const addSession = (session: Session): AppThunk =>
 				throw new TypeError('Unexpected response to POST: /api/session');
 		}
 		catch(error) {
-			await dispatch(setError('Unable to add session', error));
+			dispatch(setError('Unable to add session', error));
 			return;
 		}
 		dispatch(addOne(newSession));
@@ -191,16 +190,16 @@ export const deleteSessions = (ids: number[]): AppThunk =>
 			await fetcher.delete('/api/sessions', ids);
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to delete meetings ${ids}`, error));
+			dispatch(setError(`Unable to delete meetings ${ids}`, error));
 		}
-		await dispatch(removeMany(ids));
+		dispatch(removeMany(ids));
 	}
 
 const {getTimeZonesPending, getTimeZonesSuccess, getTimeZonesFailure} = slice.actions;
 
 export const loadTimeZones = (): AppThunk =>
 	async (dispatch, getState) => {
-		await dispatch(getTimeZonesPending());
+		dispatch(getTimeZonesPending());
 		let timeZones;
 		try {
 			timeZones = await fetcher.get('/api/timeZones');
@@ -212,5 +211,5 @@ export const loadTimeZones = (): AppThunk =>
 			dispatch(setError('Unable to get time zones list', error));
 			return;
 		}
-		await dispatch(getTimeZonesSuccess(timeZones));
+		dispatch(getTimeZonesSuccess(timeZones));
 	}
