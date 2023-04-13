@@ -1,4 +1,4 @@
-import { PayloadAction, Dictionary, Update, createSelector } from '@reduxjs/toolkit';
+import { PayloadAction, Dictionary, Update, createSelector, createEntityAdapter, EntityState } from '@reduxjs/toolkit';
 import { DateTime } from 'luxon';
 
 import {
@@ -12,7 +12,8 @@ import {
 
 import type { RootState, AppThunk } from '.';
 import { selectMemberEntities, Member } from './members';
-import { upsertSessions, selectSessionEntities, Session } from './sessions';
+
+export type { Dictionary };
 
 const renderPct = (pct: number) => !isNaN(pct)? `${pct.toFixed(2)}%`: '';
 
@@ -31,52 +32,89 @@ export const fields = {
 
 export const dataSet = 'attendances';
 
-export type SessionAttendance = {
+export type Session = {
 	id: number;
+	imatMeetingId: number;
+	startDate: string;
+	endDate: string;
+	name: string;
+	type: string;
+	timezone: string;
+	Attendees?: any[];
+	Breakouts?: any[];
+	OrganizerID: string;
+};
+
+const SessionType = {
+	Plenary: 'p',
+	Interim: 'i',
+	Other: 'o',
+	General: 'g',
+};
+
+export const SessionTypeLabels = {
+	[SessionType.Plenary]: 'Plenary',
+	[SessionType.Interim]: 'Interim',
+	[SessionType.Other]: 'Other',
+	[SessionType.General]: 'General'
+};
+
+export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(([value, label]) => ({value, label}));
+
+export type SessionAttendanceSummary = {
+    id: number;
+    /** Session identifier */
     session_id: number;
+    /** Percentage of meeting slots attended */
     AttendancePercentage: number;
-	DidAttend: boolean;
-	DidNotAttend: boolean;
+    /** Declare attendance criteria met */
+    DidAttend: boolean;
+    /** Declare attendance criteria not met */
+    DidNotAttend: boolean;
+    /** SA PIN under which attendance was logged */
+    SAPIN: number;
     Notes: string;
-	SAPIN: number;
 }
 
-export type Attendances = {
-	SAPIN: number;
-	SessionAttendances: SessionAttendance[];
+type RecentSessionAttendances = {
+    SAPIN: number;
+    sessionAttendanceSummaries: SessionAttendanceSummary[];
 }
 
-export type MemberAttendances = Attendances & {
+export type MemberAttendances = RecentSessionAttendances & {
 	Name: string;
 	Email: string;
 	Employer: string;
 	Affiliation: string;
 	Status: string;
 	ExpectedStatus: string;
+	Summary: string;
 }
 
 /*
  * Slice
  */
 
+const sessionsAdapter = createEntityAdapter<Session>();
+
 type ExtraState = {
-	sessionIds: number[];
+	sessions: EntityState<Session>;
 };
 
-type AttendancesState = ExtraState & AppTableDataState<Attendances>;
+type AttendancesState = ExtraState & AppTableDataState<RecentSessionAttendances>;
 
-const selectId = (attendance: Attendances) => attendance.SAPIN;
+const selectId = (attendance: RecentSessionAttendances) => attendance.SAPIN;
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	selectId,
 	initialState: {
-		sessionIds: []
+		sessions: sessionsAdapter.getInitialState()
 	} as ExtraState,
 	reducers: {
-		setAttendancesSessionIds(state: ExtraState, action: PayloadAction<number[]>) {
-			state.sessionIds = action.payload;
+		setSessions(state: ExtraState, action: PayloadAction<Session[]>) {
+			sessionsAdapter.setAll(state.sessions, action.payload);
 		},
 	},
 });
@@ -89,9 +127,12 @@ export default slice;
 export const selectAttendancesState = (state: RootState) => state[dataSet] as AttendancesState;
 
 export const selectAttendancesEntities = (state: RootState) => selectAttendancesState(state).entities;
-//const selectAttendancesIds = (state: RootState) => selectAttendancesState(state).ids;
+const selectAttendancesIds = (state: RootState) => selectAttendancesState(state).ids;
 
-export function memberAttendancesCount(member: Member, attendances: SessionAttendance[], sessionEntities: Dictionary<Session>) {
+export const selectSessionEntities = (state: RootState) => selectAttendancesState(state).sessions.entities;
+export const selectSessionIds = (state: RootState) => selectAttendancesState(state).sessions.ids as number[];
+
+export function memberAttendancesCount(member: Member, attendances: SessionAttendanceSummary[], sessionEntities: Dictionary<Session>) {
 	let total = 0,		// Total plenary sessions (should be 4 since we only track last 4)
 		pCount = 0,		// Count of plenary sessions properly attended
 		iCount = 0,		// Count of interim sessions properly attended
@@ -126,21 +167,19 @@ export function memberAttendancesCount(member: Member, attendances: SessionAtten
 	return {count, total, lastP};
 }
 
-export const selectMemberAttendancesCount = (state: RootState, member: Member) => {
+export function selectMemberAttendancesCount(state: RootState, member: Member) {
 	const attendancesEntities = selectAttendancesEntities(state);
 	const sessionEntities = selectSessionEntities(state);
-	const attendances = attendancesEntities[member.SAPIN]?.SessionAttendances || [];
+	const attendances = attendancesEntities[member.SAPIN]?.sessionAttendanceSummaries || [];
 	return memberAttendancesCount(member, attendances, sessionEntities);
 }
 
-function memberExpectedStatusFromAttendances(member: Member, attendances: SessionAttendance[], sessionEntities: Dictionary<Session>) {
+function memberExpectedStatusFromAttendances(member: Member, count: number, lastP: number) {
 	const status = member.Status;
 
 	if (member.StatusChangeOverride || 
 		(status !== 'Voter' && status !== 'Potential Voter' && status !== 'Aspirant' && status !== 'Non-Voter'))
 		return '';
-
-	const {count, lastP} = memberAttendancesCount(member, attendances, sessionEntities);
 
 	/* A Voter, Potential Voter or Aspirant becomes a Non-Voter after failing to attend 1 of the last 4 plenary sessions.
 	 * One interim may be substited for a plenary session. */
@@ -166,19 +205,23 @@ function memberExpectedStatusFromAttendances(member: Member, attendances: Sessio
 	return '';
 }
 
-const selectAttendancesWithMembership = createSelector(
-	selectAttendancesState,
+export const selectAttendancesWithMembershipAndSummary = createSelector(
 	selectMemberEntities,
 	selectSessionEntities,
-	(attendancesState, memberEntities, sessionEntities) => {
-		const {ids, entities} = attendancesState;
+	selectAttendancesIds,
+	selectAttendancesEntities,
+	(memberEntities, sessionEntities, ids, entities) => {
 		const newEntities: Dictionary<MemberAttendances> = {};
 		ids.forEach(id => {
 			let entity = entities[id]!;
 			let member = memberEntities[entity.SAPIN];
-			while (member && member.Status === 'Obsolete' && member.ReplacedBySAPIN)
-				member = memberEntities[member.ReplacedBySAPIN];
-			const expectedStatus = member? memberExpectedStatusFromAttendances(member, entity.SessionAttendances, sessionEntities): '';
+			let expectedStatus = '';
+			let summary = '';
+			if (member) {
+				const {count, total, lastP} = member? memberAttendancesCount(member, entity.sessionAttendanceSummaries, sessionEntities): {count: 0, total: 0, lastP: 0};
+				expectedStatus = memberExpectedStatusFromAttendances(member, count, lastP);
+				summary = `${count}/${total}`;
+			}
 			newEntities[id] = {
 				...entity,
 				Name: member? member.Name: '',
@@ -186,14 +229,15 @@ const selectAttendancesWithMembership = createSelector(
 				Affiliation: member? member.Affiliation: '',
 				Employer: member? member.Employer: '',
 				Status: member? member.Status: 'New',
-				ExpectedStatus: expectedStatus
+				ExpectedStatus: expectedStatus,
+				Summary: summary
 			}
 		});
 		return newEntities;
 	}
 );
 
-export const attendancesSelectors = getAppTableDataSelectors(selectAttendancesState, selectAttendancesWithMembership);
+export const attendancesSelectors = getAppTableDataSelectors(selectAttendancesState, selectAttendancesWithMembershipAndSummary);
 
 /*
  * Actions
@@ -204,7 +248,7 @@ const {
 	getSuccess,
 	getFailure,
 	setOne,
-	setAttendancesSessionIds
+	setSessions
 } = slice.actions;
 
 export const attendancesActions = slice.actions;
@@ -231,14 +275,13 @@ export const loadAttendances = (): AppThunk =>
 			dispatch(setError(`Unable to get attendees`, error));
 			return;
 		}
-		dispatch(upsertSessions(response.sessions));
-		dispatch(setAttendancesSessionIds(response.sessions.map((s: Session) => s.id)));
+		dispatch(setSessions(response.sessions));
 		dispatch(getSuccess(response.attendances));
 	}
 
 export type SessionAttendanceUpdate = {
 	session_id: number;
-	changes: Partial<SessionAttendance>
+	changes: Partial<SessionAttendanceSummary>
 };
 
 export const updateAttendances = (sapin: number, updates: SessionAttendanceUpdate[]): AppThunk =>
@@ -250,11 +293,11 @@ export const updateAttendances = (sapin: number, updates: SessionAttendanceUpdat
 			return;
 		}
 		const attendanceUpdates = [],
-			attendanceAdds: SessionAttendance[] = [],
+			attendanceAdds: SessionAttendanceSummary[] = [],
 			attendanceDeletes: number[] = [];
 		for (const update of updates) {
 			const {session_id, changes} = update;
-			let a = entity.SessionAttendances.find(a => a.session_id === session_id);
+			let a = entity.sessionAttendanceSummaries.find(a => a.session_id === session_id);
 			if (!a) {
 				// Entry does not exist; generate null entry
 				a = {
@@ -281,36 +324,40 @@ export const updateAttendances = (sapin: number, updates: SessionAttendanceUpdat
 			}
 		}
 		let response;
-		let updatedSessionAttendances = entity.SessionAttendances;
+		let updatedSessionAttendances = entity.sessionAttendanceSummaries;
 		if (attendanceDeletes.length > 0) {
 			try {
 				await fetcher.delete(baseUrl, attendanceDeletes);
 			}
 			catch (error) {
-				dispatch(setError(`Unable to delete attendances`, error));
+				dispatch(setError('Unable to delete attendances', error));
 			}
 			updatedSessionAttendances = updatedSessionAttendances.filter(a => !attendanceDeletes.includes(a.id))
 		}
 		if (attendanceAdds.length > 0) {
 			try {
 				response = await fetcher.post(baseUrl, attendanceAdds);
+				if (!Array.isArray(response))
+					throw new TypeError('Uxpected response to POST ' + baseUrl);
 			}
 			catch (error) {
-				dispatch(setError(`Unable to delete attendances`, error));
+				dispatch(setError('Unable to add attendances', error));
 			}
-			updatedSessionAttendances = updatedSessionAttendances.concat(response as unknown as SessionAttendance[]);
+			updatedSessionAttendances = updatedSessionAttendances.concat(response as SessionAttendanceSummary[]);
 		}
 		if (attendanceUpdates.length > 0) {
 			try {
 				response = await fetcher.patch(baseUrl, attendanceUpdates);
+				if (!Array.isArray(response))
+					throw new TypeError('Uxpected response to PATCH ' + baseUrl);
 			}
 			catch (error) {
-				dispatch(setError(`Unable to delete attendances`, error));
+				dispatch(setError('Unable to update attendances', error));
 			}
-			const attendances = response as unknown as SessionAttendance[];
+			const attendances = response as SessionAttendanceSummary[];
 			updatedSessionAttendances = updatedSessionAttendances.map(aOrig => attendances.find(aUpdt => aUpdt.id === aOrig.id) || aOrig);
 		}
-		dispatch(setOne({...entity, SessionAttendances: updatedSessionAttendances}));
+		dispatch(setOne({...entity, sessionAttendanceSummaries: updatedSessionAttendances}));
 	}
 
 export const importAttendances = (session_id: number): AppThunk =>
@@ -331,7 +378,6 @@ export const importAttendances = (session_id: number): AppThunk =>
 			dispatch(setError(`Unable to import attendance summary for session id=${session_id}`, error));
 			return;
 		}
-		dispatch(upsertSessions(response.sessions));
-		dispatch(setAttendancesSessionIds(response.sessions.map((s: Session) => s.id)));
+		dispatch(setSessions(response.sessions));
 		dispatch(getSuccess(response.attendances));
 	}

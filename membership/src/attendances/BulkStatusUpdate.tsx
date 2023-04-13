@@ -14,11 +14,11 @@ function BulkStatusUpdateForm({methods}: RendererProps) {
 	const [busy, setBusy] = React.useState(false);
 
 	const submit = async () => {
-		const updates = [];
+		const updates: any[] = [];
 		for (const id of selected) {
 			const m = members[id]!;
-			if (m.NewStatus)
-				updates.push({id, changes: {Status: m.NewStatus, StatusChangeReason: statusChangeReason}});
+			//if (m.NewStatus)
+			//	updates.push({id, changes: {Status: m.NewStatus, StatusChangeReason: statusChangeReason}});
 		}
 		setBusy(true);
 		await dispatch(updateMembers(updates));

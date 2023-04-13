@@ -1,4 +1,4 @@
-import { PayloadAction, Dictionary, Update, createSelector, createEntityAdapter, EntityState } from '@reduxjs/toolkit';
+import { PayloadAction, Dictionary, createSelector, createEntityAdapter, EntityState } from '@reduxjs/toolkit';
 import { DateTime } from 'luxon';
 
 import {
@@ -112,11 +112,14 @@ export default slice;
 export const selectBallotParticipationState = (state: RootState) => state[dataSet] as BallotParticipationState;
 
 export const selectBallotParticipationEntities = (state: RootState) => selectBallotParticipationState(state).entities;
+const selectBallotParticipationIds = (state: RootState) => selectBallotParticipationState(state).ids;
 
 export const selectBallotSeries = (state: RootState) => selectBallotParticipationState(state).ballotSeries;
+export const selectBallotSeriesEntities = (state: RootState) => selectBallotSeries(state).entities;
+
 export const selectBallots = (state: RootState) => selectBallotParticipationState(state).ballots;
 
-function memberParticipationCount(member: Member, ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[], ballotSeriesEntities: Dictionary<BallotSeries>) {
+export function memberBallotParticipationCount(member: Member, ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[], ballotSeriesEntities: Dictionary<BallotSeries>) {
     // Only care about ballots since becoming a Voter
 	// (a member may have lost voting status and we don't want participation from that time affecting the result)
 	const h = member.StatusChangeHistory.find(h => h.NewStatus === 'Voter');
@@ -129,12 +132,11 @@ function memberParticipationCount(member: Member, ballotSeriesParticipationSumma
         total: ballotSeriesParticipationSummaries.length
     }
 }
-function memberExpectedStatusFromBallotParticipation(member: Member, ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[], ballotSeriesEntities: Dictionary<BallotSeries>) {
+
+function memberExpectedStatusFromBallotParticipation(member: Member, count: number, total: number) {
     // A status change won't happen if a status override is in effect or if the member is not a voter
     if (member.StatusChangeOverride || member.Status !== 'Voter')
 		return '';
-
-    const {count, total} = memberParticipationCount(member, ballotSeriesParticipationSummaries, ballotSeriesEntities);
 
 	if (total >= 3 && count < 2)
 		return 'Non-Voter';
@@ -142,22 +144,21 @@ function memberExpectedStatusFromBallotParticipation(member: Member, ballotSerie
 	return '';
 }
 
-const selectBallotParticipationWithMembership = createSelector(
-	selectBallotParticipationState,
+export const selectBallotParticipationWithMembershipAndSummary = createSelector(
 	selectMemberEntities,
-    selectBallotSeries,
-	(ballotParticipationState, memberEntities, ballotSeries) => {
-		const {ids, entities} = ballotParticipationState;
+    selectBallotSeriesEntities,
+	selectBallotParticipationIds,
+	selectBallotParticipationEntities,
+	(memberEntities, ballotSeriesEntities, ids, entities) => {
 		const newEntities: Dictionary<MemberParticipation> = {};
 		ids.forEach(id => {
 			let entity = entities[id]!;
 			let member = memberEntities[entity.SAPIN];
-			while (member && member.Status === 'Obsolete' && member.ReplacedBySAPIN)
-				member = memberEntities[member.ReplacedBySAPIN];
-			const expectedStatus = member? memberExpectedStatusFromBallotParticipation(member, entity.ballotSeriesParticipationSummaries, ballotSeries.entities): '';
+			let expectedStatus = '';
             let summary = '';
             if (member) {
-                const {count, total} = memberParticipationCount(member, entity.ballotSeriesParticipationSummaries, ballotSeries.entities);
+                const {count, total} = memberBallotParticipationCount(member, entity.ballotSeriesParticipationSummaries, ballotSeriesEntities);
+				expectedStatus = memberExpectedStatusFromBallotParticipation(member, count, total);
                 summary = `${count}/${total}`;
             }
 			newEntities[id] = {
@@ -175,11 +176,11 @@ const selectBallotParticipationWithMembership = createSelector(
 	}
 );
 
-export const selectMemberBallotParticipationCount = (state: RootState, member: Member) => {
+export function selectMemberBallotParticipationCount(state: RootState, member: Member) {
 	const ballotParticipationEntities = selectBallotParticipationEntities(state);
 	const ballotSeriesEntities = selectBallotParticipationState(state).ballotSeries.entities;
 	const summaries = ballotParticipationEntities[member.SAPIN]?.ballotSeriesParticipationSummaries || [];
-	return memberParticipationCount(member, summaries, ballotSeriesEntities);
+	return memberBallotParticipationCount(member, summaries, ballotSeriesEntities);
 }
 
 function getField(entity: MemberParticipation, dataKey: string): any {
@@ -196,7 +197,7 @@ function getField(entity: MemberParticipation, dataKey: string): any {
 	return entity[dataKey as keyof MemberParticipation];
 }
 
-export const ballotParticipationSelectors = getAppTableDataSelectors(selectBallotParticipationState, selectBallotParticipationWithMembership, undefined, getField as (entity: any, dataKey: string) => any);
+export const ballotParticipationSelectors = getAppTableDataSelectors(selectBallotParticipationState, selectBallotParticipationWithMembershipAndSummary, undefined, getField as (entity: any, dataKey: string) => any);
 
 /*
  * Actions

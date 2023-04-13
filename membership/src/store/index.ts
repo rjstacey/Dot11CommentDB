@@ -10,10 +10,10 @@ import userSlice from './user';
 import timeZonesSlice, {loadTimeZones} from './timeZones';
 import permissionsSlice, {loadPermissions} from './permissions';
 import membersSlice, {loadMembers} from './members';
-import sessionsSlice, {loadSessions} from './sessions';
-import imatMeetingsSlice from './imatMeetings';
-import breakoutsSlice from './breakouts';
-import attendeesSlice from './attendees';
+//import sessionsSlice, {loadSessions} from './sessions';
+//import imatMeetingsSlice from './imatMeetings';
+//import breakoutsSlice from './breakouts';
+//import attendeesSlice from './attendees';
 import attendancesSlice from './attendances';
 import ballotParticipationSlice from './ballotParticipation';
 
@@ -25,7 +25,7 @@ const transformState = createTransform(
 		return rest;
 	},
 	(state) => ({...state, loading: false}),
-	{whitelist: ['members', 'sessions']}
+	{whitelist: ['members']}
 );
 
 function configureStore2() {
@@ -33,10 +33,10 @@ function configureStore2() {
 	const reducer = combineReducers({
 		[userSlice.name]: userSlice.reducer,
 		[membersSlice.name]: membersSlice.reducer,
-		[sessionsSlice.name]: sessionsSlice.reducer,
-		[imatMeetingsSlice.name]: imatMeetingsSlice.reducer,
-		[breakoutsSlice.name]: breakoutsSlice.reducer,
-		[attendeesSlice.name]: attendeesSlice.reducer,
+		//[sessionsSlice.name]: sessionsSlice.reducer,
+		//[imatMeetingsSlice.name]: imatMeetingsSlice.reducer,
+		//[breakoutsSlice.name]: breakoutsSlice.reducer,
+		//[attendeesSlice.name]: attendeesSlice.reducer,
 		[attendancesSlice.name]: attendancesSlice.reducer,
 		[ballotParticipationSlice.name]: ballotParticipationSlice.reducer,
 		[timeZonesSlice.name]: timeZonesSlice.reducer,
@@ -54,7 +54,6 @@ function configureStore2() {
 		},
 		whitelist: [
 			membersSlice.name,
-			sessionsSlice.name
 		],
 		stateReconciler: autoMergeLevel2,
 		transforms: [transformState],
@@ -80,7 +79,6 @@ function configureStore2() {
 	const persistor = persistStore(store, null, () => {
 		store.dispatch(loadTimeZones());
 		store.dispatch(loadPermissions());
-		store.dispatch(loadSessions());
 		store.dispatch(loadMembers());
 	});
 

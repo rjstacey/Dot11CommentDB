@@ -13,8 +13,6 @@ import {
 
 import { EditTable as Table, TableColumn } from '../components/Table';
 
-
-
 const ballotSeriesParticipationColumns: TableColumn[] = [
 	{key: 'project', label: 'Project'},
 	{key: 'ballotIds', label: 'Ballot series'},

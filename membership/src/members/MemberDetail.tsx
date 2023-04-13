@@ -28,8 +28,6 @@ import {
 	StatusChangeType
 } from '../store/members';
 
-import { loadSessions, selectSessionsState } from '../store/sessions';
-
 import { selectMemberAttendancesCount } from '../store/attendances';
 import { selectMemberBallotParticipationCount } from '../store/ballotParticipation';
 
@@ -38,7 +36,7 @@ import MemberSelector from './MemberSelector';
 import MemberStatusChangeHistory from './MemberStatusChange';
 import MemberContactInfo from './MemberContactInfo';
 import MemberPermissions from './MemberPermissions';
-import MemberAttendances from './MemberAttendances';
+import MemberAttendances from '../attendances/MemberAttendances';
 import MemberBallotParticipation from '../ballotParticipation/MemberBallotParticipation';
 
 const BLANK_STR = '(Blank)';
@@ -295,8 +293,6 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 	triggerSave: ReturnType<typeof debounce>;
 
 	componentDidMount() {
-		if (!this.props.sessionsValid)
-			this.props.loadSessions();
 	}
 
 	componentWillUnmount() {
@@ -433,21 +429,17 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 const connector = connect(
 	(state: RootState, props: {selected?: EntityId[]}) => {
 		const members = selectMembersState(state);
-		const sessionsState = selectSessionsState(state);
 		return {
 			members: members.entities,
 			loading: members.loading,
 			selected: props.selected? props.selected: members.selected,
 			uiProperties: selectUiProperties(state),
-			sessionsValid: sessionsState.valid,
-			sessions: sessionsState.entities,
 		}
 	},
 	{
 		updateMembers,
 		updateMemberStatusChange,
 		deleteMemberStatusChange,
-		loadSessions,
 		deleteMembers,
 		setUiProperties,
 	}

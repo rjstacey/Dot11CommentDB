@@ -24,11 +24,6 @@ const fullMenu = [
 		link: '/ballotParticipation',
 		label: 'Ballot participation',
 	},
-	{
-		minAccess: AccessLevel.ro,
-		link: '/sessions',
-		label: 'Sessions',
-	},
 ];
 
 const NavItem = (props: React.ComponentProps<typeof NavLink> & {isActive?: boolean}) => <NavLink className={'nav-link' + (props.isActive? ' active': '')} {...props} />

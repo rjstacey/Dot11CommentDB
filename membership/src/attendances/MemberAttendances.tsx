@@ -1,19 +1,19 @@
 import React from 'react';
-import {useAppDispatch, useAppSelector} from '../store/hooks';
 import { connect, ConnectedProps } from 'react-redux';
 
 import { Col, Checkbox, Input, displayDateRange, debounce, shallowDiff } from 'dot11-components';
 
-import { getField, Member } from '../store/members';
+import { Member } from '../store/members';
 
-import { selectSessionEntities, SessionTypeOptions, Dictionary, Session } from '../store/sessions';
+import { SessionTypeOptions, Dictionary, Session } from '../store/attendances';
 
 import {
-	selectAttendancesState,
+	selectSessionEntities,
+	selectSessionIds,
 	selectAttendancesEntities,
 	selectMemberAttendancesCount,
 	updateAttendances,
-	SessionAttendance
+	SessionAttendanceSummary
 } from '../store/attendances';
 
 import {EditTable as Table, TableColumn} from '../components/Table';
@@ -42,8 +42,8 @@ type MemberAttendancesInternalProps = MemberAttendancesProps & ConnectedMemberAt
 
 type MemberAttendanceState = {
 	sessionIds: number[];
-	edited: Record<number, SessionAttendance>;
-	saved: Record<number, SessionAttendance>;
+	edited: Record<number, SessionAttendanceSummary>;
+	saved: Record<number, SessionAttendanceSummary>;
 	SAPIN: number;
 	sessionEntities: Dictionary<Session>;
 	readOnly: boolean;
@@ -79,10 +79,10 @@ class MemberAttendances extends React.Component<MemberAttendancesInternalProps, 
 
 	initState = (props: MemberAttendancesInternalProps) => {
 		const {sessionIds, attendancesEntities, member} = props;
-		const attendances: Record<number, SessionAttendance> = {};
+		const attendances: Record<number, SessionAttendanceSummary> = {};
 		
 		sessionIds.forEach(session_id => {
-			const sessionAttendances = attendancesEntities[member.SAPIN]?.SessionAttendances || [];
+			const sessionAttendances = attendancesEntities[member.SAPIN]?.sessionAttendanceSummaries || [];
 			let a = sessionAttendances.find(a => a.session_id == session_id);
 			if (!a) {
 				// No entry for this session; generate a "null" entry
@@ -110,7 +110,7 @@ class MemberAttendances extends React.Component<MemberAttendancesInternalProps, 
 		const {SAPIN, sessionIds, edited, saved} = this.state;
 		const updates = [];
 		for (let session_id of sessionIds) {
-			const changes = shallowDiff(saved[session_id], edited[session_id]) as Partial<SessionAttendance>;
+			const changes = shallowDiff(saved[session_id], edited[session_id]) as Partial<SessionAttendanceSummary>;
 			if (Object.keys(changes).length > 0)
 				updates.push({session_id, changes});
 		}
@@ -119,7 +119,7 @@ class MemberAttendances extends React.Component<MemberAttendancesInternalProps, 
 		this.setState(state => ({...state, saved: edited}));
 	}
 
-	update = (session_id: number, changes: Partial<SessionAttendance>) => {
+	update = (session_id: number, changes: Partial<SessionAttendanceSummary>) => {
 		console.log(session_id, changes)
 		this.setState({
 			edited: {...this.state.edited, [session_id]: {...this.state.edited[session_id], ...changes}}
@@ -140,7 +140,7 @@ class MemberAttendances extends React.Component<MemberAttendancesInternalProps, 
 		}
 
 		return attendancesColumns.map(col => {
-			let renderCell: ((entry: SessionAttendance) => JSX.Element | string | number) | undefined;
+			let renderCell: ((entry: SessionAttendanceSummary) => JSX.Element | string | number) | undefined;
 			if (col.key === 'Date')
 				renderCell = entry => renderSessionDate(entry.session_id);
 			if (col.key === 'Type')
@@ -202,7 +202,7 @@ const connector = connect(
 	(state: any, props: MemberAttendancesProps) => {
 		const {count, total} = selectMemberAttendancesCount(state, props.member);
 		return {
-			sessionIds: selectAttendancesState(state).sessionIds,
+			sessionIds: selectSessionIds(state),
 			sessionEntities: selectSessionEntities(state),
 			attendancesEntities: selectAttendancesEntities(state),
 			count,

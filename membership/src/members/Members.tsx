@@ -21,14 +21,12 @@ import {
 	ConfirmModal,
 	TableConfig,
 	TablesConfig,
-	CellRendererProps
+	CellRendererProps,
+	HeaderCellRendererProps
 } from 'dot11-components';
-
-import type { HeaderCellRendererProps } from 'dot11-components';
 
 import { ButtonGroup, ActionButton, Button } from 'dot11-components';
 
-import BulkStatusUpdate from './BulkStatusUpdate';
 import MembersUpload from './MembersUpload';
 import MemberAdd from './MemberAdd';
 import MembersSummary from './MembersSummary';
@@ -39,16 +37,12 @@ import {
 	fields,
 	loadMembers,
 	deleteSelectedMembers,
-	toggleNewStatusFromAttendances,
-	toggleNewStatusFromBallotSeriesParticipation,
 	selectMembersState,
 	membersSelectors,
 	membersActions,
 } from '../store/members';
 
 import type {Member, EntityId, MembersDictionary} from '../store/members';
-
-import {loadSessions, selectSessionsState} from '../store/sessions';
 
 function setClipboard(selected: EntityId[], members: MembersDictionary) {
 
@@ -181,9 +175,6 @@ const tableColumns: ColumnProperties[] = [
 	{key: 'Status', 
 		...fields.Status,
 		width: 160, flexGrow: 1, flexShrink: 1, dropdownWidth: 200},
-	{key: 'NewStatus', 
-		...fields.NewStatus,
-		width: 160, flexGrow: 1, flexShrink: 1},
 	{key: 'Access', 
 		...fields.Access,
 		width: 150, flexGrow: 1, flexShrink: 1, 
@@ -192,14 +183,15 @@ const tableColumns: ColumnProperties[] = [
 		...fields.AttendancesSummary,
 		label: 'Session participation',
 		width: 100, flexGrow: 1, flexShrink: 1},
-	{key: 'BallotSeriesSummary', 
+	{key: 'BallotParticipationSummary', 
+		...fields.BallotParticipationSummary,
 		label: 'Ballot participation',
 		width: 100, flexGrow: 1, flexShrink: 1},
 ];
 
 const defaultTablesColumns = {
 	General: ['__ctrl__', 'SAPIN', 'Name/Email', 'Employer/Affiliation', 'Status', 'Access'],
-	Participation: ['__ctrl__', 'SAPIN', 'Name/Email', 'Attendance', 'Status', 'NewStatus', 'AttendancesSummary', 'BallotSeriesSummary']
+	Participation: ['__ctrl__', 'SAPIN', 'Name/Email', 'Attendance', 'Status', 'NewStatus', 'AttendancesSummary', 'BallotParticipationSummary']
 };
 
 let defaultTablesConfig: TablesConfig = {};
@@ -223,16 +215,13 @@ for (tableView in defaultTablesColumns) {
 function Members() {
 
 	const dispatch = useDispatch();
-	const {selected, entities: members, valid, newStatusFromAttendances, newStatusFromBallotSeriesParticipation} = useSelector(selectMembersState);
-	const validSessions: boolean = useSelector(selectSessionsState as (state: any) => any).valid;
+	const {selected, entities: members, valid} = useSelector(selectMembersState);
 
 	const load = () => dispatch(loadMembers());
 
 	React.useEffect(() => {
 		if (!valid)
 			load();
-		if (!validSessions)
-			dispatch(loadSessions());
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const handleRemoveSelected = async () => {
@@ -271,19 +260,6 @@ function Members() {
 							<RosterExport />
 						</div>
 					</ButtonGroup>
-					<Button
-						isActive={newStatusFromAttendances}
-						onClick={() => dispatch(toggleNewStatusFromAttendances())}
-					>
-						Post Session Status
-					</Button>
-					<Button
-						isActive={newStatusFromBallotSeriesParticipation}
-						onClick={() => dispatch(toggleNewStatusFromBallotSeriesParticipation())}
-					>
-						Post Ballot Series Status
-					</Button>
-					<BulkStatusUpdate />
 					<ButtonGroup>
 						<div>Edit</div>
 						<div style={{display: 'flex'}}>

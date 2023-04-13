@@ -20,13 +20,13 @@ import {
 	loadAttendances,
 	importAttendances,
 	selectAttendancesState,
+	selectSessionEntities,
+	selectSessionIds,
 	attendancesSelectors,
 	attendancesActions
 } from '../store/attendances';
 
-import type { MemberAttendances, SessionAttendance } from '../store/attendances';
-
-import { selectSessionsState } from '../store/sessions';
+import type { MemberAttendances, SessionAttendanceSummary } from '../store/attendances';
 
 import {renderNameAndEmail} from '../members/Members';
 
@@ -50,8 +50,8 @@ const TableRow = styled.div`
 
 function SessionSummary() {
 	const dispatch = useAppDispatch();
-	const {entities: sessionEntities} = useAppSelector(selectSessionsState);
-	const {sessionIds} = useAppSelector(selectAttendancesState)
+	const sessionEntities = useAppSelector(selectSessionEntities);
+	const sessionIds = useAppSelector(selectSessionIds);
 
 	const elements = sessionIds.map(id => {
 		const session = sessionEntities[id]!;
@@ -82,7 +82,7 @@ const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) =>
 		<TableColumnHeader {...props} dataKey='Email' label='Email' />
 	</>
 
-const renderSessionAttendance = (attendance: SessionAttendance) =>
+const renderSessionAttendance = (attendance: SessionAttendanceSummary) =>
 	<div style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 		<span>{attendance.AttendancePercentage.toFixed(1)}</span>
 		<span>{attendance.DidAttend? 'Did attend': attendance.DidNotAttend? 'Did not attend': ''}</span>
@@ -115,13 +115,17 @@ const tableColumns: ColumnProperties[] = [
 	{key: 'ExpectedStatus', 
 		label: 'Expected status',
 		width: 150, flexGrow: 1, flexShrink: 1},
+	{key: 'Summary', 
+		label: 'Summary',
+		width: 100, flexGrow: 1, flexShrink: 1},
 ];
 
 function Attendances() {
 	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
-	const {valid, sessionIds} = useAppSelector(selectAttendancesState);
-	const sessionEntities = useAppSelector(selectSessionsState).entities;
+	const {valid} = useAppSelector(selectAttendancesState);
+	const sessionIds = useAppSelector(selectSessionIds);
+	const sessionEntities = useAppSelector(selectSessionEntities);
 
 	React.useEffect(() => {
 		if (!valid)
@@ -133,7 +137,7 @@ function Attendances() {
 			sessionIds.map(id => {
 				const session = sessionEntities[id]!;
 				const cellRenderer = ({rowData}: CellRendererProps<MemberAttendances>) => {
-					const attendance = rowData.SessionAttendances.find((a: any) => a.session_id === session.id);
+					const attendance = rowData.sessionAttendanceSummaries.find((a: any) => a.session_id === session.id);
 					return attendance? renderSessionAttendance(attendance): null;
 				}
 				const column = {
