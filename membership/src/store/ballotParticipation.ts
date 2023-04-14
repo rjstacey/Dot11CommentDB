@@ -13,6 +13,7 @@ import {
 import { Member, selectMemberEntities } from './members';
 
 import type { RootState, AppThunk } from '.';
+import { update } from 'idb-keyval';
 
 export const fields = {
 	id: {label: 'id', sortType: SortType.NUMERIC},
@@ -50,6 +51,7 @@ type BallotSeries = {
 
 export type BallotSeriesParticipationSummary = {
     id: number;                     /** Ballot series identifier */
+	voter_id: string;				/** Voter identifier */
 	votingPoolSAPIN: number;        /** SAPIN in voting pool */
     excused: boolean;               /** Excused from participation (recorded in voting pool table) */
 	vote: string | null;            /** Last vote */
@@ -208,7 +210,8 @@ const {
 	getSuccess,
 	getFailure,
 	setBallotSeries,
-    setBallots
+    setBallots,
+	setOne
 } = slice.actions;
 
 export const ballotParticipationActions = slice.actions;
@@ -239,4 +242,39 @@ export const loadBallotParticipation = (): AppThunk =>
         dispatch(setBallots(response.ballots));
 		dispatch(setBallotSeries(response.ballotSeries));
 		dispatch(getSuccess(response.ballotSeriesParticipation));
+	}
+
+export type BallotParticipationUpdate = {
+	id: number;
+	changes: Partial<BallotSeriesParticipationSummary>
+};
+
+export const updateBallotParticipation = (sapin: number, updates: BallotParticipationUpdate[]): AppThunk =>
+	async (dispatch, getState) => {
+		const entities = selectBallotParticipationEntities(getState());
+		let entity = entities[sapin];
+		if (!entity) {
+			console.error(`Entry for ${sapin} does not exist`);
+			return;
+		}
+		const voterUpdates: {id: string, changes: {Excused: boolean}}[] = [];
+		let updatedSummaries = entity.ballotSeriesParticipationSummaries.map(summary => {
+			const update = updates.find(u => u.id === summary.id);
+			if (!update)
+				return summary;
+			const {changes} = update;
+			if ('excused' in changes)
+				voterUpdates.push({id: summary.voter_id, changes: {Excused: changes.excused!}});
+			return {...summary, ...changes};
+		});
+		if (voterUpdates.length > 0) {
+			try {
+				await fetcher.patch('/api/voters', voterUpdates);
+			}
+			catch (error) {
+				dispatch(setError('Unable to update voters', error));
+				return;
+			}
+		}
+		dispatch(setOne({SAPIN: sapin, ballotSeriesParticipationSummaries: updatedSummaries}));
 	}

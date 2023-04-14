@@ -1,13 +1,14 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 
-import { Col, Checkbox, displayDateRange, debounce } from 'dot11-components';
+import { Col, Checkbox, displayDateRange, debounce, shallowDiff } from 'dot11-components';
 
 import { Member } from '../store/members';
 
 import {
 	selectBallotParticipationState,
 	selectMemberBallotParticipationCount,
+	updateBallotParticipation,
 	BallotSeriesParticipationSummary
 } from '../store/ballotParticipation';
 
@@ -44,15 +45,15 @@ class MemberBallotParticipation extends React.Component<MemberBallotParticipatio
 			...this.initState(props),
 			readOnly: !!props.readOnly
 		};
-		//this.triggerSave = debounce(this.save, 500);
+		this.triggerSave = debounce(this.save, 500);
 		this.columns = this.generateColumns(props);
 	}
 
-	//triggerSave: ReturnType<typeof debounce>;
+	triggerSave: ReturnType<typeof debounce>;
 	columns: TableColumn[];
 
 	componentWillUnmount() {
-		//this.triggerSave.flush();
+		this.triggerSave.flush();
 	}
 
 	componentDidUpdate() {
@@ -75,6 +76,26 @@ class MemberBallotParticipation extends React.Component<MemberBallotParticipatio
 			edited: summaries,
 			saved: summaries
 		}
+	}
+
+	save = () => {
+		const {SAPIN, ids, edited, saved} = this.state;
+		const updates = [];
+		for (let id of ids) {
+			const changes = shallowDiff(saved[id], edited[id]) as Partial<BallotSeriesParticipationSummary>;
+			if (Object.keys(changes).length > 0)
+				updates.push({id, changes});
+		}
+		if (updates.length > 0)
+			this.props.updateBallotParticipation(SAPIN, updates);
+		this.setState(state => ({...state, saved: edited}));
+	}
+
+	update = (id: number, changes: Partial<BallotSeriesParticipationSummary>) => {
+		console.log(id, changes)
+		this.setState({
+			edited: {...this.state.edited, [id]: {...this.state.edited[id], ...changes}}
+		}, this.triggerSave);
 	}
 
 	generateColumns(props: MemberBallotParticipationInternalProps) {
@@ -104,7 +125,7 @@ class MemberBallotParticipation extends React.Component<MemberBallotParticipatio
 				renderCell = entry =>
 					<Checkbox
 						checked={!!entry.excused}
-						//onChange={e => this.update(entry.session_id, {DidAttend: e.target.checked})}
+						onChange={e => this.update(entry.id, {excused: e.target.checked})}
 						disabled={readOnly}
 					/>
 			}
@@ -153,6 +174,7 @@ const connector = connect(
 			total
 		}
 	},
+	{updateBallotParticipation}
 );
 
 type ConnectedMemberBallotParticipationProps = ConnectedProps<typeof connector>
