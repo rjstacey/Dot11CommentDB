@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from '@emotion/styled';
+import { DateTime } from 'luxon';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 
@@ -13,10 +14,13 @@ import {
 	ColumnProperties,
 	ActionButton,
 	CellRendererProps,
-	displayDateRange
+	displayDateRange,
+	ShowFilters,
+	GlobalFilter
 } from 'dot11-components';
 
 import {
+	fields,
 	loadAttendances,
 	importAttendances,
 	selectAttendancesState,
@@ -28,11 +32,12 @@ import {
 
 import type { MemberAttendances, SessionAttendanceSummary } from '../store/attendances';
 
-import {renderNameAndEmail} from '../members/Members';
+import { renderNameAndEmail } from '../members/Members';
 
 const TopRow = styled.div`
 	display: flex;
 	justify-content: space-between;
+	align-items: flex-end;
 	width: 100%;
 	padding: 10px;
 	box-sizing: border-box;
@@ -57,10 +62,10 @@ function SessionSummary() {
 		const session = sessionEntities[id]!;
 		const onClick = () => dispatch(importAttendances(id));
 		return (
-			<div key={id} style={{display: 'flex', flexDirection: 'column'}}>
+			<div key={id} style={{display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden'}}>
 				<div>{displayDateRange(session.startDate, session.endDate)}</div>
 				<div>{session.type === 'p'? 'Plenary': 'Interim'}</div>
-				<div>{session.name}</div>
+				<div style={{whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'}}>{session.name}</div>
 				<div>
 					{`(${session.Attendees} attendees)`}
 					<ActionButton
@@ -83,8 +88,8 @@ const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) =>
 	</>
 
 const renderSessionAttendance = (attendance: SessionAttendanceSummary) =>
-	<div style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-		<span>{attendance.AttendancePercentage.toFixed(1)}</span>
+	<div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end'}}>
+		<span>{attendance.AttendancePercentage.toFixed(1) + '%'}</span>
 		<span>{attendance.DidAttend? 'Did attend': attendance.DidNotAttend? 'Did not attend': ''}</span>
 	</div>
 
@@ -134,16 +139,17 @@ function Attendances() {
 
 	const columns = React.useMemo(() => {
 		return tableColumns.concat(
-			sessionIds.map(id => {
+			sessionIds.map((id, i) => {
 				const session = sessionEntities[id]!;
 				const cellRenderer = ({rowData}: CellRendererProps<MemberAttendances>) => {
 					const attendance = rowData.sessionAttendanceSummaries.find((a: any) => a.session_id === session.id);
 					return attendance? renderSessionAttendance(attendance): null;
 				}
+				const yearMonth = DateTime.fromISO(session.startDate).toFormat('yyyy MMM');
 				const column = {
-					key: 'session_' + session.id,
-					label: session.name,
-					width: 200, flexGrow: 1, flexShrink: 1,
+					key: 'session_' + i,
+					label: yearMonth,
+					width: 100, flexGrow: 1, flexShrink: 1,
 					cellRenderer
 				}
 				return column;
@@ -151,17 +157,25 @@ function Attendances() {
 	}, [sessionEntities]);
 
 	const refresh = () => dispatch(loadAttendances());
-	const close = () => navigate(-1);
 
 	return (
 		<>
 			<TopRow>
 				<SessionSummary />
-				<div>
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-					<ActionButton name='close' title='Close' onClick={close} />
-				</div>
+				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 			</TopRow>
+
+			<div style={{display: 'flex', width: '100%', alignItems: 'center'}}>
+				<ShowFilters
+					selectors={attendancesSelectors}
+					actions={attendancesActions}
+					fields={fields}
+				/>
+				<GlobalFilter
+					selectors={attendancesSelectors}
+					actions={attendancesActions}
+				/>
+			</div>
 
 			<TableRow>
 				<AppTable

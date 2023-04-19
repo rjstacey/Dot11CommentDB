@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -20,6 +19,7 @@ import {
 	SplitPanel, Panel,
 	CellRendererProps,
 	displayDateRange,
+	GlobalFilter
 } from 'dot11-components';
 
 import {
@@ -39,6 +39,7 @@ import {renderNameAndEmail} from '../members/Members';
 const TopRow = styled.div`
 	display: flex;
 	justify-content: space-between;
+	align-items: center;
 	width: 100%;
 	padding: 10px;
 	box-sizing: border-box;
@@ -129,7 +130,6 @@ const tableColumns: ColumnProperties[] = [
 ];
 
 function BallotParticipation() {
-	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
 	const {valid, selected} = useAppSelector(selectBallotParticipationState);
 	const {ids: ballotSeriesIds, entities: ballotSeriesEntities} = useAppSelector(selectBallotSeries);
@@ -158,7 +158,6 @@ function BallotParticipation() {
 	}, [ballotSeriesIds, ballotSeriesEntities]);
 
 	const refresh = () => dispatch(loadBallotParticipation());
-	const close = () => navigate(-1);
 
 	return (
 		<>
@@ -175,15 +174,20 @@ function BallotParticipation() {
 							actions={ballotParticipationActions}
 						/>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-					<ActionButton name='close' title='Close' onClick={close} />
 				</div>
 			</TopRow>
 
-			<ShowFilters
-				selectors={ballotParticipationSelectors}
-				actions={ballotParticipationActions}
-				fields={fields}
-			/>
+			<div style={{display: 'flex', width: '100%', alignItems: 'center'}}>
+				<ShowFilters
+					selectors={ballotParticipationSelectors}
+					actions={ballotParticipationActions}
+					fields={fields}
+				/>
+				<GlobalFilter
+					selectors={ballotParticipationSelectors}
+					actions={ballotParticipationActions}
+				/>
+			</div>
 
 			<SplitPanel
 				selectors={ballotParticipationSelectors}

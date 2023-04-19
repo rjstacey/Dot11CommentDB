@@ -25,9 +25,15 @@ export const fields = {
 	Affiliation: {label: 'Affiliation'},
 	Status: {label: 'Status'},
 	ExpectedStatus: {label: 'Expected status'},
-	AttendancePercentage: {label: 'Attendance', dataRenderer: renderPct, sortType: SortType.NUMERIC},
-	DidAttend: {label: 'Did attend', sortType: SortType.NUMERIC},
-	DidNotAttend: {label: 'Did not attend', sortType: SortType.NUMERIC},
+	Summary: {label: 'Summary'},
+	session_0: {sortType: SortType.NUMERIC},
+	session_1: {sortType: SortType.NUMERIC},
+	session_2: {sortType: SortType.NUMERIC},
+	session_3: {sortType: SortType.NUMERIC},
+	session_4: {sortType: SortType.NUMERIC},
+	session_5: {sortType: SortType.NUMERIC},
+	session_6: {sortType: SortType.NUMERIC},
+	session_7: {sortType: SortType.NUMERIC},
 };
 
 export const dataSet = 'attendances';
@@ -237,7 +243,17 @@ export const selectAttendancesWithMembershipAndSummary = createSelector(
 	}
 );
 
-export const attendancesSelectors = getAppTableDataSelectors(selectAttendancesState, selectAttendancesWithMembershipAndSummary);
+function getField(entity: MemberAttendances, dataKey: string) {
+	const m = /session_(\d+)/.exec(dataKey);
+	if (m) {
+		const i = Number(m[1]);
+		const summary = entity.sessionAttendanceSummaries[i];
+		return summary? renderPct(summary.AttendancePercentage): '';
+	}
+	return entity[dataKey as keyof MemberAttendances];
+}
+
+export const attendancesSelectors = getAppTableDataSelectors(selectAttendancesState, {selectEntities: selectAttendancesWithMembershipAndSummary, getField});
 
 /*
  * Actions

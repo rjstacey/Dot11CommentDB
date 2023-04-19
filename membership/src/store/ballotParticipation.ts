@@ -13,7 +13,6 @@ import {
 import { Member, selectMemberEntities } from './members';
 
 import type { RootState, AppThunk } from '.';
-import { update } from 'idb-keyval';
 
 export const fields = {
 	id: {label: 'id', sortType: SortType.NUMERIC},
@@ -199,7 +198,7 @@ function getField(entity: MemberParticipation, dataKey: string): any {
 	return entity[dataKey as keyof MemberParticipation];
 }
 
-export const ballotParticipationSelectors = getAppTableDataSelectors(selectBallotParticipationState, selectBallotParticipationWithMembershipAndSummary, undefined, getField as (entity: any, dataKey: string) => any);
+export const ballotParticipationSelectors = getAppTableDataSelectors(selectBallotParticipationState, {selectEntities: selectBallotParticipationWithMembershipAndSummary, getField});
 
 /*
  * Actions

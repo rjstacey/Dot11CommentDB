@@ -144,7 +144,7 @@ const selectMemberWithParticipationSummary = createSelector(
 	}
 );
 
-export const membersSelectors = getAppTableDataSelectors(selectMembersState, selectMemberWithParticipationSummary);
+export const membersSelectors = getAppTableDataSelectors(selectMembersState, {selectEntities: selectMemberWithParticipationSummary});
 
 export const selectUiProperties = membersSelectors.selectUiProperties;
 
