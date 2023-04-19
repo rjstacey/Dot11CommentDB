@@ -4,6 +4,7 @@ import ExcelJS from 'exceljs';
 import { csvParse, csvStringify } from '../utils';
 
 import db from '../utils/database';
+import type {OkPacket} from '../utils/database';
 
 import {getMembersSnapshot} from './members';
 
@@ -31,22 +32,22 @@ type VoterFromSpreadsheet = {
 
 const membersHeader = [
 	'SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'
-];
+] as const;
 
 async function parseVoters(buffer: Buffer): Promise<VoterFromSpreadsheet[]> {
 
 	const p = await csvParse(buffer, {columns: false});
 	if (p.length === 0)
-		throw Error('Got empty .csv file');
+		throw TypeError('Got empty .csv file');
 
 	// Row 0 is the header
 	if (membersHeader.reduce((r, v, i) => v !== p[0][i], false))
-		throw new Error(`Unexpected column headings ${p[0].join()}. Expected ${membersHeader.join()}.`);
+		throw new TypeError(`Unexpected column headings ${p[0].join()}. Expected ${membersHeader.join()}.`);
 	p.shift();
 
 	return p.map(c => {
 		return {
-			SAPIN: c[0],
+			SAPIN: Number(c[0]),
 			//LastName: c[1],
 			//FirstName: c[2],
 			//MI: c[3],
@@ -60,7 +61,7 @@ const myProjectBallotMembersHeader = [
 	'Name', 'EMAIL', 'Affiliations(s)', 'Voter Classification', 'Current Vote', 'Comments'
 ]
 async function parseMyProjectVoters(buffer: Buffer, isExcel: boolean) {
-	var p: any[] = [] 	// an array of arrays
+	var p: any[][] = [] 	// an array of arrays
 	if (isExcel) {
 		const workbook = new ExcelJS.Workbook();
 		await workbook.xlsx.load(buffer);
@@ -68,7 +69,7 @@ async function parseMyProjectVoters(buffer: Buffer, isExcel: boolean) {
 		workbook.getWorksheet(1).eachRow(row => Array.isArray(row.values) && p.push(row.values.slice(1, myProjectBallotMembersHeader.length+1)))
 	}
 	else {
-		throw new Error("Can't handle .csv file");
+		throw new TypeError("Can't handle .csv file");
 	}
 
 	if (p.length < 2) {
@@ -120,24 +121,24 @@ const getVotersFullSQL = (votingPoolId?: string, sapins?: number[], ids?: string
 }
 
 export async function getVotingPools() {
-	const votingPools: VotingPool[] = await db.query('SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters GROUP BY VotingPoolID;');
+	const votingPools = await db.query('SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters GROUP BY VotingPoolID;') as VotingPool[];
 	return {votingPools}
 }
 
 export async function deleteVotingPools(votingPoolIds: string[]): Promise<number> {
-	const result = await db.query('DELETE FROM wgVoters WHERE VotingPoolID IN (?);', [votingPoolIds]);
+	const result = await db.query('DELETE FROM wgVoters WHERE VotingPoolID IN (?);', [votingPoolIds]) as OkPacket;
 	return result.affectedRows;
 }
 
 export async function updateVotingPool(votingPoolId: string, changes: {VotingPoolID: string}): Promise<{votingPool: VotingPool}> {
 	if (changes.hasOwnProperty('VotingPoolID')) {
-		const [votingPool] = await db.query(getVotingPoolSQL(changes.VotingPoolID));
+		const [votingPool] = await db.query(getVotingPoolSQL(changes.VotingPoolID)) as VotingPool[];
 		if (votingPool.VotingPoolID !== null)
 			throw `${changes.VotingPoolID} already in use`;
 		await db.query('UPDATE wgVoters SET VotingPoolID=? WHERE VotingPoolID=?;', [changes.VotingPoolID, votingPoolId]);
 		votingPoolId = changes.VotingPoolID;
 	}
-	const [votingPool] = await db.query(getVotingPoolSQL(votingPoolId));
+	const [votingPool] = await db.query(getVotingPoolSQL(votingPoolId)) as VotingPool[];
 	return {votingPool}
 }
 
@@ -145,13 +146,46 @@ export async function getVoters(votingPoolId: string): Promise<{voters: Voter[],
 	const sql =
 		getVotersFullSQL(votingPoolId) +
 		getVotingPoolSQL(votingPoolId);
-	const [voters, votingPools] = await db.query(sql);
+	const [voters, votingPools] = await db.query(sql) as [Voter[], VotingPool[]];
 	const votingPool = votingPools[0];
 	votingPool.VotingPoolID = votingPoolId;
 	return {
 		voters,
 		votingPool
 	}
+}
+
+type VotersForBallots = {
+	SAPIN: number;
+	byBallots: {
+		ballot_id: number;
+		voter_id: string;
+		SAPIN: number;
+		Excused: boolean
+	}[];
+}
+
+export async function getVotersForBallots(ballot_ids: number[]) {
+	let sql =
+		'SELECT ' +
+			'm.SAPIN, v.byBallots ' +
+		'FROM ' +
+			'(SELECT ' +
+				'COALESCE(o.ReplacedBySAPIN, voters.SAPIN) as SAPIN, ' +	// current SAPIN
+				'JSON_ARRAYAGG(JSON_OBJECT( ' +
+					'"ballot_id", b.id, ' +
+					'"SAPIN", voters.SAPIN, ' +		// SAPIN in voting pool
+					'"voter_id", BIN_TO_UUID(voters.id), ' +
+					'"Excused", voters.Excused' +
+				')) as byBallots ' +
+			'FROM wgVoters voters ' + 
+				'LEFT JOIN ballots b ON b.VotingPoolID = voters.VotingPoolID ' +
+				'LEFT JOIN members o ON o.Status = "Obsolete" AND o.SAPIN = voters.SAPIN ' +
+			'WHERE b.id IN (?) ' +
+			'GROUP BY SAPIN) as v ' +
+		'LEFT JOIN members m ON m.SAPIN = v.SAPIN ';
+	
+	return db.query(sql, [ballot_ids]) as Promise<VotersForBallots[]>;
 }
 
 async function getVoter(votingPoolId: string, sapin: number): Promise<Voter> {
@@ -188,7 +222,7 @@ export async function addVoters(votingPoolId: string, voters: Voter[]) {
 		ids.push(id);
 	}
 	results = await Promise.all(results);
-	voters = await db.query(getVotersFullSQL(undefined, undefined, ids));
+	voters = await db.query(getVotersFullSQL(undefined, undefined, ids)) as Voter[];
 	const [votingPool] = await db.query(getVotingPoolSQL(votingPoolId)) as VotingPool[];
 	return {
 		voters,
@@ -210,15 +244,15 @@ export async function updateVoters(updates) {
 		results.push(db.query('UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)', [changes, id]));
 	}
 	await Promise.all(results);
-	const voters = await db.query(getVotersFullSQL(undefined, undefined, updates.map(u => u.id)));
+	const voters = await db.query(getVotersFullSQL(undefined, undefined, updates.map(u => u.id))) as Voter[];
 	return voters.map(v => ({id: v.id, changes: v}));
 }
 
-export async function deleteVoters(votingPoolId, ids: string[]): Promise<number> {
+export async function deleteVoters(votingPoolId: string, ids: string[]) {
 	const sql = 'DELETE FROM wgVoters WHERE id IN (' +
-		ids.map(id => `UUID_TO_BIN('${id}')`).join(',') +
+			ids.map(id => `UUID_TO_BIN('${id}')`).join(',') +
 		')';
-	const result = await db.query(sql);
+	const result = await db.query(sql) as OkPacket;
 	return result.affectedRows;
 }
 
@@ -233,7 +267,7 @@ async function insertVoters(votingPoolId: string, voters: Partial<Voter>[]) {
 	sql +=
 		getVotersFullSQL(votingPoolId) +
 		getVotingPoolSQL(votingPoolId);
-	const results = await db.query(sql);
+	const results = await db.query(sql) as any[];
 	const votingPool: VotingPool = results[results.length-1][0];
 	votingPool.VotingPoolID = votingPoolId;
 	return {

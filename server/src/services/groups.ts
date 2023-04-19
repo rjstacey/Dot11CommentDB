@@ -2,6 +2,7 @@
 import { v4 as uuid } from 'uuid';
 
 import db from '../utils/database';
+import type { OkPacket } from 'mysql2';
 
 export interface Group {
 	id: string;
@@ -49,7 +50,7 @@ export function getGroups(constraints?: OrganizationQueryConstraints) {
 		).join(' AND ');
 	}
 
-	return db.query(sql);
+	return db.query(sql) as Promise<Group[]>;
 }
 
 export async function getGroup(groupId: string): Promise<Group | undefined> {
@@ -116,7 +117,7 @@ export function updateGroups(updates: Update<Group>[]) {
 }
 
 export async function removeGroups(ids: string[]): Promise<number> {
-	const result1 = await db.query('DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)', [ids]);
-	const result2 = await db.query('DELETE FROM organization WHERE BIN_TO_UUID(id) IN (?)', [ids]);
+	const result1 = await db.query('DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)', [ids]) as OkPacket;
+	const result2 = await db.query('DELETE FROM organization WHERE BIN_TO_UUID(id) IN (?)', [ids]) as OkPacket;
 	return result1.affectedRows + result2.affectedRows;
 }

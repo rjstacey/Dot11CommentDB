@@ -2,6 +2,7 @@ import { v4 as uuid } from 'uuid';
 import { isPlainObject } from '../utils';
 
 import db from '../utils/database';
+import type { OkPacket } from 'mysql2';
 
 interface Officer {
 	id: string;
@@ -22,7 +23,7 @@ interface OfficerQueryConstraints {
 	position?: string | string[];
 };
 
-export function getOfficers(constraints?: OfficerQueryConstraints): Promise<Officer[]> {
+export function getOfficers(constraints?: OfficerQueryConstraints) {
 	let sql =
 		'SELECT ' + 
 			'BIN_TO_UUID(`id`) AS `id`,' +
@@ -40,7 +41,7 @@ export function getOfficers(constraints?: OfficerQueryConstraints): Promise<Offi
 		).join(' AND ');
 	}
 
-	return db.query(sql);
+	return db.query(sql) as Promise<Officer[]>;
 }
 
 async function addOfficer({id, group_id, ...rest}: Officer): Promise<Officer> {
@@ -81,6 +82,6 @@ export function updateOfficers(updates: Update<Officer>[]) {
 }
 
 export async function removeOfficers(ids: string[]): Promise<number> {
-	const result = await db.query('DELETE FROM `officers` WHERE BIN_TO_UUID(`id`) IN (?)', [ids]);
+	const result = await db.query('DELETE FROM `officers` WHERE BIN_TO_UUID(`id`) IN (?)', [ids]) as OkPacket;
 	return result.affectedRows;
 }

@@ -207,7 +207,7 @@ export async function parseEpollResultsCsv(buffer: Buffer): Promise<CSVResult[]>
 	p.shift();
 
 	return p.map(c => ({
-		SAPIN: c[0],
+		SAPIN: Number(c[0]),
 		//Date: c[1],
 		Vote: c[2],
 		Email: c[3]

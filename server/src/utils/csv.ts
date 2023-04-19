@@ -6,9 +6,9 @@
 import parse from 'csv-parse';
 import { stringify, Input, Options } from 'csv-stringify';
 
-export function csvParse(buffer: Buffer, options: parse.Options): Promise<any> {
+export function csvParse(buffer: Buffer, options: parse.Options): Promise<string[][]> {
 	return new Promise((resolve, reject) => {
-		parse(buffer, options, (error, records) => {
+		parse(buffer, options, (error: Error | undefined, records: string[][]) => {
 			if (error)
 				reject(error);
 			else
@@ -17,7 +17,7 @@ export function csvParse(buffer: Buffer, options: parse.Options): Promise<any> {
 	});
 }
 
-export function csvStringify(records: Input, options: Options) {
+export function csvStringify(records: Input, options: Options): Promise<string> {
 	return new Promise((resolve, reject) => {
 		stringify(records, options, (error, output) => {
 			if (error)

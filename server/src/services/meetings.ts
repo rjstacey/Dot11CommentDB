@@ -4,6 +4,7 @@ import { parse as uuidToBin } from 'uuid';
 import { isPlainObject, AuthError, NotFoundError } from '../utils';
 
 import db from '../utils/database';
+import type { OkPacket } from 'mysql2';
 
 import { getSession, Session } from './sessions';
 import { getWorkingGroup, Group } from './groups';
@@ -524,7 +525,7 @@ async function addMeeting(user, meetingToAdd: MeetingAddUpdate) {
 	}
 
 	const sql = 'INSERT INTO meetings SET ' + meetingToSetSql(meeting);
-	const {insertId} = await db.query({sql, dateStrings: true});
+	const {insertId} = await db.query({sql, dateStrings: true}) as OkPacket;
 	const [meetingOut] = await selectMeetings({id: insertId});
 
 	return {meeting: meetingOut, webexMeeting, breakout};
@@ -913,7 +914,9 @@ export async function deleteMeetings(user, ids: number[]): Promise<number> {
 	if (!user.ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const entries = await db.query('SELECT webexAccountId, webexMeetingId, calendarAccountId, calendarEventId, imatMeetingId, imatBreakoutId FROM meetings WHERE id IN (?);', [ids]);
+	type DeleteMeetingSelect = Pick<Meeting, "webexAccountId" | "webexMeetingId" | "calendarAccountId" | "calendarEventId" | "imatMeetingId" | "imatBreakoutId">;
+
+	const entries = await db.query('SELECT webexAccountId, webexMeetingId, calendarAccountId, calendarEventId, imatMeetingId, imatBreakoutId FROM meetings WHERE id IN (?);', [ids]) as DeleteMeetingSelect[];
 	for (const entry of entries) {
 		if (entry.webexAccountId && entry.webexMeetingId) {
 			try {
@@ -937,6 +940,6 @@ export async function deleteMeetings(user, ids: number[]): Promise<number> {
 			await deleteCalendarEvent(entry.calendarAccountId, entry.calendarEventId);
 		}
 	}
-	const {affectedRows} = await db.query('DELETE FROM meetings WHERE id IN (?);', [ids]);
+	const {affectedRows} = await db.query('DELETE FROM meetings WHERE id IN (?);', [ids]) as OkPacket;
 	return affectedRows;
 }

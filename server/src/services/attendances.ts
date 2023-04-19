@@ -3,20 +3,26 @@ import { NotFoundError } from '../utils';
 
 import { getSessions, Session } from './sessions';
 import { getImatAttendanceSummary } from './imat';
+import { OkPacket } from 'mysql2';
 
 type SessionAttendanceSummary = {
     id: number;
+    /** Session identifier */
     session_id: number;
-    AttendancePercentage: number;   /** Percentage of meeting slots attended */
-    DidAttend: boolean;             /** Declare attendance criteria met */
-    DidNotAttend: boolean;          /** Declare attendance criteria not met */
+    /** Percentage of meeting slots attended */
+    AttendancePercentage: number;
+    /** Declare attendance criteria met */
+    DidAttend: boolean;
+    /** Declare attendance criteria not met */
+    DidNotAttend: boolean;
+    /** SA PIN under which attendance was logged */
+    SAPIN: number;
     Notes: string;
-    SAPIN: number;                  /** SA PIN under which attendance was logged */
 }
 
 type RecentSessionAttendances = {
     SAPIN: number;
-    SessionAttendances: SessionAttendanceSummary[];
+    sessionAttendanceSummaries: SessionAttendanceSummary[];
 }
 
 /*
@@ -33,7 +39,7 @@ const getSessionAttendancesSQL = (session_ids: number[]) =>
                 '"DidAttend", DidAttend, ' + 
                 '"DidNotAttend", DidNotAttend, ' +
                 '"Notes", Notes' + 
-            ')) as SessionAttendances ' +
+            ')) as sessionAttendanceSummaries ' +
         'FROM attendance_summary a ' +
         'WHERE a.session_id IN (?) ' +
         'GROUP BY SAPIN ',
@@ -62,7 +68,7 @@ export async function getRecentAttendances() {
 
         const sql = getSessionAttendancesSQL(sessions.map(s => s.id));
         //console.log(sql)
-        attendances = await db.query(sql);
+        attendances = await db.query(sql) as RecentSessionAttendances[];
     }
 
     return {
@@ -121,7 +127,7 @@ type Update<T> = {
 
 async function updateAttendance({id, changes}: Update<SessionAttendanceSummary>) {
     await db.query('UPDATE attendance_summary SET ? WHERE id=?', [changes, id]);
-    const [attendance] = await db.query('SELECT * FROM attendance_summary WHERE id=?', [id]) as unknown as SessionAttendanceSummary[];
+    const [attendance] = await db.query('SELECT * FROM attendance_summary WHERE id=?', [id]) as SessionAttendanceSummary[];
     return attendance;
 }
 
@@ -131,8 +137,8 @@ export async function updateAttendances(updates: Update<SessionAttendanceSummary
 }
 
 async function addAttendance(attendance: SessionAttendanceSummary) {
-    const {insertId} = await db.query('INSERT attendance_summary SET ?', [attendance]);
-    [attendance] = await db.query('SELECT * FROM attendance_summary WHERE id=?', [insertId]) as unknown as SessionAttendanceSummary[];
+    const {insertId} = await db.query('INSERT attendance_summary SET ?', [attendance]) as OkPacket;
+    [attendance] = await db.query('SELECT * FROM attendance_summary WHERE id=?', [insertId]) as SessionAttendanceSummary[];
     return attendance;
 }
 
@@ -141,7 +147,7 @@ export async function addAttendances(attendances: SessionAttendanceSummary[]) {
     return attendances;
 }
 
-export async function deleteAttendances(ids: number[]): Promise<number> {
-    const {affectedRows} = await db.query('DELETE FROM attendance_summary WHERE ID IN (?)', ids);
+export async function deleteAttendances(ids: number[]) {
+    const {affectedRows} = await db.query('DELETE FROM attendance_summary WHERE ID IN (?)', ids) as OkPacket;
     return affectedRows;
 }

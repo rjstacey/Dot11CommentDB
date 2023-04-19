@@ -2,6 +2,7 @@
 import { v4 as uuid } from 'uuid';
 
 import db from '../utils/database';
+import type { OkPacket } from 'mysql2';
 
 import {AccessLevel} from '../auth/access';
 import {parseEpollResultsCsv, parseEpollResultsHtml} from './epoll';
@@ -337,17 +338,6 @@ function summarizeBallotResults(results: Result[]): ResultsSummary {
 	return summary;
 }
 
-/*type Ballot = {
-	id: number;
-	BallotID: string;
-	Type: number;
-	Project: string;
-	Document: string;
-	VotingPoolID: string;
-	ResultsSummary?: string;
-	Results: ResultsSummary;
-}*/
-
 export async function getResultsCoalesced(user, ballot_id: number) {
 
 	const ballot: Ballot = await getBallot(ballot_id);
@@ -424,7 +414,7 @@ export async function getResultsCoalesced(user, ballot_id: number) {
 }
 
 export async function getResults(ballot_id: number): Promise<Result[]> {
-	const results = await db.query(
+	let sql =
 		'SELECT ' + 
 			'r.ballot_id, ' +
 			'r.SAPIN, r.Email, r.Name, r.Affiliation, r.Vote, ' +
@@ -432,14 +422,32 @@ export async function getResults(ballot_id: number): Promise<Result[]> {
 			'(SELECT COUNT(*) ' +
 				'FROM comments c WHERE c.ballot_id=r.ballot_id AND ' +
 					'((c.CommenterSAPIN>0 AND c.CommenterSAPIN=r.SAPIN) OR ' +
-					 '(c.CommenterEmail<>\'\' AND c.CommenterEmail=r.Email) OR ' +
-					 '(c.CommenterName<>\'\' AND c.CommenterName=r.Name))) AS CommentCount, ' +
+					'(c.CommenterEmail<>"" AND c.CommenterEmail=r.Email) OR ' +
+					'(c.CommenterName<>"" AND c.CommenterName=r.Name))) AS CommentCount, ' +
 			'COALESCE(m.ReplacedBySAPIN, r.SAPIN) AS CurrentSAPIN ' +
 		'FROM results r ' +
-			'LEFT JOIN members m ON m.SAPIN=r.SAPIN AND m.Status=\'Obsolete\' ' +
-			'WHERE r.ballot_id=?',
-		[ballot_id]
-	);
+			'LEFT JOIN members m ON m.SAPIN=r.SAPIN AND m.Status="Obsolete" ' +
+		'WHERE r.ballot_id=?';
+	
+	const results = await db.query(sql, [ballot_id])as Result[];
+	return results;
+}
+
+export async function getResultsForWgBallot(ballot_id: number): Promise<Result[]> {
+	let sql = db.format(
+		'SET @ballot_id=?; ' +
+		'SELECT ' + 
+			'BIN_TO_UUID(r.uuid) AS id, ' +
+			'r.ballot_id, ' +
+			'r.SAPIN, r.Email, r.Name, r.Affiliation, r.Vote, ' +
+			'COALESCE(c.CommentCount, 0) as CommentCount, ' +
+			'COALESCE(m.ReplacedBySAPIN, r.SAPIN) AS CurrentSAPIN ' +
+		'FROM results r ' +
+			'LEFT JOIN (SELECT CommenterSAPIN, COUNT(*) as CommentCount FROM comments WHERE CommenterSAPIN > 0 AND ballot_id = @ballot_id GROUP BY CommenterSAPIN) c ON c.CommenterSAPIN = r.SAPIN ' +
+			'LEFT JOIN members m ON m.SAPIN=r.SAPIN AND m.Status="Obsolete" ' +
+		'WHERE r.ballot_id=@ballot_id', [ballot_id]);
+
+	const [noop, results] = await db.query(sql) as [OkPacket, Result[]];
 	return results;
 }
 
@@ -449,7 +457,7 @@ export async function deleteResults(ballot_id: number): Promise<number> {
 		'DELETE FROM results WHERE ballot_id=@ballot_id; ' +
 		'UPDATE ballots SET ResultsSummary=NULL WHERE id=@ballot_id',
 		[ballot_id]
-	);
+	) as OkPacket[];
 	return results[1].affectedRows;
 }
 

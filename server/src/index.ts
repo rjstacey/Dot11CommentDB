@@ -14,7 +14,6 @@ import api from './api/router';
 
 import {init as databaseInit} from './utils/database';
 import {init as seedDatabase} from './utils/seedDatabase';
-import {init as usersInit} from './services/users';
 import {init as webexInit} from './services/webex';
 import {init as calendarInit} from './services/calendar';
 import {init as emailInit} from './services/email';
@@ -30,15 +29,6 @@ async function initDatabase() {
 
 async function initServices() {
 	
-	process.stdout.write('init users... ');
-	try {
-		await usersInit();
-		process.stdout.write('success\n');
-	}
-	catch (error) {
-		console.error('init users failed', error);
-	}
-
 	process.stdout.write('init webex... ');
 	try {
 		await webexInit();
@@ -102,7 +92,7 @@ function initServer() {
 	app.use((err, req, res, next) => {
 		if (process.env.NODE_ENV === 'development')
 			console.warn(err);
-		let message;
+		let message: string;
 		if (typeof err === 'string') {
 			message = err;
 		}

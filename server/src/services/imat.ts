@@ -53,9 +53,11 @@ type PageBreakout = {
 
 	groupShortName: string;
 
+	start: string;
 	startTime: string;
 	startSlotName: string;
 
+	end: string;
 	endTime: string;
 	endSlotName: string;
 
@@ -488,8 +490,8 @@ export function parseSessionDetailPage(body: string): BreakoutsAndTimeslots {
 			const day = eventDate.diff(sessionStart, 'days').get('days');
 			const startTime = m[3];
 			const endTime = m[4];
-			//b.start = eventDate.set({hour: Number(m[3].substring(0, 2)), minute: Number(m[3].substring(3))}).toISO();
-			//b.end = eventDate.set({hour: Number(m[4].substring(0, 2)), minute: Number(m[4].substring(3))}).toISO();
+			const start = eventDate.set({hour: Number(m[3].substring(0, 2)), minute: Number(m[3].substring(3))}).toISO();
+			const end = eventDate.set({hour: Number(m[4].substring(0, 2)), minute: Number(m[4].substring(3))}).toISO();
 
 			m = /(.+)&nbsp;-&nbsp;(.+)/.exec(slotsRange);
 			const startSlotName = m? m[1]: slotsRange;
@@ -546,8 +548,10 @@ export function parseSessionDetailPage(body: string): BreakoutsAndTimeslots {
 				location,
 				day,
 				groupShortName,
+				start,
 				startTime,
 				startSlotName,
+				end,
 				endTime,
 				endSlotName,
 				credit,
@@ -564,7 +568,7 @@ export function parseSessionDetailPage(body: string): BreakoutsAndTimeslots {
 	return {breakouts, timeslots};
 }
 
-async function parseImatBreakoutsCsv(session, buffer: Buffer): Promise<Breakout> {
+async function parseImatBreakoutsCsv(session, buffer: Buffer) {
 	const p = await csvParse(buffer, {columns: false, bom: true, encoding: 'latin1'});
 
 	if (p.length === 0)
@@ -576,15 +580,15 @@ async function parseImatBreakoutsCsv(session, buffer: Buffer): Promise<Breakout>
 	p.shift();
 
 	return p.map(c => {
-		const eventDay = c[11];	// day offset from start of session
+		const eventDay = Number(c[11]);	// day offset from start of session
 		const eventDate = DateTime.fromISO(session.start, {zone: session.timezone}).plus(Duration.fromObject({days: eventDay}));
 		return {
 			id: parseInt(c[0]),
 			startSlotName: c[1],
 			endSlotName: c[2],
 			day: parseInt(c[11]),
-			start: eventDate.set({hour: c[3].substring(0, 2), minute: c[3].substring(3)}).toISO(),
-			end: eventDate.set({hour: c[4].substring(0, 2), minute: c[4].substring(3)}).toISO(),
+			start: eventDate.set({hour: Number(c[3].substring(0, 2)), minute: Number(c[3].substring(3))}).toISO(),
+			end: eventDate.set({hour: Number(c[4].substring(0, 2)), minute: Number(c[4].substring(3))}).toISO(),
 			timezone: session.timezone,
 			location: c[5],
 			group: c[6],
@@ -679,9 +683,9 @@ export async function getImatBreakouts(user, imatMeetingId: number) {
 			symbol: committee!.symbol,
 			facilitator: ''
 		}
-	})
+	});
 
-	return {imatMeeting, breakouts, timeslots, committees};
+	return {imatMeeting, breakouts, timeslots, committees, pageCommittees};
 }
 
 const breakoutCredit = {
@@ -704,7 +708,7 @@ const breakoutProps = {
 	facilitator: PropTypes.string,
 };
 
-async function addImatBreakout(user, imatMeeting: ImatMeeting, breakout: Breakout): Promise<PageBreakout> {
+async function addImatBreakout(user, imatMeeting: ImatMeeting, timeslots: Timeslot[], pageCommittees: PageCommittee[], breakout: Breakout): Promise<Breakout> {
 
 	PropTypes.checkPropTypes(breakoutProps, breakout, 'breakout', 'addImatBreakout');
 
@@ -734,13 +738,17 @@ async function addImatBreakout(user, imatMeeting: ImatMeeting, breakout: Breakou
 	}
 
 	/* From the response, find the breakout we just added */
-	const {breakouts} = parseSessionDetailPage(response.data);
+	const {breakouts: pageBreakouts} = parseSessionDetailPage(response.data);
 
+	/* Override the timeslots from session detail page; the user may not have permission to modify the timeslots
+	 * and thus might not get the slot ID. */
+	const breakouts: Breakout[] = pageBreakouts.map(b => pageBreakoutToBreakout(b, timeslots, pageCommittees))
+	
 	let b = breakouts.find(b =>
 		breakout.name === b.name &&
 		breakout.location === b.location &&
 		breakout.day === b.day &&
-		breakout.startTime === b.startTime
+		breakout.startSlotId === b.startSlotId
 	);
 
 	if (!b) {
@@ -788,10 +796,7 @@ export async function addImatBreakouts(user, imatMeetingId: number, breakouts: B
 	let response = await ieeeClient.get(`/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`);
 	const {timeslots, committees: pageCommittees} = parseAddMeetingPage(response.data);
 
-	const pageBreakouts = await Promise.all(breakouts.map((breakout) => addImatBreakout(user, imatMeeting, breakout)));
-
-	// Correct the timeslots and committee from session detail page
-	breakouts = pageBreakouts.map(b => pageBreakoutToBreakout(b, timeslots, pageCommittees));
+	breakouts = await Promise.all(breakouts.map((breakout) => addImatBreakout(user, imatMeeting, timeslots, pageCommittees, breakout)));
 
 	return {breakouts};
 }
@@ -1065,29 +1070,12 @@ export async function addImatBreakoutFromMeeting(user, session: Session | undefi
 	if (typeof imatMeetingId !== 'number')
 		throw new TypeError('IMAT meeting ID not specified');
 
-	const {imatMeeting, timeslots, committees} = await getImatBreakouts(user, imatMeetingId);
+	const {imatMeeting, timeslots, committees, pageCommittees} = await getImatBreakouts(user, imatMeetingId);
 
 	let breakout = await meetingToBreakout(user, imatMeeting, timeslots, committees, session, meeting, webexMeeting);
 
-	const pageBreakout = await addImatBreakout(user, imatMeeting, breakout);
-	const {startSlotName, endSlotName, groupShortName, ...rest} = pageBreakout;
-	const startSlot = timeslots.find(t => t.name === startSlotName);
-	if (!startSlot)
-		throw new Error("Can't find startSlot " + startSlotName);
-	const endSlot = timeslots.find(t => t.name === endSlotName);
-	if (!endSlot)
-		throw new Error("Can't find endSlot " + endSlotName);
-	const committee = committees.find(c => c.shortName === groupShortName);
-	if (!committee)
-		throw new Error("Can't find committee " + groupShortName);
-	return {
-		...rest,
-		startSlotId: startSlot.id,
-		endSlotId: endSlot.id,
-		groupId: committee.id,
-		symbol: committee.symbol,
-		facilitator: ''
-	}
+	breakout = await addImatBreakout(user, imatMeeting, timeslots, pageCommittees, breakout);
+	return breakout;
 }
 
 export async function updateImatBreakoutFromMeeting(user, session: Session | undefined, meeting: Meeting, webexMeeting: WebexMeeting | undefined) {

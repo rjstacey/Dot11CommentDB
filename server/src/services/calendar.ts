@@ -1,4 +1,5 @@
 import db from '../utils/database';
+import type { OkPacket } from 'mysql2';
 import axios from 'axios';
 import { OAuth2Client } from 'google-auth-library';
 import { google, calendar_v3 } from 'googleapis';
@@ -84,12 +85,12 @@ function deleteAuthApi(id: number) {
  * @id {number} Calendar account identifier
  * @authParams {object} New tokens. A null value clears the current paramters.
  */
-const updateAuthParams = (id: number, authParams: object | null): Promise<void> => {
+const updateAuthParams = (id: number, authParams: object | null): Promise<OkPacket> => {
 	const updates = authParams?
 		db.format('authParams=JSON_MERGE_PATCH(COALESCE(authParams, "{}"), ?), authDate=NOW()', JSON.stringify(authParams)):
 		'authParams=NULL, authDate=NULL';
 
-	return db.query('UPDATE oauth_accounts SET ' + updates + ' WHERE id=?', [id]);
+	return db.query('UPDATE oauth_accounts SET ' + updates + ' WHERE id=?', [id]) as Promise<OkPacket>;
 }
 
 export async function init() {
@@ -105,7 +106,7 @@ export async function init() {
 		console.warn("Missing variable GOOGLE_CLIENT_SECRET");
 
 	// Cache the active calendar accounts and create an api instance for each
-	const accounts = await db.query('SELECT * FROM oauth_accounts WHERE type="calendar";');
+	const accounts = await db.query('SELECT * FROM oauth_accounts WHERE type="calendar";') as OAuthAccount[];
 	for (const account of accounts) {
 		const {id, authParams} = account;
 		const auth = createAuthApi(id);
@@ -156,7 +157,7 @@ async function getAccounts(constraints?: object) {
 	let sql = 'SELECT `id`, `name`, `type`, `groups`, `authDate` FROM oauth_accounts';
 	if (constraints)
 		sql += ' WHERE ' + Object.entries(constraints).map(([key, value]) => db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])).join(' AND ');
-	const accounts = await db.query(sql);
+	const accounts = await db.query(sql) as OAuthAccount[];
 
 	for (const account of accounts) {
 		try {
@@ -188,9 +189,13 @@ export async function getCalendarAccounts(constraints?: object) {
 }
 
 type OAuthAccount = {
+	id: number;
 	name: string;
 	type: string;
 	groups: string[];
+	authParams: object;
+	authUrl?: string | null;
+	details?: any;
 }
 
 type OAuthAccountDB = {
@@ -226,7 +231,7 @@ function accountEntry(s: Partial<OAuthAccount>): Partial<OAuthAccountDB> {
 export async function addCalendarAccount(accountIn: OAuthAccount) {
 	let entry = accountEntry(accountIn);
 	entry.type = 'calendar';
-	const {insertId} = await db.query('INSERT INTO oauth_accounts (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]);
+	const {insertId} = await db.query('INSERT INTO oauth_accounts (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]) as OkPacket;
 	const [account] = await getCalendarAccounts({id: insertId});
 	return account;
 }
@@ -269,7 +274,7 @@ export async function revokeAuthCalendarAccount(id: number) {
  * @id {number} Calendar account identifier
  */
 export async function deleteCalendarAccount(id: number) {
-	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=?', [id]);
+	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=?', [id]) as OkPacket;
 	deleteCalendarApi(id);
 	deleteAuthApi(id);
 	return affectedRows;

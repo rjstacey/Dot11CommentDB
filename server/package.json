@@ -9,7 +9,6 @@
     "start": "NODE_ENV=development nodemon src/index.ts -e '.js,.ts,.json' --exec babel-node --presets @babel/preset-env,@babel/preset-typescript --inspect --extensions '.js,.ts'",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "node_modules/.bin/webpack",
-    "build__": "tsc",
     "prod": "cd ../build && node server.js"
   },
   "author": "Robert Stacey",

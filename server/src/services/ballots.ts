@@ -2,7 +2,7 @@ import db from '../utils/database';
 import {getResults, getResultsCoalesced, Result} from './results';
 import {getVoters} from './voters';
 import {getCommentsSummary} from './comments';
-import { number } from 'prop-types';
+import { OkPacket } from 'mysql2';
 
 export type Ballot = {
     id: number;
@@ -48,13 +48,13 @@ export const getBallotsSQL =
  * Get comments summary for ballot
  */
 
-export async function getBallots(): Promise<Ballot[]> {
-	const ballots = await db.query(getBallotsSQL + ' ORDER BY Project, Start');
+export async function getBallots() {
+	const ballots = await db.query(getBallotsSQL + ' ORDER BY Project, Start') as Ballot[];
 	return ballots;
 }
 
-export async function getBallot(id: number): Promise<Ballot> {
-	const [ballot] = await db.query(getBallotsSQL + ' WHERE id=?', [id])
+export async function getBallot(id: number) {
+	const [ballot] = await db.query(getBallotsSQL + ' WHERE id=?', [id]) as Ballot[];
 	if (!ballot)
 		throw new Error(`No such ballot: ${id}`);
 	return ballot;
@@ -102,7 +102,7 @@ export async function getRecentBallotSeriesWithResults() {
 			'IsComplete<>0 ' + 				// series is complete
 			'ORDER BY End DESC ' +			// newest to oldest
 			'LIMIT 3;'						// last 3
-	);
+	) as Ballot[];
 	const ballotsSeries = await Promise.all(ballots.map(b => getBallotSeriesWithResults(b.id)));
 	return ballotsSeries;
 }
@@ -166,7 +166,7 @@ async function addBallot(user, ballot: Ballot) {
 		const results = await db.query(
 			'INSERT INTO ballots (??) VALUES (?);',
 			[Object.keys(entry), Object.values(entry)]
-		);
+		) as OkPacket;
 		//console.log(results)
 		id = results.insertId;
 	}
@@ -196,7 +196,7 @@ async function updateBallot(user, update: BallotUpdate) {
 	const entry = ballotEntry(changes);
 
 	if (entry) {
-		const result = await db.query('UPDATE ballots SET ? WHERE id=?',  [entry, id]);
+		const result = await db.query('UPDATE ballots SET ? WHERE id=?',  [entry, id]) as OkPacket;
 		if (result.affectedRows !== 1)
 			throw new Error(`Unexpected: no update for ballot with id=${id}`);
 	}

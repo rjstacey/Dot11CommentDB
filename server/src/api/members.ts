@@ -14,7 +14,7 @@ import {Router} from 'express';
 import Multer from 'multer';
 
 import {
-	getMembersWithParticipation,
+	getMembers,
 	getMembersSnapshot,
 	updateMembers,
 	updateMemberStatusChange,
@@ -35,7 +35,7 @@ const upload = Multer();
 
 router.get('/$', async (req, res, next) => {
 	try {
-		const data = await getMembersWithParticipation();
+		const data = await getMembers();
 		res.json(data);
 	}
 	catch(err) {next(err)}

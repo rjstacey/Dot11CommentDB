@@ -48,24 +48,6 @@ export type User = {
 	ieeeClient?: AxiosInstance;
 }
 
-/*
- * A list of members is available to any user with access level Member or higher
- * (for reassigning comments, etc.). We only care about members with status.
- */
-export function selectUsers(user: any) {
-	const sql =
-		'SELECT ' +
-			'm.SAPIN, Name, Email, Status, Access, ' +
-			'COALESCE(Permissions, JSON_ARRAY()) AS Permissions ' +
-		'FROM members m ' +
-		'LEFT JOIN (SELECT SAPIN, JSON_ARRAYAGG(scope) AS Permissions FROM permissions GROUP BY SAPIN) AS p ON m.SAPIN=p.SAPIN ' +
-		'WHERE ' +
-			'Status="Aspirant" OR ' +
-			'Status="Potential Voter" OR ' +
-			'Status="Voter" OR ' +
-			'Status="ExOfficio"';
-	return db.query(sql) as Promise<User[]>;
-}
 
 export async function selectUser({SAPIN, Email}: {SAPIN?: number; Email?: string}) {
 	const sql =
@@ -73,7 +55,7 @@ export async function selectUser({SAPIN, Email}: {SAPIN?: number; Email?: string
 			'm.SAPIN, Name, Email, Status, Access, ' +
 			'COALESCE(Permissions, JSON_ARRAY()) AS Permissions ' +
 		'FROM members m ' +
-		'LEFT JOIN (SELECT SAPIN, JSON_ARRAYAGG(scope) AS Permissions FROM permissions GROUP BY SAPIN) AS p ON m.SAPIN=p.SAPIN ' +
+			'LEFT JOIN (SELECT SAPIN, JSON_ARRAYAGG(scope) AS Permissions FROM permissions GROUP BY SAPIN) AS p ON m.SAPIN=p.SAPIN ' +
 		'WHERE ' + (SAPIN? `m.SAPIN=${db.escape(SAPIN)}`: `m.Email=${db.escape(Email)}`);
 	let [user] = await db.query(sql);
 
@@ -83,35 +65,11 @@ export async function selectUser({SAPIN, Email}: {SAPIN?: number; Email?: string
 	return user;
 }
 
-
 /*
  * Maintain users cache
  */
 
 const userCache: Record<number, User> = {};
-
-export async function init() {
-	//await selectUsers().then(users => users.forEach(u => setUser(u.SAPIN, u)));
-
-	/* This is a hack; make sure we don't loose the superuser */
-	/*const user = getUser(superUser.SAPIN);
-	if (!user) {
-		console.warn('Superuser missing');
-		setUser(superUser.SAPIN, superUser);
-	}
-	else if (user.Access < 3) {
-		console.warn('Superuser has insufficient access');
-		user.Access = 3;
-	}
-	else if (!Array.isArray(user.Permissions)) {
-		console.warn('Superuser has no Permissions array');
-		user.Permissions = superUser.Permissions;
-	} 
-	else if (!user.Permissions.includes('wg_admin')) {
-		console.warn('Superuser does not have "wg_admin" scope');
-		user.Permissions.push('wg_admin');
-	}*/
-}
 
 export async function getUser(sapin: number) {
 	let user = userCache[sapin];
@@ -128,7 +86,6 @@ export function setUser(sapin: number, user: User) {
 }
 
 export const delUser = (sapin: number) => delete userCache[sapin];
-
 
 /* User permissions */
 const permissionsObj = {

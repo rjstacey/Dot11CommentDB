@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { selectUsers } from '../services/users';
+import { selectUsers } from '../services/members';
 
 const router = Router();
 

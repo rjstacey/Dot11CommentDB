@@ -1,6 +1,6 @@
 import mysql from 'mysql2';
 
-let ppool;
+let ppool: ReturnType<mysql.Pool["promise"]>;
 
 export function init() {
 	let options: mysql.PoolOptions;
@@ -37,9 +37,13 @@ export function init() {
 	ppool.query("SET time_zone='-08:00';");
 }
 
-export const getPool = () => ppool;
-export const query = (...args) => ppool.query(...args).then(result => result[0]);
-export const query2 = (...args) => ppool.query(...args);
+export type OkPacket = mysql.OkPacket;
+
+/* There seems to be a bug in the typing; dateStrings should be an option */
+type QueryArgs = [string, any?] | [mysql.QueryOptions | {dateStrings?: boolean}, any?];
+
+export const query = (...args: QueryArgs) => ppool.query(...args as [any]).then(([rows, fields]) => rows);
+export const query2 = (...args: QueryArgs) => ppool.query(...args as [any]);
 export const escape = mysql.escape;
 export const format = mysql.format;
 

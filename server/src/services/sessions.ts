@@ -11,6 +11,7 @@ import {
 	getImatBreakoutAttendance,
 	getImatAttendanceSummary
 } from './imat';
+import { OkPacket } from 'mysql2';
 
 const getSessionTotalCreditSQL = (session_id: string) =>
 	'SELECT ' +
@@ -185,7 +186,7 @@ export type AttendanceSummary = {
 /*
  * Return a complete list of sessions
  */
-export function getSessions(constraints?: SessionsQueryConstraints): Promise<Session[]> {
+export function getSessions(constraints?: SessionsQueryConstraints) {
 	let sql = getSessionsSQL();
 	if (constraints) {
 		sql += ' WHERE ' + Object.entries(constraints).map(
@@ -193,7 +194,7 @@ export function getSessions(constraints?: SessionsQueryConstraints): Promise<Ses
 		).join(' AND ');
 	}
 	sql += ' ORDER BY startDate DESC';
-	return db.query({sql, dateStrings: true});
+	return db.query({sql, dateStrings: true}) as Promise<Session[]>;
 }
 
 export async function getSession(id: number) {
@@ -274,7 +275,7 @@ function replaceSessionRooms(sessionId: number, rooms: Room[]) {
 
 export async function addSession(session: Session) {
 	const setSql = sessionEntrySetSql(session);
-	const {insertId} = await db.query({sql: `INSERT INTO sessions SET ${setSql};`, dateStrings: true});
+	const {insertId} = await db.query({sql: `INSERT INTO sessions SET ${setSql};`, dateStrings: true}) as OkPacket;
 	if (session.rooms)
 		await replaceSessionRooms(insertId, session.rooms);
 	const [insertedSession] = await getSessions({id: insertId});
@@ -317,7 +318,7 @@ export async function getBreakoutAttendees(user, session_id: number, breakout_id
 		getSessionSQL(session_id) +
 		db.format('SELECT * FROM breakouts WHERE id=?; ', [breakout_id]) +
 		getBreakoutAttendeesSQL(session_id, breakout_id);
-	const [sessions, breakouts, attendees] = await db.query(sql);
+	const [sessions, breakouts, attendees] = await db.query(sql) as [Session[], any[], any[]];
 	if (sessions.length === 0)
 		throw `No such session: ${session_id}`;
 	if (breakouts.length === 0)
@@ -347,7 +348,7 @@ export async function getRecentSessionsWithAttendees() {
 	let fromTimestamp = Date.parse(plenaries[0].startDate);
 	sessions = sessions.filter(s => (s.type === 'i' || s.type === 'p') && Date.parse(s.startDate) >= fromTimestamp && s.Attendees! > 0);
 
-	const results = await Promise.all(sessions.map(s => getSessionAttendees(s.id)));
+	const results = await Promise.all(sessions.map(s => getSessionAttendees(s.id))) as [any[]];
 
 	// Merge attendees with sessions
 	sessions.forEach((s, i) => {
@@ -359,7 +360,7 @@ export async function getRecentSessionsWithAttendees() {
 
 export async function importBreakouts(user, sessionId: number) {
 
-	const [session] = await db.query({sql: 'SELECT * FROM sessions WHERE id=?;', dateStrings: true}, [sessionId]);
+	const [session] = await db.query({sql: 'SELECT * FROM sessions WHERE id=?;', dateStrings: true}, [sessionId]) as Session[];
 	if (!session)
 		throw new NotFoundError(`Session id=${sessionId} does not exist`);
 	//console.log(session)
@@ -371,7 +372,7 @@ export async function importBreakouts(user, sessionId: number) {
 
 	//console.log(breakouts)
 	for (const b of breakouts) {
-		const result = await db.query('INSERT INTO breakouts (??) VALUE (?)', [Object.keys(b), Object.values(b)]);
+		const result = await db.query('INSERT INTO breakouts (??) VALUE (?)', [Object.keys(b), Object.values(b)]) as OkPacket;
 		await importBreakoutAttendance(user, session, result.insertId, session.imatMeetingId, b.id);
 	}
 
@@ -405,13 +406,13 @@ type Member = {
 
 export async function importAttendances(user, session_id: number) {
 
-	let [session] = await db.query({sql: 'SELECT * FROM sessions WHERE id=?;', dateStrings: true}, [session_id]);
+	let [session] = await db.query({sql: 'SELECT * FROM sessions WHERE id=?;', dateStrings: true}, [session_id]) as Session[];
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 
 	const imatAttendances = await getImatAttendanceSummary(user, session);
 	const sapins = imatAttendances.map(i => i.SAPIN);
-	const members: Member[] = sapins.length > 0? await db.query('SELECT * FROM members WHERE SAPIN IN (?)', [sapins]): [];
+	const members: Member[] = sapins.length > 0? await db.query('SELECT * FROM members WHERE SAPIN IN (?)', [sapins]) as Member[]: [];
 
 	const updates: Partial<Member>[] = [],
 		inserts: Member[] = [];
@@ -482,7 +483,7 @@ export async function importAttendances(user, session_id: number) {
 
 	SQL = getSessionSQL(session_id) + getSessionAttendeesSQL(session_id);
 
-	const [sessions, attendees] = await db.query(SQL);
+	const [sessions, attendees] = await db.query(SQL) as [Session[], any[]];
 
 	return {session: sessions[0], attendees};
 }
@@ -544,7 +545,7 @@ export async function upsertMemberAttendanceSummaries(sapin: number, attendances
 		.concat(db.format('SELECT * FROM attendance_summary WHERE SAPIN=? AND session_id IN (?)', [sapin, session_ids]))
 		.join('; ');
 
-	const results = await db.query(sql);
+	const results = await db.query(sql) as any[];
 
-	return {attendances: results[results.length-1]}
+	return {attendances: results[results.length-1] as AttendanceSummary[]}
 }

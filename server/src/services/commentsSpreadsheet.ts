@@ -631,7 +631,7 @@ export async function genCommentsSpreadsheet(
 	style: string,
 	doc: string,
 	comments: CommentResolution[],
-	file: any,
+	file: {buffer: Buffer},
 	res
 ) {
 	if (!Object.values(CommentsSpreadsheetStyle).includes(style))

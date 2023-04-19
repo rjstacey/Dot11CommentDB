@@ -1,7 +1,6 @@
-import {getUser} from '../services/users';
-
-const { v4: uuidv4 } = require('uuid');
-const jwt = require('jsonwebtoken');
+import { getUser } from '../services/users';
+import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
 
 const secret = (process.env.NODE_ENV === 'development')? 'secret': uuidv4();
 //const secret = uuidv4();

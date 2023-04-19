@@ -6,6 +6,7 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 //import webex from 'webex';
 
 import db from '../utils/database';
+import { OkPacket } from 'mysql2';
 
 const webexApiBaseUrl = 'https://webexapis.com/v1';
 const webexAuthUrl = 'https://webexapis.com/v1/authorize';
@@ -267,8 +268,8 @@ function accountEntry(s: Partial<OAuthAccount>) {
 export async function addWebexAccount(accountIn: OAuthAccount) {
 	let entry = accountEntry(accountIn);
 	entry.type = 'webex';
-	const {insertId} = await db.query('INSERT INTO oauth_accounts (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]);
-	const [account] = await getAccounts({id: insertId}) as OAuthAccount[];
+	const {insertId} = await db.query('INSERT INTO oauth_accounts (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]) as OkPacket;
+	const [account] = await getAccounts({id: insertId});
 	return account;
 }
 
@@ -297,7 +298,7 @@ export async function updateWebexAccount(id: number, accountIn: Partial<OAuthAcc
  * Returns 1.
  */
 export async function deleteWebexAccount(id: number): Promise<number> {
-	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=?', [id]);
+	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=?', [id]) as OkPacket;
 	deleteWebexApi(id);
 	return affectedRows;
 }
@@ -408,7 +409,7 @@ export async function getWebexMeetings({
 	return webexMeetings;
 }
 
-export function getWebexMeeting(accountId: number, id: string): Promise<WebexMeeting> {
+export async function getWebexMeeting(accountId: number, id: string): Promise<WebexMeeting> {
 	const api = getWebexApi(accountId);
 	return api.get(`/meetings/${id}`)
 		.then(response => response.data)
@@ -437,7 +438,7 @@ function validateMeetingsArray(meetings: WebexMeetingAlways[]) {
  *
  * Returns an object that is the Webex meeting as added.
  */
-export function addWebexMeeting({accountId, ...params}: WebexMeetingAdd): Promise<WebexMeeting> {
+export async function addWebexMeeting({accountId, ...params}: WebexMeetingAdd): Promise<WebexMeeting> {
 	const api = getWebexApi(accountId);
 	return api.post('/meetings', params)
 		.then(response => ({accountId, ...response.data}))
@@ -465,9 +466,9 @@ export async function addWebexMeetings(meetings: WebexMeetingAdd[]) {
  *
  * Returns an object that is the Webex meeting as updated.
  */
-export function updateWebexMeeting({accountId, id, ...params}: WebexMeetingUpdate): Promise<WebexMeeting> {
+export async function updateWebexMeeting({accountId, id, ...params}: WebexMeetingUpdate): Promise<WebexMeeting> {
 	const api = getWebexApi(accountId);
-	return api.put(`/meetings/${id}`, params)
+	return api.patch(`/meetings/${id}`, params)
 		.then(response => ({accountId, ...response.data}))
 		.catch(webexApiError);
 }
@@ -491,7 +492,7 @@ export async function updateWebexMeetings(meetings: WebexMeetingUpdate[]) {
  * @id: any 		Webex meeting ID
  *
  */
-export function deleteWebexMeeting({accountId, id}: Pick<WebexMeeting, "accountId" | "id">) {
+export async function deleteWebexMeeting({accountId, id}: Pick<WebexMeeting, "accountId" | "id">) {
 	const api = getWebexApi(accountId);
 	return api.delete(`/meetings/${id}`)
 		.then(response => response.data)

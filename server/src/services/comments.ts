@@ -2,6 +2,7 @@
 import { DateTime } from 'luxon';
 
 import db from '../utils/database';
+import type { OkPacket } from 'mysql2';
 
 import {parseEpollCommentsCsv} from './epoll';
 import {parseMyProjectComments, myProjectAddResolutions} from './myProjectSpreadsheets';
@@ -181,7 +182,7 @@ export async function deleteComments(userId: number, ballot_id: number) {
 			'WHERE c.ballot_id=?;',
 		[ballot_id]
 	);
-	const result = await db.query(sql);
+	const result = await db.query(sql) as OkPacket;
 	return result.affectedRows as number;
 }
 
