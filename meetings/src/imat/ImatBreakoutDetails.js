@@ -683,7 +683,7 @@ class BreakoutDetails extends React.Component {
 			cancel = this.cancel;
 		}
 
-		const readOnly = access >= AccessLevel.ro;
+		const readOnly = access <= AccessLevel.ro;
 
 		return (
 			<Container>

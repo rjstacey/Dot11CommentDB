@@ -117,6 +117,7 @@ function selectEmails(state, groupIds) {
 		const table = genTable(meetings);
 
 		const officers = selectOfficers(state, id);
+		console.log(id, officers)
 
 		const email = {
 			Destination: {
