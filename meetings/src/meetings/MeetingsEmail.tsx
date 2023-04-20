@@ -1,30 +1,32 @@
 import React from 'react';
-import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
-import {DateTime} from 'luxon';
+import { DateTime } from 'luxon';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
 
-import {Form, Field, Checkbox} from 'dot11-components/form';
+import { Form, Field, Checkbox, EntityId, Dictionary } from 'dot11-components';
 
-import {selectUser} from '../store/user';
-import {selectSyncedMeetingEntities, selectMeetingIds} from '../store/meetings';
-import {selectOfficersState} from '../store/officers';
-import {selectMember} from '../store/members';
-import {selectGroupsState} from '../store/groups';
-import {displayMeetingNumber} from '../store/webexMeetings';
-import {sendEmail} from '../store/emailActions';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 
-function displayDateTime(entity, timezone) {
+import { User, selectUser } from '../store/user';
+import { selectSyncedMeetingEntities, selectMeetingIds, SyncedMeeting } from '../store/meetings';
+import { Officer, selectOfficersState } from '../store/officers';
+import { Member, selectMember } from '../store/members';
+import { Group, selectGroupsState } from '../store/groups';
+import { WebexMeeting, displayMeetingNumber } from '../store/webexMeetings';
+import { sendEmail } from '../store/emailActions';
+import { RootState } from '../store';
+
+function displayDateTime(entity: WebexMeeting, timezone: string) {
 	const start = DateTime.fromISO(entity.start, {zone: timezone});
 	const end = DateTime.fromISO(entity.end, {zone: timezone});
 	return start.toFormat('EEE, d LLL yyyy HH:mm') + '-' + end.toFormat('HH:mm');
 }
 
-function genTable(meetings) {
+function genTable(meetings: SyncedMeeting[]) {
 
-	const td = d => `<td>${d}</td>`;
-	const th = d => `<th>${d}</th>`;
+	const td = (d: string) => `<td>${d}</td>`;
+	const th = (d: string) => `<th>${d}</th>`;
 	const header = `
 		<tr>
 			${th('When')}
@@ -32,7 +34,7 @@ function genTable(meetings) {
 			${th('Meeting')}
 			${th('Host key')}
 		</tr>`;
-	const row = (webexAccountName, webexMeeting, timezone) => `
+	const row = (webexAccountName: string, webexMeeting: WebexMeeting, timezone: string) => `
 		<tr>
 			${td(displayDateTime(webexMeeting, timezone))}
 			${td(webexMeeting.title)}
@@ -42,14 +44,14 @@ function genTable(meetings) {
 	const table = `
 		<table role="presentation" cellspacing="0" cellpadding="5px" border="1">
 			${header}
-			${meetings.map(m => row(m.webexAccountName, m.webexMeeting, m.timezone)).join('')}
+			${meetings.map(m => row(m.webexAccountName, m.webexMeeting!, m.timezone)).join('')}
 		</table>`;
 
 	return table;
 }
 
 
-function genEmailBody(user, officers, table) {
+function genEmailBody(user: User, officers: Member[], tableHtml: string) {
 	const sender = user.Name;
 	const names = officers.map(o => o.Name).join(', ');
 
@@ -58,63 +60,67 @@ Hello ${names}<br>\
 <br>\
 Here are the host keys for your upcomming teleconferences:<br>\
 <br>\
-${table}\n\
+${tableHtml}\n\
 <br>\
 Regards,<br>\
 ${sender}<br>\
 `;
 }
 
-const genEmailAddress = (m) => `${m.Name} <${m.Email}>`;
+const genEmailAddress = (m: Member | User) => `${m.Name} <${m.Email}>`;
 
-const genEmailToList = (officers) => officers.map(genEmailAddress);
+const genEmailToList = (officers: Member[]) => officers.map(genEmailAddress);
 
-function selectOfficers(state, groupId) {
+function selectOfficers(state: RootState, groupId: EntityId) {
 	const {ids, entities} = selectOfficersState(state);
 	const validPositions = ['Chair', 'Vice chair', 'Secretary'];
-	function officerCompare(o1, o2) {
+
+	function officerCompare(o1: Officer, o2: Officer) {
 		const n1 = validPositions.indexOf(o1.position);
 		const n2 = validPositions.indexOf(o2.position);
 		return n1 - n2;
 	}
+
 	const officers = ids
-		.map(id => entities[id])
+		.map(id => entities[id]!)
 		.filter(o => o.group_id === groupId && validPositions.indexOf(o.position) >= 0)
 		.sort(officerCompare)
-		.map(o => selectMember(state, o.sapin));
+		.map(o => selectMember(state, o.sapin))
+		.filter(o => !!o) as Member[];
+
 	return officers;
 }
 
-function selectGroups(state) {
+function selectGroups(state: RootState) {
 	const {entities: groupEntities} = selectGroupsState(state);
 	const meetingEntities = selectSyncedMeetingEntities(state);
 	const meetingIds = selectMeetingIds(state);
 
-	const groupIds = new Set();
+	const groupIds = new Set<EntityId>();
 	for (const id of meetingIds) {
-		const m = meetingEntities[id];
-		if (DateTime.fromISO(m.start) >= DateTime.now() && m.webexMeetingId)
+		const m = meetingEntities[id]!;
+		if (DateTime.fromISO(m.start) >= DateTime.now() && m.webexMeetingId && m.organizationId)
 			groupIds.add(m.organizationId);
 	}
 	return [...groupIds]
-		.map(id => groupEntities[id])
+		.map(id => groupEntities[id]!)
 		.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function selectEmails(state, groupIds) {
+function selectEmails(state: RootState, groupIds: EntityId[]) {
 	const {entities: groupEntities} = selectGroupsState(state);
 	const meetingEntities = selectSyncedMeetingEntities(state);
 	const meetingIds = selectMeetingIds(state);
-	const user = selectUser(state);
+	const user = selectUser(state)!;
 
-	const emails = {};
+	const emails: Dictionary<any> = {};
 	for (const id of groupIds) {
-		const group = groupEntities[id];
+		const group = groupEntities[id]!;
 
 		const meetings = meetingIds
-			.map(id => meetingEntities[id])
+			.map(id => meetingEntities[id]!)
 			.filter(m => m.organizationId === id && DateTime.fromISO(m.start) >= DateTime.now() && m.webexMeetingId);
-		const table = genTable(meetings);
+		const tableHtml = genTable(meetings);
 
 		const officers = selectOfficers(state, id);
 		console.log(id, officers)
@@ -133,11 +139,11 @@ function selectEmails(state, groupIds) {
 				Body: {
 					Html: {
 						Charset: "UTF-8",
-						Data: genEmailBody(user, officers, table),
+						Data: genEmailBody(user, officers, tableHtml),
 					},
 					Text: {
 						Charset: "UTF-8",
-						Data: genEmailBody(user, officers, table)
+						Data: genEmailBody(user, officers, tableHtml)
 							.replace('<br>', '\n')
 							.replace(/<[^>]*>/g, ''),
 					},
@@ -161,15 +167,19 @@ const Grid = styled.div`
 	max-width: 500px;
 `;
 
-function MeetingEmail({close}) {
-	const dispatch = useDispatch();
-	const groups = useSelector(selectGroups);
+function MeetingEmail({
+	close
+}: {
+	close: () => void;
+}) {
+	const dispatch = useAppDispatch();
+	const groups = useAppSelector(selectGroups);
 	const nRows = Math.round(groups.length / 3) + 1;
-	const [selectedGroups, setSelectedGroups] = React.useState([]);
-	const emails = useSelector(state => selectEmails(state, selectedGroups));
+	const [selectedGroups, setSelectedGroups] = React.useState<string[]>([]);
+	const emails = useAppSelector(state => selectEmails(state, selectedGroups));
 	const [busy, setBusy] = React.useState(false);
 
-	function handleSelectGroup(e) {
+	const handleSelectGroup: React.ChangeEventHandler<HTMLInputElement> = (e) => {
 		let selected = selectedGroups;
 		if (!e.target.checked)
 			selected = selected.filter(id => id !== e.target.value);

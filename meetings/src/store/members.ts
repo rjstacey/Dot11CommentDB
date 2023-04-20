@@ -3,7 +3,7 @@ import type { RootState, AppThunk } from '.';
 
 import {fetcher, setError} from 'dot11-components';
 
-interface Member {
+export interface Member {
 	SAPIN: number;
 	Name: string;
 	Email: string;
