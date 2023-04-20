@@ -1,18 +1,23 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import {connect, useSelector, useDispatch} from 'react-redux';
+import { connect, ConnectedProps } from 'react-redux';
 import styled from '@emotion/styled';
-import {DateTime} from 'luxon';
+import { DateTime } from 'luxon';
+import type { Dictionary } from '@reduxjs/toolkit';
 
-import {ConfirmModal} from 'dot11-components/modals';
-import {deepDiff, deepMerge, deepMergeTagMultiple, isMultiple} from 'dot11-components/lib';
-import {ActionButton, Form, Row, Field, Select, Input, InputTime} from 'dot11-components/form';
-import {setError} from 'dot11-components/store/error';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+
+import {
+	ConfirmModal,
+	deepDiff, deepMerge, deepMergeTagMultiple, isMultiple,
+	ActionButton, Form, Row, Field, Select, Input, InputTime,
+	setError,
+	Multiple
+} from 'dot11-components';
 
 import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
 import MeetingSelector from '../components/MeetingSelector';
-import {convertEntryToMeeting} from '../meetings/MeetingDetails';
-import MeetingEntry from '../meetings/MeetingEntry';
+import { convertEntryToMeeting, MeetingEntry, MultipleMeetingEntry, MeetingEntryChanges } from '../meetings/MeetingDetails';
+import MeetingEntryForm from '../meetings/MeetingEntry';
 import TopRow from '../components/TopRow';
 
 import {
@@ -23,48 +28,54 @@ import {
 	selectBreakoutMeetingId,
 	selectImatMeeting,
 	selectBreakoutsState,
-	selectSyncedBreakoutEntities
+	selectSyncedBreakoutEntities,
+	SyncedBreakout,
+	Breakout
 } from '../store/imatBreakouts';
 
-import {selectCurrentSession} from '../store/sessions';
+import { selectCurrentSession, Session } from '../store/sessions';
 
-import {updateMeetings, addMeetings} from '../store/meetings';
+import { updateMeetings, addMeetings } from '../store/meetings';
 
-import {selectGroupEntities} from '../store/groups';
+import { selectGroupEntities, Group } from '../store/groups';
 
-import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
+import { selectUserMeetingsAccess, AccessLevel } from '../store/user';
+import { RootState } from '../store';
+import { ImatMeeting } from '../store/imatMeetings';
 
 const MULTIPLE_STR = "(Multiple)";
 const BLANK_STR = "(Blank)";
 
-const fromTimeStr = (str) => {
+const fromTimeStr = (str: string) => {
 	const m = str.match(/(\d+):(\d+)/);
 	return m? {hour: parseInt(m[1], 10), minute: parseInt(m[2], 10)}: {hour: 0, minute: 0};
 }
 
-function convertBreakoutToMeetingEntry(breakout, imatMeeting, session, groupEntities) {
+function convertBreakoutToMeetingEntry(breakout: Breakout, imatMeeting: ImatMeeting, session: Session, groupEntities: Dictionary<Group>) {
 
 	const start = DateTime.fromFormat(`${imatMeeting.start} ${breakout.startTime}`, 'yyyy-MM-dd HH:mm', {zone: imatMeeting.timezone}).plus({days: breakout.day});
 	const end = DateTime.fromFormat(`${imatMeeting.start} ${breakout.endTime}`, 'yyyy-MM-dd HH:mm', {zone: imatMeeting.timezone}).plus({days: breakout.day});
 
-	let organizationId;
-	const groups = Object.values(groupEntities);
+	const groups = Object.values(groupEntities) as Group[];
 	const bNameRe = new RegExp(breakout.name, 'i');
 	const group =
 		groups.find(g => g.name.toLowerCase() === breakout.name.toLowerCase()) ||	// near exact match
 		groups.find(g => breakout.name.match(new RegExp(g.name, 'i'))) || // case invariant substring match
 		groups.find(g => g.name.match(bNameRe));	// both ways
-	if (group)
-		organizationId = group.id;
 
-	const entry = {
+	let organizationId = group?.id || null;
+
+	const entry: MultipleMeetingEntry = {
 		summary: breakout.name,
-		start: start.toISO(),
-		end: end.toISO(),
-		date: start.toISODate(),
-		dates: [start.toISODate()],
+		//start: start.toISO(),
+		//end: end.toISO(),
+		date: start.toISODate()!,
+		dates: [start.toISODate()!],
+		slots: [],
 		startTime: breakout.startTime,
 		endTime: breakout.endTime,
+		startSlotId: null,
+		duration: '',
 		location: breakout.location,
 		organizationId,
 		hasMotions: false,
@@ -73,14 +84,19 @@ function convertBreakoutToMeetingEntry(breakout, imatMeeting, session, groupEnti
 		calendarAccountId: null,
 		calendarEventId: null,
 		webexAccountId: null,
+		webexAccountName: null,
 		webexMeetingId: null,
-		webexMeeting: {accountId: null},
+		//webexMeeting: {accountId: null},
 		imatMeetingId: imatMeeting.id,
-		imatBreakoutId: breakout.id
+		imatBreakoutId: breakout.id,
+		sessionId: session.id,
+		roomId: 0,
+		roomName: '',
 	}
 
 	const room = session.rooms.find(r => r.name === breakout.location);
-	entry.roomId =  room? room.id: 0;
+	if (room && room.id)
+		entry.roomId =  room.id;
 
 	let startSlot = session.timeslots.find(s => {
 		const slotStart = start.set(fromTimeStr(s.startTime));
@@ -94,18 +110,29 @@ function convertBreakoutToMeetingEntry(breakout, imatMeeting, session, groupEnti
 			return start >= slotStart;
 		});
 	}
-	entry.startSlotId = startSlot? startSlot.id: 0;
+	if (startSlot)
+		entry.startSlotId = startSlot.id;
 
 	//console.log(entry)
 	return entry;
 }
 
-function SlotSelector({value, onChange, isStart, ...otherProps}) {
-	const {timeslots} = useSelector(selectBreakoutsState);
+function SlotSelector({
+	value,
+	onChange,
+	isStart,
+	...otherProps
+}: {
+	value: number | null;
+	onChange: (value: number) => void;
+	isStart?: boolean;
+} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
+) {
+	const {timeslots} = useAppSelector(selectBreakoutsState);
 	const options = timeslots.map(s => ({value: s.id, label: `${s.name} ${isStart? s.startTime: s.endTime}`}))
 	const widthCh = options.reduce((maxCh, o) => Math.max(maxCh, o.label.length), 12);
 	const values = options.filter(o => o.value === value);
-	const handleChange = React.useCallback((values) => onChange(values.length? values[0].value: 0), [onChange]);
+	const handleChange = React.useCallback((values: typeof options) => onChange(values.length? values[0].value: 0), [onChange]);
 
 	return (
 		<Select
@@ -118,11 +145,19 @@ function SlotSelector({value, onChange, isStart, ...otherProps}) {
 	)
 }
 
-const StartSlotSelector = (props) => SlotSelector({...props, isStart: true});
+const StartSlotSelector = (props: React.ComponentProps<typeof SlotSelector>) => SlotSelector({...props, isStart: true});
 const EndSlotSelector = SlotSelector;
 
-function SessionDaySelector({value, onChange, ...otherProps}) {
-	const imatMeeting = useSelector(selectImatMeeting);
+function SessionDaySelector({
+	value,
+	onChange,
+	...otherProps
+}: {
+	value: number | null;
+	onChange: (value: number) => void;
+} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
+) {
+	const imatMeeting = useAppSelector(selectImatMeeting)!;
 
 	const options = React.useMemo(() => {
 		const sessionStart = DateTime.fromISO(imatMeeting.start);
@@ -135,7 +170,7 @@ function SessionDaySelector({value, onChange, ...otherProps}) {
 	
 	const values = options.filter(o => o.value === value);
 
-	const handleChange = React.useCallback((values) => onChange(values.length? values[0].id: 0), [onChange]);
+	const handleChange = React.useCallback((values: typeof options) => onChange(values.length? values[0].value: 0), [onChange]);
 
 	return (
 		<Select
@@ -148,10 +183,18 @@ function SessionDaySelector({value, onChange, ...otherProps}) {
 	)
 }
 
-function GroupIdSelector({value, onChange, ...otherProps}) {
-	const {committees} = useSelector(selectBreakoutsState);
+function GroupIdSelector({
+	value,
+	onChange,
+	...otherProps
+}: {
+	value: number | null;
+	onChange: (value: number) => void;
+} & Omit<React.ComponentProps<typeof ImatCommitteeSelector>, "value" | "onChange">
+) {
+	const {committees} = useAppSelector(selectBreakoutsState);
 	const committee = committees.find(c => c.id === value);
-	function handleChange(symbol) {
+	function handleChange(symbol: string | null) {
 		const committee = committees.find(c => c.symbol === symbol);
 		onChange(committee? committee.id: 0);
 	}
@@ -164,10 +207,18 @@ function GroupIdSelector({value, onChange, ...otherProps}) {
 	)
 }
 
-function AssociatedMeetingSelector({value, onChange, ...otherProps}) {
-	const imatMeeting = useSelector(selectImatMeeting);
+function AssociatedMeetingSelector({
+	value,
+	onChange,
+	...otherProps
+}: {
+	value: number | null;
+	onChange: (value: number | null) => void;
+} & Omit<React.ComponentProps<typeof MeetingSelector>, "value" | "onChange">
+) {
+	const imatMeeting = useAppSelector(selectImatMeeting);
 
-	function handleChange(v) {
+	function handleChange(v: number | null) {
 		if (v !== value)
 			onChange(v);
 	}
@@ -176,30 +227,41 @@ function AssociatedMeetingSelector({value, onChange, ...otherProps}) {
 		<MeetingSelector
 			value={value}
 			onChange={handleChange}
-			fromDate={imatMeeting.start}
-			toDate={imatMeeting.end}
+			fromDate={imatMeeting?.start}
+			toDate={imatMeeting?.end}
 			{...otherProps}
 		/>
 	)
 }
 
-const getDefaultBreakout = () => ({
-	meetingId: null,
+const getDefaultBreakout = (): Breakout => ({
+	id: 0,
 	name: "",
 	day: 0,
+	start: "",
 	startTime: "",
-	startSlotId: null,
+	startSlotId: 0,
+	end: "",
 	endTime: "",
-	endSlotId: null,
-	groupId: null,
+	endSlotId: 0,
+	groupId: 0,
+	symbol: '',
 	location: "",
 	credit: "Zero",
-	overrideCreditDenominator: 0,
-	overrideCreditNumerator: 0,
-	facilitator: window.user? window.user.Email: ''
+	creditOverrideDenominator: 0,
+	creditOverrideNumerator: 0,
+	facilitator: '' //window.user? window.user.Email: ''
 });
 
-export function BreakoutCredit({entry, changeEntry, readOnly}) {
+export function BreakoutCredit({
+	entry,
+	changeEntry,
+	readOnly
+}: {
+	entry: MultipleBreakoutEntry;
+	changeEntry: (changes: BreakoutEntryChanges) => void;
+	readOnly?: boolean;
+}) {
 	return (
 		<>
 			<Row>
@@ -211,7 +273,7 @@ export function BreakoutCredit({entry, changeEntry, readOnly}) {
 								id='extra'
 								value='Extra'
 								checked={entry.credit === 'Extra'}
-								indeterminate={isMultiple(entry.credit).toString()}
+								//indeterminate={isMultiple(entry.credit).toString()}
 								onChange={e => changeEntry({credit: e.target.value})}
 								disabled={readOnly}
 							/>
@@ -223,7 +285,7 @@ export function BreakoutCredit({entry, changeEntry, readOnly}) {
 								id='normal'
 								value='Normal'
 								checked={entry.credit === 'Normal'}
-								indeterminate={isMultiple(entry.credit).toString()}
+								//indeterminate={isMultiple(entry.credit).toString()}
 								onChange={e => changeEntry({credit: e.target.value})}
 								disabled={readOnly}
 							/>
@@ -235,7 +297,7 @@ export function BreakoutCredit({entry, changeEntry, readOnly}) {
 								id='other'
 								value='Other'
 								checked={entry.credit === 'Other'}
-								indeterminate={isMultiple(entry.credit).toString()}
+								//indeterminate={isMultiple(entry.credit).toString()}
 								onChange={e => changeEntry({credit: e.target.value})}
 								disabled={readOnly}
 							/>
@@ -247,7 +309,7 @@ export function BreakoutCredit({entry, changeEntry, readOnly}) {
 								id='zero'
 								value='Zero'
 								checked={entry.credit === 'Zero'}
-								indeterminate={isMultiple(entry.credit).toString()}
+								//indeterminate={isMultiple(entry.credit).toString()}
 								onChange={e => changeEntry({credit: e.target.value})}
 								disabled={readOnly}
 							/>
@@ -262,19 +324,19 @@ export function BreakoutCredit({entry, changeEntry, readOnly}) {
 						<Input
 							type='text'
 							size={4}
-							value={isMultiple(entry.overrideCreditNumerator)? '': entry.overrideCreditNumerator || ''}
-							onChange={e => changeEntry({overrideCreditNumerator: e.target.value})}
+							value={isMultiple(entry.creditOverrideNumerator)? '': entry.creditOverrideNumerator || ''}
+							onChange={e => changeEntry({creditOverrideNumerator: Number(e.target.value)})}
 							disabled={entry.credit !== "Other" || readOnly}
-							placeholder={isMultiple(entry.overrideCreditNumerator)? MULTIPLE_STR: undefined}
+							placeholder={isMultiple(entry.creditOverrideNumerator)? MULTIPLE_STR: undefined}
 						/>
 						<label>/</label>
 						<Input
 							type='text'
 							size={4}
-							value={isMultiple(entry.overrideCreditDenominator)? '': entry.overrideCreditDenominator || ''}
-							onChange={e => changeEntry({overrideCreditDenominator: e.target.value})}
+							value={isMultiple(entry.creditOverrideDenominator)? '': entry.creditOverrideDenominator || ''}
+							onChange={e => changeEntry({creditOverrideDenominator: Number(e.target.value)})}
 							disabled={entry.credit !== "Other" || readOnly}
-							placeholder={isMultiple(entry.overrideCreditDenominator)? MULTIPLE_STR: undefined}
+							placeholder={isMultiple(entry.creditOverrideDenominator)? MULTIPLE_STR: undefined}
 						/>
 					</div>
 				</Field>
@@ -283,19 +345,27 @@ export function BreakoutCredit({entry, changeEntry, readOnly}) {
 	)
 }
 
-function BreakoutEntry({
+function BreakoutEntryForm({
 	entry,
 	changeEntry,
 	busy,
-	action,
 	submit,
 	cancel,
+	action,
 	readOnly
+}: {
+	entry: SyncedBreakout | MultipleBreakoutEntry;
+	changeEntry: (changes: BreakoutEntryChanges) => void;
+	action: "add" | "update";
+	submit?: () => void;
+	cancel?: () => void;
+	busy?: boolean;
+	readOnly?: boolean;
 }) {
-	const dispatch = useDispatch();
-	const {timeslots} = useSelector(selectBreakoutsState);
+	const dispatch = useAppDispatch();
+	const {timeslots} = useAppSelector(selectBreakoutsState);
 
-	let errMsg;
+	let errMsg: string | undefined;
 	if (!entry.name)
 		errMsg = "Enter breakout name";
 	else if (!entry.groupId)
@@ -324,7 +394,7 @@ function BreakoutEntry({
 		cancelForm = cancel;
 	}
 
-	function handleChange(changes) {
+	function handleChange(changes: BreakoutEntryChanges) {
 		changes = {...changes};
 		if ('startSlotId' in changes) {
 			const slot = timeslots.find(slot => slot.id === changes.startSlotId);
@@ -385,7 +455,7 @@ function BreakoutEntry({
 			<Row>
 				<Field label='Start slot:'>
 					<StartSlotSelector
-						value={isMultiple(entry.startSlotId)? 0: entry.startSlotId}
+						value={isMultiple(entry.startSlotId)? null: entry.startSlotId}
 						onChange={startSlotId => handleChange({startSlotId})}
 						placeholder={isMultiple(entry.startSlotId)? MULTIPLE_STR: undefined}
 						readOnly={readOnly}
@@ -405,7 +475,7 @@ function BreakoutEntry({
 			<Row>
 				<Field label='End slot:'>
 					<EndSlotSelector
-						value={isMultiple(entry.endSlotId)? 0: entry.endSlotId}
+						value={isMultiple(entry.endSlotId)? null: entry.endSlotId}
 						onChange={endSlotId => handleChange({endSlotId})}
 						placeholder={isMultiple(entry.endSlotId)? MULTIPLE_STR: undefined}
 						readOnly={readOnly}
@@ -478,13 +548,48 @@ const NotAvailable = styled.div`
 	color: #bdbdbd;
 `;
 
-class BreakoutDetails extends React.Component {
-	constructor(props) {
+type Action = "add" | "update" | "import";
+
+type MultipleBreakoutEntry = Multiple<SyncedBreakout>;
+
+type BreakoutEntryChanges = Partial<SyncedBreakout>
+
+type BreakoutDetailsCommonState = {
+	imatMeetingId: number;
+	breakouts: SyncedBreakout[];
+	busy: boolean;
+}
+
+/** action "add" => add a breakout */
+type BreakoutDetailsAddState = {
+	action: "add";
+	entry: SyncedBreakout;
+	saved: SyncedBreakout;
+} & BreakoutDetailsCommonState;
+
+/** action "import" => import breakout as a meeting */
+type BreakoutDetailsImportState = {
+	action: "import";
+	entry: MultipleMeetingEntry;
+	saved: MultipleMeetingEntry;
+} & BreakoutDetailsCommonState;
+
+/** action "update" => view or update one or more entries */
+type BreakoutDetailsUpdateState = {
+	action: "update";	
+	entry: MultipleBreakoutEntry;
+	saved: MultipleBreakoutEntry;
+} & BreakoutDetailsCommonState;
+
+type BreakoutDetailsState = BreakoutDetailsAddState | BreakoutDetailsImportState | BreakoutDetailsUpdateState;
+
+class BreakoutDetails extends React.Component<BreakoutDetailsConnectedProps, BreakoutDetailsState> {
+	constructor(props: BreakoutDetailsConnectedProps) {
 		super(props);
 		this.state = this.initState('update');
 	}
 
-	componentDidUpdate(prevProps, prevState) {
+	componentDidUpdate() {
 		const {selected, setSelected} = this.props;
 		const {action, breakouts} = this.state;
 		const ids = breakouts.map(b => b.id);
@@ -504,48 +609,65 @@ class BreakoutDetails extends React.Component {
 			changeWithConfirmation();
 	}
 	
-	initState = (action) => {
+	initState = (action: Action): BreakoutDetailsState => {
 		const {entities, selected, imatMeetingId, imatMeeting, session, groupEntities} = this.props;
 
-		let entry;
-		let breakouts = [];
-		if (action === 'update' || action === 'view') {
-			breakouts = selected.map(id => entities[id]);
-			entry = breakouts.reduce((entry, breakout) => deepMergeTagMultiple(entry, breakout), {});
-		}
-		else if (action === 'add') {
-			entry = getDefaultBreakout();
+		if (action === 'add') {
+			const entry: SyncedBreakout = {
+				...getDefaultBreakout(),
+				imatMeetingId,
+				meetingId: null
+			};
+			return {
+				action,
+				entry,
+				saved: entry,
+				imatMeetingId,
+				breakouts: [],
+				busy: false
+			}
 		}
 		else if (action === 'import') {
 			const id = selected[0];
-			const breakout = entities[id];
-			entry = convertBreakoutToMeetingEntry(breakout, imatMeeting, session, groupEntities)
-			breakouts = [breakout];
+			const breakout = entities[id]!;
+			const entry = convertBreakoutToMeetingEntry(breakout, imatMeeting!, session!, groupEntities)
+			return {
+				action,
+				entry,
+				saved: entry,
+				imatMeetingId,
+				breakouts: [breakout],
+				busy: false
+			}
 		}
-
-		//console.log(entry)
-		return {
-			action,
-			entry,
-			saved: action === 'add'? {}: entry,
-			imatMeetingId,
-			breakouts,
-			busy: false
-		};
+		else {
+			const breakouts = selected.map(id => entities[id]!);
+			const entry = breakouts.reduce((entry, breakout) => deepMergeTagMultiple(entry, breakout), {}) as MultipleBreakoutEntry;
+			return {
+				action,
+				entry,
+				saved: entry,
+				imatMeetingId,
+				breakouts,
+				busy: false
+			}
+		}
 	}
 
-	reinitState = (action) => {this.setState(this.initState(action))}
+	reinitState = (action: Action) => {this.setState(this.initState(action))}
 
 	getUpdates = () => {
-		let {entry, saved, imatMeetingId, breakouts} = this.state;
+		/* Only called when action === "update" */
+		let {entry, saved, imatMeetingId, breakouts} = this.state as BreakoutDetailsUpdateState;
 
 		// Find differences
 		const diff = deepDiff(saved, entry) || {};
-		const breakoutUpdates = [], meetingUpdates = [];
+		const breakoutUpdates: SyncedBreakout[] = [],
+			meetingUpdates: {id: number; changes: {imatMeetingId: number; imatBreakoutId: number}}[] = [];
 		for (const breakout of breakouts) {
-			const updated = deepMerge(breakout, diff);
-			const changes = deepDiff(breakout, updated) || {};
-			if ('meetingId' in changes) {
+			const updated: SyncedBreakout = deepMerge(breakout, diff);
+			const changes: Partial<SyncedBreakout> = deepDiff(breakout, updated) || {};
+			if (changes.meetingId) {
 				meetingUpdates.push({id: changes.meetingId, changes: {imatMeetingId, imatBreakoutId: breakout.id}});
 				delete changes.meetingId;
 			}
@@ -557,19 +679,22 @@ class BreakoutDetails extends React.Component {
 	}
 
 	hasUpdates = () => this.state.saved !== this.state.entry; 
-	//{
-	//	const {breakoutUpdates, meetingUpdates} = this.getUpdates();
-	//	return breakoutUpdates.length > 0 || meetingUpdates.length > 0;
-	//}
 
-	changeEntry = (changes) => {
-		const {action} = this.state;
-		if (action === 'view') {
-			console.warn("Update when read-only");
-			return;
-		}
-		this.setState(state => {
+	changeBreakoutEntry = (changes: BreakoutEntryChanges) => {
+		this.setState((addUpdateState) => {
+			const state = addUpdateState as BreakoutDetailsAddState | BreakoutDetailsUpdateState;
 			let entry = {...state.entry, ...changes};
+			const diff = deepDiff(state.saved, entry) || {};
+			if (Object.keys(diff).length === 0)
+				entry = state.saved;
+			return {...state, entry}
+		});
+	}
+
+	changeMeetingEntry = (changes: MeetingEntryChanges) => {
+		this.setState((importState) => {
+			const state = importState as BreakoutDetailsImportState;
+			let entry = deepMerge(state.entry, changes) as MultipleMeetingEntry;
 			const diff = deepDiff(state.saved, entry) || {};
 			if (Object.keys(diff).length === 0)
 				entry = state.saved;
@@ -587,7 +712,7 @@ class BreakoutDetails extends React.Component {
 				return;
 		}
 
-		await setSelected([]);
+		setSelected([]);
 		this.reinitState('add');
 	}
 
@@ -614,13 +739,13 @@ class BreakoutDetails extends React.Component {
 
 	add = async () => {
 		const {addBreakouts, updateMeetings, setSelected} = this.props;
-		const {entry, imatMeetingId} = this.state;
+		const {entry, imatMeetingId} = this.state as BreakoutDetailsAddState;
 
 		this.setState({busy: true});
 		const [id] = await addBreakouts(imatMeetingId, [entry]);
 		if (entry.meetingId)
 			await updateMeetings([{id: entry.meetingId, changes: {imatMeetingId, imatBreakoutId: id}}])
-		await setSelected([id]);
+		setSelected([id]);
 		this.reinitState('update');
 	}
 
@@ -641,7 +766,7 @@ class BreakoutDetails extends React.Component {
 
 	import = async () => {
 		const {addMeetings, session} = this.props;
-		let {entry} = this.state;
+		let {entry} = this.state as BreakoutDetailsImportState;
 
 		// If a webex account is given, then add a webex meeting
 		if (entry.webexAccountId) {
@@ -651,7 +776,7 @@ class BreakoutDetails extends React.Component {
 		}
 
 		const {dates, ...rest} = entry;
-		const meetings = dates.map(date => convertEntryToMeeting({...rest, date}, session));
+		const meetings = dates.map(date => convertEntryToMeeting({...rest, date} as MeetingEntry, session));
 		//console.log(meetings);
 
 		this.setState({busy: true});
@@ -711,17 +836,17 @@ class BreakoutDetails extends React.Component {
 				{notAvailableStr?
 					<NotAvailable>{notAvailableStr}</NotAvailable>:
 					action === 'import'?
-						<MeetingEntry
+						<MeetingEntryForm
 							entry={entry}
-							changeEntry={this.changeEntry}
+							changeEntry={this.changeMeetingEntry}
 							busy={busy}
 							action='add'
 							submit={this.import}
 							cancel={this.cancel}
 						/>:
-						<BreakoutEntry
+						<BreakoutEntryForm
 							entry={entry}
-							changeEntry={this.changeEntry}
+							changeEntry={this.changeBreakoutEntry}
 							busy={busy}
 							action={action}
 							submit={submit}
@@ -732,24 +857,10 @@ class BreakoutDetails extends React.Component {
 			</Container>
 		)
 	}
-
-	static propTypes = {
-		imatMeetingId: PropTypes.any,
-		timeslots: PropTypes.array.isRequired,
-		loading: PropTypes.bool.isRequired,
-		selected: PropTypes.array.isRequired,
-		entities: PropTypes.object.isRequired,
-		setSelected: PropTypes.func.isRequired,
-		updateBreakouts: PropTypes.func.isRequired,
-		addBreakouts: PropTypes.func.isRequired,
-		deleteBreakouts: PropTypes.func.isRequired,
-		updateMeetings: PropTypes.func.isRequired,
-		addMeetings: PropTypes.func.isRequired
-	}
 }
 
-const ConnectedBreakoutDetails = connect(
-	(state) => ({
+const connector = connect(
+	(state: RootState) => ({
 		imatMeetingId: selectBreakoutMeetingId(state),
 		timeslots: selectBreakoutsState(state).timeslots,
 		loading: selectBreakoutsState(state).loading,
@@ -768,6 +879,10 @@ const ConnectedBreakoutDetails = connect(
 		updateMeetings,
 		addMeetings
 	}
-)(BreakoutDetails);
+);
+
+type BreakoutDetailsConnectedProps = ConnectedProps<typeof connector>;
+
+const ConnectedBreakoutDetails = connector(BreakoutDetails);
 
 export default ConnectedBreakoutDetails;

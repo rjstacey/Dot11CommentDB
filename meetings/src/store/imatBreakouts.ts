@@ -115,7 +115,7 @@ export const selectImatMeeting = (state: RootState) => {
 	return imatMeetingEntities[imatMeetingId];
 }
 
-type SyncedBreakout = Breakout & {
+export type SyncedBreakout = Breakout & {
 	imatMeetingId: number;
 	meetingId: number | null;
 }
@@ -240,7 +240,7 @@ export const clearBreakouts = (): AppThunk =>
 		dispatch(setDetails({timeslots: [], committees: [], imatMeetingId: null}));
 	}
 
-export const addBreakouts = (imatMeetingId: number, breakouts: Breakout[]): AppThunk => 
+export const addBreakouts = (imatMeetingId: number, breakouts: Breakout[]): AppThunk<number[]> => 
 	async (dispatch, getState) => {
 		const url = `${baseUrl}/${imatMeetingId}`;
 		let response;
@@ -251,9 +251,10 @@ export const addBreakouts = (imatMeetingId: number, breakouts: Breakout[]): AppT
 		}
 		catch (error) {
 			dispatch(setError('Unable to add breakouts', error));
-			return;
+			return [];
 		}
 		dispatch(addMany(response));
+		return response.map((b: Breakout) => b.id);
 	}
 
 export const updateBreakouts = (imatMeetingId: number, breakouts: Partial<Breakout>[]): AppThunk => 

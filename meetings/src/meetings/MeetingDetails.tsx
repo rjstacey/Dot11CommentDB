@@ -5,14 +5,14 @@ import { DateTime, Duration } from 'luxon';
 
 import {
 	ConfirmModal,
-	deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, MULTIPLE,
-	ActionButton
+	deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, MULTIPLE, Multiple,
+	ActionButton,
 } from 'dot11-components';
 
 import {
 	selectCurrentSession,
 	fromSlotId,
-	Session, Timeslot, Room
+	Session, Timeslot, Room, toSlotId
 } from '../store/sessions';
 
 import {
@@ -28,8 +28,8 @@ import {
 	Meeting, MeetingAdd
 } from '../store/meetings';
 
-import type { WebexMeetingParams } from '../store/webexMeetings';
-import type { MultipleWebexMeetingParamsEntry } from '../webexMeetings/WebexMeetingDetail';
+import { WebexMeetingParams, webexMeetingToWebexMeetingParams } from '../store/webexMeetings';
+import type { MultipleWebexMeetingEntry, WebexMeetingEntryChanges } from '../webexMeetings/WebexMeetingDetail';
 
 import {selectCurrentGroupId, selectCurrentGroupDefaults} from '../store/current';
 
@@ -39,7 +39,7 @@ import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
 
 import TopRow from '../components/TopRow';
 
-import {webexMeetingConfigParams, defaultWebexMeeting} from '../webexMeetings/WebexMeetingDetail';
+import { defaultWebexMeeting } from '../webexMeetings/WebexMeetingDetail';
 
 import MeetingEntryForm from './MeetingEntry';
 
@@ -70,7 +70,6 @@ const isSessionMeeting = (session: Session | undefined) => session && (session.t
 
 export type MeetingEntry = Omit<Meeting, "id" | "start" | "end" | "webexMeeting"> & {
 	date: string;
-	dates: string[];
 	startTime: string;
 	endTime: string;
 	startSlotId: number | null;
@@ -78,9 +77,13 @@ export type MeetingEntry = Omit<Meeting, "id" | "start" | "end" | "webexMeeting"
 	webexMeeting?: WebexMeetingParams;
 };
 
-export type Multiple<T> = { [P in keyof T]: T[P] | typeof MULTIPLE };
+export type MeetingEntryChanges = Partial<Omit<MeetingEntry, "webexMeeting"> & {webexMeeting: WebexMeetingEntryChanges}>
 
-export type MultipleMeetingEntry = Multiple<Omit<MeetingEntry, "webexMeeting">> & { webexMeeting?: MultipleWebexMeetingParamsEntry };
+export type MultipleMeetingEntry = Multiple<Omit<MeetingEntry, "webexMeeting">> & {
+	dates: string[];
+	slots: (string | null)[];
+	webexMeeting?: MultipleWebexMeetingEntry
+};
 
 function convertMeetingToEntry(meeting: Meeting, session?: Session): MeetingEntry {
 	let {start: startIn, end: endIn, webexMeeting, ...rest} = meeting;
@@ -124,7 +127,6 @@ function convertMeetingToEntry(meeting: Meeting, session?: Session): MeetingEntr
 	const entry: MeetingEntry = {
 		...rest,
 		date,
-		dates: [],
 		startTime,
 		endTime,
 		startSlotId,
@@ -133,12 +135,12 @@ function convertMeetingToEntry(meeting: Meeting, session?: Session): MeetingEntr
 	};
 
 	if (webexMeeting)
-		entry.webexMeeting = webexMeetingConfigParams(webexMeeting);
+		entry.webexMeeting = webexMeetingToWebexMeetingParams(webexMeeting);
 
 	return entry;
 }
 
-export function convertEntryToMeeting(entry: Omit<MeetingEntry, "dates">, session?: Session): MeetingAdd {
+export function convertEntryToMeeting(entry: MeetingEntry, session?: Session): MeetingAdd {
 	let {date, startTime, endTime, startSlotId, duration, ...rest} = entry;
 
 	let zone;
@@ -180,28 +182,26 @@ const NotAvailable = styled.div`
 	color: #bdbdbd;
 `;
 
-type MeetingDetailsInternalProps = {
-
-} & MeetingDetailsConnectedProps;
+type Actions = "add" | "update";
 
 type MeetingDetailsState = {
-	action: "add" | "update";
+	action: Actions;
 	entry: MultipleMeetingEntry;
-	saved: MultipleMeetingEntry | {};
+	saved: MultipleMeetingEntry;
 	session: Session | undefined;
 	meetings: Meeting[];
 	slots: string[];
 	busy: boolean;
 }
 
-class MeetingDetails extends React.Component<MeetingDetailsInternalProps, MeetingDetailsState> {
-	constructor(props: MeetingDetailsInternalProps) {
+class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, MeetingDetailsState> {
+	constructor(props: MeetingDetailsConnectedProps) {
 		super(props);
 		const {selectedMeetings, selectedSlots} = props;
 		this.state = this.initState((selectedMeetings.length === 0 && selectedSlots.length > 0)? 'add': 'update');
 	}
 
-	componentDidUpdate(prevProps: MeetingDetailsInternalProps, prevState: MeetingDetailsState) {
+	componentDidUpdate() {
 		const {selectedMeetings, setSelectedMeetings, selectedSlots} = this.props;
 		const {action, meetings, slots} = this.state;
 		const ids = meetings.map(m => m.id);
@@ -223,7 +223,7 @@ class MeetingDetails extends React.Component<MeetingDetailsInternalProps, Meetin
 			this.reinitState((selectedMeetings.length === 0 && selectedSlots.length > 0)? 'add': 'update');
 	}
 	
-	initState = (action: "add" | "update"): MeetingDetailsState => {
+	initState = (action: Actions): MeetingDetailsState => {
 		const {entities, selectedMeetings, selectedSlots, defaults, groupId, session, groupEntities} = this.props;
 
 		// Get meetings without superfluous webex params
@@ -231,36 +231,37 @@ class MeetingDetails extends React.Component<MeetingDetailsInternalProps, Meetin
 			.map(id => entities[id])
 			.filter(meeting => meeting) as Meeting[])
 			.map(meeting => meeting.webexMeeting?
-				{...meeting!, webexMeeting: webexMeetingConfigParams(meeting.webexMeeting)} as Meeting:
+				{...meeting!, webexMeeting: webexMeetingToWebexMeetingParams(meeting.webexMeeting)} as Meeting:
 				meeting
 			);
+		
+		let entry: MultipleMeetingEntry = meetings.reduce((accumulatedEntry, meeting) => {
+			const entry = convertMeetingToEntry(meeting, session);
+			const timeslot = session?.timeslots.find(s => s.id === entry.startSlotId);
+			const room = session?.rooms.find(r => r.id === entry.roomId);
+			const slot = (timeslot && room)? toSlotId(entry.date, timeslot, room): null;
+			return {
+				...deepMergeTagMultiple(accumulatedEntry, entry),
+				dates: accumulatedEntry.dates.concat([entry.date]),
+				slots: accumulatedEntry.slots.concat([slot])
+			}
+		}, {dates: [], slots: []} as any);
+		entry.dates = [...new Set(entry.dates.sort())];	// array of unique dates
 
-		let entry: MultipleMeetingEntry;
-		if (action === 'update') {
-			entry = meetings.reduce((entry, meeting) => deepMergeTagMultiple(entry, convertMeetingToEntry(meeting, session)), {} as MultipleMeetingEntry);
-			entry.dates = isMultiple(entry.date)? entry.date: [entry.date];
-		}
-		else {
-			entry = {} as MultipleMeetingEntry;
+		if (action === 'add') {
 			if (meetings.length > 0) {
-				let dates = [];
-				for (const meeting of meetings) {
-					const original = convertMeetingToEntry(meeting, session);
-					dates.push(original.date);
-					entry = deepMergeTagMultiple(entry, original);
+				entry = {
+					...entry,
+					startTime: isMultiple(entry.startTime)? '': entry.startTime,
+					endTime: isMultiple(entry.startTime)? '': entry.startTime,
+					organizationId: isMultiple(entry.organizationId)? groupId: entry.organizationId,
+					hasMotions: isMultiple(entry.hasMotions)? false: entry.hasMotions,
 				}
-				entry.dates = [...new Set(dates.sort())];	// array of unique dates
-				if (isMultiple(entry.organizationId))
-					entry.organizationId = groupId;
-				if (isMultiple(entry.startTime))
-					entry.startTime = '';
-				if (isMultiple(entry.endTime))
-					entry.endTime = '';
-				if (isMultiple(entry.hasMotions))
-					entry.hasMotions = false;
 			}
 			else {
 				if (selectedSlots.length > 0) {
+					entry.slots = selectedSlots;
+
 					let date: string | typeof MULTIPLE | null = null,
 						roomId: number | typeof MULTIPLE | null = null,
 						slotId: number | typeof MULTIPLE | null = null;
@@ -270,17 +271,16 @@ class MeetingDetails extends React.Component<MeetingDetailsInternalProps, Meetin
 						roomId = (roomId !== null && roomId !== roomId_)? MULTIPLE: roomId_;
 						slotId = (slotId !== null && slotId !== slotId_)? MULTIPLE: slotId_;
 					}
-					entry.dates = date === MULTIPLE? MULTIPLE: [date!];
 					entry.roomId = roomId;
 					entry.startSlotId = slotId;
-					if (slotId !== MULTIPLE) {
-						const slot = session?.timeslots.find(slot => slot.id === slotId);
-						entry.startTime = slot? slot.startTime: '';
-						entry.endTime = slot? slot.endTime: '';
-					}
-					else {
+					if (isMultiple(slotId)) {
 						entry.startTime = MULTIPLE;
 						entry.endTime = MULTIPLE;
+					}
+					else {
+						const timeslot = session?.timeslots.find(slot => slot.id === slotId);
+						entry.startTime = timeslot? timeslot.startTime: '';
+						entry.endTime = timeslot? timeslot.endTime: '';
 					}
 				}
 				else {
@@ -288,10 +288,8 @@ class MeetingDetails extends React.Component<MeetingDetailsInternalProps, Meetin
 					entry.startSlotId = 0;
 					entry.roomId = 0;
 					entry.startTime = '';
-					if (isSessionMeeting(session))
-						entry.endTime = '';
-					else
-						entry.duration = '';
+					entry.endTime = '';
+					entry.duration = '';
 				}
 				entry.organizationId = null;
 				entry.hasMotions = false;
@@ -317,7 +315,7 @@ class MeetingDetails extends React.Component<MeetingDetailsInternalProps, Meetin
 		return {
 			action,
 			entry,
-			saved: action === 'add'? {}: entry,
+			saved: entry,
 			session,
 			meetings,
 			slots: selectedSlots,
@@ -325,7 +323,7 @@ class MeetingDetails extends React.Component<MeetingDetailsInternalProps, Meetin
 		};
 	}
 
-	reinitState = (action: "add" | "update") => this.setState(this.initState(action))
+	reinitState = (action: Actions) => this.setState(this.initState(action))
 
 	getUpdates = () => {
 		let {entry, saved, session, meetings} = this.state;
@@ -357,12 +355,11 @@ class MeetingDetails extends React.Component<MeetingDetailsInternalProps, Meetin
 		return updates;
 	}
 
-	//hasUpdates = () => this.getUpdates().length > 0;
 	hasUpdates = () => this.state.saved !== this.state.entry;
 
-	changeEntry = (changes: Partial<MeetingEntry>) => {
+	changeEntry = (changes: MeetingEntryChanges) => {
 		this.setState(state => {
-			let entry = deepMerge(state.entry, changes) as MultipleMeetingEntry;
+			let entry: MultipleMeetingEntry = deepMerge(state.entry, changes);
 			// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
 			changes = deepDiff(state.saved, entry) || {};
 			if (Object.keys(changes).length === 0)
@@ -423,8 +420,7 @@ class MeetingDetails extends React.Component<MeetingDetailsInternalProps, Meetin
 
 	add = async () => {
 		const {addMeetings, setSelectedMeetings, setSelectedSlots, session} = this.props;
-		const {slots} = this.state;
-		let entry = this.state.entry as MeetingEntry;
+		let {entry, slots} = this.state;
 
 		// If a webex account is given, then add a webex meeting
 		if (entry.webexAccountId) {
@@ -442,12 +438,12 @@ class MeetingDetails extends React.Component<MeetingDetailsInternalProps, Meetin
 			const {dates, startSlotId, roomId, ...rest} = entry;
 			meetings = slots.map(id => {
 				const [date, startSlotId, roomId] = fromSlotId(id);
-				return convertEntryToMeeting({...rest, date, startSlotId, roomId}, session);
+				return convertEntryToMeeting({...rest, date, startSlotId, roomId} as MeetingEntry, session);
 			});
 		}
 		else {
 			const {dates, ...rest} = entry;
-			meetings = dates.map(date => convertEntryToMeeting({...rest, date}, session));
+			meetings = dates.map(date => convertEntryToMeeting({...rest, date} as MeetingEntry, session));
 		}
 
 		this.setState({busy: true});

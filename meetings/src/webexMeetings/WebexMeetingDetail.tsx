@@ -8,8 +8,8 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	ActionButton, Form, Row, Field, FieldLeft, Input, InputTime, Checkbox, Select,
 	ConfirmModal,
-	deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, isObject, MULTIPLE,
-	setError
+	deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, isObject, MULTIPLE, Multiple,
+	setError,
 } from 'dot11-components';
 
 import {
@@ -23,8 +23,6 @@ import {
 	WebexMeetingParams, WebexMeeting, WebexMeetingOptions, WebexMeetingAudioConnectionOptions,
 	WebexMeetingUpdate,
 } from '../store/webexMeetings';
-
-import type { Multiple } from '../meetings/MeetingDetails';
 
 import { updateMeetings, Meeting } from '../store/meetings';
 
@@ -47,7 +45,7 @@ import { RootState } from '../store';
 const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';
 
-export const defaultWebexMeeting: WebexMeetingParamsEntry = {
+export const defaultWebexMeeting: WebexMeetingEntry = {
 	accountId: null,
 	title: '',
 	timezone: '',
@@ -80,48 +78,20 @@ export const defaultWebexMeeting: WebexMeetingParamsEntry = {
 	templateId: null,
 }
 
-//export type Multiple<T> = { [P in keyof T]: T[P] | typeof MULTIPLE };
-
-/*
- * Remove unnecessary parameters
- */
-export function webexMeetingConfigParams(webexMeeting: WebexMeeting): WebexMeetingParams {
-
-	function getProperties(template: { [K: string]: any }, input: { [K: string]: any }) {
-		const output: { [K: string]: any } = {};
-		for (const key of Object.keys(template)) {
-			if (isObject(template[key]) && isObject(input[key]))
-				output[key] = getProperties(template[key], input[key])
-			else if (key in template && key in input)
-				output[key] = input[key];
-		}
-		return output;
-	}
-
-	const w = getProperties(defaultWebexMeeting, webexMeeting);
-	if ('templateId' in webexMeeting)
-		w.templateId = webexMeeting.templateId;
-	if ('accountId' in webexMeeting)
-		w.accountId = webexMeeting.accountId;
-
-	return w as WebexMeetingParams;
-}
-
-
 export function WebexMeetingAccount({
 	entry,
 	changeEntry,
 	readOnly
 }: {
 	entry: Multiple<{accountId: number | null}>;
-	changeEntry: (changes: Partial<WebexMeetingParamsEntry>) => void;
+	changeEntry: (changes: Partial<WebexMeetingEntry>) => void;
 	readOnly?: boolean;
 }) {
 	const webexAccountEntities = useAppSelector(selectWebexAccountEntities);
 	const defaults = useAppSelector(selectCurrentGroupDefaults);
 
 	function onChange(accountId: number | null) {
-		let changes: Partial<WebexMeetingParamsEntry> = {accountId};
+		let changes: Partial<WebexMeetingEntry> = {accountId};
 
 		// If the account is changed to the default webex account, select the default template.
 		// If not, try to find the default template for the account.
@@ -399,12 +369,12 @@ export function WebexMeetingParamsEdit({
 	changeEntry,
 	readOnly,
 }: {
-	entry: MultipleWebexMeetingParamsEntry;
-	changeEntry: (changes: Partial<WebexMeetingParams>) => void;
+	entry: MultipleWebexMeetingEntry;
+	changeEntry: (changes: WebexMeetingEntryChanges) => void;
 	readOnly?: boolean;
 }) {
 
-	function handleChange(changes: Partial<WebexMeetingParams>) {
+	function handleChange(changes: WebexMeetingEntryChanges) {
 		if (changes.enabledJoinBeforeHost === false) {
 			changes.joinBeforeHostMinutes = 0;
 			changes.enableConnectAudioBeforeHost = false;
@@ -535,8 +505,8 @@ function WebexMeetingEntryForm({
 	readOnly
 }: {
 	action: "add" | "update";
-	entry: MultipleWebexMeetingParamsEntry;
-	changeEntry: (changes: Partial<WebexMeetingParamsEntry>) => void;
+	entry: MultipleWebexMeetingEntry;
+	changeEntry: (changes: WebexMeetingEntryChanges) => void;
 	submit?: () => void;
 	cancel?: () => void;
 	readOnly?: boolean;
@@ -629,19 +599,21 @@ const NotAvailable = styled.div`
 	color: #bdbdbd;
 `;
 
-export type WebexMeetingParamsEntry = Omit<WebexMeetingParams, "accountId" | "id" | "start" | "end"> & {
+export type WebexMeetingEntry = Omit<WebexMeetingParams, "accountId" | "id" | "start" | "end"> & {
 	accountId: number | null;
 	date: string;
 	startTime: string;
 	endTime: string;
 }
 
-export type MultipleWebexMeetingParamsEntry = Multiple<Omit<WebexMeetingParamsEntry, "meetingOptions" | "audioConnectionOptions">> & {
+export type WebexMeetingEntryChanges = Partial<WebexMeetingEntry>
+
+export type MultipleWebexMeetingEntry = Multiple<Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">> & {
 	meetingOptions: WebexMeetingOptions;
 	audioConnectionOptions: WebexMeetingAudioConnectionOptions;
 }
 
-function convertWebexMeetingToEntry(webexMeeting: WebexMeetingParams): WebexMeetingParamsEntry {
+function convertWebexMeetingToEntry(webexMeeting: WebexMeetingParams): WebexMeetingEntry {
 	let {start, end, ...rest} = webexMeeting;
 
 	const zone = webexMeeting.timezone;
@@ -662,7 +634,7 @@ function convertWebexMeetingToEntry(webexMeeting: WebexMeetingParams): WebexMeet
 	};
 }
 
-export function convertEntryToWebexMeeting(entry: WebexMeetingParamsEntry): Omit<WebexMeetingParams, "id"> {
+export function convertEntryToWebexMeeting(entry: WebexMeetingEntry): Omit<WebexMeetingParams, "id"> {
 	let {date, startTime, endTime, accountId, meetingId, ...rest} = entry;
 	const webexMeeting = {...rest};
 
@@ -682,10 +654,12 @@ export function convertEntryToWebexMeeting(entry: WebexMeetingParamsEntry): Omit
 	};
 }
 
+type Actions = "add" | "update";
+
 type WebexMeetingDetailState = {
-	action: "add" | "update";
-	entry: MultipleWebexMeetingParamsEntry;
-	saved: MultipleWebexMeetingParamsEntry | {};
+	action: Actions;
+	entry: MultipleWebexMeetingEntry;
+	saved: MultipleWebexMeetingEntry;
 	webexMeetings: WebexMeetingParams[];
 }
 
@@ -716,7 +690,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 			changeWithConfirmation();
 	}
 
-	initState = (action: "add" | "update"): WebexMeetingDetailState => {
+	initState = (action: Actions): WebexMeetingDetailState => {
 		const {entities, selected, defaults} = this.props;
 
 		const webexMeetings: WebexMeetingParams[] = selected
@@ -731,9 +705,9 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 				}
 				return webexMeetingToWebexMeetingParams(webexMeeting);
 			});
-		let entry: MultipleWebexMeetingParamsEntry;
+		let entry: MultipleWebexMeetingEntry;
 		if (action === 'update') {
-			const entryMerge: any = webexMeetings.reduce((entry, webexMeeting) => deepMergeTagMultiple(entry, convertWebexMeetingToEntry(webexMeeting)), {} as MultipleWebexMeetingParamsEntry);
+			const entryMerge: any = webexMeetings.reduce((entry, webexMeeting) => deepMergeTagMultiple(entry, convertWebexMeetingToEntry(webexMeeting)), {});
 			const meetingOptions: WebexMeetingOptions = !entryMerge.meetingOptions || Object.values(entryMerge.meetingOptions).includes(MULTIPLE)?
 				defaultWebexMeeting.meetingOptions:
 				entryMerge.meetingOptions;
@@ -753,24 +727,24 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 		return {
 			action,
 			entry,
-			saved: action === 'add'? {}: entry,
+			saved: entry,
 			webexMeetings,
 		};
 	}
 
-	reinitState = (action: "add" | "update") => {this.setState(this.initState(action))}
+	reinitState = (action: Actions) => {this.setState(this.initState(action))}
 
 	getUpdates = () => {
 		let {entry, saved, webexMeetings} = this.state;
 
 		// Find differences
-		const diff = deepDiff(saved, entry) as Partial<WebexMeetingParamsEntry> || {};
+		const diff: WebexMeetingEntryChanges = deepDiff(saved, entry) || {};
 		const webexMeetingUpdates: WebexMeetingUpdate[] = [];
 		const meetingUpdates: {id: number; changes: Partial<Meeting>}[] = [];
 		for (const webexMeeting of webexMeetings) {
-			const local = deepMerge(convertWebexMeetingToEntry(webexMeeting), diff) as WebexMeetingParamsEntry;
+			const local: WebexMeetingEntry = deepMerge(convertWebexMeetingToEntry(webexMeeting), diff);
 			const updated = convertEntryToWebexMeeting(local);
-			const changes = deepDiff(webexMeeting, updated) as Partial<WebexMeetingParams> || {};
+			const changes: Partial<WebexMeetingParams> = deepDiff(webexMeeting, updated) || {};
 			if (changes.meetingId) {
 				// Associating with a meeting
 				meetingUpdates.push({id: changes.meetingId, changes: {webexAccountId: updated.accountId, webexMeetingId: webexMeeting.id}});
@@ -789,14 +763,14 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 		return webexMeetingUpdates.length > 0 || meetingUpdates.length > 0;
 	}*/
 
-	changeEntry = (changes: Partial<WebexMeetingParamsEntry>) => {
+	changeEntry = (changes: WebexMeetingEntryChanges) => {
 		//console.log('change', changes)
 		this.setState(state => {
 			let entry = {...state.entry, ...changes};
 			// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
-			changes = deepDiff(state.saved, entry) as Partial<WebexMeetingParamsEntry> || {};
+			changes = deepDiff(state.saved, entry) || {};
 			if (Object.keys(changes).length === 0)
-				entry = state.saved as WebexMeetingParamsEntry;
+				entry = state.saved as WebexMeetingEntry;
 			return {...state, entry}
 		});
 	}
@@ -844,7 +818,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 
 	add = async () => {
 		const {setSelected, addWebexMeeting, updateMeetings} = this.props;
-		const entry = this.state.entry as WebexMeetingParamsEntry;
+		const entry = this.state.entry as WebexMeetingEntry;
 
 		const webexMeeting = convertEntryToWebexMeeting(entry);
 		const id = await addWebexMeeting(entry.accountId!, webexMeeting);

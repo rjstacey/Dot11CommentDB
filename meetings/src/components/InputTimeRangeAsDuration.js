@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Input} from 'dot11-components/form';
+import { Input } from 'dot11-components';
 
 function timeRangeToDuration(startTime, endTime) {
 	let [startH, startM] = startTime.split(':');

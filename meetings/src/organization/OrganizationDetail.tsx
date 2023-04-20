@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {
 	ConfirmModal,
-	deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, debounce,
+	deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, Multiple, debounce,
 	ActionButton, Form, Row, Field, Input, Select,
 	setError,
 	EntityId, Dictionary
@@ -20,8 +20,6 @@ import {
 	setSelected,
 	Group, GroupCreate, GroupType
 } from '../store/groups';
-
-import type { Multiple } from '../meetings/MeetingDetails';
 
 import {selectCurrentGroupId} from '../store/current';
 import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
@@ -286,12 +284,12 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 			return;
 		}
 		this.setState(state => {
-			const entry: MultipleGroupEntry = deepMerge(state.entry, changes);
+			const entry: MultipleGroupEntry = deepMerge(state.entry as MultipleGroupEntry, changes);
 			const {originals, ids} = state;
 
 			let diff: Partial<GroupCreate> = {};
 			for (const id of ids)
-				diff = deepMergeTagMultiple(diff, originals[id]!);
+				diff = deepMergeTagMultiple(diff, originals[id]!) as Partial<GroupCreate>;
 			diff = deepDiff(diff, entry);
 
 			const updates = [];

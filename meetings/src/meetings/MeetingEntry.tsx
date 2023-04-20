@@ -4,7 +4,7 @@ import { Duration } from 'luxon';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	Form, Row, Field, Select, Input, InputDates, InputTime, Checkbox,
-	isMultiple,
+	isMultiple, Multiple,
 	setError
 } from 'dot11-components';
 
@@ -14,7 +14,7 @@ import {
 	Session
 } from '../store/sessions';
 
-import type { MultipleMeetingEntry, Multiple, MeetingEntry } from './MeetingDetails';
+import type { MultipleMeetingEntry, MeetingEntryChanges } from './MeetingDetails';
 
 import {selectGroupEntities} from '../store/groups';
 
@@ -23,8 +23,7 @@ import GroupSelector from '../components/GroupSelector';
 import CalendarAccountSelector from '../components/CalendarAccountSelector';
 import ImatMeetingSelector from '../components/ImatMeetingSelector';
 
-import type { WebexMeetingParams } from '../store/webexMeetings';
-import { MultipleWebexMeetingParamsEntry, WebexMeetingParamsEntry, WebexMeetingAccount, WebexMeetingParamsEdit } from '../webexMeetings/WebexMeetingDetail';
+import { WebexMeetingEntryChanges, WebexMeetingAccount, WebexMeetingParamsEdit } from '../webexMeetings/WebexMeetingDetail';
 
 const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';
@@ -252,7 +251,7 @@ export function MeetingEntryForm({
 	readOnly
 }: {
 	entry: MultipleMeetingEntry;
-	changeEntry: (changes: Partial<MeetingEntry>) => void;
+	changeEntry: (changes: MeetingEntryChanges) => void;
 	action: "add" | "update";
 	busy?: boolean;
 	submit?: () => void;
@@ -298,7 +297,7 @@ export function MeetingEntryForm({
 		cancelForm = cancel;
 	}
 
-	function handleChange(changes: Partial<MeetingEntry>) {
+	function handleChange(changes: MeetingEntryChanges) {
 		changes = {...changes};
 		if ('organizationId' in changes) {
 			const subgroup = changes.organizationId && groupEntities[changes.organizationId];
@@ -318,7 +317,7 @@ export function MeetingEntryForm({
 		changeEntry(changes);
 	}
 
-	function handleWebexMeetingChange(webexMeetingChanges: Partial<WebexMeetingParamsEntry>) {
+	/*function handleWebexMeetingChange(webexMeetingChanges: Partial<WebexMeetingParamsEntry>) {
 		let webexMeeting: MultipleWebexMeetingParamsEntry = {...entry.webexMeeting!, ...webexMeetingChanges};
 		const changes: Partial<MeetingEntry> = {};
 		if ('accountId' in webexMeetingChanges) {
@@ -327,6 +326,13 @@ export function MeetingEntryForm({
 				webexMeeting = {accountId: null} as WebexMeetingParamsEntry;
 		}
 		changes.webexMeeting = webexMeeting as unknown as WebexMeetingParams;	// deliberate; dont use start, end
+		handleChange(changes);
+	}*/
+	function handleWebexMeetingChange(webexMeetingChanges: WebexMeetingEntryChanges) {
+		const changes: MeetingEntryChanges = {webexMeeting: webexMeetingChanges};
+		if ('accountId' in webexMeetingChanges) {
+			changes.webexAccountId = webexMeetingChanges.accountId;
+		}
 		handleChange(changes);
 	}
 

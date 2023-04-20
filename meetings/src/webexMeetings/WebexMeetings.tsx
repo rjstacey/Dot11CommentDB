@@ -23,7 +23,8 @@ import {
 	ColumnProperties,
 	TablesConfig,
 	TableConfig,
-	RowGetterProps
+	RowGetterProps,
+	deepMerge
 } from 'dot11-components';
 
 import {selectCurrentGroupId} from '../store/current';
@@ -163,7 +164,6 @@ function MeetingAdd({
 			summary: webexMeeting.title,
 			timezone: webexMeeting.timezone,
 			date,
-			dates: [],
 			startTime,
 			endTime,
 			duration,
@@ -194,7 +194,7 @@ function MeetingAdd({
 	return (
 		<MeetingEntryForm
 			entry={entry as MultipleMeetingEntry}
-			changeEntry={changes => setEntry(state => ({...state, ...changes}))}
+			changeEntry={changes => setEntry(state => deepMerge(state, changes))}
 			action='add'
 			submit={add}
 			cancel={close}
