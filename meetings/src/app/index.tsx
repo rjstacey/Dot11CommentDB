@@ -3,8 +3,7 @@ import {BrowserRouter as Router} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {HelmetProvider, Helmet} from 'react-helmet-async';
 
-// @ts-ignore
-import {ErrorModal, ConfirmModal} from 'dot11-components/modals';
+import {ErrorModal, ConfirmModal} from 'dot11-components';
 import Header from './Header';
 import Body from './Body';
 

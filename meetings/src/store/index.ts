@@ -1,6 +1,5 @@
 import { combineReducers, configureStore as configureReduxStore } from '@reduxjs/toolkit';
 import type { ThunkAction, AnyAction, Middleware } from '@reduxjs/toolkit';
-// @ts-ignore
 import { createLogger } from 'redux-logger';
 import { persistStore, persistReducer, createTransform } from 'redux-persist';
 import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';

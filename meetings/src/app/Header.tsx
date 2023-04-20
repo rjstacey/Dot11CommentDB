@@ -1,17 +1,15 @@
 import React from 'react';
 import {NavLink, useLocation} from 'react-router-dom';
-import {useSelector} from 'react-redux';
 
-// @ts-ignore
-import Account from 'dot11-components/general/Account';
-// @ts-ignore
-import Dropdown from 'dot11-components/dropdown';
+import { useAppSelector } from '../store/hooks';
+
+import { Dropdown, Account, DropdownRendererProps } from 'dot11-components';
 
 import './header.css';
 
-import {selectUser, selectUserMeetingsAccess, AccessLevel} from '../store/user';
-import {selectGroupName} from '../store/groups';
-import {selectCurrentSessionId} from '../store/current';
+import { selectUser, selectUserMeetingsAccess, AccessLevel } from '../store/user';
+import { selectGroupName } from '../store/groups';
+import { selectCurrentSessionId } from '../store/current';
 
 type MenuItem = {
 	minAccess: number,
@@ -84,9 +82,9 @@ const fullMenu: MenuItem[] = [
 const NavItem = (props: any) => <NavLink className={'nav-link' + (props.isActive? ' active': '')} {...props} />
 
 function NavMenu({className, methods}: any) {
-	const access: number = useSelector(selectUserMeetingsAccess);
-	const groupName = useSelector(selectGroupName);
-	const sessionId = useSelector(selectCurrentSessionId);
+	const access: number = useAppSelector(selectUserMeetingsAccess);
+	const groupName = useAppSelector(selectGroupName);
+	const sessionId = useAppSelector(selectCurrentSessionId);
 
 	let classNames: string = 'nav-menu';
 	if (className)
@@ -109,14 +107,8 @@ function NavMenu({className, methods}: any) {
 
 const smallScreenQuery = window.matchMedia('(max-width: 992px');
 
-interface SelectRenderer {
-	isOpen: boolean,
-	open(): void,
-	close(): void
-}
-
 function Header() {
-	const user = useSelector(selectUser);
+	const user = useAppSelector(selectUser)!;
 	const [isSmall, setIsSmall] = React.useState(smallScreenQuery.matches);
 
 	React.useEffect(() => {
@@ -132,7 +124,7 @@ function Header() {
 		<header className='header'>
 			{isSmall?
 				<Dropdown
-					selectRenderer={({isOpen, open, close}: SelectRenderer) => <div className='nav-menu-icon' onClick={isOpen? close: open}/>}
+					selectRenderer={({state, methods}: DropdownRendererProps) => <div className='nav-menu-icon' onClick={state.isOpen? methods.close: methods.open}/>}
 					dropdownRenderer={(props: any) => <NavMenu className='nav-menu-vertical' {...props} />}
 					dropdownAlign='left'
 				/>:
@@ -144,7 +136,7 @@ function Header() {
 					<NavMenu className='nav-menu-horizontal' />
 				}
 			</div>
-			<Account className='account' user={user} />
+			<Account /*className='account'*/ user={user} />
 		</header>
 	)
 }

@@ -3,6 +3,7 @@ import type { RootState } from '.';
 
 export type User = {
 	SAPIN: number;
+	Username: string;
 	Name: string;
 	Email: string;
 	Status: string;
