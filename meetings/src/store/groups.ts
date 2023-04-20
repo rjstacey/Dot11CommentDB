@@ -15,7 +15,7 @@ import type { RootState, AppThunk } from '.';
 
 import {selectCurrentGroupId} from './current';
 
-const GroupType = {
+const GroupTypeLabels = {
 	c: 'Committee',
 	wg: 'Working Group',
 	sg: 'Study Group',
@@ -24,9 +24,9 @@ const GroupType = {
 	ah: 'Ad-hoc Group'
 };
 
-export type GroupType = keyof typeof GroupType;
+export type GroupType = keyof typeof GroupTypeLabels;
 
-export const GroupTypeOptions = Object.entries(GroupType).map(([value, label]) => ({value, label} as {value: GroupType; label: string}));
+export const GroupTypeOptions = Object.entries(GroupTypeLabels).map(([value, label]) => ({value, label} as {value: GroupType; label: string}));
 
 export const GroupStatusOptions = [
 	{value: 0, label: 'Inactive'},
@@ -50,7 +50,7 @@ export const fields = {
 	id: {},
 	parent_id: {},
 	name: {label: 'Group'},
-	type: {label: 'Type', dataRenderer: (v: keyof typeof GroupType) => GroupType[v]},
+	type: {label: 'Type', dataRenderer: (v: GroupType) => GroupTypeLabels[v]},
 	status: {label: 'Status', dataRenderer: (v: number) => v? 'Active': 'Inactive'},
 	symbol: {label: 'Committee'},
 };
@@ -65,7 +65,7 @@ function treeSortedIds(ids: Array<string>, entities: { [index: string]: Group })
 	function compare(n1: Node, n2: Node) {
 		const g1 = entities[n1.id];
 		const g2 = entities[n2.id];
-		const keys = Object.keys(GroupType);
+		const keys = Object.keys(GroupTypeLabels);
 		let cmp = keys.indexOf(g1.type || '') - keys.indexOf(g2.type || '');
 		if (cmp === 0)
 			cmp = g1.name.localeCompare(g2.name);

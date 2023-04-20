@@ -54,7 +54,7 @@ const fromTimeStr = (str: string) => {
 function convertBreakoutToMeetingEntry(breakout: Breakout, imatMeeting: ImatMeeting, session: Session, groupEntities: Dictionary<Group>) {
 
 	const start = DateTime.fromFormat(`${imatMeeting.start} ${breakout.startTime}`, 'yyyy-MM-dd HH:mm', {zone: imatMeeting.timezone}).plus({days: breakout.day});
-	const end = DateTime.fromFormat(`${imatMeeting.start} ${breakout.endTime}`, 'yyyy-MM-dd HH:mm', {zone: imatMeeting.timezone}).plus({days: breakout.day});
+	//const end = DateTime.fromFormat(`${imatMeeting.start} ${breakout.endTime}`, 'yyyy-MM-dd HH:mm', {zone: imatMeeting.timezone}).plus({days: breakout.day});
 
 	const groups = Object.values(groupEntities) as Group[];
 	const bNameRe = new RegExp(breakout.name, 'i');

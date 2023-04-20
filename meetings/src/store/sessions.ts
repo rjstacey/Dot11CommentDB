@@ -31,7 +31,7 @@ export type Timeslot = {
 export type DayCredit = { [slotName: string]: string };
 export type SessionCredits = DayCredit[];
 
-export type SessionType = "p" | "i" | "o" | "g";
+
 export interface Session {
 	id: number;
 	name: string;
@@ -51,19 +51,14 @@ export interface Session {
 
 export type SessionAdd = Omit<Session, "id" | "Attendees">;
 
-const SessionType = {
-	Plenary: 'p',
-	Interim: 'i',
-	Other: 'o',
-	General: 'g',
+export const SessionTypeLabels = {
+	p: 'Plenary',
+	i: 'Interim',
+	o: 'Other',
+	g: 'General'
 } as const;
 
-export const SessionTypeLabels = {
-	[SessionType.Plenary]: 'Plenary',
-	[SessionType.Interim]: 'Interim',
-	[SessionType.Other]: 'Other',
-	[SessionType.General]: 'General'
-} as const;
+export type SessionType = keyof typeof SessionTypeLabels;
 
 export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(([value, label]) => ({value, label} as {value: SessionType; label: string}));
 

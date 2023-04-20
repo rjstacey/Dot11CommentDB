@@ -12,7 +12,7 @@ import { User, selectUser } from '../store/user';
 import { selectSyncedMeetingEntities, selectMeetingIds, SyncedMeeting } from '../store/meetings';
 import { Officer, selectOfficersState } from '../store/officers';
 import { Member, selectMember } from '../store/members';
-import { Group, selectGroupsState } from '../store/groups';
+import { selectGroupsState } from '../store/groups';
 import { WebexMeeting, displayMeetingNumber } from '../store/webexMeetings';
 import { sendEmail } from '../store/emailActions';
 import { RootState } from '../store';
