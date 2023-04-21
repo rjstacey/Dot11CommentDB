@@ -1,13 +1,25 @@
 import React from 'react';
-import {useNavigate, useParams} from 'react-router-dom';
-import {useDispatch, useSelector} from 'react-redux';
+import { useNavigate, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import AppTable, {SelectHeader, SelectCell} from 'dot11-components/table';
-import {ActionButton} from 'dot11-components/form';
-import {displayDayDate, displayTime} from 'dot11-components/lib';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 
-import {loadBreakoutAttendance, selectBreakoutAttendanceState, selectImatMeeting, selectImatBreakout, dataSet} from '../store/imatBreakoutAttendance';
+import {
+	AppTable, SelectHeaderCell, SelectCell,
+	ActionButton,
+	displayDayDate, displayTime, ColumnProperties
+} from 'dot11-components';
+
+import {
+	loadBreakoutAttendance,
+	selectBreakoutAttendanceState,
+	selectImatMeeting,
+	selectImatBreakout,
+	imatBreakoutAttendanceSelectors,
+	imatBreakoutAttendanceActions
+ } from '../store/imatBreakoutAttendance';
+
+import type { Breakout } from '../store/imatBreakouts';
 
 import TopRow from '../components/TopRow';
 
@@ -24,20 +36,26 @@ const TableRow = styled.div`
 	}
 `;
 
-export const renderBreakoutInfo = (breakout) =>
+export const renderBreakoutInfo = (breakout: Breakout) =>
 	<div style={{display: 'flex', flexDirection: 'column'}}>
-		<span>{breakout.Name}</span>
-		<span>{displayDayDate(breakout.Start)}</span>
-		<span>{displayTime(breakout.Start) + ' - ' + displayTime(breakout.End)}</span>
+		<span>{breakout.name}</span>
+		<span>{displayDayDate(breakout.start)}</span>
+		<span>{displayTime(breakout.start) + ' - ' + displayTime(breakout.end)}</span>
 		<span>{breakout.location}</span>
 	</div>
 	
+type ColumnPropertiesWithWidth = ColumnProperties & {width: number};
 
-const columns = [
+const columns: ColumnPropertiesWithWidth[] = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <SelectHeader dataSet={dataSet} {...p} />,
-		cellRenderer: p => <SelectCell dataSet={dataSet} {...p} />},
+		headerRenderer: p => <SelectHeaderCell {...p} />,
+		cellRenderer: p =>
+			<SelectCell 
+				selectors={imatBreakoutAttendanceSelectors}
+				actions={imatBreakoutAttendanceActions}
+				{...p}
+			/>},
 	{key: 'SAPIN', 
 		label: 'SA PIN',
 		width: 150, flexGrow: 1, flexShrink: 1},
@@ -60,18 +78,20 @@ const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
 function BreakoutAttendance() {
 	const navigate = useNavigate();
 	const params = useParams();
+	const meetingNumber = Number(params.meetingNumber);
+	const breakoutNumber = Number(params.breakoutNumber);
 
-	const dispatch = useDispatch();
-	const {valid, imatMeetingId, imatBreakoutId} = useSelector(selectBreakoutAttendanceState);
-	const imatMeeting = useSelector(selectImatMeeting);
-	const breakout = useSelector(selectImatBreakout);
+	const dispatch = useAppDispatch();
+	const {valid, imatMeetingId, imatBreakoutId} = useAppSelector(selectBreakoutAttendanceState);
+	const imatMeeting = useAppSelector(selectImatMeeting);
+	const breakout = useAppSelector(selectImatBreakout);
 
 	React.useEffect(() => {
 		if (!valid ||
-			(params.meetingNumber && params.meetingNumber !== imatMeetingId) ||
-			(params.breakoutNumber && params.breakoutNumber !== imatBreakoutId))
-			dispatch(loadBreakoutAttendance(params.meetingNumber, params.breakoutNumber));
-	}, [dispatch, valid, params.meetingNumber, imatMeetingId, params.breakoutNumber, imatBreakoutId]);
+			(meetingNumber && meetingNumber !== imatMeetingId) ||
+			(breakoutNumber && breakoutNumber !== imatBreakoutId))
+			dispatch(loadBreakoutAttendance(meetingNumber, breakoutNumber));
+	}, [dispatch, valid, meetingNumber, imatMeetingId, breakoutNumber, imatBreakoutId]);
 
 	const close = () => navigate(`/${params.groupName}/imatMeetings/${imatMeetingId}`);
 	const refresh = () => dispatch(loadBreakoutAttendance(imatMeetingId, imatBreakoutId));
@@ -94,7 +114,8 @@ function BreakoutAttendance() {
 					columns={columns}
 					headerHeight={36}
 					estimatedRowHeight={36}
-					dataSet={dataSet}
+					selectors={imatBreakoutAttendanceSelectors}
+					actions={imatBreakoutAttendanceActions}
 				/>
 			</TableRow>
 		</>

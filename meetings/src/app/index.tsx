@@ -1,9 +1,8 @@
-import React from 'react';
-import {BrowserRouter as Router} from 'react-router-dom';
+import { BrowserRouter as Router } from 'react-router-dom';
 import styled from '@emotion/styled';
-import {HelmetProvider, Helmet} from 'react-helmet-async';
+import { HelmetProvider, Helmet } from 'react-helmet-async';
 
-import {ErrorModal, ConfirmModal} from 'dot11-components';
+import { ErrorModal, ConfirmModal } from 'dot11-components';
 import Header from './Header';
 import Body from './Body';
 

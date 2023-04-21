@@ -19,6 +19,7 @@ import groupsSlice, {loadGroups} from './groups';
 import imatCommitteesSlice from './imatCommittees';
 import imatMeetingsSlice from './imatMeetings';
 import imatBreakoutsSlice from './imatBreakouts';
+import imatBreakoutAttendanceSlice from './imatBreakoutAttendance';
 import webexMeetingsSlice from './webexMeetingsSlice';
 import ieee802WorldSlice from './ieee802World';
 
@@ -32,6 +33,7 @@ const dataAppSliceNames = [
 	imatCommitteesSlice.name,
 	imatMeetingsSlice.name,
 	imatBreakoutsSlice.name,
+	imatBreakoutAttendanceSlice.name,
 	ieee802WorldSlice.name
 ];
 
@@ -69,10 +71,11 @@ export function configureStore() {
 		[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
 		[imatMeetingsSlice.name]: imatMeetingsSlice.reducer,
 		[imatBreakoutsSlice.name]: imatBreakoutsSlice.reducer,
+		[imatBreakoutAttendanceSlice.name]: imatBreakoutAttendanceSlice.reducer,
 		[ieee802WorldSlice.name]: ieee802WorldSlice.reducer,
 	});
 
-	const middleware: Array<Middleware> = []; //[thunk];
+	const middleware: Middleware[] = []; //[thunk];
 	if (process.env.NODE_ENV !== 'production')
 		middleware.push(createLogger({collapsed: true}));
 
