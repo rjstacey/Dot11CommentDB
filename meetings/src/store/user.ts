@@ -41,12 +41,12 @@ export const selectUserPermissions = (state: RootState) => selectUser(state)!.Pe
 export function selectUserMeetingsAccess(state: RootState) {
 	const permissions = selectUserPermissions(state);
 	if (Array.isArray(permissions)) {
+		if (permissions.includes('wg_admin'))
+			return AccessLevel.admin;
 		if (permissions.includes('meetings_rw'))
 			return AccessLevel.rw;
 		if (permissions.includes('meetings_ro'))
 			return AccessLevel.ro;
-		if (permissions.includes('wg_admin'))
-			return AccessLevel.admin;
 	}
 	return AccessLevel.none;
 }
