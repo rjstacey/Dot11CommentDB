@@ -57,7 +57,7 @@ export async function selectUser({SAPIN, Email}: {SAPIN?: number; Email?: string
 		'FROM members m ' +
 			'LEFT JOIN (SELECT SAPIN, JSON_ARRAYAGG(scope) AS Permissions FROM permissions GROUP BY SAPIN) AS p ON m.SAPIN=p.SAPIN ' +
 		'WHERE ' + (SAPIN? `m.SAPIN=${db.escape(SAPIN)}`: `m.Email=${db.escape(Email)}`);
-	let [user] = await db.query(sql);
+	let [user] = await db.query(sql) as User[];
 
 	if (SAPIN === superUser.SAPIN || Email === superUser.Email)
 		user = superUserHack(user);

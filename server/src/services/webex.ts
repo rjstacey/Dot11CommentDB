@@ -2,8 +2,7 @@ import { DateTime } from 'luxon';
 import { URLSearchParams } from 'url';
 import { NotFoundError, isPlainObject } from '../utils';
 
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-//import webex from 'webex';
+import axios, { AxiosInstance } from 'axios';
 
 import db from '../utils/database';
 import { OkPacket } from 'mysql2';
@@ -14,14 +13,14 @@ const webexTokenUrl = 'https://webexapis.com/v1/access_token';
 
 const webexAuthScope = [
 	"spark:kms",
+	"meeting:controls_read",
 	"meeting:controls_write",
 	"meeting:schedules_read",
+	"meeting:schedules_write",
 	"meeting:participants_read",
-	"meeting:controls_read",
-	"meeting:preferences_write",
-	"meeting:preferences_read",
 	"meeting:participants_write",
-	"meeting:schedules_write"
+	"meeting:preferences_write",
+	"meeting:preferences_read"
 ].join(' ');
 
 const webexAuthRedirectUri = process.env.NODE_ENV === 'development'?
@@ -124,7 +123,7 @@ function deleteWebexApi(id: number) {
  * Store autherization parameters in oauth_accounts table.
  */
 function updateAuthParams(id: number, authParams: object) {
-	return db.query('UPDATE oauth_accounts SET authParams=?, authDate=NOW() WHERE id=?', [JSON.stringify(authParams), id]);
+	return db.query('UPDATE oauth_accounts SET authParams=?, authDate=NOW() WHERE id=?', [JSON.stringify(authParams), id]) as Promise<OkPacket>;
 }
 
 type OAuthAccount = {
@@ -333,24 +332,174 @@ export type WebexMeetingAlways = {
 	accountName?: string;
 }
 
-export type WebexMeetingAdd = WebexMeetingAlways & {
-	title: string;
-	start: string;
-	end: string;
-	timezone: string;
-	password: string;
-	integrationTags?: string[];
-	enabledAutoRecordMeeting?: boolean;
+export type WebexMeetingOptions = {
+	/** Whether or not to allow any attendee to chat in the meeting. 
+	 *  Also depends on the session type. */
+	enabledChat?: boolean;
+	/** Whether or not to allow any attendee to have video in the meeting. 
+	 *  Also depends on the session type. */
+	enabledVideo?: boolean;
+	/** Whether or not to allow any attendee to poll in the meeting. 
+	 *  Can only be set true for a webinar. */
+	enabledPolling?: boolean;
+	/** Whether or not to allow any attendee to take notes in the meeting. 
+	 *  The value of this attribute also depends on the session type. */
+	enabledNote?: boolean;
+	/** Whether note taking is enabled. If the value of `enabledNote` is false, users can not set this attribute and get default value `allowAll`. */
+	noteType?: "allowAll" | "allowOne";
+	/** Whether or not to allow any attendee to have closed captions in the meeting. 
+	 *  The value of this attribute also depends on the session type. */
+	enabledClosedCaptions?: boolean;
+	/** Whether or not to allow any attendee to transfer files in the meeting. 
+	 *  The value of this attribute also depends on the session type. */
+	enabledFileTransfer?: boolean;
+	/** Whether or not to allow any attendee to share Universal Communications Format media files in the meeting. 
+	 *  The value of this attribute also depends on the sessionType. */
+	enabledUCFRichMedia?: boolean;
 }
 
-export type WebexMeetingUpdate = WebexMeetingAlways & Partial<WebexMeetingAdd> & {
+export type WebexMeetingAudioConnectionOptions = {
+	allowAttendeeToUnmuteSelf: boolean;
+	muteAttendeeUponEntry: boolean;
+	entryAndExitTone: string;
+	allowHostToUnmuteParticipants: boolean;
+	audioConnectionType: "webexAudio";
+	enabledAudienceCallBack: boolean;
+	enabledGlobalCallIn: boolean;
+	enabledTollFreeCallIn: boolean;
+}
+
+export type WebexMeetingAdd = WebexMeetingAlways & {
+	/** Meeting title. The title can be a maximum of 128 characters long. */
+	title: string;
+	/** Meeting agenda. The agenda can be a maximum of 1300 characters long. */
+	agenda?: string;
+	/** Date and time for the start of meeting in any ISO 8601 compliant format. `start` cannot be before current date and time or after `end`.
+	 *  Duration between start and end cannot be shorter than 10 minutes or longer than 24 hours. */
+	start: string;
+	/** Date and time for the end of meeting in any ISO 8601 compliant format. `end` cannot be before current date and time or before start. 
+	 *  Duration between start and end cannot be shorter than 10 minutes or longer than 24 hours.*/
+	end: string;
+	/** Time zone in which the meeting was originally scheduled (conforming with the IANA time zone database). */
+	timezone?: string;
+	/** Meeting password. Must conform to the site's password complexity settings. */
+	password?: string;
+	/** Unique identifier for meeting template. */
+	templateId?: string;
+	/** Meeting series recurrence rule (conforming with RFC 2445), applying only to meeting series.
+	 *  It doesn't apply to a scheduled meeting or an ended or ongoing meeting instance. */
+	recurance?: string;
+	integrationTags?: string[];
+	/** Whether or not meeting is recorded automatically. */
+	enabledAutoRecordMeeting?: boolean;
+	/** Whether or not to allow any attendee with a host account to become a cohost when joining the meeting. */
+	allowAnyUserToBeCoHost?: boolean;
+	/** Whether or not to allow any attendee to join the meeting before the host joins the meeting. */
+	enabledJoinBeforeHost?: boolean;
+	/** the number of minutes an attendee can join the meeting before the meeting start time and the host joins. 
+	 *  This attribute is only applicable if the `enabledJoinBeforeHost` attribute is set to true. 
+	 *  Valid options are 0, 5, 10 and 15. Default is 0 if not specified. */
+	joinBeforeHostMinutes?: number;
+	/** Whether or not to allow any attendee to connect audio in the meeting before the host joins the meeting. 
+	 *  This attribute is only applicable if the enabledJoinBeforeHost attribute is set to true. */
+	enableConnectAudioBeforeHost?: boolean;
+	/** Whether or not to allow the meeting to be listed on the public calendar. */
+	publicMeeting?: boolean;
+	/** Meeting Options. */
+	meetingOptions?: Partial<WebexMeetingOptions>;
+	audioConnectionOptions?: Partial<WebexMeetingAudioConnectionOptions>;
+}
+
+export type WebexMeetingUpdate = WebexMeetingAlways & Partial<Omit<WebexMeetingAdd, "templateId">> & {
+	/** Unique identifier for meeting. For a meeting series, the id is used to identify the entire series. */
 	id: string;
 }
 
+type CallInNumber = {
+	label: string;
+	callInNumber: string;
+	tollType: "toll";
+}
+
+type Telephony = {
+	/** Code for authenticating a user to join teleconference. Users join the teleconference using the call-in number or the global call-in number, followed by the value of the accessCode. */
+	accessCode: string;
+	/** Array of call-in numbers for joining a teleconference from a phone. */
+	callInNumbers: CallInNumber[];
+	/** HATEOAS information of global call-in numbers for joining a teleconference from a phone. */
+	link: any[]
+}
+
 export interface WebexMeeting extends Required<WebexMeetingUpdate> {
+	/** Meeting number. Applies to meeting series, scheduled meeting, and meeting instances, but not to meeting instances which have ended.*/
 	meetingNumber: string;
+	/** Meeting type. */
+	meetingType: 
+		/** Primary instance of a scheduled series of meetings which consists of one or more scheduled meetings based on a recurrence rule. */
+		"meetingSeries" |
+		/** Instance from a primary meeting series. */
+		"scheduledMeeting" |
+		/** Meeting instance that is in progress or has completed. */
+		"meeting";
+	state: 
+		/** Only applies to a meeting series. Indicates that one or more future scheduled meetings exist for this meeting series. */
+		"active" |
+		/** Only applies to scheduled meeting. Indicates that the meeting is scheduled in the future. */
+		"scheduled" |
+		/** Only applies to scheduled meeting. Indicates that this scheduled meeting is ready to start or join immediately. */
+		"ready" |
+		/** Only applies to meeting instances. Indicates that a locked meeting has been joined by participants, but no hosts have joined. */
+		"lobby" |
+		/** Applies to meeting series and meeting instances. For a meeting series, indicates that an instance of this series is happening now. 
+		 *  For a meeting instance, indicates that the meeting has been joined and unlocked. */
+		"inProgress" |
+		/** Applies to scheduled meetings and meeting instances. For scheduled meetings, indicates that the meeting was started and is now over. 
+		 *  For meeting instances, indicates that the meeting instance has concluded. */
+		"ended" |
+		/** This state only applies to scheduled meetings. Indicates that the meeting was scheduled in the past but never happened. */
+		"missed" |
+		/** This state only applies to a meeting series. Indicates that all scheduled meetings of this series have passed. */
+		"expired";
+	/** Link to a meeting information page where the meeting client is launched if the meeting is ready to start or join. */
 	webLink: string;
-	telephony: {callInNumbers: any[]};
+	/** Site URL for the meeting. */
+	siteUrls: string;
+	/** SIP address for callback from a video system. */
+	sipAddress: string;
+	/** Information for callbacks from a meeting to phone or for joining a teleconference using a phone. */
+	telephony: Telephony;
+	hostKey: string;
+	hostUserId: string;
+	hostEmail: string;
+	hostDisplayName: string;
+}
+
+/* Convert infor for webex meeting to confiurable parameters */
+export function webexMeetingToWebexMeetingParams(i: WebexMeeting): WebexMeetingUpdate {
+	const o = {
+		accountId: i.accountId,
+		id: i.id,
+		title: i.title,
+		start: i.start,
+		end: i.end,
+		timezone: i.timezone,
+		password: i.password,
+		enabledAutoRecordMeeting: i.enabledAutoRecordMeeting,
+		enabledJoinBeforeHost: i.enabledJoinBeforeHost,
+		joinBeforeHostMinutes: i.joinBeforeHostMinutes,
+		enableConnectAudioBeforeHost: i.enableConnectAudioBeforeHost,
+		publicMeeting: i.publicMeeting,
+		meetingOptions: i.meetingOptions,
+		audioConnectionOptions: i.audioConnectionOptions,
+		integrationTags: i.integrationTags,
+	};
+
+	for (const key of Object.keys(o)) {
+		if (typeof o[key] === 'undefined')
+			delete o[key];
+	}
+
+	return o;
 }
 
 /*

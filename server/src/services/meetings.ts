@@ -259,6 +259,16 @@ function meetingToWebexMeeting(meeting: Meeting) {
 	return webexMeeting;
 }
 
+function webexMeetingUpdateNeeded(webexMeeting: WebexMeeting, webexMeetingChanges: Partial<WebexMeeting>): boolean {
+	for (const key of Object.keys(webexMeetingChanges)) {
+		if (webexMeeting[key] !== webexMeetingChanges[key]) {
+			console.log(`Mismatch for ${key}: `, webexMeeting[key], webexMeetingChanges[key])
+			return true;
+		}
+	}
+	return false;
+}
+
 /*
  * Format Webex meeting number (e.g., 1234 567 8901)
  */
@@ -469,6 +479,8 @@ async function addMeeting(user, meetingToAdd: MeetingAddUpdate) {
 		session: Promise<Session> | Session,
 		workingGroup: Promise<Group | undefined> | Group | undefined;
 
+	console.log(meetingToAdd);
+	
 	let meeting: Meeting = {
 		...meetingToAdd,
 		webexMeetingId: null,
@@ -620,14 +632,17 @@ async function meetingMakeWebexUpdates(meeting: Meeting, changes: Partial<Meetin
 		}
 		else {
 			// Update existing webex meeting
-			try {
-				webexMeeting = await updateWebexMeeting(webexMeetingParams);
-			}
-			catch (error) {
-				if (!(error instanceof NotFoundError))
-					throw error;
-				// meeting not found
-				changes.webexMeetingId = null;
+			webexMeetingParams.id = meeting.webexMeetingId;
+			if (!webexMeeting || webexMeetingUpdateNeeded(webexMeeting, webexMeetingParams)) {
+				try {
+					webexMeeting = await updateWebexMeeting(webexMeetingParams);
+				}
+				catch (error) {
+					if (!(error instanceof NotFoundError))
+						throw error;
+					// meeting not found
+					changes.webexMeetingId = null;
+				}
 			}
 		}
 	}
