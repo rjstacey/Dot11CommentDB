@@ -3,7 +3,7 @@
  */
 import {Router} from 'express';
 import Multer from 'multer';
-
+import { isPlainObject } from '../utils';
 import {
 	getVoters,
 	addVoters,
@@ -31,7 +31,9 @@ router.post('/:votingPoolId/$', async (req, res, next) => {
 		const {votingPoolId} = req.params;
 		const voters = req.body;
 		if (!Array.isArray(voters))
-			throw new TypeError('Missing or bad body; expected array of voters');
+			throw new TypeError('Bad or missing array of voter objects');
+		if (!voters.every(v => isPlainObject(v)))
+			throw new TypeError('Expected an array of objects');
 		const data = await addVoters(votingPoolId, voters);
 		res.json(data);
 	}
@@ -42,7 +44,7 @@ router.patch('/$', async (req, res, next) => {
 	try {
 		const updates = req.body;
 		if (!Array.isArray(updates))
-			throw new TypeError('Missing or bad body; expected array of updates');
+			throw new TypeError('Bad or missing array of updates');
 		const data = await updateVoters(updates);
 		res.json(data);
 	}
@@ -53,8 +55,10 @@ router.delete('/:votingPoolId/$', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
 		const ids = req.body;
-		if (ids && !Array.isArray(ids))
-			throw new TypeError('Missing or bad body; expected nothing or an array of IDs');
+		if (!Array.isArray(ids))
+			throw new TypeError('Bad or missing array of voter identifiers');
+		if (!ids.every(id => typeof id === 'string'))
+			throw new TypeError('Expected an array of strings');
 		const data = await deleteVoters(votingPoolId, ids);
 		res.json(data);
 	}
@@ -75,8 +79,8 @@ router.post('/:votingPoolId/upload$', upload.single('File'), async (req, res, ne
 router.post('/:votingPoolId/membersSnapshot$', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
-		if (typeof req.body !== 'object' || !req.body.hasOwnProperty('date'))
-			throw new TypeError('Missing or bad body; expected "{date: <string>}"');
+		if (!isPlainObject(req.body) || !req.body.hasOwnProperty('date'))
+			throw new TypeError('Bad or missing body; expected object with shape {date: string}');
 		const {date} = req.body;
 		const data = await votersFromMembersSnapshot(votingPoolId, date);
 		res.json(data);

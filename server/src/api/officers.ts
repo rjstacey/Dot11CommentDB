@@ -21,8 +21,8 @@
  *		Body is an array of ids identifying the officers to be deleted.
  *		Returns the number of officers deleted.
  */
-import {Router} from 'express';
-
+import { Router } from 'express';
+import { isPlainObject } from '../utils';
 import {
 	getOfficers,
 	addOfficers,
@@ -44,7 +44,9 @@ router.post('/$', async (req, res, next) => {
 	try {
 		const officers = req.body;
 		if (!Array.isArray(officers))
-			throw new TypeError('Bad or missing array of groups');
+			throw new TypeError('Bad or missing array of officer objects');
+		if (!officers.every(officer => isPlainObject(officer)))
+			throw new TypeError('Expected an array of objects');
 		const data = await addOfficers(officers);
 		res.json(data);
 	}
@@ -56,6 +58,8 @@ router.patch('/$', async (req, res, next) => {
 		const updates = req.body;
 		if (!Array.isArray(updates))
 			throw new TypeError('Bad or missing array of updates');
+		if (!updates.every(u => isPlainObject(u) && typeof u.id === 'string' && isPlainObject(u.changes)))
+			throw new TypeError('Expected an array of objects with shape {id, changes}');
 		const data = await updateOfficers(updates);
 		res.json(data);
 	}
@@ -66,7 +70,9 @@ router.delete('/$', async (req, res, next) => {
 	try {
 		const ids = req.body;
 		if (!Array.isArray(ids))
-			throw new TypeError('Bad or missing array of ids');
+			throw new TypeError('Bad or missing array of officer identifiers');
+		if (!ids.every(id => typeof id === 'string'))
+			throw new TypeError('Expected an array of strings');
 		const data = await removeOfficers(ids);
 		res.json(data);
 	}

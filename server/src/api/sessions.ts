@@ -59,7 +59,7 @@ router.post('/$', async (req, res, next) => {
 	try {
 		const session = req.body;
 		if (!isPlainObject(session))
-			throw new TypeError('Missing or bad body; expected object');
+			throw new TypeError('Bad or missing body; expected object');
 		const data = await addSession(session);
 		res.json(data);
 	}
@@ -68,10 +68,10 @@ router.post('/$', async (req, res, next) => {
 
 router.patch('/:id(\\d+)$', async (req, res, next) => {
 	try {
-		const id = parseInt(req.params.id, 10);
+		const id = parseInt(req.params.id);
 		const changes = req.body;
 		if (!isPlainObject(changes))
-			throw new TypeError('Missing or bad body; expected object');
+			throw new TypeError('Bad or missing body; expected object');
 		const data = await updateSession(id, changes);
 		res.json(data);
 	}
@@ -82,7 +82,9 @@ router.delete('/$', async (req, res, next) => {
 	try {
 		const ids = req.body;
 		if (!Array.isArray(ids))
-			throw new TypeError('Missing or bad body; expected array');
+			throw new TypeError('Bad or missing array of session identifiers');
+		if (!ids.every(id => typeof id === 'number'))
+			throw new TypeError('Expected an array of numbers');
 		const data = await deleteSessions(ids);
 		res.json(data);
 	}
@@ -92,7 +94,7 @@ router.delete('/$', async (req, res, next) => {
 router.get('/:id(\\d+)/breakouts', async (req, res, next) => {
 	try {
 		const {user} = req;
-		let id = parseInt(req.params.id, 10);
+		let id = parseInt(req.params.id);
 		const data = await getBreakouts(id);
 		res.json(data);
 	}
@@ -102,7 +104,7 @@ router.get('/:id(\\d+)/breakouts', async (req, res, next) => {
 router.get('/:id(\\d+)/breakout/:breakout_id(\\d+)/attendees', async (req, res, next) => {
 	try {
 		const {user} = req;
-		const session_id = parseInt(req.params.id, 10);
+		const session_id = parseInt(req.params.id);
 		const breakout_id = parseInt(req.params.breakout_id, 10);
 		const data = await getBreakoutAttendees(user, session_id, breakout_id);
 		res.json(data);
@@ -113,7 +115,7 @@ router.get('/:id(\\d+)/breakout/:breakout_id(\\d+)/attendees', async (req, res, 
 router.get('/:id(\\d+)/attendees', async (req, res, next) => {
 	try {
 		const {user} = req;
-		const session_id = parseInt(req.params.id, 10);
+		const session_id = parseInt(req.params.id);
 		const data = await getSessionAttendees(session_id);
 		res.json(data);
 	}
@@ -123,7 +125,7 @@ router.get('/:id(\\d+)/attendees', async (req, res, next) => {
 router.post('/:id(\\d+)/breakouts/import', async (req, res, next) => {
 	try {
 		const {user} = req;
-		let id = parseInt(req.params.id, 10);
+		let id = parseInt(req.params.id);
 		const data = await importBreakouts(user, id);
 		res.json(data);
 	}
@@ -147,7 +149,7 @@ router.patch('/attendance_summaries', async (req, res, next) => {
 router.post('/:id(\\d+)/attendance_summary/import', async (req, res, next) => {
 	try {
 		const {user} = req;
-		let id = parseInt(req.params.id, 10);
+		let id = parseInt(req.params.id);
 		const data = await importAttendances(user, id);
 		res.json(data);
 	}

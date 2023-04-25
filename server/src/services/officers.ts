@@ -44,6 +44,12 @@ export function getOfficers(constraints?: OfficerQueryConstraints) {
 	return db.query(sql) as Promise<Officer[]>;
 }
 
+/**
+ * Add officer.
+ * 
+ * @param officer An officer object
+ * @returns An object representing the officer as added
+ */
 async function addOfficer({id, group_id, ...rest}: Officer): Promise<Officer> {
 	if (!id)
 		id = uuid();
@@ -60,10 +66,24 @@ async function addOfficer({id, group_id, ...rest}: Officer): Promise<Officer> {
 	return officer;
 }
 
+/**
+ * Add officers.
+ * 
+ * @param officers An array of officer objects
+ * @returns An array of officer objects as added
+ */
 export function addOfficers(officers: Officer[]) {
 	return Promise.all(officers.map(addOfficer));
 }
 
+/**
+ * Update officer.
+ * 
+ * @param update Update object with shape {id, changes}
+ * @param update.id Officer identifier
+ * @param update.changes Partial officer object with parameters to change
+ * @returns Officer object as updated
+ */
 async function updateOfficer({id, changes}: Update<Officer>): Promise<Officer> {
 	if (!id)
 		throw new TypeError('Missing id in update');
@@ -76,11 +96,22 @@ async function updateOfficer({id, changes}: Update<Officer>): Promise<Officer> {
 	const [officer] = await getOfficers({id});
 	return officer;
 }
-
+/**
+ * Update officers.
+ * 
+ * @param updates An array of objects with shape {id, changes}
+ * @returns An array of officer objects as updated
+ */
 export function updateOfficers(updates: Update<Officer>[]) {
 	return Promise.all(updates.map(updateOfficer));
 }
 
+/**
+ * Delete officers.
+ * 
+ * @param ids An array of officer identifiers
+ * @returns number of deleted officers
+ */
 export async function removeOfficers(ids: string[]): Promise<number> {
 	const result = await db.query('DELETE FROM `officers` WHERE BIN_TO_UUID(`id`) IN (?)', [ids]) as OkPacket;
 	return result.affectedRows;

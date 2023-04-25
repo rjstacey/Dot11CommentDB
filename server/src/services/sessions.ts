@@ -5,13 +5,15 @@ import { DateTime } from 'luxon';
 import { NotFoundError, shallowDiff } from '../utils';
 
 import db from '../utils/database';
+import type { OkPacket } from 'mysql2';
+
+import type { User } from './users';
 
 import {
 	getImatBreakouts,
 	getImatBreakoutAttendance,
 	getImatAttendanceSummary
 } from './imat';
-import { OkPacket } from 'mysql2';
 
 const getSessionTotalCreditSQL = (session_id: string) =>
 	'SELECT ' +
@@ -98,7 +100,7 @@ const getBreakoutsSQL = (session_id: number) =>
 	'FROM breakouts b ' +
 	'WHERE session_id=' + session_id + ';';
 
-const getSessionSQL = (session_id) =>
+const getSessionSQL = (session_id: number) =>
 	getSessionsSQL() +
 	' WHERE id=' + session_id + ';';
 
@@ -183,8 +185,12 @@ export type AttendanceSummary = {
 	Notes: string;
 }
 
-/*
- * Return a complete list of sessions
+/**
+ * Get a list of sessions.
+ * 
+ * @param constraints (Optional) An object with constraints for the database query
+ * 
+ * @returns an array of session objects
  */
 export function getSessions(constraints?: SessionsQueryConstraints) {
 	let sql = getSessionsSQL();
@@ -197,7 +203,14 @@ export function getSessions(constraints?: SessionsQueryConstraints) {
 	return db.query({sql, dateStrings: true}) as Promise<Session[]>;
 }
 
-export async function getSession(id: number) {
+/**
+ * Get a session
+ * 
+ * @param id Session identifier
+ * 
+ * @returns a session object or undefined
+ */
+export async function getSession(id: number): Promise<Session | undefined> {
 	const sessions = await getSessions({id});
 	return sessions[0];
 }
@@ -358,7 +371,7 @@ export async function getRecentSessionsWithAttendees() {
 	return sessions;
 }
 
-export async function importBreakouts(user, sessionId: number) {
+export async function importBreakouts(user: User, sessionId: number) {
 
 	const [session] = await db.query({sql: 'SELECT * FROM sessions WHERE id=?;', dateStrings: true}, [sessionId]) as Session[];
 	if (!session)
@@ -379,7 +392,7 @@ export async function importBreakouts(user, sessionId: number) {
 	return getBreakouts(sessionId);
 }
 
-export async function importBreakoutAttendance(user, session, breakout_id, meetingNumber, breakoutNumber) {
+export async function importBreakoutAttendance(user: User, session, breakout_id, meetingNumber, breakoutNumber) {
 
 	const attendance = await getImatBreakoutAttendance(user, breakoutNumber, meetingNumber);
 
@@ -404,7 +417,7 @@ type Member = {
 	Status: string;
 }
 
-export async function importAttendances(user, session_id: number) {
+export async function importAttendances(user: User, session_id: number) {
 
 	let [session] = await db.query({sql: 'SELECT * FROM sessions WHERE id=?;', dateStrings: true}, [session_id]) as Session[];
 	if (!session)

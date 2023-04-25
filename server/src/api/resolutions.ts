@@ -51,11 +51,13 @@ const router = Router();
 router.post('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		if (!isPlainObject(req.body))
-			throw 'Bad body; expected plain object';
+		if (!isPlainObject(req.body) || !req.body.hasOwnProperty('entities') || !req.body.hasOwnProperty('ballot_id'))
+			throw new TypeError('Bad or missing body; expected an object with shape {entities: any[], ballot_id: number, modifiedSince?: string}');
 		const {entities, ballot_id, modifiedSince} = req.body;
-		if (!Array.isArray(entities))
-			throw new TypeError('Missing or bad entities parameter; expected array');
+		if (!Array.isArray(entities) || !entities.every(entity => isPlainObject(entity)))
+			throw new TypeError('Bad entities parameter; expected an array of objects');
+		if (typeof ballot_id !== 'number')
+			throw new TypeError('Bad ballot_id parameter; expected a number');
 		const data = await addResolutions(user.SAPIN, entities, ballot_id, modifiedSince);
 		res.json(data);
 	}
@@ -65,11 +67,13 @@ router.post('/$', async (req, res, next) => {
 router.patch('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		if (!isPlainObject(req.body))
-			throw 'Bad body; expected plain object';
+		if (!isPlainObject(req.body) || !req.body.hasOwnProperty('updates') || !req.body.hasOwnProperty('ballot_id'))
+			throw new TypeError('Bad or missing body; expected an object with shape {updates: object[], ballot_id: number, modifiedSince?: string');
 		const {updates, ballot_id, modifiedSince} = req.body;
-		if (!Array.isArray(updates))
-			throw new TypeError('Missing or bad updates parameter; expected array');
+		if (!Array.isArray(updates) || !updates.every(u => isPlainObject(u)))
+			throw new TypeError('Bad updates parameter; expected an array of objects');
+		if (typeof ballot_id !== 'number')
+			throw new TypeError('Bad ballot_id parameter; expected a number');
 		const data = await updateResolutions(user.SAPIN, updates, ballot_id, modifiedSince);
 		res.json(data);
 	}
@@ -79,11 +83,13 @@ router.patch('/$', async (req, res, next) => {
 router.delete('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
-		if (!isPlainObject(req.body))
-			throw new TypeError('Bad body; expected plain object');
+		if (!isPlainObject(req.body) || !req.body.hasOwnProperty('ids') || !req.body.hasOwnProperty('ballot_id'))
+			throw new TypeError('Bad or missing body; expected an object with shape {ids: string[], ballot_id: number, modifiedSince?: string');
 		const {ids, ballot_id, modifiedSince} = req.body;
-		if (!Array.isArray(ids))
-			throw 'Missing or bad ids parameter; expected array';
+		if (!Array.isArray(ids) || !ids.every(id => typeof id === 'string'))
+			throw new TypeError('Bad ids parameter; expected an array of strings');
+		if (typeof ballot_id !== 'number')
+			throw new TypeError('Bad ballot_id parameter; expected a number');
 		const data = await deleteResolutions(user.SAPIN, ids, ballot_id, modifiedSince)
 		res.json(data)
 	}
@@ -93,7 +99,7 @@ router.delete('/$', async (req, res, next) => {
 router.post('/:ballot_id(\\d+)/upload/', upload.single('ResolutionsFile'), async (req, res, next) => {
 	try {
 		const {user} = req;
-		const ballot_id = parseInt(req.params.ballot_id, 10);
+		const ballot_id = parseInt(req.params.ballot_id);
 		if (!req.body.params)
 			throw 'Missing parameters'
 		const {toUpdate, matchAlgorithm, matchUpdate, sheetName} = JSON.parse(req.body.params)

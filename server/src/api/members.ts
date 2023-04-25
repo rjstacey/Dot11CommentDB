@@ -10,9 +10,9 @@
  * POST /users/upload: insert users from file. Returns the complete array of user entries in the database.
  * POST /users: insert or update users. Returns the complete entry for the user added.
  */
-import {Router} from 'express';
+import { Router } from 'express';
 import Multer from 'multer';
-
+import { isPlainObject } from '../utils';
 import {
 	getMembers,
 	getMembersSnapshot,
@@ -54,29 +54,22 @@ router.post('/$', async (req, res, next) => {
 	try {
 		const members = req.body;
 		if (!Array.isArray(members))
-			throw new TypeError('Bad or missing array of members');
+			throw new TypeError('Bad or missing array of member objects');
+		if (!members.every(member => isPlainObject(member)))
+			throw new TypeError('Expected an array of objects');
 		const data = await addMembers(members);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-/*router.put('/$', async (req, res, next) => {
-	try {
-		const members = req.body;
-		if (!Array.isArray(members))
-			throw new TypeError('Bad or missing array of members');
-		const data = await upsertMembers(members);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});*/
-
 router.patch('/$', async (req, res, next) => {
 	try {
 		const updates = req.body;
 		if (!Array.isArray(updates))
-			throw new TypeError('Bad or missing array of updates');
+			throw new TypeError('Bad or missing array of update objects');
+		if (!updates.every(u => isPlainObject(u) && typeof u.id === 'number' && isPlainObject(u.changes)))
+			throw new TypeError('Expected an array of objects with shape {id, changes}');
 		const data = await updateMembers(updates);
 		res.json(data);
 	}
@@ -87,7 +80,9 @@ router.delete('/$', async (req, res, next) => {
 	try {
 		const ids = req.body;
 		if (!Array.isArray(ids))
-			throw new TypeError('Missing or bad array parameter');
+			throw new TypeError('Bad or missing array of member identifiers');
+		if (!ids.every(id => typeof id === 'number'))
+			throw new TypeError('Expected an array of numbers');
 		const data = await deleteMembers(ids);
 		res.json(data);
 	}

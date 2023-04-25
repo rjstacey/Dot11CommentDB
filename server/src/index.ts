@@ -49,7 +49,7 @@ async function initServices() {
 
 	process.stdout.write('init email... ');
 	try {
-		await emailInit();
+		emailInit();
 		process.stdout.write('success\n');
 	}
 	catch (error) {

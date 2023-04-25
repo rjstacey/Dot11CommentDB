@@ -56,7 +56,7 @@ router.post('/accounts$', async (req, res, next) => {
 	try {
 		const account = req.body;
 		if (!isPlainObject(account))
-			throw new TypeError('Missing or bad body; expected object');
+			throw new TypeError('Bad or missing body; expected object');
 		const data = await addWebexAccount(account);
 		res.json(data);
 	}
@@ -68,7 +68,7 @@ router.patch('/accounts/:accountId(\\d+)', async (req, res, next) => {
 		const accountId = Number(req.params.accountId);
 		const changes = req.body;
 		if (!isPlainObject(changes))
-			throw new TypeError('Missing or bad body; expected object');
+			throw new TypeError('Bad or missing; expected object');
 		const data = await updateWebexAccount(accountId, changes);
 		res.json(data);
 	}
@@ -98,13 +98,13 @@ router.delete('/accounts/:accountId(\\d+)', async (req, res, next) => {
  *
  * POST /meetings
  * 		Create webex meetings.
- *		Body is an array of meetings with shape {accountId, ...meeting}, where accountId identifies
+ *		Body is an array of meetings with shape {accountId, ...params}, where accountId identifies
  *		the Webex account and the remaining parameters are the meeting parameters.
  *		Returns an array of meetings as added.
  *
  * PATCH /meetings
  *		Update Webex meetings.
- *		Body is an array of meetings with shape {accountId, id, ...meeting}, where accountId identifies
+ *		Body is an array of meetings with shape {accountId, id, ...changes}, where accountId identifies
  *		the Webex account, id identifies the meeting instance and the remaining parameters are meeting parameters.
  *		Returns an array of meetings that were updated.
  * 
@@ -127,7 +127,9 @@ router.post('/meetings', async (req, res, next) => {
 	try {
 		const meetings = req.body;
 		if (!Array.isArray(meetings))
-			throw new TypeError('Missing or bad body; expected array')
+			throw new TypeError('Bad or missing array of Webex meeting objects');
+		if (!meetings.every(meeting => isPlainObject(meeting) && typeof meeting.accountId === 'number'))
+			throw new TypeError('Expected an array of objects with shape {accountId: number, ...params');
 		const data = await addWebexMeetings(meetings);
 		res.json(data);
 	}
@@ -138,7 +140,9 @@ router.patch('/meetings', async (req, res, next) => {
 	try {
 		const meetings = req.body;
 		if (!Array.isArray(meetings))
-			throw new TypeError('Missing or bad body; expected array')
+			throw new TypeError('Bad or missing array of Webex meeting objects');
+		if (!meetings.every(meeting => isPlainObject(meeting) && typeof meeting.accountId === 'number' && typeof meeting.id === 'string'))
+			throw new TypeError('Expected an array of objects with shape {accountId: number, id: string, ...changes}');
 		const data = await updateWebexMeetings(meetings);
 		res.json(data);
 	}
@@ -149,7 +153,9 @@ router.delete('/meetings', async (req, res, next) => {
 	try {
 		const meetings = req.body;
 		if (!Array.isArray(meetings))
-			throw new TypeError('Missing or bad body; expected array')
+			throw new TypeError('Bad or missing array of Webex meeting objects');
+		if (!meetings.every(meeting => isPlainObject(meeting) && typeof meeting.accountId === 'number' && typeof meeting.id === 'string'))
+			throw new TypeError('Expected an array of objects with shape {accountId: number, id: string}');
 		const data = await deleteWebexMeetings(meetings);
 		res.json(data);
 	}

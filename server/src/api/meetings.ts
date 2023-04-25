@@ -33,7 +33,7 @@
  *		Returns the number of meetings deleted.
  */
 import { Router } from 'express';
-
+import { isPlainObject } from '../utils';
 import {
 	getMeetings,
 	updateMeetings,
@@ -55,7 +55,9 @@ router.post('/$', async (req, res, next) => {
 	try {
 		const meetings = req.body;
 		if (!Array.isArray(meetings))
-			throw 'Missing or bad body; expected array';
+			throw new TypeError('Bad or missing of meeting objects');
+		if (!meetings.every(meeting => isPlainObject(meeting)))
+			throw new TypeError('Expected an array of objects');
 		const data = await addMeetings(req.user, meetings);
 		res.json(data);
 	}
@@ -66,7 +68,9 @@ router.patch('/$', async (req, res, next) => {
 	try {
 		const updates = req.body;
 		if (!Array.isArray(updates))
-			throw 'Missing or bad body; expected array';
+			throw new TypeError('Bad or missing array of update objects');
+		if (!updates.every(u => isPlainObject(u) && typeof u.id === 'number' && isPlainObject(u.changes)))
+			throw new TypeError('Expected array of objects to have shape {id, changes}');
 		const data = await updateMeetings(req.user, updates);
 		res.json(data);
 	}
@@ -77,7 +81,9 @@ router.delete('/$', async (req, res, next) => {
 	try {
 		const ids = req.body;
 		if (!Array.isArray(ids))
-			throw 'Missing or bad body; expected array';
+			throw new TypeError('Bad or missing array of meeting identifiers');
+		if (!ids.every(id => typeof id === 'number'))
+			throw new TypeError('Expected an array of numbers');
 		const data = await deleteMeetings(req.user, ids);
 		res.json(data);
 	}

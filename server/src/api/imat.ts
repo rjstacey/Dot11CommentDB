@@ -47,9 +47,8 @@
  *		Get a list of attendees for a specified breakout.
  *		Returns an array of attendance objects (user info with timestamp).
  */
-import {Router} from 'express';
-
-import {isPlainObject} from '../utils';
+import { Router } from 'express';
+import { isPlainObject } from '../utils';
 import {
 	getImatCommittees,
 	getImatMeetings,
@@ -93,7 +92,9 @@ router.post('/breakouts/:imatMeetingId(\\d+)', async (req, res, next) => {
 		const imatMeetingId = parseInt(req.params.imatMeetingId);
 		const breakouts = req.body;
 		if (!Array.isArray(breakouts))
-			throw new TypeError('Bad or missing body; expected array of breakouts');
+			throw new TypeError('Bad or missing array of breakout objects');
+		if (!breakouts.every(b => isPlainObject(b)))
+			throw new TypeError('Expected an array of objects');
 		const data = await addImatBreakouts(req.user, imatMeetingId, breakouts);
 		res.json(data);
 	}
@@ -105,7 +106,9 @@ router.put('/breakouts/:imatMeetingId(\\d+)', async (req, res, next) => {
 		const imatMeetingId = parseInt(req.params.imatMeetingId);
 		const breakouts = req.body;
 		if (!Array.isArray(breakouts))
-			throw new TypeError('Bad or missing body; expected array of breakouts');
+			throw new TypeError('Bad or missing array of breakout objects');
+		if (!breakouts.every(b => isPlainObject(b)))
+			throw new TypeError('Expected an array of objects');
 		const data = await updateImatBreakouts(req.user, imatMeetingId, breakouts);
 		res.json(data);
 	}
@@ -117,7 +120,9 @@ router.delete('/breakouts/:imatMeetingId(\\d+)', async (req, res, next) => {
 		const imatMeetingId = parseInt(req.params.imatMeetingId);
 		const ids = req.body;
 		if (!Array.isArray(ids))
-			throw new TypeError('Bad or missing body; expected array of breakout IDs');
+			throw new TypeError('Bad or missing array of breakout identifiers');
+		if (!ids.every(id => typeof id === 'number'))
+			throw new TypeError('Expected an array of numbers');
 		const data = await deleteImatBreakouts(req.user, imatMeetingId, ids);
 		res.json(data);
 	}
