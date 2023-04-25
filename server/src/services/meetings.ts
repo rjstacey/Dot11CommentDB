@@ -6,6 +6,8 @@ import { isPlainObject, AuthError, NotFoundError } from '../utils';
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 
+import type { User } from './users';
+
 import { getSession, Session } from './sessions';
 import { getWorkingGroup, Group } from './groups';
 
@@ -17,7 +19,7 @@ import {
 	updateWebexMeeting,
 	deleteWebexMeeting,
 	WebexMeeting,
-	WebexMeetingAdd,
+	WebexMeetingCreate,
 	WebexMeetingUpdate
 } from './webex';
 
@@ -232,16 +234,16 @@ function meetingToSetSql(e: Partial<Meeting>) {
 	return sets.join(', ');
 }
 
-/*
+/**
  * Create a Webex meeting event for a meeting.
  *
- * @meeting:object 	The meeting object.
+ * @param meeting Meeting object.
  *
- * Returns an object that is the Webex meeting event.
+ * @returns an object that is the Webex meeting event.
  */
 function meetingToWebexMeeting(meeting: Meeting) {
 	const timezone = meeting.timezone || 'America/New_York';
-	const webexMeeting: WebexMeetingAdd & WebexMeetingUpdate = {
+	const webexMeeting: WebexMeetingCreate & WebexMeetingUpdate = {
 		accountId: meeting.webexAccountId!,
 		password: 'wireless',
 		enabledAutoRecordMeeting: false,
@@ -269,18 +271,18 @@ function webexMeetingUpdateNeeded(webexMeeting: WebexMeeting, webexMeetingChange
 	return false;
 }
 
-/*
+/**
  * Format Webex meeting number (e.g., 1234 567 8901)
  */
-const formatMeetingNumber = (n: string) => n.substr(0, 4) + ' ' + n.substr(4, 3) + ' ' + n.substr(7);
+const formatMeetingNumber = (n: string) => n.slice(0, 4) + ' ' + n.slice(4, 7) + ' ' + n.slice(7);
 
-/*
+/**
  * Create IMAT breakout location string for a webex meeting.
  *
- * @webexAccountId:any 	The Webex account ID.
- * @webexMeeting:object The Webex meeting object.
+ * @param webexAccountId Webex account identifier.
+ * @param webexMeeting Webex meeting object.
  *
- * Returns a string that is the IMAT breakout location.
+ * @returns a string that is the IMAT breakout location.
  */
 export async function webexMeetingImatLocation(webexAccountId: number, webexMeeting: WebexMeeting) {
 	let location = '';
@@ -311,14 +313,14 @@ const meetingDescriptionStyle = `
 	</style>`;
 
 
-/*
+/**
  * Create a calendar event description for a meeting.
  * (works for google calendar but not outlook)
  *
- * @meeting:object 			The meeting for which the calendar event description is being created.
- * @webexMeeting?:object 	(optional) Webex meeting event object
+ * @param meeting The meeting for which the calendar event description is being created.
+ * @param webexMeeting (optional) Webex meeting event object
  *
- * Returns a string that is the calendar event description.
+ * @returns a string that is the calendar event description.
  */
 function meetingToCalendarDescriptionHtml(meeting: Meeting, webexMeeting: WebexMeeting) {
 
@@ -368,14 +370,14 @@ function meetingToCalendarDescriptionHtml(meeting: Meeting, webexMeeting: WebexM
 	return description.replace(/\t|\n/g, '');	// strip tabs and newline (helps with google calendar formating)
 }
 
-/*
+/**
  * Create a calendar event description for a meeting.
  *
- * @meeting:object 			The meeting for which the calendar event description is being created.
- * @webexMeeting?:object 	(optional) Webex meeting event object
- * @breakout?:object 		(optional) IMAT breakout object
+ * @param meeting The meeting for which the calendar event description is being created.
+ * @param webexMeeting (optional) Webex meeting event object
+ * @param breakout (optional) IMAT breakout object
  *
- * Returns a string that is the calendar event description.
+ * @returns a string that is the calendar event description.
  */
 function meetingToCalendarDescriptionText(meeting: Meeting, webexMeeting: WebexMeeting | undefined, breakout: Breakout | undefined) {
 
@@ -411,12 +413,15 @@ function meetingToCalendarDescriptionText(meeting: Meeting, webexMeeting: WebexM
 	return description.replace(/\t/g, '');	// strip tabs
 }
 
-/*
+/**
  * Create a calendar event for meeting.
  *
- * @meeting:object The meeting object for which the calendar event is being created.
+ * @param meeting The meeting for which the calendar event is being created.
+ * @param session (Optional) The session for which the calendar event is being created.
+ * @param webexMeeting (Optional) The Webex meeting for which the calendar event is being created.
+ * @param breakout (Optional) The IMAT breakout associated with the meeting
  *
- * Returns the calendar event object.
+ * @returns the calendar event object.
  */
 function meetingToCalendarEvent(
 	meeting: Meeting,
@@ -464,19 +469,19 @@ function meetingToCalendarEvent(
 	}
 }
 
-/*
+/**
  * Add a meeting, including adding webex, calendar and imat entries (if needed).
  *
- * @user:object 	The user executing the add
- * @meeting:object	The meeting object to be added
+ * @param user The user executing the add
+ * @param meetingToAdd The meeting object to be added
  *
- * Returns the id of the meeting added.
+ * @returns an object that includes the meeting as added, the Webex meeting event and IMAT breakout.
  */
-async function addMeeting(user, meetingToAdd: MeetingAddUpdate) {
+async function addMeeting(user: User, meetingToAdd: MeetingAddUpdate) {
 
 	let webexMeeting: WebexMeeting | undefined,
 		breakout: Breakout | undefined,
-		session: Promise<Session> | Session,
+		session: Promise<Session | undefined> | Session | undefined,
 		workingGroup: Promise<Group | undefined> | Group | undefined;
 
 	console.log(meetingToAdd);
@@ -543,15 +548,15 @@ async function addMeeting(user, meetingToAdd: MeetingAddUpdate) {
 	return {meeting: meetingOut, webexMeeting, breakout};
 }
 
-/*
+/**
  * Add meetings, including webex, calendar and imat entries.
  *
- * @user:object 	The user executing the add
- * @meetings:array 	An array of meeting objects to be added
+ * @param user The user executing the add
+ * @param meetings An array of meeting objects to be added
  *
- * Returns an array of meeting objects as added.
+ * @returns an object that contains an array of meeting objects as added, an array of webex meetings and an array of IMAT breakouts.
  */
-export async function addMeetings(user, meetingsIn: MeetingAddUpdate[]) {
+export async function addMeetings(user: User, meetingsIn: MeetingAddUpdate[]) {
 
 	if (!user.ieeeClient)
 		throw new AuthError('Not logged in');
@@ -573,7 +578,9 @@ export async function addMeetings(user, meetingsIn: MeetingAddUpdate[]) {
 	return {meetings, webexMeetings, breakouts};
 }
 
-/* Make Webex changes.
+/**
+ * Make Webex changes for a meeting update.
+ * 
  * If a Webex meeting was previously created (current entry has webexAccountId and webexMeetingId):
  *   Remove existing Webex meeting if webexMeetingId is changed to null.
  *   Remove existing Webex meeting and add a new webex meeting if webexMeetingId is changed to '$add'.
@@ -673,7 +680,9 @@ async function meetingMakeWebexUpdates(meeting: Meeting, changes: Partial<Meetin
 	return webexMeeting;
 }
 
-/* Make IMAT breakout changes
+/**
+ * Make IMAT breakout changes for a meeting update.
+ * 
  * If IMAT breakout was previously created (current entry has imatMeetingId and imatBreakoutId):
  *   If the imatMeetingId or imatBreakoutId is changed:
  *     Remove existing IMAT breakout if imatBreakoutId is set to null.
@@ -688,7 +697,7 @@ async function meetingMakeWebexUpdates(meeting: Meeting, changes: Partial<Meetin
  *      (the user is linking a meeting entry to an existing IMAT breakout entry)
  */
 async function meetingMakeImatBreakoutUpdates(
-	user,
+	user: User,
 	meeting: Meeting,
 	changes: Partial<MeetingAddUpdate>,
 	session: Session | undefined,
@@ -814,16 +823,16 @@ async function meetingMakeCalendarUpdates(
 	return calendarEvent;
 }
 
-/*
+/**
  * Update meeting, including changes to webex, calendar and imat.
  *
- * @user:object 	The user executing the update
- * @id:any 			The meeting identifier
- * @changes:object 	Object with meeting parameters to be changed.
+ * @param user The user executing the update
+ * @param id The meeting identifier
+ * @param changesIn Partial meeting object with parameters to be changed.
  *
- * Returns the meeting object as updated.
+ * @returns an object the includes the meeting object as updated, webex Meeting events as updated and IMAT breakouts as updated.
  */
-export async function updateMeeting(user, id: number, changesIn: Partial<MeetingAddUpdate>) {
+export async function updateMeeting(user: User, id: number, changesIn: Partial<MeetingAddUpdate>) {
 
 	let changes: Partial<Meeting> = {
 		...changesIn,
@@ -880,15 +889,15 @@ export async function updateMeeting(user, id: number, changesIn: Partial<Meeting
 
 
 
-/*
+/**
  * Update meetings.
  *
- * @user:object 	The user executing the update
- * @updates:array 	An array of update objects with shape {id, changes}
+ * @param user The user executing the update
+ * @param updates An array of update objects with shape {id, changes}
  *
- * Returns an array of meeting objects as updated.
+ * @returns an object that includes an array of meeting objects as updated, an array of webex Meeting events as updated and an array of IMAT breakouts as updated.
  */
-export async function updateMeetings(user, updates: MeetingUpdate[]) {
+export async function updateMeetings(user: User, updates: MeetingUpdate[]) {
 
 	if (!user.ieeeClient)
 		throw new AuthError('Not logged in');
@@ -916,15 +925,15 @@ export async function updateMeetings(user, updates: MeetingUpdate[]) {
 	return {meetings, webexMeetings, breakouts};
 }
 
-/*
+/**
  * Delete meetings.
  *
- * @user:object The user executing the delete.
- * @ids:array 	An array of meeting IDs identifying the meetings to be deleted.
+ * @param user The user executing the delete.
+ * @param ids An array of meeting identifiers that identify the meetings to be deleted.
  *
- * Returns the number of meetings deleted.
+ * @returns the number of meetings deleted.
  */
-export async function deleteMeetings(user, ids: number[]): Promise<number> {
+export async function deleteMeetings(user: User, ids: number[]): Promise<number> {
 
 	if (!user.ieeeClient)
 		throw new AuthError('Not logged in');

@@ -141,7 +141,7 @@ export async function init() {
 			.catch(err => {
 				console.log('show tables')
 				throw err
-			})
+			}) as any[];
 
 		existingTables = existingTables.map(t => Object.values(t)[0])
 		//console.log(existingTables)

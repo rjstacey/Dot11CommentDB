@@ -1,6 +1,8 @@
 import { fromIni } from '@aws-sdk/credential-providers';
 import { SESClient, SendEmailCommand, SendEmailCommandInput } from '@aws-sdk/client-ses';
 
+import type { User } from './users';
+
 const region = 'us-west-2';
 let credentials: ReturnType<typeof fromIni>;
 let sesClient: SESClient;
@@ -48,7 +50,12 @@ const defaultParams = {
 	],
 };
 
-export async function sendEmail(user, email: SendEmailCommandInput) {
+/**
+ * Send an email
+ * @param user The user executing the command
+ * @param email The email to be sent
+ */
+export async function sendEmail(user: User, email: SendEmailCommandInput) {
 	if (!sesClient)
 		throw new Error('eMail service has not been initialized');
 

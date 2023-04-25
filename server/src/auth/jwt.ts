@@ -8,12 +8,12 @@ const secret = (process.env.NODE_ENV === 'development')? 'secret': uuidv4();
 /*
  * Sign the user ID (SAPIN) and return as JWT token
  */
-export const token = (userId) => jwt.sign(userId, secret);
+export const token = (userId: number) => jwt.sign(userId.toString(), secret);
 
 /*
  * Get token from header
  */
-const getToken = (req) => {
+const getToken = (req): string => {
 	try {
 		return req.header('Authorization').replace('Bearer ', '');
 	}
@@ -44,9 +44,9 @@ export const verify = (req) => {
 export const authorize = async (req, res, next) => {
 	try {
 		const token = getToken(req);
-		let userId;
+		let userId: number;
 		try {
-			userId = jwt.verify(token, secret);
+			userId = Number(jwt.verify(token, secret));
 		}
 		catch (error) {
 			console.warn('unauthorized');

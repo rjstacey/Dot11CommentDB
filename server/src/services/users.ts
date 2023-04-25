@@ -11,6 +11,7 @@ const superUser: User = {
 	Name: 'Robert Stacey',
 	Email: 'rjstacey@gmail.com',
 	Status: 'Voter',
+	Token: null,
 	Access: 3,
 	Permissions: ['wg_admin']
 };
@@ -43,6 +44,7 @@ export type User = {
 	Name: string;
 	Email: string;
 	Status: string;
+	Token: any;
 	Access: number;
 	Permissions: string[];
 	ieeeClient?: AxiosInstance;

@@ -1,8 +1,11 @@
 import db from '../utils/database';
-import {getResults, getResultsCoalesced, Result} from './results';
-import {getVoters} from './voters';
-import {getCommentsSummary} from './comments';
-import { OkPacket } from 'mysql2';
+import type { OkPacket } from 'mysql2';
+
+import { getResults, getResultsCoalesced, Result } from './results';
+import { getVoters } from './voters';
+import { getCommentsSummary } from './comments';
+
+import type { User } from './users';
 
 export type Ballot = {
     id: number;
@@ -48,11 +51,22 @@ export const getBallotsSQL =
  * Get comments summary for ballot
  */
 
+/**
+ * Get all ballots.
+ * 
+ * @returns An array of ballot objects.
+ */
 export async function getBallots() {
 	const ballots = await db.query(getBallotsSQL + ' ORDER BY Project, Start') as Ballot[];
 	return ballots;
 }
 
+/**
+ * Get a ballot.
+ * 
+ * @param id Ballot identifier
+ * @returns A ballot object that represents the identified ballot
+ */
 export async function getBallot(id: number) {
 	const [ballot] = await db.query(getBallotsSQL + ' WHERE id=?', [id]) as Ballot[];
 	if (!ballot)
@@ -60,7 +74,7 @@ export async function getBallot(id: number) {
 	return ballot;
 }
 
-async function getBallotWithNewResultsSummary(user, ballot_id: number) {
+async function getBallotWithNewResultsSummary(user: User, ballot_id: number) {
 	const {ballot, summary: resultsSummary} = await getResultsCoalesced(user, ballot_id);
 	const commentsSummary = await getCommentsSummary(ballot_id);
 	return {
@@ -154,7 +168,14 @@ function ballotEntry(ballot: Partial<Ballot>) {
 	return Object.keys(entry).length? entry: null;
 }
 
-async function addBallot(user, ballot: Ballot) {
+/**
+ * Add a ballot
+ * 
+ * @param user The user executing the add
+ * @param ballot The ballot to be added
+ * @returns The ballot as added
+ */
+async function addBallot(user: User, ballot: Ballot) {
 
 	const entry = ballotEntry(ballot);
 
@@ -177,7 +198,14 @@ async function addBallot(user, ballot: Ballot) {
 	return getBallotWithNewResultsSummary(user, id);
 }
 
-export async function addBallots(user, ballots: Ballot[]) {
+/**
+ * Add ballots.
+ * 
+ * @param user The user executing the add
+ * @param ballots An array of ballots to be added
+ * @returns An array of ballots as added
+ */
+export async function addBallots(user: User, ballots: Ballot[]) {
 	return Promise.all(ballots.map(b => addBallot(user, b)));
 }
 
@@ -186,7 +214,15 @@ type BallotUpdate = {
 	changes: Partial<Ballot>;
 }
 
-async function updateBallot(user, update: BallotUpdate) {
+/**
+ * Update ballot
+ * 
+ * @param user The user executing the update.
+ * @param update An object with shape {id, changes}
+ * @param update.id Identifies the ballot.
+ * @param update.changes A partial ballot object that contains parameters to be changed.
+ */
+async function updateBallot(user: User, update: BallotUpdate) {
 	const {id, changes} = update;
 	if (!id)
 		throw new TypeError('Missing id');
@@ -204,10 +240,15 @@ async function updateBallot(user, update: BallotUpdate) {
 	return getBallotWithNewResultsSummary(user, id);
 }
 
-export function updateBallots(user, updates: BallotUpdate[]) {
+export function updateBallots(user: User, updates: BallotUpdate[]) {
 	return Promise.all(updates.map(u => updateBallot(user, u)));
 }
 
+/**
+ * Delete ballots.
+ *  
+ * @param ids An array of ballot identifiers that identify the ballots to delete
+ */
 export async function deleteBallots(ids: number[]) {
 	await db.query(
 		'START TRANSACTION;' +

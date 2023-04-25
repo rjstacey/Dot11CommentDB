@@ -27,7 +27,9 @@ const webexAuthRedirectUri = process.env.NODE_ENV === 'development'?
 	'http://localhost:3000/oauth2/webex':
 	'https://802tools.org/oauth2/webex';
 
-const apis: Record<number, AxiosInstance> = {};	// Webex account APIs indexed by account ID.
+/**  Webex account APIs indexed by account ID. */
+const apis: Record<number, AxiosInstance> = {};
+
 const defaultTimezone = 'America/New_York';
 let webexClientId: string;
 let webexClientSecret: string;
@@ -51,8 +53,11 @@ declare module 'axios' {
 	}
 }
 
-/*
+/**
  * Create Webex API.
+ * 
+ * @param id Account identifier
+ * @param authParams Object containing the access and refresh tokens
  *
  * Instantiate an Axios instance to access a Webex account.
  * Create a response interceptor that will reaquire a token if the current token expires.
@@ -112,15 +117,20 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 	apis[id] = api;
 }
 
-/*
+/**
  * Delete Webex API.
+ * 
+ * @param id Account identifier
  */
 function deleteWebexApi(id: number) {
 	delete apis[id];
 }
 
-/*
+/**
  * Store autherization parameters in oauth_accounts table.
+ * 
+ * @param id Account identifier
+ * @param authParams Object containing access and refresh token
  */
 function updateAuthParams(id: number, authParams: object) {
 	return db.query('UPDATE oauth_accounts SET authParams=?, authDate=NOW() WHERE id=?', [JSON.stringify(authParams), id]) as Promise<OkPacket>;
@@ -140,7 +150,7 @@ type WebexAccount = OAuthAccount & {
 	templates: any[];
 }
 
-/*
+/**
  * Init routine, run at startup.
  *
  * Instantiate an API for each of the configured Webex accounts.
@@ -168,10 +178,14 @@ export async function init() {
 	}
 }
 
-/*
+/**
  * Get a list of Webex accounts.
  * Set the autherization URL for each.
  * Try to get a list of templates for each.
+ * 
+ * @param constraints An object containting constraints for database query
+ * 
+ * @returns an array of Webex account objects
  */
 async function getAccounts(constraints?: object): Promise<WebexAccount[]> {
 	let sql = 'SELECT `id`, `name`, `type`, `groups`, `authDate` FROM oauth_accounts';
@@ -194,9 +208,12 @@ async function getAccounts(constraints?: object): Promise<WebexAccount[]> {
 	return accounts;
 }
 
-/*
+/**
  * Get the URL for authorizing webex access
- * @id {number} Webex account identifier
+ * 
+ * @param id Webex account identifier
+ * 
+ * @returns the URL for authorizing Webex access
  */
 export function getAuthWebexAccount(id: number) {
 	return webexAuthUrl +
@@ -256,13 +273,13 @@ function accountEntry(s: Partial<OAuthAccount>) {
 	return entry;
 }
 
-/*
+/**
  * Add a Webex account.
  * Just creates a database entry. Instatiation occurs following OAuth2 process.
  *
- * @entry:object 	An account object.
+ * @params accountIn An account object.
  *
- * Returns an object that is the account as added.
+ * @returns an object that is the account as added.
  */
 export async function addWebexAccount(accountIn: OAuthAccount) {
 	let entry = accountEntry(accountIn);
@@ -272,11 +289,13 @@ export async function addWebexAccount(accountIn: OAuthAccount) {
 	return account;
 }
 
-/*
+/**
  * Update a Webex account.
  *
- * @id:any 			The account ID.
- * @entry:object 	An object with paramter changes for the account.
+ * @param id The account ID.
+ * @param accountIn A partial account object with changes for the account.
+ * 
+ * @returns the account object as update
  */
 export async function updateWebexAccount(id: number, accountIn: Partial<OAuthAccount>) {
 	if (!id)
@@ -288,7 +307,7 @@ export async function updateWebexAccount(id: number, accountIn: Partial<OAuthAcc
 	return account;
 }
 
-/*
+/**
  * Delete a Webex account.
  * If an API has been instatiated, delete that too.
  *
@@ -358,18 +377,29 @@ export type WebexMeetingOptions = {
 	enabledUCFRichMedia?: boolean;
 }
 
-export type WebexMeetingAudioConnectionOptions = {
+export type WebexAudioConnectionOptions = {
+	/** Whether or not to allow attendees to unmute themselves. */
 	allowAttendeeToUnmuteSelf: boolean;
+	/** Whether or not to auto-mute attendees when attendees enter meetings. */
 	muteAttendeeUponEntry: boolean;
-	entryAndExitTone: string;
+	/** Select the sound you want users who have a phone audio connection to hear when someone enters or exits the meeting. 
+	 * `beep` All call-in users joining the meeting will hear the beep.
+	 * `announceName` All call-in users joining the meeting will hear their names.
+	 * `noTone`	Turn off beeps and name announcements. */
+	entryAndExitTone: "beep" | "announceName" | "noTone";
+	/** Whether or not to allow the host to unmute participants. */
 	allowHostToUnmuteParticipants: boolean;
-	audioConnectionType: "webexAudio";
+	/** Choose how meeting attendees join the audio portion of the meeting. */
+	audioConnectionType: "webexAudio" | "VoIP" | "other" | "none";
+	/** Whether or not to allow attendees to receive a call-back and call-in is available. Can only be set true for a webinar. */
 	enabledAudienceCallBack: boolean;
+	/** Whether or not to show global call-in numbers to attendees. */
 	enabledGlobalCallIn: boolean;
+	/** Whether or not to show toll-free call-in numbers. */
 	enabledTollFreeCallIn: boolean;
 }
 
-export type WebexMeetingAdd = WebexMeetingAlways & {
+export type WebexMeetingCreate = WebexMeetingAlways & {
 	/** Meeting title. The title can be a maximum of 128 characters long. */
 	title: string;
 	/** Meeting agenda. The agenda can be a maximum of 1300 characters long. */
@@ -389,7 +419,6 @@ export type WebexMeetingAdd = WebexMeetingAlways & {
 	/** Meeting series recurrence rule (conforming with RFC 2445), applying only to meeting series.
 	 *  It doesn't apply to a scheduled meeting or an ended or ongoing meeting instance. */
 	recurance?: string;
-	integrationTags?: string[];
 	/** Whether or not meeting is recorded automatically. */
 	enabledAutoRecordMeeting?: boolean;
 	/** Whether or not to allow any attendee with a host account to become a cohost when joining the meeting. */
@@ -405,20 +434,43 @@ export type WebexMeetingAdd = WebexMeetingAlways & {
 	enableConnectAudioBeforeHost?: boolean;
 	/** Whether or not to allow the meeting to be listed on the public calendar. */
 	publicMeeting?: boolean;
+	/** Whether or not to send emails to host and invitees. It is an optional field and default value is true. 
+	 *  The default value for an ad-hoc meeting is false and the user's input value will be ignored. */
+	sendEmail?: boolean;
+	/** Email address for the meeting host. This attribute should only be set if the user or application calling the API has the admin-level scopes. 
+	 *  When used, the admin may specify the email of a user in a site they manage to be the meeting host. */
+	hostEmail?: string;
+	/** URL of the Webex site which the meeting is created on. If not specified, the meeting is created on user's preferred site.
+	 *  All available Webex sites and preferred site of the user can be retrieved by Get Site List API. */
+	siteUrl?: string;
 	/** Meeting Options. */
 	meetingOptions?: Partial<WebexMeetingOptions>;
-	audioConnectionOptions?: Partial<WebexMeetingAudioConnectionOptions>;
+	/** Audio connection options. */
+	audioConnectionOptions?: Partial<WebexAudioConnectionOptions>;
+	integrationTags?: string[];
 }
 
-export type WebexMeetingUpdate = WebexMeetingAlways & Partial<Omit<WebexMeetingAdd, "templateId">> & {
+export type WebexMeetingUpdate = WebexMeetingAlways & Partial<Omit<WebexMeetingCreate, "templateId">> & {
 	/** Unique identifier for meeting. For a meeting series, the id is used to identify the entire series. */
 	id: string;
 }
 
 type CallInNumber = {
+	/** Label for the call-in number. */
 	label: string;
+	/** Call-in number to join the teleconference from a phone. */
 	callInNumber: string;
-	tollType: "toll";
+	/** Type of toll for the call-in number. */
+	tollType: "toll" | "tollFree";
+}
+
+type LinksForTelephony = {
+	/** Link relation describing how the target resource is related to the current context (conforming with RFC5998). */
+	rel: string;
+	/** Target resource URI (conforming with RFC5998). */
+	href: string;
+	/** Target resource method (conforming with RFC5998). */
+	method: string;
 }
 
 type Telephony = {
@@ -427,39 +479,29 @@ type Telephony = {
 	/** Array of call-in numbers for joining a teleconference from a phone. */
 	callInNumbers: CallInNumber[];
 	/** HATEOAS information of global call-in numbers for joining a teleconference from a phone. */
-	link: any[]
+	link: LinksForTelephony[]
 }
 
 export interface WebexMeeting extends Required<WebexMeetingUpdate> {
 	/** Meeting number. Applies to meeting series, scheduled meeting, and meeting instances, but not to meeting instances which have ended.*/
 	meetingNumber: string;
-	/** Meeting type. */
-	meetingType: 
-		/** Primary instance of a scheduled series of meetings which consists of one or more scheduled meetings based on a recurrence rule. */
-		"meetingSeries" |
-		/** Instance from a primary meeting series. */
-		"scheduledMeeting" |
-		/** Meeting instance that is in progress or has completed. */
-		"meeting";
-	state: 
-		/** Only applies to a meeting series. Indicates that one or more future scheduled meetings exist for this meeting series. */
-		"active" |
-		/** Only applies to scheduled meeting. Indicates that the meeting is scheduled in the future. */
-		"scheduled" |
-		/** Only applies to scheduled meeting. Indicates that this scheduled meeting is ready to start or join immediately. */
-		"ready" |
-		/** Only applies to meeting instances. Indicates that a locked meeting has been joined by participants, but no hosts have joined. */
-		"lobby" |
-		/** Applies to meeting series and meeting instances. For a meeting series, indicates that an instance of this series is happening now. 
-		 *  For a meeting instance, indicates that the meeting has been joined and unlocked. */
-		"inProgress" |
-		/** Applies to scheduled meetings and meeting instances. For scheduled meetings, indicates that the meeting was started and is now over. 
-		 *  For meeting instances, indicates that the meeting instance has concluded. */
-		"ended" |
-		/** This state only applies to scheduled meetings. Indicates that the meeting was scheduled in the past but never happened. */
-		"missed" |
-		/** This state only applies to a meeting series. Indicates that all scheduled meetings of this series have passed. */
-		"expired";
+	/** Meeting type. 
+	 * - `meetingSeries`    Instance from a primary meeting series.
+	 * - `scheduledMeeting` Meeting instance that is in progress or has completed.
+	 * - `meeting`          Meeting instance that is in progress or has completed. */
+	meetingType: "meetingSeries" | "scheduledMeeting" | "meeting";
+	/** Meeting state.
+	 * - `active`     Only applies to a meeting series. Indicates that one or more future scheduled meetings exist for this meeting series.
+	 * - `scheduled`  Only applies to scheduled meeting. Indicates that the meeting is scheduled in the future.
+	 * - `ready`      Only applies to scheduled meeting. Indicates that this scheduled meeting is ready to start or join immediately.
+	 * - `lobby`      Only applies to meeting instances. Indicates that a locked meeting has been joined by participants, but no hosts have joined.
+	 * - `inProgress` Applies to meeting series and meeting instances. For a meeting series, indicates that an instance of this series is happening now. 
+	 *                For a meeting instance, indicates that the meeting has been joined and unlocked.
+	 * - `ended`      Applies to scheduled meetings and meeting instances. For scheduled meetings, indicates that the meeting was started and is now over. 
+	 *                For meeting instances, indicates that the meeting instance has concluded.
+	 * - `missed`     This state only applies to scheduled meetings. Indicates that the meeting was scheduled in the past but never happened.
+	 * - `expired`    This state only applies to a meeting series. Indicates that all scheduled meetings of this series have passed. */
+	state: "active" | "scheduled" |	"ready" | "lobby" | "inProgress" | "ended" | "missed" |	"expired";
 	/** Link to a meeting information page where the meeting client is launched if the meeting is ready to start or join. */
 	webLink: string;
 	/** Site URL for the meeting. */
@@ -468,13 +510,41 @@ export interface WebexMeeting extends Required<WebexMeetingUpdate> {
 	sipAddress: string;
 	/** Information for callbacks from a meeting to phone or for joining a teleconference using a phone. */
 	telephony: Telephony;
+	/** Key for joining the meeting as host. */
 	hostKey: string;
+	/** Unique identifier for the meeting host. */
 	hostUserId: string;
+	/** Email address for the meeting host. */
 	hostEmail: string;
+	/** Display name for the meeting host. */
 	hostDisplayName: string;
 }
 
-/* Convert infor for webex meeting to confiurable parameters */
+export type WebexMeetingTemplate = {
+	/** Unique identifier for meeting template. */
+	id: string;
+	/** Meeting template name. */
+	name: string;
+	/** Meeting template locale. */
+	locale: string;
+	/** Site URL for the meeting template. */
+	siteUrl: string;
+	templateType: "meeting" | "webinar";
+	/** Whether or not the meeting template is a default template. */
+	isDefault: boolean;
+	/** Whether or not the meeting template is a standard template. */
+	isStandard: boolean;
+	/** Meeting object which is used to create a meeting by the meeting template. 
+	 * Please note that the meeting object should be used to create a meeting immediately after retrieval since the start and end may be invalid quickly after generation. */
+	meeting: object;
+}
+
+/**
+ * Convert from webex meeting info to confiurable parameters
+ * 
+ * @param i - Webex meeting info
+ * @returns Webex meeting configuration parameters
+ */
 export function webexMeetingToWebexMeetingParams(i: WebexMeeting): WebexMeetingUpdate {
 	const o = {
 		accountId: i.accountId,
@@ -502,16 +572,17 @@ export function webexMeetingToWebexMeetingParams(i: WebexMeeting): WebexMeetingU
 	return o;
 }
 
-/*
- * Get Webex meetings.
+/**
+ * Get a list of Webex meetings.
  *
- * @groupId?:any 		If present, List meetings from Webex accounts associated with this groupId.
- * @fromDate?:string 	If present, Webex meetings scheduled for on or after this date (ISO date string)
- * @toDate?:string 		If present, Webex meetings scheduled before this date (ISO date string)
- * @timezone?:string 	If present, return Webex meetings with schedule in timezone specified.
- * @ids?:array 			If present, return Webex meetings with IDs in list.
+ * @param constraints Constraints object
+ * @param constraints.groupId    If present, List meetings from Webex accounts associated with this groupId.
+ * @param constraints.fromDate   If present, Webex meetings scheduled for on or after this date (ISO date string)
+ * @param constraints.toDate     If present, Webex meetings scheduled before this date (ISO date string)
+ * @param constraints.timezone   If present, return Webex meetings with schedule in timezone specified.
+ * @param constraints.ids        If present, return Webex meetings with IDs in list.
  *
- * Returns an array of Webex meeting objects.
+ * @returns An array of Webex meeting objects.
  */
 export async function getWebexMeetings({
 	groupId,
@@ -565,11 +636,11 @@ export async function getWebexMeeting(accountId: number, id: string): Promise<We
 		.catch(webexApiError);
 }
 
-/*
- * Validate the @meetings parameter for addWebexMeetings(), updateWebexMeeting() and deleteWebexMeetings()
+/**
+ * Validate the `meetings` parameter for addWebexMeetings(), updateWebexMeeting() and deleteWebexMeetings()
  *
- * @meetings:array 	The meetings array to validate. Each entry is expected to be an object with a
- *					a parameter @accountId that is a valid Webex account ID.
+ * @param meetings 	The meetings array to validate. Each entry is expected to be an object with
+ * 					a parameter `accountId` that is a valid Webex account ID.
  */
 function validateMeetingsArray(meetings: WebexMeetingAlways[]) {
 	for (const m of meetings) {
@@ -579,41 +650,41 @@ function validateMeetingsArray(meetings: WebexMeetingAlways[]) {
 	}
 }
 
-/*
+/**
  * Add a Webex meeting.
  *
- * @accountId:any 	Webex account ID.
- * @params:object 	Webex meeting object.
+ * @param webexMeeting Webex meeting parameters object that also includes:
+ * @param webexMeeting.accountId Webex account ID.
  *
- * Returns an object that is the Webex meeting as added.
+ * @returns an object that is the Webex meeting as added.
  */
-export async function addWebexMeeting({accountId, ...params}: WebexMeetingAdd): Promise<WebexMeeting> {
+export async function addWebexMeeting({accountId, ...params}: WebexMeetingCreate): Promise<WebexMeeting> {
 	const api = getWebexApi(accountId);
 	return api.post('/meetings', params)
 		.then(response => ({accountId, ...response.data}))
 		.catch(webexApiError);
 }
 
-/*
+/**
  * Add Webex meetings.
  *
- * @meetings:array 	An array of Webex meeting objects.
+ * @param meetings An array of Webex meeting objects.
  *
- * Returns and array of Webex meeting objects as added.
+ * @returns an array of Webex meeting objects as added.
  */
-export async function addWebexMeetings(meetings: WebexMeetingAdd[]) {
+export async function addWebexMeetings(meetings: WebexMeetingCreate[]) {
 	validateMeetingsArray(meetings);
 	return Promise.all(meetings.map(addWebexMeeting));
 }
 
-/*
+/**
  * Update a Webex meeting.
  *
- * @accountId:any 	Webex account ID
- * @id:any 			Webex meeting ID
- * @params:object 	Webex meeting parameters to change
+ * @param webexMeeting Webex meeting parameters object that also includes:
+ * @param webexMeeting.accountId Webex account ID
+ * @param webexMeeting.id Webex meeting ID
  *
- * Returns an object that is the Webex meeting as updated.
+ * @returns an object that is the Webex meeting as updated.
  */
 export async function updateWebexMeeting({accountId, id, ...params}: WebexMeetingUpdate): Promise<WebexMeeting> {
 	const api = getWebexApi(accountId);
@@ -622,23 +693,24 @@ export async function updateWebexMeeting({accountId, id, ...params}: WebexMeetin
 		.catch(webexApiError);
 }
 
-/*
+/**
  * Update Webex meetings.
  *
- * @meetings:array 	An array of Webex meeting objects.
+ * @param meetings An array of Webex meeting objects.
  *
- * Returns an array of Webex meeting objects.
+ * @returns an array of Webex meeting objects.
  */
 export async function updateWebexMeetings(meetings: WebexMeetingUpdate[]) {
 	validateMeetingsArray(meetings);
 	return Promise.all(meetings.map(updateWebexMeeting));
 }
 
-/*
+/**
  * Delete a Webex meeting.
  *
- * @accountId:any 	Webex account ID
- * @id: any 		Webex meeting ID
+ * @param webexMeeting that includes:
+ * @param webexMeeting.accountId Webex account ID
+ * @param webexMeeting.id Webex meeting ID
  *
  */
 export async function deleteWebexMeeting({accountId, id}: Pick<WebexMeeting, "accountId" | "id">) {
@@ -648,12 +720,12 @@ export async function deleteWebexMeeting({accountId, id}: Pick<WebexMeeting, "ac
 		.catch(webexApiError);
 }
 
-/*
+/**
  * Delete Webex meetings.
  *
- * @meetings:array 	An array of objects with shape {accountId, id}.
+ * @param meetingsAn array of objects with shape {accountId, id}.
  *
- * Returns the number of meetings deleted.
+ * @returns the number of meetings deleted.
  */
 export async function deleteWebexMeetings(meetings: Pick<WebexMeeting, "accountId" | "id">[]) {
 	validateMeetingsArray(meetings);

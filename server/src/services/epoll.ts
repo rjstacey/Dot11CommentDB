@@ -6,6 +6,8 @@ import { DateTime } from 'luxon';
 import cheerio from 'cheerio';
 import { csvParse } from '../utils';
 
+import type { User } from './users';
+
 // Convert date string to UTC
 function parseDateTime(dateStr: string) {
 	// Date is in format: "11-Dec-2018 23:59:59 ET" and is always eastern time
@@ -57,20 +59,20 @@ function parseClosedEpollsPage(body: string): Epoll[] {
 	}
 }
 
-/*
- * getEpolls
+/**
+ * Get ePolls
  *
  * Parameters: n = number of entries to get
  */
-export async function getEpolls(user, n) {
+export async function getEpolls(user: User, n: number) {
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new Error('Not logged in');
 
-	async function recursivePageGet(epolls, n, page) {
+	async function recursivePageGet(epolls: Epoll[], n: number, page: number) {
 		//console.log('get epolls n=', n)
 
-		const {data} = await ieeeClient.get(`https://mentor.ieee.org/802.11/polls/closed?n=${page}`);
+		const {data} = await ieeeClient!.get(`https://mentor.ieee.org/802.11/polls/closed?n=${page}`);
 
 		var epollsPage = parseClosedEpollsPage(data);
 		var end = n - epolls.length;

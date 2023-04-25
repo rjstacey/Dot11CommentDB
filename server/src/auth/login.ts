@@ -5,7 +5,7 @@ import { selectUser, getUser, setUser, delUser } from '../services/users';
 
 //const cheerio = require('cheerio');
 //const db = require('../utils/database');
-const jwt = require('./jwt');
+import { verify, token } from './jwt';
 
 const loginUrl = '/pub/login';
 const logoutUrl = '/pub/logout';
@@ -104,7 +104,7 @@ const router = Router();
 
 router.get('/login', async (req, res, next) => {
 	try {
-		const userId = jwt.verify(req);
+		const userId = Number(verify(req));
 		const {ieeeClient, ...user} = await getUser(userId);
 		res.json({user});
 	}
@@ -124,7 +124,7 @@ router.post('/login', async (req, res, next) => {
 
 		const user = (await selectUser({SAPIN, Email})) || {SAPIN, Name, Email, Access: 0, Permissions: []};
 
-		user.Token = jwt.token(user.SAPIN);
+		user.Token = token(user.SAPIN);
 		setUser(user.SAPIN, {...user, ieeeClient});
 
 		res.json({user});
@@ -134,7 +134,7 @@ router.post('/login', async (req, res, next) => {
 
 router.post('/logout', async (req, res, next) => {
 	try {
-		const userId = jwt.verify(req);
+		const userId = Number(verify(req));
 		const user = await getUser(userId);
 		if (user) {
 			if (user.ieeeClient)

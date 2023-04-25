@@ -5,7 +5,7 @@
  */
 import { Router } from 'express';
 
-import {userIsMember, userIsSubgroupAdmin, userIsWGAdmin} from '../services/users';
+import {userIsMember, userIsSubgroupAdmin, userIsWGAdmin, User} from '../services/users';
 import {authorize} from '../auth/jwt'
 
 import timezones from './timezones';
@@ -48,15 +48,6 @@ router.use('/timezones', timezones);
  * Successful authorization leaves authorized user's context in req (in req.user)
  */
 router.use(authorize);
-
-type User = {
-	SAPIN: number;
-	Name: string;
-	Email: string;
-	Status: string;
-	Access: number;
-	Permissions: string[];
-}
 
 declare global {
 	namespace Express {

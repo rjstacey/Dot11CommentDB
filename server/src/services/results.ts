@@ -4,6 +4,8 @@ import { v4 as uuid } from 'uuid';
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 
+import { User } from './users';
+
 import {AccessLevel} from '../auth/access';
 import {parseEpollResultsCsv, parseEpollResultsHtml} from './epoll';
 import {parseMyProjectResults} from './myProjectSpreadsheets';
@@ -338,7 +340,7 @@ function summarizeBallotResults(results: Result[]): ResultsSummary {
 	return summary;
 }
 
-export async function getResultsCoalesced(user, ballot_id: number) {
+export async function getResultsCoalesced(user: User, ballot_id: number) {
 
 	const ballot: Ballot = await getBallot(ballot_id);
 
@@ -461,7 +463,7 @@ export async function deleteResults(ballot_id: number): Promise<number> {
 	return results[1].affectedRows;
 }
 
-async function insertResults(user, ballot_id: number, pollResults: Partial<Result>[]) {
+async function insertResults(user: User, ballot_id: number, pollResults: Partial<Result>[]) {
 	let SQL = db.format('DELETE FROM results WHERE ballot_id=?;', ballot_id);
 	if (pollResults.length)
 		SQL +=
@@ -472,13 +474,13 @@ async function insertResults(user, ballot_id: number, pollResults: Partial<Resul
 	return getResultsCoalesced(user, ballot_id);
 }
 
-export async function importEpollResults(user, ballot_id: number, epollNum: number) {
+export async function importEpollResults(user: User, ballot_id: number, epollNum: number) {
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new Error('Not logged in');
 
-	const p1 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`, {responseType: 'text/csv'});
+	const p1 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`);
 	const p2 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-status?p=${epollNum}`);
 
 	let response = await p1;
@@ -502,25 +504,25 @@ export async function importEpollResults(user, ballot_id: number, epollNum: numb
 	return insertResults(user, ballot_id, results);
 }
 
-export async function uploadEpollResults(user, ballotId: number, file) {
+export async function uploadEpollResults(user: User, ballotId: number, file) {
 	const pollResults = await parseEpollResultsCsv(file.buffer)
 	return insertResults(user, ballotId, pollResults);
 }
 
-export async function uploadMyProjectResults(user, ballotId: number, file) {
+export async function uploadMyProjectResults(user: User, ballotId: number, file) {
 	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1
 	const pollResults = await parseMyProjectResults(file.buffer, isExcel)
 	return insertResults(user, ballotId, pollResults);
 }
 
-export async function exportResultsForBallot(user, ballot_id: number, res) {
+export async function exportResultsForBallot(user: User, ballot_id: number, res) {
 	const result = await getResultsCoalesced(user, ballot_id);
 	res.attachment(result.ballot.BallotID + '_results.xlsx');
 	await genResultsSpreadsheet([result], res);
 	res.end();
 }
 
-export async function exportResultsForProject(user, project: string, res) {
+export async function exportResultsForProject(user: User, project: string, res) {
 	let ballots = await db.query('SELECT id FROM ballots WHERE Project=?', [project]) as Ballot[];
 	let results = await Promise.all(ballots.map(r => getResultsCoalesced(user, r.id)));
 	res.attachment(project + '_results.xlsx');

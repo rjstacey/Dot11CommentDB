@@ -4,6 +4,9 @@
 import PropTypes, { string } from 'prop-types';
 import { DateTime, Duration } from 'luxon';
 import cheerio from 'cheerio';
+
+import type { User } from './users';
+
 import { csvParse, AuthError, NotFoundError } from '../utils';
 import { webexMeetingImatLocation } from './meetings';
 import { getGroups } from './groups';
@@ -245,7 +248,7 @@ async function parseMeetingsCsv(buffer: Buffer): Promise<ImatMeeting[]> {
  *
  * Parameters: n = number of entries to get
  */
-export async function getImatMeetings(user): Promise<ImatMeeting[]> {
+export async function getImatMeetings(user: User): Promise<ImatMeeting[]> {
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
@@ -280,7 +283,7 @@ export async function getImatMeetings(user): Promise<ImatMeeting[]> {
 	return meetings;
 }
 
-async function getImatMeeting(user, id: number): Promise<ImatMeeting> {
+async function getImatMeeting(user: User, id: number): Promise<ImatMeeting> {
 	const meetings = await getImatMeetings(user);
 	const meeting = meetings.find(m => m.id === id);
 	if (!meeting)
@@ -400,7 +403,7 @@ async function parseImatCommitteesCsv(buffer: Buffer): Promise<CsvCommittee[]> {
  *
  * Parameters: group = name of the owning group
  */
-export async function getImatCommittees(user, group: string) {
+export async function getImatCommittees(user: User, group: string) {
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
@@ -622,7 +625,7 @@ async function parseImatTimeslotCsv(buffer: Buffer) {
 	}));
 }
 
-export async function getImatBreakouts(user, imatMeetingId: number) {
+export async function getImatBreakouts(user: User, imatMeetingId: number) {
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
@@ -708,7 +711,7 @@ const breakoutProps = {
 	facilitator: PropTypes.string,
 };
 
-async function addImatBreakout(user, imatMeeting: ImatMeeting, timeslots: Timeslot[], pageCommittees: PageCommittee[], breakout: Breakout): Promise<Breakout> {
+async function addImatBreakout(user: User, imatMeeting: ImatMeeting, timeslots: Timeslot[], pageCommittees: PageCommittee[], breakout: Breakout): Promise<Breakout> {
 
 	PropTypes.checkPropTypes(breakoutProps, breakout, 'breakout', 'addImatBreakout');
 
@@ -729,7 +732,7 @@ async function addImatBreakout(user, imatMeeting: ImatMeeting, timeslots: Timesl
 		f9: "OK/Done"
 	};
 
-	let response = await ieeeClient.post(`/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`, params);
+	let response = await ieeeClient!.post(`/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`, params);
 	//console.log(response)
 
 	if (response.data.search(/<title>IEEE Standards Association - Event detail<\/title>/) === -1) {
@@ -784,7 +787,7 @@ function pageBreakoutToBreakout(pageBreakout: PageBreakout, timeslots: Timeslot[
 	}
 }
 
-export async function addImatBreakouts(user, imatMeetingId: number, breakouts: Breakout[]): Promise<{breakouts: Breakout[]}> {
+export async function addImatBreakouts(user: User, imatMeetingId: number, breakouts: Breakout[]): Promise<{breakouts: Breakout[]}> {
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
@@ -801,7 +804,7 @@ export async function addImatBreakouts(user, imatMeetingId: number, breakouts: B
 	return {breakouts};
 }
 
-export async function deleteImatBreakouts(user, imatMeetingId: number, ids: number[]): Promise<number> {
+export async function deleteImatBreakouts(user: User, imatMeetingId: number, ids: number[]): Promise<number> {
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
@@ -837,7 +840,7 @@ export async function deleteImatBreakouts(user, imatMeetingId: number, ids: numb
 	return ids.length;
 }
 
-async function updateImatBreakout(user, imatMeeting: ImatMeeting, breakout: Breakout): Promise<PageBreakout> {
+async function updateImatBreakout(user: User, imatMeeting: ImatMeeting, breakout: Breakout): Promise<PageBreakout> {
 
 	PropTypes.checkPropTypes(breakoutProps, breakout, 'breakout', 'updateImatBreakout');
 
@@ -861,7 +864,7 @@ async function updateImatBreakout(user, imatMeeting: ImatMeeting, breakout: Brea
 	};
 	//console.log(params)
 
-	const response = await user.ieeeClient.post(`/${breakout.editGroupId}/breakout-edit?t=${breakout.id}&p=${imatMeeting.id}`, params);
+	const response = await user.ieeeClient!.post(`/${breakout.editGroupId}/breakout-edit?t=${breakout.id}&p=${imatMeeting.id}`, params);
 
 	if (response.data.search(/<title>IEEE Standards Association - Event detail<\/title>/) === -1) {
 		const m = /<div class="field_err">(.*)<\/div>/.exec(response.data);
@@ -879,7 +882,7 @@ async function updateImatBreakout(user, imatMeeting: ImatMeeting, breakout: Brea
 	return b;
 }
 
-export async function updateImatBreakouts(user, imatMeetingId: number, breakouts: Breakout[]): Promise<Breakout[]> {
+export async function updateImatBreakouts(user: User, imatMeetingId: number, breakouts: Breakout[]): Promise<Breakout[]> {
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
@@ -1064,7 +1067,7 @@ async function meetingToBreakout(
 	}
 }
 
-export async function addImatBreakoutFromMeeting(user, session: Session | undefined, meeting: Meeting, webexMeeting: WebexMeeting | undefined): Promise<Breakout> {
+export async function addImatBreakoutFromMeeting(user: User, session: Session | undefined, meeting: Meeting, webexMeeting: WebexMeeting | undefined): Promise<Breakout> {
 
 	const imatMeetingId = meeting.imatMeetingId;
 	if (typeof imatMeetingId !== 'number')
@@ -1078,7 +1081,7 @@ export async function addImatBreakoutFromMeeting(user, session: Session | undefi
 	return breakout;
 }
 
-export async function updateImatBreakoutFromMeeting(user, session: Session | undefined, meeting: Meeting, webexMeeting: WebexMeeting | undefined) {
+export async function updateImatBreakoutFromMeeting(user: User, session: Session | undefined, meeting: Meeting, webexMeeting: WebexMeeting | undefined) {
 
 	const {imatMeetingId, imatBreakoutId} = meeting;
 	if (typeof imatMeetingId !== 'number')
@@ -1147,7 +1150,7 @@ type ImatBreakoutAttendance = {
 /*
  * Get IMAT breakout attendance
  */
-export async function getImatBreakoutAttendance(user, imatMeetingId: number, breakoutId: number) {
+export async function getImatBreakoutAttendance(user: User, imatMeetingId: number, breakoutId: number) {
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
@@ -1236,7 +1239,7 @@ async function parseImatAttendanceSummary(buffer: Buffer): Promise<ImatAttendanc
  *
  * The session is identified by a start and end date in the form MM/DD/YYYY
  */
-export async function getImatAttendanceSummary(user, session: Session) {
+export async function getImatAttendanceSummary(user: User, session: Session) {
 
 	let start: DateTime | string = DateTime.fromISO(session.startDate, {zone: session.timezone});
 	if (!start.isValid)
