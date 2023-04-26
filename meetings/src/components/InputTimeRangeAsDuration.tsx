@@ -1,15 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import { Input } from 'dot11-components';
 
-function timeRangeToDuration(startTime, endTime) {
-	let [startH, startM] = startTime.split(':');
-	let [endH, endM] = endTime.split(':');
+function timeRangeToDuration(startTime: string, endTime: string) {
+	let [startHstr, startMstr] = startTime.split(':');
+	let [endHstr, endMstr] = endTime.split(':');
 	try {
-		startH = startH? parseInt(startH): 0;
-		startM = startM? parseInt(startM): 0;
-		endH = endH? parseInt(endH): 0;
-		endM = endM? parseInt(endM): 0;
+		let startH = startHstr? parseInt(startHstr): 0;
+		let startM = startMstr? parseInt(startMstr): 0;
+		let endH = endHstr? parseInt(endHstr): 0;
+		let endM = endMstr? parseInt(endMstr): 0;
 		let d = endH - startH + (endM - startM)/60;
 		if (d < 0) {
 			// If less than zero, assume endTime is next day
@@ -27,8 +26,8 @@ function timeRangeToDuration(startTime, endTime) {
 	}
 }
 
-function endTimeFromDuration(startTime, duration) {
-	let d = duration.trim();
+function endTimeFromDuration(startTime: string, duration: string) {
+	let d: string | number = duration.trim();
 	let m = /^(\d+):(\d{2})$/.exec(d);
 	if (m) {
 		d = parseInt(m[1]) + parseInt(m[2])/60;
@@ -42,9 +41,9 @@ function endTimeFromDuration(startTime, duration) {
 			return undefined;
 		}
 	}
-	let [startH, startM] = startTime.split(':');
-	startH = parseInt(startH);
-	startM = parseInt(startM);
+	let [startHstr, startMstr] = startTime.split(':');
+	let startH = parseInt(startHstr);
+	let startM = parseInt(startMstr);
 	const endHour = startH + startM*60 + d;
 	let endH = Math.floor(endHour);
 	const endM = (endHour - endH)*60;
@@ -54,7 +53,20 @@ function endTimeFromDuration(startTime, duration) {
 	return '' + endH + ':' + ('0' + endM).slice(-2);
 }
 
-function InputTimeRangeAsDuration({entry, changeEntry, ...otherProps}) {
+type TimeRange = {
+	startTime: string;
+	endTime: string;
+}
+
+function InputTimeRangeAsDuration({
+	entry,
+	changeEntry,
+	 ...otherProps
+}: {
+	entry: TimeRange;
+	changeEntry: (changes: Partial<TimeRange>) => void;
+} & Omit<React.ComponentProps<typeof Input>, "style" | "type" | "value" | "onChange">
+) {
 
 	const [duration, setDuration] = React.useState(timeRangeToDuration(entry.startTime, entry.endTime) || '');
 	const [hasError, setHasError] = React.useState(false);
@@ -65,7 +77,7 @@ function InputTimeRangeAsDuration({entry, changeEntry, ...otherProps}) {
 			setDuration(d);
 	}, [entry.startTime, entry.endTime]);
 
-	function handleSetDuration(duration) {
+	function handleSetDuration(duration: string) {
 		setDuration(duration);
 		if (duration) {
 			const endTime = endTimeFromDuration(entry.startTime, duration);
@@ -91,15 +103,6 @@ function InputTimeRangeAsDuration({entry, changeEntry, ...otherProps}) {
 			{...otherProps}
 		/>
 	)
-}
-
-InputTimeRangeAsDuration.propTypes = {
-	entry: PropTypes.shape({
-		startTime: PropTypes.string.isRequired,
-		endTime: PropTypes.string.isRequired
-	}),
-	changeEntry: PropTypes.func.isRequired,
-	readOnly: PropTypes.bool
 }
 
 export default InputTimeRangeAsDuration;
