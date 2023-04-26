@@ -1,5 +1,5 @@
 import React from 'react';
-import {useNavigate} from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import {
 	AppTable, 
@@ -24,7 +24,6 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 
 import SessionDetails from './SessionDetails';
 
-import PathGroupSelector from '../components/PathGroupSelector';
 import TopRow from '../components/TopRow';
 
 import {
@@ -132,8 +131,7 @@ function Sessions() {
 
 	return (
 		<>
-			<TopRow>
-				<PathGroupSelector/>
+			<TopRow style={{justifyContent: 'flex-end'}}>
 				<div style={{display: 'flex'}}>
 					<TableColumnSelector
 						selectors={sessionsSelectors}

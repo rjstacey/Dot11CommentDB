@@ -18,22 +18,21 @@ const StyledItem = styled.div`
 	align-items: flex-end;
 	padding: 3px 0;
 `;
-	//${({ isSelected }) => isSelected? 'color: #fff; background: #0074d9;': 'color: #555; :hover {background: #f2f2f2;}'}
 
 const renderItem = ({item, props, state, methods}: {item: any} & SelectRendererProps) => {
-	const textDecoration = item.isCancelled? 'line-through': 'none';
+	//const textDecoration = item.isCancelled? 'line-through': 'none';
+	let summary = item.summary;
+	if (item.isCancelled)
+		summary = '🚫 ' + summary;
 	return (
 		<StyledItem
 			key={item.value}
-			//style={style}
-			//className={className}
 			onClick={(e) => {methods.addItem(item)}}
-			//isSelected={methods.isSelected(item)}
 		>
-			<span style={{textDecoration}}>
-				{item.summary}
+			<span /*style={{textDecoration}}*/>
+				{summary}
 			</span>
-			<span style={{fontStyle: 'italic', fontSize: 'smaller', marginLeft: '1rem', textDecoration}}>
+			<span style={{fontStyle: 'italic', fontSize: 'smaller', marginLeft: '1rem'/*, textDecoration*/}}>
 				{`${getField(item, 'date')} ${getField(item, 'timeRange')}`}
 			</span>
 		</StyledItem>

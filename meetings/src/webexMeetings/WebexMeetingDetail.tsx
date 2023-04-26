@@ -138,14 +138,19 @@ const entryToneOptions = [
 	{value: 'announceName', label: 'Announce name'}
 ];
 
+/*
+ * Allow `null` as value for the case when MULTIPLE options are present, but don't allow it to be set to `null`
+ * through `onChange()`.
+ */
 function SelectEntryAndExitTone({
 	value,
 	onChange,
 	...otherProps
 }: {
-	value: string;
+	value: string | null;
 	onChange: (value: string) => void;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">) {
+
 	const values = entryToneOptions.filter(e => e.value === value);
 	if (values.length === 0)
 		onChange(entryToneOptions[0].value)
@@ -160,29 +165,25 @@ function SelectEntryAndExitTone({
 	)
 }
 
-const joinMinutesOptions = [
-	{value: 0, label: '0'},
-	{value: 5, label: '5'},
-	{value: 10, label: '10'},
-	{value: 15, label: '15'},
-];
+const joinMinutes = [0, 5, 10, 15];
 
 function SelectJoinBeforeHostMinutes({
 	value,
 	onChange,
 	...otherProps
 }: {
-	value: number;
+	value: number | null;
 	onChange: (value: number) => void;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">) {
-	let options = joinMinutesOptions;
+
+	let options = joinMinutes.map(value => ({value, label: value.toString()}));
+	if (typeof value === 'number' && !joinMinutes.includes(value))
+		options.concat([{value, label: value.toString()}]);
+
 	let values = options.filter(e => e.value === value);
-	if (values.length === 0) {
-		options = joinMinutesOptions.slice();
-		options.push({value, label: value.toString()});
-		values = options.filter(e => e.value === value);
-	}
+
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].value: 0);
+
 	return (
 		<Select
 			values={values}
@@ -276,7 +277,7 @@ function WebexMeetingAudioOptionsEdit({
 	changeEntry,
 	readOnly,
 }: {
-	entry: WebexMeetingAudioConnectionOptions;
+	entry: Multiple<WebexMeetingAudioConnectionOptions>;
 	changeEntry: (changes: Partial<WebexMeetingAudioConnectionOptions>) => void;
 	readOnly?: boolean;
 }) {
@@ -284,8 +285,9 @@ function WebexMeetingAudioOptionsEdit({
 		<>
 			<Row>
 				<Field label='Allow unmute self:'>
-					<Checkbox 
-						checked={entry.allowAttendeeToUnmuteSelf}
+					<Checkbox
+						checked={isMultiple(entry.allowAttendeeToUnmuteSelf)? false: entry.allowAttendeeToUnmuteSelf}
+						indeterminate={isMultiple(entry.allowAttendeeToUnmuteSelf)}
 						onChange={e => changeEntry({allowAttendeeToUnmuteSelf: e.target.checked})}
 						disabled={readOnly}
 					/>
@@ -293,8 +295,9 @@ function WebexMeetingAudioOptionsEdit({
 			</Row>
 			<Row>
 				<Field label='Mute attendee on entry:'>
-					<Checkbox 
-						checked={entry.muteAttendeeUponEntry}
+					<Checkbox
+						checked={isMultiple(entry.muteAttendeeUponEntry)? false: entry.muteAttendeeUponEntry}
+						indeterminate={isMultiple(entry.muteAttendeeUponEntry)}
 						onChange={e => changeEntry({muteAttendeeUponEntry: e.target.checked})}
 						disabled={readOnly}
 					/>
@@ -303,9 +306,10 @@ function WebexMeetingAudioOptionsEdit({
 			<Row>
 				<Field label='Entry and exit tone:'>
 					<SelectEntryAndExitTone
-						value={entry.entryAndExitTone}
+						value={isMultiple(entry.entryAndExitTone)? null: entry.entryAndExitTone}
 						onChange={entryAndExitTone => changeEntry({entryAndExitTone})}
 						portal={document.querySelector('#root')}
+						placeholder={isMultiple(entry.entryAndExitTone)? MULTIPLE_STR: undefined}
 						readOnly={readOnly}
 					/>
 				</Field>
@@ -319,7 +323,7 @@ function WebexMeetingOptionsEdit({
 	changeEntry,
 	readOnly,
 }: {
-	entry: WebexMeetingOptions;
+	entry: Multiple<WebexMeetingOptions>;
 	changeEntry: (changes: Partial<WebexMeetingOptions>) => void;
 	readOnly?: boolean;
 }) {
@@ -327,35 +331,40 @@ function WebexMeetingOptionsEdit({
 		<Row style={{flexWrap: 'wrap'}}>
 			<FieldLeft label='Chat:'>
 				<Checkbox 
-					checked={entry.enabledChat}
+					checked={isMultiple(entry.enabledChat)? false: entry.enabledChat}
+					indeterminate={isMultiple(entry.enabledChat)}
 					onChange={e => changeEntry({enabledChat: e.target.checked})}
 					disabled={readOnly}
 				/>
 			</FieldLeft>
 			<FieldLeft label='Video:'>
 				<Checkbox 
-					checked={entry.enabledVideo}
+					checked={isMultiple(entry.enabledVideo)? false: entry.enabledVideo}
+					indeterminate={isMultiple(entry.enabledVideo)}
 					onChange={e => changeEntry({enabledVideo: e.target.checked})}
 					disabled={readOnly}
 				/>
 			</FieldLeft>
 			<FieldLeft label='Notes:'>
 				<Checkbox 
-					checked={entry.enabledNote}
+					checked={isMultiple(entry.enabledNote)? false: entry.enabledNote}
+					indeterminate={isMultiple(entry.enabledNote)}
 					onChange={e => changeEntry({enabledNote: e.target.checked})}
 					disabled={readOnly}
 				/>
 			</FieldLeft>
 			<FieldLeft label='Closed captions:'>
 				<Checkbox 
-					checked={entry.enabledClosedCaptions || false}
+					checked={isMultiple(entry.enabledClosedCaptions)? false: entry.enabledClosedCaptions}
+					indeterminate={isMultiple(entry.enabledClosedCaptions)}
 					onChange={e => changeEntry({enabledClosedCaptions: e.target.checked})}
 					disabled={readOnly}
 				/>
 			</FieldLeft>
 			<FieldLeft label='File transfer:'>
 				<Checkbox 
-					checked={entry.enabledFileTransfer}
+					checked={isMultiple(entry.enabledFileTransfer)? false: entry.enabledFileTransfer}
+					indeterminate={isMultiple(entry.enabledFileTransfer)}
 					onChange={e => changeEntry({enabledFileTransfer: e.target.checked})}
 					disabled={readOnly}
 				/>
@@ -370,34 +379,16 @@ export function WebexMeetingParamsEdit({
 	readOnly,
 }: {
 	entry: MultipleWebexMeetingEntry;
-	changeEntry: (changes: WebexMeetingEntryChanges) => void;
+	changeEntry: (changes: PartialWebexMeetingEntry) => void;
 	readOnly?: boolean;
 }) {
 
-	function handleChange(changes: WebexMeetingEntryChanges) {
+	function handleChange(changes: PartialWebexMeetingEntry) {
 		if (changes.enabledJoinBeforeHost === false) {
 			changes.joinBeforeHostMinutes = 0;
 			changes.enableConnectAudioBeforeHost = false;
 		}
 		changeEntry(changes);
-	}
-
-	function changeMeetingOptions(changes: Partial<WebexMeetingOptions>) {
-		let {meetingOptions} = entry;
-		meetingOptions = {
-			...meetingOptions,
-			...changes
-		}
-		changeEntry({meetingOptions});
-	}
-
-	function changeMeetingAudioOptions(changes: Partial<WebexMeetingAudioConnectionOptions>) {
-		let {audioConnectionOptions} = entry;
-		audioConnectionOptions = {
-			...audioConnectionOptions,
-			...changes
-		}
-		changeEntry({audioConnectionOptions});
 	}
 
 	return (
@@ -434,8 +425,9 @@ export function WebexMeetingParamsEdit({
 							disabled={readOnly}
 						/>
 						<SelectJoinBeforeHostMinutes
-							value={isMultiple(entry.joinBeforeHostMinutes)? 0: entry.joinBeforeHostMinutes}
+							value={isMultiple(entry.joinBeforeHostMinutes)? null: entry.joinBeforeHostMinutes}
 							onChange={joinBeforeHostMinutes => handleChange({joinBeforeHostMinutes})}
+							placeholder={isMultiple(entry.joinBeforeHostMinutes)? MULTIPLE_STR: BLANK_STR}
 							readOnly={readOnly || !entry.enabledJoinBeforeHost}
 						/>
 					</div>
@@ -452,13 +444,13 @@ export function WebexMeetingParamsEdit({
 				</Field>
 			</Row>
 			<WebexMeetingAudioOptionsEdit
-				entry={entry.audioConnectionOptions || {}}
-				changeEntry={changeMeetingAudioOptions}
+				entry={entry.audioConnectionOptions}
+				changeEntry={audioConnectionOptions => changeEntry({audioConnectionOptions})}
 				readOnly={readOnly}
 			/>
 			<WebexMeetingOptionsEdit
 				entry={entry.meetingOptions || {}}
-				changeEntry={changeMeetingOptions}
+				changeEntry={meetingOptions => changeEntry({meetingOptions})}
 				readOnly={readOnly}
 			/>
 		</>
@@ -506,7 +498,7 @@ function WebexMeetingEntryForm({
 }: {
 	action: "add" | "update";
 	entry: MultipleWebexMeetingEntry;
-	changeEntry: (changes: WebexMeetingEntryChanges) => void;
+	changeEntry: (changes: PartialWebexMeetingEntry) => void;
 	submit?: () => void;
 	cancel?: () => void;
 	readOnly?: boolean;
@@ -606,11 +598,14 @@ export type WebexMeetingEntry = Omit<WebexMeetingParams, "accountId" | "id" | "s
 	endTime: string;
 }
 
-export type WebexMeetingEntryChanges = Partial<WebexMeetingEntry>
+export type PartialWebexMeetingEntry = Partial<Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">> & {
+	meetingOptions?: Partial<WebexMeetingOptions>;
+	audioConnectionOptions?: Partial<WebexMeetingAudioConnectionOptions>;
+}
 
 export type MultipleWebexMeetingEntry = Multiple<Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">> & {
-	meetingOptions: WebexMeetingOptions;
-	audioConnectionOptions: WebexMeetingAudioConnectionOptions;
+	meetingOptions: Multiple<WebexMeetingOptions>;
+	audioConnectionOptions: Multiple<WebexMeetingAudioConnectionOptions>;
 }
 
 function convertWebexMeetingToEntry(webexMeeting: WebexMeetingParams): WebexMeetingEntry {
@@ -738,7 +733,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 		let {entry, saved, webexMeetings} = this.state;
 
 		// Find differences
-		const diff: WebexMeetingEntryChanges = deepDiff(saved, entry) || {};
+		const diff: PartialWebexMeetingEntry = deepDiff(saved, entry) || {};
 		const webexMeetingUpdates: WebexMeetingUpdate[] = [];
 		const meetingUpdates: {id: number; changes: Partial<Meeting>}[] = [];
 		for (const webexMeeting of webexMeetings) {
@@ -763,10 +758,10 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 		return webexMeetingUpdates.length > 0 || meetingUpdates.length > 0;
 	}*/
 
-	changeEntry = (changes: WebexMeetingEntryChanges) => {
+	changeEntry = (changes: PartialWebexMeetingEntry) => {
 		//console.log('change', changes)
 		this.setState(state => {
-			let entry = {...state.entry, ...changes};
+			let entry = deepMerge(state.entry, changes);
 			// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
 			changes = deepDiff(state.saved, entry) || {};
 			if (Object.keys(changes).length === 0)

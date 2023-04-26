@@ -109,14 +109,14 @@ export const selectBreakoutEntities = (state: RootState) => selectBreakoutsState
 export const selectBreakoutMeetingId = (state: RootState) => selectBreakoutsState(state).imatMeetingId;
 //export const selectBreakoutRooms = (state: RootState) => selectBreakoutsState(state).rooms;
 export const selectBreakoutTimeslots = (state: RootState) => selectBreakoutsState(state).timeslots;
-export const selectImatMeeting = (state: RootState) => {
+export const selectBreakoutMeeting = (state: RootState) => {
 	const imatMeetingId = selectBreakoutMeetingId(state);
 	const imatMeetingEntities = selectImatMeetingEntities(state);
-	return imatMeetingEntities[imatMeetingId];
+	return imatMeetingId? imatMeetingEntities[imatMeetingId]: undefined;
 }
 
 export type SyncedBreakout = Breakout & {
-	imatMeetingId: number;
+	imatMeetingId: number | null;
 	meetingId: number | null;
 }
 
@@ -154,7 +154,7 @@ const sortComparer = (a: Breakout, b: Breakout) => {
 }
 
 type ExtraState = {
-	imatMeetingId: number;
+	imatMeetingId: number | null;
 	timeslots: Timeslot[];
 	committees: Committee[];
 }
@@ -164,7 +164,7 @@ const slice = createAppTableDataSlice({
 	fields,
 	sortComparer,
 	initialState: {
-		imatMeetingId: 0,
+		imatMeetingId: null,
 		timeslots: [],
 		committees: [],
 	} as ExtraState,
@@ -208,9 +208,14 @@ const baseUrl = '/api/imat/breakouts';
 
 export const loadBreakouts = (imatMeetingId: number): AppThunk =>
 	async (dispatch, getState) => {
-		const state = getState();
-		if (selectBreakoutsState(state).loading)
+		const breakoutsState = selectBreakoutsState(getState());
+		if (breakoutsState.loading)
 			return;
+		if (imatMeetingId !== breakoutsState.imatMeetingId) {
+			dispatch(removeAll());
+			dispatch(setDetails({timeslots: [], committees: []}));
+		}
+		dispatch(setDetails({imatMeetingId}));
 		dispatch(getPending());
 		const url = `${baseUrl}/${imatMeetingId}`;
 		let response;

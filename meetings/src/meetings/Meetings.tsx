@@ -32,7 +32,7 @@ import {refresh as refreshCurrent} from '../store/current';
 
 import {displayMeetingNumber} from '../store/webexMeetings';
 
-import PathGroupandSessionSelector from '../components/PathGroupAndSessionSelector';
+import CurrentSessionSelector from '../components/CurrentSessionSelector';
 import TopRow from '../components/TopRow';
 
 import MeetingsCalendar from './MeetingsCalendar';
@@ -205,7 +205,7 @@ function Meetings() {
 	return (
 		<>
 			<TopRow>
-				<PathGroupandSessionSelector allowShowDateRange />
+				<CurrentSessionSelector allowShowDateRange />
 
 				<ActionButtonDropdown label='Set defaults'>
 					<MeetingDefaults/>

@@ -68,6 +68,8 @@ export const selectCurrentImatMeeting = (state: RootState) => {
 	return imatMeetingId? selectImatMeetingEntities(state)[imatMeetingId]: undefined;
 }
 
+export const selectImatMeeting = (state: RootState, imatMeetingId: number) => selectImatMeetingEntities(state)[imatMeetingId];
+
 export const imatMeetingsSelectors = getAppTableDataSelectors(selectImatMeetingsState, {getField});
 
 /*

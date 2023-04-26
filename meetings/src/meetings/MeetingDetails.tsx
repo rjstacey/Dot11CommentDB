@@ -29,7 +29,7 @@ import {
 } from '../store/meetings';
 
 import { WebexMeetingParams, webexMeetingToWebexMeetingParams } from '../store/webexMeetings';
-import type { MultipleWebexMeetingEntry, WebexMeetingEntryChanges } from '../webexMeetings/WebexMeetingDetail';
+import type { MultipleWebexMeetingEntry, PartialWebexMeetingEntry } from '../webexMeetings/WebexMeetingDetail';
 
 import {selectCurrentGroupId, selectCurrentGroupDefaults} from '../store/current';
 
@@ -77,7 +77,7 @@ export type MeetingEntry = Omit<Meeting, "id" | "start" | "end" | "webexMeeting"
 	webexMeeting?: WebexMeetingParams;
 };
 
-export type MeetingEntryChanges = Partial<Omit<MeetingEntry, "webexMeeting"> & {webexMeeting: WebexMeetingEntryChanges}>
+export type PartialMeetingEntry = Partial<Omit<MeetingEntry, "webexMeeting"> & {webexMeeting: PartialWebexMeetingEntry}>
 
 export type MultipleMeetingEntry = Multiple<Omit<MeetingEntry, "webexMeeting">> & {
 	dates: string[];
@@ -241,7 +241,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 			const room = session?.rooms.find(r => r.id === entry.roomId);
 			const slot = (timeslot && room)? toSlotId(entry.date, timeslot, room): null;
 			return {
-				...deepMergeTagMultiple(accumulatedEntry, entry),
+				...deepMergeTagMultiple(accumulatedEntry as {}, entry),
 				dates: accumulatedEntry.dates.concat([entry.date]),
 				slots: accumulatedEntry.slots.concat([slot])
 			}
@@ -357,11 +357,12 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 
 	hasUpdates = () => this.state.saved !== this.state.entry;
 
-	changeEntry = (changes: MeetingEntryChanges) => {
+	changeEntry = (changes: PartialMeetingEntry) => {
 		this.setState(state => {
 			let entry: MultipleMeetingEntry = deepMerge(state.entry, changes);
 			// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
-			changes = deepDiff(state.saved, entry) || {};
+			console.log(changes)
+			changes = deepDiff(state.saved, entry) as PartialMeetingEntry || {};
 			if (Object.keys(changes).length === 0)
 				entry = state.saved as typeof state.entry;
 			return {...state, entry}

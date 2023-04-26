@@ -1,5 +1,5 @@
 import React from 'react';
-import {Link} from 'react-router-dom';
+import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 
 import {
 	AppTable, SelectHeaderCell, SelectCell, TableColumnHeader, SplitPanelButton, SplitPanel, Panel, TableColumnSelector,
@@ -14,12 +14,11 @@ import {
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 
-import MeetingSummary from '../components/MeetingSummary';
-import ImatBreakoutDetails from './ImatBreakoutDetails';
-import PathGroupAndSessionSelector from '../components/PathGroupAndSessionSelector';
-import TopRow from '../components/TopRow';
-
 import {
+	loadBreakouts,
+	clearBreakouts,
+	selectBreakoutMeetingId,
+	selectBreakoutMeeting,
 	getField,
 	fields,
 	imatBreakoutsSelectors,
@@ -27,9 +26,13 @@ import {
 	Breakout
 } from '../store/imatBreakouts';
 
-import {selectCurrentImatMeeting, ImatMeeting} from '../store/imatMeetings';
+import type { ImatMeeting } from '../store/imatMeetings';
 
-import {refresh as refreshCurrent} from '../store/current';
+import ImatBreakoutDetails from './ImatBreakoutDetails';
+import MeetingSummary from '../components/MeetingSummary';
+import ImatMeetingSelector from '../components/ImatMeetingSelector';
+import TopRow from '../components/TopRow';
+
 
 const renderGroup = ({rowData}: {rowData: Breakout}) => {
 	if (rowData.groupShortName)
@@ -46,10 +49,8 @@ export const renderSessionInfo = (session: ImatMeeting) =>
 	</div>
 
 function SessionInfo() {
-	const imatMeeting = useAppSelector(selectCurrentImatMeeting);
-	if (imatMeeting)
-		return renderSessionInfo(imatMeeting);
-	return null;
+	const imatMeeting = useAppSelector(selectBreakoutMeeting);
+	return imatMeeting? renderSessionInfo(imatMeeting): null;
 }
 
 const renderDateHeader = (props: HeaderCellRendererProps) =>
@@ -154,13 +155,50 @@ function breakoutsRowGetter({rowIndex, ids, entities}: RowGetterProps) {
 
 function Breakouts() {
 	const dispatch = useAppDispatch();
-	const refresh = () => dispatch(refreshCurrent());
+	const navigate = useNavigate();
+	const location = useLocation();
+	const params = useParams();
+
+	let pathImatMeetingId: number | null = Number(params.meetingNumber);
+	if (isNaN(pathImatMeetingId))
+		pathImatMeetingId = null;
+
+	const imatMeetingId = useAppSelector(selectBreakoutMeetingId);
+
+	React.useEffect(() => {
+		if (pathImatMeetingId && pathImatMeetingId !== imatMeetingId) {
+			/* If the user navigates here and the current meeting number does not match,
+			 * then reload the breakouts */
+			dispatch(loadBreakouts(pathImatMeetingId));
+		}
+		else if (!pathImatMeetingId && imatMeetingId) {
+			/* If the user navigates to the breakouts root, but there is a meeting number selected,
+			 * then navigate to the current meeting number */
+			let path = location.pathname + `/${imatMeetingId}`;
+			navigate(path);
+		}
+	}, [pathImatMeetingId, imatMeetingId, location.pathname, dispatch, navigate]);
+
+	const setImatMeetingId = (imatMeetingId: number | null) => {
+		/* If the user clears the selected meeting number, then clear the breakouts */
+		if (!imatMeetingId)
+			dispatch(clearBreakouts());
+		/* Navigate to the selected meeting number */
+		let path = location.pathname.replace(`/${pathImatMeetingId}`, '');
+		if (imatMeetingId)
+			path += `/${imatMeetingId}`;
+		navigate(path);
+	}
+
+	const refresh = () => dispatch(pathImatMeetingId? loadBreakouts(pathImatMeetingId): clearBreakouts());
 
 	return (
 		<>
 			<TopRow>
-				<PathGroupAndSessionSelector />
-
+				<ImatMeetingSelector
+					value={imatMeetingId}
+					onChange={setImatMeetingId}
+				/>
 				<SessionInfo />
 
 				<div style={{display: 'flex'}}>

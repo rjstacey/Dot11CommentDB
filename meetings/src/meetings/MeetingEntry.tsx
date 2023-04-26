@@ -14,7 +14,7 @@ import {
 	Session
 } from '../store/sessions';
 
-import type { MultipleMeetingEntry, MeetingEntryChanges } from './MeetingDetails';
+import type { MultipleMeetingEntry, PartialMeetingEntry } from './MeetingDetails';
 
 import {selectGroupEntities} from '../store/groups';
 
@@ -23,7 +23,7 @@ import GroupSelector from '../components/GroupSelector';
 import CalendarAccountSelector from '../components/CalendarAccountSelector';
 import ImatMeetingSelector from '../components/ImatMeetingSelector';
 
-import { WebexMeetingEntryChanges, WebexMeetingAccount, WebexMeetingParamsEdit } from '../webexMeetings/WebexMeetingDetail';
+import { PartialWebexMeetingEntry, WebexMeetingAccount, WebexMeetingParamsEdit } from '../webexMeetings/WebexMeetingDetail';
 
 const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';
@@ -251,7 +251,7 @@ export function MeetingEntryForm({
 	readOnly
 }: {
 	entry: MultipleMeetingEntry;
-	changeEntry: (changes: MeetingEntryChanges) => void;
+	changeEntry: (changes: PartialMeetingEntry) => void;
 	action: "add" | "update";
 	busy?: boolean;
 	submit?: () => void;
@@ -297,7 +297,7 @@ export function MeetingEntryForm({
 		cancelForm = cancel;
 	}
 
-	function handleChange(changes: MeetingEntryChanges) {
+	function handleChange(changes: PartialMeetingEntry) {
 		changes = {...changes};
 		if ('organizationId' in changes) {
 			const subgroup = changes.organizationId && groupEntities[changes.organizationId];
@@ -328,8 +328,8 @@ export function MeetingEntryForm({
 		changes.webexMeeting = webexMeeting as unknown as WebexMeetingParams;	// deliberate; dont use start, end
 		handleChange(changes);
 	}*/
-	function handleWebexMeetingChange(webexMeetingChanges: WebexMeetingEntryChanges) {
-		const changes: MeetingEntryChanges = {webexMeeting: webexMeetingChanges};
+	function handleWebexMeetingChange(webexMeetingChanges: PartialWebexMeetingEntry) {
+		const changes: PartialMeetingEntry = {webexMeeting: webexMeetingChanges};
 		if ('accountId' in webexMeetingChanges) {
 			changes.webexAccountId = webexMeetingChanges.accountId;
 		}

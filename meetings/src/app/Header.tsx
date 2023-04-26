@@ -9,7 +9,9 @@ import './header.css';
 
 import { selectUser, selectUserMeetingsAccess, AccessLevel } from '../store/user';
 import { selectGroupName } from '../store/groups';
-import { selectCurrentSessionId } from '../store/current';
+//import { selectCurrentSessionId } from '../store/current';
+
+import PathGroupSelector from '../components/PathGroupSelector';
 
 type MenuItem = {
 	minAccess: number,
@@ -40,21 +42,18 @@ const fullMenu: MenuItem[] = [
 	{
 		minAccess: AccessLevel.ro,
 		prefixGroupName: true,
-		prefixSessionId: true,
-		link: '/meetings',
+		link: '/',
 		label: 'Meetings',
 	},
 	{
 		minAccess: AccessLevel.ro,
 		prefixGroupName: true,
-		prefixSessionId: true,
 		link: '/webexMeetings',
 		label: 'Webex',
 	},
 	{
 		minAccess: AccessLevel.ro,
 		prefixGroupName: true,
-		prefixSessionId: true,
 		link: '/imatBreakouts',
 		label: 'IMAT breakouts',
 	},
@@ -84,7 +83,7 @@ const NavItem = (props: any) => <NavLink className={'nav-link' + (props.isActive
 function NavMenu({className, methods}: any) {
 	const access: number = useAppSelector(selectUserMeetingsAccess);
 	const groupName = useAppSelector(selectGroupName);
-	const sessionId = useAppSelector(selectCurrentSessionId);
+	//const sessionId = useAppSelector(selectCurrentSessionId);
 
 	let classNames: string = 'nav-menu';
 	if (className)
@@ -92,7 +91,7 @@ function NavMenu({className, methods}: any) {
 
 	const menu = fullMenu
 		.filter(m => access >= m.minAccess)
-		.map(m => m.prefixSessionId? {...m, link: `/${sessionId || '*'}` + m.link}: m)
+		//.map(m => m.prefixSessionId? {...m, link: `/${sessionId || '*'}` + m.link}: m)
 		.map(m => m.prefixGroupName? {...m, link: `/${groupName || '*'}` + m.link}: m);
 
 	return (
@@ -130,13 +129,14 @@ function Header() {
 				/>:
 				<div className='title'>Meetings</div>
 			}
+			<PathGroupSelector />
 			<div className='nav-menu-container'>
 				{isSmall?
 					<label className='nav-link active'>{menuItem? menuItem.label: ''}</label>:
 					<NavMenu className='nav-menu-horizontal' />
 				}
 			</div>
-			<Account /*className='account'*/ user={user} />
+			<Account user={user} />
 		</header>
 	)
 }

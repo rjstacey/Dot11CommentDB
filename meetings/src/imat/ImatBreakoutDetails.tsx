@@ -16,7 +16,7 @@ import {
 
 import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
 import MeetingSelector from '../components/MeetingSelector';
-import { convertEntryToMeeting, MeetingEntry, MultipleMeetingEntry, MeetingEntryChanges } from '../meetings/MeetingDetails';
+import { convertEntryToMeeting, MeetingEntry, MultipleMeetingEntry, PartialMeetingEntry } from '../meetings/MeetingDetails';
 import MeetingEntryForm from '../meetings/MeetingEntry';
 import TopRow from '../components/TopRow';
 
@@ -26,7 +26,7 @@ import {
 	deleteBreakouts,
 	setSelectedBreakouts,
 	selectBreakoutMeetingId,
-	selectImatMeeting,
+	selectBreakoutMeeting,
 	selectBreakoutsState,
 	selectSyncedBreakoutEntities,
 	SyncedBreakout,
@@ -157,7 +157,7 @@ function SessionDaySelector({
 	onChange: (value: number) => void;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
 ) {
-	const imatMeeting = useAppSelector(selectImatMeeting)!;
+	const imatMeeting = useAppSelector(selectBreakoutMeeting)!;
 
 	const options = React.useMemo(() => {
 		const sessionStart = DateTime.fromISO(imatMeeting.start);
@@ -216,7 +216,7 @@ function AssociatedMeetingSelector({
 	onChange: (value: number | null) => void;
 } & Omit<React.ComponentProps<typeof MeetingSelector>, "value" | "onChange">
 ) {
-	const imatMeeting = useAppSelector(selectImatMeeting);
+	const imatMeeting = useAppSelector(selectBreakoutMeeting);
 
 	function handleChange(v: number | null) {
 		if (v !== value)
@@ -555,7 +555,7 @@ type MultipleBreakoutEntry = Multiple<SyncedBreakout>;
 type BreakoutEntryChanges = Partial<SyncedBreakout>
 
 type BreakoutDetailsCommonState = {
-	imatMeetingId: number;
+	imatMeetingId: number | null;
 	breakouts: SyncedBreakout[];
 	busy: boolean;
 }
@@ -663,7 +663,7 @@ class BreakoutDetails extends React.Component<BreakoutDetailsConnectedProps, Bre
 		// Find differences
 		const diff = deepDiff(saved, entry) || {};
 		const breakoutUpdates: SyncedBreakout[] = [],
-			meetingUpdates: {id: number; changes: {imatMeetingId: number; imatBreakoutId: number}}[] = [];
+			meetingUpdates: {id: number; changes: {imatMeetingId: number | null; imatBreakoutId: number}}[] = [];
 		for (const breakout of breakouts) {
 			const updated: SyncedBreakout = deepMerge(breakout, diff);
 			const changes: Partial<SyncedBreakout> = deepDiff(breakout, updated) || {};
@@ -691,7 +691,7 @@ class BreakoutDetails extends React.Component<BreakoutDetailsConnectedProps, Bre
 		});
 	}
 
-	changeMeetingEntry = (changes: MeetingEntryChanges) => {
+	changeMeetingEntry = (changes: PartialMeetingEntry) => {
 		this.setState((importState) => {
 			const state = importState as BreakoutDetailsImportState;
 			let entry = deepMerge(state.entry, changes) as MultipleMeetingEntry;
@@ -729,7 +729,7 @@ class BreakoutDetails extends React.Component<BreakoutDetailsConnectedProps, Bre
 		);
 		if (!ok)
 			return;
-		await deleteBreakouts(imatMeetingId, ids);
+		await deleteBreakouts(imatMeetingId!, ids);
 		this.reinitState('update');
 	}
 
@@ -742,7 +742,7 @@ class BreakoutDetails extends React.Component<BreakoutDetailsConnectedProps, Bre
 		const {entry, imatMeetingId} = this.state as BreakoutDetailsAddState;
 
 		this.setState({busy: true});
-		const [id] = await addBreakouts(imatMeetingId, [entry]);
+		const [id] = await addBreakouts(imatMeetingId!, [entry]);
 		if (entry.meetingId)
 			await updateMeetings([{id: entry.meetingId, changes: {imatMeetingId, imatBreakoutId: id}}])
 		setSelected([id]);
@@ -758,7 +758,7 @@ class BreakoutDetails extends React.Component<BreakoutDetailsConnectedProps, Bre
 
 		this.setState({busy: true});
 		if (breakoutUpdates.length > 0)
-			await updateBreakouts(imatMeetingId, breakoutUpdates);
+			await updateBreakouts(imatMeetingId!, breakoutUpdates);
 		if (meetingUpdates.length > 0)
 			await updateMeetings(meetingUpdates);
 		this.reinitState('update');
@@ -862,11 +862,11 @@ class BreakoutDetails extends React.Component<BreakoutDetailsConnectedProps, Bre
 const connector = connect(
 	(state: RootState) => ({
 		imatMeetingId: selectBreakoutMeetingId(state),
+		imatMeeting: selectBreakoutMeeting(state),
 		timeslots: selectBreakoutsState(state).timeslots,
 		loading: selectBreakoutsState(state).loading,
 		selected: selectBreakoutsState(state).selected,
 		entities: selectSyncedBreakoutEntities(state),
-		imatMeeting: selectImatMeeting(state),
 		session: selectCurrentSession(state),
 		groupEntities: selectGroupEntities(state),
 		access: selectUserMeetingsAccess(state)

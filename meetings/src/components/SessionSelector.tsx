@@ -1,11 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import {useAppDispatch, useAppSelector} from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 
-import {Select, SelectRendererProps, ActionIcon, displayDateRange} from 'dot11-components';
+import { Select, ActionIcon, displayDateRange } from 'dot11-components';
 
-import {loadSessions, selectSessionsState} from '../store/sessions';
+import { loadSessions, selectSessionsState, Session } from '../store/sessions';
 
 const StyledItem = styled.div`
 	overflow: hidden;
@@ -20,18 +19,11 @@ const StyledItem = styled.div`
 	}
 `;
 
-const renderItem = ({item, props, state, methods}: {item: any} & SelectRendererProps) =>
-	<StyledItem
-		//style={style}
-	>
+const renderItem = ({item}: {item: Session}) =>
+	<StyledItem>
 		<span>{item.name}</span>
 		<span>{displayDateRange(item.startDate, item.endDate)}</span>
 	</StyledItem>
-
-interface SelectOption {
-	id: number;
-	name: string;
-}
 
 function SessionSelector({
 	value,
@@ -74,26 +66,21 @@ function SessionSelector({
 	)
 }
 
-SessionSelector.propTypes = {
-	value: PropTypes.number,
-	onChange: PropTypes.func.isRequired,
-	readOnly: PropTypes.bool,
-}
-
-interface RawSessionSelectorProps {
+export function RawSessionSelector({
+	style,
+	onChange
+}: {
 	style?: React.CSSProperties;
-	onChange: (value: number) => void; 
-}
-
-function RawSessionSelector({style, onChange}: RawSessionSelectorProps) {
+	onChange: (value: number) => void;
+}) {
 	const {ids, entities} = useAppSelector(selectSessionsState);
-	const options = React.useMemo(() => ids.map(id => entities[id]), [entities, ids]);
+	const options = React.useMemo(() => ids.map(id => entities[id]!), [entities, ids]);
 	return (
 		<Select
 			style={{...style, border: 'none', padding: 'none'}}
 			options={options}
 			values={[]}
-			onChange={(values: Array<SelectOption>) => onChange(values.length? values[0].id: 0)}
+			onChange={(values: typeof options) => onChange(values.length? values[0].id: 0)}
 			itemRenderer={renderItem}
 			selectItemRenderer={renderItem}
 			valueField='id'
@@ -109,4 +96,3 @@ function RawSessionSelector({style, onChange}: RawSessionSelectorProps) {
 }
 
 export default SessionSelector;
-export {RawSessionSelector};

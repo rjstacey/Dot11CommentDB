@@ -54,7 +54,7 @@ import {
 
 import {selectSessionEntities} from '../store/sessions';
 
-import PathGroupAndSessionSelector from '../components/PathGroupAndSessionSelector';
+import CurrentSessionSelector from '../components/CurrentSessionSelector';
 import MeetingSelector from '../components/MeetingSelector';
 import MeetingSummary from '../components/MeetingSummary';
 import TopRow from '../components/TopRow';
@@ -344,7 +344,7 @@ function WebexMeetings() {
 	return (
 		<>
 			<TopRow>
-				<PathGroupAndSessionSelector allowShowDateRange />
+				<CurrentSessionSelector allowShowDateRange />
 
 				<div style={{display: 'flex'}}>
 					<TableColumnSelector

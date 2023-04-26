@@ -1,5 +1,5 @@
 import React from 'react';
-import {Link, useNavigate} from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {
@@ -17,14 +17,11 @@ import TopRow from '../components/TopRow';
 
 import {
 	loadImatMeetings,
-	clearImatMeetings,
 	fields,
 	imatMeetingsSelectors,
 	imatMeetingsActions,
 	ImatMeeting
 } from '../store/imatMeetings';
-
-import PathGroupSelector from '../components/PathGroupSelector';
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
@@ -76,7 +73,6 @@ const tableColumns: ColumnPropertiesWithWidth[] = [
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0);
 
 function ImatMeetings() {
-	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
 	const groupName = useAppSelector(selectGroupName);
 
@@ -85,7 +81,7 @@ function ImatMeetings() {
 	}, [dispatch, groupName]);
 
 	const columns = React.useMemo(() => {
-		const renderBreakoutsLink = ({rowData}: {rowData: ImatMeeting}) => <Link to={`/${groupName}/imatMeetings/${rowData.id}`}>view breakouts</Link>
+		const renderBreakoutsLink = ({rowData}: {rowData: ImatMeeting}) => <Link to={`/${groupName}/imatBreakouts/${rowData.id}`}>view breakouts</Link>
 		const columns = [...tableColumns];
 		const i = columns.length - 1;
 		columns[i] =
@@ -97,21 +93,13 @@ function ImatMeetings() {
 
 	}, [groupName]);
 
-	const close = () => navigate('/sessions');
 	const refresh = () => dispatch(loadImatMeetings());
-	const clear = () => dispatch(clearImatMeetings());
 
 	return (
 		<>
 			<TopRow style={{maxWidth}}>
-				<PathGroupSelector
-					onChange={clear}
-				/>
-				<div>IMAT Session</div>
-				<div>
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-					<ActionButton name='close' title='Close' onClick={close} />
-				</div>
+				<div>IMAT Sessions</div>
+				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 			</TopRow>
 
 			<TableRow style={{maxWidth}}>

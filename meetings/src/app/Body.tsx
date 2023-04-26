@@ -57,15 +57,15 @@ function Body() {
 					element={renderComponent(AccessLevel.ro, Sessions)}
 				/>
 				<Route
-					path="/:groupName/:sessionId/meetings"
+					path="/:groupName"
 					element={renderComponent(AccessLevel.ro, Meetings)}
 				/>
 				<Route
-					path="/:groupName/:sessionId/webexMeetings"
+					path="/:groupName/webexMeetings"
 					element={renderComponent(AccessLevel.ro, WebexMeetings)}
 				/>
 				<Route
-					path="/:groupName/:sessionId/imatBreakouts"
+					path="/:groupName/imatBreakouts/:meetingNumber?"
 					element={renderComponent(AccessLevel.ro, ImatBreakouts)}
 				/>
 				<Route
@@ -75,10 +75,6 @@ function Body() {
 				<Route
 					path="/:groupName/imatMeetings"
 					element={renderComponent(AccessLevel.ro, ImatMeetings)}
-				/>
-				<Route
-					path="/:groupName/imatMeetings/:meetingNumber"
-					element={renderComponent(AccessLevel.ro, ImatBreakouts)}
 				/>
 				<Route
 					path="/:groupName/imatMeetings/:meetingNumber/:breakoutNumber"
