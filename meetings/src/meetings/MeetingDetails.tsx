@@ -182,7 +182,7 @@ const NotAvailable = styled.div`
 	color: #bdbdbd;
 `;
 
-type Actions = "add" | "update";
+type Actions = "add-by-slot" | "add-by-date" | "update";
 
 type MeetingDetailsState = {
 	action: Actions;
@@ -198,7 +198,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 	constructor(props: MeetingDetailsConnectedProps) {
 		super(props);
 		const {selectedMeetings, selectedSlots} = props;
-		this.state = this.initState((selectedMeetings.length === 0 && selectedSlots.length > 0)? 'add': 'update');
+		this.state = this.initState((selectedMeetings.length === 0 && selectedSlots.length > 0)? 'add-by-slot': 'update');
 	}
 
 	componentDidUpdate() {
@@ -214,13 +214,13 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 					return;
 				}
 			}
-			this.reinitState((selectedMeetings.length === 0 && selectedSlots.length > 0)? 'add': 'update');
+			this.reinitState((selectedMeetings.length === 0 && selectedSlots.length > 0)? 'add-by-slot': 'update');
 		}
 
 		if (action === 'update' && selectedMeetings.join() !== ids.join())
 			changeWithConfirmation();
 		else if (selectedSlots.join() !== slots.join())
-			this.reinitState((selectedMeetings.length === 0 && selectedSlots.length > 0)? 'add': 'update');
+			this.reinitState((selectedMeetings.length === 0 && selectedSlots.length > 0)? 'add-by-slot': 'update');
 	}
 	
 	initState = (action: Actions): MeetingDetailsState => {
@@ -248,7 +248,33 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 		}, {dates: [], slots: []} as any);
 		entry.dates = [...new Set(entry.dates.sort())];	// array of unique dates
 
-		if (action === 'add') {
+		if (action === 'add-by-slot') {
+			entry.slots = selectedSlots;
+
+			let date: string | typeof MULTIPLE | null = null,
+				roomId: number | typeof MULTIPLE | null = null,
+				slotId: number | typeof MULTIPLE | null = null,
+				dates: string[] = [];
+			for (const id of selectedSlots) {
+				const [date_, slotId_, roomId_] = fromSlotId(id);
+				dates.push(date_);
+				date = (date !== null && date !== date_)? MULTIPLE: date_;
+				roomId = (roomId !== null && roomId !== roomId_)? MULTIPLE: roomId_;
+				slotId = (slotId !== null && slotId !== slotId_)? MULTIPLE: slotId_;
+			}
+			entry.dates = [...new Set(dates)]; // Unique dates
+			entry.roomId = roomId;
+			entry.startSlotId = slotId;
+			if (isMultiple(slotId)) {
+				entry.startTime = MULTIPLE;
+				entry.endTime = MULTIPLE;
+			}
+			else {
+				const timeslot = session?.timeslots.find(slot => slot.id === slotId);
+				entry.startTime = timeslot? timeslot.startTime: '';
+				entry.endTime = timeslot? timeslot.endTime: '';
+			}
+		} else if (action === 'add-by-date') {
 			if (meetings.length > 0) {
 				entry = {
 					...entry,
@@ -259,41 +285,22 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 				}
 			}
 			else {
-				if (selectedSlots.length > 0) {
-					entry.slots = selectedSlots;
-
-					let date: string | typeof MULTIPLE | null = null,
-						roomId: number | typeof MULTIPLE | null = null,
-						slotId: number | typeof MULTIPLE | null = null;
-					for (const id of selectedSlots) {
-						const [date_, slotId_, roomId_] = fromSlotId(id);
-						date = (date !== null && date !== date_)? MULTIPLE: date_;
-						roomId = (roomId !== null && roomId !== roomId_)? MULTIPLE: roomId_;
-						slotId = (slotId !== null && slotId !== slotId_)? MULTIPLE: slotId_;
-					}
-					entry.roomId = roomId;
-					entry.startSlotId = slotId;
-					if (isMultiple(slotId)) {
-						entry.startTime = MULTIPLE;
-						entry.endTime = MULTIPLE;
-					}
-					else {
-						const timeslot = session?.timeslots.find(slot => slot.id === slotId);
-						entry.startTime = timeslot? timeslot.startTime: '';
-						entry.endTime = timeslot? timeslot.endTime: '';
-					}
+				entry = {
+					...entry,
+					dates: [],
+					slots: [],
+					startSlotId: 0,
+					roomId: 0,
+					startTime: '',
+					endTime: '',
+					duration: '',
+					organizationId: null,
+					hasMotions: false
 				}
-				else {
-					entry.dates = [];
-					entry.startSlotId = 0;
-					entry.roomId = 0;
-					entry.startTime = '';
-					entry.endTime = '';
-					entry.duration = '';
-				}
-				entry.organizationId = null;
-				entry.hasMotions = false;
 			}
+		}
+
+		if (action !== 'update') {
 			entry.sessionId = session? session.id: null;
 			entry.timezone = session? session.timezone: defaults.timezone;
 			entry.isCancelled = false;
@@ -379,7 +386,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 				return;
 		}
 
-		this.reinitState('add');
+		this.reinitState('add-by-date');
 		setSelectedMeetings([]);
 	}
 
@@ -421,7 +428,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 
 	add = async () => {
 		const {addMeetings, setSelectedMeetings, setSelectedSlots, session} = this.props;
-		let {entry, slots} = this.state;
+		let {action, entry, slots} = this.state;
 
 		// If a webex account is given, then add a webex meeting
 		if (entry.webexAccountId) {
@@ -435,7 +442,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 			entry = {...entry, imatBreakoutId: '$add'};
 
 		let meetings: MeetingAdd[];
-		if (slots.length > 0) {
+		if (action === 'add-by-slot') {
 			const {dates, startSlotId, roomId, ...rest} = entry;
 			meetings = slots.map(id => {
 				const [date, startSlotId, roomId] = fromSlotId(id);
@@ -484,7 +491,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 		const readOnly = access <= AccessLevel.ro;
 
 		let submit, cancel;
-		if (action === 'add') {
+		if (action === 'add-by-slot' || action === 'add-by-date') {
 			submit = this.add;
 			cancel = this.cancel;
 		}
@@ -506,7 +513,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 						name='add'
 						title='Add meeting'
 						disabled={loading || busy || readOnly}
-						isActive={action === 'add'}
+						isActive={action === 'add-by-slot' || action === 'add-by-date'}
 						onClick={this.clickAdd}
 					/>
 					<ActionButton

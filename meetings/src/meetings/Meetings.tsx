@@ -42,10 +42,11 @@ import MeetingsEmail from './MeetingsEmail';
 import { RowGetterProps } from 'dot11-components/dist/table/AppTable';
 
 const DisplayFormat = {
-	0: 'Table',
-	1: '1-Day Calendar',
-	3: '3-Day Calendar',
-	5: '5-Day Calendar'
+	0: 'Table view',
+	1: '1-day slot view',
+	3: '3-day slot view',
+	5: '5-day slot view',
+	6: '6-day slot view'
 }
 
 const displayFormatOptions = Object.entries(DisplayFormat).map(([key, label]) => ({value: parseInt(key), label}));

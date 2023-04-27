@@ -195,7 +195,7 @@ function MeetingAdd({
 		<MeetingEntryForm
 			entry={entry as MultipleMeetingEntry}
 			changeEntry={changes => setEntry(state => deepMerge(state, changes))}
-			action='add'
+			action='add-by-date'
 			submit={add}
 			cancel={close}
 		/>

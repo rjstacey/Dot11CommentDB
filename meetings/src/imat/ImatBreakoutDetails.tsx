@@ -840,7 +840,7 @@ class BreakoutDetails extends React.Component<BreakoutDetailsConnectedProps, Bre
 							entry={entry}
 							changeEntry={this.changeMeetingEntry}
 							busy={busy}
-							action='add'
+							action='add-by-date'
 							submit={this.import}
 							cancel={this.cancel}
 						/>:

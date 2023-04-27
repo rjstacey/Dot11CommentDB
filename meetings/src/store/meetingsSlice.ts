@@ -1,4 +1,5 @@
-import {DateTime} from 'luxon';
+import { DateTime } from 'luxon';
+import { PayloadAction } from '@reduxjs/toolkit';
 
 import {
 	createAppTableDataSlice,
@@ -10,7 +11,6 @@ import {
 	fields,
 	Meeting
 } from './meetingsSelectors';
-import { PayloadAction } from '@reduxjs/toolkit';
 
 const sortComparer = (a: Meeting, b: Meeting) => {
 	// Sort by start

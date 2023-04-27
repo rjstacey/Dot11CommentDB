@@ -1,5 +1,5 @@
 import React from 'react';
-import { Duration } from 'luxon';
+import { DateTime, Duration } from 'luxon';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
@@ -11,7 +11,8 @@ import {
 import {
 	selectCurrentSession,
 	selectCurrentSessionDates,
-	Session
+	Session,
+	fromSlotId
 } from '../store/sessions';
 
 import type { MultipleMeetingEntry, PartialMeetingEntry } from './MeetingDetails';
@@ -22,6 +23,7 @@ import TimeZoneSelector from '../components/TimeZoneSelector';
 import GroupSelector from '../components/GroupSelector';
 import CalendarAccountSelector from '../components/CalendarAccountSelector';
 import ImatMeetingSelector from '../components/ImatMeetingSelector';
+import { EditTable, TableColumn } from '../components/Table';
 
 import { PartialWebexMeetingEntry, WebexMeetingAccount, WebexMeetingParamsEdit } from '../webexMeetings/WebexMeetingDetail';
 
@@ -200,9 +202,9 @@ function SessionMeetingTime({
 			<Row>
 				<Field label='Session day:'>
 					<SessionDateSelector
-						value={isMultiple(entry.dates)? '': entry.dates[0]}
+						value={entry.dates.length === 1? entry.dates[0]: ''}
 						onChange={date => changeEntry({dates: date? [date]: []})}
-						placeholder={isMultiple(entry.dates)? MULTIPLE_STR: undefined}
+						placeholder={entry.dates.length > 1? MULTIPLE_STR: undefined}
 						readOnly={readOnly}
 					/>
 				</Field>
@@ -241,6 +243,40 @@ function SessionMeetingTime({
 	)
 }
 
+const tableColumns: TableColumn[] = [
+	{key: 'weekday', label: 'Day'},
+	{key: 'slotName', label: 'Slot'},
+	{key: 'roomName', label: 'Room'},
+	{key: 'actions', label: ''}
+]
+
+function SessionMeetingSlots({
+	slots,
+	onChange,
+}: {
+	slots: (string | null)[],
+	onChange?: (slots: string[]) => void; 
+}) {
+	const session = useAppSelector(selectCurrentSession);
+	const values = slots.map(s => {
+		const [date, slotId, roomId] = fromSlotId(s || '');
+		const slot = session?.timeslots.find(slot => slot.id === slotId);
+		const room = session?.rooms.find(room => room.id === roomId);
+		return {
+			weekday: DateTime.fromISO(date).weekdayShort,
+			slotName: slot?.name || '?',
+			roomName: room?.name || '?', 
+		}
+	});
+
+	return (
+		<EditTable
+			columns={tableColumns}
+			values={values}
+		/>
+	)
+}
+
 export function MeetingEntryForm({
 	entry,
 	changeEntry,
@@ -252,7 +288,7 @@ export function MeetingEntryForm({
 }: {
 	entry: MultipleMeetingEntry;
 	changeEntry: (changes: PartialMeetingEntry) => void;
-	action: "add" | "update";
+	action: "add-by-slot" | "add-by-date" | "update";
 	busy?: boolean;
 	submit?: () => void;
 	cancel?: () => void;
@@ -279,7 +315,11 @@ export function MeetingEntryForm({
 	let submitForm, cancelForm, submitLabel;
 	let title = isSession? "Session meeting": "Telecon";
 	if (submit) {
-		if (action === 'add') {
+		if (action === 'add-by-slot') {
+			submitLabel = "Add";
+			title = "Add session meeting to selected slots";
+		}
+		else if (action === 'add-by-date') {
 			submitLabel = "Add";
 			title = isSession? "Add session meeting": "Add telecon";
 		}
@@ -317,22 +357,10 @@ export function MeetingEntryForm({
 		changeEntry(changes);
 	}
 
-	/*function handleWebexMeetingChange(webexMeetingChanges: Partial<WebexMeetingParamsEntry>) {
-		let webexMeeting: MultipleWebexMeetingParamsEntry = {...entry.webexMeeting!, ...webexMeetingChanges};
-		const changes: Partial<MeetingEntry> = {};
-		if ('accountId' in webexMeetingChanges) {
-			changes.webexAccountId = webexMeetingChanges.accountId;
-			if (!webexMeetingChanges.accountId)
-				webexMeeting = {accountId: null} as WebexMeetingParamsEntry;
-		}
-		changes.webexMeeting = webexMeeting as unknown as WebexMeetingParams;	// deliberate; dont use start, end
-		handleChange(changes);
-	}*/
 	function handleWebexMeetingChange(webexMeetingChanges: PartialWebexMeetingEntry) {
 		const changes: PartialMeetingEntry = {webexMeeting: webexMeetingChanges};
-		if ('accountId' in webexMeetingChanges) {
+		if ('accountId' in webexMeetingChanges)
 			changes.webexAccountId = webexMeetingChanges.accountId;
-		}
 		handleChange(changes);
 	}
 
@@ -380,36 +408,42 @@ export function MeetingEntryForm({
 					</Field>
 				</Row>
 				{isSession?
-					<SessionMeetingTime
-						entry={entry}
-						changeEntry={handleChange}
-						readOnly={readOnly}
-					/>:
+					(action === 'add-by-slot'?
+						<SessionMeetingSlots
+							slots={entry.slots}
+							//onChange={slots => changeEntry({slots})}
+						/>:
+						<SessionMeetingTime
+							entry={entry}
+							changeEntry={handleChange}
+							readOnly={readOnly}
+						/>):
 					<TeleconMeetingTime
-						action={action}
+						action={action === 'update'? 'update': 'add'}
 						entry={entry}
 						changeEntry={handleChange}
 						readOnly={readOnly}
 					/>}
-				<Row>
-					<Field label='Location:'>
-						{isSession?
-							<RoomSelector
-								value={isMultiple(entry.roomId)? null: entry.roomId}
-								onChange={(roomId) => handleChange({roomId})}
-								placeholder={isMultiple(entry.roomId)? MULTIPLE_STR: BLANK_STR}
-								readOnly={readOnly}
-							/>:
-							<Input
-								type='search'
-								style={{width: 200}}
-								value={isMultiple(entry.location)? '': entry.location || ''}
-								onChange={(e) => handleChange({location: e.target.value})}
-								placeholder={isMultiple(entry.location)? MULTIPLE_STR: BLANK_STR}
-								disabled={readOnly}
-							/>}
-					</Field>
-				</Row>
+				{action !== 'add-by-slot' &&
+					<Row>
+						<Field label='Location:'>
+							{isSession?
+								<RoomSelector
+									value={isMultiple(entry.roomId)? null: entry.roomId}
+									onChange={(roomId) => handleChange({roomId})}
+									placeholder={isMultiple(entry.roomId)? MULTIPLE_STR: BLANK_STR}
+									readOnly={readOnly}
+								/>:
+								<Input
+									type='search'
+									style={{width: 200}}
+									value={isMultiple(entry.location)? '': entry.location || ''}
+									onChange={(e) => handleChange({location: e.target.value})}
+									placeholder={isMultiple(entry.location)? MULTIPLE_STR: BLANK_STR}
+									disabled={readOnly}
+								/>}
+						</Field>
+					</Row>}
 				{!isSession &&
 					<Row>
 						<Field label='Agenda includes motions:'>

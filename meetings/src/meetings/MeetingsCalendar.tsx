@@ -19,11 +19,46 @@ import {
 	toggleSelectedSlots,
 	selectSelectedMeetings,
 	toggleSelectedMeetings,
+	setSelectedMeetings,
 	selectMeetingEntities,
+	selectMeetingIds,
 	Meeting
 } from '../store/meetings';
 
 import {selectGroupEntities} from '../store/groups';
+
+function SelectAllMeetings({style}: {style?: React.CSSProperties}) {
+	const dispatch = useAppDispatch();
+
+	const selectedMeetings = useAppSelector(selectSelectedMeetings);
+	const selectedSlots = useAppSelector(selectSelectedSlots);
+	const ids = useAppSelector(selectMeetingIds);
+
+	const isDisabled = selectedMeetings.length === 0 && selectedSlots.length > 0;
+
+	const allSelected = React.useMemo(() => (
+			ids.length > 0 &&	// not if list is empty
+			ids.every(id => selectedMeetings.includes(id))
+		),
+		[ids, selectedMeetings]
+	);
+
+	const isIndeterminate = !allSelected && selectedMeetings.length > 0;
+
+	const toggleSelect = () => dispatch(setSelectedMeetings(selectedMeetings.length? []: ids));
+
+	return (
+		<div style={{...style, display: 'flex', justifyContent: 'center'}}>
+			<Checkbox
+				title={allSelected? "Clear all": isIndeterminate? "Clear selected": "Select all"}
+				checked={allSelected}
+				indeterminate={isIndeterminate}
+				onChange={toggleSelect}
+				disabled={isDisabled}
+			/>
+		</div>
+	);
+}
 
 const time = [
 	'12 AM', '1 AM', '2 AM', '3 AM', '4 AM', '5 AM', '6 AM', '7 AM', '8 AM', '9 AM', '10 AM', '11 AM',
@@ -307,7 +342,6 @@ function SessionDayBody({
 
 function MeetingCalendar({nDays}: {nDays: number}) {
 	const dates = useAppSelector(selectCurrentSessionDates);
-	//const [nDays, setNDays] = React.useState(1);
 	const [day, setDay] = React.useState(0);
 
 	let rooms = useAppSelector(selectCurrentSession)?.rooms || [];
@@ -332,6 +366,7 @@ function MeetingCalendar({nDays}: {nDays: number}) {
 
 	return (
 		<Container n={shownDates.length} >
+			<SelectAllMeetings style={{gridArea: '1 / 1'}} />
 			<div style={{gridArea: `1 / 2 / 1 / ${nDays + 2}`, position: 'sticky', top: 0, zIndex: '+2'}}>
 				{day > 0 &&
 					<ActionIcon
