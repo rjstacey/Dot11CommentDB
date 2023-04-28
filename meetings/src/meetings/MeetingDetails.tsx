@@ -9,6 +9,11 @@ import {
 	ActionButton,
 } from 'dot11-components';
 
+import type { RootState } from '../store';
+import { selectCurrentGroupId, selectCurrentGroupDefaults } from '../store/current';
+import { selectGroupEntities } from '../store/groups';
+import { selectUserMeetingsAccess, AccessLevel } from '../store/user';
+
 import {
 	selectCurrentSession,
 	fromSlotId,
@@ -29,22 +34,14 @@ import {
 } from '../store/meetings';
 
 import { WebexMeetingParams, webexMeetingToWebexMeetingParams } from '../store/webexMeetings';
+
 import type { MultipleWebexMeetingEntry, PartialWebexMeetingEntry } from '../webexMeetings/WebexMeetingDetail';
-
-import {selectCurrentGroupId, selectCurrentGroupDefaults} from '../store/current';
-
-import {selectGroupEntities} from '../store/groups';
-
-import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
 
 import TopRow from '../components/TopRow';
 
 import { defaultWebexMeeting } from '../webexMeetings/WebexMeetingDetail';
 
 import MeetingEntryForm from './MeetingEntry';
-
-import { RootState } from '../store';
-
 
 //const toTimeStr = (hour, min) => ('0' + hour).substr(-2) + ':' + ('0' + min).substr(-2);
 const fromTimeStr = (str: string) => {
@@ -504,36 +501,38 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 			<Container>
 				<TopRow style={{justifyContent: 'flex-end'}}>
 					<ActionButton
-						name='upload'
-						title='Sync meeting'
-						disabled={loading || busy || readOnly}
-						onClick={this.clickSync}
-					/>
-					<ActionButton
 						name='add'
 						title='Add meeting'
-						disabled={loading || busy || readOnly}
-						isActive={action === 'add-by-slot' || action === 'add-by-date'}
+						disabled={action === 'add-by-slot' || loading || busy || readOnly}
+						isActive={action === 'add-by-date'}
 						onClick={this.clickAdd}
+					/>
+					<ActionButton
+						name='upload'
+						title='Sync meeting'
+						disabled={meetings.length === 0 || loading || busy || readOnly}
+						onClick={this.clickSync}
 					/>
 					<ActionButton
 						name='delete'
 						title='Delete meeting'
-						disabled={loading || meetings.length === 0 || busy || readOnly}
+						disabled={meetings.length === 0 || loading || busy || readOnly}
 						onClick={this.clickDelete}
 					/>
 				</TopRow>
 				{notAvailableStr?
 					<NotAvailable>{notAvailableStr}</NotAvailable>:
-					<MeetingEntryForm
-						entry={entry}
-						changeEntry={this.changeEntry}
-						busy={busy}
-						action={action}
-						submit={submit}
-						cancel={cancel}
-						readOnly={readOnly}
-					/>}
+					<>
+						<MeetingEntryForm
+							entry={entry}
+							changeEntry={this.changeEntry}
+							busy={busy}
+							action={action}
+							submit={submit}
+							cancel={cancel}
+							readOnly={readOnly}
+						/>
+					</>}
 			</Container>
 		)
 	}

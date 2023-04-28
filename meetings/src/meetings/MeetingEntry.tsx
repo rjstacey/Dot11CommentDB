@@ -15,9 +15,9 @@ import {
 	fromSlotId
 } from '../store/sessions';
 
-import type { MultipleMeetingEntry, PartialMeetingEntry } from './MeetingDetails';
+import { selectSelectedSlots } from '../store/meetingsSelectors';
 
-import {selectGroupEntities} from '../store/groups';
+import { selectGroupEntities } from '../store/groups';
 
 import TimeZoneSelector from '../components/TimeZoneSelector';
 import GroupSelector from '../components/GroupSelector';
@@ -26,6 +26,7 @@ import ImatMeetingSelector from '../components/ImatMeetingSelector';
 import { EditTable, TableColumn } from '../components/Table';
 
 import { PartialWebexMeetingEntry, WebexMeetingAccount, WebexMeetingParamsEdit } from '../webexMeetings/WebexMeetingDetail';
+import type { MultipleMeetingEntry, PartialMeetingEntry } from './MeetingDetails';
 
 const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';
@@ -243,39 +244,6 @@ function SessionMeetingTime({
 	)
 }
 
-const tableColumns: TableColumn[] = [
-	{key: 'weekday', label: 'Day'},
-	{key: 'slotName', label: 'Slot'},
-	{key: 'roomName', label: 'Room'},
-	{key: 'actions', label: ''}
-]
-
-function SessionMeetingSlots({
-	slots,
-	onChange,
-}: {
-	slots: (string | null)[],
-	onChange?: (slots: string[]) => void; 
-}) {
-	const session = useAppSelector(selectCurrentSession);
-	const values = slots.map(s => {
-		const [date, slotId, roomId] = fromSlotId(s || '');
-		const slot = session?.timeslots.find(slot => slot.id === slotId);
-		const room = session?.rooms.find(room => room.id === roomId);
-		return {
-			weekday: DateTime.fromISO(date).weekdayShort,
-			slotName: slot?.name || '?',
-			roomName: room?.name || '?', 
-		}
-	});
-
-	return (
-		<EditTable
-			columns={tableColumns}
-			values={values}
-		/>
-	)
-}
 
 export function MeetingEntryForm({
 	entry,
@@ -407,23 +375,19 @@ export function MeetingEntryForm({
 						/>
 					</Field>
 				</Row>
-				{isSession?
-					(action === 'add-by-slot'?
-						<SessionMeetingSlots
-							slots={entry.slots}
-							//onChange={slots => changeEntry({slots})}
-						/>:
-						<SessionMeetingTime
-							entry={entry}
-							changeEntry={handleChange}
-							readOnly={readOnly}
-						/>):
-					<TeleconMeetingTime
-						action={action === 'update'? 'update': 'add'}
-						entry={entry}
-						changeEntry={handleChange}
-						readOnly={readOnly}
-					/>}
+				{action !== 'add-by-slot' &&
+						(isSession?
+							<SessionMeetingTime
+								entry={entry}
+								changeEntry={handleChange}
+								readOnly={readOnly}
+							/>:
+							<TeleconMeetingTime
+								action={action === 'update'? 'update': 'add'}
+								entry={entry}
+								changeEntry={handleChange}
+								readOnly={readOnly}
+							/>)}
 				{action !== 'add-by-slot' &&
 					<Row>
 						<Field label='Location:'>

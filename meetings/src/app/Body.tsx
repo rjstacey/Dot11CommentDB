@@ -77,7 +77,7 @@ function Body() {
 					element={renderComponent(AccessLevel.ro, ImatMeetings)}
 				/>
 				<Route
-					path="/:groupName/imatMeetings/:meetingNumber/:breakoutNumber"
+					path="/:groupName/imatAttendance/:meetingNumber/:breakoutNumber"
 					element={renderComponent(AccessLevel.ro, ImatBreakoutAttendance)}
 				/>
 				<Route

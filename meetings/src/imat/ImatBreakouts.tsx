@@ -65,6 +65,12 @@ const renderTimeRangeHeader = (props: HeaderCellRendererProps) =>
 		<TableColumnHeader {...props} dataKey='endTime' label='End time' />
 	</>
 
+const AttendanceLink = ({breakoutId}: {breakoutId: number}) => {
+	const location = useLocation();
+	const path = location.pathname.replace('imatBreakouts', 'imatAttendance') + `/${breakoutId}`;
+	return <Link to={path}>view attendance</Link>
+}
+
 const tableColumns: ColumnProperties[] = [
 	{key: '__ctrl__',
 		width: 30, flexGrow: 1, flexShrink: 0,
@@ -106,7 +112,7 @@ const tableColumns: ColumnProperties[] = [
 	{key: 'attendance',
 		label: 'Attendance',
 		width: 100, flexGrow: 1, flexShrink: 1,
-		cellRenderer: ({rowData}) => <Link to={`${rowData.id}`}>view attendance</Link>},
+		cellRenderer: ({rowData}) => <AttendanceLink breakoutId={rowData.id} />},
 ];
 
 const defaultTablesColumns = {

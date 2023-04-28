@@ -25,6 +25,7 @@ import {
 	setUiProperties,
 	meetingsSelectors,
 	meetingsActions,
+	setSelectedSlots,
 	SyncedMeeting
 } from '../store/meetings';
 
@@ -39,6 +40,8 @@ import MeetingsCalendar from './MeetingsCalendar';
 import MeetingDetails from './MeetingDetails';
 import MeetingDefaults from './MeetingDefaults';
 import MeetingsEmail from './MeetingsEmail';
+import ShowSlots from './ShowSlots';
+
 import { RowGetterProps } from 'dot11-components/dist/table/AppTable';
 
 const DisplayFormat = {
@@ -203,13 +206,18 @@ function Meetings() {
 	const setShowDays = (showDays: number) => dispatch(setUiProperties({showDays}));
 	const refresh = () => dispatch(refreshCurrent());
 
+	function changeShowDays(newShowDays: number) {
+		if (showDays !== 0 && newShowDays === 0)
+			dispatch(setSelectedSlots([]));
+		setShowDays(newShowDays);
+	}
 	return (
 		<>
 			<TopRow>
 				<CurrentSessionSelector allowShowDateRange />
 
 				<ActionButtonDropdown label='Set defaults'>
-					<MeetingDefaults/>
+					<MeetingDefaults />
 				</ActionButtonDropdown>
 
 				<ActionButtonDropdown
@@ -220,7 +228,7 @@ function Meetings() {
 				<div style={{display: 'flex', alignItems: 'center'}}>
 					<SelectDisplayFormat
 						value={showDays}
-						onChange={setShowDays}
+						onChange={changeShowDays}
 					/>
 					{showDays === 0 &&
 						<TableColumnSelector
@@ -241,7 +249,8 @@ function Meetings() {
 				actions={meetingsActions}
 			>
 				{showDays > 0?
-					<Panel style={{overflow: 'auto'}}>
+					<Panel style={{display: 'flex', flexDirection: 'column'}}>
+						<ShowSlots />
 						<MeetingsCalendar nDays={showDays} />
 					</Panel>:
 					<Panel style={{display: 'flex', flexDirection: 'column', margin: '10px 0 10px 10px'}} >

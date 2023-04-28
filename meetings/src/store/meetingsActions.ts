@@ -65,7 +65,7 @@ export type LoadMeetingsConstraints = {
 }
 
 export const loadMeetings = (constraints?: LoadMeetingsConstraints): AppThunk => 
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		dispatch(getPending());
 		let response;
 		try {
@@ -79,6 +79,7 @@ export const loadMeetings = (constraints?: LoadMeetingsConstraints): AppThunk =>
 		}
 		const {meetings, webexMeetings, breakouts} = response;
 		dispatch(getSuccess(meetings));
+		dispatch(setSelectedSlots([]));
 		if (webexMeetings)
 			dispatch(setWebexMeetings(webexMeetings));
 		if (breakouts)

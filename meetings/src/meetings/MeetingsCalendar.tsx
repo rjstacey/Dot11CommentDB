@@ -48,7 +48,7 @@ function SelectAllMeetings({style}: {style?: React.CSSProperties}) {
 	const toggleSelect = () => dispatch(setSelectedMeetings(selectedMeetings.length? []: ids));
 
 	return (
-		<div style={{...style, display: 'flex', justifyContent: 'center'}}>
+		<div style={{...style, position: 'sticky', top: 0, zIndex: '+1', display: 'flex', justifyContent: 'center'}}>
 			<Checkbox
 				title={allSelected? "Clear all": isIndeterminate? "Clear selected": "Select all"}
 				checked={allSelected}
@@ -82,7 +82,12 @@ function TimeColumn({style}: {style?: React.CSSProperties}) {
 	)
 }
 
-const Container = styled.div<{n: number}>`
+const OuterContainer = styled.div`
+	flex: 1;
+	overflow: auto;
+`;
+
+const InnerContainer = styled.div<{n: number}>`
 	display: grid;
 	grid-template-columns: max-content ${({n}) => `repeat(${n}, minmax(10px, 1fr))`};
 	grid-template-rows: max-content 1fr;
@@ -365,7 +370,8 @@ function MeetingCalendar({nDays}: {nDays: number}) {
 	const shownDates = dates.slice(day, day + nDays);
 
 	return (
-		<Container n={shownDates.length} >
+		<OuterContainer>
+		<InnerContainer n={shownDates.length} >
 			<SelectAllMeetings style={{gridArea: '1 / 1'}} />
 			<div style={{gridArea: `1 / 2 / 1 / ${nDays + 2}`, position: 'sticky', top: 0, zIndex: '+2'}}>
 				{day > 0 &&
@@ -399,7 +405,8 @@ function MeetingCalendar({nDays}: {nDays: number}) {
 					rooms={rooms}
 				/>
 			)}
-		</Container>
+		</InnerContainer>
+		</OuterContainer>
 	)
 }
 

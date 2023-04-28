@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -93,7 +93,7 @@ function BreakoutAttendance() {
 			dispatch(loadBreakoutAttendance(meetingNumber, breakoutNumber));
 	}, [dispatch, valid, meetingNumber, imatMeetingId, breakoutNumber, imatBreakoutId]);
 
-	const close = () => navigate(`/${params.groupName}/imatMeetings/${imatMeetingId}`);
+	const close = () => navigate(-1);
 	const refresh = () => dispatch(loadBreakoutAttendance(imatMeetingId, imatBreakoutId));
 
 	return (
