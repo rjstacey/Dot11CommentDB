@@ -1,5 +1,5 @@
 import React from 'react';
-import { DateTime, Duration } from 'luxon';
+import { Duration } from 'luxon';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
@@ -12,10 +12,7 @@ import {
 	selectCurrentSession,
 	selectCurrentSessionDates,
 	Session,
-	fromSlotId
 } from '../store/sessions';
-
-import { selectSelectedSlots } from '../store/meetingsSelectors';
 
 import { selectGroupEntities } from '../store/groups';
 
@@ -23,7 +20,6 @@ import TimeZoneSelector from '../components/TimeZoneSelector';
 import GroupSelector from '../components/GroupSelector';
 import CalendarAccountSelector from '../components/CalendarAccountSelector';
 import ImatMeetingSelector from '../components/ImatMeetingSelector';
-import { EditTable, TableColumn } from '../components/Table';
 
 import { PartialWebexMeetingEntry, WebexMeetingAccount, WebexMeetingParamsEdit } from '../webexMeetings/WebexMeetingDetail';
 import type { MultipleMeetingEntry, PartialMeetingEntry } from './MeetingDetails';

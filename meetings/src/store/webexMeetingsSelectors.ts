@@ -7,8 +7,8 @@ import {
 	SortType,
 } from 'dot11-components';
 
+import type { RootState } from '.';
 import { selectMeetingEntities } from './meetingsSelectors';
-import { RootState } from '.';
 
 import type { WebexMeetingsState } from './webexMeetingsSlice';
 

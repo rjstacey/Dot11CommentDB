@@ -26,13 +26,14 @@ import {
 	Breakout
 } from '../store/imatBreakouts';
 
+import { setCurrentSessionId } from '../store/current';
+
 import type { ImatMeeting } from '../store/imatMeetings';
 
 import ImatBreakoutDetails from './ImatBreakoutDetails';
 import MeetingSummary from '../components/MeetingSummary';
 import ImatMeetingSelector from '../components/ImatMeetingSelector';
 import TopRow from '../components/TopRow';
-
 
 const renderGroup = ({rowData}: {rowData: Breakout}) => {
 	if (rowData.groupShortName)
@@ -41,16 +42,15 @@ const renderGroup = ({rowData}: {rowData: Breakout}) => {
 	return parts[parts.length-1];
 }
 
-export const renderSessionInfo = (session: ImatMeeting) =>
-	<div style={{display: 'flex', flexDirection: 'column'}}>
-		<span>{session.name}</span>
-		<span>{displayDateRange(session.start, session.end)}</span>
-		<span>{session.timezone}</span>
-	</div>
-
-function SessionInfo() {
-	const imatMeeting = useAppSelector(selectBreakoutMeeting);
-	return imatMeeting? renderSessionInfo(imatMeeting): null;
+export function ImatMeetingInfo({imatMeeting}: {imatMeeting?: ImatMeeting}) {
+	let content = imatMeeting?
+		<>
+			<span>{imatMeeting.name}</span>
+			<span>{displayDateRange(imatMeeting.start, imatMeeting.end)}</span>
+			<span>{imatMeeting.timezone}</span>
+		</>:
+		null;
+	return <div style={{display: 'flex', flexDirection: 'column'}}>{content}</div>
 }
 
 const renderDateHeader = (props: HeaderCellRendererProps) =>
@@ -170,20 +170,23 @@ function Breakouts() {
 		pathImatMeetingId = null;
 
 	const imatMeetingId = useAppSelector(selectBreakoutMeetingId);
+	const imatMeeting = useAppSelector(selectBreakoutMeeting);
 
 	React.useEffect(() => {
 		if (pathImatMeetingId && pathImatMeetingId !== imatMeetingId) {
 			/* If the user navigates here and the current meeting number does not match,
 			 * then reload the breakouts */
-			dispatch(loadBreakouts(pathImatMeetingId));
+			if (imatMeeting?.sessionId)
+				dispatch(setCurrentSessionId(imatMeeting.sessionId));
+			else
+				dispatch(loadBreakouts(pathImatMeetingId));
 		}
 		else if (!pathImatMeetingId && imatMeetingId) {
 			/* If the user navigates to the breakouts root, but there is a meeting number selected,
 			 * then navigate to the current meeting number */
-			let path = location.pathname + `/${imatMeetingId}`;
-			navigate(path);
+			navigate(location.pathname + `/${imatMeetingId}`);
 		}
-	}, [pathImatMeetingId, imatMeetingId, location.pathname, dispatch, navigate]);
+	}, [pathImatMeetingId, imatMeetingId, imatMeeting, location.pathname, dispatch, navigate]);
 
 	const setImatMeetingId = (imatMeetingId: number | null) => {
 		/* If the user clears the selected meeting number, then clear the breakouts */
@@ -205,7 +208,8 @@ function Breakouts() {
 					value={imatMeetingId}
 					onChange={setImatMeetingId}
 				/>
-				<SessionInfo />
+
+				<ImatMeetingInfo imatMeeting={imatMeeting} />
 
 				<div style={{display: 'flex'}}>
 					<TableColumnSelector

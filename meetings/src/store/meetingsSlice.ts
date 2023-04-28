@@ -1,5 +1,5 @@
+import type { PayloadAction } from '@reduxjs/toolkit';
 import { DateTime } from 'luxon';
-import { PayloadAction } from '@reduxjs/toolkit';
 
 import {
 	createAppTableDataSlice,

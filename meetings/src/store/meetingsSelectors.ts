@@ -7,13 +7,13 @@ import {
 	SortType
 } from 'dot11-components';
 
-import {selectGroupEntities, Group} from './groups';
-import {selectWebexAccountEntities, WebexAccount} from './webexAccounts';
-import {selectCalendarAccountEntities, CalendarAccount} from './calendarAccounts';
-import {selectImatMeetingEntities, ImatMeeting} from './imatMeetings';
-import {selectWebexMeetingEntities, WebexMeeting, WebexMeetingParams} from './webexMeetingsSelectors';
-import {selectSessionEntities} from './sessions';
-import { RootState } from '.';
+import type { RootState } from '.';
+import { selectGroupEntities, Group } from './groups';
+import { selectWebexAccountEntities, WebexAccount } from './webexAccounts';
+import { selectCalendarAccountEntities, CalendarAccount } from './calendarAccounts';
+import { selectImatMeetingEntities, ImatMeeting } from './imatMeetings';
+import { selectWebexMeetingEntities, WebexMeeting, WebexMeetingParams } from './webexMeetingsSelectors';
+import { selectSessionEntities } from './sessions';
 
 import type { MeetingsState } from './meetingsSlice';
 
@@ -133,13 +133,8 @@ export function summarizeTelecon(entity: Meeting) {
  * Selectors
  */
 export const selectMeetingsState = (state: RootState) => state[dataSet] as MeetingsState;
-
 export function selectMeetingEntities(state: RootState) {return selectMeetingsState(state).entities}
-
 export const selectMeetingIds = (state: RootState) => selectMeetingsState(state).ids;
-
-//export const selectMeetingsCurrentPanelConfig = (state: RootState) => selectCurrentPanelConfig(state, dataSet);
-
 
 export const selectSyncedMeetingEntities = createSelector(
 	selectMeetingEntities,
@@ -175,7 +170,5 @@ export const selectSyncedMeetingEntities = createSelector(
 export const meetingsSelectors = getAppTableDataSelectors(selectMeetingsState, {selectEntities: selectSyncedMeetingEntities, getField})
 
 export const selectSelectedMeetings = (state: RootState) => selectMeetingsState(state).selected;
-
 export const selectSelectedSlots = (state: RootState) => selectMeetingsState(state).selectedSlots;
-
 export const selectUiProperties = (state: RootState) => selectMeetingsState(state).ui;

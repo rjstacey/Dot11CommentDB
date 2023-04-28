@@ -4,7 +4,7 @@ import {
 } from 'dot11-components';
 
 import slice from './webexMeetingsSlice';
-import { AppThunk } from '.';
+import type { AppThunk } from '.';
 
 import { WebexMeeting, WebexMeetingParams } from './webexMeetingsSelectors';
 

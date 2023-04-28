@@ -1,4 +1,4 @@
-import {createAppTableDataSlice, AppTableDataState} from 'dot11-components';
+import { createAppTableDataSlice, AppTableDataState } from 'dot11-components';
 
 import {
 	dataSet,

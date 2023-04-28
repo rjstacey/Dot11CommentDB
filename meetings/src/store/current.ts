@@ -3,11 +3,11 @@ import { DateTime } from 'luxon';
 
 import { setError } from 'dot11-components';
 
-import {selectSessionEntities} from './sessions';
-import {loadMeetings, LoadMeetingsConstraints, clearMeetings} from './meetings';
-import {clearWebexMeetings} from './webexMeetings';
-import {loadBreakouts, clearBreakouts} from './imatBreakouts';
-import { AppThunk, RootState } from '.';
+import type { AppThunk, RootState } from '.';
+import { selectSessionEntities } from './sessions';
+import { loadMeetings, LoadMeetingsConstraints, clearMeetings } from './meetings';
+import { clearWebexMeetings } from './webexMeetings';
+import { loadBreakouts, clearBreakouts } from './imatBreakouts';
 
 const dataSet = 'current';
 

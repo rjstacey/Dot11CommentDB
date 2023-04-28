@@ -31,7 +31,6 @@ export type Timeslot = {
 export type DayCredit = { [slotName: string]: string };
 export type SessionCredits = DayCredit[];
 
-
 export interface Session {
 	id: number;
 	name: string;
@@ -46,7 +45,6 @@ export interface Session {
 	timeslots: Timeslot[];
 	defaultCredits: SessionCredits;
 	Attendees: number;
-	//attendees?: AttendanceSummary[];
 }
 
 export type SessionAdd = Omit<Session, "id" | "Attendees">;
@@ -87,8 +85,6 @@ type SessionsState = AppTableDataState<Session>;
  */
 export const selectSessionsState = (state: RootState) => state[dataSet] as SessionsState;
 export const selectSessionEntities = (state: RootState) => selectSessionsState(state).entities;
-
-//export const selectSessionsCurrentPanelConfig = (state: RootState) => selectCurrentPanelConfig(state, dataSet);
 
 export const selectSessionsSelected = (state: RootState) => selectSessionsState(state).selected;
 

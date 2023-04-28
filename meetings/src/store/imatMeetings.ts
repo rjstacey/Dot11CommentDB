@@ -1,3 +1,5 @@
+import { createSelector, Dictionary } from '@reduxjs/toolkit';
+
 import {
 	fetcher,
 	setError,
@@ -9,8 +11,8 @@ import {
 	SortType,
 } from 'dot11-components';
 
-import { selectCurrentSession } from './sessions';
-import { RootState, AppThunk } from '.';
+import type { RootState, AppThunk } from '.';
+import { selectCurrentSession, selectSessionEntities } from './sessions';
 
 export type ImatMeeting = {
 	id: number;
@@ -24,6 +26,10 @@ export type ImatMeeting = {
 	timezone: string;
 }
 
+export type SyncedImatMeeting = ImatMeeting & {
+	sessionId: number | null;
+}
+
 export const fields = {
 	id: {label: 'Meeting number', sortType: SortType.NUMERIC},
 	start: {label: 'Start', dataRenderer: displayDate},
@@ -32,6 +38,7 @@ export const fields = {
 	name: {label: 'Name'},
 	type: {label: 'Type'/*, dataRenderer: displaySessionType, options: SessionTypeOptions*/},
 	timezone: {label: 'Time zone'},
+	sessionId: {label: 'Session'}
 };
 
 export const dataSet = 'imatMeetings';
@@ -61,6 +68,25 @@ export default slice;
  */
 export const selectImatMeetingsState = (state: RootState) => state[dataSet] as ImatMeetingsState;
 export const selectImatMeetingEntities = (state: RootState) => selectImatMeetingsState(state).entities;
+export const selectImatMeetingIds = (state: RootState) => selectImatMeetingsState(state).ids;
+
+export const selectSyncedImatMeetingEntities = createSelector(
+	selectImatMeetingIds,
+	selectImatMeetingEntities,
+	selectSessionEntities,
+	(imatMeetingIds, imatMeetingEntities, sessionEntities) => {
+		const newEntities: Dictionary<SyncedImatMeeting> = {};
+		const sessions = Object.values(sessionEntities);
+		imatMeetingIds.forEach(id => {
+			const session = sessions.find(s => s!.imatMeetingId === id);
+			newEntities[id] = {
+				...imatMeetingEntities[id]!,
+				sessionId: session?.id || null
+			}
+		});
+		return newEntities;
+	}
+);
 
 export const selectCurrentImatMeeting = (state: RootState) => {
 	const session = selectCurrentSession(state);
@@ -70,12 +96,11 @@ export const selectCurrentImatMeeting = (state: RootState) => {
 
 export const selectImatMeeting = (state: RootState, imatMeetingId: number) => selectImatMeetingEntities(state)[imatMeetingId];
 
-export const imatMeetingsSelectors = getAppTableDataSelectors(selectImatMeetingsState, {getField});
+export const imatMeetingsSelectors = getAppTableDataSelectors(selectImatMeetingsState, {getField, selectEntities: selectSyncedImatMeetingEntities});
 
 /*
  * Actions
  */
-
 export const imatMeetingsActions = slice.actions;
 
 const {

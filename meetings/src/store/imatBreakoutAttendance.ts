@@ -1,4 +1,6 @@
 
+import type { PayloadAction } from '@reduxjs/toolkit';
+
 import {
 	fetcher,
 	setError,
@@ -7,7 +9,6 @@ import {
 	SortType
 } from 'dot11-components';
 
-import type { PayloadAction } from '@reduxjs/toolkit';
 import type { AppThunk, RootState } from '.';
 import type { Member } from './members';
 

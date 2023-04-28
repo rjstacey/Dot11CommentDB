@@ -7,6 +7,7 @@ import {
 	ConfirmModal,
 	deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, MULTIPLE, Multiple,
 	ActionButton,
+	setError
 } from 'dot11-components';
 
 import type { RootState } from '../store';
@@ -440,11 +441,22 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 
 		let meetings: MeetingAdd[];
 		if (action === 'add-by-slot') {
-			const {dates, startSlotId, roomId, ...rest} = entry;
-			meetings = slots.map(id => {
-				const [date, startSlotId, roomId] = fromSlotId(id);
-				return convertEntryToMeeting({...rest, date, startSlotId, roomId} as MeetingEntry, session);
-			});
+			const {dates, startSlotId, startTime, endTime, roomId, ...rest} = entry;
+			try {
+				meetings = slots.map(id => {
+					const [date, startSlotId, roomId] = fromSlotId(id);
+					const slot = session?.timeslots.find(slot => slot.id === startSlotId);
+					if (!slot)
+						throw new Error('Bad timeslot identifier');
+					const startTime = slot.startTime;
+					const endTime = slot.endTime;
+					return convertEntryToMeeting({...rest, date, startSlotId, startTime, endTime, roomId} as MeetingEntry, session);
+				});
+			}
+			catch (error: any) {
+				this.props.setError('Internal error', error.message);
+				meetings = [];
+			}
 		}
 		else {
 			const {dates, ...rest} = entry;
@@ -556,6 +568,7 @@ const connector = connect(
 		updateMeetings,
 		addMeetings,
 		deleteMeetings,
+		setError,
 	}
 );
 

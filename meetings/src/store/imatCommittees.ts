@@ -4,7 +4,8 @@ import {
 	createAppTableDataSlice,
 	SortType
 } from 'dot11-components';
-import { AppThunk, RootState } from '.';
+
+import type { AppThunk, RootState } from '.';
 
 type Committee = {
 	id: number;

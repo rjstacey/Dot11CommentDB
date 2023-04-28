@@ -1,7 +1,7 @@
-import {createSlice, createEntityAdapter} from '@reduxjs/toolkit';
+import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
 import type { RootState, AppThunk } from '.';
 
-import {fetcher, setError} from 'dot11-components';
+import { fetcher, setError } from 'dot11-components';
 
 export interface Member {
 	SAPIN: number;

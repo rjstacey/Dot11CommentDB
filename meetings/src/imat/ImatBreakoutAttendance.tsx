@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -23,7 +23,7 @@ import type { Breakout } from '../store/imatBreakouts';
 
 import TopRow from '../components/TopRow';
 
-import {renderSessionInfo} from './ImatBreakouts';
+import { ImatMeetingInfo } from './ImatBreakouts';
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
@@ -36,13 +36,18 @@ const TableRow = styled.div`
 	}
 `;
 
-export const renderBreakoutInfo = (breakout: Breakout) =>
-	<div style={{display: 'flex', flexDirection: 'column'}}>
-		<span>{breakout.name}</span>
-		<span>{displayDayDate(breakout.start)}</span>
-		<span>{displayTime(breakout.start) + ' - ' + displayTime(breakout.end)}</span>
-		<span>{breakout.location}</span>
-	</div>
+function ImatBreakoutInfo({breakout}: {breakout?: Breakout}) {
+	let content = breakout?
+		<>
+			<span>{breakout.name}</span>
+			<span>{displayDayDate(breakout.start)}</span>
+			<span>{displayTime(breakout.start) + ' - ' + displayTime(breakout.end)}</span>
+			<span>{breakout.location}</span>
+		</>:
+		null;
+
+	return <div style={{display: 'flex', flexDirection: 'column'}}>{content}</div>
+}
 	
 type ColumnPropertiesWithWidth = ColumnProperties & {width: number};
 
@@ -99,8 +104,8 @@ function BreakoutAttendance() {
 	return (
 		<>
 			<TopRow style={{maxWidth}}>
-				<div>{imatMeeting && renderSessionInfo(imatMeeting)}</div>
-				<div>{breakout && renderBreakoutInfo(breakout)}</div>
+				<ImatMeetingInfo imatMeeting={imatMeeting} />
+				<ImatBreakoutInfo breakout={breakout} />
 				<div>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 					<ActionButton name='close' title='Close' onClick={close} />

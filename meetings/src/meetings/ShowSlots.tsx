@@ -53,9 +53,11 @@ const Container = styled.div`
 `;
 
 const Label = styled.div`
+    display: flex;
 	margin-right: 5px;
 	& label {
 		font-weight: bold;
+        margin-right: 5px;
 	}
 `;
 
@@ -93,6 +95,7 @@ function ShowSelectedSlots({
             const roomName = session?.rooms.find(room => room.id === roomId)?.name || '?';
             elements.push(
                 <Slot
+                    key={s}
                     remove={() => dispatch(toggleSelectedSlots([s]))}
                 >
                     {`${weekday} ${slotName} ${roomName}`}
@@ -100,16 +103,19 @@ function ShowSelectedSlots({
             );
 		})
         return elements;
-    }, [slots, session]);
+    }, [slots, session, dispatch]);
 
 	return (
 		<Container
 			style={style}
 			className={className}
 		>
-			<Label>{`${elements.length} slots selected`}</Label>
+			<Label>
+                <label>Slots:</label>
+                <span>{elements.length}</span>
+            </Label>
 			<Content>
-				{elements.length? elements: <Placeholder>No filters</Placeholder>}
+				{elements.length? elements: <Placeholder>No slots selected</Placeholder>}
 			</Content>
 		</Container>
 	)

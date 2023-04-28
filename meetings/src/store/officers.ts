@@ -1,7 +1,6 @@
 import { createSlice, createEntityAdapter, createSelector } from '@reduxjs/toolkit';
 import type { EntityId } from '@reduxjs/toolkit';
 
-// @ts-ignore
 import { v4 as uuid } from 'uuid';
 import type { RootState, AppThunk } from '.';
 

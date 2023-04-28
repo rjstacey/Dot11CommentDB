@@ -1,8 +1,7 @@
 import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
 
 import type { RootState, AppThunk } from '.';
-
-import {fetcher, setError} from 'dot11-components';
+import { fetcher, setError } from 'dot11-components';
 
 export type WebexTemplate = {
 	id: string;
@@ -91,7 +90,7 @@ export const loadWebexAccounts = (): AppThunk =>
 			dispatch(setError('Unable to get list of webex accounts', error));
 			return;
 		}
-		await dispatch(getSuccess(response));
+		dispatch(getSuccess(response));
 	}
 
 export const updateWebexAccount = (id: number, changes: object): AppThunk =>
@@ -129,8 +128,8 @@ export const addWebexAccount = (account: WebexAccount): AppThunk =>
 export const deleteWebexAccount = (id: number): AppThunk =>
 	async (dispatch) => {
 		dispatch(removeOne(id));
+		const url = `${baseUrl}/${id}`;
 		try {
-			const url = `${baseUrl}/${id}`;
 			await fetcher.delete(url);
 		}
 		catch (error: any) {

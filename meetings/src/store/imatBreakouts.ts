@@ -11,9 +11,9 @@ import {
 	getAppTableDataSelectors
 } from 'dot11-components';
 
-import {selectMeetingEntities} from './meetings';
-import {selectImatMeetingEntities} from './imatMeetings';
 import { AppThunk, RootState } from '.';
+import { selectMeetingEntities } from './meetings';
+import { selectSyncedImatMeetingEntities } from './imatMeetings';
 
 export type Breakout = {
 	id: number;
@@ -107,11 +107,10 @@ type ImatBreakoutsState = ExtraState & AppTableDataState<Breakout>;
 export const selectBreakoutsState = (state: RootState) => state[dataSet] as ImatBreakoutsState;
 export const selectBreakoutEntities = (state: RootState) => selectBreakoutsState(state).entities;
 export const selectBreakoutMeetingId = (state: RootState) => selectBreakoutsState(state).imatMeetingId;
-//export const selectBreakoutRooms = (state: RootState) => selectBreakoutsState(state).rooms;
 export const selectBreakoutTimeslots = (state: RootState) => selectBreakoutsState(state).timeslots;
 export const selectBreakoutMeeting = (state: RootState) => {
 	const imatMeetingId = selectBreakoutMeetingId(state);
-	const imatMeetingEntities = selectImatMeetingEntities(state);
+	const imatMeetingEntities = selectSyncedImatMeetingEntities(state);
 	return imatMeetingId? imatMeetingEntities[imatMeetingId]: undefined;
 }
 

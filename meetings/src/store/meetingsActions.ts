@@ -7,9 +7,9 @@ import {
 
 import slice from './meetingsSlice';
 
+import type { AppThunk } from '.';
 import { setWebexMeetings, upsertWebexMeetings } from './webexMeetings';
 import { setBreakouts, upsertBreakouts } from './imatBreakouts';
-import type { AppThunk } from '.';
 
 import type { Meeting, MeetingAdd } from './meetingsSelectors';
 

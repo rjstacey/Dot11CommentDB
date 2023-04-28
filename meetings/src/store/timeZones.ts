@@ -57,7 +57,7 @@ const url = '/api/timeZones';
 
 export const loadTimeZones = (): AppThunk =>
 	async (dispatch) => {
-		await dispatch(getPending());
+		dispatch(getPending());
 		let timeZones;
 		try {
 			timeZones = await fetcher.get(url);
@@ -71,7 +71,7 @@ export const loadTimeZones = (): AppThunk =>
 			])
 			return;
 		}
-		await dispatch(getSuccess(timeZones));
+		dispatch(getSuccess(timeZones));
 	}
 
 export {setTimezone};

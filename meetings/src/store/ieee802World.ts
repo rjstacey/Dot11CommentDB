@@ -4,17 +4,18 @@ import { DateTime } from 'luxon';
 import {
 	fetcher,
 	setError,
+	displayDate,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
-	AppTableDataState,
-	SortType
+	SortType,
+	AppTableDataState
 } from 'dot11-components';
 
-import {selectGroupsState} from './groups';
-import {selectCurrentSessionId} from './current';
-import {selectSessionEntities} from './sessions';
+import type { AppThunk, RootState } from '.';
+import { selectGroupEntities, selectGroupsState } from './groups';
+import { selectCurrentSessionId } from './current';
+import { selectSessionEntities, selectCurrentSession } from './sessions';
 import { addMeetings, selectMeetingEntities, Meeting } from './meetings';
-import { AppThunk, RootState } from '.';
 
 type Ieee802WorldScheduleEntry = {
 	id: number;
@@ -32,16 +33,10 @@ type Ieee802WorldScheduleEntry = {
 	mtgLevel: string;
 	mtgLocation: string;
 	groupName: string;
-	//meetingId: number;
 }
 
-function displayDate(isoDate: string) {
-	// ISO date: "YYYY-MM-DD"
-	const year = parseInt(isoDate.substr(0, 4));
-	const month = parseInt(isoDate.substr(5, 7));
-	const date = parseInt(isoDate.substr(8, 10));
-	const monthStr = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-	return `${year} ${monthStr[month] || '???'} ${date}`; 
+type SyncedIeee802WorldScheduleEntry = Ieee802WorldScheduleEntry & {
+	meetingId: number | null;
 }
 
 export const dataSet = 'ieee802World';
@@ -83,34 +78,41 @@ export function getField(entity: Ieee802WorldScheduleEntry, key: string) {
 	return entity[key as keyof Ieee802WorldScheduleEntry];
 }
 
-type Ieee802WorldState = AppTableDataState<Ieee802WorldScheduleEntry>;
-
 /*
  * Selectors
  */
-export const select802WorldState = (state: RootState) => state[dataSet] as Ieee802WorldState;
+export const select802WorldState = (state: RootState) => state[dataSet] as AppTableDataState<Ieee802WorldScheduleEntry>;
 export const select802WorldEntities = (state: RootState) => select802WorldState(state).entities;
-
-type SyncedIeee802WorldScheduleEntry = Ieee802WorldScheduleEntry & {
-	meetingId: number | null;
-}
+export const select802WorldIds = (state: RootState) => select802WorldState(state).ids;
 
 export const selectSynced802WorldEntities = createSelector(
+	select802WorldIds,
 	select802WorldEntities,
 	selectMeetingEntities,
-	(entities, meetingEntities) => {
+	selectGroupEntities,
+	selectCurrentSession,
+	(ids, entities, meetingEntities, groupEntities, session) => {
 		const newEntities: Dictionary<SyncedIeee802WorldScheduleEntry> = {};
-		for (const [key, entry] of Object.entries(entities)) {
-			/* Find a meeting that matches start, end and name */
+		for (const id of ids) {
+			const entity = entities[id]!;
+			const entityGroupName = entity.groupName.startsWith('802')? '802': '802.' + (entity.groupName);
+			const entityGroupId = Object.values(groupEntities).find(group => group!.name === entityGroupName)?.id || null;
+			const entityRoomId = session?.rooms.find(room => room!.name === entity.mtgRoom)?.id || null;
+			const entityStart = DateTime.fromFormat(`${entity.breakoutDate} ${entity.startTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: session?.timezone || 'America/New_York'});
+			/* Find a meeting that matches group, start, and room */
 			const m = Object.values(meetingEntities).find(m => {
-				const entryStart = DateTime.fromFormat(`${entry!.breakoutDate} ${entry!.startTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: m!.timezone});
-				const entryEnd = DateTime.fromFormat(`${entry!.breakoutDate} ${entry!.endTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: m!.timezone});
-				const meetingSummary = m!.summary.replace('802.11', '').trim();
-				return (entryStart.equals(DateTime.fromISO(m!.start, {zone: m!.timezone})) &&
-						entryEnd.equals(DateTime.fromISO(m!.end, {zone: m!.timezone})) &&
-						entry!.meeting.startsWith(meetingSummary));
+				const groupId = m!.organizationId;
+				const parentGroupId = groupId? (groupEntities[groupId]?.parent_id || null): null;
+				const start = DateTime.fromISO(m!.start, {zone: m!.timezone});
+				const roomId = m!.roomId;
+				return ((entityGroupId === groupId || entityGroupId === parentGroupId) &&
+						entityStart.equals(start) &&
+						entityRoomId === roomId);
 			});
-			newEntities[key] = {...entry!, meetingId: m?.id || null}
+			newEntities[id] = {
+				...entity,
+				meetingId: m?.id || null
+			}
 		}
 		return newEntities;
 	}
@@ -176,14 +178,9 @@ export const importSelectedAsMeetings = (): AppThunk =>
 			const entry = entities[id]!;
 			const meeting: Partial<Meeting> = {sessionId};
 
-			let groupNames = entry.groupName.split('/');
-			groupNames = groupNames.map(name => '802.' + name);
-			const orgIds = groupNames.map(groupName => groupIds.find(id => groupEntities[id]!.name === groupName));
-			if (!orgIds.every(name => typeof name !== 'undefined')) {
-				dispatch(setError("Unknown groups in groupName", entry.groupName));
-				return;
-			}
-			const groupName = groupEntities[orgIds[0]!]!.name;
+			let groupName = entry.groupName.split('/')[0];	// Sometimes: "11/15/18/19"
+			groupName = groupName.startsWith('802')? '802': ('802.' + groupName);	// Sometimes "802W"
+			const groupId = groupIds.find(id => groupEntities[id]!.name === groupName);
 
 			/* Meeting name is in the form:
 			 *   TGbe (Joint) - Extremely High Throughput
@@ -192,9 +189,9 @@ export const importSelectedAsMeetings = (): AppThunk =>
 			 *   etc.
 			 */
 			const [subgroupName] = entry.meeting.split(' - ');
-			meeting.organizationId = groupIds.find(id => groupEntities[id]!.name === subgroupName && orgIds.includes(groupEntities[id]!.parent_id || '')) as string;
+			meeting.organizationId = (groupIds.find(id => groupEntities[id]!.name === subgroupName && groupEntities[id]!.parent_id === groupId) as string) || null;
 			if (!meeting.organizationId) {
-				meeting.organizationId = orgIds[0] as string;
+				meeting.organizationId = groupId as string || null;
 				if (!meeting.organizationId) {
 					dispatch(setError("Can't determine group/subgroup", `group=${entry.groupName} meeting=${entry.meeting}`));
 					return;
@@ -208,6 +205,5 @@ export const importSelectedAsMeetings = (): AppThunk =>
 			meeting.location = entry.mtgRoom;
 			meetings.push(meeting as Meeting);
 		}
-		//console.log(telecons);
 		dispatch(addMeetings(meetings));
 	}

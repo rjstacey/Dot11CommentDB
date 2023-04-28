@@ -1,5 +1,4 @@
-import { EntityId, createSelector } from '@reduxjs/toolkit';
-import type { Action } from '@reduxjs/toolkit';
+import type { Action, EntityId } from '@reduxjs/toolkit';
 
 import { v4 as uuid } from 'uuid';
 
@@ -41,10 +40,9 @@ export type Group = {
 	symbol: string | null;
 	color: string;
 	type: GroupType | null;
-	children?: Group[];
 };
 
-export type GroupCreate = Omit<Group, "id" | "children"> & { id?: string };
+export type GroupCreate = Omit<Group, "id"> & { id?: string };
 
 export const fields = {
 	id: {},
@@ -57,10 +55,10 @@ export const fields = {
 
 interface Node {
 	id: string;
-	children: Array<Node>;
+	children: Node[];
 }
 
-function treeSortedIds(ids: Array<string>, entities: { [index: string]: Group }) {
+function treeSortedIds(ids: string[], entities: { [id: string]: Group }) {
 
 	function compare(n1: Node, n2: Node) {
 		const g1 = entities[n1.id];
@@ -72,8 +70,8 @@ function treeSortedIds(ids: Array<string>, entities: { [index: string]: Group })
 		return cmp;
 	}
 	
-	function findChildren(parent_id: string | null): Array<Node> {
-		const nodes: Array<Node> = [];
+	function findChildren(parent_id: string | null) {
+		const nodes: Node[] = [];
 		for (const id of ids) {
 			if (entities[id].parent_id === parent_id) {
 				const children = findChildren(id).sort(compare);
@@ -85,12 +83,13 @@ function treeSortedIds(ids: Array<string>, entities: { [index: string]: Group })
 
 	const nodes = findChildren(null);
 
-	function concat(nodes: Array<Node>) {
+	function concat(nodes: Node[]) {
 		let ids: string[] = [];
 		for (const node of nodes)
 			ids = [...ids, node.id, ...concat(node.children)];
 		return ids;
 	}
+
 	const sortedIds = concat(nodes);
 
 	return sortedIds;
@@ -124,40 +123,17 @@ export default slice;
 /*
  * Selectors
  */
-//export const selectGroupsPanelConfig = (state: RootState) => selectCurrentPanelConfig(state, dataSet);
 export const selectGroupsState = (state: RootState) => state[dataSet] as GroupsState;
 export const selectGroupEntities = (state: RootState) => selectGroupsState(state).entities;
+export const selectGroupIds = (state: RootState) => selectGroupsState(state).ids;
 
-export const selectCurrentGroup = createSelector(
-	selectCurrentGroupId,
-	selectGroupEntities,
-	(groupId, entities) => groupId? entities[groupId]: undefined
-);
-
-export const selectGroupName = (state: RootState) => {
-	const group = selectCurrentGroup(state);
-	return group? group.name: '';
+export const selectCurrentGroup = (state: RootState) => {
+	const groupId = selectCurrentGroupId(state);
+	const entities = selectGroupEntities(state);
+	return groupId? entities[groupId]: undefined;
 }
 
-/* Produces an array of {node: {}, children: array of <node>} */
-export const selectGroupHierarchy = createSelector(
-	selectGroupsState,
-	state => {
-		const {ids, entities} = state;
-
-		function findChildren(parent_id: EntityId | null): Array<Node> {
-			const nodes: Array<Node> = [];
-			for (const id of ids) {
-				const node = entities[id]!;
-				if (node.parent_id === parent_id)
-					nodes.push({...node, children: findChildren(id)});
-			}
-			return nodes;
-		}
-
-		return findChildren(null);
-	}
-);
+export const selectGroupName = (state: RootState) => selectCurrentGroup(state)?.name || '';
 
 export const groupsSelectors = getAppTableDataSelectors(selectGroupsState);
 
@@ -188,7 +164,7 @@ export {setSelected, setFilter, clearFilter};
 const url = '/api/groups';
 
 export const loadGroups = (): AppThunk => 
-	(dispatch, getState) => {
+	(dispatch) => {
 		dispatch(getPending());
 		return fetcher.get(url)
 			.then((entities: any) => {
@@ -203,7 +179,7 @@ export const loadGroups = (): AppThunk =>
 	}
 
 export const addGroup = (group: GroupCreate): AppThunk<Group> => 
-	(dispatch, getState) => {
+	(dispatch) => {
 		if (!group.id)
 			group = {...group, id: uuid()};
 		dispatch(addOne(group));

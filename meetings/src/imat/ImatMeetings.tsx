@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {
@@ -9,9 +9,7 @@ import {
 	ColumnProperties
 } from 'dot11-components';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-
-import {selectGroupName} from '../store/groups';
+import { useAppDispatch } from '../store/hooks';
 
 import TopRow from '../components/TopRow';
 
@@ -20,7 +18,6 @@ import {
 	fields,
 	imatMeetingsSelectors,
 	imatMeetingsActions,
-	ImatMeeting
 } from '../store/imatMeetings';
 
 const TableRow = styled.div`
@@ -33,12 +30,17 @@ const TableRow = styled.div`
 	}
 `;
 
-
 const renderDateRangeHeader = (props: HeaderCellRendererProps) =>
 	<>
 		<TableColumnHeader {...props} dataKey='start' label='Start date' />
 		<TableColumnHeader {...props} dataKey='end' label='End date' />
 	</>
+
+const BreakoutsLink = ({imatMeetingId}: {imatMeetingId: number}) => {
+	const location = useLocation();
+	const path = location.pathname.replace('imatMeetings', 'imatBreakouts') + `/${imatMeetingId}`;
+	return <Link to={path}>view breakouts</Link>
+}
 
 type ColumnPropertiesWithWidth = ColumnProperties & {width: number};
 
@@ -65,33 +67,23 @@ const tableColumns: ColumnPropertiesWithWidth[] = [
 	{key: 'timezone', 
 		...fields.timezone,
 		width: 200, flexGrow: 1, flexShrink: 1},
-	{key: 'Actions',
-		label: '',
-		width: 200, flexGrow: 1, flexShrink: 1}
+	{key: 'sessionId',
+		...fields.sessionId,
+		width: 100, flexGrow: 1, flexShrink: 1},
+	{key: 'breakouts',
+		label: 'Breakouts',
+		width: 100, flexGrow: 1, flexShrink: 1,
+		cellRenderer: ({rowData}) => <BreakoutsLink imatMeetingId={rowData.id} />}
 ];
 
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0);
 
 function ImatMeetings() {
 	const dispatch = useAppDispatch();
-	const groupName = useAppSelector(selectGroupName);
 
 	React.useEffect(() => {
 		dispatch(loadImatMeetings());
-	}, [dispatch, groupName]);
-
-	const columns = React.useMemo(() => {
-		const renderBreakoutsLink = ({rowData}: {rowData: ImatMeeting}) => <Link to={`/${groupName}/imatBreakouts/${rowData.id}`}>view breakouts</Link>
-		const columns = [...tableColumns];
-		const i = columns.length - 1;
-		columns[i] =
-			{
-				...columns[i],
-				cellRenderer: renderBreakoutsLink
-			}
-		return columns;
-
-	}, [groupName]);
+	}, [dispatch]);
 
 	const refresh = () => dispatch(loadImatMeetings());
 
@@ -105,7 +97,7 @@ function ImatMeetings() {
 			<TableRow style={{maxWidth}}>
 				<AppTable
 					fixed
-					columns={columns}
+					columns={tableColumns}
 					headerHeight={46}
 					estimatedRowHeight={36}
 					selectors={imatMeetingsSelectors}
