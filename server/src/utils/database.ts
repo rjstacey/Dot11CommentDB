@@ -31,6 +31,15 @@ export function init() {
 
 	console.log('NODE_ENV=', process.env.NODE_ENV);
 	console.log(options);
+
+	/* Cast TINYINT(1) as boolean */
+	options.typeCast = function (field, next) {
+		if (field.type === 'TINY' && field.length === 1) {
+			return (field.string() === '1'); // 1 = true, 0 = false
+		} else {
+			return next();
+		}
+	}
 	
 	const pool = mysql.createPool(options);
 	ppool = pool.promise();
