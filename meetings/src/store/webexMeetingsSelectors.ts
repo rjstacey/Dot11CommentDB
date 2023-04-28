@@ -109,7 +109,7 @@ export const fields = {
 	accountName: {label: 'Webex account'},
 	meetingNumber: {label: 'Meeting number', sortType: SortType.NUMERIC},
 	hostKey: {label: 'Host key', sortType: SortType.NUMERIC},
-	meeting: {label: 'Associated meeting'}
+	meeting: {label: 'Associated meeting', dontSort: true, dontFilter: true}
 };
 
 /*

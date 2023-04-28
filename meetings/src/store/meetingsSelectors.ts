@@ -95,7 +95,7 @@ export const fields = {
 /*
  * Fields derived from other fields
  */
-export function getField(entity: Meeting, key: string) {
+export function getField(entity: Meeting, key: string): any {
 	if (key === 'day')
 		return DateTime.fromISO(entity.start, {zone: entity.timezone}).weekdayShort;
 	if (key === 'date')

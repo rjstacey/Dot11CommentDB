@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import { useAppSelector } from '../store/hooks';
 
 import {
@@ -5,28 +6,28 @@ import {
 	getField
 } from '../store/meetings';
 
-function MeetingSummary({meetingId}: {meetingId: number}) {
+const Container = styled.div`
+	display: flex;
+	flex-wrap: wrap;
+	& span {margin-right: 1em}
+`;
+
+function MeetingSummary({meetingId}: {meetingId?: number | null}) {
 	const meetingEntities = useAppSelector(selectMeetingEntities);
-	const meeting = meetingEntities[meetingId];
-	if (!meeting) {
-		console.error('Bad meetingId');
-		return <span>Bad meetingId</span>;
+	const meeting = meetingId? meetingEntities[meetingId]: undefined;
+	let content: JSX.Element | null = null;
+	if (meeting) {
+		let summary = (meeting.isCancelled? '🚫 ': '') + meeting.summary;
+		content =
+			<>
+				<span>{summary}</span>
+				<span>{getField(meeting, 'location') as string}</span>
+				<span style={{fontStyle: 'italic', fontSize: 'smaller'}}>
+					{getField(meeting, 'date')} {getField(meeting, 'timeRange')}
+				</span>
+			</>
 	}
-	//const textDecoration = meeting.isCancelled? 'line-through': 'none';
-	let summary = meeting.summary;
-	if (meeting.isCancelled)
-		summary = '🚫 ' + summary;
-	return (
-		<div style={{display: 'flex', flexDirection: 'column'}}>
-			<span /*style={{textDecoration}}*/>
-				{summary}
-			</span>
-			<span>{getField(meeting, 'location') as string}</span>
-			<span style={{fontStyle: 'italic', fontSize: 'smaller'/*, textDecoration*/}}>
-				{getField(meeting, 'date') as string} {getField(meeting, 'timeRange') as string}
-			</span>
-		</div>
-	)
+	return <Container>{content}</Container>;
 }
 
 export default MeetingSummary;

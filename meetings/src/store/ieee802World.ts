@@ -8,7 +8,8 @@ import {
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	SortType,
-	AppTableDataState
+	AppTableDataState,
+	//displayDateRange
 } from 'dot11-components';
 
 import type { AppThunk, RootState } from '.';
@@ -58,7 +59,7 @@ export const fields = {
 	mtgLevel: {label: 'Level'},
 	mtgLocation: {label: 'Location'},
 	groupName: {label: 'Group'},
-	meetingId: {label: 'Meeting ID'}
+	meetingId: {label: 'Meeting ID', dontSort: true, dontFilter: true},
 };
 
 /*
@@ -109,9 +110,11 @@ export const selectSynced802WorldEntities = createSelector(
 						entityStart.equals(start) &&
 						entityRoomId === roomId);
 			});
+			const meetingId = m?.id || null;
+			//const meetingSummary = m? `${m.summary} ${m.roomName} ${displayDateRange(m.start, m.end)}`: '';
 			newEntities[id] = {
 				...entity,
-				meetingId: m?.id || null
+				meetingId,
 			}
 		}
 		return newEntities;

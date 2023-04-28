@@ -10,7 +10,6 @@ import {
 	TableColumnSelector,
 	TableColumnHeader,
 	ActionButton,
-	ButtonGroup,
 	ConfirmModal,
 	ColumnProperties,
 	TableConfig,
@@ -95,9 +94,9 @@ const tableColumns: ColumnProperties[] = [
 		...fields.mtgLocation,
 		width: 300, flexGrow: 1, flexShrink: 1},
 	{key: 'meetingId',
-		label: 'Associated meeting',
+		label: 'Compare meeting',
 		width: 200, flexGrow: 1, flexShrink: 1,
-		cellRenderer: ({rowData}) => rowData.meetingId && <MeetingSummary meetingId={rowData.meetingId} />}
+		cellRenderer: ({rowData}) => <MeetingSummary meetingId={rowData.meetingId} />}
 ];
 
 const defaultTablesColumns = {
@@ -163,15 +162,13 @@ function Ieee802WorldSchedule() {
 	return (
 		<>
 			<TopRow style={{justifyContent: 'flex-end'}}>
-				<ButtonGroup>
-					<TableColumnSelector
-						selectors={ieee802WorldSelectors}
-						actions={ieee802WorldActions}
-						columns={tableColumns}
-					/>
-					<ActionButton name='import' title='Import selected' onClick={importSelected} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-				</ButtonGroup>
+				<TableColumnSelector
+					selectors={ieee802WorldSelectors}
+					actions={ieee802WorldActions}
+					columns={tableColumns}
+				/>
+				<ActionButton name='import' title='Import selected' onClick={importSelected} />
+				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 			</TopRow>
 
 			<TableRow>

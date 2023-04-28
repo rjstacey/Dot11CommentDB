@@ -99,6 +99,8 @@ export function configureStore() {
 			meetingsSlice.name,
 			webexMeetingsSlice.name,
 			imatMeetingsSlice.name,
+			imatBreakoutsSlice.name,
+			ieee802WorldSlice.name
 		],
 		transforms: [transformState],
 		stateReconciler: autoMergeLevel2,

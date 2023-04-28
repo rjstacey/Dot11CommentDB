@@ -108,7 +108,7 @@ const tableColumns: ColumnProperties[] = [
 	{key: 'meeting',
 		label: 'Associated meeting',
 		width: 100, flexGrow: 1, flexShrink: 1,
-		cellRenderer: ({rowData}) => rowData.meetingId && <MeetingSummary meetingId={rowData.meetingId} />},
+		cellRenderer: ({rowData}) => <MeetingSummary meetingId={rowData.meetingId} />},
 	{key: 'attendance',
 		label: 'Attendance',
 		width: 100, flexGrow: 1, flexShrink: 1,
