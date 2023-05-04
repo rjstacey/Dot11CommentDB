@@ -199,7 +199,7 @@ function Breakouts() {
 		navigate(path);
 	}
 
-	const refresh = () => dispatch(pathImatMeetingId? loadBreakouts(pathImatMeetingId): clearBreakouts());
+	const refresh = () => pathImatMeetingId? dispatch(loadBreakouts(pathImatMeetingId)): dispatch(clearBreakouts());
 
 	return (
 		<>

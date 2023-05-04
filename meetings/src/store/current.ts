@@ -70,6 +70,10 @@ export default slice;
 export const selectCurrentState = (state: RootState) => state[dataSet];
 export function selectCurrentGroupId(state: RootState) {return selectCurrentState(state).groupId};
 export const selectCurrentSessionId = (state: RootState) => selectCurrentState(state).sessionId;
+export const selectCurrentSession = (state: RootState) => {
+	const sessionId = selectCurrentSessionId(state);
+	return sessionId? selectSessionEntities(state)[sessionId]: undefined;
+}
 export const selectShowDateRange = (state: RootState) => selectCurrentState(state).showDateRange;
 export const selectGroupDefaults = (state: RootState, groupId: string) => selectCurrentState(state).groupDefaults[groupId] || initDefaults;
 
@@ -79,53 +83,57 @@ export const selectCurrentGroupDefaults = (state: RootState) => {
 };
 
 /* Actions */
-export const {setCurrentGroupId, setShowDateRange, setGroupDefaults} = slice.actions;
+export const {
+	setCurrentGroupId,
+	setShowDateRange,
+	setGroupDefaults
+} = slice.actions;
 
 export const setCurrentGroupDefaults = (defaults: Partial<GroupDefaults>): AppThunk =>
-	(dispatch, getState) => {
+	async (dispatch, getState) => {
 		const groupId = selectCurrentGroupId(getState());
 		if (!groupId)
 			dispatch(setError("Can't set defaults", "Group not set"));
 		else
 			dispatch(setGroupDefaults({groupId, defaults}));
-		return Promise.resolve();
 	}
 
 export const refresh = (): AppThunk =>
-	(dispatch, getState) => {
-		const state = getState();
-		const groupId = selectCurrentGroupId(state);
-		const sessionId = selectCurrentSessionId(state)!;
-		const showDateRange = selectShowDateRange(state);
-		const session = selectSessionEntities(state)[sessionId];
-		const constraints: LoadMeetingsConstraints = {};
-		if (groupId)
-			constraints.groupId = groupId;
-		if (showDateRange) {
-			if (session) {
-				constraints.fromDate = session.startDate;
-				constraints.toDate = session.endDate;
-				constraints.timezone = session.timezone;
-			}
-			else {
-				constraints.fromDate = DateTime.now().toISODate()!;
-			}
-		}
-		else {
-			constraints.sessionId = sessionId;
-		}
+	async (dispatch, getState) => {
 		dispatch(clearMeetings());
 		dispatch(clearWebexMeetings());
 		dispatch(clearBreakouts());
-		dispatch(loadMeetings(constraints));
-		if (session && session.imatMeetingId)
-			dispatch(loadBreakouts(session.imatMeetingId));
-		return Promise.resolve();
+
+		const state = getState();
+		const sessionId = selectCurrentSessionId(state);
+		if (sessionId) {
+			const groupId = selectCurrentGroupId(state);
+			const showDateRange = selectShowDateRange(state);
+			const session = selectSessionEntities(state)[sessionId];
+			const constraints: LoadMeetingsConstraints = {};
+			if (groupId)
+				constraints.groupId = groupId;
+			if (showDateRange) {
+				if (session) {
+					constraints.fromDate = session.startDate;
+					constraints.toDate = session.endDate;
+					constraints.timezone = session.timezone;
+				}
+				else {
+					constraints.fromDate = DateTime.now().toISODate()!;
+				}
+			}
+			else {
+				constraints.sessionId = sessionId;
+			}
+			dispatch(loadMeetings(constraints));
+			if (session && session.imatMeetingId)
+				dispatch(loadBreakouts(session.imatMeetingId));
+		}
 	}
 
 export const setCurrentSessionId = (sessionId: number | null): AppThunk =>
-	(dispatch) => {
+	async (dispatch) => {
 		dispatch(slice.actions.setCurrentSessionId(sessionId));
 		dispatch(refresh());
-		return Promise.resolve();
 	}

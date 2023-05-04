@@ -19,6 +19,7 @@ import groupsSlice, {loadGroups} from './groups';
 import imatCommitteesSlice from './imatCommittees';
 import imatMeetingsSlice from './imatMeetings';
 import imatBreakoutsSlice from './imatBreakouts';
+import imatMeetingAttendanceSlice from './imatMeetingAttendance';
 import imatBreakoutAttendanceSlice from './imatBreakoutAttendance';
 import webexMeetingsSlice from './webexMeetingsSlice';
 import ieee802WorldSlice from './ieee802World';
@@ -34,6 +35,7 @@ const dataAppSliceNames = [
 	imatMeetingsSlice.name,
 	imatBreakoutsSlice.name,
 	imatBreakoutAttendanceSlice.name,
+	imatMeetingAttendanceSlice.name,
 	ieee802WorldSlice.name
 ];
 
@@ -72,6 +74,7 @@ export function configureStore() {
 		[imatMeetingsSlice.name]: imatMeetingsSlice.reducer,
 		[imatBreakoutsSlice.name]: imatBreakoutsSlice.reducer,
 		[imatBreakoutAttendanceSlice.name]: imatBreakoutAttendanceSlice.reducer,
+		[imatMeetingAttendanceSlice.name]: imatMeetingAttendanceSlice.reducer,
 		[ieee802WorldSlice.name]: ieee802WorldSlice.reducer,
 	});
 

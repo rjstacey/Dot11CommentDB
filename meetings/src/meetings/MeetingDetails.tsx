@@ -66,7 +66,7 @@ function endTimeFromDuration(startTime: string, duration: string) {
 
 const isSessionMeeting = (session: Session | undefined) => session && (session.type === 'p' || session.type === 'i');
 
-export type MeetingEntry = Omit<Meeting, "id" | "start" | "end" | "webexMeeting"> & {
+export type MeetingEntry = Omit<MeetingAdd, "id" | "start" | "end" | "webexMeeting"> & {
 	date: string;
 	startTime: string;
 	endTime: string;

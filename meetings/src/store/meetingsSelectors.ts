@@ -34,13 +34,15 @@ export interface Meeting {
 	calendarAccountId: number | null;
 	calendarEventId: string | null;
 	imatMeetingId: number | null;
-	imatBreakoutId: number | '$add' | null;
+	imatBreakoutId: number | null;
 	sessionId: number | null;
 	roomId: number | null;
 	roomName: string;
 }
 
-export type MeetingAdd = Omit<Meeting, "id" | "webexMeeting"> & {
+export type MeetingAdd = Omit<Meeting, "id" | "imatBreakoutId" | "webexMeetingId" | "webexMeeting"> & {
+	imatBreakoutId: Meeting["imatBreakoutId"] | "$add";
+	webexMeetingId: Meeting["webexMeetingId"] | "$add";
 	webexMeeting?: WebexMeetingParams;
 }
 

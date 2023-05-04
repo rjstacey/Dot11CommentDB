@@ -10,13 +10,19 @@ import {
 } from 'dot11-components';
 
 import type { AppThunk, RootState } from '.';
-import type { Member } from './members';
 
 import { selectImatMeetingEntities } from './imatMeetings';
 import { selectBreakoutMeetingId, selectBreakoutEntities } from './imatBreakouts';
 
+export type ImatBreakoutAttendance = {
+	SAPIN: number;
+	Name: string;
+	Email: string;
+	Timestamp: string;
+	Affiliation: string;
+}
+
 export const fields = {
-	id: {label: 'id', sortType: SortType.NUMERIC},
 	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
 	Name: {label: 'Name'},
 	Email: {label: 'Email'},
@@ -26,7 +32,7 @@ export const fields = {
 
 export const dataSet = 'imatBreakoutAttendance';
 
-const selectId = (member: Member) => member.SAPIN;
+const selectId = (entity: ImatBreakoutAttendance) => entity.SAPIN;
 
 type ExtraState = {
 	imatMeetingId: number;
@@ -85,10 +91,8 @@ const {
 
 const baseUrl = '/api/imat/attendance';
 
-export const loadBreakoutAttendance = (imatMeetingId: number, imatBreakoutId: number): AppThunk =>
+export const loadBreakoutAttendance = (imatMeetingId: number, imatBreakoutId: number): AppThunk<ImatBreakoutAttendance[]> =>
 	async (dispatch, getState) => {
-		if (selectBreakoutAttendanceState(getState()).loading)
-			return;
 		dispatch(getPending());
 		const url = `${baseUrl}/${imatMeetingId}/${imatBreakoutId}`;
 		let response;
@@ -97,12 +101,13 @@ export const loadBreakoutAttendance = (imatMeetingId: number, imatBreakoutId: nu
 			if (!Array.isArray(response))
 				throw new TypeError('Unexpected response to GET ' + url);
 		}
-		catch(error) {
+		catch (error) {
 			dispatch(getFailure());
 			dispatch(setError(`Unable to get attendance for ${imatMeetingId}/${imatBreakoutId}`, error));
-			return;
+			return [];
 		}
 		dispatch(setDetails({imatMeetingId, imatBreakoutId}));
 		dispatch(getSuccess(response));
+		return response;
 	}
 

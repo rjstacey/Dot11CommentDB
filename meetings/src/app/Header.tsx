@@ -75,7 +75,12 @@ const fullMenu: MenuItem[] = [
 		link: '/ieee802World',
 		label: '802 world schedule',
 	},
-
+	{
+		minAccess: AccessLevel.ro,
+		prefixGroupName: true,
+		link: '/reports',
+		label: 'Reports',
+	},
 ];
 
 const NavItem = (props: any) => <NavLink className={'nav-link' + (props.isActive? ' active': '')} {...props} />

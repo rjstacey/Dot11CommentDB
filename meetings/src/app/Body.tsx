@@ -12,8 +12,10 @@ import Calendar from '../calendar/Calendar';
 import WebexMeetings from '../webexMeetings/WebexMeetings';
 import ImatMeetings from '../imat/ImatMeetings';
 import ImatBreakouts from '../imat/ImatBreakouts';
+import ImatMeetingAttendance from '../imat/ImatMeetingAttendance';
 import ImatBreakoutAttendance from '../imat/ImatBreakoutAttendance';
 import Ieee802World from '../ieee802World/Ieee802World';
+import Reports from '../reports/Reports';
 
 import { selectUserMeetingsAccess, AccessLevel } from '../store/user';
 
@@ -81,8 +83,16 @@ function Body() {
 					element={renderComponent(AccessLevel.ro, ImatBreakoutAttendance)}
 				/>
 				<Route
+					path="/:groupName/imatAttendance/:meetingNumber"
+					element={renderComponent(AccessLevel.ro, ImatMeetingAttendance)}
+				/>
+				<Route
 					path="/:groupName/ieee802World"
 					element={renderComponent(AccessLevel.ro, Ieee802World)}
+				/>
+				<Route
+					path="/:groupName/reports/:meetingNumber?"
+					element={renderComponent(AccessLevel.ro, Reports)}
 				/>
 			</Routes>
 		</Main>

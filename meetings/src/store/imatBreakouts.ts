@@ -106,6 +106,11 @@ type ImatBreakoutsState = ExtraState & AppTableDataState<Breakout>;
  */
 export const selectBreakoutsState = (state: RootState) => state[dataSet] as ImatBreakoutsState;
 export const selectBreakoutEntities = (state: RootState) => selectBreakoutsState(state).entities;
+export const selectBreakoutIds = (state: RootState) => selectBreakoutsState(state).ids;
+export const selectBreakouts = (state: RootState) => {
+	const {ids, entities} = selectBreakoutsState(state);
+	return ids.map(id => entities[id]!);
+}
 export const selectBreakoutMeetingId = (state: RootState) => selectBreakoutsState(state).imatMeetingId;
 export const selectBreakoutTimeslots = (state: RootState) => selectBreakoutsState(state).timeslots;
 export const selectBreakoutMeeting = (state: RootState) => {
@@ -205,11 +210,9 @@ export const setBreakoutsCurrentPanelIsSplit = (isSplit: boolean) => setPanelIsS
 
 const baseUrl = '/api/imat/breakouts';
 
-export const loadBreakouts = (imatMeetingId: number): AppThunk =>
+export const loadBreakouts = (imatMeetingId: number): AppThunk<Breakout[]> =>
 	async (dispatch, getState) => {
 		const breakoutsState = selectBreakoutsState(getState());
-		if (breakoutsState.loading)
-			return;
 		if (imatMeetingId !== breakoutsState.imatMeetingId) {
 			dispatch(removeAll());
 			dispatch(setDetails({timeslots: [], committees: []}));
@@ -231,11 +234,12 @@ export const loadBreakouts = (imatMeetingId: number): AppThunk =>
 			console.log(error)
 			dispatch(getFailure());
 			dispatch(setError(`Unable to get breakouts for ${imatMeetingId}`, error));
-			return;
+			return [];
 		}
 		dispatch(getSuccess(response.breakouts));
 		const {timeslots, committees} = response;
 		dispatch(setDetails({timeslots, committees, imatMeetingId}));
+		return response.breakouts;
 	}
 
 export const clearBreakouts = (): AppThunk =>
