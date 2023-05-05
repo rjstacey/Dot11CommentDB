@@ -56,6 +56,7 @@ import {
 	addImatBreakouts,
 	updateImatBreakouts,
 	deleteImatBreakouts,
+	getImatMeetingAttendance,
 	getImatBreakoutAttendance
 } from '../services/imat';
 
@@ -124,6 +125,16 @@ router.delete('/breakouts/:imatMeetingId(\\d+)', async (req, res, next) => {
 		if (!ids.every(id => typeof id === 'number'))
 			throw new TypeError('Expected an array of numbers');
 		const data = await deleteImatBreakouts(req.user, imatMeetingId, ids);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.get('/attendance/:imatMeetingId(\\d+)$', async (req, res, next) => {
+	try {
+		const imatMeetingId = parseInt(req.params.imatMeetingId);
+		const imatBreakoutId = parseInt(req.params.imatBreakoutId);
+		const data = await getImatMeetingAttendance(req.user, imatMeetingId);
 		res.json(data);
 	}
 	catch(err) {next(err)}
