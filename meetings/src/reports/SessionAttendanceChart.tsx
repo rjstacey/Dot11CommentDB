@@ -10,7 +10,9 @@ import { selectBreakoutTimeslots, selectBreakoutEntities } from '../store/imatBr
 import { selectMeetingAttendanceCountsByBreakout } from '../store/imatMeetingAttendance';
 import { selectGroupEntities } from '../store/groups';
 
-interface F { (element: HTMLElement, text: string): number; canvas?: HTMLCanvasElement; }
+import type { ReportChartProps } from './Reports';
+
+interface F { (element: SVGSVGElement, text: string): number; canvas?: HTMLCanvasElement; }
 export const getTextWidth: F = function(element, text) {
     const styleDeclaration = window.getComputedStyle(element, null);
     const fontWeight = styleDeclaration.getPropertyValue('font-weight') || 'normal';
@@ -76,7 +78,7 @@ const selectAttendanceSeriesInfo = createSelector(
                 const attendanceCount = attendanceCountsByBreakout[breakout.id] || 0;
                 const slot = timeslots.find(slot => slot.id === breakout.startSlotId);
                 const color = group? group.color: 'yellow';
-                if (slot) {
+                if (attendanceCount && slot) {
                     const date = '' + DateTime.fromISO(breakout.start).toISODate();
                     const slotName = slot.name;
                     const seriesId = date + ' ' + slot.name;
@@ -122,18 +124,16 @@ const selectAttendanceSeriesInfo = createSelector(
 )
 
 function SessionAttendanceChart({
-    style
-}: {
-    style?: React.CSSProperties;
-}) {
-    const divRef = React.useRef<HTMLDivElement>(null);
+    width,
+    height,
+    svgRef
+}: ReportChartProps) {
 
-    const {width, height} = useDimensions(divRef);
     const yAxisWidth = 120;
     const xAxisHeight = 40;
-    const plotWidth = width - yAxisWidth;
+    const marginRight = 50; // For text overflow
+    const plotWidth = width - yAxisWidth - marginRight;
     const plotHeight = height - xAxisHeight;
-    //console.log(width, plotWidth)
 
     const {seriesIds, seriesData, maxCount} = useAppSelector(selectAttendanceSeriesInfo);
 
@@ -141,95 +141,97 @@ function SessionAttendanceChart({
         return d3.scaleLinear().domain([0, maxCount]).range([0, plotWidth]);
     }, [maxCount, plotWidth])
 
-    const xAxis = xScale
-        .ticks(5)
-        .slice(1)
-        .map((value, i) => (
-            <g key={i}>
-                <line
-                    y1={-plotHeight + 10}
-                    y2={0}
-                    x1={xScale(value)}
-                    x2={xScale(value)}
-                    stroke="#808080"
-                    opacity={0.2}
-                />
-                <text
-                    y={0}
-                    x={xScale(value)}
-                    textAnchor="middle"
-                    alignmentBaseline="central"
-                    fontSize={14}
-                    opacity={0.8}
-                >
-                    {value}
-                </text>
-            </g>
-        ));
+    const xAxis = 
+        <g transform={`translate(${yAxisWidth},${height-xAxisHeight})`}>
+            {xScale
+                .ticks(5)
+                .slice(1)
+                .map((value, i) => (
+                    <g key={i}>
+                        <line
+                            y1={-plotHeight + 10}
+                            y2={0}
+                            x1={xScale(value)}
+                            x2={xScale(value)}
+                            stroke="#808080"
+                            opacity={0.2}
+                        />
+                        <text
+                            y={0}
+                            x={xScale(value)}
+                            textAnchor="middle"
+                            alignmentBaseline="central"
+                            fontSize={14}
+                            opacity={0.8}
+                        >
+                            {value}
+                        </text>
+                    </g>
+                ))}
+        </g>
 
     const yScale = React.useMemo(() => {
         return d3.scaleBand().domain(seriesIds).range([0, plotHeight]).padding(0.5);
     }, [seriesIds, plotHeight]);
     
-    const yAxis = seriesData
-        .map((series, i) => (
-            <text
-                key={i}
-                x={yAxisWidth - 10}
-                y={yScale(series.id)! + yScale.bandwidth()/2}
-                textAnchor="end"
-                alignmentBaseline="central"
-                fontSize={14}
-                //transform={'rotate(-90)'}
-            >
-                {series.label}
-            </text>
-        ));
+    const yAxis = 
+        <g>
+            {seriesData.map((series, i) => (
+                <text
+                    key={i}
+                    x={yAxisWidth - 10}
+                    y={yScale(series.id)! + yScale.bandwidth()/2}
+                    textAnchor="end"
+                    alignmentBaseline="central"
+                    fontSize={14}
+                >
+                    {series.label}
+                </text>
+            ))}
+        </g>
 
-    const plotArea = seriesData
-        .map((series) => {
-            let xTextEnd = 0;
-            return series.items.map((item, itemIndex) => {
-                let xText = xScale(item.low);
-                //console.log(divRef.current)
-                if (xText < xTextEnd)
-                    xText = xTextEnd;
-                xTextEnd = xText + (divRef.current? getTextWidth(divRef.current, item.label + ' '): 0);
-                return (
-                    <>
-                        <rect
-                            key={`r${series.id}-${itemIndex}`}
-                            x={xScale(item.low)}
-                            y={yScale(series.id)}
-                            height={yScale.bandwidth()}
-                            width={xScale(item.high) - xScale(item.low)}
-                            fill={item.color}
-                            opacity={0.8}
-                        />
-                        <text
-                            key={`t${series.id}-${itemIndex}`}
-                            x={xText}
-                            y={yScale(series.id)}
-                            alignmentBaseline="after-edge"
-                        >
-                            {item.label}
-                        </text>
-                    </>
-                )
-            })
-        })
+    const plotArea = 
+        <g transform={`translate(${yAxisWidth},0)`}>
+            {seriesData.map((series) => {
+                let xTextEnd = 0;
+                return series.items.map((item, itemIndex) => {
+                    let xText = xScale(item.low);
+                    if (xText < xTextEnd)
+                        xText = xTextEnd;
+                    xTextEnd = xText + (svgRef.current? getTextWidth(svgRef.current, item.label + ' '): 0);
+                    return (
+                        <g key={`${series.id}-${itemIndex}`}>
+                            <rect
+                                x={xScale(item.low)}
+                                y={yScale(series.id)}
+                                height={yScale.bandwidth()}
+                                width={xScale(item.high) - xScale(item.low)}
+                                fill={item.color}
+                                opacity={0.8}
+                                rx='0.2%'
+                            />
+                            <text
+                                x={xText}
+                                y={yScale(series.id)}
+                                alignmentBaseline="after-edge"
+                            >
+                                {item.label}
+                            </text>
+                        </g>
+                    )
+                })
+            })}
+        </g>
 
     return (
-        <div
-            ref={divRef}
-            style={{...style, width: '100%'}}
+        <svg
+            ref={svgRef}
+            style={{width, height}}
         >
-            <svg style={{width, height, overflow: 'visible'}}>
-                <g key='y-axis'>{yAxis}</g>
-                <g key='x-axis' transform={`translate(${yAxisWidth},${height-xAxisHeight})`}>{xAxis}</g>
-                <g key='plot' transform={`translate(${yAxisWidth},0)`}>{plotArea}</g>
-            </svg>
-        </div>
+            {yAxis}
+            {xAxis}
+            {plotArea}
+        </svg>
     )
 }
 

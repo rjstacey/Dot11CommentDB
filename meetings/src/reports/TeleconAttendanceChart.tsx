@@ -11,6 +11,7 @@ import { selectMeetingAttendanceCountsByBreakout } from '../store/imatMeetingAtt
 import { selectGroupEntities } from '../store/groups';
 
 import { useDimensions } from './SessionAttendanceChart';
+import type { ReportChartProps } from './Reports';
 
 type Entity = {
     date: string;
@@ -32,12 +33,14 @@ const selectAttendanceSeriesInfo = createSelector(
             const breakout = meeting.imatBreakoutId && breakoutEntities[meeting.imatBreakoutId];
             if (!meeting.isCancelled && breakout) {
                 const attendanceCount = attendanceCountsByBreakout[breakout.id] || 0;
-                const date = '' + DateTime.fromISO(breakout.start).toISODate();
-                const label = meeting.summary;
-                const group = meeting.organizationId && groupEntities[meeting.organizationId];
-                const color = group? group.color: 'yellow';
-                const entry = {date, label, color, attendanceCount};
-                seriesEntities[meeting.id] = entry;
+                if (attendanceCount) {
+                    const date = '' + DateTime.fromISO(breakout.start).toISODate();
+                    const label = meeting.summary;
+                    const group = meeting.organizationId && groupEntities[meeting.organizationId];
+                    const color = group? group.color: 'yellow';
+                    const entry = {date, label, color, attendanceCount};
+                    seriesEntities[meeting.id] = entry;
+                }
             }
             return seriesEntities;
         }, {} as Record<string, Entity>);
@@ -55,19 +58,16 @@ const selectAttendanceSeriesInfo = createSelector(
 )
 
 function TeleconAttendanceChart({
-    style
-}: {
-    style?: React.CSSProperties;
-}) {
-    const divRef = React.useRef<HTMLDivElement>(null);
+    width,
+    height,
+    svgRef
+}: ReportChartProps) {
     const xAxisRef = React.useRef<SVGGElement>(null);
 
-    const {width, height} = useDimensions(divRef);
     const yAxisWidth = 50;
     const xAxisHeight = (useDimensions(xAxisRef).height + 10) || 120;
     const plotWidth = width - yAxisWidth;
     const plotHeight = height - xAxisHeight;
-    console.log(xAxisHeight)
 
     const {seriesIds, seriesEntities, maxValue} = useAppSelector(selectAttendanceSeriesInfo);
 
@@ -75,87 +75,95 @@ function TeleconAttendanceChart({
         return d3.scaleLinear().domain([0, maxValue]).range([plotHeight, 0]);
     }, [maxValue, plotHeight])
 
-    const yAxis = yScale
-        .ticks(5)
-        .slice(1)
-        .map((value, i) => (
-            <g key={i}>
-                <line
-                    x1={yAxisWidth - 10}
-                    x2={width}
-                    y1={yScale(value)}
-                    y2={yScale(value)}
-                    stroke="#808080"
-                    opacity={0.2}
-                />
-                <text
-                    y={yScale(value)}
-                    x={yAxisWidth - 15}
-                    textAnchor="end"
-                    alignmentBaseline="central"
-                    fontSize={14}
-                    opacity={0.8}
-                >
-                    {value}
-                </text>
-            </g>
-        ));
+    const yAxis = 
+        <g>
+            {yScale
+                .ticks(5)
+                .slice(1)
+                .map((value, i) => (
+                    <g key={i}>
+                        <line
+                            x1={yAxisWidth - 10}
+                            x2={width}
+                            y1={yScale(value)}
+                            y2={yScale(value)}
+                            stroke="#808080"
+                            opacity={0.2}
+                        />
+                        <text
+                            y={yScale(value)}
+                            x={yAxisWidth - 15}
+                            textAnchor="end"
+                            alignmentBaseline="central"
+                            fontSize={14}
+                            opacity={0.8}
+                        >
+                            {value}
+                        </text>
+                    </g>
+                ))}
+        </g>
 
     const xScale = React.useMemo(() => {
         return d3.scaleBand().domain(seriesIds).range([0, plotWidth]).padding(0.2);
     }, [seriesIds, plotWidth]);
     
-    const xAxis = seriesIds
-        .map(id =>
-            <text
-                key={id}
-                x={0}
-                y={0}
-                textAnchor="end"
-                alignmentBaseline="central"
-                fontSize={14}
-                transform={`translate(${xScale(id)! + xScale.bandwidth()/2},10)rotate(-90)`}
-            >
-                {seriesEntities[id].date}
-            </text>
-        );
+    const xAxis = 
+        <g
+            ref={xAxisRef}
+            transform={`translate(${yAxisWidth},${height-xAxisHeight})`}
+        >
+            {seriesIds.map(id =>
+                <text
+                    key={id}
+                    x={0}
+                    y={0}
+                    textAnchor="end"
+                    alignmentBaseline="central"
+                    fontSize={14}
+                    transform={`translate(${xScale(id)! + xScale.bandwidth()/2},10)rotate(-90)`}
+                >
+                    {seriesEntities[id].date}
+                </text>
+            )}
+        </g>
 
-    const plotArea = seriesIds
-        .map(id => {
-            const entity = seriesEntities[id];
-            return (
-                <g key={id}>
-                    <rect
-                        x={xScale(id)}
-                        y={yScale(entity.attendanceCount)}
-                        width={xScale.bandwidth()}
-                        height={yScale(0)-yScale(entity.attendanceCount)}
-                        fill={entity.color}
-                    />
-                    <text
-                        x={0}
-                        y={0}
-                        textAnchor="start"
-                        alignmentBaseline="central"
-                        transform={`translate(${xScale(id)! + xScale.bandwidth()/2},${yScale(0) - 10})rotate(-90)`}
-                    >
-                        {entity.label}
-                    </text>
-                </g>
-            )
-        })
+    const plotArea = 
+        <g transform={`translate(${yAxisWidth},0)`}>
+            {seriesIds.map(id => {
+                const entity = seriesEntities[id];
+                return (
+                    <g key={id}>
+                        <rect
+                            x={xScale(id)}
+                            y={yScale(entity.attendanceCount)}
+                            width={xScale.bandwidth()}
+                            height={yScale(0)-yScale(entity.attendanceCount)}
+                            fill={entity.color}
+                        />
+                        <text
+                            x={0}
+                            y={0}
+                            textAnchor="start"
+                            alignmentBaseline="central"
+                            transform={`translate(${xScale(id)! + xScale.bandwidth()/2},${yScale(0) - 10})rotate(-90)`}
+                        >
+                            {entity.label}
+                        </text>
+                    </g>
+                )
+            })}
+        </g>
 
     return (
-        <div
-            ref={divRef}
-            style={{...style}}
+        <svg
+            ref={svgRef}
+            style={{width, height}}
         >
-            <svg style={{width, height, overflow: 'visible'}}>
-                <g>{yAxis}</g>
-                <g ref={xAxisRef} transform={`translate(${yAxisWidth},${height-xAxisHeight})`}>{xAxis}</g>
-                <g transform={`translate(${yAxisWidth},0)`}>{plotArea}</g>
-            </svg>
-        </div>
+            {yAxis}
+            {xAxis}
+            {plotArea}
+        </svg>
     )
 }
 

@@ -139,6 +139,7 @@ export const loadImatMeetingAttendance = (imatMeetingId: number): AppThunk =>
 		if (selectMeetingAttendanceState(state).loading)
 			return;
 		dispatch(getPending());
+		dispatch(removeAll());
 		dispatch(setDetails({imatMeetingId}));
 		const breakouts = (await dispatch(loadBreakouts(imatMeetingId))).slice();
 
