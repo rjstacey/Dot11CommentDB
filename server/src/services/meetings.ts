@@ -247,16 +247,14 @@ function meetingToWebexMeeting(meeting: Meeting) {
 		accountId: meeting.webexAccountId!,
 		password: 'wireless',
 		enabledAutoRecordMeeting: false,
-		...(meeting.webexMeeting || {}),
+		...meeting.webexMeeting,
 		title: meeting.summary,
 		start: DateTime.fromISO(meeting.start, {zone: timezone}).toISO(),
 		end: DateTime.fromISO(meeting.end, {zone: timezone}).toISO(),
 		timezone,
 		integrationTags: [meeting.organizationId],
-		id: ''
+		id: meeting.webexMeetingId || ''
 	};
-	if (meeting.webexMeetingId)
-		webexMeeting.id = meeting.webexMeetingId;
 	//console.log('to webex meeting', meeting, webexMeeting)
 	return webexMeeting;
 }
@@ -499,13 +497,14 @@ async function addMeeting(user: User, meetingToAdd: MeetingAddUpdate) {
 		workingGroup = getWorkingGroup(meetingToAdd.organizationId);	// returns a promise
 
 	/* If a webex account is given and the webexMeeting object exists then add a webex meeting */
-	if (meetingToAdd.webexAccountId && meetingToAdd.webexMeeting) {
+	if (meetingToAdd.webexAccountId && meetingToAdd.webexMeetingId) {
 		const webexMeetingParams = meetingToWebexMeeting(meeting);
 		if (meetingToAdd.webexMeetingId === '$add') {
 			webexMeeting = await addWebexMeeting(webexMeetingParams);
 			meeting.webexMeetingId = webexMeeting.id;
 		}
 		else {
+			// Meeting created with a link to existing webex meeting
 			webexMeeting = await updateWebexMeeting(webexMeetingParams);
 		}
 	}
