@@ -12,7 +12,7 @@ import { selectGroupEntities } from '../store/groups';
 
 import type { ReportChartProps } from './Reports';
 
-interface F { (element: SVGSVGElement, text: string): number; canvas?: HTMLCanvasElement; }
+interface F { (element: SVGElement, text: string): number; canvas?: HTMLCanvasElement; }
 export const getTextWidth: F = function(element, text) {
     const styleDeclaration = window.getComputedStyle(element, null);
     const fontWeight = styleDeclaration.getPropertyValue('font-weight') || 'normal';
@@ -20,7 +20,7 @@ export const getTextWidth: F = function(element, text) {
     const fontFamily =styleDeclaration.getPropertyValue('font-family') || 'Times New Roman';
     const font = `${fontWeight} ${fontSize} ${fontFamily}`;
 
-    const canvas: HTMLCanvasElement = getTextWidth.canvas || (getTextWidth.canvas = document.createElement("canvas"));
+    const canvas = getTextWidth.canvas || (getTextWidth.canvas = document.createElement("canvas"));
     const context = canvas.getContext("2d")!;
     context.font = font;
     const metrics = context.measureText(text);

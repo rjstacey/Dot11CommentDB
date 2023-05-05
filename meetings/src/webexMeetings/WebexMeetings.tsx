@@ -1,7 +1,5 @@
 import React from 'react';
 import {DateTime} from 'luxon';
-// @ts-ignore
-import copyToClipboard from 'copy-html-to-clipboard';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 
@@ -98,7 +96,10 @@ function setClipboard(selected: EntityId[], entities: Dictionary<SyncedWebexMeet
 			${selected.map(id => row(entities[id]!)).join('')}
 		</table>`
 
-	copyToClipboard(table, {asHtml: true});
+	const type = "text/html";
+    const blob = new Blob([table], {type});
+    const data = [new ClipboardItem({[type]: blob})];
+	navigator.clipboard.write(data);
 }
 
 function MeetingLink({webexMeeting, close}: {webexMeeting: SyncedWebexMeeting; close: () => void}) {
