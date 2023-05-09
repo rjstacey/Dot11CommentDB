@@ -5,7 +5,6 @@ import {
 	SelectItemRendererProps,
 	Icon,
 	strComp,
-	Multiple
 } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';

@@ -35,11 +35,6 @@ const selectItemRenderer = ({item}: SelectItemRendererProps) => renderSubmission
 
 const field = 'Submission';
 
-type SubmissionOption = {
-	value: string;
-	label: string;
-}
-
 const selectFieldValues = createSelector(
 	commentsSelectors.selectIds,
 	commentsSelectors.selectEntities,

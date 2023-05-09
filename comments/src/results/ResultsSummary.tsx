@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IconCollapse} from 'dot11-components';
+import { IconCollapse } from 'dot11-components';
 
 import { useAppSelector } from '../store/hooks';
 
@@ -233,7 +233,7 @@ const BasicSummary = ({ballot, summary}) =>
 		</Col>
 	</>
 
-function ResultsSummary({
+function ShowResultsSummary({
 	className,
 	style
 }: {
@@ -262,4 +262,4 @@ function ResultsSummary({
 	)
 }
 
-export default ResultsSummary
+export default ShowResultsSummary

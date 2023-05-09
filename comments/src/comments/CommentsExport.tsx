@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -14,11 +13,11 @@ const CommentsExportForm = styled(Form)`
 
 function CommentsExportDropdown({
 	ballot,
-	//close,
 	methods,
 }: {
 	ballot: Ballot;
-} & DropdownRendererProps) {
+} & DropdownRendererProps
+) {
 	const dispatch = useAppDispatch();
 	const fileRef = React.useRef<HTMLInputElement>(null);
 	const [errMsg, setErrMsg] = React.useState('');
@@ -141,11 +140,6 @@ function CommentsExportDropdown({
 			</Row>
 		</CommentsExportForm>
 	)
-}
-
-CommentsExportDropdown.propTypes = {
-	ballot: PropTypes.object,
-	//close: PropTypes.func.isRequired, Can't check for close; only available at render
 }
 
 function CommentsExport({ballot}: {ballot?: Ballot}) {

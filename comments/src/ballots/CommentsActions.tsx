@@ -1,7 +1,4 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-
-import {useAppDispatch, useAppSelector} from '../store/hooks';
 
 import {
 	Button, Form, Row, FieldLeft, Input,
@@ -11,6 +8,8 @@ import {
 } from 'dot11-components';
 
 import { renderCommentsSummary } from './Ballots';
+
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { importComments, uploadComments, deleteComments, setStartCommentId } from '../store/comments';
 import { selectBallot, Ballot } from '../store/ballots';
 

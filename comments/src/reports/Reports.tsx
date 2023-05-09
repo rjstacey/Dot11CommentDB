@@ -85,13 +85,6 @@ const Table = styled.table`
 
 type Counts = { [ Label: string ]: string | number };
 
-type CountsByCategory = {
-	Total: number;
-	E: number;
-	T: number;
-	G: number;
-}
-
 function countsByCategory(comments: CommentResolution[]): Counts {
 	return {
 		Total: comments.length,
@@ -250,7 +243,6 @@ function Reports() {
 			dispatch(clearComments());
 	}, [dispatch, currentBallot_id, commentsBallot_id]);
 
-	const onBallotSelected = (ballot_id: number | null) => dispatch(ballot_id? loadComments(ballot_id): clearComments());
 	const refresh = () => dispatch(commentsBallot_id? loadComments(commentsBallot_id): clearComments());
 
 	const data: Counts[] = React.useMemo(() => {
@@ -277,7 +269,12 @@ function Reports() {
 	return (
 		<>
 			<TopRow>
-				<PathBallotSelector onBallotSelected={onBallotSelected} />
+				<PathBallotSelector />
+				<ActionButton
+					name='refresh'
+					title='Refresh'
+					onClick={refresh}
+				/>
 			</TopRow>
 			<Body>
 				<ReportSelectCol>

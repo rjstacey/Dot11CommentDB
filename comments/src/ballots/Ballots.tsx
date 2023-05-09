@@ -6,7 +6,7 @@ import {
 	AppTable, SelectHeaderCell, SelectCell, TableColumnHeader, ShowFilters, TableViewSelector, TableColumnSelector, SplitPanel, Panel,
 	ActionButton, ButtonGroup,
 	displayDateRange,
-	ColumnProperties, TablesConfig, TableConfig
+	ColumnProperties, TablesConfig, TableConfig, HeaderCellRendererProps
 } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -27,15 +27,7 @@ import {
 import { selectUserAccessLevel, AccessLevel } from '../store/user';
 import { loadVotingPools } from '../store/votingPools';
 
-
-const DataSubcomponent = styled.div<{width?: number}>`
-	flex: 1 1 ${({width}) => width && typeof width === 'string'? width: width + 'px'};
-	padding-right: 5px;
-	box-sizing: border-box;
-	overflow: hidden;
-`;
-
-const renderHeaderStartEnd = (props) =>
+const renderHeaderStartEnd = (props: HeaderCellRendererProps) =>
 	<>
 		<TableColumnHeader {...props} dataKey='Start' {...fields.Start} />
 		<TableColumnHeader {...props} dataKey='End' {...fields.End} />
@@ -49,7 +41,7 @@ const NoWrapItem = styled.div`
 	overflow: hidden;
 `;
 
-const renderHeaderTypeStage = (props) =>
+const renderHeaderTypeStage = (props: HeaderCellRendererProps) =>
 	<>
 		<TableColumnHeader {...props} dataKey='Type' {...fields.Type} />
 		<TableColumnHeader {...props} dataKey='IsRecirc' {...fields.IsRecirc} />
@@ -61,7 +53,7 @@ const renderCellTypeStage = ({rowData}: {rowData: SyncedBallot}) =>
 		<NoWrapItem>{fields.IsRecirc.dataRenderer(rowData.IsRecirc)}</NoWrapItem>
 	</>
 
-const renderHeaderVotingPool = (props) =>
+const renderHeaderVotingPool = (props: HeaderCellRendererProps) =>
 	<>
 		<TableColumnHeader {...props} dataKey='VotingPoolID' {...fields.VotingPoolID} />
 		<TableColumnHeader {...props} dataKey='PrevBallotID' {...fields.PrevBallotID} />
@@ -214,13 +206,12 @@ function getRow({rowIndex, ids, entities}) {
 
 function Ballots() {
 
+	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 
 	const access = useAppSelector(selectUserAccessLevel);
 	const {loading, selected} = useAppSelector(selectBallotsState);
 	const {isSplit} = useAppSelector(ballotsSelectors.selectCurrentPanelConfig);
-
-	const dispatch = useAppDispatch();
 
 	const load = React.useCallback(() => {
 		dispatch(loadBallots());

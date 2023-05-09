@@ -31,12 +31,12 @@ function Body() {
 
 	const access = useAppSelector(selectUserAccessLevel);
 
-	function renderComponent(minAccess: number, Component: React.ComponentType<{access: number}>) {
+	function renderComponent(minAccess: number, Component: React.ComponentType<{}>) {
 		if (access < minAccess)
 			return <span>You do not have permission to view this data</span>
 		return (
 			<React.Suspense fallback={<div>Loading...</div>}>
-				<Component access={access} />
+				<Component />
 			</React.Suspense>
 		)
 	}
@@ -46,7 +46,7 @@ function Body() {
 			<Routes>
 				<Route
 					path="/ballots/:ballotId?"
-					element={renderComponent(AccessLevel.none, Ballots)}
+					element={renderComponent(AccessLevel.ro, Ballots)}
 				/>
 				<Route
 					path="/epolls"

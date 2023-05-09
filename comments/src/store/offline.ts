@@ -1,6 +1,6 @@
-import {Store, createSlice} from '@reduxjs/toolkit';
-import {REHYDRATE} from 'redux-persist';
-import {fetcher} from 'dot11-components';
+import { createSlice } from '@reduxjs/toolkit';
+import { REHYDRATE } from 'redux-persist';
+import { fetcher } from 'dot11-components';
 import type { StoreType, RootState, AppThunk, AppDispatch } from '.';
 
 const dataSet = 'offline';

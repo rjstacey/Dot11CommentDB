@@ -2,17 +2,14 @@ import React from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-
 import { Select } from 'dot11-components';
 
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	loadBallots,
 	setCurrentProject,
 	setCurrentId,
-	setBallotId,
 	selectBallotsState,
-	selectCurrentBallot,
 	selectProjectOptions,
 	selectBallotOptions
 } from '../store/ballots';
@@ -140,7 +137,7 @@ function BallotSelector({
 			if (ballot)
 				navigate(location.pathname + `/${ballot.BallotID}`);
 		}
-	}, [dispatch, navigate, location, ballotId, ballotIds, ballotEntities]);
+	}, [dispatch, navigate, location, currentId, ballotId, ballotIds, ballotEntities]);
 
 	const handleProjectChange = async (value: string) => {
 		if (value !== currentProject) {

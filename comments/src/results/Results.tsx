@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {
@@ -17,7 +16,7 @@ import ResultsExport from './ResultsExport';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectUserAccessLevel, AccessLevel } from '../store/user';
 import { loadResults, clearResults, selectResultsBallotId, resultsSelectors, resultsActions, upsertTableColumns } from '../store/results';
-import { setBallotId, selectCurrentId, selectBallot, BallotType } from '../store/ballots';
+import { selectCurrentId, selectBallot, BallotType } from '../store/ballots';
 
 // The table row grows to the available height
 const TableRow = styled.div`
@@ -101,7 +100,7 @@ function Results() {
 	const defaultTablesConfig = React.useMemo(() => {
 		if (resultsBallot)
 			return getDefaultTablesConfig(access, resultsBallot.Type);
-	}, [access, access, resultsBallot]);
+	}, [access, resultsBallot]);
 
 	React.useEffect(() => {
 		if (resultsBallot)

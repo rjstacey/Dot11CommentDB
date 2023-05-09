@@ -1,15 +1,16 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import {
 	Form, Row, Col, List, ListItem, Field, Checkbox,
 	ActionButtonDropdown,
-	ConfirmModal
+	ConfirmModal,
+	DropdownRendererProps
 } from 'dot11-components';
 
 import { useAppDispatch } from '../store/hooks';
-import { uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate, UploadResult } from '../store/comments';
+import { uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate } from '../store/comments';
+import type { Ballot } from '../store/ballots';
 
 const importFieldOptions = [
 	{value: FieldsToUpdate.CID,
@@ -138,7 +139,10 @@ const UpdateList = ({matchUpdate, setMatchUpdate}) =>
 function CommentsImportDropdown({
 	ballot,
 	methods
-}) {
+}: {
+	ballot: Ballot;
+} & DropdownRendererProps
+) {
 	const dispatch = useAppDispatch();
 	const fileRef = React.useRef<HTMLInputElement>(null);
 	const [fields, setFields] = React.useState<string[]>([]);
@@ -262,19 +266,13 @@ function CommentsImportDropdown({
 	)
 }
 
-CommentsImportDropdown.propTypes = {
-	//close: PropTypes.func.isRequired,
-	ballot: PropTypes.object,
-	methods: PropTypes.object.isRequired
-}
-
-function CommentsImport({ballot}) {
+function CommentsImport({ballot}: {ballot?: Ballot}) {
 	return (
 		<ActionButtonDropdown
 			name='import'
 			title='Upload resolutions'
 			disabled={!ballot}
-			dropdownRenderer={(props) => <CommentsImportDropdown ballot={ballot} {...props} />}
+			dropdownRenderer={(props) => <CommentsImportDropdown ballot={ballot!} {...props} />}
 		/>
 	)
 }

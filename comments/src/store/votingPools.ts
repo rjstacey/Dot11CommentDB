@@ -103,11 +103,6 @@ export const deleteVotingPools = (ids: string[]): AppThunk =>
 		dispatch(removeMany(ids));
 	}
 
-type Update<T> = {
-	id: string;
-	changes: Partial<T>
-}
-
 export const updateVotingPool = (votingPoolId: string, changes: Partial<VotingPool>): AppThunk<VotingPool> =>
 	async (dispatch) => {
 		const url = `/api/votingPools/${votingPoolId}`;

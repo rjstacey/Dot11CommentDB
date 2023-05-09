@@ -16,8 +16,8 @@ import ResultsActions from './ResultsActions';
 import CommentsActions from './CommentsActions';
 import VotingPoolSelector from './VotingPoolSelector';
 
+import type { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-
 import {
 	updateBallot,
 	addBallot,
@@ -31,10 +31,8 @@ import {
 	BallotTypeOptions,
 	BallotStageOptions,
 	Ballot,
-	BallotUpdate,
 	BallotCreate,
 } from '../store/ballots';
-import { RootState } from '../store';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';

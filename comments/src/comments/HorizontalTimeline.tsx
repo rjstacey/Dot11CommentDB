@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import { Icon } from 'dot11-components';
 
@@ -57,10 +56,10 @@ const datesToDistance = (dates) => {
 
 /**
  * Convert a date to a string label
- * @param {string} date The string representation of a date
- * @return {string} The formatted date string
+ * @param date The string representation of a date
+ * @return The formatted date string
  */
-const getLabel = (date) => (new Date(date)).toDateString().substring(4);
+const getLabel = (date: string) => (new Date(date)).toDateString().substring(4);
 
 const EventLabel = styled.div`
 	position: absolute;
