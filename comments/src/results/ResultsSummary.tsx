@@ -5,7 +5,7 @@ import {IconCollapse} from 'dot11-components';
 
 import { useAppSelector } from '../store/hooks';
 
-import { BallotType, BallotTypeLabels, getCurrentBallot, Ballot } from '../store/ballots';
+import { BallotType, BallotTypeLabels, selectCurrentBallot, Ballot } from '../store/ballots';
 //import {getResultsDataSet} from '../store/results';
 
 type ResultsSummary = {
@@ -241,7 +241,7 @@ function ResultsSummary({
 	style?: React.CSSProperties;
 }) {
 	const [showSummary, setShowSummary] = React.useState(true);
-	const ballot = useAppSelector(getCurrentBallot);
+	const ballot = useAppSelector(selectCurrentBallot);
 	//console.log(ballot)
 	if (!ballot)
 		return null;

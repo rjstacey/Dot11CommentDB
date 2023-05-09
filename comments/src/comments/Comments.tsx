@@ -1,16 +1,14 @@
 import React from 'react';
-import {useNavigate, useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {
 	AppTable, SplitPanel, Panel, SelectExpandHeaderCell, SelectExpandCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, GlobalFilter, IdSelector, IdFilter,
 	ActionButton, ButtonGroup,
-	AccessLevel,
 	ColumnProperties
 } from 'dot11-components';
 
 import TopRow from '../components/TopRow';
-import BallotSelector from '../components/BallotSelector';
+import PathBallotSelector from '../components/PathBallotSelector';
 import { editorCss } from './ResolutionEditor';
 import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './CommentDetail';
 import { renderSubmission } from './SubmissionSelector';
@@ -19,18 +17,20 @@ import CommentsExport from './CommentsExport';
 import CommentsCopy from './CommentsCopy';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectUserAccessLevel, AccessLevel } from '../store/user';
+import { selectBallot, selectCurrentId } from '../store/ballots';
+import { loadMembers } from '../store/members';
 import {
 	fields,
 	loadComments,
 	clearComments,
 	getCID,
 	selectCommentsState,
+	selectCommentsBallotId,
 	commentsSelectors,
 	commentsActions
 } from '../store/comments';
 
-import {loadMembers} from '../store/members';
-import {setBallotId, getCurrentBallot, selectBallotsState} from '../store/ballots';
 
 const FlexRow = styled.div`
 	display: flex;
@@ -311,14 +311,13 @@ function commentsRowGetter({rowIndex, ids, entities}) {
 	}
 }
 
-function Comments({access}: {access: number}) {
+function Comments() {
 
-	const navigate = useNavigate();
-	const {ballotId} = useParams();
-
-	const {loading, ballot_id: commentsBallot_id, selected} = useAppSelector(selectCommentsState);
-	const {entities: ballotEntities} = useAppSelector(selectBallotsState);
-	const currentBallot = useAppSelector(getCurrentBallot);
+	const access = useAppSelector(selectUserAccessLevel);
+	const {selected} = useAppSelector(selectCommentsState);
+	const commentsBallot_id = useAppSelector(selectCommentsBallotId);
+	const currentBallot_id = useAppSelector(selectCurrentId);
+	const commentsBallot = useAppSelector((state) => selectBallot(state, commentsBallot_id));
 
 	const dispatch = useAppDispatch();
 
@@ -326,43 +325,21 @@ function Comments({access}: {access: number}) {
 	const setIsSplit = (isSplit: boolean) => dispatch(commentsActions.setPanelIsSplit({isSplit}));
 
 	React.useEffect(() => {
-		if (ballotId) {
-			if (!currentBallot || ballotId !== currentBallot.BallotID) {
-				// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
-				dispatch(setBallotId(ballotId));
-			}
-		}
-		else if (currentBallot) {
-			// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
-			navigate(`/comments/${currentBallot.BallotID}`);
-		}
-	}, [dispatch, navigate, ballotId, currentBallot]);
-
-	React.useEffect(() => {
-		if (!loading && currentBallot && commentsBallot_id !== currentBallot.id)
-			dispatch(loadComments(currentBallot.id));
-	}, [dispatch, loading, currentBallot, commentsBallot_id]);
-
-	const onBallotSelected = (ballot_id) => {
-		const ballot = ballotEntities[ballot_id];
-		if (ballot)
-			navigate(`/comments/${ballot.BallotID}`); // Redirect to page with selected ballot
-		else {
-			navigate('/comments');
+		if (currentBallot_id && commentsBallot_id !== currentBallot_id)
+			dispatch(loadComments(currentBallot_id));
+		if (!currentBallot_id && commentsBallot_id)
 			dispatch(clearComments());
-		}
-	}
+	}, [dispatch, currentBallot_id, commentsBallot_id]);
 
 	const refresh = () => {
-		if (currentBallot)
-			dispatch(loadComments(currentBallot.id));
+		dispatch(commentsBallot_id? loadComments(commentsBallot_id): clearComments());
 		dispatch(loadMembers());
 	}
 
 	return (
 		<>
 			<TopRow>
-				<BallotSelector onBallotSelected={onBallotSelected} />
+				<PathBallotSelector />
 				<div style={{display: 'flex', alignItems: 'center'}}>
 					<ButtonGroup>
 						<div>Table view</div>
@@ -377,13 +354,13 @@ function Comments({access}: {access: number}) {
 							/>
 						</div>
 					</ButtonGroup>
-					{access >= AccessLevel.SubgroupAdmin?
+					{access >= AccessLevel.admin?
 						<ButtonGroup>
 							<div style={{textAlign: 'center'}}>Edit</div>
 							<div style={{display: 'flex', alignItems: 'center'}}>
 								<CommentsCopy />
-								<CommentsImport ballot={currentBallot} />
-								<CommentsExport ballot={currentBallot} />
+								<CommentsImport ballot={commentsBallot} />
+								<CommentsExport ballot={commentsBallot} />
 							</div>
 						</ButtonGroup>:
 						<CommentsCopy />
@@ -391,7 +368,6 @@ function Comments({access}: {access: number}) {
 					<ActionButton
 						name='refresh'
 						title='Refresh'
-						disabled={!currentBallot}
 						onClick={refresh}
 					/>
 				</div>

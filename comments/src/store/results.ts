@@ -27,6 +27,9 @@ export const dataSet = 'results';
  * Selectors
  */
 export const selectResultsState = (state: RootState) => state[dataSet];
+export const selectResultsIds = (state: RootState) => selectResultsState(state).ids;
+export const selectResultsEntities = (state: RootState) => selectResultsState(state).entities;
+export const selectResultsBallotId = (state: RootState) => selectResultsState(state).ballot_id;
 
 /* Entities selector with join on users to get Name, Affiliation and Email.
  * If the entry is obsolete find the member entry that replaces it. */

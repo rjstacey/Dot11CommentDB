@@ -1,5 +1,4 @@
 import React from 'react';
-import copyToClipboard from 'copy-html-to-clipboard';
 
 import { ActionButton } from 'dot11-components';
 
@@ -7,10 +6,17 @@ import { useAppSelector } from '../store/hooks';
 import { selectCommentsState, CommentResolution } from '../store/comments';
 import type { EntityId, Dictionary } from 'dot11-components';
 
-function setClipboard(selected: EntityId[], comments: Dictionary<CommentResolution>) {
+function copyHtmlToClipboard(html: string) {
+	const type = "text/html";
+    const blob = new Blob([html], {type});
+    const data = [new ClipboardItem({[type]: blob})];
+	navigator.clipboard.write(data);
+}
 
-	const td = d => `<td>${d}</td>`
-	const th = d => `<th>${d}</th>`
+function setClipboard(ids: EntityId[], comments: Dictionary<CommentResolution>) {
+
+	const td = (d: string) => `<td>${d}</td>`
+	const th = (d: string) => `<th>${d}</th>`
 	const header = `
 		<tr>
 			${th('CID')}
@@ -19,10 +25,10 @@ function setClipboard(selected: EntityId[], comments: Dictionary<CommentResoluti
 			${th('Comment')}
 			${th('Proposed Change')}
 		</tr>`;
-	const row = c => `
+	const row = (c: CommentResolution) => `
 		<tr>
 			${td(c.CID)}
-			${td(c.Page)}
+			${td(c.Page || '')}
 			${td(c.Clause)}
 			${td(c.Comment)}
 			${td(c.ProposedChange)}
@@ -35,10 +41,10 @@ function setClipboard(selected: EntityId[], comments: Dictionary<CommentResoluti
 		</style>
 		<table>
 			${header}
-			${selected.map(id => row(comments[id])).join('')}
+			${ids.map(id => row(comments[id]!)).join('')}
 		</table>`;
 
-	copyToClipboard(table, {asHtml: true});
+	copyHtmlToClipboard(table);
 }
 
 function CommentsCopy() {

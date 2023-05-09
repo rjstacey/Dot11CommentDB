@@ -1,15 +1,18 @@
 import React from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 
-import { Select, EntityId } from 'dot11-components';
+import { Select } from 'dot11-components';
 
 import {
 	loadBallots,
 	setCurrentProject,
 	setCurrentId,
+	setBallotId,
 	selectBallotsState,
+	selectCurrentBallot,
 	selectProjectOptions,
 	selectBallotOptions
 } from '../store/ballots';
@@ -108,10 +111,13 @@ function BallotSelector({
 	className?: string;
 	style?: React.CSSProperties;
 	readOnly?: boolean;
-	onBallotSelected?: (ballot_id: number) => void;
+	onBallotSelected?: (ballot_id: number | null) => void;
 }) {
+	const navigate = useNavigate();
+	const location = useLocation();
 	const dispatch = useAppDispatch();
-	const {valid, loading, currentProject, currentId} = useAppSelector(selectBallotsState);
+	const {ballotId} = useParams();
+	const {valid, loading, ids: ballotIds, entities: ballotEntities, currentProject, currentId} = useAppSelector(selectBallotsState);
 	const projectOptions = useAppSelector(selectProjectOptions);
 	const ballotOptions = useAppSelector(selectBallotOptions);
 
@@ -120,14 +126,41 @@ function BallotSelector({
 			dispatch(loadBallots());
 	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
 
-	const handleProjectChange = (value: string) => {
-		dispatch(setCurrentProject(value));
-		if (onBallotSelected)
-			onBallotSelected(0);
+	React.useEffect(() => {
+		if (ballotId) {
+			const pathBallot_id = ballotIds.find(id => ballotEntities[id]!.BallotID === ballotId) as number | undefined;
+			// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
+			if (pathBallot_id && (!currentId || pathBallot_id !== currentId)) {
+				dispatch(setCurrentId(pathBallot_id));
+			}
+		}
+		else if (currentId) {
+			// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
+			const ballot = ballotEntities[currentId];
+			if (ballot)
+				navigate(location.pathname + `/${ballot.BallotID}`);
+		}
+	}, [dispatch, navigate, location, ballotId, ballotIds, ballotEntities]);
+
+	const handleProjectChange = async (value: string) => {
+		if (value !== currentProject) {
+			const ballot = await dispatch(setCurrentProject(value));
+			let pathName = location.pathname.replace(`/${ballotId}`, '');
+			if (ballot)
+				pathName = pathName + `/${ballot.BallotID}`;
+			navigate(pathName);
+
+			if (onBallotSelected)
+				onBallotSelected(null);
+		}
 	}
 
-	const handleBallotChange = (value: number) => {
-		dispatch(setCurrentId(value));
+	const handleBallotChange = async (value: number) => {
+		const ballot = await dispatch(setCurrentId(value));
+		let pathName = location.pathname.replace(`/${ballotId}`, '');
+		if (ballot)
+			pathName = pathName + `/${ballot.BallotID}`;
+		navigate(pathName);
 		if (onBallotSelected)
 			onBallotSelected(value);
 	}

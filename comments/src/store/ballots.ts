@@ -176,9 +176,10 @@ export default slice;
  */
 export const selectBallotsState = (state: RootState) => state[dataSet];
 
-export const selectIds = (state: RootState) => state[dataSet].ids;
-export const selectEntities = (state: RootState) => state[dataSet].entities;
-export const selectCurrentProject = (state: RootState) => state[dataSet].currentProject
+export const selectIds = (state: RootState) => selectBallotsState(state).ids;
+export const selectEntities = (state: RootState) => selectBallotsState(state).entities;
+export const selectCurrentId = (state: RootState) => selectBallotsState(state).currentId;
+export const selectCurrentProject = (state: RootState) => selectBallotsState(state).currentProject
 
 /* Get ballot entities with derived data */
 export const selectBallotEntities = createSelector(
@@ -221,9 +222,9 @@ export const selectBallot = (state: RootState, ballot_id: number) => selectBallo
 
 export const getCurrentBallotId = (state: RootState) => state[dataSet].currentId;
 
-export const getCurrentBallot = (state: RootState) => {
-	const {entities, currentId} = state[dataSet];
-	return entities[currentId];
+export const selectCurrentBallot = (state: RootState) => {
+	const {entities, currentId} = selectBallotsState(state);
+	return currentId? entities[currentId]: undefined;
 }
 
 export const getBallotId = (state: RootState) => {
@@ -239,8 +240,6 @@ export const ballotsSelectors = getAppTableDataSelectors(selectBallotsState);
  */
 export const ballotsActions = slice.actions;
 
-export const {setCurrentProject, setCurrentId} = slice.actions;
-
 const {
 	getPending,
 	getSuccess,
@@ -248,10 +247,24 @@ const {
 	addOne,
 	updateOne,
 	removeMany,
+	setCurrentProject: setCurrentProjectLocal,
+	setCurrentId: setCurrentIdLocal,
 	setUiProperties
 } = slice.actions;
 
 export {setUiProperties};
+
+export const setCurrentProject = (project: string): AppThunk<Ballot | undefined> =>
+	async (dispatch, getState) => {
+		dispatch(setCurrentProjectLocal(project));
+		return selectCurrentBallot(getState());
+	}
+
+export const setCurrentId = (ballot_id: number): AppThunk<Ballot | undefined> =>
+	async (dispatch, getState) => {
+		dispatch(setCurrentIdLocal(ballot_id));
+		return selectCurrentBallot(getState());
+	}
 
 const baseUrl = '/api/ballots';
 

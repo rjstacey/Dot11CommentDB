@@ -1,15 +1,24 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
-import {useDispatch, useSelector} from 'react-redux';
-import copyToClipboard from 'copy-html-to-clipboard';
+//import copyToClipboard from 'copy-html-to-clipboard';
 
 import {ActionButton, Button} from 'dot11-components';
 
 import TopRow from '../components/TopRow';
-import BallotSelector from '../components/BallotSelector';
-import {loadComments, clearComments, selectCommentsState, getCID, getCommentStatus, CommentResolution, getField} from '../store/comments';
-import {setBallotId, getCurrentBallot, selectBallotsState} from '../store/ballots';
+import PathBallotSelector from '../components/PathBallotSelector';
+
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectCurrentId } from '../store/ballots';
+import {
+	loadComments,
+	clearComments,
+	selectCommentsState,
+	selectCommentsBallotId,
+	getCID,
+	getCommentStatus,
+	CommentResolution,
+	getField
+} from '../store/comments';
 
 const Table = styled.table`
 	display: grid;
@@ -74,6 +83,8 @@ const Table = styled.table`
 	}
 `;
 
+type Counts = { [ Label: string ]: string | number };
+
 type CountsByCategory = {
 	Total: number;
 	E: number;
@@ -81,7 +92,7 @@ type CountsByCategory = {
 	G: number;
 }
 
-function countsByCategory(comments: CommentResolution[]): CountsByCategory {
+function countsByCategory(comments: CommentResolution[]): Counts {
 	return {
 		Total: comments.length,
 		E: comments.filter(c => c.Category === 'E').length,
@@ -90,26 +101,16 @@ function countsByCategory(comments: CommentResolution[]): CountsByCategory {
 	}
 }
 
-type CountsByStatus = {
-	Total: number;
-	[ Status: string ]: number
-}
-
 function countsByStatus(statusSet: Set<string>, comments: CommentResolution[]): Counts {
-	const entry: CountsByStatus = {Total: comments.length}
-	for (let status of statusSet) {
+	const entry: Counts = {Total: comments.length}
+	for (let status of statusSet)
 		entry[status || '(Blank)'] = comments.filter(c => getField(c, 'Status') === status).length
-	}
 	return entry;
-}
-
-type CountsByCategoryByCommenter = CountsByCategory & {
-	Commenter: string;
 }
 
 function commentsByCommenter(comments: CommentResolution[]) {
 	const commentersSet = [...new Set(comments.map(c => c.CommenterName))].sort()
-	const data: CountsByCategoryByCommenter[] = []
+	const data: Counts[] = []
 	for (let name of commentersSet) {
 		data.push({
 			Commenter: name || '(Blank)',
@@ -117,10 +118,6 @@ function commentsByCommenter(comments: CommentResolution[]) {
 		})
 	}
 	return data;
-}
-
-type CountsByAssignee = CountsByStatus & {
-	Assignee: string;
 }
 
 function commentsByAssignee(comments: CommentResolution[]) {
@@ -163,8 +160,6 @@ function commentsByAssigneeAndCommentGroup(comments: CommentResolution[]) {
 	return data;
 }
 
-type Counts = { [ S: string ]: string | number };
-
 function commentsByAdHocAndCommentGroup(comments: CommentResolution[])  {
 	const adhocSet = [...new Set(comments.map(c => c.AdHoc))].sort()
 	const statusSet = new Set(comments.map(c => getField(c, 'Status')))
@@ -197,7 +192,7 @@ const commentsReport = {
 	'Comments by Ad-Hoc and Comment Group': commentsByAdHocAndCommentGroup
 }
 
-function renderTable(data: Counts[], ref) {
+function renderTable(data: Counts[]) {
 
 	if (data.length === 0)
 		return <span>Empty</span>
@@ -205,11 +200,18 @@ function renderTable(data: Counts[], ref) {
 	const header = <tr>{Object.keys(data[0]).map((d, i) => <th key={i}><span>{d}</span></th>)}</tr>;
 	const row = (r: Counts, i: number) => <tr key={i}>{Object.values(r).map((d, i) => <td key={i} ><span>{d}</span></td>)}</tr>;
 	return (
-		<Table style={{borderCollapse: 'collapse'}} cellPadding='5' border={1} ref={ref}>
+		<Table style={{borderCollapse: 'collapse'}} cellPadding='5' border={1}>
 			<thead>{header}</thead>
 			<tbody>{data.map(row)}</tbody>
 		</Table>
 	)
+}
+
+function copyHtmlToClipboard(html: string) {
+	const type = "text/html";
+    const blob = new Blob([html], {type});
+    const data = [new ClipboardItem({[type]: blob})];
+	navigator.clipboard.write(data);
 }
 
 function renderTableToClipboard(data: Counts[]) {
@@ -229,46 +231,27 @@ function renderTableToClipboard(data: Counts[]) {
 			<thead>${header}</thead>
 			<tbody>${data.map(row).join('')}</tbody>
 		</table>`;
-	copyToClipboard(table, {asHtml: true});
+
+	copyHtmlToClipboard(table);
 }
 
 function Reports() {
-	const navigate = useNavigate();
-	const {ballotId} = useParams();
+	const dispatch = useAppDispatch();
 	const [report, setReport] = React.useState('');
-	const tableRef = React.useRef();
 
-	const {valid: ballotsValid, entities: ballotEntities} = useSelector(selectBallotsState);
-	const currentBallot = useSelector(getCurrentBallot);
-	const {loading, ballot_id: commentsBallot_id, ids, entities} = useSelector(selectCommentsState);
-
-	const dispatch = useDispatch();
+	const {ids, entities} = useAppSelector(selectCommentsState);
+	const commentsBallot_id = useAppSelector(selectCommentsBallotId);
+	const currentBallot_id = useAppSelector(selectCurrentId);
 
 	React.useEffect(() => {
-		if (ballotId) {
-			if (!currentBallot || ballotId !== currentBallot.BallotID) {
-				// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
-				dispatch(setBallotId(ballotId));
-			}
-		}
-		else if (currentBallot) {
-			// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
-			navigate(`/reports/${currentBallot.BallotID}`);
-		}
-	}, [dispatch, navigate, ballotId, ballotsValid, currentBallot]);
-
-	React.useEffect(() => {
-		if (!loading && currentBallot && commentsBallot_id !== currentBallot.id)
-			dispatch(loadComments(currentBallot.id));
-	}, [dispatch, currentBallot, commentsBallot_id, loading]);
-
-	const onBallotSelected = (ballot_id) => {
-		const ballot = ballotEntities[ballot_id];
-		if (ballot)
-			navigate(`/reports/${ballot.BallotID}`); // Redirect to page with selected ballot
-		else
+		if (currentBallot_id && commentsBallot_id !== currentBallot_id)
+			dispatch(loadComments(currentBallot_id));
+		if (!currentBallot_id && commentsBallot_id)
 			dispatch(clearComments());
-	}
+	}, [dispatch, currentBallot_id, commentsBallot_id]);
+
+	const onBallotSelected = (ballot_id: number | null) => dispatch(ballot_id? loadComments(ballot_id): clearComments());
+	const refresh = () => dispatch(commentsBallot_id? loadComments(commentsBallot_id): clearComments());
 
 	const data: Counts[] = React.useMemo(() => {
 		const comments = ids.map(id => {
@@ -283,17 +266,6 @@ function Reports() {
 		return generateReport? generateReport(comments): [];
 	}, [ids, entities, report]);
 
-	/*function copy() {
-		if (tableRef.current) {
-			var r = document.createRange();
-			r.selectNode(tableRef.current);
-			window.getSelection().removeAllRanges();
-			window.getSelection().addRange(r);
-			document.execCommand('copy');
-			window.getSelection().removeAllRanges();
-		}
-	}*/
-
 	const ReportButton = ({report: thisReport, label}) => 
 		<Button
 			onClick={() => setReport(thisReport)}
@@ -305,20 +277,21 @@ function Reports() {
 	return (
 		<>
 			<TopRow>
-				<BallotSelector onBallotSelected={onBallotSelected} />
+				<PathBallotSelector onBallotSelected={onBallotSelected} />
 			</TopRow>
 			<Body>
 				<ReportSelectCol>
 					<label>Select a report:</label>
 					{Object.keys(commentsReport).map(report => 
 							<ReportButton
+								key={report}
 								report={report}
 								label={report}
 							/>
 						)}
 				</ReportSelectCol>
 				<ReportCol>
-					{renderTable(data, tableRef)}
+					{renderTable(data)}
 				</ReportCol>
 				<ReportCopyCol>
 					<ActionButton name='copy' onClick={() => renderTableToClipboard(data)} />

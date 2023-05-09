@@ -227,21 +227,22 @@ export default slice;
  * Selectors
  */
 export const selectCommentsState = (state: RootState) => state[dataSet];
-const selectCommentsIds = (state: RootState) => state[dataSet].ids;
-const selectCommentsEntities = (state: RootState) => state[dataSet].entities;
-const selectCommentsBallotId = (state: RootState) => state[dataSet].ballot_id;
+export const selectCommentsIds = (state: RootState) => selectCommentsState(state).ids;
+export const selectCommentsEntities = (state: RootState) => selectCommentsState(state).entities;
+export const selectCommentsBallotId = (state: RootState) => selectCommentsState(state).ballot_id;
 
 const selectCommentsLastModified = createSelector(
 	selectCommentsIds,
 	selectCommentsEntities,
 	(ids, entities) => {
 		let lastModified = 0;
-		for (const id of ids) {
+		ids.forEach(id => {
 			const c = entities[id]!;
 			const d = c.LastModifiedTime? Date.parse(c.LastModifiedTime): 0;
 			if (d > lastModified)
 				lastModified = d;
-		}
+			return lastModified;
+		});
 		return new Date(lastModified).toISOString();
 	}
 );

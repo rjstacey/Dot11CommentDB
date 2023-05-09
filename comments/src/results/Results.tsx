@@ -10,14 +10,14 @@ import {
 } from 'dot11-components';
 
 import TopRow from '../components/TopRow';
-import BallotSelector from '../components/BallotSelector';
+import PathBallotSelector from '../components/PathBallotSelector';
 import ResultsSummary from './ResultsSummary';
 import ResultsExport from './ResultsExport';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectUserAccessLevel, AccessLevel } from '../store/user';
-import { loadResults, clearResults, selectResultsState, resultsSelectors, resultsActions, upsertTableColumns } from '../store/results';
-import { setBallotId, selectBallotsState, getCurrentBallot, BallotType } from '../store/ballots';
+import { loadResults, clearResults, selectResultsBallotId, resultsSelectors, resultsActions, upsertTableColumns } from '../store/results';
+import { setBallotId, selectCurrentId, selectBallot, BallotType } from '../store/ballots';
 
 // The table row grows to the available height
 const TableRow = styled.div`
@@ -91,70 +91,43 @@ const maxWidth = 1600;
 
 function Results() {
 
-	const navigate = useNavigate();
-	const {ballotId} = useParams();
-
 	const access = useAppSelector(selectUserAccessLevel);
-	const {loading, ballot_id: resultsBallot_id} = useAppSelector(selectResultsState);
-	const {entities: ballotEntities} = useAppSelector(selectBallotsState);
-	const currentBallot = useAppSelector(getCurrentBallot);
+	const resultsBallot_id = useAppSelector(selectResultsBallotId);
+	const currentBallot_id = useAppSelector(selectCurrentId);
+	const resultsBallot = useAppSelector((state) => selectBallot(state, resultsBallot_id));
 	
 	const dispatch = useAppDispatch();
 
 	const defaultTablesConfig = React.useMemo(() => {
-		if (currentBallot)
-			return getDefaultTablesConfig(access, currentBallot.Type);
-	}, [access, currentBallot]);
+		if (resultsBallot)
+			return getDefaultTablesConfig(access, resultsBallot.Type);
+	}, [access, access, resultsBallot]);
 
 	React.useEffect(() => {
-		if (currentBallot)
-			dispatch(updateTableConfigAction(access, currentBallot.Type));
-	}, [dispatch, access, currentBallot]);
+		if (resultsBallot)
+			dispatch(updateTableConfigAction(access, resultsBallot.Type));
+	}, [dispatch, access, resultsBallot]);
 
 	React.useEffect(() => {
-		if (ballotId) {
-			if (!currentBallot || ballotId !== currentBallot.BallotID) {
-				// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
-				dispatch(setBallotId(ballotId));
-			}
-		}
-		else if (currentBallot) {
-			// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
-			navigate(`/results/${currentBallot.BallotID}`);
-		}
-	}, [dispatch, navigate, ballotId, currentBallot]);
-
-	React.useEffect(() => {
-		if (!loading && currentBallot && resultsBallot_id !== currentBallot.id)
-			dispatch(loadResults(currentBallot.id));
-	}, [dispatch, loading, currentBallot, resultsBallot_id]);
-
-	const onBallotSelected = (ballot_id: number) => {
-		const ballot = ballotEntities[ballot_id];
-		if (ballot)
-			navigate(`/results/${ballot.BallotID}`); // Redirect to page with selected ballot
-		else
+		if (currentBallot_id && resultsBallot_id !== currentBallot_id)
+			dispatch(loadResults(currentBallot_id));
+		if (!currentBallot_id && resultsBallot_id)
 			dispatch(clearResults());
-	}
+	}, [dispatch, currentBallot_id, resultsBallot_id]);
 
-	const refresh = () => {
-		if (currentBallot)
-			dispatch(loadResults(currentBallot.id));
-		else
-			dispatch(clearResults());
-	}
+	const onBallotSelected = (ballot_id: number | null) => dispatch(ballot_id? loadResults(ballot_id): clearResults());
+	const refresh = () => dispatch(resultsBallot_id? loadResults(resultsBallot_id): clearResults());
 
 	return (
 		<>
 			<TopRow style={{maxWidth}}>
-				<BallotSelector onBallotSelected={onBallotSelected}	/>
+				<PathBallotSelector onBallotSelected={onBallotSelected}	/>
 				<div style={{display: 'flex'}}>
-					<ResultsExport ballot={currentBallot} />
+					<ResultsExport ballot={resultsBallot} />
 					<TableColumnSelector selectors={resultsSelectors} actions={resultsActions} columns={tableColumns} />
 					<ActionButton
 						name='refresh'
 						title='Refresh'
-						disabled={!currentBallot}
 						onClick={refresh}
 					/>
 				</div>
