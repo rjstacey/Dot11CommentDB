@@ -1,12 +1,13 @@
 import React from 'react';
 import {NavLink, useLocation} from 'react-router-dom';
-import {useSelector} from 'react-redux';
 
-import {Account, Dropdown, RendererProps} from 'dot11-components';
+import { Account, Dropdown, Button } from 'dot11-components';
 
 import './header.css';
 
-import {selectUser, selectUserMembershipAccess, AccessLevel} from '../store/user';
+import { resetStore } from '../store';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectUser, selectUserMembershipAccess, AccessLevel } from '../store/user';
 
 const fullMenu = [
 	{
@@ -33,10 +34,10 @@ function NavMenu({
 	methods
 }: {
 	className?: string;
-	methods?: RendererProps['methods'];
+	methods?: {close: () => void};
 }
 ) {
-	const access = useSelector(selectUserMembershipAccess);
+	const access = useAppSelector(selectUserMembershipAccess);
 
 	let classNames = 'nav-menu';
 	if (className)
@@ -58,7 +59,9 @@ function NavMenu({
 const smallScreenQuery = window.matchMedia('(max-width: 992px');
 
 function Header() {
-	const user = useSelector(selectUser)!;
+	const dispatch = useAppDispatch();
+
+	const user = useAppSelector(selectUser)!;
 	const [isSmall, setIsSmall] = React.useState(smallScreenQuery.matches);
 
 	React.useEffect(() => {
@@ -86,7 +89,13 @@ function Header() {
 					<NavMenu className='nav-menu-horizontal' />
 				}
 			</div>
-			<Account user={user} />
+			<Account user={user}>
+				<Button
+					onClick={() => dispatch(resetStore())}
+				>
+					Clear cache
+				</Button>
+			</Account>
 		</header>
 	)
 }

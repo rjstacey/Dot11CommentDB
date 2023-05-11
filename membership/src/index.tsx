@@ -7,8 +7,7 @@ import configureStore from './store';
 
 import './index.css';
 import App from './app/App';
-import {getUser, logout, fetcher} from 'dot11-components';
-import {setUser} from './store/user';
+import { getUser, logout, fetcher } from 'dot11-components';
 
 // @ts-ignore
 import * as serviceWorker from './serviceWorkerRegistration';
@@ -18,8 +17,7 @@ getUser()
 		const root = createRoot(document.getElementById('root')!);
 		try {
 			fetcher.setAuth(user.Token, logout);
-			const {store, persistor} = configureStore();
-			store.dispatch(setUser(user));
+			const {store, persistor} = configureStore(user);
 			root.render(
 				<React.StrictMode>
 					<Provider store={store}>

@@ -1,8 +1,8 @@
 import React from 'react';
-import {Routes, Route} from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {useAppSelector} from '../store/hooks';
+import { useAppSelector } from '../store/hooks';
 
 import Members from '../members/Members';
 import Attendances from '../attendances/Attendances';
@@ -23,7 +23,7 @@ const Main = styled.main`
 function Body() {
 	const access = useAppSelector(selectUserMembershipAccess);
 
-	function renderComponent(minAccess: number, Component: () => JSX.Element) {
+	function renderComponent(minAccess: number, Component: React.ComponentType) {
 		if (access < minAccess)
 			return <span>You do not have permission to view this data</span>
 		return (

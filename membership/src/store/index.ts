@@ -1,19 +1,21 @@
 import { combineReducers, configureStore as configureReduxStore } from '@reduxjs/toolkit';
-import type { ThunkAction, AnyAction, Middleware } from '@reduxjs/toolkit';
+import type { Action, ThunkAction, AnyAction, Middleware } from '@reduxjs/toolkit';
 
 import { createLogger } from 'redux-logger';
 import { persistStore, persistReducer, createTransform } from 'redux-persist';
 import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import { get, set, del } from 'idb-keyval';
 
-import userSlice from './user';
+import { createUserSlice, User } from './user';
 import timeZonesSlice, {loadTimeZones} from './timeZones';
 import permissionsSlice, {loadPermissions} from './permissions';
 import membersSlice, {loadMembers} from './members';
 import attendancesSlice, {loadAttendances} from './attendances';
 import ballotParticipationSlice, {loadBallotParticipation} from './ballotParticipation';
 
-import {errorsSlice} from 'dot11-components';
+import { errorsSlice } from 'dot11-components';
+
+const RESET_STORE_ACTION = "root/RESET_STORE";
 
 const transformState = createTransform(
 	(state: any) => {
@@ -28,9 +30,11 @@ const transformState = createTransform(
 	]}
 );
 
-function configureStore() {
+function configureStore(user: User) {
 
-	const reducer = combineReducers({
+	const userSlice = createUserSlice(user);
+
+	const appReducer = combineReducers({
 		[userSlice.name]: userSlice.reducer,
 		[membersSlice.name]: membersSlice.reducer,
 		[attendancesSlice.name]: attendancesSlice.reducer,
@@ -39,6 +43,12 @@ function configureStore() {
 		[permissionsSlice.name]: permissionsSlice.reducer,
 		[errorsSlice.name]: errorsSlice.reducer
 	});
+
+	const rootReducer = (state: any, action: AnyAction) => {
+		if (action.type === RESET_STORE_ACTION)
+			state = undefined;
+		return appReducer(state, action);
+	}
 
 	const persistConfig = {
 		key: 'membership',
@@ -67,7 +77,7 @@ function configureStore() {
 		middleware.push(createLogger({collapsed: true}));
 
 	const store = configureReduxStore({
-		reducer: persistReducer(persistConfig, reducer as any),
+		reducer: persistReducer(persistConfig, rootReducer as any),
 		middleware: (getDefaultMiddleware) => getDefaultMiddleware({
 			immutableCheck: false,
 			serializableCheck: false,
@@ -82,8 +92,10 @@ function configureStore() {
 		store.dispatch(loadBallotParticipation());
 	});
 
-	return {store, persistor, reducer};
+	return {store, persistor, reducer: rootReducer};
 }
+
+export const resetStore = (): Action => ({type: RESET_STORE_ACTION});
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
 type StoreType = ReturnType<typeof configureStore>['store'];
