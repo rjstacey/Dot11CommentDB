@@ -41,6 +41,12 @@ export type CommentResolution = Omit<Comment, "id"> & Omit<Resolution, "id"> & {
 	Vote: string;
 }
 
+export type CommentsSummary = {
+	Count: number;
+	CommentIDMin: number;
+	CommentIDMax: number;
+}
+
 const createViewCommentResolutionsSQL = 
 	'CREATE VIEW commentResolutions AS SELECT ' +
 		'b.id AS ballot_id, ' +
@@ -121,7 +127,7 @@ export function getComments(ballot_id?: number, modifiedSince?: string) {
 	return selectComments(constraints);
 }
 
-export async function getCommentsSummary(ballot_id: number) {
+export async function getCommentsSummary(ballot_id: number): Promise<CommentsSummary | undefined> {
 	const [summary] = await db.query(
 		'SELECT ' +
 			'COUNT(*) AS Count, ' +
@@ -129,7 +135,7 @@ export async function getCommentsSummary(ballot_id: number) {
 			'MAX(CommentID) AS CommentIDMax ' +
 		'FROM comments c WHERE ballot_id=?',
 		[ballot_id]
-	) as [{Count: number; CommentIDMin: number; CommentIDMax: number}];
+	) as [CommentsSummary | undefined];
 	return summary;
 }
 

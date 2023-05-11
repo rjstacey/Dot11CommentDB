@@ -297,8 +297,10 @@ export async function addSession(session: Session) {
 
 export async function updateSession(id: number, changes: Partial<Session>) {
 	const setSql = sessionEntrySetSql(changes);
-	if (setSql)
+	if (setSql) {
+		console.log(setSql)
 		await db.query({sql: `UPDATE sessions SET ${setSql} WHERE id=?;`, dateStrings: true},  [id]);
+	}
 
 	if (changes.rooms)
 		await replaceSessionRooms(id, changes.rooms);

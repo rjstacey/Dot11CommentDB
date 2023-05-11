@@ -32,7 +32,7 @@ router.delete('/$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.patch('/:votingPoolId/$', async (req, res, next) => {
+router.patch('/:votingPoolId', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
 		const changes = req.body;

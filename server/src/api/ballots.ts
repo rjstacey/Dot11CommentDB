@@ -36,6 +36,7 @@ import {
 	addBallots,
 	deleteBallots
 } from '../services/ballots';
+import { isPlainObject } from '../utils';
 
 const router = Router();
 
@@ -59,8 +60,8 @@ router.post('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
 		const ballots = req.body;
-		if (!Array.isArray(ballots))
-			throw 'Bad or missing body; expected an array of ballots';
+		if (!Array.isArray(ballots) || !ballots.every(b => isPlainObject(b)))
+			throw new TypeError('Bad or missing body; expected an array of ballots');
 		const data = await addBallots(user, ballots);
 		res.json(data)
 	}
@@ -71,8 +72,8 @@ router.patch('/$', async (req, res, next) => {
 	try {
 		const {user} = req;
 		const updates = req.body;
-		if (!Array.isArray(updates))
-			throw 'Bad or missing body; expected an array of ballots';
+		if (!Array.isArray(updates) || !updates.every(b => isPlainObject(b)))
+			throw new TypeError('Bad or missing body; expected an array of ballot updates');
 		const data = await updateBallots(user, updates);
 		res.json(data);
 	}
@@ -83,10 +84,10 @@ router.patch('/$', async (req, res, next) => {
 router.delete('/$', async (req, res, next) => {
 	try {
 		const ids = req.body;
-		if (!Array.isArray(ids))
-			throw 'Missing or bad body; expected an array of ids';
-		await deleteBallots(ids)
-		res.json(null)
+		if (!Array.isArray(ids) || !ids.every(id => typeof id === 'number'))
+			throw new TypeError("Bad or missing body; expected an array of ballot identifiers");
+		const data = await deleteBallots(ids);
+		res.json(data)
 	}
 	catch(err) {next(err)}
 });

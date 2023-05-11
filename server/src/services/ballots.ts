@@ -1,9 +1,10 @@
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
+import { isPlainObject } from '../utils';
 
-import { getResults, getResultsCoalesced, Result } from './results';
+import { getResults, getResultsCoalesced, Result, ResultsSummary } from './results';
 import { getVoters } from './voters';
-import { getCommentsSummary } from './comments';
+import { getCommentsSummary, CommentsSummary } from './comments';
 
 import type { User } from './users';
 
@@ -14,16 +15,20 @@ export type Ballot = {
     Type: number;
     IsRecirc: boolean;
     IsComplete: boolean;
-    Start: string;
-    End: string;
+    Start: string | null;
+    End: string | null;
     Document: string;
     Topic: string;
-    VotingPoolID: string;
-    prev_id: number;
-    EpollNum: number;
-    Results: Result[];
-	ResultsSummary?: string;
-    Comments: {Count: number, CommentIDMin: number, CommentIDMax: number};
+    VotingPoolID: string | null;
+    prev_id: number | null;
+    EpollNum: number | null;
+    Results: ResultsSummary | null;
+    Comments: CommentsSummary;
+}
+
+type BallotUpdate = {
+	id: number;
+	changes: Partial<Ballot>;
 }
 
 export const BallotType = {
@@ -132,7 +137,7 @@ type BallotDB = {
 	Topic?: string;
 	Start?: Date;
 	End?: Date;
-	EpollNum?: number;
+	EpollNum?: number | null;
 	VotingPoolID?: string | null;
 	prev_id?: number | null;
 }
@@ -179,8 +184,8 @@ async function addBallot(user: User, ballot: Ballot) {
 
 	const entry = ballotEntry(ballot);
 
-	if (!entry || !entry.hasOwnProperty('BallotID'))
-		throw 'Ballot must have BallotID';
+	if (!entry || !entry.hasOwnProperty('BallotID') || !entry.hasOwnProperty('Project'))
+		throw new TypeError('Ballot must have BallotID and Project');
 
 	let id: number;
 	try {
@@ -192,7 +197,7 @@ async function addBallot(user: User, ballot: Ballot) {
 		id = results.insertId;
 	}
 	catch(err: any) {
-		throw err.code == 'ER_DUP_ENTRY'? "An entry already exists with this ID": err
+		throw err.code == 'ER_DUP_ENTRY'? new TypeError("An entry already exists with BallotID=" + ballot.BallotID): err
 	}
 
 	return getBallotWithNewResultsSummary(user, id);
@@ -209,25 +214,20 @@ export async function addBallots(user: User, ballots: Ballot[]) {
 	return Promise.all(ballots.map(b => addBallot(user, b)));
 }
 
-type BallotUpdate = {
-	id: number;
-	changes: Partial<Ballot>;
-}
-
 /**
  * Update ballot
  * 
  * @param user The user executing the update.
  * @param update An object with shape {id, changes}
  * @param update.id Identifies the ballot.
- * @param update.changes A partial ballot object that contains parameters to be changed.
+ * @param update.changes A partial ballot object that contains parameters to change.
  */
-async function updateBallot(user: User, update: BallotUpdate) {
+async function updateBallot(user: User, update: object | BallotUpdate) {
+	if (!('id' in update) || typeof update.id !== 'number' ||
+	    !('changes' in update) || !isPlainObject(update.changes)) {
+		throw new TypeError("Bad update object: expect shape: {id: number; changes: object}");
+	}
 	const {id, changes} = update;
-	if (!id)
-		throw new TypeError('Missing id');
-	if (!changes || typeof changes !== 'object')
-		throw new TypeError('Missing or bad changes');
 
 	const entry = ballotEntry(changes);
 
@@ -240,7 +240,7 @@ async function updateBallot(user: User, update: BallotUpdate) {
 	return getBallotWithNewResultsSummary(user, id);
 }
 
-export function updateBallots(user: User, updates: BallotUpdate[]) {
+export function updateBallots(user: User, updates: (object | BallotUpdate)[]) {
 	return Promise.all(updates.map(u => updateBallot(user, u)));
 }
 

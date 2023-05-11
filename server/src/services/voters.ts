@@ -131,10 +131,10 @@ export async function deleteVotingPools(votingPoolIds: string[]): Promise<number
 }
 
 export async function updateVotingPool(votingPoolId: string, changes: {VotingPoolID: string}): Promise<{votingPool: VotingPool}> {
-	if (changes.hasOwnProperty('VotingPoolID')) {
+	if (changes.hasOwnProperty('VotingPoolID') && votingPoolId !== changes.VotingPoolID) {
 		const [votingPool] = await db.query(getVotingPoolSQL(changes.VotingPoolID)) as VotingPool[];
 		if (votingPool.VotingPoolID !== null)
-			throw `${changes.VotingPoolID} already in use`;
+			throw new TypeError(`${changes.VotingPoolID} already in use`);
 		await db.query('UPDATE wgVoters SET VotingPoolID=? WHERE VotingPoolID=?;', [changes.VotingPoolID, votingPoolId]);
 		votingPoolId = changes.VotingPoolID;
 	}

@@ -17,16 +17,17 @@ import {
 const upload = Multer();
 const router = Router();
 
-router.get('/:votingPoolId/$', async (req, res, next) => {
+router.get('/:votingPoolId', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
+		console.log('get voters', votingPoolId)
 		const data = await getVoters(votingPoolId);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.post('/:votingPoolId/$', async (req, res, next) => {
+router.post('/:votingPoolId', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
 		const voters = req.body;
@@ -51,7 +52,7 @@ router.patch('/$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.delete('/:votingPoolId/$', async (req, res, next) => {
+router.delete('/:votingPoolId', async (req, res, next) => {
 	try {
 		const {votingPoolId} = req.params;
 		const ids = req.body;

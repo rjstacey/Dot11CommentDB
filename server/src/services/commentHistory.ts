@@ -143,6 +143,17 @@ export async function initCommentHistory() {
 	await db.query(SQL);
 }
 
+type CommentHistory = {
+	id: number;
+	comment_id: number | null;
+	resolution_id: string | null;
+	UserID: number | null;
+	Action: "add" | "update" | "delete";
+	Changes: object;
+	Timestamp: string;
+	UserName: string;
+}
+
 const GET_COMMENTS_HISTORY_SQL = 
 	'SELECT ' +
 		'l.id, l.comment_id, BIN_TO_UUID(l.resolution_id) as resolution_id, l.UserID, l.Action, l.Changes, l.Timestamp, ' +
