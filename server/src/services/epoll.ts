@@ -4,7 +4,7 @@
 
 import { DateTime } from 'luxon';
 import cheerio from 'cheerio';
-import { csvParse } from '../utils';
+import { csvParse, AuthError } from '../utils';
 
 import type { User } from './users';
 
@@ -15,14 +15,14 @@ function parseDateTime(dateStr: string) {
 	return DateTime.fromFormat(dateStr, 'dd-MMM-yyyy HH:mm:ss', {zone: 'America/New_York'}).toISO();
 }
 
-type Epoll = {
-	BallotID: string;
-	Start: string;
-	End: string;
-	Topic: string;
-	Document: string;
-	Votes: string;
-	EpollNum: string;
+export type Epoll = {
+	id: number;
+	name: string;
+	start: string;
+	end: string;
+	topic: string;
+	document: string;
+	resultsSummary: string;
 }
 
 function parseClosedEpollsPage(body: string): Epoll[] {
@@ -38,13 +38,13 @@ function parseClosedEpollsPage(body: string): Epoll[] {
 			let pollStatusLink = tds.eq(7).html() || '';
 			let p = pollStatusLink.match(/poll-status\?p=(\d+)/);
 			let epoll: Epoll = {
-				Start: parseDateTime($(tds.eq(0)).children().eq(0).text()), // <div class="date_time">
-				BallotID: tds.eq(1).text(),
-				Topic: $(tds.eq(2)).children().eq(0).text(), // <p class="prose">
-				Document: $(tds.eq(3)).children().eq(0).text(),
-				End: parseDateTime($(tds.eq(4)).children().eq(0).text()),   // <div class="date_time">
-				Votes: tds.eq(5).text(),
-				EpollNum: p? p[1]: '',
+				id: p? parseInt(p[1]): 0,
+				start: parseDateTime($(tds.eq(0)).children().eq(0).text()), // <div class="date_time">
+				name: tds.eq(1).text(),
+				topic: $(tds.eq(2)).children().eq(0).text(), // <p class="prose">
+				document: $(tds.eq(3)).children().eq(0).text(),
+				end: parseDateTime($(tds.eq(4)).children().eq(0).text()),   // <div class="date_time">
+				resultsSummary: tds.eq(5).text(),
 			};
 			epolls.push(epoll);
 		});
@@ -52,7 +52,7 @@ function parseClosedEpollsPage(body: string): Epoll[] {
 	}
 	else if ($('div.title').length && $('div.title').html() == "Sign In") {
 		// If we get the "Sign In" page then the user is not logged in
-		throw new Error('Not logged in');
+		throw new AuthError('Not logged in');
 	}
 	else {
 		throw new Error('Unexpected page returned by mentor.ieee.org');
@@ -67,7 +67,7 @@ function parseClosedEpollsPage(body: string): Epoll[] {
 export async function getEpolls(user: User, n: number) {
 	const {ieeeClient} = user;
 	if (!ieeeClient)
-		throw new Error('Not logged in');
+		throw new AuthError('Not logged in');
 
 	async function recursivePageGet(epolls: Epoll[], n: number, page: number) {
 		//console.log('get epolls n=', n)
@@ -201,7 +201,7 @@ export async function parseEpollResultsCsv(buffer: Buffer): Promise<CSVResult[]>
 
 	const p = await csvParse(buffer, {columns: false, bom: true, encoding: 'latin1'});
 	if (p.length === 0)
-		throw new Error('Empty CSV file');
+		throw new TypeError('Empty CSV file');
 
 	// Row 0 is the header
 	if (epollResultsHeader.reduce((r, v, i) => v !== p[0][i], false))
