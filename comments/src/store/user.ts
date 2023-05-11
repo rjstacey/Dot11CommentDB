@@ -1,4 +1,4 @@
-import {createSlice, PayloadAction} from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 import type { RootState } from '.';
 
 export const AccessLevel = {
@@ -10,7 +10,7 @@ export const AccessLevel = {
 
 export const dataSet = 'user';
 
-type User = {
+export type User = {
 	SAPIN: number;
 	//Username: string;
 	Name: string;
@@ -21,19 +21,15 @@ type User = {
 	Token: any;
 };
 
-const initialState: User | null = null as (User | null);
+/** The `user` slice is readonly and contains user info */
+export function createUserSlice(user: User) {
+	return createSlice({
+		name: dataSet,
+		initialState: user,
+		reducers: {},
+	});
+}
 
-const slice = createSlice({
-	name: dataSet,
-	initialState,
-	reducers: {
-		setUser(state, action: PayloadAction<User>) {
-			return action.payload;
-		},
-	},
-});
-
-export default slice;
 
 /*
  * Selectors
@@ -55,8 +51,3 @@ export function selectUserAccessLevel(state: RootState) {
 	/* Eventually, this will be deprecated. Here until we fully transision to the permissions array. */
 	return selectUser(state)?.Access || AccessLevel.none;
 }
-
-/*
- * Actions
- */
-export const {setUser} = slice.actions;

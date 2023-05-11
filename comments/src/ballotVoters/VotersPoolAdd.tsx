@@ -5,13 +5,16 @@ import { Form, Row, Field, List, ListItem, Input, Checkbox, AppModal } from 'dot
 import { useAppDispatch } from '../store/hooks';
 import { votersFromSpreadsheet, votersFromMembersSnapshot } from '../store/voters';
 
+
+type Source = 'members' | 'spreadsheet' | 'empty';
+
 function VotersPoolAddModal({
 	isOpen,
 	close,
 	onSubmit,
 }) {
 	const [votingPoolId, setVotingPoolId] = React.useState('');
-	const [source, setSource] = React.useState('members');
+	const [source, setSource] = React.useState<Source>('members');
 	const [snapshotDate, setSnapshotDate] = React.useState(new Date().toISOString().substr(0,10));
 	const [errMsg, setErrMsg] = React.useState('');
 	const fileRef = React.useRef<HTMLInputElement>(null);
@@ -27,10 +30,10 @@ function VotersPoolAddModal({
 			setErrMsg('Voter pool must have a name');
 			return;
 		}
-		await dispatch(source === 'members'?
-			votersFromMembersSnapshot(votingPoolId, snapshotDate)
-			:votersFromSpreadsheet(votingPoolId, file)
-		);
+		if (source === 'members')
+			await dispatch(votersFromMembersSnapshot(votingPoolId, snapshotDate));
+		else if (source === 'spreadsheet')
+			await dispatch(votersFromSpreadsheet(votingPoolId, file))
 		onSubmit(votingPoolId);
 	}
 
@@ -85,8 +88,8 @@ function VotersPoolAddModal({
 						</ListItem>
 						<ListItem>
 							<Checkbox 
-								checked={source === ''}
-								onChange={() => setSource('')}
+								checked={source === 'empty'}
+								onChange={() => setSource('empty')}
 							/>
 							<label>Empty</label>
 						</ListItem>

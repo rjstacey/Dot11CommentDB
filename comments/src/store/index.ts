@@ -1,12 +1,12 @@
-import { combineReducers, configureStore as configureReduxStore } from '@reduxjs/toolkit';
+import { Action, combineReducers, configureStore as configureReduxStore } from '@reduxjs/toolkit';
 import type { ThunkAction, AnyAction, Middleware } from '@reduxjs/toolkit';
 import { createLogger } from 'redux-logger';
 import { persistStore, persistReducer, createTransform } from 'redux-persist';
 import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import { get, set, del } from 'idb-keyval';
-import {errorsSlice} from 'dot11-components';
+import { errorsSlice } from 'dot11-components';
 
-import userSlice from './user';
+import { createUserSlice, User } from './user';
 import membersSlice, {loadMembers} from './members';
 import ballotsSlice, {loadBallots} from './ballots';
 import epollsSlice from './epolls';
@@ -17,6 +17,8 @@ import votersSlice from './voters';
 import votingPoolsSlice, {loadVotingPools} from './votingPools';
 import offlineSlice, {registerOffline} from './offline';
 import liveUpdateSlice, {registerLiveUpdate} from './liveUpdate';
+
+const RESET_STORE_ACTION = "root/RESET_STORE";
 
 const dataAppSliceNames = [
 	membersSlice.name,
@@ -45,9 +47,11 @@ const transformState = createTransform(
 );
 
 
-export function configureStore() {
+export function configureStore(user: User) {
 
-	const reducer = combineReducers({
+	const userSlice = createUserSlice(user);
+
+	const appReducer = combineReducers({
 		[userSlice.name]: userSlice.reducer,
 		[membersSlice.name]: membersSlice.reducer,
 		[ballotsSlice.name]: ballotsSlice.reducer,
@@ -61,6 +65,12 @@ export function configureStore() {
 		[offlineSlice.name]: offlineSlice.reducer,
 		[liveUpdateSlice.name]: liveUpdateSlice.reducer
 	});
+
+	const rootReducer = (state: any, action: AnyAction) => {
+		if (action.type === RESET_STORE_ACTION)
+			state = undefined;
+		return appReducer(state, action);
+	}
 
 	const middleware: Middleware[] = []; //[thunk];
 	if (process.env.NODE_ENV !== 'production')
@@ -92,7 +102,7 @@ export function configureStore() {
 	};
 
 	const store = configureReduxStore({
-		reducer: persistReducer(persistConfig, reducer as any),
+		reducer: persistReducer(persistConfig, rootReducer as any),
 		middleware: (getDefaultMiddleware) => getDefaultMiddleware({
 			immutableCheck: false,
 			serializableCheck: false,
@@ -110,8 +120,10 @@ export function configureStore() {
 		store.dispatch(loadVotingPools());
 	});
 
-	return {store, persistor, reducer}
+	return {store, persistor, reducer: rootReducer}
 }
+
+export const resetStore = (): Action => ({type: RESET_STORE_ACTION});
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
 export type StoreType = ReturnType<typeof configureStore>['store'];

@@ -12,7 +12,7 @@ import {
 import VotersPoolAddModal from './VotersPoolAdd';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { loadVotingPools, deleteVotingPools, selectVotingPoolsState, votingPoolsSelectors, votingPoolsActions } from '../store/votingPools';
+import { loadVotingPools, deleteVotingPools, selectVotingPoolsState, votingPoolsSelectors, votingPoolsActions, getVotingPools } from '../store/votingPools';
 
 const Title = styled.h2`
 	font-weight: 600;
@@ -70,14 +70,11 @@ function VotersPools() {
 	const navigate = useNavigate();
 	const [showVotersPoolAdd, setShowVotersPoolAdd] = React.useState(false);
 
-	const {valid, loading} = useAppSelector(selectVotingPoolsState);
 	const dispatch = useAppDispatch();
-	const load = React.useCallback(() => dispatch(loadVotingPools()), [dispatch]);
 
 	React.useEffect(() => {
-		if (!valid && !loading)
-			load();
-	}, [valid, loading, load]);
+		dispatch(getVotingPools());
+	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
 
 	const columns = React.useMemo(() => {
 		const deleteVotingPool = async (vp) => {
@@ -87,14 +84,14 @@ function VotersPools() {
 		}
 
 		return tableColumns.map(col =>
-			col.key === 'Actions'
-				? {	...col,
+			col.key === 'Actions'?
+				{	...col,
 					cellRenderer: ({rowData}) => 
 						<RowActions
 							onEdit={() => navigate(`/voters/${rowData.VotingPoolID}`)}
 							onDelete={() => deleteVotingPool(rowData)}
-						/>}
-				: col
+						/>}:
+				col
 		);
 	}, [dispatch, navigate]);
 
@@ -105,7 +102,7 @@ function VotersPools() {
 			<Title>Ballot series voting pools</Title>
 			<span>
 				<ActionButton name='add' title='Add Voter Pool' onClick={() => setShowVotersPoolAdd(true)} />
-				<ActionButton name='refresh' title='Refresh' onClick={load} />
+				<ActionButton name='refresh' title='Refresh' onClick={() => dispatch(loadVotingPools())} />
 			</span>
 		</TopRow>
 

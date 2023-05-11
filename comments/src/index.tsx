@@ -8,25 +8,22 @@ import { configureStore } from './store';
 import './index.css';
 import App from './app/App';
 import { fetcher, getUser, logout } from 'dot11-components';
-import { setUser } from './store/user';
 import registerServiceWorker from './registerServiceWorker';
 
 getUser()
 	.then(user => {
 		const root = createRoot(document.getElementById('root')!);
 		try {
-			//window.user = user;
 			fetcher.setAuth(user.Token, logout);
-			const {store, persistor} = configureStore();
-			store.dispatch(setUser(user));
+			const {store, persistor} = configureStore(user);
 			root.render(
-				<React.StrictMode>
+				//<React.StrictMode>
 					<Provider store={store}>
 						<PersistGate loading={'loading...'} persistor={persistor} >
 							<App />
 						</PersistGate>
 					</Provider>
-				</React.StrictMode>
+				//</React.StrictMode>
 			);
 			registerServiceWorker();
 		}

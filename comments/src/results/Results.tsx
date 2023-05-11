@@ -49,30 +49,21 @@ const tableColumns: ColumnProperties[] = [
 
 function getDefaultTablesConfig(access: number, type: number): TablesConfig {
 	const columns = tableColumns.reduce((o, c) => {
-			const columnConfig = {
+			let columnConfig = {
 				shown: true,
 				width: c.width,
 				unselectable: false
 			};
-			if (c.key === 'SAPIN') {
-				if (access < AccessLevel.admin) {
-					columnConfig.shown = false;
-					columnConfig.unselectable = true;
-				}
-				if (type === BallotType.SA) {
-					columnConfig.shown = false;
-					columnConfig.unselectable = true;
-				}
+			if (c.key === 'SAPIN' && (access < AccessLevel.admin || type === BallotType.SA)) {
+				columnConfig = {...columnConfig, shown: false, unselectable: false};
 			}
-			if (c.key === 'Email') {
-				if (access < AccessLevel.admin) {
-					columnConfig.shown = false;
-					columnConfig.unselectable = true;
-				}
+			if (c.key === 'Email' && access < AccessLevel.admin) {
+				columnConfig = {...columnConfig, shown: false, unselectable: false};
 			}
 			o[c.key] = columnConfig;
 			return o;
 		}, {});
+	console.log(columns)
 	return {default: {fixed: false, columns}};
 }
 
@@ -123,7 +114,11 @@ function Results() {
 				<PathBallotSelector onBallotSelected={onBallotSelected}	/>
 				<div style={{display: 'flex'}}>
 					<ResultsExport ballot={resultsBallot} />
-					<TableColumnSelector selectors={resultsSelectors} actions={resultsActions} columns={tableColumns} />
+					<TableColumnSelector 
+						selectors={resultsSelectors}
+						actions={resultsActions}
+						columns={tableColumns}
+					/>
 					<ActionButton
 						name='refresh'
 						title='Refresh'

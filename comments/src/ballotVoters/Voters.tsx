@@ -15,7 +15,7 @@ import VotersImportModal from './VotersImport';
 import VoterEditModal from './VoterEdit';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { loadVoters, deleteVoters, exportVoters, selectVotersState, fields, votersSelectors, votersActions, SyncedVoter } from '../store/voters';
+import { loadVoters, deleteVoters, exportVoters, selectVotersState, fields, votersSelectors, votersActions, Voter } from '../store/voters';
 import { updateVotingPool } from '../store/votingPools';
 import { RootState } from '../store';
 
@@ -100,7 +100,7 @@ function Voters() {
 
 	const [columns, maxWidth] = React.useMemo(() => {
 
-		const onDelete = async (voter: SyncedVoter) => {
+		const onDelete = async (voter: Voter) => {
 			const ok = await ConfirmModal.show(`Are you sure you want to remove ${voter.SAPIN} ${voter.Name} from the voting pool?`);
 			if (ok)
 				dispatch(deleteVoters(votingPoolName, [voter.id]));
@@ -123,7 +123,7 @@ function Voters() {
 			load(votingPoolName);
 	}, [load, loading, votingPoolId, votingPoolName]);
 
-	const close = navigate(-1);
+	const close = () => navigate(-1);
  	const refresh = () => load(votingPoolName);
 
 	async function handleRemoveSelected() {

@@ -8,7 +8,7 @@ import {
 	getAppTableDataSelectors
 } from 'dot11-components';
 
-import {selectEntities as selectBallotsEntities} from './ballots';
+import { selectBallotEntities as selectSyncedBallotEntities } from './ballots';
 import type { RootState, AppThunk } from '.';
 
 export type Epoll = {
@@ -21,9 +21,7 @@ export type Epoll = {
 	EpollNum: number;
 }
 
-export type SyncedEpoll = Epoll & {
-	InDatabase: boolean;
-}
+export type SyncedEpoll = Epoll & {InDatabase: boolean};
 
 export const fields = {
 	EpollNum: {label: 'ePoll', isId: true, sortType: SortType.NUMERIC},
@@ -42,8 +40,8 @@ export const dataSet = 'epolls';
  */
 export const selectEpollsState = (state: RootState) => state[dataSet];
 
-export const selectIds = (state: RootState) => state[dataSet].ids;
-export const selectEntities = (state: RootState) => state[dataSet].entities;
+export const selectEpollIds = (state: RootState) => selectEpollsState(state).ids;
+export const selectEpollEntities = (state: RootState) => selectEpollsState(state).entities;
 
 /*
  * selectSyncedEntities(state)
@@ -51,17 +49,17 @@ export const selectEntities = (state: RootState) => state[dataSet].entities;
  * Generate epoll entities with indicator on each entry of presence in ballots list
  */
 export const selectSyncedEntities = createSelector(
-	selectBallotsEntities,
-	selectEntities,
+	selectSyncedBallotEntities,
+	selectEpollEntities,
 	(ballotEntities, epollEntities) => {
-		const syncedEpollEntities: Dictionary<SyncedEpoll> = {};
+		const syncedEntities: Dictionary<SyncedEpoll> = {};
 		for (const id of Object.keys(epollEntities))
-			syncedEpollEntities[id] = {...epollEntities[id]!, InDatabase: false};
+			syncedEntities[id] = {...epollEntities[id]!, InDatabase: false};
 		for (const b of Object.values(ballotEntities)) {
-			if (b!.EpollNum && syncedEpollEntities[b!.EpollNum])
-				syncedEpollEntities[b!.EpollNum]!.InDatabase = true;
+			if (b!.EpollNum && syncedEntities[b!.EpollNum])
+				syncedEntities[b!.EpollNum]!.InDatabase = true;
 		}
-		return syncedEpollEntities;
+		return syncedEntities;
 	}
 );
 

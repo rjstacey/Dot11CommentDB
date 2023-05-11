@@ -7,15 +7,15 @@ import { ErrorModal, ConfirmModal } from 'dot11-components';
 import { useAppSelector } from '../store/hooks';
 import { selectUserAccessLevel, AccessLevel } from '../store/user';
 
-const Comments = React.lazy(() => import('../comments/Comments'));
-const Results = React.lazy(() => import('../results/Results'));
-const Reports = React.lazy(() => import('../reports/Reports'));
+import Comments from '../comments/Comments';
+import Results from '../results/Results';
+import Reports from '../reports/Reports';
 
-const Ballots = React.lazy(() => import('../ballots/Ballots'));
-const Epolls = React.lazy(() => import('../ballots/Epolls'));
+import Ballots from '../ballots/Ballots';
+import Epolls from '../ballots/Epolls';
 
-const VotersPools = React.lazy(() => import('../ballotVoters/VotersPools'));
-const Voters = React.lazy(() => import('../ballotVoters/Voters'));
+import VotersPools from '../ballotVoters/VotersPools';
+import Voters from '../ballotVoters/Voters';
 
 const Main = styled.main`
 	flex: 1;
@@ -27,6 +27,8 @@ const Main = styled.main`
 	align-items: center;
 `;
 
+/* Note that the renderComponent funciton is only called once at startup. It can be made to execute each time a path
+ * is selected by using Component={() => renderComponent()} */
 function Body() {
 
 	const access = useAppSelector(selectUserAccessLevel);
@@ -34,23 +36,27 @@ function Body() {
 	function renderComponent(minAccess: number, Component: React.ComponentType<{}>) {
 		if (access < minAccess)
 			return <span>You do not have permission to view this data</span>
-		return (
-			<React.Suspense fallback={<div>Loading...</div>}>
-				<Component />
-			</React.Suspense>
-		)
+		return <Component />
 	}
 
 	return (
 		<Main>
 			<Routes>
 				<Route
-					path="/ballots/:ballotId?"
+					path="/ballots"
 					element={renderComponent(AccessLevel.ro, Ballots)}
 				/>
 				<Route
 					path="/epolls"
 					element={renderComponent(AccessLevel.none, Epolls)}
+				/>
+				<Route
+					path="/voters"
+					element={renderComponent(AccessLevel.none, VotersPools)}
+				/>
+				<Route
+					path="/voters/:votingPoolName"
+					element={renderComponent(AccessLevel.none, Voters)}
 				/>
 				<Route
 					path="/results/:ballotId?"
@@ -63,14 +69,6 @@ function Body() {
 				<Route
 					path="/reports/:ballotId?"
 					element={renderComponent(AccessLevel.none, Reports)}
-				/>
-				<Route
-					path="/voters"
-					element={renderComponent(AccessLevel.none, VotersPools)}
-				/>
-				<Route
-					path="/voters/:votingPoolName"
-					element={renderComponent(AccessLevel.none, Voters)}
 				/>
 			</Routes>
 			<ErrorModal />

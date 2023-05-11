@@ -148,4 +148,4 @@ function Epolls() {
 	)
 }
 
-export default React.memo(Epolls);
+export default Epolls;

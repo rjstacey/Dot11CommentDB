@@ -2,7 +2,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import {
 	fetcher,
 	setError,
-	createAppTableDataSlice, SortType, getAppTableDataSelectors
+	createAppTableDataSlice, SortType, getAppTableDataSelectors, isObject
 } from 'dot11-components';
 import type { AppThunk, RootState } from '.';
 
@@ -71,24 +71,43 @@ const {
 	upsertOne
 } = slice.actions;
 
-export const loadVotingPools = (): AppThunk =>
+export function validateVotingPool(votingPool: any): votingPool is VotingPool {
+	return isObject(votingPool) &&
+		typeof votingPool.VotingPoolID === 'string' &&
+		typeof votingPool.VoterCount === 'number';
+}
+
+function validateResponse(response: any): response is {votingPools: VotingPool[]} {
+	return isObject(response) &&
+		Array.isArray(response.votingPools) &&
+		response.votingPools.every(validateVotingPool);
+}
+
+export const loadVotingPools = (): AppThunk<VotingPool[]> =>
 	async (dispatch, getState) => {
-		if (selectVotingPoolsState(getState()).loading)
-			return;
 		dispatch(getPending());
 		const url = '/api/votingPools';
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.get(url);
-			if (typeof response !== 'object' || !response.hasOwnProperty('votingPools'))
+			if (!validateResponse(response))
 				throw new TypeError(`Unexpected response to GET: ${url}`);
 		}
 		catch(error) {
 			dispatch(getFailure());
 			dispatch(setError('Unable to get voting pool list', error));
-			return;
+			return [];
 		}
 		dispatch(getSuccess(response.votingPools));
+		return response.votingPools;
+	}
+
+export const getVotingPools = (): AppThunk<VotingPool[]> =>
+	async (dispatch, getState) => {
+		const {loading, ids, entities}  = selectVotingPoolsState(getState());
+		if (loading)
+			return ids.map(id => entities[id]!);
+		return dispatch(loadVotingPools());
 	}
 
 export const deleteVotingPools = (ids: string[]): AppThunk =>
@@ -106,7 +125,7 @@ export const deleteVotingPools = (ids: string[]): AppThunk =>
 export const updateVotingPool = (votingPoolId: string, changes: Partial<VotingPool>): AppThunk<VotingPool> =>
 	async (dispatch) => {
 		const url = `/api/votingPools/${votingPoolId}`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.patch(url, changes);
 			if (typeof response !== 'object' || !response.hasOwnProperty('votingPool'))

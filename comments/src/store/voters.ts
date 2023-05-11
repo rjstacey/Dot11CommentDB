@@ -1,31 +1,23 @@
-import { createSelector } from '@reduxjs/toolkit';
-import type { EntityId, Dictionary } from '@reduxjs/toolkit';
-import { v4 as uuid } from 'uuid';
+import type { EntityId } from '@reduxjs/toolkit';
 import {
 	fetcher,
 	setError,
-	createAppTableDataSlice, SortType, getAppTableDataSelectors
+	createAppTableDataSlice, SortType, getAppTableDataSelectors, isObject
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-import { upsertVotingPool } from './votingPools';
-import { selectMemberEntities } from './members';
+import { VotingPool, upsertVotingPool, validateVotingPool } from './votingPools';
 
 export type Voter = {
 	id: string;
 	SAPIN: number;
 	CurrentSAPIN: number;
-	//Name: string;
-	//Email: string;
-	//Affiliation: string;
+	Name: string;
+	Email: string;
+	Affiliation: string;
 	Status: string;
 	Excused: boolean;
 	VotingPoolID: string;
-}
-
-export type SyncedVoter = Voter & {
-	Name: string;
-	Email?: string;
 }
 
 export type VoterCreate = {
@@ -59,33 +51,11 @@ export const fields = {
  * Selectors
  */
 export const selectVotersState = (state: RootState) => state[dataSet];
+const selectVoterIds = (state: RootState) => selectVotersState(state).ids;
 const selectVoterEntities = (state: RootState) => selectVotersState(state).entities;
-const selectVotersCount = (state: RootState) => state[dataSet].ids.length;
+const selectVotersCount = (state: RootState) => selectVoterIds(state).length;
 
-/* Entities selector with join on members to get Name, Affiliation and Email.
- * If the member entry is obsolete find the member entry that replaces it. */
-const selectEntities = createSelector(
-	selectMemberEntities,
-	selectVoterEntities,
-	(members, voters) => {
-		const entities: Dictionary<SyncedVoter> = {};
-		for (const [id, voter] of Object.entries(voters)) {
-			let member = members[voter!.SAPIN];
-			/*while (member && member.Status === 'Obsolete') {
-				member = members[member.ReplacedBySAPIN]
-			}*/
-			entities[id] = {
-				...voter!,
-				Name: (member && member.Name) || '',
-				//Affiliation: (member && member.Affiliation) || '',
-				Email: (member && member.Email)
-			};
-		}
-		return entities;
-	}
-);
-
-export const votersSelectors = getAppTableDataSelectors(selectVotersState, {selectEntities: selectEntities});
+export const votersSelectors = getAppTableDataSelectors(selectVotersState);
 
 const sortComparer = (v1: Voter, v2: Voter) => v1.SAPIN - v2.SAPIN;
 
@@ -100,19 +70,7 @@ const slice = createAppTableDataSlice({
 		setVotingPoolID(state, action) {
 			state.votingPoolId = action.payload;
 		},
-	},
-	/*extraReducers: (builder) => {
-		builder
-		.addMatcher(
-			(action) => ['votingPools/upsertVotingPool', 'votingPools/updateVotingPool'].includes(action.type),
-			(state, action) => {
-				const votingPool = action.payload;
-				if (state.votingPool.VotingPoolID === votingPool.VotingPoolID) {
-					state.votingPool = {...state.votingPool, ...votingPool};
-				}
-			}
-		);
-	}*/
+	}
 });
 
 export default slice;
@@ -129,11 +87,20 @@ const {
 	getSuccess,
 	getFailure,
 	removeMany,
-	addOne,
-	updateOne
+	setMany,
 } = slice.actions;
 
 const baseUrl = '/api/voters';
+
+function validateVoter(voter: any): voter is Voter {
+	return isObject(voter);
+}
+
+function validateResponse(response: any): response is {voters: Voter[]; votingPool: VotingPool} {
+	return isObject(response) &&
+		Array.isArray(response.voters) && response.voters.every(validateVoter) &&
+		validateVotingPool(response.votingPool);
+}
 
 export const loadVoters = (votingPoolId: string): AppThunk =>
 	async (dispatch, getState) => {
@@ -142,17 +109,15 @@ export const loadVoters = (votingPoolId: string): AppThunk =>
 		dispatch(getPending());
 		dispatch(setVotingPoolID(votingPoolId));
 		const url = `${baseUrl}/${votingPoolId}`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.get(url);
-			if (typeof response !== 'object' || !response.hasOwnProperty('voters'))
-				throw new TypeError(`Unexpected response to GET: ${url}`);
+			if (!validateResponse(response))
+				throw new TypeError("Unexpected response to GET " + url);
 		}
 		catch(error) {
-			await Promise.all([
-				dispatch(getFailure()),
-				dispatch(setError(`Unable to get voters for ${votingPoolId}`, error))
-			]);
+			dispatch(getFailure());
+			dispatch(setError(`Unable to get voters for ${votingPoolId}`, error));
 			return;
 		}
 		dispatch(getSuccess(response.voters));
@@ -178,12 +143,10 @@ export const votersFromSpreadsheet = (votingPoolId: string, file): AppThunk =>
 		dispatch(getPending());
 		dispatch(setVotingPoolID(votingPoolId));
 		const url = `${baseUrl}/${votingPoolId}/upload`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, {File: file});
-			if (typeof response !== 'object' ||
-				!response.hasOwnProperty('votingPool') ||
-				!response.hasOwnProperty('voters'))
+			if (!validateResponse(response))
 				throw new TypeError(`Unexpected response to POST: ${url}`);
 		}
 		catch(error) {
@@ -195,17 +158,15 @@ export const votersFromSpreadsheet = (votingPoolId: string, file): AppThunk =>
 		dispatch(getSuccess(response.voters));
 	}
 
-export const votersFromMembersSnapshot = (votingPoolId: string, date): AppThunk =>
+export const votersFromMembersSnapshot = (votingPoolId: string, date: string): AppThunk =>
 	async (dispatch) => {
 		dispatch(getPending());
 		dispatch(setVotingPoolID(votingPoolId));
 		const url = `${baseUrl}/${votingPoolId}/membersSnapshot`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.post(url, {date});
-			if (typeof response !== 'object' ||
-				!response.hasOwnProperty('votingPool') ||
-				!response.hasOwnProperty('voters'))
+			if (!validateResponse(response))
 				throw new TypeError(`Unexpected response to POST: ${url}`);
 		}
 		catch(error) {
@@ -219,37 +180,35 @@ export const votersFromMembersSnapshot = (votingPoolId: string, date): AppThunk 
 
 export const addVoter = (votingPoolId: string, voterIn: VoterCreate): AppThunk =>
 	async (dispatch, getState) => {
-		const voter: Voter = {
-			id: uuid(),
-			Excused: false,
-			...voterIn,
-			CurrentSAPIN: voterIn.SAPIN,
-			VotingPoolID: votingPoolId
-		};
-		dispatch(addOne(voter));
-		const count = selectVotersCount(getState());
-		dispatch(upsertVotingPool({VotingPoolID: votingPoolId, VoterCount: count}));
-
 		const url = `${baseUrl}/${votingPoolId}`;
+		let response: any;
 		try {
-			await fetcher.post(url, [voterIn]);
+			response = await fetcher.post(url, [voterIn]);
+			if (!validateResponse(response))
+				throw new TypeError("Unexpected response to POST " + url);
 		}
 		catch(error) {
 			dispatch(setError('Unable to add voter', error));
 			return;
 		}
+		dispatch(upsertVotingPool(response.votingPool));
+		dispatch(setMany(response.voters));
 	}
 
 export const updateVoter = (id: string, changes: Partial<Voter>): AppThunk =>
 	async (dispatch) => {
-		dispatch(updateOne({id, changes}));
+		let response: any;
 		try {
-			await fetcher.patch(baseUrl, [{id, changes}]);
+			response = await fetcher.patch(baseUrl, [{id, changes}]);
+			if (!validateResponse(response))
+				throw new TypeError("Unexpected response to PATCH " + baseUrl);
 		}
 		catch(error) {
 			dispatch(setError('Unable to update voter', error));
 			return;
 		}
+		dispatch(upsertVotingPool(response.votingPool));
+		dispatch(setMany(response.voters));
 	}
 
 export const exportVoters = (votingPoolId: string): AppThunk =>
@@ -260,6 +219,5 @@ export const exportVoters = (votingPoolId: string): AppThunk =>
 		}
 		catch(error) {
 			dispatch(setError('Unable to export voters', error));
-			return;
 		}
 	}

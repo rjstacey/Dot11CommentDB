@@ -176,39 +176,43 @@ export default slice;
  */
 export const selectBallotsState = (state: RootState) => state[dataSet];
 
-export const selectIds = (state: RootState) => selectBallotsState(state).ids;
-export const selectEntities = (state: RootState) => selectBallotsState(state).entities;
+export const selectBallotIds = (state: RootState) => selectBallotsState(state).ids;
+export const selectBallotEntities = (state: RootState) => selectBallotsState(state).entities;
 export const selectCurrentId = (state: RootState) => selectBallotsState(state).currentId;
 export const selectCurrentProject = (state: RootState) => selectBallotsState(state).currentProject
+export const selectCurrentBallotID = (state: RootState) => {
+	const {currentId, entities} = selectBallotsState(state);
+	return entities[currentId]?.BallotID;
+}
 
 /* Get ballot entities with derived data */
-export const selectBallotEntities = createSelector(
-	selectIds,
-	selectEntities,
+const selectSyncedBallotEntities = createSelector(
+	selectBallotIds,
+	selectBallotEntities,
 	(ids, entities) => {
-		const transformedEntities: Dictionary<SyncedBallot> = {};
-		for (const id of ids) {
+		const syncedEntities: Dictionary<SyncedBallot> = {};
+		ids.forEach(id => {
 			const ballot = entities[id]!;
 			const PrevBallotID = ballot.prev_id?
 				entities[ballot.prev_id]?.BallotID || 'Unknown':
 				'';
-			transformedEntities[id] = {...ballot, PrevBallotID};
-		}
-		return transformedEntities;
+			syncedEntities[id] = {...ballot, PrevBallotID};
+		});
+		return syncedEntities;
 	}
 );
 
 /* Generate project list from the ballot pool */
 export const selectProjectOptions = createSelector(
-	selectIds,
-	selectEntities,
+	selectBallotIds,
+	selectBallotEntities,
 	(ids, entities) => [...new Set(ids.map(id => entities[id]!.Project))].sort().map(p => ({value: p, label: p}))
 );
 
 /* Generate ballot list for current project or all ballots if current project not set */
 export const selectBallotOptions = createSelector(
-	selectIds,
-	selectEntities,
+	selectBallotIds,
+	selectBallotEntities,
 	selectCurrentProject,
 	(ids, entities, currentProject) => {
 		let ballotIds = ids as number[];
@@ -218,22 +222,16 @@ export const selectBallotOptions = createSelector(
 	}
 );
 
-export const selectBallot = (state: RootState, ballot_id: number) => selectBallotEntities(state)[ballot_id];
+export const selectBallot = (state: RootState, ballot_id: number) => selectSyncedBallotEntities(state)[ballot_id];
 
-export const getCurrentBallotId = (state: RootState) => state[dataSet].currentId;
+//export const getCurrentBallotId = (state: RootState) => state[dataSet].currentId;
 
 export const selectCurrentBallot = (state: RootState) => {
 	const {entities, currentId} = selectBallotsState(state);
 	return currentId? entities[currentId]: undefined;
 }
 
-export const getBallotId = (state: RootState) => {
-	const {entities, currentId} = selectBallotsState(state);
-	const ballot = entities[currentId];
-	return ballot? ballot.BallotID: '';
-}
-
-export const ballotsSelectors = getAppTableDataSelectors(selectBallotsState);
+export const ballotsSelectors = getAppTableDataSelectors(selectBallotsState, {selectEntities: selectSyncedBallotEntities});
 
 /*
  * Actions
@@ -268,25 +266,39 @@ export const setCurrentId = (ballot_id: number): AppThunk<Ballot | undefined> =>
 
 const baseUrl = '/api/ballots';
 
-export const loadBallots = (): AppThunk => 
+let loadBallotsPromise: Promise<Ballot[]> | null;
+export const loadBallots = (): AppThunk<Ballot[]> => 
 	async (dispatch, getState) => {
+		if (loadBallotsPromise)
+			return loadBallotsPromise;
 		dispatch(getPending());
-		let ballots;
-		try {
-			ballots = await fetcher.get(baseUrl);
-			if (!Array.isArray(ballots))
-				throw new TypeError("Unexpected response to GET: " + baseUrl)
-		}
-		catch(error) {
-			dispatch(getFailure());
-			dispatch(setError('Unable to get ballot list', error));
-			return;
-		}
-		for (const b1 of ballots) {
-			const bPrev = ballots.find(b2 => b2.id === b1.prev_id);
-			b1.PrevBallotID = bPrev? bPrev.BallotID: '';
-		}
-		dispatch(getSuccess(ballots));
+		loadBallotsPromise = (fetcher.get(baseUrl) as Promise<Ballot[]>)
+			.then((ballots: any) => {
+				loadBallotsPromise = null;
+				if (!Array.isArray(ballots)) {
+					dispatch(getFailure());
+					setError("Unexpected response to GET " + baseUrl, "got " + typeof ballots);
+					return [];
+				}
+				dispatch(getSuccess(ballots));
+				return ballots;
+			})
+			.catch((error: any) => {
+				loadBallotsPromise = null;
+				dispatch(getFailure());
+				dispatch(setError('Unable to get ballot list', error));
+				return [];
+			});
+		return loadBallotsPromise;
+	}
+
+/** If ballots have already been loaded, then return the list. Otherwise, load the ballots. */
+export const getBallots = (): AppThunk<Ballot[]> =>
+	async (dispatch, getState) => {
+		const {valid, loading, ids, entities} = selectBallotsState(getState());
+		if (!valid || loading)
+			return dispatch(loadBallots());
+		return ids.map(id => entities[id]!);
 	}
 
 export const updateBallotSuccess = (id: EntityId, changes: Partial<Ballot>) => updateOne({id, changes});

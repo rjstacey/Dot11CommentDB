@@ -6,7 +6,7 @@ import { Select } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
-	loadBallots,
+	getBallots,
 	setCurrentProject,
 	setCurrentId,
 	selectBallotsState,
@@ -114,30 +114,36 @@ function BallotSelector({
 	const location = useLocation();
 	const dispatch = useAppDispatch();
 	const {ballotId} = useParams();
-	const {valid, loading, ids: ballotIds, entities: ballotEntities, currentProject, currentId} = useAppSelector(selectBallotsState);
+	const {loading, currentProject, currentId} = useAppSelector(selectBallotsState);
 	const projectOptions = useAppSelector(selectProjectOptions);
 	const ballotOptions = useAppSelector(selectBallotOptions);
 
 	React.useEffect(() => {
-		if (!valid && !loading)
-			dispatch(loadBallots());
-	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
-
-	React.useEffect(() => {
-		if (ballotId) {
-			const pathBallot_id = ballotIds.find(id => ballotEntities[id]!.BallotID === ballotId) as number | undefined;
-			// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
-			if (pathBallot_id && (!currentId || pathBallot_id !== currentId)) {
-				dispatch(setCurrentId(pathBallot_id));
+		let ignore = false;
+		async function onMount() {
+			const ballots = await dispatch(getBallots());
+			if (ignore)
+				return;
+			if (ballotId) {
+				const pathBallot_id = ballots.find(b => b.BallotID === ballotId)?.id;
+				// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
+				if (pathBallot_id && (!currentId || pathBallot_id !== currentId))
+					dispatch(setCurrentId(pathBallot_id));
+			}
+			else if (currentId) {
+				// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
+				const BallotID = ballots.find(b => b.id === currentId)?.BallotID;
+				if (BallotID)
+					navigate(location.pathname + `/${BallotID}`);
 			}
 		}
-		else if (currentId) {
-			// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
-			const ballot = ballotEntities[currentId];
-			if (ballot)
-				navigate(location.pathname + `/${ballot.BallotID}`);
+		function onUnmount() {
+			ignore = true;
 		}
-	}, [dispatch, navigate, location, currentId, ballotId, ballotIds, ballotEntities]);
+
+		onMount();
+		return onUnmount;
+	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
 
 	const handleProjectChange = async (value: string) => {
 		if (value !== currentProject) {
