@@ -1,31 +1,33 @@
 import React from 'react';
-import {useDispatch, useSelector} from 'react-redux';
 
-import {Button, ActionButton, Input} from  'dot11-components/form';
-import {ActionIcon} from 'dot11-components/icons';
+import { Button, ActionButton, Input, ActionIcon } from  'dot11-components';
 
+import type { RootState } from '../store';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	loadCalendarAccounts,
 	updateCalendarAccount,
 	addCalendarAccount,
 	deleteCalendarAccount,
 	revokeAuthCalendarAccount,
-	selectCalendarAccountsState
+	selectCalendarAccountsState,
+	CalendarAccountCreate,
+	CalendarAccount
 } from '../store/calendarAccounts';
 
-import {GroupSelector} from '../components/GroupSelector';
+import { GroupSelector } from '../components/GroupSelector';
 import TopRow from '../components/TopRow';
-import {EditTable as Table} from '../components/Table';
+import { EditTable as Table, TableColumn } from '../components/Table';
 
-const displayDate = (d) =>
+const displayDate = (d: string) =>
 	new Intl.DateTimeFormat('default', {weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric'}).format(new Date(d));
 
-const defaultAccount = {
+const defaultAccount: CalendarAccountCreate = {
 	name: '',
 	groups: []
 };
 
-const tableColumns = {
+const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 	name: {
 		label: 'Name',
 		gridTemplate: 'minmax(200px, auto)'
@@ -44,7 +46,7 @@ const tableColumns = {
 	}
 };
 
-const selectCalendarAccounts = (state) => {
+const selectCalendarAccounts = (state: RootState) => {
 	const {loading, ids, entities} = selectCalendarAccountsState(state);
 	return {
 		loading,
@@ -53,8 +55,8 @@ const selectCalendarAccounts = (state) => {
 }
 
 function CalendarAccounts() {
-	const dispatch = useDispatch();
-	const {loading, accounts} = useSelector(selectCalendarAccounts);
+	const dispatch = useAppDispatch();
+	const {loading, accounts} = useAppSelector(selectCalendarAccounts);
 	const [readOnly, setReadOnly] = React.useState(true);
 	const refresh = () => dispatch(loadCalendarAccounts());
 
@@ -65,15 +67,17 @@ function CalendarAccounts() {
 			keys = keys.filter(key => key !== 'actions');
 
 		const handleAdd = () => dispatch(addCalendarAccount(defaultAccount));
-		const handleDelete = (id) => dispatch(deleteCalendarAccount(id));
-		const handleChange = (id, changes) => dispatch(updateCalendarAccount(id, changes));
-		const handleRevoke = (id) => dispatch(revokeAuthCalendarAccount(id))
+		const handleDelete = (id: number) => dispatch(deleteCalendarAccount(id));
+		const handleChange = (id: number, changes: Partial<CalendarAccount>) => dispatch(updateCalendarAccount(id, changes));
+		const handleRevoke = (id: number) => dispatch(revokeAuthCalendarAccount(id))
 
 		const columns = keys.map(key => {
-			const col = {...tableColumns[key]};
-			col.key = key;
+			const col: TableColumn = {
+				key,
+				...tableColumns[key]
+			};
 			if (key === 'name') {
-				col.renderCell = (account) =>
+				col.renderCell = (account: CalendarAccount) =>
 					<Input
 						type='search'
 						value={account.name}
@@ -82,7 +86,7 @@ function CalendarAccounts() {
 					/>;
 			}
 			else if (key === 'groups') {
-				col.renderCell = (account) =>
+				col.renderCell = (account: CalendarAccount) =>
 					<GroupSelector
 						multi
 						value={account.groups}
@@ -93,11 +97,11 @@ function CalendarAccounts() {
 					/>;
 			}
 			else if (key === 'authorized') {
-				col.renderCell = (account) =>
+				col.renderCell = (account: CalendarAccount) =>
 					<>
 						{account.authDate? displayDate(account.authDate): ''}
 						{account.authUrl &&
-							<Button style={{marginLeft: '1em'}} onClick={() => window.location = account.authUrl}>
+							<Button style={{marginLeft: '1em'}} onClick={() => window.location.href = account.authUrl!}>
 								{account.authDate? 'Reauthorize': 'Authorize'}
 							</Button>}
 						{account.authDate &&
@@ -107,7 +111,7 @@ function CalendarAccounts() {
 					</>;
 			}
 			else if (key === 'actions') {
-				col.renderCell = (account) => 
+				col.renderCell = (account: CalendarAccount) => 
 					<ActionIcon type='delete' onClick={() => handleDelete(account.id)} />
 				col.label = 
 					<ActionIcon type='add' onClick={handleAdd} />

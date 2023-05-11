@@ -1,30 +1,32 @@
 import React from 'react';
-import {useDispatch, useSelector} from 'react-redux';
 
-import {Button, ActionButton, Input} from  'dot11-components/form';
-import {ActionIcon} from 'dot11-components/icons';
+import { Button, ActionButton, Input, ActionIcon } from  'dot11-components';
 
+import type { RootState } from '../store';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	loadWebexAccounts,
 	updateWebexAccount,
 	addWebexAccount,
 	deleteWebexAccount,
-	selectWebexAccountsState
+	selectWebexAccountsState,
+	WebexAccount,
+	WebexAccountCreate
 } from '../store/webexAccounts';
 
-import {GroupSelector} from '../components/GroupSelector';
+import { GroupSelector } from '../components/GroupSelector';
 import TopRow from '../components/TopRow';
-import {EditTable as Table} from '../components/Table';
+import { EditTable as Table, TableColumn } from '../components/Table';
 
-const displayDate = (d) =>
+const displayDate = (d: string) =>
 	new Intl.DateTimeFormat('default', {weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric'}).format(new Date(d));
 
-const defaultAccount = {
+const defaultAccount: WebexAccountCreate = {
 	name: '',
 	groups: []
 };
 
-const tableColumns = {
+const tableColumns: { [key: string]: Omit<TableColumn, "key">} = {
 	name: {
 		label: 'Name',
 		gridTemplate: 'minmax(200px, auto)'
@@ -43,7 +45,7 @@ const tableColumns = {
 	}
 };
 
-const selectWebexAccounts = (state) => {
+const selectWebexAccounts = (state: RootState) => {
 	const {loading, ids, entities} = selectWebexAccountsState(state);
 	return {
 		loading,
@@ -52,8 +54,8 @@ const selectWebexAccounts = (state) => {
 }
 
 function WebexAccounts() {
-	const dispatch = useDispatch();
-	const {loading, accounts} = useSelector(selectWebexAccounts);
+	const dispatch = useAppDispatch();
+	const {loading, accounts} = useAppSelector(selectWebexAccounts);
 	const [readOnly, setReadOnly] = React.useState(true);
 	const refresh = () => dispatch(loadWebexAccounts());
 
@@ -64,14 +66,16 @@ function WebexAccounts() {
 			keys = keys.filter(key => key !== 'actions');
 
 		const handleAdd = () => dispatch(addWebexAccount(defaultAccount));
-		const handleDelete = (id) => dispatch(deleteWebexAccount(id));
-		const handleChange = (id, changes) => dispatch(updateWebexAccount(id, changes));
+		const handleDelete = (id: number) => dispatch(deleteWebexAccount(id));
+		const handleChange = (id: number, changes: Partial<WebexAccount>) => dispatch(updateWebexAccount(id, changes));
 
 		const columns = keys.map(key => {
-			const col = {...tableColumns[key]};
-			col.key = key;
+			const col: TableColumn = {
+				key,
+				...tableColumns[key]
+			};
 			if (key === 'name') {
-				col.renderCell = (account) =>
+				col.renderCell = (account: WebexAccount) =>
 					<Input
 						type='search'
 						value={account.name}
@@ -80,7 +84,7 @@ function WebexAccounts() {
 					/>;
 			}
 			else if (key === 'groups') {
-				col.renderCell = (account) =>
+				col.renderCell = (account: WebexAccount) =>
 					<GroupSelector
 						multi
 						value={account.groups}
@@ -91,16 +95,16 @@ function WebexAccounts() {
 					/>;
 			}
 			else if (key === 'authorized') {
-				col.renderCell = (account) =>
+				col.renderCell = (account: WebexAccount) =>
 					<>
 						{account.authDate? displayDate(account.authDate): ''}
-						<Button style={{marginLeft: '1em'}} onClick={() => window.location = account.authUrl}>
+						<Button style={{marginLeft: '1em'}} onClick={() => window.location.href = account.authUrl}>
 							{account.authDate? 'Reauthorize': 'Authorize'}
 						</Button>
 					</>;
 			}
 			else if (key === 'actions') {
-				col.renderCell = (account) => 
+				col.renderCell = (account: WebexAccount) => 
 					<ActionIcon type='delete' onClick={() => handleDelete(account.id)} />
 				col.label = 
 					<ActionIcon type='add' onClick={handleAdd} />

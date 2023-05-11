@@ -24,8 +24,8 @@ export function GroupSelector({
 	multi,
 	types,
 }: {
-	value: string[] | null;
-	onChange: (value: string[] | null) => void;
+	value: string[];
+	onChange: (value: string[]) => void;
 	multi: true;
 	types?: string[];
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options" | "milti">): JSX.Element;
@@ -38,7 +38,7 @@ export function GroupSelector({
 	...otherProps
 }: {
 	value: string | string[] | null;
-	onChange: ((value: string | null) => void) | ((value: string[] | null) => void);
+	onChange: ((value: string | null) => void) | ((value: string[]) => void);
 	multi?: boolean;
 	types?: string[];
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options" | "milti">) {

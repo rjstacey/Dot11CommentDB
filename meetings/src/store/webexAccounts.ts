@@ -1,7 +1,8 @@
 import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
 
 import type { RootState, AppThunk } from '.';
-import { fetcher, setError } from 'dot11-components';
+import { fetcher, isObject, setError } from 'dot11-components';
 
 export type WebexTemplate = {
 	id: string;
@@ -13,6 +14,13 @@ export interface WebexAccount {
 	name: string;
 	groups: string[];
 	templates: WebexTemplate[];
+	authDate?: string;
+	authUrl: string;
+}
+
+export type WebexAccountCreate = {
+	name: string;
+	groups: string[];
 }
 
 const dataAdapter = createEntityAdapter<WebexAccount>({});
@@ -34,7 +42,7 @@ const slice = createSlice({
 		getPending(state) {
 			state.loading = true;
 		},
-  		getSuccess(state, action) {
+  		getSuccess(state, action: PayloadAction<WebexAccount[]>) {
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
@@ -42,15 +50,9 @@ const slice = createSlice({
 		getFailure(state) {
 			state.loading = false;
 		},
-		updateOne(state, action) {
-			dataAdapter.updateOne(state, action.payload);
-		},
-		addOne(state, action) {
-			dataAdapter.addOne(state, action.payload);
-		},
-		removeOne(state, action) {
-			dataAdapter.removeOne(state, action.payload);
-		},
+		updateOne: dataAdapter.updateOne,
+		addOne: dataAdapter.addOne,
+		removeOne: dataAdapter.removeOne,
 	},
 });
 
@@ -76,13 +78,25 @@ const {
 
 const baseUrl = '/api/webex/accounts';
 
+function validateWebexAccount(account: any): account is WebexAccount {
+	return isObject(account) &&
+		typeof account.id === 'number' &&
+		typeof account.name === 'string' &&
+		Array.isArray(account.groups);
+}
+
+function validateGetResponse(response: any): response is WebexAccount[] {
+	return Array.isArray(response) &&
+		response.every(validateWebexAccount);
+}
+
 export const loadWebexAccounts = (): AppThunk => 
 	async (dispatch) => {
 		dispatch(getPending());
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.get(baseUrl);
-			if (!Array.isArray(response))
+			if (!validateGetResponse(response))
 				throw new TypeError(`Unexpected response to GET ${baseUrl}`);
 		}
 		catch(error) {
@@ -93,36 +107,36 @@ export const loadWebexAccounts = (): AppThunk =>
 		dispatch(getSuccess(response));
 	}
 
-export const updateWebexAccount = (id: number, changes: object): AppThunk =>
+export const updateWebexAccount = (id: number, changes: Partial<WebexAccount>): AppThunk =>
 	async (dispatch) => {
 		dispatch(updateOne({id, changes}));
 		const url = `${baseUrl}/${id}`;
-		let updates;
+		let response: any;
 		try {
-			updates = await fetcher.patch(url, changes);
-			if (typeof updates !== 'object')
+			response = await fetcher.patch(url, changes);
+			if (!validateWebexAccount(response))
 				throw new TypeError('Unexpected response to PATCH ' + url);
 		}
 		catch (error: any) {
 			dispatch(setError(`Unable to update webex account`, error));
 			return;
 		}
-		dispatch(updateOne({id, updates}));
+		dispatch(updateOne({id, changes: response}));
 	}
 
-export const addWebexAccount = (account: WebexAccount): AppThunk =>
+export const addWebexAccount = (account: WebexAccountCreate): AppThunk =>
 	async (dispatch) => {
-		let newAccount;
+		let response;
 		try {
-			newAccount = await fetcher.post(baseUrl, account);
-			if (typeof newAccount !== 'object')
+			response = await fetcher.post(baseUrl, account);
+			if (!validateWebexAccount(response))
 				throw new TypeError('Unexpected response to POST ' + baseUrl);
 		}
 		catch (error: any) {
-			await dispatch(setError('Unable to add webex account', error));
+			dispatch(setError('Unable to add webex account', error));
 			return;
 		}
-		dispatch(addOne(newAccount));
+		dispatch(addOne(response));
 	}
 
 export const deleteWebexAccount = (id: number): AppThunk =>

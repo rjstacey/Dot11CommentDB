@@ -1,7 +1,8 @@
-import {createSlice, createEntityAdapter} from '@reduxjs/toolkit';
+import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
 
-import {fetcher, setError, isObject} from 'dot11-components';
-import { AppThunk, RootState } from '.';
+import { fetcher, setError, isObject } from 'dot11-components';
+import type { AppThunk, RootState } from '.';
 
 /* Google Calendar Schema: https://developers.google.com/calendar/api/v3/reference/calendars */
 type GoogleCalendarSchema = {
@@ -26,6 +27,13 @@ export type CalendarAccount = {
 	name: string;
 	groups: string[];
 	details: GoogleCalendarSchema;
+	authDate?: string;
+	authUrl?: string;
+}
+
+export type CalendarAccountCreate = {
+	name: string;
+	groups: string[];
 }
 
 const dataAdapter = createEntityAdapter<CalendarAccount>({});
@@ -42,7 +50,7 @@ const slice = createSlice({
 		getPending(state) {
 			state.loading = true;
 		},
-  		getSuccess(state, action) {
+  		getSuccess(state, action: PayloadAction<CalendarAccount[]>) {
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
@@ -50,18 +58,10 @@ const slice = createSlice({
 		getFailure(state) {
 			state.loading = false;
 		},
-		updateOne(state, action) {
-			dataAdapter.updateOne(state, action.payload);
-		},
-		addOne(state, action) {
-			dataAdapter.addOne(state, action.payload);
-		},
-		removeOne(state, action) {
-			dataAdapter.removeOne(state, action.payload);
-		},
-		setOne(state, action) {
-			dataAdapter.setOne(state, action.payload);
-		},
+		updateOne: dataAdapter.updateOne,
+		addOne: dataAdapter.addOne,
+		removeOne: dataAdapter.removeOne,
+		setOne: dataAdapter.setOne,
 	},
 });
 
@@ -88,13 +88,25 @@ const {
 
 const baseUrl = '/api/calendar/accounts';
 
+function validateCalendarAccount(account: any): account is CalendarAccount {
+	return isObject(account) &&
+		typeof account.id === 'number' &&
+		typeof account.name === 'string' &&
+		Array.isArray(account.groups);
+}
+
+function validateGetResponse(response: any): response is CalendarAccount[] {
+	return Array.isArray(response) &&
+		response.every(validateCalendarAccount);
+}
+
 export const loadCalendarAccounts = (): AppThunk => 
 	async (dispatch) => {
 		dispatch(getPending());
-		let accounts;
+		let response: any;
 		try {
-			accounts = await fetcher.get(baseUrl);
-			if (!Array.isArray(accounts))
+			response = await fetcher.get(baseUrl);
+			if (!validateGetResponse(response))
 				throw new TypeError(`Unexpected response to GET ${baseUrl}`);
 		}
 		catch(error) {
@@ -102,55 +114,55 @@ export const loadCalendarAccounts = (): AppThunk =>
 			dispatch(setError('Unable to get list of Google calendar accounts', error));
 			return;
 		}
-		dispatch(getSuccess(accounts));
+		dispatch(getSuccess(response));
 	}
 	
-export const addCalendarAccount = (account: CalendarAccount): AppThunk =>
+export const addCalendarAccount = (account: CalendarAccountCreate): AppThunk =>
 	async (dispatch) => {
-		let newAccount;
+		let response: any;
 		try {
-			newAccount = await fetcher.post(baseUrl, account);
-			if (!isObject(newAccount))
+			response = await fetcher.post(baseUrl, account);
+			if (!validateCalendarAccount(response))
 				throw new TypeError('Unexpected response to POST: ' + baseUrl);
 		}
 		catch(error) {
-			await dispatch(setError('Unable to add Google calendar account', error));
+			dispatch(setError('Unable to add Google calendar account', error));
 			return;
 		}
-		dispatch(addOne(newAccount));
+		dispatch(addOne(response));
 	}
 
 export const updateCalendarAccount = (id: number, changes: Partial<CalendarAccount>): AppThunk =>
 	async (dispatch) => {
 		dispatch(updateOne({id, changes}));
 		const url = `${baseUrl}/${id}`;
-		let updates;
+		let response: any;
 		try {
-			updates = await fetcher.patch(url, changes);
-			if (!isObject(updates))
-				throw new TypeError('Unexpected response to PATCH: ' + url);
+			response = await fetcher.patch(url, changes);
+			if (!validateCalendarAccount(response))
+				throw new TypeError('Unexpected response to PATCH ' + url);
 		}
 		catch(error) {
 			dispatch(setError(`Unable to update Google calendar account`, error));
 			return;
 		}
-		dispatch(updateOne({id, updates}));
+		dispatch(updateOne({id, changes: response}));
 	}
 
 export const revokeAuthCalendarAccount = (id: number): AppThunk =>
 	async (dispatch) => {
 		const url = `${baseUrl}/${id}/revoke`;
-		let account;
+		let response: any;
 		try {
-			account = await fetcher.patch(url);
-			if (!isObject(account))
-				throw new TypeError('Unexpected response to DELETE: ' + url);
+			response = await fetcher.patch(url);
+			if (!validateCalendarAccount(response))
+				throw new TypeError('Unexpected response to DELETE ' + url);
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to deauthorize google calendar account`, error));
+			dispatch(setError(`Unable to deauthorize google calendar account`, error));
 			return;
 		}
-		await dispatch(setOne(account));
+		dispatch(setOne(response));
 	}
 
 export const deleteCalendarAccount = (id: number): AppThunk =>
@@ -160,7 +172,8 @@ export const deleteCalendarAccount = (id: number): AppThunk =>
 			await fetcher.delete(url);
 		}
 		catch(error) {
-			await dispatch(setError(`Unable to delete Google calendar account`, error));
+			dispatch(setError(`Unable to delete Google calendar account`, error));
+			return;
 		}
-		await dispatch(removeOne(id));
+		dispatch(removeOne(id));
 	}
