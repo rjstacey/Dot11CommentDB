@@ -1,9 +1,6 @@
 import React from 'react';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-
 import {
-	ButtonGroup,
 	ActionButton,
 	AppTable, 
 	SplitPanel,
@@ -16,8 +13,8 @@ import {
 	FilterType
 } from 'dot11-components';
 
-import {selectCurrentGroupId} from '../store/current';
-
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectCurrentGroupId } from '../store/current';
 import {
 	loadGroups,
 	setSelected,
@@ -28,10 +25,10 @@ import {
 	groupsActions,
 	Group
 } from '../store/groups';
-
 import { loadOfficers, selectOfficersState, selectGroupOfficers } from '../store/officers';
 import { loadMembers, selectMembersState } from '../store/members';
 
+import TopRow from '../components/TopRow';
 import PathGroupSelector from '../components/PathGroupSelector';
 
 import OrginzationDetail from './OrganizationDetail';
@@ -115,9 +112,9 @@ function Organization() {
 
 	return (
 		<>
-			<div style={{width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+			<TopRow>
 				<PathGroupSelector />
-				<ButtonGroup>
+				<div style={{display: 'flex'}}>
 					<TableColumnSelector
 						selectors={groupsSelectors}
 						actions={groupsActions}
@@ -128,8 +125,8 @@ function Organization() {
 						actions={groupsActions}
 					/>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-				</ButtonGroup>
-			</div>
+				</div>
+			</TopRow>
 			<SplitPanel
 				selectors={groupsSelectors}
 				actions={groupsActions}

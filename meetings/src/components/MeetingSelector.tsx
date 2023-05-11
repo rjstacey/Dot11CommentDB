@@ -4,12 +4,13 @@ import { DateTime } from 'luxon';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 
-import { Select, SelectRendererProps } from 'dot11-components';
+import { Select } from 'dot11-components';
 
 import {
 	loadMeetings,
 	selectMeetingsState,
-	getField
+	getField,
+	Meeting
 } from '../store/meetings';
 
 const StyledItem = styled.div`
@@ -19,20 +20,16 @@ const StyledItem = styled.div`
 	padding: 3px 0;
 `;
 
-const renderItem = ({item, props, state, methods}: {item: any} & SelectRendererProps) => {
-	//const textDecoration = item.isCancelled? 'line-through': 'none';
+const renderItem = ({item}: {item: Meeting}) => {
 	let summary = item.summary;
 	if (item.isCancelled)
 		summary = '🚫 ' + summary;
 	return (
-		<StyledItem
-			key={item.value}
-			onClick={(e) => {methods.addItem(item)}}
-		>
-			<span /*style={{textDecoration}}*/>
+		<StyledItem>
+			<span>
 				{summary}
 			</span>
-			<span style={{fontStyle: 'italic', fontSize: 'smaller', marginLeft: '1rem'/*, textDecoration*/}}>
+			<span style={{fontStyle: 'italic', fontSize: 'smaller', marginLeft: '1rem'}}>
 				{`${getField(item, 'date')} ${getField(item, 'timeRange')}`}
 			</span>
 		</StyledItem>

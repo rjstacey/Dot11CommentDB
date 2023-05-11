@@ -1,8 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-
 import {
 	AppTable, 
 	SelectHeaderCell,
@@ -17,6 +15,7 @@ import {
 	HeaderCellRendererProps
 } from 'dot11-components';
 
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	load802WorldSchedule,
 	importSelectedAsMeetings,
@@ -27,9 +26,9 @@ import {
 	ieee802WorldActions
 } from '../store/ieee802World';
 
+import TopRow from '../components/TopRow';
 import MeetingSummary from '../components/MeetingSummary';
 
-import TopRow from '../components/TopRow';
 import { RowGetterProps } from 'dot11-components/dist/table/AppTable';
 
 const TableRow = styled.div`

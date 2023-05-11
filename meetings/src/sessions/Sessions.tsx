@@ -21,11 +21,6 @@ import {
 } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-
-import SessionDetails from './SessionDetails';
-
-import TopRow from '../components/TopRow';
-
 import {
 	fields,
 	loadSessions,
@@ -34,6 +29,11 @@ import {
 	sessionsSelectors,
 	sessionsActions
 } from '../store/sessions';
+
+import TopRow from '../components/TopRow';
+import PathGroupSelector from '../components/PathGroupSelector';
+
+import SessionDetails from './SessionDetails';
 
 const renderHeaderStartEnd = (props: HeaderCellRendererProps) =>
 	<>
@@ -131,7 +131,8 @@ function Sessions() {
 
 	return (
 		<>
-			<TopRow style={{justifyContent: 'flex-end'}}>
+			<TopRow>
+				<PathGroupSelector />
 				<div style={{display: 'flex'}}>
 					<TableColumnSelector
 						selectors={sessionsSelectors}

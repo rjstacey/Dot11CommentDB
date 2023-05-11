@@ -2,17 +2,15 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-
-import {selectCurrentGroupId} from '../store/current';
-
+import { selectCurrentGroupId } from '../store/current';
 import {
 	loadCalendarAccounts,
 	selectCalendarAccountsState,
 	CalendarAccount
 } from '../store/calendarAccounts';
 
-import PathGroupSelector from '../components/PathGroupSelector';
 import TopRow from '../components/TopRow';
+import PathGroupSelector from '../components/PathGroupSelector';
 
 const MainIframe = styled.iframe`
 	flex: 1;
@@ -27,7 +25,7 @@ function Calendar() {
 
 	React.useEffect(() => {
 		dispatch(loadCalendarAccounts());
-	}, [groupId]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const calendarLink = React.useMemo(() => {
 		if (!groupId)
@@ -58,7 +56,6 @@ function Calendar() {
 			<MainIframe 
 				title='Google calendar'
 				src={calendarLink}
-				scrolling="no"
 			/>
 		</>
 	)

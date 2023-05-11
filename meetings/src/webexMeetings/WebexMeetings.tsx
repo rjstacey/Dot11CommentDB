@@ -1,7 +1,6 @@
 import React from 'react';
 import {DateTime} from 'luxon';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
 
 import {
 	AppTable, 
@@ -25,15 +24,12 @@ import {
 	deepMerge
 } from 'dot11-components';
 
-import {selectCurrentGroupId} from '../store/current';
-import {selectGroupEntities} from '../store/groups';
-import {displayMeetingNumber} from '../store/webexMeetings';
-
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectGroupEntities } from '../store/groups';
 import {
 	updateMeetings,
 	addMeetings,
 } from '../store/meetings';
-
 import {
 	selectWebexMeetingsState,
 	selectSyncedWebexMeetingEntities,
@@ -42,20 +38,21 @@ import {
 	webexMeetingsSelectors,
 	webexMeetingsActions,
 	loadWebexMeetings,
+	displayMeetingNumber,
 	SyncedWebexMeeting,
 } from '../store/webexMeetings';
-
 import {
+	selectCurrentGroupId,
 	selectCurrentSessionId,
 	selectShowDateRange
 } from '../store/current';
+import { selectSessionEntities } from '../store/sessions';
 
-import {selectSessionEntities} from '../store/sessions';
-
-import CurrentSessionSelector from '../components/CurrentSessionSelector';
 import MeetingSelector from '../components/MeetingSelector';
 import MeetingSummary from '../components/MeetingSummary';
 import TopRow from '../components/TopRow';
+import PathGroupSelector from '../components/PathGroupSelector';
+import CurrentSessionSelector from '../components/CurrentSessionSelector';
 
 import WebexMeetingDetail from './WebexMeetingDetail';
 import { MeetingEntry, MultipleMeetingEntry, convertEntryToMeeting } from '../meetings/MeetingDetails';
@@ -345,7 +342,10 @@ function WebexMeetings() {
 	return (
 		<>
 			<TopRow>
-				<CurrentSessionSelector allowShowDateRange />
+				<div style={{display: 'flex'}}>
+					<PathGroupSelector />
+					<CurrentSessionSelector allowShowDateRange />
+				</div>
 
 				<div style={{display: 'flex'}}>
 					<TableColumnSelector

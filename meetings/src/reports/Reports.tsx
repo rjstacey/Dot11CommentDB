@@ -15,7 +15,7 @@ import {
     selectMeetingAttendanceState,
 } from '../store/imatMeetingAttendance';
 
-
+import PathGroupSelector from '../components/PathGroupSelector';
 import CurrentSessionSelector from '../components/CurrentSessionSelector';
 import TopRow from '../components/TopRow';
 import SessionAttendanceChart from './SessionAttendanceChart';
@@ -186,7 +186,10 @@ function Reports() {
     return (
         <>
             <TopRow>
-                <CurrentSessionSelector />
+                <div style={{display: 'flex'}}>
+                    <PathGroupSelector />
+                    <CurrentSessionSelector />
+                </div>
 
                 {loading && <Spinner busy={loading} />}
 

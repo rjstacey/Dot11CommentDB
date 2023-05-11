@@ -9,6 +9,7 @@ import {
 	getAppTableDataSelectors,
 	AppTableDataState,
 	SortType,
+	isObject,
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
@@ -112,21 +113,50 @@ const {
 
 const baseUrl = '/api/imat/meetings';
 
-export const loadImatMeetings = (): AppThunk =>
-	async (dispatch, getState) => {
+function validateImatMeeting(imatMeeting: any): imatMeeting is ImatMeeting {
+	return isObject(imatMeeting) &&
+		typeof imatMeeting.id === 'number' &&
+		typeof imatMeeting.name === 'string' &&
+		typeof imatMeeting.type === 'string' &&
+		typeof imatMeeting.start === 'string' &&
+		typeof imatMeeting.end === 'string' &&
+		typeof imatMeeting.timezone === 'string';
+}
+
+function validateGetResponse(response: any): response is ImatMeeting[] {
+	return Array.isArray(response) &&
+		response.every(validateImatMeeting);
+}
+
+let loadImatMeetingsPromise: Promise<ImatMeeting[]> | null = null;
+export const loadImatMeetings = (): AppThunk<ImatMeeting[]> =>
+	(dispatch) => {
+		if (loadImatMeetingsPromise)
+			return loadImatMeetingsPromise;
 		dispatch(getPending());
-		let meetings;
-		try {
-			meetings = await fetcher.get(baseUrl);
-			if (!Array.isArray(meetings))
-				throw new TypeError('Unexpected response to GET ' + baseUrl);
-		}
-		catch (error) {
-			dispatch(getFailure());
-			dispatch(setError('Unable to get meetings list', error));
-			return;
-		}
-		dispatch(getSuccess(meetings));
+		loadImatMeetingsPromise = (fetcher.get(baseUrl) as Promise<ImatMeeting[]>)
+			.then((response: any) => {
+				loadImatMeetingsPromise = null;
+				if (!validateGetResponse(response))
+					throw new TypeError('Unexpected response to GET ' + baseUrl);
+				dispatch(getSuccess(response));
+				return response;
+			})
+			.catch((error: any) => {
+				loadImatMeetingsPromise = null;
+				dispatch(getFailure());
+				dispatch(setError('Unable to get meetings list', error));
+				return [];
+			});
+		return loadImatMeetingsPromise;
 	}
 
-export const clearImatMeetings = (): AppThunk => (dispatch) => {dispatch(removeAll()); return Promise.resolve(); };
+export const getImatMeetings = (): AppThunk<ImatMeeting[]> =>
+	async (dispatch, getState) => {
+		const {valid, loading, ids, entities} = selectImatMeetingsState(getState());
+		if (!valid || loading)
+			return dispatch(loadImatMeetings());
+		return ids.map(id => entities[id]!);
+	}
+
+export const clearImatMeetings = (): AppThunk => async (dispatch) => {dispatch(removeAll())};

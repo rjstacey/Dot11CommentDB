@@ -1,7 +1,5 @@
 import { Link } from 'react-router-dom';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-
 import {
 	ActionButton,
 	ActionButtonDropdown,
@@ -18,6 +16,7 @@ import {
 	TableConfig,
 } from 'dot11-components';
 
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	fields,
 	getField,
@@ -28,13 +27,12 @@ import {
 	setSelectedSlots,
 	SyncedMeeting
 } from '../store/meetings';
+import { refresh as refreshCurrent } from '../store/current';
+import { displayMeetingNumber } from '../store/webexMeetings';
 
-import {refresh as refreshCurrent} from '../store/current';
-
-import {displayMeetingNumber} from '../store/webexMeetings';
-
-import CurrentSessionSelector from '../components/CurrentSessionSelector';
 import TopRow from '../components/TopRow';
+import PathGroupSelector from '../components/PathGroupSelector';
+import CurrentSessionSelector from '../components/CurrentSessionSelector';
 
 import MeetingsCalendar from './MeetingsCalendar';
 import MeetingDetails from './MeetingDetails';
@@ -214,7 +212,10 @@ function Meetings() {
 	return (
 		<>
 			<TopRow>
-				<CurrentSessionSelector allowShowDateRange />
+				<div style={{display: 'flex'}}>
+					<PathGroupSelector />
+					<CurrentSessionSelector allowShowDateRange />
+				</div>
 
 				<ActionButtonDropdown label='Set defaults'>
 					<MeetingDefaults />

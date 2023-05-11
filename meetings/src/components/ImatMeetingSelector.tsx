@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 
-import {Select, SelectItemRendererProps, displayDateRange} from 'dot11-components';
+import { Select, displayDateRange } from 'dot11-components';
 
-import {loadImatMeetings, selectImatMeetingsState} from '../store/imatMeetings';
+import { getImatMeetings, selectImatMeetingsState, ImatMeeting } from '../store/imatMeetings';
 
 
 const StyledItem = styled.div`
@@ -21,10 +21,8 @@ const StyledItem = styled.div`
 	}
 `;
 
-const renderItem = ({item, /*style,*/ props, state, methods}: SelectItemRendererProps) =>
-	<StyledItem
-		//style={style}
-	>
+const renderItem = ({item}: {item: ImatMeeting}) =>
+	<StyledItem>
 		<span>{item.name}</span>
 		<span>{displayDateRange(item.start, item.end)}</span>
 	</StyledItem>
@@ -38,13 +36,12 @@ function ImatMeetingSelector({
 	value: number | null;
 	onChange: (value: number | null) => void;
 	readOnly?: boolean;
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options" | "loading" | "clearable">) {
+} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">) {
 	const dispatch = useAppDispatch();
-	const {valid, loading, ids, entities} = useAppSelector(selectImatMeetingsState);
+	const {loading, ids, entities} = useAppSelector(selectImatMeetingsState);
 
 	React.useEffect(() => {
-		if (!valid && !loading && !readOnly)
-			dispatch(loadImatMeetings());
+		dispatch(getImatMeetings());
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const options = React.useMemo(() => ids.map(id => entities[id]!), [entities, ids]);

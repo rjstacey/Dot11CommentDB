@@ -15,7 +15,8 @@ export function PathGroupSelector({
 	...otherProps
 }: {
 	onChange?: (groupId: string | null) => void;
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">) {
+} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
+) {
 	const dispatch = useAppDispatch();
 	const {entities, ids} = useAppSelector(selectGroupsState);
 	const groupId = useAppSelector(selectCurrentGroupId);
