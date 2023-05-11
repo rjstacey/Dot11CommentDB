@@ -1,15 +1,14 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
-import { useAppSelector } from '../store/hooks';
-
-import { Dropdown, Account, DropdownRendererProps } from 'dot11-components';
+import { Dropdown, Account, Button } from 'dot11-components';
 
 import './header.css';
 
+import { resetStore } from '../store';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectUser, selectUserMeetingsAccess, AccessLevel } from '../store/user';
 import { selectGroupName } from '../store/groups';
-//import { selectCurrentSessionId } from '../store/current';
 
 import PathGroupSelector from '../components/PathGroupSelector';
 
@@ -112,6 +111,7 @@ function NavMenu({className, methods}: any) {
 const smallScreenQuery = window.matchMedia('(max-width: 992px');
 
 function Header() {
+	const dispatch = useAppDispatch();
 	const user = useAppSelector(selectUser)!;
 	const [isSmall, setIsSmall] = React.useState(smallScreenQuery.matches);
 
@@ -128,7 +128,7 @@ function Header() {
 		<header className='header'>
 			{isSmall?
 				<Dropdown
-					selectRenderer={({state, methods}: DropdownRendererProps) => <div className='nav-menu-icon' onClick={state.isOpen? methods.close: methods.open}/>}
+					selectRenderer={({state, methods}) => <div className='nav-menu-icon' onClick={state.isOpen? methods.close: methods.open}/>}
 					dropdownRenderer={(props: any) => <NavMenu className='nav-menu-vertical' {...props} />}
 					dropdownAlign='left'
 				/>:
@@ -141,7 +141,15 @@ function Header() {
 					<NavMenu className='nav-menu-horizontal' />
 				}
 			</div>
-			<Account user={user} />
+			<Account
+				user={user}
+			>
+				<Button
+					onClick={() => dispatch(resetStore())}
+				>
+					Clear cache
+				</Button>
+			</Account>
 		</header>
 	)
 }
