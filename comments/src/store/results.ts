@@ -8,7 +8,7 @@ import {
 } from 'dot11-components';
 
 //import {selectMembersState} from './members';
-import { updateBallotSuccess } from './ballots';
+import { Ballot, updateBallotSuccess, selectBallotEntities } from './ballots';
 import type { RootState, AppThunk } from '.';
 
 const fields = {
@@ -65,7 +65,6 @@ type ExtraState = {
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	//selectEntities,
 	initialState: {
 		ballot_id: 0,
 		votingPoolSize: 0,
@@ -114,22 +113,31 @@ export {upsertTableColumns};
 
 const baseUrl = '/api/results';
 
+function validGetResponse(response: any): response is {ballot: Ballot; VotingPoolSize: number; results: any[]; summary: object} {
+	return isObject(response) &&
+		isObject(response.ballot) &&
+		typeof response.VotingPoolSize === 'number' &&
+		Array.isArray(response.results) &&
+		isObject(response.summary);
+}
+
+function validResponse(response: any): response is {ballot: Ballot} {
+	return isObject(response) &&
+		isObject(response.ballot);
+}
+
 export const loadResults = (ballot_id: number): AppThunk =>
 	async (dispatch, getState) => {
 		dispatch(getPending());
 		const url = `${baseUrl}/${ballot_id}`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.get(url);
-			if (!isObject(response) ||
-				!isObject(response.ballot) ||
-				typeof response.VotingPoolSize !== 'number' ||
-				!Array.isArray(response.results) ||
-				!isObject(response.summary))
-				throw new TypeError('Unexpected response to GET ' + url);
+			if (!validGetResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch(error) {
-			const ballot = getState()['ballots'].entities[ballot_id];
+			const ballot = selectBallotEntities(getState())[ballot_id];
 			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
 			await Promise.all([
 				dispatch(getFailure()),
@@ -164,8 +172,8 @@ export const exportResultsForBallot  = (ballot_id: number): AppThunk =>
 			await fetcher.getFile(`${baseUrl}/${ballot_id}/export`);
 		}
 		catch (error) {
-			const ballot = getState()['ballots'].entities[ballot_id];
-			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
+			const ballot = selectBallotEntities(getState())[ballot_id];
+			const ballotId = ballot?.BallotID || `id=${ballot_id}`;
 			dispatch(setError(`Unable to export results for ${ballotId}`, error));
 		}
 	}
@@ -185,11 +193,11 @@ export const deleteResults = (ballot_id: number): AppThunk =>
 export const importResults = (ballot_id: number, epollNum: number): AppThunk =>
 	async (dispatch) => {
 		const url = `${baseUrl}/${ballot_id}/importFromEpoll/${epollNum}`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.post(url);
-			if (!isObject(response) || !isObject(response.ballot))
-				throw new TypeError("Unexpected reponse to POST: " + url);
+			if (!validResponse(response))
+				throw new TypeError("Unexpected reponse");
 		}
 		catch(error) {
 			dispatch(setError("Unable to import results", error));
@@ -201,14 +209,14 @@ export const importResults = (ballot_id: number, epollNum: number): AppThunk =>
 export const uploadEpollResults = (ballot_id: number, file): AppThunk =>
 	async (dispatch) => {
 		const url = `${baseUrl}/${ballot_id}/uploadEpollResults`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, {ResultsFile: file})
-			if (!isObject(response) || !isObject(response.ballot))
-				throw TypeError("Unexpected reponse to POST " + url);
+			if (!validResponse(response))
+				throw TypeError("Unexpected reponse");
 		}
 		catch(error) {
-			dispatch(setError("Unable to upload results", error));
+			dispatch(setError("Unable to upload ePoll results", error));
 			return;
 		}
 		dispatch(updateBallotSuccess(ballot_id, response.ballot));
@@ -217,14 +225,14 @@ export const uploadEpollResults = (ballot_id: number, file): AppThunk =>
 export const uploadMyProjectResults = (ballot_id: number, file): AppThunk =>
 	async (dispatch) => {
 		const url = `${baseUrl}/${ballot_id}/uploadMyProjectResults`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, {ResultsFile: file});
-			if (!isObject(response) || !isObject(response.ballot))
-				throw new TypeError("Unexpected reponse to POST " + url);
+			if (!validResponse(response))
+				throw new TypeError("Unexpected reponse");
 		}
 		catch(error) {
-			dispatch(setError("Unable to upload results", error));
+			dispatch(setError("Unable to upload myProject results", error));
 			return;
 		}
 		dispatch(updateBallotSuccess(ballot_id, response.ballot));

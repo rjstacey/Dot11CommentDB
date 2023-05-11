@@ -1,25 +1,43 @@
-import {createSlice} from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import { fetcher, setError } from 'dot11-components';
+import { fetcher, isObject, setError } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
+import { CommentResolution } from './comments';
+
+type CommentHistory = {
+	id: number;
+	comment_id: number | null;
+	resolution_id: string | null;
+	UserID: number | null;
+	Action: "add" | "update" | "delete";
+	Changes: object;
+	Timestamp: string;
+	UserName: string;
+}
 
 export const dataSet = 'commentsHistory';
 
+const initialState: {
+	loading: boolean;
+	valid: boolean;
+	commentsHistory: CommentHistory[];
+} = {
+	loading: false,
+	valid: false,
+	commentsHistory: []
+}
+
 const slice = createSlice({
 	name: dataSet,
-	initialState: {
-		loading: false,
-		valid: false,
-		commentsHistory: []
-	},
+	initialState,
 	reducers: {
 		getPending(state) {
 			state.loading = true;
 			state.valid = false;
 			state.commentsHistory = [];
 		},
-  		getSuccess(state, action) {
+  		getSuccess(state, action: PayloadAction<{comments: CommentResolution[]; commentsHistory: CommentHistory[]}>) {
   			let {commentsHistory, comments} = action.payload;
   			const comment = comments[0];
 			const resolution_ids = [...new Set(commentsHistory.map(h => h.resolution_id))];
@@ -69,16 +87,21 @@ export const selectCommentsHistoryState = (state: RootState) => state[dataSet];
  */
 const {getPending, getSuccess, getFailure} = slice.actions;
 
+function validResponse(response: any): response is {comments: CommentResolution[]; commentsHistory: CommentHistory[]} {
+	return isObject(response) &&
+		Array.isArray(response.comments) &&
+		Array.isArray(response.commentsHistory);
+}
+
 export const loadCommentsHistory = (comment_id: number): AppThunk =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		dispatch(getPending());
 		const url = `/api/commentHistory/${comment_id}`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.get(url);
-			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments) ||
-				!response.hasOwnProperty('commentsHistory') || !Array.isArray(response.commentsHistory))
-				throw new TypeError('Unexpected response to GET: ' + url);
+			if (!validResponse(response))
+				throw new TypeError('Unexpected response');
 		}
 		catch(error) {
 			dispatch(getFailure());

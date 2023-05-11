@@ -1,36 +1,37 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { Dictionary } from '@reduxjs/toolkit';
+import type { Dictionary } from '@reduxjs/toolkit';
 import {
 	fetcher,
 	setError,
 	createAppTableDataSlice, SortType,
 	displayDate,
-	getAppTableDataSelectors
+	getAppTableDataSelectors,
+	isObject
 } from 'dot11-components';
 
 import { selectBallotEntities as selectSyncedBallotEntities } from './ballots';
 import type { RootState, AppThunk } from '.';
 
 export type Epoll = {
-	BallotID: string;
-	Start: string;
-	End: string;
-	Topic: string;
-	Document: string;
-	Votes: string;
-	EpollNum: number;
+	id: number;
+	name: string;
+	start: string;
+	end: string;
+	topic: string;
+	document: string;
+	resultsSummary: string;
 }
 
 export type SyncedEpoll = Epoll & {InDatabase: boolean};
 
 export const fields = {
-	EpollNum: {label: 'ePoll', isId: true, sortType: SortType.NUMERIC},
-	BallotID: {label: 'BallotID'},
-	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
-	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
-	Document: {label: 'Document'},
-	Topic: {label: 'Topic'},
-	Votes: {label: 'Result', sortType: SortType.NUMERIC}
+	id: {label: 'ePoll', isId: true, sortType: SortType.NUMERIC},
+	name: {label: 'Name'},
+	start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
+	end: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
+	document: {label: 'Document'},
+	topic: {label: 'Topic'},
+	resultsSummary: {label: 'Result', sortType: SortType.NUMERIC}
 };
 
 export const dataSet = 'epolls';
@@ -39,7 +40,6 @@ export const dataSet = 'epolls';
  * Selectors
  */
 export const selectEpollsState = (state: RootState) => state[dataSet];
-
 export const selectEpollIds = (state: RootState) => selectEpollsState(state).ids;
 export const selectEpollEntities = (state: RootState) => selectEpollsState(state).entities;
 
@@ -69,7 +69,7 @@ const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	initialState: {},
-	selectId: (d: Epoll) => d.EpollNum,
+	selectId: (d: Epoll) => d.id,
 	reducers: {}
 });
 
@@ -82,19 +82,33 @@ export const epollsActions = slice.actions;
 
 const {getPending, getSuccess, getFailure} = slice.actions;
 
+function validEpoll(epoll: any): epoll is Epoll {
+	return isObject(epoll) &&
+		typeof epoll.id === 'number' &&
+		typeof epoll.name === 'string' &&
+		typeof epoll.start === 'string' &&
+		typeof epoll.end === 'string' &&
+		typeof epoll.topic === 'string' &&
+		typeof epoll.document === 'string';
+}
+
+function validResponse(response: any): response is Epoll[] {
+	return Array.isArray(response) && response.every(validEpoll);
+}
+
 export const loadEpolls = (n = 20): AppThunk =>
 	async (dispatch) => {
 		dispatch(getPending());
-		let epolls;
+		let response: any;
 		try {
-			epolls = await fetcher.get('/api/epolls', {n});
-			if (!Array.isArray(epolls))
-				throw new TypeError("Unexpected response to GET: /api/epolls");
+			response = await fetcher.get('/api/epolls', {n});
+			if (!validResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch(error) {
 			dispatch(getFailure());
 			dispatch(setError('Unable to get a list of epolls', error));
 			return;
 		}
-		dispatch(getSuccess(epolls));
+		dispatch(getSuccess(response));
 	}

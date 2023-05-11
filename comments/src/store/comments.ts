@@ -4,12 +4,12 @@ import type { EntityId, Dictionary } from '@reduxjs/toolkit';
 import {
 	fetcher,
 	setError,
-	createAppTableDataSlice, SortType, getAppTableDataSelectors,
+	createAppTableDataSlice, SortType, getAppTableDataSelectors, isObject,
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
 
-import { updateBallotSuccess, selectBallot } from './ballots';
+import { updateBallotSuccess, selectBallotEntities, validBallot, Ballot } from './ballots';
 import { offlineFetch } from './offline';
 
 
@@ -284,19 +284,31 @@ export function getCommentStatus(c: CommentResolution) {
 	return Status;
 }
 
+const baseCommentsUrl = '/api/comments';
+
+function validCommentResolution(c: any): c is CommentResolution {
+	return isObject(c) &&
+		(typeof c.id === 'string' || typeof c.id === 'number') &&
+		typeof c.comment_id === 'number';
+}
+
+function validGetResponse(response: any): response is CommentResolution[] {
+	return Array.isArray(response) && response.every(validCommentResolution);
+}
+
 export const loadComments = (ballot_id: number): AppThunk =>
 	async (dispatch, getState) => {
 		dispatch(getPending());
-		const url = `/api/comments/${ballot_id}`;
-		let response;
+		const url = `${baseCommentsUrl}/${ballot_id}`;
+		let response: any;
 		try {
 			response = await fetcher.get(url);
-			if (!Array.isArray(response))
-				throw new TypeError("Unexpected response to GET: " + url);
+			if (!validGetResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch (error) {
-			const ballot = selectBallot(getState(), ballot_id);
-			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
+			const ballot = selectBallotEntities(getState())[ballot_id];
+			const ballotId = ballot?.BallotID || `id=${ballot_id}`;
 			dispatch(getFailure());
 			dispatch(setError(`Unable to get comments for ${ballotId}`, error));
 			return;
@@ -313,7 +325,7 @@ export const getCommentUpdates = (): AppThunk =>
 			return;
 		const lastModified = selectCommentsLastModified(state);
 		dispatch(offlineFetch({
-			effect: {url: `/api/comments/${ballot_id}`, method: 'GET', params: {modifiedSince: lastModified}},
+			effect: {url: `${baseCommentsUrl}/${ballot_id}`, method: 'GET', params: {modifiedSince: lastModified}},
 			commit: {type: dataSet + '/getCommit'},
 		}));
 	}
@@ -346,7 +358,7 @@ export const updateComments = (updates): AppThunk =>
 		}
 		dispatch(localUpdateMany(localUpdates));
 		dispatch(offlineFetch({
-			effect: {url: '/api/comments', method: 'PATCH', params: {updates, ballot_id, modifiedSince: lastModified}},
+			effect: {url: baseCommentsUrl, method: 'PATCH', params: {updates, ballot_id, modifiedSince: lastModified}},
 			commit: {type: dataSet + '/updateCommit'},
 			rollback: {type: localUpdateMany.toString(), payload: rollbackUpdates} 
 		}));
@@ -360,21 +372,24 @@ export const deleteComments = (ballot_id: number): AppThunk =>
 		dispatch(updateBallotSuccess(ballot_id, {Comments: summary}));
 
 		try {
-			await fetcher.delete(`/api/comments/${ballot_id}`);
+			await fetcher.delete(`${baseCommentsUrl}/${ballot_id}`);
 		}
 		catch (error) {
 			dispatch(setError(`Unable to delete comments`, error));
 		}
 	}
 
+function validImportReponse(response: any): response is {ballot: Ballot} {
+	return isObject(response) && validBallot(response.ballot);
+}
+
 export const importComments = (ballot_id: number, epollNum: number, startCID: number): AppThunk =>
 	async (dispatch) => {
 		const url = `/api/comments/${ballot_id}/importFromEpoll/${epollNum}`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.post(url, {StartCID: startCID});
-			if (typeof response !== 'object' ||
-				typeof response.ballot !== 'object') {
+			if (!validImportReponse(response)) {
 				throw new TypeError('Unexpected response to POST: ' + url);
 			}
 		}
@@ -385,15 +400,20 @@ export const importComments = (ballot_id: number, epollNum: number, startCID: nu
 		dispatch(updateBallotSuccess(ballot_id, response.ballot));
 	}
 
+function validUploadResponse(response: any): response is {comments: CommentResolution[]; ballot: Ballot} {
+	return isObject(response) &&
+		Array.isArray(response.comments) && response.comments.every(validCommentResolution) &&
+		validBallot(response.ballot);
+}
+
 export const uploadComments = (ballot_id: number, type, file): AppThunk =>
 	async (dispatch) => {
-		const url = `/api/comments/${ballot_id}/upload`;
-		let response;
+		const url = `${baseCommentsUrl}/${ballot_id}/upload`;
+		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, {CommentsFile: file});
-			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments) ||
-				!response.hasOwnProperty('ballot') || typeof response.ballot !== 'object')
-				throw new TypeError('Unexpected response to POST: ' + url);
+			if (!validUploadResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch (error) {
 			dispatch(setError(`Unable to upload comments for ${ballot_id}`, error));
@@ -407,13 +427,12 @@ export const uploadComments = (ballot_id: number, type, file): AppThunk =>
 
 export const setStartCommentId = (ballot_id: number, startCommentId: number): AppThunk =>
 	async (dispatch, getState) => {
-		const url = `/api/comments/${ballot_id}/startCommentId`;
-		let response;
+		const url = `${baseCommentsUrl}/${ballot_id}/startCommentId`;
+		let response: any;
 		try {
 			response = await fetcher.patch(url, {StartCommentID: startCommentId});
-			if (!response.hasOwnProperty('comments') || !Array.isArray(response.comments) ||
-				!response.hasOwnProperty('ballot') || typeof response.ballot !== 'object')
-				throw new TypeError('Unexpected response to PATCH: ' + url);
+			if (!validUploadResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch (error) {
 			dispatch(setError("Unable to set start CID", error));
@@ -543,7 +562,7 @@ export const addResolutions = (resolutions: ResolutionCreate[]): AppThunk =>
 
 export const updateResolutions = updateMany;
 
-export const deleteResolutions = (delete_ids): AppThunk =>
+export const deleteResolutions = (delete_ids: any[]): AppThunk =>
 	async (dispatch, getState) => {
 		const {ids, entities} = selectCommentsState(getState());
 
@@ -679,18 +698,18 @@ export const CommentsSpreadsheetStyle = {
 	TabPerCommentGroup: 'TabPerCommentGroup'
 };
 
-export const exportCommentsSpreadsheet = (ballot_id, file, format, style): AppThunk =>
+export const exportCommentsSpreadsheet = (ballot_id: number, file: any, format: string, style: string): AppThunk =>
 	async (dispatch, getState) => {
 		try {
-			let Filename;
+			let Filename: string | undefined;
 			if (file)
 				Filename = file.name;
-			const url = `/api/comments/${ballot_id}/export/` + format;
+			const url = `${baseCommentsUrl}/${ballot_id}/export/` + format;
 			await fetcher.postForFile(url, {Filename, Style: style}, file);
 		}
 		catch(error) {
-			const ballot = selectBallot(getState(), ballot_id);
-			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
+			const ballot = selectBallotEntities(getState())[ballot_id];
+			const ballotId = ballot?.BallotID || `id=${ballot_id}`;
 			dispatch(setError(`Unable to export comments for ballot ${ballotId}`, error));
 		}
 	}

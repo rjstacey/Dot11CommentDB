@@ -6,7 +6,7 @@ import {
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-import { VotingPool, upsertVotingPool, validateVotingPool } from './votingPools';
+import { VotingPool, upsertVotingPool, validVotingPool } from './votingPools';
 
 export type Voter = {
 	id: string;
@@ -92,14 +92,14 @@ const {
 
 const baseUrl = '/api/voters';
 
-function validateVoter(voter: any): voter is Voter {
+function validVoter(voter: any): voter is Voter {
 	return isObject(voter);
 }
 
-function validateResponse(response: any): response is {voters: Voter[]; votingPool: VotingPool} {
+function validResponse(response: any): response is {voters: Voter[]; votingPool: VotingPool} {
 	return isObject(response) &&
-		Array.isArray(response.voters) && response.voters.every(validateVoter) &&
-		validateVotingPool(response.votingPool);
+		Array.isArray(response.voters) && response.voters.every(validVoter) &&
+		validVotingPool(response.votingPool);
 }
 
 export const loadVoters = (votingPoolId: string): AppThunk =>
@@ -112,7 +112,7 @@ export const loadVoters = (votingPoolId: string): AppThunk =>
 		let response: any;
 		try {
 			response = await fetcher.get(url);
-			if (!validateResponse(response))
+			if (!validResponse(response))
 				throw new TypeError("Unexpected response to GET " + url);
 		}
 		catch(error) {
@@ -146,7 +146,7 @@ export const votersFromSpreadsheet = (votingPoolId: string, file): AppThunk =>
 		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, {File: file});
-			if (!validateResponse(response))
+			if (!validResponse(response))
 				throw new TypeError(`Unexpected response to POST: ${url}`);
 		}
 		catch(error) {
@@ -166,8 +166,8 @@ export const votersFromMembersSnapshot = (votingPoolId: string, date: string): A
 		let response: any;
 		try {
 			response = await fetcher.post(url, {date});
-			if (!validateResponse(response))
-				throw new TypeError(`Unexpected response to POST: ${url}`);
+			if (!validResponse(response))
+				throw new TypeError("`Unexpected response");
 		}
 		catch(error) {
 			dispatch(getFailure());
@@ -179,13 +179,13 @@ export const votersFromMembersSnapshot = (votingPoolId: string, date: string): A
 	}
 
 export const addVoter = (votingPoolId: string, voterIn: VoterCreate): AppThunk =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		const url = `${baseUrl}/${votingPoolId}`;
 		let response: any;
 		try {
 			response = await fetcher.post(url, [voterIn]);
-			if (!validateResponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
+			if (!validResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch(error) {
 			dispatch(setError('Unable to add voter', error));
@@ -200,8 +200,8 @@ export const updateVoter = (id: string, changes: Partial<Voter>): AppThunk =>
 		let response: any;
 		try {
 			response = await fetcher.patch(baseUrl, [{id, changes}]);
-			if (!validateResponse(response))
-				throw new TypeError("Unexpected response to PATCH " + baseUrl);
+			if (!validResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch(error) {
 			dispatch(setError('Unable to update voter', error));

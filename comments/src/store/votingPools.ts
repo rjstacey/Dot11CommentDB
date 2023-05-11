@@ -71,27 +71,32 @@ const {
 	upsertOne
 } = slice.actions;
 
-export function validateVotingPool(votingPool: any): votingPool is VotingPool {
+const baseUrl = '/api/votingPools';
+
+export function validVotingPool(votingPool: any): votingPool is VotingPool {
 	return isObject(votingPool) &&
 		typeof votingPool.VotingPoolID === 'string' &&
 		typeof votingPool.VoterCount === 'number';
 }
 
-function validateResponse(response: any): response is {votingPools: VotingPool[]} {
+function validGetResponse(response: any): response is {votingPools: VotingPool[]} {
 	return isObject(response) &&
 		Array.isArray(response.votingPools) &&
-		response.votingPools.every(validateVotingPool);
+		response.votingPools.every(validVotingPool);
+}
+
+function validResponse(response: any): response is {votingPool: VotingPool} {
+	return isObject(response) && validVotingPool(response.votingPool);
 }
 
 export const loadVotingPools = (): AppThunk<VotingPool[]> =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		dispatch(getPending());
-		const url = '/api/votingPools';
 		let response: any;
 		try {
-			response = await fetcher.get(url);
-			if (!validateResponse(response))
-				throw new TypeError(`Unexpected response to GET: ${url}`);
+			response = await fetcher.get(baseUrl);
+			if (!validGetResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch(error) {
 			dispatch(getFailure());
@@ -111,9 +116,9 @@ export const getVotingPools = (): AppThunk<VotingPool[]> =>
 	}
 
 export const deleteVotingPools = (ids: string[]): AppThunk =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		try {
-			await fetcher.delete('/api/votingPools', ids);
+			await fetcher.delete(baseUrl, ids);
 		}
 		catch(error) {
 			dispatch(setError('Unable to delete voting pool(s)', error));
@@ -122,14 +127,14 @@ export const deleteVotingPools = (ids: string[]): AppThunk =>
 		dispatch(removeMany(ids));
 	}
 
-export const updateVotingPool = (votingPoolId: string, changes: Partial<VotingPool>): AppThunk<VotingPool> =>
+export const updateVotingPool = (votingPoolId: string, changes: Partial<VotingPool>): AppThunk<VotingPool | undefined> =>
 	async (dispatch) => {
-		const url = `/api/votingPools/${votingPoolId}`;
+		const url = `${baseUrl}/${votingPoolId}`;
 		let response: any;
 		try {
 			response = await fetcher.patch(url, changes);
-			if (typeof response !== 'object' || !response.hasOwnProperty('votingPool'))
-				throw new TypeError(`Unexpected response to GET: ${url}`);
+			if (!validResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch(error) {
 			dispatch(setError('Unable to update voting pool', error));

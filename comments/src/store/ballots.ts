@@ -6,7 +6,8 @@ import {
 	setError,
 	displayDate,
 	createAppTableDataSlice, SortType,
-	getAppTableDataSelectors
+	getAppTableDataSelectors,
+	isObject
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
@@ -224,8 +225,6 @@ export const selectBallotOptions = createSelector(
 
 export const selectBallot = (state: RootState, ballot_id: number) => selectSyncedBallotEntities(state)[ballot_id];
 
-//export const getCurrentBallotId = (state: RootState) => state[dataSet].currentId;
-
 export const selectCurrentBallot = (state: RootState) => {
 	const {entities, currentId} = selectBallotsState(state);
 	return currentId? entities[currentId]: undefined;
@@ -244,6 +243,7 @@ const {
 	getFailure,
 	addOne,
 	updateOne,
+	setOne,
 	removeMany,
 	setCurrentProject: setCurrentProjectLocal,
 	setCurrentId: setCurrentIdLocal,
@@ -266,28 +266,37 @@ export const setCurrentId = (ballot_id: number): AppThunk<Ballot | undefined> =>
 
 const baseUrl = '/api/ballots';
 
+export function validBallot(ballot: any): ballot is Ballot {
+	return isObject(ballot) &&
+		typeof ballot.id === 'number' &&
+		typeof ballot.BallotID === 'string' &&
+		typeof ballot.Project === 'string';
+}
+
+function validResponse(response: any): response is Ballot[] {
+	return Array.isArray(response) && response.every(validBallot);
+}
+
 let loadBallotsPromise: Promise<Ballot[]> | null;
 export const loadBallots = (): AppThunk<Ballot[]> => 
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		if (loadBallotsPromise)
 			return loadBallotsPromise;
 		dispatch(getPending());
 		loadBallotsPromise = (fetcher.get(baseUrl) as Promise<Ballot[]>)
-			.then((ballots: any) => {
-				loadBallotsPromise = null;
-				if (!Array.isArray(ballots)) {
-					dispatch(getFailure());
-					setError("Unexpected response to GET " + baseUrl, "got " + typeof ballots);
-					return [];
-				}
-				dispatch(getSuccess(ballots));
-				return ballots;
+			.then((response: any) => {
+				if (!validResponse(response))
+					throw new TypeError("Unexpected response");
+				dispatch(getSuccess(response));
+				return response;
 			})
 			.catch((error: any) => {
-				loadBallotsPromise = null;
 				dispatch(getFailure());
 				dispatch(setError('Unable to get ballot list', error));
 				return [];
+			})
+			.finally(() => {
+				loadBallotsPromise = null;
 			});
 		return loadBallotsPromise;
 	}
@@ -304,23 +313,19 @@ export const getBallots = (): AppThunk<Ballot[]> =>
 export const updateBallotSuccess = (id: EntityId, changes: Partial<Ballot>) => updateOne({id, changes});
 
 export const updateBallot = (id: number, changes: Partial<Ballot>): AppThunk =>
-	async (dispatch, getState) => {
-		let response;
+	async (dispatch) => {
+		let response: any;
 		try {
 			response = await fetcher.patch(baseUrl, [{id, changes}]);
-			if (!Array.isArray(response))
-				throw new TypeError('Unexpected response to PATCH: ' + baseUrl);
+			if (!validResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch(error) {
 			dispatch(setError(`Unable to update ballot`, error));
 			return;
 		}
-		const [updatedBallot] = response;
-		if (updatedBallot.prev_id) {
-			const {entities} = selectBallotsState(getState());
-			updatedBallot.PrevBallotID = entities[updatedBallot.prev_id] || '';
-		}
-		dispatch(updateOne({id, changes: updatedBallot}));
+		const [ballot] = response;
+		dispatch(setOne(ballot));
 	}
 
 export const deleteBallots = (ids: EntityId[]): AppThunk =>
@@ -337,21 +342,17 @@ export const deleteBallots = (ids: EntityId[]): AppThunk =>
 
 export const addBallot = (ballot: BallotCreate): AppThunk =>
 	async (dispatch, getState) => {
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.post(baseUrl, [ballot]);
-			if (!Array.isArray(response))
-				throw new TypeError("Unexpected response to POST: " + baseUrl);
+			if (!validResponse(response) || response.length !== 1)
+				throw new TypeError("Unexpected response");
 		}
 		catch(error) {
 			dispatch(setError(`Unable to add ballot ${ballot.BallotID}`, error));
 			return;
 		}
 		const [updatedBallot] = response;
-		if (updatedBallot.prev_id) {
-			const {entities} = selectBallotsState(getState());
-			updatedBallot.PrevBallotID = entities[updatedBallot.prev_id] || '';
-		}
 		dispatch(addOne(updatedBallot));
 	}
 

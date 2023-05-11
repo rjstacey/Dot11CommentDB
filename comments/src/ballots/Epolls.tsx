@@ -13,7 +13,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { loadBallots, BallotType, selectBallotsState, BallotCreate } from '../store/ballots';
 import { fields, loadEpolls, selectEpollsState, epollsSelectors, epollsActions, SyncedEpoll } from '../store/epolls';
 
-import {BallotAddForm} from './BallotDetail';
+import { BallotAddForm } from './BallotDetail';
 
 // The action row height is determined by its content
 const ActionRow = styled.div`
@@ -30,7 +30,7 @@ const TableRow = styled.div`
 
 function ePollToBallot(epoll: SyncedEpoll): BallotCreate {
 	// See if the ePoll name has something like CC53 or LB245
-	const m = epoll.BallotID.match(/(CC|LB)\d+/)
+	const m = epoll.name.match(/(CC|LB)\d+/)
 	let type = BallotType.Motion,
 		ballotId = '';
 	if (m) {
@@ -41,11 +41,11 @@ function ePollToBallot(epoll: SyncedEpoll): BallotCreate {
 		Project: '',
 		BallotID: ballotId,
 		Type: type,
-		EpollNum: epoll.EpollNum,
-		Start: epoll.Start,
-		End: epoll.End,
-		Document: epoll.Document,
-		Topic: epoll.Topic,
+		EpollNum: epoll.id,
+		Start: epoll.start,
+		End: epoll.end,
+		Document: epoll.document,
+		Topic: epoll.topic,
 		VotingPoolID: '',
 		prev_id: 0,
 		IsRecirc: false,
@@ -54,14 +54,14 @@ function ePollToBallot(epoll: SyncedEpoll): BallotCreate {
 }
 
 const tableColumns: (ColumnProperties & {width: number})[] = [
-		{key: 'EpollNum', 	...fields.EpollNum, 	width: 100},
-		{key: 'BallotID', 	...fields.BallotID,		width: 200},
-		{key: 'Start', 		...fields.Start,		width: 100},
-		{key: 'End', 		...fields.End,			width: 100},
-		{key: 'Document', 	...fields.Document,		width: 200},
-		{key: 'Topic', 		...fields.Topic,		width: 500},
-		{key: 'Votes',		...fields.Votes,		width: 100},
-		{key: 'Actions', 	label: '',				width: 200,
+		{key: 'id', 			...fields.id, 			width: 100},
+		{key: 'name', 			...fields.name,			width: 200},
+		{key: 'start', 			...fields.start,		width: 100},
+		{key: 'end', 			...fields.end,			width: 100},
+		{key: 'document', 		...fields.document,		width: 200},
+		{key: 'topic', 			...fields.topic,		width: 500},
+		{key: 'resultsSummary',	...fields.resultsSummary, width: 100},
+		{key: 'actions', label: '',	width: 200,
 			headerRenderer: () => ''}
 	];
 
