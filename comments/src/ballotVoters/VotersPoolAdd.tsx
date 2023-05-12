@@ -43,13 +43,7 @@ function VotersPoolAddModal({
 	onSubmit,
 }) {
 	const [state, setState] = React.useState<State>(initState);
-
-	//const [votingPoolId, setVotingPoolId] = React.useState('');
-	//const [source, setSource] = React.useState<Source>('members');
-	//const [snapshotDate, setSnapshotDate] = React.useState(new Date().toISOString().substr(0,10));
 	const fileRef = React.useRef<HTMLInputElement>(null);
-	//const file = (fileRef.current && fileRef.current.files)? fileRef.current.files[0]: '';
-	console.log(state)
 
 	const dispatch = useAppDispatch();
 
