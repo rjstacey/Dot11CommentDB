@@ -15,20 +15,20 @@ const Constants = {
 /**
  * Differance between two dates
  *
- * @param  {Date} first Date of the first event
- * @param  {Date} second Date of the second event
- * @return {number} Differance between the two dates
+ * @param first Date of the first event
+ * @param second Date of the second event
+ * @return Differance between the two dates in milliseconds
  */
-const dateDiff = (first, second) => second - first;
+const dateDiff = (first: Date, second: Date) => second.valueOf() - first.valueOf();
 
 /**
  * Given dates and some bounds returns an array of positioning information w.r.t. some origin for
  * that set of dates.
  *
- * @param {dates} array containing dates
- * @return {array} positioning for each date 
+ * @param dates array containing dates
+ * @return positioning for each date 
  */
-const datesToDistance = (dates) => {
+const datesToDistance = (dates: Date[]): number[] => {
 
 	if (dates.length < 1)
 		return [];
@@ -42,7 +42,7 @@ const datesToDistance = (dates) => {
 	const deltaExtremesDiff = deltaMax - deltaMin;
 	const distanceExtremesDiff = Constants.MAX_EVENT_PADDING - Constants.MIN_EVENT_PADDING;
 
-	const distances = Array(dates.length);
+	const distances: number[] = Array(dates.length);
 	distances[0] = Constants.X_PADDING;
 	for (let i = 1; i < distances.length; i += 1) {
 		distances[i] = distances[i-1] + 
@@ -260,13 +260,13 @@ function HorizontalTimeline({
 	const containerRef = React.useRef<HTMLDivElement>(null);
 
 	const scrollRight = () => {
-	if (containerRef.current)
-		containerRef.current.scrollLeft += 100;
+		if (containerRef.current)
+			containerRef.current.scrollLeft += 100;
 	}
 
 	const scrollLeft = () => {
-	if (containerRef.current)
-		containerRef.current.scrollLeft -= 100;
+		if (containerRef.current)
+			containerRef.current.scrollLeft -= 100;
 	}
 
 	// Convert the date strings to actual date objects
