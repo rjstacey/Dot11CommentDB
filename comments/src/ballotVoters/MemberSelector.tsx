@@ -2,18 +2,7 @@ import React from 'react';
 import { Select } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { loadMembers, selectMembersState } from '../store/members';
-import { RootState } from '../store';
-
-function selectMembersInfo(state: RootState) {
-	const {valid, loading, ids, entities} = selectMembersState(state);
-	const options = ids.map(id => {
-		const member = entities[id]!;
-		const label = `${member.SAPIN} ${member.Name || ''} (${member.Status})`;
-		return {value: id as number, label}
-	});
-	return {valid, loading, options};
-}
+import { getMembers, selectMembersState, selectMembers } from '../store/members';
 
 function MemberSelector({
 	value,
@@ -25,17 +14,17 @@ function MemberSelector({
 	onChange: (value: number) => void;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
 ) {
-	const {valid, loading, options} = useAppSelector(selectMembersInfo);
 	const dispatch = useAppDispatch();
+	const {loading} = useAppSelector(selectMembersState);
+	const options = useAppSelector(selectMembers);
 
 	React.useEffect(() => {
-		if (!valid && !loading && !readOnly)
-			dispatch(loadMembers());
-	}, [dispatch, valid, loading, readOnly]);
+		dispatch(getMembers());
+	}, []);
 
-	const values = options.filter(o => o.value === value);
+	const values = options.filter(o => o.SAPIN === value);
 
-	const handleChange = (values: typeof options) => onChange(values.length? values[0].value: 0);
+	const handleChange = (values: typeof options) => onChange(values.length? values[0].SAPIN: 0);
 
 	return (
 		<Select
@@ -44,6 +33,8 @@ function MemberSelector({
 			options={options}
 			loading={loading}
 			clearable
+			valueField='SAPIN'
+			labelField='Name'
 			readOnly={readOnly}
 			{...otherProps}
 		/>

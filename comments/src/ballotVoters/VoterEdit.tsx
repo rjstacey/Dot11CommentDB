@@ -8,9 +8,8 @@ import {
 
 import MemberSelector from './MemberSelector';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAppDispatch } from '../store/hooks';
 import { VoterCreate, addVoter, updateVoter } from '../store/voters';
-import { selectMemberEntities } from '../store/members';
 
 const statusOptions = [
 	{value: 'Voter', label: 'Voter'},
