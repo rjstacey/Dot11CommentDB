@@ -62,7 +62,7 @@ function dateToShortDate(isoDate: string | null) {
 		return '';
 	const utcDate = new Date(isoDate)
 	const date = new Date(utcDate.toLocaleString("en-US", {timeZone: "America/New_York"}))
-	return date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).substr(-2) + '-' + ('0' + date.getDate()).substr(-2)
+	return date.getFullYear() + '-' + ('0' + (date.getMonth()+1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2)
 }
 
 /* Parse date in form "YYYY-MM-DD" as US eastern time and convert to UTC ISO date string */
