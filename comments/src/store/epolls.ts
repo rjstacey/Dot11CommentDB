@@ -96,19 +96,35 @@ function validResponse(response: any): response is Epoll[] {
 	return Array.isArray(response) && response.every(validEpoll);
 }
 
-export const loadEpolls = (n = 20): AppThunk =>
+let loadPromise: Promise<Epoll[]> | null;
+export const loadEpolls = (n = 20): AppThunk<Epoll[]> =>
 	async (dispatch) => {
+		if (loadPromise)
+			return loadPromise;
 		dispatch(getPending());
-		let response: any;
-		try {
-			response = await fetcher.get('/api/epolls', {n});
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response");
-		}
-		catch(error) {
-			dispatch(getFailure());
-			dispatch(setError('Unable to get a list of epolls', error));
-			return;
-		}
-		dispatch(getSuccess(response));
+		loadPromise = (fetcher.get('/api/epolls', {n}) as Promise<Epoll[]>)
+			.then((response: any) => {
+				if (!validResponse(response))
+					throw new TypeError("Unexpected response");
+				dispatch(getSuccess(response));
+				return response;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError('Unable to get a list of epolls', error));
+				return [];
+			})
+			.finally(() => {
+				loadPromise = null;
+			});
+		return loadPromise;
+	}
+
+export const getEpolls = (): AppThunk<Epoll[]> => 
+	async (dispatch, getState) => {
+		const {valid, loading, ids, entities} = selectEpollsState(getState());
+		console.log(valid, loading)
+		if (!valid || loading)
+			return dispatch(loadEpolls());
+		return ids.map(id => entities[id]!);
 	}

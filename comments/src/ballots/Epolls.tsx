@@ -9,9 +9,9 @@ import {
 	ColumnProperties
 } from 'dot11-components';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { loadBallots, BallotType, selectBallotsState, BallotCreate } from '../store/ballots';
-import { fields, loadEpolls, selectEpollsState, epollsSelectors, epollsActions, SyncedEpoll } from '../store/epolls';
+import { useAppDispatch } from '../store/hooks';
+import { getBallots, BallotType, BallotEdit } from '../store/ballots';
+import { fields, loadEpolls, getEpolls, epollsSelectors, epollsActions, SyncedEpoll } from '../store/epolls';
 
 import { BallotAddForm } from './BallotDetail';
 
@@ -28,7 +28,7 @@ const TableRow = styled.div`
 	width: 100%;
 `;
 
-function ePollToBallot(epoll: SyncedEpoll): BallotCreate {
+function ePollToBallot(epoll: SyncedEpoll): BallotEdit {
 	// See if the ePoll name has something like CC53 or LB245
 	const m = epoll.name.match(/(CC|LB)\d+/)
 	let type = BallotType.Motion,
@@ -70,26 +70,15 @@ const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40
 function Epolls() {
 
 	const navigate = useNavigate();
-
-	const {valid: ballotsValid, loading: ballotsLoading} = useAppSelector(selectBallotsState);
-	const {valid, loading} = useAppSelector(selectEpollsState);
-
 	const dispatch = useAppDispatch();
 
 	const numberEpolls = React.useRef(20);
 	const load = React.useCallback(() => dispatch(loadEpolls(numberEpolls.current)), [dispatch]);
 
-	const [hasMounted, setHasMounted] = React.useState(false);
-
 	React.useEffect(() => {
-		if (hasMounted)
-			return;
-		if (!ballotsValid && !ballotsLoading)
-			dispatch(loadBallots());
-		if (!valid && !loading)
-			load();
-		setHasMounted(true);
-	}, [dispatch, load, setHasMounted, hasMounted, ballotsValid, ballotsLoading, valid, loading]);
+		dispatch(getBallots());
+		dispatch(getEpolls());
+	}, []);
 
 	const close = () => navigate('/ballots');
 
@@ -98,7 +87,7 @@ function Epolls() {
 		load();
 	}
 
-	const [addBallot, setAddBallot] = React.useState<BallotCreate | null>(null);
+	const [addBallot, setAddBallot] = React.useState<BallotEdit | null>(null);
 
 	const columns = React.useMemo(() => {
 		const columns = tableColumns.slice();

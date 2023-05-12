@@ -18,6 +18,8 @@ import votingPoolsSlice, {loadVotingPools} from './votingPools';
 import offlineSlice, {registerOffline} from './offline';
 import liveUpdateSlice, {registerLiveUpdate} from './liveUpdate';
 
+const PERSIST_VERSION = 3;
+
 const RESET_STORE_ACTION = "root/RESET_STORE";
 
 const dataAppSliceNames = [
@@ -78,7 +80,7 @@ export function configureStore(user: User) {
 
 	const persistConfig = {
 		key: 'comments',
-		version: 3,
+		version: PERSIST_VERSION,
 		storage: {	// IndexedDB for storage using idb-keyval
 			setItem: set,
 			getItem: get,
@@ -90,12 +92,13 @@ export function configureStore(user: User) {
 			commentsSlice.name,
 			resultsSlice.name,
 			votersSlice.name,
-			votingPoolsSlice.name
+			votingPoolsSlice.name,
+			epollsSlice.name,
 		],
 		transforms: [transformState],
 		stateReconciler: autoMergeLevel2,
 		migrate: (state: any) => {
-			if (state && state._persist && state._persist.version !== 2)
+			if (state && state._persist && state._persist.version !== PERSIST_VERSION)
 				return Promise.reject('Discard old version')
 			return Promise.resolve(state);
 		}

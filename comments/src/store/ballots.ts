@@ -27,8 +27,8 @@ export type ResultsSummary = {
 
 export type CommentsSummary = {
 	Count: number;
-	CommentIDMin: number;
-	CommentIDMax: number;
+	CommentIDMin: number | null;
+	CommentIDMax: number | null;
 }
 
 export type Ballot = {
@@ -49,7 +49,12 @@ export type Ballot = {
     Comments: CommentsSummary;
 }
 
-export type BallotCreate = {
+export type BallotCommentsSummary = {
+	id: number;
+	Comments: CommentsSummary;
+}
+
+export type BallotEdit = {
 	BallotID: string;
     Project: string;
     Type: number;
@@ -59,8 +64,8 @@ export type BallotCreate = {
     End: string;
     Document: string;
     Topic: string;
-    VotingPoolID: string;
-    prev_id: number;
+    VotingPoolID: string | null;
+    prev_id: number | null;
     EpollNum: number;
 }
 
@@ -70,7 +75,7 @@ export type SyncedBallot = Ballot & {
 
 export type BallotUpdate = {
 	id: number;
-	changes: Partial<Ballot>;
+	changes: Partial<BallotEdit>;
 }
 
 export const BallotType = {
@@ -266,6 +271,17 @@ export const setCurrentId = (ballot_id: number): AppThunk<Ballot | undefined> =>
 
 const baseUrl = '/api/ballots';
 
+function validCommentsSummary(summary: any): summary is CommentsSummary {
+	return isObject(summary) &&
+		typeof summary.Count === 'number' &&
+		(summary.CommentIDMax === null || typeof summary.CommentIDMax === 'number') &&
+		(summary.CommentIDMin === null || typeof summary.CommentIDMin === 'number');
+}
+
+export function validBallotCommentsSummary(ballot: any): ballot is {id: number; Comments: CommentsSummary} {
+	return isObject(ballot) && validCommentsSummary(ballot.Comments);
+}
+
 export function validBallot(ballot: any): ballot is Ballot {
 	return isObject(ballot) &&
 		typeof ballot.id === 'number' &&
@@ -340,7 +356,7 @@ export const deleteBallots = (ids: EntityId[]): AppThunk =>
 		dispatch(removeMany(ids));
 	}
 
-export const addBallot = (ballot: BallotCreate): AppThunk =>
+export const addBallot = (ballot: BallotEdit): AppThunk =>
 	async (dispatch, getState) => {
 		let response: any;
 		try {

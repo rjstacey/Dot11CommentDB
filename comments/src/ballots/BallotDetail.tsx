@@ -5,7 +5,7 @@ import { DateTime } from 'luxon';
 
 import {
 	shallowDiff, recursivelyDiffObjects, isMultiple, debounce,
-	ActionButton, Form, Row, Col, Field, ListItem, Checkbox, Input, Select, TextArea,
+	ActionButton, Form, Row, Col, Field, ListItem, Checkbox, Input, Select, TextArea, Spinner,
 	ConfirmModal,
 	ActionButtonDropdown,
 	Multiple
@@ -31,13 +31,13 @@ import {
 	BallotTypeOptions,
 	BallotStageOptions,
 	Ballot,
-	BallotCreate,
+	BallotEdit,
 } from '../store/ballots';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
 
-function getDefaultBallot(): BallotCreate {
+function getDefaultBallot(): BallotEdit {
 	const now = new Date()
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 	return {
@@ -75,14 +75,23 @@ function shortDateToDate(shortDateStr: string) {
 	return isNaN(newDate.getTime())? '': newDate.toISOString()
 }
 
-function SelectProject({value, onChange, ...otherProps}) {
+function SelectProject({
+	value,
+	onChange,
+	...otherProps
+}: {
+	value: string;
+	onChange: (value: string) => void;
+} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
+) {
 	const options = useAppSelector(selectProjectOptions);
-	const optionSelected = options.find(o => o.value === value)
+	const values = options.filter(o => o.value === value);
+	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].value: '')
 	return (
 		<Select
-			values={optionSelected? [optionSelected]: []}
+			values={values}
 			options={options}
-			onChange={(values) => onChange(values.length > 0? values[0].value: '')}
+			onChange={handleChange}
 			create
 			clearable
 			searchable
@@ -98,7 +107,7 @@ function SelectPrevBallot({
 	onChange,
 	...otherProps
 }: {
-	ballot: BallotCreate | Multiple<Ballot>;
+	ballot: MultipleBallot | BallotEdit;
 	value: number | null;
 	onChange: (value: number | null) => void;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
@@ -124,7 +133,7 @@ function SelectPrevBallot({
 
 const TopicTextArea = styled(TextArea)`
 	flex: 1;
-	height: 3.5em;
+	min-height: 3.5em;
 `;
 
 export function Column1({
@@ -132,13 +141,13 @@ export function Column1({
 	updateBallot,
 	readOnly
 }: {
-	ballot: Multiple<Ballot> | BallotCreate;
-	updateBallot: (changes: Partial<Ballot>) => void;
+	ballot: MultipleBallot | BallotEdit;
+	updateBallot: (changes: Partial<BallotEdit>) => void;
 	readOnly?: boolean;
 }) {
 	const isMultipleBallots = 'id' in ballot && isMultiple(ballot.id);
 
-	const change = (e) => {
+	const change: React.ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement> = (e) => {
 		const {name, value} = e.target;
 		updateBallot({[name]: value});
 	}
@@ -154,8 +163,8 @@ export function Column1({
 			<Field label='Project:'>
 				<SelectProject
 					style={{minWidth: 150}}
-					value={isMultiple(ballot.Project)? null: ballot.Project}
-					onChange={value => updateBallot({Project: value})}
+					value={isMultiple(ballot.Project)? '': ballot.Project}
+					onChange={(value) => updateBallot({Project: value})}
 					placeholder={isMultiple(ballot.Project)? MULTIPLE_STR: BLANK_STR}
 					readOnly={readOnly}
 				/>
@@ -259,13 +268,13 @@ const BallotContainer = styled.div`
 	}
 `;
 
-function BallotEdit({
+function EditBallot({
 	ballot,
 	updateBallot,
 	readOnly
 }: {
-	ballot: Multiple<Ballot> | BallotCreate;
-	updateBallot: (changes: Partial<Ballot>) => void;
+	ballot: Multiple<Ballot> | BallotEdit;
+	updateBallot: (changes: Partial<BallotEdit>) => void;
 	readOnly?: boolean;
 }) {
 	return (
@@ -316,22 +325,29 @@ function BallotWithActions({
 	readOnly
 }: {
 	ballot: MultipleBallot;
-	updateBallot: (changes: Partial<Ballot>) => void;
+	updateBallot: (changes: Partial<BallotEdit>) => void;
 	readOnly?: boolean;
 }) {
+	const [busy, setBusy] = React.useState(false);
+
 	return (
 		<BallotContainer>
-			<BallotEdit
+			<Row style={{justifyContent: 'center'}}>
+				<Spinner style={{visibility: busy? 'visible': 'hidden'}}/>
+			</Row>
+			<EditBallot
 				ballot={ballot}
 				updateBallot={updateBallot}
 				readOnly={readOnly}
 			/>
 			<ResultsActions
 				ballot_id={ballot.id}
+				setBusy={setBusy}
 				readOnly={readOnly}
 			/>
 			<CommentsActions 
 				ballot_id={ballot.id}
+				setBusy={setBusy}
 				readOnly={readOnly}
 			/>
 		</BallotContainer>
@@ -402,7 +418,7 @@ class _BallotDetail extends React.Component<BallotDetailProps, BallotDetailState
 		};
 	}
 
-	updateBallot = (changes: Partial<Ballot>) => {
+	updateBallot = (changes: Partial<BallotEdit>) => {
 		const {readOnly, uiProperties} = this.props;
 		if (readOnly || !uiProperties.edit) {
 			console.warn("Update when read-only")
@@ -522,11 +538,11 @@ export function BallotAddForm({
 	defaultBallot,
 	methods
 }: {
-	defaultBallot?: BallotCreate;
+	defaultBallot?: BallotEdit;
 	methods: {close: () => void};
 }) {
 	const dispatch = useAppDispatch();
-	const [ballot, setBallot] = React.useState<BallotCreate>(defaultBallot || getDefaultBallot());
+	const [ballot, setBallot] = React.useState<BallotEdit>(defaultBallot || getDefaultBallot());
 	const [busy, setBusy] = React.useState(false);
 
 	const submit = async () => {
@@ -537,7 +553,7 @@ export function BallotAddForm({
 		methods.close();
 	}
 
-	const updateBallot = (changes) => setBallot(ballot => ({...ballot, ...changes}));
+	const updateBallot = (changes: Partial<BallotEdit>) => setBallot(ballot => ({...ballot, ...changes}));
 
 	return (
 		<Form
@@ -548,7 +564,7 @@ export function BallotAddForm({
 			cancel={methods.close}
 			busy={busy}
 		>
-			<BallotEdit
+			<EditBallot
 				ballot={ballot}
 				updateBallot={updateBallot}
 				readOnly={false}

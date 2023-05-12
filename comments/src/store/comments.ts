@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import {createSelector} from '@reduxjs/toolkit';
-import type { EntityId, Dictionary } from '@reduxjs/toolkit';
+import type { PayloadAction, EntityId, Dictionary } from '@reduxjs/toolkit';
 import {
 	fetcher,
 	setError,
@@ -9,7 +9,7 @@ import {
 
 import type { RootState, AppThunk } from '.';
 
-import { updateBallotSuccess, selectBallotEntities, validBallot, Ballot } from './ballots';
+import { updateBallotSuccess, selectBallotEntities, validBallotCommentsSummary, BallotCommentsSummary } from './ballots';
 import { offlineFetch } from './offline';
 
 
@@ -177,7 +177,7 @@ const slice = createAppTableDataSlice({
 		)
 		.addMatcher(
 			(action) => action.type === dataSet + '/getCommit',
-			(state, action) => {
+			(state, action: PayloadAction<CommentResolution[]>) => {
 				const comments = action.payload;
 				const updates = comments.map(c => ({id: c.id, changes: c}));
 				dataAdapter.updateMany(state, updates);
@@ -185,7 +185,7 @@ const slice = createAppTableDataSlice({
 		)
 		.addMatcher(
 			(action) => action.type === dataSet + '/updateCommit',
-			(state, action) => {
+			(state, action: PayloadAction<{comments: CommentResolution[]}>) => {
 				const {comments} = action.payload;
 				//const updates = comments.map(c => ({id: c.id, changes: {LastModifiedBy: c.LastModifiedBy, LastModifiedTime: c.LastModifiedTime}}));
 				const updates = comments.map(c => ({id: c.id, changes: c}));
@@ -285,6 +285,7 @@ export function getCommentStatus(c: CommentResolution) {
 }
 
 const baseCommentsUrl = '/api/comments';
+const baseResolutionsUrl = '/api/resolutions';
 
 function validCommentResolution(c: any): c is CommentResolution {
 	return isObject(c) &&
@@ -379,19 +380,19 @@ export const deleteComments = (ballot_id: number): AppThunk =>
 		}
 	}
 
-function validImportReponse(response: any): response is {ballot: Ballot} {
-	return isObject(response) && validBallot(response.ballot);
+
+function validImportReponse(response: any): response is {ballot: BallotCommentsSummary} {
+	return isObject(response) && validBallotCommentsSummary(response.ballot);
 }
 
 export const importComments = (ballot_id: number, epollNum: number, startCID: number): AppThunk =>
 	async (dispatch) => {
-		const url = `/api/comments/${ballot_id}/importFromEpoll/${epollNum}`;
+		const url = `${baseCommentsUrl}/${ballot_id}/importFromEpoll/${epollNum}`;
 		let response: any;
 		try {
 			response = await fetcher.post(url, {StartCID: startCID});
-			if (!validImportReponse(response)) {
-				throw new TypeError('Unexpected response to POST: ' + url);
-			}
+			if (!validImportReponse(response))
+				throw new TypeError("Unexpected response to POST " + url);
 		}
 		catch (error) {
 			dispatch(setError(`Unable to import comments`, error));
@@ -400,10 +401,10 @@ export const importComments = (ballot_id: number, epollNum: number, startCID: nu
 		dispatch(updateBallotSuccess(ballot_id, response.ballot));
 	}
 
-function validUploadResponse(response: any): response is {comments: CommentResolution[]; ballot: Ballot} {
+function validUploadResponse(response: any): response is {comments: CommentResolution[]; ballot: BallotCommentsSummary} {
 	return isObject(response) &&
 		Array.isArray(response.comments) && response.comments.every(validCommentResolution) &&
-		validBallot(response.ballot);
+		validBallotCommentsSummary(response.ballot);
 }
 
 export const uploadComments = (ballot_id: number, type, file): AppThunk =>
@@ -486,10 +487,10 @@ const removeMany = (ids: EntityId[]): AppThunk =>
 		const {entities, ballot_id} = selectCommentsState(state);
 		const lastModified = selectCommentsLastModified(state);
 
-		const comments = ids.map(id => entities[id]);
+		const comments = ids.map(id => entities[id]!);
 		dispatch(localRemoveMany(ids));
 		dispatch(offlineFetch({
-			effect: {url: '/api/resolutions', method: 'DELETE', params: {ids, ballot_id, modifiedSince: lastModified}},
+			effect: {url: baseResolutionsUrl, method: 'DELETE', params: {ids, ballot_id, modifiedSince: lastModified}},
 			commit: {type: dataSet + '/updateCommit'},
 			rollback: {type: dataSet + '/removeManyRollback', payload: comments}
 		}));
@@ -553,7 +554,7 @@ export const addResolutions = (resolutions: ResolutionCreate[]): AppThunk =>
 		dispatch(localUpdateMany(updates));
 		dispatch(localAddMany(adds));
 		dispatch(offlineFetch({
-			effect: {url: '/api/resolutions', method: 'POST', params: {entities: remoteAdds, ballot_id, modifiedSince: lastModified}},
+			effect: {url: baseResolutionsUrl, method: 'POST', params: {entities: remoteAdds, ballot_id, modifiedSince: lastModified}},
 			commit: {type: dataSet + '/updateCommit'},
 			rollback: {type: dataSet + '/addManyRollback', payload: adds.map(c => c.id)}
 		}));
@@ -658,6 +659,18 @@ export type UploadResult = {
 	remaining: number[];
 	updated: number;
 }
+
+function validUploadResolutionsResponse(response: any): response is {comments: CommentResolution[]; ballot: BallotCommentsSummary} & UploadResult {
+	return isObject(response) &&
+		Array.isArray(response.comments) && response.comments.every(validCommentResolution) &&
+		validBallotCommentsSummary(response.ballot) &&
+		Array.isArray(response.matched) &&
+		Array.isArray(response.unmatched) &&
+		Array.isArray(response.added) &&
+		Array.isArray(response.remaining) &&
+		typeof response.updated === 'number';
+}
+
 export const uploadResolutions = (ballot_id: number, toUpdate, matchAlgorithm, matchUpdate, sheetName: string, file): AppThunk<UploadResult | undefined> =>
 	async (dispatch) => {
 		const params = {
@@ -669,10 +682,10 @@ export const uploadResolutions = (ballot_id: number, toUpdate, matchAlgorithm, m
 			}),
 			ResolutionsFile: file
 		}
-		let response;
+		let response: any;
 		try {
-			response = await fetcher.postMultipart(`/api/resolutions/${ballot_id}/upload`, params);
-			if (!Array.isArray(response.comments) || typeof response.ballot !== 'object')
+			response = await fetcher.postMultipart(`${baseResolutionsUrl}/${ballot_id}/upload`, params);
+			if (!validUploadResolutionsResponse(response))
 				throw new TypeError('Unexpected response');
 		}
 		catch (error) {
