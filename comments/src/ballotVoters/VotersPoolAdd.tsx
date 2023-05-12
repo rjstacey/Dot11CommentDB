@@ -9,7 +9,7 @@ function votingPoolNameFromDate(isoDate: string) {
 	return 'members-' + isoDate;
 }
 
-type Source = 'members' | 'spreadsheet' | 'empty';
+type Source = 'members' | 'upload' | 'empty';
 
 type State = {
 	source: Source;
@@ -30,11 +30,11 @@ function initState(): State {
 
 function getErrorText(state: State) {
 	if (!state.votingPoolId)
-		return 'Voting pool must have a name';
+		return 'Enter a name for the voting pool';
 	if (state.source === 'members' && !state.date)
 		return 'Select date for members snapshot';
-	if (state.source === 'spreadsheet' && !state.file)
-		return 'Select file for spreadsheet upload';
+	if (state.source === 'upload' && !state.file)
+		return 'Select a file upload';
 }
 
 function VotersPoolAddModal({
@@ -57,7 +57,7 @@ function VotersPoolAddModal({
 			return;
 		if (state.source === 'members')
 			await dispatch(votersFromMembersSnapshot(state.votingPoolId, state.date));
-		else if (state.source === 'spreadsheet')
+		else if (state.source === 'upload')
 			await dispatch(votersFromSpreadsheet(state.votingPoolId, state.file))
 		onSubmit(state.votingPoolId);
 	}
@@ -108,9 +108,9 @@ function VotersPoolAddModal({
 						</ListItem>
 						<ListItem>
 							<Checkbox 
-								checked={state.source === 'spreadsheet'}
+								checked={state.source === 'upload'}
 								onChange={e => {
-									changeState({source: 'spreadsheet'})
+									changeState({source: 'upload'})
 									fileRef.current?.click()
 								}}
 							/>
