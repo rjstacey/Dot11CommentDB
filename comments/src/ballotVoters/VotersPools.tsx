@@ -11,8 +11,8 @@ import {
 
 import VotersPoolAddModal from './VotersPoolAdd';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { loadVotingPools, deleteVotingPools, selectVotingPoolsState, votingPoolsSelectors, votingPoolsActions, getVotingPools } from '../store/votingPools';
+import { useAppDispatch } from '../store/hooks';
+import { loadVotingPools, deleteVotingPools, votingPoolsSelectors, votingPoolsActions, getVotingPools } from '../store/votingPools';
 
 const Title = styled.h2`
 	font-weight: 600;

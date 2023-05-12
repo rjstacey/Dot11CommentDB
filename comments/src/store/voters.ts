@@ -1,4 +1,4 @@
-import type { EntityId } from '@reduxjs/toolkit';
+import type { EntityId, PayloadAction } from '@reduxjs/toolkit';
 import {
 	fetcher,
 	setError,
@@ -52,7 +52,7 @@ export const fields = {
  */
 export const selectVotersState = (state: RootState) => state[dataSet];
 const selectVoterIds = (state: RootState) => selectVotersState(state).ids;
-const selectVoterEntities = (state: RootState) => selectVotersState(state).entities;
+//const selectVoterEntities = (state: RootState) => selectVotersState(state).entities;
 const selectVotersCount = (state: RootState) => selectVoterIds(state).length;
 
 export const votersSelectors = getAppTableDataSelectors(selectVotersState);
@@ -67,7 +67,7 @@ const slice = createAppTableDataSlice({
 		votingPoolId: '',
 	},
 	reducers: {
-		setVotingPoolID(state, action) {
+		setVotingPoolID(state, action: PayloadAction<string>) {
 			state.votingPoolId = action.payload;
 		},
 	}
@@ -147,7 +147,7 @@ export const votersFromSpreadsheet = (votingPoolId: string, file): AppThunk =>
 		try {
 			response = await fetcher.postMultipart(url, {File: file});
 			if (!validResponse(response))
-				throw new TypeError(`Unexpected response to POST: ${url}`);
+				throw new TypeError(`Unexpected response to POST ${url}`);
 		}
 		catch(error) {
 			dispatch(getFailure());

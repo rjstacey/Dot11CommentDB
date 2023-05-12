@@ -20,7 +20,7 @@ function MemberSelector({
 
 	React.useEffect(() => {
 		dispatch(getMembers());
-	}, []);
+	}, [dispatch]);
 
 	const values = options.filter(o => o.SAPIN === value);
 
