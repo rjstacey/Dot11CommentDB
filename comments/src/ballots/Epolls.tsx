@@ -78,7 +78,7 @@ function Epolls() {
 	React.useEffect(() => {
 		dispatch(getBallots());
 		dispatch(getEpolls());
-	}, []);
+	}, [dispatch]);
 
 	const close = () => navigate('/ballots');
 
