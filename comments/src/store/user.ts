@@ -12,7 +12,6 @@ export const dataSet = 'user';
 
 export type User = {
 	SAPIN: number;
-	//Username: string;
 	Name: string;
 	Email: string;
 	Permissions: string[];
@@ -40,14 +39,14 @@ export const selectUserPermissions = (state: RootState) => selectUser(state)?.Pe
 export function selectUserAccessLevel(state: RootState) {
 	const permissions = selectUserPermissions(state);
 	if (Array.isArray(permissions)) {
+		if (permissions.includes('wgAdmin'))
+			return AccessLevel.admin;
 		if (permissions.includes('comments_rw'))
 			return AccessLevel.rw;
 		if (permissions.includes('comments_ro'))
 			return AccessLevel.ro;
-		if (permissions.includes('wgAdmin'))
-			return AccessLevel.admin;
 	}
 
-	/* Eventually, this will be deprecated. Here until we fully transision to the permissions array. */
+	/* This will be deprecated. Here until we fully transision to the permissions array. */
 	return selectUser(state)?.Access || AccessLevel.none;
 }
