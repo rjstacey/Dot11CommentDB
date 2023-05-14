@@ -407,7 +407,7 @@ function validUploadResponse(response: any): response is {comments: CommentResol
 		validBallotCommentsSummary(response.ballot);
 }
 
-export const uploadComments = (ballot_id: number, type, file): AppThunk =>
+export const uploadComments = (ballot_id: number, file: File): AppThunk =>
 	async (dispatch) => {
 		const url = `${baseCommentsUrl}/${ballot_id}/upload`;
 		let response: any;
