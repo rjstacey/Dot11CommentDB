@@ -24,7 +24,7 @@ function ResultsActions({
 	const dispatch = useAppDispatch();
 	const fileRef = React.useRef<HTMLInputElement>(null);
 	const [inputValue, setInputValue] = React.useState('');
-	const ballot = useAppSelector(state => selectBallot(state, isMultiple(ballot_id)? 0: ballot_id));
+	const ballot = useAppSelector(state => isMultiple(ballot_id)? undefined: selectBallot(state, ballot_id));
 	console.log(ballot)
 
 	async function handleDeleteResults() {
@@ -60,7 +60,7 @@ function ResultsActions({
 		<>
 			<Row>
 				<FieldLeft label='Results:'>
-					{isMultiple(ballot_id)? MULTIPLE_STR: renderResultsSummary({rowData: ballot!})}
+					{isMultiple(ballot_id)? MULTIPLE_STR: (ballot? renderResultsSummary({rowData: ballot}): '')}
 				</FieldLeft>
 			</Row>
 			{!readOnly &&
@@ -71,13 +71,13 @@ function ResultsActions({
 					>
 						Delete
 					</Button>
-					{ballot?.EpollNum &&
+					{ballot?.EpollNum?
 						<Button
 							onClick={handleImportResults}
 							disabled={isMultiple(ballot_id)}
 						>
 							{(ballot.Results? 'Reimport': 'Import') + ' from ePoll'}
-						</Button>}
+						</Button>: null}
 					<Button
 						onClick={() => fileRef.current?.click()}
 						disabled={isMultiple(ballot_id)}

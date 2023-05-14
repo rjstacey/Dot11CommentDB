@@ -101,7 +101,7 @@ const CommentsActions = ({
 		const {files} = e.target;
 		if (files && files.length > 0) {
 			setBusy(true);
-			await dispatch(uploadComments(ballot_id as number, ballot!.Type, files[0]));
+			await dispatch(uploadComments(ballot_id as number, files[0]));
 			setBusy(false);
 			setInputValue('');
 		}
@@ -128,13 +128,13 @@ const CommentsActions = ({
 					>
 						<ChangeStartCID ballot={ballot!} />
 					</ActionButtonModal>
-					{ballot?.EpollNum &&
+					{ballot?.EpollNum?
 						<Button
 							onClick={handleImportComments}
 							disabled={isMultiple(ballot_id)}
 						>
 							{(ballot.Comments?.Count? 'Reimport': 'Import') + ' from ePoll'}
-						</Button>}
+						</Button>: null}
 					<Button
 						onClick={() => fileRef.current?.click()}
 						disabled={isMultiple(ballot_id)}
