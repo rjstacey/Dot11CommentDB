@@ -4,6 +4,7 @@ import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 
 import { userIsSubgroupAdmin, User } from './users';
+import type { Response } from 'express';
 
 import {
 	parseMyProjectRosterSpreadsheet,
@@ -74,7 +75,7 @@ export type MemberBasic = Pick<Member,
 
 export type StatusChangeEntry = {
 	id: number;
-	Date: string;
+	Date: string | null;
 	OldStatus: string;
 	NewStatus: string;
 	Reason: string;
@@ -199,7 +200,7 @@ export async function getMembersSnapshot(date: string | Date) {
 		.map(m => {
 			//m.StatusChangeHistory.forEach(h => h.Date = new Date(h.Date));
 			let history = m.StatusChangeHistory
-				.map(h => ({...h, Date: new Date(h.Date)}))
+				.map(h => ({...h, Date: new Date(h.Date || '')}))
 				.sort((h1, h2) => h2.Date.valueOf() - h1.Date.valueOf());
 			let status = m.Status;
 			//console.log(`${m.SAPIN}:`)
@@ -540,9 +541,10 @@ async function uploadDatabaseMemberSAPINs(buffer: Buffer) {
 		const m1 = members.find(m => m.MemberID === s.MemberID);
 		if (m1) {
 			if (m1.SAPIN === s.SAPIN) {
+				const dateAdded = s.DateAdded? DateTime.fromISO(s.DateAdded).toUTC().toFormat('yyyy-MM-dd HH:mm:ss'): null;
 				sql += db.format(
 						'UPDATE members SET DateAdded=? WHERE MemberID=?;',
-						[DateTime.fromISO(s.DateAdded).toUTC().toFormat('yyyy-MM-dd HH:mm:ss'), m1.MemberID]
+						[dateAdded, m1.MemberID]
 					);
 			}
 			else {
@@ -561,7 +563,7 @@ async function uploadDatabaseMemberSAPINs(buffer: Buffer) {
 						ReplacedBySAPIN: m1.SAPIN,
 						Status: 'Obsolete',
 						Notes: 'Replaced by SAPIN=' + m1.SAPIN,
-						DateAdded: DateTime.fromISO(s.DateAdded).toUTC().toFormat('yyyy-MM-dd HH:mm:ss')
+						DateAdded: s.DateAdded? DateTime.fromISO(s.DateAdded).toUTC().toFormat('yyyy-MM-dd HH:mm:ss'): null
 					}
 					sql += db.format('INSERT INTO members SET ?;', [entry])
 				}
@@ -622,36 +624,34 @@ async function uploadDatabaseMemberHistory(buffer: Buffer) {
 	await db.query(sql);
 }
 
-const UploadFormat = {
-	Members: 'members',
-	SAPINs: 'sapins',
-	Emails: 'emails',
-	History: 'history'
-};
+const uploadFormats = ['members', 'sapins', 'emails', 'history'] as const;
+type UploadFormat = typeof uploadFormats[number];
 
-export async function uploadMembers(format: string, file: any) {
-
-	switch (format) {
-		case UploadFormat.Members:
-			await uploadDatabaseMembers(file.buffer);
-			break;
-		case UploadFormat.SAPINs:
-			await uploadDatabaseMemberSAPINs(file.buffer);
-			break;
-		case UploadFormat.Emails:
-			await uploadDatabaseMemberEmails(file.buffer);
-			break;
-		case UploadFormat.History:
-			await uploadDatabaseMemberHistory(file.buffer);
-			break;
-		default:
-			throw new TypeError(`Unknown format: ${format}. Extected: ${Object.values(UploadFormat)}.`);
-	}
-
-	return getMembers(); //getMembersWithParticipation();
+function isUploadFormat(format: any): format is UploadFormat {
+	return uploadFormats.includes(format);
 }
 
-export async function importMyProjectRoster(file) {
+export async function uploadMembers(format: string, file: {buffer: Buffer}) {
+
+	format = format.toLocaleLowerCase();
+	if (!isUploadFormat(format))
+		throw new TypeError("Invalid format; expected one of " + uploadFormats.join(', '));
+
+	if (format === 'members')
+		await uploadDatabaseMembers(file.buffer);
+	else if (format === 'sapins')
+		await uploadDatabaseMemberSAPINs(file.buffer);
+	else if (format === 'emails')
+		await uploadDatabaseMemberEmails(file.buffer);
+	else if (format === 'history')
+		await uploadDatabaseMemberHistory(file.buffer);
+	else
+		throw new Error("Type checking error");
+
+	return getMembers();
+}
+
+export async function importMyProjectRoster(file: {buffer: Buffer}) {
 	let roster = await parseMyProjectRosterSpreadsheet(file.buffer);
 	let members = roster
 		.filter(u => 
@@ -679,10 +679,10 @@ export async function importMyProjectRoster(file) {
 		';';
 	await db.query(sql);
 
-	return getMembers(); //getMembersWithParticipation();
+	return getMembers();
 }
 
-export async function exportMyProjectRoster(res) {
+export async function exportMyProjectRoster(res: Response) {
 	let members = await getMembers();
 	members = members.filter(m => !m.Status.search(/^Voter|^Aspirant|^Potential Voter|^Non-Voter/));
 	await genMyProjectRosterSpreadsheet(members, res);

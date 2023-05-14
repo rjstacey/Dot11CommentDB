@@ -2,7 +2,10 @@
  * Handle the legacy (Adrian's comment database) spreadsheet file
  */
 import ExcelJS from 'exceljs';
+import { isCorrectSpreadsheetHeader } from '../utils';
 import type { CommentResolution } from './comments';
+import type { User } from './users';
+import type { Response } from 'express';
 
 function parseResolution(v: any, c: Partial<CommentResolution>) {
 	if (typeof v === 'string') {
@@ -419,10 +422,11 @@ const commentColumns = [
 	'Ad-hoc Notes',
 ];
 
+/*
 function headingsMatch(headingRow: string[], expectedHeadings: string[]) {
 	return !expectedHeadings.reduce((result, heading, i) => result || heading !== headingRow[i], false)
 }
-
+*/
 export async function parseCommentsSpreadsheet(buffer: Buffer, sheetName: string) {
 
 	var workbook = new ExcelJS.Workbook();
@@ -440,8 +444,8 @@ export async function parseCommentsSpreadsheet(buffer: Buffer, sheetName: string
 	headerRow.shift();	// Adjust to zero based column numbering
 	const legacyHeadings = Object.keys(legacyColumns);
 	const modernHeadings = Object.keys(modernColumns);
-	const isLegacy = headingsMatch(headerRow, legacyHeadings)
-	if (!isLegacy && !headingsMatch(headerRow, modernHeadings)) {
+	const isLegacy = isCorrectSpreadsheetHeader(headerRow, legacyHeadings)
+	if (!isLegacy && !isCorrectSpreadsheetHeader(headerRow, modernHeadings)) {
 		throw new Error(
 			`Unexpected column headings ${headerRow.join(', ')}. ` +
 			`\n\nExpected legacy headings: ${legacyHeadings.join(', ')}.` +
@@ -462,8 +466,9 @@ export async function parseCommentsSpreadsheet(buffer: Buffer, sheetName: string
 	return comments
 }
 
-export function fromHtml(html: string | undefined) {
-	if (typeof html !== 'string') return ''
+export function fromHtml(html: any) {
+	if (typeof html !== 'string')
+		return ''
 
 	html = html.replace(/<p\w[^>]*>(.*)<\/p[^>]*>/g, (match, entity) => `${entity}\n`);
 	html = html.replace(/<[^>]+>/g, '');
@@ -481,7 +486,7 @@ export function fromHtml(html: string | undefined) {
 	return html;
 }
 
-function toHtml(value: string) {
+function toHtml(value: string | null | undefined) {
 	if (!value)
 		return '';
 
@@ -497,7 +502,7 @@ function toHtml(value: string) {
 // Convert column number into letter, e.g. 1 => A, 26 => Z, 27 => AA
 const getColRef = (n: number) => n? getColRef(Math.floor((n-1)/26)) + String.fromCharCode(65 + ((n-1) % 26)): '';
 
-function addResolutionFormatting(sheet: ExcelJS.Worksheet, columns, nRows) {
+function addResolutionFormatting(sheet: ExcelJS.Worksheet, columns: Record<string, Col>, nRows: number) {
 	// Add conditional formating for the "Resolution" column. Color the cell based on Resn Status
 	const resolutionColumn = getColRef(Object.keys(columns).indexOf('Resolution')+1)
 	const resnStatusColumn = getColRef(Object.keys(columns).indexOf('Resn Status')+1)
@@ -618,24 +623,25 @@ function genWorksheet(sheet: ExcelJS.Worksheet, columns: Record<string, Col>, ba
 	sheet.views = [{state: 'frozen', xSplit: 0, ySplit: 1}];
 }
 
-const CommentsSpreadsheetStyle = {
-	AllComments: 'AllComments',
-	TabPerAdHoc: 'TabPerAdHoc',
-	TabPerCommentGroup: 'TabPerCommentGroup'
+const commentSpreadsheetStyles = ["AllComments", "TabPerAdHoc", "TabPerCommentGroup"] as const;
+type CommentSpreadsheetStyle = typeof commentSpreadsheetStyles[number];
+
+function validCommentSpreadsheetStyle(style: any): style is CommentSpreadsheetStyle {
+	return commentSpreadsheetStyles.includes(style);
 }
 
 export async function genCommentsSpreadsheet(
-	user,
+	user: User,
 	ballotId: number | string,
 	isLegacy: boolean,
-	style: string,
+	style: any,
 	doc: string,
 	comments: CommentResolution[],
 	file: {buffer: Buffer},
-	res
+	res: Response
 ) {
-	if (!Object.values(CommentsSpreadsheetStyle).includes(style))
-		throw new TypeError('Invalid Style parameter: expected one of ' + Object.values(CommentsSpreadsheetStyle).join(', '));
+	if (!validCommentSpreadsheetStyle(style))
+		throw new TypeError('Invalid Style parameter: expected one of ' + commentSpreadsheetStyles.join(', '));
 
 	let workbook = new ExcelJS.Workbook();
 	if (file) {
@@ -645,15 +651,12 @@ export async function genCommentsSpreadsheet(
 		catch(err) {
 			throw new TypeError("Invalid workbook: " + err);
 		}
-		let ids: number[] = [];
+		let sheetIds: number[] = [];
 		workbook.eachSheet(sheet => {
-			if (sheet.name !== 'Title' && sheet.name !== 'Revision History') {
-				ids.push(sheet.id);
-			}
+			if (sheet.name !== 'Title' && sheet.name !== 'Revision History')
+				sheetIds.push(sheet.id);
 		});
-		for (let id of ids) {
-			workbook.removeWorksheet(id);
-		}
+		sheetIds.forEach(id => workbook.removeWorksheet(id));
 	}
 	else {
 		workbook.creator = user.Name;
@@ -666,22 +669,22 @@ export async function genCommentsSpreadsheet(
 
 	let sheet = workbook.addWorksheet('All Comments');
 	genWorksheet(sheet, columns, ballotId, doc, comments);
-	if (style === CommentsSpreadsheetStyle.TabPerAdHoc) {
+	if (style === "TabPerAdHoc") {
 		// List of unique AdHoc values
 		const adhocs = [...new Set(comments.map(c => c.AdHoc || '(Blank)'))].sort();
 		adhocs.forEach(adhoc => {
 			// Sheet name cannot be longer than 31 characters and cannot include: * ? : \ / [ ]
-			const sheetName = adhoc.substr(0,30).replace(/[*.\?:\\\/\[\]]/g, '_');
+			const sheetName = adhoc.slice(0,30).replace(/[*.\?:\\\/\[\]]/g, '_');
 			sheet = workbook.addWorksheet(sheetName);
 			const selectComments = comments.filter(c => adhoc === '(Blank)'? !c.AdHoc: c.AdHoc === adhoc);
 			genWorksheet(sheet, columns, ballotId, doc, selectComments);
 		});
 	}
-	else if (style === CommentsSpreadsheetStyle.TabPerCommentGroup) {
+	else if (style === "TabPerCommentGroup") {
 		// List of unique CommentGroup values
 		const groups = [...new Set(comments.map(c => c.CommentGroup || '(Blank)'))].sort();
 		groups.forEach(group => {
-			const sheetName = group.substr(0,30).replace(/[*.\?:\\\/\[\]]/g, '_');
+			const sheetName = group.slice(0,30).replace(/[*.\?:\\\/\[\]]/g, '_');
 			sheet = workbook.addWorksheet(sheetName);
 			const selectComments = comments.filter(c => group === '(Blank)'? !c.CommentGroup: c.CommentGroup === group);
 			genWorksheet(sheet, columns, ballotId, doc, selectComments);

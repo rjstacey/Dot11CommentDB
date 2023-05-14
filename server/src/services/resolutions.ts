@@ -5,7 +5,7 @@ import db from '../utils/database';
 
 import {getComments, CommentResolution} from './comments';
 import {genCommentsSpreadsheet} from './commentsSpreadsheet';
-import {myProjectAddResolutions} from './myProjectSpreadsheets';
+import { myProjectAddResolutions } from './myProjectSpreadsheets';
 
 export type Resolution = {
 	id: string;

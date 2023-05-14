@@ -1,11 +1,4 @@
-import db from '../utils/database';
-
-import {
-    getBallotsSQL,
-    BallotType,
-    Ballot
-} from './ballots';
-
+import { getBallotSeries, getRecentWgBallots, Ballot } from './ballots';
 import { getVotersForBallots } from './voters';
 import { getResultsForWgBallot, Result } from './results';
 
@@ -42,32 +35,10 @@ type RecentBallotSeriesParticipation = {
     ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[];
 }
 
-export async function getBallotSeries(id: number) {
-
-	async function recursiveBallotSeriesGet(ballotSeries: Ballot[], id: number): Promise<Ballot[]> {
-		const [ballot] = await db.query(getBallotsSQL + ' WHERE id=?', [id]) as unknown as Ballot[];
-        if (!ballot)
-            return ballotSeries;
-		ballotSeries.unshift(ballot);
-        if (!ballot.prev_id || ballotSeries.length === 30)
-            return ballotSeries;
-        
-		return recursiveBallotSeriesGet(ballotSeries, ballot.prev_id);
-	}
-
-	return recursiveBallotSeriesGet([], id);
-}
-
 export async function getBallotSeriesParticipation() {
 
     //const t1 = Date.now();
-	let completedBallots = await db.query(
-		getBallotsSQL + ' WHERE ' +
-			`Type=${BallotType.WG} AND ` +	// WG ballots
-			'IsComplete<>0 ' + 				// series is complete
-			'ORDER BY End DESC ' +			// newest to oldest
-			'LIMIT 3;'						// last 3
-	) as unknown as Ballot[];
+	let completedBallots = await getRecentWgBallots();
 
     //const t2 = Date.now();
     const ballotsArr = await Promise.all(completedBallots.map(b => getBallotSeries(b.id)));
@@ -75,26 +46,26 @@ export async function getBallotSeriesParticipation() {
     //const t3 = Date.now();
     const ballotSeriesArr: BallotSeries[] = [];
     const resultsEntities: Record<number, Result[]> = {};
-    const ballot_ids: number[] = [];
+    const initialBallot_ids: number[] = [];
     let allBallots: Ballot[] = [];
     for (const ballots of ballotsArr) {
-        const id = ballots[0].id;
-        ballot_ids.push(id);
+        const id = ballots[0].id;   // use initial ballot identifier as the series identifier
+        initialBallot_ids.push(id);
         allBallots = allBallots.concat(ballots);
         const results = await Promise.all(ballots.map(ballot => getResultsForWgBallot(ballot.id)));
         results.forEach((results, i) => resultsEntities[ballots[i].id] = results);
         ballotSeriesArr.push({
             id,
             ballotIds: ballots.map(b => b.id),
-            votingPoolId: ballots[0].VotingPoolID,
-            start: ballots[0].Start,
-			end: ballots[ballots.length-1].End,
+            votingPoolId: ballots[0].VotingPoolID!,
+            start: ballots[0].Start!,
+			end: ballots[ballots.length-1].End!,
 			project: ballots[0].Project,
         });
     }
 
     //const t4 = Date.now();
-    const votersForBallots = await getVotersForBallots(ballot_ids);
+    const votersForBallots = await getVotersForBallots(initialBallot_ids);
 
     //const t5 = Date.now();
     let ballotSeriesParticipation: RecentBallotSeriesParticipation[] = votersForBallots.map(v => {

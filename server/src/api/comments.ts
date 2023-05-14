@@ -108,7 +108,7 @@ router.patch('/:ballot_id(\\d+)/startCommentId', async (req, res, next) => {
 		const {user} = req;
 		const ballot_id = Number(req.params.ballot_id);
 		const {StartCommentID} = req.body;
-		const data = await setStartCommentId(user.SAPIN, ballot_id, StartCommentID);
+		const data = await setStartCommentId(user, ballot_id, StartCommentID);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -118,7 +118,7 @@ router.delete('/:ballot_id(\\d+)', async (req, res, next) => {
 	try {
 		const {user} = req;
 		const ballot_id = Number(req.params.ballot_id);
-		const data = await deleteComments(user.SAPIN, ballot_id);
+		const data = await deleteComments(user, ballot_id);
 		res.json(data);
 	}
 	catch (err) {next(err)}
@@ -143,7 +143,7 @@ router.post('/:ballot_id(\\d+)/upload', upload.single('CommentsFile'), async (re
 		if (!req.file)
 			throw new Error('Missing file');
 		const startCommentId = req.body.StartCID || 1;
-		const data = await uploadComments(user.SAPIN, ballot_id, startCommentId, req.file);
+		const data = await uploadComments(user, ballot_id, startCommentId, req.file);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -151,7 +151,7 @@ router.post('/:ballot_id(\\d+)/upload', upload.single('CommentsFile'), async (re
 
 const commentSpreadsheetFormats = ["MyProject", "Legacy", "Modern"] as const;
 type CommentSpreadsheetFormat = typeof commentSpreadsheetFormats[number];
-const isCommentSpreadsheetFormat = (f: unknown): f is CommentSpreadsheetFormat => typeof f === 'string' && commentSpreadsheetFormats.includes(f as any);
+const isCommentSpreadsheetFormat = (f: any): f is CommentSpreadsheetFormat => commentSpreadsheetFormats.includes(f);
 
 router.post('/:ballot_id(\\d+)/export/:format', upload.single('file'), (req, res, next) => {
 	try {

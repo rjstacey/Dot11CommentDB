@@ -2,8 +2,7 @@ import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 import { isPlainObject } from '../utils';
 
-import { getResults, getResultsCoalesced, Result, ResultsSummary } from './results';
-import { getVoters } from './voters';
+import { getResultsCoalesced, ResultsSummary } from './results';
 import { getCommentsSummary, CommentsSummary } from './comments';
 
 import type { User } from './users';
@@ -27,7 +26,7 @@ export type Ballot = {
 }
 
 type BallotUpdate = {
-	id: number;
+	id: Ballot["id"];
 	changes: Partial<Ballot>;
 }
 
@@ -79,51 +78,37 @@ export async function getBallot(id: number) {
 	return ballot;
 }
 
-async function getBallotWithNewResultsSummary(user: User, ballot_id: number) {
-	const {ballot, summary: resultsSummary} = await getResultsCoalesced(user, ballot_id);
-	const commentsSummary = await getCommentsSummary(ballot_id);
-	return {
-		...ballot,
-		Comments: commentsSummary,
-		Results: resultsSummary
-	};
+export async function getBallotWithNewResultsSummary(user: User, ballot_id: number) {
+	const {ballot} = await getResultsCoalesced(user, ballot_id);
+	return ballot;
 }
 
-export async function getBallotSeriesWithResults(id: number) {
+export async function getBallotSeries(id: number) {
 
-	async function recursiveBallotSeriesGet(ballotSeries, id: number) {
+	async function recursiveBallotSeriesGet(ballotSeries: Ballot[], id: number): Promise<Ballot[]> {
 		const ballot = await getBallot(id);
+        if (!ballot)
+            return ballotSeries;
 		ballotSeries.unshift(ballot);
-		return (ballot.prev_id && ballotSeries.length < 20)?
-			recursiveBallotSeriesGet(ballotSeries, ballot.prev_id):
-			ballotSeries;
+        if (!ballot.prev_id || ballotSeries.length === 30)
+            return ballotSeries;
+        
+		return recursiveBallotSeriesGet(ballotSeries, ballot.prev_id);
 	}
 
-	const ballotSeries = await recursiveBallotSeriesGet([], id);
-
-	if (ballotSeries.length > 0) {
-		ballotSeries[0].Voters = [];
-		if (ballotSeries[0].VotingPoolID) {
-			const {voters} = await getVoters(ballotSeries[0].VotingPoolID);
-			ballotSeries[0].Voters = voters;
-		}
-		const results = await Promise.all(ballotSeries.map(b => getResults(b.id)));
-		ballotSeries.forEach((ballot, i) => ballot.Results = results[i]);
-	}
-	
-	return ballotSeries;
+	return recursiveBallotSeriesGet([], id);
 }
 
-export async function getRecentBallotSeriesWithResults() {
+export async function getRecentWgBallots(n = 3) {
 	const ballots = await db.query(
 		getBallotsSQL + ' WHERE ' +
 			`Type=${BallotType.WG} AND ` +	// WG ballots
 			'IsComplete<>0 ' + 				// series is complete
 			'ORDER BY End DESC ' +			// newest to oldest
-			'LIMIT 3;'						// last 3
+			'LIMIT ?;',						// last n
+		[n]
 	) as Ballot[];
-	const ballotsSeries = await Promise.all(ballots.map(b => getBallotSeriesWithResults(b.id)));
-	return ballotsSeries;
+	return ballots;
 }
 
 type BallotDB = {

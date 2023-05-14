@@ -11,7 +11,7 @@ import type { User } from './users';
 // Convert date string to UTC
 function parseDateTime(dateStr: string) {
 	// Date is in format: "11-Dec-2018 23:59:59 ET" and is always eastern time
-	dateStr = dateStr.substr(0, 20);
+	dateStr = dateStr.slice(0, 20);
 	return DateTime.fromFormat(dateStr, 'dd-MMM-yyyy HH:mm:ss', {zone: 'America/New_York'}).toISO();
 }
 
@@ -151,7 +151,7 @@ type CSVComment = {
 export async function parseEpollCommentsCsv(buffer: Buffer, startCommentId: number): Promise<CSVComment[]> {
 	let cid = startCommentId;
 
-	const p: any[] = await csvParse(buffer, {columns: false, bom: true, encoding: 'latin1'});
+	const p = await csvParse(buffer, {columns: false, bom: true, encoding: 'latin1'});
 
 	if (p.length === 0)
 		throw new Error('Empty CSV file');
@@ -167,10 +167,10 @@ export async function parseEpollCommentsCsv(buffer: Buffer, startCommentId: numb
 		let Page = parseFloat(C_Page) + parseFloat(C_Line)/100;
 		if (isNaN(Page)) 
 			Page = 0;
-		return {
+		const comment: CSVComment = {
 			CommentID: cid++,
 			C_Index: parseInt(c[0]),
-			CommenterSAPIN: c[2],
+			CommenterSAPIN: Number(c[2]),
 			CommenterName: c[3],
 			Comment: c[4],
 			Category: c[5]? c[5].charAt(0): 'T',   // First letter only (G, T or E), T if blank
@@ -182,6 +182,7 @@ export async function parseEpollCommentsCsv(buffer: Buffer, startCommentId: numb
 			ProposedChange: c[9]? c[9]: '',
 			MustSatisfy: !!(c[10] === '1')
 		};
+		return comment;
 	});
 
 	return comments;

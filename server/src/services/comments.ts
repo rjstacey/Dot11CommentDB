@@ -4,10 +4,12 @@ import { DateTime } from 'luxon';
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 
-import {parseEpollCommentsCsv} from './epoll';
-import {parseMyProjectComments, myProjectAddResolutions} from './myProjectSpreadsheets';
-import {BallotType, getBallot} from './ballots';
+import { AuthError } from '../utils';
+import { parseEpollCommentsCsv } from './epoll';
+import { parseMyProjectComments } from './myProjectSpreadsheets';
+import { BallotType, getBallot, getBallotWithNewResultsSummary } from './ballots';
 import type { Resolution } from './resolutions';
+import { User } from './users';
 
 export type Comment = {
 	id: bigint;
@@ -43,8 +45,8 @@ export type CommentResolution = Omit<Comment, "id"> & Omit<Resolution, "id"> & {
 
 export type CommentsSummary = {
 	Count: number;
-	CommentIDMin: number;
-	CommentIDMax: number;
+	CommentIDMin: number | null;
+	CommentIDMax: number | null;
 }
 
 const createViewCommentResolutionsSQL = 
@@ -159,7 +161,7 @@ export async function updateComments(userId: number, updates, ballot_id: number,
 	return {comments};
 }
 
-export async function setStartCommentId(userId: number, ballot_id: number, startCommentId: number) {
+export async function setStartCommentId(user: User, ballot_id: number, startCommentId: number) {
 	const SQL = db.format(
 		'SET @userId=?;' +
 		'SET @ballot_id = ?;' +
@@ -168,7 +170,7 @@ export async function setStartCommentId(userId: number, ballot_id: number, start
 		'UPDATE comments ' +
 			'SET LastModifiedBy=@userId, CommentID=CommentID+@offset ' +
 			'WHERE ballot_id=@ballot_id;',
-		[userId, ballot_id, startCommentId]
+		[user.SAPIN, ballot_id, startCommentId]
 	);
 	const results = await db.query(SQL);
 	const comments = await getComments(ballot_id);
@@ -179,7 +181,7 @@ export async function setStartCommentId(userId: number, ballot_id: number, start
 	}
 }
 
-export async function deleteComments(userId: number, ballot_id: number) {
+export async function deleteComments(user: User, ballot_id: number) {
 	// The order of the deletes is import; from resolutions table first and then from comments table.
 	// This is because the a delete from resolutions tables adds a history log and a delete from comments then removes it.
 	const sql = db.format(
@@ -192,57 +194,52 @@ export async function deleteComments(userId: number, ballot_id: number) {
 	return result.affectedRows as number;
 }
 
-async function insertComments(userId: number, ballot_id: number, comments: Partial<Comment>[]) {
+async function insertComments(user: User, ballot_id: number, comments: Partial<Comment>[]) {
 
 	// Delete existing comments (and resolutions) for this ballot_id
-	await deleteComments(userId, ballot_id);
+	await deleteComments(user, ballot_id);
 
 	if (comments.length) {
 		// Insert the comments
 		const sql1 =
 			db.format('INSERT INTO comments (`ballot_id`, LastModifiedBy, LastModifiedTime, ??) VALUES ', [Object.keys(comments[0])]) +
-			comments.map(c => db.format('(?, ?, NOW(), ?)', [ballot_id, userId, Object.values(c)])).join(', ');
+			comments.map(c => db.format('(?, ?, NOW(), ?)', [ballot_id, user.SAPIN, Object.values(c)])).join(', ');
 		await db.query(sql1);
 
 		// Insert a null resolution for each comment
 		const sql2 =
-			db.format('INSERT INTO resolutions (`comment_id`, `ResolutionID`, `LastModifiedBy`, `LastModifiedTime`) SELECT id, 0, ?, NOW() FROM comments WHERE `ballot_id`=?;', [userId, ballot_id]);
+			db.format('INSERT INTO resolutions (`comment_id`, `ResolutionID`, `LastModifiedBy`, `LastModifiedTime`) SELECT id, 0, ?, NOW() FROM comments WHERE `ballot_id`=?;', [user.SAPIN, ballot_id]);
 		await db.query(sql2);
 	}
 
 	comments = await getComments(ballot_id);
-	const summary = await getCommentsSummary(ballot_id);
+	const ballot = await getBallotWithNewResultsSummary(user, ballot_id);
 
-	const ballot = {
-		id: ballot_id,
-		Comments: summary
-	};
-	
 	return {
 		comments,
 		ballot,
 	}
 }
 
-export async function importEpollComments(user, ballot_id: number, epollNum: number, startCommentId: number) {
+export async function importEpollComments(user: User, ballot_id: number, epollNum: number, startCommentId: number) {
 
 	if (!user.ieeeClient)
-		throw new Error('Not logged in');
+		throw new AuthError('Not logged in');
 
 	const response = await user.ieeeClient.get(`https://mentor.ieee.org/802.11/poll-comments.csv?p=${epollNum}`, {responseType: 'arraybuffer'});
 
 	if (response.headers['content-type'] !== 'text/csv')
-		throw new Error('Not logged in');
+		throw new AuthError('Not logged in');
 
 	const comments = await parseEpollCommentsCsv(response.data, startCommentId);
 	//console.log(comments[0])
 
-	return insertComments(user.SAPIN, ballot_id, comments);
+	return insertComments(user, ballot_id, comments);
 }
 
-export async function uploadComments(userId: number, ballot_id: number, startCommentId: number, file: any) {
+export async function uploadComments(user: User, ballot_id: number, startCommentId: number, file: any) {
 	const ballot = await getBallot(ballot_id);
-	let comments: Partial<Comment>[]
+	let comments: Partial<Comment>[];
 	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1;
 	if (ballot.Type === BallotType.SA) {
 		comments = await parseMyProjectComments(startCommentId, file.buffer, isExcel);
@@ -257,5 +254,5 @@ export async function uploadComments(userId: number, ballot_id: number, startCom
 			throw new TypeError('Parse error: ' + error.toString());
 		}
 	}
-	return insertComments(userId, ballot_id, comments);
+	return insertComments(user, ballot_id, comments);
 }

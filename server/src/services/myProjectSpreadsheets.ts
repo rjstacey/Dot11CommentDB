@@ -2,16 +2,20 @@
  * Handle MyProject spreadsheet files
  */
 import ExcelJS from 'exceljs';
-import { csvParse } from '../utils';
+import { csvParse, validateSpreadsheetHeader } from '../utils';
 import { fromHtml } from './commentsSpreadsheet';
+import type { Response } from 'express';
+import type { Comment, CommentResolution } from './comments';
+import type { Member } from './members';
+import type { Result } from './results';
 
 const myProjectCommentsHeader = [
 	'Comment ID', 'Date', 'Comment #', 'Name', 'Email', 'Phone', 'Style', 'Index #', 'Classification', 'Vote',
 	'Affiliation', 'Category', 'Page', 'Subclause','Line','Comment','File','Must be Satisfied','Proposed Change',
 	'Disposition Status', 'Disposition Detail', 'Other1', 'Other2', 'Other3'
-]
+] as const;
 
-function parseMyProjectComment(c) {
+function parseMyProjectComment(c: any[]) {
 
 	// MyProject uses <last name>, <first name> for comments but <first name> <last name> for results
 	let [lastName, firstName] = c[3].split(', ');
@@ -24,7 +28,7 @@ function parseMyProjectComment(c) {
 	if (isNaN(Page)) 
 		Page = 0;
 
-	return {
+	const comment: Partial<Comment> = {
 		C_Index: c[0],								// Comment ID
 		CommenterSAPIN: null,
 		CommenterName: name,						// Name
@@ -39,13 +43,15 @@ function parseMyProjectComment(c) {
 		Clause: C_Clause,
 		Page
 	};
+
+	return comment;
 }
 
 export async function parseMyProjectComments(startCommentId: number, buffer: Buffer, isExcel: boolean) {
 
-	var p: any[] = [] 	// an array of arrays
+	let p: any[][] = [] 	// an array of arrays
 	if (isExcel) {
-		var workbook = new ExcelJS.Workbook();
+		const workbook = new ExcelJS.Workbook();
 		try {
 			await workbook.xlsx.load(buffer);
 		}
@@ -53,7 +59,10 @@ export async function parseMyProjectComments(startCommentId: number, buffer: Buf
 			throw new Error("Invalid workbook: " + error);
 		}
 
-		workbook.getWorksheet(1).eachRow(row => Array.isArray(row.values) && p.push(row.values.slice(1, 26)));
+		workbook.getWorksheet(1).eachRow(row => {
+			if (Array.isArray(row.values))
+				p.push(row.values.slice(1, 26))
+		});
 	}
 	else {
 		p = await csvParse(buffer, {columns: false});
@@ -64,14 +73,16 @@ export async function parseMyProjectComments(startCommentId: number, buffer: Buf
 		throw new Error('Got an empty file');
 
 	// Check the column names to make sure we have the right file
-	// The CSV from MyProject has # replaced by ., so replace '#' with '.' (in the regex this matches anything)
-	var expected = myProjectCommentsHeader.map(r => r.replace('#', '.'))
-	if (expected.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].search(new RegExp(v, 'i')) === -1, false))
-		throw new Error(`Unexpected column headings:\n${p[0].join(', ')}\n\nExpected:\n${myProjectCommentsHeader.join(', ')}`);
-	p.shift()	// remove column heading row
+	validateSpreadsheetHeader(p.shift()!, myProjectCommentsHeader);
 
 	// Parse each row and assign CommentID
-	return p.map((c, i) => ({CommentID: startCommentId + i, ...parseMyProjectComment(c)}))
+	return p.map((c, i) => {
+		const comment: Partial<Comment> = {
+			CommentID: startCommentId + i,
+			...parseMyProjectComment(c)
+		}
+		return comment;
+	});
 }
 
 
@@ -84,14 +95,14 @@ const mapResnStatus = {
 /*
  * Add approved resolutions to an existing MyProject comment spreadsheet
  */
-export async function myProjectAddResolutions(buffer: Buffer, dbComments, res) {
+export async function myProjectAddResolutions(buffer: Buffer, dbComments: CommentResolution[], res: Response) {
 
 	let workbook = new ExcelJS.Workbook();
 	try {
 		await workbook.xlsx.load(buffer);
 	}
 	catch(err) {
-		throw new Error("Invalid workbook: " + err);
+		throw new TypeError("Invalid workbook: " + err);
 	}
 
 	let worksheet = workbook.getWorksheet(1);
@@ -102,27 +113,23 @@ export async function myProjectAddResolutions(buffer: Buffer, dbComments, res) {
 	let row = worksheet.getRow(1);
 	if (!row)
 		throw new TypeError('Unexpected file format; header row not found');
-	const header: any[] = Array.isArray(row.values)? row.values.slice(1, 26): [];
 
-	if (myProjectCommentsHeader.reduce((r, v, i) => r || typeof header[i] !== 'string' || header[i].search(new RegExp(v, 'i')) === -1, false)) {
-		throw new Error(`Unexpected column headings:\n${header.join(', ')}\n\nExpected:\n${myProjectCommentsHeader.join(', ')}`);
-	}
+	const header = Array.isArray(row.values)? row.values.slice(1, 26): [];
+	validateSpreadsheetHeader(header, myProjectCommentsHeader);
 
 	worksheet.eachRow((row, i) => {
 		if (i === 1)	// skip header
 			return;
+		if (Array.isArray(row.values)) {
+			let comment = parseMyProjectComment(row.values.slice(1, 26));
 
-		let comment = parseMyProjectComment(Array.isArray(row.values)? row.values.slice(1, 26): []);
-
-		/* Find comment with matching identifier. If can't be found by identifier then match on comment fields. */
-		let dbC = dbComments.find(c => c.C_Index === comment.C_Index);
-		//if (!dbC) {
-		//	dbC = matchCommentByEllimination(comment, dbComments);
-		//}
-		if (dbC && dbC.ApprovedByMotion) {
-			//console.log(`found ${comment.C_Index}`)
-			row.getCell(20).value = mapResnStatus[dbC.ResnStatus] || '';
-			row.getCell(21).value = fromHtml(dbC.Resolution);
+			/* Find comment with matching identifier. */
+			let dbC = dbComments.find(c => c.C_Index === comment.C_Index);
+			if (dbC && dbC.ApprovedByMotion) {
+				//console.log(`found ${comment.C_Index}`)
+				row.getCell(20).value = (dbC.ResnStatus && mapResnStatus[dbC.ResnStatus]) || '';
+				row.getCell(21).value = fromHtml(dbC.Resolution || '');
+			}
 		}
 	});
 
@@ -134,38 +141,47 @@ export async function myProjectAddResolutions(buffer: Buffer, dbComments, res) {
 	}
 }
 
+/**
+ * The myProject .xlsx file has "Affiliations(s)" while the .csv has "Affiliation(s)"
+ */
 const myProjectResultsHeader = [
-	'Name', 'EMAIL', 'Affiliation(s)', 'Voter Classification', 'Current Vote', 'Comments'
-]
+	'Name', 'EMAIL', /Affiliation[s]{0,1}(s)/, 'Voter Classification', 'Current Vote', 'Comments'
+] as const;
 
-export async function parseMyProjectResults(buffer, isExcel) {
-	var p: any[] = [] 	// an array of arrays
+export async function parseMyProjectResults(buffer: Buffer, isExcel: boolean) {
+	let p: any[][] = [] 	// an array of arrays
 	if (isExcel) {
-		var workbook = new ExcelJS.Workbook()
-		await workbook.xlsx.load(buffer)
+		const workbook = new ExcelJS.Workbook();
+		try {
+			await workbook.xlsx.load(buffer);
+		}
+		catch(err) {
+			throw new TypeError("Invalid workbook: " + err);
+		}
 
-		workbook.getWorksheet(1).eachRow(row => Array.isArray(row.values) && p.push(row.values.slice(1, myProjectResultsHeader.length + 1)));
+		workbook.getWorksheet(1).eachRow(row => {
+			if (Array.isArray(row.values))
+				p.push(row.values.slice(1, myProjectResultsHeader.length + 1));
+		});
 	}
 	else {
-		throw new Error("Can't handle .csv file");
+		p = await csvParse(buffer, {columns: false});
 	}
 
-	if (p.length < 2) {
-		throw new Error('File has less than 2 rows');
-	}
+	if (p.length < 2)
+		throw new TypeError('File has less than 2 rows');
 
 	p.shift();	// PAR #
-	if (myProjectResultsHeader.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].search(new RegExp(v, 'i')) === -1, false))
-		throw new Error(`Unexpected column headings ${p[0].join()}. Expected ${myProjectResultsHeader.join()}.`);
-	p.shift();	// remove heading row
+	validateSpreadsheetHeader(p.shift()!, myProjectResultsHeader);
 
 	const results = p.map(c => {
-		return {
+		let result: Partial<Result> = {
 			Name: c[0],
 			Email: c[1],
 			Affiliation: c[2],
 			Vote: c[4]
 		}
+		return result;
 	});
 
 	return results;
@@ -179,7 +195,7 @@ const myProjectRosterHeader = [
 	'SA PIN', 'Last Name', 'First Name', 'Middle Name', 'Email Address', 'Street Address/PO Box', 'City',
 	'State/Province', 'Postal Code', 'Country', 'Phone',
 	'Employer', 'Affiliation', 'Officer Role', 'Involvement Level'
-]
+] as const;
 
 const involvementLevelToStatus = {
 	'Aspirant Member': 'Aspirant',
@@ -192,7 +208,7 @@ const involvementLevelToStatus = {
 	'Nearly Member': 'Other',
 };
 
-const mapStatus = (involvementLevel) => 
+const mapStatus = (involvementLevel: string) => 
 	involvementLevelToStatus[involvementLevel] || 'Other';
 
 const statusToInvolvementLevel = {
@@ -248,10 +264,10 @@ const myProjectRosterColumns: Record<string, Col> = {
 	}
 };
 
-const mapStatusToInvolvementLevel = (status) => 
+const mapStatusToInvolvementLevel = (status: string) => 
 	statusToInvolvementLevel[status] || 'Observer';
 
-function parseRosterEntry(u) {
+function parseRosterEntry(u: any[]) {
 	let LastName = u[1] || '';
 	let FirstName = u[2] || '';
 	let MI = u[3] || '';
@@ -272,21 +288,20 @@ function parseRosterEntry(u) {
 
 export async function parseMyProjectRosterSpreadsheet(buffer: Buffer) {
 
-	var p: any[] = [] 	// an array of arrays
-	var workbook = new ExcelJS.Workbook();
+	let p: any[][] = [] 	// an array of arrays
+	const workbook = new ExcelJS.Workbook();
 	await workbook.xlsx.load(buffer);
 
-	workbook.getWorksheet(1).eachRow(row => Array.isArray(row.values) && p.push(row.values.slice(1, myProjectRosterHeader.length+1)));
+	workbook.getWorksheet(1).eachRow(row => {
+		if (Array.isArray(row.values))
+			p.push(row.values.slice(1, myProjectRosterHeader.length+1))
+	});
 
 	if (p.length === 0)
 		throw new Error('Got empty roster file');
 
 	// Check the column names to make sure we have the right file
-	// The CSV from MyProject has # replaced by ., so replace '#' with '.' (in the regex this matches anything)
-	if (myProjectRosterHeader.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].search(new RegExp(v, 'i')) === -1, false)) {
-		throw new Error(`Unexpected column headings:\n${p[0].join(', ')}\n\nExpected:\n${myProjectRosterHeader.join(', ')}`);
-	}
-	p.shift()	// remove column heading row
+	validateSpreadsheetHeader(p.shift()!, myProjectRosterHeader);
 
 	// Parse each row and assign CommentID
 	return p.map(parseRosterEntry);
@@ -295,7 +310,7 @@ export async function parseMyProjectRosterSpreadsheet(buffer: Buffer) {
 /*
  * generate MyProject roster spreadsheet
  */
-export async function genMyProjectRosterSpreadsheet(members, res) {
+export async function genMyProjectRosterSpreadsheet(members: Member[], res: Response) {
 
 	let workbook = new ExcelJS.Workbook()
 	workbook.creator = '802.11'

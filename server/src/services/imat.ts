@@ -911,7 +911,7 @@ function slotDateTime(date: DateTime, slot: Timeslot) {
 }
 
 async function meetingToBreakout(
-	user,
+	user: User,
 	imatMeeting: ImatMeeting,
 	timeslots: Timeslot[],
 	committees: Committee[],
@@ -1186,6 +1186,63 @@ export async function getImatBreakoutAttendance(user: User, imatMeetingId: numbe
 	return attendance;
 }
 
+export type ImatMeetingAttendance = {
+	id: number;
+	committee: string;
+	breakoutName: string;
+	SAPIN: number;
+	Name: string;
+	Email: string;
+	Timestamp: string;
+	Affiliation: string;
+}
+
+async function parseImatMeetingAttendance(buffer: Buffer, imatMeeting: ImatMeeting): Promise<ImatMeetingAttendance[]> {
+
+	const p: any[] = await csvParse(buffer, {columns: false, bom: true, encoding: 'latin1'});
+
+	if (p.length === 0)
+		throw new Error('Got empty meeting-members.csv');
+
+	const expected = ['Committee', 'Breakout', 'SA PIN', 'Name', 'Email', 'Timestamp', 'Affiliation'];
+
+	// Row 0 is the header
+	if (expected.reduce((r, v, i) => r || v !== p[0][i], false))
+		throw new Error(`Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`);
+	p.shift();	// remove header
+
+	return p.map((c, i) => {
+		if (isNaN(parseInt(c[2])))
+			console.log(c);
+		const entry = {
+			id: i,
+			committee: c[0],
+			breakoutName: c[1],
+			SAPIN: parseInt(c[2]),
+			Name: c[3],
+			Email: c[4],
+			Timestamp: DateTime.fromFormat(c[5], 'dd-MMM-yyyy HH:mm:ss', {zone: imatMeeting.timezone}).toISO(),
+			Affiliation: c[6],
+		}
+		return entry;
+	});
+}
+
+export async function getImatMeetingAttendance(user: User, imatMeetingId: number) {
+
+	const {ieeeClient} = user;
+	if (!ieeeClient)
+		throw new AuthError('Not logged in');
+
+	const imatMeeting = await getImatMeeting(user, imatMeetingId);
+
+	const response = await ieeeClient.get(`/${imatMeeting.organizerId}/meeting-members.csv?p=${imatMeetingId}`);
+	if (response.headers['content-type'] !== 'text/csv')
+		throw new AuthError('Not logged in');
+	
+	return await parseImatMeetingAttendance(response.data, imatMeeting);
+}
+
 export type ImatAttendanceSummary = {
 	SAPIN: number;
 	Name: string;
@@ -1262,59 +1319,3 @@ export async function getImatAttendanceSummary(user: User, session: Session) {
 	return await parseImatAttendanceSummary(response.data);
 }
 
-export type ImatMeetingAttendance = {
-	id: number;
-	committee: string;
-	breakoutName: string;
-	SAPIN: number;
-	Name: string;
-	Email: string;
-	Timestamp: string;
-	Affiliation: string;
-}
-
-async function parseImatMeetingAttendance(buffer: Buffer, imatMeeting): Promise<ImatMeetingAttendance[]> {
-
-	const p: any[] = await csvParse(buffer, {columns: false, bom: true, encoding: 'latin1'});
-
-	if (p.length === 0)
-		throw new Error('Got empty meeting-members.csv');
-
-	const expected = ['Committee', 'Breakout', 'SA PIN', 'Name', 'Email', 'Timestamp', 'Affiliation'];
-
-	// Row 0 is the header
-	if (expected.reduce((r, v, i) => r || v !== p[0][i], false))
-		throw new Error(`Unexpected column headings ${p[0].join()}. Expected ${expected.join()}.`);
-	p.shift();	// remove header
-
-	return p.map((c, i) => {
-		if (isNaN(parseInt(c[2])))
-			console.log(c);
-		const entry = {
-			id: i,
-			committee: c[0],
-			breakoutName: c[1],
-			SAPIN: parseInt(c[2]),
-			Name: c[3],
-			Email: c[4],
-			Timestamp: DateTime.fromFormat(c[5], 'dd-MMM-yyyy HH:mm:ss', {zone: imatMeeting.timezone}).toISO(),
-			Affiliation: c[6],
-		}
-		return entry;
-	});
-}
-
-export async function getImatMeetingAttendance(user: User, imatMeetingId: number) {
-
-	const {ieeeClient} = user;
-	if (!ieeeClient)
-		throw new AuthError('Not logged in');
-
-	const imatMeeting = await getImatMeeting(user, imatMeetingId);
-
-	const response = await ieeeClient.get(`/${imatMeeting.organizerId}/meeting-members.csv?p=${imatMeetingId}`);
-	if (response.headers['content-type'] !== 'text/csv')
-		throw new AuthError('Not logged in');
-	
-	return await parseImatMeetingAttendance(response.data, imatMeeting);
-}

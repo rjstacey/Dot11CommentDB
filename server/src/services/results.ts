@@ -2,16 +2,16 @@
 import { v4 as uuid } from 'uuid';
 
 import db from '../utils/database';
+import { shallowEqual, AuthError } from '../utils';
 import type { OkPacket } from 'mysql2';
+import type { Response } from 'express';
 
-import { User } from './users';
-
-import {AccessLevel} from '../auth/access';
-import {parseEpollResultsCsv, parseEpollResultsHtml} from './epoll';
-import {parseMyProjectResults} from './myProjectSpreadsheets';
-import {genResultsSpreadsheet} from './resultsSpreadsheet';
-import {getBallot, getBallotSeriesWithResults, BallotType, Ballot} from './ballots';
-import {getVoters} from './voters';
+import { userIsWGAdmin, User } from './users';
+import { parseEpollResultsCsv, parseEpollResultsHtml } from './epoll';
+import { parseMyProjectResults } from './myProjectSpreadsheets';
+import { genResultsSpreadsheet } from './resultsSpreadsheet';
+import { getBallot, getBallotSeries, BallotType, Ballot } from './ballots';
+import { getVoters, Voter } from './voters';
 
 export type Result = {
     id: string;
@@ -27,35 +27,48 @@ export type Result = {
 	Notes: string;
 }
 
-function appendStr(toStr: string, str: string) {
-	if (typeof toStr === 'string') {
-		return toStr + (toStr? ', ': '') + str
-	}
-	else {
-		return str
-	}
+export type ResultsSummary = {
+	Approve: number;
+	Disapprove: number;
+	Abstain: number;
+	InvalidVote: number;
+	InvalidAbstain: number;
+	InvalidDisapprove: number;
+	ReturnsPoolSize: number;
+	TotalReturns: number;
+	BallotReturns: number;
+	VotingPoolSize: number;
 }
 
-function colateWGResults(ballotSeries) {
-	// Collect each voters last vote
-	const ballotSeriesReversed = ballotSeries.slice().reverse();
+type BallotSeriesResults = {
+	ids: number[];
+	ballots: Record<number, Ballot>;
+	results: Record<number, Result[]>;
+}
 
-	let results: Result[] = [];
-	let i = 0;
-	for (const voter of ballotSeries[0].Voters) {
+function appendStr(toStr: string, str: string) {
+	return (toStr? toStr + ', ': '') + str;
+}
+
+function colateWGResults(ballotSeries: BallotSeriesResults, voters: Voter[]) {
+	// Collect each voters last vote
+	const ballotIdsReversed = ballotSeries.ids.slice().reverse();
+	const finalBallot_id = ballotIdsReversed[0];
+
+	let results = voters.map(voter => {
 		const v: Result = {
 			...voter,
 			id: uuid(),
+			ballot_id: 0,
 			Vote: '',
 			CommentCount: 0,
 			Notes: ''
 		}
 
-		for (const ballot of ballotSeriesReversed) {
-			//console.log(ballot.Results[0])
-			const r = ballot.Results.find(r => r.CurrentSAPIN === voter.CurrentSAPIN)
+		for (const ballot_id of ballotIdsReversed) {
+			const results = ballotSeries.results[ballot_id];
+			const r = results.find(r => r.CurrentSAPIN === voter.CurrentSAPIN)
 			if (r) {
-				i++;
 				// Record the vote
 				v.Vote = r.Vote;
 				v.CommentCount = r.CommentCount;
@@ -63,8 +76,10 @@ function colateWGResults(ballotSeries) {
 				if (v.SAPIN !== r.SAPIN)
 					v.Notes = appendStr(v.Notes, `Voted with SAPIN=${r.SAPIN}`);
 				// Add note if vote is from a previous ballot
-				if (ballot !== ballotSeriesReversed[0])
+				if (ballot_id !== finalBallot_id) {
+					const ballot = ballotSeries.ballots[ballot_id];
 					v.Notes = appendStr(v.Notes, 'From ' + ballot.BallotID);
+				}
 				break;
 			}
 		}
@@ -73,31 +88,28 @@ function colateWGResults(ballotSeries) {
 		if (v.Vote && /^ExOfficio/.test(v.Status))
 			v.Notes = appendStr(v.Notes, v.Status);
 
-		results.push(v);
-	}
+		return v;
+	});
 
 	// Add results for those that voted but are not in the pool)
-	i = 0;
-	for (const r of ballotSeries[ballotSeries.length - 1].Results) {
-		if (results.findIndex(v => v.CurrentSAPIN === r.CurrentSAPIN) < 0) {
-			i++;
-			const nv = {
-				...r,
-				id: uuid(),
-				Notes: 'Not in pool'
-			}
-			results.push(nv);
-		}
-	}
+	results = results.concat(ballotSeries.results[finalBallot_id]
+		.filter(r => !voters.find(v => v.CurrentSAPIN === r.CurrentSAPIN))
+		.map(r => ({
+			...r,
+			id: uuid(),
+			Notes: 'Not in pool'
+		}))
+	)
 
 	// Remove ExOfficio if they did not vote
 	results = results.filter(v => (!/^ExOfficio/.test(v.Status) || v.Vote));
+
 	return results;
 }
 
 function summarizeWGResults(results: Result[]): ResultsSummary {
 
-	let summary = {
+	let summary: ResultsSummary = {
 		Approve: 0,
 		Disapprove: 0,
 		Abstain: 0,
@@ -146,10 +158,10 @@ function summarizeWGResults(results: Result[]): ResultsSummary {
 	return summary;
 }
 
-function colateSAResults(ballotSeries): Result[] {
-	const results: Result[] = [];
-	//console.log(ballotSeries[ballotSeries.length - 1].Results)
-	for (let r1 of ballotSeries[ballotSeries.length - 1].Results) {
+function colateSAResults(ballotSeries: BallotSeriesResults): Result[] {
+	const ballotIdsReversed = ballotSeries.ids.slice().reverse();
+	const finalBallot_id = ballotIdsReversed.shift()!;
+	const results = ballotSeries.results[finalBallot_id].map(r1 => {
 		const v: Result = {
 			...r1,
 			id: uuid(),
@@ -157,27 +169,27 @@ function colateSAResults(ballotSeries): Result[] {
 		};
 		if (r1.Vote === 'Disapprove' && r1.CommentCount === 0) {
 			// See if they have a comment from a previous round
-			for (let i = ballotSeries.length - 2; i >= 0; i--) {
-				const r2 = ballotSeries[i].Results.find(r => 
+			for (let ballot_id of ballotIdsReversed) {
+				const r2 = ballotSeries.results[ballot_id].find(r => 
 					(r.Email && r1.Email && r.Email === r1.Email) ||
 					(r.Name === r1.Name)
 				);
 				if (r2 && r2.CommentCount) {
 					v.CommentCount = r2.CommentCount;
-					v.Notes = 'Comments from ' + ballotSeries[i].BallotID;
+					v.Notes = 'Comments from ' + ballotSeries.ballots[ballot_id].BallotID;
 					break;
 				}
-			}
+			};
 		}
-		results.push(v);
-	}
+		return v;
+	});
 
 	return results;
 }
 
 function summarizeSAResults(results: Result[]) {
 
-	let summary = {
+	let summary: ResultsSummary = {
 		Approve: 0,
 		Disapprove: 0,
 		Abstain: 0,
@@ -190,7 +202,7 @@ function summarizeSAResults(results: Result[]) {
 		VotingPoolSize: 0
 	};
 
-	for (let r of results) {
+	results.forEach(r => {
 		if (/^Approve/.test(r.Vote)) {
 				summary.Approve++;
 		}
@@ -203,69 +215,59 @@ function summarizeSAResults(results: Result[]) {
 		else if (/^Abstain/.test(r.Vote)) {
 			summary.Abstain++;
 		}
-	}
+	});
+
 	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.InvalidDisapprove + summary.Abstain;
 
 	return summary;
 }
 
-function colateMotionResults(ballotResults, voters) {
+function colateMotionResults(ballotResults: Result[], voters: Voter[]) {
 	// Collect each voters last vote
-	let results: Result[] = [];
-	for (let voter of voters) {
-		let v = {
-			...voter,
-			id: uuid(),
-			Vote: '',
-			Notes: ''
-		}
-		let r = ballotResults.find(r => r.CurrentSAPIN === v.CurrentSAPIN);
-		if (r) {
-			// If the voter voted in this round, record the vote
-			v.Vote = r.Vote;
-			v.CommentCount = r.CommentCount;
-			v.Affiliation = r.Affiliation;
-			if (v.SAPIN !== r.SAPIN)
-				v.Notes = appendStr(v.Notes, `Pool SAPIN=${v.SAPIN} vote SAPIN=${r.SAPIN}`);
-		}
+	let results = voters
+		.map(voter => {
+			let v: Result = {
+				...voter,
+				id: uuid(),
+				ballot_id: 0,
+				CommentCount: 0,
+				Vote: '',
+				Notes: ''
+			}
+			let r = ballotResults.find(r => r.CurrentSAPIN === v.CurrentSAPIN);
+			if (r) {
+				// If the voter voted in this round, record the vote
+				v.Vote = r.Vote;
+				v.CommentCount = r.CommentCount;
+				v.Affiliation = r.Affiliation;
+				if (v.SAPIN !== r.SAPIN)
+					v.Notes = appendStr(v.Notes, `Pool SAPIN=${v.SAPIN} vote SAPIN=${r.SAPIN}`);
+			}
 
-		// If this is an ExOfficio voter, then note that
-		if (v.Vote && /^ExOfficio/.test(voter.Status))
-			v.Notes = appendStr(v.Notes, voter.Status);
+			// If this is an ExOfficio voter, then note that
+			if (v.Vote && /^ExOfficio/.test(voter.Status))
+				v.Notes = appendStr(v.Notes, voter.Status);
 
-		results.push(v);
-	}
+			return v;
+		});
 
 	// Add results for those that voted but are not in the pool)
-	for (let r of ballotResults) {
-		if (results.findIndex(v => v.CurrentSAPIN === r.CurrentSAPIN) < 0) {
-			const nv = {
+	results = results
+		.concat(ballotResults
+			.filter(r => !voters.find(v => v.CurrentSAPIN === r.CurrentSAPIN))
+			.map(r => ({
 				...r,
 				id: uuid(),
 				Notes: 'Not in pool'
-			};
-			results.push(r);
-		}
-	}
+			}))
+		);
 
 	return results;
 }
 
-export type ResultsSummary = {
-	Approve: number;
-	Disapprove: number;
-	Abstain: number;
-	InvalidVote: number;
-	InvalidAbstain: number;
-	InvalidDisapprove: number;
-	ReturnsPoolSize: number;
-	TotalReturns: number;
-	BallotReturns: number;
-	VotingPoolSize: number;
-}
 
-function summarizeMotionResults(results: Result[]): ResultsSummary {
-	let summary = {
+function summarizeMotionResults(results: Result[]) {
+	let summary: ResultsSummary = {
 		Approve: 0,
 		Disapprove: 0,
 		Abstain: 0,
@@ -278,7 +280,7 @@ function summarizeMotionResults(results: Result[]): ResultsSummary {
 		VotingPoolSize: 0
 	};
 
-	for (let r of results) {
+	results.forEach(r => {
 		if (/^Not in pool/.test(r.Notes)) {
 			summary.InvalidVote++;
 		}
@@ -301,14 +303,15 @@ function summarizeMotionResults(results: Result[]): ResultsSummary {
 				summary.ReturnsPoolSize++;
 			}
 		}
-	}
+	});
+
 	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain;
 
 	return summary;
 }
 
-function summarizeBallotResults(results: Result[]): ResultsSummary {
-	let summary = {
+function summarizeBallotResults(results: Result[]) {
+	let summary: ResultsSummary = {
 		Approve: 0,
 		Disapprove: 0,
 		Abstain: 0,
@@ -321,7 +324,7 @@ function summarizeBallotResults(results: Result[]): ResultsSummary {
 		VotingPoolSize: 0
 	};
 
-	for (let r of results) {
+	results.forEach(r => {
 		if (/^Approve/.test(r.Vote)) {
 			summary.Approve++;
 		}
@@ -334,7 +337,8 @@ function summarizeBallotResults(results: Result[]): ResultsSummary {
 		else if (/^Abstain/.test(r.Vote)) {
 			summary.Abstain++;
 		}
-	}
+	});
+
 	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain;
 
 	return summary;
@@ -342,40 +346,64 @@ function summarizeBallotResults(results: Result[]): ResultsSummary {
 
 export async function getResultsCoalesced(user: User, ballot_id: number) {
 
-	const ballot: Ballot = await getBallot(ballot_id);
+	const ballot = await getBallot(ballot_id);
 
-	let ballotSeries,
-		votingPoolId: string,
+	let votingPoolId: string,
 		votingPoolSize: number,
 		results: Result[],
 		summary: ResultsSummary;
 
-	if (ballot.Type === BallotType.WG ) {
-		ballotSeries = await getBallotSeriesWithResults(ballot_id);
-		//console.log(ballotSeries);
+	if (ballot.Type === BallotType.WG) {
+		const ballotsArr = await getBallotSeries(ballot_id);
+		const resultsArr = await Promise.all(ballotsArr.map(ballot => getResultsForWgBallot(ballot.id)));
+		const ballotSeries: BallotSeriesResults = {
+			ids: [],
+			ballots: {},
+			results: {}
+		};
+		ballotsArr.forEach((ballot, i) => {
+			const id = ballot.id;
+			ballotSeries.ids.push(id);
+			ballotSeries.ballots[id] = ballot;
+			ballotSeries.results[id] = resultsArr[i];
+		});
+		const initialBallot_id = ballotSeries.ids[0];
+		votingPoolId = ballotSeries.ballots[initialBallot_id].VotingPoolID || '';
+		const voters = votingPoolId? (await getVoters(votingPoolId)).voters: [];
 		// voting pool size excludes ExOfficio; they are allowed to vote, but don't affect returns
-		votingPoolId = ballotSeries[0].VotingPoolID;
-		votingPoolSize = ballotSeries[0].Voters.filter(v => !/^ExOfficio/.test(v.Status)).length;
-		results = colateWGResults(ballotSeries); // colate results against voting pool and prior ballots in series
+		votingPoolSize = voters.filter(v => !/^ExOfficio/.test(v.Status)).length;
+		results = colateWGResults(ballotSeries, voters); // colate results against voting pool and prior ballots in series
 		summary = summarizeWGResults(results);
-		summary.BallotReturns = ballotSeries[ballotSeries.length-1].Results.length;
+		summary.BallotReturns = ballotSeries.results[ballot_id].length;
 		summary.VotingPoolSize = votingPoolSize;
 	}
 	else if (ballot.Type === BallotType.SA) {
-		ballotSeries = await getBallotSeriesWithResults(ballot_id);
+		const ballotsArr = await getBallotSeries(ballot_id);
+		const resultsArr = await Promise.all(ballotsArr.map(ballot => getResultsForSaBallot(ballot.id)));
+		const ballotSeries: BallotSeriesResults = {
+			ids: [],
+			ballots: {},
+			results: {}
+		};
+		ballotsArr.forEach((ballot, i) => {
+			const id = ballot.id;
+			ballotSeries.ids.push(id);
+			ballotSeries.ballots[id] = ballot;
+			ballotSeries.results[id] = resultsArr[i];
+		});
 		votingPoolId = '';
-		votingPoolSize = ballotSeries[ballotSeries.length-1].Results.length;
-		results = colateSAResults(ballotSeries); // colate results against previous ballots in series
+		votingPoolSize = ballotSeries.results[ballot_id].length;
+		results = colateSAResults(ballotSeries); 		// colate results against previous ballots in series
 		summary = summarizeSAResults(results);
-		summary.BallotReturns = ballotSeries[ballotSeries.length-1].Results.length;
+		summary.BallotReturns = ballotSeries.results[ballot_id].length;
 		summary.ReturnsPoolSize = votingPoolSize;
 		summary.VotingPoolSize = votingPoolSize;
 	}
 	else if (ballot.Type === BallotType.Motion) {
 		// if there is a voting pool, get that
-		const {voters} = await getVoters(ballot.VotingPoolID);
+		votingPoolId = ballot.VotingPoolID || '';
+		const voters = votingPoolId? (await getVoters(votingPoolId)).voters: [];
 		results = await getResults(ballot_id);
-		votingPoolId = ballot.VotingPoolID;
 		votingPoolSize = voters.length;
 		results = colateMotionResults(results, voters);	// colate results for just this ballot
 		summary = summarizeMotionResults(results);
@@ -383,7 +411,7 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 		summary.VotingPoolSize = votingPoolSize;
 	}
 	else {
-		votingPoolId = ballot.VotingPoolID;
+		votingPoolId = ballot.VotingPoolID || '';
 		votingPoolSize = 0;
 		results = await getResults(ballot_id);			// colate results for just this ballot
 		summary = summarizeBallotResults(results);
@@ -392,15 +420,14 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 	}
 
 	/* Update results summary in ballots table if different */
-	const ResultsSummary = JSON.stringify(summary)
-	if (ResultsSummary !== ballot.ResultsSummary)
-		await db.query('UPDATE ballots SET ResultsSummary=? WHERE id=?', [ResultsSummary, ballot_id]);
+	if (!ballot.Results || !shallowEqual(summary, ballot.Results)) {
+		await db.query('UPDATE ballots SET ResultsSummary=? WHERE id=?', [JSON.stringify(summary), ballot_id]);
+	}
 
-	ballot.Results = JSON.parse(ResultsSummary);
-	delete ballot.ResultsSummary;
+	ballot.Results = summary;
 	//console.log(ballot)
 
-	if (!user || user.Access < AccessLevel.WGAdmin) {
+	if (!userIsWGAdmin(user)) {
 		// Strip email addresses if user has insufficient karma
 		results.forEach(r => delete r.Email);
 	}
@@ -415,7 +442,7 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 	};
 }
 
-export async function getResults(ballot_id: number): Promise<Result[]> {
+export async function getResults(ballot_id: number) {
 	let sql =
 		'SELECT ' + 
 			'r.ballot_id, ' +
@@ -431,11 +458,31 @@ export async function getResults(ballot_id: number): Promise<Result[]> {
 			'LEFT JOIN members m ON m.SAPIN=r.SAPIN AND m.Status="Obsolete" ' +
 		'WHERE r.ballot_id=?';
 	
-	const results = await db.query(sql, [ballot_id])as Result[];
+	const results = await db.query(sql, [ballot_id]) as Result[];
 	return results;
 }
 
-export async function getResultsForWgBallot(ballot_id: number): Promise<Result[]> {
+export async function getResultsForSaBallot(ballot_id: number) {
+	let sql = db.format(
+		'SET @ballot_id=?; ' +
+		'SELECT ' + 
+			'BIN_TO_UUID(r.uuid) AS id, ' +
+			'r.ballot_id, ' +
+			'r.SAPIN, r.Email, r.Name, r.Affiliation, r.Vote, ' +
+			'COALESCE(c.CommentCount, 0) as CommentCount, ' +
+			'NULL AS CurrentSAPIN ' +
+		'FROM results r ' +
+			'LEFT JOIN (SELECT CommenterEmail, CommenterName, COUNT(*) as CommentCount FROM comments WHERE ' + 
+				'ballot_id=@ballot_id GROUP BY CommenterEmail, CommenterName) c ON ' + 
+					'(r.Email<>"" AND c.CommenterEmail = r.Email) OR (r.Name<>"" AND c.CommenterName = r.Name) ' +
+		'WHERE r.ballot_id=@ballot_id', [ballot_id]);
+
+	const [, results] = await db.query(sql) as [OkPacket, Result[]];
+	return results;
+}
+
+
+export async function getResultsForWgBallot(ballot_id: number) {
 	let sql = db.format(
 		'SET @ballot_id=?; ' +
 		'SELECT ' + 
@@ -449,11 +496,11 @@ export async function getResultsForWgBallot(ballot_id: number): Promise<Result[]
 			'LEFT JOIN members m ON m.SAPIN=r.SAPIN AND m.Status="Obsolete" ' +
 		'WHERE r.ballot_id=@ballot_id', [ballot_id]);
 
-	const [noop, results] = await db.query(sql) as [OkPacket, Result[]];
+	const [, results] = await db.query(sql) as [OkPacket, Result[]];
 	return results;
 }
 
-export async function deleteResults(ballot_id: number): Promise<number> {
+export async function deleteResults(ballot_id: number) {
 	const results = await db.query(
 		'SET @ballot_id = ?; ' +
 		'DELETE FROM results WHERE ballot_id=@ballot_id; ' +
@@ -478,7 +525,7 @@ export async function importEpollResults(user: User, ballot_id: number, epollNum
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
-		throw new Error('Not logged in');
+		throw new AuthError('Not logged in');
 
 	const p1 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`);
 	const p2 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-status?p=${epollNum}`);
@@ -504,25 +551,27 @@ export async function importEpollResults(user: User, ballot_id: number, epollNum
 	return insertResults(user, ballot_id, results);
 }
 
-export async function uploadEpollResults(user: User, ballotId: number, file) {
+export async function uploadEpollResults(user: User, ballotId: number, file: any) {
+	if (file.originalname.search(/\.csv$/i) === -1)
+		throw new TypeError("Expecting .csv file");
 	const pollResults = await parseEpollResultsCsv(file.buffer)
 	return insertResults(user, ballotId, pollResults);
 }
 
-export async function uploadMyProjectResults(user: User, ballotId: number, file) {
-	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1
+export async function uploadMyProjectResults(user: User, ballotId: number, file: any) {
+	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1;
 	const pollResults = await parseMyProjectResults(file.buffer, isExcel)
 	return insertResults(user, ballotId, pollResults);
 }
 
-export async function exportResultsForBallot(user: User, ballot_id: number, res) {
+export async function exportResultsForBallot(user: User, ballot_id: number, res: Response) {
 	const result = await getResultsCoalesced(user, ballot_id);
 	res.attachment(result.ballot.BallotID + '_results.xlsx');
 	await genResultsSpreadsheet([result], res);
 	res.end();
 }
 
-export async function exportResultsForProject(user: User, project: string, res) {
+export async function exportResultsForProject(user: User, project: string, res: Response) {
 	let ballots = await db.query('SELECT id FROM ballots WHERE Project=?', [project]) as Ballot[];
 	let results = await Promise.all(ballots.map(r => getResultsCoalesced(user, r.id)));
 	res.attachment(project + '_results.xlsx');

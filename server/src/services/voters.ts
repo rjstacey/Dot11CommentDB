@@ -1,12 +1,12 @@
 
 import { v4 as uuid, validate as validateUUID } from 'uuid';
-import ExcelJS from 'exceljs';
-import { csvParse, csvStringify } from '../utils';
+import { csvParse, csvStringify, isPlainObject, validateSpreadsheetHeader } from '../utils';
+import type { Response } from 'express';
 
 import db from '../utils/database';
 import type {OkPacket} from '../utils/database';
 
-import {getMembersSnapshot} from './members';
+import { getMembersSnapshot } from './members';
 
 export type VotingPool = {
 	VotingPoolID: string;
@@ -25,6 +25,11 @@ export type Voter = {
 	VotingPoolID: string;
 }
 
+type VoterUpdate = {
+	id: Voter["id"];
+	changes: Partial<Voter>;
+}
+
 type VoterFromSpreadsheet = {
 	SAPIN: number;
 	Status: string;
@@ -34,19 +39,17 @@ const membersHeader = [
 	'SA PIN', 'LastName', 'FirstName', 'MI', 'Email', 'Status'
 ] as const;
 
-async function parseVoters(buffer: Buffer): Promise<VoterFromSpreadsheet[]> {
+async function parseVoters(buffer: Buffer) {
 
 	const p = await csvParse(buffer, {columns: false});
 	if (p.length === 0)
 		throw TypeError('Got empty .csv file');
 
 	// Row 0 is the header
-	if (membersHeader.reduce((r, v, i) => v !== p[0][i], false))
-		throw new TypeError(`Unexpected column headings ${p[0].join()}. Expected ${membersHeader.join()}.`);
-	p.shift();
+	validateSpreadsheetHeader(p.shift()!, membersHeader);
 
 	return p.map(c => {
-		return {
+		const voter: VoterFromSpreadsheet = {
 			SAPIN: Number(c[0]),
 			//LastName: c[1],
 			//FirstName: c[2],
@@ -54,41 +57,10 @@ async function parseVoters(buffer: Buffer): Promise<VoterFromSpreadsheet[]> {
 			//Email: c[4],
 			Status: c[5]
 		}
+		return voter;
 	});
 }
 
-const myProjectBallotMembersHeader = [
-	'Name', 'EMAIL', 'Affiliations(s)', 'Voter Classification', 'Current Vote', 'Comments'
-]
-async function parseMyProjectVoters(buffer: Buffer, isExcel: boolean) {
-	var p: any[][] = [] 	// an array of arrays
-	if (isExcel) {
-		const workbook = new ExcelJS.Workbook();
-		await workbook.xlsx.load(buffer);
-
-		workbook.getWorksheet(1).eachRow(row => Array.isArray(row.values) && p.push(row.values.slice(1, myProjectBallotMembersHeader.length+1)))
-	}
-	else {
-		throw new TypeError("Can't handle .csv file");
-	}
-
-	if (p.length < 2) {
-		throw new Error('File has less than 2 rows');
-	}
-
-	p.shift();	// PAR #
-	if (myProjectBallotMembersHeader.reduce((r, v, i) => r || typeof p[0][i] !== 'string' || p[0][i].toLowerCase() !== v.toLowerCase(), false)) {
-		throw new Error(`Unexpected column headings:\n${p[0].join()}\n\nExpected:\n${myProjectBallotMembersHeader.join()}`);
-	}
-	p.shift();	// remove heading row
-
-	return p.map(c => ({
-		Name: c[0],
-		Email: c[1],
-		//Affiliation: c[2],
-		//Vote: c[4]
-	}))
-}
 
 const getVotingPoolSQL = (votingPoolId: string) => 
 	db.format('SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters WHERE VotingPoolID=?;', [votingPoolId]);
@@ -130,7 +102,7 @@ export async function deleteVotingPools(votingPoolIds: string[]): Promise<number
 	return result.affectedRows;
 }
 
-export async function updateVotingPool(votingPoolId: string, changes: {VotingPoolID: string}): Promise<{votingPool: VotingPool}> {
+export async function updateVotingPool(votingPoolId: string, changes: {VotingPoolID: string}) {
 	if (changes.hasOwnProperty('VotingPoolID') && votingPoolId !== changes.VotingPoolID) {
 		const [votingPool] = await db.query(getVotingPoolSQL(changes.VotingPoolID)) as VotingPool[];
 		if (votingPool.VotingPoolID !== null)
@@ -142,7 +114,7 @@ export async function updateVotingPool(votingPoolId: string, changes: {VotingPoo
 	return {votingPool}
 }
 
-export async function getVoters(votingPoolId: string): Promise<{voters: Voter[], votingPool: VotingPool}> {
+export async function getVoters(votingPoolId: string) {
 	const sql =
 		getVotersFullSQL(votingPoolId) +
 		getVotingPoolSQL(votingPoolId);
@@ -188,9 +160,9 @@ export async function getVotersForBallots(ballot_ids: number[]) {
 	return db.query(sql, [ballot_ids]) as Promise<VotersForBallots[]>;
 }
 
-async function getVoter(votingPoolId: string, sapin: number): Promise<Voter> {
+async function getVoter(votingPoolId: string, sapin: number) {
 	const sql = getVotersFullSQL(votingPoolId, [sapin]);
-	const voters = await db.query(sql);
+	const voters = await db.query(sql) as Voter[];
 	return voters[0];
 }
 
@@ -209,20 +181,21 @@ function votersEntry(v: Partial<Voter>) {
 }
 
 export async function addVoters(votingPoolId: string, voters: Voter[]) {
-	let results: any[] = [];
-	let ids: string[] = [];
-	for (const voter of voters) {
+	voters = voters.map(voter => {
 		if (!voter.SAPIN)
-			throw 'Must provide SAPIN';
-		voter.VotingPoolID = votingPoolId;
-		const id = validateUUID(voter.id)? voter.id: uuid();
-		// @ts-ignore
-		delete voter.id;
-		results.push(db.query('INSERT INTO wgVoters SET ?, id=UUID_TO_BIN(?);', [voter, id]));
-		ids.push(id);
-	}
-	results = await Promise.all(results);
-	voters = await db.query(getVotersFullSQL(undefined, undefined, ids)) as Voter[];
+			throw new TypeError('Must provide SAPIN');
+		return {
+			...voter,
+			VotingPoolID: votingPoolId,
+			id: validateUUID(voter.id)? voter.id: uuid()
+		}
+	});
+	const results = voters.map(voter => {
+		let {id, ...voterDB} = voter;
+		return db.query('INSERT INTO wgVoters SET ?, id=UUID_TO_BIN(?);', [voterDB, id]) as Promise<OkPacket>;
+	});
+	await Promise.all(results);
+	voters = await db.query(getVotersFullSQL(undefined, undefined, voters.map(voter => voter.id))) as Voter[];
 	const [votingPool] = await db.query(getVotingPoolSQL(votingPoolId)) as VotingPool[];
 	return {
 		voters,
@@ -230,19 +203,29 @@ export async function addVoters(votingPoolId: string, voters: Voter[]) {
 	}
 }
 
+
 export async function updateVoter(votingPoolId: string, sapin: number, changes: Partial<Voter>) {
 	await db.query('UPDATE wgVoters SET ? WHERE VotingPoolID=? AND SAPIN=?', [changes, votingPoolId, sapin]);
 	const [voter] = await db.query(getVotersFullSQL(votingPoolId, [sapin])) as Voter[];
 	return voter;
 }
 
-export async function updateVoters(updates) {
-	let results: any[] = [];
-	for (const {id, changes} of updates) {
-		if (!id || !changes)
-			throw 'Expect updates with shape {id, changes}';
-		results.push(db.query('UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)', [changes, id]));
-	}
+function validUpdate(update: any): update is VoterUpdate {
+	return isPlainObject(update) &&
+		typeof update.id === 'string' && update.id &&
+		isPlainObject(update.changes);
+}
+
+function validUpdates(updates: any): updates is VoterUpdate[] {
+	return Array.isArray(updates) && updates.every(validUpdate);
+}
+
+export async function updateVoters(updates: any) {
+	if (!validUpdates(updates))
+		throw new TypeError("Bad updates array; expect array with shape {id: number, changes: object}");
+	let results = updates.map(({id, changes}) =>
+		db.query('UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)', [changes, id]) as Promise<OkPacket>
+	);
 	await Promise.all(results);
 	const voters = await db.query(getVotersFullSQL(undefined, undefined, updates.map(u => u.id))) as Voter[];
 	return voters.map(v => ({id: v.id, changes: v}));
@@ -277,6 +260,8 @@ async function insertVoters(votingPoolId: string, voters: Partial<Voter>[]) {
 }
 
 export async function votersFromSpreadsheet(votingPoolId: string, file: any) {
+	if (file.originalname.search(/\.csv$/i) === -1)
+		throw new TypeError("Expected a .csv file");
 	let voters = await parseVoters(file.buffer);
 	return await insertVoters(votingPoolId, voters);
 }
@@ -287,8 +272,8 @@ export async function votersFromMembersSnapshot(votingPoolId: string, date: stri
 	return await insertVoters(votingPoolId, voters);
 }
 
-export async function exportVoters(votingPoolId: string, res) {
-	const {voters, votingPool} = await getVoters(votingPoolId);
+export async function exportVoters(votingPoolId: string, res: Response) {
+	const {voters} = await getVoters(votingPoolId);
 	const arr = voters.map(v => [v.SAPIN, v.Name, v.Email]);
 	arr.unshift(['SA PIN', 'Name', 'Email']);
 	const csv = await csvStringify(arr, {});

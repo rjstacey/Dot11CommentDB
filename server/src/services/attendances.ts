@@ -3,7 +3,8 @@ import { NotFoundError } from '../utils';
 
 import { getSessions, Session } from './sessions';
 import { getImatAttendanceSummary } from './imat';
-import { OkPacket } from 'mysql2';
+import type { OkPacket } from 'mysql2';
+import type { User } from './users';
 
 type SessionAttendanceSummary = {
     id: number;
@@ -77,7 +78,7 @@ export async function getRecentAttendances() {
     }
 }
 
-export async function importAttendances(user, session_id: number) {
+export async function importAttendances(user: User, session_id: number) {
 
 	let [session] = await getSessions({id: session_id});
 	if (!session)
