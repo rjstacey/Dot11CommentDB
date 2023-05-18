@@ -1,10 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-
-import MemberDetail from '../members/MemberDetail';
-
 import {
 	AppTable, 
 	SelectHeaderCell,
@@ -22,6 +18,7 @@ import {
 	GlobalFilter
 } from 'dot11-components';
 
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	loadBallotParticipation,
 	selectBallotParticipationState,
@@ -34,7 +31,8 @@ import {
 	fields
 } from '../store/ballotParticipation';
 
-import {renderNameAndEmail} from '../members/Members';
+import MemberDetail from '../members/MemberDetail';
+import { renderNameAndEmail } from '../members/Members';
 
 const TopRow = styled.div`
 	display: flex;
@@ -43,16 +41,6 @@ const TopRow = styled.div`
 	width: 100%;
 	padding: 10px;
 	box-sizing: border-box;
-`;
-
-const TableRow = styled.div`
-	flex: 1;	/* remaining height */
-	display: flex;
-	width: 100%;
-	.AppTable__dataRow,
-	.AppTable__headerRow {
-		align-items: center;
-	}
 `;
 
 function BallotSeriesSummary() {
@@ -86,7 +74,7 @@ const renderBallotSeriesParticipationSummary = (summary?: BallotSeriesParticipat
 	if (summary) {
 		voteSummary = summary.vote? summary.vote: 'Did not vote';
 		if (summary.commentCount)
-			voteSummary += ` (${summary. commentCount} comments)`;
+			voteSummary += ` (${summary.commentCount} comments)`;
 	}
 
 	return (
@@ -164,15 +152,15 @@ function BallotParticipation() {
 			<TopRow>
 				<BallotSeriesSummary />
 				<div style={{display: 'flex'}}>
-						<TableColumnSelector
-							selectors={ballotParticipationSelectors}
-							actions={ballotParticipationActions}
-							columns={columns}
-						/>
-						<SplitPanelButton
-							selectors={ballotParticipationSelectors}
-							actions={ballotParticipationActions}
-						/>
+					<TableColumnSelector
+						selectors={ballotParticipationSelectors}
+						actions={ballotParticipationActions}
+						columns={columns}
+					/>
+					<SplitPanelButton
+						selectors={ballotParticipationSelectors}
+						actions={ballotParticipationActions}
+					/>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>
 			</TopRow>

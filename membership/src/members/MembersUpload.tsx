@@ -1,12 +1,11 @@
 import React from 'react';
 
+import { Form, Row, Col, List, ListItem, ActionButtonDropdown, DropdownRendererProps } from 'dot11-components';
+
 import { useAppDispatch } from '../store/hooks';
-
-import { Form, Row, Col, List, ListItem, ActionButtonDropdown, RendererProps } from 'dot11-components';
-
 import { uploadMembers, UploadFormat } from '../store/members';
 
-function MembersUploadForm({methods}: RendererProps) {
+function MembersUploadForm({methods}: DropdownRendererProps) {
 
 	const dispatch = useAppDispatch();
 	const fileRef = React.useRef<HTMLInputElement>(null);

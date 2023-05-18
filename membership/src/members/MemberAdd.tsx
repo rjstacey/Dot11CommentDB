@@ -1,16 +1,18 @@
 import React from 'react';
-import {Form, Row, Field, Input, ActionButtonDropdown, RendererProps} from 'dot11-components';
-import { useAppDispatch } from '../store/hooks';
+
+import { Form, Row, Field, Input, ActionButtonDropdown, DropdownRendererProps } from 'dot11-components';
+
 import AccessSelector from './AccessSelector';
 import StatusSelector from './StatusSelector';
 
-import {addMembers, AccessLevel, MemberAdd} from '../store/members';
+import { useAppDispatch } from '../store/hooks';
+import { addMembers, AccessLevel, MemberAdd } from '../store/members';
 
-const defaultMember: MemberAdd = {SAPIN: 0, Name: '', Email: '', Status: 'Non-Voter', Affiliation: '', Access: AccessLevel.Member}
+const defaultMember: MemberAdd = {SAPIN: 0, Name: '', Email: '', Status: 'Non-Voter', Affiliation: '', Employer: '', Access: AccessLevel.Member}
 
-function MemberAddForm({methods}: RendererProps) {
+export function MemberAddForm({methods, defaultValue = defaultMember}: {methods: {close: () => void}; defaultValue?: MemberAdd}) {
 	const dispatch = useAppDispatch();
-	const [member, setMember] = React.useState(defaultMember);
+	const [member, setMember] = React.useState(defaultValue);
 	const [errMsg, setErrMsg] = React.useState('');
 
 	const submit = async () => {
@@ -78,7 +80,7 @@ const MemberAdder = () =>
 	<ActionButtonDropdown
 		name='add'
 		title='Add member'
-		dropdownRenderer={(props) => <MemberAddForm {...props}/>}
+		dropdownRenderer={(props) => <MemberAddForm {...props} />}
 	/>
 
 export default MemberAdder;

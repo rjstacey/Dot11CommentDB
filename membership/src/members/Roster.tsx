@@ -1,14 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {useDispatch} from 'react-redux';
 
-import {ActionButton, ActionButtonDropdown, Form, Row, Col, RendererProps} from 'dot11-components';
+import { ActionButton, ActionButtonDropdown, Form, Row, Col, DropdownRendererProps } from 'dot11-components';
 
-import {importMyProjectRoster, exportMyProjectRoster} from '../store/members';
+import { useAppDispatch } from '../store/hooks';
+import { importMyProjectRoster, exportMyProjectRoster } from '../store/members';
 
-function RosterImportDropdown({methods}: RendererProps) {
+function RosterImportDropdown({methods}: DropdownRendererProps) {
 
-	const dispatch = useDispatch();
+	const dispatch = useAppDispatch();
 	const fileRef = React.useRef<HTMLInputElement>(null);
 	const [errMsg, setErrMsg] = React.useState('');
 	const [busy, setBusy] = React.useState(false);
@@ -67,7 +67,7 @@ const RosterImport = () =>
 	/>
 
 function RosterExport() {
-	const dispatch = useDispatch();
+	const dispatch = useAppDispatch();
 
 	return (
 		<ActionButton

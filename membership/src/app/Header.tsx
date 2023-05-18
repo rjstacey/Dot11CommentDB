@@ -17,13 +17,18 @@ const fullMenu = [
 	},
 	{
 		minAccess: AccessLevel.admin,
-		link: '/attendances',
-		label: 'Session attendance',
+		link: '/sessionParticipation',
+		label: 'Session participation',
 	},
 	{
 		minAccess: AccessLevel.admin,
 		link: '/ballotParticipation',
 		label: 'Ballot participation',
+	},
+	{
+		minAccess: AccessLevel.admin,
+		link: '/sessionAttendance',
+		label: 'Session attendance',
 	},
 ];
 

@@ -12,7 +12,8 @@ import {
 	AccessLevelOptions,
 	AccessLevelLabels,
 	displayAccessLevel,
-	AppTableDataState
+	AppTableDataState,
+	isObject
 } from 'dot11-components';
 
 import { selectAttendancesWithMembershipAndSummary } from './attendances';
@@ -49,27 +50,32 @@ export type MemberContactEmail = {
 	DateAdded: string;
 };
 
-export type MemberAdd = {
-	SAPIN: number;
-	Name: string;
-	Email: string;
-	Status: string;
-	Affiliation: string;
-	Access: number;
-};
+export type MemberContactInfo = {
+	StreetLine1: string;
+	StreetLine2: string;
+	City: string;
+	State: string;
+	Zip: string;
+	Country: string;
+	Phone: string;
+	Fax: string;
+}
 
-export type Member = {
+export type MemberCommon = {
 	SAPIN: number;
 	Name: string;
 	Email: string;
 	Employer: string;
 	Affiliation: string;
+	Status: string;
+	Access: number;
+}
+
+export type MemberExtra = {
 	Permissions: string[];
 	ContactEmails: MemberContactEmail[];
-	ContactInfo: { [k: string]: string };
-	Status: string;
+	ContactInfo: MemberContactInfo;
 	StatusChangeOverride: 0 | 1;
-	Access: number;
 	StatusChangeHistory: StatusChangeType[];
 	BallotSeriesCount: number;
 	BallotSeriesTotal: number;
@@ -79,6 +85,9 @@ export type Member = {
 	StatusChangeDate: string;
 	ReplacedBySAPIN: number | null;
 };
+
+export type MemberAdd = MemberCommon & Partial<MemberExtra>;
+export type Member = MemberCommon & MemberExtra;
 
 export type MemberWithParticipation = Member & {
 	AttendancesSummary: string;
@@ -174,6 +183,7 @@ const {
 	getSuccess,
 	getFailure,
 	updateOne,
+	setOne,
 	updateMany,
 	addMany,
 	upsertMany,
@@ -221,36 +231,62 @@ export const updateMembers = (updates: Update<Member>[]): AppThunk =>
 		//dispatch(updateMany(asUpdated));
 	}
 
-export const updateMemberStatusChange = (sapin: number, statusChangeEntry: {}): AppThunk =>
+type StatusChangeEntryUpdate = {
+	id: number;
+	changes: Partial<StatusChangeType>;
+}
+
+function validMember(member: any): member is Member {
+	return isObject(member) &&
+		typeof member.SAPIN === 'number';
+}
+
+export const addMemberStatusChangeEntries = (sapin: number, entries: StatusChangeType[]): AppThunk =>
 	async (dispatch, getState) => {
 		const url = `${baseUrl}/${sapin}/StatusChangeHistory`;
-		let response;
+		let response: any;
 		try {
-			response = await fetcher.patch(url, statusChangeEntry);
-			if (typeof response !== 'object')
+			response = await fetcher.put(url, entries);
+			if (!validMember(response))
+				throw new TypeError('Unexpected response to PUT ' + url);
+		}
+		catch(error) {
+			dispatch(setError('Unable to update member', error));
+			return;
+		}
+		dispatch(setOne(response));
+	}
+
+export const updateMemberStatusChangeEntries = (sapin: number, updates: StatusChangeEntryUpdate[]): AppThunk =>
+	async (dispatch, getState) => {
+		const url = `${baseUrl}/${sapin}/StatusChangeHistory`;
+		let response: any;
+		try {
+			response = await fetcher.patch(url, updates);
+			if (!validMember(response))
 				throw new TypeError('Unexpected response to PATCH ' + url);
 		}
 		catch(error) {
 			dispatch(setError('Unable to update member', error));
 			return;
 		}
-		dispatch(updateOne({id: sapin, changes: response}));
+		dispatch(setOne(response));
 	}
 
-export const deleteMemberStatusChange = (sapin: number, statusChangeId: number): AppThunk =>
+export const deleteMemberStatusChangeEntries = (sapin: number, ids: number[]): AppThunk =>
 	async (dispatch, getState) => {
 		const url = `${baseUrl}/${sapin}/StatusChangeHistory`;
 		let response;
 		try {
-			response = await fetcher.delete(url, {id: statusChangeId});
-			if (typeof response !== 'object')
+			response = await fetcher.delete(url, ids);
+			if (!validMember(response))
 				throw new TypeError('Unexpected response to DELETE ' + url);
 		}
 		catch(error) {
-			dispatch(setError('Unable to update member', error));
+			dispatch(setError('Unable to delete member', error));
 			return;
 		}
-		dispatch(updateOne({id: sapin, changes: response}));
+		dispatch(setOne(response));
 	}
 
 export const addMemberContactEmail = (sapin: number, entry: {}): AppThunk =>

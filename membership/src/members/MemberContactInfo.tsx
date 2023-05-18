@@ -3,9 +3,16 @@ import styled from '@emotion/styled';
 import { DateTime } from 'luxon';
 
 import { Col, Checkbox, Input, ActionIcon } from 'dot11-components';
-import type { Member, MemberContactEmail } from '../store/members';
+import type { Member, MemberContactEmail, MemberContactInfo } from '../store/members';
+import type { MultipleMember } from './MemberDetail';
 
 import {EditTable as Table, TableColumn} from '../components/Table';
+
+type ContactInfoField = {
+	key: keyof MemberContactInfo;
+	label: string;
+	size?: number;
+};
 
 const contactEmailColumns: TableColumn[] = [
 	{key: 'Email', label: 'Email'},
@@ -20,11 +27,11 @@ function MemberContactEmails({
 	updateMember,
 	readOnly
 }: {
-	member: Member;
+	member: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
-	const contactEmails = member.ContactEmails;
+	const contactEmails = member.ContactEmails || [];
 	const disableAdd = contactEmails.length > 0 && contactEmails[0].Email === '';
 
 	const columns = React.useMemo(() => {
@@ -108,7 +115,7 @@ const ContactInfoField = styled.div`
 	}
 `;
 
-const ContactInfoFields = [
+const ContactInfoFields: ContactInfoField[] = [
 	{key: 'StreetLine1', label: 'Street', size: 36},
 	{key: 'StreetLine2', label: '', size: 36},
 	{key: 'City', label: 'City', size: 20},
@@ -118,16 +125,16 @@ const ContactInfoFields = [
 	{key: 'Phone', label: 'Phone'},
 ];
 
-function MemberContactInfo({
+function MemberContactInfoEdit({
 	member,
 	updateMember,
 	readOnly
 }: {
-	member: Member;
+	member: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
-	const i = member.ContactInfo || {};
+	const contactInfo = member.ContactInfo || {};
 
 	const rows = ContactInfoFields.map(f => 
 		<ContactInfoField key={f.key} >
@@ -135,8 +142,8 @@ function MemberContactInfo({
 			<Input
 				type='text'
 				size={f.size}
-				value={i[f.key]}
-				onChange={e => updateMember({ContactInfo: {...i, [f.key]: e.target.value}})}
+				value={contactInfo[f.key]}
+				onChange={e => updateMember({ContactInfo: {...contactInfo, [f.key]: e.target.value}})}
 				disabled={readOnly}
 			/>
 		</ContactInfoField>
@@ -154,4 +161,4 @@ function MemberContactInfo({
 	)
 }
 
-export default MemberContactInfo;
+export default MemberContactInfoEdit;

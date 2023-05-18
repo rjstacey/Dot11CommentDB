@@ -12,10 +12,12 @@ import permissionsSlice, {loadPermissions} from './permissions';
 import membersSlice, {loadMembers} from './members';
 import attendancesSlice, {loadAttendances} from './attendances';
 import ballotParticipationSlice, {loadBallotParticipation} from './ballotParticipation';
+import dailAttendancesSlice from './dailyAttendances';
 
 import { errorsSlice } from 'dot11-components';
 
 const RESET_STORE_ACTION = "root/RESET_STORE";
+const PERSIST_VERSION = 3;
 
 const transformState = createTransform(
 	(state: any) => {
@@ -41,7 +43,8 @@ function configureStore(user: User) {
 		[ballotParticipationSlice.name]: ballotParticipationSlice.reducer,
 		[timeZonesSlice.name]: timeZonesSlice.reducer,
 		[permissionsSlice.name]: permissionsSlice.reducer,
-		[errorsSlice.name]: errorsSlice.reducer
+		[errorsSlice.name]: errorsSlice.reducer,
+		[dailAttendancesSlice.name]: dailAttendancesSlice.reducer
 	});
 
 	const rootReducer = (state: any, action: AnyAction) => {
@@ -52,7 +55,7 @@ function configureStore(user: User) {
 
 	const persistConfig = {
 		key: 'membership',
-		version: 2,
+		version: PERSIST_VERSION,
 		storage: {	// IndexedDB for storage using idb-keyval
 			setItem: set,
 			getItem: get,
@@ -66,7 +69,7 @@ function configureStore(user: User) {
 		stateReconciler: autoMergeLevel2,
 		transforms: [transformState],
 		migrate: (state: any) => {
-			if (state && state._persist && state._persist.version !== 3)
+			if (state && state._persist && state._persist.version !== PERSIST_VERSION)
 				return Promise.reject('Discard old version')
 			return Promise.resolve(state);
 		}

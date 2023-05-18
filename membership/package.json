@@ -21,7 +21,7 @@
     "@types/react-tabs": "^5.0.5",
     "@types/redux-logger": "^3.0.9",
     "copy-html-to-clipboard": "^4.0.1",
-    "dot11-components": "^1.9.42",
+    "dot11-components": "^1.9.43",
     "idb-keyval": "^6.0.3",
     "luxon": "^3.2.1",
     "react": "^18.2.0",

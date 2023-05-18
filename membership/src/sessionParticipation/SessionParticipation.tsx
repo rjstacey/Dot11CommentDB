@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import styled from '@emotion/styled';
 import { DateTime } from 'luxon';
 
@@ -16,7 +15,9 @@ import {
 	CellRendererProps,
 	displayDateRange,
 	ShowFilters,
-	GlobalFilter
+	GlobalFilter,
+	TableColumnSelector,
+	SplitPanel, Panel, SplitPanelButton
 } from 'dot11-components';
 
 import {
@@ -33,6 +34,7 @@ import {
 import type { MemberAttendances, SessionAttendanceSummary } from '../store/attendances';
 
 import { renderNameAndEmail } from '../members/Members';
+import MemberDetail from '../members/MemberDetail';
 
 const TopRow = styled.div`
 	display: flex;
@@ -126,9 +128,8 @@ const tableColumns: ColumnProperties[] = [
 ];
 
 function Attendances() {
-	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
-	const {valid} = useAppSelector(selectAttendancesState);
+	const {valid, selected} = useAppSelector(selectAttendancesState);
 	const sessionIds = useAppSelector(selectSessionIds);
 	const sessionEntities = useAppSelector(selectSessionEntities);
 
@@ -154,7 +155,7 @@ function Attendances() {
 				}
 				return column;
 			}))
-	}, [sessionEntities]);
+	}, [sessionIds, sessionEntities]);
 
 	const refresh = () => dispatch(loadAttendances());
 
@@ -162,7 +163,19 @@ function Attendances() {
 		<>
 			<TopRow>
 				<SessionSummary />
-				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+
+				<div style={{display: 'flex'}}>
+					<TableColumnSelector
+						selectors={attendancesSelectors}
+						actions={attendancesActions}
+						columns={columns}
+					/>
+					<SplitPanelButton
+						selectors={attendancesSelectors}
+						actions={attendancesActions}
+					/>
+					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+				</div>
 			</TopRow>
 
 			<div style={{display: 'flex', width: '100%', alignItems: 'center'}}>
@@ -177,15 +190,23 @@ function Attendances() {
 				/>
 			</div>
 
-			<TableRow>
-				<AppTable
-					columns={columns}
-					headerHeight={40}
-					estimatedRowHeight={50}
-					selectors={attendancesSelectors}
-					actions={attendancesActions}
-				/>
-			</TableRow>
+			<SplitPanel
+				selectors={attendancesSelectors}
+				actions={attendancesActions}
+			>
+				<Panel>
+					<AppTable
+						columns={columns}
+						headerHeight={40}
+						estimatedRowHeight={50}
+						selectors={attendancesSelectors}
+						actions={attendancesActions}
+					/>
+				</Panel>
+				<Panel style={{overflow: 'auto'}}>
+					<MemberDetail key={selected.join()} selected={selected} />
+				</Panel>
+			</SplitPanel>
 		</>
 	)
 }

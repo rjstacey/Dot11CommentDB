@@ -1,12 +1,13 @@
 import React from 'react';
 import {useAppSelector} from '../store/hooks';
 
-import {Row, Field, ActionIcon, isMultiple} from 'dot11-components';
+import { Row, Field, ActionIcon, isMultiple } from 'dot11-components';
 
-import {EditTable as Table, TableColumn} from '../components/Table';
+import { EditTable as Table, TableColumn } from '../components/Table';
 
 import { selectPermissions, Permission } from '../store/permissions';
 import type { Member } from '../store/members';
+import type { MultipleMember } from './MemberDetail';
 
 import AccessSelector from './AccessSelector';
 import PermissionSelector from './PermissionSelector';
@@ -25,20 +26,22 @@ function MemberPermissions({
 	updateMember,
 	readOnly
 }: {
-	member: Member;
+	member: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
 	const allPermissions = useAppSelector(selectPermissions);
-	const memberPermissions = member.Permissions.map(scope => {
-		const p = allPermissions.find(p => p.scope === scope);
-		return {scope, description: p? p.description: '(Blank)'};
-	});
+	const memberPermissions = member.Permissions && !isMultiple(member.Permissions)? member.Permissions: [];
+	const permissionOptions = 
+		memberPermissions.map(scope => {
+			const p = allPermissions.find(p => p.scope === scope);
+			return {scope, description: p? p.description: '(Blank)'};
+		});
 
 	function addPermission(scope: string | null) {
 		if (!scope)
 			return;
-		const Permissions = member.Permissions.slice();
+		const Permissions = memberPermissions.slice();
 		if (!Permissions.includes(scope)) {
 			Permissions.push(scope);
 			updateMember({Permissions});
@@ -48,7 +51,7 @@ function MemberPermissions({
 	const columns = React.useMemo(() => {
 
 		function deletePermission(scope: string) {
-			const Permissions = member.Permissions.filter(memberScope => memberScope !== scope);
+			const Permissions = memberPermissions.filter(memberScope => memberScope !== scope);
 			updateMember({Permissions});
 		}
 
@@ -65,7 +68,7 @@ function MemberPermissions({
 
 			return col;
 		})
-	}, [member.Permissions, updateMember, readOnly]);
+	}, [memberPermissions, updateMember, readOnly]);
 
 	return (
 		<>

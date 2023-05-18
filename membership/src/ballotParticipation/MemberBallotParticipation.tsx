@@ -3,7 +3,8 @@ import { connect, ConnectedProps } from 'react-redux';
 
 import { Col, Checkbox, displayDateRange, debounce, shallowDiff } from 'dot11-components';
 
-import { Member } from '../store/members';
+import type { RootState } from '../store';
+import { Member, selectMemberEntities } from '../store/members';
 
 import {
 	selectBallotParticipationState,
@@ -24,7 +25,7 @@ const ballotSeriesParticipationColumns: TableColumn[] = [
 ];
 
 type MemberBallotParticipationProps = {
-	member: Member;
+	SAPIN: number;
 	readOnly?: boolean;
 }
 
@@ -60,10 +61,10 @@ class MemberBallotParticipation extends React.Component<MemberBallotParticipatio
 	}
 
 	initState = (props: MemberBallotParticipationInternalProps) => {
-		const {entities, member} = props;
+		const {entities, SAPIN} = props;
 		const summaries: Record<number, BallotSeriesParticipationSummary> = {};
 		const ids: number[] = [];
-		const entity = entities[member.SAPIN];
+		const entity = entities[SAPIN];
 		if (entity) {
 			entity.ballotSeriesParticipationSummaries.forEach(summary => {
 				summaries[summary.id] = summary;
@@ -71,7 +72,7 @@ class MemberBallotParticipation extends React.Component<MemberBallotParticipatio
 			});
 		}
 		return {
-			SAPIN: member.SAPIN,
+			SAPIN,
 			ids,
 			edited: summaries,
 			saved: summaries
@@ -99,7 +100,7 @@ class MemberBallotParticipation extends React.Component<MemberBallotParticipatio
 	}
 
 	generateColumns(props: MemberBallotParticipationInternalProps) {
-		const {member, ballotEntities, ballotSeriesEntities, readOnly} = props;
+		const {SAPIN, ballotEntities, ballotSeriesEntities, readOnly} = props;
 
 		function renderDateRange(entity: BallotSeriesParticipationSummary) {
 			const ballotSeries = ballotSeriesEntities[entity.id]!;
@@ -133,7 +134,7 @@ class MemberBallotParticipation extends React.Component<MemberBallotParticipatio
 				renderCell = renderVoteSummary;
 			}
 			if (col.key === 'SAPIN') {
-				renderCell = entry => (entry.SAPIN !== member.SAPIN && entry.SAPIN) || '';
+				renderCell = entry => (entry.SAPIN !== SAPIN && entry.SAPIN) || '';
 			}
 
 			if (renderCell)
@@ -160,8 +161,8 @@ class MemberBallotParticipation extends React.Component<MemberBallotParticipatio
 }
 
 const connector = connect(
-	(state: any, props: MemberBallotParticipationProps) => {
-		const {count, total} = selectMemberBallotParticipationCount(state, props.member);
+	(state: RootState, props: MemberBallotParticipationProps) => {
+		const {count, total} = selectMemberBallotParticipationCount(state, props.SAPIN);
 		const {entities} = selectBallotParticipationState(state);
 		const {ids: ballotSeriesIds, entities: ballotSeriesEntities} = selectBallotParticipationState(state).ballotSeries;
 		const {entities: ballotEntities} = selectBallotParticipationState(state).ballots;

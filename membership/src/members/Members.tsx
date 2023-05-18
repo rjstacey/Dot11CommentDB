@@ -1,5 +1,4 @@
 import React from 'react';
-import {useDispatch, useSelector} from 'react-redux';
 import styled from '@emotion/styled';
 /* @ts-ignore */
 import copyToClipboard from 'copy-html-to-clipboard';
@@ -22,10 +21,9 @@ import {
 	TableConfig,
 	TablesConfig,
 	CellRendererProps,
-	HeaderCellRendererProps
+	HeaderCellRendererProps,
+	ButtonGroup, ActionButton 
 } from 'dot11-components';
-
-import { ButtonGroup, ActionButton, Button } from 'dot11-components';
 
 import MembersUpload from './MembersUpload';
 import MemberAdd from './MemberAdd';
@@ -33,6 +31,7 @@ import MembersSummary from './MembersSummary';
 import MemberDetail from './MemberDetail';
 import {RosterImport, RosterExport} from './Roster';
 
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	fields,
 	loadMembers,
@@ -93,7 +92,7 @@ const DivLineTruncated = styled.div`
 	text-overflow: ellipsis;
 `;
 
-const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) =>
+export const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) =>
 	<>
 		<TableColumnHeader {...props} dataKey='Name' label='Name' />
 		<TableColumnHeader {...props} dataKey='Email' label='Email' /*dropdownWidth={200}*/ />
@@ -105,13 +104,13 @@ export const renderNameAndEmail = ({rowData}: CellRendererProps<Member>) =>
 		<DivLineTruncated>{rowData.Email}</DivLineTruncated>
 	</>
 
-const renderHeaderEmployerAndAffiliation = (props: HeaderCellRendererProps) =>
+export const renderHeaderEmployerAndAffiliation = (props: HeaderCellRendererProps) =>
 	<>
 		<TableColumnHeader {...props} dataKey='Employer' label='Employer' />
 		<TableColumnHeader {...props} dataKey='Affiliation' label='Affiliation' />
 	</>
 
-const renderDataEmployerAndAffiliation = ({rowData}: CellRendererProps<Member>) =>
+export const renderEmployerAndAffiliation = ({rowData}: CellRendererProps<Member>) =>
 	<>
 		<DivLineTruncated>{rowData.Employer}</DivLineTruncated>
 		<DivLineTruncated>{rowData.Affiliation}</DivLineTruncated>
@@ -165,7 +164,7 @@ const tableColumns: ColumnProperties[] = [
 		label: 'Employer/Affiliation',
 		width: 300, flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderEmployerAndAffiliation,
-		cellRenderer: renderDataEmployerAndAffiliation},
+		cellRenderer: renderEmployerAndAffiliation},
 	{key: 'Employer', 
 		...fields.Employer,
 		width: 300, flexGrow: 1, flexShrink: 1},
@@ -214,8 +213,8 @@ for (tableView in defaultTablesColumns) {
 
 function Members() {
 
-	const dispatch = useDispatch();
-	const {selected, entities: members, valid} = useSelector(selectMembersState);
+	const dispatch = useAppDispatch();
+	const {selected, entities: members, valid} = useAppSelector(selectMembersState);
 
 	const load = () => dispatch(loadMembers());
 

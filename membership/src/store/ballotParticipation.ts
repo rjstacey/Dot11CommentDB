@@ -177,11 +177,14 @@ export const selectBallotParticipationWithMembershipAndSummary = createSelector(
 	}
 );
 
-export function selectMemberBallotParticipationCount(state: RootState, member: Member) {
+export function selectMemberBallotParticipationCount(state: RootState, SAPIN: number) {
 	const ballotParticipationEntities = selectBallotParticipationEntities(state);
 	const ballotSeriesEntities = selectBallotParticipationState(state).ballotSeries.entities;
-	const summaries = ballotParticipationEntities[member.SAPIN]?.ballotSeriesParticipationSummaries || [];
-	return memberBallotParticipationCount(member, summaries, ballotSeriesEntities);
+	const summaries = ballotParticipationEntities[SAPIN]?.ballotSeriesParticipationSummaries || [];
+	const member = selectMemberEntities(state)[SAPIN];
+	if (member)
+		return memberBallotParticipationCount(member, summaries, ballotSeriesEntities);
+	return {count: 0, total: 0}
 }
 
 function getField(entity: MemberParticipation, dataKey: string): any {

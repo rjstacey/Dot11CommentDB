@@ -3,17 +3,16 @@ import { connect, ConnectedProps } from 'react-redux';
 
 import { Col, Checkbox, Input, displayDateRange, debounce, shallowDiff } from 'dot11-components';
 
-import { Member } from '../store/members';
-
-import { SessionTypeOptions, Dictionary, Session } from '../store/attendances';
-
+import type { RootState } from '../store';
+import { selectMemberEntities } from '../store/members';
 import {
 	selectSessionEntities,
 	selectSessionIds,
 	selectAttendancesEntities,
 	selectMemberAttendancesCount,
 	updateAttendances,
-	SessionAttendanceSummary
+	SessionAttendanceSummary,
+	SessionTypeOptions, Dictionary, Session
 } from '../store/attendances';
 
 import {EditTable as Table, TableColumn} from '../components/Table';
@@ -34,7 +33,7 @@ const attendancesColumns: TableColumn[] = [
 ];
 
 type MemberAttendancesProps = {
-	member: Member;
+	SAPIN: number; //Member;
 	readOnly?: boolean;
 }
 
@@ -78,12 +77,12 @@ class MemberAttendances extends React.Component<MemberAttendancesInternalProps, 
 	}
 
 	initState = (props: MemberAttendancesInternalProps) => {
-		const {sessionIds, attendancesEntities, member} = props;
+		const {sessionIds, attendancesEntities, SAPIN} = props;
 		const attendances: Record<number, SessionAttendanceSummary> = {};
 		
 		sessionIds.forEach(session_id => {
-			const sessionAttendances = attendancesEntities[member.SAPIN]?.sessionAttendanceSummaries || [];
-			let a = sessionAttendances.find(a => a.session_id == session_id);
+			const sessionAttendances = attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
+			let a = sessionAttendances.find(a => a.session_id === session_id);
 			if (!a) {
 				// No entry for this session; generate a "null" entry
 				a = {
@@ -93,13 +92,13 @@ class MemberAttendances extends React.Component<MemberAttendancesInternalProps, 
 					DidAttend: false,
 					DidNotAttend: false,
 					Notes: '',
-					SAPIN: member.SAPIN
+					SAPIN
 				}
 			}
 			attendances[session_id] = a;
 		});
 		return {
-			SAPIN: member.SAPIN,
+			SAPIN,
 			sessionIds,
 			edited: attendances,
 			saved: attendances
@@ -127,7 +126,7 @@ class MemberAttendances extends React.Component<MemberAttendancesInternalProps, 
 	}
 
 	generateColumns(props: MemberAttendancesInternalProps) {
-		const {member, sessionEntities, readOnly} = props;
+		const {SAPIN, sessionEntities, readOnly} = props;
 
 		function renderSessionDate(id: number) {
 			const s = sessionEntities[id];
@@ -172,7 +171,7 @@ class MemberAttendances extends React.Component<MemberAttendancesInternalProps, 
 					/>
 			}
 			if (col.key === 'SAPIN') {
-				renderCell = entry => entry.SAPIN !== member.SAPIN? entry.SAPIN: '';
+				renderCell = entry => entry.SAPIN !== SAPIN? entry.SAPIN: '';
 			}
 
 			if (renderCell)
@@ -199,8 +198,8 @@ class MemberAttendances extends React.Component<MemberAttendancesInternalProps, 
 }
 
 const connector = connect(
-	(state: any, props: MemberAttendancesProps) => {
-		const {count, total} = selectMemberAttendancesCount(state, props.member);
+	(state: RootState, props: MemberAttendancesProps) => {
+		const {count, total} = selectMemberAttendancesCount(state, props.SAPIN);
 		return {
 			sessionIds: selectSessionIds(state),
 			sessionEntities: selectSessionEntities(state),

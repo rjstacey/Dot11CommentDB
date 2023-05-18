@@ -1,4 +1,4 @@
-import { PayloadAction, Dictionary, Update, createSelector, createEntityAdapter, EntityState } from '@reduxjs/toolkit';
+import { PayloadAction, Dictionary, createSelector, createEntityAdapter, EntityState } from '@reduxjs/toolkit';
 import { DateTime } from 'luxon';
 
 import {
@@ -139,8 +139,7 @@ export const selectSessionEntities = (state: RootState) => selectAttendancesStat
 export const selectSessionIds = (state: RootState) => selectAttendancesState(state).sessions.ids as number[];
 
 export function memberAttendancesCount(member: Member, attendances: SessionAttendanceSummary[], sessionEntities: Dictionary<Session>) {
-	let total = 0,		// Total plenary sessions (should be 4 since we only track last 4)
-		pCount = 0,		// Count of plenary sessions properly attended
+	let pCount = 0,		// Count of plenary sessions properly attended
 		iCount = 0,		// Count of interim sessions properly attended
 		lastP = 0;		// Last properly attended session was a plenary
 
@@ -151,8 +150,6 @@ export function memberAttendancesCount(member: Member, attendances: SessionAtten
 
 	attendances.forEach(a => {
 		const s = sessionEntities[a.session_id]!;
-		if (s.type === 'p')
-			total++;
 		if ((a.AttendancePercentage >= 75 && !a.DidNotAttend) || a.DidAttend) {
 			if (s.type === 'p') {
 				if (pCount === 0 && iCount === 0)
@@ -165,19 +162,27 @@ export function memberAttendancesCount(member: Member, attendances: SessionAtten
 		}
 	});
 
-	// One interim can be substituted for a plenary, but don't let it exceed total
+	// One interim can be substituted for a plenary
 	let count = pCount + (iCount? 1: 0);
-	if (count > total)
-		count = total;
 
-	return {count, total, lastP};
+	return {count, lastP};
 }
 
-export function selectMemberAttendancesCount(state: RootState, member: Member) {
+export function selectMemberAttendancesCount(state: RootState, SAPIN: number) {
 	const attendancesEntities = selectAttendancesEntities(state);
 	const sessionEntities = selectSessionEntities(state);
-	const attendances = attendancesEntities[member.SAPIN]?.sessionAttendanceSummaries || [];
-	return memberAttendancesCount(member, attendances, sessionEntities);
+	const total = Object.values(sessionEntities).filter(s => s?.type === 'p').length;
+	const member = selectMemberEntities(state)[SAPIN];
+	const attendances = attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
+	let count = 0, lastP = 0;
+	if (member) {
+		const out = memberAttendancesCount(member, attendances, sessionEntities);
+		count = out.count;
+		lastP = out.lastP;
+	}
+	if (count > total)
+		count = total;
+	return {count, total, lastP};
 }
 
 function memberExpectedStatusFromAttendances(member: Member, count: number, lastP: number) {
@@ -218,13 +223,16 @@ export const selectAttendancesWithMembershipAndSummary = createSelector(
 	selectAttendancesEntities,
 	(memberEntities, sessionEntities, ids, entities) => {
 		const newEntities: Dictionary<MemberAttendances> = {};
+		const total = Object.values(sessionEntities).filter(s => s?.type === 'p').length;
 		ids.forEach(id => {
 			let entity = entities[id]!;
 			let member = memberEntities[entity.SAPIN];
 			let expectedStatus = '';
 			let summary = '';
 			if (member) {
-				const {count, total, lastP} = member? memberAttendancesCount(member, entity.sessionAttendanceSummaries, sessionEntities): {count: 0, total: 0, lastP: 0};
+				let {count, lastP} = member? memberAttendancesCount(member, entity.sessionAttendanceSummaries, sessionEntities): {count: 0, lastP: 0};
+				if (count > total)
+					count = total;
 				expectedStatus = memberExpectedStatusFromAttendances(member, count, lastP);
 				summary = `${count}/${total}`;
 			}

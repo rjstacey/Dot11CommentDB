@@ -10,22 +10,24 @@ import { useAppSelector, useAppDispatch } from '../store/hooks';
 import type { RootState } from '../store';
 
 import {
-	ActionButton, Row, Col, Field, FieldLeft, Checkbox,
+	Form, ActionButton, Row, Col, Field, FieldLeft, Checkbox, Input,
 	ConfirmModal,
-	shallowDiff, recursivelyDiffObjects, isMultiple, debounce
+	shallowDiff, deepMergeTagMultiple, isMultiple, Multiple,
 } from 'dot11-components';
 
 import {
 	setUiProperties,
 	selectUiProperties,
+	addMembers,
 	updateMembers,
 	deleteMembers,
-	updateMemberStatusChange,
-	deleteMemberStatusChange,
+	addMemberStatusChangeEntries,
+	updateMemberStatusChangeEntries,
+	deleteMemberStatusChangeEntries,
 	selectMembersState,
 	selectMemberEntities,
 	Member,
-	StatusChangeType
+	MemberAdd
 } from '../store/members';
 
 import { selectMemberAttendancesCount } from '../store/attendances';
@@ -36,7 +38,7 @@ import MemberSelector from './MemberSelector';
 import MemberStatusChangeHistory from './MemberStatusChange';
 import MemberContactInfo from './MemberContactInfo';
 import MemberPermissions from './MemberPermissions';
-import MemberAttendances from '../attendances/MemberAttendances';
+import MemberAttendances from '../sessionParticipation/MemberAttendances';
 import MemberBallotParticipation from '../ballotParticipation/MemberBallotParticipation';
 
 const BLANK_STR = '(Blank)';
@@ -71,30 +73,25 @@ function ShortMemberSummary({sapins}: {sapins: number[]}) {
 	)
 }
 
-const renderString = (value: any) => isMultiple(value)? <i>{MULTIPLE_STR}</i>: (value === null || value === '')? <i>{BLANK_STR}</i>: value;
-
 const renderDate = (value: any) => isMultiple(value)? <i>{MULTIPLE_STR}</i>: (value === null || value === '')? <i>{BLANK_STR}</i>: displayDate(value);
-
-const renderEmail = (value: any) => isMultiple(value)? <i>{MULTIPLE_STR}</i>: (value === null || value === '')? <i>{BLANK_STR}</i>: <a href={'mailto:' + value}>{value}</a>;
 
 function MemberDetailInfo({
 	member,
 	updateMember,
-	updateStatusChange,
-	deleteStatusChange,
 	readOnly
 }: {
-	member: Member;
+	member: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
-	updateStatusChange: (id: number, changes: {}) => void;
-	deleteStatusChange: (id: number) => void;
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
-	const {tabIndex} = useAppSelector(selectUiProperties);
+	const tabIndex: number = useAppSelector(selectUiProperties).tabIndex || 0;
 	const setTabIndex = (tabIndex: number) => {dispatch(setUiProperties({tabIndex}))};
-	const {count: sessionCount, total: sessionTotal} = useAppSelector((state) => selectMemberAttendancesCount(state, member));
-	const {count: ballotCount, total: ballotTotal} = useAppSelector((state) => selectMemberBallotParticipationCount(state, member));
+
+	const SAPIN = member.SAPIN[0];
+
+	const {count: sessionCount, total: sessionTotal} = useAppSelector((state) => selectMemberAttendancesCount(state, SAPIN));
+	const {count: ballotCount, total: ballotTotal} = useAppSelector((state) => selectMemberBallotParticipationCount(state, SAPIN));
 
 	return (
 		<Tabs
@@ -126,20 +123,19 @@ function MemberDetailInfo({
 			<TabPanel>
 				<MemberStatusChangeHistory
 					member={member}
-					updateStatusChange={updateStatusChange}
-					deleteStatusChange={deleteStatusChange}
+					updateMember={updateMember}
 					readOnly={readOnly}
 				/>
 			</TabPanel>
 			<TabPanel>
 				<MemberAttendances
-					member={member}
+					SAPIN={SAPIN}
 					readOnly={readOnly}
 				/>
 			</TabPanel>
 			<TabPanel>
 				<MemberBallotParticipation
-					member={member}
+					SAPIN={SAPIN}
 					readOnly={readOnly}
 				/>
 			</TabPanel>
@@ -147,47 +143,113 @@ function MemberDetailInfo({
 	)
 }
 
-const MemberContainer = styled.div`
-	label {
-		font-weight: bold;
-	}
-`;
-
-function MemberEntry({
-	sapins,
+function MemberEntryForm({
+	action,
 	member,
 	updateMember,
-	updateStatusChange,
-	deleteStatusChange,
+	submit,
+	cancel,
 	readOnly
 }: {
-	sapins: number[];
-	member: Member;
+	action: Action;
+	member: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
-	updateStatusChange: (id: number, changes: {}) => void;
-	deleteStatusChange: (id: number) => void;
+	submit: () => void;
+	cancel: () => void;
 	readOnly?: boolean;
 }) {
-	const sapinsStr = sapins.join(', ');
-	const sapinsLabel = sapins.length > 1? 'SA PINs:': 'SA PIN:';
+	const hasMany = Array.isArray(member.SAPIN) && member.SAPIN.length > 1;
+	const sapinsStr = Array.isArray(member.SAPIN)? member.SAPIN.join(', '): member.SAPIN;
+	const sapinsLabel = hasMany? 'SA PINs:': 'SA PIN:';
+
+	let errMsg = '';
+	if (!member.Name)
+		errMsg = 'Name not set';
+	else if (!member.Affiliation)
+		errMsg = 'Affiliation not set';
+
+	let submitForm, cancelForm, submitLabel;
+	let title = "Member detail";
+	if (submit) {
+		if (action === 'add') {
+			submitLabel = "Add";
+			title = "Add member";
+		}
+		else {
+			submitLabel = "Update";
+			title = "Update member";
+		}
+		submitForm = async () => {
+			if (errMsg) {
+				ConfirmModal.show("Fix error: " + errMsg)
+				return;
+			}
+			submit();
+		};
+		cancelForm = cancel;
+	}
 
 	return (
-		<MemberContainer>
+		<Form
+			style={{flex: 1, overflow: 'hidden'}}
+			title={title}
+			//busy={busy}
+			submitLabel={submitLabel}
+			submit={submitForm}
+			cancel={cancelForm}
+			errorText={errMsg}
+		>
 			<Row>
 				<FieldLeft label={sapinsLabel}>{sapinsStr}</FieldLeft>
 				<FieldLeft label='Date added:'>{renderDate(member.DateAdded)}</FieldLeft>
 			</Row>
 			<Row>
-				<FieldLeft label='Name:'>{renderString(member.Name)}</FieldLeft>
+				<Field label='Name:'>
+					<Input
+						type='text'
+						size={24}
+						name='Name'
+						value={isMultiple(member.Name)? '': member.Name}
+						onChange={e => updateMember({Name: e.target.value})}
+						placeholder={isMultiple(member.Name)? MULTIPLE_STR: ''}
+					/>
+				</Field>
 			</Row>
 			<Row>
-				<FieldLeft label='Email:'>{renderEmail(member.Email)}</FieldLeft>
+				<Field label='Email:'>
+					<Input
+						type='text'
+						size={24}
+						name='Email'
+						value={isMultiple(member.Email)? '': member.Email}
+						onChange={e => updateMember({Email: e.target.value})}
+						placeholder={isMultiple(member.Email)? MULTIPLE_STR: ''}
+					/>
+				</Field>
 			</Row>
 			<Row>
-				<FieldLeft label='Employer:'>{renderString(member.Employer)}</FieldLeft>
+				<Field label='Employer:'>
+					<Input
+						type='text'
+						size={24}
+						name='Employer'
+						value={isMultiple(member.Employer)? '': member.Employer}
+						onChange={e => updateMember({Employer: e.target.value})}
+						placeholder={isMultiple(member.Employer)? MULTIPLE_STR: ''}
+					/>
+				</Field>
 			</Row>
 			<Row>
-				<FieldLeft label='Affiliation:'>{renderString(member.Affiliation)}</FieldLeft>
+				<Field label='Affiliation:'>
+					<Input
+						type='text'
+						size={24}
+						name='Affiliation'
+						value={isMultiple(member.Affiliation)? '': member.Affiliation}
+						onChange={e => updateMember({Affiliation: e.target.value})}
+						placeholder={isMultiple(member.Affiliation)? MULTIPLE_STR: ''}
+					/>
+				</Field>
 			</Row>
 			<Row>
 				<Field label='Status:'>
@@ -215,21 +277,21 @@ function MemberEntry({
 					</div>
 				</Field>
 			</Row>
-			{member.Status === 'Obsolete'?
+			{member.Status === 'Obsolete' &&
 				<Row>
 					<Field label='Replaced by:'>
 						<MemberSelector
 							style={{maxWidth: 400, flex: 1}}
-							value={isMultiple(member.ReplacedBySAPIN)? null: member.ReplacedBySAPIN}
+							value={isMultiple(member.ReplacedBySAPIN)? null: (member.ReplacedBySAPIN || null)}
 							onChange={value => updateMember({ReplacedBySAPIN: value})}
 							placeholder={isMultiple(member.ReplacedBySAPIN)? MULTIPLE_STR: BLANK_STR}
 							readOnly={readOnly}
 						/>
 					</Field>
-				</Row>:
-				sapins.length === 1 &&
+				</Row>}
+				{!hasMany &&
 					<>
-						{member.ObsoleteSAPINs.length > 0 &&
+						{member.ObsoleteSAPINs && !isMultiple(member.ObsoleteSAPINs) && member.ObsoleteSAPINs.length > 0 &&
 							<Row>
 								<Col>
 									<label>Replaces:</label>
@@ -237,17 +299,20 @@ function MemberEntry({
 								</Col>
 							</Row>}
 						<Row>
-							<MemberDetailInfo
-								member={member} 
-								updateMember={updateMember}
-								updateStatusChange={updateStatusChange}
-								deleteStatusChange={deleteStatusChange}
-								readOnly={readOnly}
-							/>
+							{action === "update"?
+								<MemberDetailInfo
+									member={member} 
+									updateMember={updateMember}
+									readOnly={readOnly}
+								/>:
+								<MemberContactInfo
+									member={member} 
+									updateMember={updateMember}
+									readOnly={readOnly}
+								/>}
 						</Row>
-					</>
-			}
-		</MemberContainer>
+					</>}
+		</Form>
 	)
 }
 
@@ -269,82 +334,221 @@ const DetailContainer = styled.div`
 	padding: 10px;
 `;
 
+type NormalizeOptions<T> = {
+	selectId?: (entry: T) => string | number;
+}
+
+function normalize<T>(arr: T[], options?: NormalizeOptions<T>) {
+	const selectId = options?.selectId || ((entry: any) => entry.id);
+	const ids: (number | string)[] = [];
+	const entities: Record<number | string, T> = {};
+	arr.forEach(entity => {
+		const id = selectId(entity);
+		entities[id] = entity;
+		ids.push(id);
+	});
+	return {ids, entities}
+}
+
+function arrayDiff<T extends {id: number}>(originalArr1: T[], updatedArr2: T[]):
+	{updates: {id: number; changes: Partial<T>}[];
+	adds: T[];
+	deletes: number[]};
+function arrayDiff<T extends {id: string}>(originalArr1: T[], updatedArr2: T[]):
+	{updates: {id: string; changes: Partial<T>}[];
+	adds: T[];
+	deletes: string[]};
+function arrayDiff<T extends {id: number | string}>(originalArr1: T[], updatedArr2: T[]):
+	{updates: {id: number | string; changes: Partial<T>}[];
+	adds: T[];
+	deletes: (number | string)[]}
+{
+	const updates: {id: number | string, changes: Partial<T>}[] = [];
+	const deletes: (number | string)[] = [];
+	let {ids: ids1, entities: entities1} = normalize(originalArr1);
+	let {ids: ids2, entities: entities2} = normalize(updatedArr2);
+	ids1.forEach(id1 => {
+		if (entities2[id1]) {
+			const changes = shallowDiff(entities1[id1], entities2[id1]);
+			if (Object.keys(changes).length > 0)
+				updates.push({id: id1, changes});
+		}
+		else {
+			deletes.push(id1);
+		}
+		ids2 = ids2.filter(id2 => id2 !== id1);
+	});
+	const adds: T[] = ids2.map(id2 => entities2[id2]);
+	return {updates, adds, deletes};
+}
+
 type MemberDetailProps = {
 	style?: React.CSSProperties;
 	className?: string;
 	readOnly?: boolean;
+	selected?: EntityId[];
+	getAsMember?: (sapin: number) => MemberAdd | undefined;
 };
 
 type MemberDetailInternalProps = ConnectedMemberDetailProps & MemberDetailProps;
 
-type MemberDetailState = {
-	saved: Member | {};
-	edited: Member | {};
-	originals: Member[];
+type Action = "add" | "update";
+
+export type MultipleMember = Multiple<Omit<MemberAdd, "SAPIN" | "StatusChangeHistory" | "ContactEmails" | "ContactInfo">> & {
+	SAPIN: number[];
+	StatusChangeHistory: Member["StatusChangeHistory"];
+	ContactEmails: Member["ContactEmails"];
+	ContactInfo: Multiple<Member["ContactInfo"]>;
+}
+
+type MemberDetailState = ({
+	action: "void";
+	saved: null;
+	edited: null;
+} | {
+	action: "update" | "add";
+	saved: MultipleMember;
+	edited: MultipleMember;
+}) & {
+	originals: MemberAdd[];
+	message: string;
 };
 
 class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDetailState>  {
 	constructor(props: MemberDetailInternalProps) {
 		super(props)
-		this.state = this.initState(props);
-		this.triggerSave = debounce(this.save, 500);
+		this.state = this.initState("update");
 	}
 
-	triggerSave: ReturnType<typeof debounce>;
+	initState = (action: Action): MemberDetailState => {
+		const {members, selected, getAsMember} = this.props;
 
-	componentDidMount() {
-	}
-
-	componentWillUnmount() {
-		this.triggerSave.flush();
-	}
-
-	initState = (props: MemberDetailInternalProps) => {
-		const {members, selected} = props;
-		let diff: Member | {} = {};
-		let originals: Member[] = [];
-		for (const sapin of selected) {
-			const member = members[sapin];
-			if (member) {
-				diff = recursivelyDiffObjects(diff, member) as Member;
-				originals.push(member);
+		if (selected.length === 0) {
+			return {
+				action: "void",
+				edited: null,
+				saved: null,
+				originals: [],
+				message: "Nothing selected"
 			}
 		}
-		return {
-			saved: diff,
-			edited: diff,
-			originals
-		};
+
+		if (getAsMember) {
+			if (selected.every(id => members[id])) {
+				// All selected are existing members
+				let diff = {} as MultipleMember;
+				let originals: Member[] = [];
+				selected.forEach(sapin => {
+					const attendee = getAsMember(sapin as number);
+					if (!attendee) {
+						console.warn("Can't get member with SAPIN=" + sapin);
+						return;
+					}
+					const member = members[sapin]!;
+					const {Status, Access, SAPIN, ...rest} = attendee;
+					const changes = shallowDiff(member, rest) as Partial<Member>;
+					diff = deepMergeTagMultiple(diff, {...member, ...changes}) as MultipleMember;
+					originals.push(member);
+				});
+				diff.SAPIN = selected as number[];
+				return {
+					action: "update",
+					edited: diff,
+					saved: diff,
+					originals,
+					message: ''
+				}
+			}
+			else if (selected.every(id => !members[id])) {
+				// All selected are new attendees
+				let diff = {} as MultipleMember;
+				let originals: MemberAdd[] = [];
+				selected.forEach(sapin => {
+					const attendee = getAsMember(sapin as number);
+					if (!attendee) {
+						console.warn("Can't get member with SAPIN=" + sapin);
+						return;
+					}
+					const {Status, Access, SAPIN, ...rest} = attendee;
+					diff = deepMergeTagMultiple(diff, rest) as MultipleMember;
+					originals.push(attendee);
+				});
+				diff.SAPIN = selected as number[];
+				return {
+					action: "add",
+					edited: diff,
+					saved: diff,
+					originals,
+					message: ''
+				}
+			}
+			else {
+				return {
+					action: "void",
+					edited: null,
+					saved: null,
+					originals: [],
+					message: "Mix of new attendees and existing members selected"
+				}
+			}
+		}
+		else {
+			let diff = {} as MultipleMember;
+			let originals: Member[] = [];
+			selected.forEach(sapin => {
+				const member = members[sapin];
+				if (!member) {
+					console.warn("Can't get member with SAPIN=" + sapin);
+					return;
+				}
+				diff = deepMergeTagMultiple(diff, member) as MultipleMember;
+				originals.push(member);
+			});
+			return {
+				action: "update",
+				edited: diff,
+				saved: diff,
+				originals,
+				message: ''
+			}
+		}
 	}
 
-	updateMember = (changes: Partial<Member>) => {
+	updateMember = (changes: Partial<Omit<Member, "SAPIN">>) => {
 		const {readOnly, uiProperties} = this.props;
+		const {action} = this.state;
+
 		if (readOnly || !uiProperties.editMember) {
 			console.warn("Update when read-only")
 			return;
 		}
-		// merge the edits and trigger a debounced save
-		this.setState(
-			state => ({...state, edited: {...state.edited, ...changes}}),
-			this.triggerSave
-		);
+
+		if (action === "void") {
+			console.warn("Update in bad state");
+			return;
+		}
+
+		// merge the edits
+		this.setState({edited: {...this.state.edited, ...changes}})
 	}
 
-	updateStatusChange = (id: number, changes: Partial<StatusChangeType>) => {
-		const edited = this.state.edited as Member;
-		this.props.updateMemberStatusChange(edited.SAPIN, {id, ...changes});
-		const StatusChangeHistory = edited.StatusChangeHistory.map(h => h.id === id? {...h, ...changes}: h);
-		this.updateMember({StatusChangeHistory});
+	handleToggleEditMember = () => this.props.setUiProperties({editMember: !this.props.uiProperties.editMember});
+
+	hasUpdates = () => this.state.saved !== this.state.edited;
+
+	clickAdd = async () => {
+		const {action} = this.state;
+
+		if (action === 'update' && this.hasUpdates()) {
+			const ok = await ConfirmModal.show(`Changes not applied! Do you want to discard changes?`);
+			if (!ok)
+				return;
+		}
+
+		this.setState(this.initState('add'));
 	}
 
-	deleteStatusChange = (id: number) => {
-		const edited = this.state.edited as Member;
-		this.props.deleteMemberStatusChange(edited.SAPIN, id);
-		const StatusChangeHistory = edited.StatusChangeHistory.filter(h => h.id !== id);
-		this.setState({edited: {...edited, StatusChangeHistory}});
-	}
-
-	handleRemoveSelected = async () => {
+	clickDelete = async () => {
 		const {originals} = this.state;
 		if (originals.length === 0)
 			return;
@@ -357,33 +561,61 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 			await this.props.deleteMembers(sapins);
 	}
 
-	handleToggleEditMember = () => this.props.setUiProperties({editMember: !this.props.uiProperties.editMember});
-
-	save = () => {
-		const {edited, saved, originals} = this.state;
-		const d = shallowDiff(saved, edited) as Partial<Member>;
-		console.log(d)
-		delete d.StatusChangeHistory;
-		const updates = [];
-		for (const m of originals) {
-			if (Object.keys(d).length > 0)
-				updates.push({id: m.SAPIN, changes: d});
+	add = () => {
+		const {addMembers} = this.props;
+		const {action, edited, originals} = this.state;
+		if (action !== "add") {
+			console.warn("Add with unexpected state");
+			return;
 		}
-		if (updates.length > 0)
+		const newMembers = originals.map(m => {
+			const changes = shallowDiff(m, edited);
+			return {...m, ...changes};
+		});
+		addMembers(newMembers);
+	}
+
+	update = () => {
+		const {action, edited, saved, originals} = this.state;
+		if (action !== "update") {
+			console.warn("Update with unexpected state");
+			return;
+		}
+		const changes = shallowDiff(saved, edited) as Partial<Member>;
+		if ('StatusChangeHistory' in changes) {
+			const {updates, adds, deletes} = arrayDiff(saved.StatusChangeHistory, edited.StatusChangeHistory);
+			originals.forEach(m => {
+				if (updates.length > 0)
+					this.props.updateMemberStatusChangeEntries(m.SAPIN, updates);
+				if (deletes.length > 0)
+					this.props.deleteMemberStatusChangeEntries(m.SAPIN, deletes);
+				if (adds.length > 0)
+					this.props.addMemberStatusChangeEntries(m.SAPIN, adds);
+			});
+			delete changes.StatusChangeHistory;
+		}
+		if (Object.keys(changes).length > 0) {
+			const updates = originals.map(m => ({id: m.SAPIN, changes}));
 			this.props.updateMembers(updates);
+		}
 		this.setState(state => ({...state, saved: edited}));
 	}
 
-	render() {
-		const {style, className, loading, uiProperties, readOnly} = this.props;
-		const {originals} = this.state;
+	cancel = () => {
+		this.setState(this.initState('update'));
+	}
 
-		let notAvailableStr
+	render() {
+		const {style, className, loading, readOnly} = this.props;
+		const {originals, action, message} = this.state;
+
+		const isSelected = originals.length > 0;
+
+		let notAvailableStr: string | undefined;
 		if (loading)
 			notAvailableStr = 'Loading...';
-		else if (originals.length === 0)
-			notAvailableStr = 'Nothing selected';
-		const disableButtons = !!notAvailableStr; 	// disable buttons if displaying string
+		else if (action === "void")
+			notAvailableStr = message;
 
 		return (
 			<DetailContainer
@@ -394,17 +626,17 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 					{!this.props.readOnly &&
 						<>
 							<ActionButton
-								name='edit'
-								title='Edit member'
-								disabled={disableButtons}
-								isActive={uiProperties.editMember}
-								onClick={this.handleToggleEditMember}
+								name='add'
+								title='Add member'
+								disabled={loading}
+								isActive={action === "add"}
+								onClick={this.clickAdd}
 							/>
 							<ActionButton
 								name='delete'
 								title='Delete member'
-								disabled={disableButtons}
-								onClick={this.handleRemoveSelected}
+								disabled={loading || !isSelected}
+								onClick={this.clickDelete}
 							/>
 						</>}
 				</TopRow>
@@ -412,14 +644,15 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 					<NotAvaialble>
 						<span>{notAvailableStr}</span>
 				 	</NotAvaialble>:
-					<MemberEntry
-						sapins={this.props.selected as number[]}
-						member={this.state.edited as Member}
-						updateMember={this.updateMember}
-						updateStatusChange={this.updateStatusChange}
-						deleteStatusChange={this.deleteStatusChange}
-						readOnly={readOnly || !uiProperties.editMember}
-					/>
+					(action === "update" || action === "add") &&
+						<MemberEntryForm
+							action={action}
+							member={this.state.edited}
+							updateMember={this.updateMember}
+							submit={action === "update"? this.update: this.add}
+							cancel={this.cancel}
+							readOnly={readOnly}
+						/>
 				}
 			</DetailContainer>
 		)
@@ -427,7 +660,7 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 }
 
 const connector = connect(
-	(state: RootState, props: {selected?: EntityId[]}) => {
+	(state: RootState, props: MemberDetailProps) => {
 		const members = selectMembersState(state);
 		return {
 			members: members.entities,
@@ -437,9 +670,11 @@ const connector = connect(
 		}
 	},
 	{
+		addMembers,
 		updateMembers,
-		updateMemberStatusChange,
-		deleteMemberStatusChange,
+		addMemberStatusChangeEntries,
+		updateMemberStatusChangeEntries,
+		deleteMemberStatusChangeEntries,
 		deleteMembers,
 		setUiProperties,
 	}

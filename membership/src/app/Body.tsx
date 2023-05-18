@@ -5,10 +5,11 @@ import styled from '@emotion/styled';
 import { useAppSelector } from '../store/hooks';
 
 import Members from '../members/Members';
-import Attendances from '../attendances/Attendances';
+import SessionParticipation from '../sessionParticipation/SessionParticipation';
 import BallotParticipation from '../ballotParticipation/BallotParticipation';
+import SessionAttendance from '../sessionAttendance/SessionAttendance';
 
-import {selectUserMembershipAccess, AccessLevel} from '../store/user';
+import { selectUserMembershipAccess, AccessLevel } from '../store/user';
 
 const Main = styled.main`
 	flex: 1;
@@ -41,12 +42,16 @@ function Body() {
 					element={renderComponent(AccessLevel.admin, Members)}
 				/>
 				<Route
-					path="/attendances"
-					element={renderComponent(AccessLevel.admin, Attendances)}
+					path="/sessionParticipation"
+					element={renderComponent(AccessLevel.admin, SessionParticipation)}
 				/>
 				<Route
 					path="/ballotParticipation"
 					element={renderComponent(AccessLevel.admin, BallotParticipation)}
+				/>
+				<Route
+					path="/sessionAttendance"
+					element={renderComponent(AccessLevel.admin, SessionAttendance)}
 				/>
 			</Routes>
 		</Main>

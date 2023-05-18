@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {Form, Row, Field, Input, Button, Dropdown, RendererProps} from 'dot11-components';
+import {Form, Row, Field, Input, Button, Dropdown, DropdownRendererProps} from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { updateMembers, selectMembersState } from '../store/members';
 
 
-function BulkStatusUpdateForm({methods}: RendererProps) {
+function BulkStatusUpdateForm({methods}: DropdownRendererProps) {
 
 	const dispatch = useAppDispatch();
 	const {selected, entities: members} = useAppSelector(selectMembersState);

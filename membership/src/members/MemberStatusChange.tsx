@@ -5,9 +5,10 @@ import { Form, Row, Field, Input, ActionIcon, Dropdown } from 'dot11-components'
 
 import type { Member, StatusChangeType } from '../store/members';
 
-import {EditTable as Table} from '../components/Table';
+import { EditTable as Table } from '../components/Table';
 
 import StatusSelector from './StatusSelector';
+import type { MultipleMember } from './MemberDetail';
 
 const BLANK_STR = '(Blank)';
 
@@ -116,6 +117,7 @@ function MemberStatusChangeDropdown({
 					close={methods.close}
 					{...props}
 				/>}
+			disabled={readOnly}
 		/>
 	)
 }
@@ -130,18 +132,28 @@ const statusChangeHistoryColumns = [
 
 function MemberStatusChangeHistory({
 	member,
-	updateStatusChange,
-	deleteStatusChange,
+	updateMember,
 	readOnly
 }: {
-	member: Member;
-	updateStatusChange: (id: number, changes: {}) => void;
-	deleteStatusChange: (id: number) => void;
+	member: MultipleMember;
+	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
 	const history = member.StatusChangeHistory;
 
 	const columns = React.useMemo(() => {
+
+		function updateStatusChange(id: number, changes: Partial<StatusChangeType>) {
+			const StatusChangeHistory = member.StatusChangeHistory.map(h => h.id === id? {...h, ...changes}: h);
+			//console.log(id, changes, StatusChangeHistory)
+			updateMember({StatusChangeHistory});
+		}
+
+		function deleteStatusChange(id: number) {
+			const StatusChangeHistory = member.StatusChangeHistory.filter(h => h.id !== id);
+			updateMember({StatusChangeHistory});
+		}
+
 		const columns = statusChangeHistoryColumns.map(col => {
 			if (col.key === 'actions') {
 				const renderCell = (entry: StatusChangeType) => (
@@ -162,7 +174,7 @@ function MemberStatusChangeHistory({
 			return col;
 		});
 		return columns;
-	}, [updateStatusChange, deleteStatusChange, readOnly]);
+	}, [member, readOnly]);
 
 	return (
 		<Table
