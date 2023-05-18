@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAppSelector } from '../store/hooks';
 
 import { Select, displayDateRange } from 'dot11-components';
 
-import { selectSessionIds, selectSessionEntities, Session } from '../store/attendances';
+import { selectSessionIds, selectSessionEntities, Session } from '../store/sessionParticipation';
 
 const StyledItem = styled.div`
 	overflow: hidden;

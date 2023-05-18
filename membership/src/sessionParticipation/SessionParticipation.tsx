@@ -29,9 +29,9 @@ import {
 	selectSessionIds,
 	attendancesSelectors,
 	attendancesActions
-} from '../store/attendances';
+} from '../store/sessionParticipation';
 
-import type { MemberAttendances, SessionAttendanceSummary } from '../store/attendances';
+import type { MemberAttendances, SessionAttendanceSummary } from '../store/sessionParticipation';
 
 import { renderNameAndEmail } from '../members/Members';
 import MemberDetail from '../members/MemberDetail';

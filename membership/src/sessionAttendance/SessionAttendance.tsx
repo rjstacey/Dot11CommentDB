@@ -22,7 +22,7 @@ import {
 	dailyAttendancesSelectors,
 	dailyAttendancesActions,
 	selectDailyAttendancesState,
-} from '../store/dailyAttendances';
+} from '../store/sessionAttendances';
 import type { Member, MemberAdd } from '../store/members';
 
 import {

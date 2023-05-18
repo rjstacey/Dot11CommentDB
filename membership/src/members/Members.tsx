@@ -26,7 +26,6 @@ import {
 } from 'dot11-components';
 
 import MembersUpload from './MembersUpload';
-import MemberAdd from './MemberAdd';
 import MembersSummary from './MembersSummary';
 import MemberDetail from './MemberDetail';
 import {RosterImport, RosterExport} from './Roster';
@@ -264,7 +263,6 @@ function Members() {
 						<div style={{display: 'flex'}}>
 							<ActionButton name='copy' title='Copy to clipboard' disabled={selected.length === 0} onClick={() => setClipboard(selected, members)} />
 							<MembersUpload />
-							<MemberAdd />
 							<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
 						</div>
 					</ButtonGroup>

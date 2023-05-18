@@ -4,7 +4,6 @@ import { connect, ConnectedProps } from 'react-redux';
 import { Col, Checkbox, Input, displayDateRange, debounce, shallowDiff } from 'dot11-components';
 
 import type { RootState } from '../store';
-import { selectMemberEntities } from '../store/members';
 import {
 	selectSessionEntities,
 	selectSessionIds,
@@ -13,7 +12,7 @@ import {
 	updateAttendances,
 	SessionAttendanceSummary,
 	SessionTypeOptions, Dictionary, Session
-} from '../store/attendances';
+} from '../store/sessionParticipation';
 
 import {EditTable as Table, TableColumn} from '../components/Table';
 

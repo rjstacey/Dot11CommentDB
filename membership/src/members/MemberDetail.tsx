@@ -6,15 +6,14 @@ import { DateTime } from 'luxon';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
 
-import { useAppSelector, useAppDispatch } from '../store/hooks';
-import type { RootState } from '../store';
-
 import {
 	Form, ActionButton, Row, Col, Field, FieldLeft, Checkbox, Input,
 	ConfirmModal,
 	shallowDiff, deepMergeTagMultiple, isMultiple, Multiple,
 } from 'dot11-components';
 
+import type { RootState } from '../store';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
 import {
 	setUiProperties,
 	selectUiProperties,
@@ -30,7 +29,7 @@ import {
 	MemberAdd
 } from '../store/members';
 
-import { selectMemberAttendancesCount } from '../store/attendances';
+import { selectMemberAttendancesCount } from '../store/sessionParticipation';
 import { selectMemberBallotParticipationCount } from '../store/ballotParticipation';
 
 import StatusSelector from './StatusSelector';
@@ -43,6 +42,26 @@ import MemberBallotParticipation from '../ballotParticipation/MemberBallotPartic
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
+
+const defaultMember = {
+	SAPIN: 0,
+	Name: '',
+	Email: '',
+	Status: 'Non-Voter',
+	Affiliation: '',
+	Employer: '',
+	Access: 0,
+	ContactInfo: {
+		StreetLine1: '',
+		StreetLine2: '',
+		City: '',
+		State: '',
+		Zip: '',
+		Country: '',
+		Phone: '',
+		Fax: ''
+	}
+};
 
 const displayDate = (isoDateTime: string) => DateTime.fromISO(isoDateTime).toLocaleString(DateTime.DATE_MED);
 
@@ -73,7 +92,11 @@ function ShortMemberSummary({sapins}: {sapins: number[]}) {
 	)
 }
 
-const renderDate = (value: any) => isMultiple(value)? <i>{MULTIPLE_STR}</i>: (value === null || value === '')? <i>{BLANK_STR}</i>: displayDate(value);
+const renderDate = (value: any) => isMultiple(value)?
+	<i>{MULTIPLE_STR}</i>:
+	value?
+		displayDate(value):
+		<i>{BLANK_STR}</i>;
 
 function MemberDetailInfo({
 	member,
@@ -188,6 +211,7 @@ function MemberEntryForm({
 		};
 		cancelForm = cancel;
 	}
+	console.log(member)
 
 	return (
 		<Form
@@ -493,32 +517,49 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 			}
 		}
 		else {
-			let diff = {} as MultipleMember;
-			let originals: Member[] = [];
-			selected.forEach(sapin => {
-				const member = members[sapin];
-				if (!member) {
-					console.warn("Can't get member with SAPIN=" + sapin);
-					return;
+			if (action === "add") {
+				const entry: MultipleMember = {
+					...defaultMember,
+					SAPIN: [0],
+					StatusChangeHistory: [],
+					ContactEmails: [],
 				}
-				diff = deepMergeTagMultiple(diff, member) as MultipleMember;
-				originals.push(member);
-			});
-			return {
-				action: "update",
-				edited: diff,
-				saved: diff,
-				originals,
-				message: ''
+				return {
+					action: "add",
+					edited: entry,
+					saved: entry,
+					originals: [],
+					message: ''
+				}
+			}
+			else {
+				let diff = {} as MultipleMember;
+				let originals: Member[] = [];
+				selected.forEach(sapin => {
+					const member = members[sapin];
+					if (!member) {
+						console.warn("Can't get member with SAPIN=" + sapin);
+						return;
+					}
+					diff = deepMergeTagMultiple(diff, member) as MultipleMember;
+					originals.push(member);
+				});
+				return {
+					action: "update",
+					edited: diff,
+					saved: diff,
+					originals,
+					message: ''
+				}
 			}
 		}
 	}
 
 	updateMember = (changes: Partial<Omit<Member, "SAPIN">>) => {
-		const {readOnly, uiProperties} = this.props;
+		const {readOnly} = this.props;
 		const {action} = this.state;
 
-		if (readOnly || !uiProperties.editMember) {
+		if (readOnly) {
 			console.warn("Update when read-only")
 			return;
 		}
@@ -528,11 +569,9 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 			return;
 		}
 
-		// merge the edits
+		// merge changes
 		this.setState({edited: {...this.state.edited, ...changes}})
 	}
-
-	handleToggleEditMember = () => this.props.setUiProperties({editMember: !this.props.uiProperties.editMember});
 
 	hasUpdates = () => this.state.saved !== this.state.edited;
 
@@ -611,19 +650,13 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 
 		const isSelected = originals.length > 0;
 
-		let notAvailableStr: string | undefined;
-		if (loading)
-			notAvailableStr = 'Loading...';
-		else if (action === "void")
-			notAvailableStr = message;
-
 		return (
 			<DetailContainer
 				style={style}
 				className={className}
 			>
 				<TopRow>
-					{!this.props.readOnly &&
+					{!readOnly &&
 						<>
 							<ActionButton
 								name='add'
@@ -640,19 +673,18 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 							/>
 						</>}
 				</TopRow>
-				{notAvailableStr?
+				{action === "void" || loading?
 					<NotAvaialble>
-						<span>{notAvailableStr}</span>
+						<span>{loading? "Loading...": message}</span>
 				 	</NotAvaialble>:
-					(action === "update" || action === "add") &&
-						<MemberEntryForm
-							action={action}
-							member={this.state.edited}
-							updateMember={this.updateMember}
-							submit={action === "update"? this.update: this.add}
-							cancel={this.cancel}
-							readOnly={readOnly}
-						/>
+					<MemberEntryForm
+						action={action}
+						member={this.state.edited}
+						updateMember={this.updateMember}
+						submit={action === "update"? this.update: this.add}
+						cancel={this.cancel}
+						readOnly={readOnly}
+					/>
 				}
 			</DetailContainer>
 		)

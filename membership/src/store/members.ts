@@ -16,7 +16,7 @@ import {
 	isObject
 } from 'dot11-components';
 
-import { selectAttendancesWithMembershipAndSummary } from './attendances';
+import { selectAttendancesWithMembershipAndSummary } from './sessionParticipation';
 import { selectBallotParticipationWithMembershipAndSummary } from './ballotParticipation';
 
 import type {RootState, AppThunk} from '.';
@@ -205,10 +205,8 @@ export const loadMembers = (): AppThunk =>
 				throw new TypeError('Unexpected response to GET ' + baseUrl);
 		}
 		catch(error) {
-			await Promise.all([
-				dispatch(getFailure()),
-				dispatch(setError('Unable to get members list', error))
-			]);
+			dispatch(getFailure());
+			dispatch(setError('Unable to get members list', error));
 			return;
 		}
 		dispatch(getSuccess(response));

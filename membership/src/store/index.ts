@@ -10,9 +10,9 @@ import { createUserSlice, User } from './user';
 import timeZonesSlice, {loadTimeZones} from './timeZones';
 import permissionsSlice, {loadPermissions} from './permissions';
 import membersSlice, {loadMembers} from './members';
-import attendancesSlice, {loadAttendances} from './attendances';
+import attendancesSlice, {loadAttendances} from './sessionParticipation';
 import ballotParticipationSlice, {loadBallotParticipation} from './ballotParticipation';
-import dailAttendancesSlice from './dailyAttendances';
+import dailAttendancesSlice from './sessionAttendances';
 
 import { errorsSlice } from 'dot11-components';
 
