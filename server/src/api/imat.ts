@@ -57,7 +57,8 @@ import {
 	updateImatBreakouts,
 	deleteImatBreakouts,
 	getImatMeetingAttendance,
-	getImatBreakoutAttendance
+	getImatBreakoutAttendance,
+	getImatMeetingDailyAttendance
 } from '../services/imat';
 
 const router = Router();
@@ -133,7 +134,6 @@ router.delete('/breakouts/:imatMeetingId(\\d+)', async (req, res, next) => {
 router.get('/attendance/:imatMeetingId(\\d+)$', async (req, res, next) => {
 	try {
 		const imatMeetingId = parseInt(req.params.imatMeetingId);
-		const imatBreakoutId = parseInt(req.params.imatBreakoutId);
 		const data = await getImatMeetingAttendance(req.user, imatMeetingId);
 		res.json(data);
 	}
@@ -145,6 +145,15 @@ router.get('/attendance/:imatMeetingId(\\d+)/:imatBreakoutId(\\d+)', async (req,
 		const imatMeetingId = parseInt(req.params.imatMeetingId);
 		const imatBreakoutId = parseInt(req.params.imatBreakoutId);
 		const data = await getImatBreakoutAttendance(req.user, imatMeetingId, imatBreakoutId);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+router.get('/dailyAttendance/:imatMeetingId(\\d+)', async (req, res, next) => {
+	try {
+		const imatMeetingId = parseInt(req.params.imatMeetingId);
+		const data = await getImatMeetingDailyAttendance(req.user, imatMeetingId);
 		res.json(data);
 	}
 	catch(err) {next(err)}

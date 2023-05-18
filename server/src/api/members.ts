@@ -17,8 +17,9 @@ import {
 	getMembers,
 	getMembersSnapshot,
 	updateMembers,
-	updateMemberStatusChange,
-	deleteMemberStatusChange,
+	addMemberStatusChangeEntries,
+	updateMemberStatusChangeEntries,
+	deleteMemberStatusChangeEntries,
 	addMemberContactEmail,
 	updateMemberContactEmail,
 	deleteMemberContactEmail,
@@ -101,13 +102,19 @@ router.patch('/:id(\\d+)$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
+router.put('/:id(\\d+)/StatusChangeHistory', async (req, res, next) => {
+	try {
+		const id = Number(req.params.id);
+		const data = await addMemberStatusChangeEntries(id, req.body);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
 router.patch('/:id(\\d+)/StatusChangeHistory', async (req, res, next) => {
 	try {
 		const id = Number(req.params.id);
-		const statusChangeEntry = req.body;
-		if (typeof statusChangeEntry !== 'object')
-			throw new TypeError('Missing or bad StatusChangeHistory row object');
-		const data = await updateMemberStatusChange(id, statusChangeEntry);
+		const data = await updateMemberStatusChangeEntries(id, req.body);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -116,10 +123,7 @@ router.patch('/:id(\\d+)/StatusChangeHistory', async (req, res, next) => {
 router.delete('/:id(\\d+)/StatusChangeHistory', async (req, res, next) => {
 	try {
 		const id = Number(req.params.id);
-		const statusChangeEntry = req.body;
-		if (typeof statusChangeEntry !== 'object')
-			throw new TypeError('Missing or bad StatusChangeHistory row object');
-		const data = await deleteMemberStatusChange(id, statusChangeEntry.id);
+		const data = await deleteMemberStatusChangeEntries(id, req.body);
 		res.json(data);
 	}
 	catch(err) {next(err)}
