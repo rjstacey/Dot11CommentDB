@@ -2,9 +2,9 @@ import { DateTime } from 'luxon';
 
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
+import type { Response } from 'express';
 
 import { userIsSubgroupAdmin, User } from './users';
-import type { Response } from 'express';
 
 import {
 	parseMyProjectRosterSpreadsheet,
@@ -18,7 +18,7 @@ import {
 	parseHistorySpreadsheet
 } from './membersSpreadsheets';
 
-import { NotFoundError } from '../utils';
+import { NotFoundError, isPlainObject } from '../utils';
 
 export type Member = {
 	/** SA PIN (unique identifier for IEEE SA account) */
@@ -191,12 +191,12 @@ export function selectUsers(user: User) {
  * Get a snapshot of the members and their status at a specific date 
  * by walking through the status change history.
  */
-export async function getMembersSnapshot(date: string | Date) {
+export async function getMembersSnapshot(date: string) {
 	let members = await getMembers();
-	date = new Date(date);
+	let fromDate = new Date(date);
 	//console.log(date.toISOString().substr(0,10));
 	members = members
-		.filter(m => m.DateAdded && m.DateAdded < date)
+		.filter(m => m.DateAdded && new Date(m.DateAdded) < fromDate)
 		.map(m => {
 			//m.StatusChangeHistory.forEach(h => h.Date = new Date(h.Date));
 			let history = m.StatusChangeHistory
@@ -206,7 +206,7 @@ export async function getMembersSnapshot(date: string | Date) {
 			//console.log(`${m.SAPIN}:`)
 			for (const h of history) {
 				//console.log(`${h.Date.toISOString().substr(0,10)} ${h.OldStatus} -> ${h.NewStatus}`)
-				if (h.Date > date && h.OldStatus && h.NewStatus) {
+				if (h.Date > fromDate && h.OldStatus && h.NewStatus) {
 					if (status !== h.NewStatus)
 						console.warn(`${m.SAPIN}: Status mismatch; status=${status} but new status=${h.NewStatus}`);
 					status = h.OldStatus;
@@ -311,34 +311,102 @@ export async function addMembers(members: Member[]) {
 	return await Promise.all(members.map(addMember));
 }
 
-export async function updateMemberStatusChange(sapin: number, statusChangeEntry: StatusChangeEntry) {
-	const member = await getMember(sapin);
-	if (!member)
-		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
-
-	const history = member.StatusChangeHistory.map(h => h.id === statusChangeEntry.id? {...h, ...statusChangeEntry}: h);
-	await db.query(
-		'UPDATE members SET ' + 
-			'StatusChangeHistory=? ' +
-		'WHERE SAPIN=?;', 
-		[JSON.stringify(history), sapin]
-	);
-	return (await getMember(sapin))!;
+type StatusChangeUpdate = {
+	id: number;
+	changes: Partial<StatusChangeEntry>;
 }
 
-export async function deleteMemberStatusChange(sapin: number, statusChangeId: number) {
+
+function validStatusChangeEntry(entry: any): entry is StatusChangeEntry {
+	return isPlainObject(entry) &&
+		typeof entry.id === 'number' &&
+		(entry.Date === null || typeof entry.Date === 'string') &&
+		typeof entry.OldStatus === 'string' &&
+		typeof entry.NewStatus === 'string' &&
+		typeof entry.Reason === 'string';
+}
+
+function validStatusChangeEntries(entries: any): entries is StatusChangeEntry[] {
+	return Array.isArray(entries) && entries.every(validStatusChangeEntry);
+}
+
+function validStatusChangeUpdate(update: any): update is StatusChangeUpdate {
+	return isPlainObject(update) &&
+		typeof update.id === 'number' &&
+		isPlainObject(update.changes);
+}
+
+function validStatusChangeUpdates(updates: any): updates is StatusChangeUpdate[] {
+	return Array.isArray(updates) && updates.every(validStatusChangeUpdate);
+}
+
+function validStatusChangeIds(ids: any): ids is number[] {
+	return Array.isArray(ids) && ids.every(id => typeof id === 'number');
+}
+
+export async function addMemberStatusChangeEntries(sapin: number, entries: any) {
+
+	if (!validStatusChangeEntries(entries))
+		throw new TypeError("Expected array of status change entries");
+
 	const member = await getMember(sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
+	
+	const history = member.StatusChangeHistory.concat(entries);
 
-	const history = member.StatusChangeHistory.filter(h => h.id !== statusChangeId);
 	await db.query(
 		'UPDATE members SET ' + 
 			'StatusChangeHistory=? ' +
 		'WHERE SAPIN=?;', 
 		[JSON.stringify(history), sapin]
 	);
-	return (await getMember(sapin))!;
+
+	return getMember(sapin);
+}
+
+export async function updateMemberStatusChangeEntries(sapin: number, updates: any) {
+	if (!validStatusChangeUpdates(updates))
+		throw new TypeError("Expected array of shape: {id: number, changes: object}[]");
+
+	const member = await getMember(sapin);
+	if (!member)
+		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
+
+	const history = member.StatusChangeHistory.map(h => {
+		const update = updates.find(u => u.id === h.id);
+		return update?
+			{...h, ...update.changes}:
+			h;
+	});
+
+	await db.query(
+		'UPDATE members SET ' + 
+			'StatusChangeHistory=? ' +
+		'WHERE SAPIN=?;', 
+		[JSON.stringify(history), sapin]
+	);
+
+	return getMember(sapin);
+}
+
+export async function deleteMemberStatusChangeEntries(sapin: number, ids: any) {
+	if (!validStatusChangeIds(ids))
+		throw new TypeError("Expected an array of status change entry identifiers: number[]");
+
+	const member = await getMember(sapin);
+	if (!member)
+		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
+
+	const history = member.StatusChangeHistory.filter(h => !ids.includes(h.id));
+	await db.query(
+		'UPDATE members SET ' + 
+			'StatusChangeHistory=? ' +
+		'WHERE SAPIN=?;', 
+		[JSON.stringify(history), sapin]
+	);
+
+	return getMember(sapin);
 }
 
 export async function updateMemberContactEmail(sapin: number, entry: Partial<ContactEmail>) {
