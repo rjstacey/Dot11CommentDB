@@ -6,9 +6,12 @@
 import parse from 'csv-parse';
 import { stringify, Input, Options } from 'csv-stringify';
 
-export function csvParse(buffer: Buffer, options: parse.Options): Promise<string[][]> {
+type CsvObjRow = { [n: string]: string };
+export function csvParse(buffer: Buffer, options: {columns: false} & parse.Options): Promise<string[][]>;
+export function csvParse(buffer: Buffer, options: {columns: true} & parse.Options): Promise<CsvObjRow[]>;
+export function csvParse(buffer: Buffer, options: parse.Options): Promise<CsvObjRow[] | string[][]> {
 	return new Promise((resolve, reject) => {
-		parse(buffer, options, (error: Error | undefined, records: string[][]) => {
+		parse(buffer, options, (error: Error | undefined, records: CsvObjRow[] | string[][]) => {
 			if (error)
 				reject(error);
 			else
