@@ -466,7 +466,7 @@ export async function parseCommentsSpreadsheet(buffer: Buffer, sheetName: string
 	return comments
 }
 
-export function fromHtml(html: any) {
+export function fromHtml(html: any): string {
 	if (typeof html !== 'string')
 		return ''
 
