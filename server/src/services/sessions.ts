@@ -465,7 +465,7 @@ export async function importAttendances(user: User, session_id: number) {
 		}
 	}
 
-	let SQL;
+	let SQL: string;
 
 	if (inserts.length > 0) {
 		SQL = 
