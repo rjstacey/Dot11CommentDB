@@ -53,13 +53,17 @@ const {getSuccess, getPending, getFailure, setTimezone} = slice.actions;
 
 const url = '/api/timeZones';
 
+function validResponse(response: any): response is string[] {
+	return Array.isArray(response) && response.every(t => typeof t === 'string');
+}
+
 export const loadTimeZones = (): AppThunk =>
 	async (dispatch) => {
 		dispatch(getPending());
-		let timeZones;
+		let timeZones: any;
 		try {
 			timeZones = await fetcher.get(url);
-			if (!Array.isArray(timeZones))
+			if (!validResponse(timeZones))
 				throw new TypeError('Unexpected response to GET ' + url);
 		}
 		catch (error) {

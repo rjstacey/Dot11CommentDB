@@ -29,7 +29,7 @@ export const fields = {
 
 export const dataSet = 'dailyAttendances';
 
-type DailyAttendance = {
+export type SessionAttendee = {
 	SAPIN: number;
 	Name: string;
 	FirstName: string;
@@ -43,7 +43,7 @@ type DailyAttendance = {
 	AttendancePercentage: number;
 }
 
-type SyncedDailyAttendance = DailyAttendance & {
+export type SyncedSessionAttendee = SessionAttendee & {
 	Status: string;
 }
 
@@ -51,7 +51,7 @@ type SyncedDailyAttendance = DailyAttendance & {
 /*
  * Slice
  */
-const selectId = (attendance: DailyAttendance) => attendance.SAPIN;
+const selectId = (attendee: SessionAttendee) => attendee.SAPIN;
 
 const initialState: {sessionId: number | null} = {
 	sessionId: null
@@ -74,16 +74,16 @@ export default slice;
 /*
  * Selectors
  */
-export const selectDailyAttendancesState = (state: RootState) => state[dataSet];
-export const selectDailyAttendanceIds = (state: RootState) => selectDailyAttendancesState(state).ids;
-export const selectDailyAttendanceEntities = (state: RootState) => selectDailyAttendancesState(state).entities;
+export const selectSessionAttendeesState = (state: RootState) => state[dataSet];
+export const selectSessionAttendeesIds = (state: RootState) => selectSessionAttendeesState(state).ids;
+export const selectSessionAttendeesEntities = (state: RootState) => selectSessionAttendeesState(state).entities;
 
-const selectSyncedDailyAttendanceEntities = createSelector(
-	selectDailyAttendanceIds,
-	selectDailyAttendanceEntities,
+const selectSyncedSessionAtendeesEntities = createSelector(
+	selectSessionAttendeesIds,
+	selectSessionAttendeesEntities,
 	selectMemberEntities,
 	(ids, entities, memberEntities) => {
-		const newEntities: Dictionary<SyncedDailyAttendance> = {};
+		const newEntities: Dictionary<SyncedSessionAttendee> = {};
 		ids.forEach(id => {
 			const entity = entities[id]!;
 			const m = memberEntities[id];
@@ -93,11 +93,15 @@ const selectSyncedDailyAttendanceEntities = createSelector(
 	}
 );
 
-export const dailyAttendancesSelectors = getAppTableDataSelectors(selectDailyAttendancesState, {selectEntities: selectSyncedDailyAttendanceEntities});
+export const sessionAttendeesSelectors = getAppTableDataSelectors(
+	selectSessionAttendeesState,
+	{selectEntities: selectSyncedSessionAtendeesEntities}
+);
 
 /*
  * Actions
  */
+export const sessionAttendeesActions = slice.actions;
 
 const {
 	getPending,
@@ -107,19 +111,17 @@ const {
 	setSessionId
 } = slice.actions;
 
-export const dailyAttendancesActions = slice.actions;
-
 const baseUrl = '/api/imat/dailyAttendance';
 
-function validDailyAttendance(entry: any): entry is DailyAttendance {
+function validSessionAttendee(entry: any): entry is SessionAttendee {
 	return isObject(entry);
 }
 
-function validGetResponse(response: any): response is DailyAttendance[] {
-	return Array.isArray(response) && response.every(validDailyAttendance);
+function validGetResponse(response: any): response is SessionAttendee[] {
+	return Array.isArray(response) && response.every(validSessionAttendee);
 }
 
-export const loadDailyAttendances = (sessionId: number): AppThunk =>
+export const loadSessionAttendees = (sessionId: number): AppThunk =>
 	async (dispatch, getState) => {
 		const session = selectSessionEntities(getState())[sessionId];
 		if (!session)
@@ -142,7 +144,7 @@ export const loadDailyAttendances = (sessionId: number): AppThunk =>
 		dispatch(getSuccess(response));
 	}
 
-export const clearDailyAttendances = (): AppThunk =>
+export const clearSessionAttendees = (): AppThunk =>
 	async (dispatch) => {
 		dispatch(removeAll());
 		dispatch(setSessionId(null));

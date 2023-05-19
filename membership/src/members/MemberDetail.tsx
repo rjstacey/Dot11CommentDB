@@ -9,7 +9,7 @@ import 'react-tabs/style/react-tabs.css';
 import {
 	Form, ActionButton, Row, Col, Field, FieldLeft, Checkbox, Input,
 	ConfirmModal,
-	shallowDiff, deepMergeTagMultiple, isMultiple, Multiple,
+	shallowDiff, deepDiff, deepMergeTagMultiple, isMultiple, Multiple,
 } from 'dot11-components';
 
 import type { RootState } from '../store';
@@ -181,8 +181,8 @@ function MemberEntryForm({
 	cancel: () => void;
 	readOnly?: boolean;
 }) {
-	const hasMany = Array.isArray(member.SAPIN) && member.SAPIN.length > 1;
-	const sapinsStr = Array.isArray(member.SAPIN)? member.SAPIN.join(', '): member.SAPIN;
+	const hasMany = member.SAPIN.length > 1;
+	const sapinsStr = member.SAPIN.join(', ');
 	const sapinsLabel = hasMany? 'SA PINs:': 'SA PIN:';
 
 	let errMsg = '';
@@ -267,7 +267,9 @@ function MemberEntryForm({
 				<Field label='Affiliation:'>
 					<Input
 						type='text'
-						size={24}
+						//size={24}
+						//style={{width: `${Math.min((member.Affiliation || '').length, 20) + 5}ch`}}
+						size={Math.max((member.Affiliation || '').length, 20)}
 						name='Affiliation'
 						value={isMultiple(member.Affiliation)? '': member.Affiliation}
 						onChange={e => updateMember({Affiliation: e.target.value})}
@@ -447,20 +449,11 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 	initState = (action: Action): MemberDetailState => {
 		const {members, selected, getAsMember} = this.props;
 
-		if (selected.length === 0) {
-			return {
-				action: "void",
-				edited: null,
-				saved: null,
-				originals: [],
-				message: "Nothing selected"
-			}
-		}
-
 		if (getAsMember) {
 			if (selected.every(id => members[id])) {
 				// All selected are existing members
-				let diff = {} as MultipleMember;
+				let edited = {} as MultipleMember,
+					saved = {} as MultipleMember
 				let originals: Member[] = [];
 				selected.forEach(sapin => {
 					const attendee = getAsMember(sapin as number);
@@ -471,14 +464,20 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 					const member = members[sapin]!;
 					const {Status, Access, SAPIN, ...rest} = attendee;
 					const changes = shallowDiff(member, rest) as Partial<Member>;
-					diff = deepMergeTagMultiple(diff, {...member, ...changes}) as MultipleMember;
+					edited = deepMergeTagMultiple(edited, {...member, ...changes}) as MultipleMember;
+					saved = deepMergeTagMultiple(saved, member) as MultipleMember;
 					originals.push(member);
 				});
-				diff.SAPIN = selected as number[];
+				edited.SAPIN = selected as number[];
+				saved.SAPIN = selected as number[];
+				const diff = deepDiff(edited, saved);
+				console.log(diff)
+				if (Object.keys(diff).length > 0)
+					saved = edited;
 				return {
 					action: "update",
-					edited: diff,
-					saved: diff,
+					edited,
+					saved,
 					originals,
 					message: ''
 				}
@@ -493,8 +492,17 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 						console.warn("Can't get member with SAPIN=" + sapin);
 						return;
 					}
+					const date = (new Date()).toISOString();
+					const contactEmail = {
+						id: 0,
+						Email: attendee.Email,
+						Primary: 1,
+						Broken: 0,
+						DateAdded: date,
+					}
 					const {Status, Access, SAPIN, ...rest} = attendee;
-					diff = deepMergeTagMultiple(diff, rest) as MultipleMember;
+					const newMember = {...rest, DateAdded: date, ContactEmails: [contactEmail]};
+					diff = deepMergeTagMultiple(diff, newMember) as MultipleMember;
 					originals.push(attendee);
 				});
 				diff.SAPIN = selected as number[];
@@ -507,12 +515,15 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 				}
 			}
 			else {
+				const message = selected.length > 0?
+					"Mix of new attendees and existing members selected":
+					"Nothing selected";
 				return {
 					action: "void",
 					edited: null,
 					saved: null,
 					originals: [],
-					message: "Mix of new attendees and existing members selected"
+					message
 				}
 			}
 		}
@@ -532,7 +543,7 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 					message: ''
 				}
 			}
-			else {
+			else if (selected.length > 0) {
 				let diff = {} as MultipleMember;
 				let originals: Member[] = [];
 				selected.forEach(sapin => {
@@ -544,12 +555,22 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 					diff = deepMergeTagMultiple(diff, member) as MultipleMember;
 					originals.push(member);
 				});
+				diff.SAPIN = selected as number[];
 				return {
 					action: "update",
 					edited: diff,
 					saved: diff,
 					originals,
 					message: ''
+				}
+			}
+			else {
+				return {
+					action: "void",
+					edited: null,
+					saved: null,
+					originals: [],
+					message: "Nothing selected"
 				}
 			}
 		}
@@ -602,13 +623,14 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 
 	add = () => {
 		const {addMembers} = this.props;
-		const {action, edited, originals} = this.state;
+		const {action, saved, edited, originals} = this.state;
 		if (action !== "add") {
 			console.warn("Add with unexpected state");
 			return;
 		}
 		const newMembers = originals.map(m => {
-			const changes = shallowDiff(m, edited);
+			const changes = shallowDiff(saved, edited) as Partial<MemberAdd>;
+			console.log(changes)
 			return {...m, ...changes};
 		});
 		addMembers(newMembers);

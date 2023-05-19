@@ -17,13 +17,14 @@ import {
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	fields,
-	loadDailyAttendances,
-	clearDailyAttendances,
-	dailyAttendancesSelectors,
-	dailyAttendancesActions,
-	selectDailyAttendancesState,
-} from '../store/sessionAttendances';
-import type { Member, MemberAdd } from '../store/members';
+	loadSessionAttendees,
+	clearSessionAttendees,
+	sessionAttendeesSelectors,
+	sessionAttendeesActions,
+	selectSessionAttendeesState,
+	SessionAttendee
+} from '../store/sessionAttendees';
+import type { MemberAdd, MemberContactEmail } from '../store/members';
 
 import {
 	renderHeaderNameAndEmail,
@@ -50,8 +51,8 @@ const tableColumns: ColumnProperties[] = [
 		headerRenderer: SelectHeaderCell,
 		cellRenderer: p =>
 			<SelectCell
-				selectors={dailyAttendancesSelectors}
-				actions={dailyAttendancesActions}
+				selectors={sessionAttendeesSelectors}
+				actions={sessionAttendeesActions}
 				{...p}
 			/>},
 	{key: 'SAPIN', 
@@ -102,30 +103,34 @@ for (tableView in defaultTablesColumns) {
 	defaultTablesConfig[tableView] = tableConfig;
 }
 
+function sessionAttendeeToMember(attendee: SessionAttendee) {
+	const member: MemberAdd = {
+		SAPIN: attendee.SAPIN,
+		Name: attendee.Name,
+		//FirstName: entry.FirstName,
+		//LastName: entry.LastName,
+		//MI: entry.MI,
+		Employer: attendee.Employer,
+		Email: attendee.Email,
+		Affiliation: attendee.Affiliation,
+		Status: 'Non-Voter',
+		Access: 0,
+		ContactInfo: attendee.ContactInfo,
+	}
+	return member;
+}
+
 function SessionAttendance() {
 	const dispatch = useAppDispatch();
-	const {selected, sessionId, entities} = useAppSelector(selectDailyAttendancesState);
+	const {selected, sessionId, entities} = useAppSelector(selectSessionAttendeesState);
 
-	const refresh = () => dispatch(sessionId? loadDailyAttendances(sessionId): clearDailyAttendances());
+	const load = (sessionId: number | null) => dispatch(sessionId? loadSessionAttendees(sessionId): clearSessionAttendees());
+	const refresh = () => load(sessionId);
 
 	function getAsMember(sapin: number) {
-		const entry = entities[sapin];
-		if (!entry)
-			return undefined;
-		const member: MemberAdd = {
-			SAPIN: entry.SAPIN,
-			Name: entry.Name,
-			//FirstName: entry.FirstName,
-			//LastName: entry.LastName,
-			//MI: entry.MI,
-			Employer: entry.Employer,
-			Email: entry.Email,
-			Affiliation: entry.Affiliation,
-			Status: 'Non-Voter',
-			Access: 0,
-			ContactInfo: entry.ContactInfo
-		}
-		return member;
+		const attendee = entities[sapin];
+		if (attendee)
+			return sessionAttendeeToMember(attendee)
 	}
 
 	return (
@@ -133,17 +138,17 @@ function SessionAttendance() {
 			<TopRow>
 				<SessionSelector
 					value={sessionId}
-					onChange={sessionId => dispatch(sessionId? loadDailyAttendances(sessionId): clearDailyAttendances())}
+					onChange={load}
 				/>
 				<div style={{display: 'flex'}}>
 					<TableColumnSelector
-						selectors={dailyAttendancesSelectors}
-						actions={dailyAttendancesActions}
+						selectors={sessionAttendeesSelectors}
+						actions={sessionAttendeesActions}
 						columns={tableColumns}
 					/>
 					<SplitPanelButton
-						selectors={dailyAttendancesSelectors}
-						actions={dailyAttendancesActions}
+						selectors={sessionAttendeesSelectors}
+						actions={sessionAttendeesActions}
 					/>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>
@@ -151,19 +156,19 @@ function SessionAttendance() {
 
 			<div style={{display: 'flex', width: '100%', alignItems: 'center'}}>
 				<ShowFilters
-					selectors={dailyAttendancesSelectors}
-					actions={dailyAttendancesActions}
+					selectors={sessionAttendeesSelectors}
+					actions={sessionAttendeesActions}
 					fields={fields}
 				/>
 				<GlobalFilter
-					selectors={dailyAttendancesSelectors}
-					actions={dailyAttendancesActions}
+					selectors={sessionAttendeesSelectors}
+					actions={sessionAttendeesActions}
 				/>
 			</div>
 
 			<SplitPanel
-				selectors={dailyAttendancesSelectors}
-				actions={dailyAttendancesActions}
+				selectors={sessionAttendeesSelectors}
+				actions={sessionAttendeesActions}
 			>
 				<Panel>
 					<AppTable
@@ -171,8 +176,8 @@ function SessionAttendance() {
 						headerHeight={40}
 						estimatedRowHeight={50}
 						defaultTablesConfig={defaultTablesConfig}
-						selectors={dailyAttendancesSelectors}
-						actions={dailyAttendancesActions}
+						selectors={sessionAttendeesSelectors}
+						actions={sessionAttendeesActions}
 					/>
 				</Panel>
 				<Panel style={{overflow: 'auto'}}>

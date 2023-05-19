@@ -16,12 +16,12 @@ import {
 	isObject
 } from 'dot11-components';
 
+import type { RootState, AppThunk } from '.';
 import { selectAttendancesWithMembershipAndSummary } from './sessionParticipation';
 import { selectBallotParticipationWithMembershipAndSummary } from './ballotParticipation';
 
-import type {RootState, AppThunk} from '.';
-
-export {AccessLevel, AccessLevelOptions, AccessLevelLabels};
+//export {AccessLevel, AccessLevelOptions, AccessLevelLabels};
+export { AccessLevelOptions };
 
 const Status = {
 	'Non-Voter': 'Non-Voter',
@@ -173,20 +173,19 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-export const membersActions = slice.actions;
 
 /*
  * Actions
  */
+export const membersActions = slice.actions;
+
 const {
 	getPending,
 	getSuccess,
 	getFailure,
-	updateOne,
 	setOne,
-	updateMany,
+	setMany,
 	addMany,
-	upsertMany,
 	removeMany,
 	setUiProperties
 } = slice.actions;
@@ -195,13 +194,22 @@ export {setUiProperties};
 
 const baseUrl = '/api/members';
 
+function validMember(member: any): member is Member {
+	return isObject(member) &&
+		typeof member.SAPIN === 'number';
+}
+
+function validResponse(members: unknown): members is Member[] {
+	return Array.isArray(members) && members.every(validMember);
+}
+
 export const loadMembers = (): AppThunk =>
 	async (dispatch) => {
 		dispatch(getPending());
 		let response;
 		try {
 			response = await fetcher.get(baseUrl);
-			if (!Array.isArray(response))
+			if (!validResponse(response))
 				throw new TypeError('Unexpected response to GET ' + baseUrl);
 		}
 		catch(error) {
@@ -214,19 +222,17 @@ export const loadMembers = (): AppThunk =>
 
 export const updateMembers = (updates: Update<Member>[]): AppThunk =>
 	async (dispatch) => {
-		dispatch(updateMany(updates));
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.patch(baseUrl, updates);
-			if (!Array.isArray(response))
+			if (!validResponse(response))
 				throw new TypeError('Unexpected response to PATCH ' + baseUrl);
 		}
 		catch(error) {
 			dispatch(setError('Unable to update members', error));
 			return;
 		}
-		//const asUpdated = response.map(m => ({id: m.SAPIN, changes: m}));
-		//dispatch(updateMany(asUpdated));
+		dispatch(setMany(response));
 	}
 
 type StatusChangeEntryUpdate = {
@@ -234,13 +240,8 @@ type StatusChangeEntryUpdate = {
 	changes: Partial<StatusChangeType>;
 }
 
-function validMember(member: any): member is Member {
-	return isObject(member) &&
-		typeof member.SAPIN === 'number';
-}
-
 export const addMemberStatusChangeEntries = (sapin: number, entries: StatusChangeType[]): AppThunk =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		const url = `${baseUrl}/${sapin}/StatusChangeHistory`;
 		let response: any;
 		try {
@@ -256,7 +257,7 @@ export const addMemberStatusChangeEntries = (sapin: number, entries: StatusChang
 	}
 
 export const updateMemberStatusChangeEntries = (sapin: number, updates: StatusChangeEntryUpdate[]): AppThunk =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		const url = `${baseUrl}/${sapin}/StatusChangeHistory`;
 		let response: any;
 		try {
@@ -272,9 +273,9 @@ export const updateMemberStatusChangeEntries = (sapin: number, updates: StatusCh
 	}
 
 export const deleteMemberStatusChangeEntries = (sapin: number, ids: number[]): AppThunk =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		const url = `${baseUrl}/${sapin}/StatusChangeHistory`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.delete(url, ids);
 			if (!validMember(response))
@@ -287,86 +288,23 @@ export const deleteMemberStatusChangeEntries = (sapin: number, ids: number[]): A
 		dispatch(setOne(response));
 	}
 
-export const addMemberContactEmail = (sapin: number, entry: {}): AppThunk =>
-	async (dispatch, getState) => {
-		const url = `${baseUrl}/${sapin}/ContactEmails`;
-		let response;
-		try {
-			response = await fetcher.post(url, entry);
-			if (typeof response !== 'object')
-				throw new TypeError('Unexpected response to POST ' + url);
-		}
-		catch(error) {
-			dispatch(setError('Unable to update member', error));
-			return;
-		}
-		dispatch(updateOne({id: sapin, changes: response}));
-	}
-
-export const updateMemberContactEmail = (sapin: number, entry: {}): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseUrl}/${sapin}/ContactEmails`;
-		let response;
-		try {
-			response = await fetcher.patch(url, entry);
-			if (typeof response !== 'object')
-				throw new TypeError('Unexpected response to PATCH ' + url);
-		}
-		catch(error) {
-			dispatch(setError('Unable to update member', error));
-			return;
-		}
-		dispatch(updateOne({id: sapin, changes: response}));
-	}
-
-export const deleteMemberContactEmail = (sapin: number, id: number): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseUrl}/${sapin}/ContactEmails`;
-		let response;
-		try {
-			response = await fetcher.delete(url, {id});
-			if (typeof response !== 'object')
-				throw new TypeError('Unexpected response to DELETE ' + url);
-		}
-		catch(error) {
-			dispatch(setError('Unable to update member', error));
-			return;
-		}
-		dispatch(updateOne({id: sapin, changes: response}));
-	}
-
 export const addMembers = (members: MemberAdd[]): AppThunk =>
 	async (dispatch) => {
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.post(baseUrl, members);
-			if (!Array.isArray(response))
-				throw new TypeError('Unexpected response to POST: ' + baseUrl);
+			if (!validResponse(response))
+				throw new TypeError('Unexpected response to POST ' + baseUrl);
 		}
 		catch(error) {
 			dispatch(setError('Unable to add members', error));
 			return;
 		}
-		await dispatch(addMany(response));
-	}
-
-export const upsertMembers = (members: MemberAdd[]): AppThunk =>
-	async (dispatch) => {
-		let response;
-		try {
-			response = await fetcher.put(baseUrl, {members})
-			if (!Array.isArray(response))
-				throw new TypeError('Unexpected response to PUT ' + baseUrl);
-		}
-		catch(error) {
-			dispatch(setError(`Unable to update/insert members`, error));
-			return;
-		}
-		dispatch(upsertMany(response));
+		dispatch(addMany(response));
 	}
 
 export const deleteMembers = (ids: number[]): AppThunk =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		dispatch(removeMany(ids));
 		try {
 			await fetcher.delete(baseUrl, ids);
@@ -388,17 +326,15 @@ export const uploadMembers = (format: string, file: any): AppThunk =>
 	async (dispatch) => {
 		dispatch(getPending());
 		const url = `${baseUrl}/upload/${format}`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, {File: file});
-			if (!Array.isArray(response))
+			if (!validResponse(response))
 				throw new TypeError('Unexpected response to POST ' + url);
 		}
 		catch(error) {
-			await Promise.all([
-				dispatch(getFailure()),
-				dispatch(setError('Unable to upload users', error))
-			]);
+			dispatch(getFailure());
+			dispatch(setError('Unable to upload users', error));
 			return;
 		}
 		dispatch(getSuccess(response));
@@ -427,10 +363,10 @@ export const importMyProjectRoster = (file: any): AppThunk =>
 	async (dispatch) => {
 		dispatch(getPending());
 		const url = `${baseUrl}/MyProjectRoster`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, {File: file});
-			if (!Array.isArray(response))
+			if (!validResponse(response))
 				throw new TypeError('Unexpected response to POST ' + url);
 		}
 		catch(error) {

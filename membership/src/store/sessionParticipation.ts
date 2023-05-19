@@ -7,7 +7,8 @@ import {
 	createAppTableDataSlice,
 	SortType,
 	AppTableDataState,
-	getAppTableDataSelectors
+	getAppTableDataSelectors,
+	isObject
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
@@ -100,7 +101,6 @@ export type MemberAttendances = RecentSessionAttendances & {
 /*
  * Slice
  */
-
 const sessionsAdapter = createEntityAdapter<Session>();
 
 type ExtraState = {
@@ -266,6 +266,7 @@ export const attendancesSelectors = getAppTableDataSelectors(selectAttendancesSt
 /*
  * Actions
  */
+export const attendancesActions = slice.actions;
 
 const {
 	getPending,
@@ -275,9 +276,13 @@ const {
 	setSessions
 } = slice.actions;
 
-export const attendancesActions = slice.actions;
-
 const baseUrl = '/api/attendances';
+
+function validResponse(response: any): response is {attendances: any; sessions: Session[]} {
+	return isObject(response) &&
+		Array.isArray(response.attendances) &&
+		Array.isArray(response.sessions);
+}
 
 export const loadAttendances = (): AppThunk =>
 	async (dispatch, getState) => {
@@ -285,14 +290,11 @@ export const loadAttendances = (): AppThunk =>
 		if (loading)
 			return;
 		dispatch(getPending());
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.get(baseUrl);
-			if (typeof response !== 'object' ||
-				!Array.isArray(response.attendances) ||
-				!Array.isArray(response.sessions)) {
-				throw new TypeError('Unexpected response to GET: ' + baseUrl);
-			}
+			if (!validResponse(response))
+				throw new TypeError('Unexpected response to GET ' + baseUrl);
 		}
 		catch(error) {
 			dispatch(getFailure());
@@ -391,9 +393,7 @@ export const importAttendances = (session_id: number): AppThunk =>
 		let response;
 		try {
 			response = await fetcher.post(url);
-			if (typeof response !== 'object' ||
-				!Array.isArray(response.attendances) ||
-				!Array.isArray(response.sessions)) {
+			if (!validResponse(response)) {
 				throw new TypeError('Unexpected response to POST: ' + url);
 			}
 		}

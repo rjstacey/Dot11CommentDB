@@ -12,7 +12,7 @@ import permissionsSlice, {loadPermissions} from './permissions';
 import membersSlice, {loadMembers} from './members';
 import attendancesSlice, {loadAttendances} from './sessionParticipation';
 import ballotParticipationSlice, {loadBallotParticipation} from './ballotParticipation';
-import dailAttendancesSlice from './sessionAttendances';
+import sessionAttendeesSlice from './sessionAttendees';
 
 import { errorsSlice } from 'dot11-components';
 
@@ -44,7 +44,7 @@ function configureStore(user: User) {
 		[timeZonesSlice.name]: timeZonesSlice.reducer,
 		[permissionsSlice.name]: permissionsSlice.reducer,
 		[errorsSlice.name]: errorsSlice.reducer,
-		[dailAttendancesSlice.name]: dailAttendancesSlice.reducer
+		[sessionAttendeesSlice.name]: sessionAttendeesSlice.reducer
 	});
 
 	const rootReducer = (state: any, action: AnyAction) => {
