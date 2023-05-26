@@ -7,11 +7,7 @@ import db from '../utils/database';
 import type {OkPacket} from '../utils/database';
 
 import { getMembersSnapshot } from './members';
-
-export type VotingPool = {
-	VotingPoolID: string;
-	VoterCount: number;
-}
+import { getBallot, getBallots } from './ballots';
 
 export type Voter = {
 	id: string;
@@ -23,6 +19,7 @@ export type Voter = {
 	Status: string;
 	Excused: boolean;
 	VotingPoolID: string;
+	ballot_id: number;
 }
 
 type VoterUpdate = {
@@ -61,11 +58,14 @@ async function parseVoters(buffer: Buffer) {
 	});
 }
 
+type GetVotersConstraints = {
+	id?: string | string[];
+	ballot_id?: number | number[];
+	sapin?: number | number[];
+}
 
-const getVotingPoolSQL = (votingPoolId: string) => 
-	db.format('SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters WHERE VotingPoolID=?;', [votingPoolId]);
+export async function getVoters(constraints?: GetVotersConstraints) {
 
-const getVotersFullSQL = (votingPoolId?: string, sapins?: number[], ids?: string[]) => {
 	let sql =
 		'SELECT ' +
 			'v.*, ' + 
@@ -79,52 +79,22 @@ const getVotersFullSQL = (votingPoolId?: string, sapins?: number[], ids?: string
 			'LEFT JOIN (SELECT ' + 
 					'm2.SAPIN AS OldSAPIN, m1.SAPIN AS CurrentSAPIN, m1.Name, m1.Email, m1.Affiliation ' + 
 				'FROM members m1 LEFT JOIN members m2 ON m1.SAPIN=m2.ReplacedBySAPIN AND m2.Status=\'Obsolete\') AS o ON v.SAPIN=o.OldSAPIN';
-	let conditions: string[] = [];
-	if (votingPoolId)
-		conditions.push(db.format('VotingPoolID=?', [votingPoolId]));
-	if (sapins && sapins.length)
-		conditions.push(db.format('v.SAPIN IN (?)', [sapins]));
-	if (ids && ids.length)
-		conditions.push('v.id in (' + ids.map(id => `UUID_TO_BIN('${id}')`).join(',') + ')');
-	if (conditions.length)
-		sql += ' WHERE ' + conditions.join(' AND ');
-	sql += ' ORDER BY SAPIN;';
-	return sql;
-}
 
-export async function getVotingPools() {
-	const votingPools = await db.query('SELECT VotingPoolID, COUNT(*) AS VoterCount FROM wgVoters GROUP BY VotingPoolID;') as VotingPool[];
-	return {votingPools}
-}
-
-export async function deleteVotingPools(votingPoolIds: string[]): Promise<number> {
-	const result = await db.query('DELETE FROM wgVoters WHERE VotingPoolID IN (?);', [votingPoolIds]) as OkPacket;
-	return result.affectedRows;
-}
-
-export async function updateVotingPool(votingPoolId: string, changes: {VotingPoolID: string}) {
-	if (changes.hasOwnProperty('VotingPoolID') && votingPoolId !== changes.VotingPoolID) {
-		const [votingPool] = await db.query(getVotingPoolSQL(changes.VotingPoolID)) as VotingPool[];
-		if (votingPool.VotingPoolID !== null)
-			throw new TypeError(`${changes.VotingPoolID} already in use`);
-		await db.query('UPDATE wgVoters SET VotingPoolID=? WHERE VotingPoolID=?;', [changes.VotingPoolID, votingPoolId]);
-		votingPoolId = changes.VotingPoolID;
+	if (constraints) {
+		let conditions: string[] = [];
+		if (constraints.ballot_id)
+			conditions.push(db.format('ballot_id IN (?)', [constraints.ballot_id]));
+		if (constraints.sapin)
+			conditions.push(db.format('v.SAPIN IN (?)', [constraints.sapin]));
+		if (constraints.id)
+			conditions.push(db.format('BIN_TO_UUID(v.id) IN (?)', [constraints.id]));
+		if (conditions.length)
+			sql += ' WHERE ' + conditions.join(' AND ');
 	}
-	const [votingPool] = await db.query(getVotingPoolSQL(votingPoolId)) as VotingPool[];
-	return {votingPool}
-}
 
-export async function getVoters(votingPoolId: string) {
-	const sql =
-		getVotersFullSQL(votingPoolId) +
-		getVotingPoolSQL(votingPoolId);
-	const [voters, votingPools] = await db.query(sql) as [Voter[], VotingPool[]];
-	const votingPool = votingPools[0];
-	votingPool.VotingPoolID = votingPoolId;
-	return {
-		voters,
-		votingPool
-	}
+	sql += ' ORDER BY ballot_id, SAPIN;';
+
+	return await db.query(sql) as Voter[];
 }
 
 type VotersForBallots = {
@@ -145,30 +115,29 @@ export async function getVotersForBallots(ballot_ids: number[]) {
 			'(SELECT ' +
 				'COALESCE(o.ReplacedBySAPIN, voters.SAPIN) as SAPIN, ' +	// current SAPIN
 				'JSON_ARRAYAGG(JSON_OBJECT( ' +
-					'"ballot_id", b.id, ' +
+					'"ballot_id", voters.ballot_id, ' +
 					'"SAPIN", voters.SAPIN, ' +		// SAPIN in voting pool
 					'"voter_id", BIN_TO_UUID(voters.id), ' +
 					'"Excused", voters.Excused' +
 				')) as byBallots ' +
 			'FROM wgVoters voters ' + 
-				'LEFT JOIN ballots b ON b.VotingPoolID = voters.VotingPoolID ' +
 				'LEFT JOIN members o ON o.Status = "Obsolete" AND o.SAPIN = voters.SAPIN ' +
-			'WHERE b.id IN (?) ' +
+			'WHERE voters.ballot_id IN (?) ' +
 			'GROUP BY SAPIN) as v ' +
 		'LEFT JOIN members m ON m.SAPIN = v.SAPIN ';
 	
 	return db.query(sql, [ballot_ids]) as Promise<VotersForBallots[]>;
 }
 
-async function getVoter(votingPoolId: string, sapin: number) {
-	const sql = getVotersFullSQL(votingPoolId, [sapin]);
-	const voters = await db.query(sql) as Voter[];
-	return voters[0];
+async function getVoterBallotUpdates(ballot_id: number | number[]) {
+	const ballotUpdates = await db.query("SELECT ballot_id as id, COUNT(*) as Voters FROM wgVoters WHERE ballot_id IN (?) GROUP BY ballot_id", [ballot_id]) as {Count: number}[];
+	return ballotUpdates;
 }
 
 function votersEntry(v: Partial<Voter>) {
 	const entry = {
-		VotingPoolID: v.VotingPoolID,
+		ballot_id: v.ballot_id,
+		//VotingPoolID: v.VotingPoolID,
 		SAPIN: v.SAPIN,
 		Excused: v.Excused,
 		Status: v.Status
@@ -180,13 +149,20 @@ function votersEntry(v: Partial<Voter>) {
 	return entry;
 }
 
-export async function addVoters(votingPoolId: string, voters: Voter[]) {
-	voters = voters.map(voter => {
+function validVoters(voters: any): voters is Voter[] {
+	return Array.isArray(voters) && voters.every(isPlainObject);
+}
+
+export async function addVoters(ballot_id: number, votersIn: any) {
+	if (!validVoters(votersIn))
+		throw new TypeError("Bad or missing body: expected an array of voter objects");
+
+	let voters: Voter[] = votersIn.map(voter => {
 		if (!voter.SAPIN)
 			throw new TypeError('Must provide SAPIN');
 		return {
 			...voter,
-			VotingPoolID: votingPoolId,
+			ballot_id,
 			id: validateUUID(voter.id)? voter.id: uuid()
 		}
 	});
@@ -195,19 +171,9 @@ export async function addVoters(votingPoolId: string, voters: Voter[]) {
 		return db.query('INSERT INTO wgVoters SET ?, id=UUID_TO_BIN(?);', [voterDB, id]) as Promise<OkPacket>;
 	});
 	await Promise.all(results);
-	voters = await db.query(getVotersFullSQL(undefined, undefined, voters.map(voter => voter.id))) as Voter[];
-	const [votingPool] = await db.query(getVotingPoolSQL(votingPoolId)) as VotingPool[];
-	return {
-		voters,
-		votingPool
-	}
-}
-
-
-export async function updateVoter(votingPoolId: string, sapin: number, changes: Partial<Voter>) {
-	await db.query('UPDATE wgVoters SET ? WHERE VotingPoolID=? AND SAPIN=?', [changes, votingPoolId, sapin]);
-	const [voter] = await db.query(getVotersFullSQL(votingPoolId, [sapin])) as Voter[];
-	return voter;
+	voters = await getVoters({id: voters.map(voter => voter.id)});
+	const ballots = await getVoterBallotUpdates(ballot_id);
+	return {voters, ballots};
 }
 
 function validUpdate(update: any): update is VoterUpdate {
@@ -222,16 +188,23 @@ function validUpdates(updates: any): updates is VoterUpdate[] {
 
 export async function updateVoters(updates: any) {
 	if (!validUpdates(updates))
-		throw new TypeError("Bad updates array; expect array with shape {id: number, changes: object}");
+		throw new TypeError("Bad or missing updates array; expect array with shape {id: number, changes: object}");
 	let results = updates.map(({id, changes}) =>
 		db.query('UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)', [changes, id]) as Promise<OkPacket>
 	);
 	await Promise.all(results);
-	const voters = await db.query(getVotersFullSQL(undefined, undefined, updates.map(u => u.id))) as Voter[];
-	return voters.map(v => ({id: v.id, changes: v}));
+	const voters = await getVoters({id: updates.map(u => u.id)});
+	return {voters};
 }
 
-export async function deleteVoters(votingPoolId: string, ids: string[]) {
+function validVoterIds(ids: any): ids is string[] {
+	return Array.isArray(ids) && ids.every(id => typeof id === 'string');
+}
+
+export async function deleteVoters(ids: any) {
+	if (!validVoterIds(ids))
+		throw new TypeError("Bad voter identifier array; expected string[]");
+
 	const sql = 'DELETE FROM wgVoters WHERE id IN (' +
 			ids.map(id => `UUID_TO_BIN('${id}')`).join(',') +
 		')';
@@ -239,44 +212,39 @@ export async function deleteVoters(votingPoolId: string, ids: string[]) {
 	return result.affectedRows;
 }
 
-async function insertVoters(votingPoolId: string, voters: Partial<Voter>[]) {
-	let sql = db.format('DELETE FROM wgVoters WHERE VotingPoolID=?;', [votingPoolId]);
-	if (voters.length > 0) {
+async function insertVoters(ballot_id: number, votersIn: Partial<Voter>[]) {
+	let sql = db.format('DELETE FROM wgVoters WHERE ballot_id=?;', [ballot_id]);
+	if (votersIn.length > 0) {
 		sql +=
-			db.format('INSERT INTO wgVoters (VotingPoolID, ??) VALUES ', [Object.keys(votersEntry(voters[0]))]) +
-			voters.map(v => db.format('(?, ?)', [votingPoolId, Object.values(votersEntry(v))])).join(', ') +
+			db.format('INSERT INTO wgVoters (ballot_id, ??) VALUES ', [Object.keys(votersEntry(votersIn[0]))]) +
+			votersIn.map(v => db.format('(?, ?)', [ballot_id, Object.values(votersEntry(v))])).join(', ') +
 			';'
 	}
-	sql +=
-		getVotersFullSQL(votingPoolId) +
-		getVotingPoolSQL(votingPoolId);
-	const results = await db.query(sql) as any[];
-	const votingPool: VotingPool = results[results.length-1][0];
-	votingPool.VotingPoolID = votingPoolId;
-	return {
-		voters: results[results.length-2] as Voter[],
-		votingPool
-	}
+	await db.query(sql) as OkPacket;
+	const voters = await getVoters({ballot_id});
+	const ballots = await getVoterBallotUpdates(ballot_id);
+	return {voters, ballots};
 }
 
-export async function votersFromSpreadsheet(votingPoolId: string, file: any) {
+export async function votersFromSpreadsheet(ballot_id: number, file: any) {
 	if (file.originalname.search(/\.csv$/i) === -1)
 		throw new TypeError("Expected a .csv file");
 	let voters = await parseVoters(file.buffer);
-	return await insertVoters(votingPoolId, voters);
+	return insertVoters(ballot_id, voters);
 }
 
-export async function votersFromMembersSnapshot(votingPoolId: string, date: string) {
+export async function votersFromMembersSnapshot(ballot_id: number, date: string) {
 	const members = await getMembersSnapshot(date);
 	const voters = members.filter(m => m.Status === 'Voter' || m.Status === 'ExOfficio');
-	return await insertVoters(votingPoolId, voters);
+	return insertVoters(ballot_id, voters);
 }
 
-export async function exportVoters(votingPoolId: string, res: Response) {
-	const {voters} = await getVoters(votingPoolId);
+export async function exportVoters(ballot_id: number, res: Response) {
+	const voters = await getVoters({ballot_id});
 	const arr = voters.map(v => [v.SAPIN, v.Name, v.Email]);
 	arr.unshift(['SA PIN', 'Name', 'Email']);
 	const csv = await csvStringify(arr, {});
-	res.attachment(votingPoolId + '_voters.csv');
+	//res.attachment(votingPoolId + '_voters.csv');
+	res.attachment('voters.csv');
 	res.status(200).send(csv);
 }

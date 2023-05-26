@@ -5,7 +5,6 @@ import { getResultsForWgBallot, Result } from './results';
 type BallotSeries = {
     id: number;
     ballotIds: number[];
-    votingPoolId: string;
     start: string;
     end: string;
     project: string;
@@ -57,7 +56,6 @@ export async function getBallotSeriesParticipation() {
         ballotSeriesArr.push({
             id,
             ballotIds: ballots.map(b => b.id),
-            votingPoolId: ballots[0].VotingPoolID!,
             start: ballots[0].Start!,
 			end: ballots[ballots.length-1].End!,
 			project: ballots[0].Project,

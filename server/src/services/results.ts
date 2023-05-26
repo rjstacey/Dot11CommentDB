@@ -348,8 +348,7 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 
 	const ballot = await getBallot(ballot_id);
 
-	let votingPoolId: string,
-		votingPoolSize: number,
+	let votingPoolSize: number,
 		results: Result[],
 		summary: ResultsSummary;
 
@@ -368,8 +367,7 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 			ballotSeries.results[id] = resultsArr[i];
 		});
 		const initialBallot_id = ballotSeries.ids[0];
-		votingPoolId = ballotSeries.ballots[initialBallot_id].VotingPoolID || '';
-		const voters = votingPoolId? (await getVoters(votingPoolId)).voters: [];
+		const voters = await getVoters({ballot_id: initialBallot_id});
 		// voting pool size excludes ExOfficio; they are allowed to vote, but don't affect returns
 		votingPoolSize = voters.filter(v => !/^ExOfficio/.test(v.Status)).length;
 		results = colateWGResults(ballotSeries, voters); // colate results against voting pool and prior ballots in series
@@ -391,7 +389,6 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 			ballotSeries.ballots[id] = ballot;
 			ballotSeries.results[id] = resultsArr[i];
 		});
-		votingPoolId = '';
 		votingPoolSize = ballotSeries.results[ballot_id].length;
 		results = colateSAResults(ballotSeries); 		// colate results against previous ballots in series
 		summary = summarizeSAResults(results);
@@ -401,8 +398,7 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 	}
 	else if (ballot.Type === BallotType.Motion) {
 		// if there is a voting pool, get that
-		votingPoolId = ballot.VotingPoolID || '';
-		const voters = votingPoolId? (await getVoters(votingPoolId)).voters: [];
+		const voters = await getVoters({ballot_id: ballot.id});
 		results = await getResults(ballot_id);
 		votingPoolSize = voters.length;
 		results = colateMotionResults(results, voters);	// colate results for just this ballot
@@ -411,7 +407,6 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 		summary.VotingPoolSize = votingPoolSize;
 	}
 	else {
-		votingPoolId = ballot.VotingPoolID || '';
 		votingPoolSize = 0;
 		results = await getResults(ballot_id);			// colate results for just this ballot
 		summary = summarizeBallotResults(results);
@@ -434,7 +429,6 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 
 	return {
 		BallotID: ballot.BallotID,
-		VotingPoolID: votingPoolId,
 		VotingPoolSize: votingPoolSize,
 		ballot,
 		results,

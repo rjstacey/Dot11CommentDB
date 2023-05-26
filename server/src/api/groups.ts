@@ -31,9 +31,10 @@ import {
 
 const router = Router();
 
-router.get('/$', async (req, res, next) => {
+router.get('/:parentName?', async (req, res, next) => {
 	try {
-		const data = await getGroups();
+		const {parentName} = req.params;
+		const data = await getGroups({parentName});
 		res.json(data);
 	}
 	catch(err) {next(err)}

@@ -103,18 +103,12 @@ const permissionsObj = {
 export const permissions = Object.entries(permissionsObj).map(([scope, description]) => ({scope, description}));
 
 export function userIsWGAdmin(user: User) {
-	const perm = user.Permissions;
-	if (!Array.isArray(perm))
-		return false;
-
+	const perm = user.Permissions || [];
 	return perm.includes('wg_admin');
 }
 
 export function userIsSubgroupAdmin(user: User) {
-	const perm = user.Permissions;
-	if (!Array.isArray(perm))
-		return false;
-
+	const perm = user.Permissions || [];
 	return perm.includes('wg_admin') || perm.includes('subgroup_admin');
 }
 

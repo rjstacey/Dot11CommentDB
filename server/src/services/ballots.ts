@@ -1,14 +1,16 @@
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
+import { DateTime } from 'luxon';
 import { isPlainObject } from '../utils';
 
 import { getResultsCoalesced, ResultsSummary } from './results';
-import { getCommentsSummary, CommentsSummary } from './comments';
+import { CommentsSummary } from './comments';
 
 import type { User } from './users';
 
 export type Ballot = {
     id: number;
+	groupId: string | null;
     BallotID: string;
     Project: string;
     Type: number;
@@ -23,6 +25,7 @@ export type Ballot = {
     EpollNum: number | null;
     Results: ResultsSummary | null;
     Comments: CommentsSummary;
+	Voters: number;
 }
 
 type BallotUpdate = {
@@ -42,13 +45,18 @@ export const BallotType = {
  */
 export const getBallotsSQL =
 	'SELECT ' +
-		'id, BallotID, Project, Type, IsRecirc, IsComplete, Start, End, Document, Topic, VotingPoolID, prev_id, EpollNum, ' +
+		'id, BallotID, Project, Type, IsRecirc, IsComplete, ' + 
+		'DATE_FORMAT(Start, "%Y-%m-%dT%TZ") AS Start, ' +
+		'DATE_FORMAT(End, "%Y-%m-%dT%TZ") AS End, ' +
+		'Document, Topic, VotingPoolID, prev_id, EpollNum, ' +
+		'BIN_TO_UUID(groupId) as groupId, ' +
 		'ResultsSummary AS Results, ' +
 		'JSON_OBJECT( ' +
 			'"Count", (SELECT COUNT(*) FROM comments c WHERE b.id=c.ballot_id), ' +
 			'"CommentIDMin", (SELECT MIN(CommentID) FROM comments c WHERE b.id=c.ballot_id), ' +
 			'"CommentIDMax", (SELECT MAX(CommentID) FROM comments c WHERE b.id=c.ballot_id) ' +
-		') AS Comments ' +
+		') AS Comments, ' +
+		'(SELECT COUNT(*) FROM wgVoters v WHERE b.id=v.ballot_id) as Voters ' +
 	'FROM ballots b';
 
 /*
@@ -61,7 +69,7 @@ export const getBallotsSQL =
  * @returns An array of ballot objects.
  */
 export async function getBallots() {
-	const ballots = await db.query(getBallotsSQL + ' ORDER BY Project, Start') as Ballot[];
+	const ballots = await db.query(getBallotsSQL + ' ORDER BY b.Project, b.Start') as Ballot[];
 	return ballots;
 }
 
@@ -72,7 +80,8 @@ export async function getBallots() {
  * @returns A ballot object that represents the identified ballot
  */
 export async function getBallot(id: number) {
-	const [ballot] = await db.query(getBallotsSQL + ' WHERE id=?', [id]) as Ballot[];
+	const sql = getBallotsSQL + db.format(' WHERE b.id=?', [id]);
+	const [ballot] = await db.query({sql, dateStrings: true}) as Ballot[];
 	if (!ballot)
 		throw new Error(`No such ballot: ${id}`);
 	return ballot;
@@ -100,19 +109,19 @@ export async function getBallotSeries(id: number) {
 }
 
 export async function getRecentWgBallots(n = 3) {
-	const ballots = await db.query(
-		getBallotsSQL + ' WHERE ' +
-			`Type=${BallotType.WG} AND ` +	// WG ballots
-			'IsComplete<>0 ' + 				// series is complete
-			'ORDER BY End DESC ' +			// newest to oldest
-			'LIMIT ?;',						// last n
-		[n]
-	) as Ballot[];
+	const sql = getBallotsSQL + ' WHERE ' +
+		`Type=${BallotType.WG} AND ` +	// WG ballots
+		'IsComplete<>0 ' + 				// series is complete
+		'ORDER BY End DESC ' +			// newest to oldest
+		db.format('LIMIT ?;', [n]);		// last n
+
+	const ballots = await db.query({sql, dateStrings: true}) as Ballot[];
 	return ballots;
 }
 
 type BallotDB = {
 	id?: number;
+	groupId?: string | null;
 	BallotID?: string;
 	Project?: string;
 	Type?: number;
@@ -120,8 +129,8 @@ type BallotDB = {
 	IsComplete?: boolean;
 	Document?: string;
 	Topic?: string;
-	Start?: Date;
-	End?: Date;
+	Start?: string | null;
+	End?: string | null;
 	EpollNum?: number | null;
 	VotingPoolID?: string | null;
 	prev_id?: number | null;
@@ -129,6 +138,7 @@ type BallotDB = {
 
 function ballotEntry(ballot: Partial<Ballot>) {
 	var entry: BallotDB = {
+		groupId: ballot.groupId,
 		BallotID: ballot.BallotID,
 		Project: ballot.Project,
 		Type: ballot.Type,
@@ -136,9 +146,31 @@ function ballotEntry(ballot: Partial<Ballot>) {
 		IsComplete: ballot.IsComplete,
 		Document: ballot.Document,
 		Topic: ballot.Topic,
-		Start: ballot.Start? new Date(ballot.Start): undefined,
-		End: ballot.End? new Date(ballot.End): undefined,
 		EpollNum: ballot.EpollNum,
+	}
+
+	if (typeof ballot.Start !== 'undefined') {
+		if (ballot.Start) {
+			const start = DateTime.fromISO(ballot.Start);
+			if (!start.isValid)
+				throw new TypeError('Invlid parameter start: ' + ballot.Start);
+			entry.Start = start.toUTC().toFormat('yyyy-MM-dd HH:mm:ss');
+		}
+		else {
+			entry.Start = null;
+		}
+	}
+
+	if (typeof ballot.End !== 'undefined') {
+		if (ballot.End) {
+			const end = DateTime.fromISO(ballot.End);
+			if (!end.isValid)
+				throw new TypeError('Invlid parameter start: ' + ballot.End);
+			entry.End = end.toUTC().toFormat('yyyy-MM-dd HH:mm:ss');
+		}
+		else {
+			entry.End = null;
+		}
 	}
 
 	if (ballot.prev_id) {
@@ -158,6 +190,20 @@ function ballotEntry(ballot: Partial<Ballot>) {
 	return Object.keys(entry).length? entry: null;
 }
 
+function ballotSetSql(ballot: Partial<BallotDB>) {
+	const sets: string[] = [];
+	for (const [key, value] of Object.entries(ballot)) {
+		let sql: string;
+		if (key === 'groupId')
+			sql = db.format('??=UUID_TO_BIN(?)', [key, value]);
+		else
+			sql = db.format('??=?', [key, value]);
+		sets.push(sql);
+	}
+	return sets.join(', ');
+}
+
+
 /**
  * Add a ballot
  * 
@@ -174,10 +220,8 @@ async function addBallot(user: User, ballot: Ballot) {
 
 	let id: number;
 	try {
-		const results = await db.query(
-			'INSERT INTO ballots (??) VALUES (?);',
-			[Object.keys(entry), Object.values(entry)]
-		) as OkPacket;
+		const sql = 'INSERT INTO ballots SET ' + ballotSetSql(entry);
+		const results = await db.query({sql, dateStrings: true}) as OkPacket;
 		//console.log(results)
 		id = results.insertId;
 	}
@@ -217,7 +261,9 @@ async function updateBallot(user: User, update: object | BallotUpdate) {
 	const entry = ballotEntry(changes);
 
 	if (entry) {
-		const result = await db.query('UPDATE ballots SET ? WHERE id=?',  [entry, id]) as OkPacket;
+		const sql = 'UPDATE ballots SET ' + ballotSetSql(entry) + db.format(' WHERE id=?', [id]);
+		const result = await db.query({sql, dateStrings: true}) as OkPacket;
+		console.log(entry, ballotSetSql(entry))
 		if (result.affectedRows !== 1)
 			throw new Error(`Unexpected: no update for ballot with id=${id}`);
 	}
