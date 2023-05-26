@@ -26,7 +26,6 @@ import imat from './imat';
 import ieee802world from './802world';
 
 import ballots from './ballots';
-import votingPools from './votingPools';
 import voters from './voters';
 import results from './results';
 import comments from './comments';
@@ -144,7 +143,6 @@ router.use('/802world', ieee802world);		// Access to schedule802world.com (meeti
  * APIs for balloting and comment resolution
  */
 router.use('/ballots', ballots);			// Ballots
-router.use('/votingPools', votingPools);	// Ballot voting pools
 router.use('/voters', voters);				// Ballot voters
 router.use('/results', results);			// Ballot results
 router.use('/comments', comments);			// Ballot comments
