@@ -33,6 +33,7 @@ export type CommentsSummary = {
 
 export type Ballot = {
     id: number;
+	groupId: string | null;
     BallotID: string;
     Project: string;
     Type: number;
@@ -47,6 +48,7 @@ export type Ballot = {
     EpollNum: number | null;
     Results: ResultsSummary | null;
     Comments: CommentsSummary;
+	Voters: number;
 }
 
 export type BallotCommentsSummary = {
@@ -55,6 +57,7 @@ export type BallotCommentsSummary = {
 }
 
 export type BallotEdit = {
+	groupId: string | null;
 	BallotID: string;
     Project: string;
     Type: number;
@@ -93,7 +96,7 @@ export const BallotTypeLabels = {
 };
 
 export const BallotTypeOptions = Object.values(BallotType).map(v => ({value: v, label: BallotTypeLabels[v]}));
-export const renderBallotType = (type) => BallotTypeLabels[type] || 'Unknown';
+export const renderBallotType = (type: number) => BallotTypeLabels[type] || 'Unknown';
 
 export const BallotStage = {
 	Initial: 0,
@@ -248,14 +251,25 @@ const {
 	getFailure,
 	addOne,
 	updateOne,
+	updateMany,
 	setOne,
 	removeMany,
 	setCurrentProject: setCurrentProjectLocal,
 	setCurrentId: setCurrentIdLocal,
-	setUiProperties
+	setUiProperties,
+	setSelected: setSelectedBallots,
 } = slice.actions;
 
-export {setUiProperties};
+export {setUiProperties, setSelectedBallots};
+
+export const updateBallotsLocal = (ballots: ({id: number} & Partial<Omit<Ballot, "id">>)[]): AppThunk =>
+	async (dispatch) => {
+		const updates = ballots.map(ballot => {
+			const {id, ...changes} = ballot;
+			return {id, changes};
+		});
+		dispatch(updateMany(updates));
+	}
 
 export const setCurrentProject = (project: string): AppThunk<Ballot | undefined> =>
 	async (dispatch, getState) => {
@@ -356,8 +370,8 @@ export const deleteBallots = (ids: EntityId[]): AppThunk =>
 		dispatch(removeMany(ids));
 	}
 
-export const addBallot = (ballot: BallotEdit): AppThunk =>
-	async (dispatch, getState) => {
+export const addBallot = (ballot: BallotEdit): AppThunk<Ballot | undefined> =>
+	async (dispatch) => {
 		let response: any;
 		try {
 			response = await fetcher.post(baseUrl, [ballot]);
@@ -370,6 +384,7 @@ export const addBallot = (ballot: BallotEdit): AppThunk =>
 		}
 		const [updatedBallot] = response;
 		dispatch(addOne(updatedBallot));
+		return updatedBallot;
 	}
 
 export const setBallotId = (ballotId: string): AppThunk =>

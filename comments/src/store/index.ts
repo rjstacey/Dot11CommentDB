@@ -14,11 +14,11 @@ import commentsSlice from './comments';
 import commentsHistorySlice from './commentsHistory';
 import resultsSlice from './results';
 import votersSlice from './voters';
-import votingPoolsSlice, {loadVotingPools} from './votingPools';
+import groupsSlice, {loadGroups} from './groups';
 import offlineSlice, {registerOffline} from './offline';
 import liveUpdateSlice, {registerLiveUpdate} from './liveUpdate';
 
-const PERSIST_VERSION = 3;
+const PERSIST_VERSION = 4;
 
 const RESET_STORE_ACTION = "root/RESET_STORE";
 
@@ -30,7 +30,7 @@ const dataAppSliceNames = [
 	commentsHistorySlice.name,
 	resultsSlice.name,
 	votersSlice.name,
-	votingPoolsSlice.name
+	groupsSlice.name
 ];
 
 /*
@@ -62,10 +62,10 @@ export function configureStore(user: User) {
 		[commentsHistorySlice.name]: commentsHistorySlice.reducer,
 		[resultsSlice.name]: resultsSlice.reducer,
 		[votersSlice.name]: votersSlice.reducer,
-		[votingPoolsSlice.name]: votingPoolsSlice.reducer,
+		[groupsSlice.name]: groupsSlice.reducer,
 		[errorsSlice.name]: errorsSlice.reducer,
 		[offlineSlice.name]: offlineSlice.reducer,
-		[liveUpdateSlice.name]: liveUpdateSlice.reducer
+		[liveUpdateSlice.name]: liveUpdateSlice.reducer,
 	});
 
 	const rootReducer = (state: any, action: AnyAction) => {
@@ -92,8 +92,8 @@ export function configureStore(user: User) {
 			commentsSlice.name,
 			resultsSlice.name,
 			votersSlice.name,
-			votingPoolsSlice.name,
 			epollsSlice.name,
+			groupsSlice.name,
 		],
 		transforms: [transformState],
 		stateReconciler: autoMergeLevel2,
@@ -120,7 +120,7 @@ export function configureStore(user: User) {
 		// After hydrate, load the latest
 		store.dispatch(loadMembers());
 		store.dispatch(loadBallots());
-		store.dispatch(loadVotingPools());
+		store.dispatch(loadGroups());
 	});
 
 	return {store, persistor, reducer: rootReducer}

@@ -25,7 +25,6 @@ import {
 } from '../store/ballots';
 
 import { selectUserAccessLevel, AccessLevel } from '../store/user';
-import { loadVotingPools } from '../store/votingPools';
 
 const renderHeaderStartEnd = (props: HeaderCellRendererProps) =>
 	<>
@@ -215,7 +214,6 @@ function Ballots() {
 
 	const load = React.useCallback(() => {
 		dispatch(loadBallots());
-		dispatch(loadVotingPools());
 	}, [dispatch]);
 
 	const showEpolls = () => navigate('/epolls/');

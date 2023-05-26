@@ -14,7 +14,6 @@ import {
 import CheckboxListSelect from './CheckboxListSelect';
 import ResultsActions from './ResultsActions';
 import CommentsActions from './CommentsActions';
-import VotingPoolSelector from './VotingPoolSelector';
 
 import type { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -25,6 +24,7 @@ import {
 	loadBallots,
 	setCurrentProject,
 	setUiProperties,
+	setSelectedBallots,
 	selectBallotsState,
 	selectProjectOptions, 
 	BallotType,
@@ -33,6 +33,8 @@ import {
 	Ballot,
 	BallotEdit,
 } from '../store/ballots';
+import { selectGroups, Group } from '../store/groups';
+import { Link } from 'react-router-dom';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
@@ -41,6 +43,7 @@ function getDefaultBallot(): BallotEdit {
 	const now = new Date()
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 	return {
+		groupId: null,
 		Project: '',
 		BallotID: '',
 		EpollNum: 0,
@@ -73,6 +76,43 @@ function shortDateToDate(shortDateStr: string) {
 	const diff = utcDate.getTime() - easternDate.getTime();
 	let newDate = new Date(date.getTime() + diff);
 	return isNaN(newDate.getTime())? '': newDate.toISOString()
+}
+
+function renderGroupOption({item}: {item: Group}) {
+	if (item.status)
+		return item.name;
+	return <span style={{fontStyle: 'italic'}}>{`${item.name} -- inactive`}</span>;
+}
+
+function SelectGroup({
+	value,
+	onChange,
+	...otherProps
+}: {
+	value: string | null;
+	onChange: (value: string | null) => void;
+} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
+) {
+	const options = useAppSelector(selectGroups)
+		.filter(g => g.type === 'wg' || g.type === 'tg')
+		.sort((g1, g2) => (g2.status? 1: 0) - (g1.status? 1: 0));	// active first
+	const values = options.filter(o => o.id === value);
+	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: null)
+	return (
+		<Select
+			values={values}
+			options={options}
+			onChange={handleChange}
+			create
+			clearable
+			searchable
+			dropdownPosition='auto'
+			valueField='id'
+			labelField='name'
+			itemRenderer={renderGroupOption}
+			{...otherProps}
+		/>
+	)
 }
 
 function SelectProject({
@@ -141,7 +181,7 @@ export function Column1({
 	updateBallot,
 	readOnly
 }: {
-	ballot: MultipleBallot | BallotEdit;
+	ballot: MultipleBallot;
 	updateBallot: (changes: Partial<BallotEdit>) => void;
 	readOnly?: boolean;
 }) {
@@ -159,6 +199,17 @@ export function Column1({
 	}
 
 	return <>
+		<Row>
+			<Field label='Group:'>
+				<SelectGroup
+					style={{minWidth: 150}}
+					value={isMultiple(ballot.groupId)? '': ballot.groupId}
+					onChange={(value) => updateBallot({groupId: value})}
+					placeholder={isMultiple(ballot.groupId)? MULTIPLE_STR: BLANK_STR}
+					readOnly={readOnly}
+				/>
+			</Field>
+		</Row>
 		<Row>
 			<Field label='Project:'>
 				<SelectProject
@@ -238,12 +289,13 @@ export function Column1({
 		{((ballot.Type === BallotType.WG && !ballot.IsRecirc) || ballot.Type === BallotType.Motion) &&
 			<Row>
 				<Field label='Voter pool:'>
-					<VotingPoolSelector 
+					{/*<VotingPoolSelector 
 						value={ballot.VotingPoolID}
 						onChange={value => updateBallot({VotingPoolID: value})}
 						style={{width: 150}}
 						readOnly={readOnly}
-					/>
+					/>*/}
+					<Link to={`/voters/${ballot.BallotID}`}>{ballot.Voters}</Link>
 				</Field>
 			</Row>}
 		{(ballot.Type === BallotType.WG || ballot.Type === BallotType.SA) && !!ballot.IsRecirc &&
@@ -273,7 +325,7 @@ function EditBallot({
 	updateBallot,
 	readOnly
 }: {
-	ballot: Multiple<Ballot> | BallotEdit;
+	ballot: Multiple<Ballot>// | BallotEdit;
 	updateBallot: (changes: Partial<BallotEdit>) => void;
 	readOnly?: boolean;
 }) {
@@ -405,7 +457,7 @@ class _BallotDetail extends React.Component<BallotDetailProps, BallotDetailState
 		const {ballots, selected} = props;
 		let diff = {}, originals: Ballot[] = [];
 		for (const id of selected) {
-			const ballot = ballots[id]!;
+			const ballot = ballots[id];
 			if (ballot) {
 				diff = recursivelyDiffObjects(diff, ballot);
 				originals.push(ballot);
@@ -547,13 +599,24 @@ export function BallotAddForm({
 
 	const submit = async () => {
 		setBusy(true);
-		await dispatch(addBallot(ballot));
-		dispatch(setCurrentProject(ballot.Project));
+		const b = await dispatch(addBallot(ballot));
+		if (b) {
+			dispatch(setCurrentProject(ballot.Project));
+			dispatch(setSelectedBallots([b.id]))
+		}
 		setBusy(false);
 		methods.close();
 	}
 
 	const updateBallot = (changes: Partial<BallotEdit>) => setBallot(ballot => ({...ballot, ...changes}));
+
+	const editBallot: Ballot = {
+		...ballot,
+		id: 0,
+		Voters: 0,
+		Comments: { Count: 0, CommentIDMax: 0, CommentIDMin: 0 },
+		Results: null
+	}
 
 	return (
 		<Form
@@ -565,7 +628,7 @@ export function BallotAddForm({
 			busy={busy}
 		>
 			<EditBallot
-				ballot={ballot}
+				ballot={editBallot}
 				updateBallot={updateBallot}
 				readOnly={false}
 			/>

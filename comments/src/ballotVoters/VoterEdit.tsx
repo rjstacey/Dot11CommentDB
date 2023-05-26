@@ -3,7 +3,8 @@ import React from 'react';
 import {
 	Form, Row, Field, Select,
 	shallowDiff,
-	AppModal
+	AppModal,
+	Checkbox
 } from 'dot11-components';
 
 import MemberSelector from './MemberSelector';
@@ -19,13 +20,13 @@ const statusOptions = [
 function VoterEditModal({
 	isOpen,
 	close,
-	votingPoolName,
+	ballot_id,
 	voter,
 	action,
 }: {
 	isOpen: boolean;
 	close: () => void;
-	votingPoolName: string;
+	ballot_id: number;
 	voter: VoterCreate;
 	action: "add" | "update";
 }) {
@@ -41,13 +42,17 @@ function VoterEditModal({
 		setState(state => ({...state, Status: value}));
 	}
 
+	function changeState(changes: Partial<VoterCreate>) {
+		setState(state => ({...state, ...changes}));
+	}
+
 	async function submit() {
 		if (!state.SAPIN) {
 			setErrMsg(`Select member`);
 		}
 		else {
 			if (action === 'add') {
-				await dispatch(addVoter(votingPoolName, state));
+				await dispatch(addVoter(ballot_id, state));
 			}
 			else {
 				const changes = shallowDiff(voter, state);
@@ -57,9 +62,7 @@ function VoterEditModal({
 		}
 	}
 
-	const title = action === 'add'
-		? 'Add voter to voter pool ' + votingPoolName
-		: 'Update voter'
+	const title = action === 'add'? 'Add voter': 'Update voter'
 
 	return (
 		<AppModal
@@ -92,6 +95,14 @@ function VoterEditModal({
 							options={statusOptions}
 							onChange={changeStatus}
 							portal={document.querySelector('#root')}
+						/>
+					</Field>
+				</Row>
+				<Row>
+					<Field label='Excused:'>
+						<Checkbox
+							checked={state.Excused}
+							onClick={() => changeState({Excused: !state.Excused})}
 						/>
 					</Field>
 				</Row>

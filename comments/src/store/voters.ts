@@ -6,10 +6,11 @@ import {
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-import { VotingPool, upsertVotingPool, validVotingPool } from './votingPools';
+import { updateBallotsLocal } from './ballots';
 
 export type Voter = {
 	id: string;
+	ballot_id: number;
 	SAPIN: number;
 	CurrentSAPIN: number;
 	Name: string;
@@ -22,54 +23,63 @@ export type Voter = {
 
 export type VoterCreate = {
 	id?: Voter["id"];
+	ballot_id: Voter["ballot_id"];
 	SAPIN: Voter["SAPIN"];
 	Excused?: Voter["Excused"];
 	Status: Voter["Status"];
 }
 
-export const dataSet = 'voters';
-
-export const excusedOptions = [
-	{value: 0, label: 'No'},
-	{value: 1, label: 'Yes'}
+export const voterExcusedOptions = [
+	{value: false, label: 'No'},
+	{value: true, label: 'Yes'}
 ];
 
-const renderExcused = value => {
-	const o = excusedOptions.find(o => o.value === value);
-	return o? o.label: value;
-}
+const voterStatus = ["Voter", "ExOfficio"] as const;
+
+export const voterStatusOptions = voterStatus.map(s => ({value: s, label: s}));
+
+const renderExcused = (value: boolean) => value? "Yes": "";
 
 export const fields = {
 	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
 	Email: {label: 'Email'},
 	Name: {label: 'Name'},
-	Status: {label: 'Status'},
-	Excused: {label: 'Excused', options: excusedOptions, dataRenderer: renderExcused}
+	Status: {label: 'Status', options: voterStatusOptions},
+	Excused: {label: 'Excused', options: voterExcusedOptions}
 };
 
 /*
  * Selectors
  */
 export const selectVotersState = (state: RootState) => state[dataSet];
-const selectVoterIds = (state: RootState) => selectVotersState(state).ids;
-//const selectVoterEntities = (state: RootState) => selectVotersState(state).entities;
-const selectVotersCount = (state: RootState) => selectVoterIds(state).length;
+export const selectVotersBallotId = (state: RootState) => selectVotersState(state).ballot_id;
 
 export const votersSelectors = getAppTableDataSelectors(selectVotersState);
 
 const sortComparer = (v1: Voter, v2: Voter) => v1.SAPIN - v2.SAPIN;
 
+type ExtraState = {
+	ballot_id: number;
+};
+
+const initialState: ExtraState = {
+	ballot_id: 0
+};
+
+export const dataSet = 'voters';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	sortComparer,
-	initialState: {
-		votingPoolId: '',
-	},
+	initialState,
 	reducers: {
-		setVotingPoolID(state, action: PayloadAction<string>) {
+		/*setVotingPoolID(state, action: PayloadAction<string>) {
 			state.votingPoolId = action.payload;
-		},
+		},*/
+		setDetails(state, action: PayloadAction<Partial<ExtraState>>) {
+			const changes = action.payload;
+			return {...state, ...changes};
+		}
 	}
 });
 
@@ -82,87 +92,102 @@ export default slice;
 export const votersActions = slice.actions;
 
 const {
-	setVotingPoolID,
+	setDetails,
 	getPending,
 	getSuccess,
 	getFailure,
 	removeMany,
+	removeAll,
 	setMany,
 } = slice.actions;
 
 const baseUrl = '/api/voters';
 
+type VoterBallotUpdate = {
+	id: number;
+	Voters: number;
+}
+
+function validBallotsUpdate(ballots: any) {
+	return Array.isArray(ballots) && ballots.every(b => typeof b.id === 'number' && typeof b.Voters === 'number');
+}
+
 function validVoter(voter: any): voter is Voter {
 	return isObject(voter);
 }
 
-function validResponse(response: any): response is {voters: Voter[]; votingPool: VotingPool} {
+function validResponse(response: any): response is {voters: Voter[], ballots?: VoterBallotUpdate[]} {
 	return isObject(response) &&
 		Array.isArray(response.voters) && response.voters.every(validVoter) &&
-		validVotingPool(response.votingPool);
+		(typeof response.ballots === 'undefined' || validBallotsUpdate(response.ballots));
 }
 
-export const loadVoters = (votingPoolId: string): AppThunk =>
+function validGetResponse(response: any): response is Voter[] {
+	return Array.isArray(response) && response.every(validVoter);
+}
+
+export const loadVoters = (ballot_id: number): AppThunk =>
 	async (dispatch, getState) => {
 		if (selectVotersState(getState()).loading)
 			return;
 		dispatch(getPending());
-		dispatch(setVotingPoolID(votingPoolId));
-		const url = `${baseUrl}/${votingPoolId}`;
+		const url = `${baseUrl}/${ballot_id}`;
 		let response: any;
 		try {
 			response = await fetcher.get(url);
-			if (!validResponse(response))
+			if (!validGetResponse(response))
 				throw new TypeError("Unexpected response to GET " + url);
 		}
 		catch(error) {
 			dispatch(getFailure());
-			dispatch(setError(`Unable to get voters for ${votingPoolId}`, error));
+			dispatch(setError(`Unable to get voters`, error));
 			return;
 		}
-		dispatch(getSuccess(response.voters));
+		dispatch(getSuccess(response));
+		dispatch(setDetails({ballot_id}));
 	}
 
-export const deleteVoters = (votingPoolId: string, ids: EntityId[]): AppThunk =>
-	async (dispatch, getState) => {
+export const clearVoters = (): AppThunk =>
+	async (dispatch) => {
+		dispatch(removeAll());
+		dispatch(setDetails({ballot_id: 0}));
+	}
+
+export const deleteVoters = (ids: EntityId[]): AppThunk =>
+	async (dispatch) => {
 		dispatch(removeMany(ids));
-		const count = selectVotersCount(getState());
-		dispatch(upsertVotingPool({VotingPoolID: votingPoolId, VoterCount: count}));
-		const url = `${baseUrl}/${votingPoolId}`;
 		try {
-			await fetcher.delete(url, ids);
+			await fetcher.delete(baseUrl, ids);
 		}
 		catch(error) {
-			dispatch(setError(`Unable to delete voters in voting pool ${votingPoolId}`, error));
-			return;
+			dispatch(setError(`Unable to delete voters`, error));
 		}
 	}
 
-export const votersFromSpreadsheet = (votingPoolId: string, file): AppThunk =>
+export const votersFromSpreadsheet = (ballot_id: number, file: File): AppThunk =>
 	async (dispatch) => {
 		dispatch(getPending());
-		dispatch(setVotingPoolID(votingPoolId));
-		const url = `${baseUrl}/${votingPoolId}/upload`;
+		const url = `${baseUrl}/${ballot_id}/upload`;
 		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, {File: file});
 			if (!validResponse(response))
-				throw new TypeError(`Unexpected response to POST ${url}`);
+				throw new TypeError(`Unexpected response`);
 		}
 		catch(error) {
 			dispatch(getFailure());
-			dispatch(setError(`Unable to upload voters for voting pool ${votingPoolId}`, error));
+			dispatch(setError(`Unable to upload voters`, error));
 			return;
 		}
-		dispatch(upsertVotingPool(response.votingPool));
 		dispatch(getSuccess(response.voters));
+		if (response.ballots)
+			dispatch(updateBallotsLocal(response.ballots));
 	}
 
-export const votersFromMembersSnapshot = (votingPoolId: string, date: string): AppThunk =>
+export const votersFromMembersSnapshot = (ballot_id: number, date: string): AppThunk =>
 	async (dispatch) => {
 		dispatch(getPending());
-		dispatch(setVotingPoolID(votingPoolId));
-		const url = `${baseUrl}/${votingPoolId}/membersSnapshot`;
+		const url = `${baseUrl}/${ballot_id}/membersSnapshot`;
 		let response: any;
 		try {
 			response = await fetcher.post(url, {date});
@@ -171,16 +196,17 @@ export const votersFromMembersSnapshot = (votingPoolId: string, date: string): A
 		}
 		catch(error) {
 			dispatch(getFailure());
-			dispatch(setError(`Unable to create voting pool ${votingPoolId}`, error));
+			dispatch(setError(`Unable to create voting pool`, error));
 			return;
 		}
-		dispatch(upsertVotingPool(response.votingPool));
 		dispatch(getSuccess(response.voters));
+		if (response.ballots)
+			dispatch(updateBallotsLocal(response.ballots));
 	}
 
-export const addVoter = (votingPoolId: string, voterIn: VoterCreate): AppThunk =>
+export const addVoter = (ballot_id: number, voterIn: VoterCreate): AppThunk =>
 	async (dispatch) => {
-		const url = `${baseUrl}/${votingPoolId}`;
+		const url = `${baseUrl}/${ballot_id}`;
 		let response: any;
 		try {
 			response = await fetcher.post(url, [voterIn]);
@@ -191,8 +217,9 @@ export const addVoter = (votingPoolId: string, voterIn: VoterCreate): AppThunk =
 			dispatch(setError('Unable to add voter', error));
 			return;
 		}
-		dispatch(upsertVotingPool(response.votingPool));
 		dispatch(setMany(response.voters));
+		if (response.ballots)
+			dispatch(updateBallotsLocal(response.ballots));
 	}
 
 export const updateVoter = (id: string, changes: Partial<Voter>): AppThunk =>
@@ -207,13 +234,12 @@ export const updateVoter = (id: string, changes: Partial<Voter>): AppThunk =>
 			dispatch(setError('Unable to update voter', error));
 			return;
 		}
-		dispatch(upsertVotingPool(response.votingPool));
 		dispatch(setMany(response.voters));
 	}
 
-export const exportVoters = (votingPoolId: string): AppThunk =>
+export const exportVoters = (ballot_id: number): AppThunk =>
 	async (dispatch) => {
-		const url = `${baseUrl}/${votingPoolId}/export`;
+		const url = `${baseUrl}/${ballot_id}/export`;
 		try {
 			await fetcher.getFile(url);
 		}

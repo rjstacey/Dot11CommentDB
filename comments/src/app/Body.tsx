@@ -14,7 +14,6 @@ import Reports from '../reports/Reports';
 import Ballots from '../ballots/Ballots';
 import Epolls from '../ballots/Epolls';
 
-import VotersPools from '../ballotVoters/VotersPools';
 import Voters from '../ballotVoters/Voters';
 
 const Main = styled.main`
@@ -27,7 +26,7 @@ const Main = styled.main`
 	align-items: center;
 `;
 
-/* Note that the renderComponent funciton is only called once at startup. It can be made to execute each time a path
+/* Note that the renderComponent function is mounts the component once at startup. It can be forced to re-mount each time a path
  * is selected by using Component={() => renderComponent()} */
 function Body() {
 
@@ -51,11 +50,7 @@ function Body() {
 					element={renderComponent(AccessLevel.none, Epolls)}
 				/>
 				<Route
-					path="/voters"
-					element={renderComponent(AccessLevel.none, VotersPools)}
-				/>
-				<Route
-					path="/voters/:votingPoolName"
+					path="/voters/:ballotId?"
 					element={renderComponent(AccessLevel.none, Voters)}
 				/>
 				<Route

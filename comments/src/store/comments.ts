@@ -147,7 +147,11 @@ function getResolutionCountUpdates(ids: EntityId[], entities: Dictionary<Comment
 	return updates;
 }
 
-const initialState = {
+type ExtraState = {
+	ballot_id: number;
+}
+
+const initialState: ExtraState = {
 	ballot_id: 0
 };
 
@@ -157,7 +161,7 @@ const slice = createAppTableDataSlice({
 	sortComparer: (c1: CommentResolution, c2: CommentResolution) => c1.CommentID === c2.CommentID? c1.ResolutionID - c2.ResolutionID: c1.CommentID - c2.CommentID,
 	initialState,
 	reducers: {
-		setDetails(state, action) {
+		setDetails(state, action: PayloadAction<Partial<ExtraState>>) {
 			const changes = action.payload;
 			return {...state, ...changes};
 		}

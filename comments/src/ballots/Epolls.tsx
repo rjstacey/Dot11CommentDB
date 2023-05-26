@@ -38,6 +38,7 @@ function ePollToBallot(epoll: SyncedEpoll): BallotEdit {
 		type = ballotId.startsWith('CC')? BallotType.CC: BallotType.WG;
 	}
 	return {
+		groupId: null,
 		Project: '',
 		BallotID: ballotId,
 		Type: type,
