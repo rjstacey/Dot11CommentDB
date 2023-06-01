@@ -5,17 +5,12 @@ import {
 	AppTable, SelectHeaderCell, SelectCell,
 	ConfirmModal,
 	ActionButton,
-	ColumnProperties,
-	EntityId
+	ColumnProperties
 } from 'dot11-components';
-
-import VotersImportModal from './VotersImport';
-import VoterEditModal from './VoterEdit';
-import PathBallotSelector from '../components/PathBallotSelector';
 
 import type { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectBallot, selectCurrentId } from '../store/ballots';
+import { selectCurrentBallot_id } from '../store/ballots';
 import {
 	loadVoters,
 	clearVoters,
@@ -28,6 +23,11 @@ import {
 	Voter,
 	VoterCreate
 } from '../store/voters';
+
+import VotersImportModal from './VotersImport';
+import VoterEditModal from './VoterEdit';
+import PathBallotSelector from '../components/PathBallotSelector';
+import TopRow from '../components/TopRow';
 
 const ActionCell = styled.div`
 	display: flex;
@@ -70,12 +70,6 @@ const tableColumns: ColumnPropertiesWithWidth[] = [
 	{key: 'Excused',	label: 'Excused',		width: 100, dataRenderer: (value) => value? "Yes": ""},
 ];
 
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-`;
-
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */
 	display: flex;
@@ -102,8 +96,7 @@ function Voters() {
 	const dispatch = useAppDispatch();
 
 	const votersBallot_id = useAppSelector(selectVotersBallotId);
-	const currentBallot_id = useAppSelector(selectCurrentId);
-	const ballot = useAppSelector((state) => selectBallot(state, votersBallot_id))
+	const currentBallot_id = useAppSelector(selectCurrentBallot_id);
 
 	React.useEffect(() => {
 		if (currentBallot_id && votersBallot_id !== currentBallot_id)

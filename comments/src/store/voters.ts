@@ -38,8 +38,6 @@ const voterStatus = ["Voter", "ExOfficio"] as const;
 
 export const voterStatusOptions = voterStatus.map(s => ({value: s, label: s}));
 
-const renderExcused = (value: boolean) => value? "Yes": "";
-
 export const fields = {
 	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
 	Email: {label: 'Email'},
@@ -73,9 +71,6 @@ const slice = createAppTableDataSlice({
 	sortComparer,
 	initialState,
 	reducers: {
-		/*setVotingPoolID(state, action: PayloadAction<string>) {
-			state.votingPoolId = action.payload;
-		},*/
 		setDetails(state, action: PayloadAction<Partial<ExtraState>>) {
 			const changes = action.payload;
 			return {...state, ...changes};

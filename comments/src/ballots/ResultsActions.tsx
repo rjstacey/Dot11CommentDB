@@ -25,7 +25,6 @@ function ResultsActions({
 	const fileRef = React.useRef<HTMLInputElement>(null);
 	const [inputValue, setInputValue] = React.useState('');
 	const ballot = useAppSelector(state => isMultiple(ballot_id)? undefined: selectBallot(state, ballot_id));
-	console.log(ballot)
 
 	async function handleDeleteResults() {
 		const ok = await ConfirmModal.show(`Are you sure you want to delete results for ${ballot!.BallotID}?`)

@@ -8,7 +8,8 @@ import {
 	ActionButton, Form, Row, Col, Field, ListItem, Checkbox, Input, Select, TextArea, Spinner,
 	ConfirmModal,
 	ActionButtonDropdown,
-	Multiple
+	Multiple,
+	SelectRendererProps
 } from 'dot11-components';
 
 import CheckboxListSelect from './CheckboxListSelect';
@@ -22,18 +23,18 @@ import {
 	addBallot,
 	deleteBallots,
 	loadBallots,
-	setCurrentProject,
+	setCurrentGroupProject,
 	setUiProperties,
 	setSelectedBallots,
 	selectBallotsState,
-	selectProjectOptions, 
+	selectGroupProjectOptions, 
 	BallotType,
 	BallotTypeOptions,
 	BallotStageOptions,
 	Ballot,
 	BallotEdit,
+	GroupProjectOption,
 } from '../store/ballots';
-import { selectGroups, Group } from '../store/groups';
 import { Link } from 'react-router-dom';
 
 const BLANK_STR = '(Blank)';
@@ -78,44 +79,54 @@ function shortDateToDate(shortDateStr: string) {
 	return isNaN(newDate.getTime())? '': newDate.toISOString()
 }
 
-function renderGroupOption({item}: {item: Group}) {
-	if (item.status)
-		return item.name;
-	return <span style={{fontStyle: 'italic'}}>{`${item.name} -- inactive`}</span>;
-}
-
-function SelectGroup({
-	value,
-	onChange,
-	...otherProps
+function SelectGroupProject({
+	ballot,
+	updateBallot,
+	readOnly
 }: {
-	value: string | null;
-	onChange: (value: string | null) => void;
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
-) {
-	const options = useAppSelector(selectGroups)
-		.filter(g => g.type === 'wg' || g.type === 'tg')
-		.sort((g1, g2) => (g2.status? 1: 0) - (g1.status? 1: 0));	// active first
-	const values = options.filter(o => o.id === value);
-	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: null)
+	ballot: MultipleBallot | BallotEdit; 
+	updateBallot: (changes: Partial<BallotEdit>) => void;
+	readOnly?: boolean;
+}) {
+	const options = useAppSelector(selectGroupProjectOptions);
+
+	const values = (isMultiple(ballot.groupId) || isMultiple(ballot.Project))? []:
+		options.filter(o => ballot.groupId === o.groupId && ballot.Project === o.project);
+
+	function handleChange(values: typeof options) {
+		if (values.length > 0) {
+			const {groupId, project} = values[0];
+			updateBallot({groupId, Project: project || ''});
+		}
+		else {
+			updateBallot({groupId: null, Project: ''});
+		}
+	}
+
+	function createOption({state}: SelectRendererProps): GroupProjectOption {
+		return {groupId: null, project: state.search, label: state.search};
+	}
+
+	const placeholder = (isMultiple(ballot.groupId) || isMultiple(ballot.Project))? MULTIPLE_STR: BLANK_STR;
+
 	return (
 		<Select
+			style={{minWidth: 150, width: 300}}
 			values={values}
 			options={options}
 			onChange={handleChange}
 			create
+			createOption={createOption}
 			clearable
 			searchable
 			dropdownPosition='auto'
-			valueField='id'
-			labelField='name'
-			itemRenderer={renderGroupOption}
-			{...otherProps}
+			placeholder={placeholder}
+			readOnly={readOnly}
 		/>
 	)
 }
 
-function SelectProject({
+/*function SelectProject({
 	value,
 	onChange,
 	...otherProps
@@ -126,7 +137,7 @@ function SelectProject({
 ) {
 	const options = useAppSelector(selectProjectOptions);
 	const values = options.filter(o => o.value === value);
-	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].value: '')
+	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].value: '');
 	return (
 		<Select
 			values={values}
@@ -139,7 +150,7 @@ function SelectProject({
 			{...otherProps}
 		/>
 	)
-}
+}*/
 
 function SelectPrevBallot({
 	value,
@@ -200,17 +211,15 @@ export function Column1({
 
 	return <>
 		<Row>
-			<Field label='Group:'>
-				<SelectGroup
-					style={{minWidth: 150}}
-					value={isMultiple(ballot.groupId)? '': ballot.groupId}
-					onChange={(value) => updateBallot({groupId: value})}
-					placeholder={isMultiple(ballot.groupId)? MULTIPLE_STR: BLANK_STR}
+			<Field label='Group/Project:'>
+				<SelectGroupProject
+					ballot={ballot}
+					updateBallot={updateBallot}
 					readOnly={readOnly}
 				/>
 			</Field>
 		</Row>
-		<Row>
+		{/*<Row>
 			<Field label='Project:'>
 				<SelectProject
 					style={{minWidth: 150}}
@@ -220,7 +229,7 @@ export function Column1({
 					readOnly={readOnly}
 				/>
 			</Field>
-		</Row>
+			</Row>*/}
 		<Row>
 			<Field label='Ballot ID:'>
 				<Input type='search'
@@ -289,12 +298,6 @@ export function Column1({
 		{((ballot.Type === BallotType.WG && !ballot.IsRecirc) || ballot.Type === BallotType.Motion) &&
 			<Row>
 				<Field label='Voter pool:'>
-					{/*<VotingPoolSelector 
-						value={ballot.VotingPoolID}
-						onChange={value => updateBallot({VotingPoolID: value})}
-						style={{width: 150}}
-						readOnly={readOnly}
-					/>*/}
 					<Link to={`/voters/${ballot.BallotID}`}>{ballot.Voters}</Link>
 				</Field>
 			</Row>}
@@ -493,8 +496,9 @@ class _BallotDetail extends React.Component<BallotDetailProps, BallotDetailState
 		}
 		if (updates.length > 0)
 			updates.forEach(u => this.props.updateBallot(u.id, u));
-		if (d.Project)
-			this.props.setCurrentProject(d.Project);
+		if (d.groupId || d.Project) {
+			this.props.setCurrentGroupProject({groupId: edited.groupId, project: edited.Project});
+		}
 		this.setState(state => ({...state, saved: edited}));
 	}
 
@@ -571,7 +575,7 @@ const connector = connect(
 	{
 		loadBallots,
 		addBallot,
-		setCurrentProject,
+		setCurrentGroupProject,
 		updateBallot,
 		deleteBallots,
 		setUiProperties
@@ -601,7 +605,7 @@ export function BallotAddForm({
 		setBusy(true);
 		const b = await dispatch(addBallot(ballot));
 		if (b) {
-			dispatch(setCurrentProject(ballot.Project));
+			dispatch(setCurrentGroupProject({groupId: ballot.groupId, project: ballot.Project}));
 			dispatch(setSelectedBallots([b.id]))
 		}
 		setBusy(false);

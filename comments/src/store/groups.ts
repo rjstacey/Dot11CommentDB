@@ -32,6 +32,7 @@ export type Group = {
 	symbol: string | null;
 	color: string;
 	type: GroupType | null;
+	project: string | null;
 };
 
 export const dataSet = 'groups';

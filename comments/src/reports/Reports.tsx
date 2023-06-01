@@ -8,7 +8,7 @@ import TopRow from '../components/TopRow';
 import PathBallotSelector from '../components/PathBallotSelector';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectCurrentId } from '../store/ballots';
+import { selectCurrentBallot_id } from '../store/ballots';
 import {
 	loadComments,
 	clearComments,
@@ -234,7 +234,7 @@ function Reports() {
 
 	const {ids, entities} = useAppSelector(selectCommentsState);
 	const commentsBallot_id = useAppSelector(selectCommentsBallotId);
-	const currentBallot_id = useAppSelector(selectCurrentId);
+	const currentBallot_id = useAppSelector(selectCurrentBallot_id);
 
 	React.useEffect(() => {
 		if (currentBallot_id && commentsBallot_id !== currentBallot_id)

@@ -18,7 +18,7 @@ import CommentsCopy from './CommentsCopy';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectUserAccessLevel, AccessLevel } from '../store/user';
-import { selectBallot, selectCurrentId } from '../store/ballots';
+import { selectBallot, selectCurrentBallot_id } from '../store/ballots';
 import { loadMembers } from '../store/members';
 import {
 	fields,
@@ -316,7 +316,7 @@ function Comments() {
 	const access = useAppSelector(selectUserAccessLevel);
 	const {selected} = useAppSelector(selectCommentsState);
 	const commentsBallot_id = useAppSelector(selectCommentsBallotId);
-	const currentBallot_id = useAppSelector(selectCurrentId);
+	const currentBallot_id = useAppSelector(selectCurrentBallot_id);
 	const commentsBallot = useAppSelector((state) => selectBallot(state, commentsBallot_id));
 
 	const dispatch = useAppDispatch();
@@ -403,7 +403,6 @@ function Comments() {
 				<Panel style={{overflow: 'auto'}}>
 					<CommentDetail
 						key={selected.join()}
-						access={access}
 					/>
 				</Panel>
 			</SplitPanel>

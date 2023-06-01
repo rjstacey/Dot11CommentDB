@@ -1,11 +1,12 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
+import type { EntityId } from '@reduxjs/toolkit';
 import styled from '@emotion/styled';
 
 import {
 	ActionButton, Row, Col, List, ListItem, Field, FieldLeft, Checkbox, Input,
 	Icon, IconCollapse,
-	AccessLevel, shallowDiff, recursivelyDiffObjects, debounce, isMultiple, Multiple, MULTIPLE
+	shallowDiff, recursivelyDiffObjects, debounce, isMultiple, Multiple, MULTIPLE
 } from 'dot11-components';
 
 import AdHocSelector from './AdHocSelector';
@@ -31,6 +32,8 @@ import {
 	ResolutionUpdate,
 	ResolutionCreate
 } from '../store/comments';
+import { selectUserAccessLevel, AccessLevel, selectUser } from '../store/user';
+import { selectHasCommentsRW } from '../store/ballots';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
@@ -40,7 +43,7 @@ const MultipleContainer = styled.span`
 	font-style: italic;
 `;
 
-const ShowMultiple = (props) => <MultipleContainer {...props}>{MULTIPLE_STR}</MultipleContainer>
+const ShowMultiple = (props: React.ComponentProps<typeof MultipleContainer>) => <MultipleContainer {...props}>{MULTIPLE_STR}</MultipleContainer>
 
 const renderCommenter = (comment: MultipleCommentResolution) => {
 	const commenter = comment.CommenterName
@@ -727,47 +730,62 @@ type CommentDetailState = {
 	savedResolution: MultipleCommentResolution,
 	editedResolution: MultipleCommentResolution,
 	comments: CommentResolution[];
+	readOnly: boolean;
 }
+
 class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetailState> {
 	constructor(props: CommentDetailProps) {
 		super(props)
 		this.state = this.initState(props);
 		this.triggerSave = debounce(this.save, 500);
-		this.readOnly = this.props.readOnly || this.props.access < AccessLevel.SubgroupAdmin;
 	}
 
 	triggerSave: ReturnType<typeof debounce>;
-	readOnly: boolean;
 
 	componentWillUnmount() {
 		this.triggerSave.flush();
 	}
 
+	isReadOnly = (ids: EntityId[]) => {
+		if (this.props.readOnly)
+			return true;
+		const {entities, user} = this.props;
+		let access = this.props.access;
+		if (access <= AccessLevel.ro) {
+			const rw = ids.every(id => entities[id]?.AssigneeSAPIN === user.SAPIN);
+			if (rw)
+				access = AccessLevel.rw;
+		}
+		return access <= AccessLevel.ro;
+	}
+
 	initState = (props: CommentDetailProps): CommentDetailState => {
 		const {entities, selected} = props;
 		let diff = {}, originalComments: CommentResolution[] = [];
-		for (const cid of selected) {
-			const comment = entities[cid];
+		selected.forEach(id => {
+			const comment = entities[id];
 			if (comment) {
 				diff = recursivelyDiffObjects(diff, comment);
 				originalComments.push(comment);
 			}
-		}
+		});
+		const readOnly = this.props.readOnly || this.isReadOnly(selected);
 		return {
 			savedResolution: diff as MultipleCommentResolution,
 			editedResolution: diff as MultipleCommentResolution,
-			comments: originalComments
+			comments: originalComments,
+			readOnly
 		};
 	}
 
-	doResolutionUpdate = (fields) => {
-		if (this.readOnly || !this.props.uiProperties.editComment) {
+	updateResolution = (changes: Partial<CommentResolution>) => {
+		if (this.state.readOnly || !this.props.uiProperties.editComment) {
 			console.warn("Update in read only component");
 			return;
 		}
-		// merge in the edits and trigger a debounced save
+		// merge in the edits and trigger save
 		this.setState(
-			(state, props) => ({...state, editedResolution: {...state.editedResolution, ...fields}}),
+			(state) => ({...state, editedResolution: {...state.editedResolution, ...changes}}),
 			this.triggerSave
 		);
 	}
@@ -809,7 +827,7 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 	}
 
 	handleAddResolutions = async () => {
-		if (this.readOnly || !this.props.uiProperties.editComment) {
+		if (this.state.readOnly || !this.props.uiProperties.editComment) {
 			console.warn("Update in read only component");
 			return;
 		}
@@ -827,7 +845,7 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 	}
 
  	handleDeleteResolutions = async () => {
- 		if (this.readOnly || !this.props.uiProperties.editComment) {
+ 		if (this.state.readOnly || !this.props.uiProperties.editComment) {
 			console.warn("Update in read only component");
 			return;
 		}
@@ -842,7 +860,7 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 
 	render() {
 		const {style, className, loading, uiProperties} = this.props;
-		const {comments, editedResolution} = this.state;
+		const {comments, editedResolution, readOnly} = this.state;
 
 		let notAvailableStr: string | undefined;
 		if (loading)
@@ -850,7 +868,7 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 		else if (comments.length === 0)
 			notAvailableStr = 'Nothing selected';
 		const disableButtons = !!notAvailableStr; 	// disable buttons if displaying string
-		const disableEditButtons = disableButtons || this.readOnly || !uiProperties.editComment;
+		const disableEditButtons = disableButtons || readOnly || !uiProperties.editComment;
 
 		return(
 			<DetailContainer
@@ -858,7 +876,7 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 				className={className}
 			>
 				<TopRow>
-					{!this.readOnly && <>
+					{!readOnly && <>
 						<CommentHistory />
 						<ActionButton
 							name='edit'
@@ -889,12 +907,12 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 					<Comment 
 						cids={comments.map(getCID)}
 						resolution={editedResolution}
-						setResolution={this.doResolutionUpdate}
+						setResolution={this.updateResolution}
 						showNotes={uiProperties.showNotes}
 						toggleShowNotes={() => this.toggleUiProperty('showNotes')}
 						showEditing={uiProperties.showEditing}
 						toggleShowEditing={() => this.toggleUiProperty('showEditing')}
-						readOnly={this.readOnly || !uiProperties.editComment}
+						readOnly={readOnly || !uiProperties.editComment}
 					/>
 				}
 			</DetailContainer>
@@ -902,14 +920,28 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 	}
 }
 
+type PropsIn = {
+	className?: string;
+	style?: React.CSSProperties;
+	readOnly?: boolean;
+}
+
 const connector = connect(
-	(state: RootState) => {
-		const data = selectCommentsState(state);
+	(state: RootState, props: PropsIn) => {
+		const user = selectUser(state);
+		const {ballot_id, entities, loading, selected, ui: uiProperties} = selectCommentsState(state);
+		let access = selectUserAccessLevel(state);
+		if (access <= AccessLevel.ro) {
+			if (selectHasCommentsRW(state, ballot_id))
+				access = AccessLevel.rw;
+		}
 		return {
-			entities: data.entities,
-			loading: data.loading,
-			selected: data.selected,
-			uiProperties: data.ui,
+			entities,
+			loading,
+			selected,
+			uiProperties,
+			access,
+			user
 		}
 	},
 	{
@@ -921,12 +953,7 @@ const connector = connect(
 	}
 );
 
-type CommentDetailProps = ConnectedProps<typeof connector> & {
-	className?: string;
-	style?: React.CSSProperties;
-	readOnly?: boolean;
-	access: number;
-};
+type CommentDetailProps = ConnectedProps<typeof connector> & PropsIn;
 
 export default connector(CommentDetail);
 

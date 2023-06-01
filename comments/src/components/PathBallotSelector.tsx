@@ -7,11 +7,12 @@ import { Select } from 'dot11-components';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	getBallots,
-	setCurrentProject,
-	setCurrentId,
+	setCurrentGroupProject,
+	setCurrentBallot_id,
 	selectBallotsState,
-	selectProjectOptions,
-	selectBallotOptions
+	selectGroupProjectOptions,
+	selectBallotOptions,
+	GroupProject
 } from '../store/ballots';
 
 const Label = styled.label`
@@ -29,25 +30,19 @@ function ProjectSelect({
 	className,
 	value,
 	onChange,
-	options,
 	loading,
 	readOnly
 }: {
 	className?: string;
 	style?: React.CSSProperties;
-	value: string;
-	onChange: (value: string) => void;
-	options: {value: any; label: string}[];
+	value: GroupProject;
+	onChange: (value: GroupProject) => void;
 	loading: boolean;
 	readOnly?: boolean;
 }) {
-
-	const values = options.filter(o => o.value === value);
-
-	if (readOnly)
-		return <span>{values.length? values[0].label: value}</span>
-
-	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].value: 0);
+	const options = useAppSelector(selectGroupProjectOptions);
+	const values = options.filter(o => value.groupId === o.groupId && value.project === o.project);
+	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0]: {groupId: null, project: null});
 
 	return (
 		<Select
@@ -57,6 +52,7 @@ function ProjectSelect({
 			onChange={handleChange}
 			options={options}
 			loading={loading}
+			readOnly={readOnly}
 		/>
 	)
 }
@@ -66,24 +62,18 @@ function BallotSelect({
 	className,
 	value,
 	onChange,
-	options,
 	loading,
 	readOnly
 }: {
 	className?: string;
 	style?: React.CSSProperties;
-	value: number;
-	onChange: (value: number) => void;
-	options: {value: any; label: string}[];
+	value: number | null;
+	onChange: (value: number | null) => void;
 	loading: boolean;
 	readOnly?: boolean;
 }) {
-
+	const options = useAppSelector(selectBallotOptions);
 	const values = options.filter(o => o.value === value);
-
-	if (readOnly)
-		return <span>{values.length? values[0].label: value}</span>
-
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].value: 0);
 
 	return (
@@ -94,7 +84,7 @@ function BallotSelect({
 			onChange={handleChange}
 			options={options}
 			loading={loading}
-			readOnly={options.length === 0}
+			readOnly={readOnly || options.length === 0}
 		/>
 	)
 }
@@ -114,9 +104,7 @@ function BallotSelector({
 	const location = useLocation();
 	const dispatch = useAppDispatch();
 	const {ballotId} = useParams();
-	const {loading, currentProject, currentId} = useAppSelector(selectBallotsState);
-	const projectOptions = useAppSelector(selectProjectOptions);
-	const ballotOptions = useAppSelector(selectBallotOptions);
+	const {loading, currentGroupId, currentProject, currentBallot_id} = useAppSelector(selectBallotsState);
 
 	React.useEffect(() => {
 		let ignore = false;
@@ -127,12 +115,12 @@ function BallotSelector({
 			if (ballotId) {
 				const pathBallot_id = ballots.find(b => b.BallotID === ballotId)?.id;
 				// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
-				if (pathBallot_id && (!currentId || pathBallot_id !== currentId))
-					dispatch(setCurrentId(pathBallot_id));
+				if (pathBallot_id && (!currentBallot_id || pathBallot_id !== currentBallot_id))
+					dispatch(setCurrentBallot_id(pathBallot_id));
 			}
-			else if (currentId) {
+			else if (currentBallot_id) {
 				// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
-				const BallotID = ballots.find(b => b.id === currentId)?.BallotID;
+				const BallotID = ballots.find(b => b.id === currentBallot_id)?.BallotID;
 				if (BallotID)
 					navigate(location.pathname + `/${BallotID}`);
 			}
@@ -145,21 +133,19 @@ function BallotSelector({
 		return onUnmount;
 	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
 
-	const handleProjectChange = async (value: string) => {
-		if (value !== currentProject) {
-			const ballot = await dispatch(setCurrentProject(value));
-			let pathName = location.pathname.replace(`/${ballotId}`, '');
-			if (ballot)
-				pathName = pathName + `/${ballot.BallotID}`;
-			navigate(pathName);
+	const handleProjectChange = async (value: GroupProject) => {
+		const ballot = await dispatch(setCurrentGroupProject(value));
+		let pathName = location.pathname.replace(`/${ballotId}`, '');
+		if (ballot)
+			pathName = pathName + `/${ballot.BallotID}`;
+		navigate(pathName);
 
-			if (onBallotSelected)
-				onBallotSelected(null);
-		}
+		if (onBallotSelected)
+			onBallotSelected(null);
 	}
 
-	const handleBallotChange = async (value: number) => {
-		const ballot = await dispatch(setCurrentId(value));
+	const handleBallotChange = async (value: number | null) => {
+		const ballot = await dispatch(setCurrentBallot_id(value));
 		let pathName = location.pathname.replace(`/${ballotId}`, '');
 		if (ballot)
 			pathName = pathName + `/${ballot.BallotID}`;
@@ -176,18 +162,16 @@ function BallotSelector({
 			<Label>Project:</Label>
 			<ProjectSelect
 				style={{minWidth: 150, marginRight: 20}}
-				value={currentProject}
+				value={{groupId: currentGroupId, project: currentProject}}
 				onChange={handleProjectChange}
-				options={projectOptions}
 				loading={loading}
 				readOnly={readOnly}
 			/>
 			<Label>Ballot:</Label>
 			<BallotSelect
 				style={{minWidth: 250}}
-				value={currentId}
+				value={currentBallot_id}
 				onChange={handleBallotChange}
-				options={ballotOptions}
 				loading={loading}
 				readOnly={readOnly}
 			/>
