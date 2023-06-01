@@ -137,7 +137,6 @@ async function getVoterBallotUpdates(ballot_id: number | number[]) {
 function votersEntry(v: Partial<Voter>) {
 	const entry = {
 		ballot_id: v.ballot_id,
-		//VotingPoolID: v.VotingPoolID,
 		SAPIN: v.SAPIN,
 		Excused: v.Excused,
 		Status: v.Status

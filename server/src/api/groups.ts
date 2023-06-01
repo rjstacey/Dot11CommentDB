@@ -53,14 +53,9 @@ router.post('/$', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.put('/$', async (req, res, next) => {
+router.patch('/$', async (req, res, next) => {
 	try {
-		const updates = req.body;
-		if (!Array.isArray(updates))
-			throw new TypeError('Bad or missing array of group updates');
-		if (!updates.every(u => isPlainObject(u) && typeof u.id === 'string' && isPlainObject(u.changes)))
-			throw new TypeError('Expected array of objects to have shape {id, changes}');
-		const data = await updateGroups(updates);
+		const data = await updateGroups(req.body);
 		res.json(data);
 	}
 	catch(err) {next(err)}

@@ -6,7 +6,8 @@ import { isPlainObject } from '../utils';
 import { getResultsCoalesced, ResultsSummary } from './results';
 import { CommentsSummary } from './comments';
 
-import type { User } from './users';
+import { User, userIsWGAdmin } from './users';
+import { getOfficers } from './officers';
 
 export type Ballot = {
     id: number;
@@ -232,14 +233,27 @@ async function addBallot(user: User, ballot: Ballot) {
 	return getBallotWithNewResultsSummary(user, id);
 }
 
+function validBallot(ballot: any): ballot is Ballot {
+	return isPlainObject(ballot) &&
+		typeof ballot.BallotID === 'string' &&
+		typeof ballot.Project === 'string';
+}
+
+function validBallots(ballots: any): ballots is Ballot[] {
+	return Array.isArray(ballots) && ballots.every(validBallot);
+}
+
 /**
- * Add ballots.
+ * Add ballots
  * 
  * @param user The user executing the add
  * @param ballots An array of ballots to be added
  * @returns An array of ballots as added
  */
-export async function addBallots(user: User, ballots: Ballot[]) {
+export async function addBallots(user: User, ballots: any) {
+	if (!validBallots(ballots))
+		throw new TypeError("Bad or missing array of ballot objects");
+
 	return Promise.all(ballots.map(b => addBallot(user, b)));
 }
 
@@ -250,20 +264,15 @@ export async function addBallots(user: User, ballots: Ballot[]) {
  * @param update An object with shape {id, changes}
  * @param update.id Identifies the ballot.
  * @param update.changes A partial ballot object that contains parameters to change.
+ * @returns The ballot as updated
  */
-async function updateBallot(user: User, update: object | BallotUpdate) {
-	if (!('id' in update) || typeof update.id !== 'number' ||
-	    !('changes' in update) || !isPlainObject(update.changes)) {
-		throw new TypeError("Bad update object: expect shape: {id: number; changes: object}");
-	}
+async function updateBallot(user: User, update: BallotUpdate) {
 	const {id, changes} = update;
-
 	const entry = ballotEntry(changes);
 
 	if (entry) {
 		const sql = 'UPDATE ballots SET ' + ballotSetSql(entry) + db.format(' WHERE id=?', [id]);
 		const result = await db.query({sql, dateStrings: true}) as OkPacket;
-		console.log(entry, ballotSetSql(entry))
 		if (result.affectedRows !== 1)
 			throw new Error(`Unexpected: no update for ballot with id=${id}`);
 	}
@@ -271,16 +280,43 @@ async function updateBallot(user: User, update: object | BallotUpdate) {
 	return getBallotWithNewResultsSummary(user, id);
 }
 
-export function updateBallots(user: User, updates: (object | BallotUpdate)[]) {
-	return Promise.all(updates.map(u => updateBallot(user, u)));
+function validUpdate(update: any): update is BallotUpdate {
+	return isPlainObject(update) &&
+		typeof update.id === 'number' &&
+		isPlainObject(update.changes);
+}
+
+function validUpdates(updates: any): updates is BallotUpdate[] {
+	return Array.isArray(updates) && updates.every(validUpdate);
 }
 
 /**
- * Delete ballots.
- *  
+ * Update ballots
+ * 
+ * @param user The user executing the update.
+ * @param updates An array of objects with shape {id, changes}
+ * @returns An array of ballots as updated
+ */
+export function updateBallots(user: User, updates: any) {
+	if (!validUpdates(updates))
+		throw new TypeError("Bad or missing array of updates; expected array of {id: number, changes: object}");
+	return Promise.all(updates.map(u => updateBallot(user, u)));
+}
+
+function validIds(ids: any): ids is number[] {
+	return Array.isArray(ids) && ids.every(id => typeof id === 'number');
+}
+
+/**
+ * Delete ballots along with associated comments, resolutions and results
+ * 
+ * @param user The user executing the delete.
  * @param ids An array of ballot identifiers that identify the ballots to delete
  */
-export async function deleteBallots(ids: number[]) {
+export async function deleteBallots(user: User, ids: number[]) {
+	if (!validIds(ids))
+		throw new TypeError("Bad or missing array of ballot identifiers; expect number[]");
+
 	await db.query(
 		'START TRANSACTION;' +
 		db.format('DELETE r FROM comments c JOIN resolutions r ON c.id=r.comment_id WHERE c.ballot_id IN (?);', [ids]) +
@@ -289,6 +325,22 @@ export async function deleteBallots(ids: number[]) {
 		db.format('DELETE FROM ballots WHERE id IN (?);', [ids]) +
 		'COMMIT;'
 	);
+
 	return null;
 }
 
+export async function getBallotPermissions(user: User, ballot_id: number) {
+	let permissions: string[] = [];
+	if (userIsWGAdmin(user)) {
+		permissions = ["ballot_rw", "voters_rw", "results_rw", "comments_rw"];
+	}
+	else {
+		const ballot  = await getBallot(ballot_id);
+		if (ballot?.groupId) {
+			const officers = await getOfficers({group_id: ballot.groupId});
+			if (officers.find(officer => officer.sapin === user.SAPIN))
+				permissions = ["ballot_ro", "voters_ro", "results_rw", "comments_rw"];
+		}
+	}
+	return { [ballot_id]: permissions };
+}

@@ -65,7 +65,6 @@ declare global {
  */
 router.all('*', (req, res, next) => {
 	const {user} = req;
-	const access = user.Access;
 
 	// WG Admin can do anything
 	if (userIsWGAdmin(user))

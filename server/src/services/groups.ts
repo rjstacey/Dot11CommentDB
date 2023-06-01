@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid';
 
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
+import { isPlainObject } from '../utils';
 
 const GroupTypeLabels = {
 	c: 'Committee',
@@ -23,6 +24,7 @@ export interface Group {
 	status: string;
 	color: string;
 	symbol: string | null;
+	project: string | null;
 }
 
 interface Update<T> {
@@ -50,16 +52,17 @@ export async function getGroups(constraints?: OrganizationQueryConstraints) {
 			'o1.`type`, ' +
 			'o1.`status`, ' +
 			'o1.`color`, ' +
-			'o1.`symbol` ' +
+			'o1.`symbol`, ' +
+			'o1.`project` ' +
 		'FROM organization o1';
 		
 	if (constraints && Object.keys(constraints).length > 0) {
-		if (constraints.parentName) {
-			sql += db.format(' LEFT JOIN organization o2 ON o1.parent_id=o2.id WHERE o1.name=? OR o2.name=?', [constraints.parentName, constraints.parentName]);
-			delete constraints.parentName;
+		const {parentName, ...rest} = constraints;
+		if (parentName) {
+			sql += db.format(' LEFT JOIN organization o2 ON o1.parent_id=o2.id WHERE o1.name=? OR o2.name=?', [parentName, parentName]);
 		}
-		else {
-			sql += ' WHERE ' + Object.entries(constraints).map(
+		else if (Object.keys(rest).length > 0) {
+			sql += ' WHERE ' + Object.entries(rest).map(
 				([key, value]) => 
 					(key === 'id' || key === 'parent_id')?
 						db.format(Array.isArray(value)? 'BIN_TO_UUID(??) IN (?)': 'BIN_TO_UUID(??)=?', [key, value]):
@@ -79,8 +82,19 @@ export async function getGroups(constraints?: OrganizationQueryConstraints) {
 }
 
 function groupSetSql(group: Partial<Group>) {
+
+	// Only parameters that exist in database
+	const {id, parent_id, name, type, status, color, symbol, project, ...rest} = group;
+	if (Object.keys(rest).length)
+		console.warn("Superfluous parameters: ", rest);
+	const groupDB = {id, parent_id, name, type, status, color, symbol, project};
+	for (const key of Object.keys(groupDB)) {
+		if (typeof groupDB[key] === 'undefined')
+			delete groupDB[key];
+	}
+
 	const sets: string[] = [];
-	for (const [key, value] of Object.entries(group)) {
+	for (const [key, value] of Object.entries(groupDB)) {
 		let sql: string;
 		if (key === 'id' || key === 'parent_id')
 			sql = db.format('??=UUID_TO_BIN(?)', [key, value]);
@@ -113,6 +127,7 @@ async function addGroup({id, ...rest}: Group): Promise<Group> {
 		id = uuid();
 
 	let sql = 'INSERT INTO organization SET ' + groupSetSql({id, ...rest});
+	console.log(sql)
 	await db.query(sql);
 
 	const groups = await getGroups({id});
@@ -125,9 +140,6 @@ export function addGroups(groups: Group[]) {
 
 async function updateGroup({id, changes}: Update<Group>): Promise<Group> {
 
-	if (!id)
-		throw TypeError('Missing id in update');
-
 	let setSql = groupSetSql(changes);
 	if (setSql)
 		await db.query('UPDATE organization SET ' + setSql + ' WHERE `id`=UUID_TO_BIN(?)', [id])
@@ -137,7 +149,20 @@ async function updateGroup({id, changes}: Update<Group>): Promise<Group> {
 	return groups[0];
 }
 
+function validUpdate(update: any): update is Update<Group> {
+	return isPlainObject(update) &&
+		update.id && typeof update.id === 'string' &&
+		isPlainObject(update.changes);
+}
+
+function validUpdates(updates: any): updates is Update<Group>[] {
+	return Array.isArray(updates) && updates.every(validUpdate);
+}
+
 export function updateGroups(updates: Update<Group>[]) {
+	if (!validUpdates(updates))
+		throw new TypeError('Bad or missing array of group updates; expected array of objects with shape {id: string, changes: object}');
+
 	return Promise.all(updates.map(updateGroup));
 }
 

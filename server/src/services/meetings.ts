@@ -260,6 +260,12 @@ function meetingToWebexMeeting(meeting: Meeting) {
 }
 
 function webexMeetingUpdateNeeded(webexMeeting: WebexMeeting, webexMeetingChanges: Partial<WebexMeeting>): boolean {
+
+	/* Don't update if the meeting has already started */
+	const start = DateTime.fromISO(webexMeetingChanges.start || webexMeeting.start);
+	if (start < DateTime.now())
+		return false;
+
 	for (const key of Object.keys(webexMeetingChanges)) {
 		if (webexMeeting[key] !== webexMeetingChanges[key]) {
 			console.log(`Mismatch for ${key}: `, webexMeeting[key], webexMeetingChanges[key])
@@ -553,7 +559,7 @@ async function addMeeting(user: User, meetingToAdd: MeetingAddUpdate) {
  * @param user The user executing the add
  * @param meetings An array of meeting objects to be added
  *
- * @returns an object that contains an array of meeting objects as added, an array of webex meetings and an array of IMAT breakouts.
+ * @returns An object that contains an array of meeting objects as added, an array of webex meetings and an array of IMAT breakouts.
  */
 export async function addMeetings(user: User, meetingsIn: MeetingAddUpdate[]) {
 
@@ -616,7 +622,7 @@ async function meetingMakeWebexUpdates(meeting: Meeting, changes: Partial<Meetin
 		{
 			// Webex account or webex meeting ID changed
 
-			// Delete exisitng webex meeting
+			// Delete exisiting webex meeting
 			try {
 				await deleteWebexMeeting({accountId: meeting.webexAccountId, id: meeting.webexMeetingId});
 			}
@@ -664,7 +670,8 @@ async function meetingMakeWebexUpdates(meeting: Meeting, changes: Partial<Meetin
 				try {
 					webexMeeting = await getWebexMeeting(webexAccountId, changes.webexMeetingId);
 					webexMeetingParams = {...webexMeeting, ...webexMeetingParams};
-					webexMeeting = await updateWebexMeeting(webexMeetingParams);
+					if (webexMeetingUpdateNeeded(webexMeeting, webexMeetingParams))
+						webexMeeting = await updateWebexMeeting(webexMeetingParams);
 				}
 				catch (error) {
 					if (!(error instanceof NotFoundError))

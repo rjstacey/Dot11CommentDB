@@ -34,9 +34,9 @@ import {
 	getBallots,
 	updateBallots,
 	addBallots,
-	deleteBallots
+	deleteBallots,
+	getBallotPermissions
 } from '../services/ballots';
-import { isPlainObject } from '../utils';
 
 const router = Router();
 
@@ -49,44 +49,43 @@ router.get('/:ballot_id(\\d+)', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.get('/$', async (req, res, next) => {
+router.get('/:ballot_id(\\d+)/permissions', async (req, res, next) => {
 	try {
-		res.json(await getBallots());
-	}
-	catch(err) {next(err)}
-});
-
-router.post('/$', async (req, res, next) => {
-	try {
-		const {user} = req;
-		const ballots = req.body;
-		if (!Array.isArray(ballots) || !ballots.every(b => isPlainObject(b)))
-			throw new TypeError('Bad or missing body; expected an array of ballots');
-		const data = await addBallots(user, ballots);
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-
-router.patch('/$', async (req, res, next) => {
-	try {
-		const {user} = req;
-		const updates = req.body;
-		if (!Array.isArray(updates) || !updates.every(b => isPlainObject(b)))
-			throw new TypeError('Bad or missing body; expected an array of ballot updates');
-		const data = await updateBallots(user, updates);
+		const ballot_id = Number(req.params.ballot_id);
+		const data = await getBallotPermissions(req.user, ballot_id);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
 
-router.delete('/$', async (req, res, next) => {
+router.get('/', async (req, res, next) => {
 	try {
-		const ids = req.body;
-		if (!Array.isArray(ids) || !ids.every(id => typeof id === 'number'))
-			throw new TypeError("Bad or missing body; expected an array of ballot identifiers");
-		const data = await deleteBallots(ids);
+		res.json(await getBallots());
+	}
+	catch(err) {next(err)}
+});
+
+router.post('/', async (req, res, next) => {
+	try {
+		const data = await addBallots(req.user, req.body);
+		res.json(data)
+	}
+	catch(err) {next(err)}
+});
+
+router.patch('/', async (req, res, next) => {
+	try {
+		const data = await updateBallots(req.user, req.body);
+		res.json(data);
+	}
+	catch(err) {next(err)}
+});
+
+
+router.delete('/', async (req, res, next) => {
+	try {
+		const data = await deleteBallots(req.user, req.body);
 		res.json(data)
 	}
 	catch(err) {next(err)}

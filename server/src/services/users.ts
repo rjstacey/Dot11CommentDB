@@ -22,10 +22,10 @@ function superUserHack(user: User) {
 		user = superUser;
 	}
 	else {
-		if (user.Access < 3) {
-			console.warn('Superuser has insufficient access');
-			user = {...user, Access: 3};
-		}
+		//if (user.Access < 3) {
+		//	console.warn('Superuser has insufficient access');
+		//	user = {...user, Access: 3};
+		//}
 
 		if (!Array.isArray(user.Permissions)) {
 			console.warn('Superuser has no Permissions array');
@@ -97,7 +97,7 @@ const permissionsObj = {
 	'meetings_rw': 'Add, remove and modify meetings',
 	'results_ro': 'View ballot results',
 	'results_rw': 'Import and modify ballot results',
-	'comment_rw': 'Import comments',
+	'comments_rw': 'Import comments',
 };
 
 export const permissions = Object.entries(permissionsObj).map(([scope, description]) => ({scope, description}));
