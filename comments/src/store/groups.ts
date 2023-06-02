@@ -30,6 +30,7 @@ export type Group = {
 	color: string;
 	type: GroupType | null;
 	project: string | null;
+	permissions: Record<string, number>;
 };
 
 export const dataSet = 'groups';
@@ -91,6 +92,7 @@ export const selectWorkingGroup = (state: RootState) => {
 	const {workingGroupId, entities} = selectGroupsState(state);
 	return (workingGroupId && entities[workingGroupId]) || undefined;
 }
+export const selectWorkingGroupPermissions = (state: RootState) => selectWorkingGroup(state)?.permissions || {};
 
 /*
  * Actions

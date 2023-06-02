@@ -12,34 +12,39 @@ import './header.css';
 
 import { resetStore } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectUser, selectUserAccessLevel, AccessLevel } from '../store/user';
+import { selectUser, AccessLevel } from '../store/user';
 import { selectCurrentBallotID } from '../store/ballots';
-import { selectWorkingGroup } from '../store/groups';
+import { selectWorkingGroup, selectWorkingGroupPermissions } from '../store/groups';
 
 const fullMenu = [
 	{
+		scope: 'ballots',
 		minAccess: AccessLevel.none,
 		link: '/ballots',
 		label: 'Ballots',
 	},
 	{
+		scope: 'voters',
 		minAccess: AccessLevel.admin,
 		link: '/voters',
 		label: 'Ballot voters',
 	},
 	{
+		scope: 'results',
 		minAccess: AccessLevel.admin,
 		hasBallotID: true,
 		link: '/results',
 		label: 'Results',
 	},
 	{
+		scope: 'comments',
 		minAccess: AccessLevel.none,
 		hasBallotID: true,
 		link: '/comments',
 		label: 'Comments',
 	},
 	{
+		scope: 'comments',
 		minAccess: AccessLevel.none,
 		hasBallotID: true,
 		link: '/reports',
@@ -56,9 +61,9 @@ function NavMenu({
 	className?: string;
 	methods?: {close: () => void};
 }) {
-	const access = useAppSelector(selectUserAccessLevel);
 	const BallotID = useAppSelector(selectCurrentBallotID);
 	const workingGroup = useAppSelector(selectWorkingGroup);
+	const permissions = useAppSelector(selectWorkingGroupPermissions);
 
 	let classNames = 'nav-menu';
 	if (className)
@@ -68,7 +73,7 @@ function NavMenu({
 		return null;
 
 	const menu = fullMenu
-		.filter(m => access >= m.minAccess)
+		.filter(m => (permissions[m.scope] || 0) >= m.minAccess)
 		.map(m => {
 			let link = `/${workingGroup.name}/${m.link}`;
 			if (m.hasBallotID)
@@ -125,9 +130,7 @@ const smallScreenQuery = window.matchMedia('(max-width: 992px');
 
 function Header() {
 	const dispatch = useAppDispatch();
-	const navigate = useNavigate();
 	const user = useAppSelector(selectUser)!;
-	const workingGroup = useAppSelector(selectWorkingGroup);
 	const [isSmall, setIsSmall] = React.useState(smallScreenQuery.matches);
 
 	React.useEffect(() => {

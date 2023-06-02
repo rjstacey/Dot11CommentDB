@@ -1,11 +1,12 @@
 import React from 'react';
-import { Routes, Route, useParams } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import { ErrorModal, ConfirmModal } from 'dot11-components';
 
 import { useAppSelector } from '../store/hooks';
-import { selectUserAccessLevel, AccessLevel } from '../store/user';
+import { AccessLevel } from '../store/user';
+import { selectWorkingGroupPermissions } from '../store/groups';
 
 import Comments from '../comments/Comments';
 import Results from '../results/Results';
@@ -37,8 +38,6 @@ const Content = styled.div`
 `;
 
 function Root() {
-	const {groupName} = useParams();
-
 	return (
 		<Content>
 			<div>Comment Resolution Tool</div>
@@ -50,10 +49,10 @@ function Root() {
  * is selected by using Component={() => renderComponent()} */
 function Body() {
 
-	const access = useAppSelector(selectUserAccessLevel);
+	const permissions = useAppSelector(selectWorkingGroupPermissions);
 
-	function renderComponent(minAccess: number, Component: React.ComponentType<{}>) {
-		if (access < minAccess)
+	function renderComponent(scope: string, minAccess: number, Component: React.ComponentType<{}>) {
+		if ((permissions[scope] || 0) < minAccess)
 			return <span>You do not have permission to view this data</span>
 		return <Component />
 	}
@@ -63,27 +62,27 @@ function Body() {
 			<Routes>
 				<Route
 					path="/:groupName/ballots"
-					element={renderComponent(AccessLevel.ro, Ballots)}
+					element={renderComponent('ballots', AccessLevel.ro, Ballots)}
 				/>
 				<Route
 					path="/:groupName/epolls"
-					element={renderComponent(AccessLevel.none, Epolls)}
+					element={renderComponent('ballots', AccessLevel.admin, Epolls)}
 				/>
 				<Route
 					path="/:groupName/voters/:ballotId?"
-					element={renderComponent(AccessLevel.none, Voters)}
+					element={renderComponent('ballots', AccessLevel.rw, Voters)}
 				/>
 				<Route
 					path="/:groupName/results/:ballotId?"
-					element={renderComponent(AccessLevel.none, Results)}
+					element={renderComponent('results', AccessLevel.ro, Results)}
 				/>
 				<Route
 					path="/:groupName/comments/:ballotId?"
-					element={renderComponent(AccessLevel.none, Comments)}
+					element={renderComponent('comments', AccessLevel.ro, Comments)}
 				/>
 				<Route
 					path="/:groupName/reports/:ballotId?"
-					element={renderComponent(AccessLevel.none, Reports)}
+					element={renderComponent('comments', AccessLevel.ro, Reports)}
 				/>
 				<Route
 					path="/:groupName?"
