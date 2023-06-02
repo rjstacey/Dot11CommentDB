@@ -1,10 +1,12 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import styled from '@emotion/styled';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { Account, Dropdown, Button } from 'dot11-components';
 
 import LiveUpdateSwitch from './LiveUpdateSwitch';
 import OnlineIndicator from './OnlineIndicator';
+import PathWorkingGroupSelector from '../components/PathWorkingGroupSelector';
 
 import './header.css';
 
@@ -12,6 +14,7 @@ import { resetStore } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectUser, selectUserAccessLevel, AccessLevel } from '../store/user';
 import { selectCurrentBallotID } from '../store/ballots';
+import { selectWorkingGroup } from '../store/groups';
 
 const fullMenu = [
 	{
@@ -55,15 +58,21 @@ function NavMenu({
 }) {
 	const access = useAppSelector(selectUserAccessLevel);
 	const BallotID = useAppSelector(selectCurrentBallotID);
+	const workingGroup = useAppSelector(selectWorkingGroup);
 
 	let classNames = 'nav-menu';
 	if (className)
 		classNames += ' ' + className;
 
+	if (!workingGroup)
+		return null;
+
 	const menu = fullMenu
 		.filter(m => access >= m.minAccess)
 		.map(m => {
-			const link = (m.hasBallotID && BallotID)? `${m.link}/${BallotID}`: m.link;
+			let link = `/${workingGroup.name}/${m.link}`;
+			if (m.hasBallotID)
+				link += `/${BallotID}`;
 			return <NavItem key={m.link} to={link}>{m.label}</NavItem>
 		});
 
@@ -77,11 +86,48 @@ function NavMenu({
 	)
 }
 
+const Title = styled.div`
+	font-family: "Arial", "Helvetica", sans-serif;
+	font-weight: 400;
+	font-size: 24px;
+	color: #008080;
+    border: unset;
+    background-color: unset;
+	padding: 0;
+	margin: 5px;
+	:hover {
+		cursor: pointer;
+	}
+`;
+
+const WorkingGroupSelector = Title.withComponent(PathWorkingGroupSelector);
+
+function WorkingGroupTitle() {
+	const navigate = useNavigate();
+	const location = useLocation();
+	const workingGroup = useAppSelector(selectWorkingGroup);
+
+	const isRoot = /^\/[^/]*$/.test(location.pathname);
+	const placeholder = workingGroup? "": "Select working group...";
+
+	return isRoot?
+		<WorkingGroupSelector
+			placeholder={placeholder}
+		/>:
+		<Title
+			onClick={() => navigate('/' + (workingGroup?.name || ''))}
+		>
+			{(workingGroup? workingGroup.name: '') + ' CR'}
+		</Title>
+}
+
 const smallScreenQuery = window.matchMedia('(max-width: 992px');
 
 function Header() {
 	const dispatch = useAppDispatch();
+	const navigate = useNavigate();
 	const user = useAppSelector(selectUser)!;
+	const workingGroup = useAppSelector(selectWorkingGroup);
 	const [isSmall, setIsSmall] = React.useState(smallScreenQuery.matches);
 
 	React.useEffect(() => {
@@ -94,16 +140,18 @@ function Header() {
 	const menuItem = fullMenu.find(m => location.pathname.search(m.link) >= 0);
 	
 	return (
+		
 		<header className='header'>
-			{isSmall?
+			<WorkingGroupTitle />
+
+			{isSmall &&
 				<Dropdown
 					selectRenderer={({state, methods}) => <div className='nav-menu-icon' onClick={state.isOpen? methods.close: methods.open}/>}
 					dropdownRenderer={(props) => <NavMenu className='nav-menu-vertical' {...props} />}
 					dropdownAlign='left'
-				/>:
-				<div className='title'>802.11 CR</div>
+				/>
 			}
-			
+		
 			<div className='nav-menu-container'>
 				{isSmall?
 					<label className='nav-link active'>{menuItem? menuItem.label: ''}</label>:

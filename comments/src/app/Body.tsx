@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import { ErrorModal, ConfirmModal } from 'dot11-components';
@@ -26,6 +26,26 @@ const Main = styled.main`
 	align-items: center;
 `;
 
+const Content = styled.div`
+	flex: 1;
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0.5;
+	font-style: italic;
+`;
+
+function Root() {
+	const {groupName} = useParams();
+
+	return (
+		<Content>
+			<div>Comment Resolution Tool</div>
+		</Content>
+	)
+}
+
 /* Note that the renderComponent function is mounts the component once at startup. It can be forced to re-mount each time a path
  * is selected by using Component={() => renderComponent()} */
 function Body() {
@@ -42,28 +62,32 @@ function Body() {
 		<Main>
 			<Routes>
 				<Route
-					path="/ballots"
+					path="/:groupName/ballots"
 					element={renderComponent(AccessLevel.ro, Ballots)}
 				/>
 				<Route
-					path="/epolls"
+					path="/:groupName/epolls"
 					element={renderComponent(AccessLevel.none, Epolls)}
 				/>
 				<Route
-					path="/voters/:ballotId?"
+					path="/:groupName/voters/:ballotId?"
 					element={renderComponent(AccessLevel.none, Voters)}
 				/>
 				<Route
-					path="/results/:ballotId?"
+					path="/:groupName/results/:ballotId?"
 					element={renderComponent(AccessLevel.none, Results)}
 				/>
 				<Route
-					path="/comments/:ballotId?"
+					path="/:groupName/comments/:ballotId?"
 					element={renderComponent(AccessLevel.none, Comments)}
 				/>
 				<Route
-					path="/reports/:ballotId?"
+					path="/:groupName/reports/:ballotId?"
 					element={renderComponent(AccessLevel.none, Reports)}
+				/>
+				<Route
+					path="/:groupName?"
+					element={<Root />}
 				/>
 			</Routes>
 			<ErrorModal />

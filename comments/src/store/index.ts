@@ -55,6 +55,7 @@ export function configureStore(user: User) {
 
 	const appReducer = combineReducers({
 		[userSlice.name]: userSlice.reducer,
+		[groupsSlice.name]: groupsSlice.reducer,
 		[membersSlice.name]: membersSlice.reducer,
 		[ballotsSlice.name]: ballotsSlice.reducer,
 		[epollsSlice.name]: epollsSlice.reducer,
@@ -62,7 +63,6 @@ export function configureStore(user: User) {
 		[commentsHistorySlice.name]: commentsHistorySlice.reducer,
 		[resultsSlice.name]: resultsSlice.reducer,
 		[votersSlice.name]: votersSlice.reducer,
-		[groupsSlice.name]: groupsSlice.reducer,
 		[errorsSlice.name]: errorsSlice.reducer,
 		[offlineSlice.name]: offlineSlice.reducer,
 		[liveUpdateSlice.name]: liveUpdateSlice.reducer,
@@ -87,19 +87,19 @@ export function configureStore(user: User) {
 			removeItem: del
 		},
 		whitelist: [
+			groupsSlice.name,
 			membersSlice.name,
 			ballotsSlice.name,
+			epollsSlice.name,
 			commentsSlice.name,
 			resultsSlice.name,
 			votersSlice.name,
-			epollsSlice.name,
-			groupsSlice.name,
 		],
 		transforms: [transformState],
 		stateReconciler: autoMergeLevel2,
 		migrate: (state: any) => {
 			if (state && state._persist && state._persist.version !== PERSIST_VERSION)
-				return Promise.reject('Discard old version')
+				return Promise.reject('Discard old version');
 			return Promise.resolve(state);
 		}
 	};
@@ -118,9 +118,9 @@ export function configureStore(user: User) {
 		registerLiveUpdate(store);
 
 		// After hydrate, load the latest
+		store.dispatch(loadGroups({type: "wg"}));
 		store.dispatch(loadMembers());
 		store.dispatch(loadBallots());
-		store.dispatch(loadGroups());
 	});
 
 	return {store, persistor, reducer: rootReducer}
