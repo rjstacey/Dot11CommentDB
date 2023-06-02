@@ -4,6 +4,9 @@ import { v4 as uuid } from 'uuid';
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 import { isPlainObject } from '../utils';
+import { User } from './users';
+import { getOfficers } from './officers';
+import { AccessLevel } from '../auth/access';
 
 const GroupTypeLabels = {
 	c: 'Committee',
@@ -25,6 +28,7 @@ export interface Group {
 	color: string;
 	symbol: string | null;
 	project: string | null;
+	permissions: Record<string, number>;
 }
 
 interface Update<T> {
@@ -43,7 +47,7 @@ interface OrganizationQueryConstraints {
 	symbol?: string | string[];
 };
 
-export async function getGroups(constraints?: OrganizationQueryConstraints) {
+export async function getGroups(user: User, constraints?: OrganizationQueryConstraints) {
 	let sql =
 		'SELECT ' + 
 			'BIN_TO_UUID(o1.id) AS id,' +
@@ -56,29 +60,81 @@ export async function getGroups(constraints?: OrganizationQueryConstraints) {
 			'o1.`project` ' +
 		'FROM organization o1';
 		
-	if (constraints && Object.keys(constraints).length > 0) {
+	if (constraints) {
 		const {parentName, ...rest} = constraints;
+		const wheres: string[] = [];
 		if (parentName) {
-			sql += db.format(' LEFT JOIN organization o2 ON o1.parent_id=o2.id WHERE o1.name=? OR o2.name=?', [parentName, parentName]);
+			sql += ' LEFT JOIN organization o2 ON o1.parent_id=o2.id';
+			wheres.push(db.format('(o1.name=? OR o2.name=?)', [parentName, parentName]));
 		}
-		else if (Object.keys(rest).length > 0) {
-			sql += ' WHERE ' + Object.entries(rest).map(
-				([key, value]) => 
-					(key === 'id' || key === 'parent_id')?
-						db.format(Array.isArray(value)? 'BIN_TO_UUID(??) IN (?)': 'BIN_TO_UUID(??)=?', [key, value]):
-						db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
-			).join(' AND ');
-		}
+		Object.entries(rest).forEach(([key, value]) => {
+			wheres.push(
+				(key === 'id' || key === 'parent_id')?
+					db.format(Array.isArray(value)? 'BIN_TO_UUID(o1.??) IN (?)': 'BIN_TO_UUID(o1.??)=?', [key, value]):
+					db.format(Array.isArray(value)? 'o1.?? IN (?)': 'o1.??=?', [key, value])
+			);
+		});
+		if (wheres.length > 0)
+			sql += ' WHERE ' + wheres.join(' AND ');
 	}
 
 	const groupTypes = Object.keys(GroupTypeLabels);
-	return (await db.query(sql) as Group[])
+	let groups = await db.query(sql) as Group[];
+	groups = await Promise.all(
+			groups.map(async (group) => {
+				const permissions = await getGroupPermissions(user, group);
+				return {...group, permissions};
+			})
+		);
+	groups = groups
 		.sort((g1, g2) => {
 			const n = groupTypes.indexOf(g1.type || '') - groupTypes.indexOf(g2.type || '');
 			if (n === 0)
 				return g1.name? g1.name.localeCompare(g2.name): 0;
 			return n;
-		})
+		});
+	return groups;
+}
+
+export async function getGroup(user: User, groupId: string): Promise<Group | undefined> {
+	const groups = await getGroups(user, {id: groupId});
+	return groups[0];
+}
+
+export async function getWorkingGroup(user: User, groupId: string): Promise<Group | undefined> {
+	const group = await getGroup(user, groupId);
+	if (group &&
+		group.type &&
+		group.type.search(/^(tg|sg|sc|ah)/) !== -1 &&
+		group.parent_id) {
+		return getGroup(user, group.parent_id);
+	}
+	return group;
+}
+
+/* Permission sets */
+const permMember: Record<string, number> = {groups: AccessLevel.ro, ballots: AccessLevel.ro, comments: AccessLevel.ro};
+const permWgOfficer: Record<string, number> = {groups: AccessLevel.admin, ballots: AccessLevel.admin, voters: AccessLevel.admin, results: AccessLevel.rw, comments: AccessLevel.rw};
+const permTgOfficer: Record<string, number> = {groups: AccessLevel.ro, ballots: AccessLevel.rw, voters: AccessLevel.ro, results: AccessLevel.rw, comments: AccessLevel.rw};
+
+export async function getGroupPermissions(user: User, group: Group) {
+	let permissions: Record<string, number> = permMember;
+	console.log(group)
+	if (group.type === "wg") {
+		const officers = await getOfficers({group_id: group.id});
+		console.log(officers)
+		if (officers.find(officer => officer.sapin === user.SAPIN))
+			permissions = permWgOfficer;
+	}
+	else if (group.type === "tg" && group.parent_id) {
+		let officers = await getOfficers({group_id: group.id});
+		if (officers.find(officer => officer.sapin === user.SAPIN))
+			permissions = permTgOfficer;
+		officers = await getOfficers({group_id: group.parent_id});
+			if (officers.find(officer => officer.sapin === user.SAPIN))
+				permissions = permWgOfficer;
+		}
+	return permissions;
 }
 
 function groupSetSql(group: Partial<Group>) {
@@ -106,23 +162,7 @@ function groupSetSql(group: Partial<Group>) {
 	return sets.join(', ');
 }
 
-export async function getGroup(groupId: string): Promise<Group | undefined> {
-	const groups = await getGroups({id: groupId});
-	return groups[0];
-}
-
-export async function getWorkingGroup(groupId: string): Promise<Group | undefined> {
-	const group = await getGroup(groupId);
-	if (group &&
-		group.type &&
-		group.type.search(/^(tg|sg|sc|ah)/) !== -1 &&
-		group.parent_id) {
-		return getGroup(group.parent_id);
-	}
-	return group;
-}
-
-async function addGroup({id, ...rest}: Group): Promise<Group> {
+async function addGroup(user: User, {id, ...rest}: Group): Promise<Group> {
 	if (!id)
 		id = uuid();
 
@@ -130,22 +170,42 @@ async function addGroup({id, ...rest}: Group): Promise<Group> {
 	console.log(sql)
 	await db.query(sql);
 
-	const groups = await getGroups({id});
+	const groups = await getGroups(user, {id});
 	return groups[0];
 }
 
-export function addGroups(groups: Group[]) {
-	return Promise.all(groups.map(addGroup));
+function validGroup(group: any): group is Group {
+	if (!isPlainObject(group))
+		return false;
+	if ('id' in group && typeof group.id !== 'string')
+		return false;
+	if ('parent_id' in group && (group.parent_id !== null || typeof group.parent_id !== 'string'))
+		return false;
+	if ('name' in group && (group.name !== null || typeof group.name !== 'string'))
+		return false;
+	return true;
 }
 
-async function updateGroup({id, changes}: Update<Group>): Promise<Group> {
+function validGroups(groups: any): groups is Group[] {
+	return Array.isArray(groups) && groups.every(validGroup);
+}
+
+export function addGroups(user: User, groups: any) {
+
+	if (!validGroups(groups))
+		throw new TypeError('Bad or missing array of group objects');
+
+	return Promise.all(groups.map(g => addGroup(user, g)));
+}
+
+async function updateGroup(user: User, {id, changes}: Update<Group>): Promise<Group> {
 
 	let setSql = groupSetSql(changes);
 	if (setSql)
 		await db.query('UPDATE organization SET ' + setSql + ' WHERE `id`=UUID_TO_BIN(?)', [id])
 
 	id = changes.id || id;
-	const groups = await getGroups({id});
+	const groups = await getGroups(user, {id});
 	return groups[0];
 }
 
@@ -159,53 +219,24 @@ function validUpdates(updates: any): updates is Update<Group>[] {
 	return Array.isArray(updates) && updates.every(validUpdate);
 }
 
-export function updateGroups(updates: Update<Group>[]) {
+export function updateGroups(user: User, updates: Update<Group>[]) {
+
 	if (!validUpdates(updates))
 		throw new TypeError('Bad or missing array of group updates; expected array of objects with shape {id: string, changes: object}');
 
-	return Promise.all(updates.map(updateGroup));
+	return Promise.all(updates.map(u => updateGroup(user, u)));
 }
 
-export async function removeGroups(ids: string[]): Promise<number> {
+function validIds(ids: any): ids is string[] {
+	return Array.isArray(ids) && ids.every(id => typeof id === 'string');
+}
+
+export async function removeGroups(user: User, ids: any): Promise<number> {
+
+	if (!validIds(ids))
+		throw new TypeError('Bad or missing array of group identifiers; expected string[]');
+
 	const result1 = await db.query('DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)', [ids]) as OkPacket;
 	const result2 = await db.query('DELETE FROM organization WHERE BIN_TO_UUID(id) IN (?)', [ids]) as OkPacket;
 	return result1.affectedRows + result2.affectedRows;
-}
-
-
-type ProjectEntry = {
-    id: string;
-    parent_id: string;
-    taskGroupName: string;
-    project: string;
-}
-
-type GetProjectsConstraints = {
-    id?: string | string[];
-    parent_id?: string;
-    groupName?: string;
-}
-
-export async function getProjects(constraints?: GetProjectsConstraints) {
-    let sql = 'SELECT id, parent_id, name as taskGroupName, symbol as project FROM organization WHERE type="tg" AND symbol <> NULL';
-    if (constraints) {
-        const wheres: string[] = [];
-        if (Array.isArray(constraints.id))
-            wheres.push(db.format('BIN_TO_UUID(id) IN (?)', [constraints.id]));
-        else if (constraints.id)
-            wheres.push(db.format('(id=UUID_TO_BIN(?)', [constraints.id]));
-        if (constraints.parent_id)
-            wheres.push(db.format('(parent_id=UUID_TO_BIN(?)', [constraints.parent_id]));
-        if (constraints.groupName)
-            wheres.push(db.format('name=?', [constraints.groupName]));
-        if (wheres.length > 0)
-            sql += ' AND ' + wheres.join(' AND ');
-    }
-    const projects = (await db.query(sql) as ProjectEntry[])
-        .map(p => {
-            const s = p.project.split('/');
-            const project = 'P' + (s? s[s.length - 1]: p.project);
-            return {...p, project};
-        });
-    return projects;
 }

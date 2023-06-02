@@ -1,7 +1,7 @@
 
 export const AccessLevel = {
-	Public: 0,
-	Member: 1,
-	SubgroupAdmin: 2,
-	WGAdmin: 3
+	none: 0,
+	ro: 1,
+	rw: 2,
+	admin: 3
 }

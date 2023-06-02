@@ -9,7 +9,7 @@
  *		Body is an array of group objects to be added.
  *		Returns an array of group objects as added
  *
- * PUT /
+ * PATCH /
  *		Update groups.
  *		Body is an array of objects with shape {id, changes}, where id identifies the group and changes is an object
  *		with parameters to be changed.
@@ -21,54 +21,38 @@
  *		Returns the number of groups deleted.
  */
 import { Router } from 'express';
-import { isPlainObject } from '../utils';
-import {
-	getGroups,
-	addGroups,
-	updateGroups,
-	removeGroups
-} from '../services/groups';
+import { getGroups,	addGroups, updateGroups, removeGroups } from '../services/groups';
 
 const router = Router();
 
 router.get('/:parentName?', async (req, res, next) => {
 	try {
 		const {parentName} = req.params;
-		const data = await getGroups({parentName});
+		const data = await getGroups(req.user, {parentName, ...req.query});
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.post('/$', async (req, res, next) => {
+router.post('/', async (req, res, next) => {
 	try {
-		const groups = req.body;
-		if (!Array.isArray(groups))
-			throw new TypeError('Bad or missing array of group objects');
-		if (!groups.every(group => isPlainObject(group)))
-			throw new TypeError('Expected an array of objects');
-		const data = await addGroups(groups);
+		const data = await addGroups(req.user, req.body);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.patch('/$', async (req, res, next) => {
+router.patch('/', async (req, res, next) => {
 	try {
-		const data = await updateGroups(req.body);
+		const data = await updateGroups(req.user, req.body);
 		res.json(data);
 	}
 	catch(err) {next(err)}
 });
 
-router.delete('/$', async (req, res, next) => {
+router.delete('/', async (req, res, next) => {
 	try {
-		const ids = req.body;
-		if (!Array.isArray(ids))
-			throw TypeError('Bad or missing array of group identifiers');
-		if (!ids.every(id => typeof id === 'string'))
-			throw new TypeError('Expected an array of strings');
-		const data = await removeGroups(ids);
+		const data = await removeGroups(req.user, req.body);
 		res.json(data);
 	}
 	catch(err) {next(err)}
