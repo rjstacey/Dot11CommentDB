@@ -233,7 +233,7 @@ export default slice;
 export const selectCommentsState = (state: RootState) => state[dataSet];
 export const selectCommentsIds = (state: RootState) => selectCommentsState(state).ids;
 export const selectCommentsEntities = (state: RootState) => selectCommentsState(state).entities;
-export const selectCommentsBallotId = (state: RootState) => selectCommentsState(state).ballot_id;
+export const selectCommentsBallot_id = (state: RootState) => selectCommentsState(state).ballot_id;
 
 const selectCommentsLastModified = createSelector(
 	selectCommentsIds,
@@ -325,7 +325,7 @@ export const loadComments = (ballot_id: number): AppThunk =>
 export const getCommentUpdates = (): AppThunk =>
 	async (dispatch, getState) => {
 		const state = getState();
-		const ballot_id = selectCommentsBallotId(state);
+		const ballot_id = selectCommentsBallot_id(state);
 		if (!ballot_id)
 			return;
 		const lastModified = selectCommentsLastModified(state);
@@ -341,7 +341,12 @@ export const clearComments = (): AppThunk =>
 		dispatch(setDetails({ballot_id: 0}));
 	}
 
-export const updateComments = (updates): AppThunk =>
+type CommentUpdate = {
+	id: number;
+	changes: Partial<Comment>;
+}
+
+export const updateComments = (updates: CommentUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
 		const state = getState();
 		const {ids, entities, ballot_id} = selectCommentsState(state);
@@ -363,7 +368,7 @@ export const updateComments = (updates): AppThunk =>
 		}
 		dispatch(localUpdateMany(localUpdates));
 		dispatch(offlineFetch({
-			effect: {url: baseCommentsUrl, method: 'PATCH', params: {updates, ballot_id, modifiedSince: lastModified}},
+			effect: {url: `${baseCommentsUrl}/${ballot_id}?modifiedSince=${lastModified}`, method: 'PATCH', params: updates},
 			commit: {type: dataSet + '/updateCommit'},
 			rollback: {type: localUpdateMany.toString(), payload: rollbackUpdates} 
 		}));
@@ -371,7 +376,7 @@ export const updateComments = (updates): AppThunk =>
 
 export const deleteComments = (ballot_id: number): AppThunk =>
 	async (dispatch, getState) => {
-		if (selectCommentsBallotId(getState()) === ballot_id)
+		if (selectCommentsBallot_id(getState()) === ballot_id)
 			await dispatch(clearComments());
 		const summary = {Count: 0, CommentIDMin: 0, CommentIDMax: 0};
 		dispatch(updateBallotSuccess(ballot_id, {Comments: summary}));
@@ -445,7 +450,7 @@ export const setStartCommentId = (ballot_id: number, startCommentId: number): Ap
 		}
 		const {comments, ballot} = response;
 		dispatch(updateBallotSuccess(ballot.id, ballot));
-		if (ballot_id === selectCommentsBallotId(getState())) {
+		if (ballot_id === selectCommentsBallot_id(getState())) {
 			dispatch(getSuccess(comments));
 		}
 	}
@@ -479,7 +484,7 @@ const updateMany = (updates: Update<CommentResolution>[]): AppThunk =>
 		});
 		dispatch(localUpdateMany(updates));
 		dispatch(offlineFetch({
-			effect: {url: '/api/resolutions', method: 'PATCH', params: {updates, ballot_id, modifiedSince: lastModified}},
+			effect: {url: `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`, method: 'PATCH', params: updates},
 			commit: {type: dataSet + '/updateCommit'},
 			rollback: {type: localUpdateMany.toString(), payload: rollbackUpdates}
 		}));
@@ -494,7 +499,7 @@ const removeMany = (ids: EntityId[]): AppThunk =>
 		const comments = ids.map(id => entities[id]!);
 		dispatch(localRemoveMany(ids));
 		dispatch(offlineFetch({
-			effect: {url: baseResolutionsUrl, method: 'DELETE', params: {ids, ballot_id, modifiedSince: lastModified}},
+			effect: {url: `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`, method: 'DELETE', params: ids},
 			commit: {type: dataSet + '/updateCommit'},
 			rollback: {type: dataSet + '/removeManyRollback', payload: comments}
 		}));
@@ -558,7 +563,7 @@ export const addResolutions = (resolutions: ResolutionCreate[]): AppThunk =>
 		dispatch(localUpdateMany(updates));
 		dispatch(localAddMany(adds));
 		dispatch(offlineFetch({
-			effect: {url: baseResolutionsUrl, method: 'POST', params: {entities: remoteAdds, ballot_id, modifiedSince: lastModified}},
+			effect: {url: `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`, method: 'POST', params: remoteAdds},
 			commit: {type: dataSet + '/updateCommit'},
 			rollback: {type: dataSet + '/addManyRollback', payload: adds.map(c => c.id)}
 		}));
@@ -572,7 +577,7 @@ export const deleteResolutions = (delete_ids: any[]): AppThunk =>
 		const {ids, entities} = selectCommentsState(getState());
 
 		// Organize by comment_id
-		const toDelete = {},
+		const toDelete: Record<number, EntityId[]> = {},
 		      toDeleteCommentIDs: number[] = [];
 		for (const id of delete_ids) {
 			const comment_id = entities[id]!.comment_id;
@@ -606,7 +611,7 @@ export const deleteResolutions = (delete_ids: any[]): AppThunk =>
 			if (remainingComments.length === 0) {
 				// No resolutions would remain with this comment_id
 				// Update the first to defaults and delete the rest
-				const id = resolution_ids.shift();
+				const id = resolution_ids.shift()!;
 				updates.push({id, changes: defaultResolution});
 				if (resolution_ids.length > 0)
 					deletes.push(...resolution_ids);

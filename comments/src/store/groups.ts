@@ -86,6 +86,7 @@ export const selectGroups = (state: RootState) => {
 	const {ids, entities} = selectGroupsState(state);
 	return ids.map(id => entities[id]!);
 }
+export const selectGroup = (state: RootState, groupId: string) => selectGroupEntities(state)[groupId];
 export const selectWorkingGroups = (state: RootState) => selectGroups(state).filter(g => g.type === 'wg');
 export const selectWorkingGroupId = (state: RootState) => selectGroupsState(state).workingGroupId;
 export const selectWorkingGroup = (state: RootState) => {
@@ -123,7 +124,6 @@ type LoadGroupContstraints = {
 export const loadGroups = (constraints?: LoadGroupContstraints): AppThunk => 
 	(dispatch) => {
 		dispatch(getPending());
-		//const url = baseUrl + '/802.11';
 		return fetcher.get(baseUrl, constraints)
 			.then((response: any) => {
 				if (!validResponse(response))

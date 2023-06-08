@@ -4,12 +4,14 @@ import {
 	fetcher,
 	setError,
 	isObject,
-	createAppTableDataSlice, SortType, getAppTableDataSelectors
+	createAppTableDataSlice, SortType, getAppTableDataSelectors,
 } from 'dot11-components';
 
 //import {selectMembersState} from './members';
-import { Ballot, updateBallotSuccess, selectBallotEntities } from './ballots';
 import type { RootState, AppThunk } from '.';
+import { AccessLevel } from './user';
+import { updateBallotSuccess, selectBallotEntities, selectBallot, Ballot } from './ballots';
+import { selectGroup, selectWorkingGroup } from './groups';
 
 const fields = {
 	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
@@ -30,6 +32,15 @@ export const selectResultsState = (state: RootState) => state[dataSet];
 export const selectResultsIds = (state: RootState) => selectResultsState(state).ids;
 export const selectResultsEntities = (state: RootState) => selectResultsState(state).entities;
 export const selectResultsBallotId = (state: RootState) => selectResultsState(state).ballot_id;
+
+export const selectResultsAccess = (state: RootState) => {
+	const {ballot_id} = selectResultsState(state);
+	const ballot = selectBallot(state, ballot_id);
+	const access = (ballot?.groupId?
+		selectGroup(state, ballot.groupId)?.permissions.results:
+		selectWorkingGroup(state)?.permissions.results) || AccessLevel.none;
+	return access;
+}
 
 /* Entities selector with join on users to get Name, Affiliation and Email.
  * If the entry is obsolete find the member entry that replaces it. */
@@ -206,7 +217,7 @@ export const importResults = (ballot_id: number, epollNum: number): AppThunk =>
 		dispatch(updateBallotSuccess(ballot_id, response.ballot));
 	}
 
-export const uploadEpollResults = (ballot_id: number, file): AppThunk =>
+export const uploadEpollResults = (ballot_id: number, file: File): AppThunk =>
 	async (dispatch) => {
 		const url = `${baseUrl}/${ballot_id}/uploadEpollResults`;
 		let response: any;
@@ -222,7 +233,7 @@ export const uploadEpollResults = (ballot_id: number, file): AppThunk =>
 		dispatch(updateBallotSuccess(ballot_id, response.ballot));
 	}
 
-export const uploadMyProjectResults = (ballot_id: number, file): AppThunk =>
+export const uploadMyProjectResults = (ballot_id: number, file: File): AppThunk =>
 	async (dispatch) => {
 		const url = `${baseUrl}/${ballot_id}/uploadMyProjectResults`;
 		let response: any;

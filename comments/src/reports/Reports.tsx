@@ -1,8 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
-//import copyToClipboard from 'copy-html-to-clipboard';
 
-import {ActionButton, Button} from 'dot11-components';
+import { ActionButton, Button } from 'dot11-components';
 
 import TopRow from '../components/TopRow';
 import PathBallotSelector from '../components/PathBallotSelector';
@@ -13,7 +12,7 @@ import {
 	loadComments,
 	clearComments,
 	selectCommentsState,
-	selectCommentsBallotId,
+	selectCommentsBallot_id,
 	getCID,
 	getCommentStatus,
 	CommentResolution,
@@ -233,7 +232,7 @@ function Reports() {
 	const [report, setReport] = React.useState('');
 
 	const {ids, entities} = useAppSelector(selectCommentsState);
-	const commentsBallot_id = useAppSelector(selectCommentsBallotId);
+	const commentsBallot_id = useAppSelector(selectCommentsBallot_id);
 	const currentBallot_id = useAppSelector(selectCurrentBallot_id);
 
 	React.useEffect(() => {

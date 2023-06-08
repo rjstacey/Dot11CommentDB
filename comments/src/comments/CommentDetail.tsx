@@ -30,7 +30,8 @@ import {
 	Resolution,
 	ResnStatusType,
 	ResolutionUpdate,
-	ResolutionCreate
+	ResolutionCreate,
+	Comment
 } from '../store/comments';
 import { selectUserAccessLevel, AccessLevel, selectUser } from '../store/user';
 import { selectHasCommentsRW } from '../store/ballots';
@@ -628,7 +629,7 @@ function CommentClause({
 	)
 }
 
-export function Comment({
+export function CommentEdit({
 	cids,
 	resolution,
 	setResolution,
@@ -904,7 +905,7 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 					<NotAvaialble>
 						<span>{notAvailableStr}</span>
 				 	</NotAvaialble>:
-					<Comment 
+					<CommentEdit 
 						cids={comments.map(getCID)}
 						resolution={editedResolution}
 						setResolution={this.updateResolution}

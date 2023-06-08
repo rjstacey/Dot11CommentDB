@@ -10,21 +10,21 @@ import {
 } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-
-import TopRow from '../components/TopRow';
-import BallotDetail, {BallotAddDropdown as BallotAdd} from './BallotDetail';
-
+import { AccessLevel } from '../store/user';
 import {
 	fields,
 	loadBallots,
 	BallotType,
 	selectBallotsState,
+	selectBallotsAccess,
 	ballotsSelectors,
 	ballotsActions,
 	SyncedBallot, Ballot
 } from '../store/ballots';
 
-import { selectUserAccessLevel, AccessLevel } from '../store/user';
+import TopRow from '../components/TopRow';
+import BallotDetail, {BallotAddDropdown as BallotAdd} from './BallotDetail';
+import { selectWorkingGroup } from '../store/groups';
 
 const renderHeaderStartEnd = (props: HeaderCellRendererProps) =>
 	<>
@@ -208,7 +208,8 @@ function Ballots() {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 
-	const access = useAppSelector(selectUserAccessLevel);
+	const access = useAppSelector(selectBallotsAccess);
+	const wg = useAppSelector(selectWorkingGroup)!;
 	const {loading, selected} = useAppSelector(selectBallotsState);
 	const {isSplit} = useAppSelector(ballotsSelectors.selectCurrentPanelConfig);
 
@@ -216,7 +217,7 @@ function Ballots() {
 		dispatch(loadBallots());
 	}, [dispatch]);
 
-	const showEpolls = () => navigate('/epolls/');
+	const showEpolls = () => navigate(`/${wg.name}/epolls/`);
 
 	const columns = React.useMemo(() => {
 		return tableColumns
@@ -256,7 +257,7 @@ function Ballots() {
 								actions={ballotsActions}
 								columns={tableColumns}
 							/>
-							{access >= AccessLevel.admin && 
+							{access >= AccessLevel.rw && 
 								<ActionButton
 									name='book-open'
 									title='Show detail'

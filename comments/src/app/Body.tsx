@@ -52,7 +52,7 @@ function Body() {
 	const permissions = useAppSelector(selectWorkingGroupPermissions);
 
 	function renderComponent(scope: string, minAccess: number, Component: React.ComponentType<{}>) {
-		if ((permissions[scope] || 0) < minAccess)
+		if ((permissions[scope] || AccessLevel.none) < minAccess)
 			return <span>You do not have permission to view this data</span>
 		return <Component />
 	}

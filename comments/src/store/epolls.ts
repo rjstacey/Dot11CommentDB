@@ -9,8 +9,9 @@ import {
 	isObject
 } from 'dot11-components';
 
-import { selectBallotEntities as selectSyncedBallotEntities } from './ballots';
 import type { RootState, AppThunk } from '.';
+import { selectBallotEntities as selectSyncedBallotEntities } from './ballots';
+import { selectWorkingGroup } from './groups';
 
 export type Epoll = {
 	id: number;
@@ -98,11 +99,15 @@ function validResponse(response: any): response is Epoll[] {
 
 let loadPromise: Promise<Epoll[]> | null;
 export const loadEpolls = (n = 20): AppThunk<Epoll[]> =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
 		if (loadPromise)
 			return loadPromise;
+		const wg = selectWorkingGroup(getState());
+		if (!wg)
+			return [];
 		dispatch(getPending());
-		loadPromise = (fetcher.get('/api/epolls', {n}) as Promise<Epoll[]>)
+		const url = `/api/${wg.name}/epolls`;
+		loadPromise = (fetcher.get(url, {n}) as Promise<Epoll[]>)
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");

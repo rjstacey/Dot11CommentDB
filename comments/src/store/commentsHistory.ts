@@ -3,7 +3,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { fetcher, isObject, setError } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-import { CommentResolution } from './comments';
+import { CommentResolution, selectCommentsBallot_id } from './comments';
 
 type CommentHistory = {
 	id: number;
@@ -94,9 +94,10 @@ function validResponse(response: any): response is {comments: CommentResolution[
 }
 
 export const loadCommentsHistory = (comment_id: number): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const ballot_id = selectCommentsBallot_id(getState());
 		dispatch(getPending());
-		const url = `/api/commentHistory/${comment_id}`;
+		const url = `/api/commentHistory/${ballot_id}/${comment_id}`;
 		let response: any;
 		try {
 			response = await fetcher.get(url);

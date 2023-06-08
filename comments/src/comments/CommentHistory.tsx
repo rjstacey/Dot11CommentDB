@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import { ActionButtonModal } from 'dot11-components';
 
-import { Comment } from './CommentDetail';
+import { CommentEdit } from './CommentDetail';
 import HorizontalTimeline from './HorizontalTimeline';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -46,7 +46,7 @@ function CommentHistoryBody({commentsHistory, loading}) {
 				<div>
 					<span className='action'>{log.Action}</span> {changeTo} by <span className='name'>{log.UserName || log.UserID}</span> on {(new Date(log.Timestamp)).toLocaleString()}
 				</div>
-				<Comment 
+				<CommentEdit
 					cids={[log.Changes.CID]}
 					resolution={log.Changes}
 					setResolution={() => {}}

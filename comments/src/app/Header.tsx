@@ -19,33 +19,33 @@ import { selectWorkingGroup, selectWorkingGroupPermissions } from '../store/grou
 const fullMenu = [
 	{
 		scope: 'ballots',
-		minAccess: AccessLevel.none,
+		minAccess: AccessLevel.ro,
 		link: '/ballots',
 		label: 'Ballots',
 	},
 	{
 		scope: 'voters',
-		minAccess: AccessLevel.admin,
+		minAccess: AccessLevel.ro,
 		link: '/voters',
 		label: 'Ballot voters',
 	},
 	{
 		scope: 'results',
-		minAccess: AccessLevel.admin,
+		minAccess: AccessLevel.ro,
 		hasBallotID: true,
 		link: '/results',
 		label: 'Results',
 	},
 	{
 		scope: 'comments',
-		minAccess: AccessLevel.none,
+		minAccess: AccessLevel.ro,
 		hasBallotID: true,
 		link: '/comments',
 		label: 'Comments',
 	},
 	{
 		scope: 'comments',
-		minAccess: AccessLevel.none,
+		minAccess: AccessLevel.ro,
 		hasBallotID: true,
 		link: '/reports',
 		label: 'Reports',
@@ -73,7 +73,7 @@ function NavMenu({
 		return null;
 
 	const menu = fullMenu
-		.filter(m => (permissions[m.scope] || 0) >= m.minAccess)
+		.filter(m => (permissions[m.scope] || AccessLevel.none) >= m.minAccess)
 		.map(m => {
 			let link = `/${workingGroup.name}/${m.link}`;
 			if (m.hasBallotID)

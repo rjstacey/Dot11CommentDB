@@ -26,7 +26,7 @@ import {
 	clearComments,
 	getCID,
 	selectCommentsState,
-	selectCommentsBallotId,
+	selectCommentsBallot_id,
 	commentsSelectors,
 	commentsActions
 } from '../store/comments';
@@ -315,7 +315,7 @@ function Comments() {
 
 	const access = useAppSelector(selectUserAccessLevel);
 	const {selected} = useAppSelector(selectCommentsState);
-	const commentsBallot_id = useAppSelector(selectCommentsBallotId);
+	const commentsBallot_id = useAppSelector(selectCommentsBallot_id);
 	const currentBallot_id = useAppSelector(selectCurrentBallot_id);
 	const commentsBallot = useAppSelector((state) => selectBallot(state, commentsBallot_id));
 
