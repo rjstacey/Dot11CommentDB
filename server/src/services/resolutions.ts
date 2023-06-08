@@ -3,9 +3,13 @@ import { v4 as uuid, validate as validateUUID } from 'uuid';
 
 import db from '../utils/database';
 
-import {getComments, CommentResolution} from './comments';
-import {genCommentsSpreadsheet} from './commentsSpreadsheet';
+import { selectComments, CommentResolution } from './comments';
+import { genCommentsSpreadsheet } from './commentsSpreadsheet';
 import { myProjectAddResolutions } from './myProjectSpreadsheets';
+import { User } from './users';
+import type { Response } from 'express';
+import type { OkPacket } from 'mysql2';
+import { isPlainObject } from '../utils';
 
 export type Resolution = {
 	id: string;
@@ -25,6 +29,10 @@ export type Resolution = {
 	LastModifiedTime: string;
 }
 
+type ResolutionCreate = {
+	comment_id: bigint;
+} & Partial<Omit<Resolution, "comment_id">>;
+
 const defaultResolution = {
 	ResolutionID: 0,
 	AssigneeSAPIN: 0,
@@ -39,17 +47,27 @@ const defaultResolution = {
 	EditNotes: '',
 };
 
-async function addResolution(userId: number, resolution: Partial<Resolution>) {
+function validResolutionCreate(resolution: any): resolution is ResolutionCreate {
+	return isPlainObject(resolution) &&
+		typeof resolution.comment_id === 'number' &&	// Must be present
+		(!resolution.hasOwnProperty('ResolutionID') || typeof resolution.ResolutionID === 'number') &&
+		(!resolution.hasOwnProperty('AssigneeSAPIN') || [null, 'number'].includes(typeof resolution.AssigneeSAPIN)) &&
+		(!resolution.hasOwnProperty('AssigneeName') || [null, 'string'].includes(typeof resolution.AssigneeName)) &&
+		(!resolution.hasOwnProperty('ResnStatus') || [null, 'A', 'V', 'J'].includes(resolution.ResnStatus)) &&
+		(!resolution.hasOwnProperty('Resolution') || [null, 'string'].includes(typeof resolution.Resolution));
+}
 
-	if (!resolution.comment_id)
-		throw new TypeError('Missing comment_id');
+export function validResolutions(resolutions: any): resolutions is ResolutionCreate[] {
+	return Array.isArray(resolutions) && resolutions.every(validResolutionCreate);
+}
+
+async function addResolution(user: User, resolution: ResolutionCreate) {
 
 	const id = validateUUID(resolution.id || '')? resolution.id!: uuid();
 	delete resolution.id;
 
-	let ResolutionID: number | null | undefined;
-	ResolutionID = resolution.ResolutionID;
-	if (ResolutionID === undefined) {
+	let ResolutionID: number | null | undefined = resolution.ResolutionID;
+	if (typeof ResolutionID !== 'number') {
 		/* Find smallest unused ResolutionID */
 		let result = await db.query(
 			'SELECT MIN(r.ResolutionID)-1 AS ResolutionID FROM resolutions r WHERE comment_id=?;',
@@ -72,9 +90,6 @@ async function addResolution(userId: number, resolution: Partial<Resolution>) {
 			ResolutionID = result[0].ResolutionID
 		}
 	}
-	else if (typeof ResolutionID !== 'number') {
-		throw new TypeError('Invalid ResolutionID; must be number');
-	}
 	//console.log(resolutionId)
 
 	const entry = {
@@ -83,20 +98,30 @@ async function addResolution(userId: number, resolution: Partial<Resolution>) {
 		ResolutionID
 	}
 
-	await db.query2('INSERT INTO resolutions SET id=UUID_TO_BIN(?), ?, LastModifiedBy=?, LastModifiedTime=NOW();', [id, entry, userId]);
+	await db.query('INSERT INTO resolutions SET id=UUID_TO_BIN(?), ?, LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP();', [id, entry, user.SAPIN]);
 	return id;
 }
 
-export async function addResolutions(userId: number, resolutions: Partial<Resolution>[], ballot_id: number, modifiedSince: string) {
-	//console.log(resolutions)
-	const resolution_ids = await Promise.all(resolutions.map(r => addResolution(userId, r)));
-	const comment_ids = resolutions.map(r => r.comment_id)
-	//const comments = await db.query('SELECT * FROM commentResolutions WHERE comment_id IN (?);', [comment_ids]);
-	const comments = await getComments(ballot_id, modifiedSince);
+/** 
+ * Add resolutions
+ * @param user The user executing the add
+ * @param ballot_id The ballot identifier associated with the resolution updates and used to autherize the updates.
+ * @param resolution An array of resolutions to be added.
+ * @param modifiedSince Option ISO date string. Comments modfied since this date will be returned.
+ * @returns An array of comment resolutions as added plus additional comment resolutions with changes after `modifiedSince`. 
+ */
+export async function addResolutions(
+	user: User,
+	ballot_id: number,
+	resolutions: ResolutionCreate[],
+	modifiedSince?: string
+) {
+	await Promise.all(resolutions.map(r => addResolution(user, r)));
+	const comments = await selectComments({comment_id: resolutions.map(r => r.comment_id)}, {ballot_id, modifiedSince});
 	return {comments}
 }
 
-function resolutionEntry(changes) {
+/*function resolutionEntry(changes) {
 	const entry = {
 		comment_id: changes.comment_id,
 		ResolutionID: changes.ResolutionID,
@@ -118,12 +143,24 @@ function resolutionEntry(changes) {
 	}
 
 	return entry;
-}
+}*/
 
-async function updateResolution(userId: number, id: string, changes: Partial<Resolution>) {
-	if (Object.keys(changes).length > 0)
-		await db.query('UPDATE resolutions SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=UUID_TO_BIN(?);', [changes, userId, id]);
-	//const [comment] = await db.query("SELECT id, resolution_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE resolution_id=?;", [Object.keys(changes), id]);
+async function updateResolution(user: User, ballot_id: number, id: string, changes: Partial<Resolution>) {
+
+	if (Object.keys(changes).length > 0) {
+		/* The ballot_id in WHERE clause is to qualify the update on the ballot_id since the update was authorized using 
+		 * the declared ballot_id. We don't want the user updating a resolution for an unrelated ballot. */
+		const sql = db.format(
+			'UPDATE resolutions r LEFT JOIN comments c ON c.id=r.comment_id ' + 
+				'SET ?, r.LastModifiedBy=?, r.LastModifiedTime=UTC_TIMESTAMP() ' + 
+			'WHERE c.ballot_id=? AND r.id=UUID_TO_BIN(?)',
+			[changes, user.SAPIN, ballot_id, id]
+		)
+		await db.query(sql);
+	}
+
+	//const [comment] = await db.query({sql: "SELECT id, resolution_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE resolution_id=?;", dateStrings: true}, [Object.keys(changes), id]) as CommentResolution[];
+	//console.log(comment)
 	//return comment;
 }
 
@@ -131,27 +168,62 @@ type ResolutionUpdate = {
 	id: string;
 	changes: Partial<Resolution>;
 }
-export async function updateResolutions(userId: number, updates: ResolutionUpdate[], ballot_id: number, modifiedSince?: string) {
-	// Validate request
-	for (const u of updates) {
-		if (typeof u !== 'object' || !u.id || typeof u.changes !== 'object')
-			throw new TypeError('Expected array of objects with shape {id, changes}');
-	}
-	await Promise.all(updates.map(u => updateResolution(userId, u.id, u.changes)));
-	const comments = await getComments(ballot_id, modifiedSince);
+
+function validResolutionUpdate(update: any): update is ResolutionUpdate {
+	return isPlainObject(update) &&
+		typeof update.id === 'string' &&
+		isPlainObject(update.changes);
+}
+
+export function validResolutionUpdates(updates: any): updates is ResolutionUpdate[] {
+	return Array.isArray(updates) && updates.every(validResolutionUpdate);
+}
+
+/**
+ * Update resolutions
+ * @param user The user executing the add
+ * @param ballot_id The ballot identifier associated with the resolution updates and used to authorize the updates.
+ * @param updates An array of resolution updates.
+ * @param modifiedSince Optional ISO date string. Comments modfied since this date will be returned.
+ * @returns An array of modified comment resolutions plus additional comment resolutions with changes after `modifiedSince`.
+ */
+export async function updateResolutions(
+	user: User,
+	ballot_id: number,
+	updates: ResolutionUpdate[],
+	modifiedSince?: string
+) {
+	console.log(modifiedSince)
+	await Promise.all(updates.map(u => updateResolution(user, ballot_id, u.id, u.changes)));
+	const comments = await selectComments({resolution_id: updates.map(u => u.id)}, {ballot_id, modifiedSince});
 	return {comments};
 }
 
-export async function deleteResolutions(userId: number, ids: string[], ballot_id: number, modifiedSince?: string) {
+export function validResolutionIds(ids: any): ids is string[] {
+	return Array.isArray(ids) && ids.every(id => typeof id === 'string');
+}
+
+/** 
+ * Delete resolutions
+ * @param user The user executing the delete
+ * @param ballot_id The ballot identifier associated with the resolutions to be deleted. Autherization is based on the ballot identifier.
+ * @param ids An array of resolution identifiers to delete. Must be associated with the ballot identifier.
+ * @param modifiedSince ISO Date string. Comments that have been modified since this date will be returned.
+ */
+export async function deleteResolutions(
+	user: User,
+	ballot_id: number,
+	ids: string[],
+	modifiedSince?: string
+) {
 	if (ids.length === 0)
 		return 0;
-	const results = await db.query('DELETE FROM resolutions WHERE BIN_TO_UUID(id) IN (?)', [ids]);
-	const comments = await getComments(ballot_id, modifiedSince);
-	//return results.affectedRows;
+	await db.query('DELETE r FROM resolutions r LEFT JOIN comments c ON r.comment_id=c.id WHERE c.ballot_id=? AND BIN_TO_UUID(id) IN (?)', [ballot_id, ids]) as OkPacket;
+	const comments = await selectComments({ballot_id, modifiedSince});
 	return {comments};
 }
 
-export async function exportResolutionsForMyProject(ballot_id: number, filename: string, file: any, res) {
+export async function exportResolutionsForMyProject(ballot_id: number, filename: string, file: any, res: Response) {
 	
 	const comments = await db.query(
 		"SELECT * FROM commentResolutions " + 
@@ -168,26 +240,22 @@ export async function exportResolutionsForMyProject(ballot_id: number, filename:
 }
 
 export async function exportSpreadsheet(
-	user,
+	user: User,
 	ballot_id: number,
 	filename: string,
-	format,
-	style,
-	file,
-	res
+	isLegacy: boolean,
+	style: any,
+	file: any,
+	res: Response
 ) {
 	const SQL =
 		db.format('SELECT * FROM commentResolutions WHERE ballot_id=? ORDER BY CommentID, ResolutionID; ', [ballot_id]) +
 		db.format('SELECT BallotID, Document FROM ballots WHERE id=?;', [ballot_id]);
 	const [comments, ballots] = await db.query(SQL) as [CommentResolution[], {BallotID: string, Document: string}[]];
-	let doc = '';
-	let ballotId = '';
-	if (ballots.length > 0) {
-		doc = ballots[0].Document;
-		ballotId = ballots[0].BallotID;
-	}
+	let doc = ballots[0]?.Document || '';
+	let ballotId = ballots[0]?.BallotID || '';
 
 	res.attachment(filename || 'comments.xlsx');
-	await genCommentsSpreadsheet(user, ballotId, format, style, doc, comments, file, res);
+	await genCommentsSpreadsheet(user, ballotId, isLegacy, style, doc, comments, file, res);
 	res.end();
 }

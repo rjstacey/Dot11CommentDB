@@ -2,10 +2,10 @@
 import { v4 as uuid } from 'uuid';
 
 import db from '../utils/database';
-
-import {parseCommentsSpreadsheet} from './commentsSpreadsheet';
-import {getComments, getCommentsSummary, Comment, CommentResolution} from './comments';
-import type {Resolution} from './resolutions';
+import { User } from './users';
+import { parseCommentsSpreadsheet } from './commentsSpreadsheet';
+import { getComments, getCommentsSummary, Comment, CommentResolution } from './comments';
+import type { Resolution } from './resolutions';
 
 const matchClause = (dbValue: string, sValue: string) => {
 	if (dbValue === sValue)
@@ -192,26 +192,31 @@ const matchCID: MatchFunc = function(sheetComments, dbComments) {
 	Editing: 'editing'
 };*/
 
-const fieldsToUpdate = ["cid", "clausepage", "adhoc", "assignee", "resolution", "editing"] as const;
-type FieldToUpdate = typeof fieldsToUpdate[number];
-const isFieldToUpdate = (f: unknown): f is FieldToUpdate => typeof f === 'string' && fieldsToUpdate.includes(f as any);
+export const toUpdateOptions = ["cid", "clausepage", "adhoc", "assignee", "resolution", "editing"] as const;
+type FieldToUpdate = typeof toUpdateOptions[number];
+//const isFieldToUpdate = (f: unknown): f is FieldToUpdate => typeof f === 'string' && fieldsToUpdate.includes(f as any);
+
+export function validToUpdate(toUpdate: any): toUpdate is FieldToUpdate[] {
+	return Array.isArray(toUpdate) && toUpdate.every(f => toUpdateOptions.includes(f));
+}
 
 type MatchFunc = (sheetComments: CommentResolution[], dbComments: CommentResolution[]) => readonly [CommentMatch[], CommentResolution[], CommentResolution[]];
 
-const MatchAlgo: Record<MatchAlgoOption, MatchFunc> = {
+const MatchAlgoFunctions: Record<MatchAlgo, MatchFunc> = {
 	'cid': matchCID,
 	'comment': matchComment,
 	'elimination': matchByElimination
 } as const;
 
-const matchAlgoOptions = ["cid", "comment", "elimination"] as const;
-type MatchAlgoOption = typeof matchAlgoOptions[number];
+export const matchAlgoOptions = ["cid", "comment", "elimination"] as const;
+type MatchAlgo = typeof matchAlgoOptions[number];
 
-const isMatchAlgoOption = (o: unknown): o is MatchAlgoOption => typeof o === 'string' && matchAlgoOptions.includes(o as any);
+export const validMatchAlgo = (o: unknown): o is MatchAlgo => typeof o === 'string' && matchAlgoOptions.includes(o as any);
 
-const matchUpdateOptions = ["all", "any", "add"] as const;
+export const matchUpdateOptions = ["all", "any", "add"] as const;
 type MatchUpdate = typeof matchUpdateOptions[number];
-const isMatchUpdate = (f: unknown): f is MatchUpdate => typeof f === 'string' && matchUpdateOptions.includes(f as any);
+
+export const validMatchUpdate = (f: unknown): f is MatchUpdate => typeof f === 'string' && matchUpdateOptions.includes(f as any);
 
 type CommentUpdate = {
 	CommentID: Comment["CommentID"];
@@ -468,27 +473,25 @@ async function addComments(userId: number, ballot_id: number, sheetComments: Com
 	await db.query(SQL);
 }
 
+/** 
+ * Upload resolutions
+ * @param user The user executing the upload
+ * @param ballot_id The ballot identifier associated with the resolutions
+ * @param toUpdate The fields to be updated
+ * @param matchAlgo The match algorithm used to match againts the comments
+ * @param matchUpdate Method for handeling unmatch comments
+ * @param sheetName The worksheet name to use
+ * @param file The spreadsheet file 
+ */
 export async function uploadResolutions(
-	userId: number,
+	user: User,
 	ballot_id: number,
-	toUpdateIn: unknown[],
-	matchAlgo: unknown,
-	matchUpdate: unknown,
+	toUpdate: FieldToUpdate[],
+	matchAlgo: MatchAlgo,
+	matchUpdate: MatchUpdate,
 	sheetName: string,
 	file: {buffer: Buffer}
 ) {
-
-	const toUpdate = toUpdateIn.map(f => {
-		if (isFieldToUpdate(f))
-			return f;
-		throw new TypeError(`Invalid entry in toUpdate array: ${f}. Valid entries are ${fieldsToUpdate.join(', ')}.`);
-	});
-
-	if (!isMatchAlgoOption(matchAlgo))
-		throw new TypeError(`Invalid matchAlgorithm parameter value: ${matchAlgo}. Valid options are ${Object.keys(MatchAlgo).join(', ')}.`);
-
-	if (!isMatchUpdate(matchUpdate))
-		throw new TypeError(`Invalid matchUpdate parameter value: ${matchUpdate}. Valid options are ${matchUpdateOptions.join(', ')}.`);
 
 	if (matchAlgo === 'elimination' && matchUpdate === 'any')
 		throw new TypeError(`For successive elimination, matchUpdate cannot be 'any'.`);
@@ -499,7 +502,7 @@ export async function uploadResolutions(
 	const dbComments = await getComments(ballot_id);
 	const t3 = Date.now();
 
-	let [matchedComments, dbCommentsRemaining, sheetCommentsRemaining] = MatchAlgo[matchAlgo](sheetComments, dbComments);
+	let [matchedComments, dbCommentsRemaining, sheetCommentsRemaining] = MatchAlgoFunctions[matchAlgo](sheetComments, dbComments);
 	console.log(matchedComments.length, dbCommentsRemaining.length, sheetCommentsRemaining.length)
 
 	const t4 = Date.now();
@@ -518,18 +521,18 @@ export async function uploadResolutions(
 				sheetCommentsRemaining.map(c => c.CID).join(', ')
 		}
 
-		updated = await updateComments(userId, ballot_id, matchedComments, toUpdate);
+		updated = await updateComments(user.SAPIN, ballot_id, matchedComments, toUpdate);
 		matched = matchedComments.map(m => m.dbComment.CommentID);
 		remaining = sheetCommentsRemaining.map(c => c.CID);
 	}
 	else if (matchUpdate ==='any') {
-		updated = await updateComments(userId, ballot_id, matchedComments, toUpdate);
+		updated = await updateComments(user.SAPIN, ballot_id, matchedComments, toUpdate);
 		matched = matchedComments.map(m => m.dbComment.CommentID);
 		unmatched = dbCommentsRemaining.map(c => c.CommentID);
 		remaining = sheetCommentsRemaining.map(c => c.CID);
 	}
 	else if (matchUpdate === 'add') {
-		await addComments(userId, ballot_id, sheetCommentsRemaining, toUpdate);
+		await addComments(user.SAPIN, ballot_id, sheetCommentsRemaining, toUpdate);
 		matched = [];
 		added = sheetCommentsRemaining.map(c => c.CID);
 	}

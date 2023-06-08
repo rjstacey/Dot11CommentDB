@@ -8,10 +8,12 @@ import { CommentsSummary } from './comments';
 
 import { User, userIsWGAdmin } from './users';
 import { getOfficers } from './officers';
+import { Group } from './groups';
 
 export type Ballot = {
     id: number;
 	groupId: string | null;
+	workingGroupId: string;
     BallotID: string;
     Project: string;
     Type: number;
@@ -44,13 +46,14 @@ export const BallotType = {
 /*
  * Get ballots SQL query.
  */
-export const getBallotsSQL =
+const getBallotsSQL =
 	'SELECT ' +
 		'id, BallotID, Project, Type, IsRecirc, IsComplete, ' + 
 		'DATE_FORMAT(Start, "%Y-%m-%dT%TZ") AS Start, ' +
 		'DATE_FORMAT(End, "%Y-%m-%dT%TZ") AS End, ' +
 		'Document, Topic, VotingPoolID, prev_id, EpollNum, ' +
 		'BIN_TO_UUID(groupId) as groupId, ' +
+		'BIN_TO_UUID(workingGroupId) as workingGroupId, ' +
 		'ResultsSummary AS Results, ' +
 		'JSON_OBJECT( ' +
 			'"Count", (SELECT COUNT(*) FROM comments c WHERE b.id=c.ballot_id), ' +
@@ -69,8 +72,9 @@ export const getBallotsSQL =
  * 
  * @returns An array of ballot objects.
  */
-export async function getBallots() {
-	const ballots = await db.query(getBallotsSQL + ' ORDER BY b.Project, b.Start') as Ballot[];
+export async function getBallots(workingGroup: Group) {
+	const sql = db.format(getBallotsSQL + ' WHERE b.workingGroupId=UUID_TO_BIN(?) ORDER BY b.Project, b.Start', [workingGroup.id]);
+	const ballots = await db.query({sql, dateStrings: true}) as Ballot[];
 	return ballots;
 }
 

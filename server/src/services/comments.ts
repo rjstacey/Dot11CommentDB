@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 
-import { AuthError } from '../utils';
+import { AuthError, isPlainObject } from '../utils';
 import { parseEpollCommentsCsv } from './epoll';
 import { parseMyProjectComments } from './myProjectSpreadsheets';
 import { BallotType, getBallot, getBallotWithNewResultsSummary } from './ballots';
@@ -89,7 +89,7 @@ const createViewCommentResolutionsSQL =
 		'r.EditNotes AS EditNotes, ' +
 		'COALESCE(m.Name, r.AssigneeName) AS AssigneeName, ' +
 		'IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) AS LastModifiedBy, ' +
-		'IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedTime, r.LastModifiedTime) AS LastModifiedTime ' +
+		'DATE_FORMAT(IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedTime, r.LastModifiedTime), "%Y-%m-%dT%TZ") AS LastModifiedTime ' +
 	'FROM ballots b JOIN comments c ON (b.id = c.ballot_id) ' + 
 		'LEFT JOIN resolutions r ON (c.id = r.comment_id) ' + 
 		'LEFT JOIN members m ON (r.AssigneeSAPIN = m.SAPIN) ' + 
@@ -105,27 +105,55 @@ export async function initCommentsTables() {
 	await db.query(SQL);
 }
 
-function selectComments(constraints: object) {
-	let sql = 'SELECT * FROM commentResolutions';
-	if (Object.keys(constraints).length > 0) {
-		sql += ' WHERE ' + Object.entries(constraints).map(
-			([key, value]) => {
-				if (key === 'modifiedSince')
-					return db.format('LastModifiedTime > ?', [value]);
-				return db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value]);
+type Arrayed<T> = { [K in keyof T]: T[K] | Array<T[K]> };
+
+type QueryConstraints = {
+	modifiedSince?: string;
+} & Partial<Arrayed<CommentResolution>>;
+
+function getConditions(constraints: QueryConstraints) {
+	const conditions: string[] = [];
+	Object.entries(constraints)
+		.forEach(([key, value]) => {
+			if (key === 'modifiedSince') {
+				const dateTime = DateTime.fromISO(value as string);
+				if (dateTime.isValid)
+					conditions.push(db.format('LastModifiedTime > ?', [dateTime.toUTC().toFormat('yyyy-MM-dd HH:mm:ss')]));
 			}
-		).join(' AND ');
+			else {
+				conditions.push(db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value]));
+			}
+		});
+	return conditions;
+}
+
+export function selectComments(constraints1?: QueryConstraints, constraints2?: QueryConstraints) {
+
+	let conditions1 = constraints1? getConditions(constraints1): [];
+	let conditions2 = constraints2? getConditions(constraints2): [];
+
+	let sql = 'SELECT * FROM commentResolutions';
+	if (conditions1.length > 0 || conditions2.length > 0) {
+		sql += ' WHERE ';
+		if (conditions1.length > 0 && conditions2.length > 0)
+			sql += '(' + conditions1.join(' AND ') + ') OR (' + conditions2.join(' AND ') + ')';
+		else if (conditions1.length > 0)
+			sql += conditions1.join(' AND ');
+		else
+			sql += conditions2.join(' AND ');;
 	}
 	sql += ' ORDER BY CommentID, ResolutionID';
+
+	console.log(sql)
 	return db.query(sql) as Promise<CommentResolution[]>;
 }
 
 export function getComments(ballot_id?: number, modifiedSince?: string) {
-	const constraints: {ballot_id?: number; modifiedSince?: string} = {};
+	const constraints: QueryConstraints = {};
 	if (ballot_id)
 		constraints.ballot_id = ballot_id;
 	if (modifiedSince)
-		constraints.modifiedSince = DateTime.fromISO(modifiedSince).toSQL({includeOffset: false});
+		constraints.modifiedSince = modifiedSince;
 	return selectComments(constraints);
 }
 
@@ -142,27 +170,43 @@ export async function getCommentsSummary(ballot_id: number): Promise<CommentsSum
 }
 
 /* Update comment and return an array of comments (from commentResolutions) that change */
-async function updateComment(userId: number, id: number, changes: Partial<Comment>) {
+async function updateComment(user: User, ballot_id: number, id: bigint, changes: Partial<Comment>) {
 	if (Object.keys(changes).length > 0)
-		await db.query("UPDATE comments SET ?, LastModifiedBy=?, LastModifiedTime=NOW() WHERE id=?; ", [changes, userId, id]);
-	const comments = await db.query("SELECT id, comment_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE comment_id=?;", [Object.keys(changes), id]);
-	return comments;
+		return db.query("UPDATE comments SET ?, LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP() WHERE ballot_id=? AND id=?", [changes, user.SAPIN, ballot_id, id]);
+	//const comments = await db.query("SELECT id, comment_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE comment_id=?;", [Object.keys(changes), id]);
+	//return comments;
 }
 
-export async function updateComments(userId: number, updates, ballot_id: number, lastModified: string) {
-	for (const u of updates) {
-		if (typeof u !== 'object' || !u.id || typeof u.changes !== 'object')
-			throw 'Expected array of objects with shape {id, changes}'
-	}
-	const results = await Promise.all(updates.map(u => updateComment(userId, u.id, u.changes)));
-	/* reduce the results array of arrays to a single array */
-	//const comments = results.reduce((all, comments) => all.concat(comments), []);
-	const comments = await getComments(ballot_id, lastModified);
+type CommentUpdate = {
+	id: bigint;
+	changes: Partial<Comment>;
+}
+
+function validUpdate(update: any): update is CommentUpdate {
+	return isPlainObject(update) &&
+		update.id && typeof update.id === 'number' &&
+		isPlainObject(update.changes);
+}
+
+function validUpdates(updates: any): updates is CommentUpdate[] {
+	return Array.isArray(updates) && updates.every(validUpdate);
+}
+
+export async function updateComments(user: User, ballot_id: number, updates: any, modifiedSince?: string) {
+	if (!validUpdates(updates))
+		throw new TypeError('Expected array of objects with shape {id, changes}');
+
+	await Promise.all(updates.map(u => updateComment(user, ballot_id, u.id, u.changes)));
+
+	const ids = updates.map(u => u.changes.id || u.id);
+
+	const comments = await selectComments({comment_id: ids}, {ballot_id, modifiedSince});
+
 	return {comments};
 }
 
 export async function setStartCommentId(user: User, ballot_id: number, startCommentId: number) {
-	const SQL = db.format(
+	const sql = db.format(
 		'SET @userId=?;' +
 		'SET @ballot_id = ?;' +
 		'SET @startCommentId = ?;' +
@@ -172,7 +216,7 @@ export async function setStartCommentId(user: User, ballot_id: number, startComm
 			'WHERE ballot_id=@ballot_id;',
 		[user.SAPIN, ballot_id, startCommentId]
 	);
-	const results = await db.query(SQL);
+	await db.query(sql);
 	const comments = await getComments(ballot_id);
 	const summary = await getCommentsSummary(ballot_id);
 	return {
@@ -183,7 +227,7 @@ export async function setStartCommentId(user: User, ballot_id: number, startComm
 
 export async function deleteComments(user: User, ballot_id: number) {
 	// The order of the deletes is import; from resolutions table first and then from comments table.
-	// This is because the a delete from resolutions tables adds a history log and a delete from comments then removes it.
+	// This is because a delete from resolutions tables adds a history log and a delete from comments then removes it.
 	const sql = db.format(
 		'DELETE r, c ' +
 			'FROM comments c LEFT JOIN resolutions r ON r.comment_id=c.id ' +
@@ -191,7 +235,7 @@ export async function deleteComments(user: User, ballot_id: number) {
 		[ballot_id]
 	);
 	const result = await db.query(sql) as OkPacket;
-	return result.affectedRows as number;
+	return result.affectedRows;
 }
 
 async function insertComments(user: User, ballot_id: number, comments: Partial<Comment>[]) {

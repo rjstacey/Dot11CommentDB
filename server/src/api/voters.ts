@@ -1,9 +1,10 @@
 /*
  * Voters API
  */
-import {Router} from 'express';
+import {Router, request} from 'express';
 import Multer from 'multer';
 import { isPlainObject } from '../utils';
+import { AccessLevel } from '../auth/access';
 import {
 	getVoters,
 	addVoters,
@@ -17,69 +18,60 @@ import {
 const upload = Multer();
 const router = Router();
 
-router.get('/:ballot_id(\\d+)', async (req, res, next) => {
-	try {
-		const ballot_id = Number(req.params.ballot_id);
-		const data = await getVoters({ballot_id});
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+router
+	.all('*', (req, res, next) => {
+		const access = req.group?.permissions.voters || AccessLevel.none;
+		if (access >= AccessLevel.admin)
+			return next();
+		res.status(403).send('Insufficient karma');
+	})
+	.route('/')
+		.get(async (req, res, next) => {
+			console.log('get voters')
+			const ballot_id = req.ballot!.id;
+			getVoters({ballot_id})
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.post(async (req, res, next) => {
+			const ballot_id = req.ballot!.id;
+			addVoters(ballot_id, req.body)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.patch(async (req, res, next) => {
+			updateVoters(req.body)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.delete(async (req, res, next) => {
+			deleteVoters(req.body)
+				.then(data => res.json(data))
+				.catch(next);
+		});
 
-router.post('/:ballot_id(\\d+)', async (req, res, next) => {
-	try {
-		const ballot_id = Number(req.params.ballot_id);
-		const data = await addVoters(ballot_id, req.body);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.patch('/', async (req, res, next) => {
-	try {
-		const data = await updateVoters(req.body);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.delete('/', async (req, res, next) => {
-	try {
-		const data = await deleteVoters(req.body);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.post('/:ballot_id(\\d+)/upload', upload.single('File'), async (req, res, next) => {
-	try {
-		const ballot_id = Number(req.params.ballot_id);
+router
+	.get('/export', async (req, res, next) => {
+		const ballot_id = req.ballot!.id;
+		exportVoters(ballot_id, res)
+			.catch(next);
+	})
+	.post('/upload', upload.single('File'), async (req, res, next) => {
+		const ballot_id = req.ballot!.id;
 		if (!req.file)
-			throw new TypeError('Missing file');
-		const data = await votersFromSpreadsheet(ballot_id, req.file);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.post('/:ballot_id(\\d+)/membersSnapshot', async (req, res, next) => {
-	try {
-		const ballot_id = Number(req.params.ballot_id);
+			return next(new TypeError('Missing file'));
+		votersFromSpreadsheet(ballot_id, req.file)
+			.then(res.json)
+			.catch(next);
+	})
+	.post('/membersSnapshot', async (req, res, next) => {
+		const ballot_id = req.ballot!.id;
 		if (!isPlainObject(req.body) || !req.body.hasOwnProperty('date'))
-			throw new TypeError('Bad or missing body; expected object with shape {date: string}');
+			return next(new TypeError('Bad or missing body; expected object with shape {date: string}'));
 		const {date} = req.body;
-		const data = await votersFromMembersSnapshot(ballot_id, date);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.get('/:ballot_id(\\d+)/export', async (req, res, next) => {
-	try {
-		const ballot_id = Number(req.params.ballot_id);
-		await exportVoters(ballot_id, res);
-	}
-	catch(err) {next(err)}
-});
+		votersFromMembersSnapshot(ballot_id, date)
+			.then(res.json)
+			.catch(next);
+	});
 
 export default router;

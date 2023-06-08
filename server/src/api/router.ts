@@ -3,10 +3,13 @@
  *
  * Robert Stacey
  */
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 
-import {userIsMember, userIsSubgroupAdmin, userIsWGAdmin, User} from '../services/users';
-import {authorize} from '../auth/jwt'
+import { userIsMember, userIsSubgroupAdmin, userIsWGAdmin, User } from '../services/users';
+import { getGroup, getGroups, Group } from '../services/groups';
+import { getBallot, Ballot } from '../services/ballots';
+import { authorize } from '../auth/jwt'
+import { NotFoundError } from '../utils';
 
 import timezones from './timezones';
 import members from './members';
@@ -50,9 +53,12 @@ router.use(authorize);
 
 declare global {
 	namespace Express {
-	  interface Request {
-		user: User;
-	  }
+		interface Request {
+			user: User;
+			group?: Group;
+			workingGroup?: Group;
+			ballot?: Ballot;
+		}
 	}
 }
   
@@ -114,7 +120,7 @@ router.all('*', (req, res, next) => {
 });
 
 /* A get on root returns OK: tests connectivity */
-router.get('/$', (req, res, next) => res.json(null));
+router.get('/', (req, res, next) => res.json('OK'));
 
 /*
  * APIs for managing the organization
@@ -141,12 +147,36 @@ router.use('/802world', ieee802world);		// Access to schedule802world.com (meeti
 /*
  * APIs for balloting and comment resolution
  */
-router.use('/ballots', ballots);			// Ballots
-router.use('/voters', voters);				// Ballot voters
-router.use('/results', results);			// Ballot results
-router.use('/comments', comments);			// Ballot comments
-router.use('/resolutions', resolutions);	// Comment resolutions
-router.use('/commentHistory', commentHistory);	// Comment change history
-router.use('/epolls', epolls);				// Access to ePolls balloting tool
+async function parsePathBallot_id(req: Request, res: Response, next: NextFunction) {
+	const ballot_id = Number(req.params.ballot_id);
+	const ballot = await getBallot(ballot_id);
+	if (!ballot)
+		return next(new NotFoundError(`Ballot ${ballot_id} does not exist`));
+	req.ballot = ballot;
+	if (ballot.groupId)
+		req.group = (await getGroups(req.user, {id: ballot.groupId}))[0];
+	req.workingGroup = (await getGroups(req.user, {id: ballot.workingGroupId}))[0];
+	next();
+}
+
+router.use('/voters/:ballot_id(\\d+)', parsePathBallot_id, voters);				// Ballot voters
+router.use('/results/:ballot_id(\\d+)', parsePathBallot_id, results);			// Ballot results
+router.use('/comments/:ballot_id(\\d+)', parsePathBallot_id, comments);			// Ballot comments
+router.use('/resolutions/:ballot_id(\\d+)', parsePathBallot_id, resolutions);	// Comment resolutions
+router.use('/commentHistory/:ballot_id(\\d+)', parsePathBallot_id, commentHistory);	// Comment change history
+
+async function parsePathGroupName(req: Request, res: Response, next: NextFunction) {
+	const {groupName} = req.params;
+	const group = await getGroup(req.user, groupName);
+	if (!group)
+		return next(new NotFoundError(`Group ${groupName} does not exist`));
+	req.group = group;
+	next();
+}
+
+router.use('/:groupName/ballots', parsePathGroupName, ballots);
+router.use('/:groupName/epolls', parsePathGroupName, epolls);				// Access to ePolls balloting tool
+
+//router.use('/:groupName/ballots', ballots);			// Ballots
 
 export default router;

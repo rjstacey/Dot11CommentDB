@@ -96,8 +96,8 @@ export async function getGroups(user: User, constraints?: OrganizationQueryConst
 	return groups;
 }
 
-export async function getGroup(user: User, groupId: string): Promise<Group | undefined> {
-	const groups = await getGroups(user, {id: groupId});
+export async function getGroup(user: User, name: string): Promise<Group | undefined> {
+	const groups = await getGroups(user, {name});
 	return groups[0];
 }
 
@@ -113,9 +113,9 @@ export async function getWorkingGroup(user: User, groupId: string): Promise<Grou
 }
 
 /* Permission sets */
-const permMember: Record<string, number> = {groups: AccessLevel.ro, ballots: AccessLevel.ro, comments: AccessLevel.ro};
-const permWgOfficer: Record<string, number> = {groups: AccessLevel.admin, ballots: AccessLevel.admin, voters: AccessLevel.admin, results: AccessLevel.rw, comments: AccessLevel.rw};
-const permTgOfficer: Record<string, number> = {groups: AccessLevel.ro, ballots: AccessLevel.rw, voters: AccessLevel.ro, results: AccessLevel.rw, comments: AccessLevel.rw};
+const permWgOfficer: Record<string, number> = {groups: AccessLevel.admin, ballots: AccessLevel.admin, voters: AccessLevel.admin, results: AccessLevel.admin, comments: AccessLevel.admin};
+const permTgOfficer: Record<string, number> = {groups: AccessLevel.ro, ballots: AccessLevel.ro, voters: AccessLevel.ro, results: AccessLevel.rw, comments: AccessLevel.rw};
+const permMember: Record<string, number> = {groups: AccessLevel.ro, ballots: AccessLevel.ro, voters: AccessLevel.none, results: AccessLevel.none, comments: AccessLevel.ro};
 
 export async function getGroupPermissions(user: User, group: Group) {
 	let permissions: Record<string, number> = permMember;

@@ -28,7 +28,7 @@
  */
 
 import { Router } from 'express';
-
+import { AccessLevel } from '../auth/access';
 import {
 	getBallot,
 	getBallots,
@@ -39,6 +39,18 @@ import {
 } from '../services/ballots';
 
 const router = Router();
+
+router.all('*', (req, res, next) => {
+	const access = req.group?.permissions.ballots || AccessLevel.none;
+	console.log(access)
+	if (req.method === "GET" && access >= AccessLevel.ro)
+		return next();
+	if (req.method === "PATCH" && access >= AccessLevel.rw)
+		return next();
+	if ((req.method === "PUT" || req.method === "DELETE") && access >= AccessLevel.admin)
+		return next();
+	res.status(403).send('Insufficient karma');
+});
 
 router.get('/:ballot_id(\\d+)', async (req, res, next) => {
 	try {
@@ -59,36 +71,34 @@ router.get('/:ballot_id(\\d+)/permissions', async (req, res, next) => {
 });
 
 
-router.get('/', async (req, res, next) => {
-	try {
-		res.json(await getBallots());
-	}
-	catch(err) {next(err)}
-});
-
-router.post('/', async (req, res, next) => {
-	try {
-		const data = await addBallots(req.user, req.body);
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-
-router.patch('/', async (req, res, next) => {
-	try {
-		const data = await updateBallots(req.user, req.body);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-
-router.delete('/', async (req, res, next) => {
-	try {
-		const data = await deleteBallots(req.user, req.body);
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
+router
+	.route('/')
+	.get(async (req, res, next) => {
+		try {
+			res.json(await getBallots(req.group!));
+		}
+		catch(err) {next(err)}
+	})
+	.post(async (req, res, next) => {
+		try {
+			const data = await addBallots(req.user, req.body);
+			res.json(data)
+		}
+		catch(err) {next(err)}
+	})
+	.patch(async (req, res, next) => {
+		try {
+			const data = await updateBallots(req.user, req.body);
+			res.json(data);
+		}
+		catch(err) {next(err)}
+	})
+	.delete(async (req, res, next) => {
+		try {
+			const data = await deleteBallots(req.user, req.body);
+			res.json(data)
+		}
+		catch(err) {next(err)}
+	});
 
 export default router;

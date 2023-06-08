@@ -64,7 +64,7 @@ function parseClosedEpollsPage(body: string): Epoll[] {
  *
  * Parameters: n = number of entries to get
  */
-export async function getEpolls(user: User, n: number) {
+export async function getEpolls(user: User, groupName: string, n: number) {
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');

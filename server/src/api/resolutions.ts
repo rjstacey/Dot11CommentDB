@@ -36,87 +36,85 @@
  */
 import {Router} from 'express';
 import Multer from 'multer';
-import {isPlainObject} from '../utils';
 import {
 	addResolutions,
 	updateResolutions,
-	deleteResolutions
+	deleteResolutions,
+	validResolutions,
+	validResolutionIds,
+	validResolutionUpdates,
 } from '../services/resolutions';
-
-import {uploadResolutions} from '../services/uploadResolutions';
+import {
+	validToUpdate,
+	validMatchAlgo,
+	validMatchUpdate,
+	toUpdateOptions,
+	matchAlgoOptions,
+	matchUpdateOptions,
+	uploadResolutions,
+} from '../services/uploadResolutions';
 
 const upload = Multer();
 const router = Router();
 
-router.post('/$', async (req, res, next) => {
-	try {
-		const {user} = req;
-		if (!isPlainObject(req.body) || !req.body.hasOwnProperty('entities') || !req.body.hasOwnProperty('ballot_id'))
-			throw new TypeError('Bad or missing body; expected an object with shape {entities: any[], ballot_id: number, modifiedSince?: string}');
-		const {entities, ballot_id, modifiedSince} = req.body;
-		if (!Array.isArray(entities) || !entities.every(entity => isPlainObject(entity)))
-			throw new TypeError('Bad entities parameter; expected an array of objects');
-		if (typeof ballot_id !== 'number')
-			throw new TypeError('Bad ballot_id parameter; expected a number');
-		const data = await addResolutions(user.SAPIN, entities, ballot_id, modifiedSince);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+function validModifiedSince(modifiedSince: any): modifiedSince is string | undefined {
+	return typeof modifiedSince === 'undefined' || typeof modifiedSince == 'string';
+}
 
-router.patch('/$', async (req, res, next) => {
-	try {
-		const {user} = req;
-		if (!isPlainObject(req.body) || !req.body.hasOwnProperty('updates') || !req.body.hasOwnProperty('ballot_id'))
-			throw new TypeError('Bad or missing body; expected an object with shape {updates: object[], ballot_id: number, modifiedSince?: string');
-		const {updates, ballot_id, modifiedSince} = req.body;
-		if (!Array.isArray(updates) || !updates.every(u => isPlainObject(u)))
-			throw new TypeError('Bad updates parameter; expected an array of objects');
-		if (typeof ballot_id !== 'number')
-			throw new TypeError('Bad ballot_id parameter; expected a number');
-		const data = await updateResolutions(user.SAPIN, updates, ballot_id, modifiedSince);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.delete('/$', async (req, res, next) => {
-	try {
-		const {user} = req;
-		if (!isPlainObject(req.body) || !req.body.hasOwnProperty('ids') || !req.body.hasOwnProperty('ballot_id'))
-			throw new TypeError('Bad or missing body; expected an object with shape {ids: string[], ballot_id: number, modifiedSince?: string');
-		const {ids, ballot_id, modifiedSince} = req.body;
-		if (!Array.isArray(ids) || !ids.every(id => typeof id === 'string'))
-			throw new TypeError('Bad ids parameter; expected an array of strings');
-		if (typeof ballot_id !== 'number')
-			throw new TypeError('Bad ballot_id parameter; expected a number');
-		const data = await deleteResolutions(user.SAPIN, ids, ballot_id, modifiedSince)
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-
-router.post('/:ballot_id(\\d+)/upload/', upload.single('ResolutionsFile'), async (req, res, next) => {
-	try {
-		const {user} = req;
-		const ballot_id = parseInt(req.params.ballot_id);
-		if (!req.body.params)
-			throw 'Missing parameters'
-		const {toUpdate, matchAlgorithm, matchUpdate, sheetName} = JSON.parse(req.body.params)
-		if (!Array.isArray(toUpdate))
-			throw new TypeError('Missing or invalid parameter toUpdate');
-		if (!matchAlgorithm || typeof matchAlgorithm !== 'string')
-			throw new TypeError('Missing or invalid parameter matchAlgorithm');
-		if (!matchUpdate || typeof matchUpdate !== 'string')
-			throw new TypeError('Missing or invalid parameter matchUpdate');
+router
+	.post('/upload$', upload.single('ResolutionsFile'), async (req, res, next) => {
+		const ballot_id = req.ballot!.id;
+		const {toUpdate, matchAlgorithm, matchUpdate, sheetName} = JSON.parse(req.body.params);
+		if (!validMatchAlgo(matchAlgorithm))
+			return next(new TypeError(`Missing or bad matchAlgorithm body parameter: ${matchAlgorithm}; expected one of ${matchAlgoOptions.join(', ')}.`));
+		if (!validMatchUpdate(matchUpdate))
+			return next(new TypeError(`Missing or bad matchUpdate body parameter: ${matchUpdate}. Valid options are ${matchUpdateOptions.join(', ')}.`));
+		if (typeof sheetName !== 'string')
+			return next(new TypeError("Missing or bad sheetName body parameter; expected string."));
+		if (!validToUpdate(toUpdate))
+			return next(new TypeError(`Missing or bad toUpdate body parameter: ${toUpdate}; expected an array that is a subset of [${toUpdateOptions.join(', ')}].`));
 		if (!req.file)
-			throw new TypeError('Missing file');
-
-		const data = await uploadResolutions(user.SAPIN, ballot_id, toUpdate, matchAlgorithm, matchUpdate, sheetName, req.file);
-
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
+			return next(new TypeError('Missing file'));
+		uploadResolutions(req.user, ballot_id, toUpdate, matchAlgorithm, matchUpdate, sheetName, req.file)
+			.then(data => res.json(data))
+			.catch(next);
+	})
+	.route('/')
+		.post((req, res, next) => {
+			const ballot_id = req.ballot!.id;
+			const {modifiedSince} = req.query;
+			if (!validModifiedSince(modifiedSince))
+				return next(new TypeError("Optional query parameter `modifiedSince` must be an ISO datatime string"));
+			const resolutions = req.body;
+			if (!validResolutions(resolutions))
+				return next(new TypeError('Bad or missing body; expected an array of resolution objects'));
+			addResolutions(req.user, ballot_id, resolutions, modifiedSince)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.patch((req, res, next) => {
+			const ballot_id = req.ballot!.id;
+			const {modifiedSince} = req.query;
+			if (!validModifiedSince(modifiedSince))
+				return next(new TypeError("Optional query parameter `modifiedSince` must be an ISO datatime string"));
+			const updates = req.body;
+			if (!validResolutionUpdates(updates))
+				return next(new TypeError('Bad or missing body; expected an array of resolution update objects'));
+			updateResolutions(req.user, ballot_id, updates, modifiedSince)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.delete((req, res, next) => {
+			const ballot_id = req.ballot!.id;
+			const {modifiedSince} = req.query;
+			if (!validModifiedSince(modifiedSince))
+				return next(new TypeError("Optional query parameter `modifiedSince` must be an ISO datatime string"));
+			const ids = req.body;
+			if (!validResolutionIds(ids))
+				return next(new TypeError("Bad or missing body; expected an array of resolution identifiers with shape string[]"));
+			deleteResolutions(req.user, ballot_id, ids, modifiedSince)
+				.then(data => res.json(data))
+				.catch(next);
+		});
 
 export default router;
