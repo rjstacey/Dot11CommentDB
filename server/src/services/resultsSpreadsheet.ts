@@ -2,18 +2,28 @@
  * Handle results spreadsheet
  */
 import ExcelJS from 'exceljs';
+import type { Response } from 'express';
+import type { User } from './users';
+import type { Ballot } from './ballots';
+import type { Result, ResultsCoalesced } from './results';
+import { getSheetName } from './commentsSpreadsheet';
 
-function populateResultsWorksheet(ws: ExcelJS.Worksheet, results) {
-	const b = results.ballot, r = results.summary;
-	const votingPoolSize = results.VotingPoolSize;
+function populateResultsWorksheet(ws: ExcelJS.Worksheet, ballot: Ballot, results: Result[]) {
+	const b = ballot;
+	const r = ballot.Results!;
+	const votingPoolSize = r.VotingPoolSize;
 
-	const dStart = new Date(b.Start);
-	const opened = dStart.toLocaleString('en-US', {year: 'numeric', month: 'numeric', day: 'numeric' , timeZone: 'America/New_York'});
-	const dEnd = new Date(b.End);
-	const closed = dEnd.toLocaleString('en-US', {year: 'numeric', month: 'numeric', day: 'numeric' , timeZone: 'America/New_York'});
-	const _MS_PER_DAY = 1000 * 60 * 60 * 24;
-	const dur = Math.floor((dEnd.valueOf() - dStart.valueOf()) / _MS_PER_DAY);
-	const duration = isNaN(dur)? '': `${dur} days`;
+	let opened = '', closed = '', duration = '';
+	if (b.Start && b.End) {
+		const dStart = new Date(b.Start);
+		const dEnd = new Date(b.End);
+		opened = dStart.toLocaleString('en-US', {year: 'numeric', month: 'numeric', day: 'numeric' , timeZone: 'America/New_York'});
+		closed = dEnd.toLocaleString('en-US', {year: 'numeric', month: 'numeric', day: 'numeric' , timeZone: 'America/New_York'})
+		const _MS_PER_DAY = 1000 * 60 * 60 * 24;
+		const dur = Math.floor((dEnd.valueOf() - dStart.valueOf()) / _MS_PER_DAY);
+		if (!isNaN(dur))
+			duration = `${dur} days`;
+	}
 
 	const approvalRate = r.Approve/(r.Approve+r.Disapprove);
 
@@ -43,10 +53,8 @@ function populateResultsWorksheet(ws: ExcelJS.Worksheet, results) {
 			theme: 'TableStyleLight16',
 			showRowStripes: true,
 		},
-		columns: columns.map(col => {
-				return {name: col.label, filterButton: true}
-			}),
-		rows: results.results.map(row => columns.map(col => row[col.dataKey]))
+		columns: columns.map(col => ({name: col.label, filterButton: true})),
+		rows: results.map(row => columns.map(col => row[col.dataKey]))
 	});
 	columns.forEach((col, i) => {ws.getColumn(i+1).width = col.width})
 
@@ -100,12 +108,12 @@ function populateResultsWorksheet(ws: ExcelJS.Worksheet, results) {
 	}
 }
 
-export async function genResultsSpreadsheet(results, res) {
+export async function genResultsSpreadsheet(user: User, results: ResultsCoalesced[], res: Response) {
 	const workbook = new ExcelJS.Workbook();
-	workbook.creator = '802.11';
+	workbook.creator = user.Name;
 	for (let r of results) {
-		let ws = workbook.addWorksheet(r.BallotID);
-		populateResultsWorksheet(ws, r);
+		let ws = workbook.addWorksheet(getSheetName(r.ballot.BallotID));
+		populateResultsWorksheet(ws, r.ballot, r.results);
 	}
 	return workbook.xlsx.write(res);
 }

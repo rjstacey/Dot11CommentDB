@@ -7,7 +7,6 @@ import db from '../utils/database';
 import type {OkPacket} from '../utils/database';
 
 import { getMembersSnapshot } from './members';
-import { getBallot, getBallots } from './ballots';
 
 export type Voter = {
 	id: string;

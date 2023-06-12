@@ -153,9 +153,11 @@ async function parsePathBallot_id(req: Request, res: Response, next: NextFunctio
 	if (!ballot)
 		return next(new NotFoundError(`Ballot ${ballot_id} does not exist`));
 	req.ballot = ballot;
+	req.workingGroup = (await getGroups(req.user, {id: ballot.workingGroupId}))[0];
 	if (ballot.groupId)
 		req.group = (await getGroups(req.user, {id: ballot.groupId}))[0];
-	req.workingGroup = (await getGroups(req.user, {id: ballot.workingGroupId}))[0];
+	else
+		req.group = req.workingGroup;
 	next();
 }
 

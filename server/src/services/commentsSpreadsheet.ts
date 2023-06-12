@@ -3,6 +3,8 @@
  */
 import ExcelJS from 'exceljs';
 import { isCorrectSpreadsheetHeader } from '../utils';
+import { Ballot } from './ballots';
+import { getComments } from './comments';
 import type { CommentResolution } from './comments';
 import type { User } from './users';
 import type { Response } from 'express';
@@ -623,35 +625,31 @@ function genWorksheet(sheet: ExcelJS.Worksheet, columns: Record<string, Col>, ba
 	sheet.views = [{state: 'frozen', xSplit: 0, ySplit: 1}];
 }
 
-const commentSpreadsheetStyles = ["AllComments", "TabPerAdHoc", "TabPerCommentGroup"] as const;
-type CommentSpreadsheetStyle = typeof commentSpreadsheetStyles[number];
-
-function validCommentSpreadsheetStyle(style: any): style is CommentSpreadsheetStyle {
+export const commentSpreadsheetStyles = ["AllComments", "TabPerAdHoc", "TabPerCommentGroup"] as const;
+export type CommentSpreadsheetStyle = typeof commentSpreadsheetStyles[number];
+export function validCommentSpreadsheetStyle(style: any): style is CommentSpreadsheetStyle {
 	return commentSpreadsheetStyles.includes(style);
 }
 
-export async function genCommentsSpreadsheet(
+// Sheet name cannot be longer than 31 characters and cannot include: * ? : \ / [ ]
+export const getSheetName = (name: string) => name.slice(0, 30).replace(/[*.\?:\\\/\[\]]/g, '_');
+
+async function genCommentsSpreadsheet(
 	user: User,
-	ballotId: number | string,
 	isLegacy: boolean,
-	style: any,
+	style: CommentSpreadsheetStyle,
+	ballotId: string,
 	doc: string,
 	comments: CommentResolution[],
-	file: {buffer: Buffer},
+	file: {buffer: Buffer} | undefined,
 	res: Response
 ) {
-	if (!validCommentSpreadsheetStyle(style))
-		throw new TypeError('Invalid Style parameter: expected one of ' + commentSpreadsheetStyles.join(', '));
-
 	let workbook = new ExcelJS.Workbook();
 	if (file) {
-		try {
-			await workbook.xlsx.load(file.buffer)
-		}
-		catch(err) {
-			throw new TypeError("Invalid workbook: " + err);
-		}
-		let sheetIds: number[] = [];
+		await workbook.xlsx.load(file.buffer)
+			.catch(error => {throw new TypeError("Invalid workbook: " + error)})
+
+			let sheetIds: number[] = [];
 		workbook.eachSheet(sheet => {
 			if (sheet.name !== 'Title' && sheet.name !== 'Revision History')
 				sheetIds.push(sheet.id);
@@ -673,9 +671,7 @@ export async function genCommentsSpreadsheet(
 		// List of unique AdHoc values
 		const adhocs = [...new Set(comments.map(c => c.AdHoc || '(Blank)'))].sort();
 		adhocs.forEach(adhoc => {
-			// Sheet name cannot be longer than 31 characters and cannot include: * ? : \ / [ ]
-			const sheetName = adhoc.slice(0,30).replace(/[*.\?:\\\/\[\]]/g, '_');
-			sheet = workbook.addWorksheet(sheetName);
+			sheet = workbook.addWorksheet(getSheetName(adhoc));
 			const selectComments = comments.filter(c => adhoc === '(Blank)'? !c.AdHoc: c.AdHoc === adhoc);
 			genWorksheet(sheet, columns, ballotId, doc, selectComments);
 		});
@@ -684,17 +680,25 @@ export async function genCommentsSpreadsheet(
 		// List of unique CommentGroup values
 		const groups = [...new Set(comments.map(c => c.CommentGroup || '(Blank)'))].sort();
 		groups.forEach(group => {
-			const sheetName = group.slice(0,30).replace(/[*.\?:\\\/\[\]]/g, '_');
-			sheet = workbook.addWorksheet(sheetName);
+			sheet = workbook.addWorksheet(getSheetName(group));
 			const selectComments = comments.filter(c => group === '(Blank)'? !c.CommentGroup: c.CommentGroup === group);
 			genWorksheet(sheet, columns, ballotId, doc, selectComments);
 		});
 	}
 
-	try {
-		await workbook.xlsx.write(res);
-	}
-	catch(err) {
-		throw Error("Unable to regenerate workbook: " + err);
-	}
+	return workbook.xlsx.write(res);
+}
+
+export async function exportCommentsSpreadsheet(
+	user: User,
+	ballot: Ballot,
+	isLegacy: boolean,
+	style: CommentSpreadsheetStyle,
+	file: {buffer: Buffer} | undefined,
+	res: Response
+) {
+	const comments = await getComments(ballot.id);
+
+	res.attachment('comments.xlsx');
+	return genCommentsSpreadsheet(user, isLegacy, style, ballot.BallotID, ballot.Document, comments, file, res);
 }

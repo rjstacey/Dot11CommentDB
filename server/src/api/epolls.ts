@@ -13,12 +13,14 @@ const router = Router();
 
 router
 	.all('*', (req, res, next) => {
-		const access = req.group?.permissions.ballots || AccessLevel.none;
+		if (!req.group)
+			return res.status(500).send("Group not set");
+		const access = req.group.permissions.ballots || AccessLevel.none;
 		if (access >= AccessLevel.admin)
 			return next();
 		res.status(403).send('Insufficient karma');
 	})
-	.get('/', async (req, res, next) => {
+	.get('/', (req, res, next) => {
 		const groupName = req.group!.name;
 		const n = typeof req.query.n === 'string'? Number(req.query.n): 20;
 		getEpolls(req.user, groupName, n)

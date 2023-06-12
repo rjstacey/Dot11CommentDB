@@ -750,9 +750,8 @@ export async function importMyProjectRoster(file: {buffer: Buffer}) {
 	return getMembers();
 }
 
-export async function exportMyProjectRoster(res: Response) {
+export async function exportMyProjectRoster(user: User, res: Response) {
 	let members = await getMembers();
 	members = members.filter(m => !m.Status.search(/^Voter|^Aspirant|^Potential Voter|^Non-Voter/));
-	await genMyProjectRosterSpreadsheet(members, res);
-	res.end();
+	return genMyProjectRosterSpreadsheet(user, members, res);
 }

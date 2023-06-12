@@ -2,16 +2,17 @@
 import { v4 as uuid } from 'uuid';
 
 import db from '../utils/database';
-import { shallowEqual, AuthError } from '../utils';
+import { shallowEqual, AuthError, NotFoundError } from '../utils';
 import type { OkPacket } from 'mysql2';
 import type { Response } from 'express';
+import type { User } from './users';
 
-import { userIsWGAdmin, User } from './users';
 import { parseEpollResultsCsv, parseEpollResultsHtml } from './epoll';
 import { parseMyProjectResults } from './myProjectSpreadsheets';
 import { genResultsSpreadsheet } from './resultsSpreadsheet';
-import { getBallot, getBallotSeries, BallotType, Ballot } from './ballots';
+import { getBallotSeries, BallotType, Ballot } from './ballots';
 import { getVoters, Voter } from './voters';
+import { AccessLevel } from '../auth/access';
 
 export type Result = {
     id: string;
@@ -344,16 +345,19 @@ function summarizeBallotResults(results: Result[]) {
 	return summary;
 }
 
-export async function getResultsCoalesced(user: User, ballot_id: number) {
+export type ResultsCoalesced = {
+	ballot: Ballot;
+	results: Result[];
+}
 
-	const ballot = await getBallot(ballot_id);
+export async function getResultsCoalesced(user: User, access: number, ballot: Ballot): Promise<ResultsCoalesced> {
 
 	let votingPoolSize: number,
 		results: Result[],
 		summary: ResultsSummary;
 
 	if (ballot.Type === BallotType.WG) {
-		const ballotsArr = await getBallotSeries(ballot_id);
+		const ballotsArr = await getBallotSeries(ballot.id);
 		const resultsArr = await Promise.all(ballotsArr.map(ballot => getResultsForWgBallot(ballot.id)));
 		const ballotSeries: BallotSeriesResults = {
 			ids: [],
@@ -372,11 +376,11 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 		votingPoolSize = voters.filter(v => !/^ExOfficio/.test(v.Status)).length;
 		results = colateWGResults(ballotSeries, voters); // colate results against voting pool and prior ballots in series
 		summary = summarizeWGResults(results);
-		summary.BallotReturns = ballotSeries.results[ballot_id].length;
+		summary.BallotReturns = ballotSeries.results[ballot.id].length;
 		summary.VotingPoolSize = votingPoolSize;
 	}
 	else if (ballot.Type === BallotType.SA) {
-		const ballotsArr = await getBallotSeries(ballot_id);
+		const ballotsArr = await getBallotSeries(ballot.id);
 		const resultsArr = await Promise.all(ballotsArr.map(ballot => getResultsForSaBallot(ballot.id)));
 		const ballotSeries: BallotSeriesResults = {
 			ids: [],
@@ -389,17 +393,17 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 			ballotSeries.ballots[id] = ballot;
 			ballotSeries.results[id] = resultsArr[i];
 		});
-		votingPoolSize = ballotSeries.results[ballot_id].length;
+		votingPoolSize = ballotSeries.results[ballot.id].length;
 		results = colateSAResults(ballotSeries); 		// colate results against previous ballots in series
 		summary = summarizeSAResults(results);
-		summary.BallotReturns = ballotSeries.results[ballot_id].length;
+		summary.BallotReturns = ballotSeries.results[ballot.id].length;
 		summary.ReturnsPoolSize = votingPoolSize;
 		summary.VotingPoolSize = votingPoolSize;
 	}
 	else if (ballot.Type === BallotType.Motion) {
 		// if there is a voting pool, get that
 		const voters = await getVoters({ballot_id: ballot.id});
-		results = await getResults(ballot_id);
+		results = await getResults(ballot.id);
 		votingPoolSize = voters.length;
 		results = colateMotionResults(results, voters);	// colate results for just this ballot
 		summary = summarizeMotionResults(results);
@@ -408,7 +412,7 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 	}
 	else {
 		votingPoolSize = 0;
-		results = await getResults(ballot_id);			// colate results for just this ballot
+		results = await getResults(ballot.id);			// colate results for just this ballot
 		summary = summarizeBallotResults(results);
 		summary.BallotReturns = results.length;
 		summary.VotingPoolSize = votingPoolSize;
@@ -416,23 +420,18 @@ export async function getResultsCoalesced(user: User, ballot_id: number) {
 
 	/* Update results summary in ballots table if different */
 	if (!ballot.Results || !shallowEqual(summary, ballot.Results)) {
-		await db.query('UPDATE ballots SET ResultsSummary=? WHERE id=?', [JSON.stringify(summary), ballot_id]);
+		await db.query('UPDATE ballots SET ResultsSummary=? WHERE id=?', [JSON.stringify(summary), ballot.id]);
+		ballot = {...ballot, Results: summary};
 	}
 
-	ballot.Results = summary;
-	//console.log(ballot)
-
-	if (!userIsWGAdmin(user)) {
-		// Strip email addresses if user has insufficient karma
+	if (access < AccessLevel.admin) {
+		// Strip email addresses if user does not have admin access
 		results.forEach(r => delete r.Email);
 	}
 
 	return {
-		BallotID: ballot.BallotID,
-		VotingPoolSize: votingPoolSize,
 		ballot,
 		results,
-		summary
 	};
 }
 
@@ -504,25 +503,28 @@ export async function deleteResults(ballot_id: number) {
 	return results[1].affectedRows;
 }
 
-async function insertResults(user: User, ballot_id: number, pollResults: Partial<Result>[]) {
-	let SQL = db.format('DELETE FROM results WHERE ballot_id=?;', ballot_id);
-	if (pollResults.length)
-		SQL +=
-			`INSERT INTO results (ballot_id, ${Object.keys(pollResults[0])}) VALUES` +
-			pollResults.map(c => `(${ballot_id}, ${db.escape(Object.values(c))})`).join(',') +
+async function insertResults(user: User, access: number, ballot: Ballot, results: Partial<Result>[]) {
+	let sql = db.format('DELETE FROM results WHERE ballot_id=?;', ballot.id);
+	if (results.length)
+		sql +=
+			`INSERT INTO results (ballot_id, ${Object.keys(results[0])}) VALUES` +
+			results.map(c => `(${ballot.id}, ${db.escape(Object.values(c))})`).join(',') +
 			';'
-	await db.query(SQL);
-	return getResultsCoalesced(user, ballot_id);
+	await db.query(sql);
+	return getResultsCoalesced(user, access, ballot);
 }
 
-export async function importEpollResults(user: User, ballot_id: number, epollNum: number) {
+export async function importEpollResults(user: User, ballot: Ballot) {
+
+	if (!ballot.EpollNum)
+		throw new TypeError("Ballot does not have an ePoll number");
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const p1 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-results.csv?p=${epollNum}`);
-	const p2 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-status?p=${epollNum}`);
+	const p1 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-results.csv?p=${ballot.EpollNum}`);
+	const p2 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-status?p=${ballot.EpollNum}`);
 
 	let response = await p1;
 	if (response.headers['content-type'] !== 'text/csv')
@@ -542,33 +544,51 @@ export async function importEpollResults(user: User, ballot_id: number, epollNum
 		}
 	});
 
-	return insertResults(user, ballot_id, results);
+	return insertResults(user, AccessLevel.admin, ballot, results);
 }
 
-export async function uploadEpollResults(user: User, ballotId: number, file: any) {
-	if (file.originalname.search(/\.csv$/i) === -1)
-		throw new TypeError("Expecting .csv file");
-	const pollResults = await parseEpollResultsCsv(file.buffer)
-	return insertResults(user, ballotId, pollResults);
-}
 
-export async function uploadMyProjectResults(user: User, ballotId: number, file: any) {
+/**
+ * Upload results from spreadsheet.
+ * 
+ * The expected spreadsheet format depends on the ballot type.
+ * For SA ballot, the MyProject spreadsheet format is expected.
+ * For WG ballot, the ePoll .csv format is expected.
+ */
+export async function uploadResults(user: User, ballot: Ballot, file: any) {
+	let results: Partial<Result>[];
 	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1;
-	const pollResults = await parseMyProjectResults(file.buffer, isExcel)
-	return insertResults(user, ballotId, pollResults);
+	if (ballot.Type === BallotType.SA) {
+		results = await parseMyProjectResults(file.buffer, isExcel);
+	}
+	else {
+		if (isExcel)
+			throw new TypeError('Expecting .csv file');
+		try {
+			results = await parseEpollResultsCsv(file.buffer);
+		}
+		catch (error: any) {
+			throw new TypeError('Parse error: ' + error.toString());
+		}
+	}
+	return insertResults(user, AccessLevel.admin, ballot, results);
 }
 
-export async function exportResultsForBallot(user: User, ballot_id: number, res: Response) {
-	const result = await getResultsCoalesced(user, ballot_id);
-	res.attachment(result.ballot.BallotID + '_results.xlsx');
-	await genResultsSpreadsheet([result], res);
-	res.end();
-}
+export const getFilePrefix = (name: string) => name.slice(0, 30).replace(/[*.\?:\\\/\[\]]/g, '_');
 
-export async function exportResultsForProject(user: User, project: string, res: Response) {
-	let ballots = await db.query('SELECT id FROM ballots WHERE Project=?', [project]) as Ballot[];
-	let results = await Promise.all(ballots.map(r => getResultsCoalesced(user, r.id)));
-	res.attachment(project + '_results.xlsx');
-	await genResultsSpreadsheet(results, res);
-	res.end();
+export async function exportResults(user: User, access: number, ballot: Ballot, forBallotSeries: boolean, res: Response) {
+	let results: ResultsCoalesced[];
+	if (forBallotSeries) {
+		let ballots = await getBallotSeries(ballot.id);
+		if (ballots.length === 0)
+			throw new NotFoundError(`No such ballot: ${ballot.id}`);
+		results = await Promise.all(ballots.map(b => getResultsCoalesced(user, access, b)));
+		res.attachment(getFilePrefix(ballots[0].Project) + '_results.xlsx');
+	}
+	else {
+		const result = await getResultsCoalesced(user, access, ballot);
+		results = [result];
+		res.attachment(getFilePrefix(ballot.BallotID) + '_results.xlsx');
+	}
+	return genResultsSpreadsheet(user, results, res);
 }

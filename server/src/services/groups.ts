@@ -82,7 +82,7 @@ export async function getGroups(user: User, constraints?: OrganizationQueryConst
 	let groups = await db.query(sql) as Group[];
 	groups = await Promise.all(
 			groups.map(async (group) => {
-				const permissions = await getGroupPermissions(user, group);
+				const permissions = await getUserGroupPermissions(user, group);
 				return {...group, permissions};
 			})
 		);
@@ -117,23 +117,22 @@ const permWgOfficer: Record<string, number> = {groups: AccessLevel.admin, ballot
 const permTgOfficer: Record<string, number> = {groups: AccessLevel.ro, ballots: AccessLevel.ro, voters: AccessLevel.ro, results: AccessLevel.rw, comments: AccessLevel.rw};
 const permMember: Record<string, number> = {groups: AccessLevel.ro, ballots: AccessLevel.ro, voters: AccessLevel.none, results: AccessLevel.none, comments: AccessLevel.ro};
 
-export async function getGroupPermissions(user: User, group: Group) {
+export async function getUserGroupPermissions(user: User, group: Group) {
 	let permissions: Record<string, number> = permMember;
-	console.log(group)
 	if (group.type === "wg") {
 		const officers = await getOfficers({group_id: group.id});
-		console.log(officers)
 		if (officers.find(officer => officer.sapin === user.SAPIN))
 			permissions = permWgOfficer;
 	}
-	else if (group.type === "tg" && group.parent_id) {
+	else if (["tg", "sg", "sc", "ah"].includes(group.type!) && group.parent_id) {
 		let officers = await getOfficers({group_id: group.id});
 		if (officers.find(officer => officer.sapin === user.SAPIN))
 			permissions = permTgOfficer;
 		officers = await getOfficers({group_id: group.parent_id});
-			if (officers.find(officer => officer.sapin === user.SAPIN))
-				permissions = permWgOfficer;
-		}
+		if (officers.find(officer => officer.sapin === user.SAPIN))
+			permissions = permWgOfficer;
+	}
+	console.log(group.name, permissions)
 	return permissions;
 }
 

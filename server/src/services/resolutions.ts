@@ -3,11 +3,8 @@ import { v4 as uuid, validate as validateUUID } from 'uuid';
 
 import db from '../utils/database';
 
-import { selectComments, CommentResolution } from './comments';
-import { genCommentsSpreadsheet } from './commentsSpreadsheet';
-import { myProjectAddResolutions } from './myProjectSpreadsheets';
+import { selectComments } from './comments';
 import { User } from './users';
-import type { Response } from 'express';
 import type { OkPacket } from 'mysql2';
 import { isPlainObject } from '../utils';
 
@@ -205,6 +202,7 @@ export function validResolutionIds(ids: any): ids is string[] {
 
 /** 
  * Delete resolutions
+ * 
  * @param user The user executing the delete
  * @param ballot_id The ballot identifier associated with the resolutions to be deleted. Autherization is based on the ballot identifier.
  * @param ids An array of resolution identifiers to delete. Must be associated with the ballot identifier.
@@ -216,46 +214,9 @@ export async function deleteResolutions(
 	ids: string[],
 	modifiedSince?: string
 ) {
-	if (ids.length === 0)
-		return 0;
-	await db.query('DELETE r FROM resolutions r LEFT JOIN comments c ON r.comment_id=c.id WHERE c.ballot_id=? AND BIN_TO_UUID(id) IN (?)', [ballot_id, ids]) as OkPacket;
+	if (ids.length > 0)
+		await db.query('DELETE r FROM resolutions r LEFT JOIN comments c ON r.comment_id=c.id WHERE c.ballot_id=? AND BIN_TO_UUID(id) IN (?)', [ballot_id, ids]) as OkPacket;
 	const comments = await selectComments({ballot_id, modifiedSince});
 	return {comments};
 }
 
-export async function exportResolutionsForMyProject(ballot_id: number, filename: string, file: any, res: Response) {
-	
-	const comments = await db.query(
-		"SELECT * FROM commentResolutions " + 
-			"WHERE ballot_id=? " +
-				"AND ApprovedByMotion IS NOT NULL AND ApprovedByMotion <> '' " +
-				"AND ResnStatus IS NOT NULL AND ResnStatus <> '' " +
-			"ORDER BY CommentID, ResolutionID;",
-		[ballot_id]
-	) as CommentResolution[];
-
-	res.attachment(filename || 'comments_resolved.xlsx');
-	await myProjectAddResolutions(file.buffer, comments, res);
-	res.end();
-}
-
-export async function exportSpreadsheet(
-	user: User,
-	ballot_id: number,
-	filename: string,
-	isLegacy: boolean,
-	style: any,
-	file: any,
-	res: Response
-) {
-	const SQL =
-		db.format('SELECT * FROM commentResolutions WHERE ballot_id=? ORDER BY CommentID, ResolutionID; ', [ballot_id]) +
-		db.format('SELECT BallotID, Document FROM ballots WHERE id=?;', [ballot_id]);
-	const [comments, ballots] = await db.query(SQL) as [CommentResolution[], {BallotID: string, Document: string}[]];
-	let doc = ballots[0]?.Document || '';
-	let ballotId = ballots[0]?.BallotID || '';
-
-	res.attachment(filename || 'comments.xlsx');
-	await genCommentsSpreadsheet(user, ballotId, isLegacy, style, doc, comments, file, res);
-	res.end();
-}

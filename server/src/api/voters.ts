@@ -1,7 +1,7 @@
 /*
  * Voters API
  */
-import {Router, request} from 'express';
+import { Router } from 'express';
 import Multer from 'multer';
 import { isPlainObject } from '../utils';
 import { AccessLevel } from '../auth/access';
@@ -21,42 +21,47 @@ const router = Router();
 router
 	.all('*', (req, res, next) => {
 		const access = req.group?.permissions.voters || AccessLevel.none;
+		console.log(req.group?.name, access)
+		if (req.method === "GET" && access >= AccessLevel.ro)
+			return next();
+		if (req.method === "PATCH" && access >= AccessLevel.rw)
+			return next();
 		if (access >= AccessLevel.admin)
 			return next();
 		res.status(403).send('Insufficient karma');
 	})
 	.route('/')
-		.get(async (req, res, next) => {
+		.get((req, res, next) => {
 			console.log('get voters')
 			const ballot_id = req.ballot!.id;
 			getVoters({ballot_id})
 				.then(data => res.json(data))
 				.catch(next);
 		})
-		.post(async (req, res, next) => {
+		.patch((req, res, next) => {
+			updateVoters(req.body)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.post((req, res, next) => {
 			const ballot_id = req.ballot!.id;
 			addVoters(ballot_id, req.body)
 				.then(data => res.json(data))
 				.catch(next);
 		})
-		.patch(async (req, res, next) => {
-			updateVoters(req.body)
-				.then(data => res.json(data))
-				.catch(next);
-		})
-		.delete(async (req, res, next) => {
+		.delete((req, res, next) => {
 			deleteVoters(req.body)
 				.then(data => res.json(data))
 				.catch(next);
 		});
 
 router
-	.get('/export', async (req, res, next) => {
+	.get('/export', (req, res, next) => {
 		const ballot_id = req.ballot!.id;
 		exportVoters(ballot_id, res)
 			.catch(next);
 	})
-	.post('/upload', upload.single('File'), async (req, res, next) => {
+	.post('/upload', upload.single('File'), (req, res, next) => {
 		const ballot_id = req.ballot!.id;
 		if (!req.file)
 			return next(new TypeError('Missing file'));
@@ -64,7 +69,7 @@ router
 			.then(res.json)
 			.catch(next);
 	})
-	.post('/membersSnapshot', async (req, res, next) => {
+	.post('/membersSnapshot', (req, res, next) => {
 		const ballot_id = req.ballot!.id;
 		if (!isPlainObject(req.body) || !req.body.hasOwnProperty('date'))
 			return next(new TypeError('Bad or missing body; expected object with shape {date: string}'));

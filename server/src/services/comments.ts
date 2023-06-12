@@ -7,9 +7,9 @@ import type { OkPacket } from 'mysql2';
 import { AuthError, isPlainObject } from '../utils';
 import { parseEpollCommentsCsv } from './epoll';
 import { parseMyProjectComments } from './myProjectSpreadsheets';
-import { BallotType, getBallot, getBallotWithNewResultsSummary } from './ballots';
+import { BallotType, Ballot, getBallotWithNewResultsSummary } from './ballots';
 import type { Resolution } from './resolutions';
-import { User } from './users';
+import type { User } from './users';
 
 export type Comment = {
 	id: bigint;
@@ -127,6 +127,12 @@ function getConditions(constraints: QueryConstraints) {
 	return conditions;
 }
 
+/**
+ * Select comments that meet one of two conditions
+ * @param constraints1 - An optional first set of contraints
+ * @param constraints2 - An optional second set of constraints
+ * @return An array of comment resolutions that meet the first OR second set of constraints
+ */
 export function selectComments(constraints1?: QueryConstraints, constraints2?: QueryConstraints) {
 
 	let conditions1 = constraints1? getConditions(constraints1): [];
@@ -144,11 +150,17 @@ export function selectComments(constraints1?: QueryConstraints, constraints2?: Q
 	}
 	sql += ' ORDER BY CommentID, ResolutionID';
 
-	console.log(sql)
 	return db.query(sql) as Promise<CommentResolution[]>;
 }
 
-export function getComments(ballot_id?: number, modifiedSince?: string) {
+/** 
+ * Get comment resolutions for the specified ballot
+ * 
+ * @param ballot_id - The ballot identifier
+ * @param modifedSince - Option ISO datetime string. Comment resolutions with changes since the specified date will be returned.
+ * @returns An array of comment resolutions
+ */
+export function getComments(ballot_id: number, modifiedSince?: string) {
 	const constraints: QueryConstraints = {};
 	if (ballot_id)
 		constraints.ballot_id = ballot_id;
@@ -169,10 +181,17 @@ export async function getCommentsSummary(ballot_id: number): Promise<CommentsSum
 	return summary;
 }
 
-/* Update comment and return an array of comments (from commentResolutions) that change */
+/**
+ * Update comment
+ * 
+ * @param user The user executing the update
+ * @param ballot_id The associated ballot identifier. Validated to ensure that the change is authorized.
+ * @param id The comment identifier
+ * @param changes An object with fields to be changed
+ */
 async function updateComment(user: User, ballot_id: number, id: bigint, changes: Partial<Comment>) {
 	if (Object.keys(changes).length > 0)
-		return db.query("UPDATE comments SET ?, LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP() WHERE ballot_id=? AND id=?", [changes, user.SAPIN, ballot_id, id]);
+		return db.query("UPDATE comments SET ?, LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP() WHERE ballot_id=? AND id=?", [changes, user.SAPIN, ballot_id, id]) as Promise<OkPacket>;
 	//const comments = await db.query("SELECT id, comment_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE comment_id=?;", [Object.keys(changes), id]);
 	//return comments;
 }
@@ -199,12 +218,20 @@ export async function updateComments(user: User, ballot_id: number, updates: any
 	await Promise.all(updates.map(u => updateComment(user, ballot_id, u.id, u.changes)));
 
 	const ids = updates.map(u => u.changes.id || u.id);
-
 	const comments = await selectComments({comment_id: ids}, {ballot_id, modifiedSince});
 
 	return {comments};
 }
 
+/**
+ * Set the starting CID for a comment set
+ * 
+ * @param user - The user executing the change
+ * @param ballot_id - The ballot identifier for the comment set
+ * @param startCommentId - The starting CID. The CID for each comment will be offset by the difference between the current min CID
+ * and the startCommentID.
+ * @returns Updated comments and changes to the ballot comments summary.
+ */
 export async function setStartCommentId(user: User, ballot_id: number, startCommentId: number) {
 	const sql = db.format(
 		'SET @userId=?;' +
@@ -225,6 +252,9 @@ export async function setStartCommentId(user: User, ballot_id: number, startComm
 	}
 }
 
+/**
+ * Delete all comments for the specified ballot
+ */
 export async function deleteComments(user: User, ballot_id: number) {
 	// The order of the deletes is import; from resolutions table first and then from comments table.
 	// This is because a delete from resolutions tables adds a history log and a delete from comments then removes it.
@@ -238,21 +268,24 @@ export async function deleteComments(user: User, ballot_id: number) {
 	return result.affectedRows;
 }
 
+/**
+ * Replace all comments for the specified ballot
+ */
 async function insertComments(user: User, ballot_id: number, comments: Partial<Comment>[]) {
 
-	// Delete existing comments (and resolutions) for this ballot_id
+	// Delete existing comments (and resolutions) for this ballot
 	await deleteComments(user, ballot_id);
 
 	if (comments.length) {
 		// Insert the comments
 		const sql1 =
 			db.format('INSERT INTO comments (`ballot_id`, LastModifiedBy, LastModifiedTime, ??) VALUES ', [Object.keys(comments[0])]) +
-			comments.map(c => db.format('(?, ?, NOW(), ?)', [ballot_id, user.SAPIN, Object.values(c)])).join(', ');
+			comments.map(c => db.format('(?, ?, UTC_TIMESTAMP(), ?)', [ballot_id, user.SAPIN, Object.values(c)])).join(', ');
 		await db.query(sql1);
 
 		// Insert a null resolution for each comment
 		const sql2 =
-			db.format('INSERT INTO resolutions (`comment_id`, `ResolutionID`, `LastModifiedBy`, `LastModifiedTime`) SELECT id, 0, ?, NOW() FROM comments WHERE `ballot_id`=?;', [user.SAPIN, ballot_id]);
+			db.format('INSERT INTO resolutions (`comment_id`, `ResolutionID`, `LastModifiedBy`, `LastModifiedTime`) SELECT id, 0, ?, UTC_TIMESTAMP() FROM comments WHERE `ballot_id`=?;', [user.SAPIN, ballot_id]);
 		await db.query(sql2);
 	}
 
@@ -265,12 +298,18 @@ async function insertComments(user: User, ballot_id: number, comments: Partial<C
 	}
 }
 
-export async function importEpollComments(user: User, ballot_id: number, epollNum: number, startCommentId: number) {
+/**
+ * Import comments directly from ePoll
+ */
+export async function importEpollComments(user: User, ballot: Ballot, startCommentId: number) {
+
+	if (!ballot.EpollNum)
+		throw new TypeError("Ballot does not have an ePoll number");
 
 	if (!user.ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const response = await user.ieeeClient.get(`https://mentor.ieee.org/802.11/poll-comments.csv?p=${epollNum}`, {responseType: 'arraybuffer'});
+	const response = await user.ieeeClient.get(`https://mentor.ieee.org/802.11/poll-comments.csv?p=${ballot.EpollNum}`, {responseType: 'arraybuffer'});
 
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
@@ -278,11 +317,16 @@ export async function importEpollComments(user: User, ballot_id: number, epollNu
 	const comments = await parseEpollCommentsCsv(response.data, startCommentId);
 	//console.log(comments[0])
 
-	return insertComments(user, ballot_id, comments);
+	return insertComments(user, ballot.id, comments);
 }
 
-export async function uploadComments(user: User, ballot_id: number, startCommentId: number, file: any) {
-	const ballot = await getBallot(ballot_id);
+/**
+ * Upload comments from spreadsheet.
+ * The expected spreadsheet format depends on the ballot type.
+ * For SA ballot, the MyProject spreadsheet format is expected.
+ * For WG ballot, the ePoll .csv format is expected.
+ */
+export async function uploadComments(user: User, ballot: Ballot, startCommentId: number, file: any) {
 	let comments: Partial<Comment>[];
 	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1;
 	if (ballot.Type === BallotType.SA) {
@@ -298,5 +342,5 @@ export async function uploadComments(user: User, ballot_id: number, startComment
 			throw new TypeError('Parse error: ' + error.toString());
 		}
 	}
-	return insertComments(user, ballot_id, comments);
+	return insertComments(user, ballot.id, comments);
 }

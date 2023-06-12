@@ -1,7 +1,7 @@
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 import { DateTime } from 'luxon';
-import { isPlainObject } from '../utils';
+import { isPlainObject, NotFoundError } from '../utils';
 
 import { getResultsCoalesced, ResultsSummary } from './results';
 import { CommentsSummary } from './comments';
@@ -9,6 +9,7 @@ import { CommentsSummary } from './comments';
 import { User, userIsWGAdmin } from './users';
 import { getOfficers } from './officers';
 import { Group } from './groups';
+import { AccessLevel } from '../auth/access';
 
 export type Ballot = {
     id: number;
@@ -88,12 +89,13 @@ export async function getBallot(id: number) {
 	const sql = getBallotsSQL + db.format(' WHERE b.id=?', [id]);
 	const [ballot] = await db.query({sql, dateStrings: true}) as Ballot[];
 	if (!ballot)
-		throw new Error(`No such ballot: ${id}`);
+		throw new NotFoundError(`No such ballot: ${id}`);
 	return ballot;
 }
 
 export async function getBallotWithNewResultsSummary(user: User, ballot_id: number) {
-	const {ballot} = await getResultsCoalesced(user, ballot_id);
+	let ballot = await getBallot(ballot_id);
+	ballot  = (await getResultsCoalesced(user, AccessLevel.ro, ballot)).ballot;
 	return ballot;
 }
 
@@ -182,17 +184,13 @@ function ballotEntry(ballot: Partial<Ballot>) {
 		entry.VotingPoolID = '';
 		entry.prev_id = ballot.prev_id;
 	}
-	else if (ballot.VotingPoolID) {
-		entry.VotingPoolID = ballot.VotingPoolID;
-		entry.prev_id = 0;
-	}
 
 	for (let key of Object.keys(entry)) {
 		if (entry[key] === undefined)
 			delete entry[key]
 	}
 
-	return Object.keys(entry).length? entry: null;
+	return entry;
 }
 
 function ballotSetSql(ballot: Partial<BallotDB>) {
@@ -216,18 +214,20 @@ function ballotSetSql(ballot: Partial<BallotDB>) {
  * @param ballot The ballot to be added
  * @returns The ballot as added
  */
-async function addBallot(user: User, ballot: Ballot) {
+async function addBallot(user: User, workingGroup: Group, ballot: Ballot) {
 
 	const entry = ballotEntry(ballot);
 
-	if (!entry || !entry.hasOwnProperty('BallotID') || !entry.hasOwnProperty('Project'))
-		throw new TypeError('Ballot must have BallotID and Project');
+	// If the group is not set, set to working group
+	if (!entry.groupId)
+		entry.groupId = workingGroup.id;
 
 	let id: number;
 	try {
-		const sql = 'INSERT INTO ballots SET ' + ballotSetSql(entry);
+		const sql = 'INSERT INTO ballots SET ' + 
+			db.format('workingGroupId=UUID_TO_BIN(?), ', [workingGroup.id]) +
+			ballotSetSql(entry);
 		const results = await db.query({sql, dateStrings: true}) as OkPacket;
-		//console.log(results)
 		id = results.insertId;
 	}
 	catch(err: any) {
@@ -239,11 +239,11 @@ async function addBallot(user: User, ballot: Ballot) {
 
 function validBallot(ballot: any): ballot is Ballot {
 	return isPlainObject(ballot) &&
-		typeof ballot.BallotID === 'string' &&
-		typeof ballot.Project === 'string';
+		ballot.BallotID && typeof ballot.BallotID === 'string' &&
+		ballot.Project && typeof ballot.Project === 'string';
 }
 
-function validBallots(ballots: any): ballots is Ballot[] {
+export function validBallots(ballots: any): ballots is Ballot[] {
 	return Array.isArray(ballots) && ballots.every(validBallot);
 }
 
@@ -254,11 +254,11 @@ function validBallots(ballots: any): ballots is Ballot[] {
  * @param ballots An array of ballots to be added
  * @returns An array of ballots as added
  */
-export async function addBallots(user: User, ballots: any) {
+export async function addBallots(user: User, workingGroup: Group, ballots: Ballot[]) {
 	if (!validBallots(ballots))
 		throw new TypeError("Bad or missing array of ballot objects");
 
-	return Promise.all(ballots.map(b => addBallot(user, b)));
+	return Promise.all(ballots.map(b => addBallot(user, workingGroup, b)));
 }
 
 /**
@@ -270,12 +270,13 @@ export async function addBallots(user: User, ballots: any) {
  * @param update.changes A partial ballot object that contains parameters to change.
  * @returns The ballot as updated
  */
-async function updateBallot(user: User, update: BallotUpdate) {
+async function updateBallot(user: User, workingGroup: Group, update: BallotUpdate) {
 	const {id, changes} = update;
 	const entry = ballotEntry(changes);
-
-	if (entry) {
-		const sql = 'UPDATE ballots SET ' + ballotSetSql(entry) + db.format(' WHERE id=?', [id]);
+	if (Object.keys(entry).length > 0) {
+		const sql = 'UPDATE ballots SET ' +
+			ballotSetSql(entry) +
+			db.format(' WHERE id=? AND workingGroupId=UUID_TO_BIN(?)', [id, workingGroup.id]);
 		const result = await db.query({sql, dateStrings: true}) as OkPacket;
 		if (result.affectedRows !== 1)
 			throw new Error(`Unexpected: no update for ballot with id=${id}`);
@@ -290,7 +291,7 @@ function validUpdate(update: any): update is BallotUpdate {
 		isPlainObject(update.changes);
 }
 
-function validUpdates(updates: any): updates is BallotUpdate[] {
+export function validBallotUpdates(updates: any): updates is BallotUpdate[] {
 	return Array.isArray(updates) && updates.every(validUpdate);
 }
 
@@ -301,50 +302,34 @@ function validUpdates(updates: any): updates is BallotUpdate[] {
  * @param updates An array of objects with shape {id, changes}
  * @returns An array of ballots as updated
  */
-export function updateBallots(user: User, updates: any) {
-	if (!validUpdates(updates))
-		throw new TypeError("Bad or missing array of updates; expected array of {id: number, changes: object}");
-	return Promise.all(updates.map(u => updateBallot(user, u)));
+export function updateBallots(user: User, workingGroup: Group, updates: BallotUpdate[]) {
+	return Promise.all(updates.map(u => updateBallot(user, workingGroup, u)));
 }
 
-function validIds(ids: any): ids is number[] {
+export function validBallotIds(ids: any): ids is number[] {
 	return Array.isArray(ids) && ids.every(id => typeof id === 'number');
 }
 
 /**
  * Delete ballots along with associated comments, resolutions and results
  * 
- * @param user The user executing the delete.
- * @param ids An array of ballot identifiers that identify the ballots to delete
+ * @param user - The user executing the delete.
+ * @param workingGroup - The working group from path
+ * @param ids - An array of ballot identifiers that identify the ballots to delete
  */
-export async function deleteBallots(user: User, ids: number[]) {
-	if (!validIds(ids))
-		throw new TypeError("Bad or missing array of ballot identifiers; expect number[]");
-
-	await db.query(
-		'START TRANSACTION;' +
-		db.format('DELETE r FROM comments c JOIN resolutions r ON c.id=r.comment_id WHERE c.ballot_id IN (?);', [ids]) +
-		db.format('DELETE FROM comments WHERE ballot_id IN (?);', [ids]) +
-		db.format('DELETE FROM results WHERE ballot_id IN (?);', [ids]) +
-		db.format('DELETE FROM ballots WHERE id IN (?);', [ids]) +
-		'COMMIT;'
-	);
-
+export async function deleteBallots(user: User, workingGroup: Group, ids: number[]) {
+	// Make sure the ids are owned by the working group
+	const ballots = await db.query('SELECT id WHERE id IN (?) AND workingGroupId=UUID_TO_BIN(?)', [ids, workingGroup.id]) as {id: number}[];
+	if (ballots.length > 0) {
+		ids = ballots.map(b => b.id);
+		await db.query(
+			'START TRANSACTION;' +
+			db.format('DELETE r FROM comments c JOIN resolutions r ON c.id=r.comment_id WHERE c.ballot_id IN (?);', [ids]) +
+			db.format('DELETE FROM comments WHERE ballot_id IN (?);', [ids]) +
+			db.format('DELETE FROM results WHERE ballot_id IN (?);', [ids]) +
+			db.format('DELETE FROM ballots WHERE id IN (?);', [ids]) +
+			'COMMIT;'
+		);
+	}
 	return null;
-}
-
-export async function getBallotPermissions(user: User, ballot_id: number) {
-	let permissions: string[] = [];
-	if (userIsWGAdmin(user)) {
-		permissions = ["ballot_rw", "voters_rw", "results_rw", "comments_rw"];
-	}
-	else {
-		const ballot  = await getBallot(ballot_id);
-		if (ballot?.groupId) {
-			const officers = await getOfficers({group_id: ballot.groupId});
-			if (officers.find(officer => officer.sapin === user.SAPIN))
-				permissions = ["ballot_ro", "voters_ro", "results_rw", "comments_rw"];
-		}
-	}
-	return { [ballot_id]: permissions };
 }

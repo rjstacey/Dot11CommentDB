@@ -36,6 +36,8 @@
  */
 import {Router} from 'express';
 import Multer from 'multer';
+import { isPlainObject } from '../utils';
+import { AccessLevel } from '../auth/access';
 import {
 	addResolutions,
 	updateResolutions,
@@ -45,37 +47,65 @@ import {
 	validResolutionUpdates,
 } from '../services/resolutions';
 import {
-	validToUpdate,
-	validMatchAlgo,
-	validMatchUpdate,
 	toUpdateOptions,
 	matchAlgoOptions,
 	matchUpdateOptions,
+	FieldToUpdate,
+	MatchAlgo,
+	MatchUpdate,
 	uploadResolutions,
 } from '../services/uploadResolutions';
 
 const upload = Multer();
 const router = Router();
 
-function validModifiedSince(modifiedSince: any): modifiedSince is string | undefined {
-	return typeof modifiedSince === 'undefined' || typeof modifiedSince == 'string';
+const validModifiedSince = (modifiedSince: any): modifiedSince is string | undefined => typeof modifiedSince === 'undefined' || typeof modifiedSince == 'string';
+
+const validToUpdate = (toUpdate: any): toUpdate is FieldToUpdate[] => Array.isArray(toUpdate) && toUpdate.every(f => toUpdateOptions.includes(f));
+const validMatchAlgo = (o: unknown): o is MatchAlgo => typeof o === 'string' && matchAlgoOptions.includes(o as any);
+const validMatchUpdate = (f: unknown): f is MatchUpdate => typeof f === 'string' && matchUpdateOptions.includes(f as any);
+
+function validateUploadParams(params: any): asserts params is {toUpdate: FieldToUpdate[], matchAlgorithm: MatchAlgo, matchUpdate: MatchUpdate, sheetName: string} {
+	if (isPlainObject(params))
+		throw new TypeError("Bad body; extected params to be object with shape {toUpdate, matchAlgorithm, matchUpdate, sheetName}");
+	if (!validToUpdate(params.toUpdate))
+		throw new TypeError(`Bad body; expected toUpdate to be an array that is a subset of [${toUpdateOptions.join(', ')}].`);
+	if (!validMatchAlgo(params.matchAlgorithm))
+		throw new TypeError(`Bad body; expected matchAlgorithm to be one of ${matchAlgoOptions.join(', ')}.`);
+	if (!validMatchUpdate(params.matchUpdate))
+		throw new TypeError(`Bad body; expected matchUpdate to be one of ${matchUpdateOptions.join(', ')}.`);
+	if (typeof params.sheetName !== 'string')
+		throw new TypeError("Bad body; expected sheetName to be a string.");
 }
 
 router
-	.post('/upload$', upload.single('ResolutionsFile'), async (req, res, next) => {
+	.all('*', (req, res, next) => {
+		const access = req.group?.permissions.comments || AccessLevel.none;
+
+		if (req.method === "GET" && access >= AccessLevel.ro)
+			return next();
+		// Need read-write privileges to update resolutions
+		if (req.method === "PATCH" && access >= AccessLevel.rw)
+			return next();
+		// Need admin privileges to add or delete resolutions
+		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
+			return next();
+		res.status(403).send('Insufficient karma');
+	})
+	.post('/upload', upload.single('ResolutionsFile'), (req, res, next) => {
 		const ballot_id = req.ballot!.id;
-		const {toUpdate, matchAlgorithm, matchUpdate, sheetName} = JSON.parse(req.body.params);
-		if (!validMatchAlgo(matchAlgorithm))
-			return next(new TypeError(`Missing or bad matchAlgorithm body parameter: ${matchAlgorithm}; expected one of ${matchAlgoOptions.join(', ')}.`));
-		if (!validMatchUpdate(matchUpdate))
-			return next(new TypeError(`Missing or bad matchUpdate body parameter: ${matchUpdate}. Valid options are ${matchUpdateOptions.join(', ')}.`));
-		if (typeof sheetName !== 'string')
-			return next(new TypeError("Missing or bad sheetName body parameter; expected string."));
-		if (!validToUpdate(toUpdate))
-			return next(new TypeError(`Missing or bad toUpdate body parameter: ${toUpdate}; expected an array that is a subset of [${toUpdateOptions.join(', ')}].`));
-		if (!req.file)
-			return next(new TypeError('Missing file'));
-		uploadResolutions(req.user, ballot_id, toUpdate, matchAlgorithm, matchUpdate, sheetName, req.file)
+		if (typeof req.body.params !== 'string' || !req.file)
+			return next(new TypeError("Bad body; expected multipart with file in ResolutionsFile and JSON in params"));
+
+		let params: any;
+		try {
+			params = JSON.parse(req.body.params);
+			validateUploadParams(params);
+		}
+		catch (error) {
+			return next(error);
+		}
+		uploadResolutions(req.user, ballot_id, params.toUpdate, params.matchAlgorithm, params.matchUpdate, params.sheetName, req.file)
 			.then(data => res.json(data))
 			.catch(next);
 	})

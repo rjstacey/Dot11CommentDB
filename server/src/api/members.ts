@@ -187,10 +187,9 @@ router.post('/MyProjectRoster$', upload.single('File'), async (req, res, next) =
 });
 
 router.get('/MyProjectRoster$', async (req, res, next) => {
-	try {
-		exportMyProjectRoster(res);
-	}
-	catch(err) {next(err)}
+	exportMyProjectRoster(req.user, res)
+		.then(() => res.end())
+		.catch(next)
 });
 
 

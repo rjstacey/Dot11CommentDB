@@ -2,7 +2,7 @@
 import { v4 as uuid } from 'uuid';
 
 import db from '../utils/database';
-import { User } from './users';
+import type { User } from './users';
 import { parseCommentsSpreadsheet } from './commentsSpreadsheet';
 import { getComments, getCommentsSummary, Comment, CommentResolution } from './comments';
 import type { Resolution } from './resolutions';
@@ -183,40 +183,22 @@ const matchCID: MatchFunc = function(sheetComments, dbComments) {
 	return [matched, dbCommentsRemaining, sheetCommentsRemaining];
 }
 
-/*const FieldsToUpdate = {
-	CID: 'cid',
-	ClausePage: 'clausepage',
-	AdHoc: 'adhoc',
-	Assignee: 'assignee',
-	Resolution: 'resolution',
-	Editing: 'editing'
-};*/
 
 export const toUpdateOptions = ["cid", "clausepage", "adhoc", "assignee", "resolution", "editing"] as const;
-type FieldToUpdate = typeof toUpdateOptions[number];
-//const isFieldToUpdate = (f: unknown): f is FieldToUpdate => typeof f === 'string' && fieldsToUpdate.includes(f as any);
+export type FieldToUpdate = typeof toUpdateOptions[number];
 
-export function validToUpdate(toUpdate: any): toUpdate is FieldToUpdate[] {
-	return Array.isArray(toUpdate) && toUpdate.every(f => toUpdateOptions.includes(f));
-}
+export const matchAlgoOptions = ["cid", "comment", "elimination"] as const;
+export type MatchAlgo = typeof matchAlgoOptions[number];
+
+export const matchUpdateOptions = ["all", "any", "add"] as const;
+export type MatchUpdate = typeof matchUpdateOptions[number];
 
 type MatchFunc = (sheetComments: CommentResolution[], dbComments: CommentResolution[]) => readonly [CommentMatch[], CommentResolution[], CommentResolution[]];
-
 const MatchAlgoFunctions: Record<MatchAlgo, MatchFunc> = {
 	'cid': matchCID,
 	'comment': matchComment,
 	'elimination': matchByElimination
 } as const;
-
-export const matchAlgoOptions = ["cid", "comment", "elimination"] as const;
-type MatchAlgo = typeof matchAlgoOptions[number];
-
-export const validMatchAlgo = (o: unknown): o is MatchAlgo => typeof o === 'string' && matchAlgoOptions.includes(o as any);
-
-export const matchUpdateOptions = ["all", "any", "add"] as const;
-type MatchUpdate = typeof matchUpdateOptions[number];
-
-export const validMatchUpdate = (f: unknown): f is MatchUpdate => typeof f === 'string' && matchUpdateOptions.includes(f as any);
 
 type CommentUpdate = {
 	CommentID: Comment["CommentID"];

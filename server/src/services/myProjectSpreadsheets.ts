@@ -5,9 +5,10 @@ import ExcelJS from 'exceljs';
 import { csvParse, validateSpreadsheetHeader } from '../utils';
 import { fromHtml } from './commentsSpreadsheet';
 import type { Response } from 'express';
-import type { Comment, CommentResolution } from './comments';
+import { Comment, CommentResolution, getComments } from './comments';
 import type { Member } from './members';
 import type { Result } from './results';
+import { User } from './users';
 
 const myProjectCommentsHeader = [
 	'Comment ID', 'Date', 'Comment #', 'Name', 'Email', 'Phone', 'Style', 'Index #', 'Classification', 'Vote',
@@ -95,7 +96,7 @@ const mapResnStatus = {
 /*
  * Add approved resolutions to an existing MyProject comment spreadsheet
  */
-export async function myProjectAddResolutions(buffer: Buffer, dbComments: CommentResolution[], res: Response) {
+async function myProjectAddResolutions(buffer: Buffer, dbComments: CommentResolution[], res: Response) {
 
 	let workbook = new ExcelJS.Workbook();
 	try {
@@ -133,13 +134,21 @@ export async function myProjectAddResolutions(buffer: Buffer, dbComments: Commen
 		}
 	});
 
-	try {
-		await workbook.xlsx.write(res);
-	}
-	catch(err) {
-		throw new Error("Unable to regenerate workbook: " + err);
-	}
+	return workbook.xlsx.write(res);
 }
+
+export async function exportResolutionsForMyProject(
+	ballot_id: number,
+	file: {buffer: Buffer},
+	res: Response
+) {
+	const comments = (await getComments(ballot_id))
+		.filter(c => c.ResnStatus && c.ApprovedByMotion);
+	
+	res.attachment('comments_resolved.xlsx');
+	return myProjectAddResolutions(file.buffer, comments, res);
+}
+
 
 /**
  * The myProject .xlsx file has "Affiliations(s)" while the .csv has "Affiliation(s)"
@@ -310,12 +319,12 @@ export async function parseMyProjectRosterSpreadsheet(buffer: Buffer) {
 /*
  * generate MyProject roster spreadsheet
  */
-export async function genMyProjectRosterSpreadsheet(members: Member[], res: Response) {
+export async function genMyProjectRosterSpreadsheet(user: User, members: Member[], res: Response) {
 
 	let workbook = new ExcelJS.Workbook()
-	workbook.creator = '802.11'
+	workbook.creator = user.Name;
 	workbook.created = new Date();
-	workbook.lastModifiedBy = '802.11';
+	workbook.lastModifiedBy = user.Name;
 	workbook.modified = new Date();
 
 	let worksheet = workbook.addWorksheet('Roster Upload Template');
@@ -334,10 +343,5 @@ export async function genMyProjectRosterSpreadsheet(members: Member[], res: Resp
 	});
 
 	res.attachment('RosterUsers.xlsx');
-	try {
-		await workbook.xlsx.write(res);
-	}
-	catch(err) {
-		throw new Error("Unable to regenerate workbook: " + err);
-	}
+	return workbook.xlsx.write(res);
 }

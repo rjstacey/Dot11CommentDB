@@ -1,62 +1,59 @@
 /*
  * Comments API
  *
- * GET /{ballotId}
+ * For the comments routes, req includes the following
+ *   ballot: Ballot	- The ballot associated with the comments
+ *   group?: Group - The group associated with the ballot (if configured)
+ *   workingGroup?: Group - The working group associated with the ballot (if configure)
+ * 
+ * GET /?modifiedSince
  *		Get list of comments for given ballot
- *		Query string paramters:
- *			modifiedSince:string - Optional date as ISO string.
+ *		Query paramters:
+ *			modifiedSince?: string - Optional ISO datetime.
  *		Return an array with all comments for a given ballot. If the modifiedSince parameter is provided, then returns comments for the given ballot
  *		that were modified after the modifiedSince timestamp.
  *
- * PATCH /{ballotId}
- *		Update comments
- *		URL parameters:
- *			ballotId:any 			Identifies the ballot
+ * PATCH /?modifiedSince
+ *		Update comments for a given ballot
+ *		Query paramters:
+ *			modifiedSince?: string - Optional ISO datetime
  *		Body is object with parameters:
  *			updates:array 			Array of objects with shape {id:any, changes:object}
  *			ballot_id				The ballot identifier
  *			modifiedSince:string 	Optional. Datetime in ISO format.
- *		Returns an array of resolution objects that were updated after the modidifiedSince timestamp.
+ *		Returns an array of comment resolution objects that were updated. If the modifiedSince parameter is provided, then additionally returns
+ *		comment for the given ballot that were modified after the modifiedSince timestamp.
  *
- * PATCH /{ballotId}/startCommentId
- *		Renumber comments
- *		URL parameters:
- *			ballotId:any 	Identifies the ballot
- *		Body is object with parameters:
- *			StartCommentID:number 	The number to begin comment numbering from
- *		Returns an array of resolution objects that is the complete list of resolutions for the identified ballot.
- *
- * DELETE /{ballotId}
+ * DELETE /
  *		Delete all comments (and resolutions) for a given ballot
- *		URL parameters:
- *			ballotId:any 	Identifies the ballot
  *
- * POST /{ballotId}/importFromEpoll/{epollNum}
- * 		Replace existing comments (if any) with comments imported from an ePoll ballot
- *		URL parameters:
- *			ballotId:any 	Identifies the ballot
- *			epollNum:number Identifies teh ePoll
- *		Returns an array of resolution objects that is the complete list of resolutions for the identified ballot.
+ * PATCH /startCommentId
+ *		Renumber comments
+ *		Body is object with parameters:
+ *			startCommentID: number 	The number to begin comment numbering from
+ *		Returns an array of comment resolution objects that is the complete list of comment resolutions for the given ballot.
  *
- * POST /{ballotId}/upload
- *		Import comments from a file
- *		URL parameters:
- *			ballotId:any 	Identifies the ballot
+ * POST /import
+ * 		Replace existing comments (if any) with comments imported from an ePoll ballot. The associated ballot must have an ePoll number configured.
+ *		Returns an array of comment resolution objects that is the complete list of comment resolutions for the identified ballot.
+ *
+ * POST /upload
+ *		Replace existing comments (if any) with comments from a file
  *		Multipart body parameters:
  *			The spreadsheet file
- *			params - a JSON object {StartCID:number}
+ *			params - a JSON object {startCommentId?: number}
  *		The format of the spreadsheet file is determined by the ballot type.
  *		For an SA ballot, the file is MyProject format.
  *		For WG ballot, the file is ePoll comments .csv file.
- *		Returns an array of resolution objects that is the complete list of resolutions for the identified ballot.
+ *		Returns an array of comment resolution objects that is the complete list of comment resolutions for the identified ballot.
  *
- * POST /{ballotId}/export/{format} Multipart: file
- *		Export comments for a given ballot in specified format.
- *		URL parameters:
- *			format:string 	One of 'MyProject', 'Legacy', or 'Modern'
+ * POST /export?format
+ *		Export comments for the given ballot in specified format.
+ *		Query parameters:
+ *			format: 'myproject' | 'legacy' | 'modern' -- format for the exported spreadsheet
  *		Multipart body parameters:
- *			spreadsheet file - optional for @format == 'Legacy' and @format == 'Modern', mandatory for @format == 'MyProject'
- *			params - JSON object {Filename:string, Style:string}
+ *			spreadsheet file - optional for @format == 'legacy' and @format == 'modern', mandatory for @format == 'myproject'
+ *			params - JSON object with shape style: string}
  *		If the spreadsheet is provided, then the spreadsheet is updated with the resolutions
  *		Returns an array of resolution objects that is the complete list of resolutions for the identified ballot.
  *
@@ -73,26 +70,113 @@ import {
 	importEpollComments,
 	uploadComments,
 } from '../services/comments';
-import {
-	exportResolutionsForMyProject,
-	exportSpreadsheet
-} from '../services/resolutions';
+import { exportResolutionsForMyProject } from '../services/myProjectSpreadsheets';
+import { exportCommentsSpreadsheet, commentSpreadsheetStyles, CommentSpreadsheetStyle } from '../services/commentsSpreadsheet';
 
 const upload = Multer();
 const router = Router();
 
+function validUploadParams(params: any): params is {startCommentId?: number} {
+	return isPlainObject(params) &&
+		typeof params.startCommentId === 'undefined' || typeof params.startCommentId === 'number';
+}
+
+function validateExportParams(params: any): asserts params is {style: CommentSpreadsheetStyle} {
+	if (!isPlainObject(params) || !commentSpreadsheetStyles.includes(params.style))
+		throw new TypeError(`Bad body; extected params to be object with shape {style: ${commentSpreadsheetStyles.map(s => '"' + s + '"').join(" | ")}}`);
+}
+
+const commentsSpreadsheetFormats = ["legacy", "modern", "myproject"] as const;
+type CommentsSpreadsheetForamt = typeof commentsSpreadsheetFormats[number];
+const validCommentSpreadsheetFormat = (format: any): format is CommentsSpreadsheetForamt => commentsSpreadsheetFormats.includes(format);
+
 router
 	.all('*', (req, res, next) => {
-		const access = req.group?
-			req.group.permissions.comments:
-			req.workingGroup?.permissions.comments || AccessLevel.none;
+		const access = req.group?.permissions.comments || AccessLevel.none;
 		if (req.method === "GET" && access >= AccessLevel.ro)
 			return next();
+		// Need read-only privileges to export comments
+		if (req.method === "POST" && req.path.search(/^\/export/i) >= 0 && access >= AccessLevel.ro)
+			return next();
+		// Need read-write privileges to update comments
 		if (req.method === "PATCH" && access >= AccessLevel.rw)
 			return next();
+		// Need admin privileges to delete or add comments
 		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
 			return next();
 		res.status(403).send('Insufficient karma');
+	})
+	.patch('/startCommentId', (req, res, next) => {
+		const ballot_id = req.ballot!.id;
+		if (!validUploadParams(req.body))
+			return next(new TypeError("Bad body; expected object with shape {startCommentId?: number}"));
+		const startCommentId = req.body.startCommentId || 1;
+		setStartCommentId(req.user, ballot_id, startCommentId)
+			.then(data => res.json(data))
+			.catch(next);
+	})
+	.post('/import', (req, res, next) => {
+		const ballot = req.ballot!;
+		if (!validUploadParams(req.body))
+			return next(new TypeError("Bad body; expected object with shape {startCommentId?: number}"));
+		const startCommentId = req.body.startCommentId || 1;
+		importEpollComments(req.user, ballot, startCommentId)
+			.then(data => res.json(data))
+			.catch(next);
+	})
+	.post('/upload', upload.single('CommentsFile'), (req, res, next) => {
+		let params: any;
+		try {
+			if (typeof req.body.params !== 'string')
+				throw new TypeError("Bad multipart body; expected part params to contain JSON string");
+			params = JSON.parse(req.body.params);
+			if (!validUploadParams(params))
+				throw new TypeError("Bad multipart body; expected params part to be JSON object with shape {startCommentId?: number}");
+		}
+		catch (error) {
+			return next(error);
+		}
+
+		if (!req.file)
+			return next(new TypeError("Bad multipart body; missing file"));
+
+		const startCommentId = params.startCommentId || 1;
+		uploadComments(req.user, req.ballot!, startCommentId, req.file)
+			.then(data => res.json(data))
+			.catch(next);
+	})
+	.post('/export', upload.single('file'), (req, res, next) => {
+		let format: CommentsSpreadsheetForamt = "legacy";
+		if (typeof req.query.format === 'string') {
+			let formatIn = req.query.format.toLowerCase();
+			if (!validCommentSpreadsheetFormat(formatIn))
+				return next(new TypeError("Invalid format; expected one of " + commentsSpreadsheetFormats.join(", ")));
+			format = formatIn;
+		}
+
+		if (format === "myproject") {
+			if (!req.file)
+				return next(new TypeError('Missing file'));
+			exportResolutionsForMyProject(req.ballot!.id, req.file, res)
+				.then(() => res.end())
+				.catch(err => next(err));
+		}
+		else {
+			let params: any;
+			try {
+				if (typeof req.body.params !== 'string')
+					throw new TypeError("Bad multipart body; expected part params to contain JSON string");
+				params = JSON.parse(req.body.params);
+				validateExportParams(params);
+			}
+			catch (error) {
+				return next(error);
+			}
+			const isLegacy = format === "legacy";
+			exportCommentsSpreadsheet(req.user, req.ballot!, isLegacy, params.style, req.file, res)
+				.then(() => res.end())
+				.catch(err => next(err));
+		}
 	})
 	.route('/')
 		.get((req, res, next) => {
@@ -116,62 +200,5 @@ router
 				.catch(next);
 		})
 
-router.patch('/startCommentId', async (req, res, next) => {
-	const ballot_id = req.ballot!.id;
-	if (!isPlainObject(req.body) || typeof req.body.StartCommentID !== 'number')
-		return next(new TypeError("Expected body with shape {StartCommentID: number}"));
-	const {StartCommentID} = req.body;
-	setStartCommentId(req.user, ballot_id, StartCommentID)
-		.then(data => res.json(data))
-		.catch(next);
-});
-
-router.post('/importFromEpoll/:epollNum(\\d+)', async (req, res, next) => {
-	const ballot_id = req.ballot!.id;
-	const epollNum = Number(req.params.epollNum);
-	if (!isPlainObject(req.body) || ('StartCID' in req.body && typeof req.body.StartCID !== 'number'))
-		return next(new TypeError("Expected body with shape {StartCID?: number}"));
-	const startCommentId = req.body.StartCID || 1;
-	importEpollComments(req.user, ballot_id, epollNum, startCommentId)
-		.then(data => res.json(data))
-		.catch(next);
-});
-
-router.post('/upload', upload.single('CommentsFile'), async (req, res, next) => {
-	const ballot_id = req.ballot!.id;
-	if (!req.file)
-		return next(new TypeError('Missing file'));
-	if (!isPlainObject(req.body) || ('StartCID' in req.body && typeof req.body.StartCID !== 'number'))
-		return next(new TypeError("Expected body with shape {StartCID?: number}"));
-	const startCommentId = req.body.StartCID || 1;
-	uploadComments(req.user, ballot_id, startCommentId, req.file)
-		.then(data => res.json(data))
-		.catch(next);
-});
-
-const commentSpreadsheetFormats = ["myproject", "legacy", "modern"] as const;
-type CommentSpreadsheetFormat = typeof commentSpreadsheetFormats[number];
-const validCommentSpreadsheetFormat = (f: any): f is CommentSpreadsheetFormat => commentSpreadsheetFormats.includes(f);
-
-router.post('/export/:format', upload.single('file'), (req, res, next) => {
-	const ballot_id = req.ballot!.id;
-	const format = req.params.format.toLowerCase();
-	if (!validCommentSpreadsheetFormat(format))
-		return next(new TypeError(`Unexpected format: ${format}. Expect one of ${commentSpreadsheetFormats.join(', ')}.`));
-	const {Filename, Style} = JSON.parse(req.body.params);
-	if (format === "myproject") {
-		if (!req.file)
-			return next(new TypeError('Missing file'));
-		exportResolutionsForMyProject(ballot_id, Filename, req.file, res)
-			.catch(err => next(err));
-	}
-	else {
-		let isLegacy = format === 'legacy';
-		if (!Style)
-			return next(new TypeError('Missing parameter Style'));
-		exportSpreadsheet(req.user, ballot_id, Filename, isLegacy, Style, req.file, res)
-			.catch(err => next(err));
-	}
-});
 
 export default router;
