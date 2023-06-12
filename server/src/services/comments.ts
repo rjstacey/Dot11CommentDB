@@ -207,13 +207,11 @@ function validUpdate(update: any): update is CommentUpdate {
 		isPlainObject(update.changes);
 }
 
-function validUpdates(updates: any): updates is CommentUpdate[] {
+export function validUpdates(updates: any): updates is CommentUpdate[] {
 	return Array.isArray(updates) && updates.every(validUpdate);
 }
 
-export async function updateComments(user: User, ballot_id: number, updates: any, modifiedSince?: string) {
-	if (!validUpdates(updates))
-		throw new TypeError('Expected array of objects with shape {id, changes}');
+export async function updateComments(user: User, ballot_id: number, updates: CommentUpdate[], modifiedSince?: string) {
 
 	await Promise.all(updates.map(u => updateComment(user, ballot_id, u.id, u.changes)));
 

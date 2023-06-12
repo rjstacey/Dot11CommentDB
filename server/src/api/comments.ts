@@ -69,6 +69,7 @@ import {
 	deleteComments,
 	importEpollComments,
 	uploadComments,
+	validUpdates
 } from '../services/comments';
 import { exportResolutionsForMyProject } from '../services/myProjectSpreadsheets';
 import { exportCommentsSpreadsheet, commentSpreadsheetStyles, CommentSpreadsheetStyle } from '../services/commentsSpreadsheet';
@@ -180,22 +181,22 @@ router
 	})
 	.route('/')
 		.get((req, res, next) => {
-			const ballot_id = req.ballot!.id;
 			const modifiedSince = typeof req.query.modifiedSince === 'string'? req.query.modifiedSince: undefined;
-			getComments(ballot_id, modifiedSince)
+			getComments(req.ballot!.id, modifiedSince)
 				.then(data => res.json(data))
 				.catch(next)
 		})
 		.patch((req, res, next) => {
-			const ballot_id = req.ballot!.id;
 			const modifiedSince = typeof req.query.modifiedSince === 'string'? req.query.modifiedSince: undefined;
-			updateComments(req.user, ballot_id, req.body, modifiedSince)
+			const updates = req.body;
+			if (!validUpdates(updates))
+				return next(new TypeError('Bad or missing updates; expected an array of objects with shape {id, changes}'));
+			updateComments(req.user, req.ballot!.id, updates, modifiedSince)
 				.then(data => res.json(data))
 				.catch(next);
 		})
 		.delete((req, res, next) => {
-			const ballot_id = req.ballot!.id;
-			deleteComments(req.user, ballot_id)
+			deleteComments(req.user, req.ballot!.id)
 				.then(data => res.json(data))
 				.catch(next);
 		})
