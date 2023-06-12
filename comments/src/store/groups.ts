@@ -88,7 +88,10 @@ export const selectGroups = (state: RootState) => {
 		.filter(group => group.id === workingGroupId || group.parent_id === workingGroupId);
 }
 export const selectGroup = (state: RootState, groupId: string) => selectGroupEntities(state)[groupId];
-export const selectWorkingGroups = (state: RootState) => selectGroups(state).filter(g => g.type === 'wg');
+export const selectWorkingGroups = (state: RootState) => {
+	const {ids, entities} = selectGroupsState(state);
+	return ids.map(id => entities[id]!).filter(g => g.type === 'wg');
+}
 export const selectWorkingGroupId = (state: RootState) => selectGroupsState(state).workingGroupId;
 export const selectWorkingGroup = (state: RootState) => {
 	const {workingGroupId, entities} = selectGroupsState(state);

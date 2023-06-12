@@ -1,12 +1,11 @@
 import React from 'react';
-import styled from '@emotion/styled';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 
 import { Account, Dropdown, Button } from 'dot11-components';
 
 import LiveUpdateSwitch from './LiveUpdateSwitch';
 import OnlineIndicator from './OnlineIndicator';
-import PathWorkingGroupSelector from '../components/PathWorkingGroupSelector';
+import PathWorkingGroupSelector from './PathWorkingGroupSelector';
 
 import './header.css';
 
@@ -64,7 +63,6 @@ function NavMenu({
 	const BallotID = useAppSelector(selectCurrentBallotID);
 	const workingGroup = useAppSelector(selectWorkingGroup);
 	const permissions = useAppSelector(selectWorkingGroupPermissions);
-	console.log(permissions)
 
 	let classNames = 'nav-menu';
 	if (className)
@@ -92,41 +90,6 @@ function NavMenu({
 	)
 }
 
-const Title = styled.div`
-	font-family: "Arial", "Helvetica", sans-serif;
-	font-weight: 400;
-	font-size: 24px;
-	color: #008080;
-    border: unset;
-    background-color: unset;
-	padding: 0;
-	margin: 5px;
-	:hover {
-		cursor: pointer;
-	}
-`;
-
-const WorkingGroupSelector = Title.withComponent(PathWorkingGroupSelector);
-
-function WorkingGroupTitle() {
-	const navigate = useNavigate();
-	const location = useLocation();
-	const workingGroup = useAppSelector(selectWorkingGroup);
-
-	const isRoot = /^\/[^/]*$/.test(location.pathname);
-	const placeholder = workingGroup? "": "Select working group...";
-
-	return isRoot?
-		<WorkingGroupSelector
-			placeholder={placeholder}
-		/>:
-		<Title
-			onClick={() => navigate('/' + (workingGroup?.name || ''))}
-		>
-			{(workingGroup? workingGroup.name: '') + ' CR'}
-		</Title>
-}
-
 const smallScreenQuery = window.matchMedia('(max-width: 992px');
 
 function Header() {
@@ -146,7 +109,7 @@ function Header() {
 	return (
 		
 		<header className='header'>
-			<WorkingGroupTitle />
+			<PathWorkingGroupSelector />
 
 			{isSmall &&
 				<Dropdown

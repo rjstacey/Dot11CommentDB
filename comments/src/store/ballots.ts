@@ -303,7 +303,6 @@ const {
 	getSuccess,
 	getFailure,
 	addOne,
-	updateOne,
 	updateMany,
 	setOne,
 	removeMany,
@@ -403,8 +402,6 @@ export const getBallots = (): AppThunk<Ballot[]> =>
 			return dispatch(loadBallots());
 		return ids.map(id => entities[id]!);
 	}
-
-export const updateBallotSuccess = (id: EntityId, changes: Partial<Ballot>) => updateOne({id, changes});
 
 export const updateBallot = (id: number, changes: Partial<Ballot>): AppThunk =>
 	async (dispatch, getState) => {
