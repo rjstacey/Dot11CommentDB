@@ -7,14 +7,14 @@ import { get, set, del } from 'idb-keyval';
 import { errorsSlice } from 'dot11-components';
 
 import { createUserSlice, User } from './user';
-import membersSlice, {loadMembers} from './members';
-import ballotsSlice, {loadBallots} from './ballots';
+import groupsSlice, {initGroups} from './groups';
+import membersSlice, {initMembers} from './members';
+import ballotsSlice, {initBallots} from './ballots';
 import epollsSlice from './epolls';
 import commentsSlice from './comments';
 import commentsHistorySlice from './commentsHistory';
 import resultsSlice from './results';
 import votersSlice from './voters';
-import groupsSlice, {loadGroups} from './groups';
 import offlineSlice, {registerOffline} from './offline';
 import liveUpdateSlice, {registerLiveUpdate} from './liveUpdate';
 
@@ -118,9 +118,9 @@ export function configureStore(user: User) {
 		registerLiveUpdate(store);
 
 		// After hydrate, load the latest
-		store.dispatch(loadGroups({type: "wg"}));
-		store.dispatch(loadMembers());
-		store.dispatch(loadBallots());
+		store.dispatch(initGroups());
+		store.dispatch(initMembers());
+		store.dispatch(initBallots());
 	});
 
 	return {store, persistor, reducer: rootReducer}

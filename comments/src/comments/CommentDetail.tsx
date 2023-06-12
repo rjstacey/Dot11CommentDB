@@ -31,10 +31,10 @@ import {
 	ResnStatusType,
 	ResolutionUpdate,
 	ResolutionCreate,
-	Comment
+	Comment,
+	selectCommentsAccess
 } from '../store/comments';
-import { selectUserAccessLevel, AccessLevel, selectUser } from '../store/user';
-import { selectHasCommentsRW } from '../store/ballots';
+import { AccessLevel, selectUser } from '../store/user';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
@@ -930,12 +930,8 @@ type PropsIn = {
 const connector = connect(
 	(state: RootState, props: PropsIn) => {
 		const user = selectUser(state);
-		const {ballot_id, entities, loading, selected, ui: uiProperties} = selectCommentsState(state);
-		let access = selectUserAccessLevel(state);
-		if (access <= AccessLevel.ro) {
-			if (selectHasCommentsRW(state, ballot_id))
-				access = AccessLevel.rw;
-		}
+		const {entities, loading, selected, ui: uiProperties} = selectCommentsState(state);
+		let access = selectCommentsAccess(state);
 		return {
 			entities,
 			loading,

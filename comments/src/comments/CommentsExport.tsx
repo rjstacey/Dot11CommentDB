@@ -21,18 +21,18 @@ function CommentsExportDropdown({
 	const dispatch = useAppDispatch();
 	const fileRef = React.useRef<HTMLInputElement>(null);
 	const [errMsg, setErrMsg] = React.useState('');
-	const [spreadsheetFormat, setSpreadsheetFormat] = React.useState(CommentsSpreadsheetFormat.Modern);
-	const [spreadsheetStyle, setSpreadsheetStyle] = React.useState(CommentsSpreadsheetStyle.AllComments);
+	const [spreadsheetFormat, setSpreadsheetFormat] = React.useState<CommentsSpreadsheetFormat>("modern");
+	const [spreadsheetStyle, setSpreadsheetStyle] = React.useState<CommentsSpreadsheetStyle>("AllComments");
 	const [busy, setBusy] = React.useState(false);
 
 	async function submit() {
-		const file = fileRef.current?.files![0];
-		if (spreadsheetFormat === CommentsSpreadsheetFormat.MyProject && !file) {
+		const file = fileRef.current!.files![0];
+		if (spreadsheetFormat === "myproject" && !file) {
 			setErrMsg('Select MyProject comment spreadsheet file');
 			return;
 		}
 		setBusy(true);
-		await dispatch(exportCommentsSpreadsheet(ballot.id, file, spreadsheetFormat, spreadsheetStyle));
+		await dispatch(exportCommentsSpreadsheet(ballot.id, spreadsheetFormat, spreadsheetStyle, file));
 		setBusy(false);
 		methods.close();
 	}
@@ -52,36 +52,36 @@ function CommentsExportDropdown({
 					<ListItem>
 						<input
 							type="radio"
-							id={CommentsSpreadsheetFormat.Modern}
+							id="modern"
 							title={'Modern format'}
-							checked={spreadsheetFormat === CommentsSpreadsheetFormat.Modern}
-							onChange={e => setSpreadsheetFormat(CommentsSpreadsheetFormat.Modern)}
+							checked={spreadsheetFormat === "modern"}
+							onChange={e => setSpreadsheetFormat("modern")}
 						/>
-						<label htmlFor={CommentsSpreadsheetFormat.Modern}>
+						<label htmlFor="modern">
 							Modern spreadsheet
 						</label>
 					</ListItem>
 					<ListItem>
 						<input
 							type="radio"
-							id={CommentsSpreadsheetFormat.Legacy}
+							id="legacy"
 							title={'Legacy format; compatible APS Comments Access Database.'}
-							checked={spreadsheetFormat === CommentsSpreadsheetFormat.Legacy}
-							onChange={e => setSpreadsheetFormat(CommentsSpreadsheetFormat.Legacy)}
+							checked={spreadsheetFormat === "legacy"}
+							onChange={e => setSpreadsheetFormat("legacy")}
 						/>
-						<label htmlFor={CommentsSpreadsheetFormat.Legacy}>
+						<label htmlFor="legacy">
 							Legacy spreadsheet
 						</label>
 					</ListItem>
 					<ListItem>
 						<input
 							type="radio"
-							id={CommentsSpreadsheetFormat.MyProject}
+							id="myproject"
 							title={'Export appoved resolutions for MyProject upload. Modifies an existing MyProject comment spreadsheet.'}
-							checked={spreadsheetFormat === CommentsSpreadsheetFormat.MyProject}
-							onChange={e => setSpreadsheetFormat(CommentsSpreadsheetFormat.MyProject)}
+							checked={spreadsheetFormat === "myproject"}
+							onChange={e => setSpreadsheetFormat("myproject")}
 						/>
-						<label htmlFor={CommentsSpreadsheetFormat.MyProject}>
+						<label htmlFor="myproject">
 							All resolved comments for MyProject upload
 						</label>
 					</ListItem>
@@ -94,36 +94,36 @@ function CommentsExportDropdown({
 					<ListItem>
 						<input
 							type="radio"
-							id={CommentsSpreadsheetStyle.AllComments}
+							id="AllComments"
 							title={'Export all comments. Optionally overwrites an existing spreadsheet keeping Title and Revision History tabs.'}
-							checked={spreadsheetStyle === CommentsSpreadsheetStyle.AllComments}
-							onChange={e => setSpreadsheetStyle(CommentsSpreadsheetStyle.AllComments)}
+							checked={spreadsheetStyle === "AllComments"}
+							onChange={e => setSpreadsheetStyle("AllComments")}
 						/>
-						<label htmlFor={CommentsSpreadsheetStyle.AllComments}>
+						<label htmlFor={"AllComments"}>
 							All comments
 						</label>
 					</ListItem>
 					<ListItem>
 						<input
 							type="radio"
-							id={CommentsSpreadsheetStyle.TabPerAdHoc}
+							id="TabPerAdHoc"
 							title={'Export all comments plus a tab for each ad-hoc. Optionally overwrites an existing spreadsheet keeping Title and Revision History tabs.'}
-							checked={spreadsheetStyle === CommentsSpreadsheetStyle.TabPerAdHoc}
-							onChange={e => setSpreadsheetStyle(CommentsSpreadsheetStyle.TabPerAdHoc)}
+							checked={spreadsheetStyle === "TabPerAdHoc"}
+							onChange={e => setSpreadsheetStyle("TabPerAdHoc")}
 						/>
-						<label htmlFor={CommentsSpreadsheetStyle.TabPerAdHoc}>
+						<label htmlFor="TabPerAdHoc">
 							All comments plus one sheet per ad-hoc
 						</label>
 					</ListItem>
 					<ListItem>
 						<input
 							type="radio"
-							id={CommentsSpreadsheetStyle.TabPerCommentGroup}
+							id="TabPerCommentGroup"
 							title={'Export all comments plus a tab for each comment group. Optionally overwrites an existing spreadsheet keeping Title and Revision History tabs.'}
-							checked={spreadsheetStyle === CommentsSpreadsheetStyle.TabPerCommentGroup}
-							onChange={e => setSpreadsheetStyle(CommentsSpreadsheetStyle.TabPerCommentGroup)}
+							checked={spreadsheetStyle === "TabPerCommentGroup"}
+							onChange={e => setSpreadsheetStyle("TabPerCommentGroup")}
 						/>
-						<label htmlFor={CommentsSpreadsheetStyle.TabPerCommentGroup}>
+						<label htmlFor="TabPerCommentGroup">
 							All comments plus one sheet per comment group
 						</label>
 					</ListItem>

@@ -83,8 +83,9 @@ export const selectGroupsState = (state: RootState) => state[dataSet];
 export const selectGroupEntities = (state: RootState) => selectGroupsState(state).entities;
 export const selectGroupIds = (state: RootState) => selectGroupsState(state).ids;
 export const selectGroups = (state: RootState) => {
-	const {ids, entities} = selectGroupsState(state);
-	return ids.map(id => entities[id]!);
+	const {ids, entities, workingGroupId} = selectGroupsState(state);
+	return ids.map(id => entities[id]!)
+		.filter(group => group.id === workingGroupId || group.parent_id === workingGroupId);
 }
 export const selectGroup = (state: RootState, groupId: string) => selectGroupEntities(state)[groupId];
 export const selectWorkingGroups = (state: RootState) => selectGroups(state).filter(g => g.type === 'wg');
@@ -94,6 +95,29 @@ export const selectWorkingGroup = (state: RootState) => {
 	return (workingGroupId && entities[workingGroupId]) || undefined;
 }
 export const selectWorkingGroupPermissions = (state: RootState) => selectWorkingGroup(state)?.permissions || {};
+
+/** 
+ * Select group permissions.
+ * If the group is the subgroup of a working group, then return permissions that provide the highest access from either the group or
+ * the working group. If the group is not a subgroup of a working group, then return the group permissions.
+ */
+export const selectGroupPermissions = (state: RootState, groupId: string) => {
+	const group = selectGroup(state, groupId);
+	if (!group?.type)
+		return {};
+	if ([!'tg', 'sg', 'sc', 'ah'].includes(group.type))
+		return group.permissions;
+	const workingGroup = group.parent_id? selectGroup(state, group.parent_id): undefined;
+	if (!workingGroup)
+		return group.permissions;
+	// We have a group and a working group; coalesce permissions
+	const permissions = {...workingGroup.permissions};
+	Object.entries(group.permissions).forEach(([scope, access]) => {
+		if (!permissions[scope] || permissions[scope] < access)
+			permissions[scope] = access;
+	});
+	return permissions;
+}
 
 /*
  * Actions
@@ -140,4 +164,13 @@ export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group
 	async (dispatch, getState) => {
 			dispatch(setWorkingGroupIdLocal(workingGroupId));
 			return selectWorkingGroup(getState());
+	}
+
+export const initGroups = (): AppThunk =>
+	(dispatch, getState) => {
+		const workingGroup = selectWorkingGroup(getState());
+		if (workingGroup)
+			dispatch(loadGroups({parent_id: workingGroup.id}));
+		dispatch(loadGroups({type: "wg"}));
+		return Promise.resolve();
 	}

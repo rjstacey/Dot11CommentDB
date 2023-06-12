@@ -15,7 +15,7 @@ import ResultsExport from './ResultsExport';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { AccessLevel } from '../store/user';
-import { loadResults, clearResults, selectResultsBallotId, resultsSelectors, resultsActions, upsertTableColumns, selectResultsAccess } from '../store/results';
+import { loadResults, clearResults, selectResultsBallot_id, resultsSelectors, resultsActions, upsertTableColumns, selectResultsAccess } from '../store/results';
 import { selectCurrentBallot_id, selectBallot, BallotType } from '../store/ballots';
 
 // The table row grows to the available height
@@ -82,9 +82,9 @@ function Results() {
 
 	const access = useAppSelector(selectResultsAccess);
 	console.log('access', access)
-	const resultsBallot_id = useAppSelector(selectResultsBallotId);
+	const resultsBallot_id = useAppSelector(selectResultsBallot_id);
 	const currentBallot_id = useAppSelector(selectCurrentBallot_id);
-	const resultsBallot = useAppSelector((state) => selectBallot(state, resultsBallot_id));
+	const resultsBallot = useAppSelector((state) => resultsBallot_id? selectBallot(state, resultsBallot_id): undefined);
 	
 	const dispatch = useAppDispatch();
 

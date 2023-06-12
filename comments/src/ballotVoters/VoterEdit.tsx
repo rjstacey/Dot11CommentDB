@@ -26,9 +26,9 @@ function VoterEditModal({
 }: {
 	isOpen: boolean;
 	close: () => void;
-	ballot_id: number;
+	ballot_id: number | null;
 	voter: VoterCreate;
-	action: "add" | "update";
+	action: "add" | "update" | null;
 }) {
 	const [state, setState] = React.useState(voter);
 	const [errMsg, setErrMsg] = React.useState('');
@@ -52,7 +52,7 @@ function VoterEditModal({
 		}
 		else {
 			if (action === 'add') {
-				await dispatch(addVoter(ballot_id, state));
+				await dispatch(addVoter(ballot_id!, state));
 			}
 			else {
 				const changes = shallowDiff(voter, state);

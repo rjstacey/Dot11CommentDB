@@ -29,24 +29,7 @@ export function createUserSlice(user: User) {
 	});
 }
 
-
 /*
  * Selectors
  */
 export const selectUser = (state: RootState) => state[dataSet];
-export const selectUserPermissions = (state: RootState) => selectUser(state)?.Permissions || [];
-
-export function selectUserAccessLevel(state: RootState) {
-	const permissions = selectUserPermissions(state);
-	if (Array.isArray(permissions)) {
-		if (permissions.includes('wgAdmin'))
-			return AccessLevel.admin;
-		if (permissions.includes('comments_rw'))
-			return AccessLevel.rw;
-		if (permissions.includes('comments_ro'))
-			return AccessLevel.ro;
-	}
-
-	/* This will be deprecated. Here until we fully transision to the permissions array. */
-	return selectUser(state)?.Access || AccessLevel.none;
-}

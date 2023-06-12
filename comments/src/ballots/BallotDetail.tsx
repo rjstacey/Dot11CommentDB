@@ -18,6 +18,7 @@ import CommentsActions from './CommentsActions';
 
 import type { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectGroups, selectWorkingGroup } from '../store/groups';
 import {
 	updateBallot,
 	addBallot,
@@ -79,7 +80,7 @@ function shortDateToDate(shortDateStr: string) {
 	return isNaN(newDate.getTime())? '': newDate.toISOString()
 }
 
-function SelectGroupProject({
+function SelectGroup({
 	ballot,
 	updateBallot,
 	readOnly
@@ -88,30 +89,64 @@ function SelectGroupProject({
 	updateBallot: (changes: Partial<BallotEdit>) => void;
 	readOnly?: boolean;
 }) {
-	const options = useAppSelector(selectGroupProjectOptions);
+	const options = useAppSelector(selectGroups);
 
-	const values = (isMultiple(ballot.groupId) || isMultiple(ballot.Project))? []:
-		options.filter(o => ballot.groupId === o.groupId && ballot.Project === o.project);
+	const values = isMultiple(ballot.groupId)? []:
+		options.filter(o => ballot.groupId === o.id);
 
 	function handleChange(values: typeof options) {
-		if (values.length > 0) {
-			const {groupId, project} = values[0];
-			updateBallot({groupId, Project: project || ''});
-		}
-		else {
-			updateBallot({groupId: null, Project: ''});
-		}
+		const groupId = values.length > 0? values[0].id: null;
+		updateBallot({groupId});
 	}
 
-	function createOption({state}: SelectRendererProps): GroupProjectOption {
-		return {groupId: null, project: state.search, label: state.search};
-	}
-
-	const placeholder = (isMultiple(ballot.groupId) || isMultiple(ballot.Project))? MULTIPLE_STR: BLANK_STR;
+	const placeholder = isMultiple(ballot.groupId)? MULTIPLE_STR: BLANK_STR;
 
 	return (
 		<Select
-			style={{minWidth: 150, width: 300}}
+			style={{minWidth: 100, width: 200}}
+			values={values}
+			options={options}
+			onChange={handleChange}
+			clearable
+			searchable
+			dropdownPosition='auto'
+			placeholder={placeholder}
+			valueField='id'
+			labelField='name'
+			readOnly={readOnly}
+		/>
+	)
+}
+
+function SelectProject({
+	ballot,
+	updateBallot,
+	readOnly
+}: {
+	ballot: MultipleBallot | BallotEdit; 
+	updateBallot: (changes: Partial<BallotEdit>) => void;
+	readOnly?: boolean;
+}) {
+	const options = useAppSelector(selectGroupProjectOptions)
+		.filter(o => o.groupId === ballot.groupId);
+
+	const values = isMultiple(ballot.Project)? []:
+		options.filter(o => ballot.Project === o.project);
+
+	function handleChange(values: typeof options) {
+		const Project = (values.length > 0? values[0].project: '') || '';
+		updateBallot({Project});
+	}
+
+	function createOption({state}: SelectRendererProps): GroupProjectOption {
+		return {groupId: ballot.groupId, project: state.search, label: state.search};
+	}
+
+	const placeholder = isMultiple(ballot.Project)? MULTIPLE_STR: BLANK_STR;
+
+	return (
+		<Select
+			style={{minWidth: 100, width: 200}}
 			values={values}
 			options={options}
 			onChange={handleChange}
@@ -120,8 +155,10 @@ function SelectGroupProject({
 			clearable
 			searchable
 			dropdownPosition='auto'
+			valueField='project'
+			labelField='project'
 			placeholder={placeholder}
-			readOnly={readOnly}
+			readOnly={readOnly || !ballot.groupId}
 		/>
 	)
 }
@@ -196,7 +233,8 @@ export function Column1({
 	updateBallot: (changes: Partial<BallotEdit>) => void;
 	readOnly?: boolean;
 }) {
-	const isMultipleBallots = 'id' in ballot && isMultiple(ballot.id);
+	const workingGroup = useAppSelector(selectWorkingGroup)!;
+	const isMultipleBallots = isMultiple(ballot.id);
 
 	const change: React.ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement> = (e) => {
 		const {name, value} = e.target;
@@ -211,8 +249,17 @@ export function Column1({
 
 	return <>
 		<Row>
-			<Field label='Group/Project:'>
-				<SelectGroupProject
+			<Field label='Group:'>
+				<SelectGroup
+					ballot={ballot}
+					updateBallot={updateBallot}
+					readOnly={readOnly}
+				/>
+			</Field>
+		</Row>
+		<Row>
+			<Field label='Project:'>
+				<SelectProject
 					ballot={ballot}
 					updateBallot={updateBallot}
 					readOnly={readOnly}
@@ -298,7 +345,7 @@ export function Column1({
 		{((ballot.Type === BallotType.WG && !ballot.IsRecirc) || ballot.Type === BallotType.Motion) &&
 			<Row>
 				<Field label='Voter pool:'>
-					<Link to={`/voters/${ballot.BallotID}`}>{ballot.Voters}</Link>
+					<Link to={`/${workingGroup.name}/voters/${ballot.BallotID}`}>{ballot.Voters}</Link>
 				</Field>
 			</Row>}
 		{(ballot.Type === BallotType.WG || ballot.Type === BallotType.SA) && !!ballot.IsRecirc &&

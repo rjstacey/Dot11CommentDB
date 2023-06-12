@@ -3,7 +3,7 @@ import React from 'react';
 import { Form, Row, List, ListItem, ActionButtonDropdown } from 'dot11-components';
 
 import { useAppDispatch } from '../store/hooks';
-import {exportResultsForProject, exportResultsForBallot} from '../store/results'
+import { exportResults } from '../store/results'
 import type { Ballot } from '../store/ballots';
 
 function ResultsExportForm({ballot, methods}: {ballot: Ballot, methods: any}) {
@@ -14,7 +14,7 @@ function ResultsExportForm({ballot, methods}: {ballot: Ballot, methods: any}) {
 
 	async function submit() {
 		setBusy(true);
-		await dispatch(forProject? exportResultsForProject(ballot.Project): exportResultsForBallot(ballot.id));
+		await dispatch(exportResults(ballot.id, forProject));
 		setBusy(false);
 		methods.close();
 	}

@@ -12,7 +12,7 @@ import {
 
 import type { RootState, AppThunk } from '.';
 import { AccessLevel } from './user';
-import { selectGroupIds, selectGroupEntities, selectWorkingGroup } from './groups';
+import { selectGroups, selectWorkingGroup } from './groups';
 
 export type ResultsSummary = {
 	Approve: number;
@@ -133,8 +133,6 @@ export const fields = {
 const dataSet = 'ballots';
 const sortComparer = (b1: Ballot, b2: Ballot) => b1.Project === b2.Project? b1.BallotID.localeCompare(b2.BallotID): b1.Project.localeCompare(b2.Project);
 
-type BallotPermissions = Record<number, string[]>;
-
 export type GroupProject = {
 	groupId: string | null;
 	project: string | null;
@@ -145,7 +143,6 @@ type ExtraState = {
 	currentGroupId: string | null;
 	currentProject: string | null;
 	currentBallot_id: number | null;
-	ballotPermissions: BallotPermissions;
 }
 
 const initialState: ExtraState = {
@@ -153,7 +150,6 @@ const initialState: ExtraState = {
 	currentGroupId: null,
 	currentProject: null,
 	currentBallot_id: null,
-	ballotPermissions: {}
 };
 
 const slice = createAppTableDataSlice({
@@ -182,9 +178,6 @@ const slice = createAppTableDataSlice({
 				state.currentGroupId = ballot.groupId;
 				state.currentProject = ballot.Project;
 			}
-		},
-		setBallotPermissions(state, action: PayloadAction<BallotPermissions>) {
-			state.ballotPermissions = {...state.ballotPermissions, ...action.payload};
 		}
 	},
 	extraReducers: builder => {
@@ -251,26 +244,25 @@ export type GroupProjectOption = GroupProject & {
 
 /* Generate project list from the ballot pool */
 export const selectGroupProjectOptions = createSelector(
-	selectGroupIds,
-	selectGroupEntities,
+	selectGroups,
 	selectBallotIds,
 	selectBallotEntities,
-	(groupIds, groupEntities, ballotIds, ballotEntities) => {
+	(groups, ballotIds, ballotEntities) => {
 		const options: GroupProjectOption[] = [];
-		groupIds.forEach(id => {
-			const group = groupEntities[id]!;
-			if (group.type === 'tg' && group.project)
+		groups.forEach(group => {
+			if (group.project)
 				options.push({groupId: group.id, project: group.project, label: group.name + ' / ' + group.project});
 		});
-		const projects = new Set<string>();
 		ballotIds.forEach(id => {
 			const ballot = ballotEntities[id]!;
-			if (ballot.groupId === null && ballot.Project)
-				projects.add(ballot.Project);
+			if (!options.find(o => o.groupId === ballot.groupId && o.project === ballot.Project)) {
+				const group = groups.find(group => group.id === ballot.groupId);
+				const label = (group?.name || 'Unknown') + ' / ' + ballot.Project;
+				options.push({groupId: ballot.groupId, project: ballot.Project, label});
+			}
 		});
 		return options
 			.sort((o1, o2) => o1.label.localeCompare(o2.label))
-			.concat([...projects].sort().map(p => ({groupId: null, project: p, label: p})));
 	}
 );
 
@@ -299,12 +291,6 @@ export const selectCurrentBallot = (state: RootState) => {
 	return currentBallot_id? entities[currentBallot_id]: undefined;
 }
 
-export const selectHasCommentsRW = (state: RootState, ballot_id: number) => {
-	const {ballotPermissions} = selectBallotsState(state);
-	const permissions = ballotPermissions[ballot_id];
-	return !!permissions?.includes("comments_rw");
-}
-
 export const ballotsSelectors = getAppTableDataSelectors(selectBallotsState, {selectEntities: selectSyncedBallotEntities});
 
 /*
@@ -326,7 +312,6 @@ const {
 	setCurrentBallot_id: setCurrentBallotIdLocal,
 	setUiProperties,
 	setSelected: setSelectedBallots,
-	setBallotPermissions
 } = slice.actions;
 
 export { setUiProperties, setSelectedBallots };
@@ -346,25 +331,11 @@ export const setCurrentGroupProject = (value: GroupProject): AppThunk<Ballot | u
 		return selectCurrentBallot(getState());
 	}
 
-function validBallotPermissions(p: any): p is BallotPermissions {
-	return isObject(p) && Object.values(p).every((e: any) => Array.isArray(e) && e.every(s => typeof s === 'string'));
-}
-
 export const setCurrentBallot_id = (ballot_id: number | null): AppThunk<Ballot | undefined> =>
 	async (dispatch, getState) => {
 		dispatch(setCurrentBallotIdLocal(ballot_id));
-		const url = `${baseUrl}/${ballot_id}/permissions`;
-		fetcher.get(url)
-			.then((response: any) => {
-				if (!validBallotPermissions(response))
-					throw new TypeError("Unexpected response");
-				dispatch(setBallotPermissions(response));
-			})
-			.catch((error: any) => {console.warn(error)});
 		return selectCurrentBallot(getState());
 	}
-
-const baseUrl = '/api/ballots';
 
 function validCommentsSummary(summary: any): summary is CommentsSummary {
 	return isObject(summary) &&
@@ -381,7 +352,8 @@ export function validBallot(ballot: any): ballot is Ballot {
 	return isObject(ballot) &&
 		typeof ballot.id === 'number' &&
 		typeof ballot.BallotID === 'string' &&
-		typeof ballot.Project === 'string';
+		typeof ballot.Project === 'string'/* &&
+		typeof ballot.groupId === 'string'*/;
 }
 
 function validResponse(response: any): response is Ballot[] {
@@ -416,6 +388,8 @@ export const loadBallots = (): AppThunk<Ballot[]> =>
 			});
 		return loadBallotsPromise;
 	}
+
+export const initBallots = loadBallots;
 
 /** If ballots have already been loaded, then return the list. Otherwise, load the ballots. */
 export const getBallots = (): AppThunk<Ballot[]> =>

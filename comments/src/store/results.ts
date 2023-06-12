@@ -7,11 +7,24 @@ import {
 	createAppTableDataSlice, SortType, getAppTableDataSelectors,
 } from 'dot11-components';
 
-//import {selectMembersState} from './members';
 import type { RootState, AppThunk } from '.';
 import { AccessLevel } from './user';
-import { updateBallotSuccess, selectBallotEntities, selectBallot, Ballot } from './ballots';
-import { selectGroup, selectWorkingGroup } from './groups';
+import { updateBallotsLocal, selectBallotEntities, selectBallot, validBallot, Ballot } from './ballots';
+import { selectGroupPermissions } from './groups';
+
+export type Result = {
+    id: string;
+    ballot_id: number;
+    SAPIN: number;
+	CurrentSAPIN: number;
+    Email?: string;
+    Name: string;
+    Affiliation: string;
+	Status: string;
+    Vote: string;
+    CommentCount: number;
+	Notes: string;
+}
 
 const fields = {
 	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
@@ -31,15 +44,12 @@ export const dataSet = 'results';
 export const selectResultsState = (state: RootState) => state[dataSet];
 export const selectResultsIds = (state: RootState) => selectResultsState(state).ids;
 export const selectResultsEntities = (state: RootState) => selectResultsState(state).entities;
-export const selectResultsBallotId = (state: RootState) => selectResultsState(state).ballot_id;
+export const selectResultsBallot_id = (state: RootState) => selectResultsState(state).ballot_id;
 
 export const selectResultsAccess = (state: RootState) => {
 	const {ballot_id} = selectResultsState(state);
-	const ballot = selectBallot(state, ballot_id);
-	const access = (ballot?.groupId?
-		selectGroup(state, ballot.groupId)?.permissions.results:
-		selectWorkingGroup(state)?.permissions.results) || AccessLevel.none;
-	return access;
+	const ballot = ballot_id? selectBallot(state, ballot_id): undefined;
+	return (ballot?.groupId && selectGroupPermissions(state, ballot.groupId).results) || AccessLevel.none;
 }
 
 /* Entities selector with join on users to get Name, Affiliation and Email.
@@ -68,25 +78,18 @@ export const selectResultsAccess = (state: RootState) => {
 export const resultsSelectors = getAppTableDataSelectors(selectResultsState);
 
 type ExtraState = {
-	ballot_id: number;
-	votingPoolSize: number;
-	resultsSummary: object;
+	ballot_id: number | null;
 }
+
+const initialState: ExtraState = {ballot_id: null};
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	initialState: {
-		ballot_id: 0,
-		votingPoolSize: 0,
-		resultsSummary: {},
-	} as ExtraState,
+	initialState,
 	reducers: {
   		setDetails(state, action: PayloadAction<ExtraState>) {
-  			const {ballot_id, resultsSummary, votingPoolSize} = action.payload;
-			state.ballot_id = ballot_id;
-			state.resultsSummary = resultsSummary;
-			state.votingPoolSize = votingPoolSize;
+			state.ballot_id = action.payload.ballot_id;
 		},
 	},
 	extraReducers: (builder, dataAdapter) => {
@@ -124,17 +127,16 @@ export {upsertTableColumns};
 
 const baseUrl = '/api/results';
 
-function validGetResponse(response: any): response is {ballot: Ballot; VotingPoolSize: number; results: any[]; summary: object} {
-	return isObject(response) &&
-		isObject(response.ballot) &&
-		typeof response.VotingPoolSize === 'number' &&
-		Array.isArray(response.results) &&
-		isObject(response.summary);
+function validResult(result: any): result is Result {
+	return isObject(result) &&
+		typeof result.id === 'string' &&
+		typeof result.ballot_id === 'number';
 }
 
-function validResponse(response: any): response is {ballot: Ballot} {
+function validResponse(response: any): response is {ballot: Ballot; results: Result[]} {
 	return isObject(response) &&
-		isObject(response.ballot);
+		validBallot(response.ballot) &&
+		Array.isArray(response.results) && response.results.every(validResult);
 }
 
 export const loadResults = (ballot_id: number): AppThunk =>
@@ -144,53 +146,34 @@ export const loadResults = (ballot_id: number): AppThunk =>
 		let response: any;
 		try {
 			response = await fetcher.get(url);
-			if (!validGetResponse(response))
+			if (!validResponse(response))
 				throw new TypeError("Unexpected response");
 		}
 		catch(error) {
 			const ballot = selectBallotEntities(getState())[ballot_id];
 			const ballotId = ballot? ballot.BallotID: `id=${ballot_id}`;
-			await Promise.all([
-				dispatch(getFailure()),
-				dispatch(setError(`Unable to get results list for ${ballotId}`, error))
-			]);
+			dispatch(getFailure());
+			dispatch(setError(`Unable to get results list for ${ballotId}`, error));
 			return;
 		}
 		dispatch(getSuccess(response.results));
-		const details: ExtraState = {
-			ballot_id: response.ballot.id,
-			votingPoolSize: response.VotingPoolSize,
-			resultsSummary: response.summary
-		}
-		dispatch(setDetails(details));
+		dispatch(setDetails({ballot_id: response.ballot.id}));
 	}
 
 export const clearResults = slice.actions.removeAll;
 
-export const exportResultsForProject  = (project: string): AppThunk =>
+export const exportResults  = (ballot_id: number, forSeries?: boolean): AppThunk =>
 	async (dispatch) => {
 		try {
-			await fetcher.getFile(`${baseUrl}/exportForProject`, {Project: project});
+			await fetcher.getFile(`${baseUrl}/${ballot_id}/export`, {forSeries});
 		}
 		catch (error) {
-			dispatch(setError(`Unable to export results for ${project}`, error));
-		}
-	}
-
-export const exportResultsForBallot  = (ballot_id: number): AppThunk =>
-	async (dispatch, getState) => {
-		try {
-			await fetcher.getFile(`${baseUrl}/${ballot_id}/export`);
-		}
-		catch (error) {
-			const ballot = selectBallotEntities(getState())[ballot_id];
-			const ballotId = ballot?.BallotID || `id=${ballot_id}`;
-			dispatch(setError(`Unable to export results for ${ballotId}`, error));
+			dispatch(setError("Unable to export results", error));
 		}
 	}
 
 export const deleteResults = (ballot_id: number): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
 		try {
 			await fetcher.delete(`${baseUrl}/${ballot_id}`);
 		}
@@ -198,12 +181,14 @@ export const deleteResults = (ballot_id: number): AppThunk =>
 			dispatch(setError("Unable to delete results", error));
 			return;
 		}
-		dispatch(updateBallotSuccess(ballot_id, {Results: undefined}));
+		dispatch(updateBallotsLocal([{id: ballot_id, Results: undefined}]));
+		if (selectResultsBallot_id(getState()) === ballot_id)
+			dispatch(clearResults());
 	}
 
-export const importResults = (ballot_id: number, epollNum: number): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseUrl}/${ballot_id}/importFromEpoll/${epollNum}`;
+export const importResults = (ballot_id: number): AppThunk =>
+	async (dispatch, getState) => {
+		const url = `${baseUrl}/${ballot_id}/import`;
 		let response: any;
 		try {
 			response = await fetcher.post(url);
@@ -214,12 +199,14 @@ export const importResults = (ballot_id: number, epollNum: number): AppThunk =>
 			dispatch(setError("Unable to import results", error));
 			return;
 		}
-		dispatch(updateBallotSuccess(ballot_id, response.ballot));
+		dispatch(updateBallotsLocal([response.ballot]));
+		if (selectResultsBallot_id(getState()) === ballot_id)
+			dispatch(getSuccess(response.results));
 	}
 
-export const uploadEpollResults = (ballot_id: number, file: File): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseUrl}/${ballot_id}/uploadEpollResults`;
+export const uploadResults = (ballot_id: number, file: File): AppThunk =>
+	async (dispatch, getState) => {
+		const url = `${baseUrl}/${ballot_id}/upload`;
 		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, {ResultsFile: file})
@@ -227,25 +214,10 @@ export const uploadEpollResults = (ballot_id: number, file: File): AppThunk =>
 				throw TypeError("Unexpected reponse");
 		}
 		catch(error) {
-			dispatch(setError("Unable to upload ePoll results", error));
+			dispatch(setError("Unable to upload results", error));
 			return;
 		}
-		dispatch(updateBallotSuccess(ballot_id, response.ballot));
+		dispatch(updateBallotsLocal([response.ballot]));
+		if (selectResultsBallot_id(getState()) === ballot_id)
+			dispatch(getSuccess(response.results));
 	}
-
-export const uploadMyProjectResults = (ballot_id: number, file: File): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseUrl}/${ballot_id}/uploadMyProjectResults`;
-		let response: any;
-		try {
-			response = await fetcher.postMultipart(url, {ResultsFile: file});
-			if (!validResponse(response))
-				throw new TypeError("Unexpected reponse");
-		}
-		catch(error) {
-			dispatch(setError("Unable to upload myProject results", error));
-			return;
-		}
-		dispatch(updateBallotSuccess(ballot_id, response.ballot));
-	}
-	

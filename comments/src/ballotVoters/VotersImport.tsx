@@ -38,10 +38,10 @@ function VotersImportModal({
 }: {
 	isOpen: boolean;
 	close: () => void;
-	ballot_id: number;
+	ballot_id: number | null;
 }) {
 	const dispatch = useAppDispatch();
-	const ballot = useAppSelector((state) => selectBallot(state, ballot_id));
+	const ballot = useAppSelector((state) => ballot_id? selectBallot(state, ballot_id): undefined);
 
 	const [state, setState] = React.useState<State>(() => initState(ballot));
 	const [busy, setBusy] = React.useState(false);
@@ -53,7 +53,7 @@ function VotersImportModal({
 	const errorText = getErrorText(state);
 
 	async function submit() {
-		if (errorText)
+		if (errorText || !ballot_id)
 			return;
 		setBusy(true);
 		await dispatch(

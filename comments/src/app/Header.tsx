@@ -64,6 +64,7 @@ function NavMenu({
 	const BallotID = useAppSelector(selectCurrentBallotID);
 	const workingGroup = useAppSelector(selectWorkingGroup);
 	const permissions = useAppSelector(selectWorkingGroupPermissions);
+	console.log(permissions)
 
 	let classNames = 'nav-menu';
 	if (className)

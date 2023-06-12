@@ -8,8 +8,9 @@ import {
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-
-import { updateBallotSuccess, selectBallotEntities, validBallotCommentsSummary, BallotCommentsSummary } from './ballots';
+import { AccessLevel } from './user';
+import { updateBallotsLocal, selectBallotEntities, selectBallot, validBallotCommentsSummary, BallotCommentsSummary } from './ballots';
+import { selectGroupPermissions } from './groups';
 import { offlineFetch } from './offline';
 
 
@@ -148,11 +149,11 @@ function getResolutionCountUpdates(ids: EntityId[], entities: Dictionary<Comment
 }
 
 type ExtraState = {
-	ballot_id: number;
+	ballot_id: number | null;
 }
 
 const initialState: ExtraState = {
-	ballot_id: 0
+	ballot_id: null
 };
 
 const slice = createAppTableDataSlice({
@@ -234,6 +235,12 @@ export const selectCommentsState = (state: RootState) => state[dataSet];
 export const selectCommentsIds = (state: RootState) => selectCommentsState(state).ids;
 export const selectCommentsEntities = (state: RootState) => selectCommentsState(state).entities;
 export const selectCommentsBallot_id = (state: RootState) => selectCommentsState(state).ballot_id;
+
+export const selectCommentsAccess = (state: RootState) => {
+	const {ballot_id} = selectCommentsState(state);
+	const ballot = ballot_id? selectBallot(state, ballot_id): undefined;
+	return (ballot?.groupId && selectGroupPermissions(state, ballot.groupId).comments) || AccessLevel.none;
+}
 
 const selectCommentsLastModified = createSelector(
 	selectCommentsIds,
@@ -379,7 +386,7 @@ export const deleteComments = (ballot_id: number): AppThunk =>
 		if (selectCommentsBallot_id(getState()) === ballot_id)
 			await dispatch(clearComments());
 		const summary = {Count: 0, CommentIDMin: 0, CommentIDMax: 0};
-		dispatch(updateBallotSuccess(ballot_id, {Comments: summary}));
+		dispatch(updateBallotsLocal([{id: ballot_id, Comments: summary}]));
 
 		try {
 			await fetcher.delete(`${baseCommentsUrl}/${ballot_id}`);
@@ -389,50 +396,53 @@ export const deleteComments = (ballot_id: number): AppThunk =>
 		}
 	}
 
-
-function validImportReponse(response: any): response is {ballot: BallotCommentsSummary} {
-	return isObject(response) && validBallotCommentsSummary(response.ballot);
-}
-
-export const importComments = (ballot_id: number, epollNum: number, startCID: number): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseCommentsUrl}/${ballot_id}/importFromEpoll/${epollNum}`;
-		let response: any;
-		try {
-			response = await fetcher.post(url, {StartCID: startCID});
-			if (!validImportReponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
-		}
-		catch (error) {
-			dispatch(setError(`Unable to import comments`, error));
-			return;
-		}
-		dispatch(updateBallotSuccess(ballot_id, response.ballot));
-	}
-
 function validUploadResponse(response: any): response is {comments: CommentResolution[]; ballot: BallotCommentsSummary} {
 	return isObject(response) &&
 		Array.isArray(response.comments) && response.comments.every(validCommentResolution) &&
 		validBallotCommentsSummary(response.ballot);
 }
 
-export const uploadComments = (ballot_id: number, file: File): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseCommentsUrl}/${ballot_id}/upload`;
+export const importComments = (ballot_id: number, startCommentId: number): AppThunk =>
+	async (dispatch, getState) => {
+		const url = `${baseCommentsUrl}/${ballot_id}/import`;
 		let response: any;
 		try {
-			response = await fetcher.postMultipart(url, {CommentsFile: file});
+			response = await fetcher.post(url, {startCommentId});
 			if (!validUploadResponse(response))
-				throw new TypeError("Unexpected response");
+				throw new TypeError("Unexpected response to POST " + url);
+		}
+		catch (error) {
+			dispatch(setError(`Unable to import comments`, error));
+			return;
+		}
+		const {comments, ballot} = response;
+		dispatch(updateBallotsLocal([ballot]));
+		if (ballot_id === selectCommentsBallot_id(getState()))
+			dispatch(getSuccess(comments));
+	}
+
+
+export const uploadComments = (ballot_id: number, file: File): AppThunk =>
+	async (dispatch, getState) => {
+		const url = `${baseCommentsUrl}/${ballot_id}/upload`;
+		const params = {
+			params: JSON.stringify({startCommentId: 1}),
+			CommentsFile: file
+		}
+		let response: any;
+		try {
+			response = await fetcher.postMultipart(url, params);
+			if (!validUploadResponse(response))
+				throw new TypeError("Unexpected response to POST " + url);
 		}
 		catch (error) {
 			dispatch(setError(`Unable to upload comments for ${ballot_id}`, error));
 			return;
 		}
 		const {comments, ballot} = response;
-		dispatch(getSuccess(comments));
-		dispatch(setDetails({ballot_id}));
-		dispatch(updateBallotSuccess(ballot.id, ballot));
+		dispatch(updateBallotsLocal([ballot]));
+		if (ballot_id === selectCommentsBallot_id(getState()))
+			dispatch(getSuccess(comments));
 	}
 
 export const setStartCommentId = (ballot_id: number, startCommentId: number): AppThunk =>
@@ -440,19 +450,18 @@ export const setStartCommentId = (ballot_id: number, startCommentId: number): Ap
 		const url = `${baseCommentsUrl}/${ballot_id}/startCommentId`;
 		let response: any;
 		try {
-			response = await fetcher.patch(url, {StartCommentID: startCommentId});
+			response = await fetcher.patch(url, {startCommentId});
 			if (!validUploadResponse(response))
-				throw new TypeError("Unexpected response");
+				throw new TypeError("Unexpected response to PATCH " + url);
 		}
 		catch (error) {
 			dispatch(setError("Unable to set start CID", error));
 			return;
 		}
 		const {comments, ballot} = response;
-		dispatch(updateBallotSuccess(ballot.id, ballot));
-		if (ballot_id === selectCommentsBallot_id(getState())) {
+		dispatch(updateBallotsLocal([ballot]));
+		if (ballot_id === selectCommentsBallot_id(getState()))
 			dispatch(getSuccess(comments));
-		}
 	}
 
 const defaultResolution: Partial<Resolution> = {
@@ -640,26 +649,9 @@ export const deleteResolutions = (delete_ids: any[]): AppThunk =>
 		dispatch(setSelected(selected));
 	}
 
-export const FieldsToUpdate = {
-	CID: 'cid',
-	ClausePage: 'clausepage',
-	AdHoc: 'adhoc',
-	Assignee: 'assignee',
-	Resolution: 'resolution',
-	Editing: 'editing'
-};
-
-export const MatchAlgorithm = {
-	Elimination: 'elimination',
-	Comment: 'comment',
-	CID: 'cid'
-};
-
-export const MatchUpdate = {
-	All: 'all',
-	Any: 'any',
-	Add: 'add'
-};
+export type FieldToUpdate = "cid" | "clausepage" | "adhoc" | "assignee" | "resolution" | "editing";
+export type MatchAlgo = "cid" | "comment" | "elimination";
+export type MatchUpdate = "all" | "any" | "add";
 
 export type UploadResult = {
 	matched: number[];
@@ -680,9 +672,17 @@ function validUploadResolutionsResponse(response: any): response is {comments: C
 		typeof response.updated === 'number';
 }
 
-export const uploadResolutions = (ballot_id: number, toUpdate, matchAlgorithm, matchUpdate, sheetName: string, file): AppThunk<UploadResult | undefined> =>
+export const uploadResolutions = (
+	ballot_id: number,
+	toUpdate: FieldToUpdate[],
+	matchAlgorithm: MatchAlgo,
+	matchUpdate: MatchUpdate,
+	sheetName: string,
+	file: File
+): AppThunk<UploadResult | undefined> =>
 	async (dispatch) => {
-		const params = {
+		const url = `${baseResolutionsUrl}/${ballot_id}/upload`;
+		const parts = {
 			params: JSON.stringify({
 				toUpdate,
 				matchAlgorithm,
@@ -693,7 +693,7 @@ export const uploadResolutions = (ballot_id: number, toUpdate, matchAlgorithm, m
 		}
 		let response: any;
 		try {
-			response = await fetcher.postMultipart(`${baseResolutionsUrl}/${ballot_id}/upload`, params);
+			response = await fetcher.postMultipart(url, parts);
 			if (!validUploadResolutionsResponse(response))
 				throw new TypeError('Unexpected response');
 		}
@@ -704,30 +704,23 @@ export const uploadResolutions = (ballot_id: number, toUpdate, matchAlgorithm, m
 		const {comments, ballot, matched, unmatched, added, remaining, updated} = response;
 		dispatch(getSuccess(comments));
 		dispatch(setDetails({ballot_id}));
-		dispatch(updateBallotSuccess(ballot.id, ballot));
+		dispatch(updateBallotsLocal([ballot]));
 		return {matched, unmatched, added, remaining, updated};
 	}
 
-export const CommentsSpreadsheetFormat = {
-	MyProject: 'MyProject',
-	Legacy: 'Legacy',
-	Modern: 'Modern'
-};
+export type CommentsSpreadsheetFormat = "myproject" | "legacy" | "modern";
+export type CommentsSpreadsheetStyle = "AllComments" | "TabPerAdHoc" | "TabPerCommentGroup";
 
-export const CommentsSpreadsheetStyle = {
-	AllComments: 'AllComments',
-	TabPerAdHoc: 'TabPerAdHoc',
-	TabPerCommentGroup: 'TabPerCommentGroup'
-};
-
-export const exportCommentsSpreadsheet = (ballot_id: number, file: any, format: string, style: string): AppThunk =>
+export const exportCommentsSpreadsheet = (
+	ballot_id: number,
+	format: CommentsSpreadsheetFormat,
+	style: CommentsSpreadsheetStyle,
+	file: File
+): AppThunk =>
 	async (dispatch, getState) => {
+		const url = `${baseCommentsUrl}/${ballot_id}/export?format=${format}`;
 		try {
-			let Filename: string | undefined;
-			if (file)
-				Filename = file.name;
-			const url = `${baseCommentsUrl}/${ballot_id}/export/` + format;
-			await fetcher.postForFile(url, {Filename, Style: style}, file);
+			await fetcher.postForFile(url, {style}, file);
 		}
 		catch(error) {
 			const ballot = selectBallotEntities(getState())[ballot_id];

@@ -17,7 +17,7 @@ import CommentsExport from './CommentsExport';
 import CommentsCopy from './CommentsCopy';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectUserAccessLevel, AccessLevel } from '../store/user';
+import { AccessLevel } from '../store/user';
 import { selectBallot, selectCurrentBallot_id } from '../store/ballots';
 import { loadMembers } from '../store/members';
 import {
@@ -27,8 +27,9 @@ import {
 	getCID,
 	selectCommentsState,
 	selectCommentsBallot_id,
+	selectCommentsAccess,
 	commentsSelectors,
-	commentsActions
+	commentsActions,
 } from '../store/comments';
 
 
@@ -313,11 +314,11 @@ function commentsRowGetter({rowIndex, ids, entities}) {
 
 function Comments() {
 
-	const access = useAppSelector(selectUserAccessLevel);
+	const access = useAppSelector(selectCommentsAccess);
 	const {selected} = useAppSelector(selectCommentsState);
 	const commentsBallot_id = useAppSelector(selectCommentsBallot_id);
 	const currentBallot_id = useAppSelector(selectCurrentBallot_id);
-	const commentsBallot = useAppSelector((state) => selectBallot(state, commentsBallot_id));
+	const commentsBallot = useAppSelector((state) => commentsBallot_id? selectBallot(state, commentsBallot_id): undefined);
 
 	const dispatch = useAppDispatch();
 

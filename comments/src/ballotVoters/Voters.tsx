@@ -17,7 +17,7 @@ import {
 	deleteVoters,
 	exportVoters,
 	selectVotersState,
-	selectVotersBallotId,
+	selectVotersBallot_id,
 	votersSelectors,
 	votersActions,
 	Voter,
@@ -40,12 +40,14 @@ const RowActions = ({onEdit, onDelete}) =>
 		<ActionButton name='delete' title='Delete' onClick={onDelete} />
 	</ActionCell>
 
-function getDefaultVoter(ballot_id: number): VoterCreate {
-	return {
+function getDefaultVoter(ballot_id: number | null): VoterCreate {
+	let voter: VoterCreate = {
 		SAPIN: 0,
-		Status: "Voter",
-		ballot_id
+		Status: "Voter"
 	}
+	if (ballot_id)
+		voter.ballot_id = ballot_id;
+	return voter;
 }
 
 type ColumnPropertiesWithWidth = ColumnProperties & {width: number};
@@ -95,7 +97,7 @@ type VotersState = {
 function Voters() {
 	const dispatch = useAppDispatch();
 
-	const votersBallot_id = useAppSelector(selectVotersBallotId);
+	const votersBallot_id = useAppSelector(selectVotersBallot_id);
 	const currentBallot_id = useAppSelector(selectCurrentBallot_id);
 
 	React.useEffect(() => {
@@ -105,9 +107,7 @@ function Voters() {
 			dispatch(clearVoters());
 	}, [dispatch, currentBallot_id, votersBallot_id]);
 
-	const refresh = () => {
-		dispatch(votersBallot_id? loadVoters(votersBallot_id): clearVoters());
-	}
+	const refresh = () => dispatch(votersBallot_id? loadVoters(votersBallot_id): clearVoters());
 
 	const [editVoter, setEditVoter] = React.useState<VotersState>({action: null, voter: getDefaultVoter(votersBallot_id)});
 	const [showImportVoters, setShowImportVoters] = React.useState(false);
@@ -143,17 +143,17 @@ function Voters() {
 		}
 	}
 
-	const handleAddVoter = () => setEditVoter({action: 'add', voter: getDefaultVoter(votersBallot_id)});
+	const handleAddVoter = () => setEditVoter({action: 'add', voter: getDefaultVoter(votersBallot_id!)});
 
 	return (
 		<>
 			<TopRow style={{maxWidth}}>
 				<PathBallotSelector />
 				<div>
-					<ActionButton name='add' title='Add voter' onClick={handleAddVoter} />
+					<ActionButton name='add' title='Add voter' disabled={!votersBallot_id} onClick={handleAddVoter} />
 					<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
-					<ActionButton name='import' title='Import voters' onClick={() => setShowImportVoters(true)} />
-					<ActionButton name='export' title='Export voters' onClick={() => dispatch(exportVoters(votersBallot_id))} />
+					<ActionButton name='import' title='Import voters' disabled={!votersBallot_id} onClick={() => setShowImportVoters(true)} />
+					<ActionButton name='export' title='Export voters' disabled={!votersBallot_id} onClick={() => dispatch(exportVoters(votersBallot_id!))} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} disabled={loading} />
 				</div>
 			</TopRow>
@@ -175,7 +175,7 @@ function Voters() {
 				close={() => setEditVoter(state => ({...state, action: null}))}
 				ballot_id={votersBallot_id}
 				voter={editVoter.voter}
-				action={editVoter.action!}
+				action={editVoter.action}
 			/>
 
 			<VotersImportModal

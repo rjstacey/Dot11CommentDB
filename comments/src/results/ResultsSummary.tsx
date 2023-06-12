@@ -6,9 +6,8 @@ import { IconCollapse } from 'dot11-components';
 import { useAppSelector } from '../store/hooks';
 
 import { BallotType, BallotTypeLabels, selectCurrentBallot, Ballot } from '../store/ballots';
-//import {getResultsDataSet} from '../store/results';
 
-type ResultsSummary = {
+type ResultsSummaryForDisplay = {
 	opened: string;
 	closed: string;
 	duration: string;
@@ -37,7 +36,7 @@ type ResultsSummary = {
 }
 
 function getResultsSummary(ballot: Ballot) {
-	const summary: ResultsSummary = {
+	const summary: ResultsSummaryForDisplay = {
 		opened: '',
 		closed: '',
 		duration: '',
@@ -162,7 +161,7 @@ const LabelValue = ({label, children, ...otherProps}) =>
 		{(typeof children === 'string' || typeof children === 'number')? <span>{children}</span>: children}
 	</LV>
 
-const BallotColumn = ({ballot, summary}: {ballot: Ballot; summary: ResultsSummary}) =>
+const BallotColumn = ({ballot, summary}: {ballot: Ballot; summary: ResultsSummaryForDisplay}) =>
 	<Col width={260}>
 		<Title>{BallotTypeLabels[ballot.Type] || 'Unexpected'}</Title>
 		<LabelValue label='Opened:'>{summary.opened}</LabelValue>
@@ -175,7 +174,7 @@ const BallotColumn = ({ballot, summary}: {ballot: Ballot; summary: ResultsSummar
 		<LabelValue label='Comments:'>{summary.comments}</LabelValue>
 	</Col>
 
-const ResultColumn = ({ballot, summary}: {ballot: Ballot; summary: ResultsSummary}) =>
+const ResultColumn = ({ballot, summary}: {ballot: Ballot; summary: ResultsSummaryForDisplay}) =>
 	<Col width={300}>
 		<Title>Result</Title>
 		<LabelValue label='Approve:'>{summary.approve}</LabelValue>
@@ -188,7 +187,7 @@ const ResultColumn = ({ballot, summary}: {ballot: Ballot; summary: ResultsSummar
 			<LabelValue label='Not in pool:'>{summary.invalidVote}</LabelValue>}
 	</Col>
 
-const InvalidVotesColumn = ({summary}: {summary: ResultsSummary}) =>
+const InvalidVotesColumn = ({summary}: {summary: ResultsSummaryForDisplay}) =>
 	<Col width={300}>
 		<Title>Invalid votes</Title>
 		<LabelValue label='Not in pool:'>{summary.invalidVote}</LabelValue>
@@ -196,7 +195,7 @@ const InvalidVotesColumn = ({summary}: {summary: ResultsSummary}) =>
 		<LabelValue label='Abstain reason:'>{summary.invalidAbstain}</LabelValue>
 	</Col>
 
-const ApprovalCriteriaColumn = ({summary}: {summary: ResultsSummary}) =>
+const ApprovalCriteriaColumn = ({summary}: {summary: ResultsSummaryForDisplay}) =>
 	<Col width={400}>
 		<Title>Approval criteria</Title>
 		<PassFailBlock pass={summary.approvalRatePass} >
@@ -213,7 +212,7 @@ const ApprovalCriteriaColumn = ({summary}: {summary: ResultsSummary}) =>
 		</PassFailBlock>
 	</Col>
 
-const DetailedSummary = ({ballot, summary}: {ballot: Ballot; summary: ResultsSummary}) =>
+const DetailedSummary = ({ballot, summary}: {ballot: Ballot; summary: ResultsSummaryForDisplay}) =>
 	<>
 		<BallotColumn ballot={ballot} summary={summary} />
 		<ResultColumn ballot={ballot} summary={summary} />

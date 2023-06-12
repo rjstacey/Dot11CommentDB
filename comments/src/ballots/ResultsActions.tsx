@@ -7,8 +7,8 @@ import {
 
 import { renderResultsSummary } from './Ballots';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { importResults, uploadEpollResults, uploadMyProjectResults, deleteResults } from '../store/results';
-import { BallotType, selectBallot } from '../store/ballots';
+import { importResults, uploadResults, deleteResults } from '../store/results';
+import { selectBallot } from '../store/ballots';
 
 const MULTIPLE_STR = "(Multiple)";
 
@@ -37,7 +37,7 @@ function ResultsActions({
 
 	async function handleImportResults() {
 		setBusy(true);
-		await dispatch(importResults(ballot_id as number, ballot!.EpollNum!));
+		await dispatch(importResults(ballot_id as number));
 		setBusy(false);
 	}
 
@@ -46,10 +46,7 @@ function ResultsActions({
 		const {files} = e.target;
 		if (files && files.length > 0) {
 			setBusy(true);
-			await dispatch(ballot!.Type === BallotType.SA?
-				uploadMyProjectResults(ballot_id as number, files[0]):
-				uploadEpollResults(ballot_id as number, files[0])
-			);
+			await dispatch(uploadResults(ballot_id as number, files[0]));
 			setBusy(false);
 			setInputValue('');
 		}

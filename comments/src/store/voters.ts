@@ -23,7 +23,7 @@ export type Voter = {
 
 export type VoterCreate = {
 	id?: Voter["id"];
-	ballot_id: Voter["ballot_id"];
+	ballot_id?: Voter["ballot_id"];
 	SAPIN: Voter["SAPIN"];
 	Excused?: Voter["Excused"];
 	Status: Voter["Status"];
@@ -50,18 +50,18 @@ export const fields = {
  * Selectors
  */
 export const selectVotersState = (state: RootState) => state[dataSet];
-export const selectVotersBallotId = (state: RootState) => selectVotersState(state).ballot_id;
+export const selectVotersBallot_id = (state: RootState) => selectVotersState(state).ballot_id;
 
 export const votersSelectors = getAppTableDataSelectors(selectVotersState);
 
 const sortComparer = (v1: Voter, v2: Voter) => v1.SAPIN - v2.SAPIN;
 
 type ExtraState = {
-	ballot_id: number;
+	ballot_id: number | null;
 };
 
 const initialState: ExtraState = {
-	ballot_id: 0
+	ballot_id: null
 };
 
 export const dataSet = 'voters';
@@ -126,6 +126,8 @@ export const loadVoters = (ballot_id: number): AppThunk =>
 		if (selectVotersState(getState()).loading)
 			return;
 		dispatch(getPending());
+		dispatch(removeAll());
+		dispatch(setDetails({ballot_id}));
 		const url = `${baseUrl}/${ballot_id}`;
 		let response: any;
 		try {
@@ -139,13 +141,12 @@ export const loadVoters = (ballot_id: number): AppThunk =>
 			return;
 		}
 		dispatch(getSuccess(response));
-		dispatch(setDetails({ballot_id}));
 	}
 
 export const clearVoters = (): AppThunk =>
 	async (dispatch) => {
 		dispatch(removeAll());
-		dispatch(setDetails({ballot_id: 0}));
+		dispatch(setDetails({ballot_id: null}));
 	}
 
 export const deleteVoters = (ids: EntityId[]): AppThunk =>

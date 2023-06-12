@@ -100,3 +100,5 @@ export const getMembers = (): AppThunk =>
 			return dispatch(loadMembers());
 		return Promise.resolve();
 	}
+
+export const initMembers = loadMembers;

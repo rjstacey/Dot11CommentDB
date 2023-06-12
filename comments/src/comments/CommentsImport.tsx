@@ -9,51 +9,64 @@ import {
 } from 'dot11-components';
 
 import { useAppDispatch } from '../store/hooks';
-import { uploadResolutions, FieldsToUpdate, MatchAlgorithm, MatchUpdate } from '../store/comments';
+import { uploadResolutions } from '../store/comments';
+import type { FieldToUpdate, MatchAlgo, MatchUpdate } from '../store/comments';
 import type { Ballot } from '../store/ballots';
 
-const importFieldOptions = [
-	{value: FieldsToUpdate.CID,
+const importFieldOptions: {
+	value: FieldToUpdate;
+	label: string;
+	description: string;
+}[] = [
+	{value: "cid",
 		label: 'CID',
 		description: 'Update CID of each comment'},
-	{value: FieldsToUpdate.ClausePage,
+	{value: "clausepage",
 		label: 'Clause & Page',
 		description: 'Update Clause, Page and Line fields of each comment. Original fields as commented are preserved.'},
-	{value: FieldsToUpdate.AdHoc,
+	{value: "adhoc",
 		label: 'Ad-hoc, Comment Group, Notes',
 		description: 'Update Owning Ad-hoc, Comment Group and Notes field of each comment'},
-	{value: FieldsToUpdate.Assignee,
+	{value: "assignee",
 		label: 'Assignee',
 		description: 'Update Assignee field of each comment'},
-	{value: FieldsToUpdate.Resolution,
+	{value: "resolution",
 		label: 'Resolutions',
 		description: 'Update Submission, Resn Status, Resolution and Motion Number fields of each comment'},
-	{value: FieldsToUpdate.Editing,
+	{value: "editing",
 		label: 'Editing status',
 		description: 'Update Edit Status, Edit Notes and Edited in Draft fields for each comment'}
 ];
 
-const matchAlgoOptions = [
-	{value: MatchAlgorithm.CID,
+const matchAlgoOptions: {
+	value: MatchAlgo;
+	label: string;
+	description: string;
+}[] = [
+	{value: "cid",
 		label: 'Match CID',
 		description: 'Match CID'},
-	{value: MatchAlgorithm.Comment,
+	{value: "comment",
 		label: 'Match comment',
 		description: 'Match Commenter, Category, Page, Line, Comment and Proposed Change'},
-	{value: MatchAlgorithm.Elimination,
+	{value: "elimination",
 		label: 'Successive elimination',
 		description: 'Successively eliminate rows that do not match until only one row is left by matching, in order, Commenter, Category, Page, ' +
 		'Line, Comment and Proposed Change. Fields that might have issues are only matched if needed.'}
 ];
 
-const matchUpdateOptions = [
-	{value: MatchUpdate.All,
+const matchUpdateOptions: {
+	value: MatchUpdate;
+	label: string;
+	description: string;
+}[] = [
+	{value: "all",
 		label: 'All comments',
 		description: 'Update all comments provided all comments match.'},
-	{value: MatchUpdate.Any,
+	{value: "any",
 		label: 'Any comments that match',
 		description: 'Update comments that match, ignore comments that don\'t match.'},
-	{value: MatchUpdate.Add,
+	{value: "add",
 		label: 'Add comments that don\'t match any existing comments',
 		description: 'Update all comments and add extra comments provided all existing comments match'}
 ];
@@ -82,14 +95,13 @@ const ImportFieldsList = ({fields, setFields, disableCID}) => {
 			{importFieldOptions.map(a => 
 				<ListItem
 					key={a.value}
-					//disabled={a.value === FieldsToUpdate.CID && disableCID}
 				>
 					<Checkbox
 						value={a.value}
 						title={a.description}
 						checked={fields.includes(a.value)}
 						onChange={changeImportFields}
-						disabled={a.value === FieldsToUpdate.CID && disableCID}
+						disabled={a.value === "cid" && disableCID}
 					/>
 					<label>{a.label}</label>
 				</ListItem>
@@ -145,9 +157,9 @@ function CommentsImportDropdown({
 ) {
 	const dispatch = useAppDispatch();
 	const fileRef = React.useRef<HTMLInputElement>(null);
-	const [fields, setFields] = React.useState<string[]>([]);
-	const [algo, setAlgo] = React.useState(MatchAlgorithm.CID);
-	const [matchUpdate, setMatchUpdate] = React.useState(MatchUpdate.All);
+	const [fields, setFields] = React.useState<FieldToUpdate[]>([]);
+	const [algo, setAlgo] = React.useState<MatchAlgo>("cid");
+	const [matchUpdate, setMatchUpdate] = React.useState<MatchUpdate>("all");
 	const [sheetName, setSheetName] = React.useState('All Comments');
 	const [errMsg, setErrMsg] = React.useState('');
 	const [busy, setBusy] = React.useState(false);
@@ -164,7 +176,7 @@ function CommentsImportDropdown({
 		if (result) {
 			const {matched, unmatched, added, remaining, updated} = result;
 			let msg  = '';
-			if (matchUpdate === MatchUpdate.All) {
+			if (matchUpdate === "all") {
 				if (unmatched.length === 0) {
 					msg = updated === 0?
 							'No comments were updated (no changes identified).':
@@ -179,7 +191,7 @@ function CommentsImportDropdown({
 							unmatched.join(', ');
 				}
 			}
-			else if (matchUpdate === MatchUpdate.Any) {
+			else if (matchUpdate === "any") {
 				msg = updated === 0?
 						'No comments were updated.':
 						(updated === 1?
@@ -202,9 +214,9 @@ function CommentsImportDropdown({
 		}
 	}
 
-	const handleSetAlgo = (algo) => {
-		if (algo === MatchAlgorithm.CID && fields.includes(FieldsToUpdate.CID)) {
-			const newFields = fields.filter(f => f !== FieldsToUpdate.CID);
+	const handleSetAlgo = (algo: MatchAlgo) => {
+		if (algo === "cid" && fields.includes("cid")) {
+			const newFields = fields.filter(f => f !== "cid");
 			setFields(newFields);
 		}
 		setAlgo(algo);
@@ -223,7 +235,7 @@ function CommentsImportDropdown({
 					<ImportFieldsList
 						fields={fields}
 						setFields={setFields}
-						disableCID={algo === MatchAlgorithm.CID}
+						disableCID={algo === "cid"}
 					/>
 				</Col>
 				<Col>

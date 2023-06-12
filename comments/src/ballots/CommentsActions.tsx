@@ -92,7 +92,7 @@ const CommentsActions = ({
 
 	const handleImportComments = async () => {
 		setBusy(true);
-		await dispatch(importComments(ballot_id as number, ballot!.EpollNum!, 1));
+		await dispatch(importComments(ballot_id as number, 1));
 		setBusy(false);
 	}
 
