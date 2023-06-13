@@ -33,8 +33,8 @@ function ColorPicker({
 	options = defaultOptions,
 	readOnly = false
 }: {
-	value: string,
-	onChange?: (value: string) => void;
+	value: string | null,
+	onChange?: (value: string | null) => void;
 	options?: string[],
 	readOnly?: boolean;
 }) {

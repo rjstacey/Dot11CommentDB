@@ -9,6 +9,7 @@ import {
 	getAppTableDataSelectors,
 	SortType,
 	AppTableDataState,
+	isObject,
 	//displayDateRange
 } from 'dot11-components';
 
@@ -145,14 +146,25 @@ const {getPending, getSuccess, getFailure} = slice.actions;
 
 const url = '/api/802world';
 
+function validEntry(entry: any): entry is Ieee802WorldScheduleEntry {
+	return isObject(entry) &&
+		typeof entry.id === 'number' &&
+		typeof entry.startTime === 'string' &&
+		typeof entry.endTime === 'string';
+}
+
+function validResponse(response: any): response is Ieee802WorldScheduleEntry[] {
+	return Array.isArray(response) && response.every(validEntry);
+}
+
 export const load802WorldSchedule = (): AppThunk => 
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		dispatch(getPending());
 		let response;
 		try {
 			response = await fetcher.get(url);
-			if (!Array.isArray(response))
-				throw new TypeError('Unexpected response to GET ' + url);
+			if (!validResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch(error) {
 			console.warn(error)

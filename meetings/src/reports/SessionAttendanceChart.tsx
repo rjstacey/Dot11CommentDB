@@ -53,7 +53,7 @@ type EntityItem = {
     date: string;
     slotName: string;
     startTime: string;
-    color: string;
+    color: string | null;
     attendanceCount: number;
 }
 
@@ -206,7 +206,7 @@ function SessionAttendanceChart({
                                 y={yScale(series.id)}
                                 height={yScale.bandwidth()}
                                 width={xScale(item.high) - xScale(item.low)}
-                                fill={item.color}
+                                fill={item.color || '#ffffff'}
                                 opacity={0.8}
                                 rx='0.2%'
                             />

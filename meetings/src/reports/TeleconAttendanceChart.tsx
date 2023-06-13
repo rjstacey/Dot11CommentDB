@@ -37,7 +37,7 @@ const selectAttendanceSeriesInfo = createSelector(
                     const date = '' + DateTime.fromISO(breakout.start).toISODate();
                     const label = meeting.summary;
                     const group = meeting.organizationId && groupEntities[meeting.organizationId];
-                    const color = group? group.color: 'yellow';
+                    const color = (group && group.color) || 'yellow';
                     const entry = {date, label, color, attendanceCount};
                     seriesEntities[meeting.id] = entry;
                 }

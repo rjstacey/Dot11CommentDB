@@ -3,8 +3,6 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
 import {
-	fetcher,
-	setError,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	SortType
@@ -12,21 +10,13 @@ import {
 
 import type { AppThunk, RootState } from '.';
 import { selectImatMeetingEntities } from './imatMeetings';
-import { selectBreakoutIds, loadBreakouts } from './imatBreakouts';
-import type { ImatBreakoutAttendance } from './imatBreakoutAttendance';
-import { loadBreakoutAttendance } from './imatBreakoutAttendance';
+import { selectBreakoutIds, getBreakouts, Breakout } from './imatBreakouts';
+import { loadBreakoutAttendance, ImatBreakoutAttendance } from './imatBreakoutAttendance';
 
 export type ImatMeetingAttendance = {
     id: number;
-	//committee: string;
-	//breakoutName: string;
 	breakoutId: number;
-	SAPIN: number;
-	Name: string;
-	Email: string;
-	Timestamp: string;
-	Affiliation: string;
-}
+} & ImatBreakoutAttendance;
 
 export const fields = {
 	breakoutId: {label: 'Breakout'},
@@ -109,58 +99,52 @@ const {
 	removeAll,
 } = slice.actions;
 
-const baseUrl = '/api/imat/attendance';
-
-export const loadImatMeetingAttendance2 = (imatMeetingId: number): AppThunk =>
+let loadImatMeetingAttendancePromise: Promise<ImatMeetingAttendance[]> | null = null;
+export const loadImatMeetingAttendance = (imatMeetingId: number): AppThunk<ImatMeetingAttendance[]> =>
 	async (dispatch, getState) => {
-		if (selectMeetingAttendanceState(getState()).loading)
-			return;
+		if (loadImatMeetingAttendancePromise)
+			return loadImatMeetingAttendancePromise;
 		dispatch(getPending());
 		dispatch(removeAll());
-		const url = `${baseUrl}/${imatMeetingId}`;
-		let response;
-		try {
-			response = await fetcher.get(url);
-			if (!Array.isArray(response))
-				throw new TypeError('Unexpected response to GET ' + url);
-		}
-		catch(error) {
-			dispatch(getFailure());
-			dispatch(setError(`Unable to get attendance for ${imatMeetingId}`, error));
-			return;
-		}
 		dispatch(setDetails({imatMeetingId}));
-		dispatch(getSuccess(response));
+		loadImatMeetingAttendancePromise = dispatch(getBreakouts(imatMeetingId))
+			.then(async (breakouts: Breakout[]) => {
+				let allAttendances: ImatMeetingAttendance[] = [];
+				let p: {id: number; promise: Promise<ImatBreakoutAttendance[]>}[] = [];
+				let id = 0;
+				while (breakouts.length > 0 || p.length > 0) {
+					if (breakouts.length > 0) {
+						const breakout = breakouts.shift()!;
+						p.push({id: breakout.id, promise: dispatch(loadBreakoutAttendance(imatMeetingId, breakout.id))});
+					}
+					if (p.length === 5 || (breakouts.length === 0 && p.length > 0)) {
+						const pp = p.shift()!;
+						const breakoutAttendances = await pp.promise;
+						/* eslint-disable-next-line no-loop-func */
+						const attendances = breakoutAttendances.map((a, i) => ({id: id++, breakoutId: pp.id, ...a}))
+						dispatch(addMany(attendances));
+						allAttendances = allAttendances.concat(attendances);
+					}
+				}
+				dispatch(getSuccess(allAttendances));
+				return allAttendances;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				return [];
+			})
+			.finally(() => {
+				loadImatMeetingAttendancePromise = null;
+			})
+		return loadImatMeetingAttendancePromise;
 	}
 
-export const loadImatMeetingAttendance = (imatMeetingId: number): AppThunk =>
+export const getImatMeetingAttendance = (imatMeetingId: number): AppThunk<ImatMeetingAttendance[]> =>
 	async (dispatch, getState) => {
-		const state = getState();
-		if (selectMeetingAttendanceState(state).loading)
-			return;
-		dispatch(getPending());
-		dispatch(removeAll());
-		dispatch(setDetails({imatMeetingId}));
-		const breakouts = (await dispatch(loadBreakouts(imatMeetingId))).slice();
-
-		let allAttendances: ImatMeetingAttendance[] = [];
-		let p: {id: number; promise: Promise<ImatBreakoutAttendance[]>}[] = [];
-		let id = 0;
-		while (breakouts.length > 0 || p.length > 0) {
-			if (breakouts.length > 0) {
-				const breakout = breakouts.shift()!;
-				p.push({id: breakout.id, promise: dispatch(loadBreakoutAttendance(imatMeetingId, breakout.id))});
-			}
-			if (p.length === 5 || (breakouts.length === 0 && p.length > 0)) {
-				const pp = p.shift()!;
-				const breakoutAttendances = await pp.promise;
-				/* eslint-disable-next-line no-loop-func */
-				const attendances = breakoutAttendances.map((a, i) => ({id: id++, breakoutId: pp.id, ...a}))
-				dispatch(addMany(attendances));
-				allAttendances = allAttendances.concat(attendances);
-			}
-		}
-		dispatch(getSuccess(allAttendances));
+		const {imatMeetingId: currentImatMeetingId, ids, entities} = selectMeetingAttendanceState(getState());
+		if (currentImatMeetingId !== imatMeetingId)
+			return dispatch(loadImatMeetingAttendance(imatMeetingId));
+		return ids.map(id => entities[id]!);
 	}
 
 export const clearImatMeetingAttendance = (): AppThunk =>

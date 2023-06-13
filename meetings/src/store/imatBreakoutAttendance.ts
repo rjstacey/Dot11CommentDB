@@ -6,7 +6,8 @@ import {
 	setError,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
-	SortType
+	SortType,
+	isObject
 } from 'dot11-components';
 
 import type { AppThunk, RootState } from '.';
@@ -18,8 +19,8 @@ export type ImatBreakoutAttendance = {
 	SAPIN: number;
 	Name: string;
 	Email: string;
-	Timestamp: string;
 	Affiliation: string;
+	Timestamp: string;
 }
 
 export const fields = {
@@ -91,15 +92,26 @@ const {
 
 const baseUrl = '/api/imat/attendance';
 
+function validImatBreakoutAttendance(a: any): a is ImatBreakoutAttendance {
+	return isObject(a) &&
+		typeof a.SAPIN === 'number' &&
+		typeof a.Name === 'string' &&
+		typeof a.Affiliation === 'string';
+}
+
+function validResponse(response: any): response is ImatBreakoutAttendance[] {
+	return Array.isArray(response) && response.every(validImatBreakoutAttendance);
+}
+
 export const loadBreakoutAttendance = (imatMeetingId: number, imatBreakoutId: number): AppThunk<ImatBreakoutAttendance[]> =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		dispatch(getPending());
 		const url = `${baseUrl}/${imatMeetingId}/${imatBreakoutId}`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.get(url);
-			if (!Array.isArray(response))
-				throw new TypeError('Unexpected response to GET ' + url);
+			if (!validResponse(response))
+				throw new TypeError('Unexpected response');
 		}
 		catch (error) {
 			dispatch(getFailure());

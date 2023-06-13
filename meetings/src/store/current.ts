@@ -74,6 +74,10 @@ export const selectCurrentSession = (state: RootState) => {
 	const sessionId = selectCurrentSessionId(state);
 	return sessionId? selectSessionEntities(state)[sessionId]: undefined;
 }
+export const selectCurrentImatMeetingId = (state: RootState) => {
+	const session = selectCurrentSession(state);
+	return session?.imatMeetingId;
+}
 export const selectShowDateRange = (state: RootState) => selectCurrentState(state).showDateRange;
 export const selectGroupDefaults = (state: RootState, groupId: string) => selectCurrentState(state).groupDefaults[groupId] || initDefaults;
 

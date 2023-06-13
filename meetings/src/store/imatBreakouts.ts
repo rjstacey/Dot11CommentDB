@@ -11,7 +11,7 @@ import {
 	getAppTableDataSelectors
 } from 'dot11-components';
 
-import { AppThunk, RootState } from '.';
+import type { AppThunk, RootState } from '.';
 import { selectMeetingEntities } from './meetings';
 import { selectSyncedImatMeetingEntities } from './imatMeetings';
 
@@ -199,47 +199,73 @@ const {
 	removeAll,
 	setSelected,
 	toggleSelected,
-	setPanelIsSplit
 } = slice.actions;
 
-export {getSuccess as setBreakouts, upsertMany as upsertBreakouts};
-
-export {setSelected as setSelectedBreakouts, toggleSelected as toggleSelectedBreakouts};
-
-export const setBreakoutsCurrentPanelIsSplit = (isSplit: boolean) => setPanelIsSplit({isSplit});
+export {
+	getSuccess as setBreakouts,
+	upsertMany as upsertBreakouts,
+	setSelected as setSelectedBreakouts,
+	toggleSelected as toggleSelectedBreakouts
+};
 
 const baseUrl = '/api/imat/breakouts';
 
+function validBreakout(b: any): b is Breakout {
+	return isObject(b) &&
+		typeof b.id === 'number' &&
+		typeof b.name === 'string' &&
+		typeof b.location === 'string' &&
+		typeof b.day === 'number';
+}
+
+function validGetResponse(response: any): response is {breakouts: Breakout[]; timeslots: Timeslot[]; committees: Committee[]} {
+	return isObject(response) &&
+		Array.isArray(response.breakouts) && response.breakouts.every(validBreakout) &&
+		Array.isArray(response.timeslots) &&
+		Array.isArray(response.committees);
+}
+
+function validResponse(response: any): response is Breakout[] {
+	return Array.isArray(response) && response.every(validBreakout);
+}
+
+let loadBreakoutsPromise: Promise<Breakout[]> | null = null;
 export const loadBreakouts = (imatMeetingId: number): AppThunk<Breakout[]> =>
 	async (dispatch, getState) => {
-		const breakoutsState = selectBreakoutsState(getState());
-		if (imatMeetingId !== breakoutsState.imatMeetingId) {
+		const {imatMeetingId: currentImatMeetingId} = selectBreakoutsState(getState());
+		if (imatMeetingId !== currentImatMeetingId) {
 			dispatch(removeAll());
 			dispatch(setDetails({timeslots: [], committees: []}));
 		}
 		dispatch(setDetails({imatMeetingId}));
 		dispatch(getPending());
 		const url = `${baseUrl}/${imatMeetingId}`;
-		let response;
-		try {
-			response = await fetcher.get(url);
-			if (!isObject(response) ||
-				!Array.isArray(response.breakouts) ||
-				!Array.isArray(response.timeslots) ||
-				!Array.isArray(response.committees)) {
-				throw new TypeError(`Unexpected response to GET ${url}`);
-			}
-		}
-		catch(error) {
-			console.log(error)
-			dispatch(getFailure());
-			dispatch(setError(`Unable to get breakouts for ${imatMeetingId}`, error));
-			return [];
-		}
-		dispatch(getSuccess(response.breakouts));
-		const {timeslots, committees} = response;
-		dispatch(setDetails({timeslots, committees, imatMeetingId}));
-		return response.breakouts;
+		loadBreakoutsPromise = (fetcher.get(url) as Promise<Breakout[]>)
+			.then((response: any) => {
+				if (!validGetResponse(response))
+					throw new TypeError("Unexpected response");
+				dispatch(getSuccess(response.breakouts));
+				const {timeslots, committees} = response;
+				dispatch(setDetails({timeslots, committees, imatMeetingId}));
+				return response.breakouts;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError(`Unable to get breakouts for ${imatMeetingId}`, error));
+				return [];
+			})
+			.finally(() => {
+				loadBreakoutsPromise = null;
+			})
+		return loadBreakoutsPromise;
+	}
+
+export const getBreakouts = (imatMeetingId: number): AppThunk<Breakout[]> =>
+	async (dispatch, getState) => {
+		const {loading, ids, entities, imatMeetingId: currentImatMeetingId} = selectBreakoutsState(getState());
+		if (currentImatMeetingId !== imatMeetingId || loading)
+			return dispatch(loadBreakouts(imatMeetingId));
+		return ids.map(id => entities[id]!);
 	}
 
 export const clearBreakouts = (): AppThunk =>
@@ -254,8 +280,8 @@ export const addBreakouts = (imatMeetingId: number, breakouts: Breakout[]): AppT
 		let response;
 		try {
 			response = await fetcher.post(url, breakouts);
-			if (!Array.isArray(response))
-				throw new TypeError(`Unexpected response to POST ${url}`);
+			if (!validResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch (error) {
 			dispatch(setError('Unable to add breakouts', error));
@@ -271,8 +297,8 @@ export const updateBreakouts = (imatMeetingId: number, breakouts: Partial<Breako
 		let response;
 		try {
 			response = await fetcher.put(url, breakouts);
-			if (!Array.isArray(response))
-				throw new TypeError(`Unexpected response to PUT ${url}`);
+			if (!validResponse(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch (error) {
 			dispatch(setError('Unable to update breakouts', error));
@@ -282,7 +308,7 @@ export const updateBreakouts = (imatMeetingId: number, breakouts: Partial<Breako
 	}
 
 export const deleteBreakouts = (imatMeetingId: number, ids: EntityId[]): AppThunk => 
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		const url = `${baseUrl}/${imatMeetingId}`;
 		try {
 			await fetcher.delete(url, ids);
@@ -293,5 +319,3 @@ export const deleteBreakouts = (imatMeetingId: number, ids: EntityId[]): AppThun
 		}
 		dispatch(removeMany(ids));
 	}
-
-//export const selectBreakoutsCurrentPanelConfig = (state) => selectCurrentPanelConfig(state, dataSet);

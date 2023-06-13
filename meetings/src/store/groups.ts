@@ -1,4 +1,4 @@
-import type { Action, EntityId } from '@reduxjs/toolkit';
+import { Action, EntityId, PayloadAction, EntityAdapter, createAction } from '@reduxjs/toolkit';
 
 import { v4 as uuid } from 'uuid';
 
@@ -6,13 +6,12 @@ import {
 	fetcher,
 	setError,
 	createAppTableDataSlice,
-	AppTableDataState,
-	getAppTableDataSelectors
+	getAppTableDataSelectors,
+	isObject
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-
-import {selectCurrentGroupId} from './current';
+import { selectCurrentGroupId } from './current';
 
 const GroupTypeLabels = {
 	c: 'Committee',
@@ -38,8 +37,9 @@ export type Group = {
 	name: string;
 	status: number;
 	symbol: string | null;
-	color: string;
+	color: string | null;
 	type: GroupType | null;
+	project: string | null;
 };
 
 export type GroupCreate = Omit<Group, "id"> & { id?: string };
@@ -97,18 +97,33 @@ function treeSortedIds(ids: string[], entities: { [id: string]: Group }) {
 
 export const dataSet = 'groups';
 
-type GroupsState = AppTableDataState<Group>;
+type ExtraState = {
+	workingGroupId: string | null;
+}
+
+const initialState: ExtraState = {
+	workingGroupId: null,
+}
+
+//type GroupsState = AppTableDataState<Group>;
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	initialState: {},
-	reducers: {},
-	extraReducers: (builder: any) => {
+	initialState,
+	reducers: {
+		setWorkingGroupId(state, action: PayloadAction<string | null>) {
+			state.workingGroupId = action.payload;
+		},
+	},
+	extraReducers: (builder: any, dataAdapter: EntityAdapter<Group>) => {
 		builder
 		.addMatcher(
-			(action: Action) => action.type === (dataSet + '/getSuccess'),
-			(state: any) => {
+			(action: Action) => action.type === (dataSet + '/getSuccess2'),
+			(state: any, action: PayloadAction<Group[]>) => {
+				dataAdapter.setMany(state, action.payload);
+				state.loading = false;
+				state.valid = true;
 				const {ids, entities} = state;
 				const sortedIds = treeSortedIds(ids, entities);
 				if (sortedIds.join() !== ids.join())
@@ -123,7 +138,7 @@ export default slice;
 /*
  * Selectors
  */
-export const selectGroupsState = (state: RootState) => state[dataSet] as GroupsState;
+export const selectGroupsState = (state: RootState) => state[dataSet];
 export const selectGroupEntities = (state: RootState) => selectGroupsState(state).entities;
 export const selectGroupIds = (state: RootState) => selectGroupsState(state).ids;
 
@@ -132,7 +147,15 @@ export const selectCurrentGroup = (state: RootState) => {
 	const entities = selectGroupEntities(state);
 	return groupId? entities[groupId]: undefined;
 }
-
+export const selectWorkingGroups = (state: RootState) => {
+	const {ids, entities} = selectGroupsState(state);
+	return ids.map(id => entities[id]!).filter(g => g.type === 'wg');
+}
+export const selectWorkingGroupId = (state: RootState) => selectGroupsState(state).workingGroupId;
+export const selectWorkingGroup = (state: RootState) => {
+	const {workingGroupId, entities} = selectGroupsState(state);
+	return (workingGroupId && entities[workingGroupId]) || undefined;
+}
 export const selectGroupName = (state: RootState) => selectCurrentGroup(state)?.name || '';
 
 export const groupsSelectors = getAppTableDataSelectors(selectGroupsState);
@@ -146,7 +169,6 @@ export const groupsActions = slice.actions;
 
 const {
 	getPending,
-	getSuccess,
 	getFailure,
 	addOne,
 	addMany,
@@ -156,21 +178,51 @@ const {
 	removeMany,
 	setSelected,
 	setFilter,
-	clearFilter
+	clearFilter,
+	setWorkingGroupId: setWorkingGroupIdLocal
 } = slice.actions;
+
+const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
 
 export {setSelected, setFilter, clearFilter};
 
-const url = '/api/groups';
+const baseUrl = '/api/groups';
 
-export const loadGroups = (): AppThunk => 
+export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group | undefined> =>
+	async (dispatch, getState) => {
+			dispatch(setWorkingGroupIdLocal(workingGroupId));
+			return selectWorkingGroup(getState());
+	}
+
+function validGroup(group: any): group is Group {
+	const isGood = isObject(group) &&
+		group.id && typeof group.id === 'string' &&
+		(group.parent_id === null || typeof group.parent_id === 'string') &&
+		typeof group.name === 'string' &&
+		(group.symbol === null || typeof group.symbol === 'string') &&
+		(group.color === null || typeof group.color === 'string');
+	if (!isGood)
+		console.log(group)
+	return isGood;
+}
+
+function validResponse(response: any): response is Group[] {
+	return Array.isArray(response) && response.every(validGroup);
+}
+
+type LoadGroupContstraints = {
+	type?: GroupType | GroupType[];
+	parent_id?: string;
+}
+
+export const loadGroups = (constraints?: LoadGroupContstraints): AppThunk => 
 	(dispatch) => {
 		dispatch(getPending());
-		return fetcher.get(url)
-			.then((entities: any) => {
-				if (!Array.isArray(entities))
-					throw new TypeError(`Unexpected response to GET ${url}`);
-				dispatch(getSuccess(entities));
+		return fetcher.get(baseUrl, constraints)
+			.then((response: any) => {
+				if (!validResponse(response))
+					throw new TypeError("Unexpected response");
+				dispatch(getSuccess2(response));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
@@ -178,16 +230,25 @@ export const loadGroups = (): AppThunk =>
 			});
 	}
 
+export const initGroups = (): AppThunk =>
+	(dispatch, getState) => {
+		dispatch(loadGroups({type: ["c", "wg"]}));
+		const workingGroupId = selectWorkingGroupId(getState());
+		if (workingGroupId)
+			dispatch(loadGroups({parent_id: workingGroupId}));
+		return Promise.resolve();
+	}
+
 export const addGroup = (group: GroupCreate): AppThunk<Group> => 
 	(dispatch) => {
 		if (!group.id)
 			group = {...group, id: uuid()};
-		dispatch(addOne(group));
-		return fetcher.post(url, [group])
-			.then((entities: unknown) => {
-				if (!Array.isArray(entities) || entities.length !== 1)
-					throw new TypeError(`Unexpected response to POST ${url}`);
-				const group: Group = entities[0];
+		dispatch(addOne(group as Group));
+		return fetcher.post(baseUrl, [group])
+			.then((response: any) => {
+				if (!validResponse(response) || response.length !== 1)
+					throw new TypeError(`Unexpected response to POST ${baseUrl}`);
+				const group: Group = response[0];
 				dispatch(updateOne({id: group.id, changes: group}));
 				return group;
 			})
@@ -207,11 +268,11 @@ export const updateGroups = (updates: Update<Group>[]): AppThunk =>
 		const {entities} = selectGroupsState(getState());
 		const originals = updates.map(u => entities[u.id]!);
 		dispatch(updateMany(updates));
-		return fetcher.put(url, updates)
-			.then((entities: Group[]) => {
-				if (!Array.isArray(entities))
-					throw new TypeError(`Unexpected response to POST ${url}`);
-				dispatch(updateMany(entities.map(e => ({id: e.id, changes: e}))));
+		return fetcher.patch(baseUrl, updates)
+			.then((response: any) => {
+				if (!validResponse(response))
+					throw new TypeError("Unexpected response");
+				dispatch(updateMany(response.map(e => ({id: e.id, changes: e}))));
 			})
 			.catch((error: any) => {
 				dispatch(setError('Unable to update groups', error));
@@ -222,9 +283,9 @@ export const updateGroups = (updates: Update<Group>[]): AppThunk =>
 export const deleteGroups = (ids: EntityId[]): AppThunk =>
 	(dispatch, getState) => {
 		const {entities} = selectGroupsState(getState());
-		const originals = ids.map(id => entities[id]);
+		const originals = ids.map(id => entities[id]!);
 		dispatch(removeMany(ids));
-		return fetcher.delete(url, ids)
+		return fetcher.delete(baseUrl, ids)
 			.catch((error: any) => {
 				dispatch(setError('Unable to delete group', error));
 				dispatch(addMany(originals));

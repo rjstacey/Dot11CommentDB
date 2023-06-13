@@ -5,13 +5,11 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { ActionButton, Button, Spinner } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-
-import { selectCurrentImatMeeting } from '../store/imatMeetings';
-
+import { selectCurrentImatMeetingId } from '../store/current';
 import {
     loadImatMeetingAttendance,
+    getImatMeetingAttendance,
     clearImatMeetingAttendance,
-    selectAttendanceMeetingId,
     selectMeetingAttendanceState,
 } from '../store/imatMeetingAttendance';
 
@@ -20,6 +18,7 @@ import CurrentSessionSelector from '../components/CurrentSessionSelector';
 import TopRow from '../components/TopRow';
 import SessionAttendanceChart from './SessionAttendanceChart';
 import TeleconAttendanceChart from './TeleconAttendanceChart';
+import { loadBreakouts } from '../store/imatBreakouts';
 
 const actions = [
     "sessionAttendance",
@@ -170,16 +169,24 @@ function ReportsChart({
 function Reports() {
     const dispatch = useAppDispatch();
     const svgRef = React.useRef<SVGSVGElement>(null);
-	const imatMeeting = useAppSelector(selectCurrentImatMeeting);
-    const imatMeetingId = useAppSelector(selectAttendanceMeetingId);
+	const imatMeetingId = useAppSelector(selectCurrentImatMeetingId);
     const {loading} = useAppSelector(selectMeetingAttendanceState);
+    console.log(imatMeetingId)
 
     React.useEffect(() => {
-        if (imatMeeting && imatMeeting.id !== imatMeetingId)
-            dispatch(loadImatMeetingAttendance(imatMeeting.id));
-    }, [imatMeeting, imatMeetingId, dispatch]);
+        if (imatMeetingId)
+            dispatch(getImatMeetingAttendance(imatMeetingId));
+    }, [dispatch, imatMeetingId]);
 
-    const refresh = () => imatMeeting? dispatch(loadImatMeetingAttendance(imatMeeting.id)): dispatch(clearImatMeetingAttendance());
+    const refresh = () => {
+        if (imatMeetingId) {
+            dispatch(loadBreakouts(imatMeetingId))
+            dispatch(loadImatMeetingAttendance(imatMeetingId))
+        }
+        else {
+            dispatch(clearImatMeetingAttendance());
+        }
+    }
 
     const [action, setAction] = React.useState<Action | null>(null);
 
@@ -194,8 +201,17 @@ function Reports() {
                 {loading && <Spinner busy={loading} />}
 
 				<div style={{display: 'flex'}}>
-                    <ActionButton name='copy' title='Copy chart to clipboard' onClick={() => copyToClipboard(svgRef.current)} />
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+                    <ActionButton
+                        name='copy'
+                        title='Copy chart to clipboard'
+                        onClick={() => copyToClipboard(svgRef.current)}
+                        disabled={!action || !svgRef.current}
+                    />
+					<ActionButton
+                        name='refresh'
+                        title='Refresh'
+                        onClick={refresh}
+                    />
 				</div>
 			</TopRow>
             <ChartWrapper>

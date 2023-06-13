@@ -7,10 +7,11 @@ import {
 
 import type { AppThunk, RootState } from '.';
 
-type Committee = {
+export type ImatCommitteeType = "Working Group" | "Project";
+export type Committee = {
 	id: number;
 	parent_id: number;
-	type: any;
+	type: ImatCommitteeType;
 	symbol: string;
 	shortName: string;
 	name: string;

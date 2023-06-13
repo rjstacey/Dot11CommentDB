@@ -29,6 +29,24 @@ const Main = styled.main`
 	align-items: center;
 `;
 
+const Content = styled.div`
+	flex: 1;
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0.5;
+	font-style: italic;
+`;
+
+function Root() {
+	return (
+		<Content>
+			<div>Meetings</div>
+		</Content>
+	)
+}
+
 function Body() {
 	const access = useAppSelector(selectUserMeetingsAccess);
 
@@ -59,7 +77,7 @@ function Body() {
 					element={renderComponent(AccessLevel.ro, Sessions)}
 				/>
 				<Route
-					path="/:groupName"
+					path="/:groupName/meetings"
 					element={renderComponent(AccessLevel.ro, Meetings)}
 				/>
 				<Route
@@ -93,6 +111,10 @@ function Body() {
 				<Route
 					path="/:groupName/reports/:meetingNumber?"
 					element={renderComponent(AccessLevel.ro, Reports)}
+				/>
+				<Route
+					path="/:groupName?"
+					element={<Root />}
 				/>
 			</Routes>
 		</Main>

@@ -16,7 +16,7 @@ import calendarAccountsSlice, {loadCalendarAccounts} from './calendarAccounts';
 import webexAccountsSlice, {loadWebexAccounts} from './webexAccounts';
 import officersSlice, {loadOfficers} from './officers';
 import timeZonesSlice, {loadTimeZones} from './timeZones';
-import groupsSlice, {loadGroups} from './groups';
+import groupsSlice, {initGroups} from './groups';
 import imatCommitteesSlice from './imatCommittees';
 import imatMeetingsSlice from './imatMeetings';
 import imatBreakoutsSlice from './imatBreakouts';
@@ -135,10 +135,10 @@ export function configureStore(user: User) {
 
 	const persistor = persistStore(store, null, () => {
 		// After hydrate, load the latest
+		store.dispatch(initGroups());
 		store.dispatch(loadWebexAccounts());
 		store.dispatch(loadCalendarAccounts());
 		store.dispatch(loadTimeZones());
-		store.dispatch(loadGroups());
 		store.dispatch(loadOfficers());
 		store.dispatch(loadMembers());
 	});

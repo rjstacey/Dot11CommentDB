@@ -41,7 +41,8 @@ const defaultEntry: GroupCreate = {
 	type: 'tg',
 	status: 1,
 	color: 'white',
-	symbol: null
+	symbol: null,
+	project: null
 }
 
 function GroupTypeSelector({
@@ -111,9 +112,17 @@ function GroupEntry({
 	changeEntry: (changes: Partial<GroupCreate>) => void;
 	readOnly?: boolean;
 }) {
-	//const {entities, ids} = useAppSelector(selectGroupsState);
-	//const groups = ids.map(id => entities[id]!);
-	//const parentGroups = groups.filter(g => (g.type === 'wg' || g.type === 'c') && g.id !== entry.id);
+
+	function change(changes: Partial<GroupCreate>) {
+		if ('symbol' in changes && entry.type === 'tg') {
+			const s = changes.symbol?.split('/');
+			changes = {
+				...changes,
+				project: "P" + (s? s[s.length - 1]: s)
+			};
+		}
+		changeEntry(changes);
+	}
 
 	return (
 		<Form
@@ -123,7 +132,7 @@ function GroupEntry({
 					<Input
 						type='text'
 						value={isMultiple(entry.name)? '': entry.name || ''}
-						onChange={e => changeEntry({name: e.target.value})}
+						onChange={e => change({name: e.target.value})}
 						placeholder={isMultiple(entry.name)? MULTIPLE_STR: BLANK_STR}
 						disabled={readOnly}
 					/>
@@ -133,7 +142,7 @@ function GroupEntry({
 				<Field label='Color:'>
 					<ColorPicker
 						value={isMultiple(entry.color)? '': entry.color}
-						onChange={(color) => changeEntry({color})}
+						onChange={(color) => change({color})}
 						readOnly={readOnly}
 					/>
 				</Field>
@@ -143,7 +152,7 @@ function GroupEntry({
 					<GroupTypeSelector
 						style={{width: 200}}
 						value={isMultiple(entry.type)? null: entry.type}
-						onChange={(type) => changeEntry({type})}
+						onChange={(type) => change({type})}
 						placeholder={isMultiple(entry.type)? MULTIPLE_STR: undefined}
 						readOnly={readOnly}
 					/>
@@ -154,7 +163,7 @@ function GroupEntry({
 					<GroupSelector
 						style={{width: 200}}
 						value={isMultiple(entry.parent_id)? '': entry.parent_id || ''}
-						onChange={(parent_id) => changeEntry({parent_id})}
+						onChange={(parent_id) => change({parent_id})}
 						//multi={false}
 						placeholder={isMultiple(entry.parent_id)? MULTIPLE_STR: "(None)"}
 						readOnly={readOnly}
@@ -167,22 +176,36 @@ function GroupEntry({
 				<Field label='Status:'>
 					<GroupStatusSelector
 						value={isMultiple(entry.status)? 1: entry.status}
-						onChange={status => changeEntry({status})}
+						onChange={status => change({status})}
 						placeholder={isMultiple(entry.status)? MULTIPLE_STR: undefined}
 						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
-			<Row>
-				<Field label='IMAT committee:'>
-					<ImatCommitteeSelector
-						value={isMultiple(entry.symbol)? '': entry.symbol}
-						onChange={symbol => changeEntry({symbol})}
-						placeholder={isMultiple(entry.symbol)? MULTIPLE_STR: undefined}
-						readOnly={readOnly}
-					/>
-				</Field>
-			</Row>
+			{entry.type === 'tg' &&
+				<Row>
+					<Field label='Project:'>
+						<Input
+							type='text'
+							value={isMultiple(entry.project)? '': entry.project || ''}
+							onChange={e => change({project: e.target.value})}
+							placeholder={isMultiple(entry.project)? MULTIPLE_STR: BLANK_STR}
+							disabled={readOnly}
+						/>
+					</Field>
+				</Row>}
+			{entry.type && ['c', 'wg', 'tg'].includes(entry.type) &&
+				<Row>
+					<Field label={'IMAT committee:'}>
+						<ImatCommitteeSelector
+							value={isMultiple(entry.symbol)? '': entry.symbol}
+							onChange={symbol => change({symbol})}
+							type={entry.type === 'wg'? "Working Group": entry.type === 'tg'? "Project": undefined}
+							placeholder={isMultiple(entry.symbol)? MULTIPLE_STR: undefined}
+							readOnly={readOnly}
+						/>
+					</Field>
+				</Row>}
 			{!isMultiple(entry.id) &&
 				<Row>
 					<Officers

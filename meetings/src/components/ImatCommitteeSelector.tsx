@@ -4,15 +4,17 @@ import {useAppDispatch, useAppSelector} from '../store/hooks';
 
 import {Select} from 'dot11-components';
 
-import {selectImatCommitteesState, loadCommittees} from '../store/imatCommittees';
+import { selectImatCommitteesState, loadCommittees, ImatCommitteeType } from '../store/imatCommittees';
 
 function ImatCommitteeSelector({
 	value,
 	onChange,
+	type,
 	...otherProps
 }: {
 	value: string | null;
 	onChange: (value: string | null) => void;
+	type?: ImatCommitteeType;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">) {
 	const dispatch = useAppDispatch();
 	const {valid, entities, ids} = useAppSelector(selectImatCommitteesState);
@@ -22,7 +24,9 @@ function ImatCommitteeSelector({
 			dispatch(loadCommittees('802.11'));
 	}, [dispatch, valid]);
 
-	const options = React.useMemo(() => ids.map(id => entities[id]!), [ids, entities]);
+	let options = React.useMemo(() => ids.map(id => entities[id]!), [ids, entities]);
+	if (type)
+		options = options.filter(o => o.type === type);
 
 	const values = options.filter(o => o.symbol === value);
 
@@ -33,6 +37,7 @@ function ImatCommitteeSelector({
 			values={values}
 			onChange={handleChange}
 			options={options}
+			clearable
 			valueField='symbol'
 			labelField='shortName'
 			{...otherProps}

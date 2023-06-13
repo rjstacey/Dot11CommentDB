@@ -3,6 +3,8 @@ import { NavLink, useLocation } from 'react-router-dom';
 
 import { Dropdown, Account, Button } from 'dot11-components';
 
+import { PathWorkingGroupSelector } from './PathWorkingGroupSelector';
+
 import './header.css';
 
 import { resetStore } from '../store';
@@ -39,7 +41,7 @@ const fullMenu: MenuItem[] = [
 	{
 		minAccess: AccessLevel.ro,
 		prefixGroupName: true,
-		link: '/',
+		link: '/meetings',
 		label: 'Meetings',
 	},
 	{
@@ -122,13 +124,14 @@ function Header() {
 	
 	return (
 		<header className='header'>
-			{isSmall?
+			<PathWorkingGroupSelector />
+
+			{isSmall &&
 				<Dropdown
 					selectRenderer={({state, methods}) => <div className='nav-menu-icon' onClick={state.isOpen? methods.close: methods.open}/>}
 					dropdownRenderer={(props: any) => <NavMenu className='nav-menu-vertical' {...props} />}
 					dropdownAlign='left'
-				/>:
-				<div className='title'>Meetings</div>
+				/>
 			}
 
 			<div className='nav-menu-container'>
