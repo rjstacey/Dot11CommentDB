@@ -1,8 +1,6 @@
 import {createSlice} from '@reduxjs/toolkit'
-import {fetcher, setError} from 'dot11-components';
-import type {RootState, AppThunk} from '.';
-
-export const dataSet = 'permissions';
+import {fetcher, isObject, setError} from 'dot11-components';
+import type { RootState, AppThunk } from '.';
 
 export type Permission = {
 	scope: string;
@@ -21,6 +19,7 @@ const initialState: PermissionsState = {
 	permissions: [],
 }
 
+const dataSet = 'permissions';
 const slice = createSlice({
 	name: dataSet,
 	initialState,
@@ -54,13 +53,23 @@ const {getSuccess, getPending, getFailure} = slice.actions;
 
 const url = '/api/permissions';
 
+function validPermission(p: any): p is Permission {
+	return isObject(p) &&
+		typeof p.scope === 'string' &&
+		typeof p.description == 'string';
+}
+
+function validResponse(response: any): response is Permission[] {
+	return Array.isArray(response) && response.every(validPermission);
+}
+
 export const loadPermissions = (): AppThunk =>
 	async (dispatch) => {
 		dispatch(getPending());
-		let permissions;
+		let response: any;
 		try {
-			permissions = await fetcher.get(url);
-			if (!Array.isArray(permissions))
+			response = await fetcher.get(url);
+			if (!validResponse(response))
 				throw new TypeError('Unexpected response to GET ' + url);
 		}
 		catch(error) {
@@ -68,5 +77,5 @@ export const loadPermissions = (): AppThunk =>
 			dispatch(setError('Unable to get permissions list', error));
 			return;
 		}
-		dispatch(getSuccess(permissions));
+		dispatch(getSuccess(response));
 	}

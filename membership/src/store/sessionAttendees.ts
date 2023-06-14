@@ -11,8 +11,9 @@ import {
 
 import type { RootState, AppThunk } from '.';
 import type { MemberContactInfo } from './members';
+import { selectWorkingGroupName } from './groups';
 import { selectMemberEntities } from './members';
-import { selectSessionEntities } from './sessionParticipation';
+import { selectSession } from './sessionParticipation';
 
 export const fields = {
 	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
@@ -26,8 +27,6 @@ export const fields = {
 	Status: {label: 'Status'},
 	AttendancePercentage: {label: 'Attendance', SortType: SortType.NUMERIC}
 };
-
-export const dataSet = 'dailyAttendances';
 
 export type SessionAttendee = {
 	SAPIN: number;
@@ -47,7 +46,6 @@ export type SyncedSessionAttendee = SessionAttendee & {
 	Status: string;
 }
 
-
 /*
  * Slice
  */
@@ -57,6 +55,7 @@ const initialState: {sessionId: number | null} = {
 	sessionId: null
 }
 
+const dataSet = 'dailyAttendances';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -111,8 +110,6 @@ const {
 	setSessionId
 } = slice.actions;
 
-const baseUrl = '/api/imat/dailyAttendance';
-
 function validSessionAttendee(entry: any): entry is SessionAttendee {
 	return isObject(entry);
 }
@@ -123,18 +120,22 @@ function validGetResponse(response: any): response is SessionAttendee[] {
 
 export const loadSessionAttendees = (sessionId: number): AppThunk =>
 	async (dispatch, getState) => {
-		const session = selectSessionEntities(getState())[sessionId];
-		if (!session)
+		const state = getState();
+		const session = selectSession(state, sessionId);
+		if (!session) {
+			console.error('Bad sessionId');
 			return;
+		}
 		dispatch(getPending());
 		dispatch(removeAll());
 		dispatch(setSessionId(sessionId));
-		const url = `${baseUrl}/${session.imatMeetingId}`;
+		const groupName = selectWorkingGroupName(state);
+		const url = `/api/${groupName}/imat/dailyAttendance/${session.imatMeetingId}`;
 		let response: any;
 		try {
 			response = await fetcher.get(url);
 			if (!validGetResponse(response))
-				throw new TypeError('Unexpected response to GET: ' + url);
+				throw new TypeError('Unexpected response to GET ' + url);
 		}
 		catch(error) {
 			dispatch(getFailure());

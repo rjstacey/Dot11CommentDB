@@ -14,8 +14,8 @@ const OuterDiv = styled.div`
 	align-items: center;
 `;
 
-const title = '802.11 Members';
-const description = 'Manage 802.11 membership';
+const title = '802 tools | Members';
+const description = 'Manage group membership';
 
 function App() {
 	return (

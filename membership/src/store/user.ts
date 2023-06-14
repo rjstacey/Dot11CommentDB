@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type {RootState} from '.';
+import type { RootState } from '.';
+import { selectWorkingGroup } from './groups';
 
 export const AccessLevel = {
 	none: 0,
@@ -8,20 +9,19 @@ export const AccessLevel = {
 	admin: 3
 };
 
-export const dataSet = 'user';
-
 export type User = {
 	SAPIN: number;
 	//Username: string;
 	Name: string;
 	Email: string;
+	Status: string;
 	Permissions: string[];
 	Access: number;
-	Status: string;
 	Token: any;
 };
 
 /** The `user` slice is readonly and contains user info */
+const dataSet = 'user';
 export function createUserSlice(user: User) {
 	return createSlice({
 		name: dataSet,
@@ -34,19 +34,5 @@ export function createUserSlice(user: User) {
  * Selectors
  */
 export const selectUser = (state: RootState) => state[dataSet];
-export const selectUserPermissions = (state: RootState) => selectUser(state)?.Permissions || [];
 
-export function selectUserMembershipAccess(state: RootState) {
-	const permissions = selectUserPermissions(state);
-	if (Array.isArray(permissions)) {
-		if (permissions.includes('membership_rw'))
-			return AccessLevel.rw;
-		if (permissions.includes('membership_ro'))
-			return AccessLevel.ro;
-		if (permissions.includes('wgAdmin'))
-			return AccessLevel.admin;
-	}
-
-	/* Eventually, this will be deprecated. Here until we fully transision to the permissions array. */
-	return selectUser(state)?.Access || AccessLevel.none;
-}
+export const selectUserMembersAccess = (state: RootState) => selectWorkingGroup(state)?.permissions.members || AccessLevel.none;

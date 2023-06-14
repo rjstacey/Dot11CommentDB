@@ -7,12 +7,13 @@ import {
 	createAppTableDataSlice,
 	SortType,
 	AppTableDataState,
-	getAppTableDataSelectors
+	getAppTableDataSelectors,
+	isObject
 } from 'dot11-components';
 
-import { Member, selectMemberEntities } from './members';
-
 import type { RootState, AppThunk } from '.';
+import { selectWorkingGroupName } from './groups';
+import { Member, selectMemberEntities } from './members';
 
 export const fields = {
 	id: {label: 'id', sortType: SortType.NUMERIC},
@@ -218,22 +219,28 @@ const {
 
 export const ballotParticipationActions = slice.actions;
 
-const baseUrl = '/api/ballotParticipation';
+function validResponse(response: any): response is {ballots: Ballot[], ballotSeries: BallotSeries[], ballotSeriesParticipation: RecentBallotSeriesParticipation[]} {
+	return isObject(response) &&
+		Array.isArray(response.ballots) &&
+		Array.isArray(response.ballotSeries) &&
+		Array.isArray(response.ballotSeriesParticipation);
+
+}
 
 export const loadBallotParticipation = (): AppThunk =>
 	async (dispatch, getState) => {
-		const loading = selectBallotParticipationState(getState()).loading;
+		const state = getState();
+		const loading = selectBallotParticipationState(state).loading;
 		if (loading)
 			return;
+		const groupName = selectWorkingGroupName(state);
+		const url = `/api/${groupName}/ballotParticipation`;
 		dispatch(getPending());
-		let response;
+		let response: any;
 		try {
-			response = await fetcher.get(baseUrl);
-			if (typeof response !== 'object' ||
-				!Array.isArray(response.ballots) ||
-                !Array.isArray(response.ballotSeries) ||
-				!Array.isArray(response.ballotSeriesParticipation)) {
-				throw new TypeError('Unexpected response to GET: ' + baseUrl);
+			response = await fetcher.get(url);
+			if (!validResponse(response)) {
+				throw new TypeError('Unexpected response to GET ' + url);
 			}
 		}
 		catch(error) {
@@ -259,24 +266,25 @@ export const updateBallotParticipation = (sapin: number, updates: BallotParticip
 			console.error(`Entry for ${sapin} does not exist`);
 			return;
 		}
-		const voterUpdates: {id: string, changes: {Excused: boolean}}[] = [];
+		const voterUpdates: Record<number, {id: string, changes: {Excused: boolean}}[]> = {};
 		let updatedSummaries = entity.ballotSeriesParticipationSummaries.map(summary => {
 			const update = updates.find(u => u.id === summary.id);
 			if (!update)
 				return summary;
 			const {changes} = update;
-			if ('excused' in changes)
-				voterUpdates.push({id: summary.voter_id, changes: {Excused: changes.excused!}});
+			if ('excused' in changes) {
+				const update = {id: summary.voter_id, changes: {Excused: changes.excused!}};
+				if (voterUpdates[summary.id])
+					voterUpdates[summary.id].push(update);
+				else
+					voterUpdates[summary.id] = [update];
+			}
 			return {...summary, ...changes};
 		});
-		if (voterUpdates.length > 0) {
-			try {
-				await fetcher.patch('/api/voters', voterUpdates);
-			}
-			catch (error) {
-				dispatch(setError('Unable to update voters', error));
-				return;
-			}
-		}
+		Object.entries(voterUpdates).forEach(([ballot_id, updates]) => {
+			const url = `/api/voters/${ballot_id}`;
+			fetcher.patch(url, updates)
+				.catch((error: any) => dispatch(setError('Unable to update voters', error)))
+		})
 		dispatch(setOne({SAPIN: sapin, ballotSeriesParticipationSummaries: updatedSummaries}));
 	}

@@ -24,7 +24,7 @@ import {
 	selectSessionAttendeesState,
 	SessionAttendee
 } from '../store/sessionAttendees';
-import type { MemberAdd, MemberContactEmail } from '../store/members';
+import type { MemberAdd } from '../store/members';
 
 import {
 	renderHeaderNameAndEmail,

@@ -8,9 +8,7 @@ import {
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	SortType,
-	AccessLevel,
 	AccessLevelOptions,
-	AccessLevelLabels,
 	displayAccessLevel,
 	AppTableDataState,
 	isObject
@@ -19,6 +17,7 @@ import {
 import type { RootState, AppThunk } from '.';
 import { selectAttendancesWithMembershipAndSummary } from './sessionParticipation';
 import { selectBallotParticipationWithMembershipAndSummary } from './ballotParticipation';
+import { selectWorkingGroupName } from './groups';
 
 //export {AccessLevel, AccessLevelOptions, AccessLevelLabels};
 export { AccessLevelOptions };
@@ -192,8 +191,6 @@ const {
 
 export {setUiProperties};
 
-const baseUrl = '/api/members';
-
 function validMember(member: any): member is Member {
 	return isObject(member) &&
 		typeof member.SAPIN === 'number';
@@ -204,13 +201,15 @@ function validResponse(members: unknown): members is Member[] {
 }
 
 export const loadMembers = (): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/members`;
 		dispatch(getPending());
-		let response;
+		let response: any;
 		try {
-			response = await fetcher.get(baseUrl);
+			response = await fetcher.get(url);
 			if (!validResponse(response))
-				throw new TypeError('Unexpected response to GET ' + baseUrl);
+				throw new TypeError('Unexpected response to GET');
 		}
 		catch(error) {
 			dispatch(getFailure());
@@ -221,12 +220,14 @@ export const loadMembers = (): AppThunk =>
 	}
 
 export const updateMembers = (updates: Update<Member>[]): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/members`;
 		let response: any;
 		try {
-			response = await fetcher.patch(baseUrl, updates);
+			response = await fetcher.patch(url, updates);
 			if (!validResponse(response))
-				throw new TypeError('Unexpected response to PATCH ' + baseUrl);
+				throw new TypeError('Unexpected response to PATCH');
 		}
 		catch(error) {
 			dispatch(setError('Unable to update members', error));
@@ -241,8 +242,9 @@ type StatusChangeEntryUpdate = {
 }
 
 export const addMemberStatusChangeEntries = (sapin: number, entries: StatusChangeType[]): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseUrl}/${sapin}/StatusChangeHistory`;
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
 		let response: any;
 		try {
 			response = await fetcher.put(url, entries);
@@ -257,8 +259,9 @@ export const addMemberStatusChangeEntries = (sapin: number, entries: StatusChang
 	}
 
 export const updateMemberStatusChangeEntries = (sapin: number, updates: StatusChangeEntryUpdate[]): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseUrl}/${sapin}/StatusChangeHistory`;
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
 		let response: any;
 		try {
 			response = await fetcher.patch(url, updates);
@@ -273,8 +276,9 @@ export const updateMemberStatusChangeEntries = (sapin: number, updates: StatusCh
 	}
 
 export const deleteMemberStatusChangeEntries = (sapin: number, ids: number[]): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseUrl}/${sapin}/StatusChangeHistory`;
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
 		let response: any;
 		try {
 			response = await fetcher.delete(url, ids);
@@ -289,12 +293,14 @@ export const deleteMemberStatusChangeEntries = (sapin: number, ids: number[]): A
 	}
 
 export const addMembers = (members: MemberAdd[]): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/members`;
 		let response: any;
 		try {
-			response = await fetcher.post(baseUrl, members);
+			response = await fetcher.post(url, members);
 			if (!validResponse(response))
-				throw new TypeError('Unexpected response to POST ' + baseUrl);
+				throw new TypeError('Unexpected response to POST ' + url);
 		}
 		catch(error) {
 			dispatch(setError('Unable to add members', error));
@@ -304,10 +310,12 @@ export const addMembers = (members: MemberAdd[]): AppThunk =>
 	}
 
 export const deleteMembers = (ids: number[]): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/members`;
 		dispatch(removeMany(ids));
 		try {
-			await fetcher.delete(baseUrl, ids);
+			await fetcher.delete(url, ids);
 		}
 		catch(error) {
 			dispatch(setError(`Unable to delete members ${ids}`, error));
@@ -323,9 +331,10 @@ export const UploadFormat = {
 };
 
 export const uploadMembers = (format: string, file: any): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/members/upload/${format}`;
 		dispatch(getPending());
-		const url = `${baseUrl}/upload/${format}`;
 		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, {File: file});
@@ -350,9 +359,11 @@ export const deleteSelectedMembers = (): AppThunk =>
 	}
 
 export const exportMyProjectRoster = (): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/members/MyProjectRoster`;
 		try {
-			await fetcher.getFile(`${baseUrl}/MyProjectRoster`);
+			await fetcher.getFile(url);
 		}
 		catch(error) {
 			dispatch(setError('Unable to get file', error))
@@ -360,9 +371,10 @@ export const exportMyProjectRoster = (): AppThunk =>
 	}
 
 export const importMyProjectRoster = (file: any): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/members/MyProjectRoster`;
 		dispatch(getPending());
-		const url = `${baseUrl}/MyProjectRoster`;
 		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, {File: file});

@@ -166,6 +166,28 @@ function MemberDetailInfo({
 	)
 }
 
+function ExpandingInput({
+	dataKey,
+	member,
+	updateMember
+}: {
+	dataKey: keyof MultipleMember;
+	member: MultipleMember;
+	updateMember: (changes: Partial<Member>) => void;
+}) {
+	const value: any = member[dataKey];
+	return (
+		<Input
+			type='text'
+			style={{width: `${Math.max((value || '').length, 20)+2}ch`}}
+			name={dataKey}
+			value={isMultiple(value)? '': value}
+			onChange={e => updateMember({[dataKey]: e.target.value})}
+			placeholder={isMultiple(value)? MULTIPLE_STR: BLANK_STR}
+		/>
+	)
+}
+
 function MemberEntryForm({
 	action,
 	member,
@@ -211,7 +233,6 @@ function MemberEntryForm({
 		};
 		cancelForm = cancel;
 	}
-	console.log(member)
 
 	return (
 		<Form
@@ -229,51 +250,37 @@ function MemberEntryForm({
 			</Row>
 			<Row>
 				<Field label='Name:'>
-					<Input
-						type='text'
-						size={24}
-						name='Name'
-						value={isMultiple(member.Name)? '': member.Name}
-						onChange={e => updateMember({Name: e.target.value})}
-						placeholder={isMultiple(member.Name)? MULTIPLE_STR: ''}
+					<ExpandingInput
+						dataKey='Name'
+						member={member}
+						updateMember={updateMember}
 					/>
 				</Field>
 			</Row>
 			<Row>
 				<Field label='Email:'>
-					<Input
-						type='text'
-						size={24}
-						name='Email'
-						value={isMultiple(member.Email)? '': member.Email}
-						onChange={e => updateMember({Email: e.target.value})}
-						placeholder={isMultiple(member.Email)? MULTIPLE_STR: ''}
+					<ExpandingInput
+						dataKey='Email'
+						member={member}
+						updateMember={updateMember}
 					/>
 				</Field>
 			</Row>
 			<Row>
 				<Field label='Employer:'>
-					<Input
-						type='text'
-						size={24}
-						name='Employer'
-						value={isMultiple(member.Employer)? '': member.Employer}
-						onChange={e => updateMember({Employer: e.target.value})}
-						placeholder={isMultiple(member.Employer)? MULTIPLE_STR: ''}
+					<ExpandingInput
+						dataKey='Employer'
+						member={member}
+						updateMember={updateMember}
 					/>
 				</Field>
 			</Row>
 			<Row>
 				<Field label='Affiliation:'>
-					<Input
-						type='text'
-						//size={24}
-						//style={{width: `${Math.min((member.Affiliation || '').length, 20) + 5}ch`}}
-						size={Math.max((member.Affiliation || '').length, 20)}
-						name='Affiliation'
-						value={isMultiple(member.Affiliation)? '': member.Affiliation}
-						onChange={e => updateMember({Affiliation: e.target.value})}
-						placeholder={isMultiple(member.Affiliation)? MULTIPLE_STR: ''}
+					<ExpandingInput
+						dataKey='Affiliation'
+						member={member}
+						updateMember={updateMember}
 					/>
 				</Field>
 			</Row>
@@ -471,7 +478,6 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 				edited.SAPIN = selected as number[];
 				saved.SAPIN = selected as number[];
 				const diff = deepDiff(edited, saved);
-				console.log(diff)
 				if (Object.keys(diff).length > 0)
 					saved = edited;
 				return {
@@ -580,18 +586,17 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 		const {readOnly} = this.props;
 		const {action} = this.state;
 
-		if (readOnly) {
-			console.warn("Update when read-only")
+		if (readOnly || action === "void") {
+			console.warn("Update in bad state")
 			return;
 		}
 
-		if (action === "void") {
-			console.warn("Update in bad state");
-			return;
-		}
-
-		// merge changes
-		this.setState({edited: {...this.state.edited, ...changes}})
+		let {saved, edited} = this.state;
+		edited = {...edited, ...changes};
+		const diff = deepDiff(saved, edited); 
+		if (Object.keys(diff).length === 0)
+			saved = edited;
+		this.setState({edited, saved});
 	}
 
 	hasUpdates = () => this.state.saved !== this.state.edited;
@@ -609,6 +614,7 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 	}
 
 	clickDelete = async () => {
+		const {deleteMembers} = this.props;
 		const {originals} = this.state;
 		if (originals.length === 0)
 			return;
@@ -618,7 +624,7 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 			originals.map(o => `${o.SAPIN} ${o.Name}`).join('\n');
 		const ok = await ConfirmModal.show(str);
 		if (ok)
-			await this.props.deleteMembers(sapins);
+			await deleteMembers(sapins);
 	}
 
 	add = () => {
@@ -630,13 +636,13 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 		}
 		const newMembers = originals.map(m => {
 			const changes = shallowDiff(saved, edited) as Partial<MemberAdd>;
-			console.log(changes)
 			return {...m, ...changes};
 		});
 		addMembers(newMembers);
 	}
 
 	update = () => {
+		const {updateMembers} = this.props;
 		const {action, edited, saved, originals} = this.state;
 		if (action !== "update") {
 			console.warn("Update with unexpected state");
@@ -644,20 +650,21 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 		}
 		const changes = shallowDiff(saved, edited) as Partial<Member>;
 		if ('StatusChangeHistory' in changes) {
+			const {updateMemberStatusChangeEntries, deleteMemberStatusChangeEntries, addMemberStatusChangeEntries} = this.props;
 			const {updates, adds, deletes} = arrayDiff(saved.StatusChangeHistory, edited.StatusChangeHistory);
 			originals.forEach(m => {
 				if (updates.length > 0)
-					this.props.updateMemberStatusChangeEntries(m.SAPIN, updates);
+					updateMemberStatusChangeEntries(m.SAPIN, updates);
 				if (deletes.length > 0)
-					this.props.deleteMemberStatusChangeEntries(m.SAPIN, deletes);
+					deleteMemberStatusChangeEntries(m.SAPIN, deletes);
 				if (adds.length > 0)
-					this.props.addMemberStatusChangeEntries(m.SAPIN, adds);
+					addMemberStatusChangeEntries(m.SAPIN, adds);
 			});
 			delete changes.StatusChangeHistory;
 		}
 		if (Object.keys(changes).length > 0) {
 			const updates = originals.map(m => ({id: m.SAPIN, changes}));
-			this.props.updateMembers(updates);
+			updateMembers(updates);
 		}
 		this.setState(state => ({...state, saved: edited}));
 	}
@@ -670,7 +677,13 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 		const {style, className, loading, readOnly} = this.props;
 		const {originals, action, message} = this.state;
 
-		const isSelected = originals.length > 0;
+		let submit: any | undefined;
+		if (action === "add") {
+			submit = this.add;
+		}
+		else if (action === "update" && this.hasUpdates()) {
+			submit = this.update;
+		}
 
 		return (
 			<DetailContainer
@@ -690,7 +703,7 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 							<ActionButton
 								name='delete'
 								title='Delete member'
-								disabled={loading || !isSelected}
+								disabled={loading || originals.length === 0}
 								onClick={this.clickDelete}
 							/>
 						</>}
@@ -703,7 +716,7 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 						action={action}
 						member={this.state.edited}
 						updateMember={this.updateMember}
-						submit={action === "update"? this.update: this.add}
+						submit={submit}
 						cancel={this.cancel}
 						readOnly={readOnly}
 					/>

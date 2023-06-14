@@ -4,7 +4,7 @@ import { useAppSelector } from '../store/hooks';
 
 import { Select, displayDateRange } from 'dot11-components';
 
-import { selectSessionIds, selectSessionEntities, Session } from '../store/sessionParticipation';
+import { selectSessions, Session } from '../store/sessionParticipation';
 
 const StyledItem = styled.div`
 	overflow: hidden;
@@ -36,17 +36,7 @@ function SessionSelector({
 	readOnly?: boolean;
 	style?: React.CSSProperties;
 }) {
-	//const dispatch = useAppDispatch();
-	const ids = useAppSelector(selectSessionIds);
-	const entities = useAppSelector(selectSessionEntities);
-	//const {valid, loading, ids, entities} = useAppSelector(selectSessionsState);
-
-	/*React.useEffect(() => {
-		if (!valid && !loading && !readOnly)
-			dispatch(loadSessions());
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps */
-
-	const options = React.useMemo(() => ids.map(id => entities[id]!), [entities, ids]);
+	const options = useAppSelector(selectSessions);
 	const values = options.filter(o => o.id === value);
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: null);
 
@@ -56,7 +46,6 @@ function SessionSelector({
 			values={values}
 			onChange={handleChange}
 			options={options}
-			//loading={loading}
 			clearable
 			itemRenderer={renderItem}
 			selectItemRenderer={renderItem}

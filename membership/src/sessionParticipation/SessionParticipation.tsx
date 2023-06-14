@@ -2,8 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 import { DateTime } from 'luxon';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-
 import {
 	AppTable, 
 	SelectHeaderCell,
@@ -20,6 +18,7 @@ import {
 	SplitPanel, Panel, SplitPanelButton
 } from 'dot11-components';
 
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	fields,
 	loadAttendances,
@@ -43,16 +42,6 @@ const TopRow = styled.div`
 	width: 100%;
 	padding: 10px;
 	box-sizing: border-box;
-`;
-
-const TableRow = styled.div`
-	flex: 1;	/* remaining height */
-	display: flex;
-	width: 100%;
-	.AppTable__dataRow,
-	.AppTable__headerRow {
-		align-items: center;
-	}
 `;
 
 function SessionSummary() {

@@ -9,7 +9,7 @@ import SessionParticipation from '../sessionParticipation/SessionParticipation';
 import BallotParticipation from '../ballotParticipation/BallotParticipation';
 import SessionAttendance from '../sessionAttendance/SessionAttendance';
 
-import { selectUserMembershipAccess, AccessLevel } from '../store/user';
+import { selectUserMembersAccess, AccessLevel } from '../store/user';
 
 const Main = styled.main`
 	flex: 1;
@@ -22,7 +22,7 @@ const Main = styled.main`
 `;
 
 function Body() {
-	const access = useAppSelector(selectUserMembershipAccess);
+	const access = useAppSelector(selectUserMembersAccess);
 
 	function renderComponent(minAccess: number, Component: React.ComponentType) {
 		if (access < minAccess)
@@ -38,19 +38,19 @@ function Body() {
 		<Main>
 			<Routes>
 				<Route
-					path="/"
+					path="/:groupName"
 					element={renderComponent(AccessLevel.admin, Members)}
 				/>
 				<Route
-					path="/sessionParticipation"
+					path="/:groupName/sessionParticipation"
 					element={renderComponent(AccessLevel.admin, SessionParticipation)}
 				/>
 				<Route
-					path="/ballotParticipation"
+					path="/:groupName/ballotParticipation"
 					element={renderComponent(AccessLevel.admin, BallotParticipation)}
 				/>
 				<Route
-					path="/sessionAttendance"
+					path="/:groupName/sessionAttendance"
 					element={renderComponent(AccessLevel.admin, SessionAttendance)}
 				/>
 			</Routes>

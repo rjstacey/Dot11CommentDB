@@ -4,7 +4,6 @@ import { connect, ConnectedProps } from 'react-redux';
 import { Col, Checkbox, displayDateRange, debounce, shallowDiff } from 'dot11-components';
 
 import type { RootState } from '../store';
-import { Member, selectMemberEntities } from '../store/members';
 
 import {
 	selectBallotParticipationState,

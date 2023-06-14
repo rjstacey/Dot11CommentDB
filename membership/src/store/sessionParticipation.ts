@@ -137,6 +137,13 @@ const selectAttendancesIds = (state: RootState) => selectAttendancesState(state)
 
 export const selectSessionEntities = (state: RootState) => selectAttendancesState(state).sessions.entities;
 export const selectSessionIds = (state: RootState) => selectAttendancesState(state).sessions.ids as number[];
+export const selectSessions = createSelector(
+	selectSessionIds,
+	selectSessionEntities,
+	(ids, entities) => ids.map(id => entities[id]!).reverse()
+);
+
+export const selectSession = (state: RootState, sessionId: number) => selectSessionEntities(state)[sessionId];
 
 export function memberAttendancesCount(member: Member, attendances: SessionAttendanceSummary[], sessionEntities: Dictionary<Session>) {
 	let pCount = 0,		// Count of plenary sessions properly attended
@@ -276,7 +283,7 @@ const {
 	setSessions
 } = slice.actions;
 
-const baseUrl = '/api/attendances';
+const baseUrl = '/api/802.11/attendances';
 
 function validResponse(response: any): response is {attendances: any; sessions: Session[]} {
 	return isObject(response) &&

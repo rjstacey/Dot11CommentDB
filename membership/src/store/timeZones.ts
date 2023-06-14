@@ -1,6 +1,6 @@
-import {createSlice, PayloadAction} from '@reduxjs/toolkit'
-import {fetcher, setError} from 'dot11-components';
-import type {RootState, AppThunk} from '.';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { fetcher, setError } from 'dot11-components';
+import type { RootState, AppThunk } from '.';
 
 export const dataSet = 'timeZones';
 

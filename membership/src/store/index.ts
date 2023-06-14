@@ -7,6 +7,7 @@ import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import { get, set, del } from 'idb-keyval';
 
 import { createUserSlice, User } from './user';
+import groupsSlice, {initGroups} from './groups';
 import timeZonesSlice, {loadTimeZones} from './timeZones';
 import permissionsSlice, {loadPermissions} from './permissions';
 import membersSlice, {loadMembers} from './members';
@@ -38,6 +39,7 @@ function configureStore(user: User) {
 
 	const appReducer = combineReducers({
 		[userSlice.name]: userSlice.reducer,
+		[groupsSlice.name]: groupsSlice.reducer,
 		[membersSlice.name]: membersSlice.reducer,
 		[attendancesSlice.name]: attendancesSlice.reducer,
 		[ballotParticipationSlice.name]: ballotParticipationSlice.reducer,
@@ -62,6 +64,7 @@ function configureStore(user: User) {
 			removeItem: del
 		},
 		whitelist: [
+			groupsSlice.name,
 			membersSlice.name,
 			attendancesSlice.name,
 			ballotParticipationSlice.name
@@ -88,6 +91,7 @@ function configureStore(user: User) {
 	});
 
 	const persistor = persistStore(store, null, () => {
+		store.dispatch(initGroups());
 		store.dispatch(loadTimeZones());
 		store.dispatch(loadPermissions());
 		store.dispatch(loadMembers());

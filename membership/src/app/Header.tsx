@@ -7,27 +7,41 @@ import './header.css';
 
 import { resetStore } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectUser, selectUserMembershipAccess, AccessLevel } from '../store/user';
+import { selectWorkingGroup } from '../store/groups';
+import { selectUser, selectUserMembersAccess, AccessLevel } from '../store/user';
 
-const fullMenu = [
+import { PathWorkingGroupSelector } from './PathWorkingGroupSelector';
+
+type MenuItem = {
+	minAccess: number,
+	link: string,
+	label: string,
+	prefixGroupName?: boolean,
+}
+
+const fullMenu: MenuItem[] = [
 	{
 		minAccess: AccessLevel.admin,
 		link: '/',
+		prefixGroupName: true,
 		label: 'Members',
 	},
 	{
 		minAccess: AccessLevel.admin,
 		link: '/sessionParticipation',
+		prefixGroupName: true,
 		label: 'Session participation',
 	},
 	{
 		minAccess: AccessLevel.admin,
 		link: '/ballotParticipation',
+		prefixGroupName: true,
 		label: 'Ballot participation',
 	},
 	{
 		minAccess: AccessLevel.admin,
 		link: '/sessionAttendance',
+		prefixGroupName: true,
 		label: 'Session attendance',
 	},
 ];
@@ -42,14 +56,16 @@ function NavMenu({
 	methods?: {close: () => void};
 }
 ) {
-	const access = useAppSelector(selectUserMembershipAccess);
+	const access = useAppSelector(selectUserMembersAccess);
+	const groupName = useAppSelector(selectWorkingGroup)?.name;
 
 	let classNames = 'nav-menu';
 	if (className)
 		classNames += ' ' + className;
 
 	const menu = fullMenu
-		.filter(m => access >= m.minAccess);
+		.filter(m => access >= m.minAccess)
+		.map(m => m.prefixGroupName? {...m, link: `/${groupName || '*'}` + m.link}: m);
 
 	return (
 		<nav
@@ -80,13 +96,14 @@ function Header() {
 	
 	return (
 		<header className='header'>
-			{isSmall?
+			<PathWorkingGroupSelector />
+
+			{isSmall &&
 				<Dropdown
 					selectRenderer={({state, methods}) => <div className='nav-menu-icon' onClick={state.isOpen? methods.close: methods.open}/>}
 					dropdownRenderer={(props) => <NavMenu className='nav-menu-vertical' {...props} />}
 					dropdownAlign='left'
-				/>:
-				<div className='title'>Membership</div>
+				/>
 			}
 			<div className='nav-menu-container'>
 				{isSmall?
