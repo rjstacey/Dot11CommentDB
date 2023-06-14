@@ -2,6 +2,9 @@ import { createSlice, createEntityAdapter, PayloadAction } from '@reduxjs/toolki
 import { fetcher, isObject, setError } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
+import { clearBallots, loadBallots } from './ballots';
+import { clearMembers, loadMembers } from './members';
+import { clearEpolls } from './epolls';
 
 const GroupTypeLabels = {
 	c: 'Committee',
@@ -33,10 +36,6 @@ export type Group = {
 	permissions: Record<string, number>;
 };
 
-export const dataSet = 'groups';
-
-const dataAdapter = createEntityAdapter<Group>();
-
 type ExtraState = {
 	workingGroupId: string | null;
 	loading: boolean;
@@ -49,6 +48,8 @@ const initialState: ExtraState = {
 	valid: false
 }
 
+const dataAdapter = createEntityAdapter<Group>();
+const dataSet = 'groups';
 const slice = createSlice({
     name: dataSet,
     initialState: dataAdapter.getInitialState(initialState),
@@ -82,7 +83,7 @@ export default slice;
 export const selectGroupsState = (state: RootState) => state[dataSet];
 export const selectGroupEntities = (state: RootState) => selectGroupsState(state).entities;
 export const selectGroupIds = (state: RootState) => selectGroupsState(state).ids;
-export const selectGroups = (state: RootState) => {
+export function selectGroups(state: RootState) {
 	const {ids, entities, workingGroupId} = selectGroupsState(state);
 	return ids.map(id => entities[id]!)
 		.filter(group => group.id === workingGroupId || group.parent_id === workingGroupId);
@@ -97,6 +98,8 @@ export const selectWorkingGroup = (state: RootState) => {
 	const {workingGroupId, entities} = selectGroupsState(state);
 	return (workingGroupId && entities[workingGroupId]) || undefined;
 }
+export const selectWorkingGroupName = (state: RootState) => selectWorkingGroup(state)?.name || '*';
+
 export const selectWorkingGroupPermissions = (state: RootState) => selectWorkingGroup(state)?.permissions || {};
 
 /** 
@@ -144,7 +147,7 @@ function validResponse(response: any): response is Group[] {
 }
 
 type LoadGroupContstraints = {
-	type?: "c" | "wg" | "tg";
+	type?: GroupType;
 	parent_id?: string;
 }
 
@@ -165,8 +168,17 @@ export const loadGroups = (constraints?: LoadGroupContstraints): AppThunk =>
 
 export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group | undefined> =>
 	async (dispatch, getState) => {
+		const state = getState();
+		const currentWorkingGroupId = selectWorkingGroupId(state);
+		if (currentWorkingGroupId !== workingGroupId) {
+			dispatch(clearMembers());
+			dispatch(clearBallots());
+			dispatch(clearEpolls());
 			dispatch(setWorkingGroupIdLocal(workingGroupId));
-			return selectWorkingGroup(getState());
+			dispatch(loadMembers());
+			dispatch(loadBallots());
+		}
+		return selectWorkingGroup(getState());
 	}
 
 export const initGroups = (): AppThunk =>

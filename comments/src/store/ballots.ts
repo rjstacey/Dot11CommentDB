@@ -1,4 +1,4 @@
-import { createSelector } from '@reduxjs/toolkit';
+import { createAction, createSelector } from '@reduxjs/toolkit';
 import type { Action, PayloadAction, Dictionary, EntityId } from '@reduxjs/toolkit';
 
 import {
@@ -12,7 +12,7 @@ import {
 
 import type { RootState, AppThunk } from '.';
 import { AccessLevel } from './user';
-import { selectGroups, selectWorkingGroup } from './groups';
+import { selectGroups, selectWorkingGroup, selectWorkingGroupName } from './groups';
 
 export type ResultsSummary = {
 	Approve: number;
@@ -130,8 +130,6 @@ export const fields = {
 	PrevBallotID: {label: 'Prev ballot'}
 };
 
-const dataSet = 'ballots';
-const sortComparer = (b1: Ballot, b2: Ballot) => b1.Project === b2.Project? b1.BallotID.localeCompare(b2.BallotID): b1.Project.localeCompare(b2.Project);
 
 export type GroupProject = {
 	groupId: string | null;
@@ -139,18 +137,21 @@ export type GroupProject = {
 }
 
 type ExtraState = {
-	currentWorkingGroupId: string | null;
 	currentGroupId: string | null;
 	currentProject: string | null;
 	currentBallot_id: number | null;
 }
 
 const initialState: ExtraState = {
-	currentWorkingGroupId: null,
 	currentGroupId: null,
 	currentProject: null,
 	currentBallot_id: null,
 };
+
+const sortComparer = (b1: Ballot, b2: Ballot) => b1.Project === b2.Project? b1.BallotID.localeCompare(b2.BallotID): b1.Project.localeCompare(b2.Project);
+const dataSet = 'ballots';
+
+const clear = createAction(dataSet + '/clear');
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
@@ -158,9 +159,6 @@ const slice = createAppTableDataSlice({
 	sortComparer,
 	initialState,
 	reducers: {
-		setCurrentWorkingGroupId(state, action: PayloadAction<string | null>) {
-			state.currentWorkingGroupId = action.payload;
-		},
 		setCurrentGroupProject(state, action: PayloadAction<GroupProject>) {
 			const {groupId, project} = action.payload;
 			const {entities, currentBallot_id} = state;
@@ -180,25 +178,35 @@ const slice = createAppTableDataSlice({
 			}
 		}
 	},
-	extraReducers: builder => {
+	extraReducers: (builder, dataAdapter) => {
 		builder
-		.addMatcher(
-			(action: Action) => action.type === dataSet + '/getSuccess',
-			(state) => {
-				if (state.currentBallot_id) {
-					const ballot = state.entities[state.currentBallot_id];
-					if (ballot) {
-						state.currentGroupId = ballot.groupId;
-						state.currentProject = ballot.Project;
-					}
-					else {
-						state.currentBallot_id = null;
-						state.currentGroupId = null;
-						state.currentProject = null;
+			.addMatcher(
+				(action: Action) => action.type === dataSet + '/getSuccess',
+				(state) => {
+					if (state.currentBallot_id) {
+						const ballot = state.entities[state.currentBallot_id];
+						if (ballot) {
+							state.currentGroupId = ballot.groupId;
+							state.currentProject = ballot.Project;
+						}
+						else {
+							state.currentBallot_id = null;
+							state.currentGroupId = null;
+							state.currentProject = null;
+						}
 					}
 				}
-			}
-		)
+			)
+			.addMatcher(
+				(action: Action) => action.type === clear,
+				(state) => {
+					dataAdapter.removeAll(state);
+					state.valid = false;
+					state.currentBallot_id = null;
+					state.currentGroupId = null;
+					state.currentProject = null;
+				}
+			)
 	}
 });
 
@@ -306,7 +314,6 @@ const {
 	updateMany,
 	setOne,
 	removeMany,
-	setCurrentWorkingGroupId,
 	setCurrentGroupProject: setCurrentGroupProjectLocal,
 	setCurrentBallot_id: setCurrentBallotIdLocal,
 	setUiProperties,
@@ -360,16 +367,13 @@ function validResponse(response: any): response is Ballot[] {
 }
 
 let loadBallotsPromise: Promise<Ballot[]> | null;
-export const loadBallots = (): AppThunk<Ballot[]> => 
+export const loadBallots = (): AppThunk<Ballot[]> =>
 	async (dispatch, getState) => {
 		if (loadBallotsPromise)
 			return loadBallotsPromise;
-		const wg = selectWorkingGroup(getState());
-		if (!wg)
-			return [];
 		dispatch(getPending());
-		dispatch(setCurrentWorkingGroupId(wg.id));
-		const url = `/api/${wg.name}/ballots`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/ballots`;
 		loadBallotsPromise = (fetcher.get(url) as Promise<Ballot[]>)
 			.then((response: any) => {
 				if (!validResponse(response))
@@ -394,23 +398,21 @@ export const initBallots = loadBallots;
 export const getBallots = (): AppThunk<Ballot[]> =>
 	async (dispatch, getState) => {
 		const state = getState();
-		const wg = selectWorkingGroup(state);
-		if (!wg)
-			return [];
-		const {currentWorkingGroupId, valid, loading, ids, entities} = selectBallotsState(state);
-		if (currentWorkingGroupId !== wg.id || !valid || loading)
+		const {valid, loading, ids, entities} = selectBallotsState(state);
+		if (!valid || loading)
 			return dispatch(loadBallots());
 		return ids.map(id => entities[id]!);
 	}
 
+export const clearBallots = (): AppThunk =>
+	async (dispatch) => {
+		dispatch(clear());
+	}
+
 export const updateBallot = (id: number, changes: Partial<Ballot>): AppThunk =>
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			dispatch(setError('Cannot update ballot', 'Working group not set'));
-			return;
-		}
-		const url = `/api/${wg.name}/ballots`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/ballots`;
 		let response: any;
 		try {
 			response = await fetcher.patch(url, [{id, changes}]);
@@ -427,12 +429,8 @@ export const updateBallot = (id: number, changes: Partial<Ballot>): AppThunk =>
 
 export const deleteBallots = (ids: EntityId[]): AppThunk =>
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			dispatch(setError('Cannot delete ballot', 'Working group not set'));
-			return;
-		}
-		const url = `/api/${wg.name}/ballots`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/ballots`;
 		try {
 			await fetcher.delete(url, ids);
 		}
@@ -445,12 +443,8 @@ export const deleteBallots = (ids: EntityId[]): AppThunk =>
 
 export const addBallot = (ballot: BallotEdit): AppThunk<Ballot | undefined> =>
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			dispatch(setError('Cannot add ballot', 'Working group not set'));
-			return;
-		}
-		const url = `/api/${wg.name}/ballots`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/ballots`;
 		let response: any;
 		try {
 			response = await fetcher.post(url, [ballot]);

@@ -36,8 +36,6 @@ const fields = {
 	Notes: {label: 'Notes'}
 };
 
-export const dataSet = 'results';
-
 /*
  * Selectors
  */
@@ -82,7 +80,7 @@ type ExtraState = {
 }
 
 const initialState: ExtraState = {ballot_id: null};
-
+const dataSet = 'results';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,

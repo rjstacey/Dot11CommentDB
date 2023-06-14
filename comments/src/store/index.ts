@@ -23,14 +23,14 @@ const PERSIST_VERSION = 4;
 const RESET_STORE_ACTION = "root/RESET_STORE";
 
 const dataAppSliceNames = [
+	groupsSlice.name,
 	membersSlice.name,
 	ballotsSlice.name,
 	epollsSlice.name,
 	commentsSlice.name,
 	commentsHistorySlice.name,
 	resultsSlice.name,
-	votersSlice.name,
-	groupsSlice.name
+	votersSlice.name
 ];
 
 /*

@@ -3,22 +3,18 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { fetcher, isObject, setError } from 'dot11-components';
 import type { RootState, AppThunk } from '.';
+import { selectWorkingGroupName } from './groups';
 
 export type UserMember = {
 	SAPIN: number;
 	Name: string;
 	Status: string;
 	Email?: string;
-	Access?: number;
-	Permissions?: string[];
 }
 
-const dataAdapter = createEntityAdapter({
-	selectId: (user: UserMember) => user.SAPIN
-})
-
-export const dataSet = 'members';
-
+const selectId = (user: UserMember) => user.SAPIN;
+const dataAdapter = createEntityAdapter({selectId});
+const dataSet = 'members';
 const slice = createSlice({
 	name: dataSet,
 	initialState: dataAdapter.getInitialState({
@@ -37,6 +33,10 @@ const slice = createSlice({
 		getFailure(state) {
 			state.loading = false;
 		},
+		clear(state) {
+			dataAdapter.removeAll(state);
+			state.valid = false;
+		}
 	},
 });
 
@@ -57,7 +57,7 @@ export const selectMembers = createSelector(
  /*
   * Actions
   */
-const {getPending, getSuccess, getFailure} = slice.actions;
+const {getPending, getSuccess, getFailure, clear} = slice.actions;
 
 function validUser(user: any): user is UserMember {
 	return isObject(user) &&
@@ -66,22 +66,23 @@ function validUser(user: any): user is UserMember {
 		typeof user.Status === 'string';
 }
 
-function validResponse(response: any): response is {users: UserMember[]} {
-	return isObject(response) &&
-		Array.isArray(response.users) && response.users.every(validUser);
+function validResponse(response: any): response is UserMember[] {
+	return Array.isArray(response) && response.every(validUser);
 }
 
 let loadPromise: Promise<void> | null = null;
-export const loadMembers = (): AppThunk => 
-	async (dispatch) => {
+export const loadMembers = (): AppThunk =>
+	async (dispatch, getState) => {
 		if (loadPromise)
 			return loadPromise;
 		dispatch(getPending());
-		loadPromise = (fetcher.get('/api/users') as Promise<void>)
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/users`;
+		loadPromise = (fetcher.get(url) as Promise<void>)
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
-				dispatch(getSuccess(response.users));
+				dispatch(getSuccess(response));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
@@ -99,6 +100,11 @@ export const getMembers = (): AppThunk =>
 		if (!valid || loading)
 			return dispatch(loadMembers());
 		return Promise.resolve();
+	}
+
+export const clearMembers = (): AppThunk =>
+	async (dispatch) => {
+		dispatch(clear())
 	}
 
 export const initMembers = loadMembers;

@@ -1,5 +1,5 @@
-import { createSelector } from '@reduxjs/toolkit';
-import type { Dictionary } from '@reduxjs/toolkit';
+import { createSelector, createAction } from '@reduxjs/toolkit';
+import type { Dictionary, Action } from '@reduxjs/toolkit';
 import {
 	fetcher,
 	setError,
@@ -11,7 +11,7 @@ import {
 
 import type { RootState, AppThunk } from '.';
 import { selectBallotEntities as selectSyncedBallotEntities } from './ballots';
-import { selectWorkingGroup } from './groups';
+import { selectWorkingGroupName } from './groups';
 
 export type Epoll = {
 	id: number;
@@ -35,7 +35,6 @@ export const fields = {
 	resultsSummary: {label: 'Result', sortType: SortType.NUMERIC}
 };
 
-export const dataSet = 'epolls';
 
 /*
  * Selectors
@@ -66,12 +65,26 @@ export const selectSyncedEntities = createSelector(
 
 export const epollsSelectors = getAppTableDataSelectors(selectEpollsState, {selectEntities: selectSyncedEntities})
 
+const dataSet = 'epolls';
+
+const clear = createAction(dataSet + '/clear');
+
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	initialState: {},
 	selectId: (d: Epoll) => d.id,
-	reducers: {}
+	reducers: {},
+	extraReducers: (builder, dataAdapter) => {
+		builder
+			.addMatcher(
+				(action: Action) => action.type === clear,
+				(state) => {
+					dataAdapter.removeAll(state);
+					state.valid = false;
+				}
+			)
+	}
 });
 
 export default slice;
@@ -102,11 +115,9 @@ export const loadEpolls = (n = 20): AppThunk<Epoll[]> =>
 	async (dispatch, getState) => {
 		if (loadPromise)
 			return loadPromise;
-		const wg = selectWorkingGroup(getState());
-		if (!wg)
-			return [];
 		dispatch(getPending());
-		const url = `/api/${wg.name}/epolls`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/epolls`;
 		loadPromise = (fetcher.get(url, {n}) as Promise<Epoll[]>)
 			.then((response: any) => {
 				if (!validResponse(response))
@@ -132,4 +143,9 @@ export const getEpolls = (): AppThunk<Epoll[]> =>
 		if (!valid || loading)
 			return dispatch(loadEpolls());
 		return ids.map(id => entities[id]!);
+	}
+
+export const clearEpolls = (): AppThunk =>
+	async (dispatch) => {
+		dispatch(clear())
 	}

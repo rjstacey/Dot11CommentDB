@@ -33,6 +33,14 @@ const Container = styled.div`
 	}
 `;
 
+function renderWorkingGroup({item, props}: SelectItemRendererProps) {
+    let label = item.name;
+    if (!props.clearable)
+        label += " CR";
+
+    return <span>{label}</span>
+}
+
 export function PathWorkingGroupSelector(props: Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">) {
 
     const dispatch = useAppDispatch();
@@ -70,13 +78,6 @@ export function PathWorkingGroupSelector(props: Omit<React.ComponentProps<typeof
 		navigate(pathName);
     }
 
-    function renderWorkingGroup({item, state}: SelectItemRendererProps) {
-        let label = item.name;
-        if (!clearable)
-            label += " CR";
-    
-        return <span>{label}</span>
-    }
     
 	return (
         <Container
