@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import { useAppSelector } from '../store/hooks';
 
 import Accounts from '../accounts/Accounts';
-import Organization from '../organization/Organization';
 import Sessions from '../sessions/Sessions';
 import Meetings from '../meetings/Meetings';
 import Calendar from '../calendar/Calendar';
@@ -67,11 +66,6 @@ function Body() {
 					path="/accounts"
 					element={renderComponent(AccessLevel.admin, Accounts)}
 				/>
-				<Route
-					path="/:groupName/organization"
-					element={renderComponent(AccessLevel.ro, Organization)}
-				/>
-
 				<Route
 					path="/:groupName/sessions"
 					element={renderComponent(AccessLevel.ro, Sessions)}

@@ -29,12 +29,6 @@ const fullMenu: MenuItem[] = [
 	{
 		minAccess: AccessLevel.ro,
 		prefixGroupName: true,
-		link: '/organization',
-		label: 'Organization',
-	},
-	{
-		minAccess: AccessLevel.ro,
-		prefixGroupName: true,
 		link: '/sessions',
 		label: 'Sessions',
 	},

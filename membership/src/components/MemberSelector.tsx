@@ -27,7 +27,7 @@ function MemberSelector({
 	const options = React.useMemo(() => {
 		// Produce a unique set of SAPIN/Name mappings. If there is no SAPIN then the name is the key.
 		const userOptions =	userIds
-			.map((sapin) => ({value: sapin, label: userEntities[sapin]!.Name}))
+			.map((sapin) => ({value: sapin, label: userEntities[sapin]!.Name || ''}))
 			.sort((a, b) => strComp(a.label, b.label));
 		return userOptions;
 	}, [userEntities, userIds]);

@@ -20,6 +20,7 @@
     "@types/react-router-dom": "^5.3.3",
     "@types/react-tabs": "^5.0.5",
     "@types/redux-logger": "^3.0.9",
+    "@types/uuid": "^9.0.2",
     "copy-html-to-clipboard": "^4.0.1",
     "dot11-components": "^1.9.45",
     "idb-keyval": "^6.0.3",

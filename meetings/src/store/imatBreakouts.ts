@@ -120,6 +120,8 @@ export const selectBreakoutMeeting = (state: RootState) => {
 	return imatMeetingId? imatMeetingEntities[imatMeetingId]: undefined;
 }
 
+export const selectImatCommmittees = (state: RootState) => selectBreakoutsState(state).committees;
+
 export type SyncedBreakout = Breakout & {
 	imatMeetingId: number | null;
 	meetingId: number | null;

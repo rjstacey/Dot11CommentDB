@@ -22,7 +22,7 @@ import {
 	Group, GroupCreate, GroupType
 } from '../store/groups';
 
-import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
+import { AccessLevel} from '../store/user';
 
 import GroupSelector from '../components/GroupSelector';
 import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
@@ -391,7 +391,7 @@ const connector = connect(
 			selected: data.selected,
 			entities: data.entities,
 			groupId: selectWorkingGroupId(state),
-			access: selectUserMeetingsAccess(state)
+			access: AccessLevel.admin
 		}
 	},
 	{

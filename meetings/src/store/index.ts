@@ -10,14 +10,13 @@ import { errorsSlice } from 'dot11-components';
 import { createUserSlice, User } from './user';
 import currentSlice from './current';
 import membersSlice, {loadMembers} from './members';
+import officersSlice, {loadOfficers} from './officers';
 import sessionsSlice from './sessions';
 import meetingsSlice from './meetingsSlice';
 import calendarAccountsSlice, {loadCalendarAccounts} from './calendarAccounts';
 import webexAccountsSlice, {loadWebexAccounts} from './webexAccounts';
-import officersSlice, {loadOfficers} from './officers';
 import timeZonesSlice, {loadTimeZones} from './timeZones';
 import groupsSlice, {initGroups} from './groups';
-import imatCommitteesSlice from './imatCommittees';
 import imatMeetingsSlice from './imatMeetings';
 import imatBreakoutsSlice from './imatBreakouts';
 import imatMeetingAttendanceSlice from './imatMeetingAttendance';
@@ -37,7 +36,6 @@ const dataAppSliceNames = [
 	sessionsSlice.name,
 	meetingsSlice.name,
 	webexMeetingsSlice.name,
-	imatCommitteesSlice.name,
 	imatMeetingsSlice.name,
 	imatBreakoutsSlice.name,
 	imatBreakoutAttendanceSlice.name,
@@ -70,15 +68,14 @@ export function configureStore(user: User) {
 		[userSlice.name]: userSlice.reducer,
 		[currentSlice.name]: currentSlice.reducer,
 		[membersSlice.name]: membersSlice.reducer,
+		[officersSlice.name]: officersSlice.reducer,
 		[webexAccountsSlice.name]: webexAccountsSlice.reducer,
 		[calendarAccountsSlice.name]: calendarAccountsSlice.reducer,
 		[timeZonesSlice.name]: timeZonesSlice.reducer,
 		[groupsSlice.name]: groupsSlice.reducer,
-		[officersSlice.name]: officersSlice.reducer,
 		[sessionsSlice.name]: sessionsSlice.reducer,
 		[meetingsSlice.name]: meetingsSlice.reducer,
 		[webexMeetingsSlice.name]: webexMeetingsSlice.reducer,
-		[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
 		[imatMeetingsSlice.name]: imatMeetingsSlice.reducer,
 		[imatBreakoutsSlice.name]: imatBreakoutsSlice.reducer,
 		[imatBreakoutAttendanceSlice.name]: imatBreakoutAttendanceSlice.reducer,
@@ -107,11 +104,11 @@ export function configureStore(user: User) {
 		whitelist: [
 			currentSlice.name,
 			membersSlice.name,
+			officersSlice.name,
 			webexAccountsSlice.name,
 			calendarAccountsSlice.name,
 			timeZonesSlice.name,
 			groupsSlice.name,
-			officersSlice.name,
 			sessionsSlice.name,
 			meetingsSlice.name,
 			webexMeetingsSlice.name,
@@ -142,8 +139,8 @@ export function configureStore(user: User) {
 		store.dispatch(loadTimeZones());
 		store.dispatch(loadWebexAccounts());
 		store.dispatch(loadCalendarAccounts());
-		store.dispatch(loadOfficers());
 		store.dispatch(loadMembers());
+		store.dispatch(loadOfficers());
 	});
 
 	return {store, persistor, reducer: rootReducer};

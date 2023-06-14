@@ -11,9 +11,11 @@ import groupsSlice, {initGroups} from './groups';
 import timeZonesSlice, {loadTimeZones} from './timeZones';
 import permissionsSlice, {loadPermissions} from './permissions';
 import membersSlice, {loadMembers} from './members';
+import officersSlice, {loadOfficers} from './officers';
 import attendancesSlice, {loadAttendances} from './sessionParticipation';
 import ballotParticipationSlice, {loadBallotParticipation} from './ballotParticipation';
 import sessionAttendeesSlice from './sessionAttendees';
+import imatCommitteesSlice from './imatCommittees';
 
 import { errorsSlice } from 'dot11-components';
 
@@ -41,12 +43,14 @@ function configureStore(user: User) {
 		[userSlice.name]: userSlice.reducer,
 		[groupsSlice.name]: groupsSlice.reducer,
 		[membersSlice.name]: membersSlice.reducer,
+		[officersSlice.name]: officersSlice.reducer,
 		[attendancesSlice.name]: attendancesSlice.reducer,
 		[ballotParticipationSlice.name]: ballotParticipationSlice.reducer,
 		[timeZonesSlice.name]: timeZonesSlice.reducer,
 		[permissionsSlice.name]: permissionsSlice.reducer,
 		[errorsSlice.name]: errorsSlice.reducer,
-		[sessionAttendeesSlice.name]: sessionAttendeesSlice.reducer
+		[sessionAttendeesSlice.name]: sessionAttendeesSlice.reducer,
+		[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
 	});
 
 	const rootReducer = (state: any, action: AnyAction) => {
@@ -95,6 +99,7 @@ function configureStore(user: User) {
 		store.dispatch(loadTimeZones());
 		store.dispatch(loadPermissions());
 		store.dispatch(loadMembers());
+		store.dispatch(loadOfficers());
 		store.dispatch(loadAttendances());
 		store.dispatch(loadBallotParticipation());
 	});
