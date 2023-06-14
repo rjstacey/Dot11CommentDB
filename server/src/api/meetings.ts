@@ -34,60 +34,69 @@
  */
 import { Router } from 'express';
 import { isPlainObject } from '../utils';
+import { AccessLevel } from '../auth/access';
 import {
 	getMeetings,
 	updateMeetings,
 	addMeetings,
 	deleteMeetings,
+	validateMeetings,
+	validateMeetingUpdates,
+	validateMeetingIds,
 } from '../services/meetings';
 
 const router = Router();
 
-router.get('/$', async (req, res, next) => {
-	try {
-		const data = await getMeetings(req.query);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+router
+	.all('*', (req, res, next) => {
+		if (!req.group)
+			return res.status(500).send("Group not set");
 
-router.post('/$', async (req, res, next) => {
-	try {
-		const meetings = req.body;
-		if (!Array.isArray(meetings))
-			throw new TypeError('Bad or missing of meeting objects');
-		if (!meetings.every(meeting => isPlainObject(meeting)))
-			throw new TypeError('Expected an array of objects');
-		const data = await addMeetings(req.user, meetings);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.patch('/$', async (req, res, next) => {
-	try {
-		const updates = req.body;
-		if (!Array.isArray(updates))
-			throw new TypeError('Bad or missing array of update objects');
-		if (!updates.every(u => isPlainObject(u) && typeof u.id === 'number' && isPlainObject(u.changes)))
-			throw new TypeError('Expected array of objects to have shape {id, changes}');
-		const data = await updateMeetings(req.user, updates);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.delete('/$', async (req, res, next) => {
-	try {
-		const ids = req.body;
-		if (!Array.isArray(ids))
-			throw new TypeError('Bad or missing array of meeting identifiers');
-		if (!ids.every(id => typeof id === 'number'))
-			throw new TypeError('Expected an array of numbers');
-		const data = await deleteMeetings(req.user, ids);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+			const access = req.group.permissions.meetings || AccessLevel.none;
+		if (req.method === "GET" && access >= AccessLevel.ro)
+			return next();
+		if (req.method === "PATCH" && access >= AccessLevel.rw)
+			return next();
+		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
+			return next();
+		res.status(403).send('Insufficient karma');
+	})
+	.route('/')
+		.get((req, res, next) => {
+			const group = req.group!;
+			getMeetings({groupId: group.id, ...req.query})
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.post((req, res, next) => {
+			const meetings = req.body;
+			try {validateMeetings(meetings)}
+			catch (error) {
+				return next(error);
+			}
+			addMeetings(req.user, meetings)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.patch((req, res, next) => {
+			const updates = req.body;
+			try {validateMeetingUpdates(updates)}
+			catch (error) {
+				return next(error);
+			}
+			updateMeetings(req.user, updates)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.delete((req, res, next) => {
+			const ids = req.body;
+			try {validateMeetingIds(ids)}
+			catch (error) {
+				return next(error);
+			}
+			deleteMeetings(req.user, ids)
+				.then(data => res.json(data))
+				.catch(next);
+		});
 
 export default router;

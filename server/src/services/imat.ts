@@ -7,7 +7,7 @@ import cheerio from 'cheerio';
 
 import type { User } from './users';
 
-import { csvParse, AuthError, NotFoundError, validateSpreadsheetHeader } from '../utils';
+import { csvParse, AuthError, NotFoundError, validateSpreadsheetHeader, isPlainObject } from '../utils';
 import { webexMeetingImatLocation } from './meetings';
 import { getGroups } from './groups';
 
@@ -15,6 +15,7 @@ import type { Meeting } from './meetings';
 import type { WebexMeeting } from './webex';
 import type { Session } from './sessions';
 import type { ContactInfo } from './members';
+import type { Group } from './groups';
 
 export type Breakout = {
 	id?: number;
@@ -348,12 +349,12 @@ async function parseImatCommitteesCsv(buffer: Buffer) {
  *
  * Parameters: group = name of the owning group
  */
-export async function getImatCommittees(user: User, group: string) {
+export async function getImatCommittees(user: User, group: Group) {
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const response = await ieeeClient.get(`/${group}/committees.csv`, {responseType: 'arraybuffer'});
+	const response = await ieeeClient.get(`/${group.name}/committees.csv`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 
@@ -723,6 +724,11 @@ function pageBreakoutToBreakout(pageBreakout: PageBreakout, timeslots: Timeslot[
 	}
 }
 
+export function validateImatBreakouts(breakouts: any): asserts breakouts is Breakout[] {
+	if (!Array.isArray(breakouts) || !breakouts.every(validBreakout))
+		throw new TypeError("Bad or missing breakout array; expected an array of objects");
+}
+
 export async function addImatBreakouts(
 	user: User,
 	imatMeetingId: number,
@@ -742,6 +748,11 @@ export async function addImatBreakouts(
 	breakouts = await Promise.all(breakouts.map((breakout) => addImatBreakout(user, imatMeeting, timeslots, pageCommittees, breakout)));
 
 	return {breakouts};
+}
+
+export function validateImatBreakoutIds(ids: any): asserts ids is number[] {
+	if (!Array.isArray(ids) || ids.every(id => typeof id !== 'number'))
+		throw new TypeError("Bad or missing IMAT breakout identifiers array; expected number[]");
 }
 
 export async function deleteImatBreakouts(user: User, imatMeetingId: number, ids: number[]) {
@@ -818,6 +829,15 @@ async function updateImatBreakout(user: User, imatMeeting: ImatMeeting, breakout
 		throw new NotFoundError("Unable to find updated breakout");
 	
 	return b;
+}
+
+function validBreakout(breakout: any): breakout is Breakout {
+	return isPlainObject(breakout);
+}
+
+export function validateImatBreakoutUpdates(breakouts: any): asserts breakouts is Breakout[] {
+	if (!Array.isArray(breakouts) || !breakouts.every(validBreakout))
+		throw new TypeError("Bad or missing breakout array; expected an array of objects");
 }
 
 export async function updateImatBreakouts(
@@ -932,7 +952,7 @@ async function meetingToBreakout(
 	if (endSlot && slotDateTime(breakoutDate, endSlot)[1].toFormat("HH:mm") === endTime)
 		endTime = '';
 
-	const [group] = await getGroups({id: meeting.organizationId});
+	const [group] = await getGroups(user, {id: meeting.organizationId});
 	if (!group)
 		throw new TypeError(`Can't find group id=${meeting.organizationId}`);
 

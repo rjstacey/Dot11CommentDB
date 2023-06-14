@@ -23,60 +23,64 @@
  */
 import { Router } from 'express';
 import { isPlainObject } from '../utils';
+import { AccessLevel } from '../auth/access';
 import {
 	getOfficers,
 	addOfficers,
 	updateOfficers,
-	removeOfficers
+	removeOfficers,
+	validateOfficers,
+	validateOfficerUpdates,
+	validateOfficerIds
 } from '../services/officers';
 
 const router = Router();
 
-router.get('/$', async (req, res, next) => {
-	try {
-		const data = await getOfficers();
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.post('/$', async (req, res, next) => {
-	try {
-		const officers = req.body;
-		if (!Array.isArray(officers))
-			throw new TypeError('Bad or missing array of officer objects');
-		if (!officers.every(officer => isPlainObject(officer)))
-			throw new TypeError('Expected an array of objects');
-		const data = await addOfficers(officers);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.patch('/$', async (req, res, next) => {
-	try {
-		const updates = req.body;
-		if (!Array.isArray(updates))
-			throw new TypeError('Bad or missing array of updates');
-		if (!updates.every(u => isPlainObject(u) && typeof u.id === 'string' && isPlainObject(u.changes)))
-			throw new TypeError('Expected an array of objects with shape {id, changes}');
-		const data = await updateOfficers(updates);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.delete('/$', async (req, res, next) => {
-	try {
-		const ids = req.body;
-		if (!Array.isArray(ids))
-			throw new TypeError('Bad or missing array of officer identifiers');
-		if (!ids.every(id => typeof id === 'string'))
-			throw new TypeError('Expected an array of strings');
-		const data = await removeOfficers(ids);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+router
+	.all('*', (req, res, next) => {
+		if (!req.group)
+			return res.status(500).send("Group not set");
+		const access = req.group.permissions.members || AccessLevel.none;
+		if (access >= AccessLevel.admin)
+			return next();
+		res.status(403).send('Insufficient karma');
+	})
+	.route('/')
+		.get((req, res, next) => {
+			const parentGroupId = req.group!.id;
+			getOfficers({parentGroupId})
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.post((req, res, next) => {
+			const officers = req.body;
+			try {validateOfficers(officers)}
+			catch (error) {
+				return next(error);
+			}
+			addOfficers(req.user, req.group!, officers)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.patch((req, res, next) => {
+			const updates = req.body;
+			try {validateOfficerUpdates(updates)}
+			catch (error) {
+				return next(error);
+			}
+			updateOfficers(req.user, req.group!, updates)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.delete((req, res, next) => {
+			const ids = req.body;
+			try {validateOfficerIds(ids)}
+			catch (error) {
+				return next(error);
+			}
+			removeOfficers(req.user, req.group!, ids)
+				.then(data => res.json(data))
+				.catch(next);
+		});
 
 export default router;

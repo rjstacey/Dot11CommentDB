@@ -19,6 +19,7 @@ import {
 } from './membersSpreadsheets';
 
 import { NotFoundError, isPlainObject } from '../utils';
+import { AccessLevel } from '../auth/access';
 
 export type Member = {
 	/** SA PIN (unique identifier for IEEE SA account) */
@@ -161,28 +162,19 @@ export type UserMember = {
 	Name: string;
 	Status: string;
 	Email?: string;
-	Access?: number;
-	Permissions?: string[];
 }
 
 /*
- * A list of members is available to any user with access level Member or higher
- * (for reassigning comments, etc.). We only care about members with status.
+ * A list of members is available to any member (for reassigning comments, etc.).
+ * We only care about members with status Aspirant, Potential Voter, Voter or ExOfficial.
  */
-export function selectUsers(user: User) {
-	let sql = 'SELECT m.SAPIN, Name, Status ';
-	
-	if (userIsSubgroupAdmin(user)) {
-		sql += 
-			', Email, Access, COALESCE(Permissions, JSON_ARRAY()) AS Permissions ' +
-			'FROM members m ' +
-				'LEFT JOIN (SELECT SAPIN, JSON_ARRAYAGG(scope) AS Permissions FROM permissions GROUP BY SAPIN) AS p ON m.SAPIN=p.SAPIN';
-	}
-	else {
-		sql +=
-			'FROM members m'; 
-	}
-	sql += ' WHERE Status IN ("Aspirant", "Potential Voter", "Voter", "ExOfficio")';
+export function selectUsers(user: User, access: number) {
+
+	let sql = 'SELECT SAPIN, Name, Status';
+	// Admin privileges needed to see email addresses
+	if (access >= AccessLevel.admin)
+		sql += ', Email';
+	sql += ' FROM members WHERE Status IN ("Aspirant", "Potential Voter", "Voter", "ExOfficio")';
 
 	return db.query(sql) as Promise<UserMember[]>;
 }

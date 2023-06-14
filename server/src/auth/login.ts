@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import type { AxiosInstance } from 'axios';
+import type { AxiosInstance, AxiosResponse } from 'axios';
 import { createIeeeClient } from '../utils';
 import { selectUser, getUser, setUser, delUser } from '../services/users';
 
@@ -11,7 +11,7 @@ const loginUrl = '/pub/login';
 const logoutUrl = '/pub/logout';
 
 async function login(ieeeClient: AxiosInstance, username: string, password: string) {
-	let m, response;
+	let m, response: AxiosResponse;
 
 	// Do an initial GET on /pub/login so that we get cookies. We can do a login without this, but
 	// if we don't get the cookies associated with this GET, then the server seems to get confused

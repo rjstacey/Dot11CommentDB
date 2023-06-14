@@ -25,37 +25,29 @@ import { getGroups,	addGroups, updateGroups, removeGroups } from '../services/gr
 
 const router = Router();
 
-router.get('/:parentName?', async (req, res, next) => {
-	try {
+router
+	.get('/:parentName?', (req, res, next) => {
 		const {parentName} = req.params;
-		const data = await getGroups(req.user, {parentName, ...req.query});
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.post('/', async (req, res, next) => {
-	try {
-		const data = await addGroups(req.user, req.body);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.patch('/', async (req, res, next) => {
-	try {
-		const data = await updateGroups(req.user, req.body);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.delete('/', async (req, res, next) => {
-	try {
-		const data = await removeGroups(req.user, req.body);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+		console.log(req.query)
+		getGroups(req.user, {parentName, ...req.query})
+			.then(data => res.json(data))
+			.catch(next);
+	})
+	.route('/')
+		.post((req, res, next) => {
+			addGroups(req.user, req.body)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.patch((req, res, next) => {
+			updateGroups(req.user, req.body)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.delete((req, res, next) => {
+			removeGroups(req.user, req.body)
+				.then(data => res.json(data))
+				.catch(next);
+		});
 
 export default router;

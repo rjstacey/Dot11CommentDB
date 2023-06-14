@@ -47,49 +47,44 @@ import {
 
 const router = Router();
 
-router.get('/$', async (req, res, next) => {
-	try {
-		const data = await getSessions();
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+router
+	.route('/')
+		.get((req, res, next) => {
+			getSessions()
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.post((req, res, next) => {
+			const session = req.body;
+			if (!isPlainObject(session))
+				return next(new TypeError('Bad or missing body; expected object'));
+			addSession(session)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.patch(async (req, res, next) => {
+			if (!isPlainObject(req.body))
+				return next(new TypeError("Bad or missing session object"));
+			const {id, changes} = req.body;
+			if (typeof id !== 'number' || !isPlainObject(changes))
+				return next(new TypeError("Bad body; expected update object with shape {id, changes}"))
+			updateSession(id, changes)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.delete((req, res, next) => {
+			const ids = req.body;
+			if (!Array.isArray(ids))
+				return next(new TypeError('Bad or missing array of session identifiers'));
+			if (!ids.every(id => typeof id === 'number'))
+				return next(new TypeError('Expected an array of numbers'));
+			deleteSessions(ids)
+				.then(data => res.json(data))
+				.catch(next)
+		});
+	
+router
 
-router.post('/$', async (req, res, next) => {
-	try {
-		const session = req.body;
-		if (!isPlainObject(session))
-			throw new TypeError('Bad or missing body; expected object');
-		const data = await addSession(session);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.patch('/:id(\\d+)$', async (req, res, next) => {
-	try {
-		const id = parseInt(req.params.id);
-		const changes = req.body;
-		if (!isPlainObject(changes))
-			throw new TypeError('Bad or missing body; expected object');
-		const data = await updateSession(id, changes);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.delete('/$', async (req, res, next) => {
-	try {
-		const ids = req.body;
-		if (!Array.isArray(ids))
-			throw new TypeError('Bad or missing array of session identifiers');
-		if (!ids.every(id => typeof id === 'number'))
-			throw new TypeError('Expected an array of numbers');
-		const data = await deleteSessions(ids);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
 
 router.get('/:id(\\d+)/breakouts', async (req, res, next) => {
 	try {

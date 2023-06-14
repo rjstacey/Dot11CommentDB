@@ -62,86 +62,38 @@ declare global {
 	}
 }
   
-
-/*
- * Enforce access levels
- *
- * The philosophy here is to deny access (status(403) at end of routine) unless permission is explicitly granted
- * through one the "return next()" statements.
- */
-router.all('*', (req, res, next) => {
-	const {user} = req;
-
-	// WG Admin can do anything
-	if (userIsWGAdmin(user))
-		return next();
-
-	const isMember = userIsMember(user);
-	const isSubgroupAdmin = userIsSubgroupAdmin(user);
-
-	switch (req.method) {
-	case 'GET': /* read */
-		/* public has read access to ballots, comments, resolutions and timeZones */
-		if (req.path.match(/^\/ballot|^\/votingPools|^\/comment|^\/resolution/i))
-			return next();
-		/* members have read access to users */
-		if (req.path.match(/^\/users/i) && isMember)
-			return next();
-		/* subgroup admins have read access to results */
-		if (req.path.match(/^\/result/i) && isSubgroupAdmin)
-			return next();
-		/* subgroup admins have read access to meetings */
-		if (req.path.match(/^\/meetings/i) && isSubgroupAdmin)
-			return next();
-		break;
-
-	case 'POST': /* add */
-	case 'DELETE': /* delete */
-		if (req.path.match(/^\/comment|^\/resolution/i) && isSubgroupAdmin)
-			return next();
-		/* subgroup admins have create/delete access to meetings */
-		if (req.path.match(/^\/meetings/i) && isSubgroupAdmin)
-			return next();
-		break;
-
-	case 'PUT':
-	case 'PATCH': /* modify existing */
-		if (req.path.match(/^\/resolution/i) && isMember)
-			return next();
-		if (req.path.match(/^\/comment/i) && isSubgroupAdmin)
-			return next();
-		/* subgroup admins have modify access to meetings */
-		if (req.path.match(/^\/meetings/i) && isSubgroupAdmin)
-			return next();
-		break;
-	}
-
-	return res.status(403).send('Insufficient karma');
-});
-
 /* A get on root returns OK: tests connectivity */
 router.get('/', (req, res, next) => res.json('OK'));
+
+async function parsePathGroupName(req: Request, res: Response, next: NextFunction) {
+	const {groupName} = req.params;
+	const group = await getGroup(req.user, groupName);
+	if (!group)
+		return next(new NotFoundError(`Group ${groupName} does not exist`));
+	req.group = group;
+	next();
+}
 
 /*
  * APIs for managing the organization
  */
-router.use('/members', members);			// Manage membership
-router.use('/users', users);				// Limited access to member information for various uses (comment resolution, meeting setup, etc.)
 router.use('/groups', groups);				// Groups and subgroups
-router.use('/officers', officers);			// Group and subgroup officers
 router.use('/email', email);				// Sending email
+router.use('/:groupName/members', parsePathGroupName, members);			// Manage membership
+router.use('/:groupName/users', parsePathGroupName, users);				// Limited access to member information for various uses (comment resolution, meeting setup, etc.)
+router.use('/:groupName/officers', parsePathGroupName, officers);		// Group and subgroup officers
 router.use('/permissions', permissions);	// Get list of permissions
-router.use('/attendances', attendances);	// Attendances
-router.use('/ballotParticipation', ballotParticipation);	// Ballot series participation
+router.use('/:groupName/attendances', parsePathGroupName, attendances);	// Attendances
+router.use('/:groupName/ballotParticipation', parsePathGroupName, ballotParticipation);	// Ballot series participation
 
 /*
  * APIs for managing meetings
  */
-router.use('/sessions', sessions);			// Sessions
-router.use('/meetings', meetings);			// Session meetings and telecons
-router.use('/webex', webex);				// Webex account and meetings
-router.use('/calendar', calendar);			// Google calendar accounts and events
-router.use('/imat', imat);					// Access to IEEE SA attendance system (IMAT)
+router.use('/:groupName/sessions', parsePathGroupName, sessions);		// Sessions
+router.use('/:groupName/meetings', parsePathGroupName, meetings);		// Session meetings and telecons
+router.use('/:groupName/webex', parsePathGroupName, webex);				// Webex account and meetings
+router.use('/:groupName/calendar', parsePathGroupName, calendar);		// Google calendar accounts and events
+router.use('/:groupName/imat', parsePathGroupName, imat);				// Access to IEEE SA attendance system (IMAT)
 router.use('/802world', ieee802world);		// Access to schedule802world.com (meeting organizer schedule)
 
 /*
@@ -167,18 +119,7 @@ router.use('/comments/:ballot_id(\\d+)', parsePathBallot_id, comments);			// Bal
 router.use('/resolutions/:ballot_id(\\d+)', parsePathBallot_id, resolutions);	// Comment resolutions
 router.use('/commentHistory/:ballot_id(\\d+)', parsePathBallot_id, commentHistory);	// Comment change history
 
-async function parsePathGroupName(req: Request, res: Response, next: NextFunction) {
-	const {groupName} = req.params;
-	const group = await getGroup(req.user, groupName);
-	if (!group)
-		return next(new NotFoundError(`Group ${groupName} does not exist`));
-	req.group = group;
-	next();
-}
-
 router.use('/:groupName/ballots', parsePathGroupName, ballots);
 router.use('/:groupName/epolls', parsePathGroupName, epolls);				// Access to ePolls balloting tool
-
-//router.use('/:groupName/ballots', ballots);			// Ballots
 
 export default router;

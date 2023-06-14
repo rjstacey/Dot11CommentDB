@@ -500,7 +500,7 @@ async function addMeeting(user: User, meetingToAdd: MeetingAddUpdate) {
 		session = getSession(meetingToAdd.sessionId);	// returns a promise
 
 	if (meetingToAdd.organizationId)
-		workingGroup = getWorkingGroup(meetingToAdd.organizationId);	// returns a promise
+		workingGroup = getWorkingGroup(user, meetingToAdd.organizationId);	// returns a promise
 
 	/* If a webex account is given and the webexMeeting object exists then add a webex meeting */
 	if (meetingToAdd.webexAccountId && meetingToAdd.webexMeetingId) {
@@ -553,6 +553,13 @@ async function addMeeting(user: User, meetingToAdd: MeetingAddUpdate) {
 	return {meeting: meetingOut, webexMeeting, breakout};
 }
 
+function validMeeting(meeting: any): meeting is MeetingAddUpdate {
+	return isPlainObject(meeting);
+}
+export function validateMeetings(meetings: any): asserts meetings is MeetingAddUpdate[] {
+	if (!Array.isArray(meetings) || !meetings.every(validMeeting))
+		throw new TypeError("Bad or missing meetings array; expected an array of meeting objects");
+}
 /**
  * Add meetings, including webex, calendar and imat entries.
  *
@@ -776,7 +783,7 @@ async function meetingMakeCalendarUpdates(
 	breakout: Breakout | undefined
 ) {
 
-	let calendarEvent: CalendarEvent | void;
+	let calendarEvent: CalendarEvent | void = undefined;
 
 	let updatedMeeting = {...meeting, ...changes};
 
@@ -858,7 +865,7 @@ export async function updateMeeting(user: User, id: number, changesIn: Partial<M
 	let workingGroup: Promise<Group | undefined> | Group | undefined;
 	const organizationId = changes.organizationId || meeting.organizationId;
 	if (organizationId)
-		workingGroup = getWorkingGroup(organizationId);	// returns a promise
+		workingGroup = getWorkingGroup(user, organizationId);	// returns a promise
 
 	/* Make Webex changes */
 	let webexMeeting = await meetingMakeWebexUpdates(meeting, changesIn);
@@ -893,8 +900,17 @@ export async function updateMeeting(user: User, id: number, changesIn: Partial<M
 	return {meeting, webexMeeting, breakout};
 }
 
+function validMeetingUpdate(update: any): update is MeetingUpdate {
+	return isPlainObject(update) && 
+		update.id && typeof update.id === 'number' &&
+		isPlainObject(update.changes);
+}
 
-
+export function validateMeetingUpdates(updates: any): asserts updates is MeetingUpdate[] {
+	if (!Array.isArray(updates) || !updates.every(validMeetingUpdate))
+		throw new TypeError("Bad or missing array of meeting updates; expected array of objects with shape {id, changes}");
+}
+ 
 /**
  * Update meetings.
  *
@@ -931,6 +947,11 @@ export async function updateMeetings(user: User, updates: MeetingUpdate[]) {
 	return {meetings, webexMeetings, breakouts};
 }
 
+export function validateMeetingIds(ids: any): asserts ids is number[] {
+	if (!Array.isArray(ids) || ids.every(id => typeof id === 'number'))
+		throw new TypeError("Bad or missing array of meeting identifiers; expected number[]");
+}
+ 
 /**
  * Delete meetings.
  *

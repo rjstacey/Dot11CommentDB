@@ -28,10 +28,10 @@
  *			accoundId:any 	Identifies the account
  *		Returns 1.
  */
-import { Router, Request } from 'express';
+import { Router } from 'express';
 
 import {isPlainObject} from '../utils';
-
+import { AccessLevel } from '../auth/access';
 import {
 	getCalendarAccounts,
 	addCalendarAccount,
@@ -42,53 +42,58 @@ import {
 
 const router = Router();
 
-router.get('/accounts', async (req, res, next) => {
-	try {
-		const data = await getCalendarAccounts();
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+router
+	.all('*', (req, res, next) => {
+		if (!req.group)
+			return res.status(500).send("Group not set");
 
-router.post('/accounts', async (req, res, next) => {
-	try {
-		const account = req.body;
-		if (!isPlainObject(account))
-			throw 'Missing or bad body; expected object';
-		const data = await addCalendarAccount(account);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+			const access = req.group.permissions.meetings || AccessLevel.none;
+		if (req.method === "GET" && access >= AccessLevel.ro)
+			return next();
+		if (req.method === "PATCH" && access >= AccessLevel.rw)
+			return next();
+		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
+			return next();
+		res.status(403).send('Insufficient karma');
+	})
+	.route('/accounts')
+		.get((req, res, next) => {
+			getCalendarAccounts()
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.post((req, res, next) => {
+			const account = req.body;
+			if (!isPlainObject(account))
+				return next(new TypeError('Missing or bad body; expected object'));
+			addCalendarAccount(account)
+				.then(data => res.json(data))
+				.catch(next);
+		})
 
-router.patch('/accounts/:accountId(\\d+)/$', async (req, res, next) => {
-	try {
+router
+	.patch('/accounts/:accountId(\\d+)/$', async (req, res, next) => {
 		const accountId = Number(req.params.accountId);
-		const changes = req.body;
-		if (!isPlainObject(changes))
-			throw 'Missing or bad body; expected object';
-		const data = await updateCalendarAccount(accountId, changes);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.patch('/accounts/:accountId(\\d+)/revoke$', async (req, res, next) => {
-	try {
+		try {
+			const changes = req.body;
+			if (!isPlainObject(changes))
+				throw 'Missing or bad body; expected object';
+			const data = await updateCalendarAccount(accountId, changes);
+			res.json(data);
+		}
+		catch(err) {next(err)}
+	})
+	.patch('/accounts/:accountId(\\d+)/revoke$', async (req, res, next) => {
 		const accountId = Number(req.params.accountId);
-		const data = await revokeAuthCalendarAccount(accountId);
-		res.json(data);
-	}
-	catch (err) {next(err)}
-});
-
-router.delete('/accounts/:accountId(\\d+)/$', async (req, res, next) => {
-	try {
+		revokeAuthCalendarAccount(accountId)
+			.then(data => res.json(data))
+			.catch(next)
+	})
+	.delete('/accounts/:accountId(\\d+)/$', (req, res, next) => {
 		const accountId = Number(req.params.accountId);
-		const data = await deleteCalendarAccount(accountId);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+		deleteCalendarAccount(accountId)
+			.then(data => res.json(data))
+			.catch(next);
+	});
 
 export default router;

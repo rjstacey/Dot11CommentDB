@@ -13,6 +13,7 @@
 import { Router } from 'express';
 import Multer from 'multer';
 import { isPlainObject } from '../utils';
+import { AccessLevel } from '../auth/access';
 import {
 	getMembers,
 	getMembersSnapshot,
@@ -34,62 +35,89 @@ import {
 const router = Router();
 const upload = Multer();
 
-router.get('/$', async (req, res, next) => {
-	try {
-		const data = await getMembers();
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+router
+	.all('*', (req, res, next) => {
+		const access = req.group?.permissions.members || AccessLevel.none;
 
-router.get('/snapshot$', async (req, res, next) => {
-	try {
-		const {date} = req.body;
-		const data = await getMembersSnapshot(date);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.post('/$', async (req, res, next) => {
-	try {
-		const members = req.body;
-		if (!Array.isArray(members))
-			throw new TypeError('Bad or missing array of member objects');
-		if (!members.every(member => isPlainObject(member)))
-			throw new TypeError('Expected an array of objects');
-		const data = await addMembers(members);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.patch('/$', async (req, res, next) => {
-	try {
-		const updates = req.body;
-		if (!Array.isArray(updates))
-			throw new TypeError('Bad or missing array of update objects');
-		if (!updates.every(u => isPlainObject(u) && typeof u.id === 'number' && isPlainObject(u.changes)))
-			throw new TypeError('Expected an array of objects with shape {id, changes}');
-		const data = await updateMembers(updates);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.delete('/$', async (req, res, next) => {
-	try {
-		const ids = req.body;
-		if (!Array.isArray(ids))
-			throw new TypeError('Bad or missing array of member identifiers');
-		if (!ids.every(id => typeof id === 'number'))
-			throw new TypeError('Expected an array of numbers');
-		const data = await deleteMembers(ids);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
+		if (req.method === "GET" && access >= AccessLevel.ro)
+			return next();
+		// Need read-write privileges to update resolutions
+		if (req.method === "PATCH" && access >= AccessLevel.rw)
+			return next();
+		// Need admin privileges to add or delete resolutions
+		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
+			return next();
+		res.status(403).send('Insufficient karma');
+	})
+	.get('/snapshot', async (req, res, next) => {
+		try {
+			const {date} = req.body;
+			const data = await getMembersSnapshot(date);
+			res.json(data);
+		}
+		catch(err) {next(err)}
+	})
+	.post('/upload/:format', upload.single('File'), async (req, res, next) => {
+		try {
+			const {format} = req.params;
+			if (!req.file)
+				throw new TypeError('Missing file');
+			const data = await uploadMembers(format, req.file)
+			res.json(data)
+		}
+		catch(err) {next(err)}
+	})
+	.post('/MyProjectRoster', upload.single('File'), async (req, res, next) => {
+		try {
+			if (!req.file)
+				throw new TypeError('Missing file');
+			const data = await importMyProjectRoster(req.file);
+			res.json(data);
+		}
+		catch(err) {next(err)}
+	})
+	.get('/MyProjectRoster', async (req, res, next) => {
+		exportMyProjectRoster(req.user, res)
+			.then(() => res.end())
+			.catch(next)
+	})
+	.route('/')
+		.get((req, res, next) => {
+			getMembers()
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.post((req, res, next) => {
+			const members = req.body;
+			if (!Array.isArray(members))
+				return next(new TypeError('Bad or missing array of member objects'));
+			if (!members.every(member => isPlainObject(member)))
+				return next(new TypeError('Expected an array of objects'));
+			addMembers(members)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.patch((req, res, next) => {
+			const updates = req.body;
+			if (!Array.isArray(updates))
+				return next(new TypeError('Bad or missing array of update objects'));
+			if (!updates.every(u => isPlainObject(u) && typeof u.id === 'number' && isPlainObject(u.changes)))
+				return next(new TypeError('Expected an array of objects with shape {id, changes}'));
+			updateMembers(updates)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.delete((req, res, next) => {
+			const ids = req.body;
+			if (!Array.isArray(ids))
+				return next(new TypeError('Bad or missing array of member identifiers'));
+			if (!ids.every(id => typeof id === 'number'))
+				return next(new TypeError('Expected an array of numbers'));
+			deleteMembers(ids)
+				.then(data => res.json(data))
+				.catch(next);
+		});
+	
 router.patch('/:id(\\d+)$', async (req, res, next) => {
 	try {
 		const id = Number(req.params.id);
@@ -165,32 +193,6 @@ router.delete('/:id(\\d+)/ContactEmails', async (req, res, next) => {
 	catch(err) {next(err)}
 });
 
-router.post('/upload/:format', upload.single('File'), async (req, res, next) => {
-	try {
-		const {format} = req.params;
-		if (!req.file)
-			throw new TypeError('Missing file');
-		const data = await uploadMembers(format, req.file)
-		res.json(data)
-	}
-	catch(err) {next(err)}
-});
-
-router.post('/MyProjectRoster$', upload.single('File'), async (req, res, next) => {
-	try {
-		if (!req.file)
-			throw new TypeError('Missing file');
-		const data = await importMyProjectRoster(req.file);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.get('/MyProjectRoster$', async (req, res, next) => {
-	exportMyProjectRoster(req.user, res)
-		.then(() => res.end())
-		.catch(next)
-});
 
 
 export default router;

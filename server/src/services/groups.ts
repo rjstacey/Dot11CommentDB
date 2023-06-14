@@ -113,9 +113,34 @@ export async function getWorkingGroup(user: User, groupId: string): Promise<Grou
 }
 
 /* Permission sets */
-const permWgOfficer: Record<string, number> = {groups: AccessLevel.admin, ballots: AccessLevel.admin, voters: AccessLevel.admin, results: AccessLevel.admin, comments: AccessLevel.admin};
-const permTgOfficer: Record<string, number> = {groups: AccessLevel.ro, ballots: AccessLevel.ro, voters: AccessLevel.ro, results: AccessLevel.rw, comments: AccessLevel.rw};
-const permMember: Record<string, number> = {groups: AccessLevel.ro, ballots: AccessLevel.ro, voters: AccessLevel.none, results: AccessLevel.none, comments: AccessLevel.ro};
+const permWgOfficer: Record<string, number> = {
+	users: AccessLevel.admin,
+	members: AccessLevel.admin,
+	meetings: AccessLevel.admin,
+	groups: AccessLevel.admin,
+	ballots: AccessLevel.admin,
+	voters: AccessLevel.admin,
+	results: AccessLevel.admin,
+	comments: AccessLevel.admin
+};
+
+const permTgOfficer: Record<string, number> = {
+	users: AccessLevel.ro,
+	groups: AccessLevel.ro,
+	ballots: AccessLevel.ro,
+	voters: AccessLevel.ro,
+	results: AccessLevel.rw,
+	comments: AccessLevel.rw
+};
+
+const permMember: Record<string, number> = {
+	users: AccessLevel.ro,
+	groups: AccessLevel.ro,
+	ballots: AccessLevel.ro,
+	voters: AccessLevel.none,
+	results: AccessLevel.none,
+	comments: AccessLevel.ro
+};
 
 export async function getUserGroupPermissions(user: User, group: Group) {
 	let permissions: Record<string, number> = permMember;
@@ -132,7 +157,7 @@ export async function getUserGroupPermissions(user: User, group: Group) {
 		if (officers.find(officer => officer.sapin === user.SAPIN))
 			permissions = permWgOfficer;
 	}
-	console.log(group.name, permissions)
+	//console.log(group.name, permissions)
 	return permissions;
 }
 
