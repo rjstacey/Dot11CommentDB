@@ -3,8 +3,7 @@ import {useSelector} from 'react-redux';
 
 import {Select} from 'dot11-components';
 
-import {Group, selectGroupsState} from '../store/groups';
-import {selectCurrentGroupId} from '../store/current';
+import { Group, selectGroupsState, selectWorkingGroupId } from '../store/groups';
 
 export function GroupSelector({
 	value,
@@ -42,7 +41,7 @@ export function GroupSelector({
 	multi?: boolean;
 	types?: string[];
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options" | "milti">) {
-	const parentId = useSelector(selectCurrentGroupId);
+	const parentId = useSelector(selectWorkingGroupId);
 	const {entities, ids} = useSelector(selectGroupsState);
 
 	const groups = React.useMemo(() => {

@@ -25,6 +25,9 @@ import imatBreakoutAttendanceSlice from './imatBreakoutAttendance';
 import webexMeetingsSlice from './webexMeetingsSlice';
 import ieee802WorldSlice from './ieee802World';
 
+// Change the version number with a breaking change in the store structure
+const version = 4;
+
 const RESET_STORE_ACTION = "root/RESET_STORE";
 
 const dataAppSliceNames = [
@@ -95,7 +98,7 @@ export function configureStore(user: User) {
 
 	const persistConfig = {
 		key: 'telecons',
-		version: 4,
+		version,
 		storage: {	// IndexedDB for storage using idb-keyval
 			setItem: set,
 			getItem: get,
@@ -119,7 +122,7 @@ export function configureStore(user: User) {
 		transforms: [transformState],
 		stateReconciler: autoMergeLevel2,
 		migrate: (state: any) => {
-			if (state && state._persist && state._persist.version !== 4)
+			if (state && state._persist && state._persist.version !== version)
 				return Promise.reject('Discard old version')
 			return Promise.resolve(state);
 		}
@@ -136,9 +139,9 @@ export function configureStore(user: User) {
 	const persistor = persistStore(store, null, () => {
 		// After hydrate, load the latest
 		store.dispatch(initGroups());
+		store.dispatch(loadTimeZones());
 		store.dispatch(loadWebexAccounts());
 		store.dispatch(loadCalendarAccounts());
-		store.dispatch(loadTimeZones());
 		store.dispatch(loadOfficers());
 		store.dispatch(loadMembers());
 	});

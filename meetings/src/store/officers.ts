@@ -5,6 +5,7 @@ import { v4 as uuid } from 'uuid';
 import type { RootState, AppThunk } from '.';
 
 import { fetcher, setError } from 'dot11-components';
+import { selectWorkingGroup } from './groups';
 
 export type OfficerId = string;
 export type Officer = {
@@ -68,8 +69,6 @@ export const createGroupOfficersSelector = (state: RootState, group_id: EntityId
 /*
  * Actions
  */
-const url = '/api/officers';
-
 const {
 	getPending,
 	getSuccess,
@@ -80,13 +79,19 @@ const {
 } = slice.actions;
 
 export const loadOfficers = (): AppThunk => 
-	(dispatch) => {
+	(dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/officers`;
 		dispatch(getPending());
 		return fetcher.get(url)
-			.then((entities: any) => {
-				if (!Array.isArray(entities))
+			.then((officers: any) => {
+				if (!Array.isArray(officers))
 					throw new TypeError(`Unexpected response to GET ${url}`);
-				dispatch(getSuccess(entities));
+				dispatch(getSuccess(officers));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
@@ -95,7 +100,13 @@ export const loadOfficers = (): AppThunk =>
 	}
 
 export const addOfficer = (officer: Officer): AppThunk => 
-	(dispatch) => {
+	(dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/officers`;
 		if (!officer.id)
 			officer = {...officer, id: uuid()};
 		dispatch(addOne(officer));
@@ -120,7 +131,14 @@ interface Update<T> {
 
 export const updateOfficer = (update: Update<Officer>): AppThunk => 
 	(dispatch, getState) => {
-		const {entities} = selectOfficersState(getState());
+		const state = getState();
+		const wg = selectWorkingGroup(state);
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/officers`;
+		const {entities} = selectOfficersState(state);
 		const original = entities[update.id];
 		dispatch(updateOne(update));
 		return fetcher.patch(url, [update])
@@ -139,7 +157,14 @@ export const updateOfficer = (update: Update<Officer>): AppThunk =>
 
 export const deleteOfficer = (id: EntityId): AppThunk =>
 	(dispatch, getState) => {
-		const {entities} = selectOfficersState(getState());
+		const state = getState();
+		const wg = selectWorkingGroup(state);
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/officers`;
+		const {entities} = selectOfficersState(state);
 		const original = entities[id];
 		dispatch(removeOne(id));
 		return fetcher.delete(url, [id])

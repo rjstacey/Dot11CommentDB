@@ -1,8 +1,10 @@
 import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
-import type { RootState, AppThunk } from '.';
 import { fetcher, isObject, setError } from 'dot11-components';
+
+import type { RootState, AppThunk } from '.';
+import { selectWorkingGroup } from './groups';
 
 export type WebexTemplate = {
 	id: string;
@@ -25,9 +27,6 @@ export type WebexAccountCreate = {
 
 const dataAdapter = createEntityAdapter<WebexAccount>({});
 
-export const dataSet = 'webexAccounts';
-
-
 const initialState = dataAdapter.getInitialState({
 	valid: false,
 	loading: false,
@@ -35,6 +34,7 @@ const initialState = dataAdapter.getInitialState({
 
 export type WebexAccountsState = typeof initialState;
 
+export const dataSet = 'webexAccounts';
 const slice = createSlice({
 	name: dataSet,
 	initialState,
@@ -76,28 +76,31 @@ const {
 	removeOne,
 } = slice.actions;
 
-const baseUrl = '/api/webex/accounts';
-
-function validateWebexAccount(account: any): account is WebexAccount {
+function validWebexAccount(account: any): account is WebexAccount {
 	return isObject(account) &&
 		typeof account.id === 'number' &&
 		typeof account.name === 'string' &&
 		Array.isArray(account.groups);
 }
 
-function validateGetResponse(response: any): response is WebexAccount[] {
-	return Array.isArray(response) &&
-		response.every(validateWebexAccount);
+function validGetResponse(response: any): response is WebexAccount[] {
+	return Array.isArray(response) && response.every(validWebexAccount);
 }
 
 export const loadWebexAccounts = (): AppThunk => 
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/webex/accounts`;
 		dispatch(getPending());
 		let response: any;
 		try {
-			response = await fetcher.get(baseUrl);
-			if (!validateGetResponse(response))
-				throw new TypeError(`Unexpected response to GET ${baseUrl}`);
+			response = await fetcher.get(url);
+			if (!validGetResponse(response))
+				throw new TypeError("Unexpected response to GET");
 		}
 		catch(error) {
 			dispatch(getFailure());
@@ -108,29 +111,40 @@ export const loadWebexAccounts = (): AppThunk =>
 	}
 
 export const updateWebexAccount = (id: number, changes: Partial<WebexAccount>): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/webex/accounts/${id}`;
 		dispatch(updateOne({id, changes}));
-		const url = `${baseUrl}/${id}`;
 		let response: any;
 		try {
 			response = await fetcher.patch(url, changes);
-			if (!validateWebexAccount(response))
-				throw new TypeError('Unexpected response to PATCH ' + url);
+			if (!validWebexAccount(response))
+				throw new TypeError('Unexpected response to PATCH');
 		}
 		catch (error: any) {
-			dispatch(setError(`Unable to update webex account`, error));
+			dispatch(setError('Unable to update webex account', error));
 			return;
 		}
 		dispatch(updateOne({id, changes: response}));
 	}
 
 export const addWebexAccount = (account: WebexAccountCreate): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/webex/accounts`;
 		let response;
 		try {
-			response = await fetcher.post(baseUrl, account);
-			if (!validateWebexAccount(response))
-				throw new TypeError('Unexpected response to POST ' + baseUrl);
+			response = await fetcher.post(url, account);
+			if (!validWebexAccount(response))
+				throw new TypeError('Unexpected response to POST');
 		}
 		catch (error: any) {
 			dispatch(setError('Unable to add webex account', error));
@@ -140,13 +154,18 @@ export const addWebexAccount = (account: WebexAccountCreate): AppThunk =>
 	}
 
 export const deleteWebexAccount = (id: number): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/webex/accounts/${id}`;
 		dispatch(removeOne(id));
-		const url = `${baseUrl}/${id}`;
 		try {
 			await fetcher.delete(url);
 		}
 		catch (error: any) {
-			dispatch(setError(`Unable to delete webex account`, error));
+			dispatch(setError('Unable to delete webex account', error));
 		}
 	}

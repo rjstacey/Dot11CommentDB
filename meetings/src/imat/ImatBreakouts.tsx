@@ -34,7 +34,6 @@ import ImatBreakoutDetails from './ImatBreakoutDetails';
 import MeetingSummary from '../components/MeetingSummary';
 import ImatMeetingSelector from '../components/ImatMeetingSelector';
 import TopRow from '../components/TopRow';
-import PathGroupSelector from '../components/PathGroupSelector';
 
 const renderGroup = ({rowData}: {rowData: Breakout}) => {
 	if (rowData.groupShortName)
@@ -205,13 +204,10 @@ function Breakouts() {
 	return (
 		<>
 			<TopRow>
-				<div style={{display: 'flex'}}>
-					<PathGroupSelector />
-					<ImatMeetingSelector
-						value={imatMeetingId}
-						onChange={setImatMeetingId}
-					/>
-				</div>
+				<ImatMeetingSelector
+					value={imatMeetingId}
+					onChange={setImatMeetingId}
+				/>
 
 				<ImatMeetingInfo imatMeeting={imatMeeting} />
 

@@ -1,8 +1,7 @@
 import React from 'react';
+import { Select } from 'dot11-components';
 
-import {useAppDispatch, useAppSelector} from '../store/hooks';
-
-import {Select} from 'dot11-components';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 
 import { selectImatCommitteesState, loadCommittees, ImatCommitteeType } from '../store/imatCommittees';
 
@@ -21,7 +20,7 @@ function ImatCommitteeSelector({
 	
 	React.useEffect(() => {
 		if (!valid)
-			dispatch(loadCommittees('802.11'));
+			dispatch(loadCommittees());
 	}, [dispatch, valid]);
 
 	let options = React.useMemo(() => ids.map(id => entities[id]!), [ids, entities]);

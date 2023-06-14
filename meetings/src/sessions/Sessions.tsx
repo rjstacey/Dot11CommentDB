@@ -31,7 +31,6 @@ import {
 } from '../store/sessions';
 
 import TopRow from '../components/TopRow';
-import PathGroupSelector from '../components/PathGroupSelector';
 
 import SessionDetails from './SessionDetails';
 
@@ -131,8 +130,7 @@ function Sessions() {
 
 	return (
 		<>
-			<TopRow>
-				<PathGroupSelector />
+			<TopRow style={{justifyContent: 'flex-end'}}>
 				<div style={{display: 'flex'}}>
 					<TableColumnSelector
 						selectors={sessionsSelectors}

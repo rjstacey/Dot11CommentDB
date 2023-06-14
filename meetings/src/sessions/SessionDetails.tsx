@@ -345,7 +345,8 @@ class SessionDetail extends React.Component<SessionDetailInternalProps, SessionD
 	add = async () => {
 		const {addSession, setSelected} = this.props;
 		const id = await addSession(defaultSession);
-		setSelected([id]);
+		if (id)
+			setSelected([id]);
 	}
 
 	handleRemoveSelected = async () => {

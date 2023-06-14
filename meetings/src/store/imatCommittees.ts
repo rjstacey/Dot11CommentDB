@@ -1,11 +1,8 @@
-import {
-	fetcher,
-	setError,
-	createAppTableDataSlice,
-	SortType
-} from 'dot11-components';
+import { createSlice, createEntityAdapter, PayloadAction } from '@reduxjs/toolkit';
+import { fetcher, setError } from 'dot11-components';
 
 import type { AppThunk, RootState } from '.';
+import { selectWorkingGroup } from './groups';
 
 export type ImatCommitteeType = "Working Group" | "Project";
 export type Committee = {
@@ -17,27 +14,27 @@ export type Committee = {
 	name: string;
 }
 
-export const fields = {
-	id: {label: 'id', sortType: SortType.NUMERIC},
-	parent_id: {label: 'parent_id', sortType: SortType.NUMERIC},
-	type: {label: 'Type'},
-	symbol: {label: 'Symbol'},
-	shortName: {label: 'Short name'},
-	name: {label: 'Name', sortType: SortType.DATE},
-};
-
-export const dataSet = 'imatCommittees';
-
 const selectId = (d: Committee) => d.symbol;
-
-const slice = createAppTableDataSlice({
+const dataAdapter = createEntityAdapter<Committee>({selectId});
+const initialState = dataAdapter.getInitialState({
+	valid: false,
+	loading: false,
+});
+const dataSet = 'imatCommittees';
+const slice = createSlice({
 	name: dataSet,
-	fields,
-	selectId,
-	initialState: {group: null},
+	initialState,
 	reducers: {
-		setDetails(state, action) {
-			state.group = action.payload.group;
+		getPending(state) {
+			state.loading = true;
+		},
+  		getSuccess(state, action: PayloadAction<Committee[]>) {
+			state.loading = false;
+			state.valid = true;
+			dataAdapter.setAll(state, action.payload);
+		},
+		getFailure(state) {
+			state.loading = false;
 		},
 	},
 });
@@ -56,16 +53,18 @@ const {
 	getPending,
 	getSuccess,
 	getFailure,
-	setDetails,
 } = slice.actions;
 
-const baseUrl = '/api/imat/committees';
-
-export const loadCommittees = (group: any): AppThunk =>
+export const loadCommittees = (): AppThunk =>
 	async (dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/imat/committees`;
 		dispatch(getPending());
-		const url = `${baseUrl}/${group}`;
-		let committees;
+		let committees: any;
 		try {
 			committees = await fetcher.get(url);
 			if (!Array.isArray(committees))
@@ -73,10 +72,9 @@ export const loadCommittees = (group: any): AppThunk =>
 		}
 		catch(error) {
 			dispatch(getFailure());
-			dispatch(setError(`Unable to get committees for ${group}`, error));
+			dispatch(setError('Unable to get committees', error));
 			return;
 		}
 		dispatch(getSuccess(committees));
-		dispatch(setDetails({group}));
 	}
 

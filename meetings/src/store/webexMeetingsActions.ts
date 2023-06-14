@@ -5,7 +5,7 @@ import {
 
 import slice from './webexMeetingsSlice';
 import type { AppThunk } from '.';
-
+import { selectWorkingGroup } from './groups';
 import { WebexMeeting, WebexMeetingParams } from './webexMeetingsSelectors';
 
 export const webexMeetingsActions = slice.actions;
@@ -25,12 +25,9 @@ const {
 
 export {getSuccess as setWebexMeetings, upsertMany as upsertWebexMeetings, setSelected, setProperty as setUiProperty};
 
-const baseUrl = '/api/webex/meetings';
-
-function validateResponse(method: string, response: unknown): response is WebexMeeting[] {
+function validateResponse(method: string, response: any): asserts response is WebexMeeting[] {
 	if (!Array.isArray(response))
-		throw new TypeError(`Unexpected response to ${method} ${baseUrl}`);
-	return true;
+		throw new TypeError(`Unexpected response to ${method}`);
 }
 
 export type LoadWebexMeetingsConstrains = {
@@ -38,23 +35,29 @@ export type LoadWebexMeetingsConstrains = {
 	toDate?: string;
 	timezone?: string;
 	sessionId?: number;
-	groupId?: string;
 }
 
 export const loadWebexMeetings = (constraints: LoadWebexMeetingsConstrains): AppThunk => 
 	async (dispatch, getState) => {
+		const state = getState();
+		const wg = selectWorkingGroup(state);
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/webex/meetings`;
 		dispatch(getPending());
-		let webexMeetings: WebexMeeting[];
+		let response: any;
 		try {
-			let response = await fetcher.get(baseUrl, constraints);
-			webexMeetings = validateResponse('GET', response)? response: [];
+			response = await fetcher.get(url, constraints);
+			validateResponse('GET', response);
 		}
 		catch(error) {
 			dispatch(getFailure());
 			dispatch(setError('Unable to get list of meetings', error));
 			return;
 		}
-		dispatch(getSuccess(webexMeetings));
+		dispatch(getSuccess(response));
 	}
 
 export const clearWebexMeetings = (): AppThunk =>
@@ -64,19 +67,26 @@ export const clearWebexMeetings = (): AppThunk =>
 	}
 
 export const addWebexMeeting = (accountId: number, webexMeeting: Omit<WebexMeetingParams, "accountId" | "id">): AppThunk<string | null> =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const state = getState();
+		const wg = selectWorkingGroup(state);
+		if (!wg) {
+			console.error("Working group not set");
+			return null;
+		}
+		const url = `/api/${wg.name}/webex/meetings`;
 		const meetings = [{accountId, ...webexMeeting}];
-		let webexMeetings: WebexMeeting[];
+		let response: any;
 		try {
-			let response = await fetcher.post(baseUrl, meetings);
-			webexMeetings = validateResponse('POST', response)? response: [];
+			response = await fetcher.post(url, meetings);
+			validateResponse('POST', response);
 		}
 		catch (error) {
 			dispatch(setError('Unable to add webex meeting', error));
 			return null;
 		}
-		dispatch(addMany(webexMeetings));
-		return webexMeetings[0].id;
+		dispatch(addMany(response));
+		return response[0].id;
 	}
 
 export type WebexMeetingUpdate = Partial<WebexMeetingParams> & {
@@ -85,25 +95,39 @@ export type WebexMeetingUpdate = Partial<WebexMeetingParams> & {
 }
 
 export const updateWebexMeetings = (webexMeetingsIn: WebexMeetingUpdate[]): AppThunk =>
-	async (dispatch) => {
-		let webexMeetings: WebexMeeting[];
+	async (dispatch, getState) => {
+		const state = getState();
+		const wg = selectWorkingGroup(state);
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/webex/meetings`;
+		let response: any;
 		try {
-			let response = await fetcher.patch(baseUrl, webexMeetingsIn);
-			webexMeetings = validateResponse('PATCH', response)? response: [];
+			response = await fetcher.patch(url, webexMeetingsIn);
+			validateResponse('PATCH', response);
 		}
 		catch (error) {
 			dispatch(setError('Unable to add webex meeting', error));
 			return;
 		}
-		dispatch(setMany(webexMeetings));
+		dispatch(setMany(response));
 	}
 
 export const deleteWebexMeetings = (webexMeetings: {accountId: number; id: string}[]): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const state = getState();
+		const wg = selectWorkingGroup(state);
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/webex/meetings`;
 		const meetings = webexMeetings.map(({accountId, id}) => ({accountId, id}));
 		const ids = meetings.map(m => m.id);
 		try {
-			await fetcher.delete(baseUrl, meetings);
+			await fetcher.delete(url, meetings);
 		}
 		catch(error) {
 			dispatch(setError(`Unable to delete webex meetings ${ids}`, error));

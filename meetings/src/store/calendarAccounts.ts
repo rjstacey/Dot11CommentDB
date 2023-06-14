@@ -3,6 +3,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { fetcher, setError, isObject } from 'dot11-components';
 import type { AppThunk, RootState } from '.';
+import { selectWorkingGroup } from './groups';
 
 /* Google Calendar Schema: https://developers.google.com/calendar/api/v3/reference/calendars */
 type GoogleCalendarSchema = {
@@ -37,15 +38,14 @@ export type CalendarAccountCreate = {
 }
 
 const dataAdapter = createEntityAdapter<CalendarAccount>({});
-
-export const dataSet = 'calendarAccounts';
-
+const initialState = dataAdapter.getInitialState({
+	valid: false,
+	loading: false,
+});
+const dataSet = 'calendarAccounts';
 const slice = createSlice({
 	name: dataSet,
-	initialState: dataAdapter.getInitialState({
-		valid: false,
-		loading: false,
-	}),
+	initialState,
 	reducers: {
 		getPending(state) {
 			state.loading = true;
@@ -86,28 +86,31 @@ const {
 	addOne,
 } = slice.actions;
 
-const baseUrl = '/api/calendar/accounts';
-
-function validateCalendarAccount(account: any): account is CalendarAccount {
+function validCalendarAccount(account: any): account is CalendarAccount {
 	return isObject(account) &&
 		typeof account.id === 'number' &&
 		typeof account.name === 'string' &&
 		Array.isArray(account.groups);
 }
 
-function validateGetResponse(response: any): response is CalendarAccount[] {
-	return Array.isArray(response) &&
-		response.every(validateCalendarAccount);
+function validGetResponse(response: any): response is CalendarAccount[] {
+	return Array.isArray(response) && response.every(validCalendarAccount);
 }
 
 export const loadCalendarAccounts = (): AppThunk => 
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/calendar/accounts`;
 		dispatch(getPending());
 		let response: any;
 		try {
-			response = await fetcher.get(baseUrl);
-			if (!validateGetResponse(response))
-				throw new TypeError(`Unexpected response to GET ${baseUrl}`);
+			response = await fetcher.get(url);
+			if (!validGetResponse(response))
+				throw new TypeError('Unexpected response to GET');
 		}
 		catch(error) {
 			dispatch(getFailure());
@@ -118,12 +121,18 @@ export const loadCalendarAccounts = (): AppThunk =>
 	}
 	
 export const addCalendarAccount = (account: CalendarAccountCreate): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/calendar/accounts`;
 		let response: any;
 		try {
-			response = await fetcher.post(baseUrl, account);
-			if (!validateCalendarAccount(response))
-				throw new TypeError('Unexpected response to POST: ' + baseUrl);
+			response = await fetcher.post(url, account);
+			if (!validCalendarAccount(response))
+				throw new TypeError('Unexpected response to POST');
 		}
 		catch(error) {
 			dispatch(setError('Unable to add Google calendar account', error));
@@ -133,14 +142,19 @@ export const addCalendarAccount = (account: CalendarAccountCreate): AppThunk =>
 	}
 
 export const updateCalendarAccount = (id: number, changes: Partial<CalendarAccount>): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/calendar/accounts/${id}`;
 		dispatch(updateOne({id, changes}));
-		const url = `${baseUrl}/${id}`;
 		let response: any;
 		try {
 			response = await fetcher.patch(url, changes);
-			if (!validateCalendarAccount(response))
-				throw new TypeError('Unexpected response to PATCH ' + url);
+			if (!validCalendarAccount(response))
+				throw new TypeError('Unexpected response to PATCH');
 		}
 		catch(error) {
 			dispatch(setError(`Unable to update Google calendar account`, error));
@@ -150,13 +164,18 @@ export const updateCalendarAccount = (id: number, changes: Partial<CalendarAccou
 	}
 
 export const revokeAuthCalendarAccount = (id: number): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseUrl}/${id}/revoke`;
+	async (dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/calendar/accounts/${id}/revoke`;
 		let response: any;
 		try {
 			response = await fetcher.patch(url);
-			if (!validateCalendarAccount(response))
-				throw new TypeError('Unexpected response to DELETE ' + url);
+			if (!validCalendarAccount(response))
+				throw new TypeError('Unexpected response to PATCH');
 		}
 		catch(error) {
 			dispatch(setError(`Unable to deauthorize google calendar account`, error));
@@ -166,8 +185,13 @@ export const revokeAuthCalendarAccount = (id: number): AppThunk =>
 	}
 
 export const deleteCalendarAccount = (id: number): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseUrl}/${id}`;
+	async (dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/calendar/accounts/${id}`;
 		try {
 			await fetcher.delete(url);
 		}

@@ -2,15 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectCurrentGroupId } from '../store/current';
+import { selectWorkingGroupId } from '../store/groups';
 import {
 	loadCalendarAccounts,
 	selectCalendarAccountsState,
 	CalendarAccount
 } from '../store/calendarAccounts';
-
-import TopRow from '../components/TopRow';
-import PathGroupSelector from '../components/PathGroupSelector';
 
 const MainIframe = styled.iframe`
 	flex: 1;
@@ -21,7 +18,7 @@ const MainIframe = styled.iframe`
 function Calendar() {
 	const dispatch = useAppDispatch();
 	const {entities} = useAppSelector(selectCalendarAccountsState);
-	const groupId = useAppSelector(selectCurrentGroupId);
+	const groupId = useAppSelector(selectWorkingGroupId);
 
 	React.useEffect(() => {
 		dispatch(loadCalendarAccounts());
@@ -49,15 +46,10 @@ function Calendar() {
 	}, [entities, groupId]);
 
 	return (
-		<>
-			<TopRow>
-				<PathGroupSelector />
-			</TopRow>
-			<MainIframe 
-				title='Google calendar'
-				src={calendarLink}
-			/>
-		</>
+		<MainIframe 
+			title='Google calendar'
+			src={calendarLink}
+		/>
 	)
 }
 

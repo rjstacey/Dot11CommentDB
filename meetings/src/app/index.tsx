@@ -14,7 +14,7 @@ const OuterDiv = styled.div`
 `;
 
 const title = '802 tools | Meetings';
-const description = 'Manage 802.11 sessions and telecons';
+const description = 'Manage group sessions and telecons';
 
 function App() {
 	return (

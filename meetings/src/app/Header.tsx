@@ -10,7 +10,7 @@ import './header.css';
 import { resetStore } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectUser, selectUserMeetingsAccess, AccessLevel } from '../store/user';
-import { selectGroupName } from '../store/groups';
+import { selectWorkingGroup } from '../store/groups';
 
 type MenuItem = {
 	minAccess: number,
@@ -86,7 +86,7 @@ const NavItem = (props: any) => <NavLink className={'nav-link' + (props.isActive
 
 function NavMenu({className, methods}: any) {
 	const access: number = useAppSelector(selectUserMeetingsAccess);
-	const groupName = useAppSelector(selectGroupName);
+	const groupName = useAppSelector(selectWorkingGroup)?.name;
 
 	let classNames: string = 'nav-menu';
 	if (className)

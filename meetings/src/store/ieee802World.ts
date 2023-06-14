@@ -41,8 +41,6 @@ type SyncedIeee802WorldScheduleEntry = Ieee802WorldScheduleEntry & {
 	meetingId: number | null;
 }
 
-export const dataSet = 'ieee802World';
-
 export const fields = {
 	id: {label: 'ID', sortType: SortType.NUMERIC},
 	breakoutDate: {label: 'Date', dataRenderer: displayDate},
@@ -127,6 +125,7 @@ export const ieee802WorldSelectors = getAppTableDataSelectors(select802WorldStat
 /*
  * Slice
  */
+const dataSet = 'ieee802World';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -160,14 +159,13 @@ function validResponse(response: any): response is Ieee802WorldScheduleEntry[] {
 export const load802WorldSchedule = (): AppThunk => 
 	async (dispatch) => {
 		dispatch(getPending());
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.get(url);
 			if (!validResponse(response))
 				throw new TypeError("Unexpected response");
 		}
 		catch(error) {
-			console.warn(error)
 			dispatch(getFailure());
 			dispatch(setError('Unable to get 802world schedule', error));
 			return;

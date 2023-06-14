@@ -1,7 +1,8 @@
 import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
-import type { RootState, AppThunk } from '.';
+import { fetcher, isObject, setError } from 'dot11-components';
 
-import { fetcher, setError } from 'dot11-components';
+import type { RootState, AppThunk } from '.';
+import { selectWorkingGroupName } from './groups';
 
 export interface Member {
 	SAPIN: number;
@@ -11,17 +12,14 @@ export interface Member {
 	Status: string;
 };
 
-const dataAdapter = createEntityAdapter<Member>({
-	selectId: (user) => user.SAPIN
-});
-
+const selectId = (user: Member) => user.SAPIN;
+const dataAdapter = createEntityAdapter<Member>({selectId});
 const initialState = dataAdapter.getInitialState({
 	valid: false,
 	loading: false,
 });
 
-export const dataSet = 'members';
-
+const dataSet = 'members';
 const slice = createSlice({
 	name: dataSet,
 	initialState,
@@ -62,22 +60,30 @@ export const selectMemberName = (state: RootState, sapin: number) => {
   */
 const {getPending, getSuccess, getFailure} = slice.actions;
 
-const url = '/api/users';
+function validUser(user: any): user is Member {
+	return isObject(user);
+}
+
+function validUsers(users: any): users is Member[] {
+	return Array.isArray(users) && users.every(validUser);
+}
 
 export const loadMembers = (): AppThunk => 
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/users`;
 		dispatch(getPending());
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.get(url);
-			if (!Array.isArray(response.users))
-				throw new TypeError("Unexpected response to GET: " + url);
+			if (!validUsers(response))
+				throw new TypeError("Unexpected response");
 		}
 		catch(error) {
 			dispatch(getFailure());
 			dispatch(setError('Unable to get users list', error));
 			return;
 		}
-		dispatch(getSuccess(response.users));
+		dispatch(getSuccess(response));
 	}
 

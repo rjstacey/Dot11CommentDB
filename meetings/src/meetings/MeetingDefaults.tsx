@@ -8,7 +8,7 @@ import {
 	GroupDefaults
 } from '../store/current';
 
-import {selectGroupName} from '../store/groups';
+import { selectWorkingGroup } from '../store/groups';
 
 import CalendarAccountSelector from '../components/CalendarAccountSelector';
 import WebexAccountSelector from '../components/WebexAccountSelector';
@@ -19,7 +19,7 @@ import TimeZoneSelector from '../components/TimeZoneSelector';
 function TeleconDefaults() {
 	const dispatch = useAppDispatch();
 	const defaults = useAppSelector(selectCurrentGroupDefaults);
-	const groupName = useAppSelector(selectGroupName);
+	const groupName = useAppSelector(selectWorkingGroup)?.name;
 	const changeEntry = (changes: Partial<GroupDefaults>) => dispatch(setCurrentGroupDefaults(changes));
 
 	return (

@@ -10,7 +10,6 @@ import {
 } from 'dot11-components';
 
 import TopRow from '../components/TopRow';
-import PathGroupSelector from '../components/PathGroupSelector';
 
 import { useAppDispatch } from '../store/hooks';
 import {
@@ -90,7 +89,6 @@ function ImatMeetings() {
 	return (
 		<>
 			<TopRow style={{maxWidth}}>
-				<PathGroupSelector />
 				<div>IMAT Sessions</div>
 				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 			</TopRow>

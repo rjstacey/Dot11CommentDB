@@ -11,8 +11,8 @@ import {
 } from 'dot11-components';
 
 import type { RootState } from '../store';
-import { selectCurrentGroupId, selectCurrentGroupDefaults } from '../store/current';
-import { selectGroupEntities } from '../store/groups';
+import { selectCurrentGroupDefaults } from '../store/current';
+import { selectGroupEntities, selectWorkingGroupId } from '../store/groups';
 import { selectUserMeetingsAccess, AccessLevel } from '../store/user';
 
 import {
@@ -552,7 +552,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 
 const connector = connect(
 	(state: RootState) => ({
-		groupId: selectCurrentGroupId(state),
+		groupId: selectWorkingGroupId(state),
 		session: selectCurrentSession(state),
 		loading: selectMeetingsState(state).loading,
 		selectedMeetings: selectSelectedMeetings(state),

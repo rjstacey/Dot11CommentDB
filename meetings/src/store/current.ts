@@ -8,6 +8,7 @@ import { selectSessionEntities } from './sessions';
 import { loadMeetings, LoadMeetingsConstraints, clearMeetings } from './meetings';
 import { clearWebexMeetings } from './webexMeetings';
 import { loadBreakouts, clearBreakouts } from './imatBreakouts';
+import { selectWorkingGroupId } from './groups';
 
 const dataSet = 'current';
 
@@ -68,7 +69,7 @@ export default slice;
 
 /* Selectors */
 export const selectCurrentState = (state: RootState) => state[dataSet];
-export function selectCurrentGroupId(state: RootState) {return selectCurrentState(state).groupId};
+//export function selectCurrentGroupId(state: RootState) {return selectCurrentState(state).groupId};
 export const selectCurrentSessionId = (state: RootState) => selectCurrentState(state).sessionId;
 export const selectCurrentSession = (state: RootState) => {
 	const sessionId = selectCurrentSessionId(state);
@@ -82,7 +83,7 @@ export const selectShowDateRange = (state: RootState) => selectCurrentState(stat
 export const selectGroupDefaults = (state: RootState, groupId: string) => selectCurrentState(state).groupDefaults[groupId] || initDefaults;
 
 export const selectCurrentGroupDefaults = (state: RootState) => {
-	const groupId = selectCurrentGroupId(state);
+	const groupId = selectWorkingGroupId(state);
 	return selectGroupDefaults(state, groupId || '');
 };
 
@@ -95,7 +96,7 @@ export const {
 
 export const setCurrentGroupDefaults = (defaults: Partial<GroupDefaults>): AppThunk =>
 	async (dispatch, getState) => {
-		const groupId = selectCurrentGroupId(getState());
+		const groupId = selectWorkingGroupId(getState());
 		if (!groupId)
 			dispatch(setError("Can't set defaults", "Group not set"));
 		else
@@ -111,12 +112,9 @@ export const refresh = (): AppThunk =>
 		const state = getState();
 		const sessionId = selectCurrentSessionId(state);
 		if (sessionId) {
-			const groupId = selectCurrentGroupId(state);
 			const showDateRange = selectShowDateRange(state);
 			const session = selectSessionEntities(state)[sessionId];
 			const constraints: LoadMeetingsConstraints = {};
-			if (groupId)
-				constraints.groupId = groupId;
 			if (showDateRange) {
 				if (session) {
 					constraints.fromDate = session.startDate;
@@ -131,7 +129,7 @@ export const refresh = (): AppThunk =>
 				constraints.sessionId = sessionId;
 			}
 			dispatch(loadMeetings(constraints));
-			if (session && session.imatMeetingId)
+			if (session?.imatMeetingId)
 				dispatch(loadBreakouts(session.imatMeetingId));
 		}
 	}

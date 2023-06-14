@@ -8,12 +8,13 @@ import {
 	setError,
 	displayDate,
 	AppTableDataState,
-	getAppTableDataSelectors
+	getAppTableDataSelectors,
+	isObject
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
 import { selectCurrentSessionId } from './current';
-import { selectGroupEntities } from './groups';
+import { selectGroupEntities, selectWorkingGroupName } from './groups';
 
 export type Room = {
 	id: number;
@@ -76,7 +77,6 @@ export const fields = {
 	timezone: {label: 'Timezone'}
 };
 
-export const dataSet = 'sessions';
 
 type SessionsState = AppTableDataState<Session>;
 
@@ -139,7 +139,7 @@ export const sessionsSelectors = getAppTableDataSelectors(selectSessionsState, {
  * Slice
  */
 const sortComparer = (a: Session, b: Session) => DateTime.fromISO(b.startDate).toMillis() - DateTime.fromISO(a.startDate).toMillis();
-
+const dataSet = 'sessions';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	sortComparer,
@@ -162,6 +162,7 @@ const {
 	getFailure,
 	updateOne,
 	addOne,
+	setOne,
 	removeMany,
 	setSelected,
 	setUiProperties,
@@ -170,64 +171,79 @@ const {
 
 export {setSelected, setUiProperties, setPanelIsSplit}
 
-const baseUrl = '/api/sessions';
+function validSession(session: any): session is Session {
+	return isObject(session);
+}
+
+function validSessions(sessions: any): sessions is Session[] {
+	return Array.isArray(sessions) && sessions.every(validSession);
+}
 
 export const loadSessions = (): AppThunk =>
 	async (dispatch, getState) => {
-		if (getState()[dataSet].loading)
+		const state = getState();
+		if (selectSessionsState(state).loading)
 			return;
 		dispatch(getPending());
-		let sessions;
+		const groupName = selectWorkingGroupName(state);
+		const url = `/api/${groupName}/sessions`;
+		let response: any;
 		try {
-			sessions = await fetcher.get(baseUrl);
-			if (!Array.isArray(sessions))
-				throw new TypeError('Unexpected response to GET ' + baseUrl);
+			response = await fetcher.get(url);
+			if (!validSessions(response))
+				throw new TypeError('Unexpected response to GET ' + url);
 		}
 		catch(error) {
 			dispatch(getFailure());
 			dispatch(setError('Unable to get sessions', error));
 			return;
 		}
-		dispatch(getSuccess(sessions));
+		dispatch(getSuccess(response));
 	}
 
 export const updateSession = (id: EntityId, changes: Partial<Session>): AppThunk =>
-	async (dispatch) => {
-		dispatch(updateOne({id, changes}));
-		const url = `${baseUrl}/${id}`;
-		let updatedSession;
+	async (dispatch, getState) => {
+		const update = {id, changes};
+		dispatch(updateOne(update));
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/sessions`;
+		let response: any;
 		try {
-			updatedSession = await fetcher.patch(url, changes);
-			if (typeof updatedSession !== 'object')
+			response = await fetcher.patch(url, update);
+			if (!validSession(response))
 				throw new TypeError('Unexpected response to PATCH ' + url);
 		}
 		catch(error) {
 			dispatch(setError(`Unable to update session`, error));
 			return;
 		}
-		dispatch(updateOne({id, changes: updatedSession}));
+		dispatch(setOne(response));
 	}
 
-export const addSession = (session: SessionAdd): AppThunk<EntityId> =>
-	async (dispatch) => {
-		let newSession;
+export const addSession = (session: SessionAdd): AppThunk<EntityId | undefined> =>
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/sessions`;
+		let response: any;
 		try {
-			newSession = await fetcher.post(baseUrl, session);
-			if (typeof newSession !== 'object')
-				throw new TypeError('Unexpected response to POST ' + baseUrl);
+			response = await fetcher.post(url, session);
+			if (!validSession(response))
+				throw new TypeError('Unexpected response to POST ' + url);
 		}
 		catch(error) {
 			dispatch(setError('Unable to add session', error));
 			return;
 		}
-		dispatch(addOne(newSession));
-		return newSession.id;
+		dispatch(addOne(response));
+		return response.id;
 	}
 
 export const deleteSessions = (ids: EntityId[]): AppThunk =>
 	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/sessions`;
 		try {
-			await fetcher.delete(baseUrl, ids);
+			await fetcher.delete(url, ids);
 		}
 		catch(error) {
 			dispatch(setError(`Unable to delete meetings ${ids}`, error));

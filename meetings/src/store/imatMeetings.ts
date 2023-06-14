@@ -13,6 +13,7 @@ import {
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
+import { selectWorkingGroup } from './groups';
 import { selectCurrentSession, selectSessionEntities } from './sessions';
 
 export type ImatMeeting = {
@@ -111,9 +112,7 @@ const {
 	removeAll,
 } = slice.actions;
 
-const baseUrl = '/api/imat/meetings';
-
-function validateImatMeeting(imatMeeting: any): imatMeeting is ImatMeeting {
+function validImatMeeting(imatMeeting: any): imatMeeting is ImatMeeting {
 	return isObject(imatMeeting) &&
 		typeof imatMeeting.id === 'number' &&
 		typeof imatMeeting.name === 'string' &&
@@ -123,22 +122,28 @@ function validateImatMeeting(imatMeeting: any): imatMeeting is ImatMeeting {
 		typeof imatMeeting.timezone === 'string';
 }
 
-function validateGetResponse(response: any): response is ImatMeeting[] {
-	return Array.isArray(response) &&
-		response.every(validateImatMeeting);
+function validGetResponse(response: any): response is ImatMeeting[] {
+	return Array.isArray(response) && response.every(validImatMeeting);
 }
 
 let loadImatMeetingsPromise: Promise<ImatMeeting[]> | null = null;
 export const loadImatMeetings = (): AppThunk<ImatMeeting[]> =>
-	(dispatch) => {
+	(dispatch, getState) => {
 		if (loadImatMeetingsPromise)
 			return loadImatMeetingsPromise;
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return Promise.resolve([]);
+		}
+		const url = `/api/${wg.name}/imat/meetings`;
+		//const url = '';
 		dispatch(getPending());
-		loadImatMeetingsPromise = (fetcher.get(baseUrl) as Promise<ImatMeeting[]>)
+		loadImatMeetingsPromise = (fetcher.get(url) as Promise<ImatMeeting[]>)
 			.then((response: any) => {
 				loadImatMeetingsPromise = null;
-				if (!validateGetResponse(response))
-					throw new TypeError('Unexpected response to GET ' + baseUrl);
+				if (!validGetResponse(response))
+					throw new TypeError('Unexpected response to GET');
 				dispatch(getSuccess(response));
 				return response;
 			})

@@ -11,7 +11,7 @@ import {
 } from 'dot11-components';
 
 import type { AppThunk, RootState } from '.';
-
+import { selectWorkingGroup } from './groups';
 import { selectImatMeetingEntities } from './imatMeetings';
 import { selectBreakoutMeetingId, selectBreakoutEntities } from './imatBreakouts';
 
@@ -31,15 +31,13 @@ export const fields = {
 	Timestamp: {label: 'Timestamp', sortType: SortType.DATE},
 };
 
-export const dataSet = 'imatBreakoutAttendance';
-
-const selectId = (entity: ImatBreakoutAttendance) => entity.SAPIN;
-
 type ExtraState = {
 	imatMeetingId: number;
 	imatBreakoutId: number;
 }
 
+const selectId = (entity: ImatBreakoutAttendance) => entity.SAPIN;
+const dataSet = 'imatBreakoutAttendance';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -90,8 +88,6 @@ const {
 	setDetails,
 } = slice.actions;
 
-const baseUrl = '/api/imat/attendance';
-
 function validImatBreakoutAttendance(a: any): a is ImatBreakoutAttendance {
 	return isObject(a) &&
 		typeof a.SAPIN === 'number' &&
@@ -104,9 +100,14 @@ function validResponse(response: any): response is ImatBreakoutAttendance[] {
 }
 
 export const loadBreakoutAttendance = (imatMeetingId: number, imatBreakoutId: number): AppThunk<ImatBreakoutAttendance[]> =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const wg = selectWorkingGroup(getState());
+		if (!wg) {
+			console.error("Working group not set");
+			return [];
+		}
+		const url = `/api/${wg.name}/imat/attendance/${imatMeetingId}/${imatBreakoutId}`;
 		dispatch(getPending());
-		const url = `${baseUrl}/${imatMeetingId}/${imatBreakoutId}`;
 		let response: any;
 		try {
 			response = await fetcher.get(url);

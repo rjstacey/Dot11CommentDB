@@ -14,22 +14,21 @@ import {
 } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectCurrentGroupId } from '../store/current';
 import {
 	loadGroups,
 	setSelected,
 	selectGroupsState,
 	fields,
-	setFilter, clearFilter, 
+	setFilter, 
 	groupsSelectors,
 	groupsActions,
-	Group
+	Group,
+	selectGroups
 } from '../store/groups';
 import { loadOfficers, selectOfficersState, selectGroupOfficers } from '../store/officers';
 import { loadMembers, selectMembersState } from '../store/members';
 
 import TopRow from '../components/TopRow';
-import PathGroupSelector from '../components/PathGroupSelector';
 
 import OrginzationDetail from './OrganizationDetail';
 
@@ -85,24 +84,16 @@ const tableColumns: ColumnProperties[] = [
 
 function Organization() {
 	const dispatch = useAppDispatch();
-	const {entities, ids, selected} = useAppSelector(selectGroupsState);
-	const groupId = useAppSelector(selectCurrentGroupId);
-	const prevGroupIdRef = React.useRef<string | null>();
+	const {selected} = useAppSelector(selectGroupsState);
+	const groups = useAppSelector(selectGroups);
 
 	React.useEffect(() => {
-		if (!groupId) {
-			dispatch(clearFilter({dataKey: 'id'}));
-		}
-		else {
-			const groupIds = ids.filter(id => id === groupId || entities[id]!.parent_id === groupId);
-			const comps = groupIds.map(groupId => ({filterType: FilterType.EXACT, value: groupId}));
-			dispatch(setFilter({dataKey: 'id', comps}));
-		}
-		if (prevGroupIdRef.current !== groupId) {
+		const comps = groups.map(group => ({filterType: FilterType.EXACT, value: group.id}));
+		dispatch(setFilter({dataKey: 'id', comps}));
+		const newSelected = selected.filter(id => groups.find(group => group.id === id));
+		if (newSelected.length !== selected.length)
 			dispatch(setSelected([]));
-			prevGroupIdRef.current = groupId;
-		}
-	}, [groupId, entities, ids]);	 // eslint-disable-line react-hooks/exhaustive-deps
+	}, [groups]);	 // eslint-disable-line react-hooks/exhaustive-deps
 
 	const refresh = () => {
 		dispatch(loadGroups());
@@ -112,8 +103,7 @@ function Organization() {
 
 	return (
 		<>
-			<TopRow>
-				<PathGroupSelector />
+			<TopRow style={{justifyContent: 'flex-end'}}>
 				<div style={{display: 'flex'}}>
 					<TableColumnSelector
 						selectors={groupsSelectors}

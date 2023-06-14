@@ -8,6 +8,7 @@ import {
 import slice from './meetingsSlice';
 
 import type { AppThunk } from '.';
+import { selectWorkingGroup } from './groups';
 import { setWebexMeetings, upsertWebexMeetings } from './webexMeetings';
 import { setBreakouts, upsertBreakouts } from './imatBreakouts';
 
@@ -45,14 +46,12 @@ export {
 	upsertMany as upsertMeetings
 }
 
-const baseUrl = '/api/meetings';
-
 function validateResponse(method: string, response: any) {
 	if (!isObject(response) ||
 		!Array.isArray(response.meetings) ||
 		(response.webexMeetings && !Array.isArray(response.webexMeetings)) ||
 		(response.breakouts && !Array.isArray(response.breakouts))) {
-		throw new TypeError(`Unexpected response to ${method} ${baseUrl}`);
+		throw new TypeError(`Unexpected response to ${method}`);
 	}
 }
 
@@ -61,15 +60,21 @@ export type LoadMeetingsConstraints = {
 	toDate?: string;
 	timezone?: string;
 	sessionId?: number;
-	groupId?: string;
 }
 
 export const loadMeetings = (constraints?: LoadMeetingsConstraints): AppThunk => 
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const state = getState();
+		const wg = selectWorkingGroup(state);
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/meetings`;
 		dispatch(getPending());
 		let response;
 		try {
-			response = await fetcher.get(baseUrl, constraints);
+			response = await fetcher.get(url, constraints);
 			validateResponse('GET', response);
 		}
 		catch(error) {
@@ -98,10 +103,17 @@ type Update<T> = {
 }
 
 export const updateMeetings = (updates: Update<MeetingAdd>[]): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const state = getState();
+		const wg = selectWorkingGroup(state);
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/meetings`;
 		let response;
 		try {
-			response = await fetcher.patch(baseUrl, updates);
+			response = await fetcher.patch(url, updates);
 			validateResponse('PATCH', response);
 		}
 		catch(error) {
@@ -117,10 +129,17 @@ export const updateMeetings = (updates: Update<MeetingAdd>[]): AppThunk =>
 	}
 
 export const addMeetings = (meetingsToAdd: MeetingAdd[]): AppThunk<EntityId[]> =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const state = getState();
+		const wg = selectWorkingGroup(state);
+		if (!wg) {
+			console.error("Working group not set");
+			return;
+		}
+		const url = `/api/${wg.name}/meetings`;
 		let response;
 		try {
-			response = await fetcher.post(baseUrl, meetingsToAdd);
+			response = await fetcher.post(url, meetingsToAdd);
 			validateResponse('POST', response);
 		}
 		catch(error) {
@@ -137,13 +156,15 @@ export const addMeetings = (meetingsToAdd: MeetingAdd[]): AppThunk<EntityId[]> =
 	}
 
 export const deleteMeetings = (ids: EntityId[]): AppThunk =>
-	async (dispatch) => {
-		try {
-			await fetcher.delete(baseUrl, ids);
-		}
-		catch(error) {
-			dispatch(setError(`Unable to delete meetings ${ids}`, error));
+	async (dispatch, getState) => {
+		const state = getState();
+		const wg = selectWorkingGroup(state);
+		if (!wg) {
+			console.error("Working group not set");
 			return;
 		}
-		dispatch(removeMany(ids));
+		const url = `/api/${wg.name}/meetings`;
+		return fetcher.delete(url, ids)
+			.then((response: any) => dispatch(removeMany(ids)))
+			.catch((error: any) => dispatch(setError(`Unable to delete meetings ${ids}`, error)));
 	}

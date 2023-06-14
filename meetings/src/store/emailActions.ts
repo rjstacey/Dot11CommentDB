@@ -1,5 +1,4 @@
-import {fetcher, setError} from 'dot11-components';
-
+import { fetcher, setError } from 'dot11-components';
 import { AppThunk } from '.';
 
 export const sendEmail = (email: any): AppThunk =>

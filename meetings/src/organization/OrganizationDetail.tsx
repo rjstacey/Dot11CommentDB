@@ -15,13 +15,13 @@ import {
 	updateGroups,
 	deleteGroups,
 	selectGroupsState,
+	selectWorkingGroupId,
 	GroupTypeOptions,
 	GroupStatusOptions,
 	setSelected,
 	Group, GroupCreate, GroupType
 } from '../store/groups';
 
-import {selectCurrentGroupId} from '../store/current';
 import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
 
 import GroupSelector from '../components/GroupSelector';
@@ -390,7 +390,7 @@ const connector = connect(
 			loading: data.loading,
 			selected: data.selected,
 			entities: data.entities,
-			groupId: selectCurrentGroupId(state),
+			groupId: selectWorkingGroupId(state),
 			access: selectUserMeetingsAccess(state)
 		}
 	},

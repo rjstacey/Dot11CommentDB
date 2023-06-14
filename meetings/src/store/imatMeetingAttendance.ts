@@ -101,7 +101,7 @@ const {
 
 let loadImatMeetingAttendancePromise: Promise<ImatMeetingAttendance[]> | null = null;
 export const loadImatMeetingAttendance = (imatMeetingId: number): AppThunk<ImatMeetingAttendance[]> =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		if (loadImatMeetingAttendancePromise)
 			return loadImatMeetingAttendancePromise;
 		dispatch(getPending());

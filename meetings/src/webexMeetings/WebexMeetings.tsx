@@ -25,7 +25,7 @@ import {
 } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectGroupEntities } from '../store/groups';
+import { selectGroupEntities, selectWorkingGroupId } from '../store/groups';
 import {
 	updateMeetings,
 	addMeetings,
@@ -42,7 +42,6 @@ import {
 	SyncedWebexMeeting,
 } from '../store/webexMeetings';
 import {
-	selectCurrentGroupId,
 	selectCurrentSessionId,
 	selectShowDateRange
 } from '../store/current';
@@ -51,7 +50,6 @@ import { selectSessionEntities } from '../store/sessions';
 import MeetingSelector from '../components/MeetingSelector';
 import MeetingSummary from '../components/MeetingSummary';
 import TopRow from '../components/TopRow';
-import PathGroupSelector from '../components/PathGroupSelector';
 import CurrentSessionSelector from '../components/CurrentSessionSelector';
 
 import WebexMeetingDetail from './WebexMeetingDetail';
@@ -126,14 +124,13 @@ const toTimeStr = (hour: number, min: number) => ('' + hour).padStart(2, '0') + 
 function MeetingAdd({
 	webexMeeting,
 	close,
-	groupId
 }: {
 	webexMeeting: SyncedWebexMeeting;
 	close: () => void;
-	groupId: string | null
 }) {
 	const dispatch = useAppDispatch();
 	const groupEntities = useAppSelector(selectGroupEntities);
+	const groupId = useAppSelector(selectWorkingGroupId);
 	const [entry, setEntry] = React.useState<MeetingEntry>(initState);
 
 	function initState(): MeetingEntry {
@@ -306,7 +303,6 @@ function WebexMeetings() {
 	const [webexMeetingToLink, setWebexMeetingToLink] = React.useState<SyncedWebexMeeting | null>(null);
 	const [webexMeetingToAdd, setWebexMeetingToAdd] = React.useState<SyncedWebexMeeting | null>(null);
 
-	const groupId = useAppSelector(selectCurrentGroupId);
 	const sessionId = useAppSelector(selectCurrentSessionId);
 	const showDateRange = useAppSelector(selectShowDateRange);
 	const sessionEntities = useAppSelector(selectSessionEntities);
@@ -314,8 +310,6 @@ function WebexMeetings() {
 	
 	const refresh = () => {
 		const constraints: Parameters<typeof loadWebexMeetings>[0] = {};
-		if (groupId)
-			constraints.groupId = groupId;
 		if (showDateRange) {
 			if (session) {
 				constraints.fromDate = session.startDate;
@@ -342,10 +336,7 @@ function WebexMeetings() {
 	return (
 		<>
 			<TopRow>
-				<div style={{display: 'flex'}}>
-					<PathGroupSelector />
-					<CurrentSessionSelector allowShowDateRange />
-				</div>
+				<CurrentSessionSelector allowShowDateRange />
 
 				<div style={{display: 'flex'}}>
 					<TableColumnSelector
@@ -403,7 +394,6 @@ function WebexMeetings() {
 				<MeetingAdd
 					webexMeeting={webexMeetingToAdd!}
 					close={closeToAdd}
-					groupId={groupId}
 				/>
 			</AppModal>
 		</>
