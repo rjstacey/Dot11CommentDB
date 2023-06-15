@@ -79,22 +79,22 @@ async function parsePathGroupName(req: Request, res: Response, next: NextFunctio
  */
 router.use('/groups', groups);				// Groups and subgroups
 router.use('/email', email);				// Sending email
+router.use('/permissions', permissions);	// Get list of permissions
 router.use('/:groupName/members', parsePathGroupName, members);			// Manage membership
 router.use('/:groupName/users', parsePathGroupName, users);				// Limited access to member information for various uses (comment resolution, meeting setup, etc.)
 router.use('/:groupName/officers', parsePathGroupName, officers);		// Group and subgroup officers
-router.use('/permissions', permissions);	// Get list of permissions
 router.use('/:groupName/attendances', parsePathGroupName, attendances);	// Attendances
 router.use('/:groupName/ballotParticipation', parsePathGroupName, ballotParticipation);	// Ballot series participation
 
 /*
  * APIs for managing meetings
  */
+router.use('/802world', ieee802world);		// Access to schedule802world.com (meeting organizer schedule)
 router.use('/:groupName/sessions', parsePathGroupName, sessions);		// Sessions
 router.use('/:groupName/meetings', parsePathGroupName, meetings);		// Session meetings and telecons
 router.use('/:groupName/webex', parsePathGroupName, webex);				// Webex account and meetings
 router.use('/:groupName/calendar', parsePathGroupName, calendar);		// Google calendar accounts and events
 router.use('/:groupName/imat', parsePathGroupName, imat);				// Access to IEEE SA attendance system (IMAT)
-router.use('/802world', ieee802world);		// Access to schedule802world.com (meeting organizer schedule)
 
 /*
  * APIs for balloting and comment resolution

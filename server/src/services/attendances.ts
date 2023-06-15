@@ -3,6 +3,7 @@ import { NotFoundError } from '../utils';
 
 import { getSessions, Session } from './sessions';
 import { getImatAttendanceSummary } from './imat';
+import { isPlainObject } from '../utils';
 import type { OkPacket } from 'mysql2';
 import type { User } from './users';
 
@@ -126,15 +127,58 @@ type Update<T> = {
 	changes: Partial<T>;
 }
 
+function validAttendanceUpdate(update: any): update is Update<SessionAttendanceSummary> {
+    if (!isPlainObject(update))
+        return false;
+    const {id, changes} = update;
+    if (typeof id !== 'number' || !isPlainObject(changes))
+        return false;
+    if (typeof changes.session_id !== 'undefined' || typeof changes.session_id !== 'number')
+        return false;
+    if (typeof changes.SAPIN !== 'undefined' || typeof changes.SAPIN !== 'number')
+        return false;
+    if (typeof changes.Notes !== 'undefined' || typeof changes.Notes !== 'string')
+        return false;
+    if (typeof changes.DidAttend !== 'undefined' || typeof changes.DidAttend !== 'boolean')
+        return false;
+    if (typeof changes.DidNotAttend !== 'undefined' || typeof changes.DidNotAttend !== 'boolean')
+        return false;
+    if (typeof changes.AttendancePercentage !== 'undefined' || typeof changes.AttendancePercentage !== 'boolean')
+        return false;
+    return true;
+}
+
 async function updateAttendance({id, changes}: Update<SessionAttendanceSummary>) {
     await db.query('UPDATE attendance_summary SET ? WHERE id=?', [changes, id]);
     const [attendance] = await db.query('SELECT * FROM attendance_summary WHERE id=?', [id]) as SessionAttendanceSummary[];
     return attendance;
 }
 
+export function validAttendanceUpdates(updates: any): updates is Update<SessionAttendanceSummary>[] {
+    return Array.isArray(updates) && updates.every(validAttendanceUpdate);
+}
+
 export async function updateAttendances(updates: Update<SessionAttendanceSummary>[]) {
     const attendances = await Promise.all(updates.map(updateAttendance));
     return attendances;
+}
+
+function validAttendance(attendance: any): attendance is SessionAttendanceSummary {
+    if (!isPlainObject(attendance))
+        return false;
+    if (typeof attendance.session_id !== 'number')
+        return false;
+    if (typeof attendance.SAPIN !== 'number')
+        return false;
+    if (typeof attendance.Notes !== 'undefined' || typeof attendance.Notes !== 'string')
+        return false;
+    if (typeof attendance.DidAttend !== 'undefined' || typeof attendance.DidAttend !== 'boolean')
+        return false;
+    if (typeof attendance.DidNotAttend !== 'undefined' || typeof attendance.DidNotAttend !== 'boolean')
+        return false;
+    if (typeof attendance.AttendancePercentage !== 'undefined' || typeof attendance.AttendancePercentage !== 'number')
+        return false;
+    return true;
 }
 
 async function addAttendance(attendance: SessionAttendanceSummary) {
@@ -143,9 +187,17 @@ async function addAttendance(attendance: SessionAttendanceSummary) {
     return attendance;
 }
 
+export function validAttendances(attendances: any): attendances is SessionAttendanceSummary[] {
+    return Array.isArray(attendances) && attendances.every(validAttendance);
+}
+
 export async function addAttendances(attendances: SessionAttendanceSummary[]) {
     attendances = await Promise.all(attendances.map(addAttendance));
     return attendances;
+}
+
+export function validAttendanceIds(ids: any): ids is number[] {
+    return Array.isArray(ids) && ids.every(id => typeof id === 'number');
 }
 
 export async function deleteAttendances(ids: number[]) {

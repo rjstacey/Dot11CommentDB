@@ -25,7 +25,6 @@ import {
 	updateMemberContactEmail,
 	deleteMemberContactEmail,
 	addMembers,
-	//upsertMembers,
 	deleteMembers,
 	uploadMembers,
 	importMyProjectRoster,
@@ -37,7 +36,10 @@ const upload = Multer();
 
 router
 	.all('*', (req, res, next) => {
-		const access = req.group?.permissions.members || AccessLevel.none;
+		if (!req.group)
+			return res.status(500).send("Group not set");
+
+		const access = req.group.permissions.members || AccessLevel.none;
 
 		if (req.method === "GET" && access >= AccessLevel.ro)
 			return next();

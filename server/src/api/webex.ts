@@ -46,54 +46,48 @@ router
 		if (!req.group)
 			return res.status(500).send("Group not set");
 
-			const access = req.group.permissions.meetings || AccessLevel.none;
+		const access = req.group.permissions.meetings || AccessLevel.none;
+
 		if (req.method === "GET" && access >= AccessLevel.ro)
 			return next();
 		if (req.method === "PATCH" && access >= AccessLevel.rw)
 			return next();
 		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
 			return next();
+
 		res.status(403).send('Insufficient karma');
 	})
 	.route('/accounts')
-		.get(async (req, res, next) => {
-			try {
-				const data = await getWebexAccounts();
-				res.json(data);
-			}
-			catch(err) {next(err)}
+		.get((req, res, next) => {
+			getWebexAccounts()
+				.then(data => res.json(data))
+				.catch(next);
 		})
-		.post(async (req, res, next) => {
-			try {
-				const account = req.body;
-				if (!isPlainObject(account))
-					throw new TypeError('Bad or missing body; expected object');
-				const data = await addWebexAccount(account);
-				res.json(data);
-			}
-			catch(err) {next(err)}
+		.post((req, res, next) => {
+			const account = req.body;
+			if (!isPlainObject(account))
+				return next(new TypeError('Bad or missing body; expected object'));
+			addWebexAccount(account)
+				.then(data => res.json(data))
+				.catch(next);
 		});
 
 router
 	.route('/accounts/:accountId(\\d+)')
-		.patch(async (req, res, next) => {
+		.patch((req, res, next) => {
 			const accountId = Number(req.params.accountId);
-			try {
-				const changes = req.body;
-				if (!isPlainObject(changes))
-					throw new TypeError('Bad or missing; expected object');
-				const data = await updateWebexAccount(accountId, changes);
-				res.json(data);
-			}
-			catch(err) {next(err)}
+			const changes = req.body;
+			if (!isPlainObject(changes))
+				return next(new TypeError('Bad or missing; expected object'));
+			updateWebexAccount(accountId, changes)
+				.then(data => res.json(data))
+				.catch(next);
 		})
-		.delete(async (req, res, next) => {
+		.delete((req, res, next) => {
 			const accountId = Number(req.params.accountId);
-			try {
-				const data = await deleteWebexAccount(accountId);
-				res.json(data);
-			}
-			catch(err) {next(err)}
+			deleteWebexAccount(accountId)
+				.then(data => res.json(data))
+				.catch(next);
 		});
 
 
