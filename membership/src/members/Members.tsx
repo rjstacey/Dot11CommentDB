@@ -1,7 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-/* @ts-ignore */
-import copyToClipboard from 'copy-html-to-clipboard';
 
 import {
 	AppTable,
@@ -17,7 +15,6 @@ import {
 	SplitPanel,
 	Panel,
 	ColumnProperties,
-	ConfirmModal,
 	TableConfig,
 	TablesConfig,
 	CellRendererProps,
@@ -34,13 +31,20 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	fields,
 	loadMembers,
-	deleteSelectedMembers,
 	selectMembersState,
 	membersSelectors,
 	membersActions,
 } from '../store/members';
-
 import type {Member, EntityId, MembersDictionary} from '../store/members';
+
+import TopRow from '../components/TopRow';
+
+function copyHtmlToClipboard(html: string) {
+	const type = "text/html";
+    const blob = new Blob([html], {type});
+    const data = [new ClipboardItem({[type]: blob})];
+	navigator.clipboard.write(data);
+}
 
 function setClipboard(selected: EntityId[], members: MembersDictionary) {
 
@@ -73,16 +77,8 @@ function setClipboard(selected: EntityId[], members: MembersDictionary) {
 			${selected.map(sapin => row(members[sapin]!)).join('')}
 		</table>`
 
-	copyToClipboard(table, {asHtml: true});
+		copyHtmlToClipboard(table);
 }
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
 
 const DivLineTruncated = styled.div`
 	width: 100%;
@@ -222,12 +218,6 @@ function Members() {
 			load();
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-	const handleRemoveSelected = async () => {
-		const ok = await ConfirmModal.show('Are you sure you want to delete the selected members?');
-		if (ok)
-			dispatch(deleteSelectedMembers());
-	}
-
 	return (
 		<>
 			<TopRow>
@@ -263,7 +253,6 @@ function Members() {
 						<div style={{display: 'flex'}}>
 							<ActionButton name='copy' title='Copy to clipboard' disabled={selected.length === 0} onClick={() => setClipboard(selected, members)} />
 							<MembersUpload />
-							<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
 						</div>
 					</ButtonGroup>
 					<ActionButton name='refresh' title='Refresh' onClick={load} />

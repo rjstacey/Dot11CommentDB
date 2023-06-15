@@ -32,7 +32,6 @@ import TopRow from '../components/TopRow';
 
 import OrginzationDetail from './OrganizationDetail';
 
-
 function Officers({group}: {group: Group}) {
 
 	const officers = useAppSelector((state) => group? selectGroupOfficers(selectOfficersState(state), group.id): []);

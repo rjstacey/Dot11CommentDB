@@ -1,5 +1,4 @@
 import { createSelector } from '@reduxjs/toolkit';
-
 import type { Dictionary, Update, EntityId } from '@reduxjs/toolkit';
 
 import {
@@ -63,6 +62,9 @@ export type MemberContactInfo = {
 export type MemberCommon = {
 	SAPIN: number;
 	Name: string;
+	FirstName: string;
+	LastName: string;
+	MI: string;
 	Email: string;
 	Employer: string;
 	Affiliation: string;
@@ -109,11 +111,6 @@ export const fields = {
 	BallotParticipationSummary: {label: 'Ballot participation'}
 };
 
-export const dataSet = 'members';
-
-const selectId = (m: Member) => m.SAPIN;
-
-const sortComparer = (m1: Member, m2: Member) => m1.SAPIN - m2.SAPIN;
 
 /*
  * Fields derived from other fields
@@ -130,6 +127,21 @@ export function getField(entity: Member, key: string): any {
 export const selectMembersState = (state: RootState): MembersState => state[dataSet];
 export const selectMemberIds = (state: RootState) => selectMembersState(state).ids;
 export function selectMemberEntities(state: RootState) {return selectMembersState(state).entities};
+
+export const selectActiveMembers = createSelector(
+	selectMemberIds,
+	selectMemberEntities,
+	(ids, entities) => ids
+		.map(id => entities[id]!)
+		.filter(m => ["Voter", "Potential Voter", "Aspirant", "ExOfficio"].includes(m.Status))
+		.sort((m1, m2) => m1.Name.localeCompare(m2.Name))
+);
+
+export const selectAllMembers = createSelector(
+	selectMemberIds,
+	selectMemberEntities,
+	(ids, entities) => ids.map(id => entities[id]!)
+);
 
 const selectMemberWithParticipationSummary = createSelector(
 	selectAttendancesWithMembershipAndSummary,
@@ -161,6 +173,9 @@ export const selectUiProperties = membersSelectors.selectUiProperties;
  */
 type MembersState = AppTableDataState<Member>;
 
+const dataSet = 'members';
+const selectId = (m: Member) => m.SAPIN;
+const sortComparer = (m1: Member, m2: Member) => m1.SAPIN - m2.SAPIN;
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,

@@ -139,8 +139,6 @@ function MemberStatusChangeHistory({
 	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
-	const history = member.StatusChangeHistory;
-
 	const columns = React.useMemo(() => {
 
 		function updateStatusChange(id: number, changes: Partial<StatusChangeType>) {
@@ -174,12 +172,12 @@ function MemberStatusChangeHistory({
 			return col;
 		});
 		return columns;
-	}, [member, readOnly]);
+	}, [member.StatusChangeHistory, readOnly, updateMember]);
 
 	return (
 		<Table
 			columns={columns}
-			values={history}
+			values={member.StatusChangeHistory}
 		/>
 	)
 }

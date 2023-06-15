@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import { DateTime } from 'luxon';
 
 import {
@@ -24,36 +23,24 @@ import {
 	loadAttendances,
 	importAttendances,
 	selectAttendancesState,
-	selectSessionEntities,
-	selectSessionIds,
+	selectSessions,
 	attendancesSelectors,
 	attendancesActions
 } from '../store/sessionParticipation';
-
 import type { MemberAttendances, SessionAttendanceSummary } from '../store/sessionParticipation';
 
 import { renderNameAndEmail } from '../members/Members';
 import MemberDetail from '../members/MemberDetail';
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-end;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
+import TopRow from '../components/TopRow';
 
 function SessionSummary() {
 	const dispatch = useAppDispatch();
-	const sessionEntities = useAppSelector(selectSessionEntities);
-	const sessionIds = useAppSelector(selectSessionIds);
+	const sessions = useAppSelector(selectSessions);
 
-	const elements = sessionIds.map(id => {
-		const session = sessionEntities[id]!;
-		const onClick = () => dispatch(importAttendances(id));
+	const elements = sessions.map(session => {
+		const onClick = () => dispatch(importAttendances(session.id));
 		return (
-			<div key={id} style={{display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden'}}>
+			<div key={session.id} style={{display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden'}}>
 				<div>{displayDateRange(session.startDate, session.endDate)}</div>
 				<div>{session.type === 'p'? 'Plenary': 'Interim'}</div>
 				<div style={{whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'}}>{session.name}</div>
@@ -119,8 +106,7 @@ const tableColumns: ColumnProperties[] = [
 function Attendances() {
 	const dispatch = useAppDispatch();
 	const {valid, selected} = useAppSelector(selectAttendancesState);
-	const sessionIds = useAppSelector(selectSessionIds);
-	const sessionEntities = useAppSelector(selectSessionEntities);
+	const sessions = useAppSelector(selectSessions);
 
 	React.useEffect(() => {
 		if (!valid)
@@ -129,8 +115,7 @@ function Attendances() {
 
 	const columns = React.useMemo(() => {
 		return tableColumns.concat(
-			sessionIds.map((id, i) => {
-				const session = sessionEntities[id]!;
+			sessions.map((session, i) => {
 				const cellRenderer = ({rowData}: CellRendererProps<MemberAttendances>) => {
 					const attendance = rowData.sessionAttendanceSummaries.find((a: any) => a.session_id === session.id);
 					return attendance? renderSessionAttendance(attendance): null;
@@ -144,7 +129,7 @@ function Attendances() {
 				}
 				return column;
 			}))
-	}, [sessionIds, sessionEntities]);
+	}, [sessions]);
 
 	const refresh = () => dispatch(loadAttendances());
 

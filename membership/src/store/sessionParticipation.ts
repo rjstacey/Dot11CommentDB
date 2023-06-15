@@ -1,4 +1,4 @@
-import { PayloadAction, Dictionary, createSelector, createEntityAdapter, EntityState } from '@reduxjs/toolkit';
+import { PayloadAction, Dictionary, createSelector, createEntityAdapter } from '@reduxjs/toolkit';
 import { DateTime } from 'luxon';
 
 import {
@@ -6,13 +6,13 @@ import {
 	setError,
 	createAppTableDataSlice,
 	SortType,
-	AppTableDataState,
 	getAppTableDataSelectors,
 	isObject
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
 import { selectMemberEntities, Member } from './members';
+import { selectWorkingGroupName } from './groups';
 
 export type { Dictionary };
 
@@ -36,8 +36,6 @@ export const fields = {
 	session_6: {sortType: SortType.NUMERIC},
 	session_7: {sortType: SortType.NUMERIC},
 };
-
-export const dataSet = 'attendances';
 
 export type Session = {
 	id: number;
@@ -102,24 +100,17 @@ export type MemberAttendances = RecentSessionAttendances & {
  * Slice
  */
 const sessionsAdapter = createEntityAdapter<Session>();
-
-type ExtraState = {
-	sessions: EntityState<Session>;
-};
-
-type AttendancesState = ExtraState & AppTableDataState<RecentSessionAttendances>;
+const initialState = { sessions: sessionsAdapter.getInitialState() };
 
 const selectId = (attendance: RecentSessionAttendances) => attendance.SAPIN;
-
+const dataSet = 'attendances';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	selectId,
-	initialState: {
-		sessions: sessionsAdapter.getInitialState()
-	} as ExtraState,
+	initialState,
 	reducers: {
-		setSessions(state: ExtraState, action: PayloadAction<Session[]>) {
+		setSessions(state, action: PayloadAction<Session[]>) {
 			sessionsAdapter.setAll(state.sessions, action.payload);
 		},
 	},
@@ -130,7 +121,7 @@ export default slice;
 /*
  * Selectors
  */
-export const selectAttendancesState = (state: RootState) => state[dataSet] as AttendancesState;
+export const selectAttendancesState = (state: RootState) => state[dataSet];
 
 export const selectAttendancesEntities = (state: RootState) => selectAttendancesState(state).entities;
 const selectAttendancesIds = (state: RootState) => selectAttendancesState(state).ids;
@@ -140,7 +131,7 @@ export const selectSessionIds = (state: RootState) => selectAttendancesState(sta
 export const selectSessions = createSelector(
 	selectSessionIds,
 	selectSessionEntities,
-	(ids, entities) => ids.map(id => entities[id]!).reverse()
+	(ids, entities) => ids.map(id => entities[id]!)
 );
 
 export const selectSession = (state: RootState, sessionId: number) => selectSessionEntities(state)[sessionId];
@@ -283,8 +274,6 @@ const {
 	setSessions
 } = slice.actions;
 
-const baseUrl = '/api/802.11/attendances';
-
 function validResponse(response: any): response is {attendances: any; sessions: Session[]} {
 	return isObject(response) &&
 		Array.isArray(response.attendances) &&
@@ -296,12 +285,14 @@ export const loadAttendances = (): AppThunk =>
 		const loading = selectAttendancesState(getState()).loading;
 		if (loading)
 			return;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/attendances`;
 		dispatch(getPending());
 		let response: any;
 		try {
-			response = await fetcher.get(baseUrl);
+			response = await fetcher.get(url);
 			if (!validResponse(response))
-				throw new TypeError('Unexpected response to GET ' + baseUrl);
+				throw new TypeError('Unexpected response to GET ' + url);
 		}
 		catch(error) {
 			dispatch(getFailure());
@@ -319,7 +310,10 @@ export type SessionAttendanceUpdate = {
 
 export const updateAttendances = (sapin: number, updates: SessionAttendanceUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
-		const entities = selectAttendancesEntities(getState());
+		const state = getState();
+		const groupName = selectWorkingGroupName(state);
+		const url = `/api/${groupName}/attendances`;
+		const entities = selectAttendancesEntities(state);
 		let entity = entities[sapin];
 		if (!entity) {
 			console.error(`Entry for ${sapin} does not exist`);
@@ -360,7 +354,7 @@ export const updateAttendances = (sapin: number, updates: SessionAttendanceUpdat
 		let updatedSessionAttendances = entity.sessionAttendanceSummaries;
 		if (attendanceDeletes.length > 0) {
 			try {
-				await fetcher.delete(baseUrl, attendanceDeletes);
+				await fetcher.delete(url, attendanceDeletes);
 			}
 			catch (error) {
 				dispatch(setError('Unable to delete attendances', error));
@@ -369,9 +363,9 @@ export const updateAttendances = (sapin: number, updates: SessionAttendanceUpdat
 		}
 		if (attendanceAdds.length > 0) {
 			try {
-				response = await fetcher.post(baseUrl, attendanceAdds);
+				response = await fetcher.post(url, attendanceAdds);
 				if (!Array.isArray(response))
-					throw new TypeError('Uxpected response to POST ' + baseUrl);
+					throw new TypeError('Uxpected response to POST ' + url);
 			}
 			catch (error) {
 				dispatch(setError('Unable to add attendances', error));
@@ -380,9 +374,9 @@ export const updateAttendances = (sapin: number, updates: SessionAttendanceUpdat
 		}
 		if (attendanceUpdates.length > 0) {
 			try {
-				response = await fetcher.patch(baseUrl, attendanceUpdates);
+				response = await fetcher.patch(url, attendanceUpdates);
 				if (!Array.isArray(response))
-					throw new TypeError('Uxpected response to PATCH ' + baseUrl);
+					throw new TypeError('Uxpected response to PATCH ' + url);
 			}
 			catch (error) {
 				dispatch(setError('Unable to update attendances', error));
@@ -394,10 +388,11 @@ export const updateAttendances = (sapin: number, updates: SessionAttendanceUpdat
 	}
 
 export const importAttendances = (session_id: number): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/attendances`;
 		dispatch(getPending());
-		const url = `${baseUrl}/${session_id}/import`;
-		let response;
+		let response: any;
 		try {
 			response = await fetcher.post(url);
 			if (!validResponse(response)) {

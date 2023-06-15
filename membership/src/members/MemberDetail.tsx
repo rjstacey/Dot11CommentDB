@@ -33,7 +33,7 @@ import { selectMemberAttendancesCount } from '../store/sessionParticipation';
 import { selectMemberBallotParticipationCount } from '../store/ballotParticipation';
 
 import StatusSelector from './StatusSelector';
-import MemberSelector from './MemberSelector';
+import MemberSelector from './MemberAllSelector';
 import MemberStatusChangeHistory from './MemberStatusChange';
 import MemberContactInfo from './MemberContactInfo';
 import MemberPermissions from './MemberPermissions';
@@ -46,6 +46,9 @@ const MULTIPLE_STR = '(Multiple)';
 const defaultMember = {
 	SAPIN: 0,
 	Name: '',
+	FirstName: '',
+	LastName: '',
+	MI: '',
 	Email: '',
 	Status: 'Non-Voter',
 	Affiliation: '',
@@ -175,11 +178,11 @@ function ExpandingInput({
 	member: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
 }) {
-	const value: any = member[dataKey];
+	const value: any = member[dataKey] || '';
 	return (
 		<Input
 			type='text'
-			style={{width: `${Math.max((value || '').length, 20)+2}ch`}}
+			style={{width: `${Math.max((value).length, 20)+2}ch`}}
 			name={dataKey}
 			value={isMultiple(value)? '': value}
 			onChange={e => updateMember({[dataKey]: e.target.value})}
@@ -457,7 +460,7 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 		const {members, selected, getAsMember} = this.props;
 
 		if (getAsMember) {
-			if (selected.every(id => members[id])) {
+			if (selected.length > 0 && selected.every(id => members[id])) {
 				// All selected are existing members
 				let edited = {} as MultipleMember,
 					saved = {} as MultipleMember
@@ -488,7 +491,7 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 					message: ''
 				}
 			}
-			else if (selected.every(id => !members[id])) {
+			else if (selected.length > 0 && selected.every(id => !members[id])) {
 				// All selected are new attendees
 				let diff = {} as MultipleMember;
 				let originals: MemberAdd[] = [];

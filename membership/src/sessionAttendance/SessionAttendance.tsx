@@ -1,6 +1,3 @@
-import React from 'react';
-import styled from '@emotion/styled';
-
 import {
 	AppTable, 
 	SelectHeaderCell,
@@ -11,7 +8,7 @@ import {
 	GlobalFilter,
 	TableColumnSelector,
 	SplitPanel, Panel, SplitPanelButton,
-	TablesConfig, TableConfig,
+	TablesConfig, TableConfig, ConfirmModal,
 } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -24,7 +21,7 @@ import {
 	selectSessionAttendeesState,
 	SessionAttendee
 } from '../store/sessionAttendees';
-import type { MemberAdd } from '../store/members';
+import { selectMemberEntities, addMembers, MemberAdd } from '../store/members';
 
 import {
 	renderHeaderNameAndEmail,
@@ -35,15 +32,7 @@ import {
 
 import MemberDetail from '../members/MemberDetail';
 import SessionSelector from './SessionSelector';
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-end;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
+import TopRow from '../components/TopRow';
 
 const tableColumns: ColumnProperties[] = [
 	{key: '__ctrl__',
@@ -107,9 +96,9 @@ function sessionAttendeeToMember(attendee: SessionAttendee) {
 	const member: MemberAdd = {
 		SAPIN: attendee.SAPIN,
 		Name: attendee.Name,
-		//FirstName: entry.FirstName,
-		//LastName: entry.LastName,
-		//MI: entry.MI,
+		FirstName: attendee.FirstName,
+		LastName: attendee.LastName,
+		MI: attendee.MI,
 		Employer: attendee.Employer,
 		Email: attendee.Email,
 		Affiliation: attendee.Affiliation,
@@ -123,6 +112,7 @@ function sessionAttendeeToMember(attendee: SessionAttendee) {
 function SessionAttendance() {
 	const dispatch = useAppDispatch();
 	const {selected, sessionId, entities} = useAppSelector(selectSessionAttendeesState);
+	const memberEntities = useAppSelector(selectMemberEntities);
 
 	const load = (sessionId: number | null) => dispatch(sessionId? loadSessionAttendees(sessionId): clearSessionAttendees());
 	const refresh = () => load(sessionId);
@@ -131,6 +121,21 @@ function SessionAttendance() {
 		const attendee = entities[sapin];
 		if (attendee)
 			return sessionAttendeeToMember(attendee)
+	}
+
+	async function importNew() {
+		const newMembers = (Object.values(entities) as SessionAttendee[])
+			.filter(attendee => !memberEntities[attendee.SAPIN])
+			.map(sessionAttendeeToMember);
+		if (newMembers.length === 0) {
+			await ConfirmModal.show("No new members to add", false);
+			return;
+		}
+		else {
+			const ok = await ConfirmModal.show(`Add ${newMembers.length} new member${newMembers.length > 1? 's': ''}?`);
+			if (ok)
+				dispatch(addMembers(newMembers));
+		}
 	}
 
 	return (
@@ -150,6 +155,7 @@ function SessionAttendance() {
 						selectors={sessionAttendeesSelectors}
 						actions={sessionAttendeesActions}
 					/>
+					<ActionButton name='import' title='Import new attendees' onClick={importNew} />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>
 			</TopRow>

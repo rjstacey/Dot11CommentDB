@@ -1,4 +1,4 @@
-import { PayloadAction, Dictionary, createSelector, createEntityAdapter, EntityState } from '@reduxjs/toolkit';
+import { PayloadAction, Dictionary, createSelector, createEntityAdapter } from '@reduxjs/toolkit';
 import { DateTime } from 'luxon';
 
 import {
@@ -6,7 +6,6 @@ import {
 	setError,
 	createAppTableDataSlice,
 	SortType,
-	AppTableDataState,
 	getAppTableDataSelectors,
 	isObject
 } from 'dot11-components';
@@ -32,7 +31,6 @@ export const fields = {
 	ballotSeries_2: {label: 'Ballot series 3'}
 };
 
-export const dataSet = 'ballotParticipation';
 
 type Ballot = {
     id: number;
@@ -77,29 +75,23 @@ export type MemberParticipation = RecentBallotSeriesParticipation & {
 
 const ballotSeriesAdapter = createEntityAdapter<BallotSeries>();
 const ballotsAdapter = createEntityAdapter<Ballot>();
-
-type ExtraState = {
-	ballotSeries: EntityState<BallotSeries>;
-    ballots: EntityState<Ballot>;
+const initialState = {
+	ballotSeries: ballotSeriesAdapter.getInitialState(),
+    ballots: ballotsAdapter.getInitialState()
 };
 
-type BallotParticipationState = ExtraState & AppTableDataState<RecentBallotSeriesParticipation>;
-
 const selectId = (entity: RecentBallotSeriesParticipation) => entity.SAPIN;
-
+const dataSet = 'ballotParticipation';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	selectId,
-	initialState: {
-		ballotSeries: ballotSeriesAdapter.getInitialState(),
-        ballots: ballotsAdapter.getInitialState()
-	} as ExtraState,
+	initialState,
 	reducers: {
-		setBallotSeries(state: ExtraState, action: PayloadAction<BallotSeries[]>) {
+		setBallotSeries(state, action: PayloadAction<BallotSeries[]>) {
 			ballotSeriesAdapter.setAll(state.ballotSeries, action.payload);
 		},
-        setBallots(state: ExtraState, action: PayloadAction<Ballot[]>) {
+        setBallots(state, action: PayloadAction<Ballot[]>) {
 			ballotsAdapter.setAll(state.ballots, action.payload);
 		},
 	},
@@ -111,7 +103,7 @@ export default slice;
 /*
  * Selectors
  */
-export const selectBallotParticipationState = (state: RootState) => state[dataSet] as BallotParticipationState;
+export const selectBallotParticipationState = (state: RootState) => state[dataSet];
 
 export const selectBallotParticipationEntities = (state: RootState) => selectBallotParticipationState(state).entities;
 const selectBallotParticipationIds = (state: RootState) => selectBallotParticipationState(state).ids;

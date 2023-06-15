@@ -2,7 +2,7 @@ import { createSlice, createEntityAdapter, PayloadAction } from '@reduxjs/toolki
 import { fetcher, setError } from 'dot11-components';
 
 import type { AppThunk, RootState } from '.';
-import { selectWorkingGroup } from './groups';
+import { selectWorkingGroupName } from './groups';
 
 export type ImatCommitteeType = "Working Group" | "Project";
 export type Committee = {
@@ -57,12 +57,8 @@ const {
 
 export const loadCommittees = (): AppThunk =>
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/imat/committees`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/imat/committees`;
 		dispatch(getPending());
 		let committees: any;
 		try {

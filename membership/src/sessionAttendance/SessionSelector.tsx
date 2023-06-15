@@ -19,10 +19,10 @@ const StyledItem = styled.div`
 	}
 `;
 
-const renderItem = ({item}: {item: Session}) =>
+const renderSession = ({item: session}: {item: Session}) =>
 	<StyledItem>
-		<span>{item.name}</span>
-		<span>{displayDateRange(item.startDate, item.endDate)}</span>
+		<span>{session.name}</span>
+		<span>{displayDateRange(session.startDate, session.endDate)}</span>
 	</StyledItem>
 
 function SessionSelector({
@@ -36,7 +36,7 @@ function SessionSelector({
 	readOnly?: boolean;
 	style?: React.CSSProperties;
 }) {
-	const options = useAppSelector(selectSessions);
+	const options = useAppSelector(selectSessions).slice().reverse();
 	const values = options.filter(o => o.id === value);
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: null);
 
@@ -47,8 +47,8 @@ function SessionSelector({
 			onChange={handleChange}
 			options={options}
 			clearable
-			itemRenderer={renderItem}
-			selectItemRenderer={renderItem}
+			itemRenderer={renderSession}
+			selectItemRenderer={renderSession}
 			readOnly={readOnly}
 			portal={document.querySelector('#root')}
 			valueField='id'

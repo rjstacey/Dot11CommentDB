@@ -14,7 +14,7 @@ import {
 	SessionTypeOptions, Dictionary, Session
 } from '../store/sessionParticipation';
 
-import {EditTable as Table, TableColumn} from '../components/Table';
+import { EditTable as Table, TableColumn } from '../components/Table';
 
 const sessionTypeLabel = (type: string) => {
 	const o = SessionTypeOptions.find((s: any) => s.value === type);
@@ -69,7 +69,7 @@ class MemberAttendances extends React.Component<MemberAttendancesInternalProps, 
 	componentDidUpdate() {
 		const {sessionEntities, readOnly} = this.props;
 		const {state} = this;
-		if (state.sessionEntities !== sessionEntities || state.readOnly !== readOnly) {
+		if (state.sessionEntities !== sessionEntities || state.readOnly !== !!readOnly) {
 			this.columns = this.generateColumns(this.props);
 			this.setState({sessionEntities, readOnly: !!readOnly})
 		}

@@ -14,10 +14,9 @@ import {
 	OfficerId,
 } from '../store/officers';
 
-import MemberSelector from '../components/MemberSelector';
+import MemberSelector from './MemberActiveSelector';
 import OfficerPositionSelector from './OfficerPositionSelector';
 import {EditTable as Table, TableColumn} from '../components/Table';
-
 
 const tableColumns: TableColumn[] = [
 	{key: 'position', label: 'Position', gridTemplate: 'minmax(200px, auto)'},
