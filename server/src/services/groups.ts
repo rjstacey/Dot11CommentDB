@@ -7,6 +7,7 @@ import { isPlainObject } from '../utils';
 import { User } from './users';
 import { getOfficers } from './officers';
 import { AccessLevel } from '../auth/access';
+import { updateSession } from './sessions';
 
 const GroupTypeLabels = {
 	c: 'Committee',
@@ -210,15 +211,12 @@ function validGroup(group: any): group is Group {
 	return true;
 }
 
-function validGroups(groups: any): groups is Group[] {
-	return Array.isArray(groups) && groups.every(validGroup);
+export function validateGroups(groups: any): asserts groups is Group[] {
+	if (!Array.isArray(groups) || !groups.every(validGroup))
+		throw new TypeError('Bad or missing array of group objects');
 }
 
-export function addGroups(user: User, groups: any) {
-
-	if (!validGroups(groups))
-		throw new TypeError('Bad or missing array of group objects');
-
+export function addGroups(user: User, groups: Group[]) {
 	return Promise.all(groups.map(g => addGroup(user, g)));
 }
 
@@ -233,33 +231,27 @@ async function updateGroup(user: User, {id, changes}: Update<Group>): Promise<Gr
 	return groups[0];
 }
 
-function validUpdate(update: any): update is Update<Group> {
+function validGroupUpdate(update: any): update is Update<Group> {
 	return isPlainObject(update) &&
 		update.id && typeof update.id === 'string' &&
 		isPlainObject(update.changes);
 }
 
-function validUpdates(updates: any): updates is Update<Group>[] {
-	return Array.isArray(updates) && updates.every(validUpdate);
+export function validateGroupUpdates(updates: any): asserts updates is Update<Group>[] {
+	if (!Array.isArray(updates) || !updates.every(validGroupUpdate))
+		throw new TypeError('Bad or missing array of group updates; expected array of objects with shape {id: string, changes: object}');
 }
 
 export function updateGroups(user: User, updates: Update<Group>[]) {
-
-	if (!validUpdates(updates))
-		throw new TypeError('Bad or missing array of group updates; expected array of objects with shape {id: string, changes: object}');
-
 	return Promise.all(updates.map(u => updateGroup(user, u)));
 }
 
-function validIds(ids: any): ids is string[] {
-	return Array.isArray(ids) && ids.every(id => typeof id === 'string');
+export function validateGroupIds(ids: any): asserts ids is string[] {
+	if (!Array.isArray(ids) || !ids.every(id => typeof id === 'string'))
+		throw new TypeError('Bad or missing array of group identifiers; expected string[]');
 }
 
-export async function removeGroups(user: User, ids: any): Promise<number> {
-
-	if (!validIds(ids))
-		throw new TypeError('Bad or missing array of group identifiers; expected string[]');
-
+export async function removeGroups(user: User, ids: string[]): Promise<number> {
 	const result1 = await db.query('DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)', [ids]) as OkPacket;
 	const result2 = await db.query('DELETE FROM organization WHERE BIN_TO_UUID(id) IN (?)', [ids]) as OkPacket;
 	return result1.affectedRows + result2.affectedRows;

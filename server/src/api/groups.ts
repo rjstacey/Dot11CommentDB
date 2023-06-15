@@ -21,31 +21,53 @@
  *		Returns the number of groups deleted.
  */
 import { Router } from 'express';
-import { getGroups,	addGroups, updateGroups, removeGroups } from '../services/groups';
+import {
+	getGroups,
+	addGroups,
+	updateGroups,
+	removeGroups,
+	validateGroups,
+	validateGroupUpdates,
+	validateGroupIds
+} from '../services/groups';
 
 const router = Router();
 
 router
 	.get('/:parentName?', (req, res, next) => {
 		const {parentName} = req.params;
-		console.log(req.query)
 		getGroups(req.user, {parentName, ...req.query})
 			.then(data => res.json(data))
 			.catch(next);
 	})
 	.route('/')
 		.post((req, res, next) => {
-			addGroups(req.user, req.body)
+			const groups = req.body;
+			try {validateGroups(groups)}
+			catch (error) {
+				return next(error);
+			}
+			addGroups(req.user, groups)
 				.then(data => res.json(data))
 				.catch(next);
 		})
 		.patch((req, res, next) => {
-			updateGroups(req.user, req.body)
+			const updates = req.body;
+			try {validateGroupUpdates(updates)}
+			catch (error) {
+				return next(error);
+			}
+			updateGroups(req.user, updates)
 				.then(data => res.json(data))
 				.catch(next);
 		})
 		.delete((req, res, next) => {
-			removeGroups(req.user, req.body)
+			const ids = req.body;
+			try {validateGroupIds(ids)}
+			catch (error) {
+				return next(error);
+			}
+			removeGroups(req.user, ids)
 				.then(data => res.json(data))
 				.catch(next);
 		});
