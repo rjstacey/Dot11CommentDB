@@ -4,7 +4,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 
 import { Select, ActionIcon, displayDateRange } from 'dot11-components';
 
-import { loadSessions, selectSessionsState, Session } from '../store/sessions';
+import { loadSessions, selectSessionsState, selectSessions, Session } from '../store/sessions';
 
 const StyledItem = styled.div`
 	overflow: hidden;
@@ -19,10 +19,10 @@ const StyledItem = styled.div`
 	}
 `;
 
-const renderItem = ({item}: {item: Session}) =>
+const renderSession = ({item: session}: {item: Session}) =>
 	<StyledItem>
-		<span>{item.name}</span>
-		<span>{displayDateRange(item.startDate, item.endDate)}</span>
+		<span>{session.name}</span>
+		<span>{displayDateRange(session.startDate, session.endDate)}</span>
 	</StyledItem>
 
 function SessionSelector({
@@ -37,14 +37,14 @@ function SessionSelector({
 	style?: React.CSSProperties;
 }) {
 	const dispatch = useAppDispatch();
-	const {valid, loading, ids, entities} = useAppSelector(selectSessionsState);
+	const {valid, loading} = useAppSelector(selectSessionsState);
+	const options = useAppSelector(selectSessions);
 
 	React.useEffect(() => {
 		if (!valid && !loading && !readOnly)
 			dispatch(loadSessions());
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-	const options = React.useMemo(() => ids.map(id => entities[id]!), [entities, ids]);
 	const values = options.filter(o => o.id === value);
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: null);
 
@@ -56,8 +56,8 @@ function SessionSelector({
 			options={options}
 			loading={loading}
 			clearable
-			itemRenderer={renderItem}
-			selectItemRenderer={renderItem}
+			itemRenderer={renderSession}
+			selectItemRenderer={renderSession}
 			readOnly={readOnly}
 			portal={document.querySelector('#root')}
 			valueField='id'
@@ -73,16 +73,16 @@ export function RawSessionSelector({
 	style?: React.CSSProperties;
 	onChange: (value: number) => void;
 }) {
-	const {ids, entities} = useAppSelector(selectSessionsState);
-	const options = React.useMemo(() => ids.map(id => entities[id]!), [entities, ids]);
+	const options = useAppSelector(selectSessions);
+	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: 0);
 	return (
 		<Select
 			style={{...style, border: 'none', padding: 'none'}}
 			options={options}
 			values={[]}
-			onChange={(values: typeof options) => onChange(values.length? values[0].id: 0)}
-			itemRenderer={renderItem}
-			selectItemRenderer={renderItem}
+			onChange={handleChange}
+			itemRenderer={renderSession}
+			selectItemRenderer={renderSession}
 			valueField='id'
 			labelField='name'
 			placeholder=''

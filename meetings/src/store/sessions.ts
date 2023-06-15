@@ -1,4 +1,4 @@
-import { createSelector, EntityId, Dictionary } from '@reduxjs/toolkit';
+import { createSelector, EntityId, Dictionary, isPlainObject } from '@reduxjs/toolkit';
 import { DateTime } from 'luxon';
 
 import {
@@ -7,9 +7,7 @@ import {
 	fetcher,
 	setError,
 	displayDate,
-	AppTableDataState,
 	getAppTableDataSelectors,
-	isObject
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
@@ -63,8 +61,6 @@ export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(([value,
 
 export const displaySessionType = (type: SessionType) => SessionTypeLabels[type] || 'Unknown';
 
-//const displayImatMeetingId = (imatMeetingId: number) => imatMeetingId || <span style={{fontStyle: 'italic'}}>(Blank)</span>
-
 export const fields = {
 	id: {label: 'ID', isId: true, sortType: SortType.NUMERIC},
 	name: {label: 'Session name'},
@@ -77,13 +73,11 @@ export const fields = {
 	timezone: {label: 'Timezone'}
 };
 
-
-type SessionsState = AppTableDataState<Session>;
-
 /*
  * Selectors
  */
-export const selectSessionsState = (state: RootState) => state[dataSet] as SessionsState;
+export const selectSessionsState = (state: RootState) => state[dataSet];
+export const selectSessionIds = (state: RootState) => selectSessionsState(state).ids;
 export const selectSessionEntities = (state: RootState) => selectSessionsState(state).entities;
 
 export const selectSessionsSelected = (state: RootState) => selectSessionsState(state).selected;
@@ -93,6 +87,12 @@ export const selectCurrentSession = (state: RootState) => {
 	const entities = selectSessionEntities(state);
 	return entities[id!];
 }
+
+export const selectSessions = createSelector(
+	selectSessionIds,
+	selectSessionEntities,
+	(ids, entities) => ids.map(id => entities[id]!)
+)
 
 export const selectCurrentSessionDates = createSelector(
 	selectCurrentSession,
@@ -172,7 +172,7 @@ const {
 export {setSelected, setUiProperties, setPanelIsSplit}
 
 function validSession(session: any): session is Session {
-	return isObject(session);
+	return isPlainObject(session);
 }
 
 function validSessions(sessions: any): sessions is Session[] {

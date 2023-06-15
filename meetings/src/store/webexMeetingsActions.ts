@@ -5,7 +5,7 @@ import {
 
 import slice from './webexMeetingsSlice';
 import type { AppThunk } from '.';
-import { selectWorkingGroup, selectWorkingGroupName } from './groups';
+import { selectWorkingGroupName } from './groups';
 import { WebexMeeting, WebexMeetingParams } from './webexMeetingsSelectors';
 
 export const webexMeetingsActions = slice.actions;

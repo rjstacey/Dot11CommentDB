@@ -1,4 +1,4 @@
-import { Action, EntityId, PayloadAction, EntityAdapter, createAction, createSelector, Dictionary } from '@reduxjs/toolkit';
+import { Action, EntityId, PayloadAction, createAction, createSelector, Dictionary } from '@reduxjs/toolkit';
 
 import { v4 as uuid } from 'uuid';
 
@@ -8,7 +8,6 @@ import {
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	isObject,
-	AppTableDataState
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
@@ -105,6 +104,8 @@ const initialState: ExtraState = {
 }
 
 const dataSet = 'groups';
+const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
+
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -114,14 +115,12 @@ const slice = createAppTableDataSlice({
 			state.workingGroupId = action.payload;
 		},
 	},
-	extraReducers: (builder: any, dataAdapter: EntityAdapter<Group>) => {
+	extraReducers: (builder, dataAdapter) => {
 		builder
 		.addMatcher(
-			(action: Action) => action.type === (dataSet + '/getSuccess2'),
-			(state: AppTableDataState<Group>, action: PayloadAction<Group[]>) => {
-				console.log(state.ids)
+			(action: Action) => action.type === getSuccess2,
+			(state, action: PayloadAction<Group[]>) => {
 				dataAdapter.addMany(state, action.payload);
-				console.log(state.ids)
 				state.loading = false;
 				state.valid = true;
 				const {ids, entities} = state;
@@ -142,14 +141,9 @@ export const selectGroupsState = (state: RootState) => state[dataSet];
 export const selectGroupEntities = (state: RootState) => selectGroupsState(state).entities;
 export const selectGroupIds = (state: RootState) => selectGroupsState(state).ids;
 
-/*export const selectCurrentGroup = (state: RootState) => {
-	const groupId = selectCurrentGroupId(state);
-	const entities = selectGroupEntities(state);
-	return groupId? entities[groupId]: undefined;
-}*/
 export const selectWorkingGroups = (state: RootState) => {
 	const {ids, entities} = selectGroupsState(state);
-	return ids.map(id => entities[id]!).filter(g => g.type === 'wg');
+	return ids.map(id => entities[id]!).filter(g => ["c", "wg"].includes(g.type));
 }
 export const selectWorkingGroupId = (state: RootState) => selectGroupsState(state).workingGroupId;
 export const selectWorkingGroup = (state: RootState) => {
@@ -169,15 +163,11 @@ export const selectGroups = createSelector(
 	}
 );
 
-//export const selectGroupName = (state: RootState) => selectCurrentGroup(state)?.name || '';
-
 export const groupsSelectors = getAppTableDataSelectors(selectGroupsState);
 
 /*
  * Actions
  */
-//export const setGroupsPanelIsSplit = (value: boolean) => setPanelIsSplit(dataSet, undefined, value);
-
 export const groupsActions = slice.actions;
 
 const {
@@ -195,7 +185,6 @@ const {
 	setWorkingGroupId: setWorkingGroupIdLocal
 } = slice.actions;
 
-const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
 
 export {setSelected, setFilter, clearFilter};
 

@@ -10,7 +10,6 @@ import { clearWebexMeetings } from './webexMeetings';
 import { loadBreakouts, clearBreakouts } from './imatBreakouts';
 import { selectWorkingGroupId } from './groups';
 
-const dataSet = 'current';
 
 export type GroupDefaults = {
 	meetingId: string;
@@ -29,12 +28,12 @@ const initDefaults: GroupDefaults = {
 };
 
 type CurrentState = {
-	groupId: string | null;
 	sessionId: number | null;
 	showDateRange: boolean;
 	groupDefaults: Record<string, GroupDefaults>
 }
 
+const dataSet = 'current';
 const slice = createSlice({
 	name: dataSet,
 	initialState: {
@@ -44,12 +43,6 @@ const slice = createSlice({
 		groupDefaults: {null: initDefaults}
 	} as CurrentState,
 	reducers: {
-		setCurrentGroupId(state, action: PayloadAction<string | null>) {
-			const groupId = action.payload;
-			state.groupId = groupId;
-			if (groupId && !state.groupDefaults[groupId])
-				state.groupDefaults[groupId] = initDefaults;
-		},
 		setCurrentSessionId(state, action: PayloadAction<number | null>) {
 			const sessionId = action.payload;
 			state.sessionId = sessionId;
@@ -69,7 +62,6 @@ export default slice;
 
 /* Selectors */
 export const selectCurrentState = (state: RootState) => state[dataSet];
-//export function selectCurrentGroupId(state: RootState) {return selectCurrentState(state).groupId};
 export const selectCurrentSessionId = (state: RootState) => selectCurrentState(state).sessionId;
 export const selectCurrentSession = (state: RootState) => {
 	const sessionId = selectCurrentSessionId(state);
@@ -89,7 +81,7 @@ export const selectCurrentGroupDefaults = (state: RootState) => {
 
 /* Actions */
 export const {
-	setCurrentGroupId,
+	setCurrentSessionId: setCurrentSessionIdLocal,
 	setShowDateRange,
 	setGroupDefaults
 } = slice.actions;
@@ -136,6 +128,6 @@ export const refresh = (): AppThunk =>
 
 export const setCurrentSessionId = (sessionId: number | null): AppThunk =>
 	async (dispatch) => {
-		dispatch(slice.actions.setCurrentSessionId(sessionId));
+		dispatch(setCurrentSessionIdLocal(sessionId));
 		dispatch(refresh());
 	}
