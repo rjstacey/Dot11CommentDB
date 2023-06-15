@@ -27,7 +27,6 @@ export const fields = {
 	Timestamp: {label: 'Timestamp', sortType: SortType.DATE},
 };
 
-export const dataSet = 'imatMeetingAttendance';
 
 const selectId = (entity: ImatMeetingAttendance) => entity.id;
 
@@ -35,13 +34,16 @@ type ExtraState = {
 	imatMeetingId: number | null;
 }
 
+const initialState: ExtraState = {
+	imatMeetingId: null
+}
+
+const dataSet = 'imatMeetingAttendance';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	selectId,
-	initialState: {
-		imatMeetingId: 0,
-	} as ExtraState,
+	initialState,
 	reducers: {
 		setDetails(state, action: PayloadAction<ExtraState>) {
 			return {...state, ...action.payload};

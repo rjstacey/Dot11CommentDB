@@ -7,13 +7,12 @@ import {
 	displayDateRange,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
-	AppTableDataState,
 	SortType,
 	isObject,
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-import { selectWorkingGroup } from './groups';
+import { selectWorkingGroupName } from './groups';
 import { selectCurrentSession, selectSessionEntities } from './sessions';
 
 export type ImatMeeting = {
@@ -43,7 +42,6 @@ export const fields = {
 	sessionId: {label: 'Session'}
 };
 
-export const dataSet = 'imatMeetings';
 
 /*
  * Fields derived from other fields
@@ -54,8 +52,7 @@ export function getField(entity: ImatMeeting, dataKey: string) {
 	return entity[dataKey as keyof ImatMeeting];
 }
 
-type ImatMeetingsState = AppTableDataState<ImatMeeting>;
-
+export const dataSet = 'imatMeetings';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -68,7 +65,7 @@ export default slice;
 /*
  * Selectors
  */
-export const selectImatMeetingsState = (state: RootState) => state[dataSet] as ImatMeetingsState;
+export const selectImatMeetingsState = (state: RootState) => state[dataSet];
 export const selectImatMeetingEntities = (state: RootState) => selectImatMeetingsState(state).entities;
 export const selectImatMeetingIds = (state: RootState) => selectImatMeetingsState(state).ids;
 
@@ -131,13 +128,8 @@ export const loadImatMeetings = (): AppThunk<ImatMeeting[]> =>
 	(dispatch, getState) => {
 		if (loadImatMeetingsPromise)
 			return loadImatMeetingsPromise;
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return Promise.resolve([]);
-		}
-		const url = `/api/${wg.name}/imat/meetings`;
-		//const url = '';
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/imat/meetings`;
 		dispatch(getPending());
 		loadImatMeetingsPromise = (fetcher.get(url) as Promise<ImatMeeting[]>)
 			.then((response: any) => {

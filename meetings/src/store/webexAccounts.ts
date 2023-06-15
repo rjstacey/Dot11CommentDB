@@ -4,7 +4,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { fetcher, isObject, setError } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-import { selectWorkingGroup } from './groups';
+import { selectWorkingGroupName } from './groups';
 
 export type WebexTemplate = {
 	id: string;
@@ -34,7 +34,7 @@ const initialState = dataAdapter.getInitialState({
 
 export type WebexAccountsState = typeof initialState;
 
-export const dataSet = 'webexAccounts';
+const dataSet = 'webexAccounts';
 const slice = createSlice({
 	name: dataSet,
 	initialState,
@@ -89,12 +89,8 @@ function validGetResponse(response: any): response is WebexAccount[] {
 
 export const loadWebexAccounts = (): AppThunk => 
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/webex/accounts`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/webex/accounts`;
 		dispatch(getPending());
 		let response: any;
 		try {
@@ -112,12 +108,8 @@ export const loadWebexAccounts = (): AppThunk =>
 
 export const updateWebexAccount = (id: number, changes: Partial<WebexAccount>): AppThunk =>
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/webex/accounts/${id}`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/webex/accounts/${id}`;
 		dispatch(updateOne({id, changes}));
 		let response: any;
 		try {
@@ -134,12 +126,8 @@ export const updateWebexAccount = (id: number, changes: Partial<WebexAccount>): 
 
 export const addWebexAccount = (account: WebexAccountCreate): AppThunk =>
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/webex/accounts`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/webex/accounts`;
 		let response;
 		try {
 			response = await fetcher.post(url, account);
@@ -155,12 +143,8 @@ export const addWebexAccount = (account: WebexAccountCreate): AppThunk =>
 
 export const deleteWebexAccount = (id: number): AppThunk =>
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/webex/accounts/${id}`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/webex/accounts/${id}`;
 		dispatch(removeOne(id));
 		try {
 			await fetcher.delete(url);

@@ -15,8 +15,6 @@ import { selectImatMeetingEntities, ImatMeeting } from './imatMeetings';
 import { selectWebexMeetingEntities, WebexMeeting, WebexMeetingParams } from './webexMeetingsSelectors';
 import { selectSessionEntities } from './sessions';
 
-import type { MeetingsState } from './meetingsSlice';
-
 export interface Meeting {
 	id: number;
 	organizationId: string | null;
@@ -64,8 +62,6 @@ export type DerivedMeeting = SyncedMeeting & {
 	timeRange: string;
 	location: string;
 }
-
-export const dataSet = 'meetings';
 
 export function displayMeetingNumber(meetingNumber: number) {
 	const s = meetingNumber.toString();
@@ -134,7 +130,9 @@ export function summarizeTelecon(entity: Meeting) {
 /*
  * Selectors
  */
-export const selectMeetingsState = (state: RootState) => state[dataSet] as MeetingsState;
+export const dataSet = 'meetings';
+
+export const selectMeetingsState = (state: RootState) => state[dataSet];
 export function selectMeetingEntities(state: RootState) {return selectMeetingsState(state).entities}
 export const selectMeetingIds = (state: RootState) => selectMeetingsState(state).ids;
 

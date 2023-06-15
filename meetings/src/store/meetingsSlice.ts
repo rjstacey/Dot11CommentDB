@@ -1,10 +1,7 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { DateTime } from 'luxon';
 
-import {
-	createAppTableDataSlice,
-	AppTableDataState
-} from 'dot11-components';
+import { createAppTableDataSlice } from 'dot11-components';
 
 import {
 	dataSet,
@@ -32,24 +29,22 @@ function toggleListItems(list: string[], items: string[]) {
 	}
 }
 
-type ExtraState = {
+const initialState: {
 	selectedSlots: string[];
-}
-
-export type MeetingsState = ExtraState & AppTableDataState<Meeting>;
+} = {
+	selectedSlots: []
+};
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	sortComparer,
-	initialState: {
-		selectedSlots: []
-	} as ExtraState,
+	initialState,
 	reducers: {
-		setSelectedSlots(state: ExtraState, action: PayloadAction<string[]>) {
+		setSelectedSlots(state, action: PayloadAction<string[]>) {
 			state.selectedSlots = action.payload;
 		},
-		toggleSelectedSlots(state: ExtraState, action: PayloadAction<string[]>) {
+		toggleSelectedSlots(state, action: PayloadAction<string[]>) {
 			toggleListItems(state.selectedSlots, action.payload);
 		},
 	}

@@ -10,8 +10,6 @@ import {
 import type { RootState } from '.';
 import { selectMeetingEntities } from './meetingsSelectors';
 
-import type { WebexMeetingsState } from './webexMeetingsSlice';
-
 export type WebexMeetingOptions = {
 	enabledChat: boolean;
 	enabledVideo: boolean;
@@ -142,7 +140,7 @@ export function getField(entity: WebexMeeting, key: string) {
  */
 export const dataSet = 'webexMeetings';
 
-export const selectWebexMeetingsState = (state: RootState) => state[dataSet] as WebexMeetingsState;
+export const selectWebexMeetingsState = (state: RootState) => state[dataSet];
 export const selectWebexMeetingEntities = (state: RootState) => selectWebexMeetingsState(state).entities;
 
 export const selectSyncedWebexMeetingEntities = createSelector(
@@ -160,7 +158,5 @@ export const selectSyncedWebexMeetingEntities = createSelector(
 		return entities;
 	}
 );
-
-//export const selectWebexMeetingsCurrentPanelConfig = (state: RootState) => selectCurrentPanelConfig(state, dataSet);
 
 export const webexMeetingsSelectors = getAppTableDataSelectors(selectWebexMeetingsState, {selectEntities: selectSyncedWebexMeetingEntities, getField});

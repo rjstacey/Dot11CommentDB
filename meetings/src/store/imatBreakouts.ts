@@ -1,4 +1,4 @@
-import { createSelector, EntityId, Dictionary } from '@reduxjs/toolkit';
+import { createSelector, EntityId, Dictionary, PayloadAction } from '@reduxjs/toolkit';
 import { DateTime } from 'luxon';
 
 import {
@@ -12,7 +12,7 @@ import {
 } from 'dot11-components';
 
 import type { AppThunk, RootState } from '.';
-import { selectWorkingGroup } from './groups';
+import { selectWorkingGroupName } from './groups';
 import { selectMeetingEntities } from './meetings';
 import { selectSyncedImatMeetingEntities } from './imatMeetings';
 
@@ -78,8 +78,6 @@ export const fields = {
 	name: {label: 'Name'},
 	credit: {label: 'Credit'},
 };
-
-export const dataSet = 'imatBreakouts';
 
 export const getField = (entity: Breakout, dataKey: string) => {
 	if (dataKey === 'weekDay')
@@ -166,17 +164,20 @@ type ExtraState = {
 	committees: Committee[];
 }
 
+const initialState: ExtraState = {
+	imatMeetingId: null,
+	timeslots: [],
+	committees: [],
+}
+
+const dataSet = 'imatBreakouts';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	sortComparer,
-	initialState: {
-		imatMeetingId: null,
-		timeslots: [],
-		committees: [],
-	} as ExtraState,
+	initialState,
 	reducers: {
-		setDetails(state, action) {
+		setDetails(state, action: PayloadAction<Partial<ExtraState>>) {
 			return {...state, ...action.payload};
 		},
 	},
@@ -234,11 +235,6 @@ let loadBreakoutsPromise: Promise<Breakout[]> | null = null;
 export const loadBreakouts = (imatMeetingId: number): AppThunk<Breakout[]> =>
 	async (dispatch, getState) => {
 		const state = getState();
-		const wg = selectWorkingGroup(state);
-		if (!wg) {
-			console.error("Working group not set");
-			return Promise.resolve([]);
-		}
 		const {imatMeetingId: currentImatMeetingId} = selectBreakoutsState(state);
 		if (imatMeetingId !== currentImatMeetingId) {
 			dispatch(removeAll());
@@ -246,7 +242,8 @@ export const loadBreakouts = (imatMeetingId: number): AppThunk<Breakout[]> =>
 		}
 		dispatch(setDetails({imatMeetingId}));
 		dispatch(getPending());
-		const url = `/api/${wg.name}/imat/breakouts/${imatMeetingId}`;
+		const groupName = selectWorkingGroupName(state);
+		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
 		loadBreakoutsPromise = (fetcher.get(url) as Promise<Breakout[]>)
 			.then((response: any) => {
 				if (!validGetResponse(response))
@@ -283,13 +280,9 @@ export const clearBreakouts = (): AppThunk =>
 
 export const addBreakouts = (imatMeetingId: number, breakouts: Breakout[]): AppThunk<number[]> => 
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return [];
-		}
-		const url = `/api/${wg.name}/imat/breakouts/${imatMeetingId}`;
-		let response;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
+		let response: any;
 		try {
 			response = await fetcher.post(url, breakouts);
 			if (!validResponse(response))
@@ -305,13 +298,9 @@ export const addBreakouts = (imatMeetingId: number, breakouts: Breakout[]): AppT
 
 export const updateBreakouts = (imatMeetingId: number, breakouts: Partial<Breakout>[]): AppThunk => 
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/imat/breakouts/${imatMeetingId}`;
-		let response;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
+		let response: any;
 		try {
 			response = await fetcher.put(url, breakouts);
 			if (!validResponse(response))
@@ -326,12 +315,8 @@ export const updateBreakouts = (imatMeetingId: number, breakouts: Partial<Breako
 
 export const deleteBreakouts = (imatMeetingId: number, ids: EntityId[]): AppThunk => 
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/imat/breakouts/${imatMeetingId}`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
 		try {
 			await fetcher.delete(url, ids);
 		}

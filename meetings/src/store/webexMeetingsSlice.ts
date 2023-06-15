@@ -1,12 +1,9 @@
-import { createAppTableDataSlice, AppTableDataState } from 'dot11-components';
+import { createAppTableDataSlice } from 'dot11-components';
 
 import {
 	dataSet,
 	fields,
-	WebexMeeting
 } from './webexMeetingsSelectors';
-
-export type WebexMeetingsState = AppTableDataState<WebexMeeting>;
 
 const slice = createAppTableDataSlice({
 	name: dataSet,

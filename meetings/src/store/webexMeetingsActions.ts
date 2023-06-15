@@ -5,7 +5,7 @@ import {
 
 import slice from './webexMeetingsSlice';
 import type { AppThunk } from '.';
-import { selectWorkingGroup } from './groups';
+import { selectWorkingGroup, selectWorkingGroupName } from './groups';
 import { WebexMeeting, WebexMeetingParams } from './webexMeetingsSelectors';
 
 export const webexMeetingsActions = slice.actions;
@@ -39,13 +39,8 @@ export type LoadWebexMeetingsConstrains = {
 
 export const loadWebexMeetings = (constraints: LoadWebexMeetingsConstrains): AppThunk => 
 	async (dispatch, getState) => {
-		const state = getState();
-		const wg = selectWorkingGroup(state);
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/webex/meetings`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/webex/meetings`;
 		dispatch(getPending());
 		let response: any;
 		try {
@@ -68,13 +63,8 @@ export const clearWebexMeetings = (): AppThunk =>
 
 export const addWebexMeeting = (accountId: number, webexMeeting: Omit<WebexMeetingParams, "accountId" | "id">): AppThunk<string | null> =>
 	async (dispatch, getState) => {
-		const state = getState();
-		const wg = selectWorkingGroup(state);
-		if (!wg) {
-			console.error("Working group not set");
-			return null;
-		}
-		const url = `/api/${wg.name}/webex/meetings`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/webex/meetings`;
 		const meetings = [{accountId, ...webexMeeting}];
 		let response: any;
 		try {
@@ -96,13 +86,8 @@ export type WebexMeetingUpdate = Partial<WebexMeetingParams> & {
 
 export const updateWebexMeetings = (webexMeetingsIn: WebexMeetingUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
-		const state = getState();
-		const wg = selectWorkingGroup(state);
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/webex/meetings`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/webex/meetings`;
 		let response: any;
 		try {
 			response = await fetcher.patch(url, webexMeetingsIn);
@@ -117,13 +102,8 @@ export const updateWebexMeetings = (webexMeetingsIn: WebexMeetingUpdate[]): AppT
 
 export const deleteWebexMeetings = (webexMeetings: {accountId: number; id: string}[]): AppThunk =>
 	async (dispatch, getState) => {
-		const state = getState();
-		const wg = selectWorkingGroup(state);
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/webex/meetings`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/webex/meetings`;
 		const meetings = webexMeetings.map(({accountId, id}) => ({accountId, id}));
 		const ids = meetings.map(m => m.id);
 		try {
