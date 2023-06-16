@@ -83,11 +83,24 @@ export default slice;
 export const selectGroupsState = (state: RootState) => state[dataSet];
 export const selectGroupEntities = (state: RootState) => selectGroupsState(state).entities;
 export const selectGroupIds = (state: RootState) => selectGroupsState(state).ids;
+
 export function selectGroups(state: RootState) {
 	const {ids, entities, workingGroupId} = selectGroupsState(state);
-	return ids.map(id => entities[id]!)
-		.filter(group => group.id === workingGroupId || group.parent_id === workingGroupId);
+	function getChildren(parent_ids: string[]) {
+		let childIds = (ids as string[]).filter(id => {
+			const group = entities[id]!;
+			return group.parent_id && parent_ids.includes(group.parent_id);
+		});
+		if (childIds.length > 0)
+			childIds = childIds.concat(getChildren(childIds));
+		return childIds;
+	}
+	let subgroupIds: string[] = [];
+	if (workingGroupId)
+		subgroupIds = [workingGroupId].concat(getChildren([workingGroupId]));
+	return subgroupIds.map(id => entities[id]!);
 }
+
 export const selectGroup = (state: RootState, groupId: string) => selectGroupEntities(state)[groupId];
 export const selectWorkingGroups = (state: RootState) => {
 	const {ids, entities} = selectGroupsState(state);
@@ -146,24 +159,28 @@ function validResponse(response: any): response is Group[] {
 	return Array.isArray(response) && response.every(validGroup);
 }
 
-type LoadGroupContstraints = {
-	type?: GroupType;
-	parent_id?: string;
-}
-
-export const loadGroups = (constraints?: LoadGroupContstraints): AppThunk => 
+export const loadGroups = (groupName?: string): AppThunk => 
 	(dispatch) => {
 		dispatch(getPending());
-		return fetcher.get(baseUrl, constraints)
+		const url = groupName? `${baseUrl}/${groupName}`: `${baseUrl}?type=wg`;
+		return fetcher.get(url)
 			.then((response: any) => {
 				if (!validResponse(response))
-					throw new TypeError('Unexpected response');
+					throw new TypeError('Unexpected response to GET ' + url);
 				dispatch(getSuccess(response));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError('Unable to get groups', error));
 			});
+	}
+
+export const initGroups = (): AppThunk =>
+	async (dispatch, getState) => {
+		dispatch(loadGroups());
+		const workingGroup = selectWorkingGroup(getState());
+		if (workingGroup)
+			dispatch(loadGroups(workingGroup.name));
 	}
 
 export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group | undefined> =>
@@ -175,17 +192,12 @@ export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group
 			dispatch(clearBallots());
 			dispatch(clearEpolls());
 			dispatch(setWorkingGroupIdLocal(workingGroupId));
-			dispatch(loadMembers());
-			dispatch(loadBallots());
+			if (workingGroupId) {
+				const groupName = selectWorkingGroupName(state);
+				dispatch(loadGroups(groupName));
+				dispatch(loadMembers());
+				dispatch(loadBallots());
+			}
 		}
-		return selectWorkingGroup(getState());
-	}
-
-export const initGroups = (): AppThunk =>
-	(dispatch, getState) => {
-		const workingGroup = selectWorkingGroup(getState());
-		if (workingGroup)
-			dispatch(loadGroups({parent_id: workingGroup.id}));
-		dispatch(loadGroups({type: "wg"}));
-		return Promise.resolve();
+		return selectWorkingGroup(state);
 	}

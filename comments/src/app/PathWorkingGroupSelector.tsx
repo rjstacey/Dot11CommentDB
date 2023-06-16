@@ -5,7 +5,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Select, SelectItemRendererProps } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectWorkingGroups, selectWorkingGroup, setWorkingGroupId, loadGroups } from '../store/groups';
+import { selectWorkingGroups, selectWorkingGroup, setWorkingGroupId } from '../store/groups';
 
 
 const Container = styled.div`
@@ -68,8 +68,6 @@ export function PathWorkingGroupSelector(props: Omit<React.ComponentProps<typeof
 
     async function handleChange(values: typeof options) {
         const group = await dispatch(setWorkingGroupId(values.length > 0? values[0].id: null));
-        if (group)
-            dispatch(loadGroups({parent_id: group.id}));
         let pathName = location.pathname;
         if (groupName && group)
             pathName = pathName.replace(`/${groupName}`, `/${group.name}`);

@@ -1,24 +1,26 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import styled from '@emotion/styled';
-import { DateTime } from 'luxon';
+import { Link } from 'react-router-dom';
 
 import {
 	shallowDiff, recursivelyDiffObjects, isMultiple, debounce,
-	ActionButton, Form, Row, Col, Field, ListItem, Checkbox, Input, Select, TextArea, Spinner,
+	ActionButton, Form, Row, Col, Field, ListItem, Checkbox, Input, TextArea, Spinner,
 	ConfirmModal,
 	ActionButtonDropdown,
 	Multiple,
-	SelectRendererProps
 } from 'dot11-components';
 
 import CheckboxListSelect from './CheckboxListSelect';
 import ResultsActions from './ResultsActions';
 import CommentsActions from './CommentsActions';
+import SelectGroup from './GroupSelector';
+import SelectProject from './ProjectSelector';
+import SelectPrevBallot from './PrevBallotSelecor';
 
 import type { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectGroups, selectWorkingGroup } from '../store/groups';
+import { selectWorkingGroup } from '../store/groups';
 import {
 	updateBallot,
 	addBallot,
@@ -28,15 +30,12 @@ import {
 	setUiProperties,
 	setSelectedBallots,
 	selectBallotsState,
-	selectGroupProjectOptions, 
 	BallotType,
 	BallotTypeOptions,
 	BallotStageOptions,
 	Ballot,
 	BallotEdit,
-	GroupProjectOption,
 } from '../store/ballots';
-import { Link } from 'react-router-dom';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
@@ -80,145 +79,6 @@ function shortDateToDate(shortDateStr: string) {
 	return isNaN(newDate.getTime())? '': newDate.toISOString()
 }
 
-function SelectGroup({
-	ballot,
-	updateBallot,
-	readOnly
-}: {
-	ballot: MultipleBallot | BallotEdit; 
-	updateBallot: (changes: Partial<BallotEdit>) => void;
-	readOnly?: boolean;
-}) {
-	const options = useAppSelector(selectGroups);
-
-	const values = isMultiple(ballot.groupId)? []:
-		options.filter(o => ballot.groupId === o.id);
-
-	function handleChange(values: typeof options) {
-		const groupId = values.length > 0? values[0].id: null;
-		updateBallot({groupId});
-	}
-
-	const placeholder = isMultiple(ballot.groupId)? MULTIPLE_STR: BLANK_STR;
-
-	return (
-		<Select
-			style={{minWidth: 100, width: 200}}
-			values={values}
-			options={options}
-			onChange={handleChange}
-			clearable
-			searchable
-			dropdownPosition='auto'
-			placeholder={placeholder}
-			valueField='id'
-			labelField='name'
-			readOnly={readOnly}
-		/>
-	)
-}
-
-function SelectProject({
-	ballot,
-	updateBallot,
-	readOnly
-}: {
-	ballot: MultipleBallot | BallotEdit; 
-	updateBallot: (changes: Partial<BallotEdit>) => void;
-	readOnly?: boolean;
-}) {
-	const options = useAppSelector(selectGroupProjectOptions)
-		.filter(o => o.groupId === ballot.groupId);
-
-	const values = isMultiple(ballot.Project)? []:
-		options.filter(o => ballot.Project === o.project);
-
-	function handleChange(values: typeof options) {
-		const Project = (values.length > 0? values[0].project: '') || '';
-		updateBallot({Project});
-	}
-
-	function createOption({state}: SelectRendererProps): GroupProjectOption {
-		return {groupId: ballot.groupId, project: state.search, label: state.search};
-	}
-
-	const placeholder = isMultiple(ballot.Project)? MULTIPLE_STR: BLANK_STR;
-
-	return (
-		<Select
-			style={{minWidth: 100, width: 200}}
-			values={values}
-			options={options}
-			onChange={handleChange}
-			create
-			createOption={createOption}
-			clearable
-			searchable
-			dropdownPosition='auto'
-			valueField='project'
-			labelField='project'
-			placeholder={placeholder}
-			readOnly={readOnly || !ballot.groupId}
-		/>
-	)
-}
-
-/*function SelectProject({
-	value,
-	onChange,
-	...otherProps
-}: {
-	value: string;
-	onChange: (value: string) => void;
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
-) {
-	const options = useAppSelector(selectProjectOptions);
-	const values = options.filter(o => o.value === value);
-	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].value: '');
-	return (
-		<Select
-			values={values}
-			options={options}
-			onChange={handleChange}
-			create
-			clearable
-			searchable
-			dropdownPosition='auto'
-			{...otherProps}
-		/>
-	)
-}*/
-
-function SelectPrevBallot({
-	value,
-	ballot,
-	onChange,
-	...otherProps
-}: {
-	ballot: MultipleBallot | BallotEdit;
-	value: number | null;
-	onChange: (value: number | null) => void;
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
-) {
-	const {ids, entities} = useAppSelector(selectBallotsState);
-	const options = React.useMemo(() => {
-		return ids
-			.map(id => entities[id]!)
-			.filter(b => b.Project === ballot.Project && DateTime.fromISO(b.Start || '') < DateTime.fromISO(ballot.Start || ''))
-			.map(b => ({value: b.id, label: b.BallotID}));
-	}, [ballot, ids, entities]);
-	const values = options.filter(o => o.value === value);
-	return (
-		<Select
-			values={values}
-			options={options}
-			onChange={(values) => onChange(values.length? values[0].value: null)}
-			dropdownPosition='auto'
-			{...otherProps}
-		/>
-	)
-}
-
 const TopicTextArea = styled(TextArea)`
 	flex: 1;
 	min-height: 3.5em;
@@ -241,7 +101,7 @@ export function Column1({
 		updateBallot({[name]: value});
 	}
 
-	const changeDate = (e) => {
+	const changeDate: React.ChangeEventHandler<HTMLInputElement> = (e) => {
 		const {name, value} = e.target;
 		const dateStr = shortDateToDate(value);
 		updateBallot({[name]: dateStr});
@@ -251,8 +111,9 @@ export function Column1({
 		<Row>
 			<Field label='Group:'>
 				<SelectGroup
-					ballot={ballot}
-					updateBallot={updateBallot}
+					value={isMultiple(ballot.groupId)? null: ballot.groupId}
+					onChange={(groupId) => updateBallot({groupId})}
+					placeholder={isMultiple(ballot.groupId)? MULTIPLE_STR: BLANK_STR}
 					readOnly={readOnly}
 				/>
 			</Field>
@@ -260,23 +121,14 @@ export function Column1({
 		<Row>
 			<Field label='Project:'>
 				<SelectProject
-					ballot={ballot}
-					updateBallot={updateBallot}
+					value={isMultiple(ballot.Project)? '': ballot.Project}
+					onChange={Project => updateBallot({Project})}
+					groupId={isMultiple(ballot.groupId)? null: ballot.groupId}
+					placeholder={isMultiple(ballot.groupId)? MULTIPLE_STR: BLANK_STR}
 					readOnly={readOnly}
 				/>
 			</Field>
 		</Row>
-		{/*<Row>
-			<Field label='Project:'>
-				<SelectProject
-					style={{minWidth: 150}}
-					value={isMultiple(ballot.Project)? '': ballot.Project}
-					onChange={(value) => updateBallot({Project: value})}
-					placeholder={isMultiple(ballot.Project)? MULTIPLE_STR: BLANK_STR}
-					readOnly={readOnly}
-				/>
-			</Field>
-			</Row>*/}
 		<Row>
 			<Field label='Ballot ID:'>
 				<Input type='search'
@@ -353,7 +205,7 @@ export function Column1({
 				<Field label='Previous ballot:'>
 					<SelectPrevBallot
 						value={isMultiple(ballot.prev_id)? null: ballot.prev_id}
-						ballot={ballot}
+						ballot_id={isMultiple(ballot.id)? 0: ballot.id}
 						placeholder={isMultiple(ballot.prev_id)? MULTIPLE_STR: BLANK_STR}
 						onChange={value => updateBallot({prev_id: value})}
 						style={{width: 150}}
