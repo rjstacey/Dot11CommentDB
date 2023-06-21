@@ -30,7 +30,8 @@ export type Comment = {
 	Clause: string;
 	Page: string | null;
 	Comment: string;
-	AdHoc: string;
+	AdHoc: string | null;
+	AdHocGroupId: string | null;
 	Notes: string;
 	CommentGroup: string;
 	ProposedChange: string;
@@ -117,7 +118,6 @@ export const fields = {
 	EditNotes: {label: 'Editing Notes'}
 };
 
-export const dataSet = 'comments';
 //const selectId = (c) => c.id; //c.CID;
 
 export const getField = (entity: CommentResolution, dataKey: string) => {
@@ -156,6 +156,7 @@ const initialState: ExtraState = {
 	ballot_id: null
 };
 
+const dataSet = 'comments';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -232,8 +233,8 @@ export default slice;
  * Selectors
  */
 export const selectCommentsState = (state: RootState) => state[dataSet];
-export const selectCommentsIds = (state: RootState) => selectCommentsState(state).ids;
-export const selectCommentsEntities = (state: RootState) => selectCommentsState(state).entities;
+export const selectCommentIds = (state: RootState) => selectCommentsState(state).ids;
+export const selectCommentEntities = (state: RootState) => selectCommentsState(state).entities;
 export const selectCommentsBallot_id = (state: RootState) => selectCommentsState(state).ballot_id;
 
 export const selectCommentsAccess = (state: RootState) => {
@@ -243,8 +244,8 @@ export const selectCommentsAccess = (state: RootState) => {
 }
 
 const selectCommentsLastModified = createSelector(
-	selectCommentsIds,
-	selectCommentsEntities,
+	selectCommentIds,
+	selectCommentEntities,
 	(ids, entities) => {
 		let lastModified = 0;
 		ids.forEach(id => {

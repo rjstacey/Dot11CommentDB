@@ -175,6 +175,13 @@ export const loadGroups = (groupName?: string): AppThunk =>
 			});
 	}
 
+export const loadSubgroups = (): AppThunk =>
+	async (dispatch, getState) => {
+		const workingGroup = selectWorkingGroup(getState());
+		if (workingGroup)
+			dispatch(loadGroups(workingGroup.name));
+	}
+
 export const initGroups = (): AppThunk =>
 	async (dispatch, getState) => {
 		dispatch(loadGroups());

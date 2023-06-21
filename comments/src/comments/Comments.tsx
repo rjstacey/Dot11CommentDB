@@ -20,6 +20,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { AccessLevel } from '../store/user';
 import { selectBallot, selectCurrentBallot_id } from '../store/ballots';
 import { loadMembers } from '../store/members';
+import { loadSubgroups } from '../store/groups';
 import {
 	fields,
 	loadComments,
@@ -335,6 +336,7 @@ function Comments() {
 	const refresh = () => {
 		dispatch(commentsBallot_id? loadComments(commentsBallot_id): clearComments());
 		dispatch(loadMembers());
+		dispatch(loadSubgroups());
 	}
 
 	return (

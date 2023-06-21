@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ChangeEventHandler } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import type { EntityId } from '@reduxjs/toolkit';
 import styled from '@emotion/styled';
@@ -51,7 +51,8 @@ const renderCommenter = (comment: MultipleCommentResolution) => {
 	if (isMultiple(commenter)) {
 		return <ShowMultiple />
 	}
-	let vote, mbs
+	let vote: JSX.Element | undefined,
+		mbs: JSX.Element | undefined;
 	if (comment.Vote === 'Approve') {
 		vote = <Icon type='vote-yes' />
 	}
@@ -122,9 +123,9 @@ const Categorization = ({
 				<Field label='Ad-hoc:'>
 					<AdHocSelector
 						style={{flexBasis: 150}}
-						value={isMultiple(resolution.AdHoc)? '': resolution.AdHoc || ''}
-						onChange={value => setResolution({AdHoc: value})}
-						placeholder={isMultiple(resolution.AdHoc)? MULTIPLE_STR: BLANK_STR}
+						value={isMultiple(resolution.AdHoc) || isMultiple(resolution.AdHocGroupId)? {GroupId: null, Name: null}: {GroupId: resolution.AdHocGroupId, Name: resolution.AdHoc}}
+						onChange={value => setResolution({AdHocGroupId: value.GroupId, AdHoc: value.Name})}
+						placeholder={isMultiple(resolution.AdHoc) || isMultiple(resolution.AdHocGroupId)? MULTIPLE_STR: BLANK_STR}
 						readOnly={readOnly}
 					/>
 				</Field>
@@ -222,22 +223,17 @@ function Column2({
 	readOnly?: boolean;
 }) {
 
-	const changeApproved = (e) => {
- 		let value;
- 		if (e.target.name === 'Approved') {
-	 		if (e.target.checked) {
-				value = new Date()
-				value = value.toDateString()
-			}
-			else {
-				value = '';
-			}
-		}
-		else {
-			value = e.target.value
-		}
+	const changeApproved: ChangeEventHandler<HTMLInputElement> = (e) => {
+ 		let value: string;
+ 		if (e.target.name === 'Approved')
+			value = e.target.checked? (new Date()).toDateString(): '';
+		else
+			value = e.target.value;
 		setResolution({ApprovedByMotion: value})
 	}
+
+	const value = isMultiple(resolution.ApprovedByMotion)? '': resolution.ApprovedByMotion || '';
+	const placeholder = isMultiple(resolution.ApprovedByMotion)? MULTIPLE_STR: BLANK_STR;
 
 	return (
 		<Col
@@ -266,11 +262,11 @@ function Column2({
 					<label>Approved by motion: </label>
 					<Input
 						type='search'
-						size={6}
+						size={value.length || placeholder.length}
 						name='ApprovedByMotion'
-						value={isMultiple(resolution.ApprovedByMotion)? '': resolution.ApprovedByMotion || ''}
+						value={value}
 						onChange={changeApproved}
-						placeholder={isMultiple(resolution.ApprovedByMotion)? MULTIPLE_STR: ''}
+						placeholder={placeholder}
 						disabled={readOnly}
 					/>
 				</ListItem>
@@ -298,10 +294,10 @@ function ResnStatus({
 	className?: string;
 	style?: React.CSSProperties;
 	value: ResnStatusType | null | typeof MULTIPLE;
-	onChange: (value: ResnStatusType) => void;
+	onChange: (value: ResnStatusType | null) => void;
 	readOnly?: boolean;
 }) {
-	const handleChange = e => onChange(e.target.checked? e.target.value: '');
+	const handleChange: ChangeEventHandler<HTMLInputElement> = e => onChange(e.target.checked? (e.target.value as ResnStatusType): null);
 
 	return (
 		<ResnStatusContainer
@@ -799,7 +795,7 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 		const commentUpdate: Partial<Comment> = {}, resolutionUpdate: Partial<Resolution> = {};
 		const d = shallowDiff(this.state.savedResolution, editedResolution);
 		for (let k in d) {
-			if (k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes' || k === 'Page' || k === 'Clause')
+			if (k === 'AdHocGroupId' || k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes' || k === 'Page' || k === 'Clause')
 				commentUpdate[k] = d[k];
 			else
 				resolutionUpdate[k] = d[k];
