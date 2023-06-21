@@ -27,6 +27,7 @@ export type Comment = {
 	Clause: string;
 	Page: number;
 	Comment: string;
+	AdHocGroupId: string | null;
 	AdHoc: string;
 	Notes: string;
 	CommentGroup: string;
@@ -75,6 +76,7 @@ const createViewCommentResolutionsSQL =
 		'c.C_Line AS C_Line, ' +
 		'c.C_Clause AS C_Clause, ' +
 		'c.C_Index AS C_Index, ' +
+		'BIN_TO_UUID(c.AdHocGroupId) AS AdHocGroupId, ' +
 		'c.AdHoc AS AdHoc, ' +
 		'c.CommentGroup AS CommentGroup, ' +
 		'c.Notes AS Notes, ' +
@@ -181,6 +183,19 @@ export async function getCommentsSummary(ballot_id: number): Promise<CommentsSum
 	return summary;
 }
 
+function commentsSetSql(changes: Partial<Comment>) {
+	const sets: string[] = [];
+	for (const [key, value] of Object.entries(changes)) {
+		let sql: string;
+		if (key === 'AdHocGroupId')
+			sql = db.format('??=UUID_TO_BIN(?)', [key, value]);
+		else
+			sql = db.format('??=?', [key, value]);
+		sets.push(sql);
+	}
+	return sets.join(', ');
+}
+
 /**
  * Update comment
  * 
@@ -190,8 +205,9 @@ export async function getCommentsSummary(ballot_id: number): Promise<CommentsSum
  * @param changes An object with fields to be changed
  */
 async function updateComment(user: User, ballot_id: number, id: bigint, changes: Partial<Comment>) {
+	console.log(commentsSetSql(changes))
 	if (Object.keys(changes).length > 0)
-		return db.query("UPDATE comments SET ?, LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP() WHERE ballot_id=? AND id=?", [changes, user.SAPIN, ballot_id, id]) as Promise<OkPacket>;
+		return db.query('UPDATE comments SET ' + commentsSetSql(changes) + ', LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP() WHERE ballot_id=? AND id=?', [user.SAPIN, ballot_id, id]) as Promise<OkPacket>;
 	//const comments = await db.query("SELECT id, comment_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE comment_id=?;", [Object.keys(changes), id]);
 	//return comments;
 }

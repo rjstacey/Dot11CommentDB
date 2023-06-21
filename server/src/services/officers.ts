@@ -4,7 +4,7 @@ import { isPlainObject } from '../utils';
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 import type { User } from './users';
-import { Group, getGroups } from './groups';
+import { Group, getGroups, getGroupAndSubgroupIds } from './groups';
 
 interface Officer {
 	id: string;
@@ -37,7 +37,12 @@ export function getOfficers(constraints?: OfficerQueryConstraints) {
 
 	if (constraints && Object.keys(constraints).length > 0) {
 		if (constraints.parentGroupId) {
-			sql += db.format(' LEFT JOIN organization org ON org.id=officers.group_id WHERE BIN_TO_UUID(org.parent_id)=?', [constraints.parentGroupId]);
+			sql += db.format(' ' +
+				'LEFT JOIN organization grp ON grp.id=officers.group_id ' +
+				'LEFT JOIN organization parentGrp ON parentGrp.id=grp.parent_id ' +
+					'WHERE UUID_TO_BIN(?) IN (grp.id, parentGrp.id, parentGrp.parent_id)',
+				[constraints.parentGroupId]
+			);
 			delete constraints.parentGroupId;
 			if (Object.keys(constraints).length > 1)
 				sql += ' AND ';
@@ -94,15 +99,6 @@ async function addOfficer({id, group_id, ...rest}: Officer): Promise<Officer> {
 	return officer;
 }
 
-async function validateGroupIds(user: User, workingGroupId: string, groupIds: string[]) {
-	console.log(groupIds)
-	const groups = await getGroups(user, {id: groupIds});
-	if (groups.length !== groupIds.length)
-		throw new TypeError("Invalid group_id; group not found");
-	if (!groups.every(group => group.id === workingGroupId || group.parent_id === workingGroupId))
-		throw new TypeError("Invalid group_id; must be working group or subgroup of working group");
-}
-
 /**
  * Add officers.
  * 
@@ -111,14 +107,14 @@ async function validateGroupIds(user: User, workingGroupId: string, groupIds: st
  */
 export async function addOfficers(user: User, workingGroup: Group, officers: Officer[]) {
 
-	// Valid the groupId for each officer
-	const groupIds = new Set<string>();
+	// Ensure that each officer has a valid groupId
+	const groupIds = await getGroupAndSubgroupIds(workingGroup.name)
 	officers.forEach(officer => {
 		if (!officer.group_id)
 			throw new TypeError("Bad or missing group_id; must specify group");
-		groupIds.add(officer.group_id);
+		if (!groupIds.includes(officer.group_id))
+			throw new TypeError("Bad officer group_id; must be working group or one of its subgroups");
 	});
-	validateGroupIds(user, workingGroup.id, [...groupIds]);
 
 	return Promise.all(officers.map(addOfficer));
 }
@@ -157,15 +153,18 @@ export function validateOfficerUpdates(updates: any): asserts updates is Update<
  * @param updates An array of objects with shape {id, changes}
  * @returns An array of officer objects as updated
  */
-export function updateOfficers(user: User, workingGroup: Group, updates: Update<Officer>[]) {
+export async function updateOfficers(user: User, workingGroup: Group, updates: Update<Officer>[]) {
 
-	const groupIds = new Set<string>();
-	updates.forEach(({changes}) => {
-		if (changes.group_id)
-			groupIds.add(changes.group_id);
-	})
-	if (groupIds.size > 0)
-		validateGroupIds(user, workingGroup.id, [...groupIds]);
+	// Ensure that each officer has a valid groupId
+	let groupIds: string[];
+	updates.forEach(async ({changes}) => {
+		if (changes.group_id !== undefined && changes.group_id !== null) {
+			if (!groupIds)
+				groupIds = await getGroupAndSubgroupIds(workingGroup.name);
+			if (!groupIds.includes(changes.group_id))
+				throw new TypeError("Bad officer group_id; must be the working group or one of its subgroups");
+		}
+	});
 
 	return Promise.all(updates.map(updateOfficer));
 }

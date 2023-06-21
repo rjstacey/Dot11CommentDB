@@ -5,9 +5,7 @@ import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 import { isPlainObject } from '../utils';
 import { User } from './users';
-import { getOfficers } from './officers';
 import { AccessLevel } from '../auth/access';
-import { updateSession } from './sessions';
 
 const GroupTypeLabels = {
 	c: 'Committee',
@@ -30,6 +28,7 @@ export interface Group {
 	symbol: string | null;
 	project: string | null;
 	permissions: Record<string, number>;
+	officerSAPINs: number[];
 }
 
 interface Update<T> {
@@ -48,6 +47,21 @@ interface OrganizationQueryConstraints {
 	symbol?: string | string[];
 };
 
+export async function getGroupAndSubgroupIds(groupName: string) {
+
+	async function getChildren(parent_ids: string[]) {
+		let ids = (await db.query('SELECT BIN_TO_UUID(id) as id FROM organization WHERE BIN_TO_UUID(parent_id) IN (?)', [parent_ids]) as {id: string}[]).map(g => g.id);
+		if (ids.length > 0)
+			ids = ids.concat(await getChildren(ids));
+		return ids;
+	}
+
+	let ids = (await db.query('SELECT BIN_TO_UUID(id) as id FROM organization WHERE name=?', [groupName]) as {id: string}[]).map(g => g.id);
+	if (ids.length > 0)
+		ids = ids.concat(await getChildren(ids));
+	return ids;
+}
+
 export async function getGroups(user: User, constraints?: OrganizationQueryConstraints) {
 	let sql =
 		'SELECT ' + 
@@ -58,15 +72,17 @@ export async function getGroups(user: User, constraints?: OrganizationQueryConst
 			'o1.`status`, ' +
 			'o1.`color`, ' +
 			'o1.`symbol`, ' +
-			'o1.`project` ' +
-		'FROM organization o1';
+			'o1.`project`, ' +
+			'COALESCE(off.`officerSAPINs`, JSON_ARRAY()) as officerSAPINs ' +
+		'FROM organization o1 ' +
+			'LEFT JOIN (SELECT group_id, JSON_ARRAYAGG(SAPIN) AS officerSAPINs FROM officers GROUP BY group_id) AS off ON o1.id=off.group_id';
 		
 	if (constraints) {
 		const {parentName, ...rest} = constraints;
 		const wheres: string[] = [];
 		if (parentName) {
-			sql += ' LEFT JOIN organization o2 ON o1.parent_id=o2.id';
-			wheres.push(db.format('(o1.name=? OR o2.name=?)', [parentName, parentName]));
+			const ids = await getGroupAndSubgroupIds(parentName);
+			wheres.push(db.format('BIN_TO_UUID(o1.id) IN (?)', [ids]));
 		}
 		Object.entries(rest).forEach(([key, value]) => {
 			wheres.push(
@@ -102,13 +118,13 @@ export async function getGroup(user: User, name: string): Promise<Group | undefi
 	return groups[0];
 }
 
-export async function getWorkingGroup(user: User, groupId: string): Promise<Group | undefined> {
-	const group = await getGroup(user, groupId);
-	if (group &&
-		group.type &&
-		group.type.search(/^(tg|sg|sc|ah)/) !== -1 &&
-		group.parent_id) {
-		return getGroup(user, group.parent_id);
+export async function getWorkingGroup(user: User, group_id: string): Promise<Group | undefined> {
+	const [group] = await getGroups(user, {id: group_id});
+	if (group) {
+		if (group.type === "wg")
+			return group;
+		if (group.parent_id)
+			return getWorkingGroup(user, group.parent_id);
 	}
 	return group;
 }
@@ -146,17 +162,23 @@ const permMember: Record<string, number> = {
 export async function getUserGroupPermissions(user: User, group: Group) {
 	let permissions: Record<string, number> = permMember;
 	if (group.type === "wg") {
-		const officers = await getOfficers({group_id: group.id});
-		if (officers.find(officer => officer.sapin === user.SAPIN))
+		//const officers = await getOfficers({group_id: group.id});
+		//if (officers.find(officer => officer.sapin === user.SAPIN))
+		//	permissions = permWgOfficer;
+		if (group.officerSAPINs.includes(user.SAPIN))
 			permissions = permWgOfficer;
 	}
-	else if (["tg", "sg", "sc", "ah"].includes(group.type!) && group.parent_id) {
-		let officers = await getOfficers({group_id: group.id});
-		if (officers.find(officer => officer.sapin === user.SAPIN))
+	else if (["tg", "sg", "sc", "ah"].includes(group.type!)) {
+		//let officers = await getOfficers({group_id: group.id});
+		//if (officers.find(officer => officer.sapin === user.SAPIN))
+		//	permissions = permTgOfficer;
+		if (group.officerSAPINs.includes(user.SAPIN))
 			permissions = permTgOfficer;
-		officers = await getOfficers({group_id: group.parent_id});
-		if (officers.find(officer => officer.sapin === user.SAPIN))
-			permissions = permWgOfficer;
+		if (group.parent_id) {
+			let wg = await getWorkingGroup(user, group.parent_id);
+			if (wg?.officerSAPINs.includes(user.SAPIN))
+				permissions = permWgOfficer;
+		}
 	}
 	//console.log(group.name, permissions)
 	return permissions;
@@ -204,9 +226,9 @@ function validGroup(group: any): group is Group {
 		return false;
 	if ('id' in group && typeof group.id !== 'string')
 		return false;
-	if ('parent_id' in group && (group.parent_id !== null || typeof group.parent_id !== 'string'))
+	if ('parent_id' in group && group.parent_id !== null && typeof group.parent_id !== 'string')
 		return false;
-	if ('name' in group && (group.name !== null || typeof group.name !== 'string'))
+	if ('name' in group && group.name !== null && typeof group.name !== 'string')
 		return false;
 	return true;
 }

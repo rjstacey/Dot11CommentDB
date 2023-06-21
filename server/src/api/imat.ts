@@ -48,7 +48,6 @@
  *		Returns an array of attendance objects (user info with timestamp).
  */
 import { Router } from 'express';
-import { isPlainObject } from '../utils';
 import {
 	getImatCommittees,
 	getImatMeetings,
