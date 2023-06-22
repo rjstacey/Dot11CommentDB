@@ -13,7 +13,7 @@ export type Resolution = {
 	comment_id: bigint;
 	ResolutionID: number;
 	AssigneeSAPIN: number | null;
-	AssigneeName: string | null;
+	AssigneeName: string;
 	ResnStatus: 'A' | 'V' | 'J' | null;
 	Resolution: string | null;
 	ApprovedByMotion: string;

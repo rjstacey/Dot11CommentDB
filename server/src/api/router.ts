@@ -5,7 +5,7 @@
  */
 import { NextFunction, Request, Response, Router } from 'express';
 
-import { userIsMember, userIsSubgroupAdmin, userIsWGAdmin, User } from '../services/users';
+import { User } from '../services/users';
 import { getGroup, getGroups, Group } from '../services/groups';
 import { getBallot, Ballot } from '../services/ballots';
 import { authorize } from '../auth/jwt'
@@ -29,12 +29,12 @@ import imat from './imat';
 import ieee802world from './802world';
 
 import ballots from './ballots';
+import epolls from './epolls';
 import voters from './voters';
 import results from './results';
 import comments from './comments';
 import resolutions from './resolutions';
 import commentHistory from './commentHistory';
-import epolls from './epolls';
 
 const router = Router();
 

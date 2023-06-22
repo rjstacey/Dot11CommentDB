@@ -4,7 +4,7 @@ import { isPlainObject } from '../utils';
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 import type { User } from './users';
-import { Group, getGroups, getGroupAndSubgroupIds } from './groups';
+import { Group, getGroupAndSubgroupIds } from './groups';
 
 interface Officer {
 	id: string;

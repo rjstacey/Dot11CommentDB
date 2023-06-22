@@ -77,19 +77,19 @@ const createViewCommentResolutionsSQL =
 		'c.C_Clause AS C_Clause, ' +
 		'c.C_Index AS C_Index, ' +
 		'BIN_TO_UUID(c.AdHocGroupId) AS AdHocGroupId, ' +
-		'c.AdHoc AS AdHoc, ' +
-		'c.CommentGroup AS CommentGroup, ' +
+		'COALESCE(c.AdHoc, "") AS AdHoc, ' +
+		'COALESCE(c.CommentGroup, "") AS CommentGroup, ' +
 		'c.Notes AS Notes, ' +
 		'r.AssigneeSAPIN AS AssigneeSAPIN, ' +
+		'COALESCE(m.Name, r.AssigneeName, "") AS AssigneeName, ' +
 		'r.ResnStatus AS ResnStatus, ' +
 		'r.Resolution AS Resolution, ' +
-		'r.Submission AS Submission, ' +
+		'COALESCE(r.Submission, "") AS Submission, ' +
 		'r.ReadyForMotion AS ReadyForMotion, ' +
 		'r.ApprovedByMotion AS ApprovedByMotion, ' +
 		'r.EditStatus AS EditStatus, ' +
 		'r.EditInDraft AS EditInDraft, ' +
 		'r.EditNotes AS EditNotes, ' +
-		'COALESCE(m.Name, r.AssigneeName) AS AssigneeName, ' +
 		'IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) AS LastModifiedBy, ' +
 		'DATE_FORMAT(IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedTime, r.LastModifiedTime), "%Y-%m-%dT%TZ") AS LastModifiedTime ' +
 	'FROM ballots b JOIN comments c ON (b.id = c.ballot_id) ' + 
