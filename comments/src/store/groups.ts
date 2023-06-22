@@ -117,20 +117,15 @@ export const selectWorkingGroupPermissions = (state: RootState) => selectWorking
 
 /** 
  * Select group permissions.
- * If the group is the subgroup of a working group, then return permissions that provide the highest access from either the group or
- * the working group. If the group is not a subgroup of a working group, then return the group permissions.
+ * If the group has a parent group, then return permissions that provide the highest access from either the group or
+ * the parent group. This is recursive; the parent group permissions are the highest of the parent group and its parent group.
  */
-export const selectGroupPermissions = (state: RootState, groupId: string) => {
+export const selectGroupPermissions = (state: RootState, groupId: string): Record<string, number> => {
 	const group = selectGroup(state, groupId);
-	if (!group?.type)
+	if (!group)
 		return {};
-	if ([!'tg', 'sg', 'sc', 'ah'].includes(group.type))
-		return group.permissions;
-	const workingGroup = group.parent_id? selectGroup(state, group.parent_id): undefined;
-	if (!workingGroup)
-		return group.permissions;
-	// We have a group and a working group; coalesce permissions
-	const permissions = {...workingGroup.permissions};
+	const parentPermissions = group.parent_id? selectGroupPermissions(state, group.parent_id): {};
+	const permissions = {...parentPermissions};
 	Object.entries(group.permissions).forEach(([scope, access]) => {
 		if (!permissions[scope] || permissions[scope] < access)
 			permissions[scope] = access;
