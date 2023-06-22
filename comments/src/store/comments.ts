@@ -2,9 +2,8 @@ import { v4 as uuid } from 'uuid';
 import {createSelector} from '@reduxjs/toolkit';
 import type { PayloadAction, EntityId, Dictionary } from '@reduxjs/toolkit';
 import {
-	fetcher,
-	setError,
-	createAppTableDataSlice, SortType, getAppTableDataSelectors, isObject,
+	fetcher, setError,
+	createAppTableDataSlice, SortType, getAppTableDataSelectors, isObject, FieldProperties,
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
@@ -30,7 +29,7 @@ export type Comment = {
 	Clause: string;
 	Page: string | null;
 	Comment: string;
-	AdHoc: string | null;
+	AdHoc: string;
 	AdHocGroupId: string | null;
 	Notes: string;
 	CommentGroup: string;
@@ -46,7 +45,7 @@ export type Resolution = {
 	comment_id: number;
 	ResolutionID: number;
 	AssigneeSAPIN: number | null;
-	AssigneeName: string | null;
+	AssigneeName: string;
 	ResnStatus: ResnStatusType | null;
 	Resolution: string | null;
 	ApprovedByMotion: string;
@@ -85,12 +84,8 @@ const mustSatisfyLabels = mustSatisfyOptions.reduce((obj, o) => {
 	return obj;
 }, {});
 
-export const fields = {
-	CID: {
-		label: 'CID',
-		isId: true,
-		sortType: SortType.NUMERIC
-	},
+export const fields: Record<string, FieldProperties> = {
+	CID: {label: 'CID',	sortType: SortType.NUMERIC},
 	CommenterName: {label: 'Commenter'},
 	Vote: {label: 'Vote'},
 	MustSatisfy: {
@@ -259,7 +254,7 @@ const selectCommentsLastModified = createSelector(
 	}
 );
 
-export const commentsSelectors = getAppTableDataSelectors(selectCommentsState);
+export const commentsSelectors = getAppTableDataSelectors(selectCommentsState, {getField});
 
 /*
  * Actions

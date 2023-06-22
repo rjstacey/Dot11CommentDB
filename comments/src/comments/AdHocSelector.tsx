@@ -10,7 +10,7 @@ import { selectGroupIds, selectGroupEntities } from '../store/groups';
 
 type AdHoc = {
 	GroupId: string | null;
-	Name: string | null;
+	Name: string;
 }
 
 const selectAdHocOptions = createSelector(
@@ -49,7 +49,7 @@ const itemRenderer = ({item}: {item: AdHoc}) => {
 	)
 }
 
-const nullAdHoc: AdHoc = {GroupId: null, Name: null};
+const nullAdHoc: AdHoc = {GroupId: null, Name: ''};
 
 function AdHocSelector({
 	value,

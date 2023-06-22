@@ -1,6 +1,5 @@
 import React, { ChangeEventHandler } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import type { EntityId } from '@reduxjs/toolkit';
 import styled from '@emotion/styled';
 
 import {
@@ -34,6 +33,7 @@ import {
 	Comment,
 	selectCommentsAccess
 } from '../store/comments';
+import { selectGroupEntities } from '../store/groups';
 import { AccessLevel, selectUser } from '../store/user';
 
 const BLANK_STR = '(Blank)';
@@ -123,7 +123,7 @@ const Categorization = ({
 				<Field label='Ad-hoc:'>
 					<AdHocSelector
 						style={{flexBasis: 150}}
-						value={isMultiple(resolution.AdHoc) || isMultiple(resolution.AdHocGroupId)? {GroupId: null, Name: null}: {GroupId: resolution.AdHocGroupId, Name: resolution.AdHoc}}
+						value={isMultiple(resolution.AdHoc) || isMultiple(resolution.AdHocGroupId)? {GroupId: null, Name: ''}: {GroupId: resolution.AdHocGroupId, Name: resolution.AdHoc}}
 						onChange={value => setResolution({AdHocGroupId: value.GroupId, AdHoc: value.Name})}
 						placeholder={isMultiple(resolution.AdHoc) || isMultiple(resolution.AdHocGroupId)? MULTIPLE_STR: BLANK_STR}
 						readOnly={readOnly}
@@ -166,7 +166,7 @@ const Categorization = ({
 		</Row>
 	</>
 
-const Column1 = ({
+const AssigneeAndSubmission = ({
 	style,
 	className,
 	resolution,
@@ -209,7 +209,7 @@ const Column1 = ({
 		</Row>
 	</Col>
 
-function Column2({
+function ResolutionApproval({
 	style,
 	className,
 	resolution,
@@ -368,12 +368,12 @@ const ResolutionEdit = ({
 }) =>
 	<>
 		<Row>
-			<Column1
+			<AssigneeAndSubmission
 				resolution={resolution}
 				setResolution={setResolution}
 				readOnly={readOnly}
 			/>
-			<Column2
+			<ResolutionApproval
 				resolution={resolution}
 				setResolution={setResolution}
 				readOnly={readOnly}
@@ -743,13 +743,23 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 		this.triggerSave.flush();
 	}
 
-	isReadOnly = (ids: EntityId[]) => {
+	isReadOnly = (comments: CommentResolution[]) => {
 		if (this.props.readOnly)
 			return true;
-		const {entities, user} = this.props;
+		const {groupEntities, user} = this.props;
 		let access = this.props.access;
 		if (access <= AccessLevel.ro) {
-			const rw = ids.every(id => entities[id]?.AssigneeSAPIN === user.SAPIN);
+			const rw = comments.every(c => {
+				if (c.AssigneeSAPIN === user.SAPIN)
+					return true;
+				const group = c.AdHocGroupId? groupEntities[c.AdHocGroupId]: undefined;
+				if (group) {
+					const access = group.permissions.comments || AccessLevel.none;
+					if (access >= AccessLevel.rw)
+						return true;
+				}
+				return false;
+			});
 			if (rw)
 				access = AccessLevel.rw;
 		}
@@ -766,7 +776,7 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 				originalComments.push(comment);
 			}
 		});
-		const readOnly = this.props.readOnly || this.isReadOnly(selected);
+		const readOnly = this.props.readOnly || this.isReadOnly(originalComments);
 		return {
 			savedResolution: diff as MultipleCommentResolution,
 			editedResolution: diff as MultipleCommentResolution,
@@ -927,6 +937,7 @@ const connector = connect(
 	(state: RootState, props: PropsIn) => {
 		const user = selectUser(state);
 		const {entities, loading, selected, ui: uiProperties} = selectCommentsState(state);
+		const groupEntities = selectGroupEntities(state);
 		let access = selectCommentsAccess(state);
 		return {
 			entities,
@@ -934,7 +945,8 @@ const connector = connect(
 			selected,
 			uiProperties,
 			access,
-			user
+			user,
+			groupEntities
 		}
 	},
 	{

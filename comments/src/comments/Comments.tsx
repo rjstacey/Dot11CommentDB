@@ -4,7 +4,9 @@ import styled from '@emotion/styled';
 import {
 	AppTable, SplitPanel, Panel, SelectExpandHeaderCell, SelectExpandCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, GlobalFilter, IdSelector, IdFilter,
 	ActionButton, ButtonGroup,
-	ColumnProperties
+	ColumnProperties,
+	HeaderCellRendererProps,
+	CellRendererProps,
 } from 'dot11-components';
 
 import TopRow from '../components/TopRow';
@@ -31,6 +33,8 @@ import {
 	selectCommentsAccess,
 	commentsSelectors,
 	commentsActions,
+	getCommentStatus,
+	CommentResolution,
 } from '../store/comments';
 
 
@@ -46,16 +50,16 @@ const FlexRow = styled.div`
 /*
  * The data cell rendering functions are pure functions (dependent only on input parameters)
  */
-const renderDataCellCheck = ({rowData, dataKey}) => rowData[dataKey]? '\u2714': '';
+const renderDataCellCheck = ({rowData, dataKey}: CellRendererProps) => rowData[dataKey]? '\u2714': '';
 
-const renderHeaderCellEditing = (props) =>
+const renderHeaderCellEditing = (props: HeaderCellRendererProps) =>
 	<>
-		<HeaderSubcomponent {...props} dropdownWidth={150} dataKey='EditStatus' label='Editing Status' />
-		<HeaderSubcomponent {...props} dropdownWidth={200} dataKey='EditInDraft' label='In Draft' />
+		<HeaderSubcomponent {...props} dataKey='EditStatus' label='Editing Status' /*dropdownWidth={150}*/ />
+		<HeaderSubcomponent {...props} dataKey='EditInDraft' label='In Draft' /*dropdownWidth={200}*/ />
 		<HeaderSubcomponent {...props} dataKey='EditNotes' label='Notes' />
 	</>
 
-const renderDataCellEditing = ({rowData}) => 
+const renderDataCellEditing = ({rowData}: {rowData: CommentResolution}) => 
 	<>
 		{rowData.EditStatus === 'I' && <span>In D{rowData['EditInDraft']}</span>}
 		{rowData.EditStatus === 'N' && <span>No change</span>}
@@ -75,25 +79,25 @@ const resnStatusMap = {
 	'J': 'REJECTED'
 };
 
-function renderDataCellResolution({rowData}) {
+function renderDataCellResolution({rowData}: {rowData: CommentResolution}) {
 	const resnColor = {
 		'A': '#d3ecd3',
 		'V': '#f9ecb9',
 		'J': '#f3c0c0'
 	}
-	const status = resnStatusMap[rowData['ResnStatus']] || ''
+	const status: string = resnStatusMap[rowData['ResnStatus'] || ''] || ''
 	return (
 		<ResolutionContainter
-			color={resnColor[rowData['ResnStatus']]}
+			color={resnColor[rowData['ResnStatus'] || '']}
 		>
 			<div>{status}</div>
-			<div dangerouslySetInnerHTML={{__html: rowData['Resolution']}}/>
+			<div dangerouslySetInnerHTML={{__html: rowData['Resolution'] || ''}}/>
 		</ResolutionContainter>
 	)
 }
 
 
-const DataSubcomponent = styled.div<{width?: number}>`
+const DataSubcomponent = styled.div<{width?: number | string}>`
 	flex: 1 1 ${({width}) => width && typeof width === 'string'? width: width + 'px'};
 	padding-right: 5px;
 	box-sizing: border-box;
@@ -102,26 +106,36 @@ const DataSubcomponent = styled.div<{width?: number}>`
 
 const HeaderSubcomponent = DataSubcomponent.withComponent(TableColumnHeader);
 
-const renderHeaderCellStacked1 = (props) => 
+const renderHeaderCellStacked1 = (props: HeaderCellRendererProps) => 
 	<>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={70} dropdownWidth={400} dataKey='CID' label='CID' isId
-				customFilterElement=<IdFilter selectors={commentsSelectors} actions={commentsActions} dataKey='CID' />
+			<HeaderSubcomponent
+				{...props}
+				width={70}
+				dataKey='CID'
+				label='CID'
+				//dropdownWidth={400}
+				customFilterElement=
+					<IdFilter
+						selectors={commentsSelectors}
+						actions={commentsActions}
+						dataKey='CID'
+					/>
 			/>
-			<HeaderSubcomponent {...props} width={40} dropdownWidth={140} dataKey='Category' label='Cat' />
+			<HeaderSubcomponent {...props} width={40} dataKey='Category' label='Cat' /*dropdownWidth={140}*/ />
 		</FlexRow>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={70} dropdownWidth={200} dataKey='Clause' label='Clause' />
-			<HeaderSubcomponent {...props} width={40} dropdownWidth={150} dataKey='Page' label='Page' dataRenderer={renderPage} />
+			<HeaderSubcomponent {...props} width={70} dataKey='Clause' label='Clause' /*dropdownWidth={200}*/ />
+			<HeaderSubcomponent {...props} width={40} dataKey='Page' label='Page' /*dataRenderer={renderPage} dropdownWidth={150}*/ />
 		</FlexRow>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={90} dropdownWidth={300} dataKey='CommenterName' label='Commenter' />
+			<HeaderSubcomponent {...props} width={90} dataKey='CommenterName' label='Commenter' /*dropdownWidth={300}*/ />
 			<HeaderSubcomponent {...props} width={30} dataKey='Vote' label='Vote' />
 			<HeaderSubcomponent {...props} width={30} dataKey='MustSatisfy' label='MS' />
 		</FlexRow>
 	</>
 
-const renderDataCellStacked1 = ({rowData}) => {
+const renderDataCellStacked1 = ({rowData}: {rowData: CommentResolution}) => {
 	return (
 		<>
 			<FlexRow>
@@ -137,33 +151,33 @@ const renderDataCellStacked1 = ({rowData}) => {
 	)
 }
 
-const renderHeaderCellStacked2 = (props) =>
+const renderHeaderCellStacked2 = (props: HeaderCellRendererProps) =>
 	<>
 		<HeaderSubcomponent {...props} dataKey='AssigneeName' label='Assignee' />
 		<HeaderSubcomponent {...props} dataKey='Submission' label='Submission' />
 	</>
 
-const renderDataCellStacked2 = ({rowData}) => 
+const renderDataCellStacked2 = ({rowData}: {rowData: CommentResolution}) => 
 	<>
 		<div>{rowData['AssigneeName'] || 'Not Assigned'}</div>
 		<div>{renderSubmission(rowData['Submission'])}</div>
 	</>
 
-const renderHeaderCellStacked3 = (props) => 
+const renderHeaderCellStacked3 = (props: HeaderCellRendererProps) => 
 	<>
 		<HeaderSubcomponent {...props} dataKey='AdHoc' label='Ad-hoc' />
-		<HeaderSubcomponent {...props} dataKey='CommentGroup' label='Comment Group' dropdownWidth={300} />
+		<HeaderSubcomponent {...props} dataKey='CommentGroup' label='Comment Group' /*dropdownWidth={300}*/ />
 	</>
 
-const renderDataCellStacked3 = ({rowData}) =>
+const renderDataCellStacked3 = ({rowData}: {rowData: CommentResolution}) =>
 	<>
 		<div>{rowData['AdHoc'] || ''}</div>
 		<div>{rowData['CommentGroup'] || ''}</div>
 	</>
 
-const renderHeaderCellResolution = (props) => 
+const renderHeaderCellResolution = (props: HeaderCellRendererProps) => 
 	<>
-		<HeaderSubcomponent {...props} dropdownWidth={150} dataKey='ResnStatus' label='Resolution Status' />
+		<HeaderSubcomponent {...props} dataKey='ResnStatus' label='Resolution Status' /*dropdownWidth={150}*/ />
 		<HeaderSubcomponent {...props} dataKey='Resolution' label='Resolution' />
 	</>
 
@@ -172,7 +186,14 @@ const tableColumns: ColumnProperties[] = [
 		width: 48, flexGrow: 0, flexShrink: 0,
 		headerRenderer: p =>
 			<SelectExpandHeaderCell
-				customSelectorElement=<IdSelector style={{width: '200px'}} selectors={commentsSelectors} actions={commentsActions} dataKey='CID' focusOnMount />
+				customSelectorElement=
+					<IdSelector
+						style={{width: '200px'}}
+						selectors={commentsSelectors}
+						actions={commentsActions}
+						dataKey='CID'
+						focusOnMount
+					/>
 				{...p}
 			/>,
 		cellRenderer: p => <SelectExpandCell selectors={commentsSelectors} actions={commentsActions} {...p} />},
@@ -230,7 +251,7 @@ const tableColumns: ColumnProperties[] = [
 		...fields.Notes,
 		width: 150, flexGrow: 1, flexShrink: 1,
 		dropdownWidth: 300,
-		cellRenderer: ({rowData}) => <ResolutionContainter dangerouslySetInnerHTML={{__html: rowData['Notes']}}/>},
+		cellRenderer: ({rowData}: {rowData: CommentResolution}) => <ResolutionContainter dangerouslySetInnerHTML={{__html: rowData['Notes']}}/>},
 	{key: 'Stack3',
 		label: 'Assignee/Submission',
 		width: 250, flexGrow: 1, flexShrink: 1,
@@ -293,15 +314,20 @@ const defaultTablesConfig = {
 
 
 function commentsRowGetter({rowIndex, ids, entities}) {
-	const currData = entities[ids[rowIndex]];
+	let comment = entities[ids[rowIndex]];
+	comment = {
+		...comment,
+		Status: getCommentStatus(comment),
+		CID: getCID(comment)
+	}
 	if (rowIndex === 0)
-		return currData;
-	const prevData = entities[ids[rowIndex-1]];
-	if (currData.CommentID !== prevData.CommentID)
-		return currData;
+		return comment;
+	const prevComment = entities[ids[rowIndex-1]];
+	if (comment.CommentID !== prevComment.CommentID)
+		return comment;
 	// Previous row holds the same comment
 	return {
-			...currData,
+			...comment,
 			CommenterName: '',
 			Vote: '',
 			MustSatisfy: '',
