@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Select, SelectItemRendererProps } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectWorkingGroups, selectWorkingGroup, setWorkingGroupId } from '../store/groups';
+import { selectWorkingGroups, selectWorkingGroup, setWorkingGroupId, getGroups } from '../store/groups';
 
 const Container = styled.div`
 	display: flex;
@@ -52,15 +52,27 @@ export function PathWorkingGroupSelector(props: Omit<React.ComponentProps<typeof
 	const values = options.filter(g => g.id === workingGroup?.id);
 
 	React.useEffect(() => {
-		const groupName = location.pathname.split('/')[1];
-		if (groupName) {
-			const group = options.find(g => g.name === groupName);
-			if (group && workingGroup?.id !== group.id)
-				dispatch(setWorkingGroupId(group.id));
+		let ignore = false;
+		async function onMount() {
+			const groups = await dispatch(getGroups());
+			if (ignore)
+				return;
+			const groupName = location.pathname.split('/')[1];
+			if (groupName) {
+				const group = groups.find(g => g.name === groupName);
+				if (group && workingGroup?.id !== group.id)
+					dispatch(setWorkingGroupId(group.id));
+			}
+			else if (workingGroup) {
+				navigate(`/${workingGroup.name}`);
+			}
 		}
-		else if (workingGroup) {
-			navigate(`/${workingGroup.name}`);
+		function onUnmount() {
+			ignore = true;
 		}
+
+		onMount();
+		return onUnmount;
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	async function handleChange(values: typeof options) {

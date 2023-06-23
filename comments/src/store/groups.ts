@@ -111,7 +111,7 @@ export const selectWorkingGroup = (state: RootState) => {
 	const {workingGroupId, entities} = selectGroupsState(state);
 	return (workingGroupId && entities[workingGroupId]) || undefined;
 }
-export const selectWorkingGroupName = (state: RootState) => selectWorkingGroup(state)?.name || '*';
+export const selectWorkingGroupName = (state: RootState) => selectWorkingGroup(state)?.name || '';
 
 export const selectWorkingGroupPermissions = (state: RootState) => selectWorkingGroup(state)?.permissions || {};
 
@@ -154,7 +154,7 @@ function validResponse(response: any): response is Group[] {
 	return Array.isArray(response) && response.every(validGroup);
 }
 
-export const loadGroups = (groupName?: string): AppThunk => 
+export const loadGroups = (groupName?: string): AppThunk<Group[]> => 
 	(dispatch) => {
 		dispatch(getPending());
 		const url = groupName? `${baseUrl}/${groupName}`: `${baseUrl}?type=wg`;
@@ -163,10 +163,12 @@ export const loadGroups = (groupName?: string): AppThunk =>
 				if (!validResponse(response))
 					throw new TypeError('Unexpected response to GET ' + url);
 				dispatch(getSuccess(response));
+				return response;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError('Unable to get groups', error));
+				return [];
 			});
 	}
 
@@ -177,12 +179,19 @@ export const loadSubgroups = (): AppThunk =>
 			dispatch(loadGroups(workingGroup.name));
 	}
 
-export const initGroups = (): AppThunk =>
+export const getGroups = (): AppThunk<Group[]> =>
 	async (dispatch, getState) => {
+		const state = getState();
+		const {valid, ids, entities} = selectGroupsState(state);
+		if (!valid)
+			return dispatch(loadGroups());
+		return ids.map(id => entities[id]!).filter(group => group.type === "wg");
+	}
+
+export const initGroups = (): AppThunk =>
+	async (dispatch) => {
 		dispatch(loadGroups());
-		const workingGroup = selectWorkingGroup(getState());
-		if (workingGroup)
-			dispatch(loadGroups(workingGroup.name));
+		dispatch(loadSubgroups());
 	}
 
 export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group | undefined> =>
@@ -201,5 +210,5 @@ export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group
 				dispatch(loadBallots());
 			}
 		}
-		return selectWorkingGroup(state);
+		return workingGroupId? selectGroup(state, workingGroupId): undefined;
 	}

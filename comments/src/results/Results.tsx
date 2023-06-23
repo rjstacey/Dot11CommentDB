@@ -81,7 +81,6 @@ const maxWidth = 1600;
 function Results() {
 
 	const access = useAppSelector(selectResultsAccess);
-	console.log('access', access)
 	const resultsBallot_id = useAppSelector(selectResultsBallot_id);
 	const currentBallot_id = useAppSelector(selectCurrentBallot_id);
 	const resultsBallot = useAppSelector((state) => resultsBallot_id? selectBallot(state, resultsBallot_id): undefined);

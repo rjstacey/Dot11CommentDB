@@ -118,9 +118,9 @@ export function configureStore(user: User) {
 		registerLiveUpdate(store);
 
 		// After hydrate, load the latest
-		store.dispatch(initGroups());
-		store.dispatch(initMembers());
-		store.dispatch(initBallots());
+		//store.dispatch(initGroups());
+		//store.dispatch(initMembers());
+		//store.dispatch(initBallots());
 	});
 
 	return {store, persistor, reducer: rootReducer}
