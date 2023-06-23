@@ -34,22 +34,22 @@ export type CommentsSummary = {
 }
 
 export type Ballot = {
-    id: number;
+	id: number;
 	groupId: string | null;
-    BallotID: string;
-    Project: string;
-    Type: number;
-    IsRecirc: boolean;
-    IsComplete: boolean;
-    Start: string | null;
-    End: string | null;
-    Document: string;
-    Topic: string;
-    VotingPoolID: string | null;
-    prev_id: number | null;
-    EpollNum: number | null;
-    Results: ResultsSummary | null;
-    Comments: CommentsSummary;
+	BallotID: string;
+	Project: string;
+	Type: number;
+	IsRecirc: boolean;
+	IsComplete: boolean;
+	Start: string | null;
+	End: string | null;
+	Document: string;
+	Topic: string;
+	VotingPoolID: string | null;
+	prev_id: number | null;
+	EpollNum: number | null;
+	Results: ResultsSummary | null;
+	Comments: CommentsSummary;
 	Voters: number;
 }
 
@@ -61,17 +61,17 @@ export type BallotCommentsSummary = {
 export type BallotEdit = {
 	groupId: string | null;
 	BallotID: string;
-    Project: string;
-    Type: number;
-    IsRecirc: boolean;
-    IsComplete: boolean;
-    Start: string;
-    End: string;
-    Document: string;
-    Topic: string;
-    VotingPoolID: string | null;
-    prev_id: number | null;
-    EpollNum: number;
+	Project: string;
+	Type: number;
+	IsRecirc: boolean;
+	IsComplete: boolean;
+	Start: string;
+	End: string;
+	Document: string;
+	Topic: string;
+	VotingPoolID: string | null;
+	prev_id: number | null;
+	EpollNum: number;
 }
 
 export type SyncedBallot = Ballot & {

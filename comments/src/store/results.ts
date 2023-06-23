@@ -13,16 +13,16 @@ import { updateBallotsLocal, selectBallotEntities, selectBallot, validBallot, Ba
 import { selectGroupPermissions } from './groups';
 
 export type Result = {
-    id: string;
-    ballot_id: number;
-    SAPIN: number;
+	id: string;
+	ballot_id: number;
+	SAPIN: number;
 	CurrentSAPIN: number;
-    Email?: string;
-    Name: string;
-    Affiliation: string;
+	Email?: string;
+	Name: string;
+	Affiliation: string;
 	Status: string;
-    Vote: string;
-    CommentCount: number;
+	Vote: string;
+	CommentCount: number;
 	Notes: string;
 }
 

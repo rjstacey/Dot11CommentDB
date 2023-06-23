@@ -51,27 +51,27 @@ const initialState: ExtraState = {
 const dataAdapter = createEntityAdapter<Group>();
 const dataSet = 'groups';
 const slice = createSlice({
-    name: dataSet,
-    initialState: dataAdapter.getInitialState(initialState),
-    reducers: {
-        getPending(state) {
-            state.loading = true;
-        },
-        getSuccess(state, action: PayloadAction<Group[]>) {
-            state.loading = false;
-            state.valid = true;
-            dataAdapter.setMany(state, action);
-        },
-        getFailure(state) {
-            state.loading = false;
-            state.valid = false;
-        },
+	name: dataSet,
+	initialState: dataAdapter.getInitialState(initialState),
+	reducers: {
+		getPending(state) {
+			state.loading = true;
+		},
+		getSuccess(state, action: PayloadAction<Group[]>) {
+			state.loading = false;
+			state.valid = true;
+			dataAdapter.setMany(state, action);
+		},
+		getFailure(state) {
+			state.loading = false;
+			state.valid = false;
+		},
 		setWorkingGroupId(state, action: PayloadAction<string | null>) {
 			state.workingGroupId = action.payload;
 		},
 		setAll: dataAdapter.setAll,
 		setMany: dataAdapter.setMany,
-    },
+	},
 });
 
 

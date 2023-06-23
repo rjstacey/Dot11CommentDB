@@ -356,7 +356,7 @@ export const updateComments = (updates: CommentUpdate[]): AppThunk =>
 		const lastModified = selectCommentsLastModified(state);
 
 		const localUpdates: Update<CommentResolution>[] = [], 
-		      rollbackUpdates: Update<CommentResolution>[] = [];
+			  rollbackUpdates: Update<CommentResolution>[] = [];
 		for (const id of ids) {
 			const c = entities[id]!;
 			const comment_id = c.comment_id;
@@ -583,7 +583,7 @@ export const deleteResolutions = (delete_ids: any[]): AppThunk =>
 
 		// Organize by comment_id
 		const toDelete: Record<number, EntityId[]> = {},
-		      toDeleteCommentIDs: number[] = [];
+			  toDeleteCommentIDs: number[] = [];
 		for (const id of delete_ids) {
 			const comment_id = entities[id]!.comment_id;
 			if (toDeleteCommentIDs.includes(comment_id)) {
@@ -596,9 +596,9 @@ export const deleteResolutions = (delete_ids: any[]): AppThunk =>
 		}
 
 		const deletes: EntityId[] = [],
-		      updates: Update<CommentResolution>[] = [],
-		      commentUpdates: Update<CommentResolution>[] = [],
-		      selected: EntityId[] = [];
+			  updates: Update<CommentResolution>[] = [],
+			  commentUpdates: Update<CommentResolution>[] = [],
+			  selected: EntityId[] = [];
 		for (const comment_id of toDeleteCommentIDs) {
 			const resolution_ids = toDelete[comment_id];
 
