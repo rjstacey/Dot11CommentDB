@@ -80,7 +80,7 @@ function validateUploadParams(params: any): asserts params is {toUpdate: FieldTo
 
 router
 	.all('*', (req, res, next) => {
-		const access = req.group?.permissions.comments || AccessLevel.none;
+		const access = req.permissions?.comments || AccessLevel.none;
 
 		if (req.method === "GET" && access >= AccessLevel.ro)
 			return next();

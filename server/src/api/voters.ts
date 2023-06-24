@@ -20,8 +20,7 @@ const router = Router();
 
 router
 	.all('*', (req, res, next) => {
-		const access = req.group?.permissions.voters || AccessLevel.none;
-		console.log(req.group?.name, access)
+		const access = req.permissions?.voters || AccessLevel.none;
 		if (req.method === "GET" && access >= AccessLevel.ro)
 			return next();
 		if (req.method === "PATCH" && access >= AccessLevel.rw)
@@ -32,7 +31,6 @@ router
 	})
 	.route('/')
 		.get((req, res, next) => {
-			console.log('get voters')
 			const ballot_id = req.ballot!.id;
 			getVoters({ballot_id})
 				.then(data => res.json(data))

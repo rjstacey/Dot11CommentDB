@@ -47,6 +47,11 @@ interface OrganizationQueryConstraints {
 	symbol?: string | string[];
 };
 
+/**
+ * Get group and subgroup identifiers
+ * @param groupName - The name of the group
+ * @returns An array of group identifiers that includes the group and all its subgroups
+ */
 export async function getGroupAndSubgroupIds(groupName: string) {
 
 	async function getChildren(parent_ids: string[]) {
@@ -62,71 +67,104 @@ export async function getGroupAndSubgroupIds(groupName: string) {
 	return ids;
 }
 
+const selectGroupsSql =
+	'SELECT ' + 
+		'BIN_TO_UUID(org.id) AS id, ' +
+		'BIN_TO_UUID(org.parent_id) AS parent_id, ' +
+		'org.`name`, ' +
+		'org.`type`, ' +
+		'org.`status`, ' +
+		'org.`color`, ' +
+		'org.`symbol`, ' +
+		'org.`project`, ' +
+		'COALESCE(off.`officerSAPINs`, JSON_ARRAY()) as officerSAPINs ' +
+	'FROM organization org ' +
+		'LEFT JOIN (SELECT group_id, JSON_ARRAYAGG(SAPIN) AS officerSAPINs FROM officers GROUP BY group_id) AS off ON org.id=off.group_id';
+
+
+/**
+ * Compare function to sort groups by type and then by name
+ */
+const groupTypes = Object.keys(GroupTypeLabels);
+function groupCmp(g1: Group, g2: Group) {
+	const n = groupTypes.indexOf(g1.type || '') - groupTypes.indexOf(g2.type || '');
+	if (n === 0)
+		return g1.name? g1.name.localeCompare(g2.name): 0;
+	return n;
+}
+
 export async function getGroups(user: User, constraints?: OrganizationQueryConstraints) {
-	let sql =
-		'SELECT ' + 
-			'BIN_TO_UUID(o1.id) AS id,' +
-			'BIN_TO_UUID(o1.parent_id) AS parent_id, ' +
-			'o1.`name`, ' +
-			'o1.`type`, ' +
-			'o1.`status`, ' +
-			'o1.`color`, ' +
-			'o1.`symbol`, ' +
-			'o1.`project`, ' +
-			'COALESCE(off.`officerSAPINs`, JSON_ARRAY()) as officerSAPINs ' +
-		'FROM organization o1 ' +
-			'LEFT JOIN (SELECT group_id, JSON_ARRAYAGG(SAPIN) AS officerSAPINs FROM officers GROUP BY group_id) AS off ON o1.id=off.group_id';
-		
+	let sql = selectGroupsSql;
+
 	if (constraints) {
 		const {parentName, ...rest} = constraints;
 		const wheres: string[] = [];
 		if (parentName) {
 			const ids = await getGroupAndSubgroupIds(parentName);
-			wheres.push(db.format('BIN_TO_UUID(o1.id) IN (?)', [ids]));
+			if (ids.length === 0)
+				return [];	// No group with that name
+			wheres.push(db.format('BIN_TO_UUID(org.id) IN (?)', [ids]));
 		}
 		Object.entries(rest).forEach(([key, value]) => {
 			wheres.push(
 				(key === 'id' || key === 'parent_id')?
-					db.format(Array.isArray(value)? 'BIN_TO_UUID(o1.??) IN (?)': 'BIN_TO_UUID(o1.??)=?', [key, value]):
-					db.format(Array.isArray(value)? 'o1.?? IN (?)': 'o1.??=?', [key, value])
+					db.format(Array.isArray(value)? 'BIN_TO_UUID(org.??) IN (?)': 'BIN_TO_UUID(org.??)=?', [key, value]):
+					db.format(Array.isArray(value)? 'org.?? IN (?)': 'org.??=?', [key, value])
 			);
 		});
 		if (wheres.length > 0)
 			sql += ' WHERE ' + wheres.join(' AND ');
 	}
 
-	const groupTypes = Object.keys(GroupTypeLabels);
-	let groups = await db.query(sql) as Group[];
-	groups = await Promise.all(
-			groups.map(async (group) => {
-				const permissions = await getUserGroupPermissions(user, group);
-				return {...group, permissions};
-			})
-		);
-	groups = groups
-		.sort((g1, g2) => {
-			const n = groupTypes.indexOf(g1.type || '') - groupTypes.indexOf(g2.type || '');
-			if (n === 0)
-				return g1.name? g1.name.localeCompare(g2.name): 0;
-			return n;
-		});
+	let groups = (await db.query(sql) as Group[])
+		.sort(groupCmp);
+	groups.forEach(group => group.permissions = getGroupUserPermissions(user, group));
 	return groups;
 }
 
-export async function getGroup(user: User, name: string): Promise<Group | undefined> {
-	const groups = await getGroups(user, {name});
-	return groups[0];
+/**
+ * Get group hierarchy 
+ * @param user - The user executing the get
+ * @param group_id - The group identifier
+ * @returns An array of groups where the first entry is the group and successive entries the parents
+ */
+export async function getGroupHierarchy(user: User, group_id: string): Promise<Group[]> {
+	const groups = await db.query(selectGroupsSql + ' WHERE BIN_TO_UUID(org.id)=?', [group_id]) as Group[];
+	const group = groups[0];
+	if (group) {
+		group.permissions = getGroupUserPermissions(user, group);
+		if (group.parent_id)
+			return groups.concat(await getGroupHierarchy(user, group.parent_id));
+	}
+	return groups;
+}
+
+export async function getGroupByName(user: User, name: string): Promise<Group | undefined> {
+	const [group] = await getGroups(user, {name});
+	return group;
 }
 
 export async function getWorkingGroup(user: User, group_id: string): Promise<Group | undefined> {
-	const [group] = await getGroups(user, {id: group_id});
-	if (group) {
-		if (group.type === "wg")
-			return group;
-		if (group.parent_id)
-			return getWorkingGroup(user, group.parent_id);
-	}
-	return group;
+	const groups = await getGroupHierarchy(user, group_id);
+	return groups.find(group => group.type === "wg");
+}
+
+/**
+ * Get group rolled up permissions.
+ * @param user - The user executing the get
+ * @param group_id - The group for which permissions are sought
+ * @returns The rolled-up permissions for the group, i.e., the highest permission for each scope from the group or its parents
+ */
+export async function getGroupRollUpPermissions(user: User, group_id: string): Promise<Record<string, number>> {
+	const groups = await getGroupHierarchy(user, group_id);
+	const permissions = {};
+	groups.forEach(group => {
+		Object.entries(group.permissions).forEach(([scope, access]) => {
+			if (!permissions[scope] || permissions[scope] < access)
+				permissions[scope] = access;
+		})
+	});
+	return permissions;
 }
 
 /* Permission sets */
@@ -154,34 +192,15 @@ const permMember: Record<string, number> = {
 	users: AccessLevel.ro,
 	groups: AccessLevel.ro,
 	ballots: AccessLevel.ro,
-	voters: AccessLevel.none,
-	results: AccessLevel.none,
 	comments: AccessLevel.ro
 };
 
-export async function getUserGroupPermissions(user: User, group: Group) {
-	let permissions: Record<string, number> = permMember;
-	if (group.type === "wg") {
-		//const officers = await getOfficers({group_id: group.id});
-		//if (officers.find(officer => officer.sapin === user.SAPIN))
-		//	permissions = permWgOfficer;
-		if (group.officerSAPINs.includes(user.SAPIN))
-			permissions = permWgOfficer;
-	}
-	else if (["tg", "sg", "sc", "ah"].includes(group.type!)) {
-		//let officers = await getOfficers({group_id: group.id});
-		//if (officers.find(officer => officer.sapin === user.SAPIN))
-		//	permissions = permTgOfficer;
-		if (group.officerSAPINs.includes(user.SAPIN))
-			permissions = permTgOfficer;
-		if (group.parent_id) {
-			let wg = await getWorkingGroup(user, group.parent_id);
-			if (wg?.officerSAPINs.includes(user.SAPIN))
-				permissions = permWgOfficer;
-		}
-	}
-	//console.log(group.name, permissions)
-	return permissions;
+function getGroupUserPermissions(user: User, group: Group) {
+	if (["wg", "c"].includes(group.type!) && group.officerSAPINs.includes(user.SAPIN))
+		return permWgOfficer;
+	else if (["tg", "sg", "sc", "ah"].includes(group.type!) && group.officerSAPINs.includes(user.SAPIN))
+		return permTgOfficer;
+	return permMember;
 }
 
 function groupSetSql(group: Partial<Group>) {

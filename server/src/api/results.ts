@@ -44,7 +44,7 @@ const router = Router();
 
 router
 	.all('*', (req, res, next) => {
-		const access = req.group?.permissions.results || AccessLevel.none;
+		const access = req.permissions?.results || AccessLevel.none;
 		if (req.method === "GET" && access >= AccessLevel.ro)
 			return next();
 		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
@@ -56,9 +56,7 @@ router
 		if (forSeries && forSeries !== "true" && forSeries !== "false")
 			return next(new TypeError("Invalid forSeries parameter: expected true or false"));
 
-		const access = (req.group?
-			req.group.permissions.results:
-			req.workingGroup?.permissions.results) || AccessLevel.none;
+		const access = req.permissions?.results || AccessLevel.none;
 
 		exportResults(req.user, access, req.ballot!, forSeries === "true", res)
 			.then(() => res.end())
@@ -78,9 +76,7 @@ router
 	})
 	.route('/')
 		.get((req, res, next) => {
-			const access = (req.group?
-				req.group.permissions.results:
-				req.workingGroup?.permissions.results) || AccessLevel.none;
+			const access = req.permissions?.results || AccessLevel.none;
 			getResultsCoalesced(req.user, access, req.ballot!)
 				.then(data => res.json(data))
 				.catch(next);

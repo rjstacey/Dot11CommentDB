@@ -10,7 +10,7 @@ const router = Router();
 
 router
   .all('*', (req, res, next) => {
-    if (!req.group)
+    	if (!req.group)
 			return res.status(500).send("Group not set");
 
 		const access = req.group.permissions.members || AccessLevel.none;
