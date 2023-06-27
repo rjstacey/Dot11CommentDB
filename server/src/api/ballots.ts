@@ -28,6 +28,7 @@
  */
 
 import { Router } from 'express';
+import { ForbiddenError } from '../utils';
 import { AccessLevel } from '../auth/access';
 import {
 	getBallots,
@@ -44,7 +45,7 @@ const router = Router();
 router
 	.all('*', (req, res, next) => {
 		if (!req.group)
-			return res.status(500).send("Group not set");
+			return next(new Error("Group not set"));
 
 		const access = req.group.permissions.ballots || AccessLevel.none;
 
@@ -55,7 +56,7 @@ router
 		if ((req.method === "PUT" || req.method === "DELETE") && access >= AccessLevel.admin)
 			return next();
 			
-		res.status(403).send('Insufficient karma');
+		next(new ForbiddenError('Insufficient karma'));
 	})
 	.route('/')
 		.get((req, res, next) => {
@@ -66,7 +67,7 @@ router
 		.post((req, res, next) => {
 			const ballots = req.body;
 			if (!validBallots(ballots))
-				throw new TypeError("Bad or missing array of ballot objects");
+				return next(new TypeError("Bad or missing array of ballot objects"));
 			addBallots(req.user, req.group!, ballots)
 				.then(data => res.json(data))
 				.catch(next);

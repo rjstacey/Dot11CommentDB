@@ -22,7 +22,7 @@
  *		Returns the number of officers deleted.
  */
 import { Router } from 'express';
-import { isPlainObject } from '../utils';
+import { ForbiddenError } from '../utils';
 import { AccessLevel } from '../auth/access';
 import {
 	getOfficers,
@@ -39,11 +39,13 @@ const router = Router();
 router
 	.all('*', (req, res, next) => {
 		if (!req.group)
-			return res.status(500).send("Group not set");
+			return next(new Error("Group not set"));
+
 		const access = req.group.permissions.members || AccessLevel.none;
 		if (access >= AccessLevel.admin)
 			return next();
-		res.status(403).send('Insufficient karma');
+		
+		next(new ForbiddenError("Insufficient karma"));
 	})
 	.route('/')
 		.get((req, res, next) => {

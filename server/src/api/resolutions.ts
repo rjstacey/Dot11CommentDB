@@ -36,7 +36,7 @@
  */
 import {Router} from 'express';
 import Multer from 'multer';
-import { isPlainObject } from '../utils';
+import { ForbiddenError, isPlainObject } from '../utils';
 import { AccessLevel } from '../auth/access';
 import {
 	addResolutions,
@@ -84,13 +84,14 @@ router
 
 		if (req.method === "GET" && access >= AccessLevel.ro)
 			return next();
-		// Need read-write privileges to update resolutions
-		if (req.method === "PATCH" && access >= AccessLevel.rw)
+		// Need read-only (ballot level) privileges to update resolutions; check specific priveledges later
+		if (req.method === "PATCH" && access >= AccessLevel.ro)
 			return next();
 		// Need admin privileges to add or delete resolutions
 		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
 			return next();
-		res.status(403).send('Insufficient karma');
+			
+		next(new ForbiddenError('Insufficient karma'));
 	})
 	.post('/upload', upload.single('ResolutionsFile'), (req, res, next) => {
 		const ballot_id = req.ballot!.id;
@@ -123,6 +124,7 @@ router
 				.catch(next);
 		})
 		.patch((req, res, next) => {
+			const access = req.permissions?.comments || AccessLevel.none;
 			const ballot_id = req.ballot!.id;
 			const {modifiedSince} = req.query;
 			if (!validModifiedSince(modifiedSince))
@@ -130,7 +132,7 @@ router
 			const updates = req.body;
 			if (!validResolutionUpdates(updates))
 				return next(new TypeError('Bad or missing body; expected an array of resolution update objects'));
-			updateResolutions(req.user, ballot_id, updates, modifiedSince)
+			updateResolutions(req.user, ballot_id, access, updates, modifiedSince)
 				.then(data => res.json(data))
 				.catch(next);
 		})

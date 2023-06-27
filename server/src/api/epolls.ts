@@ -6,6 +6,7 @@
  *		Returns an array of epoll objects.
  */
 import { Router } from 'express';
+import { ForbiddenError } from '../utils';
 import { AccessLevel } from '../auth/access';
 import { getEpolls } from '../services/epoll';
 
@@ -14,11 +15,13 @@ const router = Router();
 router
 	.all('*', (req, res, next) => {
 		if (!req.group)
-			return res.status(500).send("Group not set");
+			return next(new Error("Group not set"));
+
 		const access = req.group.permissions.ballots || AccessLevel.none;
 		if (access >= AccessLevel.admin)
 			return next();
-		res.status(403).send('Insufficient karma');
+
+		next(new ForbiddenError("Insufficient karma"));
 	})
 	.get('/', (req, res, next) => {
 		const groupName = req.group!.name;

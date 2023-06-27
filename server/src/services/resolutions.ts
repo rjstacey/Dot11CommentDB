@@ -6,7 +6,9 @@ import db from '../utils/database';
 import { selectComments } from './comments';
 import { User } from './users';
 import type { OkPacket } from 'mysql2';
-import { isPlainObject } from '../utils';
+import { ForbiddenError, isPlainObject } from '../utils';
+import { AccessLevel } from '../auth/access';
+import { getGroups } from './groups';
 
 export type Resolution = {
 	id: string;
@@ -187,10 +189,20 @@ export function validResolutionUpdates(updates: any): updates is ResolutionUpdat
 export async function updateResolutions(
 	user: User,
 	ballot_id: number,
+	access: number,
 	updates: ResolutionUpdate[],
 	modifiedSince?: string
 ) {
-	console.log(modifiedSince)
+
+	if (access < AccessLevel.rw) {
+		const comments = await selectComments({resolution_id: updates.map(u => u.id)});
+		const groupIds = [...new Set<string>(comments.map(c => c.AdHocGroupId).filter(c => c) as string[])];
+		const groups = await getGroups(user, {id: groupIds});
+		if (!groups.every(group => (group.permissions.comments || AccessLevel.none) >= AccessLevel.rw) &&
+			!comments.every(c => c.AssigneeSAPIN === user.SAPIN))
+			throw new ForbiddenError("Insufficient karma");
+	}
+
 	await Promise.all(updates.map(u => updateResolution(user, ballot_id, u.id, u.changes)));
 	const comments = await selectComments({resolution_id: updates.map(u => u.id)}, {ballot_id, modifiedSince});
 	return {comments};

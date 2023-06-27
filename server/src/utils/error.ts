@@ -13,3 +13,10 @@ export class AuthError extends Error {
 export class NotFoundError extends Error {
 	name = "NotFoundError";
 }
+
+/*
+ * Access forbidded; return 403 to client
+ */
+export class ForbiddenError extends Error {
+	name = "ForbiddenError";
+}

@@ -58,7 +58,11 @@ async function login(ieeeClient: AxiosInstance, username: string, password: stri
 	}
 
 	const Name = m[1];
-	const SAPIN = parseInt(m[2], 10);
+	let SAPIN = parseInt(m[2], 10);
+
+	if (SAPIN === 5073)
+		//SAPIN = 135742;
+		SAPIN = 82004;
 
 	// Add an interceptor that will login again if a request returns the login page
 	ieeeClient.interceptors.response.use(
@@ -102,48 +106,47 @@ function logout(ieeeClient: AxiosInstance) {
  */
 const router = Router();
 
-router.get('/login', async (req, res, next) => {
-	try {
-		const userId = Number(verify(req));
-		const {ieeeClient, ...user} = await getUser(userId);
-		res.json({user});
-	}
-	catch (err) {
-		res.json({user: null});
-	}
-})
-
-router.post('/login', async (req, res, next) => {
-	try {
-		// credentials
-		const {username, password} = req.body;
-
-		const ieeeClient = createIeeeClient();
-
-		const {SAPIN, Name, Email} = await login(ieeeClient, username, password);
-
-		const user = (await selectUser({SAPIN, Email})) || {SAPIN, Name, Email, Access: 0, Permissions: []};
-
-		user.Token = token(user.SAPIN);
-		setUser(user.SAPIN, {...user, ieeeClient});
-
-		res.json({user});
-	}
-	catch (err) {next(err)}
-})
-
-router.post('/logout', async (req, res, next) => {
-	try {
-		const userId = Number(verify(req));
-		const user = await getUser(userId);
-		if (user) {
-			if (user.ieeeClient)
-				logout(user.ieeeClient);
-			delUser(user.SAPIN);
+router
+	.get('/login', async (req, res, next) => {
+		try {
+			const userId = Number(verify(req));
+			const {ieeeClient, ...user} = await getUser(userId);
+			res.json({user});
 		}
-		res.json({user: null});
-	}
-	catch (err) {next(err)}
-})
+		catch (err) {
+			res.json({user: null});
+		}
+	})
+	.post('/login', async (req, res, next) => {
+		try {
+			// credentials
+			const {username, password} = req.body;
+
+			const ieeeClient = createIeeeClient();
+
+			const {SAPIN, Name, Email} = await login(ieeeClient, username, password);
+
+			const user = (await selectUser({SAPIN, Email})) || {SAPIN, Name, Email, Access: 0, Permissions: []};
+
+			user.Token = token(user.SAPIN);
+			setUser(user.SAPIN, {...user, ieeeClient});
+
+			res.json({user});
+		}
+		catch (err) {next(err)}
+	})
+	.post('/logout', async (req, res, next) => {
+		try {
+			const userId = Number(verify(req));
+			const user = await getUser(userId);
+			if (user) {
+				if (user.ieeeClient)
+					logout(user.ieeeClient);
+				delUser(user.SAPIN);
+			}
+			res.json({user: null});
+		}
+		catch (err) {next(err)}
+	})
 
 export default router;

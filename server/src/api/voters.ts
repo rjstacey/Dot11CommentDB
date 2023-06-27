@@ -3,7 +3,7 @@
  */
 import { Router } from 'express';
 import Multer from 'multer';
-import { isPlainObject } from '../utils';
+import { ForbiddenError, isPlainObject } from '../utils';
 import { AccessLevel } from '../auth/access';
 import {
 	getVoters,
@@ -27,7 +27,8 @@ router
 			return next();
 		if (access >= AccessLevel.admin)
 			return next();
-		res.status(403).send('Insufficient karma');
+
+		next(new ForbiddenError("Insufficient karma"));
 	})
 	.route('/')
 		.get((req, res, next) => {

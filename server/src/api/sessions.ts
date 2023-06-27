@@ -83,12 +83,8 @@ router
 				.catch(next)
 		});
 	
-router
-
-
 router.get('/:id(\\d+)/breakouts', async (req, res, next) => {
 	try {
-		const {user} = req;
 		let id = parseInt(req.params.id);
 		const data = await getBreakouts(id);
 		res.json(data);
@@ -98,10 +94,9 @@ router.get('/:id(\\d+)/breakouts', async (req, res, next) => {
 
 router.get('/:id(\\d+)/breakout/:breakout_id(\\d+)/attendees', async (req, res, next) => {
 	try {
-		const {user} = req;
 		const session_id = parseInt(req.params.id);
 		const breakout_id = parseInt(req.params.breakout_id, 10);
-		const data = await getBreakoutAttendees(user, session_id, breakout_id);
+		const data = await getBreakoutAttendees(req.user, session_id, breakout_id);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -109,7 +104,6 @@ router.get('/:id(\\d+)/breakout/:breakout_id(\\d+)/attendees', async (req, res, 
 
 router.get('/:id(\\d+)/attendees', async (req, res, next) => {
 	try {
-		const {user} = req;
 		const session_id = parseInt(req.params.id);
 		const data = await getSessionAttendees(session_id);
 		res.json(data);
@@ -119,9 +113,8 @@ router.get('/:id(\\d+)/attendees', async (req, res, next) => {
 
 router.post('/:id(\\d+)/breakouts/import', async (req, res, next) => {
 	try {
-		const {user} = req;
 		let id = parseInt(req.params.id);
-		const data = await importBreakouts(user, id);
+		const data = await importBreakouts(req.user, id);
 		res.json(data);
 	}
 	catch(err) {next(err)}
@@ -143,9 +136,8 @@ router.patch('/attendance_summaries', async (req, res, next) => {
 
 router.post('/:id(\\d+)/attendance_summary/import', async (req, res, next) => {
 	try {
-		const {user} = req;
 		let id = parseInt(req.params.id);
-		const data = await importAttendances(user, id);
+		const data = await importAttendances(req.user, id);
 		res.json(data);
 	}
 	catch(err) {next(err)}

@@ -60,7 +60,7 @@
  */
 import { Router } from 'express';
 import Multer from 'multer';
-import { isPlainObject } from '../utils';
+import { ForbiddenError, isPlainObject } from '../utils';
 import { AccessLevel } from '../auth/access';
 import {
 	getComments,
@@ -94,18 +94,20 @@ const validCommentSpreadsheetFormat = (format: any): format is CommentsSpreadshe
 router
 	.all('*', (req, res, next) => {
 		const access = req.permissions?.comments || AccessLevel.none;
+		
 		if (req.method === "GET" && access >= AccessLevel.ro)
 			return next();
 		// Need read-only privileges to export comments
 		if (req.method === "POST" && req.path.search(/^\/export/i) >= 0 && access >= AccessLevel.ro)
 			return next();
-		// Need read-write privileges to update comments
-		if (req.method === "PATCH" && access >= AccessLevel.rw)
+		// Need read-only privileges to update specific comments. We do a futher check for read-write on the specific comment later.
+		if (req.method === "PATCH" && req.path === '/' && access >= AccessLevel.ro)
 			return next();
-		// Need admin privileges to delete or add comments
-		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
+		// Need admin privileges to delete or add comments, or update start comment ID
+		if (['PATCH', 'DELETE', 'POST'].includes(req.method) && access >= AccessLevel.admin)
 			return next();
-		res.status(403).send('Insufficient karma');
+		
+		next(new ForbiddenError('Insufficient karma'));
 	})
 	.patch('/startCommentId', (req, res, next) => {
 		const ballot_id = req.ballot!.id;
@@ -187,11 +189,12 @@ router
 				.catch(next)
 		})
 		.patch((req, res, next) => {
+			const access = req.permissions?.comments || AccessLevel.none;
 			const modifiedSince = typeof req.query.modifiedSince === 'string'? req.query.modifiedSince: undefined;
 			const updates = req.body;
 			if (!validUpdates(updates))
 				return next(new TypeError('Bad or missing updates; expected an array of objects with shape {id, changes}'));
-			updateComments(req.user, req.ballot!.id, updates, modifiedSince)
+			updateComments(req.user, req.ballot!.id, access, updates, modifiedSince)
 				.then(data => res.json(data))
 				.catch(next);
 		})

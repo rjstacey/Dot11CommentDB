@@ -30,7 +30,7 @@
  */
 import { Router } from 'express';
 
-import {isPlainObject} from '../utils';
+import {ForbiddenError, isPlainObject} from '../utils';
 import { AccessLevel } from '../auth/access';
 import {
 	getCalendarAccounts,
@@ -45,7 +45,7 @@ const router = Router();
 router
 	.all('*', (req, res, next) => {
 		if (!req.group)
-			return res.status(500).send("Group not set");
+			return next(new Error("Group not set"));
 
 		const access = req.group.permissions.meetings || AccessLevel.none;
 
@@ -56,7 +56,7 @@ router
 		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
 			return next();
 			
-		res.status(403).send('Insufficient karma');
+		next( new ForbiddenError("Insufficient karma"));
 	})
 	.route('/accounts')
 		.get((req, res, next) => {

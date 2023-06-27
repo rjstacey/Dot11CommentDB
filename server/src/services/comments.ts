@@ -4,12 +4,14 @@ import { DateTime } from 'luxon';
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 
-import { AuthError, isPlainObject } from '../utils';
+import { AuthError, ForbiddenError, isPlainObject } from '../utils';
 import { parseEpollCommentsCsv } from './epoll';
 import { parseMyProjectComments } from './myProjectSpreadsheets';
 import { BallotType, Ballot, getBallotWithNewResultsSummary } from './ballots';
 import type { Resolution } from './resolutions';
 import type { User } from './users';
+import { AccessLevel } from '../auth/access';
+import { getGroups } from './groups';
 
 export type Comment = {
 	id: bigint;
@@ -51,6 +53,7 @@ export type CommentsSummary = {
 }
 
 const createViewCommentResolutionsSQL = 
+	'DROP VIEW IF EXISTS commentResolutions; ' +
 	'CREATE VIEW commentResolutions AS SELECT ' +
 		'b.id AS ballot_id, ' +
 		'c.id AS comment_id, ' +
@@ -95,16 +98,10 @@ const createViewCommentResolutionsSQL =
 	'FROM ballots b JOIN comments c ON (b.id = c.ballot_id) ' + 
 		'LEFT JOIN resolutions r ON (c.id = r.comment_id) ' + 
 		'LEFT JOIN members m ON (r.AssigneeSAPIN = m.SAPIN) ' + 
-		'LEFT JOIN results ON (b.id = results.ballot_id AND c.CommenterSAPIN = results.SAPIN); ';
+		'LEFT JOIN results ON (b.id = results.ballot_id AND c.CommenterSAPIN = results.SAPIN);';
 
 export async function initCommentsTables() {
-	const SQL =
-		'DROP VIEW IF EXISTS commentResolutions;\n' +
-		createViewCommentResolutionsSQL;
-
-	//console.log(SQL);
-
-	await db.query(SQL);
+	await db.query(createViewCommentResolutionsSQL);
 }
 
 type Arrayed<T> = { [K in keyof T]: T[K] | Array<T[K]> };
@@ -227,7 +224,15 @@ export function validUpdates(updates: any): updates is CommentUpdate[] {
 	return Array.isArray(updates) && updates.every(validUpdate);
 }
 
-export async function updateComments(user: User, ballot_id: number, updates: CommentUpdate[], modifiedSince?: string) {
+export async function updateComments(user: User, ballot_id: number, access: number, updates: CommentUpdate[], modifiedSince?: string) {
+
+	if (access <= AccessLevel.ro) {
+		const comments = await selectComments({comment_id: updates.map(u => u.id)});
+		const groupIds = [...new Set<string>(comments.map(c => c.AdHocGroupId).filter(c => c) as string[])];
+		const groups = await getGroups(user, {id: groupIds});
+		if (!groups.every(group => group.permissions.comments >= AccessLevel.rw))
+			throw new ForbiddenError("Insufficient karma");
+	}
 
 	await Promise.all(updates.map(u => updateComment(user, ballot_id, u.id, u.changes)));
 

@@ -30,6 +30,7 @@
  */
 import { Router } from 'express';
 import Multer from 'multer';
+import { ForbiddenError } from '../utils';
 import { AccessLevel } from '../auth/access';
 import {
 	getResultsCoalesced,
@@ -44,12 +45,14 @@ const router = Router();
 
 router
 	.all('*', (req, res, next) => {
+
 		const access = req.permissions?.results || AccessLevel.none;
 		if (req.method === "GET" && access >= AccessLevel.ro)
 			return next();
 		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
 			return next();
-		res.status(403).send('Insufficient karma');
+		
+		next(new ForbiddenError("Insufficient karma"));
 	})
 	.get('/export', (req, res, next) => {
 		const {forSeries} = req.query;

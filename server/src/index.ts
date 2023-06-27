@@ -108,9 +108,13 @@ function initServer() {
 				message = JSON.stringify(err);
 			}
 		}
-		let status = 400;
-		if (err.name === "AuthError")
+		let status = 500;
+		if (err.name === "TypeError")
+			status = 400;
+		else if (err.name === "AuthError")
 			status = 401;
+		else if (err.name === "ForbiddenError")
+			status = 403;
 		else if (err.name === "NotFoundError")
 			status = 404;
 		res.status(status).send(message);
