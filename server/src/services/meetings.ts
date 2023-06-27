@@ -115,14 +115,14 @@ function selectMeetingsSql(constraints: SelectMeetingsConstraints) {
 
 	if (fromDate) {
 		const zone = timezone || 'America/New_York';
-		const date = DateTime.fromISO(fromDate, {zone}).toUTC().toISODate();
-		wheres.push(db.format('end > ?', date));
+		const date = DateTime.fromISO(fromDate, {zone}).toUTC();
+		wheres.push(db.format('end > ?', date.toFormat('yyyy-MM-dd HH:mm:ss')));
 	}
 
 	if (toDate) {
 		const zone = timezone || 'America/New_York';
-		const date = DateTime.fromISO(toDate, {zone}).plus({days: 1}).toUTC().toISODate();
-		wheres.push(db.format('start <= ?', date));
+		const date = DateTime.fromISO(toDate, {zone}).plus({days: 1}).toUTC();
+		wheres.push(db.format('start <= ?', date.toFormat('yyyy-MM-dd HH:mm:ss')));
 	}
 
 	if (Object.entries(rest).length) {
@@ -130,7 +130,7 @@ function selectMeetingsSql(constraints: SelectMeetingsConstraints) {
 			Object.entries(rest).map(
 				([key, value]) => 
 					(key === 'organizationId')?
-						db.format(Array.isArray(value)? 'BIN_TO_UUID(m.??) IN (?)': '??=UUID_TO_BIN(?)', [key, value]):
+						db.format(Array.isArray(value)? 'BIN_TO_UUID(m.??) IN (?)': 'm.??=UUID_TO_BIN(?)', [key, value]):
 						db.format(Array.isArray(value)? 'm.?? IN (?)': 'm.??=?', [key, value])
 					)
 		);
