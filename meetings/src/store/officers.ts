@@ -1,10 +1,9 @@
 import { createSlice, createEntityAdapter, createSelector } from '@reduxjs/toolkit';
 import type { EntityId } from '@reduxjs/toolkit';
 
-import { v4 as uuid } from 'uuid';
-import type { RootState, AppThunk } from '.';
-
 import { fetcher, setError } from 'dot11-components';
+
+import type { RootState, AppThunk } from '.';
 import { selectWorkingGroupName } from './groups';
 
 export type OfficerId = string;
@@ -23,8 +22,7 @@ const initialState = dataAdapter.getInitialState({
 
 export type OfficersState = typeof initialState;
 
-export const dataSet = 'officers';
-
+const dataSet = 'officers';
 const slice = createSlice({
 	name: dataSet,
 	initialState,
@@ -40,9 +38,6 @@ const slice = createSlice({
 		getFailure(state) {
 			state.loading = false;
 		},
-		updateOne: dataAdapter.updateOne,
-		addOne: dataAdapter.addOne,
-		removeOne: dataAdapter.removeOne
 	},
 });
 
@@ -73,9 +68,6 @@ const {
 	getPending,
 	getSuccess,
 	getFailure,
-	addOne,
-	updateOne,
-	removeOne
 } = slice.actions;
 
 export const loadOfficers = (): AppThunk => 
@@ -92,69 +84,5 @@ export const loadOfficers = (): AppThunk =>
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError('Unable to get groups', error));
-			});
-	}
-
-export const addOfficer = (officer: Officer): AppThunk => 
-	(dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
-		const url = `/api/${groupName}/officers`;
-		if (!officer.id)
-			officer = {...officer, id: uuid()};
-		dispatch(addOne(officer));
-		return fetcher.post(url, [officer])
-			.then((entities: any) => {
-				if (!Array.isArray(entities) || entities.length !== 1)
-					throw new TypeError(`Unexpected response to POST ${url}`);
-				const officer = entities[0];
-				dispatch(updateOne({id: officer.id, changes: officer}));
-				return officer;
-			})
-			.catch((error: any) => {
-				dispatch(setError('Unable to add officer', error));
-				dispatch(removeOne(officer.id));
-			});
-	}
-
-interface Update<T> {
-	id: number | string;
-	changes: Partial<T>;
-};
-
-export const updateOfficer = (update: Update<Officer>): AppThunk => 
-	(dispatch, getState) => {
-		const state = getState();
-		const groupName = selectWorkingGroupName(state);
-		const url = `/api/${groupName}/officers`;
-		const {entities} = selectOfficersState(state);
-		const original = entities[update.id];
-		dispatch(updateOne(update));
-		return fetcher.patch(url, [update])
-			.then((entities: any) => {
-				if (!Array.isArray(entities) || entities.length !== 1)
-					throw new TypeError(`Unexpected response to POST ${url}`);
-				const officer = entities[0];
-				dispatch(updateOne({id: update.id, changes: officer}));
-			})
-			.catch((error: any) => {
-				dispatch(setError('Unable to update officer', error));
-				if (original)
-					dispatch(updateOne({id: update.id, changes: original}));
-			});
-	}
-
-export const deleteOfficer = (id: EntityId): AppThunk =>
-	(dispatch, getState) => {
-		const state = getState();
-		const groupName = selectWorkingGroupName(state);
-		const url = `/api/${groupName}/officers`;
-		const {entities} = selectOfficersState(state);
-		const original = entities[id];
-		dispatch(removeOne(id));
-		return fetcher.delete(url, [id])
-			.catch((error: any) => {
-				dispatch(setError('Unable to delete officer', error));
-				if (original)
-					dispatch(addOne(original));
 			});
 	}

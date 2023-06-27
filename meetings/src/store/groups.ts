@@ -1,7 +1,5 @@
 import { Action, EntityId, PayloadAction, createAction, createSelector, Dictionary } from '@reduxjs/toolkit';
 
-import { v4 as uuid } from 'uuid';
-
 import {
 	fetcher,
 	setError,
@@ -118,7 +116,7 @@ const slice = createAppTableDataSlice({
 	extraReducers: (builder, dataAdapter) => {
 		builder
 		.addMatcher(
-			(action: Action) => action.type === getSuccess2,
+			(action: Action) => action.type === getSuccess2.toString(),
 			(state, action: PayloadAction<Group[]>) => {
 				dataAdapter.addMany(state, action.payload);
 				state.loading = false;
@@ -173,28 +171,15 @@ export const groupsActions = slice.actions;
 const {
 	getPending,
 	getFailure,
-	addOne,
-	addMany,
-	updateOne,
-	updateMany,
-	removeOne,
-	removeMany,
 	setSelected,
 	setFilter,
 	clearFilter,
 	setWorkingGroupId: setWorkingGroupIdLocal
 } = slice.actions;
 
-
 export {setSelected, setFilter, clearFilter};
 
 const baseUrl = '/api/groups';
-
-export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group | undefined> =>
-	async (dispatch, getState) => {
-			dispatch(setWorkingGroupIdLocal(workingGroupId));
-			return selectWorkingGroup(getState());
-	}
 
 function validGroup(group: any): group is Group {
 	const isGood = isObject(group) &&
@@ -212,15 +197,11 @@ function validResponse(response: any): response is Group[] {
 	return Array.isArray(response) && response.every(validGroup);
 }
 
-type LoadGroupContstraints = {
-	type?: GroupType | GroupType[];
-	parent_id?: string;
-}
-
-export const loadGroups = (constraints?: LoadGroupContstraints): AppThunk => 
+export const loadGroups = (groupName?: string): AppThunk => 
 	(dispatch) => {
 		dispatch(getPending());
-		return fetcher.get(baseUrl, constraints)
+		const url = groupName? `${baseUrl}/${groupName}`: baseUrl;
+		return fetcher.get(url, groupName? undefined: {type: ['c', 'wg']})
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
@@ -233,63 +214,23 @@ export const loadGroups = (constraints?: LoadGroupContstraints): AppThunk =>
 	}
 
 export const initGroups = (): AppThunk =>
-	(dispatch, getState) => {
-		dispatch(loadGroups({type: ["c", "wg"]}));
-		const workingGroupId = selectWorkingGroupId(getState());
-		if (workingGroupId)
-			dispatch(loadGroups({parent_id: workingGroupId}));
-		return Promise.resolve();
+	async (dispatch, getState) => {
+		dispatch(loadGroups());
+		const workingGroup = selectWorkingGroup(getState());
+		if (workingGroup)
+			dispatch(loadGroups(workingGroup.name));
 	}
 
-export const addGroup = (group: GroupCreate): AppThunk<Group> => 
-	(dispatch) => {
-		if (!group.id)
-			group = {...group, id: uuid()};
-		dispatch(addOne(group as Group));
-		return fetcher.post(baseUrl, [group])
-			.then((response: any) => {
-				if (!validResponse(response) || response.length !== 1)
-					throw new TypeError(`Unexpected response to POST ${baseUrl}`);
-				const group: Group = response[0];
-				dispatch(updateOne({id: group.id, changes: group}));
-				return group;
-			})
-			.catch((error: any) => {
-				dispatch(setError('Unable to add group', error));
-				dispatch(removeOne(group.id!));
-			});
-	}
-
-interface Update<T> {
-	id: EntityId;
-	changes: Partial<T>;
-}
-
-export const updateGroups = (updates: Update<Group>[]): AppThunk => 
-	(dispatch, getState) => {
-		const {entities} = selectGroupsState(getState());
-		const originals = updates.map(u => entities[u.id]!);
-		dispatch(updateMany(updates));
-		return fetcher.patch(baseUrl, updates)
-			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response");
-				dispatch(updateMany(response.map(e => ({id: e.id, changes: e}))));
-			})
-			.catch((error: any) => {
-				dispatch(setError('Unable to update groups', error));
-				dispatch(updateMany(originals.map(e => ({id: e.id, changes: e}))));
-			});
-	}
-
-export const deleteGroups = (ids: EntityId[]): AppThunk =>
-	(dispatch, getState) => {
-		const {entities} = selectGroupsState(getState());
-		const originals = ids.map(id => entities[id]!);
-		dispatch(removeMany(ids));
-		return fetcher.delete(baseUrl, ids)
-			.catch((error: any) => {
-				dispatch(setError('Unable to delete group', error));
-				dispatch(addMany(originals));
-			});
+export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group | undefined> =>
+	async (dispatch, getState) => {
+		const state = getState();
+		const currentWorkingGroupId = selectWorkingGroupId(state);
+		if (currentWorkingGroupId !== workingGroupId) {
+			dispatch(setWorkingGroupIdLocal(workingGroupId));
+			if (workingGroupId) {
+				const groupName = selectWorkingGroupName(state);
+				dispatch(loadGroups(groupName));
+			}
+		}
+		return selectWorkingGroup(state);
 	}

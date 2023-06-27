@@ -408,13 +408,14 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 	clickSync = async () => {
 		const {updateMeetings} = this.props;
 		const {meetings, session} = this.state;
+		console.log(session)
 
 		//const updates = meetings.map(m => ({id: m.id, changes: {}}));
 
 		// Hack to ensure sessionId is set
 		const updates = meetings.map(m => {
 			const changes: Partial<Meeting> = {};
-			if (!m.sessionId)
+			if (m.sessionId !== session!.id)
 				changes.sessionId = session!.id;
 			return {id: m.id, changes};
 		});
@@ -477,7 +478,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 		//console.log(updates)
 
 		this.setState({busy: true});
-		await updateMeetings(updates)
+		await updateMeetings(updates);
 		this.reinitState('update');
 	}
 

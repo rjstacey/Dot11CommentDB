@@ -136,11 +136,12 @@ export function configureStore(user: User) {
 	const persistor = persistStore(store, null, () => {
 		// After hydrate, load the latest
 		store.dispatch(initGroups());
+		store.dispatch(loadMembers());
+		store.dispatch(loadOfficers());
+		
 		store.dispatch(loadTimeZones());
 		store.dispatch(loadWebexAccounts());
 		store.dispatch(loadCalendarAccounts());
-		store.dispatch(loadMembers());
-		store.dispatch(loadOfficers());
 	});
 
 	return {store, persistor, reducer: rootReducer};

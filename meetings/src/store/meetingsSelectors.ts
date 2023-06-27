@@ -49,6 +49,7 @@ export type SyncedMeeting = Meeting & {
 	groupName: string;
 	webexAccountName: string;
 	calendarAccountName: string;
+	sessionName: string;
 	imatMeetingName: string;
 	webexMeeting?: WebexMeeting;
 	roomName: string;
@@ -153,11 +154,13 @@ export const selectSyncedMeetingEntities = createSelector(
 			const imatMeeting: ImatMeeting | undefined = meeting.imatMeetingId? imatMeetingEntities[meeting.imatMeetingId]: undefined;
 			const webexMeeting: WebexMeeting | undefined = meeting.webexMeetingId? webexMeetingEntities[meeting.webexMeetingId]: undefined;
 			const room = meeting!.sessionId? sessionEntities[meeting.sessionId]!.rooms?.find(room => room.id === meeting.roomId): undefined;
+			const sessionName = meeting!.sessionId? sessionEntities[meeting.sessionId]!.name: 'None';
 			entities[id] = {
 				...meeting!,
 				groupName: group? group.name: 'Unknown',
 				webexAccountName: webexAccount? webexAccount.name: 'None',
 				calendarAccountName: calendarAccount? calendarAccount.name: 'None',
+				sessionName,
 				imatMeetingName: imatMeeting? imatMeeting.name: 'None',
 				webexMeeting,
 				roomName: room? room.name: ''

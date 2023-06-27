@@ -1,9 +1,9 @@
-import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
+import { createSlice, createEntityAdapter, createSelector } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { fetcher, setError, isObject } from 'dot11-components';
 import type { AppThunk, RootState } from '.';
-import { selectWorkingGroup } from './groups';
+import { selectWorkingGroupName } from './groups';
 
 /* Google Calendar Schema: https://developers.google.com/calendar/api/v3/reference/calendars */
 type GoogleCalendarSchema = {
@@ -71,7 +71,13 @@ export default slice;
  * Selector
  */
 export const selectCalendarAccountsState = (state: RootState) => state[dataSet];
+export const selectCalendarAccountIds = (state: RootState) => selectCalendarAccountsState(state).ids;
 export const selectCalendarAccountEntities = (state: RootState) => selectCalendarAccountsState(state).entities;
+export const selectCalendarAccounts = createSelector(
+	selectCalendarAccountIds,
+	selectCalendarAccountEntities,
+	(ids, entities) => ids.map(id => entities[id]!)
+)
 
 /*
  * Actions
@@ -99,12 +105,8 @@ function validGetResponse(response: any): response is CalendarAccount[] {
 
 export const loadCalendarAccounts = (): AppThunk => 
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/calendar/accounts`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/calendar/accounts`;
 		dispatch(getPending());
 		let response: any;
 		try {
@@ -122,12 +124,8 @@ export const loadCalendarAccounts = (): AppThunk =>
 	
 export const addCalendarAccount = (account: CalendarAccountCreate): AppThunk =>
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/calendar/accounts`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/calendar/accounts`;
 		let response: any;
 		try {
 			response = await fetcher.post(url, account);
@@ -143,12 +141,8 @@ export const addCalendarAccount = (account: CalendarAccountCreate): AppThunk =>
 
 export const updateCalendarAccount = (id: number, changes: Partial<CalendarAccount>): AppThunk =>
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/calendar/accounts/${id}`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/calendar/accounts/${id}`;
 		dispatch(updateOne({id, changes}));
 		let response: any;
 		try {
@@ -165,12 +159,8 @@ export const updateCalendarAccount = (id: number, changes: Partial<CalendarAccou
 
 export const revokeAuthCalendarAccount = (id: number): AppThunk =>
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/calendar/accounts/${id}/revoke`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/calendar/accounts/${id}/revoke`;
 		let response: any;
 		try {
 			response = await fetcher.patch(url);
@@ -186,12 +176,8 @@ export const revokeAuthCalendarAccount = (id: number): AppThunk =>
 
 export const deleteCalendarAccount = (id: number): AppThunk =>
 	async (dispatch, getState) => {
-		const wg = selectWorkingGroup(getState());
-		if (!wg) {
-			console.error("Working group not set");
-			return;
-		}
-		const url = `/api/${wg.name}/calendar/accounts/${id}`;
+		const groupName = selectWorkingGroupName(getState());
+		const url = `/api/${groupName}/calendar/accounts/${id}`;
 		try {
 			await fetcher.delete(url);
 		}

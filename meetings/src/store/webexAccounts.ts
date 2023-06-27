@@ -1,4 +1,4 @@
-import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
+import { createSlice, createEntityAdapter, createSelector } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { fetcher, isObject, setError } from 'dot11-components';
@@ -62,7 +62,13 @@ export default slice;
  * Selector
  */
 export const selectWebexAccountsState = (state: RootState) => state[dataSet];
+export const selectWebexAccountIds = (state: RootState) => selectWebexAccountsState(state).ids;
 export const selectWebexAccountEntities = (state: RootState) => selectWebexAccountsState(state).entities;
+export const selectWebexAccounts = createSelector(
+	selectWebexAccountIds,
+	selectWebexAccountEntities,
+	(ids, entities) => ids.map(id => entities[id]!)
+);
 
 /*
  * Actions
