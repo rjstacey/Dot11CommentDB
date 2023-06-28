@@ -12,7 +12,8 @@ import {
 import TopRow from '../components/TopRow';
 import PathBallotSelector from '../components/PathBallotSelector';
 import { editorCss } from './ResolutionEditor';
-import CommentDetail, {renderCommenter, renderPage, renderTextBlock} from './CommentDetail';
+import CommentDetail from './CommentDetail';
+import { renderCommenter } from './CommentEdit';
 import { renderSubmission } from './SubmissionSelector';
 import CommentsImport from './CommentsImport';
 import CommentsExport from './CommentsExport';
@@ -46,6 +47,29 @@ const FlexRow = styled.div`
 		margin-right: 5px;
 	}
 `;
+
+const renderPage = (page: string | number | null) => typeof page === 'number'? page.toFixed(2): page;
+
+const TextBlockContainer = styled.div`
+	overflow-wrap: break-word;
+	& p {
+		margin: 8px 0;
+	}
+	& p:first-of-type {
+		margin: 0;
+	}
+`;
+
+const renderTextBlock = (value: string) => {
+	if (!value)
+		return ''
+	return (
+		<TextBlockContainer>
+			{value.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+		</TextBlockContainer>
+	)
+}
+
 
 /*
  * The data cell rendering functions are pure functions (dependent only on input parameters)

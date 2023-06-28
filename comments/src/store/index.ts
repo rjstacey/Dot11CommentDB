@@ -6,10 +6,10 @@ import autoMergeLevel2 from 'redux-persist/lib/stateReconciler/autoMergeLevel2';
 import { get, set, del } from 'idb-keyval';
 import { errorsSlice } from 'dot11-components';
 
-import { createUserSlice, User } from './user';
-import groupsSlice, {initGroups} from './groups';
-import membersSlice, {initMembers} from './members';
-import ballotsSlice, {initBallots} from './ballots';
+import userSlice, { initUser, User } from './user';
+import groupsSlice from './groups';
+import membersSlice from './members';
+import ballotsSlice from './ballots';
 import epollsSlice from './epolls';
 import commentsSlice from './comments';
 import commentsHistorySlice from './commentsHistory';
@@ -51,8 +51,6 @@ const transformState = createTransform(
 
 export function configureStore(user: User) {
 
-	const userSlice = createUserSlice(user);
-
 	const appReducer = combineReducers({
 		[userSlice.name]: userSlice.reducer,
 		[groupsSlice.name]: groupsSlice.reducer,
@@ -87,6 +85,7 @@ export function configureStore(user: User) {
 			removeItem: del
 		},
 		whitelist: [
+			userSlice.name,
 			groupsSlice.name,
 			membersSlice.name,
 			ballotsSlice.name,
@@ -116,6 +115,8 @@ export function configureStore(user: User) {
 
 		registerOffline(store);
 		registerLiveUpdate(store);
+
+		store.dispatch(initUser(user));
 
 		// After hydrate, load the latest
 		//store.dispatch(initGroups());

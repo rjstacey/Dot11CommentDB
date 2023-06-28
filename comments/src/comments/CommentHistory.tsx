@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 
 import { ActionButtonModal } from 'dot11-components';
 
-import { CommentEdit } from './CommentDetail';
+import CommentEdit from './CommentEdit';
+import ResolutionEdit from './ResolutionEdit';
+import EditingEdit from './EditingEdit';
 import HorizontalTimeline from './HorizontalTimeline';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -32,6 +34,12 @@ const NotAvaialble = styled.div`
 	color: #bdbdbd;
 `;
 
+const CommentContainer = styled.div`
+	label {
+		font-weight: bold;
+	}
+`;
+
 function CommentHistoryBody({commentsHistory, loading}) {
 
 	const [index, setIndex] = React.useState(0);
@@ -46,14 +54,29 @@ function CommentHistoryBody({commentsHistory, loading}) {
 				<div>
 					<span className='action'>{log.Action}</span> {changeTo} by <span className='name'>{log.UserName || log.UserID}</span> on {(new Date(log.Timestamp)).toLocaleString()}
 				</div>
-				<CommentEdit
-					cids={[log.Changes.CID]}
-					resolution={log.Changes}
-					setResolution={() => {}}
-					readOnly
-					showEditing
-					showNotes
-				/>
+				<CommentContainer>
+					<CommentEdit 
+						cids={[log.Changes.CID]}
+						comment={log.Changes}
+						updateComment={() => {}}
+						showNotes
+						readOnly
+					/>
+					{log.ResolutionID !== null &&
+						<>
+							<ResolutionEdit
+								resolution={log.Changes}
+								updateResolution={() => {}}
+								readOnly
+							/>
+							<EditingEdit
+								resolution={log.Changes}
+								updateResolution={() => {}}
+								showEditing
+								readOnly
+							/>
+						</>}
+				</CommentContainer>
 			</>
 	}
 	else {

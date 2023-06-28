@@ -1,5 +1,5 @@
-import { createSlice } from '@reduxjs/toolkit';
-import type { RootState } from '.';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { RootState, AppThunk, resetStore } from '.';
 
 export const AccessLevel = {
 	none: 0,
@@ -7,8 +7,6 @@ export const AccessLevel = {
 	rw: 2,
 	admin: 3
 };
-
-export const dataSet = 'user';
 
 export type User = {
 	SAPIN: number;
@@ -20,16 +18,41 @@ export type User = {
 	Token: any;
 };
 
-/** The `user` slice is readonly and contains user info */
-export function createUserSlice(user: User) {
-	return createSlice({
-		name: dataSet,
-		initialState: user,
-		reducers: {},
-	});
+const initialState: User = {
+	SAPIN: 0,
+	Name: '',
+	Email: '',
+	Permissions: [],
+	Access: AccessLevel.none,
+	Status: 'Non-Voter',
+	Token: null
 }
+
+const dataSet = 'user';
+const slice = createSlice({
+	name: dataSet,
+	initialState,
+	reducers: {
+		setUser(state, action: PayloadAction<User>) {
+			return action.payload;
+		}
+	},
+});
+
+export default slice;
 
 /*
  * Selectors
  */
 export const selectUser = (state: RootState) => state[dataSet];
+
+/*
+ * Actions
+ */
+export const initUser = (user: User): AppThunk =>
+	async (dispatch, getState) => {
+		const currentUser = selectUser(getState())
+		if (currentUser.SAPIN !== user.SAPIN)
+			dispatch(resetStore());
+		dispatch(slice.actions.setUser(user));
+	}

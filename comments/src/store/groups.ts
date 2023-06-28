@@ -196,19 +196,18 @@ export const initGroups = (): AppThunk =>
 
 export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group | undefined> =>
 	async (dispatch, getState) => {
-		const state = getState();
-		const currentWorkingGroupId = selectWorkingGroupId(state);
+		const currentWorkingGroupId = selectWorkingGroupId(getState());
 		if (currentWorkingGroupId !== workingGroupId) {
 			dispatch(clearMembers());
 			dispatch(clearBallots());
 			dispatch(clearEpolls());
 			dispatch(setWorkingGroupIdLocal(workingGroupId));
 			if (workingGroupId) {
-				const groupName = selectWorkingGroupName(state);
+				const groupName = selectWorkingGroupName(getState());
 				dispatch(loadGroups(groupName));
 				dispatch(loadMembers());
 				dispatch(loadBallots());
 			}
 		}
-		return workingGroupId? selectGroup(state, workingGroupId): undefined;
+		return workingGroupId? selectGroup(getState(), workingGroupId): undefined;
 	}
