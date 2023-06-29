@@ -235,7 +235,6 @@ export async function updateComments(user: User, ballot_id: number, access: numb
 			const groupIds = [...new Set(comments.map(c => c.AdHocGroupId!))];
 			const groups = await getGroups(user, {id: groupIds});
 			// The user must have read-write privileges in all the groups
-			console.log(groups)
 			if (groups.every(group => (group.permissions.comments || AccessLevel.none) >= AccessLevel.rw))
 				access = AccessLevel.rw;
 		}
