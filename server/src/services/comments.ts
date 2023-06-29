@@ -228,16 +228,18 @@ export async function updateComments(user: User, ballot_id: number, access: numb
 
 	if (access <= AccessLevel.ro && updates.length > 0) {
 		const comments = await selectComments({ballot_id, comment_id: updates.map(u => u.id)});
-		if (updates.every(u => comments.find(c => c.comment_id === u.id)))
+		if (!updates.every(u => comments.find(c => c.comment_id === u.id)))
 			throw new NotFoundError("At least one of the comment identifiers is invalid");
 		// To determine comment level access, all the comments must be assigned to an ad-hoc group
 		if (comments.every(c => c.AdHocGroupId)) {
 			const groupIds = [...new Set(comments.map(c => c.AdHocGroupId!))];
 			const groups = await getGroups(user, {id: groupIds});
+			// The user must have read-write privileges in all the groups
+			console.log(groups)
 			if (groups.every(group => (group.permissions.comments || AccessLevel.none) >= AccessLevel.rw))
 				access = AccessLevel.rw;
 		}
-		if (access <= AccessLevel.rw)
+		if (access < AccessLevel.rw)
 			throw new ForbiddenError("User does not have ballot level or comment level read-write prvileges");
 	}
 
