@@ -6,7 +6,7 @@ import db from '../utils/database';
 import { selectComments } from './comments';
 import { User } from './users';
 import type { OkPacket } from 'mysql2';
-import { ForbiddenError, isPlainObject } from '../utils';
+import { ForbiddenError, NotFoundError, isPlainObject } from '../utils';
 import { AccessLevel } from '../auth/access';
 import { getGroups } from './groups';
 
@@ -105,6 +105,7 @@ async function addResolution(user: User, resolution: ResolutionCreate) {
  * Add resolutions
  * @param user The user executing the add
  * @param ballot_id The ballot identifier associated with the resolution updates and used to autherize the updates.
+ * @param access - Ballot level comments access
  * @param resolution An array of resolutions to be added.
  * @param modifiedSince Option ISO date string. Comments modfied since this date will be returned.
  * @returns An array of comment resolutions as added plus additional comment resolutions with changes after `modifiedSince`. 
@@ -112,37 +113,32 @@ async function addResolution(user: User, resolution: ResolutionCreate) {
 export async function addResolutions(
 	user: User,
 	ballot_id: number,
+	access: number,
 	resolutions: ResolutionCreate[],
 	modifiedSince?: string
 ) {
+	/* If the user does not have ballot level comments read-write access, then see if the user has comment level read-write access.
+	 * Comment level read-write access is available if the user is an ad-hoc officer. */
+	if (access < AccessLevel.rw && resolutions.length > 0) {
+		const comments = await selectComments({ballot_id, comment_id: resolutions.map(r => r.comment_id)});
+		if (resolutions.every(r => comments.find(c => c.comment_id === r.comment_id)))
+			throw new NotFoundError("At least one of the comment identifiers is invalid");
+		// All the comments must be assigned to an ad-hoc group
+		if (comments.every(c => c.AdHocGroupId)) {
+			const groupIds = [...new Set<string>(comments.map(c => c.AdHocGroupId!))];
+			const groups = await getGroups(user, {id: groupIds});
+			// The user must have read-write privileges in all the groups
+			if (groups.every(group => (group.permissions.comments || AccessLevel.none) >= AccessLevel.rw))
+				access = AccessLevel.rw;
+		}
+		if (access < AccessLevel.rw)
+			throw new ForbiddenError("Insufficient karma");
+	}
+
 	await Promise.all(resolutions.map(r => addResolution(user, r)));
 	const comments = await selectComments({comment_id: resolutions.map(r => r.comment_id)}, {ballot_id, modifiedSince});
 	return {comments}
 }
-
-/*function resolutionEntry(changes) {
-	const entry = {
-		comment_id: changes.comment_id,
-		ResolutionID: changes.ResolutionID,
-		AssigneeSAPIN: changes.AssigneeSAPIN,
-		AssigneeName: changes.AssigneeName,
-		ResnStatus: changes.ResnStatus,
-		Resolution: changes.Resolution,
-		Submission: changes.Submission,
-		ReadyForMotion: changes.ReadyForMotion,
-		ApprovedByMotion: changes.ApprovedByMotion,
-		EditStatus: changes.EditStatus,
-		EditNotes: changes.EditNotes,
-		EditInDraft: changes.EditInDraft
-	}
-
-	for (let key of Object.keys(entry)) {
-		if (entry[key] === undefined)
-			delete entry[key]
-	}
-
-	return entry;
-}*/
 
 async function updateResolution(user: User, ballot_id: number, id: string, changes: Partial<Resolution>) {
 
@@ -157,10 +153,6 @@ async function updateResolution(user: User, ballot_id: number, id: string, chang
 		)
 		await db.query(sql);
 	}
-
-	//const [comment] = await db.query({sql: "SELECT id, resolution_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE resolution_id=?;", dateStrings: true}, [Object.keys(changes), id]) as CommentResolution[];
-	//console.log(comment)
-	//return comment;
 }
 
 type ResolutionUpdate = {
@@ -180,10 +172,11 @@ export function validResolutionUpdates(updates: any): updates is ResolutionUpdat
 
 /**
  * Update resolutions
- * @param user The user executing the add
- * @param ballot_id The ballot identifier associated with the resolution updates and used to authorize the updates.
- * @param updates An array of resolution updates.
- * @param modifiedSince Optional ISO date string. Comments modfied since this date will be returned.
+ * @param user - The user executing the add
+ * @param ballot_id - The ballot identifier associated with the resolution updates and used to authorize the updates.
+ * @param access - Ballot level comments access
+ * @param updates - An array of resolution updates.
+ * @param modifiedSince - Optional ISO date string. Comments modfied since this date will be returned.
  * @returns An array of modified comment resolutions plus additional comment resolutions with changes after `modifiedSince`.
  */
 export async function updateResolutions(
@@ -194,13 +187,36 @@ export async function updateResolutions(
 	modifiedSince?: string
 ) {
 
-	if (access < AccessLevel.rw) {
-		const comments = await selectComments({resolution_id: updates.map(u => u.id)});
-		const groupIds = [...new Set<string>(comments.map(c => c.AdHocGroupId).filter(c => c) as string[])];
-		const groups = await getGroups(user, {id: groupIds});
-		if (!groups.every(group => (group.permissions.comments || AccessLevel.none) >= AccessLevel.rw) &&
-			!comments.every(c => c.AssigneeSAPIN === user.SAPIN))
-			throw new ForbiddenError("Insufficient karma");
+	/* If the user does not have ballot level comments read-write access, then see if the user has comment level or resolution level read-write access.
+	 * Comment level read-write access is available if comment is assigned to an ad-hoc and the user is an ad-hoc officer.
+	 * Resolution level read-write access is available if the user is the assignee. */
+	if (access < AccessLevel.rw && updates.length > 0) {
+		const comments = await selectComments({ballot_id, resolution_id: updates.map(u => u.id)});
+		if (comments.length !== updates.length)
+			throw new NotFoundError("At least one of the resolution identifiers is invalid");
+
+		let commentAccess = access;
+		// To determine comment level access, all the comments must be assigned ot an ad-hoc group
+		if (comments.every(c => c.AdHocGroupId)) {
+			const groupIds = [...new Set<string>(comments.map(c => c.AdHocGroupId!))];
+			const groups = await getGroups(user, {id: groupIds});
+			// The user must have read-write privileges in all the groups
+			if (groups.every(group => (group.permissions.comments || AccessLevel.none) >= AccessLevel.rw))
+				commentAccess = AccessLevel.rw;
+		}
+
+		let resolutionAccess = access;
+		// The user must be the assignee of all the resolutions to have resolution level privileges
+		if (comments.every(c => c.AssigneeSAPIN === user.SAPIN && !c.ApprovedByMotion))
+			resolutionAccess = AccessLevel.rw;
+
+		// Since the user does not have ballot level read-write access, the user must have comment level or resolution level read-write access.
+		if (commentAccess < AccessLevel.rw && resolutionAccess < AccessLevel.rw)
+			throw new ForbiddenError("User does not have ballot level, comment level or resolution level read-write prvileges");
+
+		// Can't modify resolution approval without at least comment level read-write access
+		if (commentAccess < AccessLevel.rw && !updates.find(u => 'ApprovedByMotion' in u.changes))
+			throw new ForbiddenError("Need at least ballot level or comment level read-write privileges to modify resolution approval");
 	}
 
 	await Promise.all(updates.map(u => updateResolution(user, ballot_id, u.id, u.changes)));
@@ -215,19 +231,39 @@ export function validResolutionIds(ids: any): ids is string[] {
 /** 
  * Delete resolutions
  * 
- * @param user The user executing the delete
- * @param ballot_id The ballot identifier associated with the resolutions to be deleted. Autherization is based on the ballot identifier.
- * @param ids An array of resolution identifiers to delete. Must be associated with the ballot identifier.
- * @param modifiedSince ISO Date string. Comments that have been modified since this date will be returned.
+ * @param user - The user executing the delete
+ * @param ballot_id - The ballot identifier associated with the resolutions to be deleted. Autherization is based on the ballot identifier.
+ * @param access - Ballot level comments access
+ * @param ids - An array of resolution identifiers to delete. Must be associated with the ballot identifier.
+ * @param modifiedSince - Optional ISO Date string. Comments that have been modified since this date will be returned.
  */
 export async function deleteResolutions(
 	user: User,
 	ballot_id: number,
+	access: number,
 	ids: string[],
 	modifiedSince?: string
 ) {
+	/* If the user does not have ballot level comments read-write access, then see if the user has comment level read-write access.
+	 * Comment level read-write access is available if the user is an ad-hoc officer. */
+	if (access < AccessLevel.rw && ids.length > 0) {
+		const comments = await selectComments({ballot_id, resolution_id: ids});
+		if (comments.length !== ids.length)
+			throw new NotFoundError("At least one of the resolution identifiers was not found");
+		// All the affected resolutions must have a group ID
+		if (comments.length > 0 && comments.every(c => c.AdHocGroupId)) {
+			const groupIds = [...new Set<string>(comments.map(c => c.AdHocGroupId!))];
+			const groups = await getGroups(user, {id: groupIds});
+			// The user must be an officer of all the groups
+			if (groups.every(group => (group.permissions.comments || AccessLevel.none) >= AccessLevel.rw))
+				access = AccessLevel.rw;
+		}
+		if (access < AccessLevel.rw)
+			throw new ForbiddenError("Need at least ballot level or comment level read-write privileges to delete resolution");
+	}
+
 	if (ids.length > 0)
-		await db.query('DELETE r FROM resolutions r LEFT JOIN comments c ON r.comment_id=c.id WHERE c.ballot_id=? AND BIN_TO_UUID(id) IN (?)', [ballot_id, ids]) as OkPacket;
+		await db.query('DELETE r FROM resolutions r LEFT JOIN comments c ON r.comment_id=c.id WHERE c.ballot_id=? AND BIN_TO_UUID(r.id) IN (?)', [ballot_id, ids]) as OkPacket;
 	const comments = await selectComments({ballot_id, modifiedSince});
 	return {comments};
 }

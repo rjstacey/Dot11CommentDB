@@ -79,21 +79,10 @@ function validateUploadParams(params: any): asserts params is {toUpdate: FieldTo
 }
 
 router
-	.all('*', (req, res, next) => {
-		const access = req.permissions?.comments || AccessLevel.none;
-
-		if (req.method === "GET" && access >= AccessLevel.ro)
-			return next();
-		// Need read-only (ballot level) privileges to update resolutions; check specific priveledges later
-		if (req.method === "PATCH" && access >= AccessLevel.ro)
-			return next();
-		// Need admin privileges to add or delete resolutions
-		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
-			return next();
-			
-		next(new ForbiddenError('Insufficient karma'));
-	})
 	.post('/upload', upload.single('ResolutionsFile'), (req, res, next) => {
+		const access = req.permissions?.comments || AccessLevel.none;
+		if (access < AccessLevel.rw)
+			return next(new ForbiddenError("Need at least read-write privileges at the ballot level to upload resolutions"));
 		const ballot_id = req.ballot!.id;
 		if (typeof req.body.params !== 'string' || !req.file)
 			return next(new TypeError("Bad body; expected multipart with file in ResolutionsFile and JSON in params"));
@@ -112,6 +101,10 @@ router
 	})
 	.route('/')
 		.post((req, res, next) => {
+			const access = req.permissions?.comments || AccessLevel.none;
+			// Need at least read-only privileges at the ballot level to add a resolution. Check for comment level privileges later.
+			if (access < AccessLevel.ro)
+				return next(new ForbiddenError("Need at least read-only privileges at the ballot level to add a resolution"));
 			const ballot_id = req.ballot!.id;
 			const {modifiedSince} = req.query;
 			if (!validModifiedSince(modifiedSince))
@@ -119,12 +112,16 @@ router
 			const resolutions = req.body;
 			if (!validResolutions(resolutions))
 				return next(new TypeError('Bad or missing body; expected an array of resolution objects'));
-			addResolutions(req.user, ballot_id, resolutions, modifiedSince)
+			addResolutions(req.user, ballot_id, access, resolutions, modifiedSince)
 				.then(data => res.json(data))
 				.catch(next);
 		})
 		.patch((req, res, next) => {
 			const access = req.permissions?.comments || AccessLevel.none;
+			// Need at least read-only privileges at the ballot level to add a resolution. Check for comment level or resolution level
+			// privileges later.
+			if (access < AccessLevel.ro)
+				return next(new ForbiddenError("Need at least read-only privileges at the ballot level to update a resolution"));
 			const ballot_id = req.ballot!.id;
 			const {modifiedSince} = req.query;
 			if (!validModifiedSince(modifiedSince))
@@ -137,6 +134,10 @@ router
 				.catch(next);
 		})
 		.delete((req, res, next) => {
+			const access = req.permissions?.comments || AccessLevel.none;
+			// Need at least read-only privileges at the ballot level to delete a resolution. Check for comment level privileges later.
+			if (access < AccessLevel.ro)
+				return next(new ForbiddenError("Need at least read-only privileges at the ballot level to delete a resolution"));
 			const ballot_id = req.ballot!.id;
 			const {modifiedSince} = req.query;
 			if (!validModifiedSince(modifiedSince))
@@ -144,7 +145,7 @@ router
 			const ids = req.body;
 			if (!validResolutionIds(ids))
 				return next(new TypeError("Bad or missing body; expected an array of resolution identifiers with shape string[]"));
-			deleteResolutions(req.user, ballot_id, ids, modifiedSince)
+			deleteResolutions(req.user, ballot_id, access, ids, modifiedSince)
 				.then(data => res.json(data))
 				.catch(next);
 		});

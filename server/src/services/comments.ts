@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 
-import { AuthError, ForbiddenError, isPlainObject } from '../utils';
+import { AuthError, ForbiddenError, NotFoundError, isPlainObject } from '../utils';
 import { parseEpollCommentsCsv } from './epoll';
 import { parseMyProjectComments } from './myProjectSpreadsheets';
 import { BallotType, Ballot, getBallotWithNewResultsSummary } from './ballots';
@@ -226,12 +226,19 @@ export function validUpdates(updates: any): updates is CommentUpdate[] {
 
 export async function updateComments(user: User, ballot_id: number, access: number, updates: CommentUpdate[], modifiedSince?: string) {
 
-	if (access <= AccessLevel.ro) {
-		const comments = await selectComments({comment_id: updates.map(u => u.id)});
-		const groupIds = [...new Set<string>(comments.map(c => c.AdHocGroupId).filter(c => c) as string[])];
-		const groups = await getGroups(user, {id: groupIds});
-		if (!groups.every(group => group.permissions.comments >= AccessLevel.rw))
-			throw new ForbiddenError("Insufficient karma");
+	if (access <= AccessLevel.ro && updates.length > 0) {
+		const comments = await selectComments({ballot_id, comment_id: updates.map(u => u.id)});
+		if (updates.every(u => comments.find(c => c.comment_id === u.id)))
+			throw new NotFoundError("At least one of the comment identifiers is invalid");
+		// To determine comment level access, all the comments must be assigned to an ad-hoc group
+		if (comments.every(c => c.AdHocGroupId)) {
+			const groupIds = [...new Set(comments.map(c => c.AdHocGroupId!))];
+			const groups = await getGroups(user, {id: groupIds});
+			if (groups.every(group => (group.permissions.comments || AccessLevel.none) >= AccessLevel.rw))
+				access = AccessLevel.rw;
+		}
+		if (access <= AccessLevel.rw)
+			throw new ForbiddenError("User does not have ballot level or comment level read-write prvileges");
 	}
 
 	await Promise.all(updates.map(u => updateComment(user, ballot_id, u.id, u.changes)));

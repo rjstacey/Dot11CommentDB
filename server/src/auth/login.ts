@@ -63,6 +63,7 @@ async function login(ieeeClient: AxiosInstance, username: string, password: stri
 	if (SAPIN === 5073)
 		//SAPIN = 135742;
 		SAPIN = 82004;
+		//SAPIN = 2988;
 
 	// Add an interceptor that will login again if a request returns the login page
 	ieeeClient.interceptors.response.use(
