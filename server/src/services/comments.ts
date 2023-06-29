@@ -202,11 +202,8 @@ function commentsSetSql(changes: Partial<Comment>) {
  * @param changes An object with fields to be changed
  */
 async function updateComment(user: User, ballot_id: number, id: bigint, changes: Partial<Comment>) {
-	console.log(commentsSetSql(changes))
 	if (Object.keys(changes).length > 0)
 		return db.query('UPDATE comments SET ' + commentsSetSql(changes) + ', LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP() WHERE ballot_id=? AND id=?', [user.SAPIN, ballot_id, id]) as Promise<OkPacket>;
-	//const comments = await db.query("SELECT id, comment_id, CID, ??, LastModifiedBy, LastModifiedTime FROM commentResolutions WHERE comment_id=?;", [Object.keys(changes), id]);
-	//return comments;
 }
 
 type CommentUpdate = {
