@@ -30,6 +30,8 @@ const transformState = createTransform(
 	(state) => ({...state, loading: false}),
 	{whitelist: [
 		membersSlice.name,
+		groupsSlice.name,
+		officersSlice.name,
 		attendancesSlice.name,
 		ballotParticipationSlice.name
 	]}

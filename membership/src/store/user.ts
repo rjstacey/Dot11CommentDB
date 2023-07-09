@@ -35,4 +35,8 @@ export function createUserSlice(user: User) {
  */
 export const selectUser = (state: RootState) => state[dataSet];
 
-export const selectUserMembersAccess = (state: RootState) => selectWorkingGroup(state)?.permissions.members || AccessLevel.none;
+export const selectUserMembersAccess = (state: RootState) => {
+	const user = selectUser(state);
+	let access = selectWorkingGroup(state)?.permissions.members || AccessLevel.none;
+	return Math.max(user.Access, access);
+}

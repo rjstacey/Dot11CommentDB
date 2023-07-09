@@ -8,7 +8,7 @@ import type { MultipleMember } from './MemberDetail';
 
 import {EditTable as Table, TableColumn} from '../components/Table';
 
-type ContactInfoField = {
+type ContactInfoFieldType = {
 	key: keyof MemberContactInfo;
 	label: string;
 	size?: number;
@@ -115,7 +115,7 @@ const ContactInfoField = styled.div`
 	}
 `;
 
-const ContactInfoFields: ContactInfoField[] = [
+const ContactInfoFields: ContactInfoFieldType[] = [
 	{key: 'StreetLine1', label: 'Street', size: 36},
 	{key: 'StreetLine2', label: '', size: 36},
 	{key: 'City', label: 'City', size: 20},

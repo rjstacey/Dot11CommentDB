@@ -47,8 +47,6 @@
     ]
   },
   "devDependencies": {
-    "http-proxy-middleware": "^0.19.1",
-    "react-scripts": "^5.0.1",
     "@testing-library/jest-dom": "^5.11.9",
     "@testing-library/react": "^11.2.5",
     "@testing-library/user-event": "^12.7.1",
@@ -61,6 +59,8 @@
     "@types/react-router-dom": "^5.3.3",
     "@types/react-tabs": "^5.0.5",
     "@types/redux-logger": "^3.0.9",
-    "@types/uuid": "^9.0.2"
+    "@types/uuid": "^9.0.2",
+    "http-proxy-middleware": "^0.19.1",
+    "react-scripts": "^5.0.1"
   }
 }

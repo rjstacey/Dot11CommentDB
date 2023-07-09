@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {
 	ConfirmModal,
-	deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, Multiple, debounce,
+	deepDiff, deepMerge, deepMergeTagMultiple, isMultiple, Multiple,
 	ActionButton, Form, Row, Field, Input, Select,
 	setError,
 	EntityId, Dictionary
@@ -19,7 +19,7 @@ import {
 	GroupTypeOptions,
 	GroupStatusOptions,
 	setSelected,
-	Group, GroupCreate, GroupType
+	Group, GroupCreate, GroupUpdate, GroupType
 } from '../store/groups';
 
 import { AccessLevel} from '../store/user';
@@ -104,12 +104,22 @@ function GroupStatusSelector({
 }
 
 function GroupEntry({
+	action,
 	entry,
 	changeEntry,
+	title,
+	busy,
+	submit,
+	cancel,
 	readOnly
 }: {
+	action: Action;
 	entry: MultipleGroupEntry;
 	changeEntry: (changes: Partial<GroupCreate>) => void;
+	title?: string;
+	busy?: boolean;
+	submit?: () => void;
+	cancel?: () => void;
 	readOnly?: boolean;
 }) {
 
@@ -126,6 +136,11 @@ function GroupEntry({
 
 	return (
 		<Form
+			title={title}
+			busy={busy}
+			submitLabel={action === "add"? 'Add': 'Update'}
+			submit={submit}
+			cancel={cancel}
 		>
 			<Row>
 				<Field label='Group name:'>
@@ -206,7 +221,7 @@ function GroupEntry({
 						/>
 					</Field>
 				</Row>}
-			{!isMultiple(entry.id) &&
+			{entry.id && !isMultiple(entry.id) &&
 				<Row>
 					<Officers
 						groupId={entry.id}
@@ -232,103 +247,119 @@ const NotAvailable = styled.div`
 	color: #bdbdbd;
 `;
 
-type MultipleGroupEntry = Multiple<Group>;
+type Action = "add" | "update";
+type MultipleGroupEntry = Multiple<GroupCreate>;
 
-type GroupDetailState = {
-	entry: MultipleGroupEntry | {};
+type GroupDetailState = ({
+	action: "update";
+	entry: MultipleGroupEntry;
+	saved: MultipleGroupEntry;
+} | {
+	action: "add";
+	entry: GroupCreate;
+	saved: GroupCreate;
+}) & {
 	originals: Dictionary<Group>;
 	ids: EntityId[];
-}
+	busy: boolean;
+};
 
 class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetailState> {
 	constructor(props: GroupDetailConnectedProps) {
 		super(props);
-		this.state = this.initState(props);
-		this.triggerSave = debounce(this.save, 500);
-	}
-	//triggerSave: ReturnType<typeof debounce>;
-	triggerSave: any;	// Hack: something wrong with debounce typing
-
-	componentWillUnmount() {
-		this.triggerSave.flush();
+		this.state = this.initState();
 	}
 
-	initState = (props: GroupDetailConnectedProps): GroupDetailState => {
-		const {entities, selected} = props;
+	componentDidUpdate() {
+		const {selected, setSelected} = this.props;
+		const {ids} = this.state;
+
+		const changeWithConfirmation = async () => {
+			if (this.hasUpdates()) {
+				const ok = await ConfirmModal.show('Changes not applied! Do you want to discard changes?');
+				if (!ok) {
+					setSelected(ids);
+					return;
+				}
+			}
+			this.reinitState();
+		}
+
+		if (selected.join() !== ids.join())
+			changeWithConfirmation();
+	}
+
+	initState = (): GroupDetailState => {
+		const {entities, selected} = this.props;
 		const originals: Dictionary<Group> = {};
-		let entry: MultipleGroupEntry | {} = {};
-		if (selected.length > 0) {
-			for (const id of selected) {
-				originals[id] = entities[id];
-				entry = deepMergeTagMultiple(entry, entities[id]!);
-			}
-		}
-		else {
-			entry = {...defaultEntry};
-		}
-		return {
-			entry,
-			originals,
-			ids: selected
-		}
-	}
-
-	save = (updates: {id: string; changes: Partial<Group>}[]) => {
-		this.props.updateGroups(updates);
-		this.setState(state => {
-			const originals: Dictionary<Group> = {...state.originals};
-			for (const {id, changes} of updates)
-				originals[id] = {...originals[id]!, ...changes};
-			return {...state, originals}
+		let entry: MultipleGroupEntry = {} as MultipleGroupEntry;
+		selected.forEach(id => {
+			const entity = entities[id]!
+			originals[id] = entity;
+			entry = deepMergeTagMultiple(entry, entity);
 		});
-	};
 
-	addEntry = async () => {
-		if (this.props.access <= AccessLevel.ro) {
-			console.warn("Insufficient access for addEntry()");
-			return;
+		return {
+			action: "update",
+			entry,
+			saved: entry,
+			originals,
+			ids: selected,
+			busy: false
 		}
-		const {addGroup, setSelected, setError, groupId, entities} = this.props;
-		const entry: GroupCreate = {...defaultEntry, parent_id: groupId};
-		let group: Group;
-		for (group of Object.values(entities) as Group[]) {
-			if (group!.parent_id === groupId && group!.name === entry.name) {
-				setError('Unable to add entry', 'Entry already exists for ' + (group!.name || BLANK_STR));
-				return;
-			}
-		}
-		group = await addGroup(entry);
-		setSelected([group.id]);
 	}
 
-	updateEntries = (changes: Partial<GroupCreate>) => {
+	reinitState = () => this.setState(this.initState())
+
+	getUpdates = () => {
+		const {originals, ids, entry} = this.state;
+
+		let diff: Partial<GroupCreate> = {};
+		for (const id of ids)
+			diff = deepMergeTagMultiple(diff, originals[id]!) as Partial<GroupCreate>;
+		diff = deepDiff(diff, entry);
+
+		const updates: GroupUpdate[] = [];
+		for (const id of ids) {
+			const updated = {...originals[id], ...diff};
+			const changes: Partial<GroupCreate> = deepDiff(originals[id]!, updated);
+			if (Object.keys(changes).length > 0)
+				updates.push({id, changes});
+		}
+		return updates;
+	}
+
+	hasUpdates = () => this.state.saved !== this.state.entry;
+
+	changeEntry = (changes: Partial<GroupCreate>) => {
 		if (this.props.access <= AccessLevel.ro) {
 			console.warn("Insufficient access for updateEntries()");
 			return;
 		}
 		this.setState(state => {
-			const entry: MultipleGroupEntry = deepMerge(state.entry as MultipleGroupEntry, changes);
-			const {originals, ids} = state;
-
-			let diff: Partial<GroupCreate> = {};
-			for (const id of ids)
-				diff = deepMergeTagMultiple(diff, originals[id]!) as Partial<GroupCreate>;
-			diff = deepDiff(diff, entry);
-
-			const updates = [];
-			for (const id of ids) {
-				const updated = {...originals[id], ...diff};
-				const changes: Partial<GroupCreate> = deepDiff(originals[id]!, updated);
-				if (Object.keys(changes).length > 0)
-					updates.push({id, changes});
-			}
-			if (updates.length > 0)
-				this.triggerSave(updates);
+			let entry: MultipleGroupEntry = deepMerge(state.entry as MultipleGroupEntry, changes);
+			// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
+			//console.log(changes, entry)
+			changes = deepDiff(state.saved, entry) as Partial<GroupCreate>;
+			if (Object.keys(changes).length === 0)
+				entry = state.saved;
 			return {...state, entry}
 		});
 	}
 
-	removeEntries = async () => {
+	clickAdd = () => {
+		this.props.setSelected([]);
+		this.setState({
+			action: "add",
+			entry: defaultEntry,
+			saved: defaultEntry,
+			originals: {},
+			ids: [],
+			busy: false
+		});
+	}
+
+	clickDelete = async () => {
 		if (this.props.access <= AccessLevel.ro) {
 			console.warn("Insufficient access for removeEntries()");
 			return;
@@ -342,17 +373,65 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 		await deleteGroups(ids);
 	}
 
+	add = async () => {
+		if (this.props.access <= AccessLevel.ro) {
+			console.warn("Insufficient access for addEntry()");
+			return;
+		}
+		const {addGroup, setSelected, setError, groupId, entities} = this.props;
+		const entry = this.state.entry as GroupCreate;
+		let group: Group;
+		for (group of Object.values(entities) as Group[]) {
+			if (group!.parent_id === groupId && group!.name === entry.name) {
+				setError('Unable to add entry', 'Entry already exists for ' + (group!.name || BLANK_STR));
+				return;
+			}
+		}
+		this.setState({busy: true});
+		group = await addGroup(entry);
+		setSelected([group.id]);
+		this.reinitState();
+	}
+
+	update = async () => {
+		const {updateGroups} = this.props;
+
+		this.setState({busy: true});
+		const updates = this.getUpdates();
+		//console.log(updates)
+		await updateGroups(updates);
+		this.reinitState();
+	}
+
+	cancel = async () => {
+		const {setSelected} = this.props;
+		setSelected([]);
+		this.reinitState();
+	}
+
 	render() {
 		const {selected, loading, access} = this.props;
-		const {entry, ids} = this.state;
+		const {entry, ids, action, busy} = this.state;
 
 		let notAvailableStr = '';
 		if (loading)
 			notAvailableStr = 'Loading...';
-		else if (ids.length === 0)
+		else if (action === "update" && ids.length === 0)
 			notAvailableStr = 'Nothing selected';
 
 		const readOnly = access <= AccessLevel.ro;
+
+		let submit, cancel, title;
+		if (action === "add") {
+			submit = this.add;
+			cancel = this.cancel;
+			title = 'Add group';
+		}
+		else if (action === "update" && this.hasUpdates()) {
+			submit = this.update;
+			cancel = this.cancel;
+			title = 'Update group';
+		}
 
 		return (
 			<Container>
@@ -361,20 +440,25 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 						name='add'
 						title='Add group'
 						disabled={loading || readOnly}
-						onClick={this.addEntry}
+						onClick={this.clickAdd}
 					/>
 					<ActionButton
 						name='delete'
 						title='Delete group'
 						disabled={loading || selected.length === 0 || readOnly}
-						onClick={this.removeEntries}
+						onClick={this.clickDelete}
 					/>
 				</TopRow>
 				{notAvailableStr?
 					<NotAvailable>{notAvailableStr}</NotAvailable>:
 					<GroupEntry
-						entry={entry as MultipleGroupEntry}
-						changeEntry={this.updateEntries}
+						action={action}
+						title={title}
+						entry={entry}
+						changeEntry={this.changeEntry}
+						submit={submit}
+						cancel={cancel}
+						busy={busy}
 						readOnly={readOnly}
 					/>
 				}

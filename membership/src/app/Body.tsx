@@ -22,6 +22,24 @@ const Main = styled.main`
 	align-items: center;
 `;
 
+const Content = styled.div`
+	flex: 1;
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0.5;
+	font-style: italic;
+`;
+
+function Root() {
+	return (
+		<Content>
+			<div>Membership</div>
+		</Content>
+	)
+}
+
 function Body() {
 	const access = useAppSelector(selectUserMembersAccess);
 
@@ -39,24 +57,28 @@ function Body() {
 		<Main>
 			<Routes>
 				<Route
-					path="/:groupName"
+					path="/members/:groupName"
 					element={renderComponent(AccessLevel.admin, Members)}
 				/>
 				<Route
-					path="/:groupName/organization"
+					path="/organization/:groupName?"
 					element={renderComponent(AccessLevel.ro, Organization)}
 				/>
 				<Route
-					path="/:groupName/sessionParticipation"
+					path="/sessionParticipation/:groupName"
 					element={renderComponent(AccessLevel.admin, SessionParticipation)}
 				/>
 				<Route
-					path="/:groupName/ballotParticipation"
+					path="/ballotParticipation/:groupName"
 					element={renderComponent(AccessLevel.admin, BallotParticipation)}
 				/>
 				<Route
-					path="/:groupName/sessionAttendance"
+					path="/sessionAttendance/:groupName"
 					element={renderComponent(AccessLevel.admin, SessionAttendance)}
+				/>
+				<Route
+					path="/:groupName?"
+					element={renderComponent(AccessLevel.none, Root)}
 				/>
 			</Routes>
 		</Main>

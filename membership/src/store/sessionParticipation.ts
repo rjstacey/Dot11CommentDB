@@ -390,13 +390,13 @@ export const updateAttendances = (sapin: number, updates: SessionAttendanceUpdat
 export const importAttendances = (session_id: number): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
-		const url = `/api/${groupName}/attendances`;
+		const url = `/api/${groupName}/attendances/${session_id}/import`;
 		dispatch(getPending());
 		let response: any;
 		try {
 			response = await fetcher.post(url);
 			if (!validResponse(response)) {
-				throw new TypeError('Unexpected response to POST: ' + url);
+				throw new TypeError('Unexpected response to POST ' + url);
 			}
 		}
 		catch(error) {

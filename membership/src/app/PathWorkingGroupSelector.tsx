@@ -68,7 +68,7 @@ export function PathWorkingGroupSelector(props: Omit<React.ComponentProps<typeof
     async function handleChange(values: typeof options) {
         const group = await dispatch(setWorkingGroupId(values.length > 0? values[0].id: null));
         if (group)
-            dispatch(loadGroups({parent_id: group.id}));
+            dispatch(loadGroups(group.name));
         let pathName = location.pathname;
         if (groupName && group)
             pathName = pathName.replace(`/${groupName}`, `/${group.name}`);

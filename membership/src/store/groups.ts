@@ -19,7 +19,7 @@ const GroupTypeLabels = {
 	tg: 'Task Group',
 	sc: 'Standing Committee',
 	ah: 'Ad-hoc Group'
-};
+} as const;
 
 export type GroupType = keyof typeof GroupTypeLabels;
 
@@ -44,6 +44,11 @@ export type Group = {
 
 export type GroupCreate = Omit<Group, "id" | "permissions"> & { id?: string };
 
+export type GroupUpdate = {
+	id: EntityId;
+	changes: Partial<Group>;
+}
+
 export const fields = {
 	id: {},
 	parent_id: {},
@@ -58,13 +63,14 @@ interface Node {
 	children: Node[];
 }
 
-function treeSortedIds(ids: EntityId[], entities: Dictionary<Group>) {
+function treeSortedIds(ids: EntityId[], entities: Dictionary<Group>, parent_id: EntityId | null = null) {
+
+	const groupTypes = Object.keys(GroupTypeLabels);
 
 	function compare(n1: Node, n2: Node) {
 		const g1 = entities[n1.id]!;
 		const g2 = entities[n2.id]!;
-		const keys = Object.keys(GroupTypeLabels);
-		let cmp = keys.indexOf(g1.type || '') - keys.indexOf(g2.type || '');
+		let cmp = groupTypes.indexOf(g1.type || '') - groupTypes.indexOf(g2.type || '');
 		if (cmp === 0)
 			cmp = g1.name.localeCompare(g2.name);
 		return cmp;
@@ -81,7 +87,9 @@ function treeSortedIds(ids: EntityId[], entities: Dictionary<Group>) {
 		return nodes;
 	}
 
-	const nodes = findChildren(null);
+	const nodes = parent_id?
+		[{id: parent_id, children: findChildren(parent_id)}]:
+		findChildren(parent_id);
 
 	function concat(nodes: Node[]) {
 		let ids: EntityId[] = [];
@@ -95,18 +103,23 @@ function treeSortedIds(ids: EntityId[], entities: Dictionary<Group>) {
 	return sortedIds;
 }
 
+type ExtraState = {
+	workingGroupId: string | null;
+}
+
+const initialState: ExtraState = {
+	workingGroupId: null,
+}
+
 const dataSet = 'groups';
 const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
 
-const initialState: {
-	workingGroupId: string | null;
-} = {
-	workingGroupId: null,
-}
+const selectId = (entity: Group) => entity.id;
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
+	selectId,
 	initialState,
 	reducers: {
 		setWorkingGroupId(state, action: PayloadAction<string | null>) {
@@ -116,7 +129,7 @@ const slice = createAppTableDataSlice({
 	extraReducers: (builder, dataAdapter) => {
 		builder
 		.addMatcher(
-			(action: Action) => action.type === getSuccess2,
+			(action: Action) => action.type === getSuccess2.toString(),
 			(state, action: PayloadAction<Group[]>) => {
 				dataAdapter.addMany(state, action.payload);
 				state.loading = false;
@@ -141,27 +154,41 @@ export const selectGroupIds = (state: RootState) => selectGroupsState(state).ids
 
 export const selectWorkingGroups = (state: RootState) => {
 	const {ids, entities} = selectGroupsState(state);
-	return ids.map(id => entities[id]!).filter(g => ["c", "wg"].includes(g.type));
+	return ids.map(id => entities[id]!).filter(g => ["c", "wg"].includes(g.type || ''));
 }
 export const selectWorkingGroupId = (state: RootState) => selectGroupsState(state).workingGroupId;
 export const selectWorkingGroup = (state: RootState) => {
 	const {workingGroupId, entities} = selectGroupsState(state);
 	return (workingGroupId && entities[workingGroupId]) || undefined;
 }
-export const selectWorkingGroupName = (state: RootState) => selectWorkingGroup(state)?.name || '*';
+export const selectWorkingGroupName = (state: RootState) => selectWorkingGroup(state)?.name || '';
 
 export const selectGroups = createSelector(
 	selectGroupIds,
 	selectGroupEntities,
 	selectWorkingGroupId,
 	(ids, entities, workingGroupId) => {
-		const groups = ids.map(id => entities[id]!).filter(group => group.id === workingGroupId || group.parent_id === workingGroupId);
-		console.log(workingGroupId, ids.length)
+		const childIds = treeSortedIds(ids, entities, workingGroupId);
+		let groups = childIds.map(id => entities[id]!);
+		if (!workingGroupId)
+			groups = groups.filter(g => g.type === 'c' || g.type === 'wg')
 		return groups;
 	}
 );
 
-export const groupsSelectors = getAppTableDataSelectors(selectGroupsState);
+const selectSortedIds = createSelector(
+	selectGroupIds,
+	selectGroupEntities,
+	selectWorkingGroupId,
+	(ids, entities, workingGroupId) => {
+		ids = treeSortedIds(ids, entities, workingGroupId);
+		if (workingGroupId)
+			return ids;
+		return ids.filter(id => ["c", "wg"].includes(entities[id]!.type || ''))
+	}
+)
+
+export const groupsSelectors = getAppTableDataSelectors(selectGroupsState, {selectIds: selectSortedIds});
 
 /*
  * Actions
@@ -209,15 +236,11 @@ function validResponse(response: any): response is Group[] {
 	return Array.isArray(response) && response.every(validGroup);
 }
 
-type LoadGroupContstraints = {
-	type?: GroupType | GroupType[];
-	parent_id?: string;
-}
-
-export const loadGroups = (constraints?: LoadGroupContstraints): AppThunk => 
+export const loadGroups = (groupName?: string): AppThunk => 
 	(dispatch) => {
 		dispatch(getPending());
-		return fetcher.get(baseUrl, constraints)
+		const url = groupName? `${baseUrl}/${groupName}`: baseUrl;
+		return fetcher.get(url, groupName? undefined: {type: ['c', 'wg']})
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
@@ -230,12 +253,11 @@ export const loadGroups = (constraints?: LoadGroupContstraints): AppThunk =>
 	}
 
 export const initGroups = (): AppThunk =>
-	(dispatch, getState) => {
-		dispatch(loadGroups({type: ["c", "wg"]}));
-		const workingGroupId = selectWorkingGroupId(getState());
-		if (workingGroupId)
-			dispatch(loadGroups({parent_id: workingGroupId}));
-		return Promise.resolve();
+	async (dispatch, getState) => {
+		dispatch(loadGroups());
+		const groupName = selectWorkingGroupName(getState());
+		if (groupName)
+			dispatch(loadGroups(groupName));
 	}
 
 export const addGroup = (group: GroupCreate): AppThunk<Group> => 
@@ -257,12 +279,7 @@ export const addGroup = (group: GroupCreate): AppThunk<Group> =>
 			});
 	}
 
-interface Update<T> {
-	id: EntityId;
-	changes: Partial<T>;
-}
-
-export const updateGroups = (updates: Update<Group>[]): AppThunk => 
+export const updateGroups = (updates: GroupUpdate[]): AppThunk => 
 	(dispatch, getState) => {
 		const {entities} = selectGroupsState(getState());
 		const originals = updates.map(u => entities[u.id]!);

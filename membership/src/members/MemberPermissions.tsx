@@ -1,11 +1,10 @@
 import React from 'react';
-import {useAppSelector} from '../store/hooks';
 
 import { Row, Field, ActionIcon, isMultiple } from 'dot11-components';
 
 import { EditTable as Table, TableColumn } from '../components/Table';
 
-import { selectPermissions, Permission } from '../store/permissions';
+import type { Permission } from '../store/permissions';
 import type { Member } from '../store/members';
 import type { MultipleMember } from './MemberDetail';
 
@@ -30,13 +29,7 @@ function MemberPermissions({
 	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
-	const allPermissions = useAppSelector(selectPermissions);
 	const memberPermissions = member.Permissions && !isMultiple(member.Permissions)? member.Permissions: [];
-	const permissionOptions = 
-		memberPermissions.map(scope => {
-			const p = allPermissions.find(p => p.scope === scope);
-			return {scope, description: p? p.description: '(Blank)'};
-		});
 
 	function addPermission(scope: string | null) {
 		if (!scope)

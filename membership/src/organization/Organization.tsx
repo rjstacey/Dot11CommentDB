@@ -10,26 +10,20 @@ import {
 	TableColumnSelector,
 	SplitPanelButton,
 	ColumnProperties,
-	FilterType
 } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	loadGroups,
-	setSelected,
-	selectGroupsState,
 	fields,
-	setFilter, 
 	groupsSelectors,
 	groupsActions,
 	Group,
-	selectGroups
 } from '../store/groups';
 import { loadOfficers, selectOfficersState, selectGroupOfficers } from '../store/officers';
 import { loadMembers, selectMembersState } from '../store/members';
 
 import TopRow from '../components/TopRow';
-
 import OrginzationDetail from './OrganizationDetail';
 
 function Officers({group}: {group: Group}) {
@@ -83,16 +77,6 @@ const tableColumns: ColumnProperties[] = [
 
 function Organization() {
 	const dispatch = useAppDispatch();
-	const {selected} = useAppSelector(selectGroupsState);
-	const groups = useAppSelector(selectGroups);
-
-	React.useEffect(() => {
-		const comps = groups.map(group => ({filterType: FilterType.EXACT, value: group.id}));
-		dispatch(setFilter({dataKey: 'id', comps}));
-		const newSelected = selected.filter(id => groups.find(group => group.id === id));
-		if (newSelected.length !== selected.length)
-			dispatch(setSelected([]));
-	}, [groups]);	 // eslint-disable-line react-hooks/exhaustive-deps
 
 	const refresh = () => {
 		dispatch(loadGroups());
@@ -131,7 +115,7 @@ function Organization() {
 					/>
 				</Panel>
 				<Panel>
-					<OrginzationDetail key={selected.join()} />
+					<OrginzationDetail />
 				</Panel>
 			</SplitPanel>
 		</>

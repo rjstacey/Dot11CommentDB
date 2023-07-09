@@ -7,7 +7,7 @@ import './header.css';
 
 import { resetStore } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectWorkingGroup } from '../store/groups';
+import { selectWorkingGroupName } from '../store/groups';
 import { selectUser, selectUserMembersAccess, AccessLevel } from '../store/user';
 
 import { PathWorkingGroupSelector } from './PathWorkingGroupSelector';
@@ -16,38 +16,38 @@ type MenuItem = {
 	minAccess: number,
 	link: string,
 	label: string,
-	prefixGroupName?: boolean,
+	groupName: "none" | "required" | "optional",
 }
 
 const fullMenu: MenuItem[] = [
 	{
 		minAccess: AccessLevel.admin,
 		link: '/',
-		prefixGroupName: true,
+		groupName: "required",
 		label: 'Members',
 	},
 	{
 		minAccess: AccessLevel.admin,
 		link: '/organization',
-		prefixGroupName: true,
+		groupName: "optional",
 		label: 'Organization',
 	},
 	{
 		minAccess: AccessLevel.admin,
 		link: '/sessionParticipation',
-		prefixGroupName: true,
+		groupName: "required",
 		label: 'Session participation',
 	},
 	{
 		minAccess: AccessLevel.admin,
 		link: '/ballotParticipation',
-		prefixGroupName: true,
+		groupName: "required",
 		label: 'Ballot participation',
 	},
 	{
 		minAccess: AccessLevel.admin,
 		link: '/sessionAttendance',
-		prefixGroupName: true,
+		groupName: "required",
 		label: 'Session attendance',
 	},
 ];
@@ -63,7 +63,7 @@ function NavMenu({
 }
 ) {
 	const access = useAppSelector(selectUserMembersAccess);
-	const groupName = useAppSelector(selectWorkingGroup)?.name;
+	const groupName = useAppSelector(selectWorkingGroupName);
 
 	let classNames = 'nav-menu';
 	if (className)
@@ -71,7 +71,13 @@ function NavMenu({
 
 	const menu = fullMenu
 		.filter(m => access >= m.minAccess)
-		.map(m => m.prefixGroupName? {...m, link: `/${groupName || '*'}` + m.link}: m);
+		.filter(m => m.groupName !== "required" || groupName)
+		.map(m => {
+			if ((m.groupName === "required" || m.groupName === "optional") && groupName)
+				return {...m, link: m.link + (m.link.endsWith('/')? '': '/') + groupName};
+			else
+				return m;
+		});
 
 	return (
 		<nav
