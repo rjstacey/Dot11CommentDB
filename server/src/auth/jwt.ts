@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
+import type { RequestHandler, Request } from 'express';
 
 import { getUser } from '../services/users';
 
@@ -14,19 +15,19 @@ export const token = (userId: number) => jwt.sign(userId.toString(), secret);
 /*
  * Get token from header
  */
-const getToken = (req): string => {
+const getToken = (req: Request): string => {
 	try {
-		return req.header('Authorization').replace('Bearer ', '');
+		return req.header('Authorization')!.replace('Bearer ', '');
 	}
 	catch (error) {
-		throw 'No token'
+		throw new Error('No token');
 	}
 }
 
 /*
  * Verify a JWT token and, if valid, return the decoded payload
  */
-export const verify = (req) => {
+export const verify = (req: Request) => {
 	const token = getToken(req);
 	try {
 		return jwt.verify(token, secret);
@@ -42,7 +43,7 @@ export const verify = (req) => {
  * Validates the token, looks up the user associated with the token
  * and stores as req.user
  */
-export const authorize = async (req, res, next) => {
+export const authorize: RequestHandler = async (req, res, next) => {
 	try {
 		const token = getToken(req);
 		let userId: number;

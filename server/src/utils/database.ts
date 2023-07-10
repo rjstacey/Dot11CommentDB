@@ -4,7 +4,7 @@ let ppool: ReturnType<mysql.Pool["promise"]>;
 
 export function init() {
 	let options: mysql.PoolOptions;
-	if (process.env.NODE_ENV === 'development') {
+	if (process.env.DB_HOST) {
 		options = {
 			host: process.env.DB_HOST,
 			port: Number(process.env.DB_PORT),
@@ -29,7 +29,7 @@ export function init() {
 		charset: 'UTF8MB4_GENERAL_CI',
 	}
 
-	console.log('NODE_ENV=', process.env.NODE_ENV);
+	console.log('DB_HOST=' + process.env.DB_HOST);
 	console.log(options);
 
 	/* Cast TINYINT(1) as boolean */

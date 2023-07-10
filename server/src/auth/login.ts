@@ -6,9 +6,14 @@ import { selectUser, getUser, setUser, delUser } from '../services/users';
 //const cheerio = require('cheerio');
 //const db = require('../utils/database');
 import { verify, token } from './jwt';
+import { AccessLevel } from './access';
 
 const loginUrl = '/pub/login';
 const logoutUrl = '/pub/logout';
+
+const adminUsers = [
+	{SAPIN: 5073, Username: 'rjstacey@gmail.com'}
+] as const;
 
 async function login(ieeeClient: AxiosInstance, username: string, password: string) {
 	let m, response: AxiosResponse;
@@ -60,9 +65,9 @@ async function login(ieeeClient: AxiosInstance, username: string, password: stri
 	const Name = m[1];
 	let SAPIN = parseInt(m[2], 10);
 
-	if (SAPIN === 5073)
+	//if (SAPIN === 5073)
 		//SAPIN = 135742;
-		SAPIN = 82004;
+		//SAPIN = 82004;
 		//SAPIN = 2988;
 
 	// Add an interceptor that will login again if a request returns the login page
@@ -126,8 +131,12 @@ router
 			const ieeeClient = createIeeeClient();
 
 			const {SAPIN, Name, Email} = await login(ieeeClient, username, password);
+			//const SAPIN = 5073, Name = "Robert Stacey", Email= "rjstacey@gmail.com";
 
-			const user = (await selectUser({SAPIN, Email})) || {SAPIN, Name, Email, Access: 0, Permissions: []};
+			const user = (await selectUser({SAPIN, Email})) || {SAPIN, Name, Email, Access: AccessLevel.none, Permissions: []};
+			
+			if (adminUsers.find(u => u.SAPIN === SAPIN || u.Username === Email))
+				user.Access = AccessLevel.admin;
 
 			user.Token = token(user.SAPIN);
 			setUser(user.SAPIN, {...user, ieeeClient});

@@ -6,7 +6,7 @@
 
 import dotenv from 'dotenv';
 import path from 'path';
-import express from 'express';
+import express, { ErrorRequestHandler, RequestHandler } from 'express';
 
 import login from './auth/login';
 import oauth2 from './auth/oauth2';
@@ -58,6 +58,44 @@ async function initServices() {
 	console.log('init services complete');
 }
 
+const requestLog: RequestHandler = function(req, res, next) {
+	console.log(req.method, req.url);
+	next();
+}
+
+const errorHandler: ErrorRequestHandler = function(err, req, res, next) {
+
+	if (process.env.NODE_ENV === 'development')
+		console.warn(err);
+
+	let message: string;
+	if (typeof err === 'string') {
+		message = err;
+	}
+	else if (err.hasOwnProperty('message')) {
+		// Error and its ilk caught here
+		message = err.message;
+	}
+	else {
+		try {
+			message = err.toString();
+		}
+		catch(e) {
+			message = JSON.stringify(err);
+		}
+	}
+	let status = 500;
+	if (err.name === "TypeError")
+		status = 400;
+	else if (err.name === "AuthError")
+		status = 401;
+	else if (err.name === "ForbiddenError")
+		status = 403;
+	else if (err.name === "NotFoundError")
+		status = 404;
+	res.status(status).send(message);
+}
+
 function initServer() {
 	console.log('init server...');
 	const app = express();
@@ -66,13 +104,9 @@ function initServer() {
 	app.use(express.json());
 	app.use(express.urlencoded({extended: true}));
 
-	if (process.env.NODE_ENV === 'development') {
-		// Log requests to console
-		app.use((req, res, next) => {
-			console.log(req.method, req.url);
-			next();
-		});
-	}
+	// Log requests to console
+	if (process.env.NODE_ENV === 'development')
+		app.use(requestLog);
 
 	// Default is to expire immediately
 	app.all('*', (req, res, next) => {
@@ -89,37 +123,7 @@ function initServer() {
 	app.use('/api', api);
 
 	// Error handler
-	app.use((err, req, res, next) => {
-		if (process.env.NODE_ENV === 'development')
-			console.warn(err);
-		let message: string;
-		if (typeof err === 'string') {
-			message = err;
-		}
-		else if (err.hasOwnProperty('message')) {
-			// Error and its ilk caught here
-			message = err.message;
-		}
-		else {
-			try {
-				message = err.toString();
-			}
-			catch(e) {
-				message = JSON.stringify(err);
-			}
-		}
-		let status = 500;
-		if (err.name === "TypeError")
-			status = 400;
-		else if (err.name === "AuthError")
-			status = 401;
-		else if (err.name === "ForbiddenError")
-			status = 403;
-		else if (err.name === "NotFoundError")
-			status = 404;
-		res.status(status).send(message);
-	});
-
+	app.use(errorHandler);
 
 	//app.get('*/static*', (req, res, next) => {
 	//	res.setHeader('Cache-Control', 'max-age=31536000');
@@ -128,8 +132,8 @@ function initServer() {
 
 	let devdir = '';
 	if (process.env.NODE_ENV === 'development') {
-		devdir = '../../build'
-		console.log(path.join(__dirname, devdir))
+		devdir = '../../build';
+		console.log(path.join(__dirname, devdir));
 	}
 
 	app.use(
@@ -141,6 +145,7 @@ function initServer() {
 	app.get('/logout', (req, res) => res.sendFile(path.join(__dirname, devdir, 'auth/logout.html')));
 	app.get('/comments*', (req, res) => res.sendFile(path.join(__dirname, devdir, 'comments/index.html')));
 	app.get('/membership*', (req, res) => res.sendFile(path.join(__dirname, devdir, 'membership/index.html')));
+	app.get('/meetings*', (req, res) => res.sendFile(path.join(__dirname, devdir, 'meetings/index.html')));
 	//app.get('*', (req, res) => res.redirect('/'));
 
 	app.listen(app.get('port'), () => {

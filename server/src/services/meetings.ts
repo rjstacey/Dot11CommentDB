@@ -948,7 +948,7 @@ export async function updateMeetings(user: User, updates: MeetingUpdate[]) {
 }
 
 export function validateMeetingIds(ids: any): asserts ids is number[] {
-	if (!Array.isArray(ids) || ids.every(id => typeof id === 'number'))
+	if (!Array.isArray(ids) || !ids.every(id => typeof id === 'number'))
 		throw new TypeError("Bad or missing array of meeting identifiers; expected number[]");
 }
  
