@@ -15,6 +15,7 @@ import {
 	updateGroups,
 	deleteGroups,
 	selectGroupsState,
+	selectGroup,
 	selectWorkingGroupId,
 	GroupTypeOptions,
 	GroupStatusOptions,
@@ -31,6 +32,7 @@ import ColorPicker from '../components/ColorPicker';
 import Officers from './Officers';
 import TopRow from '../components/TopRow';
 import { RootState } from '../store';
+import { useAppSelector } from '../store/hooks';
 
 const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';
@@ -48,12 +50,25 @@ const defaultEntry: GroupCreate = {
 function GroupTypeSelector({
 	value,
 	onChange,
+	parent_id,
 	...otherProps
 }: {
 	value: GroupType | null;
 	onChange: (value: GroupType | null) => void;
+	parent_id: string | null;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
 ) {
+	const parentGroup = useAppSelector(state => parent_id? selectGroup(state, parent_id): undefined);
+
+	let options = GroupTypeOptions;
+	if (!parentGroup)
+		options = options.filter(o => ["c", "wg"].includes(o.value));
+	else if (parentGroup.type === "c")
+		options = options.filter(o => o.value === "wg");
+	else if (parentGroup.type === "wg")
+		options = options.filter(o => o.value !== "c");
+	else
+		options = options.filter(o => !["c", "wg"].includes(o.value));
 
 	function handleChange(values: typeof GroupTypeOptions) {
 		const newValue: GroupType | null = values.length > 0? values[0].value: null;
@@ -67,7 +82,7 @@ function GroupTypeSelector({
 		<Select
 			values={values}
 			onChange={handleChange}
-			options={GroupTypeOptions}
+			options={options}
 			portal={document.querySelector('#root')}
 			{...otherProps}
 		/>
@@ -168,6 +183,7 @@ function GroupEntry({
 						style={{width: 200}}
 						value={isMultiple(entry.type)? null: entry.type}
 						onChange={(type) => change({type})}
+						parent_id={entry.parent_id}
 						placeholder={isMultiple(entry.type)? MULTIPLE_STR: undefined}
 						readOnly={readOnly}
 					/>
@@ -179,10 +195,8 @@ function GroupEntry({
 						style={{width: 200}}
 						value={isMultiple(entry.parent_id)? '': entry.parent_id || ''}
 						onChange={(parent_id) => change({parent_id})}
-						//multi={false}
 						placeholder={isMultiple(entry.parent_id)? MULTIPLE_STR: "(None)"}
 						readOnly={readOnly}
-						//options={parentGroups}
 					/>
 				</Field>
 			</Row>

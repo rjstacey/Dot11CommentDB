@@ -152,6 +152,8 @@ export const selectGroupsState = (state: RootState) => state[dataSet];
 export const selectGroupEntities = (state: RootState) => selectGroupsState(state).entities;
 export const selectGroupIds = (state: RootState) => selectGroupsState(state).ids;
 
+export const selectGroup = (state: RootState, id: EntityId) => selectGroupEntities(state)[id];
+
 export const selectWorkingGroups = (state: RootState) => {
 	const {ids, entities} = selectGroupsState(state);
 	return ids.map(id => entities[id]!).filter(g => ["c", "wg"].includes(g.type || ''));

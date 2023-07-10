@@ -22,7 +22,7 @@ type MenuItem = {
 const fullMenu: MenuItem[] = [
 	{
 		minAccess: AccessLevel.admin,
-		link: '/',
+		link: '/members',
 		groupName: "required",
 		label: 'Members',
 	},

@@ -1,9 +1,9 @@
 import React from 'react';
-import {useSelector} from 'react-redux';
 
-import {Select} from 'dot11-components';
+import { Select } from 'dot11-components';
 
-import { Group, selectGroupsState, selectWorkingGroupId } from '../store/groups';
+import { useAppSelector } from '../store/hooks';
+import { Group, selectGroups } from '../store/groups';
 
 export function GroupSelector({
 	value,
@@ -40,38 +40,26 @@ export function GroupSelector({
 	onChange: ((value: string | null) => void) | ((value: string[]) => void);
 	multi?: boolean;
 	types?: string[];
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options" | "milti">) {
-	const parentId = useSelector(selectWorkingGroupId);
-	const {entities, ids} = useSelector(selectGroupsState);
+} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options" | "milti">)
+{
+	let groups = useAppSelector(selectGroups);
+	if (types)
+		groups = groups.filter(group => group.type && types.includes(group.type));
 
-	const groups = React.useMemo(() => {
-		let groups = ids.map(id => entities[id]!);
-		if (types)
-			groups = groups.filter(group => types.includes(group.type || ''));
-		if (parentId)
-			groups = groups.filter(group => group.id === parentId || group.parent_id === parentId);
-		return groups;
-	}, [parentId, entities, ids, types]);
-
-	const handleChange = React.useCallback((values: Group[]) => {
+	const handleChange = (values: Group[]) => {
 		let newValues: any;
 		if (multi)
 			newValues = values.map(group => group.id);
 		else
-			newValues = values.length > 0? values[0].id: '';
+			newValues = values.length > 0? values[0].id: null;
 		onChange(newValues);
-	}, [multi, onChange]);
+	};
 
-	let values: (Group | Pick<Group, "id" | "name">)[];
-	if (value) {
-		if (multi)
-			values = (value as string[]).map(id => entities[id] || {id, name: 'Unknown'});
-		else
-			values = [entities[value as string] || {id: value as string, name: 'Unknown'}];
-	}
-	else {
-		values = [];
-	}
+	let values: Group[];
+	if (multi)
+		values = groups.filter(group => (value as string[]).includes(group.id));
+	else
+		values = groups.filter(group => group.id === (value as string));
 
 	return (
 		<Select
