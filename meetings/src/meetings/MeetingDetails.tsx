@@ -217,6 +217,9 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 
 		if (action === 'update' && selectedMeetings.join() !== ids.join())
 			changeWithConfirmation();
+		else if (action === 'add-by-slot' && slots.length > 0 && selectedSlots.join() !== slots.join()) {
+			this.setState({slots: selectedSlots});
+		}
 		else if (selectedSlots.join() !== slots.join())
 			this.reinitState((selectedMeetings.length === 0 && selectedSlots.length > 0)? 'add-by-slot': 'update');
 	}
@@ -247,6 +250,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 		entry.dates = [...new Set(entry.dates.sort())];	// array of unique dates
 
 		if (action === 'add-by-slot') {
+			console.log(entry)
 			entry.slots = selectedSlots;
 
 			let date: string | typeof MULTIPLE | null = null,
@@ -366,7 +370,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 		this.setState(state => {
 			let entry: MultipleMeetingEntry = deepMerge(state.entry, changes);
 			// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
-			console.log(changes)
+			//console.log(changes, entry)
 			changes = deepDiff(state.saved, entry) as PartialMeetingEntry || {};
 			if (Object.keys(changes).length === 0)
 				entry = state.saved as typeof state.entry;
@@ -408,7 +412,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 	clickSync = async () => {
 		const {updateMeetings} = this.props;
 		const {meetings, session} = this.state;
-		console.log(session)
+		//console.log(session)
 
 		//const updates = meetings.map(m => ({id: m.id, changes: {}}));
 

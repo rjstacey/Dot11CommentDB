@@ -55,13 +55,14 @@ interface Node {
 	children: Node[];
 }
 
-function treeSortedIds(ids: EntityId[], entities: Dictionary<Group>) {
+function treeSortedIds(ids: EntityId[], entities: Dictionary<Group>, parent_id: EntityId | null = null) {
+
+	const groupTypes = Object.keys(GroupTypeLabels);
 
 	function compare(n1: Node, n2: Node) {
 		const g1 = entities[n1.id]!;
 		const g2 = entities[n2.id]!;
-		const keys = Object.keys(GroupTypeLabels);
-		let cmp = keys.indexOf(g1.type || '') - keys.indexOf(g2.type || '');
+		let cmp = groupTypes.indexOf(g1.type || '') - groupTypes.indexOf(g2.type || '');
 		if (cmp === 0)
 			cmp = g1.name.localeCompare(g2.name);
 		return cmp;
@@ -78,7 +79,9 @@ function treeSortedIds(ids: EntityId[], entities: Dictionary<Group>) {
 		return nodes;
 	}
 
-	const nodes = findChildren(null);
+	const nodes = parent_id?
+		[{id: parent_id, children: findChildren(parent_id)}]:
+		findChildren(parent_id);
 
 	function concat(nodes: Node[]) {
 		let ids: EntityId[] = [];
@@ -91,7 +94,6 @@ function treeSortedIds(ids: EntityId[], entities: Dictionary<Group>) {
 
 	return sortedIds;
 }
-
 
 type ExtraState = {
 	workingGroupId: string | null;
@@ -148,15 +150,15 @@ export const selectWorkingGroup = (state: RootState) => {
 	const {workingGroupId, entities} = selectGroupsState(state);
 	return (workingGroupId && entities[workingGroupId]) || undefined;
 }
-export const selectWorkingGroupName = (state: RootState) => selectWorkingGroup(state)?.name || '*';
+export const selectWorkingGroupName = (state: RootState) => selectWorkingGroup(state)?.name || '';
 
 export const selectGroups = createSelector(
 	selectGroupIds,
 	selectGroupEntities,
 	selectWorkingGroupId,
 	(ids, entities, workingGroupId) => {
-		const groups = ids.map(id => entities[id]!).filter(group => group.id === workingGroupId || group.parent_id === workingGroupId);
-		console.log(workingGroupId, ids.length)
+		const childIds = treeSortedIds(ids, entities, workingGroupId)
+		const groups = childIds.map(id => entities[id]!);
 		return groups;
 	}
 );

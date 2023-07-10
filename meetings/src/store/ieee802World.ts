@@ -14,7 +14,7 @@ import {
 } from 'dot11-components';
 
 import type { AppThunk, RootState } from '.';
-import { selectGroupEntities, selectGroupsState } from './groups';
+import { selectGroupsState, selectWorkingGroup } from './groups';
 import { selectCurrentSessionId } from './current';
 import { selectSessionEntities, selectCurrentSession } from './sessions';
 import { addMeetings, selectMeetingEntities, Meeting } from './meetings';
@@ -89,33 +89,30 @@ export const selectSynced802WorldEntities = createSelector(
 	select802WorldIds,
 	select802WorldEntities,
 	selectMeetingEntities,
-	selectGroupEntities,
 	selectCurrentSession,
-	(ids, entities, meetingEntities, groupEntities, session) => {
+	selectWorkingGroup,
+	(ids, entities, meetingEntities, session, workingGroup) => {
 		const newEntities: Dictionary<SyncedIeee802WorldScheduleEntry> = {};
-		for (const id of ids) {
+		ids.forEach(id => {
 			const entity = entities[id]!;
-			const entityGroupName = entity.groupName.startsWith('802')? '802': '802.' + (entity.groupName);
-			const entityGroupId = Object.values(groupEntities).find(group => group!.name === entityGroupName)?.id || null;
-			const entityRoomId = session?.rooms.find(room => room!.name === entity.mtgRoom)?.id || null;
-			const entityStart = DateTime.fromFormat(`${entity.breakoutDate} ${entity.startTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: session?.timezone || 'America/New_York'});
-			/* Find a meeting that matches group, start, and room */
-			const m = Object.values(meetingEntities).find(m => {
-				const groupId = m!.organizationId;
-				const parentGroupId = groupId? (groupEntities[groupId]?.parent_id || null): null;
-				const start = DateTime.fromISO(m!.start, {zone: m!.timezone});
-				const roomId = m!.roomId;
-				return ((entityGroupId === groupId || entityGroupId === parentGroupId) &&
-						entityStart.equals(start) &&
-						entityRoomId === roomId);
-			});
-			const meetingId = m?.id || null;
-			//const meetingSummary = m? `${m.summary} ${m.roomName} ${displayDateRange(m.start, m.end)}`: '';
+			let meetingId = null;
+			const entityGroupName = entity.groupName.startsWith('802')? '802': ('802.' + entity.groupName);
+			if (entityGroupName === workingGroup.name) {
+				const entityRoomId = session?.rooms.find(room => room!.name === entity.mtgRoom)?.id || null;
+				const entityStart = DateTime.fromFormat(`${entity.breakoutDate} ${entity.startTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: session?.timezone || 'America/New_York'});
+				/* Find a meeting that matches group, start, and room */
+				const m = Object.values(meetingEntities).find(m =>
+					entityStart.equals(DateTime.fromISO(m!.start, {zone: m!.timezone})) && entityRoomId === m!.roomId
+				);
+				if (m)
+					meetingId = m.id;
+			}
 			newEntities[id] = {
 				...entity,
 				meetingId,
 			}
-		}
+		});
+		//console.log(newEntities)
 		return newEntities;
 	}
 );

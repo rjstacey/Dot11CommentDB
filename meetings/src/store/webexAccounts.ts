@@ -96,6 +96,8 @@ function validGetResponse(response: any): response is WebexAccount[] {
 export const loadWebexAccounts = (): AppThunk => 
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
+		if (!groupName)
+			return;
 		const url = `/api/${groupName}/webex/accounts`;
 		dispatch(getPending());
 		let response: any;

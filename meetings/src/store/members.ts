@@ -71,6 +71,8 @@ function validUsers(users: any): users is Member[] {
 export const loadMembers = (): AppThunk => 
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
+		if (!groupName)
+			return;
 		const url = `/api/${groupName}/users`;
 		dispatch(getPending());
 		let response: any;

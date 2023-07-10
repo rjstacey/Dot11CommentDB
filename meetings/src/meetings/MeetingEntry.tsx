@@ -352,6 +352,7 @@ export function MeetingEntryForm({
 				<Row>
 					<Field label='Subgroup:'>
 						<GroupSelector
+							style={{minWidth: 200}}
 							value={isMultiple(entry.organizationId)? '': entry.organizationId || ''}
 							onChange={(organizationId) => handleChange({organizationId})}
 							placeholder={isMultiple(entry.organizationId)? MULTIPLE_STR: BLANK_STR}
