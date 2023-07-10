@@ -141,10 +141,7 @@ function GroupEntry({
 	function change(changes: Partial<GroupCreate>) {
 		if ('symbol' in changes && entry.type === 'tg') {
 			const s = changes.symbol?.split('/');
-			changes = {
-				...changes,
-				project: "P" + (s? s[s.length - 1]: s)
-			};
+			changes.project = "P" + (s? s[s.length - 1]: s);
 		}
 		changeEntry(changes);
 	}
