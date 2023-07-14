@@ -36,10 +36,11 @@ const upload = Multer();
 
 router
 	.all('*', (req, res, next) => {
-		if (!req.group)
+		const {group, user} = req;
+		if (!group)
 			return next(new Error("Group not set"));
 
-		const access = req.group.permissions.members || AccessLevel.none;
+		const access = Math.max(group.permissions.members || AccessLevel.none, user.Access);
 
 		if (req.method === "GET" && access >= AccessLevel.ro)
 			return next();

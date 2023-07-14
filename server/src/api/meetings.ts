@@ -49,10 +49,11 @@ const router = Router();
 
 router
 	.all('*', (req, res, next) => {
-		if (!req.group)
+		const {user, group} = req;
+		if (!group)
 			return next(new Error("Group not set"));
 
-		const access = req.group.permissions.meetings || AccessLevel.none;
+		const access = Math.max(group.permissions.meetings || AccessLevel.none, user.Access);
 
 		if (req.method === "GET" && access >= AccessLevel.ro)
 			return next();
