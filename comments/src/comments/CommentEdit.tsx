@@ -9,7 +9,7 @@ import {
 
 import AdHocSelector from './AdHocSelector';
 import CommentGroupSelector from './CommentGroupSelector';
-import {ResolutionEditor} from './ResolutionEditor';
+import RichTextEditor from './RichTextEditor';
 
 import type { MultipleCommentResolution } from './CommentDetail';
 
@@ -143,7 +143,7 @@ const Categorization = ({
 	</>
 
 
-const StyledNoteEditor = styled(ResolutionEditor)`
+const StyledNoteEditor = styled(RichTextEditor)`
 	background-color: #fafafa;
 	border: 1px solid #ddd;
 	border-radius: 0 5px 5px 5px;

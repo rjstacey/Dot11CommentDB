@@ -7,7 +7,7 @@ import { get, set, del } from 'idb-keyval';
 import { errorsSlice } from 'dot11-components';
 
 import userSlice, { initUser, User } from './user';
-import groupsSlice from './groups';
+import groupsSlice, { initGroups } from './groups';
 import membersSlice from './members';
 import ballotsSlice from './ballots';
 import epollsSlice from './epolls';
@@ -119,7 +119,7 @@ export function configureStore(user: User) {
 		store.dispatch(initUser(user));
 
 		// After hydrate, load the latest
-		//store.dispatch(initGroups());
+		store.dispatch(initGroups());
 		//store.dispatch(initMembers());
 		//store.dispatch(initBallots());
 	});

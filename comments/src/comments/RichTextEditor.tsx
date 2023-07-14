@@ -281,7 +281,7 @@ type ResolutionEditorState = {
 	value: string | null;
 }
 
-export class ResolutionEditor extends React.Component<ResolutionEditorProps, ResolutionEditorState> {
+export class RichTextEditor extends React.Component<ResolutionEditorProps, ResolutionEditorState> {
 	constructor(props: ResolutionEditorProps) {
 		super(props);
 		this.state = {
@@ -460,3 +460,5 @@ const EditorContainer = styled.div`
 
 	${css(blockStyleCss)}
 `;
+
+export default RichTextEditor;

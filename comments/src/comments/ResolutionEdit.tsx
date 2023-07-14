@@ -8,10 +8,11 @@ import {
 
 import AssigneeSelector from './AssigneeSelector';
 import SubmissionSelector from './SubmissionSelector';
-import {ResolutionEditor} from './ResolutionEditor';
+import RichTextEditor from './RichTextEditor';
 
 import type { MultipleCommentResolution } from './CommentDetail';
 import type { Resolution, ResnStatusType } from '../store/comments';
+import { AccessLevel } from '../store/user';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
@@ -214,7 +215,7 @@ const StyledResolutionContainer = styled(Col)<{readOnly?: boolean}>`
 	}
 `;
 
-const StyledResolutionEditor = styled(ResolutionEditor)<{resnStatus?: ResnStatusType | null}>`
+const StyledResolutionEditor = styled(RichTextEditor)<{resnStatus?: ResnStatusType | null}>`
 	background-color: ${({resnStatus}) => (resnStatus && resnColor[resnStatus]) || '#fafafa'};
 	border: 1px solid #ddd;
 	border-radius: 0 5px 5px 5px;
@@ -223,11 +224,13 @@ const StyledResolutionEditor = styled(ResolutionEditor)<{resnStatus?: ResnStatus
 export const ResolutionEdit = ({
 	resolution,
 	updateResolution,
-	readOnly
+	readOnly,
+    commentsAccess = AccessLevel.none,
 }: {
 	resolution: MultipleCommentResolution;
 	updateResolution: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
+    commentsAccess?: number;
 }) =>
 	<>
 		<Row>
@@ -239,7 +242,7 @@ export const ResolutionEdit = ({
 			<ResolutionApproval
 				resolution={resolution}
 				updateResolution={updateResolution}
-				readOnly={readOnly}
+				readOnly={readOnly || commentsAccess < AccessLevel.rw}
 			/>
 		</Row>
 		<Row>

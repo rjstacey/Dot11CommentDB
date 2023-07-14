@@ -3,7 +3,7 @@ import { connect, ConnectedProps } from 'react-redux';
 import styled from '@emotion/styled';
 
 import {
-	ActionButton,
+	ActionButton, Row,
 	shallowDiff, recursivelyDiffObjects, debounce, Multiple
 } from 'dot11-components';
 
@@ -20,16 +20,26 @@ import {
 	updateComments,
 	setUiProperties,
 	selectCommentsState,
+	selectCommentsAccess,
 	getCID,
 	CommentResolution,
+	Comment,
 	Resolution,
 	ResolutionUpdate,
 	ResolutionCreate,
-	Comment,
-	selectCommentsAccess
 } from '../store/comments';
 import { selectGroupEntities } from '../store/groups';
 import { AccessLevel, selectUser } from '../store/user';
+
+function renderAccess(access: number) {
+	if (access === AccessLevel.admin)
+		return "admin";
+	if (access === AccessLevel.rw)
+		return "rw";
+	if (access === AccessLevel.ro)
+		return "ro";
+	return "none";
+}
 
 const NotAvaialble = styled.div`
 	display: flex;
@@ -52,7 +62,7 @@ const TopRow = styled.div`
 	width: 100%;
 `;
 
-const CommentContainer = styled.div`
+const BodyContainer = styled.div`
 	label {
 		font-weight: bold;
 	}
@@ -81,6 +91,7 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 		this.triggerSave.flush();
 	}
 
+	/* User has read-write comments access if the user is an officer of the assigned ad-hoc */
 	getCommentsAccess = (access: number, comments: CommentResolution[]) => {
 		const {groupEntities} = this.props;
 		if (access <= AccessLevel.ro) {
@@ -99,11 +110,12 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 		return access;
 	}
 
+	/* User has read-write resolutions access if the user has been assigned the comment
+	 * and the comment does not have an approved resolution. */
 	getResolutionsAccess = (access: number, comments: CommentResolution[]) => {
 		const {user} = this.props;
-		if (access <= AccessLevel.ro) {
-			const rw = comments.every(c => c.AssigneeSAPIN === user.SAPIN);
-			if (rw)
+		if (access <= AccessLevel.ro &&
+			comments.every(c => c.AssigneeSAPIN === user.SAPIN && !c.ApprovedByMotion)) {
 				access = AccessLevel.rw;
 		}
 		return access;
@@ -111,21 +123,21 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 
 	initState = (props: CommentDetailProps): CommentDetailState => {
 		const {entities, selected} = props;
-		let diff = {}, originalComments: CommentResolution[] = [];
+		let diff = {}, comments: CommentResolution[] = [];
 		selected.forEach(id => {
 			const comment = entities[id];
 			if (comment) {
 				diff = recursivelyDiffObjects(diff, comment);
-				originalComments.push(comment);
+				comments.push(comment);
 			}
 		});
 		let access = this.props.access;
-		let commentsAccess = this.getCommentsAccess(access, originalComments);
-		let resolutionsAccess = this.getResolutionsAccess(commentsAccess, originalComments);
+		let commentsAccess = this.getCommentsAccess(access, comments);
+		let resolutionsAccess = this.getResolutionsAccess(commentsAccess, comments);
 		return {
 			savedResolution: diff as MultipleCommentResolution,
 			editedResolution: diff as MultipleCommentResolution,
-			comments: originalComments,
+			comments,
 			commentsAccess,
 			resolutionsAccess
 		};
@@ -148,28 +160,27 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 		const {updateComments, updateResolutions, addResolutions} = this.props;
 
 		/* Find changes */
-		const commentUpdate: Partial<Comment> = {}, resolutionUpdate: Partial<Resolution> = {};
+		const commentChanges: Partial<Comment> = {},
+			  resolutionChanges: Partial<Resolution> = {};
 		const d = shallowDiff(this.state.savedResolution, editedResolution);
 		for (let k in d) {
 			if (k === 'AdHocGroupId' || k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes' || k === 'Page' || k === 'Clause')
-				commentUpdate[k] = d[k];
+				commentChanges[k] = d[k];
 			else
-				resolutionUpdate[k] = d[k];
+				resolutionChanges[k] = d[k];
 		}
-		if (Object.keys(commentUpdate).length > 0) {
-			const updates = comments.map(c => ({id: c.comment_id, changes: commentUpdate}));
+		if (Object.keys(commentChanges).length > 0) {
+			const updates = comments.map(c => ({id: c.comment_id, changes: commentChanges}));
 			updateComments(updates);
 		}
-		if (Object.keys(resolutionUpdate).length > 0) {
+		if (Object.keys(resolutionChanges).length > 0) {
 			const updates: ResolutionUpdate[] = [];
 			const adds: ResolutionCreate[] = [];
 			for (const c of comments) {
-				if (c.resolution_id) {
-					updates.push({id: c.resolution_id, changes: resolutionUpdate});
-				}
-				else {
-					adds.push({comment_id: c.comment_id, ...resolutionUpdate});
-				}
+				if (c.resolution_id)
+					updates.push({id: c.resolution_id, changes: resolutionChanges});
+				else
+					adds.push({comment_id: c.comment_id, ...resolutionChanges});
 			}
 			if (updates.length > 0)
 				updateResolutions(updates);
@@ -184,8 +195,8 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 			console.warn("Update in read only component");
 			return;
 		}
-		const {comments} = this.state;
 		const {addResolutions} = this.props;
+		const {comments} = this.state;
 		//console.log(comments)
 		const resolutions: ResolutionCreate[] = [];
 		// Add only one entry per CommentID
@@ -202,11 +213,13 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 			console.warn("Update in read only component");
 			return;
 		}
- 		const ids = this.state.comments
+		const {deleteResolutions} = this.props;
+		const {comments} = this.state;
+ 		const ids = comments
  			.filter(c => c.ResolutionCount > 0)	// only those with resolutions
  			.map(c => c.resolution_id);
  		this.triggerSave.flush();
- 		await this.props.deleteResolutions(ids);
+ 		await deleteResolutions(ids);
  	}
 
  	toggleUiProperty = (property: string) => this.props.setUiProperties({[property]: !this.props.uiProperties[property]});
@@ -220,25 +233,23 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 			notAvailableStr = 'Loading...';
 		else if (comments.length === 0)
 			notAvailableStr = 'Nothing selected';
+
 		const disableButtons = !!notAvailableStr; 	// disable buttons if displaying string
 		const disableEditButtons = disableButtons || readOnly || !uiProperties.editComment;
 
-		return(
-			<DetailContainer
-				style={style}
-				className={className}
-			>
-				<TopRow>
-					{`${this.props.access} ${commentsAccess} ${resolutionsAccess}`}
-					{!readOnly && <>
-						<CommentHistory />
-						<ActionButton
-							name='edit'
-							title='Edit resolution'
-							disabled={disableButtons}
-							isActive={uiProperties.editComment}
-							onClick={() => this.toggleUiProperty('editComment')}
-						/>
+		const actionElements =
+			<>
+				<CommentHistory />
+				{!readOnly && (commentsAccess >= AccessLevel.rw || resolutionsAccess >= AccessLevel.rw) &&
+					<ActionButton
+						name='edit'
+						title='Edit resolution'
+						disabled={disableButtons}
+						isActive={uiProperties.editComment}
+						onClick={() => this.toggleUiProperty('editComment')}
+					/>}
+				{!readOnly && commentsAccess >= AccessLevel.rw &&
+					<>
 						<ActionButton
 							name='add'
 							title='Create alternate resolution'
@@ -252,38 +263,50 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 							onClick={this.handleDeleteResolutions}
 						/>
 					</>}
-				</TopRow>
-				
-				{notAvailableStr?
-					<NotAvaialble>
-						<span>{notAvailableStr}</span>
-				 	</NotAvaialble>:
-					<CommentContainer>
-						<CommentEdit 
-							cids={comments.map(getCID)}
-							comment={editedResolution}
-							updateComment={this.updateResolution}
-							showNotes={uiProperties.showNotes}
-							toggleShowNotes={() => this.toggleUiProperty('showNotes')}
-							readOnly={readOnly || commentsAccess < AccessLevel.rw || !uiProperties.editComment}
-						/>
-						{editedResolution.ResolutionID !== null &&
-							<>
-								<ResolutionEdit
-									resolution={editedResolution}
-									updateResolution={this.updateResolution}
-									readOnly={readOnly || resolutionsAccess < AccessLevel.rw || !uiProperties.editComment}
-								/>
-								<EditingEdit
-									resolution={editedResolution}
-									updateResolution={this.updateResolution}
-									showEditing={uiProperties.showEditing}
-									toggleShowEditing={() => this.toggleUiProperty('showEditing')}
-									readOnly={readOnly || commentsAccess < AccessLevel.rw || !uiProperties.editComment}
-								/>
-							</>}
-					</CommentContainer>
-				}
+			</>
+
+		const bodyElement =
+			notAvailableStr?
+				<NotAvaialble>
+					<span>{notAvailableStr}</span>
+				</NotAvaialble>:
+				<>
+					<CommentEdit 
+						cids={comments.map(getCID)}
+						comment={editedResolution}
+						updateComment={this.updateResolution}
+						showNotes={uiProperties.showNotes}
+						toggleShowNotes={() => this.toggleUiProperty('showNotes')}
+						readOnly={readOnly || commentsAccess < AccessLevel.rw || !uiProperties.editComment}
+					/>
+					{editedResolution.ResolutionID !== null &&
+						<>
+							<ResolutionEdit
+								resolution={editedResolution}
+								updateResolution={this.updateResolution}
+								readOnly={readOnly || resolutionsAccess < AccessLevel.rw || !uiProperties.editComment}
+								commentsAccess={commentsAccess}
+							/>
+							<EditingEdit
+								resolution={editedResolution}
+								updateResolution={this.updateResolution}
+								showEditing={uiProperties.showEditing}
+								toggleShowEditing={() => this.toggleUiProperty('showEditing')}
+								readOnly={readOnly || commentsAccess < AccessLevel.rw || !uiProperties.editComment}
+							/>
+						</>}
+					<Row style={{justifyContent: 'flex-end', opacity: 0.5}}>
+						{`${renderAccess(commentsAccess)} / ${renderAccess(resolutionsAccess)}`}
+					</Row>
+				</>
+
+		return(
+			<DetailContainer
+				style={style}
+				className={className}
+			>
+				<TopRow>{actionElements}</TopRow>
+				<BodyContainer>{bodyElement}</BodyContainer>
 			</DetailContainer>
 		)
 	}

@@ -28,6 +28,11 @@ function CommentGroupSelector({
 ) {
 	const options = useAppSelector(selectFieldValues);
 	const values = options.filter(o => o.value === value);
+	// Make sure the current value is in the options
+	if (value && values.length === 0) {
+		values.push({label: value, value});
+		options.push(values[0]);
+	}
 	const handleChange = (values: typeof options) => onChange(values.length? values[0].value: '');
 
 	return (

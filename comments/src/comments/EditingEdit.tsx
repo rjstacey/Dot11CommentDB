@@ -6,7 +6,7 @@ import {
 	isMultiple
 } from 'dot11-components';
 
-import { ResolutionEditor } from './ResolutionEditor';
+import RichTextEditor from './RichTextEditor';
 
 import type { MultipleCommentResolution } from './CommentDetail';
 import type { Resolution } from '../store/comments';
@@ -133,7 +133,7 @@ export const EditingEdit = ({
                         updateResolution={updateResolution}
                         readOnly={readOnly}
                     />
-                    <ResolutionEditor
+                    <RichTextEditor
                         value={isMultiple(resolution.EditNotes)? '': resolution.EditNotes}
                         onChange={value => updateResolution({EditNotes: value})}
                         placeholder={isMultiple(resolution.EditNotes)? MULTIPLE_STR: BLANK_STR}

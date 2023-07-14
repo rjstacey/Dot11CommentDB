@@ -11,7 +11,7 @@ import {
 
 import TopRow from '../components/TopRow';
 import PathBallotSelector from '../components/PathBallotSelector';
-import { editorCss } from './ResolutionEditor';
+import { editorCss } from './RichTextEditor';
 import CommentDetail from './CommentDetail';
 import { renderCommenter } from './CommentEdit';
 import { renderSubmission } from './SubmissionSelector';
