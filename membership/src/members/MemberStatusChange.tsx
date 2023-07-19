@@ -107,7 +107,7 @@ function MemberStatusChangeDropdown({
 					type='edit'
 					title='Edit status change'
 					disabled={readOnly} 
-					active={state.isOpen}
+					//active={state.isOpen}
 					onClick={state.isOpen? methods.close: methods.open}
 				/>}
 			dropdownRenderer={({props, methods}) =>

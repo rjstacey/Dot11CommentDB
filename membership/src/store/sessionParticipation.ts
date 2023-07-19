@@ -146,6 +146,12 @@ export function memberAttendancesCount(member: Member, attendances: SessionAtten
 	if (h)
 		attendances = attendances.filter(a => DateTime.fromISO(sessionEntities[a.session_id]!.startDate) > DateTime.fromISO(h.Date));
 
+	// Latest first
+	attendances = attendances.slice().sort((a1, a2) =>
+		DateTime.fromISO(sessionEntities[a2.session_id]!.startDate).toMillis()
+			- DateTime.fromISO(sessionEntities[a1.session_id]!.startDate).toMillis() 
+	);
+
 	attendances.forEach(a => {
 		const s = sessionEntities[a.session_id]!;
 		if ((a.AttendancePercentage >= 75 && !a.DidNotAttend) || a.DidAttend) {
@@ -185,6 +191,9 @@ export function selectMemberAttendancesCount(state: RootState, SAPIN: number) {
 
 function memberExpectedStatusFromAttendances(member: Member, count: number, lastP: number) {
 	const status = member.Status;
+
+	if (member.SAPIN === 185742)
+		console.log(member.SAPIN, count, lastP)
 
 	if (member.StatusChangeOverride || 
 		(status !== 'Voter' && status !== 'Potential Voter' && status !== 'Aspirant' && status !== 'Non-Voter'))

@@ -14,6 +14,7 @@ import {
 
 import type { RootState } from '../store';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
+import { selectUserMembersAccess, AccessLevel } from '../store/user';
 import {
 	setUiProperties,
 	selectUiProperties,
@@ -39,6 +40,7 @@ import MemberContactInfo from './MemberContactInfo';
 import MemberPermissions from './MemberPermissions';
 import MemberAttendances from '../sessionParticipation/MemberAttendances';
 import MemberBallotParticipation from '../ballotParticipation/MemberBallotParticipation';
+import ShowAccess from '../components/ShowAccess';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
@@ -677,8 +679,10 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 	}
 
 	render() {
-		const {style, className, loading, readOnly} = this.props;
+		const {style, className, loading} = this.props;
 		const {originals, action, message} = this.state;
+
+		let readOnly = this.props.readOnly || this.props.access < AccessLevel.rw;
 
 		let submit: any | undefined;
 		if (action === "add") {
@@ -724,6 +728,7 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 						readOnly={readOnly}
 					/>
 				}
+				<ShowAccess access={this.props.access} />
 			</DetailContainer>
 		)
 	}
@@ -737,6 +742,7 @@ const connector = connect(
 			loading: members.loading,
 			selected: props.selected? props.selected: members.selected,
 			uiProperties: selectUiProperties(state),
+			access: selectUserMembersAccess(state)
 		}
 	},
 	{

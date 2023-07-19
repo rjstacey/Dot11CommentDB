@@ -10,6 +10,9 @@ import {
 	EntityId, Dictionary
 } from 'dot11-components';
 
+import { RootState } from '../store';
+import { useAppSelector } from '../store/hooks';
+import { AccessLevel, selectUserMembersAccess} from '../store/user';
 import {
 	addGroup,
 	updateGroups,
@@ -23,16 +26,12 @@ import {
 	Group, GroupCreate, GroupUpdate, GroupType
 } from '../store/groups';
 
-import { AccessLevel} from '../store/user';
-
+import Officers from './Officers';
 import GroupSelector from '../components/GroupSelector';
 import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
 import ColorPicker from '../components/ColorPicker';
-
-import Officers from './Officers';
 import TopRow from '../components/TopRow';
-import { RootState } from '../store';
-import { useAppSelector } from '../store/hooks';
+import ShowAccess from '../components/ShowAccess';
 
 const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';
@@ -473,6 +472,7 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 						readOnly={readOnly}
 					/>
 				}
+				<ShowAccess access={access} />
 			</Container>
 		)
 	}
@@ -486,7 +486,7 @@ const connector = connect(
 			selected: data.selected,
 			entities: data.entities,
 			groupId: selectWorkingGroupId(state),
-			access: AccessLevel.admin
+			access: selectUserMembersAccess(state)
 		}
 	},
 	{
