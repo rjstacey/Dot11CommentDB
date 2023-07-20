@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import { useAppSelector } from '../store/hooks';
 
 import Members from '../members/Members';
-import Organization from '../organization/Organization';
+import Groups from '../groups/Groups';
 import SessionParticipation from '../sessionParticipation/SessionParticipation';
 import BallotParticipation from '../ballotParticipation/BallotParticipation';
 import SessionAttendance from '../sessionAttendance/SessionAttendance';
@@ -61,8 +61,8 @@ function Body() {
 					element={renderComponent(AccessLevel.admin, Members)}
 				/>
 				<Route
-					path="/organization/:groupName?"
-					element={renderComponent(AccessLevel.ro, Organization)}
+					path="/groups/:groupName?"
+					element={renderComponent(AccessLevel.ro, Groups)}
 				/>
 				<Route
 					path="/sessionParticipation/:groupName"

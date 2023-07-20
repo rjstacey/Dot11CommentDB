@@ -28,9 +28,9 @@ const fullMenu: MenuItem[] = [
 	},
 	{
 		minAccess: AccessLevel.admin,
-		link: '/organization',
+		link: '/groups',
 		groupName: "optional",
-		label: 'Organization',
+		label: 'Groups',
 	},
 	{
 		minAccess: AccessLevel.admin,

@@ -24,7 +24,7 @@ import { loadOfficers, selectOfficersState, selectGroupOfficers } from '../store
 import { loadMembers, selectMembersState } from '../store/members';
 
 import TopRow from '../components/TopRow';
-import OrginzationDetail from './OrganizationDetail';
+import GroupDetail from './GroupDetail';
 
 function Officers({group}: {group: Group}) {
 
@@ -115,7 +115,7 @@ function Organization() {
 					/>
 				</Panel>
 				<Panel>
-					<OrginzationDetail />
+					<GroupDetail />
 				</Panel>
 			</SplitPanel>
 		</>
