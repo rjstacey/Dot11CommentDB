@@ -1,18 +1,8 @@
 import React from 'react';
-import {useAppDispatch, useAppSelector} from '../store/hooks';
-import type { RootState } from '../store';
+import { v4 as uuid } from 'uuid';
+import { Field, Col, ActionIcon } from 'dot11-components';
 
-import {Field, Col, ActionIcon} from 'dot11-components';
-
-import {
-	addOfficer,
-	updateOfficer,
-	deleteOfficer,
-	selectOfficersState,
-	selectGroupOfficers,
-	Officer,
-	OfficerId,
-} from '../store/officers';
+import { OfficerId, Officer } from '../store/officers';
 
 import MemberSelector from './MemberActiveSelector';
 import OfficerPositionSelector from './OfficerPositionSelector';
@@ -24,27 +14,49 @@ const tableColumns: TableColumn[] = [
 	{key: 'action', label: '', gridTemplate: '40px'}
 ];
 
-function Officers({groupId, readOnly}: {groupId: string; readOnly?: boolean}) {
-	const dispatch = useAppDispatch();
-	const selectOfficers = React.useCallback((state: RootState) => selectGroupOfficers(selectOfficersState(state), groupId), [groupId]);
-	const officers = useAppSelector(selectOfficers);
+function Officers({
+	officers,
+	onChange,
+	groupId,
+	readOnly
+}: {
+	officers: Officer[];
+	onChange: (officers: Officer[]) => void;
+	groupId: string;
+	readOnly?: boolean
+}) {
 
-	const columns = React.useMemo(() => {
+	function addOne() {
 		const officer: Officer = {
-			id: '',
+			id: uuid(),
 			group_id: groupId,
 			position: '',
 			sapin: 0
 		};
+		officers = [...officers, officer];
+		onChange(officers);
+	}
 
-		const addOne = () => dispatch(addOfficer(officer));
-		const updateOne = (id: OfficerId, changes: {}) => dispatch(updateOfficer({id, changes}));
-		const removeOne = (id: OfficerId) => dispatch(deleteOfficer(id));
+	function updateOne(id: OfficerId, changes: Partial<Officer>) {
+		const i = officers.findIndex(o => o.id === id);
+		if (i < 0)
+			throw Error("Can't find officer with id=" + id);
+		officers[i] = {...officers[i], ...changes};
+		onChange(officers);
+	}
 
-		let columns = tableColumns.slice();
-		if (readOnly)
-			columns = columns.filter(col => col.key !== 'action');
-		columns = columns.map(col => {
+	function removeOne(id: OfficerId) {
+		const i = officers.findIndex(o => o.id === id);
+		if (i < 0)
+			throw Error("Can't find officer with id=" + id);
+		officers = officers.slice();
+		officers.splice(i, 1);
+		onChange(officers);
+	}
+
+	const columns = 
+		(readOnly? tableColumns.filter(col => col.key !== 'action'): tableColumns)
+		.map(col => {
 			col = {...col};
 			if (col.key === 'position') {
 				col.renderCell = (entry: Officer) =>
@@ -70,9 +82,6 @@ function Officers({groupId, readOnly}: {groupId: string; readOnly?: boolean}) {
 			}
 			return col;
 		});
-
-		return columns;
-	}, [dispatch, readOnly, groupId]);
 
 	return (
 		<Col>

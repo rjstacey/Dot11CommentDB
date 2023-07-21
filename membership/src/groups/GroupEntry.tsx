@@ -1,5 +1,5 @@
 import React from 'react';
-import { isMultiple, Multiple, Form, Row, Field, Input, Select } from 'dot11-components';
+import { isMultiple, Form, Row, Field, Input, Select } from 'dot11-components';
 
 import { useAppSelector } from '../store/hooks';
 import {
@@ -13,6 +13,7 @@ import Officers from './Officers';
 import GroupSelector from '../components/GroupSelector';
 import ImatCommitteeSelector from '../components/ImatCommitteeSelector';
 import ColorPicker from '../components/ColorPicker';
+import type { MultipleGroupEntry, GroupEntry } from './GroupDetail';
 
 const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';
@@ -88,7 +89,22 @@ function GroupStatusSelector({
 	)
 }
 
-function GroupEntry({
+function checkEntry(entry: MultipleGroupEntry): string | undefined {
+    if (!entry.name)
+        return "Set group name";
+    if (!entry.parent_id)
+        return "Set group parent";
+    if (!entry.type)
+        return "Set group type";
+    for (const officer of entry.officers) {
+        if (!officer.position)
+            return "Set officer position";
+        if (!officer.sapin)
+            return "Select member for officer position";
+    }
+}
+
+function GroupEntryForm({
 	action,
 	entry,
 	changeEntry,
@@ -99,8 +115,8 @@ function GroupEntry({
 	readOnly
 }: {
 	action: "add" | "update";
-	entry: Multiple<GroupCreate>;
-	changeEntry: (changes: Partial<GroupCreate>) => void;
+	entry: MultipleGroupEntry;
+	changeEntry: (changes: Partial<GroupEntry>) => void;
 	title?: string;
 	busy?: boolean;
 	submit?: () => void;
@@ -108,7 +124,7 @@ function GroupEntry({
 	readOnly?: boolean;
 }) {
 
-	function change(changes: Partial<GroupCreate>) {
+	function change(changes: Partial<GroupEntry>) {
 		if ('symbol' in changes && entry.type === 'tg') {
 			const s = changes.symbol?.split('/');
 			changes.project = "P" + (s? s[s.length - 1]: s);
@@ -123,6 +139,7 @@ function GroupEntry({
 			submitLabel={action === "add"? 'Add': 'Update'}
 			submit={submit}
 			cancel={cancel}
+            errorText={checkEntry(entry)}
 		>
 			<Row>
 				<Field label='Group name:'>
@@ -207,10 +224,12 @@ function GroupEntry({
 					<Officers
 						groupId={entry.id}
 						readOnly={readOnly}
+                        officers={entry.officers}
+                        onChange={officers => change({officers})}
 					/>
 				</Row>}
 		</Form>
 	)
 }
 
-export default GroupEntry;
+export default GroupEntryForm;

@@ -39,6 +39,7 @@ export type Group = {
 	color: string | null;
 	type: GroupType | null;
 	project: string | null;
+	officerSAPINs: number[];
 	permissions: Record<string, number>;
 };
 
@@ -308,4 +309,26 @@ export const deleteGroups = (ids: EntityId[]): AppThunk =>
 				dispatch(setError('Unable to delete group', error));
 				dispatch(addMany(originals));
 			});
+	}
+
+export const addGroupOfficer = (id: EntityId, sapin: number): AppThunk =>
+	async (dispatch, getState) => {
+		const group = selectGroupEntities(getState())[id];
+		if (!group)
+			throw Error("Bad group identifier " + id);
+		const officerSAPINs = [...group.officerSAPINs, sapin];
+		dispatch(updateOne({id, changes: {officerSAPINs}}));
+	}
+
+export const removeGroupOfficer = (id: EntityId, sapin: number): AppThunk =>
+	async (dispatch, getState) => {
+		const group = selectGroupEntities(getState())[id];
+		if (!group)
+			throw Error("Bad group identifier " + id);
+		const i = group.officerSAPINs.indexOf(sapin);
+		if (i >= 0) {
+			const officerSAPINs = group.officerSAPINs.slice();
+			officerSAPINs.splice(i, 1);
+			dispatch(updateOne({id, changes: {officerSAPINs}}));
+		}
 	}

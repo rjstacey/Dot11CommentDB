@@ -7,7 +7,7 @@ import {
 	deepDiff, deepMerge, deepMergeTagMultiple, Multiple,
 	ActionButton, 
 	setError,
-	EntityId, Dictionary
+	EntityId, Dictionary, IdSelector
 } from 'dot11-components';
 
 import { RootState } from '../store';
@@ -21,21 +21,30 @@ import {
 	setSelected,
 	Group, GroupCreate, GroupUpdate
 } from '../store/groups';
+import {
+	addOfficers,
+	updateOfficers,
+	deleteOfficers,
+	selectOfficersState,
+	OfficerId, Officer,	OfficerUpdate, OfficerCreate
+} from '../store/officers';
 
 import TopRow from '../components/TopRow';
 import ShowAccess from '../components/ShowAccess';
-import GroupEntry from './GroupEntry';
+import GroupEntryEdit from './GroupEntry';
 
 const BLANK_STR = '(Blank)';
 
-const defaultEntry: GroupCreate = {
+const defaultEntry: GroupEntry = {
 	parent_id: null,
 	name: '',
 	type: 'tg',
 	status: 1,
 	color: 'white',
 	symbol: null,
-	project: null
+	project: null,
+	officerSAPINs: [],
+	officers: [],
 }
 
 const Container = styled.div`
@@ -53,7 +62,8 @@ const NotAvailable = styled.div`
 	color: #bdbdbd;
 `;
 
-type MultipleGroupEntry = Multiple<GroupCreate>;
+export type GroupEntry = GroupCreate & { officers: Officer[] };
+export type MultipleGroupEntry = Multiple<GroupCreate> & { officers: Officer[] };
 
 type GroupDetailState = ({
 	action: "update";
@@ -61,11 +71,12 @@ type GroupDetailState = ({
 	saved: MultipleGroupEntry;
 } | {
 	action: "add";
-	entry: GroupCreate;
-	saved: GroupCreate;
+	entry: GroupEntry;
+	saved: GroupEntry;
 }) & {
-	originals: Dictionary<Group>;
 	ids: EntityId[];
+	entities: Dictionary<Group>;
+	officers: Officer[];
 	busy: boolean;
 };
 
@@ -95,57 +106,50 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 	}
 
 	initState = (): GroupDetailState => {
-		const {entities, selected} = this.props;
-		const originals: Dictionary<Group> = {};
-		let entry: MultipleGroupEntry = {} as MultipleGroupEntry;
-		selected.forEach(id => {
-			const entity = entities[id]!
-			originals[id] = entity;
+		const {entities, selected: ids, officerIds, officerEntities} = this.props;
+
+		const originalEntities: Dictionary<Group> = {};
+		let entry: Record<string, any> = {};
+		ids.forEach(id => {
+			const entity = entities[id]!;
+			originalEntities[id] = entity;
 			entry = deepMergeTagMultiple(entry, entity);
 		});
 
+		let officers: Officer[] = [];
+		if (ids.length === 1) {
+			const group_id = ids[0];
+			officers = officerIds
+				.map(id => officerEntities[id]!)
+				.filter(o => o.group_id === group_id);
+		}
+		entry.officers = officers;
+
 		return {
 			action: "update",
-			entry,
-			saved: entry,
-			originals,
-			ids: selected,
+			entry: entry as MultipleGroupEntry,
+			saved: entry as MultipleGroupEntry,
+			ids,
+			entities: originalEntities,
+			officers,
 			busy: false
 		}
 	}
 
 	reinitState = () => this.setState(this.initState())
 
-	getUpdates = () => {
-		const {originals, ids, entry} = this.state;
-
-		let diff: Partial<GroupCreate> = {};
-		for (const id of ids)
-			diff = deepMergeTagMultiple(diff, originals[id]!) as Partial<GroupCreate>;
-		diff = deepDiff(diff, entry);
-
-		const updates: GroupUpdate[] = [];
-		for (const id of ids) {
-			const updated = {...originals[id], ...diff};
-			const changes: Partial<GroupCreate> = deepDiff(originals[id]!, updated);
-			if (Object.keys(changes).length > 0)
-				updates.push({id, changes});
-		}
-		return updates;
-	}
-
 	hasUpdates = () => this.state.saved !== this.state.entry;
 
-	changeEntry = (changes: Partial<GroupCreate>) => {
+	changeEntry = (changes: Partial<GroupEntry>) => {
 		if (this.props.access <= AccessLevel.ro) {
-			console.warn("Insufficient access for updateEntries()");
+			console.warn("Can't change entry; insufficient access");
 			return;
 		}
 		this.setState(state => {
 			let entry: MultipleGroupEntry = deepMerge(state.entry as MultipleGroupEntry, changes);
 			// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
 			//console.log(changes, entry)
-			changes = deepDiff(state.saved, entry) as Partial<GroupCreate>;
+			changes = deepDiff(state.saved, entry) as Partial<GroupEntry>;
 			if (Object.keys(changes).length === 0)
 				entry = state.saved;
 			return {...state, entry}
@@ -158,7 +162,7 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 			action: "add",
 			entry: defaultEntry,
 			saved: defaultEntry,
-			originals: {},
+			entities: {},
 			ids: [],
 			busy: false
 		});
@@ -166,11 +170,11 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 
 	clickDelete = async () => {
 		if (this.props.access <= AccessLevel.ro) {
-			console.warn("Insufficient access for removeEntries()");
+			console.warn("Insufficient access to delete entry");
 			return;
 		}
-		const {ids} = this.state;
-		const {entities, deleteGroups} = this.props;
+		const {deleteGroups} = this.props;
+		const {ids, entities} = this.state;
 		const groupNames = ids.map(id => entities[id]!.name || BLANK_STR);
 		const ok = await ConfirmModal.show(`Are you sure you want to delete ${groupNames.join(', ')}?`);
 		if (!ok)
@@ -180,7 +184,7 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 
 	add = async () => {
 		if (this.props.access <= AccessLevel.ro) {
-			console.warn("Insufficient access for addEntry()");
+			console.warn("Insufficient access for add entry");
 			return;
 		}
 		const {addGroup, setSelected, setError, groupId, entities} = this.props;
@@ -199,12 +203,56 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 	}
 
 	update = async () => {
-		const {updateGroups} = this.props;
+		const {updateGroups, addOfficers, updateOfficers, deleteOfficers} = this.props;
+		const {entities, ids, officers} = this.state;
+		const {officers: updatedOfficers, ...entry} = this.state.entry;
 
 		this.setState({busy: true});
-		const updates = this.getUpdates();
-		//console.log(updates)
+
+		let diff: Partial<Group> = {};
+		for (const id of ids)
+			diff = deepMergeTagMultiple(diff, entities[id]!) as Partial<Group>;
+		diff = deepDiff(diff, entry) || {};
+
+		const updates: GroupUpdate[] = [];
+		for (const id of ids) {
+			const entity = entities[id]!;
+			const updated = {...entity, ...diff};
+			const changes: Partial<Group> = deepDiff(entity, updated);
+			if (Object.keys(changes).length > 0)
+				updates.push({id, changes});
+		}
 		await updateGroups(updates);
+
+		if (ids.length === 1) {
+			const officerAdds: OfficerCreate[] = [],
+				  officerUpdates: OfficerUpdate[] = [],
+				  officerDeletes: OfficerId[] = [];
+
+			for (const o1 of updatedOfficers) {
+				const o2 = officers.find(o => o.id === o1.id);
+				if (o2) {
+					const changes = deepDiff(o2, o1) || {};
+					console.log(changes)
+					if (Object.keys(changes).length > 0)
+						officerUpdates.push({id: o2.id!, changes})
+				}
+				else {
+					officerAdds.push(o1);
+				}
+			}
+			for (const o2 of officers) {
+				if (!updatedOfficers.find(o => o.id === o2.id))
+					officerDeletes.push(o2.id);
+			}
+			if (officerAdds.length > 0)
+				await addOfficers(officerAdds);
+			if (officerUpdates.length > 0)
+				await updateOfficers(officerUpdates);
+			if (officerDeletes.length > 0)
+				await deleteOfficers(officerDeletes);
+		}
+
 		this.reinitState();
 	}
 
@@ -256,7 +304,7 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 				</TopRow>
 				{notAvailableStr?
 					<NotAvailable>{notAvailableStr}</NotAvailable>:
-					<GroupEntry
+					<GroupEntryEdit
 						action={action}
 						title={title}
 						entry={entry}
@@ -275,11 +323,14 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 
 const connector = connect(
 	(state: RootState) => {
-		const data = selectGroupsState(state);
+		const {loading, selected, entities} = selectGroupsState(state);
+		const {ids: officerIds, entities: officerEntities} = selectOfficersState(state);
 		return {
-			loading: data.loading,
-			selected: data.selected,
-			entities: data.entities,
+			loading,
+			selected,
+			entities,
+			officerEntities,
+			officerIds,
 			groupId: selectWorkingGroupId(state),
 			access: selectUserMembersAccess(state)
 		}
@@ -288,6 +339,9 @@ const connector = connect(
 		addGroup,
 		updateGroups,
 		deleteGroups,
+		addOfficers,
+		updateOfficers,
+		deleteOfficers,
 		setSelected,
 		setError
 	}
