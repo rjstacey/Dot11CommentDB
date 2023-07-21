@@ -3,71 +3,40 @@ import React from 'react';
 import { Select } from 'dot11-components';
 
 import { useAppSelector } from '../store/hooks';
-import { Group, selectGroups } from '../store/groups';
+import { selectGroupEntities, selectGroups } from '../store/groups';
+
+type MinimalGroup = {
+	id: string;
+	name: string;
+}
 
 export function GroupSelector({
 	value,
 	onChange,
-	multi,
 	types,
+	...otherProps
 }: {
 	value: string | null;
 	onChange: (value: string | null) => void;
-	multi?: false;
 	types?: string[];
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options" | "milti">): JSX.Element;
-
-export function GroupSelector({
-	value,
-	onChange,
-	multi,
-	types,
-}: {
-	value: string[];
-	onChange: (value: string[]) => void;
-	multi: true;
-	types?: string[];
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options" | "milti">): JSX.Element;
-
-export function GroupSelector({
-	value,
-	onChange,
-	types,
-	multi,
-	...otherProps
-}: {
-	value: string | string[] | null;
-	onChange: ((value: string | null) => void) | ((value: string[]) => void);
-	multi?: boolean;
-	types?: string[];
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options" | "milti">)
+} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">)
 {
-	let groups = useAppSelector(selectGroups);
-	if (types)
-		groups = groups.filter(group => group.type && types.includes(group.type));
+	const groupEntities = useAppSelector(selectGroupEntities);
+	const groups = useAppSelector(selectGroups);
+	let options: MinimalGroup[] = (types? groups.filter(group => group.type && types.includes(group.type)): groups);
+	if (value && !options.find(g => g.id === value)) {
+		const entity = groupEntities[value] || {id: value, name: "Unknown"};
+		options = [...options, entity];
+	}
 
-	const handleChange = (values: Group[]) => {
-		let newValues: any;
-		if (multi)
-			newValues = values.map(group => group.id);
-		else
-			newValues = values.length > 0? values[0].id: null;
-		onChange(newValues);
-	};
-
-	let values: Group[];
-	if (multi)
-		values = groups.filter(group => (value as string[]).includes(group.id));
-	else
-		values = groups.filter(group => group.id === (value as string));
+	const handleChange = (values: typeof groups) => onChange(values.length > 0? values[0].id: null);
+	const values = options.filter(group => group.id === value);
 
 	return (
 		<Select
 			values={values}
 			onChange={handleChange}
-			options={groups}
-			multi={multi}
-			clearable={!multi}
+			options={options}
 			valueField='id'
 			labelField='name'
 			{...otherProps}
