@@ -20,16 +20,16 @@ import {
 	groupsActions,
 	Group,
 } from '../store/groups';
-import { loadOfficers, selectOfficersState, selectGroupOfficers } from '../store/officers';
-import { loadMembers, selectMembersState } from '../store/members';
+import { loadOfficers, selectGroupOfficers } from '../store/officers';
+import { loadMembers, selectMemberEntities } from '../store/members';
 
 import TopRow from '../components/TopRow';
 import GroupDetail from './GroupDetail';
 
-function Officers({group}: {group: Group}) {
+function GroupOfficers({group}: {group: Group}) {
 
-	const officers = useAppSelector((state) => group? selectGroupOfficers(selectOfficersState(state), group.id): []);
-	const members = useAppSelector(selectMembersState).entities;
+	const officers = useAppSelector((state) => selectGroupOfficers(state, group.id));
+	const members = useAppSelector(selectMemberEntities);
 
 	return (
 		<div style={{display: 'grid', gridTemplateColumns: '150px auto'}}>
@@ -71,7 +71,7 @@ const tableColumns: ColumnProperties[] = [
 		width: 60, flexGrow: 1, flexShrink: 0},
 	{key: 'officers',
 		label: 'Officers',
-		cellRenderer: ({rowData}) => <Officers group={rowData} />,
+		cellRenderer: ({rowData}) => <GroupOfficers group={rowData} />,
 		width: 400, flexGrow: 1, flexShrink: 0}
 ];
 

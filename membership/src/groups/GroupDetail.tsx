@@ -1,5 +1,6 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
+import { EntityId, Dictionary } from '@reduxjs/toolkit';
 import styled from '@emotion/styled';
 
 import {
@@ -7,7 +8,6 @@ import {
 	deepDiff, deepMerge, deepMergeTagMultiple, Multiple,
 	ActionButton, 
 	setError,
-	EntityId, Dictionary, IdSelector
 } from 'dot11-components';
 
 import { RootState } from '../store';
@@ -26,7 +26,8 @@ import {
 	updateOfficers,
 	deleteOfficers,
 	selectOfficersState,
-	OfficerId, Officer,	OfficerUpdate, OfficerCreate
+	getGroupOfficers,
+	OfficerId, Officer,	OfficerUpdate, OfficerCreate,
 } from '../store/officers';
 
 import TopRow from '../components/TopRow';
@@ -108,27 +109,26 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 	initState = (): GroupDetailState => {
 		const {entities, selected: ids, officerIds, officerEntities} = this.props;
 
-		const originalEntities: Dictionary<Group> = {};
-		let entry: Record<string, any> = {};
-		ids.forEach(id => {
-			const entity = entities[id]!;
-			originalEntities[id] = entity;
-			entry = deepMergeTagMultiple(entry, entity);
-		});
+		// Store original entities
+		const originalEntities: typeof entities = {};
+		ids.forEach(id => originalEntities[id] = entities[id]);
 
+		// Coalesce entry
+		let entry = {} as MultipleGroupEntry;
+		ids.forEach(id => entry = deepMergeTagMultiple(entry, entities[id]!) as MultipleGroupEntry);
+
+		// If editing a single group, get officer list
 		let officers: Officer[] = [];
 		if (ids.length === 1) {
 			const group_id = ids[0];
-			officers = officerIds
-				.map(id => officerEntities[id]!)
-				.filter(o => o.group_id === group_id);
+			officers = getGroupOfficers(officerIds, officerEntities, group_id);
 		}
 		entry.officers = officers;
 
 		return {
 			action: "update",
-			entry: entry as MultipleGroupEntry,
-			saved: entry as MultipleGroupEntry,
+			entry,
+			saved: entry,
 			ids,
 			entities: originalEntities,
 			officers,
@@ -157,11 +157,16 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 	}
 
 	clickAdd = () => {
-		this.props.setSelected([]);
+		const {setSelected, groupId} = this.props;
+		setSelected([]);
+		const entry = {
+			...defaultEntry,
+			parent_id: groupId
+		}
 		this.setState({
 			action: "add",
-			entry: defaultEntry,
-			saved: defaultEntry,
+			entry,
+			saved: entry,
 			entities: {},
 			ids: [],
 			busy: false
@@ -209,10 +214,11 @@ class GroupDetail extends React.Component<GroupDetailConnectedProps, GroupDetail
 
 		this.setState({busy: true});
 
-		let diff: Partial<Group> = {};
-		for (const id of ids)
-			diff = deepMergeTagMultiple(diff, entities[id]!) as Partial<Group>;
-		diff = deepDiff(diff, entry) || {};
+		let expectedEntry: Partial<Group> = {};
+		ids.forEach(id => {
+			expectedEntry = deepMergeTagMultiple(expectedEntry, entities[id]!) as Partial<Group>;
+		});
+		let diff = deepDiff(expectedEntry, entry) || {};
 
 		const updates: GroupUpdate[] = [];
 		for (const id of ids) {

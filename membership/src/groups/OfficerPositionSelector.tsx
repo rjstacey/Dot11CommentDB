@@ -1,7 +1,6 @@
 import React from 'react';
 import { Select } from 'dot11-components';
-
-const positions = ["Chair", "Vice chair", "Secretary", "Technical editor", "Other"];
+import { officerPositions } from '../store/officers';
 
 interface SelectOption {
 	value: string;
@@ -17,7 +16,9 @@ function OfficerPositionSelector({
 	onChange: (value: string) => void;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
 ) {
-	const options: SelectOption[] = positions.map(v => ({value: v, label: v}));
+	let options: SelectOption[] = officerPositions.map(v => ({value: v, label: v}));
+	if (value && !options.find(o => o.value === value))
+		options.push({value, label: value});
 	const values = options.filter(o => o.value === value);
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].value: '');
 

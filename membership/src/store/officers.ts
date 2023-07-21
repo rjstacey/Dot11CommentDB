@@ -1,5 +1,5 @@
 import { createSlice, createEntityAdapter, createSelector } from '@reduxjs/toolkit';
-import type { EntityId } from '@reduxjs/toolkit';
+import type { Dictionary, EntityId } from '@reduxjs/toolkit';
 
 import { v4 as uuid } from 'uuid';
 import type { RootState, AppThunk } from '.';
@@ -18,6 +18,19 @@ export type OfficerCreate = Omit<Officer, "id"> & Partial<Pick<Officer, "id">>;
 export type OfficerUpdate = {
 	id: OfficerId;
 	changes: Partial<Officer>;
+}
+
+export const officerPositions = ["Chair", "Vice chair", "Secretary", "Technical editor", "Other"];
+
+// Compare funciton for sorting officers by position
+export function officerCmp(o1: Officer, o2: Officer) {
+	let i1 = officerPositions.indexOf(o1.position);
+	if (i1 < 0)
+		i1 = officerPositions.length;
+	let i2 = officerPositions.indexOf(o2.position);
+	if (i2 < 0)
+		i2 = officerPositions.length;
+	return i1 - i2;
 }
 
 const dataAdapter = createEntityAdapter<Officer>({});
@@ -56,21 +69,20 @@ export default slice;
 /*
  * Selectors
  */
-export const selectOfficersState = (state: RootState) => state[dataSet];
-const selectOfficerEntities = (state: RootState) => selectOfficersState(state).entities;
-
-export function selectGroupOfficers(state: OfficersState, group_id: EntityId) {
-	const {ids, entities} = state;
-	return ids
-		.map(id => entities[id]!)
-		.filter(g => g.group_id === group_id)
+export function getGroupOfficers(officerIds: EntityId[], officerEntities: Dictionary<Officer>, group_id: EntityId) {
+	return officerIds
+		.map(id => officerEntities[id]!)
+		.filter(officer => officer.group_id === group_id)
+		.sort(officerCmp);
 }
 
-export const createGroupOfficersSelector = (state: RootState, group_id: EntityId) => createSelector(
-	selectOfficersState,
-	() => group_id,
-	selectGroupOfficers
-);
+export const selectOfficersState = (state: RootState) => state[dataSet];
+export const selectOfficerEntities = (state: RootState) => selectOfficersState(state).entities;
+
+export function selectGroupOfficers(state: RootState, group_id: EntityId) {
+	const {ids, entities} = selectOfficersState(state);
+	return getGroupOfficers(ids, entities, group_id);
+}
 
 /*
  * Actions
