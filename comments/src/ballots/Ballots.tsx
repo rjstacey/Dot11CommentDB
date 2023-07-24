@@ -24,7 +24,7 @@ import {
 
 import TopRow from '../components/TopRow';
 import BallotDetail, {BallotAddDropdown as BallotAdd} from './BallotDetail';
-import { selectWorkingGroup } from '../store/groups';
+import { selectWorkingGroup, selectWorkingGroupName } from '../store/groups';
 
 const renderHeaderStartEnd = (props: HeaderCellRendererProps) =>
 	<>
@@ -58,6 +58,12 @@ const renderHeaderVotingPool = (props: HeaderCellRendererProps) =>
 		<TableColumnHeader {...props} dataKey='PrevBallotID' {...fields.PrevBallotID} />
 	</>
 
+const GroupNameLink = (props: React.ComponentProps<typeof Link>) => {
+	const {to, ...rest} = props;
+	const groupName = useAppSelector(selectWorkingGroupName);
+	return <Link to={`/${groupName}/${to}`} {...rest} />
+}
+
 const renderCellVotingPool = ({rowData, access}: {rowData: SyncedBallot, access?: number}) => {
 	const type = rowData.Type;
 	const isRecirc = rowData.IsRecirc;
@@ -85,7 +91,7 @@ export function renderResultsSummary({rowData, access}: {rowData: Ballot, access
 	if (!str)
 		str = 'None';
 	return (typeof access !== 'undefined' && access >= AccessLevel.admin)?
-		<Link to={`/results/${rowData.BallotID}`}>{str}</Link>:
+		<GroupNameLink to={`/results/${rowData.BallotID}`}>{str}</GroupNameLink>:
 		str;
 }
 
@@ -95,7 +101,7 @@ export function renderCommentsSummary({rowData}: {rowData: Ballot}) {
 		(comments && comments.Count > 0)
 			? `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
 			: 'None';
-	return <Link to={`/comments/${rowData.BallotID}`}>{str}</Link>
+	return <GroupNameLink to={`/comments/${rowData.BallotID}`}>{str}</GroupNameLink>
 }
 
 const tableColumns: ColumnProperties[] = [
