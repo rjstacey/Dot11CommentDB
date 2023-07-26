@@ -15,13 +15,14 @@ import {
 	selectCommentsBallot_id,
 	getCID,
 	getCommentStatus,
+	commentStatusOrder,
 	CommentResolution,
 	getField
 } from '../store/comments';
 
-const Table = styled.table`
+const Table = styled.table<{nCol: number}>`
 	display: grid;
-	grid-template-columns: auto auto auto auto auto;
+	grid-template-columns: ${(props) => `repeat(${props.nCol}, auto)`};
 	border-spacing: 1px;
 	max-height: 100%;
 	overflow: auto;
@@ -84,6 +85,16 @@ const Table = styled.table`
 
 type Counts = { [ Label: string ]: string | number };
 
+function statusComp(status1: string, status2: string) {
+	let n1 = (commentStatusOrder as readonly string[]).indexOf(status1);
+	if (n1 < 0)
+		n1 = commentStatusOrder.length;
+	let n2 = (commentStatusOrder as readonly string[]).indexOf(status2);
+	if (n2 < 0)
+		n2 = commentStatusOrder.length;
+	return n1 - n2;
+}
+
 function countsByCategory(comments: CommentResolution[]): Counts {
 	return {
 		Total: comments.length,
@@ -93,7 +104,7 @@ function countsByCategory(comments: CommentResolution[]): Counts {
 	}
 }
 
-function countsByStatus(statusSet: Set<string>, comments: CommentResolution[]): Counts {
+function countsByStatus(statusSet: string[], comments: CommentResolution[]): Counts {
 	const entry: Counts = {Total: comments.length}
 	for (let status of statusSet)
 		entry[status || '(Blank)'] = comments.filter(c => getField(c, 'Status') === status).length
@@ -101,8 +112,8 @@ function countsByStatus(statusSet: Set<string>, comments: CommentResolution[]): 
 }
 
 function commentsByCommenter(comments: CommentResolution[]) {
-	const commentersSet = [...new Set(comments.map(c => c.CommenterName))].sort()
-	const data: Counts[] = []
+	const commentersSet = [...new Set(comments.map(c => c.CommenterName))].sort();
+	const data: Counts[] = [];
 	for (let name of commentersSet) {
 		data.push({
 			Commenter: name || '(Blank)',
@@ -113,8 +124,8 @@ function commentsByCommenter(comments: CommentResolution[]) {
 }
 
 function commentsByAssignee(comments: CommentResolution[]) {
-	const assigneeSet = [...new Set(comments.map(c => c.AssigneeName))].sort()
-	const statusSet = new Set(comments.map(c => getField(c, 'Status')))
+	const assigneeSet = [...new Set(comments.map(c => c.AssigneeName))].sort();
+	const statusSet = [...new Set(comments.map(c => getField(c, 'Status')))].sort(statusComp);
 	const data: Counts[] = [];
 	for (let name of assigneeSet) {
 		const assigneeComments = comments.filter(c => c.AssigneeName === name)
@@ -128,8 +139,8 @@ function commentsByAssignee(comments: CommentResolution[]) {
 }
 
 function commentsByAssigneeAndCommentGroup(comments: CommentResolution[]) {
-	const assigneeSet = [...new Set(comments.map(c => c.AssigneeName))].sort()
-	const statusSet = new Set(comments.map(c => getField(c, 'Status')))
+	const assigneeSet = [...new Set(comments.map(c => c.AssigneeName))].sort();
+	const statusSet = [...new Set(comments.map(c => getField(c, 'Status')))].sort(statusComp);
 	const data: Counts[] = [];
 	for (let name of assigneeSet) {
 		const assigneeComments = comments.filter(c => c.AssigneeName === name)
@@ -153,8 +164,8 @@ function commentsByAssigneeAndCommentGroup(comments: CommentResolution[]) {
 }
 
 function commentsByAdHocAndCommentGroup(comments: CommentResolution[])  {
-	const adhocSet = [...new Set(comments.map(c => c.AdHoc))].sort()
-	const statusSet = new Set(comments.map(c => getField(c, 'Status')))
+	const adhocSet = [...new Set(comments.map(c => c.AdHoc))].sort();
+	const statusSet = [...new Set(comments.map(c => getField(c, 'Status')))].sort(statusComp);
 	const data: Counts[] = [];
 	for (let name of adhocSet) {
 		const adhocComments = comments.filter(c => c.AdHoc === name)
@@ -192,7 +203,7 @@ function renderTable(data: Counts[]) {
 	const header = <tr>{Object.keys(data[0]).map((d, i) => <th key={i}><span>{d}</span></th>)}</tr>;
 	const row = (r: Counts, i: number) => <tr key={i}>{Object.values(r).map((d, i) => <td key={i} ><span>{d}</span></td>)}</tr>;
 	return (
-		<Table style={{borderCollapse: 'collapse'}} cellPadding='5' border={1}>
+		<Table style={{borderCollapse: 'collapse'}} cellPadding='5' border={1} nCol={Object.keys(data[0]).length}>
 			<thead>{header}</thead>
 			<tbody>{data.map(row)}</tbody>
 		</Table>

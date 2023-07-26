@@ -278,6 +278,8 @@ export {setUiProperties};
 
 export const getCID = (c: CommentResolution) => c.CommentID + (c.ResolutionCount > 1? '.' + c.ResolutionID: '');
 
+export const commentStatusOrder = ['', 'Assigned', 'Resolution drafted', 'Ready for motion', 'Resolution approved'] as const;
+
 export function getCommentStatus(c: CommentResolution) {
 	let Status = '';
 	if (c.ApprovedByMotion)
