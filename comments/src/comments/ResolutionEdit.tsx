@@ -221,7 +221,7 @@ const StyledResolutionEditor = styled(RichTextEditor)<{resnStatus?: ResnStatusTy
 	border-radius: 0 5px 5px 5px;
 `;
 
-export const ResolutionEdit = ({
+export function ResolutionEdit({
 	resolution,
 	updateResolution,
 	readOnly,
@@ -231,45 +231,48 @@ export const ResolutionEdit = ({
 	updateResolution: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
     commentsAccess?: number;
-}) =>
-	<>
-		<Row>
-			<AssigneeAndSubmission
-				resolution={resolution}
-				updateResolution={updateResolution}
-				readOnly={readOnly}
-			/>
-			<ResolutionApproval
-				resolution={resolution}
-				updateResolution={updateResolution}
-				readOnly={readOnly || commentsAccess < AccessLevel.rw}
-			/>
-		</Row>
-		<Row>
-			<Col
-				style={{
-					width: '100%',
-					position: 'relative',	// position toolbar
-					paddingTop: 15			// make room for toolbar
-				}}
-			>
-				<label>Resolution:</label>
-				<StyledResolutionContainer readOnly={readOnly} >
-					<StyledResnStatus
-						value={resolution.ResnStatus}
-						onChange={value => updateResolution({ResnStatus: value})}
-						readOnly={readOnly}
-					/>
-					<StyledResolutionEditor
-						value={isMultiple(resolution.Resolution)? '': resolution.Resolution}
-						onChange={value => updateResolution({Resolution: value})}
-						placeholder={isMultiple(resolution.Resolution)? MULTIPLE_STR: BLANK_STR}
-						resnStatus={isMultiple(resolution.ResnStatus)? null: resolution.ResnStatus}
-						readOnly={readOnly}
-					/>
-				</StyledResolutionContainer>
-			</Col>
-		</Row>
-	</>
+}) {
+	return (
+		<>
+			<Row>
+				<AssigneeAndSubmission
+					resolution={resolution}
+					updateResolution={updateResolution}
+					readOnly={readOnly}
+				/>
+				<ResolutionApproval
+					resolution={resolution}
+					updateResolution={updateResolution}
+					readOnly={readOnly || commentsAccess < AccessLevel.rw}
+				/>
+			</Row>
+			<Row>
+				<Col
+					style={{
+						width: '100%',
+						position: 'relative',	// position toolbar
+						paddingTop: 15			// make room for toolbar
+					}}
+				>
+					<label>Resolution:</label>
+					<StyledResolutionContainer readOnly={readOnly} >
+						<StyledResnStatus
+							value={resolution.ResnStatus}
+							onChange={value => updateResolution({ResnStatus: value})}
+							readOnly={readOnly}
+						/>
+						<StyledResolutionEditor
+							value={isMultiple(resolution.Resolution)? '': resolution.Resolution}
+							onChange={value => updateResolution({Resolution: value})}
+							placeholder={isMultiple(resolution.Resolution)? MULTIPLE_STR: BLANK_STR}
+							resnStatus={isMultiple(resolution.ResnStatus)? null: resolution.ResnStatus}
+							readOnly={readOnly}
+						/>
+					</StyledResolutionContainer>
+				</Col>
+			</Row>
+		</>
+	)
+}
 
 export default ResolutionEdit;

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {
 	ActionButton, Row,
-	shallowDiff, recursivelyDiffObjects, debounce, Multiple
+	shallowDiff, recursivelyDiffObjects, debounce, Multiple, ConfirmModal
 } from 'dot11-components';
 
 import CommentHistory from './CommentHistory';
@@ -81,7 +81,7 @@ type CommentDetailState = {
 class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetailState> {
 	constructor(props: CommentDetailProps) {
 		super(props)
-		this.state = this.initState(props);
+		this.state = this.initState();
 		this.triggerSave = debounce(this.save, 500);
 	}
 
@@ -121,8 +121,8 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 		return access;
 	}
 
-	initState = (props: CommentDetailProps): CommentDetailState => {
-		const {entities, selected} = props;
+	initState = (): CommentDetailState => {
+		const {entities, selected, access} = this.props;
 		let diff = {}, comments: CommentResolution[] = [];
 		selected.forEach(id => {
 			const comment = entities[id];
@@ -131,7 +131,6 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 				comments.push(comment);
 			}
 		});
-		let access = this.props.access;
 		let commentsAccess = this.getCommentsAccess(access, comments);
 		let resolutionsAccess = this.getResolutionsAccess(commentsAccess, comments);
 		return {
@@ -145,7 +144,7 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 
 	updateResolution = (changes: Partial<CommentResolution>) => {
 		if (this.state.resolutionsAccess < AccessLevel.rw || !this.props.uiProperties.editComment) {
-			console.warn("Update in read only component");
+			console.warn("Insufficient access to update resolution");
 			return;
 		}
 		// merge in the edits and trigger save
@@ -156,13 +155,13 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 	}
 
 	save = () => {
-		const {editedResolution, comments} = this.state;
+		const {savedResolution, editedResolution, comments} = this.state;
 		const {updateComments, updateResolutions, addResolutions} = this.props;
 
 		/* Find changes */
 		const commentChanges: Partial<Comment> = {},
 			  resolutionChanges: Partial<Resolution> = {};
-		const d = shallowDiff(this.state.savedResolution, editedResolution);
+		const d = shallowDiff(savedResolution, editedResolution);
 		for (let k in d) {
 			if (k === 'AdHocGroupId' || k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes' || k === 'Page' || k === 'Clause')
 				commentChanges[k] = d[k];
@@ -198,11 +197,21 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 		const {addResolutions} = this.props;
 		const {comments} = this.state;
 		//console.log(comments)
+
+		if (comments.find(c => c.ApprovedByMotion)) {
+			const msg = comments.length > 1?
+				"One of the comments has an approved resolution.":
+				"The comment has an approved resolution.";
+			const ok = await ConfirmModal.show(msg + " Are you sure you want to add another resolution?");
+			if (!ok)
+				return;
+		}
+
+		// Add only one entry per comment_id
 		const resolutions: ResolutionCreate[] = [];
-		// Add only one entry per CommentID
-		for (const comment_id of comments.map(c => c.comment_id)) {
-			if (!resolutions.find(r => r.comment_id === comment_id))
-				resolutions.push({comment_id});
+		for (const c of comments) {
+			if (!resolutions.find(r => r.comment_id === c.comment_id))
+				resolutions.push({comment_id: c.comment_id});
 		}
 		this.triggerSave.flush();
 		await addResolutions(resolutions);
@@ -216,10 +225,11 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 		const {deleteResolutions} = this.props;
 		const {comments} = this.state;
  		const ids = comments
- 			.filter(c => c.ResolutionCount > 0)	// only those with resolutions
- 			.map(c => c.resolution_id);
+ 			.filter(c => c.resolution_id)	// only those with resolutions
+ 			.map(c => c.id);
  		this.triggerSave.flush();
  		await deleteResolutions(ids);
+		this.setState(this.initState());
  	}
 
  	toggleUiProperty = (property: string) => this.props.setUiProperties({[property]: !this.props.uiProperties[property]});

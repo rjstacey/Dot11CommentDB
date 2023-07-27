@@ -542,6 +542,7 @@ export const addResolutions = (resolutions: ResolutionCreate[]): AppThunk =>
 			while (existingResolutionIDs.has(ResolutionID))
 				ResolutionID++;
 
+			// Generate a resolution
 			const resolution_id = uuid();
 			const resolution = {
 				...defaultResolution,
@@ -551,18 +552,27 @@ export const addResolutions = (resolutions: ResolutionCreate[]): AppThunk =>
 			};
 			remoteAdds.push(resolution);
 
+			// Generate CommentResolution changes
 			const ResolutionCount = comments.length + 1;
-			const newComment = {
-				...comments[0],		// Duplicate the comment fields
+			const changes = {
 				...resolution,
 				ResolutionCount,
 				resolution_id,
 				id: resolution_id
 			}
-			adds.push(newComment);
 
-			// Update ResolutionCount for other comments
-			updates.push(...comments.map(c => ({id: c.id, changes: {ResolutionCount}})));
+			if (comments.length === 1 && !comments[0].resolution_id) {
+				// Existing comment does not have a resolution; apply changes
+				updates.push({id: comments[0].id, changes});
+			}
+			else {
+				// Copy the comment fields to produce new CommentResolution entry
+				const newComment = {...comments[0], ...changes};
+				adds.push(newComment);
+
+				// Update ResolutionCount for other comments
+				updates.push(...comments.map(c => ({id: c.id, changes: {ResolutionCount}})));
+			}
 
 			// Select the newly added entry
 			selected.push(resolution_id);
@@ -579,7 +589,7 @@ export const addResolutions = (resolutions: ResolutionCreate[]): AppThunk =>
 
 export const updateResolutions = updateMany;
 
-export const deleteResolutions = (delete_ids: any[]): AppThunk =>
+export const deleteResolutions = (delete_ids: EntityId[]): AppThunk =>
 	async (dispatch, getState) => {
 		const {ids, entities} = selectCommentsState(getState());
 
@@ -605,21 +615,18 @@ export const deleteResolutions = (delete_ids: any[]): AppThunk =>
 			const resolution_ids = toDelete[comment_id];
 
 			// Sort by ResolutionID
-			resolution_ids.sort(id => entities[id]!.ResolutionID);
+			resolution_ids.sort((id1, id2) => entities[id1]!.ResolutionID - entities[id2]!.ResolutionID);
 
 			// Find all comments that would remain
-			const remainingComments: CommentResolution[] = [];
-			for (const id of ids) {
-				const c = entities[id]!;
-				if (c.comment_id === comment_id && !resolution_ids.includes(c.id))
-					remainingComments.push(c);
-			}
+			const remainingComments = ids
+				.map(id => entities[id]!)
+				.filter(c => c.comment_id === comment_id && !resolution_ids.includes(c.id));
 
 			if (remainingComments.length === 0) {
 				// No resolutions would remain with this comment_id
 				// Update the first to defaults and delete the rest
 				const id = resolution_ids.shift()!;
-				updates.push({id, changes: defaultResolution});
+				updates.push({id, changes: {...defaultResolution, ResolutionCount: 1}});
 				if (resolution_ids.length > 0)
 					deletes.push(...resolution_ids);
 
