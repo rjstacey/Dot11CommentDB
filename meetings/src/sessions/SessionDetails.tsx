@@ -5,8 +5,6 @@ import { DateTime } from 'luxon';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-
 import {
 	shallowDiff,
 	deepDiff,
@@ -25,11 +23,14 @@ import {
 import TimeZoneSelector from '../components/TimeZoneSelector';
 import ImatMeetingSelector from '../components/ImatMeetingSelector';
 import TopRow from '../components/TopRow';
-import GroupSelector from '../components/GroupSelector';
+import GroupParentsSelector from '../components/GroupParentsSelector';
 import RoomDetails from './RoomDetails';
 import TimeslotDetails from './TimeslotDetails';
 import SessionCredit from './SessionCredit';
 
+import { RootState } from '../store';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectUserMeetingsAccess, AccessLevel } from '../store/user';
 import {
 	loadSessions,
 	addSession,
@@ -42,8 +43,7 @@ import {
 	Session, SessionAdd, SessionType
 } from '../store/sessions';
 
-import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
-import { RootState } from '../store';
+import ShowAccess from '../components/ShowAccess';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
@@ -149,7 +149,7 @@ function SessionBasics({
 			</Row>
 			<Row>
 				<Field label='Organizing group:' >
-					<GroupSelector
+					<GroupParentsSelector
 						value={isMultiple(session.groupId)? null: session.groupId}
 						onChange={groupId => handleChange({groupId})}
 						readOnly={readOnly}
@@ -389,7 +389,7 @@ class SessionDetail extends React.Component<SessionDetailInternalProps, SessionD
 								<ActionButton
 									name='add'
 									title='Add a session'
-									disabled={disableButtons || !uiProperties.editEnabled || readOnly}
+									disabled={!uiProperties.editEnabled}
 									onClick={this.add}
 								/>
 								<ActionButton
@@ -410,6 +410,7 @@ class SessionDetail extends React.Component<SessionDetailInternalProps, SessionD
 					 		readOnly={readOnly || !uiProperties.editEnabled}
 					 	/>
 					}
+					<ShowAccess access={access} />
 				</DetailContainer>
 			)
 	}

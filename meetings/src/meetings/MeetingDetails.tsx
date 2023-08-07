@@ -43,6 +43,7 @@ import TopRow from '../components/TopRow';
 import { defaultWebexMeeting } from '../webexMeetings/WebexMeetingDetail';
 
 import MeetingEntryForm from './MeetingEntry';
+import ShowAccess from '../components/ShowAccess';
 
 //const toTimeStr = (hour, min) => ('0' + hour).substr(-2) + ':' + ('0' + min).substr(-2);
 const fromTimeStr = (str: string) => {
@@ -550,6 +551,7 @@ class MeetingDetails extends React.Component<MeetingDetailsConnectedProps, Meeti
 							readOnly={readOnly}
 						/>
 					</>}
+				<ShowAccess access={access} />
 			</Container>
 		)
 	}

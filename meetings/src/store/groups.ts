@@ -157,11 +157,27 @@ export const selectGroups = createSelector(
 	selectGroupEntities,
 	selectWorkingGroupId,
 	(ids, entities, workingGroupId) => {
-		const childIds = treeSortedIds(ids, entities, workingGroupId)
+		const childIds = treeSortedIds(ids, entities, workingGroupId);
+		console.log(workingGroupId, childIds)
 		const groups = childIds.map(id => entities[id]!);
 		return groups;
 	}
 );
+
+export const selectGroupParents = createSelector(
+	selectGroupEntities,
+	selectWorkingGroupId,
+	(entities, workingGroupId) => {
+		const groups: Group[] = [];
+		while (workingGroupId) {
+			const group = entities[workingGroupId];
+			if (group)
+				groups.unshift(group)
+			workingGroupId = group?.parent_id;
+		}
+		return groups;
+	}
+)
 
 export const groupsSelectors = getAppTableDataSelectors(selectGroupsState);
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import {
 	AppTable, 
@@ -108,6 +108,7 @@ for (tableView in defaultTablesColumns) {
 
 function Sessions() {
 	const navigate = useNavigate();
+	const {groupName} = useParams();
 	const dispatch = useAppDispatch();
 
 	const {selected} = useAppSelector(selectSessionsState);
@@ -126,7 +127,7 @@ function Sessions() {
 		}
 	}
 
-	const showSessions = () => navigate('/sessions/imat');
+	const showSessions = () => navigate(`/${groupName}/imatMeetings`);
 
 	return (
 		<>

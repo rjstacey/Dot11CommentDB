@@ -26,7 +26,7 @@ export interface Meeting {
 	isCancelled: boolean;
 	hasMotions: boolean;
 	webexAccountId: number | null;
-	webexAccountName: string | null;
+	//webexAccountName: string | null;
 	webexMeetingId: string | null;
 	webexMeeting?: WebexMeeting;
 	calendarAccountId: number | null;
@@ -35,10 +35,9 @@ export interface Meeting {
 	imatBreakoutId: number | null;
 	sessionId: number | null;
 	roomId: number | null;
-	roomName: string;
 }
 
-export type MeetingAdd = Omit<Meeting, "id" | "imatBreakoutId" | "webexMeetingId" | "webexMeeting"> & {
+export type MeetingAdd = Omit<Meeting, "id" | "imatBreakoutId" | "webexMeetingId" | "webexMeeting" | "webexAccountName"> & {
 	imatBreakoutId: Meeting["imatBreakoutId"] | "$add";
 	webexMeetingId: Meeting["webexMeetingId"] | "$add";
 	webexMeeting?: WebexMeetingParams;
@@ -94,7 +93,7 @@ export const fields = {
 /*
  * Fields derived from other fields
  */
-export function getField(entity: Meeting, key: string): any {
+export function getField(entity: SyncedMeeting | Meeting, key: string): any {
 	if (key === 'day')
 		return DateTime.fromISO(entity.start, {zone: entity.timezone}).weekdayShort;
 	if (key === 'date')
@@ -111,21 +110,19 @@ export function getField(entity: Meeting, key: string): any {
 	if (key === 'duration')
 		return DateTime.fromISO(entity.end).diff(DateTime.fromISO(entity.start), 'hours').hours;
 	if (key === 'location') {
-		return entity.roomName ||
-			entity.location ||
-			(entity.webexMeeting? `${entity.webexAccountName}: ${displayMeetingNumber(entity.webexMeeting.meetingNumber)}`: '');
+		if (entity.roomId)
+			return 'roomName' in entity? entity.roomName: 'Unknown';
+		if (entity.location)
+			return entity.location;
+		const webexMeeting = entity.webexMeeting;
+		const webexAccountName = 'webexAccountName' in entity? entity.webexAccountName: 'Unknown';
+		return webexMeeting? `${webexAccountName}: ${displayMeetingNumber(webexMeeting.meetingNumber)}`: '';
 	}
 	if (key === 'meetingNumber')
 		return entity.webexMeeting? displayMeetingNumber(entity.webexMeeting.meetingNumber): '';
 	if (!entity.hasOwnProperty(key))
 		console.warn(dataSet + ' has no field ' + key);
 	return entity[key as keyof Meeting];
-}
-
-export function summarizeTelecon(entity: Meeting) {
-	const date = getField(entity, 'date');
-	const timeRange = getField(entity, 'timeRange');
-	return `${date} ${timeRange} ${entity.summary}`;
 }
 
 /*

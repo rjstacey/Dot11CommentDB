@@ -19,20 +19,17 @@ import {
 	updateWebexMeetings,
 	deleteWebexMeetings,
 	setSelected,
+	defaultWebexMeetingParams,
 	webexMeetingToWebexMeetingParams,
 	WebexMeetingParams, WebexMeetingOptions, WebexMeetingAudioConnectionOptions,
 	WebexMeetingUpdate,
 } from '../store/webexMeetings';
 
 import { updateMeetings, Meeting } from '../store/meetings';
-
-import {selectWebexAccountEntities} from '../store/webexAccounts';
-
-import {selectCurrentGroupDefaults} from '../store/current';
-
-import {selectCurrentSession} from '../store/sessions';
-
-import {selectUserMeetingsAccess, AccessLevel} from '../store/user';
+import { selectWebexAccountEntities } from '../store/webexAccounts';
+import { selectCurrentGroupDefaults } from '../store/current';
+import { selectCurrentSession } from '../store/sessions';
+import { selectUserMeetingsAccess, AccessLevel } from '../store/user';
 
 import WebexAccountSelector from '../components/WebexAccountSelector';
 import WebexTemplateSelector from '../components/WebexTemplateSelector';
@@ -46,35 +43,13 @@ const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';
 
 export const defaultWebexMeeting: WebexMeetingEntry = {
+	...defaultWebexMeetingParams,
 	accountId: null,
 	title: '',
 	timezone: '',
 	date: '',
 	startTime: '',
 	endTime: '02:00',
-	password: 'wireless',
-	enabledAutoRecordMeeting: false,
-	enabledJoinBeforeHost: true,
-	joinBeforeHostMinutes: 10,
-	enableConnectAudioBeforeHost: true,
-	publicMeeting: false,
-	audioConnectionOptions: {
-		allowAttendeeToUnmuteSelf: true,
-		allowHostToUnmuteParticipants: false,
-		audioConnectionType: "webexAudio",
-		enabledAudienceCallBack: false,
-		enabledGlobalCallIn: true,
-		enabledTollFreeCallIn: false,
-		entryAndExitTone: "noTone",
-		muteAttendeeUponEntry: true
-	},
-	meetingOptions: {
-		enabledChat: true,
-		enabledVideo: true,
-		enabledNote: true,
-		enabledClosedCaptions: true,
-		enabledFileTransfer: false
-	},
 	templateId: null,
 }
 

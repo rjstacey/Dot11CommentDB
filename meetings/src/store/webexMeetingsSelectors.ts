@@ -86,6 +86,39 @@ export type SyncedWebexMeeting = WebexMeeting & {
 	meetingId?: number;
 }
 
+export const defaultWebexMeetingParams: WebexMeetingParams = {
+	accountId: 0,
+	id: '',
+	title: '',
+	start: '',
+	end: '',
+	timezone: '',
+	password: 'wireless',
+	enabledAutoRecordMeeting: false,
+	enabledJoinBeforeHost: true,
+	joinBeforeHostMinutes: 10,
+	enableConnectAudioBeforeHost: true,
+	publicMeeting: false,
+	audioConnectionOptions: {
+		allowAttendeeToUnmuteSelf: true,
+		allowHostToUnmuteParticipants: false,
+		audioConnectionType: "webexAudio",
+		enabledAudienceCallBack: false,
+		enabledGlobalCallIn: true,
+		enabledTollFreeCallIn: false,
+		entryAndExitTone: "noTone",
+		muteAttendeeUponEntry: true
+	},
+	meetingOptions: {
+		enabledChat: true,
+		enabledVideo: true,
+		enabledNote: true,
+		enabledClosedCaptions: true,
+		enabledFileTransfer: false
+	},
+	templateId: null,
+}
+
 export function displayMeetingNumber(meetingNumber: number) {
 	const s = meetingNumber.toString();
 	return s.substring(0,4) + ' ' + s.substring(4,7) + ' ' + s.substring(7);

@@ -84,14 +84,12 @@ function convertBreakoutToMeetingEntry(breakout: Breakout, imatMeeting: ImatMeet
 		calendarAccountId: null,
 		calendarEventId: null,
 		webexAccountId: null,
-		webexAccountName: null,
 		webexMeetingId: null,
 		//webexMeeting: {accountId: null},
 		imatMeetingId: imatMeeting.id,
 		imatBreakoutId: breakout.id,
 		sessionId: session.id,
 		roomId: 0,
-		roomName: '',
 	}
 
 	const room = session.rooms.find(r => r.name === breakout.location);

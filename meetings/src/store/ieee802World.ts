@@ -15,9 +15,10 @@ import {
 
 import type { AppThunk, RootState } from '.';
 import { selectGroupsState, selectWorkingGroup } from './groups';
-import { selectCurrentSessionId } from './current';
+import { selectCurrentGroupDefaults, selectCurrentSessionId } from './current';
 import { selectSessionEntities, selectCurrentSession } from './sessions';
-import { addMeetings, selectMeetingEntities, Meeting } from './meetings';
+import { addMeetings, selectMeetingEntities, MeetingAdd } from './meetings';
+import { defaultWebexMeetingParams, WebexMeetingParams } from './webexMeetingsSelectors';
 
 type Ieee802WorldScheduleEntry = {
 	id: number;
@@ -177,16 +178,16 @@ export const importSelectedAsMeetings = (): AppThunk =>
 		const {ids: groupIds, entities: groupEntities} = selectGroupsState(state);
 		const sessionId = selectCurrentSessionId(state)!;
 		const session = selectSessionEntities(state)[sessionId];
+		const defaults = selectCurrentGroupDefaults(state);
 
 		if (!session) {
 			dispatch(setError('Session not selected', null));
 			return;
 		}
 
-		const meetings: Meeting[] = [];
+		const meetings: MeetingAdd[] = [];
 		for (const id of selected) {
 			const entry = entities[id]!;
-			const meeting: Partial<Meeting> = {sessionId};
 
 			let groupName = entry.groupName.split('/')[0];	// Sometimes: "11/15/18/19"
 			groupName = groupName.startsWith('802')? '802': ('802.' + groupName);	// Sometimes "802W"
@@ -199,21 +200,45 @@ export const importSelectedAsMeetings = (): AppThunk =>
 			 *   etc.
 			 */
 			const [subgroupName] = entry.meeting.split(' - ');
-			meeting.organizationId = (groupIds.find(id => groupEntities[id]!.name === subgroupName && groupEntities[id]!.parent_id === groupId) as string) || null;
-			if (!meeting.organizationId) {
-				meeting.organizationId = groupId as string || null;
-				if (!meeting.organizationId) {
+			let organizationId = (groupIds.find(id => groupEntities[id]!.name === subgroupName && groupEntities[id]!.parent_id === groupId) as string) || null;
+			if (!organizationId) {
+				organizationId = groupId as string || null;
+				if (!organizationId) {
 					dispatch(setError("Can't determine group/subgroup", `group=${entry.groupName} meeting=${entry.meeting}`));
 					return;
 				}
 			}
 
-			meeting.summary = `${groupName} ${subgroupName}`;
-			meeting.start = DateTime.fromFormat(`${entry.breakoutDate} ${entry.startTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: session.timezone}).toISO()!;
-			meeting.end = DateTime.fromFormat(`${entry.breakoutDate} ${entry.endTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: session.timezone}).toISO()!;
-			meeting.timezone = session.timezone;
-			meeting.location = entry.mtgRoom;
-			meetings.push(meeting as Meeting);
+			const room = session.rooms.find(r => r.name === entry.mtgRoom);
+
+			let webexMeeting: WebexMeetingParams | undefined;
+			if (defaults.webexAccountId) {
+				webexMeeting = {
+					...defaultWebexMeetingParams,
+					accountId: defaults.webexAccountId,
+				};
+			}
+
+			const meeting: MeetingAdd = {
+				organizationId,
+				summary: subgroupName.trim(),
+				start: DateTime.fromFormat(`${entry.breakoutDate} ${entry.startTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: session.timezone}).toISO()!,
+				end: DateTime.fromFormat(`${entry.breakoutDate} ${entry.endTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: session.timezone}).toISO()!,
+				timezone: session.timezone,
+				sessionId: session.id,
+				location: entry.mtgRoom,
+				roomId: room?.id || null,
+				imatMeetingId: session.imatMeetingId || null,
+				imatBreakoutId: session.imatMeetingId? '$add': null,
+				hasMotions: false,
+				isCancelled: false,
+				webexAccountId: defaults.webexAccountId,
+				webexMeetingId: defaults.webexAccountId? '$add': null,
+				calendarAccountId: defaults.calendarAccountId,
+				calendarEventId: null,
+				webexMeeting,
+			}
+			meetings.push(meeting);
 		}
 		dispatch(addMeetings(meetings));
 	}

@@ -44,6 +44,7 @@ export function GroupSelector({
 {
 
 	let groups = useAppSelector(selectGroups);
+	console.log(groups)
 	if (types)
 		groups = groups.filter(group => types.includes(group.type));
 
