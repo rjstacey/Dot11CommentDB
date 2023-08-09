@@ -158,7 +158,6 @@ export const selectGroups = createSelector(
 	selectWorkingGroupId,
 	(ids, entities, workingGroupId) => {
 		const childIds = treeSortedIds(ids, entities, workingGroupId);
-		console.log(workingGroupId, childIds)
 		const groups = childIds.map(id => entities[id]!);
 		return groups;
 	}
