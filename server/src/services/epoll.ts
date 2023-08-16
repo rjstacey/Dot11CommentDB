@@ -4,9 +4,11 @@
 
 import { DateTime } from 'luxon';
 import cheerio from 'cheerio';
-import { csvParse, AuthError } from '../utils';
+import ExcelJS from 'exceljs';
+import { csvParse, AuthError, validateSpreadsheetHeader } from '../utils';
 
 import type { User } from './users';
+import { MemberBasic, type Member } from './members';
 
 // Convert date string to UTC
 function parseDateTime(dateStr: string) {
@@ -151,17 +153,20 @@ type CSVComment = {
 export async function parseEpollCommentsCsv(buffer: Buffer, startCommentId: number): Promise<CSVComment[]> {
 	let cid = startCommentId;
 
-	const p = await csvParse(buffer, {columns: false, bom: true, encoding: 'latin1'});
-
-	if (p.length === 0)
+	const rows = await csvParse(buffer, {columns: false, bom: true, encoding: 'latin1'});
+	if (rows.length === 0)
 		throw new Error('Empty CSV file');
 
 	// Row 0 is the header
-	if (epollCommentsHeader.reduce((r, v, i) => r || v !== p[0][i], false))
-		throw new Error(`Unexpected column headings ${p[0].join()}. Expected ${epollCommentsHeader.join()}.`);
-	p.shift();
+	if (epollCommentsHeader.reduce((r, v, i) => r || v !== rows[0][i], false))
+		throw new Error(`Unexpected column headings ${rows[0].join()}. Expected ${epollCommentsHeader.join()}.`);
+	rows.shift();
 
-	const comments = p.map(c => {
+	const comments: CSVComment[] = [];
+	for (const c of rows) {
+		let C_Index = parseInt(c[0]);
+		if (isNaN(C_Index))
+			continue;
 		let C_Page = c[6]? c[6].trim(): '';
 		let C_Line = c[8]? c[8].trim(): '';
 		let Page = parseFloat(C_Page) + parseFloat(C_Line)/100;
@@ -169,7 +174,7 @@ export async function parseEpollCommentsCsv(buffer: Buffer, startCommentId: numb
 			Page = 0;
 		const comment: CSVComment = {
 			CommentID: cid++,
-			C_Index: parseInt(c[0]),
+			C_Index,
 			CommenterSAPIN: Number(c[2]),
 			CommenterName: c[3],
 			Comment: c[4],
@@ -182,10 +187,71 @@ export async function parseEpollCommentsCsv(buffer: Buffer, startCommentId: numb
 			ProposedChange: c[9]? c[9]: '',
 			MustSatisfy: !!(c[10] === '1')
 		};
-		return comment;
-	});
+		comments.push(comment);
+	}
 
 	return comments;
+}
+
+const epollUserCommentsHeader = [
+	'Comment', 'Category', 'Page Number', 'Subclause', 'Line Number', 'Proposed Change', 'Must Be Satisfied'
+];
+
+function parseUserComment(CommentID: number, C_Index: number, commenter: Member, c: string[]): CSVComment {
+	let C_Page = c[2]? c[2].trim(): '';
+	let C_Line = c[3]? c[3].trim(): '';
+	let Page = parseFloat(C_Page) + parseFloat(C_Line)/100;
+	if (isNaN(Page)) 
+		Page = 0;
+	return {
+		CommentID,
+		C_Index,
+		CommenterSAPIN: commenter.SAPIN,
+		CommenterName: commenter.Name,
+		Comment: c[0] as string,
+		Category: c[1]? c[1].charAt(0): 'T',   // First letter only (G, T or E), T if blank
+		C_Page,
+		C_Clause: c[4]? c[4].trim(): '',
+		C_Line,
+		Page,
+		Clause: c[4]? c[4]: '',
+		ProposedChange: c[5]? c[5]: '',
+		MustSatisfy: c[6].toLowerCase() === 'yes'
+	}
+}
+
+export async function parseEpollUserCommentsCsv(commenter: Member, startCommentId: number, startIndex: number, buffer: Buffer): Promise<CSVComment[]> {
+	let cid = startCommentId;
+
+	const rows = await csvParse(buffer, {columns: false, bom: true, encoding: 'latin1'});
+	if (rows.length === 0)
+		throw new Error('Empty CSV file');
+
+	// 4th row is the header
+	rows.splice(0, 3);
+	validateSpreadsheetHeader(rows.shift()!, epollUserCommentsHeader);
+
+	return rows.map((row, index) => parseUserComment(startCommentId+index, startIndex+index, commenter, row));
+}
+
+export async function parseEpollUserCommentsExcel(commenter: Member, startCommentId: number, startIndex: number, buffer: Buffer): Promise<CSVComment[]> {
+	const workbook = new ExcelJS.Workbook();
+	await workbook.xlsx.load(buffer);
+
+	const rows: string[][] = []; 	// an array of arrays
+	workbook.getWorksheet(1).eachRow(row => {
+		if (Array.isArray(row.values))
+			rows.push(row.values.slice(1, epollUserCommentsHeader.length+1).map(r => typeof r === 'string'? r: r? r.toString(): ''));
+	});
+
+	if (rows.length === 0)
+		throw new TypeError('Empty spreadsheet file');
+
+	// Check the column names to make sure we have the right file
+	rows.splice(0, 3);
+	validateSpreadsheetHeader(rows.shift()!, epollUserCommentsHeader);
+
+	return rows.map((row, index) => parseUserComment(startCommentId+index, startIndex+index, commenter, row));
 }
 
 const epollResultsHeader = [

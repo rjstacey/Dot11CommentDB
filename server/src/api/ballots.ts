@@ -53,7 +53,7 @@ router
 			return next();
 		if (req.method === "PATCH" && access >= AccessLevel.rw)
 			return next();
-		if ((req.method === "PUT" || req.method === "DELETE") && access >= AccessLevel.admin)
+		if ((req.method === "POST" || req.method === "DELETE") && access >= AccessLevel.admin)
 			return next();
 			
 		next(new ForbiddenError('Insufficient karma'));

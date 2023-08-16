@@ -31,6 +31,7 @@ const getSessionsSQL = () =>
 		'BIN_TO_UUID(`groupId`) AS `groupId`, ' +
 		'startDate, ' +
 		'endDate, ' +
+		'isCancelled, ' +
 		'timezone, ' +
 		'imatMeetingId, ' +
 		'OrganizerID, ' +
@@ -152,6 +153,7 @@ export interface Session {
 	timezone: string;
 	startDate: string;
 	endDate: string;
+	isCancelled: boolean;
 	rooms: Room[];
 	timeslots: unknown[];
 	defaultCredits: unknown[];

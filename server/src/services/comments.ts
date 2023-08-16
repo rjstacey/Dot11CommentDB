@@ -5,11 +5,12 @@ import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
 
 import { AuthError, ForbiddenError, NotFoundError, isPlainObject } from '../utils';
-import { parseEpollCommentsCsv } from './epoll';
+import { parseEpollCommentsCsv, parseEpollUserCommentsCsv, parseEpollUserCommentsExcel } from './epoll';
 import { parseMyProjectComments } from './myProjectSpreadsheets';
 import { BallotType, Ballot, getBallotWithNewResultsSummary } from './ballots';
-import type { Resolution } from './resolutions';
-import type { User } from './users';
+import { type Resolution } from './resolutions';
+import { type User } from './users';
+import { getMember } from './members';
 import { AccessLevel } from '../auth/access';
 import { getGroups } from './groups';
 
@@ -297,20 +298,24 @@ export async function deleteComments(user: User, ballot_id: number) {
  */
 async function insertComments(user: User, ballot_id: number, comments: Partial<Comment>[]) {
 
-	// Delete existing comments (and resolutions) for this ballot
-	await deleteComments(user, ballot_id);
-
 	if (comments.length) {
 		// Insert the comments
 		const sql1 =
-			db.format('INSERT INTO comments (`ballot_id`, LastModifiedBy, LastModifiedTime, ??) VALUES ', [Object.keys(comments[0])]) +
+			db.format('INSERT INTO comments (ballot_id, LastModifiedBy, LastModifiedTime, ??) VALUES ', [Object.keys(comments[0])]) +
 			comments.map(c => db.format('(?, ?, UTC_TIMESTAMP(), ?)', [ballot_id, user.SAPIN, Object.values(c)])).join(', ');
 		await db.query(sql1);
 
-		// Insert a null resolution for each comment
+		// Insert a null resolution for each comment (only if one does not exist)
 		const sql2 =
-			db.format('INSERT INTO resolutions (`comment_id`, `ResolutionID`, `LastModifiedBy`, `LastModifiedTime`) SELECT id, 0, ?, UTC_TIMESTAMP() FROM comments WHERE `ballot_id`=?;', [user.SAPIN, ballot_id]);
-		await db.query(sql2);
+			db.format(
+				'INSERT INTO resolutions (comment_id, ResolutionID, LastModifiedBy, LastModifiedTime) ' +
+					'SELECT id, 0, ?, UTC_TIMESTAMP() ' + 
+					'FROM comments ' + 
+					'WHERE ballot_id=? AND id NOT IN (SELECT comment_id FROM resolutions);',
+				[user.SAPIN, ballot_id]
+			);
+		const r = await db.query(sql2);
+		console.log(r);
 	}
 
 	comments = await getComments(ballot_id);
@@ -320,6 +325,17 @@ async function insertComments(user: User, ballot_id: number, comments: Partial<C
 		comments,
 		ballot,
 	}
+}
+
+/**
+ * Replace all comments for the specified ballot
+ */
+async function replaceComments(user: User, ballot_id: number, comments: Partial<Comment>[]) {
+
+	// Delete existing comments (and resolutions) for this ballot
+	await deleteComments(user, ballot_id);
+
+	return insertComments(user, ballot_id, comments);
 }
 
 /**
@@ -341,7 +357,7 @@ export async function importEpollComments(user: User, ballot: Ballot, startComme
 	const comments = await parseEpollCommentsCsv(response.data, startCommentId);
 	//console.log(comments[0])
 
-	return insertComments(user, ballot.id, comments);
+	return replaceComments(user, ballot.id, comments);
 }
 
 /**
@@ -361,6 +377,41 @@ export async function uploadComments(user: User, ballot: Ballot, startCommentId:
 			throw new TypeError('Expecting .csv file');
 		try {
 			comments = await parseEpollCommentsCsv(file.buffer, startCommentId);
+		}
+		catch (error: any) {
+			throw new TypeError('Parse error: ' + error.toString());
+		}
+	}
+	return replaceComments(user, ballot.id, comments);
+}
+
+/**
+ * Upload comments from spreadsheet.
+ * The expected spreadsheet format depends on the ballot type.
+ * For SA ballot, the MyProject spreadsheet format is expected.
+ * For WG ballot, the ePoll .csv format is expected.
+ */
+export async function uploadUserComments(user: User, ballot: Ballot, sapin: number, file: any) {
+
+	const commenter = await getMember(sapin);
+	if (!commenter)
+		throw new Error("Member not found");
+
+	const rows = await db.query('SELECT MAX(CommentID) as MaxCommentId, MAX(C_Index) as MaxIndex from comments WHERE ballot_id=?', ballot.id) as any[];
+	let {MaxCommentId, MaxIndex} = rows[0];
+	let startCommentId = MaxCommentId? MaxCommentId + 1: 1;
+	let startIndex = MaxIndex? MaxIndex + 1: 1;
+	console.log(rows);
+	console.log(startCommentId, startIndex);
+
+	let comments: Partial<Comment>[];
+	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1;
+	if (isExcel) {
+		comments = await parseEpollUserCommentsExcel(commenter, startCommentId, startIndex, file.buffer);
+	}
+	else {
+		try {
+			comments = await parseEpollUserCommentsCsv(commenter, startCommentId, startIndex, file.buffer);
 		}
 		catch (error: any) {
 			throw new TypeError('Parse error: ' + error.toString());

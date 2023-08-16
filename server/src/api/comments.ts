@@ -69,6 +69,7 @@ import {
 	deleteComments,
 	importEpollComments,
 	uploadComments,
+	uploadUserComments,
 	validUpdates
 } from '../services/comments';
 import { exportResolutionsForMyProject } from '../services/myProjectSpreadsheets';
@@ -80,6 +81,11 @@ const router = Router();
 function validUploadParams(params: any): params is {startCommentId?: number} {
 	return isPlainObject(params) &&
 		typeof params.startCommentId === 'undefined' || typeof params.startCommentId === 'number';
+}
+
+function validUploadUserParams(params: any): params is {SAPIN: number} {
+	return isPlainObject(params) &&
+		typeof params.SAPIN === 'number';
 }
 
 function validateExportParams(params: any): asserts params is {style: CommentSpreadsheetStyle} {
@@ -119,6 +125,31 @@ router
 		const startCommentId = req.body.startCommentId || 1;
 
 		importEpollComments(req.user, ballot, startCommentId)
+			.then(data => res.json(data))
+			.catch(next);
+	})
+	.post('/userUpload', upload.single('CommentsFile'), (req, res, next) => {
+		const access = req.permissions?.comments || AccessLevel.none;
+		// Need admin privileges for upload
+		if (access < AccessLevel.admin)
+			return next(new ForbiddenError("Need admin privileges at the ballot level to upload comments"));
+
+		let params: any;
+		try {
+			if (typeof req.body.params !== 'string')
+				throw new TypeError("Bad multipart body; expected part params to contain JSON string");
+			params = JSON.parse(req.body.params);
+			if (!validUploadUserParams(params))
+				throw new TypeError("Bad multipart body; expected params part to be JSON object with shape {startCommentId?: number}");
+		}
+		catch (error) {
+			return next(error);
+		}
+
+		if (!req.file)
+			return next(new TypeError("Bad multipart body; missing file"));
+
+		uploadUserComments(req.user, req.ballot!, params.SAPIN, req.file)
 			.then(data => res.json(data))
 			.catch(next);
 	})

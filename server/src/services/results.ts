@@ -39,6 +39,7 @@ export type ResultsSummary = {
 	TotalReturns: number;
 	BallotReturns: number;
 	VotingPoolSize: number;
+	Commenters: number;
 }
 
 type BallotSeriesResults = {
@@ -120,7 +121,8 @@ function summarizeWGResults(results: Result[]): ResultsSummary {
 		ReturnsPoolSize: 0,
 		TotalReturns: 0,
 		BallotReturns: 0,
-		VotingPoolSize: 0
+		VotingPoolSize: 0,
+		Commenters: 0
 	};
 
 	for (let r of results) {
@@ -153,6 +155,9 @@ function summarizeWGResults(results: Result[]): ResultsSummary {
 				summary.ReturnsPoolSize++;
 			}
 		}
+
+		if (r.CommentCount)
+			summary.Commenters++;
 	}
 	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain;
 
@@ -200,7 +205,8 @@ function summarizeSAResults(results: Result[]) {
 		ReturnsPoolSize: 0,
 		TotalReturns: 0,
 		BallotReturns: 0,
-		VotingPoolSize: 0
+		VotingPoolSize: 0,
+		Commenters: 0,
 	};
 
 	results.forEach(r => {
@@ -216,6 +222,9 @@ function summarizeSAResults(results: Result[]) {
 		else if (/^Abstain/.test(r.Vote)) {
 			summary.Abstain++;
 		}
+
+		if (r.CommentCount)
+			summary.Commenters++;
 	});
 
 	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.InvalidDisapprove + summary.Abstain;
@@ -278,7 +287,8 @@ function summarizeMotionResults(results: Result[]) {
 		ReturnsPoolSize: 0,
 		TotalReturns: 0,
 		BallotReturns: 0,
-		VotingPoolSize: 0
+		VotingPoolSize: 0,
+		Commenters: 0
 	};
 
 	results.forEach(r => {
@@ -304,6 +314,9 @@ function summarizeMotionResults(results: Result[]) {
 				summary.ReturnsPoolSize++;
 			}
 		}
+
+		if (r.CommentCount)
+			summary.Commenters++;
 	});
 
 	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain;
@@ -311,7 +324,7 @@ function summarizeMotionResults(results: Result[]) {
 	return summary;
 }
 
-function summarizeBallotResults(results: Result[]) {
+function summarizeCCResults(results: Result[]) {
 	let summary: ResultsSummary = {
 		Approve: 0,
 		Disapprove: 0,
@@ -322,25 +335,25 @@ function summarizeBallotResults(results: Result[]) {
 		ReturnsPoolSize: 0,
 		TotalReturns: 0,
 		BallotReturns: 0,
-		VotingPoolSize: 0
+		VotingPoolSize: 0,
+		Commenters: 0
 	};
 
 	results.forEach(r => {
-		if (/^Approve/.test(r.Vote)) {
+		if (/^Approve/.test(r.Vote))
 			summary.Approve++;
-		}
-		else if (/^Disapprove/.test(r.Vote)) {
-			if (r.CommentCount)
-				summary.Disapprove++;
-			else
-				summary.InvalidDisapprove++
-		}
-		else if (/^Abstain/.test(r.Vote)) {
+		else if (/^Disapprove/.test(r.Vote))
+			summary.Disapprove++;
+		else if (/^Abstain/.test(r.Vote))
 			summary.Abstain++;
-		}
+
+		// Count the number of commenters
+		if (r.CommentCount)
+			summary.Commenters++;
 	});
 
 	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain;
+	summary.BallotReturns = results.length;
 
 	return summary;
 }
@@ -404,18 +417,14 @@ export async function getResultsCoalesced(user: User, access: number, ballot: Ba
 		// if there is a voting pool, get that
 		const voters = await getVoters({ballot_id: ballot.id});
 		results = await getResults(ballot.id);
-		votingPoolSize = voters.length;
 		results = colateMotionResults(results, voters);	// colate results for just this ballot
 		summary = summarizeMotionResults(results);
 		summary.BallotReturns = results.length;
-		summary.VotingPoolSize = votingPoolSize;
+		summary.VotingPoolSize =  voters.length;
 	}
 	else {
-		votingPoolSize = 0;
 		results = await getResults(ballot.id);			// colate results for just this ballot
-		summary = summarizeBallotResults(results);
-		summary.BallotReturns = results.length;
-		summary.VotingPoolSize = votingPoolSize;
+		summary = summarizeCCResults(results);
 	}
 
 	/* Update results summary in ballots table if different */

@@ -53,12 +53,12 @@ export async function getRecentAttendances() {
 
 	const now = Date.now();
 	const allSessions = (await getSessions())
-		.filter(s => Date.parse(s.endDate) < now)
+		.filter(s => Date.parse(s.endDate) < now && !s.isCancelled)
 		.sort((s1, s2) => Date.parse(s1.startDate) - Date.parse(s2.startDate));	// Oldest to newest
 
 	// Plenary sessions only, newest 4 with attendance
 	let plenaries = allSessions
-		.filter(s => s.type === 'p' && s.Attendees! > 0)
+		.filter(s => s.type === 'p')
 		.slice(-4);
 
 	if (plenaries.length > 0) {
