@@ -67,6 +67,24 @@ export async function getGroupAndSubgroupIds(groupName: string) {
 	return ids;
 }
 
+/**
+ * Get group and subgroup identifiers
+ * @param groupId - Parent group identifier
+ * @returns An array of group identifiers that includes the group and all its subgroups
+ */
+export async function getSubgroups(groupId: string) {
+	async function getChildren(parent_ids: string[]) {
+		let ids = (await db.query('SELECT BIN_TO_UUID(id) as id FROM organization WHERE BIN_TO_UUID(parent_id) IN (?)', [parent_ids]) as {id: string}[]).map(g => g.id);
+		if (ids.length > 0)
+			ids = ids.concat(await getChildren(ids));
+		return ids;
+	}
+
+	let ids = [groupId];
+	ids = ids.concat(await getChildren([groupId]));
+	return ids;
+}
+
 const selectGroupsSql =
 	'SELECT ' + 
 		'BIN_TO_UUID(org.id) AS id, ' +
