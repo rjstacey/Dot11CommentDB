@@ -8,7 +8,7 @@ import ExcelJS from 'exceljs';
 import { csvParse, AuthError, validateSpreadsheetHeader } from '../utils';
 
 import type { User } from './users';
-import { MemberBasic, type Member } from './members';
+import { type Member } from './members';
 
 // Convert date string to UTC
 function parseDateTime(dateStr: string) {
