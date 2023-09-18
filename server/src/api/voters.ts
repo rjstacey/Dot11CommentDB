@@ -65,7 +65,7 @@ router
 		if (!req.file)
 			return next(new TypeError('Missing file'));
 		votersFromSpreadsheet(ballot_id, req.file)
-			.then(res.json)
+			.then(data => res.json(data))
 			.catch(next);
 	})
 	.post('/membersSnapshot', (req, res, next) => {
@@ -74,7 +74,7 @@ router
 			return next(new TypeError('Bad or missing body; expected object with shape {date: string}'));
 		const {date} = req.body;
 		votersFromMembersSnapshot(ballot_id, date)
-			.then(res.json)
+			.then(data => res.json(data))
 			.catch(next);
 	});
 
