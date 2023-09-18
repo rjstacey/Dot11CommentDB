@@ -451,17 +451,17 @@ export function parseSessionDetailPage(body: string) {
 			const groupShortName = tds.eq(3).text();
 			const name = tds.eq(4).text() || '';
 
-			let credit = tds.eq(5).text() || '';
-			m = /(Normal|Zero|Extra|Other)/.exec(credit);
+			let fullCredit = tds.eq(5).text() || '';
+			m = /(Normal|Zero|Extra|Other)/.exec(fullCredit);
 			if (!m)
-				throw Error("Can't parse Credit column; got " + credit);
-			credit = m[1];
+				throw Error("Can't parse Credit column; got " + fullCredit);
+			let credit = m[1];
 			let creditOverrideNumerator = 0;
 			let creditOverrideDenominator = 0;
 			if (credit === "Other") {
-				m = /Other (\d+) \/ (\d+)/.exec(credit);
+				m = /Other\s*(\d+)\s*\/\s*(\d+)/.exec(fullCredit);
 				if (!m)
-					throw new Error(`Unexpected format for Other credit: ${credit}`);
+					throw new Error(`Unexpected format for Other credit: ${fullCredit}`);
 				creditOverrideNumerator = Number(m[1]);
 				creditOverrideDenominator = Number(m[2])
 			}
