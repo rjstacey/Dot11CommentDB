@@ -12,7 +12,8 @@ import {
 	ColumnProperties,
 	TableConfig,
 	TablesConfig,
-	HeaderCellRendererProps
+	HeaderCellRendererProps,
+	RowGetterProps
 } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -23,13 +24,11 @@ import {
 	fields,
 	getField,
 	ieee802WorldSelectors,
-	ieee802WorldActions
+	ieee802WorldActions,
 } from '../store/ieee802World';
 
 import TopRow from '../components/TopRow';
 import MeetingSummary from '../components/MeetingSummary';
-
-import { RowGetterProps } from 'dot11-components/dist/table/AppTable';
 
 const TableRow = styled.div`
 	flex: 1;	/* remaining height */

@@ -10,7 +10,7 @@ import {
 	SortType,
 	AppTableDataState,
 	isObject,
-	//displayDateRange
+	Fields
 } from 'dot11-components';
 
 import type { AppThunk, RootState } from '.';
@@ -20,7 +20,7 @@ import { selectSessionEntities, selectCurrentSession } from './sessions';
 import { addMeetings, selectMeetingEntities, MeetingAdd } from './meetings';
 import { defaultWebexMeetingParams, WebexMeetingParams } from './webexMeetingsSelectors';
 
-type Ieee802WorldScheduleEntry = {
+export type Ieee802WorldScheduleEntry = {
 	id: number;
 	breakoutDate: string;
 	date: string;
@@ -38,11 +38,11 @@ type Ieee802WorldScheduleEntry = {
 	groupName: string;
 }
 
-type SyncedIeee802WorldScheduleEntry = Ieee802WorldScheduleEntry & {
+export type SyncedIeee802WorldScheduleEntry = Ieee802WorldScheduleEntry & {
 	meetingId: number | null;
 }
 
-export const fields = {
+export const fields: Fields = {
 	id: {label: 'ID', sortType: SortType.NUMERIC},
 	breakoutDate: {label: 'Date', dataRenderer: displayDate},
 	date: {label: 'Date'},
