@@ -12,7 +12,7 @@ import {
 
 import type { RootState, AppThunk } from '.';
 import { AccessLevel } from './user';
-import { selectGroups, selectWorkingGroup, selectWorkingGroupName } from './groups';
+import { selectGroupEntities, selectGroups, selectWorkingGroup, selectWorkingGroupName } from './groups';
 
 export type ResultsSummary = {
 	Approve: number;
@@ -25,6 +25,7 @@ export type ResultsSummary = {
 	TotalReturns: number;
 	BallotReturns: number;
 	VotingPoolSize: number;
+	Commenters: number;
 }
 
 export type CommentsSummary = {
@@ -76,6 +77,7 @@ export type BallotEdit = {
 
 export type SyncedBallot = Ballot & {
 	PrevBallotID: string;
+	GroupName: string;
 }
 
 export type BallotUpdate = {
@@ -114,22 +116,32 @@ export const BallotStageOptions = Object.values(BallotStage).map(v => ({value: v
 export const renderBallotStage = (v: boolean) => v? 'Recirc': 'Initial';
 
 export const fields = {
+	GroupName: {label: 'Group'},
 	Project: {label: 'Project'},
 	BallotID: {label: 'Ballot'},
 	Type: {label: 'Type', sortType: SortType.NUMERIC, options: BallotTypeOptions, dataRenderer: renderBallotType},
+	Stage: {label: 'Stage'},
 	IsRecirc: {label: 'Stage', sortType: SortType.NUMERIC, options: BallotStageOptions, dataRenderer: renderBallotStage},
 	IsComplete: {label: 'Final', sortType: SortType.NUMERIC},
 	Document: {label: 'Document'},
 	Topic: {label: 'Topic'},
 	EpollNum: {label: 'ePoll', sortType: SortType.NUMERIC},
-	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.STRING},
-	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.STRING},
+	Start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
+	End: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
 	Results: {label: 'Results', dontFilter: true, dontSort: true},
 	Comments: {label: 'Comments', dontFilter: true, dontSort: true},
 	VotingPoolID: {label: 'Voting pool'},
 	PrevBallotID: {label: 'Prev ballot'}
 };
 
+export const getField = (entity: Ballot, dataKey: string) => {
+	if (dataKey === 'Stage') {
+		if (entity.Type === BallotType.SA || entity.Type === BallotType.WG)
+			return entity.IsRecirc? "Recirc": "Inital";
+		return "";
+	}
+	return entity[dataKey];
+}
 
 export type GroupProject = {
 	groupId: string | null;
@@ -231,14 +243,16 @@ export const selectCurrentBallotID = (state: RootState) => {
 const selectSyncedBallotEntities = createSelector(
 	selectBallotIds,
 	selectBallotEntities,
-	(ids, entities) => {
+	selectGroupEntities,
+	(ids, entities, groupEntities) => {
 		const syncedEntities: Dictionary<SyncedBallot> = {};
 		ids.forEach(id => {
 			const ballot = entities[id]!;
 			const PrevBallotID = ballot.prev_id?
 				entities[ballot.prev_id]?.BallotID || 'Unknown':
 				'';
-			syncedEntities[id] = {...ballot, PrevBallotID};
+			const GroupName = (ballot.groupId && (groupEntities[ballot.groupId]?.name || "Unknown")) || "(Blank)";
+			syncedEntities[id] = {...ballot, PrevBallotID, GroupName};
 		});
 		return syncedEntities;
 	}
@@ -288,7 +302,8 @@ export const selectBallotOptions = createSelector(
 					return ballot.groupId === groupId && ballot.Project === project;
 				});
 		}
-		return ballotIds.map(id => ({value: id, label: `${entities[id]!.BallotID} ${entities[id]!.Document}`}));
+		//return ballotIds.map(id => ({value: id, label: `${entities[id]!.BallotID} ${entities[id]!.Document}`}));
+		return ballotIds.map(id => entities[id]!);
 	}
 );
 
@@ -299,7 +314,7 @@ export const selectCurrentBallot = (state: RootState) => {
 	return currentBallot_id? entities[currentBallot_id]: undefined;
 }
 
-export const ballotsSelectors = getAppTableDataSelectors(selectBallotsState, {selectEntities: selectSyncedBallotEntities});
+export const ballotsSelectors = getAppTableDataSelectors(selectBallotsState, {selectEntities: selectSyncedBallotEntities, getField});
 
 /*
  * Actions

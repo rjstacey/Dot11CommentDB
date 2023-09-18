@@ -81,7 +81,7 @@ export default slice;
  * Selectors
  */
 export const selectGroupsState = (state: RootState) => state[dataSet];
-export const selectGroupEntities = (state: RootState) => selectGroupsState(state).entities;
+export function selectGroupEntities(state: RootState) {return selectGroupsState(state).entities};
 export const selectGroupIds = (state: RootState) => selectGroupsState(state).ids;
 
 export function selectGroups(state: RootState) {

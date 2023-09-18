@@ -12,7 +12,8 @@ import {
 	selectBallotsState,
 	selectGroupProjectOptions,
 	selectBallotOptions,
-	GroupProject
+	GroupProject,
+	BallotType
 } from '../store/ballots';
 
 const Label = styled.label`
@@ -63,7 +64,8 @@ function BallotSelect({
 	value,
 	onChange,
 	loading,
-	readOnly
+	readOnly,
+	withVotingPool
 }: {
 	className?: string;
 	style?: React.CSSProperties;
@@ -71,8 +73,12 @@ function BallotSelect({
 	onChange: (value: number | null) => void;
 	loading: boolean;
 	readOnly?: boolean;
+	withVotingPool?: boolean;
 }) {
-	const options = useAppSelector(selectBallotOptions);
+	let ballots = useAppSelector(selectBallotOptions);
+	if (withVotingPool)
+		ballots = ballots.filter(b => (b.Type === BallotType.WG && !b.IsRecirc) || b.Type === BallotType.Motion);
+	const options = ballots.map(b => ({value: b.id, label: `${b.BallotID} ${b.Document}`}));
 	const values = options.filter(o => o.value === value);
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].value: 0);
 
@@ -93,12 +99,14 @@ function BallotSelector({
 	className,
 	style,
 	readOnly,
-	onBallotSelected
+	onBallotSelected,
+	withVotingPool
 }: {
 	className?: string;
 	style?: React.CSSProperties;
 	readOnly?: boolean;
 	onBallotSelected?: (ballot_id: number | null) => void;
+	withVotingPool?: boolean;
 }) {
 	const navigate = useNavigate();
 	const location = useLocation();
@@ -174,6 +182,7 @@ function BallotSelector({
 				onChange={handleBallotChange}
 				loading={loading}
 				readOnly={readOnly}
+				withVotingPool={withVotingPool}
 			/>
 		</Container>
 	)

@@ -9,9 +9,10 @@ import {
 } from 'dot11-components';
 
 import { renderCommentsSummary } from './Ballots';
+import MemberSelector from '../ballotVoters/MemberSelector';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { importComments, uploadComments, deleteComments, setStartCommentId } from '../store/comments';
+import { importComments, uploadComments, deleteComments, setStartCommentId, uploadUserComments } from '../store/comments';
 import { selectBallot, Ballot } from '../store/ballots';
 
 const MULTIPLE_STR = "(Multiple)";
@@ -62,6 +63,68 @@ function ChangeStartCID({
 						onChange={change}
 					/>
 				</Field>
+			</Row>
+		</Form>
+	)
+}
+
+function AddComments({
+	ballot,
+	close = () => {}
+}: {
+	ballot: Ballot;
+	close?: () => void;
+}) {
+	const dispatch = useAppDispatch();
+	const [commenterSAPIN, setCommenterSAPIN] = React.useState<number | null>(null);
+	const [busy, setBusy] = React.useState(false);
+	const [file, setFile] = React.useState<File | null>(null)
+
+	const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+		const {files} = e.target;
+		setFile((files && files.length > 0)? files[0]: null);
+	}
+
+	const submit = async () => {
+		if (errorText)
+			return;
+		setBusy(true);
+		await dispatch(uploadUserComments(ballot.id, commenterSAPIN!, file!));
+		setBusy(false);
+		close();
+	}
+
+	let errorText = '';
+	if (!commenterSAPIN)
+		errorText = "Select commenter";
+	else if (!file)
+		errorText = "Select file";
+
+	return (
+		<Form
+			style={{minWidth: 300}}
+			title='Add additional comments'
+			submit={submit}
+			errorText={errorText}
+			cancel={close}
+			busy={busy}
+		>
+			<Row>
+				<Field
+					label="Commenter:"
+				>
+					<MemberSelector
+						value={commenterSAPIN || 0}
+						onChange={setCommenterSAPIN}
+					/>
+				</Field>
+			</Row>
+			<Row>
+					<input
+						type='file'
+						accept='.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+						onChange={handleFileChange}
+					/>
 			</Row>
 		</Form>
 	)
@@ -141,6 +204,12 @@ const CommentsActions = ({
 					>
 						Upload comments
 					</Button>
+					<ActionButtonModal 
+						label='Add Comments'
+						disabled={isMultiple(ballot_id) || !ballot || (ballot.Comments && ballot.Comments.Count === 0)}
+					>
+						<AddComments ballot={ballot!} />
+					</ActionButtonModal>
 					<input
 						ref={fileRef}
 						type='file'

@@ -500,15 +500,25 @@ export function BallotAddForm({
 	const [ballot, setBallot] = React.useState<BallotEdit>(defaultBallot || getDefaultBallot());
 	const [busy, setBusy] = React.useState(false);
 
+	let errorMsg = "";
+	if (!ballot.groupId)
+		errorMsg = "Group not set";
+	else if (!ballot.Project)
+		errorMsg = "Project not set";
+	else if (!ballot.BallotID)
+		errorMsg = "Ballot ID not set";
+
 	const submit = async () => {
-		setBusy(true);
-		const b = await dispatch(addBallot(ballot));
-		if (b) {
-			dispatch(setCurrentGroupProject({groupId: ballot.groupId, project: ballot.Project}));
-			dispatch(setSelectedBallots([b.id]))
+		if (!errorMsg) {
+			setBusy(true);
+			const b = await dispatch(addBallot(ballot));
+			if (b) {
+				dispatch(setCurrentGroupProject({groupId: ballot.groupId, project: ballot.Project}));
+				dispatch(setSelectedBallots([b.id]));
+			}
+			setBusy(false);
+			methods.close();
 		}
-		setBusy(false);
-		methods.close();
 	}
 
 	const updateBallot = (changes: Partial<BallotEdit>) => setBallot(ballot => ({...ballot, ...changes}));
@@ -528,6 +538,7 @@ export function BallotAddForm({
 			submit={submit}
 			submitLabel='Add'
 			cancel={methods.close}
+			errorText={errorMsg}
 			busy={busy}
 		>
 			<EditBallot

@@ -148,7 +148,7 @@ function Voters() {
 	return (
 		<>
 			<TopRow style={{maxWidth}}>
-				<PathBallotSelector />
+				<PathBallotSelector withVotingPool />
 				<div>
 					<ActionButton name='add' title='Add voter' disabled={!votersBallot_id} onClick={handleAddVoter} />
 					<ActionButton name='delete' title='Remove selected' disabled={selected.length === 0} onClick={handleRemoveSelected} />
