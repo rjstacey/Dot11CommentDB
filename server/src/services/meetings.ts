@@ -1,5 +1,4 @@
 import { DateTime } from 'luxon';
-import { parse as uuidToBin } from 'uuid';
 
 import { isPlainObject, AuthError, NotFoundError } from '../utils';
 
@@ -9,7 +8,7 @@ import type { OkPacket } from 'mysql2';
 import type { User } from './users';
 
 import { getSession, Session } from './sessions';
-import { getWorkingGroup, Group } from './groups';
+import { getSubgroups, getWorkingGroup, Group } from './groups';
 
 import {
 	getWebexAccounts,
@@ -149,7 +148,11 @@ function selectMeetingsSql(constraints: SelectMeetingsConstraints) {
  *
  * Returns an array of meeting objects that meet the constraints.
  */
-function selectMeetings(constraints: SelectMeetingsConstraints) {
+async function selectMeetings(constraints: SelectMeetingsConstraints) {
+	if (constraints.groupId && !constraints.organizationId) {
+		constraints.organizationId = await getSubgroups(constraints.groupId);
+		delete constraints.groupId;
+	}
 	const sql = selectMeetingsSql(constraints);
 	return db.query({sql, dateStrings: true}) as Promise<Meeting[]>;
 }
@@ -988,7 +991,12 @@ export async function deleteMeetings(user: User, ids: number[]): Promise<number>
 			}
 		}
 		if (entry.calendarAccountId && entry.calendarEventId) {
-			await deleteCalendarEvent(entry.calendarAccountId, entry.calendarEventId);
+			try {
+				await deleteCalendarEvent(entry.calendarAccountId, entry.calendarEventId);
+			}
+			catch (error) {
+				console.log(error);
+			}
 		}
 	}
 	const {affectedRows} = await db.query('DELETE FROM meetings WHERE id IN (?);', [ids]) as OkPacket;
