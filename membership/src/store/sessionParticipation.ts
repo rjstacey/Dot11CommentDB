@@ -94,6 +94,7 @@ export type MemberAttendances = RecentSessionAttendances & {
 	Status: string;
 	ExpectedStatus: string;
 	Summary: string;
+	NonVoterDate: string;
 }
 
 /*
@@ -139,12 +140,15 @@ export const selectSession = (state: RootState, sessionId: number) => selectSess
 export function memberAttendancesCount(member: Member, attendances: SessionAttendanceSummary[], sessionEntities: Dictionary<Session>) {
 	let pCount = 0,		// Count of plenary sessions properly attended
 		iCount = 0,		// Count of interim sessions properly attended
-		lastP = 0;		// Last properly attended session was a plenary
+		lastP = 0,		// Last properly attended session was a plenary
+		nonVoterDate = '';	// Date become a non-voter
 
 	// Only care about attendance since becoming a 'Non-Voter'
 	const h = member.StatusChangeHistory.find(h => h.NewStatus === 'Non-Voter');
-	if (h)
-		attendances = attendances.filter(a => DateTime.fromISO(sessionEntities[a.session_id]!.startDate) > DateTime.fromISO(h.Date));
+	if (h) {
+		nonVoterDate = h.Date;
+		attendances = attendances.filter(a => DateTime.fromISO(sessionEntities[a.session_id]!.startDate) > DateTime.fromISO(nonVoterDate));
+	}
 
 	// Latest first
 	attendances = attendances.slice().sort((a1, a2) =>
@@ -169,7 +173,7 @@ export function memberAttendancesCount(member: Member, attendances: SessionAtten
 	// One interim can be substituted for a plenary
 	let count = pCount + (iCount? 1: 0);
 
-	return {count, lastP};
+	return {count, lastP, nonVoterDate};
 }
 
 export function selectMemberAttendancesCount(state: RootState, SAPIN: number) {
@@ -192,7 +196,7 @@ export function selectMemberAttendancesCount(state: RootState, SAPIN: number) {
 function memberExpectedStatusFromAttendances(member: Member, count: number, lastP: number) {
 	const status = member.Status;
 
-	if (member.SAPIN === 185742)
+	if (member.SAPIN === 15366)
 		console.log(member.SAPIN, count, lastP)
 
 	if (member.StatusChangeOverride || 
@@ -236,12 +240,13 @@ export const selectAttendancesWithMembershipAndSummary = createSelector(
 			let member = memberEntities[entity.SAPIN];
 			let expectedStatus = '';
 			let summary = '';
+			let nonVoterDate = '';
 			if (member) {
-				let {count, lastP} = member? memberAttendancesCount(member, entity.sessionAttendanceSummaries, sessionEntities): {count: 0, lastP: 0};
-				if (count > total)
-					count = total;
+				let mcounts = memberAttendancesCount(member, entity.sessionAttendanceSummaries, sessionEntities);
+				const {count, lastP} = mcounts;
 				expectedStatus = memberExpectedStatusFromAttendances(member, count, lastP);
 				summary = `${count}/${total}`;
+				nonVoterDate = mcounts.nonVoterDate;
 			}
 			newEntities[id] = {
 				...entity,
@@ -251,7 +256,8 @@ export const selectAttendancesWithMembershipAndSummary = createSelector(
 				Employer: member? member.Employer: '',
 				Status: member? member.Status: 'New',
 				ExpectedStatus: expectedStatus,
-				Summary: summary
+				Summary: summary,
+				NonVoterDate: nonVoterDate
 			}
 		});
 		return newEntities;
@@ -295,6 +301,8 @@ export const loadAttendances = (): AppThunk =>
 		if (loading)
 			return;
 		const groupName = selectWorkingGroupName(getState());
+		if (!groupName)
+			return;
 		const url = `/api/${groupName}/attendances`;
 		dispatch(getPending());
 		let response: any;

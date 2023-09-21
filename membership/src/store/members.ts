@@ -218,6 +218,8 @@ function validResponse(members: unknown): members is Member[] {
 export const loadMembers = (): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
+		if (!groupName)
+			return;
 		const url = `/api/${groupName}/members`;
 		dispatch(getPending());
 		let response: any;

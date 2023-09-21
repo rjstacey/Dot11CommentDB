@@ -100,6 +100,8 @@ const {
 export const loadOfficers = (): AppThunk => 
 	(dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
+		if (!groupName)
+			return;
 		const url = `/api/${groupName}/officers`;
 		dispatch(getPending());
 		return fetcher.get(url)

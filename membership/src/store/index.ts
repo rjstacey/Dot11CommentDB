@@ -9,7 +9,7 @@ import { get, set, del } from 'idb-keyval';
 import { createUserSlice, User } from './user';
 import groupsSlice, {initGroups} from './groups';
 import timeZonesSlice, {loadTimeZones} from './timeZones';
-import permissionsSlice, {loadPermissions} from './permissions';
+import permissionsSlice from './permissions';
 import membersSlice, {loadMembers} from './members';
 import officersSlice, {loadOfficers} from './officers';
 import attendancesSlice, {loadAttendances} from './sessionParticipation';
@@ -99,7 +99,6 @@ function configureStore(user: User) {
 	const persistor = persistStore(store, null, () => {
 		store.dispatch(initGroups());
 		store.dispatch(loadTimeZones());
-		store.dispatch(loadPermissions());
 		store.dispatch(loadMembers());
 		store.dispatch(loadOfficers());
 		store.dispatch(loadAttendances());

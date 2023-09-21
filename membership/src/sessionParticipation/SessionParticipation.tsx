@@ -27,7 +27,7 @@ import {
 	attendancesSelectors,
 	attendancesActions
 } from '../store/sessionParticipation';
-import type { MemberAttendances, SessionAttendanceSummary } from '../store/sessionParticipation';
+import type { MemberAttendances, SessionAttendanceSummary, Session } from '../store/sessionParticipation';
 
 import { renderNameAndEmail } from '../members/Members';
 import MemberDetail from '../members/MemberDetail';
@@ -65,8 +65,8 @@ const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) =>
 		<TableColumnHeader {...props} dataKey='Email' label='Email' />
 	</>
 
-const renderSessionAttendance = (attendance: SessionAttendanceSummary) =>
-	<div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end'}}>
+const renderSessionAttendance = (notRelevant: boolean, attendance: SessionAttendanceSummary) =>
+	<div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', color: notRelevant? 'gray': 'unset'}}>
 		<span>{attendance.AttendancePercentage.toFixed(1) + '%'}</span>
 		<span>{attendance.DidAttend? 'Did attend': attendance.DidNotAttend? 'Did not attend': ''}</span>
 	</div>
@@ -118,12 +118,13 @@ function Attendances() {
 			sessions.map((session, i) => {
 				const cellRenderer = ({rowData}: CellRendererProps<MemberAttendances>) => {
 					const attendance = rowData.sessionAttendanceSummaries.find((a: any) => a.session_id === session.id);
-					return attendance? renderSessionAttendance(attendance): null;
+					const notRelevant = !!rowData.NonVoterDate && DateTime.fromISO(session.startDate) < DateTime.fromISO(rowData.NonVoterDate);
+					return attendance? renderSessionAttendance(notRelevant, attendance): null;
 				}
 				const yearMonth = DateTime.fromISO(session.startDate).toFormat('yyyy MMM');
 				const column = {
 					key: 'session_' + i,
-					label: yearMonth,
+					label: session.type.toLocaleUpperCase() + ': ' + yearMonth,
 					width: 100, flexGrow: 1, flexShrink: 1,
 					cellRenderer
 				}

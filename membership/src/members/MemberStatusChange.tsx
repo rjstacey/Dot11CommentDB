@@ -118,6 +118,7 @@ function MemberStatusChangeDropdown({
 					{...props}
 				/>}
 			disabled={readOnly}
+			portal={document.querySelector('#root')!}
 		/>
 	)
 }

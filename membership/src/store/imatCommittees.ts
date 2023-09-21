@@ -58,6 +58,8 @@ const {
 export const loadCommittees = (): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
+		if (!groupName)
+			return;
 		const url = `/api/${groupName}/imat/committees`;
 		dispatch(getPending());
 		let committees: any;

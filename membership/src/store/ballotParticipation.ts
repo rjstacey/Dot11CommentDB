@@ -226,6 +226,8 @@ export const loadBallotParticipation = (): AppThunk =>
 		if (loading)
 			return;
 		const groupName = selectWorkingGroupName(state);
+		if (!groupName)
+			return;
 		const url = `/api/${groupName}/ballotParticipation`;
 		dispatch(getPending());
 		let response: any;
