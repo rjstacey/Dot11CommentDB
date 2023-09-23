@@ -1,4 +1,4 @@
-import { PayloadAction, Dictionary, createSelector, createEntityAdapter } from '@reduxjs/toolkit';
+import { PayloadAction, Dictionary, createSelector, type EntityId } from '@reduxjs/toolkit';
 import { DateTime } from 'luxon';
 
 import {
@@ -13,8 +13,7 @@ import {
 import type { RootState, AppThunk } from '.';
 import { selectMemberEntities, Member } from './members';
 import { selectWorkingGroupName } from './groups';
-
-export type { Dictionary };
+import { selectSessionEntities, upsertSessions, type Session } from './sessions';
 
 const renderPct = (pct: number) => !isNaN(pct)? `${pct.toFixed(2)}%`: '';
 
@@ -36,35 +35,6 @@ export const fields = {
 	session_6: {sortType: SortType.NUMERIC},
 	session_7: {sortType: SortType.NUMERIC},
 };
-
-export type Session = {
-	id: number;
-	imatMeetingId: number;
-	startDate: string;
-	endDate: string;
-	name: string;
-	type: string;
-	timezone: string;
-	Attendees?: any[];
-	Breakouts?: any[];
-	OrganizerID: string;
-};
-
-const SessionType = {
-	Plenary: 'p',
-	Interim: 'i',
-	Other: 'o',
-	General: 'g',
-};
-
-export const SessionTypeLabels = {
-	[SessionType.Plenary]: 'Plenary',
-	[SessionType.Interim]: 'Interim',
-	[SessionType.Other]: 'Other',
-	[SessionType.General]: 'General'
-};
-
-export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(([value, label]) => ({value, label}));
 
 export type SessionAttendanceSummary = {
     id: number;
@@ -94,14 +64,19 @@ export type MemberAttendances = RecentSessionAttendances & {
 	Status: string;
 	ExpectedStatus: string;
 	Summary: string;
-	NonVoterDate: string;
+	LastSessionId: number;
+	NonVoterDate: string | undefined;
 }
 
 /*
  * Slice
  */
-const sessionsAdapter = createEntityAdapter<Session>();
-const initialState = { sessions: sessionsAdapter.getInitialState() };
+//const sessionsAdapter = createEntityAdapter<Session>();
+type ExtraState = {
+	sessionIds: EntityId[];
+}
+
+const initialState: ExtraState = { sessionIds: [] };
 
 const selectId = (attendance: RecentSessionAttendances) => attendance.SAPIN;
 const dataSet = 'attendances';
@@ -111,8 +86,8 @@ const slice = createAppTableDataSlice({
 	selectId,
 	initialState,
 	reducers: {
-		setSessions(state, action: PayloadAction<Session[]>) {
-			sessionsAdapter.setAll(state.sessions, action.payload);
+		setDetails(state, action: PayloadAction<ExtraState>) {
+			return {...state, ...action.payload};
 		},
 	},
 });
@@ -126,74 +101,72 @@ export const selectAttendancesState = (state: RootState) => state[dataSet];
 
 export const selectAttendancesEntities = (state: RootState) => selectAttendancesState(state).entities;
 const selectAttendancesIds = (state: RootState) => selectAttendancesState(state).ids;
-
-export const selectSessionEntities = (state: RootState) => selectAttendancesState(state).sessions.entities;
-export const selectSessionIds = (state: RootState) => selectAttendancesState(state).sessions.ids as number[];
-export const selectSessions = createSelector(
-	selectSessionIds,
+export const selectAttendanceSessionIds = (state: RootState) => selectAttendancesState(state).sessionIds;
+export const selectAttendanceSessions = createSelector(
+	selectAttendanceSessionIds,
 	selectSessionEntities,
-	(ids, entities) => ids.map(id => entities[id]!)
-);
+	(ids, entities) => ids.map(id => entities[id]!).filter(s => s)
+)
 
-export const selectSession = (state: RootState, sessionId: number) => selectSessionEntities(state)[sessionId];
+function recentAttendanceStats(attendances: SessionAttendanceSummary[], sessionIds: EntityId[], sessionEntities: Dictionary<Session>, startDate?: string, sapin?: number) {
 
-export function memberAttendancesCount(member: Member, attendances: SessionAttendanceSummary[], sessionEntities: Dictionary<Session>) {
-	let pCount = 0,		// Count of plenary sessions properly attended
-		iCount = 0,		// Count of interim sessions properly attended
-		lastP = 0,		// Last properly attended session was a plenary
-		nonVoterDate = '';	// Date become a non-voter
+	let plenaryCount = 0;
+	sessionIds = sessionIds
+		.filter(id => sessionEntities[id])		// make sure session data is available
+		.sort((id1, id2) => DateTime.fromISO(sessionEntities[id2]!.startDate).toMillis() - DateTime.fromISO(sessionEntities[id1]!.startDate).toMillis())	// Sort latest to oldest
+		.filter(id => {
+			const s = sessionEntities[id]!;
+			if (startDate && DateTime.fromISO(s.startDate) < DateTime.fromISO(startDate)) // Only consider attendance after startDate
+				return false;
+			if (s.type === 'p' && plenaryCount < 4)
+				plenaryCount++;
+			return plenaryCount <= 4;	// Keep last 4 planaries and any intervening interims
+		});
 
-	// Only care about attendance since becoming a 'Non-Voter'
-	const h = member.StatusChangeHistory.find(h => h.NewStatus === 'Non-Voter');
-	if (h) {
-		nonVoterDate = h.Date;
-		attendances = attendances.filter(a => DateTime.fromISO(sessionEntities[a.session_id]!.startDate) > DateTime.fromISO(nonVoterDate));
-	}
+	// Total plenaries considered
+	let total = plenaryCount;
 
-	// Latest first
-	attendances = attendances.slice().sort((a1, a2) =>
-		DateTime.fromISO(sessionEntities[a2.session_id]!.startDate).toMillis()
-			- DateTime.fromISO(sessionEntities[a1.session_id]!.startDate).toMillis() 
-	);
+	attendances = attendances
+		.filter(a => sessionIds.includes(a.session_id))		// only relevant sessions
+		.sort((a1, a2) => DateTime.fromISO(sessionEntities[a2.session_id]!.startDate).toMillis() - DateTime.fromISO(sessionEntities[a1.session_id]!.startDate).toMillis())	// Sort latest to oldest
 
-	attendances.forEach(a => {
+	if (sapin === 4181)
+		console.log(attendances.length)
+
+	// Keep properly attended sessions
+	attendances = attendances.filter(a => (a.AttendancePercentage >= 75 && !a.DidNotAttend) || a.DidAttend);
+
+	// One interim may be substituted for a plenary; only keep latest properly attended interim
+	let interimCount = 0;
+	attendances = attendances.filter(a => {
 		const s = sessionEntities[a.session_id]!;
-		if ((a.AttendancePercentage >= 75 && !a.DidNotAttend) || a.DidAttend) {
-			if (s.type === 'p') {
-				if (pCount === 0 && iCount === 0)
-					lastP = 1;	// First properly attended and its a plenary
-				pCount++;
-			}
-			else {
-				iCount++;
-			}
-		}
+		if (s.type === 'i')
+			interimCount++;
+		return s.type === 'p' || interimCount === 1;
 	});
 
-	// One interim can be substituted for a plenary
-	let count = pCount + (iCount? 1: 0);
+	// Keep at most the last 4 properly attended sessions
+	let attendendedSessionIds = attendances.slice(0, 4).map(a => a.session_id);
 
-	return {count, lastP, nonVoterDate};
+	return {
+		total,	// total considered
+		count: attendendedSessionIds.length,	// properly attended sessions
+		lastP: attendendedSessionIds.length > 0 && sessionEntities[attendendedSessionIds[0]]!.type === 'p',	// last attended was a plenary
+		lastSessionId: attendendedSessionIds[0] || 0
+	};
 }
 
-export function selectMemberAttendancesCount(state: RootState, SAPIN: number) {
+export function selectMemberAttendanceStats(state: RootState, SAPIN: number) {
 	const attendancesEntities = selectAttendancesEntities(state);
-	const sessionEntities = selectSessionEntities(state);
-	const total = Object.values(sessionEntities).filter(s => s?.type === 'p').length;
-	const member = selectMemberEntities(state)[SAPIN];
 	const attendances = attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
-	let count = 0, lastP = 0;
-	if (member) {
-		const out = memberAttendancesCount(member, attendances, sessionEntities);
-		count = out.count;
-		lastP = out.lastP;
-	}
-	if (count > total)
-		count = total;
-	return {count, total, lastP};
+	const sessionIds = selectAttendanceSessionIds(state);
+	const sessionEntities = selectSessionEntities(state);
+	const member = selectMemberEntities(state)[SAPIN];
+	const since = member?.StatusChangeHistory.find(h => h.NewStatus === 'Non-Voter')?.Date;
+	return recentAttendanceStats(attendances, sessionIds, sessionEntities, since, SAPIN);
 }
 
-function memberExpectedStatusFromAttendances(member: Member, count: number, lastP: number) {
+function memberExpectedStatusFromAttendanceStats(member: Member, count: number, lastP: boolean) {
 	const status = member.Status;
 
 	if (member.SAPIN === 15366)
@@ -229,24 +202,27 @@ function memberExpectedStatusFromAttendances(member: Member, count: number, last
 
 export const selectAttendancesWithMembershipAndSummary = createSelector(
 	selectMemberEntities,
+	selectAttendanceSessionIds,
 	selectSessionEntities,
 	selectAttendancesIds,
 	selectAttendancesEntities,
-	(memberEntities, sessionEntities, ids, entities) => {
+	(memberEntities, sessionIds, sessionEntities, ids, entities) => {
 		const newEntities: Dictionary<MemberAttendances> = {};
-		const total = Object.values(sessionEntities).filter(s => s?.type === 'p').length;
 		ids.forEach(id => {
 			let entity = entities[id]!;
 			let member = memberEntities[entity.SAPIN];
 			let expectedStatus = '';
 			let summary = '';
-			let nonVoterDate = '';
+			let lastSessionId = 0;
+			let nonVoterDate: string | undefined;
 			if (member) {
-				let mcounts = memberAttendancesCount(member, entity.sessionAttendanceSummaries, sessionEntities);
-				const {count, lastP} = mcounts;
-				expectedStatus = memberExpectedStatusFromAttendances(member, count, lastP);
+				// Only care about attendance since becoming a 'Non-Voter'
+				nonVoterDate = member.StatusChangeHistory.find(h => h.NewStatus === 'Non-Voter')?.Date;
+				let stats = recentAttendanceStats(entity.sessionAttendanceSummaries, sessionIds, sessionEntities, nonVoterDate);
+				let {total, count, lastP} = stats;
+				expectedStatus = memberExpectedStatusFromAttendanceStats(member, count, lastP);
 				summary = `${count}/${total}`;
-				nonVoterDate = mcounts.nonVoterDate;
+				lastSessionId = stats.lastSessionId;
 			}
 			newEntities[id] = {
 				...entity,
@@ -257,6 +233,7 @@ export const selectAttendancesWithMembershipAndSummary = createSelector(
 				Status: member? member.Status: 'New',
 				ExpectedStatus: expectedStatus,
 				Summary: summary,
+				LastSessionId: lastSessionId,
 				NonVoterDate: nonVoterDate
 			}
 		});
@@ -286,7 +263,7 @@ const {
 	getSuccess,
 	getFailure,
 	setOne,
-	setSessions
+	setDetails
 } = slice.actions;
 
 function validResponse(response: any): response is {attendances: any; sessions: Session[]} {
@@ -316,7 +293,8 @@ export const loadAttendances = (): AppThunk =>
 			dispatch(setError(`Unable to get attendees`, error));
 			return;
 		}
-		dispatch(setSessions(response.sessions));
+		dispatch(upsertSessions(response.sessions));
+		dispatch(setDetails({sessionIds: response.sessions.map(s => s.id)}));
 		dispatch(getSuccess(response.attendances));
 	}
 
@@ -421,6 +399,7 @@ export const importAttendances = (session_id: number): AppThunk =>
 			dispatch(setError(`Unable to import attendance summary for session id=${session_id}`, error));
 			return;
 		}
-		dispatch(setSessions(response.sessions));
+		dispatch(upsertSessions(response.sessions));
+		dispatch(setDetails({sessionIds: response.sessions.map(s => s.id)}));
 		dispatch(getSuccess(response.attendances));
 	}

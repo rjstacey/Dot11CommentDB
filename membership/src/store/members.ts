@@ -18,7 +18,6 @@ import { selectAttendancesWithMembershipAndSummary } from './sessionParticipatio
 import { selectBallotParticipationWithMembershipAndSummary } from './ballotParticipation';
 import { selectWorkingGroupName } from './groups';
 
-//export {AccessLevel, AccessLevelOptions, AccessLevelLabels};
 export { AccessLevelOptions };
 
 const Status = {
@@ -134,6 +133,15 @@ export const selectActiveMembers = createSelector(
 	(ids, entities) => ids
 		.map(id => entities[id]!)
 		.filter(m => ["Voter", "Potential Voter", "Aspirant", "ExOfficio"].includes(m.Status))
+		.sort((m1, m2) => m1.Name.localeCompare(m2.Name))
+);
+
+export const selectVotingMembers = createSelector(
+	selectMemberIds,
+	selectMemberEntities,
+	(ids, entities) => ids
+		.map(id => entities[id]!)
+		.filter(m => m.Status === "Voter")
 		.sort((m1, m2) => m1.Name.localeCompare(m2.Name))
 );
 

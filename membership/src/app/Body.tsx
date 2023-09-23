@@ -9,6 +9,7 @@ import Groups from '../groups/Groups';
 import SessionParticipation from '../sessionParticipation/SessionParticipation';
 import BallotParticipation from '../ballotParticipation/BallotParticipation';
 import SessionAttendance from '../sessionAttendance/SessionAttendance';
+import Reports from '../reports/Reports';
 
 import { selectUserMembersAccess, AccessLevel } from '../store/user';
 
@@ -75,6 +76,10 @@ function Body() {
 				<Route
 					path="/sessionAttendance/:groupName"
 					element={renderComponent(AccessLevel.admin, SessionAttendance)}
+				/>
+				<Route
+					path="/reports/:groupName"
+					element={renderComponent(AccessLevel.admin, Reports)}
 				/>
 				<Route
 					path="/:groupName?"

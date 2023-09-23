@@ -23,11 +23,12 @@ import {
 	loadAttendances,
 	importAttendances,
 	selectAttendancesState,
-	selectSessions,
+	selectAttendanceSessions,
 	attendancesSelectors,
-	attendancesActions
+	attendancesActions,
+	type MemberAttendances, 
+	type SessionAttendanceSummary
 } from '../store/sessionParticipation';
-import type { MemberAttendances, SessionAttendanceSummary, Session } from '../store/sessionParticipation';
 
 import { renderNameAndEmail } from '../members/Members';
 import MemberDetail from '../members/MemberDetail';
@@ -35,7 +36,7 @@ import TopRow from '../components/TopRow';
 
 function SessionSummary() {
 	const dispatch = useAppDispatch();
-	const sessions = useAppSelector(selectSessions);
+	const sessions = useAppSelector(selectAttendanceSessions);
 
 	const elements = sessions.map(session => {
 		const onClick = () => dispatch(importAttendances(session.id));
@@ -106,7 +107,7 @@ const tableColumns: ColumnProperties[] = [
 function Attendances() {
 	const dispatch = useAppDispatch();
 	const {valid, selected} = useAppSelector(selectAttendancesState);
-	const sessions = useAppSelector(selectSessions);
+	const sessions = useAppSelector(selectAttendanceSessions);
 
 	React.useEffect(() => {
 		if (!valid)
@@ -124,7 +125,7 @@ function Attendances() {
 				const yearMonth = DateTime.fromISO(session.startDate).toFormat('yyyy MMM');
 				const column = {
 					key: 'session_' + i,
-					label: session.type.toLocaleUpperCase() + ': ' + yearMonth,
+					label: (session.type || '?').toLocaleUpperCase() + ': ' + yearMonth,
 					width: 100, flexGrow: 1, flexShrink: 1,
 					cellRenderer
 				}

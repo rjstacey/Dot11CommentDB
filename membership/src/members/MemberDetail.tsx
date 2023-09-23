@@ -30,7 +30,7 @@ import {
 	MemberAdd
 } from '../store/members';
 
-import { selectMemberAttendancesCount } from '../store/sessionParticipation';
+import { selectMemberAttendanceStats } from '../store/sessionParticipation';
 import { selectMemberBallotParticipationCount } from '../store/ballotParticipation';
 
 import StatusSelector from './StatusSelector';
@@ -118,7 +118,7 @@ function MemberDetailInfo({
 
 	const SAPIN = member.SAPIN[0];
 
-	const {count: sessionCount, total: sessionTotal} = useAppSelector((state) => selectMemberAttendancesCount(state, SAPIN));
+	const {count: sessionCount, total: sessionTotal} = useAppSelector((state) => selectMemberAttendanceStats(state, SAPIN));
 	const {count: ballotCount, total: ballotTotal} = useAppSelector((state) => selectMemberBallotParticipationCount(state, SAPIN));
 
 	return (

@@ -13,7 +13,7 @@ import type { RootState, AppThunk } from '.';
 import type { MemberContactInfo } from './members';
 import { selectWorkingGroupName } from './groups';
 import { selectMemberEntities } from './members';
-import { selectSession } from './sessionParticipation';
+import { selectSession } from './sessions';
 
 export const fields = {
 	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},

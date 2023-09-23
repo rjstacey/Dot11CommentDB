@@ -50,6 +50,12 @@ const fullMenu: MenuItem[] = [
 		groupName: "required",
 		label: 'Session attendance',
 	},
+	{
+		minAccess: AccessLevel.admin,
+		link: '/reports',
+		groupName: "required",
+		label: 'Reports',
+	},
 ];
 
 const NavItem = (props: React.ComponentProps<typeof NavLink> & {isActive?: boolean}) => <NavLink className={'nav-link' + (props.isActive? ' active': '')} {...props} />

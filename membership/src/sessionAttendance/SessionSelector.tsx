@@ -4,7 +4,7 @@ import { useAppSelector } from '../store/hooks';
 
 import { Select, displayDateRange } from 'dot11-components';
 
-import { selectSessions, Session } from '../store/sessionParticipation';
+import { selectSessions, Session } from '../store/sessions';
 
 const StyledItem = styled.div`
 	overflow: hidden;

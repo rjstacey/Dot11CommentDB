@@ -16,6 +16,7 @@ import attendancesSlice, {loadAttendances} from './sessionParticipation';
 import ballotParticipationSlice, {loadBallotParticipation} from './ballotParticipation';
 import sessionAttendeesSlice from './sessionAttendees';
 import imatCommitteesSlice from './imatCommittees';
+import sessionsSlice, {loadSessions} from './sessions';
 
 import { errorsSlice } from 'dot11-components';
 
@@ -45,6 +46,7 @@ function configureStore(user: User) {
 		[userSlice.name]: userSlice.reducer,
 		[groupsSlice.name]: groupsSlice.reducer,
 		[membersSlice.name]: membersSlice.reducer,
+		[sessionsSlice.name]: sessionsSlice.reducer,
 		[officersSlice.name]: officersSlice.reducer,
 		[attendancesSlice.name]: attendancesSlice.reducer,
 		[ballotParticipationSlice.name]: ballotParticipationSlice.reducer,
@@ -100,6 +102,7 @@ function configureStore(user: User) {
 		store.dispatch(initGroups());
 		store.dispatch(loadTimeZones());
 		store.dispatch(loadMembers());
+		store.dispatch(loadSessions());
 		store.dispatch(loadOfficers());
 		store.dispatch(loadAttendances());
 		store.dispatch(loadBallotParticipation());

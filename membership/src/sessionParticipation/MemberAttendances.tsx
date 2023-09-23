@@ -1,18 +1,18 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
+import type { Dictionary } from '@reduxjs/toolkit';
 
 import { Col, Checkbox, Input, displayDateRange, debounce, shallowDiff } from 'dot11-components';
 
 import type { RootState } from '../store';
 import {
-	selectSessionEntities,
-	selectSessionIds,
 	selectAttendancesEntities,
-	selectMemberAttendancesCount,
+	selectMemberAttendanceStats,
+	selectAttendanceSessionIds,
 	updateAttendances,
 	SessionAttendanceSummary,
-	SessionTypeOptions, Dictionary, Session
 } from '../store/sessionParticipation';
+import { selectSessionIds, selectSessionEntities, SessionTypeOptions, type Session } from '../store/sessions';
 
 import { EditTable as Table, TableColumn } from '../components/Table';
 
@@ -198,9 +198,13 @@ class MemberAttendances extends React.Component<MemberAttendancesInternalProps, 
 
 const connector = connect(
 	(state: RootState, props: MemberAttendancesProps) => {
-		const {count, total} = selectMemberAttendancesCount(state, props.SAPIN);
+		const {count, total} = selectMemberAttendanceStats(state, props.SAPIN);
+		console.log(count, total)
+		const sessionIds = (selectAttendanceSessionIds(state) as number[])
+			.slice()
+			.reverse();
 		return {
-			sessionIds: selectSessionIds(state),
+			sessionIds,
 			sessionEntities: selectSessionEntities(state),
 			attendancesEntities: selectAttendancesEntities(state),
 			count,
