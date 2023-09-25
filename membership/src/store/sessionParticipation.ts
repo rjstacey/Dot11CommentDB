@@ -169,9 +169,6 @@ export function selectMemberAttendanceStats(state: RootState, SAPIN: number) {
 function memberExpectedStatusFromAttendanceStats(member: Member, count: number, lastP: boolean) {
 	const status = member.Status;
 
-	if (member.SAPIN === 15366)
-		console.log(member.SAPIN, count, lastP)
-
 	if (member.StatusChangeOverride || 
 		(status !== 'Voter' && status !== 'Potential Voter' && status !== 'Aspirant' && status !== 'Non-Voter'))
 		return '';

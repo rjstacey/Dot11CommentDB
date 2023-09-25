@@ -199,7 +199,6 @@ class MemberAttendances extends React.Component<MemberAttendancesInternalProps, 
 const connector = connect(
 	(state: RootState, props: MemberAttendancesProps) => {
 		const {count, total} = selectMemberAttendanceStats(state, props.SAPIN);
-		console.log(count, total)
 		const sessionIds = (selectAttendanceSessionIds(state) as number[])
 			.slice()
 			.reverse();

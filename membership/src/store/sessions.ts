@@ -52,6 +52,16 @@ export const selectSessions = createSelector(
 	(ids, entities) => ids.map(id => entities[id]!)
 );
 
+export const selectRecentSessions = createSelector(
+	selectSessions,
+	(sessions) => {
+		const today = new Date();
+		return sessions
+			.filter(s => new Date(s.startDate) < today)
+			.slice(0, 8);
+	}
+);
+
 export const selectSession = (state: RootState, id: EntityId) => selectSessionEntities(state)[id];
 
 /*

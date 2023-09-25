@@ -4,7 +4,7 @@ import { useAppSelector } from '../store/hooks';
 
 import { Select, displayDateRange } from 'dot11-components';
 
-import { selectSessions, Session } from '../store/sessions';
+import { selectRecentSessions, Session } from '../store/sessions';
 
 const StyledItem = styled.div`
 	overflow: hidden;
@@ -36,7 +36,7 @@ function SessionSelector({
 	readOnly?: boolean;
 	style?: React.CSSProperties;
 }) {
-	const options = useAppSelector(selectSessions).slice().reverse();
+	const options = useAppSelector(selectRecentSessions);
 	const values = options.filter(o => o.id === value);
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: null);
 
