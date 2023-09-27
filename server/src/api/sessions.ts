@@ -50,7 +50,7 @@ const router = Router();
 router
 	.route('/')
 		.get((req, res, next) => {
-			getSessions()
+			getSessions(req.query)
 				.then(data => res.json(data))
 				.catch(next);
 		})

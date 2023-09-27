@@ -26,6 +26,7 @@ const getSessionTotalCreditSQL = (session_id: string) =>
 const getSessionsSQL = () =>
 	'SELECT ' +
 		'id, ' +
+		'sessionNum, ' +
 		'name, ' +
 		'type, ' +
 		'BIN_TO_UUID(`groupId`) AS `groupId`, ' +
@@ -145,6 +146,7 @@ const getSessionAttendanceSQL = (session_id: number) =>
 
 export interface Session {
 	id: number;
+	sessionNum: number | null;
 	name: string;
 	type: "p" | "i" | "o";
 	groupId: string;
@@ -175,6 +177,7 @@ type SessionDB = Partial<Omit<Session, "rooms" | "timeslots" | "defaultCredits" 
 
 interface SessionsQueryConstraints {
 	id?: number | number[];
+	type?: string | string[];
 }
 
 export type AttendanceSummary = {
@@ -220,6 +223,7 @@ export async function getSession(id: number): Promise<Session | undefined> {
 function sessionEntrySetSql(s: Partial<Session>) {
 	const entry: SessionDB = {
 		name: s.name,
+		sessionNum: s.sessionNum,
 		type: s.type,
 		groupId: s.groupId,
 		imatMeetingId: s.imatMeetingId,

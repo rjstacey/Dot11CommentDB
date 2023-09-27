@@ -48,40 +48,37 @@ interface OrganizationQueryConstraints {
 };
 
 /**
- * Get group and subgroup identifiers
- * @param groupName - The name of the group
+ * Get group identifiers
+ * @param parent_id - Parent group identifier
  * @returns An array of group identifiers that includes the group and all its subgroups
  */
-export async function getGroupAndSubgroupIds(groupName: string) {
-
-	async function getChildren(parent_ids: string[]) {
-		let ids = (await db.query('SELECT BIN_TO_UUID(id) as id FROM organization WHERE BIN_TO_UUID(parent_id) IN (?)', [parent_ids]) as {id: string}[]).map(g => g.id);
-		if (ids.length > 0)
-			ids = ids.concat(await getChildren(ids));
-		return ids;
-	}
-
-	let ids = (await db.query('SELECT BIN_TO_UUID(id) as id FROM organization WHERE name=?', [groupName]) as {id: string}[]).map(g => g.id);
-	if (ids.length > 0)
-		ids = ids.concat(await getChildren(ids));
+export async function getGroupIds(parent_id: string) {
+	let ids = [parent_id];
+	const sql = db.format(`
+		with recursive r_org (id) as (
+			select	id
+			from	organization
+			where	parent_id = UUID_TO_BIN(?)
+			union all
+			select	o.id
+			from	organization o
+			inner join r_org on o.parent_id = r_org.id
+		)
+		select BIN_TO_UUID(id) as id from r_org;
+	`, [parent_id]);
+	ids = ids.concat(((await db.query(sql)) as {id: string}[]).map(g => g.id));
 	return ids;
 }
 
 /**
  * Get group and subgroup identifiers
- * @param groupId - Parent group identifier
+ * @param groupName - The name of the group
  * @returns An array of group identifiers that includes the group and all its subgroups
  */
-export async function getSubgroups(groupId: string) {
-	async function getChildren(parent_ids: string[]) {
-		let ids = (await db.query('SELECT BIN_TO_UUID(id) as id FROM organization WHERE BIN_TO_UUID(parent_id) IN (?)', [parent_ids]) as {id: string}[]).map(g => g.id);
-		if (ids.length > 0)
-			ids = ids.concat(await getChildren(ids));
-		return ids;
-	}
-
-	let ids = [groupId];
-	ids = ids.concat(await getChildren([groupId]));
+export async function getGroupAndSubgroupIds(groupName: string) {
+	let ids = (await db.query('SELECT BIN_TO_UUID(id) as id FROM organization WHERE name=?', [groupName]) as {id: string}[]).map(g => g.id);
+	if (ids.length > 0)
+		ids = ids.concat(await getGroupIds(ids[0]));
 	return ids;
 }
 

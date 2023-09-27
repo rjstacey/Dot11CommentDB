@@ -8,7 +8,7 @@ import type { OkPacket } from 'mysql2';
 import type { User } from './users';
 
 import { getSession, Session } from './sessions';
-import { getSubgroups, getWorkingGroup, Group } from './groups';
+import { getGroupIds, getWorkingGroup, Group } from './groups';
 
 import {
 	getWebexAccounts,
@@ -150,7 +150,7 @@ function selectMeetingsSql(constraints: SelectMeetingsConstraints) {
  */
 async function selectMeetings(constraints: SelectMeetingsConstraints) {
 	if (constraints.groupId && !constraints.organizationId) {
-		constraints.organizationId = await getSubgroups(constraints.groupId);
+		constraints.organizationId = await getGroupIds(constraints.groupId);
 		delete constraints.groupId;
 	}
 	const sql = selectMeetingsSql(constraints);

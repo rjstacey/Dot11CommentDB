@@ -1,14 +1,13 @@
 import db from '../utils/database';
-import type { OkPacket } from 'mysql2';
+import { type OkPacket } from 'mysql2';
 import { DateTime } from 'luxon';
 import { isPlainObject, NotFoundError } from '../utils';
 
 import { getResultsCoalesced, ResultsSummary } from './results';
 import { CommentsSummary } from './comments';
 
-import { User, userIsWGAdmin } from './users';
-import { getOfficers } from './officers';
-import { Group } from './groups';
+import { type User } from './users';
+import { type Group } from './groups';
 import { AccessLevel } from '../auth/access';
 
 export type Ballot = {
@@ -47,22 +46,22 @@ export const BallotType = {
 /*
  * Get ballots SQL query.
  */
-const getBallotsSQL =
-	'SELECT ' +
-		'id, BallotID, Project, Type, IsRecirc, IsComplete, ' + 
-		'DATE_FORMAT(Start, "%Y-%m-%dT%TZ") AS Start, ' +
-		'DATE_FORMAT(End, "%Y-%m-%dT%TZ") AS End, ' +
-		'Document, Topic, VotingPoolID, prev_id, EpollNum, ' +
-		'BIN_TO_UUID(groupId) as groupId, ' +
-		'BIN_TO_UUID(workingGroupId) as workingGroupId, ' +
-		'ResultsSummary AS Results, ' +
-		'JSON_OBJECT( ' +
-			'"Count", (SELECT COUNT(*) FROM comments c WHERE b.id=c.ballot_id), ' +
-			'"CommentIDMin", (SELECT MIN(CommentID) FROM comments c WHERE b.id=c.ballot_id), ' +
-			'"CommentIDMax", (SELECT MAX(CommentID) FROM comments c WHERE b.id=c.ballot_id) ' +
-		') AS Comments, ' +
-		'(SELECT COUNT(*) FROM wgVoters v WHERE b.id=v.ballot_id) as Voters ' +
-	'FROM ballots b';
+const getBallotsSQL = `
+	SELECT
+		b.id, b.BallotID, b.Project, b.Type, b.IsRecirc, b.IsComplete,
+		DATE_FORMAT(b.Start, "%Y-%m-%dT%TZ") AS Start,
+		DATE_FORMAT(b.End, "%Y-%m-%dT%TZ") AS End,
+		b.Document, b.Topic, b.VotingPoolID, b.prev_id, b.EpollNum,
+		BIN_TO_UUID(b.groupId) as groupId,
+		BIN_TO_UUID(b.workingGroupId) as workingGroupId,
+		b.ResultsSummary AS Results,
+		JSON_OBJECT(
+			"Count", (SELECT COUNT(*) FROM comments c WHERE b.id=c.ballot_id),
+			"CommentIDMin", (SELECT MIN(CommentID) FROM comments c WHERE b.id=c.ballot_id),
+			"CommentIDMax", (SELECT MAX(CommentID) FROM comments c WHERE b.id=c.ballot_id)
+		) AS Comments,
+		(SELECT COUNT(*) FROM wgVoters v WHERE b.id=v.ballot_id) as Voters
+	FROM ballots b`;
 
 /*
  * Get comments summary for ballot
@@ -99,9 +98,14 @@ export async function getBallotWithNewResultsSummary(user: User, ballot_id: numb
 	return ballot;
 }
 
+/** Get ballot series
+ * Walk back through the previous ballots until the initial ballot
+ * @param id last ballot in series
+ * @returns an array of ballot identifiers starting with the initial ballot that is the ballot series
+ */
 export async function getBallotSeries(id: number) {
 
-	async function recursiveBallotSeriesGet(ballotSeries: Ballot[], id: number): Promise<Ballot[]> {
+	/*async function recursiveBallotSeriesGet(ballotSeries: Ballot[], id: number): Promise<Ballot[]> {
 		const ballot = await getBallot(id);
         if (!ballot)
             return ballotSeries;
@@ -112,7 +116,20 @@ export async function getBallotSeries(id: number) {
 		return recursiveBallotSeriesGet(ballotSeries, ballot.prev_id);
 	}
 
-	return recursiveBallotSeriesGet([], id);
+	let ballots = await recursiveBallotSeriesGet([], id);*/
+
+	const sql = db.format(`
+		WITH RECURSIVE cte AS (
+			${getBallotsSQL} WHERE b.id = ?
+			UNION ALL
+			${getBallotsSQL}
+			INNER JOIN cte ON b.id = cte.prev_id
+		)
+		SELECT * FROM cte ORDER BY Start;
+	`, [id]);
+
+	const ballots = await db.query({sql, dateStrings: true}) as Ballot[];
+	return ballots;
 }
 
 export async function getRecentWgBallots(n = 3) {
