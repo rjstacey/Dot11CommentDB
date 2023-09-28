@@ -58,6 +58,7 @@ import {
 	getImatMeetingAttendance,
 	getImatBreakoutAttendance,
 	getImatMeetingDailyAttendance,
+	getImatMeetingAttendanceSummary,
 	validateImatBreakouts,
 	validateImatBreakoutUpdates,
 	validateImatBreakoutIds
@@ -131,9 +132,15 @@ router
 			.then(data => res.json(data))
 			.catch(next);
 	})
-	.get('/dailyAttendance/:imatMeetingId(\\d+)', async (req, res, next) => {
+	.get('/attendance/:imatMeetingId(\\d+)/daily', async (req, res, next) => {
 		const imatMeetingId = Number(req.params.imatMeetingId);
 		getImatMeetingDailyAttendance(req.user, imatMeetingId)
+			.then(data => res.json(data))
+			.catch(next);
+	})
+	.get('/attendance/:imatMeetingId(\\d+)/summary', async (req, res, next) => {
+		const imatMeetingId = Number(req.params.imatMeetingId);
+		getImatMeetingAttendanceSummary(req.user, imatMeetingId)
 			.then(data => res.json(data))
 			.catch(next);
 	});

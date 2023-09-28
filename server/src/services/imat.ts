@@ -1226,7 +1226,7 @@ const attendanceSummaryHeader = [
 	'SA PIN', 'Last Name', 'First Name', 'Middle Name', 'Email', 'Affiliation', 'Current Involvement Level'
 ] as const;
 
-async function parseImatAttendanceSummary(buffer: Buffer) {
+async function parseImatMeetingAttendanceSummary(buffer: Buffer) {
 
 	const p = await csvParse(buffer, {columns: false, bom: true, encoding: 'latin1'});
 	if (p.length === 0)
@@ -1254,23 +1254,14 @@ async function parseImatAttendanceSummary(buffer: Buffer) {
 	});
 }
 
-/*
- * Get IMAT attendance summary for a session
- *
- * The session is identified by a start and end date in the form MM/DD/YYYY
+/**
+ * Get IMAT attendance summary by date
+ * @param user - The user executing the get
+ * @param start - A date string in form MM/DD/YYYY that represents the meeting start date
+ * @param end - A date string in form MM/DD/YYYY that represents the meeting end date
+ * @returns An array of objects that represent the session attendees
  */
-export async function getImatAttendanceSummary(user: User, session: Session) {
-
-	let start: DateTime | string = DateTime.fromISO(session.startDate, {zone: session.timezone});
-	if (!start.isValid)
-		throw new TypeError(`Invalid session start (${session.startDate}) or timezone (${session.timezone})`)
-	start = start.toFormat('MM/dd/yyyy');
-
-	let end: DateTime | string = DateTime.fromISO(session.endDate, {zone: session.timezone});
-	if (!end.isValid)
-		throw new TypeError(`Invalid session end (${session.endDate}) or timezone (${session.timezone})`)
-	end = end.toFormat('MM/dd/yyyy');
-
+async function getImatMeetingAttendanceSummaryByDate(user: User, start: string, end: string) {
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
@@ -1279,21 +1270,56 @@ export async function getImatAttendanceSummary(user: User, session: Session) {
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 
-	return parseImatAttendanceSummary(response.data);
+	return parseImatMeetingAttendanceSummary(response.data);
 }
 
-type DailyAttendance = {
-	SAPIN: number;
-	Name: string;
-	FirstName: string;
-	MI: string;
-	LastName: string;
-	CurrentInvolvementLevel: string;
-	Email: string;
-	Affiliation: string;
+/**
+ * Get IMAT attendance summary for a session
+ * @param user - The user executing the get
+ * @param session - The session object with start and end date
+ * @returns An array of objects that represent the session attendees
+ */
+export async function getImatMeetingAttendanceSummaryForSession(user: User, session: Session) {
+
+	let start: DateTime | string = DateTime.fromISO(session.startDate, {zone: session.timezone});
+	if (!start.isValid)
+		throw new TypeError(`Invalid session start (${session.startDate}) or timezone (${session.timezone})`);
+	start = start.toFormat('MM/dd/yyyy');
+
+	let end: DateTime | string = DateTime.fromISO(session.endDate, {zone: session.timezone});
+	if (!end.isValid)
+		throw new TypeError(`Invalid session end (${session.endDate}) or timezone (${session.timezone})`);
+	end = end.toFormat('MM/dd/yyyy');
+
+	return getImatMeetingAttendanceSummaryByDate(user, start, end);
+}
+
+/**
+ * Get IMAT attendance summary for a meeting
+ * @param user - The user executing the get
+ * @param imatMeetingId - The IMAT meeting number
+ * @returns An array of objects that represents the session attendees
+ */
+export async function getImatMeetingAttendanceSummary(user: User, imatMeetingId: number) {
+
+	const imatMeeting = await getImatMeeting(user, imatMeetingId);
+
+	let start: DateTime | string = DateTime.fromISO(imatMeeting.start, {zone: imatMeeting.timezone});
+	if (!start.isValid)
+		throw new TypeError(`Invalid IMAT meeting start (${imatMeeting.start}) or timezone (${imatMeeting.timezone})`);
+	start = start.toFormat('MM/dd/yyyy');
+
+	let end: DateTime | string = DateTime.fromISO(imatMeeting.end, {zone: imatMeeting.timezone});
+	if (!end.isValid)
+		throw new TypeError(`Invalid session end (${imatMeeting.end}) or timezone (${imatMeeting.timezone})`);
+	end = end.toFormat('MM/dd/yyyy');
+
+	return getImatMeetingAttendanceSummaryByDate(user, start, end);
+}
+
+type ImatDailyAttendance = ImatAttendanceSummary & {
 	Employer: string;
 	ContactInfo: ContactInfo;
-	AttendancePercentage: number;
 }
 
 /* The daily attendance spreadsheet has columns:
@@ -1334,18 +1360,18 @@ async function parseImatMeetingDailyAttendance(buffer: Buffer) {
 			Phone: '',
 			Fax: ''
 		}
-		const entry: DailyAttendance = {
+		const entry: ImatDailyAttendance = {
 			SAPIN: Number(c['SA PIN']),
 			Name: '',
 			LastName: c['Last Name'],
 			FirstName: c['First Name'],
 			MI: c['Middle Name'],
-			CurrentInvolvementLevel: c['Current Involvement Level'],
+			Status: c['Current Involvement Level'],
 			Email: c['Email'],
 			Affiliation: c['Affiliation'],
 			Employer: c['Employer'],
 			ContactInfo,
-			AttendancePercentage: Number(c['Calculated Percentage'])
+			AttendancePercentage: Number(c['Recorded Percentage'])
 		}
 		entry.Name = entry.FirstName;
 		if (entry.MI)
@@ -1355,6 +1381,12 @@ async function parseImatMeetingDailyAttendance(buffer: Buffer) {
 	})
 }
 
+/**
+ * Get IMAT meeting daily attendance
+ * @param user - The user executing the get
+ * @param imatMeetingId - The IMAT meeting number
+ * @returns An array of objects representing the meeting attendees
+ */
 export async function getImatMeetingDailyAttendance(user: User, imatMeetingId: number) {
 	const {ieeeClient} = user;
 	if (!ieeeClient)

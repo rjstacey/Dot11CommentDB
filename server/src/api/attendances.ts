@@ -35,7 +35,9 @@ router
 	})
 	.post('/:session_id(\\d+)/import', async (req, res, next) => {
 		const session_id = Number(req.params.session_id);
-		importAttendances(req.user, session_id)
+		const {use} = req.query;
+		let useDailyAttendance = typeof use === 'string' && use.toLowerCase() === 'daily-attendance';
+		importAttendances(req.user, session_id, useDailyAttendance)
 			.then(data => res.json(data))
 			.catch(next);
 	})

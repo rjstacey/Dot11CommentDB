@@ -2,18 +2,9 @@
  * Manage sessions and session attendance
  */
 import { DateTime } from 'luxon';
-import { NotFoundError, shallowDiff } from '../utils';
 
 import db from '../utils/database';
 import type { OkPacket } from 'mysql2';
-
-import type { User } from './users';
-
-import {
-	getImatBreakouts,
-	getImatBreakoutAttendance,
-	getImatAttendanceSummary
-} from './imat';
 
 const getSessionTotalCreditSQL = (session_id: string) =>
 	'SELECT ' +
@@ -326,6 +317,7 @@ export async function deleteSessions(ids: number[]) {
 	return results[0].affectedRows;
 }
 
+/*
 export async function getBreakouts(session_id: number) {
 	const [session] = await(getSessions({id: session_id}));
 	if (!session)
@@ -570,3 +562,4 @@ export async function upsertMemberAttendanceSummaries(sapin: number, attendances
 
 	return {attendances: results[results.length-1] as AttendanceSummary[]}
 }
+*/

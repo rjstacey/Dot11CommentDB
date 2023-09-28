@@ -10,11 +10,9 @@
  *		Body is the session object to be added.
  *		Returns the session object as added.
  *
- * PATCH /{id}
+ * PATCH /
  * 		Update a session.
- *		URL parameters:
- *			id:any 		Identifies the session
- *		Body is an object with the session parameters to change.
+ *		Body is an object with shape {id, changes}.
  *		Returns the session object as updated.
  *
  * DELETE /
@@ -22,12 +20,6 @@
  *		Body contains an array of session identifiers.
  *		Returns the number of sessions deleted.
  *
- * GET /session/{id}/breakouts: get list of breakouts for a session.
- * GET /session/{id}/breakout/{breakout_id}/attendees: get list of attendess for a specific breakout.
- * GET /session/{id}/attendees: get a list of attendees for a session.
- * POST /session/{id}/breakouts/import: import from IMAT the breakouts for a session.
- * POST /session/{id}/attendance_summary/import: import from IMAT the attendance summary for a session.
- * PATCH /session/{id}/attendance_summary: update attendance summary
  */
 import {Router} from 'express';
 
@@ -36,13 +28,7 @@ import {
 	getSessions,
 	updateSession,
 	addSession,
-	deleteSessions,
-	importBreakouts,
-	importAttendances,
-	upsertMemberAttendanceSummaries,
-	getBreakouts,
-	getBreakoutAttendees,
-	getSessionAttendees
+	deleteSessions
 } from '../services/sessions';
 
 const router = Router();
@@ -82,65 +68,5 @@ router
 				.then(data => res.json(data))
 				.catch(next)
 		});
-	
-router.get('/:id(\\d+)/breakouts', async (req, res, next) => {
-	try {
-		let id = parseInt(req.params.id);
-		const data = await getBreakouts(id);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.get('/:id(\\d+)/breakout/:breakout_id(\\d+)/attendees', async (req, res, next) => {
-	try {
-		const session_id = parseInt(req.params.id);
-		const breakout_id = parseInt(req.params.breakout_id, 10);
-		const data = await getBreakoutAttendees(req.user, session_id, breakout_id);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.get('/:id(\\d+)/attendees', async (req, res, next) => {
-	try {
-		const session_id = parseInt(req.params.id);
-		const data = await getSessionAttendees(session_id);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.post('/:id(\\d+)/breakouts/import', async (req, res, next) => {
-	try {
-		let id = parseInt(req.params.id);
-		const data = await importBreakouts(req.user, id);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-/*
-There is an error here: ids is an array but function accepts number
-router.patch('/attendance_summaries', async (req, res, next) => {
-	try {
-		const {ids, attendances} = req.body;
-		if (!Array.isArray(ids) || typeof attendances !== 'object')
-			throw new TypeError('Missing or bad body; expected {ids: [], attendances: {}}');
-		const data = await upsertMemberAttendanceSummaries(ids, attendances);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-*/
-
-router.post('/:id(\\d+)/attendance_summary/import', async (req, res, next) => {
-	try {
-		let id = parseInt(req.params.id);
-		const data = await importAttendances(req.user, id);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
 
 export default router;

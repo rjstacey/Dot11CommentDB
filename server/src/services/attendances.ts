@@ -2,7 +2,7 @@ import db from '../utils/database';
 import { NotFoundError } from '../utils';
 
 import { getSessions, Session } from './sessions';
-import { getImatAttendanceSummary } from './imat';
+import { getImatMeetingAttendanceSummaryForSession, getImatMeetingDailyAttendance } from './imat';
 import { isPlainObject } from '../utils';
 import type { OkPacket } from 'mysql2';
 import type { User } from './users';
@@ -79,18 +79,29 @@ export async function getRecentAttendances() {
     }
 }
 
-export async function importAttendances(user: User, session_id: number) {
+export async function importAttendances(user: User, session_id: number, useDailyAttendance: boolean) {
 
 	let [session] = await getSessions({id: session_id});
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 
-	const imatAttendances = await getImatAttendanceSummary(user, session);
-
-	const attendances = imatAttendances.map(a => ({
-        SAPIN: a.SAPIN,
-        AttendancePercentage: a.AttendancePercentage
-	}));
+    let attendances: {SAPIN: number, AttendancePercentage: number}[];
+    if (useDailyAttendance) {
+        if (!session.imatMeetingId)
+		    throw new TypeError('IMAT meeting number not specified for session ' + session.name);
+        const imatDailyAttendance = await getImatMeetingDailyAttendance(user, session.imatMeetingId);
+        attendances = imatDailyAttendance.map(a => ({
+            SAPIN: a.SAPIN,
+            AttendancePercentage: a.AttendancePercentage
+        }));
+    }
+    else {
+	    const imatAttendanceSummary = await getImatMeetingAttendanceSummaryForSession(user, session);
+	    attendances = imatAttendanceSummary.map(a => ({
+            SAPIN: a.SAPIN,
+            AttendancePercentage: a.AttendancePercentage
+	    }));
+    }
 
 	await db.query('DELETE FROM attendance_summary WHERE session_id=?; ', [session_id]);
 	if (attendances.length) {
