@@ -87,6 +87,7 @@ export type MemberExtra = {
 };
 
 export type MemberAdd = MemberCommon & Partial<MemberExtra>;
+export type MemberUpdate = Update<Member>;
 export type Member = MemberCommon & MemberExtra;
 
 export type MemberWithParticipation = Member & {
@@ -244,7 +245,7 @@ export const loadMembers = (): AppThunk =>
 		dispatch(getSuccess(response));
 	}
 
-export const updateMembers = (updates: Update<Member>[]): AppThunk =>
+export const updateMembers = (updates: MemberUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/members`;

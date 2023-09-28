@@ -44,6 +44,10 @@ export type SessionAttendee = {
 
 export type SyncedSessionAttendee = SessionAttendee & {
 	Status: string;
+	OldName: string | null;
+	OldAffiliation: string | null;
+	OldEmployer: string | null;
+	OldEmail: string | null;
 }
 
 /*
@@ -86,7 +90,30 @@ const selectSyncedSessionAtendeesEntities = createSelector(
 		ids.forEach(id => {
 			const entity = entities[id]!;
 			const m = memberEntities[id];
-			newEntities[id] = {...entity, Status: m? m.Status: "New"}
+			let OldAffiliation = null,
+				OldEmployer = null,
+				OldName = null,
+				OldEmail = null,
+				Status = "New";
+			if (m) {
+				Status = m.Status;
+				if (m.Affiliation !== entity.Affiliation)
+					OldAffiliation = m.Affiliation;
+				if (m.Employer !== entity.Employer)
+					OldEmployer = m.Employer;
+				if (m.Email !== entity.Email)
+					OldEmail = m.Email;
+				if (m.Name !== entity.Name)
+					OldName = m.Name;
+			}
+			newEntities[id] = {
+				...entity,
+				Status,
+				OldAffiliation,
+				OldEmployer,
+				OldEmail,
+				OldName
+			}
 		});
 		return newEntities;
 	}
@@ -130,7 +157,7 @@ export const loadSessionAttendees = (sessionId: number): AppThunk =>
 		dispatch(removeAll());
 		dispatch(setSessionId(sessionId));
 		const groupName = selectWorkingGroupName(state);
-		const url = `/api/${groupName}/imat/dailyAttendance/${session.imatMeetingId}`;
+		const url = `/api/${groupName}/imat/attendance/${session.imatMeetingId}/daily`;
 		let response: any;
 		try {
 			response = await fetcher.get(url);

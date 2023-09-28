@@ -14,7 +14,9 @@ import {
 	ShowFilters,
 	GlobalFilter,
 	TableColumnSelector,
-	SplitPanel, Panel, SplitPanelButton
+	SplitPanel, Panel, SplitPanelButton,
+	DropdownRendererProps, Checkbox, Row, Form, FieldLeft,
+	ActionButtonDropdown,
 } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -29,35 +31,81 @@ import {
 	type MemberAttendances, 
 	type SessionAttendanceSummary
 } from '../store/sessionParticipation';
+import {type Session} from '../store/sessions';
 
 import { renderNameAndEmail } from '../members/Members';
 import MemberDetail from '../members/MemberDetail';
 import TopRow from '../components/TopRow';
 
-function SessionSummary() {
+function ImportAttendanceForm({methods, session}: DropdownRendererProps & {session: Session}) {
 	const dispatch = useAppDispatch();
+	const [useDailyAttendance, setUseDailyAttendance] = React.useState(false);
+	const [busy, setBusy] = React.useState(false);
+
+	let warning: string | undefined;
+	if (session.Attendees) {
+		warning = 'Importing again will reset any overrides that were previously made for this session';
+	}
+
+	async function submit() {
+		setBusy(true);
+		await dispatch(importAttendances(session.id, useDailyAttendance));
+		methods.close();
+		setBusy(false);
+	}
+
+	return (
+		<Form
+			style={{maxWidth: 350}}
+			title={`Import attenance for session ${session.sessionNum}`}
+			cancel={methods.close}
+			submit={submit}
+			errorText={warning}
+			busy={busy}
+		>
+			<Row>
+				<FieldLeft 
+					label="IMAT spreadsheet:"
+				/>
+			</Row>
+			<Row style={{justifyContent: 'flex-start'}}>
+				<Checkbox
+					checked={!useDailyAttendance}
+					onChange={() => setUseDailyAttendance(!useDailyAttendance)}
+				/>
+				<label>attendance summary</label>
+			</Row>
+			<Row style={{justifyContent: 'flex-start'}}>
+				<Checkbox
+					checked={useDailyAttendance}
+					onChange={() => setUseDailyAttendance(!useDailyAttendance)}
+				/>
+				<label>daily attendance</label>
+			</Row>
+		</Form>
+	)
+}
+function SessionSummary() {
 	const sessions = useAppSelector(selectAttendanceSessions);
 
-	const elements = sessions.map(session => {
-		const onClick = () => dispatch(importAttendances(session.id));
-		return (
-			<div key={session.id} style={{display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden'}}>
-				<div>{displayDateRange(session.startDate, session.endDate)}</div>
-				<div>{session.type === 'p'? 'Plenary': 'Interim'}</div>
-				<div style={{whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'}}>{session.name}</div>
-				<div>
-					{`(${session.Attendees} attendees)`}
-					<ActionButton
-						name='import'
-						title='Import attendance summary'
-						onClick={onClick}
-					/>
-				</div>
-			</div>
-		)
-	});
-
-	return <>{elements}</>
+	return (
+		<>
+			{sessions.map(session =>
+				<div key={session.id} style={{display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden'}}>
+					<div>{session.sessionNum} {session.type === 'p'? 'Plenary: ': 'Interim: '} {displayDateRange(session.startDate, session.endDate)}</div>
+					<div style={{whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'}}>{session.name}</div>
+					<div style={{display: 'flex'}}>
+						<div>{`(${session.Attendees} attendees)`}</div>
+						<ActionButtonDropdown
+							name='import'
+							title='Import attendance summary'
+							dropdownRenderer={props => <ImportAttendanceForm {...props} session={session}/>}
+							portal={document.querySelector('#root') || undefined}
+						/>
+					</div>
+				</div>)}
+		</>
+	);
 }
 
 const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) =>

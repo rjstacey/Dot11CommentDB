@@ -11,9 +11,9 @@ import {
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-import { selectMemberEntities, Member } from './members';
+import { selectMemberEntities, type Member } from './members';
 import { selectWorkingGroupName } from './groups';
-import { selectSessionEntities, upsertSessions, type Session } from './sessions';
+import { selectSessionEntities, selectSession, upsertSessions, type Session } from './sessions';
 
 const renderPct = (pct: number) => !isNaN(pct)? `${pct.toFixed(2)}%`: '';
 
@@ -379,21 +379,23 @@ export const updateAttendances = (sapin: number, updates: SessionAttendanceUpdat
 		dispatch(setOne({...entity, sessionAttendanceSummaries: updatedSessionAttendances}));
 	}
 
-export const importAttendances = (session_id: number): AppThunk =>
+export const importAttendances = (session_id: number, useDailyAttendance?: boolean): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
-		const url = `/api/${groupName}/attendances/${session_id}/import`;
+		let url = `/api/${groupName}/attendances/${session_id}/import`;
+		if (useDailyAttendance)
+			url += '?use=daily-attendance';
 		dispatch(getPending());
 		let response: any;
 		try {
 			response = await fetcher.post(url);
-			if (!validResponse(response)) {
+			if (!validResponse(response))
 				throw new TypeError('Unexpected response to POST ' + url);
-			}
 		}
 		catch(error) {
 			dispatch(getFailure());
-			dispatch(setError(`Unable to import attendance summary for session id=${session_id}`, error));
+			const session = selectSession(getState(), session_id);
+			dispatch(setError('Unable to import attendance summary for session ' + session?.sessionNum || `id=${session_id}`, error));
 			return;
 		}
 		dispatch(upsertSessions(response.sessions));
