@@ -214,6 +214,7 @@ async function parseMeetingsCsv(buffer: Buffer) {
 
 /**
  * get IMAT meetings
+ * @returns An array of IMAT meeting objects
  */
 export async function getImatMeetings(user: User) {
 	const {ieeeClient} = user;
@@ -344,10 +345,10 @@ async function parseImatCommitteesCsv(buffer: Buffer) {
 	});
 }
 
-/*
- * get IMAT meetings
- *
- * Parameters: group = name of the owning group
+/**
+ * Get IMAT committees
+ * @param user The user executing the get
+ * @param group The working group
  */
 export async function getImatCommittees(user: User, group: Group) {
 	const {ieeeClient} = user;
@@ -562,6 +563,11 @@ async function parseImatTimeslotCsv(buffer: Buffer) {
 	}));
 }
 
+/**
+ * Get breakouts for an IMAT meeting
+ * @param user The user executing the get
+ * @param imatMeetingId The IMAT meeting number
+ */
 export async function getImatBreakouts(user: User, imatMeetingId: number) {
 
 	const {ieeeClient} = user;
@@ -1298,6 +1304,7 @@ export async function getImatMeetingAttendanceSummaryForSession(user: User, sess
 /**
  * Get IMAT attendance summary for a meeting
  * @param user - The user executing the get
+ * @param group - Working group
  * @param imatMeetingId - The IMAT meeting number
  * @returns An array of objects that represents the session attendees
  */
@@ -1385,6 +1392,7 @@ async function parseImatMeetingDailyAttendance(buffer: Buffer) {
 /**
  * Get IMAT meeting daily attendance
  * @param user - The user executing the get
+ * @param group - Working group
  * @param imatMeetingId - The IMAT meeting number
  * @returns An array of objects representing the meeting attendees
  */

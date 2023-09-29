@@ -101,23 +101,9 @@ export async function getBallotWithNewResultsSummary(user: User, ballot_id: numb
 /** Get ballot series
  * Walk back through the previous ballots until the initial ballot
  * @param id last ballot in series
- * @returns an array of ballot identifiers starting with the initial ballot that is the ballot series
+ * @returns an array of ballots (starting with the initial ballot) that is the ballot series
  */
 export async function getBallotSeries(id: number) {
-
-	/*async function recursiveBallotSeriesGet(ballotSeries: Ballot[], id: number): Promise<Ballot[]> {
-		const ballot = await getBallot(id);
-        if (!ballot)
-            return ballotSeries;
-		ballotSeries.unshift(ballot);
-        if (!ballot.prev_id || ballotSeries.length === 30)
-            return ballotSeries;
-        
-		return recursiveBallotSeriesGet(ballotSeries, ballot.prev_id);
-	}
-
-	let ballots = await recursiveBallotSeriesGet([], id);*/
-
 	const sql = db.format(`
 		WITH RECURSIVE cte AS (
 			${getBallotsSQL} WHERE b.id = ?
@@ -132,15 +118,51 @@ export async function getBallotSeries(id: number) {
 	return ballots;
 }
 
-export async function getRecentWgBallots(n = 3) {
-	const sql = getBallotsSQL + ' WHERE ' +
-		`Type=${BallotType.WG} AND ` +	// WG ballots
-		'IsComplete<>0 ' + 				// series is complete
-		'ORDER BY End DESC ' +			// newest to oldest
-		db.format('LIMIT ?;', [n]);		// last n
+type BallotSeriesRange = {
+	id: number;
+	Start: string;
+	End: string;
+}
 
-	const ballots = await db.query({sql, dateStrings: true}) as Ballot[];
-	return ballots;
+/**
+ * Get recent ballot series
+ * @returns An array of ballot arrays that are the recent ballot series
+ */
+export async function getRecentBallotSeries() {
+
+	const sql = `
+		WITH RECURSIVE cte AS (
+			SELECT id, prev_id, 1 level, Start, End FROM ballots WHERE IsComplete<>0 AND type=1 
+			UNION ALL 
+			SELECT c.id, t.prev_id, level + 1, t.Start, NULL End FROM cte c 
+			INNER JOIN ballots t on t.id=c.prev_id
+		)
+		SELECT
+			id,
+			DATE_FORMAT(MIN(Start), "%Y-%m-%dT%TZ") AS Start,
+			DATE_FORMAT(MAX(End), "%Y-%m-%dT%TZ") AS End
+		FROM cte
+		GROUP BY id
+		ORDER BY End;
+	`;
+	const allBallotSeries = await db.query({sql, dateStrings: true}) as BallotSeriesRange[];
+
+	// Find the earliest start of the last three ballot series
+	let minStart = DateTime.now();
+	allBallotSeries.slice(-3).forEach(ballotSeries => {
+		const start = DateTime.fromISO(ballotSeries.Start);
+		if (minStart > start)
+			minStart = start;
+	})
+
+	// Get an array of ballot arrays that are the recent ballot series
+	const ballotsArr = await Promise.all(
+		allBallotSeries
+			.filter(ballotSeries => DateTime.fromISO(ballotSeries.Start) >= minStart)
+			.map(ballotSeries => getBallotSeries(ballotSeries.id))
+	);
+
+	return ballotsArr;
 }
 
 type BallotDB = {
@@ -228,6 +250,7 @@ function ballotSetSql(ballot: Partial<BallotDB>) {
  * Add a ballot
  * 
  * @param user The user executing the add
+ * @param workingGroup The working group from path
  * @param ballot The ballot to be added
  * @returns The ballot as added
  */
@@ -282,6 +305,7 @@ export async function addBallots(user: User, workingGroup: Group, ballots: Ballo
  * Update ballot
  * 
  * @param user The user executing the update.
+ * @param workingGroup The working group from path
  * @param update An object with shape {id, changes}
  * @param update.id Identifies the ballot.
  * @param update.changes A partial ballot object that contains parameters to change.
@@ -316,6 +340,7 @@ export function validBallotUpdates(updates: any): updates is BallotUpdate[] {
  * Update ballots
  * 
  * @param user The user executing the update.
+ * @param workingGroup The working group from path
  * @param updates An array of objects with shape {id, changes}
  * @returns An array of ballots as updated
  */
@@ -330,9 +355,9 @@ export function validBallotIds(ids: any): ids is number[] {
 /**
  * Delete ballots along with associated comments, resolutions and results
  * 
- * @param user - The user executing the delete.
- * @param workingGroup - The working group from path
- * @param ids - An array of ballot identifiers that identify the ballots to delete
+ * @param user The user executing the delete.
+ * @param workingGroup The working group from path
+ * @param ids An array of ballot identifiers that identify the ballots to delete
  */
 export async function deleteBallots(user: User, workingGroup: Group, ids: number[]) {
 	// Make sure the ids are owned by the working group

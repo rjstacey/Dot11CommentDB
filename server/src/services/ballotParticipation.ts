@@ -1,4 +1,4 @@
-import { getBallotSeries, getRecentWgBallots, Ballot } from './ballots';
+import { getRecentBallotSeries, type Ballot } from './ballots';
 import { getVotersForBallots } from './voters';
 import { getResultsForWgBallot, Result } from './results';
 
@@ -37,10 +37,10 @@ type RecentBallotSeriesParticipation = {
 export async function getBallotSeriesParticipation() {
 
     //const t1 = Date.now();
-	let completedBallots = await getRecentWgBallots();
+	//let completedBallots = await getRecentWgBallots();
 
     //const t2 = Date.now();
-    const ballotsArr = await Promise.all(completedBallots.map(b => getBallotSeries(b.id)));
+    const ballotsArr = await getRecentBallotSeries(); //Promise.all(completedBallots.map(b => getBallotSeries(b.id)));
 
     //const t3 = Date.now();
     const ballotSeriesArr: BallotSeries[] = [];
