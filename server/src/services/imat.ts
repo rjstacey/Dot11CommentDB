@@ -1257,16 +1257,17 @@ async function parseImatMeetingAttendanceSummary(buffer: Buffer) {
 /**
  * Get IMAT attendance summary by date
  * @param user - The user executing the get
+ * @param groupName - Working group name
  * @param start - A date string in form MM/DD/YYYY that represents the meeting start date
  * @param end - A date string in form MM/DD/YYYY that represents the meeting end date
  * @returns An array of objects that represent the session attendees
  */
-async function getImatMeetingAttendanceSummaryByDate(user: User, start: string, end: string) {
+async function getImatMeetingAttendanceSummaryByDate(user: User, groupName: string, start: string, end: string) {
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const response = await ieeeClient.get(`/802.11/attendance-summary.csv?b=${start}&d=${end}`);
+	const response = await ieeeClient.get(`/${groupName}/attendance-summary.csv?b=${start}&d=${end}`);
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 
@@ -1291,7 +1292,7 @@ export async function getImatMeetingAttendanceSummaryForSession(user: User, sess
 		throw new TypeError(`Invalid session end (${session.endDate}) or timezone (${session.timezone})`);
 	end = end.toFormat('MM/dd/yyyy');
 
-	return getImatMeetingAttendanceSummaryByDate(user, start, end);
+	return getImatMeetingAttendanceSummaryByDate(user, '802.11', start, end);
 }
 
 /**
@@ -1300,7 +1301,7 @@ export async function getImatMeetingAttendanceSummaryForSession(user: User, sess
  * @param imatMeetingId - The IMAT meeting number
  * @returns An array of objects that represents the session attendees
  */
-export async function getImatMeetingAttendanceSummary(user: User, imatMeetingId: number) {
+export async function getImatMeetingAttendanceSummary(user: User, group: Group, imatMeetingId: number) {
 
 	const imatMeeting = await getImatMeeting(user, imatMeetingId);
 
@@ -1314,7 +1315,7 @@ export async function getImatMeetingAttendanceSummary(user: User, imatMeetingId:
 		throw new TypeError(`Invalid session end (${imatMeeting.end}) or timezone (${imatMeeting.timezone})`);
 	end = end.toFormat('MM/dd/yyyy');
 
-	return getImatMeetingAttendanceSummaryByDate(user, start, end);
+	return getImatMeetingAttendanceSummaryByDate(user, group.name, start, end);
 }
 
 type ImatDailyAttendance = ImatAttendanceSummary & {
@@ -1387,12 +1388,12 @@ async function parseImatMeetingDailyAttendance(buffer: Buffer) {
  * @param imatMeetingId - The IMAT meeting number
  * @returns An array of objects representing the meeting attendees
  */
-export async function getImatMeetingDailyAttendance(user: User, imatMeetingId: number) {
+export async function getImatMeetingDailyAttendance(user: User, group: Group, imatMeetingId: number) {
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const response = await ieeeClient.get(`/802.11/daily-attendance.csv?p=${imatMeetingId}`);
+	const response = await ieeeClient.get(`/${group.name}/daily-attendance.csv?p=${imatMeetingId}`);
 	if (response.headers['content-type'] !== 'text/csv')
 		throw new AuthError('Not logged in');
 

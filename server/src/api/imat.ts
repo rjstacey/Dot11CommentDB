@@ -134,13 +134,13 @@ router
 	})
 	.get('/attendance/:imatMeetingId(\\d+)/daily', async (req, res, next) => {
 		const imatMeetingId = Number(req.params.imatMeetingId);
-		getImatMeetingDailyAttendance(req.user, imatMeetingId)
+		getImatMeetingDailyAttendance(req.user, req.group!, imatMeetingId)
 			.then(data => res.json(data))
 			.catch(next);
 	})
 	.get('/attendance/:imatMeetingId(\\d+)/summary', async (req, res, next) => {
 		const imatMeetingId = Number(req.params.imatMeetingId);
-		getImatMeetingAttendanceSummary(req.user, imatMeetingId)
+		getImatMeetingAttendanceSummary(req.user, req.group!, imatMeetingId)
 			.then(data => res.json(data))
 			.catch(next);
 	});

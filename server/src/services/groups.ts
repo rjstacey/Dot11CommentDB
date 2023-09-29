@@ -18,6 +18,7 @@ const GroupTypeLabels = {
 
 export type GroupType = keyof typeof GroupTypeLabels;
 
+/** Group entry */
 export interface Group {
 	id: string;
 	parent_id: string | null;

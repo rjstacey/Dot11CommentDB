@@ -37,7 +37,7 @@ router
 		const session_id = Number(req.params.session_id);
 		const {use} = req.query;
 		let useDailyAttendance = typeof use === 'string' && use.toLowerCase() === 'daily-attendance';
-		importAttendances(req.user, session_id, useDailyAttendance)
+		importAttendances(req.user, req.group!, session_id, useDailyAttendance)
 			.then(data => res.json(data))
 			.catch(next);
 	})

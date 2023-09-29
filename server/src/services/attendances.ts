@@ -2,6 +2,7 @@ import db from '../utils/database';
 import { NotFoundError } from '../utils';
 
 import { getSessions, Session } from './sessions';
+import type { Group } from './groups';
 import { getImatMeetingAttendanceSummaryForSession, getImatMeetingDailyAttendance } from './imat';
 import { isPlainObject } from '../utils';
 import type { OkPacket } from 'mysql2';
@@ -79,7 +80,7 @@ export async function getRecentAttendances() {
     }
 }
 
-export async function importAttendances(user: User, session_id: number, useDailyAttendance: boolean) {
+export async function importAttendances(user: User, group: Group, session_id: number, useDailyAttendance: boolean) {
 
 	let [session] = await getSessions({id: session_id});
 	if (!session)
@@ -89,7 +90,7 @@ export async function importAttendances(user: User, session_id: number, useDaily
     if (useDailyAttendance) {
         if (!session.imatMeetingId)
 		    throw new TypeError('IMAT meeting number not specified for session ' + session.name);
-        const imatDailyAttendance = await getImatMeetingDailyAttendance(user, session.imatMeetingId);
+        const imatDailyAttendance = await getImatMeetingDailyAttendance(user, group, session.imatMeetingId);
         attendances = imatDailyAttendance.map(a => ({
             SAPIN: a.SAPIN,
             AttendancePercentage: a.AttendancePercentage
