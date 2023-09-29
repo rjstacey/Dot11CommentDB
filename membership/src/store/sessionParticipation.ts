@@ -395,7 +395,7 @@ export const importAttendances = (session_id: number, useDailyAttendance?: boole
 		catch(error) {
 			dispatch(getFailure());
 			const session = selectSession(getState(), session_id);
-			dispatch(setError('Unable to import attendance summary for session ' + session?.sessionNum || `id=${session_id}`, error));
+			dispatch(setError('Unable to import attendance summary for session ' + session?.number || `id=${session_id}`, error));
 			return;
 		}
 		dispatch(upsertSessions(response.sessions));

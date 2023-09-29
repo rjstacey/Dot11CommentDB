@@ -43,7 +43,7 @@ function ImportAttendanceForm({methods, session}: DropdownRendererProps & {sessi
 	const [busy, setBusy] = React.useState(false);
 
 	let warning: string | undefined;
-	if (session.Attendees) {
+	if (session.attendees) {
 		warning = 'Importing again will reset any overrides that were previously made for this session';
 	}
 
@@ -57,7 +57,7 @@ function ImportAttendanceForm({methods, session}: DropdownRendererProps & {sessi
 	return (
 		<Form
 			style={{maxWidth: 350}}
-			title={`Import attenance for session ${session.sessionNum}`}
+			title={`Import attenance for session ${session.number || `id=${session.id}`}`}
 			cancel={methods.close}
 			submit={submit}
 			errorText={warning}
@@ -92,10 +92,10 @@ function SessionSummary() {
 		<>
 			{sessions.map(session =>
 				<div key={session.id} style={{display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden'}}>
-					<div>{session.sessionNum} {session.type === 'p'? 'Plenary: ': 'Interim: '} {displayDateRange(session.startDate, session.endDate)}</div>
+					<div>{session.number} {session.type === 'p'? 'Plenary: ': 'Interim: '} {displayDateRange(session.startDate, session.endDate)}</div>
 					<div style={{whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'}}>{session.name}</div>
 					<div style={{display: 'flex'}}>
-						<div>{`(${session.Attendees} attendees)`}</div>
+						<div>{`(${session.attendees} attendees)`}</div>
 						<ActionButtonDropdown
 							name='import'
 							title='Import attendance summary'

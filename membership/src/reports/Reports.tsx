@@ -10,7 +10,6 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectMembersState, selectActiveMembers, loadMembers, type Member } from '../store/members';
 import { selectSessionIds, selectSessionEntities, type Session } from '../store/sessions';
 import { MemberAttendances, selectAttendancesWithMembershipAndSummary } from '../store/sessionParticipation';
-import slice from '../store/groups';
 
 const Table = styled.table<{nCol: number}>`
 	display: grid;
@@ -166,7 +165,7 @@ function membersPrivate(members: Member[], attendanceEntities: Dictionary<Member
 				const i = sessionIds.findIndex(id => id === a.LastSessionId) - (lastSession.type === 'p'? 8: 7);
 				if (i >= 0) {
 					let expiresSession = sessionEntities[sessionIds[i]]!;
-					expires = `${expiresSession.sessionNum}${lastSession.type === 'i'? '*': ''} (${expiresSession.startDate})`;
+					expires = `${expiresSession.number}${lastSession.type === 'i'? '*': ''} (${expiresSession.startDate})`;
 					meeting = expiresSession.name;
 				}
 			}
@@ -210,7 +209,7 @@ function Reports() {
 		if (!report)
 			return null;
 		return reports[report](members, attendanceEntities, sessionIds, sessionEntities);
-	}, [members, attendanceEntities, sessionEntities, report]);
+	}, [members, attendanceEntities, sessionIds, sessionEntities, report]);
 
 	const ReportButton = ({report: thisReport, label}: {report: keyof typeof reports, label: string}) => 
 		<Button
