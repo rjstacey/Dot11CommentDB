@@ -62,25 +62,21 @@ router
 		catch(err) {next(err)}
 	})
 	.post('/upload/:format', upload.single('File'), async (req, res, next) => {
-		try {
-			const {format} = req.params;
-			if (!req.file)
-				throw new TypeError('Missing file');
-			const data = await uploadMembers(format, req.file)
-			res.json(data)
-		}
-		catch(err) {next(err)}
+		const {format} = req.params;
+		if (!req.file)
+			return next(new TypeError('Missing file'));
+		uploadMembers(format, req.file)
+			.then(data => res.json(data))
+			.catch(next);
 	})
-	.post('/MyProjectRoster', upload.single('File'), async (req, res, next) => {
-		try {
-			if (!req.file)
-				throw new TypeError('Missing file');
-			const data = await importMyProjectRoster(req.file);
-			res.json(data);
-		}
-		catch(err) {next(err)}
+	.post('/MyProjectRoster', upload.single('File'), (req, res, next) => {
+		if (!req.file)
+			return next(new TypeError('Missing file'));
+		importMyProjectRoster(req.file)
+			.then(data => res.json(data))
+			.catch(next);
 	})
-	.get('/MyProjectRoster', async (req, res, next) => {
+	.get('/MyProjectRoster', (req, res, next) => {
 		exportMyProjectRoster(req.user, res)
 			.then(() => res.end())
 			.catch(next)
@@ -122,81 +118,66 @@ router
 				.catch(next);
 		});
 	
-router.patch('/:id(\\d+)$', async (req, res, next) => {
-	try {
+router
+	.patch('/:id(\\d+)$', async (req, res, next) => {
 		const id = Number(req.params.id);
 		const changes = req.body;
 		if (typeof changes !== 'object')
-			throw new TypeError('Bad or missing body; expected object');
-		const data = await updateMembers([{id, changes}]);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+			return next(new TypeError('Bad or missing body; expected object'));
+		updateMembers([{id, changes}])
+			.then(data => res.json(data))
+			.catch(next);
+	});
 
-router.put('/:id(\\d+)/StatusChangeHistory', async (req, res, next) => {
-	try {
-		const id = Number(req.params.id);
-		const data = await addMemberStatusChangeEntries(id, req.body);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
+router
+	.route('/:id(\\d+)/StatusChangeHistory')
+		.put((req, res, next) => {
+			const id = Number(req.params.id);
+			addMemberStatusChangeEntries(id, req.body)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.patch((req, res, next) => {
+			const id = Number(req.params.id);
+			updateMemberStatusChangeEntries(id, req.body)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.delete((req, res, next) => {
+			const id = Number(req.params.id);
+			deleteMemberStatusChangeEntries(id, req.body)
+				.then(data => res.json(data))
+				.catch(next);
+		});
 
-router.patch('/:id(\\d+)/StatusChangeHistory', async (req, res, next) => {
-	try {
-		const id = Number(req.params.id);
-		const data = await updateMemberStatusChangeEntries(id, req.body);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.delete('/:id(\\d+)/StatusChangeHistory', async (req, res, next) => {
-	try {
-		const id = Number(req.params.id);
-		const data = await deleteMemberStatusChangeEntries(id, req.body);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.patch('/:id(\\d+)/ContactEmails', async (req, res, next) => {
-	try {
-		const id = Number(req.params.id);
-		const entry = req.body;
-		if (typeof entry !== 'object')
-			throw new TypeError('Missing or bad ContactEmails row object');
-		const data = await updateMemberContactEmail(id, entry);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.post('/:id(\\d+)/ContactEmails', async (req, res, next) => {
-	try {
-		const id = Number(req.params.id);
-		const entry = req.body;
-		if (typeof entry !== 'object')
-			throw new TypeError('Missing or bad ContactEmails row object');
-		const data = await addMemberContactEmail(id, entry);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-router.delete('/:id(\\d+)/ContactEmails', async (req, res, next) => {
-	try {
-		const id = Number(req.params.id);
-		const entry = req.body;
-		if (typeof entry !== 'object')
-			throw new TypeError('Missing or bad ContactEmails row object');
-		const data = await deleteMemberContactEmail(id, entry);
-		res.json(data);
-	}
-	catch(err) {next(err)}
-});
-
-
+router
+	.route('/:id(\\d+)/ContactEmails')
+		.patch((req, res, next) => {
+			const id = Number(req.params.id);
+			const entry = req.body;
+			if (typeof entry !== 'object')
+				return next(new TypeError('Missing or bad ContactEmails row object'));
+			updateMemberContactEmail(id, entry)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.post((req, res, next) => {
+			const id = Number(req.params.id);
+			const entry = req.body;
+			if (typeof entry !== 'object')
+				return next(new TypeError('Missing or bad ContactEmails row object'));
+			addMemberContactEmail(id, entry)
+				.then(data => res.json(data))
+				.catch(next);
+		})
+		.delete((req, res, next) => {
+			const id = Number(req.params.id);
+			const entry = req.body;
+			if (typeof entry !== 'object')
+				return next(new TypeError('Missing or bad ContactEmails row object'));
+			deleteMemberContactEmail(id, entry)
+				.then(data => res.json(data))
+				.catch(next);
+		});
 
 export default router;
