@@ -90,7 +90,7 @@ function MemberStatusChangeForm({
 	)
 }
 
-function MemberStatusChangeDropdown({
+export function MemberStatusChangeDropdown({
 	entry,
 	onChange,
 	readOnly

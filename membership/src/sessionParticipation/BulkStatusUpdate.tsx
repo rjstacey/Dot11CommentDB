@@ -1,25 +1,30 @@
 import React from 'react';
 
-import {Form, Row, Field, Input, Button, Dropdown, DropdownRendererProps} from 'dot11-components';
+import {Form, Row, Field, Input, Checkbox, Button, Dropdown, type DropdownRendererProps} from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { updateMembers, selectMembersState } from '../store/members';
-
+import { updateMembers, type MemberUpdate } from '../store/members';
+import { selectAttendanceSessions, selectAttendancesState, selectAttendancesWithMembershipAndSummary } from '../store/sessionParticipation';
 
 function BulkStatusUpdateForm({methods}: DropdownRendererProps) {
 
 	const dispatch = useAppDispatch();
-	const {selected, entities: members} = useAppSelector(selectMembersState);
-	const [statusChangeReason, setStatusChangeReason] = React.useState('');
+	const sessions = useAppSelector(selectAttendanceSessions);
+	const {selected, ids} = useAppSelector(selectAttendancesState);
+	const entities = useAppSelector(selectAttendancesWithMembershipAndSummary);
+	const [selectedOnly, setSelectedOnly] = React.useState(false);
+	const [reason, setReason] = React.useState(() => 'Post session ' + sessions[sessions.length-1].number + ' update');
+	const [date, setDate] = React.useState(() => sessions[sessions.length-1].endDate);
 	const [busy, setBusy] = React.useState(false);
 
+	const updates: MemberUpdate[] = (selectedOnly? selected: ids)
+		.map(id => entities[id]!)
+		.filter(a => a.ExpectedStatus)
+		.map(a => ({id: a.SAPIN, changes: {Status: a.ExpectedStatus, StatusChangeReason: reason, StatusChangeDate: date}}));
+
+	let warning = `${updates.length} updates`;
+
 	const submit = async () => {
-		const updates: any[] = [];
-		for (const id of selected) {
-			const m = members[id]!;
-			//if (m.NewStatus)
-			//	updates.push({id, changes: {Status: m.NewStatus, StatusChangeReason: statusChangeReason}});
-		}
 		setBusy(true);
 		await dispatch(updateMembers(updates));
 		setBusy(false);
@@ -32,16 +37,35 @@ function BulkStatusUpdateForm({methods}: DropdownRendererProps) {
 			submit={submit}
 			cancel={methods.close}
 			busy={busy}
+			errorText={warning}
 		>
 			<Row>
-				Change selected member status to expected status
+				Updated member status to expected status
+			</Row>
+			<Row>
+				<Field label='Selected entries only:'>
+					<Checkbox
+						size={24}
+						checked={selectedOnly}
+						onChange={() => setSelectedOnly(!selectedOnly)} 
+					/>
+				</Field>
 			</Row>
 			<Row>
 				<Field label='Reason:'>
 					<Input type='text'
 						size={24}
-						value={statusChangeReason}
-						onChange={e => setStatusChangeReason(e.target.value)} 
+						value={reason}
+						onChange={e => setReason(e.target.value)} 
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label='Date:'>
+					<Input type='date'
+						size={24}
+						value={date}
+						onChange={e => setDate(e.target.value)} 
 					/>
 				</Field>
 			</Row>

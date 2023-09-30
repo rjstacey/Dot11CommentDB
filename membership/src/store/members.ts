@@ -77,17 +77,21 @@ export type MemberExtra = {
 	ContactInfo: MemberContactInfo;
 	StatusChangeOverride: 0 | 1;
 	StatusChangeHistory: StatusChangeType[];
+	StatusChangeDate: string;
 	BallotSeriesCount: number;
 	BallotSeriesTotal: number;
 	AttendanceCount: number;
 	DateAdded: string;
 	ObsoleteSAPINs: number[];
-	StatusChangeDate: string;
 	ReplacedBySAPIN: number | null;
 };
 
+export type MemberUpdateExtra = {
+	StatusChangeReason: string;
+}
+
 export type MemberAdd = MemberCommon & Partial<MemberExtra>;
-export type MemberUpdate = Update<Member>;
+export type MemberUpdate = Update<Member & MemberUpdateExtra>;
 export type Member = MemberCommon & MemberExtra;
 
 export type MemberWithParticipation = Member & {
@@ -96,8 +100,6 @@ export type MemberWithParticipation = Member & {
 }
 
 export type MembersDictionary = Dictionary<Member>;
-
-export {EntityId};
 
 export const fields = {
 	SAPIN: {label: 'SA PIN', isId: true, sortType: SortType.NUMERIC},
@@ -210,10 +212,11 @@ const {
 	setMany,
 	addMany,
 	removeMany,
-	setUiProperties
+	setUiProperties,
+	setSelected
 } = slice.actions;
 
-export {setUiProperties};
+export {setSelected, setUiProperties};
 
 function validMember(member: any): member is Member {
 	return isObject(member) &&
@@ -318,7 +321,7 @@ export const deleteMemberStatusChangeEntries = (sapin: number, ids: number[]): A
 		dispatch(setOne(response));
 	}
 
-export const addMembers = (members: MemberAdd[]): AppThunk =>
+export const addMembers = (members: MemberAdd[]): AppThunk<number[]> =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/members`;
@@ -330,9 +333,10 @@ export const addMembers = (members: MemberAdd[]): AppThunk =>
 		}
 		catch(error) {
 			dispatch(setError('Unable to add members', error));
-			return;
+			return [];
 		}
 		dispatch(addMany(response));
+		return response.map(m => m.SAPIN);
 	}
 
 export const deleteMembers = (ids: number[]): AppThunk =>

@@ -24,10 +24,11 @@ import {
 	addMemberStatusChangeEntries,
 	updateMemberStatusChangeEntries,
 	deleteMemberStatusChangeEntries,
+	setSelected,
 	selectMembersState,
 	selectMemberEntities,
-	Member,
-	MemberAdd
+	type Member,
+	type MemberAdd
 } from '../store/members';
 
 import { selectMemberAttendanceStats } from '../store/sessionParticipation';
@@ -430,7 +431,7 @@ type MemberDetailProps = {
 
 type MemberDetailInternalProps = ConnectedMemberDetailProps & MemberDetailProps;
 
-type Action = "add" | "update";
+type Action = "add" | "update" | "wait";
 
 export type MultipleMember = Multiple<Omit<MemberAdd, "SAPIN" | "StatusChangeHistory" | "ContactEmails" | "ContactInfo">> & {
 	SAPIN: number[];
@@ -456,6 +457,11 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 	constructor(props: MemberDetailInternalProps) {
 		super(props)
 		this.state = this.initState("update");
+	}
+
+	componentDidUpdate(prevProps: Readonly<MemberDetailInternalProps>, prevState: Readonly<MemberDetailState>, snapshot?: any): void {
+		if (this.state.edited === this.state.saved && this.state === prevState)
+			this.setState(this.initState('update'));
 	}
 
 	initState = (action: Action): MemberDetailState => {
@@ -632,8 +638,8 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 			await deleteMembers(sapins);
 	}
 
-	add = () => {
-		const {addMembers} = this.props;
+	add = async () => {
+		const {addMembers, setSelected} = this.props;
 		const {action, saved, edited, originals} = this.state;
 		if (action !== "add") {
 			console.warn("Add with unexpected state");
@@ -643,10 +649,12 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 			const changes = shallowDiff(saved, edited) as Partial<MemberAdd>;
 			return {...m, ...changes};
 		});
-		addMembers(newMembers);
+		const ids = await addMembers(newMembers);
+		setSelected(ids);
+		this.setState({action: "void", saved: null, edited: null});
 	}
 
-	update = () => {
+	update = async () => {
 		const {updateMembers} = this.props;
 		const {action, edited, saved, originals} = this.state;
 		if (action !== "update") {
@@ -654,24 +662,27 @@ class MemberDetail extends React.Component<MemberDetailInternalProps, MemberDeta
 			return;
 		}
 		const changes = shallowDiff(saved, edited) as Partial<Member>;
+		const p: Promise<any>[] = [];
 		if ('StatusChangeHistory' in changes) {
 			const {updateMemberStatusChangeEntries, deleteMemberStatusChangeEntries, addMemberStatusChangeEntries} = this.props;
 			const {updates, adds, deletes} = arrayDiff(saved.StatusChangeHistory, edited.StatusChangeHistory);
 			originals.forEach(m => {
 				if (updates.length > 0)
-					updateMemberStatusChangeEntries(m.SAPIN, updates);
+					p.push(updateMemberStatusChangeEntries(m.SAPIN, updates));
 				if (deletes.length > 0)
-					deleteMemberStatusChangeEntries(m.SAPIN, deletes);
+					p.push(deleteMemberStatusChangeEntries(m.SAPIN, deletes));
 				if (adds.length > 0)
-					addMemberStatusChangeEntries(m.SAPIN, adds);
+					p.push(addMemberStatusChangeEntries(m.SAPIN, adds));
 			});
 			delete changes.StatusChangeHistory;
 		}
 		if (Object.keys(changes).length > 0) {
 			const updates = originals.map(m => ({id: m.SAPIN, changes}));
-			updateMembers(updates);
+			p.push(updateMembers(updates));
 		}
-		this.setState(state => ({...state, saved: edited}));
+		await Promise.all(p);
+		//this.setState(state => ({...state, saved: edited}));
+		this.setState({action: "void", saved: null, edited: null});
 	}
 
 	cancel = () => {
@@ -752,6 +763,7 @@ const connector = connect(
 		updateMemberStatusChangeEntries,
 		deleteMemberStatusChangeEntries,
 		deleteMembers,
+		setSelected,
 		setUiProperties,
 	}
 );

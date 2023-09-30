@@ -36,6 +36,7 @@ import {type Session} from '../store/sessions';
 import { renderNameAndEmail } from '../members/Members';
 import MemberDetail from '../members/MemberDetail';
 import TopRow from '../components/TopRow';
+import BulkStatusUpdate from './BulkStatusUpdate';
 
 function ImportAttendanceForm({methods, session}: DropdownRendererProps & {session: Session}) {
 	const dispatch = useAppDispatch();
@@ -189,6 +190,7 @@ function Attendances() {
 				<SessionSummary />
 
 				<div style={{display: 'flex'}}>
+					<BulkStatusUpdate />
 					<TableColumnSelector
 						selectors={attendancesSelectors}
 						actions={attendancesActions}

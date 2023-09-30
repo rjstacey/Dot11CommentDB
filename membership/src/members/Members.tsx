@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import type { EntityId } from '@reduxjs/toolkit';
 
 import {
 	AppTable,
@@ -35,7 +36,7 @@ import {
 	membersSelectors,
 	membersActions,
 } from '../store/members';
-import type {Member, EntityId, MembersDictionary} from '../store/members';
+import type {Member, MembersDictionary} from '../store/members';
 
 import TopRow from '../components/TopRow';
 
