@@ -23,7 +23,7 @@ import {
 	loadBallotParticipation,
 	selectBallotParticipationState,
     selectBallotSeries,
-    selectBallots,
+    selectBallotEntities,
 	ballotParticipationSelectors,
 	ballotParticipationActions,
     BallotSeriesParticipationSummary,
@@ -33,6 +33,7 @@ import {
 
 import MemberDetail from '../members/MemberDetail';
 import { renderNameAndEmail } from '../members/Members';
+import BulkStatusUpdate from '../sessionParticipation/BulkStatusUpdate';
 
 const TopRow = styled.div`
 	display: flex;
@@ -45,7 +46,7 @@ const TopRow = styled.div`
 
 function BallotSeriesSummary() {
 	const {ids: ballotSeriesIds, entities: ballotSeriesEntities} = useAppSelector(selectBallotSeries);
-    const {entities: ballotEntities} = useAppSelector(selectBallots);
+    const ballotEntities = useAppSelector(selectBallotEntities);
 
 	const elements = ballotSeriesIds.map(id => {
 		const ballotSeries = ballotSeriesEntities[id]!;
@@ -152,6 +153,7 @@ function BallotParticipation() {
 			<TopRow>
 				<BallotSeriesSummary />
 				<div style={{display: 'flex'}}>
+					<BulkStatusUpdate isSession={false} />
 					<TableColumnSelector
 						selectors={ballotParticipationSelectors}
 						actions={ballotParticipationActions}

@@ -1,25 +1,73 @@
 import React from 'react';
+import type { EntityId, Dictionary } from '@reduxjs/toolkit';
 
-import {Form, Row, Field, Input, Checkbox, Button, Dropdown, type DropdownRendererProps} from 'dot11-components';
+import {Form, Row, Field, Input, Checkbox, Button, Dropdown, type DropdownRendererProps } from 'dot11-components';
 
+import type { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { updateMembers, type MemberUpdate } from '../store/members';
-import { selectAttendanceSessions, selectAttendancesState, selectAttendancesWithMembershipAndSummary } from '../store/sessionParticipation';
+import {
+	selectMostRecentAttendedSession,
+	selectAttendancesState,
+	selectAttendancesWithMembershipAndSummary,
+	type MemberAttendances
+} from '../store/sessionParticipation';
+import {
+	selectMostRecentBallotSeries,
+	selectBallotParticipationState,
+	selectBallotParticipationWithMembershipAndSummary,
+	selectBallotEntities,
+	type MemberParticipation
+} from '../store/ballotParticipation';
 
-function BulkStatusUpdateForm({methods}: DropdownRendererProps) {
+function selectEntriesAndDefaults(state: RootState, isSession: boolean, selectedOnly: boolean) {
+	let ids: EntityId[],
+		selected: EntityId[];
+	let entities: Dictionary<MemberParticipation> | Dictionary<MemberAttendances>;
+	let defaultReason: string,
+		defaultDate: string;
+	if (isSession) {
+		const recentSession =selectMostRecentAttendedSession(state);
+		defaultReason = `Post session ${recentSession.number || `id=${recentSession.id}`} update`;
+		defaultDate = recentSession.endDate;
+		const attendencesState = selectAttendancesState(state);
+		ids = attendencesState.ids;
+		selected = attendencesState.selected;
+		entities = selectAttendancesWithMembershipAndSummary(state);
+	}
+	else {
+		const recentBallotSeries = selectMostRecentBallotSeries(state);
+		const ballotEntities = selectBallotEntities(state);
+		const ballotId = recentBallotSeries.ballotIds[recentBallotSeries.ballotIds.length - 1];
+		const lastBallot = ballotEntities[ballotId];
+		defaultReason = `Post ballot ${lastBallot?.BallotID || ''} update`;
+		defaultDate = recentBallotSeries.end.slice(0, 10);
+		const ballotParticipationState = selectBallotParticipationState(state);
+		ids = ballotParticipationState.ids;
+		selected = ballotParticipationState.selected;
+		entities = selectBallotParticipationWithMembershipAndSummary(state);
+	}
+	const entries = (selectedOnly? selected: ids)
+		.map(id => entities[id]!)
+		.filter(a => a.ExpectedStatus);
+		
+	return {
+		defaultReason,
+		defaultDate,
+		entries
+	}
+}
+
+function BulkStatusUpdateForm({methods, isSession}: DropdownRendererProps & {isSession: boolean}) {
 
 	const dispatch = useAppDispatch();
-	const sessions = useAppSelector(selectAttendanceSessions);
-	const {selected, ids} = useAppSelector(selectAttendancesState);
-	const entities = useAppSelector(selectAttendancesWithMembershipAndSummary);
 	const [selectedOnly, setSelectedOnly] = React.useState(false);
-	const [reason, setReason] = React.useState(() => 'Post session ' + sessions[sessions.length-1].number + ' update');
-	const [date, setDate] = React.useState(() => sessions[sessions.length-1].endDate);
+	const {defaultReason, defaultDate, entries} = useAppSelector(state => selectEntriesAndDefaults(state, isSession, selectedOnly));
+	const [reason, setReason] = React.useState(defaultReason);
+	const [date, setDate] = React.useState(defaultDate);
 	const [busy, setBusy] = React.useState(false);
 
-	const updates: MemberUpdate[] = (selectedOnly? selected: ids)
-		.map(id => entities[id]!)
-		.filter(a => a.ExpectedStatus)
+	const updates: MemberUpdate[] = entries
 		.map(a => ({id: a.SAPIN, changes: {Status: a.ExpectedStatus, StatusChangeReason: reason, StatusChangeDate: date}}));
 
 	let warning = `${updates.length} updates`;
@@ -43,7 +91,7 @@ function BulkStatusUpdateForm({methods}: DropdownRendererProps) {
 				Updated member status to expected status
 			</Row>
 			<Row>
-				<Field label='Selected entries only:'>
+				<Field label='Only selected entries:'>
 					<Checkbox
 						size={24}
 						checked={selectedOnly}
@@ -78,9 +126,10 @@ const title = label;
 
 type BulkStatusUpdateProps = {
 	disabled?: boolean;
+	isSession: boolean;
 } & React.ComponentProps<typeof Dropdown>;
 
-const BulkStatusUpdate = ({disabled, ...rest}: BulkStatusUpdateProps) =>
+const BulkStatusUpdate = ({disabled, isSession, ...rest}: BulkStatusUpdateProps) =>
 	<Dropdown
 		handle={false}
 		selectRenderer={({state, methods}) =>
@@ -92,7 +141,7 @@ const BulkStatusUpdate = ({disabled, ...rest}: BulkStatusUpdateProps) =>
 			>
 				{label}
 			</Button>}
-		dropdownRenderer={(props) => <BulkStatusUpdateForm {...props}/>}
+		dropdownRenderer={(props) => <BulkStatusUpdateForm {...props} isSession={isSession} />}
 		{...rest}
 	/>
 

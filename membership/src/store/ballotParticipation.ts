@@ -105,13 +105,24 @@ export default slice;
  */
 export const selectBallotParticipationState = (state: RootState) => state[dataSet];
 
+export const selectBallotParticipationIds = (state: RootState) => selectBallotParticipationState(state).ids;
 export const selectBallotParticipationEntities = (state: RootState) => selectBallotParticipationState(state).entities;
-const selectBallotParticipationIds = (state: RootState) => selectBallotParticipationState(state).ids;
 
 export const selectBallotSeries = (state: RootState) => selectBallotParticipationState(state).ballotSeries;
+export const selectBallotSeriesIds = (state: RootState) => selectBallotSeries(state).ids;
 export const selectBallotSeriesEntities = (state: RootState) => selectBallotSeries(state).entities;
+export const selectRecentBallotSeries = createSelector(
+	selectBallotSeriesIds,
+	selectBallotSeriesEntities,
+	(ids, entities) => ids.map(id => entities[id]!)
+);
+export const selectMostRecentBallotSeries = (state: RootState) => {
+	const ballotSeries = selectRecentBallotSeries(state);
+	return ballotSeries[ballotSeries.length - 1];
+}
 
-export const selectBallots = (state: RootState) => selectBallotParticipationState(state).ballots;
+export const selectBallotIds = (state: RootState) => selectBallotParticipationState(state).ballots.ids;
+export const selectBallotEntities = (state: RootState) => selectBallotParticipationState(state).ballots.entities;
 
 export function memberBallotParticipationCount(member: Member, ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[], ballotSeriesEntities: Dictionary<BallotSeries>) {
     // Only care about ballots since becoming a Voter

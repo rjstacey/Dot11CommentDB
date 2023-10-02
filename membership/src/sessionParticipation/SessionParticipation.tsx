@@ -190,7 +190,7 @@ function Attendances() {
 				<SessionSummary />
 
 				<div style={{display: 'flex'}}>
-					<BulkStatusUpdate />
+					<BulkStatusUpdate isSession={true} />
 					<TableColumnSelector
 						selectors={attendancesSelectors}
 						actions={attendancesActions}

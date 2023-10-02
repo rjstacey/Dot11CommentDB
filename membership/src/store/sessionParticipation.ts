@@ -106,7 +106,11 @@ export const selectAttendanceSessions = createSelector(
 	selectAttendanceSessionIds,
 	selectSessionEntities,
 	(ids, entities) => ids.map(id => entities[id]!).filter(s => s)
-)
+);
+export const selectMostRecentAttendedSession = (state: RootState) => {
+	const sessions = selectAttendanceSessions(state);
+	return sessions[sessions.length - 1];
+}
 
 function recentAttendanceStats(attendances: SessionAttendanceSummary[], sessionIds: EntityId[], sessionEntities: Dictionary<Session>, startDate?: string, sapin?: number) {
 
