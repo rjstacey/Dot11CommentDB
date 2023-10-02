@@ -448,8 +448,8 @@ export async function deleteMemberContactEmail(sapin: number, entry: Pick<Contac
 	return (await getMember(sapin))!;
 }
 
-async function updateMemberStatus(member: Member, status: string, reason: string) {
-	const date = DateTime.now();
+async function updateMemberStatus(member: Member, status: string, reason: string, dateStr?: string) {
+	const date = dateStr? DateTime.fromISO(dateStr): DateTime.now();
 	const id = member.StatusChangeHistory.reduce((maxId, h) => h.id > maxId? h.id: maxId, 0) + 1;
 	const historyEntry = {
 		id,
@@ -480,7 +480,7 @@ export async function updateMember(sapin: number, changes: Partial<Member> & { S
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
 	if (Status && Status !== member.Status)
-		p.push(updateMemberStatus(member, Status, StatusChangeReason || ''));
+		p.push(updateMemberStatus(member, Status, StatusChangeReason || '', changes.StatusChangeDate || undefined));
 
 	const entry = memberEntry(changesRest);
 	if (Object.keys(entry).length)
@@ -489,7 +489,7 @@ export async function updateMember(sapin: number, changes: Partial<Member> & { S
 	if (Permissions)
 		p.push(replaceMemberPermissions(sapin, Permissions));
 
-	if (p.length)
+	if (p.length > 0)
 		await Promise.all(p);
 
 	return (await getMember(sapin))!;
