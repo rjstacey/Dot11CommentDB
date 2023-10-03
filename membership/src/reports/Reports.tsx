@@ -124,6 +124,29 @@ type TableData = {
 	values: string[][];
 };
 
+function membersSummary(members: Member[]): TableData {
+	const headings = [
+		'Aspirants',
+		'Potential Voters',
+		'Voters',
+		'ExOfficio'
+	];
+	let V = [0, 0, 0, 0];
+	members.forEach(m => {
+		if (m.Status === 'Aspirant')
+			V[0]++;
+		if (m.Status === 'Potential Voter')
+			V[1]++;
+		if (m.Status === 'Voter')
+			V[2]++;
+		if (m.Status == 'ExOfficio')
+			V[3]++;
+	});
+	console.log(V.map(v => V.toString()))
+	let values = [V.map(String)];
+	return {headings, values};
+}
+
 function membersPublic(members: Member[]): TableData {
 	const headings = [
 		'Family Name',
@@ -186,6 +209,7 @@ function membersPrivate(members: Member[], attendanceEntities: Dictionary<Member
 const reports = {
 	'Members public list': membersPublic,
 	'Members private list': membersPrivate,
+	'Members summary': membersSummary
 } as const;
 const reportsList = Object.keys(reports) as (keyof typeof reports)[];
 
