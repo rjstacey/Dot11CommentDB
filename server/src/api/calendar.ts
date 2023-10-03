@@ -56,7 +56,7 @@ router
 		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
 			return next();
 			
-		next( new ForbiddenError("Insufficient karma"));
+		next(new ForbiddenError("Insufficient karma"));
 	})
 	.route('/accounts')
 		.get((req, res, next) => {

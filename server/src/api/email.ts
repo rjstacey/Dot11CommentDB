@@ -5,14 +5,12 @@ import { sendEmail } from '../services/email';
 const router = Router();
 
 router.post('/$', async (req, res, next) => {
-	try {
-		const {user, body} = req;
-		if (!isPlainObject(body))
-			throw new TypeError('Bad or missing body; expected object');
-		const data = await sendEmail(user, body);
-		res.json(data);
-	}
-	catch(err) {next(err)}
+	const {user, body} = req;
+	if (!isPlainObject(body))
+		return next(new TypeError('Bad or missing body; expected object'));
+	sendEmail(user, body)
+		.then(data => res.json(data))
+		.catch(next)
 });
 
 export default router;

@@ -4,7 +4,8 @@
  */
 import { Router } from 'express';
 import { AccessLevel } from '../auth/access';
- 
+import { ForbiddenError } from '../utils';
+
 import {
 	getRecentAttendances,
 	addAttendances,
@@ -21,7 +22,7 @@ const router = Router();
 router
 	.all('*', (req, res, next) => {
 		if (!req.group)
-			return res.status(500).send("Group not set");
+			return next(new Error("Group not set"));
 
 		const access = req.group.permissions.members || AccessLevel.none;
 		if (req.method === "GET" && access >= AccessLevel.ro)
@@ -31,7 +32,7 @@ router
 		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
 			return next();
 			
-		res.status(403).send('Insufficient karma');
+		next(new ForbiddenError('Insufficient karma'));
 	})
 	.post('/:session_id(\\d+)/import', async (req, res, next) => {
 		const session_id = Number(req.params.session_id);

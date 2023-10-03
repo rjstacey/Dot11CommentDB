@@ -4,14 +4,15 @@
  */
 import { Router } from 'express';
 import { AccessLevel } from '../auth/access';
+import { ForbiddenError } from '../utils';
 import { getBallotSeriesParticipation } from '../services/ballotParticipation';
 
 const router = Router();
 
 router
-  .all('*', (req, res, next) => {
-    	if (!req.group)
-			return res.status(500).send("Group not set");
+	.all('*', (req, res, next) => {
+		if (!req.group)
+			return next(new Error("Group not set"));
 
 		const access = req.group.permissions.members || AccessLevel.none;
 
@@ -21,13 +22,13 @@ router
 			return next();
 		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
 			return next();
-      
-		res.status(403).send('Insufficient karma');
-  })
-  .get('/', (req, res, next) => {
-    getBallotSeriesParticipation()
-        .then(data => res.json(data))
-        .catch(next);
-  });
+
+		next(new ForbiddenError('Insufficient karma'));
+	})
+	.get('/', (req, res, next) => {
+		getBallotSeriesParticipation()
+			.then(data => res.json(data))
+			.catch(next);
+	});
 
 export default router;
