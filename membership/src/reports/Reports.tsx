@@ -142,7 +142,6 @@ function membersSummary(members: Member[]): TableData {
 		if (m.Status == 'ExOfficio')
 			V[3]++;
 	});
-	console.log(V.map(v => V.toString()))
 	let values = [V.map(String)];
 	return {headings, values};
 }
@@ -207,9 +206,9 @@ function membersPrivate(members: Member[], attendanceEntities: Dictionary<Member
 }
 
 const reports = {
+	'Members summary': membersSummary,
 	'Members public list': membersPublic,
 	'Members private list': membersPrivate,
-	'Members summary': membersSummary
 } as const;
 const reportsList = Object.keys(reports) as (keyof typeof reports)[];
 
