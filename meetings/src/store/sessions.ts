@@ -1,4 +1,4 @@
-import { createSelector, EntityId, Dictionary, isPlainObject } from '@reduxjs/toolkit';
+import { createSelector, EntityId, Dictionary } from '@reduxjs/toolkit';
 import { DateTime } from 'luxon';
 
 import {
@@ -8,6 +8,7 @@ import {
 	setError,
 	displayDate,
 	getAppTableDataSelectors,
+	isObject
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
@@ -32,6 +33,7 @@ export type SessionCredits = DayCredit[];
 
 export interface Session {
 	id: number;
+	number: number | null;
 	name: string;
 	type: SessionType | null;
 	groupId: string | null;
@@ -43,10 +45,10 @@ export interface Session {
 	rooms: Room[];
 	timeslots: Timeslot[];
 	defaultCredits: SessionCredits;
-	Attendees: number;
+	attendees: number;
 }
 
-export type SessionAdd = Omit<Session, "id" | "Attendees">;
+export type SessionAdd = Omit<Session, "id" | "attendees">;
 
 export const SessionTypeLabels = {
 	p: 'Plenary',
@@ -63,6 +65,7 @@ export const displaySessionType = (type: SessionType) => SessionTypeLabels[type]
 
 export const fields = {
 	id: {label: 'ID', isId: true, sortType: SortType.NUMERIC},
+	number: {label: 'Session number', sortType: SortType.NUMERIC},
 	name: {label: 'Session name'},
 	type: {label: 'Session type', dataRenderer: displaySessionType, options: SessionTypeOptions},
 	groupId: {label: 'Organizing group ID'},
@@ -70,7 +73,8 @@ export const fields = {
 	imatMeetingId: {label: 'IMAT meeting'/*, dataRenderer: displayImatMeetingId*/},
 	startDate: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
 	endDate: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE}, 
-	timezone: {label: 'Timezone'}
+	timezone: {label: 'Timezone'},
+	attendees: {label: 'Attendees'}
 };
 
 /*
@@ -172,7 +176,16 @@ const {
 export {setSelected, setUiProperties, setPanelIsSplit}
 
 function validSession(session: any): session is Session {
-	return isPlainObject(session);
+	return isObject(session) &&
+		typeof session.id === 'number' &&
+		(session.number === null || typeof session.number === 'number') &&
+		typeof session.name === 'string' &&
+		['p', 'i', 'o', 'g'].includes(session.type) &&
+		(session.groupId === null || typeof session.groupId === 'string') &&
+		(session.imatMeetingId === null || typeof session.imatMeetingId === 'number') &&
+		/\d{4}-\d{2}-\d{2}/.test(session.startDate) &&
+		/\d{4}-\d{2}-\d{2}/.test(session.endDate) &&
+		typeof session.timezone === 'string';
 }
 
 function validSessions(sessions: any): sessions is Session[] {

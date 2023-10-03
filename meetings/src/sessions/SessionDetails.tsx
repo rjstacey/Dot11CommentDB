@@ -49,6 +49,7 @@ const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
 
 const defaultSession: SessionAdd = {
+	number: null,
 	name: 'New session',
 	type: 'p',
 	imatMeetingId: null,
@@ -126,6 +127,18 @@ function SessionBasics({
 
 	return (
 		<>
+			<Row>
+				<Field label='Session number:'>
+					<Input
+						type='number'
+						name='Number'
+						value={isMultiple(session.number)? '': (session.number || '')}
+						placeholder={isMultiple(session.number)? MULTIPLE_STR: BLANK_STR}
+						onChange={e => handleChange({number: e.target.value? Number(e.target.value): null})}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
 			<Row>
 				<Field label='Session name:'>
 					<TextArea 

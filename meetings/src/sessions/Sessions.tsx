@@ -66,6 +66,9 @@ const tableColumns: ColumnProperties[] = [
 		width: 120, flexGrow: 1, flexShrink: 1,
 		headerRenderer: renderHeaderStartEnd,
 		cellRenderer: renderCellStartEnd},
+	{key: 'number', 
+		...fields.number,
+		width: 80, flexGrow: 1, flexShrink: 1},
 	{key: 'name', 
 		...fields.name,
 		width: 300, flexGrow: 1, flexShrink: 1},
@@ -84,7 +87,7 @@ const tableColumns: ColumnProperties[] = [
 ];
 
 const defaultTablesColumns = {
-	default: ['__ctrl__', 'Start/End', 'name', 'type', 'groupName', 'timezone', 'Breakouts', 'Attendance'],
+	default: ['__ctrl__', 'Start/End', 'number', 'name', 'type', 'groupName', 'timezone', 'Attendance'],
 };
 
 let defaultTablesConfig: TablesConfig = {};
