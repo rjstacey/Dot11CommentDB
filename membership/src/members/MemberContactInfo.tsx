@@ -31,10 +31,10 @@ function MemberContactEmails({
 	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
-	const contactEmails = member.ContactEmails || [];
-	const disableAdd = contactEmails.length > 0 && contactEmails[0].Email === '';
 
 	const columns = React.useMemo(() => {
+		const contactEmails = member.ContactEmails || [];
+		const disableAdd = contactEmails.length > 0 && contactEmails[0].Email === '';
 
 		function addContactEmail() {
 			const id = contactEmails.reduce((maxId, h) => h.id > maxId? h.id: maxId, 0) + 1;
@@ -95,12 +95,12 @@ function MemberContactEmails({
 
 			return col;
 		})
-	}, [contactEmails, updateMember, disableAdd, readOnly]);
+	}, [member.ContactEmails, updateMember, readOnly]);
 
 	return (
 		<Table
 			columns={columns}
-			values={contactEmails}
+			values={member.ContactEmails || []}
 			rowId='id'
 		/>
 	)

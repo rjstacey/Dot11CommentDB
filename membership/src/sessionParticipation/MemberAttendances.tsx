@@ -12,7 +12,7 @@ import {
 	updateAttendances,
 	SessionAttendanceSummary,
 } from '../store/sessionParticipation';
-import { selectSessionIds, selectSessionEntities, SessionTypeOptions, type Session } from '../store/sessions';
+import { selectSessionEntities, SessionTypeOptions, type Session } from '../store/sessions';
 
 import { EditTable as Table, TableColumn } from '../components/Table';
 

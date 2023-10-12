@@ -5,7 +5,7 @@ import {
 	fetcher,
 	setError,
 	createAppTableDataSlice,
-	SortType,
+	FieldType,
 	getAppTableDataSelectors,
 	isObject
 } from 'dot11-components';
@@ -15,16 +15,16 @@ import { selectWorkingGroupName } from './groups';
 import { Member, selectMemberEntities } from './members';
 
 export const fields = {
-	id: {label: 'id', sortType: SortType.NUMERIC},
-	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
+	id: {label: 'id', type: FieldType.NUMERIC},
+	SAPIN: {label: 'SA PIN', type: FieldType.NUMERIC},
 	Name: {label: 'Name'},
 	Email: {label: 'Email'},
 	Affiliation: {label: 'Affiliation'},
 	Status: {label: 'Status'},
 	ExpectedStatus: {label: 'Expected status'},
-	Excused: {label: 'Excused', sortType: SortType.NUMERIC},
-	CommentCount: {label: 'Comments', sortType: SortType.NUMERIC},
-    ballot_id: {label: 'Ballot ID', sortType: SortType.NUMERIC},
+	Excused: {label: 'Excused', type: FieldType.NUMERIC},
+	CommentCount: {label: 'Comments', type: FieldType.NUMERIC},
+    ballot_id: {label: 'Ballot ID', type: FieldType.NUMERIC},
     Summary: {label: 'Summary'},
 	ballotSeries_0: {label: 'Ballot series 1'},
 	ballotSeries_1: {label: 'Ballot series 2'},
@@ -38,7 +38,7 @@ type Ballot = {
     Project: string;
 }
 
-type BallotSeries = {
+export type BallotSeries = {
     id: number;
     ballotIds: number[];
     votingPoolId: string;

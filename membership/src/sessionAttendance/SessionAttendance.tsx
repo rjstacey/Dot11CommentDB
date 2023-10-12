@@ -10,7 +10,7 @@ import {
 	GlobalFilter,
 	TableColumnSelector,
 	SplitPanel, Panel, SplitPanelButton,
-	TablesConfig, TableConfig, ConfirmModal,
+	TablesConfig, TableConfig,
 	type CellRendererProps,
 	DropdownRendererProps,
 } from 'dot11-components';
@@ -39,13 +39,6 @@ import MemberDetail from '../members/MemberDetail';
 import SessionSelector from './SessionSelector';
 import TopRow from '../components/TopRow';
 import React from 'react';
-
-const DivLineTruncated = styled.div`
-	width: 100%;
-	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
-`;
 
 const TableCell = styled.div`
 	width: 100%;
@@ -266,7 +259,6 @@ function InportAttendeeForm({methods}: DropdownRendererProps) {
 function SessionAttendance() {
 	const dispatch = useAppDispatch();
 	const {selected, sessionId, entities} = useAppSelector(selectSessionAttendeesState);
-	const memberEntities = useAppSelector(selectMemberEntities);
 
 	const load = (sessionId: number | null) => dispatch(sessionId? loadSessionAttendees(sessionId): clearSessionAttendees());
 	const refresh = () => load(sessionId);
@@ -275,45 +267,6 @@ function SessionAttendance() {
 		const attendee = entities[sapin];
 		if (attendee)
 			return sessionAttendeeToMember(attendee)
-	}
-
-	async function importNew() {
-		const newMembers = (Object.values(entities) as SessionAttendee[])
-			.filter(attendee => !memberEntities[attendee.SAPIN])
-			.map(sessionAttendeeToMember);
-		if (newMembers.length === 0) {
-			await ConfirmModal.show("No new members to add", false);
-			return;
-		}
-		else {
-			const ok = await ConfirmModal.show(`Add ${newMembers.length} new member${newMembers.length > 1? 's': ''}?`);
-			if (ok)
-				dispatch(addMembers(newMembers));
-		}
-	}
-
-	async function importUpdates() {
-		const updates: MemberUpdate[] = [];
-		for (const a of (Object.values(entities) as SessionAttendee[])) {
-			const m = memberEntities[a.SAPIN];
-			if (!m)
-				continue;
-			const changes: Partial<Member> = {
-				Name: m.Name !== a.Name? a.Name: undefined,
-				Email: m.Email !== a.Email? a.Email: undefined,
-				Affiliation: m.Affiliation !== a.Affiliation? a.Affiliation: undefined,
-				Employer: m.Employer !== a.Employer? a.Employer: undefined,
-			};
-			let key: keyof Member;
-			for (key in changes)
-				if (typeof changes[key] === 'undefined')
-					delete changes[key];
-			if (Object.keys(changes).length > 0)
-				updates.push({id: m.SAPIN, changes});
-		}
-		const ok = await ConfirmModal.show(`Update ${updates.length} member${updates.length > 1? 's': ''}?`);
-		if (ok)
-			dispatch(updateMembers(updates));
 	}
 
 	return (

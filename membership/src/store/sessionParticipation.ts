@@ -5,7 +5,7 @@ import {
 	fetcher,
 	setError,
 	createAppTableDataSlice,
-	SortType,
+	FieldType,
 	getAppTableDataSelectors,
 	isObject
 } from 'dot11-components';
@@ -18,22 +18,22 @@ import { selectSessionEntities, selectSession, upsertSessions, type Session } fr
 const renderPct = (pct: number) => !isNaN(pct)? `${pct.toFixed(2)}%`: '';
 
 export const fields = {
-	id: {label: 'id', sortType: SortType.NUMERIC},
-	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
+	id: {label: 'id', type: FieldType.NUMERIC},
+	SAPIN: {label: 'SA PIN', type: FieldType.NUMERIC},
 	Name: {label: 'Name'},
 	Email: {label: 'Email'},
 	Affiliation: {label: 'Affiliation'},
 	Status: {label: 'Status'},
 	ExpectedStatus: {label: 'Expected status'},
 	Summary: {label: 'Summary'},
-	session_0: {sortType: SortType.NUMERIC},
-	session_1: {sortType: SortType.NUMERIC},
-	session_2: {sortType: SortType.NUMERIC},
-	session_3: {sortType: SortType.NUMERIC},
-	session_4: {sortType: SortType.NUMERIC},
-	session_5: {sortType: SortType.NUMERIC},
-	session_6: {sortType: SortType.NUMERIC},
-	session_7: {sortType: SortType.NUMERIC},
+	session_0: {type: FieldType.NUMERIC},
+	session_1: {type: FieldType.NUMERIC},
+	session_2: {type: FieldType.NUMERIC},
+	session_3: {type: FieldType.NUMERIC},
+	session_4: {type: FieldType.NUMERIC},
+	session_5: {type: FieldType.NUMERIC},
+	session_6: {type: FieldType.NUMERIC},
+	session_7: {type: FieldType.NUMERIC},
 };
 
 export type SessionAttendanceSummary = {

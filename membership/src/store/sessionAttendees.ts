@@ -4,7 +4,7 @@ import {
 	fetcher,
 	setError,
 	createAppTableDataSlice,
-	SortType,
+	FieldType,
 	getAppTableDataSelectors,
 	isObject
 } from 'dot11-components';
@@ -16,7 +16,7 @@ import { selectMemberEntities } from './members';
 import { selectSession } from './sessions';
 
 export const fields = {
-	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
+	SAPIN: {label: 'SA PIN', type: FieldType.NUMERIC},
 	'Name/Email': {label: 'Name/Email'},
 	Name: {label: 'Name'},
 	Email: {label: 'Email'},
@@ -25,7 +25,7 @@ export const fields = {
 	Affiliation: {label: 'Affiliation'},
 	ContactInfo: {label: 'Contact Info'},
 	Status: {label: 'Status'},
-	AttendancePercentage: {label: 'Attendance', SortType: SortType.NUMERIC}
+	AttendancePercentage: {label: 'Attendance', type: FieldType.NUMERIC}
 };
 
 export type SessionAttendee = {

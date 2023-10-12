@@ -139,7 +139,7 @@ function membersSummary(members: Member[]): TableData {
 			V[1]++;
 		if (m.Status === 'Voter')
 			V[2]++;
-		if (m.Status == 'ExOfficio')
+		if (m.Status === 'ExOfficio')
 			V[3]++;
 	});
 	let values = [V.map(String)];

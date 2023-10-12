@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {
 	AppTable, 
@@ -34,26 +33,18 @@ import {
 import MemberDetail from '../members/MemberDetail';
 import { renderNameAndEmail } from '../members/Members';
 import BulkStatusUpdate from '../sessionParticipation/BulkStatusUpdate';
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
+import TopRow from '../components/TopRow';
 
 function BallotSeriesSummary() {
 	const {ids: ballotSeriesIds, entities: ballotSeriesEntities} = useAppSelector(selectBallotSeries);
-    const ballotEntities = useAppSelector(selectBallotEntities);
+	const ballotEntities = useAppSelector(selectBallotEntities);
 
 	const elements = ballotSeriesIds.map(id => {
 		const ballotSeries = ballotSeriesEntities[id]!;
-        const ballotIdsStr = ballotSeries.ballotIds.map(id => ballotEntities[id]!.BallotID).join(', ');
+		const ballotIdsStr = ballotSeries.ballotIds.map(id => ballotEntities[id]!.BallotID).join(', ');
 		return (
 			<div key={id} style={{display: 'flex', flexDirection: 'column'}}>
-                <div>{ballotEntities[id]!.Project}</div>
+				<div>{ballotEntities[id]!.Project}</div>
 				<div>{displayDateRange(ballotSeries.start, ballotSeries.end)}</div>
 				<div>{ballotIdsStr}</div>
 			</div>

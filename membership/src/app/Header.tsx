@@ -52,6 +52,12 @@ const fullMenu: MenuItem[] = [
 	},
 	{
 		minAccess: AccessLevel.admin,
+		link: '/notification',
+		groupName: "required",
+		label: 'Notify',
+	},
+	{
+		minAccess: AccessLevel.admin,
 		link: '/reports',
 		groupName: "required",
 		label: 'Reports',

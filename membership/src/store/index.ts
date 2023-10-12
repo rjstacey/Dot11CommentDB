@@ -17,11 +17,12 @@ import ballotParticipationSlice, {loadBallotParticipation} from './ballotPartici
 import sessionAttendeesSlice from './sessionAttendees';
 import imatCommitteesSlice from './imatCommittees';
 import sessionsSlice, {loadSessions} from './sessions';
+import emailTemlatesSlice, {loadEmailTemplates} from './email';
 
 import { errorsSlice } from 'dot11-components';
 
 const RESET_STORE_ACTION = "root/RESET_STORE";
-const PERSIST_VERSION = 3;
+const PERSIST_VERSION = 4;
 
 const transformState = createTransform(
 	(state: any) => {
@@ -34,7 +35,8 @@ const transformState = createTransform(
 		groupsSlice.name,
 		officersSlice.name,
 		attendancesSlice.name,
-		ballotParticipationSlice.name
+		ballotParticipationSlice.name,
+		emailTemlatesSlice.name
 	]}
 );
 
@@ -55,6 +57,7 @@ function configureStore(user: User) {
 		[errorsSlice.name]: errorsSlice.reducer,
 		[sessionAttendeesSlice.name]: sessionAttendeesSlice.reducer,
 		[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
+		[emailTemlatesSlice.name]: emailTemlatesSlice.reducer,
 	});
 
 	const rootReducer = (state: any, action: AnyAction) => {
@@ -75,7 +78,8 @@ function configureStore(user: User) {
 			groupsSlice.name,
 			membersSlice.name,
 			attendancesSlice.name,
-			ballotParticipationSlice.name
+			ballotParticipationSlice.name,
+			emailTemlatesSlice.name
 		],
 		stateReconciler: autoMergeLevel2,
 		transforms: [transformState],
@@ -106,6 +110,7 @@ function configureStore(user: User) {
 		store.dispatch(loadOfficers());
 		store.dispatch(loadAttendances());
 		store.dispatch(loadBallotParticipation());
+		store.dispatch(loadEmailTemplates());
 	});
 
 	return {store, persistor, reducer: rootReducer};

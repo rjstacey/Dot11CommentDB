@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import type { EntityId } from '@reduxjs/toolkit';
 
 import {
 	AppTable,
@@ -20,13 +19,9 @@ import {
 	TablesConfig,
 	CellRendererProps,
 	HeaderCellRendererProps,
-	ButtonGroup, ActionButton 
+	ButtonGroup, ActionButton,
+	displayDateRange,
 } from 'dot11-components';
-
-import MembersUpload from './MembersUpload';
-import MembersSummary from './MembersSummary';
-import MemberDetail from './MemberDetail';
-import {RosterImport, RosterExport} from './Roster';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
@@ -35,50 +30,42 @@ import {
 	selectMembersState,
 	membersSelectors,
 	membersActions,
+	type Member,
 } from '../store/members';
-import type {Member, MembersDictionary} from '../store/members';
+import { selectMostRecentAttendedSession } from '../store/sessionParticipation';
+import { selectBallotEntities, selectMostRecentBallotSeries } from '../store/ballotParticipation';
 
 import TopRow from '../components/TopRow';
+import NotificationEmail from './NotificationEmail';
 
-function copyHtmlToClipboard(html: string) {
-	const type = "text/html";
-    const blob = new Blob([html], {type});
-    const data = [new ClipboardItem({[type]: blob})];
-	navigator.clipboard.write(data);
+function MostRecentBallotSummary() {
+	const ballotSeries = useAppSelector(selectMostRecentBallotSeries);
+	const ballotEntities = useAppSelector(selectBallotEntities);
+	const ballotIdsStr = ballotSeries.ballotIds.map(id => ballotEntities[id]?.BallotID || '?').join(', ');
+
+	return (
+		<div style={{display: 'flex', flexDirection: 'column'}}>
+			<label>Most recent ballot series:</label>
+			<div>{ballotSeries.project}</div>
+			<div>{displayDateRange(ballotSeries.start, ballotSeries.end)}</div>
+			<div>{ballotIdsStr}</div>
+		</div>
+	)
 }
 
-function setClipboard(selected: EntityId[], members: MembersDictionary) {
+function MostRecentSessionSummary() {
+	const session = useAppSelector(selectMostRecentAttendedSession);
+	if (!session)
+		return null;
 
-	const td = (d: string | number) => `<td>${d}</td>`
-	const th = (d: string) => `<th>${d}</th>`
-	const header = `
-		<tr>
-			${th('SAPIN')}
-			${th('Name')}
-			${th('Status')}
-			${th('Session participation')}
-			${th('Ballot participation')}
-		</tr>`
-	const row = (m: Member) => `
-		<tr>
-			${td(m.SAPIN)}
-			${td(m.Name)}
-			${td(m.Status)}
-			${td(m.AttendanceCount)}
-			${td(`${m.BallotSeriesCount}/${m.BallotSeriesTotal}`)}
-		</tr>`
-	const table = `
-		<style>
-			table {border-collapse: collapse;}
-			table, th, td {border: 1px solid black;}
-			td {vertical-align: top;}
-		</style>
-		<table>
-			${header}
-			${selected.map(sapin => row(members[sapin]!)).join('')}
-		</table>`
-
-		copyHtmlToClipboard(table);
+	return (
+		<div style={{display: 'flex', flexDirection: 'column'}}>
+			<label>Most recent session:</label>
+			<div>{session.number} {session.type === 'p'? 'Plenary: ': 'Interim: '} {displayDateRange(session.startDate, session.endDate)}</div>
+			<div style={{whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'}}>{session.name}</div>
+			<div>{`(${session.attendees} attendees)`}</div>
+		</div>
+	)
 }
 
 const DivLineTruncated = styled.div`
@@ -185,7 +172,7 @@ const tableColumns: ColumnProperties[] = [
 
 const defaultTablesColumns = {
 	General: ['__ctrl__', 'SAPIN', 'Name/Email', 'Employer/Affiliation', 'Status', 'StatusChangeDate'],
-	Participation: ['__ctrl__', 'SAPIN', 'Name/Email', 'Status', 'AttendancesSummary', 'BallotParticipationSummary']
+	Participation: ['__ctrl__', 'SAPIN', 'Name/Email', 'Attendance', 'Status', 'AttendancesSummary', 'BallotParticipationSummary']
 };
 
 let defaultTablesConfig: TablesConfig = {};
@@ -206,10 +193,11 @@ for (tableView in defaultTablesColumns) {
 	defaultTablesConfig[tableView] = tableConfig;
 }
 
+
 function Members() {
 
 	const dispatch = useAppDispatch();
-	const {selected, entities: members, valid} = useAppSelector(selectMembersState);
+	const {valid} = useAppSelector(selectMembersState);
 
 	const load = () => dispatch(loadMembers());
 
@@ -221,7 +209,8 @@ function Members() {
 	return (
 		<>
 			<TopRow>
-				<MembersSummary />
+				<MostRecentBallotSummary />
+				<MostRecentSessionSummary />
 				<div style={{display: 'flex'}}>
 					<ButtonGroup>
 						<div>Table view</div>
@@ -241,29 +230,17 @@ function Members() {
 							/>
 						</div>
 					</ButtonGroup>
-					<ButtonGroup>
-						<div>Roster</div>
-						<div style={{display: 'flex'}}>
-							<RosterImport />
-							<RosterExport />
-						</div>
-					</ButtonGroup>
-					<ButtonGroup>
-						<div>Edit</div>
-						<div style={{display: 'flex'}}>
-							<ActionButton name='copy' title='Copy to clipboard' disabled={selected.length === 0} onClick={() => setClipboard(selected, members)} />
-							<MembersUpload />
-						</div>
-					</ButtonGroup>
 					<ActionButton name='refresh' title='Refresh' onClick={load} />
 				</div>
 			</TopRow>
 
-			<ShowFilters
-				selectors={membersSelectors}
-				actions={membersActions}
-				fields={fields}
-			/>
+			<div style={{display: 'flex', width: '100%'}}>
+				<ShowFilters
+					selectors={membersSelectors}
+					actions={membersActions}
+					fields={fields}
+				/>
+			</div>
 
 			<SplitPanel
 				selectors={membersSelectors}
@@ -280,9 +257,7 @@ function Members() {
 					/>
 				</Panel>
 				<Panel style={{overflow: 'auto'}}>
-					<MemberDetail
-						key={selected.join()}
-					/>
+					<NotificationEmail />
 				</Panel>
 			</SplitPanel>
 		</>

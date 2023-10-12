@@ -6,7 +6,7 @@ import {
 	selectGroup,
 	GroupTypeOptions,
 	GroupStatusOptions,
-    GroupCreate, GroupType
+    type GroupType
 } from '../store/groups';
 
 import Officers from './Officers';

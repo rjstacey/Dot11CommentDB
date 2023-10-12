@@ -1,4 +1,4 @@
-import { createSlice, createEntityAdapter, createSelector } from '@reduxjs/toolkit';
+import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
 import type { Dictionary, EntityId } from '@reduxjs/toolkit';
 
 import { v4 as uuid } from 'uuid';

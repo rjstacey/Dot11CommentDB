@@ -6,11 +6,11 @@ import {
 	setError,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
-	SortType,
+	FieldType,
 	AccessLevelOptions,
 	displayAccessLevel,
-	AppTableDataState,
-	isObject
+	isObject,
+	displayDate
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
@@ -102,13 +102,14 @@ export type MemberWithParticipation = Member & {
 export type MembersDictionary = Dictionary<Member>;
 
 export const fields = {
-	SAPIN: {label: 'SA PIN', isId: true, sortType: SortType.NUMERIC},
+	SAPIN: {label: 'SA PIN', type: FieldType.NUMERIC},
 	Name: {label: 'Name'},
 	Email: {label: 'Email'},
 	Employer: {label: 'Employer'},
 	Affiliation: {label: 'Affiliation'}, 
 	Status: {label: 'Status'},
-	Access: {label: 'Access level', dataRenderer: displayAccessLevel, sortType: SortType.NUMERIC, options: AccessLevelOptions},
+	StatusChangeDate: {label: 'Status change date', dataRenderer: displayDate, type: FieldType.DATE},
+	Access: {label: 'Access level', dataRenderer: displayAccessLevel, type: FieldType.NUMERIC, options: AccessLevelOptions},
 	AttendancesSummary: {label: 'Session participation'},
 	BallotParticipationSummary: {label: 'Ballot participation'}
 };
@@ -126,7 +127,7 @@ export function getField(entity: Member, key: string): any {
 /*
  * Selectors
  */
-export const selectMembersState = (state: RootState): MembersState => state[dataSet];
+export const selectMembersState = (state: RootState) => state[dataSet];
 export const selectMemberIds = (state: RootState) => selectMembersState(state).ids;
 export function selectMemberEntities(state: RootState) {return selectMembersState(state).entities};
 
@@ -175,6 +176,12 @@ const selectMemberWithParticipationSummary = createSelector(
 	}
 );
 
+export function selectMembersStatusChangeSinceDate(state: RootState, dateStr: string) {
+	const {ids, entities} = selectMembersState(state);
+	const date = new Date(dateStr);
+	return ids.filter(id => new Date(entities[id]!.StatusChangeDate) > date);
+}
+
 export const membersSelectors = getAppTableDataSelectors(selectMembersState, {selectEntities: selectMemberWithParticipationSummary});
 
 export const selectUiProperties = membersSelectors.selectUiProperties;
@@ -182,8 +189,6 @@ export const selectUiProperties = membersSelectors.selectUiProperties;
 /*
  * Slice
  */
-type MembersState = AppTableDataState<Member>;
-
 const dataSet = 'members';
 const selectId = (m: Member) => m.SAPIN;
 const sortComparer = (m1: Member, m2: Member) => m1.SAPIN - m2.SAPIN;

@@ -86,6 +86,7 @@ function ImportAttendanceForm({methods, session}: DropdownRendererProps & {sessi
 		</Form>
 	)
 }
+
 function SessionSummary() {
 	const sessions = useAppSelector(selectAttendanceSessions);
 
