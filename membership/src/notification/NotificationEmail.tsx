@@ -86,7 +86,7 @@ function genEmails({
 				},
 				Body: {
 					Html: {
-						Charset: 8 as unknown as string, //"UTF-8",
+						Charset: "UTF-8",
 						Data: html,
 					},
 					Text: {
