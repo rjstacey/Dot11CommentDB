@@ -8,14 +8,14 @@ import { Form, Field, Checkbox, EntityId, Dictionary } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 
-import { User, selectUser } from '../store/user';
-import { selectSyncedMeetingEntities, selectMeetingIds, SyncedMeeting } from '../store/meetings';
-import { Officer, selectOfficersState } from '../store/officers';
-import { Member, selectMember } from '../store/members';
+import type { RootState } from '../store';
+import { selectUser, type User } from '../store/user';
+import { selectSyncedMeetingEntities, selectMeetingIds, type SyncedMeeting } from '../store/meetings';
+import { selectOfficersState, type Officer } from '../store/officers';
+import { selectMember, type Member } from '../store/members';
 import { selectGroupsState } from '../store/groups';
 import { WebexMeeting, displayMeetingNumber } from '../store/webexMeetings';
-import { sendEmail } from '../store/emailActions';
-import { RootState } from '../store';
+import { sendEmail, type Email } from '../store/emailActions';
 
 function displayDateTime(entity: WebexMeeting, timezone: string) {
 	const start = DateTime.fromISO(entity.start, {zone: timezone});
@@ -124,9 +124,8 @@ function selectEmails(state: RootState, groupIds: EntityId[]) {
 
 		const officers = selectOfficers(state, id);
 
-		const email = {
+		const email: Email = {
 			Destination: {
-				/* required */
 				CcAddresses: [genEmailAddress(user)],
 				ToAddresses: genEmailToList(officers),
 			},
