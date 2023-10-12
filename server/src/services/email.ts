@@ -1,12 +1,12 @@
 import { fromIni } from '@aws-sdk/credential-providers';
 import { SESClient, SendEmailCommand, SendEmailCommandInput } from '@aws-sdk/client-ses';
+import type { OkPacket } from 'mysql2';
 
 import type { User } from './users';
+import type { Group } from './groups';
 
 import db from '../utils/database';
-import type { Group } from './groups';
 import { isPlainObject } from '../utils';
-import { OkPacket } from 'mysql2';
 
 const region = 'us-west-2';
 let credentials: ReturnType<typeof fromIni>;
@@ -19,48 +19,80 @@ export function init() {
 	sesClient = new SESClient({region, credentials});
 }
 
-// Set the parameters
-const defaultParams = {
-	Destination: {
-		/* required */
-		CcAddresses: [
-			/* more items */
-		],
-		ToAddresses: [
-			"rjstacey@gmail.com", //RECEIVER_ADDRESS
-			/* more To-email addresses */
-		],
-	},
-	Message: {
-		/* required */
-		Body: {
-			/* required */
-			Html: {
-				Charset: "UTF-8",
-				Data: "HTML_FORMAT_BODY",
-			},
-			Text: {
-				Charset: "UTF-8",
-				Data: "TEXT_FORMAT_BODY",
-			},
-		},
-		Subject: {
-			Charset: "UTF-8",
-			Data: "EMAIL_SUBJECT",
-		},
-	},
-	Source: "noreply@802tools.org", // SENDER_ADDRESS
-	ReplyToAddresses: [
-		/* more items */
-	],
-};
+export interface Destination {
+	ToAddresses?: string[];
+	CcAddresses?: string[];
+	BccAddresses?: string[];
+}
+
+export interface Content {
+	Data: string | undefined;
+	Charset?: string;
+}
+
+export interface Body {
+	Text?: Content;
+	Html?: Content;
+}
+
+export interface Message {
+	Subject: Content | undefined;
+	Body: Body | undefined;
+}
+
+export interface Email {
+	Destination: Destination | undefined;
+	Message: Message | undefined;
+	ReplyToAddresses?: string[];
+}
+
+function validOptionalStringArray(s: any): s is (string[] | undefined) {
+	return typeof s === "undefined" ||
+		(Array.isArray(s) && s.every((s: any) => typeof s === "string"));
+}
+
+function validContent(content: any): content is Content {
+	return isPlainObject(content) &&
+		(typeof content.Data === "undefined" || typeof content.Data === "string") &&
+		(typeof content.Charset === "undefined" || typeof content.Charset === "string")
+}
+
+function validDestination(destintation: any): destintation is Destination {
+	return isPlainObject(destintation) &&
+		validOptionalStringArray(destintation.ToAddresses) &&
+		validOptionalStringArray(destintation.CcAddresses) &&
+		validOptionalStringArray(destintation.BccAddresses)
+}
+
+function validBody(body: any): body is Body {
+	return isPlainObject(body) &&
+		validContent(body.Text) &&
+		validContent(body.Html);
+}
+
+function validMessage(message: any): message is Message {
+	return isPlainObject(message) &&
+		validContent(message.Subject) &&
+		validBody(message.Body)
+}
+
+export function validateEmail(email: any): asserts email is Email {
+	if (!isPlainObject(email))
+		throw new TypeError("expected email object");
+	if (!validDestination(email.Destination))
+		throw new TypeError("invalid email object; bad Destination");
+	if (!validMessage(email.Message))
+		throw new TypeError("invalid email object; bad Message");
+	if (!validOptionalStringArray(email.ReplyToAddresses))
+		throw new TypeError("invalid email object; bad ReplyToAddresses");
+}
 
 /**
  * Send an email
  * @param user The user executing the command
  * @param email The email to be sent
  */
-export async function sendEmail(user: User, email: SendEmailCommandInput) {
+export async function sendEmail(user: User, email: Email) {
 	if (!sesClient)
 		throw new Error('eMail service has not been initialized');
 
@@ -111,7 +143,7 @@ export function validEmailTemplateCreates(templates: any): templates is EmailTem
 	return Array.isArray(templates) && templates.every(validEmailTemplateCreate);
 }
 
-async function addEmailTemplate(groupId: string, template: EmailTemplate) {
+async function addEmailTemplate(groupId: string, template: EmailTemplateCreate) {
 	const sql = db.format(`
 		INSERT INTO emailTemplates SET groupId=UUID_TO_BIN(?), ? 
 	`, [groupId, template]);
@@ -122,7 +154,7 @@ async function addEmailTemplate(groupId: string, template: EmailTemplate) {
 /**
  * Add email template
  */
-export async function addTemplates(group: Group, templates: any) {
+export async function addTemplates(group: Group, templates: EmailTemplateCreate[]) {
 	const ids = await Promise.all(templates.map(t => addEmailTemplate(group.id, t)));
 	return getTemplates(group, {id: ids});
 }

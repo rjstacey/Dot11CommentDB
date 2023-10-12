@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { ForbiddenError, isPlainObject } from '../utils';
+import { ForbiddenError } from '../utils';
 import { AccessLevel } from '../auth/access';
 import {
 	sendEmail,
@@ -7,6 +7,7 @@ import {
 	addTemplates,
 	updateTemplates,
 	deleteTemplates,
+	validateEmail,
 	validEmailTemplateCreates,
 	validEmailTemplateUpdates,
 	validEmailTemplateIds
@@ -28,8 +29,8 @@ router
 	})
 	.post('/send', (req, res, next) => {
 		const {user, body} = req;
-		if (!isPlainObject(body))
-			return next(new TypeError('Bad or missing body; expected object'));
+		try {validateEmail(body)}
+		catch (error) {return next(error)}
 		sendEmail(user, body)
 			.then(data => res.json(data))
 			.catch(next)
