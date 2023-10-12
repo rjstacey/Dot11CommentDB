@@ -17,7 +17,7 @@ import {
 } from 'dot11-components';
 import { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { addEmailTemplate, selectEmailTemplatesState, updateEmailTemplate, deleteEmailTemplate, sendEmail, type EmailTemplateCreate, type EmailTemplate } from '../store/email';
+import { addEmailTemplate, selectEmailTemplatesState, updateEmailTemplate, deleteEmailTemplate, sendEmail, type EmailTemplateCreate, type EmailTemplate, type Email } from '../store/email';
 import { selectMembersState, type Member } from '../store/members';
 import { type Session } from '../store/sessions';
 import { selectMostRecentAttendedSession } from '../store/sessionParticipation';
@@ -73,7 +73,7 @@ function genEmails({
 			</Html>
 		);
 
-		const emailOut = {
+		const emailOut: Email = {
 			Destination: {
 				/* required */
 				CcAddresses: [genEmailAddress(user)],
@@ -86,7 +86,7 @@ function genEmails({
 				},
 				Body: {
 					Html: {
-						Charset: "UTF-8",
+						Charset: 8 as unknown as string, //"UTF-8",
 						Data: html,
 					},
 					Text: {
@@ -102,7 +102,7 @@ function genEmails({
 	})
 }
 
-function Email({
+function FormatEmail({
 	email,
 	style
 }: {
@@ -111,19 +111,19 @@ function Email({
 }
 ) {
 	return (
-			<Markdown
-				markdownCustomStyles={{
-					h1: { color: "red" },
-					h2: { color: "blue" },
-					codeInline: { background: "grey" },
-				}}
-				markdownContainerStyles={{
-					padding: "12px",
-					border: "solid 1px black",
-				}}
-			>
-				{email.body}
-			</Markdown>
+		<Markdown
+			markdownCustomStyles={{
+				h1: { color: "red" },
+				h2: { color: "blue" },
+				codeInline: { background: "grey" },
+			}}
+			markdownContainerStyles={{
+				padding: "12px",
+				border: "solid 1px black",
+			}}
+		>
+			{email.body}
+		</Markdown>
 	);
 }
 
@@ -141,7 +141,7 @@ const PreviewEmail = ({
 	const member = members[0];
 
 	const email = doSubstitution(value, member, session);
-	return <Email email={email} />
+	return <FormatEmail email={email} />
 };
 
 
