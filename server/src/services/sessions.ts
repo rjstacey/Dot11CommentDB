@@ -1,10 +1,10 @@
 /*
  * Manage sessions and session attendance
  */
-import { DateTime } from 'luxon';
-import type { OkPacket } from 'mysql2';
+import { DateTime } from "luxon";
+import type { OkPacket } from "mysql2";
 
-import db from '../utils/database';
+import db from "../utils/database";
 
 const getSessionsSQL = () => `
 	SELECT 
@@ -36,14 +36,14 @@ export type Room = {
 	id: number;
 	name: string;
 	description: string;
-}
+};
 
 export type Timeslot = {
 	id: number;
 	name: string;
 	startTime: string;
 	endTime: string;
-}
+};
 
 export type DayCredit = { [slotName: string]: string };
 export type SessionCredits = DayCredit[];
@@ -68,7 +68,9 @@ export interface Session {
 	attendees: number;
 }
 
-type SessionDB = Partial<Omit<Session, "rooms" | "timeslots" | "defaultCredits" | "attendees">> & {
+type SessionDB = Partial<
+	Omit<Session, "rooms" | "timeslots" | "defaultCredits" | "attendees">
+> & {
 	timeslots?: string;
 	defaultCredits?: string;
 };
@@ -86,36 +88,43 @@ export type AttendanceSummary = {
 	DidAttend: boolean;
 	DidNotAttend: boolean;
 	Notes: string;
-}
+};
 
 /**
  * Get a list of sessions.
- * 
+ *
  * @param constraints (Optional) An object with constraints for the database query
- * 
+ *
  * @returns an array of session objects
  */
 export function getSessions(constraints?: SessionsQueryConstraints) {
 	let sql = getSessionsSQL();
 	if (constraints && Object.keys(constraints).length > 0) {
-		sql += ' WHERE ' + Object.entries(constraints).map(
-			([key, value]) => db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
-		).join(' AND ');
+		sql +=
+			" WHERE " +
+			Object.entries(constraints)
+				.map(([key, value]) =>
+					db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
+						key,
+						value,
+					])
+				)
+				.join(" AND ");
 	}
-	sql += ' ORDER BY startDate DESC';
+	sql += " ORDER BY startDate DESC";
 	//console.log(sql)
-	return db.query({sql, dateStrings: true}) as Promise<Session[]>;
+	return db.query({ sql, dateStrings: true }) as Promise<Session[]>;
 }
 
 /**
  * Get a session
- * 
+ *
  * @param id Session identifier
- * 
+ *
  * @returns a session object or undefined
  */
 export async function getSession(id: number): Promise<Session | undefined> {
-	const sessions = await getSessions({id});
+	const sessions = await getSessions({ id });
 	return sessions[0];
 }
 
@@ -126,77 +135,82 @@ function sessionEntrySetSql(s: Partial<Session>) {
 		type: s.type,
 		groupId: s.groupId,
 		imatMeetingId: s.imatMeetingId,
-		OrganizerID: s.OrganizerID
+		OrganizerID: s.OrganizerID,
 	};
 
-	if (typeof s.timezone !== 'undefined') {
+	if (typeof s.timezone !== "undefined") {
 		if (!DateTime.local().setZone(s.timezone).isValid)
-			throw new TypeError('Invalid parameter timezone: ' + s.timezone);
+			throw new TypeError("Invalid parameter timezone: " + s.timezone);
 		entry.timezone = s.timezone;
 	}
 
-	if (typeof s.startDate !== 'undefined') {
+	if (typeof s.startDate !== "undefined") {
 		if (!DateTime.fromISO(s.startDate).isValid)
-			throw new TypeError('Invlid parameter startDate: ' + s.startDate);
+			throw new TypeError("Invlid parameter startDate: " + s.startDate);
 		entry.startDate = s.startDate;
 	}
 
-	if (typeof s.endDate !== 'undefined') {
+	if (typeof s.endDate !== "undefined") {
 		if (!DateTime.fromISO(s.endDate).isValid)
-			throw new TypeError('Invlid parameter endDate: ' + s.endDate);
+			throw new TypeError("Invlid parameter endDate: " + s.endDate);
 		entry.endDate = s.endDate;
 	}
 
-	if (typeof s.timeslots !== 'undefined') {
+	if (typeof s.timeslots !== "undefined") {
 		if (!Array.isArray(s.timeslots))
-			throw new TypeError('Invlid parameter timeslots: ' + s.timeslots);
+			throw new TypeError("Invlid parameter timeslots: " + s.timeslots);
 		entry.timeslots = JSON.stringify(s.timeslots);
 	}
 
-	if (typeof s.defaultCredits !== 'undefined') {
+	if (typeof s.defaultCredits !== "undefined") {
 		if (!Array.isArray(s.defaultCredits))
-			throw new TypeError('Invlid parameter defaultCredits: ' + s.defaultCredits);
+			throw new TypeError(
+				"Invlid parameter defaultCredits: " + s.defaultCredits
+			);
 		entry.defaultCredits = JSON.stringify(s.defaultCredits);
 	}
 
-	if (typeof s.rooms !== 'undefined') {
+	if (typeof s.rooms !== "undefined") {
 		if (!Array.isArray(s.rooms))
-			throw new TypeError('Invlid parameter rooms: ' + s.rooms);
+			throw new TypeError("Invlid parameter rooms: " + s.rooms);
 	}
 
 	for (const key of Object.keys(entry)) {
-		if (entry[key] === undefined)
-			delete entry[key]
+		if (entry[key] === undefined) delete entry[key];
 	}
 
 	const sets: string[] = [];
 	for (const [key, value] of Object.entries(entry)) {
 		let sql: string;
-		if (key === 'groupId')
-			sql = db.format('??=UUID_TO_BIN(?)', [key, value]);
-		else
-			sql = db.format('??=?', [key, value]);
+		if (key === "groupId")
+			sql = db.format("??=UUID_TO_BIN(?)", [key, value]);
+		else sql = db.format("??=?", [key, value]);
 		sets.push(sql);
 	}
 
-	return sets.join(', ');
+	return sets.join(", ");
 }
 
-
 function replaceSessionRooms(sessionId: number, rooms: Room[]) {
-	let sql = db.format('DELETE FROM rooms WHERE sessionId=?;', [sessionId]);
+	let sql = db.format("DELETE FROM rooms WHERE sessionId=?;", [sessionId]);
 	if (rooms.length > 0)
-		sql += rooms.map(room => db.format('INSERT INTO rooms SET ?;', [{sessionId, ...room}])).join('');
+		sql += rooms
+			.map((room) =>
+				db.format("INSERT INTO rooms SET ?;", [{ sessionId, ...room }])
+			)
+			.join("");
 	//console.log(sql)
 	return db.query(sql);
 }
 
 export async function addSession(session: Session) {
 	const setSql = sessionEntrySetSql(session);
-	const {insertId} = await db.query({sql: `INSERT INTO sessions SET ${setSql};`, dateStrings: true}) as OkPacket;
-	if (session.rooms)
-		await replaceSessionRooms(insertId, session.rooms);
-	const [insertedSession] = await getSessions({id: insertId});
+	const { insertId } = (await db.query({
+		sql: `INSERT INTO sessions SET ${setSql};`,
+		dateStrings: true,
+	})) as OkPacket;
+	if (session.rooms) await replaceSessionRooms(insertId, session.rooms);
+	const [insertedSession] = await getSessions({ id: insertId });
 	return insertedSession;
 }
 
@@ -204,21 +218,29 @@ export async function updateSession(id: number, changes: Partial<Session>) {
 	const setSql = sessionEntrySetSql(changes);
 	if (setSql) {
 		//console.log(setSql)
-		await db.query({sql: `UPDATE sessions SET ${setSql} WHERE id=?;`, dateStrings: true},  [id]);
+		await db.query(
+			{
+				sql: `UPDATE sessions SET ${setSql} WHERE id=?;`,
+				dateStrings: true,
+			},
+			[id]
+		);
 	}
 
-	if (changes.rooms)
-		await replaceSessionRooms(id, changes.rooms);
+	if (changes.rooms) await replaceSessionRooms(id, changes.rooms);
 
-	const sessions = await getSessions({id});
+	const sessions = await getSessions({ id });
 	return sessions[0];
 }
 
 export async function deleteSessions(ids: number[]) {
-	const results = await db.query(
-		db.format('DELETE FROM sessions WHERE id IN (?);', [ids]) +
-		db.format('DELETE FROM rooms WHERE sessionId IN (?);', [ids]) +
-		db.format('DELETE FROM attendance_summary WHERE session_id IN (?);', [ids])
-	) as OkPacket[];
+	const results = (await db.query(
+		db.format("DELETE FROM sessions WHERE id IN (?);", [ids]) +
+			db.format("DELETE FROM rooms WHERE sessionId IN (?);", [ids]) +
+			db.format(
+				"DELETE FROM attendance_summary WHERE session_id IN (?);",
+				[ids]
+			)
+	)) as OkPacket[];
 	return results[0].affectedRows;
 }
