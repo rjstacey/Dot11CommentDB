@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { Router } from "express";
 
-import { completeAuthCalendarAccount } from '../services/calendar';
-import { completeAuthWebexAccount } from '../services/webex';
+import { completeAuthCalendarAccount } from "../services/calendar";
+import { completeAuthWebexAccount } from "../services/webex";
 
 /*
  * oauth2 API
@@ -13,15 +13,15 @@ import { completeAuthWebexAccount } from '../services/webex';
 const router = Router();
 
 router
-    .get('/calendar', (req, res, next) => {
-        completeAuthCalendarAccount(req.query)
-            .then(() => res.redirect('/meetings/accounts'))
-            .catch(next);
-    })
-    .get('/webex', (req, res, next) => {
-        completeAuthWebexAccount(req.query)
-            .then(() => res.redirect('/meetings/accounts'))
-            .catch(next);
-    });
+	.get("/calendar", (req, res, next) => {
+		completeAuthCalendarAccount(req.query)
+			.then(() => res.redirect("/meetings/accounts"))
+			.catch(next);
+	})
+	.get("/webex", (req, res, next) => {
+		completeAuthWebexAccount(req.query)
+			.then(() => res.redirect("/meetings/accounts"))
+			.catch(next);
+	});
 
 export default router;

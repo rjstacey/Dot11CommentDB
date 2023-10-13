@@ -1,10 +1,10 @@
-import axios from 'axios';
-import type { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { CookieJar } from 'tough-cookie';
-import { HttpCookieAgent, HttpsCookieAgent } from 'http-cookie-agent/http';
-import FormData from 'form-data';
-import {isPlainObject} from './general';
-import { URLSearchParams } from "url"
+import axios from "axios";
+import type { AxiosInstance, AxiosRequestConfig } from "axios";
+import { CookieJar } from "tough-cookie";
+import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
+import FormData from "form-data";
+import { isPlainObject } from "./general";
+import { URLSearchParams } from "url";
 
 /* Send using form-data */
 function transformRequest(data, headers) {
@@ -12,10 +12,9 @@ function transformRequest(data, headers) {
 		/* convert data to form data */
 		//console.log(data)
 		const form = new FormData();
-		for (const key in data)
-			form.append(key, data[key]);
+		for (const key in data) form.append(key, data[key]);
 		/* modify headers */
-		headers.post['Content-Type'] = form.getHeaders()['content-type'];
+		headers.post["Content-Type"] = form.getHeaders()["content-type"];
 
 		return form; //.getBuffer();
 	}
@@ -27,12 +26,12 @@ const urlEncodeParams = (data) => new URLSearchParams(data).toString();
 export function createIeeeClient() {
 	const jar = new CookieJar();
 	const config: AxiosRequestConfig = {
-		responseType: 'text',
+		responseType: "text",
 		transformRequest: urlEncodeParams,
-		baseURL: 'https://imat.ieee.org',
+		baseURL: "https://imat.ieee.org",
 		httpAgent: new HttpCookieAgent({ cookies: { jar } }),
-  		httpsAgent: new HttpsCookieAgent({ cookies: { jar } }),
-	}
+		httpsAgent: new HttpsCookieAgent({ cookies: { jar } }),
+	};
 
 	const client = axios.create(config);
 
