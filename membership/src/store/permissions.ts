@@ -1,6 +1,6 @@
-import {createSlice} from '@reduxjs/toolkit'
-import {fetcher, isObject, setError} from 'dot11-components';
-import type { RootState, AppThunk } from '.';
+import { createSlice } from "@reduxjs/toolkit";
+import { fetcher, isObject, setError } from "dot11-components";
+import type { RootState, AppThunk } from ".";
 
 export type Permission = {
 	scope: string;
@@ -11,15 +11,15 @@ type PermissionsState = {
 	loading: boolean;
 	valid: boolean;
 	permissions: Permission[];
-}
+};
 
 const initialState: PermissionsState = {
 	loading: false,
 	valid: false,
 	permissions: [],
-}
+};
 
-const dataSet = 'permissions';
+const dataSet = "permissions";
 const slice = createSlice({
 	name: dataSet,
 	initialState,
@@ -35,7 +35,7 @@ const slice = createSlice({
 		getFailure(state) {
 			state.loading = false;
 		},
-	}
+	},
 });
 
 export default slice;
@@ -44,38 +44,39 @@ export default slice;
  * Selectors
  */
 export const selectPermissionsState = (state: RootState) => state[dataSet];
-export const selectPermissions = (state: RootState) => selectPermissionsState(state).permissions;
+export const selectPermissions = (state: RootState) =>
+	selectPermissionsState(state).permissions;
 
 /*
  * Actions
  */
-const {getSuccess, getPending, getFailure} = slice.actions;
+const { getSuccess, getPending, getFailure } = slice.actions;
 
-const url = '/api/permissions';
+const url = "/api/permissions";
 
 function validPermission(p: any): p is Permission {
-	return isObject(p) &&
-		typeof p.scope === 'string' &&
-		typeof p.description == 'string';
+	return (
+		isObject(p) &&
+		typeof p.scope === "string" &&
+		typeof p.description == "string"
+	);
 }
 
 function validResponse(response: any): response is Permission[] {
 	return Array.isArray(response) && response.every(validPermission);
 }
 
-export const loadPermissions = (): AppThunk =>
-	async (dispatch) => {
-		dispatch(getPending());
-		let response: any;
-		try {
-			response = await fetcher.get(url);
-			if (!validResponse(response))
-				throw new TypeError('Unexpected response to GET ' + url);
-		}
-		catch(error) {
-			dispatch(getFailure());
-			dispatch(setError('Unable to get permissions list', error));
-			return;
-		}
-		dispatch(getSuccess(response));
+export const loadPermissions = (): AppThunk => async (dispatch) => {
+	dispatch(getPending());
+	let response: any;
+	try {
+		response = await fetcher.get(url);
+		if (!validResponse(response))
+			throw new TypeError("Unexpected response to GET " + url);
+	} catch (error) {
+		dispatch(getFailure());
+		dispatch(setError("Unable to get permissions list", error));
+		return;
 	}
+	dispatch(getSuccess(response));
+};

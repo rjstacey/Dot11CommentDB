@@ -1,5 +1,10 @@
-import { PayloadAction, Dictionary, createSelector, createEntityAdapter } from '@reduxjs/toolkit';
-import { DateTime } from 'luxon';
+import {
+	createSelector,
+	createEntityAdapter,
+	PayloadAction,
+	Dictionary,
+} from "@reduxjs/toolkit";
+import { DateTime } from "luxon";
 
 import {
 	fetcher,
@@ -7,61 +12,60 @@ import {
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
-	isObject
-} from 'dot11-components';
+	isObject,
+} from "dot11-components";
 
-import type { RootState, AppThunk } from '.';
-import { selectWorkingGroupName } from './groups';
-import { Member, selectMemberEntities } from './members';
+import type { RootState, AppThunk } from ".";
+import { selectWorkingGroupName } from "./groups";
+import { Member, selectMemberEntities } from "./members";
 
 export const fields = {
-	id: {label: 'id', type: FieldType.NUMERIC},
-	SAPIN: {label: 'SA PIN', type: FieldType.NUMERIC},
-	Name: {label: 'Name'},
-	Email: {label: 'Email'},
-	Affiliation: {label: 'Affiliation'},
-	Status: {label: 'Status'},
-	ExpectedStatus: {label: 'Expected status'},
-	Excused: {label: 'Excused', type: FieldType.NUMERIC},
-	CommentCount: {label: 'Comments', type: FieldType.NUMERIC},
-    ballot_id: {label: 'Ballot ID', type: FieldType.NUMERIC},
-    Summary: {label: 'Summary'},
-	ballotSeries_0: {label: 'Ballot series 1'},
-	ballotSeries_1: {label: 'Ballot series 2'},
-	ballotSeries_2: {label: 'Ballot series 3'}
+	id: { label: "id", type: FieldType.NUMERIC },
+	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
+	Name: { label: "Name" },
+	Email: { label: "Email" },
+	Affiliation: { label: "Affiliation" },
+	Status: { label: "Status" },
+	ExpectedStatus: { label: "Expected status" },
+	Excused: { label: "Excused", type: FieldType.NUMERIC },
+	CommentCount: { label: "Comments", type: FieldType.NUMERIC },
+	ballot_id: { label: "Ballot ID", type: FieldType.NUMERIC },
+	Summary: { label: "Summary" },
+	ballotSeries_0: { label: "Ballot series 1" },
+	ballotSeries_1: { label: "Ballot series 2" },
+	ballotSeries_2: { label: "Ballot series 3" },
 };
 
-
 type Ballot = {
-    id: number;
-    BallotID: string;
-    Project: string;
-}
+	id: number;
+	BallotID: string;
+	Project: string;
+};
 
 export type BallotSeries = {
-    id: number;
-    ballotIds: number[];
-    votingPoolId: string;
-    start: string;
-    end: string;
-    project: string;
-}
+	id: number;
+	ballotIds: number[];
+	votingPoolId: string;
+	start: string;
+	end: string;
+	project: string;
+};
 
 export type BallotSeriesParticipationSummary = {
-    id: number;                     /** Ballot series identifier */
-	voter_id: string;				/** Voter identifier */
-	votingPoolSAPIN: number;        /** SAPIN in voting pool */
-    excused: boolean;               /** Excused from participation (recorded in voting pool table) */
-	vote: string | null;            /** Last vote */
-    SAPIN: number | null;           /** SAPIN used for last vote */
-	ballot_id: number | null;       /** Ballot identifier for last vote */
-	commentCount: number | null;    /** Number of comments submitted with vote */
-}
+	id: number /** Ballot series identifier */;
+	voter_id: string /** Voter identifier */;
+	votingPoolSAPIN: number /** SAPIN in voting pool */;
+	excused: boolean /** Excused from participation (recorded in voting pool table) */;
+	vote: string | null /** Last vote */;
+	SAPIN: number | null /** SAPIN used for last vote */;
+	ballot_id: number | null /** Ballot identifier for last vote */;
+	commentCount: number | null /** Number of comments submitted with vote */;
+};
 
 export type RecentBallotSeriesParticipation = {
-    SAPIN: number;
-    ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[];
-}
+	SAPIN: number;
+	ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[];
+};
 
 export type MemberParticipation = RecentBallotSeriesParticipation & {
 	Name: string;
@@ -70,18 +74,18 @@ export type MemberParticipation = RecentBallotSeriesParticipation & {
 	Affiliation: string;
 	Status: string;
 	ExpectedStatus: string;
-    Summary: string;
-}
+	Summary: string;
+};
 
 const ballotSeriesAdapter = createEntityAdapter<BallotSeries>();
 const ballotsAdapter = createEntityAdapter<Ballot>();
 const initialState = {
 	ballotSeries: ballotSeriesAdapter.getInitialState(),
-    ballots: ballotsAdapter.getInitialState()
+	ballots: ballotsAdapter.getInitialState(),
 };
 
 const selectId = (entity: RecentBallotSeriesParticipation) => entity.SAPIN;
-const dataSet = 'ballotParticipation';
+const dataSet = "ballotParticipation";
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -91,7 +95,7 @@ const slice = createAppTableDataSlice({
 		setBallotSeries(state, action: PayloadAction<BallotSeries[]>) {
 			ballotSeriesAdapter.setAll(state.ballotSeries, action.payload);
 		},
-        setBallots(state, action: PayloadAction<Ballot[]>) {
+		setBallots(state, action: PayloadAction<Ballot[]>) {
 			ballotsAdapter.setAll(state.ballots, action.payload);
 		},
 	},
@@ -99,113 +103,158 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-
 /*
  * Selectors
  */
-export const selectBallotParticipationState = (state: RootState) => state[dataSet];
+export const selectBallotParticipationState = (state: RootState) =>
+	state[dataSet];
 
-export const selectBallotParticipationIds = (state: RootState) => selectBallotParticipationState(state).ids;
-export const selectBallotParticipationEntities = (state: RootState) => selectBallotParticipationState(state).entities;
+export const selectBallotParticipationIds = (state: RootState) =>
+	selectBallotParticipationState(state).ids;
+export const selectBallotParticipationEntities = (state: RootState) =>
+	selectBallotParticipationState(state).entities;
 
-export const selectBallotSeries = (state: RootState) => selectBallotParticipationState(state).ballotSeries;
-export const selectBallotSeriesIds = (state: RootState) => selectBallotSeries(state).ids;
-export const selectBallotSeriesEntities = (state: RootState) => selectBallotSeries(state).entities;
+export const selectBallotSeries = (state: RootState) =>
+	selectBallotParticipationState(state).ballotSeries;
+export const selectBallotSeriesIds = (state: RootState) =>
+	selectBallotSeries(state).ids;
+export const selectBallotSeriesEntities = (state: RootState) =>
+	selectBallotSeries(state).entities;
 export const selectRecentBallotSeries = createSelector(
 	selectBallotSeriesIds,
 	selectBallotSeriesEntities,
-	(ids, entities) => ids.map(id => entities[id]!)
+	(ids, entities) => ids.map((id) => entities[id]!)
 );
 export const selectMostRecentBallotSeries = (state: RootState) => {
 	const ballotSeries = selectRecentBallotSeries(state);
 	return ballotSeries[ballotSeries.length - 1];
-}
+};
 
-export const selectBallotIds = (state: RootState) => selectBallotParticipationState(state).ballots.ids;
-export const selectBallotEntities = (state: RootState) => selectBallotParticipationState(state).ballots.entities;
+export const selectBallotIds = (state: RootState) =>
+	selectBallotParticipationState(state).ballots.ids;
+export const selectBallotEntities = (state: RootState) =>
+	selectBallotParticipationState(state).ballots.entities;
 
-export function memberBallotParticipationCount(member: Member, ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[], ballotSeriesEntities: Dictionary<BallotSeries>) {
-    // Only care about ballots since becoming a Voter
+export function memberBallotParticipationCount(
+	member: Member,
+	ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[],
+	ballotSeriesEntities: Dictionary<BallotSeries>
+) {
+	// Only care about ballots since becoming a Voter
 	// (a member may have lost voting status and we don't want participation from that time affecting the result)
-	const h = member.StatusChangeHistory.find(h => h.NewStatus === 'Voter');
+	const h = member.StatusChangeHistory.find((h) => h.NewStatus === "Voter");
 	if (h && h.Date)
-		ballotSeriesParticipationSummaries = ballotSeriesParticipationSummaries.filter(s => DateTime.fromISO(ballotSeriesEntities[s.id]!.start) > DateTime.fromISO(h.Date));
+		ballotSeriesParticipationSummaries =
+			ballotSeriesParticipationSummaries.filter(
+				(s) =>
+					DateTime.fromISO(ballotSeriesEntities[s.id]!.start) >
+					DateTime.fromISO(h.Date)
+			);
 
-	const count = ballotSeriesParticipationSummaries.reduce((count, participation) => (participation.vote || participation.excused)? count + 1: count, 0);
-    return {
-        count,
-        total: ballotSeriesParticipationSummaries.length
-    }
+	const count = ballotSeriesParticipationSummaries.reduce(
+		(count, participation) =>
+			participation.vote || participation.excused ? count + 1 : count,
+		0
+	);
+	return {
+		count,
+		total: ballotSeriesParticipationSummaries.length,
+	};
 }
 
-function memberExpectedStatusFromBallotParticipation(member: Member, count: number, total: number) {
-    // A status change won't happen if a status override is in effect or if the member is not a voter
-    if (member.StatusChangeOverride || member.Status !== 'Voter')
-		return '';
+function memberExpectedStatusFromBallotParticipation(
+	member: Member,
+	count: number,
+	total: number
+) {
+	// A status change won't happen if a status override is in effect or if the member is not a voter
+	if (member.StatusChangeOverride || member.Status !== "Voter") return "";
 
-	if (total >= 3 && count < 2)
-		return 'Non-Voter';
+	if (total >= 3 && count < 2) return "Non-Voter";
 
-	return '';
+	return "";
 }
 
 export const selectBallotParticipationWithMembershipAndSummary = createSelector(
 	selectMemberEntities,
-    selectBallotSeriesEntities,
+	selectBallotSeriesEntities,
 	selectBallotParticipationIds,
 	selectBallotParticipationEntities,
 	(memberEntities, ballotSeriesEntities, ids, entities) => {
 		const newEntities: Dictionary<MemberParticipation> = {};
-		ids.forEach(id => {
+		ids.forEach((id) => {
 			let entity = entities[id]!;
 			let member = memberEntities[entity.SAPIN];
-			let expectedStatus = '';
-            let summary = '';
-            if (member) {
-                const {count, total} = memberBallotParticipationCount(member, entity.ballotSeriesParticipationSummaries, ballotSeriesEntities);
-				expectedStatus = memberExpectedStatusFromBallotParticipation(member, count, total);
-                summary = `${count}/${total}`;
-            }
+			let expectedStatus = "";
+			let summary = "";
+			if (member) {
+				const { count, total } = memberBallotParticipationCount(
+					member,
+					entity.ballotSeriesParticipationSummaries,
+					ballotSeriesEntities
+				);
+				expectedStatus = memberExpectedStatusFromBallotParticipation(
+					member,
+					count,
+					total
+				);
+				summary = `${count}/${total}`;
+			}
 			newEntities[id] = {
 				...entity,
-				Name: member? member.Name: '',
-				Email: member? member.Email: '',
-				Affiliation: member? member.Affiliation: '',
-				Employer: member? member.Employer: '',
-				Status: member? member.Status: 'New',
+				Name: member ? member.Name : "",
+				Email: member ? member.Email : "",
+				Affiliation: member ? member.Affiliation : "",
+				Employer: member ? member.Employer : "",
+				Status: member ? member.Status : "New",
 				ExpectedStatus: expectedStatus,
-                Summary: summary
-			}
+				Summary: summary,
+			};
 		});
 		return newEntities;
 	}
 );
 
-export function selectMemberBallotParticipationCount(state: RootState, SAPIN: number) {
-	const ballotParticipationEntities = selectBallotParticipationEntities(state);
-	const ballotSeriesEntities = selectBallotParticipationState(state).ballotSeries.entities;
-	const summaries = ballotParticipationEntities[SAPIN]?.ballotSeriesParticipationSummaries || [];
+export function selectMemberBallotParticipationCount(
+	state: RootState,
+	SAPIN: number
+) {
+	const ballotParticipationEntities =
+		selectBallotParticipationEntities(state);
+	const ballotSeriesEntities =
+		selectBallotParticipationState(state).ballotSeries.entities;
+	const summaries =
+		ballotParticipationEntities[SAPIN]
+			?.ballotSeriesParticipationSummaries || [];
 	const member = selectMemberEntities(state)[SAPIN];
 	if (member)
-		return memberBallotParticipationCount(member, summaries, ballotSeriesEntities);
-	return {count: 0, total: 0}
+		return memberBallotParticipationCount(
+			member,
+			summaries,
+			ballotSeriesEntities
+		);
+	return { count: 0, total: 0 };
 }
 
 function getField(entity: MemberParticipation, dataKey: string): any {
-	const m = /ballotSeries_(\d+)/.exec(dataKey)
+	const m = /ballotSeries_(\d+)/.exec(dataKey);
 	if (m) {
 		const i = Number(m[1]);
 		const summary = entity.ballotSeriesParticipationSummaries[i];
-		if (!summary)
-			return 'Not in pool';
-		if (!summary.vote)
-			return 'Did not vote';
+		if (!summary) return "Not in pool";
+		if (!summary.vote) return "Did not vote";
 		return summary.vote;
 	}
 	return entity[dataKey as keyof MemberParticipation];
 }
 
-export const ballotParticipationSelectors = getAppTableDataSelectors(selectBallotParticipationState, {selectEntities: selectBallotParticipationWithMembershipAndSummary, getField});
+export const ballotParticipationSelectors = getAppTableDataSelectors(
+	selectBallotParticipationState,
+	{
+		selectEntities: selectBallotParticipationWithMembershipAndSummary,
+		getField,
+	}
+);
 
 /*
  * Actions
@@ -216,54 +265,61 @@ const {
 	getSuccess,
 	getFailure,
 	setBallotSeries,
-    setBallots,
-	setOne
+	setBallots,
+	setOne,
 } = slice.actions;
 
 export const ballotParticipationActions = slice.actions;
 
-function validResponse(response: any): response is {ballots: Ballot[], ballotSeries: BallotSeries[], ballotSeriesParticipation: RecentBallotSeriesParticipation[]} {
-	return isObject(response) &&
+function validResponse(
+	response: any
+): response is {
+	ballots: Ballot[];
+	ballotSeries: BallotSeries[];
+	ballotSeriesParticipation: RecentBallotSeriesParticipation[];
+} {
+	return (
+		isObject(response) &&
 		Array.isArray(response.ballots) &&
 		Array.isArray(response.ballotSeries) &&
-		Array.isArray(response.ballotSeriesParticipation);
-
+		Array.isArray(response.ballotSeriesParticipation)
+	);
 }
 
-export const loadBallotParticipation = (): AppThunk =>
-	async (dispatch, getState) => {
+export const loadBallotParticipation =
+	(): AppThunk => async (dispatch, getState) => {
 		const state = getState();
 		const loading = selectBallotParticipationState(state).loading;
-		if (loading)
-			return;
+		if (loading) return;
 		const groupName = selectWorkingGroupName(state);
-		if (!groupName)
-			return;
+		if (!groupName) return;
 		const url = `/api/${groupName}/ballotParticipation`;
 		dispatch(getPending());
 		let response: any;
 		try {
 			response = await fetcher.get(url);
 			if (!validResponse(response)) {
-				throw new TypeError('Unexpected response to GET ' + url);
+				throw new TypeError("Unexpected response to GET " + url);
 			}
-		}
-		catch(error) {
+		} catch (error) {
 			dispatch(getFailure());
-			dispatch(setError(`Unable to get ballot series participation`, error));
+			dispatch(
+				setError(`Unable to get ballot series participation`, error)
+			);
 			return;
 		}
-        dispatch(setBallots(response.ballots));
+		dispatch(setBallots(response.ballots));
 		dispatch(setBallotSeries(response.ballotSeries));
 		dispatch(getSuccess(response.ballotSeriesParticipation));
-	}
+	};
 
 export type BallotParticipationUpdate = {
 	id: number;
-	changes: Partial<BallotSeriesParticipationSummary>
+	changes: Partial<BallotSeriesParticipationSummary>;
 };
 
-export const updateBallotParticipation = (sapin: number, updates: BallotParticipationUpdate[]): AppThunk =>
+export const updateBallotParticipation =
+	(sapin: number, updates: BallotParticipationUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
 		const entities = selectBallotParticipationEntities(getState());
 		let entity = entities[sapin];
@@ -271,25 +327,39 @@ export const updateBallotParticipation = (sapin: number, updates: BallotParticip
 			console.error(`Entry for ${sapin} does not exist`);
 			return;
 		}
-		const voterUpdates: Record<number, {id: string, changes: {Excused: boolean}}[]> = {};
-		let updatedSummaries = entity.ballotSeriesParticipationSummaries.map(summary => {
-			const update = updates.find(u => u.id === summary.id);
-			if (!update)
-				return summary;
-			const {changes} = update;
-			if ('excused' in changes) {
-				const update = {id: summary.voter_id, changes: {Excused: changes.excused!}};
-				if (voterUpdates[summary.id])
-					voterUpdates[summary.id].push(update);
-				else
-					voterUpdates[summary.id] = [update];
+		const voterUpdates: Record<
+			number,
+			{ id: string; changes: { Excused: boolean } }[]
+		> = {};
+		let updatedSummaries = entity.ballotSeriesParticipationSummaries.map(
+			(summary) => {
+				const update = updates.find((u) => u.id === summary.id);
+				if (!update) return summary;
+				const { changes } = update;
+				if ("excused" in changes) {
+					const update = {
+						id: summary.voter_id,
+						changes: { Excused: changes.excused! },
+					};
+					if (voterUpdates[summary.id])
+						voterUpdates[summary.id].push(update);
+					else voterUpdates[summary.id] = [update];
+				}
+				return { ...summary, ...changes };
 			}
-			return {...summary, ...changes};
-		});
+		);
 		Object.entries(voterUpdates).forEach(([ballot_id, updates]) => {
 			const url = `/api/voters/${ballot_id}`;
-			fetcher.patch(url, updates)
-				.catch((error: any) => dispatch(setError('Unable to update voters', error)))
-		})
-		dispatch(setOne({SAPIN: sapin, ballotSeriesParticipationSummaries: updatedSummaries}));
-	}
+			fetcher
+				.patch(url, updates)
+				.catch((error: any) =>
+					dispatch(setError("Unable to update voters", error))
+				);
+		});
+		dispatch(
+			setOne({
+				SAPIN: sapin,
+				ballotSeriesParticipationSummaries: updatedSummaries,
+			})
+		);
+	};

@@ -1,12 +1,12 @@
-import React from 'react';
-import { useAppSelector} from '../store/hooks';
+import React from "react";
 
-import { Select } from 'dot11-components';
+import { Select } from "dot11-components";
 
-import { selectActiveMembers } from '../store/members';
+import { useAppSelector } from "../store/hooks";
+import { selectActiveMembers } from "../store/members";
 
 function MemberSelector({
-	value,		// value is SAPIN
+	value, // value is SAPIN
 	onChange,
 	readOnly,
 	...otherProps
@@ -14,11 +14,14 @@ function MemberSelector({
 	value: number;
 	onChange: (value: number) => void;
 	readOnly?: boolean;
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
-) {
+} & Omit<
+	React.ComponentProps<typeof Select>,
+	"values" | "onChange" | "options"
+>) {
 	const options = useAppSelector(selectActiveMembers);
 	const values = options.filter((o) => o.SAPIN === value);
-	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].SAPIN: 0);
+	const handleChange = (values: typeof options) =>
+		onChange(values.length > 0 ? values[0].SAPIN : 0);
 
 	return (
 		<Select
@@ -27,13 +30,13 @@ function MemberSelector({
 			options={options}
 			create
 			clearable
-			valueField='SAPIN'
-			labelField='Name'
+			valueField="SAPIN"
+			labelField="Name"
 			readOnly={readOnly}
-			portal={document.querySelector('#root')}
+			portal={document.querySelector("#root")}
 			{...otherProps}
 		/>
-	)
+	);
 }
 
 export default MemberSelector;

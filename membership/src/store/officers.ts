@@ -1,11 +1,11 @@
-import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
-import type { Dictionary, EntityId } from '@reduxjs/toolkit';
+import { createSlice, createEntityAdapter } from "@reduxjs/toolkit";
+import type { Dictionary, EntityId } from "@reduxjs/toolkit";
 
-import { v4 as uuid } from 'uuid';
-import type { RootState, AppThunk } from '.';
+import { v4 as uuid } from "uuid";
+import type { RootState, AppThunk } from ".";
 
-import { fetcher, setError } from 'dot11-components';
-import { selectWorkingGroupName } from './groups';
+import { fetcher, setError } from "dot11-components";
+import { selectWorkingGroupName } from "./groups";
 
 export type OfficerId = string;
 export type Officer = {
@@ -18,18 +18,22 @@ export type OfficerCreate = Omit<Officer, "id"> & Partial<Pick<Officer, "id">>;
 export type OfficerUpdate = {
 	id: OfficerId;
 	changes: Partial<Officer>;
-}
+};
 
-export const officerPositions = ["Chair", "Vice chair", "Secretary", "Technical editor", "Other"];
+export const officerPositions = [
+	"Chair",
+	"Vice chair",
+	"Secretary",
+	"Technical editor",
+	"Other",
+];
 
 // Compare funciton for sorting officers by position
 export function officerCmp(o1: Officer, o2: Officer) {
 	let i1 = officerPositions.indexOf(o1.position);
-	if (i1 < 0)
-		i1 = officerPositions.length;
+	if (i1 < 0) i1 = officerPositions.length;
 	let i2 = officerPositions.indexOf(o2.position);
-	if (i2 < 0)
-		i2 = officerPositions.length;
+	if (i2 < 0) i2 = officerPositions.length;
 	return i1 - i2;
 }
 
@@ -41,7 +45,7 @@ const initialState = dataAdapter.getInitialState({
 
 export type OfficersState = typeof initialState;
 
-const dataSet = 'officers';
+const dataSet = "officers";
 const slice = createSlice({
 	name: dataSet,
 	initialState,
@@ -49,7 +53,7 @@ const slice = createSlice({
 		getPending(state) {
 			state.loading = true;
 		},
-  		getSuccess(state, action) {
+		getSuccess(state, action) {
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
@@ -60,7 +64,7 @@ const slice = createSlice({
 		addMany: dataAdapter.addMany,
 		updateMany: dataAdapter.updateMany,
 		removeMany: dataAdapter.removeMany,
-		setMany: dataAdapter.setMany
+		setMany: dataAdapter.setMany,
 	},
 });
 
@@ -69,18 +73,23 @@ export default slice;
 /*
  * Selectors
  */
-export function getGroupOfficers(officerIds: EntityId[], officerEntities: Dictionary<Officer>, group_id: EntityId) {
+export function getGroupOfficers(
+	officerIds: EntityId[],
+	officerEntities: Dictionary<Officer>,
+	group_id: EntityId
+) {
 	return officerIds
-		.map(id => officerEntities[id]!)
-		.filter(officer => officer.group_id === group_id)
+		.map((id) => officerEntities[id]!)
+		.filter((officer) => officer.group_id === group_id)
 		.sort(officerCmp);
 }
 
 export const selectOfficersState = (state: RootState) => state[dataSet];
-export const selectOfficerEntities = (state: RootState) => selectOfficersState(state).entities;
+export const selectOfficerEntities = (state: RootState) =>
+	selectOfficersState(state).entities;
 
 export function selectGroupOfficers(state: RootState, group_id: EntityId) {
-	const {ids, entities} = selectOfficersState(state);
+	const { ids, entities } = selectOfficersState(state);
 	return getGroupOfficers(ids, entities, group_id);
 }
 
@@ -94,77 +103,85 @@ const {
 	addMany,
 	updateMany,
 	removeMany,
-	setMany
+	setMany,
 } = slice.actions;
 
-export const loadOfficers = (): AppThunk => 
-	(dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
-		if (!groupName)
-			return;
-		const url = `/api/${groupName}/officers`;
-		dispatch(getPending());
-		return fetcher.get(url)
-			.then((officers: any) => {
-				if (!Array.isArray(officers))
-					throw new TypeError(`Unexpected response to GET ${url}`);
-				dispatch(getSuccess(officers));
-			})
-			.catch((error: any) => {
-				dispatch(getFailure());
-				dispatch(setError('Unable to get groups', error));
-			});
-	}
+export const loadOfficers = (): AppThunk => (dispatch, getState) => {
+	const groupName = selectWorkingGroupName(getState());
+	if (!groupName) return;
+	const url = `/api/${groupName}/officers`;
+	dispatch(getPending());
+	return fetcher
+		.get(url)
+		.then((officers: any) => {
+			if (!Array.isArray(officers))
+				throw new TypeError(`Unexpected response to GET ${url}`);
+			dispatch(getSuccess(officers));
+		})
+		.catch((error: any) => {
+			dispatch(getFailure());
+			dispatch(setError("Unable to get groups", error));
+		});
+};
 
-export const addOfficers = (officers: OfficerCreate[]): AppThunk => 
+export const addOfficers =
+	(officers: OfficerCreate[]): AppThunk =>
 	(dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/officers`;
-		const newOfficers = officers.map<Officer>(officer => (officer.id? officer: {...officer, id: uuid()}) as Officer);
+		const newOfficers = officers.map<Officer>(
+			(officer) =>
+				(officer.id ? officer : { ...officer, id: uuid() }) as Officer
+		);
 		dispatch(addMany(newOfficers));
-		//dispatch(addGroupOfficer(officer.group_id, officer.sapin));
-		return fetcher.post(url, newOfficers)
+		return fetcher
+			.post(url, newOfficers)
 			.then((entities: any) => {
-				if (!Array.isArray(entities) || entities.length !== newOfficers.length)
+				if (
+					!Array.isArray(entities) ||
+					entities.length !== newOfficers.length
+				)
 					throw new TypeError(`Unexpected response to POST ${url}`);
 			})
 			.catch((error: any) => {
-				dispatch(setError('Unable to add officer', error));
-				dispatch(removeMany(newOfficers.map(o => o.id)));
-				//dispatch(removeGroupOfficer(officer.group_id, officer.sapin));
+				dispatch(setError("Unable to add officer", error));
+				dispatch(removeMany(newOfficers.map((o) => o.id)));
 			});
-	}
+	};
 
-export const updateOfficers = (updates: OfficerUpdate[]): AppThunk => 
+export const updateOfficers =
+	(updates: OfficerUpdate[]): AppThunk =>
 	(dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/officers`;
 		const entities = selectOfficerEntities(getState());
-		const originals = updates.map(u => entities[u.id]!);
+		const originals = updates.map((u) => entities[u.id]!);
 		dispatch(updateMany(updates));
-		return fetcher.patch(url, updates)
+		return fetcher
+			.patch(url, updates)
 			.then((entities: any) => {
-				if (!Array.isArray(entities) || entities.length !== updates.length)
+				if (
+					!Array.isArray(entities) ||
+					entities.length !== updates.length
+				)
 					throw new TypeError(`Unexpected response to POST ${url}`);
 			})
 			.catch((error: any) => {
-				dispatch(setError('Unable to update officer', error));
+				dispatch(setError("Unable to update officer", error));
 				dispatch(setMany(originals));
 			});
-	}
+	};
 
-export const deleteOfficers = (ids: EntityId[]): AppThunk =>
+export const deleteOfficers =
+	(ids: EntityId[]): AppThunk =>
 	(dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/officers`;
 		const entities = selectOfficerEntities(getState());
-		const originals = ids.map(id => entities[id]!);
+		const originals = ids.map((id) => entities[id]!);
 		dispatch(removeMany(ids));
-		//dispatch(removeGroupOfficer(original.group_id, original.sapin));
-		return fetcher.delete(url, ids)
-			.catch((error: any) => {
-				dispatch(setError('Unable to delete officer', error));
-				dispatch(addMany(originals));
-				//dispatch(addGroupOfficer(original.group_id, original.sapin));
-			});
-	}
+		return fetcher.delete(url, ids).catch((error: any) => {
+			dispatch(setError("Unable to delete officer", error));
+			dispatch(addMany(originals));
+		});
+	};

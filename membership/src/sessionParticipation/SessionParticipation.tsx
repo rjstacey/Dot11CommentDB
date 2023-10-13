@@ -1,8 +1,8 @@
-import React from 'react';
-import { DateTime } from 'luxon';
+import React from "react";
+import { DateTime } from "luxon";
 
 import {
-	AppTable, 
+	AppTable,
 	SelectHeaderCell,
 	SelectCell,
 	TableColumnHeader,
@@ -14,12 +14,18 @@ import {
 	ShowFilters,
 	GlobalFilter,
 	TableColumnSelector,
-	SplitPanel, Panel, SplitPanelButton,
-	DropdownRendererProps, Checkbox, Row, Form, FieldLeft,
+	SplitPanel,
+	Panel,
+	SplitPanelButton,
+	DropdownRendererProps,
+	Checkbox,
+	Row,
+	Form,
+	FieldLeft,
 	ActionButtonDropdown,
-} from 'dot11-components';
+} from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	fields,
 	loadAttendances,
@@ -28,24 +34,28 @@ import {
 	selectAttendanceSessions,
 	attendancesSelectors,
 	attendancesActions,
-	type MemberAttendances, 
-	type SessionAttendanceSummary
-} from '../store/sessionParticipation';
-import {type Session} from '../store/sessions';
+	type MemberAttendances,
+	type SessionAttendanceSummary,
+} from "../store/sessionParticipation";
+import { type Session } from "../store/sessions";
 
-import { renderNameAndEmail } from '../members/Members';
-import MemberDetail from '../members/MemberDetail';
-import TopRow from '../components/TopRow';
-import BulkStatusUpdate from './BulkStatusUpdate';
+import { renderNameAndEmail } from "../members/Members";
+import MemberDetail from "../members/MemberDetail";
+import TopRow from "../components/TopRow";
+import BulkStatusUpdate from "./BulkStatusUpdate";
 
-function ImportAttendanceForm({methods, session}: DropdownRendererProps & {session: Session}) {
+function ImportAttendanceForm({
+	methods,
+	session,
+}: DropdownRendererProps & { session: Session }) {
 	const dispatch = useAppDispatch();
 	const [useDailyAttendance, setUseDailyAttendance] = React.useState(false);
 	const [busy, setBusy] = React.useState(false);
 
 	let warning: string | undefined;
 	if (session.attendees) {
-		warning = 'Importing again will reset any overrides that were previously made for this session';
+		warning =
+			"Importing again will reset any overrides that were previously made for this session";
 	}
 
 	async function submit() {
@@ -57,26 +67,26 @@ function ImportAttendanceForm({methods, session}: DropdownRendererProps & {sessi
 
 	return (
 		<Form
-			style={{maxWidth: 350}}
-			title={`Import attenance for session ${session.number || `id=${session.id}`}`}
+			style={{ maxWidth: 350 }}
+			title={`Import attenance for session ${
+				session.number || `id=${session.id}`
+			}`}
 			cancel={methods.close}
 			submit={submit}
 			errorText={warning}
 			busy={busy}
 		>
 			<Row>
-				<FieldLeft 
-					label="IMAT spreadsheet:"
-				/>
+				<FieldLeft label="IMAT spreadsheet:" />
 			</Row>
-			<Row style={{justifyContent: 'flex-start'}}>
+			<Row style={{ justifyContent: "flex-start" }}>
 				<Checkbox
 					checked={!useDailyAttendance}
 					onChange={() => setUseDailyAttendance(!useDailyAttendance)}
 				/>
 				<label>attendance summary</label>
 			</Row>
-			<Row style={{justifyContent: 'flex-start'}}>
+			<Row style={{ justifyContent: "flex-start" }}>
 				<Checkbox
 					checked={useDailyAttendance}
 					onChange={() => setUseDailyAttendance(!useDailyAttendance)}
@@ -84,7 +94,7 @@ function ImportAttendanceForm({methods, session}: DropdownRendererProps & {sessi
 				<label>daily attendance</label>
 			</Row>
 		</Form>
-	)
+	);
 }
 
 function SessionSummary() {
@@ -92,95 +102,174 @@ function SessionSummary() {
 
 	return (
 		<>
-			{sessions.map(session =>
-				<div key={session.id} style={{display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden'}}>
-					<div>{session.number} {session.type === 'p'? 'Plenary: ': 'Interim: '} {displayDateRange(session.startDate, session.endDate)}</div>
-					<div style={{whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'}}>{session.name}</div>
-					<div style={{display: 'flex'}}>
+			{sessions.map((session) => (
+				<div
+					key={session.id}
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						flex: 1,
+						overflow: "hidden",
+					}}
+				>
+					<div>
+						{session.number}{" "}
+						{session.type === "p" ? "Plenary: " : "Interim: "}{" "}
+						{displayDateRange(session.startDate, session.endDate)}
+					</div>
+					<div
+						style={{
+							whiteSpace: "nowrap",
+							textOverflow: "ellipsis",
+							overflow: "hidden",
+						}}
+					>
+						{session.name}
+					</div>
+					<div style={{ display: "flex" }}>
 						<div>{`(${session.attendees} attendees)`}</div>
 						<ActionButtonDropdown
-							name='import'
-							title='Import attendance summary'
-							dropdownRenderer={props => <ImportAttendanceForm {...props} session={session}/>}
-							portal={document.querySelector('#root') || undefined}
+							name="import"
+							title="Import attendance summary"
+							dropdownRenderer={(props) => (
+								<ImportAttendanceForm
+									{...props}
+									session={session}
+								/>
+							)}
+							portal={
+								document.querySelector("#root") || undefined
+							}
 						/>
 					</div>
-				</div>)}
+				</div>
+			))}
 		</>
 	);
 }
 
-const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) =>
+const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) => (
 	<>
-		<TableColumnHeader {...props} dataKey='Name' label='Name' />
-		<TableColumnHeader {...props} dataKey='Email' label='Email' />
+		<TableColumnHeader {...props} dataKey="Name" label="Name" />
+		<TableColumnHeader {...props} dataKey="Email" label="Email" />
 	</>
+);
 
-const renderSessionAttendance = (notRelevant: boolean, attendance: SessionAttendanceSummary) =>
-	<div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', color: notRelevant? 'gray': 'unset'}}>
-		<span>{attendance.AttendancePercentage.toFixed(1) + '%'}</span>
-		<span>{attendance.DidAttend? 'Did attend': attendance.DidNotAttend? 'Did not attend': ''}</span>
+const renderSessionAttendance = (
+	notRelevant: boolean,
+	attendance: SessionAttendanceSummary
+) => (
+	<div
+		style={{
+			display: "flex",
+			flexDirection: "column",
+			alignItems: "flex-end",
+			color: notRelevant ? "gray" : "unset",
+		}}
+	>
+		<span>{attendance.AttendancePercentage.toFixed(1) + "%"}</span>
+		<span>
+			{attendance.DidAttend
+				? "Did attend"
+				: attendance.DidNotAttend
+				? "Did not attend"
+				: ""}
+		</span>
 	</div>
+);
 
 const tableColumns: ColumnProperties[] = [
-	{key: '__ctrl__',
-		width: 30, flexGrow: 1, flexShrink: 0,
+	{
+		key: "__ctrl__",
+		width: 30,
+		flexGrow: 1,
+		flexShrink: 0,
 		headerRenderer: SelectHeaderCell,
-		cellRenderer: p =>
+		cellRenderer: (p) => (
 			<SelectCell
 				selectors={attendancesSelectors}
 				actions={attendancesActions}
 				{...p}
-			/>},
-	{key: 'SAPIN', 
-		label: 'SA PIN',
-		width: 80, flexGrow: 1, flexShrink: 1},
-	{key: 'Name', 
-		label: 'Name',
-		width: 200, flexGrow: 1, flexShrink: 1,
+			/>
+		),
+	},
+	{ key: "SAPIN", label: "SA PIN", width: 80, flexGrow: 1, flexShrink: 1 },
+	{
+		key: "Name",
+		label: "Name",
+		width: 200,
+		flexGrow: 1,
+		flexShrink: 1,
 		headerRenderer: renderHeaderNameAndEmail,
-		cellRenderer: renderNameAndEmail},
-	{key: 'Affiliation', 
-		label: 'Affiliation',
-		width: 300, flexGrow: 1, flexShrink: 1},
-	{key: 'Status', 
-		label: 'Status',
-		width: 150, flexGrow: 1, flexShrink: 1},
-	{key: 'ExpectedStatus', 
-		label: 'Expected status',
-		width: 150, flexGrow: 1, flexShrink: 1},
-	{key: 'Summary', 
-		label: 'Summary',
-		width: 100, flexGrow: 1, flexShrink: 1},
+		cellRenderer: renderNameAndEmail,
+	},
+	{
+		key: "Affiliation",
+		label: "Affiliation",
+		width: 300,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{ key: "Status", label: "Status", width: 150, flexGrow: 1, flexShrink: 1 },
+	{
+		key: "ExpectedStatus",
+		label: "Expected status",
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{
+		key: "Summary",
+		label: "Summary",
+		width: 100,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
 ];
 
 function Attendances() {
 	const dispatch = useAppDispatch();
-	const {valid, selected} = useAppSelector(selectAttendancesState);
+	const { valid, selected } = useAppSelector(selectAttendancesState);
 	const sessions = useAppSelector(selectAttendanceSessions);
 
 	React.useEffect(() => {
-		if (!valid)
-			dispatch(loadAttendances());
+		if (!valid) dispatch(loadAttendances());
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const columns = React.useMemo(() => {
 		return tableColumns.concat(
 			sessions.map((session, i) => {
-				const cellRenderer = ({rowData}: CellRendererProps<MemberAttendances>) => {
-					const attendance = rowData.sessionAttendanceSummaries.find((a: any) => a.session_id === session.id);
-					const notRelevant = !!rowData.NonVoterDate && DateTime.fromISO(session.startDate) < DateTime.fromISO(rowData.NonVoterDate);
-					return attendance? renderSessionAttendance(notRelevant, attendance): null;
-				}
-				const yearMonth = DateTime.fromISO(session.startDate).toFormat('yyyy MMM');
+				const cellRenderer = ({
+					rowData,
+				}: CellRendererProps<MemberAttendances>) => {
+					const attendance = rowData.sessionAttendanceSummaries.find(
+						(a: any) => a.session_id === session.id
+					);
+					const notRelevant =
+						!!rowData.NonVoterDate &&
+						DateTime.fromISO(session.startDate) <
+							DateTime.fromISO(rowData.NonVoterDate);
+					return attendance
+						? renderSessionAttendance(notRelevant, attendance)
+						: null;
+				};
+				const yearMonth = DateTime.fromISO(session.startDate).toFormat(
+					"yyyy MMM"
+				);
 				const column = {
-					key: 'session_' + i,
-					label: (session.type || '?').toLocaleUpperCase() + ': ' + yearMonth,
-					width: 100, flexGrow: 1, flexShrink: 1,
-					cellRenderer
-				}
+					key: "session_" + i,
+					label:
+						(session.type || "?").toLocaleUpperCase() +
+						": " +
+						yearMonth,
+					width: 100,
+					flexGrow: 1,
+					flexShrink: 1,
+					cellRenderer,
+				};
 				return column;
-			}))
+			})
+		);
 	}, [sessions]);
 
 	const refresh = () => dispatch(loadAttendances());
@@ -190,7 +279,7 @@ function Attendances() {
 			<TopRow>
 				<SessionSummary />
 
-				<div style={{display: 'flex'}}>
+				<div style={{ display: "flex" }}>
 					<BulkStatusUpdate isSession={true} />
 					<TableColumnSelector
 						selectors={attendancesSelectors}
@@ -201,11 +290,17 @@ function Attendances() {
 						selectors={attendancesSelectors}
 						actions={attendancesActions}
 					/>
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+					<ActionButton
+						name="refresh"
+						title="Refresh"
+						onClick={refresh}
+					/>
 				</div>
 			</TopRow>
 
-			<div style={{display: 'flex', width: '100%', alignItems: 'center'}}>
+			<div
+				style={{ display: "flex", width: "100%", alignItems: "center" }}
+			>
 				<ShowFilters
 					selectors={attendancesSelectors}
 					actions={attendancesActions}
@@ -230,12 +325,12 @@ function Attendances() {
 						actions={attendancesActions}
 					/>
 				</Panel>
-				<Panel style={{overflow: 'auto'}}>
+				<Panel style={{ overflow: "auto" }}>
 					<MemberDetail key={selected.join()} selected={selected} />
 				</Panel>
 			</SplitPanel>
 		</>
-	)
+	);
 }
 
 export default Attendances;

@@ -1,19 +1,23 @@
-import styled from '@emotion/styled';
+import styled from "@emotion/styled";
 
 const Table = styled.table`
 	display: grid;
 	border-spacing: 1px;
 
-	thead, tbody, tr {
+	thead,
+	tbody,
+	tr {
 		display: contents;
 	}
 
-	th, td {
+	th,
+	td {
 		/*border: gray solid 1px;*/
 		vertical-align: top;
 	}
 
-	th:first-of-type, td:first-of-type {
+	th:first-of-type,
+	td:first-of-type {
 		grid-column: 1;
 	}
 
@@ -30,7 +34,8 @@ const Table = styled.table`
 		border-right: none;
 	}
 
-	th, td {
+	th,
+	td {
 		display: flex;
 		align-items: center;
 		padding: 5px;
@@ -54,7 +59,11 @@ const Table = styled.table`
 	}
 `;
 
-export const tableEmpty = <tr><td className='empty'>Empty</td></tr>
+export const tableEmpty = (
+	<tr>
+		<td className="empty">Empty</td>
+	</tr>
+);
 
 export type TableColumn = {
 	/** Column key */
@@ -82,41 +91,42 @@ export type TableColumn = {
 export function EditTable({
 	columns,
 	values,
-	rowId
+	rowId,
 }: {
-	columns: TableColumn[];	/** Column definitions */
+	columns: TableColumn[] /** Column definitions */;
 	values: any[];
-	rowId?: string;	
+	rowId?: string;
 }) {
-	const gridTemplateColumns = columns.map(col => col.gridTemplate || 'auto').join(' ');
+	const gridTemplateColumns = columns
+		.map((col) => col.gridTemplate || "auto")
+		.join(" ");
 
-	let header =
+	let header = (
 		<tr>
-			{columns.map((col, i) => 
+			{columns.map((col, i) => (
 				<th key={col.key} style={col.styleCell}>
 					{col.label}
-				</th>)}
-		</tr>;
-
-	let rows = values.map((entry, i) =>
-		<tr key={rowId? entry[rowId]: i}>
-			{columns.map((col) => 
-				<td key={col.key} style={col.styleCell}>
-					{col.renderCell? col.renderCell(entry): entry[col.key]}
-				</td>)}
+				</th>
+			))}
 		</tr>
 	);
 
+	let rows = values.map((entry, i) => (
+		<tr key={rowId ? entry[rowId] : i}>
+			{columns.map((col) => (
+				<td key={col.key} style={col.styleCell}>
+					{col.renderCell ? col.renderCell(entry) : entry[col.key]}
+				</td>
+			))}
+		</tr>
+	));
+
 	return (
-		<Table style={{gridTemplateColumns}} >
-			<thead>
-				{header}
-			</thead>
-			<tbody>
-				{rows.length > 0? rows: tableEmpty}
-			</tbody>
+		<Table style={{ gridTemplateColumns }}>
+			<thead>{header}</thead>
+			<tbody>{rows.length > 0 ? rows : tableEmpty}</tbody>
 		</Table>
-	)
+	);
 }
 
 export default Table;

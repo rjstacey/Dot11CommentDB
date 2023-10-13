@@ -1,21 +1,28 @@
-import styled from '@emotion/styled';
+import styled from "@emotion/styled";
 
 import {
-	AppTable, 
+	AppTable,
 	SelectHeaderCell,
 	SelectCell,
 	ColumnProperties,
-	ActionButton, ActionButtonDropdown, Form, Row, Checkbox,
+	ActionButton,
+	ActionButtonDropdown,
+	Form,
+	Row,
+	Checkbox,
 	ShowFilters,
 	GlobalFilter,
 	TableColumnSelector,
-	SplitPanel, Panel, SplitPanelButton,
-	TablesConfig, TableConfig,
+	SplitPanel,
+	Panel,
+	SplitPanelButton,
+	TablesConfig,
+	TableConfig,
 	type CellRendererProps,
 	DropdownRendererProps,
-} from 'dot11-components';
+} from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	fields,
 	loadSessionAttendees,
@@ -24,21 +31,21 @@ import {
 	sessionAttendeesActions,
 	selectSessionAttendeesState,
 	type SessionAttendee,
-	type SyncedSessionAttendee
-} from '../store/sessionAttendees';
+	type SyncedSessionAttendee,
+} from "../store/sessionAttendees";
 import {
 	selectMemberEntities,
 	addMembers,
 	updateMembers,
 	type Member,
 	type MemberAdd,
-	type MemberUpdate
-} from '../store/members';
+	type MemberUpdate,
+} from "../store/members";
 
-import MemberDetail from '../members/MemberDetail';
-import SessionSelector from './SessionSelector';
-import TopRow from '../components/TopRow';
-import React from 'react';
+import MemberDetail from "../members/MemberDetail";
+import SessionSelector from "./SessionSelector";
+import TopRow from "../components/TopRow";
+import React from "react";
 
 const TableCell = styled.div`
 	width: 100%;
@@ -50,23 +57,22 @@ const TableCell = styled.div`
 		white-space: nowrap;
 		text-overflow: ellipsis;
 	}
-`
+`;
 
-const BLANK_STR = '(Blank)';
+const BLANK_STR = "(Blank)";
 
 export const renderDiff = (newStr: string, oldStr: string | null) => {
-
 	let newStyle: React.CSSProperties = {},
 		oldStyle: React.CSSProperties = {};
 
 	if (!newStr) {
 		newStr = BLANK_STR;
-		newStyle.fontStyle = 'italic';
+		newStyle.fontStyle = "italic";
 	}
 
-	if (oldStr === '') {
+	if (oldStr === "") {
 		oldStr = BLANK_STR;
-		oldStyle.fontStyle = 'italic';
+		oldStyle.fontStyle = "italic";
 	}
 
 	if (oldStr !== null) {
@@ -75,65 +81,109 @@ export const renderDiff = (newStr: string, oldStr: string | null) => {
 				<del style={oldStyle}>{oldStr}</del>
 				<ins style={newStyle}>{newStr}</ins>
 			</>
-		)
-	}
-	else {
+		);
+	} else {
 		return <span style={newStyle}>{newStr}</span>;
 	}
-}
+};
 
-export const renderName = ({rowData}: CellRendererProps<SyncedSessionAttendee>) =>
-	<TableCell style={{fontWeight: 'bold'}}>{renderDiff(rowData.Name, rowData.OldName)}</TableCell>
+export const renderName = ({
+	rowData,
+}: CellRendererProps<SyncedSessionAttendee>) => (
+	<TableCell style={{ fontWeight: "bold" }}>
+		{renderDiff(rowData.Name, rowData.OldName)}
+	</TableCell>
+);
 
-export const renderEmail = ({rowData}: CellRendererProps<SyncedSessionAttendee>) =>
+export const renderEmail = ({
+	rowData,
+}: CellRendererProps<SyncedSessionAttendee>) => (
 	<TableCell>{renderDiff(rowData.Email, rowData.OldEmail)}</TableCell>
+);
 
-export const renderEmployer = ({rowData}: CellRendererProps<SyncedSessionAttendee>) =>
+export const renderEmployer = ({
+	rowData,
+}: CellRendererProps<SyncedSessionAttendee>) => (
 	<TableCell>{renderDiff(rowData.Employer, rowData.OldEmployer)}</TableCell>
+);
 
-export const renderAffiliation = ({rowData}: CellRendererProps<SyncedSessionAttendee>) =>
-	<TableCell>{renderDiff(rowData.Affiliation, rowData.OldAffiliation)}</TableCell>
+export const renderAffiliation = ({
+	rowData,
+}: CellRendererProps<SyncedSessionAttendee>) => (
+	<TableCell>
+		{renderDiff(rowData.Affiliation, rowData.OldAffiliation)}
+	</TableCell>
+);
 
 const tableColumns: ColumnProperties[] = [
-	{key: '__ctrl__',
-		width: 40, flexGrow: 0, flexShrink: 0,
+	{
+		key: "__ctrl__",
+		width: 40,
+		flexGrow: 0,
+		flexShrink: 0,
 		headerRenderer: SelectHeaderCell,
-		cellRenderer: p =>
+		cellRenderer: (p) => (
 			<SelectCell
 				selectors={sessionAttendeesSelectors}
 				actions={sessionAttendeesActions}
 				{...p}
-			/>},
-	{key: 'SAPIN', 
-		label: 'SA PIN',
-		width: 80, flexGrow: 1, flexShrink: 1},
-	{key: 'Name', 
-		label: 'Name',
-		width: 200, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderName},
-	{key: 'Email',
-		label: 'Email', 
-		width: 200, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderEmail},
-	{key: 'Employer',
-		label: 'Employer',
-		width: 300, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderEmployer},
-	{key: 'Affiliation', 
-		label: 'Affiliation',
-		width: 300, flexGrow: 1, flexShrink: 1,
-		cellRenderer: renderAffiliation},
-	{key: 'Status',
-		label: 'Status',
-		width: 100, flexGrow: 1, flexShrink: 1},
-	{key: 'AttendancePercentage',
-		label: 'Attendance',
-		width: 100, flexGrow: 1, flexShrink: 1,
-		dataRenderer: (d: number) => d.toFixed(0) + '%'},
+			/>
+		),
+	},
+	{ key: "SAPIN", label: "SA PIN", width: 80, flexGrow: 1, flexShrink: 1 },
+	{
+		key: "Name",
+		label: "Name",
+		width: 200,
+		flexGrow: 1,
+		flexShrink: 1,
+		cellRenderer: renderName,
+	},
+	{
+		key: "Email",
+		label: "Email",
+		width: 200,
+		flexGrow: 1,
+		flexShrink: 1,
+		cellRenderer: renderEmail,
+	},
+	{
+		key: "Employer",
+		label: "Employer",
+		width: 300,
+		flexGrow: 1,
+		flexShrink: 1,
+		cellRenderer: renderEmployer,
+	},
+	{
+		key: "Affiliation",
+		label: "Affiliation",
+		width: 300,
+		flexGrow: 1,
+		flexShrink: 1,
+		cellRenderer: renderAffiliation,
+	},
+	{ key: "Status", label: "Status", width: 100, flexGrow: 1, flexShrink: 1 },
+	{
+		key: "AttendancePercentage",
+		label: "Attendance",
+		width: 100,
+		flexGrow: 1,
+		flexShrink: 1,
+		dataRenderer: (d: number) => d.toFixed(0) + "%",
+	},
 ];
 
 const defaultTablesColumns = {
-	default: ['__ctrl__', 'SAPIN', 'Name', 'Email', 'Employer', 'Affiliation', 'Status'],
+	default: [
+		"__ctrl__",
+		"SAPIN",
+		"Name",
+		"Email",
+		"Employer",
+		"Affiliation",
+		"Status",
+	],
 };
 
 let defaultTablesConfig: TablesConfig = {};
@@ -141,15 +191,15 @@ let tableView: keyof typeof defaultTablesColumns;
 for (tableView in defaultTablesColumns) {
 	const tableConfig: TableConfig = {
 		fixed: false,
-		columns: {}
-	}
+		columns: {},
+	};
 	for (const column of tableColumns) {
 		const key = column.key;
 		tableConfig.columns[key] = {
-			unselectable: key.startsWith('__'),
+			unselectable: key.startsWith("__"),
 			shown: defaultTablesColumns[tableView].includes(key),
-			width: column.width || 200
-		}
+			width: column.width || 200,
+		};
 	}
 	defaultTablesConfig[tableView] = tableConfig;
 }
@@ -164,84 +214,91 @@ function sessionAttendeeToMember(attendee: SessionAttendee) {
 		Employer: attendee.Employer,
 		Email: attendee.Email,
 		Affiliation: attendee.Affiliation,
-		Status: 'Non-Voter',
+		Status: "Non-Voter",
 		Access: 0,
 		ContactInfo: attendee.ContactInfo,
-	}
+	};
 	return member;
 }
 
-function InportAttendeeForm({methods}: DropdownRendererProps) {
+function InportAttendeeForm({ methods }: DropdownRendererProps) {
 	const [importNew, setImportNew] = React.useState(true);
 	const [importUpdates, setImportUpdates] = React.useState(true);
 	const [selectedOnly, setSelectedOnly] = React.useState(false);
 
 	const dispatch = useAppDispatch();
-	const {selected, ids, entities} = useAppSelector(selectSessionAttendeesState);
+	const { selected, ids, entities } = useAppSelector(
+		selectSessionAttendeesState
+	);
 	const memberEntities = useAppSelector(selectMemberEntities);
 
-	const list = selectedOnly? selected: ids;
+	const list = selectedOnly ? selected : ids;
 
-	const adds = React.useMemo(() =>
-		list
-			.map(id => entities[id]!)
-			.filter(attendee => attendee && !memberEntities[attendee.SAPIN])
-			.map(sessionAttendeeToMember)
-	, [list, entities, memberEntities]);
+	const adds = React.useMemo(
+		() =>
+			list
+				.map((id) => entities[id]!)
+				.filter(
+					(attendee) => attendee && !memberEntities[attendee.SAPIN]
+				)
+				.map(sessionAttendeeToMember),
+		[list, entities, memberEntities]
+	);
 
 	const updates = React.useMemo(() => {
 		const updates: MemberUpdate[] = [];
-		list
-			.map(id => entities[id]!)
-			.filter(attendee => attendee && memberEntities[attendee.SAPIN])
-			.forEach(a => {
+		list.map((id) => entities[id]!)
+			.filter((attendee) => attendee && memberEntities[attendee.SAPIN])
+			.forEach((a) => {
 				const m = memberEntities[a.SAPIN]!;
 				const changes: Partial<Member> = {
-					Name: m.Name !== a.Name? a.Name: undefined,
-					Email: m.Email !== a.Email? a.Email: undefined,
-					Affiliation: m.Affiliation !== a.Affiliation? a.Affiliation: undefined,
-					Employer: m.Employer !== a.Employer? a.Employer: undefined,
+					Name: m.Name !== a.Name ? a.Name : undefined,
+					Email: m.Email !== a.Email ? a.Email : undefined,
+					Affiliation:
+						m.Affiliation !== a.Affiliation
+							? a.Affiliation
+							: undefined,
+					Employer:
+						m.Employer !== a.Employer ? a.Employer : undefined,
 				};
 				let key: keyof Member;
 				for (key in changes)
-					if (typeof changes[key] === 'undefined')
+					if (typeof changes[key] === "undefined")
 						delete changes[key];
 				if (Object.keys(changes).length > 0)
-					updates.push({id: m.SAPIN, changes});
+					updates.push({ id: m.SAPIN, changes });
 			});
 		return updates;
 	}, [list, entities, memberEntities]);
 
 	function submit() {
-		if (importNew)
-			dispatch(addMembers(adds));
-		if (importUpdates)
-			dispatch(updateMembers(updates));
+		if (importNew) dispatch(addMembers(adds));
+		if (importUpdates) dispatch(updateMembers(updates));
 	}
 
 	return (
 		<Form
-			style={{width: 300}}
-			submitLabel='OK'
-			cancelLabel='Cancel'
+			style={{ width: 300 }}
+			submitLabel="OK"
+			cancelLabel="Cancel"
 			submit={submit}
 			cancel={methods.close}
 		>
-			<Row style={{justifyContent: 'flex-start'}}>
+			<Row style={{ justifyContent: "flex-start" }}>
 				<Checkbox
 					checked={importNew}
 					onChange={() => setImportNew(!importNew)}
 				/>
 				<label>Import new members</label>
 			</Row>
-			<Row style={{justifyContent: 'flex-start'}}>
+			<Row style={{ justifyContent: "flex-start" }}>
 				<Checkbox
 					checked={importUpdates}
 					onChange={() => setImportUpdates(!importUpdates)}
 				/>
 				<label>Import member updates</label>
 			</Row>
-			<Row style={{justifyContent: 'flex-start'}}>
+			<Row style={{ justifyContent: "flex-start" }}>
 				<Checkbox
 					checked={selectedOnly}
 					onChange={() => setSelectedOnly(!selectedOnly)}
@@ -249,34 +306,37 @@ function InportAttendeeForm({methods}: DropdownRendererProps) {
 				<label>Selected entries only</label>
 			</Row>
 			<Row>
-				<span>{importNew? `${adds.length} adds`: ''}</span>
-				<span>{importUpdates? `${updates.length} updates`: ''}</span>
+				<span>{importNew ? `${adds.length} adds` : ""}</span>
+				<span>{importUpdates ? `${updates.length} updates` : ""}</span>
 			</Row>
 		</Form>
-	)
+	);
 }
 
 function SessionAttendance() {
 	const dispatch = useAppDispatch();
-	const {selected, sessionId, entities} = useAppSelector(selectSessionAttendeesState);
+	const { selected, sessionId, entities } = useAppSelector(
+		selectSessionAttendeesState
+	);
 
-	const load = (sessionId: number | null) => dispatch(sessionId? loadSessionAttendees(sessionId): clearSessionAttendees());
+	const load = (sessionId: number | null) =>
+		dispatch(
+			sessionId
+				? loadSessionAttendees(sessionId)
+				: clearSessionAttendees()
+		);
 	const refresh = () => load(sessionId);
 
 	function getAsMember(sapin: number) {
 		const attendee = entities[sapin];
-		if (attendee)
-			return sessionAttendeeToMember(attendee)
+		if (attendee) return sessionAttendeeToMember(attendee);
 	}
 
 	return (
 		<>
 			<TopRow>
-				<SessionSelector
-					value={sessionId}
-					onChange={load}
-				/>
-				<div style={{display: 'flex'}}>
+				<SessionSelector value={sessionId} onChange={load} />
+				<div style={{ display: "flex" }}>
 					<TableColumnSelector
 						selectors={sessionAttendeesSelectors}
 						actions={sessionAttendeesActions}
@@ -287,15 +347,23 @@ function SessionAttendance() {
 						actions={sessionAttendeesActions}
 					/>
 					<ActionButtonDropdown
-						name='import'
-						title='Import new attendees'
-						dropdownRenderer={props => <InportAttendeeForm {...props}/>}
+						name="import"
+						title="Import new attendees"
+						dropdownRenderer={(props) => (
+							<InportAttendeeForm {...props} />
+						)}
 					/>
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
+					<ActionButton
+						name="refresh"
+						title="Refresh"
+						onClick={refresh}
+					/>
 				</div>
 			</TopRow>
 
-			<div style={{display: 'flex', width: '100%', alignItems: 'center'}}>
+			<div
+				style={{ display: "flex", width: "100%", alignItems: "center" }}
+			>
 				<ShowFilters
 					selectors={sessionAttendeesSelectors}
 					actions={sessionAttendeesActions}
@@ -321,7 +389,7 @@ function SessionAttendance() {
 						actions={sessionAttendeesActions}
 					/>
 				</Panel>
-				<Panel style={{overflow: 'auto'}}>
+				<Panel style={{ overflow: "auto" }}>
 					<MemberDetail
 						key={selected.join()}
 						selected={selected}
@@ -330,7 +398,7 @@ function SessionAttendance() {
 				</Panel>
 			</SplitPanel>
 		</>
-	)
+	);
 }
 
 export default SessionAttendance;

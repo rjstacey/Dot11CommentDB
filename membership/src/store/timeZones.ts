@@ -1,21 +1,21 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { fetcher, setError } from 'dot11-components';
-import type { RootState, AppThunk } from '.';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { fetcher, setError } from "dot11-components";
+import type { RootState, AppThunk } from ".";
 
-export const dataSet = 'timeZones';
+export const dataSet = "timeZones";
 
 type TimeZonesState = {
 	loading: boolean;
 	valid: boolean;
 	timeZones: string[];
 	timeZone: string;
-}
+};
 
 const initialState: TimeZonesState = {
 	loading: false,
 	valid: false,
 	timeZones: [],
-	timeZone: 'America/New_York'
+	timeZone: "America/New_York",
 };
 
 const slice = createSlice({
@@ -35,8 +35,8 @@ const slice = createSlice({
 		},
 		setTimezone(state, action: PayloadAction<string>) {
 			state.timeZone = action.payload;
-		}
-	}
+		},
+	},
 });
 
 export default slice;
@@ -49,30 +49,29 @@ export const selectTimeZonesState = (state: RootState) => state[dataSet];
 /*
  * Actions
  */
-const {getSuccess, getPending, getFailure, setTimezone} = slice.actions;
+const { getSuccess, getPending, getFailure, setTimezone } = slice.actions;
 
-const url = '/api/timeZones';
+const url = "/api/timeZones";
 
 function validResponse(response: any): response is string[] {
-	return Array.isArray(response) && response.every(t => typeof t === 'string');
+	return (
+		Array.isArray(response) && response.every((t) => typeof t === "string")
+	);
 }
 
-export const loadTimeZones = (): AppThunk =>
-	async (dispatch) => {
-		dispatch(getPending());
-		let timeZones: any;
-		try {
-			timeZones = await fetcher.get(url);
-			if (!validResponse(timeZones))
-				throw new TypeError('Unexpected response to GET ' + url);
-		}
-		catch (error) {
-			dispatch(getFailure());
-			dispatch(setError('Unable to get time zones list', error));
-			return;
-		}
-		dispatch(getSuccess(timeZones));
+export const loadTimeZones = (): AppThunk => async (dispatch) => {
+	dispatch(getPending());
+	let timeZones: any;
+	try {
+		timeZones = await fetcher.get(url);
+		if (!validResponse(timeZones))
+			throw new TypeError("Unexpected response to GET " + url);
+	} catch (error) {
+		dispatch(getFailure());
+		dispatch(setError("Unable to get time zones list", error));
+		return;
 	}
+	dispatch(getSuccess(timeZones));
+};
 
-export {setTimezone};
-
+export { setTimezone };

@@ -1,56 +1,76 @@
-
-import * as React from 'react';
+import * as React from "react";
 import { Markdown } from "@react-email/markdown";
 import { Html } from "@react-email/html";
-import { render } from '@react-email/render';
-import debounce from 'lodash.debounce';
+import { render } from "@react-email/render";
 
 import {
 	Form,
 	Select,
 	TextArea,
-	Row, Field, Button, SelectRendererProps,
+	Row,
+	Field,
+	Button,
+	Input,
+	SelectRendererProps,
 	shallowDiff,
 	displayDateRange,
 	ActionButton,
-	ConfirmModal
-} from 'dot11-components';
-import { RootState } from '../store';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { addEmailTemplate, selectEmailTemplatesState, updateEmailTemplate, deleteEmailTemplate, sendEmail, type EmailTemplateCreate, type EmailTemplate, type Email } from '../store/email';
-import { selectMembersState, type Member } from '../store/members';
-import { type Session } from '../store/sessions';
-import { selectMostRecentAttendedSession } from '../store/sessionParticipation';
-import { selectUser, type User } from '../store/user';
+	ConfirmModal,
+	debounce
+} from "dot11-components";
+
+import { RootState } from "../store";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import {
+	addEmailTemplate,
+	selectEmailTemplatesState,
+	updateEmailTemplate,
+	deleteEmailTemplate,
+	sendEmail,
+	type EmailTemplateCreate,
+	type EmailTemplate,
+	type Email,
+} from "../store/email";
+import { selectMembersState, type Member } from "../store/members";
+import { type Session } from "../store/sessions";
+import { selectMostRecentAttendedSession } from "../store/sessionParticipation";
+import { selectUser, type User } from "../store/user";
 
 function selectEmailInfo(state: RootState) {
-	const {selected, entities} = selectMembersState(state);
-	const members = selected.map(id => entities[id]!);
+	const { selected, entities } = selectMembersState(state);
+	const members = selected.map((id) => entities[id]!);
 	const session = selectMostRecentAttendedSession(state);
 	const user = selectUser(state);
 
 	return {
 		members,
 		session,
-		user
-	}
+		user,
+	};
 }
 
-function doSubstitution(email: EmailTemplate, member: Member, session: Session) {
+function doSubstitution(
+	email: EmailTemplate,
+	member: Member,
+	session: Session
+) {
 	const sub: { [K: string]: string } = {
 		FirstName: member.FirstName,
 		LastName: member.LastName,
 		Name: member.Name,
 		Status: member.Status,
 		SessionName: session.name,
-		SessionNumber: '' + session.number,
+		SessionNumber: "" + session.number,
 		SessionDate: displayDateRange(session.startDate, session.endDate),
-		BallotParticipation: "ballot participation"
-	}
+		BallotParticipation: "ballot participation",
+	};
 
-	let body = Object.entries(sub).reduce((body, [key, value]) => body.replace(`{{${key}}}`, value), email.body);
+	let body = Object.entries(sub).reduce(
+		(body, [key, value]) => body.replace(`{{${key}}}`, value),
+		email.body
+	);
 
-	return {...email, body};
+	return { ...email, body };
 }
 
 const genEmailAddress = (m: Member | User) => `${m.Name} <${m.Email}>`;
@@ -62,9 +82,9 @@ function genEmails({
 	emailTemplate: EmailTemplate;
 	info: ReturnType<typeof selectEmailInfo>;
 }) {
-	const {members, session, user} = info;
+	const { members, session, user } = info;
 
-	return members.map(member => {
+	return members.map((member) => {
 		const email = doSubstitution(emailTemplate, member, session);
 
 		const html = render(
@@ -75,7 +95,6 @@ function genEmails({
 
 		const emailOut: Email = {
 			Destination: {
-				/* required */
 				CcAddresses: [genEmailAddress(user)],
 				ToAddresses: [genEmailAddress(member)],
 			},
@@ -93,23 +112,22 @@ function genEmails({
 						Charset: "UTF-8",
 						Data: email.body,
 					},
-				}
+				},
 			},
-			ReplyToAddresses: [genEmailAddress(user)]
-		}
+			ReplyToAddresses: [genEmailAddress(user)],
+		};
 
 		return emailOut;
-	})
+	});
 }
 
 function FormatEmail({
 	email,
-	style
+	style,
 }: {
-	email: EmailTemplate,
-	style?: React.CSSProperties
-}
-) {
+	email: EmailTemplate;
+	style?: React.CSSProperties;
+}) {
 	return (
 		<Markdown
 			markdownCustomStyles={{
@@ -131,32 +149,37 @@ const PreviewEmail = ({
 	value,
 	info,
 }: {
-	value: EmailTemplate,
-	info: ReturnType<typeof selectEmailInfo>
-}
-) => {
-	const {members, session} = info;
-	if (members.length === 0)
-		return null;
+	value: EmailTemplate;
+	info: ReturnType<typeof selectEmailInfo>;
+}) => {
+	const { members, session } = info;
+	if (members.length === 0) return null;
 	const member = members[0];
 
 	const email = doSubstitution(value, member, session);
-	return <FormatEmail email={email} />
+	return <FormatEmail email={email} />;
 };
 
-
-function SelectEmailTemplate({value, onChange}: {value: EmailTemplate | null, onChange: (value: EmailTemplate | null) => void}) {
+function SelectEmailTemplate({
+	value,
+	onChange,
+}: {
+	value: EmailTemplate | null;
+	onChange: (value: EmailTemplate | null) => void;
+}) {
 	const dispatch = useAppDispatch();
-	const {ids, entities, loading} = useAppSelector(selectEmailTemplatesState);
-	const options = ids.map(id => entities[id]!);
-	const values = value? options.filter(o => o.id === value.id): [];
+	const { ids, entities, loading } = useAppSelector(
+		selectEmailTemplatesState
+	);
+	const options = ids.map((id) => entities[id]!);
+	const values = value ? options.filter((o) => o.id === value.id) : [];
 
-	async function createEmailTemplate({state}: SelectRendererProps) {
+	async function createEmailTemplate({ state }: SelectRendererProps) {
 		const template: EmailTemplateCreate = {
 			name: state.search,
-			subject: '',
-			body: ''
-		}
+			subject: "",
+			body: "",
+		};
 		const addedTemplate = await dispatch(addEmailTemplate(template));
 		onChange(addedTemplate || null);
 		return addedTemplate;
@@ -166,14 +189,16 @@ function SelectEmailTemplate({value, onChange}: {value: EmailTemplate | null, on
 			values={values}
 			options={options}
 			loading={loading}
-			onChange={(values) => onChange(values.length > 0? values[0]: null)}
+			onChange={(values) =>
+				onChange(values.length > 0 ? values[0] : null)
+			}
 			createOption={createEmailTemplate}
 			create
-			valueField='id'
-			labelField='name'
-			placeholder='Select email template...'
+			valueField="id"
+			labelField="name"
+			placeholder="Select email template..."
 		/>
-	)
+	);
 }
 
 /**
@@ -188,13 +213,16 @@ function useDebounce(callback: () => void) {
 	callbackRef.current = callback;
 
 	// Memoize debounced callback so that it persists across renders
-	const debouncedCallback = React.useMemo(() => debounce(() => callbackRef.current(), 500), []);
+	const debouncedCallback = React.useMemo(
+		() => debounce(() => callbackRef.current(), 500),
+		[]
+	);
 
 	// On unmount, call debounce flush
 	React.useEffect(() => debouncedCallback.flush, [debouncedCallback]);
 
 	return debouncedCallback;
-};
+}
 
 function NotificationEmail() {
 	const dispatch = useAppDispatch();
@@ -204,11 +232,11 @@ function NotificationEmail() {
 	const [preview, setPreview] = React.useState(false);
 
 	const debouncedSave = useDebounce(() => {
-		const changes = shallowDiff(saved, edited);
-		dispatch(updateEmailTemplate({id: saved!.id, changes}));
+		const changes = shallowDiff(saved!, edited!);
+		dispatch(updateEmailTemplate({ id: saved!.id, changes }));
 		setSaved(edited);
 	});
-	
+
 	function changeTemplate(emailTemplate: EmailTemplate | null) {
 		debouncedSave.flush();
 		setEdited(emailTemplate);
@@ -216,12 +244,14 @@ function NotificationEmail() {
 	}
 
 	function onChange(changes: Partial<EmailTemplate>) {
-		setEdited(state => ({...state!, ...changes}));
+		setEdited((state) => ({ ...state!, ...changes }));
 		debouncedSave();
 	}
 
 	async function onDelete() {
-		const ok = await ConfirmModal.show(`Are you sure you want to delete ${edited!.name}?`);
+		const ok = await ConfirmModal.show(
+			`Are you sure you want to delete ${edited!.name}?`
+		);
 		if (ok) {
 			changeTemplate(null);
 			dispatch(deleteEmailTemplate(edited!.id));
@@ -229,23 +259,22 @@ function NotificationEmail() {
 	}
 
 	function onSend() {
-		genEmails({emailTemplate: edited!, info})
-			.forEach(email => dispatch(sendEmail(email)));
+		genEmails({ emailTemplate: edited!, info }).forEach((email) =>
+			dispatch(sendEmail(email))
+		);
 	}
 
 	return (
-		<Form
-			style={{margin: 10}}
-		>
+		<Form style={{ margin: 10 }}>
 			<Row>
-				<div style={{display: 'flex'}}>
+				<div style={{ display: "flex" }}>
 					<SelectEmailTemplate
 						value={saved}
 						onChange={changeTemplate}
 					/>
 					<ActionButton
-						name='delete'
-						title='Delete template'
+						name="delete"
+						title="Delete template"
 						onClick={onDelete}
 						disabled={!edited}
 					/>
@@ -257,35 +286,40 @@ function NotificationEmail() {
 					>
 						Preview
 					</Button>
-					<Button
-						onClick={onSend}
-					>
-						Send
-					</Button>
+					<Button onClick={onSend}>Send</Button>
 				</div>
 			</Row>
-			{edited &&
+			{edited && (
 				<>
 					<Row>
-						<Field label='Subject:'>
-							<TextArea value={edited.subject} onChange={e => onChange({subject: e.target.value})} />
+						<Field label="Subject:" style={{ width: "100%" }}>
+							<Input
+								type="text"
+								style={{ width: "100%", fontSize: "inherit" }}
+								value={edited.subject}
+								onChange={(e) =>
+									onChange({ subject: e.target.value })
+								}
+							/>
 						</Field>
 					</Row>
 					<Row>
-						{preview?
-							<PreviewEmail
-								value={edited}
-								info={info}
-							/>:
+						{preview ? (
+							<PreviewEmail value={edited} info={info} />
+						) : (
 							<TextArea
-								style={{width: '100%'}}
+								style={{ width: "100%" }}
 								value={edited.body}
-								onChange={e => onChange({body: e.target.value})}
-							/>}
+								onChange={(e) =>
+									onChange({ body: e.target.value })
+								}
+							/>
+						)}
 					</Row>
-				</>}
+				</>
+			)}
 		</Form>
-	)
+	);
 }
 
 export default NotificationEmail;
