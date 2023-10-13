@@ -5,7 +5,7 @@
  *   ballot: Ballot	- The ballot associated with the comments
  *   group?: Group - The group associated with the ballot (if configured)
  *   workingGroup?: Group - The working group associated with the ballot (if configure)
- * 
+ *
  * GET /?modifiedSince
  *		Get list of comments for given ballot
  *		Query paramters:
@@ -58,10 +58,10 @@
  *		Returns an array of resolution objects that is the complete list of resolutions for the identified ballot.
  *
  */
-import { Router } from 'express';
-import Multer from 'multer';
-import { ForbiddenError, isPlainObject } from '../utils';
-import { AccessLevel } from '../auth/access';
+import { Router } from "express";
+import Multer from "multer";
+import { ForbiddenError, isPlainObject } from "../utils";
+import { AccessLevel } from "../auth/access";
 import {
 	getComments,
 	updateComments,
@@ -70,79 +70,120 @@ import {
 	importEpollComments,
 	uploadComments,
 	uploadUserComments,
-	validUpdates
-} from '../services/comments';
-import { exportResolutionsForMyProject } from '../services/myProjectSpreadsheets';
-import { exportCommentsSpreadsheet, commentSpreadsheetStyles, CommentSpreadsheetStyle } from '../services/commentsSpreadsheet';
+	validUpdates,
+} from "../services/comments";
+import { exportResolutionsForMyProject } from "../services/myProjectSpreadsheets";
+import {
+	exportCommentsSpreadsheet,
+	commentSpreadsheetStyles,
+	CommentSpreadsheetStyle,
+} from "../services/commentsSpreadsheet";
 
 const upload = Multer();
 const router = Router();
 
-function validUploadParams(params: any): params is {startCommentId?: number} {
-	return isPlainObject(params) &&
-		typeof params.startCommentId === 'undefined' || typeof params.startCommentId === 'number';
+function validUploadParams(params: any): params is { startCommentId?: number } {
+	return (
+		(isPlainObject(params) &&
+			typeof params.startCommentId === "undefined") ||
+		typeof params.startCommentId === "number"
+	);
 }
 
-function validUploadUserParams(params: any): params is {SAPIN: number} {
-	return isPlainObject(params) &&
-		typeof params.SAPIN === 'number';
+function validUploadUserParams(params: any): params is { SAPIN: number } {
+	return isPlainObject(params) && typeof params.SAPIN === "number";
 }
 
-function validateExportParams(params: any): asserts params is {style: CommentSpreadsheetStyle} {
-	if (!isPlainObject(params) || !commentSpreadsheetStyles.includes(params.style))
-		throw new TypeError(`Bad body; extected params to be object with shape {style: ${commentSpreadsheetStyles.map(s => '"' + s + '"').join(" | ")}}`);
+function validateExportParams(
+	params: any
+): asserts params is { style: CommentSpreadsheetStyle } {
+	if (
+		!isPlainObject(params) ||
+		!commentSpreadsheetStyles.includes(params.style)
+	)
+		throw new TypeError(
+			`Bad body; extected params to be object with shape {style: ${commentSpreadsheetStyles
+				.map((s) => '"' + s + '"')
+				.join(" | ")}}`
+		);
 }
 
 const commentsSpreadsheetFormats = ["legacy", "modern", "myproject"] as const;
-type CommentsSpreadsheetForamt = typeof commentsSpreadsheetFormats[number];
-const validCommentSpreadsheetFormat = (format: any): format is CommentsSpreadsheetForamt => commentsSpreadsheetFormats.includes(format);
+type CommentsSpreadsheetForamt = (typeof commentsSpreadsheetFormats)[number];
+const validCommentSpreadsheetFormat = (
+	format: any
+): format is CommentsSpreadsheetForamt =>
+	commentsSpreadsheetFormats.includes(format);
 
 router
-	.patch('/startCommentId', (req, res, next) => {
+	.patch("/startCommentId", (req, res, next) => {
 		const access = req.permissions?.comments || AccessLevel.none;
 		// Need admin privileges to change CIDs
 		if (access < AccessLevel.admin)
-			return next(new ForbiddenError("Need admin privileges at the ballot level to change CIDs"));
+			return next(
+				new ForbiddenError(
+					"Need admin privileges at the ballot level to change CIDs"
+				)
+			);
 
 		const ballot_id = req.ballot!.id;
 		if (!validUploadParams(req.body))
-			return next(new TypeError("Bad body; expected object with shape {startCommentId?: number}"));
+			return next(
+				new TypeError(
+					"Bad body; expected object with shape {startCommentId?: number}"
+				)
+			);
 		const startCommentId = req.body.startCommentId || 1;
 
 		setStartCommentId(req.user, ballot_id, startCommentId)
-			.then(data => res.json(data))
+			.then((data) => res.json(data))
 			.catch(next);
 	})
-	.post('/import', (req, res, next) => {
+	.post("/import", (req, res, next) => {
 		const access = req.permissions?.comments || AccessLevel.none;
 		// Need admin privileges for import
 		if (access < AccessLevel.admin)
-			return next(new ForbiddenError("Need admin privileges at the ballot level to import comments"));
+			return next(
+				new ForbiddenError(
+					"Need admin privileges at the ballot level to import comments"
+				)
+			);
 
 		const ballot = req.ballot!;
 		if (!validUploadParams(req.body))
-			return next(new TypeError("Bad body; expected object with shape {startCommentId?: number}"));
+			return next(
+				new TypeError(
+					"Bad body; expected object with shape {startCommentId?: number}"
+				)
+			);
 		const startCommentId = req.body.startCommentId || 1;
 
 		importEpollComments(req.user, ballot, startCommentId)
-			.then(data => res.json(data))
+			.then((data) => res.json(data))
 			.catch(next);
 	})
-	.post('/userUpload', upload.single('CommentsFile'), (req, res, next) => {
+	.post("/userUpload", upload.single("CommentsFile"), (req, res, next) => {
 		const access = req.permissions?.comments || AccessLevel.none;
 		// Need admin privileges for upload
 		if (access < AccessLevel.admin)
-			return next(new ForbiddenError("Need admin privileges at the ballot level to upload comments"));
+			return next(
+				new ForbiddenError(
+					"Need admin privileges at the ballot level to upload comments"
+				)
+			);
 
 		let params: any;
 		try {
-			if (typeof req.body.params !== 'string')
-				throw new TypeError("Bad multipart body; expected part params to contain JSON string");
+			if (typeof req.body.params !== "string")
+				throw new TypeError(
+					"Bad multipart body; expected part params to contain JSON string"
+				);
 			params = JSON.parse(req.body.params);
 			if (!validUploadUserParams(params))
-				throw new TypeError("Bad multipart body; expected params part to be JSON object with shape {startCommentId?: number}");
-		}
-		catch (error) {
+				throw new TypeError(
+					"Bad multipart body; expected params part to be JSON object with shape {startCommentId?: number}"
+				);
+		} catch (error) {
 			return next(error);
 		}
 
@@ -150,24 +191,31 @@ router
 			return next(new TypeError("Bad multipart body; missing file"));
 
 		uploadUserComments(req.user, req.ballot!, params.SAPIN, req.file)
-			.then(data => res.json(data))
+			.then((data) => res.json(data))
 			.catch(next);
 	})
-	.post('/upload', upload.single('CommentsFile'), (req, res, next) => {
+	.post("/upload", upload.single("CommentsFile"), (req, res, next) => {
 		const access = req.permissions?.comments || AccessLevel.none;
 		// Need admin privileges for upload
 		if (access < AccessLevel.admin)
-			return next(new ForbiddenError("Need admin privileges at the ballot level to upload comments"));
+			return next(
+				new ForbiddenError(
+					"Need admin privileges at the ballot level to upload comments"
+				)
+			);
 
 		let params: any;
 		try {
-			if (typeof req.body.params !== 'string')
-				throw new TypeError("Bad multipart body; expected part params to contain JSON string");
+			if (typeof req.body.params !== "string")
+				throw new TypeError(
+					"Bad multipart body; expected part params to contain JSON string"
+				);
 			params = JSON.parse(req.body.params);
 			if (!validUploadParams(params))
-				throw new TypeError("Bad multipart body; expected params part to be JSON object with shape {startCommentId?: number}");
-		}
-		catch (error) {
+				throw new TypeError(
+					"Bad multipart body; expected params part to be JSON object with shape {startCommentId?: number}"
+				);
+		} catch (error) {
 			return next(error);
 		}
 
@@ -176,82 +224,118 @@ router
 
 		const startCommentId = params.startCommentId || 1;
 		uploadComments(req.user, req.ballot!, startCommentId, req.file)
-			.then(data => res.json(data))
+			.then((data) => res.json(data))
 			.catch(next);
 	})
-	.post('/export', upload.single('file'), (req, res, next) => {
+	.post("/export", upload.single("file"), (req, res, next) => {
 		const access = req.permissions?.comments || AccessLevel.none;
 		if (access < AccessLevel.ro)
-			return next(new ForbiddenError("Need at least read-only privileges at the ballot level to export comments"));
+			return next(
+				new ForbiddenError(
+					"Need at least read-only privileges at the ballot level to export comments"
+				)
+			);
 
 		let format: CommentsSpreadsheetForamt = "legacy";
-		if (typeof req.query.format === 'string') {
+		if (typeof req.query.format === "string") {
 			let formatIn = req.query.format.toLowerCase();
 			if (!validCommentSpreadsheetFormat(formatIn))
-				return next(new TypeError("Invalid format; expected one of " + commentsSpreadsheetFormats.join(", ")));
+				return next(
+					new TypeError(
+						"Invalid format; expected one of " +
+							commentsSpreadsheetFormats.join(", ")
+					)
+				);
 			format = formatIn;
 		}
 
 		if (format === "myproject") {
-			if (!req.file)
-				return next(new TypeError('Missing file'));
+			if (!req.file) return next(new TypeError("Missing file"));
 			exportResolutionsForMyProject(req.ballot!.id, req.file, res)
 				.then(() => res.end())
-				.catch(err => next(err));
-		}
-		else {
+				.catch((err) => next(err));
+		} else {
 			let params: any;
 			try {
-				if (typeof req.body.params !== 'string')
-					throw new TypeError("Bad multipart body; expected part params to contain JSON string");
+				if (typeof req.body.params !== "string")
+					throw new TypeError(
+						"Bad multipart body; expected part params to contain JSON string"
+					);
 				params = JSON.parse(req.body.params);
 				validateExportParams(params);
-			}
-			catch (error) {
+			} catch (error) {
 				return next(error);
 			}
 			const isLegacy = format === "legacy";
-			exportCommentsSpreadsheet(req.user, req.ballot!, isLegacy, params.style, req.file, res)
+			exportCommentsSpreadsheet(
+				req.user,
+				req.ballot!,
+				isLegacy,
+				params.style,
+				req.file,
+				res
+			)
 				.then(() => res.end())
-				.catch(err => next(err));
+				.catch((err) => next(err));
 		}
 	})
-	.route('/')
+	.route("/")
 		.get((req, res, next) => {
 			const access = req.permissions?.comments || AccessLevel.none;
 			if (access < AccessLevel.ro)
-				return next(new ForbiddenError("Need at least read-only privileges at the ballot level to get comments"));
+				return next(
+					new ForbiddenError(
+						"Need at least read-only privileges at the ballot level to get comments"
+					)
+				);
 
-			const modifiedSince = typeof req.query.modifiedSince === 'string'? req.query.modifiedSince: undefined;
+			const modifiedSince =
+				typeof req.query.modifiedSince === "string"
+					? req.query.modifiedSince
+					: undefined;
 			getComments(req.ballot!.id, modifiedSince)
-				.then(data => res.json(data))
-				.catch(next)
+				.then((data) => res.json(data))
+				.catch(next);
 		})
 		.patch((req, res, next) => {
 			const access = req.permissions?.comments || AccessLevel.none;
 			// Need at least read-only privileges to update comments; check for comment level privileges later
 			if (access < AccessLevel.ro)
-				return next(new ForbiddenError("Need at least read-only privileges at the ballot level to update comments"));
+				return next(
+					new ForbiddenError(
+						"Need at least read-only privileges at the ballot level to update comments"
+					)
+				);
 
-			const modifiedSince = typeof req.query.modifiedSince === 'string'? req.query.modifiedSince: undefined;
+			const modifiedSince =
+				typeof req.query.modifiedSince === "string"
+					? req.query.modifiedSince
+					: undefined;
 			const updates = req.body;
 			if (!validUpdates(updates))
-				return next(new TypeError('Bad or missing updates; expected an array of objects with shape {id, changes}'));
+				return next(
+					new TypeError(
+						"Bad or missing updates; expected an array of objects with shape {id, changes}"
+					)
+				);
 
 			updateComments(req.user, req.ballot!.id, access, updates, modifiedSince)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.delete((req, res, next) => {
 			const access = req.permissions?.comments || AccessLevel.none;
 			// Need admin privileges to delete comments
 			if (access < AccessLevel.admin)
-				return next(new ForbiddenError("Need admin privileges at the ballot level to delete comments"));
+				return next(
+					new ForbiddenError(
+						"Need admin privileges at the ballot level to delete comments"
+					)
+				);
 
 			deleteComments(req.user, req.ballot!.id)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
-		})
-
+		});
 
 export default router;

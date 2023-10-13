@@ -27,9 +27,9 @@
  *		Returns the number of ballots deleted.
  */
 
-import { Router } from 'express';
-import { ForbiddenError } from '../utils';
-import { AccessLevel } from '../auth/access';
+import { Router } from "express";
+import { ForbiddenError } from "../utils";
+import { AccessLevel } from "../auth/access";
 import {
 	getBallots,
 	updateBallots,
@@ -37,55 +37,65 @@ import {
 	deleteBallots,
 	validBallots,
 	validBallotUpdates,
-	validBallotIds
-} from '../services/ballots';
+	validBallotIds,
+} from "../services/ballots";
 
 const router = Router();
 
 router
-	.all('*', (req, res, next) => {
-		if (!req.group)
-			return next(new Error("Group not set"));
+	.all("*", (req, res, next) => {
+		if (!req.group) return next(new Error("Group not set"));
 
 		const access = req.group.permissions.ballots || AccessLevel.none;
 
-		if (req.method === "GET" && access >= AccessLevel.ro)
+		if (req.method === "GET" && access >= AccessLevel.ro) return next();
+		if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
+		if (
+			(req.method === "POST" || req.method === "DELETE") &&
+			access >= AccessLevel.admin
+		)
 			return next();
-		if (req.method === "PATCH" && access >= AccessLevel.rw)
-			return next();
-		if ((req.method === "POST" || req.method === "DELETE") && access >= AccessLevel.admin)
-			return next();
-			
-		next(new ForbiddenError('Insufficient karma'));
+
+		next(new ForbiddenError("Insufficient karma"));
 	})
-	.route('/')
+	.route("/")
 		.get((req, res, next) => {
 			getBallots(req.group!)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.post((req, res, next) => {
 			const ballots = req.body;
 			if (!validBallots(ballots))
-				return next(new TypeError("Bad or missing array of ballot objects"));
+				return next(
+					new TypeError("Bad or missing array of ballot objects")
+				);
 			addBallots(req.user, req.group!, ballots)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.patch((req, res, next) => {
 			const updates = req.body;
 			if (!validBallotUpdates(updates))
-				return next(new TypeError("Bad or missing array of updates; expected array of {id: number, changes: object}"));
+				return next(
+					new TypeError(
+						"Bad or missing array of updates; expected array of {id: number, changes: object}"
+					)
+				);
 			updateBallots(req.user, req.group!, updates)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.delete((req, res, next) => {
 			const ids = req.body;
 			if (!validBallotIds(ids))
-				return next(new TypeError("Bad or missing array of ballot identifiers; expect number[]"));
+				return next(
+					new TypeError(
+						"Bad or missing array of ballot identifiers; expect number[]"
+					)
+				);
 			deleteBallots(req.user, req.group!, ids)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		});
 

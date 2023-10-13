@@ -28,36 +28,41 @@
  *		Upload ballot results for a given ballot from ePoll CSV file or MyProject ballot members spreadsheet
  *		Returns an array of result objects that is the results as uploaded
  */
-import { Router } from 'express';
-import Multer from 'multer';
-import { ForbiddenError } from '../utils';
-import { AccessLevel } from '../auth/access';
+import { Router } from "express";
+import Multer from "multer";
+import { ForbiddenError } from "../utils";
+import { AccessLevel } from "../auth/access";
 import {
 	getResultsCoalesced,
 	deleteResults,
 	importEpollResults,
 	uploadResults,
 	exportResults,
-} from '../services/results';
+} from "../services/results";
 
 const upload = Multer();
 const router = Router();
 
 router
-	.all('*', (req, res, next) => {
-
+	.all("*", (req, res, next) => {
 		const access = req.permissions?.results || AccessLevel.none;
-		if (req.method === "GET" && access >= AccessLevel.ro)
+		if (req.method === "GET" && access >= AccessLevel.ro) return next();
+		if (
+			(req.method === "DELETE" || req.method === "POST") &&
+			access >= AccessLevel.admin
+		)
 			return next();
-		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
-			return next();
-		
+
 		next(new ForbiddenError("Insufficient karma"));
 	})
-	.get('/export', (req, res, next) => {
-		const {forSeries} = req.query;
+	.get("/export", (req, res, next) => {
+		const { forSeries } = req.query;
 		if (forSeries && forSeries !== "true" && forSeries !== "false")
-			return next(new TypeError("Invalid forSeries parameter: expected true or false"));
+			return next(
+				new TypeError(
+					"Invalid forSeries parameter: expected true or false"
+				)
+			);
 
 		const access = req.permissions?.results || AccessLevel.none;
 
@@ -65,31 +70,28 @@ router
 			.then(() => res.end())
 			.catch(next);
 	})
-	.post('/import', (req, res, next) => {
+	.post("/import", (req, res, next) => {
 		importEpollResults(req.user, req.ballot!)
-			.then(data => res.json(data))
+			.then((data) => res.json(data))
 			.catch(next);
 	})
-	.post('/upload', upload.single('ResultsFile'), (req, res, next) => {
-		if (!req.file)
-			return next(new TypeError('Missing file'));
+	.post("/upload", upload.single("ResultsFile"), (req, res, next) => {
+		if (!req.file) return next(new TypeError("Missing file"));
 		uploadResults(req.user, req.ballot!, req.file)
-			.then(data => res.json(data))
+			.then((data) => res.json(data))
 			.catch(next);
 	})
-	.route('/')
+	.route("/")
 		.get((req, res, next) => {
 			const access = req.permissions?.results || AccessLevel.none;
 			getResultsCoalesced(req.user, access, req.ballot!)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.delete((req, res, next) => {
 			deleteResults(req.ballot!.id)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
-		})
-		
-
+		});
 
 export default router;

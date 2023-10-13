@@ -47,7 +47,7 @@
  *		Get a list of attendees for a specified breakout.
  *		Returns an array of attendance objects (user info with timestamp).
  */
-import { Router } from 'express';
+import { Router } from "express";
 import {
 	getImatCommittees,
 	getImatMeetings,
@@ -61,87 +61,93 @@ import {
 	getImatMeetingAttendanceSummary,
 	validateImatBreakouts,
 	validateImatBreakoutUpdates,
-	validateImatBreakoutIds
-} from '../services/imat';
+	validateImatBreakoutIds,
+} from "../services/imat";
 
 const router = Router();
 
 router
-	.get('/committees', (req, res, next) => {
+	.get("/committees", (req, res, next) => {
 		getImatCommittees(req.user, req.group!)
-			.then(data => res.json(data))
+			.then((data) => res.json(data))
 			.catch(next);
 	})
-	.get('/meetings', (req, res, next) => {
+	.get("/meetings", (req, res, next) => {
 		getImatMeetings(req.user)
-			.then(data => res.json(data))
+			.then((data) => res.json(data))
 			.catch(next);
 	})
-	.route('/breakouts/:imatMeetingId(\\d+)')
+	.route("/breakouts/:imatMeetingId(\\d+)")
 		.get((req, res, next) => {
 			const imatMeetingId = Number(req.params.imatMeetingId);
 			getImatBreakouts(req.user, imatMeetingId)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.post((req, res, next) => {
 			const imatMeetingId = Number(req.params.imatMeetingId);
 			const breakouts = req.body;
-			try {validateImatBreakouts(breakouts)}
-			catch (error) {
+			try {
+				validateImatBreakouts(breakouts);
+			} catch (error) {
 				return next(error);
 			}
 			addImatBreakouts(req.user, imatMeetingId, breakouts)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.put(async (req, res, next) => {
 			const imatMeetingId = Number(req.params.imatMeetingId);
 			const breakouts = req.body;
-			try {validateImatBreakoutUpdates(breakouts)}
-			catch (error) {
+			try {
+				validateImatBreakoutUpdates(breakouts);
+			} catch (error) {
 				return next(error);
 			}
 			updateImatBreakouts(req.user, imatMeetingId, breakouts)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.delete(async (req, res, next) => {
 			const imatMeetingId = Number(req.params.imatMeetingId);
 			const ids = req.body;
-			try {validateImatBreakoutIds(ids)}
-			catch (error) {
-				return next(error)
+			try {
+				validateImatBreakoutIds(ids);
+			} catch (error) {
+				return next(error);
 			}
 			deleteImatBreakouts(req.user, imatMeetingId, ids)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		});
 
 router
-	.get('/attendance/:imatMeetingId(\\d+)$', (req, res, next) => {
+	.get("/attendance/:imatMeetingId(\\d+)$", (req, res, next) => {
 		const imatMeetingId = Number(req.params.imatMeetingId);
 		getImatMeetingAttendance(req.user, imatMeetingId)
-			.then(data => res.json(data))
+			.then((data) => res.json(data))
 			.catch(next);
 	})
-	.get('/attendance/:imatMeetingId(\\d+)/:imatBreakoutId(\\d+)', async (req, res, next) => {
-		const imatMeetingId = Number(req.params.imatMeetingId);
-		const imatBreakoutId = Number(req.params.imatBreakoutId);
-		getImatBreakoutAttendance(req.user, imatMeetingId, imatBreakoutId)
-			.then(data => res.json(data))
-			.catch(next);
-	})
-	.get('/attendance/:imatMeetingId(\\d+)/daily', async (req, res, next) => {
+	.get(
+		"/attendance/:imatMeetingId(\\d+)/:imatBreakoutId(\\d+)",
+		async (req, res, next) => {
+			const imatMeetingId = Number(req.params.imatMeetingId);
+			const imatBreakoutId = Number(req.params.imatBreakoutId);
+			getImatBreakoutAttendance(req.user, imatMeetingId, imatBreakoutId)
+				.then((data) => res.json(data))
+				.catch(next);
+		}
+	)
+	.get("/attendance/:imatMeetingId(\\d+)/daily", async (req, res, next) => {
 		const imatMeetingId = Number(req.params.imatMeetingId);
 		getImatMeetingDailyAttendance(req.user, req.group!, imatMeetingId)
-			.then(data => res.json(data))
+			.then((data) => res.json(data))
 			.catch(next);
 	})
-	.get('/attendance/:imatMeetingId(\\d+)/summary', async (req, res, next) => {
+	.get("/attendance/:imatMeetingId(\\d+)/summary", async (req, res, next) => {
 		const imatMeetingId = Number(req.params.imatMeetingId);
 		getImatMeetingAttendanceSummary(req.user, req.group!, imatMeetingId)
-			.then(data => res.json(data))
+			.then((data) => res.json(data))
 			.catch(next);
 	});
 

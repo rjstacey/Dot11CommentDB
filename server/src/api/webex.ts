@@ -1,9 +1,9 @@
 /*
  * Webex accounts and meetings API
  */
-import { Router, Request } from 'express';
-import { ForbiddenError, isPlainObject } from '../utils';
-import { AccessLevel } from '../auth/access';
+import { Router, Request } from "express";
+import { ForbiddenError, isPlainObject } from "../utils";
+import { AccessLevel } from "../auth/access";
 import {
 	getWebexAccounts,
 	updateWebexAccount,
@@ -12,8 +12,8 @@ import {
 	getWebexMeetings,
 	addWebexMeetings,
 	updateWebexMeetings,
-	deleteWebexMeetings
-} from '../services/webex';
+	deleteWebexMeetings,
+} from "../services/webex";
 
 const router = Router();
 
@@ -42,54 +42,53 @@ const router = Router();
  *		Returns 1.
  */
 router
-	.all('*', (req, res, next) => {
-		if (!req.group)
-			return next(new Error("Group not set"));
+	.all("*", (req, res, next) => {
+		if (!req.group) return next(new Error("Group not set"));
 
 		const access = req.group.permissions.meetings || AccessLevel.none;
 
-		if (req.method === "GET" && access >= AccessLevel.ro)
-			return next();
-		if (req.method === "PATCH" && access >= AccessLevel.rw)
-			return next();
-		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
+		if (req.method === "GET" && access >= AccessLevel.ro) return next();
+		if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
+		if (
+			(req.method === "DELETE" || req.method === "POST") &&
+			access >= AccessLevel.admin
+		)
 			return next();
 
 		next(new ForbiddenError("Insufficient karma"));
 	})
-	.route('/accounts')
+	.route("/accounts")
 		.get((req, res, next) => {
 			getWebexAccounts()
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.post((req, res, next) => {
 			const account = req.body;
 			if (!isPlainObject(account))
-				return next(new TypeError('Bad or missing body; expected object'));
+				return next(new TypeError("Bad or missing body; expected object"));
 			addWebexAccount(account)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		});
 
 router
-	.route('/accounts/:accountId(\\d+)')
+	.route("/accounts/:accountId(\\d+)")
 		.patch((req, res, next) => {
 			const accountId = Number(req.params.accountId);
 			const changes = req.body;
 			if (!isPlainObject(changes))
-				return next(new TypeError('Bad or missing; expected object'));
+				return next(new TypeError("Bad or missing; expected object"));
 			updateWebexAccount(accountId, changes)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.delete((req, res, next) => {
 			const accountId = Number(req.params.accountId);
 			deleteWebexAccount(accountId)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		});
-
 
 /*
  * Webex Meetings API
@@ -113,7 +112,7 @@ router
  *		Body is an array of meetings with shape {accountId, id, ...changes}, where accountId identifies
  *		the Webex account, id identifies the meeting instance and the remaining parameters are meeting parameters.
  *		Returns an array of meetings that were updated.
- * 
+ *
  * DELETE /meetings
  *		Delete Webex meetings.
  *		Body is an array of meetings with shape {accountId, id}, where the accountId identifies
@@ -122,49 +121,96 @@ router
  */
 
 router
-	.route('/meetings')
-		.get(async (req: Request<unknown, unknown, unknown, Parameters<typeof getWebexMeetings>[0]>, res, next) => {
-			try {
-				const data = await getWebexMeetings(req.query);
-				res.json(data);
+	.route("/meetings")
+		.get(
+			async (
+				req: Request<
+					unknown,
+					unknown,
+					unknown,
+					Parameters<typeof getWebexMeetings>[0]
+				>,
+				res,
+				next
+			) => {
+				try {
+					const data = await getWebexMeetings(req.query);
+					res.json(data);
+				} catch (err) {
+					next(err);
+				}
 			}
-			catch(err) {next(err)}
-		})
+		)
 		.post(async (req, res, next) => {
 			try {
 				const meetings = req.body;
 				if (!Array.isArray(meetings))
-					throw new TypeError('Bad or missing array of Webex meeting objects');
-				if (!meetings.every(meeting => isPlainObject(meeting) && typeof meeting.accountId === 'number'))
-					throw new TypeError('Expected an array of objects with shape {accountId: number, ...params');
+					throw new TypeError(
+						"Bad or missing array of Webex meeting objects"
+					);
+				if (
+					!meetings.every(
+						(meeting) =>
+							isPlainObject(meeting) &&
+							typeof meeting.accountId === "number"
+					)
+				)
+					throw new TypeError(
+						"Expected an array of objects with shape {accountId: number, ...params"
+					);
 				const data = await addWebexMeetings(meetings);
 				res.json(data);
+			} catch (err) {
+				next(err);
 			}
-			catch(err) {next(err)}
 		})
 		.patch(async (req, res, next) => {
 			try {
 				const meetings = req.body;
 				if (!Array.isArray(meetings))
-					throw new TypeError('Bad or missing array of Webex meeting objects');
-				if (!meetings.every(meeting => isPlainObject(meeting) && typeof meeting.accountId === 'number' && typeof meeting.id === 'string'))
-					throw new TypeError('Expected an array of objects with shape {accountId: number, id: string, ...changes}');
+					throw new TypeError(
+						"Bad or missing array of Webex meeting objects"
+					);
+				if (
+					!meetings.every(
+						(meeting) =>
+							isPlainObject(meeting) &&
+							typeof meeting.accountId === "number" &&
+							typeof meeting.id === "string"
+					)
+				)
+					throw new TypeError(
+						"Expected an array of objects with shape {accountId: number, id: string, ...changes}"
+					);
 				const data = await updateWebexMeetings(meetings);
 				res.json(data);
+			} catch (err) {
+				next(err);
 			}
-			catch(err) {next(err)}
 		})
 		.delete(async (req, res, next) => {
 			try {
 				const meetings = req.body;
 				if (!Array.isArray(meetings))
-					throw new TypeError('Bad or missing array of Webex meeting objects');
-				if (!meetings.every(meeting => isPlainObject(meeting) && typeof meeting.accountId === 'number' && typeof meeting.id === 'string'))
-					throw new TypeError('Expected an array of objects with shape {accountId: number, id: string}');
+					throw new TypeError(
+						"Bad or missing array of Webex meeting objects"
+					);
+				if (
+					!meetings.every(
+						(meeting) =>
+							isPlainObject(meeting) &&
+							typeof meeting.accountId === "number" &&
+							typeof meeting.id === "string"
+					)
+				)
+					throw new TypeError(
+						"Expected an array of objects with shape {accountId: number, id: string}"
+					);
 				const data = await deleteWebexMeetings(meetings);
 				res.json(data);
+			} catch (err) {
+				next(err);
 			}
-			catch(err) {next(err)}
 		});
 
 export default router;

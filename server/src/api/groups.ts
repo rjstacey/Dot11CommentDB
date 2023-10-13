@@ -20,7 +20,7 @@
  *		Body is an array of group identifiers.
  *		Returns the number of groups deleted.
  */
-import { Router } from 'express';
+import { Router } from "express";
 import {
 	getGroups,
 	addGroups,
@@ -28,47 +28,50 @@ import {
 	removeGroups,
 	validateGroups,
 	validateGroupUpdates,
-	validateGroupIds
-} from '../services/groups';
+	validateGroupIds,
+} from "../services/groups";
 
 const router = Router();
 
 router
-	.get('/:parentName?', (req, res, next) => {
-		const {parentName} = req.params;
-		getGroups(req.user, {parentName, ...req.query})
-			.then(data => res.json(data))
+	.get("/:parentName?", (req, res, next) => {
+		const { parentName } = req.params;
+		getGroups(req.user, { parentName, ...req.query })
+			.then((data) => res.json(data))
 			.catch(next);
 	})
-	.route('/')
+	.route("/")
 		.post((req, res, next) => {
 			const groups = req.body;
-			try {validateGroups(groups)}
-			catch (error) {
+			try {
+				validateGroups(groups);
+			} catch (error) {
 				return next(error);
 			}
 			addGroups(req.user, groups)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.patch((req, res, next) => {
 			const updates = req.body;
-			try {validateGroupUpdates(updates)}
-			catch (error) {
+			try {
+				validateGroupUpdates(updates);
+			} catch (error) {
 				return next(error);
 			}
 			updateGroups(req.user, updates)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.delete((req, res, next) => {
 			const ids = req.body;
-			try {validateGroupIds(ids)}
-			catch (error) {
+			try {
+				validateGroupIds(ids);
+			} catch (error) {
 				return next(error);
 			}
 			removeGroups(req.user, ids)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		});
 

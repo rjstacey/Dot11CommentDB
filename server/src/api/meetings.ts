@@ -26,15 +26,15 @@
  *		Returns an object with parameters:
  *			meetings:array 		An array of objects that are the updated meetings
  *			webexMeetings:array An array of Webex meeting objects associated with the updated meetings
- * 
+ *
  * DELETE /
  *		Delete meetings.
  *		Body is an array of meeting IDs.
  *		Returns the number of meetings deleted.
  */
-import { Router } from 'express';
-import { AccessLevel } from '../auth/access';
-import { ForbiddenError } from '../utils';
+import { Router } from "express";
+import { AccessLevel } from "../auth/access";
+import { ForbiddenError } from "../utils";
 import {
 	getMeetings,
 	updateMeetings,
@@ -43,62 +43,68 @@ import {
 	validateMeetings,
 	validateMeetingUpdates,
 	validateMeetingIds,
-} from '../services/meetings';
+} from "../services/meetings";
 
 const router = Router();
 
 router
-	.all('*', (req, res, next) => {
-		const {user, group} = req;
-		if (!group)
-			return next(new Error("Group not set"));
+	.all("*", (req, res, next) => {
+		const { user, group } = req;
+		if (!group) return next(new Error("Group not set"));
 
-		const access = Math.max(group.permissions.meetings || AccessLevel.none, user.Access);
+		const access = Math.max(
+			group.permissions.meetings || AccessLevel.none,
+			user.Access
+		);
 
-		if (req.method === "GET" && access >= AccessLevel.ro)
+		if (req.method === "GET" && access >= AccessLevel.ro) return next();
+		if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
+		if (
+			(req.method === "DELETE" || req.method === "POST") &&
+			access >= AccessLevel.admin
+		)
 			return next();
-		if (req.method === "PATCH" && access >= AccessLevel.rw)
-			return next();
-		if ((req.method === "DELETE" || req.method === "POST") && access >= AccessLevel.admin)
-			return next();
-		
+
 		next(new ForbiddenError("Insufficient karma"));
 	})
-	.route('/')
+	.route("/")
 		.get((req, res, next) => {
 			const group = req.group!;
-			getMeetings({groupId: group.id, ...req.query})
-				.then(data => res.json(data))
+			getMeetings({ groupId: group.id, ...req.query })
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.post((req, res, next) => {
 			const meetings = req.body;
-			try {validateMeetings(meetings)}
-			catch (error) {
+			try {
+				validateMeetings(meetings);
+			} catch (error) {
 				return next(error);
 			}
 			addMeetings(req.user, meetings)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.patch((req, res, next) => {
 			const updates = req.body;
-			try {validateMeetingUpdates(updates)}
-			catch (error) {
+			try {
+				validateMeetingUpdates(updates);
+			} catch (error) {
 				return next(error);
 			}
 			updateMeetings(req.user, updates)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.delete((req, res, next) => {
 			const ids = req.body;
-			try {validateMeetingIds(ids)}
-			catch (error) {
+			try {
+				validateMeetingIds(ids);
+			} catch (error) {
 				return next(error);
 			}
 			deleteMeetings(req.user, ids)
-				.then(data => res.json(data))
+				.then((data) => res.json(data))
 				.catch(next);
 		});
 
