@@ -9,7 +9,7 @@ import type { User } from './users';
 
 import { csvParse, AuthError, NotFoundError, validateSpreadsheetHeader, isPlainObject } from '../utils';
 import { webexMeetingImatLocation } from './meetings';
-import { getGroups } from './groups';
+import { getGroupHierarchy } from './groups';
 
 import type { Meeting } from './meetings';
 import type { WebexMeeting } from './webex';
@@ -618,15 +618,15 @@ export async function getImatBreakouts(user: User, imatMeetingId: number) {
 	 * and thus might not get the slot ID. */
 	const breakouts: Breakout[] = pageBreakouts.map(b => {
 		const {startSlotName, endSlotName, groupShortName, ...rest} = b;
-		const startSlot = timeslots.find(t => t.name === startSlotName);
-		const endSlot = timeslots.find(t => t.name === endSlotName);
-		const committee = committees.find(c => c.shortName === groupShortName);
+		const startSlot = timeslots.find(t => t.name === startSlotName)!;
+		const endSlot = timeslots.find(t => t.name === endSlotName)!;
+		const committee = committees.find(c => c.shortName === groupShortName)!;
 		return {
 			...rest,
-			startSlotId: startSlot!.id,
-			endSlotId: endSlot!.id,
-			groupId: committee!.id,
-			symbol: committee!.symbol,
+			startSlotId: startSlot.id,
+			endSlotId: endSlot.id,
+			groupId: committee.id,
+			symbol: committee.symbol,
 			facilitator: ''
 		}
 	});
@@ -691,8 +691,8 @@ async function addImatBreakout(user: User, imatMeeting: ImatMeeting, timeslots: 
 	const breakouts: Breakout[] = pageBreakouts.map(b => pageBreakoutToBreakout(b, timeslots, pageCommittees))
 	
 	let b = breakouts.find(b =>
-		breakout.name === b.name &&
-		breakout.location === b.location &&
+		breakout.name.trim() === b.name &&
+		breakout.location.trim() === b.location &&
 		breakout.day === b.day &&
 		breakout.startSlotId === b.startSlotId
 	);
@@ -958,11 +958,16 @@ async function meetingToBreakout(
 	if (endSlot && slotDateTime(breakoutDate, endSlot)[1].toFormat("HH:mm") === endTime)
 		endTime = '';
 
-	const [group] = await getGroups(user, {id: meeting.organizationId});
+	const groupHeirarchy = await getGroupHierarchy(user, meeting.organizationId);
+	const group = groupHeirarchy[0];
+	const workingGroup = groupHeirarchy.find(g => g.type === "wg");
 	if (!group)
 		throw new TypeError(`Can't find group id=${meeting.organizationId}`);
+	if (!workingGroup)
+		throw new TypeError(`Can't find working group for id=${meeting.organizationId}`);
 
-	const committee = committees.find(c => c.symbol === group.symbol);
+	const symbol = group.symbol || workingGroup.symbol;
+	let committee =	committees.find(c => c.symbol === symbol);
 	if (!committee)
 		throw new TypeError(`Can't find committee symbol=${group.symbol}`);
 	const groupId = committee.id;
