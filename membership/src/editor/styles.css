@@ -1,0 +1,135 @@
+.body {
+	margin: 0;
+	background: #eee;
+	font-family: system-ui, -apple-system, BlinkMacSystemFont,
+		".SFNSText-Regular", sans-serif;
+	font-weight: 500;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.other h2 {
+	font-size: 18px;
+	color: #444;
+	margin-bottom: 7px;
+}
+
+.other a {
+	color: #777;
+	text-decoration: underline;
+	font-size: 14px;
+}
+
+.other ul {
+	padding: 0;
+	margin: 0;
+	list-style-type: none;
+}
+
+pre::-webkit-scrollbar {
+	background: transparent;
+	width: 10px;
+}
+
+pre::-webkit-scrollbar-thumb {
+	background: #999;
+}
+
+i.chevron-down {
+	background-color: transparent;
+	background-size: contain;
+	display: inline-block;
+	height: 8px;
+	width: 8px;
+	background-image: url(./images/icons/chevron-down.svg);
+}
+
+
+.link-editor .button i,
+.actions i {
+	background-size: contain;
+	display: inline-block;
+	height: 20px;
+	width: 20px;
+	vertical-align: -0.25em;
+}
+
+i.undo {
+	background-image: url(./images/icons/arrow-counterclockwise.svg);
+}
+
+i.redo {
+	background-image: url(images/icons/arrow-clockwise.svg);
+}
+
+i.paragraph {
+	background-image: url(images/icons/text-paragraph.svg);
+}
+
+i.large-heading,
+i.h1 {
+	background-image: url(images/icons/type-h1.svg);
+}
+
+i.small-heading,
+i.h2 {
+	background-image: url(images/icons/type-h2.svg);
+}
+
+i.bullet-list,
+i.ul {
+	background-image: url(images/icons/list-ul.svg);
+}
+
+i.numbered-list,
+i.ol {
+	background-image: url(images/icons/list-ol.svg);
+}
+
+i.quote {
+	background-image: url(images/icons/chat-square-quote.svg);
+}
+
+i.code {
+	background-image: url(images/icons/code.svg);
+}
+
+i.bold {
+	background-image: url(images/icons/type-bold.svg);
+}
+
+i.italic {
+	background-image: url(images/icons/type-italic.svg);
+}
+
+i.underline {
+	background-image: url(images/icons/type-underline.svg);
+}
+
+i.strikethrough {
+	background-image: url(images/icons/type-strikethrough.svg);
+}
+
+i.code {
+	background-image: url(images/icons/code.svg);
+}
+
+i.link {
+	background-image: url(images/icons/link.svg);
+}
+
+i.left-align {
+	background-image: url(images/icons/text-left.svg);
+}
+
+i.center-align {
+	background-image: url(images/icons/text-center.svg);
+}
+
+i.right-align {
+	background-image: url(images/icons/text-right.svg);
+}
+
+i.justify-align {
+	background-image: url(images/icons/justify.svg);
+}

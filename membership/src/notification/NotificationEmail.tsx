@@ -2,11 +2,9 @@ import * as React from "react";
 import { Markdown } from "@react-email/markdown";
 import { Html } from "@react-email/html";
 import { render } from "@react-email/render";
-
 import {
 	Form,
 	Select,
-	TextArea,
 	Row,
 	Field,
 	Button,
@@ -16,8 +14,10 @@ import {
 	displayDateRange,
 	ActionButton,
 	ConfirmModal,
-	debounce
 } from "dot11-components";
+
+import { useDebounce } from "../components/useDebounce";
+import Editor from "../editor/Editor";
 
 import { RootState } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -201,28 +201,6 @@ function SelectEmailTemplate({
 	);
 }
 
-/**
- * Create a persistent (across renders) debounced callback function that calls the latest callback function when it ultimately fires.
- */
-function useDebounce(callback: () => void) {
-	// Create a mutable reference to the callback function. That way we can create a debounce function that is persistent
-	// across renders but calls the latest callback function when it ultimately fires.
-	const callbackRef = React.useRef<typeof callback>(() => {});
-
-	// On each render, update the callback function reference. The callback function itself will probably have updates.
-	callbackRef.current = callback;
-
-	// Memoize debounced callback so that it persists across renders
-	const debouncedCallback = React.useMemo(
-		() => debounce(() => callbackRef.current(), 500),
-		[]
-	);
-
-	// On unmount, call debounce flush
-	React.useEffect(() => debouncedCallback.flush, [debouncedCallback]);
-
-	return debouncedCallback;
-}
 
 function NotificationEmail() {
 	const dispatch = useAppDispatch();
@@ -237,23 +215,23 @@ function NotificationEmail() {
 		setSaved(edited);
 	});
 
-	function changeTemplate(emailTemplate: EmailTemplate | null) {
+	function setTemplate(emailTemplate: EmailTemplate | null) {
 		debouncedSave.flush();
 		setEdited(emailTemplate);
 		setSaved(emailTemplate);
 	}
 
-	function onChange(changes: Partial<EmailTemplate>) {
+	function changeTemplate(changes: Partial<EmailTemplate>) {
 		setEdited((state) => ({ ...state!, ...changes }));
 		debouncedSave();
 	}
 
-	async function onDelete() {
+	async function deleteTemplate() {
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete ${edited!.name}?`
 		);
 		if (ok) {
-			changeTemplate(null);
+			setTemplate(null);
 			dispatch(deleteEmailTemplate(edited!.id));
 		}
 	}
@@ -270,12 +248,12 @@ function NotificationEmail() {
 				<div style={{ display: "flex" }}>
 					<SelectEmailTemplate
 						value={saved}
-						onChange={changeTemplate}
+						onChange={setTemplate}
 					/>
 					<ActionButton
 						name="delete"
 						title="Delete template"
-						onClick={onDelete}
+						onClick={deleteTemplate}
 						disabled={!edited}
 					/>
 				</div>
@@ -298,7 +276,7 @@ function NotificationEmail() {
 								style={{ width: "100%", fontSize: "inherit" }}
 								value={edited.subject}
 								onChange={(e) =>
-									onChange({ subject: e.target.value })
+									changeTemplate({ subject: e.target.value })
 								}
 							/>
 						</Field>
@@ -307,14 +285,19 @@ function NotificationEmail() {
 						{preview ? (
 							<PreviewEmail value={edited} info={info} />
 						) : (
-							<TextArea
+							<Editor
+								key={edited.id}
+								defaultValue={edited.body}
+								onChange={(value) => changeTemplate({ body: value })}
+							/>
+						)}
+							{/*<TextArea
 								style={{ width: "100%" }}
 								value={edited.body}
 								onChange={(e) =>
 									onChange({ body: e.target.value })
 								}
-							/>
-						)}
+							/>*/}
 					</Row>
 				</>
 			)}
