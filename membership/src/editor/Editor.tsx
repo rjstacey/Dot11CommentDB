@@ -1,35 +1,36 @@
 import * as React from "react";
 import styled from '@emotion/styled';
 
-import ExampleTheme, { editorCss } from "./EditorTheme";
+import { $getRoot, LexicalNode } from "lexical"
+
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
-//import TreeViewPlugin from "./plugins/TreeViewPlugin";
-import ToolbarPlugin from "./plugins/ToolbarPlugin";
-import { LexicalNode } from "lexical"
+import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
+import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
+import { ListPlugin } from "@lexical/react/LexicalListPlugin";
+
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
-import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
-import { ListPlugin } from "@lexical/react/LexicalListPlugin";
-import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
 import { TRANSFORMERS } from "@lexical/markdown";
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { $isLinkNode, $isAutoLinkNode, $createAutoLinkNode } from "@lexical/link";
-
-import ListMaxIndentLevelPlugin from "./plugins/ListMaxIndentLevelPlugin";
-import AutoLinkPlugin from "./plugins/AutoLinkPlugin";
-import { $getRoot } from "lexical";
+import { $isLinkNode, $createAutoLinkNode } from "@lexical/link";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import LinkEditorPlugin from "./plugins/LinkEditorPlugin";
 
+import ListMaxIndentLevelPlugin from "./ListMaxIndentLevelPlugin";
+import ToolbarPlugin from "./ToolbarPlugin";
+import AutoLinkPlugin from "./AutoLinkPlugin";
+import LinkEditorPlugin from "./LinkEditorPlugin";
+
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+
+import ExampleTheme, { editorCss } from "./EditorTheme";
 import styles from "./Editor.module.css";
 
 import { useDebounce } from "../components/useDebounce";
