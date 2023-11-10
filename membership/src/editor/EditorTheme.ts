@@ -100,8 +100,8 @@ const theme = {
 	image: "editor-image",
 	link: styles["link"],
 	text: {
-		bold: styles["text-bold"],
-		italic: styles["text-italic"],
+		bold: "bold",
+		italic: "italic",
 		//overflowed: styles["text-overflowed"],
 		//hashtag: styles["text-hashtag"],
 		underline: styles["text-underline"],

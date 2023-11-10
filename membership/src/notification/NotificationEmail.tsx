@@ -243,9 +243,10 @@ function NotificationEmail() {
 	}
 
 	return (
-		<Form style={{ margin: 10 }}>
+		<Form style={{ margin: 10, maxWidth: 1000 }}>
 			<Row>
 				<div style={{ display: "flex" }}>
+					<Field label="Template">
 					<SelectEmailTemplate
 						value={saved}
 						onChange={setTemplate}
@@ -256,48 +257,35 @@ function NotificationEmail() {
 						onClick={deleteTemplate}
 						disabled={!edited}
 					/>
+					</Field>
 				</div>
 				<div>
 					<Button
 						onClick={() => setPreview(!preview)}
 						isActive={preview}
 					>
-						Preview
+						<i className="bi-eye" />
+						<span>&nbsp;Preview</span>
 					</Button>
-					<Button onClick={onSend}>Send</Button>
+					<Button
+						onClick={onSend}
+					>
+						<i className="bi-send" />
+						<span>&nbsp;Send</span>
+					</Button>
 				</div>
 			</Row>
 			{edited && (
 				<>
 					<Row>
-						<Field label="Subject:" style={{ width: "100%" }}>
-							<Input
-								type="text"
-								style={{ width: "100%", fontSize: "inherit" }}
-								value={edited.subject}
-								onChange={(e) =>
-									changeTemplate({ subject: e.target.value })
-								}
-							/>
-						</Field>
-					</Row>
-					<Row>
-						{preview ? (
-							<PreviewEmail value={edited} info={info} />
-						) : (
 							<Editor
 								key={edited.id}
-								defaultValue={edited.body}
-								onChange={(value) => changeTemplate({ body: value })}
+								subject={edited.subject}
+								defaultBody={edited.body}
+								onChangeSubject={(subject) => changeTemplate({ subject })}
+								onChangeBody={(body) => changeTemplate({ body })}
+								readOnly={preview}
 							/>
-						)}
-							{/*<TextArea
-								style={{ width: "100%" }}
-								value={edited.body}
-								onChange={(e) =>
-									onChange({ body: e.target.value })
-								}
-							/>*/}
 					</Row>
 				</>
 			)}

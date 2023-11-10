@@ -10,6 +10,7 @@ import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 //import TreeViewPlugin from "./plugins/TreeViewPlugin";
 import ToolbarPlugin from "./plugins/ToolbarPlugin";
+import { LexicalNode } from "lexical"
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -20,10 +21,10 @@ import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
 import { TRANSFORMERS } from "@lexical/markdown";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { $isLinkNode, $isAutoLinkNode, $createAutoLinkNode } from "@lexical/link";
 
 import ListMaxIndentLevelPlugin from "./plugins/ListMaxIndentLevelPlugin";
 import AutoLinkPlugin from "./plugins/AutoLinkPlugin";
-import "./styles.css";
 import { $getRoot } from "lexical";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -58,7 +59,29 @@ const editorConfig = {
 	],
 };
 
-function InportExportPlugin({ defaultValue, onChange }: { defaultValue: string, onChange: (value: string) => void }) {
+function recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
+	if (!node)
+		return;
+	if (node.getChildren)
+		node.getChildren().forEach(recursivelyReplaceLinkWithAutoLink);
+	if ($isLinkNode(node)) {
+		const url = node.getURL();
+		const text = node.getTextContent();
+		if (url === text || url === "mailto:" + text) {
+			node.replace($createAutoLinkNode(url), true);
+		}
+	}
+}
+
+function InportExportPlugin({
+	defaultValue,
+	onChange,
+	readOnly
+}: {
+	defaultValue: string;
+	onChange: (value: string) => void;
+	readOnly: boolean;
+}) {
 	const [editor] = useLexicalComposerContext();
 	const doneRef = React.useRef(false);
 
@@ -71,8 +94,8 @@ function InportExportPlugin({ defaultValue, onChange }: { defaultValue: string, 
 
 	React.useEffect(() => {
 		if (doneRef.current || !defaultValue) return;
-
 		doneRef.current = true;
+
 		editor.update(() => {
 			const parser = new DOMParser();
 			// Convert string to DOM. But if the first body node is a text, then assume input is just text and not HTML.
@@ -84,8 +107,14 @@ function InportExportPlugin({ defaultValue, onChange }: { defaultValue: string, 
 			const nodes = $generateNodesFromDOM(editor, dom);
 			$getRoot().getChildren().forEach(c => c.remove());
 			$getRoot().append(...nodes);
+
+			recursivelyReplaceLinkWithAutoLink($getRoot());
 		});
 	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
+
+	React.useEffect(() => {
+		editor.setEditable(!readOnly)
+	}, [readOnly])
 
 	return (
 		<OnChangePlugin
@@ -98,31 +127,54 @@ function InportExportPlugin({ defaultValue, onChange }: { defaultValue: string, 
 
 const InnerContainer = styled.div`
 	position: relative;
+	border: #eee solid 2px;
+	border-top: none;
+	border-bottom-left-radius: 10px;
+	border-bottom-right-radius: 10px;
+
 	${editorCss}
 `;
 
 function Editor({
-	defaultValue,
-	onChange
+	subject,
+	defaultBody,
+	onChangeSubject,
+	onChangeBody,
+	readOnly
 }: {
-	defaultValue: string;
-	onChange: (value: string) => void}
-) {
+	subject: string;
+	defaultBody: string;
+	onChangeSubject: (value: string) => void;
+	onChangeBody: (value: string) => void;
+	readOnly: boolean;
+}) {
+
 	return (
-		<LexicalComposer initialConfig={editorConfig}>
-			<div className={styles.container}>
+		<LexicalComposer
+			initialConfig={editorConfig}
+		>
+			<div>
 				<ToolbarPlugin />
+				<HistoryPlugin />
 				<InnerContainer>
+					<div className={styles.subjectContainer}>
+						<label>Subject:</label>
+						<input
+							type="text"
+							value={subject}
+							onChange={(e) => {onChangeSubject(e.target.value)}}
+						/>
+					</div>
 					<RichTextPlugin
-						contentEditable={<ContentEditable className={styles.input} />}
+						contentEditable={<ContentEditable className={styles.bodyContainer} />}
 						placeholder={placeholderEl}
 						ErrorBoundary={LexicalErrorBoundary}
 					/>
 					<InportExportPlugin
-						defaultValue={defaultValue}
-						onChange={onChange}
+						defaultValue={defaultBody}
+						onChange={onChangeBody}
+						readOnly={readOnly}
 					/>
-					<HistoryPlugin />
 					<AutoFocusPlugin />
 					<ListPlugin />
 					<LinkPlugin />

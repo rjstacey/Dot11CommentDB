@@ -1,11 +1,10 @@
 .toolbar {
 	display: flex;
-	margin-bottom: 1px;
-	background: #fff;
+	align-items: center;
+	background: #efefef;
 	padding: 4px;
 	border-top-left-radius: 10px;
 	border-top-right-radius: 10px;
-	vertical-align: middle;
 }
 
 .toolbar button {
@@ -64,6 +63,10 @@
 	background-color: #efefef;
 }
 
+.select:global.disabled {
+	opacity: 0.2;
+}
+
 .select :global .dropdown-select-content {
 	flex-wrap: nowrap;
 }
@@ -75,7 +78,7 @@
 
 .select :global .dropdown-select-content span.selected-font-label {
 	max-width: 50px;
-	margin-right: 5px;
+	margin: 0 5px;
 }
 
 .select-dropdown {
@@ -91,6 +94,10 @@
 	border-radius: 5px;
 	display: flex;
 	align-items: center;
+}
+
+.select-dropdown :global .dropdown-select-item-disabled {
+	background-color: inherit;
 }
 
 .select-dropdown :global .dropdown-select-item span {
