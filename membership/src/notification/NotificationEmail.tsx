@@ -8,7 +8,6 @@ import {
 	Row,
 	Field,
 	Button,
-	Input,
 	SelectRendererProps,
 	shallowDiff,
 	displayDateRange,
@@ -222,6 +221,8 @@ function NotificationEmail() {
 	}
 
 	function changeTemplate(changes: Partial<EmailTemplate>) {
+		if (preview)
+			return;
 		setEdited((state) => ({ ...state!, ...changes }));
 		debouncedSave();
 	}
@@ -234,6 +235,20 @@ function NotificationEmail() {
 			setTemplate(null);
 			dispatch(deleteEmailTemplate(edited!.id));
 		}
+	}
+
+	function togglePreview() {
+		if (!edited)
+			return;
+		if (!preview) {
+			debouncedSave.flush();
+			const email = doSubstitution(edited, info.members[0], info.session);
+			setEdited(email);
+		}
+		else {
+			setEdited(saved);
+		}
+		setPreview(!preview);
 	}
 
 	function onSend() {
@@ -261,7 +276,7 @@ function NotificationEmail() {
 				</div>
 				<div>
 					<Button
-						onClick={() => setPreview(!preview)}
+						onClick={togglePreview}
 						isActive={preview}
 					>
 						<i className="bi-eye" />
@@ -276,18 +291,16 @@ function NotificationEmail() {
 				</div>
 			</Row>
 			{edited && (
-				<>
-					<Row>
-							<Editor
-								key={edited.id}
-								subject={edited.subject}
-								defaultBody={edited.body}
-								onChangeSubject={(subject) => changeTemplate({ subject })}
-								onChangeBody={(body) => changeTemplate({ body })}
-								readOnly={preview}
-							/>
-					</Row>
-				</>
+				<Row>
+					<Editor
+						key={"" + preview + edited.id}
+						subject={edited.subject}
+						defaultBody={edited.body}
+						onChangeSubject={(subject) => changeTemplate({ subject })}
+						onChangeBody={(body) => changeTemplate({ body })}
+						readOnly={preview}
+					/>
+				</Row>
 			)}
 		</Form>
 	);

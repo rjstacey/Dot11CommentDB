@@ -181,7 +181,7 @@ function MemberStatusChangeHistory({
 							readOnly={readOnly}
 						/>
 						<ActionIcon
-							name="delete"
+							type="delete"
 							onClick={() => deleteStatusChange(entry.id)}
 							disabled={readOnly}
 						/>

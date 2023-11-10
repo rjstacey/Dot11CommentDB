@@ -87,6 +87,8 @@ function InportExportPlugin({
 	const doneRef = React.useRef(false);
 
 	const debouncedOnChange = useDebounce(() => {
+		if (readOnly)
+			return;
 		editor.update(() => {
 			const value = $generateHtmlFromNodes(editor, null);
 			onChange(value);
@@ -115,7 +117,7 @@ function InportExportPlugin({
 
 	React.useEffect(() => {
 		editor.setEditable(!readOnly)
-	}, [readOnly])
+	}, [editor, readOnly])
 
 	return (
 		<OnChangePlugin
@@ -160,11 +162,13 @@ function Editor({
 				<InnerContainer>
 					<div className={styles.subjectContainer}>
 						<label>Subject:</label>
+						{readOnly?
+						<span>{subject}</span>:
 						<input
 							type="text"
 							value={subject}
 							onChange={(e) => {onChangeSubject(e.target.value)}}
-						/>
+						/>}
 					</div>
 					<RichTextPlugin
 						contentEditable={<ContentEditable className={styles.bodyContainer} />}

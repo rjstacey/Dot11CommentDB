@@ -19,8 +19,6 @@ import {
 	LexicalEditor,
 	ElementFormatType,
 	ElementNode,
-	LexicalNode,
-	$isTextNode,
 } from "lexical";
 import {
 	$isLinkNode,
@@ -58,29 +56,6 @@ import { Select, SelectItemRendererProps } from "dot11-components";
 import styles from "./ToolbarPlugin.module.css";
 
 const LowPriority = 1;
-
-const supportedBlockTypes = new Set([
-	"paragraph",
-	"quote",
-	"code",
-	"h1",
-	"h2",
-	"ul",
-	"ol",
-]);
-
-const blockTypeToBlockName = {
-	code: "Code Block",
-	h1: "Large Heading",
-	h2: "Small Heading",
-	h3: "Heading",
-	h4: "Heading",
-	h5: "Heading",
-	ol: "Numbered List",
-	paragraph: "Normal",
-	quote: "Quote",
-	ul: "Bulleted List",
-};
 
 const Divider = () => <div className={styles["divider"]} />;
 
@@ -614,21 +589,24 @@ export default function ToolbarPlugin() {
 			const elementKey = element.getKey();
 			const elementDOM = editor.getElementByKey(elementKey);
 			if (elementDOM !== null) {
+				let type: string;
 				if ($isListNode(element)) {
 					const parentList = $getNearestNodeOfType(
 						anchorNode,
 						ListNode
 					);
-					const type = parentList
+					type = parentList
 						? parentList.getTag()
 						: element.getTag();
 					setBlockType(type);
 				} else {
-					const type = $isHeadingNode(element)
+					type = $isHeadingNode(element)
 						? element.getTag()
 						: element.getType();
-					setBlockType(type);
 				}
+				if (!blockTypeOptions.find(o => o.value === type))
+					type = "";
+				setBlockType(type);
 				setFormatType(element.getFormatType());
 				setFontFamily(
 					$getSelectionStyleValueForProperty(selection, "font-family")
