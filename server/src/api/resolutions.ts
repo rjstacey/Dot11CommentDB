@@ -66,7 +66,7 @@ const validMatchAlgo = (o: unknown): o is MatchAlgo => typeof o === 'string' && 
 const validMatchUpdate = (f: unknown): f is MatchUpdate => typeof f === 'string' && matchUpdateOptions.includes(f as any);
 
 function validateUploadParams(params: any): asserts params is {toUpdate: FieldToUpdate[], matchAlgorithm: MatchAlgo, matchUpdate: MatchUpdate, sheetName: string} {
-	if (isPlainObject(params))
+	if (!isPlainObject(params))
 		throw new TypeError("Bad body; extected params to be object with shape {toUpdate, matchAlgorithm, matchUpdate, sheetName}");
 	if (!validToUpdate(params.toUpdate))
 		throw new TypeError(`Bad body; expected toUpdate to be an array that is a subset of [${toUpdateOptions.join(', ')}].`);
