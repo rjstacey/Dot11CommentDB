@@ -4,13 +4,17 @@ import { ActionButton } from 'dot11-components';
 
 import { useAppSelector } from '../store/hooks';
 import { selectCommentsState, CommentResolution } from '../store/comments';
-import type { EntityId, Dictionary } from 'dot11-components';
+import type { EntityId, Dictionary } from '@reduxjs/toolkit';
 
 function copyHtmlToClipboard(html: string) {
-	const type = "text/html";
-    const blob = new Blob([html], {type});
-    const data = [new ClipboardItem({[type]: blob})];
-	navigator.clipboard.write(data);
+	try {
+		const type = "text/html";
+		const blob = new Blob([html], {type});
+		navigator.clipboard.write([new ClipboardItem({[type]: blob})]);
+	}
+	catch (err: any) {
+		alert(err.name + ": " + err.message);
+	}
 }
 
 function setClipboard(ids: EntityId[], comments: Dictionary<CommentResolution>) {

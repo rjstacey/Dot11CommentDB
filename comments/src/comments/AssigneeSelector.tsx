@@ -1,7 +1,7 @@
 import React from 'react';
 import { createSelector } from '@reduxjs/toolkit';
 
-import { Select, Icon, strComp } from 'dot11-components';
+import { Select, strComp } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { loadMembers, selectMemberEntities, selectMemberIds, selectMembersState } from '../store/members';
@@ -43,7 +43,7 @@ const selectAssigneeOptions = createSelector(
 const itemRenderer = ({item}: {item: Assignee}) => {
 	return (
 		<>
-			<Icon name={item.SAPIN? 'user': 'user-slash'} />
+			<i className={item.SAPIN? 'bi-person': 'bi-person-slash'} />
 			<span style={{marginLeft: 10}}>{item.Name}</span>
 		</>
 	)
@@ -57,7 +57,7 @@ function AssigneeSelector({
 	readOnly,
 	...otherProps
 }: {
-	value:Assignee;
+	value: Assignee;
 	onChange: (value: Assignee) => void;
 	readOnly?: boolean;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">

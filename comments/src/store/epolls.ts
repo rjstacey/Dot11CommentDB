@@ -3,7 +3,7 @@ import type { Dictionary, Action } from '@reduxjs/toolkit';
 import {
 	fetcher,
 	setError,
-	createAppTableDataSlice, SortType,
+	createAppTableDataSlice, FieldType,
 	displayDate,
 	getAppTableDataSelectors,
 	isObject
@@ -26,13 +26,13 @@ export type Epoll = {
 export type SyncedEpoll = Epoll & {InDatabase: boolean};
 
 export const fields = {
-	id: {label: 'ePoll', isId: true, sortType: SortType.NUMERIC},
+	id: {label: 'ePoll', isId: true, type: FieldType.NUMERIC},
 	name: {label: 'Name'},
-	start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
-	end: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
+	start: {label: 'Start', dataRenderer: displayDate, type: FieldType.DATE},
+	end: {label: 'End', dataRenderer: displayDate, type: FieldType.DATE},
 	document: {label: 'Document'},
 	topic: {label: 'Topic'},
-	resultsSummary: {label: 'Result', sortType: SortType.NUMERIC}
+	resultsSummary: {label: 'Result', type: FieldType.NUMERIC}
 };
 
 

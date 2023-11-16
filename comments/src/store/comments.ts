@@ -3,7 +3,7 @@ import {createSelector} from '@reduxjs/toolkit';
 import type { PayloadAction, EntityId, Dictionary } from '@reduxjs/toolkit';
 import {
 	fetcher, setError,
-	createAppTableDataSlice, SortType, getAppTableDataSelectors, isObject, FieldProperties,
+	createAppTableDataSlice, FieldType, getAppTableDataSelectors, isObject, FieldProperties,
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
@@ -85,18 +85,18 @@ const mustSatisfyLabels = mustSatisfyOptions.reduce((obj, o) => {
 }, {});
 
 export const fields: Record<string, FieldProperties> = {
-	CID: {label: 'CID',	sortType: SortType.NUMERIC},
+	CID: {label: 'CID',	type: FieldType.NUMERIC},
 	CommenterName: {label: 'Commenter'},
 	Vote: {label: 'Vote'},
 	MustSatisfy: {
 		label: 'Must satisfy',
 		dataRenderer: v => mustSatisfyLabels[v],
 		options: mustSatisfyOptions,
-		sortType: SortType.NUMERIC
+		type: FieldType.NUMERIC
 	},
 	Category: {label: 'Category'},
-	Clause: {label: 'Clause', sortType: SortType.CLAUSE},
-	Page: {label: 'Page', sortType: SortType.NUMERIC},
+	Clause: {label: 'Clause', type: FieldType.CLAUSE},
+	Page: {label: 'Page', type: FieldType.NUMERIC},
 	Comment: {label: 'Comment'},
 	ProposedChange: {label: 'Proposed change'},
 	AdHoc: {label: 'Ad-hoc'},

@@ -4,7 +4,7 @@ import {
 	fetcher,
 	setError,
 	isObject,
-	createAppTableDataSlice, SortType, getAppTableDataSelectors,
+	createAppTableDataSlice, FieldType, getAppTableDataSelectors,
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
@@ -27,12 +27,12 @@ export type Result = {
 }
 
 const fields = {
-	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
+	SAPIN: {label: 'SA PIN', type: FieldType.NUMERIC},
 	Name: {label: 'Name'},
 	Affiliation: {label: 'Affiliation'},
 	Email: {label: 'Email'},
 	Vote: {label: 'Vote'},
-	CommentCount: {label: 'Comments', sortType: SortType.NUMERIC},
+	CommentCount: {label: 'Comments', type: FieldType.NUMERIC},
 	Notes: {label: 'Notes'}
 };
 

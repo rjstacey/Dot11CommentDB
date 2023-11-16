@@ -2,7 +2,7 @@ import type { EntityId, PayloadAction } from '@reduxjs/toolkit';
 import {
 	fetcher,
 	setError,
-	createAppTableDataSlice, SortType, getAppTableDataSelectors, isObject
+	createAppTableDataSlice, FieldType, getAppTableDataSelectors, isObject
 } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
@@ -39,7 +39,7 @@ const voterStatus = ["Voter", "ExOfficio"] as const;
 export const voterStatusOptions = voterStatus.map(s => ({value: s, label: s}));
 
 export const fields = {
-	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
+	SAPIN: {label: 'SA PIN', type: FieldType.NUMERIC},
 	Email: {label: 'Email'},
 	Name: {label: 'Name'},
 	Status: {label: 'Status', options: voterStatusOptions},
