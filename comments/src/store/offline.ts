@@ -1,15 +1,23 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, Action, PayloadAction } from '@reduxjs/toolkit';
 import { REHYDRATE } from 'redux-persist';
 import { fetcher } from 'dot11-components';
 import type { StoreType, RootState, AppThunk, AppDispatch } from '.';
 
 const dataSet = 'offline';
 
-export const initialState = {
+type OfflineState = {
+	online: boolean;
+	busy: boolean;
+	timerId: number;
+	outbox: OfflineFetchAction[];
+	retryCount: number;
+}
+
+export const initialState: OfflineState = {
 	online: false,
 	busy: false,
 	timerId: 0,
-	outbox: [] as any[],
+	outbox: [],
 	retryCount: 0,
 };
 
@@ -20,7 +28,7 @@ const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		setNetworkStatus(state, action) {
+		setNetworkStatus(state, action: PayloadAction<boolean>) {
 			state.online = action.payload;
 		},
 		fetchStart(state) {
@@ -34,7 +42,7 @@ const slice = createSlice({
 		delayEnd(state) {
 			state.timerId = 0;
 		},
-		enqueue(state, action) {
+		enqueue(state, action: PayloadAction<OfflineFetchAction>) {
 			state.outbox = [...state.outbox, action.payload];
 		},
 		dequeue(state) {
@@ -118,7 +126,7 @@ export const selectOfflineOutbox = (state: RootState) => state[dataSet].outbox;
  * Actions => update transaction state and initiate new actions
  */
 
-const networkStateChange = (online): AppThunk =>
+const networkStateChange = (online: boolean): AppThunk =>
 	async (dispatch, getState) => {
 		dispatch(setNetworkStatus(online));
 
@@ -176,7 +184,7 @@ const send = (): AppThunk =>
 		dispatch(fetchStart());
 		const {method, url, params} = action.effect;
 		return fetcher.fetch(method, url, params)
-			.then(result => {
+			.then((result: any) => {
 				dispatch(dequeue());
 				if (action.commit) {
 					const commitAction = {...action.commit, payload: result};
@@ -189,7 +197,7 @@ const send = (): AppThunk =>
 
 				return dispatch(send());
 			})
-			.catch(error => {
+			.catch((error: any) => {
 				const state = getState()[dataSet];
 				if (!mustDiscard(error, state.retryCount)) {
 					const delay = retryDelay(state.retryCount);
@@ -211,15 +219,21 @@ const send = (): AppThunk =>
 			})
 	};
 
-export type OfflineFetch = {
-	effect: any;
-	commit: any;
-	rollback?: any;
+export type Effect = {
+	method: "GET" | "PATCH" | "PUT" | "POST" | "DELETE";
+	url: string;
+	params: any;
 }
 
-export const offlineFetch = ({effect, commit, rollback}: OfflineFetch): AppThunk =>
+export type OfflineFetchAction = {
+	effect: Effect;
+	commit: Action;
+	rollback?: Action;
+}
+
+export const offlineFetch = (offlineFetchAction: OfflineFetchAction): AppThunk =>
 	async (dispatch, getState) => {
-		dispatch(enqueue({effect, commit, rollback}));
+		dispatch(enqueue(offlineFetchAction));
 		const state = selectOfflineState(getState());
 		if (state.timerId) {
 			clearTimeout(state.timerId);

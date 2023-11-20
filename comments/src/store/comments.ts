@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import {createSelector} from '@reduxjs/toolkit';
+import { createSelector, createAction } from '@reduxjs/toolkit';
 import type { PayloadAction, EntityId, Dictionary } from '@reduxjs/toolkit';
 import {
 	fetcher, setError,
@@ -8,7 +8,14 @@ import {
 
 import type { RootState, AppThunk } from '.';
 import { AccessLevel } from './user';
-import { updateBallotsLocal, selectBallotEntities, selectBallot, validBallotCommentsSummary, BallotCommentsSummary } from './ballots';
+import { 
+	updateBallotsLocal, 
+	ballotsActions,
+	selectBallotEntities, 
+	selectBallot, 
+	validBallotCommentsSummary, 
+	BallotCommentsSummary 
+} from './ballots';
 import { selectGroupPermissions } from './groups';
 import { offlineFetch } from './offline';
 
@@ -166,8 +173,8 @@ const slice = createAppTableDataSlice({
 	extraReducers: (builder, dataAdapter) => {
 		builder
 		.addMatcher(
-			(action) => action.type === 'ballots/setCurrentId',
-			(state, action) => {
+			(action) => action.type === ballotsActions.setCurrentBallot_id.toString(),
+			(state, action: ReturnType<typeof ballotsActions.setCurrentBallot_id>) => {
 				const id = action.payload;
 				if (state.ballot_id !== id) {
 					state.valid = false;
@@ -177,25 +184,24 @@ const slice = createAppTableDataSlice({
 			}
 		)
 		.addMatcher(
-			(action) => action.type === dataSet + '/getCommit',
-			(state, action: PayloadAction<CommentResolution[]>) => {
+			(action) => action.type === getCommit.toString(),
+			(state, action: ReturnType<typeof getCommit>) => {
 				const comments = action.payload;
 				const updates = comments.map(c => ({id: c.id, changes: c}));
 				dataAdapter.updateMany(state, updates);
 			}
 		)
 		.addMatcher(
-			(action) => action.type === dataSet + '/updateCommit',
-			(state, action: PayloadAction<{comments: CommentResolution[]}>) => {
+			(action) => action.type === updateCommit.toString(), //dataSet + '/updateCommit',
+			(state, action: ReturnType<typeof updateCommit>) => {
 				const {comments} = action.payload;
-				//const updates = comments.map(c => ({id: c.id, changes: {LastModifiedBy: c.LastModifiedBy, LastModifiedTime: c.LastModifiedTime}}));
 				const updates = comments.map(c => ({id: c.id, changes: c}));
 				dataAdapter.updateMany(state, updates);
 			}
 		)
 		.addMatcher(
-			(action) => action.type.startsWith(dataSet + '/') && /(addManyRollback)$/.test(action.type),
-			(state, action) => {
+			(action) => action.type === addManyRollback.toString(), //.startsWith(dataSet + '/') && /(addManyRollback)$/.test(action.type),
+			(state, action: ReturnType<typeof addManyRollback>) => {
 				const added_ids = action.payload;
 				if (!Array.isArray(added_ids))
 					console.error('missing or bad payload; expected array');
@@ -207,8 +213,8 @@ const slice = createAppTableDataSlice({
 			}
 		)
 		.addMatcher(
-			(action) => action.type.startsWith(dataSet + '/') && /(removeManyRollback)$/.test(action.type),
-			(state, action) => {
+			(action) => action.type === removeManyRollback.toString(), //.startsWith(dataSet + '/') && /(removeManyRollback)$/.test(action.type),
+			(state, action: ReturnType<typeof removeManyRollback>) => {
 				const comments = action.payload;
 				if (!Array.isArray(comments))
 					console.error('missing or bad payload; expected array');
@@ -274,6 +280,11 @@ const {
 	setUiProperties
 } = slice.actions;
 
+const getCommit = createAction<CommentResolution[]>(dataSet + '/getCommit');
+const updateCommit = createAction<{comments: CommentResolution[]}>(dataSet + '/updateCommit');
+const addManyRollback = createAction<EntityId[]>(dataSet + '/addManyRollback');
+const removeManyRollback = createAction<CommentResolution[]>(dataSet + '/removeManyRollback');
+
 export {setUiProperties};
 
 export const getCID = (c: CommentResolution) => c.CommentID + (c.ResolutionCount > 1? '.' + c.ResolutionID: '');
@@ -336,7 +347,7 @@ export const getCommentUpdates = (): AppThunk =>
 		const lastModified = selectCommentsLastModified(state);
 		dispatch(offlineFetch({
 			effect: {url: `${baseCommentsUrl}/${ballot_id}`, method: 'GET', params: {modifiedSince: lastModified}},
-			commit: {type: dataSet + '/getCommit'},
+			commit: {type: getCommit.toString() /*dataSet + '/getCommit'*/},
 		}));
 	}
 
@@ -374,8 +385,8 @@ export const updateComments = (updates: CommentUpdate[]): AppThunk =>
 		dispatch(localUpdateMany(localUpdates));
 		dispatch(offlineFetch({
 			effect: {url: `${baseCommentsUrl}/${ballot_id}?modifiedSince=${lastModified}`, method: 'PATCH', params: updates},
-			commit: {type: dataSet + '/updateCommit'},
-			rollback: {type: localUpdateMany.toString(), payload: rollbackUpdates} 
+			commit: {type: updateCommit.toString()},
+			rollback: localUpdateMany(rollbackUpdates) //{type: localUpdateMany.toString(), payload: rollbackUpdates} 
 		}));
 	}
 
@@ -515,8 +526,8 @@ const updateMany = (updates: Update<CommentResolution>[]): AppThunk =>
 		dispatch(localUpdateMany(updates));
 		dispatch(offlineFetch({
 			effect: {url: `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`, method: 'PATCH', params: updates},
-			commit: {type: dataSet + '/updateCommit'},
-			rollback: {type: localUpdateMany.toString(), payload: rollbackUpdates}
+			commit: {type: updateCommit.toString()},
+			rollback: localUpdateMany(rollbackUpdates) //{type: localUpdateMany.toString(), payload: rollbackUpdates}
 		}));
 	}
 
@@ -530,8 +541,8 @@ const removeMany = (ids: EntityId[]): AppThunk =>
 		dispatch(localRemoveMany(ids));
 		dispatch(offlineFetch({
 			effect: {url: `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`, method: 'DELETE', params: ids},
-			commit: {type: dataSet + '/updateCommit'},
-			rollback: {type: dataSet + '/removeManyRollback', payload: comments}
+			commit: {type: updateCommit.toString()},
+			rollback: removeManyRollback(comments) //{type: dataSet + '/removeManyRollback', payload: comments}
 		}));
 	}
 
@@ -604,8 +615,8 @@ export const addResolutions = (resolutions: ResolutionCreate[]): AppThunk =>
 		dispatch(localAddMany(adds));
 		dispatch(offlineFetch({
 			effect: {url: `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`, method: 'POST', params: remoteAdds},
-			commit: {type: dataSet + '/updateCommit'},
-			rollback: {type: dataSet + '/addManyRollback', payload: adds.map(c => c.id)}
+			commit: {type: updateCommit.toString()},
+			rollback: addManyRollback(adds.map(c => c.id)) //{type: dataSet + '/addManyRollback', payload: adds.map(c => c.id)}
 		}));
 		dispatch(setSelected(selected));
 	}

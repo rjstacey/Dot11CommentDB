@@ -78,7 +78,7 @@ const slice = createAppTableDataSlice({
 	extraReducers: (builder, dataAdapter) => {
 		builder
 			.addMatcher(
-				(action: Action) => action.type === clear,
+				(action: Action) => action.type === clear.toString(),
 				(state) => {
 					dataAdapter.removeAll(state);
 					state.valid = false;
