@@ -8,7 +8,7 @@ import {
 
 import RichTextEditor from './RichTextEditor';
 
-import type { MultipleCommentResolution } from './CommentDetail';
+import type { MultipleResolution } from './CommentDetail';
 import type { Resolution } from '../store/comments';
 
 const BLANK_STR = '(Blank)';
@@ -26,7 +26,7 @@ function EditStatus({
 	updateResolution,
 	readOnly
 }: {
-	resolution: MultipleCommentResolution;
+	resolution: MultipleResolution;
 	updateResolution: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
@@ -103,13 +103,13 @@ function EditStatus({
 
 export const EditingEdit = ({
 	resolution,
-	updateResolution,
+	updateResolution = () => {},
 	showEditing,
 	toggleShowEditing,
 	readOnly
 }: {
-	resolution: MultipleCommentResolution;
-	updateResolution: (changes: Partial<Resolution>) => void;
+	resolution: MultipleResolution;
+	updateResolution?: (changes: Partial<Resolution>) => void;
 	showEditing: boolean;
 	toggleShowEditing?: () => void;
 	readOnly?: boolean;

@@ -3,25 +3,36 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { fetcher, isObject, setError } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-import { CommentResolution, selectCommentsBallot_id } from './comments';
+import { selectCommentsBallot_id, CommentResolution, Comment, Resolution } from './comments';
 
-type CommentHistory = {
+export type CommentHistoryEvent = {
 	id: number;
 	comment_id: number | null;
-	resolution_id: string | null;
+	resolution_id?: string;
 	UserID: number | null;
 	Action: "add" | "update" | "delete";
-	Changes: object;
+	Changes: Partial<CommentResolution>;
 	Timestamp: string;
 	UserName: string;
 }
+
+export type CommentHistoryEntry =
+	Omit<CommentHistoryEvent, "resolution_id"> & {
+		comment: Comment;
+	} & ({
+		resolution_id: string;
+		resolution: Resolution;
+	} | {
+		resolution_id: undefined;
+		resolution: undefined;
+	})
 
 export const dataSet = 'commentsHistory';
 
 const initialState: {
 	loading: boolean;
 	valid: boolean;
-	commentsHistory: CommentHistory[];
+	commentsHistory: CommentHistoryEntry[];
 } = {
 	loading: false,
 	valid: false,
@@ -37,37 +48,13 @@ const slice = createSlice({
 			state.valid = false;
 			state.commentsHistory = [];
 		},
-  		getSuccess(state, action: PayloadAction<{comments: CommentResolution[]; commentsHistory: CommentHistory[]}>) {
-  			let {commentsHistory, comments} = action.payload;
-  			const comment = comments[0];
-			const resolution_ids = [...new Set(commentsHistory.map(h => h.resolution_id))];
-			for (const resId of resolution_ids) {
-				let changes = {...comment, ResolutionID: null};
-				let resolutionCount = 0;
-				commentsHistory = commentsHistory.map(h => {
-					if (h.Action === 'add' && h.resolution_id)
-						resolutionCount++;
-					if (h.Action === 'delete' && h.resolution_id)
-						resolutionCount--;
-					if (h.resolution_id === null || h.resolution_id === resId)
-						changes = {...changes, ...h.Changes};
-					
-					if (h.resolution_id &&
-						resolutionCount > 1 &&
-						changes.hasOwnProperty('CommentID') &&
-						changes.hasOwnProperty('ResolutionID')) {
-						changes.CID = `${changes.CommentID}.${changes.ResolutionID}`;
-					}
-					else { 
-						changes.CID = changes.hasOwnProperty('CommentID')? changes.CommentID.toString(): 'Unknown';
-					}
-					changes.ResolutionCount = resolutionCount;
-					return (h.resolution_id === resId)? {...h, Changes: changes}: h;
-				})
+  		getSuccess(state, action: PayloadAction<{history: CommentHistoryEntry[]}>) {
+  			let {history} = action.payload;
+			return {
+				loading: false,
+				valid: true,
+				commentsHistory: history
 			}
-			state.loading = false;
-			state.valid = true;
-			state.commentsHistory = commentsHistory;
 		},
 		getFailure(state) {
 			state.loading = false;
@@ -87,10 +74,9 @@ export const selectCommentsHistoryState = (state: RootState) => state[dataSet];
  */
 const {getPending, getSuccess, getFailure} = slice.actions;
 
-function validResponse(response: any): response is {comments: CommentResolution[]; commentsHistory: CommentHistory[]} {
+function validResponse(response: any): response is {history: CommentHistoryEntry[]} {
 	return isObject(response) &&
-		Array.isArray(response.comments) &&
-		Array.isArray(response.commentsHistory);
+		Array.isArray(response.history);
 }
 
 export const loadCommentsHistory = (comment_id: number): AppThunk =>

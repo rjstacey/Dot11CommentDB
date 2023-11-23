@@ -11,7 +11,7 @@ import AdHocSelector from './AdHocSelector';
 import CommentGroupSelector from './CommentGroupSelector';
 import RichTextEditor from './RichTextEditor';
 
-import type { MultipleCommentResolution } from './CommentDetail';
+import type { MultipleComment } from './CommentDetail';
 
 import {
 	getCommentStatus,
@@ -28,7 +28,7 @@ const MultipleContainer = styled.span`
 
 const ShowMultiple = (props: React.ComponentProps<typeof MultipleContainer>) => <MultipleContainer {...props}>{MULTIPLE_STR}</MultipleContainer>
 
-export const renderCommenter = (comment: MultipleCommentResolution) => {
+export const renderCommenter = (comment: MultipleComment) => {
 	const commenter = comment.CommenterName
 	if (isMultiple(commenter)) {
 		return <ShowMultiple />
@@ -80,67 +80,123 @@ const renderTextBlock = (value: string) => {
 	)
 }
 
-const Categorization = ({
+export const CommentAdHoc = ({
 	comment,
-	updateComment,
+	updateComment = () => {},
+	readOnly
+}: {
+	comment: MultipleComment;
+	updateComment?: (changes: Partial<CommentResolution>) => void;
+	readOnly?: boolean;
+}) => (
+	<Field label='Ad-hoc:'>
+		<AdHocSelector
+			style={{flexBasis: 150}}
+			value={isMultiple(comment.AdHoc) || isMultiple(comment.AdHocGroupId)? {GroupId: null, Name: ''}: {GroupId: comment.AdHocGroupId, Name: comment.AdHoc}}
+			onChange={value => updateComment({AdHocGroupId: value.GroupId, AdHoc: value.Name})}
+			placeholder={isMultiple(comment.AdHoc) || isMultiple(comment.AdHocGroupId)? MULTIPLE_STR: BLANK_STR}
+			readOnly={readOnly}
+		/>
+	</Field>
+);
+
+export const CommentGroup = ({
+	comment,
+	updateComment = () => {},
+	readOnly
+}: {
+	comment: MultipleComment;
+	updateComment?: (changes: Partial<CommentResolution>) => void;
+	readOnly?: boolean;
+}) => (
+	<Field label='Comment group:'>
+		<CommentGroupSelector
+			style={{flexBasis: 300}}
+			value={isMultiple(comment.CommentGroup)? '': comment.CommentGroup || ''}
+			onChange={value => updateComment({CommentGroup: value})}
+			placeholder={isMultiple(comment.CommentGroup)? MULTIPLE_STR: BLANK_STR}
+			readOnly={readOnly}
+		/>
+	</Field>
+);
+
+export const CommentNotes = ({
+	comment,
+	updateComment = () => {},
 	showNotes,
 	toggleShowNotes,
 	readOnly
 }: {
-	comment: MultipleCommentResolution;
-	updateComment: (changes: Partial<CommentResolution>) => void;
+	comment: MultipleComment;
+	updateComment?: (changes: Partial<CommentResolution>) => void;
 	showNotes: boolean;
 	toggleShowNotes?: () => void;
 	readOnly?: boolean;
-}) =>
+}) => (
+	<Col
+		style={{
+			width: '100%',
+			position: 'relative',	// position toolbar
+			paddingTop: 15			// make room for toolbar
+		}}
+	>
+		<div style={{display: 'flex', flex: 1, justifyContent: 'space-between'}}>
+			<label>Notes:</label>
+			{toggleShowNotes && <IconCollapse isCollapsed={!showNotes} onClick={toggleShowNotes} />}
+		</div>
+		{showNotes &&
+			<StyledNoteEditor
+				value={isMultiple(comment.Notes)? '': comment.Notes}
+				onChange={value => updateComment({Notes: value})}
+				placeholder={isMultiple(comment.Notes)? MULTIPLE_STR: BLANK_STR}
+				readOnly={readOnly}
+			/>
+		}
+	</Col>
+);
+
+
+export const CommentCategorization = ({
+	comment,
+	updateComment = () => {},
+	showNotes,
+	toggleShowNotes,
+	readOnly
+}: {
+	comment: MultipleComment;
+	updateComment?: (changes: Partial<CommentResolution>) => void;
+	showNotes: boolean;
+	toggleShowNotes?: () => void;
+	readOnly?: boolean;
+}) => (
 	<>
 		<Row>
 			<Col>
-				<Field label='Ad-hoc:'>
-					<AdHocSelector
-						style={{flexBasis: 150}}
-						value={isMultiple(comment.AdHoc) || isMultiple(comment.AdHocGroupId)? {GroupId: null, Name: ''}: {GroupId: comment.AdHocGroupId, Name: comment.AdHoc}}
-						onChange={value => updateComment({AdHocGroupId: value.GroupId, AdHoc: value.Name})}
-						placeholder={isMultiple(comment.AdHoc) || isMultiple(comment.AdHocGroupId)? MULTIPLE_STR: BLANK_STR}
-						readOnly={readOnly}
-					/>
-				</Field>
+				<CommentAdHoc
+					comment={comment}
+					updateComment={updateComment}
+					readOnly={readOnly}
+				/>
 			</Col>
 			<Col>
-				<Field label='Comment group:'>
-					<CommentGroupSelector
-						style={{flexBasis: 300}}
-						value={isMultiple(comment.CommentGroup)? '': comment.CommentGroup || ''}
-						onChange={value => updateComment({CommentGroup: value})}
-						placeholder={isMultiple(comment.CommentGroup)? MULTIPLE_STR: BLANK_STR}
-						readOnly={readOnly}
-					/>
-				</Field>
+				<CommentGroup
+					comment={comment}
+					updateComment={updateComment}
+					readOnly={readOnly}
+				/>
 			</Col>
 		</Row>
 		<Row>
-			<Col
-				style={{
-					width: '100%',
-					position: 'relative',	// position toolbar
-					paddingTop: 15			// make room for toolbar
-				}}
-			>
-				<div style={{display: 'flex', flex: 1, justifyContent: 'space-between'}}>
-					<label>Notes:</label>
-					{toggleShowNotes && <IconCollapse isCollapsed={!showNotes} onClick={toggleShowNotes} />}
-				</div>
-				{showNotes &&
-					<StyledNoteEditor
-						value={isMultiple(comment.Notes)? '': comment.Notes}
-						onChange={value => updateComment({Notes: value})}
-						placeholder={isMultiple(comment.Notes)? MULTIPLE_STR: BLANK_STR}
-						readOnly={readOnly}
-					/>
-				}
-			</Col>
+			<CommentNotes
+				comment={comment}
+				updateComment={updateComment}
+				showNotes={showNotes}
+				toggleShowNotes={toggleShowNotes}
+				readOnly={readOnly}
+			/>
 		</Row>
 	</>
+);
 
 
 const StyledNoteEditor = styled(RichTextEditor)`
@@ -155,16 +211,19 @@ function CommentPage({
 	setComment,
 	readOnly
 }: {
-	comment: MultipleCommentResolution;
+	comment: MultipleComment;
 	setComment: (changes: Partial<CommentResolution>) => void;
 	readOnly?: boolean;
 }) {
+	const [value, setValue] = React.useState(isMultiple(comment.Page)? '': comment.Page? comment.Page.toFixed(2): '');
 	const pattern = '^\\d*\\.?\\d{0,2}$';
 
 	const onChange: React.ChangeEventHandler<HTMLInputElement> = function(e) {
 		const {value} = e.target;
+		setValue(value);
 		if (value.search(pattern) !== -1) {
-			setComment({Page: value || null})
+			const page = parseFloat(value);
+			setComment({Page: page || null})
 		}
 	}
 
@@ -175,7 +234,6 @@ function CommentPage({
 		let page: number | string = parseFloat(comment.C_Page) + parseFloat(comment.C_Line)/100
 		if (isNaN(page))
 			page = 0;
-		page = page.toFixed(2);
 		showOriginal = page !== comment.Page;
 		original = comment.C_Page + '.' + comment.C_Line;
 	}
@@ -185,7 +243,7 @@ function CommentPage({
 			<Input
 				type='text'
 				size={10}
-				value={isMultiple(comment.Page)? '': comment.Page || ''}
+				value={value}
 				onChange={onChange}
 				pattern={pattern}
 				placeholder={isMultiple(comment.Page)? MULTIPLE_STR: ''}
@@ -205,7 +263,7 @@ function CommentClause({
 	setComment,
 	readOnly
 }: {
-	comment: MultipleCommentResolution;
+	comment: MultipleComment;
 	setComment: (changes: Partial<CommentResolution>) => void;
 	readOnly?: boolean;
 }) {
@@ -231,19 +289,15 @@ function CommentClause({
 	)
 }
 
-export function CommentEdit({
+export function CommentBasics({
 	cids,
 	comment,
-	updateComment,
-	showNotes,
-	toggleShowNotes,
+	updateComment = () => {},
 	readOnly,
 }: {
 	cids: string[];
-	comment: MultipleCommentResolution;
-	updateComment: (changes: Partial<CommentResolution>) => void;
-	showNotes: boolean;
-	toggleShowNotes?: () => void;
+	comment: MultipleComment;
+	updateComment?: (changes: Partial<CommentResolution>) => void;
 	readOnly?: boolean;
 }) {
 	const cidsStr = cids.join(', ');
@@ -281,7 +335,34 @@ export function CommentEdit({
 			<Row>
 				<List label='Proposed Change:'>{renderTextBlock(comment.ProposedChange)}</List>
 			</Row>
-			<Categorization
+		</>
+	)
+}
+
+export function CommentEdit({
+	cids,
+	comment,
+	updateComment,
+	showNotes,
+	toggleShowNotes,
+	readOnly,
+}: {
+	cids: string[];
+	comment: MultipleComment;
+	updateComment?: (changes: Partial<CommentResolution>) => void;
+	showNotes: boolean;
+	toggleShowNotes?: () => void;
+	readOnly?: boolean;
+}) {
+	return (
+		<>
+			<CommentBasics
+				cids={cids}
+				comment={comment}
+				updateComment={updateComment}
+				readOnly={readOnly}
+			/>
+			<CommentCategorization
 				comment={comment}
 				updateComment={updateComment}
 				showNotes={showNotes}

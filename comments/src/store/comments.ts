@@ -33,8 +33,8 @@ export type Comment = {
 	C_Line: string;
 	C_Index: number;
 	MustSatisfy: boolean;
-	Clause: string;
-	Page: string | null;
+	Clause: string | null;
+	Page: number | null;
 	Comment: string;
 	AdHoc: string;
 	AdHocGroupId: string | null;
@@ -43,6 +43,7 @@ export type Comment = {
 	ProposedChange: string;
 	LastModifiedBy: number | null;
 	LastModifiedTime: string | null;
+	Vote: string;
 }
 
 export type ResnStatusType = 'A' | 'V' | 'J';
@@ -78,7 +79,6 @@ export type CommentResolution = Omit<Comment, "id"> & Omit<Resolution, "id"> & {
 	ResolutionID: number;
 	ResolutionCount: number;
 	CID: string;
-	Vote: string;
 }
 
 const mustSatisfyOptions = [
@@ -103,7 +103,7 @@ export const fields: Record<string, FieldProperties> = {
 	},
 	Category: {label: 'Category'},
 	Clause: {label: 'Clause', type: FieldType.CLAUSE},
-	Page: {label: 'Page', type: FieldType.NUMERIC},
+	Page: {label: 'Page', type: FieldType.NUMERIC, dataRenderer: (v) => v.toFixed(2)},
 	Comment: {label: 'Comment'},
 	ProposedChange: {label: 'Proposed change'},
 	AdHoc: {label: 'Ad-hoc'},

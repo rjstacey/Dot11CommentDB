@@ -10,67 +10,70 @@ import AssigneeSelector from './AssigneeSelector';
 import SubmissionSelector from './SubmissionSelector';
 import RichTextEditor from './RichTextEditor';
 
-import type { MultipleCommentResolution } from './CommentDetail';
+import type { MultipleCommentResolution, MultipleResolution } from './CommentDetail';
 import type { Resolution, ResnStatusType } from '../store/comments';
 import { AccessLevel } from '../store/user';
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
 
-const AssigneeAndSubmission = ({
-	style,
-	className,
+export function ResolutionAssignee({
 	resolution,
-	updateResolution,
+	updateResolution = () => {},
 	readOnly
 }: {
-	className?: string;
-	style?: React.CSSProperties;
-	resolution: MultipleCommentResolution;
-	updateResolution: (changes: Partial<Resolution>) => void;
+	resolution: MultipleResolution;
+	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
-}) => 
-	<Col
-		style={style}
-		className={className}
-	>
-		<Row>
-			<Field label='Assignee:'>
-				<AssigneeSelector
-					style={{flexBasis: 200, flexGrow: 1}}
-					value={(isMultiple(resolution.AssigneeSAPIN) || isMultiple(resolution.AssigneeName))?
-						{SAPIN: 0, Name: ''}:
-						{SAPIN: resolution.AssigneeSAPIN || 0, Name: resolution.AssigneeName || ''}}
-					onChange={({SAPIN, Name}) => updateResolution({AssigneeSAPIN: SAPIN, AssigneeName: Name})}
-					placeholder={isMultiple(resolution.AssigneeSAPIN || resolution.AssigneeName)? MULTIPLE_STR: BLANK_STR}
-					readOnly={readOnly}
-				/>
-			</Field>
-		</Row>
-		<Row>
-			<Field label='Submission:'>
-				<SubmissionSelector
-					style={{flexBasis: 200}}
-					value={isMultiple(resolution.Submission)? '': resolution.Submission || ''}
-					onChange={value => updateResolution({Submission: value})}
-					placeholder={isMultiple(resolution.Submission)? MULTIPLE_STR: BLANK_STR}
-					readOnly={readOnly}
-				/>
-			</Field>
-		</Row>
-	</Col>
+}) {
+	return (
+		<Field label='Assignee:'>
+			<AssigneeSelector
+				style={{flexBasis: 200, flexGrow: 1}}
+				value={(isMultiple(resolution.AssigneeSAPIN) || isMultiple(resolution.AssigneeName))?
+					{SAPIN: 0, Name: ''}:
+					{SAPIN: resolution.AssigneeSAPIN || 0, Name: resolution.AssigneeName || ''}}
+				onChange={({SAPIN, Name}) => updateResolution({AssigneeSAPIN: SAPIN, AssigneeName: Name})}
+				placeholder={isMultiple(resolution.AssigneeSAPIN || resolution.AssigneeName)? MULTIPLE_STR: BLANK_STR}
+				readOnly={readOnly}
+			/>
+		</Field>
+	)
+}
 
-function ResolutionApproval({
+export function ResolutionSubmission({
+	resolution,
+	updateResolution = () => {},
+	readOnly
+}: {
+	resolution: MultipleResolution;
+	updateResolution?: (changes: Partial<Resolution>) => void;
+	readOnly?: boolean;
+}) {
+	return (
+		<Field label='Submission:'>
+			<SubmissionSelector
+				style={{flexBasis: 200}}
+				value={isMultiple(resolution.Submission)? '': resolution.Submission || ''}
+				onChange={value => updateResolution({Submission: value})}
+				placeholder={isMultiple(resolution.Submission)? MULTIPLE_STR: BLANK_STR}
+				readOnly={readOnly}
+			/>
+		</Field>
+	)
+}
+
+export function ResolutionApproval({
 	style,
 	className,
 	resolution,
-	updateResolution,
+	updateResolution = () => {},
 	readOnly
 }: {
 	className?: string;
 	style?: React.CSSProperties;
-	resolution: MultipleCommentResolution;
-	updateResolution: (changes: Partial<Resolution>) => void;
+	resolution: MultipleResolution;
+	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
 
@@ -221,6 +224,42 @@ const StyledResolutionEditor = styled(RichTextEditor)<{resnStatus?: ResnStatusTy
 	border-radius: 0 5px 5px 5px;
 `;
 
+export function ResolutionAndStatus({
+	resolution,
+	updateResolution = () => {},
+	readOnly,
+}: {
+	resolution: MultipleResolution;
+	updateResolution?: (changes: Partial<Resolution>) => void;
+	readOnly?: boolean;
+}) {
+	return (
+		<Col
+			style={{
+				width: '100%',
+				position: 'relative',	// position toolbar
+				paddingTop: 15			// make room for toolbar
+			}}
+		>
+			<label>Resolution:</label>
+			<StyledResolutionContainer readOnly={readOnly} >
+				<StyledResnStatus
+					value={resolution.ResnStatus}
+					onChange={value => updateResolution({ResnStatus: value})}
+					readOnly={readOnly}
+				/>
+				<StyledResolutionEditor
+					value={isMultiple(resolution.Resolution)? '': resolution.Resolution}
+					onChange={value => updateResolution({Resolution: value})}
+					placeholder={isMultiple(resolution.Resolution)? MULTIPLE_STR: BLANK_STR}
+					resnStatus={isMultiple(resolution.ResnStatus)? null: resolution.ResnStatus}
+					readOnly={readOnly}
+				/>
+			</StyledResolutionContainer>
+		</Col>
+	)
+}
+
 export function ResolutionEdit({
 	resolution,
 	updateResolution,
@@ -235,11 +274,22 @@ export function ResolutionEdit({
 	return (
 		<>
 			<Row>
-				<AssigneeAndSubmission
-					resolution={resolution}
-					updateResolution={updateResolution}
-					readOnly={readOnly}
-				/>
+				<Col>
+					<Row>
+						<ResolutionAssignee
+							resolution={resolution}
+							updateResolution={updateResolution}
+							readOnly={readOnly}
+						/>
+					</Row>
+					<Row>
+						<ResolutionSubmission
+							resolution={resolution}
+							updateResolution={updateResolution}
+							readOnly={readOnly}
+						/>
+					</Row>
+				</Col>
 				<ResolutionApproval
 					resolution={resolution}
 					updateResolution={updateResolution}
@@ -247,29 +297,11 @@ export function ResolutionEdit({
 				/>
 			</Row>
 			<Row>
-				<Col
-					style={{
-						width: '100%',
-						position: 'relative',	// position toolbar
-						paddingTop: 15			// make room for toolbar
-					}}
-				>
-					<label>Resolution:</label>
-					<StyledResolutionContainer readOnly={readOnly} >
-						<StyledResnStatus
-							value={resolution.ResnStatus}
-							onChange={value => updateResolution({ResnStatus: value})}
-							readOnly={readOnly}
-						/>
-						<StyledResolutionEditor
-							value={isMultiple(resolution.Resolution)? '': resolution.Resolution}
-							onChange={value => updateResolution({Resolution: value})}
-							placeholder={isMultiple(resolution.Resolution)? MULTIPLE_STR: BLANK_STR}
-							resnStatus={isMultiple(resolution.ResnStatus)? null: resolution.ResnStatus}
-							readOnly={readOnly}
-						/>
-					</StyledResolutionContainer>
-				</Col>
+				<ResolutionAndStatus
+					resolution={resolution}
+					updateResolution={updateResolution}
+					readOnly={readOnly}
+				/>
 			</Row>
 		</>
 	)

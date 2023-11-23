@@ -32,8 +32,8 @@ function setClipboard(ids: EntityId[], comments: Dictionary<CommentResolution>) 
 	const row = (c: CommentResolution) => `
 		<tr>
 			${td(c.CID)}
-			${td(c.Page || '')}
-			${td(c.Clause)}
+			${td(c.Page? c.Page.toString(): '')}
+			${td(c.Clause? c.Clause: '')}
 			${td(c.Comment)}
 			${td(c.ProposedChange)}
 		</tr>`;

@@ -69,6 +69,8 @@ const BodyContainer = styled.div`
 `;
 
 export type MultipleCommentResolution = Multiple<CommentResolution>;
+export type MultipleComment = Multiple<Comment>;
+export type MultipleResolution = Multiple<Resolution>;
 
 type CommentDetailState = {
 	savedResolution: MultipleCommentResolution,
