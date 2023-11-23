@@ -76,7 +76,7 @@ const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 		}
 	}
 	let status = 500;
-	if (err.name === "TypeError") status = 400;
+	if (err.name === "TypeError" || err.sqlState) status = 400;
 	else if (err.name === "AuthError") status = 401;
 	else if (err.name === "ForbiddenError") status = 403;
 	else if (err.name === "NotFoundError") status = 404;

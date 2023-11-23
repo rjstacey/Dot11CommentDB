@@ -31,10 +31,13 @@ export function init() {
 	console.log("DB_HOST=" + process.env.DB_HOST);
 	console.log(options);
 
-	/* Cast TINYINT(1) as boolean */
 	options.typeCast = function (field, next) {
 		if (field.type === "TINY" && field.length === 1) {
+			/* Cast TINYINT(1) as boolean */
 			return field.string() === "1"; // 1 = true, 0 = false
+		} else if (field.type === "DECIMAL" || field.type === "NEWDECIMAL") {
+			let value = field.string();
+			return value === null ? null : Number(value);
 		} else {
 			return next();
 		}

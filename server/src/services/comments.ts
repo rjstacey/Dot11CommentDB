@@ -21,14 +21,15 @@ export type Comment = {
 	CommenterSAPIN: number | null;
 	CommenterName: string;
 	CommenterEmail: string;
+	Vote: string;
 	Category: string;
 	C_Clause: string;
 	C_Page: string;
 	C_Line: string;
 	C_Index: number;
 	MustSatisfy: boolean;
-	Clause: string;
-	Page: number;
+	Clause: string | null;
+	Page: number | null;
 	Comment: string;
 	AdHocGroupId: string | null;
 	AdHoc: string;
@@ -39,12 +40,25 @@ export type Comment = {
 	LastModifiedTime: string;
 }
 
+/** Editable comment fields array */
+export const commentEditableFields = [
+	"CommentID",
+	"Category",
+	"Clause",
+	"Page",
+	"AdHoc",
+	"CommentGroup",
+	"Notes"
+] as const;
+
+/** Editable comment fields */
+export type CommentEditable = Pick<Comment, typeof commentEditableFields[number]>;
+
 export type CommentResolution = Omit<Comment, "id"> & Omit<Resolution, "id"> & {
 	resolution_id: string;
 	ResolutionID: number;
 	ResolutionCount: number;
 	CID: string;
-	Vote: string;
 }
 
 export type CommentsSummary = {
@@ -203,8 +217,10 @@ function commentsSetSql(changes: Partial<Comment>) {
  * @param changes An object with fields to be changed
  */
 async function updateComment(user: User, ballot_id: number, id: bigint, changes: Partial<Comment>) {
-	if (Object.keys(changes).length > 0)
-		return db.query('UPDATE comments SET ' + commentsSetSql(changes) + ', LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP() WHERE ballot_id=? AND id=?', [user.SAPIN, ballot_id, id]) as Promise<OkPacket>;
+	if (Object.keys(changes).length === 0)
+		return;
+	const sql = db.format('UPDATE comments SET ' + commentsSetSql(changes) + ', LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP() WHERE ballot_id=? AND id=?', [user.SAPIN, ballot_id, id]);
+	return db.query(sql) as Promise<OkPacket>;
 }
 
 type CommentUpdate = {

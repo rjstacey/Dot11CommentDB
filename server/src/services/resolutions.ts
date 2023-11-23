@@ -28,18 +28,34 @@ export type Resolution = {
 	LastModifiedTime: string;
 }
 
+export const resolutionEditableFields = [
+	'ResolutionID',
+	'AssigneeSAPIN',
+	'AssigneeName',
+	'Submission',
+	'ResnStatus',
+	'Resolution',
+	'ReadyForMotion',
+	'ApprovedByMotion',
+	'EditStatus',
+	'EditNotes',
+	'EditInDraft'
+] as const;
+
+export type ResolutionEditable = Pick<Resolution, typeof resolutionEditableFields[number]>;
+
 type ResolutionCreate = {
 	comment_id: bigint;
 } & Partial<Omit<Resolution, "comment_id">>;
 
-const defaultResolution = {
+export const defaultResolution: ResolutionEditable = {
 	ResolutionID: 0,
 	AssigneeSAPIN: 0,
 	AssigneeName: '',
-	ResnStatus: '',
+	ResnStatus: null,
 	Resolution: '',
 	Submission: '',
-	ReadyForMotion: 0,
+	ReadyForMotion: false,
 	ApprovedByMotion: '',
 	EditStatus: '',
 	EditInDraft: '',
