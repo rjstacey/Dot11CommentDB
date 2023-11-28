@@ -33,7 +33,7 @@ export function createUserSlice(user: User) {
 /*
  * Selectors
  */
-export const selectUser = (state: RootState) => state[dataSet];
+export const selectUser = (state: RootState): User => state[dataSet];
 export const selectUserPermissions = (state: RootState) => selectUser(state)!.Permissions;
 
 export function selectUserMeetingsAccess(state: RootState) {

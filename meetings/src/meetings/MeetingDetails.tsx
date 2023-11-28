@@ -55,6 +55,8 @@ function timeRangeToDuration(startTime: string, endTime: string) {
 	let d = DateTime.fromFormat(endTime, 'HH:mm')
 		.diff(DateTime.fromFormat(startTime, 'HH:mm'))
 		.shiftTo('hours', 'minutes');
+	if (d.hours < 0)
+		d = d.plus({hours: 24});
 	return d.toFormat(d.minutes? 'h:mm': 'h');
 }
 
