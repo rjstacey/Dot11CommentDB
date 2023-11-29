@@ -168,9 +168,15 @@ async function selectMeetings(constraints: SelectMeetingsConstraints) {
 export async function getMeetings(constraints: SelectMeetingsConstraints) {
 	const meetings = await selectMeetings(constraints);
 	const ids = meetings.reduce((ids, m) => m.webexMeetingId? ids.concat([m.webexMeetingId]): ids, [] as string[]);
-	const webexMeetings = ids.length > 0?
-		await getWebexMeetings({...constraints, ids}):
-		[];
+	let webexMeetings: WebexMeeting[] = [];
+	if (ids.length > 0) {
+		try {
+			webexMeetings = await getWebexMeetings({...constraints, ids});
+		}
+		catch (error) {
+			console.log(error)
+		}
+	}
 	return {meetings, webexMeetings};
 }
 

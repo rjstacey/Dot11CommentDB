@@ -692,7 +692,7 @@ async function addImatBreakout(user: User, imatMeeting: ImatMeeting, timeslots: 
 	
 	let b = breakouts.find(b =>
 		breakout.name.trim() === b.name &&
-		breakout.location.trim() === b.location &&
+		breakout.location?.trim() === b.location &&
 		breakout.day === b.day &&
 		breakout.startSlotId === b.startSlotId
 	);
@@ -972,7 +972,7 @@ async function meetingToBreakout(
 		throw new TypeError(`Can't find committee symbol=${group.symbol}`);
 	const groupId = committee.id;
 
-	let location = meeting.location;
+	let location = meeting.location || '';
 	let credit: string | undefined,
 		creditOverrideNumerator = 0,
 		creditOverrideDenominator = 0;
