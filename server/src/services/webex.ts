@@ -3,9 +3,38 @@ import { URLSearchParams } from 'url';
 import { NotFoundError, isPlainObject } from '../utils';
 
 import axios, { AxiosInstance } from 'axios';
+import { User } from './users';
 
-import db from '../utils/database';
-import { OkPacket } from 'mysql2';
+import {
+	genOAuthState,
+	parseOAuthState,
+	getOAuthAccounts,
+	getOAuthParams,
+	validOAuthAccountChanges,
+	addOAuthAccount,
+	updateOAuthAccount,
+	deleteOAuthAccount,
+	updateAuthParams,
+	OAuthAccount,
+	OAuthAccountCreate
+} from './oauthAccounts';
+import { Request } from 'express';
+
+type WebexPerson = {
+	id: string;
+	emails: string[];
+	phoneNumbers: object[];
+	displayName: string;
+	orgId: string;
+}
+
+type WebexAccount = OAuthAccount & {
+	authUrl: string;
+	templates: any[];
+	owner?: WebexPerson;
+	displayName?: string;
+	userName?: string;
+}
 
 const webexApiBaseUrl = 'https://webexapis.com/v1';
 const webexAuthUrl = 'https://webexapis.com/v1/authorize';
@@ -13,6 +42,7 @@ const webexTokenUrl = 'https://webexapis.com/v1/access_token';
 
 const webexAuthScope = [
 	"spark:kms",
+	"spark:all",
 	"meeting:controls_read",
 	"meeting:controls_write",
 	"meeting:schedules_read",
@@ -27,6 +57,8 @@ const webexAuthRedirectUri = process.env.NODE_ENV === 'development'?
 	'http://localhost:3000/oauth2/webex':
 	'https://802tools.org/oauth2/webex';
 
+const webexAuthRedirectPath = "/oauth2/webex";
+
 /**  Webex account APIs indexed by account ID. */
 const apis: Record<number, AxiosInstance> = {};
 
@@ -39,6 +71,10 @@ function getWebexApi(id: number) {
 	if (!api)
 		throw new TypeError(`Invalid account id=${id}`);
 	return api;
+}
+
+function hasWebexApi(id: number) {
+	return !!apis[id];
 }
 
 type WebexAuthParams = {
@@ -127,30 +163,6 @@ function deleteWebexApi(id: number) {
 }
 
 /**
- * Store autherization parameters in oauth_accounts table.
- * 
- * @param id Account identifier
- * @param authParams Object containing access and refresh token
- */
-function updateAuthParams(id: number, authParams: object) {
-	return db.query('UPDATE oauth_accounts SET authParams=?, authDate=NOW() WHERE id=?', [JSON.stringify(authParams), id]) as Promise<OkPacket>;
-}
-
-type OAuthAccount = {
-	id: number;
-	name: string;
-	type: string;
-	groups: string[];
-	authDate: string;
-	authParams: object;
-}
-
-type WebexAccount = OAuthAccount & {
-	authUrl: string;
-	templates: any[];
-}
-
-/**
  * Init routine, run at startup.
  *
  * Instantiate an API for each of the configured Webex accounts.
@@ -168,7 +180,7 @@ export async function init() {
 		console.warn("Missing variable WEBEX_CLIENT_SECRET");
 
 	// Cache the active webex accounts and create an axios api for each
-	const accounts = await db.query('SELECT * FROM oauth_accounts WHERE type="webex";') as OAuthAccount[];
+	const accounts = await getOAuthParams({type: "webex"});
 	for (const account of accounts) {
 		const {id, authParams} = account;
 		if (authParams) {
@@ -179,131 +191,154 @@ export async function init() {
 }
 
 /**
- * Get a list of Webex accounts.
- * Set the autherization URL for each.
- * Try to get a list of templates for each.
- * 
- * @param constraints An object containting constraints for database query
- * 
- * @returns an array of Webex account objects
- */
-async function getAccounts(constraints?: object): Promise<WebexAccount[]> {
-	let sql = 'SELECT `id`, `name`, `type`, `groups`, `authDate` FROM oauth_accounts';
-	if (constraints)
-		sql += ' WHERE ' + Object.entries(constraints).map(([key, value]) => db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])).join(' AND ');
-	const accountsDB = await db.query(sql) as OAuthAccount[];
-
-	const accounts = await Promise.all(accountsDB.map(async account => {
-		const authUrl = getAuthWebexAccount(account.id);
-		let templates;
-		try {
-			templates = await getWebexTemplates(account.id);
-		}
-		catch (error) {
-			console.log(error);
-		}
-		return {...account, authUrl, templates}
-	}));
-
-	return accounts;
-}
-
-/**
  * Get the URL for authorizing webex access
  * 
+ * @param user The user executing the request
+ * @param hostname Hostname (from HTTP request)
  * @param id Webex account identifier
- * 
- * @returns the URL for authorizing Webex access
+ * @returns The URL for authorizing Webex access
  */
-export function getAuthWebexAccount(id: number) {
+function getAuthUrl(user: User, host: string, id: number) {
 	return webexAuthUrl +
 		'?' + new URLSearchParams({
 				client_id: webexClientId,
 				response_type: 'code',
 				scope: webexAuthScope,
-				redirect_uri: webexAuthRedirectUri,
-				state: id.toString(),
+				redirect_uri: host + webexAuthRedirectPath,
+				state: genOAuthState({accountId: id, userId: user.SAPIN, host}),
 			});
 }
 
-/*
- * Callback for OAuth2 process.
- *
- * Completes mutual authentication for access to a Webex account.
- * Instantiate an API for accessing the Webex account.
+/**
+ * Webex OAuth2 completion callback.
+ * Completes mutual authentication; instantiates an API for accessing the Webex account
+ * @params The parameters returned by the OAuth completion redirect
  */
-export async function completeAuthWebexAccount(params) {
-	const {state, code} = params;
-	const id = parseInt(state);
-	params = {
+export async function completeAuthWebexAccount({
+	state = '',
+	code = ''
+}: {
+	state?: string,
+	code?: string
+}) {
+	const stateObj = parseOAuthState(state);
+	if (!stateObj) {
+		console.warn('OAuth completion with bad state', state);
+		return;
+	}
+	const {accountId, userId, host} = stateObj;
+	console.log(`webex auth completion, accountId=${accountId}`)
+
+	let params = {
 		grant_type: 'authorization_code',
 		client_id: webexClientId,
 		client_secret: webexClientSecret,
 		code: code,
-		redirect_uri: webexAuthRedirectUri
+		redirect_uri: host + webexAuthRedirectPath
 	};
 
 	const response = await axios.post(webexTokenUrl, params);
 	const authParams = response.data as WebexAuthParams;
 
-	await updateAuthParams(id, authParams);
+	await updateAuthParams(accountId, authParams, userId);
 
 	// Create an axios instance for this account
-	createWebexApi(id, authParams);
+	createWebexApi(accountId, authParams);
 }
 
-
-export function getWebexAccounts(constraints?: object) {
-	return getAccounts({type: "webex", ...constraints});
-}
-
-function accountEntry(s: Partial<OAuthAccount>) {
-	const entry: Record<string, any> = {
-		name: s.name,
-	};
-
-	if (Array.isArray(s.groups))
-		entry.groups = JSON.stringify(s.groups);
-
-	for (const key of Object.keys(entry)) {
-		if (entry[key] === undefined)
-			delete entry[key];
+export async function getWebexAccounts(
+	req: Request,
+	user: User,
+	constraints?: {
+		id?: number | number[];
+		name?: string | string[];
+		groupId?: string | string[];
 	}
+) {
+	const accountsDB = await getOAuthAccounts({type: "webex", ...constraints});
+	const p: Promise<any>[] = [];
+	const accounts = accountsDB.map(accountDB => {
+		console.log(req.headers.referer)
+		const m = /(https{0,1}:\/\/[^\/]+)/i.exec(req.headers.referer || '');
+		const host = m? m[1]: '';
+		console.log(host)
+		const account: WebexAccount = {
+			...accountDB,
+			authUrl: getAuthUrl(user, host, accountDB.id),
+			templates: [],
+		};
+		if (hasWebexApi(account.id)) {
+			p.push(
+				getWebexAccountOwner(account.id)
+					.then((owner) => {
+						console.log(owner);
+						account.owner = owner;
+						account.displayName = owner.displayName;
+						account.userName = owner.userName;
+					})
+					.catch(error => console.warn(error))
+			)
+			p.push(
+				getWebexTemplates(account.id)
+					.then((templates) => {
+						account.templates = templates;
+					})
+					.catch(error => console.warn(error))
+			);
+		}
+		return account;
+	});
+	await Promise.all(p);
 
-	return entry;
+	return accounts;
+}
+
+export async function getWebexAccount(id: number): Promise<OAuthAccount | undefined> {
+	const [account] = await getOAuthAccounts({id, type: "webex"});
+	return account;
 }
 
 /**
  * Add a Webex account.
  * Just creates a database entry. Instatiation occurs following OAuth2 process.
  *
- * @params accountIn An account object.
- *
- * @returns an object that is the account as added.
+ * @param req Express request object
+ * @param user The user executing the request
+ * @param groupId The group identifier for the request
+ * @param accountIn Expects an OAuth account create object, throws otherwise.
+ * @returns The Webex account object as added.
  */
-export async function addWebexAccount(accountIn: OAuthAccount) {
-	let entry = accountEntry(accountIn);
-	entry.type = 'webex';
-	const {insertId} = await db.query('INSERT INTO oauth_accounts (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]) as OkPacket;
-	const [account] = await getAccounts({id: insertId});
-	return account;
+export async function addWebexAccount(req: Request, user: User, groupId: string, accountIn: any) {
+	if (!isPlainObject(accountIn))
+		throw new TypeError("Bad body; expected calendar account create object");
+	let account: OAuthAccountCreate = {
+		name: '',
+		...(accountIn as object),
+		type: "webex",
+		groupId
+	}
+	const id = await addOAuthAccount(account);
+	const [updatedAccount] = await getWebexAccounts(req, user, {id});
+	return updatedAccount;
 }
 
 /**
  * Update a Webex account.
  *
- * @param id The account ID.
- * @param accountIn A partial account object with changes for the account.
- * 
- * @returns the account object as update
+ * @param req Express request object
+ * @param user The user executing the request
+ * @param groupId The group identifier for the request
+ * @param id The Webex account identifier.
+ * @param changes Expects an OAuth account update object, throws otherwise.
+ * @returns The Webex account object as added.
  */
-export async function updateWebexAccount(id: number, accountIn: Partial<OAuthAccount>) {
+export async function updateWebexAccount(req: Request, user: User, groupId: string, id: number, changes: any) {
 	if (!id)
 		throw new TypeError('Must provide id with update');
-	let entry = accountEntry(accountIn);
-	if (Object.keys(entry).length)
-		await db.query('UPDATE oauth_accounts SET ? WHERE id=?;', [entry, id]);
-	const [account] = await getAccounts({id});
+	if (!validOAuthAccountChanges(changes))
+		throw new TypeError("Bad body; expected calendar account changes object");
+	await updateOAuthAccount(groupId, id, changes);
+	const [account] = await getWebexAccounts(req, user, {id});
 	return account;
 }
 
@@ -311,12 +346,11 @@ export async function updateWebexAccount(id: number, accountIn: Partial<OAuthAcc
  * Delete a Webex account.
  * If an API has been instatiated, delete that too.
  *
- * @id:any 	The Webex account ID.
- *
- * Returns 1.
+ * @param id The Webex account identifier.
+ * @returns The number of OAuth accounts deleted (0 or 1)
  */
-export async function deleteWebexAccount(id: number): Promise<number> {
-	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=?', [id]) as OkPacket;
+export async function deleteWebexAccount(groupId: string, id: number): Promise<number> {
+	const affectedRows = await deleteOAuthAccount(groupId, id);
 	deleteWebexApi(id);
 	return affectedRows;
 }
@@ -337,6 +371,13 @@ function webexApiError(error: any) {
 		throw new Error(`Webex API error ${response.status}: ${description}`);
 	}
 	throw new Error(error);
+}
+
+async function getWebexAccountOwner(id: number) {
+	const api = getWebexApi(id);
+	return api.get(`/people/me`)
+		.then(response => response.data)
+		.catch(webexApiError);
 }
 
 async function getWebexTemplates(id: number) {
@@ -454,6 +495,8 @@ export type WebexMeetingUpdate = WebexMeetingAlways & Partial<Omit<WebexMeetingC
 	/** Unique identifier for meeting. For a meeting series, the id is used to identify the entire series. */
 	id: string;
 }
+
+type WebexMeetingDelete = Pick<WebexMeeting, "accountId" | "id">;
 
 type CallInNumber = {
 	/** Label for the call-in number. */
@@ -598,12 +641,10 @@ export async function getWebexMeetings({
 	ids?: string[];
 }) {
 	let webexMeetings: WebexMeeting[] = [];
-	const accounts = await getWebexAccounts();
+	const accounts = await getOAuthAccounts({type: "webex", groupId});
 	if (!timezone)
 		timezone = defaultTimezone;
 	for (const account of accounts) {
-		if (groupId && account.groups && !account.groups.includes(groupId))
-			continue;
 		const api = getWebexApi(account.id);
 
 		const from = fromDate? DateTime.fromISO(fromDate, {zone: timezone}): DateTime.now().setZone(timezone);
@@ -636,26 +677,12 @@ export async function getWebexMeeting(accountId: number, id: string): Promise<We
 		.catch(webexApiError);
 }
 
-/**
- * Validate the `meetings` parameter for addWebexMeetings(), updateWebexMeeting() and deleteWebexMeetings()
- *
- * @param meetings 	The meetings array to validate. Each entry is expected to be an object with
- * 					a parameter `accountId` that is a valid Webex account ID.
- */
-function validateMeetingsArray(meetings: WebexMeetingAlways[]) {
-	for (const m of meetings) {
-		if (!isPlainObject(m))
-			throw new TypeError('Badly formed meetings array, expected array of objects');
-		getWebexApi(m.accountId);
-	}
-}
 
 /**
  * Add a Webex meeting.
  *
- * @param webexMeeting Webex meeting parameters object that also includes:
+ * @param webexMeeting Webex meeting create object that includes:
  * @param webexMeeting.accountId Webex account ID.
- *
  * @returns an object that is the Webex meeting as added.
  */
 export async function addWebexMeeting({accountId, ...params}: WebexMeetingCreate): Promise<WebexMeeting> {
@@ -665,22 +692,37 @@ export async function addWebexMeeting({accountId, ...params}: WebexMeetingCreate
 		.catch(webexApiError);
 }
 
+function validWebexMeetingCreate(m: any): m is WebexMeetingCreate {
+	return isPlainObject(m) &&
+		typeof m.accountId === 'number' &&
+		typeof m.title === 'string';
+}
+
+function validateMeetingCreateArray(webexMeetings: any): asserts webexMeetings is WebexMeetingCreate[] {
+	if (!Array.isArray(webexMeetings))
+		throw new TypeError("Badly formed meetings; expected array");
+	webexMeetings.forEach(m => {
+		if (!validWebexMeetingCreate(m))
+			throw new TypeError('Badly formed meetings array, expected array of webex meeting create objects');
+		getWebexApi(m.accountId);
+	});
+}
+
 /**
  * Add Webex meetings.
  *
- * @param meetings An array of Webex meeting objects.
- *
+ * @param meetings Expects an array of Webex meeting create objects, throws otherwise.
  * @returns an array of Webex meeting objects as added.
  */
-export async function addWebexMeetings(meetings: WebexMeetingCreate[]) {
-	validateMeetingsArray(meetings);
-	return Promise.all(meetings.map(addWebexMeeting));
+export async function addWebexMeetings(webexMeetings: any) {
+	validateMeetingCreateArray(webexMeetings);
+	return Promise.all(webexMeetings.map(addWebexMeeting));
 }
 
 /**
  * Update a Webex meeting.
  *
- * @param webexMeeting Webex meeting parameters object that also includes:
+ * @param webexMeeting Webex meeting update object that also includes:
  * @param webexMeeting.accountId Webex account ID
  * @param webexMeeting.id Webex meeting ID
  *
@@ -693,16 +735,32 @@ export async function updateWebexMeeting({accountId, id, ...params}: WebexMeetin
 		.catch(webexApiError);
 }
 
+function validWebexMeetingUpdate(m: any): m is WebexMeetingUpdate {
+	return isPlainObject(m) &&
+		typeof m.accountId === 'number' &&
+		typeof m.id === 'string' &&
+		(typeof m.title === 'string' || typeof m.title === 'undefined');
+}
+
+function validateWebexMeetingUpdateArray(webexMeetings: any): asserts webexMeetings is WebexMeetingUpdate[] {
+	if (!Array.isArray(webexMeetings))
+		throw new TypeError("Badly formed meetings; expected array");
+	webexMeetings.forEach(m => {
+		if (!validWebexMeetingUpdate(m))
+			throw new TypeError("Badly formed meetings; expected array of webex update objects");
+		getWebexApi(m.accountId);
+	});
+}
+
 /**
  * Update Webex meetings.
  *
- * @param meetings An array of Webex meeting objects.
- *
+ * @param webexMeetings Expects an array of Webex meeting update objects, throws otherwise.
  * @returns an array of Webex meeting objects.
  */
-export async function updateWebexMeetings(meetings: WebexMeetingUpdate[]) {
-	validateMeetingsArray(meetings);
-	return Promise.all(meetings.map(updateWebexMeeting));
+export async function updateWebexMeetings(webexMeetings: any) {
+	validateWebexMeetingUpdateArray(webexMeetings);
+	return Promise.all(webexMeetings.map(updateWebexMeeting));
 }
 
 /**
@@ -711,7 +769,6 @@ export async function updateWebexMeetings(meetings: WebexMeetingUpdate[]) {
  * @param webexMeeting that includes:
  * @param webexMeeting.accountId Webex account ID
  * @param webexMeeting.id Webex meeting ID
- *
  */
 export async function deleteWebexMeeting({accountId, id}: Pick<WebexMeeting, "accountId" | "id">) {
 	const api = getWebexApi(accountId);
@@ -720,15 +777,30 @@ export async function deleteWebexMeeting({accountId, id}: Pick<WebexMeeting, "ac
 		.catch(webexApiError);
 }
 
+function validWebexMeetingDelete(m: any): m is WebexMeetingDelete {
+	return isPlainObject(m) &&
+		typeof m.accountId === 'number' &&
+		typeof m.id === 'string';
+}
+
+function validateWebexMeetingDeleteArray(webexMeetings: any): asserts webexMeetings is WebexMeetingDelete[] {
+	if (!Array.isArray(webexMeetings))
+		throw new TypeError("Badly formed meetings; expected array");
+		webexMeetings.forEach(m => {
+		if (!validWebexMeetingDelete(m))
+			throw new TypeError("Badly formed meetings; expected array of objects with shape {accountId: number, id: string}");
+		getWebexApi(m.accountId);
+	});
+}
+
 /**
  * Delete Webex meetings.
  *
- * @param meetingsAn array of objects with shape {accountId, id}.
- *
+ * @param webexMeetings Expect an array of objects with shape {accountId, id}, throws otherwise
  * @returns the number of meetings deleted.
  */
-export async function deleteWebexMeetings(meetings: Pick<WebexMeeting, "accountId" | "id">[]) {
-	validateMeetingsArray(meetings);
-	await Promise.all(meetings.map(deleteWebexMeeting));
-	return meetings.length;
+export async function deleteWebexMeetings(webexMeetings: any) {
+	validateWebexMeetingDeleteArray(webexMeetings);
+	await Promise.all(webexMeetings.map(deleteWebexMeeting));
+	return webexMeetings.length;
 }

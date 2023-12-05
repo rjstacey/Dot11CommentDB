@@ -11,7 +11,7 @@ import { getSession, Session } from './sessions';
 import { getGroupIds, getWorkingGroup, Group } from './groups';
 
 import {
-	getWebexAccounts,
+	getWebexAccount,
 	getWebexMeetings,
 	getWebexMeeting,
 	addWebexMeeting,
@@ -299,7 +299,7 @@ const formatMeetingNumber = (n: string) => n.slice(0, 4) + ' ' + n.slice(4, 7) +
  */
 export async function webexMeetingImatLocation(webexAccountId: number, webexMeeting: WebexMeeting) {
 	let location = '';
-	const [webexAccount] = await getWebexAccounts({id: webexAccountId});
+	const webexAccount = await getWebexAccount(webexAccountId);
 	if (webexAccount)
 		location = webexAccount.name + ': ';
 	location += formatMeetingNumber(webexMeeting.meetingNumber);
@@ -565,10 +565,12 @@ async function addMeeting(user: User, meetingToAdd: MeetingAddUpdate) {
 function validMeeting(meeting: any): meeting is MeetingAddUpdate {
 	return isPlainObject(meeting);
 }
+
 export function validateMeetings(meetings: any): asserts meetings is MeetingAddUpdate[] {
 	if (!Array.isArray(meetings) || !meetings.every(validMeeting))
 		throw new TypeError("Bad or missing meetings array; expected an array of meeting objects");
 }
+
 /**
  * Add meetings, including webex, calendar and imat entries.
  *

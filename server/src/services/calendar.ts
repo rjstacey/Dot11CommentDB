@@ -1,8 +1,30 @@
-import db from '../utils/database';
-import type { OkPacket } from 'mysql2';
 import axios from 'axios';
 import { OAuth2Client } from 'google-auth-library';
+// Google Calendar: https://developers.google.com/calendar/api/v3/reference/calendars
 import { google, calendar_v3 } from 'googleapis';
+import { User } from './users';
+
+import {
+	genOAuthState,
+	parseOAuthState,
+	getOAuthAccounts,
+	getOAuthParams,
+	validOAuthAccountChanges,
+	addOAuthAccount,
+	updateOAuthAccount,
+	deleteOAuthAccount,
+	updateAuthParams,
+	OAuthAccount,
+	OAuthAccountCreate
+} from './oauthAccounts';
+import { isPlainObject } from '../utils';
+
+type CalendarAccount = OAuthAccount & {
+	authUrl?: string;
+	details?: calendar_v3.Schema$Calendar;
+	displayName?: string;
+	userName?: string;
+}
 
 const calendarRevokeUrl = 'https://oauth2.googleapis.com/revoke';
 
@@ -30,7 +52,7 @@ function hasCalendarApi(id: number) {
 	return !!calendars[id];
 }
 
-function createCalendarApi(id: number, auth) {
+function createCalendarApi(id: number, auth: OAuth2Client) {
 	google.options({
 		retryConfig: {
 			currentRetryAttempt: 0,
@@ -78,21 +100,6 @@ function deleteAuthApi(id: number) {
 	delete auths[id];
 }
 
-/*
- * Update the auth parameters
- * We merge new auth parameters with existing perameters. We do this because the refresh token
- * is only return on the first authorization. Subsequent authorization just return an access token.
- * @id {number} Calendar account identifier
- * @authParams {object} New tokens. A null value clears the current paramters.
- */
-const updateAuthParams = (id: number, authParams: object | null): Promise<OkPacket> => {
-	const updates = authParams?
-		db.format('authParams=JSON_MERGE_PATCH(COALESCE(authParams, "{}"), ?), authDate=NOW()', JSON.stringify(authParams)):
-		'authParams=NULL, authDate=NULL';
-
-	return db.query('UPDATE oauth_accounts SET ' + updates + ' WHERE id=?', [id]) as Promise<OkPacket>;
-}
-
 export async function init() {
 	// Ensure that we have CLIENT_ID and CLIENT_SECRET
 	if (process.env.GOOGLE_CLIENT_ID)
@@ -106,7 +113,7 @@ export async function init() {
 		console.warn("Missing variable GOOGLE_CLIENT_SECRET");
 
 	// Cache the active calendar accounts and create an api instance for each
-	const accounts = await db.query('SELECT * FROM oauth_accounts WHERE type="calendar";') as OAuthAccount[];
+	const accounts = await getOAuthParams({type: "calendar"});
 	for (const account of accounts) {
 		const {id, authParams} = account;
 		const auth = createAuthApi(id);
@@ -118,163 +125,152 @@ export async function init() {
 	}
 }
 
-/*
+
+/**
  * Get the URL for authorizing calendar access
- * @id {number} Calendar account identifier
+ * @param user The user that will perform the auth
+ * @param id Calendar account identifier
  */
-function getAuthUrl(id: number) {
+function getAuthUrl(user: User, id: number) {
 	const auth = getAuthApi(id);
 	return auth.generateAuthUrl({
 		access_type: 'offline',
 		scope: calendarAuthScope,
-		state: id.toString(),	// Calendar account id
+		state: genOAuthState({accountId: id, userId: user.SAPIN, host: ''}),
 		include_granted_scopes: true
 	});
 }
 
-/*
- * Complete calendar authorization.
- * @params {object} The parameters returned by the OAuth completion redirect
+/**
+ * Calendar OAuth2 completion callback.
+ * Completes mutual authentication; instantiates an API for accessing the calendar account
+ * @params The parameters returned by the OAuth completion redirect
  */
-export async function completeAuthCalendarAccount(params) {
+export async function completeAuthCalendarAccount({
+	state = '',
+	code = ''
+}: {
+	state?: string;
+	code?: string
+}) {
 
-	const id: number = params.state;	// Calendar account id
-	const auth = getAuthApi(id);
+	const stateObj = parseOAuthState(state);
+	if (!stateObj) {
+		console.warn('OAuth completion with bad state', state);
+		return;
+	}
+	const {accountId, userId} = stateObj;
+	const auth = getAuthApi(accountId);
 	
-	const {tokens} = await auth.getToken(params.code);
+	const {tokens} = await auth.getToken(code);
 	auth.setCredentials(tokens);
-	await updateAuthParams(id, tokens);
+	await updateAuthParams(accountId, tokens, userId);
 	
 	// Create a google calendar api for this account
-	createCalendarApi(id, auth);
-
-	const [account] = await getAccounts({id});
-	return account;
+	createCalendarApi(accountId, auth);
 }
 
-async function getAccounts(constraints?: object) {
-
-	let sql = 'SELECT `id`, `name`, `type`, `groups`, `authDate` FROM oauth_accounts';
-	if (constraints)
-		sql += ' WHERE ' + Object.entries(constraints).map(([key, value]) => db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])).join(' AND ');
-	const accounts = await db.query(sql) as OAuthAccount[];
-
-	for (const account of accounts) {
+export async function getCalendarAccounts(
+	user: User,
+	constraints?: {
+		id?: number | number[];
+		name?: string | string[];
+		groupId?: string | string[];
+	}
+) {
+	const accountsDB = await getOAuthAccounts({type: "calendar", ...constraints});
+	const p: Promise<any>[] = [];
+	const accounts = accountsDB.map(accountDB => {
+		const account: CalendarAccount = {...accountDB};
 		try {
-			account.authUrl = getAuthUrl(account.id);
+			account.authUrl = getAuthUrl(user, account.id);
 		}
 		catch (error) {
 			console.warn(error);
-			account.authUrl = null;
 		}
-	}
-
-	return accounts;
-}
-
-export async function getCalendarAccounts(constraints?: object) {
-	const accounts = await getAccounts({type: "calendar", ...constraints});
-	const p: any[] = [];
-	for (const account of accounts) {
 		if (hasCalendarApi(account.id)) {
 			p.push(
 				getPrimaryCalendar(account.id)
-					.then(details => account.details = details)
+					.then(details => {
+						if (details) {
+							account.details = details;
+							if (details.summary)
+								account.displayName = details.summary;
+							if (details.id)
+								account.userName = details.id;
+						}
+					})
 					.catch(error => console.warn(error /*`Can't get ${account.name} (id=${account.id}) details:`, error.toString()*/))
 			);
 		}
-	}
+		return account;
+	});
 	await Promise.all(p);
 	return accounts;
 }
 
-type OAuthAccount = {
-	id: number;
-	name: string;
-	type: string;
-	groups: string[];
-	authParams: object;
-	authUrl?: string | null;
-	details?: any;
-}
-
-type OAuthAccountDB = {
-	name: string;
-	type: string;
-	groups: string;
-}
-
-/*
- * Convert calendar account object into a form sutable for database storage
- * @s {object} Calendar account object
+/**
+ * Add calendar account
+ * @param user The user executing the add
+ * @param accountIn Expects calendar account create object, throws otherwise
+ * @returns Calendar account object as added
  */
-function accountEntry(s: Partial<OAuthAccount>): Partial<OAuthAccountDB> {
-	const entry: { name?: string; groups?: string } = {
-		name: s.name,
-	};
-
-	if (Array.isArray(s.groups))
-		entry.groups = JSON.stringify(s.groups);
-
-	for (const key of Object.keys(entry)) {
-		if (entry[key] === undefined)
-			delete entry[key];
+export async function addCalendarAccount(user: User, groupId: string, accountIn: any) {
+	if (!isPlainObject(accountIn))
+		throw new TypeError("Bad body; expected calendar account create object");
+	let account: OAuthAccountCreate = {
+		name: '',
+		...(accountIn as object),
+		type: "calendar",
+		groupId
 	}
-
-	return entry;
+	const id = await addOAuthAccount(account);
+	createAuthApi(id);
+	const [accountUpdated] = await getCalendarAccounts(user, {id});
+	return accountUpdated;
 }
 
-/*
+/**
  * Update calendar account
- * @entry {object} Calendar account object
+ * @param user The user executing the update
+ * @param id Calendar account identifier
+ * @param changes Expects calendar account update object, throws otherwise
  */
-export async function addCalendarAccount(accountIn: OAuthAccount) {
-	let entry = accountEntry(accountIn);
-	entry.type = 'calendar';
-	const {insertId} = await db.query('INSERT INTO oauth_accounts (??) VALUES (?);', [Object.keys(entry), Object.values(entry)]) as OkPacket;
-	const [account] = await getCalendarAccounts({id: insertId});
-	return account;
-}
-
-/*
- * Update calendar account
- * @id {number} Calendar account identifier
- * @entry {object} Calendar account object with fields to be updated
- */
-export async function updateCalendarAccount(id: number, accountIn: Partial<OAuthAccount>) {
+export async function updateCalendarAccount(user: User, groupId: string, id: number, changes: any) {
 	if (!id)
-		throw new Error('Must provide id with update');
-	let entry = accountEntry(accountIn);
-	if (Object.keys(entry).length)
-		await db.query('UPDATE oauth_accounts SET ? WHERE id=?;', [entry, id]);
-	const [account] = await getCalendarAccounts({id});
+		throw new TypeError('Must provide id with update');
+	if (!validOAuthAccountChanges(changes))
+		throw new TypeError("Bad body; expected calendar account changes object");
+	await updateOAuthAccount(groupId, id, changes);
+	const [account] = await getCalendarAccounts(user, {id});
 	return account;
 }
 
-/*
+/**
  * Revoke calendar account authorization
- * @id {number} Calendar account identifier
+ * @param user The user revoking the authorization
+ * @param id Calendar account identifier
  */
-export async function revokeAuthCalendarAccount(id: number) {
+export async function revokeAuthCalendarAccount(user: User, groupId: string, id: number) {
 	const auth = getAuthApi(id);
 
 	axios.post(calendarRevokeUrl, {token: auth.credentials.access_token})
 		.then(response => console.log('revoke calendar token success:', response.data))
 		.catch(error => console.log('revoke calendar token error:', error));
-	await updateAuthParams(id, null);
+	await updateAuthParams(id, null, user.SAPIN);
 	deleteCalendarApi(id);
 	createAuthApi(id);		// replace current auth context with clean one
 
-	const [account] = await getAccounts({id});
+	const [account] = await getCalendarAccounts(user, {id});
 	return account;
 }
 
-/*
+/**
  * Delete calendar account
- * @id {number} Calendar account identifier
+ * @param id Calendar account identifier
  */
-export async function deleteCalendarAccount(id: number) {
-	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=?', [id]) as OkPacket;
+export async function deleteCalendarAccount(groupId: string, id: number) {
+	const affectedRows = await deleteOAuthAccount(groupId, id);
 	deleteCalendarApi(id);
 	deleteAuthApi(id);
 	return affectedRows;

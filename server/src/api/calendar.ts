@@ -30,7 +30,7 @@
  */
 import { Router } from "express";
 
-import { ForbiddenError, isPlainObject } from "../utils";
+import { ForbiddenError } from "../utils";
 import { AccessLevel } from "../auth/access";
 import {
 	getCalendarAccounts,
@@ -60,41 +60,34 @@ router
 	})
 	.route("/accounts")
 		.get((req, res, next) => {
-			getCalendarAccounts()
+			getCalendarAccounts(req.user, {groupId: req.group!.id})
 				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.post((req, res, next) => {
 			const account = req.body;
-			if (!isPlainObject(account))
-				return next(new TypeError("Missing or bad body; expected object"));
-			addCalendarAccount(account)
+			addCalendarAccount(req.user, req.group!.id, account)
 				.then((data) => res.json(data))
 				.catch(next);
 		});
 
 router
-	.patch("/accounts/:accountId(\\d+)/$", async (req, res, next) => {
+	.patch("/accounts/:accountId(\\d+)", (req, res, next) => {
 		const accountId = Number(req.params.accountId);
-		try {
-			const changes = req.body;
-			if (!isPlainObject(changes))
-				throw "Missing or bad body; expected object";
-			const data = await updateCalendarAccount(accountId, changes);
-			res.json(data);
-		} catch (err) {
-			next(err);
-		}
+		const changes = req.body;
+		updateCalendarAccount(req.user, req.group!.id, accountId, changes)
+			.then((data) => res.json(data))
+			.catch(next)
 	})
-	.patch("/accounts/:accountId(\\d+)/revoke$", async (req, res, next) => {
+	.patch("/accounts/:accountId(\\d+)/revoke", (req, res, next) => {
 		const accountId = Number(req.params.accountId);
-		revokeAuthCalendarAccount(accountId)
+		revokeAuthCalendarAccount(req.user, req.group!.id, accountId)
 			.then((data) => res.json(data))
 			.catch(next);
 	})
-	.delete("/accounts/:accountId(\\d+)/$", (req, res, next) => {
+	.delete("/accounts/:accountId(\\d+)", (req, res, next) => {
 		const accountId = Number(req.params.accountId);
-		deleteCalendarAccount(accountId)
+		deleteCalendarAccount(req.group!.id, accountId)
 			.then((data) => res.json(data))
 			.catch(next);
 	});

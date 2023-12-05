@@ -1,7 +1,7 @@
 /*
  * Webex accounts and meetings API
  */
-import { Router, Request } from "express";
+import { Router } from "express";
 import { ForbiddenError, isPlainObject } from "../utils";
 import { AccessLevel } from "../auth/access";
 import {
@@ -59,15 +59,13 @@ router
 	})
 	.route("/accounts")
 		.get((req, res, next) => {
-			getWebexAccounts()
+			getWebexAccounts(req, req.user, {groupId: req.group!.id})
 				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.post((req, res, next) => {
 			const account = req.body;
-			if (!isPlainObject(account))
-				return next(new TypeError("Bad or missing body; expected object"));
-			addWebexAccount(account)
+			addWebexAccount(req, req.user, req.group!.id, account)
 				.then((data) => res.json(data))
 				.catch(next);
 		});
@@ -77,15 +75,13 @@ router
 		.patch((req, res, next) => {
 			const accountId = Number(req.params.accountId);
 			const changes = req.body;
-			if (!isPlainObject(changes))
-				return next(new TypeError("Bad or missing; expected object"));
-			updateWebexAccount(accountId, changes)
+			updateWebexAccount(req, req.user, req.group!.id, accountId, changes)
 				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.delete((req, res, next) => {
 			const accountId = Number(req.params.accountId);
-			deleteWebexAccount(accountId)
+			deleteWebexAccount(req.group!.id, accountId)
 				.then((data) => res.json(data))
 				.catch(next);
 		});
@@ -122,95 +118,28 @@ router
 
 router
 	.route("/meetings")
-		.get(
-			async (
-				req: Request<
-					unknown,
-					unknown,
-					unknown,
-					Parameters<typeof getWebexMeetings>[0]
-				>,
-				res,
-				next
-			) => {
-				try {
-					const data = await getWebexMeetings(req.query);
-					res.json(data);
-				} catch (err) {
-					next(err);
-				}
-			}
-		)
-		.post(async (req, res, next) => {
-			try {
-				const meetings = req.body;
-				if (!Array.isArray(meetings))
-					throw new TypeError(
-						"Bad or missing array of Webex meeting objects"
-					);
-				if (
-					!meetings.every(
-						(meeting) =>
-							isPlainObject(meeting) &&
-							typeof meeting.accountId === "number"
-					)
-				)
-					throw new TypeError(
-						"Expected an array of objects with shape {accountId: number, ...params"
-					);
-				const data = await addWebexMeetings(meetings);
-				res.json(data);
-			} catch (err) {
-				next(err);
-			}
+		.get((req, res, next) => {
+			getWebexMeetings(req.query)
+				.then((data) => res.json(data))
+				.catch(next);
 		})
-		.patch(async (req, res, next) => {
-			try {
-				const meetings = req.body;
-				if (!Array.isArray(meetings))
-					throw new TypeError(
-						"Bad or missing array of Webex meeting objects"
-					);
-				if (
-					!meetings.every(
-						(meeting) =>
-							isPlainObject(meeting) &&
-							typeof meeting.accountId === "number" &&
-							typeof meeting.id === "string"
-					)
-				)
-					throw new TypeError(
-						"Expected an array of objects with shape {accountId: number, id: string, ...changes}"
-					);
-				const data = await updateWebexMeetings(meetings);
-				res.json(data);
-			} catch (err) {
-				next(err);
-			}
+		.post((req, res, next) => {
+			const webexMeetings = req.body;
+			addWebexMeetings(webexMeetings)
+				.then((data) => res.json(data))
+				.catch(next);
 		})
-		.delete(async (req, res, next) => {
-			try {
-				const meetings = req.body;
-				if (!Array.isArray(meetings))
-					throw new TypeError(
-						"Bad or missing array of Webex meeting objects"
-					);
-				if (
-					!meetings.every(
-						(meeting) =>
-							isPlainObject(meeting) &&
-							typeof meeting.accountId === "number" &&
-							typeof meeting.id === "string"
-					)
-				)
-					throw new TypeError(
-						"Expected an array of objects with shape {accountId: number, id: string}"
-					);
-				const data = await deleteWebexMeetings(meetings);
-				res.json(data);
-			} catch (err) {
-				next(err);
-			}
+		.patch((req, res, next) => {
+			const webexMeetings = req.body;
+			updateWebexMeetings(webexMeetings)
+				.then((data) => res.json(data))
+				.catch(next);
+		})
+		.delete((req, res, next) => {
+			const webexMeetings = req.body;
+			deleteWebexMeetings(webexMeetings)
+				.then((data) => res.json(data))
+				.catch(next);
 		});
 
 export default router;
