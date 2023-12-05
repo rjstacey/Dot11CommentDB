@@ -14,10 +14,13 @@ export type WebexTemplate = {
 export interface WebexAccount {
 	id: number;
 	name: string;
-	groups: string[];
-	templates: WebexTemplate[];
+	groupId: string;
 	authDate?: string;
 	authUrl: string;
+	authUserId?: number;
+	displayName?: string;
+	userName?: string;
+	templates: WebexTemplate[];
 }
 
 export type WebexAccountCreate = {
@@ -86,7 +89,7 @@ function validWebexAccount(account: any): account is WebexAccount {
 	return isObject(account) &&
 		typeof account.id === 'number' &&
 		typeof account.name === 'string' &&
-		Array.isArray(account.groups);
+		typeof account.groupId === 'string';
 }
 
 function validGetResponse(response: any): response is WebexAccount[] {

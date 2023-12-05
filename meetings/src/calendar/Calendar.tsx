@@ -28,7 +28,7 @@ function Calendar() {
 		if (!groupId)
 			return undefined;
 		for (const account of (Object.values(entities) as CalendarAccount[])) {
-			if (account.groups.includes(groupId) && account.details) {
+			if (account.groupId === groupId && account.details) {
 				const {details} = account;
 				// see https://support.google.com/calendar/thread/23205641/advanced-embed-option-descriptions?hl=en
 				const params = {

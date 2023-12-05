@@ -14,8 +14,8 @@ import {
 	CalendarAccountCreate,
 	CalendarAccount
 } from '../store/calendarAccounts';
+import { selectMemberEntities } from "../store/members";
 
-import { GroupSelector } from '../components/GroupSelector';
 import TopRow from '../components/TopRow';
 import { EditTable as Table, TableColumn } from '../components/Table';
 
@@ -32,13 +32,21 @@ const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 		label: 'Name',
 		gridTemplate: 'minmax(200px, auto)'
 	},
-	groups: {
-		label: 'Groups',
+	ownerInfo: {
+		label: 'Owner',
 		gridTemplate: 'minmax(200px, auto)'
+	},
+	authorizedBy: {
+		label: 'Authorized by',
+		gridTemplate: 'auto'
 	},
 	authorized: {
 		label: 'Last authorized',
-		gridTemplate: 'minmax(300px, 1fr)'
+		gridTemplate: 'auto'
+	},
+	authButtons: {
+		label: '',
+		gridTemplate: 'auto'
 	},
 	actions: {
 		label: '',
@@ -57,6 +65,7 @@ const selectCalendarAccounts = (state: RootState) => {
 function CalendarAccounts() {
 	const dispatch = useAppDispatch();
 	const {loading, accounts} = useAppSelector(selectCalendarAccounts);
+	const memberEntities = useAppSelector(selectMemberEntities);
 	const [readOnly, setReadOnly] = React.useState(true);
 	const refresh = () => dispatch(loadCalendarAccounts());
 
@@ -85,21 +94,25 @@ function CalendarAccounts() {
 						readOnly={readOnly}
 					/>;
 			}
-			else if (key === 'groups') {
-				col.renderCell = (account: CalendarAccount) =>
-					<GroupSelector
-						multi
-						value={account.groups}
-						onChange={groups => handleChange(account.id, {groups})}
-						types={['wg', 'c']}
-						portal={document.querySelector('#root')}
-						readOnly={readOnly}
-					/>;
+			else if (key === 'ownerInfo') {
+				col.renderCell = (account: CalendarAccount) => (account.displayName || '-') + (account.userName? ` (${account.userName})`: '');
+			}
+			else if (key === 'authorizedBy') {
+				col.renderCell = (account: CalendarAccount) => {
+					if (!account.authUserId)
+						return '-';
+					const m = memberEntities[account.authUserId];
+					if (m)
+						return m.Name;
+					return "SAPIN: " + account.authUserId;
+				}
 			}
 			else if (key === 'authorized') {
-				col.renderCell = (account: CalendarAccount) =>
+				col.renderCell = (account: CalendarAccount) => account.authDate? displayDate(account.authDate): '-';
+			}
+			else if (key === 'authButtons') {
+				col.renderCell = (account: CalendarAccount) => 
 					<>
-						{account.authDate? displayDate(account.authDate): ''}
 						{account.authUrl &&
 							<Button style={{marginLeft: '1em'}} onClick={() => window.location.href = account.authUrl!}>
 								{account.authDate? 'Reauthorize': 'Authorize'}
@@ -120,7 +133,7 @@ function CalendarAccounts() {
 		});
 
 		return columns;
-	}, [dispatch, readOnly]);
+	}, [dispatch, readOnly, memberEntities]);
 
 	return (
 		<>

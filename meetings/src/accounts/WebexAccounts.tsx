@@ -4,6 +4,7 @@ import { Button, ActionButton, Input, ActionIcon } from  'dot11-components';
 
 import type { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectMemberEntities } from '../store/members';
 import {
 	loadWebexAccounts,
 	updateWebexAccount,
@@ -14,7 +15,6 @@ import {
 	WebexAccountCreate
 } from '../store/webexAccounts';
 
-import { GroupSelector } from '../components/GroupSelector';
 import TopRow from '../components/TopRow';
 import { EditTable as Table, TableColumn } from '../components/Table';
 
@@ -31,13 +31,21 @@ const tableColumns: { [key: string]: Omit<TableColumn, "key">} = {
 		label: 'Name',
 		gridTemplate: 'minmax(200px, auto)'
 	},
-	groups: {
-		label: 'Groups',
-		gridTemplate: 'minmax(200px, auto)'
+	ownerInfo: {
+		label: 'Owner',
+		gridTemplate: 'auto'
+	},
+	authorizedBy: {
+		label: 'Authorized by',
+		gridTemplate: 'auto'
 	},
 	authorized: {
 		label: 'Last authorized',
 		gridTemplate: 'minmax(300px, 1fr)'
+	},
+	authButtons: {
+		label: '',
+		gridTemplate: 'auto'
 	},
 	actions: {
 		label: '',
@@ -56,6 +64,7 @@ const selectWebexAccounts = (state: RootState) => {
 function WebexAccounts() {
 	const dispatch = useAppDispatch();
 	const {loading, accounts} = useAppSelector(selectWebexAccounts);
+	const memberEntities = useAppSelector(selectMemberEntities);
 	const [readOnly, setReadOnly] = React.useState(true);
 	const refresh = () => dispatch(loadWebexAccounts());
 
@@ -83,24 +92,29 @@ function WebexAccounts() {
 						readOnly={readOnly}
 					/>;
 			}
-			else if (key === 'groups') {
-				col.renderCell = (account: WebexAccount) =>
-					<GroupSelector
-						multi
-						value={account.groups}
-						onChange={groups => handleChange(account.id, {groups})}
-						types={['wg', 'c']}
-						portal={document.querySelector('#root')}
-						readOnly={readOnly}
-					/>;
+			else if (key === 'ownerInfo') {
+				col.renderCell = (account: WebexAccount) => (account.displayName || '-') + (account.userName? ` (${account.userName})`: '');
+			}
+			else if (key === 'authorizedBy') {
+				col.renderCell = (account: WebexAccount) => {
+					if (!account.authUserId)
+						return '-';
+					const m = memberEntities[account.authUserId];
+					if (m)
+						return m.Name;
+					return "SAPIN: " + account.authUserId;
+				}
 			}
 			else if (key === 'authorized') {
-				col.renderCell = (account: WebexAccount) =>
+				col.renderCell = (account: WebexAccount) => account.authDate? displayDate(account.authDate): '-';
+			}
+			else if (key === 'authButtons') {
+				col.renderCell = (account: WebexAccount) => 
 					<>
-						{account.authDate? displayDate(account.authDate): ''}
-						<Button style={{marginLeft: '1em'}} onClick={() => window.location.href = account.authUrl}>
-							{account.authDate? 'Reauthorize': 'Authorize'}
-						</Button>
+						{account.authUrl &&
+							<Button style={{marginLeft: '1em'}} onClick={() => window.location.href = account.authUrl!}>
+								{account.authDate? 'Reauthorize': 'Authorize'}
+							</Button>}
 					</>;
 			}
 			else if (key === 'actions') {
@@ -113,7 +127,7 @@ function WebexAccounts() {
 		});
 
 		return columns;
-	}, [dispatch, readOnly]);
+	}, [dispatch, memberEntities, readOnly]);
 
 	return (
 		<>

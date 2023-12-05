@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import { useAppSelector } from '../store/hooks';
@@ -17,6 +17,7 @@ import Ieee802World from '../ieee802World/Ieee802World';
 import Reports from '../reports/Reports';
 
 import { selectUserMeetingsAccess, AccessLevel } from '../store/user';
+import { selectWorkingGroupName } from '../store/groups';
 
 const Main = styled.main`
 	flex: 1;
@@ -39,11 +40,22 @@ const Content = styled.div`
 `;
 
 function Root() {
+	console.log('root')
 	return (
 		<Content>
 			<div>Meetings</div>
 		</Content>
 	)
+}
+
+function RedirectToCurrentGroup() {
+	const wgName = useAppSelector(selectWorkingGroupName);
+	const location = useLocation();
+	console.log(location.pathname)
+	let path = '/';
+	if (wgName)
+		path = `/${wgName}/${location.pathname}`;
+	return <Navigate to={path} replace={true} />
 }
 
 function Body() {
@@ -63,7 +75,7 @@ function Body() {
 		<Main>
 			<Routes>
 				<Route
-					path="/accounts"
+					path="/:groupName/accounts"
 					element={renderComponent(AccessLevel.admin, Accounts)}
 				/>
 				<Route
@@ -105,6 +117,10 @@ function Body() {
 				<Route
 					path="/:groupName/reports/:meetingNumber?"
 					element={renderComponent(AccessLevel.ro, Reports)}
+				/>
+				<Route
+					path="/accounts"
+					element={<RedirectToCurrentGroup/>}
 				/>
 				<Route
 					path="/:groupName?"

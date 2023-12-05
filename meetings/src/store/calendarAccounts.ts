@@ -26,10 +26,13 @@ type GoogleCalendarSchema = {
 export type CalendarAccount = {
 	id: number;
 	name: string;
-	groups: string[];
-	details: GoogleCalendarSchema;
+	groupId: string;
+	details?: GoogleCalendarSchema;
 	authDate?: string;
 	authUrl?: string;
+	authUserId: number | null;
+	displayName?: string;
+	userName?: string;
 }
 
 export type CalendarAccountCreate = {
@@ -96,7 +99,7 @@ function validCalendarAccount(account: any): account is CalendarAccount {
 	return isObject(account) &&
 		typeof account.id === 'number' &&
 		typeof account.name === 'string' &&
-		Array.isArray(account.groups);
+		typeof account.groupId === 'string';
 }
 
 function validGetResponse(response: any): response is CalendarAccount[] {

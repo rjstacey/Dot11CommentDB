@@ -47,7 +47,7 @@ export default slice;
  * Selectors
  */
 export const selectMembersState = (state: RootState) => state[dataSet];
-
+export const selectMemberEntities = (state: RootState) => state[dataSet].entities;
 export const selectMember = (state: RootState, sapin: number) => selectMembersState(state).entities[sapin];
 
 export const selectMemberName = (state: RootState, sapin: number) => {

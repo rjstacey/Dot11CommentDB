@@ -104,7 +104,7 @@ function ReportsNav({
  * from SVG to a PNG and then do the write to the clipboard.
  */
 interface F { (svg: SVGSVGElement | null): void; canvas?: HTMLCanvasElement; }
-const copyToClipboard: F = async function(svg) {
+const copyToClipboard2: F = async function(svg) {
     if (!svg)
         return;
 
@@ -117,7 +117,7 @@ const copyToClipboard: F = async function(svg) {
     const domUrl = window.URL || window.webkitURL || window;
     const url = domUrl.createObjectURL(svgBlob);
 
-    const canvas: HTMLCanvasElement = copyToClipboard.canvas || (copyToClipboard.canvas = document.createElement("canvas"));
+    const canvas: HTMLCanvasElement = copyToClipboard2.canvas || (copyToClipboard2.canvas = document.createElement("canvas"));
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d")!;
@@ -145,6 +145,28 @@ const copyToClipboard: F = async function(svg) {
             })
             .catch(error => console.error(error.name, error.message))
     });
+}
+
+function copyToClipboard(svg: SVGSVGElement | null) {
+    if (!svg)
+        return;
+
+    let svgText = svg.outerHTML;
+
+    if (!svgText.match(/xmlns="/mi))
+        svgText = svgText.replace ('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ');
+    const svgBlob = new Blob([svgText], {type: "image/svg+xml;charset=utf-8"});
+    const item = new ClipboardItem({ "image/svg+xml": svgBlob });
+    navigator.clipboard.write([item])
+        .then(() => {
+            function removeBlink() {
+                svg!.classList.remove('blink');
+                svg!.removeEventListener("transitionend", removeBlink);
+            }
+            svg.addEventListener("transitionend", removeBlink);
+            svg.classList.add('blink');
+        })
+        .catch(error => console.error(error.name, error.message))
 }
 
 function ReportsChart({
