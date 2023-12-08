@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import {
 	displayDate,
 	getAppTableDataSelectors,
-	SortType,
+	FieldType,
 } from 'dot11-components';
 
 import type { RootState } from '.';
@@ -128,8 +128,8 @@ export const fields = {
 	id: {label: 'Group ID'},
 	groupName: {label: 'Group'},
 	title: {label: 'Title'},
-	start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
-	end: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
+	start: {label: 'Start', dataRenderer: displayDate, type: FieldType.DATE},
+	end: {label: 'End', dataRenderer: displayDate, type: FieldType.DATE},
 	day: {label: 'Day'},
 	date: {label: 'Date'},
 	dayDate: {label: 'Date'},
@@ -138,8 +138,8 @@ export const fields = {
 	timezone: {label: 'Time zone'},
 	accountId: {label: 'Webex account ID'},
 	accountName: {label: 'Webex account'},
-	meetingNumber: {label: 'Meeting number', sortType: SortType.NUMERIC},
-	hostKey: {label: 'Host key', sortType: SortType.NUMERIC},
+	meetingNumber: {label: 'Meeting number', type: FieldType.NUMERIC},
+	hostKey: {label: 'Host key', type: FieldType.NUMERIC},
 	meeting: {label: 'Associated meeting', dontSort: true, dontFilter: true}
 };
 

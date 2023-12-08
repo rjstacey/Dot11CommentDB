@@ -45,7 +45,7 @@ export function GroupSelector({
 
 	let groups = useAppSelector(selectGroups);
 	if (types)
-		groups = groups.filter(group => types.includes(group.type));
+		groups = groups.filter(group => types.includes(group.type!));
 
 	const handleChange = React.useCallback((values: Group[]) => {
 		let newValues: any;

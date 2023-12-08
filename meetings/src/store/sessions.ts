@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 
 import {
 	createAppTableDataSlice,
-	SortType,
+	FieldType,
 	fetcher,
 	setError,
 	displayDate,
@@ -64,15 +64,15 @@ export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(([value,
 export const displaySessionType = (type: SessionType) => SessionTypeLabels[type] || 'Unknown';
 
 export const fields = {
-	id: {label: 'ID', isId: true, sortType: SortType.NUMERIC},
-	number: {label: 'Session number', sortType: SortType.NUMERIC},
+	id: {label: 'ID', isId: true, type: FieldType.NUMERIC},
+	number: {label: 'Session number', type: FieldType.NUMERIC},
 	name: {label: 'Session name'},
 	type: {label: 'Session type', dataRenderer: displaySessionType, options: SessionTypeOptions},
 	groupId: {label: 'Organizing group ID'},
 	groupName: {label: 'Organizing group'},
 	imatMeetingId: {label: 'IMAT meeting'/*, dataRenderer: displayImatMeetingId*/},
-	startDate: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
-	endDate: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE}, 
+	startDate: {label: 'Start', dataRenderer: displayDate, type: FieldType.DATE},
+	endDate: {label: 'End', dataRenderer: displayDate, type: FieldType.DATE}, 
 	timezone: {label: 'Timezone'},
 	attendees: {label: 'Attendees'}
 };

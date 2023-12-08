@@ -1,103 +1,103 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { matchPath, NavLink, useLocation, useParams } from 'react-router-dom';
 
-import { Dropdown, Account, Button } from 'dot11-components';
+import { Dropdown, Account, Button, DropdownRendererProps } from 'dot11-components';
 
 import { PathWorkingGroupSelector } from './PathWorkingGroupSelector';
+import routes, { AppRoute } from "./routes";
 
-import './header.css';
+import styles from './Header.module.css';
 
 import { resetStore } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectUser, selectUserMeetingsAccess, AccessLevel } from '../store/user';
-import { selectWorkingGroup } from '../store/groups';
+import { AccessLevel, selectUser } from '../store/user';
+import { selectWorkingGroupByName } from '../store/groups';
+import { selectBreakoutMeetingId } from '../store/imatBreakouts';
 
-type MenuItem = {
-	minAccess: number,
-	link: string,
-	label: string,
-	prefixGroupName?: boolean,
-	prefixSessionId?: boolean
+type MenuPathItem = {
+	path: string;
+	label: string;
+	minAccess?: number;
 }
 
-const fullMenu: MenuItem[] = [
-	{
-		minAccess: AccessLevel.admin,
-		prefixGroupName: true,
-		link: '/accounts',
-		label: 'Accounts',
-	},
-	{
-		minAccess: AccessLevel.ro,
-		prefixGroupName: true,
-		link: '/sessions',
-		label: 'Sessions',
-	},
-	{
-		minAccess: AccessLevel.ro,
-		prefixGroupName: true,
-		link: '/meetings',
-		label: 'Meetings',
-	},
-	{
-		minAccess: AccessLevel.ro,
-		prefixGroupName: true,
-		link: '/webexMeetings',
-		label: 'Webex',
-	},
-	{
-		minAccess: AccessLevel.ro,
-		prefixGroupName: true,
-		link: '/imatBreakouts',
-		label: 'IMAT breakouts',
-	},
-	{
-		minAccess: AccessLevel.ro,
-		prefixGroupName: true,
-		link: '/imatMeetings',
-		label: 'IMAT sessions',
-	},
-	{
-		minAccess: AccessLevel.ro,
-		prefixGroupName: true,
-		link: '/calendar',
-		label: 'Calendar',
-	},
-	{
-		minAccess: AccessLevel.ro,
-		prefixGroupName: true,
-		link: '/ieee802World',
-		label: '802 world schedule',
-	},
-	{
-		minAccess: AccessLevel.ro,
-		prefixGroupName: true,
-		link: '/reports',
-		label: 'Reports',
-	},
-];
+type MenuLinkItem = {
+	link: string;
+	label: string;
+	minAccess?: number;
+}
 
-const NavItem = (props: any) => <NavLink className={'nav-link' + (props.isActive? ' active': '')} {...props} />
+function useMenuPaths() {
+	return React.useMemo(() => {
+		const menu: MenuPathItem[] = [];
+		function getMenuItem(path: string, route: AppRoute) {
+			if (route.path) {
+				if (route.path[0] === '/')
+					path = route.path;
+				else
+					path = path + (path[path.length-1] === '/'? '': '/') + route.path;
+				if (route.menuLabel)
+					menu.push({path, label: route.menuLabel, minAccess: route.minAccess});
+				if (route.children)
+					route.children.forEach((route) => getMenuItem(path, route));
+			}
+		}
+		routes.forEach(route => getMenuItem("", route));
+		return menu;
+	}, []);
+}
 
-function NavMenu({className, methods}: any) {
-	const access: number = useAppSelector(selectUserMeetingsAccess);
-	const groupName = useAppSelector(selectWorkingGroup)?.name;
+function useMenuLinks() {
+	const groupName = useParams().groupName || '*';
+	const group = useAppSelector(state => selectWorkingGroupByName(state, groupName!));
+	const access = group?.permissions.meetings || AccessLevel.none;
+	const imatBreakoutMeetingId = useAppSelector(selectBreakoutMeetingId);
+	const menuPaths = useMenuPaths();
+
+	const menu: MenuLinkItem[] = React.useMemo(() => {
+		return menuPaths
+			.filter(m => access >= (m.minAccess || AccessLevel.none))
+			.map(m => {
+				const link = m.path
+					.replace(':groupName', groupName)
+					.replace('/:meetingNumber?', imatBreakoutMeetingId? `/${imatBreakoutMeetingId}`: '')
+					.replace(/\/:[^/]+\?/, "")	// remove optional parameters
+				return {...m, link}
+			})
+	}, [menuPaths, access, groupName, imatBreakoutMeetingId]);
+
+	return menu;
+}
+
+function NavMenu({className, methods}: {className?: string, methods?: DropdownRendererProps["methods"]}) {
+	const menu = useMenuLinks();
 
 	let classNames: string = 'nav-menu';
 	if (className)
 		classNames += ' ' + className;
 
-	const menu = fullMenu
-		.filter(m => access >= m.minAccess)
-		.map(m => m.prefixGroupName? {...m, link: `/${groupName || '*'}` + m.link}: m);
-
 	return (
 		<nav
 			className={classNames}
-			onClick={methods? methods.close: undefined}		// If a click bubbles up, close the dropdown
+			onClick={methods?.close}		// If a click bubbles up, close the dropdown
 		>
-			{menu.map(m => <NavItem key={m.link} to={m.link}>{m.label}</NavItem>)}
+			{menu.map(m => <NavLink className='nav-link' key={m.link} to={m.link}>{m.label}</NavLink>)}
 		</nav>
+	)
+}
+
+function SmallNavMenu({state, methods}: DropdownRendererProps) {
+	const {pathname} = useLocation();
+	const menu = useMenuPaths();
+	const menuItem = menu.find(m => matchPath(m.path, pathname));
+
+	return (
+		<>
+			<i
+				className='bi-list'
+				onClick={state.isOpen? methods.close: methods.open}
+			/>
+			<div className="nav-link active">{menuItem?.label}</div>
+		</>
 	)
 }
 
@@ -114,24 +114,18 @@ function Header() {
 		return () => smallScreenQuery.removeEventListener("change", updateSmallScreen);
 	}, []);
 
-	const location = useLocation();
-	const menuItem = fullMenu.find(m => location.pathname.search(m.link) >= 0);
-	
 	return (
-		<header className='header'>
+		<header className={styles.header}>
 			<PathWorkingGroupSelector />
-
-			{isSmall &&
-				<Dropdown
-					selectRenderer={({state, methods}) => <div className='nav-menu-icon' onClick={state.isOpen? methods.close: methods.open}/>}
-					dropdownRenderer={(props: any) => <NavMenu className='nav-menu-vertical' {...props} />}
-					dropdownAlign='left'
-				/>
-			}
 
 			<div className='nav-menu-container'>
 				{isSmall?
-					<label className='nav-link active'>{menuItem? menuItem.label: ''}</label>:
+					<Dropdown
+						className="nav-small-menu"
+						selectRenderer={(props) => <SmallNavMenu {...props} />}
+						dropdownRenderer={(props) => <NavMenu className='nav-menu-vertical' methods={props.methods} />}
+						dropdownAlign='left'
+					/>:
 					<NavMenu className='nav-menu-horizontal' />
 				}
 			</div>

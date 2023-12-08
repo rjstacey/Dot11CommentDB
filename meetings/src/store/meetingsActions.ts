@@ -1,8 +1,8 @@
+import { EntityId } from '@reduxjs/toolkit';
 import {
 	fetcher,
 	setError,
 	isObject,
-	EntityId
 } from 'dot11-components';
 
 import slice from './meetingsSlice';

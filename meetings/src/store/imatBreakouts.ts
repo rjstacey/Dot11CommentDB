@@ -7,7 +7,7 @@ import {
 	isObject,
 	createAppTableDataSlice,
 	AppTableDataState,
-	SortType,
+	FieldType,
 	getAppTableDataSelectors
 } from 'dot11-components';
 
@@ -63,10 +63,10 @@ const displayGroup = (group: string) => {
 }
 
 export const fields = {
-	id: {label: 'Breakout ID', sortType: SortType.NUMERIC},
-	imatMeetingId: {label: 'Meeting number', sortType: SortType.NUMERIC},
-	start: {label: 'Start', sortType: SortType.DATE},
-	end: {label: 'End', sortType: SortType.DATE},
+	id: {label: 'Breakout ID', type: FieldType.NUMERIC},
+	imatMeetingId: {label: 'Meeting number', type: FieldType.NUMERIC},
+	start: {label: 'Start', type: FieldType.DATE},
+	end: {label: 'End', type: FieldType.DATE},
 	weekDay: {label: 'Day'},
 	date: {label: 'Date'},
 	dayDate: {label: 'Date'},

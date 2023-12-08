@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import { DateTime } from 'luxon';
+import { EntityId } from '@reduxjs/toolkit';
 
-import { Button, EntityId } from 'dot11-components';
+import { Button } from 'dot11-components';
 
 import { useAppSelector } from '../store/hooks';
-
 import {Session, Timeslot, SessionCredits, selectSessionEntities, DayCredit} from '../store/sessions';
 
 import {RawSessionSelector} from '../components/SessionSelector';

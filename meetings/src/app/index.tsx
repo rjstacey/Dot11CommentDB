@@ -1,36 +1,24 @@
-import { BrowserRouter as Router } from 'react-router-dom';
-import styled from '@emotion/styled';
+import * as React from "react";
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { HelmetProvider, Helmet } from 'react-helmet-async';
 
-import { ErrorModal, ConfirmModal } from 'dot11-components';
-import Header from './Header';
-import Body from './Body';
-
-const OuterDiv = styled.div`
-	display: flex;
-	flex-direction: column;
-	height: 100vh;
-	align-items: center;
-`;
+import routes from "./routes";
 
 const title = '802 tools | Meetings';
-const description = 'Manage group sessions and telecons';
+const description = 'Manage session and telecon meetings';
+
+const getRouter = () => createBrowserRouter(routes, { basename: '/meetings' });
 
 function App() {
+	// Create routes on initial render. If done at init time, createBrowserRouter() will kick off groupLoader() before fetcher has been initialized.
+	const router = React.useMemo(getRouter, []);
 	return (
 		<HelmetProvider>
 			<Helmet>
 				<title>{title}</title>
 				<meta name='description' content={description} />
 			</Helmet>
-			<Router basename='/meetings'>
-				<OuterDiv>
-					<Header />
-					<Body />
-					<ErrorModal />
-					<ConfirmModal />
-				</OuterDiv>
-			</Router>
+			<RouterProvider router={router} />
 		</HelmetProvider>
 	)
 }

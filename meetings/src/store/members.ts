@@ -1,8 +1,7 @@
-import { createSlice, createEntityAdapter } from '@reduxjs/toolkit';
+import { createSlice, createEntityAdapter, PayloadAction } from '@reduxjs/toolkit';
 import { fetcher, isObject, setError } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-import { selectWorkingGroupName } from './groups';
 
 export interface Member {
 	SAPIN: number;
@@ -12,11 +11,18 @@ export interface Member {
 	Status: string;
 };
 
+type ExtraState = {
+	valid: boolean;
+	loading: boolean;
+	groupName: string | null;
+}
+
 const selectId = (user: Member) => user.SAPIN;
 const dataAdapter = createEntityAdapter<Member>({selectId});
-const initialState = dataAdapter.getInitialState({
+const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
+	groupName: null
 });
 
 const dataSet = 'members';
@@ -24,8 +30,14 @@ const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		getPending(state) {
+		getPending(state, action: PayloadAction<{groupName: string | null}>) {
+			const {groupName} = action.payload;
 			state.loading = true;
+			if (state.groupName !== groupName) {
+				state.groupName = action.payload.groupName;
+				state.valid = false;
+				dataAdapter.removeAll(state);
+			}
 		},
   		getSuccess(state, action) {
 			state.loading = false;
@@ -68,13 +80,10 @@ function validUsers(users: any): users is Member[] {
 	return Array.isArray(users) && users.every(validUser);
 }
 
-export const loadMembers = (): AppThunk => 
+export const loadMembers = (groupName: string): AppThunk => 
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
-		if (!groupName)
-			return;
 		const url = `/api/${groupName}/users`;
-		dispatch(getPending());
+		dispatch(getPending({groupName}));
 		let response: any;
 		try {
 			response = await fetcher.get(url);

@@ -37,6 +37,7 @@ export type Group = {
 	color: string | null;
 	type: GroupType | null;
 	project: string | null;
+	permissions: Record<string, number>;
 };
 
 export type GroupCreate = Omit<Group, "id"> & { id?: string };
@@ -110,6 +111,7 @@ const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	initialState,
+	selectId: (e: Group) => e.id,
 	reducers: {
 		setWorkingGroupId(state, action: PayloadAction<string | null>) {
 			state.workingGroupId = action.payload;
@@ -143,8 +145,13 @@ export const selectGroupIds = (state: RootState) => selectGroupsState(state).ids
 
 export const selectWorkingGroups = (state: RootState) => {
 	const {ids, entities} = selectGroupsState(state);
-	return ids.map(id => entities[id]!).filter(g => ["c", "wg"].includes(g.type));
+	return ids.map(id => entities[id]!).filter(g => ["c", "wg"].includes(g.type!));
 }
+export const selectWorkingGroupByName = (state: RootState, groupName: string) => {
+	const groups = selectWorkingGroups(state);
+	return groups.find(g => g.name === groupName);
+}
+
 export const selectWorkingGroupId = (state: RootState) => selectGroupsState(state).workingGroupId;
 export const selectWorkingGroup = (state: RootState) => {
 	const {workingGroupId, entities} = selectGroupsState(state);
@@ -158,7 +165,7 @@ export const selectGroups = createSelector(
 	selectWorkingGroupId,
 	(ids, entities, workingGroupId) => {
 		const childIds = treeSortedIds(ids, entities, workingGroupId);
-		const groups = childIds.map(id => entities[id]!);
+		const groups: Group[] = childIds.map(id => entities[id]!);
 		return groups;
 	}
 );
@@ -170,9 +177,13 @@ export const selectGroupParents = createSelector(
 		const groups: Group[] = [];
 		while (workingGroupId) {
 			const group = entities[workingGroupId];
-			if (group)
-				groups.unshift(group)
-			workingGroupId = group?.parent_id;
+			if (group) {
+				groups.unshift(group);
+				workingGroupId = group.parent_id;
+			}
+			else {
+				workingGroupId = null;
+			}
 		}
 		return groups;
 	}
@@ -250,4 +261,16 @@ export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group
 			}
 		}
 		return selectWorkingGroup(state);
+	}
+
+export const setWorkingGroup = (name: string | null): AppThunk =>
+	async (dispatch, getState) => {
+		const state = getState();
+		const groups = selectGroups(state);
+		const group = groups.find(g => g.name === name);
+		if (group) {
+			const currentWorkingGroupId = selectWorkingGroupId(state);
+			if (group.id !== currentWorkingGroupId)
+				dispatch(setWorkingGroupIdLocal(group.id));
+		}
 	}

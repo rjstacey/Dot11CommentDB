@@ -5,7 +5,7 @@ import { Button, ActionButton, Input, ActionIcon } from  'dot11-components';
 import type { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
-	loadCalendarAccounts,
+	refreshCalendarAccounts,
 	updateCalendarAccount,
 	addCalendarAccount,
 	deleteCalendarAccount,
@@ -67,7 +67,7 @@ function CalendarAccounts() {
 	const {loading, accounts} = useAppSelector(selectCalendarAccounts);
 	const memberEntities = useAppSelector(selectMemberEntities);
 	const [readOnly, setReadOnly] = React.useState(true);
-	const refresh = () => dispatch(loadCalendarAccounts());
+	const refresh = () => dispatch(refreshCalendarAccounts());
 
 	const columns = React.useMemo(() => {
 		

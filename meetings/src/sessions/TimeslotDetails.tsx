@@ -1,13 +1,13 @@
 import React from 'react';
-import {useSelector} from 'react-redux';
+import { EntityId } from '@reduxjs/toolkit';
 
 import {Input, ActionIcon} from 'dot11-components';
 
 import {EditTable as Table, TableColumn} from '../components/Table';
 import {RawSessionSelector} from '../components/SessionSelector';
 
+import { useAppSelector } from '../store/hooks';
 import {selectSessionEntities, Timeslot} from '../store/sessions';
-import { EntityId } from 'dot11-components';
 
 const tableColumns: TableColumn[] = [
 	{key: 'name', label: 'Name', gridTemplate: 'minmax(200px, auto)'},
@@ -27,7 +27,7 @@ function TimeslotDetails({
 	setTimeslots: (timeslots: Timeslot[]) => void;
 	readOnly?: boolean;
 }) {
-	const entities = useSelector(selectSessionEntities);
+	const entities = useAppSelector(selectSessionEntities);
 
 	const columns = React.useMemo(() => {
 

@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 
-import { configureStore } from './store'
+import { store, persistor } from './store';
+import { initUser } from "./store/user";
 import App from './app';
 import {getUser, logout, fetcher} from 'dot11-components';
 import './index.css';
@@ -16,7 +17,8 @@ getUser()
 		const root = createRoot(document.getElementById('root')!);
 		try {
 			fetcher.setAuth(user.Token, logout);
-			const {store, persistor} = configureStore(user);
+			//const {store, persistor} = configureStore(user);
+			store.dispatch(initUser(user));
 			root.render(
 				<React.StrictMode>
 					<Provider store={store}>

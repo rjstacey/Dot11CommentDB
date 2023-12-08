@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import {
 	displayDate,
 	getAppTableDataSelectors,
-	SortType
+	FieldType
 } from 'dot11-components';
 
 import type { RootState } from '.';
@@ -72,8 +72,8 @@ export const fields = {
 	id: {label: 'ID'},
 	organizationId: {label: 'Group ID'},
 	groupName: {label: 'Group'},
-	start: {label: 'Start', dataRenderer: displayDate, sortType: SortType.DATE},
-	end: {label: 'End', dataRenderer: displayDate, sortType: SortType.DATE},
+	start: {label: 'Start', dataRenderer: displayDate, type: FieldType.DATE},
+	end: {label: 'End', dataRenderer: displayDate, type: FieldType.DATE},
 	startTime: {label: 'Start time'},
 	endTime: {label: 'End time'},
 	day: {label: 'Day'},

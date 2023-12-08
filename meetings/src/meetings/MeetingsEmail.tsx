@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import { DateTime } from 'luxon';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
-
-import { Form, Field, Checkbox, EntityId, Dictionary } from 'dot11-components';
+import { EntityId, Dictionary } from "@reduxjs/toolkit";
+import { Form, Field, Checkbox } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 

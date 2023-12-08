@@ -1,5 +1,4 @@
-import React from 'react';
-import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import {
 	AppTable, SelectHeaderCell, SelectCell, TableColumnHeader, SplitPanelButton, SplitPanel, Panel, TableColumnSelector,
@@ -25,8 +24,6 @@ import {
 	imatBreakoutsActions,
 	Breakout
 } from '../store/imatBreakouts';
-
-import { setCurrentSessionId } from '../store/current';
 
 import type { ImatMeeting } from '../store/imatMeetings';
 
@@ -163,43 +160,18 @@ function Breakouts() {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const location = useLocation();
-	const params = useParams();
-
-	let pathImatMeetingId: number | null = Number(params.meetingNumber);
-	if (isNaN(pathImatMeetingId))
-		pathImatMeetingId = null;
 
 	const imatMeetingId = useAppSelector(selectBreakoutMeetingId);
 	const imatMeeting = useAppSelector(selectBreakoutMeeting);
 
-	React.useEffect(() => {
-		if (pathImatMeetingId && pathImatMeetingId !== imatMeetingId) {
-			/* If the user navigates here and the current meeting number does not match,
-			 * then reload the breakouts */
-			if (imatMeeting?.sessionId)
-				dispatch(setCurrentSessionId(imatMeeting.sessionId));
-			else
-				dispatch(loadBreakouts(pathImatMeetingId));
-		}
-		else if (!pathImatMeetingId && imatMeetingId) {
-			/* If the user navigates to the breakouts root, but there is a meeting number selected,
-			 * then navigate to the current meeting number */
-			navigate(location.pathname + `/${imatMeetingId}`);
-		}
-	}, [pathImatMeetingId, imatMeetingId, imatMeeting, location.pathname, dispatch, navigate]);
-
 	const setImatMeetingId = (imatMeetingId: number | null) => {
-		/* If the user clears the selected meeting number, then clear the breakouts */
-		if (!imatMeetingId)
-			dispatch(clearBreakouts());
-		/* Navigate to the selected meeting number */
-		let path = location.pathname.replace(`/${pathImatMeetingId}`, '');
+		let path = location.pathname.replace(/\/\d+$/, '');
 		if (imatMeetingId)
 			path += `/${imatMeetingId}`;
 		navigate(path);
 	}
 
-	const refresh = () => pathImatMeetingId? dispatch(loadBreakouts(pathImatMeetingId)): dispatch(clearBreakouts());
+	const refresh = () => imatMeetingId? dispatch(loadBreakouts(imatMeetingId)): dispatch(clearBreakouts());
 
 	return (
 		<>

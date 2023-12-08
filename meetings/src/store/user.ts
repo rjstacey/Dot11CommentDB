@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '.';
 
 export const AccessLevel = {
@@ -7,8 +7,6 @@ export const AccessLevel = {
 	rw: 2,
 	admin: 3
 };
-
-export const dataSet = 'user';
 
 export type User = {
 	SAPIN: number;
@@ -21,19 +19,29 @@ export type User = {
 	Token: any;
 };
 
-/** The `user` slice is readonly and contains user info */
-export function createUserSlice(user: User) {
-	return createSlice({
-		name: dataSet,
-		initialState: user,
-		reducers: {},
-	});
-}
+const dataSet = 'user';
+const slice = createSlice({
+	name: dataSet,
+	initialState: {} as User | {},
+	reducers: {
+		initUser(state, action: PayloadAction<User>) {
+			return action.payload;
+		}
+	},
+});
+
+export default slice;
+
 
 /*
  * Selectors
  */
-export const selectUser = (state: RootState): User => state[dataSet];
+export const selectUser = (state: RootState): User => {
+	const user = state[dataSet];
+	if ('SAPIN' in user)
+		return user;
+	throw Error("`user` slice not initialized");
+}
 export const selectUserPermissions = (state: RootState) => selectUser(state)!.Permissions;
 
 export function selectUserMeetingsAccess(state: RootState) {
@@ -48,3 +56,9 @@ export function selectUserMeetingsAccess(state: RootState) {
 	}
 	return AccessLevel.none;
 }
+
+/*
+ * Actions
+ */
+const { initUser } = slice.actions;
+export { initUser };

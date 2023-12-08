@@ -1,10 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAppSelector } from '../store/hooks';
 import { selectWorkingGroupId } from '../store/groups';
 import {
-	loadCalendarAccounts,
 	selectCalendarAccountsState,
 	CalendarAccount
 } from '../store/calendarAccounts';
@@ -16,13 +15,8 @@ const MainIframe = styled.iframe`
 `;
 
 function Calendar() {
-	const dispatch = useAppDispatch();
 	const {entities} = useAppSelector(selectCalendarAccountsState);
 	const groupId = useAppSelector(selectWorkingGroupId);
-
-	React.useEffect(() => {
-		dispatch(loadCalendarAccounts());
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const calendarLink = React.useMemo(() => {
 		if (!groupId)

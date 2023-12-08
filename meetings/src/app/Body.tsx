@@ -1,8 +1,8 @@
 import React from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useParams, useRouteError } from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import { useAppSelector } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 
 import Accounts from '../accounts/Accounts';
 import Sessions from '../sessions/Sessions';
@@ -17,7 +17,7 @@ import Ieee802World from '../ieee802World/Ieee802World';
 import Reports from '../reports/Reports';
 
 import { selectUserMeetingsAccess, AccessLevel } from '../store/user';
-import { selectWorkingGroupName } from '../store/groups';
+import { selectWorkingGroups, selectWorkingGroupName, setWorkingGroupId, setWorkingGroup } from '../store/groups';
 
 const Main = styled.main`
 	flex: 1;
@@ -40,12 +40,26 @@ const Content = styled.div`
 `;
 
 function Root() {
-	console.log('root')
 	return (
 		<Content>
 			<div>Meetings</div>
 		</Content>
 	)
+}
+
+function ErrorPage() {
+	const error: any = useRouteError();
+	console.error(error);
+
+	return (
+		<div id="error-page">
+			<h1>Oops!</h1>
+			<p>Sorry, an unexpected error has occurred.</p>
+			<p>
+				<i>{error.statusText || error.message}</i>
+			</p>
+		</div>
+	);
 }
 
 function RedirectToCurrentGroup() {
@@ -58,7 +72,29 @@ function RedirectToCurrentGroup() {
 	return <Navigate to={path} replace={true} />
 }
 
+function GroupComponent({minAccess, Component}: {minAccess: number; Component: React.FC}) {
+	const dispatch = useAppDispatch();
+	const currentGroupName = useAppSelector(selectWorkingGroupName);
+	const groups = useAppSelector(selectWorkingGroups);
+	const access = useAppSelector(selectUserMeetingsAccess);
+	const {groupName} = useParams();
+	if (groupName !== currentGroupName) {
+		const newGroup = groups.find(g => g.name === groupName);
+		if (newGroup) {
+			dispatch(setWorkingGroupId(newGroup.id));
+		}
+		else {
+			dispatch(setWorkingGroupId(null));
+			return <Navigate to={'/'} replace />
+		}
+	}
+	if (access < minAccess)
+		return <span>You do not have permission to view this data</span>
+	return <Component />
+}
+
 function Body() {
+	const dispatch = useAppDispatch();
 	const access = useAppSelector(selectUserMeetingsAccess);
 
 	function renderComponent(minAccess: number, Component: React.FC) {
@@ -75,49 +111,67 @@ function Body() {
 		<Main>
 			<Routes>
 				<Route
-					path="/:groupName/accounts"
-					element={renderComponent(AccessLevel.admin, Accounts)}
-				/>
-				<Route
-					path="/:groupName/sessions"
-					element={renderComponent(AccessLevel.ro, Sessions)}
-				/>
-				<Route
-					path="/:groupName/meetings"
-					element={renderComponent(AccessLevel.ro, Meetings)}
-				/>
-				<Route
-					path="/:groupName/webexMeetings"
-					element={renderComponent(AccessLevel.ro, WebexMeetings)}
-				/>
-				<Route
-					path="/:groupName/imatBreakouts/:meetingNumber?"
-					element={renderComponent(AccessLevel.ro, ImatBreakouts)}
-				/>
-				<Route
-					path="/:groupName/calendar"
-					element={renderComponent(AccessLevel.ro, Calendar)}
-				/>
-				<Route
-					path="/:groupName/imatMeetings"
-					element={renderComponent(AccessLevel.ro, ImatMeetings)}
-				/>
-				<Route
-					path="/:groupName/imatAttendance/:meetingNumber/:breakoutNumber"
-					element={renderComponent(AccessLevel.ro, ImatBreakoutAttendance)}
-				/>
-				<Route
-					path="/:groupName/imatAttendance/:meetingNumber"
-					element={renderComponent(AccessLevel.ro, ImatMeetingAttendance)}
-				/>
-				<Route
-					path="/:groupName/ieee802World"
-					element={renderComponent(AccessLevel.ro, Ieee802World)}
-				/>
-				<Route
-					path="/:groupName/reports/:meetingNumber?"
-					element={renderComponent(AccessLevel.ro, Reports)}
-				/>
+					path="/:groupName"
+					loader={({params}) => {
+						console.log(params)
+						return dispatch(setWorkingGroup(params.groupName || null));
+					}}
+					//element={<Root/>}
+				>
+					<Route
+						path=""
+						element={<Root/>}
+					/>
+					<Route
+						path="accounts"
+						element={renderComponent(AccessLevel.admin, Accounts)}
+						//element={<GroupComponent minAccess={AccessLevel.admin} Component={Accounts}/>}
+					/>
+					<Route
+						path="sessions"
+						element={renderComponent(AccessLevel.ro, Sessions)}
+					/>
+					<Route
+						path="meetings"
+						element={renderComponent(AccessLevel.ro, Meetings)}
+					/>
+					<Route
+						path="webexMeetings"
+						element={renderComponent(AccessLevel.ro, WebexMeetings)}
+					/>
+					<Route
+						path="imatBreakouts/:meetingNumber?"
+						element={renderComponent(AccessLevel.ro, ImatBreakouts)}
+					/>
+					<Route
+						path="calendar"
+						element={renderComponent(AccessLevel.ro, Calendar)}
+					/>
+					<Route
+						path="imatMeetings"
+						element={renderComponent(AccessLevel.ro, ImatMeetings)}
+					/>
+					<Route
+						path="imatAttendance/:meetingNumber/:breakoutNumber"
+						element={renderComponent(AccessLevel.ro, ImatBreakoutAttendance)}
+					/>
+					<Route
+						path="imatAttendance/:meetingNumber"
+						element={renderComponent(AccessLevel.ro, ImatMeetingAttendance)}
+					/>
+					<Route
+						path="ieee802World"
+						element={renderComponent(AccessLevel.ro, Ieee802World)}
+					/>
+					<Route
+						path="reports/:meetingNumber?"
+						element={renderComponent(AccessLevel.ro, Reports)}
+					/>
+					<Route
+						path="*"
+						element={<span>Invalid path</span>}
+					/>
+				</Route>
 				<Route
 					path="/accounts"
 					element={<RedirectToCurrentGroup/>}
@@ -125,6 +179,7 @@ function Body() {
 				<Route
 					path="/:groupName?"
 					element={<Root />}
+					errorElement={<ErrorPage />}
 				/>
 			</Routes>
 		</Main>

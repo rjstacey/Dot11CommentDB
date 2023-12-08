@@ -7,7 +7,7 @@ import {
 	displayDate,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
-	SortType,
+	FieldType,
 	AppTableDataState,
 	isObject,
 	Fields
@@ -43,7 +43,7 @@ export type SyncedIeee802WorldScheduleEntry = Ieee802WorldScheduleEntry & {
 }
 
 export const fields: Fields = {
-	id: {label: 'ID', sortType: SortType.NUMERIC},
+	id: {label: 'ID', type: FieldType.NUMERIC},
 	breakoutDate: {label: 'Date', dataRenderer: displayDate},
 	date: {label: 'Date'},
 	day: {label: 'Day'},
@@ -98,7 +98,7 @@ export const selectSynced802WorldEntities = createSelector(
 			const entity = entities[id]!;
 			let meetingId = null;
 			const entityGroupName = entity.groupName.startsWith('802')? '802': ('802.' + entity.groupName);
-			if (entityGroupName === workingGroup.name) {
+			if (entityGroupName === workingGroup?.name) {
 				const entityRoomId = session?.rooms.find(room => room!.name === entity.mtgRoom)?.id || null;
 				const entityStart = DateTime.fromFormat(`${entity.breakoutDate} ${entity.startTime}`, 'yyyy-MM-dd HH:mm:ss', {zone: session?.timezone || 'America/New_York'});
 				/* Find a meeting that matches group, start, and room */

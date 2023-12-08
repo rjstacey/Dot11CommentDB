@@ -7,7 +7,7 @@ import {
 	displayDateRange,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
-	SortType,
+	FieldType,
 	isObject,
 } from 'dot11-components';
 
@@ -32,7 +32,7 @@ export type SyncedImatMeeting = ImatMeeting & {
 }
 
 export const fields = {
-	id: {label: 'Meeting number', sortType: SortType.NUMERIC},
+	id: {label: 'Meeting number', type: FieldType.NUMERIC},
 	start: {label: 'Start', dataRenderer: displayDate},
 	end: {label: 'End', dataRenderer: displayDate},
 	dateRange: {label: 'Dates'},

@@ -1,5 +1,6 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
+import { EntityId } from '@reduxjs/toolkit';
 import styled from '@emotion/styled';
 import { DateTime } from 'luxon';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
@@ -17,7 +18,6 @@ import {
 	Input,
 	TextArea,
 	Select,
-	EntityId
 } from 'dot11-components';
 
 import TimeZoneSelector from '../components/TimeZoneSelector';

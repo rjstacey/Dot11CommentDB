@@ -6,7 +6,7 @@ import type { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectMemberEntities } from '../store/members';
 import {
-	loadWebexAccounts,
+	refreshWebexAccounts,
 	updateWebexAccount,
 	addWebexAccount,
 	deleteWebexAccount,
@@ -66,7 +66,7 @@ function WebexAccounts() {
 	const {loading, accounts} = useAppSelector(selectWebexAccounts);
 	const memberEntities = useAppSelector(selectMemberEntities);
 	const [readOnly, setReadOnly] = React.useState(true);
-	const refresh = () => dispatch(loadWebexAccounts());
+	const refresh = () => dispatch(refreshWebexAccounts());
 
 	const columns = React.useMemo(() => {
 		

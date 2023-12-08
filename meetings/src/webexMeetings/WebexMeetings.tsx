@@ -1,6 +1,6 @@
 import React from 'react';
 import {DateTime} from 'luxon';
-
+import { Dictionary, EntityId } from "@reduxjs/toolkit";
 
 import {
 	AppTable, 
@@ -14,8 +14,6 @@ import {
 	ActionButton,
 	Form,
 	AppModal,
-	EntityId,
-	Dictionary,
 	HeaderCellRendererProps,
 	ColumnProperties,
 	TablesConfig,

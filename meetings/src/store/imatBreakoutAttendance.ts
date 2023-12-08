@@ -6,7 +6,7 @@ import {
 	setError,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
-	SortType,
+	FieldType,
 	isObject
 } from 'dot11-components';
 
@@ -24,11 +24,11 @@ export type ImatBreakoutAttendance = {
 }
 
 export const fields = {
-	SAPIN: {label: 'SA PIN', sortType: SortType.NUMERIC},
+	SAPIN: {label: 'SA PIN', type: FieldType.NUMERIC},
 	Name: {label: 'Name'},
 	Email: {label: 'Email'},
 	Affiliation: {label: 'Affiliation'},
-	Timestamp: {label: 'Timestamp', sortType: SortType.DATE},
+	Timestamp: {label: 'Timestamp', type: FieldType.DATE},
 };
 
 type ExtraState = {

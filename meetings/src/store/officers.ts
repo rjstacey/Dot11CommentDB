@@ -1,10 +1,9 @@
-import { createSlice, createEntityAdapter, createSelector } from '@reduxjs/toolkit';
+import { createSlice, createEntityAdapter, createSelector, PayloadAction } from '@reduxjs/toolkit';
 import type { EntityId } from '@reduxjs/toolkit';
 
 import { fetcher, setError } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-import { selectWorkingGroupName } from './groups';
 
 export type OfficerId = string;
 export type Officer = {
@@ -14,10 +13,17 @@ export type Officer = {
 	group_id: string;
 };
 
+type ExtraState = {
+	valid: boolean;
+	loading: boolean;
+	groupName: string | null;
+}
+
 const dataAdapter = createEntityAdapter<Officer>({});
-const initialState = dataAdapter.getInitialState({
+const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
+	groupName: null
 });
 
 export type OfficersState = typeof initialState;
@@ -27,8 +33,14 @@ const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		getPending(state) {
+		getPending(state, action: PayloadAction<{groupName: string | null}>) {
+			const {groupName} = action.payload;
 			state.loading = true;
+			if (state.groupName !== groupName) {
+				state.groupName = action.payload.groupName;
+				state.valid = false;
+				dataAdapter.removeAll(state);
+			}
 		},
   		getSuccess(state, action) {
 			state.loading = false;
@@ -70,13 +82,10 @@ const {
 	getFailure,
 } = slice.actions;
 
-export const loadOfficers = (): AppThunk => 
+export const loadOfficers = (groupName: string): AppThunk => 
 	(dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
-		if (!groupName)
-			return;
 		const url = `/api/${groupName}/officers`;
-		dispatch(getPending());
+		dispatch(getPending({groupName}));
 		return fetcher.get(url)
 			.then((officers: any) => {
 				if (!Array.isArray(officers))

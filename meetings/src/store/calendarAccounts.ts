@@ -3,7 +3,6 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { fetcher, setError, isObject } from 'dot11-components';
 import type { AppThunk, RootState } from '.';
-import { selectWorkingGroupName } from './groups';
 
 /* Google Calendar Schema: https://developers.google.com/calendar/api/v3/reference/calendars */
 type GoogleCalendarSchema = {
@@ -40,18 +39,31 @@ export type CalendarAccountCreate = {
 	groups: string[];
 }
 
+type ExtraState = {
+	valid: boolean;
+	loading: boolean;
+	groupName: string | null;
+}
+
 const dataAdapter = createEntityAdapter<CalendarAccount>({});
-const initialState = dataAdapter.getInitialState({
+const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
+	groupName: null
 });
 const dataSet = 'calendarAccounts';
 const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		getPending(state) {
+		getPending(state, action: PayloadAction<{groupName: string | null}>) {
+			const {groupName} = action.payload;
 			state.loading = true;
+			if (state.groupName !== groupName) {
+				state.groupName = action.payload.groupName;
+				state.valid = false;
+				dataAdapter.removeAll(state);
+			}
 		},
   		getSuccess(state, action: PayloadAction<CalendarAccount[]>) {
 			state.loading = false;
@@ -76,6 +88,7 @@ export default slice;
 export const selectCalendarAccountsState = (state: RootState) => state[dataSet];
 export const selectCalendarAccountIds = (state: RootState) => selectCalendarAccountsState(state).ids;
 export const selectCalendarAccountEntities = (state: RootState) => selectCalendarAccountsState(state).entities;
+const selectCalendarAccountsGroupName = (state: RootState) => selectCalendarAccountsState(state).groupName;
 export const selectCalendarAccounts = createSelector(
 	selectCalendarAccountIds,
 	selectCalendarAccountEntities,
@@ -106,13 +119,10 @@ function validGetResponse(response: any): response is CalendarAccount[] {
 	return Array.isArray(response) && response.every(validCalendarAccount);
 }
 
-export const loadCalendarAccounts = (): AppThunk => 
+export const loadCalendarAccounts = (groupName: string): AppThunk => 
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
-		if (!groupName)
-			return;
 		const url = `/api/${groupName}/calendar/accounts`;
-		dispatch(getPending());
+		dispatch(getPending({groupName}));
 		let response: any;
 		try {
 			response = await fetcher.get(url);
@@ -126,10 +136,17 @@ export const loadCalendarAccounts = (): AppThunk =>
 		}
 		dispatch(getSuccess(response));
 	}
+
+export const refreshCalendarAccounts = (): AppThunk =>
+	async (dispatch, getState) => {
+		const groupName = selectCalendarAccountsGroupName(getState());
+		if (groupName)
+			return dispatch(loadCalendarAccounts(groupName));
+	}
 	
 export const addCalendarAccount = (account: CalendarAccountCreate): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectCalendarAccountsGroupName(getState());
 		const url = `/api/${groupName}/calendar/accounts`;
 		let response: any;
 		try {
@@ -146,7 +163,7 @@ export const addCalendarAccount = (account: CalendarAccountCreate): AppThunk =>
 
 export const updateCalendarAccount = (id: number, changes: Partial<CalendarAccount>): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectCalendarAccountsGroupName(getState());
 		const url = `/api/${groupName}/calendar/accounts/${id}`;
 		dispatch(updateOne({id, changes}));
 		let response: any;
@@ -164,7 +181,7 @@ export const updateCalendarAccount = (id: number, changes: Partial<CalendarAccou
 
 export const revokeAuthCalendarAccount = (id: number): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectCalendarAccountsGroupName(getState());
 		const url = `/api/${groupName}/calendar/accounts/${id}/revoke`;
 		let response: any;
 		try {
@@ -181,7 +198,7 @@ export const revokeAuthCalendarAccount = (id: number): AppThunk =>
 
 export const deleteCalendarAccount = (id: number): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectCalendarAccountsGroupName(getState());
 		const url = `/api/${groupName}/calendar/accounts/${id}`;
 		try {
 			await fetcher.delete(url);
