@@ -1,3 +1,12 @@
+.main {
+	flex: 1;
+	width: 100%;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	margin: 0 auto;
+	align-items: center;
+}
 
 .header {
 	display: flex;
@@ -8,6 +17,25 @@
 	padding-left: 1rem;
 	padding-right: 1rem;
 	box-sizing: border-box;
+}
+
+.working-group-select {
+	font-family: "Arial", "Helvetica", sans-serif;
+	font-weight: 400;
+	font-size: 24px;
+	color: #008080;
+	border: unset;
+	background-color: unset;
+	padding: 0;
+	margin: 5px;
+}
+
+.working-group-select:hover {
+	cursor: pointer;
+}
+
+.working-group-select-dropdown {
+	font-size: 16px;
 }
 
 .title {
@@ -73,25 +101,4 @@
 
 .header :global .account {
 	padding: 0 5px;
-}
-
-/* Items in the nav menu */
-.nav-menu-item {
-	position: relative;
-}
-
-.nav-button {
-	grid-area: nav-menu;
-	background-color: transparent;
-	color: black;
-	padding: 16px;
-	font-size: 16px;
-	font-weight: 700;
-	border: none;
-	cursor: pointer;
-}
-
-/* Change the background color of the dropdown button when the dropdown content is shown */
-.nav-button:hover {
-	background-color: #3e484e66;
 }

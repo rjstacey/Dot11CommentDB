@@ -78,7 +78,7 @@ export default slice;
 export const selectWebexAccountsState = (state: RootState) => state[dataSet];
 export const selectWebexAccountIds = (state: RootState) => selectWebexAccountsState(state).ids;
 export const selectWebexAccountEntities = (state: RootState) => selectWebexAccountsState(state).entities;
-const selectWebexAccountsGroupName = (state: RootState) => selectWebexAccountsState(state).groupName;
+export const selectWebexAccountsGroupName = (state: RootState) => selectWebexAccountsState(state).groupName;
 export const selectWebexAccounts = createSelector(
 	selectWebexAccountIds,
 	selectWebexAccountEntities,
