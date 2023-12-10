@@ -1,5 +1,6 @@
 import React from "react";
-import { matchPath, NavLink, useLocation, useParams } from "react-router-dom";
+import { matchPath, NavLink, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 import {
 	Dropdown,
@@ -14,7 +15,6 @@ import { AccessLevel, selectUser } from "../store/user";
 import { selectWorkingGroupByName } from "../store/groups";
 import { selectBreakoutMeetingId } from "../store/imatBreakouts";
 
-import { PathWorkingGroupSelector } from "./WorkingGroupSelector";
 import routes, { AppRoute } from "./routes";
 
 import styles from "./app.module.css";
@@ -129,6 +129,8 @@ const smallScreenQuery = window.matchMedia("(max-width: 992px");
 
 function Header() {
 	const dispatch = useAppDispatch();
+	const navigate = useNavigate();
+	const {groupName} = useParams();
 	const user = useAppSelector(selectUser)!;
 	const [isSmall, setIsSmall] = React.useState(smallScreenQuery.matches);
 
@@ -140,9 +142,20 @@ function Header() {
 			smallScreenQuery.removeEventListener("change", updateSmallScreen);
 	}, []);
 
+	const title = (groupName? groupName + " ": "") + "Meetings";
+	const rootPath = "/" + (groupName || "");
+
 	return (
 		<header className={styles.header}>
-			<PathWorkingGroupSelector />
+			<Helmet title={title} />
+	
+			<h3
+				className="title"
+				onClick={() => navigate(rootPath)}
+			>
+
+				{title}
+			</h3>
 
 			<div
 				className="nav-menu-container"

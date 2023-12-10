@@ -7,7 +7,6 @@ import {
 	RouteObject,
 	LoaderFunction,
 } from "react-router-dom";
-import styled from "@emotion/styled";
 
 import { store } from "../store";
 import { useAppSelector } from "../store/hooks";
@@ -22,6 +21,7 @@ import { loadImatMeetingAttendance } from "../store/imatMeetingAttendance";
 
 import { ErrorModal, ConfirmModal } from "dot11-components";
 import Header from "./Header";
+import WorkingGroupSelector from "./WorkingGroupSelector";
 import Accounts from "../accounts/Accounts";
 import Sessions from "../sessions/Sessions";
 import Meetings from "../meetings/Meetings";
@@ -225,21 +225,14 @@ function Layout() {
 	);
 }
 
-const Content = styled.div`
-	flex: 1;
-	width: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	opacity: 0.5;
-	font-style: italic;
-`;
-
 function Root() {
 	return (
-		<Content>
-			<div>Meetings</div>
-		</Content>
+		<div
+			className={styles.root}
+		>
+			<div className="intro">Working group/Committee</div>
+			<WorkingGroupSelector />
+		</div>
 	);
 }
 
