@@ -1,4 +1,11 @@
-import { Action, EntityId, PayloadAction, createAction, createSelector, Dictionary } from '@reduxjs/toolkit';
+import {
+	Action,
+	EntityId,
+	PayloadAction,
+	createAction,
+	createSelector,
+	Dictionary,
+} from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -6,26 +13,29 @@ import {
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	isObject,
-} from 'dot11-components';
+} from "dot11-components";
 
-import type { RootState, AppThunk } from '.';
+import type { RootState, AppThunk } from ".";
 
 const GroupTypeLabels = {
-	c: 'Committee',
-	wg: 'Working Group',
-	sg: 'Study Group',
-	tg: 'Task Group',
-	sc: 'Standing Committee',
-	ah: 'Ad-hoc Group'
+	c: "Committee",
+	wg: "Working Group",
+	sg: "Study Group",
+	tg: "Task Group",
+	sc: "Standing Committee",
+	ah: "Ad-hoc Group",
 };
 
 export type GroupType = keyof typeof GroupTypeLabels;
 
-export const GroupTypeOptions = Object.entries(GroupTypeLabels).map(([value, label]) => ({value, label} as {value: GroupType; label: string}));
+export const GroupTypeOptions = Object.entries(GroupTypeLabels).map(
+	([value, label]) =>
+		({ value, label } as { value: GroupType; label: string })
+);
 
 export const GroupStatusOptions = [
-	{value: 0, label: 'Inactive'},
-	{value: 1, label: 'Active'}
+	{ value: 0, label: "Inactive" },
+	{ value: 1, label: "Active" },
 ];
 
 export type Group = {
@@ -45,10 +55,13 @@ export type GroupCreate = Omit<Group, "id"> & { id?: string };
 export const fields = {
 	id: {},
 	parent_id: {},
-	name: {label: 'Group'},
-	type: {label: 'Type', dataRenderer: (v: GroupType) => GroupTypeLabels[v]},
-	status: {label: 'Status', dataRenderer: (v: number) => v? 'Active': 'Inactive'},
-	symbol: {label: 'Committee'},
+	name: { label: "Group" },
+	type: { label: "Type", dataRenderer: (v: GroupType) => GroupTypeLabels[v] },
+	status: {
+		label: "Status",
+		dataRenderer: (v: number) => (v ? "Active" : "Inactive"),
+	},
+	symbol: { label: "Committee" },
 };
 
 interface Node {
@@ -56,33 +69,37 @@ interface Node {
 	children: Node[];
 }
 
-function treeSortedIds(ids: EntityId[], entities: Dictionary<Group>, parent_id: EntityId | null = null) {
-
+function treeSortedIds(
+	ids: EntityId[],
+	entities: Dictionary<Group>,
+	parent_id: EntityId | null = null
+) {
 	const groupTypes = Object.keys(GroupTypeLabels);
 
 	function compare(n1: Node, n2: Node) {
 		const g1 = entities[n1.id]!;
 		const g2 = entities[n2.id]!;
-		let cmp = groupTypes.indexOf(g1.type || '') - groupTypes.indexOf(g2.type || '');
-		if (cmp === 0)
-			cmp = g1.name.localeCompare(g2.name);
+		let cmp =
+			groupTypes.indexOf(g1.type || "") -
+			groupTypes.indexOf(g2.type || "");
+		if (cmp === 0) cmp = g1.name.localeCompare(g2.name);
 		return cmp;
 	}
-	
+
 	function findChildren(parent_id: EntityId | null) {
 		const nodes: Node[] = [];
 		for (const id of ids) {
 			if (entities[id]!.parent_id === parent_id) {
 				const children = findChildren(id).sort(compare);
-				nodes.push({id, children});
+				nodes.push({ id, children });
 			}
 		}
 		return nodes;
 	}
 
-	const nodes = parent_id?
-		[{id: parent_id, children: findChildren(parent_id)}]:
-		findChildren(parent_id);
+	const nodes = parent_id
+		? [{ id: parent_id, children: findChildren(parent_id) }]
+		: findChildren(parent_id);
 
 	function concat(nodes: Node[]) {
 		let ids: EntityId[] = [];
@@ -98,13 +115,13 @@ function treeSortedIds(ids: EntityId[], entities: Dictionary<Group>, parent_id: 
 
 type ExtraState = {
 	workingGroupId: string | null;
-}
+};
 
 const initialState: ExtraState = {
 	workingGroupId: null,
-}
+};
 
-const dataSet = 'groups';
+const dataSet = "groups";
 const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
 
 const slice = createAppTableDataSlice({
@@ -118,20 +135,18 @@ const slice = createAppTableDataSlice({
 		},
 	},
 	extraReducers: (builder, dataAdapter) => {
-		builder
-		.addMatcher(
+		builder.addMatcher(
 			(action: Action) => action.type === getSuccess2.toString(),
 			(state, action: PayloadAction<Group[]>) => {
 				dataAdapter.addMany(state, action.payload);
 				state.loading = false;
 				state.valid = true;
-				const {ids, entities} = state;
+				const { ids, entities } = state;
 				const sortedIds = treeSortedIds(ids, entities);
-				if (sortedIds.join() !== ids.join())
-					state.ids = sortedIds;
+				if (sortedIds.join() !== ids.join()) state.ids = sortedIds;
 			}
-		)
-	}
+		);
+	},
 });
 
 export default slice;
@@ -140,24 +155,33 @@ export default slice;
  * Selectors
  */
 export const selectGroupsState = (state: RootState) => state[dataSet];
-export const selectGroupEntities = (state: RootState) => selectGroupsState(state).entities;
-export const selectGroupIds = (state: RootState) => selectGroupsState(state).ids;
+export const selectGroupEntities = (state: RootState) =>
+	selectGroupsState(state).entities;
+export const selectGroupIds = (state: RootState) =>
+	selectGroupsState(state).ids;
 
 export const selectWorkingGroups = (state: RootState) => {
-	const {ids, entities} = selectGroupsState(state);
-	return ids.map(id => entities[id]!).filter(g => ["c", "wg"].includes(g.type!));
-}
-export const selectWorkingGroupByName = (state: RootState, groupName: string) => {
+	const { ids, entities } = selectGroupsState(state);
+	return ids
+		.map((id) => entities[id]!)
+		.filter((g) => ["c", "wg"].includes(g.type!));
+};
+export const selectWorkingGroupByName = (
+	state: RootState,
+	groupName: string
+) => {
 	const groups = selectWorkingGroups(state);
-	return groups.find(g => g.name === groupName);
-}
+	return groups.find((g) => g.name === groupName);
+};
 
-export const selectWorkingGroupId = (state: RootState) => selectGroupsState(state).workingGroupId;
+export const selectWorkingGroupId = (state: RootState) =>
+	selectGroupsState(state).workingGroupId;
 export const selectWorkingGroup = (state: RootState) => {
-	const {workingGroupId, entities} = selectGroupsState(state);
+	const { workingGroupId, entities } = selectGroupsState(state);
 	return (workingGroupId && entities[workingGroupId]) || undefined;
-}
-export const selectWorkingGroupName = (state: RootState) => selectWorkingGroup(state)?.name || '';
+};
+export const selectWorkingGroupName = (state: RootState) =>
+	selectWorkingGroup(state)?.name || "";
 
 export const selectGroups = createSelector(
 	selectGroupIds,
@@ -165,7 +189,7 @@ export const selectGroups = createSelector(
 	selectWorkingGroupId,
 	(ids, entities, workingGroupId) => {
 		const childIds = treeSortedIds(ids, entities, workingGroupId);
-		const groups: Group[] = childIds.map(id => entities[id]!);
+		const groups: Group[] = childIds.map((id) => entities[id]!);
 		return groups;
 	}
 );
@@ -180,14 +204,13 @@ export const selectGroupParents = createSelector(
 			if (group) {
 				groups.unshift(group);
 				workingGroupId = group.parent_id;
-			}
-			else {
+			} else {
 				workingGroupId = null;
 			}
 		}
 		return groups;
 	}
-)
+);
 
 export const groupsSelectors = getAppTableDataSelectors(selectGroupsState);
 
@@ -202,22 +225,23 @@ const {
 	setSelected,
 	setFilter,
 	clearFilter,
-	setWorkingGroupId: setWorkingGroupIdLocal
+	setWorkingGroupId: setWorkingGroupIdLocal,
 } = slice.actions;
 
-export {setSelected, setFilter, clearFilter};
+export { setSelected, setFilter, clearFilter };
 
-const baseUrl = '/api/groups';
+const baseUrl = "/api/groups";
 
 function validGroup(group: any): group is Group {
-	const isGood = isObject(group) &&
-		group.id && typeof group.id === 'string' &&
-		(group.parent_id === null || typeof group.parent_id === 'string') &&
-		typeof group.name === 'string' &&
-		(group.symbol === null || typeof group.symbol === 'string') &&
-		(group.color === null || typeof group.color === 'string');
-	if (!isGood)
-		console.log(group)
+	const isGood =
+		isObject(group) &&
+		group.id &&
+		typeof group.id === "string" &&
+		(group.parent_id === null || typeof group.parent_id === "string") &&
+		typeof group.name === "string" &&
+		(group.symbol === null || typeof group.symbol === "string") &&
+		(group.color === null || typeof group.color === "string");
+	if (!isGood) console.log(group);
 	return isGood;
 }
 
@@ -225,11 +249,13 @@ function validResponse(response: any): response is Group[] {
 	return Array.isArray(response) && response.every(validGroup);
 }
 
-export const loadGroups = (groupName?: string): AppThunk => 
+export const loadGroups =
+	(groupName?: string): AppThunk =>
 	(dispatch) => {
 		dispatch(getPending());
-		const url = groupName? `${baseUrl}/${groupName}`: baseUrl;
-		return fetcher.get(url, groupName? undefined: {type: ['c', 'wg']})
+		const url = groupName ? `${baseUrl}/${groupName}` : baseUrl;
+		return fetcher
+			.get(url, groupName ? undefined : { type: ["c", "wg"] })
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
@@ -237,19 +263,18 @@ export const loadGroups = (groupName?: string): AppThunk =>
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError('Unable to get groups', error));
+				dispatch(setError("Unable to get groups", error));
 			});
-	}
+	};
 
-export const initGroups = (): AppThunk =>
-	async (dispatch, getState) => {
-		dispatch(loadGroups());
-		const workingGroup = selectWorkingGroup(getState());
-		if (workingGroup)
-			dispatch(loadGroups(workingGroup.name));
-	}
+export const initGroups = (): AppThunk => async (dispatch, getState) => {
+	dispatch(loadGroups());
+	const workingGroup = selectWorkingGroup(getState());
+	if (workingGroup) dispatch(loadGroups(workingGroup.name));
+};
 
-export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group | undefined> =>
+export const setWorkingGroupId =
+	(workingGroupId: string | null): AppThunk<Group | undefined> =>
 	async (dispatch, getState) => {
 		const state = getState();
 		const currentWorkingGroupId = selectWorkingGroupId(state);
@@ -261,16 +286,17 @@ export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group
 			}
 		}
 		return selectWorkingGroup(state);
-	}
+	};
 
-export const setWorkingGroup = (name: string | null): AppThunk =>
+export const setWorkingGroup =
+	(name: string | null): AppThunk =>
 	async (dispatch, getState) => {
 		const state = getState();
 		const groups = selectGroups(state);
-		const group = groups.find(g => g.name === name);
+		const group = groups.find((g) => g.name === name);
 		if (group) {
 			const currentWorkingGroupId = selectWorkingGroupId(state);
 			if (group.id !== currentWorkingGroupId)
 				dispatch(setWorkingGroupIdLocal(group.id));
 		}
-	}
+	};

@@ -1,6 +1,6 @@
-import { fetcher, setError } from 'dot11-components';
-import { AppThunk } from '.';
-import { selectWorkingGroupName } from './groups';
+import { fetcher, setError } from "dot11-components";
+import { AppThunk } from ".";
+import { selectWorkingGroupName } from "./groups";
 
 export interface Destination {
 	ToAddresses?: string[];
@@ -29,14 +29,14 @@ export interface Email {
 	ReplyToAddresses?: string[];
 }
 
-export const sendEmail = (email: Email): AppThunk =>
+export const sendEmail =
+	(email: Email): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/email/send`;
 		try {
 			await fetcher.post(url, email);
+		} catch (error) {
+			dispatch(setError("Unable to send email: ", error));
 		}
-		catch (error) {
-			dispatch(setError('Unable to send email: ', error));
-		}
-	}
+	};

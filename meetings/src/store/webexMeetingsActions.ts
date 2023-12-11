@@ -1,12 +1,9 @@
-import {
-	fetcher,
-	setError
-} from 'dot11-components';
+import { fetcher, setError } from "dot11-components";
 
-import slice from './webexMeetingsSlice';
-import type { AppThunk } from '.';
-import { selectWorkingGroupName } from './groups';
-import { WebexMeeting, WebexMeetingParams } from './webexMeetingsSelectors';
+import slice from "./webexMeetingsSlice";
+import type { AppThunk } from ".";
+import { selectWorkingGroupName } from "./groups";
+import { WebexMeeting, WebexMeetingParams } from "./webexMeetingsSelectors";
 
 export const webexMeetingsActions = slice.actions;
 
@@ -23,9 +20,17 @@ const {
 	setProperty,
 } = slice.actions;
 
-export {getSuccess as setWebexMeetings, upsertMany as upsertWebexMeetings, setSelected, setProperty as setUiProperty};
+export {
+	getSuccess as setWebexMeetings,
+	upsertMany as upsertWebexMeetings,
+	setSelected,
+	setProperty as setUiProperty,
+};
 
-function validateResponse(method: string, response: any): asserts response is WebexMeeting[] {
+function validateResponse(
+	method: string,
+	response: any
+): asserts response is WebexMeeting[] {
 	if (!Array.isArray(response))
 		throw new TypeError(`Unexpected response to ${method}`);
 }
@@ -35,9 +40,10 @@ export type LoadWebexMeetingsConstrains = {
 	toDate?: string;
 	timezone?: string;
 	sessionId?: number;
-}
+};
 
-export const loadWebexMeetings = (constraints: LoadWebexMeetingsConstrains): AppThunk => 
+export const loadWebexMeetings =
+	(constraints: LoadWebexMeetingsConstrains): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/webex/meetings`;
@@ -45,73 +51,77 @@ export const loadWebexMeetings = (constraints: LoadWebexMeetingsConstrains): App
 		let response: any;
 		try {
 			response = await fetcher.get(url, constraints);
-			validateResponse('GET', response);
-		}
-		catch(error) {
+			validateResponse("GET", response);
+		} catch (error) {
 			dispatch(getFailure());
-			dispatch(setError('Unable to get list of meetings', error));
+			dispatch(setError("Unable to get list of meetings", error));
 			return;
 		}
 		dispatch(getSuccess(response));
-	}
+	};
 
-export const clearWebexMeetings = (): AppThunk =>
-	(dispatch) => {
-		dispatch(removeAll());
-		return Promise.resolve();
-	}
+export const clearWebexMeetings = (): AppThunk => (dispatch) => {
+	dispatch(removeAll());
+	return Promise.resolve();
+};
 
-export const addWebexMeeting = (accountId: number, webexMeeting: Omit<WebexMeetingParams, "accountId" | "id">): AppThunk<string | null> =>
+export const addWebexMeeting =
+	(
+		accountId: number,
+		webexMeeting: Omit<WebexMeetingParams, "accountId" | "id">
+	): AppThunk<string | null> =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/webex/meetings`;
-		const meetings = [{accountId, ...webexMeeting}];
+		const meetings = [{ accountId, ...webexMeeting }];
 		let response: any;
 		try {
 			response = await fetcher.post(url, meetings);
-			validateResponse('POST', response);
-		}
-		catch (error) {
-			dispatch(setError('Unable to add webex meeting', error));
+			validateResponse("POST", response);
+		} catch (error) {
+			dispatch(setError("Unable to add webex meeting", error));
 			return null;
 		}
 		dispatch(addMany(response));
 		return response[0].id;
-	}
+	};
 
 export type WebexMeetingUpdate = Partial<WebexMeetingParams> & {
 	accountId: number;
 	id: string;
-}
+};
 
-export const updateWebexMeetings = (webexMeetingsIn: WebexMeetingUpdate[]): AppThunk =>
+export const updateWebexMeetings =
+	(webexMeetingsIn: WebexMeetingUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/webex/meetings`;
 		let response: any;
 		try {
 			response = await fetcher.patch(url, webexMeetingsIn);
-			validateResponse('PATCH', response);
-		}
-		catch (error) {
-			dispatch(setError('Unable to add webex meeting', error));
+			validateResponse("PATCH", response);
+		} catch (error) {
+			dispatch(setError("Unable to add webex meeting", error));
 			return;
 		}
 		dispatch(setMany(response));
-	}
+	};
 
-export const deleteWebexMeetings = (webexMeetings: {accountId: number; id: string}[]): AppThunk =>
+export const deleteWebexMeetings =
+	(webexMeetings: { accountId: number; id: string }[]): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/webex/meetings`;
-		const meetings = webexMeetings.map(({accountId, id}) => ({accountId, id}));
-		const ids = meetings.map(m => m.id);
+		const meetings = webexMeetings.map(({ accountId, id }) => ({
+			accountId,
+			id,
+		}));
+		const ids = meetings.map((m) => m.id);
 		try {
 			await fetcher.delete(url, meetings);
-		}
-		catch(error) {
+		} catch (error) {
 			dispatch(setError(`Unable to delete webex meetings ${ids}`, error));
 			return;
 		}
 		dispatch(removeMany(ids));
-	}
+	};

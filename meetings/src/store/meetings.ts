@@ -1,2 +1,2 @@
-export * from './meetingsSelectors';
-export * from './meetingsActions';
+export * from "./meetingsSelectors";
+export * from "./meetingsActions";

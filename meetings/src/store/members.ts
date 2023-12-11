@@ -1,7 +1,11 @@
-import { createSlice, createEntityAdapter, PayloadAction } from '@reduxjs/toolkit';
-import { fetcher, isObject, setError } from 'dot11-components';
+import {
+	createSlice,
+	createEntityAdapter,
+	PayloadAction,
+} from "@reduxjs/toolkit";
+import { fetcher, isObject, setError } from "dot11-components";
 
-import type { RootState, AppThunk } from '.';
+import type { RootState, AppThunk } from ".";
 
 export interface Member {
 	SAPIN: number;
@@ -9,29 +13,29 @@ export interface Member {
 	Email: string;
 	//Permissions: Array<string>;
 	Status: string;
-};
+}
 
 type ExtraState = {
 	valid: boolean;
 	loading: boolean;
 	groupName: string | null;
-}
+};
 
 const selectId = (user: Member) => user.SAPIN;
-const dataAdapter = createEntityAdapter<Member>({selectId});
+const dataAdapter = createEntityAdapter<Member>({ selectId });
 const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
-	groupName: null
+	groupName: null,
 });
 
-const dataSet = 'members';
+const dataSet = "members";
 const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		getPending(state, action: PayloadAction<{groupName: string | null}>) {
-			const {groupName} = action.payload;
+		getPending(state, action: PayloadAction<{ groupName: string | null }>) {
+			const { groupName } = action.payload;
 			state.loading = true;
 			if (state.groupName !== groupName) {
 				state.groupName = action.payload.groupName;
@@ -39,7 +43,7 @@ const slice = createSlice({
 				dataAdapter.removeAll(state);
 			}
 		},
-  		getSuccess(state, action) {
+		getSuccess(state, action) {
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
@@ -59,18 +63,20 @@ export default slice;
  * Selectors
  */
 export const selectMembersState = (state: RootState) => state[dataSet];
-export const selectMemberEntities = (state: RootState) => state[dataSet].entities;
-export const selectMember = (state: RootState, sapin: number) => selectMembersState(state).entities[sapin];
+export const selectMemberEntities = (state: RootState) =>
+	state[dataSet].entities;
+export const selectMember = (state: RootState, sapin: number) =>
+	selectMembersState(state).entities[sapin];
 
 export const selectMemberName = (state: RootState, sapin: number) => {
 	const m = selectMember(state, sapin);
-	return m? m.Name: 'Unknown';
-}
+	return m ? m.Name : "Unknown";
+};
 
- /*
-  * Actions
-  */
-const {getPending, getSuccess, getFailure} = slice.actions;
+/*
+ * Actions
+ */
+const { getPending, getSuccess, getFailure } = slice.actions;
 
 function validUser(user: any): user is Member {
 	return isObject(user);
@@ -80,21 +86,20 @@ function validUsers(users: any): users is Member[] {
 	return Array.isArray(users) && users.every(validUser);
 }
 
-export const loadMembers = (groupName: string): AppThunk => 
+export const loadMembers =
+	(groupName: string): AppThunk =>
 	async (dispatch) => {
 		const url = `/api/${groupName}/users`;
-		dispatch(getPending({groupName}));
+		dispatch(getPending({ groupName }));
 		let response: any;
 		try {
 			response = await fetcher.get(url);
 			if (!validUsers(response))
 				throw new TypeError("Unexpected response");
-		}
-		catch(error) {
+		} catch (error) {
 			dispatch(getFailure());
-			dispatch(setError('Unable to get users list', error));
+			dispatch(setError("Unable to get users list", error));
 			return;
 		}
 		dispatch(getSuccess(response));
-	}
-
+	};

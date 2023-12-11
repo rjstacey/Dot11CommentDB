@@ -1,5 +1,11 @@
-import { createSelector, EntityId, Dictionary, createAction, PayloadAction } from '@reduxjs/toolkit';
-import { DateTime } from 'luxon';
+import {
+	createSelector,
+	EntityId,
+	Dictionary,
+	createAction,
+	PayloadAction,
+} from "@reduxjs/toolkit";
+import { DateTime } from "luxon";
 
 import {
 	createAppTableDataSlice,
@@ -8,25 +14,25 @@ import {
 	setError,
 	displayDate,
 	getAppTableDataSelectors,
-	isObject
-} from 'dot11-components';
+	isObject,
+} from "dot11-components";
 
-import type { RootState, AppThunk } from '.';
-import { selectCurrentSessionId } from './current';
-import { selectGroupEntities, selectWorkingGroupName } from './groups';
+import type { RootState, AppThunk } from ".";
+import { selectCurrentSessionId } from "./current";
+import { selectGroupEntities, selectWorkingGroupName } from "./groups";
 
 export type Room = {
 	id: number;
 	name: string;
 	description: string;
-}
+};
 
 export type Timeslot = {
 	id: number;
 	name: string;
 	startTime: string;
 	endTime: string;
-}
+};
 
 export type DayCredit = { [slotName: string]: string };
 export type SessionCredits = DayCredit[];
@@ -51,52 +57,70 @@ export interface Session {
 export type SessionAdd = Omit<Session, "id" | "attendees">;
 
 export const SessionTypeLabels = {
-	p: 'Plenary',
-	i: 'Interim',
-	o: 'Other',
-	g: 'General'
+	p: "Plenary",
+	i: "Interim",
+	o: "Other",
+	g: "General",
 } as const;
 
 export type SessionType = keyof typeof SessionTypeLabels;
 
-export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(([value, label]) => ({value, label} as {value: SessionType; label: string}));
+export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
+	([value, label]) =>
+		({ value, label } as { value: SessionType; label: string })
+);
 
-export const displaySessionType = (type: SessionType) => SessionTypeLabels[type] || 'Unknown';
+export const displaySessionType = (type: SessionType) =>
+	SessionTypeLabels[type] || "Unknown";
 
 export const fields = {
-	id: {label: 'ID', isId: true, type: FieldType.NUMERIC},
-	number: {label: 'Session number', type: FieldType.NUMERIC},
-	name: {label: 'Session name'},
-	type: {label: 'Session type', dataRenderer: displaySessionType, options: SessionTypeOptions},
-	groupId: {label: 'Organizing group ID'},
-	groupName: {label: 'Organizing group'},
-	imatMeetingId: {label: 'IMAT meeting'/*, dataRenderer: displayImatMeetingId*/},
-	startDate: {label: 'Start', dataRenderer: displayDate, type: FieldType.DATE},
-	endDate: {label: 'End', dataRenderer: displayDate, type: FieldType.DATE}, 
-	timezone: {label: 'Timezone'},
-	attendees: {label: 'Attendees'}
+	id: { label: "ID", isId: true, type: FieldType.NUMERIC },
+	number: { label: "Session number", type: FieldType.NUMERIC },
+	name: { label: "Session name" },
+	type: {
+		label: "Session type",
+		dataRenderer: displaySessionType,
+		options: SessionTypeOptions,
+	},
+	groupId: { label: "Organizing group ID" },
+	groupName: { label: "Organizing group" },
+	imatMeetingId: {
+		label: "IMAT meeting" /*, dataRenderer: displayImatMeetingId*/,
+	},
+	startDate: {
+		label: "Start",
+		dataRenderer: displayDate,
+		type: FieldType.DATE,
+	},
+	endDate: { label: "End", dataRenderer: displayDate, type: FieldType.DATE },
+	timezone: { label: "Timezone" },
+	attendees: { label: "Attendees" },
 };
 
 /*
  * Selectors
  */
 export const selectSessionsState = (state: RootState) => state[dataSet];
-export const selectSessionIds = (state: RootState) => selectSessionsState(state).ids;
-export const selectSessionEntities = (state: RootState) => selectSessionsState(state).entities;
-const selectSessionsGroupName = (state: RootState) => selectSessionsState(state).groupName;
-export const selectSessionsSelected = (state: RootState) => selectSessionsState(state).selected;
+export const selectSessionIds = (state: RootState) =>
+	selectSessionsState(state).ids;
+export const selectSessionEntities = (state: RootState) =>
+	selectSessionsState(state).entities;
+const selectSessionsGroupName = (state: RootState) =>
+	selectSessionsState(state).groupName;
+export const selectSessionsSelected = (state: RootState) =>
+	selectSessionsState(state).selected;
 
 export const selectCurrentSession = (state: RootState) => {
 	const id = selectCurrentSessionId(state);
 	const entities = selectSessionEntities(state);
 	return entities[id!];
-}
+};
 
 export const selectSessions = createSelector(
 	selectSessionIds,
 	selectSessionEntities,
-	(ids, entities) => ids.map(id => entities[id]!)
-)
+	(ids, entities) => ids.map((id) => entities[id]!)
+);
 
 export const selectCurrentSessionDates = createSelector(
 	selectCurrentSession,
@@ -104,12 +128,12 @@ export const selectCurrentSessionDates = createSelector(
 		let dates: string[] = [];
 		if (session) {
 			const start = DateTime.fromISO(session.startDate);
-			const end = DateTime.fromISO(session.endDate).plus({days: 1});
-			const nDays = end.diff(start, 'days').days;
+			const end = DateTime.fromISO(session.endDate).plus({ days: 1 });
+			const nDays = end.diff(start, "days").days;
 			if (nDays > 0) {
 				dates = new Array(nDays)
 					.fill(null)
-					.map((d, i) => start.plus({days: i}).toISODate()!);
+					.map((d, i) => start.plus({ days: i }).toISODate()!);
 			}
 		}
 		return dates;
@@ -118,7 +142,7 @@ export const selectCurrentSessionDates = createSelector(
 
 type SyncedSession = Session & {
 	groupName: string;
-}
+};
 
 export const selectSyncedSessionEntities = createSelector(
 	selectSessionEntities,
@@ -126,28 +150,33 @@ export const selectSyncedSessionEntities = createSelector(
 	(sessions, groupEntities) => {
 		const entities: Dictionary<SyncedSession> = {};
 		for (const [id, session] of Object.entries(sessions)) {
-			const group = session!.groupId? groupEntities[session!.groupId]: undefined;
+			const group = session!.groupId
+				? groupEntities[session!.groupId]
+				: undefined;
 			entities[id] = {
 				...session!,
-				groupName: group? group.name: 'Unknown',
-			}
+				groupName: group ? group.name : "Unknown",
+			};
 		}
 		return entities;
 	}
 );
 
-export const sessionsSelectors = getAppTableDataSelectors(selectSessionsState, {selectEntities: selectSyncedSessionEntities});
-
+export const sessionsSelectors = getAppTableDataSelectors(selectSessionsState, {
+	selectEntities: selectSyncedSessionEntities,
+});
 
 /*
  * Slice
  */
 type ExtraState = {
 	groupName: string | null;
-}
-const initialState: ExtraState = { groupName: null }
-const sortComparer = (a: Session, b: Session) => DateTime.fromISO(b.startDate).toMillis() - DateTime.fromISO(a.startDate).toMillis();
-const dataSet = 'sessions';
+};
+const initialState: ExtraState = { groupName: null };
+const sortComparer = (a: Session, b: Session) =>
+	DateTime.fromISO(b.startDate).toMillis() -
+	DateTime.fromISO(a.startDate).toMillis();
+const dataSet = "sessions";
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	sortComparer,
@@ -165,11 +194,10 @@ const slice = createAppTableDataSlice({
 				state.groupName = action.payload;
 			}
 		);
-	} 
+	},
 });
 
 export default slice;
-
 
 /*
  * Actions
@@ -189,32 +217,35 @@ const {
 	setPanelIsSplit,
 } = slice.actions;
 
-export {setSelected, setUiProperties, setPanelIsSplit}
+export { setSelected, setUiProperties, setPanelIsSplit };
 
 const setGroupName = createAction<string>(dataSet + "/setGroupName");
 
 function validSession(session: any): session is Session {
-	return isObject(session) &&
-		typeof session.id === 'number' &&
-		(session.number === null || typeof session.number === 'number') &&
-		typeof session.name === 'string' &&
-		['p', 'i', 'o', 'g'].includes(session.type) &&
-		(session.groupId === null || typeof session.groupId === 'string') &&
-		(session.imatMeetingId === null || typeof session.imatMeetingId === 'number') &&
+	return (
+		isObject(session) &&
+		typeof session.id === "number" &&
+		(session.number === null || typeof session.number === "number") &&
+		typeof session.name === "string" &&
+		["p", "i", "o", "g"].includes(session.type) &&
+		(session.groupId === null || typeof session.groupId === "string") &&
+		(session.imatMeetingId === null ||
+			typeof session.imatMeetingId === "number") &&
 		/\d{4}-\d{2}-\d{2}/.test(session.startDate) &&
 		/\d{4}-\d{2}-\d{2}/.test(session.endDate) &&
-		typeof session.timezone === 'string';
+		typeof session.timezone === "string"
+	);
 }
 
 function validSessions(sessions: any): sessions is Session[] {
 	return Array.isArray(sessions) && sessions.every(validSession);
 }
 
-export const loadSessions = (groupName: string): AppThunk =>
+export const loadSessions =
+	(groupName: string): AppThunk =>
 	async (dispatch, getState) => {
 		const state = getState();
-		if (selectSessionsState(state).loading)
-			return;
+		if (selectSessionsState(state).loading) return;
 		dispatch(getPending());
 		dispatch(setGroupName(groupName));
 		const url = `/api/${groupName}/sessions`;
@@ -222,26 +253,24 @@ export const loadSessions = (groupName: string): AppThunk =>
 		try {
 			response = await fetcher.get(url);
 			if (!validSessions(response))
-				throw new TypeError('Unexpected response to GET ' + url);
-		}
-		catch(error) {
+				throw new TypeError("Unexpected response to GET " + url);
+		} catch (error) {
 			dispatch(getFailure());
-			dispatch(setError('Unable to get sessions', error));
+			dispatch(setError("Unable to get sessions", error));
 			return;
 		}
 		dispatch(getSuccess(response));
-	}
+	};
 
-export const refreshSessions = (): AppThunk =>
-	async (dispatch, getState) => {
-		const groupName = selectSessionsGroupName(getState());
-		if (groupName)
-			dispatch(loadSessions(groupName));
-	}
+export const refreshSessions = (): AppThunk => async (dispatch, getState) => {
+	const groupName = selectSessionsGroupName(getState());
+	if (groupName) dispatch(loadSessions(groupName));
+};
 
-export const updateSession = (id: EntityId, changes: Partial<Session>): AppThunk =>
+export const updateSession =
+	(id: EntityId, changes: Partial<Session>): AppThunk =>
 	async (dispatch, getState) => {
-		const update = {id, changes};
+		const update = { id, changes };
 		dispatch(updateOne(update));
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/sessions`;
@@ -249,16 +278,16 @@ export const updateSession = (id: EntityId, changes: Partial<Session>): AppThunk
 		try {
 			response = await fetcher.patch(url, update);
 			if (!validSession(response))
-				throw new TypeError('Unexpected response to PATCH ' + url);
-		}
-		catch(error) {
+				throw new TypeError("Unexpected response to PATCH " + url);
+		} catch (error) {
 			dispatch(setError(`Unable to update session`, error));
 			return;
 		}
 		dispatch(setOne(response));
-	}
+	};
 
-export const addSession = (session: SessionAdd): AppThunk<EntityId | undefined> =>
+export const addSession =
+	(session: SessionAdd): AppThunk<EntityId | undefined> =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/sessions`;
@@ -266,35 +295,34 @@ export const addSession = (session: SessionAdd): AppThunk<EntityId | undefined> 
 		try {
 			response = await fetcher.post(url, session);
 			if (!validSession(response))
-				throw new TypeError('Unexpected response to POST ' + url);
-		}
-		catch(error) {
-			dispatch(setError('Unable to add session', error));
+				throw new TypeError("Unexpected response to POST " + url);
+		} catch (error) {
+			dispatch(setError("Unable to add session", error));
 			return;
 		}
 		dispatch(addOne(response));
 		return response.id;
-	}
+	};
 
-export const deleteSessions = (ids: EntityId[]): AppThunk =>
+export const deleteSessions =
+	(ids: EntityId[]): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/sessions`;
 		try {
 			await fetcher.delete(url, ids);
-		}
-		catch(error) {
+		} catch (error) {
 			dispatch(setError(`Unable to delete meetings ${ids}`, error));
 		}
 		dispatch(removeMany(ids));
-	}
-
+	};
 
 /*
  * Functions to convert date/slot/room to/from id
  */
-export const toSlotId = (date: string, slot: Timeslot, room: Room) => `${date}/${slot.id}/${room.id}`;
+export const toSlotId = (date: string, slot: Timeslot, room: Room) =>
+	`${date}/${slot.id}/${room.id}`;
 export const fromSlotId = (id: string) => {
-	const p = id.split('/');
+	const p = id.split("/");
 	return [p[0], parseInt(p[1]), parseInt(p[2])] as const;
-}
+};

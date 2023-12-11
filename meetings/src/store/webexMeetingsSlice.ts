@@ -1,9 +1,6 @@
-import { createAppTableDataSlice } from 'dot11-components';
+import { createAppTableDataSlice } from "dot11-components";
 
-import {
-	dataSet,
-	fields,
-} from './webexMeetingsSelectors';
+import { dataSet, fields } from "./webexMeetingsSelectors";
 
 const slice = createAppTableDataSlice({
 	name: dataSet,
@@ -11,12 +8,13 @@ const slice = createAppTableDataSlice({
 	initialState: {},
 	reducers: {},
 	extraReducers(builder, dataAdapter) {
-		builder
-			.addMatcher(
-				(action) => action.type === dataSet + '/getPending',
-				(state, action) => {dataAdapter.setAll(state, [])}
-			)
-	}
+		builder.addMatcher(
+			(action) => action.type === dataSet + "/getPending",
+			(state, action) => {
+				dataAdapter.setAll(state, []);
+			}
+		);
+	},
 });
 
 export default slice;
