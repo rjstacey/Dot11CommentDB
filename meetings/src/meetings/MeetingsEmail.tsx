@@ -4,11 +4,13 @@ import { DateTime } from 'luxon';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
 import { EntityId, Dictionary } from "@reduxjs/toolkit";
+import { useParams } from 'react-router-dom';
+
 import { Form, Field, Checkbox } from 'dot11-components';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
 
 import type { RootState } from '../store';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectUser, type User } from '../store/user';
 import { selectSyncedMeetingEntities, selectMeetingIds, type SyncedMeeting } from '../store/meetings';
 import { selectOfficersState, type Officer } from '../store/officers';
@@ -44,7 +46,7 @@ function genTable(meetings: SyncedMeeting[]) {
 	const table = `
 		<table role="presentation" cellspacing="0" cellpadding="5px" border="1">
 			${header}
-			${meetings.map(m => row(m.webexAccountName, m.webexMeeting!, m.timezone)).join('')}
+			${meetings.map(m => m.webexMeeting? row(m.webexAccountName, m.webexMeeting, m.timezone): "<tr><td colspan='4'>Error</td></tr>").join('')}
 		</table>`;
 
 	return table;
@@ -171,6 +173,7 @@ function MeetingEmail({
 	close: () => void;
 }) {
 	const dispatch = useAppDispatch();
+	const {groupName} = useParams();
 	const groups = useAppSelector(selectGroups);
 	const nRows = Math.round(groups.length / 3) + 1;
 	const [selectedGroups, setSelectedGroups] = React.useState<string[]>([]);
@@ -189,7 +192,7 @@ function MeetingEmail({
 	async function send() {
 		setBusy(true);
 		await Promise.all(Object.values(emails).map(email => {
-			return dispatch(sendEmail(email));
+			return dispatch(sendEmail(groupName!, email));
 		}));
 		setBusy(false);
 		close();

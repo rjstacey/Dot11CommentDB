@@ -1,6 +1,5 @@
 import { fetcher, setError } from "dot11-components";
 import { AppThunk } from ".";
-import { selectWorkingGroupName } from "./groups";
 
 export interface Destination {
 	ToAddresses?: string[];
@@ -30,9 +29,8 @@ export interface Email {
 }
 
 export const sendEmail =
-	(email: Email): AppThunk =>
+	(groupName: string, email: Email): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
 		const url = `/api/${groupName}/email/send`;
 		try {
 			await fetcher.post(url, email);

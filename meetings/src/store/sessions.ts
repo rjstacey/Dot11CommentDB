@@ -19,7 +19,7 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import { selectCurrentSessionId } from "./current";
-import { selectGroupEntities, selectWorkingGroupName } from "./groups";
+import { selectGroupEntities } from "./groups";
 
 export type Room = {
 	id: number;
@@ -185,7 +185,7 @@ const slice = createAppTableDataSlice({
 	reducers: {},
 	extraReducers(builder, dataAdapter) {
 		builder.addMatcher(
-			(action) => action.type === setGroupName.toString(),
+			(action) => action.type === getPending.toString(),
 			(state, action: PayloadAction<string>) => {
 				const groupName = action.payload;
 				if (state.groupName !== groupName) {
@@ -205,7 +205,6 @@ export default slice;
 export const sessionsActions = slice.actions;
 
 const {
-	getPending,
 	getSuccess,
 	getFailure,
 	updateOne,
@@ -219,7 +218,8 @@ const {
 
 export { setSelected, setUiProperties, setPanelIsSplit };
 
-const setGroupName = createAction<string>(dataSet + "/setGroupName");
+// Override the default getPending()
+const getPending = createAction<string>(dataSet + "/getPending");
 
 function validSession(session: any): session is Session {
 	return (
@@ -246,8 +246,7 @@ export const loadSessions =
 	async (dispatch, getState) => {
 		const state = getState();
 		if (selectSessionsState(state).loading) return;
-		dispatch(getPending());
-		dispatch(setGroupName(groupName));
+		dispatch(getPending(groupName));
 		const url = `/api/${groupName}/sessions`;
 		let response: any;
 		try {
@@ -272,7 +271,7 @@ export const updateSession =
 	async (dispatch, getState) => {
 		const update = { id, changes };
 		dispatch(updateOne(update));
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectSessionsGroupName(getState());
 		const url = `/api/${groupName}/sessions`;
 		let response: any;
 		try {
@@ -289,7 +288,7 @@ export const updateSession =
 export const addSession =
 	(session: SessionAdd): AppThunk<EntityId | undefined> =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectSessionsGroupName(getState());
 		const url = `/api/${groupName}/sessions`;
 		let response: any;
 		try {
@@ -307,7 +306,7 @@ export const addSession =
 export const deleteSessions =
 	(ids: EntityId[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectSessionsGroupName(getState());
 		const url = `/api/${groupName}/sessions`;
 		try {
 			await fetcher.delete(url, ids);
