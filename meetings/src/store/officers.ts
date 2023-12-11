@@ -83,7 +83,7 @@ const {
 } = slice.actions;
 
 export const loadOfficers = (groupName: string): AppThunk => 
-	(dispatch, getState) => {
+	(dispatch) => {
 		const url = `/api/${groupName}/officers`;
 		dispatch(getPending({groupName}));
 		return fetcher.get(url)

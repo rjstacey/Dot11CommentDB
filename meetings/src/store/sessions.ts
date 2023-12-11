@@ -1,4 +1,4 @@
-import { createSelector, EntityId, Dictionary } from '@reduxjs/toolkit';
+import { createSelector, EntityId, Dictionary, createAction, PayloadAction } from '@reduxjs/toolkit';
 import { DateTime } from 'luxon';
 
 import {
@@ -83,7 +83,7 @@ export const fields = {
 export const selectSessionsState = (state: RootState) => state[dataSet];
 export const selectSessionIds = (state: RootState) => selectSessionsState(state).ids;
 export const selectSessionEntities = (state: RootState) => selectSessionsState(state).entities;
-
+const selectSessionsGroupName = (state: RootState) => selectSessionsState(state).groupName;
 export const selectSessionsSelected = (state: RootState) => selectSessionsState(state).selected;
 
 export const selectCurrentSession = (state: RootState) => {
@@ -142,14 +142,30 @@ export const sessionsSelectors = getAppTableDataSelectors(selectSessionsState, {
 /*
  * Slice
  */
+type ExtraState = {
+	groupName: string | null;
+}
+const initialState: ExtraState = { groupName: null }
 const sortComparer = (a: Session, b: Session) => DateTime.fromISO(b.startDate).toMillis() - DateTime.fromISO(a.startDate).toMillis();
 const dataSet = 'sessions';
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	sortComparer,
 	fields,
-	initialState: {},
-	reducers: {}
+	initialState,
+	reducers: {},
+	extraReducers(builder, dataAdapter) {
+		builder.addMatcher(
+			(action) => action.type === setGroupName.toString(),
+			(state, action: PayloadAction<string>) => {
+				const groupName = action.payload;
+				if (state.groupName !== groupName) {
+					dataAdapter.removeAll(state);
+				}
+				state.groupName = action.payload;
+			}
+		);
+	} 
 });
 
 export default slice;
@@ -175,6 +191,8 @@ const {
 
 export {setSelected, setUiProperties, setPanelIsSplit}
 
+const setGroupName = createAction<string>(dataSet + "/setGroupName");
+
 function validSession(session: any): session is Session {
 	return isObject(session) &&
 		typeof session.id === 'number' &&
@@ -192,13 +210,13 @@ function validSessions(sessions: any): sessions is Session[] {
 	return Array.isArray(sessions) && sessions.every(validSession);
 }
 
-export const loadSessions = (): AppThunk =>
+export const loadSessions = (groupName: string): AppThunk =>
 	async (dispatch, getState) => {
 		const state = getState();
 		if (selectSessionsState(state).loading)
 			return;
 		dispatch(getPending());
-		const groupName = selectWorkingGroupName(state);
+		dispatch(setGroupName(groupName));
 		const url = `/api/${groupName}/sessions`;
 		let response: any;
 		try {
@@ -212,6 +230,13 @@ export const loadSessions = (): AppThunk =>
 			return;
 		}
 		dispatch(getSuccess(response));
+	}
+
+export const refreshSessions = (): AppThunk =>
+	async (dispatch, getState) => {
+		const groupName = selectSessionsGroupName(getState());
+		if (groupName)
+			dispatch(loadSessions(groupName));
 	}
 
 export const updateSession = (id: EntityId, changes: Partial<Session>): AppThunk =>

@@ -14,7 +14,10 @@ import { AccessLevel } from "../store/user";
 import { selectWorkingGroupByName, loadGroups } from "../store/groups";
 import { loadCalendarAccounts } from "../store/calendarAccounts";
 import { loadWebexAccounts, selectWebexAccountsGroupName } from "../store/webexAccounts";
+import { loadMembers } from "../store/members";
+import { loadOfficers } from "../store/officers";
 import { loadTimeZones } from "../store/timeZones";
+import { loadSessions } from "../store/sessions";
 import { loadBreakouts, clearBreakouts } from "../store/imatBreakouts";
 import { loadImatMeetings } from "../store/imatMeetings";
 import { loadImatMeetingAttendance } from "../store/imatMeetingAttendance";
@@ -50,9 +53,24 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 		const group = selectWorkingGroupByName(getState(), groupName);
 		const access = group?.permissions.meetings || AccessLevel.none;
 		if (access >= AccessLevel.ro) {
-			dispatch(loadGroups(params.groupName!));
-			dispatch(loadCalendarAccounts(params.groupName!));
-			dispatch(loadWebexAccounts(params.groupName!));
+			dispatch(loadGroups(groupName));
+			dispatch(loadCalendarAccounts(groupName));
+			dispatch(loadWebexAccounts(groupName));
+			dispatch(loadMembers(groupName));
+			dispatch(loadOfficers(groupName));
+		}
+	}
+	return null;
+};
+
+const sessionsLoader: LoaderFunction = async ({ params }) => {
+	const { dispatch, getState } = store;
+	const { groupName } = params;
+	if (groupName) {
+		const group = selectWorkingGroupByName(getState(), groupName);
+		const access = group?.permissions.meetings || AccessLevel.none;
+		if (access >= AccessLevel.ro) {
+			dispatch(loadSessions(groupName));
 		}
 	}
 	return null;
@@ -116,6 +134,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		menuLabel: "Sessions",
 		path: "sessions",
 		element: <Sessions />,
+		loader: sessionsLoader,
 		minAccess: AccessLevel.ro,
 	},
 	{

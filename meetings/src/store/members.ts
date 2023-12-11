@@ -7,7 +7,7 @@ export interface Member {
 	SAPIN: number;
 	Name: string;
 	Email: string;
-	Permissions: Array<string>;
+	//Permissions: Array<string>;
 	Status: string;
 };
 
@@ -81,7 +81,7 @@ function validUsers(users: any): users is Member[] {
 }
 
 export const loadMembers = (groupName: string): AppThunk => 
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		const url = `/api/${groupName}/users`;
 		dispatch(getPending({groupName}));
 		let response: any;

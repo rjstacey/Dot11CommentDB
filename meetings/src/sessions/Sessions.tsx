@@ -23,7 +23,7 @@ import {
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	fields,
-	loadSessions,
+	refreshSessions,
 	deleteSessions,
 	selectSessionsState,
 	sessionsSelectors,
@@ -116,11 +116,7 @@ function Sessions() {
 
 	const {selected} = useAppSelector(selectSessionsState);
 
-	React.useEffect(() => {
-		dispatch(loadSessions());
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-	const refresh = () => dispatch(loadSessions());
+	const refresh = () => dispatch(refreshSessions());
 
 	const handleRemoveSelected = async () => {
 		if (selected.length) {

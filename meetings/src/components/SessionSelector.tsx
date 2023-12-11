@@ -40,11 +40,11 @@ function SessionSelector({
 	const {valid, loading} = useAppSelector(selectSessionsState);
 	const options = useAppSelector(selectSessions);
 
-	React.useEffect(() => {
+	/*React.useEffect(() => {
 		if (!valid && !loading && !readOnly)
 			dispatch(loadSessions());
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
-
+*/
 	const values = options.filter(o => o.id === value);
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: null);
 
