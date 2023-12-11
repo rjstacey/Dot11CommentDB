@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
 
 import { Select, ActionIcon, displayDateRange } from 'dot11-components';
 
-import { loadSessions, selectSessionsState, selectSessions, Session } from '../store/sessions';
+import { useAppSelector } from '../store/hooks';
+import { selectSessionsState, selectSessions, Session } from '../store/sessions';
 
 const StyledItem = styled.div`
 	overflow: hidden;
@@ -36,15 +36,9 @@ function SessionSelector({
 	readOnly?: boolean;
 	style?: React.CSSProperties;
 }) {
-	const dispatch = useAppDispatch();
-	const {valid, loading} = useAppSelector(selectSessionsState);
+	const {loading} = useAppSelector(selectSessionsState);
 	const options = useAppSelector(selectSessions);
 
-	/*React.useEffect(() => {
-		if (!valid && !loading && !readOnly)
-			dispatch(loadSessions());
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
-*/
 	const values = options.filter(o => o.id === value);
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: null);
 
