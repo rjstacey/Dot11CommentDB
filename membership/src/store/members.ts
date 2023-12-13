@@ -144,7 +144,8 @@ export const selectMemberIds = (state: RootState) =>
 export function selectMemberEntities(state: RootState) {
 	return selectMembersState(state).entities;
 }
-export const selectMembersGroupName = (state: RootState) => selectMembersState(state).groupName;
+export const selectMembersGroupName = (state: RootState) =>
+	selectMembersState(state).groupName;
 
 export const selectActiveMembers = createSelector(
 	selectMemberIds,
@@ -288,6 +289,12 @@ function validResponse(members: unknown): members is Member[] {
 export const loadMembers =
 	(groupName: string): AppThunk =>
 	async (dispatch, getState) => {
+		const { loading, groupName: currentGroupName } = selectMembersState(
+			getState()
+		);
+		if (loading && currentGroupName === groupName) {
+			return;
+		}
 		const url = `/api/${groupName}/members`;
 		dispatch(getPending({ groupName }));
 		let response: any;
@@ -420,11 +427,13 @@ export const uploadMembers =
 	async (dispatch, getState) => {
 		const groupName = selectMembersGroupName(getState());
 		if (!groupName) {
-			dispatch(setError("Unable to upload members", "Group not selected"))
+			dispatch(
+				setError("Unable to upload members", "Group not selected")
+			);
 			return;
 		}
 		const url = `/api/${groupName}/members/upload/${format}`;
-		dispatch(getPending({groupName}));
+		dispatch(getPending({ groupName }));
 		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, { File: file });
@@ -451,7 +460,7 @@ export const exportMyProjectRoster =
 	(): AppThunk => async (dispatch, getState) => {
 		const groupName = selectMembersGroupName(getState());
 		if (!groupName) {
-			dispatch(setError("Unable to export roster", "Group not selected"))
+			dispatch(setError("Unable to export roster", "Group not selected"));
 			return;
 		}
 		const url = `/api/${groupName}/members/MyProjectRoster`;
@@ -467,11 +476,11 @@ export const importMyProjectRoster =
 	async (dispatch, getState) => {
 		const groupName = selectMembersGroupName(getState());
 		if (!groupName) {
-			dispatch(setError("Unable to import roster", "Group not selected"))
+			dispatch(setError("Unable to import roster", "Group not selected"));
 			return;
 		}
 		const url = `/api/${groupName}/members/MyProjectRoster`;
-		dispatch(getPending({groupName}));
+		dispatch(getPending({ groupName }));
 		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, { File: file });

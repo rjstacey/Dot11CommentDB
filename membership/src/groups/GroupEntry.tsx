@@ -11,7 +11,7 @@ import {
 
 import Officers from "./Officers";
 import GroupSelector from "../components/GroupSelector";
-import ImatCommitteeSelector from "../components/ImatCommitteeSelector";
+import ImatCommitteeSelector from "./ImatCommitteeSelector";
 import ColorPicker from "../components/ColorPicker";
 import type { MultipleGroupEntry, GroupEntry } from "./GroupDetail";
 

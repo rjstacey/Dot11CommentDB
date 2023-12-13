@@ -65,7 +65,7 @@ const slice = createSlice({
 			const { groupName } = action.payload;
 			state.loading = true;
 			if (state.groupName !== groupName) {
-				state.groupName = action.payload.groupName;
+				state.groupName = groupName;
 				state.valid = false;
 				dataAdapter.removeAll(state);
 			}
@@ -123,6 +123,12 @@ export const clearOfficers = createAction(dataSet + "/clear");
 export const loadOfficers =
 	(groupName: string): AppThunk =>
 	(dispatch, getState) => {
+		const { loading, groupName: currentGroupName } = selectOfficersState(
+			getState()
+		);
+		if (loading && currentGroupName === groupName) {
+			return;
+		}
 		const url = `/api/${groupName}/officers`;
 		dispatch(getPending({ groupName }));
 		return fetcher

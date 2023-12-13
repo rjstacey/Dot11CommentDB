@@ -6,7 +6,6 @@ import {
 import { fetcher, setError, isObject } from "dot11-components";
 
 import type { AppThunk, RootState } from ".";
-import { selectWorkingGroupName } from "./groups";
 
 export type EmailTemplate = {
 	id: number;
@@ -21,18 +20,29 @@ export type EmailTemplateUpdate = {
 	changes: Partial<EmailTemplate>;
 };
 
+type ExtraState = {
+	valid: boolean;
+	loading: boolean;
+	groupName: string | null;
+}
+
 const dataAdapter = createEntityAdapter<EmailTemplate>();
-const initialState = dataAdapter.getInitialState({
+const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
+	groupName: null
 });
 const dataSet = "emailTemplates";
 const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		getPending(state) {
+		getPending(state, action: PayloadAction<{groupName: string}>) {
+			const {groupName} = action.payload;
 			state.loading = true;
+			if (state.groupName !== groupName) {
+				dataAdapter.removeAll(state);
+			}
 		},
 		getSuccess(state, action: PayloadAction<EmailTemplate[]>) {
 			state.loading = false;
@@ -76,11 +86,9 @@ function validEmailTemplates(templates: any): templates is EmailTemplate[] {
 }
 
 export const loadEmailTemplates =
-	(): AppThunk => async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
-		if (!groupName) return;
+	(groupName: string): AppThunk => async (dispatch, getState) => {
 		const url = `/api/${groupName}/email/templates`;
-		dispatch(getPending());
+		dispatch(getPending({groupName}));
 		let templates: any;
 		try {
 			templates = await fetcher.get(url);
@@ -97,7 +105,7 @@ export const loadEmailTemplates =
 export const addEmailTemplate =
 	(template: EmailTemplateCreate): AppThunk<EmailTemplate | undefined> =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const {groupName} = selectEmailTemplatesState(getState());
 		const url = `/api/${groupName}/email/templates`;
 		let response: any;
 		try {
@@ -115,7 +123,7 @@ export const addEmailTemplate =
 export const updateEmailTemplate =
 	(update: EmailTemplateUpdate): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const {groupName} = selectEmailTemplatesState(getState());
 		const url = `/api/${groupName}/email/templates`;
 		let response: any;
 		try {
@@ -132,7 +140,7 @@ export const updateEmailTemplate =
 export const deleteEmailTemplate =
 	(id: number): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const {groupName} = selectEmailTemplatesState(getState());
 		const url = `/api/${groupName}/email/templates`;
 		dispatch(removeMany([id]));
 		try {
@@ -172,7 +180,7 @@ export interface Email {
 export const sendEmail =
 	(email: Email): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const {groupName} = selectEmailTemplatesState(getState());
 		const url = `/api/${groupName}/email/send`;
 		try {
 			await fetcher.post(url, email);

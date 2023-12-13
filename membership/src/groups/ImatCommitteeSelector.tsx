@@ -1,11 +1,10 @@
 import React from "react";
 import { Select } from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppSelector } from "../store/hooks";
 
 import {
-	selectImatCommitteesState,
-	loadCommittees,
+	selectImatCommittees,
 	ImatCommitteeType,
 } from "../store/imatCommittees";
 
@@ -22,17 +21,7 @@ function ImatCommitteeSelector({
 	React.ComponentProps<typeof Select>,
 	"values" | "onChange" | "options"
 >) {
-	const dispatch = useAppDispatch();
-	const { valid, entities, ids } = useAppSelector(selectImatCommitteesState);
-
-	React.useEffect(() => {
-		if (!valid) dispatch(loadCommittees());
-	}, [dispatch, valid]);
-
-	let options = React.useMemo(
-		() => ids.map((id) => entities[id]!),
-		[ids, entities]
-	);
+	let options = useAppSelector(selectImatCommittees);
 	if (type) options = options.filter((o) => o.type === type);
 
 	const values = options.filter((o) => o.symbol === value);

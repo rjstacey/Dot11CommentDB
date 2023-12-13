@@ -28,7 +28,6 @@ import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	fields,
 	loadMembers,
-	clearMembers,
 	selectMembersGroupName,
 	membersSelectors,
 	membersActions,
@@ -39,6 +38,7 @@ import {
 	selectBallotEntities,
 	selectMostRecentBallotSeries,
 } from "../store/ballotParticipation";
+import { loadEmailTemplates } from "../store/email";
 
 import TopRow from "../components/TopRow";
 import NotificationEmail from "./NotificationEmail";
@@ -287,7 +287,12 @@ function Members() {
 	const dispatch = useAppDispatch();
 	const groupName = useAppSelector(selectMembersGroupName);
 
-	const refresh = () => dispatch(groupName? loadMembers(groupName): clearMembers());
+	const refresh = () => {
+		if (groupName) {
+			dispatch(loadMembers(groupName));
+			dispatch(loadEmailTemplates(groupName));
+		}
+	}
 
 	return (
 		<>

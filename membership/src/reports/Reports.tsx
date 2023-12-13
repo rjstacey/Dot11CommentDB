@@ -207,7 +207,7 @@ function membersPrivate(
 	];
 	const values = members
 		.slice()
-		.sort((m1, m2) => m1.LastName.localeCompare(m2.LastName))
+		.sort((m1, m2) => (m1.LastName || "").localeCompare(m2.LastName || ""))
 		.map((m) => {
 			let expires = "",
 				meeting = "";

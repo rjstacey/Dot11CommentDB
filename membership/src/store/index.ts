@@ -113,23 +113,13 @@ export const store = configureReduxStore({
 		}).concat(middleware),
 });
 
-export const persistor = persistStore(store, null/*, () => {
-	store.dispatch(initGroups());
-	store.dispatch(loadTimeZones());
-	store.dispatch(loadMembers());
-	store.dispatch(loadSessions());
-	store.dispatch(loadOfficers());
-	store.dispatch(loadAttendances());
-	store.dispatch(loadBallotParticipation());
-	store.dispatch(loadEmailTemplates());
-}*/);
+export const persistor = persistStore(store, null);
 
 export const resetStore = (): Action => ({ type: RESET_STORE_ACTION });
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
-type StoreType = typeof store; //ReturnType<typeof configureStore>["store"];
 export type RootState = ReturnType<typeof rootReducer>;
-export type AppDispatch = StoreType["dispatch"];
+export type AppDispatch = typeof store.dispatch;
 export type AppThunk<ReturnType = void> = ThunkAction<
 	Promise<ReturnType>,
 	RootState,

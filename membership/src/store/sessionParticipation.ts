@@ -136,7 +136,8 @@ export const selectAttendancesEntities = (state: RootState) =>
 	selectAttendancesState(state).entities;
 const selectAttendancesIds = (state: RootState) =>
 	selectAttendancesState(state).ids;
-export const selectAttendancesGroupName = (state: RootState) => selectAttendancesState(state).groupName;
+export const selectAttendancesGroupName = (state: RootState) =>
+	selectAttendancesState(state).groupName;
 export const selectAttendanceSessionIds = (state: RootState) =>
 	selectAttendancesState(state).sessionIds;
 export const selectAttendanceSessions = createSelector(
@@ -349,8 +350,7 @@ export const attendancesSelectors = getAppTableDataSelectors(
  */
 export const attendancesActions = slice.actions;
 
-const { getSuccess, getFailure, setOne, setDetails } =
-	slice.actions;
+const { getSuccess, getFailure, setOne, setDetails } = slice.actions;
 
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
@@ -366,25 +366,33 @@ function validResponse(
 	);
 }
 
-export const loadAttendances = (groupName: string): AppThunk => async (dispatch, getState) => {
-	const loading = selectAttendancesState(getState()).loading;
-	if (loading) return;
-	const url = `/api/${groupName}/attendances`;
-	dispatch(getPending({groupName}));
-	let response: any;
-	try {
-		response = await fetcher.get(url);
-		if (!validResponse(response))
-			throw new TypeError("Unexpected response to GET " + url);
-	} catch (error) {
-		dispatch(getFailure());
-		dispatch(setError(`Unable to get attendees`, error));
-		return;
-	}
-	dispatch(upsertSessions(response.sessions));
-	dispatch(setDetails({ sessionIds: response.sessions.map((s) => s.id) }));
-	dispatch(getSuccess(response.attendances));
-};
+export const loadAttendances =
+	(groupName: string): AppThunk =>
+	async (dispatch, getState) => {
+		const { loading, groupName: currentGroupName } = selectAttendancesState(
+			getState()
+		);
+		if (loading && currentGroupName === groupName) {
+			return;
+		}
+		const url = `/api/${groupName}/attendances`;
+		dispatch(getPending({ groupName }));
+		let response: any;
+		try {
+			response = await fetcher.get(url);
+			if (!validResponse(response))
+				throw new TypeError("Unexpected response to GET " + url);
+		} catch (error) {
+			dispatch(getFailure());
+			dispatch(setError(`Unable to get attendees`, error));
+			return;
+		}
+		dispatch(upsertSessions(response.sessions));
+		dispatch(
+			setDetails({ sessionIds: response.sessions.map((s) => s.id) })
+		);
+		dispatch(getSuccess(response.attendances));
+	};
 
 export type SessionAttendanceUpdate = {
 	session_id: number;
@@ -496,7 +504,7 @@ export const importAttendances =
 		}
 		let url = `/api/${groupName}/attendances/${session_id}/import`;
 		if (useDailyAttendance) url += "?use=daily-attendance";
-		dispatch(getPending({groupName}));
+		dispatch(getPending({ groupName }));
 		let response: any;
 		try {
 			response = await fetcher.post(url);

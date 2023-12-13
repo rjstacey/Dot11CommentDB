@@ -1,4 +1,3 @@
-import React from "react";
 import { v4 as uuid } from "uuid";
 import { Field, Col, ActionIcon } from "dot11-components";
 

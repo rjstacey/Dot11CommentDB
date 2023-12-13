@@ -13,9 +13,11 @@ import { AccessLevel } from "../store/user";
 import { selectWorkingGroupByName, loadGroups } from "../store/groups";
 import { loadMembers } from "../store/members";
 import { loadOfficers } from "../store/officers";
+import { loadCommittees } from "../store/imatCommittees";
 import { loadTimeZones } from "../store/timeZones";
 import { loadAttendances } from "../store/sessionParticipation";
 import { loadBallotParticipation } from "../store/ballotParticipation";
+import { loadEmailTemplates } from "../store/email";
 
 import { ErrorModal, ConfirmModal } from "dot11-components";
 import Header from "./Header";
@@ -29,6 +31,7 @@ import Notification from "../notification/Notification";
 import Reports from "../reports/Reports";
 
 import styles from "./app.module.css";
+import { loadSessions } from "../store/sessions";
 
 const rootLoader: LoaderFunction = async () => {
 	const { dispatch } = store;
@@ -42,11 +45,25 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 	if (groupName) {
 		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.meetings || AccessLevel.none;
+		const access = group?.permissions.members || AccessLevel.none;
 		if (access >= AccessLevel.ro) {
 			dispatch(loadGroups(groupName));
 			dispatch(loadMembers(groupName));
 			dispatch(loadOfficers(groupName));
+			dispatch(loadCommittees(groupName));
+		}
+	}
+	return null;
+};
+
+const membersLoader: LoaderFunction = async ({ params }) => {
+	const { dispatch, getState } = store;
+	const { groupName } = params;
+	if (groupName) {
+		const group = selectWorkingGroupByName(getState(), groupName);
+		const access = group?.permissions.members || AccessLevel.none;
+		if (access >= AccessLevel.ro) {
+			dispatch(loadMembers(groupName));
 		}
 	}
 	return null;
@@ -78,7 +95,32 @@ const ballotParticipationLoader: LoaderFunction = async ({ params }) => {
 	return null;
 };
 
+const sessionAttendanceLoader: LoaderFunction = async ({ params }) => {
+	const { dispatch, getState } = store;
+	const { groupName } = params;
+	if (groupName) {
+		const group = selectWorkingGroupByName(getState(), groupName);
+		const access = group?.permissions.members || AccessLevel.none;
+		if (access >= AccessLevel.admin) {
+			dispatch(loadSessions(groupName));
+		}
+	}
+	return null;
+};
 
+const notificationsLoader: LoaderFunction = async ({ params }) => {
+	const { dispatch, getState } = store;
+	const { groupName } = params;
+	if (groupName) {
+		const group = selectWorkingGroupByName(getState(), groupName);
+		const access = group?.permissions.members || AccessLevel.none;
+		if (access >= AccessLevel.admin) {
+			dispatch(loadMembers(groupName));
+			dispatch(loadEmailTemplates(groupName));
+		}
+	}
+	return null;
+};
 
 export type AppRoute = RouteObject & {
 	minAccess?: number;
@@ -116,12 +158,14 @@ const groupRoutes_ungated: AppRoute[] = [
 		menuLabel: "Session attendance",
 		path: "sessionAttendance",
 		element: <SessionAttendance />,
+		loader: sessionAttendanceLoader,
 		minAccess: AccessLevel.admin,
 	},
 	{
 		menuLabel: "Notification",
 		path: "notification",
 		element: <Notification />,
+		loader: notificationsLoader,
 		minAccess: AccessLevel.admin,
 	},
 	{

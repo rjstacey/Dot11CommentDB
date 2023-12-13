@@ -18,7 +18,7 @@ import {
 	SplitPanelButton,
 	TablesConfig,
 	TableConfig,
-	type CellRendererProps,
+	CellRendererProps,
 	DropdownRendererProps,
 } from "dot11-components";
 
