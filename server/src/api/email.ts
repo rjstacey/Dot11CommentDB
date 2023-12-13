@@ -40,45 +40,45 @@ router
 			.catch(next);
 	})
 	.route("/templates")
-	.get((req, res, next) => {
-		getTemplates(req.group!)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
-	.patch((req, res, next) => {
-		const group = req.group!;
-		const updates = req.body;
-		if (!validEmailTemplateUpdates(updates))
-			return next(
-				new TypeError("Bad or missing array of update objects")
-			);
-		updateTemplates(group, updates)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
-	.post((req, res, next) => {
-		const group = req.group!;
-		const templates = req.body;
-		if (!validEmailTemplateCreates(templates))
-			return next(
-				new TypeError("Bad or missing array of email template objects")
-			);
-		addTemplates(group, templates)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
-	.delete((req, res, next) => {
-		const group = req.group!;
-		const ids = req.body;
-		if (!validEmailTemplateIds(ids))
-			return next(
-				new TypeError(
-					"Bad or missing array of email template identifiers"
-				)
-			);
-		deleteTemplates(group, ids)
-			.then((data) => res.json(data))
-			.catch(next);
-	});
+		.get((req, res, next) => {
+			getTemplates(req.group!)
+				.then((data) => res.json(data))
+				.catch(next);
+		})
+		.patch((req, res, next) => {
+			const group = req.group!;
+			const updates = req.body;
+			if (!validEmailTemplateUpdates(updates))
+				return next(
+					new TypeError("Bad or missing array of update objects")
+				);
+			updateTemplates(group, updates)
+				.then((data) => res.json(data))
+				.catch(next);
+		})
+		.post((req, res, next) => {
+			const group = req.group!;
+			const templates = req.body;
+			if (!validEmailTemplateCreates(templates))
+				return next(
+					new TypeError("Bad or missing array of email template objects")
+				);
+			addTemplates(group, templates)
+				.then((data) => res.json(data))
+				.catch(next);
+		})
+		.delete((req, res, next) => {
+			const group = req.group!;
+			const ids = req.body;
+			if (!validEmailTemplateIds(ids))
+				return next(
+					new TypeError(
+						"Bad or missing array of email template identifiers"
+					)
+				);
+			deleteTemplates(group, ids)
+				.then((data) => res.json(data))
+				.catch(next);
+		});
 
 export default router;
