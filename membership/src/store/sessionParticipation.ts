@@ -1,5 +1,7 @@
 import {
 	createSelector,
+	createAction,
+	Action,
 	PayloadAction,
 	Dictionary,
 	EntityId,
@@ -17,7 +19,6 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import { selectMemberEntities, type Member } from "./members";
-import { selectWorkingGroupName } from "./groups";
 import {
 	selectSessionEntities,
 	selectSession,
@@ -84,9 +85,10 @@ export type MemberAttendances = RecentSessionAttendances & {
 //const sessionsAdapter = createEntityAdapter<Session>();
 type ExtraState = {
 	sessionIds: EntityId[];
+	groupName: string | null;
 };
 
-const initialState: ExtraState = { sessionIds: [] };
+const initialState: ExtraState = { sessionIds: [], groupName: null };
 
 const selectId = (attendance: RecentSessionAttendances) => attendance.SAPIN;
 const dataSet = "attendances";
@@ -96,9 +98,30 @@ const slice = createAppTableDataSlice({
 	selectId,
 	initialState,
 	reducers: {
-		setDetails(state, action: PayloadAction<ExtraState>) {
+		setDetails(state, action: PayloadAction<Partial<ExtraState>>) {
 			return { ...state, ...action.payload };
 		},
+	},
+	extraReducers: (builder, dataAdapter) => {
+		builder
+			.addMatcher(
+				(action: Action) => action.type === getPending.toString(),
+				(state, action: ReturnType<typeof getPending>) => {
+					const { groupName } = action.payload;
+					if (groupName !== state.groupName) {
+						dataAdapter.removeAll(state);
+						state.valid = false;
+					}
+					state.groupName = groupName;
+				}
+			)
+			.addMatcher(
+				(action: Action) => action.type === clearAttendances.toString(),
+				(state) => {
+					dataAdapter.removeAll(state);
+					state.valid = false;
+				}
+			);
 	},
 });
 
@@ -113,6 +136,7 @@ export const selectAttendancesEntities = (state: RootState) =>
 	selectAttendancesState(state).entities;
 const selectAttendancesIds = (state: RootState) =>
 	selectAttendancesState(state).ids;
+export const selectAttendancesGroupName = (state: RootState) => selectAttendancesState(state).groupName;
 export const selectAttendanceSessionIds = (state: RootState) =>
 	selectAttendancesState(state).sessionIds;
 export const selectAttendanceSessions = createSelector(
@@ -325,8 +349,12 @@ export const attendancesSelectors = getAppTableDataSelectors(
  */
 export const attendancesActions = slice.actions;
 
-const { getPending, getSuccess, getFailure, setOne, setDetails } =
+const { getSuccess, getFailure, setOne, setDetails } =
 	slice.actions;
+
+// Overload getPending() with one that sets groupName
+const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
+export const clearAttendances = createAction(dataSet + "/clear");
 
 function validResponse(
 	response: any
@@ -338,13 +366,11 @@ function validResponse(
 	);
 }
 
-export const loadAttendances = (): AppThunk => async (dispatch, getState) => {
+export const loadAttendances = (groupName: string): AppThunk => async (dispatch, getState) => {
 	const loading = selectAttendancesState(getState()).loading;
 	if (loading) return;
-	const groupName = selectWorkingGroupName(getState());
-	if (!groupName) return;
 	const url = `/api/${groupName}/attendances`;
-	dispatch(getPending());
+	dispatch(getPending({groupName}));
 	let response: any;
 	try {
 		response = await fetcher.get(url);
@@ -369,7 +395,7 @@ export const updateAttendances =
 	(sapin: number, updates: SessionAttendanceUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
 		const state = getState();
-		const groupName = selectWorkingGroupName(state);
+		const groupName = selectAttendancesGroupName(state);
 		const url = `/api/${groupName}/attendances`;
 		const entities = selectAttendancesEntities(state);
 		let entity = entities[sapin];
@@ -463,10 +489,14 @@ export const updateAttendances =
 export const importAttendances =
 	(session_id: number, useDailyAttendance?: boolean): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectAttendancesGroupName(getState());
+		if (!groupName) {
+			dispatch(setError("Unable to import attendances", "group not set"));
+			return;
+		}
 		let url = `/api/${groupName}/attendances/${session_id}/import`;
 		if (useDailyAttendance) url += "?use=daily-attendance";
-		dispatch(getPending());
+		dispatch(getPending({groupName}));
 		let response: any;
 		try {
 			response = await fetcher.post(url);

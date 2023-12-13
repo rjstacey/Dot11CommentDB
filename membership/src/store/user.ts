@@ -1,4 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from ".";
 import { selectWorkingGroup } from "./groups";
 
@@ -14,26 +14,33 @@ export type User = {
 	//Username: string;
 	Name: string;
 	Email: string;
-	Status: string;
 	Permissions: string[];
 	Access: number;
+	Status: string;
 	Token: any;
 };
 
-/** The `user` slice is readonly and contains user info */
 const dataSet = "user";
-export function createUserSlice(user: User) {
-	return createSlice({
-		name: dataSet,
-		initialState: user,
-		reducers: {},
-	});
-}
+const slice = createSlice({
+	name: dataSet,
+	initialState: {} as User | {},
+	reducers: {
+		initUser(state, action: PayloadAction<User>) {
+			return action.payload;
+		},
+	},
+});
+
+export default slice;
 
 /*
  * Selectors
  */
-export const selectUser = (state: RootState) => state[dataSet];
+export const selectUser = (state: RootState): User => {
+	const user = state[dataSet];
+	if ("SAPIN" in user) return user;
+	throw Error("`user` slice not initialized");
+};
 
 export const selectUserMembersAccess = (state: RootState) => {
 	const user = selectUser(state);
@@ -41,3 +48,10 @@ export const selectUserMembersAccess = (state: RootState) => {
 		selectWorkingGroup(state)?.permissions.members || AccessLevel.none;
 	return Math.max(user.Access, access);
 };
+
+
+/*
+ * Actions
+ */
+const { initUser } = slice.actions;
+export { initUser };

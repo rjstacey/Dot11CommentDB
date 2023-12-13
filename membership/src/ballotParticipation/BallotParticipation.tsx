@@ -20,7 +20,9 @@ import {
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
+	fields,
 	loadBallotParticipation,
+	clearBallotParticipation,
 	selectBallotParticipationState,
 	selectBallotSeries,
 	selectBallotEntities,
@@ -28,7 +30,6 @@ import {
 	ballotParticipationActions,
 	BallotSeriesParticipationSummary,
 	RecentBallotSeriesParticipation,
-	fields,
 } from "../store/ballotParticipation";
 
 import MemberDetail from "../members/MemberDetail";
@@ -137,13 +138,9 @@ const tableColumns: ColumnProperties[] = [
 
 function BallotParticipation() {
 	const dispatch = useAppDispatch();
-	const { valid, selected } = useAppSelector(selectBallotParticipationState);
+	const { selected, groupName } = useAppSelector(selectBallotParticipationState);
 	const { ids: ballotSeriesIds, entities: ballotSeriesEntities } =
 		useAppSelector(selectBallotSeries);
-
-	React.useEffect(() => {
-		if (!valid) dispatch(loadBallotParticipation());
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const columns = React.useMemo(() => {
 		return tableColumns.concat(
@@ -171,7 +168,7 @@ function BallotParticipation() {
 		);
 	}, [ballotSeriesIds, ballotSeriesEntities]);
 
-	const refresh = () => dispatch(loadBallotParticipation());
+	const refresh = () => dispatch(groupName? loadBallotParticipation(groupName): clearBallotParticipation());
 
 	return (
 		<>

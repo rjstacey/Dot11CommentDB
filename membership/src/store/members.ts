@@ -1,5 +1,5 @@
-import { createSelector } from "@reduxjs/toolkit";
-import type { Dictionary, Update, EntityId } from "@reduxjs/toolkit";
+import { createSelector, createAction } from "@reduxjs/toolkit";
+import type { Dictionary, Update, EntityId, Action } from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -14,7 +14,6 @@ import {
 import type { RootState, AppThunk } from ".";
 import { selectAttendancesWithMembershipAndSummary } from "./sessionParticipation";
 import { selectBallotParticipationWithMembershipAndSummary } from "./ballotParticipation";
-import { selectWorkingGroupName } from "./groups";
 
 const Status = {
 	"Non-Voter": "Non-Voter",
@@ -85,7 +84,12 @@ export type MemberExtra = {
 	ReplacedBySAPIN: number | null;
 };
 
-export const AccessLevelOptions = [{value: 0, label: "public"}, {value: 1, label: "member"}, {value: 2, label: "tg_admin"}, {value: 3, label: "wg_admin"}];
+export const AccessLevelOptions = [
+	{ value: 0, label: "public" },
+	{ value: 1, label: "member" },
+	{ value: 2, label: "tg_admin" },
+	{ value: 3, label: "wg_admin" },
+];
 
 export type MemberUpdateExtra = {
 	StatusChangeReason: string;
@@ -140,6 +144,7 @@ export const selectMemberIds = (state: RootState) =>
 export function selectMemberEntities(state: RootState) {
 	return selectMembersState(state).entities;
 }
+export const selectMembersGroupName = (state: RootState) => selectMembersState(state).groupName;
 
 export const selectActiveMembers = createSelector(
 	selectMemberIds,
@@ -217,13 +222,35 @@ export const selectUiProperties = membersSelectors.selectUiProperties;
 const dataSet = "members";
 const selectId = (m: Member) => m.SAPIN;
 const sortComparer = (m1: Member, m2: Member) => m1.SAPIN - m2.SAPIN;
+const initialState: { groupName: string | null } = { groupName: null };
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	initialState: {},
+	initialState,
 	selectId,
 	sortComparer,
 	reducers: {},
+	extraReducers: (builder, dataAdapter) => {
+		builder
+			.addMatcher(
+				(action: Action) => action.type === getPending.toString(),
+				(state, action: ReturnType<typeof getPending>) => {
+					const { groupName } = action.payload;
+					if (groupName !== state.groupName) {
+						dataAdapter.removeAll(state);
+						state.valid = false;
+					}
+					state.groupName = groupName;
+				}
+			)
+			.addMatcher(
+				(action: Action) => action.type === clearMembers.toString(),
+				(state) => {
+					dataAdapter.removeAll(state);
+					state.valid = false;
+				}
+			);
+	},
 });
 
 export default slice;
@@ -234,7 +261,6 @@ export default slice;
 export const membersActions = slice.actions;
 
 const {
-	getPending,
 	getSuccess,
 	getFailure,
 	setOne,
@@ -244,6 +270,10 @@ const {
 	setUiProperties,
 	setSelected,
 } = slice.actions;
+
+// Overload getPending() with one that sets groupName
+const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
+export const clearMembers = createAction(dataSet + "/clear");
 
 export { setSelected, setUiProperties };
 
@@ -255,28 +285,28 @@ function validResponse(members: unknown): members is Member[] {
 	return Array.isArray(members) && members.every(validMember);
 }
 
-export const loadMembers = (): AppThunk => async (dispatch, getState) => {
-	const groupName = selectWorkingGroupName(getState());
-	if (!groupName) return;
-	const url = `/api/${groupName}/members`;
-	dispatch(getPending());
-	let response: any;
-	try {
-		response = await fetcher.get(url);
-		if (!validResponse(response))
-			throw new TypeError("Unexpected response to GET");
-	} catch (error) {
-		dispatch(getFailure());
-		dispatch(setError("Unable to get members list", error));
-		return;
-	}
-	dispatch(getSuccess(response));
-};
+export const loadMembers =
+	(groupName: string): AppThunk =>
+	async (dispatch, getState) => {
+		const url = `/api/${groupName}/members`;
+		dispatch(getPending({ groupName }));
+		let response: any;
+		try {
+			response = await fetcher.get(url);
+			if (!validResponse(response))
+				throw new TypeError("Unexpected response to GET");
+		} catch (error) {
+			dispatch(getFailure());
+			dispatch(setError("Unable to get members list", error));
+			return;
+		}
+		dispatch(getSuccess(response));
+	};
 
 export const updateMembers =
 	(updates: MemberUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectMembersGroupName(getState());
 		const url = `/api/${groupName}/members`;
 		let response: any;
 		try {
@@ -298,7 +328,7 @@ type StatusChangeEntryUpdate = {
 export const addMemberStatusChangeEntries =
 	(sapin: number, entries: StatusChangeType[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectMembersGroupName(getState());
 		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
 		let response: any;
 		try {
@@ -315,7 +345,7 @@ export const addMemberStatusChangeEntries =
 export const updateMemberStatusChangeEntries =
 	(sapin: number, updates: StatusChangeEntryUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectMembersGroupName(getState());
 		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
 		let response: any;
 		try {
@@ -332,7 +362,7 @@ export const updateMemberStatusChangeEntries =
 export const deleteMemberStatusChangeEntries =
 	(sapin: number, ids: number[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectMembersGroupName(getState());
 		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
 		let response: any;
 		try {
@@ -349,7 +379,7 @@ export const deleteMemberStatusChangeEntries =
 export const addMembers =
 	(members: MemberAdd[]): AppThunk<number[]> =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectMembersGroupName(getState());
 		const url = `/api/${groupName}/members`;
 		let response: any;
 		try {
@@ -367,7 +397,7 @@ export const addMembers =
 export const deleteMembers =
 	(ids: number[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectMembersGroupName(getState());
 		const url = `/api/${groupName}/members`;
 		dispatch(removeMany(ids));
 		try {
@@ -388,9 +418,13 @@ export const UploadFormat = {
 export const uploadMembers =
 	(format: string, file: any): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectMembersGroupName(getState());
+		if (!groupName) {
+			dispatch(setError("Unable to upload members", "Group not selected"))
+			return;
+		}
 		const url = `/api/${groupName}/members/upload/${format}`;
-		dispatch(getPending());
+		dispatch(getPending({groupName}));
 		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, { File: file });
@@ -415,7 +449,11 @@ export const deleteSelectedMembers =
 
 export const exportMyProjectRoster =
 	(): AppThunk => async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectMembersGroupName(getState());
+		if (!groupName) {
+			dispatch(setError("Unable to export roster", "Group not selected"))
+			return;
+		}
 		const url = `/api/${groupName}/members/MyProjectRoster`;
 		try {
 			await fetcher.getFile(url);
@@ -427,9 +465,13 @@ export const exportMyProjectRoster =
 export const importMyProjectRoster =
 	(file: any): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const groupName = selectMembersGroupName(getState());
+		if (!groupName) {
+			dispatch(setError("Unable to import roster", "Group not selected"))
+			return;
+		}
 		const url = `/api/${groupName}/members/MyProjectRoster`;
-		dispatch(getPending());
+		dispatch(getPending({groupName}));
 		let response: any;
 		try {
 			response = await fetcher.postMultipart(url, { File: file });

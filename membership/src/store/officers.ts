@@ -1,5 +1,9 @@
-import { createSlice, createEntityAdapter } from "@reduxjs/toolkit";
-import type { Dictionary, EntityId } from "@reduxjs/toolkit";
+import {
+	createSlice,
+	createEntityAdapter,
+	createAction,
+} from "@reduxjs/toolkit";
+import type { Dictionary, EntityId, PayloadAction } from "@reduxjs/toolkit";
 
 import { v4 as uuid } from "uuid";
 import type { RootState, AppThunk } from ".";
@@ -37,10 +41,17 @@ export function officerCmp(o1: Officer, o2: Officer) {
 	return i1 - i2;
 }
 
+type ExtraState = {
+	valid: boolean;
+	loading: boolean;
+	groupName: string | null;
+};
+
 const dataAdapter = createEntityAdapter<Officer>({});
-const initialState = dataAdapter.getInitialState({
+const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
+	groupName: null,
 });
 
 export type OfficersState = typeof initialState;
@@ -50,8 +61,14 @@ const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		getPending(state) {
+		getPending(state, action: PayloadAction<{ groupName: string | null }>) {
+			const { groupName } = action.payload;
 			state.loading = true;
+			if (state.groupName !== groupName) {
+				state.groupName = action.payload.groupName;
+				state.valid = false;
+				dataAdapter.removeAll(state);
+			}
 		},
 		getSuccess(state, action) {
 			state.loading = false;
@@ -96,33 +113,30 @@ export function selectGroupOfficers(state: RootState, group_id: EntityId) {
 /*
  * Actions
  */
-const {
-	getPending,
-	getSuccess,
-	getFailure,
-	addMany,
-	updateMany,
-	removeMany,
-	setMany,
-} = slice.actions;
+const { getSuccess, getFailure, addMany, updateMany, removeMany, setMany } =
+	slice.actions;
 
-export const loadOfficers = (): AppThunk => (dispatch, getState) => {
-	const groupName = selectWorkingGroupName(getState());
-	if (!groupName) return;
-	const url = `/api/${groupName}/officers`;
-	dispatch(getPending());
-	return fetcher
-		.get(url)
-		.then((officers: any) => {
-			if (!Array.isArray(officers))
-				throw new TypeError(`Unexpected response to GET ${url}`);
-			dispatch(getSuccess(officers));
-		})
-		.catch((error: any) => {
-			dispatch(getFailure());
-			dispatch(setError("Unable to get groups", error));
-		});
-};
+// Overload getPending() with one that sets groupName
+const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
+export const clearOfficers = createAction(dataSet + "/clear");
+
+export const loadOfficers =
+	(groupName: string): AppThunk =>
+	(dispatch, getState) => {
+		const url = `/api/${groupName}/officers`;
+		dispatch(getPending({ groupName }));
+		return fetcher
+			.get(url)
+			.then((officers: any) => {
+				if (!Array.isArray(officers))
+					throw new TypeError(`Unexpected response to GET ${url}`);
+				dispatch(getSuccess(officers));
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError("Unable to get groups", error));
+			});
+	};
 
 export const addOfficers =
 	(officers: OfficerCreate[]): AppThunk =>

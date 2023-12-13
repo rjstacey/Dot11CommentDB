@@ -25,6 +25,7 @@ import { loadMembers, selectMemberEntities } from "../store/members";
 
 import TopRow from "../components/TopRow";
 import GroupDetail from "./GroupDetail";
+import { useParams } from "react-router-dom";
 
 function GroupOfficers({ group }: { group: Group }) {
 	const officers = useAppSelector((state) =>
@@ -91,11 +92,14 @@ const tableColumns: ColumnProperties[] = [
 
 function Organization() {
 	const dispatch = useAppDispatch();
+	const { groupName } = useParams();
 
 	const refresh = () => {
 		dispatch(loadGroups());
-		dispatch(loadOfficers());
-		dispatch(loadMembers());
+		if (groupName) {
+			dispatch(loadOfficers(groupName));
+			dispatch(loadMembers(groupName));
+		}
 	};
 
 	return (

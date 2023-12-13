@@ -33,6 +33,7 @@ import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	fields,
 	loadMembers,
+	clearMembers,
 	selectMembersState,
 	membersSelectors,
 	membersActions,
@@ -282,14 +283,10 @@ function Members() {
 	const {
 		selected,
 		entities: members,
-		valid,
+		groupName
 	} = useAppSelector(selectMembersState);
 
-	const load = () => dispatch(loadMembers());
-
-	React.useEffect(() => {
-		if (!valid) load();
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+	const refresh = () => dispatch(groupName? loadMembers(groupName): clearMembers());
 
 	return (
 		<>
@@ -336,7 +333,7 @@ function Members() {
 					<ActionButton
 						name="refresh"
 						title="Refresh"
-						onClick={load}
+						onClick={refresh}
 					/>
 				</div>
 			</TopRow>

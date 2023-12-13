@@ -179,6 +179,15 @@ export const selectWorkingGroups = (state: RootState) => {
 		.map((id) => entities[id]!)
 		.filter((g) => ["c", "wg"].includes(g.type || ""));
 };
+export const selectWorkingGroupByName = (
+	state: RootState,
+	groupName: string
+) => {
+	const groups = selectWorkingGroups(state);
+	return groups.find((g) => g.name === groupName);
+};
+
+
 export const selectWorkingGroupId = (state: RootState) =>
 	selectGroupsState(state).workingGroupId;
 export const selectWorkingGroup = (state: RootState) => {

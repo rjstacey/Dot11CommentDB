@@ -1,7 +1,7 @@
 import * as React from "react";
-import styled from '@emotion/styled';
+import styled from "@emotion/styled";
 
-import { $getRoot, LexicalNode } from "lexical"
+import { $getRoot, LexicalNode } from "lexical";
 
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -21,7 +21,7 @@ import { CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { TRANSFORMERS } from "@lexical/markdown";
 import { $isLinkNode, $createAutoLinkNode } from "@lexical/link";
-import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
+import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 
 import ListMaxIndentLevelPlugin from "./ListMaxIndentLevelPlugin";
 import ToolbarPlugin from "./ToolbarPlugin";
@@ -35,10 +35,12 @@ import styles from "./Editor.module.css";
 
 import { useDebounce } from "../components/useDebounce";
 
-const placeholderEl = <div className={styles.placeholder}>Enter some rich text...</div>;
+const placeholderEl = (
+	<div className={styles.placeholder}>Enter some rich text...</div>
+);
 
 const editorConfig = {
-    namespace: "MyEditor",
+	namespace: "MyEditor",
 	// The editor theme
 	theme: ExampleTheme,
 	// Handling of errors during update
@@ -61,8 +63,7 @@ const editorConfig = {
 };
 
 function recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
-	if (!node)
-		return;
+	if (!node) return;
 	if (node.getChildren)
 		node.getChildren().forEach(recursivelyReplaceLinkWithAutoLink);
 	if ($isLinkNode(node)) {
@@ -77,7 +78,7 @@ function recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
 function InportExportPlugin({
 	defaultValue,
 	onChange,
-	readOnly
+	readOnly,
 }: {
 	defaultValue: string;
 	onChange: (value: string) => void;
@@ -87,8 +88,7 @@ function InportExportPlugin({
 	const doneRef = React.useRef(false);
 
 	const debouncedOnChange = useDebounce(() => {
-		if (readOnly)
-			return;
+		if (readOnly) return;
 		editor.update(() => {
 			const value = $generateHtmlFromNodes(editor, null);
 			onChange(value);
@@ -104,20 +104,25 @@ function InportExportPlugin({
 			// Convert string to DOM. But if the first body node is a text, then assume input is just text and not HTML.
 			let dom = parser.parseFromString(defaultValue, "text/html");
 			if (dom.body.firstChild?.nodeType === Node.TEXT_NODE) {
-				const value = defaultValue.split('\n').map(t => `<p>${t}</p>`).join('');
+				const value = defaultValue
+					.split("\n")
+					.map((t) => `<p>${t}</p>`)
+					.join("");
 				dom = parser.parseFromString(value, "text/html");
 			}
 			const nodes = $generateNodesFromDOM(editor, dom);
-			$getRoot().getChildren().forEach(c => c.remove());
+			$getRoot()
+				.getChildren()
+				.forEach((c) => c.remove());
 			$getRoot().append(...nodes);
 
 			recursivelyReplaceLinkWithAutoLink($getRoot());
 		});
-	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	React.useEffect(() => {
-		editor.setEditable(!readOnly)
-	}, [editor, readOnly])
+		editor.setEditable(!readOnly);
+	}, [editor, readOnly]);
 
 	return (
 		<OnChangePlugin
@@ -125,8 +130,8 @@ function InportExportPlugin({
 			ignoreHistoryMergeTagChange
 			ignoreSelectionChange
 		/>
-	)
-};
+	);
+}
 
 const InnerContainer = styled.div`
 	position: relative;
@@ -143,7 +148,7 @@ function Editor({
 	defaultBody,
 	onChangeSubject,
 	onChangeBody,
-	readOnly
+	readOnly,
 }: {
 	subject: string;
 	defaultBody: string;
@@ -151,27 +156,30 @@ function Editor({
 	onChangeBody: (value: string) => void;
 	readOnly: boolean;
 }) {
-
 	return (
-		<LexicalComposer
-			initialConfig={editorConfig}
-		>
+		<LexicalComposer initialConfig={editorConfig}>
 			<div>
 				<ToolbarPlugin />
 				<HistoryPlugin />
 				<InnerContainer>
 					<div className={styles.subjectContainer}>
 						<label>Subject:</label>
-						{readOnly?
-						<span>{subject}</span>:
-						<input
-							type="text"
-							value={subject}
-							onChange={(e) => {onChangeSubject(e.target.value)}}
-						/>}
+						{readOnly ? (
+							<span>{subject}</span>
+						) : (
+							<input
+								type="text"
+								value={subject}
+								onChange={(e) => {
+									onChangeSubject(e.target.value);
+								}}
+							/>
+						)}
 					</div>
 					<RichTextPlugin
-						contentEditable={<ContentEditable className={styles.bodyContainer} />}
+						contentEditable={
+							<ContentEditable className={styles.bodyContainer} />
+						}
 						placeholder={placeholderEl}
 						ErrorBoundary={LexicalErrorBoundary}
 					/>

@@ -1,6 +1,8 @@
 import {
 	createSelector,
+	createAction,
 	createEntityAdapter,
+	Action,
 	PayloadAction,
 	Dictionary,
 } from "@reduxjs/toolkit";
@@ -16,8 +18,7 @@ import {
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
-import { selectWorkingGroupName } from "./groups";
-import { Member, selectMemberEntities } from "./members";
+import { selectMemberEntities, Member } from "./members";
 
 export const fields = {
 	id: { label: "id", type: FieldType.NUMERIC },
@@ -82,6 +83,7 @@ const ballotsAdapter = createEntityAdapter<Ballot>();
 const initialState = {
 	ballotSeries: ballotSeriesAdapter.getInitialState(),
 	ballots: ballotsAdapter.getInitialState(),
+	groupName: null as string | null
 };
 
 const selectId = (entity: RecentBallotSeriesParticipation) => entity.SAPIN;
@@ -98,6 +100,27 @@ const slice = createAppTableDataSlice({
 		setBallots(state, action: PayloadAction<Ballot[]>) {
 			ballotsAdapter.setAll(state.ballots, action.payload);
 		},
+	},
+	extraReducers: (builder, dataAdapter) => {
+		builder
+			.addMatcher(
+				(action: Action) => action.type === getPending.toString(),
+				(state, action: ReturnType<typeof getPending>) => {
+					const { groupName } = action.payload;
+					if (groupName !== state.groupName) {
+						dataAdapter.removeAll(state);
+						state.valid = false;
+					}
+					state.groupName = groupName;
+				}
+			)
+			.addMatcher(
+				(action: Action) => action.type === clearBallotParticipation.toString(),
+				(state) => {
+					dataAdapter.removeAll(state);
+					state.valid = false;
+				}
+			);
 	},
 });
 
@@ -261,13 +284,16 @@ export const ballotParticipationSelectors = getAppTableDataSelectors(
  */
 
 const {
-	getPending,
 	getSuccess,
 	getFailure,
 	setBallotSeries,
 	setBallots,
 	setOne,
 } = slice.actions;
+
+// Overload getPending() with one that sets groupName
+const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
+export const clearBallotParticipation = createAction(dataSet + "/clear");
 
 export const ballotParticipationActions = slice.actions;
 
@@ -287,14 +313,14 @@ function validResponse(
 }
 
 export const loadBallotParticipation =
-	(): AppThunk => async (dispatch, getState) => {
+	(groupName: string): AppThunk => async (dispatch, getState) => {
 		const state = getState();
-		const loading = selectBallotParticipationState(state).loading;
-		if (loading) return;
-		const groupName = selectWorkingGroupName(state);
-		if (!groupName) return;
+		const {loading, groupName: currentGroupName} = selectBallotParticipationState(state);
+		if (loading && currentGroupName === groupName) {
+			return;
+		}
 		const url = `/api/${groupName}/ballotParticipation`;
-		dispatch(getPending());
+		dispatch(getPending({groupName}));
 		let response: any;
 		try {
 			response = await fetcher.get(url);

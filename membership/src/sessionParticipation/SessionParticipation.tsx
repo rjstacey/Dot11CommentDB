@@ -36,6 +36,8 @@ import {
 	attendancesActions,
 	type MemberAttendances,
 	type SessionAttendanceSummary,
+	clearAttendances,
+	selectAttendancesGroupName,
 } from "../store/sessionParticipation";
 import { type Session } from "../store/sessions";
 
@@ -229,12 +231,9 @@ const tableColumns: ColumnProperties[] = [
 
 function Attendances() {
 	const dispatch = useAppDispatch();
-	const { valid, selected } = useAppSelector(selectAttendancesState);
+	const { selected } = useAppSelector(selectAttendancesState);
 	const sessions = useAppSelector(selectAttendanceSessions);
-
-	React.useEffect(() => {
-		if (!valid) dispatch(loadAttendances());
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+	const groupName = useAppSelector(selectAttendancesGroupName);
 
 	const columns = React.useMemo(() => {
 		return tableColumns.concat(
@@ -272,7 +271,7 @@ function Attendances() {
 		);
 	}, [sessions]);
 
-	const refresh = () => dispatch(loadAttendances());
+	const refresh = () => dispatch(groupName? loadAttendances(groupName): clearAttendances());
 
 	return (
 		<>

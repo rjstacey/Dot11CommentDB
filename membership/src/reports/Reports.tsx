@@ -8,7 +8,7 @@ import TopRow from "../components/TopRow";
 import type { Dictionary, EntityId } from "@reduxjs/toolkit";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
-	selectMembersState,
+	selectMembersGroupName,
 	selectActiveMembers,
 	loadMembers,
 	type Member,
@@ -248,7 +248,7 @@ const reportsList = Object.keys(reports) as (keyof typeof reports)[];
 
 function Reports() {
 	const dispatch = useAppDispatch();
-	const { valid } = useAppSelector(selectMembersState);
+	const groupName = useAppSelector(selectMembersGroupName);
 	const members = useAppSelector(selectActiveMembers);
 	const sessionEntities = useAppSelector(selectSessionEntities);
 	const sessionIds = useAppSelector(selectSessionIds);
@@ -259,11 +259,11 @@ function Reports() {
 		null
 	);
 
-	const load = () => dispatch(loadMembers());
-
-	React.useEffect(() => {
-		if (!valid) load();
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+	const refresh = () => {
+		if (groupName) {
+			dispatch(loadMembers(groupName));
+		}
+	}
 
 	const tableData: TableData | null = React.useMemo(() => {
 		if (!report) return null;
@@ -293,7 +293,7 @@ function Reports() {
 	return (
 		<>
 			<TopRow>
-				<ActionButton name="refresh" title="Refresh" onClick={load} />
+				<ActionButton name="refresh" title="Refresh" onClick={refresh} />
 			</TopRow>
 			<Body>
 				<ReportSelectCol>
