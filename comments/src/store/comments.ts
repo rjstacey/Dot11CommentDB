@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { createSelector, createAction } from '@reduxjs/toolkit';
-import type { PayloadAction, EntityId, Dictionary } from '@reduxjs/toolkit';
+import type { Action, PayloadAction, EntityId, Dictionary } from '@reduxjs/toolkit';
 import {
 	fetcher, setError,
 	createAppTableDataSlice, FieldType, getAppTableDataSelectors, isObject, FieldProperties,
@@ -10,7 +10,6 @@ import type { RootState, AppThunk } from '.';
 import { AccessLevel } from './user';
 import { 
 	updateBallotsLocal, 
-	ballotsActions,
 	selectBallotEntities, 
 	selectBallot, 
 	validBallotCommentsSummary, 
@@ -173,14 +172,21 @@ const slice = createAppTableDataSlice({
 	extraReducers: (builder, dataAdapter) => {
 		builder
 		.addMatcher(
-			(action) => action.type === ballotsActions.setCurrentBallot_id.toString(),
-			(state, action: ReturnType<typeof ballotsActions.setCurrentBallot_id>) => {
-				const id = action.payload;
-				if (state.ballot_id !== id) {
-					state.valid = false;
-					state.ballot_id = 0;
+			(action: Action) => action.type === getPending.toString(),
+			(state, action: ReturnType<typeof getPending>) => {
+				const {ballot_id} = action.payload;
+				if (ballot_id !== state.ballot_id) {
 					dataAdapter.removeAll(state);
+					state.valid = false;
 				}
+				state.ballot_id = ballot_id;
+			}
+		)
+		.addMatcher(
+			(action: Action) => action.type === clearComments.toString(),
+			(state) => {
+				dataAdapter.removeAll(state);
+				state.valid = false;
 			}
 		)
 		.addMatcher(
@@ -269,16 +275,18 @@ export const commentsActions = slice.actions;
 
 const {
 	setDetails,
-	getPending,
 	getSuccess,
 	getFailure,
 	addMany: localAddMany,
 	updateMany: localUpdateMany,
 	removeMany: localRemoveMany,
-	removeAll,
 	setSelected,
 	setUiProperties
 } = slice.actions;
+
+// Overload getPending() with one that sets ballot_id
+const getPending = createAction<{ ballot_id: number | null }>(dataSet + "/getPending");
+export const clearComments = createAction(dataSet + "/clear");
 
 const getCommit = createAction<CommentResolution[]>(dataSet + '/getCommit');
 const updateCommit = createAction<{comments: CommentResolution[]}>(dataSet + '/updateCommit');
@@ -319,7 +327,7 @@ function validGetResponse(response: any): response is CommentResolution[] {
 
 export const loadComments = (ballot_id: number): AppThunk =>
 	async (dispatch, getState) => {
-		dispatch(getPending());
+		dispatch(getPending({ballot_id}));
 		const url = `${baseCommentsUrl}/${ballot_id}`;
 		let response: any;
 		try {
@@ -335,7 +343,6 @@ export const loadComments = (ballot_id: number): AppThunk =>
 			return;
 		}
 		dispatch(getSuccess(response));
-		dispatch(setDetails({ballot_id}));
 	}
 
 export const getCommentUpdates = (): AppThunk =>
@@ -349,12 +356,6 @@ export const getCommentUpdates = (): AppThunk =>
 			effect: {url: `${baseCommentsUrl}/${ballot_id}`, method: 'GET', params: {modifiedSince: lastModified}},
 			commit: {type: getCommit.toString() /*dataSet + '/getCommit'*/},
 		}));
-	}
-
-export const clearComments = (): AppThunk =>
-	async (dispatch) => {
-		dispatch(removeAll());
-		dispatch(setDetails({ballot_id: 0}));
 	}
 
 type CommentUpdate = {

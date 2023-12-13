@@ -2,9 +2,6 @@ import { createSlice, createEntityAdapter, PayloadAction } from '@reduxjs/toolki
 import { fetcher, isObject, setError } from 'dot11-components';
 
 import type { RootState, AppThunk } from '.';
-import { clearBallots, loadBallots } from './ballots';
-import { clearMembers, loadMembers } from './members';
-import { clearEpolls } from './epolls';
 
 const GroupTypeLabels = {
 	c: 'Committee',
@@ -106,6 +103,14 @@ export const selectWorkingGroups = (state: RootState) => {
 	const {ids, entities} = selectGroupsState(state);
 	return ids.map(id => entities[id]!).filter(g => g.type === 'wg');
 }
+export const selectWorkingGroupByName = (
+	state: RootState,
+	groupName: string
+) => {
+	const groups = selectWorkingGroups(state);
+	return groups.find((g) => g.name === groupName);
+};
+
 export const selectWorkingGroupId = (state: RootState) => selectGroupsState(state).workingGroupId;
 export const selectWorkingGroup = (state: RootState) => {
 	const {workingGroupId, entities} = selectGroupsState(state);
@@ -140,7 +145,6 @@ const {
 	getPending,
 	getSuccess,
 	getFailure,
-	setWorkingGroupId: setWorkingGroupIdLocal
 } = slice.actions;
 
 const baseUrl = '/api/groups';
@@ -170,44 +174,4 @@ export const loadGroups = (groupName?: string): AppThunk<Group[]> =>
 				dispatch(setError('Unable to get groups', error));
 				return [];
 			});
-	}
-
-export const loadSubgroups = (): AppThunk =>
-	async (dispatch, getState) => {
-		const workingGroup = selectWorkingGroup(getState());
-		if (workingGroup)
-			dispatch(loadGroups(workingGroup.name));
-	}
-
-export const getGroups = (): AppThunk<Group[]> =>
-	async (dispatch, getState) => {
-		const state = getState();
-		const {valid, ids, entities} = selectGroupsState(state);
-		if (!valid)
-			return dispatch(loadGroups());
-		return ids.map(id => entities[id]!).filter(group => group.type === "wg");
-	}
-
-export const initGroups = (): AppThunk =>
-	async (dispatch) => {
-		dispatch(loadGroups());
-		dispatch(loadSubgroups());
-	}
-
-export const setWorkingGroupId = (workingGroupId: string | null): AppThunk<Group | undefined> =>
-	async (dispatch, getState) => {
-		const currentWorkingGroupId = selectWorkingGroupId(getState());
-		if (currentWorkingGroupId !== workingGroupId) {
-			dispatch(clearMembers());
-			dispatch(clearBallots());
-			dispatch(clearEpolls());
-			dispatch(setWorkingGroupIdLocal(workingGroupId));
-			if (workingGroupId) {
-				const groupName = selectWorkingGroupName(getState());
-				dispatch(loadGroups(groupName));
-				dispatch(loadMembers());
-				dispatch(loadBallots());
-			}
-		}
-		return workingGroupId? selectGroup(getState(), workingGroupId): undefined;
 	}

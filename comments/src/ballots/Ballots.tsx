@@ -1,50 +1,73 @@
-import React from 'react';
-import { Link, useNavigate } from "react-router-dom";
-import styled from '@emotion/styled';
+import React from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import styled from "@emotion/styled";
 
 import {
-	AppTable, SelectHeaderCell, SelectCell, TableColumnHeader, ShowFilters, TableViewSelector, TableColumnSelector, SplitPanel, Panel,
-	ActionButton, ButtonGroup,
+	AppTable,
+	SelectHeaderCell,
+	SelectCell,
+	TableColumnHeader,
+	ShowFilters,
+	TableViewSelector,
+	TableColumnSelector,
+	SplitPanel,
+	Panel,
+	ActionButton,
+	ButtonGroup,
 	displayDateRange,
-	ColumnProperties, TablesConfig, TableConfig, HeaderCellRendererProps, displayDate
-} from 'dot11-components';
+	ColumnProperties,
+	TablesConfig,
+	TableConfig,
+	HeaderCellRendererProps,
+	displayDate,
+} from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { AccessLevel } from '../store/user';
-import { selectWorkingGroup, selectWorkingGroupName } from '../store/groups';
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { AccessLevel } from "../store/user";
+import { selectWorkingGroupName } from "../store/groups";
 import {
 	fields,
 	loadBallots,
+	clearBallots,
 	BallotType,
 	selectBallotsState,
 	selectBallotsAccess,
 	ballotsSelectors,
 	ballotsActions,
-	SyncedBallot, Ballot
-} from '../store/ballots';
+	SyncedBallot,
+	Ballot,
+} from "../store/ballots";
 
-import TopRow from '../components/TopRow';
-import BallotDetail, {BallotAddDropdown as BallotAdd} from './BallotDetail';
+import TopRow from "../components/TopRow";
+import BallotDetail, { BallotAddDropdown as BallotAdd } from "./BallotDetail";
 
-const renderHeaderGroupProject = (props: HeaderCellRendererProps) =>
+const renderHeaderGroupProject = (props: HeaderCellRendererProps) => (
 	<>
-		<TableColumnHeader {...props} dataKey='GroupName' {...fields.GroupName} />
-		<TableColumnHeader {...props} dataKey='Project' {...fields.Project} />
+		<TableColumnHeader
+			{...props}
+			dataKey="GroupName"
+			{...fields.GroupName}
+		/>
+		<TableColumnHeader {...props} dataKey="Project" {...fields.Project} />
 	</>
+);
 
-const renderCellGroupProject = ({rowData}: {rowData: SyncedBallot}) =>
+const renderCellGroupProject = ({ rowData }: { rowData: SyncedBallot }) => (
 	<>
 		<NoWrapItem>{rowData.GroupName}</NoWrapItem>
 		<NoWrapItem>{rowData.Project}</NoWrapItem>
 	</>
+);
 
-const renderHeaderStartEnd = (props: HeaderCellRendererProps) =>
+const renderHeaderStartEnd = (props: HeaderCellRendererProps) => (
 	<>
-		<TableColumnHeader {...props} dataKey='Start' {...fields.Start} />
-		<TableColumnHeader {...props} dataKey='End' {...fields.End} />
+		<TableColumnHeader {...props} dataKey="Start" {...fields.Start} />
+		<TableColumnHeader {...props} dataKey="End" {...fields.End} />
 	</>
+);
 
-const renderCellStartEnd = ({rowData}: {rowData: SyncedBallot}) => displayDateRange(rowData.Start || '', rowData.End || '');
+const renderCellStartEnd = ({ rowData }: { rowData: SyncedBallot }) =>
+	displayDateRange(rowData.Start || "", rowData.End || "");
 
 const NoWrapItem = styled.div`
 	text-overflow: ellipsis;
@@ -52,158 +75,260 @@ const NoWrapItem = styled.div`
 	overflow: hidden;
 `;
 
-const renderHeaderTypeStage = (props: HeaderCellRendererProps) =>
+const renderHeaderTypeStage = (props: HeaderCellRendererProps) => (
 	<>
-		<TableColumnHeader {...props} dataKey='Type' {...fields.Type} />
-		<TableColumnHeader {...props} dataKey='Stage' {...fields.Stage} />
+		<TableColumnHeader {...props} dataKey="Type" {...fields.Type} />
+		<TableColumnHeader {...props} dataKey="Stage" {...fields.Stage} />
 	</>
+);
 
-const renderCellTypeStage = ({rowData}: {rowData: SyncedBallot}) =>
+const renderCellTypeStage = ({ rowData }: { rowData: SyncedBallot }) => (
 	<>
 		<NoWrapItem>{fields.Type.dataRenderer(rowData.Type)}</NoWrapItem>
-		<NoWrapItem>{ballotsSelectors.getField(rowData, 'Stage')}</NoWrapItem>
+		<NoWrapItem>{ballotsSelectors.getField(rowData, "Stage")}</NoWrapItem>
 	</>
+);
 
-const renderHeaderVotingPool = (props: HeaderCellRendererProps) =>
+const renderHeaderVotingPool = (props: HeaderCellRendererProps) => (
 	<>
-		<TableColumnHeader {...props} dataKey='VotingPoolID' {...fields.VotingPoolID} />
-		<TableColumnHeader {...props} dataKey='PrevBallotID' {...fields.PrevBallotID} />
+		<TableColumnHeader
+			{...props}
+			dataKey="VotingPoolID"
+			{...fields.VotingPoolID}
+		/>
+		<TableColumnHeader
+			{...props}
+			dataKey="PrevBallotID"
+			{...fields.PrevBallotID}
+		/>
 	</>
+);
 
 const GroupNameLink = (props: React.ComponentProps<typeof Link>) => {
-	const {to, ...rest} = props;
+	const { to, ...rest } = props;
 	const groupName = useAppSelector(selectWorkingGroupName);
-	return <Link to={`/${groupName}/${to}`} {...rest} />
-}
+	return <Link to={`/${groupName}/${to}`} {...rest} />;
+};
 
-const renderCellVotingPool = ({rowData, access}: {rowData: SyncedBallot, access?: number}) => {
+const renderCellVotingPool = ({
+	rowData,
+	access,
+}: {
+	rowData: SyncedBallot;
+	access?: number;
+}) => {
 	const type = rowData.Type;
 	const isRecirc = rowData.IsRecirc;
 	const votingPoolSize = rowData.Results?.VotingPoolSize || 0;
 	const votersStr = `${votingPoolSize} voters`;
 	if ((type === BallotType.WG && !isRecirc) || type === BallotType.Motion) {
-		return (typeof access === 'number' && access >= AccessLevel.admin)?
-			<GroupNameLink to={`/voters/${rowData.BallotID}`}>{votersStr}</GroupNameLink>:
-			votersStr;
+		return typeof access === "number" && access >= AccessLevel.admin ? (
+			<GroupNameLink to={`/voters/${rowData.BallotID}`}>
+				{votersStr}
+			</GroupNameLink>
+		) : (
+			votersStr
+		);
 	}
 	if (type === BallotType.WG || type === BallotType.SA)
 		return rowData.PrevBallotID;
-	return '';
-}
+	return "";
+};
 
-export function renderResultsSummary({rowData, access}: {rowData: Ballot, access?: number}) {
+export function renderResultsSummary({
+	rowData,
+	access,
+}: {
+	rowData: Ballot;
+	access?: number;
+}) {
 	const results = rowData.Results;
-	let str = '';
+	let str = "";
 	if (rowData.Type === BallotType.CC) {
 		const commenters = results?.Commenters || 0;
 		str = `${commenters} commenters`;
-	}
-	else {
+	} else {
 		if (results && results.TotalReturns) {
 			str = `${results.Approve}/${results.Disapprove}/${results.Abstain}`;
-			const p = 100*results.Approve/(results.Approve+results.Disapprove);
-			if (!isNaN(p))
-				str += ` (${p.toFixed(1)}%)`;
+			const p =
+				(100 * results.Approve) /
+				(results.Approve + results.Disapprove);
+			if (!isNaN(p)) str += ` (${p.toFixed(1)}%)`;
 		}
-		if (!str)
-			str = 'None';
+		if (!str) str = "None";
 	}
-	return (typeof access !== 'undefined' && access >= AccessLevel.admin)?
-		<GroupNameLink to={`/results/${rowData.BallotID}`}>{str}</GroupNameLink>:
-		str;
+	return typeof access !== "undefined" && access >= AccessLevel.admin ? (
+		<GroupNameLink to={`/results/${rowData.BallotID}`}>{str}</GroupNameLink>
+	) : (
+		str
+	);
 }
 
-export function renderCommentsSummary({rowData}: {rowData: Ballot}) {
+export function renderCommentsSummary({ rowData }: { rowData: Ballot }) {
 	const comments = rowData.Comments;
 	const str =
-		(comments && comments.Count > 0)
+		comments && comments.Count > 0
 			? `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
-			: 'None';
-	return <GroupNameLink to={`/comments/${rowData.BallotID}`}>{str}</GroupNameLink>
+			: "None";
+	return (
+		<GroupNameLink to={`/comments/${rowData.BallotID}`}>
+			{str}
+		</GroupNameLink>
+	);
 }
 
 const tableColumns: ColumnProperties[] = [
-	{key: '__ctrl__',
-		width: 30, flexGrow: 0, flexShrink: 0,
-		headerRenderer: p => <SelectHeaderCell {...p} />,
-		cellRenderer: p => 
+	{
+		key: "__ctrl__",
+		width: 30,
+		flexGrow: 0,
+		flexShrink: 0,
+		headerRenderer: (p) => <SelectHeaderCell {...p} />,
+		cellRenderer: (p) => (
 			<SelectCell
 				selectors={ballotsSelectors}
 				actions={ballotsActions}
 				{...p}
-			/>},
-	{key: 'Group/Project',
-		label: 'Group/Project',
+			/>
+		),
+	},
+	{
+		key: "Group/Project",
+		label: "Group/Project",
 		headerRenderer: renderHeaderGroupProject,
 		cellRenderer: renderCellGroupProject,
-		width: 130,	flexShrink: 1, flexGrow: 1},
-	{key: 'GroupName',
-		label: 'Group',
-		width: 100,	flexShrink: 1, flexGrow: 1},
-	{key: 'Project',
-		label: 'Project',
-		width: 100,	flexShrink: 1, flexGrow: 1,
-		dropdownWidth: 200},
-	{key: 'BallotID',
-		label: 'Ballot',
-		width: 100,	flexShrink: 1, flexGrow: 1,
-		dropdownWidth: 200},
-	{key: 'Type/Stage',
-		label: 'Type/Stage',
+		width: 130,
+		flexShrink: 1,
+		flexGrow: 1,
+	},
+	{
+		key: "GroupName",
+		label: "Group",
+		width: 100,
+		flexShrink: 1,
+		flexGrow: 1,
+	},
+	{
+		key: "Project",
+		label: "Project",
+		width: 100,
+		flexShrink: 1,
+		flexGrow: 1,
+		dropdownWidth: 200,
+	},
+	{
+		key: "BallotID",
+		label: "Ballot",
+		width: 100,
+		flexShrink: 1,
+		flexGrow: 1,
+		dropdownWidth: 200,
+	},
+	{
+		key: "Type/Stage",
+		label: "Type/Stage",
 		headerRenderer: renderHeaderTypeStage,
 		cellRenderer: renderCellTypeStage,
-		width: 120, flexShrink: 1, flexGrow: 1},
-	{key: 'Type',
-		...fields.Type,
-		width: 100,	flexShrink: 1, flexGrow: 1},
-	{key: 'Stage',
-		label: 'Stage',
-		width: 100,	flexShrink: 1, flexGrow: 1},
-	{key: 'Start/End',
-		label: 'Start/End',
+		width: 120,
+		flexShrink: 1,
+		flexGrow: 1,
+	},
+	{ key: "Type", ...fields.Type, width: 100, flexShrink: 1, flexGrow: 1 },
+	{ key: "Stage", label: "Stage", width: 100, flexShrink: 1, flexGrow: 1 },
+	{
+		key: "Start/End",
+		label: "Start/End",
 		dataRenderer: displayDate,
 		headerRenderer: renderHeaderStartEnd,
 		cellRenderer: renderCellStartEnd,
-		width: 120, flexGrow: 1, flexShrink: 1},
-	{key: 'Start',
-		label: 'Start',
+		width: 120,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{
+		key: "Start",
+		label: "Start",
 		dataRenderer: displayDate,
-		width: 86, flexGrow: 1, flexShrink: 1,
-		dropdownWidth: 300},
-	{key: 'End',
-		label: 'End',
+		width: 86,
+		flexGrow: 1,
+		flexShrink: 1,
+		dropdownWidth: 300,
+	},
+	{
+		key: "End",
+		label: "End",
 		dataRenderer: displayDate,
-		width: 86, flexGrow: 1, flexShrink: 1,
-		dropdownWidth: 300},
-	{key: 'Document',
+		width: 86,
+		flexGrow: 1,
+		flexShrink: 1,
+		dropdownWidth: 300,
+	},
+	{
+		key: "Document",
 		...fields.Document,
-		width: 150,	flexShrink: 1, flexGrow: 1,
-		dropdownWidth: 300},
-	{key: 'Topic',
-		...fields.Topic,
-		width: 300,	flexShrink: 1, flexGrow: 1},
-	{key: 'EpollNum',
+		width: 150,
+		flexShrink: 1,
+		flexGrow: 1,
+		dropdownWidth: 300,
+	},
+	{ key: "Topic", ...fields.Topic, width: 300, flexShrink: 1, flexGrow: 1 },
+	{
+		key: "EpollNum",
 		...fields.EpollNum,
-		width: 80,	flexGrow: 1, flexShrink: 1,
-		dropdownWidth: 200},
-	{key: 'VotingPool/PrevBallot',
-		label: 'Voting pool/Prev ballot',
-		width: 100, flexShrink: 1, flexGrow: 1,
+		width: 80,
+		flexGrow: 1,
+		flexShrink: 1,
+		dropdownWidth: 200,
+	},
+	{
+		key: "VotingPool/PrevBallot",
+		label: "Voting pool/Prev ballot",
+		width: 100,
+		flexShrink: 1,
+		flexGrow: 1,
 		headerRenderer: renderHeaderVotingPool,
-		cellRenderer: renderCellVotingPool},
-	{key: 'Results',
+		cellRenderer: renderCellVotingPool,
+	},
+	{
+		key: "Results",
 		...fields.Results,
-		width: 150,	flexShrink: 1, flexGrow: 1,
-		cellRenderer: renderResultsSummary},
-	{key: 'Comments',
+		width: 150,
+		flexShrink: 1,
+		flexGrow: 1,
+		cellRenderer: renderResultsSummary,
+	},
+	{
+		key: "Comments",
 		...fields.Comments,
-		width: 100,	flexShrink: 1, flexGrow: 1,
-		cellRenderer: renderCommentsSummary},
+		width: 100,
+		flexShrink: 1,
+		flexGrow: 1,
+		cellRenderer: renderCommentsSummary,
+	},
 ];
 
 const defaultTablesColumns = {
-	'Basic': ['__ctrl__', 'Group/Project', 'BallotID', 'Start/End', 'Document', 'Results', 'Comments'],
-	'Detailed': ['__ctrl__', 'Group/Project', 'BallotID', 'Type/Stage', 'Start/End', 'Document', 'Topic', 'VotingPool/PrevBallot', 'Results', 'Comments']
+	Basic: [
+		"__ctrl__",
+		"Group/Project",
+		"BallotID",
+		"Start/End",
+		"Document",
+		"Results",
+		"Comments",
+	],
+	Detailed: [
+		"__ctrl__",
+		"Group/Project",
+		"BallotID",
+		"Type/Stage",
+		"Start/End",
+		"Document",
+		"Topic",
+		"VotingPool/PrevBallot",
+		"Results",
+		"Comments",
+	],
 };
 
 let defaultTablesConfig: TablesConfig = {};
@@ -211,104 +336,123 @@ let tableView: keyof typeof defaultTablesColumns;
 for (tableView in defaultTablesColumns) {
 	const tableConfig: TableConfig = {
 		fixed: false,
-		columns: {}
-	}
+		columns: {},
+	};
 	for (const column of tableColumns) {
 		const key = column.key;
 		tableConfig.columns[key] = {
-			unselectable: key.startsWith('__'),
+			unselectable: key.startsWith("__"),
 			shown: defaultTablesColumns[tableView].includes(key),
-			width: column.width || 200
-		}
+			width: column.width || 200,
+		};
 	}
 	defaultTablesConfig[tableView] = tableConfig;
 }
 
-function getRow({rowIndex, ids, entities}) {
+function getRow({ rowIndex, ids, entities }) {
 	const currData = entities[ids[rowIndex]];
-	if (rowIndex === 0)
-		return currData;
-	const prevData = entities[ids[rowIndex-1]];
-	if (currData.Project !== prevData.Project || currData.GroupName !== prevData.GroupName)
+	if (rowIndex === 0) return currData;
+	const prevData = entities[ids[rowIndex - 1]];
+	if (
+		currData.Project !== prevData.Project ||
+		currData.GroupName !== prevData.GroupName
+	)
 		return currData;
 	// Previous row holds the same comment
 	return {
 		...currData,
-		GroupName: '',
-		Project: '',
-	}
+		GroupName: "",
+		Project: "",
+	};
 }
 
 function Ballots() {
-
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
+	const { groupName } = useParams();
 
 	const access = useAppSelector(selectBallotsAccess);
-	const wg = useAppSelector(selectWorkingGroup)!;
-	const {loading, selected} = useAppSelector(selectBallotsState);
-	const {isSplit} = useAppSelector(ballotsSelectors.selectCurrentPanelConfig);
+	const { loading, selected } = useAppSelector(selectBallotsState);
+	const { isSplit } = useAppSelector(
+		ballotsSelectors.selectCurrentPanelConfig
+	);
 
-	const load = React.useCallback(() => {
-		dispatch(loadBallots());
-	}, [dispatch]);
+	const refresh = () =>
+		dispatch(groupName ? loadBallots(groupName) : clearBallots());
 
-	const showEpolls = () => navigate(`/${wg.name}/epolls/`);
+	const showEpolls = () => navigate(`/${groupName}/epolls/`);
 
 	const columns = React.useMemo(() => {
-		return tableColumns
-			.slice()
-			.map(col => {
-				let newCol: ColumnProperties = col;
-				if (col.key === 'Results') {
-					newCol = {
-						...col,
-						cellRenderer: (props) => renderResultsSummary({...props, access})
-					}
-				}
-				if (col.key === 'VotingPool/PrevBallot') {
-					newCol = {
-						...col,
-						cellRenderer: (props) => renderCellVotingPool({...props, access})
-					}
-				}
-				return newCol;
-			})
+		return tableColumns.slice().map((col) => {
+			let newCol: ColumnProperties = col;
+			if (col.key === "Results") {
+				newCol = {
+					...col,
+					cellRenderer: (props) =>
+						renderResultsSummary({ ...props, access }),
+				};
+			}
+			if (col.key === "VotingPool/PrevBallot") {
+				newCol = {
+					...col,
+					cellRenderer: (props) =>
+						renderCellVotingPool({ ...props, access }),
+				};
+			}
+			return newCol;
+		});
+	}, [access]);
 
-	}, [access])
 	return (
 		<>
-			<TopRow style={{justifyContent: 'flex-end'}}>
+			<TopRow style={{ justifyContent: "flex-end" }}>
 				<ButtonGroup>
 					<div>Table view</div>
-					<div style={{display: 'flex'}}>
+					<div style={{ display: "flex" }}>
 						<TableViewSelector
 							selectors={ballotsSelectors}
 							actions={ballotsActions}
 						/>
-						<TableColumnSelector 
+						<TableColumnSelector
 							selectors={ballotsSelectors}
 							actions={ballotsActions}
 							columns={tableColumns}
 						/>
-						{access >= AccessLevel.rw && 
+						{access >= AccessLevel.rw && (
 							<ActionButton
-								name='book-open'
-								title='Show detail'
+								name="book-open"
+								title="Show detail"
 								isActive={isSplit}
-								onClick={() => dispatch(ballotsActions.setPanelIsSplit({isSplit: !isSplit}))} 
-							/>}
+								onClick={() =>
+									dispatch(
+										ballotsActions.setPanelIsSplit({
+											isSplit: !isSplit,
+										})
+									)
+								}
+							/>
+						)}
 					</div>
 				</ButtonGroup>
-				{access >= AccessLevel.admin &&
+				{access >= AccessLevel.admin && (
 					<ButtonGroup>
 						<div>Edit</div>
-						<div style={{display: 'flex'}}>
-							<ActionButton name='import' title='Import ePoll' onClick={showEpolls} />
+						<div style={{ display: "flex" }}>
+							<ActionButton
+								name="import"
+								title="Import ePoll"
+								onClick={showEpolls}
+							/>
 							<BallotAdd />
 						</div>
-					</ButtonGroup>}
-				<ActionButton name='refresh' title='Refresh' onClick={load} disabled={loading} />
+					</ButtonGroup>
+				)}
+				<ActionButton
+					name="refresh"
+					title="Refresh"
+					onClick={refresh}
+					disabled={loading}
+				/>
 			</TopRow>
 
 			<ShowFilters
@@ -317,10 +461,7 @@ function Ballots() {
 				fields={fields}
 			/>
 
-			<SplitPanel
-				selectors={ballotsSelectors}
-				actions={ballotsActions}
-			>
+			<SplitPanel selectors={ballotsSelectors} actions={ballotsActions}>
 				<Panel>
 					<AppTable
 						defaultTablesConfig={defaultTablesConfig}
@@ -332,14 +473,12 @@ function Ballots() {
 						actions={ballotsActions}
 					/>
 				</Panel>
-				<Panel style={{overflow: 'auto'}}>
-					<BallotDetail
-						key={selected.join()}
-					/>
+				<Panel style={{ overflow: "auto" }}>
+					<BallotDetail key={selected.join()} />
 				</Panel>
 			</SplitPanel>
 		</>
-	)
+	);
 }
 
 export default Ballots;

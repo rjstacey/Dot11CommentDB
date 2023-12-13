@@ -1,4 +1,4 @@
-import type { PayloadAction } from '@reduxjs/toolkit';
+import { createAction, Action } from '@reduxjs/toolkit';
 
 import {
 	fetcher,
@@ -85,21 +85,25 @@ const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	initialState,
-	reducers: {
-  		setDetails(state, action: PayloadAction<ExtraState>) {
-			state.ballot_id = action.payload.ballot_id;
-		},
-	},
+	reducers: {},
 	extraReducers: (builder, dataAdapter) => {
 		builder
 		.addMatcher(
-			(action) => action.type === 'ballots/setCurrentId',
-			(state, action) => {
-				const id = action.payload;
-				if (state.ballot_id !== id) {
-					state.valid = false;
+			(action: Action) => action.type === getPending.toString(),
+			(state, action: ReturnType<typeof getPending>) => {
+				const {ballot_id} = action.payload;
+				if (ballot_id !== state.ballot_id) {
 					dataAdapter.removeAll(state);
+					state.valid = false;
 				}
+				state.ballot_id = ballot_id;
+			}
+		)
+		.addMatcher(
+			(action: Action) => action.type === clearResults.toString(),
+			(state) => {
+				dataAdapter.removeAll(state);
+				state.valid = false;
 			}
 		)
 	}
@@ -114,12 +118,14 @@ export default slice;
 export const resultsActions = slice.actions;
 
 const {
-	getPending,
 	getSuccess,
 	getFailure,
-	setDetails,
 	upsertTableColumns
 } = slice.actions;
+
+// Overload getPending() with one that sets groupName
+const getPending = createAction<{ ballot_id: number | null }>(dataSet + "/getPending");
+export const clearResults = createAction(dataSet + "/clear");
 
 export {upsertTableColumns};
 
@@ -139,7 +145,7 @@ function validResponse(response: any): response is {ballot: Ballot; results: Res
 
 export const loadResults = (ballot_id: number): AppThunk =>
 	async (dispatch, getState) => {
-		dispatch(getPending());
+		dispatch(getPending({ballot_id}));
 		const url = `${baseUrl}/${ballot_id}`;
 		let response: any;
 		try {
@@ -155,10 +161,7 @@ export const loadResults = (ballot_id: number): AppThunk =>
 			return;
 		}
 		dispatch(getSuccess(response.results));
-		dispatch(setDetails({ballot_id: response.ballot.id}));
 	}
-
-export const clearResults = slice.actions.removeAll;
 
 export const exportResults  = (ballot_id: number, forSeries?: boolean): AppThunk =>
 	async (dispatch) => {

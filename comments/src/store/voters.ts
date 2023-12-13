@@ -1,4 +1,4 @@
-import type { EntityId, PayloadAction } from '@reduxjs/toolkit';
+import { createAction, EntityId, Action } from '@reduxjs/toolkit';
 import {
 	fetcher,
 	setError,
@@ -27,6 +27,11 @@ export type VoterCreate = {
 	SAPIN: Voter["SAPIN"];
 	Excused?: Voter["Excused"];
 	Status: Voter["Status"];
+}
+
+type VoterBallotUpdate = {
+	id: number;
+	Voters: number;
 }
 
 export const voterExcusedOptions = [
@@ -70,11 +75,27 @@ const slice = createAppTableDataSlice({
 	fields,
 	sortComparer,
 	initialState,
-	reducers: {
-		setDetails(state, action: PayloadAction<Partial<ExtraState>>) {
-			const changes = action.payload;
-			return {...state, ...changes};
-		}
+	reducers: {},
+	extraReducers: (builder, dataAdapter) => {
+		builder
+			.addMatcher(
+				(action: Action) => action.type === getPending.toString(),
+				(state, action: ReturnType<typeof getPending>) => {
+					const {ballot_id} = action.payload;
+					if (ballot_id !== state.ballot_id) {
+						dataAdapter.removeAll(state);
+						state.valid = false;
+					}
+					state.ballot_id = ballot_id;
+				}
+			)
+			.addMatcher(
+				(action: Action) => action.type === clearVoters.toString(),
+				(state) => {
+					dataAdapter.removeAll(state);
+					state.valid = false;
+				}
+			)
 	}
 });
 
@@ -87,21 +108,18 @@ export default slice;
 export const votersActions = slice.actions;
 
 const {
-	setDetails,
-	getPending,
 	getSuccess,
 	getFailure,
 	removeMany,
-	removeAll,
 	setMany,
 } = slice.actions;
 
+// Overload getPending() with one that sets ballot_id
+const getPending = createAction<{ ballot_id: number | null }>(dataSet + "/getPending");
+export const clearVoters = createAction(dataSet + "/clear");
+
 const baseUrl = '/api/voters';
 
-type VoterBallotUpdate = {
-	id: number;
-	Voters: number;
-}
 
 function validBallotsUpdate(ballots: any) {
 	return Array.isArray(ballots) && ballots.every(b => typeof b.id === 'number' && typeof b.Voters === 'number');
@@ -125,9 +143,7 @@ export const loadVoters = (ballot_id: number): AppThunk =>
 	async (dispatch, getState) => {
 		if (selectVotersState(getState()).loading)
 			return;
-		dispatch(getPending());
-		dispatch(removeAll());
-		dispatch(setDetails({ballot_id}));
+		dispatch(getPending({ballot_id}));
 		const url = `${baseUrl}/${ballot_id}`;
 		let response: any;
 		try {
@@ -143,12 +159,6 @@ export const loadVoters = (ballot_id: number): AppThunk =>
 		dispatch(getSuccess(response));
 	}
 
-export const clearVoters = (): AppThunk =>
-	async (dispatch) => {
-		dispatch(removeAll());
-		dispatch(setDetails({ballot_id: null}));
-	}
-
 export const deleteVoters = (ids: EntityId[]): AppThunk =>
 	async (dispatch) => {
 		dispatch(removeMany(ids));
@@ -162,7 +172,7 @@ export const deleteVoters = (ids: EntityId[]): AppThunk =>
 
 export const votersFromSpreadsheet = (ballot_id: number, file: File): AppThunk =>
 	async (dispatch) => {
-		dispatch(getPending());
+		dispatch(getPending({ballot_id}));
 		const url = `${baseUrl}/${ballot_id}/upload`;
 		let response: any;
 		try {
@@ -182,7 +192,7 @@ export const votersFromSpreadsheet = (ballot_id: number, file: File): AppThunk =
 
 export const votersFromMembersSnapshot = (ballot_id: number, date: string): AppThunk =>
 	async (dispatch) => {
-		dispatch(getPending());
+		dispatch(getPending({ballot_id}));
 		const url = `${baseUrl}/${ballot_id}/membersSnapshot`;
 		let response: any;
 		try {

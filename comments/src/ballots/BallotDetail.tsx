@@ -25,7 +25,6 @@ import {
 	updateBallot,
 	addBallot,
 	deleteBallots,
-	loadBallots,
 	setCurrentGroupProject,
 	setUiProperties,
 	setSelectedBallots,
@@ -346,11 +345,6 @@ class _BallotDetail extends React.Component<BallotDetailProps, BallotDetailState
 
 	triggerSave: ReturnType<typeof debounce>;
 
-	componentDidMount() {
-		if (!this.props.ballotsValid)
-			this.props.loadBallots();
-	}
-
 	componentWillUnmount() {
 		this.triggerSave.flush();
 	}
@@ -464,7 +458,6 @@ const connector = connect(
 	(state: RootState) => {
 		const ballotsState = selectBallotsState(state);
 		return {
-			ballotsValid: ballotsState.valid,
 			ballots: ballotsState.entities,
 			loading: ballotsState.loading,
 			selected: ballotsState.selected,
@@ -472,7 +465,6 @@ const connector = connect(
 		}
 	},
 	{
-		loadBallots,
 		addBallot,
 		setCurrentGroupProject,
 		updateBallot,

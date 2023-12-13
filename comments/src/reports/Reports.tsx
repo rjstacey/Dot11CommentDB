@@ -7,7 +7,6 @@ import TopRow from '../components/TopRow';
 import PathBallotSelector from '../components/PathBallotSelector';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectCurrentBallot_id } from '../store/ballots';
 import {
 	loadComments,
 	clearComments,
@@ -244,14 +243,6 @@ function Reports() {
 
 	const {ids, entities} = useAppSelector(selectCommentsState);
 	const commentsBallot_id = useAppSelector(selectCommentsBallot_id);
-	const currentBallot_id = useAppSelector(selectCurrentBallot_id);
-
-	React.useEffect(() => {
-		if (currentBallot_id && commentsBallot_id !== currentBallot_id)
-			dispatch(loadComments(currentBallot_id));
-		if (!currentBallot_id && commentsBallot_id)
-			dispatch(clearComments());
-	}, [dispatch, currentBallot_id, commentsBallot_id]);
 
 	const refresh = () => dispatch(commentsBallot_id? loadComments(commentsBallot_id): clearComments());
 

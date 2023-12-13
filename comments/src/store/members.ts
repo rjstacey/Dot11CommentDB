@@ -3,7 +3,6 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { fetcher, isObject, setError } from 'dot11-components';
 import type { RootState, AppThunk } from '.';
-import { selectWorkingGroupName } from './groups';
 
 export type UserMember = {
 	SAPIN: number;
@@ -12,18 +11,32 @@ export type UserMember = {
 	Email?: string;
 }
 
+type ExtraState = {
+	valid: boolean;
+	loading: boolean;
+	groupName: string | null;
+};
+
 const selectId = (user: UserMember) => user.SAPIN;
 const dataAdapter = createEntityAdapter({selectId});
+const initialState = dataAdapter.getInitialState<ExtraState>({
+	valid: false,
+	loading: false,
+	groupName: null,
+});
 const dataSet = 'members';
 const slice = createSlice({
 	name: dataSet,
-	initialState: dataAdapter.getInitialState({
-		valid: false,
-		loading: false,
-	}),
+	initialState,
 	reducers: {
-		getPending(state) {
+		getPending(state, action: PayloadAction<{ groupName: string | null }>) {
+			const { groupName } = action.payload;
 			state.loading = true;
+			if (state.groupName !== groupName) {
+				state.groupName = action.payload.groupName;
+				state.valid = false;
+				dataAdapter.removeAll(state);
+			}
 		},
   		getSuccess(state, action: PayloadAction<UserMember[]>) {
 			state.loading = false;
@@ -71,12 +84,11 @@ function validResponse(response: any): response is UserMember[] {
 }
 
 let loadPromise: Promise<void> | null = null;
-export const loadMembers = (): AppThunk =>
+export const loadMembers = (groupName: string): AppThunk =>
 	async (dispatch, getState) => {
 		if (loadPromise)
 			return loadPromise;
-		dispatch(getPending());
-		const groupName = selectWorkingGroupName(getState());
+		dispatch(getPending({groupName}));
 		const url = `/api/${groupName}/users`;
 		loadPromise = (fetcher.get(url) as Promise<void>)
 			.then((response: any) => {
@@ -96,9 +108,9 @@ export const loadMembers = (): AppThunk =>
 
 export const getMembers = (): AppThunk =>
 	async (dispatch, getState) => {
-		const {valid, loading} = selectMembersState(getState());
+		const {valid, loading, groupName} = selectMembersState(getState());
 		if (!valid || loading)
-			return dispatch(loadMembers());
+			return dispatch(loadMembers(groupName!));
 		return Promise.resolve();
 	}
 

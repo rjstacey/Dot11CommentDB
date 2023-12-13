@@ -6,7 +6,7 @@ import { Select } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
-	getBallots,
+	//getBallots,
 	setCurrentGroupProject,
 	setCurrentBallot_id,
 	selectBallotsState,
@@ -113,7 +113,7 @@ function BallotSelector({
 	const dispatch = useAppDispatch();
 	const {ballotId} = useParams();
 	const {loading, currentGroupId, currentProject, currentBallot_id} = useAppSelector(selectBallotsState);
-
+/*
 	React.useEffect(() => {
 		let ignore = false;
 		async function onMount() {
@@ -140,7 +140,7 @@ function BallotSelector({
 		onMount();
 		return onUnmount;
 	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
-
+*/
 	const handleProjectChange = async (value: GroupProject) => {
 		const ballot = await dispatch(setCurrentGroupProject(value));
 		let pathName = location.pathname.replace(`/${ballotId}`, '');

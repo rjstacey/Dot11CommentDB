@@ -16,7 +16,7 @@ import ResultsExport from './ResultsExport';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { AccessLevel } from '../store/user';
 import { loadResults, clearResults, selectResultsBallot_id, resultsSelectors, resultsActions, upsertTableColumns, selectResultsAccess } from '../store/results';
-import { selectCurrentBallot_id, selectBallot, BallotType } from '../store/ballots';
+import { selectBallot, BallotType } from '../store/ballots';
 
 // The table row grows to the available height
 const TableRow = styled.div`
@@ -82,7 +82,6 @@ function Results() {
 
 	const access = useAppSelector(selectResultsAccess);
 	const resultsBallot_id = useAppSelector(selectResultsBallot_id);
-	const currentBallot_id = useAppSelector(selectCurrentBallot_id);
 	const resultsBallot = useAppSelector((state) => resultsBallot_id? selectBallot(state, resultsBallot_id): undefined);
 	
 	const dispatch = useAppDispatch();
@@ -97,20 +96,12 @@ function Results() {
 			dispatch(updateTableConfigAction(access, resultsBallot.Type));
 	}, [dispatch, access, resultsBallot]);
 
-	React.useEffect(() => {
-		if (currentBallot_id && resultsBallot_id !== currentBallot_id)
-			dispatch(loadResults(currentBallot_id));
-		if (!currentBallot_id && resultsBallot_id)
-			dispatch(clearResults());
-	}, [dispatch, currentBallot_id, resultsBallot_id]);
-
-	const onBallotSelected = (ballot_id: number | null) => dispatch(ballot_id? loadResults(ballot_id): clearResults());
 	const refresh = () => dispatch(resultsBallot_id? loadResults(resultsBallot_id): clearResults());
 
 	return (
 		<>
 			<TopRow style={{maxWidth}}>
-				<PathBallotSelector onBallotSelected={onBallotSelected}	/>
+				<PathBallotSelector />
 				<div style={{display: 'flex'}}>
 					<ResultsExport ballot={resultsBallot} />
 					<TableColumnSelector 

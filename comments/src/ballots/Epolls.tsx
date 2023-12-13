@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {
@@ -10,8 +10,8 @@ import {
 } from 'dot11-components';
 
 import { useAppDispatch } from '../store/hooks';
-import { getBallots, BallotType, BallotEdit } from '../store/ballots';
-import { fields, loadEpolls, getEpolls, epollsSelectors, epollsActions, SyncedEpoll } from '../store/epolls';
+import { BallotType, BallotEdit } from '../store/ballots';
+import { fields, loadEpolls, epollsSelectors, epollsActions, SyncedEpoll } from '../store/epolls';
 
 import { BallotAddForm } from './BallotDetail';
 
@@ -72,16 +72,12 @@ function Epolls() {
 
 	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
+	const {groupName} = useParams();
 
 	const numberEpolls = React.useRef(20);
-	const load = React.useCallback(() => dispatch(loadEpolls(numberEpolls.current)), [dispatch]);
+	const load = React.useCallback(() => groupName && dispatch(loadEpolls(groupName, numberEpolls.current)), [dispatch, groupName]);
 
-	React.useEffect(() => {
-		dispatch(getBallots());
-		dispatch(getEpolls());
-	}, [dispatch]);
-
-	const close = () => navigate('/ballots');
+	const close = () => navigate(`/${groupName}/ballots`);
 
 	function loadMore() {
 		numberEpolls.current += 10;

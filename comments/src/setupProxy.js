@@ -8,6 +8,7 @@ module.exports = function(app) {
       target: 'http://localhost:8080',
       //target: 'http://802tools-env.eba-6y72hp55.us-west-2.elasticbeanstalk.com/',
       changeOrigin: true,
+      secure: true
     })
   );
 };

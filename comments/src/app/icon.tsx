@@ -1,12 +1,4 @@
-import React from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
-import styled from '@emotion/styled';
-import { Helmet } from 'react-helmet';
-import { renderToStaticMarkup } from 'react-dom/server';
-import Header from './Header';
-import Body from './Body';
-
-const renderIcon = (groupName: string, toolName: string) => {
+export const renderIcon = (groupName: string, toolName: string) => {
 
 	const groupNameFontSize = 1.9*192 / groupName.length;
 	const toolNameFontSize = Math.min(1.5*192 / toolName.length, 100);
@@ -64,35 +56,3 @@ const renderIcon = (groupName: string, toolName: string) => {
 		</svg>
 	)
 }
-
-const OuterDiv = styled.div`
-	display: flex;
-	flex-direction: column;
-	height: 100vh;
-	align-items: center;
-`;
-
-const title = '802 tools | Comment Resolution';
-const description = 'Comment resolution tool';
-const svgString = encodeURIComponent(renderToStaticMarkup(renderIcon("802", "CR")));
-
-function App() {
-
-	return (
-		<>
-			<Helmet>
-				<title>{title}</title>
-				<link rel="icon" href={`data:image/svg+xml,${svgString}`} />
-				<meta name='description' content={description} />
-			</Helmet>
-			<Router basename='/comments'>
-				<OuterDiv>
-					<Header />
-					<Body />
-				</OuterDiv>
-			</Router>
-		</>
-	)
-}
-
-export default App;

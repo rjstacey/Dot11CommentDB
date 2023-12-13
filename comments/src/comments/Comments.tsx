@@ -21,9 +21,7 @@ import CommentsCopy from './CommentsCopy';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { AccessLevel } from '../store/user';
-import { selectBallot, selectCurrentBallot_id } from '../store/ballots';
-import { loadMembers } from '../store/members';
-import { loadSubgroups } from '../store/groups';
+import { selectBallot } from '../store/ballots';
 import {
 	fields,
 	loadComments,
@@ -368,7 +366,6 @@ function Comments() {
 	const access = useAppSelector(selectCommentsAccess);
 	const {selected} = useAppSelector(selectCommentsState);
 	const commentsBallot_id = useAppSelector(selectCommentsBallot_id);
-	const currentBallot_id = useAppSelector(selectCurrentBallot_id);
 	const commentsBallot = useAppSelector((state) => commentsBallot_id? selectBallot(state, commentsBallot_id): undefined);
 
 	const dispatch = useAppDispatch();
@@ -376,18 +373,7 @@ function Comments() {
 	const {isSplit} = useAppSelector(commentsSelectors.selectCurrentPanelConfig);
 	const setIsSplit = (isSplit: boolean) => dispatch(commentsActions.setPanelIsSplit({isSplit}));
 
-	React.useEffect(() => {
-		if (currentBallot_id && commentsBallot_id !== currentBallot_id)
-			dispatch(loadComments(currentBallot_id));
-		if (!currentBallot_id && commentsBallot_id)
-			dispatch(clearComments());
-	}, [dispatch, currentBallot_id, commentsBallot_id]);
-
-	const refresh = () => {
-		dispatch(commentsBallot_id? loadComments(commentsBallot_id): clearComments());
-		dispatch(loadMembers());
-		dispatch(loadSubgroups());
-	}
+	const refresh = () => dispatch(commentsBallot_id? loadComments(commentsBallot_id): clearComments());
 
 	return (
 		<>

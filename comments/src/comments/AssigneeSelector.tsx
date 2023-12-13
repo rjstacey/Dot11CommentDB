@@ -3,8 +3,8 @@ import { createSelector } from '@reduxjs/toolkit';
 
 import { Select, strComp } from 'dot11-components';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { loadMembers, selectMemberEntities, selectMemberIds, selectMembersState } from '../store/members';
+import { useAppSelector } from '../store/hooks';
+import { selectMemberEntities, selectMemberIds, selectMembersState } from '../store/members';
 import { selectCommentIds, selectCommentEntities } from '../store/comments';
 
 type Assignee = {
@@ -62,15 +62,9 @@ function AssigneeSelector({
 	readOnly?: boolean;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
 ) {
-	const dispatch = useAppDispatch();
-	const {valid, loading} = useAppSelector(selectMembersState);
+	const {loading} = useAppSelector(selectMembersState);
 	const existingOptions = useAppSelector(selectAssigneeOptions);
 	const [options, setOptions] = React.useState<Assignee[]>([]);
-
-	React.useEffect(() => {
-		if (!valid && !loading && !readOnly)
-			dispatch(loadMembers());
-	}, []);	// eslint-disable-line
 
 	React.useEffect(() => setOptions(existingOptions), [existingOptions]);
 
