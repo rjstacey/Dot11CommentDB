@@ -1,35 +1,38 @@
 import React from "react";
-import { useAppSelector } from "../store/hooks";
+import { createSelector } from "@reduxjs/toolkit";
 import styled from "@emotion/styled";
 
+import { useAppSelector } from "../store/hooks";
 import { selectMemberEntities } from "../store/members";
 
-function selectMembersSummary(state: any) {
-	const members = selectMemberEntities(state);
-	const s = { nv: 0, a: 0, pv: 0, v: 0, eo: 0 };
-	for (const m of Object.values(members)) {
-		switch (m!.Status) {
-			case "Non-Voter":
-				s.nv++;
-				break;
-			case "Aspirant":
-				s.a++;
-				break;
-			case "Potential Voter":
-				s.pv++;
-				break;
-			case "Voter":
-				s.v++;
-				break;
-			case "ExOfficio":
-				s.eo++;
-				break;
-			default:
-				break;
+const selectMembersSummary = createSelector(
+	selectMemberEntities,
+	(members) => {
+		const s = { nv: 0, a: 0, pv: 0, v: 0, eo: 0 };
+		for (const m of Object.values(members)) {
+			switch (m!.Status) {
+				case "Non-Voter":
+					s.nv++;
+					break;
+				case "Aspirant":
+					s.a++;
+					break;
+				case "Potential Voter":
+					s.pv++;
+					break;
+				case "Voter":
+					s.v++;
+					break;
+				case "ExOfficio":
+					s.eo++;
+					break;
+				default:
+					break;
+			}
 		}
+		return s;
 	}
-	return s;
-}
+);
 
 const Container = styled.div`
 	display: flex;

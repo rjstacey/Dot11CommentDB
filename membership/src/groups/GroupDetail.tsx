@@ -277,7 +277,6 @@ class GroupDetail extends React.Component<
 				const o2 = officers.find((o) => o.id === o1.id);
 				if (o2) {
 					const changes = deepDiff(o2, o1) || {};
-					console.log(changes);
 					if (Object.keys(changes).length > 0)
 						officerUpdates.push({ id: o2.id!, changes });
 				} else {

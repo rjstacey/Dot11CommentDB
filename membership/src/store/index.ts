@@ -5,7 +5,6 @@ import {
 import type {
 	Action,
 	ThunkAction,
-	AnyAction,
 	Middleware,
 } from "@reduxjs/toolkit";
 
@@ -66,7 +65,7 @@ const appReducer = combineReducers({
 	[emailTemlatesSlice.name]: emailTemlatesSlice.reducer,
 });
 
-const rootReducer = (state: any, action: AnyAction) => {
+const rootReducer = (state: any, action: Action) => {
 	if (action.type === RESET_STORE_ACTION) state = undefined;
 	return appReducer(state, action);
 };
@@ -124,5 +123,5 @@ export type AppThunk<ReturnType = void> = ThunkAction<
 	Promise<ReturnType>,
 	RootState,
 	unknown,
-	AnyAction
+	Action
 >;

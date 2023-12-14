@@ -70,7 +70,7 @@ const slice = createSlice({
 				dataAdapter.removeAll(state);
 			}
 		},
-		getSuccess(state, action) {
+		getSuccess(state, action: PayloadAction<Officer[]>) {
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
@@ -102,13 +102,10 @@ export function getGroupOfficers(
 }
 
 export const selectOfficersState = (state: RootState) => state[dataSet];
+export const selectOfficerIds = (state: RootState) =>
+	selectOfficersState(state).ids;
 export const selectOfficerEntities = (state: RootState) =>
 	selectOfficersState(state).entities;
-
-export function selectGroupOfficers(state: RootState, group_id: EntityId) {
-	const { ids, entities } = selectOfficersState(state);
-	return getGroupOfficers(ids, entities, group_id);
-}
 
 /*
  * Actions

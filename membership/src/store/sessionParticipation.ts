@@ -285,7 +285,7 @@ export const selectAttendancesWithMembershipAndSummary = createSelector(
 	selectAttendancesIds,
 	selectAttendancesEntities,
 	(memberEntities, sessionIds, sessionEntities, ids, entities) => {
-		const newEntities: Dictionary<MemberAttendances> = {};
+		const newEntities: Record<EntityId, MemberAttendances> = {};
 		ids.forEach((id) => {
 			let entity = entities[id]!;
 			let member = memberEntities[entity.SAPIN];

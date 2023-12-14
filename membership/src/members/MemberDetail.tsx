@@ -38,12 +38,10 @@ import {
 	setSelected,
 	selectMembersState,
 	selectMemberEntities,
+	selectMemberWithParticipationSummary,
 	type Member,
 	type MemberAdd,
 } from "../store/members";
-
-import { selectMemberAttendanceStats } from "../store/sessionParticipation";
-import { selectMemberBallotParticipationCount } from "../store/ballotParticipation";
 
 import StatusSelector from "./StatusSelector";
 import MemberSelector from "./MemberAllSelector";
@@ -133,12 +131,10 @@ function MemberDetailInfo({
 
 	const SAPIN = member.SAPIN[0];
 
-	const { count: sessionCount, total: sessionTotal } = useAppSelector(
-		(state) => selectMemberAttendanceStats(state, SAPIN)
-	);
-	const { count: ballotCount, total: ballotTotal } = useAppSelector((state) =>
-		selectMemberBallotParticipationCount(state, SAPIN)
-	);
+	const memberEntitiesWithParticipation = useAppSelector(selectMemberWithParticipationSummary);
+	const memberWithParticipation = memberEntitiesWithParticipation[SAPIN];
+	const sessionSumary = memberWithParticipation?.AttendancesSummary || "";
+	const ballotSummary = memberWithParticipation?.BallotParticipationSummary || "";
 
 	return (
 		<Tabs
@@ -150,8 +146,8 @@ function MemberDetailInfo({
 				<Tab>Contact info</Tab>
 				<Tab>Permissions</Tab>
 				<Tab>Status history</Tab>
-				<Tab>{`Session participation ${sessionCount}/${sessionTotal}`}</Tab>
-				<Tab>{`Ballot participation ${ballotCount}/${ballotTotal}`}</Tab>
+				<Tab>{`Session participation ${sessionSumary}`}</Tab>
+				<Tab>{`Ballot participation ${ballotSummary}`}</Tab>
 			</TabList>
 			<TabPanel>
 				<MemberContactInfo

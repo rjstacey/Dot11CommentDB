@@ -5,6 +5,7 @@ import {
 	Action,
 	PayloadAction,
 	Dictionary,
+	EntityId
 } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
@@ -204,7 +205,7 @@ export const selectBallotParticipationWithMembershipAndSummary = createSelector(
 	selectBallotParticipationIds,
 	selectBallotParticipationEntities,
 	(memberEntities, ballotSeriesEntities, ids, entities) => {
-		const newEntities: Dictionary<MemberParticipation> = {};
+		const newEntities: Record<EntityId, MemberParticipation> = {};
 		ids.forEach((id) => {
 			let entity = entities[id]!;
 			let member = memberEntities[entity.SAPIN];

@@ -10,7 +10,11 @@ import {
 import { store } from "../store";
 import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
-import { selectWorkingGroupByName, loadGroups } from "../store/groups";
+import {
+	selectWorkingGroupByName,
+	loadGroups,
+	setWorkingGroupId,
+} from "../store/groups";
 import { loadMembers } from "../store/members";
 import { loadOfficers } from "../store/officers";
 import { loadCommittees } from "../store/imatCommittees";
@@ -18,6 +22,7 @@ import { loadTimeZones } from "../store/timeZones";
 import { loadAttendances } from "../store/sessionParticipation";
 import { loadBallotParticipation } from "../store/ballotParticipation";
 import { loadEmailTemplates } from "../store/email";
+import { loadSessions } from "../store/sessions";
 
 import { ErrorModal, ConfirmModal } from "dot11-components";
 import Header from "./Header";
@@ -31,7 +36,6 @@ import Notification from "../notification/Notification";
 import Reports from "../reports/Reports";
 
 import styles from "./app.module.css";
-import { loadSessions } from "../store/sessions";
 
 const rootLoader: LoaderFunction = async () => {
 	const { dispatch } = store;
@@ -43,27 +47,17 @@ const rootLoader: LoaderFunction = async () => {
 const groupLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	const { groupName } = params;
-	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.members || AccessLevel.none;
+	const group = groupName
+		? selectWorkingGroupByName(getState(), groupName)
+		: undefined;
+	dispatch(setWorkingGroupId(group? group.id: null));
+	if (group) {
+		const access = group.permissions.members || AccessLevel.none;
 		if (access >= AccessLevel.ro) {
-			dispatch(loadGroups(groupName));
-			dispatch(loadMembers(groupName));
-			dispatch(loadOfficers(groupName));
-			dispatch(loadCommittees(groupName));
-		}
-	}
-	return null;
-};
-
-const membersLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
-	const { groupName } = params;
-	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.members || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			dispatch(loadMembers(groupName));
+			dispatch(loadGroups(group.name));
+			dispatch(loadMembers(group.name));
+			dispatch(loadOfficers(group.name));
+			dispatch(loadCommittees(group.name));
 		}
 	}
 	return null;
@@ -72,11 +66,13 @@ const membersLoader: LoaderFunction = async ({ params }) => {
 const sessionParticipationLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	const { groupName } = params;
-	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.members || AccessLevel.none;
+	const group = groupName
+		? selectWorkingGroupByName(getState(), groupName)
+		: undefined;
+	if (group) {
+		const access = group.permissions.members || AccessLevel.none;
 		if (access >= AccessLevel.admin) {
-			dispatch(loadAttendances(groupName));
+			dispatch(loadAttendances(group.name));
 		}
 	}
 	return null;
@@ -85,11 +81,13 @@ const sessionParticipationLoader: LoaderFunction = async ({ params }) => {
 const ballotParticipationLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	const { groupName } = params;
-	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.members || AccessLevel.none;
+	const group = groupName
+		? selectWorkingGroupByName(getState(), groupName)
+		: undefined;
+	if (group) {
+		const access = group.permissions.members || AccessLevel.none;
 		if (access >= AccessLevel.admin) {
-			dispatch(loadBallotParticipation(groupName));
+			dispatch(loadBallotParticipation(group.name));
 		}
 	}
 	return null;
@@ -98,11 +96,13 @@ const ballotParticipationLoader: LoaderFunction = async ({ params }) => {
 const sessionAttendanceLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	const { groupName } = params;
-	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.members || AccessLevel.none;
+	const group = groupName
+		? selectWorkingGroupByName(getState(), groupName)
+		: undefined;
+	if (group) {
+		const access = group.permissions.members || AccessLevel.none;
 		if (access >= AccessLevel.admin) {
-			dispatch(loadSessions(groupName));
+			dispatch(loadSessions(group.name));
 		}
 	}
 	return null;
@@ -111,12 +111,14 @@ const sessionAttendanceLoader: LoaderFunction = async ({ params }) => {
 const notificationsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	const { groupName } = params;
-	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.members || AccessLevel.none;
+	const group = groupName
+		? selectWorkingGroupByName(getState(), groupName)
+		: undefined;
+	if (group) {
+		const access = group.permissions.members || AccessLevel.none;
 		if (access >= AccessLevel.admin) {
-			dispatch(loadMembers(groupName));
-			dispatch(loadEmailTemplates(groupName));
+			dispatch(loadMembers(group.name));
+			dispatch(loadEmailTemplates(group.name));
 		}
 	}
 	return null;
@@ -186,13 +188,12 @@ function GateComponent({
 }) {
 	const { groupName } = useParams();
 	const group = useAppSelector((state) =>
-		selectWorkingGroupByName(state, groupName || "")
+		groupName ? selectWorkingGroupByName(state, groupName) : undefined
 	);
-	const access = group?.permissions.meetings || AccessLevel.none;
 
-	if (!group)
-		return <span>Invalid group: {groupName}</span>
+	if (!group) return <span>Invalid group: {groupName}</span>;
 
+	const access = group.permissions.members || AccessLevel.none;
 	if (access < minAccess)
 		return <span>You do not have permission to view this data</span>;
 
@@ -215,9 +216,7 @@ function Layout() {
 	return (
 		<>
 			<Header />
-			<main
-				className={styles.main}
-			>
+			<main className={styles.main}>
 				<Outlet />
 			</main>
 			<ErrorModal />
@@ -228,9 +227,7 @@ function Layout() {
 
 function Root() {
 	return (
-		<div
-			className={styles.root}
-		>
+		<div className={styles.root}>
 			<div className="intro">Working group/Committee</div>
 			<WorkingGroupSelector />
 		</div>
@@ -265,20 +262,34 @@ const routes: AppRoute[] = [
 				errorElement: <ErrorPage />,
 				children: [
 					...groupRoutes,
-					{ index: true, element: <GateComponent minAccess={AccessLevel.none}><Root /></GateComponent>},
-					{ path: "*", element: <GateComponent minAccess={AccessLevel.none}><span>Not found</span></GateComponent>}
+					{
+						index: true,
+						element: (
+							<GateComponent minAccess={AccessLevel.none}>
+								<Root />
+							</GateComponent>
+						),
+					},
+					{
+						path: "*",
+						element: (
+							<GateComponent minAccess={AccessLevel.none}>
+								<span>Not found</span>
+							</GateComponent>
+						),
+					},
 				],
 			},
 			{
 				index: true,
 				element: <Root />,
-			}
+			},
 		],
 	},
 	{
 		path: "/*",
-		element: <span>Not found</span>
-	}
+		element: <span>Not found</span>,
+	},
 ];
 
 export default routes;

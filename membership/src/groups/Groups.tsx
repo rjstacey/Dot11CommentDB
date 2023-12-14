@@ -18,19 +18,17 @@ import {
 	fields,
 	groupsSelectors,
 	groupsActions,
-	type Group
+	type GroupWithOfficers
 } from "../store/groups";
-import { loadOfficers, selectGroupOfficers } from "../store/officers";
+import { loadOfficers } from "../store/officers";
 import { loadMembers, selectMemberEntities } from "../store/members";
 
 import TopRow from "../components/TopRow";
 import GroupDetail from "./GroupDetail";
 import { useParams } from "react-router-dom";
 
-function GroupOfficers({ group }: { group: Group }) {
-	const officers = useAppSelector((state) =>
-		selectGroupOfficers(state, group.id)
-	);
+function GroupOfficers({ group }: { group: GroupWithOfficers }) {
+	const {officers} = group;
 	const members = useAppSelector(selectMemberEntities);
 
 	return (
@@ -49,7 +47,7 @@ function GroupOfficers({ group }: { group: Group }) {
 	);
 }
 
-const renderName = ({ rowData }: { rowData: Group }) => (
+const renderName = ({ rowData }: { rowData: GroupWithOfficers }) => (
 	<div style={{ background: rowData.color || "transparent" }}>
 		{rowData.name}
 	</div>
@@ -95,8 +93,8 @@ function Organization() {
 	const { groupName } = useParams();
 
 	const refresh = () => {
-		dispatch(loadGroups());
 		if (groupName) {
+			dispatch(loadGroups(groupName));
 			dispatch(loadOfficers(groupName));
 			dispatch(loadMembers(groupName));
 		}
@@ -122,7 +120,10 @@ function Organization() {
 					/>
 				</div>
 			</TopRow>
-			<SplitPanel selectors={groupsSelectors} actions={groupsActions}>
+			<SplitPanel
+				selectors={groupsSelectors}
+				actions={groupsActions}
+			>
 				<Panel>
 					<AppTable
 						columns={tableColumns}

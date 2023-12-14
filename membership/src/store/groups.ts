@@ -18,6 +18,7 @@ import {
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
+import { getGroupOfficers, selectOfficerEntities, selectOfficerIds, type Officer } from "./officers";
 
 const GroupTypeLabels = {
 	c: "Committee",
@@ -59,6 +60,10 @@ export type GroupUpdate = {
 	id: EntityId;
 	changes: Partial<Group>;
 };
+
+export type GroupWithOfficers = Group & {
+	officers: Officer[];
+}
 
 export const fields = {
 	id: {},
@@ -130,7 +135,6 @@ const initialState: ExtraState = {
 };
 
 const dataSet = "groups";
-const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
 
 const selectId = (entity: Group) => entity.id;
 
@@ -173,11 +177,12 @@ export const selectGroupIds = (state: RootState) =>
 export const selectGroup = (state: RootState, id: EntityId) =>
 	selectGroupEntities(state)[id];
 
+/* An `owner` group is a committee or working group */
 export const selectWorkingGroups = (state: RootState) => {
 	const { ids, entities } = selectGroupsState(state);
 	return ids
 		.map((id) => entities[id]!)
-		.filter((g) => ["c", "wg"].includes(g.type || ""));
+		.filter((g) => g.type === "c" || g.type === "wg");
 };
 export const selectWorkingGroupByName = (
 	state: RootState,
@@ -186,8 +191,6 @@ export const selectWorkingGroupByName = (
 	const groups = selectWorkingGroups(state);
 	return groups.find((g) => g.name === groupName);
 };
-
-
 export const selectWorkingGroupId = (state: RootState) =>
 	selectGroupsState(state).workingGroupId;
 export const selectWorkingGroup = (state: RootState) => {
@@ -201,30 +204,41 @@ export const selectGroups = createSelector(
 	selectGroupIds,
 	selectGroupEntities,
 	selectWorkingGroupId,
-	(ids, entities, workingGroupId) => {
-		const childIds = treeSortedIds(ids, entities, workingGroupId);
+	(ids, entities, ownerGroupId) => {
+		const childIds = treeSortedIds(ids, entities, ownerGroupId);
 		let groups = childIds.map((id) => entities[id]!);
-		if (!workingGroupId)
-			groups = groups.filter((g) => g.type === "c" || g.type === "wg");
-		return groups;
+		if (ownerGroupId) return groups;
+		// If the working group is not set, then we just want a list of working groups
+		return groups.filter((g) => g.type === "c" || g.type === "wg");
 	}
 );
 
 const selectSortedIds = createSelector(
+	selectGroups,
+	(groups) => groups.map((g) => g.id)
+);
+
+const selectGroupEntitiesWithOfficers = createSelector(
 	selectGroupIds,
 	selectGroupEntities,
-	selectWorkingGroupId,
-	(ids, entities, workingGroupId) => {
-		ids = treeSortedIds(ids, entities, workingGroupId);
-		if (workingGroupId) return ids;
-		return ids.filter((id) =>
-			["c", "wg"].includes(entities[id]!.type || "")
-		);
+	selectOfficerIds,
+	selectOfficerEntities,
+	(groupIds, groupEntities, officerIds, officerEntities) => {
+		const entities: Record<EntityId, GroupWithOfficers> = {};
+		groupIds.forEach(groupId => {
+			const group: GroupWithOfficers = {
+				...groupEntities[groupId]!,
+				officers: getGroupOfficers(officerIds, officerEntities, groupId)
+			};
+			entities[groupId] = group;
+		});
+		return entities;
 	}
-);
+)
 
 export const groupsSelectors = getAppTableDataSelectors(selectGroupsState, {
 	selectIds: selectSortedIds,
+	selectEntities: selectGroupEntitiesWithOfficers
 });
 
 /*
@@ -247,14 +261,16 @@ const {
 	setWorkingGroupId: setWorkingGroupIdLocal,
 } = slice.actions;
 
+const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
+
 export { setSelected, setFilter, clearFilter };
 
 const baseUrl = "/api/groups";
 
 export const setWorkingGroupId =
-	(workingGroupId: string | null): AppThunk<Group | undefined> =>
+	(groupId: string | null): AppThunk<Group | undefined> =>
 	async (dispatch, getState) => {
-		dispatch(setWorkingGroupIdLocal(workingGroupId));
+		dispatch(setWorkingGroupIdLocal(groupId));
 		return selectWorkingGroup(getState());
 	};
 
@@ -292,12 +308,6 @@ export const loadGroups =
 				dispatch(setError("Unable to get groups", error));
 			});
 	};
-
-export const initGroups = (): AppThunk => async (dispatch, getState) => {
-	dispatch(loadGroups());
-	const groupName = selectWorkingGroupName(getState());
-	if (groupName) dispatch(loadGroups(groupName));
-};
 
 export const addGroup =
 	(group: GroupCreate): AppThunk<Group> =>

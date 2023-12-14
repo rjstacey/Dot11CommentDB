@@ -177,7 +177,7 @@ export const selectAllMembers = createSelector(
 	(ids, entities) => ids.map((id) => entities[id]!)
 );
 
-const selectMemberWithParticipationSummary = createSelector(
+export const selectMemberWithParticipationSummary = createSelector(
 	selectAttendancesWithMembershipAndSummary,
 	selectBallotParticipationWithMembershipAndSummary,
 	selectMemberIds,
