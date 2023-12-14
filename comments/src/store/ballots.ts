@@ -2,7 +2,6 @@ import { createAction, createSelector } from "@reduxjs/toolkit";
 import type {
 	Action,
 	PayloadAction,
-	Dictionary,
 	EntityId,
 } from "@reduxjs/toolkit";
 
@@ -307,7 +306,7 @@ const selectSyncedBallotEntities = createSelector(
 	selectBallotEntities,
 	selectGroupEntities,
 	(ids, entities, groupEntities) => {
-		const syncedEntities: Dictionary<SyncedBallot> = {};
+		const syncedEntities: Record<EntityId, SyncedBallot> = {};
 		ids.forEach((id) => {
 			const ballot = entities[id]!;
 			const PrevBallotID = ballot.prev_id

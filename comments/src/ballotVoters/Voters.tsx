@@ -10,7 +10,6 @@ import {
 	ColumnProperties,
 } from "dot11-components";
 
-import type { RootState } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	loadVoters,
@@ -99,12 +98,6 @@ const TableRow = styled.div`
 	}
 `;
 
-function selectVotersInfo(state: RootState) {
-	const { valid, loading, ids, selected } = selectVotersState(state);
-	const shownIds = votersSelectors.selectSortedFilteredIds(state);
-	return { valid, loading, ids, selected, shownIds };
-}
-
 type VotersState = {
 	action: "add" | "update" | null;
 	voter: VoterCreate;
@@ -124,7 +117,8 @@ function Voters() {
 	});
 	const [showImportVoters, setShowImportVoters] = React.useState(false);
 
-	const { loading, selected, shownIds } = useAppSelector(selectVotersInfo);
+	const { loading, selected } = useAppSelector(selectVotersState);
+	const shownIds = useAppSelector(votersSelectors.selectSortedFilteredIds);
 
 	const [columns, maxWidth] = React.useMemo(() => {
 		const onDelete = async (voter: Voter) => {
