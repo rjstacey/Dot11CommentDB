@@ -1,4 +1,4 @@
-import { createSelector, Dictionary } from "@reduxjs/toolkit";
+import { createSelector, EntityId } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
 import {
@@ -105,7 +105,7 @@ export const selectSynced802WorldEntities = createSelector(
 	selectCurrentSession,
 	selectWorkingGroup,
 	(ids, entities, meetingEntities, session, workingGroup) => {
-		const newEntities: Dictionary<SyncedIeee802WorldScheduleEntry> = {};
+		const newEntities: Record<EntityId, SyncedIeee802WorldScheduleEntry> = {};
 		ids.forEach((id) => {
 			const entity = entities[id]!;
 			let meetingId = null;

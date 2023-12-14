@@ -1,4 +1,4 @@
-import { createSelector, Dictionary } from "@reduxjs/toolkit";
+import { createSelector, EntityId } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
 import {
@@ -193,7 +193,7 @@ export const selectSyncedMeetingEntities = createSelector(
 		webexMeetingEntities,
 		sessionEntities
 	) => {
-		const entities: Dictionary<SyncedMeeting> = {};
+		const entities: Record<EntityId, SyncedMeeting> = {};
 		for (const [id, meeting] of Object.entries(meetingEntities) as [
 			string,
 			Meeting

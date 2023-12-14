@@ -34,7 +34,7 @@ const Slot = ({
     children,
     remove
 }: {
-    remove?: (e: MouseEvent) => void;
+    remove?: React.MouseEventHandler;
 	children?: React.ReactNode;
 }) =>
 	<SlotContainer role='listitem'>

@@ -1,7 +1,6 @@
 import {
 	createSelector,
 	EntityId,
-	Dictionary,
 	PayloadAction,
 } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
@@ -160,7 +159,7 @@ export const selectSyncedBreakoutEntities = createSelector(
 	selectBreakoutEntities,
 	selectMeetingEntities,
 	(imatMeetingId, breakoutEntities, meetingEntities) => {
-		const newEntities: Dictionary<SyncedBreakout> = {};
+		const newEntities: Record<EntityId, SyncedBreakout> = {};
 		for (const [key, breakout] of Object.entries(breakoutEntities)) {
 			const meeting = Object.values(meetingEntities).find(
 				(m) =>

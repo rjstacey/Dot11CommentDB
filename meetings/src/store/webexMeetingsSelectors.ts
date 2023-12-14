@@ -1,4 +1,4 @@
-import { createSelector, Dictionary } from "@reduxjs/toolkit";
+import { createSelector, EntityId } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
 import {
@@ -199,7 +199,7 @@ export const selectSyncedWebexMeetingEntities = createSelector(
 	selectWebexMeetingEntities,
 	selectMeetingEntities,
 	(webexMeetingEntities, meetingEntities) => {
-		const entities: Dictionary<SyncedWebexMeeting> = {};
+		const entities: Record<EntityId, SyncedWebexMeeting> = {};
 		const meetings = Object.values(meetingEntities);
 		for (const [id, webexMeeting] of Object.entries(webexMeetingEntities)) {
 			const meeting = meetings.find(

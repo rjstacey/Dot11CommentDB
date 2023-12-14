@@ -1,4 +1,4 @@
-import { createSelector, Dictionary } from "@reduxjs/toolkit";
+import { createSelector, EntityId } from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -77,7 +77,7 @@ export const selectSyncedImatMeetingEntities = createSelector(
 	selectImatMeetingEntities,
 	selectSessionEntities,
 	(imatMeetingIds, imatMeetingEntities, sessionEntities) => {
-		const newEntities: Dictionary<SyncedImatMeeting> = {};
+		const newEntities: Record<EntityId, SyncedImatMeeting> = {};
 		const sessions = Object.values(sessionEntities);
 		imatMeetingIds.forEach((id) => {
 			const session = sessions.find((s) => s!.imatMeetingId === id);

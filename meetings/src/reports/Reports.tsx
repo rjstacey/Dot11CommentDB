@@ -216,7 +216,7 @@ function Reports() {
             <TopRow>
                 <CurrentSessionSelector />
 
-                {loading && <Spinner busy={loading} />}
+                {loading && <Spinner />}
 
 				<div style={{display: 'flex'}}>
                     <ActionButton
