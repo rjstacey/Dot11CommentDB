@@ -40,7 +40,7 @@ import styles from "./app.module.css";
 const rootLoader: LoaderFunction = async () => {
 	const { dispatch } = store;
 	dispatch(loadTimeZones());
-	dispatch(loadGroups());
+	await dispatch(loadGroups());
 	return null;
 };
 

@@ -12,7 +12,7 @@
     "@react-email/html": "0.0.4",
     "@react-email/markdown": "0.0.6",
     "@reduxjs/toolkit": "^1.9.7",
-    "dot11-components": "^1.9.61",
+    "dot11-components": "^1.9.62",
     "idb-keyval": "^6.2.1",
     "lexical": "^0.12.2",
     "lodash.debounce": "^4.0.8",
