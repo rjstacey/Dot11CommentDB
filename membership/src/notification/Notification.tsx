@@ -46,42 +46,65 @@ import NotificationEmail from "./NotificationEmail";
 function MostRecentBallotSummary() {
 	const ballotSeries = useAppSelector(selectMostRecentBallotSeries);
 	const ballotEntities = useAppSelector(selectBallotEntities);
-	const ballotIdsStr = ballotSeries.ballotIds
-		.map((id) => ballotEntities[id]?.BallotID || "?")
-		.join(", ");
+
+	let content: React.ReactNode;
+	if (ballotSeries) {
+		const ballotIdsStr = ballotSeries.ballotIds
+			.map((id) => ballotEntities[id]?.BallotID || "?")
+			.join(", ");
+		content = (
+			<>
+				<div>{ballotSeries.project}</div>
+				<div>{displayDateRange(ballotSeries.start, ballotSeries.end)}</div>
+				<div>{ballotIdsStr}</div>
+			</>
+		)
+	}
+	else {
+		content = <i>None</i>
+	}
 
 	return (
 		<div style={{ display: "flex", flexDirection: "column" }}>
 			<label>Most recent ballot series:</label>
-			<div>{ballotSeries.project}</div>
-			<div>{displayDateRange(ballotSeries.start, ballotSeries.end)}</div>
-			<div>{ballotIdsStr}</div>
+			{content}
 		</div>
 	);
 }
 
 function MostRecentSessionSummary() {
 	const session = useAppSelector(selectMostRecentAttendedSession);
-	if (!session) return null;
+
+	let content: React.ReactNode;
+	if (session) {
+		content = (
+			<>
+				<div>
+					{session.number}{" "}
+					{session.type === "p" ? "Plenary: " : "Interim: "}{" "}
+					{displayDateRange(session.startDate, session.endDate)}
+				</div>
+				<div
+					style={{
+						whiteSpace: "nowrap",
+						textOverflow: "ellipsis",
+						overflow: "hidden",
+					}}
+				>
+					{session.name}
+				</div>
+				<div>{`(${session.attendees} attendees)`}</div>
+			</>
+		)
+	}
+	else {
+		content = <i>None</i>
+	}
 
 	return (
 		<div style={{ display: "flex", flexDirection: "column" }}>
 			<label>Most recent session:</label>
-			<div>
-				{session.number}{" "}
-				{session.type === "p" ? "Plenary: " : "Interim: "}{" "}
-				{displayDateRange(session.startDate, session.endDate)}
-			</div>
-			<div
-				style={{
-					whiteSpace: "nowrap",
-					textOverflow: "ellipsis",
-					overflow: "hidden",
-				}}
-			>
-				{session.name}
-			</div>
-			<div>{`(${session.attendees} attendees)`}</div>
+			{content}
 		</div>
 	);
 }
@@ -292,7 +315,7 @@ function Members() {
 			dispatch(loadMembers(groupName));
 			dispatch(loadEmailTemplates(groupName));
 		}
-	}
+	};
 
 	return (
 		<>

@@ -47,79 +47,50 @@ const rootLoader: LoaderFunction = async () => {
 const groupLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	const { groupName } = params;
-	const group = groupName
-		? selectWorkingGroupByName(getState(), groupName)
-		: undefined;
-	dispatch(setWorkingGroupId(group? group.id: null));
-	if (group) {
-		const access = group.permissions.members || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			dispatch(loadGroups(group.name));
-			dispatch(loadMembers(group.name));
-			dispatch(loadOfficers(group.name));
-			dispatch(loadCommittees(group.name));
-		}
+	if (groupName) {
+		const group = selectWorkingGroupByName(getState(), groupName);
+		dispatch(setWorkingGroupId(group? group.id: null));
+		dispatch(loadGroups(groupName));
+		dispatch(loadMembers(groupName));
+		dispatch(loadOfficers(groupName));
+		dispatch(loadCommittees(groupName));
 	}
 	return null;
 };
 
 const sessionParticipationLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
-	const group = groupName
-		? selectWorkingGroupByName(getState(), groupName)
-		: undefined;
-	if (group) {
-		const access = group.permissions.members || AccessLevel.none;
-		if (access >= AccessLevel.admin) {
-			dispatch(loadAttendances(group.name));
-		}
+	if (groupName) {
+		dispatch(loadAttendances(groupName));
 	}
 	return null;
 };
 
 const ballotParticipationLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
-	const group = groupName
-		? selectWorkingGroupByName(getState(), groupName)
-		: undefined;
-	if (group) {
-		const access = group.permissions.members || AccessLevel.none;
-		if (access >= AccessLevel.admin) {
-			dispatch(loadBallotParticipation(group.name));
-		}
+	if (groupName) {
+		dispatch(loadBallotParticipation(groupName));
 	}
 	return null;
 };
 
 const sessionAttendanceLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
-	const group = groupName
-		? selectWorkingGroupByName(getState(), groupName)
-		: undefined;
-	if (group) {
-		const access = group.permissions.members || AccessLevel.none;
-		if (access >= AccessLevel.admin) {
-			dispatch(loadSessions(group.name));
-		}
+	if (groupName) {
+		dispatch(loadSessions(groupName));
 	}
 	return null;
 };
 
 const notificationsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
-	const group = groupName
-		? selectWorkingGroupByName(getState(), groupName)
-		: undefined;
-	if (group) {
-		const access = group.permissions.members || AccessLevel.none;
-		if (access >= AccessLevel.admin) {
-			dispatch(loadMembers(group.name));
-			dispatch(loadEmailTemplates(group.name));
-		}
+	if (groupName) {
+		dispatch(loadMembers(groupName));
+		dispatch(loadEmailTemplates(groupName));
 	}
 	return null;
 };

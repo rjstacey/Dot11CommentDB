@@ -35,18 +35,6 @@ import { type Session } from "../store/sessions";
 import { selectMostRecentAttendedSession } from "../store/sessionParticipation";
 import { selectUser, type User } from "../store/user";
 
-function selectEmailInfo(state: RootState) {
-	const { selected, entities } = selectMembersState(state);
-	const members = selected.map((id) => entities[id]!);
-	const session = selectMostRecentAttendedSession(state);
-	const user = selectUser(state);
-
-	return {
-		members,
-		session,
-		user,
-	};
-}
 
 function doSubstitution(
 	email: EmailTemplate,
@@ -79,7 +67,7 @@ function genEmails({
 	info,
 }: {
 	emailTemplate: EmailTemplate;
-	info: ReturnType<typeof selectEmailInfo>;
+	info: Info;
 }) {
 	const { members, session, user } = info;
 
@@ -149,7 +137,7 @@ const PreviewEmail = ({
 	info,
 }: {
 	value: EmailTemplate;
-	info: ReturnType<typeof selectEmailInfo>;
+	info: Info;
 }) => {
 	const { members, session } = info;
 	if (members.length === 0) return null;
@@ -200,13 +188,27 @@ function SelectEmailTemplate({
 	);
 }
 
+type Info = {
+	members: Member[];
+	session: Session;
+	user: User;
+}
 
 function NotificationEmail() {
 	const dispatch = useAppDispatch();
-	const info = useAppSelector(selectEmailInfo);
 	const [edited, setEdited] = React.useState<EmailTemplate | null>(null);
 	const [saved, setSaved] = React.useState<EmailTemplate | null>(null);
 	const [preview, setPreview] = React.useState(false);
+
+	const { selected, entities } = useAppSelector(selectMembersState);
+	const members = selected.map((id) => entities[id]!);
+	const session = useAppSelector(selectMostRecentAttendedSession);
+	const user = useAppSelector(selectUser);
+	const info: Info = {
+		members,
+		session,
+		user,
+	};
 
 	const debouncedSave = useDebounce(() => {
 		const changes = shallowDiff(saved!, edited!);

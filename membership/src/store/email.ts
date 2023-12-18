@@ -41,6 +41,7 @@ const slice = createSlice({
 			const {groupName} = action.payload;
 			state.loading = true;
 			if (state.groupName !== groupName) {
+				state.groupName = groupName;
 				dataAdapter.removeAll(state);
 			}
 		},
