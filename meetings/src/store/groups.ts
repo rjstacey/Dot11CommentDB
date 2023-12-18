@@ -4,7 +4,6 @@ import {
 	PayloadAction,
 	createAction,
 	createSelector,
-	Dictionary,
 } from "@reduxjs/toolkit";
 
 import {
@@ -32,6 +31,7 @@ export const GroupTypeOptions = Object.entries(GroupTypeLabels).map(
 	([value, label]) =>
 		({ value, label } as { value: GroupType; label: string })
 );
+const groupTypes = Object.keys(GroupTypeLabels);
 
 export const GroupStatusOptions = [
 	{ value: 0, label: "Inactive" },
@@ -64,55 +64,6 @@ export const fields = {
 	symbol: { label: "Committee" },
 };
 
-interface Node {
-	id: EntityId;
-	children: Node[];
-}
-
-function treeSortedIds(
-	ids: EntityId[],
-	entities: Dictionary<Group>,
-	parent_id: EntityId | null = null
-) {
-	const groupTypes = Object.keys(GroupTypeLabels);
-
-	function compare(n1: Node, n2: Node) {
-		const g1 = entities[n1.id]!;
-		const g2 = entities[n2.id]!;
-		let cmp =
-			groupTypes.indexOf(g1.type || "") -
-			groupTypes.indexOf(g2.type || "");
-		if (cmp === 0) cmp = g1.name.localeCompare(g2.name);
-		return cmp;
-	}
-
-	function findChildren(parent_id: EntityId | null) {
-		const nodes: Node[] = [];
-		for (const id of ids) {
-			if (entities[id]!.parent_id === parent_id) {
-				const children = findChildren(id).sort(compare);
-				nodes.push({ id, children });
-			}
-		}
-		return nodes;
-	}
-
-	const nodes = parent_id
-		? [{ id: parent_id, children: findChildren(parent_id) }]
-		: findChildren(parent_id);
-
-	function concat(nodes: Node[]) {
-		let ids: EntityId[] = [];
-		for (const node of nodes)
-			ids = [...ids, node.id, ...concat(node.children)];
-		return ids;
-	}
-
-	const sortedIds = concat(nodes);
-
-	return sortedIds;
-}
-
 type ExtraState = {
 	workingGroupId: string | null;
 };
@@ -142,7 +93,32 @@ const slice = createAppTableDataSlice({
 				state.loading = false;
 				state.valid = true;
 				const { ids, entities } = state;
-				const sortedIds = treeSortedIds(ids, entities);
+
+				function compare(id1: EntityId, id2: EntityId) {
+					function isAncestor(g1: Group, g2: Group) {
+						let g: Group | undefined = g2;
+						do {
+							if (g.parent_id === g1.id) return true; // g1 is ancestor of g2
+							g = g.parent_id ? entities[g.parent_id] : undefined;
+						} while (g);
+						return false; // g1 is not an ancestor of g2
+					}
+
+					const g1 = entities[id1]!;
+					const g2 = entities[id2]!;
+					if (g1.parent_id === g2.parent_id) {
+						let n =
+							groupTypes.indexOf(g1.type || "") -
+							groupTypes.indexOf(g2.type || "");
+						if (n === 0) n = g1.name.localeCompare(g2.name);
+						return n;
+					}
+
+					if (isAncestor(g1, g2)) return -1;
+					if (isAncestor(g2, g1)) return 1;
+					return 0;
+				}
+				const sortedIds = ids.sort(compare);
 				if (sortedIds.join() !== ids.join()) state.ids = sortedIds;
 			}
 		);
@@ -164,7 +140,7 @@ export const selectWorkingGroups = (state: RootState) => {
 	const { ids, entities } = selectGroupsState(state);
 	return ids
 		.map((id) => entities[id]!)
-		.filter((g) => ["c", "wg"].includes(g.type!));
+		.filter((g) => g.type === "c" || g.type === "wg");
 };
 export const selectWorkingGroupByName = (
 	state: RootState,
@@ -183,15 +159,35 @@ export const selectWorkingGroup = (state: RootState) => {
 export const selectWorkingGroupName = (state: RootState) =>
 	selectWorkingGroup(state)?.name || "";
 
-export const selectGroups = createSelector(
+export const selectWorkingGroupIds = createSelector(
 	selectGroupIds,
 	selectGroupEntities,
 	selectWorkingGroupId,
 	(ids, entities, workingGroupId) => {
-		const childIds = treeSortedIds(ids, entities, workingGroupId);
-		const groups: Group[] = childIds.map((id) => entities[id]!);
-		return groups;
+		if (workingGroupId) {
+			function isWorkingGroupDescendent(id: EntityId) {
+				if (id === workingGroupId) return true;
+				let g: Group | undefined = entities[id]!;
+				do {
+					if (g.parent_id === workingGroupId) return true; // id is descendent of ownerGroupId
+					g = g.parent_id ? entities[g.parent_id] : undefined;
+				} while (g);
+				return false; // id is not an descendent of ownerGroupId
+			}
+			return ids.filter(isWorkingGroupDescendent);
+		} else {
+			return ids.filter((id) => {
+				let g = entities[id]!;
+				return g.type === "c" || g.type === "wg";
+			});
+		}
 	}
+);
+
+export const selectGroups = createSelector(
+	selectWorkingGroupIds,
+	selectGroupEntities,
+	(ids, entities) => ids.map((id) => entities[id]!)
 );
 
 export const selectGroupParents = createSelector(

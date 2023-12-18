@@ -244,8 +244,10 @@ function validSessions(sessions: any): sessions is Session[] {
 export const loadSessions =
 	(groupName: string): AppThunk =>
 	async (dispatch, getState) => {
-		const state = getState();
-		if (selectSessionsState(state).loading) return;
+		const {loading, groupName: currnetGroupName} = selectSessionsState(getState());
+		if (loading && currnetGroupName === groupName) {
+			return;
+		}
 		dispatch(getPending(groupName));
 		const url = `/api/${groupName}/sessions`;
 		let response: any;

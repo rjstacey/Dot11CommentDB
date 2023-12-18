@@ -11,7 +11,7 @@ import {
 
 import { resetStore } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { AccessLevel, selectUser } from "../store/user";
+import { AccessLevel, initUser, selectUser } from "../store/user";
 import { selectWorkingGroupByName } from "../store/groups";
 import { selectBreakoutMeetingId } from "../store/imatBreakouts";
 
@@ -145,6 +145,11 @@ function Header() {
 	const title = (groupName? groupName + " ": "") + "Meetings";
 	const rootPath = "/" + (groupName || "");
 
+	const clearCache = () => {
+		dispatch(resetStore());
+		dispatch(initUser(user));
+	}
+
 	return (
 		<header className={styles.header}>
 			<Helmet title={title} />
@@ -180,7 +185,7 @@ function Header() {
 			<Account
 				user={user}
 			>
-				<Button onClick={() => dispatch(resetStore())}>
+				<Button onClick={clearCache}>
 					Clear cache
 				</Button>
 			</Account>

@@ -42,78 +42,58 @@ import styles from "./app.module.css";
 const rootLoader: LoaderFunction = async () => {
 	const { dispatch } = store;
 	dispatch(loadTimeZones());
-	dispatch(loadGroups());
+	await dispatch(loadGroups());
 	return null;
 };
 
 const groupLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.meetings || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			dispatch(loadGroups(groupName));
-			dispatch(loadCalendarAccounts(groupName));
-			dispatch(loadWebexAccounts(groupName));
-			dispatch(loadMembers(groupName));
-			dispatch(loadOfficers(groupName));
-		}
+		dispatch(loadGroups(groupName));
+		dispatch(loadCalendarAccounts(groupName));
+		dispatch(loadWebexAccounts(groupName));
+		dispatch(loadMembers(groupName));
+		dispatch(loadOfficers(groupName));
 	}
 	return null;
 };
 
 const sessionsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.meetings || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			dispatch(loadSessions(groupName));
-		}
+		dispatch(loadSessions(groupName));
 	}
 	return null;
 };
 
 const imatBreakoutsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.meetings || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			const meetingNumber = Number(params.meetingNumber);
-			if (meetingNumber) dispatch(loadBreakouts(meetingNumber));
-			else dispatch(clearBreakouts());
-		}
+		const meetingNumber = Number(params.meetingNumber);
+		if (meetingNumber) dispatch(loadBreakouts(meetingNumber));
+		else dispatch(clearBreakouts());
 	}
 	return null;
 };
 
 const imatMeetingsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.meetings || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			dispatch(loadImatMeetings());
-		}
+		dispatch(loadImatMeetings());
 	}
 	return null;
 };
 
 const imatMeetingAttendanceLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.meetings || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			const meetingNumber = Number(params.meetingNumber);
-			dispatch(loadImatMeetingAttendance(meetingNumber));
-		}
+		const meetingNumber = Number(params.meetingNumber);
+		dispatch(loadImatMeetingAttendance(meetingNumber));
 	}
 	return null;
 };
@@ -204,13 +184,13 @@ function GateComponent({
 }) {
 	const { groupName } = useParams();
 	const group = useAppSelector((state) =>
-		selectWorkingGroupByName(state, groupName || "")
+		groupName? selectWorkingGroupByName(state, groupName): undefined
 	);
-	const access = group?.permissions.meetings || AccessLevel.none;
 
 	if (!group)
 		return <span>Invalid group: {groupName}</span>
 
+	const access = group.permissions.meetings || AccessLevel.none;
 	if (access < minAccess)
 		return <span>You do not have permission to view this data</span>;
 
