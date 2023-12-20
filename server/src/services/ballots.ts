@@ -1,5 +1,5 @@
 import db from '../utils/database';
-import { type OkPacket } from 'mysql2';
+import { type ResultSetHeader } from 'mysql2';
 import { DateTime } from 'luxon';
 import { isPlainObject, NotFoundError } from '../utils';
 
@@ -267,7 +267,7 @@ async function addBallot(user: User, workingGroup: Group, ballot: Ballot) {
 		const sql = 'INSERT INTO ballots SET ' + 
 			db.format('workingGroupId=UUID_TO_BIN(?), ', [workingGroup.id]) +
 			ballotSetSql(entry);
-		const results = await db.query({sql, dateStrings: true}) as OkPacket;
+		const results = await db.query({sql, dateStrings: true}) as ResultSetHeader;
 		id = results.insertId;
 	}
 	catch(err: any) {
@@ -318,7 +318,7 @@ async function updateBallot(user: User, workingGroup: Group, update: BallotUpdat
 		const sql = 'UPDATE ballots SET ' +
 			ballotSetSql(entry) +
 			db.format(' WHERE id=? AND workingGroupId=UUID_TO_BIN(?)', [id, workingGroup.id]);
-		const result = await db.query({sql, dateStrings: true}) as OkPacket;
+		const result = await db.query({sql, dateStrings: true}) as ResultSetHeader;
 		if (result.affectedRows !== 1)
 			throw new Error(`Unexpected: no update for ballot with id=${id}`);
 	}

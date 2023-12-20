@@ -2,7 +2,7 @@
  * Manage sessions and session attendance
  */
 import { DateTime } from "luxon";
-import type { OkPacket } from "mysql2";
+import type { ResultSetHeader } from "mysql2";
 
 import db from "../utils/database";
 
@@ -208,7 +208,7 @@ export async function addSession(session: Session) {
 	const { insertId } = (await db.query({
 		sql: `INSERT INTO sessions SET ${setSql};`,
 		dateStrings: true,
-	})) as OkPacket;
+	})) as ResultSetHeader;
 	if (session.rooms) await replaceSessionRooms(insertId, session.rooms);
 	const [insertedSession] = await getSessions({ id: insertId });
 	return insertedSession;
@@ -241,6 +241,6 @@ export async function deleteSessions(ids: number[]) {
 				"DELETE FROM attendance_summary WHERE session_id IN (?);",
 				[ids]
 			)
-	)) as OkPacket[];
+	)) as ResultSetHeader[];
 	return results[0].affectedRows;
 }

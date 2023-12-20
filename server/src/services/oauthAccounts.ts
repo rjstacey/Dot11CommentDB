@@ -1,5 +1,5 @@
 import db from '../utils/database';
-import type { OkPacket } from 'mysql2';
+import type { ResultSetHeader } from 'mysql2';
 import { isPlainObject } from '../utils';
 
 export type OAuthAccountCreate = {
@@ -59,7 +59,7 @@ export function parseOAuthState(state: string): AuthState | undefined {
  * @param authParams New tokens. A null value clears the current paramters.
  * @param userId User indentifier (SAPIN)
  */
-export function updateAuthParams(id: number, authParams: object | null, userId?: number): Promise<OkPacket> {
+export function updateAuthParams(id: number, authParams: object | null, userId?: number): Promise<ResultSetHeader> {
 	let sets: string[] = [];
 
 	sets.push(
@@ -79,7 +79,7 @@ export function updateAuthParams(id: number, authParams: object | null, userId?:
 
 	const setsSql = sets.join(', ');
 
-	return db.query('UPDATE oauth_accounts SET ' + setsSql + ' WHERE id=?', [id]) as Promise<OkPacket>;
+	return db.query('UPDATE oauth_accounts SET ' + setsSql + ' WHERE id=?', [id]) as Promise<ResultSetHeader>;
 }
 
 type OAuthConstraints = {
@@ -147,7 +147,7 @@ export function validOAuthAccountChanges(account: any): account is OAuthAccountC
  * @returns OAuth account object as added
  */
 export async function addOAuthAccount(account: OAuthAccountCreate) {
-	const {insertId} = await db.query('INSERT INTO oauth_accounts (??) VALUES (?);', [Object.keys(account), Object.values(account)]) as OkPacket;
+	const {insertId} = await db.query('INSERT INTO oauth_accounts (??) VALUES (?);', [Object.keys(account), Object.values(account)]) as ResultSetHeader;
 	return insertId;
 }
 
@@ -175,6 +175,6 @@ export async function updateOAuthAccount(groupId: string, id: number, changes: O
 export async function deleteOAuthAccount(groupId: string, id: number) {
 	if (!id)
 		throw new TypeError('Must provide id with delete');
-	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=? AND groupId=UUID_TO_BIN(?)', [id, groupId]) as OkPacket;
+	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=? AND groupId=UUID_TO_BIN(?)', [id, groupId]) as ResultSetHeader;
 	return affectedRows;
 }

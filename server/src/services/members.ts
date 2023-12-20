@@ -1,10 +1,10 @@
 import { DateTime } from 'luxon';
 
 import db from '../utils/database';
-import type { OkPacket } from 'mysql2';
+import type { ResultSetHeader } from 'mysql2';
 import type { Response } from 'express';
 
-import { userIsSubgroupAdmin, User } from './users';
+import { User } from './users';
 
 import {
 	parseMyProjectRosterSpreadsheet,
@@ -570,7 +570,7 @@ export async function updateMembers(updates: Update<Member>[]) {
 
 export async function deleteMembers(ids: number[]) {
 	if (ids.length > 0) {
-		const result = await db.query('DELETE FROM members WHERE SAPIN IN (?)', [ids]) as OkPacket;
+		const result = await db.query('DELETE FROM members WHERE SAPIN IN (?)', [ids]) as ResultSetHeader;
 		return result.affectedRows;
 	}
 	return 0;

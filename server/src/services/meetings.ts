@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import { isPlainObject, AuthError, NotFoundError } from '../utils';
 
 import db from '../utils/database';
-import type { OkPacket } from 'mysql2';
+import type { ResultSetHeader } from 'mysql2';
 
 import type { User } from './users';
 
@@ -110,6 +110,12 @@ function selectMeetingsSql(constraints: SelectMeetingsConstraints) {
 
 	if (sessionId) {
 		wheres.push(db.format('m.sessionId=?', [sessionId]));
+	}
+	else {
+		if (!fromDate) {
+			const date = DateTime.now().toUTC();
+			wheres.push(db.format('end > ?', date.toFormat('yyyy-MM-dd HH:mm:ss')));
+		}
 	}
 
 	if (fromDate) {
@@ -556,7 +562,7 @@ async function addMeeting(user: User, meetingToAdd: MeetingAddUpdate) {
 	}
 
 	const sql = 'INSERT INTO meetings SET ' + meetingToSetSql(meeting);
-	const {insertId} = await db.query({sql, dateStrings: true}) as OkPacket;
+	const {insertId} = await db.query({sql, dateStrings: true}) as ResultSetHeader;
 	const [meetingOut] = await selectMeetings({id: insertId});
 
 	return {meeting: meetingOut, webexMeeting, breakout};
@@ -1007,6 +1013,6 @@ export async function deleteMeetings(user: User, ids: number[]): Promise<number>
 			}
 		}
 	}
-	const {affectedRows} = await db.query('DELETE FROM meetings WHERE id IN (?);', [ids]) as OkPacket;
+	const {affectedRows} = await db.query('DELETE FROM meetings WHERE id IN (?);', [ids]) as ResultSetHeader;
 	return affectedRows;
 }

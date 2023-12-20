@@ -2,7 +2,7 @@ import { v4 as uuid } from 'uuid';
 import { isPlainObject } from '../utils';
 
 import db from '../utils/database';
-import type { OkPacket } from 'mysql2';
+import type { ResultSetHeader } from 'mysql2';
 import type { User } from './users';
 import { Group, getGroupAndSubgroupIds } from './groups';
 
@@ -184,6 +184,6 @@ export async function removeOfficers(user: User, workingGroup: Group, ids: strin
 	const result = await db.query(
 		'DELETE officers FROM officers LEFT JOIN organization org ON officers.group_id=org.id WHERE BIN_TO_UUID(officers.id) IN (?) AND UUID_TO_BIN(?) IN (org.id, org.parent_id)',
 		[ids, workingGroup.id]
-	) as OkPacket;
+	) as ResultSetHeader;
 	return result.affectedRows;
 }

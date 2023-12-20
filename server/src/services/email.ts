@@ -1,6 +1,6 @@
 import { fromIni } from '@aws-sdk/credential-providers';
 import { SESClient, SendEmailCommand, SendEmailCommandInput } from '@aws-sdk/client-ses';
-import type { OkPacket } from 'mysql2';
+import type { ResultSetHeader } from 'mysql2';
 
 import type { User } from './users';
 import type { Group } from './groups';
@@ -147,7 +147,7 @@ async function addEmailTemplate(groupId: string, template: EmailTemplateCreate) 
 	const sql = db.format(`
 		INSERT INTO emailTemplates SET groupId=UUID_TO_BIN(?), ? 
 	`, [groupId, template]);
-	const {insertId} = await db.query(sql) as OkPacket;
+	const {insertId} = await db.query(sql) as ResultSetHeader;
 	return insertId;
 }
 
@@ -220,6 +220,6 @@ export async function deleteTemplates(group: Group, ids: number[]) {
 	const sql = db.format(`
 		DELETE FROM emailTemplates WHERE groupId=UUID_TO_BIN(?) AND id IN(?)
 	`, [group.id, ids]);
-	const {affectedRows} = await db.query(sql) as OkPacket;
+	const {affectedRows} = await db.query(sql) as ResultSetHeader;
 	return affectedRows;
 }

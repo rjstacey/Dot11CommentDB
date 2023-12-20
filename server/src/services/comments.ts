@@ -2,7 +2,7 @@
 import { DateTime } from 'luxon';
 
 import db from '../utils/database';
-import type { OkPacket } from 'mysql2';
+import type { ResultSetHeader } from 'mysql2';
 
 import { AuthError, ForbiddenError, NotFoundError, isPlainObject } from '../utils';
 import { parseEpollCommentsCsv, parseEpollUserCommentsCsv, parseEpollUserCommentsExcel } from './epoll';
@@ -220,7 +220,7 @@ async function updateComment(user: User, ballot_id: number, id: bigint, changes:
 	if (Object.keys(changes).length === 0)
 		return;
 	const sql = db.format('UPDATE comments SET ' + commentsSetSql(changes) + ', LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP() WHERE ballot_id=? AND id=?', [user.SAPIN, ballot_id, id]);
-	return db.query(sql) as Promise<OkPacket>;
+	return db.query(sql) as Promise<ResultSetHeader>;
 }
 
 type CommentUpdate = {
@@ -305,7 +305,7 @@ export async function deleteComments(user: User, ballot_id: number) {
 			'WHERE c.ballot_id=?;',
 		[ballot_id]
 	);
-	const result = await db.query(sql) as OkPacket;
+	const result = await db.query(sql) as ResultSetHeader;
 	return result.affectedRows;
 }
 

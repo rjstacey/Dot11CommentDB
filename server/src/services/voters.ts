@@ -2,9 +2,9 @@
 import { v4 as uuid, validate as validateUUID } from 'uuid';
 import { csvParse, csvStringify, isPlainObject, validateSpreadsheetHeader } from '../utils';
 import type { Response } from 'express';
+import type { ResultSetHeader } from 'mysql2';
 
 import db from '../utils/database';
-import type {OkPacket} from '../utils/database';
 
 import { getMembersSnapshot } from './members';
 
@@ -166,7 +166,7 @@ export async function addVoters(ballot_id: number, votersIn: any) {
 	});
 	const results = voters.map(voter => {
 		let {id, ...voterDB} = voter;
-		return db.query('INSERT INTO wgVoters SET ?, id=UUID_TO_BIN(?);', [voterDB, id]) as Promise<OkPacket>;
+		return db.query('INSERT INTO wgVoters SET ?, id=UUID_TO_BIN(?);', [voterDB, id]) as Promise<ResultSetHeader>;
 	});
 	await Promise.all(results);
 	voters = await getVoters({id: voters.map(voter => voter.id)});
@@ -188,7 +188,7 @@ export async function updateVoters(updates: any) {
 	if (!validUpdates(updates))
 		throw new TypeError("Bad or missing updates array; expect array with shape {id: number, changes: object}");
 	let results = updates.map(({id, changes}) =>
-		db.query('UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)', [changes, id]) as Promise<OkPacket>
+		db.query('UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)', [changes, id]) as Promise<ResultSetHeader>
 	);
 	await Promise.all(results);
 	const voters = await getVoters({id: updates.map(u => u.id)});
@@ -206,7 +206,7 @@ export async function deleteVoters(ids: any) {
 	const sql = 'DELETE FROM wgVoters WHERE id IN (' +
 			ids.map(id => `UUID_TO_BIN('${id}')`).join(',') +
 		')';
-	const result = await db.query(sql) as OkPacket;
+	const result = await db.query(sql) as ResultSetHeader;
 	return result.affectedRows;
 }
 
@@ -218,7 +218,7 @@ async function insertVoters(ballot_id: number, votersIn: Partial<Voter>[]) {
 			votersIn.map(v => db.format('(?, ?)', [ballot_id, Object.values(votersEntry(v))])).join(', ') +
 			';'
 	}
-	await db.query(sql) as OkPacket;
+	await db.query(sql) as ResultSetHeader;
 	const voters = await getVoters({ballot_id});
 	const ballots = await getVoterBallotUpdates(ballot_id);
 	return {voters, ballots};

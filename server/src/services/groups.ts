@@ -2,7 +2,7 @@
 import { v4 as uuid } from 'uuid';
 
 import db from '../utils/database';
-import type { OkPacket } from 'mysql2';
+import type { ResultSetHeader } from 'mysql2';
 import { isPlainObject } from '../utils';
 import { User } from './users';
 import { AccessLevel } from '../auth/access';
@@ -309,7 +309,7 @@ export function validateGroupIds(ids: any): asserts ids is string[] {
 }
 
 export async function removeGroups(user: User, ids: string[]): Promise<number> {
-	const result1 = await db.query('DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)', [ids]) as OkPacket;
-	const result2 = await db.query('DELETE FROM organization WHERE BIN_TO_UUID(id) IN (?)', [ids]) as OkPacket;
+	const result1 = await db.query('DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)', [ids]) as ResultSetHeader;
+	const result2 = await db.query('DELETE FROM organization WHERE BIN_TO_UUID(id) IN (?)', [ids]) as ResultSetHeader;
 	return result1.affectedRows + result2.affectedRows;
 }

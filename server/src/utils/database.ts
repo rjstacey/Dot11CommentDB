@@ -48,8 +48,6 @@ export function init() {
 	ppool.query("SET time_zone='-08:00';");
 }
 
-export type OkPacket = mysql.OkPacket;
-
 /* There seems to be a bug in the typing; dateStrings should be an option */
 type QueryArgs =
 	| [string, any?]

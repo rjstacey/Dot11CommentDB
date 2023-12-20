@@ -5,7 +5,7 @@ import db from '../utils/database';
 
 import { selectComments } from './comments';
 import { User } from './users';
-import type { OkPacket } from 'mysql2';
+import type { ResultSetHeader } from 'mysql2';
 import { ForbiddenError, NotFoundError, isPlainObject } from '../utils';
 import { AccessLevel } from '../auth/access';
 import { getGroups } from './groups';
@@ -279,7 +279,7 @@ export async function deleteResolutions(
 	}
 
 	if (ids.length > 0)
-		await db.query('DELETE r FROM resolutions r LEFT JOIN comments c ON r.comment_id=c.id WHERE c.ballot_id=? AND BIN_TO_UUID(r.id) IN (?)', [ballot_id, ids]) as OkPacket;
+		await db.query('DELETE r FROM resolutions r LEFT JOIN comments c ON r.comment_id=c.id WHERE c.ballot_id=? AND BIN_TO_UUID(r.id) IN (?)', [ballot_id, ids]) as ResultSetHeader;
 	const comments = await selectComments({ballot_id, modifiedSince});
 	return {comments};
 }

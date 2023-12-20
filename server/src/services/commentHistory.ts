@@ -1,4 +1,3 @@
-import { ideahub } from 'googleapis/build/src/apis/ideahub';
 import db from '../utils/database';
 import { commentEditableFields, Comment, CommentEditable } from './comments';
 import { resolutionEditableFields, defaultResolution, Resolution, ResolutionEditable } from './resolutions';

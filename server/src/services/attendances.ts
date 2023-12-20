@@ -5,7 +5,7 @@ import { getSessions, Session } from './sessions';
 import type { Group } from './groups';
 import { getImatMeetingAttendanceSummaryForSession, getImatMeetingDailyAttendance } from './imat';
 import { isPlainObject } from '../utils';
-import type { OkPacket } from 'mysql2';
+import type { ResultSetHeader } from 'mysql2';
 import type { User } from './users';
 
 type SessionAttendanceSummary = {
@@ -194,7 +194,7 @@ function validAttendance(attendance: any): attendance is SessionAttendanceSummar
 }
 
 async function addAttendance(attendance: SessionAttendanceSummary) {
-    const {insertId} = await db.query('INSERT attendance_summary SET ?', [attendance]) as OkPacket;
+    const {insertId} = await db.query('INSERT attendance_summary SET ?', [attendance]) as ResultSetHeader;
     [attendance] = await db.query('SELECT * FROM attendance_summary WHERE id=?', [insertId]) as SessionAttendanceSummary[];
     return attendance;
 }
@@ -213,6 +213,6 @@ export function validAttendanceIds(ids: any): ids is number[] {
 }
 
 export async function deleteAttendances(ids: number[]) {
-    const {affectedRows} = await db.query('DELETE FROM attendance_summary WHERE ID IN (?)', ids) as OkPacket;
+    const {affectedRows} = await db.query('DELETE FROM attendance_summary WHERE ID IN (?)', ids) as ResultSetHeader;
     return affectedRows;
 }

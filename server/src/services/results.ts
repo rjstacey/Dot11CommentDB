@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid';
 
 import db from '../utils/database';
 import { shallowEqual, AuthError, NotFoundError } from '../utils';
-import type { OkPacket } from 'mysql2';
+import type { ResultSetHeader } from 'mysql2';
 import type { Response } from 'express';
 import type { User } from './users';
 
@@ -479,7 +479,7 @@ export async function getResultsForSaBallot(ballot_id: number) {
 					'(r.Email<>"" AND c.CommenterEmail = r.Email) OR (r.Name<>"" AND c.CommenterName = r.Name) ' +
 		'WHERE r.ballot_id=@ballot_id', [ballot_id]);
 
-	const [, results] = await db.query(sql) as [OkPacket, Result[]];
+	const [, results] = await db.query(sql) as [ResultSetHeader, Result[]];
 	return results;
 }
 
@@ -498,7 +498,7 @@ export async function getResultsForWgBallot(ballot_id: number) {
 			'LEFT JOIN members m ON m.SAPIN=r.SAPIN AND m.Status="Obsolete" ' +
 		'WHERE r.ballot_id=@ballot_id', [ballot_id]);
 
-	const [, results] = await db.query(sql) as [OkPacket, Result[]];
+	const [, results] = await db.query(sql) as [ResultSetHeader, Result[]];
 	return results;
 }
 
@@ -508,7 +508,7 @@ export async function deleteResults(ballot_id: number) {
 		'DELETE FROM results WHERE ballot_id=@ballot_id; ' +
 		'UPDATE ballots SET ResultsSummary=NULL WHERE id=@ballot_id',
 		[ballot_id]
-	) as OkPacket[];
+	) as ResultSetHeader[];
 	return results[1].affectedRows;
 }
 
