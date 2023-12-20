@@ -1,21 +1,22 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { createSelector } from "@reduxjs/toolkit";
 
 import { Select } from "dot11-components";
 
-import { RootState } from "../store";
 import { useAppSelector } from "../store/hooks";
 import { selectWorkingGroups } from "../store/groups";
 import { AccessLevel } from "../store/user";
 
 import styles from "./app.module.css";
 
-function selectOptions(state: RootState) {
-	return selectWorkingGroups(state).map((g) => {
+const selectOptions = createSelector(
+	selectWorkingGroups,
+	(groups) => groups.map((g) => {
 		const access = g.permissions.comments || AccessLevel.none;
 		return { ...g, disabled: access < AccessLevel.ro };
-	});
-}
+	})
+);
 
 export function WorkingGroupSelector(
 	props: Omit<

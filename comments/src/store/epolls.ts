@@ -43,6 +43,11 @@ export const selectEpollIds = (state: RootState) =>
 	selectEpollsState(state).ids;
 export const selectEpollEntities = (state: RootState) =>
 	selectEpollsState(state).entities;
+/*const selectEpolls = createSelector(
+	selectEpollIds,
+	selectEpollEntities,
+	(ids, entities) => ids.map(id => entities[id]!)
+);*/
 
 /*
  * selectSyncedEntities(state)
@@ -136,14 +141,20 @@ function validResponse(response: any): response is Epoll[] {
 	return Array.isArray(response) && response.every(validEpoll);
 }
 
-let loadPromise: Promise<Epoll[]> | null;
+let loadingPromise: Promise<Epoll[]>;
 export const loadEpolls =
 	(groupName: string, n = 20): AppThunk<Epoll[]> =>
-	async (dispatch, getState) => {
-		if (loadPromise) return loadPromise;
+	(dispatch, getState) => {
+		const { loading, groupName: currentGroupName } = selectEpollsState(
+			getState()
+		);
+		if (loading && groupName === currentGroupName) {
+			return loadingPromise;
+		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/epolls`;
-		loadPromise = (fetcher.get(url, { n }) as Promise<Epoll[]>)
+		loadingPromise = fetcher
+			.get(url, { n })
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
@@ -154,9 +165,6 @@ export const loadEpolls =
 				dispatch(getFailure());
 				dispatch(setError("Unable to get a list of epolls", error));
 				return [];
-			})
-			.finally(() => {
-				loadPromise = null;
 			});
-		return loadPromise;
+		return loadingPromise;
 	};

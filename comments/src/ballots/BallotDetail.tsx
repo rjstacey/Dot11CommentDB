@@ -20,7 +20,6 @@ import SelectPrevBallot from './PrevBallotSelecor';
 
 import type { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectWorkingGroup } from '../store/groups';
 import {
 	updateBallot,
 	addBallot,
@@ -29,6 +28,7 @@ import {
 	setUiProperties,
 	setSelectedBallots,
 	selectBallotsState,
+	selectBallotsWorkingGroup,
 	BallotType,
 	BallotTypeOptions,
 	BallotStageOptions,
@@ -92,7 +92,7 @@ export function Column1({
 	updateBallot: (changes: Partial<BallotEdit>) => void;
 	readOnly?: boolean;
 }) {
-	const workingGroup = useAppSelector(selectWorkingGroup)!;
+	const workingGroup = useAppSelector(selectBallotsWorkingGroup)!;
 	const isMultipleBallots = isMultiple(ballot.id);
 
 	const change: React.ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement> = (e) => {

@@ -14,7 +14,7 @@ import OnlineIndicator from './OnlineIndicator';
 
 import { resetStore } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectUser, AccessLevel } from '../store/user';
+import { selectUser, initUser, AccessLevel } from '../store/user';
 import { selectWorkingGroupByName } from "../store/groups";
 import { selectCurrentBallotID } from '../store/ballots';
 
@@ -150,7 +150,12 @@ function Header() {
 			smallScreenQuery.removeEventListener("change", updateSmallScreen);
 	}, []);
 
-	const title = (groupName? groupName + " ": "") + "CR";
+	const clearCache = () => {
+		dispatch(resetStore());
+		dispatch(initUser(user));
+	}
+
+	const title = (groupName? groupName + " ": "") + "Comment Resolution";
 	const rootPath = "/" + (groupName || "");
 
 	return (
@@ -192,7 +197,7 @@ function Header() {
 			<Account
 				user={user}
 			>
-				<Button onClick={() => dispatch(resetStore())}>
+				<Button onClick={clearCache}>
 					Clear cache
 				</Button>
 			</Account>

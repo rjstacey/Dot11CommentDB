@@ -1,9 +1,5 @@
 import { createAction, createSelector } from "@reduxjs/toolkit";
-import type {
-	Action,
-	PayloadAction,
-	EntityId,
-} from "@reduxjs/toolkit";
+import type { Action, PayloadAction, EntityId } from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -20,7 +16,7 @@ import { AccessLevel } from "./user";
 import {
 	selectGroupEntities,
 	selectGroups,
-	selectWorkingGroup,
+	selectWorkingGroupByName,
 } from "./groups";
 
 export type ResultsSummary = {
@@ -322,8 +318,15 @@ const selectSyncedBallotEntities = createSelector(
 	}
 );
 
-export const selectBallotsAccess = (state: RootState) =>
-	selectWorkingGroup(state)?.permissions.ballots || AccessLevel.none;
+export const selectBallotsWorkingGroup = (state: RootState) => {
+	const { groupName } = selectBallotsState(state);
+	return groupName ? selectWorkingGroupByName(state, groupName) : undefined;
+};
+
+export const selectBallotsAccess = (state: RootState) => {
+	const group = selectBallotsWorkingGroup(state);
+	return group?.permissions.ballots || AccessLevel.none;
+};
 
 export type GroupProjectOption = GroupProject & {
 	label: string;
@@ -482,14 +485,20 @@ function validResponse(response: any): response is Ballot[] {
 	return Array.isArray(response) && response.every(validBallot);
 }
 
-let loadBallotsPromise: Promise<Ballot[]> | null;
+let loadingPromise: Promise<Ballot[]>;
 export const loadBallots =
 	(groupName: string): AppThunk<Ballot[]> =>
 	async (dispatch, getState) => {
-		if (loadBallotsPromise) return loadBallotsPromise;
+		const { loading, groupName: currentGroupName } = selectBallotsState(
+			getState()
+		);
+		if (loading && groupName === currentGroupName) {
+			return loadingPromise;
+		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/ballots`;
-		loadBallotsPromise = (fetcher.get(url) as Promise<Ballot[]>)
+		loadingPromise = fetcher
+			.get(url)
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
@@ -500,13 +509,9 @@ export const loadBallots =
 				dispatch(getFailure());
 				dispatch(setError("Unable to get ballot list", error));
 				return [];
-			})
-			.finally(() => {
-				loadBallotsPromise = null;
 			});
-		return loadBallotsPromise;
+		return loadingPromise;
 	};
-
 
 export const updateBallot =
 	(id: number, changes: Partial<Ballot>): AppThunk =>

@@ -2,6 +2,7 @@ import {
 	createSlice,
 	createEntityAdapter,
 	createSelector,
+	EntityId,
 	PayloadAction,
 } from "@reduxjs/toolkit";
 import { fetcher, isObject, setError } from "dot11-components";
@@ -93,26 +94,36 @@ export const selectGroupIds = (state: RootState) =>
 export const selectWorkingGroupId = (state: RootState) =>
 	selectGroupsState(state).workingGroupId;
 
-export const selectGroups = createSelector(
+export const selectWorkingGroupIds = createSelector(
 	selectGroupIds,
 	selectGroupEntities,
 	selectWorkingGroupId,
 	(ids, entities, workingGroupId) => {
-		function getChildren(parent_ids: string[]) {
-			let childIds = (ids as string[]).filter((id) => {
-				const group = entities[id]!;
-				return group.parent_id && parent_ids.includes(group.parent_id);
+		if (workingGroupId) {
+			function isWorkingGroupDescendent(id: EntityId) {
+				if (id === workingGroupId) return true;
+				let g: Group | undefined = entities[id]!;
+				do {
+					if (g.parent_id === workingGroupId) return true; // id is descendent of ownerGroupId
+					g = g.parent_id ? entities[g.parent_id] : undefined;
+				} while (g);
+				return false; // id is not an descendent of ownerGroupId
+			}
+			return ids.filter(isWorkingGroupDescendent);
+		} else {
+			return ids.filter((id) => {
+				let g = entities[id]!;
+				return g.type === "wg";
 			});
-			if (childIds.length > 0)
-				childIds = childIds.concat(getChildren(childIds));
-			return childIds;
 		}
-		let subgroupIds: string[] = [];
-		if (workingGroupId)
-			subgroupIds = [workingGroupId].concat(getChildren([workingGroupId]));
-		return subgroupIds.map((id) => entities[id]!);
 	}
-)
+);
+
+export const selectGroups = createSelector(
+	selectWorkingGroupIds,
+	selectGroupEntities,
+	(ids, entities) => ids.map((id) => entities[id]!)
+);
 
 export const selectGroup = (state: RootState, groupId: string) =>
 	selectGroupEntities(state)[groupId];
@@ -163,7 +174,7 @@ export const selectGroupPermissions = (
 /*
  * Actions
  */
-const { getPending, getSuccess, getFailure } = slice.actions;
+const { getPending, getSuccess, getFailure, setWorkingGroupId } = slice.actions;
 
 const baseUrl = "/api/groups";
 
@@ -175,14 +186,32 @@ function validResponse(response: any): response is Group[] {
 	return Array.isArray(response) && response.every(validGroup);
 }
 
+const loadPromise: Record<string, Promise<Group[]>> = {};
 export const loadGroups =
-	(groupName?: string): AppThunk<Group[]> =>
-	(dispatch) => {
+	(groupName: string = ""): AppThunk<Group[]> =>
+	async (dispatch, getState) => {
+		if (groupName) {
+			await loadPromise[""];
+			if (selectWorkingGroup(getState())?.name !== groupName) {
+				const group = selectWorkingGroupByName(getState(), groupName);
+				if (!group) {
+					setError(
+						"Unable to load subgroups",
+						"Invalid working group: " + groupName
+					);
+					return [];
+				}
+				dispatch(setWorkingGroupId(group.id));
+			}
+		}
+		if (loadPromise[groupName] instanceof Promise) {
+			return loadPromise[groupName];
+		}
 		dispatch(getPending());
 		const url = groupName
 			? `${baseUrl}/${groupName}`
 			: `${baseUrl}?type=wg`;
-		return fetcher
+		loadPromise[groupName] = fetcher
 			.get(url)
 			.then((response: any) => {
 				if (!validResponse(response))
@@ -195,4 +224,5 @@ export const loadGroups =
 				dispatch(setError("Unable to get groups", error));
 				return [];
 			});
+		return loadPromise[groupName];
 	};

@@ -23,56 +23,45 @@ import Results from "../results/Results";
 import Comments from "../comments/Comments";
 import Reports from "../reports/Reports";
 
-import styles from "./app.module.css";
 import { loadEpolls } from "../store/epolls";
-import { loadBallots, selectBallotByBallotID } from "../store/ballots";
+import { loadBallots, selectBallotByBallotID, setCurrentBallot_id } from "../store/ballots";
 import { loadVoters } from "../store/voters";
 import { loadResults } from "../store/results";
 import { loadComments, selectCommentsBallot_id } from "../store/comments";
 
+import styles from "./app.module.css";
+
 const rootLoader: LoaderFunction = async () => {
 	const { dispatch } = store;
-	dispatch(loadGroups());
+	await dispatch(loadGroups());
 	return null;
 };
 
 const groupLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.comments || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			dispatch(loadGroups(groupName));
-			dispatch(loadMembers(groupName));
-		}
+		dispatch(loadGroups(groupName));
+		dispatch(loadMembers(groupName));
 	}
 	return null;
 };
 
 const ballotsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.ballots || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			dispatch(loadBallots(groupName));
-		}
+		dispatch(loadBallots(groupName));
 	}
 	return null;
 }
 
 const epollsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.ballots || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			dispatch(loadBallots(groupName));
-			dispatch(loadEpolls(groupName));
-		}
+		dispatch(loadBallots(groupName));
+		dispatch(loadEpolls(groupName));
 	}
 	return null;
 }
@@ -80,11 +69,15 @@ const epollsLoader: LoaderFunction = async ({ params }) => {
 const ballotVotersLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	const { groupName, ballotId } = params;
-	if (groupName && ballotId) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.ballots || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			const ballot = selectBallotByBallotID(getState(), ballotId);
+	if (groupName) {
+		const p = dispatch(loadBallots(groupName));
+		dispatch(loadMembers(groupName));
+		if (ballotId) {
+			let ballot = selectBallotByBallotID(getState(), ballotId);
+			if (!ballot) {
+				await p;	// see if we get it with a ballots refresh
+				ballot = selectBallotByBallotID(getState(), ballotId);
+			}
 			if (ballot) {
 				dispatch(loadVoters(ballot.id));
 			}
@@ -96,11 +89,14 @@ const ballotVotersLoader: LoaderFunction = async ({ params }) => {
 const resultsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	const { groupName, ballotId } = params;
-	if (groupName && ballotId) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		const access = group?.permissions.results || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			const ballot = selectBallotByBallotID(getState(), ballotId);
+	if (groupName) {
+		const p = dispatch(loadBallots(groupName));
+		if (ballotId) {
+			let ballot = selectBallotByBallotID(getState(), ballotId);
+			if (!ballot) {
+				await p;	// see if we get it with a ballots refresh
+				ballot = selectBallotByBallotID(getState(), ballotId);
+			}
 			if (ballot) {
 				dispatch(loadResults(ballot.id));
 			}
@@ -111,15 +107,19 @@ const resultsLoader: LoaderFunction = async ({ params }) => {
 
 const commentsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
-	const state = getState();
 	const { groupName, ballotId } = params;
-	if (groupName && ballotId) {
-		const group = selectWorkingGroupByName(state, groupName);
-		const access = group?.permissions.comments || AccessLevel.none;
-		if (access >= AccessLevel.ro) {
-			const ballot = selectBallotByBallotID(state, ballotId);
-			if (ballot && ballot.id !== selectCommentsBallot_id(state)) {
-				dispatch(loadComments(ballot.id));
+	if (groupName) {
+		const p = dispatch(loadBallots(groupName));
+		if (ballotId) {
+			let ballot = selectBallotByBallotID(getState(), ballotId);
+			if (!ballot) {
+				await p;	// see if we get it with a ballots refresh
+				ballot = selectBallotByBallotID(getState(), ballotId);
+			}
+			if (ballot) {
+				dispatch(setCurrentBallot_id(ballot.id));
+				if (ballot.id !== selectCommentsBallot_id(getState()))
+					dispatch(loadComments(ballot.id));
 			}
 		}
 	}

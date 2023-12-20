@@ -82,7 +82,6 @@ const persistConfig = {
 		removeItem: del
 	},
 	whitelist: [
-		userSlice.name,
 		groupsSlice.name,
 		membersSlice.name,
 		ballotsSlice.name,
