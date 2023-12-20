@@ -82,20 +82,28 @@ export const createGroupOfficersSelector = (
  */
 const { getPending, getSuccess, getFailure } = slice.actions;
 
+let loadingPromise: Promise<Officer[]>;
 export const loadOfficers =
-	(groupName: string): AppThunk =>
-	(dispatch) => {
+	(groupName: string): AppThunk<Officer[]> =>
+	(dispatch, getState) => {
+		const {loading, groupName: currentGroupName} = selectOfficersState(getState());
+		if (loading && currentGroupName === groupName) {
+			return loadingPromise;
+		}
 		const url = `/api/${groupName}/officers`;
 		dispatch(getPending({ groupName }));
-		return fetcher
+		loadingPromise = fetcher
 			.get(url)
-			.then((officers: any) => {
-				if (!Array.isArray(officers))
+			.then((response: any) => {
+				if (!Array.isArray(response))
 					throw new TypeError(`Unexpected response to GET ${url}`);
-				dispatch(getSuccess(officers));
+				dispatch(getSuccess(response));
+				return response;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get groups", error));
+				return [];
 			});
+		return loadingPromise;
 	};

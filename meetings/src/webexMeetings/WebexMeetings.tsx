@@ -27,6 +27,7 @@ import { selectGroupEntities, selectWorkingGroupId } from '../store/groups';
 import {
 	updateMeetings,
 	addMeetings,
+	selectLoadMeetingsContstraints,
 } from '../store/meetings';
 import {
 	selectWebexMeetingsState,
@@ -35,15 +36,10 @@ import {
 	getField,
 	webexMeetingsSelectors,
 	webexMeetingsActions,
-	loadWebexMeetings,
+	refreshWebexMeetings,
 	displayMeetingNumber,
 	SyncedWebexMeeting,
 } from '../store/webexMeetings';
-import {
-	selectCurrentSessionId,
-	selectShowDateRange
-} from '../store/current';
-import { selectSessionEntities } from '../store/sessions';
 
 import MeetingSelector from '../components/MeetingSelector';
 import MeetingSummary from '../components/MeetingSummary';
@@ -294,40 +290,24 @@ function webexMeetingsRowGetter({rowIndex, ids, entities}: RowGetterProps<Synced
 
 function WebexMeetings() {
 	const dispatch = useAppDispatch();
+	const constraints = useAppSelector(selectLoadMeetingsContstraints);
+
 	const {selected: wmSelected} = useAppSelector(selectWebexMeetingsState);
 	const wmEntities = useAppSelector(selectSyncedWebexMeetingEntities);
 	const [webexMeetingToLink, setWebexMeetingToLink] = React.useState<SyncedWebexMeeting | null>(null);
 	const [webexMeetingToAdd, setWebexMeetingToAdd] = React.useState<SyncedWebexMeeting | null>(null);
-
-	const sessionId = useAppSelector(selectCurrentSessionId);
-	const showDateRange = useAppSelector(selectShowDateRange);
-	const sessionEntities = useAppSelector(selectSessionEntities);
-	const session = (sessionId && sessionEntities[sessionId]) || undefined; 
 	
-	const refresh = () => {
-		const constraints: Parameters<typeof loadWebexMeetings>[0] = {};
-		if (showDateRange) {
-			if (session) {
-				constraints.fromDate = session.startDate;
-				constraints.toDate = session.endDate;
-				constraints.timezone = session.timezone;
-			}
-			else {
-				constraints.fromDate = DateTime.now().toISODate()!;
-			}
-		}
-		else if (sessionId) {
-			constraints.sessionId = sessionId;
-		}
-		dispatch(loadWebexMeetings(constraints));
-	}
-
+	const refresh = () => dispatch(refreshWebexMeetings());
 	const closeToLink = () => setWebexMeetingToLink(null);
 	const closeToAdd = () => setWebexMeetingToAdd(null);
 
 	const copyHostKeys = () => {
 		setClipboard(wmSelected, wmEntities);
-	}
+	};
+
+	React.useEffect(() => {
+		dispatch(refreshWebexMeetings());
+	}, [dispatch, constraints]);
 
 	return (
 		<>

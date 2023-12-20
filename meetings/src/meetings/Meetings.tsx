@@ -20,14 +20,15 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	fields,
 	getField,
+	refreshMeetings,
 	selectUiProperties,
 	setUiProperties,
 	meetingsSelectors,
 	meetingsActions,
 	setSelectedSlots,
-	SyncedMeeting
+	SyncedMeeting,
+	selectLoadMeetingsContstraints
 } from '../store/meetings';
-import { refresh as refreshCurrent } from '../store/current';
 import { displayMeetingNumber } from '../store/webexMeetings';
 
 import TopRow from '../components/TopRow';
@@ -40,6 +41,7 @@ import MeetingsEmail from './MeetingsEmail';
 import ShowSlots from './ShowSlots';
 
 import { RowGetterProps } from 'dot11-components/dist/table/AppTable';
+import React from 'react';
 
 const DisplayFormat = {
 	0: 'Table view',
@@ -202,15 +204,22 @@ function rowGetter({rowIndex, ids, entities}: RowGetterProps<SyncedMeeting>) {
 
 function Meetings() {
 	const dispatch = useAppDispatch();
+	const refresh = () => dispatch(refreshMeetings());
+	const constraints = useAppSelector(selectLoadMeetingsContstraints);
+
 	let showDays: number = useAppSelector(selectUiProperties).showDays | 0;
 	const setShowDays = (showDays: number) => dispatch(setUiProperties({showDays}));
-	const refresh = () => dispatch(refreshCurrent());
 
 	function changeShowDays(newShowDays: number) {
 		if (showDays !== 0 && newShowDays === 0)
 			dispatch(setSelectedSlots([]));
 		setShowDays(newShowDays);
 	}
+
+	React.useEffect(() => {
+		dispatch(refreshMeetings());
+	}, [dispatch, constraints]);
+
 	return (
 		<>
 			<TopRow>

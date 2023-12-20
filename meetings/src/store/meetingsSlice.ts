@@ -1,4 +1,4 @@
-import type { PayloadAction } from "@reduxjs/toolkit";
+import { createAction, PayloadAction } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
 import { createAppTableDataSlice } from "dot11-components";
@@ -29,8 +29,10 @@ function toggleListItems(list: string[], items: string[]) {
 }
 
 const initialState: {
+	groupName: string | null;
 	selectedSlots: string[];
 } = {
+	groupName: null,
 	selectedSlots: [],
 };
 
@@ -47,6 +49,33 @@ const slice = createAppTableDataSlice({
 			toggleListItems(state.selectedSlots, action.payload);
 		},
 	},
+	extraReducers(builder, dataAdapter) {
+		builder
+		.addMatcher(
+			(action) => action.type === getPending.toString(),
+			(state, action: ReturnType<typeof getPending>) => {
+				const {groupName} = action.payload;
+				if (state.groupName !== groupName) {
+					state.groupName = groupName;
+					dataAdapter.removeAll(state);
+				}
+			}
+		)
+		.addMatcher(
+			(action) => action.type === clearMeetings.toString(),
+			(state) => {
+				dataAdapter.removeAll(state);
+				state.groupName = null;
+				state.valid = false;
+			}
+		)
+	}
 });
+
+// Override the default getPending()
+export const getPending = createAction<{ groupName: string }>(
+	slice.name + "/getPending"
+);
+export const clearMeetings = createAction(slice.name + "/clear");
 
 export default slice;

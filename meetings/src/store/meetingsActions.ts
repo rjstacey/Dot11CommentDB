@@ -1,26 +1,27 @@
 import { EntityId } from "@reduxjs/toolkit";
 import { fetcher, setError, isObject } from "dot11-components";
 
-import slice from "./meetingsSlice";
+import slice, { getPending, clearMeetings } from "./meetingsSlice";
 
 import type { AppThunk } from ".";
-import { selectWorkingGroupName } from "./groups";
 import { setWebexMeetings, upsertWebexMeetings } from "./webexMeetings";
 import { setBreakouts, upsertBreakouts } from "./imatBreakouts";
-
-import type { Meeting, MeetingAdd } from "./meetingsSelectors";
+import {
+	selectMeetingsState,
+	selectLoadMeetingsContstraints,
+	Meeting,
+	MeetingAdd,
+} from "./meetingsSelectors";
 
 export const meetingsActions = slice.actions;
 
 const {
-	getPending,
 	getSuccess,
 	getFailure,
 	upsertMany,
 	setMany,
 	addMany,
 	removeMany,
-	removeAll,
 	setProperty,
 	setUiProperties,
 	setSelected,
@@ -54,38 +55,44 @@ function validateResponse(method: string, response: any) {
 	}
 }
 
-export type LoadMeetingsConstraints = {
-	fromDate?: string;
-	toDate?: string;
-	timezone?: string;
-	sessionId?: number;
-};
-
+let loadingUrl: string;
+let loadingPromise: Promise<Meeting[]>;
 export const loadMeetings =
-	(constraints?: LoadMeetingsConstraints): AppThunk =>
-	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
-		const url = `/api/${groupName}/meetings`;
-		dispatch(getPending());
-		let response: any;
-		try {
-			response = await fetcher.get(url, constraints);
-			validateResponse("GET", response);
-		} catch (error) {
-			dispatch(getFailure());
-			dispatch(setError("Unable to get list of meetings", error));
-			return;
+	(groupName: string): AppThunk<Meeting[]> =>
+	(dispatch, getState) => {
+		const constraints = selectLoadMeetingsContstraints(getState());
+		const url =
+			`/api/${groupName}/meetings` +
+			(constraints ? "?" + new URLSearchParams(constraints) : "");
+		if (loadingPromise instanceof Promise && loadingUrl === url) {
+			return loadingPromise;
 		}
-		const { meetings, webexMeetings, breakouts } = response;
-		dispatch(getSuccess(meetings));
-		dispatch(setSelectedSlots([]));
-		if (webexMeetings) dispatch(setWebexMeetings(webexMeetings));
-		if (breakouts) dispatch(setBreakouts(breakouts));
+		dispatch(getPending({ groupName }));
+		loadingUrl = url;
+		loadingPromise = fetcher
+			.get(url)
+			.then((response: any) => {
+				validateResponse("GET", response);
+				const { meetings, webexMeetings, breakouts } = response;
+				dispatch(getSuccess(meetings));
+				dispatch(setSelectedSlots([]));
+				if (webexMeetings) dispatch(setWebexMeetings(webexMeetings));
+				if (breakouts) dispatch(setBreakouts(breakouts));
+				return meetings;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError("Unable to get list of meetings", error));
+				return [];
+			});
+		return loadingPromise;
 	};
 
-export const clearMeetings = (): AppThunk => async (dispatch) => {
-	dispatch(removeAll());
-};
+export const refreshMeetings = (): AppThunk => 
+	async (dispatch, getState) => {
+		const {groupName} = selectMeetingsState(getState());
+		dispatch(groupName? loadMeetings(groupName): clearMeetings());
+	};
 
 type Update<T> = {
 	id: EntityId;
@@ -95,7 +102,7 @@ type Update<T> = {
 export const updateMeetings =
 	(updates: Update<MeetingAdd>[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const { groupName } = selectMeetingsState(getState());
 		const url = `/api/${groupName}/meetings`;
 		let response: any;
 		try {
@@ -114,7 +121,7 @@ export const updateMeetings =
 export const addMeetings =
 	(meetingsToAdd: MeetingAdd[]): AppThunk<EntityId[]> =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const { groupName } = selectMeetingsState(getState());
 		const url = `/api/${groupName}/meetings`;
 		let response: any;
 		try {
@@ -134,10 +141,9 @@ export const addMeetings =
 export const deleteMeetings =
 	(ids: EntityId[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
-		const url = `/api/${groupName}/meetings`;
+		const { groupName } = selectMeetingsState(getState());
 		return fetcher
-			.delete(url, ids)
+			.delete(`/api/${groupName}/meetings`, ids)
 			.then(() => dispatch(removeMany(ids)))
 			.catch((error: any) =>
 				dispatch(setError(`Unable to delete meetings ${ids}`, error))

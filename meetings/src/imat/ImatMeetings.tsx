@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {
@@ -17,6 +17,7 @@ import {
 	fields,
 	imatMeetingsSelectors,
 	imatMeetingsActions,
+	clearImatMeetings,
 } from '../store/imatMeetings';
 
 const TableRow = styled.div`
@@ -79,12 +80,9 @@ const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0);
 
 function ImatMeetings() {
 	const dispatch = useAppDispatch();
+	const {groupName} = useParams();
 
-	React.useEffect(() => {
-		dispatch(loadImatMeetings());
-	}, [dispatch]);
-
-	const refresh = () => dispatch(loadImatMeetings());
+	const refresh = () => dispatch(groupName? loadImatMeetings(groupName): clearImatMeetings());
 
 	return (
 		<>

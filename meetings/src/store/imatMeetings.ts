@@ -1,4 +1,8 @@
-import { createSelector, EntityId } from "@reduxjs/toolkit";
+import {
+	createSelector,
+	createAction,
+	EntityId,
+} from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -12,7 +16,6 @@ import {
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
-import { selectWorkingGroupName } from "./groups";
 import { selectCurrentSession, selectSessionEntities } from "./sessions";
 
 export type ImatMeeting = {
@@ -53,12 +56,36 @@ export function getField(entity: ImatMeeting, dataKey: string) {
 	return entity[dataKey as keyof ImatMeeting];
 }
 
+const initialState: {
+	groupName: string | null;
+} = {
+	groupName: null,
+};
 export const dataSet = "imatMeetings";
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	initialState: {},
+	initialState,
 	reducers: {},
+	extraReducers(builder, dataAdapter) {
+		builder.addMatcher(
+			(action) => action.type === getPending.toString(),
+			(state, action: ReturnType<typeof getPending>) => {
+				const { groupName } = action.payload;
+				if (state.groupName !== groupName) {
+					state.groupName = groupName;
+					dataAdapter.removeAll(state);
+				}
+			}
+		)
+		.addMatcher(
+			(action) => action.type === clearImatMeetings.toString(),
+			(state) => {
+				dataAdapter.removeAll(state);
+				state.valid = false;
+			}
+		);
+	},
 });
 
 export default slice;
@@ -111,7 +138,11 @@ export const imatMeetingsSelectors = getAppTableDataSelectors(
  */
 export const imatMeetingsActions = slice.actions;
 
-const { getPending, getSuccess, getFailure, removeAll } = slice.actions;
+const { getSuccess, getFailure } = slice.actions;
+
+// Override the default getPending()
+const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
+export const clearImatMeetings = createAction(dataSet + "/clear");
 
 function validImatMeeting(imatMeeting: any): imatMeeting is ImatMeeting {
 	return (
@@ -129,39 +160,29 @@ function validGetResponse(response: any): response is ImatMeeting[] {
 	return Array.isArray(response) && response.every(validImatMeeting);
 }
 
-let loadImatMeetingsPromise: Promise<ImatMeeting[]> | null = null;
+let loadingPromise: Promise<ImatMeeting[]>;
 export const loadImatMeetings =
-	(): AppThunk<ImatMeeting[]> => (dispatch, getState) => {
-		if (loadImatMeetingsPromise) return loadImatMeetingsPromise;
-		const groupName = selectWorkingGroupName(getState());
+	(groupName: string): AppThunk<ImatMeeting[]> =>
+	(dispatch, getState) => {
+		const { loading, groupName: currentGroupName } =
+			selectImatMeetingsState(getState());
+		if (loading && currentGroupName === groupName) {
+			return loadingPromise;
+		}
 		const url = `/api/${groupName}/imat/meetings`;
-		dispatch(getPending());
-		loadImatMeetingsPromise = (fetcher.get(url) as Promise<ImatMeeting[]>)
+		dispatch(getPending({ groupName }));
+		loadingPromise = fetcher
+			.get(url)
 			.then((response: any) => {
-				loadImatMeetingsPromise = null;
 				if (!validGetResponse(response))
 					throw new TypeError("Unexpected response to GET");
 				dispatch(getSuccess(response));
 				return response;
 			})
 			.catch((error: any) => {
-				loadImatMeetingsPromise = null;
 				dispatch(getFailure());
 				dispatch(setError("Unable to get meetings list", error));
 				return [];
 			});
-		return loadImatMeetingsPromise;
+		return loadingPromise;
 	};
-
-export const getImatMeetings =
-	(): AppThunk<ImatMeeting[]> => async (dispatch, getState) => {
-		const { valid, loading, ids, entities } = selectImatMeetingsState(
-			getState()
-		);
-		if (!valid || loading) return dispatch(loadImatMeetings());
-		return ids.map((id) => entities[id]!);
-	};
-
-export const clearImatMeetings = (): AppThunk => async (dispatch) => {
-	dispatch(removeAll());
-};

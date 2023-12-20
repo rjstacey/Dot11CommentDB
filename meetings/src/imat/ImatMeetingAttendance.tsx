@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {
@@ -11,7 +11,6 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	loadImatMeetingAttendance,
 	clearImatMeetingAttendance,
-	selectMeetingAttendanceState,
 	selectImatMeeting,
 	imatMeetingAttendanceSelectors,
 	imatMeetingAttendanceActions
@@ -67,12 +66,15 @@ const columns: ColumnPropertiesWithWidth[] = [
 const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
 
 function BreakoutAttendance() {
-	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
-	const {imatMeetingId} = useAppSelector(selectMeetingAttendanceState);
+	const navigate = useNavigate();
+	const params = useParams();
+	const {groupName} = params;
+	const meetingNumber = Number(params.meetingNumber);
+
 	const imatMeeting = useAppSelector(selectImatMeeting);
 	const close = () => navigate(-1);
-	const refresh = () => imatMeetingId? dispatch(loadImatMeetingAttendance(imatMeetingId)): dispatch(clearImatMeetingAttendance());
+	const refresh = () => dispatch((groupName && meetingNumber)? loadImatMeetingAttendance(groupName, meetingNumber): clearImatMeetingAttendance());
 
 	return (
 		<>

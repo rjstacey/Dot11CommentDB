@@ -3,7 +3,6 @@ import {
 	EntityId,
 	Dictionary,
 	createAction,
-	PayloadAction,
 } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
@@ -184,17 +183,25 @@ const slice = createAppTableDataSlice({
 	initialState,
 	reducers: {},
 	extraReducers(builder, dataAdapter) {
-		builder.addMatcher(
+		builder
+		.addMatcher(
 			(action) => action.type === getPending.toString(),
-			(state, action: PayloadAction<string>) => {
-				const groupName = action.payload;
+			(state, action: ReturnType<typeof getPending>) => {
+				const {groupName} = action.payload;
 				if (state.groupName !== groupName) {
+					state.groupName = groupName;
 					dataAdapter.removeAll(state);
 				}
-				state.groupName = action.payload;
 			}
-		);
-	},
+		)
+		.addMatcher(
+			(action) => action.type === clearSessions.toString(),
+			(state) => {
+				dataAdapter.removeAll(state);
+				state.valid = false;
+			}
+		)
+	}
 });
 
 export default slice;
@@ -219,7 +226,8 @@ const {
 export { setSelected, setUiProperties, setPanelIsSplit };
 
 // Override the default getPending()
-const getPending = createAction<string>(dataSet + "/getPending");
+const getPending = createAction<{groupName: string}>(dataSet + "/getPending");
+export const clearSessions = createAction(dataSet + "/clear");
 
 function validSession(session: any): session is Session {
 	return (
@@ -241,26 +249,28 @@ function validSessions(sessions: any): sessions is Session[] {
 	return Array.isArray(sessions) && sessions.every(validSession);
 }
 
+let loadingPromise: Promise<Session[]>;
 export const loadSessions =
-	(groupName: string): AppThunk =>
-	async (dispatch, getState) => {
+	(groupName: string): AppThunk<Session[]> =>
+	(dispatch, getState) => {
 		const {loading, groupName: currnetGroupName} = selectSessionsState(getState());
 		if (loading && currnetGroupName === groupName) {
-			return;
+			return loadingPromise;
 		}
-		dispatch(getPending(groupName));
+		dispatch(getPending({groupName}));
 		const url = `/api/${groupName}/sessions`;
-		let response: any;
-		try {
-			response = await fetcher.get(url);
-			if (!validSessions(response))
-				throw new TypeError("Unexpected response to GET " + url);
-		} catch (error) {
-			dispatch(getFailure());
-			dispatch(setError("Unable to get sessions", error));
-			return;
-		}
-		dispatch(getSuccess(response));
+		loadingPromise = fetcher.get(url)
+			.then((response: any) => {
+				if (!validSessions(response))
+					throw new TypeError("Unexpected response to GET " + url);
+				dispatch(getSuccess(response));
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError("Unable to get sessions", error));
+				return [];
+			});
+		return loadingPromise;
 	};
 
 export const refreshSessions = (): AppThunk => async (dispatch, getState) => {

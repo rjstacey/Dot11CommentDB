@@ -66,10 +66,8 @@ export const loadTimeZones = (): AppThunk => async (dispatch) => {
 		if (!Array.isArray(timeZones))
 			throw new TypeError("Unexpected response to GET " + url);
 	} catch (error) {
-		await Promise.all([
-			dispatch(getFailure()),
-			dispatch(setError("Unable to get time zones list", error)),
-		]);
+		dispatch(getFailure());
+		dispatch(setError("Unable to get time zones list", error));
 		return;
 	}
 	dispatch(getSuccess(timeZones));

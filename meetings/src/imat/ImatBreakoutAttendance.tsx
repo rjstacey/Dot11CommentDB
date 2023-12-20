@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -12,11 +11,11 @@ import {
 
 import {
 	loadBreakoutAttendance,
-	selectBreakoutAttendanceState,
 	selectImatMeeting,
 	selectImatBreakout,
 	imatBreakoutAttendanceSelectors,
-	imatBreakoutAttendanceActions
+	imatBreakoutAttendanceActions,
+	clearBreakoutAttendance
  } from '../store/imatBreakoutAttendance';
 
 import type { Breakout } from '../store/imatBreakouts';
@@ -81,25 +80,18 @@ const columns: ColumnPropertiesWithWidth[] = [
 const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
 
 function BreakoutAttendance() {
+	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const params = useParams();
+	const {groupName} = params;
 	const meetingNumber = Number(params.meetingNumber);
 	const breakoutNumber = Number(params.breakoutNumber);
 
-	const dispatch = useAppDispatch();
-	const {valid, imatMeetingId, imatBreakoutId} = useAppSelector(selectBreakoutAttendanceState);
 	const imatMeeting = useAppSelector(selectImatMeeting);
 	const breakout = useAppSelector(selectImatBreakout);
 
-	React.useEffect(() => {
-		if (!valid ||
-			(meetingNumber && meetingNumber !== imatMeetingId) ||
-			(breakoutNumber && breakoutNumber !== imatBreakoutId))
-			dispatch(loadBreakoutAttendance(meetingNumber, breakoutNumber));
-	}, [dispatch, valid, meetingNumber, imatMeetingId, breakoutNumber, imatBreakoutId]);
-
 	const close = () => navigate(-1);
-	const refresh = () => dispatch(loadBreakoutAttendance(imatMeetingId, imatBreakoutId));
+	const refresh = () => dispatch((groupName && meetingNumber && breakoutNumber)? loadBreakoutAttendance(groupName, meetingNumber, breakoutNumber): clearBreakoutAttendance());
 
 	return (
 		<>

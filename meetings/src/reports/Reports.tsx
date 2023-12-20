@@ -8,7 +8,6 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectCurrentImatMeetingId } from '../store/current';
 import {
     loadImatMeetingAttendance,
-    getImatMeetingAttendance,
     clearImatMeetingAttendance,
     selectMeetingAttendanceState,
 } from '../store/imatMeetingAttendance';
@@ -18,6 +17,7 @@ import TopRow from '../components/TopRow';
 import SessionAttendanceChart from './SessionAttendanceChart';
 import TeleconAttendanceChart from './TeleconAttendanceChart';
 import { loadBreakouts } from '../store/imatBreakouts';
+import { useParams } from 'react-router-dom';
 
 const actions = [
     "sessionAttendance",
@@ -190,19 +190,14 @@ function ReportsChart({
 function Reports() {
     const dispatch = useAppDispatch();
     const svgRef = React.useRef<SVGSVGElement>(null);
+    const {groupName} = useParams();
 	const imatMeetingId = useAppSelector(selectCurrentImatMeetingId);
     const {loading} = useAppSelector(selectMeetingAttendanceState);
-    console.log(imatMeetingId)
-
-    React.useEffect(() => {
-        if (imatMeetingId)
-            dispatch(getImatMeetingAttendance(imatMeetingId));
-    }, [dispatch, imatMeetingId]);
 
     const refresh = () => {
-        if (imatMeetingId) {
-            dispatch(loadBreakouts(imatMeetingId))
-            dispatch(loadImatMeetingAttendance(imatMeetingId))
+        if (groupName && imatMeetingId) {
+            dispatch(loadBreakouts(groupName, imatMeetingId));
+            dispatch(loadImatMeetingAttendance(groupName, imatMeetingId));
         }
         else {
             dispatch(clearImatMeetingAttendance());

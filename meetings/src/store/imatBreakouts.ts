@@ -1,5 +1,6 @@
 import {
 	createSelector,
+	createAction,
 	EntityId,
 	PayloadAction,
 } from "@reduxjs/toolkit";
@@ -16,7 +17,6 @@ import {
 } from "dot11-components";
 
 import type { AppThunk, RootState } from ".";
-import { selectWorkingGroupName } from "./groups";
 import { selectMeetingEntities } from "./meetings";
 import { selectSyncedImatMeetingEntities } from "./imatMeetings";
 
@@ -197,12 +197,14 @@ const sortComparer = (a: Breakout, b: Breakout) => {
 };
 
 type ExtraState = {
+	groupName: string | null;
 	imatMeetingId: number | null;
 	timeslots: Timeslot[];
 	committees: Committee[];
 };
 
 const initialState: ExtraState = {
+	groupName: null,
 	imatMeetingId: null,
 	timeslots: [],
 	committees: [],
@@ -219,6 +221,33 @@ const slice = createAppTableDataSlice({
 			return { ...state, ...action.payload };
 		},
 	},
+	extraReducers(builder, dataAdapter) {
+		builder
+			.addMatcher(
+				(action) => action.type === getPending.toString(),
+				(state, action: ReturnType<typeof getPending>) => {
+					const { groupName, imatMeetingId } = action.payload;
+					if (
+						state.groupName !== groupName ||
+						state.imatMeetingId !== imatMeetingId
+					) {
+						state.groupName = groupName;
+						state.imatMeetingId = imatMeetingId;
+						dataAdapter.removeAll(state);
+					}
+				}
+			)
+			.addMatcher(
+				(action) => action.type === clearBreakouts.toString(),
+				(state) => {
+					dataAdapter.removeAll(state);
+					state.timeslots = [];
+					state.committees = []; 
+					state.imatMeetingId = null;
+					state.valid = false;
+				}
+			);
+	},
 });
 
 export default slice;
@@ -229,7 +258,6 @@ export default slice;
 export const imatBreakoutsActions = slice.actions;
 
 const {
-	getPending,
 	getSuccess,
 	getFailure,
 	setDetails,
@@ -237,7 +265,6 @@ const {
 	setMany,
 	upsertMany,
 	removeMany,
-	removeAll,
 	setSelected,
 	toggleSelected,
 } = slice.actions;
@@ -249,6 +276,12 @@ export {
 	toggleSelected as toggleSelectedBreakouts,
 };
 
+// Override the default getPending()
+const getPending = createAction<{ groupName: string; imatMeetingId: number }>(
+	dataSet + "/getPending"
+);
+export const clearBreakouts = createAction(dataSet + "/clear");
+
 function validBreakout(b: any): b is Breakout {
 	return (
 		isObject(b) &&
@@ -259,9 +292,7 @@ function validBreakout(b: any): b is Breakout {
 	);
 }
 
-function validGetResponse(
-	response: any
-): response is {
+function validGetResponse(response: any): response is {
 	breakouts: Breakout[];
 	timeslots: Timeslot[];
 	committees: Committee[];
@@ -279,28 +310,32 @@ function validResponse(response: any): response is Breakout[] {
 	return Array.isArray(response) && response.every(validBreakout);
 }
 
-let loadBreakoutsPromise: Promise<Breakout[]> | null = null;
+let loadingPromise: Promise<Breakout[]>;
 export const loadBreakouts =
-	(imatMeetingId: number): AppThunk<Breakout[]> =>
-	async (dispatch, getState) => {
-		const state = getState();
-		const { imatMeetingId: currentImatMeetingId } =
-			selectBreakoutsState(state);
-		if (imatMeetingId !== currentImatMeetingId) {
-			dispatch(removeAll());
-			dispatch(setDetails({ timeslots: [], committees: [] }));
+	(groupName: string, imatMeetingId: number): AppThunk<Breakout[]> =>
+	(dispatch, getState) => {
+		const {
+			loading,
+			groupName: currentGroupName,
+			imatMeetingId: currentImatMeetingId,
+		} = selectBreakoutsState(getState());
+		if (
+			loading &&
+			currentGroupName === groupName &&
+			imatMeetingId === currentImatMeetingId
+		) {
+			return loadingPromise;
 		}
-		dispatch(setDetails({ imatMeetingId }));
-		dispatch(getPending());
-		const groupName = selectWorkingGroupName(state);
+		dispatch(getPending({ groupName, imatMeetingId }));
 		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
-		loadBreakoutsPromise = (fetcher.get(url) as Promise<Breakout[]>)
+		loadingPromise = fetcher
+			.get(url)
 			.then((response: any) => {
 				if (!validGetResponse(response))
 					throw new TypeError("Unexpected response");
 				dispatch(getSuccess(response.breakouts));
 				const { timeslots, committees } = response;
-				dispatch(setDetails({ timeslots, committees, imatMeetingId }));
+				dispatch(setDetails({ timeslots, committees }));
 				return response.breakouts;
 			})
 			.catch((error: any) => {
@@ -312,38 +347,14 @@ export const loadBreakouts =
 					)
 				);
 				return [];
-			})
-			.finally(() => {
-				loadBreakoutsPromise = null;
 			});
-		return loadBreakoutsPromise;
+		return loadingPromise;
 	};
-
-export const getBreakouts =
-	(imatMeetingId: number): AppThunk<Breakout[]> =>
-	async (dispatch, getState) => {
-		const {
-			loading,
-			ids,
-			entities,
-			imatMeetingId: currentImatMeetingId,
-		} = selectBreakoutsState(getState());
-		if (currentImatMeetingId !== imatMeetingId || loading)
-			return dispatch(loadBreakouts(imatMeetingId));
-		return ids.map((id) => entities[id]!);
-	};
-
-export const clearBreakouts = (): AppThunk => async (dispatch) => {
-	dispatch(removeAll());
-	dispatch(
-		setDetails({ timeslots: [], committees: [], imatMeetingId: null })
-	);
-};
 
 export const addBreakouts =
 	(imatMeetingId: number, breakouts: Breakout[]): AppThunk<number[]> =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const {groupName} = selectBreakoutsState(getState());
 		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
 		let response: any;
 		try {
@@ -361,7 +372,7 @@ export const addBreakouts =
 export const updateBreakouts =
 	(imatMeetingId: number, breakouts: Partial<Breakout>[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const {groupName} = selectBreakoutsState(getState());
 		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
 		let response: any;
 		try {
@@ -378,7 +389,7 @@ export const updateBreakouts =
 export const deleteBreakouts =
 	(imatMeetingId: number, ids: EntityId[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const {groupName} = selectBreakoutsState(getState());
 		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
 		try {
 			await fetcher.delete(url, ids);

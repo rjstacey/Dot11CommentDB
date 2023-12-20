@@ -60,7 +60,7 @@ const slice = createSlice({
 			const {groupName} = action.payload;
 			state.loading = true;
 			if (state.groupName !== groupName) {
-				state.groupName = action.payload.groupName;
+				state.groupName = groupName;
 				state.valid = false;
 				dataAdapter.removeAll(state);
 			}
@@ -72,6 +72,11 @@ const slice = createSlice({
 		},
 		getFailure(state) {
 			state.loading = false;
+		},
+		clear(state) {
+			state.groupName = null;
+			state.valid = false;
+			dataAdapter.removeAll(state);
 		},
 		updateOne: dataAdapter.updateOne,
 		addOne: dataAdapter.addOne,
@@ -102,6 +107,7 @@ const {
 	getPending,
 	getSuccess,
 	getFailure,
+	clear: clearCalendarAccounts,
 	updateOne,
 	setOne,
 	removeOne,
@@ -119,29 +125,34 @@ function validGetResponse(response: any): response is CalendarAccount[] {
 	return Array.isArray(response) && response.every(validCalendarAccount);
 }
 
-export const loadCalendarAccounts = (groupName: string): AppThunk => 
-	async (dispatch, getState) => {
-		const url = `/api/${groupName}/calendar/accounts`;
-		dispatch(getPending({groupName}));
-		let response: any;
-		try {
-			response = await fetcher.get(url);
-			if (!validGetResponse(response))
-				throw new TypeError('Unexpected response to GET');
+let loadingPromise: Promise<CalendarAccount[]>;
+export const loadCalendarAccounts = (groupName: string): AppThunk<CalendarAccount[]> => 
+	(dispatch, getState) => {
+		const { loading, groupName: currentGroupName } =
+			selectCalendarAccountsState(getState());
+		if (loading && groupName === currentGroupName) {
+			return loadingPromise;
 		}
-		catch(error) {
-			dispatch(getFailure());
-			dispatch(setError('Unable to get list of Google calendar accounts', error));
-			return;
-		}
-		dispatch(getSuccess(response));
+		dispatch(getPending({ groupName }));
+		loadingPromise = fetcher.get(`/api/${groupName}/calendar/accounts`)
+			.then((response: any) => {
+				if (!validGetResponse(response))
+					throw new TypeError('Unexpected response to GET');
+				dispatch(getSuccess(response));
+				return response;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError('Unable to get list of Google calendar accounts', error));
+				return [];
+			});
+		return loadingPromise
 	}
 
 export const refreshCalendarAccounts = (): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectCalendarAccountsGroupName(getState());
-		if (groupName)
-			return dispatch(loadCalendarAccounts(groupName));
+		dispatch(groupName? loadCalendarAccounts(groupName): clearCalendarAccounts());
 	}
 	
 export const addCalendarAccount = (account: CalendarAccountCreate): AppThunk =>

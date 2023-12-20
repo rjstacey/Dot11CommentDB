@@ -18,9 +18,13 @@ import { loadMembers } from "../store/members";
 import { loadOfficers } from "../store/officers";
 import { loadTimeZones } from "../store/timeZones";
 import { loadSessions } from "../store/sessions";
+import { loadMeetings } from "../store/meetings";
+import { loadWebexMeetings } from "../store/webexMeetings";
 import { loadBreakouts, clearBreakouts } from "../store/imatBreakouts";
 import { loadImatMeetings } from "../store/imatMeetings";
 import { loadImatMeetingAttendance } from "../store/imatMeetingAttendance";
+import { loadBreakoutAttendance } from "../store/imatBreakoutAttendance";
+import { load802WorldSchedule } from "../store/ieee802World"
 
 import { ErrorModal, ConfirmModal } from "dot11-components";
 import Header from "./Header";
@@ -68,13 +72,34 @@ const sessionsLoader: LoaderFunction = async ({ params }) => {
 	return null;
 };
 
-const imatBreakoutsLoader: LoaderFunction = async ({ params }) => {
+const meetingsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
-		const meetingNumber = Number(params.meetingNumber);
-		if (meetingNumber) dispatch(loadBreakouts(meetingNumber));
-		else dispatch(clearBreakouts());
+		dispatch(loadSessions(groupName));
+		dispatch(loadMeetings(groupName));
+	}
+	return null;
+};
+
+const webexMeetingsLoader: LoaderFunction = async ({ params }) => {
+	const { dispatch } = store;
+	const { groupName } = params;
+	if (groupName) {
+		dispatch(loadSessions(groupName));
+		dispatch(loadWebexMeetings(groupName));
+	}
+	return null;
+};
+
+const imatBreakoutsLoader: LoaderFunction = async ({ params }) => {
+	const { dispatch } = store;
+	const { groupName } = params;
+	const meetingNumber = Number(params.meetingNumber);
+	if (groupName && meetingNumber) {
+		dispatch(loadBreakouts(groupName, meetingNumber));
+	} else {
+		dispatch(clearBreakouts());
 	}
 	return null;
 };
@@ -83,7 +108,7 @@ const imatMeetingsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
-		dispatch(loadImatMeetings());
+		dispatch(loadImatMeetings(groupName));
 	}
 	return null;
 };
@@ -91,10 +116,27 @@ const imatMeetingsLoader: LoaderFunction = async ({ params }) => {
 const imatMeetingAttendanceLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch } = store;
 	const { groupName } = params;
-	if (groupName) {
-		const meetingNumber = Number(params.meetingNumber);
-		dispatch(loadImatMeetingAttendance(meetingNumber));
+	const meetingNumber = Number(params.meetingNumber);
+	if (groupName && meetingNumber) {
+		dispatch(loadImatMeetingAttendance(groupName, meetingNumber));
 	}
+	return null;
+};
+
+const imatBreakoutAttendanceLoader: LoaderFunction = async ({ params }) => {
+	const { dispatch } = store;
+	const { groupName } = params;
+	const meetingNumber = Number(params.meetingNumber);
+	const breakoutNumber = Number(params.breakoutNumber);
+	if (groupName && meetingNumber && breakoutNumber) {
+		dispatch(loadBreakoutAttendance(groupName, meetingNumber, breakoutNumber));
+	}
+	return null;
+};
+
+const ieee802WorldLoader: LoaderFunction = async ({ params }) => {
+	const { dispatch } = store;
+	dispatch(load802WorldSchedule());
 	return null;
 };
 
@@ -121,12 +163,14 @@ const groupRoutes_ungated: AppRoute[] = [
 		menuLabel: "Meetings",
 		path: "meetings",
 		element: <Meetings />,
+		loader: meetingsLoader,
 		minAccess: AccessLevel.ro,
 	},
 	{
 		menuLabel: "Webex",
 		path: "webexMeetings",
 		element: <WebexMeetings />,
+		loader: webexMeetingsLoader,
 		minAccess: AccessLevel.ro,
 	},
 	{
@@ -152,6 +196,7 @@ const groupRoutes_ungated: AppRoute[] = [
 	{
 		path: "imatAttendance/:meetingNumber/:breakoutNumber",
 		element: <ImatBreakoutAttendance />,
+		loader: imatBreakoutAttendanceLoader,
 		minAccess: AccessLevel.ro,
 	},
 	{
@@ -164,12 +209,14 @@ const groupRoutes_ungated: AppRoute[] = [
 		menuLabel: "802 World",
 		path: "ieee802World",
 		element: <Ieee802World />,
+		loader: ieee802WorldLoader,
 		minAccess: AccessLevel.ro,
 	},
 	{
 		menuLabel: "Reports",
 		path: "reports",
 		element: <Reports />,
+		loader: sessionsLoader,
 		minAccess: AccessLevel.ro,
 	},
 ];

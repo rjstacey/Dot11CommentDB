@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -16,11 +15,10 @@ import {
 	RowGetterProps
 } from 'dot11-components';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAppDispatch } from '../store/hooks';
 import {
 	load802WorldSchedule,
 	importSelectedAsMeetings,
-	select802WorldState,
 	fields,
 	getField,
 	ieee802WorldSelectors,
@@ -142,12 +140,6 @@ function schedRowGetter({rowIndex, ids, entities}: RowGetterProps) {
 
 function Ieee802WorldSchedule() {
 	const dispatch = useAppDispatch();
-	const {valid} = useAppSelector(select802WorldState);
-
-	React.useEffect(() => {
-		if (!valid)
-			dispatch(load802WorldSchedule());
-	}, [valid, dispatch]);
 
 	const refresh = () => dispatch(load802WorldSchedule());
 

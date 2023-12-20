@@ -47,7 +47,7 @@ export type WebexMeetingParams = {
 	meetingOptions: WebexMeetingOptions;
 	audioConnectionOptions: WebexMeetingAudioConnectionOptions;
 	integrationTags?: string[];
-	/** Indentifier of the associated meeting */
+	/** Indentifier for the associated meeting */
 	meetingId?: number;
 };
 

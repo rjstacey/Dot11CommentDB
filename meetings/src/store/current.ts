@@ -1,17 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { DateTime } from "luxon";
 
 import { setError } from "dot11-components";
 
 import type { AppThunk, RootState } from ".";
 import { selectSessionEntities } from "./sessions";
-import {
-	loadMeetings,
-	LoadMeetingsConstraints,
-	clearMeetings,
-} from "./meetings";
-import { clearWebexMeetings } from "./webexMeetings";
-import { loadBreakouts, clearBreakouts } from "./imatBreakouts";
 import { selectWorkingGroupId } from "./groups";
 
 export type GroupDefaults = {
@@ -94,7 +86,7 @@ export const selectCurrentGroupDefaults = (state: RootState) => {
 
 /* Actions */
 export const {
-	setCurrentSessionId: setCurrentSessionIdLocal,
+	setCurrentSessionId,
 	setShowDateRange,
 	setGroupDefaults,
 } = slice.actions;
@@ -105,39 +97,4 @@ export const setCurrentGroupDefaults =
 		const groupId = selectWorkingGroupId(getState());
 		if (!groupId) dispatch(setError("Can't set defaults", "Group not set"));
 		else dispatch(setGroupDefaults({ groupId, defaults }));
-	};
-
-export const refresh = (): AppThunk => async (dispatch, getState) => {
-	dispatch(clearMeetings());
-	dispatch(clearWebexMeetings());
-	dispatch(clearBreakouts());
-
-	const state = getState();
-	const sessionId = selectCurrentSessionId(state);
-	if (sessionId) {
-		const showDateRange = selectShowDateRange(state);
-		const session = selectSessionEntities(state)[sessionId];
-		const constraints: LoadMeetingsConstraints = {};
-		if (showDateRange) {
-			if (session) {
-				constraints.fromDate = session.startDate;
-				constraints.toDate = session.endDate;
-				constraints.timezone = session.timezone;
-			} else {
-				constraints.fromDate = DateTime.now().toISODate()!;
-			}
-		} else {
-			constraints.sessionId = sessionId;
-		}
-		dispatch(loadMeetings(constraints));
-		if (session?.imatMeetingId)
-			dispatch(loadBreakouts(session.imatMeetingId));
-	}
-};
-
-export const setCurrentSessionId =
-	(sessionId: number | null): AppThunk =>
-	async (dispatch) => {
-		dispatch(setCurrentSessionIdLocal(sessionId));
-		dispatch(refresh());
 	};

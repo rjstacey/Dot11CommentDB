@@ -21,6 +21,7 @@ import {
 	WebexMeetingParams,
 } from "./webexMeetingsSelectors";
 import { selectSessionEntities } from "./sessions";
+import { selectCurrentSessionId, selectShowDateRange } from "./current";
 
 export interface Meeting {
 	id: number;
@@ -252,3 +253,32 @@ export const selectSelectedSlots = (state: RootState) =>
 	selectMeetingsState(state).selectedSlots;
 export const selectUiProperties = (state: RootState) =>
 	selectMeetingsState(state).ui;
+
+export type LoadMeetingsConstraints = {
+	fromDate?: string;
+	toDate?: string;
+	timezone?: string;
+	sessionId?: string;
+};
+
+export const selectLoadMeetingsContstraints = createSelector(
+	selectCurrentSessionId,
+	selectSessionEntities,
+	selectShowDateRange,
+	(sessionId, sessionEntities, showDateRange) => {
+		if (sessionId) {
+			const session = sessionEntities[sessionId];
+			const constraints: LoadMeetingsConstraints = {};
+			if (showDateRange) {
+				if (session) {
+					constraints.fromDate = session.startDate;
+					constraints.toDate = session.endDate;
+					constraints.timezone = session.timezone;
+				}
+			} else {
+				constraints.sessionId = "" + sessionId;
+			}
+			return constraints;
+		}
+	}
+);

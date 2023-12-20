@@ -1,4 +1,4 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 
 import {
 	AppTable, SelectHeaderCell, SelectCell, TableColumnHeader, SplitPanelButton, SplitPanel, Panel, TableColumnSelector,
@@ -161,6 +161,7 @@ function Breakouts() {
 	const navigate = useNavigate();
 	const location = useLocation();
 
+	const {groupName} = useParams();
 	const imatMeetingId = useAppSelector(selectBreakoutMeetingId);
 	const imatMeeting = useAppSelector(selectBreakoutMeeting);
 
@@ -171,7 +172,7 @@ function Breakouts() {
 		navigate(path);
 	}
 
-	const refresh = () => imatMeetingId? dispatch(loadBreakouts(imatMeetingId)): dispatch(clearBreakouts());
+	const refresh = () => dispatch((groupName && imatMeetingId)? loadBreakouts(groupName, imatMeetingId): clearBreakouts());
 
 	return (
 		<>

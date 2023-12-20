@@ -38,7 +38,7 @@ const slice = createSlice({
 			const { groupName } = action.payload;
 			state.loading = true;
 			if (state.groupName !== groupName) {
-				state.groupName = action.payload.groupName;
+				state.groupName = groupName;
 				state.valid = false;
 				dataAdapter.removeAll(state);
 			}
@@ -86,20 +86,27 @@ function validUsers(users: any): users is Member[] {
 	return Array.isArray(users) && users.every(validUser);
 }
 
+let loadingPromise: Promise<Member[]>;
 export const loadMembers =
-	(groupName: string): AppThunk =>
-	async (dispatch) => {
+	(groupName: string): AppThunk<Member[]> =>
+	(dispatch, getState) => {
+		const {loading, groupName: currentGroupName} = selectMembersState(getState());
+		if (loading && currentGroupName === groupName) {
+			return loadingPromise;
+		}
 		const url = `/api/${groupName}/users`;
 		dispatch(getPending({ groupName }));
-		let response: any;
-		try {
-			response = await fetcher.get(url);
-			if (!validUsers(response))
-				throw new TypeError("Unexpected response");
-		} catch (error) {
-			dispatch(getFailure());
-			dispatch(setError("Unable to get users list", error));
-			return;
-		}
-		dispatch(getSuccess(response));
+		loadingPromise = fetcher.get(url)
+			.then((response: any) => {
+				if (!validUsers(response))
+					throw new TypeError("Unexpected response");
+				dispatch(getSuccess(response));
+				return response;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError("Unable to get users list", error));
+				return [];
+			});
+		return loadingPromise;
 	};

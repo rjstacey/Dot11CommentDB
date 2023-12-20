@@ -1,18 +1,20 @@
 import { fetcher, setError } from "dot11-components";
 
-import slice from "./webexMeetingsSlice";
+import slice, { getPending, clearWebexMeetings } from "./webexMeetingsSlice";
 import type { AppThunk } from ".";
-import { selectWorkingGroupName } from "./groups";
-import { WebexMeeting, WebexMeetingParams } from "./webexMeetingsSelectors";
+import {
+	selectWebexMeetingsState,
+	WebexMeeting,
+	WebexMeetingParams,
+} from "./webexMeetingsSelectors";
+import { selectLoadMeetingsContstraints } from "./meetingsSelectors";
 
 export const webexMeetingsActions = slice.actions;
 
 const {
-	getPending,
 	getSuccess,
 	getFailure,
 	removeMany,
-	removeAll,
 	addMany,
 	upsertMany,
 	setMany,
@@ -35,35 +37,42 @@ function validateResponse(
 		throw new TypeError(`Unexpected response to ${method}`);
 }
 
-export type LoadWebexMeetingsConstrains = {
-	fromDate?: string;
-	toDate?: string;
-	timezone?: string;
-	sessionId?: number;
-};
-
+let loadingUrl: string;
+let loadingPromise: Promise<WebexMeeting[]>;
 export const loadWebexMeetings =
-	(constraints: LoadWebexMeetingsConstrains): AppThunk =>
-	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
-		const url = `/api/${groupName}/webex/meetings`;
-		dispatch(getPending());
-		let response: any;
-		try {
-			response = await fetcher.get(url, constraints);
-			validateResponse("GET", response);
-		} catch (error) {
-			dispatch(getFailure());
-			dispatch(setError("Unable to get list of meetings", error));
-			return;
+	(groupName: string): AppThunk<WebexMeeting[]> =>
+	(dispatch, getState) => {
+		const constraints = selectLoadMeetingsContstraints(getState());
+		const url =
+			`/api/${groupName}/webex/meetings` +
+			(constraints ? "?" + new URLSearchParams(constraints) : "");
+		if (loadingPromise instanceof Promise && loadingUrl === url) {
+			return loadingPromise;
 		}
-		dispatch(getSuccess(response));
+		dispatch(getPending({ groupName }));
+		loadingUrl = url;
+		loadingPromise = fetcher
+			.get(url)
+			.then((response: any) => {
+				validateResponse("GET", response);
+				dispatch(getSuccess(response));
+				return response;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError("Unable to get list of meetings", error));
+				return [];
+			});
+		return loadingPromise;
 	};
 
-export const clearWebexMeetings = (): AppThunk => (dispatch) => {
-	dispatch(removeAll());
-	return Promise.resolve();
-};
+export const refreshWebexMeetings =
+	(): AppThunk => async (dispatch, getState) => {
+		const { groupName } = selectWebexMeetingsState(getState());
+		dispatch(
+			groupName ? loadWebexMeetings(groupName) : clearWebexMeetings()
+		);
+	};
 
 export const addWebexMeeting =
 	(
@@ -71,7 +80,7 @@ export const addWebexMeeting =
 		webexMeeting: Omit<WebexMeetingParams, "accountId" | "id">
 	): AppThunk<string | null> =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const { groupName } = selectWebexMeetingsState(getState());
 		const url = `/api/${groupName}/webex/meetings`;
 		const meetings = [{ accountId, ...webexMeeting }];
 		let response: any;
@@ -94,7 +103,7 @@ export type WebexMeetingUpdate = Partial<WebexMeetingParams> & {
 export const updateWebexMeetings =
 	(webexMeetingsIn: WebexMeetingUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const { groupName } = selectWebexMeetingsState(getState());
 		const url = `/api/${groupName}/webex/meetings`;
 		let response: any;
 		try {
@@ -110,7 +119,7 @@ export const updateWebexMeetings =
 export const deleteWebexMeetings =
 	(webexMeetings: { accountId: number; id: string }[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectWorkingGroupName(getState());
+		const { groupName } = selectWebexMeetingsState(getState());
 		const url = `/api/${groupName}/webex/meetings`;
 		const meetings = webexMeetings.map(({ accountId, id }) => ({
 			accountId,

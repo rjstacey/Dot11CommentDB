@@ -55,7 +55,7 @@ const slice = createSlice({
 			const { groupName } = action.payload;
 			state.loading = true;
 			if (state.groupName !== groupName) {
-				state.groupName = action.payload.groupName;
+				state.groupName = groupName;
 				state.valid = false;
 				dataAdapter.removeAll(state);
 			}
@@ -67,6 +67,11 @@ const slice = createSlice({
 		},
 		getFailure(state) {
 			state.loading = false;
+		},
+		clear(state) {
+			state.groupName = null;
+			state.valid = false;
+			dataAdapter.removeAll(state);
 		},
 		updateOne: dataAdapter.updateOne,
 		addOne: dataAdapter.addOne,
@@ -95,8 +100,15 @@ export const selectWebexAccounts = createSelector(
 /*
  * Actions
  */
-const { getPending, getSuccess, getFailure, updateOne, addOne, removeOne } =
-	slice.actions;
+const {
+	getPending,
+	getSuccess,
+	getFailure,
+	clear: clearWebexAccounts,
+	updateOne,
+	addOne,
+	removeOne,
+} = slice.actions;
 
 function validWebexAccount(account: any): account is WebexAccount {
 	return (
@@ -111,29 +123,38 @@ function validGetResponse(response: any): response is WebexAccount[] {
 	return Array.isArray(response) && response.every(validWebexAccount);
 }
 
+let loadingPromise: Promise<WebexAccount[]>;
 export const loadWebexAccounts =
-	(groupName: string): AppThunk =>
-	async (dispatch) => {
-		const url = `/api/${groupName}/webex/accounts`;
-		dispatch(getPending({ groupName }));
-		let response: any;
-		try {
-			response = await fetcher.get(url);
-			if (!validGetResponse(response))
-				throw new TypeError("Unexpected response to GET");
-		} catch (error) {
-			dispatch(getFailure());
-			dispatch(setError("Unable to get list of webex accounts", error));
-			return;
+	(groupName: string): AppThunk<WebexAccount[]> =>
+	(dispatch, getState) => {
+		const { loading, groupName: currentGroupName } =
+			selectWebexAccountsState(getState());
+		if (loading && groupName === currentGroupName) {
+			return loadingPromise;
 		}
-		dispatch(getSuccess(response));
+		dispatch(getPending({ groupName }));
+		loadingPromise = fetcher
+			.get(`/api/${groupName}/webex/accounts`)
+			.then((response: any) => {
+				if (!validGetResponse(response))
+					throw new TypeError("Unexpected response to GET");
+				dispatch(getSuccess(response));
+				return response;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(
+					setError("Unable to get list of webex accounts", error)
+				);
+				return [];
+			});
+		return loadingPromise;
 	};
 
-export const refreshWebexAccounts =
-	(): AppThunk => async (dispatch, getState) => {
-		const groupName = selectWebexAccountsGroupName(getState());
-		if (groupName) return dispatch(loadWebexAccounts(groupName));
-	};
+export const refreshWebexAccounts = (): AppThunk => async (dispatch, getState) => {
+	const groupName = selectWebexAccountsGroupName(getState());
+	dispatch(groupName ? loadWebexAccounts(groupName) : clearWebexAccounts());
+};
 
 export const updateWebexAccount =
 	(id: number, changes: Partial<WebexAccount>): AppThunk =>

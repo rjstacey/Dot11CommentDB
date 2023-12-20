@@ -2,12 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 import { DateTime } from 'luxon';
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAppSelector } from '../store/hooks';
 
 import { Select } from 'dot11-components';
 
 import {
-	loadMeetings,
 	selectMeetingsState,
 	getField,
 	Meeting
@@ -51,13 +50,7 @@ function MeetingSelector({
 	toDate?: string;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
 ) {
-	const dispatch = useAppDispatch();
-	const {valid, loading, ids, entities} = useAppSelector(selectMeetingsState);
-
-	React.useEffect(() => {
-		if (!valid && !loading && !readOnly)
-			dispatch(loadMeetings());
-	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
+	const {loading, ids, entities} = useAppSelector(selectMeetingsState);
 
 	const options = React.useMemo(() => {
 		let options = ids.map(id => entities[id]!);
