@@ -64,7 +64,8 @@ const slice = createAppTableDataSlice({
 				}
 			)
 			.addMatcher(
-				(action) => action.type === clearImatMeetingAttendance.toString(),
+				(action) =>
+					action.type === clearImatMeetingAttendance.toString(),
 				(state) => {
 					dataAdapter.removeAll(state);
 					state.imatMeetingId = null;
@@ -76,9 +77,18 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
+/* Slice actions */
+export const imatMeetingAttendanceActions = slice.actions;
+
+const { getSuccess, getFailure, addMany } = slice.actions;
+
+// Override getPending() with one that sets groupName and imatMeetingId
+const getPending = createAction<{ groupName: string; imatMeetingId: number }>(
+	dataSet + "/getPending"
+);
+export const clearImatMeetingAttendance = createAction(dataSet + "/clear");
+
+/* Selectors */
 export const selectMeetingAttendanceState = (state: RootState) =>
 	state[dataSet];
 export const selectAttendanceMeetingId = (state: RootState) =>
@@ -117,74 +127,78 @@ export const imatMeetingAttendanceSelectors = getAppTableDataSelectors(
 	selectMeetingAttendanceState
 );
 
-/*
- * Actions
- */
-export const imatMeetingAttendanceActions = slice.actions;
-
-const { getSuccess, getFailure, addMany } =	slice.actions;
-// Override the default getPending()
-const getPending = createAction<{ groupName: string; imatMeetingId: number }>(
-	dataSet + "/getPending"
-);
-export const clearImatMeetingAttendance = createAction(dataSet + "/clear");
-
+/* Thunk actions */
 let loadingPromise: Promise<ImatMeetingAttendance[]>;
 export const loadImatMeetingAttendance =
-	(groupName: string, imatMeetingId: number): AppThunk<ImatMeetingAttendance[]> =>
+	(
+		groupName: string,
+		imatMeetingId: number
+	): AppThunk<ImatMeetingAttendance[]> =>
 	(dispatch, getState) => {
-		const {loading, groupName: currentGroupName, imatMeetingId: currentImatMeetingId} = selectMeetingAttendanceState(getState());
-		if (loading && groupName === currentGroupName && imatMeetingId === currentImatMeetingId) {
+		const { loading, ...current } = selectMeetingAttendanceState(
+			getState()
+		);
+		if (
+			loading &&
+			groupName === current.groupName &&
+			imatMeetingId === current.imatMeetingId
+		) {
 			return loadingPromise;
 		}
-		dispatch(getPending({groupName, imatMeetingId}));
+		dispatch(getPending({ groupName, imatMeetingId }));
 
 		loadingPromise = dispatch(loadBreakouts(groupName, imatMeetingId))
-			.then(async (breakouts: Breakout[]): Promise<ImatMeetingAttendance[]> => {
-				let allAttendances: ImatMeetingAttendance[] = [];
-				let p: {
-					id: number;
-					promise: Promise<ImatBreakoutAttendance[]>;
-				}[] = [];
-				let id = 0;
-				while (breakouts.length > 0 || p.length > 0) {
-					if (breakouts.length > 0) {
-						const breakout = breakouts.shift()!;
-						p.push({
-							id: breakout.id,
-							promise: dispatch(
-								loadBreakoutAttendance(
-									groupName,
-									imatMeetingId,
-									breakout.id
-								)
-							),
-						});
+			.then(
+				async (
+					breakouts: Breakout[]
+				): Promise<ImatMeetingAttendance[]> => {
+					let allAttendances: ImatMeetingAttendance[] = [];
+					let p: {
+						id: number;
+						promise: Promise<ImatBreakoutAttendance[]>;
+					}[] = [];
+					let id = 0;
+					function breakoutToMeetingAttendance(
+						breakoutId: number,
+						breakoutAttendance: ImatBreakoutAttendance
+					): ImatMeetingAttendance {
+						return { id: id++, breakoutId, ...breakoutAttendance };
 					}
-					if (
-						p.length === 5 ||
-						(breakouts.length === 0 && p.length > 0)
-					) {
-						const pp = p.shift()!;
-						const breakoutAttendances = await pp.promise;
-						/* eslint-disable-next-line no-loop-func */
-						const attendances = breakoutAttendances.map((a, i) => ({
-							id: id + i,
-							breakoutId: pp.id,
-							...a,
-						}));
-						id += attendances.length;
-						dispatch(addMany(attendances));
-						allAttendances = allAttendances.concat(attendances);
+					while (breakouts.length > 0 || p.length > 0) {
+						if (breakouts.length > 0) {
+							const breakout = breakouts.shift()!;
+							p.push({
+								id: breakout.id,
+								promise: dispatch(
+									loadBreakoutAttendance(
+										groupName,
+										imatMeetingId,
+										breakout.id
+									)
+								),
+							});
+						}
+						if (
+							p.length === 5 ||
+							(breakouts.length === 0 && p.length > 0)
+						) {
+							const pp = p.shift()!;
+							const breakoutAttendances = await pp.promise;
+							const attendances = breakoutAttendances.map((a) =>
+								breakoutToMeetingAttendance(pp.id, a)
+							);
+							dispatch(addMany(attendances));
+							allAttendances = allAttendances.concat(attendances);
+						}
 					}
+					dispatch(getSuccess(allAttendances));
+					return allAttendances;
 				}
-				dispatch(getSuccess(allAttendances));
-				return allAttendances;
-			})
+			)
 			.catch((error: any) => {
 				dispatch(getFailure());
 				return [];
-			})
+			});
 
 		return loadingPromise;
 	};

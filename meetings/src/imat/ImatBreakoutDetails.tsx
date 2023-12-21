@@ -5,6 +5,7 @@ import { DateTime } from 'luxon';
 import type { Dictionary } from '@reduxjs/toolkit';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectUserMeetingsAccess } from '../store/meetings';
 
 import {
 	ConfirmModal,
@@ -20,6 +21,7 @@ import { convertEntryToMeeting, MeetingEntry, MultipleMeetingEntry, PartialMeeti
 import MeetingEntryForm from '../meetings/MeetingEntry';
 import TopRow from '../components/TopRow';
 
+import { RootState } from '../store';
 import {
 	addBreakouts,
 	updateBreakouts,
@@ -32,16 +34,11 @@ import {
 	SyncedBreakout,
 	Breakout
 } from '../store/imatBreakouts';
-
-import { selectCurrentSession, Session } from '../store/sessions';
-
-import { updateMeetings, addMeetings } from '../store/meetings';
-
-import { selectGroupEntities, Group } from '../store/groups';
-
-import { selectUserMeetingsAccess, AccessLevel } from '../store/user';
-import { RootState } from '../store';
 import { ImatMeeting } from '../store/imatMeetings';
+import { selectCurrentSession, Session } from '../store/sessions';
+import { updateMeetings, addMeetings } from '../store/meetings';
+import { selectGroupEntities, Group } from '../store/groups';
+import { AccessLevel } from '../store/user';
 
 const MULTIPLE_STR = "(Multiple)";
 const BLANK_STR = "(Blank)";

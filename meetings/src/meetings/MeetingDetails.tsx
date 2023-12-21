@@ -13,7 +13,8 @@ import {
 import type { RootState } from '../store';
 import { selectCurrentGroupDefaults } from '../store/current';
 import { selectGroupEntities, selectWorkingGroupId } from '../store/groups';
-import { selectUserMeetingsAccess, AccessLevel } from '../store/user';
+import { selectUserMeetingsAccess } from '../store/meetings';
+import { AccessLevel } from '../store/user';
 
 import {
 	selectCurrentSession,

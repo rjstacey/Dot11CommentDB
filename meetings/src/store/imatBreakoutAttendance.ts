@@ -85,9 +85,20 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
+/* Basic actions */
+export const imatBreakoutAttendanceActions = slice.actions;
+
+const { getSuccess, getFailure } = slice.actions;
+// Override the default getPending()
+const getPending = createAction<{
+	groupName: string;
+	imatMeetingId: number;
+	imatBreakoutId: number;
+}>(dataSet + "/getPending");
+
+export const clearBreakoutAttendance = createAction(dataSet + "/clear");
+
+/* Selectors */
 export const selectBreakoutAttendanceState = (state: RootState) =>
 	state[dataSet];
 
@@ -110,20 +121,7 @@ export const imatBreakoutAttendanceSelectors = getAppTableDataSelectors(
 	selectBreakoutAttendanceState
 );
 
-/*
- * Actions
- */
-export const imatBreakoutAttendanceActions = slice.actions;
-
-const { getSuccess, getFailure } = slice.actions;
-// Override the default getPending()
-const getPending = createAction<{
-	groupName: string;
-	imatMeetingId: number;
-	imatBreakoutId: number;
-}>(dataSet + "/getPending");
-export const clearBreakoutAttendance = createAction(dataSet + "/clear");
-
+/* Actions */
 function validImatBreakoutAttendance(a: any): a is ImatBreakoutAttendance {
 	return (
 		isObject(a) &&

@@ -38,7 +38,7 @@ function validateResponse(
 }
 
 let loadingUrl: string;
-let loadingPromise: Promise<WebexMeeting[]>;
+let loadingPromise: Promise<WebexMeeting[]> | undefined;
 export const loadWebexMeetings =
 	(groupName: string): AppThunk<WebexMeeting[]> =>
 	(dispatch, getState) => {
@@ -46,7 +46,7 @@ export const loadWebexMeetings =
 		const url =
 			`/api/${groupName}/webex/meetings` +
 			(constraints ? "?" + new URLSearchParams(constraints) : "");
-		if (loadingPromise instanceof Promise && loadingUrl === url) {
+		if (loadingPromise && loadingUrl === url) {
 			return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
@@ -62,8 +62,11 @@ export const loadWebexMeetings =
 				dispatch(getFailure());
 				dispatch(setError("Unable to get list of meetings", error));
 				return [];
+			})
+			.finally(() => {
+				loadingPromise = undefined;
 			});
-		return loadingPromise;
+		return loadingPromise!;
 	};
 
 export const refreshWebexMeetings =

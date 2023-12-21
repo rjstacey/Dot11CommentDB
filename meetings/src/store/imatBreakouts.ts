@@ -11,7 +11,6 @@ import {
 	setError,
 	isObject,
 	createAppTableDataSlice,
-	AppTableDataState,
 	FieldType,
 	getAppTableDataSelectors,
 } from "dot11-components";
@@ -118,68 +117,7 @@ export const getField = (entity: Breakout, dataKey: string) => {
 	return entity[dataKey as keyof Breakout];
 };
 
-type ImatBreakoutsState = ExtraState & AppTableDataState<Breakout>;
-
-/*
- * Selectors
- */
-export const selectBreakoutsState = (state: RootState) =>
-	state[dataSet] as ImatBreakoutsState;
-export const selectBreakoutEntities = (state: RootState) =>
-	selectBreakoutsState(state).entities;
-export const selectBreakoutIds = (state: RootState) =>
-	selectBreakoutsState(state).ids;
-export const selectBreakouts = (state: RootState) => {
-	const { ids, entities } = selectBreakoutsState(state);
-	return ids.map((id) => entities[id]!);
-};
-export const selectBreakoutMeetingId = (state: RootState) =>
-	selectBreakoutsState(state).imatMeetingId;
-export const selectBreakoutTimeslots = (state: RootState) =>
-	selectBreakoutsState(state).timeslots;
-export const selectBreakoutMeeting = (state: RootState) => {
-	const imatMeetingId = selectBreakoutMeetingId(state);
-	const imatMeetingEntities = selectSyncedImatMeetingEntities(state);
-	return imatMeetingId ? imatMeetingEntities[imatMeetingId] : undefined;
-};
-
-export const selectImatCommmittees = (state: RootState) =>
-	selectBreakoutsState(state).committees;
-
-export type SyncedBreakout = Breakout & {
-	imatMeetingId: number | null;
-	meetingId: number | null;
-};
-
-/*
- * selectSyncedBreakoutEntities(state)
- */
-export const selectSyncedBreakoutEntities = createSelector(
-	selectBreakoutMeetingId,
-	selectBreakoutEntities,
-	selectMeetingEntities,
-	(imatMeetingId, breakoutEntities, meetingEntities) => {
-		const newEntities: Record<EntityId, SyncedBreakout> = {};
-		for (const [key, breakout] of Object.entries(breakoutEntities)) {
-			const meeting = Object.values(meetingEntities).find(
-				(m) =>
-					m!.imatMeetingId === imatMeetingId &&
-					m!.imatBreakoutId === breakout!.id
-			);
-			newEntities[key] = {
-				...breakout!,
-				imatMeetingId,
-				meetingId: meeting?.id || null,
-			};
-		}
-		return newEntities;
-	}
-);
-
-export const imatBreakoutsSelectors = getAppTableDataSelectors(
-	selectBreakoutsState,
-	{ selectEntities: selectSyncedBreakoutEntities, getField }
-);
+//type ImatBreakoutsState = ExtraState & AppTableDataState<Breakout>;
 
 const sortComparer = (a: Breakout, b: Breakout) => {
 	// Sort by start
@@ -242,7 +180,7 @@ const slice = createAppTableDataSlice({
 				(state) => {
 					dataAdapter.removeAll(state);
 					state.timeslots = [];
-					state.committees = []; 
+					state.committees = [];
 					state.imatMeetingId = null;
 					state.valid = false;
 				}
@@ -252,9 +190,7 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-/*
- * Actions
- */
+/* Basic actions */
 export const imatBreakoutsActions = slice.actions;
 
 const {
@@ -282,6 +218,62 @@ const getPending = createAction<{ groupName: string; imatMeetingId: number }>(
 );
 export const clearBreakouts = createAction(dataSet + "/clear");
 
+/* Selectors */
+export const selectBreakoutsState = (state: RootState) => state[dataSet];
+export const selectBreakoutEntities = (state: RootState) =>
+	selectBreakoutsState(state).entities;
+export const selectBreakoutIds = (state: RootState) =>
+	selectBreakoutsState(state).ids;
+export const selectBreakouts = (state: RootState) => {
+	const { ids, entities } = selectBreakoutsState(state);
+	return ids.map((id) => entities[id]!);
+};
+export const selectBreakoutMeetingId = (state: RootState) =>
+	selectBreakoutsState(state).imatMeetingId;
+export const selectBreakoutTimeslots = (state: RootState) =>
+	selectBreakoutsState(state).timeslots;
+export const selectBreakoutMeeting = (state: RootState) => {
+	const imatMeetingId = selectBreakoutMeetingId(state);
+	const imatMeetingEntities = selectSyncedImatMeetingEntities(state);
+	return imatMeetingId ? imatMeetingEntities[imatMeetingId] : undefined;
+};
+
+export const selectImatCommmittees = (state: RootState) =>
+	selectBreakoutsState(state).committees;
+
+export type SyncedBreakout = Breakout & {
+	imatMeetingId: number | null;
+	meetingId: number | null;
+};
+
+export const selectSyncedBreakoutEntities = createSelector(
+	selectBreakoutMeetingId,
+	selectBreakoutEntities,
+	selectMeetingEntities,
+	(imatMeetingId, breakoutEntities, meetingEntities) => {
+		const newEntities: Record<EntityId, SyncedBreakout> = {};
+		for (const [key, breakout] of Object.entries(breakoutEntities)) {
+			const meeting = Object.values(meetingEntities).find(
+				(m) =>
+					m!.imatMeetingId === imatMeetingId &&
+					m!.imatBreakoutId === breakout!.id
+			);
+			newEntities[key] = {
+				...breakout!,
+				imatMeetingId,
+				meetingId: meeting?.id || null,
+			};
+		}
+		return newEntities;
+	}
+);
+
+export const imatBreakoutsSelectors = getAppTableDataSelectors(
+	selectBreakoutsState,
+	{ selectEntities: selectSyncedBreakoutEntities, getField }
+);
+
+/* Thunk actions */
 function validBreakout(b: any): b is Breakout {
 	return (
 		isObject(b) &&
@@ -354,7 +346,7 @@ export const loadBreakouts =
 export const addBreakouts =
 	(imatMeetingId: number, breakouts: Breakout[]): AppThunk<number[]> =>
 	async (dispatch, getState) => {
-		const {groupName} = selectBreakoutsState(getState());
+		const { groupName } = selectBreakoutsState(getState());
 		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
 		let response: any;
 		try {
@@ -372,7 +364,7 @@ export const addBreakouts =
 export const updateBreakouts =
 	(imatMeetingId: number, breakouts: Partial<Breakout>[]): AppThunk =>
 	async (dispatch, getState) => {
-		const {groupName} = selectBreakoutsState(getState());
+		const { groupName } = selectBreakoutsState(getState());
 		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
 		let response: any;
 		try {
@@ -389,7 +381,7 @@ export const updateBreakouts =
 export const deleteBreakouts =
 	(imatMeetingId: number, ids: EntityId[]): AppThunk =>
 	async (dispatch, getState) => {
-		const {groupName} = selectBreakoutsState(getState());
+		const { groupName } = selectBreakoutsState(getState());
 		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
 		try {
 			await fetcher.delete(url, ids);

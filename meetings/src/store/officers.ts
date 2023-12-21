@@ -60,9 +60,11 @@ const slice = createSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
+/* Slice actions */
+const { getPending, getSuccess, getFailure } = slice.actions;
+
+
+/* Selectors */
 export const selectOfficersState = (state: RootState) => state[dataSet];
 
 export function selectGroupOfficers(state: OfficersState, group_id: EntityId) {
@@ -77,11 +79,7 @@ export const createGroupOfficersSelector = (
 	group_id: EntityId
 ) => createSelector(selectOfficersState, () => group_id, selectGroupOfficers);
 
-/*
- * Actions
- */
-const { getPending, getSuccess, getFailure } = slice.actions;
-
+/* Thunk actions */
 let loadingPromise: Promise<Officer[]>;
 export const loadOfficers =
 	(groupName: string): AppThunk<Officer[]> =>

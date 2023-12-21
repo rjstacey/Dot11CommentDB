@@ -44,8 +44,6 @@ const initialState = dataAdapter.getInitialState<ExtraState>({
 	groupName: null,
 });
 
-export type WebexAccountsState = typeof initialState;
-
 const dataSet = "webexAccounts";
 const slice = createSlice({
 	name: dataSet,
@@ -81,9 +79,18 @@ const slice = createSlice({
 
 export default slice;
 
-/*
- * Selector
- */
+/* Slice actions */
+const {
+	getPending,
+	getSuccess,
+	getFailure,
+	clear: clearWebexAccounts,
+	updateOne,
+	addOne,
+	removeOne,
+} = slice.actions;
+
+/* Selectors */
 export const selectWebexAccountsState = (state: RootState) => state[dataSet];
 export const selectWebexAccountIds = (state: RootState) =>
 	selectWebexAccountsState(state).ids;
@@ -97,19 +104,7 @@ export const selectWebexAccounts = createSelector(
 	(ids, entities) => ids.map((id) => entities[id]!)
 );
 
-/*
- * Actions
- */
-const {
-	getPending,
-	getSuccess,
-	getFailure,
-	clear: clearWebexAccounts,
-	updateOne,
-	addOne,
-	removeOne,
-} = slice.actions;
-
+/* Thunk actions */
 function validWebexAccount(account: any): account is WebexAccount {
 	return (
 		isObject(account) &&

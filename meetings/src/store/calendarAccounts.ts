@@ -87,22 +87,7 @@ const slice = createSlice({
 
 export default slice;
 
-/*
- * Selector
- */
-export const selectCalendarAccountsState = (state: RootState) => state[dataSet];
-export const selectCalendarAccountIds = (state: RootState) => selectCalendarAccountsState(state).ids;
-export const selectCalendarAccountEntities = (state: RootState) => selectCalendarAccountsState(state).entities;
-const selectCalendarAccountsGroupName = (state: RootState) => selectCalendarAccountsState(state).groupName;
-export const selectCalendarAccounts = createSelector(
-	selectCalendarAccountIds,
-	selectCalendarAccountEntities,
-	(ids, entities) => ids.map(id => entities[id]!)
-)
-
-/*
- * Actions
- */
+/* Basic actions */
 const {
 	getPending,
 	getSuccess,
@@ -114,6 +99,18 @@ const {
 	addOne,
 } = slice.actions;
 
+/* Selectors */
+export const selectCalendarAccountsState = (state: RootState) => state[dataSet];
+export const selectCalendarAccountIds = (state: RootState) => selectCalendarAccountsState(state).ids;
+export const selectCalendarAccountEntities = (state: RootState) => selectCalendarAccountsState(state).entities;
+const selectCalendarAccountsGroupName = (state: RootState) => selectCalendarAccountsState(state).groupName;
+export const selectCalendarAccounts = createSelector(
+	selectCalendarAccountIds,
+	selectCalendarAccountEntities,
+	(ids, entities) => ids.map(id => entities[id]!)
+)
+
+/* Thunk actions */
 function validCalendarAccount(account: any): account is CalendarAccount {
 	return isObject(account) &&
 		typeof account.id === 'number' &&

@@ -88,9 +88,24 @@ export function getField(entity: Ieee802WorldScheduleEntry, key: string) {
 	return entity[key as keyof Ieee802WorldScheduleEntry];
 }
 
-/*
- * Selectors
- */
+
+
+/* Slice */
+const dataSet = "ieee802World";
+const slice = createAppTableDataSlice({
+	name: dataSet,
+	fields,
+	initialState: {},
+	reducers: {},
+});
+
+export default slice;
+
+/* Slice actions */
+export const ieee802WorldActions = slice.actions;
+const { getPending, getSuccess, getFailure } = slice.actions;
+
+/* Selectors */
 export const select802WorldState = (state: RootState) =>
 	state[dataSet] as AppTableDataState<Ieee802WorldScheduleEntry>;
 export const select802WorldEntities = (state: RootState) =>
@@ -145,28 +160,7 @@ export const ieee802WorldSelectors = getAppTableDataSelectors(
 	{ selectEntities: selectSynced802WorldEntities, getField }
 );
 
-/*
- * Slice
- */
-const dataSet = "ieee802World";
-const slice = createAppTableDataSlice({
-	name: dataSet,
-	fields,
-	initialState: {},
-	reducers: {},
-});
-
-export default slice;
-
-/*
- * Actions
- */
-export const ieee802WorldActions = slice.actions;
-
-const { getPending, getSuccess, getFailure } = slice.actions;
-
-const url = "/api/802world";
-
+/* Thunk actions */
 function validEntry(entry: any): entry is Ieee802WorldScheduleEntry {
 	return (
 		isObject(entry) &&
@@ -180,6 +174,7 @@ function validResponse(response: any): response is Ieee802WorldScheduleEntry[] {
 	return Array.isArray(response) && response.every(validEntry);
 }
 
+const url = "/api/802world";
 export const load802WorldSchedule = (): AppThunk => async (dispatch) => {
 	dispatch(getPending());
 	let response: any;

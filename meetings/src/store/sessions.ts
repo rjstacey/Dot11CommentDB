@@ -18,7 +18,8 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import { selectCurrentSessionId } from "./current";
-import { selectGroupEntities } from "./groups";
+import { selectGroupEntities, selectWorkingGroupByName } from "./groups";
+import { AccessLevel } from "./user";
 
 export type Room = {
 	id: number;
@@ -96,9 +97,66 @@ export const fields = {
 	attendees: { label: "Attendees" },
 };
 
+
 /*
- * Selectors
+ * Slice
  */
+type ExtraState = {
+	groupName: string | null;
+};
+const initialState: ExtraState = { groupName: null };
+const sortComparer = (a: Session, b: Session) =>
+	DateTime.fromISO(b.startDate).toMillis() -
+	DateTime.fromISO(a.startDate).toMillis();
+const dataSet = "sessions";
+const slice = createAppTableDataSlice({
+	name: dataSet,
+	sortComparer,
+	fields,
+	initialState,
+	reducers: {},
+	extraReducers(builder, dataAdapter) {
+		builder
+		.addMatcher(
+			(action) => action.type === getPending.toString(),
+			(state, action: ReturnType<typeof getPending>) => {
+				const {groupName} = action.payload;
+				if (state.groupName !== groupName) {
+					state.groupName = groupName;
+					dataAdapter.removeAll(state);
+				}
+			}
+		)
+		.addMatcher(
+			(action) => action.type === clearSessions.toString(),
+			(state) => {
+				dataAdapter.removeAll(state);
+				state.valid = false;
+			}
+		)
+	}
+});
+
+export default slice;
+
+/* Slice actions */
+export const sessionsActions = slice.actions;
+
+const {
+	getSuccess,
+	getFailure,
+	updateOne,
+	addOne,
+	setOne,
+	removeMany,
+	setSelected,
+	setUiProperties,
+	setPanelIsSplit,
+} = slice.actions;
+
+export { setSelected, setUiProperties, setPanelIsSplit };
+
+/* Selectors */
 export const selectSessionsState = (state: RootState) => state[dataSet];
 export const selectSessionIds = (state: RootState) =>
 	selectSessionsState(state).ids;
@@ -165,70 +223,17 @@ export const sessionsSelectors = getAppTableDataSelectors(selectSessionsState, {
 	selectEntities: selectSyncedSessionEntities,
 });
 
-/*
- * Slice
- */
-type ExtraState = {
-	groupName: string | null;
-};
-const initialState: ExtraState = { groupName: null };
-const sortComparer = (a: Session, b: Session) =>
-	DateTime.fromISO(b.startDate).toMillis() -
-	DateTime.fromISO(a.startDate).toMillis();
-const dataSet = "sessions";
-const slice = createAppTableDataSlice({
-	name: dataSet,
-	sortComparer,
-	fields,
-	initialState,
-	reducers: {},
-	extraReducers(builder, dataAdapter) {
-		builder
-		.addMatcher(
-			(action) => action.type === getPending.toString(),
-			(state, action: ReturnType<typeof getPending>) => {
-				const {groupName} = action.payload;
-				if (state.groupName !== groupName) {
-					state.groupName = groupName;
-					dataAdapter.removeAll(state);
-				}
-			}
-		)
-		.addMatcher(
-			(action) => action.type === clearSessions.toString(),
-			(state) => {
-				dataAdapter.removeAll(state);
-				state.valid = false;
-			}
-		)
-	}
-});
-
-export default slice;
-
-/*
- * Actions
- */
-export const sessionsActions = slice.actions;
-
-const {
-	getSuccess,
-	getFailure,
-	updateOne,
-	addOne,
-	setOne,
-	removeMany,
-	setSelected,
-	setUiProperties,
-	setPanelIsSplit,
-} = slice.actions;
-
-export { setSelected, setUiProperties, setPanelIsSplit };
+export const selectUserSessionsAccess = (state: RootState) => {
+	const {groupName} = selectSessionsState(state);
+	const group = groupName? selectWorkingGroupByName(state, groupName): undefined;
+	return group?.permissions.meetings || AccessLevel.none;
+}
 
 // Override the default getPending()
 const getPending = createAction<{groupName: string}>(dataSet + "/getPending");
 export const clearSessions = createAction(dataSet + "/clear");
 
+/* Thunk actions */
 function validSession(session: any): session is Session {
 	return (
 		isObject(session) &&

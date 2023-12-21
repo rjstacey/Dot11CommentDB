@@ -15,6 +15,7 @@ import {
 import {
 	selectWebexMeetingsState,
 	selectSyncedWebexMeetingEntities,
+	selectUserWebexMeetingsAccess,
 	addWebexMeeting,
 	updateWebexMeetings,
 	deleteWebexMeetings,
@@ -29,7 +30,7 @@ import { updateMeetings, Meeting } from '../store/meetings';
 import { selectWebexAccountEntities } from '../store/webexAccounts';
 import { selectCurrentGroupDefaults } from '../store/current';
 import { selectCurrentSession } from '../store/sessions';
-import { selectUserMeetingsAccess, AccessLevel } from '../store/user';
+import { AccessLevel } from '../store/user';
 
 import WebexAccountSelector from '../components/WebexAccountSelector';
 import WebexTemplateSelector from '../components/WebexTemplateSelector';
@@ -873,7 +874,7 @@ const connector = connect(
 		selected: selectWebexMeetingsState(state).selected,
 		entities: selectSyncedWebexMeetingEntities(state),
 		defaults: selectCurrentGroupDefaults(state),
-		access: selectUserMeetingsAccess(state)
+		access: selectUserWebexMeetingsAccess(state)
 	}),
 	{
 		setSelected,

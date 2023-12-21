@@ -8,7 +8,7 @@ import {
 } from "dot11-components";
 
 import type { RootState } from ".";
-import { selectGroupEntities, Group } from "./groups";
+import { selectGroupEntities, selectWorkingGroupByName, type Group } from "./groups";
 import { selectWebexAccountEntities, WebexAccount } from "./webexAccounts";
 import {
 	selectCalendarAccountEntities,
@@ -22,6 +22,7 @@ import {
 } from "./webexMeetingsSelectors";
 import { selectSessionEntities } from "./sessions";
 import { selectCurrentSessionId, selectShowDateRange } from "./current";
+import { AccessLevel } from "./user";
 
 export interface Meeting {
 	id: number;
@@ -282,3 +283,9 @@ export const selectLoadMeetingsContstraints = createSelector(
 		}
 	}
 );
+
+export const selectUserMeetingsAccess = (state: RootState) => {
+	const {groupName} = selectMeetingsState(state);
+	const group = groupName? selectWorkingGroupByName(state, groupName): undefined;
+	return group?.permissions.meetings || AccessLevel.none;
+}

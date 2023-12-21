@@ -9,6 +9,8 @@ import {
 
 import type { RootState } from ".";
 import { selectMeetingEntities } from "./meetingsSelectors";
+import { selectWorkingGroupByName } from "./groups";
+import { AccessLevel } from "./user";
 
 export type WebexMeetingOptions = {
 	enabledChat: boolean;
@@ -216,3 +218,9 @@ export const webexMeetingsSelectors = getAppTableDataSelectors(
 	selectWebexMeetingsState,
 	{ selectEntities: selectSyncedWebexMeetingEntities, getField }
 );
+
+export const selectUserWebexMeetingsAccess = (state: RootState) => {
+	const {groupName} = selectWebexMeetingsState(state);
+	const group = groupName? selectWorkingGroupByName(state, groupName): undefined;
+	return group?.permissions.meetings || AccessLevel.none;
+}

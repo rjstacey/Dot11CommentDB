@@ -45,19 +45,15 @@ const slice = createSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
+/* Slice actions */
+const { getSuccess, getPending, getFailure, setTimezone } = slice.actions;
+
+/* Selectors */
 export const selectTimeZonesState = (state: RootState): TimeZonesState =>
 	state[dataSet];
 
-/*
- * Actions
- */
-const { getSuccess, getPending, getFailure, setTimezone } = slice.actions;
-
+/* Thunk actions */
 const url = "/api/timeZones";
-
 export const loadTimeZones = (): AppThunk => async (dispatch) => {
 	dispatch(getPending());
 	let timeZones;

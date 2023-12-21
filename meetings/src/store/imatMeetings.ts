@@ -90,9 +90,16 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
+/* Basic actions */
+export const imatMeetingsActions = slice.actions;
+
+const { getSuccess, getFailure } = slice.actions;
+
+// Override the default getPending()
+const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
+export const clearImatMeetings = createAction(dataSet + "/clear");
+
+/* Selectors */
 export const selectImatMeetingsState = (state: RootState) => state[dataSet];
 export const selectImatMeetingEntities = (state: RootState) =>
 	selectImatMeetingsState(state).entities;
@@ -133,17 +140,7 @@ export const imatMeetingsSelectors = getAppTableDataSelectors(
 	{ getField, selectEntities: selectSyncedImatMeetingEntities }
 );
 
-/*
- * Actions
- */
-export const imatMeetingsActions = slice.actions;
-
-const { getSuccess, getFailure } = slice.actions;
-
-// Override the default getPending()
-const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
-export const clearImatMeetings = createAction(dataSet + "/clear");
-
+/* Thunk actions */
 function validImatMeeting(imatMeeting: any): imatMeeting is ImatMeeting {
 	return (
 		isObject(imatMeeting) &&
@@ -169,10 +166,9 @@ export const loadImatMeetings =
 		if (loading && currentGroupName === groupName) {
 			return loadingPromise;
 		}
-		const url = `/api/${groupName}/imat/meetings`;
 		dispatch(getPending({ groupName }));
 		loadingPromise = fetcher
-			.get(url)
+			.get(`/api/${groupName}/imat/meetings`)
 			.then((response: any) => {
 				if (!validGetResponse(response))
 					throw new TypeError("Unexpected response to GET");

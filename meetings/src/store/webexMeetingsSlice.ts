@@ -37,10 +37,12 @@ const slice = createAppTableDataSlice({
 	},
 });
 
-// Override the default getPending()
+export default slice;
+
+/* Slice actions */
+// Override getPending() with one the sets groupName
 export const getPending = createAction<{ groupName: string }>(
 	slice.name + "/getPending"
 );
 export const clearWebexMeetings = createAction(slice.name + "/clear");
 
-export default slice;

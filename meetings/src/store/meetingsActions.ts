@@ -56,7 +56,7 @@ function validateResponse(method: string, response: any) {
 }
 
 let loadingUrl: string;
-let loadingPromise: Promise<Meeting[]>;
+let loadingPromise: Promise<Meeting[]> | undefined;
 export const loadMeetings =
 	(groupName: string): AppThunk<Meeting[]> =>
 	(dispatch, getState) => {
@@ -64,7 +64,7 @@ export const loadMeetings =
 		const url =
 			`/api/${groupName}/meetings` +
 			(constraints ? "?" + new URLSearchParams(constraints) : "");
-		if (loadingPromise instanceof Promise && loadingUrl === url) {
+		if (loadingPromise && loadingUrl === url) {
 			return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
@@ -84,8 +84,11 @@ export const loadMeetings =
 				dispatch(getFailure());
 				dispatch(setError("Unable to get list of meetings", error));
 				return [];
+			})
+			.finally(() => {
+				loadingPromise = undefined;
 			});
-		return loadingPromise;
+		return loadingPromise!;
 	};
 
 export const refreshMeetings = (): AppThunk => 

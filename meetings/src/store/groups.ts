@@ -64,17 +64,13 @@ export const fields = {
 	symbol: { label: "Committee" },
 };
 
-type ExtraState = {
+/* Create slice */
+const dataSet = "groups";
+const initialState: {
 	workingGroupId: string | null;
-};
-
-const initialState: ExtraState = {
+} = {
 	workingGroupId: null,
 };
-
-const dataSet = "groups";
-const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
-
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -127,9 +123,22 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
+/* Slice actions */
+export const groupsActions = slice.actions;
+
+const {
+	getPending,
+	getFailure,
+	setSelected,
+	setFilter,
+	clearFilter,
+	setWorkingGroupId: setWorkingGroupIdLocal,
+} = slice.actions;
+
+export { setSelected, setFilter, clearFilter };
+const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
+
+/* Selectors */
 export const selectGroupsState = (state: RootState) => state[dataSet];
 export const selectGroupEntities = (state: RootState) =>
 	selectGroupsState(state).entities;
@@ -210,22 +219,7 @@ export const selectGroupParents = createSelector(
 
 export const groupsSelectors = getAppTableDataSelectors(selectGroupsState);
 
-/*
- * Actions
- */
-export const groupsActions = slice.actions;
-
-const {
-	getPending,
-	getFailure,
-	setSelected,
-	setFilter,
-	clearFilter,
-	setWorkingGroupId: setWorkingGroupIdLocal,
-} = slice.actions;
-
-export { setSelected, setFilter, clearFilter };
-
+/* Thunk actions */
 const baseUrl = "/api/groups";
 
 function validGroup(group: any): group is Group {

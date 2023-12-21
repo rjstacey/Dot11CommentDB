@@ -54,14 +54,12 @@ const slice = createSlice({
 	},
 });
 
-/*
- * Reducer
- */
 export default slice;
 
-/*
- * Selectors
- */
+/* Slice actions */
+const { getPending, getSuccess, getFailure } = slice.actions;
+
+/* Selectors */
 export const selectMembersState = (state: RootState) => state[dataSet];
 export const selectMemberEntities = (state: RootState) =>
 	state[dataSet].entities;
@@ -73,11 +71,7 @@ export const selectMemberName = (state: RootState, sapin: number) => {
 	return m ? m.Name : "Unknown";
 };
 
-/*
- * Actions
- */
-const { getPending, getSuccess, getFailure } = slice.actions;
-
+/* Thunk actions */
 function validUser(user: any): user is Member {
 	return isObject(user);
 }

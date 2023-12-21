@@ -32,14 +32,17 @@ const slice = createSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
+
+/* Slice actions */
+export const { initUser } = slice.actions;
+
+/* Selectors */
 export const selectUser = (state: RootState): User => {
 	const user = state[dataSet];
 	if ("SAPIN" in user) return user;
 	throw Error("`user` slice not initialized");
 };
+/*
 export const selectUserPermissions = (state: RootState) =>
 	selectUser(state)!.Permissions;
 
@@ -52,9 +55,4 @@ export function selectUserMeetingsAccess(state: RootState) {
 	}
 	return AccessLevel.none;
 }
-
-/*
- * Actions
- */
-const { initUser } = slice.actions;
-export { initUser };
+*/

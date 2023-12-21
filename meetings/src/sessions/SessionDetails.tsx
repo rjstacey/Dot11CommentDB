@@ -30,7 +30,7 @@ import SessionCredit from './SessionCredit';
 
 import { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectUserMeetingsAccess, AccessLevel } from '../store/user';
+import { AccessLevel } from '../store/user';
 import {
 	loadSessions,
 	addSession,
@@ -40,6 +40,7 @@ import {
 	setUiProperties,
 	SessionTypeOptions,
 	selectSessionsState,
+	selectUserSessionsAccess,
 	Session, SessionAdd, SessionType
 } from '../store/sessions';
 
@@ -437,7 +438,7 @@ const connector = connect(
 			loading: sessions.loading,
 			selected: sessions.selected,
 			uiProperties: sessions.ui,
-			access: selectUserMeetingsAccess(state)
+			access: selectUserSessionsAccess(state)
 		}
 	},
 	{
