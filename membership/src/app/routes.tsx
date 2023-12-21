@@ -13,6 +13,8 @@ import { AccessLevel } from "../store/user";
 import {
 	selectWorkingGroupByName,
 	loadGroups,
+	selectGroupsState,
+	setWorkingGroupId,
 } from "../store/groups";
 import { loadMembers } from "../store/members";
 import { loadOfficers } from "../store/officers";
@@ -55,9 +57,15 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 };
 
 const groupsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
+	const { dispatch, getState } = store;
 	const { groupName } = params;
 	if (groupName) {
+		const {valid} = selectGroupsState(getState());
+		if (!valid) {
+			await dispatch(loadGroups());
+		}
+		const group = selectWorkingGroupByName(getState(), groupName);
+		dispatch(setWorkingGroupId(group?.id || null));
 		dispatch(loadCommittees(groupName));
 	}
 	return null;

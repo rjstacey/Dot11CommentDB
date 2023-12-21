@@ -255,12 +255,9 @@ export const groupsSelectors = getAppTableDataSelectors(selectGroupsState, {
 	selectEntities: selectGroupEntitiesWithOfficers,
 });
 
-export const selectUserGroupsAccess = (state: RootState, groupName?: string) => {
-	if (groupName) {
-		const group = selectWorkingGroupByName(state, groupName);
-		return group?.permissions.groups || AccessLevel.none;
-	}
-	return AccessLevel.none;
+export const selectUserGroupsAccess = (state: RootState) => {
+	const group = selectWorkingGroup(state);
+	return group?.permissions.groups || AccessLevel.none;
 }
 
 /* Thunk actions */
@@ -290,12 +287,16 @@ function validResponse(response: any): response is Group[] {
 	return Array.isArray(response) && response.every(validGroup);
 }
 
+let loadingPromise: Record<string, Promise<void> | undefined> = {};
 export const loadGroups =
-	(groupName?: string): AppThunk =>
+	(groupName: string = ""): AppThunk<void> =>
 	(dispatch) => {
+		if (loadingPromise[groupName]) {
+			return loadingPromise[groupName]!;
+		}
 		dispatch(getPending());
 		const url = groupName ? `${baseUrl}/${groupName}` : baseUrl;
-		return fetcher
+		loadingPromise[groupName] = fetcher
 			.get(url, groupName ? undefined : { type: ["c", "wg"] })
 			.then((response: any) => {
 				if (!validResponse(response))
@@ -305,7 +306,11 @@ export const loadGroups =
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get groups", error));
+			})
+			.finally(() => {
+				loadingPromise[groupName] = undefined;
 			});
+		return loadingPromise[groupName]!;
 	};
 
 export const addGroup =
