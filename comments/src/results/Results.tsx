@@ -17,6 +17,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { AccessLevel } from '../store/user';
 import { loadResults, clearResults, selectResultsBallot_id, resultsSelectors, resultsActions, upsertTableColumns, selectResultsAccess } from '../store/results';
 import { selectBallot, BallotType } from '../store/ballots';
+import { selectIsOnline } from '../store/offline';
 
 // The table row grows to the available height
 const TableRow = styled.div`
@@ -79,12 +80,13 @@ function updateTableConfigAction(access: number, type: number) {
 const maxWidth = 1600;
 
 function Results() {
+	const dispatch = useAppDispatch();
+
+	const isOnline = useAppSelector(selectIsOnline);
 
 	const access = useAppSelector(selectResultsAccess);
 	const resultsBallot_id = useAppSelector(selectResultsBallot_id);
 	const resultsBallot = useAppSelector((state) => resultsBallot_id? selectBallot(state, resultsBallot_id): undefined);
-	
-	const dispatch = useAppDispatch();
 
 	const defaultTablesConfig = React.useMemo(() => {
 		if (resultsBallot)
@@ -112,6 +114,7 @@ function Results() {
 					<ActionButton
 						name='refresh'
 						title='Refresh'
+						disabled={!isOnline}
 						onClick={refresh}
 					/>
 				</div>

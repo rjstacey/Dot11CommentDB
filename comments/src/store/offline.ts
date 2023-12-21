@@ -1,9 +1,7 @@
-import { createSlice, Action, PayloadAction } from '@reduxjs/toolkit';
-import { REHYDRATE } from 'redux-persist';
-import { fetcher } from 'dot11-components';
-import type { StoreType, RootState, AppThunk, AppDispatch } from '.';
-
-const dataSet = 'offline';
+import { createSlice, Action, PayloadAction } from "@reduxjs/toolkit";
+import { REHYDRATE } from "redux-persist";
+import { fetcher } from "dot11-components";
+import type { StoreType, RootState, AppThunk, AppDispatch } from ".";
 
 type OfflineState = {
 	online: boolean;
@@ -11,7 +9,7 @@ type OfflineState = {
 	timerId: number;
 	outbox: OfflineFetchAction[];
 	retryCount: number;
-}
+};
 
 export const initialState: OfflineState = {
 	online: false,
@@ -22,8 +20,10 @@ export const initialState: OfflineState = {
 };
 
 /*
- * Reducer => maintain transaction state
+ * Create slice
+ * The slice maintains transaction state
  */
+const dataSet = "offline";
 const slice = createSlice({
 	name: dataSet,
 	initialState,
@@ -56,11 +56,10 @@ const slice = createSlice({
 				...initialState,
 				online: state.online,
 			};
-		}
+		},
 	},
 	extraReducers: (builder) => {
-		builder
-		.addMatcher(
+		builder.addMatcher(
 			(action) => action.type === REHYDRATE,
 			(state, action) => {
 				if (action.payload && action.payload[dataSet]) {
@@ -69,64 +68,38 @@ const slice = createSlice({
 					return {
 						...state,
 						outbox,
-					}
+					};
 				}
 			}
-		)
-	}
+		);
+	},
 });
 
 export default slice;
 
-const {
-	setNetworkStatus,
-	fetchStart,
-	delayStart,
-	delayEnd,
-	enqueue,
-	dequeue
-} = slice.actions;
+/* Slice actions */
+const { setNetworkStatus, fetchStart, delayStart, delayEnd, enqueue, dequeue } =
+	slice.actions;
 
-
-export function registerOffline(store: StoreType) {
-	function onChange(online: boolean) {
-		if (window.requestAnimationFrame) {
-			window.requestAnimationFrame(() => store.dispatch(networkStateChange(online)));
-		} else {
-			setTimeout(() => store.dispatch(networkStateChange(online)), 0);
-		}
-	}
-
-	if (typeof window !== 'undefined' && window.addEventListener) {
-		window.addEventListener('online', () => onChange(true));
-		window.addEventListener('offline', () => onChange(false));
-		onChange(window.navigator.onLine);
-	}
-}
-
-/*
- * Selectors
- */
+/* Selectors */
 export const selectOfflineState = (state: RootState) => state[dataSet];
 
 export type OfflineStatus = "offline" | "unreachable" | "online";
 export const selectOfflineStatus = (state: RootState): OfflineStatus => {
-	const offline = state[dataSet];
-	let status: OfflineStatus = 'offline';
-	if (offline.retryCount > 1)
-		status = 'unreachable';
-	else if (offline.online)
-		status = 'online';
+	const offline = selectOfflineState(state);
+	let status: OfflineStatus = "offline";
+	if (offline.retryCount > 1) status = "unreachable";
+	else if (offline.online) status = "online";
 	return status;
-}
-
-export const selectOfflineOutbox = (state: RootState) => state[dataSet].outbox;
+};
+export const selectIsOnline = (state: RootState) => selectOfflineState(state).online;
+export const selectOfflineOutbox = (state: RootState) => selectOfflineState(state).outbox;
 
 /*
- * Actions => update transaction state and initiate new actions
+ * Thunk actions => update transaction state and initiate new actions
  */
-
-const networkStateChange = (online: boolean): AppThunk =>
+const networkStateChange =
+	(online: boolean): AppThunk =>
 	async (dispatch, getState) => {
 		dispatch(setNetworkStatus(online));
 
@@ -138,20 +111,20 @@ const networkStateChange = (online: boolean): AppThunk =>
 		if (online) {
 			dispatch(send());
 		}
-	}
+	};
 
-const scheduleRetry = (delay: number): AppThunk<ReturnType<AppDispatch>> =>
+const scheduleRetry =
+	(delay: number): AppThunk<ReturnType<AppDispatch>> =>
 	async (dispatch, getState) => {
 		const timerId = setTimeout(() => {
 			dispatch(delayEnd());
 			dispatch(send());
 		}, delay);
 		return dispatch(delayStart(timerId));
-	}
+	};
 
 function mustDiscard(error: any, retries: number) {
-	if (!('status' in error))
-		return true;
+	if (!("status" in error)) return true;
 
 	// discard for http 4xx errors
 	return error.status >= 400 && error.status < 500;
@@ -167,71 +140,68 @@ const delaySchedule = [
 ];
 
 function retryDelay(retries: number) {
-	if (retries >= delaySchedule.length)
-		retries = delaySchedule.length - 1;
+	if (retries >= delaySchedule.length) retries = delaySchedule.length - 1;
 	return delaySchedule[retries] || null;
 }
 
-const send = (): AppThunk =>
-	async (dispatch, getState) => {
+const send = (): AppThunk => async (dispatch, getState) => {
+	const state = selectOfflineState(getState());
+	if (state.outbox.length === 0 || !state.online) return;
 
-		const state = selectOfflineState(getState());
-		if (state.outbox.length === 0 || !state.online)
-			return;
+	const action = state.outbox[0];
 
-		const action = state.outbox[0];
-
-		dispatch(fetchStart());
-		const {method, url, params} = action.effect;
-		return fetcher.fetch(method, url, params)
-			.then((result: any) => {
-				dispatch(dequeue());
-				if (action.commit) {
-					const commitAction = {...action.commit, payload: result};
-					try {
-						dispatch(commitAction);
-					} catch (error) {
-						console.error(error);
-					}
+	dispatch(fetchStart());
+	const { method, url, params } = action.effect;
+	return fetcher
+		.fetch(method, url, params)
+		.then((result: any) => {
+			dispatch(dequeue());
+			if (action.commit) {
+				const commitAction = { ...action.commit, payload: result };
+				try {
+					dispatch(commitAction);
+				} catch (error) {
+					console.error(error);
 				}
+			}
 
-				return dispatch(send());
-			})
-			.catch((error: any) => {
-				const state = getState()[dataSet];
-				if (!mustDiscard(error, state.retryCount)) {
-					const delay = retryDelay(state.retryCount);
-					if (delay != null)
-						return dispatch(scheduleRetry(delay));
+			return dispatch(send());
+		})
+		.catch((error: any) => {
+			const state = getState()[dataSet];
+			if (!mustDiscard(error, state.retryCount)) {
+				const delay = retryDelay(state.retryCount);
+				if (delay != null) return dispatch(scheduleRetry(delay));
+			}
+
+			dispatch(dequeue());
+			if (action.rollback) {
+				const rollbackAction = { ...action.rollback, error };
+				try {
+					dispatch(rollbackAction);
+				} catch (error) {
+					console.error(error);
 				}
+			}
 
-				dispatch(dequeue());
-				if (action.rollback) {
-					const rollbackAction = {...action.rollback, error};
-					try {
-						dispatch(rollbackAction);
-					} catch (error) {
-						console.error(error);
-					}
-				}
-
-				return dispatch(send());
-			})
-	};
+			return dispatch(send());
+		});
+};
 
 export type Effect = {
 	method: "GET" | "PATCH" | "PUT" | "POST" | "DELETE";
 	url: string;
 	params: any;
-}
+};
 
 export type OfflineFetchAction = {
 	effect: Effect;
 	commit: Action;
 	rollback?: Action;
-}
+};
 
-export const offlineFetch = (offlineFetchAction: OfflineFetchAction): AppThunk =>
+export const offlineFetch =
+	(offlineFetchAction: OfflineFetchAction): AppThunk =>
 	async (dispatch, getState) => {
 		dispatch(enqueue(offlineFetchAction));
 		const state = selectOfflineState(getState());
@@ -240,5 +210,23 @@ export const offlineFetch = (offlineFetchAction: OfflineFetchAction): AppThunk =
 			dispatch(delayEnd());
 		}
 		dispatch(send());
+	};
+
+/** Register with store */
+export function registerOffline(store: StoreType) {
+	function onChange(online: boolean) {
+		if (window.requestAnimationFrame) {
+			window.requestAnimationFrame(() =>
+				store.dispatch(networkStateChange(online))
+			);
+		} else {
+			setTimeout(() => store.dispatch(networkStateChange(online)), 0);
+		}
 	}
 
+	if (typeof window !== "undefined" && window.addEventListener) {
+		window.addEventListener("online", () => onChange(true));
+		window.addEventListener("offline", () => onChange(false));
+		onChange(window.navigator.onLine);
+	}
+}

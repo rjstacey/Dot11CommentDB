@@ -1,48 +1,17 @@
-import {createSlice} from '@reduxjs/toolkit';
-import {selectOfflineState} from './offline';
-import {getCommentUpdates} from './comments';
-import type { StoreType, AppThunk, RootState } from '.';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { selectOfflineState } from "./offline";
+import { getCommentUpdates } from "./comments";
+import type { StoreType, AppThunk, RootState } from ".";
 
-const dataSet = 'liveUpdate';
-
-const initialState = {
-	live: false,
-}
-
-const slice = createSlice({
-	name: dataSet,
-	initialState,
-	reducers: {
-		setLive(state, action) {
-			state.live = action.payload;
-		}
-	}
-});
-
-export default slice;
-
-/*
- * Selectors
- */
-export const selectLiveUpdateState = (state: RootState) => state[dataSet];
-
-
-/*
- * Actions
- */
-const {setLive} = slice.actions;
-
-export const setLiveUpdate = setLive;
-
+/* One second polling utility */
 let timerId: NodeJS.Timeout | null = null;
 
-function startPoll(dispatch) {
+function startPoll(callback: () => void) {
 	function poll() {
 		timerId = setTimeout(poll, 1000);
-		dispatch(pollForUpdates());
+		callback();
 	}
-	if (!timerId)
-		poll();
+	if (!timerId) poll();
 }
 
 function stopPoll() {
@@ -52,41 +21,61 @@ function stopPoll() {
 	}
 }
 
-const pollForUpdates = (): AppThunk =>
-	async (dispatch, getState) => {
-		const state = getState();
-		const offline = selectOfflineState(state);
-		if (offline.online && offline.outbox.length === 0) {
-			dispatch(getCommentUpdates());
-		}
-	}
+/* Create slice */
+const dataSet = "liveUpdate";
+const slice = createSlice({
+	name: dataSet,
+	initialState: false,
+	reducers: {
+		setLiveUpdate(state, action: PayloadAction<boolean>) {
+			return action.payload;
+		},
+	},
+});
+export default slice;
 
-const visibilityChange = (hidden): AppThunk =>
+/* Slice actions */
+export const { setLiveUpdate } = slice.actions;
+
+/* Selectors */
+export const selectLiveUpdateState = (state: RootState) => state[dataSet];
+
+/* Thunk actions */
+const pollForUpdates = (): AppThunk => async (dispatch, getState) => {
+	const offline = selectOfflineState(getState());
+	if (offline.online && offline.outbox.length === 0) {
+		dispatch(getCommentUpdates());
+	}
+};
+
+const visibilityChange =
+	(hidden: boolean): AppThunk =>
 	async (dispatch, getState) => {
-		if (!hidden) {
-			if (!timerId) {
-				const state = getState();
-				const liveUpdate = selectLiveUpdateState(state);
-				if (liveUpdate.live)
-					startPoll(dispatch);
-			}
-		}
-		else {
+		if (!hidden && !timerId && selectLiveUpdateState(getState())) {
+			startPoll(() => dispatch(pollForUpdates()));
+		} else {
 			stopPoll();
 		}
-	}
+	};
 
-const storeChange = (dispatch, getState) => {
+const storeChange = (
+	dispatch: StoreType["dispatch"],
+	getState: StoreType["getState"]
+) => {
 	const state = getState();
 	const offline = selectOfflineState(state);
 	const liveUpdate = selectLiveUpdateState(state);
-	if (offline.online && offline.outbox.length === 0 && liveUpdate.live && !timerId) {
-		startPoll(dispatch);
-	}
-	else if ((!offline.online || !liveUpdate.live) && timerId) {
+	if (
+		offline.online &&
+		offline.outbox.length === 0 &&
+		liveUpdate &&
+		!timerId
+	) {
+		startPoll(() => dispatch(pollForUpdates()));
+	} else if ((!offline.online || !liveUpdate) && timerId) {
 		stopPoll();
 	}
-}
+};
 
 export function registerLiveUpdate(store: StoreType) {
 	let hidden: string | undefined = "hidden";
@@ -98,19 +87,18 @@ export function registerLiveUpdate(store: StoreType) {
 		document.addEventListener("webkitvisibilitychange", onChange);
 	else if ((hidden = "msHidden") in document)
 		document.addEventListener("msvisibilitychange", onChange);
-	else
-		hidden = undefined;
+	else hidden = undefined;
 
 	function onChange() {
 		store.dispatch(visibilityChange(document[hidden!]));
 	}
 
 	// set the initial state
-	if (hidden !== undefined)
+	if (hidden !== undefined) {
 		onChange();
-	else
+	} else {
 		store.dispatch(visibilityChange(false));
+	}
 
 	store.subscribe(() => storeChange(store.dispatch, store.getState));
 }
-

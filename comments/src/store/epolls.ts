@@ -35,25 +35,56 @@ export const fields = {
 	resultsSummary: { label: "Result", type: FieldType.NUMERIC },
 };
 
-/*
- * Selectors
- */
+const initialState: {
+	groupName: string | null;
+} = {
+	groupName: null,
+};
+const dataSet = "epolls";
+const slice = createAppTableDataSlice({
+	name: dataSet,
+	fields,
+	initialState,
+	selectId: (d: Epoll) => d.id,
+	reducers: {},
+	extraReducers: (builder, dataAdapter) => {
+		builder
+			.addMatcher(
+				(action: Action) => action.type === getPending.toString(),
+				(state, action: ReturnType<typeof getPending>) => {
+					const { groupName } = action.payload;
+					if (groupName !== state.groupName) {
+						state.groupName = groupName;
+						state.valid = false;
+						dataAdapter.removeAll(state);
+					}
+				}
+			)
+			.addMatcher(
+				(action: Action) => action.type === clearEpolls.toString(),
+				(state) => {
+					dataAdapter.removeAll(state);
+					state.valid = false;
+				}
+			);
+	},
+});
+
+export default slice;
+
+/* Slice actions */
+export const epollsActions = slice.actions;
+
+const { getSuccess, getFailure } = slice.actions;
+
+/* Selectors */
 export const selectEpollsState = (state: RootState) => state[dataSet];
 export const selectEpollIds = (state: RootState) =>
 	selectEpollsState(state).ids;
 export const selectEpollEntities = (state: RootState) =>
 	selectEpollsState(state).entities;
-/*const selectEpolls = createSelector(
-	selectEpollIds,
-	selectEpollEntities,
-	(ids, entities) => ids.map(id => entities[id]!)
-);*/
 
-/*
- * selectSyncedEntities(state)
- *
- * Generate epoll entities with indicator on each entry of presence in ballots list
- */
+/** Generate epoll entities with indicator on each entry for presence in the ballots list */
 export const selectSyncedEntities = createSelector(
 	selectSyncedBallotEntities,
 	selectEpollEntities,
@@ -73,58 +104,13 @@ export const epollsSelectors = getAppTableDataSelectors(selectEpollsState, {
 	selectEntities: selectSyncedEntities,
 });
 
-type ExtraState = {
-	groupName: string | null;
-};
-
-const initialState: ExtraState = {
-	groupName: null,
-};
-const dataSet = "epolls";
-const slice = createAppTableDataSlice({
-	name: dataSet,
-	fields,
-	initialState,
-	selectId: (d: Epoll) => d.id,
-	reducers: {},
-	extraReducers: (builder, dataAdapter) => {
-		builder
-			.addMatcher(
-				(action: Action) => action.type === getPending.toString(),
-				(state, action: ReturnType<typeof getPending>) => {
-					const { groupName } = action.payload;
-					if (groupName !== state.groupName) {
-						dataAdapter.removeAll(state);
-						state.valid = false;
-					}
-					state.groupName = groupName;
-				}
-			)
-			.addMatcher(
-				(action: Action) => action.type === clearEpolls.toString(),
-				(state) => {
-					dataAdapter.removeAll(state);
-					state.valid = false;
-				}
-			);
-	},
-});
-
-export default slice;
-
-/*
- * Actions
- */
-export const epollsActions = slice.actions;
-
-const { getSuccess, getFailure } = slice.actions;
-
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ groupName: string | null }>(
 	dataSet + "/getPending"
 );
 export const clearEpolls = createAction(dataSet + "/clear");
 
+/* Thunk actions */
 function validEpoll(epoll: any): epoll is Epoll {
 	return (
 		isObject(epoll) &&

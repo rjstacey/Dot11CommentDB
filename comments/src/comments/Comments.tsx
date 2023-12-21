@@ -35,6 +35,7 @@ import {
 	getCommentStatus,
 	CommentResolution,
 } from '../store/comments';
+import { selectIsOnline } from '../store/offline';
 
 
 const FlexRow = styled.div`
@@ -362,13 +363,14 @@ function commentsRowGetter({rowIndex, ids, entities}) {
 }
 
 function Comments() {
+	const dispatch = useAppDispatch();
+
+	const isOnline = useAppSelector(selectIsOnline);
 
 	const access = useAppSelector(selectCommentsAccess);
 	const {selected} = useAppSelector(selectCommentsState);
 	const commentsBallot_id = useAppSelector(selectCommentsBallot_id);
 	const commentsBallot = useAppSelector((state) => commentsBallot_id? selectBallot(state, commentsBallot_id): undefined);
-
-	const dispatch = useAppDispatch();
 
 	const {isSplit} = useAppSelector(commentsSelectors.selectCurrentPanelConfig);
 	const setIsSplit = (isSplit: boolean) => dispatch(commentsActions.setPanelIsSplit({isSplit}));
@@ -398,8 +400,14 @@ function Comments() {
 							<div style={{textAlign: 'center'}}>Edit</div>
 							<div style={{display: 'flex', alignItems: 'center'}}>
 								<CommentsCopy />
-								<CommentsImport ballot={commentsBallot} />
-								<CommentsExport ballot={commentsBallot} />
+								<CommentsImport
+									ballot={commentsBallot}
+									disabled={!isOnline}
+								/>
+								<CommentsExport
+									ballot={commentsBallot}
+									disabled={!isOnline}
+								/>
 							</div>
 						</ButtonGroup>:
 						<CommentsCopy />
@@ -407,6 +415,7 @@ function Comments() {
 					<ActionButton
 						name='refresh'
 						title='Refresh'
+						disabled={!isOnline}
 						onClick={refresh}
 					/>
 				</div>

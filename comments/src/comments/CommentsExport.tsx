@@ -142,12 +142,12 @@ function CommentsExportDropdown({
 	)
 }
 
-function CommentsExport({ballot}: {ballot?: Ballot}) {
+function CommentsExport({ballot, disabled}: {ballot?: Ballot, disabled?: boolean}) {
 	return (
 		<ActionButtonDropdown
 			name='export'
 			title='Export to file'
-			disabled={!ballot}
+			disabled={!ballot || disabled}
 			dropdownRenderer={(props) => <CommentsExportDropdown ballot={ballot!} {...props}/>}
 		/>
 	)

@@ -236,6 +236,31 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
+/* Slice actions */
+export const commentsActions = slice.actions;
+
+const {
+	setDetails,
+	getSuccess,
+	getFailure,
+	addMany: localAddMany,
+	updateMany: localUpdateMany,
+	removeMany: localRemoveMany,
+	setSelected,
+	setUiProperties
+} = slice.actions;
+
+// Overload getPending() with one that sets ballot_id
+const getPending = createAction<{ ballot_id: number | null }>(dataSet + "/getPending");
+export const clearComments = createAction(dataSet + "/clear");
+
+const getCommit = createAction<CommentResolution[]>(dataSet + '/getCommit');
+const updateCommit = createAction<{comments: CommentResolution[]}>(dataSet + '/updateCommit');
+const addManyRollback = createAction<EntityId[]>(dataSet + '/addManyRollback');
+const removeManyRollback = createAction<CommentResolution[]>(dataSet + '/removeManyRollback');
+
+export {setUiProperties};
+
 /*
  * Selectors
  */
@@ -269,32 +294,8 @@ const selectCommentsLastModified = createSelector(
 export const commentsSelectors = getAppTableDataSelectors(selectCommentsState, {getField});
 
 /*
- * Actions
+ * Thunk actions
  */
-export const commentsActions = slice.actions;
-
-const {
-	setDetails,
-	getSuccess,
-	getFailure,
-	addMany: localAddMany,
-	updateMany: localUpdateMany,
-	removeMany: localRemoveMany,
-	setSelected,
-	setUiProperties
-} = slice.actions;
-
-// Overload getPending() with one that sets ballot_id
-const getPending = createAction<{ ballot_id: number | null }>(dataSet + "/getPending");
-export const clearComments = createAction(dataSet + "/clear");
-
-const getCommit = createAction<CommentResolution[]>(dataSet + '/getCommit');
-const updateCommit = createAction<{comments: CommentResolution[]}>(dataSet + '/updateCommit');
-const addManyRollback = createAction<EntityId[]>(dataSet + '/addManyRollback');
-const removeManyRollback = createAction<CommentResolution[]>(dataSet + '/removeManyRollback');
-
-export {setUiProperties};
-
 export const getCID = (c: CommentResolution) => c.CommentID + (c.ResolutionCount > 1? '.' + c.ResolutionID: '');
 
 export const commentStatusOrder = ['', 'Assigned', 'Resolution drafted', 'Ready for motion', 'Resolution approved'] as const;

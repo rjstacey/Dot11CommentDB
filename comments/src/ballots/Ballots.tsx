@@ -27,8 +27,6 @@ import { AccessLevel } from "../store/user";
 import { selectWorkingGroupName } from "../store/groups";
 import {
 	fields,
-	loadBallots,
-	clearBallots,
 	BallotType,
 	selectBallotsState,
 	selectBallotsAccess,
@@ -377,9 +375,7 @@ function Ballots() {
 		ballotsSelectors.selectCurrentPanelConfig
 	);
 
-	const refresh = () =>
-		dispatch(groupName ? loadBallots(groupName) : clearBallots());
-
+	const refresh = () => navigate(".", {replace: true});
 	const showEpolls = () => navigate(`/${groupName}/epolls/`);
 
 	const columns = React.useMemo(() => {

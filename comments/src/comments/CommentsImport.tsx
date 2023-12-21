@@ -278,12 +278,12 @@ function CommentsImportDropdown({
 	)
 }
 
-function CommentsImport({ballot}: {ballot?: Ballot}) {
+function CommentsImport({ballot, disabled}: {ballot?: Ballot, disabled?: boolean}) {
 	return (
 		<ActionButtonDropdown
 			name='import'
 			title='Upload resolutions'
-			disabled={!ballot}
+			disabled={!ballot || disabled}
 			dropdownRenderer={(props) => <CommentsImportDropdown ballot={ballot!} {...props} />}
 		/>
 	)

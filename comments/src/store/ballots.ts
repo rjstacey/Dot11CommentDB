@@ -39,6 +39,17 @@ export type CommentsSummary = {
 	CommentIDMax: number | null;
 };
 
+function validCommentsSummary(summary: any): summary is CommentsSummary {
+	return (
+		isObject(summary) &&
+		typeof summary.Count === "number" &&
+		(summary.CommentIDMax === null ||
+			typeof summary.CommentIDMax === "number") &&
+		(summary.CommentIDMin === null ||
+			typeof summary.CommentIDMin === "number")
+	);
+}
+
 export type Ballot = {
 	id: number;
 	groupId: string | null;
@@ -59,10 +70,26 @@ export type Ballot = {
 	Voters: number;
 };
 
+export function validBallot(ballot: any): ballot is Ballot {
+	return (
+		isObject(ballot) &&
+		typeof ballot.id === "number" &&
+		typeof ballot.BallotID === "string" &&
+		typeof ballot.Project === "string" /* &&
+		typeof ballot.groupId === 'string'*/
+	);
+}
+
 export type BallotCommentsSummary = {
 	id: number;
 	Comments: CommentsSummary;
 };
+
+export function validBallotCommentsSummary(
+	ballot: any
+): ballot is BallotCommentsSummary {
+	return isObject(ballot) && validCommentsSummary(ballot.Comments);
+}
 
 export type BallotEdit = {
 	groupId: string | null;
@@ -227,10 +254,10 @@ const slice = createAppTableDataSlice({
 				(state, action: ReturnType<typeof getPending>) => {
 					const { groupName } = action.payload;
 					if (groupName !== state.groupName) {
-						dataAdapter.removeAll(state);
+						state.groupName = groupName;
 						state.valid = false;
+						dataAdapter.removeAll(state);
 					}
-					state.groupName = groupName;
 				}
 			)
 			.addMatcher(
@@ -264,9 +291,31 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
+/* Slice actions */
+export const ballotsActions = slice.actions;
+
+const {
+	getSuccess,
+	getFailure,
+	addOne,
+	updateMany,
+	setOne,
+	removeMany,
+	setCurrentGroupProject: setCurrentGroupProjectLocal,
+	setCurrentBallot_id: setCurrentBallotIdLocal,
+	setUiProperties,
+	setSelected: setSelectedBallots,
+} = slice.actions;
+
+// Overload getPending() with one that sets groupName
+const getPending = createAction<{ groupName: string }>(
+	dataSet + "/getPending"
+);
+export const clearBallots = createAction(dataSet + "/clear");
+
+export { setUiProperties, setSelectedBallots };
+
+/* Selectors */
 export const selectBallotsState = (state: RootState) => state[dataSet];
 const selectBallotsGroupName = (state: RootState) =>
 	selectBallotsState(state).groupName;
@@ -404,32 +453,7 @@ export const ballotsSelectors = getAppTableDataSelectors(selectBallotsState, {
 	getField,
 });
 
-/*
- * Actions
- */
-export const ballotsActions = slice.actions;
-
-const {
-	getSuccess,
-	getFailure,
-	addOne,
-	updateMany,
-	setOne,
-	removeMany,
-	setCurrentGroupProject: setCurrentGroupProjectLocal,
-	setCurrentBallot_id: setCurrentBallotIdLocal,
-	setUiProperties,
-	setSelected: setSelectedBallots,
-} = slice.actions;
-
-// Overload getPending() with one that sets groupName
-const getPending = createAction<{ groupName: string | null }>(
-	dataSet + "/getPending"
-);
-export const clearBallots = createAction(dataSet + "/clear");
-
-export { setUiProperties, setSelectedBallots };
-
+/* Thunk actions */
 export const updateBallotsLocal =
 	(ballots: ({ id: number } & Partial<Omit<Ballot, "id">>)[]): AppThunk =>
 	async (dispatch) => {
@@ -453,33 +477,6 @@ export const setCurrentBallot_id =
 		dispatch(setCurrentBallotIdLocal(ballot_id));
 		return selectCurrentBallot(getState());
 	};
-
-function validCommentsSummary(summary: any): summary is CommentsSummary {
-	return (
-		isObject(summary) &&
-		typeof summary.Count === "number" &&
-		(summary.CommentIDMax === null ||
-			typeof summary.CommentIDMax === "number") &&
-		(summary.CommentIDMin === null ||
-			typeof summary.CommentIDMin === "number")
-	);
-}
-
-export function validBallotCommentsSummary(
-	ballot: any
-): ballot is { id: number; Comments: CommentsSummary } {
-	return isObject(ballot) && validCommentsSummary(ballot.Comments);
-}
-
-export function validBallot(ballot: any): ballot is Ballot {
-	return (
-		isObject(ballot) &&
-		typeof ballot.id === "number" &&
-		typeof ballot.BallotID === "string" &&
-		typeof ballot.Project === "string" /* &&
-		typeof ballot.groupId === 'string'*/
-	);
-}
 
 function validResponse(response: any): response is Ballot[] {
 	return Array.isArray(response) && response.every(validBallot);

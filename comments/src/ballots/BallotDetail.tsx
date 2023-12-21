@@ -20,6 +20,7 @@ import SelectPrevBallot from './PrevBallotSelecor';
 
 import type { RootState } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectIsOnline } from '../store/offline';
 import {
 	updateBallot,
 	addBallot,
@@ -405,14 +406,14 @@ class _BallotDetail extends React.Component<BallotDetailProps, BallotDetailState
 	}
 
 	render() {
-		const {style, className, loading, uiProperties, setUiProperties, readOnly} = this.props;
+		const {style, className, loading, uiProperties, setUiProperties, readOnly, isOnline} = this.props;
 
 		let notAvailableStr: string | undefined;
 		if (loading)
 			notAvailableStr = 'Loading...';
 		else if (this.state.originals.length === 0)
 			notAvailableStr = 'Nothing selected';
-		const disableButtons = !!notAvailableStr; 	// disable buttons if displaying string
+		const disableButtons = Boolean(notAvailableStr) || !isOnline; 	// disable buttons if displaying string
 
 		return (
 			<BallotDetailContainer
@@ -446,7 +447,7 @@ class _BallotDetail extends React.Component<BallotDetailProps, BallotDetailState
 					<BallotWithActions
 						ballot={this.state.edited}
 						updateBallot={this.updateBallot}
-						readOnly={readOnly || !uiProperties.edit}
+						readOnly={readOnly || !isOnline || !uiProperties.edit}
 					/>
 				}
 			</BallotDetailContainer>
@@ -462,6 +463,7 @@ const connector = connect(
 			loading: ballotsState.loading,
 			selected: ballotsState.selected,
 			uiProperties: ballotsState.ui,
+			isOnline: selectIsOnline(state)
 		}
 	},
 	{

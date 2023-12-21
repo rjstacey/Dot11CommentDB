@@ -27,8 +27,8 @@ export type CommentHistoryEntry =
 		resolution: undefined;
 	})
 
-export const dataSet = 'commentsHistory';
 
+/* Create slice */
 const initialState: {
 	loading: boolean;
 	valid: boolean;
@@ -37,8 +37,8 @@ const initialState: {
 	loading: false,
 	valid: false,
 	commentsHistory: []
-}
-
+};
+const dataSet = 'commentsHistory';
 const slice = createSlice({
 	name: dataSet,
 	initialState,
@@ -64,16 +64,13 @@ const slice = createSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
-export const selectCommentsHistoryState = (state: RootState) => state[dataSet];
-
-/*
- * Actions
- */
+/* Slice actions */
 const {getPending, getSuccess, getFailure} = slice.actions;
 
+/* Selectors */
+export const selectCommentsHistoryState = (state: RootState) => state[dataSet];
+
+/* Thunk actions */
 function validResponse(response: any): response is {history: CommentHistoryEntry[]} {
 	return isObject(response) &&
 		Array.isArray(response.history);

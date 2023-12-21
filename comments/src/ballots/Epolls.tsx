@@ -1,19 +1,28 @@
-import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import styled from '@emotion/styled';
+import React from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import styled from "@emotion/styled";
 
 import {
 	AppTable,
 	ActionButton,
 	AppModal,
-	ColumnProperties
-} from 'dot11-components';
+	Spinner,
+	ColumnProperties,
+} from "dot11-components";
 
-import { useAppDispatch } from '../store/hooks';
-import { BallotType, BallotEdit } from '../store/ballots';
-import { fields, loadEpolls, epollsSelectors, epollsActions, SyncedEpoll } from '../store/epolls';
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { selectIsOnline } from "../store/offline";
+import { BallotType, BallotEdit } from "../store/ballots";
+import {
+	fields,
+	loadEpolls,
+	selectEpollsState,
+	epollsSelectors,
+	epollsActions,
+	SyncedEpoll,
+} from "../store/epolls";
 
-import { BallotAddForm } from './BallotDetail';
+import { BallotAddForm } from "./BallotDetail";
 
 // The action row height is determined by its content
 const ActionRow = styled.div`
@@ -30,16 +39,16 @@ const TableRow = styled.div`
 
 function ePollToBallot(epoll: SyncedEpoll): BallotEdit {
 	// See if the ePoll name has something like CC53 or LB245
-	const m = epoll.name.match(/(CC|LB)\d+/)
+	const m = epoll.name.match(/(CC|LB)\d+/);
 	let type = BallotType.Motion,
-		ballotId = '';
+		ballotId = "";
 	if (m) {
 		ballotId = m[0];
-		type = ballotId.startsWith('CC')? BallotType.CC: BallotType.WG;
+		type = ballotId.startsWith("CC") ? BallotType.CC : BallotType.WG;
 	}
 	return {
 		groupId: null,
-		Project: '',
+		Project: "",
 		BallotID: ballotId,
 		Type: type,
 		EpollNum: epoll.id,
@@ -47,35 +56,39 @@ function ePollToBallot(epoll: SyncedEpoll): BallotEdit {
 		End: epoll.end,
 		Document: epoll.document,
 		Topic: epoll.topic,
-		VotingPoolID: '',
+		VotingPoolID: "",
 		prev_id: 0,
 		IsRecirc: false,
 		IsComplete: false,
-	}
+	};
 }
 
-const tableColumns: (ColumnProperties & {width: number})[] = [
-		{key: 'id', 			...fields.id, 			width: 100},
-		{key: 'name', 			...fields.name,			width: 200},
-		{key: 'start', 			...fields.start,		width: 100},
-		{key: 'end', 			...fields.end,			width: 100},
-		{key: 'document', 		...fields.document,		width: 200},
-		{key: 'topic', 			...fields.topic,		width: 500},
-		{key: 'resultsSummary',	...fields.resultsSummary, width: 100},
-		{key: 'actions', label: '',	width: 200,
-			headerRenderer: () => ''}
-	];
+const tableColumns: (ColumnProperties & { width: number })[] = [
+	{ key: "id", ...fields.id, width: 100 },
+	{ key: "name", ...fields.name, width: 200 },
+	{ key: "start", ...fields.start, width: 100 },
+	{ key: "end", ...fields.end, width: 100 },
+	{ key: "document", ...fields.document, width: 200 },
+	{ key: "topic", ...fields.topic, width: 500 },
+	{ key: "resultsSummary", ...fields.resultsSummary, width: 100 },
+	{ key: "actions", label: "", width: 200, headerRenderer: () => "" },
+];
 
-const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40
+const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
 
 function Epolls() {
-
 	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
-	const {groupName} = useParams();
+	const { groupName } = useParams();
+	const { loading } = useAppSelector(selectEpollsState);
+	const isOnline = useAppSelector(selectIsOnline);
 
 	const numberEpolls = React.useRef(20);
-	const load = React.useCallback(() => groupName && dispatch(loadEpolls(groupName, numberEpolls.current)), [dispatch, groupName]);
+	const load = React.useCallback(
+		() =>
+			groupName && dispatch(loadEpolls(groupName, numberEpolls.current)),
+		[dispatch, groupName]
+	);
 
 	const close = () => navigate(`/${groupName}/ballots`);
 
@@ -88,31 +101,52 @@ function Epolls() {
 
 	const columns = React.useMemo(() => {
 		const columns = tableColumns.slice();
-		const cellRenderer = ({rowData}: {rowData: SyncedEpoll}) => rowData.InDatabase?
-			<span>Already Present</span>:
-			<ActionButton
-				name='add'
-				title='Add ballot' 
-				onClick={() => setAddBallot(ePollToBallot(rowData))}
-			/>
-		columns[columns.length-1] = {
-			...columns[columns.length-1],
-			cellRenderer
+		const cellRenderer = ({ rowData }: { rowData: SyncedEpoll }) =>
+			rowData.InDatabase ? (
+				<span>Already Present</span>
+			) : (
+				<ActionButton
+					name="add"
+					title="Add ballot"
+					onClick={() => setAddBallot(ePollToBallot(rowData))}
+					disabled={!isOnline}
+				/>
+			);
+		columns[columns.length - 1] = {
+			...columns[columns.length - 1],
+			cellRenderer,
 		};
 		return columns;
-	}, [setAddBallot]);
+	}, [setAddBallot, isOnline]);
 
 	return (
 		<>
-			<ActionRow style={{maxWidth}}>
-				<span><label>Closed ePolls</label></span>
+			<ActionRow style={{ maxWidth }}>
 				<span>
-					<ActionButton name='more' title='Load More' onClick={loadMore} />
-					<ActionButton name='refresh' title='Refresh' onClick={load} />
-					<ActionButton name='close' title='Close' onClick={close} />
+					<label>Closed ePolls</label>
+				</span>
+				{loading && <Spinner />}
+				<span>
+					<ActionButton
+						name="more"
+						title="Load More"
+						onClick={loadMore}
+						disabled={loading || !isOnline}
+					/>
+					<ActionButton
+						name="refresh"
+						title="Refresh"
+						onClick={load}
+						disabled={loading || !isOnline}
+					/>
+					<ActionButton
+						name="close"
+						title="Close"
+						onClick={close}
+					/>
 				</span>
 			</ActionRow>
-			<TableRow style={{maxWidth}}>
+			<TableRow style={{ maxWidth }}>
 				<AppTable
 					columns={columns}
 					headerHeight={28}
@@ -127,11 +161,11 @@ function Epolls() {
 			>
 				<BallotAddForm
 					defaultBallot={addBallot || undefined}
-					methods={{close: () => setAddBallot(null)}}
+					methods={{ close: () => setAddBallot(null) }}
 				/>
 			</AppModal>
 		</>
-	)
+	);
 }
 
 export default Epolls;

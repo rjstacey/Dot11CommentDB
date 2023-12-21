@@ -24,6 +24,10 @@ export type Voter = {
 	VotingPoolID: string;
 };
 
+function validVoter(voter: any): voter is Voter {
+	return isObject(voter);
+}
+
 export type VoterCreate = {
 	id?: Voter["id"];
 	ballot_id?: Voter["ballot_id"];
@@ -32,10 +36,19 @@ export type VoterCreate = {
 	Status: Voter["Status"];
 };
 
-type VoterBallotUpdate = {
+type BallotVotersUpdate = {
 	id: number;
 	Voters: number;
 };
+
+function validBallotVotersUpdateArray(ballots: any): ballots is BallotVotersUpdate[] {
+	return (
+		Array.isArray(ballots) &&
+		ballots.every(
+			(b) => typeof b.id === "number" && typeof b.Voters === "number"
+		)
+	);
+}
 
 export const voterExcusedOptions = [
 	{ value: false, label: "No" },
@@ -57,14 +70,6 @@ export const fields = {
 	Excused: { label: "Excused", options: voterExcusedOptions },
 };
 
-/*
- * Selectors
- */
-export const selectVotersState = (state: RootState) => state[dataSet];
-export const selectVotersBallot_id = (state: RootState) =>
-	selectVotersState(state).ballot_id;
-
-export const votersSelectors = getAppTableDataSelectors(selectVotersState);
 
 const sortComparer = (v1: Voter, v2: Voter) => v1.SAPIN - v2.SAPIN;
 
@@ -108,43 +113,37 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-/*
- * Actions
- */
+/* Slice actions */
 export const votersActions = slice.actions;
 
 const { getSuccess, getFailure, removeMany, setMany } = slice.actions;
 
 // Overload getPending() with one that sets ballot_id
-const getPending = createAction<{ ballot_id: number | null }>(
+const getPending = createAction<{ ballot_id: number }>(
 	dataSet + "/getPending"
 );
 export const clearVoters = createAction(dataSet + "/clear");
 
+
+/* Selectors */
+export const selectVotersState = (state: RootState) => state[dataSet];
+export const selectVotersBallot_id = (state: RootState) =>
+	selectVotersState(state).ballot_id;
+
+export const votersSelectors = getAppTableDataSelectors(selectVotersState);
+
+/* Thunk actions */
 const baseUrl = "/api/voters";
-
-function validBallotsUpdate(ballots: any) {
-	return (
-		Array.isArray(ballots) &&
-		ballots.every(
-			(b) => typeof b.id === "number" && typeof b.Voters === "number"
-		)
-	);
-}
-
-function validVoter(voter: any): voter is Voter {
-	return isObject(voter);
-}
 
 function validResponse(
 	response: any
-): response is { voters: Voter[]; ballots?: VoterBallotUpdate[] } {
+): response is { voters: Voter[]; ballots?: BallotVotersUpdate[] } {
 	return (
 		isObject(response) &&
 		Array.isArray(response.voters) &&
 		response.voters.every(validVoter) &&
 		(typeof response.ballots === "undefined" ||
-			validBallotsUpdate(response.ballots))
+			validBallotVotersUpdateArray(response.ballots))
 	);
 }
 

@@ -14,7 +14,7 @@ import OnlineIndicator from './OnlineIndicator';
 
 import { resetStore } from '../store';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectUser, initUser, AccessLevel } from '../store/user';
+import { selectUser, setUser, AccessLevel } from '../store/user';
 import { selectWorkingGroupByName } from "../store/groups";
 import { selectCurrentBallotID } from '../store/ballots';
 
@@ -152,7 +152,7 @@ function Header() {
 
 	const clearCache = () => {
 		dispatch(resetStore());
-		dispatch(initUser(user));
+		dispatch(setUser(user));
 	}
 
 	const title = (groupName? groupName + " ": "") + "Comment Resolution";

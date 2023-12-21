@@ -6,9 +6,9 @@ import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { selectLiveUpdateState, setLiveUpdate } from "../store/liveUpdate";
 
 function LiveUpdateSwitch({ className }: { className?: string }) {
-	const { live } = useAppSelector(selectLiveUpdateState);
 	const dispatch = useAppDispatch();
-	const setLive = (live: boolean) => dispatch(setLiveUpdate(live));
+	const setIsLive = (isLive: boolean) => dispatch(setLiveUpdate(isLive));
+	const isLive = useAppSelector(selectLiveUpdateState);
 
 	return (
 		<div
@@ -16,7 +16,10 @@ function LiveUpdateSwitch({ className }: { className?: string }) {
 			style={{ display: "flex", alignItems: "center" }}
 		>
 			<label>Live updates:</label>
-			<SliderSwitch value={live} onChange={() => setLive(!live)} />
+			<SliderSwitch
+				value={isLive}
+				onChange={() => setIsLive(!isLive)}
+			/>
 		</div>
 	);
 }

@@ -42,18 +42,16 @@ export type Group = {
 	permissions: Record<string, number>;
 };
 
-type ExtraState = {
+/* Create slice */
+const initialState: {
 	workingGroupId: string | null;
 	loading: boolean;
 	valid: boolean;
-};
-
-const initialState: ExtraState = {
+} = {
 	workingGroupId: null,
 	loading: false,
 	valid: false,
 };
-
 const dataAdapter = createEntityAdapter<Group>();
 const dataSet = "groups";
 const slice = createSlice({
@@ -82,9 +80,10 @@ const slice = createSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
+/* Slice actions */
+const { getPending, getSuccess, getFailure, setWorkingGroupId } = slice.actions;
+
+/* Selectors */
 export const selectGroupsState = (state: RootState) => state[dataSet];
 export function selectGroupEntities(state: RootState) {
 	return selectGroupsState(state).entities;
@@ -171,13 +170,7 @@ export const selectGroupPermissions = (
 	return permissions;
 };
 
-/*
- * Actions
- */
-const { getPending, getSuccess, getFailure, setWorkingGroupId } = slice.actions;
-
-const baseUrl = "/api/groups";
-
+/* Thunk actions */
 function validGroup(group: any): group is Group {
 	return isObject(group) && group.id && typeof group.id === "string";
 }
@@ -186,12 +179,13 @@ function validResponse(response: any): response is Group[] {
 	return Array.isArray(response) && response.every(validGroup);
 }
 
-const loadPromise: Record<string, Promise<Group[]>> = {};
+const baseUrl = "/api/groups";
+const loadingPromise: Record<string, Promise<Group[]> | undefined> = {};
 export const loadGroups =
 	(groupName: string = ""): AppThunk<Group[]> =>
 	async (dispatch, getState) => {
 		if (groupName) {
-			await loadPromise[""];
+			await loadingPromise[""];
 			if (selectWorkingGroup(getState())?.name !== groupName) {
 				const group = selectWorkingGroupByName(getState(), groupName);
 				if (!group) {
@@ -204,14 +198,14 @@ export const loadGroups =
 				dispatch(setWorkingGroupId(group.id));
 			}
 		}
-		if (loadPromise[groupName] instanceof Promise) {
-			return loadPromise[groupName];
+		if (loadingPromise[groupName]) {
+			return loadingPromise[groupName]!;
 		}
 		dispatch(getPending());
 		const url = groupName
 			? `${baseUrl}/${groupName}`
 			: `${baseUrl}?type=wg`;
-		loadPromise[groupName] = fetcher
+		loadingPromise[groupName] = fetcher
 			.get(url)
 			.then((response: any) => {
 				if (!validResponse(response))
@@ -223,6 +217,9 @@ export const loadGroups =
 				dispatch(getFailure());
 				dispatch(setError("Unable to get groups", error));
 				return [];
+			})
+			.finally(() => {
+				delete loadingPromise[groupName];
 			});
-		return loadPromise[groupName];
+		return loadingPromise[groupName]!;
 	};

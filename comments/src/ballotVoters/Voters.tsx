@@ -11,6 +11,7 @@ import {
 } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { selectIsOnline } from "../store/offline";
 import {
 	loadVoters,
 	clearVoters,
@@ -106,6 +107,8 @@ type VotersState = {
 function Voters() {
 	const dispatch = useAppDispatch();
 
+	const isOnline = useAppSelector(selectIsOnline);
+
 	const votersBallot_id = useAppSelector(selectVotersBallot_id);
 
 	const refresh = () =>
@@ -179,20 +182,20 @@ function Voters() {
 					<ActionButton
 						name="import"
 						title="Import voters"
-						disabled={!votersBallot_id}
+						disabled={!votersBallot_id || !isOnline}
 						onClick={() => setShowImportVoters(true)}
 					/>
 					<ActionButton
 						name="export"
 						title="Export voters"
-						disabled={!votersBallot_id}
+						disabled={!votersBallot_id || !isOnline}
 						onClick={() => dispatch(exportVoters(votersBallot_id!))}
 					/>
 					<ActionButton
 						name="refresh"
 						title="Refresh"
 						onClick={refresh}
-						disabled={loading}
+						disabled={loading || !isOnline}
 					/>
 				</div>
 			</TopRow>

@@ -15,29 +15,37 @@ export type UserMember = {
 	Email?: string;
 };
 
-type ExtraState = {
+function validUser(user: any): user is UserMember {
+	return (
+		isObject(user) &&
+		typeof user.SAPIN === "number" &&
+		typeof user.Name === "string" &&
+		typeof user.Status === "string"
+	);
+}
+
+/* Create slice */
+const initialState: {
 	valid: boolean;
 	loading: boolean;
 	groupName: string | null;
-};
-
-const selectId = (user: UserMember) => user.SAPIN;
-const dataAdapter = createEntityAdapter({ selectId });
-const initialState = dataAdapter.getInitialState<ExtraState>({
+} = {
 	valid: false,
 	loading: false,
 	groupName: null,
-});
+};
+const selectId = (user: UserMember) => user.SAPIN;
+const dataAdapter = createEntityAdapter({ selectId });
 const dataSet = "members";
 const slice = createSlice({
 	name: dataSet,
-	initialState,
+	initialState: dataAdapter.getInitialState(initialState),
 	reducers: {
-		getPending(state, action: PayloadAction<{ groupName: string | null }>) {
+		getPending(state, action: PayloadAction<{ groupName: string }>) {
 			const { groupName } = action.payload;
 			state.loading = true;
 			if (state.groupName !== groupName) {
-				state.groupName = action.payload.groupName;
+				state.groupName = groupName;
 				state.valid = false;
 				dataAdapter.removeAll(state);
 			}
@@ -51,17 +59,22 @@ const slice = createSlice({
 			state.loading = false;
 		},
 		clearMembers(state) {
-			dataAdapter.removeAll(state);
+			state.groupName = null;
 			state.valid = false;
+			dataAdapter.removeAll(state);
 		},
 	},
 });
 
 export default slice;
 
-/*
- * Selectors
- */
+/* Slice actions */
+const { getPending, getSuccess, getFailure, clearMembers } = slice.actions;
+
+export { clearMembers };
+
+
+/* Selectors */
 export const selectMembersState = (state: RootState) => state[dataSet];
 export const selectMemberIds = (state: RootState) =>
 	selectMembersState(state).ids;
@@ -73,22 +86,7 @@ export const selectMembers = createSelector(
 	(ids, entities) => ids.map((id) => entities[id]!)
 );
 
-/*
- * Actions
- */
-const { getPending, getSuccess, getFailure, clearMembers } = slice.actions;
-
-export { clearMembers };
-
-function validUser(user: any): user is UserMember {
-	return (
-		isObject(user) &&
-		typeof user.SAPIN === "number" &&
-		typeof user.Name === "string" &&
-		typeof user.Status === "string"
-	);
-}
-
+/* Thunk actions */
 function validResponse(response: any): response is UserMember[] {
 	return Array.isArray(response) && response.every(validUser);
 }

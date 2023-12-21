@@ -34,6 +34,14 @@ export type Result = {
 	Notes: string;
 };
 
+function validResult(result: any): result is Result {
+	return (
+		isObject(result) &&
+		typeof result.id === "string" &&
+		typeof result.ballot_id === "number"
+	);
+}
+
 const fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
 	Name: { label: "Name" },
@@ -44,9 +52,58 @@ const fields = {
 	Notes: { label: "Notes" },
 };
 
-/*
- * Selectors
- */
+/* Create slice */
+const initialState: {
+	ballot_id: number | null;
+} = {
+	ballot_id: null
+};
+const dataSet = "results";
+const slice = createAppTableDataSlice({
+	name: dataSet,
+	fields,
+	initialState,
+	reducers: {},
+	extraReducers: (builder, dataAdapter) => {
+		builder
+			.addMatcher(
+				(action: Action) => action.type === getPending.toString(),
+				(state, action: ReturnType<typeof getPending>) => {
+					const { ballot_id } = action.payload;
+					if (ballot_id !== state.ballot_id) {
+						state.ballot_id = ballot_id;
+						state.valid = false;
+						dataAdapter.removeAll(state);
+					}
+				}
+			)
+			.addMatcher(
+				(action: Action) => action.type === clearResults.toString(),
+				(state) => {
+					state.ballot_id = null;
+					state.valid = false;
+					dataAdapter.removeAll(state);
+				}
+			);
+	},
+});
+
+export default slice;
+
+/* Slice actions */
+export const resultsActions = slice.actions;
+
+const { getSuccess, getFailure, upsertTableColumns } = slice.actions;
+
+// Overload getPending() with one that sets groupName
+const getPending = createAction<{ ballot_id: number | null }>(
+	dataSet + "/getPending"
+);
+export const clearResults = createAction(dataSet + "/clear");
+
+export { upsertTableColumns };
+
+/* Selectors */
 export const selectResultsState = (state: RootState) => state[dataSet];
 export const selectResultsIds = (state: RootState) =>
 	selectResultsState(state).ids;
@@ -65,92 +122,9 @@ export const selectResultsAccess = (state: RootState) => {
 	);
 };
 
-/* Entities selector with join on users to get Name, Affiliation and Email.
- * If the entry is obsolete find the member entry that replaces it. */
-/*const selectEntities = createSelector(
-	state => selectMembersState(state).entities,
-	state => selectResultsState(state).entities,
-	(members, results) => {
-		const entities = {};
-		for (const [id, voter] of Object.entries(results)) {
-			const member = members[voter.SAPIN];
-			//while (member && member.Status === 'Obsolete') {
-			//	member = members[member.ReplacedBySAPIN]
-			//}
-			entities[id] = {
-				...voter,
-				Name: (member && member.Name) || '',
-				Affiliation: (member && member.Affiliation) || '',
-				Email: (member && member.Email) || ''
-			};
-		}
-		return entities;
-	}
-);*/
-
 export const resultsSelectors = getAppTableDataSelectors(selectResultsState);
 
-type ExtraState = {
-	ballot_id: number | null;
-};
-
-const initialState: ExtraState = { ballot_id: null };
-const dataSet = "results";
-const slice = createAppTableDataSlice({
-	name: dataSet,
-	fields,
-	initialState,
-	reducers: {},
-	extraReducers: (builder, dataAdapter) => {
-		builder
-			.addMatcher(
-				(action: Action) => action.type === getPending.toString(),
-				(state, action: ReturnType<typeof getPending>) => {
-					const { ballot_id } = action.payload;
-					if (ballot_id !== state.ballot_id) {
-						dataAdapter.removeAll(state);
-						state.valid = false;
-					}
-					state.ballot_id = ballot_id;
-				}
-			)
-			.addMatcher(
-				(action: Action) => action.type === clearResults.toString(),
-				(state) => {
-					dataAdapter.removeAll(state);
-					state.valid = false;
-				}
-			);
-	},
-});
-
-export default slice;
-
-/*
- * Actions
- */
-
-export const resultsActions = slice.actions;
-
-const { getSuccess, getFailure, upsertTableColumns } = slice.actions;
-
-// Overload getPending() with one that sets groupName
-const getPending = createAction<{ ballot_id: number | null }>(
-	dataSet + "/getPending"
-);
-export const clearResults = createAction(dataSet + "/clear");
-
-export { upsertTableColumns };
-
-const baseUrl = "/api/results";
-
-function validResult(result: any): result is Result {
-	return (
-		isObject(result) &&
-		typeof result.id === "string" &&
-		typeof result.ballot_id === "number"
-	);
-}
+/* Thunk actions */
 
 function validResponse(
 	response: any
@@ -162,6 +136,8 @@ function validResponse(
 		response.results.every(validResult)
 	);
 }
+
+const baseUrl = "/api/results";
 
 let loadingPromise: Promise<Result[]>;
 export const loadResults =

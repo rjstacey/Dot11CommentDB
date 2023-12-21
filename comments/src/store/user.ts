@@ -1,11 +1,11 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { RootState, AppThunk, resetStore } from '.';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { RootState } from ".";
 
 export const AccessLevel = {
 	none: 0,
 	ro: 1,
 	rw: 2,
-	admin: 3
+	admin: 3,
 };
 
 export type User = {
@@ -20,39 +20,29 @@ export type User = {
 
 const initialState: User = {
 	SAPIN: 0,
-	Name: '',
-	Email: '',
+	Name: "",
+	Email: "",
 	Permissions: [],
 	Access: AccessLevel.none,
-	Status: 'Non-Voter',
-	Token: null
-}
+	Status: "Non-Voter",
+	Token: null,
+};
 
-const dataSet = 'user';
+const dataSet = "user";
 const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
 		setUser(state, action: PayloadAction<User>) {
 			return action.payload;
-		}
+		},
 	},
 });
 
 export default slice;
 
-/*
- * Selectors
- */
-export const selectUser = (state: RootState) => state[dataSet];
+/* Slice actions */
+export const { setUser } = slice.actions;
 
-/*
- * Actions
- */
-export const initUser = (user: User): AppThunk =>
-	async (dispatch, getState) => {
-		const currentUser = selectUser(getState())
-		if (currentUser.SAPIN !== user.SAPIN)
-			dispatch(resetStore());
-		dispatch(slice.actions.setUser(user));
-	}
+/* Selectors */
+export const selectUser = (state: RootState) => state[dataSet];
