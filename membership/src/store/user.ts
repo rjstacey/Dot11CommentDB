@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from ".";
-import { selectWorkingGroup } from "./groups";
 
 export const AccessLevel = {
 	none: 0,
@@ -33,25 +32,12 @@ const slice = createSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
+/* Slice actions */
+export const { initUser } = slice.actions;
+
+/* Selectors */
 export const selectUser = (state: RootState): User => {
 	const user = state[dataSet];
 	if ("SAPIN" in user) return user;
 	throw Error("`user` slice not initialized");
 };
-
-export const selectUserMembersAccess = (state: RootState) => {
-	const user = selectUser(state);
-	let access =
-		selectWorkingGroup(state)?.permissions.members || AccessLevel.none;
-	return Math.max(user.Access, access);
-};
-
-
-/*
- * Actions
- */
-const { initUser } = slice.actions;
-export { initUser };

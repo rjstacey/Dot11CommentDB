@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
 	ActionButton,
@@ -12,20 +13,17 @@ import {
 	ColumnProperties,
 } from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppSelector } from "../store/hooks";
 import {
-	loadGroups,
 	fields,
 	groupsSelectors,
 	groupsActions,
 	type GroupWithOfficers
 } from "../store/groups";
-import { loadOfficers } from "../store/officers";
-import { loadMembers, selectMemberEntities } from "../store/members";
+import { selectMemberEntities } from "../store/members";
 
 import TopRow from "../components/TopRow";
 import GroupDetail from "./GroupDetail";
-import { useParams } from "react-router-dom";
 
 function GroupOfficers({ group }: { group: GroupWithOfficers }) {
 	const {officers} = group;
@@ -89,16 +87,8 @@ const tableColumns: ColumnProperties[] = [
 ];
 
 function Organization() {
-	const dispatch = useAppDispatch();
-	const { groupName } = useParams();
-
-	const refresh = () => {
-		if (groupName) {
-			dispatch(loadGroups(groupName));
-			dispatch(loadOfficers(groupName));
-			dispatch(loadMembers(groupName));
-		}
-	};
+	const navigate = useNavigate();
+	const refresh = () => navigate(".", {replace: true});
 
 	return (
 		<>

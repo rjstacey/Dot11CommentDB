@@ -14,6 +14,8 @@ import {
 import type { RootState, AppThunk } from ".";
 import { selectAttendancesWithMembershipAndSummary } from "./sessionParticipation";
 import { selectBallotParticipationWithMembershipAndSummary } from "./ballotParticipation";
+import { selectWorkingGroupByName } from "./groups";
+import { AccessLevel } from "./user";
 
 const Status = {
 	"Non-Voter": "Non-Voter",
@@ -127,26 +129,77 @@ export const fields = {
 	BallotParticipationSummary: { label: "Ballot participation" },
 };
 
-/*
- * Fields derived from other fields
- */
+/* Fields derived from other fields */
 export function getField(entity: Member, key: string): any {
 	if (!(key in entity)) console.warn(dataSet + " has no field " + key);
 	return entity[key as keyof Member];
 }
 
-/*
- * Selectors
- */
+/* Slice */
+const dataSet = "members";
+const selectId = (m: Member) => m.SAPIN;
+const sortComparer = (m1: Member, m2: Member) => m1.SAPIN - m2.SAPIN;
+const initialState: { groupName: string | null } = { groupName: null };
+const slice = createAppTableDataSlice({
+	name: dataSet,
+	fields,
+	initialState,
+	selectId,
+	sortComparer,
+	reducers: {},
+	extraReducers: (builder, dataAdapter) => {
+		builder
+			.addMatcher(
+				(action: Action) => action.type === getPending.toString(),
+				(state, action: ReturnType<typeof getPending>) => {
+					const { groupName } = action.payload;
+					if (groupName !== state.groupName) {
+						state.groupName = groupName;
+						state.valid = false;
+						dataAdapter.removeAll(state);
+					}
+				}
+			)
+			.addMatcher(
+				(action: Action) => action.type === clearMembers.toString(),
+				(state) => {
+					state.groupName = null;
+					state.valid = false;
+					dataAdapter.removeAll(state);
+				}
+			);
+	},
+});
+
+export default slice;
+
+/* Slice actions */
+export const membersActions = slice.actions;
+
+const {
+	getSuccess,
+	getFailure,
+	setOne,
+	setMany,
+	addMany,
+	removeMany,
+	setUiProperties,
+	setSelected,
+} = slice.actions;
+
+// Overload getPending() with one that sets groupName
+const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
+export const clearMembers = createAction(dataSet + "/clear");
+
+export { setSelected, setUiProperties };
+
+/* Selectors */
 export const selectMembersState = (state: RootState) => state[dataSet];
 export const selectMemberIds = (state: RootState) =>
 	selectMembersState(state).ids;
 export function selectMemberEntities(state: RootState) {
 	return selectMembersState(state).entities;
 }
-export const selectMembersGroupName = (state: RootState) =>
-	selectMembersState(state).groupName;
-
 export const selectActiveMembers = createSelector(
 	selectMemberIds,
 	selectMemberEntities,
@@ -217,67 +270,15 @@ export const membersSelectors = getAppTableDataSelectors(selectMembersState, {
 
 export const selectUiProperties = membersSelectors.selectUiProperties;
 
-/*
- * Slice
- */
-const dataSet = "members";
-const selectId = (m: Member) => m.SAPIN;
-const sortComparer = (m1: Member, m2: Member) => m1.SAPIN - m2.SAPIN;
-const initialState: { groupName: string | null } = { groupName: null };
-const slice = createAppTableDataSlice({
-	name: dataSet,
-	fields,
-	initialState,
-	selectId,
-	sortComparer,
-	reducers: {},
-	extraReducers: (builder, dataAdapter) => {
-		builder
-			.addMatcher(
-				(action: Action) => action.type === getPending.toString(),
-				(state, action: ReturnType<typeof getPending>) => {
-					const { groupName } = action.payload;
-					if (groupName !== state.groupName) {
-						dataAdapter.removeAll(state);
-						state.valid = false;
-					}
-					state.groupName = groupName;
-				}
-			)
-			.addMatcher(
-				(action: Action) => action.type === clearMembers.toString(),
-				(state) => {
-					dataAdapter.removeAll(state);
-					state.valid = false;
-				}
-			);
-	},
-});
+export const selectUserMembersAccess = (state: RootState) => {
+	const { groupName } = selectMembersState(state);
+	const group = groupName
+		? selectWorkingGroupByName(state, groupName)
+		: undefined;
+	return group?.permissions.members || AccessLevel.none;
+};
 
-export default slice;
-
-/*
- * Actions
- */
-export const membersActions = slice.actions;
-
-const {
-	getSuccess,
-	getFailure,
-	setOne,
-	setMany,
-	addMany,
-	removeMany,
-	setUiProperties,
-	setSelected,
-} = slice.actions;
-
-// Overload getPending() with one that sets groupName
-const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
-export const clearMembers = createAction(dataSet + "/clear");
-
-export { setSelected, setUiProperties };
-
+/* Thunk actions */
 function validMember(member: any): member is Member {
 	return isObject(member) && typeof member.SAPIN === "number";
 }
@@ -286,34 +287,37 @@ function validResponse(members: unknown): members is Member[] {
 	return Array.isArray(members) && members.every(validMember);
 }
 
+let loadingPromise: Promise<Member[]>;
 export const loadMembers =
-	(groupName: string): AppThunk =>
-	async (dispatch, getState) => {
+	(groupName: string): AppThunk<Member[]> =>
+	(dispatch, getState) => {
 		const { loading, groupName: currentGroupName } = selectMembersState(
 			getState()
 		);
 		if (loading && currentGroupName === groupName) {
-			return;
+			return loadingPromise;
 		}
-		const url = `/api/${groupName}/members`;
 		dispatch(getPending({ groupName }));
-		let response: any;
-		try {
-			response = await fetcher.get(url);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response to GET");
-		} catch (error) {
-			dispatch(getFailure());
-			dispatch(setError("Unable to get members list", error));
-			return;
-		}
-		dispatch(getSuccess(response));
+		loadingPromise = fetcher
+			.get(`/api/${groupName}/members`)
+			.then((response: any) => {
+				if (!validResponse(response))
+					throw new TypeError("Unexpected response to GET");
+				dispatch(getSuccess(response));
+				return response;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError("Unable to get members list", error));
+				return [];
+			});
+		return loadingPromise;
 	};
 
 export const updateMembers =
 	(updates: MemberUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectMembersGroupName(getState());
+		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members`;
 		let response: any;
 		try {
@@ -335,7 +339,7 @@ type StatusChangeEntryUpdate = {
 export const addMemberStatusChangeEntries =
 	(sapin: number, entries: StatusChangeType[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectMembersGroupName(getState());
+		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
 		let response: any;
 		try {
@@ -352,7 +356,7 @@ export const addMemberStatusChangeEntries =
 export const updateMemberStatusChangeEntries =
 	(sapin: number, updates: StatusChangeEntryUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectMembersGroupName(getState());
+		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
 		let response: any;
 		try {
@@ -369,7 +373,7 @@ export const updateMemberStatusChangeEntries =
 export const deleteMemberStatusChangeEntries =
 	(sapin: number, ids: number[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectMembersGroupName(getState());
+		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
 		let response: any;
 		try {
@@ -386,7 +390,7 @@ export const deleteMemberStatusChangeEntries =
 export const addMembers =
 	(members: MemberAdd[]): AppThunk<number[]> =>
 	async (dispatch, getState) => {
-		const groupName = selectMembersGroupName(getState());
+		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members`;
 		let response: any;
 		try {
@@ -404,7 +408,7 @@ export const addMembers =
 export const deleteMembers =
 	(ids: number[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectMembersGroupName(getState());
+		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members`;
 		dispatch(removeMany(ids));
 		try {
@@ -425,7 +429,7 @@ export const UploadFormat = {
 export const uploadMembers =
 	(format: string, file: any): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectMembersGroupName(getState());
+		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
 			dispatch(
 				setError("Unable to upload members", "Group not selected")
@@ -458,7 +462,7 @@ export const deleteSelectedMembers =
 
 export const exportMyProjectRoster =
 	(): AppThunk => async (dispatch, getState) => {
-		const groupName = selectMembersGroupName(getState());
+		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
 			dispatch(setError("Unable to export roster", "Group not selected"));
 			return;
@@ -474,7 +478,7 @@ export const exportMyProjectRoster =
 export const importMyProjectRoster =
 	(file: any): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectMembersGroupName(getState());
+		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
 			dispatch(setError("Unable to import roster", "Group not selected"));
 			return;

@@ -2,8 +2,6 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { fetcher, setError } from "dot11-components";
 import type { RootState, AppThunk } from ".";
 
-export const dataSet = "timeZones";
-
 type TimeZonesState = {
 	loading: boolean;
 	valid: boolean;
@@ -18,6 +16,8 @@ const initialState: TimeZonesState = {
 	timeZone: "America/New_York",
 };
 
+/* Create slice */
+const dataSet = "timeZones";
 const slice = createSlice({
 	name: dataSet,
 	initialState,
@@ -41,37 +41,32 @@ const slice = createSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
+/* Slice actions */
+const { getSuccess, getPending, getFailure, setTimezone } = slice.actions;
+export { setTimezone };
+
+/* Selectors */
 export const selectTimeZonesState = (state: RootState) => state[dataSet];
 
-/*
- * Actions
- */
-const { getSuccess, getPending, getFailure, setTimezone } = slice.actions;
-
-const url = "/api/timeZones";
-
+/* Thunk actions */
 function validResponse(response: any): response is string[] {
 	return (
 		Array.isArray(response) && response.every((t) => typeof t === "string")
 	);
 }
 
-export const loadTimeZones = (): AppThunk => async (dispatch) => {
+export const loadTimeZones = (): AppThunk => (dispatch) => {
 	dispatch(getPending());
-	let timeZones: any;
-	try {
-		timeZones = await fetcher.get(url);
-		if (!validResponse(timeZones))
-			throw new TypeError("Unexpected response to GET " + url);
-	} catch (error) {
-		dispatch(getFailure());
-		dispatch(setError("Unable to get time zones list", error));
-		return;
-	}
-	dispatch(getSuccess(timeZones));
+	const url = "/api/timeZones";
+	return fetcher
+		.get(url)
+		.then((response: any) => {
+			if (!validResponse(response))
+				throw new TypeError("Unexpected response to GET " + url);
+			dispatch(getSuccess(response));
+		})
+		.catch((error: any) => {
+			dispatch(getFailure());
+			dispatch(setError("Unable to get time zones list", error));
+		});
 };
-
-export { setTimezone };

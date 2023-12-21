@@ -25,7 +25,7 @@ import {
 
 import type { RootState } from "../store";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
-import { selectUserMembersAccess, AccessLevel } from "../store/user";
+import { AccessLevel } from "../store/user";
 import {
 	setUiProperties,
 	selectUiProperties,
@@ -39,6 +39,7 @@ import {
 	selectMembersState,
 	selectMemberEntities,
 	selectMemberWithParticipationSummary,
+	selectUserMembersAccess,
 	type Member,
 	type MemberAdd,
 } from "../store/members";

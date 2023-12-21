@@ -14,12 +14,13 @@ import {
 } from "dot11-components";
 
 import { RootState } from "../store";
-import { AccessLevel, selectUserMembersAccess } from "../store/user";
+import { AccessLevel,  } from "../store/user";
 import {
 	addGroup,
 	updateGroups,
 	deleteGroups,
 	selectGroupsState,
+	selectUserGroupsAccess,
 	selectWorkingGroupId,
 	setSelected,
 	Group,
@@ -371,7 +372,7 @@ const connector = connect(
 			officerEntities,
 			officerIds,
 			groupId: selectWorkingGroupId(state),
-			access: selectUserMembersAccess(state),
+			access: selectUserGroupsAccess(state),
 		};
 	},
 	{

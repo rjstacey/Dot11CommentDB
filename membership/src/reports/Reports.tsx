@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "@emotion/styled";
 
 import { ActionButton, Button } from "dot11-components";
@@ -6,11 +7,9 @@ import { ActionButton, Button } from "dot11-components";
 import TopRow from "../components/TopRow";
 
 import type { Dictionary, EntityId } from "@reduxjs/toolkit";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppSelector } from "../store/hooks";
 import {
-	selectMembersGroupName,
 	selectActiveMembers,
-	loadMembers,
 	type Member,
 } from "../store/members";
 import {
@@ -247,8 +246,8 @@ const reports = {
 const reportsList = Object.keys(reports) as (keyof typeof reports)[];
 
 function Reports() {
-	const dispatch = useAppDispatch();
-	const groupName = useAppSelector(selectMembersGroupName);
+	const navigate = useNavigate();
+
 	const members = useAppSelector(selectActiveMembers);
 	const sessionEntities = useAppSelector(selectSessionEntities);
 	const sessionIds = useAppSelector(selectSessionIds);
@@ -259,11 +258,7 @@ function Reports() {
 		null
 	);
 
-	const refresh = () => {
-		if (groupName) {
-			dispatch(loadMembers(groupName));
-		}
-	}
+	const refresh = () => {navigate(".", {replace: true})};
 
 	const tableData: TableData | null = React.useMemo(() => {
 		if (!report) return null;
@@ -292,8 +287,12 @@ function Reports() {
 
 	return (
 		<>
-			<TopRow>
-				<ActionButton name="refresh" title="Refresh" onClick={refresh} />
+			<TopRow style={{justifyContent: 'flex-end'}}>
+				<ActionButton
+					name="refresh"
+					title="Refresh"
+					onClick={refresh}
+				/>
 			</TopRow>
 			<Body>
 				<ReportSelectCol>

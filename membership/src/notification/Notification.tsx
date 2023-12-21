@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "@emotion/styled";
 
 import {
@@ -24,11 +25,9 @@ import {
 	displayDateRange,
 } from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppSelector } from "../store/hooks";
 import {
 	fields,
-	loadMembers,
-	selectMembersGroupName,
 	membersSelectors,
 	membersActions,
 	type Member,
@@ -38,7 +37,6 @@ import {
 	selectBallotEntities,
 	selectMostRecentBallotSeries,
 } from "../store/ballotParticipation";
-import { loadEmailTemplates } from "../store/email";
 
 import TopRow from "../components/TopRow";
 import NotificationEmail from "./NotificationEmail";
@@ -307,15 +305,8 @@ for (tableView in defaultTablesColumns) {
 }
 
 function Members() {
-	const dispatch = useAppDispatch();
-	const groupName = useAppSelector(selectMembersGroupName);
-
-	const refresh = () => {
-		if (groupName) {
-			dispatch(loadMembers(groupName));
-			dispatch(loadEmailTemplates(groupName));
-		}
-	};
+	const navigate = useNavigate();
+	const refresh = () => navigate(".", {replace: true});
 
 	return (
 		<>

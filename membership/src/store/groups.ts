@@ -23,6 +23,7 @@ import {
 	selectOfficerIds,
 	type Officer,
 } from "./officers";
+import { AccessLevel } from "./user";
 
 const GroupTypeLabels = {
 	c: "Committee",
@@ -82,18 +83,14 @@ export const fields = {
 	symbol: { label: "Committee" },
 };
 
-type ExtraState = {
+/* Create slice */
+const initialState: {
 	workingGroupId: string | null;
-};
-
-const initialState: ExtraState = {
+} = {
 	workingGroupId: null,
 };
-
 const dataSet = "groups";
-
 const selectId = (entity: Group) => entity.id;
-
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -146,9 +143,29 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-/*
- * Selectors
- */
+/* Slice actions */
+export const groupsActions = slice.actions;
+
+const {
+	getPending,
+	getFailure,
+	addOne,
+	addMany,
+	updateOne,
+	updateMany,
+	removeOne,
+	removeMany,
+	setSelected,
+	setFilter,
+	clearFilter,
+	setWorkingGroupId: setWorkingGroupIdLocal,
+} = slice.actions;
+
+const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
+
+export { setSelected, setFilter, clearFilter };
+
+/* Selectors */
 export const selectGroupsState = (state: RootState) => state[dataSet];
 export const selectGroupEntities = (state: RootState) =>
 	selectGroupsState(state).entities;
@@ -238,30 +255,15 @@ export const groupsSelectors = getAppTableDataSelectors(selectGroupsState, {
 	selectEntities: selectGroupEntitiesWithOfficers,
 });
 
-/*
- * Actions
- */
-export const groupsActions = slice.actions;
+export const selectUserGroupsAccess = (state: RootState, groupName?: string) => {
+	if (groupName) {
+		const group = selectWorkingGroupByName(state, groupName);
+		return group?.permissions.groups || AccessLevel.none;
+	}
+	return AccessLevel.none;
+}
 
-const {
-	getPending,
-	getFailure,
-	addOne,
-	addMany,
-	updateOne,
-	updateMany,
-	removeOne,
-	removeMany,
-	setSelected,
-	setFilter,
-	clearFilter,
-	setWorkingGroupId: setWorkingGroupIdLocal,
-} = slice.actions;
-
-const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
-
-export { setSelected, setFilter, clearFilter };
-
+/* Thunk actions */
 const baseUrl = "/api/groups";
 
 export const setWorkingGroupId =

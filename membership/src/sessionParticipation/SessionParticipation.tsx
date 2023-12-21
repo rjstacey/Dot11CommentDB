@@ -28,7 +28,6 @@ import {
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	fields,
-	loadAttendances,
 	importAttendances,
 	selectAttendancesState,
 	selectAttendanceSessions,
@@ -36,8 +35,6 @@ import {
 	attendancesActions,
 	type MemberAttendances,
 	type SessionAttendanceSummary,
-	clearAttendances,
-	selectAttendancesGroupName,
 } from "../store/sessionParticipation";
 import { type Session } from "../store/sessions";
 
@@ -45,6 +42,7 @@ import { renderNameAndEmail } from "../members/Members";
 import MemberDetail from "../members/MemberDetail";
 import TopRow from "../components/TopRow";
 import BulkStatusUpdate from "./BulkStatusUpdate";
+import { useNavigate } from "react-router-dom";
 
 function ImportAttendanceForm({
 	methods,
@@ -230,10 +228,11 @@ const tableColumns: ColumnProperties[] = [
 ];
 
 function Attendances() {
-	const dispatch = useAppDispatch();
+	const navigate = useNavigate();
+	const refresh = () => navigate(".", {replace: true});
+
 	const { selected } = useAppSelector(selectAttendancesState);
 	const sessions = useAppSelector(selectAttendanceSessions);
-	const groupName = useAppSelector(selectAttendancesGroupName);
 
 	const columns = React.useMemo(() => {
 		return tableColumns.concat(
@@ -271,7 +270,6 @@ function Attendances() {
 		);
 	}, [sessions]);
 
-	const refresh = () => dispatch(groupName? loadAttendances(groupName): clearAttendances());
 
 	return (
 		<>

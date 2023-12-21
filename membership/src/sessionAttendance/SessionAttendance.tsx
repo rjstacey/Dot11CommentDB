@@ -46,6 +46,7 @@ import MemberDetail from "../members/MemberDetail";
 import SessionSelector from "./SessionSelector";
 import TopRow from "../components/TopRow";
 import React from "react";
+import { useParams } from "react-router-dom";
 
 const TableCell = styled.div`
 	width: 100%;
@@ -315,14 +316,15 @@ function InportAttendeeForm({ methods }: DropdownRendererProps) {
 
 function SessionAttendance() {
 	const dispatch = useAppDispatch();
+	const { groupName } = useParams();
 	const { selected, sessionId, entities } = useAppSelector(
 		selectSessionAttendeesState
 	);
 
 	const load = (sessionId: number | null) =>
 		dispatch(
-			sessionId
-				? loadSessionAttendees(sessionId)
+			groupName && sessionId
+				? loadSessionAttendees(groupName, sessionId)
 				: clearSessionAttendees()
 		);
 	const refresh = () => load(sessionId);

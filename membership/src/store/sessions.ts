@@ -113,6 +113,11 @@ const slice = createSlice({
 		getFailure(state) {
 			state.loading = false;
 		},
+		clear(state) {
+			state.groupName = null;
+			state.valid = false;
+			dataAdapter.removeAll(state);
+		},
 		upsertMany: dataAdapter.upsertMany,
 	},
 });
@@ -124,9 +129,15 @@ export default slice;
  */
 export const sessionsActions = slice.actions;
 
-const { getPending, getSuccess, getFailure, upsertMany } = slice.actions;
+const {
+	getPending,
+	getSuccess,
+	getFailure,
+	clear: clearSessions,
+	upsertMany: upsertSessions,
+} = slice.actions;
 
-export { upsertMany as upsertSessions };
+export { clearSessions, upsertSessions };
 
 function validSession(session: any): session is Session {
 	return (
@@ -148,26 +159,30 @@ function validSessions(sessions: any): sessions is Session[] {
 	return Array.isArray(sessions) && sessions.every(validSession);
 }
 
+let loadingPromise: Promise<Session[]>;
 export const loadSessions =
-	(groupName: string): AppThunk =>
+	(groupName: string): AppThunk<Session[]> =>
 	async (dispatch, getState) => {
 		const state = getState();
 		const { loading, groupName: currentGroupName } =
 			selectSessionsState(state);
 		if (loading && currentGroupName === groupName) {
-			return;
+			return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/sessions`;
-		let response: any;
-		try {
-			response = await fetcher.get(url, { type: ["p", "i"] });
-			if (!validSessions(response))
-				throw new TypeError("Unexpected response to GET " + url);
-		} catch (error) {
-			dispatch(getFailure());
-			dispatch(setError("Unable to get sessions", error));
-			return;
-		}
-		dispatch(getSuccess(response));
+		loadingPromise = fetcher
+			.get(url, { type: ["p", "i"] })
+			.then((response: any) => {
+				if (!validSessions(response))
+					throw new TypeError("Unexpected response to GET " + url);
+				dispatch(getSuccess(response));
+				return response;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError("Unable to get sessions", error));
+				return [];
+			});
+		return loadingPromise;
 	};

@@ -192,8 +192,6 @@ function recentAttendanceStats(
 				).toMillis()
 		); // Sort latest to oldest
 
-	if (sapin === 4181) console.log(attendances.length);
-
 	// Keep properly attended sessions
 	attendances = attendances.filter(
 		(a) => (a.AttendancePercentage >= 75 && !a.DidNotAttend) || a.DidAttend
@@ -358,7 +356,10 @@ export const clearAttendances = createAction(dataSet + "/clear");
 
 function validResponse(
 	response: any
-): response is { attendances: any; sessions: Session[] } {
+): response is {
+	attendances: RecentSessionAttendances[];
+	sessions: Session[];
+} {
 	return (
 		isObject(response) &&
 		Array.isArray(response.attendances) &&
@@ -366,32 +367,33 @@ function validResponse(
 	);
 }
 
+let loadingPromise: Promise<RecentSessionAttendances[]>;
 export const loadAttendances =
-	(groupName: string): AppThunk =>
+	(groupName: string): AppThunk<RecentSessionAttendances[]> =>
 	async (dispatch, getState) => {
 		const { loading, groupName: currentGroupName } = selectAttendancesState(
 			getState()
 		);
 		if (loading && currentGroupName === groupName) {
-			return;
+			return loadingPromise;
 		}
-		const url = `/api/${groupName}/attendances`;
 		dispatch(getPending({ groupName }));
-		let response: any;
-		try {
-			response = await fetcher.get(url);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response to GET " + url);
-		} catch (error) {
-			dispatch(getFailure());
-			dispatch(setError(`Unable to get attendees`, error));
-			return;
-		}
-		dispatch(upsertSessions(response.sessions));
-		dispatch(
-			setDetails({ sessionIds: response.sessions.map((s) => s.id) })
-		);
-		dispatch(getSuccess(response.attendances));
+		const url = `/api/${groupName}/attendances`;
+		loadingPromise = fetcher
+			.get(url)
+			.then((response: any) => {
+				if (!validResponse(response))
+					throw new TypeError("Unexpected response to GET " + url);
+				dispatch(upsertSessions(response.sessions));
+				dispatch(getSuccess(response.attendances));
+				return response.attendances;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError(`Unable to get attendees`, error));
+				return [];
+			});
+		return loadingPromise;
 	};
 
 export type SessionAttendanceUpdate = {

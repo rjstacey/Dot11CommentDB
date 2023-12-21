@@ -24,21 +24,21 @@ type ExtraState = {
 	valid: boolean;
 	loading: boolean;
 	groupName: string | null;
-}
+};
 
 const dataAdapter = createEntityAdapter<EmailTemplate>();
 const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
-	groupName: null
+	groupName: null,
 });
 const dataSet = "emailTemplates";
 const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		getPending(state, action: PayloadAction<{groupName: string}>) {
-			const {groupName} = action.payload;
+		getPending(state, action: PayloadAction<{ groupName: string }>) {
+			const { groupName } = action.payload;
 			state.loading = true;
 			if (state.groupName !== groupName) {
 				state.groupName = groupName;
@@ -86,27 +86,37 @@ function validEmailTemplates(templates: any): templates is EmailTemplate[] {
 	return Array.isArray(templates) && templates.every(validEmailTemplate);
 }
 
+let loadingPromise: Promise<EmailTemplate[]>;
 export const loadEmailTemplates =
-	(groupName: string): AppThunk => async (dispatch, getState) => {
-		const url = `/api/${groupName}/email/templates`;
-		dispatch(getPending({groupName}));
-		let templates: any;
-		try {
-			templates = await fetcher.get(url);
-			if (!validEmailTemplates(templates))
-				throw new TypeError(`Unexpected response to GET ${url}`);
-		} catch (error) {
-			dispatch(getFailure());
-			dispatch(setError("Unable to get email templates", error));
-			return;
+	(groupName: string): AppThunk<EmailTemplate[]> =>
+	async (dispatch, getState) => {
+		const { loading, groupName: currentGroupName } =
+			selectEmailTemplatesState(getState());
+		if (loading && groupName === currentGroupName) {
+			return loadingPromise;
 		}
-		dispatch(getSuccess(templates));
+		dispatch(getPending({ groupName }));
+		const url = `/api/${groupName}/email/templates`;
+		loadingPromise = fetcher
+			.get(url)
+			.then((response: any) => {
+				if (!validEmailTemplates(response))
+					throw new TypeError(`Unexpected response to GET ${url}`);
+				dispatch(getSuccess(response));
+				return response;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError("Unable to get email templates", error));
+				return [];
+			});
+		return loadingPromise;
 	};
 
 export const addEmailTemplate =
 	(template: EmailTemplateCreate): AppThunk<EmailTemplate | undefined> =>
 	async (dispatch, getState) => {
-		const {groupName} = selectEmailTemplatesState(getState());
+		const { groupName } = selectEmailTemplatesState(getState());
 		const url = `/api/${groupName}/email/templates`;
 		let response: any;
 		try {
@@ -124,7 +134,7 @@ export const addEmailTemplate =
 export const updateEmailTemplate =
 	(update: EmailTemplateUpdate): AppThunk =>
 	async (dispatch, getState) => {
-		const {groupName} = selectEmailTemplatesState(getState());
+		const { groupName } = selectEmailTemplatesState(getState());
 		const url = `/api/${groupName}/email/templates`;
 		let response: any;
 		try {
@@ -141,7 +151,7 @@ export const updateEmailTemplate =
 export const deleteEmailTemplate =
 	(id: number): AppThunk =>
 	async (dispatch, getState) => {
-		const {groupName} = selectEmailTemplatesState(getState());
+		const { groupName } = selectEmailTemplatesState(getState());
 		const url = `/api/${groupName}/email/templates`;
 		dispatch(removeMany([id]));
 		try {
@@ -181,7 +191,7 @@ export interface Email {
 export const sendEmail =
 	(email: Email): AppThunk =>
 	async (dispatch, getState) => {
-		const {groupName} = selectEmailTemplatesState(getState());
+		const { groupName } = selectEmailTemplatesState(getState());
 		const url = `/api/${groupName}/email/send`;
 		try {
 			await fetcher.post(url, email);

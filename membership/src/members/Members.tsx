@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import type { EntityId } from "@reduxjs/toolkit";
+import { useNavigate } from "react-router-dom";
 
 import {
 	AppTable,
@@ -28,11 +29,9 @@ import MembersSummary from "./MembersSummary";
 import MemberDetail from "./MemberDetail";
 import { RosterImport, RosterExport } from "./Roster";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppSelector } from "../store/hooks";
 import {
 	fields,
-	loadMembers,
-	clearMembers,
 	selectMembersState,
 	membersSelectors,
 	membersActions,
@@ -278,14 +277,9 @@ for (tableView in defaultTablesColumns) {
 }
 
 function Members() {
-	const dispatch = useAppDispatch();
-	const {
-		selected,
-		entities: members,
-		groupName
-	} = useAppSelector(selectMembersState);
-
-	const refresh = () => dispatch(groupName? loadMembers(groupName): clearMembers());
+	const navigate = useNavigate();
+	const refresh = () => navigate(".", { replace: true });
+	const { selected, entities: members } = useAppSelector(selectMembersState);
 
 	return (
 		<>

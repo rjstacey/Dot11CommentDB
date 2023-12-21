@@ -1,4 +1,9 @@
-import { createSelector, Dictionary, PayloadAction  } from "@reduxjs/toolkit";
+import {
+	createSelector,
+	createAction,
+	Dictionary,
+	Action,
+} from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -11,7 +16,6 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import type { MemberContactInfo } from "./members";
-import { selectWorkingGroupName } from "./groups";
 import { selectMemberEntities } from "./members";
 import { selectSession } from "./sessions";
 
@@ -55,7 +59,11 @@ export type SyncedSessionAttendee = SessionAttendee & {
  */
 const selectId = (attendee: SessionAttendee) => attendee.SAPIN;
 
-const initialState: { sessionId: number | null } = {
+const initialState: {
+	groupName: string | null;
+	sessionId: number | null;
+} = {
+	groupName: null,
 	sessionId: null,
 };
 
@@ -65,14 +73,47 @@ const slice = createAppTableDataSlice({
 	fields,
 	selectId,
 	initialState,
-	reducers: {
-		setSessionId(state, action: PayloadAction<number | null>) {
-			state.sessionId = action.payload;
-		},
+	reducers: {},
+	extraReducers: (builder, dataAdapter) => {
+		builder
+			.addMatcher(
+				(action: Action) => action.type === getPending.toString(),
+				(state, action: ReturnType<typeof getPending>) => {
+					const { groupName, sessionId } = action.payload;
+					if (groupName !== state.groupName || sessionId !== state.sessionId) {
+						state.groupName = groupName;
+						state.sessionId = sessionId;
+						state.valid = false;
+						dataAdapter.removeAll(state);
+					}
+				}
+			)
+			.addMatcher(
+				(action: Action) =>
+					action.type === clearSessionAttendees.toString(),
+				(state) => {
+					state.groupName = null;
+					state.sessionId = null;
+					state.valid = false;
+					dataAdapter.removeAll(state);
+				}
+			);
 	},
 });
 
 export default slice;
+
+/*
+ * Basic actions
+ */
+export const sessionAttendeesActions = slice.actions;
+const { getSuccess, getFailure } = slice.actions;
+// Overload getPending() with one that sets groupName
+const getPending = createAction<{ groupName: string; sessionId: number }>(
+	dataSet + "/getPending"
+);
+export const clearSessionAttendees = createAction(dataSet + "/clear");
+
 
 /*
  * Selectors
@@ -124,13 +165,8 @@ export const sessionAttendeesSelectors = getAppTableDataSelectors(
 );
 
 /*
- * Actions
+ * Thunk actions
  */
-export const sessionAttendeesActions = slice.actions;
-
-const { getPending, getSuccess, getFailure, removeAll, setSessionId } =
-	slice.actions;
-
 function validSessionAttendee(entry: any): entry is SessionAttendee {
 	return isObject(entry);
 }
@@ -139,34 +175,44 @@ function validGetResponse(response: any): response is SessionAttendee[] {
 	return Array.isArray(response) && response.every(validSessionAttendee);
 }
 
+let loadingPromise: Promise<SessionAttendee[]>;
 export const loadSessionAttendees =
-	(sessionId: number): AppThunk =>
+	(groupName: string, sessionId: number): AppThunk<SessionAttendee[]> =>
 	async (dispatch, getState) => {
-		const state = getState();
-		const session = selectSession(state, sessionId);
+		const { loading, ...current } = selectSessionAttendeesState(getState());
+		if (
+			loading &&
+			groupName === current.groupName &&
+			sessionId === current.sessionId
+		) {
+			return loadingPromise;
+		}
+		const session = selectSession(getState(), sessionId);
 		if (!session) {
 			console.error("Bad sessionId");
-			return;
+			dispatch(clearSessionAttendees());
+			return [];
 		}
-		dispatch(getPending());
-		dispatch(removeAll());
-		dispatch(setSessionId(sessionId));
-		const groupName = selectWorkingGroupName(state);
+		dispatch(getPending({ groupName, sessionId }));
 		const url = `/api/${groupName}/imat/attendance/${session.imatMeetingId}/daily`;
-		let response: any;
-		try {
-			response = await fetcher.get(url);
-			if (!validGetResponse(response))
-				throw new TypeError("Unexpected response to GET " + url);
-		} catch (error) {
-			dispatch(getFailure());
-			dispatch(setError("Unable to get attendances", error));
-			return;
-		}
-		dispatch(getSuccess(response));
+		loadingPromise = fetcher
+			.get(url)
+			.then((response: any) => {
+				if (!validGetResponse(response))
+					throw new TypeError("Unexpected response to GET " + url);
+				dispatch(getSuccess(response));
+				return response;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(setError("Unable to get attendances", error));
+				return [];
+			});
+		return loadingPromise;
 	};
 
-export const clearSessionAttendees = (): AppThunk => async (dispatch) => {
-	dispatch(removeAll());
-	dispatch(setSessionId(null));
-};
+export const refreshSessionAttendees = (): AppThunk =>
+	async (dispatch, getState) => {
+		const {groupName, sessionId} = selectSessionAttendeesState(getState());
+		dispatch((groupName && sessionId)? loadSessionAttendees(groupName, sessionId): clearSessionAttendees());
+	}

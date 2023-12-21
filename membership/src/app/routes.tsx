@@ -13,7 +13,6 @@ import { AccessLevel } from "../store/user";
 import {
 	selectWorkingGroupByName,
 	loadGroups,
-	setWorkingGroupId,
 } from "../store/groups";
 import { loadMembers } from "../store/members";
 import { loadOfficers } from "../store/officers";
@@ -45,18 +44,24 @@ const rootLoader: LoaderFunction = async () => {
 };
 
 const groupLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
-		const group = selectWorkingGroupByName(getState(), groupName);
-		dispatch(setWorkingGroupId(group? group.id: null));
 		dispatch(loadGroups(groupName));
 		dispatch(loadMembers(groupName));
 		dispatch(loadOfficers(groupName));
-		dispatch(loadCommittees(groupName));
 	}
 	return null;
 };
+
+const groupsLoader: LoaderFunction = async ({ params }) => {
+	const { dispatch } = store;
+	const { groupName } = params;
+	if (groupName) {
+		dispatch(loadCommittees(groupName));
+	}
+	return null;
+}
 
 const sessionParticipationLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch } = store;
@@ -111,6 +116,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		menuLabel: "Groups",
 		path: "groups",
 		element: <Groups />,
+		loader: groupsLoader,
 		minAccess: AccessLevel.ro,
 	},
 	{

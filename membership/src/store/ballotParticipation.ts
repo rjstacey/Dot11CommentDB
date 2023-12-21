@@ -5,7 +5,7 @@ import {
 	Action,
 	PayloadAction,
 	Dictionary,
-	EntityId
+	EntityId,
 } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
@@ -84,7 +84,7 @@ const ballotsAdapter = createEntityAdapter<Ballot>();
 const initialState = {
 	ballotSeries: ballotSeriesAdapter.getInitialState(),
 	ballots: ballotsAdapter.getInitialState(),
-	groupName: null as string | null
+	groupName: null as string | null,
 };
 
 const selectId = (entity: RecentBallotSeriesParticipation) => entity.SAPIN;
@@ -116,7 +116,8 @@ const slice = createAppTableDataSlice({
 				}
 			)
 			.addMatcher(
-				(action: Action) => action.type === clearBallotParticipation.toString(),
+				(action: Action) =>
+					action.type === clearBallotParticipation.toString(),
 				(state) => {
 					dataAdapter.removeAll(state);
 					state.valid = false;
@@ -283,14 +284,8 @@ export const ballotParticipationSelectors = getAppTableDataSelectors(
 /*
  * Actions
  */
-
-const {
-	getSuccess,
-	getFailure,
-	setBallotSeries,
-	setBallots,
-	setOne,
-} = slice.actions;
+const { getSuccess, getFailure, setBallotSeries, setBallots, setOne } =
+	slice.actions;
 
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
@@ -298,9 +293,7 @@ export const clearBallotParticipation = createAction(dataSet + "/clear");
 
 export const ballotParticipationActions = slice.actions;
 
-function validResponse(
-	response: any
-): response is {
+function validResponse(response: any): response is {
 	ballots: Ballot[];
 	ballotSeries: BallotSeries[];
 	ballotSeriesParticipation: RecentBallotSeriesParticipation[];
@@ -313,31 +306,35 @@ function validResponse(
 	);
 }
 
+let loadingPromise: Promise<RecentBallotSeriesParticipation[]>;
 export const loadBallotParticipation =
-	(groupName: string): AppThunk => async (dispatch, getState) => {
-		const state = getState();
-		const {loading, groupName: currentGroupName} = selectBallotParticipationState(state);
+	(groupName: string): AppThunk<RecentBallotSeriesParticipation[]> =>
+	(dispatch, getState) => {
+		const { loading, groupName: currentGroupName } =
+			selectBallotParticipationState(getState());
 		if (loading && currentGroupName === groupName) {
-			return;
+			return loadingPromise;
 		}
+		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/ballotParticipation`;
-		dispatch(getPending({groupName}));
-		let response: any;
-		try {
-			response = await fetcher.get(url);
-			if (!validResponse(response)) {
-				throw new TypeError("Unexpected response to GET " + url);
-			}
-		} catch (error) {
-			dispatch(getFailure());
-			dispatch(
-				setError(`Unable to get ballot series participation`, error)
-			);
-			return;
-		}
-		dispatch(setBallots(response.ballots));
-		dispatch(setBallotSeries(response.ballotSeries));
-		dispatch(getSuccess(response.ballotSeriesParticipation));
+		loadingPromise = fetcher
+			.get(url)
+			.then((response: any) => {
+				if (!validResponse(response))
+					throw new TypeError("Unexpected response to GET " + url);
+				dispatch(setBallots(response.ballots));
+				dispatch(setBallotSeries(response.ballotSeries));
+				dispatch(getSuccess(response.ballotSeriesParticipation));
+				return response.ballotSeriesParticipation;
+			})
+			.catch((error: any) => {
+				dispatch(getFailure());
+				dispatch(
+					setError(`Unable to get ballot series participation`, error)
+				);
+				return [];
+			});
+		return loadingPromise;
 	};
 
 export type BallotParticipationUpdate = {
