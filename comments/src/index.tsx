@@ -26,7 +26,6 @@ getUser()
 		const root = createRoot(document.getElementById('root')!);
 		try {
 			fetcher.setAuth(user.Token, logout);
-			//store.dispatch(initUser(user));
 			root.render(
 				<React.StrictMode>
 					<Provider store={store}>
