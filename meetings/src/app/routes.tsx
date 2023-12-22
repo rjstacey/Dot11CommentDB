@@ -96,10 +96,9 @@ const imatBreakoutsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch } = store;
 	const { groupName } = params;
 	const meetingNumber = Number(params.meetingNumber);
-	if (groupName && meetingNumber) {
-		dispatch(loadBreakouts(groupName, meetingNumber));
-	} else {
-		dispatch(clearBreakouts());
+	if (groupName) {
+		dispatch(loadImatMeetings(groupName));
+		dispatch(meetingNumber? loadBreakouts(groupName, meetingNumber): clearBreakouts());
 	}
 	return null;
 };

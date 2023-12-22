@@ -50,7 +50,7 @@ function MeetingSelector({
 	toDate?: string;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
 ) {
-	const {loading, ids, entities} = useAppSelector(selectMeetingsState);
+	const {loading, valid, ids, entities} = useAppSelector(selectMeetingsState);
 
 	const options = React.useMemo(() => {
 		let options = ids.map(id => entities[id]!);
@@ -74,7 +74,7 @@ function MeetingSelector({
 			values={values}
 			onChange={handleChange}
 			options={options}
-			loading={loading}
+			loading={loading && !valid}
 			clearable
 			itemRenderer={renderItem}
 			selectItemRenderer={renderItem}

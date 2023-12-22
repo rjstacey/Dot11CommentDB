@@ -85,7 +85,7 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-/* Basic actions */
+/* Slice actions */
 export const imatBreakoutAttendanceActions = slice.actions;
 
 const { getSuccess, getFailure } = slice.actions;

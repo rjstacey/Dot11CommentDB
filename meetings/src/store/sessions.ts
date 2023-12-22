@@ -278,11 +278,6 @@ export const loadSessions =
 		return loadingPromise;
 	};
 
-export const refreshSessions = (): AppThunk => async (dispatch, getState) => {
-	const groupName = selectSessionsGroupName(getState());
-	if (groupName) dispatch(loadSessions(groupName));
-};
-
 export const updateSession =
 	(id: EntityId, changes: Partial<Session>): AppThunk =>
 	async (dispatch, getState) => {

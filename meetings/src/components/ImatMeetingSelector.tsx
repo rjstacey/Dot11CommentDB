@@ -37,7 +37,7 @@ function ImatMeetingSelector({
 	onChange: (value: number | null) => void;
 	readOnly?: boolean;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">) {
-	const {loading, ids, entities} = useAppSelector(selectImatMeetingsState);
+	const {loading, valid, ids, entities} = useAppSelector(selectImatMeetingsState);
 	const options = React.useMemo(() => ids.map(id => entities[id]!), [entities, ids]);
 	const values = options.filter(o => o.id === value);
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: 0);
@@ -48,7 +48,7 @@ function ImatMeetingSelector({
 			values={values}
 			onChange={handleChange}
 			options={options}
-			loading={loading}
+			loading={loading && !valid}
 			clearable
 			itemRenderer={renderItem}
 			selectItemRenderer={renderItem}

@@ -67,13 +67,15 @@ export function RawSessionSelector({
 	style?: React.CSSProperties;
 	onChange: (value: number) => void;
 }) {
-	const options = useAppSelector(selectSessions);
+	const {loading, valid, ids, entities} = useAppSelector(selectSessionsState);
+	const options = React.useMemo(() => ids.map(id => entities[id]!), [entities, ids]);
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: 0);
 	return (
 		<Select
 			style={{...style, border: 'none', padding: 'none'}}
 			options={options}
 			values={[]}
+			loading={loading && !valid}
 			onChange={handleChange}
 			itemRenderer={renderSession}
 			selectItemRenderer={renderSession}
