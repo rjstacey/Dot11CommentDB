@@ -1,247 +1,257 @@
-import React from 'react';
-import styled from '@emotion/styled';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import React from "react";
+import styled from "@emotion/styled";
+import AutoSizer from "react-virtualized-auto-sizer";
 
-import { ActionButton, Button, Spinner } from 'dot11-components';
+import { ActionButton, Button, Spinner } from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectCurrentImatMeetingId } from '../store/current';
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { selectCurrentImatMeeting } from "../store/imatMeetings";
 import {
-    loadImatMeetingAttendance,
-    clearImatMeetingAttendance,
-    selectMeetingAttendanceState,
-} from '../store/imatMeetingAttendance';
+	loadImatMeetingAttendance,
+	clearImatMeetingAttendance,
+	selectMeetingAttendanceState,
+} from "../store/imatMeetingAttendance";
 
-import CurrentSessionSelector from '../components/CurrentSessionSelector';
-import TopRow from '../components/TopRow';
-import SessionAttendanceChart from './SessionAttendanceChart';
-import TeleconAttendanceChart from './TeleconAttendanceChart';
-import { loadBreakouts } from '../store/imatBreakouts';
-import { useParams } from 'react-router-dom';
+import CurrentSessionSelector from "../components/CurrentSessionSelector";
+import TopRow from "../components/TopRow";
+import SessionAttendanceChart from "./SessionAttendanceChart";
+import TeleconAttendanceChart from "./TeleconAttendanceChart";
+import { loadBreakouts } from "../store/imatBreakouts";
+import { useParams } from "react-router-dom";
 
-const actions = [
-    "sessionAttendance",
-    "teleconAttendance"
-] as const;
+const actions = ["sessionAttendance", "teleconAttendance"] as const;
 
-type Action = typeof actions[number];
+type Action = (typeof actions)[number];
 
-const chartSelector: { [ K in Action ]: string } = {
-    sessionAttendance: "Session attendance",
-    teleconAttendance: "Telecon attendance",
-}
+const chartSelector: { [K in Action]: string } = {
+	sessionAttendance: "Session attendance",
+	teleconAttendance: "Telecon attendance",
+};
 
 export type ReportChartProps = {
-    className?: string;
-    style?: React.CSSProperties;
-    svgRef: React.RefObject<SVGSVGElement>;
-    height: number;
-    width: number;
-}
+	className?: string;
+	style?: React.CSSProperties;
+	svgRef: React.RefObject<SVGSVGElement>;
+	height: number;
+	width: number;
+};
 
-const chartComponent: { [K in Action]: React.FC<ReportChartProps>} = {
-    sessionAttendance: SessionAttendanceChart,
-    teleconAttendance: TeleconAttendanceChart
-}
+const chartComponent: { [K in Action]: React.FC<ReportChartProps> } = {
+	sessionAttendance: SessionAttendanceChart,
+	teleconAttendance: TeleconAttendanceChart,
+};
 
 const ChartWrapper = styled.div`
-    width: 80vw;
-    flex: 1;
-    padding: 20px;
-    display: flex;
-    overflow: hidden;
+	width: 80vw;
+	flex: 1;
+	padding: 20px;
+	display: flex;
+	overflow: hidden;
 
-    & .chart-select {
-        display: flex;
-        flex-direction: column;
-        padding: 10px;
-    }
+	& .chart-select {
+		display: flex;
+		flex-direction: column;
+		padding: 10px;
+	}
 
-    & .chart-select button {
-        margin: 10px;
-    }
+	& .chart-select button {
+		margin: 10px;
+	}
 
-    & .chart-draw {
-        flex: 1;
-    }
+	& .chart-draw {
+		flex: 1;
+	}
 
-    & .chart-draw svg {
-        opacity: 1.0;
-        transition: opacity 0.1s ease-out;
-    }
+	& .chart-draw svg {
+		opacity: 1;
+		transition: opacity 0.1s ease-out;
+	}
 
-    & .chart-draw svg.blink {
-        opacity: 0.5;
-    }
+	& .chart-draw svg.blink {
+		opacity: 0.5;
+	}
 `;
 
 function ReportsNav({
-    action,
-    setAction
+	action,
+	setAction,
 }: {
-    action: Action | null;
-    setAction: (action: Action | null) => void;
+	action: Action | null;
+	setAction: (action: Action | null) => void;
 }) {
-    function handleAction(newAction: Action) {
-        setAction(newAction === action? null: newAction);
-    }
-    return (
-        <div className='chart-select'>
-            {actions.map(a =>
-                <Button
-                    key={a}
-                    onClick={() => handleAction(a)}
-                    isActive={action === a}
-                >
-                    {chartSelector[a]}
-                </Button>)}
-        </div>
-    )
+	function handleAction(newAction: Action) {
+		setAction(newAction === action ? null : newAction);
+	}
+	return (
+		<div className="chart-select">
+			{actions.map((a) => (
+				<Button
+					key={a}
+					onClick={() => handleAction(a)}
+					isActive={action === a}
+				>
+					{chartSelector[a]}
+				</Button>
+			))}
+		</div>
+	);
 }
 
 function blinkElement(el: Element) {
-    function removeBlink() {
-        el!.classList.remove('blink');
-        el!.removeEventListener("transitionend", removeBlink);
-    }
-    el.addEventListener("transitionend", removeBlink);
-    el.classList.add('blink');
+	function removeBlink() {
+		el!.classList.remove("blink");
+		el!.removeEventListener("transitionend", removeBlink);
+	}
+	el.addEventListener("transitionend", removeBlink);
+	el.classList.add("blink");
 }
 
 /**
  * Currently Chrome does not support writing MIME type "image/svg+xml" to the clipboard. So we have to convert
  * from SVG to a PNG and then do the write to the clipboard.
  */
-interface F { (svg: SVGSVGElement | null): Promise<Blob | null | undefined>; canvas?: HTMLCanvasElement; }
-const svgToPngBlob: F = async function(svg) {
-    if (!svg)
-        return;
-
-    let svgText = svg.outerHTML;
-    const {width, height} = svg.getBoundingClientRect();
-
-    if (!svgText.match(/xmlns="/mi))
-        svgText = svgText.replace ('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ');
-    const svgBlob = new Blob([svgText], {type: "image/svg+xml;charset=utf-8"});
-    const domUrl = window.URL || window.webkitURL || window;
-    const url = domUrl.createObjectURL(svgBlob);
-
-    const canvas: HTMLCanvasElement = svgToPngBlob.canvas || (svgToPngBlob.canvas = document.createElement("canvas"));
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d")!;
-
-    const loadImage = (url: string) => new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.addEventListener('load', () => resolve(img));
-        img.addEventListener('error', reject);
-        img.src = url;
-    });
-
-    const img = await loadImage(url);
-    ctx.drawImage(img, 0, 0);
-
-    return new Promise(resolve => {
-        canvas.toBlob(function(blob) {resolve(blob)});
-    });
+interface F {
+	(svg: SVGSVGElement | null): Promise<Blob | null | undefined>;
+	canvas?: HTMLCanvasElement;
 }
+const svgToPngBlob: F = async function (svg) {
+	if (!svg) return;
+
+	let svgText = svg.outerHTML;
+	const { width, height } = svg.getBoundingClientRect();
+
+	if (!svgText.match(/xmlns="/im))
+		svgText = svgText.replace(
+			"<svg ",
+			'<svg xmlns="http://www.w3.org/2000/svg" '
+		);
+	const svgBlob = new Blob([svgText], {
+		type: "image/svg+xml;charset=utf-8",
+	});
+	const domUrl = window.URL || window.webkitURL || window;
+	const url = domUrl.createObjectURL(svgBlob);
+
+	const canvas: HTMLCanvasElement =
+		svgToPngBlob.canvas ||
+		(svgToPngBlob.canvas = document.createElement("canvas"));
+	canvas.width = width;
+	canvas.height = height;
+	const ctx = canvas.getContext("2d")!;
+
+	const loadImage = (url: string) =>
+		new Promise<HTMLImageElement>((resolve, reject) => {
+			const img = new Image();
+			img.addEventListener("load", () => resolve(img));
+			img.addEventListener("error", reject);
+			img.src = url;
+		});
+
+	const img = await loadImage(url);
+	ctx.drawImage(img, 0, 0);
+
+	return new Promise((resolve) => {
+		canvas.toBlob(function (blob) {
+			resolve(blob);
+		});
+	});
+};
 
 function copyToClipboard(svg: SVGSVGElement | null) {
-    if (!svg)
-        return;
+	if (!svg) return;
 
-    let svgText = svg.outerHTML;
+	let svgText = svg.outerHTML;
 
-    if (!svgText.match(/xmlns="/mi))
-        svgText = svgText.replace ('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ');
-    const svgBlob = new Blob([svgText], {type: "image/svg+xml;charset=utf-8"});
-    const item = new ClipboardItem({ "image/svg+xml": svgBlob });
-    navigator.clipboard.write([item])
-        .then(() => blinkElement(svg))
-        .catch(error => {
-            svgToPngBlob(svg)
-                .then(blob => {
-                    const item = new ClipboardItem({ "image/png": blob! });
-                    navigator.clipboard.write([item])
-                        .then(() => blinkElement(svg))
-                        .catch((error) => console.warn(error));
-                });
-        });
+	if (!svgText.match(/xmlns="/im))
+		svgText = svgText.replace(
+			"<svg ",
+			'<svg xmlns="http://www.w3.org/2000/svg" '
+		);
+	const svgBlob = new Blob([svgText], {
+		type: "image/svg+xml;charset=utf-8",
+	});
+	const item = new ClipboardItem({ "image/svg+xml": svgBlob });
+	navigator.clipboard
+		.write([item])
+		.then(() => blinkElement(svg))
+		.catch((error) => {
+			svgToPngBlob(svg).then((blob) => {
+				const item = new ClipboardItem({ "image/png": blob! });
+				navigator.clipboard
+					.write([item])
+					.then(() => blinkElement(svg))
+					.catch((error) => console.warn(error));
+			});
+		});
 }
 
 function ReportsChart({
-    action,
-    svgRef,
+	action,
+	svgRef,
 }: {
-    action: Action;
-    svgRef: React.RefObject<SVGSVGElement>;
+	action: Action;
+	svgRef: React.RefObject<SVGSVGElement>;
 }) {
-    const Component = chartComponent[action];
+	const Component = chartComponent[action];
 
-    return (
-        <div className='chart-draw'>
-            <AutoSizer>
-                {({height, width}) => <Component svgRef={svgRef} width={width} height={height} />}
-            </AutoSizer>
-        </div>
-    )
+	return (
+		<div className="chart-draw">
+			<AutoSizer>
+				{({ height, width }) => (
+					<Component svgRef={svgRef} width={width} height={height} />
+				)}
+			</AutoSizer>
+		</div>
+	);
 }
 
 function Reports() {
-    const dispatch = useAppDispatch();
-    const svgRef = React.useRef<SVGSVGElement>(null);
-    const {groupName} = useParams();
-	const imatMeetingId = useAppSelector(selectCurrentImatMeetingId);
-    const {loading} = useAppSelector(selectMeetingAttendanceState);
+	const dispatch = useAppDispatch();
+	const svgRef = React.useRef<SVGSVGElement>(null);
+	const { groupName } = useParams();
+	const imatMeeting = useAppSelector(selectCurrentImatMeeting);
+	const { loading } = useAppSelector(selectMeetingAttendanceState);
 
-    const refresh = () => {
-        if (groupName && imatMeetingId) {
-            dispatch(loadBreakouts(groupName, imatMeetingId));
-            dispatch(loadImatMeetingAttendance(groupName, imatMeetingId));
-        }
-        else {
-            dispatch(clearImatMeetingAttendance());
-        }
-    }
+	const refresh = () => {
+		if (groupName && imatMeeting) {
+			dispatch(loadBreakouts(groupName, imatMeeting.id));
+			dispatch(loadImatMeetingAttendance(groupName, imatMeeting.id));
+		} else {
+			dispatch(clearImatMeetingAttendance());
+		}
+        setAction(imatMeeting.type === 'Other'? "teleconAttendance": "sessionAttendance");
+	};
 
-    React.useEffect(refresh, [groupName, imatMeetingId, dispatch]);
+	React.useEffect(refresh, [groupName, imatMeeting, dispatch]);
 
-    const [action, setAction] = React.useState<Action | null>(null);
+	const [action, setAction] = React.useState<Action | null>(null);
 
-    return (
-        <>
-            <TopRow>
-                <CurrentSessionSelector />
+	return (
+		<>
+			<TopRow>
+				<CurrentSessionSelector />
 
-                {loading && <Spinner />}
+				{loading && <Spinner />}
 
-				<div style={{display: 'flex'}}>
-                    <ActionButton
-                        name='copy'
-                        title='Copy chart to clipboard'
-                        onClick={() => copyToClipboard(svgRef.current)}
-                        disabled={!action || !svgRef.current}
-                    />
+				<div style={{ display: "flex" }}>
 					<ActionButton
-                        name='refresh'
-                        title='Refresh'
-                        onClick={refresh}
-                    />
+						name="copy"
+						title="Copy chart to clipboard"
+						onClick={() => copyToClipboard(svgRef.current)}
+						disabled={!action || !svgRef.current}
+					/>
+					<ActionButton
+						name="refresh"
+						title="Refresh"
+						onClick={refresh}
+					/>
 				</div>
 			</TopRow>
-            <ChartWrapper>
-                <ReportsNav
-                    action={action}
-                    setAction={setAction}
-                />
-                {action &&
-                    <ReportsChart
-                        action={action}
-                        svgRef={svgRef}
-                    />}
-            </ChartWrapper>
-        </>
-    )
+			<ChartWrapper>
+				<ReportsNav action={action} setAction={setAction} />
+				{action && <ReportsChart action={action} svgRef={svgRef} />}
+			</ChartWrapper>
+		</>
+	);
 }
 
 export default Reports;

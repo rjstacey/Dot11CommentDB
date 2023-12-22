@@ -1,54 +1,28 @@
 import React from 'react';
 import { createSelector } from '@reduxjs/toolkit';
-import { DateTime } from 'luxon';
 import * as d3 from 'd3';
 
 import { useAppSelector } from '../store/hooks';
 
-import { selectMeetingIds, selectMeetingEntities } from '../store/meetings';
-import { selectBreakoutEntities } from '../store/imatBreakouts';
-import { selectMeetingAttendanceCountsByBreakout } from '../store/imatMeetingAttendance';
-import { selectGroupEntities } from '../store/groups';
-
-import { useDimensions } from './SessionAttendanceChart';
+import { useDimensions, selectBreakoutAttendanceEntries, type BreakoutAttendanceEntry } from './SessionAttendanceChart';
 import type { ReportChartProps } from './Reports';
 
-type Entity = {
-    date: string;
-    label: string;
-    color: string;
-    attendanceCount: number;
-}
-
 const selectAttendanceSeriesInfo = createSelector(
-    selectMeetingIds,
-    selectMeetingEntities,
-    selectBreakoutEntities,
-    selectGroupEntities,
-    selectMeetingAttendanceCountsByBreakout,
-    (meetingIds, meetingEntities, breakoutEntities, groupEntities, attendanceCountsByBreakout) => {
+    selectBreakoutAttendanceEntries,
+    (entries) => {
 
-        const seriesEntities = meetingIds.reduce((seriesEntities, meetingId) => {
-            const meeting = meetingEntities[meetingId]!;
-            const breakout = meeting.imatBreakoutId && breakoutEntities[meeting.imatBreakoutId];
-            if (!meeting.isCancelled && breakout) {
-                const attendanceCount = attendanceCountsByBreakout[breakout.id] || 0;
-                if (attendanceCount) {
-                    const date = '' + DateTime.fromISO(breakout.start).toISODate();
-                    const label = meeting.summary;
-                    const group = meeting.organizationId && groupEntities[meeting.organizationId];
-                    const color = (group && group.color) || 'yellow';
-                    const entry = {date, label, color, attendanceCount};
-                    seriesEntities[meeting.id] = entry;
-                }
-            }
+        const seriesEntities = entries.reduce((seriesEntities, entry, i) => {
+            seriesEntities[i] = entry;
             return seriesEntities;
-        }, {} as Record<string, Entity>);
+        }, {} as Record<string, BreakoutAttendanceEntry>);
 
+        // Sort by date and time
         const seriesIds = Object.keys(seriesEntities).sort((id1, id2) => {
-            const t1 = DateTime.fromISO(meetingEntities[id1]!.start).toMillis();
-            const t2 = DateTime.fromISO(meetingEntities[id2]!.start).toMillis();
-            return t1 - t2;
+            const { date: d1, startTime: t1 } = seriesEntities[id1];
+            const { date: d2, startTime: t2 } = seriesEntities[id2];
+            if (d1 === d2)
+                return t1.localeCompare(t2);
+            return d1.localeCompare(d2);
         });
 
         const maxValue = d3.max(seriesIds, id => seriesEntities[id].attendanceCount) || 0;
@@ -140,6 +114,8 @@ function TeleconAttendanceChart({
                             width={xScale.bandwidth()}
                             height={yScale(0)-yScale(entity.attendanceCount)}
                             fill={entity.color}
+                            stroke="grey"
+                            rx="0.3%"
                         />
                         <text
                             x={0}

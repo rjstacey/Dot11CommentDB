@@ -44,7 +44,7 @@ export type Breakout = {
 	facilitator: string /** Facilitator email */;
 };
 
-type Timeslot = {
+export type Timeslot = {
 	id: number;
 	name: string;
 	startTime: string;
