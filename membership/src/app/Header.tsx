@@ -11,7 +11,7 @@ import {
 
 import { resetStore } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { AccessLevel, initUser, selectUser } from "../store/user";
+import { AccessLevel, setUser, selectUser } from "../store/user";
 import { selectWorkingGroupByName } from "../store/groups";
 
 import routes, { AppRoute } from "./routes";
@@ -141,7 +141,7 @@ function Header() {
 
 	const clearCache = () => {
 		dispatch(resetStore());
-		dispatch(initUser(user));
+		dispatch(setUser(user));
 	}
 
 	return (
