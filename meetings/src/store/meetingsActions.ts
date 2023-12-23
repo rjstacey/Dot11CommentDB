@@ -8,9 +8,9 @@ import { setWebexMeetings, upsertWebexMeetings } from "./webexMeetings";
 import { setBreakouts, upsertBreakouts } from "./imatBreakouts";
 import {
 	selectMeetingsState,
-	selectLoadMeetingsContstraints,
 	Meeting,
 	MeetingAdd,
+	LoadMeetingsConstraints,
 } from "./meetingsSelectors";
 
 export const meetingsActions = slice.actions;
@@ -42,6 +42,7 @@ export {
 	setSelectedSlots,
 	toggleSelectedSlots,
 	upsertMany as upsertMeetings,
+	clearMeetings
 };
 
 function validateResponse(method: string, response: any) {
@@ -58,9 +59,11 @@ function validateResponse(method: string, response: any) {
 let loadingUrl: string;
 let loadingPromise: Promise<Meeting[]> | undefined;
 export const loadMeetings =
-	(groupName: string): AppThunk<Meeting[]> =>
-	(dispatch, getState) => {
-		const constraints = selectLoadMeetingsContstraints(getState());
+	(
+		groupName: string,
+		constraints?: LoadMeetingsConstraints
+	): AppThunk<Meeting[]> =>
+	(dispatch) => {
 		const url =
 			`/api/${groupName}/meetings` +
 			(constraints ? "?" + new URLSearchParams(constraints) : "");
@@ -89,12 +92,6 @@ export const loadMeetings =
 				loadingPromise = undefined;
 			});
 		return loadingPromise!;
-	};
-
-export const refreshMeetings = (): AppThunk => 
-	async (dispatch, getState) => {
-		const {groupName} = selectMeetingsState(getState());
-		dispatch(groupName? loadMeetings(groupName): clearMeetings());
 	};
 
 type Update<T> = {

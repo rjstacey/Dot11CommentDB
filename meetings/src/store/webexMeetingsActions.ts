@@ -7,7 +7,7 @@ import {
 	WebexMeeting,
 	WebexMeetingParams,
 } from "./webexMeetingsSelectors";
-import { selectLoadMeetingsContstraints } from "./meetingsSelectors";
+import { LoadMeetingsConstraints } from "./meetingsSelectors";
 
 export const webexMeetingsActions = slice.actions;
 
@@ -27,6 +27,7 @@ export {
 	upsertMany as upsertWebexMeetings,
 	setSelected,
 	setProperty as setUiProperty,
+	clearWebexMeetings
 };
 
 function validateResponse(
@@ -40,9 +41,8 @@ function validateResponse(
 let loadingUrl: string;
 let loadingPromise: Promise<WebexMeeting[]> | undefined;
 export const loadWebexMeetings =
-	(groupName: string): AppThunk<WebexMeeting[]> =>
+	(groupName: string, constraints?: LoadMeetingsConstraints): AppThunk<WebexMeeting[]> =>
 	(dispatch, getState) => {
-		const constraints = selectLoadMeetingsContstraints(getState());
 		const url =
 			`/api/${groupName}/webex/meetings` +
 			(constraints ? "?" + new URLSearchParams(constraints) : "");
@@ -67,14 +67,6 @@ export const loadWebexMeetings =
 				loadingPromise = undefined;
 			});
 		return loadingPromise!;
-	};
-
-export const refreshWebexMeetings =
-	(): AppThunk => async (dispatch, getState) => {
-		const { groupName } = selectWebexMeetingsState(getState());
-		dispatch(
-			groupName ? loadWebexMeetings(groupName) : clearWebexMeetings()
-		);
 	};
 
 export const addWebexMeeting =

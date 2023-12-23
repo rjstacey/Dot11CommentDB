@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 import {
 	ActionButton,
@@ -21,7 +21,8 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
 	fields,
 	getField,
-	refreshMeetings,
+	loadMeetings,
+	clearMeetings,
 	selectUiProperties,
 	setUiProperties,
 	meetingsSelectors,
@@ -204,7 +205,7 @@ function rowGetter({rowIndex, ids, entities}: RowGetterProps<SyncedMeeting>) {
 
 function Meetings() {
 	const dispatch = useAppDispatch();
-	const refresh = () => dispatch(refreshMeetings());
+	const {groupName} = useParams();
 	const constraints = useAppSelector(selectLoadMeetingsContstraints);
 
 	let showDays: number = useAppSelector(selectUiProperties).showDays | 0;
@@ -216,9 +217,9 @@ function Meetings() {
 		setShowDays(newShowDays);
 	}
 
-	React.useEffect(() => {
-		dispatch(refreshMeetings());
-	}, [dispatch, constraints]);
+	const refresh = () => {dispatch(groupName? loadMeetings(groupName, constraints): clearMeetings());}
+
+	React.useEffect(refresh, [dispatch, groupName, constraints]);
 
 	return (
 		<>

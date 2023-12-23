@@ -26,8 +26,6 @@ import { loadMembers } from "../store/members";
 import { loadOfficers } from "../store/officers";
 import { loadTimeZones } from "../store/timeZones";
 import { loadSessions } from "../store/sessions";
-import { loadMeetings } from "../store/meetings";
-import { loadWebexMeetings } from "../store/webexMeetings";
 import { loadBreakouts, clearBreakouts } from "../store/imatBreakouts";
 import { loadImatMeetings } from "../store/imatMeetings";
 import { loadImatMeetingAttendance } from "../store/imatMeetingAttendance";
@@ -53,10 +51,9 @@ import styles from "./app.module.css";
 
 
 /*
- * Router loader functions
+ * Routing loader functions
  */
 const rootLoader: LoaderFunction = async () => {
-	console.log("root loader")
 	const { dispatch } = store;
 	dispatch(loadTimeZones());
 	await dispatch(loadGroups());
@@ -97,7 +94,6 @@ const meetingsLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 	if (groupName) {
 		dispatch(loadSessions(groupName));
-		dispatch(loadMeetings(groupName));
 	}
 	return null;
 };
@@ -107,7 +103,6 @@ const webexMeetingsLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 	if (groupName) {
 		dispatch(loadSessions(groupName));
-		dispatch(loadWebexMeetings(groupName));
 	}
 	return null;
 };
