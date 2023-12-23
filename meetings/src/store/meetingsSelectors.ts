@@ -35,7 +35,6 @@ export interface Meeting {
 	isCancelled: boolean;
 	hasMotions: boolean;
 	webexAccountId: number | null;
-	//webexAccountName: string | null;
 	webexMeetingId: string | null;
 	webexMeeting?: WebexMeeting;
 	calendarAccountId: number | null;
@@ -52,7 +51,6 @@ export type MeetingAdd = Omit<
 	| "imatBreakoutId"
 	| "webexMeetingId"
 	| "webexMeeting"
-	| "webexAccountName"
 > & {
 	imatBreakoutId: Meeting["imatBreakoutId"] | "$add";
 	webexMeetingId: Meeting["webexMeetingId"] | "$add";

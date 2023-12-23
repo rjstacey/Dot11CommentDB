@@ -52,6 +52,19 @@ export type Group = {
 
 export type GroupCreate = Omit<Group, "id"> & { id?: string };
 
+function validGroup(group: any): group is Group {
+	const isGood =
+		isObject(group) &&
+		group.id &&
+		typeof group.id === "string" &&
+		(group.parent_id === null || typeof group.parent_id === "string") &&
+		typeof group.name === "string" &&
+		(group.symbol === null || typeof group.symbol === "string") &&
+		(group.color === null || typeof group.color === "string");
+	if (!isGood) console.log(group);
+	return isGood;
+}
+
 export const fields = {
 	id: {},
 	parent_id: {},
@@ -132,10 +145,10 @@ const {
 	setSelected,
 	setFilter,
 	clearFilter,
-	setWorkingGroupId: setWorkingGroupIdLocal,
+	setWorkingGroupId,
 } = slice.actions;
 
-export { setSelected, setFilter, clearFilter };
+export { setSelected, setFilter, clearFilter, setWorkingGroupId };
 const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
 
 /* Selectors */
@@ -173,15 +186,16 @@ export const selectWorkingGroupIds = createSelector(
 	selectGroupEntities,
 	selectWorkingGroupId,
 	(ids, entities, workingGroupId) => {
+		console.log(workingGroupId)
 		if (workingGroupId) {
 			function isWorkingGroupDescendent(id: EntityId) {
 				if (id === workingGroupId) return true;
 				let g: Group | undefined = entities[id]!;
 				do {
-					if (g.parent_id === workingGroupId) return true; // id is descendent of ownerGroupId
+					if (g.parent_id === workingGroupId) return true; // id is descendent of workingGroupId
 					g = g.parent_id ? entities[g.parent_id] : undefined;
 				} while (g);
-				return false; // id is not an descendent of ownerGroupId
+				return false; // id is not an descendent of workingGroupId
 			}
 			return ids.filter(isWorkingGroupDescendent);
 		} else {
@@ -222,19 +236,6 @@ export const groupsSelectors = getAppTableDataSelectors(selectGroupsState);
 /* Thunk actions */
 const baseUrl = "/api/groups";
 
-function validGroup(group: any): group is Group {
-	const isGood =
-		isObject(group) &&
-		group.id &&
-		typeof group.id === "string" &&
-		(group.parent_id === null || typeof group.parent_id === "string") &&
-		typeof group.name === "string" &&
-		(group.symbol === null || typeof group.symbol === "string") &&
-		(group.color === null || typeof group.color === "string");
-	if (!isGood) console.log(group);
-	return isGood;
-}
-
 function validResponse(response: any): response is Group[] {
 	return Array.isArray(response) && response.every(validGroup);
 }
@@ -255,38 +256,4 @@ export const loadGroups =
 				dispatch(getFailure());
 				dispatch(setError("Unable to get groups", error));
 			});
-	};
-
-export const initGroups = (): AppThunk => async (dispatch, getState) => {
-	dispatch(loadGroups());
-	const workingGroup = selectWorkingGroup(getState());
-	if (workingGroup) dispatch(loadGroups(workingGroup.name));
-};
-
-export const setWorkingGroupId =
-	(workingGroupId: string | null): AppThunk<Group | undefined> =>
-	async (dispatch, getState) => {
-		const state = getState();
-		const currentWorkingGroupId = selectWorkingGroupId(state);
-		if (currentWorkingGroupId !== workingGroupId) {
-			dispatch(setWorkingGroupIdLocal(workingGroupId));
-			if (workingGroupId) {
-				const groupName = selectWorkingGroupName(state);
-				dispatch(loadGroups(groupName));
-			}
-		}
-		return selectWorkingGroup(state);
-	};
-
-export const setWorkingGroup =
-	(name: string | null): AppThunk =>
-	async (dispatch, getState) => {
-		const state = getState();
-		const groups = selectGroups(state);
-		const group = groups.find((g) => g.name === name);
-		if (group) {
-			const currentWorkingGroupId = selectWorkingGroupId(state);
-			if (group.id !== currentWorkingGroupId)
-				dispatch(setWorkingGroupIdLocal(group.id));
-		}
 	};

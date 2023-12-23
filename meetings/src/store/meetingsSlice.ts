@@ -72,7 +72,7 @@ const slice = createAppTableDataSlice({
 	}
 });
 
-/* Basic actions */
+/* Slice actions */
 // Override the default getPending()
 export const getPending = createAction<{ groupName: string }>(
 	slice.name + "/getPending"

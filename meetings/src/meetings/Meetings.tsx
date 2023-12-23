@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { Link } from 'react-router-dom';
 
 import {
@@ -41,7 +42,6 @@ import MeetingsEmail from './MeetingsEmail';
 import ShowSlots from './ShowSlots';
 
 import { RowGetterProps } from 'dot11-components/dist/table/AppTable';
-import React from 'react';
 
 const DisplayFormat = {
 	0: 'Table view',

@@ -231,11 +231,13 @@ type MeetingDetailsState = {
 	busy: boolean;
 };
 
+type MeetingDetailsProps = MeetingDetailsConnectedProps;
+
 class MeetingDetails extends React.Component<
-	MeetingDetailsConnectedProps,
+	MeetingDetailsProps,
 	MeetingDetailsState
 > {
-	constructor(props: MeetingDetailsConnectedProps) {
+	constructor(props: MeetingDetailsProps) {
 		super(props);
 		const { selectedMeetings, selectedSlots } = props;
 		this.state = this.initState(

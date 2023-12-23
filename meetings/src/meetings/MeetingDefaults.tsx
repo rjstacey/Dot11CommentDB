@@ -1,14 +1,14 @@
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import * as React from "react";
+import { useParams } from 'react-router-dom';
 
 import { Form, Row, Field } from 'dot11-components';
 
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
-	selectCurrentGroupDefaults,
-	setCurrentGroupDefaults,
-	GroupDefaults
+	selectGroupDefaults,
+	updateGroupDefaults,
+	GroupDefaults,
 } from '../store/current';
-
-import { selectWorkingGroup } from '../store/groups';
 
 import CalendarAccountSelector from '../components/CalendarAccountSelector';
 import WebexAccountSelector from '../components/WebexAccountSelector';
@@ -18,9 +18,10 @@ import TimeZoneSelector from '../components/TimeZoneSelector';
 
 function TeleconDefaults() {
 	const dispatch = useAppDispatch();
+	const groupName = useParams().groupName || "";
+	const selectCurrentGroupDefaults = React.useCallback((state: any) => selectGroupDefaults(state, groupName), [groupName]);
 	const defaults = useAppSelector(selectCurrentGroupDefaults);
-	const groupName = useAppSelector(selectWorkingGroup)?.name;
-	const changeEntry = (changes: Partial<GroupDefaults>) => dispatch(setCurrentGroupDefaults(changes));
+	const changeEntry = (changes: Partial<GroupDefaults>) => dispatch(updateGroupDefaults({groupName, changes}));
 
 	return (
 		<Form

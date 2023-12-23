@@ -11,9 +11,17 @@ import {
 import { store } from "../store";
 import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
-import { selectWorkingGroupByName, loadGroups } from "../store/groups";
+import {
+	selectGroupsState,
+	selectWorkingGroupByName,
+	setWorkingGroupId,
+	loadGroups,
+} from "../store/groups";
 import { loadCalendarAccounts } from "../store/calendarAccounts";
-import { loadWebexAccounts, selectWebexAccountsGroupName } from "../store/webexAccounts";
+import {
+	loadWebexAccounts,
+	selectWebexAccountsGroupName,
+} from "../store/webexAccounts";
 import { loadMembers } from "../store/members";
 import { loadOfficers } from "../store/officers";
 import { loadTimeZones } from "../store/timeZones";
@@ -24,7 +32,7 @@ import { loadBreakouts, clearBreakouts } from "../store/imatBreakouts";
 import { loadImatMeetings } from "../store/imatMeetings";
 import { loadImatMeetingAttendance } from "../store/imatMeetingAttendance";
 import { loadBreakoutAttendance } from "../store/imatBreakoutAttendance";
-import { load802WorldSchedule } from "../store/ieee802World"
+import { load802WorldSchedule } from "../store/ieee802World";
 
 import { ErrorModal, ConfirmModal } from "dot11-components";
 import Header from "./Header";
@@ -51,9 +59,15 @@ const rootLoader: LoaderFunction = async () => {
 };
 
 const groupLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
+	const { dispatch, getState } = store;
 	const { groupName } = params;
 	if (groupName) {
+		const { valid } = selectGroupsState(getState());
+		if (!valid) {
+			await dispatch(loadGroups());
+		}
+		const group = selectWorkingGroupByName(getState(), groupName);
+		dispatch(setWorkingGroupId(group?.id || null));
 		dispatch(loadGroups(groupName));
 		dispatch(loadCalendarAccounts(groupName));
 		dispatch(loadWebexAccounts(groupName));
@@ -98,7 +112,11 @@ const imatBreakoutsLoader: LoaderFunction = async ({ params }) => {
 	const meetingNumber = Number(params.meetingNumber);
 	if (groupName) {
 		dispatch(loadImatMeetings(groupName));
-		dispatch(meetingNumber? loadBreakouts(groupName, meetingNumber): clearBreakouts());
+		dispatch(
+			meetingNumber
+				? loadBreakouts(groupName, meetingNumber)
+				: clearBreakouts()
+		);
 	}
 	return null;
 };
@@ -128,7 +146,9 @@ const imatBreakoutAttendanceLoader: LoaderFunction = async ({ params }) => {
 	const meetingNumber = Number(params.meetingNumber);
 	const breakoutNumber = Number(params.breakoutNumber);
 	if (groupName && meetingNumber && breakoutNumber) {
-		dispatch(loadBreakoutAttendance(groupName, meetingNumber, breakoutNumber));
+		dispatch(
+			loadBreakoutAttendance(groupName, meetingNumber, breakoutNumber)
+		);
 	}
 	return null;
 };
@@ -230,11 +250,10 @@ function GateComponent({
 }) {
 	const { groupName } = useParams();
 	const group = useAppSelector((state) =>
-		groupName? selectWorkingGroupByName(state, groupName): undefined
+		groupName ? selectWorkingGroupByName(state, groupName) : undefined
 	);
 
-	if (!group)
-		return <span>Invalid group: {groupName}</span>
+	if (!group) return <span>Invalid group: {groupName}</span>;
 
 	const access = group.permissions.meetings || AccessLevel.none;
 	if (access < minAccess)
@@ -259,9 +278,7 @@ function Layout() {
 	return (
 		<>
 			<Header />
-			<main
-				className={styles.main}
-			>
+			<main className={styles.main}>
 				<Outlet />
 			</main>
 			<ErrorModal />
@@ -272,9 +289,7 @@ function Layout() {
 
 function Root() {
 	return (
-		<div
-			className={styles.root}
-		>
+		<div className={styles.root}>
 			<div className="intro">Working group/Committee</div>
 			<WorkingGroupSelector />
 		</div>
@@ -298,8 +313,8 @@ function ErrorPage() {
 
 function NavigateToGroupAccounts() {
 	const groupName = useAppSelector(selectWebexAccountsGroupName);
-	const path = groupName? `/${groupName}/accounts`: '/'
-	return <Navigate to={path} />
+	const path = groupName ? `/${groupName}/accounts` : "/";
+	return <Navigate to={path} />;
 }
 
 const routes: AppRoute[] = [
@@ -315,24 +330,38 @@ const routes: AppRoute[] = [
 				errorElement: <ErrorPage />,
 				children: [
 					...groupRoutes,
-					{ index: true, element: <GateComponent minAccess={AccessLevel.none}><Root /></GateComponent>},
-					{ path: "*", element: <GateComponent minAccess={AccessLevel.none}><span>Not found</span></GateComponent>}
+					{
+						index: true,
+						element: (
+							<GateComponent minAccess={AccessLevel.none}>
+								<Root />
+							</GateComponent>
+						),
+					},
+					{
+						path: "*",
+						element: (
+							<GateComponent minAccess={AccessLevel.none}>
+								<span>Not found</span>
+							</GateComponent>
+						),
+					},
 				],
 			},
 			{
 				index: true,
 				element: <Root />,
-			}
+			},
 		],
 	},
 	{
 		path: "/accounts",
-		element: <NavigateToGroupAccounts />
+		element: <NavigateToGroupAccounts />,
 	},
 	{
 		path: "/*",
-		element: <span>Not found</span>
-	}
+		element: <span>Not found</span>,
+	},
 ];
 
 export default routes;

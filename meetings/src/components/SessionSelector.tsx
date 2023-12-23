@@ -36,7 +36,7 @@ function SessionSelector({
 	readOnly?: boolean;
 	style?: React.CSSProperties;
 }) {
-	const {loading} = useAppSelector(selectSessionsState);
+	const {loading, valid} = useAppSelector(selectSessionsState);
 	const options = useAppSelector(selectSessions);
 
 	const values = options.filter(o => o.id === value);
@@ -48,7 +48,7 @@ function SessionSelector({
 			values={values}
 			onChange={handleChange}
 			options={options}
-			loading={loading}
+			loading={loading && !valid}
 			clearable
 			itemRenderer={renderSession}
 			selectItemRenderer={renderSession}

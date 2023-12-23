@@ -2,9 +2,9 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 import { setError } from "dot11-components";
 
-import type { AppThunk, RootState } from ".";
+import type { RootState } from ".";
 import { selectSessionEntities } from "./sessions";
-import { selectWorkingGroupId } from "./groups";
+import { selectWorkingGroup } from "./groups";
 
 export type GroupDefaults = {
 	meetingId: string;
@@ -45,22 +45,26 @@ const slice = createSlice({
 		setShowDateRange(state, action: PayloadAction<boolean>) {
 			state.showDateRange = action.payload;
 		},
-		setGroupDefaults(
+		updateGroupDefaults(
 			state,
 			action: PayloadAction<{
-				groupId: string;
-				defaults: Partial<GroupDefaults>;
+				groupName: string;
+				changes: Partial<GroupDefaults>;
 			}>
 		) {
-			const { groupId, defaults } = action.payload;
+			const { groupName, changes } = action.payload;
 			const currentDefaults =
-				state.groupDefaults[groupId] || initDefaults;
-			state.groupDefaults[groupId] = { ...currentDefaults, ...defaults };
+				state.groupDefaults[groupName] || initDefaults;
+			state.groupDefaults[groupName] = { ...currentDefaults, ...changes };
 		},
 	},
 });
 
 export default slice;
+
+/* Slice actions */
+export const { setCurrentSessionId, setShowDateRange, updateGroupDefaults } =
+	slice.actions;
 
 /* Selectors */
 export const selectCurrentState = (state: RootState) => state[dataSet];
@@ -80,21 +84,6 @@ export const selectGroupDefaults = (state: RootState, groupId: string) =>
 	selectCurrentState(state).groupDefaults[groupId] || initDefaults;
 
 export const selectCurrentGroupDefaults = (state: RootState) => {
-	const groupId = selectWorkingGroupId(state);
-	return selectGroupDefaults(state, groupId || "");
+	const group = selectWorkingGroup(state);
+	return selectGroupDefaults(state, group?.name || "");
 };
-
-/* Actions */
-export const {
-	setCurrentSessionId,
-	setShowDateRange,
-	setGroupDefaults,
-} = slice.actions;
-
-export const setCurrentGroupDefaults =
-	(defaults: Partial<GroupDefaults>): AppThunk =>
-	async (dispatch, getState) => {
-		const groupId = selectWorkingGroupId(getState());
-		if (!groupId) dispatch(setError("Can't set defaults", "Group not set"));
-		else dispatch(setGroupDefaults({ groupId, defaults }));
-	};
