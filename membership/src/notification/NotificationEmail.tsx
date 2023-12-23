@@ -18,7 +18,6 @@ import {
 import { useDebounce } from "../components/useDebounce";
 import Editor from "../editor/Editor";
 
-import { RootState } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	addEmailTemplate,
