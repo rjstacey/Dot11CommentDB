@@ -2,12 +2,7 @@ import {
 	combineReducers,
 	configureStore as configureReduxStore,
 } from "@reduxjs/toolkit";
-import type {
-	Action,
-	ThunkAction,
-	AnyAction,
-	Middleware,
-} from "@reduxjs/toolkit";
+import type { Action, ThunkAction, Middleware } from "@reduxjs/toolkit";
 import { createLogger } from "redux-logger";
 import { persistStore, persistReducer, createTransform } from "redux-persist";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
@@ -69,13 +64,13 @@ const transformState = createTransform(
 const appReducer = combineReducers({
 	[errorsSlice.name]: errorsSlice.reducer,
 	[userSlice.name]: userSlice.reducer,
+	[timeZonesSlice.name]: timeZonesSlice.reducer,
+	[groupsSlice.name]: groupsSlice.reducer,
 	[currentSlice.name]: currentSlice.reducer,
 	[membersSlice.name]: membersSlice.reducer,
 	[officersSlice.name]: officersSlice.reducer,
 	[webexAccountsSlice.name]: webexAccountsSlice.reducer,
 	[calendarAccountsSlice.name]: calendarAccountsSlice.reducer,
-	[timeZonesSlice.name]: timeZonesSlice.reducer,
-	[groupsSlice.name]: groupsSlice.reducer,
 	[sessionsSlice.name]: sessionsSlice.reducer,
 	[meetingsSlice.name]: meetingsSlice.reducer,
 	[webexMeetingsSlice.name]: webexMeetingsSlice.reducer,
@@ -86,17 +81,17 @@ const appReducer = combineReducers({
 	[ieee802WorldSlice.name]: ieee802WorldSlice.reducer,
 });
 
-const rootReducer = (state: any, action: AnyAction) => {
+const rootReducer = (state: any, action: Action) => {
 	if (action.type === RESET_STORE_ACTION) state = undefined;
 	return appReducer(state, action);
 };
 
-const middleware: Middleware[] = []; //[thunk];
+const middleware: Middleware[] = [];
 if (process.env.NODE_ENV !== "production")
 	middleware.push(createLogger({ collapsed: true }));
 
 const persistConfig = {
-	key: "telecons",
+	key: "meetings",
 	version,
 	storage: {
 		// IndexedDB for storage using idb-keyval
@@ -106,13 +101,13 @@ const persistConfig = {
 	},
 	whitelist: [
 		userSlice.name,
+		timeZonesSlice.name,
+		groupsSlice.name,
 		currentSlice.name,
 		membersSlice.name,
 		officersSlice.name,
 		webexAccountsSlice.name,
 		calendarAccountsSlice.name,
-		timeZonesSlice.name,
-		groupsSlice.name,
 		sessionsSlice.name,
 		meetingsSlice.name,
 		webexMeetingsSlice.name,
@@ -150,5 +145,5 @@ export type AppThunk<ReturnType = void> = ThunkAction<
 	Promise<ReturnType>,
 	RootState,
 	unknown,
-	AnyAction
+	Action
 >;
