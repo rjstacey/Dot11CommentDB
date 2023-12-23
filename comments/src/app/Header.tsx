@@ -20,6 +20,8 @@ import { selectCurrentBallotID } from '../store/ballots';
 
 import routes, { AppRoute } from "./routes";
 
+import pkg from "../../package.json";
+
 import styles from "./app.module.css";
 
 type MenuPathItem = {
@@ -197,6 +199,7 @@ function Header() {
 			<Account
 				user={user}
 			>
+				<div>{pkg.name}: {pkg.version}</div>
 				<Button onClick={clearCache}>
 					Clear cache
 				</Button>

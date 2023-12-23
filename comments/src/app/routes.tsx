@@ -32,6 +32,9 @@ import Reports from "../reports/Reports";
 
 import styles from "./app.module.css";
 
+/*
+ * Routing loaders
+ */
 const rootLoader: LoaderFunction = async () => {
 	const { dispatch, getState } = store;
 	if (selectIsOnline(getState())) {
@@ -141,6 +144,79 @@ const commentsLoader: LoaderFunction = async ({ params }) => {
 	return null;
 }
 
+/*
+ * Layout components
+ */
+
+/** A component that only renders its children if the user has a defined minimum access */
+function GateComponent({
+	scope = "",
+	minAccess,
+	children,
+}: {
+	scope?: string,
+	minAccess: number;
+	children: React.ReactNode;
+}) {
+	const { groupName } = useParams();
+	const group = useAppSelector((state) =>
+		selectWorkingGroupByName(state, groupName || "")
+	);
+	const access = group?.permissions[scope] || AccessLevel.none;
+
+	if (!group)
+		return <span>Invalid group: {groupName}</span>
+
+	if (access < minAccess)
+		return <span>You do not have permission to view this data</span>;
+
+	return <>{children}</>;
+}
+
+function Layout() {
+	return (
+		<>
+			<Header />
+			<main
+				className={styles.main}
+			>
+				<Outlet />
+			</main>
+			<ErrorModal />
+			<ConfirmModal />
+		</>
+	);
+}
+
+function Root() {
+	return (
+		<div
+			className={styles.root}
+		>
+			<div className="intro">Working group/Committee</div>
+			<WorkingGroupSelector />
+		</div>
+	);
+}
+
+function ErrorPage() {
+	const error: any = useRouteError();
+	console.error(error);
+
+	return (
+		<div id="error-page">
+			<h1>Oops!</h1>
+			<p>Sorry, an unexpected error has occurred.</p>
+			<p>
+				<i>{error.statusText || error.message}</i>
+			</p>
+		</div>
+	);
+}
+
+/*
+ * Routes
+ */
 export type AppRoute = RouteObject & {
 	scope?: string;
 	minAccess?: number;
@@ -197,31 +273,6 @@ const groupRoutes_ungated: AppRoute[] = [
 	},
 ];
 
-/** A component that only renders its children if the user has a defined minimum access */
-function GateComponent({
-	scope = "",
-	minAccess,
-	children,
-}: {
-	scope?: string,
-	minAccess: number;
-	children: React.ReactNode;
-}) {
-	const { groupName } = useParams();
-	const group = useAppSelector((state) =>
-		selectWorkingGroupByName(state, groupName || "")
-	);
-	const access = group?.permissions[scope] || AccessLevel.none;
-
-	if (!group)
-		return <span>Invalid group: {groupName}</span>
-
-	if (access < minAccess)
-		return <span>You do not have permission to view this data</span>;
-
-	return <>{children}</>;
-}
-
 /** Rework the routes so that the elements are gated for the min access level */
 const groupRoutes = groupRoutes_ungated.map((r) => {
 	if (typeof r.minAccess === "number")
@@ -233,47 +284,6 @@ const groupRoutes = groupRoutes_ungated.map((r) => {
 		};
 	return r;
 });
-
-function Layout() {
-	return (
-		<>
-			<Header />
-			<main
-				className={styles.main}
-			>
-				<Outlet />
-			</main>
-			<ErrorModal />
-			<ConfirmModal />
-		</>
-	);
-}
-
-function Root() {
-	return (
-		<div
-			className={styles.root}
-		>
-			<div className="intro">Working group/Committee</div>
-			<WorkingGroupSelector />
-		</div>
-	);
-}
-
-function ErrorPage() {
-	const error: any = useRouteError();
-	console.error(error);
-
-	return (
-		<div id="error-page">
-			<h1>Oops!</h1>
-			<p>Sorry, an unexpected error has occurred.</p>
-			<p>
-				<i>{error.statusText || error.message}</i>
-			</p>
-		</div>
-	);
-}
 
 const routes: AppRoute[] = [
 	{
