@@ -105,6 +105,7 @@ const persistConfig = {
 		removeItem: del,
 	},
 	whitelist: [
+		userSlice.name,
 		currentSlice.name,
 		membersSlice.name,
 		officersSlice.name,
@@ -128,7 +129,7 @@ const persistConfig = {
 	},
 };
 
-const store = configureReduxStore({
+export const store = configureReduxStore({
 	reducer: persistReducer(persistConfig, rootReducer as any),
 	middleware: (getDefaultMiddleware) =>
 		getDefaultMiddleware({
@@ -137,21 +138,7 @@ const store = configureReduxStore({
 		}).concat(middleware),
 });
 
-const persistor = persistStore(
-	store,
-	null /*, () => {
-		// After hydrate, load the latest
-		store.dispatch(initGroups());
-		store.dispatch(loadMembers());
-		store.dispatch(loadOfficers());
-		
-		store.dispatch(loadTimeZones());
-		store.dispatch(loadWebexAccounts());
-		store.dispatch(loadCalendarAccounts());
-	}*/
-);
-
-export { store, persistor };
+export const persistor = persistStore(store);
 
 export const resetStore = (): Action => ({ type: RESET_STORE_ACTION });
 
