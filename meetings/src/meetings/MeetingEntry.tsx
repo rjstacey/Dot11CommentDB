@@ -431,12 +431,13 @@ export function MeetingEntryForm({
 					changeEntry={handleWebexMeetingChange}
 					readOnly={readOnly}
 				/>
-				{entry.webexMeeting && entry.webexMeeting.accountId &&
+				{(entry.webexMeeting && entry.webexMeeting.accountId)?
 					<WebexMeetingParamsEdit
 						entry={entry.webexMeeting}
 						changeEntry={handleWebexMeetingChange}
 						readOnly={readOnly}
-					/>}
+					/>:
+					null}
 				<Row>
 					<Field label='Calendar:'>
 						<CalendarAccountSelector

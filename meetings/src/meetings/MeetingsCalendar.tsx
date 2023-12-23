@@ -376,14 +376,14 @@ function MeetingCalendar({nDays}: {nDays: number}) {
 			<div style={{gridArea: `1 / 2 / 1 / ${nDays + 2}`, position: 'sticky', top: 0, zIndex: '+2'}}>
 				{day > 0 &&
 					<ActionIcon
-						type='angle-left'
-						style={{position: 'absolute', top: 10, left: 10, fontSize: 'xx-large'}}
+						type='prev'
+						style={{position: 'absolute', top: 10, left: 10, fontSize: 'x-large'}}
 						onClick={clickLeft}
 					/>}
 				{(day + nDays) < dates.length &&
 					<ActionIcon
-						type='angle-right'
-						style={{position: 'absolute', top: 10, right: 10, fontSize: 'xx-large'}}
+						type='next'
+						style={{position: 'absolute', top: 10, right: 10, fontSize: 'x-large'}}
 						onClick={clickRight}
 					/>}
 			</div>

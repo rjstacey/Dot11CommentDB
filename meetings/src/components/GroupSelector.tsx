@@ -44,7 +44,6 @@ export function GroupSelector({
 {
 
 	let groups = useAppSelector(selectGroups);
-	console.log(groups)
 	if (types)
 		groups = groups.filter(group => types.includes(group.type!));
 
@@ -72,6 +71,7 @@ export function GroupSelector({
 			clearable={!multi}
 			valueField='id'
 			labelField='name'
+			portal={document.querySelector('#root')}
 			{...otherProps}
 		/>
 	)

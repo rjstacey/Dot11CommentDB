@@ -85,6 +85,7 @@ const sessionsLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 	if (groupName) {
 		dispatch(loadSessions(groupName));
+		dispatch(loadImatMeetings(groupName));
 	}
 	return null;
 };
@@ -94,6 +95,7 @@ const meetingsLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 	if (groupName) {
 		dispatch(loadSessions(groupName));
+		dispatch(loadImatMeetings(groupName));
 	}
 	return null;
 };
