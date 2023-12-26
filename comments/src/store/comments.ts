@@ -379,7 +379,7 @@ export const updateComments = (updates: CommentUpdate[]): AppThunk =>
 			if (u) {
 				localUpdates.push({id, changes: u.changes});
 				const changes: Partial<Comment> = {};
-				for (const key of Object.keys(u.changes) as (keyof Comment)[])
+				for (const key of Object.keys(u.changes))
 					changes[key] = c[key];
 				rollbackUpdates.push({id, changes});
 			}
@@ -521,7 +521,7 @@ const updateMany = (updates: Update<CommentResolution>[]): AppThunk =>
 			const id = u.id;
 			const changes: Partial<CommentResolution> = {};
 			const entity = entities[id]!;
-			for (const key of Object.keys(u.changes) as (keyof CommentResolution)[])
+			for (const key of Object.keys(u.changes))
 				changes[key] = entity[key];
 			return {id, changes};
 		});
