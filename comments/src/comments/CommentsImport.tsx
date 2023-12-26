@@ -75,18 +75,18 @@ const CommentsImportForm = styled(Form)`
 	width: 600px;
 `;
 
-const ImportFieldsList = ({fields, setFields, disableCID}) => {
-	const changeImportFields = e => {
+const ImportFieldsList = ({fields, setFields, disableCID}: {fields: FieldToUpdate[], setFields: (fields: FieldToUpdate[]) => void, disableCID: boolean}) => {
+	const changeImportFields: React.ChangeEventHandler<HTMLInputElement> = (e) => {
 		const newFields = fields.slice()
 		if (e.target.checked) {
-			newFields.push(e.target.value)
+			newFields.push(e.target.value as FieldToUpdate);
 		}
 		else {
-			const i = newFields.indexOf(e.target.value)
+			const i = newFields.indexOf(e.target.value as FieldToUpdate);
 			if (i >= 0)
-				newFields.splice(i, 1)
+				newFields.splice(i, 1);
 		}
-		setFields(newFields)
+		setFields(newFields);
 	}
 	return (
 		<List
@@ -110,7 +110,7 @@ const ImportFieldsList = ({fields, setFields, disableCID}) => {
 	)
 }
 
-const MatchAlgoList = ({algo, setAlgo}) =>
+const MatchAlgoList = ({algo, setAlgo}: {algo: MatchAlgo, setAlgo: (algo: MatchAlgo) => void}) =>
 	<List
 		label='Match algorithm:'
 	>
@@ -122,14 +122,14 @@ const MatchAlgoList = ({algo, setAlgo}) =>
 					title={a.description}
 					value={a.value}
 					checked={algo === a.value}
-					onChange={e => setAlgo(e.target.value)}
+					onChange={e => setAlgo(e.target.value as MatchAlgo)}
 				/>
 				<label>{a.label}</label>
 			</ListItem>
 		)}
 	</List>
 
-const UpdateList = ({matchUpdate, setMatchUpdate}) =>
+const UpdateList = ({matchUpdate, setMatchUpdate}: {matchUpdate: MatchUpdate, setMatchUpdate: (matchUpdate: MatchUpdate) => void}) =>
 	<List
 		label='Update scope:'
 	>
@@ -141,7 +141,7 @@ const UpdateList = ({matchUpdate, setMatchUpdate}) =>
 					title={a.description}
 					value={a.value}
 					checked={matchUpdate === a.value}
-					onChange={e => setMatchUpdate(e.target.value)}
+					onChange={e => setMatchUpdate(e.target.value as MatchUpdate)}
 				/>
 				<label>{a.label}</label>
 			</ListItem>

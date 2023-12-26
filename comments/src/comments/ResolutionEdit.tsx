@@ -94,7 +94,7 @@ export function ResolutionApproval({
 			style={style}
 			className={className}
 		>
-			<List>
+			<List label="">
 				<ListItem>
 					<Checkbox
 						name='ReadyForMotion'
@@ -195,11 +195,11 @@ function ResnStatus({
 	)
 }
 
-const resnColor = {
+const resnColor: Record<string, string> = {
 	'A': '#d3ecd3',
 	'V': '#f9ecb9',
 	'J': '#f3c0c0'
-}
+};
 
 const StyledResnStatus = styled(ResnStatus)`
 	width: fit-content;

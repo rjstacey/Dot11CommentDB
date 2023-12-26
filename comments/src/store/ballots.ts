@@ -189,7 +189,7 @@ export const getField = (entity: Ballot, dataKey: string) => {
 			return entity.IsRecirc ? "Recirc" : "Inital";
 		return "";
 	}
-	return entity[dataKey];
+	return entity[dataKey as keyof Ballot];
 };
 
 export type GroupProject = {

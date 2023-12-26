@@ -155,7 +155,7 @@ const PassFailBlock = styled.div<{pass: any}>`
 
 const PassFailSpan = PassFailBlock.withComponent('span');
 
-const LabelValue = ({label, children, ...otherProps}) =>
+const LabelValue = ({label, children, ...otherProps}: {label: string} & React.ComponentProps<typeof LV>) =>
 	<LV {...otherProps} >
 		<span>{label}</span>
 		{(typeof children === 'string' || typeof children === 'number')? <span>{children}</span>: children}
@@ -222,7 +222,7 @@ const DetailedSummary = ({ballot, summary}: {ballot: Ballot; summary: ResultsSum
 			<ApprovalCriteriaColumn summary={summary} />}
 	</>
 
-const BasicSummary = ({ballot, summary}) =>
+const BasicSummary = ({ballot, summary}: {ballot: Ballot, summary: ResultsSummaryForDisplay}) =>
 	<>
 		<Col width={200}>
 			<Title>{BallotTypeLabels[ballot.Type] || 'Unexpected'}</Title>

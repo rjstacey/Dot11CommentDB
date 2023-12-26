@@ -1,7 +1,7 @@
 import React from 'react';
 import { createSelector } from '@reduxjs/toolkit';
 
-import { Select, strComp } from 'dot11-components';
+import { Select, SelectState, strComp } from 'dot11-components';
 
 import { useAppSelector } from '../store/hooks';
 import { selectMemberEntities, selectMemberIds, selectMembersState } from '../store/members';
@@ -70,7 +70,7 @@ function AssigneeSelector({
 
 	const handleChange = React.useCallback((values: typeof options) => onChange(values.length? values[0]: nullAssignee), [onChange]);
 
-	const createOption = React.useCallback(({props, state, methods}) => {
+	const createOption = React.useCallback(({ state }: {state: SelectState} ) => {
 		const value = {SAPIN: 0, Name: state.search};
 		setOptions(options => {
 			if (options.find(o => o.SAPIN === value.SAPIN && o.Name === value.Name))

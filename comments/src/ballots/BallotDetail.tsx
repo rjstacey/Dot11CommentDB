@@ -544,7 +544,7 @@ export function BallotAddForm({
 	)
 }
 
-export const BallotAddDropdown = (props) => 
+export const BallotAddDropdown = () => 
 	<ActionButtonDropdown
 		name='add'
 		title='Add ballot'

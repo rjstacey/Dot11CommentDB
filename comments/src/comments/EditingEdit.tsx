@@ -63,7 +63,10 @@ function EditStatus({
 	const placeholder = isMultiple(resolution.EditInDraft)? MULTIPLE_STR: undefined
 
 	return (
-		<List onClick={e => e.stopPropagation()}>
+		<List
+			label=""
+			onClick={e => e.stopPropagation()}
+		>
 			<ListItem>
 				<Checkbox
 					name='EditStatus'

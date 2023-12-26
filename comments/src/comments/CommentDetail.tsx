@@ -163,9 +163,10 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 		/* Find changes */
 		const commentChanges: Partial<Comment> = {},
 			  resolutionChanges: Partial<Resolution> = {};
-		const d = shallowDiff(savedResolution, editedResolution);
+		const d = shallowDiff(savedResolution, editedResolution) as Partial<CommentResolution>;
 		for (let k in d) {
-			if (k === 'AdHocGroupId' || k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes' || k === 'Page' || k === 'Clause')
+			//if (k === 'AdHocGroupId' || k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes' || k === 'Page' || k === 'Clause')
+			if (k in ['AdHocGroupId', 'AdHoc', 'CommentGroup', 'Notes', 'Page', 'Clause'])
 				commentChanges[k] = d[k];
 			else
 				resolutionChanges[k] = d[k];

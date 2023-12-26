@@ -1,5 +1,3 @@
-import React from "react";
-
 import { SliderSwitch } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -16,10 +14,7 @@ function LiveUpdateSwitch({ className }: { className?: string }) {
 			style={{ display: "flex", alignItems: "center" }}
 		>
 			<label>Live updates:</label>
-			<SliderSwitch
-				value={isLive}
-				onChange={() => setIsLive(!isLive)}
-			/>
+			<SliderSwitch value={isLive} onChange={() => setIsLive(!isLive)} />
 		</div>
 	);
 }

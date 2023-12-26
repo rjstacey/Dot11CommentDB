@@ -54,7 +54,7 @@ function Outbox(props: DropdownRendererProps) {
 	return <div>{entries}</div>;
 }
 
-function SyncIndicator({ className }) {
+function SyncIndicator({ className }: { className: string }) {
 	return (
 		<Dropdown
 			className={className}

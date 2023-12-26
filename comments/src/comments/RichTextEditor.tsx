@@ -1,7 +1,7 @@
 import React from 'react';
 import {
 	Editor, EditorState, RichUtils, getDefaultKeyBinding, KeyBindingUtil,
-	Modifier, ContentState, convertFromHTML, DraftStyleMap, DraftHandleValue
+	Modifier, ContentState, convertFromHTML, DraftStyleMap, DraftHandleValue, ContentBlock
 } from 'draft-js';
 import { stateToHTML } from 'draft-js-export-html';
 import 'draft-js/dist/Draft.css';
@@ -33,7 +33,7 @@ const styleMap: { [styleName: string]: CSSObject } = {
 	}
 };
 
-const blockStyleFn = (contentBlock) => contentBlock.getType();
+const blockStyleFn = (contentBlock: ContentBlock) => contentBlock.getType();
 
 const blockStyleCss = css`
 	p {
@@ -248,7 +248,7 @@ const blockRenderMap = Immutable.Map({
 	}
 });
 
-function mapKeyToEditorCommand(e) {
+function mapKeyToEditorCommand(e: React.KeyboardEvent) {
 	if (KeyBindingUtil.hasCommandModifier(e) && e.key === '/')
 		return 'strikethrough';
 	if (KeyBindingUtil.hasCommandModifier(e) && e.key === 'h')

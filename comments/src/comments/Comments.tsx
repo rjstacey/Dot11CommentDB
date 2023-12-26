@@ -7,6 +7,8 @@ import {
 	ColumnProperties,
 	HeaderCellRendererProps,
 	CellRendererProps,
+	RowGetterProps,
+	ChangeableColumnProperties,
 } from 'dot11-components';
 
 import TopRow from '../components/TopRow';
@@ -108,10 +110,11 @@ function renderDataCellResolution({rowData}: {rowData: CommentResolution}) {
 		'V': '#f9ecb9',
 		'J': '#f3c0c0'
 	}
-	const status: string = resnStatusMap[rowData['ResnStatus'] || ''] || ''
+	const resnStatus = rowData['ResnStatus'];
+	const status: string = resnStatus? resnStatusMap[resnStatus]: '';
 	return (
 		<ResolutionContainter
-			color={resnColor[rowData['ResnStatus'] || '']}
+			color={resnStatus? resnColor[resnStatus]: ''}
 		>
 			<div>{status}</div>
 			<div dangerouslySetInnerHTML={{__html: rowData['Resolution'] || ''}}/>
@@ -204,7 +207,7 @@ const renderHeaderCellResolution = (props: HeaderCellRendererProps) =>
 		<HeaderSubcomponent {...props} dataKey='Resolution' label='Resolution' />
 	</>
 
-const tableColumns: ColumnProperties[] = [
+const tableColumns: (ColumnProperties & {width: number})[] = [
 	{key: '__ctrl__',
 		width: 48, flexGrow: 0, flexShrink: 0,
 		headerRenderer: p =>
@@ -311,8 +314,8 @@ const defaultAssignColumns = ['__ctrl__', 'Stack1', 'Comment', 'ProposedChange',
 const defaultResolveColumns = [...defaultAssignColumns, 'ApprovedByMotion', 'Resolution'];
 const defaultEditColumns = [...defaultResolveColumns, 'Editing'];
 
-const getDefaultColumnsConfig = (shownKeys) => {
-	const columnConfig = {};
+const getDefaultColumnsConfig = (shownKeys: string[]) => {
+	const columnConfig: Record<string, ChangeableColumnProperties> = {};
 	for (const column of tableColumns) {
 		columnConfig[column.key] = {
 			unselectable: column.key.startsWith('__'),
@@ -323,7 +326,7 @@ const getDefaultColumnsConfig = (shownKeys) => {
 	return columnConfig;
 };
 
-const getDefaultTableConfig = (shownKeys) => {
+const getDefaultTableConfig = (shownKeys: string[]) => {
 	const fixed = (window.matchMedia("(max-width: 768px)").matches)? true: false;
 	const columns = getDefaultColumnsConfig(shownKeys)
 	return {fixed, columns}
@@ -336,7 +339,7 @@ const defaultTablesConfig = {
 };
 
 
-function commentsRowGetter({rowIndex, ids, entities}) {
+function commentsRowGetter({rowIndex, ids, entities}: RowGetterProps) {
 	let comment = entities[ids[rowIndex]];
 	comment = {
 		...comment,

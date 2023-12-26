@@ -35,7 +35,13 @@ const ActionCell = styled.div`
 	justify-content: center;
 `;
 
-const RowActions = ({ onEdit, onDelete }) => (
+const RowActions = ({
+	onEdit,
+	onDelete,
+}: {
+	onEdit: () => void;
+	onDelete: () => void;
+}) => (
 	<ActionCell>
 		<ActionButton name="edit" title="Edit" onClick={onEdit} />
 		<ActionButton name="delete" title="Delete" onClick={onDelete} />

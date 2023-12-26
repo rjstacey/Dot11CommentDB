@@ -15,7 +15,7 @@ import ResultsExport from './ResultsExport';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { AccessLevel } from '../store/user';
-import { loadResults, clearResults, selectResultsBallot_id, resultsSelectors, resultsActions, upsertTableColumns, selectResultsAccess } from '../store/results';
+import { loadResults, clearResults, selectResultsBallot_id, resultsSelectors, resultsActions, upsertTableColumns, selectResultsAccess, Result } from '../store/results';
 import { selectBallot, BallotType } from '../store/ballots';
 import { selectIsOnline } from '../store/offline';
 
@@ -36,7 +36,7 @@ const NoWrapItem = styled.div`
 	overflow: hidden;
 `;
 
-const renderItem = ({rowData, dataKey}) => <NoWrapItem>{rowData[dataKey]}</NoWrapItem>
+const renderItem = ({rowData, dataKey}: {rowData: Result, dataKey: string}) => <NoWrapItem>{rowData[dataKey]}</NoWrapItem>
 
 const tableColumns: ColumnProperties[] = [
 	{key: 'SAPIN',			label: 'SA PIN',		width: 75},

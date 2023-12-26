@@ -78,27 +78,13 @@ const storeChange = (
 };
 
 export function registerLiveUpdate(store: StoreType) {
-	let hidden: string | undefined = "hidden";
-	if (hidden in document)
-		document.addEventListener("visibilitychange", onChange);
-	else if ((hidden = "mozHidden") in document)
-		document.addEventListener("mozvisibilitychange", onChange);
-	else if ((hidden = "webkitHidden") in document)
-		document.addEventListener("webkitvisibilitychange", onChange);
-	else if ((hidden = "msHidden") in document)
-		document.addEventListener("msvisibilitychange", onChange);
-	else hidden = undefined;
 
 	function onChange() {
-		store.dispatch(visibilityChange(document[hidden!]));
+		store.dispatch(visibilityChange(document.hidden));
 	}
 
-	// set the initial state
-	if (hidden !== undefined) {
-		onChange();
-	} else {
-		store.dispatch(visibilityChange(false));
-	}
+	document.addEventListener("visibilitychange", onChange);
+	onChange();
 
 	store.subscribe(() => storeChange(store.dispatch, store.getState));
 }

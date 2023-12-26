@@ -88,7 +88,7 @@ const mustSatisfyOptions = [
 const mustSatisfyLabels = mustSatisfyOptions.reduce((obj, o) => {
 	obj[o.value] = o.label;
 	return obj;
-}, {});
+}, {} as Record<number, string>);
 
 export const fields: Record<string, FieldProperties> = {
 	CID: {label: 'CID',	type: FieldType.NUMERIC},
@@ -96,7 +96,7 @@ export const fields: Record<string, FieldProperties> = {
 	Vote: {label: 'Vote'},
 	MustSatisfy: {
 		label: 'Must satisfy',
-		dataRenderer: v => mustSatisfyLabels[v],
+		dataRenderer: (v: number) => mustSatisfyLabels[v],
 		options: mustSatisfyOptions,
 		type: FieldType.NUMERIC
 	},
@@ -126,7 +126,7 @@ export const getField = (entity: CommentResolution, dataKey: string) => {
 		return getCID(entity);
 	if (dataKey === 'Status')
 		return getCommentStatus(entity);
-	return entity[dataKey];
+	return entity[dataKey as keyof CommentResolution];
 }
 
 type Update<T> = {
@@ -378,8 +378,8 @@ export const updateComments = (updates: CommentUpdate[]): AppThunk =>
 			const u = updates.find(u => u.id === comment_id);
 			if (u) {
 				localUpdates.push({id, changes: u.changes});
-				const changes = {};
-				for (const key of Object.keys(u.changes))
+				const changes: Partial<Comment> = {};
+				for (const key of Object.keys(u.changes) as (keyof Comment)[])
 					changes[key] = c[key];
 				rollbackUpdates.push({id, changes});
 			}
@@ -519,9 +519,9 @@ const updateMany = (updates: Update<CommentResolution>[]): AppThunk =>
 
 		const rollbackUpdates = updates.map(u => {
 			const id = u.id;
-			const changes = {};
+			const changes: Partial<CommentResolution> = {};
 			const entity = entities[id]!;
-			for (const key of Object.keys(u.changes))
+			for (const key of Object.keys(u.changes) as (keyof CommentResolution)[])
 				changes[key] = entity[key];
 			return {id, changes};
 		});

@@ -82,7 +82,7 @@ function VotersImportModal({
 				busy={busy}
 			>
 				<Row>
-					<List>
+					<List label="">
 						<ListItem>
 							<Checkbox 
 								checked={state.source === 'members'}

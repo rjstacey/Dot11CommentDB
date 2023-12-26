@@ -20,6 +20,7 @@ import {
 	TableConfig,
 	HeaderCellRendererProps,
 	displayDate,
+	RowGetterProps,
 } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -347,7 +348,7 @@ for (tableView in defaultTablesColumns) {
 	defaultTablesConfig[tableView] = tableConfig;
 }
 
-function getRow({ rowIndex, ids, entities }) {
+function getRow({ rowIndex, ids, entities }: RowGetterProps) {
 	const currData = entities[ids[rowIndex]];
 	if (rowIndex === 0) return currData;
 	const prevData = entities[ids[rowIndex - 1]];
