@@ -58,7 +58,7 @@ import MeetingEntryForm from "./MeetingEntry";
 import TopRow from "../components/TopRow";
 import ShowAccess from "../components/ShowAccess";
 
-import styles from "./Meetings.module.css";
+import styles from "./meetings.module.css";
 
 //const toTimeStr = (hour, min) => ('0' + hour).substr(-2) + ':' + ('0' + min).substr(-2);
 const fromTimeStr = (str: string) => {

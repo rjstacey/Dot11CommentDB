@@ -23,7 +23,7 @@ import {
 } from "../store/meetings";
 import { selectGroupEntities } from "../store/groups";
 
-import styles from "./Meetings.module.css";
+import styles from "./meetings.module.css";
 
 function SelectAllMeetings({ style }: { style?: React.CSSProperties }) {
 	const dispatch = useAppDispatch();

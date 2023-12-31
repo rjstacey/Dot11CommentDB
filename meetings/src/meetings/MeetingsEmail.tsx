@@ -21,7 +21,7 @@ import { selectGroupsState } from "../store/groups";
 import { WebexMeeting, displayMeetingNumber } from "../store/webexMeetings";
 import { sendEmail, type Email } from "../store/emailActions";
 
-import styles from "./Meetings.module.css";
+import styles from "./meetings.module.css";
 
 function displayDateTime(entity: WebexMeeting, timezone: string) {
 	const start = DateTime.fromISO(entity.start, { zone: timezone });

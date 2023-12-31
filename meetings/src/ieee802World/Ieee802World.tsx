@@ -209,7 +209,7 @@ function Ieee802WorldSchedule() {
 				/>
 			</TopRow>
 
-			<div className={styles["table-conainer"]}>
+			<div className={styles["table-container"]}>
 				<AppTable
 					defaultTablesConfig={defaultTablesConfig}
 					columns={tableColumns}

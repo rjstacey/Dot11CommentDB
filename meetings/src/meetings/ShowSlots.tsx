@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { fromSlotId, selectCurrentSession } from "../store/sessions";
 import { selectSelectedSlots, toggleSelectedSlots } from "../store/meetings";
 
-import styles from "./Meetings.module.css";
+import styles from "./meetings.module.css";
 
 const Slot = ({
 	children,

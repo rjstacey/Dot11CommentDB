@@ -2,15 +2,14 @@
 	padding: 10px;
 }
 
-.table-conatiner {
+.table-container {
 	flex: 1; /* remaining height */
-	display: flex;
-	flex-direction: column;
+	width: 100%;
 	align-items: center;
 }
 
-.table-conatiner :global .AppTable__dataRow,
-.table-conatiner :global .AppTable__headerRow {
+.table-container :global .AppTable__dataRow,
+.table-container :global .AppTable__headerRow {
 	align-items: center;
 }
 

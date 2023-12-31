@@ -5,8 +5,6 @@
   "homepage": "meetings",
   "proxy": "http://localhost:8080",
   "dependencies": {
-    "@emotion/react": "^11.11.3",
-    "@emotion/styled": "^11.11.0",
     "@reduxjs/toolkit": "^1.9.7",
     "d3": "^7.8.5",
     "dot11-components": "^1.9.68",
