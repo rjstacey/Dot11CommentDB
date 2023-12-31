@@ -1,7 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-import { setError } from "dot11-components";
-
 import type { RootState } from ".";
 import { selectSessionEntities } from "./sessions";
 import { selectWorkingGroup } from "./groups";
