@@ -37,7 +37,6 @@ import {
 	Ballot,
 } from "../store/ballots";
 
-import TopRow from "../components/TopRow";
 import BallotDetail, { BallotAddDropdown as BallotAdd } from "./BallotDetail";
 
 const renderHeaderGroupProject = (props: HeaderCellRendererProps) => (
@@ -402,7 +401,7 @@ function Ballots() {
 
 	return (
 		<>
-			<TopRow style={{ justifyContent: "flex-end" }}>
+			<div className="top-row justify-right">
 				<ButtonGroup>
 					<div>Table view</div>
 					<div style={{ display: "flex" }}>
@@ -450,7 +449,7 @@ function Ballots() {
 					onClick={refresh}
 					disabled={loading}
 				/>
-			</TopRow>
+			</div>
 
 			<ShowFilters
 				selectors={ballotsSelectors}
@@ -470,7 +469,7 @@ function Ballots() {
 						actions={ballotsActions}
 					/>
 				</Panel>
-				<Panel style={{ overflow: "auto" }}>
+				<Panel className="details-panel">
 					<BallotDetail key={selected.join()} />
 				</Panel>
 			</SplitPanel>

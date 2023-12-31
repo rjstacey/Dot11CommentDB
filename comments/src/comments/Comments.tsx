@@ -11,7 +11,6 @@ import {
 	ChangeableColumnProperties,
 } from 'dot11-components';
 
-import TopRow from '../components/TopRow';
 import PathBallotSelector from '../components/PathBallotSelector';
 import { editorCss } from './RichTextEditor';
 import CommentDetail from './CommentDetail';
@@ -382,7 +381,7 @@ function Comments() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<PathBallotSelector />
 				<div style={{display: 'flex', alignItems: 'center'}}>
 					<ButtonGroup>
@@ -422,7 +421,7 @@ function Comments() {
 						onClick={refresh}
 					/>
 				</div>
-			</TopRow>
+			</div>
 
 			<div style={{width: '100%', display: 'flex', alignItems: 'center'}}>
 				<ShowFilters
@@ -451,7 +450,7 @@ function Comments() {
 						actions={commentsActions}
 					/>
 				</Panel>
-				<Panel style={{overflow: 'auto'}}>
+				<Panel className="details-panel">
 					<CommentDetail
 						key={selected.join()}
 					/>

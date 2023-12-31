@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import { ActionButton, Button } from 'dot11-components';
 
-import TopRow from '../components/TopRow';
 import PathBallotSelector from '../components/PathBallotSelector';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -269,14 +268,14 @@ function Reports() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<PathBallotSelector />
 				<ActionButton
 					name='refresh'
 					title='Refresh'
 					onClick={refresh}
 				/>
-			</TopRow>
+			</div>
 			<Body>
 				<ReportSelectCol>
 					<label>Select a report:</label>

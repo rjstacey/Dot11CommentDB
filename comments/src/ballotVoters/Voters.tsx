@@ -1,5 +1,4 @@
 import React from "react";
-import styled from "@emotion/styled";
 
 import {
 	AppTable,
@@ -28,12 +27,6 @@ import {
 import VotersImportModal from "./VotersImport";
 import VoterEditModal from "./VoterEdit";
 import PathBallotSelector from "../components/PathBallotSelector";
-import TopRow from "../components/TopRow";
-
-const ActionCell = styled.div`
-	display: flex;
-	justify-content: center;
-`;
 
 const RowActions = ({
 	onEdit,
@@ -42,10 +35,10 @@ const RowActions = ({
 	onEdit: () => void;
 	onDelete: () => void;
 }) => (
-	<ActionCell>
+	<div style={{display: 'flex', justifyContent: 'center'}}>
 		<ActionButton name="edit" title="Edit" onClick={onEdit} />
 		<ActionButton name="delete" title="Delete" onClick={onDelete} />
-	</ActionCell>
+	</div>
 );
 
 function getDefaultVoter(ballot_id: number | null): VoterCreate {
@@ -93,17 +86,6 @@ const tableColumns: ColumnPropertiesWithWidth[] = [
 		dataRenderer: (value) => (value ? "Yes" : ""),
 	},
 ];
-
-const TableRow = styled.div`
-	flex: 1; /* remaining height */
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	.AppTable__dataRow,
-	.AppTable__headerRow {
-		align-items: center;
-	}
-`;
 
 type VotersState = {
 	action: "add" | "update" | null;
@@ -170,7 +152,7 @@ function Voters() {
 
 	return (
 		<>
-			<TopRow style={{ maxWidth }}>
+			<div className="top-row" style={{ maxWidth }}>
 				<PathBallotSelector withVotingPool />
 				<div>
 					<ActionButton
@@ -204,9 +186,9 @@ function Voters() {
 						disabled={loading || !isOnline}
 					/>
 				</div>
-			</TopRow>
+			</div>
 
-			<TableRow>
+			<div className="table-container centered-rows" style={{ maxWidth }}>
 				<AppTable
 					fitWidth
 					fixed
@@ -216,7 +198,7 @@ function Voters() {
 					selectors={votersSelectors}
 					actions={votersActions}
 				/>
-			</TableRow>
+			</div>
 
 			<VoterEditModal
 				isOpen={!!editVoter.action}

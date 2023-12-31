@@ -1,6 +1,5 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import styled from "@emotion/styled";
 
 import {
 	AppTable,
@@ -23,19 +22,6 @@ import {
 } from "../store/epolls";
 
 import { BallotAddForm } from "./BallotDetail";
-
-// The action row height is determined by its content
-const ActionRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-`;
-
-// The table row grows to the available height
-const TableRow = styled.div`
-	flex: 1;
-	width: 100%;
-`;
 
 function ePollToBallot(epoll: SyncedEpoll): BallotEdit {
 	// See if the ePoll name has something like CC53 or LB245
@@ -121,7 +107,7 @@ function Epolls() {
 
 	return (
 		<>
-			<ActionRow style={{ maxWidth }}>
+			<div className="top-row" style={{ maxWidth }}>
 				<span>
 					<label>Closed ePolls</label>
 				</span>
@@ -145,8 +131,8 @@ function Epolls() {
 						onClick={close}
 					/>
 				</span>
-			</ActionRow>
-			<TableRow style={{ maxWidth }}>
+			</div>
+			<div className="table-container" style={{ maxWidth }}>
 				<AppTable
 					columns={columns}
 					headerHeight={28}
@@ -154,7 +140,7 @@ function Epolls() {
 					selectors={epollsSelectors}
 					actions={epollsActions}
 				/>
-			</TableRow>
+			</div>
 			<AppModal
 				isOpen={addBallot !== null}
 				onRequestClose={() => setAddBallot(null)}

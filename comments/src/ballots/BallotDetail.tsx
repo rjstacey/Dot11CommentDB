@@ -216,12 +216,6 @@ export function Column1({
 	</>
 }
 
-const BallotContainer = styled.div`
-	label {
-		font-weight: bold;
-	}
-`;
-
 function EditBallot({
 	ballot,
 	updateBallot,
@@ -285,7 +279,7 @@ function BallotWithActions({
 	const [busy, setBusy] = React.useState(false);
 
 	return (
-		<BallotContainer>
+		<div className="main">
 			<Row style={{justifyContent: 'center'}}>
 				<Spinner style={{visibility: busy? 'visible': 'hidden'}}/>
 			</Row>
@@ -304,30 +298,9 @@ function BallotWithActions({
 				setBusy={setBusy}
 				readOnly={readOnly}
 			/>
-		</BallotContainer>
+		</div>
 	)
 }
-
-const BallotDetailContainer = styled.div`
-	padding: 10px;
-	label {
-		font-weight: bold;
-	}
-`;
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	width: 100%;
-`;
-
-const NotAvaialble = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1em;
-	color: #bdbdbd;
-`;
 
 type MultipleBallot = Multiple<Ballot>;
 
@@ -406,7 +379,7 @@ class _BallotDetail extends React.Component<BallotDetailProps, BallotDetailState
 	}
 
 	render() {
-		const {style, className, loading, uiProperties, setUiProperties, readOnly, isOnline} = this.props;
+		const {loading, uiProperties, setUiProperties, readOnly, isOnline} = this.props;
 
 		let notAvailableStr: string | undefined;
 		if (loading)
@@ -416,12 +389,8 @@ class _BallotDetail extends React.Component<BallotDetailProps, BallotDetailState
 		const disableButtons = Boolean(notAvailableStr) || !isOnline; 	// disable buttons if displaying string
 
 		return (
-			<BallotDetailContainer
-				style={style}
-				className={className}
-			>
-				<TopRow>
-					<span></span>
+			<>
+				<div className="top-row justify-right">
 					{!readOnly &&
 						<span>
 							<ActionButton
@@ -439,18 +408,18 @@ class _BallotDetail extends React.Component<BallotDetailProps, BallotDetailState
 							/>
 						</span>
 					}
-				</TopRow>
+				</div>
 				{notAvailableStr?
-					<NotAvaialble>
+					<div className="placeholder">
 						<span>{notAvailableStr}</span>
-				 	</NotAvaialble>:
+				 	</div>:
 					<BallotWithActions
 						ballot={this.state.edited}
 						updateBallot={this.updateBallot}
 						readOnly={readOnly || !isOnline || !uiProperties.edit}
 					/>
 				}
-			</BallotDetailContainer>
+			</>
 		)
 	}
 }

@@ -1,6 +1,5 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import styled from '@emotion/styled';
 
 import {
 	ActionButton, Row,
@@ -40,33 +39,6 @@ function renderAccess(access: number) {
 		return "ro";
 	return "none";
 }
-
-const NotAvaialble = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1em;
-	color: #bdbdbd;
-`;
-
-const DetailContainer = styled.div`
-	padding: 10px;
-	label {
-		font-weight: bold;
-	}
-`;
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: flex-end;
-	width: 100%;
-`;
-
-const BodyContainer = styled.div`
-	label {
-		font-weight: bold;
-	}
-`;
 
 export type MultipleCommentResolution = Multiple<CommentResolution>;
 export type MultipleComment = Multiple<Comment>;
@@ -238,7 +210,7 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
  	toggleUiProperty = (property: string) => this.props.setUiProperties({[property]: !this.props.uiProperties[property]});
 
 	render() {
-		const {style, className, loading, uiProperties, readOnly} = this.props;
+		const {loading, uiProperties, readOnly} = this.props;
 		const {comments, editedResolution, commentsAccess, resolutionsAccess} = this.state;
 
 		let notAvailableStr: string | undefined;
@@ -280,9 +252,9 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 
 		const bodyElement =
 			notAvailableStr?
-				<NotAvaialble>
+				<div className="placeholder">
 					<span>{notAvailableStr}</span>
-				</NotAvaialble>:
+				</div>:
 				<>
 					<CommentEdit 
 						cids={comments.map(getCID)}
@@ -314,14 +286,11 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 				</>
 
 		return(
-			<DetailContainer
-				style={style}
-				className={className}
-			>
-				<TopRow>{actionElements}</TopRow>
-				<BodyContainer>{bodyElement}</BodyContainer>
-			</DetailContainer>
-		)
+			<>
+				<div className="top-row">{actionElements}</div>
+				<div className="main">{bodyElement}</div>
+			</>
+		);
 	}
 }
 

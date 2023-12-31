@@ -8,7 +8,6 @@ import {
 	TablesConfig,
 } from 'dot11-components';
 
-import TopRow from '../components/TopRow';
 import PathBallotSelector from '../components/PathBallotSelector';
 import ResultsSummary from './ResultsSummary';
 import ResultsExport from './ResultsExport';
@@ -18,17 +17,6 @@ import { AccessLevel } from '../store/user';
 import { loadResults, clearResults, selectResultsBallot_id, resultsSelectors, resultsActions, upsertTableColumns, selectResultsAccess, Result } from '../store/results';
 import { selectBallot, BallotType } from '../store/ballots';
 import { selectIsOnline } from '../store/offline';
-
-// The table row grows to the available height
-const TableRow = styled.div`
-	flex: 1;
-	overflow: hidden; /* prevent content increasing height */
-	width: 100%;
-	.AppTable__dataRow,
-	.AppTable__headerRow {
-		align-items: center;
-	}
-`;
 
 const NoWrapItem = styled.div`
 	text-overflow: ellipsis;
@@ -102,7 +90,7 @@ function Results() {
 
 	return (
 		<>
-			<TopRow style={{maxWidth}}>
+			<div className="top-row" style={{maxWidth}}>
 				<PathBallotSelector />
 				<div style={{display: 'flex'}}>
 					<ResultsExport ballot={resultsBallot} />
@@ -118,11 +106,11 @@ function Results() {
 						onClick={refresh}
 					/>
 				</div>
-			</TopRow>
+			</div>
 			<ResultsSummary
 				style={{maxWidth}}
 			/>
-			<TableRow style={{maxWidth}}>
+			<div className="table-container centered-rows" style={{maxWidth}}>
 				<AppTable
 					defaultTablesConfig={defaultTablesConfig}
 					columns={tableColumns}
@@ -131,7 +119,7 @@ function Results() {
 					selectors={resultsSelectors}
 					actions={resultsActions}
 				/>
-			</TableRow>
+			</div>
 		</>
 	)
 }
