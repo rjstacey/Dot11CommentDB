@@ -37,8 +37,6 @@ import TimeZoneSelector from '../components/TimeZoneSelector';
 import InputTimeRangeAsDuration from '../components/InputTimeRangeAsDuration';
 import MeetingSelector from '../components/MeetingSelector';
 
-import styles from "./webexMeetings.module.css";
-
 const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';
 
@@ -822,7 +820,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 		const readOnly = access <= AccessLevel.ro;
 
 		return (
-			<div className={styles.details}>
+			<>
 				<div className="top-row justify-right">
 					<ActionButton
 						name='add'
@@ -847,7 +845,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 						cancel={cancel}
 						readOnly={readOnly}
 					/>}
-			</div>
+			</>
 		)
 	}
 }

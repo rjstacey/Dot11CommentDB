@@ -207,7 +207,7 @@ function Sessions() {
 						actions={sessionsActions}
 					/>
 				</Panel>
-				<Panel style={{ overflow: "auto" }}>
+				<Panel className="details-panel">
 					<SessionDetails />
 				</Panel>
 			</SplitPanel>

@@ -57,8 +57,6 @@ import {
 import MeetingEntryForm from "./MeetingEntry";
 import ShowAccess from "../components/ShowAccess";
 
-import styles from "./meetings.module.css";
-
 //const toTimeStr = (hour, min) => ('0' + hour).substr(-2) + ':' + ('0' + min).substr(-2);
 const fromTimeStr = (str: string) => {
 	const m = str.match(/(\d+):(\d+)/);
@@ -605,7 +603,7 @@ class MeetingDetails extends React.Component<
 		}
 
 		return (
-			<div className={styles.details}>
+			<>
 				<div className="top-row justify-right">
 					<ActionButton
 						name="add"
@@ -650,7 +648,7 @@ class MeetingDetails extends React.Component<
 					/>
 				)}
 				<ShowAccess access={access} />
-			</div>
+			</>
 		);
 	}
 }

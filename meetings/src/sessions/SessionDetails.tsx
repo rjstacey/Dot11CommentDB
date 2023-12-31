@@ -46,8 +46,6 @@ import {
 
 import ShowAccess from "../components/ShowAccess";
 
-import styles from "./sessions.module.css";
-
 const BLANK_STR = "(Blank)";
 const MULTIPLE_STR = "(Multiple)";
 
@@ -335,8 +333,6 @@ type SessionDetailState = {
 };
 
 type SessionDetailInternalProps = ConnectedSessionDetailProps & {
-	style?: React.CSSProperties;
-	className?: string;
 	readOnly?: boolean;
 };
 
@@ -433,7 +429,7 @@ class SessionDetail extends React.Component<
 		});
 
 	render() {
-		const { style, className, loading, uiProperties, access } = this.props;
+		const { loading, uiProperties, access } = this.props;
 		const { edited, ids } = this.state;
 
 		let notAvailableStr;
@@ -444,10 +440,7 @@ class SessionDetail extends React.Component<
 		const readOnly = access <= AccessLevel.ro;
 
 		return (
-			<div
-				style={style}
-				className={styles.details + (className ? " " + className : "")}
-			>
+			<>
 				<div className="top-row justify-right">
 					{!readOnly && (
 						<>
@@ -489,7 +482,7 @@ class SessionDetail extends React.Component<
 					/>
 				)}
 				<ShowAccess access={access} />
-			</div>
+			</>
 		);
 	}
 }

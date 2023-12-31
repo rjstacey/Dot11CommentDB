@@ -271,7 +271,7 @@ function Breakouts() {
 						actions={imatBreakoutsActions}
 					/>
 				</Panel>
-				<Panel style={{ overflow: "auto" }}>
+				<Panel className="details-panel">
 					<ImatBreakoutDetails />
 				</Panel>
 			</SplitPanel>

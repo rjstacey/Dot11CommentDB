@@ -52,8 +52,6 @@ import { updateMeetings, addMeetings } from "../store/meetings";
 import { selectGroupEntities, Group } from "../store/groups";
 import { AccessLevel } from "../store/user";
 
-import styles from "./imat.module.css";
-
 const MULTIPLE_STR = "(Multiple)";
 const BLANK_STR = "(Blank)";
 
@@ -974,7 +972,7 @@ class BreakoutDetails extends React.Component<
 		const readOnly = access <= AccessLevel.ro;
 
 		return (
-			<div className={styles.details}>
+			<>
 				<div className="top-row justify-right">
 					<ActionButton
 						name="import"
@@ -1023,7 +1021,7 @@ class BreakoutDetails extends React.Component<
 						readOnly={readOnly}
 					/>
 				)}
-			</div>
+			</>
 		);
 	}
 }

@@ -451,7 +451,7 @@ function WebexMeetings() {
 						actions={webexMeetingsActions}
 					/>
 				</Panel>
-				<Panel>
+				<Panel className="details-panel">
 					<WebexMeetingDetail />
 				</Panel>
 			</SplitPanel>

@@ -281,7 +281,7 @@ function Meetings() {
 							/>
 						</div>
 					</Panel>}
-				<Panel style={{display: 'flex'}}>
+				<Panel className="details-panel">
 					<MeetingDetails />
 				</Panel>
 			</SplitPanel>

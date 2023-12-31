@@ -14,6 +14,25 @@ div#root {
 	align-items: center;
 }
 
+.details-panel {
+    padding: 10px;
+	overflow: auto;
+	display: flex;
+	flex-direction: column;
+}
+
+.details-panel .placeholder {
+    display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1em;
+	color: #bdbdbd;
+}
+
+.details-panel .main label {
+    font-weight: bold;
+}
+
 .top-row {
 	display: flex;
 	justify-content: space-between;
