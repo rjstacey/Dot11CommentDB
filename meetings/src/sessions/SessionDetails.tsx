@@ -1,10 +1,9 @@
-import React from 'react';
-import { connect, ConnectedProps } from 'react-redux';
-import { EntityId } from '@reduxjs/toolkit';
-import styled from '@emotion/styled';
-import { DateTime } from 'luxon';
-import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
-import 'react-tabs/style/react-tabs.css';
+import React from "react";
+import { connect, ConnectedProps } from "react-redux";
+import { EntityId } from "@reduxjs/toolkit";
+import { DateTime } from "luxon";
+import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
+import "react-tabs/style/react-tabs.css";
 
 import {
 	shallowDiff,
@@ -18,19 +17,19 @@ import {
 	Input,
 	TextArea,
 	Select,
-} from 'dot11-components';
+} from "dot11-components";
 
-import TimeZoneSelector from '../components/TimeZoneSelector';
-import ImatMeetingSelector from '../components/ImatMeetingSelector';
-import TopRow from '../components/TopRow';
-import GroupParentsSelector from '../components/GroupParentsSelector';
-import RoomDetails from './RoomDetails';
-import TimeslotDetails from './TimeslotDetails';
-import SessionCredit from './SessionCredit';
+import TimeZoneSelector from "../components/TimeZoneSelector";
+import ImatMeetingSelector from "../components/ImatMeetingSelector";
+import TopRow from "../components/TopRow";
+import GroupParentsSelector from "../components/GroupParentsSelector";
+import RoomDetails from "./RoomDetails";
+import TimeslotDetails from "./TimeslotDetails";
+import SessionCredit from "./SessionCredit";
 
-import { RootState } from '../store';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { AccessLevel } from '../store/user';
+import { RootState } from "../store";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { AccessLevel } from "../store/user";
 import {
 	loadSessions,
 	addSession,
@@ -41,28 +40,32 @@ import {
 	SessionTypeOptions,
 	selectSessionsState,
 	selectUserSessionsAccess,
-	Session, SessionAdd, SessionType
-} from '../store/sessions';
+	Session,
+	SessionAdd,
+	SessionType,
+} from "../store/sessions";
 
-import ShowAccess from '../components/ShowAccess';
+import ShowAccess from "../components/ShowAccess";
 
-const BLANK_STR = '(Blank)';
-const MULTIPLE_STR = '(Multiple)';
+import styles from "./Sessions.module.css";
+
+const BLANK_STR = "(Blank)";
+const MULTIPLE_STR = "(Multiple)";
 
 const defaultSession: SessionAdd = {
 	number: null,
-	name: 'New session',
-	type: 'p',
+	name: "New session",
+	type: "p",
 	imatMeetingId: null,
 	startDate: new Date().toISOString().substring(0, 10),
 	endDate: new Date().toISOString().substring(0, 10),
-	timezone: 'America/New_York',
+	timezone: "America/New_York",
 	groupId: null,
 	rooms: [],
 	timeslots: [],
 	defaultCredits: [],
-	OrganizerID: ''
-}
+	OrganizerID: "",
+};
 
 function SessionTypeSelector({
 	value,
@@ -71,10 +74,13 @@ function SessionTypeSelector({
 }: {
 	value: SessionType | null;
 	onChange: (value: SessionType | null) => void;
-} & Omit<React.ComponentProps<typeof Select>, "values" | "options" | "onChange">
-) {
-	const values = SessionTypeOptions.filter(o => o.value === value);
-	const handleChange = (values: typeof SessionTypeOptions) => onChange(values.length > 0? values[0].value: null);
+} & Omit<
+	React.ComponentProps<typeof Select>,
+	"values" | "options" | "onChange"
+>) {
+	const values = SessionTypeOptions.filter((o) => o.value === value);
+	const handleChange = (values: typeof SessionTypeOptions) =>
+		onChange(values.length > 0 ? values[0].value : null);
 	return (
 		<Select
 			values={values}
@@ -82,14 +88,8 @@ function SessionTypeSelector({
 			onChange={handleChange}
 			{...otherProps}
 		/>
-	)
+	);
 }
-
-const SessionContainer = styled.div`
-	label {
-		font-weight: bold;
-	}
-`;
 
 function SessionBasics({
 	session,
@@ -100,21 +100,19 @@ function SessionBasics({
 	updateSession: (changes: Partial<Session>) => void;
 	readOnly?: boolean;
 }) {
-
 	function handleChange(changes: Partial<Session>) {
-		if ('startDate' in changes) {
+		if ("startDate" in changes) {
 			const startDate = DateTime.fromISO(changes.startDate!);
 			const endDate = DateTime.fromISO(session.endDate);
 			if (startDate.isValid) {
 				// For plenary and interim sessions, assume ends 5 days later (usually Sun - Fri)
 				// otherwise, just make sure end date is later than start date
-				if (session.type === 'p' || session.type === 'i')
-					changes.endDate = startDate.plus({days: 5}).toISODate()!;
+				if (session.type === "p" || session.type === "i")
+					changes.endDate = startDate.plus({ days: 5 }).toISODate()!;
 				else if (endDate < startDate)
 					changes.endDate = startDate.toISODate()!;
 			}
-		}
-		else if ('endDate' in changes) {
+		} else if ("endDate" in changes) {
 			// Ensure that the start date is never later than end date
 			const endDate = DateTime.fromISO(changes.endDate!);
 			const startDate = DateTime.fromISO(session.startDate);
@@ -129,96 +127,150 @@ function SessionBasics({
 	return (
 		<>
 			<Row>
-				<Field label='Session number:'>
+				<Field label="Session number:">
 					<Input
-						type='number'
-						name='Number'
-						value={isMultiple(session.number)? '': (session.number || '')}
-						placeholder={isMultiple(session.number)? MULTIPLE_STR: BLANK_STR}
-						onChange={e => handleChange({number: e.target.value? Number(e.target.value): null})}
+						type="number"
+						name="Number"
+						value={
+							isMultiple(session.number)
+								? ""
+								: session.number || ""
+						}
+						placeholder={
+							isMultiple(session.number)
+								? MULTIPLE_STR
+								: BLANK_STR
+						}
+						onChange={(e) =>
+							handleChange({
+								number: e.target.value
+									? Number(e.target.value)
+									: null,
+							})
+						}
 						disabled={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label='Session name:'>
-					<TextArea 
-						style={{width: `${nameMinWidthCh}ch`}}
-						name='Name'
-						value={isMultiple(session.name)? '': session.name}
-						placeholder={isMultiple(session.name)? MULTIPLE_STR: BLANK_STR}
-						onChange={e => handleChange({name: e.target.value})}
+				<Field label="Session name:">
+					<TextArea
+						style={{ width: `${nameMinWidthCh}ch` }}
+						name="Name"
+						value={isMultiple(session.name) ? "" : session.name}
+						placeholder={
+							isMultiple(session.name) ? MULTIPLE_STR : BLANK_STR
+						}
+						onChange={(e) => handleChange({ name: e.target.value })}
 						disabled={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label='Session type:' >
+				<Field label="Session type:">
 					<SessionTypeSelector
-						value={isMultiple(session.type)? null: session.type}
-						onChange={type => handleChange({type})}
+						value={isMultiple(session.type) ? null : session.type}
+						onChange={(type) => handleChange({ type })}
 						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label='Organizing group:' >
+				<Field label="Organizing group:">
 					<GroupParentsSelector
-						value={isMultiple(session.groupId)? null: session.groupId}
-						onChange={groupId => handleChange({groupId})}
+						value={
+							isMultiple(session.groupId) ? null : session.groupId
+						}
+						onChange={(groupId) => handleChange({ groupId })}
 						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label='Start:'>
-					<Input type='date'
-						value={isMultiple(session.startDate)? '': session.startDate}
-						onChange={e => handleChange({startDate: e.target.value})}
-						placeholder={isMultiple(session.startDate)? MULTIPLE_STR: BLANK_STR}
+				<Field label="Start:">
+					<Input
+						type="date"
+						value={
+							isMultiple(session.startDate)
+								? ""
+								: session.startDate
+						}
+						onChange={(e) =>
+							handleChange({ startDate: e.target.value })
+						}
+						placeholder={
+							isMultiple(session.startDate)
+								? MULTIPLE_STR
+								: BLANK_STR
+						}
 						disabled={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label='End:'>
-					<Input type='date'
-						value={isMultiple(session.endDate)? '': session.endDate}
-						onChange={e => handleChange({endDate: e.target.value})}
-						placeholder={isMultiple(session.endDate)? MULTIPLE_STR: BLANK_STR}
+				<Field label="End:">
+					<Input
+						type="date"
+						value={
+							isMultiple(session.endDate) ? "" : session.endDate
+						}
+						onChange={(e) =>
+							handleChange({ endDate: e.target.value })
+						}
+						placeholder={
+							isMultiple(session.endDate)
+								? MULTIPLE_STR
+								: BLANK_STR
+						}
 						disabled={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label='Time zone:'>
+				<Field label="Time zone:">
 					<TimeZoneSelector
-						style={{width: 200}}
-						value={isMultiple(session.timezone)? '': session.timezone}
-						onChange={timezone => handleChange({timezone})}
-						placeholder={isMultiple(session.timezone)? MULTIPLE_STR: BLANK_STR}
+						style={{ width: 200 }}
+						value={
+							isMultiple(session.timezone) ? "" : session.timezone
+						}
+						onChange={(timezone) => handleChange({ timezone })}
+						placeholder={
+							isMultiple(session.timezone)
+								? MULTIPLE_STR
+								: BLANK_STR
+						}
 						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label='IMAT meeting:' >
+				<Field label="IMAT meeting:">
 					<ImatMeetingSelector
-						value={isMultiple(session.imatMeetingId)? null: session.imatMeetingId}
-						onChange={imatMeetingId => handleChange({imatMeetingId})}
-						placeholder={isMultiple(session.imatMeetingId)? MULTIPLE_STR: BLANK_STR}
+						value={
+							isMultiple(session.imatMeetingId)
+								? null
+								: session.imatMeetingId
+						}
+						onChange={(imatMeetingId) =>
+							handleChange({ imatMeetingId })
+						}
+						placeholder={
+							isMultiple(session.imatMeetingId)
+								? MULTIPLE_STR
+								: BLANK_STR
+						}
 						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
 		</>
-	)
+	);
 }
 
 function SessionEdit({
 	session,
 	updateSession,
-	readOnly
+	readOnly,
 }: {
 	session: Session;
 	updateSession: (changes: Partial<Session>) => void;
@@ -227,18 +279,20 @@ function SessionEdit({
 	const uiProperties = useAppSelector(selectSessionsState).ui;
 	const dispatch = useAppDispatch();
 
-	const isSession = session.type === 'p' || session.type === 'i';
+	const isSession = session.type === "p" || session.type === "i";
 
 	return (
-		<SessionContainer>
+		<div className="main">
 			<SessionBasics
 				session={session}
 				updateSession={updateSession}
 				readOnly={readOnly || !uiProperties.editEnabled}
 			/>
-			{isSession &&
+			{isSession && (
 				<Tabs
-					onSelect={tabIndex => {dispatch(setUiProperties({tabIndex}))}}
+					onSelect={(tabIndex) => {
+						dispatch(setUiProperties({ tabIndex }));
+					}}
 					selectedIndex={uiProperties.tabIndex || 0}
 				>
 					<TabList>
@@ -249,14 +303,16 @@ function SessionEdit({
 					<TabPanel>
 						<RoomDetails
 							rooms={session.rooms || []}
-							setRooms={(rooms) => updateSession({rooms})}
+							setRooms={(rooms) => updateSession({ rooms })}
 							readOnly={readOnly}
 						/>
 					</TabPanel>
 					<TabPanel>
 						<TimeslotDetails
 							timeslots={session.timeslots || []}
-							setTimeslots={(timeslots) => updateSession({timeslots})}
+							setTimeslots={(timeslots) =>
+								updateSession({ timeslots })
+							}
 							readOnly={readOnly}
 						/>
 					</TabPanel>
@@ -267,38 +323,30 @@ function SessionEdit({
 							readOnly={readOnly}
 						/>
 					</TabPanel>
-				</Tabs>}
-		</SessionContainer>
-	)
+				</Tabs>
+			)}
+		</div>
+	);
 }
-
-const NotAvaialble = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1em;
-	color: #bdbdbd;
-`;
-
-const DetailContainer = styled.div`
-	padding: 10px;
-`;
 
 type SessionDetailState = {
 	saved: {} | Session;
 	edited: {} | Session;
 	ids: EntityId[];
-}
+};
 
 type SessionDetailInternalProps = ConnectedSessionDetailProps & {
 	style?: React.CSSProperties;
 	className?: string;
 	readOnly?: boolean;
-}
+};
 
-class SessionDetail extends React.Component<SessionDetailInternalProps, SessionDetailState> {
+class SessionDetail extends React.Component<
+	SessionDetailInternalProps,
+	SessionDetailState
+> {
 	constructor(props: SessionDetailInternalProps) {
-		super(props)
+		super(props);
 		this.state = this.initState(props);
 		this.triggerSave = debounce(this.save, 500);
 	}
@@ -308,8 +356,11 @@ class SessionDetail extends React.Component<SessionDetailInternalProps, SessionD
 		this.triggerSave.flush();
 	}
 
-	componentDidUpdate(prevProps: SessionDetailInternalProps, prevState: SessionDetailState) {
-		const {props} = this;
+	componentDidUpdate(
+		prevProps: SessionDetailInternalProps,
+		prevState: SessionDetailState
+	) {
+		const { props } = this;
 		if (props.selected.join() !== prevProps.selected.join()) {
 			this.triggerSave.flush();
 			this.setState(this.initState(props));
@@ -317,116 +368,130 @@ class SessionDetail extends React.Component<SessionDetailInternalProps, SessionD
 	}
 
 	initState = (props: SessionDetailInternalProps) => {
-		const {sessions, selected} = props;
-		const ids = selected.filter(id => sessions[id]);
-		const diff: {} | Session = ids.reduce((diff, id) => deepDiff(diff, sessions[id]!), {});
+		const { sessions, selected } = props;
+		const ids = selected.filter((id) => sessions[id]);
+		const diff: {} | Session = ids.reduce(
+			(diff, id) => deepDiff(diff, sessions[id]!),
+			{}
+		);
 		return {
 			saved: diff,
 			edited: diff,
-			ids
+			ids,
 		};
-	}
+	};
 
 	updateSession = (changes: Partial<Session>) => {
-		const {readOnly, uiProperties} = this.props;
+		const { readOnly, uiProperties } = this.props;
 		if (readOnly || !uiProperties.editEnabled) {
-			console.warn("Update in read-only component")
+			console.warn("Update in read-only component");
 			return;
 		}
 		this.setState(
-			state => ({...state, edited: {...state.edited, ...changes}}),
+			(state) => ({ ...state, edited: { ...state.edited, ...changes } }),
 			this.triggerSave
 		);
-	}
+	};
 
 	save = () => {
-		const {updateSession} = this.props;
-		const {edited, saved, ids} = this.state;
+		const { updateSession } = this.props;
+		const { edited, saved, ids } = this.state;
 
 		const changes = shallowDiff(saved, edited) as Partial<Session>;
 
-		if (('startDate' in changes && !DateTime.fromISO(changes.startDate!).isValid) ||
-			('endDate' in changes && !DateTime.fromISO(changes.endDate!).isValid)) {
-			return;	// wait for further changes
+		if (
+			("startDate" in changes &&
+				!DateTime.fromISO(changes.startDate!).isValid) ||
+			("endDate" in changes &&
+				!DateTime.fromISO(changes.endDate!).isValid)
+		) {
+			return; // wait for further changes
 		}
 
 		if (Object.keys(changes).length > 0)
-			ids.forEach(id => updateSession(id, changes));
+			ids.forEach((id) => updateSession(id, changes));
 
-		this.setState(state => ({...state, saved: edited}));
-	}
+		this.setState((state) => ({ ...state, saved: edited }));
+	};
 
 	add = async () => {
-		const {addSession, setSelected} = this.props;
+		const { addSession, setSelected } = this.props;
 		const id = await addSession(defaultSession);
-		if (id)
-			setSelected([id]);
-	}
+		if (id) setSelected([id]);
+	};
 
 	handleRemoveSelected = async () => {
-		const {selected, deleteSessions} = this.props;
-		const ok = await ConfirmModal.show('Are you sure you want to delete the selected sessions?');
-		if (ok)
-			await deleteSessions(selected);
-	}
+		const { selected, deleteSessions } = this.props;
+		const ok = await ConfirmModal.show(
+			"Are you sure you want to delete the selected sessions?"
+		);
+		if (ok) await deleteSessions(selected);
+	};
 
-	handleToggleEditEnabled = () => this.props.setUiProperties({editEnabled: !this.props.uiProperties.editEnabled});
+	handleToggleEditEnabled = () =>
+		this.props.setUiProperties({
+			editEnabled: !this.props.uiProperties.editEnabled,
+		});
 
 	render() {
-		const {style, className, loading, uiProperties, access} = this.props;
-		const {edited, ids} = this.state;
+		const { style, className, loading, uiProperties, access } = this.props;
+		const { edited, ids } = this.state;
 
-		let notAvailableStr
-		if (loading)
-			notAvailableStr = 'Loading...';
-		else if (ids.length === 0)
-			notAvailableStr = 'Nothing selected';
-		const disableButtons = !!notAvailableStr; 	// disable buttons if displaying string
+		let notAvailableStr;
+		if (loading) notAvailableStr = "Loading...";
+		else if (ids.length === 0) notAvailableStr = "Nothing selected";
+		const disableButtons = !!notAvailableStr; // disable buttons if displaying string
 
 		const readOnly = access <= AccessLevel.ro;
 
 		return (
-				<DetailContainer
-					style={style}
-					className={className}
-				>
-					<TopRow style={{justifyContent: 'flex-end'}}>
-						{!readOnly &&
-							<>
-								<ActionButton
-									name='edit'
-									title='Edit session'
-									disabled={disableButtons}
-									isActive={uiProperties.editEnabled || readOnly}
-									onClick={this.handleToggleEditEnabled}
-								/>
-								<ActionButton
-									name='add'
-									title='Add a session'
-									disabled={!uiProperties.editEnabled}
-									onClick={this.add}
-								/>
-								<ActionButton
-									name='delete'
-									title='Delete session'
-									disabled={disableButtons || !uiProperties.editEnabled || readOnly}
-									onClick={this.handleRemoveSelected}
-								/>
-							</>}
-					</TopRow>
-					{notAvailableStr?
-						<NotAvaialble>
-							<span>{notAvailableStr}</span>
-					 	</NotAvaialble>:
-					 	<SessionEdit
-					 		session={edited as Session}
-					 		updateSession={this.updateSession}
-					 		readOnly={readOnly || !uiProperties.editEnabled}
-					 	/>
-					}
-					<ShowAccess access={access} />
-				</DetailContainer>
-			)
+			<div
+				style={style}
+				className={styles.details + (className ? " " + className : "")}
+			>
+				<TopRow style={{ justifyContent: "flex-end" }}>
+					{!readOnly && (
+						<>
+							<ActionButton
+								name="edit"
+								title="Edit session"
+								disabled={disableButtons}
+								isActive={uiProperties.editEnabled || readOnly}
+								onClick={this.handleToggleEditEnabled}
+							/>
+							<ActionButton
+								name="add"
+								title="Add a session"
+								disabled={!uiProperties.editEnabled}
+								onClick={this.add}
+							/>
+							<ActionButton
+								name="delete"
+								title="Delete session"
+								disabled={
+									disableButtons ||
+									!uiProperties.editEnabled ||
+									readOnly
+								}
+								onClick={this.handleRemoveSelected}
+							/>
+						</>
+					)}
+				</TopRow>
+				{notAvailableStr ? (
+					<div className="placeholder">
+						<span>{notAvailableStr}</span>
+					</div>
+				) : (
+					<SessionEdit
+						session={edited as Session}
+						updateSession={this.updateSession}
+						readOnly={readOnly || !uiProperties.editEnabled}
+					/>
+				)}
+				<ShowAccess access={access} />
+			</div>
+		);
 	}
 }
 
@@ -438,8 +503,8 @@ const connector = connect(
 			loading: sessions.loading,
 			selected: sessions.selected,
 			uiProperties: sessions.ui,
-			access: selectUserSessionsAccess(state)
-		}
+			access: selectUserSessionsAccess(state),
+		};
 	},
 	{
 		loadSessions,
