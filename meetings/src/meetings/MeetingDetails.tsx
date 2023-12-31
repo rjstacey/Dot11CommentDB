@@ -1,6 +1,5 @@
 import React from "react";
 import { connect, ConnectedProps } from "react-redux";
-import styled from "@emotion/styled";
 import { DateTime, Duration } from "luxon";
 
 import {
@@ -58,6 +57,8 @@ import {
 import MeetingEntryForm from "./MeetingEntry";
 import TopRow from "../components/TopRow";
 import ShowAccess from "../components/ShowAccess";
+
+import styles from "./Meetings.module.css";
 
 //const toTimeStr = (hour, min) => ('0' + hour).substr(-2) + ':' + ('0' + min).substr(-2);
 const fromTimeStr = (str: string) => {
@@ -200,24 +201,6 @@ export function convertEntryToMeeting(
 		end: end.toISO()!,
 	};
 }
-
-const Container = styled.div`
-	display: flex;
-	flex-direction: column;
-	flex: 1;
-	padding: 10px;
-	label {
-		font-weight: bold;
-	}
-`;
-
-const NotAvailable = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1em;
-	color: #bdbdbd;
-`;
 
 type Actions = "add-by-slot" | "add-by-date" | "update";
 
@@ -623,7 +606,9 @@ class MeetingDetails extends React.Component<
 		}
 
 		return (
-			<Container>
+			<div
+				className={styles["meeting-details"]}
+			>
 				<TopRow style={{ justifyContent: "flex-end" }}>
 					<ActionButton
 						name="add"
@@ -655,7 +640,7 @@ class MeetingDetails extends React.Component<
 					/>
 				</TopRow>
 				{notAvailableStr ? (
-					<NotAvailable>{notAvailableStr}</NotAvailable>
+					<div className="placeholder">{notAvailableStr}</div>
 				) : (
 					<>
 						<MeetingEntryForm
@@ -670,7 +655,7 @@ class MeetingDetails extends React.Component<
 					</>
 				)}
 				<ShowAccess access={access} />
-			</Container>
+			</div>
 		);
 	}
 }

@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import { useAppSelector } from '../store/hooks';
 
 import {
@@ -6,11 +5,7 @@ import {
 	getField
 } from '../store/meetings';
 
-const Container = styled.div`
-	display: flex;
-	flex-wrap: wrap;
-	& span {margin-right: 1em}
-`;
+import styles from "./MeetingSummary.module.css";
 
 function MeetingSummary({meetingId}: {meetingId?: number | null}) {
 	const meetingEntities = useAppSelector(selectMeetingEntities);
@@ -27,7 +22,7 @@ function MeetingSummary({meetingId}: {meetingId?: number | null}) {
 				</span>
 			</>
 	}
-	return <Container>{content}</Container>;
+	return <div className={styles.main}>{content}</div>;
 }
 
 export default MeetingSummary;

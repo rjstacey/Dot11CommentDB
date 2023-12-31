@@ -1,60 +1,13 @@
-import styled from '@emotion/styled';
+import React from "react";
+import styles from "./Table.module.css";
 
-const Table = styled.table`
-	display: grid;
-	border-spacing: 1px;
+const Table = ({className, ...props}: React.ComponentProps<"table">) => <table className={styles.table} {...props} />;
 
-	thead, tbody, tr {
-		display: contents;
-	}
-
-	th, td {
-		/*border: gray solid 1px;*/
-		vertical-align: top;
-	}
-
-	th:first-of-type, td:first-of-type {
-		grid-column: 1;
-	}
-
-	tr:first-of-type td {
-		border-top: none;
-	}
-
-	tr:not(:last-of-type) td {
-		border-bottom: none;
-	}
-
-	th:not(:last-of-type),
-	td:not(:last-of-type) {
-		border-right: none;
-	}
-
-	th, td {
-		display: flex;
-		align-items: center;
-		padding: 5px;
-	}
-
-	th {
-		text-align: left;
-		font-weight: normal;
-		font-size: 1rem;
-	}
-
-	td.empty {
-		grid-column: 1 / -1;
-		colspan: 0;
-		color: gray;
-		font-style: italic;
-	}
-
-	tr:nth-of-type(even) td {
-		background: #fafafa;
-	}
-`;
-
-export const tableEmpty = <tr><td className='empty'>Empty</td></tr>
+export const tableEmpty = (
+	<tr>
+		<td className="empty">Empty</td>
+	</tr>
+);
 
 export type TableColumn = {
 	/** Column key */
@@ -82,41 +35,45 @@ export type TableColumn = {
 export function EditTable({
 	columns,
 	values,
-	rowId
+	rowId,
 }: {
-	columns: TableColumn[];	/** Column definitions */
+	columns: TableColumn[] /** Column definitions */;
 	values: any[];
-	rowId?: string;	
+	rowId?: string;
 }) {
-	const gridTemplateColumns = columns.map(col => col.gridTemplate || 'auto').join(' ');
+	const gridTemplateColumns = columns
+		.map((col) => col.gridTemplate || "auto")
+		.join(" ");
 
-	let header =
+	let header = (
 		<tr>
-			{columns.map((col, i) => 
+			{columns.map((col, i) => (
 				<th key={col.key} style={col.styleCell}>
 					{col.label}
-				</th>)}
-		</tr>;
-
-	let rows = values.map((entry, i) =>
-		<tr key={rowId? entry[rowId]: i}>
-			{columns.map((col) => 
-				<td key={col.key} style={col.styleCell}>
-					{col.renderCell? col.renderCell(entry): entry[col.key]}
-				</td>)}
+				</th>
+			))}
 		</tr>
 	);
 
+	let rows = values.map((entry, i) => (
+		<tr key={rowId ? entry[rowId] : i}>
+			{columns.map((col) => (
+				<td key={col.key} style={col.styleCell}>
+					{col.renderCell ? col.renderCell(entry) : entry[col.key]}
+				</td>
+			))}
+		</tr>
+	));
+
 	return (
-		<Table style={{gridTemplateColumns}} >
-			<thead>
-				{header}
-			</thead>
-			<tbody>
-				{rows.length > 0? rows: tableEmpty}
-			</tbody>
-		</Table>
-	)
+		<table
+			className={styles.table}
+			style={{ gridTemplateColumns }}
+		>
+			<thead>{header}</thead>
+			<tbody>{rows.length > 0 ? rows : tableEmpty}</tbody>
+		</table>
+	);
 }
 
 export default Table;

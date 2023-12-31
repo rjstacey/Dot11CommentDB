@@ -1,0 +1,6 @@
+.item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	padding: 3px 0;
+}

@@ -1,0 +1,13 @@
+.item {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	display: flex;
+	flex-direction: column;
+	align-items: left;
+}
+
+.item > span:last-of-type {
+	font-style: italic;
+	font-size: smaller;
+}

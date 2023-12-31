@@ -1,29 +1,22 @@
-import React from 'react';
-import styled from '@emotion/styled';
+import React from "react";
 
-import { Select, ActionIcon, displayDateRange } from 'dot11-components';
+import { Select, ActionIcon, displayDateRange } from "dot11-components";
 
-import { useAppSelector } from '../store/hooks';
-import { selectSessionsState, selectSessions, Session } from '../store/sessions';
+import { useAppSelector } from "../store/hooks";
+import {
+	selectSessionsState,
+	selectSessions,
+	Session,
+} from "../store/sessions";
 
-const StyledItem = styled.div`
-	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
-	display: flex;
-	flex-direction: column;
-	align-items: left;
-	& > span:last-of-type {
-		font-style: italic;
-		font-size: smaller;
-	}
-`;
+import styles from "./SessionSelector.module.css";
 
-const renderSession = ({item: session}: {item: Session}) =>
-	<StyledItem>
+const renderSession = ({ item: session }: { item: Session }) => (
+	<div className={styles.item}>
 		<span>{session.name}</span>
 		<span>{displayDateRange(session.startDate, session.endDate)}</span>
-	</StyledItem>
+	</div>
+);
 
 function SessionSelector({
 	value,
@@ -36,15 +29,16 @@ function SessionSelector({
 	readOnly?: boolean;
 	style?: React.CSSProperties;
 }) {
-	const {loading, valid} = useAppSelector(selectSessionsState);
+	const { loading, valid } = useAppSelector(selectSessionsState);
 	const options = useAppSelector(selectSessions);
 
-	const values = options.filter(o => o.id === value);
-	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: null);
+	const values = options.filter((o) => o.id === value);
+	const handleChange = (values: typeof options) =>
+		onChange(values.length > 0 ? values[0].id : null);
 
 	return (
 		<Select
-			style={{...style, minWidth: 300}}
+			style={{ ...style, minWidth: 300 }}
 			values={values}
 			onChange={handleChange}
 			options={options}
@@ -53,42 +47,47 @@ function SessionSelector({
 			itemRenderer={renderSession}
 			selectItemRenderer={renderSession}
 			readOnly={readOnly}
-			portal={document.querySelector('#root')}
-			valueField='id'
-			labelField='name'
+			portal={document.querySelector("#root")}
+			valueField="id"
+			labelField="name"
 		/>
-	)
+	);
 }
 
 export function RawSessionSelector({
 	style,
-	onChange
+	onChange,
 }: {
 	style?: React.CSSProperties;
 	onChange: (value: number) => void;
 }) {
-	const {loading, valid, ids, entities} = useAppSelector(selectSessionsState);
-	const options = React.useMemo(() => ids.map(id => entities[id]!), [entities, ids]);
-	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].id: 0);
+	const { loading, valid, ids, entities } =
+		useAppSelector(selectSessionsState);
+	const options = React.useMemo(
+		() => ids.map((id) => entities[id]!),
+		[entities, ids]
+	);
+	const handleChange = (values: typeof options) =>
+		onChange(values.length > 0 ? values[0].id : 0);
 	return (
 		<Select
-			style={{...style, border: 'none', padding: 'none'}}
+			style={{ ...style, border: "none", padding: "none" }}
 			options={options}
 			values={[]}
 			loading={loading && !valid}
 			onChange={handleChange}
 			itemRenderer={renderSession}
 			selectItemRenderer={renderSession}
-			valueField='id'
-			labelField='name'
-			placeholder=''
+			valueField="id"
+			labelField="name"
+			placeholder=""
 			searchable={false}
 			handle={false}
 			dropdownWidth={300}
-			dropdownAlign='right'
-			contentRenderer={() => <ActionIcon name='import' />}
+			dropdownAlign="right"
+			contentRenderer={() => <ActionIcon name="import" />}
 		/>
-	)
+	);
 }
 
 export default SessionSelector;

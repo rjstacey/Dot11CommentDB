@@ -1,11 +1,16 @@
-import React from 'react';
+import React from "react";
 
-import { Checkbox } from 'dot11-components';
+import { Checkbox } from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectCurrentSessionId, setCurrentSessionId, selectShowDateRange, setShowDateRange } from '../store/current';
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import {
+	selectCurrentSessionId,
+	setCurrentSessionId,
+	selectShowDateRange,
+	setShowDateRange,
+} from "../store/current";
 
-import SessionSelector from './SessionSelector';
+import SessionSelector from "./SessionSelector";
 
 export function CurrentSessionSelector({
 	onChange,
@@ -18,9 +23,8 @@ export function CurrentSessionSelector({
 
 	const handleChange = (sessionId: number | null) => {
 		dispatch(setCurrentSessionId(sessionId));
-		if (onChange)
-			onChange(sessionId);
-	}
+		onChange?.(sessionId);
+	};
 
 	return (
 		<SessionSelector
@@ -28,7 +32,7 @@ export function CurrentSessionSelector({
 			onChange={handleChange}
 			{...otherProps}
 		/>
-	)
+	);
 }
 
 function LabeledCurrentSessionSelector({
@@ -36,24 +40,36 @@ function LabeledCurrentSessionSelector({
 	...props
 }: {
 	allowShowDateRange?: boolean;
-} & React.ComponentProps<typeof CurrentSessionSelector>
-) {
+} & React.ComponentProps<typeof CurrentSessionSelector>) {
 	const dispatch = useAppDispatch();
 	const showDateRange = useAppSelector(selectShowDateRange);
 	return (
-		<div style={{display: 'flex', alignItems: 'center'}}>
-			<label style={{marginRight: 10, fontWeight: 'bold'}}>Session:</label>
+		<div style={{ display: "flex", alignItems: "center" }}>
+			<label style={{ marginRight: 10, fontWeight: "bold" }}>
+				Session:
+			</label>
 			<CurrentSessionSelector {...props} />
-			{allowShowDateRange &&
-				<div style={{display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginLeft: 10}}>
+			{allowShowDateRange && (
+				<div
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						justifyContent: "center",
+						alignItems: "center",
+						marginLeft: 10,
+					}}
+				>
 					<label>Show date range</label>
 					<Checkbox
 						checked={showDateRange}
-						onChange={() => dispatch(setShowDateRange(!showDateRange))}
+						onChange={() =>
+							dispatch(setShowDateRange(!showDateRange))
+						}
 					/>
-				</div>}
+				</div>
+			)}
 		</div>
-	)
+	);
 }
 
 export default LabeledCurrentSessionSelector;

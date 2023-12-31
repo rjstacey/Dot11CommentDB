@@ -1,0 +1,120 @@
+.show-slots {
+	display: flex;
+	flex-direction: row;
+	width: 100%;
+	height: 78px;
+	padding: 10px;
+	box-sizing: border-box;
+}
+
+.show-slots :global .label {
+	display: flex;
+	margin-right: 5px;
+}
+
+.show-slots :global .label label {
+	font-weight: bold;
+	margin-right: 5px;
+}
+
+.show-slots :global .content {
+	flex: 1;
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-content: flex-start;
+	border: solid 1px #ccc;
+	border-radius: 3px;
+}
+
+.show-slots :global .placeholder {
+	color: #ccc;
+	margin-left: 5px;
+}
+
+.slot {
+	display: flex;
+	flex-direction: row;
+	height: 22px;
+	margin: 3px 3px 3px 0;
+	background: #0074d9;
+	color: #fff;
+	border-radius: 3px;
+	align-items: center;
+}
+
+.slot:hover {
+	opacity: 0.9;
+}
+
+.slot-item {
+	color: #fff;
+	line-height: 21px;
+	padding: 0 0 0 5px;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.meetings-calendar {
+	flex: 1;
+	overflow: auto;
+}
+
+.meetings-calendar :global .column {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	border-right: #dadce0 1px solid;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.meetings-calendar :global .slot {
+	position: absolute;
+	width: calc(100%);
+	padding: 4px;
+	border: gray 1px dashed;
+	border-radius: 5px;
+	box-sizing: border-box;
+	display: flex;
+	justify-content: space-between;
+}
+
+.meetings-calendar :global .border-cell {
+	border-right: #dadce0 1px solid;
+}
+
+.meetings-calendar :global .border-cell::after {
+	content: "";
+	border-bottom: #dadce0 1px solid;
+	position: absolute;
+	width: 100%;
+}
+
+.meeting-details {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	padding: 10px;
+}
+
+.meeting-details label {
+	font-weight: bold;
+}
+
+.meeting-details :global .placeholder {
+    display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1em;
+	color: #bdbdbd;
+}
+
+.meetings-email-grid {
+	display: grid;
+	grid-gap: 1em;
+	grid-auto-flow: column;
+	grid-auto-columns: max-content;
+	max-width: 500px;
+}
