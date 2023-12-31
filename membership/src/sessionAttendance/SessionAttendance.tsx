@@ -1,6 +1,5 @@
 import React from "react";
 import { useParams } from "react-router-dom";
-import styled from "@emotion/styled";
 
 import {
 	AppTable,
@@ -47,17 +46,7 @@ import {
 import MemberDetail from "../members/MemberDetail";
 import SessionSelector from "./SessionSelector";
 
-const TableCell = styled.div`
-	width: 100%;
-	display: flex;
-	flex-direction: column;
-	& * {
-		width: 100%;
-		overflow: hidden;
-		white-space: nowrap;
-		text-overflow: ellipsis;
-	}
-`;
+import styles from "./sessionAttendance.module.css";
 
 const BLANK_STR = "(Blank)";
 
@@ -90,29 +79,29 @@ export const renderDiff = (newStr: string, oldStr: string | null) => {
 export const renderName = ({
 	rowData,
 }: CellRendererProps<SyncedSessionAttendee>) => (
-	<TableCell style={{ fontWeight: "bold" }}>
+	<div className={styles.tableCell} style={{ fontWeight: "bold" }}>
 		{renderDiff(rowData.Name, rowData.OldName)}
-	</TableCell>
+	</div>
 );
 
 export const renderEmail = ({
 	rowData,
 }: CellRendererProps<SyncedSessionAttendee>) => (
-	<TableCell>{renderDiff(rowData.Email, rowData.OldEmail)}</TableCell>
+	<div className={styles.tableCell}>{renderDiff(rowData.Email, rowData.OldEmail)}</div>
 );
 
 export const renderEmployer = ({
 	rowData,
 }: CellRendererProps<SyncedSessionAttendee>) => (
-	<TableCell>{renderDiff(rowData.Employer, rowData.OldEmployer)}</TableCell>
+	<div className={styles.tableCell}>{renderDiff(rowData.Employer, rowData.OldEmployer)}</div>
 );
 
 export const renderAffiliation = ({
 	rowData,
 }: CellRendererProps<SyncedSessionAttendee>) => (
-	<TableCell>
+	<div className={styles.tableCell}>
 		{renderDiff(rowData.Affiliation, rowData.OldAffiliation)}
-	</TableCell>
+	</div>
 );
 
 const tableColumns: ColumnProperties[] = [

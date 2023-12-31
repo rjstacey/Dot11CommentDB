@@ -1,9 +1,10 @@
 import React from "react";
 import { createSelector } from "@reduxjs/toolkit";
-import styled from "@emotion/styled";
 
 import { useAppSelector } from "../store/hooks";
 import { selectMemberEntities } from "../store/members";
+
+import styles from "./MembersSummary.module.css";
 
 const selectMembersSummary = createSelector(
 	selectMemberEntities,
@@ -34,43 +35,24 @@ const selectMembersSummary = createSelector(
 	}
 );
 
-const Container = styled.div`
-	display: flex;
-	align-items: center;
-	width: 80%;
-	padding: 0 10px 10px 10px;
-	box-sizing: border-box;
-`;
-
-const LV = styled.div`
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	margin-right: 20px;
-	div:first-of-type {
-		font-weight: bold;
-		margin-right: 10px;
-	}
-`;
-
 const LabelValue = ({ label, value }: { label: string; value: number }) => (
-	<LV>
-		<div>{label}</div>
+	<div className={styles.labelValue}>
+		<label>{label}</label>
 		<div>{value}</div>
-	</LV>
+	</div>
 );
 
-function MembersSummary(props: React.ComponentProps<typeof Container>) {
+function MembersSummary(props: React.ComponentProps<"div">) {
 	const summary = useAppSelector(selectMembersSummary);
 
 	return (
-		<Container {...props}>
+		<div className={styles.container} {...props}>
 			<LabelValue label="Non-Voters" value={summary.nv} />
 			<LabelValue label="Aspirants" value={summary.a} />
 			<LabelValue label="Potential Voters" value={summary.pv} />
 			<LabelValue label="Voters" value={summary.v} />
 			<LabelValue label="ExOfficio" value={summary.eo} />
-		</Container>
+		</div>
 	);
 }
 

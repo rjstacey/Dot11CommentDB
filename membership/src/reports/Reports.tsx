@@ -1,15 +1,11 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import styled from "@emotion/styled";
 
 import { ActionButton, Button } from "dot11-components";
 
 import type { Dictionary, EntityId } from "@reduxjs/toolkit";
 import { useAppSelector } from "../store/hooks";
-import {
-	selectActiveMembers,
-	type Member,
-} from "../store/members";
+import { selectActiveMembers, type Member } from "../store/members";
 import {
 	selectSessionIds,
 	selectSessionEntities,
@@ -20,72 +16,15 @@ import {
 	selectAttendancesWithMembershipAndSummary,
 } from "../store/sessionParticipation";
 
-const Table = styled.table<{ nCol: number }>`
-	display: grid;
-	grid-template-columns: ${(props) => `repeat(${props.nCol}, auto)`};
-	border-spacing: 1px;
-	max-height: 100%;
-	overflow: auto;
+import styles from "./reports.module.css";
 
-	thead,
-	tbody,
-	tr {
-		display: contents;
-	}
-
-	th,
-	td {
-		padding: 10px;
-		border: gray solid 1px;
-		vertical-align: top;
-	}
-
-	th:first-of-type,
-	td:first-of-type {
-		grid-column: 1;
-	}
-
-	tr:first-of-type td {
-		border-top: none;
-	}
-
-	tr:not(:last-of-type) td {
-		border-bottom: none;
-	}
-
-	th:not(:last-of-type),
-	td:not(:last-of-type) {
-		border-right: none;
-	}
-
-	th {
-		position: sticky;
-		top: 0;
-		background: #f6f6f6;
-		text-align: left;
-		font-weight: bold;
-		font-size: 1rem;
-	}
-
-	td {
-		display: flex;
-		align-items: center; // vertical
-		justify-content: left; // horizontal
-		padding-top: 5px;
-		padding-bottom: 5px;
-	}
-
-	td.empty {
-		grid-column: 1 / -1;
-		colspan: 0;
-		color: gray;
-		font-style: italic;
-	}
-
-	tr:nth-of-type(even) td {
-		background: #fafafa;
-	}
-`;
+const Table = ({ nCol, ...props }: { nCol: number } & React.ComponentProps<"table">) => (
+	<table
+		className={styles.table}
+		style={{ gridTemplateColumns: `repeat(${nCol}, auto)` }}
+		{...props}
+	/>
+);
 
 function renderTable(tableData: TableData | null) {
 	if (!tableData || tableData.values.length === 0) return <span>Empty</span>;
@@ -256,7 +195,9 @@ function Reports() {
 		null
 	);
 
-	const refresh = () => {navigate(".", {replace: true})};
+	const refresh = () => {
+		navigate(".", { replace: true });
+	};
 
 	const tableData: TableData | null = React.useMemo(() => {
 		if (!report) return null;
@@ -292,8 +233,8 @@ function Reports() {
 					onClick={refresh}
 				/>
 			</div>
-			<Body>
-				<ReportSelectCol>
+			<div className={styles.body}>
+				<div className={styles.selectCol}>
 					<label>Select a report:</label>
 					{reportsList.map((report) => (
 						<ReportButton
@@ -302,51 +243,17 @@ function Reports() {
 							label={report}
 						/>
 					))}
-				</ReportSelectCol>
-				<ReportCol>{renderTable(tableData)}</ReportCol>
-				<ReportCopyCol>
+				</div>
+				<div className={styles.mainCol}>{renderTable(tableData)}</div>
+				<div className={styles.actionsCol}>
 					<ActionButton
 						name="copy"
 						onClick={() => renderTableToClipboard(tableData)}
 					/>
-				</ReportCopyCol>
-			</Body>
+				</div>
+			</div>
 		</>
 	);
 }
-
-const Body = styled.div`
-	flex: 1;
-	width: 100%;
-	max-width: 1400px;
-	display: flex;
-	flex-direction: row;
-	overflow: hidden;
-`;
-
-const ReportSelectCol = styled.div`
-	flex: 0 0 200px;
-	display: flex;
-	flex-direction: column;
-	padding: 0 20px;
-	& label {
-		font-weight: 700;
-	}
-	& :not(label) {
-		margin: 10px 0;
-	}
-`;
-
-const ReportCol = styled.div`
-	max-height: 100%;
-	overflow: auto;
-`;
-
-const ReportCopyCol = styled.div`
-	flex: 0 0 fit-content;
-	display: flex;
-	flex-direction: column;
-	padding: 0 20px;
-`;
 
 export default Reports;

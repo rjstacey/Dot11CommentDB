@@ -1,5 +1,4 @@
 import React from "react";
-import styled from "@emotion/styled";
 import { DateTime } from "luxon";
 
 import { Col, Checkbox, Input, ActionIcon } from "dot11-components";
@@ -162,15 +161,6 @@ function MemberContactEmails({
 	);
 }
 
-const ContactInfoField = styled.div`
-	display: flex;
-	align-items: center;
-	div:first-of-type {
-		font-weight: bold;
-		width: 100px;
-	}
-`;
-
 const ContactInfoFields: ContactInfoFieldType[] = [
 	{ key: "StreetLine1", label: "Street", size: 36 },
 	{ key: "StreetLine2", label: "", size: 36 },
@@ -193,8 +183,15 @@ function MemberContactInfoEdit({
 	const contactInfo = member.ContactInfo || {};
 
 	const rows = ContactInfoFields.map((f) => (
-		<ContactInfoField key={f.key}>
-			<div>{f.label}</div>
+		<div
+			key={f.key}
+			style={{display: 'flex', alignItems: 'center'}}
+		>
+			<label
+				style={{fontWeight: 'bold', width: 100}}
+			>
+				{f.label}
+			</label>
 			<Input
 				type="text"
 				size={f.size}
@@ -209,7 +206,7 @@ function MemberContactInfoEdit({
 				}
 				disabled={readOnly}
 			/>
-		</ContactInfoField>
+		</div>
 	));
 
 	return (

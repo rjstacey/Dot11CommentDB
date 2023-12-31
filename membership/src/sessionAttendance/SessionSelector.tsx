@@ -1,29 +1,17 @@
 import React from "react";
-import styled from "@emotion/styled";
 import { useAppSelector } from "../store/hooks";
 
 import { Select, displayDateRange } from "dot11-components";
 
 import { selectRecentSessions, Session } from "../store/sessions";
 
-const StyledItem = styled.div`
-	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
-	display: flex;
-	flex-direction: column;
-	align-items: left;
-	& > span:last-of-type {
-		font-style: italic;
-		font-size: smaller;
-	}
-`;
+import styles from "./sessionAttendance.module.css";
 
 const renderSession = ({ item: session }: { item: Session }) => (
-	<StyledItem>
+	<div className={styles.sessionItem}>
 		<span>{session.name}</span>
 		<span>{displayDateRange(session.startDate, session.endDate)}</span>
-	</StyledItem>
+	</div>
 );
 
 function SessionSelector({

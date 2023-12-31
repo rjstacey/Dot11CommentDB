@@ -1,4 +1,3 @@
-import styled from "@emotion/styled";
 import type { EntityId } from "@reduxjs/toolkit";
 import { useNavigate } from "react-router-dom";
 
@@ -37,6 +36,7 @@ import {
 	membersActions,
 } from "../store/members";
 import type { Member, MembersDictionary } from "../store/members";
+import React from "react";
 
 function copyHtmlToClipboard(html: string) {
 	const type = "text/html";
@@ -78,12 +78,12 @@ function setClipboard(selected: EntityId[], members: MembersDictionary) {
 	copyHtmlToClipboard(table);
 }
 
-const DivLineTruncated = styled.div`
-	width: 100%;
-	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
-`;
+const lineTruncStyle: React.CSSProperties = {
+	width: '100%',
+	overflow: 'hidden',
+	whiteSpace: 'nowrap',
+	textOverflow: 'ellipses'
+}
 
 export const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) => (
 	<>
@@ -98,10 +98,10 @@ export const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) => (
 
 export const renderNameAndEmail = ({ rowData }: CellRendererProps<Member>) => (
 	<>
-		<DivLineTruncated style={{ fontWeight: "bold" }}>
+		<div style={{ fontWeight: "bold", ...lineTruncStyle }}>
 			{rowData.Name}
-		</DivLineTruncated>
-		<DivLineTruncated>{rowData.Email}</DivLineTruncated>
+		</div>
+		<div style={lineTruncStyle}>{rowData.Email}</div>
 	</>
 );
 
@@ -122,8 +122,8 @@ export const renderEmployerAndAffiliation = ({
 	rowData,
 }: CellRendererProps<Member>) => (
 	<>
-		<DivLineTruncated>{rowData.Employer}</DivLineTruncated>
-		<DivLineTruncated>{rowData.Affiliation}</DivLineTruncated>
+		<div style={lineTruncStyle}>{rowData.Employer}</div>
+		<div style={lineTruncStyle}>{rowData.Affiliation}</div>
 	</>
 );
 
