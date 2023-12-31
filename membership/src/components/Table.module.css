@@ -1,0 +1,58 @@
+.table {
+	display: grid;
+	border-spacing: 1px;
+}
+
+.table thead,
+.table tbody,
+.table tr {
+	display: contents;
+}
+
+.table th,
+.table td {
+	/*border: gray solid 1px;*/
+	vertical-align: top;
+}
+
+.table th:first-of-type,
+.table td:first-of-type {
+	grid-column: 1;
+}
+
+.table tr:first-of-type td {
+	border-top: none;
+}
+
+.table tr:not(:last-of-type) td {
+	border-bottom: none;
+}
+
+.table th:not(:last-of-type),
+.table td:not(:last-of-type) {
+	border-right: none;
+}
+
+.table th,
+.table td {
+	display: flex;
+	align-items: center;
+	padding: 5px;
+}
+
+.table th {
+	text-align: left;
+	font-weight: normal;
+	font-size: 1rem;
+}
+
+.table :global td.empty {
+	grid-column: 1 / -1;
+	/* colspan: 0; */
+	color: gray;
+	font-style: italic;
+}
+
+.table tr:nth-of-type(even) td {
+	background: #fafafa;
+}

@@ -1,63 +1,4 @@
-import styled from "@emotion/styled";
-
-const Table = styled.table`
-	display: grid;
-	border-spacing: 1px;
-
-	thead,
-	tbody,
-	tr {
-		display: contents;
-	}
-
-	th,
-	td {
-		/*border: gray solid 1px;*/
-		vertical-align: top;
-	}
-
-	th:first-of-type,
-	td:first-of-type {
-		grid-column: 1;
-	}
-
-	tr:first-of-type td {
-		border-top: none;
-	}
-
-	tr:not(:last-of-type) td {
-		border-bottom: none;
-	}
-
-	th:not(:last-of-type),
-	td:not(:last-of-type) {
-		border-right: none;
-	}
-
-	th,
-	td {
-		display: flex;
-		align-items: center;
-		padding: 5px;
-	}
-
-	th {
-		text-align: left;
-		font-weight: normal;
-		font-size: 1rem;
-	}
-
-	td.empty {
-		grid-column: 1 / -1;
-		colspan: 0;
-		color: gray;
-		font-style: italic;
-	}
-
-	tr:nth-of-type(even) td {
-		background: #fafafa;
-	}
-`;
+import styles from "./Table.module.css";
 
 export const tableEmpty = (
 	<tr>
@@ -122,11 +63,9 @@ export function EditTable({
 	));
 
 	return (
-		<Table style={{ gridTemplateColumns }}>
+		<table className={styles.table} style={{ gridTemplateColumns }}>
 			<thead>{header}</thead>
 			<tbody>{rows.length > 0 ? rows : tableEmpty}</tbody>
-		</Table>
+		</table>
 	);
 }
-
-export default Table;
