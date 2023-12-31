@@ -1,0 +1,26 @@
+.tableCell {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.tableCell * {
+	width: 100%;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.sessionItem {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	display: flex;
+	flex-direction: column;
+	align-items: left;
+}
+
+.sessionItem > span:last-of-type {
+	font-style: italic;
+	font-size: smaller;
+}
