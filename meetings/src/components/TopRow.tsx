@@ -1,12 +1,8 @@
-import styled from '@emotion/styled';
+import React from "react";
+import styles from "./TopRow.module.css";
 
-const TopRow = styled.div`
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	width: 100%;
-	padding: 10px;
-	box-sizing: border-box;
-`;
+const TopRow = ({ className, ...props }: React.ComponentProps<"div">) => (
+	<div className={styles.topRow + (className ? " " + className : "")} {...props} />
+);
 
 export default TopRow;

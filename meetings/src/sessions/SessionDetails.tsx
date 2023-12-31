@@ -47,7 +47,7 @@ import {
 
 import ShowAccess from "../components/ShowAccess";
 
-import styles from "./Sessions.module.css";
+import styles from "./sessions.module.css";
 
 const BLANK_STR = "(Blank)";
 const MULTIPLE_STR = "(Multiple)";

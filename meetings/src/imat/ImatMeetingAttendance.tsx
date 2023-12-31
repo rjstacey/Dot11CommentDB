@@ -1,5 +1,4 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import styled from '@emotion/styled';
 
 import {
 	AppTable, SelectHeaderCell, SelectCell,

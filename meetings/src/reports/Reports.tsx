@@ -18,7 +18,7 @@ import SessionAttendanceChart from "./SessionAttendanceChart";
 import TeleconAttendanceChart from "./TeleconAttendanceChart";
 import { loadBreakouts } from "../store/imatBreakouts";
 
-import styles from "./Reports.module.css";
+import styles from "./reports.module.css";
 
 const actions = ["sessionAttendance", "teleconAttendance"] as const;
 
