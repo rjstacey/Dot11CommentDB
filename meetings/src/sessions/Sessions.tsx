@@ -28,8 +28,6 @@ import {
 	sessionsActions,
 } from "../store/sessions";
 
-import TopRow from "../components/TopRow";
-
 import SessionDetails from "./SessionDetails";
 
 const renderHeaderStartEnd = (props: HeaderCellRendererProps) => (
@@ -168,7 +166,7 @@ function Sessions() {
 
 	return (
 		<>
-			<TopRow style={{ justifyContent: "flex-end" }}>
+			<div className="top-row justify-right">
 				<div style={{ display: "flex" }}>
 					<TableColumnSelector
 						selectors={sessionsSelectors}
@@ -196,7 +194,7 @@ function Sessions() {
 						onClick={refresh}
 					/>
 				</div>
-			</TopRow>
+			</div>
 
 			<SplitPanel selectors={sessionsSelectors} actions={sessionsActions}>
 				<Panel>

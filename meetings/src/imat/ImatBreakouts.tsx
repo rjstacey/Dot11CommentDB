@@ -35,7 +35,6 @@ import type { ImatMeeting } from "../store/imatMeetings";
 import ImatBreakoutDetails from "./ImatBreakoutDetails";
 import MeetingSummary from "../components/MeetingSummary";
 import ImatMeetingSelector from "../components/ImatMeetingSelector";
-import TopRow from "../components/TopRow";
 
 const renderGroup = ({ rowData }: { rowData: Breakout }) => {
 	if (rowData.groupShortName) return rowData.groupShortName;
@@ -230,7 +229,7 @@ function Breakouts() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<ImatMeetingSelector
 					value={imatMeetingId}
 					onChange={setImatMeetingId}
@@ -254,7 +253,7 @@ function Breakouts() {
 						onClick={refresh}
 					/>
 				</div>
-			</TopRow>
+			</div>
 
 			<SplitPanel
 				selectors={imatBreakoutsSelectors}

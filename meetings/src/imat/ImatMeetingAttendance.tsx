@@ -15,11 +15,7 @@ import {
 	imatMeetingAttendanceActions
  } from '../store/imatMeetingAttendance';
 
-import TopRow from '../components/TopRow';
-
 import { ImatMeetingInfo } from './ImatBreakouts';
-
-import styles from "./imat.module.css";
 
 type ColumnPropertiesWithWidth = ColumnProperties & {width: number};
 
@@ -68,15 +64,15 @@ function BreakoutAttendance() {
 
 	return (
 		<>
-			<TopRow style={{maxWidth}}>
+			<div className="top-row" style={{maxWidth}}>
 				<ImatMeetingInfo imatMeeting={imatMeeting} />
 				<div>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 					<ActionButton name='close' title='Close' onClick={close} />
 				</div>
-			</TopRow>
+			</div>
 
-			<div className={styles["table-container"]}>
+			<div className="table-container centered-rows">
 				<AppTable
 					fitWidth
 					fixed

@@ -32,7 +32,6 @@ import {
 	PartialMeetingEntry,
 } from "../meetings/MeetingDetails";
 import MeetingEntryForm from "../meetings/MeetingEntry";
-import TopRow from "../components/TopRow";
 
 import { RootState } from "../store";
 import {
@@ -976,7 +975,7 @@ class BreakoutDetails extends React.Component<
 
 		return (
 			<div className={styles.details}>
-				<TopRow style={{ justifyContent: "flex-end" }}>
+				<div className="top-row justify-right">
 					<ActionButton
 						name="import"
 						title="Import as meeting"
@@ -1001,7 +1000,7 @@ class BreakoutDetails extends React.Component<
 						}
 						onClick={this.clickDelete}
 					/>
-				</TopRow>
+				</div>
 				{notAvailableStr ? (
 					<div className="placeholder">{notAvailableStr}</div>
 				) : action === "import" ? (

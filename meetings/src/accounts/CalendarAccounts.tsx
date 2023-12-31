@@ -16,7 +16,6 @@ import {
 } from "../store/calendarAccounts";
 import { selectMemberEntities } from "../store/members";
 
-import TopRow from "../components/TopRow";
 import { EditTable as Table, TableColumn } from "../components/Table";
 
 const displayDate = (d: string) =>
@@ -152,7 +151,7 @@ function CalendarAccounts() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<h3>Calendar accounts</h3>
 				<div style={{ display: "flex" }}>
 					<ActionButton
@@ -168,7 +167,7 @@ function CalendarAccounts() {
 						disabled={loading}
 					/>
 				</div>
-			</TopRow>
+			</div>
 			<Table values={accounts} columns={columns} />
 		</>
 	);

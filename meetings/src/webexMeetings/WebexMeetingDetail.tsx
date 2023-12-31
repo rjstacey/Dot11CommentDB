@@ -33,7 +33,6 @@ import { AccessLevel } from '../store/user';
 
 import WebexAccountSelector from '../components/WebexAccountSelector';
 import WebexTemplateSelector from '../components/WebexTemplateSelector';
-import TopRow from '../components/TopRow';
 import TimeZoneSelector from '../components/TimeZoneSelector';
 import InputTimeRangeAsDuration from '../components/InputTimeRangeAsDuration';
 import MeetingSelector from '../components/MeetingSelector';
@@ -824,7 +823,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 
 		return (
 			<div className={styles.details}>
-				<TopRow style={{justifyContent: 'flex-end'}}>
+				<div className="top-row justify-right">
 					<ActionButton
 						name='add'
 						title='Add Webex meeting'
@@ -837,7 +836,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 						disabled={loading || webexMeetings.length === 0 || readOnly}
 						onClick={this.clickDelete}
 					/>
-				</TopRow>
+				</div>
 				{notAvailableStr?
 					<div className="placeholder">{notAvailableStr}</div>:
 					<WebexMeetingEntryForm

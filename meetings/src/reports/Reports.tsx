@@ -13,7 +13,6 @@ import {
 } from "../store/imatMeetingAttendance";
 
 import CurrentSessionSelector from "../components/CurrentSessionSelector";
-import TopRow from "../components/TopRow";
 import SessionAttendanceChart from "./SessionAttendanceChart";
 import TeleconAttendanceChart from "./TeleconAttendanceChart";
 import { loadBreakouts } from "../store/imatBreakouts";
@@ -201,7 +200,7 @@ function Reports() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<CurrentSessionSelector />
 
 				{loading && <Spinner />}
@@ -219,8 +218,8 @@ function Reports() {
 						onClick={refresh}
 					/>
 				</div>
-			</TopRow>
-			3<div
+			</div>
+			<div
 				className={styles.main}
 			>
 				<ReportsNav action={action} setAction={setAction} />

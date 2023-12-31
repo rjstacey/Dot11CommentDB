@@ -2,17 +2,6 @@
 	padding: 10px;
 }
 
-.table-container {
-	flex: 1; /* remaining height */
-	width: 100%;
-	align-items: center;
-}
-
-.table-container :global .AppTable__dataRow,
-.table-container :global .AppTable__headerRow {
-	align-items: center;
-}
-
 .details label {
 	font-weight: bold;
 }

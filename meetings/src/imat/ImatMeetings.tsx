@@ -10,8 +10,6 @@ import {
 	ColumnProperties,
 } from "dot11-components";
 
-import TopRow from "../components/TopRow";
-
 import { useAppDispatch } from "../store/hooks";
 import {
 	loadImatMeetings,
@@ -20,8 +18,6 @@ import {
 	imatMeetingsActions,
 	clearImatMeetings,
 } from "../store/imatMeetings";
-
-import styles from "./imat.module.css";
 
 const renderDateRangeHeader = (props: HeaderCellRendererProps) => (
 	<>
@@ -109,16 +105,16 @@ function ImatMeetings() {
 
 	return (
 		<>
-			<TopRow style={{ maxWidth }}>
+			<div className="top-row" style={{ maxWidth }}>
 				<div>IMAT Sessions</div>
 				<ActionButton
 					name="refresh"
 					title="Refresh"
 					onClick={refresh}
 				/>
-			</TopRow>
+			</div>
 
-			<div className={styles["table-container"]} style={{ maxWidth }}>
+			<div className="table-container centered-rows" style={{ maxWidth }}>
 				<AppTable
 					fixed
 					columns={tableColumns}

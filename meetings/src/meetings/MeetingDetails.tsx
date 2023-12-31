@@ -55,7 +55,6 @@ import {
 } from "../webexMeetings/WebexMeetingDetail";
 
 import MeetingEntryForm from "./MeetingEntry";
-import TopRow from "../components/TopRow";
 import ShowAccess from "../components/ShowAccess";
 
 import styles from "./meetings.module.css";
@@ -606,10 +605,8 @@ class MeetingDetails extends React.Component<
 		}
 
 		return (
-			<div
-				className={styles.details}
-			>
-				<TopRow style={{ justifyContent: "flex-end" }}>
+			<div className={styles.details}>
+				<div className="top-row justify-right">
 					<ActionButton
 						name="add"
 						title="Add meeting"
@@ -638,21 +635,19 @@ class MeetingDetails extends React.Component<
 						}
 						onClick={this.clickDelete}
 					/>
-				</TopRow>
+				</div>
 				{notAvailableStr ? (
 					<div className="placeholder">{notAvailableStr}</div>
 				) : (
-					<>
-						<MeetingEntryForm
-							entry={entry}
-							changeEntry={this.changeEntry}
-							busy={busy}
-							action={action}
-							submit={submit}
-							cancel={cancel}
-							readOnly={readOnly}
-						/>
-					</>
+					<MeetingEntryForm
+						entry={entry}
+						changeEntry={this.changeEntry}
+						busy={busy}
+						action={action}
+						submit={submit}
+						cancel={cancel}
+						readOnly={readOnly}
+					/>
 				)}
 				<ShowAccess access={access} />
 			</div>

@@ -21,7 +21,6 @@ import {
 
 import TimeZoneSelector from "../components/TimeZoneSelector";
 import ImatMeetingSelector from "../components/ImatMeetingSelector";
-import TopRow from "../components/TopRow";
 import GroupParentsSelector from "../components/GroupParentsSelector";
 import RoomDetails from "./RoomDetails";
 import TimeslotDetails from "./TimeslotDetails";
@@ -449,7 +448,7 @@ class SessionDetail extends React.Component<
 				style={style}
 				className={styles.details + (className ? " " + className : "")}
 			>
-				<TopRow style={{ justifyContent: "flex-end" }}>
+				<div className="top-row justify-right">
 					{!readOnly && (
 						<>
 							<ActionButton
@@ -477,7 +476,7 @@ class SessionDetail extends React.Component<
 							/>
 						</>
 					)}
-				</TopRow>
+				</div>
 				{notAvailableStr ? (
 					<div className="placeholder">
 						<span>{notAvailableStr}</span>

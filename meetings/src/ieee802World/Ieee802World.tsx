@@ -23,10 +23,7 @@ import {
 	ieee802WorldActions,
 } from "../store/ieee802World";
 
-import TopRow from "../components/TopRow";
 import MeetingSummary from "../components/MeetingSummary";
-
-import styles from "./Ieee802World.module.css";
 
 const renderDateHeader = (props: HeaderCellRendererProps) => (
 	<>
@@ -191,7 +188,9 @@ function Ieee802WorldSchedule() {
 
 	return (
 		<>
-			<TopRow style={{ justifyContent: "flex-end" }}>
+			<div
+				className="top-row justify-right"
+			>
 				<TableColumnSelector
 					selectors={ieee802WorldSelectors}
 					actions={ieee802WorldActions}
@@ -207,9 +206,11 @@ function Ieee802WorldSchedule() {
 					title="Refresh"
 					onClick={refresh}
 				/>
-			</TopRow>
+			</div>
 
-			<div className={styles["table-container"]}>
+			<div
+				className="table-container centered-rows"
+			>
 				<AppTable
 					defaultTablesConfig={defaultTablesConfig}
 					columns={tableColumns}

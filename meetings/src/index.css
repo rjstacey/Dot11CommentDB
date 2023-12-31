@@ -13,3 +13,27 @@ div#root {
 	height: 100vh;
 	align-items: center;
 }
+
+.top-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+	padding: 10px;
+	box-sizing: border-box;
+}
+
+.top-row.justify-right {
+	justify-content: flex-end;
+}
+
+.table-container {
+	flex: 1; /* remaining height */
+	width: 100%;
+	align-items: center;
+}
+
+.table-container.centered-rows .AppTable__dataRow,
+.table-container.centered-rows .AppTable__headerRow {
+	align-items: center;
+}

@@ -45,7 +45,6 @@ import {
 
 import MeetingSelector from "../components/MeetingSelector";
 import MeetingSummary from "../components/MeetingSummary";
-import TopRow from "../components/TopRow";
 import CurrentSessionSelector from "../components/CurrentSessionSelector";
 
 import WebexMeetingDetail from "./WebexMeetingDetail";
@@ -411,7 +410,7 @@ function WebexMeetings() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<CurrentSessionSelector allowShowDateRange />
 
 				<div style={{ display: "flex" }}>
@@ -435,7 +434,7 @@ function WebexMeetings() {
 						onClick={refresh}
 					/>
 				</div>
-			</TopRow>
+			</div>
 
 			<SplitPanel
 				selectors={webexMeetingsSelectors}

@@ -33,7 +33,6 @@ import {
 } from '../store/meetings';
 import { displayMeetingNumber } from '../store/webexMeetings';
 
-import TopRow from '../components/TopRow';
 import CurrentSessionSelector from '../components/CurrentSessionSelector';
 
 import MeetingsCalendar from './MeetingsCalendar';
@@ -223,7 +222,7 @@ function Meetings() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<CurrentSessionSelector allowShowDateRange />
 
 				<ActionButtonDropdown label='Set defaults'>
@@ -252,7 +251,7 @@ function Meetings() {
 					/>
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>
-			</TopRow>
+			</div>
 
 			<SplitPanel
 				selectors={meetingsSelectors}

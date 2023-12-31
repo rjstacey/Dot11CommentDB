@@ -21,11 +21,7 @@ import {
 } from "../store/imatBreakoutAttendance";
 import type { Breakout } from "../store/imatBreakouts";
 
-import TopRow from "../components/TopRow";
-
 import { ImatMeetingInfo } from "./ImatBreakouts";
-
-import styles from "./imat.module.css";
 
 function ImatBreakoutInfo({ breakout }: { breakout?: Breakout }) {
 	let content = breakout ? (
@@ -111,7 +107,10 @@ function BreakoutAttendance() {
 
 	return (
 		<>
-			<TopRow style={{ maxWidth }}>
+			<div
+				className="top-row"
+				style={{ maxWidth }}
+			>
 				<ImatMeetingInfo imatMeeting={imatMeeting} />
 				<ImatBreakoutInfo breakout={breakout} />
 				<div>
@@ -122,9 +121,11 @@ function BreakoutAttendance() {
 					/>
 					<ActionButton name="close" title="Close" onClick={close} />
 				</div>
-			</TopRow>
+			</div>
 
-			<div className={styles["table-container"]}>
+			<div
+				className="table-container centered-rows"
+			>
 				<AppTable
 					fitWidth
 					fixed

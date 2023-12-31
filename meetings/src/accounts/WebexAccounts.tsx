@@ -15,7 +15,6 @@ import {
 	WebexAccountCreate,
 } from "../store/webexAccounts";
 
-import TopRow from "../components/TopRow";
 import { EditTable as Table, TableColumn } from "../components/Table";
 
 const displayDate = (d: string) =>
@@ -139,7 +138,7 @@ function WebexAccounts() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<h3>Webex accounts</h3>
 				<div style={{ display: "flex" }}>
 					<ActionButton
@@ -155,7 +154,7 @@ function WebexAccounts() {
 						disabled={loading}
 					/>
 				</div>
-			</TopRow>
+			</div>
 			<Table values={accounts} columns={columns} />
 		</>
 	);
