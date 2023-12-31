@@ -1,3 +1,5 @@
+import React from "react";
+import { useParams } from "react-router-dom";
 import styled from "@emotion/styled";
 
 import {
@@ -44,9 +46,6 @@ import {
 
 import MemberDetail from "../members/MemberDetail";
 import SessionSelector from "./SessionSelector";
-import TopRow from "../components/TopRow";
-import React from "react";
-import { useParams } from "react-router-dom";
 
 const TableCell = styled.div`
 	width: 100%;
@@ -336,7 +335,7 @@ function SessionAttendance() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<SessionSelector value={sessionId} onChange={load} />
 				<div style={{ display: "flex" }}>
 					<TableColumnSelector
@@ -361,7 +360,7 @@ function SessionAttendance() {
 						onClick={refresh}
 					/>
 				</div>
-			</TopRow>
+			</div>
 
 			<div
 				style={{ display: "flex", width: "100%", alignItems: "center" }}
@@ -391,7 +390,7 @@ function SessionAttendance() {
 						actions={sessionAttendeesActions}
 					/>
 				</Panel>
-				<Panel style={{ overflow: "auto" }}>
+				<Panel className="details-panel">
 					<MemberDetail
 						key={selected.join()}
 						selected={selected}

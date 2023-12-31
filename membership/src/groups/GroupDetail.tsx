@@ -1,7 +1,6 @@
 import React from "react";
 import { connect, ConnectedProps } from "react-redux";
 import { EntityId, Dictionary } from "@reduxjs/toolkit";
-import styled from "@emotion/styled";
 
 import {
 	ConfirmModal,
@@ -39,7 +38,6 @@ import {
 	OfficerCreate,
 } from "../store/officers";
 
-import TopRow from "../components/TopRow";
 import ShowAccess from "../components/ShowAccess";
 import GroupEntryEdit from "./GroupEntry";
 
@@ -56,21 +54,6 @@ const defaultEntry: GroupEntry = {
 	officerSAPINs: [],
 	officers: [],
 };
-
-const Container = styled.div`
-	padding: 10px;
-	label {
-		font-weight: bold;
-	}
-`;
-
-const NotAvailable = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1em;
-	color: #bdbdbd;
-`;
 
 export type GroupEntry = GroupCreate & { officers: Officer[] };
 export type MultipleGroupEntry = Multiple<GroupCreate> & {
@@ -325,8 +308,8 @@ class GroupDetail extends React.Component<
 		}
 
 		return (
-			<Container>
-				<TopRow style={{ justifyContent: "flex-end" }}>
+			<>
+				<div className="top-row justify-right">
 					<ActionButton
 						name="add"
 						title="Add group"
@@ -339,9 +322,9 @@ class GroupDetail extends React.Component<
 						disabled={loading || selected.length === 0 || readOnly}
 						onClick={this.clickDelete}
 					/>
-				</TopRow>
+				</div>
 				{notAvailableStr ? (
-					<NotAvailable>{notAvailableStr}</NotAvailable>
+					<div className="placeholder">{notAvailableStr}</div>
 				) : (
 					<GroupEntryEdit
 						action={action}
@@ -355,7 +338,7 @@ class GroupDetail extends React.Component<
 					/>
 				)}
 				<ShowAccess access={access} />
-			</Container>
+			</>
 		);
 	}
 }

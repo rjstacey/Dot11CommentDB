@@ -131,6 +131,7 @@ function GroupEntryForm({
 
 	return (
 		<Form
+			className="main"
 			title={title}
 			busy={busy}
 			submitLabel={action === "add" ? "Add" : "Update"}

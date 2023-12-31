@@ -26,9 +26,8 @@ import {
 	COMMAND_PRIORITY_LOW,
 	KEY_ESCAPE_COMMAND,
 	SELECTION_CHANGE_COMMAND,
-	GridSelection,
+	BaseSelection,
 	LexicalEditor,
-	NodeSelection,
 	RangeSelection,
 	ElementNode,
 	TextNode 
@@ -135,7 +134,7 @@ function FloatingLinkEditor({
 	const [linkUrl, setLinkUrl] = React.useState("");
 	const [editedLinkUrl, setEditedLinkUrl] = React.useState("https://");
 	const [lastSelection, setLastSelection] = React.useState<
-		RangeSelection | GridSelection | NodeSelection | null
+		BaseSelection | null
 	>(null);
 
 	const updateLinkEditor = React.useCallback(() => {

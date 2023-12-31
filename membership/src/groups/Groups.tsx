@@ -22,7 +22,6 @@ import {
 } from "../store/groups";
 import { selectMemberEntities } from "../store/members";
 
-import TopRow from "../components/TopRow";
 import GroupDetail from "./GroupDetail";
 
 function GroupOfficers({ group }: { group: GroupWithOfficers }) {
@@ -92,7 +91,7 @@ function Organization() {
 
 	return (
 		<>
-			<TopRow style={{ justifyContent: "flex-end" }}>
+			<div className="top-row justify-right">
 				<div style={{ display: "flex" }}>
 					<TableColumnSelector
 						selectors={groupsSelectors}
@@ -109,7 +108,7 @@ function Organization() {
 						onClick={refresh}
 					/>
 				</div>
-			</TopRow>
+			</div>
 			<SplitPanel
 				selectors={groupsSelectors}
 				actions={groupsActions}
@@ -124,7 +123,7 @@ function Organization() {
 						actions={groupsActions}
 					/>
 				</Panel>
-				<Panel>
+				<Panel className="details-panel">
 					<GroupDetail />
 				</Panel>
 			</SplitPanel>

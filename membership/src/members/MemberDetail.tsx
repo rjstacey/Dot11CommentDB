@@ -1,7 +1,6 @@
 import React from "react";
 import { connect, ConnectedProps } from "react-redux";
 import type { EntityId } from "@reduxjs/toolkit";
-import styled from "@emotion/styled";
 import { DateTime } from "luxon";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "react-tabs/style/react-tabs.css";
@@ -248,7 +247,7 @@ function MemberEntryForm({
 
 	return (
 		<Form
-			style={{ flex: 1, overflow: "hidden" }}
+			className="main"
 			title={title}
 			//busy={busy}
 			submitLabel={submitLabel}
@@ -403,24 +402,6 @@ function MemberEntryForm({
 		</Form>
 	);
 }
-
-const TopRow = styled.div`
-	display: flex;
-	justify-content: flex-end;
-	width: 100%;
-`;
-
-const NotAvaialble = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1em;
-	color: #bdbdbd;
-`;
-
-const DetailContainer = styled.div`
-	padding: 10px;
-`;
 
 type NormalizeOptions<T> = {
 	selectId?: (entry: T) => string | number;
@@ -783,7 +764,7 @@ class MemberDetail extends React.Component<
 	};
 
 	render() {
-		const { style, className, loading } = this.props;
+		const { loading } = this.props;
 		const { originals, action, message } = this.state;
 
 		let readOnly =
@@ -797,8 +778,8 @@ class MemberDetail extends React.Component<
 		}
 
 		return (
-			<DetailContainer style={style} className={className}>
-				<TopRow>
+			<>
+				<div className="top-row justify-right">
 					{!readOnly && (
 						<>
 							<ActionButton
@@ -816,11 +797,11 @@ class MemberDetail extends React.Component<
 							/>
 						</>
 					)}
-				</TopRow>
+				</div>
 				{action === "void" || loading ? (
-					<NotAvaialble>
+					<div className="placeholder">
 						<span>{loading ? "Loading..." : message}</span>
-					</NotAvaialble>
+					</div>
 				) : (
 					<MemberEntryForm
 						action={action}
@@ -832,7 +813,7 @@ class MemberDetail extends React.Component<
 					/>
 				)}
 				<ShowAccess access={this.props.access} />
-			</DetailContainer>
+			</>
 		);
 	}
 }

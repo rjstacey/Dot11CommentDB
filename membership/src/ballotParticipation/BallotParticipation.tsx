@@ -35,7 +35,6 @@ import {
 import MemberDetail from "../members/MemberDetail";
 import { renderNameAndEmail } from "../members/Members";
 import BulkStatusUpdate from "../sessionParticipation/BulkStatusUpdate";
-import TopRow from "../components/TopRow";
 
 function BallotSeriesSummary() {
 	const { ids: ballotSeriesIds, entities: ballotSeriesEntities } =
@@ -172,7 +171,7 @@ function BallotParticipation() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<BallotSeriesSummary />
 				<div style={{ display: "flex" }}>
 					<BulkStatusUpdate isSession={false} />
@@ -191,7 +190,7 @@ function BallotParticipation() {
 						onClick={refresh}
 					/>
 				</div>
-			</TopRow>
+			</div>
 
 			<div
 				style={{ display: "flex", width: "100%", alignItems: "center" }}
@@ -220,7 +219,7 @@ function BallotParticipation() {
 						actions={ballotParticipationActions}
 					/>
 				</Panel>
-				<Panel style={{ overflow: "auto" }}>
+				<Panel className="details-panel">
 					<MemberDetail key={selected.join()} selected={selected} />
 				</Panel>
 			</SplitPanel>

@@ -1,5 +1,6 @@
 import React from "react";
 import { DateTime } from "luxon";
+import { useNavigate } from "react-router-dom";
 
 import {
 	AppTable,
@@ -40,9 +41,7 @@ import { type Session } from "../store/sessions";
 
 import { renderNameAndEmail } from "../members/Members";
 import MemberDetail from "../members/MemberDetail";
-import TopRow from "../components/TopRow";
 import BulkStatusUpdate from "./BulkStatusUpdate";
-import { useNavigate } from "react-router-dom";
 
 function ImportAttendanceForm({
 	methods,
@@ -273,7 +272,7 @@ function Attendances() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<SessionSummary />
 
 				<div style={{ display: "flex" }}>
@@ -293,7 +292,7 @@ function Attendances() {
 						onClick={refresh}
 					/>
 				</div>
-			</TopRow>
+			</div>
 
 			<div
 				style={{ display: "flex", width: "100%", alignItems: "center" }}
@@ -322,7 +321,7 @@ function Attendances() {
 						actions={attendancesActions}
 					/>
 				</Panel>
-				<Panel style={{ overflow: "auto" }}>
+				<Panel className="details-panel">
 					<MemberDetail key={selected.join()} selected={selected} />
 				</Panel>
 			</SplitPanel>

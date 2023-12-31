@@ -38,8 +38,6 @@ import {
 } from "../store/members";
 import type { Member, MembersDictionary } from "../store/members";
 
-import TopRow from "../components/TopRow";
-
 function copyHtmlToClipboard(html: string) {
 	const type = "text/html";
 	const blob = new Blob([html], { type });
@@ -283,7 +281,7 @@ function Members() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<MembersSummary />
 				<div style={{ display: "flex" }}>
 					<ButtonGroup>
@@ -329,7 +327,7 @@ function Members() {
 						onClick={refresh}
 					/>
 				</div>
-			</TopRow>
+			</div>
 
 			<ShowFilters
 				selectors={membersSelectors}
@@ -348,7 +346,7 @@ function Members() {
 						actions={membersActions}
 					/>
 				</Panel>
-				<Panel style={{ overflow: "auto" }}>
+				<Panel className="details-panel">
 					<MemberDetail key={selected.join()} />
 				</Panel>
 			</SplitPanel>

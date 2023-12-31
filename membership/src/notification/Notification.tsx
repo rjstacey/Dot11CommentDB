@@ -38,7 +38,6 @@ import {
 	selectMostRecentBallotSeries,
 } from "../store/ballotParticipation";
 
-import TopRow from "../components/TopRow";
 import NotificationEmail from "./NotificationEmail";
 
 function MostRecentBallotSummary() {
@@ -310,7 +309,7 @@ function Members() {
 
 	return (
 		<>
-			<TopRow>
+			<div className="top-row">
 				<MostRecentBallotSummary />
 				<MostRecentSessionSummary />
 				<div style={{ display: "flex" }}>
@@ -338,7 +337,7 @@ function Members() {
 						onClick={refresh}
 					/>
 				</div>
-			</TopRow>
+			</div>
 
 			<div style={{ display: "flex", width: "100%" }}>
 				<ShowFilters
@@ -359,7 +358,7 @@ function Members() {
 						actions={membersActions}
 					/>
 				</Panel>
-				<Panel style={{ overflow: "auto" }}>
+				<Panel className="details-panel">
 					<NotificationEmail />
 				</Panel>
 			</SplitPanel>

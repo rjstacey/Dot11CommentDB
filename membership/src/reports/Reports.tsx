@@ -4,8 +4,6 @@ import styled from "@emotion/styled";
 
 import { ActionButton, Button } from "dot11-components";
 
-import TopRow from "../components/TopRow";
-
 import type { Dictionary, EntityId } from "@reduxjs/toolkit";
 import { useAppSelector } from "../store/hooks";
 import {
@@ -287,13 +285,13 @@ function Reports() {
 
 	return (
 		<>
-			<TopRow style={{justifyContent: 'flex-end'}}>
+			<div className="top-row justify-right">
 				<ActionButton
 					name="refresh"
 					title="Refresh"
 					onClick={refresh}
 				/>
-			</TopRow>
+			</div>
 			<Body>
 				<ReportSelectCol>
 					<label>Select a report:</label>
