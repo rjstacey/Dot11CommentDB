@@ -1,5 +1,5 @@
 import React from "react";
-import styled from "@emotion/styled";
+import { useParams } from "react-router-dom";
 import AutoSizer from "react-virtualized-auto-sizer";
 
 import { ActionButton, Button, Spinner } from "dot11-components";
@@ -17,7 +17,8 @@ import TopRow from "../components/TopRow";
 import SessionAttendanceChart from "./SessionAttendanceChart";
 import TeleconAttendanceChart from "./TeleconAttendanceChart";
 import { loadBreakouts } from "../store/imatBreakouts";
-import { useParams } from "react-router-dom";
+
+import styles from "./Reports.module.css";
 
 const actions = ["sessionAttendance", "teleconAttendance"] as const;
 
@@ -40,37 +41,6 @@ const chartComponent: { [K in Action]: React.FC<ReportChartProps> } = {
 	sessionAttendance: SessionAttendanceChart,
 	teleconAttendance: TeleconAttendanceChart,
 };
-
-const ChartWrapper = styled.div`
-	width: 80vw;
-	flex: 1;
-	padding: 20px;
-	display: flex;
-	overflow: hidden;
-
-	& .chart-select {
-		display: flex;
-		flex-direction: column;
-		padding: 10px;
-	}
-
-	& .chart-select button {
-		margin: 10px;
-	}
-
-	& .chart-draw {
-		flex: 1;
-	}
-
-	& .chart-draw svg {
-		opacity: 1;
-		transition: opacity 0.1s ease-out;
-	}
-
-	& .chart-draw svg.blink {
-		opacity: 0.5;
-	}
-`;
 
 function ReportsNav({
 	action,
@@ -196,7 +166,7 @@ function ReportsChart({
 	return (
 		<div className="chart-draw">
 			<AutoSizer>
-				{({ height, width }) => (
+				{({ height, width }: { height: number; width: number }) => (
 					<Component svgRef={svgRef} width={width} height={height} />
 				)}
 			</AutoSizer>
@@ -218,7 +188,11 @@ function Reports() {
 		} else {
 			dispatch(clearImatMeetingAttendance());
 		}
-        setAction(imatMeeting.type === 'Other'? "teleconAttendance": "sessionAttendance");
+		setAction(
+			imatMeeting.type === "Other"
+				? "teleconAttendance"
+				: "sessionAttendance"
+		);
 	};
 
 	React.useEffect(refresh, [groupName, imatMeeting, dispatch]);
@@ -246,10 +220,12 @@ function Reports() {
 					/>
 				</div>
 			</TopRow>
-			<ChartWrapper>
+			3<div
+				className={styles.main}
+			>
 				<ReportsNav action={action} setAction={setAction} />
 				{action && <ReportsChart action={action} svgRef={svgRef} />}
-			</ChartWrapper>
+			</div>
 		</>
 	);
 }

@@ -1,0 +1,30 @@
+.main {
+	width: 80vw;
+	flex: 1;
+	padding: 20px;
+	display: flex;
+	overflow: hidden;
+}
+
+.main :global .chart-select {
+	display: flex;
+	flex-direction: column;
+	padding: 10px;
+}
+
+.main :global .chart-select button {
+	margin: 10px;
+}
+
+.main :global .chart-draw {
+	flex: 1;
+}
+
+.main :global .chart-draw svg {
+	opacity: 1;
+	transition: opacity 0.1s ease-out;
+}
+
+.main :global .chart-draw svg.blink {
+	opacity: 0.5;
+}
