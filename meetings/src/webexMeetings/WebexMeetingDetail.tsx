@@ -1,6 +1,5 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import styled from '@emotion/styled';
 import { DateTime } from 'luxon';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -12,6 +11,7 @@ import {
 	setError,
 } from 'dot11-components';
 
+import { RootState } from '../store';
 import {
 	selectWebexMeetingsState,
 	selectSyncedWebexMeetingEntities,
@@ -25,7 +25,6 @@ import {
 	WebexMeetingParams, WebexMeetingOptions, WebexMeetingAudioConnectionOptions,
 	WebexMeetingUpdate,
 } from '../store/webexMeetings';
-
 import { updateMeetings, Meeting } from '../store/meetings';
 import { selectWebexAccountEntities } from '../store/webexAccounts';
 import { selectCurrentGroupDefaults } from '../store/current';
@@ -38,7 +37,8 @@ import TopRow from '../components/TopRow';
 import TimeZoneSelector from '../components/TimeZoneSelector';
 import InputTimeRangeAsDuration from '../components/InputTimeRangeAsDuration';
 import MeetingSelector from '../components/MeetingSelector';
-import { RootState } from '../store';
+
+import styles from "./webexMeetings.module.css";
 
 const MULTIPLE_STR = '(Multiple)';
 const BLANK_STR = '(Blank)';
@@ -552,21 +552,6 @@ function WebexMeetingEntryForm({
 	)
 }
 
-const Container = styled.div`
-	padding: 10px;
-	label {
-		font-weight: bold;
-	}
-`;
-
-const NotAvailable = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1em;
-	color: #bdbdbd;
-`;
-
 export type WebexMeetingEntry = Omit<WebexMeetingParams, "accountId" | "id" | "start" | "end"> & {
 	accountId: number | null;
 	date: string;
@@ -838,7 +823,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 		const readOnly = access <= AccessLevel.ro;
 
 		return (
-			<Container>
+			<div className={styles.details}>
 				<TopRow style={{justifyContent: 'flex-end'}}>
 					<ActionButton
 						name='add'
@@ -854,7 +839,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 					/>
 				</TopRow>
 				{notAvailableStr?
-					<NotAvailable>{notAvailableStr}</NotAvailable>:
+					<div className="placeholder">{notAvailableStr}</div>:
 					<WebexMeetingEntryForm
 						action={action}
 						entry={entry}
@@ -863,7 +848,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 						cancel={cancel}
 						readOnly={readOnly}
 					/>}
-			</Container>
+			</div>
 		)
 	}
 }

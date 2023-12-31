@@ -1,6 +1,4 @@
-import React from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import styled from '@emotion/styled';
 
 import {
 	AppTable, SelectHeaderCell, SelectCell, TableColumnHeader,
@@ -20,15 +18,7 @@ import {
 	clearImatMeetings,
 } from '../store/imatMeetings';
 
-const TableRow = styled.div`
-	flex: 1;	/* remaining height */
-	width: 100%;
-	align-items: center;
-	.AppTable__dataRow,
-	.AppTable__headerRow {
-		align-items: center;
-	}
-`;
+import styles from "./imat.module.css";
 
 const renderDateRangeHeader = (props: HeaderCellRendererProps) =>
 	<>
@@ -91,7 +81,10 @@ function ImatMeetings() {
 				<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 			</TopRow>
 
-			<TableRow style={{maxWidth}}>
+			<div
+				className={styles["table-container"]}
+				style={{maxWidth}}
+			>
 				<AppTable
 					fixed
 					columns={tableColumns}
@@ -100,7 +93,7 @@ function ImatMeetings() {
 					selectors={imatMeetingsSelectors}
 					actions={imatMeetingsActions}
 				/>
-			</TableRow>
+			</div>
 		</>
 	)
 }

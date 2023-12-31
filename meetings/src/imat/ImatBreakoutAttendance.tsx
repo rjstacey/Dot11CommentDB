@@ -1,80 +1,87 @@
-import { useNavigate, useParams } from 'react-router-dom';
-import styled from '@emotion/styled';
-
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useNavigate, useParams } from "react-router-dom";
 
 import {
-	AppTable, SelectHeaderCell, SelectCell,
+	AppTable,
+	SelectHeaderCell,
+	SelectCell,
 	ActionButton,
-	displayDayDate, displayTime, ColumnProperties
-} from 'dot11-components';
+	displayDayDate,
+	displayTime,
+	ColumnProperties,
+} from "dot11-components";
 
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	loadBreakoutAttendance,
 	selectImatMeeting,
 	selectImatBreakout,
 	imatBreakoutAttendanceSelectors,
 	imatBreakoutAttendanceActions,
-	clearBreakoutAttendance
- } from '../store/imatBreakoutAttendance';
+	clearBreakoutAttendance,
+} from "../store/imatBreakoutAttendance";
+import type { Breakout } from "../store/imatBreakouts";
 
-import type { Breakout } from '../store/imatBreakouts';
+import TopRow from "../components/TopRow";
 
-import TopRow from '../components/TopRow';
+import { ImatMeetingInfo } from "./ImatBreakouts";
 
-import { ImatMeetingInfo } from './ImatBreakouts';
+import styles from "./imat.module.css";
 
-const TableRow = styled.div`
-	flex: 1;	/* remaining height */
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	.AppTable__dataRow,
-	.AppTable__headerRow {
-		align-items: center;
-	}
-`;
-
-function ImatBreakoutInfo({breakout}: {breakout?: Breakout}) {
-	let content = breakout?
+function ImatBreakoutInfo({ breakout }: { breakout?: Breakout }) {
+	let content = breakout ? (
 		<>
 			<span>{breakout.name}</span>
 			<span>{displayDayDate(breakout.start)}</span>
-			<span>{displayTime(breakout.start) + ' - ' + displayTime(breakout.end)}</span>
+			<span>
+				{displayTime(breakout.start) +
+					" - " +
+					displayTime(breakout.end)}
+			</span>
 			<span>{breakout.location}</span>
-		</>:
-		null;
+		</>
+	) : null;
 
-	return <div style={{display: 'flex', flexDirection: 'column'}}>{content}</div>
+	return (
+		<div style={{ display: "flex", flexDirection: "column" }}>
+			{content}
+		</div>
+	);
 }
-	
-type ColumnPropertiesWithWidth = ColumnProperties & {width: number};
+
+type ColumnPropertiesWithWidth = ColumnProperties & { width: number };
 
 const columns: ColumnPropertiesWithWidth[] = [
-	{key: '__ctrl__',
-		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <SelectHeaderCell {...p} />,
-		cellRenderer: p =>
-			<SelectCell 
+	{
+		key: "__ctrl__",
+		width: 30,
+		flexGrow: 1,
+		flexShrink: 0,
+		headerRenderer: (p) => <SelectHeaderCell {...p} />,
+		cellRenderer: (p) => (
+			<SelectCell
 				selectors={imatBreakoutAttendanceSelectors}
 				actions={imatBreakoutAttendanceActions}
 				{...p}
-			/>},
-	{key: 'SAPIN', 
-		label: 'SA PIN',
-		width: 150, flexGrow: 1, flexShrink: 1},
-	{key: 'Name',
-		label: 'Name',
-		width: 300, flexGrow: 1, flexShrink: 1},
-	{key: 'Affiliation', 
-		label: 'Affiliation',
-		width: 300, flexGrow: 1, flexShrink: 1},
-	{key: 'Email', 
-		label: 'Email',
-		width: 300, flexGrow: 1, flexShrink: 1},
-	{key: 'Timestamp', 
-		label: 'Timestamp',
-		width: 150, flexGrow: 1, flexShrink: 1},
+			/>
+		),
+	},
+	{ key: "SAPIN", label: "SA PIN", width: 150, flexGrow: 1, flexShrink: 1 },
+	{ key: "Name", label: "Name", width: 300, flexGrow: 1, flexShrink: 1 },
+	{
+		key: "Affiliation",
+		label: "Affiliation",
+		width: 300,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{ key: "Email", label: "Email", width: 300, flexGrow: 1, flexShrink: 1 },
+	{
+		key: "Timestamp",
+		label: "Timestamp",
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
 ];
 
 const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
@@ -83,7 +90,7 @@ function BreakoutAttendance() {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const params = useParams();
-	const {groupName} = params;
+	const { groupName } = params;
 	const meetingNumber = Number(params.meetingNumber);
 	const breakoutNumber = Number(params.breakoutNumber);
 
@@ -91,20 +98,33 @@ function BreakoutAttendance() {
 	const breakout = useAppSelector(selectImatBreakout);
 
 	const close = () => navigate(-1);
-	const refresh = () => dispatch((groupName && meetingNumber && breakoutNumber)? loadBreakoutAttendance(groupName, meetingNumber, breakoutNumber): clearBreakoutAttendance());
+	const refresh = () =>
+		dispatch(
+			groupName && meetingNumber && breakoutNumber
+				? loadBreakoutAttendance(
+						groupName,
+						meetingNumber,
+						breakoutNumber
+				  )
+				: clearBreakoutAttendance()
+		);
 
 	return (
 		<>
-			<TopRow style={{maxWidth}}>
+			<TopRow style={{ maxWidth }}>
 				<ImatMeetingInfo imatMeeting={imatMeeting} />
 				<ImatBreakoutInfo breakout={breakout} />
 				<div>
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-					<ActionButton name='close' title='Close' onClick={close} />
+					<ActionButton
+						name="refresh"
+						title="Refresh"
+						onClick={refresh}
+					/>
+					<ActionButton name="close" title="Close" onClick={close} />
 				</div>
 			</TopRow>
 
-			<TableRow>
+			<div className={styles["table-container"]}>
 				<AppTable
 					fitWidth
 					fixed
@@ -114,9 +134,9 @@ function BreakoutAttendance() {
 					selectors={imatBreakoutAttendanceSelectors}
 					actions={imatBreakoutAttendanceActions}
 				/>
-			</TableRow>
+			</div>
 		</>
-	)
+	);
 }
 
 export default BreakoutAttendance;

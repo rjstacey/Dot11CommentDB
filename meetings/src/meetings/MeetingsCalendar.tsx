@@ -409,7 +409,7 @@ function MeetingCalendar({ nDays }: { nDays: number }) {
 	const shownDates = dates.slice(day, day + nDays);
 
 	return (
-		<div className={styles["meetings-calendar"]}>
+		<div className={styles.calendar}>
 			<div
 				className="inner"
 				style={{

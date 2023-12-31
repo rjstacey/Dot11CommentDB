@@ -20,16 +20,7 @@ import TopRow from '../components/TopRow';
 
 import { ImatMeetingInfo } from './ImatBreakouts';
 
-const TableRow = styled.div`
-	flex: 1;	/* remaining height */
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	.AppTable__dataRow,
-	.AppTable__headerRow {
-		align-items: center;
-	}
-`;
+import styles from "./imat.module.css";
 
 type ColumnPropertiesWithWidth = ColumnProperties & {width: number};
 
@@ -86,7 +77,7 @@ function BreakoutAttendance() {
 				</div>
 			</TopRow>
 
-			<TableRow>
+			<div className={styles["table-container"]}>
 				<AppTable
 					fitWidth
 					fixed
@@ -96,7 +87,7 @@ function BreakoutAttendance() {
 					selectors={imatMeetingAttendanceSelectors}
 					actions={imatMeetingAttendanceActions}
 				/>
-			</TableRow>
+			</div>
 		</>
 	)
 }

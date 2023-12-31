@@ -607,7 +607,7 @@ class MeetingDetails extends React.Component<
 
 		return (
 			<div
-				className={styles["meeting-details"]}
+				className={styles.details}
 			>
 				<TopRow style={{ justifyContent: "flex-end" }}>
 					<ActionButton

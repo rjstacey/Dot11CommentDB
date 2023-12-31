@@ -1,0 +1,27 @@
+.details {
+	padding: 10px;
+}
+
+.table-conatiner {
+	flex: 1; /* remaining height */
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.table-conatiner :global .AppTable__dataRow,
+.table-conatiner :global .AppTable__headerRow {
+	align-items: center;
+}
+
+.details label {
+	font-weight: bold;
+}
+
+.details :global .placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1em;
+	color: #bdbdbd;
+}
