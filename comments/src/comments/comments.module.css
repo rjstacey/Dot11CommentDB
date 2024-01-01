@@ -1,0 +1,36 @@
+.row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+}
+
+.row > *:not(:last-child) {
+	margin-right: 5px;
+}
+
+.textBlockContainer {
+	overflow-wrap: break-word;
+}
+.textBlockContainer p {
+	margin: 8px 0;
+}
+.textBlockContainer p:first-of-type {
+	margin: 0;
+}
+
+.subcomponent {
+    padding-right: 5px;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.multiple {
+    color: GrayText;
+	font-style: italic;
+}
+
+.editingContainer {
+    background-color: #fafafa;
+	border: 1px solid #ddd;
+	border-radius: 0 5px 5px 5px;
+}

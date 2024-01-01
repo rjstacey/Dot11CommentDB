@@ -1,6 +1,3 @@
-import React from 'react';
-import styled from '@emotion/styled';
-
 import {
 	ActionButtonModal,
 	Row, Col, FieldLeft
@@ -14,49 +11,9 @@ import { CommentBasics, CommentAdHoc, CommentGroup, CommentNotes } from "./Comme
 import { ResolutionAssignee, ResolutionSubmission, ResolutionApproval, ResolutionAndStatus } from "./ResolutionEdit";
 import { EditingEdit } from "./EditingEdit";
 
+import styles from "./CommentHistory.module.css";
+
 const BLANK_STR = '(Blank)';
-
-const Container = styled.div`
-	width: 80vw;
-	max-width: 1000px;
-	height: 800px;
-	overflow: auto;
-	.entry {
-		margin: 10px;
-		padding: 5px;
-	}
-	.entry .header {
-		border: solid;
-		border-width: 1px 1px 0 1px;
-		border-radius: 5px 5px 0 0;
-		background: #eee;
-		padding: 10px;
-	}
-	.entry .body {
-		border: solid;
-		border-width: 0 1px 1px 1px;
-		border-radius: 0 0 5px 5px;
-		padding: 10px;
-	}
-	.entry .body label {
-		font-weight: bold;
-	}
-	.action {
-		font-weight: bold;
-	}
-	.name {
-		font-weight: bold;
-		font-style: italic;
-	}
-`;
-
-const NotAvaialble = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1em;
-	color: #bdbdbd;
-`;
 
 function renderEntryHeader(leadIn: string, h: CommentHistoryEvent) {
 	let action =
@@ -283,12 +240,12 @@ function CommentHistoryDisplay() {
 			disabled={selected.length === 0}
 			onRequestOpen={onOpen}
 		>
-			<Container>
+			<div className={styles.container}>
 				{commentsHistory.length > 0?
 					commentsHistory.map(props => <ChangeEntry key={props.id} {...props} />):
-					<NotAvaialble>{loading? "Loading...": "No history"}</NotAvaialble>
+					<div className="placeholder">{loading? "Loading...": "No history"}</div>
 				}
-			</Container>
+			</div>
 		</ActionButtonModal>
 	)
 }

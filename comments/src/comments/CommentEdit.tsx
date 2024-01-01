@@ -1,47 +1,59 @@
-import React from 'react';
-import styled from '@emotion/styled';
+import React from "react";
+import styled from "@emotion/styled";
 
 import {
-	Row, Col, List, Field, FieldLeft, Input,
-	Icon, IconCollapse,
-	isMultiple
-} from 'dot11-components';
+	Row,
+	Col,
+	List,
+	Field,
+	FieldLeft,
+	Input,
+	Icon,
+	IconCollapse,
+	isMultiple,
+} from "dot11-components";
 
-import AdHocSelector from './AdHocSelector';
-import CommentGroupSelector from './CommentGroupSelector';
-import RichTextEditor from './RichTextEditor';
+import AdHocSelector from "./AdHocSelector";
+import CommentGroupSelector from "./CommentGroupSelector";
+import RichTextEditor from "./RichTextEditor";
 
-import type { MultipleComment } from './CommentDetail';
+import type { MultipleComment } from "./CommentDetail";
 
-import {
-	getCommentStatus,
-	CommentResolution,
-} from '../store/comments';
+import { getCommentStatus, CommentResolution } from "../store/comments";
 
-const BLANK_STR = '(Blank)';
-const MULTIPLE_STR = '(Multiple)';
+import styles from "./comments.module.css";
 
-const MultipleContainer = styled.span`
-	color: GrayText;
-	font-style: italic;
-`;
+const BLANK_STR = "(Blank)";
+const MULTIPLE_STR = "(Multiple)";
 
-const ShowMultiple = (props: React.ComponentProps<typeof MultipleContainer>) => <MultipleContainer {...props}>{MULTIPLE_STR}</MultipleContainer>
+const ShowMultiple = (props: React.ComponentProps<"span">) => (
+	<span className={styles.multiple} {...props}>
+		{MULTIPLE_STR}
+	</span>
+);
 
 export const renderCommenter = (comment: MultipleComment) => {
-	const commenter = comment.CommenterName
+	const commenter = comment.CommenterName;
 	if (isMultiple(commenter)) {
-		return <ShowMultiple />
+		return <ShowMultiple />;
 	}
-	let vote: JSX.Element | undefined,
-		mbs: JSX.Element | undefined;
-	if (comment.Vote === 'Approve') {
-		vote = <Icon type='vote-yes' />
-	}
-	else if (comment.Vote === 'Disapprove') {
-		vote = <Icon type='vote-no' />
+	let vote: JSX.Element | undefined, mbs: JSX.Element | undefined;
+	if (comment.Vote === "Approve") {
+		vote = <Icon type="vote-yes" />;
+	} else if (comment.Vote === "Disapprove") {
+		vote = <Icon type="vote-no" />;
 		if (comment.MustSatisfy)
-			mbs = <span style={{color: 'red', fontSize: 'smaller', fontWeight: 'bold'}}>MBS</span>
+			mbs = (
+				<span
+					style={{
+						color: "red",
+						fontSize: "smaller",
+						fontWeight: "bold",
+					}}
+				>
+					MBS
+				</span>
+			);
 	}
 	return (
 		<span>
@@ -49,52 +61,54 @@ export const renderCommenter = (comment: MultipleComment) => {
 			{vote && <React.Fragment>&nbsp;{vote}</React.Fragment>}
 			{mbs && <React.Fragment>&nbsp;{mbs}</React.Fragment>}
 		</span>
-	)
+	);
 };
 
 const renderEntry = (value: any) => {
-	if (isMultiple(value))
-		return <ShowMultiple />
-	return <span>{value}</span>
+	if (isMultiple(value)) return <ShowMultiple />;
+	return <span>{value}</span>;
 };
 
-const TextBlockContainer = styled.div`
-	overflow-wrap: break-word;
-	& p {
-		margin: 8px 0;
-	}
-	& p:first-of-type {
-		margin: 0;
-	}
-`;
-
 const renderTextBlock = (value: string) => {
-	if (!value)
-		return ''
-	if (isMultiple(value))
-		return <ShowMultiple />
+	if (!value) return "";
+	if (isMultiple(value)) return <ShowMultiple />;
 	return (
-		<TextBlockContainer>
-			{value.split('\n').map((line, i) => <p key={i}>{line}</p>)}
-		</TextBlockContainer>
-	)
-}
+		<div className={styles.textBlockContainer}>
+			{value.split("\n").map((line, i) => (
+				<p key={i}>{line}</p>
+			))}
+		</div>
+	);
+};
 
 export const CommentAdHoc = ({
 	comment,
 	updateComment = () => {},
-	readOnly
+	readOnly,
 }: {
 	comment: MultipleComment;
 	updateComment?: (changes: Partial<CommentResolution>) => void;
 	readOnly?: boolean;
 }) => (
-	<Field label='Ad-hoc:'>
+	<Field label="Ad-hoc:">
 		<AdHocSelector
-			style={{flexBasis: 150}}
-			value={isMultiple(comment.AdHoc) || isMultiple(comment.AdHocGroupId)? {GroupId: null, Name: ''}: {GroupId: comment.AdHocGroupId, Name: comment.AdHoc}}
-			onChange={value => updateComment({AdHocGroupId: value.GroupId, AdHoc: value.Name})}
-			placeholder={isMultiple(comment.AdHoc) || isMultiple(comment.AdHocGroupId)? MULTIPLE_STR: BLANK_STR}
+			style={{ flexBasis: 150 }}
+			value={
+				isMultiple(comment.AdHoc) || isMultiple(comment.AdHocGroupId)
+					? { GroupId: null, Name: "" }
+					: { GroupId: comment.AdHocGroupId, Name: comment.AdHoc }
+			}
+			onChange={(value) =>
+				updateComment({
+					AdHocGroupId: value.GroupId,
+					AdHoc: value.Name,
+				})
+			}
+			placeholder={
+				isMultiple(comment.AdHoc) || isMultiple(comment.AdHocGroupId)
+					? MULTIPLE_STR
+					: BLANK_STR
+			}
 			readOnly={readOnly}
 		/>
 	</Field>
@@ -103,18 +117,24 @@ export const CommentAdHoc = ({
 export const CommentGroup = ({
 	comment,
 	updateComment = () => {},
-	readOnly
+	readOnly,
 }: {
 	comment: MultipleComment;
 	updateComment?: (changes: Partial<CommentResolution>) => void;
 	readOnly?: boolean;
 }) => (
-	<Field label='Comment group:'>
+	<Field label="Comment group:">
 		<CommentGroupSelector
-			style={{flexBasis: 300}}
-			value={isMultiple(comment.CommentGroup)? '': comment.CommentGroup || ''}
-			onChange={value => updateComment({CommentGroup: value})}
-			placeholder={isMultiple(comment.CommentGroup)? MULTIPLE_STR: BLANK_STR}
+			style={{ flexBasis: 300 }}
+			value={
+				isMultiple(comment.CommentGroup)
+					? ""
+					: comment.CommentGroup || ""
+			}
+			onChange={(value) => updateComment({ CommentGroup: value })}
+			placeholder={
+				isMultiple(comment.CommentGroup) ? MULTIPLE_STR : BLANK_STR
+			}
 			readOnly={readOnly}
 		/>
 	</Field>
@@ -125,7 +145,7 @@ export const CommentNotes = ({
 	updateComment = () => {},
 	showNotes,
 	toggleShowNotes,
-	readOnly
+	readOnly,
 }: {
 	comment: MultipleComment;
 	updateComment?: (changes: Partial<CommentResolution>) => void;
@@ -135,33 +155,45 @@ export const CommentNotes = ({
 }) => (
 	<Col
 		style={{
-			width: '100%',
-			position: 'relative',	// position toolbar
-			paddingTop: 15			// make room for toolbar
+			width: "100%",
+			position: "relative", // position toolbar
+			paddingTop: 15, // make room for toolbar
 		}}
 	>
-		<div style={{display: 'flex', flex: 1, justifyContent: 'space-between'}}>
+		<div
+			style={{
+				display: "flex",
+				flex: 1,
+				justifyContent: "space-between",
+			}}
+		>
 			<label>Notes:</label>
-			{toggleShowNotes && <IconCollapse isCollapsed={!showNotes} onClick={toggleShowNotes} />}
+			{toggleShowNotes && (
+				<IconCollapse
+					isCollapsed={!showNotes}
+					onClick={toggleShowNotes}
+				/>
+			)}
 		</div>
-		{showNotes &&
+		{showNotes && (
 			<StyledNoteEditor
-				value={isMultiple(comment.Notes)? '': comment.Notes}
-				onChange={value => updateComment({Notes: value})}
-				placeholder={isMultiple(comment.Notes)? MULTIPLE_STR: BLANK_STR}
+				value={isMultiple(comment.Notes) ? "" : comment.Notes}
+				onChange={(value) => updateComment({ Notes: value })}
+				placeholder={
+					isMultiple(comment.Notes) ? MULTIPLE_STR : BLANK_STR
+				}
 				readOnly={readOnly}
 			/>
-		}
+		)}
 	</Col>
 );
-
 
 export const CommentCategorization = ({
 	comment,
 	updateComment = () => {},
 	showNotes,
 	toggleShowNotes,
-	readOnly
+	readOnly,
 }: {
 	comment: MultipleComment;
 	updateComment?: (changes: Partial<CommentResolution>) => void;
@@ -198,70 +230,87 @@ export const CommentCategorization = ({
 	</>
 );
 
-
 const StyledNoteEditor = styled(RichTextEditor)`
 	background-color: #fafafa;
 	border: 1px solid #ddd;
 	border-radius: 0 5px 5px 5px;
 `;
 
-
 function CommentPage({
 	comment,
 	setComment,
-	readOnly
+	readOnly,
 }: {
 	comment: MultipleComment;
 	setComment: (changes: Partial<CommentResolution>) => void;
 	readOnly?: boolean;
 }) {
-	const [value, setValue] = React.useState(isMultiple(comment.Page)? '': comment.Page? comment.Page.toFixed(2): '');
-	const pattern = '^\\d*\\.?\\d{0,2}$';
+	const [value, setValue] = React.useState(
+		isMultiple(comment.Page)
+			? ""
+			: comment.Page
+			? comment.Page.toFixed(2)
+			: ""
+	);
+	const pattern = "^\\d*\\.?\\d{0,2}$";
 
-	const onChange: React.ChangeEventHandler<HTMLInputElement> = function(e) {
-		const {value} = e.target;
+	const onChange: React.ChangeEventHandler<HTMLInputElement> = function (e) {
+		const { value } = e.target;
 		setValue(value);
 		if (value.search(pattern) !== -1) {
 			const page = parseFloat(value);
-			setComment({Page: page || null})
+			setComment({ Page: page || null });
 		}
-	}
+	};
 
 	let showOriginal = false;
-	let original = '';
-	if (!isMultiple(comment.Page) && !isMultiple(comment.C_Page) && !isMultiple(comment.C_Line)) {
+	let original = "";
+	if (
+		!isMultiple(comment.Page) &&
+		!isMultiple(comment.C_Page) &&
+		!isMultiple(comment.C_Line)
+	) {
 		// Check if original page number is diffent
-		let page: number | string = parseFloat(comment.C_Page) + parseFloat(comment.C_Line)/100
-		if (isNaN(page))
-			page = 0;
+		let page: number | string =
+			parseFloat(comment.C_Page) + parseFloat(comment.C_Line) / 100;
+		if (isNaN(page)) page = 0;
 		showOriginal = page !== comment.Page;
-		original = comment.C_Page + '.' + comment.C_Line;
+		original = comment.C_Page + "." + comment.C_Line;
 	}
 
 	return (
 		<>
 			<Input
-				type='text'
+				type="text"
 				size={10}
 				value={value}
 				onChange={onChange}
 				pattern={pattern}
-				placeholder={isMultiple(comment.Page)? MULTIPLE_STR: ''}
+				placeholder={isMultiple(comment.Page) ? MULTIPLE_STR : ""}
 				disabled={readOnly}
 			/>
-			{showOriginal &&
-				<div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: 'x-small', marginLeft: 5}} >
+			{showOriginal && (
+				<div
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "center",
+						fontSize: "x-small",
+						marginLeft: 5,
+					}}
+				>
 					<span>originally</span>
 					<span>{original}</span>
-				</div>}
+				</div>
+			)}
 		</>
-	)
+	);
 }
 
 function CommentClause({
 	comment,
 	setComment,
-	readOnly
+	readOnly,
 }: {
 	comment: MultipleComment;
 	setComment: (changes: Partial<CommentResolution>) => void;
@@ -273,20 +322,29 @@ function CommentClause({
 	return (
 		<>
 			<Input
-				type='text'
+				type="text"
 				size={10}
-				value={isMultiple(comment.Clause)? '': comment.Clause || ''}
-				onChange={(e) => setComment({Clause: e.target.value})}
-				placeholder={isMultiple(comment.Clause)? MULTIPLE_STR: ''}
+				value={isMultiple(comment.Clause) ? "" : comment.Clause || ""}
+				onChange={(e) => setComment({ Clause: e.target.value })}
+				placeholder={isMultiple(comment.Clause) ? MULTIPLE_STR : ""}
 				disabled={readOnly}
 			/>
-			{hasChanged &&
-				<div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: 'x-small', marginLeft: 5}} >
+			{hasChanged && (
+				<div
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "center",
+						fontSize: "x-small",
+						marginLeft: 5,
+					}}
+				>
 					<span>originally</span>
 					<span>{comment.C_Clause}</span>
-				</div>}
+				</div>
+			)}
 		</>
-	)
+	);
 }
 
 export function CommentBasics({
@@ -300,43 +358,53 @@ export function CommentBasics({
 	updateComment?: (changes: Partial<CommentResolution>) => void;
 	readOnly?: boolean;
 }) {
-	const cidsStr = cids.join(', ');
-	const cidsLabel = cids.length > 1? 'CIDs:': 'CID:';
+	const cidsStr = cids.join(", ");
+	const cidsLabel = cids.length > 1 ? "CIDs:" : "CID:";
 
 	return (
 		<>
 			<Row>
 				<FieldLeft label={cidsLabel}>{cidsStr}</FieldLeft>
-				<FieldLeft label=''>{renderEntry(getCommentStatus(comment as CommentResolution))}</FieldLeft>
+				<FieldLeft label="">
+					{renderEntry(
+						getCommentStatus(comment as CommentResolution)
+					)}
+				</FieldLeft>
 			</Row>
 			<Row>
-				<FieldLeft label='Commenter:'>{renderCommenter(comment)}</FieldLeft>
+				<FieldLeft label="Commenter:">
+					{renderCommenter(comment)}
+				</FieldLeft>
 			</Row>
 			<Row>
-				<FieldLeft label='Page/Line:'>
+				<FieldLeft label="Page/Line:">
 					<CommentPage
 						comment={comment}
 						setComment={updateComment}
 						readOnly={readOnly}
 					/>
 				</FieldLeft>
-				<FieldLeft label='Clause:'>
+				<FieldLeft label="Clause:">
 					<CommentClause
 						comment={comment}
 						setComment={updateComment}
 						readOnly={readOnly}
 					/>
 				</FieldLeft>
-				<FieldLeft label='Category:'>{renderEntry(comment.Category)}</FieldLeft>
+				<FieldLeft label="Category:">
+					{renderEntry(comment.Category)}
+				</FieldLeft>
 			</Row>
 			<Row>
-				<List label='Comment:'>{renderTextBlock(comment.Comment)}</List>
+				<List label="Comment:">{renderTextBlock(comment.Comment)}</List>
 			</Row>
 			<Row>
-				<List label='Proposed Change:'>{renderTextBlock(comment.ProposedChange)}</List>
+				<List label="Proposed Change:">
+					{renderTextBlock(comment.ProposedChange)}
+				</List>
 			</Row>
 		</>
-	)
+	);
 }
 
 export function CommentEdit({
@@ -370,7 +438,7 @@ export function CommentEdit({
 				readOnly={readOnly}
 			/>
 		</>
-	)
+	);
 }
 
 export default CommentEdit;

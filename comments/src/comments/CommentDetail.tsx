@@ -287,7 +287,7 @@ class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetai
 
 		return(
 			<>
-				<div className="top-row">{actionElements}</div>
+				<div className="top-row justify-right">{actionElements}</div>
 				<div className="main">{bodyElement}</div>
 			</>
 		);

@@ -1,0 +1,14 @@
+.container {
+    display: flex;
+	align-items: center;
+	margin: 0 5px;
+}
+
+.indicator {
+    display: block;
+	background: black;
+	margin: 0 5px;
+	border-radius: 50%;
+	height: 16px;
+	width: 16px;
+}

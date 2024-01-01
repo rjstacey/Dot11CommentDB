@@ -1,0 +1,31 @@
+.title {
+	font-weight: bold;
+	margin: 5px 0 5px 0;
+}
+
+.labelValue {
+	display: flex;
+	justify-content: space-between;
+}
+
+.col {
+	display: flex;
+	flex-direction: column;
+	padding: 0 20px;
+}
+.col:first-of-type {
+	padding-left: 0;
+}
+.col:last-of-type {
+	padding-right: 0;
+}
+
+.container {
+	position: relative;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+	padding: 0 10px 10px 10px;
+	box-sizing: border-box;
+}

@@ -1,5 +1,4 @@
 import React from "react";
-import styled from "@emotion/styled";
 
 import { Dropdown, DropdownRendererProps } from "dot11-components";
 
@@ -7,41 +6,33 @@ import { useAppSelector } from "../store/hooks";
 import {
 	selectOfflineStatus,
 	selectOfflineOutbox,
-	OfflineStatus,
 } from "../store/offline";
 
-const Container = styled.div`
-	display: flex;
-	align-items: center;
-`;
-
-const Indicator = styled.div<{ status: OfflineStatus }>`
-	display: block;
-	background: black;
-	margin: 0 5px;
-	border-radius: 50%;
-	height: 16px;
-	width: 16px;
-	background: ${(props) => {
-		let color = "#ff4e4e";
-		if (props.status === "online") color = "#bbff4e";
-		if (props.status === "unreachable") color = "#ffb04e";
-		return `radial-gradient(circle at 5px 5px, ${color}, #000000b0);`;
-	}};
-`;
+import styles from "./OnlineIndicator.module.css";
 
 function Selector({ state, methods }: DropdownRendererProps) {
 	const status = useAppSelector(selectOfflineStatus);
+	let color = "#ff4e4e";
+	if (status === "online") color = "#bbff4e";
+	if (status === "unreachable") color = "#ffb04e";
+	const background = `radial-gradient(circle at 5px 5px, ${color}, #000000b0)`;
 
 	let onClick: React.MouseEventHandler | undefined;
 	if (status !== "online")
 		onClick = state.isOpen ? methods.close : methods.open;
 
 	return (
-		<Container onClick={onClick}>
-			<Indicator status={status} title={status} />
+		<div
+			className={styles.container}
+			onClick={onClick}
+		>
+			<div
+				className={styles.indicator}
+				style={{background}}
+				title={status}
+			/>
 			{status}
-		</Container>
+		</div>
 	);
 }
 

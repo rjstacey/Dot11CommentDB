@@ -1,6 +1,5 @@
 import React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import styled from "@emotion/styled";
 
 import {
 	AppTable,
@@ -52,8 +51,8 @@ const renderHeaderGroupProject = (props: HeaderCellRendererProps) => (
 
 const renderCellGroupProject = ({ rowData }: { rowData: SyncedBallot }) => (
 	<>
-		<NoWrapItem>{rowData.GroupName}</NoWrapItem>
-		<NoWrapItem>{rowData.Project}</NoWrapItem>
+		<div style={lineTruncStyle}>{rowData.GroupName}</div>
+		<div style={lineTruncStyle}>{rowData.Project}</div>
 	</>
 );
 
@@ -67,11 +66,11 @@ const renderHeaderStartEnd = (props: HeaderCellRendererProps) => (
 const renderCellStartEnd = ({ rowData }: { rowData: SyncedBallot }) =>
 	displayDateRange(rowData.Start || "", rowData.End || "");
 
-const NoWrapItem = styled.div`
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	overflow: hidden;
-`;
+const lineTruncStyle: React.CSSProperties = {
+	overflow: 'hidden',
+	whiteSpace: 'nowrap',
+	textOverflow: 'ellipses'
+}
 
 const renderHeaderTypeStage = (props: HeaderCellRendererProps) => (
 	<>
@@ -82,8 +81,8 @@ const renderHeaderTypeStage = (props: HeaderCellRendererProps) => (
 
 const renderCellTypeStage = ({ rowData }: { rowData: SyncedBallot }) => (
 	<>
-		<NoWrapItem>{fields.Type.dataRenderer(rowData.Type)}</NoWrapItem>
-		<NoWrapItem>{ballotsSelectors.getField(rowData, "Stage")}</NoWrapItem>
+		<div style={lineTruncStyle}>{fields.Type.dataRenderer(rowData.Type)}</div>
+		<div style={lineTruncStyle}>{ballotsSelectors.getField(rowData, "Stage")}</div>
 	</>
 );
 

@@ -1,0 +1,102 @@
+.table {
+	display: grid;
+	/* grid-template-columns: ${(props) => `repeat(${props.nCol}, auto)`};*/
+	border-spacing: 1px;
+	max-height: 100%;
+	overflow: auto;
+}
+
+.table thead,
+.table tbody,
+.table tr {
+	display: contents;
+}
+
+.table th,
+.table td {
+	padding: 10px;
+	border: gray solid 1px;
+	vertical-align: top;
+}
+
+.table th:first-of-type,
+.table td:first-of-type {
+	grid-column: 1;
+}
+
+.table tr:first-of-type td {
+	border-top: none;
+}
+
+.table tr:not(:last-of-type) td {
+	border-bottom: none;
+}
+
+.table th:not(:last-of-type),
+.table td:not(:last-of-type) {
+	border-right: none;
+}
+
+.table th {
+	position: sticky;
+	top: 0;
+	background: #f6f6f6;
+	text-align: left;
+	font-weight: bold;
+	font-size: 1rem;
+}
+
+.table td {
+	display: flex;
+	align-items: center; /* vertical */
+	justify-content: left; /* horizontal */
+	padding-top: 5px;
+	padding-bottom: 5px;
+}
+
+.table :global td.empty {
+	grid-column: 1 / -1;
+	/* colspan: 0;*/
+	color: gray;
+	font-style: italic;
+}
+
+.table tr:nth-of-type(even) td {
+	background: #fafafa;
+}
+
+.body {
+	flex: 1;
+	width: 100%;
+	max-width: 1400px;
+	display: flex;
+	flex-direction: row;
+	overflow: hidden;
+}
+
+.selectCol {
+	flex: 0 0 200px;
+	display: flex;
+	flex-direction: column;
+	padding: 0 20px;
+}
+
+.selectCol label {
+	font-weight: 700;
+}
+
+.selectCol :not(label) {
+	margin: 10px 0;
+}
+
+.mainCol {
+    max-height: 100%;
+	overflow: auto;
+}
+
+.actionsCol {
+    flex: 0 0 fit-content;
+	display: flex;
+	flex-direction: column;
+	padding: 0 20px;
+}

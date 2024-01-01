@@ -1,12 +1,10 @@
 import React from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import styled from '@emotion/styled';
 
 import { Select } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
-	//getBallots,
 	setCurrentGroupProject,
 	setCurrentBallot_id,
 	selectBallotsState,
@@ -16,15 +14,7 @@ import {
 	BallotType
 } from '../store/ballots';
 
-const Label = styled.label`
-	font-weight: bold;
-	margin-right: 10px;
-`;
-
-const Container = styled.div`
-	display: flex;
-	align-items: center;
-`;
+import styles from "./PathBallotSelector.module.css";
 
 function ProjectSelect({
 	style,
@@ -96,8 +86,6 @@ function BallotSelect({
 }
 
 function BallotSelector({
-	className,
-	style,
 	readOnly,
 	onBallotSelected,
 	withVotingPool
@@ -113,34 +101,7 @@ function BallotSelector({
 	const dispatch = useAppDispatch();
 	const {ballotId} = useParams();
 	const {loading, currentGroupId, currentProject, currentBallot_id} = useAppSelector(selectBallotsState);
-/*
-	React.useEffect(() => {
-		let ignore = false;
-		async function onMount() {
-			const ballots = await dispatch(getBallots());
-			if (ignore)
-				return;
-			if (ballotId) {
-				const pathBallot_id = ballots.find(b => b.BallotID === ballotId)?.id;
-				// Routed here with parameter ballotId specified, but not matching stored currentId; set the current ballot
-				if (pathBallot_id && (!currentBallot_id || pathBallot_id !== currentBallot_id))
-					dispatch(setCurrentBallot_id(pathBallot_id));
-			}
-			else if (currentBallot_id) {
-				// Routed here with parameter ballotId unspecified, but current ballot has previously been selected; re-route to current ballot
-				const BallotID = ballots.find(b => b.id === currentBallot_id)?.BallotID;
-				if (BallotID)
-					navigate(location.pathname + `/${BallotID}`);
-			}
-		}
-		function onUnmount() {
-			ignore = true;
-		}
 
-		onMount();
-		return onUnmount;
-	}, []);	// eslint-disable-line react-hooks/exhaustive-deps
-*/
 	const handleProjectChange = async (value: GroupProject) => {
 		const ballot = await dispatch(setCurrentGroupProject(value));
 		let pathName = location.pathname.replace(`/${ballotId}`, '');
@@ -163,11 +124,10 @@ function BallotSelector({
 	}
 
 	return (
-		<Container
-			className={className}
-			style={style}
+		<div
+			className={styles.main}
 		>
-			<Label>Project:</Label>
+			<label>Project:</label>
 			<ProjectSelect
 				style={{minWidth: 150, marginRight: 20}}
 				value={{groupId: currentGroupId, project: currentProject}}
@@ -175,7 +135,7 @@ function BallotSelector({
 				loading={loading}
 				readOnly={readOnly}
 			/>
-			<Label>Ballot:</Label>
+			<label>Ballot:</label>
 			<BallotSelect
 				style={{minWidth: 250}}
 				value={currentBallot_id}
@@ -184,7 +144,7 @@ function BallotSelector({
 				readOnly={readOnly}
 				withVotingPool={withVotingPool}
 			/>
-		</Container>
+		</div>
 	)
 }
 

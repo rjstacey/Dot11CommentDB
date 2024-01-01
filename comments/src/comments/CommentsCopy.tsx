@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { ActionButton } from 'dot11-components';
 
 import { useAppSelector } from '../store/hooks';

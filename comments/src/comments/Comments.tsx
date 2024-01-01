@@ -38,35 +38,21 @@ import {
 } from '../store/comments';
 import { selectIsOnline } from '../store/offline';
 
+import styles from "./comments.module.css";
 
-const FlexRow = styled.div`
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	& > *:not(:last-child) {
-		margin-right: 5px;
-	}
-`;
+const FlexRow = (props: React.ComponentProps<"div">) => (
+	<div className={styles.row} {...props} />
+);
 
 const renderPage = (page: string | number | null) => typeof page === 'number'? page.toFixed(2): page;
-
-const TextBlockContainer = styled.div`
-	overflow-wrap: break-word;
-	& p {
-		margin: 8px 0;
-	}
-	& p:first-of-type {
-		margin: 0;
-	}
-`;
 
 const renderTextBlock = (value: string) => {
 	if (!value)
 		return ''
 	return (
-		<TextBlockContainer>
+		<div className={styles.textBlockContainer}>
 			{value.split('\n').map((line, i) => <p key={i}>{line}</p>)}
-		</TextBlockContainer>
+		</div>
 	)
 }
 
@@ -122,14 +108,21 @@ function renderDataCellResolution({rowData}: {rowData: CommentResolution}) {
 }
 
 
-const DataSubcomponent = styled.div<{width?: number | string}>`
-	flex: 1 1 ${({width}) => width && typeof width === 'string'? width: width + 'px'};
-	padding-right: 5px;
-	box-sizing: border-box;
-	overflow: hidden;
-`;
+const DataSubcomponent = ({width, ...props}: {width: number | string} & React.ComponentProps<"div">) => (
+	<div
+		className={styles.subcomponent}
+		style={{flex: `1 1 ${width && typeof width === 'string'? width: width + 'px'}`}}
+		{...props}
+	/>
+);
 
-const HeaderSubcomponent = DataSubcomponent.withComponent(TableColumnHeader);
+const HeaderSubcomponent = ({width, ...props}: {width?: number | string} & React.ComponentProps<typeof TableColumnHeader>) => (
+	<TableColumnHeader
+		className={styles.subcomponent}
+		style={{flex: `1 1 ${width && typeof width === 'string'? width: width + 'px'}`}}
+		{...props}
+	/>
+);
 
 const renderHeaderCellStacked1 = (props: HeaderCellRendererProps) => 
 	<>
