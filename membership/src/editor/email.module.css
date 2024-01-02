@@ -1,0 +1,93 @@
+.paragraph {
+    margin: 14px 0;
+}
+
+.pre {
+    background-color: #f3f3f3;
+    font-family: "Inconsolata", "Menlo", "Consolas", monospace;
+    font-size: 16px;
+    margin: 14px 0;
+    padding: 20px;
+}
+
+.quote {
+    font-family: 'TimesNewRoman', serif;
+    margin: 10px 20px;
+    padding: 0 0;
+}
+
+.ul {
+    font-family: 'TimesNewRoman', serif;
+    list-style-type: "— "
+}
+
+.ol {
+    font-family: 'TimesNewRoman', serif;
+    list-style-type: numeric
+}
+
+/* There shouldn't be margin outside the first/last blocks */
+.paragraph:first-of-type,
+.quote:first-of-type,
+.pre:first-of-type,
+.ul:first-of-type,
+.ol:first-of-type {
+    margin-top: 0;
+}
+
+.paragraph:last-child,
+.quote:last-child,
+.pre:last-child,
+.ul:last-child,
+.ol:last-child {
+    margin-bottom: 0;
+}
+
+.h1 {
+	font-size: 24px;
+	color: rgb(5, 5, 5);
+	font-weight: 400;
+	margin: 0;
+	margin-bottom: 12px;
+	padding: 0;
+}
+
+.h2 {
+	font-size: 15px;
+	color: rgb(101, 103, 107);
+	font-weight: 700;
+	margin: 0;
+	margin-top: 10px;
+	padding: 0;
+	text-transform: uppercase;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.underline {
+    color: blue;
+    text-decoration: underline;
+}
+
+.strikethrough {
+    color: red;
+    text-decoration: line-through;
+}
+
+.highlight {
+    background-color: #faed27;
+}
+
+.ltr {
+    text-align: left;
+}
+
+.rtl {
+    text-align: right;
+}

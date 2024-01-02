@@ -11,6 +11,8 @@ import {
 	TableColumnSelector,
 	SplitPanelButton,
 	ColumnProperties,
+	TablesConfig,
+	TableConfig
 } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
@@ -85,6 +87,21 @@ const tableColumns: ColumnProperties[] = [
 	},
 ];
 
+let defaultTablesConfig: TablesConfig = {};
+const tableConfig: TableConfig = {
+	fixed: false,
+	columns: {},
+};
+for (const column of tableColumns) {
+	const key = column.key;
+	tableConfig.columns[key] = {
+		unselectable: key.startsWith("__"),
+		shown: true,
+		width: column.width || 200,
+	};
+}
+defaultTablesConfig['default'] = tableConfig;
+
 function Organization() {
 	const navigate = useNavigate();
 	const refresh = () => navigate(".", {replace: true});
@@ -115,6 +132,7 @@ function Organization() {
 			>
 				<Panel>
 					<AppTable
+						defaultTablesConfig={defaultTablesConfig}
 						columns={tableColumns}
 						headerHeight={32}
 						estimatedRowHeight={32}

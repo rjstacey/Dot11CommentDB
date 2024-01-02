@@ -309,7 +309,9 @@ class GroupDetail extends React.Component<
 
 		return (
 			<>
-				<div className="top-row justify-right">
+				<div className="top-row">
+					<h3 style={{color: '#0099cc', margin: 0}}>{title}</h3>
+					<div>
 					<ActionButton
 						name="add"
 						title="Add group"
@@ -323,12 +325,13 @@ class GroupDetail extends React.Component<
 						onClick={this.clickDelete}
 					/>
 				</div>
+				</div>
 				{notAvailableStr ? (
 					<div className="placeholder">{notAvailableStr}</div>
 				) : (
 					<GroupEntryEdit
 						action={action}
-						title={title}
+						//title={title}
 						entry={entry}
 						changeEntry={this.changeEntry}
 						submit={submit}

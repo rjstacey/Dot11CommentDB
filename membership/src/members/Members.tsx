@@ -79,7 +79,6 @@ function setClipboard(selected: EntityId[], members: MembersDictionary) {
 }
 
 const lineTruncStyle: React.CSSProperties = {
-	width: '100%',
 	overflow: 'hidden',
 	whiteSpace: 'nowrap',
 	textOverflow: 'ellipses'

@@ -1,5 +1,4 @@
 import * as React from "react";
-import styled from "@emotion/styled";
 
 import { $getRoot, LexicalNode } from "lexical";
 
@@ -30,8 +29,9 @@ import LinkEditorPlugin from "./LinkEditorPlugin";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
-import ExampleTheme, { editorCss } from "./EditorTheme";
+import ExampleTheme from "./EditorTheme";
 import styles from "./Editor.module.css";
+import emailStyles from "./email.module.css";
 
 import { useDebounce } from "../components/useDebounce";
 
@@ -133,16 +133,6 @@ function InportExportPlugin({
 	);
 }
 
-const InnerContainer = styled.div`
-	position: relative;
-	border: #eee solid 2px;
-	border-top: none;
-	border-bottom-left-radius: 10px;
-	border-bottom-right-radius: 10px;
-
-	${editorCss}
-`;
-
 function Editor({
 	subject,
 	defaultBody,
@@ -161,7 +151,7 @@ function Editor({
 			<div>
 				<ToolbarPlugin />
 				<HistoryPlugin />
-				<InnerContainer>
+				<div className={styles.innerContainer}>
 					<div className={styles.subjectContainer}>
 						<label>Subject:</label>
 						{readOnly ? (
@@ -178,7 +168,7 @@ function Editor({
 					</div>
 					<RichTextPlugin
 						contentEditable={
-							<ContentEditable className={styles.bodyContainer} />
+							<ContentEditable className={styles.bodyContainer + " " + emailStyles.body} />
 						}
 						placeholder={placeholderEl}
 						ErrorBoundary={LexicalErrorBoundary}
@@ -195,7 +185,7 @@ function Editor({
 					<LinkEditorPlugin />
 					<ListMaxIndentLevelPlugin maxDepth={7} />
 					<MarkdownShortcutPlugin transformers={TRANSFORMERS} />
-				</InnerContainer>
+				</div>
 			</div>
 		</LexicalComposer>
 	);

@@ -38,16 +38,16 @@ import { selectUser, type User } from "../store/user";
 function doSubstitution(
 	email: EmailTemplate,
 	member: Member,
-	session: Session
+	session: Session | undefined
 ) {
 	const sub: { [K: string]: string } = {
 		FirstName: member.FirstName,
 		LastName: member.LastName,
 		Name: member.Name,
 		Status: member.Status,
-		SessionName: session.name,
-		SessionNumber: "" + session.number,
-		SessionDate: displayDateRange(session.startDate, session.endDate),
+		SessionName: session?.name || "None",
+		SessionNumber: "" + session?.number + "(None)",
+		SessionDate: session? displayDateRange(session.startDate, session.endDate): "-",
 		BallotParticipation: "ballot participation",
 	};
 
