@@ -145,6 +145,7 @@ function SelectTextBlockType({
 
 	return (
 		<Select
+			style={{width: 200}}
 			aria-label="Text Block Type Options"
 			options={blockTypeOptions}
 			values={values}
