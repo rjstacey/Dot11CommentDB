@@ -12,7 +12,7 @@ type OfflineState = {
 };
 
 export const initialState: OfflineState = {
-	online: false,
+	online: true,
 	busy: false,
 	timerId: 0,
 	outbox: [],

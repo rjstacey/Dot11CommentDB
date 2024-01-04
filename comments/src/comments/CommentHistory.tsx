@@ -51,14 +51,14 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 	const updatedComment = {...comment, ...changes};
 
 	let body: JSX.Element[] = [];
-	if ('CommentID' in changes)
+	if (changes.hasOwnProperty('CommentID'))
 		body.push(
 			<Row key='cid'>
 				<FieldLeft label='CID:'>{changes.CommentID || BLANK_STR}</FieldLeft>
 			</Row>
 		);
 
-	if ('Page' in changes || 'Clause' in changes)
+	if (changes.hasOwnProperty('Page') || changes.hasOwnProperty('Clause'))
 		body.push(
 			<Row key='pageclause'>
 				<Col>
@@ -70,7 +70,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 			</Row>
 		);
 
-	if ('AdHoc' in changes || 'CommentGroup' in changes)
+	if (changes.hasOwnProperty('AdHoc') || changes.hasOwnProperty('CommentGroup'))
 		body.push(
 			<Row key='pageclause'>
 				<Col>
@@ -82,7 +82,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 			</Row>
 		)
 
-	if ('Notes' in changes)
+	if (changes.hasOwnProperty('Notes'))
 		body.push(
 			<Row key='notes'>
 				<CommentNotes comment={updatedComment} showNotes readOnly />
@@ -117,7 +117,7 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 	const updatedResolution = {...resolution, ...changes};
 	let body: JSX.Element[] = [];
 
-	if ('AssigneeName' in changes)
+	if (changes.hasOwnProperty('AssigneeName'))
 		body.push(
 			<Row key='assignee'>
 				<ResolutionAssignee
@@ -127,7 +127,7 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 			</Row>
 		);
 
-	if ('Submission' in changes)
+	if (changes.hasOwnProperty('Submission'))
 		body.push(
 			<Row key='submission'>
 				<ResolutionSubmission
@@ -137,7 +137,7 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 			</Row>
 		);
 
-	if ('ReadyForMotion' in changes || 'ApprovedByMotion' in changes)
+	if (changes.hasOwnProperty('ReadyForMotion') || changes.hasOwnProperty('ApprovedByMotion'))
 		body.push(
 			<Row key='approval'>
 				<ResolutionApproval
@@ -147,7 +147,7 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 			</Row>
 		);
 
-	if ('ResnStatus' in changes || 'Resolution' in changes)
+	if (changes.hasOwnProperty('ResnStatus') || changes.hasOwnProperty('Resolution'))
 		body.push(
 			<Row key='resolution'>
 				<ResolutionAndStatus
@@ -157,7 +157,7 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 			</Row>
 		);
 
-	if ('EditStatus' in changes || 'EditNotes' in changes || 'EditInDraft' in changes)
+	if (changes.hasOwnProperty('EditStatus') || changes.hasOwnProperty('EditNotes') || changes.hasOwnProperty('EditInDraft'))
 		body.push(
 			<Row key='editing'>
 				<EditingEdit
@@ -230,8 +230,6 @@ function CommentHistoryDisplay() {
 				dispatch(loadCommentsHistory(c.comment_id));
 		}
 	}
-
-	console.log(commentsHistory)
 
 	return (
 		<ActionButtonModal
