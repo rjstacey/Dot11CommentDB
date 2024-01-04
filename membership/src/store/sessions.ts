@@ -44,38 +44,11 @@ export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 export const displaySessionType = (type: SessionType) =>
 	SessionTypeLabels[type] || "Unknown";
 
-/*
- * Selectors
- */
-const dataSet = "sessions";
-export const selectSessionsState = (state: RootState) => state[dataSet];
-export const selectSessionIds = (state: RootState) =>
-	selectSessionsState(state).ids;
-export const selectSessionEntities = (state: RootState) =>
-	selectSessionsState(state).entities;
-
-export const selectSessions = createSelector(
-	selectSessionIds,
-	selectSessionEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
-);
-
-export const selectRecentSessions = createSelector(
-	selectSessions,
-	(sessions) => {
-		const today = new Date();
-		return sessions
-			.filter((s) => new Date(s.startDate) < today)
-			.slice(0, 8);
-	}
-);
-
-export const selectSession = (state: RootState, id: EntityId) =>
-	selectSessionEntities(state)[id];
 
 /*
  * Slice
  */
+const dataSet = "sessions";
 
 type ExtraState = {
 	loading: boolean;
@@ -125,7 +98,7 @@ const slice = createSlice({
 export default slice;
 
 /*
- * Actions
+ * Slice actions
  */
 export const sessionsActions = slice.actions;
 
@@ -139,6 +112,37 @@ const {
 
 export { clearSessions, upsertSessions };
 
+/*
+ * Selectors
+ */
+export const selectSessionsState = (state: RootState) => state[dataSet];
+export const selectSessionIds = (state: RootState) =>
+	selectSessionsState(state).ids;
+export const selectSessionEntities = (state: RootState) =>
+	selectSessionsState(state).entities;
+
+export const selectSessions = createSelector(
+	selectSessionIds,
+	selectSessionEntities,
+	(ids, entities) => ids.map((id) => entities[id]!)
+);
+
+export const selectRecentSessions = createSelector(
+	selectSessions,
+	(sessions) => {
+		const today = new Date();
+		return sessions
+			.filter((s) => new Date(s.startDate) < today)
+			.slice(0, 8);
+	}
+);
+
+export const selectSession = (state: RootState, id: EntityId) =>
+	selectSessionEntities(state)[id];
+
+/*
+ * Thunk actions
+ */
 function validSession(session: any): session is Session {
 	return (
 		isObject(session) &&

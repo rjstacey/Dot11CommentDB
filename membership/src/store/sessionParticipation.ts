@@ -127,6 +127,15 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
+/* Slice actions */
+export const attendancesActions = slice.actions;
+
+const { getSuccess, getFailure, setOne, setDetails } = slice.actions;
+
+// Overload getPending() with one that sets groupName
+const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
+export const clearAttendances = createAction(dataSet + "/clear");
+
 /*
  * Selectors
  */
@@ -344,16 +353,8 @@ export const attendancesSelectors = getAppTableDataSelectors(
 );
 
 /*
- * Actions
+ * Thunk actions
  */
-export const attendancesActions = slice.actions;
-
-const { getSuccess, getFailure, setOne, setDetails } = slice.actions;
-
-// Overload getPending() with one that sets groupName
-const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
-export const clearAttendances = createAction(dataSet + "/clear");
-
 function validResponse(
 	response: any
 ): response is {
@@ -386,6 +387,7 @@ export const loadAttendances =
 					throw new TypeError("Unexpected response to GET " + url);
 				dispatch(upsertSessions(response.sessions));
 				dispatch(getSuccess(response.attendances));
+				dispatch(setDetails({sessionIds: response.sessions.map(s => s.id)}));
 				return response.attendances;
 			})
 			.catch((error: any) => {

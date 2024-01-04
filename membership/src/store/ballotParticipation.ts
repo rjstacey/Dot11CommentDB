@@ -128,6 +128,17 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
+/* Slice actions */
+const { getSuccess, getFailure, setBallotSeries, setBallots, setOne } =
+	slice.actions;
+
+// Overload getPending() with one that sets groupName
+const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
+export const clearBallotParticipation = createAction(dataSet + "/clear");
+
+export const ballotParticipationActions = slice.actions;
+
+
 /*
  * Selectors
  */
@@ -282,17 +293,8 @@ export const ballotParticipationSelectors = getAppTableDataSelectors(
 );
 
 /*
- * Actions
+ * Thunk actions
  */
-const { getSuccess, getFailure, setBallotSeries, setBallots, setOne } =
-	slice.actions;
-
-// Overload getPending() with one that sets groupName
-const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
-export const clearBallotParticipation = createAction(dataSet + "/clear");
-
-export const ballotParticipationActions = slice.actions;
-
 function validResponse(response: any): response is {
 	ballots: Ballot[];
 	ballotSeries: BallotSeries[];
