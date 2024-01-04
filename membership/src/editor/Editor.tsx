@@ -1,48 +1,108 @@
-import * as React from "react";
-
-import { $getRoot, LexicalNode } from "lexical";
-
+import React from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
-import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
+import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
-import { TRANSFORMERS } from "@lexical/markdown";
-import { $isLinkNode, $createAutoLinkNode } from "@lexical/link";
-import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
+import { ParagraphNode } from "lexical";
 
 import ListMaxIndentLevelPlugin from "./ListMaxIndentLevelPlugin";
 import ToolbarPlugin from "./ToolbarPlugin";
 import AutoLinkPlugin from "./AutoLinkPlugin";
 import LinkEditorPlugin from "./LinkEditorPlugin";
+import InportExportPlugin from "./ImportExportPlugin";
 
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import styles from "./editor.module.css";
 
-import ExampleTheme from "./EditorTheme";
-import styles from "./Editor.module.css";
-import emailStyles from "./email.module.css";
+const theme = {
+	ltr: "ltr",
+	rtl: "rtl",
+	paragraph: "paragraph",
+	quote: "quote",
+	heading: {
+		h1: "h1",
+		h2: "h2",
+	},
+	list: {
+		nested: {
+			listitem: "nested-listitem",
+		},
+		ol: "ol",
+		ul: "ul",
+		listitem: "list-item",
+	},
+	image: "editor-image",
+	link: "link",
+	text: {
+		bold: "bold",
+		italic: "italic",
+		underline: "underline",
+		strikethrough: "strikethrough",
+		code: "code",
+	},
+	code: "code",
+};
 
-import { useDebounce } from "../components/useDebounce";
+const emailStylesObj: Record<string, string> = {
+	paragraph: "font-size: 14px; lineHeight: 24px; margin: 16px 0",
+	link: "color: #067df7; text-decoration: none;",
+	quote: "font-family: 'TimesNewRoman', serif; margin: 10px 20px; padding: 0 0;",
+	code: 'background-color: #f3f3f3; font-family: "Inconsolata", "Menlo", "Consolas", monospace; font-size: 16px; margin: 14px 0;',
+	h1: "font-size: 24px; color: rgb(5, 5, 5); font-weight: 400; margin: 0; margin-bottom: 12px; padding: 0;",
+	h2: "font-size: 15px; color: rgb(101, 103, 107); font-weight: 700; margin: 0; margin-top: 10px; padding: 0; text-transform: uppercase;",
+	ul: "font-family: 'TimesNewRoman', serif; list-style-type: '— '",
+	strikethrough: "text-decoration: line-through;",
+	underline: "text-decoration: underline;",
+	bold: "font-weight: bold;",
+	italic: "font-style: italic;",
+};
 
-const placeholderEl = (
-	<div className={styles.placeholder}>Enter some rich text...</div>
-);
+const emailStylesText = Object.entries(emailStylesObj)
+	.map(([key, value]) => `.${styles.bodyContainer} .${key} {${value}}`)
+	.join("\n");
+const emailStyles = new CSSStyleSheet();
+emailStyles.replaceSync(emailStylesText);
+
+function substituteStyleForClass(n: HTMLElement) {
+	let styles = [n.style.cssText];
+	n.classList.forEach((cn) => {
+		if (Object.keys(emailStylesObj).includes(cn)) {
+			console.log("got ", cn);
+			styles.push(emailStylesObj[cn]);
+			n.classList.remove(cn);
+		}
+	});
+	styles = styles.filter((s) => Boolean(s));
+	if (styles.length > 0) n.style.cssText = styles.join("; ");
+}
+
+function recurseHtmlElements(n: Node) {
+	if (n instanceof HTMLElement) {
+		substituteStyleForClass(n);
+	}
+	n.childNodes.forEach(recurseHtmlElements);
+}
+
+export function replaceClassWithInlineStyle(body: string) {
+	const parser = new DOMParser();
+	let dom = parser.parseFromString(body, "text/html");
+	dom.childNodes.forEach(recurseHtmlElements);
+	return dom.documentElement.innerHTML;
+}
 
 const editorConfig = {
-	namespace: "MyEditor",
+	namespace: "email",
 	// The editor theme
-	theme: ExampleTheme,
+	theme,
 	// Handling of errors during update
 	onError(error: any) {
 		throw error;
@@ -59,134 +119,103 @@ const editorConfig = {
 		TableRowNode,
 		AutoLinkNode,
 		LinkNode,
+		ParagraphNode,
 	],
 };
 
-function recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
-	if (!node) return;
-	if (node.getChildren)
-		node.getChildren().forEach(recursivelyReplaceLinkWithAutoLink);
-	if ($isLinkNode(node)) {
-		const url = node.getURL();
-		const text = node.getTextContent();
-		if (url === text || url === "mailto:" + text) {
-			node.replace($createAutoLinkNode(url), true);
-		}
-	}
-}
-
-function InportExportPlugin({
-	defaultValue,
-	onChange,
+function SubjectEditor({
+	subject,
+	onChangeSubject,
 	readOnly,
 }: {
-	defaultValue: string;
-	onChange: (value: string) => void;
+	subject: string;
+	onChangeSubject: (value: string) => void;
 	readOnly: boolean;
 }) {
-	const [editor] = useLexicalComposerContext();
-	const doneRef = React.useRef(false);
-
-	const debouncedOnChange = useDebounce(() => {
-		if (readOnly) return;
-		editor.update(() => {
-			const value = $generateHtmlFromNodes(editor, null);
-			onChange(value);
-		});
-	});
-
-	React.useEffect(() => {
-		if (doneRef.current || !defaultValue) return;
-		doneRef.current = true;
-
-		editor.update(() => {
-			const parser = new DOMParser();
-			// Convert string to DOM. But if the first body node is a text, then assume input is just text and not HTML.
-			let dom = parser.parseFromString(defaultValue, "text/html");
-			if (dom.body.firstChild?.nodeType === Node.TEXT_NODE) {
-				const value = defaultValue
-					.split("\n")
-					.map((t) => `<p>${t}</p>`)
-					.join("");
-				dom = parser.parseFromString(value, "text/html");
-			}
-			const nodes = $generateNodesFromDOM(editor, dom);
-			$getRoot()
-				.getChildren()
-				.forEach((c) => c.remove());
-			$getRoot().append(...nodes);
-
-			recursivelyReplaceLinkWithAutoLink($getRoot());
-		});
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-	React.useEffect(() => {
-		editor.setEditable(!readOnly);
-	}, [editor, readOnly]);
-
 	return (
-		<OnChangePlugin
-			onChange={debouncedOnChange}
-			ignoreHistoryMergeTagChange
-			ignoreSelectionChange
-		/>
+		<div className={styles.subjectContainer}>
+			<label>Subject:</label>
+			{readOnly ? (
+				<span>{subject}</span>
+			) : (
+				<input
+					type="text"
+					value={subject}
+					onChange={(e) => {
+						onChangeSubject(e.target.value);
+					}}
+				/>
+			)}
+		</div>
 	);
 }
 
 function Editor({
 	subject,
-	defaultBody,
+	body,
 	onChangeSubject,
 	onChangeBody,
-	readOnly,
+	preview,
 }: {
 	subject: string;
-	defaultBody: string;
+	body: string;
 	onChangeSubject: (value: string) => void;
 	onChangeBody: (value: string) => void;
-	readOnly: boolean;
+	preview: boolean;
 }) {
+	React.useEffect(() => {
+		// Add theme stylesheet on mount and remove on unmount
+		document.adoptedStyleSheets.push(emailStyles);
+		return () => {
+			document.adoptedStyleSheets.pop();
+		};
+	}, []);
+
+	if (preview) {
+		body = replaceClassWithInlineStyle(body);
+		console.log(body);
+	}
+
 	return (
 		<LexicalComposer initialConfig={editorConfig}>
-			<div>
+			<div className={styles.container}>
 				<ToolbarPlugin />
-				<HistoryPlugin />
-				<div className={styles.innerContainer}>
-					<div className={styles.subjectContainer}>
-						<label>Subject:</label>
-						{readOnly ? (
-							<span>{subject}</span>
-						) : (
-							<input
-								type="text"
-								value={subject}
-								onChange={(e) => {
-									onChangeSubject(e.target.value);
-								}}
-							/>
-						)}
-					</div>
+				<SubjectEditor
+					subject={subject}
+					onChangeSubject={onChangeSubject}
+					readOnly={preview}
+				/>
+				{preview ? (
+					<div
+						className={styles.bodyContainer}
+						dangerouslySetInnerHTML={{ __html: body }}
+					/>
+				) : (
 					<RichTextPlugin
 						contentEditable={
-							<ContentEditable className={styles.bodyContainer + " " + emailStyles.body} />
+							<ContentEditable className={styles.bodyContainer} />
 						}
-						placeholder={placeholderEl}
+						placeholder={
+							<div className={styles.placeholder}>
+								Email body here...
+							</div>
+						}
 						ErrorBoundary={LexicalErrorBoundary}
 					/>
-					<InportExportPlugin
-						defaultValue={defaultBody}
-						onChange={onChangeBody}
-						readOnly={readOnly}
-					/>
-					<AutoFocusPlugin />
-					<ListPlugin />
-					<LinkPlugin />
-					<AutoLinkPlugin />
-					<LinkEditorPlugin />
-					<ListMaxIndentLevelPlugin maxDepth={7} />
-					<MarkdownShortcutPlugin transformers={TRANSFORMERS} />
-				</div>
+				)}
 			</div>
+			<LinkEditorPlugin />
+			<InportExportPlugin
+				value={body}
+				onChange={onChangeBody}
+				readOnly={preview}
+			/>
+			<HistoryPlugin />
+			<AutoFocusPlugin />
+			<ListPlugin />
+			<LinkPlugin />
+			<AutoLinkPlugin />
+			<ListMaxIndentLevelPlugin maxDepth={7} />
 		</LexicalComposer>
 	);
 }

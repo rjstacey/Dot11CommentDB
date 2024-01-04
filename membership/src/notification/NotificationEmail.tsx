@@ -1,5 +1,4 @@
 import * as React from "react";
-import { Markdown } from "@react-email/markdown";
 import { Html } from "@react-email/html";
 import { render } from "@react-email/render";
 import {
@@ -16,7 +15,7 @@ import {
 } from "dot11-components";
 
 import { useDebounce } from "../components/useDebounce";
-import Editor from "../editor/Editor";
+import Editor, {replaceClassWithInlineStyle} from "../editor/Editor";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
@@ -33,7 +32,6 @@ import { selectMembersState, type Member } from "../store/members";
 import { type Session } from "../store/sessions";
 import { selectMostRecentAttendedSession } from "../store/sessionParticipation";
 import { selectUser, type User } from "../store/user";
-
 
 function doSubstitution(
 	email: EmailTemplate,
@@ -56,6 +54,8 @@ function doSubstitution(
 		email.body
 	);
 
+	body = replaceClassWithInlineStyle(body);
+
 	return { ...email, body };
 }
 
@@ -73,11 +73,7 @@ function genEmails({
 	return members.map((member) => {
 		const email = doSubstitution(emailTemplate, member, session);
 
-		const html = render(
-			<Html lang="en" dir="ltr">
-				<PreviewEmail value={email} info={info} />
-			</Html>
-		);
+		const html = render(<FormatBody body={email.body} />);
 
 		const emailOut: Email = {
 			Destination: {
@@ -107,44 +103,15 @@ function genEmails({
 	});
 }
 
-function FormatEmail({
-	email,
-	style,
+function FormatBody({
+	body
 }: {
-	email: EmailTemplate;
-	style?: React.CSSProperties;
+	body: string;
 }) {
 	return (
-		<Markdown
-			markdownCustomStyles={{
-				h1: { color: "red" },
-				h2: { color: "blue" },
-				codeInline: { background: "grey" },
-			}}
-			markdownContainerStyles={{
-				padding: "12px",
-				border: "solid 1px black",
-			}}
-		>
-			{email.body}
-		</Markdown>
+		<Html lang="en" dir="ltr" dangerouslySetInnerHTML={{__html: body}} />
 	);
 }
-
-const PreviewEmail = ({
-	value,
-	info,
-}: {
-	value: EmailTemplate;
-	info: Info;
-}) => {
-	const { members, session } = info;
-	if (members.length === 0) return null;
-	const member = members[0];
-
-	const email = doSubstitution(value, member, session);
-	return <FormatEmail email={email} />;
-};
 
 function SelectEmailTemplate({
 	value,
@@ -293,14 +260,14 @@ function NotificationEmail() {
 			</Row>
 			{edited && (
 				<Row>
-					<Editor
-						key={"" + preview + edited.id}
-						subject={edited.subject}
-						defaultBody={edited.body}
-						onChangeSubject={(subject) => changeTemplate({ subject })}
-						onChangeBody={(body) => changeTemplate({ body })}
-						readOnly={preview}
-					/>
+						<Editor
+							key={"" + preview + edited.id}
+							subject={edited.subject}
+							body={edited.body}
+							onChangeSubject={(subject) => changeTemplate({ subject })}
+							onChangeBody={(body) => changeTemplate({ body })}
+							preview={preview}
+						/>
 				</Row>
 			)}
 		</Form>
