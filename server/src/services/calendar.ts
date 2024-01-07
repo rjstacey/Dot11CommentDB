@@ -2,6 +2,7 @@ import axios from 'axios';
 import { OAuth2Client } from 'google-auth-library';
 // Google Calendar: https://developers.google.com/calendar/api/v3/reference/calendars
 import { google, calendar_v3 } from 'googleapis';
+import { Request } from 'express';
 import { User } from './users';
 
 import {
@@ -30,9 +31,11 @@ const calendarRevokeUrl = 'https://oauth2.googleapis.com/revoke';
 
 const calendarAuthScope = 'https://www.googleapis.com/auth/calendar';	// string or array of strings
 
-const calendarAuthRedirectUri = process.env.NODE_ENV === 'development'?
+/* const calendarAuthRedirectUri = process.env.NODE_ENV === 'development'?
 	'http://localhost:3000/oauth2/calendar':
-	'https://802tools.org/oauth2/calendar';
+	'https://802tools.org/oauth2/calendar';*/
+
+const calendarAuthRedirectPath = "/oauth2/calendar";
 
 // Calendar account cache
 const calendars: Record<number, calendar_v3.Calendar> = {};
@@ -86,7 +89,7 @@ function createAuthApi(id: number) {
 	const auth = new google.auth.OAuth2(
 		googleClientId,
 		googleClientSecret,
-		calendarAuthRedirectUri
+		//calendarAuthRedirectUri
 	).on('tokens', (tokens) => {
 		// Listen for token updates and record the latest
 		//console.log(`update credentials for ${id}:`, tokens);
@@ -105,12 +108,12 @@ export async function init() {
 	if (process.env.GOOGLE_CLIENT_ID)
 		googleClientId = process.env.GOOGLE_CLIENT_ID;
 	else
-		console.warn("Missing variable GOOGLE_CLIENT_ID");
+		console.warn("Calendar API: Missing .env variable GOOGLE_CLIENT_ID");
 
 	if (process.env.GOOGLE_CLIENT_SECRET)
 		googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 	else
-		console.warn("Missing variable GOOGLE_CLIENT_SECRET");
+		console.warn("Calendar API: Missing .env variable GOOGLE_CLIENT_SECRET");
 
 	// Cache the active calendar accounts and create an api instance for each
 	const accounts = await getOAuthParams({type: "calendar"});
@@ -131,13 +134,14 @@ export async function init() {
  * @param user The user that will perform the auth
  * @param id Calendar account identifier
  */
-function getAuthUrl(user: User, id: number) {
+function getAuthUrl(user: User, host: string, id: number) {
 	const auth = getAuthApi(id);
 	return auth.generateAuthUrl({
 		access_type: 'offline',
 		scope: calendarAuthScope,
-		state: genOAuthState({accountId: id, userId: user.SAPIN, host: ''}),
-		include_granted_scopes: true
+		state: genOAuthState({accountId: id, userId: user.SAPIN, host}),
+		include_granted_scopes: true,
+		redirect_uri: host + calendarAuthRedirectPath
 	});
 }
 
@@ -159,10 +163,10 @@ export async function completeAuthCalendarAccount({
 		console.warn('OAuth completion with bad state', state);
 		return;
 	}
-	const {accountId, userId} = stateObj;
+	const {accountId, userId, host} = stateObj;
 	const auth = getAuthApi(accountId);
 	
-	const {tokens} = await auth.getToken(code);
+	const {tokens} = await auth.getToken({code, redirect_uri: host + calendarAuthRedirectPath});
 	auth.setCredentials(tokens);
 	await updateAuthParams(accountId, tokens, userId);
 	
@@ -171,6 +175,7 @@ export async function completeAuthCalendarAccount({
 }
 
 export async function getCalendarAccounts(
+	req: Request,
 	user: User,
 	constraints?: {
 		id?: number | number[];
@@ -179,11 +184,15 @@ export async function getCalendarAccounts(
 	}
 ) {
 	const accountsDB = await getOAuthAccounts({type: "calendar", ...constraints});
+
+	const m = /(https{0,1}:\/\/[^\/]+)/i.exec(req.headers.referer || '');
+	const host = m? m[1]: '';
+
 	const p: Promise<any>[] = [];
 	const accounts = accountsDB.map(accountDB => {
 		const account: CalendarAccount = {...accountDB};
 		try {
-			account.authUrl = getAuthUrl(user, account.id);
+			account.authUrl = getAuthUrl(user, host, account.id);
 		}
 		catch (error) {
 			console.warn(error);
@@ -194,14 +203,19 @@ export async function getCalendarAccounts(
 					.then(details => {
 						if (details) {
 							account.details = details;
-							if (details.summary)
-								account.displayName = details.summary;
-							if (details.id)
-								account.userName = details.id;
+							account.displayName = details.summary || "";
+							account.userName = details.id || "";
 						}
 					})
-					.catch(error => console.warn(error /*`Can't get ${account.name} (id=${account.id}) details:`, error.toString()*/))
+					.catch(error => console.warn(error))
 			);
+			/*p.push(
+				getCalendarList(account.id)
+					.then(calendarList => {
+						console.log(calendarList)
+					})
+					.catch(error => console.warn(error))
+			);*/
 		}
 		return account;
 	});
@@ -215,7 +229,7 @@ export async function getCalendarAccounts(
  * @param accountIn Expects calendar account create object, throws otherwise
  * @returns Calendar account object as added
  */
-export async function addCalendarAccount(user: User, groupId: string, accountIn: any) {
+export async function addCalendarAccount(req: Request, user: User, groupId: string, accountIn: any) {
 	if (!isPlainObject(accountIn))
 		throw new TypeError("Bad body; expected calendar account create object");
 	let account: OAuthAccountCreate = {
@@ -226,7 +240,7 @@ export async function addCalendarAccount(user: User, groupId: string, accountIn:
 	}
 	const id = await addOAuthAccount(account);
 	createAuthApi(id);
-	const [accountUpdated] = await getCalendarAccounts(user, {id});
+	const [accountUpdated] = await getCalendarAccounts(req, user, {id});
 	return accountUpdated;
 }
 
@@ -236,13 +250,13 @@ export async function addCalendarAccount(user: User, groupId: string, accountIn:
  * @param id Calendar account identifier
  * @param changes Expects calendar account update object, throws otherwise
  */
-export async function updateCalendarAccount(user: User, groupId: string, id: number, changes: any) {
+export async function updateCalendarAccount(req: Request, user: User, groupId: string, id: number, changes: any) {
 	if (!id)
 		throw new TypeError('Must provide id with update');
 	if (!validOAuthAccountChanges(changes))
 		throw new TypeError("Bad body; expected calendar account changes object");
 	await updateOAuthAccount(groupId, id, changes);
-	const [account] = await getCalendarAccounts(user, {id});
+	const [account] = await getCalendarAccounts(req, user, {id});
 	return account;
 }
 
@@ -251,7 +265,7 @@ export async function updateCalendarAccount(user: User, groupId: string, id: num
  * @param user The user revoking the authorization
  * @param id Calendar account identifier
  */
-export async function revokeAuthCalendarAccount(user: User, groupId: string, id: number) {
+export async function revokeAuthCalendarAccount(req: Request, user: User, groupId: string, id: number) {
 	const auth = getAuthApi(id);
 
 	axios.post(calendarRevokeUrl, {token: auth.credentials.access_token})
@@ -261,7 +275,7 @@ export async function revokeAuthCalendarAccount(user: User, groupId: string, id:
 	deleteCalendarApi(id);
 	createAuthApi(id);		// replace current auth context with clean one
 
-	const [account] = await getCalendarAccounts(user, {id});
+	const [account] = await getCalendarAccounts(req, user, {id});
 	return account;
 }
 
@@ -298,6 +312,14 @@ export async function getPrimaryCalendar(id: number): Promise<calendar_v3.Schema
 		.then(response => response.data)
 		.catch(calendarApiError);
 }
+
+export async function getCalendarList(id: number): Promise<calendar_v3.Schema$CalendarListEntry | void> {
+	const calendar = getCalendarApi(id);
+	return calendar.calendarList.list()
+		.then(response => response.data)
+		.catch(calendarApiError);
+}
+
 
 export type CalendarEvent = calendar_v3.Schema$Event;
 

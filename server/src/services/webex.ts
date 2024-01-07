@@ -19,6 +19,7 @@ import {
 	OAuthAccountCreate
 } from './oauthAccounts';
 import { Request } from 'express';
+import { getSession } from './sessions';
 
 type WebexPerson = {
 	id: string;
@@ -28,10 +29,34 @@ type WebexPerson = {
 	orgId: string;
 }
 
+type WebexAudioPreferences = {
+	defaultAudioType: "webexAudio" | "voipOnly" | "otherTeleconferenceService" | "none";
+	otherTeleconferenceDescription: string;
+	enabledGlobalCallIn: boolean;
+	enabledAutoConnection: boolean;
+	audioPin: string;
+	officeNumber: any;
+	mobileNumber: any;
+}
+
+type WebexSchedulingOptions = {
+	enabledJoinBeforeHost: boolean;
+	joinBeforeHostMinutes: number;
+	enabledAutoShareRecording: boolean;
+}
+
+type WebexMeetingPreferences = {
+	audio: WebexAudioPreferences;
+	schedulingOptions: WebexSchedulingOptions;
+	sites: any;
+	personalMeetingRoom: any;
+}
+
 type WebexAccount = OAuthAccount & {
 	authUrl: string;
 	templates: any[];
 	owner?: WebexPerson;
+	preferences?: WebexMeetingPreferences;
 	displayName?: string;
 	userName?: string;
 }
@@ -53,9 +78,9 @@ const webexAuthScope = [
 	"meeting:preferences_read"
 ].join(' ');
 
-const webexAuthRedirectUri = process.env.NODE_ENV === 'development'?
+/* const webexAuthRedirectUri = process.env.NODE_ENV === 'development'?
 	'http://localhost:3000/oauth2/webex':
-	'https://802tools.org/oauth2/webex';
+	'https://802tools.org/oauth2/webex';*/
 
 const webexAuthRedirectPath = "/oauth2/webex";
 
@@ -172,12 +197,12 @@ export async function init() {
 	if (process.env.WEBEX_CLIENT_ID)
 		webexClientId = process.env.WEBEX_CLIENT_ID;
 	else
-		console.warn("Missing variable WEBEX_CLIENT_ID");
+		console.warn("Webex API: Missing .env variable WEBEX_CLIENT_ID");
 
 	if (process.env.WEBEX_CLIENT_SECRET)
 		webexClientSecret = process.env.WEBEX_CLIENT_SECRET;
 	else
-		console.warn("Missing variable WEBEX_CLIENT_SECRET");
+		console.warn("Webex API: Missing .env variable WEBEX_CLIENT_SECRET");
 
 	// Cache the active webex accounts and create an axios api for each
 	const accounts = await getOAuthParams({type: "webex"});
@@ -194,7 +219,7 @@ export async function init() {
  * Get the URL for authorizing webex access
  * 
  * @param user The user executing the request
- * @param hostname Hostname (from HTTP request)
+ * @param host Hostname (from HTTP request)
  * @param id Webex account identifier
  * @returns The URL for authorizing Webex access
  */
@@ -271,7 +296,6 @@ export async function getWebexAccounts(
 			p.push(
 				getWebexAccountOwner(account.id)
 					.then((owner) => {
-						console.log(owner);
 						account.owner = owner;
 						account.displayName = owner.displayName;
 						account.userName = owner.userName;
@@ -282,6 +306,13 @@ export async function getWebexAccounts(
 				getWebexTemplates(account.id)
 					.then((templates) => {
 						account.templates = templates;
+					})
+					.catch(error => console.warn(error))
+			);
+			p.push(
+				getWebexMeetingPreferences(account.id)
+					.then((preferences) => {
+						account.preferences = preferences;
 					})
 					.catch(error => console.warn(error))
 			);
@@ -375,15 +406,22 @@ function webexApiError(error: any) {
 
 async function getWebexAccountOwner(id: number) {
 	const api = getWebexApi(id);
-	return api.get(`/people/me`)
+	return api.get('/people/me')
 		.then(response => response.data)
 		.catch(webexApiError);
 }
 
 async function getWebexTemplates(id: number) {
 	const api = getWebexApi(id);
-	return api.get(`/meetings/templates`, {params: {templateType: "meeting"}})
+	return api.get('/meetings/templates', {params: {templateType: "meeting"}})
 		.then(response => response.data.items)
+		.catch(webexApiError);
+}
+
+function getWebexMeetingPreferences(id: number) {
+	const api = getWebexApi(id);
+	return api.get('/meetingPreferences')
+		.then(response => response.data)
 		.catch(webexApiError);
 }
 
@@ -629,12 +667,14 @@ export function webexMeetingToWebexMeetingParams(i: WebexMeeting): WebexMeetingU
  */
 export async function getWebexMeetings({
 	groupId,
+	sessionId,
 	fromDate,
 	toDate,
 	timezone,
 	ids
 }: {
-	groupId?: any;
+	groupId?: string;
+	sessionId?: string;
 	fromDate?: string;
 	toDate?: string;
 	timezone?: string;
@@ -642,13 +682,25 @@ export async function getWebexMeetings({
 }) {
 	let webexMeetings: WebexMeeting[] = [];
 	const accounts = await getOAuthAccounts({type: "webex", groupId});
-	if (!timezone)
-		timezone = defaultTimezone;
+	let to: DateTime, from: DateTime;
+	if (sessionId) {
+		const session = await getSession(Number(sessionId));
+		if (!session)
+			throw new NotFoundError(`Session id=${sessionId} not found`);
+		if (!timezone)
+			timezone = session.timezone || defaultTimezone;
+		from = DateTime.fromISO(session.startDate, {zone: timezone});
+		to = DateTime.fromISO(session.endDate, {zone: timezone}).plus({days: 1});
+	}
+	else {
+		if (!timezone)
+			timezone = defaultTimezone;
+		from = fromDate? DateTime.fromISO(fromDate, {zone: timezone}): DateTime.now().setZone(timezone);
+		to = toDate? DateTime.fromISO(toDate, {zone: timezone}).plus({days: 1}): from.plus({years: 1});
+	}
 	for (const account of accounts) {
 		const api = getWebexApi(account.id);
 
-		const from = fromDate? DateTime.fromISO(fromDate, {zone: timezone}): DateTime.now().setZone(timezone);
-		const to = toDate? DateTime.fromISO(toDate, {zone: timezone}).plus({days: 1}): from.plus({years: 1});
 		const params = {
 			meetingType: 'scheduledMeeting',
 			scheduledType: 'meeting',

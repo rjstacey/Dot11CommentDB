@@ -2,7 +2,7 @@
  * Webex accounts and meetings API
  */
 import { Router } from "express";
-import { ForbiddenError, isPlainObject } from "../utils";
+import { ForbiddenError } from "../utils";
 import { AccessLevel } from "../auth/access";
 import {
 	getWebexAccounts,
@@ -119,7 +119,8 @@ router
 router
 	.route("/meetings")
 		.get((req, res, next) => {
-			getWebexMeetings(req.query)
+			const group = req.group!;
+			getWebexMeetings({groupId: group.id, ...req.query})
 				.then((data) => res.json(data))
 				.catch(next);
 		})

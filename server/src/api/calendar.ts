@@ -60,13 +60,13 @@ router
 	})
 	.route("/accounts")
 		.get((req, res, next) => {
-			getCalendarAccounts(req.user, {groupId: req.group!.id})
+			getCalendarAccounts(req, req.user, {groupId: req.group!.id})
 				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.post((req, res, next) => {
 			const account = req.body;
-			addCalendarAccount(req.user, req.group!.id, account)
+			addCalendarAccount(req, req.user, req.group!.id, account)
 				.then((data) => res.json(data))
 				.catch(next);
 		});
@@ -75,13 +75,13 @@ router
 	.patch("/accounts/:accountId(\\d+)", (req, res, next) => {
 		const accountId = Number(req.params.accountId);
 		const changes = req.body;
-		updateCalendarAccount(req.user, req.group!.id, accountId, changes)
+		updateCalendarAccount(req, req.user, req.group!.id, accountId, changes)
 			.then((data) => res.json(data))
 			.catch(next)
 	})
 	.patch("/accounts/:accountId(\\d+)/revoke", (req, res, next) => {
 		const accountId = Number(req.params.accountId);
-		revokeAuthCalendarAccount(req.user, req.group!.id, accountId)
+		revokeAuthCalendarAccount(req, req.user, req.group!.id, accountId)
 			.then((data) => res.json(data))
 			.catch(next);
 	})

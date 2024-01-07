@@ -71,7 +71,7 @@ interface MeetingUpdate {
 interface SelectMeetingsConstraints {
 	id?: number | number[];
 	groupId?: string;
-	sessionId?: number;
+	sessionId?: string;
 	fromDate?: string;
 	toDate?: string;
 	timezone?: string;
