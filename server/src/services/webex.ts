@@ -657,8 +657,9 @@ export function webexMeetingToWebexMeetingParams(i: WebexMeeting): WebexMeetingU
  * Get a list of Webex meetings.
  *
  * @param constraints Constraints object
- * @param constraints.groupId    If present, List meetings from Webex accounts associated with this groupId.
- * @param constraints.fromDate   If present, Webex meetings scheduled for on or after this date (ISO date string)
+ * @param constraints.groupId    Required. List meetings from Webex accounts associated with this groupId.
+ * @param constraints.sessionsId If present, fromDate, toDate and timezone are obtained from session information.
+ * @param constraints.fromDate   If present, Webex meetings scheduled on or after this date (ISO date string)
  * @param constraints.toDate     If present, Webex meetings scheduled before this date (ISO date string)
  * @param constraints.timezone   If present, return Webex meetings with schedule in timezone specified.
  * @param constraints.ids        If present, return Webex meetings with IDs in list.
@@ -722,9 +723,10 @@ export async function getWebexMeetings({
 	return webexMeetings;
 }
 
-export async function getWebexMeeting(accountId: number, id: string): Promise<WebexMeeting> {
+export async function getWebexMeeting(accountId: number, id: string, timezone?: string): Promise<WebexMeeting> {
 	const api = getWebexApi(accountId);
-	return api.get(`/meetings/${id}`)
+	const config = timezone? {headers: {timezone}}: undefined;
+	return api.get(`/meetings/${id}`, config)
 		.then(response => response.data)
 		.catch(webexApiError);
 }

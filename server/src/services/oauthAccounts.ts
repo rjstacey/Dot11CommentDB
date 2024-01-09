@@ -1,23 +1,23 @@
-import db from '../utils/database';
-import type { ResultSetHeader } from 'mysql2';
-import { isPlainObject } from '../utils';
+import db from "../utils/database";
+import type { ResultSetHeader } from "mysql2";
+import { isPlainObject } from "../utils";
 
 export type OAuthAccountCreate = {
 	name: string;
 	type: string;
 	groupId: string;
-}
+};
 
 export type OAuthAccount = OAuthAccountCreate & {
 	id: number;
 	authUserId: number | null;
 	authDate: string | null;
-}
+};
 
 export type OAuthParams = {
 	id: OAuthAccount["id"];
 	authParams: object | null;
-}
+};
 
 export type OAuthAccountChanges = Partial<OAuthAccountCreate>;
 
@@ -25,13 +25,15 @@ type AuthState = {
 	accountId: number;
 	userId: number;
 	host: string;
-}
+};
 
 function validAuthState(o: any): o is AuthState {
-	return isPlainObject(o) &&
-		typeof o.accountId === 'number' &&
-		typeof o.userId === 'number' &&
-		typeof o.host === 'string';
+	return (
+		isPlainObject(o) &&
+		typeof o.accountId === "number" &&
+		typeof o.userId === "number" &&
+		typeof o.host === "string"
+	);
 }
 
 /** Helper function for generating OAuth state */
@@ -44,10 +46,8 @@ export function parseOAuthState(state: string): AuthState | undefined {
 	let obj: AuthState | undefined;
 	try {
 		const output = JSON.parse(state);
-		if (validAuthState(output))
-			obj = output;
-	}
-	catch (error) {}
+		if (validAuthState(output)) obj = output;
+	} catch (error) {}
 	return obj;
 }
 
@@ -59,85 +59,111 @@ export function parseOAuthState(state: string): AuthState | undefined {
  * @param authParams New tokens. A null value clears the current paramters.
  * @param userId User indentifier (SAPIN)
  */
-export function updateAuthParams(id: number, authParams: object | null, userId?: number): Promise<ResultSetHeader> {
+export function updateAuthParams(
+	id: number,
+	authParams: object | null,
+	userId?: number
+): Promise<ResultSetHeader> {
 	let sets: string[] = [];
 
 	sets.push(
-		'authParams=' +
-		(authParams?
-			db.format('JSON_MERGE_PATCH(COALESCE(authParams, "{}"), ?)', JSON.stringify(authParams)):
-			'NULL')
+		"authParams=" +
+			(authParams
+				? db.format(
+						'JSON_MERGE_PATCH(COALESCE(authParams, "{}"), ?)',
+						JSON.stringify(authParams)
+				  )
+				: "NULL")
 	);
 
 	if (userId) {
-		sets.push(
-			db.format('authUserId=?', [userId])
-		);
+		sets.push(db.format("authUserId=?", [userId]));
 	}
 
-	sets.push('authDate=UTC_TIMESTAMP()');
+	sets.push("authDate=UTC_TIMESTAMP()");
 
-	const setsSql = sets.join(', ');
+	const setsSql = sets.join(", ");
 
-	return db.query('UPDATE oauth_accounts SET ' + setsSql + ' WHERE id=?', [id]) as Promise<ResultSetHeader>;
+	return db.query("UPDATE oauth_accounts SET " + setsSql + " WHERE id=?", [
+		id,
+	]) as Promise<ResultSetHeader>;
 }
 
 type OAuthConstraints = {
 	[K in keyof OAuthAccount]?: OAuthAccount[K] | OAuthAccount[K][];
-}
+};
 
 function getConstraintsWhereSql(constraints?: OAuthConstraints) {
-	if (!constraints)
-		return '';
+	if (!constraints) return "";
 
-	return 'WHERE ' +
+	return (
+		"WHERE " +
 		Object.entries(constraints)
 			.map(([key, value]) => {
-				if (key === 'groupId')
-					return db.format(Array.isArray(value)? 'BIN_TO_UUID(??) IN (?)': '??=UUID_TO_BIN(?)', [key, value])
+				if (key === "groupId")
+					return db.format(
+						Array.isArray(value)
+							? "BIN_TO_UUID(??) IN (?)"
+							: "??=UUID_TO_BIN(?)",
+						[key, value]
+					);
 				else
-					return db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
+					return db.format(
+						Array.isArray(value) ? "?? IN (?)" : "??=?",
+						[key, value]
+					);
 			})
-			.join(' AND ');
+			.join(" AND ")
+	);
 }
 
 export function getOAuthAccounts(constraints?: OAuthConstraints) {
-	let sql = `
-		SELECT
-			id,
-			name,
-			type,
-			BIN_TO_UUID(groupId) as groupId,
-			DATE_FORMAT(authDate, "%Y-%m-%dT%TZ") AS authDate,
-			authUserId
-		FROM oauth_accounts
-	` + getConstraintsWhereSql(constraints);
-
-	return db.query({sql, dateStrings: true}) as Promise<OAuthAccount[]>;
+	let sql =
+		"SELECT " +
+			"id, " +
+			"name, " +
+			"type, " +
+			"BIN_TO_UUID(groupId) as groupId, " +
+			'DATE_FORMAT(authDate, "%Y-%m-%dT%TZ") AS authDate, ' +
+			"authUserId " +
+		"FROM oauth_accounts " +
+		getConstraintsWhereSql(constraints);
+	return db.query({ sql, dateStrings: true }) as Promise<OAuthAccount[]>;
 }
 
 export function getOAuthParams(constraints?: OAuthConstraints) {
-	let sql = `
-		SELECT 
-			id, 
-			authParams
-		FROM oauth_accounts
-	` + getConstraintsWhereSql(constraints);
+	let sql =
+		"SELECT " +
+			"id, " + 
+			"authParams " + 
+		"FROM oauth_accounts " +
+		getConstraintsWhereSql(constraints);
 	return db.query(sql) as Promise<OAuthParams[]>;
 }
 
-export function validOAuthAccountCreate(account: any): account is OAuthAccountCreate {
-	return isPlainObject(account) &&
-		(typeof account.type === 'string') &&
-		(typeof account.name === 'string') && 
-		(typeof account.groupId === 'string');
+export function validOAuthAccountCreate(
+	account: any
+): account is OAuthAccountCreate {
+	return (
+		isPlainObject(account) &&
+		typeof account.type === "string" &&
+		typeof account.name === "string" &&
+		typeof account.groupId === "string"
+	);
 }
 
-export function validOAuthAccountChanges(account: any): account is OAuthAccountChanges {
-	return isPlainObject(account) &&
-		(typeof account.type === 'undefined' || typeof account.type === 'string') &&
-		(typeof account.name === 'undefined' || typeof account.name === 'string') && 
-		(typeof account.groupId === 'undefined' || typeof account.groupId === 'string');
+export function validOAuthAccountChanges(
+	account: any
+): account is OAuthAccountChanges {
+	return (
+		isPlainObject(account) &&
+		(typeof account.type === "undefined" ||
+			typeof account.type === "string") &&
+		(typeof account.name === "undefined" ||
+			typeof account.name === "string") &&
+		(typeof account.groupId === "undefined" ||
+			typeof account.groupId === "string")
+	);
 }
 
 /**
@@ -147,7 +173,10 @@ export function validOAuthAccountChanges(account: any): account is OAuthAccountC
  * @returns OAuth account object as added
  */
 export async function addOAuthAccount(account: OAuthAccountCreate) {
-	const {insertId} = await db.query('INSERT INTO oauth_accounts (??) VALUES (?);', [Object.keys(account), Object.values(account)]) as ResultSetHeader;
+	const { insertId } = (await db.query(
+		"INSERT INTO oauth_accounts (??) VALUES (?);",
+		[Object.keys(account), Object.values(account)]
+	)) as ResultSetHeader;
 	return insertId;
 }
 
@@ -157,14 +186,20 @@ export async function addOAuthAccount(account: OAuthAccountCreate) {
  * @param changes Expects an OAuth account update object, throws otherwise
  * @returns OAuth account object as updated
  */
-export async function updateOAuthAccount(groupId: string, id: number, changes: OAuthAccountChanges) {
-	if (!id)
-		throw new TypeError('Must provide id with update');
+export async function updateOAuthAccount(
+	groupId: string,
+	id: number,
+	changes: OAuthAccountChanges
+) {
+	if (!id) throw new TypeError("Must provide id with update");
 	if (!validOAuthAccountChanges(changes))
 		throw new TypeError("Bad OAuth account changes object");
 	if (Object.keys(changes).length)
-		await db.query('UPDATE oauth_accounts SET ? WHERE id=? AND groupId=UUID_TO_BIN(?);', [changes, id, groupId]);
-	const [account] = await getOAuthAccounts({id});
+		await db.query(
+			"UPDATE oauth_accounts SET ? WHERE id=? AND groupId=UUID_TO_BIN(?);",
+			[changes, id, groupId]
+		);
+	const [account] = await getOAuthAccounts({ id });
 	return account;
 }
 
@@ -173,8 +208,10 @@ export async function updateOAuthAccount(groupId: string, id: number, changes: O
  * @param id OAuth account identifier
  */
 export async function deleteOAuthAccount(groupId: string, id: number) {
-	if (!id)
-		throw new TypeError('Must provide id with delete');
-	const {affectedRows} = await db.query('DELETE FROM oauth_accounts WHERE id=? AND groupId=UUID_TO_BIN(?)', [id, groupId]) as ResultSetHeader;
+	if (!id) throw new TypeError("Must provide id with delete");
+	const { affectedRows } = (await db.query(
+		"DELETE FROM oauth_accounts WHERE id=? AND groupId=UUID_TO_BIN(?)",
+		[id, groupId]
+	)) as ResultSetHeader;
 	return affectedRows;
 }
