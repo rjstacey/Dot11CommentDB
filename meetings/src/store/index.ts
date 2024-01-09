@@ -44,6 +44,8 @@ const dataAppSliceNames = [
 	imatBreakoutAttendanceSlice.name,
 	imatMeetingAttendanceSlice.name,
 	ieee802WorldSlice.name,
+	calendarAccountsSlice.name,
+	webexAccountsSlice.name
 ];
 
 /*

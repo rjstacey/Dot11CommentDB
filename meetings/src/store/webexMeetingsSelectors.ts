@@ -25,7 +25,7 @@ export type WebexMeetingAudioConnectionOptions = {
 	muteAttendeeUponEntry: boolean;
 	entryAndExitTone: string;
 	allowHostToUnmuteParticipants: boolean;
-	audioConnectionType: "webexAudio";
+	audioConnectionType?: "webexAudio" | "VoIP" | "other" | "none";
 	enabledAudienceCallBack: boolean;
 	enabledGlobalCallIn: boolean;
 	enabledTollFreeCallIn: boolean;
@@ -104,7 +104,7 @@ export const defaultWebexMeetingParams: WebexMeetingParams = {
 	audioConnectionOptions: {
 		allowAttendeeToUnmuteSelf: true,
 		allowHostToUnmuteParticipants: false,
-		audioConnectionType: "webexAudio",
+		//audioConnectionType: "webexAudio",
 		enabledAudienceCallBack: false,
 		enabledGlobalCallIn: true,
 		enabledTollFreeCallIn: false,

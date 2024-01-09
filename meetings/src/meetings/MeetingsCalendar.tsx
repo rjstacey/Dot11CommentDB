@@ -289,9 +289,11 @@ function RoomColumn({ date, room }: { date: string; room: Room }) {
 	);
 }
 
-const SessionDayContainer = ({n, ...props}: {n: number} & React.ComponentProps<"div">) =>
+const SessionDayContainer = ({style, n, ...props}: {n: number} & React.ComponentProps<"div">) =>
 	<div
 		style={{
+			...style,
+			width: '100%',
 			display: 'grid',
 			gridTemplateColumns: `8px repeat(${n}, minmax(10px, 1fr))`,
 			gridTemplateRows: 'minmax(10px, 1fr)'
@@ -411,7 +413,6 @@ function MeetingCalendar({ nDays }: { nDays: number }) {
 	return (
 		<div className={styles.calendar}>
 			<div
-				className="inner"
 				style={{
 					display: "grid",
 					gridTemplateRows: "max-content 1fr",

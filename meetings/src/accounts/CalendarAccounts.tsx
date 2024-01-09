@@ -152,7 +152,7 @@ function CalendarAccounts() {
 	return (
 		<>
 			<div className="top-row">
-				<h3>Calendar accounts</h3>
+				<h3>Google calendar accounts</h3>
 				<div style={{ display: "flex" }}>
 					<ActionButton
 						name="edit"

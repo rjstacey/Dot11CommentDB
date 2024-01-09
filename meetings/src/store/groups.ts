@@ -55,7 +55,6 @@ export type GroupCreate = Omit<Group, "id"> & { id?: string };
 function validGroup(group: any): group is Group {
 	const isGood =
 		isObject(group) &&
-		group.id &&
 		typeof group.id === "string" &&
 		(group.parent_id === null || typeof group.parent_id === "string") &&
 		typeof group.name === "string" &&
@@ -98,7 +97,7 @@ const slice = createAppTableDataSlice({
 		builder.addMatcher(
 			(action: Action) => action.type === getSuccess2.toString(),
 			(state, action: PayloadAction<Group[]>) => {
-				dataAdapter.addMany(state, action.payload);
+				dataAdapter.upsertMany(state, action.payload);
 				state.loading = false;
 				state.valid = true;
 				const { ids, entities } = state;
@@ -186,7 +185,6 @@ export const selectWorkingGroupIds = createSelector(
 	selectGroupEntities,
 	selectWorkingGroupId,
 	(ids, entities, workingGroupId) => {
-		console.log(workingGroupId)
 		if (workingGroupId) {
 			function isWorkingGroupDescendent(id: EntityId) {
 				if (id === workingGroupId) return true;

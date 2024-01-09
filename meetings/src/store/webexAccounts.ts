@@ -26,6 +26,15 @@ export interface WebexAccount {
 	templates: WebexTemplate[];
 }
 
+function validWebexAccount(account: any): account is WebexAccount {
+	return (
+		isObject(account) &&
+		typeof account.id === "number" &&
+		typeof account.name === "string" &&
+		typeof account.groupId === "string"
+	);
+}
+
 export type WebexAccountCreate = {
 	name: string;
 	groups: string[];
@@ -105,14 +114,6 @@ export const selectWebexAccounts = createSelector(
 );
 
 /* Thunk actions */
-function validWebexAccount(account: any): account is WebexAccount {
-	return (
-		isObject(account) &&
-		typeof account.id === "number" &&
-		typeof account.name === "string" &&
-		typeof account.groupId === "string"
-	);
-}
 
 function validGetResponse(response: any): response is WebexAccount[] {
 	return Array.isArray(response) && response.every(validWebexAccount);
