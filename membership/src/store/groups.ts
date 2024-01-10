@@ -110,32 +110,42 @@ const slice = createAppTableDataSlice({
 				state.valid = true;
 				const { ids, entities } = state;
 
-				function compare(id1: EntityId, id2: EntityId) {
-					function isAncestor(g1: Group, g2: Group) {
-						let g: Group | undefined = g2;
-						do {
-							if (g.parent_id === g1.id) return true; // g1 is ancestor of g2
-							g = g.parent_id ? entities[g.parent_id] : undefined;
-						} while (g);
-						return false; // g1 is not an ancestor of g2
-					}
+				interface Node { id: EntityId; children: Node[]; }
 
+				// Order by group type and then alphabetically
+				function compare(id1: EntityId, id2: EntityId) {
 					const g1 = entities[id1]!;
 					const g2 = entities[id2]!;
-					if (g1.parent_id === g2.parent_id) {
-						let n =
-							groupTypes.indexOf(g1.type || "") -
-							groupTypes.indexOf(g2.type || "");
-						if (n === 0) n = g1.name.localeCompare(g2.name);
-						return n;
-					}
-
-					if (isAncestor(g1, g2)) return -1;
-					if (isAncestor(g2, g1)) return 1;
-					return 0;
+					let n =
+						groupTypes.indexOf(g1.type || "") -
+						groupTypes.indexOf(g2.type || "");
+					if (n === 0) n = g1.name.localeCompare(g2.name);
+					return n;
 				}
-				const sortedIds = ids.sort(compare);
-				if (sortedIds.join() !== ids.join()) state.ids = sortedIds;
+				
+				function buildTree(parent_id: EntityId | null): Node[] {
+					return ids
+						.filter(id => entities[id]!.parent_id === parent_id)
+						.sort(compare)
+						.map(id => ({ id, children: buildTree(id) }));
+				}
+			
+				function flattenTree(nodes: Node[]): EntityId[] {
+					let ids: EntityId[] = [];
+					for (const node of nodes)
+						ids = ids.concat(node.id, flattenTree(node.children));
+					return ids;
+				}
+
+				const nodes = buildTree(null);
+				const sortedIds = flattenTree(nodes);
+
+				if (ids.length !== sortedIds.length) {
+					console.warn("One or more groups present without its parent");
+				}
+				else {
+					if (sortedIds.join() !== ids.join()) state.ids = sortedIds;
+				}
 			}
 		);
 	},

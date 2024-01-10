@@ -41,9 +41,24 @@ export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 		({ value, label } as { value: SessionType; label: string })
 );
 
+function validSession(session: any): session is Session {
+	return (
+		isObject(session) &&
+		typeof session.id === "number" &&
+		(session.number === null || typeof session.number === "number") &&
+		typeof session.name === "string" &&
+		["p", "i", "o", "g"].includes(session.type) &&
+		(session.groupId === null || typeof session.groupId === "string") &&
+		(session.imatMeetingId === null ||
+			typeof session.imatMeetingId === "number") &&
+		/\d{4}-\d{2}-\d{2}/.test(session.startDate) &&
+		/\d{4}-\d{2}-\d{2}/.test(session.endDate) &&
+		typeof session.timezone === "string"
+	);
+}
+
 export const displaySessionType = (type: SessionType) =>
 	SessionTypeLabels[type] || "Unknown";
-
 
 /*
  * Slice
@@ -143,21 +158,6 @@ export const selectSession = (state: RootState, id: EntityId) =>
 /*
  * Thunk actions
  */
-function validSession(session: any): session is Session {
-	return (
-		isObject(session) &&
-		typeof session.id === "number" &&
-		(session.number === null || typeof session.number === "number") &&
-		typeof session.name === "string" &&
-		["p", "i", "o", "g"].includes(session.type) &&
-		(session.groupId === null || typeof session.groupId === "string") &&
-		(session.imatMeetingId === null ||
-			typeof session.imatMeetingId === "number") &&
-		/\d{4}-\d{2}-\d{2}/.test(session.startDate) &&
-		/\d{4}-\d{2}-\d{2}/.test(session.endDate) &&
-		typeof session.timezone === "string"
-	);
-}
 
 function validSessions(sessions: any): sessions is Session[] {
 	return Array.isArray(sessions) && sessions.every(validSession);
