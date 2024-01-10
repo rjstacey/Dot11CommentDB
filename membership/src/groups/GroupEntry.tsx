@@ -1,5 +1,4 @@
 import React from "react";
-import { CirclePicker as ColorPicker } from "react-color";
 import { isMultiple, Form, Row, Field, Input, Select } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
@@ -13,7 +12,7 @@ import {
 import Officers from "./Officers";
 import GroupSelector from "../components/GroupSelector";
 import ImatCommitteeSelector from "./ImatCommitteeSelector";
-//import ColorPicker from "../components/ColorPicker";
+import ColorPicker from "../components/ColorPicker";
 import type { MultipleGroupEntry, GroupEntry } from "./GroupDetail";
 
 const MULTIPLE_STR = "(Multiple)";
@@ -143,11 +142,8 @@ function GroupEntryForm({
 			<Row>
 				<Field label="Color:">
 					<ColorPicker
-						width='unset'
-						circleSize={22}
-						circleSpacing={11}
-						color={isMultiple(entry.color) ? "" : entry.color || ""}
-						onChangeComplete={(color) => change({ color: color.hex })}
+						value={isMultiple(entry.color) ? "" : entry.color || ""}
+						onChange={(value) => change({ color: value })}
 						//readOnly={readOnly}
 					/>
 				</Field>
