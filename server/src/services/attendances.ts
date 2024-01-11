@@ -36,18 +36,18 @@ const getSessionAttendancesSQL = (session_ids: number[]) =>
 		"SELECT " +
 			"COALESCE(m.ReplacedBySAPIN, a.SAPIN) as SAPIN, " +
 			"JSON_ARRAYAGG(JSON_OBJECT(" +
-                '"id", a.id, ' +
-                '"session_id", a.session_id, ' +
-                '"AttendancePercentage", a.AttendancePercentage, ' +
-                '"DidAttend", a.DidAttend, ' +
-                '"DidNotAttend", a.DidNotAttend, ' +
-                '"Notes", a.Notes, ' +
-				'"SAPIN", a.SAPIN ' +
+			'"id", a.id, ' +
+			'"session_id", a.session_id, ' +
+			'"AttendancePercentage", a.AttendancePercentage, ' +
+			'"DidAttend", a.DidAttend, ' +
+			'"DidNotAttend", a.DidNotAttend, ' +
+			'"Notes", a.Notes, ' +
+			'"SAPIN", a.SAPIN ' +
 			")) as sessionAttendanceSummaries " +
-		"FROM attendance_summary a " +
+			"FROM attendance_summary a " +
 			'LEFT JOIN members m ON m.SAPIN=a.SAPIN AND m.Status="Obsolete" ' +
-		"WHERE a.session_id IN (?) " +
-		"GROUP BY SAPIN ",
+			"WHERE a.session_id IN (?) " +
+			"GROUP BY SAPIN ",
 		[session_ids]
 	);
 
@@ -143,7 +143,6 @@ export async function importAttendances(
 	return getRecentAttendances();
 }
 
-
 /**
  * Get attendances for session
  * @param session_id Session identifier
@@ -163,8 +162,8 @@ export async function getAttendances(session_id: number) {
 			"DidAttend, " +
 			"DidNotAttend, " +
 			"Notes " +
-		"FROM attendance_summary " +
-		"WHERE session_id=? ",
+			"FROM attendance_summary " +
+			"WHERE session_id=? ",
 		[session_id]
 	);
 
@@ -266,30 +265,22 @@ export async function updateAttendances(
 	return attendances;
 }
 
-function validAttendance(
-	attendance: any
-): attendance is SessionAttendanceSummary {
-	if (!isPlainObject(attendance)) return false;
-	if (typeof attendance.session_id !== "number") return false;
-	if (typeof attendance.SAPIN !== "number") return false;
+function validAttendance(a: any): a is SessionAttendanceSummary {
+	if (!isPlainObject(a)) return false;
+	if (typeof a.session_id !== "number") return false;
+	if (typeof a.SAPIN !== "number") return false;
+	if (typeof a.Notes !== "undefined" || typeof a.Notes !== "string")
+		return false;
+	if (typeof a.DidAttend !== "undefined" || typeof a.DidAttend !== "boolean")
+		return false;
 	if (
-		typeof attendance.Notes !== "undefined" ||
-		typeof attendance.Notes !== "string"
+		typeof a.DidNotAttend !== "undefined" ||
+		typeof a.DidNotAttend !== "boolean"
 	)
 		return false;
 	if (
-		typeof attendance.DidAttend !== "undefined" ||
-		typeof attendance.DidAttend !== "boolean"
-	)
-		return false;
-	if (
-		typeof attendance.DidNotAttend !== "undefined" ||
-		typeof attendance.DidNotAttend !== "boolean"
-	)
-		return false;
-	if (
-		typeof attendance.AttendancePercentage !== "undefined" ||
-		typeof attendance.AttendancePercentage !== "number"
+		typeof a.AttendancePercentage !== "undefined" ||
+		typeof a.AttendancePercentage !== "number"
 	)
 		return false;
 	return true;
@@ -301,6 +292,7 @@ async function addAttendance(attendance: SessionAttendanceSummary) {
 	const { insertId } = (await db.query("INSERT attendance_summary SET ?", [
 		changes,
 	])) as ResultSetHeader;
+
 	[attendance] = (await db.query(
 		"SELECT * FROM attendance_summary WHERE id=?",
 		[insertId]
