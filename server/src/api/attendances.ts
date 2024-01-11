@@ -7,6 +7,7 @@ import { AccessLevel } from "../auth/access";
 import { ForbiddenError } from "../utils";
 
 import {
+	getAttendances,
 	getRecentAttendances,
 	addAttendances,
 	updateAttendances,
@@ -34,6 +35,12 @@ router
 
 		next(new ForbiddenError("Insufficient karma"));
 	})
+	.get("/:session_id(\\d+)", async (req, res, next) => {
+		const session_id = Number(req.params.session_id);
+		getAttendances(session_id)
+			.then((data) => res.json(data))
+			.catch(next);
+	})
 	.post("/:session_id(\\d+)/import", async (req, res, next) => {
 		const session_id = Number(req.params.session_id);
 		const { use } = req.query;
@@ -44,46 +51,46 @@ router
 			.catch(next);
 	})
 	.route("/")
-	.get((req, res, next) => {
-		getRecentAttendances()
-			.then((data) => res.json(data))
-			.catch(next);
-	})
-	.post((req, res, next) => {
-		const attendances = req.body;
-		if (!validAttendances(attendances))
-			return next(
-				new TypeError(
-					"Missing or bad body; expected an array of attendance objects"
-				)
-			);
-		addAttendances(attendances)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
-	.patch((req, res, next) => {
-		const updates = req.body;
-		if (!validAttendanceUpdates(updates))
-			return next(
-				new TypeError(
-					"Missing or bad body; expected array of updates with shate {id, changes}"
-				)
-			);
-		updateAttendances(updates)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
-	.delete((req, res, next) => {
-		const ids = req.body;
-		if (!validAttendanceIds(ids))
-			return next(
-				new TypeError(
-					"Missing or bad body; expected array of attendance ids"
-				)
-			);
-		deleteAttendances(ids)
-			.then((data) => res.json(data))
-			.catch(next);
-	});
+		.get((req, res, next) => {
+			getRecentAttendances()
+				.then((data) => res.json(data))
+				.catch(next);
+		})
+		.post((req, res, next) => {
+			const attendances = req.body;
+			if (!validAttendances(attendances))
+				return next(
+					new TypeError(
+						"Missing or bad body; expected an array of attendance objects"
+					)
+				);
+			addAttendances(attendances)
+				.then((data) => res.json(data))
+				.catch(next);
+		})
+		.patch((req, res, next) => {
+			const updates = req.body;
+			if (!validAttendanceUpdates(updates))
+				return next(
+					new TypeError(
+						"Missing or bad body; expected array of updates with shape {id, changes}"
+					)
+				);
+			updateAttendances(updates)
+				.then((data) => res.json(data))
+				.catch(next);
+		})
+		.delete((req, res, next) => {
+			const ids = req.body;
+			if (!validAttendanceIds(ids))
+				return next(
+					new TypeError(
+						"Missing or bad body; expected array of attendance ids"
+					)
+				);
+			deleteAttendances(ids)
+				.then((data) => res.json(data))
+				.catch(next);
+		});
 
 export default router;
