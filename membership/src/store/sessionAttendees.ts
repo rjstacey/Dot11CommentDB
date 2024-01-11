@@ -1,7 +1,7 @@
 import {
 	createSelector,
 	createAction,
-	Dictionary,
+	EntityId,
 	Action,
 } from "@reduxjs/toolkit";
 
@@ -17,7 +17,8 @@ import {
 import type { RootState, AppThunk } from ".";
 import type { MemberContactInfo } from "./members";
 import { selectMemberEntities } from "./members";
-import { selectSession } from "./sessions";
+import { SessionAttendanceSummary } from "./sessionParticipation";
+import { selectSession, Session } from "./sessions";
 
 export const fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
@@ -30,6 +31,8 @@ export const fields = {
 	ContactInfo: { label: "Contact Info" },
 	Status: { label: "Status" },
 	AttendancePercentage: { label: "Attendance", type: FieldType.NUMERIC },
+	AttendanceOverride: { label: "Attendance override" },
+	Notes: { label: "Notes" }
 };
 
 export type SessionAttendee = {
@@ -46,7 +49,14 @@ export type SessionAttendee = {
 	AttendancePercentage: number;
 };
 
-export type SyncedSessionAttendee = SessionAttendee & {
+type SessionAttendeeWithOverrride = SessionAttendee & {
+	DidAttend: boolean;
+	DidNotAttend: boolean;
+	AttendancePercentageOverride: number;
+	Notes: string;
+};
+
+export type SyncedSessionAttendee = SessionAttendeeWithOverrride & {
 	Status: string;
 	OldName: string | null;
 	OldAffiliation: string | null;
@@ -54,10 +64,26 @@ export type SyncedSessionAttendee = SessionAttendee & {
 	OldEmail: string | null;
 };
 
+/* Fields derived from other fields */
+export function getField(entity: SyncedSessionAttendee, key: string): any {
+	if (key === "AttendanceOverride") {
+		if (entity.DidAttend)
+			return "Did attend";
+		else if (entity.DidNotAttend)
+			return "Did not attend";
+		else if (entity.AttendancePercentage.toFixed(0) !== entity.AttendancePercentageOverride.toFixed(0))
+			return entity.AttendancePercentageOverride.toFixed(0) + "%";
+		else
+			return "";
+	}
+	return entity[key as keyof SyncedSessionAttendee];
+}
+
 /*
  * Slice
  */
-const selectId = (attendee: SessionAttendee) => attendee.SAPIN;
+const selectId = (attendee: SessionAttendeeWithOverrride) => attendee.SAPIN;
+const sortComparer = (m1: SessionAttendeeWithOverrride, m2: SessionAttendeeWithOverrride) => m1.SAPIN - m2.SAPIN;
 
 const initialState: {
 	groupName: string | null;
@@ -72,6 +98,7 @@ const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	selectId,
+	sortComparer,
 	initialState,
 	reducers: {},
 	extraReducers: (builder, dataAdapter) => {
@@ -80,7 +107,10 @@ const slice = createAppTableDataSlice({
 				(action: Action) => action.type === getPending.toString(),
 				(state, action: ReturnType<typeof getPending>) => {
 					const { groupName, sessionId } = action.payload;
-					if (groupName !== state.groupName || sessionId !== state.sessionId) {
+					if (
+						groupName !== state.groupName ||
+						sessionId !== state.sessionId
+					) {
 						state.groupName = groupName;
 						state.sessionId = sessionId;
 						state.valid = false;
@@ -114,7 +144,6 @@ const getPending = createAction<{ groupName: string; sessionId: number }>(
 );
 export const clearSessionAttendees = createAction(dataSet + "/clear");
 
-
 /*
  * Selectors
  */
@@ -129,7 +158,7 @@ const selectSyncedSessionAtendeesEntities = createSelector(
 	selectSessionAttendeesEntities,
 	selectMemberEntities,
 	(ids, entities, memberEntities) => {
-		const newEntities: Dictionary<SyncedSessionAttendee> = {};
+		const newEntities: Record<EntityId, SyncedSessionAttendee> = {};
 		ids.forEach((id) => {
 			const entity = entities[id]!;
 			const m = memberEntities[id];
@@ -161,7 +190,7 @@ const selectSyncedSessionAtendeesEntities = createSelector(
 
 export const sessionAttendeesSelectors = getAppTableDataSelectors(
 	selectSessionAttendeesState,
-	{ selectEntities: selectSyncedSessionAtendeesEntities }
+	{ selectEntities: selectSyncedSessionAtendeesEntities, getField }
 );
 
 /*
@@ -171,8 +200,20 @@ function validSessionAttendee(entry: any): entry is SessionAttendee {
 	return isObject(entry);
 }
 
-function validGetResponse(response: any): response is SessionAttendee[] {
+function validGetImatAttendanceResponse(
+	response: any
+): response is SessionAttendee[] {
 	return Array.isArray(response) && response.every(validSessionAttendee);
+}
+
+function validGetAttendancesResponse(
+	response: any
+): response is { attendances: SessionAttendanceSummary[]; session: Session } {
+	return (
+		isObject(response) &&
+		Array.isArray(response.attendances) &&
+		isObject(response.session)
+	);
 }
 
 let loadingPromise: Promise<SessionAttendee[]>;
@@ -188,20 +229,55 @@ export const loadSessionAttendees =
 			return loadingPromise;
 		}
 		const session = selectSession(getState(), sessionId);
-		if (!session) {
-			console.error("Bad sessionId");
+		if (!session || !session.imatMeetingId) {
+			dispatch(
+				setError(
+					"Can't retrieve attendance",
+					session
+						? "No IMAT meeting associated with session"
+						: "Bad session"
+				)
+			);
 			dispatch(clearSessionAttendees());
 			return [];
 		}
 		dispatch(getPending({ groupName, sessionId }));
-		const url = `/api/${groupName}/imat/attendance/${session.imatMeetingId}/daily`;
+		const attendanceUrl = `/api/${groupName}/attendances/${session.id}`;
+		const imatAttendanceUrl = `/api/${groupName}/imat/attendance/${session.imatMeetingId}/daily`;
 		loadingPromise = fetcher
-			.get(url)
+			.get(attendanceUrl)
 			.then((response: any) => {
-				if (!validGetResponse(response))
-					throw new TypeError("Unexpected response to GET " + url);
-				dispatch(getSuccess(response));
-				return response;
+				if (!validGetAttendancesResponse(response))
+					throw new TypeError(
+						"Unexpected response to GET " + attendanceUrl
+					);
+				const { attendances } = response;
+				return fetcher
+					.get(imatAttendanceUrl)
+					.then((imatAttendances: any) => {
+						if (!validGetImatAttendanceResponse(imatAttendances))
+							throw new TypeError(
+								"Unexpected response to GET " +
+									imatAttendanceUrl
+							);
+						const mergedAttendances: SessionAttendeeWithOverrride[] =
+							imatAttendances.map((i) => {
+								const attendance = attendances.find(
+									(a) => a.SAPIN === i.SAPIN
+								);
+								return {
+									...i,
+									DidAttend: attendance?.DidAttend || false,
+									DidNotAttend:
+										attendance?.DidNotAttend || false,
+									Notes: attendance?.Notes || "",
+									AttendancePercentageOverride:
+										attendance?.AttendancePercentage || 0,
+								};
+							});
+						dispatch(getSuccess(mergedAttendances));
+						return mergedAttendances;
+					});
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
@@ -211,8 +287,14 @@ export const loadSessionAttendees =
 		return loadingPromise;
 	};
 
-export const refreshSessionAttendees = (): AppThunk =>
-	async (dispatch, getState) => {
-		const {groupName, sessionId} = selectSessionAttendeesState(getState());
-		dispatch((groupName && sessionId)? loadSessionAttendees(groupName, sessionId): clearSessionAttendees());
-	}
+export const refreshSessionAttendees =
+	(): AppThunk => async (dispatch, getState) => {
+		const { groupName, sessionId } = selectSessionAttendeesState(
+			getState()
+		);
+		dispatch(
+			groupName && sessionId
+				? loadSessionAttendees(groupName, sessionId)
+				: clearSessionAttendees()
+		);
+	};

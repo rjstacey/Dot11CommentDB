@@ -244,6 +244,9 @@ function MemberEntryForm({
 		};
 		cancelForm = cancel;
 	}
+	let statusChangeDate = "";
+	if (!isMultiple(member.StatusChangeDate) && member.StatusChangeDate)
+		statusChangeDate = DateTime.fromISO(member.StatusChangeDate).toISODate() || "";
 
 	return (
 		<Form
@@ -341,7 +344,12 @@ function MemberEntryForm({
 						}}
 					>
 						<label>Last change</label>
-						<div>{renderDate(member.StatusChangeDate)}</div>
+						<Input
+							type='date'
+							value={statusChangeDate}
+							onChange={e => updateMember({StatusChangeDate: e.target.value})}
+							placeholder={isMultiple(member.StatusChangeDate)? MULTIPLE_STR: undefined}
+						/>
 					</div>
 				</Field>
 			</Row>

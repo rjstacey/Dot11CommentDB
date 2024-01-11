@@ -14,6 +14,8 @@ import {
 	ShowFilters,
 	GlobalFilter,
 	TableColumnSelector,
+	ButtonGroup,
+	TableViewSelector,
 	SplitPanel,
 	Panel,
 	SplitPanelButton,
@@ -161,10 +163,24 @@ const tableColumns: ColumnProperties[] = [
 		flexShrink: 1,
 		dataRenderer: (d: number) => d.toFixed(0) + "%",
 	},
+	{
+		key: "AttendanceOverride",
+		label: "Attendance override",
+		width: 100,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{
+		key: "Notes",
+		label: "Notes",
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
+	}
 ];
 
 const defaultTablesColumns = {
-	default: [
+	Basic: [
 		"__ctrl__",
 		"SAPIN",
 		"Name",
@@ -172,6 +188,18 @@ const defaultTablesColumns = {
 		"Employer",
 		"Affiliation",
 		"Status",
+	],
+	Attendance: [
+		"__ctrl__",
+		"SAPIN",
+		"Name",
+		"Email",
+		"Employer",
+		"Affiliation",
+		"Status",
+		"AttendancePercentage",
+		"AttendanceOverride",
+		"Notes"
 	],
 };
 
@@ -327,15 +355,24 @@ function SessionAttendance() {
 			<div className="top-row">
 				<SessionSelector value={sessionId} onChange={load} />
 				<div style={{ display: "flex" }}>
-					<TableColumnSelector
-						selectors={sessionAttendeesSelectors}
-						actions={sessionAttendeesActions}
-						columns={tableColumns}
-					/>
-					<SplitPanelButton
-						selectors={sessionAttendeesSelectors}
-						actions={sessionAttendeesActions}
-					/>
+					<ButtonGroup>
+						<div>Table view</div>
+						<div style={{ display: "flex" }}>
+							<TableViewSelector
+								selectors={sessionAttendeesSelectors}
+								actions={sessionAttendeesActions}
+							/>
+							<TableColumnSelector
+								selectors={sessionAttendeesSelectors}
+								actions={sessionAttendeesActions}
+								columns={tableColumns}
+							/>
+							<SplitPanelButton
+								selectors={sessionAttendeesSelectors}
+								actions={sessionAttendeesActions}
+							/>
+						</div>
+					</ButtonGroup>
 					<ActionButtonDropdown
 						name="import"
 						title="Import new attendees"

@@ -457,38 +457,38 @@ export const updateAttendances =
 		if (attendanceDeletes.length > 0) {
 			try {
 				await fetcher.delete(url, attendanceDeletes);
+				updatedSessionAttendances = updatedSessionAttendances.filter(
+					(a) => !attendanceDeletes.includes(a.id)
+				);
 			} catch (error) {
 				dispatch(setError("Unable to delete attendances", error));
 			}
-			updatedSessionAttendances = updatedSessionAttendances.filter(
-				(a) => !attendanceDeletes.includes(a.id)
-			);
 		}
 		if (attendanceAdds.length > 0) {
 			try {
 				response = await fetcher.post(url, attendanceAdds);
 				if (!Array.isArray(response))
 					throw new TypeError("Uxpected response to POST " + url);
+				updatedSessionAttendances = updatedSessionAttendances.concat(
+					response as SessionAttendanceSummary[]
+				);
 			} catch (error) {
 				dispatch(setError("Unable to add attendances", error));
 			}
-			updatedSessionAttendances = updatedSessionAttendances.concat(
-				response as SessionAttendanceSummary[]
-			);
 		}
 		if (attendanceUpdates.length > 0) {
 			try {
 				response = await fetcher.patch(url, attendanceUpdates);
 				if (!Array.isArray(response))
 					throw new TypeError("Uxpected response to PATCH " + url);
+				const attendances = response as SessionAttendanceSummary[];
+				updatedSessionAttendances = updatedSessionAttendances.map(
+					(aOrig) =>
+						attendances.find((aUpdt) => aUpdt.id === aOrig.id) || aOrig
+				);
 			} catch (error) {
 				dispatch(setError("Unable to update attendances", error));
 			}
-			const attendances = response as SessionAttendanceSummary[];
-			updatedSessionAttendances = updatedSessionAttendances.map(
-				(aOrig) =>
-					attendances.find((aUpdt) => aUpdt.id === aOrig.id) || aOrig
-			);
 		}
 		dispatch(
 			setOne({

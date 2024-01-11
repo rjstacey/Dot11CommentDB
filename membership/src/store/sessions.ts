@@ -148,7 +148,7 @@ export const selectRecentSessions = createSelector(
 		const today = new Date();
 		return sessions
 			.filter((s) => new Date(s.startDate) < today)
-			.slice(0, 8);
+			//.slice(0, 8);
 	}
 );
 

@@ -21,20 +21,15 @@ import {
 } from "../store/sessionParticipation";
 import {
 	selectSessionEntities,
-	SessionTypeOptions,
 	type Session,
 } from "../store/sessions";
 
+import styles from "../sessionAttendance/sessionAttendance.module.css";
+
 import { EditTable as Table, TableColumn } from "../components/Table";
 
-const sessionTypeLabel = (type: string) => {
-	const o = SessionTypeOptions.find((s: any) => s.value === type);
-	return o ? o.label : "";
-};
-
 const attendancesColumns: TableColumn[] = [
-	{ key: "Date", label: "Date" },
-	{ key: "Type", label: "Type" },
+	{ key: "Session", label: "Session" },
 	{
 		key: "AttendancePercentage",
 		label: "Attendance",
@@ -176,14 +171,20 @@ class MemberAttendances extends React.Component<
 	generateColumns(props: MemberAttendancesInternalProps) {
 		const { SAPIN, sessionEntities, readOnly } = props;
 
-		function renderSessionDate(id: number) {
-			const s = sessionEntities[id];
-			return s ? displayDateRange(s.startDate, s.endDate) : "-";
-		}
-
-		function renderSessionType(id: number) {
-			const s = sessionEntities[id];
-			return s ? sessionTypeLabel(s.type) : "-";
+		function renderSessionSummary(id: number) {
+			const session = sessionEntities[id];
+			if (!session)
+				return "Unknown";
+			return (
+				<div className={styles.sessionItem}>
+					<span>
+						{session.number}{" "}
+						{session.type === "p" ? "Plenary: " : "Interim: "}{" "}
+						{displayDateRange(session.startDate, session.endDate)}
+					</span>
+					<span>{session.name}</span>
+				</div>
+			)
 		}
 
 		return attendancesColumns.map((col) => {
@@ -192,10 +193,8 @@ class MemberAttendances extends React.Component<
 						entry: SessionAttendanceSummary
 				  ) => JSX.Element | string | number)
 				| undefined;
-			if (col.key === "Date")
-				renderCell = (entry) => renderSessionDate(entry.session_id);
-			if (col.key === "Type")
-				renderCell = (entry) => renderSessionType(entry.session_id);
+			if (col.key === "Session")
+				renderCell = (entry) => renderSessionSummary(entry.session_id);
 			if (col.key === "AttendancePercentage")
 				renderCell = (entry) =>
 					`${entry.AttendancePercentage.toFixed(0)}%`;

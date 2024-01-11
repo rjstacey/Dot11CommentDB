@@ -3,25 +3,15 @@ import { useNavigate } from "react-router-dom";
 
 import { ActionButton, Button } from "dot11-components";
 
-import type { Dictionary, EntityId } from "@reduxjs/toolkit";
 import { useAppSelector } from "../store/hooks";
-import { selectActiveMembers, type Member } from "../store/members";
-import {
-	selectSessionIds,
-	selectSessionEntities,
-	type Session,
-} from "../store/sessions";
-import {
-	MemberAttendances,
-	selectAttendancesWithMembershipAndSummary,
-} from "../store/sessionParticipation";
+import { selectActiveMembersWithParticipationSummary, Member, type MemberWithParticipation } from "../store/members";
 
 import styles from "./reports.module.css";
 
-const Table = ({ nCol, ...props }: { nCol: number } & React.ComponentProps<"table">) => (
+const Table = ({ nCol, style, ...props }: { nCol: number } & React.ComponentProps<"table">) => (
 	<table
 		className={styles.table}
-		style={{ gridTemplateColumns: `repeat(${nCol}, auto)` }}
+		style={{ ...style, gridTemplateColumns: `repeat(${nCol}, auto)` }}
 		{...props}
 	/>
 );
@@ -126,10 +116,7 @@ function membersPublic(members: Member[]): TableData {
 }
 
 function membersPrivate(
-	members: Member[],
-	attendanceEntities: Dictionary<MemberAttendances>,
-	sessionIds: EntityId[],
-	sessionEntities: Dictionary<Session>
+	members: MemberWithParticipation[]
 ): TableData {
 	const headings = [
 		"Family Name",
@@ -137,39 +124,21 @@ function membersPrivate(
 		"MI",
 		"Affilitation",
 		"Status",
-		"Expires",
-		"Meeting",
-		"Last invalid ballot",
+		"Session participation",
+		"Ballot series participation",
 	];
 	const values = members
 		.slice()
 		.sort((m1, m2) => (m1.LastName || "").localeCompare(m2.LastName || ""))
 		.map((m) => {
-			let expires = "",
-				meeting = "";
-			const a = attendanceEntities[m.SAPIN];
-			if (a && a.LastSessionId) {
-				let lastSession = sessionEntities[a.LastSessionId]!;
-				const i =
-					sessionIds.findIndex((id) => id === a.LastSessionId) -
-					(lastSession.type === "p" ? 8 : 7);
-				if (i >= 0) {
-					let expiresSession = sessionEntities[sessionIds[i]]!;
-					expires = `${expiresSession.number}${
-						lastSession.type === "i" ? "*" : ""
-					} (${expiresSession.startDate})`;
-					meeting = expiresSession.name;
-				}
-			}
 			return [
 				m.LastName,
 				m.FirstName,
 				m.MI,
 				m.Affiliation,
 				m.Status,
-				expires,
-				meeting,
-				"unknown",
+				m.AttendancesSummary,
+				m.BallotParticipationSummary,
 			];
 		});
 	return { headings, values };
@@ -185,12 +154,7 @@ const reportsList = Object.keys(reports) as (keyof typeof reports)[];
 function Reports() {
 	const navigate = useNavigate();
 
-	const members = useAppSelector(selectActiveMembers);
-	const sessionEntities = useAppSelector(selectSessionEntities);
-	const sessionIds = useAppSelector(selectSessionIds);
-	const attendanceEntities = useAppSelector(
-		selectAttendancesWithMembershipAndSummary
-	);
+	const members = useAppSelector(selectActiveMembersWithParticipationSummary);
 	const [report, setReport] = React.useState<keyof typeof reports | null>(
 		null
 	);
@@ -201,13 +165,8 @@ function Reports() {
 
 	const tableData: TableData | null = React.useMemo(() => {
 		if (!report) return null;
-		return reports[report](
-			members,
-			attendanceEntities,
-			sessionIds,
-			sessionEntities
-		);
-	}, [members, attendanceEntities, sessionIds, sessionEntities, report]);
+		return reports[report](members);
+	}, [members, report]);
 
 	const ReportButton = ({
 		report: thisReport,

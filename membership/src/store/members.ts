@@ -255,6 +255,13 @@ export const selectMemberWithParticipationSummary = createSelector(
 	}
 );
 
+export const selectActiveMembersWithParticipationSummary = createSelector(
+	selectActiveMembers,
+	selectMemberWithParticipationSummary,
+	(members, entities) => members.map((m) => entities[m.SAPIN]!)
+);
+
+
 export function selectMembersStatusChangeSinceDate(
 	state: RootState,
 	dateStr: string

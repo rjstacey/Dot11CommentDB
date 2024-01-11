@@ -74,6 +74,17 @@ const groupsLoader: LoaderFunction = async ({ params }) => {
 	return null;
 }
 
+const membersLoader: LoaderFunction = async ({params}) => {
+	const { dispatch } = store;
+	const { groupName } = params;
+	if (groupName) {
+		// We have already loaded the members, but we need participation
+		dispatch(loadAttendances(groupName));
+		dispatch(loadBallotParticipation(groupName));
+	}
+	return null;
+}
+
 const sessionParticipationLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch } = store;
 	const { groupName } = params;
@@ -187,6 +198,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		menuLabel: "Members",
 		path: "members",
 		element: <Members />,
+		loader: membersLoader,
 		minAccess: AccessLevel.admin,
 	},
 	{
@@ -228,6 +240,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		menuLabel: "Reports",
 		path: "reports",
 		element: <Reports />,
+		loader: membersLoader,
 		minAccess: AccessLevel.ro,
 	},
 ];

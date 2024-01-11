@@ -9,8 +9,12 @@ import styles from "./sessionAttendance.module.css";
 
 const renderSession = ({ item: session }: { item: Session }) => (
 	<div className={styles.sessionItem}>
+		<span>
+			{session.number}{" "}
+			{session.type === "p" ? "Plenary: " : "Interim: "}{" "}
+			{displayDateRange(session.startDate, session.endDate)}
+		</span>
 		<span>{session.name}</span>
-		<span>{displayDateRange(session.startDate, session.endDate)}</span>
 	</div>
 );
 
