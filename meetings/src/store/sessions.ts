@@ -70,8 +70,7 @@ export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 		({ value, label } as { value: SessionType; label: string })
 );
 
-export const displaySessionType = (type: SessionType) =>
-	SessionTypeLabels[type] || "Unknown";
+export const displaySessionType = (type: SessionType | null) =>	type? SessionTypeLabels[type]: '';
 
 export const fields = {
 	id: { label: "ID", isId: true, type: FieldType.NUMERIC },

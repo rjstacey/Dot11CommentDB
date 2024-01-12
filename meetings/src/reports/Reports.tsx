@@ -188,7 +188,7 @@ function Reports() {
 			dispatch(clearImatMeetingAttendance());
 		}
 		setAction(
-			imatMeeting.type === "Other"
+			imatMeeting?.type === "Other"
 				? "teleconAttendance"
 				: "sessionAttendance"
 		);

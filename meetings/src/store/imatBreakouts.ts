@@ -190,7 +190,7 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-/* Basic actions */
+/* Slice actions */
 export const imatBreakoutsActions = slice.actions;
 
 const {

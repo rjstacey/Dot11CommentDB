@@ -126,6 +126,7 @@ function SessionBasics({
 			<Row>
 				<Field label="Session number:">
 					<Input
+						style={{fontSize: "1em"}}
 						type="number"
 						name="Number"
 						value={
@@ -146,6 +147,8 @@ function SessionBasics({
 							})
 						}
 						disabled={readOnly}
+						min={1}
+						step={0.1}
 					/>
 				</Field>
 			</Row>

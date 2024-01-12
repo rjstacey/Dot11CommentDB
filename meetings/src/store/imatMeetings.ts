@@ -8,11 +8,11 @@ import {
 	fetcher,
 	setError,
 	displayDate,
-	displayDateRange,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	FieldType,
 	isObject,
+	Fields,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
@@ -34,38 +34,28 @@ export type SyncedImatMeeting = ImatMeeting & {
 	sessionId: number | null;
 };
 
-export const fields = {
+export const fields: Fields = {
 	id: { label: "Meeting number", type: FieldType.NUMERIC },
-	start: { label: "Start", dataRenderer: displayDate },
-	end: { label: "End", dataRenderer: displayDate },
-	dateRange: { label: "Dates" },
+	start: { label: "Start", dataRenderer: /*displayDate*/ (d: any) => `Here: ${d}`, type: FieldType.DATE },
+	end: { label: "End", dataRenderer: displayDate, type: FieldType.DATE },
 	name: { label: "Name" },
-	type: {
-		label: "Type" /*, dataRenderer: displaySessionType, options: SessionTypeOptions*/,
-	},
+	type: {	label: "Type" },
 	timezone: { label: "Time zone" },
 	sessionId: { label: "Session" },
 };
-
-/*
- * Fields derived from other fields
- */
-export function getField(entity: ImatMeeting, dataKey: string) {
-	if (dataKey === "dateRange")
-		return displayDateRange(entity.start, entity.end);
-	return entity[dataKey as keyof ImatMeeting];
-}
 
 const initialState: {
 	groupName: string | null;
 } = {
 	groupName: null,
 };
-export const dataSet = "imatMeetings";
+const dataSet = "imatMeetings";
+const selectId = (d: ImatMeeting) => d.id;
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	initialState,
+	selectId,
 	reducers: {},
 	extraReducers(builder, dataAdapter) {
 		builder.addMatcher(
@@ -137,7 +127,7 @@ export const selectImatMeeting = (state: RootState, imatMeetingId: number) =>
 
 export const imatMeetingsSelectors = getAppTableDataSelectors(
 	selectImatMeetingsState,
-	{ getField, selectEntities: selectSyncedImatMeetingEntities }
+	{ selectEntities: selectSyncedImatMeetingEntities }
 );
 
 /* Thunk actions */

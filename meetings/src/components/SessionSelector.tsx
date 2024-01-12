@@ -7,14 +7,21 @@ import {
 	selectSessionsState,
 	selectSessions,
 	Session,
+	displaySessionType,
 } from "../store/sessions";
 
 import styles from "./SessionSelector.module.css";
 
 const renderSession = ({ item: session }: { item: Session }) => (
 	<div className={styles.item}>
+		<span>
+			{session.number +
+				" " +
+				displaySessionType(session.type) +
+				", " +
+				displayDateRange(session.startDate, session.endDate)}
+		</span>
 		<span>{session.name}</span>
-		<span>{displayDateRange(session.startDate, session.endDate)}</span>
 	</div>
 );
 

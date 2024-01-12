@@ -9,8 +9,8 @@ import styles from "./SessionSelector.module.css";
 
 const renderItem = ({ item: session }: { item: ImatMeeting }) => (
 	<div className={styles.item}>
+		<span>{session.type + ", " + displayDateRange(session.start, session.end)}</span>
 		<span>{session.name}</span>
-		<span>{displayDateRange(session.start, session.end)}</span>
 	</div>
 );
 

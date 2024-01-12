@@ -6,6 +6,8 @@ import {
 	SelectCell,
 	TableColumnSelector,
 	TableColumnHeader,
+	ButtonGroup,
+	TableViewSelector,
 	SplitPanelButton,
 	SplitPanel,
 	Panel,
@@ -26,6 +28,7 @@ import {
 	selectSessionsState,
 	sessionsSelectors,
 	sessionsActions,
+	displaySessionType
 } from "../store/sessions";
 
 import SessionDetails from "./SessionDetails";
@@ -39,6 +42,35 @@ const renderHeaderStartEnd = (props: HeaderCellRendererProps) => (
 
 export const renderCellStartEnd = ({ rowData }: CellRendererProps) =>
 	displayDateRange(rowData.startDate, rowData.endDate);
+
+const FlexRow = ({style, ...props}: React.ComponentProps<"div">) => (
+	<div style={{...style, display: 'flex', alignItems: 'center'}} {...props} />
+);
+
+const renderHeaderSessionSummary = (props: HeaderCellRendererProps) => (
+	<>
+		<FlexRow>
+			<TableColumnHeader {...props} style={{width: 100, marginRight: 10}} dataKey="number" label="Number" />
+			<TableColumnHeader {...props} style={{width: 60, marginRight: 10}} dataKey="type" label="Type" />
+			<TableColumnHeader {...props} style={{width: 60, marginRight: 10}} dataKey="startDate" label="Start" />
+			<TableColumnHeader {...props} style={{width: 60}} dataKey="endDate" label="End" />
+		</FlexRow>
+		<FlexRow>
+			<TableColumnHeader {...props} style={{width: 90}} dataKey="name" label="Name" />
+		</FlexRow>
+	</>
+);
+
+const renderCellSessionSummary = ({ rowData: session }: CellRendererProps) => (
+	<>
+		<FlexRow>
+			{session.number + " " + displaySessionType(session.type) + ", " + displayDateRange(session.startDate, session.endDate)}
+		</FlexRow>
+		<FlexRow style={{fontStyle: 'italic'}}>
+			{session.name}
+		</FlexRow>
+	</>
+)
 
 const tableColumns: ColumnProperties[] = [
 	{
@@ -78,7 +110,7 @@ const tableColumns: ColumnProperties[] = [
 		flexShrink: 1,
 	},
 	{
-		key: "Start/End",
+		key: "start/end",
 		label: "Start/End",
 		width: 120,
 		flexGrow: 1,
@@ -86,20 +118,24 @@ const tableColumns: ColumnProperties[] = [
 		headerRenderer: renderHeaderStartEnd,
 		cellRenderer: renderCellStartEnd,
 	},
-	{ key: "number", ...fields.number, width: 80, flexGrow: 1, flexShrink: 1 },
-	{ key: "name", ...fields.name, width: 300, flexGrow: 1, flexShrink: 1 },
+	{ key: "number", label: "Number", width: 80, flexGrow: 1, flexShrink: 1 },
+	{ key: "name", label: "Name", width: 300, flexGrow: 1, flexShrink: 1 },
 	{ key: "type", ...fields.type, width: 80, flexGrow: 1, flexShrink: 1 },
+	{ key: "summary", label: "Summary", width: 500, flexGrow: 1, flexShrink: 1,
+		headerRenderer: renderHeaderSessionSummary,
+		cellRenderer: renderCellSessionSummary
+	},
 	{
-		key: "groupName",
-		...fields.groupName,
-		width: 150,
+		key: "timezone",
+		label: "Time zone",
+		width: 200,
 		flexGrow: 1,
 		flexShrink: 1,
 	},
 	{
-		key: "timezone",
-		...fields.timezone,
-		width: 200,
+		key: "groupName",
+		...fields.groupName,
+		width: 150,
 		flexGrow: 1,
 		flexShrink: 1,
 	},
@@ -114,9 +150,16 @@ const tableColumns: ColumnProperties[] = [
 ];
 
 const defaultTablesColumns = {
-	default: [
+	Summary: [
 		"__ctrl__",
-		"Start/End",
+		"summary",
+		"groupName",
+		"timezone",
+		"Attendance",
+	],
+	Detail: [
+		"__ctrl__",
+		"start/end",
 		"number",
 		"name",
 		"type",
@@ -168,15 +211,24 @@ function Sessions() {
 		<>
 			<div className="top-row justify-right">
 				<div style={{ display: "flex" }}>
-					<TableColumnSelector
-						selectors={sessionsSelectors}
-						actions={sessionsActions}
-						columns={tableColumns}
-					/>
-					<SplitPanelButton
-						selectors={sessionsSelectors}
-						actions={sessionsActions}
-					/>
+					<ButtonGroup>
+						<div>Table view</div>
+						<div style={{ display: "flex" }}>
+							<TableViewSelector
+								selectors={sessionsSelectors}
+								actions={sessionsActions}
+							/>
+							<TableColumnSelector
+								selectors={sessionsSelectors}
+								actions={sessionsActions}
+								columns={tableColumns}
+							/>
+							<SplitPanelButton
+								selectors={sessionsSelectors}
+								actions={sessionsActions}
+							/>
+						</div>
+					</ButtonGroup>
 					<ActionButton
 						name="import"
 						title="Import IMAT session"

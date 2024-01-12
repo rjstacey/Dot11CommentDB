@@ -1,13 +1,13 @@
 {
   "name": "meetings",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "homepage": "meetings",
   "proxy": "http://localhost:8080",
   "dependencies": {
     "@reduxjs/toolkit": "^1.9.7",
     "d3": "^7.8.5",
-    "dot11-components": "^1.9.68",
+    "dot11-components": "^1.9.69",
     "idb-keyval": "^6.2.1",
     "luxon": "^3.4.4",
     "react": "^18.2.0",
@@ -48,6 +48,7 @@
     ]
   },
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@types/d3": "^7.4.3",
     "@types/luxon": "^3.3.7",
     "@types/react-dom": "^18.2.18",
