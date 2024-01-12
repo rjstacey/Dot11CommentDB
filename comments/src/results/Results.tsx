@@ -8,7 +8,7 @@ import {
 	TablesConfig,
 } from "dot11-components";
 
-import PathBallotSelector from "../components/PathBallotSelector";
+import ProjectBallotSelector from "../components/ProjectBallotSelector";
 import ResultsSummary from "./ResultsSummary";
 import ResultsExport from "./ResultsExport";
 
@@ -133,7 +133,7 @@ function Results() {
 	return (
 		<>
 			<div className="top-row" style={{ maxWidth }}>
-				<PathBallotSelector />
+				<ProjectBallotSelector />
 				<div style={{ display: "flex" }}>
 					<ResultsExport ballot={resultsBallot} />
 					<TableColumnSelector

@@ -17,33 +17,28 @@ const statusOptions = [
 	{value: 'ExOfficio', label: 'ExOfficio'}
 ];
 
-function VoterEditModal({
-	isOpen,
-	close,
-	ballot_id,
+function VoterEditForm({
 	voter,
 	action,
+	close
 }: {
-	isOpen: boolean;
-	close: () => void;
-	ballot_id: number | null;
 	voter: VoterCreate;
 	action: "add" | "update" | null;
+	close: () => void;
 }) {
+	const dispatch = useAppDispatch();
 	const [state, setState] = React.useState(voter);
 	const [errMsg, setErrMsg] = React.useState('');
 
-	const dispatch = useAppDispatch();
-
-	const onOpen = () => setState(voter);
-
-	const changeStatus = (options: typeof statusOptions) => {
-		const value = options.length? options[0].value: '';
-		setState(state => ({...state, Status: value}));
-	}
+	React.useEffect(() => setState(voter), [voter]);
 
 	function changeState(changes: Partial<VoterCreate>) {
 		setState(state => ({...state, ...changes}));
+	}
+
+	const changeStatus = (options: typeof statusOptions) => {
+		const value = options.length? options[0].value: '';
+		changeState({Status: value});
 	}
 
 	async function submit() {
@@ -52,7 +47,7 @@ function VoterEditModal({
 		}
 		else {
 			if (action === 'add') {
-				await dispatch(addVoter(ballot_id!, state));
+				await dispatch(addVoter(state));
 			}
 			else {
 				const changes = shallowDiff(voter, state);
@@ -65,12 +60,6 @@ function VoterEditModal({
 	const title = action === 'add'? 'Add voter': 'Update voter'
 
 	return (
-		<AppModal
-			isOpen={isOpen}
-			onAfterOpen={onOpen}
-			onRequestClose={close}
-			style={{overflow: 'unset'}}
-		>
 			<Form
 				style={{width: 500}}
 				title={title}
@@ -102,11 +91,37 @@ function VoterEditModal({
 					<Field label='Excused:'>
 						<Checkbox
 							checked={state.Excused}
-							onClick={() => changeState({Excused: !state.Excused})}
+							onChange={() => changeState({Excused: !state.Excused})}
 						/>
 					</Field>
 				</Row>
 			</Form>
+	)
+}
+
+function VoterEditModal({
+	isOpen,
+	close,
+	voter,
+	action,
+}: {
+	isOpen: boolean;
+	close: () => void;
+	ballot_id: number | null;
+	voter: VoterCreate;
+	action: "add" | "update" | null;
+}) {
+	return (
+		<AppModal
+			isOpen={isOpen}
+			onRequestClose={close}
+			style={{overflow: 'unset'}}
+		>
+			<VoterEditForm
+				voter={voter}
+				action={action}
+				close={close}
+			/>
 		</AppModal>
 	)
 }

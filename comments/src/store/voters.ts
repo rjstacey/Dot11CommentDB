@@ -97,8 +97,8 @@ const slice = createAppTableDataSlice({
 					if (ballot_id !== state.ballot_id) {
 						dataAdapter.removeAll(state);
 						state.valid = false;
+						state.ballot_id = ballot_id;
 					}
-					state.ballot_id = ballot_id;
 				}
 			)
 			.addMatcher(
@@ -228,8 +228,9 @@ export const votersFromMembersSnapshot =
 	};
 
 export const addVoter =
-	(ballot_id: number, voterIn: VoterCreate): AppThunk =>
-	async (dispatch) => {
+	(voterIn: VoterCreate): AppThunk =>
+	async (dispatch, getState) => {
+		const ballot_id = selectVotersBallot_id(getState());
 		const url = `${baseUrl}/${ballot_id}`;
 		let response: any;
 		try {
@@ -246,10 +247,12 @@ export const addVoter =
 
 export const updateVoter =
 	(id: string, changes: Partial<Voter>): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const ballot_id = selectVotersBallot_id(getState());
+		const url = `${baseUrl}/${ballot_id}`;
 		let response: any;
 		try {
-			response = await fetcher.patch(baseUrl, [{ id, changes }]);
+			response = await fetcher.patch(url, [{ id, changes }]);
 			if (!validResponse(response))
 				throw new TypeError("Unexpected response");
 		} catch (error) {

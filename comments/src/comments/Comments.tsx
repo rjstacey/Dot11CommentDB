@@ -11,7 +11,7 @@ import {
 	ChangeableColumnProperties,
 } from 'dot11-components';
 
-import PathBallotSelector from '../components/PathBallotSelector';
+import ProjectBallotSelector from '../components/ProjectBallotSelector';
 import { editorCss } from './RichTextEditor';
 import CommentDetail from './CommentDetail';
 import { renderCommenter } from './CommentEdit';
@@ -375,7 +375,7 @@ function Comments() {
 	return (
 		<>
 			<div className="top-row">
-				<PathBallotSelector />
+				<ProjectBallotSelector />
 				<div style={{display: 'flex', alignItems: 'center'}}>
 					<ButtonGroup>
 						<div>Table view</div>

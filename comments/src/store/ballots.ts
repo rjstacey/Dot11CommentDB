@@ -334,7 +334,7 @@ export const selectCurrentBallotID = (state: RootState) => {
 	return (currentBallot_id && entities[currentBallot_id]?.BallotID) || null;
 };
 
-const selectBallots = createSelector(
+export const selectBallots = createSelector(
 	selectBallotIds,
 	selectBallotEntities,
 	(ids, entities) => ids.map((id) => entities[id]!)

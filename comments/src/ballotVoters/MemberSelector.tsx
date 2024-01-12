@@ -20,12 +20,16 @@ function MemberSelector({
 	"values" | "onChange" | "options"
 >) {
 	const { loading } = useAppSelector(selectMembersState);
-	const options = useAppSelector(selectMembers);
+	const members = useAppSelector(selectMembers);
+	const options = React.useMemo(() =>
+		members.map(m => ({value: m.SAPIN, label: `${m.SAPIN} ${m.Name} (${m.Status})`})),
+		[members]
+	);
 
-	const values = options.filter((o) => o.SAPIN === value);
+	const values = options.filter((o) => o.value === value);
 
 	const handleChange = (values: typeof options) =>
-		onChange(values.length ? values[0].SAPIN : 0);
+		onChange(values.length ? values[0].value : 0);
 
 	return (
 		<Select
@@ -34,8 +38,6 @@ function MemberSelector({
 			options={options}
 			loading={loading}
 			clearable
-			valueField="SAPIN"
-			labelField="Name"
 			readOnly={readOnly}
 			{...otherProps}
 		/>

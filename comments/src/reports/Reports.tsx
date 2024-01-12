@@ -2,7 +2,7 @@ import React from "react";
 
 import { ActionButton, Button } from "dot11-components";
 
-import PathBallotSelector from "../components/PathBallotSelector";
+import ProjectBallotSelector from "../components/ProjectBallotSelector";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
@@ -270,7 +270,7 @@ function Reports() {
 	return (
 		<>
 			<div className="top-row">
-				<PathBallotSelector />
+				<ProjectBallotSelector />
 				<ActionButton
 					name="refresh"
 					title="Refresh"

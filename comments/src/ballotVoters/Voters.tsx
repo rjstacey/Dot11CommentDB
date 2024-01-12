@@ -24,9 +24,9 @@ import {
 	VoterCreate,
 } from "../store/voters";
 
-import VotersImportModal from "./VotersImport";
+import VotersImportButton from "./VotersImport";
 import VoterEditModal from "./VoterEdit";
-import PathBallotSelector from "../components/PathBallotSelector";
+import BallotSelector from "../components/InitialWGBallotSelector";
 
 const RowActions = ({
 	onEdit,
@@ -106,7 +106,6 @@ function Voters() {
 		action: null,
 		voter: getDefaultVoter(votersBallot_id),
 	});
-	const [showImportVoters, setShowImportVoters] = React.useState(false);
 
 	const { loading, selected } = useAppSelector(selectVotersState);
 	const shownIds = useAppSelector(votersSelectors.selectSortedFilteredIds);
@@ -153,8 +152,8 @@ function Voters() {
 	return (
 		<>
 			<div className="top-row" style={{ maxWidth }}>
-				<PathBallotSelector withVotingPool />
-				<div>
+				<BallotSelector />
+				<div style={{display: 'flex'}}>
 					<ActionButton
 						name="add"
 						title="Add voter"
@@ -167,11 +166,8 @@ function Voters() {
 						disabled={selected.length === 0}
 						onClick={handleRemoveSelected}
 					/>
-					<ActionButton
-						name="import"
-						title="Import voters"
-						disabled={!votersBallot_id || !isOnline}
-						onClick={() => setShowImportVoters(true)}
+					<VotersImportButton
+						ballot_id={votersBallot_id}
 					/>
 					<ActionButton
 						name="export"
@@ -201,19 +197,13 @@ function Voters() {
 			</div>
 
 			<VoterEditModal
-				isOpen={!!editVoter.action}
+				isOpen={Boolean(editVoter.action)}
 				close={() =>
 					setEditVoter((state) => ({ ...state, action: null }))
 				}
 				ballot_id={votersBallot_id}
 				voter={editVoter.voter}
 				action={editVoter.action}
-			/>
-
-			<VotersImportModal
-				isOpen={showImportVoters}
-				close={() => setShowImportVoters(false)}
-				ballot_id={votersBallot_id}
 			/>
 		</>
 	);

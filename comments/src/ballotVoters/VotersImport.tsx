@@ -8,7 +8,8 @@ import {
 	Checkbox,
 	Field,
 	Input,
-	AppModal,
+	ActionButtonDropdown,
+	DropdownRendererProps,
 } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -44,38 +45,30 @@ function getErrorText(state: State) {
 	if (state.source === "upload" && !state.file) return "Select a file upload";
 }
 
-function VotersImportModal({
-	isOpen,
+function VotersImportForm({
 	close,
-	ballot_id,
+	ballot,
 }: {
-	isOpen: boolean;
 	close: () => void;
-	ballot_id: number | null;
+	ballot?: Ballot;
 }) {
 	const dispatch = useAppDispatch();
-	const ballot = useAppSelector((state) =>
-		ballot_id ? selectBallot(state, ballot_id) : undefined
-	);
-
 	const [state, setState] = React.useState<State>(() => initState(ballot));
 	const [busy, setBusy] = React.useState(false);
 	const fileRef = React.useRef<HTMLInputElement>(null);
 
-	// Reset state to default on each open
-	const onOpen = () => setState(initState(ballot));
-
 	const errorText = getErrorText(state);
 
 	async function submit() {
-		if (errorText || !ballot_id) return;
+		if (errorText || !ballot) return;
 		setBusy(true);
 		await dispatch(
 			state.source === "members"
-				? votersFromMembersSnapshot(ballot_id, state.date)
-				: votersFromSpreadsheet(ballot_id, state.file!)
+				? votersFromMembersSnapshot(ballot.id, state.date)
+				: votersFromSpreadsheet(ballot.id, state.file!)
 		);
 		setBusy(false);
+		close();
 	}
 
 	function changeState(changes: Partial<State>) {
@@ -83,65 +76,82 @@ function VotersImportModal({
 	}
 
 	return (
-		<AppModal isOpen={isOpen} onAfterOpen={onOpen} onRequestClose={close}>
-			<Form
-				title="Create voter pool"
-				errorText={errorText}
-				submit={submit}
-				cancel={close}
-				busy={busy}
-			>
-				<Row>
-					<List label="">
-						<ListItem>
-							<Checkbox
-								checked={state.source === "members"}
-								onChange={() =>
-									changeState({ source: "members" })
-								}
-							/>
-							<Field label="Member snapshot:">
-								<Input
-									type="date"
-									value={state.date}
-									onChange={(e) =>
-										changeState({ date: e.target.value })
-									}
-								/>
-							</Field>
-						</ListItem>
-						<ListItem>
-							<Checkbox
-								checked={state.source === "upload"}
-								onChange={(e) => {
-									changeState({ source: "upload" });
-									fileRef.current?.click();
-								}}
-							/>
-							<label htmlFor="fromFile">
-								{"Upload from " +
-									(state.file ? state.file.name : "file")}
-							</label>
-							<input
-								id="fromFile"
-								type="file"
-								hidden
-								accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-								ref={fileRef}
+		<Form
+			style={{width: 300}}
+			title="Create voter pool"
+			errorText={errorText}
+			submit={submit}
+			cancel={close}
+			busy={busy}
+		>
+			<Row>
+				<List label="">
+					<ListItem>
+						<Checkbox
+							checked={state.source === "members"}
+							onChange={() => changeState({ source: "members" })}
+						/>
+						<Field label="Member snapshot:">
+							<Input
+								type="date"
+								value={state.date}
 								onChange={(e) =>
-									changeState({
-										file: e.target.files
-											? e.target.files[0]
-											: null,
-									})
+									changeState({ date: e.target.value })
 								}
 							/>
-						</ListItem>
-					</List>
-				</Row>
-			</Form>
-		</AppModal>
+						</Field>
+					</ListItem>
+					<ListItem>
+						<Checkbox
+							checked={state.source === "upload"}
+							onChange={(e) => {
+								changeState({ source: "upload" });
+								fileRef.current?.click();
+							}}
+						/>
+						<label htmlFor="fromFile">
+							{"Upload from " +
+								(state.file ? state.file.name : "file")}
+						</label>
+						<input
+							id="fromFile"
+							type="file"
+							hidden
+							accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+							ref={fileRef}
+							onChange={(e) =>
+								changeState({
+									file: e.target.files
+										? e.target.files[0]
+										: null,
+								})
+							}
+						/>
+					</ListItem>
+				</List>
+			</Row>
+		</Form>
 	);
 }
 
-export default VotersImportModal;
+function VotersImportButton({ ballot_id }: { ballot_id?: number }) {
+	const ballot = useAppSelector((state) =>
+		ballot_id ? selectBallot(state, ballot_id) : undefined
+	);
+
+	return (
+		<ActionButtonDropdown
+			name="import"
+			title="Import voters"
+			disabled={!ballot}
+			dropdownRenderer={({ methods }: DropdownRendererProps) => (
+				<VotersImportForm
+					ballot={ballot}
+					close={methods.close}
+				/>
+			)}
+		/>
+	);
+}
+
+export default VotersImportButton;

@@ -11,10 +11,9 @@ import {
 	selectGroupProjectOptions,
 	selectBallotOptions,
 	GroupProject,
-	BallotType
 } from '../store/ballots';
 
-import styles from "./PathBallotSelector.module.css";
+import styles from "./ProjectBallotSelector.module.css";
 
 function ProjectSelect({
 	style,
@@ -55,7 +54,6 @@ function BallotSelect({
 	onChange,
 	loading,
 	readOnly,
-	withVotingPool
 }: {
 	className?: string;
 	style?: React.CSSProperties;
@@ -63,11 +61,8 @@ function BallotSelect({
 	onChange: (value: number | null) => void;
 	loading: boolean;
 	readOnly?: boolean;
-	withVotingPool?: boolean;
 }) {
 	let ballots = useAppSelector(selectBallotOptions);
-	if (withVotingPool)
-		ballots = ballots.filter(b => (b.Type === BallotType.WG && !b.IsRecirc) || b.Type === BallotType.Motion);
 	const options = ballots.map(b => ({value: b.id, label: `${b.BallotID} ${b.Document}`}));
 	const values = options.filter(o => o.value === value);
 	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].value: 0);
@@ -87,14 +82,8 @@ function BallotSelect({
 
 function BallotSelector({
 	readOnly,
-	onBallotSelected,
-	withVotingPool
 }: {
-	className?: string;
-	style?: React.CSSProperties;
 	readOnly?: boolean;
-	onBallotSelected?: (ballot_id: number | null) => void;
-	withVotingPool?: boolean;
 }) {
 	const navigate = useNavigate();
 	const location = useLocation();
@@ -108,9 +97,6 @@ function BallotSelector({
 		if (ballot)
 			pathName = pathName + `/${ballot.BallotID}`;
 		navigate(pathName);
-
-		if (onBallotSelected)
-			onBallotSelected(null);
 	}
 
 	const handleBallotChange = async (value: number | null) => {
@@ -119,8 +105,6 @@ function BallotSelector({
 		if (ballot)
 			pathName = pathName + `/${ballot.BallotID}`;
 		navigate(pathName);
-		if (onBallotSelected)
-			onBallotSelected(value);
 	}
 
 	return (
@@ -142,7 +126,6 @@ function BallotSelector({
 				onChange={handleBallotChange}
 				loading={loading}
 				readOnly={readOnly}
-				withVotingPool={withVotingPool}
 			/>
 		</div>
 	)
