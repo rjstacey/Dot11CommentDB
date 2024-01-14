@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useParams } from "react-router-dom";
 import { DateTime } from "luxon";
-import { Dictionary, EntityId } from "@reduxjs/toolkit";
 
 import {
 	AppTable,
@@ -29,6 +28,7 @@ import {
 	updateMeetings,
 	addMeetings,
 	selectLoadMeetingsContstraints,
+	selectSyncedMeetingEntities,
 } from "../store/meetings";
 import {
 	selectWebexMeetingsState,
@@ -55,54 +55,7 @@ import {
 } from "../meetings/MeetingDetails";
 import MeetingEntryForm from "../meetings/MeetingEntry";
 
-function displayDateTime(entity: SyncedWebexMeeting) {
-	const start = DateTime.fromISO(entity.start, { zone: entity.timezone });
-	const end = DateTime.fromISO(entity.end, { zone: entity.timezone });
-	return (
-		start.toFormat("EEE, d LLL yyyy HH:mm") + "-" + end.toFormat("HH:mm")
-	);
-}
-
-function setClipboard(
-	selected: EntityId[],
-	entities: Dictionary<SyncedWebexMeeting>
-) {
-	const td = (d: string) => `<td>${d}</td>`;
-	const th = (d: string) => `<th>${d}</th>`;
-	const header = `
-		<tr>
-			${th("When")}
-			${th("Title")}
-			${th("Meeting")}
-			${th("Host key")}
-		</tr>`;
-	const row = (m: SyncedWebexMeeting) => `
-		<tr>
-			${td(displayDateTime(m))}
-			${td(m.title)}
-			${td(
-				`${m.accountName}: <a href="${
-					m.webLink
-				}">${displayMeetingNumber(m.meetingNumber)}</a>`
-			)}
-			${td(m.hostKey)}
-		</tr>`;
-	const table = `
-		<style>
-			table {border-collapse: collapse;}
-			table, th, td {border: 1px solid gray;}
-			td {vertical-align: top;}
-		</style>
-		<table>
-			${header}
-			${selected.map((id) => row(entities[id]!)).join("")}
-		</table>`;
-
-	const type = "text/html";
-	const blob = new Blob([table], { type });
-	const data = [new ClipboardItem({ [type]: blob })];
-	navigator.clipboard.write(data);
-}
+import CopyWebexMeetingListButton from "./CopyWebexMeetingList";
 
 function MeetingLink({
 	webexMeeting,
@@ -385,8 +338,6 @@ function WebexMeetings() {
 	const { groupName } = useParams();
 	const constraints = useAppSelector(selectLoadMeetingsContstraints);
 
-	const { selected: wmSelected } = useAppSelector(selectWebexMeetingsState);
-	const wmEntities = useAppSelector(selectSyncedWebexMeetingEntities);
 	const [webexMeetingToLink, setWebexMeetingToLink] =
 		React.useState<SyncedWebexMeeting | null>(null);
 	const [webexMeetingToAdd, setWebexMeetingToAdd] =
@@ -401,10 +352,6 @@ function WebexMeetings() {
 	};
 	const closeToLink = () => setWebexMeetingToLink(null);
 	const closeToAdd = () => setWebexMeetingToAdd(null);
-
-	const copyHostKeys = () => {
-		setClipboard(wmSelected, wmEntities);
-	};
 
 	React.useEffect(refresh, [dispatch, groupName, constraints]);
 
@@ -423,11 +370,7 @@ function WebexMeetings() {
 						selectors={webexMeetingsSelectors}
 						actions={webexMeetingsActions}
 					/>
-					<ActionButton
-						name="copy"
-						title="Copy host keys"
-						onClick={copyHostKeys}
-					/>
+					<CopyWebexMeetingListButton />
 					<ActionButton
 						name="refresh"
 						title="Refresh"

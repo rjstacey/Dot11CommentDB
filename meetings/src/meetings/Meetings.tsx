@@ -15,6 +15,7 @@ import {
 	ColumnProperties,
 	TablesConfig,
 	TableConfig,
+	RowGetterProps
 } from 'dot11-components';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -29,9 +30,11 @@ import {
 	meetingsActions,
 	setSelectedSlots,
 	SyncedMeeting,
-	selectLoadMeetingsContstraints
+	selectLoadMeetingsContstraints,
+	selectSyncedMeetingEntities,
+	selectMeetingsState
 } from '../store/meetings';
-import { displayMeetingNumber } from '../store/webexMeetings';
+import { displayMeetingNumber, selectSyncedWebexMeetingEntities } from '../store/webexMeetings';
 
 import CurrentSessionSelector from '../components/CurrentSessionSelector';
 
@@ -41,7 +44,8 @@ import MeetingDefaults from './MeetingDefaults';
 import MeetingsEmail from './MeetingsEmail';
 import ShowSlots from './ShowSlots';
 
-import { RowGetterProps } from 'dot11-components/dist/table/AppTable';
+import meetingListToClipboard from './CopyMeetingList';
+import CopyMeetingListButton from './CopyMeetingList';
 
 const DisplayFormat = {
 	0: 'Table view',
@@ -249,6 +253,7 @@ function Meetings() {
 						selectors={meetingsSelectors}
 						actions={meetingsActions}
 					/>
+					<CopyMeetingListButton />
 					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
 				</div>
 			</div>

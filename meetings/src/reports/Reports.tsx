@@ -165,9 +165,16 @@ function ReportsChart({
 	return (
 		<div className="chart-draw">
 			<AutoSizer>
-				{({ height, width }: { height: number; width: number }) => (
-					<Component svgRef={svgRef} width={width} height={height} />
-				)}
+				{({ height, width }: { height: number; width: number }) => {
+					// Rescale to create 16:9
+					if ((16/9)*height > width)
+						height = 9*width/16;
+					else
+						width = 16*height/9;
+					return (
+						<Component svgRef={svgRef} width={width} height={height} />
+					)
+				}}
 			</AutoSizer>
 		</div>
 	);
