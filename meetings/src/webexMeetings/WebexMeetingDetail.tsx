@@ -463,6 +463,7 @@ function AssociatedMeetingSelector({
 
 function WebexMeetingEntryForm({
 	action,
+	busy,
 	entry,
 	changeEntry,
 	submit,
@@ -470,6 +471,7 @@ function WebexMeetingEntryForm({
 	readOnly
 }: {
 	action: "add" | "update";
+	busy: boolean;
 	entry: MultipleWebexMeetingEntry;
 	changeEntry: (changes: PartialWebexMeetingEntry) => void;
 	submit?: () => void;
@@ -479,7 +481,6 @@ function WebexMeetingEntryForm({
 	const dispatch = useAppDispatch();
 
 	let submitForm, cancelForm, submitLabel, errMsg = '';
-	let title = "Webex meeting";
 	if (submit) {
 		if (!entry.date)
 			errMsg = 'Date not set';
@@ -494,11 +495,9 @@ function WebexMeetingEntryForm({
 
 		if (action === 'add') {
 			submitLabel = "Add";
-			title = "Add Webex meeting";
 		}
 		else {
 			submitLabel = "Update";
-			title = "Update Webex meeting";
 		}
 
 		submitForm = () => {
@@ -514,11 +513,11 @@ function WebexMeetingEntryForm({
 
 	return (
 		<Form
-			title={title}
 			submitLabel={submitLabel}
 			submit={submitForm}
 			cancel={cancelForm}
 			errorText={errMsg}
+			busy={busy}
 		>
 			<WebexMeetingAccount
 				entry={entry}
@@ -614,6 +613,7 @@ type WebexMeetingDetailState = {
 	entry: MultipleWebexMeetingEntry;
 	saved: MultipleWebexMeetingEntry;
 	webexMeetings: WebexMeetingParams[];
+	busy: boolean;
 }
 
 class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProps, WebexMeetingDetailState> {
@@ -682,6 +682,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 			entry,
 			saved: entry,
 			webexMeetings,
+			busy: false
 		};
 	}
 
@@ -711,10 +712,6 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 	}
 
 	hasUpdates = () => this.state.saved !== this.state.entry; 
-	/*{
-		const {webexMeetingUpdates, meetingUpdates} = this.getUpdates();
-		return webexMeetingUpdates.length > 0 || meetingUpdates.length > 0;
-	}*/
 
 	changeEntry = (changes: PartialWebexMeetingEntry) => {
 		//console.log('change', changes)
@@ -772,6 +769,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 	add = async () => {
 		const {setSelected, addWebexMeeting, updateMeetings} = this.props;
 		const entry = this.state.entry as WebexMeetingEntry;
+		this.setState({busy: true});
 
 		const webexMeeting = convertEntryToWebexMeeting(entry);
 		const id = await addWebexMeeting(entry.accountId!, webexMeeting);
@@ -783,6 +781,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 
 	update = async () => {
 		const {updateWebexMeetings, updateMeetings} = this.props;
+		this.setState({busy: true});
 
 		const {webexMeetingUpdates, meetingUpdates} = this.getUpdates();
 		//console.log(webexMeetingUpdates, meetingUpdates)
@@ -799,7 +798,7 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 
 	render() {
 		const {loading, access} = this.props;
-		const {action, entry, webexMeetings} = this.state;
+		const {action, busy, entry, webexMeetings} = this.state;
 
 		let notAvailableStr = '';
 		if (loading)
@@ -808,37 +807,50 @@ class WebexMeetingDetail extends React.Component<WebexMeetingDetailConnectedProp
 			notAvailableStr = 'Nothing selected';
 
 		let submit, cancel;
+		let title = "";
+		if (!notAvailableStr)
+			title = "Webex meeting";
 		if (action === 'add') {
 			submit = this.add;
 			cancel = this.cancel;
+			title = "Add Webex meeting";
 		}
 		else if (this.hasUpdates()) {
 			submit = this.update;
 			cancel = this.cancel;
+			title = "Update Webex meeting";
 		}
 
 		const readOnly = access <= AccessLevel.ro;
 
+		const actionButtons = (
+			<div>
+				<ActionButton
+					name='add'
+					title='Add Webex meeting'
+					disabled={loading || readOnly}
+					onClick={this.clickAdd}
+				/>
+				<ActionButton
+					name='delete'
+					title='Delete webex meeting'
+					disabled={loading || webexMeetings.length === 0 || readOnly}
+					onClick={this.clickDelete}
+				/>
+			</div>
+		)
+
 		return (
 			<>
-				<div className="top-row justify-right">
-					<ActionButton
-						name='add'
-						title='Add Webex meeting'
-						disabled={loading || readOnly}
-						onClick={this.clickAdd}
-					/>
-					<ActionButton
-						name='delete'
-						title='Delete webex meeting'
-						disabled={loading || webexMeetings.length === 0 || readOnly}
-						onClick={this.clickDelete}
-					/>
+				<div className="header">
+					<h3 className="title">{title}</h3>
+					{actionButtons}
 				</div>
 				{notAvailableStr?
 					<div className="placeholder">{notAvailableStr}</div>:
 					<WebexMeetingEntryForm
 						action={action}
+						busy={busy}
 						entry={entry}
 						changeEntry={this.changeEntry}
 						submit={submit}

@@ -277,19 +277,15 @@ export function MeetingEntryForm({
 		errMsg = 'Time zone not set';
 
 	let submitForm, cancelForm, submitLabel;
-	let title = isSession? "Session meeting": "Telecon";
 	if (submit) {
 		if (action === 'add-by-slot') {
 			submitLabel = "Add";
-			title = "Add session meeting to selected slots";
 		}
 		else if (action === 'add-by-date') {
 			submitLabel = "Add";
-			title = isSession? "Add session meeting": "Add telecon";
 		}
 		else {
 			submitLabel = "Update";
-			title = isSession? "Update session meeting": "Update telecon";
 		}
 		submitForm = () => {
 			if (errMsg) {
@@ -331,7 +327,6 @@ export function MeetingEntryForm({
 	return (
 		<Form
 			style={{flex: 1, overflow: 'hidden'}}
-			title={title}
 			busy={busy}
 			submitLabel={submitLabel}
 			submit={submitForm}

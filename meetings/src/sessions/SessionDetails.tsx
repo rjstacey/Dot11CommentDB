@@ -7,7 +7,7 @@ import "react-tabs/style/react-tabs.css";
 
 import {
 	shallowDiff,
-	deepDiff,
+	deepMergeTagMultiple,
 	isMultiple,
 	debounce,
 	ConfirmModal,
@@ -17,6 +17,7 @@ import {
 	Input,
 	TextArea,
 	Select,
+	Multiple,
 } from "dot11-components";
 
 import TimeZoneSelector from "../components/TimeZoneSelector";
@@ -93,7 +94,7 @@ function SessionBasics({
 	updateSession,
 	readOnly,
 }: {
-	session: Session;
+	session: MultipleSession;
 	updateSession: (changes: Partial<Session>) => void;
 	readOnly?: boolean;
 }) {
@@ -126,7 +127,7 @@ function SessionBasics({
 			<Row>
 				<Field label="Session number:">
 					<Input
-						style={{fontSize: "1em"}}
+						style={{ fontSize: "1em" }}
 						type="number"
 						name="Number"
 						value={
@@ -272,14 +273,16 @@ function SessionEdit({
 	updateSession,
 	readOnly,
 }: {
-	session: Session;
+	session: MultipleSession;
 	updateSession: (changes: Partial<Session>) => void;
 	readOnly?: boolean;
 }) {
 	const uiProperties = useAppSelector(selectSessionsState).ui;
 	const dispatch = useAppDispatch();
 
-	const isSession = session.type === "p" || session.type === "i";
+	const isSession =
+		(session.type === "p" || session.type === "i") &&
+		!isMultiple(session.id);
 
 	return (
 		<div className="main">
@@ -302,14 +305,14 @@ function SessionEdit({
 					</TabList>
 					<TabPanel>
 						<RoomDetails
-							rooms={session.rooms || []}
+							rooms={(session as Session).rooms || []}
 							setRooms={(rooms) => updateSession({ rooms })}
 							readOnly={readOnly}
 						/>
 					</TabPanel>
 					<TabPanel>
 						<TimeslotDetails
-							timeslots={session.timeslots || []}
+							timeslots={(session as Session).timeslots || []}
 							setTimeslots={(timeslots) =>
 								updateSession({ timeslots })
 							}
@@ -318,7 +321,7 @@ function SessionEdit({
 					</TabPanel>
 					<TabPanel>
 						<SessionCredit
-							session={session}
+							session={session as Session}
 							updateSession={updateSession}
 							readOnly={readOnly}
 						/>
@@ -329,9 +332,17 @@ function SessionEdit({
 	);
 }
 
+const Placeholder = (props: React.ComponentProps<"span">) => (
+	<div className="placeholder">
+		<span {...props} />
+	</div>
+);
+
+export type MultipleSession = Multiple<Session>;
+
 type SessionDetailState = {
-	saved: {} | Session;
-	edited: {} | Session;
+	saved: MultipleSession;
+	edited: MultipleSession;
 	ids: EntityId[];
 };
 
@@ -366,16 +377,18 @@ class SessionDetail extends React.Component<
 	}
 
 	initState = (props: SessionDetailInternalProps) => {
-		const { sessions, selected } = props;
-		const ids = selected.filter((id) => sessions[id]);
-		const diff: {} | Session = ids.reduce(
-			(diff, id) => deepDiff(diff, sessions[id]!),
-			{}
+		const { sessionEntities, selected } = props;
+		const sessions = selected
+			.map((id) => sessionEntities[id]!)
+			.filter((s) => Boolean(s));
+		const diff: MultipleSession = sessions.reduce(
+			(diff, s) => deepMergeTagMultiple(diff as {}, s),
+			{} as MultipleSession
 		);
 		return {
 			saved: diff,
 			edited: diff,
-			ids,
+			ids: sessions.map((s) => s.id),
 		};
 	};
 
@@ -474,12 +487,10 @@ class SessionDetail extends React.Component<
 					)}
 				</div>
 				{notAvailableStr ? (
-					<div className="placeholder">
-						<span>{notAvailableStr}</span>
-					</div>
+					<Placeholder>{notAvailableStr}</Placeholder>
 				) : (
 					<SessionEdit
-						session={edited as Session}
+						session={edited}
 						updateSession={this.updateSession}
 						readOnly={readOnly || !uiProperties.editEnabled}
 					/>
@@ -494,7 +505,7 @@ const connector = connect(
 	(state: RootState) => {
 		const sessions = selectSessionsState(state);
 		return {
-			sessions: sessions.entities,
+			sessionEntities: sessions.entities,
 			loading: sessions.loading,
 			selected: sessions.selected,
 			uiProperties: sessions.ui,

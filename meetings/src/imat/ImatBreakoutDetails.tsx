@@ -458,14 +458,11 @@ function BreakoutEntryForm({
 	else if (!entry.startSlotId) errMsg = "Select start slot";
 
 	let submitForm, cancelForm, submitLabel;
-	let title = "Breakout";
 	if (submit) {
 		if (action === "add") {
 			submitLabel = "Add";
-			title = "Add breakout";
 		} else {
 			submitLabel = "Update";
-			title = "Update breakout";
 		}
 		submitForm = () => {
 			if (errMsg) {
@@ -500,7 +497,6 @@ function BreakoutEntryForm({
 
 	return (
 		<Form
-			title={title}
 			busy={busy}
 			submitLabel={submitLabel}
 			submit={submitForm}
@@ -961,43 +957,55 @@ class BreakoutDetails extends React.Component<
 			notAvailableStr = "Nothing selected";
 
 		let submit, cancel;
+		let title = "";
+		if (!notAvailableStr)
+			title = "Breakout";
 		if (action === "add") {
 			submit = this.add;
 			cancel = this.cancel;
+			title = "Add breakout";
 		} else if (this.hasUpdates()) {
 			submit = this.update;
 			cancel = this.cancel;
+			title = "Update breakout";
 		}
 
 		const readOnly = access <= AccessLevel.ro;
 
+		const actionButtons = (
+			<div>
+				<ActionButton
+					name="import"
+					title="Import as meeting"
+					disabled={loading || busy || readOnly}
+					onClick={this.clickImport}
+				/>
+				<ActionButton
+					name="add"
+					title="Add breakout"
+					disabled={loading || busy || readOnly}
+					isActive={action === "add"}
+					onClick={this.clickAdd}
+				/>
+				<ActionButton
+					name="delete"
+					title="Delete breakout"
+					disabled={
+						loading ||
+						breakouts.length === 0 ||
+						busy ||
+						readOnly
+					}
+					onClick={this.clickDelete}
+				/>
+			</div>
+		)
+
 		return (
 			<>
-				<div className="top-row justify-right">
-					<ActionButton
-						name="import"
-						title="Import as meeting"
-						disabled={loading || busy || readOnly}
-						onClick={this.clickImport}
-					/>
-					<ActionButton
-						name="add"
-						title="Add breakout"
-						disabled={loading || busy || readOnly}
-						isActive={action === "add"}
-						onClick={this.clickAdd}
-					/>
-					<ActionButton
-						name="delete"
-						title="Delete breakout"
-						disabled={
-							loading ||
-							breakouts.length === 0 ||
-							busy ||
-							readOnly
-						}
-						onClick={this.clickDelete}
-					/>
+				<div className="header">
+					<h3 className="title">{title}</h3>
+					{actionButtons}
 				</div>
 				{notAvailableStr ? (
 					<div className="placeholder">{notAvailableStr}</div>

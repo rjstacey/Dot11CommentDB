@@ -31,10 +31,8 @@ import {
 	setSelectedSlots,
 	SyncedMeeting,
 	selectLoadMeetingsContstraints,
-	selectSyncedMeetingEntities,
-	selectMeetingsState
 } from '../store/meetings';
-import { displayMeetingNumber, selectSyncedWebexMeetingEntities } from '../store/webexMeetings';
+import { displayMeetingNumber } from '../store/webexMeetings';
 
 import CurrentSessionSelector from '../components/CurrentSessionSelector';
 
@@ -43,8 +41,6 @@ import MeetingDetails from './MeetingDetails';
 import MeetingDefaults from './MeetingDefaults';
 import MeetingsEmail from './MeetingsEmail';
 import ShowSlots from './ShowSlots';
-
-import meetingListToClipboard from './CopyMeetingList';
 import CopyMeetingListButton from './CopyMeetingList';
 
 const DisplayFormat = {
@@ -149,7 +145,7 @@ const tableColumns: ColumnProperties[] = [
 		width: 60, flexGrow: 1, flexShrink: 1},
 	{key: 'imatMeetingName',
 		label: 'IMAT meeting',
-		width: 50, flexGrow: 1, flexShrink: 1,
+		width: 150, flexGrow: 1, flexShrink: 1,
 		cellRenderer: renderImatMeeting},
 	{key: 'calendarAccountName',
 		label: 'Calendar',

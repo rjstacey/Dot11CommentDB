@@ -31,6 +31,21 @@ div#root {
     font-weight: bold;
 }
 
+.details-panel .header {
+	display: flex;
+	flex-wrap: nowrap;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.details-panel .title {
+	align-self: center;
+	font-weight: bold;
+	color: #0099cc;
+	margin: 0;
+}
+
+
 .top-row {
 	display: flex;
 	justify-content: space-between;

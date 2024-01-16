@@ -199,6 +199,12 @@ export function convertEntryToMeeting(
 	};
 }
 
+const Placeholder = (props: React.ComponentProps<"span">) => (
+	<div className="placeholder">
+		<span {...props} />
+	</div>
+);
+
 type Actions = "add-by-slot" | "add-by-date" | "update";
 
 type MeetingDetailsState = {
@@ -583,7 +589,7 @@ class MeetingDetails extends React.Component<
 	};
 
 	render() {
-		const { loading, access } = this.props;
+		const { session, loading, access } = this.props;
 		const { action, entry, meetings, busy } = this.state;
 
 		let notAvailableStr = "";
@@ -593,49 +599,68 @@ class MeetingDetails extends React.Component<
 
 		const readOnly = access <= AccessLevel.ro;
 
+		const isSession = isSessionMeeting(session);
+
 		let submit, cancel;
+		let title = "";
+		if (!notAvailableStr)
+			title = isSession? "Session meeting": "Telecon";
 		if (action === "add-by-slot" || action === "add-by-date") {
 			submit = this.add;
 			cancel = this.cancel;
+			if (action === 'add-by-slot') {
+				title = "Add session meeting to selected slots";
+			}
+			else if (action === 'add-by-date') {
+				title = isSession? "Add session meeting": "Add telecon";
+			}
 		} else if (this.hasUpdates()) {
 			submit = this.update;
 			cancel = this.cancel;
+			title = isSession? "Update session meeting": "Update telecon";
 		}
+
+		const actionButtons = (
+			<div>
+				<ActionButton
+					name="upload"
+					title="Sync meeting"
+					disabled={
+						meetings.length === 0 || loading || busy || readOnly
+					}
+					onClick={this.clickSync}
+				/>
+				<ActionButton
+					name="add"
+					title="Add meeting"
+					disabled={
+						action === "add-by-slot" ||
+						loading ||
+						busy ||
+						readOnly
+					}
+					isActive={action === "add-by-date"}
+					onClick={this.clickAdd}
+				/>
+				<ActionButton
+					name="delete"
+					title="Delete meeting"
+					disabled={
+						meetings.length === 0 || loading || busy || readOnly
+					}
+					onClick={this.clickDelete}
+				/>
+			</div>
+		)
 
 		return (
 			<>
-				<div className="top-row justify-right">
-					<ActionButton
-						name="add"
-						title="Add meeting"
-						disabled={
-							action === "add-by-slot" ||
-							loading ||
-							busy ||
-							readOnly
-						}
-						isActive={action === "add-by-date"}
-						onClick={this.clickAdd}
-					/>
-					<ActionButton
-						name="upload"
-						title="Sync meeting"
-						disabled={
-							meetings.length === 0 || loading || busy || readOnly
-						}
-						onClick={this.clickSync}
-					/>
-					<ActionButton
-						name="delete"
-						title="Delete meeting"
-						disabled={
-							meetings.length === 0 || loading || busy || readOnly
-						}
-						onClick={this.clickDelete}
-					/>
+				<div className="header">
+					<h3 className="title">{title}</h3>
+					{actionButtons}
 				</div>
 				{notAvailableStr ? (
-					<div className="placeholder">{notAvailableStr}</div>
+					<Placeholder>{notAvailableStr}</Placeholder>
 				) : (
 					<MeetingEntryForm
 						entry={entry}
