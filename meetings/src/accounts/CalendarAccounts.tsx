@@ -1,6 +1,12 @@
 import React from "react";
 
-import { Button, ActionButton, Input, ActionIcon } from "dot11-components";
+import {
+	Button,
+	ActionButton,
+	Input,
+	ActionIcon,
+	Checkbox,
+} from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
@@ -15,6 +21,11 @@ import {
 	CalendarAccount,
 } from "../store/calendarAccounts";
 import { selectMemberEntities } from "../store/members";
+import {
+	selectCurrentGroupDefaults,
+	updateCurrentGroupDefaults,
+	GroupDefaults,
+} from "../store/current";
 
 import { EditTable as Table, TableColumn } from "../components/Table";
 
@@ -33,30 +44,130 @@ const defaultAccount: CalendarAccountCreate = {
 	groups: [],
 };
 
+type CellProps = {
+	account: CalendarAccount;
+	readOnly: boolean;
+};
+
+function AccountName({ account, readOnly }: CellProps) {
+	const dispatch = useAppDispatch();
+	const handleChange = (id: number, changes: Partial<CalendarAccount>) =>
+		dispatch(updateCalendarAccount(id, changes));
+	return (
+		<Input
+			type="search"
+			value={account.name}
+			onChange={(e) => handleChange(account.id, { name: e.target.value })}
+			readOnly={readOnly}
+		/>
+	);
+}
+
+function AuthorizedBy({ account }: CellProps) {
+	const memberEntities = useAppSelector(selectMemberEntities);
+
+	let s: string;
+	if (!account.authUserId) {
+		s = "-";
+	} else {
+		const m = memberEntities[account.authUserId];
+		s = m ? m.Name : "SAPIN: " + account.authUserId;
+	}
+	return <span>{s}</span>;
+}
+
+function AuthButtons({ account }: CellProps) {
+	const dispatch = useAppDispatch();
+	const handleRevoke = (id: number) =>
+		dispatch(revokeAuthCalendarAccount(id));
+
+	if (!account.authUrl) return null;
+	return (
+		<>
+			<Button
+				style={{ marginLeft: "1em" }}
+				onClick={() => (window.location.href = account.authUrl!)}
+			>
+				{account.authDate ? "Reauthorize" : "Authorize"}
+			</Button>
+			<Button
+				style={{ marginLeft: "1em" }}
+				onClick={() => handleRevoke(account.id)}
+			>
+				{"Revoke"}
+			</Button>
+		</>
+	);
+}
+
+function Defaults({ account }: CellProps) {
+	const dispatch = useAppDispatch();
+	const defaults = useAppSelector(selectCurrentGroupDefaults);
+	const doUpdate = (changes: Partial<GroupDefaults>) =>
+		dispatch(updateCurrentGroupDefaults(changes));
+	const isDefault = account.id === defaults.calendarAccountId;
+	return (
+		<Checkbox
+			checked={isDefault}
+			onChange={(e) =>
+				doUpdate({
+					calendarAccountId: e.target.checked ? account.id : 0,
+				})
+			}
+		/>
+	);
+}
+
+function Actions({ account }: CellProps) {
+	const dispatch = useAppDispatch();
+	const handleDelete = (id: number) => dispatch(deleteCalendarAccount(id));
+	return (
+		<ActionIcon type="delete" onClick={() => handleDelete(account.id)} />
+	);
+}
+
+function ActionsHeader() {
+	const dispatch = useAppDispatch();
+	const handleAdd = () => dispatch(addCalendarAccount(defaultAccount));
+	return <ActionIcon type="add" onClick={() => handleAdd()} />;
+}
+
 const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 	name: {
 		label: "Name",
-		gridTemplate: "minmax(200px, auto)",
+		renderCell: (props: CellProps) => <AccountName {...props} />,
 	},
 	ownerInfo: {
 		label: "Owner",
-		gridTemplate: "minmax(200px, auto)",
+		renderCell({ account }: CellProps) {
+			return (
+				(account.displayName || "-") +
+				(account.userName ? ` (${account.userName})` : "")
+			);
+		},
 	},
 	authorizedBy: {
 		label: "Authorized by",
-		gridTemplate: "auto",
+		renderCell: (props: CellProps) => <AuthorizedBy {...props} />,
 	},
 	authorized: {
 		label: "Last authorized",
-		gridTemplate: "auto",
+		renderCell({ account }: CellProps) {
+			return account.authDate ? displayDate(account.authDate) : "-";
+		},
 	},
 	authButtons: {
-		label: "",
-		gridTemplate: "auto",
+		label: "Authorize",
+		renderCell: (props: CellProps) => <AuthButtons {...props} />,
+	},
+	defaults: {
+		label: "Use by default",
+		renderCell: (props: CellProps) => <Defaults {...props} />,
 	},
 	actions: {
-		label: "",
 		gridTemplate: "40px",
+		label: <ActionsHeader />,
+		renderCell: (props: CellProps) => <Actions {...props} />,
 	},
 };
 
@@ -65,89 +176,29 @@ function CalendarAccounts() {
 	const { loading } = useAppSelector(selectCalendarAccountsState);
 	const accounts = useAppSelector(selectCalendarAccounts);
 
-	const memberEntities = useAppSelector(selectMemberEntities);
 	const [readOnly, setReadOnly] = React.useState(true);
 	const refresh = () => dispatch(refreshCalendarAccounts());
+
+	const colProps = React.useMemo(
+		() => accounts.map((account) => ({ account, readOnly })),
+		[accounts, readOnly]
+	);
 
 	const columns = React.useMemo(() => {
 		let keys = Object.keys(tableColumns);
 		if (readOnly) keys = keys.filter((key) => key !== "actions");
-
-		const handleAdd = () => dispatch(addCalendarAccount(defaultAccount));
-		const handleDelete = (id: number) =>
-			dispatch(deleteCalendarAccount(id));
-		const handleChange = (id: number, changes: Partial<CalendarAccount>) =>
-			dispatch(updateCalendarAccount(id, changes));
-		const handleRevoke = (id: number) =>
-			dispatch(revokeAuthCalendarAccount(id));
 
 		const columns = keys.map((key) => {
 			const col: TableColumn = {
 				key,
 				...tableColumns[key],
 			};
-			if (key === "name") {
-				col.renderCell = (account: CalendarAccount) => (
-					<Input
-						type="search"
-						value={account.name}
-						onChange={(e) =>
-							handleChange(account.id, { name: e.target.value })
-						}
-						readOnly={readOnly}
-					/>
-				);
-			} else if (key === "ownerInfo") {
-				col.renderCell = (account: CalendarAccount) =>
-					(account.displayName || "-") +
-					(account.userName ? ` (${account.userName})` : "");
-			} else if (key === "authorizedBy") {
-				col.renderCell = (account: CalendarAccount) => {
-					if (!account.authUserId) return "-";
-					const m = memberEntities[account.authUserId];
-					if (m) return m.Name;
-					return "SAPIN: " + account.authUserId;
-				};
-			} else if (key === "authorized") {
-				col.renderCell = (account: CalendarAccount) =>
-					account.authDate ? displayDate(account.authDate) : "-";
-			} else if (key === "authButtons") {
-				col.renderCell = (account: CalendarAccount) => (
-					<>
-						{account.authUrl && (
-							<Button
-								style={{ marginLeft: "1em" }}
-								onClick={() =>
-									(window.location.href = account.authUrl!)
-								}
-							>
-								{account.authDate ? "Reauthorize" : "Authorize"}
-							</Button>
-						)}
-						{account.authDate && (
-							<Button
-								style={{ marginLeft: "1em" }}
-								onClick={() => handleRevoke(account.id)}
-							>
-								{"Revoke"}
-							</Button>
-						)}
-					</>
-				);
-			} else if (key === "actions") {
-				col.renderCell = (account: CalendarAccount) => (
-					<ActionIcon
-						type="delete"
-						onClick={() => handleDelete(account.id)}
-					/>
-				);
-				col.label = <ActionIcon type="add" onClick={handleAdd} />;
-			}
+
 			return col;
 		});
 
 		return columns;
-	}, [dispatch, readOnly, memberEntities]);
+	}, [readOnly]);
 
 	return (
 		<>
@@ -168,7 +219,7 @@ function CalendarAccounts() {
 					/>
 				</div>
 			</div>
-			<Table values={accounts} columns={columns} />
+			<Table values={colProps} columns={columns} />
 		</>
 	);
 }

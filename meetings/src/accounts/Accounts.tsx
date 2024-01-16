@@ -3,7 +3,7 @@ import WebexAccounts from './WebexAccounts';
 
 function Accounts() {
 	return (
-		<div style={{width: 1000}}>
+		<div style={{padding: 10}}>
 			<WebexAccounts />
 			<CalendarAccounts />
 		</div>

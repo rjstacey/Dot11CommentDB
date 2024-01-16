@@ -11,7 +11,7 @@
 
 .table th,
 .table td {
-	/*border: gray solid 1px;*/
+	border: gray solid 1px;
 	vertical-align: top;
 }
 
