@@ -76,7 +76,7 @@ function AuthorizedBy({ account }: { account: WebexAccount }) {
 	return <span>{s}</span>;
 }
 
-function AuthButtons({ account }: { account: WebexAccount }) {
+function AuthButtons({ account }: CellProps) {
 	if (!account.authUrl) return null;
 	return (
 		<Button
@@ -88,7 +88,7 @@ function AuthButtons({ account }: { account: WebexAccount }) {
 	);
 }
 
-function DefaultsCell({ account }: { account: WebexAccount }) {
+function Defaults({ account }: CellProps) {
 	const dispatch = useAppDispatch();
 	const defaults = useAppSelector(selectCurrentGroupDefaults);
 	const doUpdate = (changes: Partial<GroupDefaults>) =>
@@ -161,14 +161,14 @@ const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 	},
 	authButtons: {
 		label: "Authorize",
-		renderCell: ({ account }: CellProps) => (
-			<AuthButtons account={account} />
+		renderCell: (props: CellProps) => (
+			<AuthButtons {...props} />
 		),
 	},
 	defaults: {
 		label: "Use by default",
-		renderCell: ({ account }: CellProps) => (
-			<DefaultsCell account={account} />
+		renderCell: (props: CellProps) => (
+			<Defaults {...props} />
 		),
 	},
 	actions: {
