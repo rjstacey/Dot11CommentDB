@@ -960,7 +960,12 @@ class BreakoutDetails extends React.Component<
 		let title = "";
 		if (!notAvailableStr)
 			title = "Breakout";
-		if (action === "add") {
+		if (action === "import") {
+			submit = this.import;
+			cancel = this.cancel;
+			title = "Import as meeting";
+		}
+		else if (action === "add") {
 			submit = this.add;
 			cancel = this.cancel;
 			title = "Add breakout";
@@ -1015,8 +1020,8 @@ class BreakoutDetails extends React.Component<
 						changeEntry={this.changeMeetingEntry}
 						busy={busy}
 						action="add-by-date"
-						submit={this.import}
-						cancel={this.cancel}
+						submit={submit}
+						cancel={cancel}
 					/>
 				) : (
 					<BreakoutEntryForm
