@@ -38,7 +38,6 @@ import CurrentSessionSelector from '../components/CurrentSessionSelector';
 
 import MeetingsCalendar from './MeetingsCalendar';
 import MeetingDetails from './MeetingDetails';
-import MeetingDefaults from './MeetingDefaults';
 import MeetingsEmail from './MeetingsEmail';
 import ShowSlots from './ShowSlots';
 import CopyMeetingListButton from './CopyMeetingList';
@@ -225,12 +224,8 @@ function Meetings() {
 			<div className="top-row">
 				<CurrentSessionSelector allowShowDateRange />
 
-				<ActionButtonDropdown label='Set defaults'>
-					<MeetingDefaults />
-				</ActionButtonDropdown>
-
 				<ActionButtonDropdown
-					label='Send email'
+					label='Email host keys'
 					dropdownRenderer={({methods}) => <MeetingsEmail close={methods.close} />}
 				/>
 			

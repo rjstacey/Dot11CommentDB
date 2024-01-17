@@ -5,7 +5,7 @@ import "react-tabs/style/react-tabs.css";
 import { EntityId, Dictionary } from "@reduxjs/toolkit";
 import { useParams } from "react-router-dom";
 
-import { Form, Field, Checkbox } from "dot11-components";
+import { Form, Checkbox } from "dot11-components";
 
 import type { RootState } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -17,7 +17,7 @@ import {
 } from "../store/meetings";
 import { selectOfficersState, type Officer } from "../store/officers";
 import { selectMember, type Member } from "../store/members";
-import { selectGroupsState } from "../store/groups";
+import { selectGroupsState, selectGroups } from "../store/groups";
 import { WebexMeeting, displayMeetingNumber } from "../store/webexMeetings";
 import { sendEmail, type Email } from "../store/emailActions";
 
@@ -115,8 +115,8 @@ function selectOfficers(state: RootState, groupId: EntityId) {
 	return officers;
 }
 
-function selectGroups(state: RootState) {
-	const { entities: groupEntities } = selectGroupsState(state);
+function selectMeetingsGroups(state: RootState) {
+	let groups = selectGroups(state);
 	const meetingEntities = selectSyncedMeetingEntities(state);
 	const meetingIds = selectMeetingIds(state);
 
@@ -130,9 +130,8 @@ function selectGroups(state: RootState) {
 		)
 			groupIds.add(m.organizationId);
 	}
-	return [...groupIds]
-		.map((id) => groupEntities[id]!)
-		.sort((a, b) => a.name.localeCompare(b.name));
+
+	return groups.filter(g => groupIds.has(g.id));
 }
 
 function selectEmails(state: RootState, groupIds: EntityId[]) {
@@ -192,8 +191,7 @@ function selectEmails(state: RootState, groupIds: EntityId[]) {
 function MeetingEmail({ close }: { close: () => void }) {
 	const dispatch = useAppDispatch();
 	const { groupName } = useParams();
-	const groups = useAppSelector(selectGroups);
-	const nRows = Math.round(groups.length / 3) + 1;
+	const groups = useAppSelector(selectMeetingsGroups);
 	const [selectedGroups, setSelectedGroups] = React.useState<string[]>([]);
 	const emails = useAppSelector((state) =>
 		selectEmails(state, selectedGroups)
@@ -223,7 +221,7 @@ function MeetingEmail({ close }: { close: () => void }) {
 
 	return (
 		<Form
-			title="Send eMail"
+			title="Email host keys"
 			busy={busy}
 			submit={send}
 			submitLabel="Send"
@@ -233,16 +231,17 @@ function MeetingEmail({ close }: { close: () => void }) {
 		>
 			<div
 				className={styles["meetings-email-grid"]}
-				style={{ gridTemplateRows: `repeat(${nRows}, 1fr)` }}
+				//style={{ gridTemplateRows: `repeat(${nRows}, 1fr)` }}
 			>
 				{groups.map((g) => (
-					<Field key={g.id} label={g.name}>
+					<div key={g.id} style={{display: 'flex', alignItems: 'center'}}>
 						<Checkbox
 							value={g.id}
 							onChange={handleSelectGroup}
 							checked={selectedGroups.includes(g.id)}
 						/>
-					</Field>
+						<label>{g.name}</label>
+					</div>
 				))}
 			</div>
 			<Tabs>
