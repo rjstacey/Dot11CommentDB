@@ -1,10 +1,8 @@
-import React from "react";
-import { connect, ConnectedProps } from "react-redux";
+import * as React from "react";
 
 import {
 	shallowDiff,
 	recursivelyDiffObjects,
-	debounce,
 	ActionButton,
 	Row,
 	Spinner,
@@ -12,17 +10,16 @@ import {
 	Multiple,
 } from "dot11-components";
 
+import { useDebounce } from "../components/useDebounce";
 import ResultsActions from "./ResultsActions";
 import CommentsActions from "./CommentsActions";
 import EditBallot from "./BallotEdit";
 
-import type { RootState } from "../store";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { selectIsOnline } from "../store/offline";
 import {
 	updateBallot,
-	addBallot,
 	deleteBallots,
-	setCurrentGroupProject,
 	setUiProperties,
 	selectBallotsState,
 	Ballot,
@@ -64,6 +61,12 @@ function BallotWithActions({
 	);
 }
 
+const Placeholder = (props: React.ComponentProps<"span">) => (
+	<div className="placeholder">
+		<span {...props} />
+	</div>
+);
+
 type MultipleBallot = Multiple<Ballot>;
 
 type BallotDetailState = {
@@ -72,24 +75,19 @@ type BallotDetailState = {
 	originals: Ballot[];
 };
 
-class _BallotDetail extends React.Component<
-	BallotDetailProps,
-	BallotDetailState
-> {
-	constructor(props: BallotDetailProps) {
-		super(props);
-		this.state = this.initState(props);
-		this.triggerSave = debounce(this.save, 500);
-	}
+function BallotDetail({ readOnly }: { readOnly?: boolean }) {
+	const dispatch = useAppDispatch();
+	const isOnline = useAppSelector(selectIsOnline);
+	const {
+		entities: ballots,
+		loading,
+		selected,
+	} = useAppSelector(selectBallotsState);
 
-	triggerSave: ReturnType<typeof debounce>;
+	const edit: boolean | undefined = useAppSelector(selectBallotsState).ui.edit;
+	const setEdit = (edit: boolean) => dispatch(setUiProperties({ edit }));
 
-	componentWillUnmount() {
-		this.triggerSave.flush();
-	}
-
-	initState = (props: BallotDetailProps): BallotDetailState => {
-		const { ballots, selected } = props;
+	const initState = React.useCallback((): BallotDetailState => {
 		let diff = {},
 			originals: Ballot[] = [];
 		for (const id of selected) {
@@ -104,41 +102,46 @@ class _BallotDetail extends React.Component<
 			edited: diff as MultipleBallot,
 			originals: originals,
 		};
-	};
+	}, [ballots, selected]);
 
-	updateBallot = (changes: Partial<BallotEdit>) => {
-		const { readOnly, uiProperties } = this.props;
-		if (readOnly || !uiProperties.edit) {
-			console.warn("Update when read-only");
-			return;
-		}
-		// merge in the edits and trigger a debounced save
-		this.setState(
-			(state) => ({ ...state, edited: { ...state.edited, ...changes } }),
-			this.triggerSave
-		);
-	};
+	const [state, setState] = React.useState(initState);
 
-	save = () => {
-		const { edited, saved, originals } = this.state;
+	/*React.useEffect(() => {
+		setState(initState());
+	}, [initState]);*/
+
+	const triggerSave = useDebounce(() => {
+		const { edited, saved, originals } = state;
 		const d = shallowDiff(saved, edited) as Partial<Ballot>;
 		const updates: (Partial<Ballot> & { id: number })[] = [];
 		for (const o of originals) {
 			if (Object.keys(d).length > 0) updates.push({ ...d, id: o.id });
 		}
 		if (updates.length > 0)
-			updates.forEach((u) => this.props.updateBallot(u.id, u));
+			updates.forEach((u) => dispatch(updateBallot(u.id, u)));
 		if (d.groupId || d.Project) {
 			this.props.setCurrentGroupProject({
 				groupId: edited.groupId,
 				project: edited.Project,
 			});
 		}
-		this.setState((state) => ({ ...state, saved: edited }));
+		setState((state) => ({ ...state, saved: edited }));
+	});
+
+	const handleUpdateBallot = (changes: Partial<BallotEdit>) => {
+		if (readOnly || !edit) {
+			console.warn("Update when read-only");
+			return;
+		}
+		// merge in the edits and trigger a debounced save
+		setState((state) => ({
+			...state,
+			edited: { ...state.edited, ...changes },
+		}));
+		triggerSave();
 	};
 
-	handleRemoveSelected = async () => {
-		const { selected, ballots } = this.props;
+	const handleRemoveSelected = async () => {
 		const list = selected.map((id) => ballots[id]!.BallotID).join(", ");
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete ballot${
@@ -146,86 +149,59 @@ class _BallotDetail extends React.Component<
 			} ${list}?`
 		);
 		if (!ok) return;
-		await this.props.deleteBallots(selected);
+		await dispatch(deleteBallots(selected));
 	};
 
-	render() {
-		const { loading, uiProperties, setUiProperties, readOnly, isOnline } =
-			this.props;
+	let placeholder = "";
+	if (loading) placeholder = "Loading...";
+	else if (state.originals.length === 0) placeholder = "Nothing selected";
 
-		let notAvailableStr: string | undefined;
-		if (loading) notAvailableStr = "Loading...";
-		else if (this.state.originals.length === 0)
-			notAvailableStr = "Nothing selected";
-		const disableButtons = Boolean(notAvailableStr) || !isOnline; // disable buttons if displaying string
-
-		return (
-			<>
-				<div className="top-row justify-right">
-					{!readOnly && (
-						<span>
-							<ActionButton
-								name="edit"
-								title="Edit ballot"
-								disabled={disableButtons}
-								isActive={uiProperties.edit}
-								onClick={() =>
-									setUiProperties({
-										edit: !uiProperties.edit,
-									})
-								}
-							/>
-							<ActionButton
-								name="delete"
-								title="Delete ballot"
-								disabled={disableButtons}
-								onClick={this.handleRemoveSelected}
-							/>
-						</span>
-					)}
-				</div>
-				{notAvailableStr ? (
-					<div className="placeholder">
-						<span>{notAvailableStr}</span>
-					</div>
-				) : (
-					<BallotWithActions
-						ballot={this.state.edited}
-						updateBallot={this.updateBallot}
-						readOnly={readOnly || !isOnline || !uiProperties.edit}
-					/>
-				)}
-			</>
-		);
+	let title = "";
+	if (!placeholder) {
+		if (edit) {
+			title = state.originals.length > 1? "Edit ballots": "Edit ballot";
+		}
+		else {
+			title = state.originals.length > 1? "Ballots": "Ballot";
+		}
 	}
+
+	const disableButtons = Boolean(placeholder) || !isOnline;
+	const actionButtons = readOnly ? null : (
+		<>
+			<ActionButton
+				name="edit"
+				title="Edit ballot"
+				disabled={disableButtons}
+				isActive={edit}
+				onClick={() => setEdit(!edit)}
+			/>
+			<ActionButton
+				name="delete"
+				title="Delete ballot"
+				disabled={disableButtons}
+				onClick={handleRemoveSelected}
+			/>
+		</>
+	);
+
+	return (
+		<>
+			<div className="top-row">
+				<h3>{title}</h3>
+				<div>{actionButtons}</div>
+			</div>
+			{placeholder ? (
+				<Placeholder>{placeholder}</Placeholder>
+			) : (
+				<BallotWithActions
+					ballot={state.edited}
+					updateBallot={handleUpdateBallot}
+					readOnly={readOnly || !isOnline || !edit}
+				/>
+			)}
+		</>
+	);
 }
-
-const connector = connect(
-	(state: RootState) => {
-		const ballotsState = selectBallotsState(state);
-		return {
-			ballots: ballotsState.entities,
-			loading: ballotsState.loading,
-			selected: ballotsState.selected,
-			uiProperties: ballotsState.ui,
-			isOnline: selectIsOnline(state),
-		};
-	},
-	{
-		addBallot,
-		setCurrentGroupProject,
-		updateBallot,
-		deleteBallots,
-		setUiProperties,
-	}
-);
-
-type BallotDetailProps = ConnectedProps<typeof connector> & {
-	className?: string;
-	style?: React.CSSProperties;
-	readOnly?: boolean;
-};
-
-const BallotDetail = connector(_BallotDetail);
 
 export default BallotDetail;
