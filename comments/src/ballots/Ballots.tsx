@@ -36,7 +36,8 @@ import {
 	Ballot,
 } from "../store/ballots";
 
-import BallotDetail, { BallotAddDropdown as BallotAdd } from "./BallotDetail";
+import BallotDetail from "./BallotDetail";
+import { BallotAddButton } from "./BallotAdd";
 
 const renderHeaderGroupProject = (props: HeaderCellRendererProps) => (
 	<>
@@ -438,7 +439,7 @@ function Ballots() {
 								title="Import ePoll"
 								onClick={showEpolls}
 							/>
-							<BallotAdd />
+							<BallotAddButton />
 						</div>
 					</ButtonGroup>
 				)}

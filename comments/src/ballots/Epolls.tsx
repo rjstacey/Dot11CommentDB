@@ -21,7 +21,7 @@ import {
 	SyncedEpoll,
 } from "../store/epolls";
 
-import { BallotAddForm } from "./BallotDetail";
+import { BallotAddForm } from "./BallotAdd";
 
 function ePollToBallot(epoll: SyncedEpoll): BallotEdit {
 	// See if the ePoll name has something like CC53 or LB245
