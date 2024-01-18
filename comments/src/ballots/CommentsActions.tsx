@@ -14,7 +14,7 @@ import {
 import { renderCommentsSummary } from "./Ballots";
 import MemberSelector from "../ballotVoters/MemberSelector";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppDispatch } from "../store/hooks";
 import {
 	importComments,
 	uploadComments,
@@ -22,7 +22,7 @@ import {
 	setStartCommentId,
 	uploadUserComments,
 } from "../store/comments";
-import { selectBallot, Ballot } from "../store/ballots";
+import { Ballot } from "../store/ballots";
 
 function ChangeStartCID({
 	ballot,
@@ -137,18 +137,17 @@ function AddComments({
 }
 
 const CommentsActions = ({
-	ballot_id,
+	ballot,
 	setBusy,
 	readOnly,
 }: {
-	ballot_id: number;
+	ballot: Ballot;
 	setBusy: (busy: boolean) => void;
 	readOnly?: boolean;
 }) => {
 	const dispatch = useAppDispatch();
 	const fileRef = React.useRef<HTMLInputElement>(null);
 	const [inputValue, setInputValue] = React.useState("");
-	const ballot = useAppSelector((state) => selectBallot(state, ballot_id));
 
 	async function handleDeleteComments() {
 		const ok = await ConfirmModal.show(
@@ -156,13 +155,13 @@ const CommentsActions = ({
 		);
 		if (!ok) return;
 		setBusy(true);
-		await dispatch(deleteComments(ballot_id as number));
+		await dispatch(deleteComments(ballot.id));
 		setBusy(false);
 	}
 
 	const handleImportComments = async () => {
 		setBusy(true);
-		await dispatch(importComments(ballot_id as number, 1));
+		await dispatch(importComments(ballot.id, 1));
 		setBusy(false);
 	};
 
@@ -173,7 +172,7 @@ const CommentsActions = ({
 		const { files } = e.target;
 		if (files && files.length > 0) {
 			setBusy(true);
-			await dispatch(uploadComments(ballot_id as number, files[0]));
+			await dispatch(uploadComments(ballot.id, files[0]));
 			setBusy(false);
 			setInputValue("");
 		}
@@ -183,7 +182,7 @@ const CommentsActions = ({
 		<>
 			<Row>
 				<FieldLeft label="Comments:">
-					{renderCommentsSummary({ rowData: ballot! })}
+					{renderCommentsSummary({ rowData: ballot })}
 				</FieldLeft>
 			</Row>
 			{!readOnly && (
@@ -219,7 +218,7 @@ const CommentsActions = ({
 							ballot.Comments && ballot.Comments.Count === 0
 						}
 					>
-						<AddComments ballot={ballot!} />
+						<AddComments ballot={ballot} />
 					</ActionButtonModal>
 					<input
 						ref={fileRef}

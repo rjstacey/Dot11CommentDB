@@ -1,4 +1,4 @@
-
+import * as React from "react";
 import {
 	isMultiple,
 	Row,
@@ -9,6 +9,8 @@ import {
 	Input,
 	TextArea,
 	Multiple,
+	shallowDiff,
+	recursivelyDiffObjects,
 } from "dot11-components";
 
 import CheckboxListSelect from "./CheckboxListSelect";
@@ -16,13 +18,20 @@ import SelectGroup from "./GroupSelector";
 import SelectProject from "./ProjectSelector";
 import SelectPrevBallot from "./PrevBallotSelecor";
 
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
+	selectBallotsState,
+	updateBallots,
+	setCurrentGroupProject,
 	BallotType,
 	BallotTypeOptions,
 	BallotStageOptions,
 	Ballot,
 	BallotEdit,
+	BallotUpdate,
 } from "../store/ballots";
+
+import { useDebounce } from "../components/useDebounce";
 
 const BLANK_STR = "(Blank)";
 const MULTIPLE_STR = "(Multiple)";
@@ -261,7 +270,7 @@ export function Column1({
 	);
 }
 
-function EditBallot({
+export function EditBallot({
 	ballot,
 	updateBallot,
 	readOnly,
@@ -332,4 +341,70 @@ function EditBallot({
 	);
 }
 
-export default EditBallot;
+export function BallotEditMultiple({
+	ids,
+	readOnly,
+}: {
+	ids: number[];
+	readOnly: boolean;
+}) {
+	const dispatch = useAppDispatch();
+	const { entities } = useAppSelector(selectBallotsState);
+
+	const [edited, setEdited] = React.useState<Multiple<Ballot> | null>(null);
+	const [saved, setSaved] = React.useState<Multiple<Ballot> | null>(null);
+	const [editIds, setEditIds] = React.useState<number[]>([]);
+
+	React.useEffect(() => {
+		if (ids.join() !== editIds.join()) {
+			let diff: null | Multiple<Ballot> = null,
+				editIds: number[] = [];
+			for (const id of ids) {
+				const ballot = entities[id];
+				if (ballot) {
+					diff = recursivelyDiffObjects(diff || {}, ballot);
+					editIds.push(ballot.id);
+				}
+			}
+			setEdited(diff);
+			setSaved(diff);
+			setEditIds(editIds);
+		}
+	}, [entities, editIds, ids]);
+
+	const triggerSave = useDebounce(() => {
+		const changes = shallowDiff(saved, edited) as Partial<BallotEdit>;
+		let updates: BallotUpdate[] = [];
+		if (Object.keys(changes).length > 0) {
+			updates = editIds.map((id) => ({ id, changes }));
+			dispatch(updateBallots(updates));
+		}
+		if (changes.groupId || changes.Project) {
+			dispatch(
+				setCurrentGroupProject({
+					groupId: edited.groupId,
+					project: edited.Project,
+				})
+			);
+		}
+		setSaved(edited);
+	});
+
+	const handleUpdate = (changes: Partial<BallotEdit>) => {
+		if (readOnly) {
+			console.warn("Update when read-only");
+			return;
+		}
+		// merge in the edits and trigger a debounced save
+		setEdited((edited) => ({ ...edited, ...changes }));
+		triggerSave();
+	};
+
+	return edited ? (
+		<EditBallot
+			ballot={edited}
+			updateBallot={handleUpdate}
+			readOnly={readOnly}
+		/>
+	) : null;
+}

@@ -3,17 +3,16 @@ import { ActionButtonDropdown, Row, FieldLeft } from "dot11-components";
 
 import { VotersImportForm } from "../ballotVoters/VotersImport";
 import { useAppSelector } from "../store/hooks";
-import { selectBallotsWorkingGroup, selectBallot } from "../store/ballots";
+import { selectBallotsWorkingGroup, Ballot } from "../store/ballots";
 
 function VoterPoolActions({
-	ballot_id,
+	ballot,
 	readOnly,
 }: {
-	ballot_id: number;
+	ballot: Ballot;
 	readOnly?: boolean;
 }) {
 	const workingGroup = useAppSelector(selectBallotsWorkingGroup)!;
-	const ballot = useAppSelector((state) => selectBallot(state, ballot_id));
 
 	return (
 		<>
