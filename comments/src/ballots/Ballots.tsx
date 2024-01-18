@@ -370,7 +370,7 @@ function Ballots() {
 	const { groupName } = useParams();
 
 	const access = useAppSelector(selectBallotsAccess);
-	const { loading, selected } = useAppSelector(selectBallotsState);
+	const { loading } = useAppSelector(selectBallotsState);
 	const { isSplit } = useAppSelector(
 		ballotsSelectors.selectCurrentPanelConfig
 	);
@@ -470,7 +470,7 @@ function Ballots() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<BallotDetail key={selected.join()} />
+					<BallotDetail />
 				</Panel>
 			</SplitPanel>
 		</>

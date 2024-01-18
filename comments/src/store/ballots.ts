@@ -80,10 +80,7 @@ export function validBallot(ballot: any): ballot is Ballot {
 	);
 }
 
-export type BallotCommentsSummary = {
-	id: number;
-	Comments: CommentsSummary;
-};
+export type BallotCommentsSummary = Pick<Ballot, "id" | "Comments">;
 
 export function validBallotCommentsSummary(
 	ballot: any
@@ -91,30 +88,16 @@ export function validBallotCommentsSummary(
 	return isObject(ballot) && validCommentsSummary(ballot.Comments);
 }
 
-export type BallotEdit = {
-	groupId: string | null;
-	BallotID: string;
-	Project: string;
-	Type: number;
-	IsRecirc: boolean;
-	IsComplete: boolean;
-	Start: string;
-	End: string;
-	Document: string;
-	Topic: string;
-	VotingPoolID: string | null;
-	prev_id: number | null;
-	EpollNum: number;
+export type BallotEdit = Omit<Ballot, "id" | "Results" | "Comments" | "Voters">;
+
+export type BallotUpdate = {
+	id: number;
+	changes: Partial<BallotEdit>;
 };
 
 export type SyncedBallot = Ballot & {
 	PrevBallotID: string;
 	GroupName: string;
-};
-
-export type BallotUpdate = {
-	id: number;
-	changes: Partial<BallotEdit>;
 };
 
 export const BallotType = {
@@ -510,14 +493,14 @@ export const loadBallots =
 		return loadingPromise;
 	};
 
-export const updateBallot =
-	(id: number, changes: Partial<Ballot>): AppThunk =>
+export const updateBallots =
+	(updates: BallotUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectBallotsGroupName(getState());
 		const url = `/api/${groupName}/ballots`;
 		let response: any;
 		try {
-			response = await fetcher.patch(url, [{ id, changes }]);
+			response = await fetcher.patch(url, updates);
 			if (!validResponse(response))
 				throw new TypeError("Unexpected response");
 		} catch (error) {
