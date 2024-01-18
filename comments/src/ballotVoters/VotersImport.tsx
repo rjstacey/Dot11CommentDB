@@ -45,7 +45,7 @@ function getErrorText(state: State) {
 	if (state.source === "upload" && !state.file) return "Select a file upload";
 }
 
-function VotersImportForm({
+export function VotersImportForm({
 	close,
 	ballot,
 }: {

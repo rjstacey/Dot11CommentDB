@@ -11,7 +11,7 @@ import {
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { selectIsOnline } from "../store/offline";
-import { BallotType, BallotEdit } from "../store/ballots";
+import { BallotType, Ballot } from "../store/ballots";
 import {
 	fields,
 	loadEpolls,
@@ -21,9 +21,9 @@ import {
 	SyncedEpoll,
 } from "../store/epolls";
 
-import { BallotAddForm } from "./BallotAdd";
+import { BallotAddForm } from "./BallotDetail";
 
-function ePollToBallot(epoll: SyncedEpoll): BallotEdit {
+function ePollToBallot(epoll: SyncedEpoll): Ballot {
 	// See if the ePoll name has something like CC53 or LB245
 	const m = epoll.name.match(/(CC|LB)\d+/);
 	let type = BallotType.Motion,
@@ -46,6 +46,11 @@ function ePollToBallot(epoll: SyncedEpoll): BallotEdit {
 		prev_id: 0,
 		IsRecirc: false,
 		IsComplete: false,
+
+		id: 0,
+		Voters: 0,
+		Comments: { Count: 0, CommentIDMax: 0, CommentIDMin: 0 },
+		Results: null,
 	};
 }
 
@@ -83,7 +88,7 @@ function Epolls() {
 		load();
 	}
 
-	const [addBallot, setAddBallot] = React.useState<BallotEdit | null>(null);
+	const [addBallot, setAddBallot] = React.useState<Ballot | null>(null);
 
 	const columns = React.useMemo(() => {
 		const columns = tableColumns.slice();
@@ -147,7 +152,7 @@ function Epolls() {
 			>
 				<BallotAddForm
 					defaultBallot={addBallot || undefined}
-					methods={{ close: () => setAddBallot(null) }}
+					close={() => setAddBallot(null)}
 				/>
 			</AppModal>
 		</>

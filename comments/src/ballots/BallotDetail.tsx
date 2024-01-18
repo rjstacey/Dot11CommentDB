@@ -4,13 +4,16 @@ import {
 	shallowDiff,
 	recursivelyDiffObjects,
 	ActionButton,
+	Form,
 	Row,
 	Spinner,
 	ConfirmModal,
 	Multiple,
+	isMultiple
 } from "dot11-components";
 
 import { useDebounce } from "../components/useDebounce";
+import VoterPoolActions from "./VoterPoolActions";
 import ResultsActions from "./ResultsActions";
 import CommentsActions from "./CommentsActions";
 import EditBallot from "./BallotEdit";
@@ -20,11 +23,15 @@ import { selectIsOnline } from "../store/offline";
 import {
 	updateBallots,
 	deleteBallots,
+	addBallot,
 	setUiProperties,
+	setSelectedBallots,
+	setCurrentGroupProject,
 	selectBallotsState,
 	Ballot,
 	BallotEdit,
 	BallotUpdate,
+	BallotType
 } from "../store/ballots";
 
 function BallotWithActions({
@@ -38,16 +45,15 @@ function BallotWithActions({
 }) {
 	const [busy, setBusy] = React.useState(false);
 
-	return (
-		<div className="main">
-			<Row style={{ justifyContent: "center" }}>
-				<Spinner style={{ visibility: busy ? "visible" : "hidden" }} />
-			</Row>
-			<EditBallot
-				ballot={ballot}
-				updateBallot={updateBallot}
-				readOnly={readOnly}
-			/>
+	const actions = isMultiple(ballot.id)? null:
+		<>
+			{((ballot.Type === BallotType.WG && !ballot.IsRecirc) ||
+				ballot.Type === BallotType.Motion) && (
+				<VoterPoolActions
+					ballot_id={ballot.id}
+					readOnly={readOnly}
+				/>
+			)}
 			<ResultsActions
 				ballot_id={ballot.id}
 				setBusy={setBusy}
@@ -58,7 +64,96 @@ function BallotWithActions({
 				setBusy={setBusy}
 				readOnly={readOnly}
 			/>
+		</>
+
+	return (
+		<div className="main">
+			<Row style={{ justifyContent: "center" }}>
+				<Spinner style={{ visibility: busy ? "visible" : "hidden" }} />
+			</Row>
+			<EditBallot
+				ballot={ballot}
+				updateBallot={updateBallot}
+				readOnly={readOnly}
+			/>
+			{actions}
 		</div>
+	);
+}
+
+function getDefaultBallot(): Ballot {
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	return {
+		groupId: null,
+		Project: "",
+		BallotID: "",
+		EpollNum: 0,
+		Document: "",
+		Topic: "",
+		Start: today.toISOString(),
+		End: today.toISOString(),
+		VotingPoolID: "",
+		prev_id: 0,
+		Type: 0,
+		IsRecirc: false,
+		IsComplete: false,
+
+		id: 0,
+		Voters: 0,
+		Comments: { Count: 0, CommentIDMax: 0, CommentIDMin: 0 },
+		Results: null,
+	};
+}
+
+export function BallotAddForm({
+	defaultBallot,
+	close,
+}: {
+	defaultBallot?: Ballot;
+	close: () => void;
+}) {
+	const dispatch = useAppDispatch();
+	const [busy, setBusy] = React.useState(false);
+	const [ballot, setBallot] = React.useState(defaultBallot || getDefaultBallot);
+
+	let errorMsg = "";
+	if (!ballot.groupId) errorMsg = "Group not set";
+	else if (!ballot.Project) errorMsg = "Project not set";
+	else if (!ballot.BallotID) errorMsg = "Ballot ID not set";
+
+	const submit = async () => {
+		if (!errorMsg) {
+			setBusy(true);
+			const b = await dispatch(addBallot(ballot));
+			if (b) {
+				dispatch(
+					setCurrentGroupProject({
+						groupId: ballot.groupId,
+						project: ballot.Project,
+					})
+				);
+				dispatch(setSelectedBallots([b.id]));
+			}
+			setBusy(false);
+			close();
+		}
+	};
+
+	return (
+		<Form
+			submit={submit}
+			submitLabel="Add"
+			cancel={close}
+			errorText={errorMsg}
+			busy={busy}
+		>
+			<EditBallot
+				ballot={ballot}
+				updateBallot={changes => setBallot(ballot => ({...ballot, ...changes}))}
+				readOnly={false}
+			/>
+		</Form>
 	);
 }
 
@@ -79,15 +174,17 @@ function BallotDetail({ readOnly }: { readOnly?: boolean }) {
 		selected,
 	} = useAppSelector(selectBallotsState);
 
-	const edit: boolean | undefined = useAppSelector(selectBallotsState).ui.edit;
+	const edit: boolean | undefined =
+		useAppSelector(selectBallotsState).ui.edit;
 	const setEdit = (edit: boolean) => dispatch(setUiProperties({ edit }));
 
+	const [action, setAction] = React.useState<"add" | "update">("update");
 	const [edited, setEdited] = React.useState<MultipleBallot | null>(null);
 	const [saved, setSaved] = React.useState<MultipleBallot | null>(null);
 	const [originals, setOriginals] = React.useState<Ballot[]>([]);
 
 	React.useEffect(() => {
-		const ids = originals.map(b => b.id);
+		const ids = originals.map((b) => b.id);
 		if (ids.join() !== selected.join()) {
 			let diff: null | MultipleBallot = null,
 				ballots: Ballot[] = [];
@@ -107,8 +204,8 @@ function BallotDetail({ readOnly }: { readOnly?: boolean }) {
 	const triggerSave = useDebounce(() => {
 		const changes = shallowDiff(saved, edited) as Partial<BallotEdit>;
 		let updates: BallotUpdate[] = [];
-		if(Object.keys(changes).length > 0) {
-			updates = originals.map(o => ({id: o.id, changes}))
+		if (Object.keys(changes).length > 0) {
+			updates = originals.map((o) => ({ id: o.id, changes }));
 			dispatch(updateBallots(updates));
 		}
 		if (changes.groupId || changes.Project) {
@@ -120,54 +217,67 @@ function BallotDetail({ readOnly }: { readOnly?: boolean }) {
 		setSaved(edited);
 	});
 
-	const handleUpdateBallot = (changes: Partial<BallotEdit>) => {
+	const handleUpdate = (changes: Partial<BallotEdit>) => {
 		if (readOnly || !edit) {
 			console.warn("Update when read-only");
 			return;
 		}
 		// merge in the edits and trigger a debounced save
-		setEdited((edited) => ({...edited, ...changes }));
+		setEdited((edited) => ({ ...edited, ...changes }));
 		triggerSave();
 	};
 
-	const handleRemoveSelected = async () => {
-		const ids = originals.map(b => b.id);
-		const list = originals.map(b => b.BallotID).join(", ");
+	const addClick = () => {
+		setAction("add");
+		dispatch(setSelectedBallots([]));
+	};
+
+	const deleteClick = React.useCallback(async () => {
+		const ids = originals.map((b) => b.id);
+		const list = originals.map((b) => b.BallotID).join(", ");
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete ballot${
-				selected.length > 0 ? "s" : ""
+				ids.length > 1 ? "s" : ""
 			} ${list}?`
 		);
 		if (!ok) return;
 		await dispatch(deleteBallots(ids));
-	};
+	}, [dispatch, originals]);
 
 	let title = "";
 	let placeholder = "";
-	if (!edited) {
-		placeholder = loading? "Loading...": "Nothing selected";
-	}
-	else {
-		title = edit? "Edit ballot": "Ballot";
-		if (originals.length > 1)
-			title += "s";
+	if (action === "update") {
+		if (!edited) {
+			placeholder = loading ? "Loading..." : "Nothing selected";
+		} else {
+			title = edit ? "Edit ballot" : "Ballot";
+			if (originals.length > 1) title += "s";
+		}
+	} else {
+		title = "Add ballot";
 	}
 
-	const disableButtons = Boolean(placeholder) || !isOnline;
 	const actionButtons = readOnly ? null : (
 		<>
 			<ActionButton
 				name="edit"
 				title="Edit ballot"
-				disabled={disableButtons}
+				disabled={loading || !isOnline}
 				isActive={edit}
 				onClick={() => setEdit(!edit)}
 			/>
 			<ActionButton
+				name="add"
+				title="Add ballot"
+				disabled={!isOnline}
+				isActive={action === "add"}
+				onClick={addClick}
+			/>
+			<ActionButton
 				name="delete"
 				title="Delete ballot"
-				disabled={disableButtons}
-				onClick={handleRemoveSelected}
+				disabled={originals.length === 0 || loading || !isOnline}
+				onClick={deleteClick}
 			/>
 		</>
 	);
@@ -178,14 +288,18 @@ function BallotDetail({ readOnly }: { readOnly?: boolean }) {
 				<h3>{title}</h3>
 				<div>{actionButtons}</div>
 			</div>
-			{!edited ? (
-				<Placeholder>{placeholder}</Placeholder>
-			) : (
+			{action === "add" ? (
+				<BallotAddForm
+					close={() => setAction("update")}
+				/>
+			) : edited ? (
 				<BallotWithActions
 					ballot={edited}
-					updateBallot={handleUpdateBallot}
+					updateBallot={handleUpdate}
 					readOnly={readOnly || !isOnline || !edit}
 				/>
+			) : (
+				<Placeholder>{placeholder}</Placeholder>
 			)}
 		</>
 	);

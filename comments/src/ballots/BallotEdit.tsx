@@ -1,6 +1,4 @@
 
-import { Link } from "react-router-dom";
-
 import {
 	isMultiple,
 	Row,
@@ -18,9 +16,7 @@ import SelectGroup from "./GroupSelector";
 import SelectProject from "./ProjectSelector";
 import SelectPrevBallot from "./PrevBallotSelecor";
 
-import { useAppSelector } from "../store/hooks";
 import {
-	selectBallotsWorkingGroup,
 	BallotType,
 	BallotTypeOptions,
 	BallotStageOptions,
@@ -78,7 +74,6 @@ export function Column1({
 	updateBallot: (changes: Partial<BallotEdit>) => void;
 	readOnly?: boolean;
 }) {
-	const workingGroup = useAppSelector(selectBallotsWorkingGroup)!;
 	const isMultipleBallots = isMultiple(ballot.id);
 
 	const change: React.ChangeEventHandler<
@@ -235,18 +230,6 @@ export function Column1({
 					/>
 				</Field>
 			</Row>
-			{((ballot.Type === BallotType.WG && !ballot.IsRecirc) ||
-				ballot.Type === BallotType.Motion) && (
-				<Row>
-					<Field label="Voter pool:">
-						<Link
-							to={`/${workingGroup.name}/voters/${ballot.BallotID}`}
-						>
-							{ballot.Voters}
-						</Link>
-					</Field>
-				</Row>
-			)}
 			{(ballot.Type === BallotType.WG || ballot.Type === BallotType.SA) &&
 				!!ballot.IsRecirc && (
 					<Row>

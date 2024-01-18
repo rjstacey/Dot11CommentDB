@@ -37,7 +37,6 @@ import {
 } from "../store/ballots";
 
 import BallotDetail from "./BallotDetail";
-import { BallotAddButton } from "./BallotAdd";
 
 const renderHeaderGroupProject = (props: HeaderCellRendererProps) => (
 	<>
@@ -433,14 +432,11 @@ function Ballots() {
 				{access >= AccessLevel.admin && (
 					<ButtonGroup>
 						<div>Edit</div>
-						<div style={{ display: "flex" }}>
-							<ActionButton
-								name="import"
-								title="Import ePoll"
-								onClick={showEpolls}
-							/>
-							<BallotAddButton />
-						</div>
+						<ActionButton
+							name="import"
+							title="Import ePoll"
+							onClick={showEpolls}
+						/>
 					</ButtonGroup>
 				)}
 				<ActionButton
