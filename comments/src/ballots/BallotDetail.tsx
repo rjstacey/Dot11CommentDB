@@ -12,6 +12,7 @@ import VoterPoolActions from "./VoterPoolActions";
 import ResultsActions from "./ResultsActions";
 import CommentsActions from "./CommentsActions";
 import { BallotEditMultiple, EditBallot } from "./BallotEdit";
+import ShowAccess from "../components/ShowAccess";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { selectIsOnline } from "../store/offline";
@@ -155,7 +156,7 @@ const Placeholder = (props: React.ComponentProps<"span">) => (
 	</div>
 );
 
-function BallotDetail({ readOnly }: { readOnly?: boolean }) {
+function BallotDetail({ access, readOnly }: { access: number; readOnly?: boolean }) {
 	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
 	const { entities, loading, selected } = useAppSelector(selectBallotsState);
@@ -243,6 +244,7 @@ function BallotDetail({ readOnly }: { readOnly?: boolean }) {
 			) : (
 				<Placeholder>{placeholder}</Placeholder>
 			)}
+			<ShowAccess access={access} />
 		</>
 	);
 }

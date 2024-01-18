@@ -467,7 +467,8 @@ function Ballots() {
 				</Panel>
 				<Panel className="details-panel">
 					<BallotDetail
-						readOnly={access <= AccessLevel.admin}
+						access={access}
+						readOnly={access < AccessLevel.admin}
 					/>
 				</Panel>
 			</SplitPanel>
