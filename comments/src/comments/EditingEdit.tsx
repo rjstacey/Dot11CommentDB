@@ -14,7 +14,8 @@ import {
 import RichTextEditor from "./RichTextEditor";
 
 import type { MultipleResolution } from "./CommentDetail";
-import type { Resolution } from "../store/comments";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { selectCommentsState, setUiProperties, type Resolution } from "../store/comments";
 
 import styles from "./comments.module.css";
 
@@ -103,19 +104,22 @@ function EditStatus({
 	);
 }
 
-export const EditingEdit = ({
+export function EditingEdit({
 	resolution,
 	updateResolution = () => {},
-	showEditing,
-	toggleShowEditing,
+	forceShowEditing,
 	readOnly,
 }: {
 	resolution: MultipleResolution;
 	updateResolution?: (changes: Partial<Resolution>) => void;
-	showEditing: boolean;
-	toggleShowEditing?: () => void;
+	forceShowEditing?: boolean;
 	readOnly?: boolean;
-}) => (
+}) {
+	const dispatch = useAppDispatch();
+	const showEditing: boolean | undefined = useAppSelector(selectCommentsState).ui.showEditing;
+	const toggleShowEditing = () => dispatch(setUiProperties({ showEditing: !showEditing }));
+
+	return (
 	<Row>
 		<Col
 			style={{
@@ -132,14 +136,14 @@ export const EditingEdit = ({
 				}}
 			>
 				<label>Editing:</label>
-				{toggleShowEditing && (
+				{!forceShowEditing && (
 					<IconCollapse
 						isCollapsed={!showEditing}
 						onClick={toggleShowEditing}
 					/>
 				)}
 			</div>
-			{showEditing && (
+			{(showEditing || forceShowEditing) && (
 				<div className={styles.editingContainer}>
 					<EditStatus
 						resolution={resolution}
@@ -166,6 +170,7 @@ export const EditingEdit = ({
 			)}
 		</Col>
 	</Row>
-);
+	);
+}
 
 export default EditingEdit;

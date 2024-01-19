@@ -19,7 +19,8 @@ import RichTextEditor from "./RichTextEditor";
 
 import type { MultipleComment } from "./CommentDetail";
 
-import { getCommentStatus, CommentResolution } from "../store/comments";
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectCommentsState, setUiProperties, getCommentStatus, CommentResolution } from "../store/comments";
 
 import styles from "./comments.module.css";
 
@@ -140,19 +141,22 @@ export const CommentGroup = ({
 	</Field>
 );
 
-export const CommentNotes = ({
+export function CommentNotes({
 	comment,
 	updateComment = () => {},
-	showNotes,
-	toggleShowNotes,
+	forceShowNotes,
 	readOnly,
 }: {
 	comment: MultipleComment;
 	updateComment?: (changes: Partial<CommentResolution>) => void;
-	showNotes: boolean;
-	toggleShowNotes?: () => void;
+	forceShowNotes?: boolean;
 	readOnly?: boolean;
-}) => (
+}) {
+	const dispatch = useAppDispatch();
+	const showNotes: boolean | undefined = useAppSelector(selectCommentsState).ui.showNotes;
+	const toggleShowNotes = () => dispatch(setUiProperties({ showNotes: !showNotes }));
+
+	return (
 	<Col
 		style={{
 			width: "100%",
@@ -168,14 +172,14 @@ export const CommentNotes = ({
 			}}
 		>
 			<label>Notes:</label>
-			{toggleShowNotes && (
+			{!forceShowNotes && (
 				<IconCollapse
 					isCollapsed={!showNotes}
 					onClick={toggleShowNotes}
 				/>
 			)}
 		</div>
-		{showNotes && (
+		{(showNotes || forceShowNotes) && (
 			<StyledNoteEditor
 				value={isMultiple(comment.Notes) ? "" : comment.Notes}
 				onChange={(value) => updateComment({ Notes: value })}
@@ -186,19 +190,16 @@ export const CommentNotes = ({
 			/>
 		)}
 	</Col>
-);
+	);
+}
 
 export const CommentCategorization = ({
 	comment,
 	updateComment = () => {},
-	showNotes,
-	toggleShowNotes,
 	readOnly,
 }: {
 	comment: MultipleComment;
 	updateComment?: (changes: Partial<CommentResolution>) => void;
-	showNotes: boolean;
-	toggleShowNotes?: () => void;
 	readOnly?: boolean;
 }) => (
 	<>
@@ -222,8 +223,6 @@ export const CommentCategorization = ({
 			<CommentNotes
 				comment={comment}
 				updateComment={updateComment}
-				showNotes={showNotes}
-				toggleShowNotes={toggleShowNotes}
 				readOnly={readOnly}
 			/>
 		</Row>
@@ -411,17 +410,14 @@ export function CommentEdit({
 	cids,
 	comment,
 	updateComment,
-	showNotes,
-	toggleShowNotes,
 	readOnly,
 }: {
 	cids: string[];
 	comment: MultipleComment;
 	updateComment?: (changes: Partial<CommentResolution>) => void;
-	showNotes: boolean;
-	toggleShowNotes?: () => void;
 	readOnly?: boolean;
 }) {
+
 	return (
 		<>
 			<CommentBasics
@@ -433,8 +429,6 @@ export function CommentEdit({
 			<CommentCategorization
 				comment={comment}
 				updateComment={updateComment}
-				showNotes={showNotes}
-				toggleShowNotes={toggleShowNotes}
 				readOnly={readOnly}
 			/>
 		</>

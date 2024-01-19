@@ -12,6 +12,7 @@ import { ResolutionAssignee, ResolutionSubmission, ResolutionApproval, Resolutio
 import { EditingEdit } from "./EditingEdit";
 
 import styles from "./CommentHistory.module.css";
+import React from 'react';
 
 const BLANK_STR = '(Blank)';
 
@@ -85,7 +86,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 	if (changes.hasOwnProperty('Notes'))
 		body.push(
 			<Row key='notes'>
-				<CommentNotes comment={updatedComment} showNotes readOnly />
+				<CommentNotes comment={updatedComment} forceShowNotes readOnly />
 			</Row>
 		);
 	
@@ -162,7 +163,7 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 			<Row key='editing'>
 				<EditingEdit
 					resolution={updatedResolution}
-					showEditing
+					forceShowEditing
 					readOnly
 				/>
 			</Row>
@@ -231,6 +232,15 @@ function CommentHistoryDisplay() {
 		}
 	}
 
+	const Elements = () => (
+		<div className={styles.container}>
+			{commentsHistory.length > 0?
+				commentsHistory.map(props => <ChangeEntry key={props.id} {...props} />):
+				<div className="placeholder">{loading? "Loading...": "No history"}</div>
+			}
+		</div>
+	);
+
 	return (
 		<ActionButtonModal
 			name='history'
@@ -238,12 +248,7 @@ function CommentHistoryDisplay() {
 			disabled={selected.length === 0}
 			onRequestOpen={onOpen}
 		>
-			<div className={styles.container}>
-				{commentsHistory.length > 0?
-					commentsHistory.map(props => <ChangeEntry key={props.id} {...props} />):
-					<div className="placeholder">{loading? "Loading...": "No history"}</div>
-				}
-			</div>
+			<Elements />
 		</ActionButtonModal>
 	)
 }

@@ -1,17 +1,20 @@
-import * as React from 'react';
-import { connect, ConnectedProps } from 'react-redux';
+import * as React from "react";
 
 import {
-	ActionButton, Row,
-	shallowDiff, recursivelyDiffObjects, debounce, Multiple, ConfirmModal
-} from 'dot11-components';
+	ActionButton,
+	Row,
+	shallowDiff,
+	recursivelyDiffObjects,
+	Multiple,
+	ConfirmModal,
+} from "dot11-components";
 
-import CommentHistory from './CommentHistory';
-import CommentEdit from './CommentEdit';
-import ResolutionEdit from './ResolutionEdit';
-import EditingEdit from './EditingEdit';
+import CommentHistory from "./CommentHistory";
+import CommentEdit from "./CommentEdit";
+import ResolutionEdit from "./ResolutionEdit";
+import EditingEdit from "./EditingEdit";
 
-import type { RootState } from '../store';
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	addResolutions,
 	updateResolutions,
@@ -26,305 +29,307 @@ import {
 	Resolution,
 	ResolutionUpdate,
 	ResolutionCreate,
-} from '../store/comments';
-import { selectGroupEntities } from '../store/groups';
-import { AccessLevel, selectUser } from '../store/user';
+	selectCommentEntities,
+} from "../store/comments";
+import { selectGroupEntities } from "../store/groups";
+import { AccessLevel, selectUser } from "../store/user";
+import { useDebounce } from "../components/useDebounce";
 
 function renderAccess(access: number) {
-	if (access === AccessLevel.admin)
-		return "admin";
-	if (access === AccessLevel.rw)
-		return "rw";
-	if (access === AccessLevel.ro)
-		return "ro";
+	if (access === AccessLevel.admin) return "admin";
+	if (access === AccessLevel.rw) return "rw";
+	if (access === AccessLevel.ro) return "ro";
 	return "none";
 }
 
-export type MultipleCommentResolution = Multiple<CommentResolution>;
-export type MultipleComment = Multiple<Comment>;
-export type MultipleResolution = Multiple<Resolution>;
-
-type CommentDetailState = {
-	savedResolution: MultipleCommentResolution,
-	editedResolution: MultipleCommentResolution,
-	comments: CommentResolution[];
+function CommentResolutionEdit({
+	selected,
+	readOnly,
+	commentsAccess,
+	resolutionsAccess,
+}: {
+	selected: string[];
+	readOnly: boolean;
 	commentsAccess: number;
 	resolutionsAccess: number;
-}
+}) {
+	const dispatch = useAppDispatch();
+	const entities = useAppSelector(selectCommentEntities);
+	const [edited, setEdited] =
+		React.useState<MultipleCommentResolution | null>();
+	const [saved, setSaved] =
+		React.useState<MultipleCommentResolution | null>();
+	const [comments, setComments] = React.useState<CommentResolution[]>([]);
 
-class CommentDetail extends React.PureComponent<CommentDetailProps, CommentDetailState> {
-	constructor(props: CommentDetailProps) {
-		super(props)
-		this.state = this.initState();
-		this.triggerSave = debounce(this.save, 500);
-	}
-
-	triggerSave: ReturnType<typeof debounce>;
-
-	componentWillUnmount() {
-		this.triggerSave.flush();
-	}
-
-	/* User has read-write comments access if the user is an officer of the assigned ad-hoc */
-	getCommentsAccess = (access: number, comments: CommentResolution[]) => {
-		const {groupEntities} = this.props;
-		if (access <= AccessLevel.ro) {
-			const rw = comments.every(c => {
-				const group = c.AdHocGroupId? groupEntities[c.AdHocGroupId]: undefined;
-				if (group) {
-					const access = group.permissions.comments || AccessLevel.none;
-					if (access >= AccessLevel.rw)
-						return true;
-				}
-				return false;
-			});
-			if (rw)
-				return AccessLevel.rw;
-		}
-		return access;
-	}
-
-	/* User has read-write resolutions access if the user has been assigned the comment
-	 * and the comment does not have an approved resolution. */
-	getResolutionsAccess = (access: number, comments: CommentResolution[]) => {
-		const {user} = this.props;
-		if (access <= AccessLevel.ro &&
-			comments.every(c => c.AssigneeSAPIN === user.SAPIN && !c.ApprovedByMotion)) {
-				access = AccessLevel.rw;
-		}
-		return access;
-	}
-
-	initState = (): CommentDetailState => {
-		const {entities, selected, access} = this.props;
-		let diff = {}, comments: CommentResolution[] = [];
-		selected.forEach(id => {
+	React.useEffect(() => {
+		let diff = {},
+			comments: CommentResolution[] = [];
+		selected.forEach((id) => {
 			const comment = entities[id];
 			if (comment) {
 				diff = recursivelyDiffObjects(diff, comment);
 				comments.push(comment);
 			}
 		});
-		let commentsAccess = this.getCommentsAccess(access, comments);
-		let resolutionsAccess = this.getResolutionsAccess(commentsAccess, comments);
-		return {
-			savedResolution: diff as MultipleCommentResolution,
-			editedResolution: diff as MultipleCommentResolution,
-			comments,
-			commentsAccess,
-			resolutionsAccess
-		};
-	}
+		setSaved(diff as MultipleCommentResolution);
+		setEdited(diff as MultipleCommentResolution);
+		setComments(comments);
+	}, [entities, selected]);
 
-	updateResolution = (changes: Partial<CommentResolution>) => {
-		if (this.state.resolutionsAccess < AccessLevel.rw || !this.props.uiProperties.editComment) {
-			console.warn("Insufficient access to update resolution");
-			return;
-		}
-		// merge in the edits and trigger save
-		this.setState(
-			(state) => ({...state, editedResolution: {...state.editedResolution, ...changes}}),
-			this.triggerSave
-		);
-	}
-
-	save = () => {
-		const {savedResolution, editedResolution, comments} = this.state;
-		const {updateComments, updateResolutions, addResolutions} = this.props;
-
+	const triggerSave = useDebounce(() => {
 		/* Find changes */
 		const commentChanges: Partial<Comment> = {},
-			  resolutionChanges: Partial<Resolution> = {};
-		const d = shallowDiff(savedResolution, editedResolution) as Partial<CommentResolution>;
+			resolutionChanges: Partial<Resolution> = {};
+		const d = shallowDiff(saved, edited) as Partial<CommentResolution>;
 		for (let k in d) {
-			//if (k === 'AdHocGroupId' || k === 'AdHoc' || k === 'CommentGroup' || k === 'Notes' || k === 'Page' || k === 'Clause')
-			if (k in ['AdHocGroupId', 'AdHoc', 'CommentGroup', 'Notes', 'Page', 'Clause'])
+			if (
+				k in
+				[
+					"AdHocGroupId",
+					"AdHoc",
+					"CommentGroup",
+					"Notes",
+					"Page",
+					"Clause",
+				]
+			)
 				commentChanges[k] = d[k];
-			else
-				resolutionChanges[k] = d[k];
+			else resolutionChanges[k] = d[k];
 		}
 		if (Object.keys(commentChanges).length > 0) {
-			const updates = comments.map(c => ({id: c.comment_id, changes: commentChanges}));
-			updateComments(updates);
+			const updates = comments.map((c) => ({
+				id: c.comment_id,
+				changes: commentChanges,
+			}));
+			dispatch(updateComments(updates));
 		}
 		if (Object.keys(resolutionChanges).length > 0) {
 			const updates: ResolutionUpdate[] = [];
 			const adds: ResolutionCreate[] = [];
 			for (const c of comments) {
 				if (c.resolution_id)
-					updates.push({id: c.resolution_id, changes: resolutionChanges});
+					updates.push({
+						id: c.resolution_id,
+						changes: resolutionChanges,
+					});
 				else
-					adds.push({comment_id: c.comment_id, ...resolutionChanges});
+					adds.push({
+						comment_id: c.comment_id,
+						...resolutionChanges,
+					});
 			}
-			if (updates.length > 0)
-				updateResolutions(updates);
-			if (adds.length > 0)
-				addResolutions(adds);
+			if (updates.length > 0) dispatch(updateResolutions(updates));
+			if (adds.length > 0) dispatch(addResolutions(adds));
 		}
-		this.setState((state) => ({...state, savedResolution: editedResolution}));
-	}
+		setSaved(edited);
+	});
 
-	handleAddResolutions = async () => {
-		if (this.state.commentsAccess < AccessLevel.rw || !this.props.uiProperties.editComment) {
+	const updateResolution = (changes: Partial<CommentResolution>) => {
+		if (resolutionsAccess < AccessLevel.rw || readOnly) {
+			console.warn("Insufficient access to update resolution");
+			return;
+		}
+		// merge in the edits and trigger save
+		setEdited((edited) => ({ ...edited, ...changes }));
+		triggerSave();
+	};
+
+	if (!edited) return null;
+
+	return (
+		<>
+			<CommentEdit
+				cids={comments.map(getCID)}
+				comment={edited}
+				updateComment={updateResolution}
+				readOnly={readOnly || commentsAccess < AccessLevel.rw}
+			/>
+			{edited.ResolutionID !== null && (
+				<>
+					<ResolutionEdit
+						resolution={edited}
+						updateResolution={updateResolution}
+						readOnly={
+							readOnly || resolutionsAccess < AccessLevel.rw
+						}
+						commentsAccess={commentsAccess}
+					/>
+					<EditingEdit
+						resolution={edited}
+						updateResolution={updateResolution}
+						readOnly={readOnly || commentsAccess < AccessLevel.rw}
+					/>
+				</>
+			)}
+		</>
+	);
+}
+
+const Placeholder = (props: React.ComponentProps<"span">) => (
+	<div className="placeholder">
+		<span {...props} />
+	</div>
+);
+
+export type MultipleCommentResolution = Multiple<CommentResolution>;
+export type MultipleComment = Multiple<Comment>;
+export type MultipleResolution = Multiple<Resolution>;
+
+function CommentDetail({ readOnly }: { readOnly?: boolean }) {
+	const dispatch = useAppDispatch();
+
+	const user = useAppSelector(selectUser);
+	const { entities, loading, selected } = useAppSelector(selectCommentsState);
+	const groupEntities = useAppSelector(selectGroupEntities);
+	const access = useAppSelector(selectCommentsAccess);
+
+	const [commentsAccess, setCommentsAccess] = React.useState<number>(
+		AccessLevel.none
+	);
+	const [resolutionsAccess, setResolutionsAccess] = React.useState<number>(
+		AccessLevel.none
+	);
+
+	const editComment: boolean | undefined =
+		useAppSelector(selectCommentsState).ui.editComment;
+	const toggleEditComment = () =>
+		dispatch(setUiProperties({ editComment: !editComment }));
+
+	React.useEffect(() => {
+		const comments = selected.map((id) => entities[id]);
+
+		/* User has read-write comments access if the user is an officer of the assigned ad-hoc */
+		let commentsAccess = access;
+		if (commentsAccess <= AccessLevel.ro) {
+			const rw = comments.every((c) => {
+				const group = c.AdHocGroupId
+					? groupEntities[c.AdHocGroupId]
+					: undefined;
+				if (group) {
+					const access =
+						group.permissions.comments || AccessLevel.none;
+					if (access >= AccessLevel.rw) return true;
+				}
+				return false;
+			});
+			if (rw) commentsAccess = AccessLevel.rw;
+		}
+		setCommentsAccess(commentsAccess);
+
+		/* User has read-write resolutions access if the user has been assigned the comment
+		 * and the comment does not have an approved resolution. */
+		let resolutionsAccess = commentsAccess;
+		if (
+			resolutionsAccess <= AccessLevel.ro &&
+			comments.every(
+				(c) => c.AssigneeSAPIN === user.SAPIN && !c.ApprovedByMotion
+			)
+		) {
+			resolutionsAccess = AccessLevel.rw;
+		}
+		setResolutionsAccess(resolutionsAccess);
+	}, [selected, entities, groupEntities, access, user]);
+
+	const handleAddResolutions = async () => {
+		if (commentsAccess < AccessLevel.rw || !editComment) {
 			console.warn("Update in read only component");
 			return;
 		}
-		const {addResolutions} = this.props;
-		const {comments} = this.state;
-		//console.log(comments)
 
-		if (comments.find(c => c.ApprovedByMotion)) {
-			const msg = comments.length > 1?
-				"One of the comments has an approved resolution.":
-				"The comment has an approved resolution.";
-			const ok = await ConfirmModal.show(msg + " Are you sure you want to add another resolution?");
-			if (!ok)
-				return;
+		const comments = selected.map((id) => entities[id]);
+		if (comments.find((c) => c.ApprovedByMotion)) {
+			const msg =
+				comments.length > 1
+					? "One of the comments has an approved resolution."
+					: "The comment has an approved resolution.";
+			const ok = await ConfirmModal.show(
+				msg + " Are you sure you want to add another resolution?"
+			);
+			if (!ok) return;
 		}
 
 		// Add only one entry per comment_id
 		const resolutions: ResolutionCreate[] = [];
 		for (const c of comments) {
-			if (!resolutions.find(r => r.comment_id === c.comment_id))
-				resolutions.push({comment_id: c.comment_id});
+			if (!resolutions.find((r) => r.comment_id === c.comment_id))
+				resolutions.push({ comment_id: c.comment_id });
 		}
-		this.triggerSave.flush();
-		await addResolutions(resolutions);
-	}
+		await dispatch(addResolutions(resolutions));
+	};
 
- 	handleDeleteResolutions = async () => {
- 		if (this.state.commentsAccess < AccessLevel.rw || !this.props.uiProperties.editComment) {
+	const handleDeleteResolutions = async () => {
+		if (commentsAccess < AccessLevel.rw || !editComment) {
 			console.warn("Update in read only component");
 			return;
 		}
-		const {deleteResolutions} = this.props;
-		const {comments} = this.state;
- 		const ids = comments
- 			.filter(c => c.resolution_id)	// only those with resolutions
- 			.map(c => c.id);
- 		this.triggerSave.flush();
- 		await deleteResolutions(ids);
-		this.setState(this.initState());
- 	}
+		const ids = selected
+			.map((id) => entities[id])
+			.filter((c) => c.resolution_id) // only those with resolutions
+			.map((c) => c.id);
+		await dispatch(deleteResolutions(ids));
+	};
 
- 	toggleUiProperty = (property: string) => this.props.setUiProperties({[property]: !this.props.uiProperties[property]});
+	let placeholder: string | undefined;
+	if (loading) placeholder = "Loading...";
+	else if (selected.length === 0) placeholder = "Nothing selected";
 
-	render() {
-		const {loading, uiProperties, readOnly} = this.props;
-		const {comments, editedResolution, commentsAccess, resolutionsAccess} = this.state;
+	const disableButtons = !!placeholder; // disable buttons if displaying string
+	const disableEditButtons = disableButtons || readOnly || !editComment;
 
-		let notAvailableStr: string | undefined;
-		if (loading)
-			notAvailableStr = 'Loading...';
-		else if (comments.length === 0)
-			notAvailableStr = 'Nothing selected';
-
-		const disableButtons = !!notAvailableStr; 	// disable buttons if displaying string
-		const disableEditButtons = disableButtons || readOnly || !uiProperties.editComment;
-
-		const actionElements =
-			<>
-				<CommentHistory />
-				{!readOnly && (commentsAccess >= AccessLevel.rw || resolutionsAccess >= AccessLevel.rw) &&
+	const actionElements = (
+		<>
+			<CommentHistory />
+			{!readOnly &&
+				(commentsAccess >= AccessLevel.rw ||
+					resolutionsAccess >= AccessLevel.rw) && (
 					<ActionButton
-						name='edit'
-						title='Edit resolution'
+						name="edit"
+						title="Edit resolution"
 						disabled={disableButtons}
-						isActive={uiProperties.editComment}
-						onClick={() => this.toggleUiProperty('editComment')}
-					/>}
-				{!readOnly && commentsAccess >= AccessLevel.rw &&
-					<>
-						<ActionButton
-							name='add'
-							title='Create alternate resolution'
-							disabled={disableEditButtons}
-							onClick={this.handleAddResolutions}
-						/>
-						<ActionButton
-							name='delete'
-							title='Delete resolution'
-							disabled={disableEditButtons}
-							onClick={this.handleDeleteResolutions}
-						/>
-					</>}
-			</>
-
-		const bodyElement =
-			notAvailableStr?
-				<div className="placeholder">
-					<span>{notAvailableStr}</span>
-				</div>:
-				<>
-					<CommentEdit 
-						cids={comments.map(getCID)}
-						comment={editedResolution}
-						updateComment={this.updateResolution}
-						showNotes={uiProperties.showNotes}
-						toggleShowNotes={() => this.toggleUiProperty('showNotes')}
-						readOnly={readOnly || commentsAccess < AccessLevel.rw || !uiProperties.editComment}
+						isActive={editComment}
+						onClick={toggleEditComment}
 					/>
-					{editedResolution.ResolutionID !== null &&
-						<>
-							<ResolutionEdit
-								resolution={editedResolution}
-								updateResolution={this.updateResolution}
-								readOnly={readOnly || resolutionsAccess < AccessLevel.rw || !uiProperties.editComment}
-								commentsAccess={commentsAccess}
-							/>
-							<EditingEdit
-								resolution={editedResolution}
-								updateResolution={this.updateResolution}
-								showEditing={uiProperties.showEditing}
-								toggleShowEditing={() => this.toggleUiProperty('showEditing')}
-								readOnly={readOnly || commentsAccess < AccessLevel.rw || !uiProperties.editComment}
-							/>
-						</>}
-					<Row style={{justifyContent: 'flex-end', opacity: 0.5}}>
-						{`${renderAccess(commentsAccess)} / ${renderAccess(resolutionsAccess)}`}
-					</Row>
+				)}
+			{!readOnly && commentsAccess >= AccessLevel.rw && (
+				<>
+					<ActionButton
+						name="add"
+						title="Create alternate resolution"
+						disabled={disableEditButtons}
+						onClick={handleAddResolutions}
+					/>
+					<ActionButton
+						name="delete"
+						title="Delete resolution"
+						disabled={disableEditButtons}
+						onClick={handleDeleteResolutions}
+					/>
 				</>
-
-		return(
-			<>
-				<div className="top-row justify-right">{actionElements}</div>
-				<div className="main">{bodyElement}</div>
-			</>
-		);
-	}
+			)}
+		</>
+	);
+	return (
+		<>
+			<div className="top-row justify-right">{actionElements}</div>
+			<div className="main">
+				{placeholder ? (
+					<Placeholder>{placeholder}</Placeholder>
+				) : (
+					<CommentResolutionEdit
+						selected={selected as string[]}
+						commentsAccess={commentsAccess}
+						resolutionsAccess={resolutionsAccess}
+						readOnly={readOnly}
+					/>
+				)}
+				<Row style={{ justifyContent: "flex-end", opacity: 0.5 }}>
+					{`${renderAccess(commentsAccess)} / ${renderAccess(
+						resolutionsAccess
+					)}`}
+				</Row>
+			</div>
+		</>
+	);
 }
 
-type PropsIn = {
-	className?: string;
-	style?: React.CSSProperties;
-	readOnly?: boolean;
-}
-
-const connector = connect(
-	(state: RootState, props: PropsIn) => {
-		const user = selectUser(state);
-		const {entities, loading, selected, ui: uiProperties} = selectCommentsState(state);
-		const groupEntities = selectGroupEntities(state);
-		let access = selectCommentsAccess(state);
-		return {
-			entities,
-			loading,
-			selected,
-			uiProperties,
-			access,
-			user,
-			groupEntities
-		}
-	},
-	{
-		addResolutions,
-		deleteResolutions,
-		updateResolutions,
-		updateComments,
-		setUiProperties,
-	}
-);
-
-type CommentDetailProps = ConnectedProps<typeof connector> & PropsIn;
-
-export default connector(CommentDetail);
+export default CommentDetail;
