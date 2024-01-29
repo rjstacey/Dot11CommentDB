@@ -346,7 +346,7 @@ export function BallotEditMultiple({
 	readOnly,
 }: {
 	ids: number[];
-	readOnly: boolean;
+	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
 	const { entities } = useAppSelector(selectBallotsState);
@@ -373,7 +373,7 @@ export function BallotEditMultiple({
 	}, [entities, editIds, ids]);
 
 	const triggerSave = useDebounce(() => {
-		const changes = shallowDiff(saved, edited) as Partial<BallotEdit>;
+		const changes = shallowDiff(saved!, edited!) as Partial<BallotEdit>;
 		let updates: BallotUpdate[] = [];
 		if (Object.keys(changes).length > 0) {
 			updates = editIds.map((id) => ({ id, changes }));
@@ -382,8 +382,8 @@ export function BallotEditMultiple({
 		if (changes.groupId || changes.Project) {
 			dispatch(
 				setCurrentGroupProject({
-					groupId: edited.groupId,
-					project: edited.Project,
+					groupId: edited!.groupId,
+					project: edited!.Project,
 				})
 			);
 		}
@@ -396,7 +396,7 @@ export function BallotEditMultiple({
 			return;
 		}
 		// merge in the edits and trigger a debounced save
-		setEdited((edited) => ({ ...edited, ...changes }));
+		setEdited((edited) => ({ ...edited!, ...changes }));
 		triggerSave();
 	};
 

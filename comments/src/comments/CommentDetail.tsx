@@ -91,7 +91,7 @@ function CommentResolutionEdit({
 
 	const triggerSave = useDebounce(() => {
 		/* Find changes */
-		const changes = shallowDiff(saved, edited) as Partial<CommentResolution>;
+		const changes = shallowDiff(saved!, edited!) as Partial<CommentResolution>;
 		if (Object.keys(changes).length > 0) {
 			const updates: ResolutionUpdate[] = [];
 			const adds: ResolutionCreate[] = [];
@@ -119,7 +119,7 @@ function CommentResolutionEdit({
 			return;
 		}
 		// merge in the edits and trigger save
-		setEdited((edited) => ({ ...edited, ...changes }));
+		setEdited((edited) => ({ ...edited!, ...changes }));
 		triggerSave();
 	};
 
@@ -161,7 +161,7 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 	const { entities, loading, selected } = useAppSelector(selectCommentsState);
 	const groupEntities = useAppSelector(selectGroupEntities);
 	const access = useAppSelector(selectCommentsAccess);
-	const comments = React.useMemo(() => selected.map(id => entities[id]), [selected, entities]);
+	const comments = React.useMemo(() => selected.map(id => entities[id]!), [selected, entities]);
 
 	const cids = comments.map((c) => getCID(c));
 	const cidsStr = cids.join(", ");

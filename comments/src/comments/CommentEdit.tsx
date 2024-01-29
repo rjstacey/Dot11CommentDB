@@ -429,8 +429,8 @@ export function CommentEdit({
 	const triggerSave = useDebounce(() => {
 		/* Find changes */
 		const changes: Partial<Comment> = shallowDiff(
-			saved,
-			edited
+			saved!,
+			edited!
 		) as Partial<Comment>;
 		if (Object.keys(changes).length > 0) {
 			const ids = new Set<CommentResolution["comment_id"]>();
@@ -448,7 +448,7 @@ export function CommentEdit({
 			return;
 		}
 		// merge in the edits and trigger save
-		setEdited((edited) => ({ ...edited, ...changes }));
+		setEdited((edited) => ({ ...edited!, ...changes }));
 		triggerSave();
 	};
 

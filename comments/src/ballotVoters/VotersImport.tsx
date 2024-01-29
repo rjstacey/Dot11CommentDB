@@ -134,7 +134,7 @@ export function VotersImportForm({
 	);
 }
 
-function VotersImportButton({ ballot_id }: { ballot_id?: number }) {
+function VotersImportButton({ ballot_id }: { ballot_id?: number | null }) {
 	const ballot = useAppSelector((state) =>
 		ballot_id ? selectBallot(state, ballot_id) : undefined
 	);

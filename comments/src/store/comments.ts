@@ -149,11 +149,9 @@ function getResolutionCountUpdates(ids: EntityId[], entities: Dictionary<Comment
 	return updates;
 }
 
-type ExtraState = {
+const initialState: {
 	ballot_id: number | null;
-}
-
-const initialState: ExtraState = {
+} = {
 	ballot_id: null
 };
 
@@ -164,7 +162,7 @@ const slice = createAppTableDataSlice({
 	sortComparer: (c1: CommentResolution, c2: CommentResolution) => c1.CommentID === c2.CommentID? c1.ResolutionID - c2.ResolutionID: c1.CommentID - c2.CommentID,
 	initialState,
 	reducers: {
-		setDetails(state, action: PayloadAction<Partial<ExtraState>>) {
+		setDetails(state, action: PayloadAction<Partial<typeof initialState>>) {
 			const changes = action.payload;
 			return {...state, ...changes};
 		}
@@ -379,7 +377,7 @@ export const updateComments = (updates: CommentUpdate[]): AppThunk =>
 			if (u) {
 				localUpdates.push({id, changes: u.changes});
 				const changes: Partial<Comment> = {};
-				for (const key of Object.keys(u.changes))
+				for (const key of Object.keys(u.changes) as (keyof typeof u.changes)[])
 					changes[key] = c[key];
 				rollbackUpdates.push({id, changes});
 			}
@@ -521,7 +519,7 @@ const updateMany = (updates: Update<CommentResolution>[]): AppThunk =>
 			const id = u.id;
 			const changes: Partial<CommentResolution> = {};
 			const entity = entities[id]!;
-			for (const key of Object.keys(u.changes))
+			for (const key of Object.keys(u.changes) as Array<keyof typeof u.changes>)
 				changes[key] = entity[key];
 			return {id, changes};
 		});

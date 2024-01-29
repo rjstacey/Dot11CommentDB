@@ -9,7 +9,9 @@ import { selectUser, setUser, type User } from './store/user';
 import './index.css';
 import App from './app';
 import { fetcher, getUser, logout } from 'dot11-components';
+ // @ts-ignore
 import registerServiceWorker from './registerServiceWorker';
+
 
 function persistGate(done: boolean, user: User) {
 	if (!done)

@@ -142,7 +142,7 @@ function ResnStatus({
 	readOnly?: boolean;
 }) {
 	const handleChange: React.ChangeEventHandler<HTMLInputElement> = e => onChange(e.target.checked? (e.target.value as ResnStatusType): null);
-	const backgroundColor = (!isMultiple(value) && resnColor[value]) || "#fafafa";
+	const backgroundColor = (!isMultiple(value) && resnColor[value || ""]) || "#fafafa";
 	return (
 		<div
 			style={{backgroundColor}}
@@ -200,7 +200,7 @@ export function ResolutionAndStatus({
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
-	const backgroundColor = (!isMultiple(resolution.ResnStatus) && resnColor[resolution.ResnStatus]) || "#fafafa";
+	const backgroundColor = (!isMultiple(resolution.ResnStatus) && resnColor[resolution.ResnStatus || ""]) || "#fafafa";
 	return (
 		<Col
 			className={styles.resolutionField}
@@ -217,7 +217,7 @@ export function ResolutionAndStatus({
 				<Editor
 					className={styles.resolutionEditor}
 					style={{backgroundColor, borderRadius: '0 5px 5px 5px'}}
-					value={isMultiple(resolution.Resolution)? '': resolution.Resolution}
+					value={isMultiple(resolution.Resolution)? "": resolution.Resolution || ""}
 					onChange={value => updateResolution({Resolution: value})}
 					placeholder={isMultiple(resolution.Resolution)? MULTIPLE_STR: BLANK_STR}
 					readOnly={readOnly}

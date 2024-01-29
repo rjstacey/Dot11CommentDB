@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { $getRoot, ElementNode } from "lexical";
+import { $getRoot, $isElementNode, LexicalNode } from "lexical";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $isLinkNode, $createAutoLinkNode } from "@lexical/link";
@@ -8,8 +8,8 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 
 import { useDebounce } from "../components/useDebounce";
 
-function recursivelyReplaceLinkWithAutoLink(node: ElementNode) {
-	if (!node) return;
+function recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
+	if (!$isElementNode(node)) return;
 	if (node.getChildren)
 		node.getChildren().forEach(recursivelyReplaceLinkWithAutoLink);
 	if ($isLinkNode(node)) {

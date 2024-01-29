@@ -160,7 +160,9 @@ const commentsReport = {
 	"Comments by Assignee": commentsByAssignee,
 	"Comments by Assignee and Comment Group": commentsByAssigneeAndCommentGroup,
 	"Comments by Ad-Hoc and Comment Group": commentsByAdHocAndCommentGroup,
-};
+} as const;
+
+type Report = keyof typeof commentsReport;
 
 function renderTable(data: Counts[]) {
 	if (data.length === 0) return <span>Empty</span>;
@@ -233,7 +235,7 @@ function renderTableToClipboard(data: Counts[]) {
 
 function Reports() {
 	const dispatch = useAppDispatch();
-	const [report, setReport] = React.useState("");
+	const [report, setReport] = React.useState<Report | null>(null);
 
 	const { ids, entities } = useAppSelector(selectCommentsState);
 	const commentsBallot_id = useAppSelector(selectCommentsBallot_id);
@@ -254,11 +256,11 @@ function Reports() {
 				Status: getCommentStatus(c),
 			};
 		});
-		const generateReport = commentsReport[report];
+		const generateReport = report? commentsReport[report]: undefined;
 		return generateReport ? generateReport(comments) : [];
 	}, [ids, entities, report]);
 
-	const ReportButton = ({ report: thisReport, label }) => (
+	const ReportButton = ({ report: thisReport, label }: { report: Report, label: string}) => (
 		<Button
 			onClick={() => setReport(thisReport)}
 			isActive={thisReport === report}
@@ -283,7 +285,7 @@ function Reports() {
 					{Object.keys(commentsReport).map((report) => (
 						<ReportButton
 							key={report}
-							report={report}
+							report={report as Report}
 							label={report}
 						/>
 					))}

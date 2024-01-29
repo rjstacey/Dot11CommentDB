@@ -6,6 +6,8 @@ import {
 	ActionButton,
 	ColumnProperties,
 	TablesConfig,
+	ChangeableColumnProperties,
+	CellRendererProps
 } from "dot11-components";
 
 import ProjectBallotSelector from "../components/ProjectBallotSelector";
@@ -22,7 +24,6 @@ import {
 	resultsActions,
 	upsertTableColumns,
 	selectResultsAccess,
-	Result,
 } from "../store/results";
 import { selectBallot, BallotType } from "../store/ballots";
 import { selectIsOnline } from "../store/offline";
@@ -36,10 +37,7 @@ const lineTruncStyle: React.CSSProperties = {
 const renderItem = ({
 	rowData,
 	dataKey,
-}: {
-	rowData: Result;
-	dataKey: string;
-}) => <div style={lineTruncStyle}>{rowData[dataKey]}</div>;
+}: CellRendererProps) => <div style={lineTruncStyle}>{rowData[dataKey]}</div>;
 
 const tableColumns: ColumnProperties[] = [
 	{ key: "SAPIN", label: "SA PIN", width: 75 },
@@ -58,9 +56,9 @@ const tableColumns: ColumnProperties[] = [
 
 function getDefaultTablesConfig(access: number, type: number): TablesConfig {
 	const columns = tableColumns.reduce((o, c) => {
-		let columnConfig = {
+		let columnConfig: ChangeableColumnProperties = {
 			shown: true,
-			width: c.width,
+			width: c.width!,
 			unselectable: false,
 		};
 		if (
@@ -82,7 +80,7 @@ function getDefaultTablesConfig(access: number, type: number): TablesConfig {
 		}
 		o[c.key] = columnConfig;
 		return o;
-	}, {});
+	}, {} as { [key: string]: ChangeableColumnProperties });
 	return { default: { fixed: false, columns } };
 }
 

@@ -30,7 +30,7 @@ function VoterPoolActions({
 					<ActionButtonDropdown
 						label={ballot.Voters ? "Reimport" : "Import"}
 						title="Import voters"
-						portal={document.querySelector("#root")}
+						portal={document.querySelector("#root")!}
 						dropdownPosition="top"
 						dropdownRenderer={({ methods }) => (
 							<VotersImportForm

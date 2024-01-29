@@ -232,13 +232,13 @@ function BlockStyleButtons({
 
 	if (size === "medium") {
 		moreButtons = buttons.splice(1, 3);
-		moreButtons.push(buttons.pop());
-		moreButtons.push(buttons.pop());
+		moreButtons.push(buttons.pop()!);
+		moreButtons.push(buttons.pop()!);
 	} else if (size === "small") {
 		moreButtons = buttons.splice(1, 3);
 		moreButtons.concat(buttons.splice(-1, 1));
 		moreButtons.push(<div className="divider" />);
-		moreButtons.push(buttons.pop());
+		moreButtons.push(buttons.pop()!);
 	}
 
 	return (
@@ -453,7 +453,7 @@ function SelectAlignment({
 					<button
 						key={i}
 						className={value === o.value ? "active" : undefined}
-						onClick={() => onChange(o.value)}
+						onClick={() => onChange(o.value!)}
 					>
 						<i className={o.icon} />
 					</button>
@@ -541,7 +541,7 @@ const breakpointMedium = 625;
 
 export default function ToolbarPlugin({ style }: React.ComponentProps<"div">) {
 	const [editor] = useLexicalComposerContext();
-	const containerRef = React.useRef<HTMLDivElement>();
+	const containerRef = React.useRef<HTMLDivElement>(null);
 	const [size, setSize] = React.useState<Size>("large");
 
 	React.useEffect(() => {

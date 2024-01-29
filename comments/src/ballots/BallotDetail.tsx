@@ -178,7 +178,7 @@ function BallotDetail({ access, readOnly }: { access: number; readOnly?: boolean
 	}, [dispatch]);
 
 	const deleteClick = React.useCallback(async () => {
-		const list = ids.map((id) => entities[id].BallotID).join(", ");
+		const list = ids.map((id) => entities[id]!.BallotID).join(", ");
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete ballot${
 				ids.length > 1 ? "s" : ""
