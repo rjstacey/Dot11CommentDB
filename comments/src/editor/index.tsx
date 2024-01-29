@@ -50,7 +50,7 @@ const theme = {
 	code: "code",
 };
 
-const emailStylesObj: Record<string, string> = {
+const editorStyles: Record<string, string> = {
 	paragraph: "font-size: 14px; lineHeight: 24px; margin: 16px 0",
 	link: "color: #067df7; text-decoration: none;",
 	quote: "font-family: 'TimesNewRoman', serif; margin: 10px 20px; padding: 0 0;",
@@ -66,11 +66,21 @@ const emailStylesObj: Record<string, string> = {
 	mark: "background-color: yellow;",
 };
 
-const emailStylesText = Object.entries(emailStylesObj)
-	.map(([key, value]) => `.${styles.innerContainer} .${key} {${value}}`)
-	.join("\n");
-const emailStyles = new CSSStyleSheet();
-emailStyles.replaceSync(emailStylesText);
+export function useEditorStylesheet(className: string) {
+	React.useEffect(() => {
+		const text = Object.entries(editorStyles)
+			.map(([key, value]) => `.${className} .${key} {${value}}`)
+			.join("\n");
+		const stylesheet = new CSSStyleSheet();
+		stylesheet.replaceSync(text);
+
+		// Add theme stylesheet on mount and remove on unmount
+		document.adoptedStyleSheets.push(stylesheet);
+		return () => {
+			document.adoptedStyleSheets.pop();
+		};
+	}, [className]);
+}
 
 const editorConfig = {
 	namespace: "editor",
@@ -106,27 +116,30 @@ const editorConfig = {
 };
 
 function Editor({
+	className,
+	style,
 	value,
 	onChange,
 	readOnly,
 	placeholder = "Enter text here...",
 }: {
+	className?: string;
+	style?: React.CSSProperties;
 	value: string;
 	onChange: (value: string) => void;
 	readOnly?: boolean;
 	placeholder?: string;
 }) {
-	React.useEffect(() => {
-		// Add theme stylesheet on mount and remove on unmount
-		document.adoptedStyleSheets.push(emailStyles);
-		return () => {
-			document.adoptedStyleSheets.pop();
-		};
-	}, []);
+	useEditorStylesheet(styles.container);
 
 	return (
 		<LexicalComposer initialConfig={editorConfig}>
-			<RichTextPlugin placeholder={placeholder} readOnly={readOnly} />
+			<RichTextPlugin
+				className={className}
+				style={style}
+				placeholder={placeholder}
+				readOnly={readOnly}
+			/>
 			<LinkEditorPlugin />
 			<InportExportPlugin
 				value={value}

@@ -3,10 +3,12 @@ import * as React from "react";
 import {
 	ActionButton,
 	Row,
+	FieldLeft,
 	shallowDiff,
-	recursivelyDiffObjects,
-	Multiple,
 	ConfirmModal,
+	deepMergeTagMultiple,
+	type Multiple,
+	isMultiple,
 } from "dot11-components";
 
 import CommentHistory from "./CommentHistory";
@@ -19,17 +21,16 @@ import {
 	addResolutions,
 	updateResolutions,
 	deleteResolutions,
-	updateComments,
 	setUiProperties,
 	selectCommentsState,
 	selectCommentsAccess,
-	getCID,
 	CommentResolution,
 	Comment,
 	Resolution,
 	ResolutionUpdate,
 	ResolutionCreate,
-	selectCommentEntities,
+	getCID,
+	getCommentStatus
 } from "../store/comments";
 import { selectGroupEntities } from "../store/groups";
 import { AccessLevel, selectUser } from "../store/user";
@@ -42,82 +43,70 @@ function renderAccess(access: number) {
 	return "none";
 }
 
+function renderCommentsStatus(comments: CommentResolution[]) {
+	let status: string = "";
+	comments.forEach(c => {
+		const s = getCommentStatus(c);
+		if (!status)
+			status = s;
+		else if (status !== s)
+			status = "<multiple>";
+	});
+	if (isMultiple(status))
+		return <span style={{fontStyle: 'italic'}}>(Multiple)</span>
+	else
+		return status;
+}
+
 function CommentResolutionEdit({
-	selected,
+	comments,
 	readOnly,
 	commentsAccess,
 	resolutionsAccess,
 }: {
-	selected: string[];
+	comments: CommentResolution[];
 	readOnly: boolean;
 	commentsAccess: number;
 	resolutionsAccess: number;
 }) {
 	const dispatch = useAppDispatch();
-	const entities = useAppSelector(selectCommentEntities);
 	const [edited, setEdited] =
-		React.useState<MultipleCommentResolution | null>();
+		React.useState<Multiple<CommentResolution> | null>(null);
 	const [saved, setSaved] =
-		React.useState<MultipleCommentResolution | null>();
-	const [comments, setComments] = React.useState<CommentResolution[]>([]);
+		React.useState<Multiple<CommentResolution> | null>(null);
+	const [editedComments, setEditedComments] = React.useState<CommentResolution[]>([]);
 
 	React.useEffect(() => {
-		let diff = {},
-			comments: CommentResolution[] = [];
-		selected.forEach((id) => {
-			const comment = entities[id];
-			if (comment) {
-				diff = recursivelyDiffObjects(diff, comment);
-				comments.push(comment);
-			}
+		if (comments.map(c => c.id).join() === editedComments.map(c => c.id).join())
+			return;
+
+		let diff: Multiple<CommentResolution> | null = null;
+		comments.forEach((comment) => {
+			diff = deepMergeTagMultiple(diff || {}, comment);
 		});
-		setSaved(diff as MultipleCommentResolution);
-		setEdited(diff as MultipleCommentResolution);
-		setComments(comments);
-	}, [entities, selected]);
+		setSaved(diff);
+		setEdited(diff);
+		setEditedComments(comments);
+	}, [comments, editedComments]);
 
 	const triggerSave = useDebounce(() => {
 		/* Find changes */
-		const commentChanges: Partial<Comment> = {},
-			resolutionChanges: Partial<Resolution> = {};
-		const d = shallowDiff(saved, edited) as Partial<CommentResolution>;
-		for (let k in d) {
-			if (
-				k in
-				[
-					"AdHocGroupId",
-					"AdHoc",
-					"CommentGroup",
-					"Notes",
-					"Page",
-					"Clause",
-				]
-			)
-				commentChanges[k] = d[k];
-			else resolutionChanges[k] = d[k];
-		}
-		if (Object.keys(commentChanges).length > 0) {
-			const updates = comments.map((c) => ({
-				id: c.comment_id,
-				changes: commentChanges,
-			}));
-			dispatch(updateComments(updates));
-		}
-		if (Object.keys(resolutionChanges).length > 0) {
+		const changes = shallowDiff(saved, edited) as Partial<CommentResolution>;
+		if (Object.keys(changes).length > 0) {
 			const updates: ResolutionUpdate[] = [];
 			const adds: ResolutionCreate[] = [];
-			for (const c of comments) {
+			comments.forEach(c => {
 				if (c.resolution_id)
 					updates.push({
 						id: c.resolution_id,
-						changes: resolutionChanges,
+						changes,
 					});
 				else
 					adds.push({
 						comment_id: c.comment_id,
-						...resolutionChanges,
+						...changes,
 					});
-			}
+			});
 			if (updates.length > 0) dispatch(updateResolutions(updates));
 			if (adds.length > 0) dispatch(addResolutions(adds));
 		}
@@ -134,33 +123,23 @@ function CommentResolutionEdit({
 		triggerSave();
 	};
 
-	if (!edited) return null;
+	if (!edited || edited.ResolutionID === null) return null;
 
 	return (
 		<>
-			<CommentEdit
-				cids={comments.map(getCID)}
-				comment={edited}
-				updateComment={updateResolution}
+			<ResolutionEdit
+				resolution={edited}
+				updateResolution={updateResolution}
+				readOnly={
+					readOnly || resolutionsAccess < AccessLevel.rw
+				}
+				commentsAccess={commentsAccess}
+			/>
+			<EditingEdit
+				resolution={edited}
+				updateResolution={updateResolution}
 				readOnly={readOnly || commentsAccess < AccessLevel.rw}
 			/>
-			{edited.ResolutionID !== null && (
-				<>
-					<ResolutionEdit
-						resolution={edited}
-						updateResolution={updateResolution}
-						readOnly={
-							readOnly || resolutionsAccess < AccessLevel.rw
-						}
-						commentsAccess={commentsAccess}
-					/>
-					<EditingEdit
-						resolution={edited}
-						updateResolution={updateResolution}
-						readOnly={readOnly || commentsAccess < AccessLevel.rw}
-					/>
-				</>
-			)}
 		</>
 	);
 }
@@ -182,6 +161,11 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 	const { entities, loading, selected } = useAppSelector(selectCommentsState);
 	const groupEntities = useAppSelector(selectGroupEntities);
 	const access = useAppSelector(selectCommentsAccess);
+	const comments = React.useMemo(() => selected.map(id => entities[id]), [selected, entities]);
+
+	const cids = comments.map((c) => getCID(c));
+	const cidsStr = cids.join(", ");
+	const cidsLabel = cids.length > 1 ? "CIDs:" : "CID:";
 
 	const [commentsAccess, setCommentsAccess] = React.useState<number>(
 		AccessLevel.none
@@ -196,8 +180,6 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 		dispatch(setUiProperties({ editComment: !editComment }));
 
 	React.useEffect(() => {
-		const comments = selected.map((id) => entities[id]);
-
 		/* User has read-write comments access if the user is an officer of the assigned ad-hoc */
 		let commentsAccess = access;
 		if (commentsAccess <= AccessLevel.ro) {
@@ -228,7 +210,7 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 			resolutionsAccess = AccessLevel.rw;
 		}
 		setResolutionsAccess(resolutionsAccess);
-	}, [selected, entities, groupEntities, access, user]);
+	}, [comments, groupEntities, access, user]);
 
 	const handleAddResolutions = async () => {
 		if (commentsAccess < AccessLevel.rw || !editComment) {
@@ -236,7 +218,6 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 			return;
 		}
 
-		const comments = selected.map((id) => entities[id]);
 		if (comments.find((c) => c.ApprovedByMotion)) {
 			const msg =
 				comments.length > 1
@@ -262,8 +243,7 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 			console.warn("Update in read only component");
 			return;
 		}
-		const ids = selected
-			.map((id) => entities[id])
+		const ids = comments
 			.filter((c) => c.resolution_id) // only those with resolutions
 			.map((c) => c.id);
 		await dispatch(deleteResolutions(ids));
@@ -308,6 +288,7 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 			)}
 		</>
 	);
+
 	return (
 		<>
 			<div className="top-row justify-right">{actionElements}</div>
@@ -315,12 +296,24 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 				{placeholder ? (
 					<Placeholder>{placeholder}</Placeholder>
 				) : (
-					<CommentResolutionEdit
-						selected={selected as string[]}
-						commentsAccess={commentsAccess}
-						resolutionsAccess={resolutionsAccess}
-						readOnly={readOnly}
-					/>
+					<>
+						<Row>
+							<FieldLeft label={cidsLabel}>{cidsStr}</FieldLeft>
+							<FieldLeft label="">
+								{renderCommentsStatus(comments)}
+							</FieldLeft>
+						</Row>
+						<CommentEdit
+							comments={comments}
+							readOnly={readOnly || commentsAccess < AccessLevel.rw}
+						/>
+						<CommentResolutionEdit
+							comments={comments}
+							commentsAccess={commentsAccess}
+							resolutionsAccess={resolutionsAccess}
+							readOnly={readOnly || !editComment}
+						/>
+					</>
 				)}
 				<Row style={{ justifyContent: "flex-end", opacity: 0.5 }}>
 					{`${renderAccess(commentsAccess)} / ${renderAccess(

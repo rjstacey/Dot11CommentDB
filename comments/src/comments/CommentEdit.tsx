@@ -1,5 +1,4 @@
-import React from "react";
-import styled from "@emotion/styled";
+import * as React from "react";
 
 import {
 	Row,
@@ -11,16 +10,25 @@ import {
 	Icon,
 	IconCollapse,
 	isMultiple,
+	type Multiple,
+	deepMergeTagMultiple,
+	shallowDiff,
 } from "dot11-components";
+
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import {
+	updateComments,
+	setUiProperties,
+	selectCommentsState,
+	type CommentResolution,
+	type Comment,
+} from "../store/comments";
+
+import { useDebounce } from "../components/useDebounce";
 
 import AdHocSelector from "./AdHocSelector";
 import CommentGroupSelector from "./CommentGroupSelector";
-import RichTextEditor from "./RichTextEditor";
-
-import type { MultipleComment } from "./CommentDetail";
-
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectCommentsState, setUiProperties, getCommentStatus, CommentResolution } from "../store/comments";
+import Editor from "../editor";
 
 import styles from "./comments.module.css";
 
@@ -33,7 +41,7 @@ const ShowMultiple = (props: React.ComponentProps<"span">) => (
 	</span>
 );
 
-export const renderCommenter = (comment: MultipleComment) => {
+export const renderCommenter = (comment: Multiple<Comment>) => {
 	const commenter = comment.CommenterName;
 	if (isMultiple(commenter)) {
 		return <ShowMultiple />;
@@ -87,8 +95,8 @@ export const CommentAdHoc = ({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: MultipleComment;
-	updateComment?: (changes: Partial<CommentResolution>) => void;
+	comment: Multiple<Comment>;
+	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
 	<Field label="Ad-hoc:">
@@ -120,8 +128,8 @@ export const CommentGroup = ({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: MultipleComment;
-	updateComment?: (changes: Partial<CommentResolution>) => void;
+	comment: Multiple<Comment>;
+	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
 	<Field label="Comment group:">
@@ -147,49 +155,45 @@ export function CommentNotes({
 	forceShowNotes,
 	readOnly,
 }: {
-	comment: MultipleComment;
-	updateComment?: (changes: Partial<CommentResolution>) => void;
+	comment: Multiple<Comment>;
+	updateComment?: (changes: Partial<Comment>) => void;
 	forceShowNotes?: boolean;
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
-	const showNotes: boolean | undefined = useAppSelector(selectCommentsState).ui.showNotes;
-	const toggleShowNotes = () => dispatch(setUiProperties({ showNotes: !showNotes }));
+	const showNotes: boolean | undefined =
+		useAppSelector(selectCommentsState).ui.showNotes;
+	const toggleShowNotes = () =>
+		dispatch(setUiProperties({ showNotes: !showNotes }));
 
 	return (
-	<Col
-		style={{
-			width: "100%",
-			position: "relative", // position toolbar
-			paddingTop: 15, // make room for toolbar
-		}}
-	>
-		<div
-			style={{
-				display: "flex",
-				flex: 1,
-				justifyContent: "space-between",
-			}}
-		>
-			<label>Notes:</label>
-			{!forceShowNotes && (
-				<IconCollapse
-					isCollapsed={!showNotes}
-					onClick={toggleShowNotes}
+		<Col className={styles.notesField}>
+			<div
+				style={{
+					display: "flex",
+					flex: 1,
+					justifyContent: "space-between",
+				}}
+			>
+				<label>Notes:</label>
+				{!forceShowNotes && (
+					<IconCollapse
+						isCollapsed={!showNotes}
+						onClick={toggleShowNotes}
+					/>
+				)}
+			</div>
+			{(showNotes || forceShowNotes) && (
+				<Editor
+					value={isMultiple(comment.Notes) ? "" : comment.Notes}
+					onChange={(value) => updateComment({ Notes: value })}
+					placeholder={
+						isMultiple(comment.Notes) ? MULTIPLE_STR : BLANK_STR
+					}
+					readOnly={readOnly}
 				/>
 			)}
-		</div>
-		{(showNotes || forceShowNotes) && (
-			<StyledNoteEditor
-				value={isMultiple(comment.Notes) ? "" : comment.Notes}
-				onChange={(value) => updateComment({ Notes: value })}
-				placeholder={
-					isMultiple(comment.Notes) ? MULTIPLE_STR : BLANK_STR
-				}
-				readOnly={readOnly}
-			/>
-		)}
-	</Col>
+		</Col>
 	);
 }
 
@@ -198,8 +202,8 @@ export const CommentCategorization = ({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: MultipleComment;
-	updateComment?: (changes: Partial<CommentResolution>) => void;
+	comment: Multiple<Comment>;
+	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
 	<>
@@ -229,19 +233,13 @@ export const CommentCategorization = ({
 	</>
 );
 
-const StyledNoteEditor = styled(RichTextEditor)`
-	background-color: #fafafa;
-	border: 1px solid #ddd;
-	border-radius: 0 5px 5px 5px;
-`;
-
 function CommentPage({
 	comment,
 	setComment,
 	readOnly,
 }: {
-	comment: MultipleComment;
-	setComment: (changes: Partial<CommentResolution>) => void;
+	comment: Multiple<Comment>;
+	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
 	const [value, setValue] = React.useState(
@@ -311,8 +309,8 @@ function CommentClause({
 	setComment,
 	readOnly,
 }: {
-	comment: MultipleComment;
-	setComment: (changes: Partial<CommentResolution>) => void;
+	comment: Multiple<Comment>;
+	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
 	// Check if original clause is different
@@ -347,29 +345,16 @@ function CommentClause({
 }
 
 export function CommentBasics({
-	cids,
 	comment,
 	updateComment = () => {},
 	readOnly,
 }: {
-	cids: string[];
-	comment: MultipleComment;
-	updateComment?: (changes: Partial<CommentResolution>) => void;
+	comment: Multiple<Comment>;
+	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
-	const cidsStr = cids.join(", ");
-	const cidsLabel = cids.length > 1 ? "CIDs:" : "CID:";
-
 	return (
 		<>
-			<Row>
-				<FieldLeft label={cidsLabel}>{cidsStr}</FieldLeft>
-				<FieldLeft label="">
-					{renderEntry(
-						getCommentStatus(comment as CommentResolution)
-					)}
-				</FieldLeft>
-			</Row>
 			<Row>
 				<FieldLeft label="Commenter:">
 					{renderCommenter(comment)}
@@ -407,27 +392,77 @@ export function CommentBasics({
 }
 
 export function CommentEdit({
-	cids,
-	comment,
-	updateComment,
+	comments,
 	readOnly,
 }: {
-	cids: string[];
-	comment: MultipleComment;
-	updateComment?: (changes: Partial<CommentResolution>) => void;
+	comments: CommentResolution[];
 	readOnly?: boolean;
 }) {
+	const dispatch = useAppDispatch();
+	const [edited, setEdited] =
+		React.useState<Multiple<CommentResolution> | null>(null);
+	const [saved, setSaved] =
+		React.useState<Multiple<CommentResolution> | null>(null);
+	const [editedComments, setEditedComments] = React.useState<
+		CommentResolution[]
+	>([]);
+
+	React.useEffect(() => {
+		if (
+			comments.map((c) => c.id).join() ===
+			editedComments.map((c) => c.id).join()
+		)
+			return;
+
+		let diff: Multiple<CommentResolution> | null = null;
+		comments.forEach((comment) => {
+			diff = deepMergeTagMultiple(
+				diff || {},
+				comment
+			) as Multiple<CommentResolution>;
+		});
+		setSaved(diff);
+		setEdited(diff);
+		setEditedComments(comments);
+	}, [comments, editedComments]);
+
+	const triggerSave = useDebounce(() => {
+		/* Find changes */
+		const changes: Partial<Comment> = shallowDiff(
+			saved,
+			edited
+		) as Partial<Comment>;
+		if (Object.keys(changes).length > 0) {
+			const ids = new Set<CommentResolution["comment_id"]>();
+			/* Unique comments only */
+			comments.forEach((c) => ids.add(c.comment_id));
+			const updates = [...ids].map((id) => ({ id, changes }));
+			dispatch(updateComments(updates));
+		}
+		setSaved(edited);
+	});
+
+	const updateComment = (changes: Partial<Comment>) => {
+		if (readOnly) {
+			console.warn("Attempt to update comment while read-only");
+			return;
+		}
+		// merge in the edits and trigger save
+		setEdited((edited) => ({ ...edited, ...changes }));
+		triggerSave();
+	};
+
+	if (!edited) return null;
 
 	return (
 		<>
 			<CommentBasics
-				cids={cids}
-				comment={comment}
+				comment={edited}
 				updateComment={updateComment}
 				readOnly={readOnly}
 			/>
 			<CommentCategorization
-				comment={comment}
+				comment={edited}
 				updateComment={updateComment}
 				readOnly={readOnly}
 			/>

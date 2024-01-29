@@ -1,5 +1,4 @@
-import React from 'react';
-import styled from '@emotion/styled';
+import * as React from 'react';
 
 import {
 	AppTable, SplitPanel, Panel, SelectExpandHeaderCell, SelectExpandCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, GlobalFilter, IdSelector, IdFilter,
@@ -12,13 +11,13 @@ import {
 } from 'dot11-components';
 
 import ProjectBallotSelector from '../components/ProjectBallotSelector';
-import { editorCss } from './RichTextEditor';
 import CommentDetail from './CommentDetail';
 import { renderCommenter } from './CommentEdit';
 import { renderSubmission } from './SubmissionSelector';
 import CommentsImport from './CommentsImport';
 import CommentsExport from './CommentsExport';
 import CommentsCopy from './CommentsCopy';
+import { useEditorStylesheet } from '../editor';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { AccessLevel } from '../store/user';
@@ -73,15 +72,11 @@ const renderDataCellEditing = ({rowData}: {rowData: CommentResolution}) =>
 	<>
 		{rowData.EditStatus === 'I' && <span>In D{rowData['EditInDraft']}</span>}
 		{rowData.EditStatus === 'N' && <span>No change</span>}
-		<ResolutionContainter
+		<div
+			className={styles.editor}
 			dangerouslySetInnerHTML={{__html: rowData['EditNotes']}}
 		/>
 	</>
-
-const ResolutionContainter = styled.div`
-	${editorCss}
-	background-color: ${({color}) => color};
-`;
 
 const resnStatusMap = {
 	'A': 'ACCEPTED',
@@ -98,12 +93,13 @@ function renderDataCellResolution({rowData}: {rowData: CommentResolution}) {
 	const resnStatus = rowData['ResnStatus'];
 	const status: string = resnStatus? resnStatusMap[resnStatus]: '';
 	return (
-		<ResolutionContainter
-			color={resnStatus? resnColor[resnStatus]: ''}
+		<div
+			className={styles.editor}
+			style={{color: resnStatus? resnColor[resnStatus]: ''}}
 		>
 			<div>{status}</div>
 			<div dangerouslySetInnerHTML={{__html: rowData['Resolution'] || ''}}/>
-		</ResolutionContainter>
+		</div>
 	)
 }
 
@@ -269,7 +265,7 @@ const tableColumns: (ColumnProperties & {width: number})[] = [
 		...fields.Notes,
 		width: 150, flexGrow: 1, flexShrink: 1,
 		dropdownWidth: 300,
-		cellRenderer: ({rowData}: {rowData: CommentResolution}) => <ResolutionContainter dangerouslySetInnerHTML={{__html: rowData['Notes']}}/>},
+		cellRenderer: ({rowData}: {rowData: CommentResolution}) => <div className={styles.editor} dangerouslySetInnerHTML={{__html: rowData['Notes']}}/>},
 	{key: 'Stack3',
 		label: 'Assignee/Submission',
 		width: 250, flexGrow: 1, flexShrink: 1,
@@ -371,6 +367,8 @@ function Comments() {
 	const setIsSplit = (isSplit: boolean) => dispatch(commentsActions.setPanelIsSplit({isSplit}));
 
 	const refresh = () => dispatch(commentsBallot_id? loadComments(commentsBallot_id): clearComments());
+
+	useEditorStylesheet(styles.editor);
 
 	return (
 		<>

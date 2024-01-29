@@ -20,10 +20,12 @@ const Placeholder = (props: React.ComponentProps<"i">) => (
 function RichTextPlugin({
 	placeholder,
 	readOnly,
+	className,
+	...props
 }: {
 	placeholder?: string;
 	readOnly?: boolean;
-}) {
+} & React.ComponentProps<"div">) {
 	const [editor] = useLexicalComposerContext();
 	const [showToolbar, setShowToolbar] = React.useState(false);
 
@@ -39,26 +41,31 @@ function RichTextPlugin({
 	);
 
 	return (
-		<div className={styles.container}>
+		<>
 			<ToolbarPlugin
 				style={{ visibility: showToolbar ? "visible" : "hidden" }}
 			/>
-			<LexicalRichTextPlugin
-				contentEditable={
-					<ContentEditable
-						className={styles.innerContainer}
-						onFocus={() => setShowToolbar(true)}
-						onBlur={() => setShowToolbar(false)}
-					/>
-				}
-				placeholder={<Placeholder>{placeholder}</Placeholder>}
-				ErrorBoundary={LexicalErrorBoundary}
-			/>
+			<div
+				className={styles.container + (readOnly? ` readonly`: "") + (className? ` ${className}`: "")}
+				{...props}
+			>
+				<LexicalRichTextPlugin
+					contentEditable={
+						<ContentEditable
+							className={styles.innerContainer}
+							onFocus={() => setShowToolbar(true)}
+							onBlur={() => setShowToolbar(false)}
+						/>
+					}
+					placeholder={<Placeholder>{placeholder}</Placeholder>}
+					ErrorBoundary={LexicalErrorBoundary}
+				/>
 
-			{!readOnly && (
-				<i className={styles.clear} onMouseDown={handleClear} />
-			)}
-		</div>
+				{!readOnly && (
+					<i className={styles.clear} onMouseDown={handleClear} />
+				)}
+			</div>
+		</>
 	);
 }
 

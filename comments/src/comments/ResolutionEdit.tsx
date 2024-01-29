@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {
 	Row, Col, List, ListItem, Field, Checkbox, Input,
@@ -8,11 +7,13 @@ import {
 
 import AssigneeSelector from './AssigneeSelector';
 import SubmissionSelector from './SubmissionSelector';
-import RichTextEditor from './RichTextEditor';
+import Editor from "../editor";
 
 import type { MultipleCommentResolution, MultipleResolution } from './CommentDetail';
 import type { Resolution, ResnStatusType } from '../store/comments';
 import { AccessLevel } from '../store/user';
+
+import styles from "./comments.module.css";
 
 const BLANK_STR = '(Blank)';
 const MULTIPLE_STR = '(Multiple)';
@@ -129,34 +130,23 @@ export function ResolutionApproval({
 	)
 }
 
-const ResnStatusContainer = styled.div`
-	display: flex;
-	& div {
-		display: flex;
-		align-items: center;
-		margin: 5px 10px;
-	}
-`;
-
 function ResnStatus({
-	style,
 	className,
 	value,
 	onChange,
 	readOnly
 }: {
 	className?: string;
-	style?: React.CSSProperties;
 	value: ResnStatusType | null | typeof MULTIPLE;
 	onChange: (value: ResnStatusType | null) => void;
 	readOnly?: boolean;
 }) {
 	const handleChange: React.ChangeEventHandler<HTMLInputElement> = e => onChange(e.target.checked? (e.target.value as ResnStatusType): null);
-
+	const backgroundColor = (!isMultiple(value) && resnColor[value]) || "#fafafa";
 	return (
-		<ResnStatusContainer
-			style={style}
-			className={className}
+		<div
+			style={{backgroundColor}}
+			className={styles.resolutionStatus + (className? ` ${className}`: "")}
 		>
 			<div>
 				<Checkbox
@@ -191,7 +181,7 @@ function ResnStatus({
 				/>
 				<label>REJECTED</label>
 			</div>
-		</ResnStatusContainer>
+		</div>
 	)
 }
 
@@ -200,29 +190,6 @@ const resnColor: Record<string, string> = {
 	'V': '#f9ecb9',
 	'J': '#f3c0c0'
 };
-
-const StyledResnStatus = styled(ResnStatus)`
-	width: fit-content;
-	background-color: ${({value}) => (value && resnColor[value]) || '#fafafa'};
-	border: 1px solid #ddd;
-	border-bottom: none;
-	border-radius: 5px 5px 0 0;
-	position: relative;
-	bottom: -1px;
-	z-index: 1;
-`;
-
-const StyledResolutionContainer = styled(Col)<{readOnly?: boolean}>`
-	:hover > div {
-		${({readOnly}) => readOnly? '': 'border-color: #0074D9;'}
-	}
-`;
-
-const StyledResolutionEditor = styled(RichTextEditor)<{resnStatus?: ResnStatusType | null}>`
-	background-color: ${({resnStatus}) => (resnStatus && resnColor[resnStatus]) || '#fafafa'};
-	border: 1px solid #ddd;
-	border-radius: 0 5px 5px 5px;
-`;
 
 export function ResolutionAndStatus({
 	resolution,
@@ -233,29 +200,29 @@ export function ResolutionAndStatus({
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
+	const backgroundColor = (!isMultiple(resolution.ResnStatus) && resnColor[resolution.ResnStatus]) || "#fafafa";
 	return (
 		<Col
-			style={{
-				width: '100%',
-				position: 'relative',	// position toolbar
-				paddingTop: 15			// make room for toolbar
-			}}
+			className={styles.resolutionField}
 		>
 			<label>Resolution:</label>
-			<StyledResolutionContainer readOnly={readOnly} >
-				<StyledResnStatus
+			<div 
+				className={styles.resolutionContainer + (readOnly? " readonly": "")}
+			>
+				<ResnStatus
 					value={resolution.ResnStatus}
 					onChange={value => updateResolution({ResnStatus: value})}
 					readOnly={readOnly}
 				/>
-				<StyledResolutionEditor
+				<Editor
+					className={styles.resolutionEditor}
+					style={{backgroundColor, borderRadius: '0 5px 5px 5px'}}
 					value={isMultiple(resolution.Resolution)? '': resolution.Resolution}
 					onChange={value => updateResolution({Resolution: value})}
 					placeholder={isMultiple(resolution.Resolution)? MULTIPLE_STR: BLANK_STR}
-					resnStatus={isMultiple(resolution.ResnStatus)? null: resolution.ResnStatus}
 					readOnly={readOnly}
 				/>
-			</StyledResolutionContainer>
+			</div>
 		</Col>
 	)
 }

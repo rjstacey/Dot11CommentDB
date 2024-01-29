@@ -29,8 +29,39 @@
 	font-style: italic;
 }
 
-.editingContainer {
-    background-color: #fafafa;
+.notesField,
+.resolutionField,
+.editingField {
+	width: 100%;
+	position: relative;		/* position toolbar */
+	padding-top: 15px;		/* make room for toolbar */
+}
+
+.resolutionContainer:hover:not(:global(.readonly)) > div {
+	border-color: #0074d9;
+}
+
+.resolutionStatus {
+	width: fit-content;
 	border: 1px solid #ddd;
+	border-bottom: none;
+	border-radius: 5px 5px 0 0;
+	position: relative;
+	bottom: -1px;
+	z-index: 1;
+	display: flex;
+}
+
+.resolutionStatus div {
+	display: flex;
+	align-items: center;
+	margin: 5px 10px;
+}
+
+.resolutionEditor {
 	border-radius: 0 5px 5px 5px;
+}
+
+.editor {
+	color: unset;
 }

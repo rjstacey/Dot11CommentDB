@@ -9,7 +9,7 @@
     border-radius: 5px;
 }
 
-.container:hover {
+.container:hover:not(:global(.readonly)) {
 	border-color: #0074d9;
 }
 
@@ -26,15 +26,15 @@
 }
 
 .placeholder {
-	color: #999;
-	overflow: hidden;
 	position: absolute;
-	text-overflow: ellipsis;
 	top: 0;
 	left: 0;
+	display: inline-block;
+	color: #999;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	font-size: 15px;
 	user-select: none;
-	display: inline-block;
 	pointer-events: none;
 }
 
@@ -54,13 +54,13 @@
 
 .toolbar {
 	position: absolute;
-	top: -32px;
+	top: 0;
 	right: 16px;
 	width: calc(100% - 100px);
 	display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
-	align-content: bottom;
+	justify-content: flex-end;
 	z-index: 2;
 }
 

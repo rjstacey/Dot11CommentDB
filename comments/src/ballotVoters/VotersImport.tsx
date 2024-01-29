@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 
 import {
 	Form,
@@ -17,7 +17,7 @@ import {
 	votersFromSpreadsheet,
 	votersFromMembersSnapshot,
 } from "../store/voters";
-import { Ballot, selectBallot } from "../store/ballots";
+import { selectBallot, Ballot } from "../store/ballots";
 
 type Source = "members" | "upload";
 

@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 
 import {
 	Row,
@@ -11,7 +11,7 @@ import {
 	isMultiple,
 } from "dot11-components";
 
-import RichTextEditor from "./RichTextEditor";
+import Editor from "../editor";
 
 import type { MultipleResolution } from "./CommentDetail";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -122,11 +122,7 @@ export function EditingEdit({
 	return (
 	<Row>
 		<Col
-			style={{
-				width: "100%",
-				position: "relative", // position toolbar
-				paddingTop: 15, // make room for toolbar
-			}}
+			className={styles.editingField}
 		>
 			<div
 				style={{
@@ -150,7 +146,7 @@ export function EditingEdit({
 						updateResolution={updateResolution}
 						readOnly={readOnly}
 					/>
-					<RichTextEditor
+					<Editor
 						value={
 							isMultiple(resolution.EditNotes)
 								? ""
