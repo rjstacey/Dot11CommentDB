@@ -34,6 +34,7 @@ import {
 	commentsActions,
 	getCommentStatus,
 	CommentResolution,
+	resnStatusOptions
 } from '../store/comments';
 import { selectIsOnline } from '../store/offline';
 
@@ -92,10 +93,11 @@ function renderDataCellResolution({rowData}: {rowData: CommentResolution}) {
 	}
 	const resnStatus = rowData['ResnStatus'];
 	const status: string = resnStatus? resnStatusMap[resnStatus]: '';
+	const backgroundColor = resnStatus? resnColor[resnStatus]: '';
 	return (
 		<div
 			className={styles.editor}
-			style={{color: resnStatus? resnColor[resnStatus]: ''}}
+			style={{backgroundColor}}
 		>
 			<div>{status}</div>
 			<div dangerouslySetInnerHTML={{__html: rowData['Resolution'] || ''}}/>
@@ -191,7 +193,7 @@ const renderDataCellStacked3 = ({rowData}: {rowData: CommentResolution}) =>
 
 const renderHeaderCellResolution = (props: HeaderCellRendererProps) => 
 	<>
-		<HeaderSubcomponent {...props} dataKey='ResnStatus' label='Resolution Status' /*dropdownWidth={150}*/ />
+		<HeaderSubcomponent {...props} dataKey='ResnStatus' label='Resolution Status' /*dropdownWidth={150}*/ column={{...props.column, dataRenderer: (v: keyof typeof resnStatusMap) => resnStatusMap[v] || ""}} />
 		<HeaderSubcomponent {...props} dataKey='Resolution' label='Resolution' />
 	</>
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { createSelector } from '@reduxjs/toolkit';
 
-import { Select } from 'dot11-components';
+import { Select, SelectRendererProps } from 'dot11-components';
 
 import { useAppSelector } from '../store/hooks';
 import { selectCommentIds, selectCommentEntities, getField } from '../store/comments';
@@ -26,13 +26,17 @@ function CommentGroupSelector({
 	onChange: (value: string) => void;
 } & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">
 ) {
-	const options = useAppSelector(selectFieldValues);
-	const values = options.filter(o => o.value === value);
-	// Make sure the current value is in the options
-	if (value && values.length === 0) {
-		values.push({label: value, value});
-		options.push(values[0]);
+	const existingOptions = useAppSelector(selectFieldValues);
+	const [options, setOptions] = React.useState(existingOptions);
+
+	function createOption({state}: SelectRendererProps) {
+		const option = {label: state.search, value: state.search};
+		setOptions(existingOptions.concat(option));
+		return option;
 	}
+
+	const values = options.filter(o => o.value === value);
+
 	const handleChange = (values: typeof options) => onChange(values.length? values[0].value: '');
 
 	return (
@@ -40,8 +44,9 @@ function CommentGroupSelector({
 			values={values}
 			onChange={handleChange}
 			options={options}
-			create
 			clearable
+			create
+			createOption={createOption}
 			{...otherProps}
 		/>
 	)

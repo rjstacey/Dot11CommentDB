@@ -85,6 +85,17 @@ const mustSatisfyOptions = [
 	{value: 1, label: 'Yes'}
 ];
 
+const resnStatus: Record<ResnStatusType, string> = {
+	A: "ACCEPTED",
+	V: "REVISED",
+	J: "REJECTED"
+} as const;
+
+export const resnStatusOptions: {value: ResnStatusType | null, label: string}[] =
+	(Object.keys(resnStatus) as ResnStatusType[])
+		.map((value: ResnStatusType | null) => ({value, label: resnStatus[value!]}))
+		.concat({value: null, label: "(Blank)"});
+
 const mustSatisfyLabels = mustSatisfyOptions.reduce((obj, o) => {
 	obj[o.value] = o.label;
 	return obj;
@@ -112,7 +123,7 @@ export const fields: Record<string, FieldProperties> = {
 	Submission: {label: 'Submission'},
 	Status: {label: 'Status'},
 	ApprovedByMotion: {label: 'Approval motion'},
-	ResnStatus: {label: 'Resn Status'},
+	ResnStatus: {label: 'Resn Status', options: resnStatusOptions},
 	Resolution: {label: 'Resolution'},
 	EditStatus: {label: 'Editing Status'},
 	EditInDraft: {label: 'In Draft'},

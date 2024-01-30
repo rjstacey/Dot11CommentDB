@@ -159,9 +159,9 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 
 	const user = useAppSelector(selectUser);
 	const { entities, loading, selected } = useAppSelector(selectCommentsState);
+	const comments = React.useMemo(() => selected.map(id => entities[id]!), [selected, entities]);
 	const groupEntities = useAppSelector(selectGroupEntities);
 	const access = useAppSelector(selectCommentsAccess);
-	const comments = React.useMemo(() => selected.map(id => entities[id]!), [selected, entities]);
 
 	const cids = comments.map((c) => getCID(c));
 	const cidsStr = cids.join(", ");
@@ -251,7 +251,7 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 
 	let placeholder: string | undefined;
 	if (loading) placeholder = "Loading...";
-	else if (selected.length === 0) placeholder = "Nothing selected";
+	else if (comments.length === 0) placeholder = "Nothing selected";
 
 	const disableButtons = !!placeholder; // disable buttons if displaying string
 	const disableEditButtons = disableButtons || readOnly || !editComment;

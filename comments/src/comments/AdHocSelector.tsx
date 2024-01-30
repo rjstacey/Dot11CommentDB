@@ -51,7 +51,6 @@ const selectAdHocOptions = createSelector(
 				});
 			}
 		}
-		
 		return adhocs;
 	}
 );
@@ -67,11 +66,6 @@ const itemRenderer = ({ item }: { item: AdHoc }) => {
 
 const nullAdHoc: AdHoc = { GroupId: null, Name: "" };
 
-const createOption = ({ state }: SelectRendererProps) => ({
-	GroupId: null,
-	Name: state.search,
-});
-
 function AdHocSelector({
 	value,
 	onChange,
@@ -83,7 +77,17 @@ function AdHocSelector({
 	React.ComponentProps<typeof Select>,
 	"values" | "onChange" | "options"
 >) {
-	const options = useAppSelector(selectAdHocOptions);
+	const existingOptions = useAppSelector(selectAdHocOptions);
+	const [options, setOptions] = React.useState(existingOptions);
+
+	function createOption({state}: SelectRendererProps) {
+		const option = {
+			GroupId: null,
+			Name: state.search,
+		};
+		setOptions(existingOptions.concat(option));
+		return option;
+	}
 
 	let values: AdHoc[];
 	if (value.GroupId) {
@@ -92,10 +96,6 @@ function AdHocSelector({
 		values = options.filter(
 			(o) => o.GroupId === null && o.Name === value.Name
 		);
-		if (values.length === 0) {
-			values.push(value);
-			options.push(value);
-		}
 	} else {
 		values = [];
 	}
@@ -108,13 +108,13 @@ function AdHocSelector({
 			values={values}
 			onChange={handleChange}
 			options={options}
-			create
 			clearable
+			create
+			createOption={createOption}
 			selectItemRenderer={itemRenderer}
 			itemRenderer={itemRenderer}
 			labelField="Name"
 			valueField="GroupId"
-			createOption={createOption}
 			{...otherProps}
 		/>
 	);
