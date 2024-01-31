@@ -444,7 +444,7 @@ export function CommentEdit({
 
 	const updateComment = (changes: Partial<Comment>) => {
 		if (readOnly) {
-			console.warn("Attempt to update comment while read-only");
+			console.warn("Comment update while read-only");
 			return;
 		}
 		// merge in the edits and trigger save

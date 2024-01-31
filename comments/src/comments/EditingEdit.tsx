@@ -15,7 +15,7 @@ import Editor from "../editor";
 
 import type { MultipleResolution } from "./CommentDetail";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { selectCommentsState, setUiProperties, type Resolution } from "../store/comments";
+import { EditStatusType, selectCommentsState, setUiProperties, type Resolution } from "../store/comments";
 
 import styles from "./comments.module.css";
 
@@ -37,14 +37,14 @@ function EditStatus({
 		let fields: Partial<Resolution> = {};
 		if (e.target.name === "EditStatus") {
 			if (e.target.checked) {
-				fields.EditStatus = e.target.value;
+				fields.EditStatus = e.target.value as EditStatusType;
 				if (e.target.value === "I") {
 					fields.EditInDraft = "1.0";
 				} else {
 					fields.EditInDraft = "";
 				}
 			} else {
-				fields.EditStatus = "";
+				fields.EditStatus = null;
 				if (e.target.value === "I") {
 					fields.EditInDraft = "";
 				}

@@ -1,27 +1,39 @@
-import * as React from 'react';
+import * as React from "react";
 
 import {
-	AppTable, SplitPanel, Panel, SelectExpandHeaderCell, SelectExpandCell, TableColumnHeader, TableColumnSelector, TableViewSelector, ShowFilters, GlobalFilter, IdSelector, IdFilter,
-	ActionButton, ButtonGroup,
+	AppTable,
+	SplitPanel,
+	Panel,
+	SelectExpandHeaderCell,
+	SelectExpandCell,
+	TableColumnHeader,
+	TableColumnSelector,
+	TableViewSelector,
+	ShowFilters,
+	GlobalFilter,
+	IdSelector,
+	IdFilter,
+	ActionButton,
+	ButtonGroup,
 	ColumnProperties,
 	HeaderCellRendererProps,
 	CellRendererProps,
 	RowGetterProps,
 	ChangeableColumnProperties,
-} from 'dot11-components';
+} from "dot11-components";
 
-import ProjectBallotSelector from '../components/ProjectBallotSelector';
-import CommentDetail from './CommentDetail';
-import { renderCommenter } from './CommentEdit';
-import { renderSubmission } from './SubmissionSelector';
-import CommentsImport from './CommentsImport';
-import CommentsExport from './CommentsExport';
-import CommentsCopy from './CommentsCopy';
-import { useEditorStylesheet } from '../editor';
+import ProjectBallotSelector from "../components/ProjectBallotSelector";
+import CommentDetail from "./CommentDetail";
+import { renderCommenter } from "./CommentEdit";
+import { renderSubmission } from "./SubmissionSelector";
+import CommentsImport from "./CommentsImport";
+import CommentsExport from "./CommentsExport";
+import CommentsCopy from "./CommentsCopy";
+import { useEditorStylesheet } from "../editor";
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { AccessLevel } from '../store/user';
-import { selectBallot } from '../store/ballots';
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { AccessLevel } from "../store/user";
+import { selectBallot } from "../store/ballots";
 import {
 	fields,
 	loadComments,
@@ -33,10 +45,11 @@ import {
 	commentsSelectors,
 	commentsActions,
 	getCommentStatus,
-	CommentResolution,
-	resnStatusOptions
-} from '../store/comments';
-import { selectIsOnline } from '../store/offline';
+	resnStatusMap,
+	type CommentResolution,
+	type ResnStatusType,
+} from "../store/comments";
+import { selectIsOnline } from "../store/offline";
 
 import styles from "./comments.module.css";
 
@@ -44,315 +57,532 @@ const FlexRow = (props: React.ComponentProps<"div">) => (
 	<div className={styles.row} {...props} />
 );
 
-const renderPage = (page: string | number | null) => typeof page === 'number'? page.toFixed(2): page;
+const renderPage = (page: string | number | null) =>
+	typeof page === "number" ? page.toFixed(2) : page;
 
 const renderTextBlock = (value: string) => {
-	if (!value)
-		return ''
+	if (!value) return "";
 	return (
 		<div className={styles.textBlockContainer}>
-			{value.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+			{value.split("\n").map((line, i) => (
+				<p key={i}>{line}</p>
+			))}
 		</div>
-	)
-}
+	);
+};
 
+const renderHtmlAsText = (value: string | null) => {
+	const parser = new DOMParser();
+	const dom = parser.parseFromString(value || "", "text/html");
+	return dom.firstChild?.textContent || "";
+};
 
 /*
  * The data cell rendering functions are pure functions (dependent only on input parameters)
  */
-const renderDataCellCheck = ({rowData, dataKey}: CellRendererProps) => rowData[dataKey]? '\u2714': '';
+const renderDataCellCheck = ({ rowData, dataKey }: CellRendererProps) =>
+	rowData[dataKey] ? "\u2714" : "";
 
-const renderHeaderCellEditing = (props: HeaderCellRendererProps) =>
+const renderHeaderCellEditing = (props: HeaderCellRendererProps) => (
 	<>
-		<HeaderSubcomponent {...props} dataKey='EditStatus' label='Editing Status' /*dropdownWidth={150}*/ />
-		<HeaderSubcomponent {...props} dataKey='EditInDraft' label='In Draft' /*dropdownWidth={200}*/ />
-		<HeaderSubcomponent {...props} dataKey='EditNotes' label='Notes' />
-	</>
-
-const renderDataCellEditing = ({rowData}: {rowData: CommentResolution}) => 
-	<>
-		{rowData.EditStatus === 'I' && <span>In D{rowData['EditInDraft']}</span>}
-		{rowData.EditStatus === 'N' && <span>No change</span>}
-		<div
-			className={styles.editor}
-			dangerouslySetInnerHTML={{__html: rowData['EditNotes']}}
+		<HeaderSubcomponent
+			{...props}
+			dataKey="EditStatus"
+			label="Editing Status" /*dropdownWidth={150}*/
+		/>
+		<HeaderSubcomponent
+			{...props}
+			dataKey="EditInDraft"
+			label="In Draft" /*dropdownWidth={200}*/
+		/>
+		<HeaderSubcomponent
+			{...props}
+			dataKey="EditNotes"
+			label="Notes"
+			column={{ ...props.column, dataRenderer: renderHtmlAsText }}
 		/>
 	</>
+);
 
-const resnStatusMap = {
-	'A': 'ACCEPTED',
-	'V': 'REVISED',
-	'J': 'REJECTED'
-};
+const renderDataCellEditing = ({ rowData }: { rowData: CommentResolution }) => (
+	<>
+		{rowData.EditStatus === "I" && <span>In D{rowData.EditInDraft}</span>}
+		{rowData.EditStatus === "N" && <span>No change</span>}
+		{rowData.EditNotes && (
+			<div
+				className={styles.editor}
+				dangerouslySetInnerHTML={{ __html: rowData.EditNotes }}
+			/>
+		)}
+	</>
+);
 
-function renderDataCellResolution({rowData}: {rowData: CommentResolution}) {
-	const resnColor = {
-		'A': '#d3ecd3',
-		'V': '#f9ecb9',
-		'J': '#f3c0c0'
-	}
-	const resnStatus = rowData['ResnStatus'];
-	const status: string = resnStatus? resnStatusMap[resnStatus]: '';
-	const backgroundColor = resnStatus? resnColor[resnStatus]: '';
+const resnStatusRenderer = (resnStatus: ResnStatusType | null) =>
+	resnStatus ? resnStatusMap[resnStatus] : "";
+
+const resnColor: Record<ResnStatusType, string> = {
+	A: "#d3ecd3",
+	V: "#f9ecb9",
+	J: "#f3c0c0",
+} as const;
+
+function renderDataCellResolution({ rowData }: { rowData: CommentResolution }) {
+	const resnStatus = rowData["ResnStatus"];
+	const backgroundColor = resnStatus ? resnColor[resnStatus] : "";
 	return (
-		<div
-			className={styles.editor}
-			style={{backgroundColor}}
-		>
-			<div>{status}</div>
-			<div dangerouslySetInnerHTML={{__html: rowData['Resolution'] || ''}}/>
+		<div className={styles.editor} style={{ backgroundColor }}>
+			<div>{resnStatusRenderer(resnStatus)}</div>
+			<div
+				dangerouslySetInnerHTML={{
+					__html: rowData["Resolution"] || "",
+				}}
+			/>
 		</div>
-	)
+	);
 }
 
-
-const DataSubcomponent = ({width, ...props}: {width: number | string} & React.ComponentProps<"div">) => (
+const DataSubcomponent = ({
+	width,
+	...props
+}: { width: number | string } & React.ComponentProps<"div">) => (
 	<div
 		className={styles.subcomponent}
-		style={{flex: `1 1 ${width && typeof width === 'string'? width: width + 'px'}`}}
+		style={{
+			flex: `1 1 ${
+				width && typeof width === "string" ? width : width + "px"
+			}`,
+		}}
 		{...props}
 	/>
 );
 
-const HeaderSubcomponent = ({width, ...props}: {width?: number | string} & React.ComponentProps<typeof TableColumnHeader>) => (
+const HeaderSubcomponent = ({
+	width,
+	...props
+}: { width?: number | string } & React.ComponentProps<
+	typeof TableColumnHeader
+>) => (
 	<TableColumnHeader
 		className={styles.subcomponent}
-		style={{flex: `1 1 ${width && typeof width === 'string'? width: width + 'px'}`}}
+		style={{
+			flex: `1 1 ${
+				width && typeof width === "string" ? width : width + "px"
+			}`,
+		}}
 		{...props}
 	/>
 );
 
-const renderHeaderCellStacked1 = (props: HeaderCellRendererProps) => 
+const renderHeaderCellStacked1 = (props: HeaderCellRendererProps) => (
 	<>
 		<FlexRow>
 			<HeaderSubcomponent
 				{...props}
 				width={70}
-				dataKey='CID'
-				label='CID'
+				dataKey="CID"
+				label="CID"
 				//dropdownWidth={400}
-				customFilterElement=
-					<IdFilter
-						selectors={commentsSelectors}
-						actions={commentsActions}
-						dataKey='CID'
-					/>
+				customFilterElement=<IdFilter
+					selectors={commentsSelectors}
+					actions={commentsActions}
+					dataKey="CID"
+				/>
 			/>
-			<HeaderSubcomponent {...props} width={40} dataKey='Category' label='Cat' /*dropdownWidth={140}*/ />
+			<HeaderSubcomponent
+				{...props}
+				width={40}
+				dataKey="Category"
+				label="Cat" /*dropdownWidth={140}*/
+			/>
 		</FlexRow>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={70} dataKey='Clause' label='Clause' /*dropdownWidth={200}*/ />
-			<HeaderSubcomponent {...props} width={40} dataKey='Page' label='Page' /*dataRenderer={renderPage} dropdownWidth={150}*/ />
+			<HeaderSubcomponent
+				{...props}
+				width={70}
+				dataKey="Clause"
+				label="Clause" /*dropdownWidth={200}*/
+			/>
+			<HeaderSubcomponent
+				{...props}
+				width={40}
+				dataKey="Page"
+				label="Page" /*dataRenderer={renderPage} dropdownWidth={150}*/
+			/>
 		</FlexRow>
 		<FlexRow>
-			<HeaderSubcomponent {...props} width={90} dataKey='CommenterName' label='Commenter' /*dropdownWidth={300}*/ />
-			<HeaderSubcomponent {...props} width={30} dataKey='Vote' label='Vote' />
-			<HeaderSubcomponent {...props} width={30} dataKey='MustSatisfy' label='MS' />
+			<HeaderSubcomponent
+				{...props}
+				width={90}
+				dataKey="CommenterName"
+				label="Commenter" /*dropdownWidth={300}*/
+			/>
+			<HeaderSubcomponent
+				{...props}
+				width={30}
+				dataKey="Vote"
+				label="Vote"
+			/>
+			<HeaderSubcomponent
+				{...props}
+				width={30}
+				dataKey="MustSatisfy"
+				label="MS"
+			/>
 		</FlexRow>
 	</>
+);
 
-const renderDataCellStacked1 = ({rowData}: {rowData: CommentResolution}) => {
+const renderDataCellStacked1 = ({
+	rowData,
+}: {
+	rowData: CommentResolution;
+}) => {
 	return (
 		<>
 			<FlexRow>
-				<DataSubcomponent width={70} style={{fontWeight: 'bold'}}>{getCID(rowData)}</DataSubcomponent>
-				<DataSubcomponent width={40}>{rowData.Category}</DataSubcomponent>
+				<DataSubcomponent width={70} style={{ fontWeight: "bold" }}>
+					{getCID(rowData)}
+				</DataSubcomponent>
+				<DataSubcomponent width={40}>
+					{rowData.Category}
+				</DataSubcomponent>
 			</FlexRow>
 			<FlexRow>
-				<DataSubcomponent width={70} style={{fontStyle: 'italic'}}>{rowData.Clause}</DataSubcomponent>
-				<DataSubcomponent width={40}>{renderPage(rowData.Page)}</DataSubcomponent>
+				<DataSubcomponent width={70} style={{ fontStyle: "italic" }}>
+					{rowData.Clause}
+				</DataSubcomponent>
+				<DataSubcomponent width={40}>
+					{renderPage(rowData.Page)}
+				</DataSubcomponent>
 			</FlexRow>
 			<FlexRow>{renderCommenter(rowData)}</FlexRow>
 		</>
-	)
-}
+	);
+};
 
-const renderHeaderCellStacked2 = (props: HeaderCellRendererProps) =>
+const renderHeaderCellStacked2 = (props: HeaderCellRendererProps) => (
 	<>
-		<HeaderSubcomponent {...props} dataKey='AssigneeName' label='Assignee' />
-		<HeaderSubcomponent {...props} dataKey='Submission' label='Submission' />
+		<HeaderSubcomponent
+			{...props}
+			dataKey="AssigneeName"
+			label="Assignee"
+		/>
+		<HeaderSubcomponent
+			{...props}
+			dataKey="Submission"
+			label="Submission"
+		/>
 	</>
+);
 
-const renderDataCellStacked2 = ({rowData}: {rowData: CommentResolution}) => 
+const renderDataCellStacked2 = ({
+	rowData,
+}: {
+	rowData: CommentResolution;
+}) => (
 	<>
-		<div>{rowData['AssigneeName'] || 'Not Assigned'}</div>
-		<div>{renderSubmission(rowData['Submission'])}</div>
+		<div>{rowData.AssigneeName}</div>
+		<div>{renderSubmission(rowData["Submission"])}</div>
 	</>
+);
 
-const renderHeaderCellStacked3 = (props: HeaderCellRendererProps) => 
+const renderHeaderCellStacked3 = (props: HeaderCellRendererProps) => (
 	<>
-		<HeaderSubcomponent {...props} dataKey='AdHoc' label='Ad-hoc' />
-		<HeaderSubcomponent {...props} dataKey='CommentGroup' label='Comment Group' /*dropdownWidth={300}*/ />
+		<HeaderSubcomponent {...props} dataKey="AdHoc" label="Ad-hoc" />
+		<HeaderSubcomponent
+			{...props}
+			dataKey="CommentGroup"
+			label="Comment Group" /*dropdownWidth={300}*/
+		/>
 	</>
+);
 
-const renderDataCellStacked3 = ({rowData}: {rowData: CommentResolution}) =>
+const renderDataCellStacked3 = ({
+	rowData,
+}: {
+	rowData: CommentResolution;
+}) => (
 	<>
-		<div>{rowData['AdHoc'] || ''}</div>
-		<div>{rowData['CommentGroup'] || ''}</div>
+		<div>{rowData["AdHoc"] || ""}</div>
+		<div>{rowData["CommentGroup"] || ""}</div>
 	</>
+);
 
-const renderHeaderCellResolution = (props: HeaderCellRendererProps) => 
+const renderHeaderCellResolution = ({
+	column,
+	...props
+}: HeaderCellRendererProps) => (
 	<>
-		<HeaderSubcomponent {...props} dataKey='ResnStatus' label='Resolution Status' /*dropdownWidth={150}*/ column={{...props.column, dataRenderer: (v: keyof typeof resnStatusMap) => resnStatusMap[v] || ""}} />
-		<HeaderSubcomponent {...props} dataKey='Resolution' label='Resolution' />
+		<HeaderSubcomponent
+			{...props}
+			dataKey="ResnStatus"
+			label="Resolution Status"
+			/*dropdownWidth={150}*/ column={{
+				...column,
+				dataRenderer: resnStatusRenderer,
+			}}
+		/>
+		<HeaderSubcomponent
+			{...props}
+			dataKey="Resolution"
+			label="Resolution"
+			column={{ ...column, dataRenderer: renderHtmlAsText }}
+		/>
 	</>
+);
 
-const tableColumns: (ColumnProperties & {width: number})[] = [
-	{key: '__ctrl__',
-		width: 48, flexGrow: 0, flexShrink: 0,
-		headerRenderer: p =>
+const tableColumns: (ColumnProperties & { width: number })[] = [
+	{
+		key: "__ctrl__",
+		width: 48,
+		flexGrow: 0,
+		flexShrink: 0,
+		headerRenderer: (p) => (
 			<SelectExpandHeaderCell
-				customSelectorElement=
-					<IdSelector
-						style={{width: '200px'}}
-						selectors={commentsSelectors}
-						actions={commentsActions}
-						dataKey='CID'
-						focusOnMount
-					/>
+				customSelectorElement=<IdSelector
+					style={{ width: 200 }}
+					selectors={commentsSelectors}
+					actions={commentsActions}
+					dataKey="CID"
+					focusOnMount
+				/>
 				{...p}
-			/>,
-		cellRenderer: p => <SelectExpandCell selectors={commentsSelectors} actions={commentsActions} {...p} />},
-	{key: 'Stack1',
-		label: 'CID/Cat/MS/...',
-		width: 200, flexGrow: 1, flexShrink: 0,
+			/>
+		),
+		cellRenderer: (p) => (
+			<SelectExpandCell
+				selectors={commentsSelectors}
+				actions={commentsActions}
+				{...p}
+			/>
+		),
+	},
+	{
+		key: "Stack1",
+		label: "CID/Cat/MS/...",
+		width: 200,
+		flexGrow: 1,
+		flexShrink: 0,
 		headerRenderer: renderHeaderCellStacked1,
-		cellRenderer: renderDataCellStacked1},
-	{key: 'CID',
+		cellRenderer: renderDataCellStacked1,
+	},
+	{
+		key: "CID",
 		...fields.CID,
-		width: 60, flexGrow: 1, flexShrink: 0,
-		dropdownWidth: 400},
-	{key: 'CommenterName',
+		width: 60,
+		flexGrow: 1,
+		flexShrink: 0,
+		dropdownWidth: 400,
+	},
+	{
+		key: "CommenterName",
 		...fields.CommenterName,
-		width: 100, flexGrow: 1, flexShrink: 1},
-	{key: 'Vote',
-		...fields.Vote,
-		width: 50, flexGrow: 1, flexShrink: 1},
-	{key: 'MustSatisfy',
+		width: 100,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{ key: "Vote", ...fields.Vote, width: 50, flexGrow: 1, flexShrink: 1 },
+	{
+		key: "MustSatisfy",
 		...fields.MustSatisfy,
-		width: 36, flexGrow: 1, flexShrink: 0,
-		cellRenderer: renderDataCellCheck},
-	{key: 'Category',
+		width: 36,
+		flexGrow: 1,
+		flexShrink: 0,
+		cellRenderer: renderDataCellCheck,
+	},
+	{
+		key: "Category",
 		...fields.Category,
-		width: 36, flexGrow: 1, flexShrink: 0},
-	{key: 'Clause',
-		...fields.Clause,
-		width: 100, flexGrow: 1, flexShrink: 0},
-	{key: 'Page',
+		width: 36,
+		flexGrow: 1,
+		flexShrink: 0,
+	},
+	{ key: "Clause", ...fields.Clause, width: 100, flexGrow: 1, flexShrink: 0 },
+	{
+		key: "Page",
 		...fields.Page,
-		width: 80, flexGrow: 1, flexShrink: 0,
+		width: 80,
+		flexGrow: 1,
+		flexShrink: 0,
 		dataRenderer: renderPage,
-		cellRenderer: ({rowData, dataKey}) => renderPage(rowData[dataKey])},
-	{key: 'Comment',
+		cellRenderer: ({ rowData, dataKey }) => renderPage(rowData[dataKey]),
+	},
+	{
+		key: "Comment",
 		...fields.Comment,
-		width: 400, flexGrow: 1, flexShrink: 1,
-		cellRenderer: ({rowData, dataKey}) => renderTextBlock(rowData[dataKey])},
-	{key: 'ProposedChange',
+		width: 400,
+		flexGrow: 1,
+		flexShrink: 1,
+		cellRenderer: ({ rowData, dataKey }) =>
+			renderTextBlock(rowData[dataKey]),
+	},
+	{
+		key: "ProposedChange",
 		...fields.ProposedChange,
-		width: 400, flexGrow: 1, flexShrink: 1,
-		cellRenderer: ({rowData, dataKey}) => renderTextBlock(rowData[dataKey])},
-	{key: 'Stack2',
-		label: 'Ad Hoc/Group',
-		width: 150, flexGrow: 1, flexShrink: 1,
+		width: 400,
+		flexGrow: 1,
+		flexShrink: 1,
+		cellRenderer: ({ rowData, dataKey }) =>
+			renderTextBlock(rowData[dataKey]),
+	},
+	{
+		key: "Stack2",
+		label: "Ad Hoc/Group",
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
 		headerRenderer: renderHeaderCellStacked3,
-		cellRenderer: renderDataCellStacked3},
-	{key: 'AdHoc',
-		...fields.AdHoc,
-		width: 100, flexGrow: 1, flexShrink: 1},
-	{key: 'CommentGroup',
+		cellRenderer: renderDataCellStacked3,
+	},
+	{ key: "AdHoc", ...fields.AdHoc, width: 100, flexGrow: 1, flexShrink: 1 },
+	{
+		key: "CommentGroup",
 		...fields.CommentGroup,
-		width: 150, flexGrow: 1, flexShrink: 1,
-		dropdownWidth: 300},
-	{key: 'Notes',
-		...fields.Notes,
-		width: 150, flexGrow: 1, flexShrink: 1,
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
 		dropdownWidth: 300,
-		cellRenderer: ({rowData}: {rowData: CommentResolution}) => <div className={styles.editor} dangerouslySetInnerHTML={{__html: rowData['Notes']}}/>},
-	{key: 'Stack3',
-		label: 'Assignee/Submission',
-		width: 250, flexGrow: 1, flexShrink: 1,
+	},
+	{
+		key: "Notes",
+		...fields.Notes,
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
+		dropdownWidth: 300,
+		dataRenderer: renderHtmlAsText,
+		cellRenderer: ({ rowData }: { rowData: CommentResolution }) =>
+			rowData.Notes && (
+				<div
+					className={styles.editor}
+					dangerouslySetInnerHTML={{ __html: rowData.Notes }}
+				/>
+			),
+	},
+	{
+		key: "Stack3",
+		label: "Assignee/Submission",
+		width: 250,
+		flexGrow: 1,
+		flexShrink: 1,
 		headerRenderer: renderHeaderCellStacked2,
-		cellRenderer: renderDataCellStacked2},
-	{key: 'AssigneeName',
+		cellRenderer: renderDataCellStacked2,
+	},
+	{
+		key: "AssigneeName",
 		...fields.AssigneeName,
-		width: 150, flexGrow: 1, flexShrink: 1},
-	{key: 'Submission',
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{
+		key: "Submission",
 		...fields.Submission,
-		width: 150, flexGrow: 1, flexShrink: 1,
-		dropdownWidth: 300},
-	{key: 'Status',
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
+		dropdownWidth: 300,
+	},
+	{
+		key: "Status",
 		...fields.Status,
-		width: 150, flexGrow: 1, flexShrink: 1,
-		dropdownWidth: 250},
-	{key: 'ApprovedByMotion',
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
+		dropdownWidth: 250,
+	},
+	{
+		key: "ApprovedByMotion",
 		...fields.ApprovedByMotion,
-		width: 80, flexGrow: 1, flexShrink: 1,
-		dropdownWidth: 200},
-	{key: 'Resolution',
-		label: 'Resolution',
-		width: 400, flexGrow: 1, flexShrink: 1,
+		width: 80,
+		flexGrow: 1,
+		flexShrink: 1,
+		dropdownWidth: 200,
+	},
+	{
+		key: "Resolution",
+		label: "Resolution",
+		width: 400,
+		flexGrow: 1,
+		flexShrink: 1,
 		headerRenderer: renderHeaderCellResolution,
-		cellRenderer: renderDataCellResolution},
-	{key: 'Editing',
-		label: 'Editing',
-		width: 300, flexGrow: 1, flexShrink: 1,
+		cellRenderer: renderDataCellResolution,
+	},
+	{
+		key: "Editing",
+		label: "Editing",
+		width: 300,
+		flexGrow: 1,
+		flexShrink: 1,
 		headerRenderer: renderHeaderCellEditing,
-		cellRenderer: renderDataCellEditing}
+		cellRenderer: renderDataCellEditing,
+	},
 ];
 
-const defaultAssignColumns = ['__ctrl__', 'Stack1', 'Comment', 'ProposedChange', 'Stack2', 'Stack3', 'Status'];
-const defaultResolveColumns = [...defaultAssignColumns, 'ApprovedByMotion', 'Resolution'];
-const defaultEditColumns = [...defaultResolveColumns, 'Editing'];
+const defaultAssignColumns = [
+	"__ctrl__",
+	"Stack1",
+	"Comment",
+	"ProposedChange",
+	"Stack2",
+	"Stack3",
+	"Status",
+];
+const defaultResolveColumns = [
+	...defaultAssignColumns,
+	"ApprovedByMotion",
+	"Resolution",
+];
+const defaultEditColumns = [...defaultResolveColumns, "Editing"];
 
 const getDefaultColumnsConfig = (shownKeys: string[]) => {
 	const columnConfig: Record<string, ChangeableColumnProperties> = {};
 	for (const column of tableColumns) {
 		columnConfig[column.key] = {
-			unselectable: column.key.startsWith('__'),
+			unselectable: column.key.startsWith("__"),
 			width: column.width,
-			shown: shownKeys.includes(column.key)
-		}
+			shown: shownKeys.includes(column.key),
+		};
 	}
 	return columnConfig;
 };
 
 const getDefaultTableConfig = (shownKeys: string[]) => {
-	const fixed = (window.matchMedia("(max-width: 768px)").matches)? true: false;
-	const columns = getDefaultColumnsConfig(shownKeys)
-	return {fixed, columns}
+	const fixed = window.matchMedia("(max-width: 768px)").matches
+		? true
+		: false;
+	const columns = getDefaultColumnsConfig(shownKeys);
+	return { fixed, columns };
 };
 
 const defaultTablesConfig = {
-	'Assign': getDefaultTableConfig(defaultAssignColumns),
-	'Resolve': getDefaultTableConfig(defaultResolveColumns),
-	'Edit': getDefaultTableConfig(defaultEditColumns)
+	Assign: getDefaultTableConfig(defaultAssignColumns),
+	Resolve: getDefaultTableConfig(defaultResolveColumns),
+	Edit: getDefaultTableConfig(defaultEditColumns),
 };
 
-
-function commentsRowGetter({rowIndex, ids, entities}: RowGetterProps) {
+function commentsRowGetter({ rowIndex, ids, entities }: RowGetterProps) {
 	let comment = entities[ids[rowIndex]];
 	comment = {
 		...comment,
 		Status: getCommentStatus(comment),
-		CID: getCID(comment)
-	}
-	if (rowIndex === 0)
-		return comment;
-	const prevComment = entities[ids[rowIndex-1]];
-	if (comment.CommentID !== prevComment.CommentID)
-		return comment;
+		CID: getCID(comment),
+	};
+	if (rowIndex === 0) return comment;
+	const prevComment = entities[ids[rowIndex - 1]];
+	if (comment.CommentID !== prevComment.CommentID) return comment;
 	// Previous row holds the same comment
 	return {
-			...comment,
-			CommenterName: '',
-			Vote: '',
-			MustSatisfy: '',
-			Category: '',
-			Clause: '',
-			Page: '',
-			Comment: '',
-			ProposedChange: ''
-	}
+		...comment,
+		CommenterName: "",
+		Vote: "",
+		MustSatisfy: "",
+		Category: "",
+		Clause: "",
+		Page: "",
+		Comment: "",
+		ProposedChange: "",
+	};
 }
 
 function Comments() {
@@ -361,14 +591,24 @@ function Comments() {
 	const isOnline = useAppSelector(selectIsOnline);
 
 	const access = useAppSelector(selectCommentsAccess);
-	const {selected} = useAppSelector(selectCommentsState);
+	const { selected } = useAppSelector(selectCommentsState);
 	const commentsBallot_id = useAppSelector(selectCommentsBallot_id);
-	const commentsBallot = useAppSelector((state) => commentsBallot_id? selectBallot(state, commentsBallot_id): undefined);
+	const commentsBallot = useAppSelector((state) =>
+		commentsBallot_id ? selectBallot(state, commentsBallot_id) : undefined
+	);
 
-	const {isSplit} = useAppSelector(commentsSelectors.selectCurrentPanelConfig);
-	const setIsSplit = (isSplit: boolean) => dispatch(commentsActions.setPanelIsSplit({isSplit}));
+	const { isSplit } = useAppSelector(
+		commentsSelectors.selectCurrentPanelConfig
+	);
+	const setIsSplit = (isSplit: boolean) =>
+		dispatch(commentsActions.setPanelIsSplit({ isSplit }));
 
-	const refresh = () => dispatch(commentsBallot_id? loadComments(commentsBallot_id): clearComments());
+	const refresh = () =>
+		dispatch(
+			commentsBallot_id
+				? loadComments(commentsBallot_id)
+				: clearComments()
+		);
 
 	useEditorStylesheet(styles.editor);
 
@@ -376,24 +616,36 @@ function Comments() {
 		<>
 			<div className="top-row">
 				<ProjectBallotSelector />
-				<div style={{display: 'flex', alignItems: 'center'}}>
+				<div style={{ display: "flex", alignItems: "center" }}>
 					<ButtonGroup>
 						<div>Table view</div>
-						<div style={{display: 'flex', alignItems: 'center'}}>
-							<TableViewSelector selectors={commentsSelectors} actions={commentsActions} />
-							<TableColumnSelector selectors={commentsSelectors} actions={commentsActions} columns={tableColumns} />
+						<div style={{ display: "flex", alignItems: "center" }}>
+							<TableViewSelector
+								selectors={commentsSelectors}
+								actions={commentsActions}
+							/>
+							<TableColumnSelector
+								selectors={commentsSelectors}
+								actions={commentsActions}
+								columns={tableColumns}
+							/>
 							<ActionButton
-								name='book-open'
-								title='Show detail'
-								isActive={isSplit} 
-								onClick={() => setIsSplit(!isSplit)} 
+								name="book-open"
+								title="Show detail"
+								isActive={isSplit}
+								onClick={() => setIsSplit(!isSplit)}
 							/>
 						</div>
 					</ButtonGroup>
-					{access >= AccessLevel.admin?
+					{access >= AccessLevel.admin ? (
 						<ButtonGroup>
-							<div style={{textAlign: 'center'}}>Edit</div>
-							<div style={{display: 'flex', alignItems: 'center'}}>
+							<div style={{ textAlign: "center" }}>Edit</div>
+							<div
+								style={{
+									display: "flex",
+									alignItems: "center",
+								}}
+							>
 								<CommentsCopy />
 								<CommentsImport
 									ballot={commentsBallot}
@@ -404,19 +656,22 @@ function Comments() {
 									disabled={!isOnline}
 								/>
 							</div>
-						</ButtonGroup>:
+						</ButtonGroup>
+					) : (
 						<CommentsCopy />
-					}
+					)}
 					<ActionButton
-						name='refresh'
-						title='Refresh'
+						name="refresh"
+						title="Refresh"
 						disabled={!isOnline}
 						onClick={refresh}
 					/>
 				</div>
 			</div>
 
-			<div style={{width: '100%', display: 'flex', alignItems: 'center'}}>
+			<div
+				style={{ width: "100%", display: "flex", alignItems: "center" }}
+			>
 				<ShowFilters
 					selectors={commentsSelectors}
 					actions={commentsActions}
@@ -428,10 +683,7 @@ function Comments() {
 				/>
 			</div>
 
-			<SplitPanel
-				selectors={commentsSelectors}
-				actions={commentsActions}
-			>
+			<SplitPanel selectors={commentsSelectors} actions={commentsActions}>
 				<Panel>
 					<AppTable
 						defaultTablesConfig={defaultTablesConfig}
@@ -444,13 +696,11 @@ function Comments() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<CommentDetail
-						key={selected.join()}
-					/>
+					<CommentDetail key={selected.join()} />
 				</Panel>
 			</SplitPanel>
 		</>
-	)
+	);
 }
 
 export default Comments;

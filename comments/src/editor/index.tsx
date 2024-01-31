@@ -125,8 +125,8 @@ function Editor({
 }: {
 	className?: string;
 	style?: React.CSSProperties;
-	value: string;
-	onChange: (value: string) => void;
+	value: string | null;
+	onChange: (value: string | null) => void;
 	readOnly?: boolean;
 	placeholder?: string;
 }) {

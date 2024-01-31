@@ -26,8 +26,8 @@ function InportExportPlugin({
 	onChange,
 	readOnly,
 }: {
-	value: string;
-	onChange: (value: string) => void;
+	value: string | null;
+	onChange: (value: string | null) => void;
 	readOnly?: boolean;
 }) {
 	const [editor] = useLexicalComposerContext();
@@ -36,7 +36,9 @@ function InportExportPlugin({
 	const debouncedOnChange = useDebounce(() => {
 		if (readOnly) return;
 		editor.update(() => {
-			const newValue = $generateHtmlFromNodes(editor);
+			let newValue = $getRoot().getTextContent()
+				? $generateHtmlFromNodes(editor)
+				: null;
 			if (newValue !== value) {
 				onChange(newValue);
 			}

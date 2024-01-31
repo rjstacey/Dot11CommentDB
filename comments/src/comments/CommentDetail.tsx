@@ -9,6 +9,7 @@ import {
 	deepMergeTagMultiple,
 	type Multiple,
 	isMultiple,
+	MULTIPLE
 } from "dot11-components";
 
 import CommentHistory from "./CommentHistory";
@@ -30,7 +31,7 @@ import {
 	ResolutionUpdate,
 	ResolutionCreate,
 	getCID,
-	getCommentStatus
+	getCommentStatus,
 } from "../store/comments";
 import { selectGroupEntities } from "../store/groups";
 import { AccessLevel, selectUser } from "../store/user";
@@ -44,13 +45,13 @@ function renderAccess(access: number) {
 }
 
 function renderCommentsStatus(comments: CommentResolution[]) {
-	let status: string = "";
+	let status: string | typeof MULTIPLE = "";
 	comments.forEach(c => {
 		const s = getCommentStatus(c);
 		if (!status)
 			status = s;
 		else if (status !== s)
-			status = "<multiple>";
+			status = MULTIPLE;
 	});
 	if (isMultiple(status))
 		return <span style={{fontStyle: 'italic'}}>(Multiple)</span>
@@ -305,7 +306,7 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 						</Row>
 						<CommentEdit
 							comments={comments}
-							readOnly={readOnly || commentsAccess < AccessLevel.rw}
+							readOnly={readOnly || !editComment || commentsAccess < AccessLevel.rw}
 						/>
 						<CommentResolutionEdit
 							comments={comments}
