@@ -1,7 +1,6 @@
 export const renderIcon = (groupName: string, toolName: string) => {
-
-	const groupNameFontSize = 1.9*192 / groupName.length;
-	const toolNameFontSize = Math.min(1.5*192 / toolName.length, 100);
+	const groupNameFontSize = (1.9 * 192) / groupName.length;
+	const toolNameFontSize = Math.min((1.5 * 192) / toolName.length, 100);
 
 	return (
 		<svg
@@ -25,22 +24,28 @@ export const renderIcon = (groupName: string, toolName: string) => {
 					cx="50%"
 					cy="50%"
 					r="60%"
-					gradientUnits="userSpaceOnUse" />
+					gradientUnits="userSpaceOnUse"
+				/>
 				<radialGradient
 					href="#linearGradient2"
 					id="radialGradient2"
 					cx="50%"
 					cy="50%"
 					r="60%"
-					gradientUnits="userSpaceOnUse" />
-
+					gradientUnits="userSpaceOnUse"
+				/>
 			</defs>
 			<text
 				x="50%"
 				y="50%"
 				//textLength="90%"
 				textAnchor="middle"
-				style={{font: `bold ${toolNameFontSize}px sans-serif`, alignmentBaseline: "text-before-edge", fill: "url(#radialGradient2)", fillOpacity: 1}}
+				style={{
+					font: `bold ${toolNameFontSize}px sans-serif`,
+					alignmentBaseline: "text-before-edge",
+					fill: "url(#radialGradient2)",
+					fillOpacity: 1,
+				}}
 			>
 				{toolName}
 			</text>
@@ -49,10 +54,14 @@ export const renderIcon = (groupName: string, toolName: string) => {
 				y="50%"
 				//textLength="100%"
 				textAnchor="middle"
-				style={{font: `bold ${groupNameFontSize}px sans-serif`, fill: "url(#radialGradient1)", fillOpacity: 1}}
+				style={{
+					font: `bold ${groupNameFontSize}px sans-serif`,
+					fill: "url(#radialGradient1)",
+					fillOpacity: 1,
+				}}
 			>
 				{groupName}
 			</text>
 		</svg>
-	)
-}
+	);
+};

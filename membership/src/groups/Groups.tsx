@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -12,7 +12,7 @@ import {
 	SplitPanelButton,
 	ColumnProperties,
 	TablesConfig,
-	TableConfig
+	TableConfig,
 } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
@@ -20,14 +20,14 @@ import {
 	fields,
 	groupsSelectors,
 	groupsActions,
-	type GroupWithOfficers
+	type GroupWithOfficers,
 } from "../store/groups";
 import { selectMemberEntities } from "../store/members";
 
 import GroupDetail from "./GroupDetail";
 
 function GroupOfficers({ group }: { group: GroupWithOfficers }) {
-	const {officers} = group;
+	const { officers } = group;
 	const members = useAppSelector(selectMemberEntities);
 
 	return (
@@ -100,11 +100,11 @@ for (const column of tableColumns) {
 		width: column.width || 200,
 	};
 }
-defaultTablesConfig['default'] = tableConfig;
+defaultTablesConfig["default"] = tableConfig;
 
 function Organization() {
 	const navigate = useNavigate();
-	const refresh = () => navigate(".", {replace: true});
+	const refresh = () => navigate(".", { replace: true });
 
 	return (
 		<>
@@ -126,10 +126,7 @@ function Organization() {
 					/>
 				</div>
 			</div>
-			<SplitPanel
-				selectors={groupsSelectors}
-				actions={groupsActions}
-			>
+			<SplitPanel selectors={groupsSelectors} actions={groupsActions}>
 				<Panel>
 					<AppTable
 						defaultTablesConfig={defaultTablesConfig}

@@ -79,10 +79,10 @@ function setClipboard(selected: EntityId[], members: MembersDictionary) {
 }
 
 const lineTruncStyle: React.CSSProperties = {
-	overflow: 'hidden',
-	whiteSpace: 'nowrap',
-	textOverflow: 'ellipses'
-}
+	overflow: "hidden",
+	whiteSpace: "nowrap",
+	textOverflow: "ellipses",
+};
 
 export const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) => (
 	<>

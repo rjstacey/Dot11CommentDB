@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { DateTime } from "luxon";
 import { useNavigate } from "react-router-dom";
 
@@ -228,7 +228,7 @@ const tableColumns: ColumnProperties[] = [
 
 function Attendances() {
 	const navigate = useNavigate();
-	const refresh = () => navigate(".", {replace: true});
+	const refresh = () => navigate(".", { replace: true });
 
 	const { selected } = useAppSelector(selectAttendancesState);
 	const sessions = useAppSelector(selectAttendanceSessions);
@@ -268,7 +268,6 @@ function Attendances() {
 			})
 		);
 	}, [sessions]);
-
 
 	return (
 		<>

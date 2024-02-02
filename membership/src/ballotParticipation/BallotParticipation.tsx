@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 
 import {
 	AppTable,
@@ -137,7 +137,9 @@ const tableColumns: ColumnProperties[] = [
 
 function BallotParticipation() {
 	const dispatch = useAppDispatch();
-	const { selected, groupName } = useAppSelector(selectBallotParticipationState);
+	const { selected, groupName } = useAppSelector(
+		selectBallotParticipationState
+	);
 	const { ids: ballotSeriesIds, entities: ballotSeriesEntities } =
 		useAppSelector(selectBallotSeries);
 
@@ -167,7 +169,12 @@ function BallotParticipation() {
 		);
 	}, [ballotSeriesIds, ballotSeriesEntities]);
 
-	const refresh = () => dispatch(groupName? loadBallotParticipation(groupName): clearBallotParticipation());
+	const refresh = () =>
+		dispatch(
+			groupName
+				? loadBallotParticipation(groupName)
+				: clearBallotParticipation()
+		);
 
 	return (
 		<>

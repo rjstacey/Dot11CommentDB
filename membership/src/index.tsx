@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
@@ -15,13 +15,11 @@ import App from "./app";
 import * as serviceWorker from "./serviceWorkerRegistration";
 
 function persistGate(done: boolean, user: User) {
-	if (!done)
-		return 'loading...';
+	if (!done) return "loading...";
 	const storedUser = selectUser(store.getState());
-	if (storedUser.SAPIN !== user.SAPIN)
-		store.dispatch(resetStore());
+	if (storedUser.SAPIN !== user.SAPIN) store.dispatch(resetStore());
 	store.dispatch(setUser(user));
-	return <App />
+	return <App />;
 }
 
 getUser()
@@ -32,9 +30,7 @@ getUser()
 			root.render(
 				<React.StrictMode>
 					<Provider store={store}>
-						<PersistGate
-							persistor={persistor}
-						>
+						<PersistGate persistor={persistor}>
 							{(done) => persistGate(done, user)}
 						</PersistGate>
 					</Provider>

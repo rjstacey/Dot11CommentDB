@@ -12,7 +12,8 @@ const svgString = encodeURIComponent(
 	renderToStaticMarkup(renderIcon("802", "MEM"))
 );
 
-const getRouter = () => createBrowserRouter(routes, { basename: "/membership" });
+const getRouter = () =>
+	createBrowserRouter(routes, { basename: "/membership" });
 
 function App() {
 	// Create routes on initial render. If done at init time, createBrowserRouter() will kick off groupLoader() before fetcher has been initialized.

@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { connect, ConnectedProps } from "react-redux";
 import type { Dictionary } from "@reduxjs/toolkit";
 
@@ -19,10 +19,7 @@ import {
 	updateAttendances,
 	type SessionAttendanceSummary,
 } from "../store/sessionParticipation";
-import {
-	selectSessionEntities,
-	type Session,
-} from "../store/sessions";
+import { selectSessionEntities, type Session } from "../store/sessions";
 
 import styles from "../sessionAttendance/sessionAttendance.module.css";
 
@@ -173,8 +170,7 @@ class MemberAttendances extends React.Component<
 
 		function renderSessionSummary(id: number) {
 			const session = sessionEntities[id];
-			if (!session)
-				return "Unknown";
+			if (!session) return "Unknown";
 			return (
 				<div className={styles.sessionItem}>
 					<span>
@@ -184,7 +180,7 @@ class MemberAttendances extends React.Component<
 					</span>
 					<span>{session.name}</span>
 				</div>
-			)
+			);
 		}
 
 		return attendancesColumns.map((col) => {

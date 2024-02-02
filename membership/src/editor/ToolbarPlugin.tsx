@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	CAN_REDO_COMMAND,

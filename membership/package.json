@@ -11,7 +11,7 @@
     "@react-email/markdown": "0.0.6",
     "@reduxjs/toolkit": "^1.9.7",
     "@types/react-color": "^3.0.10",
-    "dot11-components": "^1.9.68",
+    "dot11-components": "^1.9.72",
     "idb-keyval": "^6.2.1",
     "lexical": "^0.12.2",
     "lodash.debounce": "^4.0.8",
@@ -54,6 +54,7 @@
     ]
   },
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",

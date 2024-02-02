@@ -63,7 +63,7 @@ const groupsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	const { groupName } = params;
 	if (groupName) {
-		const {valid} = selectGroupsState(getState());
+		const { valid } = selectGroupsState(getState());
 		if (!valid) {
 			await dispatch(loadGroups());
 		}
@@ -72,9 +72,9 @@ const groupsLoader: LoaderFunction = async ({ params }) => {
 		dispatch(loadCommittees(groupName));
 	}
 	return null;
-}
+};
 
-const membersLoader: LoaderFunction = async ({params}) => {
+const membersLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
@@ -83,7 +83,7 @@ const membersLoader: LoaderFunction = async ({params}) => {
 		dispatch(loadBallotParticipation(groupName));
 	}
 	return null;
-}
+};
 
 const sessionParticipationLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch } = store;

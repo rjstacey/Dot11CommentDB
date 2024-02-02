@@ -57,8 +57,7 @@ function validSession(session: any): session is Session {
 	);
 }
 
-export const displaySessionType = (type: SessionType) =>
-	SessionTypeLabels[type] || "Unknown";
+export const displaySessionType = (type: SessionType | null) =>	type? SessionTypeLabels[type]: '';
 
 /*
  * Slice

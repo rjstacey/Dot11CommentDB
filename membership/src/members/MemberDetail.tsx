@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { connect, ConnectedProps } from "react-redux";
 import type { EntityId } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";

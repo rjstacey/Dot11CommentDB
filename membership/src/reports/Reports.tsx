@@ -1,14 +1,22 @@
-import React from "react";
+import * as React from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ActionButton, Button } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
-import { selectActiveMembersWithParticipationSummary, Member, type MemberWithParticipation } from "../store/members";
+import {
+	selectActiveMembersWithParticipationSummary,
+	Member,
+	type MemberWithParticipation,
+} from "../store/members";
 
 import styles from "./reports.module.css";
 
-const Table = ({ nCol, style, ...props }: { nCol: number } & React.ComponentProps<"table">) => (
+const Table = ({
+	nCol,
+	style,
+	...props
+}: { nCol: number } & React.ComponentProps<"table">) => (
 	<table
 		className={styles.table}
 		style={{ ...style, gridTemplateColumns: `repeat(${nCol}, auto)` }}
@@ -115,9 +123,7 @@ function membersPublic(members: Member[]): TableData {
 	return { headings, values };
 }
 
-function membersPrivate(
-	members: MemberWithParticipation[]
-): TableData {
+function membersPrivate(members: MemberWithParticipation[]): TableData {
 	const headings = [
 		"Family Name",
 		"Given Name",

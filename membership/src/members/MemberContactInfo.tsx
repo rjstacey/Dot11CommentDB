@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { DateTime } from "luxon";
 
 import { Col, Checkbox, Input, ActionIcon } from "dot11-components";

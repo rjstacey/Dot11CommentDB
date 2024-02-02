@@ -1,18 +1,25 @@
-import React from "react";
+import * as React from "react";
 import { useAppSelector } from "../store/hooks";
 
 import { Select, displayDateRange } from "dot11-components";
 
-import { selectRecentSessions, Session } from "../store/sessions";
+import {
+	selectSessionsState,
+	selectRecentSessions,
+	Session,
+	displaySessionType,
+} from "../store/sessions";
 
 import styles from "./sessionAttendance.module.css";
 
 const renderSession = ({ item: session }: { item: Session }) => (
 	<div className={styles.sessionItem}>
 		<span>
-			{session.number}{" "}
-			{session.type === "p" ? "Plenary: " : "Interim: "}{" "}
-			{displayDateRange(session.startDate, session.endDate)}
+			{session.number +
+				" " +
+				displaySessionType(session.type) +
+				", " +
+				displayDateRange(session.startDate, session.endDate)}
 		</span>
 		<span>{session.name}</span>
 	</div>
@@ -29,6 +36,7 @@ function SessionSelector({
 	readOnly?: boolean;
 	style?: React.CSSProperties;
 }) {
+	const { loading, valid } = useAppSelector(selectSessionsState);
 	const options = useAppSelector(selectRecentSessions);
 	const values = options.filter((o) => o.id === value);
 	const handleChange = (values: typeof options) =>
@@ -40,6 +48,7 @@ function SessionSelector({
 			values={values}
 			onChange={handleChange}
 			options={options}
+			loading={loading && !valid}
 			clearable
 			itemRenderer={renderSession}
 			selectItemRenderer={renderSession}
