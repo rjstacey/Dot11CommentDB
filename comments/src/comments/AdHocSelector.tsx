@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
 import { Select, SelectRendererProps } from "dot11-components";
@@ -80,7 +80,7 @@ function AdHocSelector({
 	const existingOptions = useAppSelector(selectAdHocOptions);
 	const [options, setOptions] = React.useState(existingOptions);
 
-	function createOption({state}: SelectRendererProps) {
+	function createOption({ state }: SelectRendererProps) {
 		const option = {
 			GroupId: null,
 			Name: state.search,

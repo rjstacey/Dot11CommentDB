@@ -1,11 +1,8 @@
-import React from "react";
+import * as React from "react";
 import { Select } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
-import {
-	selectMembersState,
-	selectMembers,
-} from "../store/members";
+import { selectMembersState, selectMembers } from "../store/members";
 
 function MemberSelector({
 	value,
@@ -21,8 +18,12 @@ function MemberSelector({
 >) {
 	const { loading } = useAppSelector(selectMembersState);
 	const members = useAppSelector(selectMembers);
-	const options = React.useMemo(() =>
-		members.map(m => ({value: m.SAPIN, label: `${m.SAPIN} ${m.Name} (${m.Status})`})),
+	const options = React.useMemo(
+		() =>
+			members.map((m) => ({
+				value: m.SAPIN,
+				label: `${m.SAPIN} ${m.Name} (${m.Status})`,
+			})),
 		[members]
 	);
 

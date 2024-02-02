@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { createSelector } from "@reduxjs/toolkit";
 
@@ -10,9 +10,8 @@ import { AccessLevel } from "../store/user";
 
 import styles from "./app.module.css";
 
-const selectOptions = createSelector(
-	selectWorkingGroups,
-	(groups) => groups.map((g) => {
+const selectOptions = createSelector(selectWorkingGroups, (groups) =>
+	groups.map((g) => {
 		const access = g.permissions.comments || AccessLevel.none;
 		return { ...g, disabled: access < AccessLevel.ro };
 	})

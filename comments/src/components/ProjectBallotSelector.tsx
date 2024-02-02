@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Select } from "dot11-components";

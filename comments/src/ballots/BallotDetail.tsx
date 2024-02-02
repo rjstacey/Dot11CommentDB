@@ -156,7 +156,13 @@ const Placeholder = (props: React.ComponentProps<"span">) => (
 	</div>
 );
 
-function BallotDetail({ access, readOnly }: { access: number; readOnly?: boolean }) {
+function BallotDetail({
+	access,
+	readOnly,
+}: {
+	access: number;
+	readOnly?: boolean;
+}) {
 	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
 	const { entities, loading, selected } = useAppSelector(selectBallotsState);

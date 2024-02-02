@@ -1,6 +1,5 @@
 import * as React from "react";
 import {
-	isMultiple,
 	Row,
 	Col,
 	Field,
@@ -8,6 +7,7 @@ import {
 	Checkbox,
 	Input,
 	TextArea,
+	isMultiple,
 	Multiple,
 	shallowDiff,
 	recursivelyDiffObjects,

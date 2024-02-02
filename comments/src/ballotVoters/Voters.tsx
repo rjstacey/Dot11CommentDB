@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 
 import {
 	AppTable,
@@ -35,7 +35,7 @@ const RowActions = ({
 	onEdit: () => void;
 	onDelete: () => void;
 }) => (
-	<div style={{display: 'flex', justifyContent: 'center'}}>
+	<div style={{ display: "flex", justifyContent: "center" }}>
 		<ActionButton name="edit" title="Edit" onClick={onEdit} />
 		<ActionButton name="delete" title="Delete" onClick={onDelete} />
 	</div>
@@ -153,7 +153,7 @@ function Voters() {
 		<>
 			<div className="top-row" style={{ maxWidth }}>
 				<BallotSelector />
-				<div style={{display: 'flex'}}>
+				<div style={{ display: "flex" }}>
 					<ActionButton
 						name="add"
 						title="Add voter"
@@ -166,9 +166,7 @@ function Voters() {
 						disabled={selected.length === 0}
 						onClick={handleRemoveSelected}
 					/>
-					<VotersImportButton
-						ballot_id={votersBallot_id}
-					/>
+					<VotersImportButton ballot_id={votersBallot_id} />
 					<ActionButton
 						name="export"
 						title="Export voters"

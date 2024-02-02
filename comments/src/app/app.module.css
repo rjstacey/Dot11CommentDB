@@ -126,7 +126,7 @@
 
 .header :global .nav-link.active,
 .header :global .nav-link:hover {
-	color:  black;
+	color: black;
 }
 
 .header :global .account {

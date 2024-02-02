@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
 import { Select, SelectRendererProps, strComp } from "dot11-components";

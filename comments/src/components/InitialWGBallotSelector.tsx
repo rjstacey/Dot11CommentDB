@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Select } from "dot11-components";
@@ -27,13 +27,14 @@ function InitialWGBallotSelector({
 	const { loading, currentBallot_id } = useAppSelector(selectBallotsState);
 
 	const ballots = useAppSelector(selectBallots);
-	const options = React.useMemo(() =>
-		ballots
-			.filter((b) => b.Type === BallotType.WG && !b.IsRecirc)
-			.map((b) => ({
-				value: b.id,
-				label: `${b.BallotID} ${b.Document}`,
-			})),
+	const options = React.useMemo(
+		() =>
+			ballots
+				.filter((b) => b.Type === BallotType.WG && !b.IsRecirc)
+				.map((b) => ({
+					value: b.id,
+					label: `${b.BallotID} ${b.Document}`,
+				})),
 		[ballots]
 	);
 	const values = options.filter((o) => o.value === currentBallot_id);

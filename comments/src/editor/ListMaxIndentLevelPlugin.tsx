@@ -6,7 +6,7 @@ import {
 	$isRangeSelection,
 	INDENT_CONTENT_COMMAND,
 	COMMAND_PRIORITY_HIGH,
-    RangeSelection,
+	RangeSelection,
 } from "lexical";
 import { useEffect } from "react";
 
@@ -56,7 +56,11 @@ function isIndentPermitted(maxDepth: number) {
 	return totalDepth <= maxDepth;
 }
 
-export default function ListMaxIndentLevelPlugin({ maxDepth }: { maxDepth: number }) {
+export default function ListMaxIndentLevelPlugin({
+	maxDepth,
+}: {
+	maxDepth: number;
+}) {
 	const [editor] = useLexicalComposerContext();
 
 	useEffect(() => {

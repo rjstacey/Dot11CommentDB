@@ -14,11 +14,14 @@ import { selectIsOnline } from "../store/offline";
 import { selectWorkingGroupByName, loadGroups } from "../store/groups";
 import { loadMembers } from "../store/members";
 import { loadEpolls } from "../store/epolls";
-import { loadBallots, selectBallotByBallotID, setCurrentBallot_id } from "../store/ballots";
+import {
+	loadBallots,
+	selectBallotByBallotID,
+	setCurrentBallot_id,
+} from "../store/ballots";
 import { loadVoters } from "../store/voters";
 import { loadResults } from "../store/results";
 import { loadComments, selectCommentsBallot_id } from "../store/comments";
-
 
 import { ErrorModal, ConfirmModal } from "dot11-components";
 import Header from "./Header";
@@ -64,7 +67,7 @@ const ballotsLoader: LoaderFunction = async ({ params }) => {
 		}
 	}
 	return null;
-}
+};
 
 const epollsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
@@ -76,7 +79,7 @@ const epollsLoader: LoaderFunction = async ({ params }) => {
 		}
 	}
 	return null;
-}
+};
 
 const ballotVotersLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
@@ -88,7 +91,7 @@ const ballotVotersLoader: LoaderFunction = async ({ params }) => {
 			if (ballotId) {
 				let ballot = selectBallotByBallotID(getState(), ballotId);
 				if (!ballot) {
-					await p;	// see if we get it with a ballots refresh
+					await p; // see if we get it with a ballots refresh
 					ballot = selectBallotByBallotID(getState(), ballotId);
 				}
 				if (ballot) {
@@ -98,7 +101,7 @@ const ballotVotersLoader: LoaderFunction = async ({ params }) => {
 		}
 	}
 	return null;
-}
+};
 
 const resultsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
@@ -109,7 +112,7 @@ const resultsLoader: LoaderFunction = async ({ params }) => {
 			if (ballotId) {
 				let ballot = selectBallotByBallotID(getState(), ballotId);
 				if (!ballot) {
-					await p;	// see if we get it with a ballots refresh
+					await p; // see if we get it with a ballots refresh
 					ballot = selectBallotByBallotID(getState(), ballotId);
 				}
 				if (ballot) {
@@ -119,7 +122,7 @@ const resultsLoader: LoaderFunction = async ({ params }) => {
 		}
 	}
 	return null;
-}
+};
 
 const commentsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
@@ -130,7 +133,7 @@ const commentsLoader: LoaderFunction = async ({ params }) => {
 			if (ballotId) {
 				let ballot = selectBallotByBallotID(getState(), ballotId);
 				if (!ballot) {
-					await p;	// see if we get it with a ballots refresh
+					await p; // see if we get it with a ballots refresh
 					ballot = selectBallotByBallotID(getState(), ballotId);
 				}
 				if (ballot) {
@@ -142,7 +145,7 @@ const commentsLoader: LoaderFunction = async ({ params }) => {
 		}
 	}
 	return null;
-}
+};
 
 /*
  * Layout components
@@ -154,7 +157,7 @@ function GateComponent({
 	minAccess,
 	children,
 }: {
-	scope?: string,
+	scope?: string;
 	minAccess: number;
 	children: React.ReactNode;
 }) {
@@ -164,8 +167,7 @@ function GateComponent({
 	);
 	const access = group?.permissions[scope] || AccessLevel.none;
 
-	if (!group)
-		return <span>Invalid group: {groupName}</span>
+	if (!group) return <span>Invalid group: {groupName}</span>;
 
 	if (access < minAccess)
 		return <span>You do not have permission to view this data</span>;
@@ -177,9 +179,7 @@ function Layout() {
 	return (
 		<>
 			<Header />
-			<main
-				className={styles.main}
-			>
+			<main className={styles.main}>
 				<Outlet />
 			</main>
 			<ErrorModal />
@@ -190,9 +190,7 @@ function Layout() {
 
 function Root() {
 	return (
-		<div
-			className={styles.root}
-		>
+		<div className={styles.root}>
 			<div className="intro">Working group/Committee</div>
 			<WorkingGroupSelector />
 		</div>
@@ -279,7 +277,11 @@ const groupRoutes = groupRoutes_ungated.map((r) => {
 		return {
 			...r,
 			element: (
-				<GateComponent scope={r.scope} minAccess={r.minAccess} children={r.element} />
+				<GateComponent
+					scope={r.scope}
+					minAccess={r.minAccess}
+					children={r.element}
+				/>
 			),
 		};
 	return r;
@@ -298,20 +300,34 @@ const routes: AppRoute[] = [
 				errorElement: <ErrorPage />,
 				children: [
 					...groupRoutes,
-					{ index: true, element: <GateComponent minAccess={AccessLevel.none}><Root /></GateComponent>},
-					{ path: "*", element: <GateComponent minAccess={AccessLevel.none}><span>Not found</span></GateComponent>}
+					{
+						index: true,
+						element: (
+							<GateComponent minAccess={AccessLevel.none}>
+								<Root />
+							</GateComponent>
+						),
+					},
+					{
+						path: "*",
+						element: (
+							<GateComponent minAccess={AccessLevel.none}>
+								<span>Not found</span>
+							</GateComponent>
+						),
+					},
 				],
 			},
 			{
 				index: true,
 				element: <Root />,
-			}
+			},
 		],
 	},
 	{
 		path: "/*",
-		element: <span>Not found</span>
-	}
+		element: <span>Not found</span>,
+	},
 ];
 
 export default routes;

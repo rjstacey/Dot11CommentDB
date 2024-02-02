@@ -77,7 +77,7 @@ export function VotersImportForm({
 
 	return (
 		<Form
-			style={{width: 300}}
+			style={{ width: 300 }}
 			title="Create voter pool"
 			errorText={errorText}
 			submit={submit}
@@ -145,10 +145,7 @@ function VotersImportButton({ ballot_id }: { ballot_id?: number | null }) {
 			title="Import voters"
 			disabled={!ballot}
 			dropdownRenderer={({ methods }: DropdownRendererProps) => (
-				<VotersImportForm
-					ballot={ballot}
-					close={methods.close}
-				/>
+				<VotersImportForm ballot={ballot} close={methods.close} />
 			)}
 		/>
 	);

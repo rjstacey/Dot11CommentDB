@@ -1,12 +1,9 @@
-import React from "react";
+import * as React from "react";
 
 import { Dropdown, DropdownRendererProps } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
-import {
-	selectOfflineStatus,
-	selectOfflineOutbox,
-} from "../store/offline";
+import { selectOfflineStatus, selectOfflineOutbox } from "../store/offline";
 
 import styles from "./OnlineIndicator.module.css";
 
@@ -22,13 +19,10 @@ function Selector({ state, methods }: DropdownRendererProps) {
 		onClick = state.isOpen ? methods.close : methods.open;
 
 	return (
-		<div
-			className={styles.container}
-			onClick={onClick}
-		>
+		<div className={styles.container} onClick={onClick}>
 			<div
 				className={styles.indicator}
-				style={{background}}
+				style={{ background }}
 				title={status}
 			/>
 			{status}

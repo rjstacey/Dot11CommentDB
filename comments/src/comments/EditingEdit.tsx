@@ -15,7 +15,12 @@ import Editor from "../editor";
 
 import type { MultipleResolution } from "./CommentDetail";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { EditStatusType, selectCommentsState, setUiProperties, type Resolution } from "../store/comments";
+import {
+	EditStatusType,
+	selectCommentsState,
+	setUiProperties,
+	type Resolution,
+} from "../store/comments";
 
 import styles from "./comments.module.css";
 
@@ -116,56 +121,56 @@ export function EditingEdit({
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
-	const showEditing: boolean | undefined = useAppSelector(selectCommentsState).ui.showEditing;
-	const toggleShowEditing = () => dispatch(setUiProperties({ showEditing: !showEditing }));
+	const showEditing: boolean | undefined =
+		useAppSelector(selectCommentsState).ui.showEditing;
+	const toggleShowEditing = () =>
+		dispatch(setUiProperties({ showEditing: !showEditing }));
 
 	return (
-	<Row>
-		<Col
-			className={styles.editingField}
-		>
-			<div
-				style={{
-					display: "flex",
-					flex: 1,
-					justifyContent: "space-between",
-				}}
-			>
-				<label>Editing:</label>
-				{!forceShowEditing && (
-					<IconCollapse
-						isCollapsed={!showEditing}
-						onClick={toggleShowEditing}
-					/>
-				)}
-			</div>
-			{(showEditing || forceShowEditing) && (
-				<div className={styles.editingContainer}>
-					<EditStatus
-						resolution={resolution}
-						updateResolution={updateResolution}
-						readOnly={readOnly}
-					/>
-					<Editor
-						value={
-							isMultiple(resolution.EditNotes)
-								? ""
-								: resolution.EditNotes
-						}
-						onChange={(value) =>
-							updateResolution({ EditNotes: value })
-						}
-						placeholder={
-							isMultiple(resolution.EditNotes)
-								? MULTIPLE_STR
-								: BLANK_STR
-						}
-						readOnly={readOnly}
-					/>
+		<Row>
+			<Col className={styles.editingField}>
+				<div
+					style={{
+						display: "flex",
+						flex: 1,
+						justifyContent: "space-between",
+					}}
+				>
+					<label>Editing:</label>
+					{!forceShowEditing && (
+						<IconCollapse
+							isCollapsed={!showEditing}
+							onClick={toggleShowEditing}
+						/>
+					)}
 				</div>
-			)}
-		</Col>
-	</Row>
+				{(showEditing || forceShowEditing) && (
+					<div className={styles.editingContainer}>
+						<EditStatus
+							resolution={resolution}
+							updateResolution={updateResolution}
+							readOnly={readOnly}
+						/>
+						<Editor
+							value={
+								isMultiple(resolution.EditNotes)
+									? ""
+									: resolution.EditNotes
+							}
+							onChange={(value) =>
+								updateResolution({ EditNotes: value })
+							}
+							placeholder={
+								isMultiple(resolution.EditNotes)
+									? MULTIPLE_STR
+									: BLANK_STR
+							}
+							readOnly={readOnly}
+						/>
+					</div>
+				)}
+			</Col>
+		</Row>
 	);
 }
 
