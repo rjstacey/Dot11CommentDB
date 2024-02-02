@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { Duration } from 'luxon';
 
 import { useAppDispatch, useAppSelector } from '../store/hooks';

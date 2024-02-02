@@ -1,27 +1,31 @@
-import React from 'react';
-import { EntityId } from '@reduxjs/toolkit';
+import * as React from "react";
+import { EntityId } from "@reduxjs/toolkit";
 
-import {Input, ActionIcon} from 'dot11-components';
+import { Input, ActionIcon } from "dot11-components";
 
-import {EditTable as Table, TableColumn} from '../components/Table';
-import {RawSessionSelector} from '../components/SessionSelector';
+import { EditTable as Table, TableColumn } from "../components/Table";
+import { RawSessionSelector } from "../components/SessionSelector";
 
-import { useAppSelector } from '../store/hooks';
-import {selectSessionEntities, Timeslot} from '../store/sessions';
+import { useAppSelector } from "../store/hooks";
+import { selectSessionEntities, Timeslot } from "../store/sessions";
 
 const tableColumns: TableColumn[] = [
-	{key: 'name', label: 'Name', gridTemplate: 'minmax(200px, auto)'},
-	{key: 'startTime', label: 'Start', gridTemplate: 'minmax(200px, auto)'},
-	{key: 'endTime', label: 'End', gridTemplate: 'minmax(200px, auto)'},
-	{key: 'action', label: '', gridTemplate: '60px'}
+	{ key: "name", label: "Name", gridTemplate: "minmax(200px, auto)" },
+	{ key: "startTime", label: "Start", gridTemplate: "minmax(200px, auto)" },
+	{ key: "endTime", label: "End", gridTemplate: "minmax(200px, auto)" },
+	{ key: "action", label: "", gridTemplate: "60px" },
 ];
 
-const defaultEntry: Omit<Timeslot, "id"> = {name: '', startTime: '', endTime: ''};
+const defaultEntry: Omit<Timeslot, "id"> = {
+	name: "",
+	startTime: "",
+	endTime: "",
+};
 
 function TimeslotDetails({
 	timeslots,
 	setTimeslots,
-	readOnly
+	readOnly,
 }: {
 	timeslots: Timeslot[];
 	setTimeslots: (timeslots: Timeslot[]) => void;
@@ -30,75 +34,99 @@ function TimeslotDetails({
 	const entities = useAppSelector(selectSessionEntities);
 
 	const columns = React.useMemo(() => {
-
 		const importTimeslotsFromSession = (sessionId: EntityId) => {
 			const session = entities[sessionId];
-			if (session)
-				setTimeslots(session.timeslots);
-		}
+			if (session) setTimeslots(session.timeslots);
+		};
 
 		const addTimeslot = (slot: Omit<Timeslot, "id">) => {
 			const updateTimeslots = timeslots.slice();
-			const id = timeslots.reduce((maxId, slot) => Math.max(maxId, slot.id), 0) + 1;
-			updateTimeslots.push({...slot, id});
+			const id =
+				timeslots.reduce((maxId, slot) => Math.max(maxId, slot.id), 0) +
+				1;
+			updateTimeslots.push({ ...slot, id });
 			setTimeslots(updateTimeslots);
-		}
+		};
 
 		const updateTimeslot = (id: number, changes: Partial<Timeslot>) => {
 			const updateTimeslots = timeslots.slice();
-			const i = timeslots.findIndex(slot => slot.id === id);
-			if (i >= 0)
-				updateTimeslots[i] = {...timeslots[i], ...changes};
+			const i = timeslots.findIndex((slot) => slot.id === id);
+			if (i >= 0) updateTimeslots[i] = { ...timeslots[i], ...changes };
 			setTimeslots(updateTimeslots);
-		}
+		};
 
 		const removeTimeslot = (id: number) => {
 			const updateTimeslots = timeslots.slice();
-			const i = timeslots.findIndex(slot => slot.id === id);
-			if (i >= 0)
-				updateTimeslots.splice(i, 1);
+			const i = timeslots.findIndex((slot) => slot.id === id);
+			if (i >= 0) updateTimeslots.splice(i, 1);
 			setTimeslots(updateTimeslots);
-		}
-		
+		};
+
 		let columns = tableColumns.slice();
-		if (readOnly)
-			columns.filter(col => col.key !== 'action');
-		columns = columns.map(col => {
-			if (col.key === 'name') {
-				col.renderCell = (entry) =>
+		if (readOnly) columns.filter((col) => col.key !== "action");
+		columns = columns.map((col) => {
+			if (col.key === "name") {
+				col.renderCell = (entry) => (
 					<Input
-						type='search'
+						type="search"
 						value={entry.name}
-						onChange={(e) => updateTimeslot(entry.id, {name: e.target.value})}
+						onChange={(e) =>
+							updateTimeslot(entry.id, { name: e.target.value })
+						}
 						disabled={readOnly}
-					/>;
-			}
-			else if (col.key === 'startTime') {
-				col.renderCell = (entry) =>
+					/>
+				);
+			} else if (col.key === "startTime") {
+				col.renderCell = (entry) => (
 					<Input
-						type='time'
+						type="time"
 						value={entry.startTime}
-						onChange={(e) => updateTimeslot(entry.id, {startTime: e.target.value})}
+						onChange={(e) =>
+							updateTimeslot(entry.id, {
+								startTime: e.target.value,
+							})
+						}
 						disabled={readOnly}
-					/>;
-			}
-			else if (col.key === 'endTime') {
-				col.renderCell = (entry) =>
+					/>
+				);
+			} else if (col.key === "endTime") {
+				col.renderCell = (entry) => (
 					<Input
-						type='time'
+						type="time"
 						value={entry.endTime}
-						onChange={(e) => updateTimeslot(entry.id, {endTime: e.target.value})}
+						onChange={(e) =>
+							updateTimeslot(entry.id, {
+								endTime: e.target.value,
+							})
+						}
 						disabled={readOnly}
-					/>;
-			}
-			else if (col.key === 'action') {
-				col.renderCell = (entry) => 
-					<ActionIcon type='delete' onClick={() => removeTimeslot(entry.id)} />
-				col.label = 
-					<div style={{width: '100%', display: 'flex', justifyContent: 'space-evenly', fontWeight: 'normal'}}>
-						<ActionIcon type='add' onClick={() => addTimeslot(defaultEntry)} />
-						<RawSessionSelector onChange={importTimeslotsFromSession} />
+					/>
+				);
+			} else if (col.key === "action") {
+				col.renderCell = (entry) => (
+					<ActionIcon
+						type="delete"
+						onClick={() => removeTimeslot(entry.id)}
+					/>
+				);
+				col.label = (
+					<div
+						style={{
+							width: "100%",
+							display: "flex",
+							justifyContent: "space-evenly",
+							fontWeight: "normal",
+						}}
+					>
+						<ActionIcon
+							type="add"
+							onClick={() => addTimeslot(defaultEntry)}
+						/>
+						<RawSessionSelector
+							onChange={importTimeslotsFromSession}
+						/>
 					</div>
+				);
 			}
 			return col;
 		});
@@ -106,12 +134,7 @@ function TimeslotDetails({
 		return columns;
 	}, [setTimeslots, timeslots, entities, readOnly]);
 
-	return (
-		<Table
-			columns={columns}
-			values={timeslots} 
-		/>
-	)
+	return <Table columns={columns} values={timeslots} />;
 }
 
 export default TimeslotDetails;

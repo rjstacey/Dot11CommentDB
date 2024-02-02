@@ -1,5 +1,11 @@
-import React from "react";
-import { matchPath, NavLink, useLocation, useNavigate, useParams } from "react-router-dom";
+import * as React from "react";
+import {
+	matchPath,
+	NavLink,
+	useLocation,
+	useNavigate,
+	useParams,
+} from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
 import {
@@ -132,7 +138,7 @@ const smallScreenQuery = window.matchMedia("(max-width: 992px");
 function Header() {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
-	const {groupName} = useParams();
+	const { groupName } = useParams();
 	const user = useAppSelector(selectUser)!;
 	const [isSmall, setIsSmall] = React.useState(smallScreenQuery.matches);
 
@@ -144,29 +150,23 @@ function Header() {
 			smallScreenQuery.removeEventListener("change", updateSmallScreen);
 	}, []);
 
-	const title = (groupName? groupName + " ": "") + "Meetings";
+	const title = (groupName ? groupName + " " : "") + "Meetings";
 	const rootPath = "/" + (groupName || "");
 
 	const clearCache = () => {
 		dispatch(resetStore());
 		dispatch(setUser(user));
-	}
+	};
 
 	return (
 		<header className={styles.header}>
 			<Helmet title={title} />
-	
-			<h3
-				className="title"
-				onClick={() => navigate(rootPath)}
-			>
 
+			<h3 className="title" onClick={() => navigate(rootPath)}>
 				{title}
 			</h3>
 
-			<div
-				className="nav-menu-container"
-			>
+			<div className="nav-menu-container">
 				{isSmall ? (
 					<Dropdown
 						className="nav-small-menu"
@@ -184,13 +184,11 @@ function Header() {
 				)}
 			</div>
 
-			<Account
-				user={user}
-			>
-				<div>{pkg.name}: {pkg.version}</div>
-				<Button onClick={clearCache}>
-					Clear cache
-				</Button>
+			<Account user={user}>
+				<div>
+					{pkg.name}: {pkg.version}
+				</div>
+				<Button onClick={clearCache}>Clear cache</Button>
 			</Account>
 		</header>
 	);

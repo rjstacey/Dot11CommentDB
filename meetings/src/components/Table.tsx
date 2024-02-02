@@ -1,7 +1,9 @@
-import React from "react";
+import * as React from "react";
 import styles from "./Table.module.css";
 
-const Table = ({className, ...props}: React.ComponentProps<"table">) => <table className={styles.table} {...props} />;
+const Table = ({ className, ...props }: React.ComponentProps<"table">) => (
+	<table className={styles.table} {...props} />
+);
 
 export const tableEmpty = (
 	<tr>
@@ -66,10 +68,7 @@ export function EditTable({
 	));
 
 	return (
-		<table
-			className={styles.table}
-			style={{ gridTemplateColumns }}
-		>
+		<table className={styles.table} style={{ gridTemplateColumns }}>
 			<thead>{header}</thead>
 			<tbody>{rows.length > 0 ? rows : tableEmpty}</tbody>
 		</table>

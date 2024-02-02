@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { DateTime } from "luxon";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "react-tabs/style/react-tabs.css";
@@ -131,7 +131,7 @@ function selectMeetingsGroups(state: RootState) {
 			groupIds.add(m.organizationId);
 	}
 
-	return groups.filter(g => groupIds.has(g.id));
+	return groups.filter((g) => groupIds.has(g.id));
 }
 
 function selectEmails(state: RootState, groupIds: EntityId[]) {
@@ -234,7 +234,10 @@ function MeetingEmail({ close }: { close: () => void }) {
 				//style={{ gridTemplateRows: `repeat(${nRows}, 1fr)` }}
 			>
 				{groups.map((g) => (
-					<div key={g.id} style={{display: 'flex', alignItems: 'center'}}>
+					<div
+						key={g.id}
+						style={{ display: "flex", alignItems: "center" }}
+					>
 						<Checkbox
 							value={g.id}
 							onChange={handleSelectGroup}

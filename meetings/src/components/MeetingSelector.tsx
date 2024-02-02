@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { DateTime } from "luxon";
 
 import { Select } from "dot11-components";

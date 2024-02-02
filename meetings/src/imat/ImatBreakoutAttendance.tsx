@@ -107,10 +107,7 @@ function BreakoutAttendance() {
 
 	return (
 		<>
-			<div
-				className="top-row"
-				style={{ maxWidth }}
-			>
+			<div className="top-row" style={{ maxWidth }}>
 				<ImatMeetingInfo imatMeeting={imatMeeting} />
 				<ImatBreakoutInfo breakout={breakout} />
 				<div>
@@ -123,9 +120,7 @@ function BreakoutAttendance() {
 				</div>
 			</div>
 
-			<div
-				className="table-container centered-rows"
-			>
+			<div className="table-container centered-rows">
 				<AppTable
 					fitWidth
 					fixed

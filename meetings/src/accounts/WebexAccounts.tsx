@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 
 import {
 	Button,
@@ -161,15 +161,11 @@ const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 	},
 	authButtons: {
 		label: "Authorize",
-		renderCell: (props: CellProps) => (
-			<AuthButtons {...props} />
-		),
+		renderCell: (props: CellProps) => <AuthButtons {...props} />,
 	},
 	defaults: {
 		label: "Use by default",
-		renderCell: (props: CellProps) => (
-			<Defaults {...props} />
-		),
+		renderCell: (props: CellProps) => <Defaults {...props} />,
 	},
 	actions: {
 		gridTemplate: "40px",

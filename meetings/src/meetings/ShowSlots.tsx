@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { DateTime } from "luxon";
 
 import { ActionIcon } from "dot11-components";
@@ -16,10 +16,7 @@ const Slot = ({
 	remove?: React.MouseEventHandler;
 	children?: React.ReactNode;
 }) => (
-	<div
-		className={styles.slot}
-		role="listitem"
-	>
+	<div className={styles.slot} role="listitem">
 		{children && <span className={styles["slot-item"]}>{children}</span>}
 		<ActionIcon style={{ minWidth: 16 }} type="clear" onClick={remove} />
 	</div>

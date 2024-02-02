@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 
 import { Select, displayDateRange } from "dot11-components";
 
@@ -9,7 +9,9 @@ import styles from "./SessionSelector.module.css";
 
 const renderItem = ({ item: session }: { item: ImatMeeting }) => (
 	<div className={styles.item}>
-		<span>{session.type + ", " + displayDateRange(session.start, session.end)}</span>
+		<span>
+			{session.type + ", " + displayDateRange(session.start, session.end)}
+		</span>
 		<span>{session.name}</span>
 	</div>
 );

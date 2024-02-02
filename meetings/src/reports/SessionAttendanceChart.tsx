@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { createSelector, EntityId, Dictionary } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 import * as d3 from "d3";
@@ -160,7 +160,9 @@ const selectAttendanceSeriesInfo = createSelector(
 		// Create series entities
 		const seriesEntities = entries.reduce((seriesEntities, entry) => {
 			const seriesId = entry.date + " " + entry.slotName;
-			seriesEntities[seriesId] = (seriesEntities[seriesId] || []).concat(entry);
+			seriesEntities[seriesId] = (seriesEntities[seriesId] || []).concat(
+				entry
+			);
 			return seriesEntities;
 		}, {} as Record<string, BreakoutAttendanceEntry[]>);
 

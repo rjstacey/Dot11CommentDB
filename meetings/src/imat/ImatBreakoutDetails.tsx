@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { connect, ConnectedProps } from "react-redux";
 import { DateTime } from "luxon";
 import type { Dictionary } from "@reduxjs/toolkit";
@@ -958,14 +958,12 @@ class BreakoutDetails extends React.Component<
 
 		let submit, cancel;
 		let title = "";
-		if (!notAvailableStr)
-			title = "Breakout";
+		if (!notAvailableStr) title = "Breakout";
 		if (action === "import") {
 			submit = this.import;
 			cancel = this.cancel;
 			title = "Import as meeting";
-		}
-		else if (action === "add") {
+		} else if (action === "add") {
 			submit = this.add;
 			cancel = this.cancel;
 			title = "Add breakout";
@@ -996,15 +994,12 @@ class BreakoutDetails extends React.Component<
 					name="delete"
 					title="Delete breakout"
 					disabled={
-						loading ||
-						breakouts.length === 0 ||
-						busy ||
-						readOnly
+						loading || breakouts.length === 0 || busy || readOnly
 					}
 					onClick={this.clickDelete}
 				/>
 			</div>
-		)
+		);
 
 		return (
 			<>

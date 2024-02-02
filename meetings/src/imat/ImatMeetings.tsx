@@ -9,12 +9,13 @@ import {
 	HeaderCellRendererProps,
 	ColumnProperties,
 	displayDate,
-	TablesConfig, TableConfig,
+	TablesConfig,
+	TableConfig,
 	ButtonGroup,
 	TableViewSelector,
 	TableColumnSelector,
 	CellRendererProps,
-	displayDateRange
+	displayDateRange,
 } from "dot11-components";
 
 import { useAppDispatch } from "../store/hooks";
@@ -36,19 +37,42 @@ const renderHeaderStartEnd = (props: HeaderCellRendererProps) => (
 const renderCellStartEnd = ({ rowData: session }: CellRendererProps) =>
 	displayDateRange(session.start, session.end);
 
-const FlexRow = ({style, ...props}: React.ComponentProps<"div">) => (
-	<div style={{...style, display: 'flex', alignItems: 'center'}} {...props} />
+const FlexRow = ({ style, ...props }: React.ComponentProps<"div">) => (
+	<div
+		style={{ ...style, display: "flex", alignItems: "center" }}
+		{...props}
+	/>
 );
 
 const renderHeaderSummary = (props: HeaderCellRendererProps) => (
 	<>
 		<FlexRow>
-			<TableColumnHeader {...props} style={{width: 60, marginRight: 10}} dataKey="type" label="Type" />
-			<TableColumnHeader {...props} style={{width: 60, marginRight: 10}} dataKey="start" label="Start" />
-			<TableColumnHeader {...props} style={{width: 60}} dataKey="end" label="End" />
+			<TableColumnHeader
+				{...props}
+				style={{ width: 60, marginRight: 10 }}
+				dataKey="type"
+				label="Type"
+			/>
+			<TableColumnHeader
+				{...props}
+				style={{ width: 60, marginRight: 10 }}
+				dataKey="start"
+				label="Start"
+			/>
+			<TableColumnHeader
+				{...props}
+				style={{ width: 60 }}
+				dataKey="end"
+				label="End"
+			/>
 		</FlexRow>
 		<FlexRow>
-			<TableColumnHeader {...props} style={{width: 90}} dataKey="name" label="Name" />
+			<TableColumnHeader
+				{...props}
+				style={{ width: 90 }}
+				dataKey="name"
+				label="Name"
+			/>
 		</FlexRow>
 	</>
 );
@@ -58,11 +82,9 @@ const renderCellSummary = ({ rowData: session }: CellRendererProps) => (
 		<FlexRow>
 			{session.type + ", " + displayDateRange(session.start, session.end)}
 		</FlexRow>
-		<FlexRow style={{fontStyle: 'italic'}}>
-			{session.name}
-		</FlexRow>
+		<FlexRow style={{ fontStyle: "italic" }}>{session.name}</FlexRow>
 	</>
-)
+);
 
 const BreakoutsLink = ({ imatMeetingId }: { imatMeetingId: number }) => {
 	const location = useLocation();
@@ -95,7 +117,7 @@ const tableColumns: ColumnPropertiesWithWidth[] = [
 		width: 120,
 		flexGrow: 1,
 		flexShrink: 1,
-		dataRenderer: displayDate
+		dataRenderer: displayDate,
 	},
 	{
 		key: "end",
@@ -103,7 +125,7 @@ const tableColumns: ColumnPropertiesWithWidth[] = [
 		width: 120,
 		flexGrow: 1,
 		flexShrink: 1,
-		dataRenderer: displayDate
+		dataRenderer: displayDate,
 	},
 	{
 		key: "start/end",
@@ -112,11 +134,16 @@ const tableColumns: ColumnPropertiesWithWidth[] = [
 		flexGrow: 1,
 		flexShrink: 1,
 		headerRenderer: renderHeaderStartEnd,
-		cellRenderer: renderCellStartEnd
+		cellRenderer: renderCellStartEnd,
 	},
-	{ key: "summary", label: "Summary", width: 500, flexGrow: 1, flexShrink: 1,
+	{
+		key: "summary",
+		label: "Summary",
+		width: 500,
+		flexGrow: 1,
+		flexShrink: 1,
 		headerRenderer: renderHeaderSummary,
-		cellRenderer: renderCellSummary
+		cellRenderer: renderCellSummary,
 	},
 	{
 		key: "name",
@@ -160,7 +187,7 @@ const defaultTablesColumns = {
 		"groupName",
 		"timezone",
 		"sessionId",
-		"breakouts"
+		"breakouts",
 	],
 	Detail: [
 		"__ctrl__",
@@ -171,7 +198,7 @@ const defaultTablesColumns = {
 		"groupName",
 		"timezone",
 		"sessionId",
-		"breakouts"
+		"breakouts",
 	],
 };
 

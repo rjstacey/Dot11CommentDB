@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { DateTime } from "luxon";
 import { EntityId } from "@reduxjs/toolkit";
 

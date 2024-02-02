@@ -1,52 +1,65 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from "react-router-dom";
 
 import {
-	AppTable, SelectHeaderCell, SelectCell,
+	AppTable,
+	SelectHeaderCell,
+	SelectCell,
 	ActionButton,
-	ColumnProperties
-} from 'dot11-components';
+	ColumnProperties,
+} from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	loadImatMeetingAttendance,
 	clearImatMeetingAttendance,
 	selectImatMeeting,
 	imatMeetingAttendanceSelectors,
-	imatMeetingAttendanceActions
- } from '../store/imatMeetingAttendance';
+	imatMeetingAttendanceActions,
+} from "../store/imatMeetingAttendance";
 
-import { ImatMeetingInfo } from './ImatBreakouts';
+import { ImatMeetingInfo } from "./ImatBreakouts";
 
-type ColumnPropertiesWithWidth = ColumnProperties & {width: number};
+type ColumnPropertiesWithWidth = ColumnProperties & { width: number };
 
 const columns: ColumnPropertiesWithWidth[] = [
-	{key: '__ctrl__',
-		width: 30, flexGrow: 1, flexShrink: 0,
-		headerRenderer: p => <SelectHeaderCell {...p} />,
-		cellRenderer: p =>
-			<SelectCell 
+	{
+		key: "__ctrl__",
+		width: 30,
+		flexGrow: 1,
+		flexShrink: 0,
+		headerRenderer: (p) => <SelectHeaderCell {...p} />,
+		cellRenderer: (p) => (
+			<SelectCell
 				selectors={imatMeetingAttendanceSelectors}
 				actions={imatMeetingAttendanceActions}
 				{...p}
-			/>},
-	{key: 'breakoutId',
-		label: 'Breakout',
-		width: 150, flexGrow: 1, flexShrink: 1},
-	{key: 'SAPIN', 
-		label: 'SA PIN',
-		width: 150, flexGrow: 1, flexShrink: 1},
-	{key: 'Name',
-		label: 'Name',
-		width: 300, flexGrow: 1, flexShrink: 1},
-	{key: 'Affiliation', 
-		label: 'Affiliation',
-		width: 300, flexGrow: 1, flexShrink: 1},
-	{key: 'Email', 
-		label: 'Email',
-		width: 300, flexGrow: 1, flexShrink: 1},
-	{key: 'Timestamp', 
-		label: 'Timestamp',
-		width: 150, flexGrow: 1, flexShrink: 1},
+			/>
+		),
+	},
+	{
+		key: "breakoutId",
+		label: "Breakout",
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{ key: "SAPIN", label: "SA PIN", width: 150, flexGrow: 1, flexShrink: 1 },
+	{ key: "Name", label: "Name", width: 300, flexGrow: 1, flexShrink: 1 },
+	{
+		key: "Affiliation",
+		label: "Affiliation",
+		width: 300,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{ key: "Email", label: "Email", width: 300, flexGrow: 1, flexShrink: 1 },
+	{
+		key: "Timestamp",
+		label: "Timestamp",
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
 ];
 
 const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
@@ -55,20 +68,29 @@ function BreakoutAttendance() {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const params = useParams();
-	const {groupName} = params;
+	const { groupName } = params;
 	const meetingNumber = Number(params.meetingNumber);
 
 	const imatMeeting = useAppSelector(selectImatMeeting);
 	const close = () => navigate(-1);
-	const refresh = () => dispatch((groupName && meetingNumber)? loadImatMeetingAttendance(groupName, meetingNumber): clearImatMeetingAttendance());
+	const refresh = () =>
+		dispatch(
+			groupName && meetingNumber
+				? loadImatMeetingAttendance(groupName, meetingNumber)
+				: clearImatMeetingAttendance()
+		);
 
 	return (
 		<>
-			<div className="top-row" style={{maxWidth}}>
+			<div className="top-row" style={{ maxWidth }}>
 				<ImatMeetingInfo imatMeeting={imatMeeting} />
 				<div>
-					<ActionButton name='refresh' title='Refresh' onClick={refresh} />
-					<ActionButton name='close' title='Close' onClick={close} />
+					<ActionButton
+						name="refresh"
+						title="Refresh"
+						onClick={refresh}
+					/>
+					<ActionButton name="close" title="Close" onClick={close} />
 				</div>
 			</div>
 
@@ -84,7 +106,7 @@ function BreakoutAttendance() {
 				/>
 			</div>
 		</>
-	)
+	);
 }
 
 export default BreakoutAttendance;

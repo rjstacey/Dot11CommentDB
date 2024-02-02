@@ -96,6 +96,6 @@
 	display: grid;
 	grid-gap: 0.5em 1em;
 	grid-auto-flow: column;
-	grid-template-rows: repeat( 5, minmax(10px, max-content) );
+	grid-template-rows: repeat(5, minmax(10px, max-content));
 	margin-bottom: 10px;
 }

@@ -28,7 +28,7 @@ import {
 	selectSessionsState,
 	sessionsSelectors,
 	sessionsActions,
-	displaySessionType
+	displaySessionType,
 } from "../store/sessions";
 
 import SessionDetails from "./SessionDetails";
@@ -43,20 +43,48 @@ const renderHeaderStartEnd = (props: HeaderCellRendererProps) => (
 export const renderCellStartEnd = ({ rowData }: CellRendererProps) =>
 	displayDateRange(rowData.startDate, rowData.endDate);
 
-const FlexRow = ({style, ...props}: React.ComponentProps<"div">) => (
-	<div style={{...style, display: 'flex', alignItems: 'center'}} {...props} />
+const FlexRow = ({ style, ...props }: React.ComponentProps<"div">) => (
+	<div
+		style={{ ...style, display: "flex", alignItems: "center" }}
+		{...props}
+	/>
 );
 
 const renderHeaderSessionSummary = (props: HeaderCellRendererProps) => (
 	<>
 		<FlexRow>
-			<TableColumnHeader {...props} style={{width: 100, marginRight: 10}} dataKey="number" label="Number" />
-			<TableColumnHeader {...props} style={{width: 60, marginRight: 10}} dataKey="type" label="Type" />
-			<TableColumnHeader {...props} style={{width: 60, marginRight: 10}} dataKey="startDate" label="Start" />
-			<TableColumnHeader {...props} style={{width: 60}} dataKey="endDate" label="End" />
+			<TableColumnHeader
+				{...props}
+				style={{ width: 100, marginRight: 10 }}
+				dataKey="number"
+				label="Number"
+			/>
+			<TableColumnHeader
+				{...props}
+				style={{ width: 60, marginRight: 10 }}
+				dataKey="type"
+				label="Type"
+			/>
+			<TableColumnHeader
+				{...props}
+				style={{ width: 60, marginRight: 10 }}
+				dataKey="startDate"
+				label="Start"
+			/>
+			<TableColumnHeader
+				{...props}
+				style={{ width: 60 }}
+				dataKey="endDate"
+				label="End"
+			/>
 		</FlexRow>
 		<FlexRow>
-			<TableColumnHeader {...props} style={{width: 90}} dataKey="name" label="Name" />
+			<TableColumnHeader
+				{...props}
+				style={{ width: 90 }}
+				dataKey="name"
+				label="Name"
+			/>
 		</FlexRow>
 	</>
 );
@@ -64,13 +92,15 @@ const renderHeaderSessionSummary = (props: HeaderCellRendererProps) => (
 const renderCellSessionSummary = ({ rowData: session }: CellRendererProps) => (
 	<>
 		<FlexRow>
-			{session.number + " " + displaySessionType(session.type) + ", " + displayDateRange(session.startDate, session.endDate)}
+			{session.number +
+				" " +
+				displaySessionType(session.type) +
+				", " +
+				displayDateRange(session.startDate, session.endDate)}
 		</FlexRow>
-		<FlexRow style={{fontStyle: 'italic'}}>
-			{session.name}
-		</FlexRow>
+		<FlexRow style={{ fontStyle: "italic" }}>{session.name}</FlexRow>
 	</>
-)
+);
 
 const tableColumns: ColumnProperties[] = [
 	{
@@ -121,9 +151,14 @@ const tableColumns: ColumnProperties[] = [
 	{ key: "number", label: "Number", width: 80, flexGrow: 1, flexShrink: 1 },
 	{ key: "name", label: "Name", width: 300, flexGrow: 1, flexShrink: 1 },
 	{ key: "type", ...fields.type, width: 80, flexGrow: 1, flexShrink: 1 },
-	{ key: "summary", label: "Summary", width: 500, flexGrow: 1, flexShrink: 1,
+	{
+		key: "summary",
+		label: "Summary",
+		width: 500,
+		flexGrow: 1,
+		flexShrink: 1,
 		headerRenderer: renderHeaderSessionSummary,
-		cellRenderer: renderCellSessionSummary
+		cellRenderer: renderCellSessionSummary,
 	},
 	{
 		key: "timezone",
@@ -150,13 +185,7 @@ const tableColumns: ColumnProperties[] = [
 ];
 
 const defaultTablesColumns = {
-	Summary: [
-		"__ctrl__",
-		"summary",
-		"groupName",
-		"timezone",
-		"Attendance",
-	],
+	Summary: ["__ctrl__", "summary", "groupName", "timezone", "Attendance"],
 	Detail: [
 		"__ctrl__",
 		"start/end",
@@ -194,7 +223,7 @@ function Sessions() {
 
 	const { selected } = useAppSelector(selectSessionsState);
 
-	const refresh = () => navigate(".", {replace: true});
+	const refresh = () => navigate(".", { replace: true });
 	const showImatMeetings = () => navigate(`/${groupName}/imatMeetings`);
 
 	const handleRemoveSelected = async () => {
@@ -205,7 +234,6 @@ function Sessions() {
 			if (ok) await dispatch(deleteSessions(selected));
 		}
 	};
-
 
 	return (
 		<>

@@ -188,9 +188,7 @@ function Ieee802WorldSchedule() {
 
 	return (
 		<>
-			<div
-				className="top-row justify-right"
-			>
+			<div className="top-row justify-right">
 				<TableColumnSelector
 					selectors={ieee802WorldSelectors}
 					actions={ieee802WorldActions}
@@ -208,9 +206,7 @@ function Ieee802WorldSchedule() {
 				/>
 			</div>
 
-			<div
-				className="table-container centered-rows"
-			>
+			<div className="table-container centered-rows">
 				<AppTable
 					defaultTablesConfig={defaultTablesConfig}
 					columns={tableColumns}
