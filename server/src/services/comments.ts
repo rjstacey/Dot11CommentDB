@@ -33,11 +33,11 @@ export type Comment = {
 	Comment: string;
 	AdHocGroupId: string | null;
 	AdHoc: string;
-	Notes: string;
+	Notes: string | null;
 	CommentGroup: string;
 	ProposedChange: string;
-	LastModifiedBy: number;
-	LastModifiedTime: string;
+	LastModifiedBy: number | null;
+	LastModifiedTime: string | null;
 }
 
 /** Editable comment fields array */

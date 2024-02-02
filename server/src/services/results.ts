@@ -13,6 +13,7 @@ import { genResultsSpreadsheet } from './resultsSpreadsheet';
 import { getBallotSeries, BallotType, Ballot } from './ballots';
 import { getVoters, Voter } from './voters';
 import { AccessLevel } from '../auth/access';
+import { getWorkingGroup } from './groups';
 
 export type Result = {
     id: string;
@@ -527,13 +528,16 @@ export async function importEpollResults(user: User, ballot: Ballot) {
 
 	if (!ballot.EpollNum)
 		throw new TypeError("Ballot does not have an ePoll number");
+	const wg = await getWorkingGroup(user, ballot.groupId!);
+	if (!wg)
+		throw new TypeError("No working group associated with ballot");
 
 	const {ieeeClient} = user;
 	if (!ieeeClient)
 		throw new AuthError('Not logged in');
 
-	const p1 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-results.csv?p=${ballot.EpollNum}`);
-	const p2 = ieeeClient.get(`https://mentor.ieee.org/802.11/poll-status?p=${ballot.EpollNum}`);
+	const p1 = ieeeClient.get(`https://mentor.ieee.org/${wg.name}/poll-results.csv?p=${ballot.EpollNum}`);
+	const p2 = ieeeClient.get(`https://mentor.ieee.org/${wg.name}/poll-status?p=${ballot.EpollNum}`);
 
 	let response = await p1;
 	if (response.headers['content-type'] !== 'text/csv')

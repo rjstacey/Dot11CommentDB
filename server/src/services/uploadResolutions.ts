@@ -248,8 +248,8 @@ type ResolutionUpdate = {
 	ApprovedByMotion: Resolution["ApprovedByMotion"];
 
 	EditStatus: Resolution["EditStatus"];
-	EditNotes: Resolution["EditStatus"];
-	EditInDraft: Resolution["EditStatus"];
+	EditNotes: Resolution["EditNotes"];
+	EditInDraft: Resolution["EditInDraft"];
 }
 
 function resolutionUpdate(toUpdate: FieldToUpdate[], c: Partial<ResolutionUpdate>, cs: ResolutionUpdate) {
@@ -279,11 +279,11 @@ function resolutionUpdate(toUpdate: FieldToUpdate[], c: Partial<ResolutionUpdate
 
 	if (toUpdate.includes("editing")) {
 		if ((c.EditStatus || cs.EditStatus) && c.EditStatus !== cs.EditStatus)
-			n.EditStatus = cs.EditStatus || '';
+			n.EditStatus = cs.EditStatus;
 		if ((c.EditNotes || cs.EditNotes) && c.EditNotes !== cs.EditNotes)
-			n.EditNotes = cs.EditNotes || '';
+			n.EditNotes = cs.EditNotes;
 		if ((c.EditInDraft || cs.EditInDraft) && c.EditInDraft !== cs.EditInDraft)
-			n.EditInDraft = cs.EditInDraft || '';
+			n.EditInDraft = cs.EditInDraft;
 	}
 
 	return Object.keys(n).length? n: null;

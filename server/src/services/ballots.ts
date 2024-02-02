@@ -1,46 +1,46 @@
-import db from '../utils/database';
-import { type ResultSetHeader } from 'mysql2';
-import { DateTime } from 'luxon';
-import { isPlainObject, NotFoundError } from '../utils';
+import db from "../utils/database";
+import { type ResultSetHeader } from "mysql2";
+import { DateTime } from "luxon";
+import { isPlainObject, NotFoundError } from "../utils";
 
-import { getResultsCoalesced, ResultsSummary } from './results';
-import { CommentsSummary } from './comments';
+import { getResultsCoalesced, ResultsSummary } from "./results";
+import { CommentsSummary } from "./comments";
 
-import { type User } from './users';
-import { type Group } from './groups';
-import { AccessLevel } from '../auth/access';
+import { type User } from "./users";
+import { type Group } from "./groups";
+import { AccessLevel } from "../auth/access";
 
 export type Ballot = {
-    id: number;
+	id: number;
 	groupId: string | null;
 	workingGroupId: string;
-    BallotID: string;
-    Project: string;
-    Type: number;
-    IsRecirc: boolean;
-    IsComplete: boolean;
-    Start: string | null;
-    End: string | null;
-    Document: string;
-    Topic: string;
-    VotingPoolID: string | null;
-    prev_id: number | null;
-    EpollNum: number | null;
-    Results: ResultsSummary | null;
-    Comments: CommentsSummary;
+	BallotID: string;
+	Project: string;
+	Type: number;
+	IsRecirc: boolean;
+	IsComplete: boolean;
+	Start: string | null;
+	End: string | null;
+	Document: string;
+	Topic: string;
+	VotingPoolID: string | null;
+	prev_id: number | null;
+	EpollNum: number | null;
+	Results: ResultsSummary | null;
+	Comments: CommentsSummary;
 	Voters: number;
-}
+};
 
 type BallotUpdate = {
 	id: Ballot["id"];
 	changes: Partial<Ballot>;
-}
+};
 
 export const BallotType = {
-	CC: 0,			// comment collection
-	WG: 1,			// WG ballot
-	SA: 2,			// SA ballot
-	Motion: 5		// motion
+	CC: 0, // comment collection
+	WG: 1, // WG ballot
+	SA: 2, // SA ballot
+	Motion: 5, // motion
 };
 
 /*
@@ -69,32 +69,38 @@ const getBallotsSQL = `
 
 /**
  * Get all ballots.
- * 
+ *
  * @returns An array of ballot objects.
  */
 export async function getBallots(workingGroup: Group) {
-	const sql = db.format(getBallotsSQL + ' WHERE b.workingGroupId=UUID_TO_BIN(?) ORDER BY b.Project, b.Start', [workingGroup.id]);
-	const ballots = await db.query({sql, dateStrings: true}) as Ballot[];
+	const sql = db.format(
+		getBallotsSQL +
+			" WHERE b.workingGroupId=UUID_TO_BIN(?) ORDER BY b.Project, b.Start",
+		[workingGroup.id]
+	);
+	const ballots = (await db.query({ sql, dateStrings: true })) as Ballot[];
 	return ballots;
 }
 
 /**
  * Get a ballot.
- * 
+ *
  * @param id Ballot identifier
  * @returns A ballot object that represents the identified ballot
  */
 export async function getBallot(id: number) {
-	const sql = getBallotsSQL + db.format(' WHERE b.id=?', [id]);
-	const [ballot] = await db.query({sql, dateStrings: true}) as Ballot[];
-	if (!ballot)
-		throw new NotFoundError(`No such ballot: ${id}`);
+	const sql = getBallotsSQL + db.format(" WHERE b.id=?", [id]);
+	const [ballot] = (await db.query({ sql, dateStrings: true })) as Ballot[];
+	if (!ballot) throw new NotFoundError(`No such ballot: ${id}`);
 	return ballot;
 }
 
-export async function getBallotWithNewResultsSummary(user: User, ballot_id: number) {
+export async function getBallotWithNewResultsSummary(
+	user: User,
+	ballot_id: number
+) {
 	let ballot = await getBallot(ballot_id);
-	ballot  = (await getResultsCoalesced(user, AccessLevel.ro, ballot)).ballot;
+	ballot = (await getResultsCoalesced(user, AccessLevel.ro, ballot)).ballot;
 	return ballot;
 }
 
@@ -104,7 +110,8 @@ export async function getBallotWithNewResultsSummary(user: User, ballot_id: numb
  * @returns an array of ballots (starting with the initial ballot) that is the ballot series
  */
 export async function getBallotSeries(id: number) {
-	const sql = db.format(`
+	const sql = db.format(
+		`
 		WITH RECURSIVE cte AS (
 			${getBallotsSQL} WHERE b.id = ?
 			UNION ALL
@@ -112,9 +119,11 @@ export async function getBallotSeries(id: number) {
 			INNER JOIN cte ON b.id = cte.prev_id
 		)
 		SELECT * FROM cte ORDER BY Start;
-	`, [id]);
+	`,
+		[id]
+	);
 
-	const ballots = await db.query({sql, dateStrings: true}) as Ballot[];
+	const ballots = (await db.query({ sql, dateStrings: true })) as Ballot[];
 	return ballots;
 }
 
@@ -122,14 +131,13 @@ type BallotSeriesRange = {
 	id: number;
 	Start: string;
 	End: string;
-}
+};
 
 /**
  * Get recent ballot series
  * @returns An array of ballot arrays that are the recent ballot series
  */
 export async function getRecentBallotSeries() {
-
 	const sql = `
 		WITH RECURSIVE cte AS (
 			SELECT id, prev_id, 1 level, Start, End FROM ballots WHERE IsComplete<>0 AND type=1 
@@ -145,21 +153,26 @@ export async function getRecentBallotSeries() {
 		GROUP BY id
 		ORDER BY End;
 	`;
-	const allBallotSeries = await db.query({sql, dateStrings: true}) as BallotSeriesRange[];
+	const allBallotSeries = (await db.query({
+		sql,
+		dateStrings: true,
+	})) as BallotSeriesRange[];
 
 	// Find the earliest start of the last three ballot series
 	let minStart = DateTime.now();
-	allBallotSeries.slice(-3).forEach(ballotSeries => {
+	allBallotSeries.slice(-3).forEach((ballotSeries) => {
 		const start = DateTime.fromISO(ballotSeries.Start);
-		if (minStart > start)
-			minStart = start;
-	})
+		if (minStart > start) minStart = start;
+	});
 
 	// Get an array of ballot arrays that are the recent ballot series
 	const ballotsArr = await Promise.all(
 		allBallotSeries
-			.filter(ballotSeries => DateTime.fromISO(ballotSeries.Start) >= minStart)
-			.map(ballotSeries => getBallotSeries(ballotSeries.id))
+			.filter(
+				(ballotSeries) =>
+					DateTime.fromISO(ballotSeries.Start) >= minStart
+			)
+			.map((ballotSeries) => getBallotSeries(ballotSeries.id))
 	);
 
 	return ballotsArr;
@@ -180,7 +193,7 @@ type BallotDB = {
 	EpollNum?: number | null;
 	VotingPoolID?: string | null;
 	prev_id?: number | null;
-}
+};
 
 function ballotEntry(ballot: Partial<Ballot>) {
 	var entry: BallotDB = {
@@ -193,40 +206,37 @@ function ballotEntry(ballot: Partial<Ballot>) {
 		Document: ballot.Document,
 		Topic: ballot.Topic,
 		EpollNum: ballot.EpollNum,
-	}
+	};
 
-	if (typeof ballot.Start !== 'undefined') {
+	if (typeof ballot.Start !== "undefined") {
 		if (ballot.Start) {
 			const start = DateTime.fromISO(ballot.Start);
 			if (!start.isValid)
-				throw new TypeError('Invlid parameter start: ' + ballot.Start);
-			entry.Start = start.toUTC().toFormat('yyyy-MM-dd HH:mm:ss');
-		}
-		else {
+				throw new TypeError("Invlid parameter start: " + ballot.Start);
+			entry.Start = start.toUTC().toFormat("yyyy-MM-dd HH:mm:ss");
+		} else {
 			entry.Start = null;
 		}
 	}
 
-	if (typeof ballot.End !== 'undefined') {
+	if (typeof ballot.End !== "undefined") {
 		if (ballot.End) {
 			const end = DateTime.fromISO(ballot.End);
 			if (!end.isValid)
-				throw new TypeError('Invlid parameter start: ' + ballot.End);
-			entry.End = end.toUTC().toFormat('yyyy-MM-dd HH:mm:ss');
-		}
-		else {
+				throw new TypeError("Invlid parameter start: " + ballot.End);
+			entry.End = end.toUTC().toFormat("yyyy-MM-dd HH:mm:ss");
+		} else {
 			entry.End = null;
 		}
 	}
 
 	if (ballot.prev_id) {
-		entry.VotingPoolID = '';
+		entry.VotingPoolID = "";
 		entry.prev_id = ballot.prev_id;
 	}
 
 	for (let key of Object.keys(entry)) {
-		if (entry[key] === undefined)
-			delete entry[key]
+		if (entry[key] === undefined) delete entry[key];
 	}
 
 	return entry;
@@ -236,51 +246,58 @@ function ballotSetSql(ballot: Partial<BallotDB>) {
 	const sets: string[] = [];
 	for (const [key, value] of Object.entries(ballot)) {
 		let sql: string;
-		if (key === 'groupId')
-			sql = db.format('??=UUID_TO_BIN(?)', [key, value]);
-		else
-			sql = db.format('??=?', [key, value]);
+		if (key === "groupId")
+			sql = db.format("??=UUID_TO_BIN(?)", [key, value]);
+		else sql = db.format("??=?", [key, value]);
 		sets.push(sql);
 	}
-	return sets.join(', ');
+	return sets.join(", ");
 }
-
 
 /**
  * Add a ballot
- * 
+ *
  * @param user The user executing the add
  * @param workingGroup The working group from path
  * @param ballot The ballot to be added
  * @returns The ballot as added
  */
 async function addBallot(user: User, workingGroup: Group, ballot: Ballot) {
-
 	const entry = ballotEntry(ballot);
 
 	// If the group is not set, set to working group
-	if (!entry.groupId)
-		entry.groupId = workingGroup.id;
+	if (!entry.groupId) entry.groupId = workingGroup.id;
 
 	let id: number;
 	try {
-		const sql = 'INSERT INTO ballots SET ' + 
-			db.format('workingGroupId=UUID_TO_BIN(?), ', [workingGroup.id]) +
+		const sql =
+			"INSERT INTO ballots SET " +
+			db.format("workingGroupId=UUID_TO_BIN(?), ", [workingGroup.id]) +
 			ballotSetSql(entry);
-		const results = await db.query({sql, dateStrings: true}) as ResultSetHeader;
+		const results = (await db.query({
+			sql,
+			dateStrings: true,
+		})) as ResultSetHeader;
 		id = results.insertId;
-	}
-	catch(err: any) {
-		throw err.code == 'ER_DUP_ENTRY'? new TypeError("An entry already exists with BallotID=" + ballot.BallotID): err
+	} catch (err: any) {
+		throw err.code == "ER_DUP_ENTRY"
+			? new TypeError(
+					"An entry already exists with BallotID=" + ballot.BallotID
+			  )
+			: err;
 	}
 
 	return getBallotWithNewResultsSummary(user, id);
 }
 
 function validBallot(ballot: any): ballot is Ballot {
-	return isPlainObject(ballot) &&
-		ballot.BallotID && typeof ballot.BallotID === 'string' &&
-		ballot.Project && typeof ballot.Project === 'string';
+	return (
+		isPlainObject(ballot) &&
+		ballot.BallotID &&
+		typeof ballot.BallotID === "string" &&
+		ballot.Project &&
+		typeof ballot.Project === "string"
+	);
 }
 
 export function validBallots(ballots: any): ballots is Ballot[] {
@@ -289,21 +306,25 @@ export function validBallots(ballots: any): ballots is Ballot[] {
 
 /**
  * Add ballots
- * 
+ *
  * @param user The user executing the add
  * @param ballots An array of ballots to be added
  * @returns An array of ballots as added
  */
-export async function addBallots(user: User, workingGroup: Group, ballots: Ballot[]) {
+export async function addBallots(
+	user: User,
+	workingGroup: Group,
+	ballots: Ballot[]
+) {
 	if (!validBallots(ballots))
 		throw new TypeError("Bad or missing array of ballot objects");
 
-	return Promise.all(ballots.map(b => addBallot(user, workingGroup, b)));
+	return Promise.all(ballots.map((b) => addBallot(user, workingGroup, b)));
 }
 
 /**
  * Update ballot
- * 
+ *
  * @param user The user executing the update.
  * @param workingGroup The working group from path
  * @param update An object with shape {id, changes}
@@ -311,14 +332,25 @@ export async function addBallots(user: User, workingGroup: Group, ballots: Ballo
  * @param update.changes A partial ballot object that contains parameters to change.
  * @returns The ballot as updated
  */
-async function updateBallot(user: User, workingGroup: Group, update: BallotUpdate) {
-	const {id, changes} = update;
+async function updateBallot(
+	user: User,
+	workingGroup: Group,
+	update: BallotUpdate
+) {
+	const { id, changes } = update;
 	const entry = ballotEntry(changes);
 	if (Object.keys(entry).length > 0) {
-		const sql = 'UPDATE ballots SET ' +
+		const sql =
+			"UPDATE ballots SET " +
 			ballotSetSql(entry) +
-			db.format(' WHERE id=? AND workingGroupId=UUID_TO_BIN(?)', [id, workingGroup.id]);
-		const result = await db.query({sql, dateStrings: true}) as ResultSetHeader;
+			db.format(" WHERE id=? AND workingGroupId=UUID_TO_BIN(?)", [
+				id,
+				workingGroup.id,
+			]);
+		const result = (await db.query({
+			sql,
+			dateStrings: true,
+		})) as ResultSetHeader;
 		if (result.affectedRows !== 1)
 			throw new Error(`Unexpected: no update for ballot with id=${id}`);
 	}
@@ -327,9 +359,11 @@ async function updateBallot(user: User, workingGroup: Group, update: BallotUpdat
 }
 
 function validUpdate(update: any): update is BallotUpdate {
-	return isPlainObject(update) &&
-		typeof update.id === 'number' &&
-		isPlainObject(update.changes);
+	return (
+		isPlainObject(update) &&
+		typeof update.id === "number" &&
+		isPlainObject(update.changes)
+	);
 }
 
 export function validBallotUpdates(updates: any): updates is BallotUpdate[] {
@@ -338,40 +372,57 @@ export function validBallotUpdates(updates: any): updates is BallotUpdate[] {
 
 /**
  * Update ballots
- * 
+ *
  * @param user The user executing the update.
  * @param workingGroup The working group from path
  * @param updates An array of objects with shape {id, changes}
  * @returns An array of ballots as updated
  */
-export function updateBallots(user: User, workingGroup: Group, updates: BallotUpdate[]) {
-	return Promise.all(updates.map(u => updateBallot(user, workingGroup, u)));
+export function updateBallots(
+	user: User,
+	workingGroup: Group,
+	updates: BallotUpdate[]
+) {
+	return Promise.all(updates.map((u) => updateBallot(user, workingGroup, u)));
 }
 
 export function validBallotIds(ids: any): ids is number[] {
-	return Array.isArray(ids) && ids.every(id => typeof id === 'number');
+	return Array.isArray(ids) && ids.every((id) => typeof id === "number");
 }
 
 /**
  * Delete ballots along with associated comments, resolutions and results
- * 
+ *
  * @param user The user executing the delete.
  * @param workingGroup The working group from path
  * @param ids An array of ballot identifiers that identify the ballots to delete
  */
-export async function deleteBallots(user: User, workingGroup: Group, ids: number[]) {
+export async function deleteBallots(
+	user: User,
+	workingGroup: Group,
+	ids: number[]
+) {
 	// Make sure the ids are owned by the working group
-	const ballots = await db.query('SELECT id WHERE id IN (?) AND workingGroupId=UUID_TO_BIN(?)', [ids, workingGroup.id]) as {id: number}[];
-	if (ballots.length > 0) {
-		ids = ballots.map(b => b.id);
-		await db.query(
-			'START TRANSACTION;' +
-			db.format('DELETE r FROM comments c JOIN resolutions r ON c.id=r.comment_id WHERE c.ballot_id IN (?);', [ids]) +
-			db.format('DELETE FROM comments WHERE ballot_id IN (?);', [ids]) +
-			db.format('DELETE FROM results WHERE ballot_id IN (?);', [ids]) +
-			db.format('DELETE FROM ballots WHERE id IN (?);', [ids]) +
-			'COMMIT;'
-		);
-	}
-	return null;
+	ids = (
+		(await db.query(
+			"SELECT id FROM ballots WHERE id IN (?) AND workingGroupId=UUID_TO_BIN(?)",
+			[ids, workingGroup.id]
+		)) as { id: number }[]
+	).map((b) => b.id);
+
+	if (ids.length === 0) return 0;
+
+	const sql =
+		"START TRANSACTION;" +
+		db.format(
+			"DELETE r FROM comments c JOIN resolutions r ON c.id=r.comment_id WHERE c.ballot_id IN (?);",
+			[ids]
+		) +
+		db.format("DELETE FROM comments WHERE ballot_id IN (?);", [ids]) +
+		db.format("DELETE FROM results WHERE ballot_id IN (?);", [ids]) +
+		db.format("DELETE FROM ballots WHERE id IN (?);", [ids]) +
+		"COMMIT;";
+
+	await db.query(sql);
+	return ids.length;
 }

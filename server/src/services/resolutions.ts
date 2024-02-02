@@ -10,22 +10,25 @@ import { ForbiddenError, NotFoundError, isPlainObject } from '../utils';
 import { AccessLevel } from '../auth/access';
 import { getGroups } from './groups';
 
+export type ResnStatusType = "A" | "V" | "J";
+export type EditStatusType = "I" | "N";
+
 export type Resolution = {
 	id: string;
 	comment_id: bigint;
 	ResolutionID: number;
 	AssigneeSAPIN: number | null;
 	AssigneeName: string;
-	ResnStatus: 'A' | 'V' | 'J' | null;
+	ResnStatus: ResnStatusType | null;
 	Resolution: string | null;
 	ApprovedByMotion: string;
 	ReadyForMotion: boolean;
 	Submission: string;
-	EditStatus: string;
-	EditNotes: string;
+	EditStatus: EditStatusType | null;
+	EditNotes: string | null;
 	EditInDraft: string;
-	LastModifiedBy: number;
-	LastModifiedTime: string;
+	LastModifiedBy: number | null;
+	LastModifiedTime: string | null;
 }
 
 export const resolutionEditableFields = [
@@ -57,7 +60,7 @@ export const defaultResolution: ResolutionEditable = {
 	Submission: '',
 	ReadyForMotion: false,
 	ApprovedByMotion: '',
-	EditStatus: '',
+	EditStatus: null,
 	EditInDraft: '',
 	EditNotes: '',
 };

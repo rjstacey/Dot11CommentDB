@@ -651,67 +651,59 @@ async function uploadDatabaseMemberSAPINs(buffer: Buffer) {
 				missingSapins.push(s);
 		})
 	);
-	// Need to perform these sequentially
-	for (const s of missingSapins) {
-		const dateAdded = s!.DateAdded
-			? DateTime.fromISO(s!.DateAdded).toUTC().toFormat("yyyy-MM-dd HH:mm:ss")
-			: null;
-		await db.query(insertSql(s.SAPIN, dateAdded, s.MemberID));
-	}
+	const sql = 
+		missingSapins.map(s => {
+			const dateAdded = s!.DateAdded
+				? DateTime.fromISO(s!.DateAdded).toUTC().toFormat("yyyy-MM-dd HH:mm:ss")
+				: null;
+			return insertSql(s.SAPIN, dateAdded, s.MemberID);
+		}).join("; ");
+	await db.query(sql);
 }
 
 async function uploadDatabaseMemberEmails(buffer: Buffer) {
-	const emailsArray = await parseEmailsSpreadsheet(buffer);
-	const emailsObj: Record<number, Omit<ContactEmail, "id">[]> = {};
-	for (const entry of emailsArray) {
+	const emails = await parseEmailsSpreadsheet(buffer);
+	const entities: Record<number, ContactEmail[]> = {};
+	for (const entry of emails) {
 		const memberId = entry.MemberID!;
 		delete entry.MemberID;
-		if (!emailsObj[memberId]) emailsObj[memberId] = [];
-		emailsObj[memberId].push(entry);
+		if (!entities[memberId]) {
+			entities[memberId] = [];
+		}
+		const contactEmails = entities[memberId];
+		contactEmails.push({...entry, id: contactEmails.length});
 	}
 	const sql =
 		"UPDATE members SET ContactEmails=JSON_ARRAY(); " +
-		Object.entries(emailsObj)
-			.map(([memberId, memberEmails]) => {
-				const emails = memberEmails.map((entry, i) => ({
-					id: i + 1,
-					...entry,
-				})); // Insert id for each entry
-				return db.format(
-					"UPDATE members SET " +
-						"ContactEmails=? " +
-						"WHERE MemberID=?; ",
-					[JSON.stringify(emails), memberId]
-				);
-			})
-			.join("");
+		Object.entries(entities)
+			.map(([memberId, contactEmails]) => db.format(
+					"UPDATE members SET ContactEmails=? WHERE MemberID=?",
+					[JSON.stringify(contactEmails), memberId]
+				))
+			.join("; ");
 	await db.query(sql);
 }
 
 async function uploadDatabaseMemberHistory(buffer: Buffer) {
-	const historyArray = await parseHistorySpreadsheet(buffer);
-	const historyObj: Record<number, Omit<StatusChangeEntry, "id">[]> = {};
-	for (const h of historyArray) {
+	const histories = await parseHistorySpreadsheet(buffer);
+	const entities: Record<number, StatusChangeEntry[]> = {};
+	for (const h of histories) {
 		const memberId = h.MemberID!;
 		delete h.MemberID;
-		if (!historyObj[memberId]) historyObj[memberId] = [];
-		historyObj[memberId].push(h);
+		if (!entities[memberId]) {
+			entities[memberId] = [];
+		}
+		const history = entities[memberId];
+		history.push({...h, id: history.length});
 	}
 	const sql =
 		"UPDATE members SET StatusChangeHistory=JSON_ARRAY(); " +
-		Object.entries(historyObj)
-			.map(([memberId, h1]) => {
-				const h2 = h1
-					.map((entry, i) => ({ id: i + 1, ...entry })) // Insert id for each entry
-					.reverse(); // Latest first
-				return db.format(
-					"UPDATE members SET " +
-						"StatusChangeHistory=? " +
-						"WHERE MemberID=?; ",
-					[JSON.stringify(h2), memberId]
-				);
-			})
-			.join("");
+		Object.entries(entities)
+			.map(([memberId, history]) => db.format(
+					"UPDATE members SET StatusChangeHistory=? WHERE MemberID=?",
+					[JSON.stringify(history.reverse()), memberId]
+				))
+			.join("; ");
 	await db.query(sql);
 }
 

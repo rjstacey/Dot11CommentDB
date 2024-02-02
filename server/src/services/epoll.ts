@@ -3,7 +3,7 @@
  */
 
 import { DateTime } from 'luxon';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 import ExcelJS from 'exceljs';
 import { csvParse, AuthError, validateSpreadsheetHeader } from '../utils';
 
@@ -74,7 +74,7 @@ export async function getEpolls(user: User, groupName: string, n: number) {
 	async function recursivePageGet(epolls: Epoll[], n: number, page: number) {
 		//console.log('get epolls n=', n)
 
-		const {data} = await ieeeClient!.get(`https://mentor.ieee.org/802.11/polls/closed?n=${page}`);
+		const {data} = await ieeeClient!.get(`https://mentor.ieee.org/${groupName}/polls/closed?n=${page}`);
 
 		var epollsPage = parseClosedEpollsPage(data);
 		var end = n - epolls.length;
