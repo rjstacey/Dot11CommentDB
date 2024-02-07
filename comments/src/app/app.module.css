@@ -114,7 +114,7 @@
 
 .header :global .nav-link {
 	display: inline-block;
-	margin: 0 4px;
+	margin: 0 10px;
 	/*background: #efefef;*/
 	text-align: center;
 	color: #005979;
