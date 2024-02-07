@@ -7,7 +7,7 @@ import { completeAuthWebexAccount } from "../services/webex";
  * oauth2 API
  *
  * This interface is used for oauth2 callbacks
- * GET /calendar: oauth2 calback for calendar authorizations
+ * GET /calendar: oauth2 callback for calendar authorizations
  * GET /webex: oauth2 callback for webex authorizations
  */
 const router = Router();
