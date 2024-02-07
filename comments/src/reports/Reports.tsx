@@ -256,11 +256,17 @@ function Reports() {
 				Status: getCommentStatus(c),
 			};
 		});
-		const generateReport = report? commentsReport[report]: undefined;
+		const generateReport = report ? commentsReport[report] : undefined;
 		return generateReport ? generateReport(comments) : [];
 	}, [ids, entities, report]);
 
-	const ReportButton = ({ report: thisReport, label }: { report: Report, label: string}) => (
+	const ReportButton = ({
+		report: thisReport,
+		label,
+	}: {
+		report: Report;
+		label: string;
+	}) => (
 		<Button
 			onClick={() => setReport(thisReport)}
 			isActive={thisReport === report}

@@ -20,6 +20,7 @@ import {
 	updateComments,
 	setUiProperties,
 	selectCommentsState,
+	categoryMap,
 	type CommentResolution,
 	type Comment,
 } from "../store/comments";
@@ -41,41 +42,50 @@ const ShowMultiple = (props: React.ComponentProps<"span">) => (
 	</span>
 );
 
-export const renderCommenter = (comment: Multiple<Comment>) => {
-	const commenter = comment.CommenterName;
-	if (isMultiple(commenter)) {
-		return <ShowMultiple />;
-	}
-	let vote: JSX.Element | undefined, mbs: JSX.Element | undefined;
-	if (comment.Vote === "Approve") {
-		vote = <Icon type="vote-yes" />;
-	} else if (comment.Vote === "Disapprove") {
-		vote = <Icon type="vote-no" />;
-		if (comment.MustSatisfy)
-			mbs = (
-				<span
-					style={{
-						color: "red",
-						fontSize: "smaller",
-						fontWeight: "bold",
-					}}
-				>
-					MBS
-				</span>
-			);
+export function renderMBS(comment: Multiple<Comment>) {
+	const mbs = comment.MustSatisfy;
+	if (isMultiple(mbs)) {
+		return null;
 	}
 	return (
-		<span>
-			{commenter}
-			{vote && <React.Fragment>&nbsp;{vote}</React.Fragment>}
-			{mbs && <React.Fragment>&nbsp;{mbs}</React.Fragment>}
+		<span
+			style={{
+				color: "red",
+				fontSize: "smaller",
+				fontWeight: "bold",
+			}}
+		>
+			{mbs ? "MBS" : ""}
 		</span>
 	);
 };
 
-const renderEntry = (value: any) => {
-	if (isMultiple(value)) return <ShowMultiple />;
-	return <span>{value}</span>;
+export function renderCommenter(comment: Multiple<Comment>) {
+	const commenter = comment.CommenterName;
+	if (isMultiple(commenter)) {
+		return <ShowMultiple />;
+	}
+	let vote: JSX.Element | null = null;
+	if (comment.Vote === "Approve") {
+		vote = <Icon type="vote-yes" />;
+	} else if (comment.Vote === "Disapprove") {
+		vote = <Icon type="vote-no" />;
+	}
+	return (
+		<span>
+			{commenter}
+			<>&nbsp;</>
+			{vote}
+		</span>
+	);
+};
+
+export function renderCategory(comment: Multiple<Comment>) {
+	const cat = comment.Category;
+	if (isMultiple(cat)) {
+		return <ShowMultiple />;
+	}
+	return <span>{categoryMap[cat]}</span>;
 };
 
 const renderTextBlock = (value: string) => {
@@ -361,23 +371,31 @@ export function CommentBasics({
 				</FieldLeft>
 			</Row>
 			<Row>
-				<FieldLeft label="Page/Line:">
-					<CommentPage
-						comment={comment}
-						setComment={updateComment}
-						readOnly={readOnly}
-					/>
+				<FieldLeft label="Category:" style={{alignItems: 'baseline'}}>
+					{renderCategory(comment)}
+					<>&nbsp;&nbsp;</>
+					{renderMBS(comment)}
 				</FieldLeft>
-				<FieldLeft label="Clause:">
-					<CommentClause
-						comment={comment}
-						setComment={updateComment}
-						readOnly={readOnly}
-					/>
-				</FieldLeft>
-				<FieldLeft label="Category:">
-					{renderEntry(comment.Category)}
-				</FieldLeft>
+			</Row>
+			<Row>
+				<Col>
+					<FieldLeft label="Page/Line:">
+						<CommentPage
+							comment={comment}
+							setComment={updateComment}
+							readOnly={readOnly}
+						/>
+					</FieldLeft>
+				</Col>
+				<Col>
+					<FieldLeft label="Clause:">
+						<CommentClause
+							comment={comment}
+							setComment={updateComment}
+							readOnly={readOnly}
+						/>
+					</FieldLeft>
+				</Col>
 			</Row>
 			<Row>
 				<List label="Comment:">{renderTextBlock(comment.Comment)}</List>
@@ -406,6 +424,8 @@ export function CommentEdit({
 	const [editedComments, setEditedComments] = React.useState<
 		CommentResolution[]
 	>([]);
+
+	const key = editedComments.map((c) => c.id).join();
 
 	React.useEffect(() => {
 		if (
@@ -462,6 +482,7 @@ export function CommentEdit({
 				readOnly={readOnly}
 			/>
 			<CommentCategorization
+				key={key}
 				comment={edited}
 				updateComment={updateComment}
 				readOnly={readOnly}

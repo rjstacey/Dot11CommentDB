@@ -77,6 +77,8 @@ function CommentResolutionEdit({
 		React.useState<Multiple<CommentResolution> | null>(null);
 	const [editedComments, setEditedComments] = React.useState<CommentResolution[]>([]);
 
+	const key = editedComments.map(c => c.id).join();
+
 	React.useEffect(() => {
 		if (comments.map(c => c.id).join() === editedComments.map(c => c.id).join())
 			return;
@@ -129,6 +131,7 @@ function CommentResolutionEdit({
 	return (
 		<>
 			<ResolutionEdit
+				key={"1" + key}
 				resolution={edited}
 				updateResolution={updateResolution}
 				readOnly={
@@ -137,6 +140,7 @@ function CommentResolutionEdit({
 				commentsAccess={commentsAccess}
 			/>
 			<EditingEdit
+				key={"2" + key}
 				resolution={edited}
 				updateResolution={updateResolution}
 				readOnly={readOnly || commentsAccess < AccessLevel.rw}
@@ -160,7 +164,7 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 
 	const user = useAppSelector(selectUser);
 	const { entities, loading, selected } = useAppSelector(selectCommentsState);
-	const comments = React.useMemo(() => selected.map(id => entities[id]!), [selected, entities]);
+	const comments = React.useMemo(() => selected.map(id => entities[id]!).filter(c => Boolean(c)), [selected, entities]);
 	const groupEntities = useAppSelector(selectGroupEntities);
 	const access = useAppSelector(selectCommentsAccess);
 

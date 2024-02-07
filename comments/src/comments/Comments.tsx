@@ -9,22 +9,21 @@ import {
 	TableColumnHeader,
 	TableColumnSelector,
 	TableViewSelector,
-	ShowFilters,
-	GlobalFilter,
 	IdSelector,
 	IdFilter,
+	ShowFilters,
+	GlobalFilter,
 	ActionButton,
 	ButtonGroup,
 	ColumnProperties,
 	HeaderCellRendererProps,
-	CellRendererProps,
 	RowGetterProps,
 	ChangeableColumnProperties,
 } from "dot11-components";
 
 import ProjectBallotSelector from "../components/ProjectBallotSelector";
 import CommentDetail from "./CommentDetail";
-import { renderCommenter } from "./CommentEdit";
+import { renderMBS, renderCommenter, renderCategory } from "./CommentEdit";
 import { renderSubmission } from "./SubmissionSelector";
 import CommentsImport from "./CommentsImport";
 import CommentsExport from "./CommentsExport";
@@ -39,7 +38,6 @@ import {
 	loadComments,
 	clearComments,
 	getCID,
-	selectCommentsState,
 	selectCommentsBallot_id,
 	selectCommentsAccess,
 	commentsSelectors,
@@ -80,9 +78,6 @@ const renderHtmlAsText = (value: string | null) => {
 /*
  * The data cell rendering functions are pure functions (dependent only on input parameters)
  */
-const renderDataCellCheck = ({ rowData, dataKey }: CellRendererProps) =>
-	rowData[dataKey] ? "\u2714" : "";
-
 const renderHeaderCellEditing = (props: HeaderCellRendererProps) => (
 	<>
 		<HeaderSubcomponent
@@ -194,6 +189,12 @@ const renderHeaderCellStacked1 = (props: HeaderCellRendererProps) => (
 				dataKey="Category"
 				label="Cat" /*dropdownWidth={140}*/
 			/>
+			<HeaderSubcomponent
+				{...props}
+				width={30}
+				dataKey="MustSatisfy"
+				label="MBS"
+			/>
 		</FlexRow>
 		<FlexRow>
 			<HeaderSubcomponent
@@ -222,12 +223,6 @@ const renderHeaderCellStacked1 = (props: HeaderCellRendererProps) => (
 				dataKey="Vote"
 				label="Vote"
 			/>
-			<HeaderSubcomponent
-				{...props}
-				width={30}
-				dataKey="MustSatisfy"
-				label="MS"
-			/>
 		</FlexRow>
 	</>
 );
@@ -244,7 +239,10 @@ const renderDataCellStacked1 = ({
 					{getCID(rowData)}
 				</DataSubcomponent>
 				<DataSubcomponent width={40}>
-					{rowData.Category}
+					{renderCategory(rowData)}
+				</DataSubcomponent>
+				<DataSubcomponent width={30}>
+					{renderMBS(rowData)}
 				</DataSubcomponent>
 			</FlexRow>
 			<FlexRow>
@@ -359,7 +357,7 @@ const tableColumns: (ColumnProperties & { width: number })[] = [
 	},
 	{
 		key: "Stack1",
-		label: "CID/Cat/MS/...",
+		label: "CID/Cat/MBS/...",
 		width: 200,
 		flexGrow: 1,
 		flexShrink: 0,
@@ -388,7 +386,8 @@ const tableColumns: (ColumnProperties & { width: number })[] = [
 		width: 36,
 		flexGrow: 1,
 		flexShrink: 0,
-		cellRenderer: renderDataCellCheck,
+		cellRenderer: ({ rowData }: { rowData: CommentResolution }) =>
+			renderMBS(rowData),
 	},
 	{
 		key: "Category",
@@ -591,7 +590,6 @@ function Comments() {
 	const isOnline = useAppSelector(selectIsOnline);
 
 	const access = useAppSelector(selectCommentsAccess);
-	const { selected } = useAppSelector(selectCommentsState);
 	const commentsBallot_id = useAppSelector(selectCommentsBallot_id);
 	const commentsBallot = useAppSelector((state) =>
 		commentsBallot_id ? selectBallot(state, commentsBallot_id) : undefined
@@ -696,7 +694,7 @@ function Comments() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<CommentDetail key={selected.join()} />
+					<CommentDetail />
 				</Panel>
 			</SplitPanel>
 		</>

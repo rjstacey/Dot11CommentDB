@@ -28,17 +28,16 @@ import {
 } from "../store/ballots";
 
 function BallotEditMultipleWithActions({
-	ids,
+	ballots,
 	readOnly,
 }: {
-	ids: number[];
+	ballots: Ballot[];
 	readOnly?: boolean;
 }) {
-	const { entities } = useAppSelector(selectBallotsState);
 	const [busy, setBusy] = React.useState(false);
 
 	let ballot: Ballot | undefined;
-	if (ids.length === 1) ballot = entities[ids[0]];
+	if (ballots.length === 1) ballot =ballots[0];
 
 	const actions = ballot ? (
 		<>
@@ -64,7 +63,7 @@ function BallotEditMultipleWithActions({
 			<Row style={{ justifyContent: "center" }}>
 				<Spinner style={{ visibility: busy ? "visible" : "hidden" }} />
 			</Row>
-			<BallotEditMultiple ids={ids} readOnly={readOnly} />
+			<BallotEditMultiple ballots={ballots} readOnly={readOnly} />
 			{actions}
 		</div>
 	);
@@ -166,11 +165,8 @@ function BallotDetail({
 	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
 	const { entities, loading, selected } = useAppSelector(selectBallotsState);
-	// Only ids that exist
-	const ids = React.useMemo(
-		() => (selected as number[]).filter((id) => Boolean(entities[id])),
-		[selected, entities]
-	);
+	// Only ballots that exist (selection may be old)
+	const ballots = React.useMemo(() => selected.map(id => entities[id]!).filter(b => Boolean(b)), [selected, entities]);
 
 	const edit: boolean | undefined =
 		useAppSelector(selectBallotsState).ui.edit;
@@ -184,26 +180,27 @@ function BallotDetail({
 	}, [dispatch]);
 
 	const deleteClick = React.useCallback(async () => {
-		const list = ids.map((id) => entities[id]!.BallotID).join(", ");
+		const list = ballots.map(b => b.BallotID).join(", ");
+		const ids = ballots.map(b => b.id);
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete ballot${
-				ids.length > 1 ? "s" : ""
+				ballots.length > 1 ? "s" : ""
 			} ${list}?`
 		);
 		if (!ok) return;
 		await dispatch(deleteBallots(ids));
-	}, [dispatch, ids, entities]);
+	}, [dispatch, ballots]);
 
 	let title = "";
 	let placeholder = "";
 	if (action === "update") {
 		if (loading) {
 			placeholder = "Loading...";
-		} else if (ids.length === 0) {
+		} else if (ballots.length === 0) {
 			placeholder = "Nothing selected";
 		} else {
 			title = edit ? "Edit ballot" : "Ballot";
-			if (selected.length > 1) title += "s";
+			if (ballots.length > 1) title += "s";
 		}
 	} else {
 		title = "Add ballot";
@@ -228,7 +225,7 @@ function BallotDetail({
 			<ActionButton
 				name="delete"
 				title="Delete ballot"
-				disabled={ids.length === 0 || loading || !isOnline}
+				disabled={ballots.length === 0 || loading || !isOnline}
 				onClick={deleteClick}
 			/>
 		</>
@@ -242,9 +239,9 @@ function BallotDetail({
 			</div>
 			{action === "add" ? (
 				<BallotAddForm close={() => setAction("update")} />
-			) : ids.length > 0 ? (
+			) : ballots.length > 0 ? (
 				<BallotEditMultipleWithActions
-					ids={ids}
+					ballots={ballots}
 					readOnly={readOnly || !isOnline || !edit}
 				/>
 			) : (

@@ -102,6 +102,8 @@ const editorConfig = {
 		TableRowNode,
 		AutoLinkNode,
 		LinkNode,
+		AutoLinkNode,
+		ParagraphNode,
 		RichParagraphNode,
 		{
 			replace: ParagraphNode,
@@ -112,6 +114,7 @@ const editorConfig = {
 			replace: TextNode,
 			with: (node: TextNode) => new RichTextNode(node.__text),
 		},
+		TextNode,
 	],
 };
 

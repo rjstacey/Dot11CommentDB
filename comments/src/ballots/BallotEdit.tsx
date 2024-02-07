@@ -10,7 +10,7 @@ import {
 	isMultiple,
 	Multiple,
 	shallowDiff,
-	recursivelyDiffObjects,
+	deepMergeTagMultiple,
 } from "dot11-components";
 
 import CheckboxListSelect from "./CheckboxListSelect";
@@ -18,9 +18,8 @@ import SelectGroup from "./GroupSelector";
 import SelectProject from "./ProjectSelector";
 import SelectPrevBallot from "./PrevBallotSelecor";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppDispatch } from "../store/hooks";
 import {
-	selectBallotsState,
 	updateBallots,
 	setCurrentGroupProject,
 	BallotType,
@@ -342,41 +341,41 @@ export function EditBallot({
 }
 
 export function BallotEditMultiple({
-	ids,
+	ballots,
 	readOnly,
 }: {
-	ids: number[];
+	ballots: Ballot[];
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
-	const { entities } = useAppSelector(selectBallotsState);
 
 	const [edited, setEdited] = React.useState<Multiple<Ballot> | null>(null);
 	const [saved, setSaved] = React.useState<Multiple<Ballot> | null>(null);
-	const [editIds, setEditIds] = React.useState<number[]>([]);
+	const [editedBallots, setEditedBallots] = React.useState<Ballot[]>([]);
 
 	React.useEffect(() => {
-		if (ids.join() !== editIds.join()) {
-			let diff: null | Multiple<Ballot> = null,
-				editIds: number[] = [];
-			for (const id of ids) {
-				const ballot = entities[id];
-				if (ballot) {
-					diff = recursivelyDiffObjects(diff || {}, ballot);
-					editIds.push(ballot.id);
-				}
-			}
-			setEdited(diff);
-			setSaved(diff);
-			setEditIds(editIds);
-		}
-	}, [entities, editIds, ids]);
+		if (
+			ballots.map((b) => b.id).join() ===
+			editedBallots.map((b) => b.id).join()
+		)
+			return;
+		let diff: Multiple<Ballot> | null = null;
+		ballots.forEach(ballot => {
+			diff = deepMergeTagMultiple(
+				diff || {},
+				ballot
+			) as Multiple<Ballot>;
+		});
+		setEdited(diff);
+		setSaved(diff);
+		setEditedBallots(ballots);
+	}, [ballots, editedBallots]);
 
 	const triggerSave = useDebounce(() => {
 		const changes = shallowDiff(saved!, edited!) as Partial<BallotEdit>;
 		let updates: BallotUpdate[] = [];
 		if (Object.keys(changes).length > 0) {
-			updates = editIds.map((id) => ({ id, changes }));
+			updates = ballots.map((b) => ({ id: b.id, changes }));
 			dispatch(updateBallots(updates));
 		}
 		if (changes.groupId || changes.Project) {
@@ -392,7 +391,7 @@ export function BallotEditMultiple({
 
 	const handleUpdate = (changes: Partial<BallotEdit>) => {
 		if (readOnly) {
-			console.warn("Update when read-only");
+			console.warn("Ballot update while read-only");
 			return;
 		}
 		// merge in the edits and trigger a debounced save
@@ -400,11 +399,13 @@ export function BallotEditMultiple({
 		triggerSave();
 	};
 
-	return edited ? (
+	if (!edited) return null;
+
+	return (
 		<EditBallot
 			ballot={edited}
 			updateBallot={handleUpdate}
 			readOnly={readOnly}
 		/>
-	) : null;
+	);
 }

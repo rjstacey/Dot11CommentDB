@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { $getRoot, $isElementNode, LexicalNode } from "lexical";
+import { $getRoot, $isElementNode, type LexicalNode } from "lexical";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $isLinkNode, $createAutoLinkNode } from "@lexical/link";
@@ -51,7 +51,9 @@ function InportExportPlugin({
 
 		editor.update(
 			() => {
-				const s = value || "";
+				let s = value || "";
+				s = s.replace(/<p><br><\/p>/g, '')
+				s = s.replace(/[\r\n]+/g, '');
 				const parser = new DOMParser();
 				// Convert string to DOM. But if the first body node is a text, then assume input is just text and not HTML.
 				let dom = parser.parseFromString(s, "text/html");
@@ -66,10 +68,8 @@ function InportExportPlugin({
 					dom = parser.parseFromString(asHtml, "text/html");
 				}
 				const nodes = $generateNodesFromDOM(editor, dom);
-				$getRoot()
-					.clear()
-					.append(...nodes)
-					.selectEnd();
+				//console.log(nodes);
+				$getRoot().clear().select().insertNodes(nodes);
 
 				recursivelyReplaceLinkWithAutoLink($getRoot());
 			},

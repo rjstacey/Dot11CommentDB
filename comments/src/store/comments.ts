@@ -28,6 +28,8 @@ import {
 import { selectGroupPermissions } from "./groups";
 import { offlineFetch } from "./offline";
 
+export type CategoryType = "T" | "E" | "G";
+
 export type Comment = {
 	id: number;
 	ballot_id: number;
@@ -36,7 +38,7 @@ export type Comment = {
 	CommenterName: string;
 	CommenterEmail: string;
 	Vote: string;
-	Category: string;
+	Category: CategoryType;
 	C_Clause: string;
 	C_Page: string;
 	C_Line: string;
@@ -98,6 +100,17 @@ const mustSatisfyOptions = [
 	{ value: 1, label: "Yes" },
 ];
 
+export const categoryMap = {
+	T: "Technical",
+	E: "Editorial",
+	G: "General",
+} as const;
+
+const categoryOptions = Object.entries(categoryMap).map(([value, label]) => ({
+	value: value as keyof typeof categoryMap,
+	label,
+}));
+
 export const resnStatusMap: Record<ResnStatusType, string> = {
 	A: "ACCEPTED",
 	V: "REVISED",
@@ -107,17 +120,18 @@ export const resnStatusMap: Record<ResnStatusType, string> = {
 export const resnStatusOptions: {
 	value: ResnStatusType | null;
 	label: string;
-}[] = (Object.keys(resnStatusMap) as ResnStatusType[])
-	.map((value: ResnStatusType | null) => ({
+}[] = (Object.keys(resnStatusMap) as ResnStatusType[]).map(
+	(value: ResnStatusType | null) => ({
 		value,
 		label: resnStatusMap[value!],
-	}));
+	})
+);
 resnStatusOptions.unshift({ value: null, label: "(Blank)" });
 
 const editStatusOptions = [
-	{ value: null, label: '(Blank)'},
-	{ value: 'I', label: 'Implemented'},
-	{ value: 'N', label: 'No change'},
+	{ value: null, label: "(Blank)" },
+	{ value: "I", label: "Implemented" },
+	{ value: "N", label: "No change" },
 ];
 
 const mustSatisfyLabels = mustSatisfyOptions.reduce((obj, o) => {
@@ -136,9 +150,12 @@ export const commentStatusOrder = [
 	"Resolution approved",
 ] as const;
 
-const commentStatusOptions = commentStatusOrder.map(value => ({value, label: value? value: "(Blank)"}));
+const commentStatusOptions = commentStatusOrder.map((value) => ({
+	value,
+	label: value ? value : "(Blank)",
+}));
 
-export type CommentStatusType = typeof commentStatusOrder[number];
+export type CommentStatusType = (typeof commentStatusOrder)[number];
 
 export function getCommentStatus(c: CommentResolution) {
 	let Status: CommentStatusType = "";
@@ -150,16 +167,20 @@ export function getCommentStatus(c: CommentResolution) {
 }
 
 export const fields: Record<string, FieldProperties> = {
-	CID: { label: "CID", type: FieldType.NUMERIC },
+	CID: { label: "CID", type: FieldType.STRING },
 	CommenterName: { label: "Commenter" },
 	Vote: { label: "Vote" },
 	MustSatisfy: {
-		label: "Must satisfy",
+		label: "MBS",
 		dataRenderer: (v: number) => mustSatisfyLabels[v],
 		options: mustSatisfyOptions,
 		type: FieldType.NUMERIC,
 	},
-	Category: { label: "Category" },
+	Category: {
+		label: "Category",
+		dataRenderer: (v: CategoryType) => categoryMap[v],
+		options: categoryOptions,
+	},
 	Clause: { label: "Clause", type: FieldType.CLAUSE },
 	Page: {
 		label: "Page",
@@ -502,9 +523,7 @@ export const deleteComments =
 		}
 	};
 
-function validUploadResponse(
-	response: any
-): response is {
+function validUploadResponse(response: any): response is {
 	comments: CommentResolution[];
 	ballot: BallotCommentsSummary;
 } {
@@ -851,9 +870,7 @@ export type UploadResult = {
 	updated: number;
 };
 
-function validUploadResolutionsResponse(
-	response: any
-): response is {
+function validUploadResolutionsResponse(response: any): response is {
 	comments: CommentResolution[];
 	ballot: BallotCommentsSummary;
 } & UploadResult {

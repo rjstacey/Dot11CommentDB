@@ -22,6 +22,10 @@ function wrapElementWith(
 
 function convertTextDOMNode(domNode: Node): DOMConversionOutput {
 	let textContent = domNode.textContent || "";
+	textContent = textContent.replace(/\r/g, '').replace(/[ \t\n]+/g, ' ');
+	if (textContent === '') {
+		return {node: null};
+	}
 	return { node: $createTextNode(textContent) };
 }
 
@@ -121,6 +125,7 @@ export class RichTextNode extends TextNode {
 	}
 
 	isSimpleText() {
+		console.error('simple text')
 		return (
 			(this.__type === "text" || this.__type === "rich-text") &&
 			this.__mode === 0
