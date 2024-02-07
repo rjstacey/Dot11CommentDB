@@ -1,9 +1,9 @@
 {
-	"short_name": "802.11 CR",
-	"name": "802.11 Comment Resolution",
+	"short_name": "802 CR",
+	"name": "802 tools | Comment Resolution",
 	"icons": [
 		{
-			"src": "icon2.svg",
+			"src": "icon.svg",
 			"type": "image/svg+xml",
 			"sizes": "192x192",
 			"purpose": "any"
