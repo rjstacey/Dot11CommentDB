@@ -11,6 +11,7 @@ import {
 	Multiple,
 	shallowDiff,
 	deepMergeTagMultiple,
+	useDebounce
 } from "dot11-components";
 
 import CheckboxListSelect from "./CheckboxListSelect";
@@ -29,8 +30,6 @@ import {
 	BallotEdit,
 	BallotUpdate,
 } from "../store/ballots";
-
-import { useDebounce } from "../components/useDebounce";
 
 const BLANK_STR = "(Blank)";
 const MULTIPLE_STR = "(Multiple)";

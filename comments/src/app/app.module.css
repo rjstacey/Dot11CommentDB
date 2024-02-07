@@ -18,7 +18,7 @@
 	max-height: 200px;
 }
 
-.main .root :global .intro {
+.main .root :global(.intro) {
 	color: #008080;
 	font-style: italic;
 	font-weight: 700;
@@ -37,7 +37,7 @@
 	box-sizing: border-box;
 }
 
-.header :global .title {
+.header :global(.title) {
 	color: #008080;
 	font-style: italic;
 	cursor: pointer;
@@ -59,7 +59,7 @@
 	cursor: pointer;
 }
 
-.working-group-select:not(:focus-within) :global dropdown-select-clear-all {
+.working-group-select:not(:focus-within) :global(dropdown-select-clear-all) {
 	opacity: 0;
 }
 
@@ -79,7 +79,7 @@
 	text-align: center;
 }
 
-.header :global .nav-menu-container {
+.header :global(.nav-menu-container) {
 	flex: 1;
 	padding: 0 1em;
 	max-width: 900px;
@@ -87,34 +87,34 @@
 	align-items: flex-start;
 }
 
-.header :global .nav-small-menu {
+.header :global(.nav-small-menu) {
 	display: flex;
 	flex-direction: row;
 }
 
-.header :global .nav-menu {
+.header :global(.nav-menu) {
 	display: flex;
 	align-items: flex-start;
 }
 
-.header :global .nav-small-menu i {
+.header :global(.nav-small-menu) i {
 	font-size: 20px;
 }
 
-.header :global .nav-menu-horizontal {
+.header :global(.nav-menu-horizontal) {
 	flex-direction: row;
 	justify-content: space-between;
 	padding: 0 5px;
 }
 
-.header :global .nav-menu-vertical {
+.header :global(.nav-menu-vertical) {
 	flex-direction: column;
 	width: 150px;
 }
 
-.header :global .nav-link {
+.header :global(.nav-link) {
 	display: inline-block;
-	margin: 0 10px;
+	margin: 0 20px;
 	/*background: #efefef;*/
 	text-align: center;
 	color: #005979;
@@ -124,11 +124,16 @@
 	cursor: pointer;
 }
 
-.header :global .nav-link.active,
-.header :global .nav-link:hover {
+.header :global(.nav-link.active),
+.header :global(.nav-link):hover {
 	color: black;
 }
 
-.header :global .account {
+.header :global(.online-indicator),
+.header :global(.live-update) {
+	margin-right: 20px;
+}
+
+.header :global(.account) {
 	padding: 0 5px;
 }

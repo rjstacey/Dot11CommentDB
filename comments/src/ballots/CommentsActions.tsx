@@ -12,7 +12,7 @@ import {
 } from "dot11-components";
 
 import { renderCommentsSummary } from "./Ballots";
-import MemberSelector from "../ballotVoters/MemberSelector";
+import MemberSelector from "../voters/MemberSelector";
 
 import { useAppDispatch } from "../store/hooks";
 import {

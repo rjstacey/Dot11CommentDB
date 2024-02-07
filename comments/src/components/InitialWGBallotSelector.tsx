@@ -24,7 +24,7 @@ function InitialWGBallotSelector({
 	const location = useLocation();
 	const dispatch = useAppDispatch();
 	const { ballotId } = useParams();
-	const { loading, currentBallot_id } = useAppSelector(selectBallotsState);
+	const { loading, valid, currentBallot_id } = useAppSelector(selectBallotsState);
 
 	const ballots = useAppSelector(selectBallots);
 	const options = React.useMemo(
@@ -55,7 +55,7 @@ function InitialWGBallotSelector({
 				values={values}
 				onChange={handleChange}
 				options={options}
-				loading={loading}
+				loading={loading && !valid}
 				readOnly={readOnly || options.length === 0}
 			/>
 		</div>

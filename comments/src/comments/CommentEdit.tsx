@@ -13,6 +13,7 @@ import {
 	type Multiple,
 	deepMergeTagMultiple,
 	shallowDiff,
+	useDebounce,
 } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -24,8 +25,6 @@ import {
 	type CommentResolution,
 	type Comment,
 } from "../store/comments";
-
-import { useDebounce } from "../components/useDebounce";
 
 import AdHocSelector from "./AdHocSelector";
 import CommentGroupSelector from "./CommentGroupSelector";

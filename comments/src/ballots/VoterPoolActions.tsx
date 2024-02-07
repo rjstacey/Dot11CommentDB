@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ActionButtonDropdown, Row, FieldLeft } from "dot11-components";
 
-import { VotersImportForm } from "../ballotVoters/VotersImport";
+import { VotersImportForm } from "../voters/VotersImport";
 import { useAppSelector } from "../store/hooks";
 import { selectBallotsWorkingGroup, Ballot } from "../store/ballots";
 

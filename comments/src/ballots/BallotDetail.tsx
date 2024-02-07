@@ -37,7 +37,7 @@ function BallotEditMultipleWithActions({
 	const [busy, setBusy] = React.useState(false);
 
 	let ballot: Ballot | undefined;
-	if (ballots.length === 1) ballot =ballots[0];
+	if (ballots.length === 1) ballot = ballots[0];
 
 	const actions = ballot ? (
 		<>
@@ -164,9 +164,13 @@ function BallotDetail({
 }) {
 	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
-	const { entities, loading, selected } = useAppSelector(selectBallotsState);
+	const { selected, entities, loading, valid } =
+		useAppSelector(selectBallotsState);
 	// Only ballots that exist (selection may be old)
-	const ballots = React.useMemo(() => selected.map(id => entities[id]!).filter(b => Boolean(b)), [selected, entities]);
+	const ballots = React.useMemo(
+		() => selected.map((id) => entities[id]!).filter((b) => Boolean(b)),
+		[selected, entities]
+	);
 
 	const edit: boolean | undefined =
 		useAppSelector(selectBallotsState).ui.edit;
@@ -180,8 +184,8 @@ function BallotDetail({
 	}, [dispatch]);
 
 	const deleteClick = React.useCallback(async () => {
-		const list = ballots.map(b => b.BallotID).join(", ");
-		const ids = ballots.map(b => b.id);
+		const list = ballots.map((b) => b.BallotID).join(", ");
+		const ids = ballots.map((b) => b.id);
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete ballot${
 				ballots.length > 1 ? "s" : ""
@@ -192,9 +196,9 @@ function BallotDetail({
 	}, [dispatch, ballots]);
 
 	let title = "";
-	let placeholder = "";
+	let placeholder: string | null = null;
 	if (action === "update") {
-		if (loading) {
+		if (!valid && loading) {
 			placeholder = "Loading...";
 		} else if (ballots.length === 0) {
 			placeholder = "Nothing selected";
@@ -237,15 +241,15 @@ function BallotDetail({
 				<h3>{title}</h3>
 				<div>{actionButtons}</div>
 			</div>
-			{action === "add" ? (
+			{placeholder ? (
+				<Placeholder>{placeholder}</Placeholder>
+			) : action === "add" ? (
 				<BallotAddForm close={() => setAction("update")} />
-			) : ballots.length > 0 ? (
+			) : (
 				<BallotEditMultipleWithActions
 					ballots={ballots}
 					readOnly={readOnly || !isOnline || !edit}
 				/>
-			) : (
-				<Placeholder>{placeholder}</Placeholder>
 			)}
 			<ShowAccess access={access} />
 		</>

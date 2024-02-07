@@ -7,6 +7,7 @@ import {
 	shallowDiff,
 	ConfirmModal,
 	deepMergeTagMultiple,
+	useDebounce,
 	type Multiple,
 	isMultiple,
 	MULTIPLE
@@ -35,7 +36,6 @@ import {
 } from "../store/comments";
 import { selectGroupEntities } from "../store/groups";
 import { AccessLevel, selectUser } from "../store/user";
-import { useDebounce } from "../components/useDebounce";
 
 function renderAccess(access: number) {
 	if (access === AccessLevel.admin) return "admin";

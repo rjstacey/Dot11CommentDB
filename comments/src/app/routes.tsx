@@ -28,7 +28,7 @@ import Header from "./Header";
 import WorkingGroupSelector from "./WorkingGroupSelector";
 import Ballots from "../ballots/Ballots";
 import Epolls from "../ballots/Epolls";
-import Voters from "../ballotVoters/Voters";
+import Voters from "../voters/Voters";
 import Results from "../results/Results";
 import Comments from "../comments/Comments";
 import Reports from "../reports/Reports";

@@ -93,7 +93,7 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 	const location = useLocation();
 	const dispatch = useAppDispatch();
 	const { ballotId } = useParams();
-	const { loading, currentGroupId, currentProject, currentBallot_id } =
+	const { loading, valid, currentGroupId, currentProject, currentBallot_id } =
 		useAppSelector(selectBallotsState);
 
 	const handleProjectChange = async (value: GroupProject) => {
@@ -117,7 +117,7 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 				style={{ minWidth: 150, marginRight: 20 }}
 				value={{ groupId: currentGroupId, project: currentProject }}
 				onChange={handleProjectChange}
-				loading={loading}
+				loading={loading && !valid}
 				readOnly={readOnly}
 			/>
 			<label>Ballot:</label>
@@ -125,7 +125,7 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 				style={{ minWidth: 250 }}
 				value={currentBallot_id}
 				onChange={handleBallotChange}
-				loading={loading}
+				loading={loading && !valid}
 				readOnly={readOnly}
 			/>
 		</div>
