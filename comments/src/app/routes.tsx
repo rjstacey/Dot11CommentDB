@@ -238,7 +238,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		minAccess: AccessLevel.admin,
 	},
 	{
-		menuLabel: "Ballot voters",
+		menuLabel: "Voters",
 		path: "voters/:ballotId?",
 		element: <Voters />,
 		loader: ballotVotersLoader,
