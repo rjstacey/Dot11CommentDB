@@ -4,21 +4,18 @@ import { createIeeeClient } from "../utils";
 import { selectUser, getUser, setUser, delUser } from "../services/users";
 
 //const cheerio = require('cheerio');
-//const db = require('../utils/database');
 import { verify, token } from "./jwt";
 import { AccessLevel } from "./access";
 
 const loginUrl = "/pub/login";
 const logoutUrl = "/pub/logout";
 
-const adminUsers = [{ SAPIN: 5073, Username: "rjstacey@gmail.com" }] as const;
-
 async function login(
 	ieeeClient: AxiosInstance,
 	username: string,
 	password: string
 ) {
-	let m, response: AxiosResponse;
+	let m: RegExpExecArray | null, response: AxiosResponse;
 
 	// Do an initial GET on /pub/login so that we get cookies. We can do a login without this, but
 	// if we don't get the cookies associated with this GET, then the server seems to get confused
@@ -71,10 +68,12 @@ async function login(
 	const Name = m[1];
 	let SAPIN = parseInt(m[2], 10);
 
-	//if (SAPIN === 5073)
+	//if (SAPIN === 5073) {
 		//SAPIN = 135742;
-		//SAPIN = 5030;
+		//SAPIN = 5030; //Jon Rosdahl
+		//SAPIN = 5066; //Lei Wang
 		//SAPIN = 2948;
+	//}
 
 	// Add an interceptor that will login again if a request returns the login page
 	ieeeClient.interceptors.response.use((response) => {
@@ -149,13 +148,6 @@ router
 				Access: AccessLevel.none,
 				Permissions: [],
 			};
-
-			if (
-				adminUsers.find(
-					(u) => u.SAPIN === SAPIN || u.Username === Email
-				)
-			)
-				user.Access = AccessLevel.admin;
 
 			user.Token = token(user.SAPIN);
 			setUser(user.SAPIN, { ...user, ieeeClient });
