@@ -61,7 +61,7 @@ export async function selectUser({SAPIN, Email}: {SAPIN?: number; Email?: string
 		'WHERE ' + (SAPIN? `m.SAPIN=${db.escape(SAPIN)}`: `m.Email=${db.escape(Email)}`);
 	let [user] = await db.query(sql) as User[];
 
-	if (SAPIN === superUser.SAPIN || Email === superUser.Email)
+	if (SAPIN === superUser.SAPIN)
 		user = superUserHack(user);
 
 	return user;
