@@ -72,6 +72,20 @@ function MemberAttendances({
 
 	const values = editedSessionIds.map((session_id) => editedAttendances[session_id]);
 
+	const triggerSave = useDebounce(() => {
+		const updates = [];
+		for (const session_id of editedSessionIds) {
+			const changes = shallowDiff(
+				savedAttendances[session_id],
+				editedAttendances[session_id]
+			) as Partial<SessionAttendanceSummary>;
+			if (Object.keys(changes).length > 0)
+				updates.push({ session_id, changes });
+		}
+		if (updates.length > 0) dispatch(updateAttendances(editedSAPIN, updates));
+		setSavedAttendances(editedAttendances);
+	});
+
 	React.useEffect(() => {
 		const session_ids = sessionIds.slice().reverse() as number[];
 		const attendances: Record<number, SessionAttendanceSummary> = {};
@@ -99,20 +113,6 @@ function MemberAttendances({
 		setEditedAttendances(attendances);
 		setSavedAttendances(attendances);
 	}, [sessionIds, SAPIN, attendancesEntities, setEditedSAPIN, setEditedSessionIds, setEditedAttendances, setSavedAttendances]);
-
-	const triggerSave = useDebounce(() => {
-		const updates = [];
-		for (const session_id of editedSessionIds) {
-			const changes = shallowDiff(
-				savedAttendances[session_id],
-				editedAttendances[session_id]
-			) as Partial<SessionAttendanceSummary>;
-			if (Object.keys(changes).length > 0)
-				updates.push({ session_id, changes });
-		}
-		if (updates.length > 0) dispatch(updateAttendances(editedSAPIN, updates));
-		setSavedAttendances(editedAttendances);
-	});
 
 	const columns = React.useMemo(() => {
 		function renderSessionSummary(id: number) {
