@@ -1,14 +1,12 @@
 import * as React from "react";
-import { connect, ConnectedProps } from "react-redux";
-import type { Dictionary } from "@reduxjs/toolkit";
 
 import {
 	Col,
 	Checkbox,
 	Input,
 	displayDateRange,
-	debounce,
 	shallowDiff,
+	useDebounce,
 } from "dot11-components";
 
 import type { RootState } from "../store";
@@ -19,11 +17,12 @@ import {
 	updateAttendances,
 	type SessionAttendanceSummary,
 } from "../store/sessionParticipation";
-import { selectSessionEntities, type Session } from "../store/sessions";
+import { selectSessionEntities } from "../store/sessions";
 
 import styles from "../sessionAttendance/sessionAttendance.module.css";
 
 import { EditTable as Table, TableColumn } from "../components/Table";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 
 const attendancesColumns: TableColumn[] = [
 	{ key: "Session", label: "Session" },
@@ -50,62 +49,33 @@ const attendancesColumns: TableColumn[] = [
 	},
 ];
 
-type MemberAttendancesProps = {
-	SAPIN: number; //Member;
-	readOnly?: boolean;
-};
-
-type MemberAttendancesInternalProps = MemberAttendancesProps &
-	ConnectedMemberAttendancesProps;
-
-type MemberAttendanceState = {
-	sessionIds: number[];
-	edited: Record<number, SessionAttendanceSummary>;
-	saved: Record<number, SessionAttendanceSummary>;
+function MemberAttendances({
+	SAPIN,
+	readOnly
+}: {
 	SAPIN: number;
-	sessionEntities: Dictionary<Session>;
-	readOnly: boolean;
-};
+	readOnly?: boolean;
+}) {
+	const dispatch = useAppDispatch();
 
-class MemberAttendances extends React.Component<
-	MemberAttendancesInternalProps,
-	MemberAttendanceState
-> {
-	constructor(props: MemberAttendancesInternalProps) {
-		super(props);
-		this.state = {
-			...this.initState(props),
-			sessionEntities: props.sessionEntities,
-			readOnly: !!props.readOnly,
-		};
-		this.triggerSave = debounce(this.save, 500);
-		this.columns = this.generateColumns(props);
-	}
+	const sessionIds = useAppSelector(selectAttendanceSessionIds);
+	const sessionEntities = useAppSelector(selectSessionEntities);
+	const attendancesEntities = useAppSelector(selectAttendancesEntities);
 
-	triggerSave: ReturnType<typeof debounce>;
-	columns: TableColumn[];
+	const [editedSAPIN, setEditedSAPIN] = React.useState<number>(SAPIN);
+	const [editedSessionIds, setEditedSessionIds] = React.useState<number[]>([]);
+	const [editedAttendances, setEditedAttendances] = React.useState<Record<number, SessionAttendanceSummary>>({});
+	const [savedAttendances, setSavedAttendances] = React.useState<Record<number, SessionAttendanceSummary>>({});
 
-	componentWillUnmount() {
-		this.triggerSave.flush();
-	}
+	const selectAttendanceStats = React.useCallback((state: RootState) => selectMemberAttendanceStats(state, SAPIN), [SAPIN]);
+	const { count, total } = useAppSelector(selectAttendanceStats);
 
-	componentDidUpdate() {
-		const { sessionEntities, readOnly } = this.props;
-		const { state } = this;
-		if (
-			state.sessionEntities !== sessionEntities ||
-			state.readOnly !== !!readOnly
-		) {
-			this.columns = this.generateColumns(this.props);
-			this.setState({ sessionEntities, readOnly: !!readOnly });
-		}
-	}
+	const values = editedSessionIds.map((session_id) => editedAttendances[session_id]);
 
-	initState = (props: MemberAttendancesInternalProps) => {
-		const { sessionIds, attendancesEntities, SAPIN } = props;
+	React.useEffect(() => {
+		const session_ids = sessionIds.slice().reverse() as number[];
 		const attendances: Record<number, SessionAttendanceSummary> = {};
-
-		sessionIds.forEach((session_id) => {
+		for (const session_id of session_ids) {
 			const sessionAttendances =
 				attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
 			let a = sessionAttendances.find((a) => a.session_id === session_id);
@@ -119,55 +89,32 @@ class MemberAttendances extends React.Component<
 					DidNotAttend: false,
 					Notes: "",
 					SAPIN,
+					CurrentSAPIN: SAPIN
 				};
 			}
 			attendances[session_id] = a;
-		});
-		return {
-			SAPIN,
-			sessionIds,
-			edited: attendances,
-			saved: attendances,
-		};
-	};
+		}
+		setEditedSAPIN(SAPIN);
+		setEditedSessionIds(session_ids);
+		setEditedAttendances(attendances);
+		setSavedAttendances(attendances);
+	}, [sessionIds, SAPIN, attendancesEntities, setEditedSAPIN, setEditedSessionIds, setEditedAttendances, setSavedAttendances]);
 
-	save = () => {
-		const { SAPIN, sessionIds, edited, saved } = this.state;
+	const triggerSave = useDebounce(() => {
 		const updates = [];
-		for (let session_id of sessionIds) {
+		for (const session_id of editedSessionIds) {
 			const changes = shallowDiff(
-				saved[session_id],
-				edited[session_id]
+				savedAttendances[session_id],
+				editedAttendances[session_id]
 			) as Partial<SessionAttendanceSummary>;
 			if (Object.keys(changes).length > 0)
 				updates.push({ session_id, changes });
 		}
-		if (updates.length > 0) this.props.updateAttendances(SAPIN, updates);
-		this.setState((state) => ({ ...state, saved: edited }));
-	};
+		if (updates.length > 0) dispatch(updateAttendances(editedSAPIN, updates));
+		setSavedAttendances(editedAttendances);
+	});
 
-	update = (
-		session_id: number,
-		changes: Partial<SessionAttendanceSummary>
-	) => {
-		console.log(session_id, changes);
-		this.setState(
-			{
-				edited: {
-					...this.state.edited,
-					[session_id]: {
-						...this.state.edited[session_id],
-						...changes,
-					},
-				},
-			},
-			this.triggerSave
-		);
-	};
-
-	generateColumns(props: MemberAttendancesInternalProps) {
-		const { SAPIN, sessionEntities, readOnly } = props;
-
+	const columns = React.useMemo(() => {
 		function renderSessionSummary(id: number) {
 			const session = sessionEntities[id];
 			if (!session) return "Unknown";
@@ -181,6 +128,14 @@ class MemberAttendances extends React.Component<
 					<span>{session.name}</span>
 				</div>
 			);
+		}
+
+		function update(session_id: number,	changes: Partial<SessionAttendanceSummary>) {
+			setEditedAttendances(attendances => ({
+				...attendances,
+				[session_id]: {...attendances[session_id], ...changes}
+			}));
+			triggerSave();
 		}
 
 		return attendancesColumns.map((col) => {
@@ -197,9 +152,9 @@ class MemberAttendances extends React.Component<
 			if (col.key === "DidAttend") {
 				renderCell = (entry) => (
 					<Checkbox
-						checked={!!entry.DidAttend}
+						checked={entry.DidAttend}
 						onChange={(e) =>
-							this.update(entry.session_id, {
+							update(entry.session_id, {
 								DidAttend: e.target.checked,
 							})
 						}
@@ -210,9 +165,9 @@ class MemberAttendances extends React.Component<
 			if (col.key === "DidNotAttend") {
 				renderCell = (entry) => (
 					<Checkbox
-						checked={!!entry.DidNotAttend}
+						checked={entry.DidNotAttend}
 						onChange={(e) =>
-							this.update(entry.session_id, {
+							update(entry.session_id, {
 								DidNotAttend: e.target.checked,
 							})
 						}
@@ -226,7 +181,7 @@ class MemberAttendances extends React.Component<
 						type="text"
 						value={entry.Notes || ""}
 						onChange={(e) =>
-							this.update(entry.session_id, {
+							update(entry.session_id, {
 								Notes: e.target.value,
 							})
 						}
@@ -236,50 +191,21 @@ class MemberAttendances extends React.Component<
 			}
 			if (col.key === "SAPIN") {
 				renderCell = (entry) =>
-					entry.SAPIN !== SAPIN ? entry.SAPIN : "";
+					entry.SAPIN !== entry.CurrentSAPIN ? entry.SAPIN : "";
 			}
 
 			if (renderCell) return { ...col, renderCell };
 
 			return col;
 		});
-	}
+	}, [sessionEntities, readOnly, setEditedAttendances, triggerSave]);
 
-	render() {
-		const { count, total } = this.props;
-		const { sessionIds, edited } = this.state;
-		const values = sessionIds.map((session_id) => edited[session_id]);
-		return (
-			<Col>
-				<label>{`Recent session attendance: ${count}/${total}`}</label>
-				<Table columns={this.columns} values={values} />
-			</Col>
-		);
-	}
+	return (
+		<Col>
+			<label>{`Recent session attendance: ${count}/${total}`}</label>
+			<Table columns={columns} values={values} />
+		</Col>
+	);
 }
 
-const connector = connect(
-	(state: RootState, props: MemberAttendancesProps) => {
-		const { count, total } = selectMemberAttendanceStats(
-			state,
-			props.SAPIN
-		);
-		const sessionIds = (selectAttendanceSessionIds(state) as number[])
-			.slice()
-			.reverse();
-		return {
-			sessionIds,
-			sessionEntities: selectSessionEntities(state),
-			attendancesEntities: selectAttendancesEntities(state),
-			count,
-			total,
-		};
-	},
-	{ updateAttendances }
-);
-
-type ConnectedMemberAttendancesProps = ConnectedProps<typeof connector>;
-
-const ConnectedMemberAttendances = connector(MemberAttendances);
-
-export default ConnectedMemberAttendances;
+export default MemberAttendances;

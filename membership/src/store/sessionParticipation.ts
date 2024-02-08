@@ -59,6 +59,8 @@ export type SessionAttendanceSummary = {
 	DidNotAttend: boolean;
 	/** SA PIN under which attendance was logged */
 	SAPIN: number;
+	/** Current SA PIN */
+	CurrentSAPIN: number;
 	Notes: string;
 };
 
@@ -229,24 +231,27 @@ function recentAttendanceStats(
 	};
 }
 
-export function selectMemberAttendanceStats(state: RootState, SAPIN: number) {
-	const attendancesEntities = selectAttendancesEntities(state);
-	const attendances =
-		attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
-	const sessionIds = selectAttendanceSessionIds(state);
-	const sessionEntities = selectSessionEntities(state);
-	const member = selectMemberEntities(state)[SAPIN];
-	const since = member?.StatusChangeHistory.find(
-		(h) => h.NewStatus === "Non-Voter"
-	)?.Date;
-	return recentAttendanceStats(
-		attendances,
-		sessionIds,
-		sessionEntities,
-		since,
-		SAPIN
-	);
-}
+export const selectMemberAttendanceStats = createSelector(
+	selectAttendancesEntities,
+	selectAttendanceSessionIds,
+	selectSessionEntities,
+	selectMemberEntities,
+	(state: RootState, SAPIN: number) => SAPIN,
+	(attendancesEntities, sessionIds, sessionEntities, memberEntities, SAPIN) => {
+		const attendances = attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
+		const member = memberEntities[SAPIN];
+		const since = member?.StatusChangeHistory.find(
+			(h) => h.NewStatus === "Non-Voter"
+		)?.Date;
+		return recentAttendanceStats(
+			attendances,
+			sessionIds,
+			sessionEntities,
+			since,
+			SAPIN
+		);
+	}
+)
 
 function memberExpectedStatusFromAttendanceStats(
 	member: Member,
@@ -433,6 +438,7 @@ export const updateAttendances =
 					DidNotAttend: false,
 					Notes: "",
 					SAPIN: entity.SAPIN,
+					CurrentSAPIN: entity.SAPIN
 				};
 			}
 			a = { ...a, ...changes };

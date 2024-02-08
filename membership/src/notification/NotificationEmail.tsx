@@ -12,9 +12,9 @@ import {
 	displayDateRange,
 	ActionButton,
 	ConfirmModal,
+	useDebounce
 } from "dot11-components";
 
-import { useDebounce } from "../components/useDebounce";
 import Editor, {replaceClassWithInlineStyle} from "../editor/Editor";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";

@@ -324,7 +324,7 @@ export const loadGroups =
 	};
 
 export const addGroup =
-	(group: GroupCreate): AppThunk<Group> =>
+	(group: GroupCreate): AppThunk<Group | undefined> =>
 	(dispatch) => {
 		if (!group.id) group = { ...group, id: uuid() };
 		dispatch(addOne(group as Group));

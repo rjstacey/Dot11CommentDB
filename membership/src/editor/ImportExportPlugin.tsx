@@ -6,7 +6,7 @@ import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $isLinkNode, $createAutoLinkNode } from "@lexical/link";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
-import { useDebounce } from "../components/useDebounce";
+import { useDebounce } from "dot11-components";
 
 function recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
 	if (!node) return;
