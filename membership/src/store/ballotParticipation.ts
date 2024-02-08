@@ -54,14 +54,15 @@ export type BallotSeries = {
 };
 
 export type BallotSeriesParticipationSummary = {
-	id: number /** Ballot series identifier */;
-	voter_id: string /** Voter identifier */;
-	votingPoolSAPIN: number /** SAPIN in voting pool */;
-	excused: boolean /** Excused from participation (recorded in voting pool table) */;
-	vote: string | null /** Last vote */;
-	SAPIN: number | null /** SAPIN used for last vote */;
-	ballot_id: number | null /** Ballot identifier for last vote */;
-	commentCount: number | null /** Number of comments submitted with vote */;
+	id: number;					// Ballot series identifier
+	votingPoolSAPIN: number;	// SAPIN in voting pool
+	currentSAPIN: number;		// Current SAPIN (voting pool SAPIN may be obsolete)
+	voter_id: string;			// Voter identifier
+	excused: boolean;			// Excused from participation (recorded in voting pool table)
+	vote: string | null;		// Last vote
+	SAPIN: number | null;		// SAPIN used for last vote
+	ballot_id: number | null;	// Ballot identifier for last vote
+	commentCount: number | null;//Number of comments submitted with las vote
 };
 
 export type RecentBallotSeriesParticipation = {
