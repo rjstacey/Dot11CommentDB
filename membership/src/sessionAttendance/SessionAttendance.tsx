@@ -23,6 +23,7 @@ import {
 	TableConfig,
 	CellRendererProps,
 	DropdownRendererProps,
+	Spinner,
 } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -30,9 +31,11 @@ import {
 	fields,
 	loadSessionAttendees,
 	clearSessionAttendees,
+	setUseDaily,
 	sessionAttendeesSelectors,
 	sessionAttendeesActions,
 	selectSessionAttendeesState,
+	selectUseDaily,
 	type SessionAttendee,
 	type SyncedSessionAttendee,
 } from "../store/sessionAttendees";
@@ -45,7 +48,7 @@ import {
 	type MemberUpdate,
 } from "../store/members";
 
-import MemberDetail from "../members/MemberDetail";
+import MemberAttendanceDetail from "./MemberAttendanceDetail";
 import SessionSelector from "./SessionSelector";
 
 import styles from "./sessionAttendance.module.css";
@@ -95,7 +98,8 @@ export const renderEmail = ({
 export const renderEmployer = ({
 	rowData,
 }: CellRendererProps<SyncedSessionAttendee>) => (
-	<div className={styles.tableCell}>{renderDiff(rowData.Employer, rowData.OldEmployer)}</div>
+	// The "Employer" field is present with "daily attendance" but undefined with "attendance summary"
+	<div className={styles.tableCell}>{rowData.Employer === undefined? "N/A": renderDiff(rowData.Employer, rowData.OldEmployer)}</div>
 );
 
 export const renderAffiliation = ({
@@ -228,7 +232,7 @@ function sessionAttendeeToMember(attendee: SessionAttendee) {
 		FirstName: attendee.FirstName,
 		LastName: attendee.LastName,
 		MI: attendee.MI,
-		Employer: attendee.Employer,
+		Employer: attendee.Employer || "",
 		Email: attendee.Email,
 		Affiliation: attendee.Affiliation,
 		Status: "Non-Voter",
@@ -333,9 +337,14 @@ function InportAttendeeForm({ methods }: DropdownRendererProps) {
 function SessionAttendance() {
 	const dispatch = useAppDispatch();
 	const { groupName } = useParams();
-	const { selected, sessionId, entities } = useAppSelector(
+	const { loading, sessionId } = useAppSelector(
 		selectSessionAttendeesState
 	);
+	const useDaily = useAppSelector(selectUseDaily);
+	const toggleUseDaily = () => {
+		dispatch(setUseDaily(!useDaily));
+		refresh();	
+	};
 
 	const load = (sessionId: number | null) =>
 		dispatch(
@@ -345,15 +354,31 @@ function SessionAttendance() {
 		);
 	const refresh = () => load(sessionId);
 
-	function getAsMember(sapin: number) {
-		const attendee = entities[sapin];
-		if (attendee) return sessionAttendeeToMember(attendee);
-	}
-
 	return (
 		<>
 			<div className="top-row">
-				<SessionSelector value={sessionId} onChange={load} />
+				<div style={{display: 'flex'}}>
+					<SessionSelector value={sessionId} onChange={load} />
+					<div style={{display: 'flex', flexDirection: 'column', marginLeft: 10}}>
+						<div style={{display: 'flex', alignItems: 'center'}}>
+							<Checkbox
+								checked={useDaily}
+								onChange={toggleUseDaily}
+								disabled={loading}
+							/>
+							<label style={{marginLeft: 10}}>Daily attendance</label>
+						</div>
+						<div style={{display: 'flex', alignItems: 'center'}}>
+							<Checkbox
+								checked={!useDaily}
+								onChange={toggleUseDaily}
+								disabled={loading}
+							/>
+							<label style={{marginLeft: 10}}>Attendance summary</label>
+						</div>
+					</div>
+				</div>
+				{loading && <Spinner />}
 				<div style={{ display: "flex" }}>
 					<ButtonGroup>
 						<div>Table view</div>
@@ -417,11 +442,7 @@ function SessionAttendance() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<MemberDetail
-						key={selected.join()}
-						selected={selected}
-						getAsMember={getAsMember}
-					/>
+					<MemberAttendanceDetail />
 				</Panel>
 			</SplitPanel>
 		</>

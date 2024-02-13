@@ -30,6 +30,7 @@ import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	fields,
 	importAttendances,
+	setSelected,
 	selectAttendancesState,
 	selectAttendanceSessions,
 	attendancesSelectors,
@@ -227,6 +228,7 @@ const tableColumns: ColumnProperties[] = [
 ];
 
 function Attendances() {
+	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const refresh = () => navigate(".", { replace: true });
 
@@ -321,7 +323,10 @@ function Attendances() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<MemberDetail key={selected.join()} selected={selected} />
+					<MemberDetail
+						selected={selected}
+						setSelected={(ids) => dispatch(setSelected(ids))}
+					/>
 				</Panel>
 			</SplitPanel>
 		</>

@@ -130,7 +130,7 @@ const slice = createAppTableDataSlice({
 export default slice;
 
 /* Slice actions */
-const { getSuccess, getFailure, setBallotSeries, setBallots, setOne } =
+const { getSuccess, getFailure, setBallotSeries, setBallots, setOne, setSelected } =
 	slice.actions;
 
 // Overload getPending() with one that sets groupName
@@ -138,6 +138,7 @@ const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
 export const clearBallotParticipation = createAction(dataSet + "/clear");
 
 export const ballotParticipationActions = slice.actions;
+export { setSelected };
 
 
 /*

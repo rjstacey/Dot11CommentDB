@@ -28,10 +28,11 @@ import MembersSummary from "./MembersSummary";
 import MemberDetail from "./MemberDetail";
 import { RosterImport, RosterExport } from "./Roster";
 
-import { useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	fields,
 	selectMembersState,
+	setSelected,
 	membersSelectors,
 	membersActions,
 } from "../store/members";
@@ -274,6 +275,7 @@ for (tableView in defaultTablesColumns) {
 }
 
 function Members() {
+	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const refresh = () => navigate(".", { replace: true });
 	const { selected, entities: members } = useAppSelector(selectMembersState);
@@ -346,7 +348,10 @@ function Members() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<MemberDetail key={selected.join()} />
+					<MemberDetail
+						selected={selected}
+						setSelected={(ids) => dispatch(setSelected(ids))}
+					/>
 				</Panel>
 			</SplitPanel>
 		</>

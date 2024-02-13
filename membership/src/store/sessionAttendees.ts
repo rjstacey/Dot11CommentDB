@@ -3,6 +3,7 @@ import {
 	createAction,
 	EntityId,
 	Action,
+	PayloadAction
 } from "@reduxjs/toolkit";
 
 import {
@@ -44,7 +45,7 @@ export type SessionAttendee = {
 	CurrentInvolvementLevel: string;
 	Email: string;
 	Affiliation: string;
-	Employer: string;
+	Employer?: string;		// Not present with attendance summary
 	ContactInfo: MemberContactInfo;
 	AttendancePercentage: number;
 };
@@ -88,9 +89,11 @@ const sortComparer = (m1: SessionAttendeeWithOverrride, m2: SessionAttendeeWithO
 const initialState: {
 	groupName: string | null;
 	sessionId: number | null;
+	useDaily: boolean;
 } = {
 	groupName: null,
 	sessionId: null,
+	useDaily: false
 };
 
 const dataSet = "dailyAttendances";
@@ -100,7 +103,11 @@ const slice = createAppTableDataSlice({
 	selectId,
 	sortComparer,
 	initialState,
-	reducers: {},
+	reducers: {
+		setUseDaily(state, action: PayloadAction<boolean>) {
+			state.useDaily = action.payload;
+		}
+	},
 	extraReducers: (builder, dataAdapter) => {
 		builder
 			.addMatcher(
@@ -137,7 +144,9 @@ export default slice;
  * Slice actions
  */
 export const sessionAttendeesActions = slice.actions;
-const { getSuccess, getFailure } = slice.actions;
+const { getSuccess, getFailure, setUseDaily, setSelected } = slice.actions;
+export { setUseDaily, setSelected }
+
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ groupName: string; sessionId: number }>(
 	dataSet + "/getPending"
@@ -152,6 +161,9 @@ export const selectSessionAttendeesIds = (state: RootState) =>
 	selectSessionAttendeesState(state).ids;
 export const selectSessionAttendeesEntities = (state: RootState) =>
 	selectSessionAttendeesState(state).entities;
+//const selectSessionAttendeesUseDaily = (state: RootState) => selectSessionAttendeesState(state).useDaily;
+
+export const selectUseDaily = (state: RootState) => selectSessionAttendeesState(state).useDaily;
 
 const selectSyncedSessionAtendeesEntities = createSelector(
 	selectSessionAttendeesIds,
@@ -171,7 +183,7 @@ const selectSyncedSessionAtendeesEntities = createSelector(
 				Status = m.Status;
 				if (m.Affiliation !== entity.Affiliation)
 					OldAffiliation = m.Affiliation;
-				if (m.Employer !== entity.Employer) OldEmployer = m.Employer;
+				if (entity.Employer !== undefined && m.Employer !== entity.Employer) OldEmployer = m.Employer;
 				if (m.Email !== entity.Email) OldEmail = m.Email;
 				if (m.Name !== entity.Name) OldName = m.Name;
 			}
@@ -242,8 +254,9 @@ export const loadSessionAttendees =
 			return [];
 		}
 		dispatch(getPending({ groupName, sessionId }));
+		const useDaily = selectUseDaily(getState());
 		const attendanceUrl = `/api/${groupName}/attendances/${session.id}`;
-		const imatAttendanceUrl = `/api/${groupName}/imat/attendance/${session.imatMeetingId}/daily`;
+		const imatAttendanceUrl = `/api/${groupName}/imat/attendance/${session.imatMeetingId}/${useDaily? "daily": "summary"}`;
 		loadingPromise = fetcher
 			.get(attendanceUrl)
 			.then((response: any) => {

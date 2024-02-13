@@ -132,11 +132,12 @@ export default slice;
 /* Slice actions */
 export const attendancesActions = slice.actions;
 
-const { getSuccess, getFailure, setOne, setDetails } = slice.actions;
+const { getSuccess, getFailure, setOne, setDetails, setSelected } = slice.actions;
 
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
 export const clearAttendances = createAction(dataSet + "/clear");
+export { setSelected };
 
 /*
  * Selectors

@@ -15,7 +15,7 @@ import type { Member, StatusChangeType } from "../store/members";
 import { EditTable as Table } from "../components/Table";
 
 import StatusSelector from "./StatusSelector";
-import type { MultipleMember } from "./MemberDetail";
+import type { MultipleMember } from "./MemberEdit";
 
 const BLANK_STR = "(Blank)";
 

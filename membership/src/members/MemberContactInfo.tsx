@@ -7,7 +7,7 @@ import type {
 	MemberContactEmail,
 	MemberContactInfo,
 } from "../store/members";
-import type { MultipleMember } from "./MemberDetail";
+import type { MultipleMember } from "./MemberEdit";
 
 import { EditTable as Table, TableColumn } from "../components/Table";
 

@@ -23,6 +23,7 @@ import {
 	fields,
 	loadBallotParticipation,
 	clearBallotParticipation,
+	setSelected,
 	selectBallotParticipationState,
 	selectBallotSeries,
 	selectBallotEntities,
@@ -227,7 +228,10 @@ function BallotParticipation() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<MemberDetail key={selected.join()} selected={selected} />
+					<MemberDetail
+						selected={selected}
+						setSelected={(ids) => dispatch(setSelected(ids))}
+					/>
 				</Panel>
 			</SplitPanel>
 		</>

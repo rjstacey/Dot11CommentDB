@@ -6,7 +6,7 @@ import { EditTable as Table, TableColumn } from "../components/Table";
 
 import type { Permission } from "../store/permissions";
 import type { Member } from "../store/members";
-import type { MultipleMember } from "./MemberDetail";
+import type { MultipleMember } from "./MemberEdit";
 
 import AccessSelector from "./AccessSelector";
 import PermissionSelector from "./PermissionSelector";
