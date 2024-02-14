@@ -6,9 +6,6 @@ import {
 	SelectHeaderCell,
 	SelectCell,
 	TableColumnHeader,
-	TableColumnSelector,
-	TableViewSelector,
-	SplitPanelButton,
 	ShowFilters,
 	IdSelector,
 	IdFilter,
@@ -21,6 +18,7 @@ import {
 	HeaderCellRendererProps,
 	ButtonGroup,
 	ActionButton,
+	SplitTableButtonGroup,
 } from "dot11-components";
 
 import MembersUpload from "./MembersUpload";
@@ -285,24 +283,11 @@ function Members() {
 			<div className="top-row">
 				<MembersSummary />
 				<div style={{ display: "flex" }}>
-					<ButtonGroup>
-						<div>Table view</div>
-						<div style={{ display: "flex" }}>
-							<TableViewSelector
-								selectors={membersSelectors}
-								actions={membersActions}
-							/>
-							<TableColumnSelector
-								selectors={membersSelectors}
-								actions={membersActions}
-								columns={tableColumns}
-							/>
-							<SplitPanelButton
-								selectors={membersSelectors}
-								actions={membersActions}
-							/>
-						</div>
-					</ButtonGroup>
+					<SplitTableButtonGroup
+						columns={tableColumns}
+						selectors={membersSelectors}
+						actions={membersActions}
+					/>
 					<ButtonGroup>
 						<div>Roster</div>
 						<div style={{ display: "flex" }}>
