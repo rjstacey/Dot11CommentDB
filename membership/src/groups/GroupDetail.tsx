@@ -1,42 +1,40 @@
 import * as React from "react";
+import { shallowEqual } from "react-redux";
 
 import {
 	ConfirmModal,
-	deepDiff,
 	deepMergeTagMultiple,
 	Multiple,
 	ActionButton,
 	setError,
-	shallowDiff,
 } from "dot11-components";
 
 import { AccessLevel } from "../store/user";
 import {
-	addGroup,
-	updateGroups,
-	deleteGroups,
 	selectGroupsState,
 	selectUserGroupsAccess,
 	selectWorkingGroupId,
 	setSelected,
 	Group,
 	GroupCreate,
-	GroupUpdate,
 } from "../store/groups";
 import {
-	addOfficers,
-	updateOfficers,
-	deleteOfficers,
-	selectOfficersState,
+	selectOfficerEntities,
+	selectOfficerIds,
 	getGroupOfficers,
-	OfficerId,
 	Officer,
-	OfficerUpdate,
-	OfficerCreate,
 } from "../store/officers";
 
 import ShowAccess from "../components/ShowAccess";
-import GroupEntryEdit from "./GroupEntry";
+import {
+	GroupEntryForm,
+	useGroupAdd,
+	useGroupsDelete,
+	useGroupsUpdate,
+	GroupEntry,
+	MultipleGroupEntry,
+	EditAction,
+} from "./GroupEntry";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 
 const BLANK_STR = "(Blank)";
@@ -53,55 +51,30 @@ const defaultEntry: GroupEntry = {
 	officers: [],
 };
 
-export type GroupEntry = GroupCreate & { officers: Officer[] };
-export type MultipleGroupEntry = Multiple<GroupCreate> & {
-	officers: Officer[];
+type GroupDetailState = {
+	action: EditAction;
+	edited: MultipleGroupEntry | null;
+	saved: MultipleGroupEntry | null;
+	groups: Group[];
 };
-
-function deepEqual(obj1: any, obj2: any): boolean {
-	if (obj1 === obj2) return true;
-
-	if (Array.isArray(obj1) && Array.isArray(obj2)) {
-		if (obj1.length !== obj2.length) return false;
-		for (let i = 0; i < obj1.length; i++) {
-			if (!deepEqual(obj1[i], obj2[i])) return false;
-		}
-		return true;
-	}
-
-	if (obj1 !== Object(obj1) || obj2 !== Object(obj2)) return obj1 === obj2;
-
-	if (Object.keys(obj1).length !== Object.keys(obj2).length) return false;
-	for (let key in obj1) {
-		if (!(key in obj2)) return false;
-		if (!deepEqual(obj1[key], obj2[key])) return false;
-	}
-
-	return true;
-}
 
 function GroupDetail() {
 	const dispatch = useAppDispatch();
+
 	const access = useAppSelector(selectUserGroupsAccess);
 	const readOnly = access <= AccessLevel.ro;
-	const { entities, selected, loading } =
+
+	const { entities, selected, loading, valid } =
 		useAppSelector(selectGroupsState);
-	const { entities: officerEntities, ids: officerIds } =
-		useAppSelector(selectOfficersState);
+	const officerEntities = useAppSelector(selectOfficerEntities);
+	const officerIds = useAppSelector(selectOfficerIds);
 	const groupId = useAppSelector(selectWorkingGroupId);
 
-	const groups = React.useMemo(
-		() => selected.map((id) => entities[id]!).filter((b) => Boolean(b)),
-		[selected, entities]
-	);
+	const initState = React.useCallback((): GroupDetailState => {
+		const groups = selected
+			.map((id) => entities[id]!)
+			.filter(g => Boolean(g));
 
-	const [edited, setEdited] = React.useState<MultipleGroupEntry | null>(null);
-	const [saved, setSaved] = React.useState<MultipleGroupEntry | null>(null);
-	const [editedGroups, setEditedGroups] = React.useState<Group[]>([]);
-	const [action, setAction] = React.useState<"update" | "add">("update");
-	const [busy, setBusy] = React.useState(false);
-
-	const initState = React.useCallback(() => {
 		let diff: Multiple<GroupCreate> | null = null;
 		for (const group of groups) {
 			diff = deepMergeTagMultiple(diff || {}, group);
@@ -115,165 +88,175 @@ function GroupDetail() {
 
 		let edited = diff ? { ...diff, officers } : null;
 
-		setAction("update");
-		setEdited(edited);
-		setSaved(edited);
-		setEditedGroups(groups);
-	}, [groups, officerIds, officerEntities, setEdited, setSaved, setEditedGroups]);
+		return {
+			action: "view",
+			edited,
+			saved: edited,
+			groups,
+		};
+	}, [selected, entities, officerIds, officerEntities]);
+
+	const uRef = React.useRef<typeof initState>();
+	uRef.current = initState;
+
+	const [state, setState] = React.useState(initState);
+	const [busy, setBusy] = React.useState(false);
 
 	React.useEffect(() => {
-		const changeWithConfirmation = async () => {
-			if (edited !== saved) {
-				const ok = await ConfirmModal.show(
+		const ids = state.groups.map((g) => g.id);
+		if (state.action === "view" && selected.join() !== ids.join()) {
+			setState(initState);
+		} else if (state.action === "update" && selected.join() !== ids.join()) {
+			ConfirmModal.show(
+				"Changes not applied! Do you want to discard changes?"
+			).then((ok) => {
+				if (ok) setState(initState);
+				else dispatch(setSelected(ids));
+			});
+		} else if (state.action === "add" && selected.length > 0) {
+			if (state.edited !== state.saved) {
+				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?"
-				);
-				if (!ok) {
-					const ids = editedGroups.map(group => group.id);
-					dispatch(setSelected(ids));
-					return;
-				}
+				).then((ok) => {
+					if (ok) setState(initState);
+					else dispatch(setSelected([]));
+				});
 			}
-			initState();
-		};
-		if (selected.join() !== editedGroups.map((g) => g.id).join())
-			changeWithConfirmation();
-	}, [selected, editedGroups, edited, saved, initState, dispatch]);
+			else {
+				setState(initState);
+			}
+		}
+	}, [state, selected, initState, dispatch]);
 
 	const changeEntry = (changes: Partial<GroupEntry>) => {
-		if (readOnly) {
+		if (readOnly || state.edited === null || state.saved === null) {
 			console.warn("Update with insufficient access");
 			return;
 		}
-		const newEdited = { ...edited!, ...changes };
-		if (deepEqual(newEdited, saved)) {
-			setEdited(saved);
-		} else {
-			setEdited(newEdited);
-		}
+		setState((state) => {
+			let { action, edited, saved } = state;
+			edited = { ...edited!, ...changes };
+			if (shallowEqual(edited, saved!)) {
+				if (action !== "add") action = "view";
+				edited = saved!;
+			} else {
+				if (action !== "add") action = "update";
+			}
+			return {
+				...state,
+				action,
+				edited,
+				saved,
+			};
+		});
 	};
 
+	const groupAdd = useGroupAdd();
+
 	const add = async () => {
-		if (readOnly) {
-			console.warn("Insufficient access for add entry");
+		if (readOnly || state.edited === null) {
+			console.warn("Add with unexpected state");
 			return;
 		}
-		let { officers, ...newGroup } = edited as GroupEntry;
+		const { edited } = state;
 		for (const group of Object.values(entities)) {
-			if (group!.parent_id === groupId && group!.name === newGroup.name) {
-				setError(
-					"Unable to add entry",
-					"Entry already exists for " + (group!.name || BLANK_STR)
+			if (group && group.parent_id === groupId && group.name === edited.name) {
+				dispatch(
+					setError(
+						"Unable to add group",
+						"Entry already exists for " + (group.name || BLANK_STR)
+					)
 				);
 				return;
 			}
 		}
+		setState(state => ({
+			...state,
+			saved: state.edited
+		}));
 		setBusy(true);
-		const group = await dispatch(addGroup(newGroup));
-		if (group) {
-			if (officers.length) {
-				officers = officers.map((o) => ({ ...o, group_id: group.id }));
-				await dispatch(addOfficers(officers));
-			}
-			setSelected([group.id]);
-		}
-		initState();
+		const group = await groupAdd(edited);
 		setBusy(false);
+		dispatch(setSelected(group? [group.id]: []));
 	};
 
+	const groupsUpdate = useGroupsUpdate();
+
 	const update = async () => {
-		if (readOnly) {
-			console.warn("Insufficient access for update entry");
+		if (readOnly || state.edited === null || state.saved === null) {
+			console.warn("Update with unexpected state");
 			return;
 		}
+		const { edited, saved, groups } = state;
 		setBusy(true);
-
-		const { officers: savedOfficers, ...savedEntry } = saved!;
-		const { officers: editedOfficers, ...editedEntry } = edited!;
-
-		const edits = shallowDiff(editedEntry, savedEntry);
-		const updates: GroupUpdate[] = [];
-		for (const group of editedGroups) {
-			const changes = shallowDiff({ ...group, ...edits }, group);
-			if (Object.keys(changes).length > 0) {
-				updates.push({ id: group.id, changes });
-			}
-		}
-		if (updates.length > 0)
-			await dispatch(updateGroups(updates));
-
-		if (editedGroups.length === 1) {
-			const officerAdds: OfficerCreate[] = [],
-				officerUpdates: OfficerUpdate[] = [],
-				officerDeletes: OfficerId[] = [];
-
-			for (const o1 of editedOfficers) {
-				const o2 = officerEntities[o1.id];
-				if (o2) {
-					const changes = deepDiff(o2, o1) || {};
-					if (Object.keys(changes).length > 0)
-						officerUpdates.push({ id: o2.id, changes });
-				} else {
-					officerAdds.push(o1);
-				}
-			}
-			for (const o2 of savedOfficers) {
-				if (!editedOfficers.find((o) => o.id === o2.id))
-					officerDeletes.push(o2.id);
-			}
-			if (officerAdds.length > 0)
-				await dispatch(addOfficers(officerAdds));
-			if (officerUpdates.length > 0)
-				await dispatch(updateOfficers(officerUpdates));
-			if (officerDeletes.length > 0)
-				await dispatch(deleteOfficers(officerDeletes));
-		}
-
-		setSaved(edited)
+		await groupsUpdate(edited, saved, groups);
 		setBusy(false);
+		setState((state) => ({
+			...state,
+			action: "view",
+			saved: edited,
+		}));
 	};
 
 	const cancel = async () => {
-		initState();
+		setState(initState);
 	};
 
-	const clickAdd = () => {
+	const clickAdd = async () => {
+		if (state.action === "update") {
+			const ok = await ConfirmModal.show(
+				`Changes not applied! Do you want to discard changes?`
+			);
+			if (!ok) return;
+		}
 		dispatch(setSelected([]));
 		const entry: GroupEntry = {
 			...defaultEntry,
 			parent_id: groupId,
 		};
-		setAction("add");
-		setEdited(entry);
-		setEditedGroups([]);
+		setState({
+			action: "add",
+			edited: entry,
+			saved: entry,
+			groups: [],
+		});
 	};
 
+	const groupsDelete = useGroupsDelete();
+
 	const clickDelete = async () => {
-		if (access <= AccessLevel.ro) {
-			console.warn("Insufficient access to delete entry");
+		if (readOnly || state.groups.length === 0) {
+			console.warn("Delete with unexpected state");
 			return;
 		}
-		const groupNames = groups.map((group) => group.name || BLANK_STR);
-		const ok = await ConfirmModal.show(
-			`Are you sure you want to delete ${groupNames.join(", ")}?`
-		);
-		if (!ok) return;
-		await dispatch(deleteGroups(groups.map((group) => group.id)));
+		const { groups } = state;
+		if (groups.length > 0) {
+			const str =
+				"Are you sure you want to delete:\n" +
+				groups.map((g) => g.name || BLANK_STR).join("\n");
+			const ok = await ConfirmModal.show(str);
+			if (ok) {
+				await groupsDelete(groups);
+				setSelected([]);
+			}
+		}
 	};
 
 	let placeholder = "";
-	if (loading) placeholder = "Loading...";
-	else if (action === "update" && !edited)
+	if (loading && !valid) placeholder = "Loading...";
+	else if (state.action !== "add" && state.groups.length === 0)
 		placeholder = "Nothing selected";
 
 	let title = "",
 		submit: (() => void) | undefined;
-	if (action === "add") {
+	if (state.action === "add") {
 		title = "Add group";
 		submit = add;
-	} else if (action === "update" && edited !== saved) {
+	} else if (state.action === "update") {
 		title = "Update group";
-		if (edited !== saved)
-			submit = update;
+		submit = update;
+	} else {
+		title = "Group detail";
 	}
 
 	return (
@@ -285,12 +268,13 @@ function GroupDetail() {
 						name="add"
 						title="Add group"
 						disabled={loading || readOnly}
+						isActive={state.action === "add"}
 						onClick={clickAdd}
 					/>
 					<ActionButton
 						name="delete"
 						title="Delete group"
-						disabled={loading || groups.length === 0 || readOnly}
+						disabled={loading || state.groups.length === 0 || readOnly}
 						onClick={clickDelete}
 					/>
 				</div>
@@ -298,13 +282,12 @@ function GroupDetail() {
 			{placeholder ? (
 				<div className="placeholder">{placeholder}</div>
 			) : (
-				<GroupEntryEdit
-					action={action}
-					//title={title}
-					entry={edited!}
+				<GroupEntryForm
+					action={state.action}
+					entry={state.edited!}
 					changeEntry={changeEntry}
 					submit={submit}
-					cancel={submit? cancel: undefined}
+					cancel={submit ? cancel : undefined}
 					busy={busy}
 					readOnly={readOnly}
 				/>

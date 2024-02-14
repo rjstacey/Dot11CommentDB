@@ -253,26 +253,23 @@ export const selectBallotParticipationWithMembershipAndSummary = createSelector(
 	}
 );
 
-export function selectMemberBallotParticipationCount(
-	state: RootState,
-	SAPIN: number
-) {
-	const ballotParticipationEntities =
-		selectBallotParticipationEntities(state);
-	const ballotSeriesEntities =
-		selectBallotParticipationState(state).ballotSeries.entities;
-	const summaries =
-		ballotParticipationEntities[SAPIN]
-			?.ballotSeriesParticipationSummaries || [];
-	const member = selectMemberEntities(state)[SAPIN];
-	if (member)
-		return memberBallotParticipationCount(
-			member,
-			summaries,
-			ballotSeriesEntities
-		);
-	return { count: 0, total: 0 };
-}
+export const selectMemberBallotParticipationCount = createSelector(
+	selectBallotParticipationEntities,
+	selectBallotSeriesEntities,
+	selectMemberEntities,
+	(state: RootState, SAPIN: number) => SAPIN,
+	(ballotParticipationEntities, ballotSeriesEntities, memberEntities, SAPIN) => {
+		const summaries = ballotParticipationEntities[SAPIN]?.ballotSeriesParticipationSummaries || [];
+		const member = memberEntities[SAPIN];
+		if (member)
+			return memberBallotParticipationCount(
+				member,
+				summaries,
+				ballotSeriesEntities
+			);
+		return { count: 0, total: 0 };
+	}
+);
 
 function getField(entity: MemberParticipation, dataKey: string): any {
 	const m = /ballotSeries_(\d+)/.exec(dataKey);

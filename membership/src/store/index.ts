@@ -16,7 +16,6 @@ import { get, set, del } from "idb-keyval";
 import userSlice from "./user";
 import groupsSlice from "./groups";
 import timeZonesSlice from "./timeZones";
-import permissionsSlice from "./permissions";
 import membersSlice from "./members";
 import officersSlice from "./officers";
 import attendancesSlice from "./sessionParticipation";
@@ -31,6 +30,7 @@ import { errorsSlice } from "dot11-components";
 const RESET_STORE_ACTION = "root/RESET_STORE";
 const PERSIST_VERSION = 4;
 
+/* Transform presistant state so that we reset "loading" state */
 const transformState = createTransform(
 	(state: any) => {
 		const { loading, ...rest } = state;
@@ -58,7 +58,6 @@ const appReducer = combineReducers({
 	[attendancesSlice.name]: attendancesSlice.reducer,
 	[ballotParticipationSlice.name]: ballotParticipationSlice.reducer,
 	[timeZonesSlice.name]: timeZonesSlice.reducer,
-	[permissionsSlice.name]: permissionsSlice.reducer,
 	[errorsSlice.name]: errorsSlice.reducer,
 	[sessionAttendeesSlice.name]: sessionAttendeesSlice.reducer,
 	[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
@@ -80,6 +79,7 @@ const persistConfig = {
 		removeItem: del,
 	},
 	whitelist: [
+		userSlice.name,
 		groupsSlice.name,
 		membersSlice.name,
 		attendancesSlice.name,
@@ -99,7 +99,7 @@ const persistConfig = {
 	},
 };
 
-const middleware: Middleware[] = []; //[thunk];
+const middleware: Middleware[] = [];
 if (process.env.NODE_ENV !== "production")
 	middleware.push(createLogger({ collapsed: true }));
 

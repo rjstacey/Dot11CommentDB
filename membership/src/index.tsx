@@ -15,10 +15,18 @@ import App from "./app";
 import * as serviceWorker from "./serviceWorkerRegistration";
 
 function persistGate(done: boolean, user: User) {
-	if (!done) return "loading...";
+	if (!done) {
+		return "loading...";
+	}
+
 	const storedUser = selectUser(store.getState());
-	if (storedUser.SAPIN !== user.SAPIN) store.dispatch(resetStore());
-	store.dispatch(setUser(user));
+	if (storedUser.SAPIN !== user.SAPIN) {
+		store.dispatch(resetStore());
+	}
+
+	fetcher.setAuth(user.Token, logout);	// Prime fetcher with autherization token
+	store.dispatch(setUser(user));			// Make sure we have the latest user info
+
 	return <App />;
 }
 
@@ -26,7 +34,6 @@ getUser()
 	.then((user) => {
 		const root = createRoot(document.getElementById("root")!);
 		try {
-			fetcher.setAuth(user.Token, logout);
 			root.render(
 				<React.StrictMode>
 					<Provider store={store}>
