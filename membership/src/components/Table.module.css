@@ -53,6 +53,6 @@
 	font-style: italic;
 }
 
-.table tr:nth-of-type(even) td {
-	background: #fafafa;
-}
+/*.table tr:nth-of-type(even) td {
+	background-color: rgba(250, 250, 250, 0.6);
+}*/

@@ -2,7 +2,6 @@ import * as React from "react";
 import { DateTime } from "luxon";
 
 import {
-	Form,
 	Row,
 	Field,
 	Input,
@@ -15,7 +14,7 @@ import type { Member, StatusChangeType } from "../store/members";
 import { EditTable as Table } from "../components/Table";
 
 import StatusSelector from "./StatusSelector";
-import type { MultipleMember } from "./MemberEdit";
+import { hasChangesStyle, MultipleMember } from "./MemberEdit";
 
 const BLANK_STR = "(Blank)";
 
@@ -23,7 +22,7 @@ const displayDate = (isoDateTime: string) =>
 	DateTime.fromISO(isoDateTime).toLocaleString(DateTime.DATE_MED);
 
 function MemberStatusChangeForm({
-	entry: defaultEntry,
+	entry,
 	onChange,
 	close,
 }: {
@@ -31,21 +30,14 @@ function MemberStatusChangeForm({
 	onChange: (entry: StatusChangeType) => void;
 	close: () => void;
 }) {
-	const [entry, setEntry] = React.useState(defaultEntry);
-
-	function submit() {
-		onChange(entry);
-		close();
-	}
-
 	function change(changes: Partial<StatusChangeType>) {
-		setEntry({ ...entry, ...changes });
+		onChange({ ...entry, ...changes });
 	}
 
 	const date = entry.Date.substring(0, 10);
 
 	return (
-		<Form title="Edit status change" submit={submit} cancel={close}>
+		<>
 			<Row>
 				<Field label="Date:">
 					<input
@@ -78,14 +70,12 @@ function MemberStatusChangeForm({
 					<Input
 						type="text"
 						value={entry.Reason}
-						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-							change({ Reason: e.target.value })
-						}
+						onChange={(e) => change({ Reason: e.target.value })}
 						placeholder={BLANK_STR}
 					/>
 				</Field>
 			</Row>
-		</Form>
+		</>
 	);
 }
 
@@ -143,27 +133,31 @@ const statusChangeHistoryColumns = [
 
 function MemberStatusChangeHistory({
 	member,
+	saved,
 	updateMember,
 	readOnly,
 }: {
 	member: MultipleMember;
+	saved?: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
+	const statusChangeHistory = member.StatusChangeHistory;
+
 	const columns = React.useMemo(() => {
-		function updateStatusChange(
+		function update(
 			id: number,
 			changes: Partial<StatusChangeType>
 		) {
-			const StatusChangeHistory = member.StatusChangeHistory.map((h) =>
+			const StatusChangeHistory = statusChangeHistory.map((h) =>
 				h.id === id ? { ...h, ...changes } : h
 			);
 			//console.log(id, changes, StatusChangeHistory)
 			updateMember({ StatusChangeHistory });
 		}
 
-		function deleteStatusChange(id: number) {
-			const StatusChangeHistory = member.StatusChangeHistory.filter(
+		function remove(id: number) {
+			const StatusChangeHistory = statusChangeHistory.filter(
 				(h) => h.id !== id
 			);
 			updateMember({ StatusChangeHistory });
@@ -176,13 +170,13 @@ function MemberStatusChangeHistory({
 						<MemberStatusChangeDropdown
 							entry={entry}
 							onChange={(changes: StatusChangeType) =>
-								updateStatusChange(entry.id, changes)
+								update(entry.id, changes)
 							}
 							readOnly={readOnly}
 						/>
 						<ActionIcon
 							type="delete"
-							onClick={() => deleteStatusChange(entry.id)}
+							onClick={() => remove(entry.id)}
 							disabled={readOnly}
 						/>
 					</>
@@ -192,9 +186,15 @@ function MemberStatusChangeHistory({
 			return col;
 		});
 		return columns;
-	}, [member.StatusChangeHistory, readOnly, updateMember]);
+	}, [statusChangeHistory, readOnly, updateMember]);
 
-	return <Table columns={columns} values={member.StatusChangeHistory} />;
+	return (
+		<Table
+			style={hasChangesStyle(member, saved, "StatusChangeHistory")}
+			columns={columns}
+			values={statusChangeHistory}
+		/>
+	);
 }
 
 export default MemberStatusChangeHistory;

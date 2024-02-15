@@ -308,7 +308,7 @@ export function useGroupsUpdate() {
 		const edits = shallowDiff(savedEntry, editedEntry);
 		const updates: GroupUpdate[] = [];
 		for (const group of groups) {
-			const changes = shallowDiff(group, { ...group, ...edits });
+			const changes = shallowDiff(group, { ...group, ...edits }) as Partial<Group>;
 			if (Object.keys(changes).length > 0) {
 				updates.push({ id: group.id, changes });
 			}

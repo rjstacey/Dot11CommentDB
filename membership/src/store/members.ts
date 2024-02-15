@@ -75,7 +75,7 @@ export type MemberExtra = {
 	Permissions: string[];
 	ContactEmails: MemberContactEmail[];
 	ContactInfo: MemberContactInfo;
-	StatusChangeOverride: 0 | 1;
+	StatusChangeOverride: boolean;
 	StatusChangeHistory: StatusChangeType[];
 	StatusChangeDate: string;
 	BallotSeriesCount: number;

@@ -3,8 +3,8 @@ import {
 	createAction,
 	EntityId,
 	Action,
-	PayloadAction
 } from "@reduxjs/toolkit";
+import isEqual from "lodash.isequal";
 
 import {
 	fetcher,
@@ -33,7 +33,7 @@ export const fields = {
 	Status: { label: "Status" },
 	AttendancePercentage: { label: "Attendance", type: FieldType.NUMERIC },
 	AttendanceOverride: { label: "Attendance override" },
-	Notes: { label: "Notes" }
+	Notes: { label: "Notes" },
 };
 
 export type SessionAttendee = {
@@ -45,8 +45,8 @@ export type SessionAttendee = {
 	CurrentInvolvementLevel: string;
 	Email: string;
 	Affiliation: string;
-	Employer?: string;		// Not present with attendance summary
-	ContactInfo: MemberContactInfo;
+	Employer?: string; // Not present with attendance summary
+	ContactInfo?: MemberContactInfo; // Not present with attendance summary
 	AttendancePercentage: number;
 };
 
@@ -63,19 +63,20 @@ export type SyncedSessionAttendee = SessionAttendeeWithOverrride & {
 	OldAffiliation: string | null;
 	OldEmployer: string | null;
 	OldEmail: string | null;
+	OldContactInfo: MemberContactInfo | null;
 };
 
 /* Fields derived from other fields */
 export function getField(entity: SyncedSessionAttendee, key: string): any {
 	if (key === "AttendanceOverride") {
-		if (entity.DidAttend)
-			return "Did attend";
-		else if (entity.DidNotAttend)
-			return "Did not attend";
-		else if (entity.AttendancePercentage.toFixed(0) !== entity.AttendancePercentageOverride.toFixed(0))
+		if (entity.DidAttend) return "Did attend";
+		else if (entity.DidNotAttend) return "Did not attend";
+		else if (
+			entity.AttendancePercentage.toFixed(0) !==
+			entity.AttendancePercentageOverride.toFixed(0)
+		)
 			return entity.AttendancePercentageOverride.toFixed(0) + "%";
-		else
-			return "";
+		else return "";
 	}
 	return entity[key as keyof SyncedSessionAttendee];
 }
@@ -84,30 +85,29 @@ export function getField(entity: SyncedSessionAttendee, key: string): any {
  * Slice
  */
 const selectId = (attendee: SessionAttendeeWithOverrride) => attendee.SAPIN;
-const sortComparer = (m1: SessionAttendeeWithOverrride, m2: SessionAttendeeWithOverrride) => m1.SAPIN - m2.SAPIN;
+const sortComparer = (
+	m1: SessionAttendeeWithOverrride,
+	m2: SessionAttendeeWithOverrride
+) => m1.SAPIN - m2.SAPIN;
 
 const initialState: {
 	groupName: string | null;
 	sessionId: number | null;
-	useDaily: boolean;
+	dailyAttendance: boolean;	// derive from IMAT "daily attendance" (vs "attendance summary")
 } = {
 	groupName: null,
 	sessionId: null,
-	useDaily: false
+	dailyAttendance: false,
 };
 
-const dataSet = "dailyAttendances";
+const dataSet = "sessionAttendees";
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	selectId,
 	sortComparer,
 	initialState,
-	reducers: {
-		setUseDaily(state, action: PayloadAction<boolean>) {
-			state.useDaily = action.payload;
-		}
-	},
+	reducers: {},
 	extraReducers: (builder, dataAdapter) => {
 		builder
 			.addMatcher(
@@ -134,6 +134,18 @@ const slice = createAppTableDataSlice({
 					state.valid = false;
 					dataAdapter.removeAll(state);
 				}
+			)
+			.addMatcher(
+				(action: Action) =>
+					action.type === setDailyAttendance.toString(),
+				(state, action) => {
+					if (state.dailyAttendance !== action.payload) {
+						state.dailyAttendance = action.payload;
+						dataAdapter.removeAll(state);
+						state.valid = false;
+						state.loading = false;
+					}
+				}
 			);
 	},
 });
@@ -144,14 +156,15 @@ export default slice;
  * Slice actions
  */
 export const sessionAttendeesActions = slice.actions;
-const { getSuccess, getFailure, setUseDaily, setSelected } = slice.actions;
-export { setUseDaily, setSelected }
+export const { setSelected } = slice.actions;
+export const clearSessionAttendees = createAction(dataSet + "/clear");
+export const setDailyAttendance = createAction<boolean>(dataSet + "/setDailyAttendance");
 
+const { getSuccess, getFailure } = slice.actions;
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ groupName: string; sessionId: number }>(
 	dataSet + "/getPending"
 );
-export const clearSessionAttendees = createAction(dataSet + "/clear");
 
 /*
  * Selectors
@@ -163,7 +176,8 @@ export const selectSessionAttendeesEntities = (state: RootState) =>
 	selectSessionAttendeesState(state).entities;
 //const selectSessionAttendeesUseDaily = (state: RootState) => selectSessionAttendeesState(state).useDaily;
 
-export const selectUseDaily = (state: RootState) => selectSessionAttendeesState(state).useDaily;
+export const selectDailyAttendance = (state: RootState) =>
+	selectSessionAttendeesState(state).dailyAttendance;
 
 const selectSyncedSessionAtendeesEntities = createSelector(
 	selectSessionAttendeesIds,
@@ -172,29 +186,35 @@ const selectSyncedSessionAtendeesEntities = createSelector(
 	(ids, entities, memberEntities) => {
 		const newEntities: Record<EntityId, SyncedSessionAttendee> = {};
 		ids.forEach((id) => {
-			const entity = entities[id]!;
-			const m = memberEntities[id];
-			let OldAffiliation = null,
-				OldEmployer = null,
-				OldName = null,
-				OldEmail = null,
-				Status = "New";
-			if (m) {
-				Status = m.Status;
-				if (m.Affiliation !== entity.Affiliation)
-					OldAffiliation = m.Affiliation;
-				if (entity.Employer !== undefined && m.Employer !== entity.Employer) OldEmployer = m.Employer;
-				if (m.Email !== entity.Email) OldEmail = m.Email;
-				if (m.Name !== entity.Name) OldName = m.Name;
-			}
-			newEntities[id] = {
-				...entity,
-				Status,
-				OldAffiliation,
-				OldEmployer,
-				OldEmail,
-				OldName,
+			let entity: SyncedSessionAttendee = {
+				...entities[id]!,
+				OldAffiliation: null,
+				OldEmployer: null,
+				OldName: null,
+				OldEmail: null,
+				OldContactInfo: null,
+				Status: "New",
 			};
+			const m = memberEntities[id];
+			if (m) {
+				entity.Status = m.Status;
+				if (m.Affiliation !== entity.Affiliation)
+					entity.OldAffiliation = m.Affiliation;
+				if (
+					entity.Employer !== undefined &&
+					m.Employer !== entity.Employer
+				)
+					entity.OldEmployer = m.Employer;
+				if (m.Email !== entity.Email) entity.OldEmail = m.Email;
+				if (m.Name !== entity.Name) entity.OldName = m.Name;
+				if (
+					entity.Employer !== undefined &&
+					!isEqual(m.ContactInfo, entity.ContactInfo)
+				) {
+					entity.OldContactInfo = m.ContactInfo;
+				}
+			}
+			newEntities[id] = entity;
 		});
 		return newEntities;
 	}
@@ -254,9 +274,11 @@ export const loadSessionAttendees =
 			return [];
 		}
 		dispatch(getPending({ groupName, sessionId }));
-		const useDaily = selectUseDaily(getState());
+		const dailyAttendance = selectDailyAttendance(getState());
 		const attendanceUrl = `/api/${groupName}/attendances/${session.id}`;
-		const imatAttendanceUrl = `/api/${groupName}/imat/attendance/${session.imatMeetingId}/${useDaily? "daily": "summary"}`;
+		const imatAttendanceUrl = `/api/${groupName}/imat/attendance/${
+			session.imatMeetingId
+		}/${dailyAttendance ? "daily" : "summary"}`;
 		loadingPromise = fetcher
 			.get(attendanceUrl)
 			.then((response: any) => {

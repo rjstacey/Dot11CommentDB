@@ -1,3 +1,4 @@
+import React from "react";
 import styles from "./Table.module.css";
 
 export const tableEmpty = (
@@ -33,11 +34,14 @@ export function EditTable({
 	columns,
 	values,
 	rowId,
+	className,
+	style,
+	...props
 }: {
 	columns: TableColumn[] /** Column definitions */;
 	values: any[];
 	rowId?: string;
-}) {
+} & React.ComponentProps<"table">) {
 	const gridTemplateColumns = columns
 		.map((col) => col.gridTemplate || "auto")
 		.join(" ");
@@ -63,7 +67,11 @@ export function EditTable({
 	));
 
 	return (
-		<table className={styles.table} style={{ gridTemplateColumns }}>
+		<table
+			className={styles.table + (className? " " + className: "")}
+			style={{ gridTemplateColumns, ...style }}
+			{...props}
+		>
 			<thead>{header}</thead>
 			<tbody>{rows.length > 0 ? rows : tableEmpty}</tbody>
 		</table>

@@ -7,7 +7,7 @@ import type {
 	MemberContactEmail,
 	MemberContactInfo,
 } from "../store/members";
-import type { MultipleMember } from "./MemberEdit";
+import { hasChangesStyle, type MultipleMember } from "./MemberEdit";
 
 import { EditTable as Table, TableColumn } from "../components/Table";
 
@@ -18,7 +18,7 @@ type ContactInfoFieldType = {
 };
 
 const contactEmailColumns: TableColumn[] = [
-	{ key: "Email", label: "Email" },
+	{ key: "Email", label: <b>Email</b> },
 	{
 		key: "Primary",
 		label: "Primary",
@@ -40,15 +40,18 @@ const contactEmailColumns: TableColumn[] = [
 
 function MemberContactEmails({
 	member,
-	updateMember,
+	saved,
+	onChange,
 	readOnly,
 }: {
 	member: MultipleMember;
-	updateMember: (changes: Partial<Member>) => void;
+	saved?: MultipleMember;
+	onChange: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
+	const contactEmails = member.ContactEmails;
+
 	const columns = React.useMemo(() => {
-		const contactEmails = member.ContactEmails || [];
 		const disableAdd =
 			contactEmails.length > 0 && contactEmails[0].Email === "";
 
@@ -66,7 +69,7 @@ function MemberContactEmails({
 				DateAdded: DateTime.now().toISO(),
 			};
 			const ContactEmails = [contactEmail, ...contactEmails];
-			updateMember({ ContactEmails });
+			onChange({ ContactEmails });
 		}
 
 		function updateContactEmail(
@@ -76,12 +79,12 @@ function MemberContactEmails({
 			const ContactEmails = contactEmails.map((h) =>
 				h.id === id ? { ...h, ...changes } : h
 			);
-			updateMember({ ContactEmails });
+			onChange({ ContactEmails });
 		}
 
 		function deleteContactEmail(id: number) {
 			const ContactEmails = contactEmails.filter((h) => h.id !== id);
-			updateMember({ ContactEmails });
+			onChange({ ContactEmails });
 		}
 
 		return contactEmailColumns.map((col) => {
@@ -150,12 +153,13 @@ function MemberContactEmails({
 
 			return col;
 		});
-	}, [member.ContactEmails, updateMember, readOnly]);
+	}, [contactEmails, onChange, readOnly]);
 
 	return (
 		<Table
+			style={hasChangesStyle(member, saved, "ContactEmails")}
 			columns={columns}
-			values={member.ContactEmails || []}
+			values={contactEmails}
 			rowId="id"
 		/>
 	);
@@ -172,17 +176,20 @@ const ContactInfoFields: ContactInfoFieldType[] = [
 ];
 
 function MemberContactInfoEdit({
-	member,
-	updateMember,
+	edited,
+	saved,
+	onChange,
 	readOnly,
 }: {
-	member: MultipleMember;
-	updateMember: (changes: Partial<Member>) => void;
+	edited: MultipleMember;
+	saved?: MultipleMember;
+	onChange: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
-	const contactInfo = member.ContactInfo || {};
+	const editedContactInfo = edited.ContactInfo;
+	const savedContactInfo = saved?.ContactInfo;
 
-	const rows = ContactInfoFields.map((f) => (
+	const contactInfoRows = ContactInfoFields.map((f) => (
 		<div
 			key={f.key}
 			style={{display: 'flex', alignItems: 'center'}}
@@ -193,13 +200,14 @@ function MemberContactInfoEdit({
 				{f.label}
 			</label>
 			<Input
+				style={hasChangesStyle(editedContactInfo, savedContactInfo, f.key)}
 				type="text"
 				size={f.size}
-				value={contactInfo[f.key]}
+				value={editedContactInfo[f.key]}
 				onChange={(e) =>
-					updateMember({
+					onChange({
 						ContactInfo: {
-							...contactInfo,
+							...editedContactInfo,
 							[f.key]: e.target.value,
 						},
 					})
@@ -210,13 +218,14 @@ function MemberContactInfoEdit({
 	));
 
 	return (
-		<Col style={{ marginLeft: 10 }}>
+		<Col>
 			<MemberContactEmails
-				member={member}
-				updateMember={updateMember}
+				member={edited}
+				saved={saved}
+				onChange={onChange}
 				readOnly={readOnly}
 			/>
-			{rows}
+			{contactInfoRows}
 		</Col>
 	);
 }

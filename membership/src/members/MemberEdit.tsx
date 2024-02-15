@@ -1,3 +1,4 @@
+import * as React from "react";
 import { DateTime } from "luxon";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "react-tabs/style/react-tabs.css";
@@ -14,6 +15,8 @@ import {
 	isMultiple,
 	shallowDiff,
 	type Multiple,
+	deepMerge,
+	deepDiff
 } from "dot11-components";
 
 import type { AppThunk } from "../store";
@@ -50,6 +53,14 @@ export type MultipleMember = Multiple<
 };
 
 export type EditAction = "view" | "update" | "add";
+
+export function hasChangesStyle<O extends object>(edited: O, saved: O | undefined, dataKey: keyof O) {
+	return (
+		(saved && edited[dataKey] !== saved[dataKey])
+		? { backgroundColor: "yellow" }
+		: undefined
+	);
+}
 
 const BLANK_STR = "(Blank)";
 const MULTIPLE_STR = "(Multiple)";
@@ -93,11 +104,13 @@ const renderDate = (value: any) =>
 function MemberDetailInfo({
 	sapin,
 	member,
+	saved,
 	updateMember,
 	readOnly,
 }: {
 	sapin: number;
 	member: MultipleMember;
+	saved?: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
@@ -130,8 +143,9 @@ function MemberDetailInfo({
 			</TabList>
 			<TabPanel>
 				<MemberContactInfo
-					member={member}
-					updateMember={updateMember}
+					edited={member}
+					saved={saved}
+					onChange={updateMember}
 					readOnly={readOnly}
 				/>
 			</TabPanel>
@@ -145,6 +159,7 @@ function MemberDetailInfo({
 			<TabPanel>
 				<MemberStatusChangeHistory
 					member={member}
+					saved={saved}
 					updateMember={updateMember}
 					readOnly={readOnly}
 				/>
@@ -162,17 +177,24 @@ function MemberDetailInfo({
 function ExpandingInput({
 	dataKey,
 	member,
+	saved,
 	updateMember,
+	...props
 }: {
 	dataKey: keyof MultipleMember;
 	member: MultipleMember;
+	saved?: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
-}) {
+} & React.ComponentProps<typeof Input>) {
 	const value: any = member[dataKey] || "";
 	return (
 		<Input
+			{...props}
 			type="text"
-			style={{ width: `${Math.max(value.length, 20) + 2}ch` }}
+			style={{
+				...hasChangesStyle(member, saved, "Name"),
+				width: `${Math.max(value.length, 20) + 2}ch`,
+			}}
 			name={dataKey}
 			value={isMultiple(value) ? "" : value}
 			onChange={(e) => updateMember({ [dataKey]: e.target.value })}
@@ -181,16 +203,16 @@ function ExpandingInput({
 	);
 }
 
-function MemberEntry({
-	action,
+function MemberBasicInfo({
 	sapins,
 	member,
+	saved,
 	updateMember,
 	readOnly,
 }: {
-	action: EditAction;
 	sapins: number[];
 	member: MultipleMember;
+	saved?: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
@@ -216,6 +238,7 @@ function MemberEntry({
 					<ExpandingInput
 						dataKey="Name"
 						member={member}
+						saved={saved}
 						updateMember={updateMember}
 					/>
 				</Field>
@@ -225,6 +248,7 @@ function MemberEntry({
 					<ExpandingInput
 						dataKey="Email"
 						member={member}
+						saved={saved}
 						updateMember={updateMember}
 					/>
 				</Field>
@@ -234,6 +258,7 @@ function MemberEntry({
 					<ExpandingInput
 						dataKey="Employer"
 						member={member}
+						saved={saved}
 						updateMember={updateMember}
 					/>
 				</Field>
@@ -243,6 +268,7 @@ function MemberEntry({
 					<ExpandingInput
 						dataKey="Affiliation"
 						member={member}
+						saved={saved}
 						updateMember={updateMember}
 					/>
 				</Field>
@@ -250,7 +276,10 @@ function MemberEntry({
 			<Row>
 				<Field label="Status:">
 					<StatusSelector
-						style={{ flexBasis: 200 }}
+						style={{
+							flexBasis: 200,
+							...hasChangesStyle(member, saved, "Status")
+						}}
 						value={isMultiple(member.Status) ? "" : member.Status}
 						onChange={(value) => updateMember({ Status: value })}
 						placeholder={
@@ -267,7 +296,8 @@ function MemberEntry({
 					>
 						<label>Override</label>
 						<Checkbox
-							checked={!!member.StatusChangeOverride}
+							style={hasChangesStyle(member, saved, "StatusChangeOverride")}
+							checked={Boolean(member.StatusChangeOverride)}
 							indeterminate={isMultiple(
 								member.StatusChangeOverride
 							)}
@@ -275,9 +305,7 @@ function MemberEntry({
 								e: React.ChangeEvent<HTMLInputElement>
 							) =>
 								updateMember({
-									StatusChangeOverride: e.target.checked
-										? 1
-										: 0,
+									StatusChangeOverride: e.target.checked,
 								})
 							}
 							disabled={readOnly}
@@ -293,6 +321,7 @@ function MemberEntry({
 						<label>Last change</label>
 						<Input
 							type="date"
+							style={hasChangesStyle(member, saved, "StatusChangeDate")}
 							value={statusChangeDate}
 							onChange={(e) =>
 								updateMember({
@@ -345,22 +374,6 @@ function MemberEntry({
 								</Col>
 							</Row>
 						)}
-					<Row>
-						{action !== "add" ? (
-							<MemberDetailInfo
-								sapin={sapins[0]}
-								member={member}
-								updateMember={updateMember}
-								readOnly={readOnly}
-							/>
-						) : (
-							<MemberContactInfo
-								member={member}
-								updateMember={updateMember}
-								readOnly={readOnly}
-							/>
-						)}
-					</Row>
 				</>
 			)}
 		</>
@@ -371,20 +384,24 @@ export function MemberEntryForm({
 	action,
 	sapins,
 	member,
+	saved,
 	updateMember,
 	add,
 	update,
 	cancel,
 	readOnly,
+	basicOnly,
 }: {
-	action: EditAction;
-	sapins: number[];
-	member: MultipleMember;
-	updateMember: (changes: Partial<Member>) => void;
 	add: () => void;
 	update: () => void;
 	cancel: () => void;
+	action: EditAction;
+	sapins: number[];
+	member: MultipleMember;
+	saved?: MultipleMember;
+	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
+	basicOnly?: boolean;
 }) {
 	let errMsg = "";
 	if (!member.SAPIN) errMsg = "SA PIN not set";
@@ -401,8 +418,7 @@ export function MemberEntryForm({
 			add();
 		};
 		cancelForm = cancel;
-	}
-	else if (action === "update") {
+	} else if (action === "update") {
 		submitLabel = "Update";
 		submitForm = async () => {
 			if (errMsg) {
@@ -413,7 +429,6 @@ export function MemberEntryForm({
 		};
 		cancelForm = cancel;
 	}
-	
 
 	return (
 		<Form
@@ -423,13 +438,31 @@ export function MemberEntryForm({
 			cancel={cancelForm}
 			errorText={errMsg}
 		>
-			<MemberEntry
-				action={action}
+			<MemberBasicInfo
 				sapins={sapins}
 				member={member}
+				saved={saved}
 				updateMember={updateMember}
 				readOnly={readOnly}
 			/>
+			<Row>
+				{action !== "add" && !basicOnly ? (
+					<MemberDetailInfo
+						sapin={sapins[0]}
+						member={member}
+						saved={saved}
+						updateMember={updateMember}
+						readOnly={readOnly}
+					/>
+				) : (
+					<MemberContactInfo
+						edited={member}
+						saved={saved}
+						onChange={updateMember}
+						readOnly={readOnly}
+					/>
+				)}
+			</Row>
 		</Form>
 	);
 }
@@ -494,7 +527,11 @@ function arrayDiff<T extends { id: number | string }>(
 
 export function useMembersUpdate() {
 	const dispatch = useAppDispatch();
-	return async (edited: MultipleMember, saved: MultipleMember, members: MemberAdd[]) => {
+	return async (
+		edited: MultipleMember,
+		saved: MultipleMember,
+		members: MemberAdd[]
+	) => {
 		const changes = shallowDiff(saved, edited) as Partial<Member>;
 		const p: AppThunk[] = [];
 		if ("StatusChangeHistory" in changes) {
@@ -522,14 +559,16 @@ export function useMembersUpdate() {
 
 export function useMembersAdd() {
 	const dispatch = useAppDispatch();
-	return async (edited: MultipleMember, saved: MultipleMember, members: MemberAdd[]) => {
-		const newMembers = members.map((m) => {
-			const changes = shallowDiff(saved, edited) as Partial<MemberAdd>;
-			return { ...m, ...changes };
-		});
+	return async (
+		edited: MultipleMember,
+		saved: MultipleMember,
+		members: MemberAdd[]
+	) => {
+		const changes = deepDiff(saved, edited);
+		const newMembers = members.map((m) => deepMerge(m, changes));
 		const ids = await dispatch(addMembers(newMembers));
 		return ids;
-	}
+	};
 }
 
 export function useMembersDelete() {
@@ -538,5 +577,5 @@ export function useMembersDelete() {
 		const sapins = members.map((m) => m.SAPIN);
 		await dispatch(deleteMembers(sapins));
 		return;
-	}
+	};
 }

@@ -1,10 +1,11 @@
 import * as React from "react";
-import { shallowEqual } from "react-redux";
+import isEqual from "lodash.isequal";
 
 import {
 	ConfirmModal,
-	shallowDiff,
 	deepMergeTagMultiple,
+	deepDiff,
+	deepMerge,
 } from "dot11-components";
 
 import { useAppSelector, useAppDispatch } from "../store/hooks";
@@ -15,6 +16,7 @@ import {
 	type Member,
 	type MemberAdd,
 	MemberContactEmail,
+	MemberContactInfo,
 } from "../store/members";
 import {
 	setSelected,
@@ -31,20 +33,63 @@ import {
 } from "../members/MemberEdit";
 import ShowAccess from "../components/ShowAccess";
 
-function sessionAttendeeToMember(attendee: SessionAttendee) {
+/** Identify changes to an existing member */
+function sessionAttendeeMemberChanges(member: Member, attendee: SessionAttendee) {
+	const memberChanges: Partial<Member> = {
+		Name: attendee.Name,
+		FirstName: attendee.FirstName,
+		LastName: attendee.LastName,
+		MI: attendee.MI,
+		Email: attendee.Email,
+		Affiliation: attendee.Affiliation,
+		ContactInfo: attendee.ContactInfo,
+	};
+	if (attendee.Employer !== undefined)
+		memberChanges.Employer = attendee.Employer;
+	if (attendee.ContactInfo !== undefined)
+		memberChanges.ContactInfo = attendee.ContactInfo;
+
+	return deepDiff(member, memberChanges);
+}
+
+/** Create a new member from attendee */
+function sessionAttendeeToNewMember(attendee: SessionAttendee) {
+	const date = new Date().toISOString();
+	const contactEmail: MemberContactEmail = {
+		id: 0,
+		Email: attendee.Email,
+		Primary: 1,
+		Broken: 0,
+		DateAdded: date,
+	};
+	const contactInfo: MemberContactInfo = attendee.ContactInfo || {
+		StreetLine1: "",
+		StreetLine2: "",
+		City: "",
+		State: "",
+		Zip: "",
+		Country: "",
+		Phone: "",
+		Fax: ""
+	}
 	const member: MemberAdd = {
 		SAPIN: attendee.SAPIN,
 		Name: attendee.Name,
 		FirstName: attendee.FirstName,
 		LastName: attendee.LastName,
 		MI: attendee.MI,
-		Employer: attendee.Employer || "",
 		Email: attendee.Email,
 		Affiliation: attendee.Affiliation,
+		Employer: attendee.Employer || "",
+		ContactInfo: contactInfo,
+		ContactEmails: [contactEmail],
 		Status: "Non-Voter",
-		Access: 0,
-		ContactInfo: attendee.ContactInfo,
+		StatusChangeOverride: false,
+		StatusChangeDate: date,
+		DateAdded: date,
+		Access: 0
 	};
+
 	return member;
 }
 
@@ -64,7 +109,7 @@ export function MemberAttendanceDetail() {
 	const readOnly = access < AccessLevel.rw;
 
 	const memberEntities = useAppSelector(selectMemberEntities);
-	const { loading, valid, selected, entities, useDaily } = useAppSelector(
+	const { loading, valid, selected, entities } = useAppSelector(
 		selectSessionAttendeesState
 	);
 
@@ -79,67 +124,43 @@ export function MemberAttendanceDetail() {
 			message = "Loading...";
 		} else if (selected.length === 0) {
 			message = "Nothing selected";
-		} else if (selected.every((id) => memberEntities[id])) {
+		} else if (selected.every((id) => Boolean(memberEntities[id]))) {
 			// All selected are existing members
 			action = "update";
 			for (const sapin of selected as number[]) {
 				const member = memberEntities[sapin]!;
 				const attendee = entities[sapin];
 				if (!attendee) {
-					console.warn("Can't get member with SAPIN=" + sapin);
+					console.warn("Can't get attendee with SAPIN=" + sapin);
 					continue;
 				}
-				const { Status, Access, SAPIN, ...attendeeAsMember } =
-					sessionAttendeeToMember(attendee);
-				if (!useDaily) attendeeAsMember.Employer = member.Employer;
-				const changes = shallowDiff(
-					member,
-					attendeeAsMember
-				) as Partial<Member>;
-				edited = deepMergeTagMultiple(edited || {}, {
-					...member,
-					...changes,
-				}) as MultipleMember;
+				const changes = sessionAttendeeMemberChanges(member, attendee);
+				edited = deepMergeTagMultiple(edited || {},
+					deepMerge(member, changes)
+				) as MultipleMember;
 				saved = deepMergeTagMultiple(
 					saved || {},
 					member
 				) as MultipleMember;
 				originals.push(member);
 			}
-			if (shallowEqual(edited, saved)) {
+			if (isEqual(edited, saved)) {
 				action = "view";
 				saved = edited;
 			}
-		} else if (selected.every((id) => !memberEntities[id])) {
+		} else if (selected.every((id) => !Boolean(memberEntities[id]))) {
 			// All selected are new attendees
 			action = "add";
 			for (const sapin of selected as number[]) {
 				const attendee = entities[sapin];
 				if (!attendee) {
-					console.warn("Can't get member with SAPIN=" + sapin);
+					console.warn("Can't get attendee with SAPIN=" + sapin);
 					continue;
 				}
-				const { Status, Access, SAPIN, ...attendeeAsMember } =
-					sessionAttendeeToMember(attendee);
-				const date = new Date().toISOString();
-				const contactEmail: MemberContactEmail = {
-					id: 0,
-					Email: attendeeAsMember.Email,
-					Primary: 1,
-					Broken: 0,
-					DateAdded: date,
-				};
-				const newMember: MemberAdd = {
-					...attendeeAsMember,
-					DateAdded: date,
-					ContactEmails: [contactEmail],
-					Status: "Non-Voter",
-					SAPIN: 0,
-					Access: 0,
-				};
+				const newMember = sessionAttendeeToNewMember(attendee);
 				edited = deepMergeTagMultiple(
 					edited || {},
-					newMember as MultipleMember
+					newMember
 				) as MultipleMember;
 				originals.push(newMember);
 			}
@@ -156,7 +177,7 @@ export function MemberAttendanceDetail() {
 			originals,
 			message,
 		};
-	}, [loading, valid, selected, entities, useDaily, memberEntities]);
+	}, [loading, valid, selected, entities, memberEntities]);
 
 	const [state, setState] =
 		React.useState<MemberAttendanceDetailState>(initState);
@@ -164,11 +185,11 @@ export function MemberAttendanceDetail() {
 	React.useEffect(() => {
 		const { action, edited, created, originals } = state;
 		const ids = originals.map((m) => m.SAPIN);
-		if (action === "view" && selected.join() !== ids.join()) {
+		if (action === "view" && (selected.join() !== ids.join() || (loading && !valid))) {
 			setState(initState);
-		} else if (action === "update" && selected.join() !== ids.join()) {
+		} else if ((action === "update" || action === "add") && selected.join() !== ids.join()) {
 			if (edited === created) {
-				// Nothing was changed
+				// No edits made
 				setState(initState);
 				return;
 			}
@@ -178,15 +199,8 @@ export function MemberAttendanceDetail() {
 				if (ok) setState(initState);
 				else dispatch(setSelected(ids)); // Revert to previously selected
 			});
-		} else if (action === "add" && selected.length > 0) {
-			ConfirmModal.show(
-				"Changes not applied! Do you want to discard changes?"
-			).then((ok) => {
-				if (ok) setState(initState);
-				else dispatch(setSelected([])); // Undo selected
-			});
 		}
-	}, [state, selected, setState, initState, dispatch]);
+	}, [state, selected, loading, valid, setState, initState, dispatch]);
 
 	const updateMember = (changes: Partial<Member>) => {
 		if (readOnly || state.edited === null || state.saved === null) {
@@ -196,7 +210,7 @@ export function MemberAttendanceDetail() {
 		setState(state => {
 			let { action, edited, saved } = state;
 			edited = { ...edited!, ...changes };
-			if (shallowEqual(edited, saved!)) {
+			if (isEqual(edited, saved)) {
 				if (action !== "add") action = "view";
 				edited = saved!;
 			}
@@ -264,11 +278,13 @@ export function MemberAttendanceDetail() {
 					action={state.action}
 					sapins={state.originals.map((m) => m.SAPIN)}
 					member={state.edited!}
+					saved={state.saved!}
 					updateMember={updateMember}
 					add={add}
 					update={update}
 					cancel={cancel}
 					readOnly={readOnly}
+					basicOnly
 				/>
 			)}
 			<ShowAccess access={access} />

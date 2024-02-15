@@ -31,7 +31,7 @@ const ballotSeriesParticipationColumns: TableColumn[] = [
 	{ key: "SAPIN", label: "SA PIN" },
 ];
 
-function MemberBallotParticipation2({
+function MemberBallotParticipation({
 	SAPIN,
 	readOnly,
 }: {
@@ -177,4 +177,4 @@ function MemberBallotParticipation2({
 	);
 }
 
-export default MemberBallotParticipation2;
+export default MemberBallotParticipation;

@@ -31,11 +31,11 @@ import {
 	fields,
 	loadSessionAttendees,
 	clearSessionAttendees,
-	setUseDaily,
+	setDailyAttendance,
 	sessionAttendeesSelectors,
 	sessionAttendeesActions,
 	selectSessionAttendeesState,
-	selectUseDaily,
+	selectDailyAttendance,
 	type SessionAttendee,
 	type SyncedSessionAttendee,
 } from "../store/sessionAttendees";
@@ -340,10 +340,10 @@ function SessionAttendance() {
 	const { loading, sessionId } = useAppSelector(
 		selectSessionAttendeesState
 	);
-	const useDaily = useAppSelector(selectUseDaily);
+	const dailyAttendance = useAppSelector(selectDailyAttendance);
 	const toggleUseDaily = () => {
-		dispatch(setUseDaily(!useDaily));
-		refresh();	
+		dispatch(setDailyAttendance(!dailyAttendance));
+		refresh();
 	};
 
 	const load = (sessionId: number | null) =>
@@ -362,7 +362,7 @@ function SessionAttendance() {
 					<div style={{display: 'flex', flexDirection: 'column', marginLeft: 10}}>
 						<div style={{display: 'flex', alignItems: 'center'}}>
 							<Checkbox
-								checked={useDaily}
+								checked={dailyAttendance}
 								onChange={toggleUseDaily}
 								disabled={loading}
 							/>
@@ -370,7 +370,7 @@ function SessionAttendance() {
 						</div>
 						<div style={{display: 'flex', alignItems: 'center'}}>
 							<Checkbox
-								checked={!useDaily}
+								checked={!dailyAttendance}
 								onChange={toggleUseDaily}
 								disabled={loading}
 							/>

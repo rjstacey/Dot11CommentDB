@@ -44,6 +44,7 @@ const transformState = createTransform(
 			officersSlice.name,
 			attendancesSlice.name,
 			ballotParticipationSlice.name,
+			sessionAttendeesSlice.name,
 			emailTemlatesSlice.name,
 		],
 	}
@@ -57,11 +58,11 @@ const appReducer = combineReducers({
 	[officersSlice.name]: officersSlice.reducer,
 	[attendancesSlice.name]: attendancesSlice.reducer,
 	[ballotParticipationSlice.name]: ballotParticipationSlice.reducer,
-	[timeZonesSlice.name]: timeZonesSlice.reducer,
-	[errorsSlice.name]: errorsSlice.reducer,
 	[sessionAttendeesSlice.name]: sessionAttendeesSlice.reducer,
+	[timeZonesSlice.name]: timeZonesSlice.reducer,
 	[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
 	[emailTemlatesSlice.name]: emailTemlatesSlice.reducer,
+	[errorsSlice.name]: errorsSlice.reducer,
 });
 
 const rootReducer = (state: any, action: Action) => {
@@ -82,8 +83,13 @@ const persistConfig = {
 		userSlice.name,
 		groupsSlice.name,
 		membersSlice.name,
+		sessionsSlice.name,
+		officersSlice.name,
 		attendancesSlice.name,
 		ballotParticipationSlice.name,
+		sessionAttendeesSlice.name,
+		timeZonesSlice.name,
+		imatCommitteesSlice.name,
 		emailTemlatesSlice.name,
 	],
 	stateReconciler: autoMergeLevel2,

@@ -199,7 +199,7 @@ function MemberDetail({
 
 	const add = async () => {
 		const { action, edited, saved, originals } = state;
-		if (action !== "add" || !edited || !saved) {
+		if (action !== "add" || edited === null || saved === null) {
 			console.warn("Add with unexpected state");
 			return;
 		}
@@ -212,7 +212,7 @@ function MemberDetail({
 
 	const update = async () => {
 		const { action, edited, saved, originals } = state;
-		if (action !== "update" || !edited || !saved) {
+		if (action !== "update" || edited === null || saved === null) {
 			console.warn("Update with unexpected state");
 			return;
 		}
@@ -274,6 +274,7 @@ function MemberDetail({
 					action={state.action}
 					sapins={state.originals.map((m) => m.SAPIN)}
 					member={state.edited!}
+					saved={state.saved!}
 					updateMember={updateMember}
 					add={add}
 					update={update}
