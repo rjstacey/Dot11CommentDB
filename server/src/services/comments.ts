@@ -79,6 +79,7 @@ export type CommentsSummary = {
 	CommentIDMax: number | null;
 };
 
+// prettier-ignore
 const createViewCommentResolutionsSQL =
 	"DROP VIEW IF EXISTS commentResolutions; " +
 	"CREATE VIEW commentResolutions AS SELECT " +

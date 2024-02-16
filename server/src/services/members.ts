@@ -112,30 +112,31 @@ type MemberDB = Omit<
 };
 
 function selectMembersSql({ sapins }: { sapins?: number[] }) {
+	// prettier-ignore
 	let sql =
 		"SELECT " +
-		"m.SAPIN, " +
-		"MemberID, " +
-		"Name, " +
-		"FirstName, MI, LastName, " +
-		"Email, " +
-		"Affiliation, " +
-		"Employer, " +
-		"Status, " +
-		'DATE_FORMAT(StatusChangeDate, "%Y-%m-%dT%TZ") AS StatusChangeDate, ' +
-		"StatusChangeOverride, " +
-		"ReplacedBySAPIN, " +
-		'DATE_FORMAT(DateAdded, "%Y-%m-%dT%TZ") AS DateAdded, ' +
-		"Notes, " +
-		"Access, " +
-		"ContactInfo, " +
-		"ContactEmails, " +
-		"StatusChangeHistory, " +
-		"COALESCE(ObsoleteSAPINs, JSON_ARRAY()) AS ObsoleteSAPINs, " +
-		"COALESCE(Permissions, JSON_ARRAY()) AS Permissions " +
+			"m.SAPIN, " +
+			"MemberID, " +
+			"Name, " +
+			"FirstName, MI, LastName, " +
+			"Email, " +
+			"Affiliation, " +
+			"Employer, " +
+			"Status, " +
+			'DATE_FORMAT(StatusChangeDate, "%Y-%m-%dT%TZ") AS StatusChangeDate, ' +
+			"StatusChangeOverride, " +
+			"ReplacedBySAPIN, " +
+			'DATE_FORMAT(DateAdded, "%Y-%m-%dT%TZ") AS DateAdded, ' +
+			"Notes, " +
+			"Access, " +
+			"ContactInfo, " +
+			"ContactEmails, " +
+			"StatusChangeHistory, " +
+			"COALESCE(ObsoleteSAPINs, JSON_ARRAY()) AS ObsoleteSAPINs, " +
+			"COALESCE(Permissions, JSON_ARRAY()) AS Permissions " +
 		"FROM members m " +
-		'LEFT JOIN (SELECT ReplacedBySAPIN AS SAPIN, JSON_ARRAYAGG(SAPIN) AS ObsoleteSAPINs FROM members WHERE Status="Obsolete" GROUP BY ReplacedBySAPIN) AS o ON m.SAPIN=o.SAPIN ' +
-		"LEFT JOIN (SELECT SAPIN, JSON_ARRAYAGG(scope) AS Permissions FROM permissions GROUP BY SAPIN) AS p ON m.SAPIN=p.SAPIN";
+			'LEFT JOIN (SELECT ReplacedBySAPIN AS SAPIN, JSON_ARRAYAGG(SAPIN) AS ObsoleteSAPINs FROM members WHERE Status="Obsolete" GROUP BY ReplacedBySAPIN) AS o ON m.SAPIN=o.SAPIN ' +
+			"LEFT JOIN (SELECT SAPIN, JSON_ARRAYAGG(scope) AS Permissions FROM permissions GROUP BY SAPIN) AS p ON m.SAPIN=p.SAPIN";
 
 	let wheres: string[] = [];
 	if (sapins) wheres.push(db.format("m.SAPIN IN (?)", [sapins]));
@@ -619,6 +620,7 @@ async function uploadDatabaseMemberSAPINs(buffer: Buffer) {
 		);
 
 	const insertSql = (SAPIN: number, date: string | null, memberId: number) =>
+		// prettier-ignore
 		db.format(
 			"INSERT INTO members (" +
 				"SAPIN, DateAdded, " +

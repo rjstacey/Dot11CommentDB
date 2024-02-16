@@ -27,6 +27,7 @@ interface OfficerQueryConstraints {
 };
 
 export function getOfficers(constraints?: OfficerQueryConstraints) {
+	// prettier-ignore
 	let sql =
 		'SELECT ' + 
 			'BIN_TO_UUID(officers.id) AS `id`,' +

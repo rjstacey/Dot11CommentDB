@@ -83,6 +83,7 @@ export async function getGroupAndSubgroupIds(groupName: string) {
 	return ids;
 }
 
+// prettier-ignore
 const selectGroupsSql =
 	'SELECT ' + 
 		'BIN_TO_UUID(org.id) AS id, ' +

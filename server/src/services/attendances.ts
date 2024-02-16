@@ -32,24 +32,56 @@ type RecentSessionAttendances = {
 };
 
 const getSessionAttendancesSQL = (session_ids: number[]) =>
+	// prettier-ignore
 	db.format(
 		"SELECT " +
 			"COALESCE(m.ReplacedBySAPIN, a.SAPIN) as SAPIN, " +
 			"JSON_ARRAYAGG(JSON_OBJECT(" +
-			'"id", a.id, ' +
-			'"session_id", a.session_id, ' +
-			'"AttendancePercentage", a.AttendancePercentage, ' +
-			'"DidAttend", a.DidAttend, ' +
-			'"DidNotAttend", a.DidNotAttend, ' +
-			'"Notes", a.Notes, ' +
-			'"SAPIN", a.SAPIN ' +
+				'"id", a.id, ' +
+				'"session_id", a.session_id, ' +
+				'"AttendancePercentage", a.AttendancePercentage, ' +
+				'"DidAttend", IF(a.DidAttend = 1, CAST(TRUE as json), CAST(FALSE as json)), ' +
+				'"DidNotAttend", IF(a.DidNotAttend = 1, CAST(TRUE as json), CAST(FALSE as json)), ' +
+				'"Notes", a.Notes, ' +
+				'"SAPIN", a.SAPIN, ' +
+				'"CurrentSAPIN", COALESCE(m.ReplacedBySAPIN, a.SAPIN) ' +
 			")) as sessionAttendanceSummaries " +
-			"FROM attendance_summary a " +
+		"FROM attendance_summary a " +
 			'LEFT JOIN members m ON m.SAPIN=a.SAPIN AND m.Status="Obsolete" ' +
-			"WHERE a.session_id IN (?) " +
-			"GROUP BY SAPIN ",
+		"WHERE a.session_id IN (?) " +
+		"GROUP BY SAPIN ",
 		[session_ids]
 	);
+
+function getAttendancesSql(
+	constraints: Partial<{
+		id: number;
+		session_id: number;
+	}>
+) {
+	// prettier-ignore
+	let sql = 
+		"SELECT " +
+			"a.id, " +
+			"a.session_id, " +
+			"a.AttendancePercentage, " +
+			"a.DidAttend, " +
+			"a.DidNotAttend, " +
+			"a.Notes, " +
+			"a.SAPIN, " +
+			"COALESCE(m.ReplacedBySAPIN, a.SAPIN) AS CurrentSAPIN " +
+		"FROM attendance_summary a " +
+			'LEFT JOIN members m ON m.SAPIN=a.SAPIN AND m.Status="Obsolete" ';
+
+	if (constraints) {
+		const wheres = Object.entries(constraints).map(([key, value]) =>
+			db.format("a.??=?", [key, value])
+		);
+		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
+	}
+
+	return sql;
+}
 
 /**
  * Get recent session attendances
@@ -153,20 +185,7 @@ export async function getAttendances(session_id: number) {
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 
-	const sql = db.format(
-		"SELECT " +
-			"id, " +
-			"SAPIN, " +
-			"session_id, " +
-			"AttendancePercentage, " +
-			"DidAttend, " +
-			"DidNotAttend, " +
-			"Notes " +
-			"FROM attendance_summary " +
-			"WHERE session_id=? ",
-		[session_id]
-	);
-
+	const sql = getAttendancesSql({ session_id });
 	const attendances = (await db.query(sql)) as SessionAttendanceSummary[];
 
 	return {
@@ -269,17 +288,17 @@ function validAttendance(a: any): a is SessionAttendanceSummary {
 	if (!isPlainObject(a)) return false;
 	if (typeof a.session_id !== "number") return false;
 	if (typeof a.SAPIN !== "number") return false;
-	if (typeof a.Notes !== "undefined" || typeof a.Notes !== "string")
+	if (typeof a.Notes !== "undefined" && typeof a.Notes !== "string")
 		return false;
-	if (typeof a.DidAttend !== "undefined" || typeof a.DidAttend !== "boolean")
+	if (typeof a.DidAttend !== "undefined" && typeof a.DidAttend !== "boolean")
 		return false;
 	if (
-		typeof a.DidNotAttend !== "undefined" ||
+		typeof a.DidNotAttend !== "undefined" &&
 		typeof a.DidNotAttend !== "boolean"
 	)
 		return false;
 	if (
-		typeof a.AttendancePercentage !== "undefined" ||
+		typeof a.AttendancePercentage !== "undefined" &&
 		typeof a.AttendancePercentage !== "number"
 	)
 		return false;
@@ -294,8 +313,7 @@ async function addAttendance(attendance: SessionAttendanceSummary) {
 	])) as ResultSetHeader;
 
 	[attendance] = (await db.query(
-		"SELECT * FROM attendance_summary WHERE id=?",
-		[insertId]
+		getAttendancesSql({ id: insertId })
 	)) as SessionAttendanceSummary[];
 	return attendance;
 }

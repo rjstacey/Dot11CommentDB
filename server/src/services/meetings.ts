@@ -80,6 +80,7 @@ interface SelectMeetingsConstraints {
 }
 
 function selectMeetingsSql(constraints: SelectMeetingsConstraints) {
+	// prettier-ignore
 	let sql =
 		"SELECT " +
 			"m.id as id, " +
