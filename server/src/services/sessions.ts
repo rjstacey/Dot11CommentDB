@@ -45,9 +45,6 @@ export type Timeslot = {
 	endTime: string;
 };
 
-export type DayCredit = { [slotName: string]: string };
-export type SessionCredits = DayCredit[];
-
 export type SessionType = "p" | "i" | "o" | "g";
 
 export interface Session {
@@ -64,7 +61,7 @@ export interface Session {
 	endDate: string;
 	rooms: Room[];
 	timeslots: Timeslot[];
-	defaultCredits: SessionCredits;
+	defaultCredits: string[][];
 	attendees: number;
 }
 
@@ -89,6 +86,32 @@ export type AttendanceSummary = {
 	DidNotAttend: boolean;
 	Notes: string;
 };
+
+export type Credit = "Normal" | "Extra" | "Zero" | "Other";
+
+export function getCredit(creditStr: string): {credit: Credit, creditOverrideNumerator: number, creditOverrideDenominator: number} {
+	let m = /(Normal|Zero|Extra|Other)/.exec(creditStr);
+	if (!m)
+		throw Error("Invalid credit string " + creditStr);
+
+	let credit = m[1] as Credit,
+		creditOverrideNumerator = 0,
+		creditOverrideDenominator = 0;
+
+	if (credit === "Other") {
+		m = /Other\s*(\d+)\s*\/\s*(\d+)/.exec(creditStr);
+		if (!m)
+			throw new Error(`Unexpected format for "Other" credit: ${creditStr}`);
+		creditOverrideNumerator = Number(m[1]);
+		creditOverrideDenominator = Number(m[2]);
+	}
+
+	return {
+		credit,
+		creditOverrideNumerator,
+		creditOverrideDenominator
+	}
+}
 
 /**
  * Get a list of sessions.

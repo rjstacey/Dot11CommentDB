@@ -136,7 +136,7 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 		refresh_token: authParams.refresh_token
 	});
 
-	if (process.env.NODE_ENV === 'development') {
+	/*if (process.env.NODE_ENV === 'development') {
 		api.interceptors.request.use(
 			config => {
 				console.log(id, config.method, config.url)
@@ -145,7 +145,7 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 				return config;
 			}
 		);
-	}
+	}*/
 
 	// Add a response interceptor
 	api.interceptors.response.use(

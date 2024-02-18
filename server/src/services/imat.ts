@@ -13,7 +13,7 @@ import { getGroupHierarchy } from './groups';
 
 import type { Meeting } from './meetings';
 import type { WebexMeeting } from './webex';
-import type { Session } from './sessions';
+import { getCredit, type Session } from './sessions';
 import type { ContactInfo } from './members';
 import type { Group } from './groups';
 
@@ -452,20 +452,8 @@ export function parseSessionDetailPage(body: string) {
 			const groupShortName = tds.eq(3).text();
 			const name = tds.eq(4).text() || '';
 
-			let fullCredit = tds.eq(5).text() || '';
-			m = /(Normal|Zero|Extra|Other)/.exec(fullCredit);
-			if (!m)
-				throw Error("Can't parse Credit column; got " + fullCredit);
-			let credit = m[1];
-			let creditOverrideNumerator = 0;
-			let creditOverrideDenominator = 0;
-			if (credit === "Other") {
-				m = /Other\s*(\d+)\s*\/\s*(\d+)/.exec(fullCredit);
-				if (!m)
-					throw new Error(`Unexpected format for Other credit: ${fullCredit}`);
-				creditOverrideNumerator = Number(m[1]);
-				creditOverrideDenominator = Number(m[2])
-			}
+			let creditStr = tds.eq(5).text() || '';
+			let {credit, creditOverrideNumerator, creditOverrideDenominator} = getCredit(creditStr);
 
 			href = tds.eq(7).find('a[href*="breakout-edit"]').attr('href') || '';
 			if (!href)
@@ -536,8 +524,8 @@ async function parseImatBreakoutsCsv(session: Session, buffer: Buffer) {
 			group: c[6],
 			name: c[7],
 			credit: c[8],
-			overrideCreditNumerator: c[9],
-			overrideCreditDenominator: c[10],
+			overrideCreditNumerator: Number(c[9]),
+			overrideCreditDenominator: Number(c[10]),
 			facilitator: c[12],
 		}
 		return breakout;
@@ -960,16 +948,15 @@ async function meetingToBreakout(
 
 	const groupHeirarchy = await getGroupHierarchy(user, meeting.organizationId);
 	const group = groupHeirarchy[0];
-	const workingGroup = groupHeirarchy.find(g => g.type === "wg");
 	if (!group)
 		throw new TypeError(`Can't find group id=${meeting.organizationId}`);
-	if (!workingGroup)
-		throw new TypeError(`Can't find working group for id=${meeting.organizationId}`);
-
-	const symbol = group.symbol || workingGroup.symbol;
+	const ancestorGroupWithSymbol = groupHeirarchy.find(g => g.symbol);
+	if (!ancestorGroupWithSymbol)
+		throw new TypeError(`Can't find committe for ${group.name}. Tried anscestors.`);
+	const symbol = ancestorGroupWithSymbol.symbol;
 	let committee =	committees.find(c => c.symbol === symbol);
 	if (!committee)
-		throw new TypeError(`Can't find committee symbol=${group.symbol}`);
+		throw new TypeError(`Can't find committee symbol=${symbol} (group: ${ancestorGroupWithSymbol.name})`);
 	const groupId = committee.id;
 
 	let location = meeting.location || '';
@@ -990,12 +977,19 @@ async function meetingToBreakout(
 				location = room.name;
 		}
 
-		if (!credit && Array.isArray(session.defaultCredits)) {
+		if (!credit) {
+			credit = 'Extra';
+			creditOverrideNumerator = 0;
+			creditOverrideDenominator = 0;
+
+			// Find the equivalent session timeslot
+			const slotIndex = session.timeslots.findIndex(slot => slot.name === startSlot?.name || slot.startTime === startSlot?.startTime);
 			const dayCredits = session.defaultCredits[day];
-			if (typeof dayCredits === 'object' && dayCredits !== null) {
-				credit = dayCredits[startSlot.name];
-				creditOverrideNumerator = 0;
-				creditOverrideDenominator = 0;
+			if (slotIndex >= 0 && dayCredits) {
+				const c = getCredit(dayCredits[slotIndex] || "Extra");
+				credit = c.credit;
+				creditOverrideNumerator = c.creditOverrideNumerator;
+				creditOverrideDenominator = c.creditOverrideDenominator;
 			}
 		}
 	}
@@ -1010,7 +1004,6 @@ async function meetingToBreakout(
 	}
 
 	let name = meeting.summary;
-	name = name.replace(/^802.11/, '').trim();
 
 	if (meeting.isCancelled) {
 		name = 'CANCELLED - ' + name;
@@ -1053,9 +1046,15 @@ export async function addImatBreakoutFromMeeting(
 	const {imatMeeting, timeslots, committees, pageCommittees} = await getImatBreakouts(user, imatMeetingId);
 
 	let breakout = await meetingToBreakout(user, imatMeeting, timeslots, committees, session, meeting, webexMeeting);
-
-	breakout = await addImatBreakout(user, imatMeeting, timeslots, pageCommittees, breakout);
-	return breakout;
+	let breakoutOut = await addImatBreakout(user, imatMeeting, timeslots, pageCommittees, breakout);
+	if (breakout.credit === "Other") {
+		/* The "add new meeting" form does not support credit override; we need an update to handle that */
+		breakoutOut.credit = breakout.credit;
+		breakoutOut.creditOverrideNumerator = breakout.creditOverrideNumerator;
+		breakoutOut.creditOverrideDenominator = breakout.creditOverrideDenominator;
+		await updateImatBreakout(user, imatMeeting, breakoutOut);
+	}
+	return breakoutOut;
 }
 
 export async function updateImatBreakoutFromMeeting(
