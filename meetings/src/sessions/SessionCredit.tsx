@@ -8,9 +8,8 @@ import { useAppSelector } from "../store/hooks";
 import {
 	Session,
 	Timeslot,
-	SessionCredits,
 	selectSessionEntities,
-	DayCredit,
+	getCredit
 } from "../store/sessions";
 
 import { RawSessionSelector } from "../components/SessionSelector";
@@ -107,51 +106,36 @@ function sessionDates(session?: Session) {
 	return dates;
 }
 
-const creditOptions = ["Normal", "Extra", "Zero"];
+const creditOptions = ["Normal", "Extra", "Other 2/1", "Zero"];
 
 const defaultCredit = "Extra";
 
-function validDayCredits(dayCredits: DayCredit, timeslots: Timeslot[]) {
+function validDayCredits(dayCredits: string[], timeslots: Timeslot[]) {
 	return (
-		typeof dayCredits === "object" &&
-		Object.keys(dayCredits).length === timeslots.length &&
-		Object.keys(dayCredits).every((slotName) =>
-			timeslots.find((t) => slotName === t.name)
-		)
+		Array.isArray(dayCredits) &&
+		dayCredits.length === timeslots.length
 	);
 }
 
 function defaultDayCredits(timeslots: Timeslot[]) {
-	return timeslots.reduce(
-		(dayCredits, t) => ({ ...dayCredits, [t.name]: defaultCredit }),
-		{}
-	);
+	return Array(timeslots.length).fill(defaultCredit);
 }
 
-function CreditTotals({ defaultCredits }: { defaultCredits: SessionCredits }) {
-	const totals = creditOptions.reduce(
-		(totals, o) => ({
-			...totals,
-			[o]: defaultCredits.reduce(
-				(n, dayCredits) =>
-					n +
-					Object.values(dayCredits).reduce(
-						(n, credit) => n + (credit === o ? 1 : 0),
-						0
-					),
-				0
-			),
-		}),
-		{}
-	);
+function CreditTotals({ defaultCredits }: { defaultCredits: string[][] }) {
+	let credits = 0;
+	for (const dayCredit of defaultCredits) {
+		for (const credit of dayCredit) {
+			const c = getCredit(credit);
+			if (c.credit === "Other")
+				credits += c.creditOverrideDenominator;
+			else if (c.credit === "Normal")
+				credits++;
+		}
+	}
 
 	return (
 		<div style={{ display: "flex" }}>
-			{Object.entries(totals).map(([label, value]) => (
-				<div key={label} style={{ paddingRight: 20 }}>
-					{`${label}: ${value}`}
-				</div>
-			))}
+			<span>Credits: {credits}</span>
 		</div>
 	);
 }
@@ -240,12 +224,13 @@ function SessionCredit({
 		updateSession({ defaultCredits: session.defaultCredits });
 	}
 
-	function toggleDefaultCredit(day: number, slotName: string) {
-		let s = defaultCredits.slice();
-		let i = creditOptions.indexOf(s[day][slotName]);
+	function toggleDefaultCredit(day: number, slotIndex: number) {
+		let credits = defaultCredits.slice();
+		credits[day] = credits[day].slice();
+		let i = creditOptions.indexOf(credits[day][slotIndex]);
 		if (i < 0 || ++i >= creditOptions.length) i = 0;
-		s[day] = { ...s[day], [slotName]: creditOptions[i] };
-		updateSession({ defaultCredits: s });
+		credits[day][slotIndex] = creditOptions[i];
+		updateSession({ defaultCredits: credits });
 	}
 
 	return (
@@ -293,9 +278,9 @@ function SessionCredit({
 									background: "transparent",
 								}}
 								onClick={() =>
-									toggleDefaultCredit(x, timeslot.name)
+									toggleDefaultCredit(x, y)
 								}
-								credit={defaultCredits[x][timeslot.name]}
+								credit={defaultCredits[x][y]}
 								disabled={readOnly}
 							/>
 						</GridCell>

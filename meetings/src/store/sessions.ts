@@ -34,9 +34,6 @@ export type Timeslot = {
 	endTime: string;
 };
 
-export type DayCredit = { [slotName: string]: string };
-export type SessionCredits = DayCredit[];
-
 export interface Session {
 	id: number;
 	number: number | null;
@@ -50,7 +47,7 @@ export interface Session {
 	endDate: string;
 	rooms: Room[];
 	timeslots: Timeslot[];
-	defaultCredits: SessionCredits;
+	defaultCredits: string[][];
 	attendees: number;
 }
 
@@ -71,6 +68,28 @@ export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 );
 
 export const displaySessionType = (type: SessionType | null) =>	type? SessionTypeLabels[type]: '';
+
+export type Credit = "Normal" | "Extra" | "Zero" | "Other";
+
+export function getCredit(creditStr: string): {credit: Credit, creditOverrideNumerator: number, creditOverrideDenominator: number} {
+	let credit: Credit = "Zero",
+		creditOverrideNumerator = 0,
+		creditOverrideDenominator = 0;
+	const m = /(Other) (\d+)\/(\d+)/.exec(creditStr);
+	if (m) {
+		credit = "Other";
+		creditOverrideNumerator = Number(m[2]);
+		creditOverrideDenominator = Number(m[3]);
+	}
+	else if (/Normal|Extra|Zero/.test(creditStr)) {
+		credit = creditStr as Credit;
+	}
+	return {
+		credit,
+		creditOverrideNumerator,
+		creditOverrideDenominator
+	}
+}
 
 export const fields = {
 	id: { label: "ID", isId: true, type: FieldType.NUMERIC },

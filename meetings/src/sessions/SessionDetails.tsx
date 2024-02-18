@@ -277,8 +277,8 @@ function SessionEdit({
 	updateSession: (changes: Partial<Session>) => void;
 	readOnly?: boolean;
 }) {
-	const uiProperties = useAppSelector(selectSessionsState).ui;
 	const dispatch = useAppDispatch();
+	const uiProperties = useAppSelector(selectSessionsState).ui;
 
 	const isSession =
 		(session.type === "p" || session.type === "i") &&

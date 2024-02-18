@@ -17,7 +17,7 @@ import {
 
 import type { AppThunk, RootState } from ".";
 import { selectMeetingEntities } from "./meetings";
-import { selectSyncedImatMeetingEntities } from "./imatMeetings";
+import { ImatMeeting, selectSyncedImatMeetingEntities } from "./imatMeetings";
 
 export type Breakout = {
 	id: number;
@@ -284,13 +284,17 @@ function validBreakout(b: any): b is Breakout {
 	);
 }
 
-function validGetResponse(response: any): response is {
+type ImatMeetingDetails = {
+	imatMeeting: ImatMeeting;
 	breakouts: Breakout[];
 	timeslots: Timeslot[];
 	committees: Committee[];
-} {
+};
+
+function validGetResponse(response: any): response is ImatMeetingDetails {
 	return (
 		isObject(response) &&
+		isObject(response.imatMeeting) &&
 		Array.isArray(response.breakouts) &&
 		response.breakouts.every(validBreakout) &&
 		Array.isArray(response.timeslots) &&
