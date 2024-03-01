@@ -14,7 +14,8 @@
 		"noImplicitThis": false,
 		"sourceMap": true,
 		"moduleResolution": "Node16",
-		"noEmit": false
+		"noEmit": false,
+		"resolveJsonModule": true
 	},
 	"include": ["src/**/*"],
 	"exclude": ["src/setupTests.*", "src/**/*.test.*"]

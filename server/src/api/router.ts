@@ -40,12 +40,21 @@ import comments from "./comments";
 import resolutions from "./resolutions";
 import commentHistory from "./commentHistory";
 
+import * as pkg from "../../package.json";
+
 const router = Router();
 
 /*
  * The open part of the API is satisfied here
  */
 router.use("/timezones", timezones);
+
+/* A get on root tests connectivity and provides server info */
+router.get("/", (req, res, next) => res.json({
+	name: pkg.name,
+	version: pkg.version,
+	description: pkg.description
+}));
 
 /*
  * The remainder of the API requires an authorized user
@@ -65,9 +74,6 @@ declare global {
 		}
 	}
 }
-
-/* A get on root returns OK: tests connectivity */
-router.get("/", (req, res, next) => res.json("OK"));
 
 async function parseGroupName(req: Request, res: Response, next: NextFunction) {
 	const { groupName } = req.params;
@@ -107,6 +113,9 @@ router.use("/:groupName/imat", parseGroupName, imat); // Access to IEEE SA atten
 /*
  * APIs for balloting and comment resolution
  */
+router.use("/:groupName/ballots", parseGroupName, ballots);
+router.use("/:groupName/epolls", parseGroupName, epolls); // Access to ePolls balloting tool
+
 async function parseBallot_id(req: Request, res: Response, next: NextFunction) {
 	const ballot_id = Number(req.params.ballot_id);
 	const ballot = await getBallot(ballot_id);
@@ -124,8 +133,5 @@ router.use("/results/:ballot_id(\\d+)", parseBallot_id, results); // Ballot resu
 router.use("/comments/:ballot_id(\\d+)", parseBallot_id, comments); // Ballot comments
 router.use("/resolutions/:ballot_id(\\d+)", parseBallot_id, resolutions); // Comment resolutions
 router.use("/commentHistory/:ballot_id(\\d+)", parseBallot_id, commentHistory); // Comment change history
-
-router.use("/:groupName/ballots", parseGroupName, ballots);
-router.use("/:groupName/epolls", parseGroupName, epolls); // Access to ePolls balloting tool
 
 export default router;
