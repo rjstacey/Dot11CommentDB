@@ -20,7 +20,7 @@ import { init as calendarInit } from "./services/calendar";
 import { init as emailInit } from "./services/email";
 
 dotenv.config();
-//console.log(process.env);
+console.log(process.env);
 
 async function initDatabase() {
 	process.stdout.write("init database... ");
