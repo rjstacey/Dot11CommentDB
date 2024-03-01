@@ -239,7 +239,7 @@ export async function parseEpollUserCommentsExcel(commenter: Member, startCommen
 	await workbook.xlsx.load(buffer);
 
 	const rows: string[][] = []; 	// an array of arrays
-	workbook.getWorksheet(1).eachRow(row => {
+	workbook.getWorksheet(1)?.eachRow(row => {
 		if (Array.isArray(row.values))
 			rows.push(row.values.slice(1, epollUserCommentsHeader.length+1).map(r => typeof r === 'string'? r: r? r.toString(): ''));
 	});

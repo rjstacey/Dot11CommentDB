@@ -81,7 +81,7 @@ export async function parseMyProjectComments(
 			throw new Error("Invalid workbook: " + error);
 		}
 
-		workbook.getWorksheet(1).eachRow((row) => {
+		workbook.getWorksheet(1)?.eachRow((row) => {
 			if (Array.isArray(row.values)) p.push(row.values.slice(1, 26));
 		});
 	} else {
@@ -193,7 +193,7 @@ export async function parseMyProjectResults(buffer: Buffer, isExcel: boolean) {
 			throw new TypeError("Invalid workbook: " + err);
 		}
 
-		workbook.getWorksheet(1).eachRow((row) => {
+		workbook.getWorksheet(1)?.eachRow((row) => {
 			if (Array.isArray(row.values))
 				p.push(row.values.slice(1, myProjectResultsHeader.length + 1));
 		});
@@ -334,7 +334,7 @@ export async function parseMyProjectRosterSpreadsheet(buffer: Buffer) {
 	const workbook = new ExcelJS.Workbook();
 	await workbook.xlsx.load(buffer);
 
-	workbook.getWorksheet(1).eachRow((row) => {
+	workbook.getWorksheet(1)?.eachRow((row) => {
 		if (Array.isArray(row.values))
 			p.push(row.values.slice(1, myProjectRosterHeader.length + 1));
 	});

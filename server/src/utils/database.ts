@@ -1,34 +1,33 @@
-import mysql from "mysql2";
+import {
+	createPool,
+	escape,
+	format,
+	Pool,
+	PoolOptions,
+	QueryOptions,
+} from "mysql2";
 
-let ppool: ReturnType<mysql.Pool["promise"]>;
+let ppool: ReturnType<Pool["promise"]>;
 
-export function init() {
-	let options: mysql.PoolOptions;
-	if (process.env.DB_HOST) {
-		options = {
-			host: process.env.DB_HOST,
-			port: Number(process.env.DB_PORT),
-			user: process.env.DB_USER,
-			password: process.env.DB_PASSWORD,
-			database: process.env.DB_DATABASE,
-			timezone: "-08:00",
-		};
-	} else {
-		options = {
-			host: process.env.RDS_HOSTNAME,
-			port: Number(process.env.RDS_PORT),
-			user: process.env.RDS_USERNAME,
-			password: process.env.RDS_PASSWORD,
-			database: process.env.RDS_DB_NAME,
-		};
+async function init() {
+	
+	if (!process.env.DB_HOST) {
+		console.warn(
+			"Environment variables DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_DATABASE not set"
+		);
 	}
-	options = {
-		...options,
+
+	let options: PoolOptions = {
+		host: process.env.DB_HOST,
+		port: Number(process.env.DB_PORT),
+		user: process.env.DB_USER,
+		password: process.env.DB_PASSWORD,
+		database: process.env.DB_DATABASE,
+		timezone: "-08:00",
 		multipleStatements: true,
 		charset: "UTF8MB4_GENERAL_CI",
 	};
 
-	console.log("DB_HOST=" + process.env.DB_HOST);
 	console.log(options);
 
 	options.typeCast = function (field, next) {
@@ -43,21 +42,21 @@ export function init() {
 		}
 	};
 
-	const pool = mysql.createPool(options);
+	const pool = createPool(options);
 	ppool = pool.promise();
-	ppool.query("SET time_zone='-08:00';");
+	await ppool.query("SET time_zone='-08:00';");
 }
 
 /* There seems to be a bug in the typing; dateStrings should be an option */
 type QueryArgs =
 	| [string, any?]
-	| [mysql.QueryOptions | { dateStrings?: boolean }, any?];
+	| [QueryOptions | { dateStrings?: boolean }, any?];
 
-export const query = (...args: QueryArgs) =>
+const query = (...args: QueryArgs) =>
 	ppool.query(...(args as [any])).then(([rows, fields]) => rows);
-export const query2 = (...args: QueryArgs) => ppool.query(...(args as [any]));
-export const escape = mysql.escape;
-export const format = mysql.format;
+const query2 = (...args: QueryArgs) => ppool.query(...(args as [any]));
+
+export { init, query, query2, escape, format };
 
 export default {
 	init,

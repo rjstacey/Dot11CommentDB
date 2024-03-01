@@ -1,27 +1,9 @@
-import axios from "axios";
-import type { AxiosInstance, AxiosRequestConfig } from "axios";
+import { create as axiosCreateClient, AxiosRequestConfig, AxiosRequestTransformer } from "axios";
 import { CookieJar } from "tough-cookie";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
-import FormData from "form-data";
-import { isPlainObject } from "./general";
 import { URLSearchParams } from "url";
 
-/* Send using form-data */
-function transformRequest(data, headers) {
-	if (isPlainObject(data)) {
-		/* convert data to form data */
-		//console.log(data)
-		const form = new FormData();
-		for (const key in data) form.append(key, data[key]);
-		/* modify headers */
-		headers.post["Content-Type"] = form.getHeaders()["content-type"];
-
-		return form; //.getBuffer();
-	}
-	return data;
-}
-
-const urlEncodeParams = (data) => new URLSearchParams(data).toString();
+const urlEncodeParams: AxiosRequestTransformer = (data) => new URLSearchParams(data).toString();
 
 export function createIeeeClient() {
 	const jar = new CookieJar();
@@ -33,7 +15,7 @@ export function createIeeeClient() {
 		httpsAgent: new HttpsCookieAgent({ cookies: { jar } }),
 	};
 
-	const client = axios.create(config);
+	const client = axiosCreateClient(config);
 
 	//client.cookies = {};
 	/*

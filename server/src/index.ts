@@ -12,8 +12,9 @@ import login from "./auth/login";
 import oauth2 from "./auth/oauth2";
 import api from "./api/router";
 
-import { init as databaseInit } from "./utils/database";
-import { init as seedDatabase } from "./utils/seedDatabase";
+import { init as initDatabaseConnection } from "./utils/database";
+import { initCommentsTables } from './services/comments';
+import { initCommentHistory } from './services/commentHistory';
 import { init as webexInit } from "./services/webex";
 import { init as calendarInit } from "./services/calendar";
 import { init as emailInit } from "./services/email";
@@ -22,18 +23,36 @@ dotenv.config();
 //console.log(process.env);
 
 async function initDatabase() {
-	await databaseInit();
-	await seedDatabase();
-	console.log("init database complete");
+	process.stdout.write("init database... ");
+	try {
+		await initDatabaseConnection();
+		process.stdout.write("success\n");
+	}
+	catch (error) {
+		process.stdout.write("FAIL\n");
+		console.warn(error);
+		throw error;
+	}
 }
 
 async function initServices() {
+	process.stdout.write("init comments... ");
+	try {
+		await initCommentsTables();
+		await initCommentHistory();
+		process.stdout.write("success\n");
+	} catch (error) {
+		process.stdout.write("FAIL\n");
+		console.warn(error);
+	}
+
 	process.stdout.write("init webex... ");
 	try {
 		await webexInit();
 		process.stdout.write("success\n");
 	} catch (error) {
-		console.error("init webex failed", error);
+		process.stdout.write("FAIL\n");
+		console.warn(error);
 	}
 
 	process.stdout.write("init calendar... ");
@@ -41,7 +60,8 @@ async function initServices() {
 		await calendarInit();
 		process.stdout.write("success\n");
 	} catch (error) {
-		console.error("init calendar failed", error);
+		process.stdout.write("FAIL\n");
+		console.warn(error);
 	}
 
 	process.stdout.write("init email... ");
@@ -49,7 +69,8 @@ async function initServices() {
 		emailInit();
 		process.stdout.write("success\n");
 	} catch (error) {
-		console.error("init email service failed");
+		process.stdout.write("FAIL\n");
+		console.warn(error);
 	}
 	console.log("init services complete");
 }
@@ -152,7 +173,27 @@ function initServer() {
 	return app;
 }
 
-initDatabase()
-	.then(initServices)
-	.then(initServer)
-	.catch((error) => console.error(error));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function main() {
+	while (true) {
+		try {
+			await initDatabase();
+			break;
+		}
+		catch (error) {
+			await sleep(5000);
+		}
+	}
+
+	try {
+		await initServices();
+		initServer();
+	}
+	catch (error) {
+		console.log(error)
+		process.exitCode = 1;
+	}
+}
+
+main();

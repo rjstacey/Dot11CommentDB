@@ -1,23 +1,23 @@
 /*
- * Promise wrapper for csv-parse callback operation
+ * Promise wrappers for csv-parse and csv-stringify callback operation
  *
  * We don't want to use sync operation since that blocks the main thread.
  */
-import parse from "csv-parse";
-import { stringify, Input, Options } from "csv-stringify";
+import { parse, Options as ParseOptions } from "csv-parse";
+import { stringify, Input as StringifyInput, Options as StringifyOptions } from "csv-stringify";
 
 type CsvObjRow = { [n: string]: string };
 export function csvParse(
 	buffer: Buffer,
-	options: { columns: false } & parse.Options
+	options: { columns: false } & ParseOptions
 ): Promise<string[][]>;
 export function csvParse(
 	buffer: Buffer,
-	options: { columns: true } & parse.Options
+	options: { columns: true } & ParseOptions
 ): Promise<CsvObjRow[]>;
 export function csvParse(
 	buffer: Buffer,
-	options: parse.Options
+	options: ParseOptions
 ): Promise<CsvObjRow[] | string[][]> {
 	return new Promise((resolve, reject) => {
 		parse(
@@ -32,8 +32,8 @@ export function csvParse(
 }
 
 export function csvStringify(
-	records: Input,
-	options: Options
+	records: StringifyInput,
+	options: StringifyOptions
 ): Promise<string> {
 	return new Promise((resolve, reject) => {
 		stringify(records, options, (error, output) => {

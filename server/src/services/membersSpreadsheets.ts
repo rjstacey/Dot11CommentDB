@@ -101,7 +101,7 @@ export async function parseMembersSpreadsheet(buffer: Buffer) {
 	await workbook.xlsx.load(buffer);
 
 	const rows: ExcelJS.CellValue[][] = []; // an array of arrays
-	workbook.getWorksheet(1).eachRow((row) => {
+	workbook.getWorksheet(1)?.eachRow((row) => {
 		if (Array.isArray(row.values))
 			rows.push(row.values.slice(1, membersDatabaseHeader.length + 1));
 	});
@@ -131,7 +131,7 @@ export async function parseSAPINsSpreadsheet(buffer: Buffer) {
 	await workbook.xlsx.load(buffer);
 
 	const rows: ExcelJS.CellValue[][] = []; // an array of arrays
-	workbook.getWorksheet(1).eachRow((row) => {
+	workbook.getWorksheet(1)?.eachRow((row) => {
 		if (Array.isArray(row.values))
 			rows.push(row.values.slice(1, sapinsHeader.length + 1));
 	});
@@ -169,7 +169,7 @@ export async function parseEmailsSpreadsheet(buffer: Buffer) {
 	await workbook.xlsx.load(buffer);
 
 	const rows: ExcelJS.CellValue[][] = []; // an array of arrays
-	workbook.getWorksheet(1).eachRow((row) => {
+	workbook.getWorksheet(1)?.eachRow((row) => {
 		if (Array.isArray(row.values))
 			rows.push(row.values.slice(1, emailsHeader.length + 1));
 	});
@@ -213,7 +213,7 @@ export async function parseHistorySpreadsheet(buffer: Buffer) {
 	await workbook.xlsx.load(buffer);
 
 	const rows: ExcelJS.CellValue[][] = []; // an array of arrays
-	workbook.getWorksheet(1).eachRow((row) => {
+	workbook.getWorksheet(1)?.eachRow((row) => {
 		if (Array.isArray(row.values))
 			rows.push(row.values.slice(1, historyHeader.length + 1));
 	});
