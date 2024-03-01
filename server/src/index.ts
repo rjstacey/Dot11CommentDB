@@ -13,22 +13,23 @@ import oauth2 from "./auth/oauth2";
 import api from "./api/router";
 
 import { init as initDatabaseConnection } from "./utils/database";
-import { initCommentsTables } from './services/comments';
-import { initCommentHistory } from './services/commentHistory';
+import { init as initComments } from "./services/comments";
+import { init as initCommentHistory } from "./services/commentHistory";
 import { init as webexInit } from "./services/webex";
 import { init as calendarInit } from "./services/calendar";
 import { init as emailInit } from "./services/email";
 
 dotenv.config();
-console.log(process.env);
+
+const LISTEN_PORT =
+	process.env.PORT || (process.env.NODE_ENV === "development" ? 8080 : 80);
 
 async function initDatabase() {
 	process.stdout.write("init database... ");
 	try {
 		await initDatabaseConnection();
 		process.stdout.write("success\n");
-	}
-	catch (error) {
+	} catch (error) {
 		process.stdout.write("FAIL\n");
 		console.warn(error);
 		throw error;
@@ -36,36 +37,24 @@ async function initDatabase() {
 }
 
 async function initServices() {
-	process.stdout.write("init comments... ");
 	try {
-		await initCommentsTables();
+		process.stdout.write("init comments... ");
+		await initComments();
+		process.stdout.write("success\n");
+
+		process.stdout.write("init comment history... ");
 		await initCommentHistory();
 		process.stdout.write("success\n");
-	} catch (error) {
-		process.stdout.write("FAIL\n");
-		console.warn(error);
-	}
 
-	process.stdout.write("init webex... ");
-	try {
+		process.stdout.write("init webex... ");
 		await webexInit();
 		process.stdout.write("success\n");
-	} catch (error) {
-		process.stdout.write("FAIL\n");
-		console.warn(error);
-	}
 
-	process.stdout.write("init calendar... ");
-	try {
+		process.stdout.write("init calendar... ");
 		await calendarInit();
 		process.stdout.write("success\n");
-	} catch (error) {
-		process.stdout.write("FAIL\n");
-		console.warn(error);
-	}
 
-	process.stdout.write("init email... ");
-	try {
+		process.stdout.write("init email... ");
 		emailInit();
 		process.stdout.write("success\n");
 	} catch (error) {
@@ -108,7 +97,7 @@ function initServer() {
 	console.log("init server...");
 	const app = express();
 
-	app.set("port", process.env.PORT || 8080);
+	app.set("port", LISTEN_PORT);
 	app.use(express.json());
 	app.use(express.urlencoded({ extended: true }));
 
@@ -180,8 +169,7 @@ async function main() {
 		try {
 			await initDatabase();
 			break;
-		}
-		catch (error) {
+		} catch (error) {
 			await sleep(5000);
 		}
 	}
@@ -189,9 +177,8 @@ async function main() {
 	try {
 		await initServices();
 		initServer();
-	}
-	catch (error) {
-		console.log(error)
+	} catch (error) {
+		console.log(error);
 		process.exitCode = 1;
 	}
 }

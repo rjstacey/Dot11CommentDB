@@ -127,8 +127,8 @@ const createViewCommentResolutionsSQL =
 		"LEFT JOIN members m ON (r.AssigneeSAPIN = m.SAPIN) " +
 		"LEFT JOIN results ON (b.id = results.ballot_id AND ((c.CommenterSAPIN <> NULL AND c.CommenterSAPIN = results.SAPIN) OR (c.CommenterSAPIN = NULL AND c.CommenterEmail = results.Email)));";
 
-export async function initCommentsTables() {
-	await db.query(createViewCommentResolutionsSQL);
+export function init() {
+	return db.query(createViewCommentResolutionsSQL);
 }
 
 type Arrayed<T> = { [K in keyof T]: T[K] | Array<T[K]> };

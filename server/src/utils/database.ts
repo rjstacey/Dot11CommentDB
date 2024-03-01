@@ -13,7 +13,7 @@ async function init() {
 	
 	if (!process.env.DB_HOST) {
 		console.warn(
-			"Environment variables DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_DATABASE not set"
+			"Environment variables DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, and DB_DATABASE not set"
 		);
 	}
 
@@ -28,7 +28,7 @@ async function init() {
 		charset: "UTF8MB4_GENERAL_CI",
 	};
 
-	console.log(options);
+	//console.log(options);
 
 	options.typeCast = function (field, next) {
 		if (field.type === "TINY" && field.length === 1) {

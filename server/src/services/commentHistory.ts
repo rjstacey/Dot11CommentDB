@@ -83,7 +83,7 @@ const createTriggerResolutionsDeleteSQL = `
 	END;
 `;
 
-export function initCommentHistory() {
+export function init() {
 	const sql = 
 		createTriggerCommentsAddSQL +
 		createTriggerCommentsUpdateSQL +
