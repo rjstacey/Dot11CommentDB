@@ -635,7 +635,7 @@ function Comments() {
 							/>
 						</div>
 					</ButtonGroup>
-					{access >= AccessLevel.admin ? (
+					{access >= AccessLevel.rw ? (
 						<ButtonGroup>
 							<div style={{ textAlign: "center" }}>Edit</div>
 							<div
