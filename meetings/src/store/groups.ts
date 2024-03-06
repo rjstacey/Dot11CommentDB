@@ -97,7 +97,7 @@ const slice = createAppTableDataSlice({
 		builder.addMatcher(
 			(action: Action) => action.type === getSuccess2.toString(),
 			(state, action: PayloadAction<Group[]>) => {
-				dataAdapter.addMany(state, action.payload);
+				dataAdapter.setMany(state, action.payload);	// add or replace
 				state.loading = false;
 				state.valid = true;
 				const { ids, entities } = state;
