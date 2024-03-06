@@ -25,16 +25,34 @@ import {
 } from "./officers";
 import { AccessLevel } from "./user";
 
-const GroupTypeLabels = {
+export const GroupTypeLabels = {
+	r: "Root",
 	c: "Committee",
 	wg: "Working Group",
 	sg: "Study Group",
 	tg: "Task Group",
 	sc: "Standing Committee",
 	ah: "Ad-hoc Group",
+	tig: "Topic of Interest Group"
 } as const;
 
 export type GroupType = keyof typeof GroupTypeLabels;
+
+export function getSubgroupTypes(parentType: GroupType): GroupType[] {
+	if (parentType === 'r') {
+		return ['c', 'wg'];
+	}
+	if (parentType === 'c') {
+		return ['wg', 'sc', 'ah'];
+	}
+	if (parentType === 'wg') {
+		return ['sg', 'tg', 'sc', 'ah', 'tig'];
+	}
+	if (parentType === 'tg') {
+		return ['ah'];
+	}
+	return [];
+}
 
 export const GroupTypeOptions = Object.entries(GroupTypeLabels).map(
 	([value, label]) =>
@@ -105,7 +123,7 @@ const slice = createAppTableDataSlice({
 		builder.addMatcher(
 			(action: Action) => action.type === getSuccess2.toString(),
 			(state, action: PayloadAction<Group[]>) => {
-				dataAdapter.addMany(state, action.payload);
+				dataAdapter.setMany(state, action.payload);	// add or replace
 				state.loading = false;
 				state.valid = true;
 				const { ids, entities } = state;
@@ -189,7 +207,7 @@ export const selectWorkingGroups = (state: RootState) => {
 	const { ids, entities } = selectGroupsState(state);
 	return ids
 		.map((id) => entities[id]!)
-		.filter((g) => g.type === "c" || g.type === "wg");
+		.filter((g) => ["r", "c", "wg"].includes(g.type!));
 };
 export const selectWorkingGroupByName = (
 	state: RootState,
@@ -213,6 +231,10 @@ export const selectWorkingGroupIds = createSelector(
 	selectWorkingGroupId,
 	(ids, entities, workingGroupId) => {
 		if (workingGroupId) {
+			const parent = entities[workingGroupId];
+			if (parent && (parent.type === 'r' || parent.type === 'c')) {
+				ids = ids.filter(id => ['r', 'c', 'wg'].includes(entities[id]!.type!))
+			}
 			function isWorkingGroupDescendent(id: EntityId) {
 				if (id === workingGroupId) return true;
 				let g: Group | undefined = entities[id]!;

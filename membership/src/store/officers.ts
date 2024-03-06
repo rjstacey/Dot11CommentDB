@@ -5,6 +5,7 @@ import { v4 as uuid } from "uuid";
 import type { RootState, AppThunk } from ".";
 
 import { fetcher, setError } from "dot11-components";
+import { GroupType } from "./groups";
 
 export type OfficerId = string;
 export type Officer = {
@@ -26,6 +27,12 @@ export const officerPositions = [
 	"Technical editor",
 	"Other",
 ];
+
+export function officerPositionsForGroupType(groupType: GroupType) {
+	if (groupType === 'r')
+		return ["Admin"];
+	return officerPositions;
+}
 
 // Compare funciton for sorting officers by position
 export function officerCmp(o1: Officer, o2: Officer) {

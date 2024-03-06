@@ -16,12 +16,15 @@ import {
 	updateGroups,
 	deleteGroups,
 	selectGroup,
+	getSubgroupTypes,
+	GroupTypeLabels,
 	GroupTypeOptions,
 	GroupStatusOptions,
 	GroupType,
 	Group,
 	GroupCreate,
 	GroupUpdate,
+	selectGroupEntities,
 } from "../store/groups";
 import {
 	addOfficers,
@@ -65,16 +68,9 @@ function GroupTypeSelector({
 		parent_id ? selectGroup(state, parent_id) : undefined
 	);
 
-	let options = GroupTypeOptions;
-	if (!parentGroup)
-		options = options.filter((o) => ["c", "wg"].includes(o.value));
-	else if (parentGroup.type === "c")
-		options = options.filter((o) => o.value === "wg");
-	else if (parentGroup.type === "wg")
-		options = options.filter((o) => o.value !== "c");
-	else options = options.filter((o) => !["c", "wg"].includes(o.value));
-
-	function handleChange(values: typeof GroupTypeOptions) {
+	let options = parentGroup? getSubgroupTypes(parentGroup.type!).map(type => ({value: type, label: GroupTypeLabels[type]})): [];
+	
+	function handleChange(values: typeof options) {
 		const newValue: GroupType | null =
 			values.length > 0 ? values[0].value : null;
 		if (newValue !== value) onChange(newValue);
@@ -124,7 +120,7 @@ function GroupStatusSelector({
 
 function checkEntry(entry: MultipleGroupEntry): string | undefined {
 	if (!entry.name) return "Set group name";
-	if (!entry.parent_id) return "Set group parent";
+	if (!entry.parent_id && entry.type !== "r") return "Set group parent";
 	if (!entry.type) return "Set group type";
 	for (const officer of entry.officers) {
 		if (!officer.position) return "Set officer position";
@@ -149,10 +145,28 @@ export function GroupEntryForm({
 	cancel?: () => void;
 	readOnly?: boolean;
 }) {
+	const entities = useAppSelector(selectGroupEntities);
+
 	function change(changes: Partial<GroupEntry>) {
 		if ("symbol" in changes && entry.type === "tg") {
 			const s = changes.symbol?.split("/");
 			changes.project = "P" + (s ? s[s.length - 1] : s);
+		}
+		if ("parent_id" in changes) {
+			const {parent_id} = changes;
+			const parentGroup = parent_id? entities[parent_id]: undefined;
+			if (parentGroup) {
+				const types = getSubgroupTypes(parentGroup.type!);
+				if (
+					parentGroup.type !== entry.type &&
+					(isMultiple(entry.type) || !types.includes(entry.type!))
+				) {
+						changes.type = types[0] || null;
+				}
+			}
+			else {
+				changes.type = null;
+			}
 		}
 		changeEntry(changes);
 	}
@@ -166,42 +180,6 @@ export function GroupEntryForm({
 			cancel={cancel}
 			errorText={checkEntry(entry)}
 		>
-			<Row>
-				<Field label="Color:">
-					<ColorPicker
-						value={isMultiple(entry.color) ? "" : entry.color || ""}
-						onChange={(value) => change({ color: value })}
-						//readOnly={readOnly}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Group name:">
-					<Input
-						type="text"
-						value={isMultiple(entry.name) ? "" : entry.name || ""}
-						onChange={(e) => change({ name: e.target.value })}
-						placeholder={
-							isMultiple(entry.name) ? MULTIPLE_STR : BLANK_STR
-						}
-						disabled={readOnly}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Group type:">
-					<GroupTypeSelector
-						style={{ width: 200 }}
-						value={isMultiple(entry.type) ? null : entry.type}
-						onChange={(type) => change({ type })}
-						parent_id={entry.parent_id}
-						placeholder={
-							isMultiple(entry.type) ? MULTIPLE_STR : undefined
-						}
-						readOnly={readOnly}
-					/>
-				</Field>
-			</Row>
 			<Row>
 				<Field label="Parent group:">
 					<GroupSelector
@@ -217,11 +195,37 @@ export function GroupEntryForm({
 								? MULTIPLE_STR
 								: "(None)"
 						}
-						readOnly={readOnly}
+						readOnly={readOnly || entry.type === "r"}
 					/>
 				</Field>
 			</Row>
-
+			<Row>
+				<Field label="Group name:">
+					<Input
+						type="text"
+						value={isMultiple(entry.name) ? "" : entry.name || ""}
+						onChange={(e) => change({ name: e.target.value })}
+						placeholder={
+							isMultiple(entry.name) ? MULTIPLE_STR : BLANK_STR
+						}
+						disabled={readOnly || entry.type === "r"}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label="Group type:">
+					<GroupTypeSelector
+						style={{ width: 200 }}
+						value={isMultiple(entry.type) ? null : entry.type}
+						onChange={(type) => change({ type })}
+						parent_id={entry.parent_id}
+						placeholder={
+							isMultiple(entry.type) ? MULTIPLE_STR : undefined
+						}
+						readOnly={readOnly || entry.type === "r"}
+					/>
+				</Field>
+			</Row>
 			<Row>
 				<Field label="Status:">
 					<GroupStatusSelector
@@ -230,7 +234,16 @@ export function GroupEntryForm({
 						placeholder={
 							isMultiple(entry.status) ? MULTIPLE_STR : undefined
 						}
-						readOnly={readOnly}
+						readOnly={readOnly || entry.type === "r"}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label="Color:">
+					<ColorPicker
+						value={isMultiple(entry.color) ? "" : entry.color || ""}
+						onChange={(value) => change({ color: value })}
+						readOnly={readOnly || entry.type === "r"}
 					/>
 				</Field>
 			</Row>
@@ -283,7 +296,7 @@ export function GroupEntryForm({
 			{!isMultiple(entry.id) && (
 				<Row>
 					<Officers
-						groupId={entry.id || ""}
+						group={entry as GroupCreate}
 						readOnly={readOnly}
 						officers={entry.officers}
 						onChange={(officers) => change({ officers })}

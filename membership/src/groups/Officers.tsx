@@ -6,6 +6,7 @@ import { OfficerId, Officer } from "../store/officers";
 import MemberSelector from "./MemberActiveSelector";
 import OfficerPositionSelector from "./OfficerPositionSelector";
 import { EditTable as Table, TableColumn } from "../components/Table";
+import { GroupCreate } from "../store/groups";
 
 const tableColumns: TableColumn[] = [
 	{ key: "position", label: "Position", gridTemplate: "minmax(200px, auto)" },
@@ -16,18 +17,18 @@ const tableColumns: TableColumn[] = [
 function Officers({
 	officers,
 	onChange,
-	groupId,
+	group,
 	readOnly,
 }: {
 	officers: Officer[];
 	onChange: (officers: Officer[]) => void;
-	groupId: string;
+	group: GroupCreate;
 	readOnly?: boolean;
 }) {
 	function addOne() {
 		const officer: Officer = {
 			id: uuid(),
-			group_id: groupId,
+			group_id: group.id || "",
 			position: "",
 			sapin: 0,
 		};
@@ -63,6 +64,7 @@ function Officers({
 					onChange={(position: string) =>
 						updateOne(entry.id, { position })
 					}
+					groupType={group.type!}
 					readOnly={readOnly}
 				/>
 			);

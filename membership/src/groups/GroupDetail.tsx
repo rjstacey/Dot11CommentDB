@@ -17,6 +17,7 @@ import {
 	setSelected,
 	Group,
 	GroupCreate,
+	getSubgroupTypes,
 } from "../store/groups";
 import {
 	selectOfficerEntities,
@@ -73,7 +74,7 @@ function GroupDetail() {
 	const initState = React.useCallback((): GroupDetailState => {
 		const groups = selected
 			.map((id) => entities[id]!)
-			.filter(g => Boolean(g));
+			.filter((g) => Boolean(g));
 
 		let diff: Multiple<GroupCreate> | null = null;
 		for (const group of groups) {
@@ -106,7 +107,10 @@ function GroupDetail() {
 		const ids = state.groups.map((g) => g.id);
 		if (state.action === "view" && selected.join() !== ids.join()) {
 			setState(initState);
-		} else if (state.action === "update" && selected.join() !== ids.join()) {
+		} else if (
+			state.action === "update" &&
+			selected.join() !== ids.join()
+		) {
 			ConfirmModal.show(
 				"Changes not applied! Do you want to discard changes?"
 			).then((ok) => {
@@ -121,8 +125,7 @@ function GroupDetail() {
 					if (ok) setState(initState);
 					else dispatch(setSelected([]));
 				});
-			}
-			else {
+			} else {
 				setState(initState);
 			}
 		}
@@ -160,7 +163,11 @@ function GroupDetail() {
 		}
 		const { edited } = state;
 		for (const group of Object.values(entities)) {
-			if (group && group.parent_id === groupId && group.name === edited.name) {
+			if (
+				group &&
+				group.parent_id === groupId &&
+				group.name === edited.name
+			) {
 				dispatch(
 					setError(
 						"Unable to add group",
@@ -170,14 +177,14 @@ function GroupDetail() {
 				return;
 			}
 		}
-		setState(state => ({
+		setState((state) => ({
 			...state,
-			saved: state.edited
+			saved: state.edited,
 		}));
 		setBusy(true);
 		const group = await groupAdd(edited);
 		setBusy(false);
-		dispatch(setSelected(group? [group.id]: []));
+		dispatch(setSelected(group ? [group.id] : []));
 	};
 
 	const groupsUpdate = useGroupsUpdate();
@@ -210,8 +217,11 @@ function GroupDetail() {
 			if (!ok) return;
 		}
 		dispatch(setSelected([]));
+		const parentGroup = groupId ? entities[groupId] : undefined;
 		const entry: GroupEntry = {
 			...defaultEntry,
+			type:
+				(parentGroup && getSubgroupTypes(parentGroup.type!)[0]) || null,
 			parent_id: groupId,
 		};
 		setState({
@@ -231,6 +241,16 @@ function GroupDetail() {
 		}
 		const { groups } = state;
 		if (groups.length > 0) {
+			const rootGroup = groups.find((g) => g.type === "r");
+			if (rootGroup) {
+				dispatch(
+					setError(
+						`Can't delete ${rootGroup.name}!`,
+						"Our whole world would collapse"
+					)
+				);
+				return;
+			}
 			const str =
 				"Are you sure you want to delete:\n" +
 				groups.map((g) => g.name || BLANK_STR).join("\n");
@@ -274,7 +294,9 @@ function GroupDetail() {
 					<ActionButton
 						name="delete"
 						title="Delete group"
-						disabled={loading || state.groups.length === 0 || readOnly}
+						disabled={
+							loading || state.groups.length === 0 || readOnly
+						}
 						onClick={clickDelete}
 					/>
 				</div>

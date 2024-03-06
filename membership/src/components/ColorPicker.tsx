@@ -3,16 +3,18 @@ import { CirclePicker } from "react-color";
 const ColorPicker = ({
 	value,
 	onChange,
+	readOnly
 }: {
 	value: string;
 	onChange: (value: string) => void;
+	readOnly?: boolean;
 }) => (
 	<CirclePicker
 		width="unset"
 		circleSize={22}
 		circleSpacing={11}
 		color={value}
-		onChangeComplete={(color) => onChange(color.hex)}
+		onChangeComplete={readOnly? undefined: (color) => onChange(color.hex)}
 		colors={[
 			"#f44336",
 			"#e91e63",
