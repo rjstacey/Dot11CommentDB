@@ -51,7 +51,7 @@ const theme = {
 };
 
 const editorStyles: Record<string, string> = {
-	paragraph: "font-size: 14px; lineHeight: 24px; margin: 16px 0",
+	paragraph: "lineHeight: 24px; margin: 16px 0",
 	link: "color: #067df7; text-decoration: none;",
 	quote: "font-family: 'TimesNewRoman', serif; margin: 10px 20px; padding: 0 0;",
 	code: 'background-color: #f3f3f3; font-family: "Inconsolata", "Menlo", "Consolas", monospace; font-size: 16px; margin: 14px 0;',
