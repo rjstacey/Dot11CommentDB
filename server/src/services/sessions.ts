@@ -74,7 +74,12 @@ type SessionDB = Partial<
 
 interface SessionsQueryConstraints {
 	id?: number | number[];
+	number?: number | number[];
+	name?: string | string[];
 	type?: string | string[];
+	timezone?: string | string[];
+	groupId?: string | string[];
+	isCancelled?: boolean | boolean[];
 }
 
 export type AttendanceSummary = {
@@ -122,19 +127,22 @@ export function getCredit(creditStr: string): {credit: Credit, creditOverrideNum
  */
 export function getSessions(constraints?: SessionsQueryConstraints) {
 	let sql = getSessionsSQL();
-	if (constraints && Object.keys(constraints).length > 0) {
-		sql +=
-			" WHERE " +
-			Object.entries(constraints)
-				.map(([key, value]) =>
-					db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
-						key,
-						value,
-					])
-				)
-				.join(" AND ");
+
+	if (constraints) {
+		const wheres: string[] = [];
+		Object.entries(constraints).forEach(([key, value]) => {
+			wheres.push(
+				(key === 'groupId')?
+					db.format(Array.isArray(value)? 'BIN_TO_UUID(??) IN (?)': 'BIN_TO_UUID(??)=?', [key, value]):
+					db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
+			);
+		});
+		if (wheres.length > 0)
+			sql += ' WHERE ' + wheres.join(' AND ');
 	}
+
 	sql += " ORDER BY startDate DESC";
+
 	//console.log(sql)
 	return db.query({ sql, dateStrings: true }) as Promise<Session[]>;
 }

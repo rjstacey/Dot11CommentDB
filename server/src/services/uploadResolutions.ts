@@ -319,66 +319,26 @@ async function updateComments(userId: number, ballot_id: number, matched: Commen
 
 	//console.log('comments updated: ', updateComments.length, 'resolutions updated: ', updateResolutions.length, 'new resolutions: ', newResolutions.length);
 
-	let SQL = '';
-
-	SQL +=
+	let sql = '';
+	sql +=
 		updateComments.map(c => {
 			const id = c.id;
 			delete c.id;
 			c.LastModifiedBy = userId;
-			return db.format('UPDATE comments SET ?, LastModifiedTime=NOW() WHERE id=?', [c, id]);
+			return db.format('UPDATE comments SET ?, LastModifiedTime=UTC_TIMESTAMP() WHERE id=?', [c, id]);
 		})
 		.concat(
 			updateResolutions.map(r => {
 				const id = r.id;
 				delete r.id;
 				r.LastModifiedBy = userId;
-				return db.format('UPDATE resolutions SET ?, LastModifiedTime=NOW() WHERE id=UUID_TO_BIN(?)', [r, id]);
+				return db.format('UPDATE resolutions SET ?, LastModifiedTime=UTC_TIMESTAMP() WHERE id=UUID_TO_BIN(?)', [r, id]);
 			})
 		)
 		.join(';');
 
-	if (SQL)
-		SQL += ';'
-
-	/* A single insert statement with 'duplicate on key update' is slightly faster than individual update statements.
-	 * But, as an insert, it is logged as an 'add'. And has side effects like failing if there is an unset column
-	 * without a default value. */
-/*
-	let kvPairs = {};
-	updateComments.forEach(c => {
-		c.LastModifiedBy = userId;
-		const keys = Object.keys(c).join(',');
-		if (!kvPairs[keys])
-			kvPairs[keys] = [];
-		kvPairs[keys].push(db.escape(Object.values(c)));
-	})
-	for (const [keys, values] of Object.entries(kvPairs)) {
-		const K = keys.split(',').filter(k => k !== 'id');
-		SQL += `INSERT INTO comments (${keys},LastModifiedTime) VALUES ` +
-			values.map(v => `(${v}, NOW())`).join(',') +
-			' ON DUPLICATE KEY UPDATE ' +
-			K.map(k => `${k}=VALUES(${k})`).join(', ') + ', LastModifiedTime=VALUES(LastModifiedTime)' +
-			';'
-	}
-
-	kvPairs = {};
-	updateResolutions.forEach(r => {
-		r.LastModifiedBy = userId;
-		const keys = Object.keys(r).join(',');
-		if (!kvPairs[keys])
-			kvPairs[keys] = [];
-		kvPairs[keys].push(db.escape(Object.values(r)));
-	})
-	for (const [keys, values] of Object.entries(kvPairs)) {
-		const K = keys.split(',').filter(k => k !== 'id');
-		SQL += `INSERT INTO resolutions (${keys},LastModifiedTime) VALUES ` +
-			values.map(v => `(${v}, NOW())`).join(',') +
-			' ON DUPLICATE KEY UPDATE ' +
-			K.map(k => `${k}=VALUES(${k})`).join(', ') + ', LastModifiedTime=VALUES(LastModifiedTime)' +
-			';'
-	}
-*/
+	if (sql)
+		sql += ';'
 
 	/* A single insert statement is much faster than individual insert statements. */
 	let kvPairs: Record<string, any[]> = {};
@@ -390,14 +350,13 @@ async function updateComments(userId: number, ballot_id: number, matched: Commen
 		kvPairs[keys].push(db.escape(Object.values(r)));
 	});
 	for (const [keys, values] of Object.entries(kvPairs)) {
-		SQL += `INSERT INTO resolutions (id,${keys},LastModifiedTime) VALUES ` +
-			values.map(v => `(UUID_TO_BIN(${uuid()}), ${v}, NOW())`).join(',') +
+		sql += `INSERT INTO resolutions (id,${keys},LastModifiedTime) VALUES ` +
+			values.map(v => `(UUID_TO_BIN(${uuid()}), ${v}, UTC_TIMESTAMP())`).join(',') +
 			';'
 	}
 
-	//console.log(SQL)
-	if (SQL)
-		await db.query(SQL);
+	if (sql)
+		await db.query(sql);
 
 	return count;
 }
@@ -433,7 +392,7 @@ async function addComments(userId: number, ballot_id: number, sheetComments: Com
 	const SQL =
 		newComments.map(c => {
 			return db.format(
-				'INSERT INTO comments (ballot_id, ??, LastModifiedBy, LastModifiedTime) VALUE (?, ?, ?, NOW())',
+				'INSERT INTO comments (ballot_id, ??, LastModifiedBy, LastModifiedTime) VALUE (?, ?, ?, UTC_TIMESTAMP())',
 				[Object.keys(c), ballot_id, Object.values(c), userId]
 			)
 		})
@@ -445,7 +404,7 @@ async function addComments(userId: number, ballot_id: number, sheetComments: Com
 				return db.format(
 					'INSERT INTO resolutions ' +
 						'(comment_id, ??, LastModifiedTime) ' + 
-						'VALUE ((SELECT id FROM comments WHERE ballot_id=? AND CommentID=?), ?, NOW())',
+						'VALUE ((SELECT id FROM comments WHERE ballot_id=? AND CommentID=?), ?, UTC_TIMESTAMP())',
 					[Object.keys(r), ballot_id, commentId, Object.values(r)]
 				)
 			})
@@ -472,11 +431,16 @@ export async function uploadResolutions(
 	matchAlgo: MatchAlgo,
 	matchUpdate: MatchUpdate,
 	sheetName: string,
-	file: {buffer: Buffer}
+	file: Express.Multer.File
 ) {
 
-	if (matchAlgo === 'elimination' && matchUpdate === 'any')
+	if (file.originalname.search(/\.xlsx$/i) === -1) {
+		throw TypeError("Must be an Excel Workbook (*.xlsx). Older formats are not supported.")
+	}
+
+	if (matchAlgo === 'elimination' && matchUpdate === 'any') {
 		throw new TypeError(`For successive elimination, matchUpdate cannot be 'any'.`);
+	}
 
 	const t1 = Date.now();
 	const sheetComments = await parseCommentsSpreadsheet(file.buffer, sheetName);
@@ -495,12 +459,14 @@ export async function uploadResolutions(
 		remaining: string[] = [];
 	if (matchUpdate === 'all') {
 		if (dbCommentsRemaining.length > 0) {
-			throw `No update\n` +
+			throw new TypeError(
+				`No update\n` +
 				`${matched.length} entries match\n` +
 				`${dbCommentsRemaining.length} unmatched database entries:\n` +
 				dbCommentsRemaining.map(c => c.CommentID).join(', ') + '\n' +
 				`${sheetCommentsRemaining.length} unmatched spreadsheet entries:\n` +
 				sheetCommentsRemaining.map(c => c.CID).join(', ')
+			);
 		}
 
 		updated = await updateComments(user.SAPIN, ballot_id, matchedComments, toUpdate);
@@ -527,12 +493,15 @@ export async function uploadResolutions(
 
 	const t6 = Date.now();
 
-	console.log(`parse spreadsheet: ${t2-t1}ms`)
-	console.log(`get comments: ${t3-t2}ms`)
-	console.log(`match algo: ${t4-t3}ms`)
-	console.log(`update database: ${t5-t4}ms`)
-	console.log(`get updated comments: ${t6-t5}ms`)
-	console.log(`total: ${t6-t1}ms`)
+	const stats = {
+		"parse spreadsheet": t2-t1,
+		"get comments": t3-t2,
+		"match algo": t4-t3, 
+		"update database": t5-t4,
+		"get updated comments": t6-t5,
+		"total": t6-t1
+	}
+	//console.log(stats);
 
 	const ballot = {
 		id: ballot_id,
@@ -546,6 +515,7 @@ export async function uploadResolutions(
 		unmatched,
 		remaining,
 		added,
-		updated
+		updated,
+		stats
 	}
 }

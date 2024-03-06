@@ -8,7 +8,7 @@ import type { ResultSetHeader } from "mysql2";
 import type { User } from "./users";
 
 import { getSession, Session } from "./sessions";
-import { getGroupIds, getWorkingGroup, Group } from "./groups";
+import { getGroupAndSubgroupIds, getWorkingGroup, Group } from "./groups";
 
 import {
 	getWebexAccount,
@@ -174,7 +174,7 @@ function selectMeetingsSql(constraints: SelectMeetingsConstraints) {
  */
 async function selectMeetings(constraints: SelectMeetingsConstraints) {
 	if (constraints.groupId && !constraints.organizationId) {
-		const organizationId = await getGroupIds(constraints.groupId);
+		const organizationId = await getGroupAndSubgroupIds(constraints.groupId);
 		constraints = { ...constraints, organizationId };
 		delete constraints.groupId;
 	}

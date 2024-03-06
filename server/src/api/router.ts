@@ -6,11 +6,7 @@
 import { NextFunction, Request, Response, Router } from "express";
 
 import { User } from "../services/users";
-import {
-	getGroupByName,
-	getGroupRollUpPermissions,
-	Group,
-} from "../services/groups";
+import { getGroups,	Group } from "../services/groups";
 import { getBallot, Ballot } from "../services/ballots";
 import { authorize } from "../auth/jwt";
 import { NotFoundError } from "../utils";
@@ -21,7 +17,6 @@ import users from "./users";
 import groups from "./groups";
 import officers from "./officers";
 import email from "./email";
-import permissions from "./permissions";
 import attendances from "./attendances";
 import ballotParticipation from "./ballotParticipation";
 
@@ -77,7 +72,7 @@ declare global {
 
 async function parseGroupName(req: Request, res: Response, next: NextFunction) {
 	const { groupName } = req.params;
-	const group = await getGroupByName(req.user, groupName);
+	const [group] = await getGroups(req.user, {name: groupName});
 	if (!group)
 		return next(new NotFoundError(`Group ${groupName} does not exist`));
 	req.group = group;
@@ -88,7 +83,7 @@ async function parseGroupName(req: Request, res: Response, next: NextFunction) {
  * APIs for managing the organization
  */
 router.use("/groups", groups); // Groups and subgroups
-router.use("/permissions", permissions); // Get list of permissions
+
 router.use("/:groupName/members", parseGroupName, members); // Manage membership
 router.use("/:groupName/users", parseGroupName, users); // Limited access to member information for various uses (comment resolution, meeting setup, etc.)
 router.use("/:groupName/officers", parseGroupName, officers); // Group and subgroup officers
@@ -121,10 +116,14 @@ async function parseBallot_id(req: Request, res: Response, next: NextFunction) {
 	const ballot = await getBallot(ballot_id);
 	if (!ballot)
 		return next(new NotFoundError(`Ballot ${ballot_id} does not exist`));
+	if (!ballot.groupId)
+		return next(new NotFoundError(`Ballot ${ballot_id} not associated with a group`));
 	req.ballot = ballot;
-	req.permissions = ballot.groupId
-		? await getGroupRollUpPermissions(req.user, ballot.groupId)
-		: {};
+	const [group] = await getGroups(req.user, {id: ballot.groupId});
+	if (!group)
+		return next(new NotFoundError(`Group associated with ballot ${ballot_id} does not exist`));
+	req.group = group;
+	req.permissions = group? group.permissions: {};
 	next();
 }
 

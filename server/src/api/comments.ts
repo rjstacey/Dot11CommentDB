@@ -70,6 +70,7 @@ import {
 	importEpollComments,
 	uploadComments,
 	uploadUserComments,
+	uploadPublicReviewComments,
 	validUpdates,
 } from "../services/comments";
 import { exportResolutionsForMyProject } from "../services/myProjectSpreadsheets";
@@ -191,6 +192,23 @@ router
 			return next(new TypeError("Bad multipart body; missing file"));
 
 		uploadUserComments(req.user, req.ballot!, params.SAPIN, req.file)
+			.then((data) => res.json(data))
+			.catch(next);
+	})
+	.post("/publicReviewUpload", upload.single("CommentsFile"), (req, res, next) => {
+		const access = req.permissions?.comments || AccessLevel.none;
+		// Need admin privileges for upload
+		if (access < AccessLevel.admin)
+			return next(
+				new ForbiddenError(
+					"Need admin privileges at the ballot level to upload comments"
+				)
+			);
+
+		if (!req.file)
+			return next(new TypeError("Bad multipart body; missing file"));
+
+		uploadPublicReviewComments(req.user, req.ballot!, req.file)
 			.then((data) => res.json(data))
 			.catch(next);
 	})

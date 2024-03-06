@@ -63,21 +63,39 @@ const getBallotsSQL = `
 		(SELECT COUNT(*) FROM wgVoters v WHERE b.id=v.ballot_id) as Voters
 	FROM ballots b`;
 
-/*
- * Get comments summary for ballot
- */
+interface BallotsQueryConstraints {
+	id?: number | number[];
+	workingGroupId?: string | string[];
+	groupId?: string | string[];
+	BallotID?: string | string[];
+	Type?: number | number[];
+};
 
 /**
  * Get all ballots.
  *
+ * @param constraints Constraints on the query
  * @returns An array of ballot objects.
  */
-export async function getBallots(workingGroup: Group) {
-	const sql = db.format(
-		getBallotsSQL +
-			" WHERE b.workingGroupId=UUID_TO_BIN(?) ORDER BY b.Project, b.Start",
-		[workingGroup.id]
-	);
+export async function getBallots(constraints?: BallotsQueryConstraints) {
+
+	let sql = getBallotsSQL;
+
+	if (constraints) {
+		const wheres: string[] = [];
+		Object.entries(constraints).forEach(([key, value]) => {
+			wheres.push(
+				(key === 'groupId' || key === 'workingGroupId')?
+					db.format(Array.isArray(value)? 'BIN_TO_UUID(??) IN (?)': 'BIN_TO_UUID(??)=?', [key, value]):
+					db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
+			);
+		});
+		if (wheres.length > 0)
+			sql += ' WHERE ' + wheres.join(' AND ');
+	}
+
+	sql += " ORDER BY b.Project, b.Start";
+
 	const ballots = (await db.query({ sql, dateStrings: true })) as Ballot[];
 	return ballots;
 }

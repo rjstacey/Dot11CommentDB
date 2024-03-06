@@ -60,7 +60,8 @@ router
 	})
 	.route("/")
 		.get((req, res, next) => {
-			getBallots(req.group!)
+			const workingGroupId = req.group!.id;
+			getBallots({workingGroupId})
 				.then((data) => res.json(data))
 				.catch(next);
 		})

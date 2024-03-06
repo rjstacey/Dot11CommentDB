@@ -79,7 +79,7 @@ const createTriggerResolutionsDeleteSQL = `
 		SET @changes = JSON_OBJECT(
 			${resolutionEditableFields.map(f => `"${f}", OLD.${f}`).join(',\n\t\t\t')}
 		);
-		INSERT INTO resolutionsLog (comment_id, resolution_id, Action, Changes, UserID, Timestamp) VALUES (OLD.comment_id, OLD.id, @action, @changes, OLD.LastModifiedBy, NOW());
+		INSERT INTO resolutionsLog (comment_id, resolution_id, Action, Changes, UserID, Timestamp) VALUES (OLD.comment_id, OLD.id, @action, @changes, OLD.LastModifiedBy, UTC_TIMESTAMP());
 	END;
 `;
 

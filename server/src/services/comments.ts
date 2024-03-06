@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 
 import db from "../utils/database";
 import type { ResultSetHeader } from "mysql2";
+import { } from "multer";
 
 import {
 	AuthError,
@@ -21,6 +22,7 @@ import { type User } from "./users";
 import { getMember } from "./members";
 import { AccessLevel } from "../auth/access";
 import { getGroups } from "./groups";
+import { parsePublicReviewComments } from "./publicReviewSpreadsheets";
 
 export type Comment = {
 	id: bigint;
@@ -490,6 +492,21 @@ export async function uploadComments(
 	return replaceComments(user, ballot.id, comments);
 }
 
+type MaxIndexes = {
+	MaxCommentId: number,
+	MaxIndex: number
+};
+
+async function getHighestIndexes(ballot_id: number) {
+	const rows = await db.query(
+		"SELECT MAX(CommentID) as MaxCommentId, MAX(C_Index) as MaxIndex from comments WHERE ballot_id=?",
+		ballot_id
+	) as MaxIndexes[];
+	if (rows.length !== 1)
+		throw new TypeError(`Ballot id=${ballot_id} does not exist`);
+	return rows[0];
+}
+
 /**
  * Upload comments from spreadsheet.
  * The expected spreadsheet format depends on the ballot type.
@@ -500,19 +517,16 @@ export async function uploadUserComments(
 	user: User,
 	ballot: Ballot,
 	sapin: number,
-	file: any
+	file: Express.Multer.File
 ) {
 	const commenter = await getMember(sapin);
-	if (!commenter) throw new Error("Member not found");
+	if (!commenter) {
+		throw new TypeError(`Member SAPIN=${sapin} not found`);
+	}
 
-	const rows = (await db.query(
-		"SELECT MAX(CommentID) as MaxCommentId, MAX(C_Index) as MaxIndex from comments WHERE ballot_id=?",
-		ballot.id
-	)) as any[];
-	let { MaxCommentId, MaxIndex } = rows[0];
+	let { MaxCommentId, MaxIndex } = await getHighestIndexes(ballot.id);
 	let startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;
 	let startIndex = MaxIndex ? MaxIndex + 1 : 1;
-	console.log(rows);
 	console.log(startCommentId, startIndex);
 
 	let comments: Partial<Comment>[];
@@ -536,5 +550,26 @@ export async function uploadUserComments(
 			throw new TypeError("Parse error: " + error.toString());
 		}
 	}
+	return insertComments(user, ballot.id, comments);
+}
+
+/**
+ * Upload public review comments from spreadsheet.
+ */
+export async function uploadPublicReviewComments(
+	user: User,
+	ballot: Ballot,
+	file: Express.Multer.File
+) {
+	let { MaxCommentId } = await getHighestIndexes(ballot.id);
+	let startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;
+
+	let comments: Partial<Comment>[];
+	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1;
+	comments = await parsePublicReviewComments(
+		startCommentId,
+		file.buffer,
+		isExcel
+	);
 	return insertComments(user, ballot.id, comments);
 }

@@ -109,7 +109,7 @@ async function addOfficer({id, group_id, ...rest}: Officer): Promise<Officer> {
 export async function addOfficers(user: User, workingGroup: Group, officers: Officer[]) {
 
 	// Ensure that each officer has a valid groupId
-	const groupIds = await getGroupAndSubgroupIds(workingGroup.name)
+	const groupIds = await getGroupAndSubgroupIds(workingGroup.id)
 	officers.forEach(officer => {
 		if (!officer.group_id)
 			throw new TypeError("Bad or missing group_id; must specify group");
@@ -161,7 +161,7 @@ export async function updateOfficers(user: User, workingGroup: Group, updates: U
 	updates.forEach(async ({changes}) => {
 		if (changes.group_id !== undefined && changes.group_id !== null) {
 			if (!groupIds)
-				groupIds = await getGroupAndSubgroupIds(workingGroup.name);
+				groupIds = await getGroupAndSubgroupIds(workingGroup.id);
 			if (!groupIds.includes(changes.group_id))
 				throw new TypeError("Bad officer group_id; must be the working group or one of its subgroups");
 		}

@@ -21,8 +21,7 @@ import { init as emailInit } from "./services/email";
 
 dotenv.config();
 
-const LISTEN_PORT =
-	process.env.PORT || (process.env.NODE_ENV === "development" ? 8080 : 80);
+const LISTEN_PORT =	process.env.PORT || 8080;
 
 async function initDatabase() {
 	process.stdout.write("init database... ");
@@ -61,7 +60,6 @@ async function initServices() {
 		process.stdout.write("FAIL\n");
 		console.warn(error);
 	}
-	console.log("init services complete");
 }
 
 const requestLog: RequestHandler = function (req, res, next) {
@@ -94,7 +92,7 @@ const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 };
 
 function initServer() {
-	console.log("init server...");
+	console.log("starting server");
 	const app = express();
 
 	app.set("port", LISTEN_PORT);
@@ -129,7 +127,7 @@ function initServer() {
 	let devdir = "";
 	if (process.env.NODE_ENV === "development") {
 		devdir = "../../build";
-		console.log(path.join(__dirname, devdir));
+		//console.log(path.join(__dirname, devdir));
 	}
 
 	app.use(
@@ -155,8 +153,7 @@ function initServer() {
 	//app.get('*', (req, res) => res.redirect('/'));
 
 	app.listen(app.get("port"), () => {
-		console.log("App listening on port %s", app.get("port"));
-		console.log("Press Ctrl+C to quit.");
+		console.log("👂 listening on port %s", app.get("port"));
 	});
 
 	return app;
@@ -176,11 +173,12 @@ async function main() {
 
 	try {
 		await initServices();
-		initServer();
 	} catch (error) {
 		console.log(error);
 		process.exitCode = 1;
 	}
+	
+	initServer();
 }
 
 main();

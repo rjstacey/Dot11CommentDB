@@ -212,6 +212,10 @@ const legacyColumns: Record<string, Col> = {
 		width: 8,
 		numFmt: "@",
 		set: (c) => c.EditStatus || "",
+		get: (v, c) => {
+			if (["I", "N"].includes(v)) c.EditStatus = v;
+			else c.EditStatus = null;
+		}
 	},
 	"Edit Notes": {
 		width: 25,
@@ -372,6 +376,10 @@ const modernColumns: Record<string, Col> = {
 		width: 8,
 		numFmt: "@",
 		set: (c) => c.EditStatus || "",
+		get: (v, c) => {
+			if (["I", "N"].includes(v)) c.EditStatus = v;
+			else c.EditStatus = null;
+		}
 	},
 	"Edited in Draft": {
 		width: 9,
@@ -426,16 +434,16 @@ export async function parseCommentsSpreadsheet(
 	buffer: Buffer,
 	sheetName: string
 ) {
-	var workbook = new ExcelJS.Workbook();
+	const workbook = new ExcelJS.Workbook();
 	await workbook.xlsx.load(buffer);
-	//console.log(workbook, buffer)
+
 	const worksheet = workbook.getWorksheet(sheetName);
 	if (!worksheet) {
 		let sheets: string[] = [];
 		workbook.eachSheet((worksheet, sheetId) => {
 			sheets.push(worksheet.name);
 		});
-		throw new Error(
+		throw new TypeError(
 			`Workbook does not have a "${sheetName}" worksheet. It does have the following worksheets:\n${sheets.join(
 				", "
 			)}`
@@ -449,7 +457,7 @@ export async function parseCommentsSpreadsheet(
 	const modernHeadings = Object.keys(modernColumns);
 	const isLegacy = isCorrectSpreadsheetHeader(headerRow, legacyHeadings);
 	if (!isLegacy && !isCorrectSpreadsheetHeader(headerRow, modernHeadings)) {
-		throw new Error(
+		throw new TypeError(
 			`Unexpected column headings ${headerRow.join(", ")}. ` +
 				`\n\nExpected legacy headings: ${legacyHeadings.join(", ")}.` +
 				`\n\nOr modern headings: ${modernHeadings.join(", ")}.`

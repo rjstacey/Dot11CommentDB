@@ -3,11 +3,14 @@ import { v4 as uuid } from 'uuid';
 
 import db from '../utils/database';
 import type { ResultSetHeader } from 'mysql2';
-import { isPlainObject } from '../utils';
+import { ForbiddenError, NotFoundError, isPlainObject } from '../utils';
 import { User } from './users';
 import { AccessLevel } from '../auth/access';
+import { getBallots } from './ballots';
+import { getSessions } from './sessions';
 
 const GroupTypeLabels = {
+	r: 'Root',
 	c: 'Committee',
 	wg: 'Working Group',
 	tg: 'Task Group',
@@ -48,41 +51,6 @@ interface OrganizationQueryConstraints {
 	symbol?: string | string[];
 };
 
-/**
- * Get group identifiers
- * @param parent_id - Parent group identifier
- * @returns An array of group identifiers that includes the group and all its subgroups
- */
-export async function getGroupIds(parent_id: string) {
-	let ids = [parent_id];
-	const sql = db.format(`
-		with recursive r_org (id) as (
-			select	id
-			from	organization
-			where	parent_id = UUID_TO_BIN(?)
-			union all
-			select	o.id
-			from	organization o
-			inner join r_org on o.parent_id = r_org.id
-		)
-		select BIN_TO_UUID(id) as id from r_org;
-	`, [parent_id]);
-	ids = ids.concat(((await db.query(sql)) as {id: string}[]).map(g => g.id));
-	return ids;
-}
-
-/**
- * Get group and subgroup identifiers
- * @param groupName - The name of the group
- * @returns An array of group identifiers that includes the group and all its subgroups
- */
-export async function getGroupAndSubgroupIds(groupName: string) {
-	let ids = (await db.query('SELECT BIN_TO_UUID(id) as id FROM organization WHERE name=?', [groupName]) as {id: string}[]).map(g => g.id);
-	if (ids.length > 0)
-		ids = ids.concat(await getGroupIds(ids[0]));
-	return ids;
-}
-
 // prettier-ignore
 const selectGroupsSql =
 	'SELECT ' + 
@@ -100,6 +68,69 @@ const selectGroupsSql =
 
 
 /**
+ * Get group and subgroup identifiers
+ * @param id - The group identifier
+ * @returns An array of group identifiers that includes the group and all its subgroups
+ */
+export async function getGroupAndSubgroupIds(id: string) {
+	const sql = `
+		WITH RECURSIVE cte (id, parent_id) AS (
+			SELECT id, parent_id
+				FROM organization
+				WHERE id=UUID_TO_BIN(${db.escape(id)})
+			UNION ALL
+			SELECT org.id, org.parent_id
+				FROM organization org
+				INNER JOIN cte on cte.id=org.parent_id
+		)
+		SELECT BIN_TO_UUID(id) as id FROM cte`;
+	return (await db.query(sql) as {id: string}[]).map(g => g.id);
+}
+
+/**
+ * Get group and subgroup identifiers
+ * @param groupName - The name of the group
+ * @returns An array of group identifiers that includes the group and all its subgroups
+ */
+export async function getGroupAndSubgroupIdsByName(groupName: string) {
+	const sql = `
+		WITH RECURSIVE cte (id, parent_id) AS (
+			SELECT id, parent_id
+				FROM organization
+				WHERE name=${db.escape(groupName)}
+			UNION ALL
+			SELECT org.id, org.parent_id
+				FROM organization org
+				INNER JOIN cte on cte.id=org.parent_id
+		)
+		SELECT BIN_TO_UUID(id) as id FROM cte`;
+	return (await db.query(sql) as {id: string}[]).map(g => g.id);
+}
+
+/**
+ * Get identified groups and their parents
+ * @param ids A list of group indentifiers
+ * @returns An array of group objects (without user permissions)
+ */
+function getGroupsAndParentGroups(ids: string[]) {
+
+	const sql = `
+		WITH RECURSIVE cte AS (
+			SELECT id, parent_id
+				FROM organization
+				WHERE BIN_TO_UUID(id) IN (${db.escape(ids)})
+			UNION ALL
+			SELECT org.id, org.parent_id
+				FROM organization org
+				INNER JOIN cte ON org.id=cte.parent_id
+		)
+		${selectGroupsSql} WHERE org.id IN (SELECT id FROM cte)`;
+
+	return db.query(sql) as Promise<Group[]>;
+}
+
+
+/**
  * Compare function to sort groups by type and then by name
  */
 const groupTypes = Object.keys(GroupTypeLabels);
@@ -110,6 +141,35 @@ function groupCmp(g1: Group, g2: Group) {
 	return n;
 }
 
+/**
+ * Rollup user permissions for a group
+ * (parent permissions are inherited by its children)
+ * @param user User for which the permissions apply
+ * @param group Group for which the permissions apply
+ * @param groupEntities Group entity record that includes all parents (ancestors) of the group
+ * @returns The rolled up permissions for the group
+ */
+function rollupGroupUserPermissions(user: User, group: Group, groupEntities: Record<string, Group>) {
+	const permissions = {...getGroupUserPermissions(user, group)};
+	const parent = group.parent_id? groupEntities[group.parent_id]: undefined;
+	if (parent) {
+		const parentPermissions = rollupGroupUserPermissions(user, parent, groupEntities);
+		Object.entries(parentPermissions).forEach(([scope, access]) => {
+			if (!permissions[scope] || permissions[scope] < access)
+				permissions[scope] = access;
+		});
+	}
+	return permissions;
+}
+
+/**
+ * Get a list of groups for the provided constraints.
+ * 
+ * @param user The user executing the query
+ * @param constraints (Optional) Constraints on the query
+ * @param constraints.parentName (Optional) Group and subgroups with the parent with this name
+ * @returns An array of group objects that includes the user permissions for each group
+ */
 export async function getGroups(user: User, constraints?: OrganizationQueryConstraints) {
 	let sql = selectGroupsSql;
 
@@ -117,7 +177,7 @@ export async function getGroups(user: User, constraints?: OrganizationQueryConst
 		const {parentName, ...rest} = constraints;
 		const wheres: string[] = [];
 		if (parentName) {
-			const ids = await getGroupAndSubgroupIds(parentName);
+			const ids = await getGroupAndSubgroupIdsByName(parentName);
 			if (ids.length === 0)
 				return [];	// No group with that name
 			wheres.push(db.format('BIN_TO_UUID(org.id) IN (?)', [ids]));
@@ -133,26 +193,60 @@ export async function getGroups(user: User, constraints?: OrganizationQueryConst
 			sql += ' WHERE ' + wheres.join(' AND ');
 	}
 
-	let groups = (await db.query(sql) as Group[])
-		.sort(groupCmp);
-	groups.forEach(group => group.permissions = getGroupUserPermissions(user, group));
+	let groups = await db.query(sql) as Group[];
+
+	// Normalize
+	const groupEntities: Record<string, Group> = {};
+	for (const group of groups)
+		groupEntities[group.id] = group;
+
+	// Get a list of parents that are missing
+	const ids = groups
+		.map(group => group.parent_id)
+		.filter(parent_id => parent_id !== null && !groupEntities[parent_id]) as string[];
+
+	// If any parents are missing, add them and their ancestors
+	// (we need this to correctly roll up permissions)
+	if (ids.length > 0) {
+		let parentGroups = await getGroupsAndParentGroups(ids);
+		for (const group of parentGroups)
+			groupEntities[group.id] = group;
+
+		groups = groups.concat(parentGroups);
+	}
+
+	// Roll up group user permissions
+	for (const group of groups)
+		group.permissions = rollupGroupUserPermissions(user, group, groupEntities);
+
 	return groups;
 }
 
 /**
- * Get group hierarchy 
- * @param user - The user executing the get
- * @param group_id - The group identifier
+ * Get group and subgroups 
+ * @param user - The user executing the query
+ * @param id - The group identifier
  * @returns An array of groups where the first entry is the group and successive entries the parents
  */
-export async function getGroupHierarchy(user: User, group_id: string): Promise<Group[]> {
-	const groups = await db.query(selectGroupsSql + ' WHERE BIN_TO_UUID(org.id)=?', [group_id]) as Group[];
+export async function getGroupHierarchy(user: User, id: string): Promise<Group[]> {
+
+	const groups = await getGroupsAndParentGroups([id]);
+	// The order is import here; make sure the first entry is the identified group
 	const group = groups[0];
-	if (group) {
-		group.permissions = getGroupUserPermissions(user, group);
-		if (group.parent_id)
-			return groups.concat(await getGroupHierarchy(user, group.parent_id));
-	}
+	if (!group)
+		throw new NotFoundError(`Group id=${id} not found`);
+	if (group.id !== id)
+		throw new Error(`Unexpected result; expect group with id=${id} to be first entry`);
+
+	// Normalize
+	const groupEntities: Record<string, Group> = {};
+	for (const group of groups)
+		groupEntities[group.id] = group;
+
+	// Roll up group user permissions
+	for (const group of groups)
+		group.permissions = rollupGroupUserPermissions(user, group, groupEntities);
+
 	return groups;
 }
 
@@ -166,26 +260,8 @@ export async function getWorkingGroup(user: User, group_id: string): Promise<Gro
 	return groups.find(group => group.type === "wg");
 }
 
-/**
- * Get group rolled up permissions.
- * @param user - The user executing the get
- * @param group_id - The group for which permissions are sought
- * @returns The rolled-up permissions for the group, i.e., the highest permission for each scope from the group or its parents
- */
-export async function getGroupRollUpPermissions(user: User, group_id: string): Promise<Record<string, number>> {
-	const groups = await getGroupHierarchy(user, group_id);
-	const permissions = {};
-	groups.forEach(group => {
-		Object.entries(group.permissions).forEach(([scope, access]) => {
-			if (!permissions[scope] || permissions[scope] < access)
-				permissions[scope] = access;
-		})
-	});
-	return permissions;
-}
-
 /* Permission sets */
-const permWgOfficer: Record<string, number> = {
+const rootPermissions: Record<string, number> = {
 	users: AccessLevel.admin,
 	members: AccessLevel.admin,
 	meetings: AccessLevel.admin,
@@ -196,7 +272,18 @@ const permWgOfficer: Record<string, number> = {
 	comments: AccessLevel.admin
 };
 
-const permTgOfficer: Record<string, number> = {
+const wgOfficerPermissions: Record<string, number> = {
+	users: AccessLevel.admin,
+	members: AccessLevel.admin,
+	meetings: AccessLevel.admin,
+	groups: AccessLevel.admin,
+	ballots: AccessLevel.admin,
+	voters: AccessLevel.admin,
+	results: AccessLevel.admin,
+	comments: AccessLevel.admin
+};
+
+const tgOfficerPermissions: Record<string, number> = {
 	users: AccessLevel.ro,
 	groups: AccessLevel.ro,
 	ballots: AccessLevel.ro,
@@ -205,7 +292,7 @@ const permTgOfficer: Record<string, number> = {
 	comments: AccessLevel.rw
 };
 
-const permMember: Record<string, number> = {
+const memberPermissions: Record<string, number> = {
 	users: AccessLevel.ro,
 	groups: AccessLevel.ro,
 	ballots: AccessLevel.ro,
@@ -213,11 +300,13 @@ const permMember: Record<string, number> = {
 };
 
 function getGroupUserPermissions(user: User, group: Group) {
-	if (["wg", "c"].includes(group.type!) && group.officerSAPINs.includes(user.SAPIN))
-		return permWgOfficer;
+	if (group.type === 'r' && group.officerSAPINs.includes(user.SAPIN))
+		return rootPermissions;
+	else if (["wg", "c"].includes(group.type!) && group.officerSAPINs.includes(user.SAPIN))
+		return wgOfficerPermissions;
 	else if (["tg", "sg", "sc", "ah"].includes(group.type!) && group.officerSAPINs.includes(user.SAPIN))
-		return permTgOfficer;
-	return permMember;
+		return tgOfficerPermissions;
+	return memberPermissions;
 }
 
 function groupSetSql(group: Partial<Group>) {
@@ -250,7 +339,6 @@ async function addGroup(user: User, {id, ...rest}: Group): Promise<Group> {
 		id = uuid();
 
 	let sql = 'INSERT INTO organization SET ' + groupSetSql({id, ...rest});
-	console.log(sql)
 	await db.query(sql);
 
 	const groups = await getGroups(user, {id});
@@ -301,6 +389,9 @@ export function validateGroupUpdates(updates: any): asserts updates is Update<Gr
 }
 
 export function updateGroups(user: User, updates: Update<Group>[]) {
+	if (updates.find(u => u.id === "00000000-0000-0000-0000-000000000000")) {
+		throw new ForbiddenError("Can't update root entry");
+	}
 	return Promise.all(updates.map(u => updateGroup(user, u)));
 }
 
@@ -310,6 +401,33 @@ export function validateGroupIds(ids: any): asserts ids is string[] {
 }
 
 export async function removeGroups(user: User, ids: string[]): Promise<number> {
+	if (ids.includes("00000000-0000-0000-0000-000000000000")) {
+		throw new ForbiddenError("Can't delete root entry");
+	}
+
+	// Can't delete if the group has subgroups that are not also being deleted
+	let undeletedChildIds: string[] = [];
+	for (const id of ids) {
+		const childIds = await getGroupAndSubgroupIds(id);
+		for (const childId of childIds) {
+			if (!ids.includes(childId))
+				undeletedChildIds.push(childId);
+		}
+	}
+	if (undeletedChildIds.length > 0) {
+		throw new TypeError("One or more of the groups has a subgroup that would be orphaned");
+	}
+
+	// Can't delete if the group is referenced
+	const ballots = await getBallots({groupId: ids});
+	if (ballots.length) {
+		throw new TypeError("One or more of the groups has a ballot associated with it. These need to be deleted first.")
+	}
+	const seesions = await getSessions({groupId: ids});
+	if (seesions.length > 0) {
+		throw new TypeError("One or more of the groups has a session associated with it. These need to be deleted first.")
+	}
+
 	const result1 = await db.query('DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)', [ids]) as ResultSetHeader;
 	const result2 = await db.query('DELETE FROM organization WHERE BIN_TO_UUID(id) IN (?)', [ids]) as ResultSetHeader;
 	return result1.affectedRows + result2.affectedRows;

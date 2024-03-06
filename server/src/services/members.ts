@@ -132,11 +132,9 @@ function selectMembersSql({ sapins }: { sapins?: number[] }) {
 			"ContactInfo, " +
 			"ContactEmails, " +
 			"StatusChangeHistory, " +
-			"COALESCE(ObsoleteSAPINs, JSON_ARRAY()) AS ObsoleteSAPINs, " +
-			"COALESCE(Permissions, JSON_ARRAY()) AS Permissions " +
+			"COALESCE(ObsoleteSAPINs, JSON_ARRAY()) AS ObsoleteSAPINs " +
 		"FROM members m " +
-			'LEFT JOIN (SELECT ReplacedBySAPIN AS SAPIN, JSON_ARRAYAGG(SAPIN) AS ObsoleteSAPINs FROM members WHERE Status="Obsolete" GROUP BY ReplacedBySAPIN) AS o ON m.SAPIN=o.SAPIN ' +
-			"LEFT JOIN (SELECT SAPIN, JSON_ARRAYAGG(scope) AS Permissions FROM permissions GROUP BY SAPIN) AS p ON m.SAPIN=p.SAPIN";
+			'LEFT JOIN (SELECT ReplacedBySAPIN AS SAPIN, JSON_ARRAYAGG(SAPIN) AS ObsoleteSAPINs FROM members WHERE Status="Obsolete" GROUP BY ReplacedBySAPIN) AS o ON m.SAPIN=o.SAPIN ';
 
 	let wheres: string[] = [];
 	if (sapins) wheres.push(db.format("m.SAPIN IN (?)", [sapins]));
