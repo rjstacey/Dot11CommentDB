@@ -21,6 +21,7 @@ import {
 	deleteComments,
 	setStartCommentId,
 	uploadUserComments,
+	uploadPublicReviewComments
 } from "../store/comments";
 import { Ballot } from "../store/ballots";
 
@@ -75,7 +76,7 @@ function ChangeStartCID({
 	);
 }
 
-function AddComments({
+function AddMemberComments({
 	ballot,
 	close = () => {},
 }: {
@@ -111,7 +112,7 @@ function AddComments({
 	return (
 		<Form
 			style={{ minWidth: 300 }}
-			title="Add additional comments"
+			title="Add additional member comments"
 			submit={submit}
 			errorText={errorText}
 			cancel={close}
@@ -125,6 +126,55 @@ function AddComments({
 					/>
 				</Field>
 			</Row>
+			<Row>
+				<input
+					type="file"
+					accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+					onChange={handleFileChange}
+				/>
+			</Row>
+		</Form>
+	);
+}
+
+function AddPublicReviewComments({
+	ballot,
+	close = () => {},
+}: {
+	ballot: Ballot;
+	close?: () => void;
+}) {
+	const dispatch = useAppDispatch();
+	const [busy, setBusy] = React.useState(false);
+	const [file, setFile] = React.useState<File | null>(null);
+
+	const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = (
+		e
+	) => {
+		const { files } = e.target;
+		setFile(files && files.length > 0 ? files[0] : null);
+	};
+
+	const submit = async () => {
+		if (errorText) return;
+		setBusy(true);
+		await dispatch(uploadPublicReviewComments(ballot.id, file!));
+		setBusy(false);
+		close();
+	};
+
+	let errorText = "";
+	if (!file) errorText = "Select file";
+
+	return (
+		<Form
+			style={{ minWidth: 300 }}
+			title="Add public review comments"
+			submit={submit}
+			errorText={errorText}
+			cancel={close}
+			busy={busy}
+		>
 			<Row>
 				<input
 					type="file"
@@ -213,12 +263,20 @@ const CommentsActions = ({
 						Upload comments
 					</Button>
 					<ActionButtonModal
-						label="Add Comments"
+						label="Add member comments"
 						disabled={
 							ballot.Comments && ballot.Comments.Count === 0
 						}
 					>
-						<AddComments ballot={ballot} />
+						<AddMemberComments ballot={ballot} />
+					</ActionButtonModal>
+					<ActionButtonModal
+						label="Add public review comments"
+						disabled={
+							ballot.Comments && ballot.Comments.Count === 0
+						}
+					>
+						<AddPublicReviewComments ballot={ballot} />
 					</ActionButtonModal>
 					<input
 						ref={fileRef}

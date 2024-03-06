@@ -604,6 +604,30 @@ export const uploadUserComments =
 			dispatch(localAddMany(comments));
 	};
 
+export const uploadPublicReviewComments =
+	(ballot_id: number, file: File): AppThunk =>
+	async (dispatch, getState) => {
+		const url = `${baseCommentsUrl}/${ballot_id}/publicReviewUpload`;
+		const params = {
+			CommentsFile: file,
+		};
+		let response: any;
+		try {
+			response = await fetcher.postMultipart(url, params);
+			if (!validUploadResponse(response))
+				throw new TypeError("Unexpected response to POST " + url);
+		} catch (error) {
+			dispatch(
+				setError(`Unable to upload comments for ${ballot_id}`, error)
+			);
+			return;
+		}
+		const { comments, ballot } = response;
+		dispatch(updateBallotsLocal([ballot]));
+		if (ballot_id === selectCommentsBallot_id(getState()))
+			dispatch(localAddMany(comments));
+	};
+
 export const setStartCommentId =
 	(ballot_id: number, startCommentId: number): AppThunk =>
 	async (dispatch, getState) => {
