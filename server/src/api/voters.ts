@@ -10,7 +10,7 @@ import {
 	addVoters,
 	updateVoters,
 	deleteVoters,
-	votersFromSpreadsheet,
+	uploadVoters,
 	votersFromMembersSnapshot,
 	exportVoters,
 } from "../services/voters";
@@ -59,7 +59,7 @@ router
 	.post("/upload", upload.single("File"), (req, res, next) => {
 		const ballot_id = req.ballot!.id;
 		if (!req.file) return next(new TypeError("Missing file"));
-		votersFromSpreadsheet(ballot_id, req.file)
+		uploadVoters(ballot_id, req.file)
 			.then((data) => res.json(data))
 			.catch(next);
 	})

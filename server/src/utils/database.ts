@@ -5,6 +5,8 @@ import {
 	Pool,
 	PoolOptions,
 	QueryOptions,
+	RowDataPacket,
+	ResultSetHeader,
 } from "mysql2";
 
 let ppool: ReturnType<Pool["promise"]>;
@@ -52,8 +54,8 @@ type QueryArgs =
 	| [string, any?]
 	| [QueryOptions | { dateStrings?: boolean }, any?];
 
-const query = (...args: QueryArgs) =>
-	ppool.query(...(args as [any])).then(([rows, fields]) => rows);
+const query = <T extends ResultSetHeader | ResultSetHeader[] | RowDataPacket[] | RowDataPacket[][]>(...args: QueryArgs) =>
+	ppool.query<T>(...(args as [any])).then(([rows, fields]) => rows);
 const query2 = (...args: QueryArgs) => ppool.query(...(args as [any]));
 
 export { init, query, query2, escape, format };

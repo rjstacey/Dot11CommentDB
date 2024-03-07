@@ -1,5 +1,5 @@
 import db from "../utils/database";
-import { type ResultSetHeader } from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { DateTime } from "luxon";
 import { isPlainObject, NotFoundError } from "../utils";
 
@@ -122,27 +122,24 @@ export async function getBallotWithNewResultsSummary(
 	return ballot;
 }
 
-/** Get ballot series
+/** 
+ * Get ballot series
  * Walk back through the previous ballots until the initial ballot
  * @param id last ballot in series
  * @returns an array of ballots (starting with the initial ballot) that is the ballot series
  */
-export async function getBallotSeries(id: number) {
-	const sql = db.format(
-		`
+export function getBallotSeries(id: number): Promise<Ballot[]> {
+	const sql = `
 		WITH RECURSIVE cte AS (
-			${getBallotsSQL} WHERE b.id = ?
+			${getBallotsSQL} WHERE b.id = ${db.escape(id)}
 			UNION ALL
 			${getBallotsSQL}
 			INNER JOIN cte ON b.id = cte.prev_id
 		)
 		SELECT * FROM cte ORDER BY Start;
-	`,
-		[id]
-	);
+	`;
 
-	const ballots = (await db.query({ sql, dateStrings: true })) as Ballot[];
-	return ballots;
+	return db.query<(RowDataPacket & Ballot)[]>({ sql, dateStrings: true });
 }
 
 type BallotSeriesRange = {
@@ -430,15 +427,14 @@ export async function deleteBallots(
 
 	if (ids.length === 0) return 0;
 
+	const e_ids = db.escape(ids);
 	const sql =
 		"START TRANSACTION;" +
-		db.format(
-			"DELETE r FROM comments c JOIN resolutions r ON c.id=r.comment_id WHERE c.ballot_id IN (?);",
-			[ids]
-		) +
-		db.format("DELETE FROM comments WHERE ballot_id IN (?);", [ids]) +
-		db.format("DELETE FROM results WHERE ballot_id IN (?);", [ids]) +
-		db.format("DELETE FROM ballots WHERE id IN (?);", [ids]) +
+		`DELETE rl FROM comments c JOIN resolutionsLog rl ON c.id=rl.comment_id WHER c.ballot_id IN (${e_ids});` +
+		`DELETE r FROM comments c JOIN resolutions r ON c.id=r.comment_id WHERE c.ballot_id IN (${e_ids});` +
+		`DELETE FROM comments WHERE ballot_id IN (${e_ids});` +
+		`DELETE FROM results WHERE ballot_id IN (${e_ids});` +
+		`DELETE FROM ballots WHERE id IN (${e_ids});` +
 		"COMMIT;";
 
 	await db.query(sql);

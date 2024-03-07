@@ -1,12 +1,13 @@
 import { v4 as uuid, validate as validateUUID } from "uuid";
 import {
-	csvParse,
 	csvStringify,
 	isPlainObject,
-	validateSpreadsheetHeader,
+	parseSpreadsheet,
+	BasicFile,
 } from "../utils";
+
 import type { Response } from "express";
-import type { ResultSetHeader } from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import db from "../utils/database";
 
@@ -44,14 +45,10 @@ const membersHeader = [
 	"Status",
 ] as const;
 
-async function parseVoters(buffer: Buffer) {
-	const p = await csvParse(buffer, { columns: false });
-	if (p.length === 0) throw TypeError("Got empty .csv file");
+async function parseVoters(file: BasicFile) {
+	const rows = await parseSpreadsheet(file, membersHeader);
 
-	// Row 0 is the header
-	validateSpreadsheetHeader(p.shift()!, membersHeader);
-
-	return p.map((c) => {
+	return rows.map((c) => {
 		const voter: VoterFromSpreadsheet = {
 			SAPIN: Number(c[0]),
 			//LastName: c[1],
@@ -64,13 +61,15 @@ async function parseVoters(buffer: Buffer) {
 	});
 }
 
-type GetVotersConstraints = {
+type VotersQueryConstraints = {
 	id?: string | string[];
 	ballot_id?: number | number[];
 	sapin?: number | number[];
 };
 
-export async function getVoters(constraints?: GetVotersConstraints) {
+export function getVoters(
+	constraints?: VotersQueryConstraints
+): Promise<Voter[]> {
 	// prettier-ignore
 	let sql =
 		'SELECT ' +
@@ -87,23 +86,22 @@ export async function getVoters(constraints?: GetVotersConstraints) {
 				'FROM members m1 LEFT JOIN members m2 ON m1.SAPIN=m2.ReplacedBySAPIN AND m2.Status=\'Obsolete\') AS o ON v.SAPIN=o.OldSAPIN';
 
 	if (constraints) {
-		let conditions: string[] = [];
+		let wheres: string[] = [];
 		if (constraints.ballot_id)
-			conditions.push(
-				db.format("ballot_id IN (?)", [constraints.ballot_id])
-			);
+			wheres.push(db.format("ballot_id IN (?)", [constraints.ballot_id]));
 		if (constraints.sapin)
-			conditions.push(db.format("v.SAPIN IN (?)", [constraints.sapin]));
+			wheres.push(db.format("v.SAPIN IN (?)", [constraints.sapin]));
 		if (constraints.id)
-			conditions.push(
+			wheres.push(
 				db.format("BIN_TO_UUID(v.id) IN (?)", [constraints.id])
 			);
-		if (conditions.length) sql += " WHERE " + conditions.join(" AND ");
+		if (wheres.length) sql += " WHERE " + wheres.join(" AND ");
 	}
 
 	sql += " ORDER BY ballot_id, SAPIN;";
 
-	return (await db.query(sql)) as Voter[];
+	//return (await db.query<(Voter)[]>(sql)) as Voter[];
+	return db.query<(RowDataPacket & Voter)[]>(sql);
 }
 
 type VotersForBallots = {
@@ -116,9 +114,12 @@ type VotersForBallots = {
 	}[];
 };
 
-export async function getVotersForBallots(ballot_ids: number[]) {
+export function getVotersForBallots(
+	ballot_ids: number[]
+): Promise<VotersForBallots[]> {
+	const e_ballot_ids = db.escape(ballot_ids);
 	// prettier-ignore
-	let sql =
+	const sql =
 		'SELECT ' +
 			'm.SAPIN, v.byBallots ' +
 		'FROM ' +
@@ -132,19 +133,26 @@ export async function getVotersForBallots(ballot_ids: number[]) {
 				')) as byBallots ' +
 			'FROM wgVoters voters ' + 
 				'LEFT JOIN members o ON o.Status = "Obsolete" AND o.SAPIN = voters.SAPIN ' +
-			'WHERE voters.ballot_id IN (?) ' +
+			`WHERE voters.ballot_id IN (${e_ballot_ids}) ` +
 			'GROUP BY SAPIN) as v ' +
 		'LEFT JOIN members m ON m.SAPIN = v.SAPIN ';
 
-	return db.query(sql, [ballot_ids]) as Promise<VotersForBallots[]>;
+	return db.query<(RowDataPacket & VotersForBallots)[]>(sql);
 }
 
-async function getVoterBallotUpdates(ballot_id: number | number[]) {
-	const ballotUpdates = (await db.query(
+type BallotVoters = {
+	id: number;
+	Voters: number;
+};
+
+async function getVoterBallotUpdates(
+	ballot_id: number | number[]
+): Promise<BallotVoters[]> {
+	const sql = db.format(
 		"SELECT ballot_id as id, COUNT(*) as Voters FROM wgVoters WHERE ballot_id IN (?) GROUP BY ballot_id",
 		[ballot_id]
-	)) as { Count: number }[];
-	return ballotUpdates;
+	);
+	return db.query<(RowDataPacket & BallotVoters)[]>(sql);
 }
 
 function votersEntry(v: Partial<Voter>) {
@@ -209,12 +217,11 @@ export async function updateVoters(updates: any) {
 		throw new TypeError(
 			"Bad or missing updates array; expect array with shape {id: number, changes: object}"
 		);
-	let results = updates.map(
-		({ id, changes }) =>
-			db.query("UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)", [
-				changes,
-				id,
-			]) as Promise<ResultSetHeader>
+	let results = updates.map(({ id, changes }) =>
+		db.query<ResultSetHeader>(
+			"UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)",
+			[changes, id]
+		)
 	);
 	await Promise.all(results);
 	const voters = await getVoters({ id: updates.map((u) => u.id) });
@@ -229,11 +236,10 @@ export async function deleteVoters(ids: any) {
 	if (!validVoterIds(ids))
 		throw new TypeError("Bad voter identifier array; expected string[]");
 
-	const sql =
-		"DELETE FROM wgVoters WHERE id IN (" +
-		ids.map((id) => `UUID_TO_BIN('${id}')`).join(",") +
-		")";
-	const result = (await db.query(sql)) as ResultSetHeader;
+	const sql = db.format("DELETE FROM wgVoters WHERE BIN_TO_UUID(id) IN (?)", [
+		ids,
+	]);
+	const result = await db.query<ResultSetHeader>(sql);
 	return result.affectedRows;
 }
 
@@ -254,16 +260,17 @@ async function insertVoters(ballot_id: number, votersIn: Partial<Voter>[]) {
 				.join(", ") +
 			";";
 	}
-	(await db.query(sql)) as ResultSetHeader;
+	await db.query(sql);
 	const voters = await getVoters({ ballot_id });
 	const ballots = await getVoterBallotUpdates(ballot_id);
 	return { voters, ballots };
 }
 
-export async function votersFromSpreadsheet(ballot_id: number, file: any) {
-	if (file.originalname.search(/\.csv$/i) === -1)
-		throw new TypeError("Expected a .csv file");
-	let voters = await parseVoters(file.buffer);
+export async function uploadVoters(
+	ballot_id: number,
+	file: Express.Multer.File
+) {
+	const voters = await parseVoters(file);
 	return insertVoters(ballot_id, voters);
 }
 
@@ -283,7 +290,6 @@ export async function exportVoters(ballot_id: number, res: Response) {
 	const arr = voters.map((v) => [v.SAPIN, v.Name, v.Email]);
 	arr.unshift(["SA PIN", "Name", "Email"]);
 	const csv = await csvStringify(arr, {});
-	//res.attachment(votingPoolId + '_voters.csv');
 	res.attachment("voters.csv");
 	res.status(200).send(csv);
 }

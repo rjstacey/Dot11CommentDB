@@ -2,7 +2,7 @@ import { DateTime } from "luxon";
 
 import db from "../utils/database";
 import type { ResultSetHeader } from "mysql2";
-import { } from "multer";
+import {} from "multer";
 
 import {
 	AuthError,
@@ -10,19 +10,15 @@ import {
 	NotFoundError,
 	isPlainObject,
 } from "../utils";
-import {
-	parseEpollCommentsCsv,
-	parseEpollUserCommentsCsv,
-	parseEpollUserCommentsExcel,
-} from "./epoll";
+import { parseEpollComments, parseEpollUserComments } from "./epoll";
 import { parseMyProjectComments } from "./myProjectSpreadsheets";
+import { parsePublicReviewComments } from "./publicReviewSpreadsheets";
 import { BallotType, Ballot, getBallotWithNewResultsSummary } from "./ballots";
 import { type Resolution } from "./resolutions";
 import { type User } from "./users";
 import { getMember } from "./members";
 import { AccessLevel } from "../auth/access";
 import { getGroups } from "./groups";
-import { parsePublicReviewComments } from "./publicReviewSpreadsheets";
 
 export type Comment = {
 	id: bigint;
@@ -190,7 +186,7 @@ export function selectComments(
 	}
 	sql += " ORDER BY CommentID, ResolutionID";
 
-	return db.query({sql, dateStrings: true}) as Promise<CommentResolution[]>;
+	return db.query({ sql, dateStrings: true }) as Promise<CommentResolution[]>;
 }
 
 /**
@@ -455,7 +451,8 @@ export async function importEpollComments(
 	if (response.headers["content-type"] !== "text/csv")
 		throw new AuthError("Not logged in");
 
-	const comments = await parseEpollCommentsCsv(response.data, startCommentId);
+	const file = {originalname: "poll-comments.csv", buffer: response.data};
+	const comments = await parseEpollComments(startCommentId, file);
 	//console.log(comments[0])
 
 	return replaceComments(user, ballot.id, comments);
@@ -474,34 +471,24 @@ export async function uploadComments(
 	file: any
 ) {
 	let comments: Partial<Comment>[];
-	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1;
 	if (ballot.Type === BallotType.SA) {
-		comments = await parseMyProjectComments(
-			startCommentId,
-			file.buffer,
-			isExcel
-		);
+		comments = await parseMyProjectComments(startCommentId, file);
 	} else {
-		if (isExcel) throw new TypeError("Expecting .csv file");
-		try {
-			comments = await parseEpollCommentsCsv(file.buffer, startCommentId);
-		} catch (error: any) {
-			throw new TypeError("Parse error: " + error.toString());
-		}
+		comments = await parseEpollComments(startCommentId, file);
 	}
 	return replaceComments(user, ballot.id, comments);
 }
 
 type MaxIndexes = {
-	MaxCommentId: number,
-	MaxIndex: number
+	MaxCommentId: number;
+	MaxIndex: number;
 };
 
 async function getHighestIndexes(ballot_id: number) {
-	const rows = await db.query(
+	const rows = (await db.query(
 		"SELECT MAX(CommentID) as MaxCommentId, MAX(C_Index) as MaxIndex from comments WHERE ballot_id=?",
 		ballot_id
-	) as MaxIndexes[];
+	)) as MaxIndexes[];
 	if (rows.length !== 1)
 		throw new TypeError(`Ballot id=${ballot_id} does not exist`);
 	return rows[0];
@@ -521,35 +508,20 @@ export async function uploadUserComments(
 ) {
 	const commenter = await getMember(sapin);
 	if (!commenter) {
-		throw new TypeError(`Member SAPIN=${sapin} not found`);
+		throw new NotFoundError(`Member SAPIN=${sapin} not found`);
 	}
 
-	let { MaxCommentId, MaxIndex } = await getHighestIndexes(ballot.id);
-	let startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;
-	let startIndex = MaxIndex ? MaxIndex + 1 : 1;
-	console.log(startCommentId, startIndex);
+	const { MaxCommentId, MaxIndex } = await getHighestIndexes(ballot.id);
+	const startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;
+	const startIndex = MaxIndex ? MaxIndex + 1 : 1;
 
-	let comments: Partial<Comment>[];
-	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1;
-	if (isExcel) {
-		comments = await parseEpollUserCommentsExcel(
-			commenter,
-			startCommentId,
-			startIndex,
-			file.buffer
-		);
-	} else {
-		try {
-			comments = await parseEpollUserCommentsCsv(
-				commenter,
-				startCommentId,
-				startIndex,
-				file.buffer
-			);
-		} catch (error: any) {
-			throw new TypeError("Parse error: " + error.toString());
-		}
-	}
+	let comments: Partial<Comment>[] = await parseEpollUserComments(
+		commenter,
+		startCommentId,
+		startIndex,
+		file
+	);
+
 	return insertComments(user, ballot.id, comments);
 }
 
@@ -561,15 +533,12 @@ export async function uploadPublicReviewComments(
 	ballot: Ballot,
 	file: Express.Multer.File
 ) {
-	let { MaxCommentId } = await getHighestIndexes(ballot.id);
-	let startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;
+	const { MaxCommentId } = await getHighestIndexes(ballot.id);
+	const startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;
 
-	let comments: Partial<Comment>[];
-	const isExcel = file.originalname.search(/\.xlsx$/i) !== -1;
-	comments = await parsePublicReviewComments(
+	const comments: Partial<Comment>[] = await parsePublicReviewComments(
 		startCommentId,
-		file.buffer,
-		isExcel
+		file
 	);
 	return insertComments(user, ballot.id, comments);
 }

@@ -2,7 +2,7 @@
  * Handle MyProject spreadsheet files
  */
 import ExcelJS from "exceljs";
-import { csvParse, validateSpreadsheetHeader } from "../utils";
+import { validateSpreadsheetHeader, parseSpreadsheet } from "../utils";
 import { fromHtml } from "./commentsSpreadsheet";
 import type { Response } from "express";
 import { Comment, CommentResolution, getComments } from "./comments";
@@ -69,33 +69,12 @@ function parseMyProjectComment(c: any[]) {
 
 export async function parseMyProjectComments(
 	startCommentId: number,
-	buffer: Buffer,
-	isExcel: boolean
+	file: Express.Multer.File
 ) {
-	let p: any[][] = []; // an array of arrays
-	if (isExcel) {
-		const workbook = new ExcelJS.Workbook();
-		try {
-			await workbook.xlsx.load(buffer);
-		} catch (error) {
-			throw new Error("Invalid workbook: " + error);
-		}
-
-		workbook.getWorksheet(1)?.eachRow((row) => {
-			if (Array.isArray(row.values)) p.push(row.values.slice(1, 26));
-		});
-	} else {
-		p = await csvParse(buffer, { columns: false });
-	}
-	//console.log(p)
-
-	if (p.length === 0) throw new Error("Got an empty file");
-
-	// Check the column names to make sure we have the right file
-	validateSpreadsheetHeader(p.shift()!, myProjectCommentsHeader);
+	const rows = await parseSpreadsheet(file, myProjectCommentsHeader, 0, 26)
 
 	// Parse each row and assign CommentID
-	return p.map((c, i) => {
+	return rows.map((c, i) => {
 		const comment: Partial<Comment> = {
 			CommentID: startCommentId + i,
 			...parseMyProjectComment(c),
@@ -183,30 +162,10 @@ const myProjectResultsHeader = [
 	"Comments",
 ] as const;
 
-export async function parseMyProjectResults(buffer: Buffer, isExcel: boolean) {
-	let p: any[][] = []; // an array of arrays
-	if (isExcel) {
-		const workbook = new ExcelJS.Workbook();
-		try {
-			await workbook.xlsx.load(buffer);
-		} catch (err) {
-			throw new TypeError("Invalid workbook: " + err);
-		}
+export async function parseMyProjectResults(file: Express.Multer.File) {
+	const rows = await parseSpreadsheet(file, myProjectResultsHeader, 1)
 
-		workbook.getWorksheet(1)?.eachRow((row) => {
-			if (Array.isArray(row.values))
-				p.push(row.values.slice(1, myProjectResultsHeader.length + 1));
-		});
-	} else {
-		p = await csvParse(buffer, { columns: false });
-	}
-
-	if (p.length < 2) throw new TypeError("File has less than 2 rows");
-
-	p.shift(); // PAR #
-	validateSpreadsheetHeader(p.shift()!, myProjectResultsHeader);
-
-	const results = p.map((c) => {
+	const results = rows.map((c) => {
 		let result: Partial<Result> = {
 			Name: c[0],
 			Email: c[1],

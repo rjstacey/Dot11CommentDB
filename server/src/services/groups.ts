@@ -2,7 +2,7 @@
 import { v4 as uuid } from 'uuid';
 
 import db from '../utils/database';
-import type { ResultSetHeader } from 'mysql2';
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { ForbiddenError, NotFoundError, isPlainObject } from '../utils';
 import { User } from './users';
 import { AccessLevel } from '../auth/access';
@@ -84,7 +84,7 @@ export async function getGroupAndSubgroupIds(id: string) {
 				INNER JOIN cte on cte.id=org.parent_id
 		)
 		SELECT BIN_TO_UUID(id) as id FROM cte`;
-	return (await db.query(sql) as {id: string}[]).map(g => g.id);
+	return (await db.query<(RowDataPacket & {id: string})[]>(sql)).map(g => g.id);
 }
 
 /**
@@ -104,7 +104,8 @@ export async function getGroupAndSubgroupIdsByName(groupName: string) {
 				INNER JOIN cte on cte.id=org.parent_id
 		)
 		SELECT BIN_TO_UUID(id) as id FROM cte`;
-	return (await db.query(sql) as {id: string}[]).map(g => g.id);
+
+	return (await db.query<(RowDataPacket & {id: string})[]>(sql)).map(g => g.id);
 }
 
 /**
@@ -112,7 +113,7 @@ export async function getGroupAndSubgroupIdsByName(groupName: string) {
  * @param ids A list of group indentifiers
  * @returns An array of group objects (without user permissions)
  */
-function getGroupsAndParentGroups(ids: string[]) {
+function getGroupsAndParentGroups(ids: string[]): Promise<Group[]> {
 
 	const sql = `
 		WITH RECURSIVE cte AS (
@@ -126,7 +127,7 @@ function getGroupsAndParentGroups(ids: string[]) {
 		)
 		${selectGroupsSql} WHERE org.id IN (SELECT id FROM cte)`;
 
-	return db.query(sql) as Promise<Group[]>;
+	return db.query<(RowDataPacket & Group)[]>(sql);
 }
 
 
@@ -193,7 +194,7 @@ export async function getGroups(user: User, constraints?: OrganizationQueryConst
 			sql += ' WHERE ' + wheres.join(' AND ');
 	}
 
-	let groups = await db.query(sql) as Group[];
+	let groups: Group[] = await db.query<(RowDataPacket & Group)[]>(sql);
 
 	// Normalize
 	const groupEntities: Record<string, Group> = {};
@@ -230,22 +231,24 @@ export async function getGroups(user: User, constraints?: OrganizationQueryConst
  */
 export async function getGroupHierarchy(user: User, id: string): Promise<Group[]> {
 
-	const groups = await getGroupsAndParentGroups([id]);
-	// The order is import here; make sure the first entry is the identified group
-	const group = groups[0];
-	if (!group)
+	let groups = await getGroupsAndParentGroups([id]);
+	if (groups.length === 0)
 		throw new NotFoundError(`Group id=${id} not found`);
-	if (group.id !== id)
-		throw new Error(`Unexpected result; expect group with id=${id} to be first entry`);
 
 	// Normalize
 	const groupEntities: Record<string, Group> = {};
 	for (const group of groups)
 		groupEntities[group.id] = group;
 
-	// Roll up group user permissions
-	for (const group of groups)
+	// The order is import here; make sure the first entry is the identified group
+	groups = [];
+	let group: Group | undefined = groupEntities[id];
+	do {
+		// Roll up group user permissions
 		group.permissions = rollupGroupUserPermissions(user, group, groupEntities);
+		groups.push(group);
+		group = group.parent_id? groupEntities[group.parent_id]: undefined;
+	} while (group);
 
 	return groups;
 }
@@ -428,7 +431,7 @@ export async function removeGroups(user: User, ids: string[]): Promise<number> {
 		throw new TypeError("One or more of the groups has a session associated with it. These need to be deleted first.")
 	}
 
-	const result1 = await db.query('DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)', [ids]) as ResultSetHeader;
-	const result2 = await db.query('DELETE FROM organization WHERE BIN_TO_UUID(id) IN (?)', [ids]) as ResultSetHeader;
+	const result1 = await db.query<ResultSetHeader>('DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)', [ids]);
+	const result2 = await db.query<ResultSetHeader>('DELETE FROM organization WHERE BIN_TO_UUID(id) IN (?)', [ids]);
 	return result1.affectedRows + result2.affectedRows;
 }

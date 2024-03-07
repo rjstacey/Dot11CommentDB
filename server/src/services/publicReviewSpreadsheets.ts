@@ -1,8 +1,7 @@
 /*
  * Handle public review comment spreadsheet
  */
-import ExcelJS from "exceljs";
-import { csvParse, validateSpreadsheetHeader } from "../utils";
+import { parseSpreadsheet } from "../utils";
 import { Comment } from "./comments";
 
 const publicReviewCommentsHeader = [
@@ -22,7 +21,7 @@ const publicReviewCommentsHeader = [
 	"Update?",
 ] as const;
 
-function parsePublicReviewComment(c: any[]) {
+function parsePublicReviewComment(c: string[]) {
 	let C_Page = c[5] || "";
 	let C_Clause = c[6] || "";
 	let C_Line = c[7] || "";
@@ -30,7 +29,7 @@ function parsePublicReviewComment(c: any[]) {
 	if (isNaN(Page)) Page = 0;
 
 	const comment: Partial<Comment> = {
-		C_Index: c[0], // Comment #
+		C_Index: Number(c[0]), // Comment #
 		CommenterSAPIN: null,
 		CommenterName: c[1], // Name
 		CommenterEmail: c[2], // Email
@@ -50,35 +49,12 @@ function parsePublicReviewComment(c: any[]) {
 
 export async function parsePublicReviewComments(
 	startCommentId: number,
-	buffer: Buffer,
-	isExcel: boolean
+	file: Express.Multer.File,
 ) {
-	let p: any[][] = []; // an array of arrays
-	if (isExcel) {
-		const workbook = new ExcelJS.Workbook();
-		try {
-			await workbook.xlsx.load(buffer);
-		} catch (error) {
-			throw new TypeError("Invalid workbook: " + error);
-		}
-
-		workbook.getWorksheet(1)?.eachRow((row) => {
-			if (row.number > 3 && Array.isArray(row.values)) {
-				p.push(row.values.slice(1, publicReviewCommentsHeader.length+1));
-			}
-		});
-	} else {
-		p = await csvParse(buffer, { columns: false });
-	}
-	//console.log(p)
-
-	if (p.length === 0) throw new TypeError("Got an empty file");
-
-	// Check the column names to make sure we have the right file
-	validateSpreadsheetHeader(p.shift()!, publicReviewCommentsHeader);
+	const rows = await parseSpreadsheet(file, publicReviewCommentsHeader, 3);
 
 	// Parse each row and assign CommentID
-	return p.map((c, i) => {
+	return rows.map((c, i) => {
 		const comment: Partial<Comment> = {
 			CommentID: startCommentId + i,
 			...parsePublicReviewComment(c),

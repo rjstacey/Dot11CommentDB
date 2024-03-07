@@ -173,10 +173,10 @@ export function validOAuthAccountChanges(
  * @returns OAuth account object as added
  */
 export async function addOAuthAccount(account: OAuthAccountCreate) {
-	const { insertId } = (await db.query(
+	const { insertId } = (await db.query<ResultSetHeader>(
 		"INSERT INTO oauth_accounts (??) VALUES (?);",
 		[Object.keys(account), Object.values(account)]
-	)) as ResultSetHeader;
+	));
 	return insertId;
 }
 
@@ -209,9 +209,9 @@ export async function updateOAuthAccount(
  */
 export async function deleteOAuthAccount(groupId: string, id: number) {
 	if (!id) throw new TypeError("Must provide id with delete");
-	const { affectedRows } = (await db.query(
+	const { affectedRows } = (await db.query<ResultSetHeader>(
 		"DELETE FROM oauth_accounts WHERE id=? AND groupId=UUID_TO_BIN(?)",
 		[id, groupId]
-	)) as ResultSetHeader;
+	));
 	return affectedRows;
 }

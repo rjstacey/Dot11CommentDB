@@ -2,7 +2,7 @@ import { v4 as uuid } from 'uuid';
 import { isPlainObject } from '../utils';
 
 import db from '../utils/database';
-import type { ResultSetHeader } from 'mysql2';
+import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import type { User } from './users';
 import { Group, getGroupAndSubgroupIds } from './groups';
 
@@ -26,7 +26,7 @@ interface OfficerQueryConstraints {
 	position?: string | string[];
 };
 
-export function getOfficers(constraints?: OfficerQueryConstraints) {
+export function getOfficers(constraints?: OfficerQueryConstraints): Promise<Officer[]> {
 	// prettier-ignore
 	let sql =
 		'SELECT ' + 
@@ -59,7 +59,7 @@ export function getOfficers(constraints?: OfficerQueryConstraints) {
 		).join(' AND ');
 	}
 
-	return db.query(sql) as Promise<Officer[]>;
+	return db.query<(RowDataPacket & Officer)[]>(sql);
 }
 
 function validateOfficer(officer: any): asserts officer is Officer {
@@ -182,9 +182,9 @@ export function validateOfficerIds(ids: any): asserts ids is string[] {
  * @returns number of deleted officers
  */
 export async function removeOfficers(user: User, workingGroup: Group, ids: string[]): Promise<number> {
-	const result = await db.query(
+	const result = await db.query<ResultSetHeader>(
 		'DELETE officers FROM officers LEFT JOIN organization org ON officers.group_id=org.id WHERE BIN_TO_UUID(officers.id) IN (?) AND UUID_TO_BIN(?) IN (org.id, org.parent_id)',
 		[ids, workingGroup.id]
-	) as ResultSetHeader;
+	);
 	return result.affectedRows;
 }
