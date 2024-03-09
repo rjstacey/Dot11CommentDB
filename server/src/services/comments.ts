@@ -1,8 +1,7 @@
 import { DateTime } from "luxon";
 
 import db from "../utils/database";
-import type { ResultSetHeader } from "mysql2";
-import {} from "multer";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import {
 	AuthError,
@@ -53,6 +52,7 @@ export const commentEditableFields = [
 	"Clause",
 	"Page",
 	"AdHoc",
+	"AdHocGroupId",
 	"CommentGroup",
 	"Notes",
 ] as const;
@@ -167,7 +167,7 @@ function getConditions(constraints: QueryConstraints) {
 export function selectComments(
 	constraints1?: QueryConstraints,
 	constraints2?: QueryConstraints
-) {
+): Promise<CommentResolution[]> {
 	let conditions1 = constraints1 ? getConditions(constraints1) : [];
 	let conditions2 = constraints2 ? getConditions(constraints2) : [];
 
@@ -186,7 +186,10 @@ export function selectComments(
 	}
 	sql += " ORDER BY CommentID, ResolutionID";
 
-	return db.query({ sql, dateStrings: true }) as Promise<CommentResolution[]>;
+	return db.query<(RowDataPacket & CommentResolution)[]>({
+		sql,
+		dateStrings: true,
+	});
 }
 
 /**
@@ -206,24 +209,24 @@ export function getComments(ballot_id: number, modifiedSince?: string) {
 export async function getCommentsSummary(
 	ballot_id: number
 ): Promise<CommentsSummary | undefined> {
-	const [summary] = (await db.query(
+	const sql =
 		"SELECT " +
-			"COUNT(*) AS Count, " +
-			"MIN(CommentID) AS CommentIDMin, " +
-			"MAX(CommentID) AS CommentIDMax " +
-			"FROM comments c WHERE ballot_id=?",
-		[ballot_id]
-	)) as [CommentsSummary | undefined];
+		"COUNT(*) AS Count, " +
+		"MIN(CommentID) AS CommentIDMin, " +
+		"MAX(CommentID) AS CommentIDMax " +
+		"FROM comments c WHERE ballot_id=" +
+		db.escape(ballot_id);
+	const [summary] = await db.query<(RowDataPacket & CommentsSummary)[]>(sql);
 	return summary;
 }
 
 function commentsSetSql(changes: Partial<Comment>) {
 	const sets: string[] = [];
 	for (const [key, value] of Object.entries(changes)) {
-		let sql: string;
-		if (key === "AdHocGroupId")
-			sql = db.format("??=UUID_TO_BIN(?)", [key, value]);
-		else sql = db.format("??=?", [key, value]);
+		const sql = db.format(
+			"??=" + (key === "AdHocGroupId" ? "UUID_TO_BIN(?)" : "?"),
+			[key, value]
+		);
 		sets.push(sql);
 	}
 	return sets.join(", ");
@@ -244,13 +247,14 @@ async function updateComment(
 	changes: Partial<Comment>
 ) {
 	if (Object.keys(changes).length === 0) return;
-	const sql = db.format(
+	const sql =
 		"UPDATE comments SET " +
-			commentsSetSql(changes) +
+		commentsSetSql(changes) +
+		db.format(
 			", LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP() WHERE ballot_id=? AND id=?",
-		[user.SAPIN, ballot_id, id]
-	);
-	return db.query(sql) as Promise<ResultSetHeader>;
+			[user.SAPIN, ballot_id, id]
+		);
+	return db.query<ResultSetHeader>(sql);
 }
 
 type CommentUpdate = {
@@ -334,16 +338,17 @@ export async function setStartCommentId(
 	ballot_id: number,
 	startCommentId: number
 ) {
-	const sql = db.format(
-		"SET @userId=?;" +
-			"SET @ballot_id = ?;" +
-			"SET @startCommentId = ?;" +
-			"SET @offset = @startCommentId - (SELECT MIN(CommentID) FROM comments WHERE ballot_id=@ballot_id);" +
-			"UPDATE comments " +
-			"SET LastModifiedBy=@userId, CommentID=CommentID+@offset " +
-			"WHERE ballot_id=@ballot_id;",
-		[user.SAPIN, ballot_id, startCommentId]
-	);
+	const sql =
+		`SET @offset = ${db.escape(
+			startCommentId
+		)} - (SELECT MIN(CommentID) FROM comments WHERE ballot_id=${db.escape(
+			ballot_id
+		)};` +
+		"UPDATE comments " +
+		`SET LastModifiedBy=${db.escape(
+			user.SAPIN
+		)}, CommentID=CommentID+@offset ` +
+		`WHERE ballot_id=${db.escape(ballot_id)};`;
 	await db.query(sql);
 	const comments = await getComments(ballot_id);
 	const summary = await getCommentsSummary(ballot_id);
@@ -359,13 +364,13 @@ export async function setStartCommentId(
 export async function deleteComments(user: User, ballot_id: number) {
 	// The order of the deletes is import; from resolutions table first and then from comments table.
 	// This is because a delete from resolutions tables adds a history log and a delete from comments then removes it.
-	const sql = db.format(
+	// prettier-ignore
+	const sql = 
 		"DELETE r, c " +
-			"FROM comments c LEFT JOIN resolutions r ON r.comment_id=c.id " +
-			"WHERE c.ballot_id=?;",
-		[ballot_id]
-	);
-	const result = (await db.query(sql)) as ResultSetHeader;
+		"FROM comments c " + 
+			"LEFT JOIN resolutions r ON r.comment_id=c.id " +
+		`WHERE c.ballot_id=${db.escape(ballot_id)};`;
+	const result = await db.query<ResultSetHeader>(sql);
 	return result.affectedRows;
 }
 
@@ -403,8 +408,7 @@ async function insertComments(
 				"WHERE ballot_id=? AND id NOT IN (SELECT comment_id FROM resolutions);",
 			[user.SAPIN, ballot_id]
 		);
-		const r = await db.query(sql2);
-		console.log(r);
+		await db.query(sql2);
 	}
 
 	comments = await getComments(ballot_id);
@@ -451,7 +455,7 @@ export async function importEpollComments(
 	if (response.headers["content-type"] !== "text/csv")
 		throw new AuthError("Not logged in");
 
-	const file = {originalname: "poll-comments.csv", buffer: response.data};
+	const file = { originalname: "poll-comments.csv", buffer: response.data };
 	const comments = await parseEpollComments(startCommentId, file);
 	//console.log(comments[0])
 
@@ -484,11 +488,11 @@ type MaxIndexes = {
 	MaxIndex: number;
 };
 
-async function getHighestIndexes(ballot_id: number) {
-	const rows = (await db.query(
-		"SELECT MAX(CommentID) as MaxCommentId, MAX(C_Index) as MaxIndex from comments WHERE ballot_id=?",
-		ballot_id
-	)) as MaxIndexes[];
+async function getHighestIndexes(ballot_id: number): Promise<MaxIndexes> {
+	const sql =
+		"SELECT MAX(CommentID) as MaxCommentId, MAX(C_Index) as MaxIndex from comments WHERE ballot_id=" +
+		db.escape(ballot_id);
+	const rows = await db.query<(RowDataPacket & MaxIndexes)[]>(sql);
 	if (rows.length !== 1)
 		throw new TypeError(`Ballot id=${ballot_id} does not exist`);
 	return rows[0];

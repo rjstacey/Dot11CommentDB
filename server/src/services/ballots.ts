@@ -13,10 +13,11 @@ import { AccessLevel } from "../auth/access";
 export type Ballot = {
 	id: number;
 	groupId: string | null;
+	Type: number;
+	number: number;
 	workingGroupId: string;
 	BallotID: string;
 	Project: string;
-	Type: number;
 	IsRecirc: boolean;
 	IsComplete: boolean;
 	Start: string | null;
@@ -48,11 +49,14 @@ export const BallotType = {
  */
 const getBallotsSQL = `
 	SELECT
-		b.id, b.BallotID, b.Project, b.Type, b.IsRecirc, b.IsComplete,
+		b.id,
+		BIN_TO_UUID(b.groupId) as groupId,
+		b.Type,
+		b.number,
+		b.BallotID, b.Project, b.IsRecirc, b.IsComplete,
 		DATE_FORMAT(b.Start, "%Y-%m-%dT%TZ") AS Start,
 		DATE_FORMAT(b.End, "%Y-%m-%dT%TZ") AS End,
 		b.Document, b.Topic, b.VotingPoolID, b.prev_id, b.EpollNum,
-		BIN_TO_UUID(b.groupId) as groupId,
 		BIN_TO_UUID(b.workingGroupId) as workingGroupId,
 		b.ResultsSummary AS Results,
 		JSON_OBJECT(
@@ -199,6 +203,7 @@ type BallotDB = {
 	BallotID?: string;
 	Project?: string;
 	Type?: number;
+	number?: number,
 	IsRecirc?: boolean;
 	IsComplete?: boolean;
 	Document?: string;
@@ -213,6 +218,7 @@ type BallotDB = {
 function ballotEntry(ballot: Partial<Ballot>) {
 	var entry: BallotDB = {
 		groupId: ballot.groupId,
+		number: ballot.number,
 		BallotID: ballot.BallotID,
 		Project: ballot.Project,
 		Type: ballot.Type,
@@ -279,6 +285,8 @@ function ballotSetSql(ballot: Partial<BallotDB>) {
  */
 async function addBallot(user: User, workingGroup: Group, ballot: Ballot) {
 	const entry = ballotEntry(ballot);
+	if (!entry.BallotID)
+		entry.BallotID = "__BallotID__"
 
 	// If the group is not set, set to working group
 	if (!entry.groupId) entry.groupId = workingGroup.id;
@@ -308,8 +316,6 @@ async function addBallot(user: User, workingGroup: Group, ballot: Ballot) {
 function validBallot(ballot: any): ballot is Ballot {
 	return (
 		isPlainObject(ballot) &&
-		ballot.BallotID &&
-		typeof ballot.BallotID === "string" &&
 		ballot.Project &&
 		typeof ballot.Project === "string"
 	);
@@ -430,7 +436,6 @@ export async function deleteBallots(
 	const e_ids = db.escape(ids);
 	const sql =
 		"START TRANSACTION;" +
-		`DELETE rl FROM comments c JOIN resolutionsLog rl ON c.id=rl.comment_id WHER c.ballot_id IN (${e_ids});` +
 		`DELETE r FROM comments c JOIN resolutions r ON c.id=r.comment_id WHERE c.ballot_id IN (${e_ids});` +
 		`DELETE FROM comments WHERE ballot_id IN (${e_ids});` +
 		`DELETE FROM results WHERE ballot_id IN (${e_ids});` +

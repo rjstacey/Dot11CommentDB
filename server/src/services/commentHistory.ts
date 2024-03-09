@@ -7,13 +7,15 @@ import { resolutionEditableFields, defaultResolution, Resolution, ResolutionEdit
 /* We coalesce changes into a single entry if a change is made within a certain interval of the last change as defined below */
 const updateIntervalSQL = 'INTERVAL 15 MINUTE';
 
+const convertNewField = (f: string) => f === 'AdHocGroupId'? `BIN_TO_UUID(NEW.${f})`: `NEW.${f}`;
+
 const createTriggerCommentsUpdateSQL = `
 	DROP TRIGGER IF EXISTS comments_update;
 	CREATE TRIGGER comments_update AFTER UPDATE ON comments FOR EACH ROW
 	BEGIN
 		SET @action ="update";
 		SET @changes = JSON_OBJECT();
-		${commentEditableFields.map(f => `IF NOT(NEW.${f}<=>OLD.${f}) THEN SET @changes = JSON_INSERT(@changes, '$.${f}', NEW.${f}); END IF;`).join('\n\t\t')}
+		${commentEditableFields.map(f => `IF NOT(NEW.${f}<=>OLD.${f}) THEN SET @changes = JSON_INSERT(@changes, '$.${f}', ${convertNewField(f)}); END IF;`).join('\n\t\t')}
 		SET @id = (SELECT id FROM resolutionsLog WHERE comment_id=NEW.id AND resolution_id IS NULL AND Action=@action AND UserID=NEW.LastModifiedBy AND Timestamp > DATE_SUB(NEW.LastModifiedTime, ${updateIntervalSQL}) ORDER BY Timestamp DESC LIMIT 1);
 		IF @id IS NULL THEN
   			INSERT INTO resolutionsLog (comment_id, Action, Changes, UserID, Timestamp) VALUES (OLD.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime);
@@ -29,7 +31,7 @@ const createTriggerCommentsAddSQL = `
 	BEGIN
 		SET @action ="add";
 		SET @changes = JSON_OBJECT(
-			${commentEditableFields.map(f => `"${f}", NEW.${f}`).join(',\n\t\t\t')}
+			${commentEditableFields.map(f => `"${f}", ${convertNewField(f)}`).join(',\n\t\t\t')}
 		);
 		INSERT INTO resolutionsLog (comment_id, Action, Changes, UserID, Timestamp) VALUES (NEW.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime);
 	END;

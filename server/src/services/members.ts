@@ -1,7 +1,7 @@
 import { DateTime } from "luxon";
 
 import db from "../utils/database";
-import type { ResultSetHeader } from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Response } from "express";
 
 import { User } from "./users";
@@ -111,7 +111,12 @@ type MemberDB = Omit<
 	StatusChangeHistory: string;
 };
 
-function selectMembersSql({ sapins }: { sapins?: number[] }) {
+type MembersQueryConstraints = {
+	SAPIN?: number | number[];
+	Status?: string | string[];
+}
+
+function selectMembersSql(constraints?: MembersQueryConstraints) {
 	// prettier-ignore
 	let sql =
 		"SELECT " +
@@ -136,10 +141,16 @@ function selectMembersSql({ sapins }: { sapins?: number[] }) {
 		"FROM members m " +
 			'LEFT JOIN (SELECT ReplacedBySAPIN AS SAPIN, JSON_ARRAYAGG(SAPIN) AS ObsoleteSAPINs FROM members WHERE Status="Obsolete" GROUP BY ReplacedBySAPIN) AS o ON m.SAPIN=o.SAPIN ';
 
-	let wheres: string[] = [];
-	if (sapins) wheres.push(db.format("m.SAPIN IN (?)", [sapins]));
-
-	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
+	if (constraints) {
+		const wheres: string[] = [];
+		Object.entries(constraints).forEach(([key, value]) => {
+			wheres.push(
+				db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
+			);
+		});
+		if (wheres.length > 0)
+			sql += ' WHERE ' + wheres.join(' AND ');
+	}
 
 	return sql;
 }
@@ -147,14 +158,13 @@ function selectMembersSql({ sapins }: { sapins?: number[] }) {
 /*
  * A detailed list of members
  */
-export async function getMembers(sapins?: number[]) {
-	const sql = selectMembersSql({ sapins });
-	const members = (await db.query({ sql, dateStrings: true })) as Member[];
-	return members;
+export function getMembers(constraints?: MembersQueryConstraints): Promise<Member[]> {
+	const sql = selectMembersSql(constraints);
+	return db.query<(RowDataPacket & Member)[]>(sql);
 }
 
-export async function getMember(sapin: number) {
-	const members: (Member | undefined)[] = await getMembers([sapin]);
+export async function getMember(SAPIN: number) {
+	const members: (Member | undefined)[] = await getMembers({SAPIN});
 	return members[0];
 }
 
@@ -767,9 +777,6 @@ export async function importMyProjectRoster(file: { buffer: Buffer }) {
 }
 
 export async function exportMyProjectRoster(user: User, res: Response) {
-	let members = await getMembers();
-	members = members.filter(
-		(m) => !m.Status.search(/^Voter|^Aspirant|^Potential Voter|^Non-Voter/)
-	);
+	const members = await getMembers({Status: ["Voter", "Aspirant", "Potential Voter", "Non-Voter"]});
 	return genMyProjectRosterSpreadsheet(user, members, res);
 }
