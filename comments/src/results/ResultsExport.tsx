@@ -4,11 +4,12 @@ import { Form, Row, List, ListItem, ActionButtonDropdown } from 'dot11-component
 
 import { useAppDispatch } from '../store/hooks';
 import { exportResults } from '../store/results'
-import type { Ballot } from '../store/ballots';
+import { getBallotId, Ballot } from '../store/ballots';
 
 function ResultsExportForm({ballot, methods}: {ballot: Ballot, methods: any}) {
 	const [forProject, setForProject] = React.useState(false);
 	const [busy, setBusy] = React.useState(false);
+	const ballotId = getBallotId(ballot);
 
 	const dispatch = useAppDispatch();
 
@@ -32,11 +33,11 @@ function ResultsExportForm({ballot, methods}: {ballot: Ballot, methods: any}) {
 					<ListItem>
 						<input
 							type="radio"
-							title={ballot.BallotID}
+							title={ballotId}
 							checked={!forProject}
 							onChange={() => setForProject(!forProject)}
 						/>
-						<label>This ballot {ballot.BallotID}</label>
+						<label>This ballot {ballotId}</label>
 					</ListItem>
 					<ListItem>
 						<input

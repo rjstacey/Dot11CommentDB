@@ -50,12 +50,19 @@ function validCommentsSummary(summary: any): summary is CommentsSummary {
 	);
 }
 
+export const BallotType = {
+	CC: 0, // comment collection
+	WG: 1, // WG ballot
+	SA: 2, // SA ballot
+	Motion: 5, // motion
+};
+
 export type Ballot = {
 	id: number;
 	groupId: string | null;
-	BallotID: string;
-	Project: string;
 	Type: number;
+	number: number | null;
+	Project: string;
 	IsRecirc: boolean;
 	IsComplete: boolean;
 	Start: string | null;
@@ -74,9 +81,11 @@ export function validBallot(ballot: any): ballot is Ballot {
 	return (
 		isObject(ballot) &&
 		typeof ballot.id === "number" &&
+		(ballot.Type === BallotType.CC || ballot.Type === BallotType.WG || ballot.Type === BallotType.SA || ballot.Type === BallotType.Motion) &&
+		(ballot.number === null || typeof ballot.number === "number") &&
 		typeof ballot.BallotID === "string" &&
-		typeof ballot.Project === "string" /* &&
-		typeof ballot.groupId === 'string'*/
+		typeof ballot.Project === "string" &&
+		typeof ballot.groupId === 'string'
 	);
 }
 
@@ -96,21 +105,14 @@ export type BallotUpdate = {
 };
 
 export type SyncedBallot = Ballot & {
-	PrevBallotID: string;
+	PrevBallotID: string | null;
 	GroupName: string;
 };
 
-export const BallotType = {
-	CC: 0, // comment collection
-	WG: 1, // WG ballot
-	SA: 2, // SA ballot
-	Motion: 5, // motion
-};
-
 export const BallotTypeLabels = {
-	[BallotType.CC]: "Comment collection",
-	[BallotType.WG]: "WG ballot",
-	[BallotType.SA]: "SA ballot",
+	[BallotType.CC]: "CC",
+	[BallotType.WG]: "LB",
+	[BallotType.SA]: "SA",
 	[BallotType.Motion]: "Motion",
 };
 
@@ -140,12 +142,18 @@ export const renderBallotStage = (v: boolean) => (v ? "Recirc" : "Initial");
 export const fields = {
 	GroupName: { label: "Group" },
 	Project: { label: "Project" },
-	BallotID: { label: "Ballot" },
 	Type: {
 		label: "Type",
 		type: FieldType.NUMERIC,
 		options: BallotTypeOptions,
 		dataRenderer: renderBallotType,
+	},
+	number: {
+		label: "Number",
+		type: FieldType.NUMERIC,
+	},
+	BallotID: {
+		label: "ID",
 	},
 	Stage: { label: "Stage" },
 	IsRecirc: {
@@ -162,18 +170,25 @@ export const fields = {
 	End: { label: "End", dataRenderer: displayDate, type: FieldType.DATE },
 	Results: { label: "Results", dontFilter: true, dontSort: true },
 	Comments: { label: "Comments", dontFilter: true, dontSort: true },
-	VotingPoolID: { label: "Voting pool" },
 	PrevBallotID: { label: "Prev ballot" },
 };
 
-export const getField = (entity: Ballot, dataKey: string) => {
+export function getBallotId(ballot: Ballot) {
+	return BallotTypeLabels[ballot.Type] + (ballot.number || "(Blank)")
+}
+
+export function getField(entity: Ballot, dataKey: string) {
 	if (dataKey === "Stage") {
 		if (entity.Type === BallotType.SA || entity.Type === BallotType.WG)
 			return entity.IsRecirc ? "Recirc" : "Inital";
 		return "";
 	}
+	if (dataKey === "BallotID") {
+		return getBallotId(entity);
+	}
 	return entity[dataKey as keyof Ballot];
 };
+
 
 export type GroupProject = {
 	groupId: string | null;
@@ -194,10 +209,11 @@ const initialState: ExtraState = {
 	currentBallot_id: null,
 };
 
-const sortComparer = (b1: Ballot, b2: Ballot) =>
-	b1.Project === b2.Project
-		? b1.BallotID.localeCompare(b2.BallotID)
-		: b1.Project.localeCompare(b2.Project);
+const sortComparer = (b1: Ballot, b2: Ballot) => {
+	if (b1.Project === b2.Project)
+		return (b1.Start || "").localeCompare(b2.Start || "");
+	return (b1.Project || "").localeCompare(b2.Project || "");
+}
 const dataSet = "ballots";
 
 const slice = createAppTableDataSlice({
@@ -314,7 +330,11 @@ export const selectCurrentProject = (state: RootState) =>
 	selectBallotsState(state).currentProject;
 export const selectCurrentBallotID = (state: RootState) => {
 	const { currentBallot_id, entities } = selectBallotsState(state);
-	return (currentBallot_id && entities[currentBallot_id]?.BallotID) || null;
+	if (currentBallot_id === null)
+		return;
+	const ballot = entities[currentBallot_id];
+	if (ballot)
+		return BallotTypeLabels[ballot.Type] + (ballot.number? ballot.number: "(Blank)");
 };
 
 export const selectBallots = createSelector(
@@ -324,8 +344,16 @@ export const selectBallots = createSelector(
 );
 
 export const selectBallotByBallotID = (state: RootState, ballotId: string) => {
-	const ballots = selectBallots(state);
-	return ballots.find((b) => b.BallotID === ballotId);
+	const m = ballotId.match(/(CC|LB|SA|M)(\d+)/);
+	if (m) {
+		const entry = Object.entries(BallotTypeLabels).find(([key, value]) => value === m[1]);
+		if (!entry)
+			return;
+		const type = Number(entry[0]);
+		const n = Number(m[2]);
+		const ballots = selectBallots(state);
+		return ballots.find((b) => b.Type === type && b.number === n);
+	}
 };
 
 /* Get ballot entities with derived data */
@@ -337,9 +365,10 @@ const selectSyncedBallotEntities = createSelector(
 		const syncedEntities: Record<EntityId, SyncedBallot> = {};
 		ids.forEach((id) => {
 			const ballot = entities[id]!;
-			const PrevBallotID = ballot.prev_id
-				? entities[ballot.prev_id]?.BallotID || "Unknown"
-				: "";
+			const prevBallot = ballot.prev_id? entities[ballot.prev_id]: undefined;
+			const PrevBallotID = prevBallot?
+				BallotTypeLabels[prevBallot.Type] + prevBallot.number:
+				null;
 			const GroupName =
 				(ballot.groupId &&
 					(groupEntities[ballot.groupId]?.name || "Unknown")) ||
@@ -418,10 +447,38 @@ export const selectBallotOptions = createSelector(
 				return ballot.groupId === groupId && ballot.Project === project;
 			});
 		}
-		//return ballotIds.map(id => ({value: id, label: `${entities[id]!.BallotID} ${entities[id]!.Document}`}));
 		return ballotIds.map((id) => entities[id]!);
 	}
 );
+
+export const selectBallotSeries = createSelector(
+	(state: RootState, ballot_id: EntityId) => ballot_id,
+	selectBallotIds,
+	selectBallotEntities,
+	(ballot_id, ids, entities) => {
+		function getBallotSeries(ballot: Ballot): Ballot[] {
+			const ballotSeries = [ballot];
+			for (const id of ids) {
+				const ballotNext = entities[id]!;
+				if (ballotNext.prev_id === ballot.id)
+					return ballotSeries.concat(getBallotSeries(ballotNext))
+			}
+			return ballotSeries;
+		}
+		const ballot = entities[ballot_id];
+		return ballot? getBallotSeries(ballot): undefined;
+	}
+)
+
+export const selectBallotSeriesId = (state: RootState, ballot: Ballot) => {
+	const entities = selectBallotEntities(state);
+	let b: Ballot | undefined = ballot;
+	do {
+		if (b.Type === BallotType.WG && !b.IsRecirc)
+			return b.id;
+		b = b.prev_id? entities[b.prev_id]: undefined;
+	} while (b);
+}
 
 export const selectBallot = (state: RootState, ballot_id: number) =>
 	selectSyncedBallotEntities(state)[ballot_id];
@@ -482,6 +539,7 @@ export const loadBallots =
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
+				response.forEach((b: any) => {delete b.BallotID})
 				dispatch(getSuccess(response));
 				return response;
 			})
@@ -537,7 +595,7 @@ export const addBallot =
 				throw new TypeError("Unexpected response");
 		} catch (error) {
 			dispatch(
-				setError(`Unable to add ballot ${ballot.BallotID}`, error)
+				setError("Unable to add ballot", error)
 			);
 			return;
 		}

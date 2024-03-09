@@ -3,16 +3,25 @@ import { Select } from "dot11-components";
 import { useAppSelector } from "../store/hooks";
 import { selectGroups, Group, selectGroupEntities } from "../store/groups";
 
-function GroupName({ group }: { group: Group }) {
-	const entities = useAppSelector(selectGroupEntities);
-	const parentGroup = group.parent_id && entities[group.parent_id];
-	let label = group.name;
-	if (parentGroup && parentGroup.type !== "wg")
-		label = `${parentGroup.name} / ${group.name}`;
-	return <span>{label}</span>;
-}
+function renderGroupName(group: Group, entities: ReturnType<typeof selectGroupEntities>) {
 
-const renderGroup = ({ item }: { item: Group }) => <GroupName group={item} />;
+	let label: string;
+	if (group.type === 'wg') {
+		label = group.name;
+	}
+	else {
+		let groups: Group[] = [group];
+		let g: Group | undefined = group;
+		do {
+			g = g.parent_id? entities[g.parent_id]: undefined;
+			if (g && g.type !== 'wg')
+				groups.unshift(g);
+		} while (g && g.type !== 'wg');
+		label = groups.map(g => g.name).join(' / ');
+	}
+
+	return label;
+}
 
 function SelectGroup({
 	value,
@@ -25,10 +34,13 @@ function SelectGroup({
 	React.ComponentProps<typeof Select>,
 	"values" | "options" | "onChange"
 >) {
+	const entities = useAppSelector(selectGroupEntities);
 	const options = useAppSelector(selectGroups);
 	const values = options.filter((o) => value === o.id);
 	const handleChange = (values: typeof options) =>
 		onChange(values.length > 0 ? values[0].id : null);
+
+	const renderGroup = ({item: group}: {item: Group}) => renderGroupName(group, entities);
 
 	return (
 		<Select

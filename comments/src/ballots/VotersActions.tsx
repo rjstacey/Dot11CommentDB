@@ -3,9 +3,9 @@ import { ActionButtonDropdown, Row, FieldLeft } from "dot11-components";
 
 import { VotersImportForm } from "../voters/VotersImport";
 import { useAppSelector } from "../store/hooks";
-import { selectBallotsWorkingGroup, Ballot } from "../store/ballots";
+import { getBallotId, selectBallotsWorkingGroup, Ballot } from "../store/ballots";
 
-function VoterPoolActions({
+function VotersActions({
 	ballot,
 	readOnly,
 }: {
@@ -17,9 +17,9 @@ function VoterPoolActions({
 	return (
 		<>
 			<Row>
-				<FieldLeft label="Voter pool:">
+				<FieldLeft label="Voters:">
 					<Link
-						to={`/${workingGroup.name}/voters/${ballot.BallotID}`}
+						to={`/${workingGroup.name}/voters/${getBallotId(ballot)}`}
 					>
 						{ballot.Voters}
 					</Link>
@@ -45,4 +45,4 @@ function VoterPoolActions({
 	);
 }
 
-export default VoterPoolActions;
+export default VotersActions;

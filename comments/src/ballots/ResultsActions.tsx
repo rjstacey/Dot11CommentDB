@@ -1,10 +1,10 @@
 import * as React from "react";
 import { Button, Row, FieldLeft, ConfirmModal } from "dot11-components";
 
-import { renderResultsSummary } from "./Ballots";
+import { BallotResults } from "./Ballots";
 import { useAppDispatch } from "../store/hooks";
 import { importResults, uploadResults, deleteResults } from "../store/results";
-import { Ballot } from "../store/ballots";
+import { getBallotId, Ballot } from "../store/ballots";
 
 function ResultsActions({
 	ballot,
@@ -21,7 +21,7 @@ function ResultsActions({
 
 	async function handleDeleteResults() {
 		const ok = await ConfirmModal.show(
-			`Are you sure you want to delete results for ${ballot!.BallotID}?`
+			`Are you sure you want to delete results for ${getBallotId(ballot)}?`
 		);
 		if (!ok) return;
 		setBusy(true);
@@ -52,7 +52,7 @@ function ResultsActions({
 		<>
 			<Row>
 				<FieldLeft label="Results:">
-					{renderResultsSummary({ rowData: ballot })}
+					<BallotResults ballot={ballot}/>
 				</FieldLeft>
 			</Row>
 			{!readOnly && (

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Select } from "dot11-components";
 import { useAppSelector } from "../store/hooks";
-import { selectBallotsState } from "../store/ballots";
+import { getBallotId, selectBallotsState } from "../store/ballots";
 
 function usePrevBallotOptions(ballot_id: number) {
 	const { ids, entities } = useAppSelector(selectBallotsState);
@@ -15,7 +15,8 @@ function usePrevBallotOptions(ballot_id: number) {
 					b.groupId === ballot.groupId &&
 					b.Project === ballot.Project &&
 					new Date(b.Start || "") < new Date(ballot.Start || "")
-			);
+			)
+			.map((b) => ({id: b.id, label: getBallotId(b)}));
 	}, [ballot_id, ids, entities]);
 }
 
@@ -42,7 +43,6 @@ function SelectPrevBallot({
 			options={options}
 			onChange={handleChange}
 			dropdownPosition="auto"
-			labelField="BallotID"
 			valueField="id"
 			{...otherProps}
 		/>

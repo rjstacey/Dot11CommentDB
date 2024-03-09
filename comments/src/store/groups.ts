@@ -148,26 +148,13 @@ export const selectWorkingGroupName = (state: RootState) =>
 export const selectWorkingGroupPermissions = (state: RootState) =>
 	selectWorkingGroup(state)?.permissions || {};
 
-/**
- * Select group permissions.
- * If the group has a parent group, then return permissions that provide the highest access from either the group or
- * the parent group. This is recursive; the parent group permissions are the highest of the parent group and its parent group.
- */
+/** Select group permissions */
 export const selectGroupPermissions = (
 	state: RootState,
 	groupId: string
 ): Record<string, number> => {
 	const group = selectGroup(state, groupId);
-	if (!group) return {};
-	const parentPermissions = group.parent_id
-		? selectGroupPermissions(state, group.parent_id)
-		: {};
-	const permissions = { ...parentPermissions };
-	Object.entries(group.permissions).forEach(([scope, access]) => {
-		if (!permissions[scope] || permissions[scope] < access)
-			permissions[scope] = access;
-	});
-	return permissions;
+	return group? group.permissions: {};
 };
 
 /* Thunk actions */

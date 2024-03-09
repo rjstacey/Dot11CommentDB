@@ -25,17 +25,17 @@ import { BallotAddForm } from "./BallotDetail";
 
 function ePollToBallot(epoll: SyncedEpoll): Ballot {
 	// See if the ePoll name has something like CC53 or LB245
-	const m = epoll.name.match(/(CC|LB)\d+/);
 	let type = BallotType.Motion,
-		ballotId = "";
+		number = 0;
+	const m = epoll.name.match(/(CC|LB)(\d+)/);
 	if (m) {
-		ballotId = m[0];
-		type = ballotId.startsWith("CC") ? BallotType.CC : BallotType.WG;
+		type = m[1] === "CC" ? BallotType.CC : BallotType.WG;
+		number = Number(m[2]);
 	}
 	return {
 		groupId: null,
+		number,
 		Project: "",
-		BallotID: ballotId,
 		Type: type,
 		EpollNum: epoll.id,
 		Start: epoll.start,

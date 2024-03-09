@@ -16,6 +16,7 @@ import {
 	selectBallotEntities,
 	selectBallot,
 	validBallot,
+	getBallotId,
 	Ballot,
 } from "./ballots";
 import { selectGroupPermissions } from "./groups";
@@ -161,7 +162,7 @@ export const loadResults =
 			})
 			.catch((error: any) => {
 				const ballot = selectBallotEntities(getState())[ballot_id];
-				const ballotId = ballot ? ballot.BallotID : `id=${ballot_id}`;
+				const ballotId = ballot ? getBallotId(ballot) : `id=${ballot_id}`;
 				dispatch(getFailure());
 				dispatch(
 					setError(

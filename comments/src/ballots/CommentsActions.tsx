@@ -11,7 +11,7 @@ import {
 	ActionButtonModal,
 } from "dot11-components";
 
-import { renderCommentsSummary } from "./Ballots";
+import { BallotComments } from "./Ballots";
 import MemberSelector from "../voters/MemberSelector";
 
 import { useAppDispatch } from "../store/hooks";
@@ -21,9 +21,9 @@ import {
 	deleteComments,
 	setStartCommentId,
 	uploadUserComments,
-	uploadPublicReviewComments
+	uploadPublicReviewComments,
 } from "../store/comments";
-import { Ballot } from "../store/ballots";
+import { getBallotId, Ballot, BallotType } from "../store/ballots";
 
 function ChangeStartCID({
 	ballot,
@@ -201,7 +201,7 @@ const CommentsActions = ({
 
 	async function handleDeleteComments() {
 		const ok = await ConfirmModal.show(
-			`Are you sure you want to delete comments for ${ballot!.BallotID}?`
+			`Are you sure you want to delete comments for ${getBallotId(ballot)}?`
 		);
 		if (!ok) return;
 		setBusy(true);
@@ -232,7 +232,7 @@ const CommentsActions = ({
 		<>
 			<Row>
 				<FieldLeft label="Comments:">
-					{renderCommentsSummary({ rowData: ballot })}
+					<BallotComments ballot={ballot} />
 				</FieldLeft>
 			</Row>
 			{!readOnly && (
@@ -253,7 +253,7 @@ const CommentsActions = ({
 					>
 						<ChangeStartCID ballot={ballot!} />
 					</ActionButtonModal>
-					{ballot?.EpollNum ? (
+					{ballot.Type !== BallotType.SA && ballot.EpollNum ? (
 						<Button onClick={handleImportComments}>
 							{(ballot.Comments?.Count ? "Reimport" : "Import") +
 								" from ePoll"}
@@ -270,14 +270,16 @@ const CommentsActions = ({
 					>
 						<AddMemberComments ballot={ballot} />
 					</ActionButtonModal>
-					<ActionButtonModal
-						label="Add public review comments"
-						disabled={
-							ballot.Comments && ballot.Comments.Count === 0
-						}
-					>
-						<AddPublicReviewComments ballot={ballot} />
-					</ActionButtonModal>
+					{ballot.Type === BallotType.SA ? (
+						<ActionButtonModal
+							label="Add public review comments"
+							disabled={
+								ballot.Comments && ballot.Comments.Count === 0
+							}
+						>
+							<AddPublicReviewComments ballot={ballot} />
+						</ActionButtonModal>
+					) : null}
 					<input
 						ref={fileRef}
 						type="file"

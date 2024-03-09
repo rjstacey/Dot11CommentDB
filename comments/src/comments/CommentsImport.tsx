@@ -16,7 +16,7 @@ import {
 import { useAppDispatch } from "../store/hooks";
 import { uploadResolutions } from "../store/comments";
 import type { FieldToUpdate, MatchAlgo, MatchUpdate } from "../store/comments";
-import type { Ballot } from "../store/ballots";
+import { getBallotId, Ballot } from "../store/ballots";
 
 const importFieldOptions: {
 	value: FieldToUpdate;
@@ -275,7 +275,7 @@ function CommentsImportDropdown({
 	return (
 		<Form
 			style={{ width: 600 }}
-			title={`Import fields for ${ballot.BallotID} from Excel spreadsheet`}
+			title={`Import fields for ${getBallotId(ballot)} from Excel spreadsheet`}
 			errorText={errMsg}
 			submit={submit}
 			cancel={methods.close}

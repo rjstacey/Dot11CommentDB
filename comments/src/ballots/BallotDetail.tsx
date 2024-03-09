@@ -8,7 +8,7 @@ import {
 	ConfirmModal,
 } from "dot11-components";
 
-import VoterPoolActions from "./VoterPoolActions";
+import VotersActions from "./VotersActions";
 import ResultsActions from "./ResultsActions";
 import CommentsActions from "./CommentsActions";
 import { BallotEditMultiple, EditBallot } from "./BallotEdit";
@@ -25,6 +25,7 @@ import {
 	selectBallotsState,
 	Ballot,
 	BallotType,
+	getBallotId,
 } from "../store/ballots";
 
 function BallotEditMultipleWithActions({
@@ -43,7 +44,7 @@ function BallotEditMultipleWithActions({
 		<>
 			{((ballot.Type === BallotType.WG && !ballot.IsRecirc) ||
 				ballot.Type === BallotType.Motion) && (
-				<VoterPoolActions ballot={ballot} readOnly={readOnly} />
+				<VotersActions ballot={ballot} readOnly={readOnly} />
 			)}
 			<ResultsActions
 				ballot={ballot}
@@ -74,8 +75,8 @@ function getDefaultBallot(): Ballot {
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	return {
 		groupId: null,
+		number: 0,
 		Project: "",
-		BallotID: "",
 		EpollNum: 0,
 		Document: "",
 		Topic: "",
@@ -109,8 +110,9 @@ export function BallotAddForm({
 
 	let errorMsg = "";
 	if (!ballot.groupId) errorMsg = "Group not set";
+	else if (ballot.Type === null) errorMsg = "Ballot type not set";
+	else if (!ballot.number) errorMsg = "Ballot number not set";
 	else if (!ballot.Project) errorMsg = "Project not set";
-	else if (!ballot.BallotID) errorMsg = "Ballot ID not set";
 
 	const submit = async () => {
 		if (!errorMsg) {
@@ -184,7 +186,7 @@ function BallotDetail({
 	}, [dispatch]);
 
 	const deleteClick = React.useCallback(async () => {
-		const list = ballots.map((b) => b.BallotID).join(", ");
+		const list = ballots.map(getBallotId).join(", ");
 		const ids = ballots.map((b) => b.id);
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete ballot${

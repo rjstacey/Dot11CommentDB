@@ -17,11 +17,13 @@ import { loadEpolls } from "../store/epolls";
 import {
 	loadBallots,
 	selectBallotByBallotID,
+	selectBallotSeriesId,
 	setCurrentBallot_id,
+	Ballot
 } from "../store/ballots";
-import { loadVoters } from "../store/voters";
-import { loadResults } from "../store/results";
-import { loadComments, selectCommentsBallot_id } from "../store/comments";
+import { clearVoters, loadVoters } from "../store/voters";
+import { clearResults, loadResults } from "../store/results";
+import { clearComments, loadComments } from "../store/comments";
 
 import { ErrorModal, ConfirmModal } from "dot11-components";
 import Header from "./Header";
@@ -36,7 +38,7 @@ import Reports from "../reports/Reports";
 import styles from "./app.module.css";
 
 /*
- * Routing loaders
+ * Route loaders
  */
 const rootLoader: LoaderFunction = async () => {
 	const { dispatch, getState } = store;
@@ -81,23 +83,25 @@ const epollsLoader: LoaderFunction = async ({ params }) => {
 	return null;
 };
 
-const ballotVotersLoader: LoaderFunction = async ({ params }) => {
+const votersLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	if (selectIsOnline(getState())) {
 		const { groupName, ballotId } = params;
 		if (groupName) {
 			const p = dispatch(loadBallots(groupName));
 			dispatch(loadMembers(groupName));
+			let ballot: Ballot | undefined;
+			let ballotSeries_id: number | undefined;
 			if (ballotId) {
-				let ballot = selectBallotByBallotID(getState(), ballotId);
+				ballot = selectBallotByBallotID(getState(), ballotId);
 				if (!ballot) {
 					await p; // see if we get it with a ballots refresh
 					ballot = selectBallotByBallotID(getState(), ballotId);
 				}
-				if (ballot) {
-					dispatch(loadVoters(ballot.id));
-				}
 			}
+			dispatch(setCurrentBallot_id(ballot? ballot.id: null));
+			if (ballot) ballotSeries_id = selectBallotSeriesId(getState(), ballot);
+			dispatch(ballotSeries_id? loadVoters(ballotSeries_id): clearVoters());
 		}
 	}
 	return null;
@@ -109,16 +113,16 @@ const resultsLoader: LoaderFunction = async ({ params }) => {
 		const { groupName, ballotId } = params;
 		if (groupName) {
 			const p = dispatch(loadBallots(groupName));
+			let ballot: Ballot | undefined;
 			if (ballotId) {
-				let ballot = selectBallotByBallotID(getState(), ballotId);
+				ballot = selectBallotByBallotID(getState(), ballotId);
 				if (!ballot) {
 					await p; // see if we get it with a ballots refresh
 					ballot = selectBallotByBallotID(getState(), ballotId);
 				}
-				if (ballot) {
-					dispatch(loadResults(ballot.id));
-				}
 			}
+			dispatch(setCurrentBallot_id(ballot? ballot.id: null));
+			dispatch(ballot? loadResults(ballot.id): clearResults());
 		}
 	}
 	return null;
@@ -128,20 +132,19 @@ const commentsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	if (selectIsOnline(getState())) {
 		const { groupName, ballotId } = params;
+		console.log(ballotId)
 		if (groupName) {
 			const p = dispatch(loadBallots(groupName));
+			let ballot: Ballot | undefined;
 			if (ballotId) {
-				let ballot = selectBallotByBallotID(getState(), ballotId);
+				ballot = selectBallotByBallotID(getState(), ballotId);
 				if (!ballot) {
 					await p; // see if we get it with a ballots refresh
 					ballot = selectBallotByBallotID(getState(), ballotId);
 				}
-				if (ballot) {
-					dispatch(setCurrentBallot_id(ballot.id));
-					if (ballot.id !== selectCommentsBallot_id(getState()))
-						dispatch(loadComments(ballot.id));
-				}
 			}
+			dispatch(setCurrentBallot_id(ballot? ballot.id: null));
+			dispatch(ballot? loadComments(ballot.id): clearComments());
 		}
 	}
 	return null;
@@ -241,7 +244,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		menuLabel: "Voters",
 		path: "voters/:ballotId?",
 		element: <Voters />,
-		loader: ballotVotersLoader,
+		loader: votersLoader,
 		scope: "ballots",
 		minAccess: AccessLevel.ro,
 	},

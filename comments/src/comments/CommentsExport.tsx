@@ -15,7 +15,7 @@ import {
 	CommentsSpreadsheetFormat,
 	CommentsSpreadsheetStyle,
 } from "../store/comments";
-import { Ballot } from "../store/ballots";
+import { getBallotId, Ballot } from "../store/ballots";
 
 function CommentsExportDropdown({
 	ballot,
@@ -54,7 +54,7 @@ function CommentsExportDropdown({
 	return (
 		<Form
 			style={{ width: 450 }}
-			title={`Export comments for ${ballot.BallotID} to Excel spreadsheet`}
+			title={`Export comments for ${getBallotId(ballot)} to Excel spreadsheet`}
 			errorText={errMsg}
 			submit={submit}
 			cancel={methods.close}

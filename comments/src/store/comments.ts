@@ -22,6 +22,7 @@ import {
 	updateBallotsLocal,
 	selectBallotEntities,
 	selectBallot,
+	getBallotId,
 	validBallotCommentsSummary,
 	BallotCommentsSummary,
 } from "./ballots";
@@ -289,7 +290,7 @@ const slice = createAppTableDataSlice({
 				}
 			)
 			.addMatcher(
-				(action) => action.type === updateCommit.toString(), //dataSet + '/updateCommit',
+				(action) => action.type === updateCommit.toString(),
 				(state, action: ReturnType<typeof updateCommit>) => {
 					const { comments } = action.payload;
 					const updates = comments.map((c) => ({
@@ -300,7 +301,7 @@ const slice = createAppTableDataSlice({
 				}
 			)
 			.addMatcher(
-				(action) => action.type === addManyRollback.toString(), //.startsWith(dataSet + '/') && /(addManyRollback)$/.test(action.type),
+				(action) => action.type === addManyRollback.toString(),
 				(state, action: ReturnType<typeof addManyRollback>) => {
 					const added_ids = action.payload;
 					if (!Array.isArray(added_ids))
@@ -319,7 +320,7 @@ const slice = createAppTableDataSlice({
 				}
 			)
 			.addMatcher(
-				(action) => action.type === removeManyRollback.toString(), //.startsWith(dataSet + '/') && /(removeManyRollback)$/.test(action.type),
+				(action) => action.type === removeManyRollback.toString(),
 				(state, action: ReturnType<typeof removeManyRollback>) => {
 					const comments = action.payload;
 					if (!Array.isArray(comments))
@@ -441,7 +442,7 @@ export const loadComments =
 				throw new TypeError("Unexpected response");
 		} catch (error) {
 			const ballot = selectBallotEntities(getState())[ballot_id];
-			const ballotId = ballot?.BallotID || `id=${ballot_id}`;
+			const ballotId = ballot? getBallotId(ballot): `id=${ballot_id}`;
 			dispatch(getFailure());
 			dispatch(setError(`Unable to get comments for ${ballotId}`, error));
 			return;
@@ -461,7 +462,7 @@ export const getCommentUpdates = (): AppThunk => async (dispatch, getState) => {
 				method: "GET",
 				params: { modifiedSince: lastModified },
 			},
-			commit: { type: getCommit.toString() /*dataSet + '/getCommit'*/ },
+			commit: { type: getCommit.toString() },
 		})
 	);
 };
@@ -974,7 +975,7 @@ export const exportCommentsSpreadsheet =
 			await fetcher.postForFile(url, { style }, file);
 		} catch (error) {
 			const ballot = selectBallotEntities(getState())[ballot_id];
-			const ballotId = ballot?.BallotID || `id=${ballot_id}`;
+			const ballotId = ballot? getBallotId(ballot): `id=${ballot_id}`;
 			dispatch(
 				setError(
 					`Unable to export comments for ballot ${ballotId}`,

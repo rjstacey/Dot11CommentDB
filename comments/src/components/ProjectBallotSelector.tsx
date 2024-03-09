@@ -5,6 +5,7 @@ import { Select } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
+	getBallotId,
 	setCurrentGroupProject,
 	setCurrentBallot_id,
 	selectBallotsState,
@@ -68,7 +69,7 @@ function BallotSelect({
 		() =>
 			ballots.map((b) => ({
 				value: b.id,
-				label: `${b.BallotID} ${b.Document}`,
+				label: `${getBallotId(b)} ${b.Document}`,
 			})),
 		[ballots]
 	);
@@ -99,14 +100,14 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 	const handleProjectChange = async (value: GroupProject) => {
 		const ballot = await dispatch(setCurrentGroupProject(value));
 		let pathName = location.pathname.replace(`/${ballotId}`, "");
-		if (ballot) pathName = pathName + `/${ballot.BallotID}`;
+		if (ballot) pathName = pathName + "/" + getBallotId(ballot);
 		navigate(pathName);
 	};
 
 	const handleBallotChange = async (value: number | null) => {
 		const ballot = await dispatch(setCurrentBallot_id(value));
 		let pathName = location.pathname.replace(`/${ballotId}`, "");
-		if (ballot) pathName = pathName + `/${ballot.BallotID}`;
+		if (ballot) pathName = pathName + "/" + getBallotId(ballot);
 		navigate(pathName);
 	};
 

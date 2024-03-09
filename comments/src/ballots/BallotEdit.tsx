@@ -3,7 +3,6 @@ import {
 	Row,
 	Col,
 	Field,
-	ListItem,
 	Checkbox,
 	Input,
 	TextArea,
@@ -11,10 +10,9 @@ import {
 	Multiple,
 	shallowDiff,
 	deepMergeTagMultiple,
-	useDebounce
+	useDebounce,
 } from "dot11-components";
 
-import CheckboxListSelect from "./CheckboxListSelect";
 import SelectGroup from "./GroupSelector";
 import SelectProject from "./ProjectSelector";
 import SelectPrevBallot from "./PrevBallotSelecor";
@@ -24,8 +22,6 @@ import {
 	updateBallots,
 	setCurrentGroupProject,
 	BallotType,
-	BallotTypeOptions,
-	BallotStageOptions,
 	Ballot,
 	BallotEdit,
 	BallotUpdate,
@@ -70,6 +66,106 @@ const TopicTextArea = (props: React.ComponentProps<typeof TextArea>) => (
 		}}
 		{...props}
 	/>
+);
+
+
+const ballotTypeLabels = {
+	[BallotType.CC]: "CC",
+	[BallotType.WG]: "LB",
+	[BallotType.SA]: "SA",
+	[BallotType.Motion]: "Motion",
+};
+
+const BallotTypeSelect = ({
+	ballot,
+	updateBallot,
+	readOnly,
+}: {
+	ballot: Multiple<Ballot>;
+	updateBallot: (changes: Partial<BallotEdit>) => void;
+	readOnly?: boolean;
+}) => (
+	<div
+		style={{display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', width: 300}}
+	>
+		{Object.entries(BallotType).map(([key, value]) => (
+			<div
+				style={{display: 'flex', alignContent: 'center'}}
+				key={key}
+			>
+				<Checkbox
+					id={key}
+					checked={isMultiple(ballot.Type)? false: ballot.Type === value}
+					indeterminate={isMultiple(value)}
+					onChange={(e) => updateBallot({Type: value})}
+					disabled={readOnly}
+				/>
+				<label htmlFor={key}>{ballotTypeLabels[value]}</label>
+			</div>
+		))}
+	</div>
+);
+
+
+const BallotStage = ({
+	ballot,
+	updateBallot,
+	readOnly
+}: {
+	ballot: Multiple<Ballot>;
+	updateBallot: (changes: Partial<BallotEdit>) => void;
+	readOnly?: boolean;
+}) => (
+	<div
+		style={{display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', width: 200}}
+	>
+		<div
+			style={{display: 'flex', alignContent: 'center'}}
+		>
+			<Checkbox
+				id="initial"
+				checked={isMultiple(ballot.IsRecirc)? false: !ballot.IsRecirc}
+				indeterminate={isMultiple(ballot.IsRecirc)}
+				onChange={(e) => updateBallot({IsRecirc: !ballot.IsRecirc})}
+				disabled={readOnly}
+			/>
+			<label htmlFor="initial">Initial</label>
+		</div>
+		<div
+			style={{display: 'flex', alignContent: 'center'}}
+		>
+			<Checkbox
+				id="recirc"
+				checked={isMultiple(ballot.IsRecirc)? false: ballot.IsRecirc}
+				indeterminate={isMultiple(ballot.IsRecirc)}
+				onChange={(e) => updateBallot({IsRecirc: !ballot.IsRecirc})}
+				disabled={readOnly}
+			/>
+			<label htmlFor="recirc">Recirc</label>
+		</div>
+		<div
+			style={{display: 'flex', alignContent: 'center'}}
+		>
+			<Checkbox
+				id="IsComplete"
+				checked={
+					isMultiple(ballot.IsComplete)
+						? false
+						: ballot.IsComplete
+				}
+				indeterminate={isMultiple(ballot.IsComplete)}
+				onChange={(e) =>
+					updateBallot({
+						IsComplete: e.target.checked,
+					})
+				}
+				disabled={readOnly}
+			/>
+			<label htmlFor="IsComplete">
+				Final in ballot series
+			</label>
+		</div>
+	</div>
 );
 
 export function Column1({
@@ -132,16 +228,26 @@ export function Column1({
 				</Field>
 			</Row>
 			<Row>
-				<Field label="Ballot ID:">
+				<Field label="Ballot type:">
+					<BallotTypeSelect
+						ballot={ballot}
+						updateBallot={updateBallot}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label="Ballot number:">
 					<Input
-						type="search"
-						name="BallotID"
+						style={{lineHeight: '25px'}}
+						type="number"
+						name="number"
 						value={
-							isMultiple(ballot.BallotID) ? "" : ballot.BallotID
+							(isMultiple(ballot.number) || ballot.number === null) ? "" : ballot.number
 						}
 						onChange={change}
 						placeholder={
-							isMultiple(ballot.BallotID)
+							isMultiple(ballot.number)
 								? MULTIPLE_STR
 								: BLANK_STR
 						}
@@ -167,7 +273,7 @@ export function Column1({
 								})
 							}
 							placeholder={
-								isMultiple(ballot.BallotID)
+								isMultiple(ballot.EpollNum)
 									? MULTIPLE_STR
 									: BLANK_STR
 							}
@@ -237,6 +343,15 @@ export function Column1({
 					/>
 				</Field>
 			</Row>
+			<Row>
+				<Field label="Ballot stage:">
+					<BallotStage
+						ballot={ballot}
+						updateBallot={updateBallot}
+						readOnly={readOnly}
+					/>
+				</Field>
+			</Row>
 			{(ballot.Type === BallotType.WG || ballot.Type === BallotType.SA) &&
 				!!ballot.IsRecirc && (
 					<Row>
@@ -285,55 +400,6 @@ export function EditBallot({
 					updateBallot={updateBallot}
 					readOnly={readOnly}
 				/>
-			</Col>
-			<Col>
-				<CheckboxListSelect
-					label="Ballot type:"
-					options={BallotTypeOptions}
-					value={ballot.Type}
-					onChange={(value) => updateBallot({ Type: value })}
-					readOnly={readOnly}
-				/>
-				{(ballot.Type === BallotType.WG ||
-					ballot.Type === BallotType.SA) && (
-					<>
-						<CheckboxListSelect
-							label="Ballot stage:"
-							options={BallotStageOptions}
-							value={
-								isMultiple(ballot.IsRecirc)
-									? ballot.IsRecirc
-									: ballot.IsRecirc
-									? 1
-									: 0
-							}
-							onChange={(value) =>
-								updateBallot({ IsRecirc: value ? true : false })
-							}
-							readOnly={readOnly}
-						/>
-						<ListItem>
-							<Checkbox
-								id="IsComplete"
-								checked={
-									isMultiple(ballot.IsComplete)
-										? false
-										: ballot.IsComplete
-								}
-								indeterminate={isMultiple(ballot.IsComplete)}
-								onChange={(e) =>
-									updateBallot({
-										IsComplete: e.target.checked,
-									})
-								}
-								disabled={readOnly}
-							/>
-							<label htmlFor="IsComplete">
-								Final in ballot series
-							</label>
-						</ListItem>
-					</>
-				)}
 			</Col>
 		</Row>
 	);

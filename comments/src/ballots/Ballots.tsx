@@ -27,13 +27,15 @@ import { AccessLevel } from "../store/user";
 import { selectWorkingGroupName } from "../store/groups";
 import {
 	fields,
-	BallotType,
+	getBallotId,
 	selectBallotsState,
 	selectBallotsAccess,
 	ballotsSelectors,
 	ballotsActions,
+	BallotType,
 	SyncedBallot,
 	Ballot,
+	selectBallotEntities,
 } from "../store/ballots";
 
 import BallotDetail from "./BallotDetail";
@@ -86,62 +88,38 @@ const renderCellTypeStage = ({ rowData }: { rowData: SyncedBallot }) => (
 	</>
 );
 
-const renderHeaderVotingPool = (props: HeaderCellRendererProps) => (
-	<>
-		<TableColumnHeader
-			{...props}
-			dataKey="VotingPoolID"
-			{...fields.VotingPoolID}
-		/>
-		<TableColumnHeader
-			{...props}
-			dataKey="PrevBallotID"
-			{...fields.PrevBallotID}
-		/>
-	</>
-);
-
 const GroupNameLink = (props: React.ComponentProps<typeof Link>) => {
 	const { to, ...rest } = props;
 	const groupName = useAppSelector(selectWorkingGroupName);
 	return <Link to={`/${groupName}/${to}`} {...rest} />;
 };
 
-const renderCellVotingPool = ({
-	rowData,
-	access,
-}: {
-	rowData: SyncedBallot;
-	access?: number;
-}) => {
-	const type = rowData.Type;
-	const isRecirc = rowData.IsRecirc;
-	const votingPoolSize = rowData.Results?.VotingPoolSize || 0;
-	const votersStr = `${votingPoolSize} voters`;
-	if ((type === BallotType.WG && !isRecirc) || type === BallotType.Motion) {
-		return typeof access === "number" && access >= AccessLevel.admin ? (
-			<GroupNameLink to={`/voters/${rowData.BallotID}`}>
-				{votersStr}
+function BallotVoters({ballot}: {ballot: Ballot}) {
+	const access = useAppSelector(selectBallotsAccess);
+	const entities = useAppSelector(selectBallotEntities);
+
+	// Find initial ballot
+	let ballotInitial = ballot;
+	while (ballotInitial.prev_id && entities[ballotInitial.prev_id])
+		ballotInitial = entities[ballotInitial.prev_id]!;
+
+	if ((ballotInitial.Type === BallotType.WG && !ballotInitial.IsRecirc) || ballotInitial.Type === BallotType.Motion) {
+		return access >= AccessLevel.admin ? (
+			<GroupNameLink to={`/voters/${getBallotId(ballot)}`}>
+				{ballotInitial.Voters}
 			</GroupNameLink>
 		) : (
-			votersStr
+			<>{ballotInitial.Voters}</>
 		);
 	}
-	if (type === BallotType.WG || type === BallotType.SA)
-		return rowData.PrevBallotID;
-	return "";
-};
+	return <></>;
+}
 
-export function renderResultsSummary({
-	rowData,
-	access,
-}: {
-	rowData: Ballot;
-	access?: number;
-}) {
-	const results = rowData.Results;
+export function BallotResults({ballot}: {ballot: Ballot}) {
+	const access = useAppSelector(selectBallotsAccess);
+	const results = ballot.Results;
 	let str = "";
-	if (rowData.Type === BallotType.CC) {
+	if (ballot.Type === BallotType.CC) {
 		const commenters = results?.Commenters || 0;
 		str = `${commenters} commenters`;
 	} else {
@@ -154,21 +132,34 @@ export function renderResultsSummary({
 		}
 		if (!str) str = "None";
 	}
-	return typeof access !== "undefined" && access >= AccessLevel.admin ? (
-		<GroupNameLink to={`/results/${rowData.BallotID}`}>{str}</GroupNameLink>
+	return access >= AccessLevel.admin ? (
+		<GroupNameLink to={`/results/${getBallotId(ballot)}`}>{str}</GroupNameLink>
 	) : (
-		str
+		<>{str}</>
 	);
 }
 
-export function renderCommentsSummary({ rowData }: { rowData: Ballot }) {
+export function renderComments({ rowData }: { rowData: Ballot }) {
 	const comments = rowData.Comments;
 	const str =
 		comments && comments.Count > 0
 			? `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
 			: "None";
 	return (
-		<GroupNameLink to={`/comments/${rowData.BallotID}`}>
+		<GroupNameLink to={`/comments/${getBallotId(rowData)}`}>
+			{str}
+		</GroupNameLink>
+	);
+}
+
+export function BallotComments({ballot}: {ballot: Ballot}) {
+	const comments = ballot.Comments;
+	const str =
+		comments && comments.Count > 0
+			? `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
+			: "None";
+	return (
+		<GroupNameLink to={`/comments/${getBallotId(ballot)}`}>
 			{str}
 		</GroupNameLink>
 	);
@@ -188,6 +179,14 @@ const tableColumns: ColumnProperties[] = [
 				{...p}
 			/>
 		),
+	},
+	{
+		key: "BallotID",
+		label: "ID",
+		width: 100,
+		flexShrink: 1,
+		flexGrow: 1,
+		dropdownWidth: 200,
 	},
 	{
 		key: "Group/Project",
@@ -214,14 +213,6 @@ const tableColumns: ColumnProperties[] = [
 		dropdownWidth: 200,
 	},
 	{
-		key: "BallotID",
-		label: "Ballot",
-		width: 100,
-		flexShrink: 1,
-		flexGrow: 1,
-		dropdownWidth: 200,
-	},
-	{
 		key: "Type/Stage",
 		label: "Type/Stage",
 		headerRenderer: renderHeaderTypeStage,
@@ -231,6 +222,7 @@ const tableColumns: ColumnProperties[] = [
 		flexGrow: 1,
 	},
 	{ key: "Type", ...fields.Type, width: 100, flexShrink: 1, flexGrow: 1 },
+	{ key: "number", label: "Number", width: 100, flexShrink: 1, flexGrow: 1 },
 	{ key: "Stage", label: "Stage", width: 100, flexShrink: 1, flexGrow: 1 },
 	{
 		key: "Start/End",
@@ -278,29 +270,35 @@ const tableColumns: ColumnProperties[] = [
 		dropdownWidth: 200,
 	},
 	{
-		key: "VotingPool/PrevBallot",
-		label: "Voting pool/Prev ballot",
+		key: "PrevBallotID",
+		label: "Prev ballot",
 		width: 100,
 		flexShrink: 1,
 		flexGrow: 1,
-		headerRenderer: renderHeaderVotingPool,
-		cellRenderer: renderCellVotingPool,
+	},
+	{
+		key: "Voters",
+		label: "Voters",
+		width: 100,
+		flexShrink: 1,
+		flexGrow: 1,
+		cellRenderer: ({rowData}) => <BallotVoters ballot={rowData} />,
 	},
 	{
 		key: "Results",
-		...fields.Results,
+		label: "Results",
 		width: 150,
 		flexShrink: 1,
 		flexGrow: 1,
-		cellRenderer: renderResultsSummary,
+		cellRenderer: ({rowData}) => <BallotResults ballot={rowData} />,
 	},
 	{
 		key: "Comments",
-		...fields.Comments,
+		label: "Comments",
 		width: 100,
 		flexShrink: 1,
 		flexGrow: 1,
-		cellRenderer: renderCommentsSummary,
+		cellRenderer: ({rowData}) => <BallotComments ballot={rowData} />,
 	},
 ];
 
@@ -322,7 +320,7 @@ const defaultTablesColumns = {
 		"Start/End",
 		"Document",
 		"Topic",
-		"VotingPool/PrevBallot",
+		"Voters",
 		"Results",
 		"Comments",
 	],
@@ -376,27 +374,6 @@ function Ballots() {
 
 	const refresh = () => navigate(".", {replace: true});
 	const showEpolls = () => navigate(`/${groupName}/epolls/`);
-
-	const columns = React.useMemo(() => {
-		return tableColumns.slice().map((col) => {
-			let newCol: ColumnProperties = col;
-			if (col.key === "Results") {
-				newCol = {
-					...col,
-					cellRenderer: (props) =>
-						renderResultsSummary({ ...props, access }),
-				};
-			}
-			if (col.key === "VotingPool/PrevBallot") {
-				newCol = {
-					...col,
-					cellRenderer: (props) =>
-						renderCellVotingPool({ ...props, access }),
-				};
-			}
-			return newCol;
-		});
-	}, [access]);
 
 	return (
 		<>
@@ -457,7 +434,7 @@ function Ballots() {
 				<Panel>
 					<AppTable
 						defaultTablesConfig={defaultTablesConfig}
-						columns={columns}
+						columns={tableColumns}
 						headerHeight={42}
 						estimatedRowHeight={42}
 						rowGetter={getRow}

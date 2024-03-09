@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
 	AppTable,
@@ -7,13 +8,12 @@ import {
 	ConfirmModal,
 	ActionButton,
 	ColumnProperties,
+	displayDateRange
 } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { selectIsOnline } from "../store/offline";
 import {
-	loadVoters,
-	clearVoters,
 	deleteVoters,
 	exportVoters,
 	selectVotersState,
@@ -23,10 +23,31 @@ import {
 	Voter,
 	VoterCreate,
 } from "../store/voters";
+import {
+	getBallotId,
+	selectBallotSeries
+} from "../store/ballots";
 
 import VotersImportButton from "./VotersImport";
 import VoterEditModal from "./VoterEdit";
-import BallotSelector from "../components/InitialWGBallotSelector";
+import ProjectBallotSelector from "../components/ProjectBallotSelector";
+
+
+function BallotSeriesSummary() {
+	const ballotSeries_id = useAppSelector(selectVotersBallot_id);
+	const ballotSeries = useAppSelector((state) => ballotSeries_id? selectBallotSeries(state, ballotSeries_id): undefined);
+
+	return (
+		<div style={{display: 'flex'}}>
+			{ballotSeries?.map(b => (
+				<div key={b.id} style={{display: 'flex', flexDirection: 'column', margin: '0 20px'}}>
+					<span>{getBallotId(b)}</span>
+					<span>{displayDateRange(b.Start!, b.End!)}</span>
+				</div>
+			))}
+		</div>
+	)
+}
 
 const RowActions = ({
 	onEdit,
@@ -94,13 +115,13 @@ type VotersState = {
 
 function Voters() {
 	const dispatch = useAppDispatch();
+	const navigate = useNavigate();
 
 	const isOnline = useAppSelector(selectIsOnline);
 
 	const votersBallot_id = useAppSelector(selectVotersBallot_id);
 
-	const refresh = () =>
-		dispatch(votersBallot_id ? loadVoters(votersBallot_id) : clearVoters());
+	const refresh = () => navigate(".", {replace: true});
 
 	const [editVoter, setEditVoter] = React.useState<VotersState>({
 		action: null,
@@ -152,7 +173,7 @@ function Voters() {
 	return (
 		<>
 			<div className="top-row" style={{ maxWidth }}>
-				<BallotSelector />
+				<ProjectBallotSelector />
 				<div style={{ display: "flex" }}>
 					<ActionButton
 						name="add"
@@ -180,6 +201,10 @@ function Voters() {
 						disabled={loading || !isOnline}
 					/>
 				</div>
+			</div>
+
+			<div className="top-row" style={{ maxWidth }}>
+				<BallotSeriesSummary />
 			</div>
 
 			<div className="table-container centered-rows" style={{ maxWidth }}>
