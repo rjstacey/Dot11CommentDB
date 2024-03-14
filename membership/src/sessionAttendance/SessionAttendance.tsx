@@ -236,7 +236,6 @@ function sessionAttendeeToMember(attendee: SessionAttendee) {
 		Email: attendee.Email,
 		Affiliation: attendee.Affiliation,
 		Status: "Non-Voter",
-		Access: 0,
 		ContactInfo: attendee.ContactInfo,
 	};
 	return member;
@@ -334,6 +333,13 @@ function InportAttendeeForm({ methods }: DropdownRendererProps) {
 	);
 }
 
+function copyToClipboard(text: string) {
+	const type = "text/plain";
+	const blob = new Blob([text], { type });
+	const data = [new ClipboardItem({ [type]: blob })];
+	navigator.clipboard.write(data);
+}
+
 function SessionAttendance() {
 	const dispatch = useAppDispatch();
 	const { groupName } = useParams();
@@ -353,6 +359,17 @@ function SessionAttendance() {
 				: clearSessionAttendees()
 		);
 	const refresh = () => load(sessionId);
+
+	const {entities} = useAppSelector(selectSessionAttendeesState);
+	const ids = useAppSelector(sessionAttendeesSelectors.selectSortedFilteredIds)
+	function copyEmails() {
+		let s = "";
+		for (const id of ids) {
+			const m = entities[id]!;
+			s += `${m.Name} <${m.Email}>;`
+		}
+		copyToClipboard(s);
+	}
 
 	return (
 		<>
@@ -379,8 +396,8 @@ function SessionAttendance() {
 					</div>
 				</div>
 				{loading && <Spinner />}
-				<div style={{ display: "flex" }}>
-					<ButtonGroup>
+				<div className="control-group">
+					<ButtonGroup className="button-group">
 						<div>Table view</div>
 						<div style={{ display: "flex" }}>
 							<TableViewSelector
@@ -398,6 +415,11 @@ function SessionAttendance() {
 							/>
 						</div>
 					</ButtonGroup>
+					<ActionButton
+						name="copy"
+						title="Copy email addresses"
+						onClick={copyEmails}
+					/>
 					<ActionButtonDropdown
 						name="import"
 						title="Import new attendees"

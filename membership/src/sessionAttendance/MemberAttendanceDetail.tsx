@@ -87,7 +87,6 @@ function sessionAttendeeToNewMember(attendee: SessionAttendee) {
 		StatusChangeOverride: false,
 		StatusChangeDate: date,
 		DateAdded: date,
-		Access: 0
 	};
 
 	return member;

@@ -18,7 +18,7 @@ import {
 import { resetStore } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { AccessLevel, setUser, selectUser } from "../store/user";
-import { selectWorkingGroupByName } from "../store/groups";
+import { GroupType, selectWorkingGroupByName } from "../store/groups";
 
 import routes, { AppRoute } from "./routes";
 
@@ -30,6 +30,7 @@ type MenuPathItem = {
 	path: string;
 	label: string;
 	minAccess?: number;
+	groupTypes: GroupType[];
 };
 
 type MenuLinkItem = {
@@ -56,6 +57,7 @@ function useMenuPaths() {
 						path,
 						label: route.menuLabel,
 						minAccess: route.minAccess,
+						groupTypes: route.groupTypes || [],
 					});
 				if (route.children)
 					route.children.forEach((route) => getMenuItem(path, route));
@@ -71,19 +73,21 @@ function useMenuLinks() {
 	const group = useAppSelector((state) =>
 		selectWorkingGroupByName(state, groupName!)
 	);
-	const access = group?.permissions.meetings || AccessLevel.none;
 	const menuPaths = useMenuPaths();
 
 	const menu: MenuLinkItem[] = React.useMemo(() => {
+		if (!group)
+			return [];
+		const access = group.permissions.meetings || AccessLevel.none;
 		return menuPaths
-			.filter((m) => access >= (m.minAccess || AccessLevel.none))
+			.filter((m) => access >= (m.minAccess || AccessLevel.none) && m.groupTypes.includes(group.type!))
 			.map((m) => {
 				const link = m.path
-					.replace(":groupName", groupName)
+					.replace(":groupName", group.name)
 					.replace(/\/:[^/]+\?/, ""); // remove optional parameters
 				return { ...m, link };
 			});
-	}, [menuPaths, access, groupName]);
+	}, [menuPaths, group]);
 
 	return menu;
 }

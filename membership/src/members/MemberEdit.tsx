@@ -40,7 +40,6 @@ import StatusSelector from "./StatusSelector";
 import MemberSelector from "./MemberAllSelector";
 import MemberStatusChangeHistory from "./MemberStatusChange";
 import MemberContactInfo from "./MemberContactInfo";
-import MemberPermissions from "./MemberPermissions";
 import MemberAttendances from "../sessionParticipation/MemberAttendances";
 import MemberBallotParticipation from "../ballotParticipation/MemberBallotParticipation";
 
@@ -136,7 +135,6 @@ function MemberDetailInfo({
 		>
 			<TabList>
 				<Tab>Contact info</Tab>
-				<Tab>Permissions</Tab>
 				<Tab>Status history</Tab>
 				<Tab>{`Session participation ${sessionSumary}`}</Tab>
 				<Tab>{`Ballot participation ${ballotSummary}`}</Tab>
@@ -146,13 +144,6 @@ function MemberDetailInfo({
 					edited={member}
 					saved={saved}
 					onChange={updateMember}
-					readOnly={readOnly}
-				/>
-			</TabPanel>
-			<TabPanel>
-				<MemberPermissions
-					member={member}
-					updateMember={updateMember}
 					readOnly={readOnly}
 				/>
 			</TabPanel>

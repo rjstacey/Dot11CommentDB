@@ -68,11 +68,9 @@ export type MemberCommon = {
 	Employer: string;
 	Affiliation: string;
 	Status: string;
-	Access: number;
 };
 
 export type MemberExtra = {
-	Permissions: string[];
 	ContactEmails: MemberContactEmail[];
 	ContactInfo: MemberContactInfo;
 	StatusChangeOverride: boolean;
@@ -85,13 +83,6 @@ export type MemberExtra = {
 	ObsoleteSAPINs: number[];
 	ReplacedBySAPIN: number | null;
 };
-
-export const AccessLevelOptions = [
-	{ value: 0, label: "public" },
-	{ value: 1, label: "member" },
-	{ value: 2, label: "tg_admin" },
-	{ value: 3, label: "wg_admin" },
-];
 
 export type MemberUpdateExtra = {
 	StatusChangeReason: string;
@@ -119,11 +110,6 @@ export const fields = {
 		label: "Status change date",
 		dataRenderer: displayDate,
 		type: FieldType.DATE,
-	},
-	Access: {
-		label: "Access level",
-		type: FieldType.NUMERIC,
-		options: AccessLevelOptions,
 	},
 	AttendancesSummary: { label: "Session participation" },
 	BallotParticipationSummary: { label: "Ballot participation" },
@@ -287,7 +273,9 @@ export const selectUserMembersAccess = (state: RootState) => {
 
 /* Thunk actions */
 function validMember(member: any): member is Member {
-	return isObject(member) && typeof member.SAPIN === "number";
+	return isObject(member) &&
+		typeof member.SAPIN === "number" &&
+		Array.isArray(member.StatusChangeHistory);
 }
 
 function validResponse(members: unknown): members is Member[] {

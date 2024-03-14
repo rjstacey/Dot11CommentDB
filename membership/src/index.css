@@ -33,15 +33,29 @@ div#root {
 
 .top-row {
 	display: flex;
+	flex-wrap: wrap;
 	justify-content: space-between;
 	align-items: center;
 	width: 100%;
-	padding: 10px;
+	padding: 0 10px;
+	margin: 10px 0;
 	box-sizing: border-box;
 }
 
 .top-row.justify-right {
 	justify-content: flex-end;
+}
+
+.control-group {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+}
+
+.button-group {
+	flex-wrap: wrap;
+	margin: 5px 5px;
 }
 
 .table-container {

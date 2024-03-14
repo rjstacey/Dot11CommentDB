@@ -101,18 +101,17 @@ function SessionSummary() {
 	const sessions = useAppSelector(selectAttendanceSessions);
 
 	return (
-		<>
+		<div style={{display: 'flex', overflow: 'auto', margin: '10px 0'}}>
 			{sessions.map((session) => (
 				<div
 					key={session.id}
 					style={{
 						display: "flex",
 						flexDirection: "column",
-						flex: 1,
-						overflow: "hidden",
+						margin: '0 5px'
 					}}
 				>
-					<div>
+					<div style={{whiteSpace: 'nowrap'}}>
 						{session.number}{" "}
 						{session.type === "p" ? "Plenary: " : "Interim: "}{" "}
 						{displayDateRange(session.startDate, session.endDate)}
@@ -122,6 +121,7 @@ function SessionSummary() {
 							whiteSpace: "nowrap",
 							textOverflow: "ellipsis",
 							overflow: "hidden",
+							maxWidth: 200
 						}}
 					>
 						{session.name}
@@ -144,7 +144,7 @@ function SessionSummary() {
 					</div>
 				</div>
 			))}
-		</>
+		</div>
 	);
 }
 
@@ -276,7 +276,7 @@ function Attendances() {
 			<div className="top-row">
 				<SessionSummary />
 
-				<div style={{ display: "flex" }}>
+				<div className="control-group">
 					<BulkStatusUpdate isSession={true} />
 					<TableColumnSelector
 						selectors={attendancesSelectors}

@@ -15,6 +15,7 @@ import {
 	loadGroups,
 	selectGroupsState,
 	setWorkingGroupId,
+	GroupType,
 } from "../store/groups";
 import { loadMembers } from "../store/members";
 import { loadOfficers } from "../store/officers";
@@ -191,6 +192,7 @@ function ErrorPage() {
 export type AppRoute = RouteObject & {
 	minAccess?: number;
 	menuLabel?: string;
+	groupTypes?: GroupType[];
 };
 
 const groupRoutes_ungated: AppRoute[] = [
@@ -200,6 +202,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <Members />,
 		loader: membersLoader,
 		minAccess: AccessLevel.admin,
+		groupTypes: ['r', 'c', 'wg']
 	},
 	{
 		menuLabel: "Groups",
@@ -207,6 +210,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <Groups />,
 		loader: groupsLoader,
 		minAccess: AccessLevel.ro,
+		groupTypes: ['r', 'c', 'wg']
 	},
 	{
 		menuLabel: "Session participation",
@@ -214,6 +218,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <SessionParticipation />,
 		loader: sessionParticipationLoader,
 		minAccess: AccessLevel.admin,
+		groupTypes: ['c', 'wg']
 	},
 	{
 		menuLabel: "Ballot pariticipation",
@@ -221,6 +226,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <BallotParticipation />,
 		loader: ballotParticipationLoader,
 		minAccess: AccessLevel.admin,
+		groupTypes: ['c', 'wg']
 	},
 	{
 		menuLabel: "Session attendance",
@@ -228,6 +234,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <SessionAttendance />,
 		loader: sessionAttendanceLoader,
 		minAccess: AccessLevel.admin,
+		groupTypes: ['c', 'wg']
 	},
 	{
 		menuLabel: "Notification",
@@ -235,6 +242,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <Notification />,
 		loader: notificationsLoader,
 		minAccess: AccessLevel.admin,
+		groupTypes: ['c', 'wg']
 	},
 	{
 		menuLabel: "Reports",
@@ -242,6 +250,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <Reports />,
 		loader: membersLoader,
 		minAccess: AccessLevel.ro,
+		groupTypes: ['c', 'wg']
 	},
 ];
 

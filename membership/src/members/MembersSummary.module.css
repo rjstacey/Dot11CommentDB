@@ -1,16 +1,13 @@
 .container {
 	display: flex;
 	align-items: center;
-	width: 80%;
-	padding: 0 10px 10px 10px;
-	box-sizing: border-box;
 }
 
 .labelValue {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	margin-right: 20px;
+	margin: 0 10px;
 }
 
 .labelValue label {

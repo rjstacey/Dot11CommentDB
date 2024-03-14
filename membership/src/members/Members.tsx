@@ -282,20 +282,20 @@ function Members() {
 		<>
 			<div className="top-row">
 				<MembersSummary />
-				<div style={{ display: "flex" }}>
+				<div className="control-group">
 					<SplitTableButtonGroup
 						columns={tableColumns}
 						selectors={membersSelectors}
 						actions={membersActions}
 					/>
-					<ButtonGroup>
+					<ButtonGroup className="button-group">
 						<div>Roster</div>
 						<div style={{ display: "flex" }}>
 							<RosterImport />
 							<RosterExport />
 						</div>
 					</ButtonGroup>
-					<ButtonGroup>
+					<ButtonGroup className="button-group">
 						<div>Edit</div>
 						<div style={{ display: "flex" }}>
 							<ActionButton
