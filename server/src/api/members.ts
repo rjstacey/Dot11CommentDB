@@ -39,10 +39,7 @@ router
 		const { group, user } = req;
 		if (!group) return next(new Error("Group not set"));
 
-		const access = Math.max(
-			group.permissions.members || AccessLevel.none,
-			user.Access
-		);
+		const access = group.permissions.members || AccessLevel.none;
 
 		if (req.method === "GET" && access >= AccessLevel.ro) return next();
 		// Need read-write privileges to update resolutions
@@ -57,39 +54,45 @@ router
 		next(new ForbiddenError("Insufficient karma"));
 	})
 	.get("/snapshot", async (req, res, next) => {
+		const group = req.group!;
 		try {
 			const { date } = req.body;
-			const data = await getMembersSnapshot(date);
+			const data = await getMembersSnapshot(group.id, date);
 			res.json(data);
 		} catch (err) {
 			next(err);
 		}
 	})
 	.post("/upload/:format", upload.single("File"), async (req, res, next) => {
+		const group = req.group!;
 		const { format } = req.params;
 		if (!req.file) return next(new TypeError("Missing file"));
-		uploadMembers(format, req.file)
+		uploadMembers(group.id, format, req.file)
 			.then((data) => res.json(data))
 			.catch(next);
 	})
 	.post("/MyProjectRoster", upload.single("File"), (req, res, next) => {
+		const group = req.group!;
 		if (!req.file) return next(new TypeError("Missing file"));
-		importMyProjectRoster(req.file)
+		importMyProjectRoster(group.id, req.file)
 			.then((data) => res.json(data))
 			.catch(next);
 	})
 	.get("/MyProjectRoster", (req, res, next) => {
-		exportMyProjectRoster(req.user, res)
+		const group = req.group!;
+		exportMyProjectRoster(req.user, group.id, res)
 			.then(() => res.end())
 			.catch(next);
 	})
 	.route("/")
 		.get((req, res, next) => {
-			getMembers()
+			const group = req.group!;
+			getMembers({groupId: group.id})
 				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.post((req, res, next) => {
+			const group = req.group!;
 			const members = req.body;
 			if (!Array.isArray(members))
 				return next(
@@ -97,11 +100,12 @@ router
 				);
 			if (!members.every((member) => isPlainObject(member)))
 				return next(new TypeError("Expected an array of objects"));
-			addMembers(members)
+			addMembers(group.id, members)
 				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.patch((req, res, next) => {
+			const group = req.group!;
 			const updates = req.body;
 			if (!Array.isArray(updates))
 				return next(
@@ -120,11 +124,12 @@ router
 						"Expected an array of objects with shape {id, changes}"
 					)
 				);
-			updateMembers(updates)
+			updateMembers(group.id, updates)
 				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.delete((req, res, next) => {
+			const group = req.group!;
 			const ids = req.body;
 			if (!Array.isArray(ids))
 				return next(
@@ -132,17 +137,18 @@ router
 				);
 			if (!ids.every((id) => typeof id === "number"))
 				return next(new TypeError("Expected an array of numbers"));
-			deleteMembers(ids)
+			deleteMembers(group.id, ids)
 				.then((data) => res.json(data))
 				.catch(next);
 		});
 
 router.patch("/:id(\\d+)$", async (req, res, next) => {
+	const group = req.group!;
 	const id = Number(req.params.id);
 	const changes = req.body;
 	if (typeof changes !== "object")
 		return next(new TypeError("Bad or missing body; expected object"));
-	updateMembers([{ id, changes }])
+	updateMembers(group.id, [{ id, changes }])
 		.then((data) => res.json(data))
 		.catch(next);
 });
@@ -150,20 +156,23 @@ router.patch("/:id(\\d+)$", async (req, res, next) => {
 router
 	.route("/:id(\\d+)/StatusChangeHistory")
 		.put((req, res, next) => {
+			const group = req.group!;
 			const id = Number(req.params.id);
-			addMemberStatusChangeEntries(id, req.body)
+			addMemberStatusChangeEntries(group.id, id, req.body)
 				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.patch((req, res, next) => {
+			const group = req.group!;
 			const id = Number(req.params.id);
-			updateMemberStatusChangeEntries(id, req.body)
+			updateMemberStatusChangeEntries(group.id, id, req.body)
 				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.delete((req, res, next) => {
+			const group = req.group!;
 			const id = Number(req.params.id);
-			deleteMemberStatusChangeEntries(id, req.body)
+			deleteMemberStatusChangeEntries(group.id, id, req.body)
 				.then((data) => res.json(data))
 				.catch(next);
 		});
@@ -171,35 +180,38 @@ router
 router
 	.route("/:id(\\d+)/ContactEmails")
 		.patch((req, res, next) => {
+			const group = req.group!;
 			const id = Number(req.params.id);
 			const entry = req.body;
 			if (typeof entry !== "object")
 				return next(
 					new TypeError("Missing or bad ContactEmails row object")
 				);
-			updateMemberContactEmail(id, entry)
+			updateMemberContactEmail(group.id, id, entry)
 				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.post((req, res, next) => {
+			const group = req.group!;
 			const id = Number(req.params.id);
 			const entry = req.body;
 			if (typeof entry !== "object")
 				return next(
 					new TypeError("Missing or bad ContactEmails row object")
 				);
-			addMemberContactEmail(id, entry)
+			addMemberContactEmail(group.id, id, entry)
 				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.delete((req, res, next) => {
+			const group = req.group!;
 			const id = Number(req.params.id);
 			const entry = req.body;
 			if (typeof entry !== "object")
 				return next(
 					new TypeError("Missing or bad ContactEmails row object")
 				);
-			deleteMemberContactEmail(id, entry)
+			deleteMemberContactEmail(group.id, id, entry)
 				.then((data) => res.json(data))
 				.catch(next);
 		});

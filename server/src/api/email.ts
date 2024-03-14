@@ -20,10 +20,7 @@ router
 		const { group, user } = req;
 		if (!group) return next(new Error("Group not set"));
 
-		const access = Math.max(
-			group.permissions.members || AccessLevel.none,
-			user.Access
-		);
+		const access = group.permissions.members || AccessLevel.none;
 		if (access >= AccessLevel.admin) return next();
 
 		next(new ForbiddenError("Insufficient karma"));

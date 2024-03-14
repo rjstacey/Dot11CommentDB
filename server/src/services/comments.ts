@@ -14,7 +14,7 @@ import { parseMyProjectComments } from "./myProjectSpreadsheets";
 import { parsePublicReviewComments } from "./publicReviewSpreadsheets";
 import { BallotType, Ballot, getBallotWithNewResultsSummary } from "./ballots";
 import { type Resolution } from "./resolutions";
-import { type User } from "./users";
+import { selectUser, type User } from "./users";
 import { getMember } from "./members";
 import { AccessLevel } from "../auth/access";
 import { getGroups } from "./groups";
@@ -510,10 +510,9 @@ export async function uploadUserComments(
 	sapin: number,
 	file: Express.Multer.File
 ) {
-	const commenter = await getMember(sapin);
-	if (!commenter) {
-		throw new NotFoundError(`Member SAPIN=${sapin} not found`);
-	}
+	const commenter = await selectUser({SAPIN: sapin});
+	if (!commenter)
+		throw new NotFoundError(`User SAPIN=${sapin} not found`);
 
 	const { MaxCommentId, MaxIndex } = await getHighestIndexes(ballot.id);
 	const startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;

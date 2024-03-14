@@ -15,8 +15,10 @@ router
 		next(new ForbiddenError("Insufficient karma"));
 	})
 	.get("/", (req, res, next) => {
-		const access = req.group!.permissions.users || AccessLevel.none;
-		selectUsers(req.user, access)
+		const group = req.group!;
+		const groupId = group.id;
+		const access = group.permissions.users || AccessLevel.none;
+		selectUsers(req.user, groupId, access)
 			.then((data) => res.json(data))
 			.catch(next);
 	});

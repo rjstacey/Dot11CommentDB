@@ -52,10 +52,7 @@ router
 		const { user, group } = req;
 		if (!group) return next(new Error("Group not set"));
 
-		const access = Math.max(
-			group.permissions.meetings || AccessLevel.none,
-			user.Access
-		);
+		const access = group.permissions.meetings || AccessLevel.none;
 
 		if (req.method === "GET" && access >= AccessLevel.ro) return next();
 		if (req.method === "PATCH" && access >= AccessLevel.rw) return next();

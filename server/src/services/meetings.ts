@@ -117,13 +117,12 @@ function selectMeetingsSql(constraints: SelectMeetingsConstraints) {
 
 	if (sessionId) {
 		wheres.push(db.format("m.sessionId=?", [sessionId]));
-	} else {
-		if (!fromDate) {
-			const date = DateTime.now().toUTC();
-			wheres.push(
-				db.format("end > ?", date.toFormat("yyyy-MM-dd HH:mm:ss"))
-			);
-		}
+	} else if (Object.keys(rest).length === 0 && !fromDate) {
+		/* Without other constraints, default fromDate is now */
+		const date = DateTime.now().toUTC();
+		wheres.push(
+			db.format("end > ?", date.toFormat("yyyy-MM-dd HH:mm:ss"))
+		);
 	}
 
 	if (fromDate) {

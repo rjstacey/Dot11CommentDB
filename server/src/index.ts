@@ -13,6 +13,7 @@ import oauth2 from "./auth/oauth2";
 import api from "./api/router";
 
 import { init as initDatabaseConnection } from "./utils/database";
+import { init as initMembers } from "./services/members";
 import { init as initComments } from "./services/comments";
 import { init as initCommentHistory } from "./services/commentHistory";
 import { init as webexInit } from "./services/webex";
@@ -37,6 +38,10 @@ async function initDatabase() {
 
 async function initServices() {
 	try {
+		process.stdout.write("init members... ");
+		await initMembers();
+		process.stdout.write("success\n");
+
 		process.stdout.write("init comments... ");
 		await initComments();
 		process.stdout.write("success\n");

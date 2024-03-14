@@ -219,9 +219,9 @@ const epollUserCommentsHeader = [
 ];
 
 function parseUserComment(
+	user: User,
 	CommentID: number,
 	C_Index: number,
-	commenter: Member,
 	c: string[]
 ): EpollComment {
 	let C_Page = c[2] ? c[2].trim() : "";
@@ -231,8 +231,8 @@ function parseUserComment(
 	return {
 		CommentID,
 		C_Index,
-		CommenterSAPIN: commenter.SAPIN,
-		CommenterName: commenter.Name,
+		CommenterSAPIN: user.SAPIN,
+		CommenterName: user.Name,
 		Comment: c[0] as string,
 		Category: c[1] ? c[1].charAt(0) : "T", // First letter only (G, T or E), T if blank
 		C_Page,
@@ -246,7 +246,7 @@ function parseUserComment(
 }
 
 export async function parseEpollUserComments(
-	commenter: Member,
+	user: User,
 	startCommentId: number,
 	startIndex: number,
 	file: BasicFile
@@ -255,9 +255,9 @@ export async function parseEpollUserComments(
 
 	return rows.map((row, index) =>
 		parseUserComment(
+			user,
 			startCommentId + index,
 			startIndex + index,
-			commenter,
 			row
 		)
 	);
