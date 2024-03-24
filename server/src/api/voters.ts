@@ -40,8 +40,8 @@ router
 				.catch(next);
 		})
 		.post((req, res, next) => {
-			const ballot_id = req.ballot!.id;
-			addVoters(ballot_id, req.body)
+			const ballot = req.ballot!;
+			addVoters(ballot.id, req.body)
 				.then((data) => res.json(data))
 				.catch(next);
 		})
@@ -53,18 +53,19 @@ router
 
 router
 	.get("/export", (req, res, next) => {
-		const ballot_id = req.ballot!.id;
-		exportVoters(ballot_id, res).catch(next);
+		const ballot = req.ballot!;
+		exportVoters(ballot.id, res).catch(next);
 	})
 	.post("/upload", upload.single("File"), (req, res, next) => {
-		const ballot_id = req.ballot!.id;
+		const ballot = req.ballot!;
 		if (!req.file) return next(new TypeError("Missing file"));
-		uploadVoters(ballot_id, req.file)
+		uploadVoters(ballot.id, req.file)
 			.then((data) => res.json(data))
 			.catch(next);
 	})
 	.post("/membersSnapshot", (req, res, next) => {
-		const ballot_id = req.ballot!.id;
+		const group = req.group!;
+		const ballot = req.ballot!;
 		if (!isPlainObject(req.body) || !req.body.hasOwnProperty("date"))
 			return next(
 				new TypeError(
@@ -72,7 +73,7 @@ router
 				)
 			);
 		const { date } = req.body;
-		votersFromMembersSnapshot(ballot_id, date)
+		votersFromMembersSnapshot(group.id, ballot.id, date)
 			.then((data) => res.json(data))
 			.catch(next);
 	});

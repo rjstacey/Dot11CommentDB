@@ -964,12 +964,6 @@ async function meetingToBreakout(
 		creditOverrideNumerator = 0,
 		creditOverrideDenominator = 0;
 
-	if (breakout) {
-		credit = breakout.credit;
-		creditOverrideNumerator = breakout.creditOverrideNumerator;
-		creditOverrideDenominator = breakout.creditOverrideDenominator;
-	}
-
 	if (session && (session.type === 'p' || session.type === 'i')) {
 		if (Array.isArray(session.rooms)) {
 			const room = session.rooms.find(room => room.id === meeting.roomId);
@@ -997,6 +991,13 @@ async function meetingToBreakout(
 	if (!location && meeting.webexAccountId && webexMeeting)
 		location = await webexMeetingImatLocation(meeting.webexAccountId, webexMeeting);
 
+	// We often change the credit in IMAT itself. So if this is an update use the existing setting.
+	if (breakout) {
+		credit = breakout.credit;
+		creditOverrideNumerator = breakout.creditOverrideNumerator;
+		creditOverrideDenominator = breakout.creditOverrideDenominator;
+	}
+	
 	if (!credit) {
 		credit = 'Zero';
 		creditOverrideNumerator = 0;
@@ -1080,9 +1081,6 @@ export async function updateImatBreakoutFromMeeting(
 	updatedBreakout.id = imatBreakoutId;
 	updatedBreakout.editContext = breakout.editContext;
 	updatedBreakout.editGroupId = breakout.editGroupId;
-	updatedBreakout.credit = breakout.credit;	// don't update credit (this is often overriden in imat itself)
-	updatedBreakout.creditOverrideNumerator = breakout.creditOverrideNumerator;
-	updatedBreakout.creditOverrideDenominator = breakout.creditOverrideDenominator;
 
 	const startSlot = timeslots.find(s => s.id === updatedBreakout.startSlotId)!;
 	const endSlot = timeslots.find(s => s.id === updatedBreakout.endSlotId)!;
@@ -1093,10 +1091,10 @@ export async function updateImatBreakoutFromMeeting(
 		breakout.day !== updatedBreakout.day ||
 		breakout.location !== updatedBreakout.location ||
 		//breakout.facilitator !== updatedBreakout.facilitator ||
-		//breakout.credit !== updatedBreakout.creadit ||
-		//(breakout.credit === 'Other' &&
-		// (breakout.creditOverrideNumerator !== updatedBreakout.creditOverrideNumerator ||
-		//  breakout.creditOverrideDenominator !== updatedBreakout.creditOverrideDenominator)) ||
+		breakout.credit !== updatedBreakout.credit ||
+		(breakout.credit === 'Other' &&
+		 (breakout.creditOverrideNumerator !== updatedBreakout.creditOverrideNumerator ||
+		  breakout.creditOverrideDenominator !== updatedBreakout.creditOverrideDenominator)) ||
 		breakout.startSlotId !== updatedBreakout.startSlotId ||
 		breakout.endSlotId !== updatedBreakout.endSlotId ||
 		breakout.startTime !== (updatedBreakout.startTime || startSlot.startTime) ||

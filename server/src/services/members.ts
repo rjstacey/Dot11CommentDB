@@ -397,6 +397,20 @@ function memberEntry(m: Partial<Member>) {
 	return entry;
 }
 
+function memberSetsSql(entry: Partial<MemberDB>) {
+	let sets: string[] = [];
+	Object.entries(entry).forEach(([key, value]) => {
+		sets.push(
+			db.format(key === "groupId" ? "??=UUID_TO_BIN(?)" : "??=?", [
+				key,
+				value,
+			])
+		);
+	});
+
+	return sets.join(", ");
+}
+
 async function addMember(groupId: string, member: Member) {
 	let sql: string;
 
@@ -413,7 +427,7 @@ async function addMember(groupId: string, member: Member) {
 	mEntry.groupId = groupId;
 	mEntry.SAPIN = SAPIN;
 
-	sql += "INSERT INTO groupMembers SET " + db.escape(mEntry) + ";";
+	sql += "INSERT INTO groupMembers SET " + memberSetsSql(mEntry) + ";";
 	await db.query(sql);
 
 	return getMember(groupId, SAPIN);

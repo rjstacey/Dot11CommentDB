@@ -275,10 +275,11 @@ export async function uploadVoters(
 }
 
 export async function votersFromMembersSnapshot(
+	groupId: string,
 	ballot_id: number,
 	date: string
 ) {
-	const members = await getMembersSnapshot(date);
+	const members = await getMembersSnapshot(groupId, date);
 	const voters = members.filter(
 		(m) => m.Status === "Voter" || m.Status === "ExOfficio"
 	);
