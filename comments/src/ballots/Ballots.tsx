@@ -378,7 +378,7 @@ function Ballots() {
 	return (
 		<>
 			<div className="top-row justify-right">
-				<ButtonGroup>
+				<ButtonGroup className="button-group">
 					<div>Table view</div>
 					<div style={{ display: "flex" }}>
 						<TableViewSelector
@@ -407,7 +407,7 @@ function Ballots() {
 					</div>
 				</ButtonGroup>
 				{access >= AccessLevel.admin && (
-					<ButtonGroup>
+					<ButtonGroup className="button-group">
 						<div>Edit</div>
 						<ActionButton
 							name="import"

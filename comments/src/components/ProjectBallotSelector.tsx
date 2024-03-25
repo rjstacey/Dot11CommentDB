@@ -113,22 +113,26 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 
 	return (
 		<div className={styles.main}>
-			<label>Project:</label>
-			<ProjectSelect
-				style={{ minWidth: 150, marginRight: 20 }}
-				value={{ groupId: currentGroupId, project: currentProject }}
-				onChange={handleProjectChange}
-				loading={loading && !valid}
-				readOnly={readOnly}
-			/>
-			<label>Ballot:</label>
-			<BallotSelect
-				style={{ minWidth: 250 }}
-				value={currentBallot_id}
-				onChange={handleBallotChange}
-				loading={loading && !valid}
-				readOnly={readOnly}
-			/>
+			<div className={styles.selector}>
+				<label>Project:</label>
+				<ProjectSelect
+					style={{ minWidth: 150, marginRight: 20 }}
+					value={{ groupId: currentGroupId, project: currentProject }}
+					onChange={handleProjectChange}
+					loading={loading && !valid}
+					readOnly={readOnly}
+				/>
+			</div>
+			<div className={styles.selector}>
+				<label>Ballot:</label>
+				<BallotSelect
+					style={{ minWidth: 250 }}
+					value={currentBallot_id}
+					onChange={handleBallotChange}
+					loading={loading && !valid}
+					readOnly={readOnly}
+				/>
+			</div>
 		</div>
 	);
 }

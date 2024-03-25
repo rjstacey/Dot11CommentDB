@@ -51,27 +51,24 @@ function InportExportPlugin({
 
 		editor.update(
 			() => {
-				$getRoot().clear();
-				//if (value) {
-					let s = value || "";
-					s = s.replace(/<p><br><\/p>/g, '')
-					s = s.replace(/[\r\n]+/g, '');
-					const parser = new DOMParser();
-					// Convert string to DOM. But if the first body node is a text, then assume input is just text and not HTML.
-					let dom = parser.parseFromString(s, "text/html");
-					if (
-						dom.body.firstChild === null ||
-						dom.body.firstChild.nodeType === Node.TEXT_NODE
-					) {
-						const asHtml = s
-							.split("\n")
-							.map((t) => `<p>${t}</p>`)
-							.join("");
-						dom = parser.parseFromString(asHtml, "text/html");
-					}
-					const nodes = $generateNodesFromDOM(editor, dom);
-					$getRoot().select().insertNodes(nodes);
-				//}
+				let s = value || "";
+				s = s.replace(/<p><br><\/p>/g, '')
+				s = s.replace(/[\r\n]+/g, '');
+				const parser = new DOMParser();
+				// Convert string to DOM. But if the first body node is a text, then assume input is just text and not HTML.
+				let dom = parser.parseFromString(s, "text/html");
+				if (
+					dom.body.firstChild === null ||
+					dom.body.firstChild.nodeType === Node.TEXT_NODE
+				) {
+					const asHtml = s
+						.split("\n")
+						.map((t) => `<p>${t}</p>`)
+						.join("");
+					dom = parser.parseFromString(asHtml, "text/html");
+				}
+				const nodes = $generateNodesFromDOM(editor, dom);
+				$getRoot().clear().select().insertNodes(nodes);
 				//console.log(nodes);
 
 				recursivelyReplaceLinkWithAutoLink($getRoot());

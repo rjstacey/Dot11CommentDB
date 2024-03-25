@@ -2,8 +2,8 @@ import {
 	createSlice,
 	createEntityAdapter,
 	createSelector,
+	PayloadAction
 } from "@reduxjs/toolkit";
-import type { PayloadAction } from "@reduxjs/toolkit";
 
 import { fetcher, isObject, setError } from "dot11-components";
 import type { RootState, AppThunk } from ".";
@@ -20,7 +20,8 @@ function validUser(user: any): user is UserMember {
 		isObject(user) &&
 		typeof user.SAPIN === "number" &&
 		typeof user.Name === "string" &&
-		typeof user.Status === "string"
+		typeof user.Status === "string" &&
+		(user.Email === undefined || typeof user.Email === "string")
 	);
 }
 
@@ -100,7 +101,7 @@ export const loadMembers =
 			return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
-		const url = `/api/${groupName}/users`;
+		const url = `/api/${groupName}/members/user`;
 		loadingPromise = fetcher.get(url)
 			.then((response: any) => {
 				if (!validResponse(response))
