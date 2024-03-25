@@ -2,7 +2,7 @@ import db from "../utils/database";
 import { NotFoundError } from "../utils";
 
 import { getSessions, Session } from "./sessions";
-import type { Group } from "./groups";
+import { getGroupHierarchy, type Group } from "./groups";
 import {
 	getImatMeetingAttendanceSummaryForSession,
 	getImatMeetingDailyAttendance,
@@ -13,16 +13,11 @@ import type { User } from "./users";
 
 type SessionAttendanceSummary = {
 	id: number;
-	/** Session identifier */
-	session_id: number;
-	/** Percentage of meeting slots attended */
-	AttendancePercentage: number;
-	/** Declare attendance criteria met */
-	DidAttend: boolean;
-	/** Declare attendance criteria not met */
-	DidNotAttend: boolean;
-	/** SA PIN under which attendance was logged */
-	SAPIN: number;
+	session_id: number;		// Session identifier
+	AttendancePercentage: number;	// Percentage of meeting slots attended
+	DidAttend: boolean;		// Declare attendance criteria met
+	DidNotAttend: boolean;	// Declare attendance criteria not met
+	SAPIN: number;			// SA PIN under which attendance was logged
 	Notes: string;
 };
 
@@ -31,7 +26,7 @@ type RecentSessionAttendances = {
 	sessionAttendanceSummaries: SessionAttendanceSummary[];
 };
 
-const getSessionAttendancesSQL = (session_ids: number[]) =>
+const getSessionAttendancesSQL = (groupId: string, session_ids: number[]) =>
 	// prettier-ignore
 	db.format(
 		"SELECT " +
@@ -48,14 +43,15 @@ const getSessionAttendancesSQL = (session_ids: number[]) =>
 			")) as sessionAttendanceSummaries " +
 		"FROM attendance_summary a " +
 			'LEFT JOIN members m ON m.SAPIN=a.SAPIN AND m.Status="Obsolete" ' +
-		"WHERE a.session_id IN (?) " +
+		"WHERE a.groupId=UUID_TO_BIN(?) AND a.session_id IN (?) " +
 		"GROUP BY SAPIN ",
-		[session_ids]
+		[groupId, session_ids]
 	);
 
 function getAttendancesSql(
 	constraints: Partial<{
 		id: number;
+		groupId: string;
 		session_id: number;
 	}>
 ) {
@@ -75,7 +71,7 @@ function getAttendancesSql(
 
 	if (constraints) {
 		const wheres = Object.entries(constraints).map(([key, value]) =>
-			db.format("a.??=?", [key, value])
+			db.format(key === "groupId"? "a.??=UUID_TO_BIN(?)": "a.??=?", [key, value])
 		);
 		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 	}
@@ -86,12 +82,17 @@ function getAttendancesSql(
 /**
  * Get recent session attendances
  */
-export async function getRecentAttendances() {
+export async function getRecentAttendances(user: User, groupId: string) {
+	let groups = await getGroupHierarchy(user, groupId);
+	if (groups.length === 0)
+		throw new NotFoundError(`getGroupHierarchy() failed for groupId=${groupId}`);
+	const groupIds = groups.map(group => group.id);
+
 	let attendances: RecentSessionAttendances[] = [],
 		sessions: Session[] = [];
 
 	const now = Date.now();
-	const allSessions = (await getSessions())
+	const allSessions = (await getSessions({groupId: groupIds}))
 		.filter((s) => Date.parse(s.endDate) < now && !s.isCancelled)
 		.sort((s1, s2) => Date.parse(s1.startDate) - Date.parse(s2.startDate)); // Oldest to newest
 
@@ -109,7 +110,7 @@ export async function getRecentAttendances() {
 				Date.parse(s.startDate) >= fromTimestamp
 		);
 
-		const sql = getSessionAttendancesSQL(sessions.map((s) => s.id));
+		const sql = getSessionAttendancesSQL(groupId, sessions.map((s) => s.id));
 		//console.log(sql)
 		attendances = (await db.query(sql)) as RecentSessionAttendances[];
 	}
@@ -150,7 +151,7 @@ export async function importAttendances(
 		}));
 	} else {
 		const imatAttendanceSummary =
-			await getImatMeetingAttendanceSummaryForSession(user, session);
+			await getImatMeetingAttendanceSummaryForSession(user, group, session);
 		attendances = imatAttendanceSummary.map((a) => ({
 			SAPIN: a.SAPIN,
 			AttendancePercentage: a.AttendancePercentage,
@@ -163,16 +164,16 @@ export async function importAttendances(
 	if (attendances.length) {
 		let sql =
 			db.format(
-				"INSERT INTO attendance_summary (session_id, ??) VALUES ",
+				"INSERT INTO attendance_summary (session_id, groupId, ??) VALUES ",
 				[Object.keys(attendances[0])]
 			) +
 			attendances
-				.map((a) => db.format("(?, ?)", [session.id, Object.values(a)]))
+				.map((a) => db.format("(?, UUID_TO_BIN(?), ?)", [session.id, group.id, Object.values(a)]))
 				.join(", ");
 		await db.query(sql);
 	}
 
-	return getRecentAttendances();
+	return getRecentAttendances(user, group.id);
 }
 
 /**
@@ -180,12 +181,12 @@ export async function importAttendances(
  * @param session_id Session identifier
  * @returns An object with the session and attendances
  */
-export async function getAttendances(session_id: number) {
+export async function getAttendances(groupId: string, session_id: number) {
 	let [session] = await getSessions({ id: session_id });
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 
-	const sql = getAttendancesSql({ session_id });
+	const sql = getAttendancesSql({ groupId, session_id });
 	const attendances = (await db.query(sql)) as SessionAttendanceSummary[];
 
 	return {
@@ -305,11 +306,11 @@ function validAttendance(a: any): a is SessionAttendanceSummary {
 	return true;
 }
 
-async function addAttendance(attendance: SessionAttendanceSummary) {
+async function addAttendance(groupId: string, attendance: SessionAttendanceSummary) {
 	const changes = attendanceSummaryChanges(attendance);
 
-	const { insertId } = (await db.query("INSERT attendance_summary SET ?", [
-		changes,
+	const { insertId } = (await db.query("INSERT attendance_summary SET group=UUID_TO_BIN(?), ?", [
+		groupId, changes
 	])) as ResultSetHeader;
 
 	[attendance] = (await db.query(
@@ -324,8 +325,8 @@ export function validAttendances(
 	return Array.isArray(attendances) && attendances.every(validAttendance);
 }
 
-export async function addAttendances(attendances: SessionAttendanceSummary[]) {
-	attendances = await Promise.all(attendances.map(addAttendance));
+export async function addAttendances(groupId: string, attendances: SessionAttendanceSummary[]) {
+	attendances = await Promise.all(attendances.map(a => addAttendance(groupId, a)));
 	return attendances;
 }
 

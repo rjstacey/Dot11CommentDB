@@ -27,12 +27,12 @@ type RecentBallotSeriesParticipation = {
 	ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[];
 };
 
-export async function getBallotSeriesParticipation() {
+export async function getBallotSeriesParticipation(groupId: string) {
 	//const t1 = Date.now();
 	//let completedBallots = await getRecentWgBallots();
 
 	//const t2 = Date.now();
-	const ballotsArr = await getRecentBallotSeries();
+	const ballotsArr = await getRecentBallotSeries(groupId);
 
 	//const t3 = Date.now();
 	const ballotSeriesArr: BallotSeries[] = [];
@@ -59,7 +59,8 @@ export async function getBallotSeriesParticipation() {
 	}
 
 	//const t4 = Date.now();
-	const votersForBallots = await getVotersForBallots(initialBallot_ids);
+	const votersForBallots = initialBallot_ids.length > 0?
+		await getVotersForBallots(initialBallot_ids): [];
 
 	//const t5 = Date.now();
 	let ballotSeriesParticipation: RecentBallotSeriesParticipation[] =

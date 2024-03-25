@@ -26,7 +26,8 @@ router
 		next(new ForbiddenError("Insufficient karma"));
 	})
 	.get("/", (req, res, next) => {
-		getBallotSeriesParticipation()
+		const group = req.group!;
+		getBallotSeriesParticipation(group.id)
 			.then((data) => res.json(data))
 			.catch(next);
 	});

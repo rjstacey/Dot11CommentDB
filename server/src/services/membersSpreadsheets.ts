@@ -4,7 +4,7 @@
 import ExcelJS from "exceljs";
 import { validateSpreadsheetHeader } from "../utils";
 import type {
-	MemberBasic,
+	Member,
 	StatusChangeEntry,
 	ContactEmail,
 	ContactInfo,
@@ -57,6 +57,23 @@ const membersDatabaseHeader = [
 	"ExVoter",
 ] as const;
 
+export type MemberSSBasic = Pick<
+	Member,
+	| "SAPIN"
+	| "Name"
+	| "FirstName"
+	| "MI"
+	| "LastName"
+	| "Email"
+	| "Affiliation"
+	| "Employer"
+	| "Status"
+	| "StatusChangeOverride"
+	| "StatusChangeDate"
+	| "MemberID"
+	| "ContactInfo"
+>;
+
 function parseMembersDatabaseEntry(u: ExcelJS.CellValue[]) {
 	const contactInfo: ContactInfo = {
 		StreetLine1: (u[9] as string | null) || "",
@@ -71,7 +88,7 @@ function parseMembersDatabaseEntry(u: ExcelJS.CellValue[]) {
 
 	const statusChangeDate = u[22] instanceof Date ? u[22].toISOString() : null;
 
-	const entry: MemberBasic = {
+	const entry: MemberSSBasic = {
 		Name: "",
 		MemberID: parseInt(u[0] as string),
 		SAPIN: parseInt(u[2] as string),

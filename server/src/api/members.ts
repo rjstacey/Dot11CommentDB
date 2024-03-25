@@ -16,6 +16,7 @@ import { ForbiddenError, isPlainObject } from "../utils";
 import { AccessLevel } from "../auth/access";
 import {
 	getMembers,
+	getUserMembers,
 	getMembersSnapshot,
 	updateMembers,
 	addMemberStatusChangeEntries,
@@ -36,12 +37,17 @@ const upload = Multer();
 
 router
 	.all("*", (req, res, next) => {
-		const { group, user } = req;
+		const { group } = req;
 		if (!group) return next(new Error("Group not set"));
 
 		const access = group.permissions.members || AccessLevel.none;
 
-		if (req.method === "GET" && access >= AccessLevel.ro) return next();
+		// Getting a list of user members requires ro access */
+		if (req.method === "GET" && req.path === "/users" && access >= AccessLevel.ro) return next();
+
+		// Otherwise need at least rw access */
+		if (req.method === "GET" && access >= AccessLevel.rw) return next();
+
 		// Need read-write privileges to update resolutions
 		if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
 		// Need admin privileges to add or delete resolutions
@@ -53,11 +59,19 @@ router
 
 		next(new ForbiddenError("Insufficient karma"));
 	})
+	.get("/user", (req, res, next) => {
+		const group = req.group!;
+		const access = group.permissions.members || AccessLevel.none;
+		getUserMembers(access, group.id)
+			.then((data) => res.json(data))
+			.catch(next);
+	})
 	.get("/snapshot", async (req, res, next) => {
 		const group = req.group!;
+		const access = group.permissions.members || AccessLevel.none;
 		try {
 			const { date } = req.body;
-			const data = await getMembersSnapshot(group.id, date);
+			const data = await getMembersSnapshot(access, group.id, date);
 			res.json(data);
 		} catch (err) {
 			next(err);
@@ -80,6 +94,9 @@ router
 	})
 	.get("/MyProjectRoster", (req, res, next) => {
 		const group = req.group!;
+		const access = group.permissions.members || AccessLevel.none;
+		if (access < AccessLevel.admin)
+			next(new ForbiddenError("Insufficient karma"));
 		exportMyProjectRoster(req.user, group.id, res)
 			.then(() => res.end())
 			.catch(next);
@@ -87,7 +104,8 @@ router
 	.route("/")
 		.get((req, res, next) => {
 			const group = req.group!;
-			getMembers({groupId: group.id})
+			const access = group.permissions.members || AccessLevel.none;
+			getMembers(access, {groupId: group.id})
 				.then((data) => res.json(data))
 				.catch(next);
 		})

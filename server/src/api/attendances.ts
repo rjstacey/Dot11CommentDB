@@ -36,8 +36,9 @@ router
 		next(new ForbiddenError("Insufficient karma"));
 	})
 	.get("/:session_id(\\d+)", async (req, res, next) => {
+		const group = req.group!;
 		const session_id = Number(req.params.session_id);
-		getAttendances(session_id)
+		getAttendances(group.id, session_id)
 			.then((data) => res.json(data))
 			.catch(next);
 	})
@@ -52,11 +53,14 @@ router
 	})
 	.route("/")
 		.get((req, res, next) => {
-			getRecentAttendances()
+			const user = req.user;
+			const group = req.group!;
+			getRecentAttendances(user, group.id)
 				.then((data) => res.json(data))
 				.catch(next);
 		})
 		.post((req, res, next) => {
+			const group = req.group!;
 			const attendances = req.body;
 			if (!validAttendances(attendances))
 				return next(
@@ -64,7 +68,7 @@ router
 						"Missing or bad body; expected an array of attendance objects"
 					)
 				);
-			addAttendances(attendances)
+			addAttendances(group.id, attendances)
 				.then((data) => res.json(data))
 				.catch(next);
 		})

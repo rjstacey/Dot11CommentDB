@@ -4,7 +4,7 @@ import db from "../utils/database";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Response } from "express";
 
-import { User, selectUser } from "./users";
+import type { User } from "./users";
 
 import {
 	parseMyProjectRosterSpreadsheet,
@@ -21,46 +21,45 @@ import {
 import { NotFoundError, isPlainObject } from "../utils";
 import { AccessLevel } from "../auth/access";
 
-export type Member = {
-	SAPIN: number; // SA PIN (unique identifier for IEEE SA account)
-	groupId: string;
-	Name: string; // Member name (formed from FirstName + MI + LastName)
+type UserType = {
+	SAPIN: number;				// SA PIN (unique identifier for IEEE SA account)
+	Name: string;				// Member name (formed from FirstName + MI + LastName)
 	FirstName: string;
 	MI: string;
 	LastName: string;
-	Email: string; // Member account email (alternate unique identifier for IEEE SA account)
-	Affiliation: string; // Member declared affiliation
-	Employer: string; // Member declared employer
-	Status: string; // Group member status
-	ObsoleteSAPINs: number[]; // Array of SAPINs previously used by member
-	ReplacedBySAPIN: number; // SAPIN that replaces this one
+	Email: string;				// Member account email (alternate unique identifier for IEEE SA account)
+	Employer: string;			// Member declared employer
+	ContactInfo: ContactInfo;
+	ContactEmails: ContactEmail[];
+}
+
+type UserTypeDB = Omit<UserType, "ContactInfo" | "ContactEmails"> & {
+	ContactInfo: string;		// JSON
+	ContactEmails: string;		// JSON
+}
+
+type GroupMember = {
+	SAPIN: number;
+	groupId: string;
+	Affiliation: string;
+	Status: string;				// Group member status
+	ObsoleteSAPINs: number[];	// Array of SAPINs previously used by member
+	ReplacedBySAPIN: number;	// SAPIN that replaces this one
 	StatusChangeDate: string | null; // Date of last status change (ISO date string)
 	StatusChangeHistory: StatusChangeEntry[]; // History of status change
 	StatusChangeOverride: boolean; // Manually maintain status; don't update based on attendance/participation
-	DateAdded: string | null; // Date member was added
-	MemberID: number; // Member identifier from Adrian's Access database
-	Access: number;
+	DateAdded: string | null;	// Date member was added
+	MemberID: number;			// Member identifier from Adrian's Access database
 	Notes: string;
-	ContactInfo: ContactInfo;
-	ContactEmails: ContactEmail[];
+}
+
+type GroupMemberDB = Omit<GroupMember, "StatusChangeHistory"> & {
+	StatusChangeHistory: string;	// JSON
 };
 
-export type MemberBasic = Pick<
-	Member,
-	| "SAPIN"
-	| "Name"
-	| "FirstName"
-	| "MI"
-	| "LastName"
-	| "Email"
-	| "Affiliation"
-	| "Employer"
-	| "Status"
-	| "StatusChangeOverride"
-	| "StatusChangeDate"
-	| "MemberID"
-	| "ContactInfo"
->;
+export type Member = UserType & GroupMember;
+
+export type MemberBasic = Pick<Member, "SAPIN" | "groupId" | "Name" | "Affiliation" | "Status">;
 
 export type StatusChangeEntry = {
 	id: number;
@@ -89,29 +88,6 @@ export type ContactInfo = {
 	Fax: string;
 };
 
-type UserDB = Pick<
-	Member,
-	"SAPIN" | "Email" | "Name" | "LastName" | "MI" | "FirstName" | "Employer"
-> & {
-	ContactInfo: string;
-	ContactEmails: string;
-};
-
-type MemberDB = Pick<
-	Member,
-	| "SAPIN"
-	| "MemberID"
-	| "groupId"
-	| "Status"
-	| "Affiliation"
-	| "ReplacedBySAPIN"
-	| "StatusChangeDate"
-	| "StatusChangeOverride"
-	| "DateAdded"
-	| "Notes"
-> & {
-	StatusChangeHistory: string;
-};
 
 type MembersQueryConstraints = {
 	SAPIN?: number | number[];
@@ -248,18 +224,37 @@ function selectMembersSql(constraints: MembersQueryConstraints) {
  * A detailed list of members
  */
 export function getMembers(
+	access: number,
 	constraints: MembersQueryConstraints
 ): Promise<Member[]> {
 	const sql = selectMembersSql(constraints);
 	return db.query<(RowDataPacket & Member)[]>(sql);
 }
 
-export async function getMember(groupId: string, SAPIN: number) {
-	const members: (Member | undefined)[] = await getMembers({
+export async function getMember(access: number, groupId: string, SAPIN: number) {
+	const members: (Member | undefined)[] = await getMembers(access, {
 		groupId,
 		SAPIN,
 	});
 	return members[0];
+}
+
+/*
+ * A details list of users (IEEE account holders)
+ */
+export function getUsers() {
+	let sql = 
+		"SELECT " +
+			"SAPIN, " +
+			"Email, " +
+			"Name, " +
+			"FirstName, MI, LastName, " +
+			"Employer, " +
+			"ContactInfo, " +
+			"ContactEmails " +
+		"FROM users";
+	console.log(sql)
+	return db.query(sql) as Promise<UserType[]>;
 }
 
 export type UserMember = {
@@ -273,10 +268,10 @@ export type UserMember = {
  * A list of members is available to any member (for reassigning comments, etc.).
  * We only care about members with status Aspirant, Potential Voter, Voter or ExOfficial.
  */
-export function selectUsers(user: User, groupId: string, access: number) {
+export function getUserMembers(access: number, groupId: string) {
 	let sql = "SELECT SAPIN, Name, Status";
 	// Admin privileges needed to see email addresses
-	if (access >= AccessLevel.admin) sql += ", Email";
+	if (access >= AccessLevel.rw) sql += ", Email";
 	sql +=
 		" FROM members " +
 		"WHERE " +
@@ -290,8 +285,8 @@ export function selectUsers(user: User, groupId: string, access: number) {
  * Get a snapshot of the members and their status at a specific date
  * by walking through the status change history.
  */
-export async function getMembersSnapshot(groupId: string, date: string) {
-	let members = await getMembers({ groupId });
+export async function getMembersSnapshot(access: number, groupId: string, date: string) {
+	let members = await getMembers(access, { groupId });
 	let fromDate = new Date(date);
 	//console.log(date.toISOString().substr(0,10));
 	members = members
@@ -326,7 +321,7 @@ export async function getMembersSnapshot(groupId: string, date: string) {
 	return members;
 }
 
-const Status = {
+const statusMap = {
 	"Non-Voter": "Non-Voter",
 	Aspirant: "Aspirant",
 	"Potential Voter": "Potential Voter",
@@ -336,7 +331,7 @@ const Status = {
 };
 
 function userEntry(m: Partial<Member>) {
-	const entry: Partial<UserDB> = {
+	const entry: Partial<UserTypeDB> = {
 		SAPIN: m.SAPIN,
 		Name: m.Name,
 		LastName: m.LastName,
@@ -360,7 +355,7 @@ function userEntry(m: Partial<Member>) {
 }
 
 function memberEntry(m: Partial<Member>) {
-	const entry: Partial<MemberDB> = {
+	const entry: Partial<GroupMemberDB> = {
 		SAPIN: m.SAPIN,
 		MemberID: m.MemberID,
 		Affiliation: m.Affiliation,
@@ -391,13 +386,13 @@ function memberEntry(m: Partial<Member>) {
 		if (entry[key] === undefined) delete entry[key];
 	}
 
-	if (entry.Status && Status[entry.Status] === undefined)
-		entry.Status = Object.keys(Status)[0];
+	if (entry.Status && statusMap[entry.Status] === undefined)
+		entry.Status = Object.keys(statusMap)[0];
 
 	return entry;
 }
 
-function memberSetsSql(entry: Partial<MemberDB>) {
+function memberSetsSql(entry: Partial<GroupMemberDB>) {
 	let sets: string[] = [];
 	Object.entries(entry).forEach(([key, value]) => {
 		sets.push(
@@ -430,7 +425,7 @@ async function addMember(groupId: string, member: Member) {
 	sql += "INSERT INTO groupMembers SET " + memberSetsSql(mEntry) + ";";
 	await db.query(sql);
 
-	return getMember(groupId, SAPIN);
+	return getMember(AccessLevel.rw, groupId, SAPIN);
 }
 
 export async function addMembers(groupId: string, members: Member[]) {
@@ -485,7 +480,7 @@ export async function addMemberStatusChangeEntries(
 	if (!validStatusChangeEntries(entries))
 		throw new TypeError("Expected array of status change entries");
 
-	const member = await getMember(groupId, sapin);
+	const member = await getMember(AccessLevel.rw, groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -498,7 +493,7 @@ export async function addMemberStatusChangeEntries(
 	);
 	await db.query(sql);
 
-	return getMember(groupId, sapin);
+	return getMember(AccessLevel.rw, groupId, sapin);
 }
 
 export async function updateMemberStatusChangeEntries(
@@ -511,7 +506,7 @@ export async function updateMemberStatusChangeEntries(
 			"Expected array of shape: {id: number, changes: object}[]"
 		);
 
-	const member = await getMember(groupId, sapin);
+	const member = await getMember(AccessLevel.rw, groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -527,7 +522,7 @@ export async function updateMemberStatusChangeEntries(
 	);
 	await db.query(sql);
 
-	return getMember(groupId, sapin);
+	return getMember(AccessLevel.rw, groupId, sapin);
 }
 
 export async function deleteMemberStatusChangeEntries(
@@ -540,7 +535,7 @@ export async function deleteMemberStatusChangeEntries(
 			"Expected an array of status change entry identifiers: number[]"
 		);
 
-	const member = await getMember(groupId, sapin);
+	const member = await getMember(AccessLevel.rw, groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -554,7 +549,7 @@ export async function deleteMemberStatusChangeEntries(
 	);
 	await db.query(sql);
 
-	return getMember(groupId, sapin);
+	return getMember(AccessLevel.rw, groupId, sapin);
 }
 
 export async function updateMemberContactEmail(
@@ -562,7 +557,7 @@ export async function updateMemberContactEmail(
 	sapin: number,
 	entry: Partial<ContactEmail>
 ) {
-	const member = await getMember(groupId, sapin);
+	const member = await getMember(AccessLevel.rw, groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -575,7 +570,7 @@ export async function updateMemberContactEmail(
 	]);
 	await db.query(sql);
 
-	return (await getMember(groupId, sapin))!;
+	return (await getMember(AccessLevel.rw, groupId, sapin))!;
 }
 
 export async function addMemberContactEmail(
@@ -583,7 +578,7 @@ export async function addMemberContactEmail(
 	sapin: number,
 	entry: Omit<ContactEmail, "id" | "DateAdded"> & { DateAdded?: string }
 ) {
-	const member = await getMember(groupId, sapin);
+	const member = await getMember(AccessLevel.rw, groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -600,7 +595,7 @@ export async function addMemberContactEmail(
 	]);
 	await db.query(sql);
 
-	return (await getMember(groupId, sapin))!;
+	return (await getMember(AccessLevel.rw, groupId, sapin))!;
 }
 
 export async function deleteMemberContactEmail(
@@ -608,7 +603,7 @@ export async function deleteMemberContactEmail(
 	sapin: number,
 	entry: Pick<ContactEmail, "id">
 ) {
-	const member = await getMember(groupId, sapin);
+	const member = await getMember(AccessLevel.rw, groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -619,7 +614,7 @@ export async function deleteMemberContactEmail(
 	]);
 	await db.query(sql);
 
-	return (await getMember(groupId, sapin))!;
+	return (await getMember(AccessLevel.rw, groupId, sapin))!;
 }
 
 async function updateMemberStatus(
@@ -673,7 +668,7 @@ export async function updateMember(
 	const { Status, StatusChangeReason, ...changesRest } = changes;
 
 	/* If the member status changes, then update the status change history */
-	const member = await getMember(groupId, sapin);
+	const member = await getMember(AccessLevel.rw, groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -698,7 +693,7 @@ export async function updateMember(
 
 	if (p.length > 0) await Promise.all(p);
 
-	return (await getMember(groupId, sapin))!;
+	return (await getMember(AccessLevel.rw, groupId, sapin))!;
 }
 
 type Update<T> = {
@@ -960,7 +955,7 @@ export async function uploadMembers(
 	else if (format === "history")
 		await uploadDatabaseMemberHistory(groupId, file.buffer);
 
-	return getMembers({ groupId });
+	return getMembers(AccessLevel.admin, { groupId });
 }
 
 export async function importMyProjectRoster(
@@ -1020,7 +1015,7 @@ export async function importMyProjectRoster(
 		await db.query(sql);
 	}
 
-	return getMembers({ groupId });
+	return getMembers(AccessLevel.admin, { groupId });
 }
 
 export async function exportMyProjectRoster(
@@ -1028,7 +1023,7 @@ export async function exportMyProjectRoster(
 	groupId: string,
 	res: Response
 ) {
-	const members = await getMembers({
+	const members = await getMembers(AccessLevel.admin, {
 		groupId,
 		Status: ["Voter", "Aspirant", "Potential Voter", "Non-Voter"],
 	});

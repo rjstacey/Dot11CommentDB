@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { AccessLevel } from "../auth/access";
 import { ForbiddenError } from "../utils";
-import { selectUsers } from "../services/members";
+import { getUsers } from "../services/members";
 
 const router = Router();
 
@@ -10,15 +10,12 @@ router
 		if (!req.group) return next(new Error("Group not set"));
 		
 		const access = req.group.permissions.users || AccessLevel.none;
-		if (access >= AccessLevel.ro) return next();
+		if (access >= AccessLevel.admin) return next();
 
 		next(new ForbiddenError("Insufficient karma"));
 	})
 	.get("/", (req, res, next) => {
-		const group = req.group!;
-		const groupId = group.id;
-		const access = group.permissions.users || AccessLevel.none;
-		selectUsers(req.user, groupId, access)
+		getUsers()
 			.then((data) => res.json(data))
 			.catch(next);
 	});

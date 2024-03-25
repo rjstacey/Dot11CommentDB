@@ -287,7 +287,7 @@ const wgOfficerPermissions: Record<string, number> = {
 };
 
 const tgOfficerPermissions: Record<string, number> = {
-	users: AccessLevel.ro,
+	members: AccessLevel.ro,
 	groups: AccessLevel.ro,
 	ballots: AccessLevel.ro,
 	voters: AccessLevel.ro,
@@ -296,7 +296,7 @@ const tgOfficerPermissions: Record<string, number> = {
 };
 
 const memberPermissions: Record<string, number> = {
-	users: AccessLevel.ro,
+	members: AccessLevel.ro,
 	groups: AccessLevel.ro,
 	ballots: AccessLevel.ro,
 	comments: AccessLevel.ro

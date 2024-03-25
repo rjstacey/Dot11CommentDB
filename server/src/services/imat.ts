@@ -1288,7 +1288,7 @@ async function getImatMeetingAttendanceSummaryByDate(user: User, groupName: stri
  * @param session - The session object with start and end date
  * @returns An array of objects that represent the session attendees
  */
-export async function getImatMeetingAttendanceSummaryForSession(user: User, session: Session) {
+export async function getImatMeetingAttendanceSummaryForSession(user: User, group: Group, session: Session) {
 
 	let start: DateTime | string = DateTime.fromISO(session.startDate, {zone: session.timezone});
 	if (!start.isValid)
@@ -1300,7 +1300,7 @@ export async function getImatMeetingAttendanceSummaryForSession(user: User, sess
 		throw new TypeError(`Invalid session end (${session.endDate}) or timezone (${session.timezone})`);
 	end = end.toFormat('MM/dd/yyyy');
 
-	return getImatMeetingAttendanceSummaryByDate(user, '802.11', start, end);
+	return getImatMeetingAttendanceSummaryByDate(user, group.name, start, end);
 }
 
 /**

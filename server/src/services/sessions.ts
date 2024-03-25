@@ -6,31 +6,42 @@ import type { ResultSetHeader } from "mysql2";
 
 import db from "../utils/database";
 
-const getSessionsSQL = () => `
-	SELECT 
-		id,
-		number,
-		name,
-		type,
-		BIN_TO_UUID(groupId) AS groupId,
-		startDate,
-		endDate,
-		timezone,
-		isCancelled,
-		imatMeetingId,
-		OrganizerID,
-		timeslots,
-		defaultCredits,
-		COALESCE(r.rooms, JSON_ARRAY()) AS rooms,
-		(SELECT COUNT(DISTINCT(SAPIN)) FROM attendance_summary WHERE session_id=s.id) AS attendees
-	FROM sessions s
-	LEFT JOIN (
-			SELECT
-				sessionId,
-				JSON_ARRAYAGG(JSON_OBJECT("id", id, "name", name, "description", description)) AS rooms
-			FROM rooms GROUP BY sessionId
-		) AS r ON s.id=r.sessionId
-`;
+function getSessionsSQL(groupId?: string | string[]) {
+	let attendanceSql = "SELECT COUNT(DISTINCT(SAPIN)) FROM attendance_summary WHERE ";
+	if (groupId) {
+		attendanceSql += Array.isArray(groupId)?
+			`BIN_TO_UUID(groupId) IN (${db.escape(groupId)})`:
+			`groupId = ${db.escape(groupId)}`;
+		attendanceSql += " AND ";
+	}
+	attendanceSql += "session_id=s.id";
+
+	return `
+		SELECT 
+			id,
+			number,
+			name,
+			type,
+			BIN_TO_UUID(groupId) AS groupId,
+			startDate,
+			endDate,
+			timezone,
+			isCancelled,
+			imatMeetingId,
+			OrganizerID,
+			timeslots,
+			defaultCredits,
+			COALESCE(r.rooms, JSON_ARRAY()) AS rooms,
+			(${attendanceSql}) AS attendees
+		FROM sessions s
+		LEFT JOIN (
+				SELECT
+					sessionId,
+					JSON_ARRAYAGG(JSON_OBJECT("id", id, "name", name, "description", description)) AS rooms
+				FROM rooms GROUP BY sessionId
+			) AS r ON s.id=r.sessionId
+	`;
+}
 
 export type Room = {
 	id: number;
@@ -126,7 +137,7 @@ export function getCredit(creditStr: string): {credit: Credit, creditOverrideNum
  * @returns an array of session objects
  */
 export function getSessions(constraints?: SessionsQueryConstraints) {
-	let sql = getSessionsSQL();
+	let sql = getSessionsSQL(constraints?.groupId);
 
 	if (constraints) {
 		const wheres: string[] = [];

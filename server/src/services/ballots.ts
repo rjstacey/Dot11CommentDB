@@ -156,10 +156,10 @@ type BallotSeriesRange = {
  * Get recent ballot series
  * @returns An array of ballot arrays that are the recent ballot series
  */
-export async function getRecentBallotSeries() {
+export async function getRecentBallotSeries(groupId: string) {
 	const sql = `
 		WITH RECURSIVE cte AS (
-			SELECT id, prev_id, 1 level, Start, End FROM ballots WHERE IsComplete<>0 AND type=1 
+			SELECT id, prev_id, 1 level, Start, End FROM ballots WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND IsComplete<>0 AND type=1 
 			UNION ALL 
 			SELECT c.id, t.prev_id, level + 1, t.Start, NULL End FROM cte c 
 			INNER JOIN ballots t on t.id=c.prev_id
