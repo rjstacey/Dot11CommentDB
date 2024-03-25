@@ -275,7 +275,8 @@ function Attendances() {
 		<>
 			<div className="top-row">
 				<SessionSummary />
-
+			</div>
+			<div className="top-row justify-right">
 				<div className="control-group">
 					<BulkStatusUpdate isSession={true} />
 					<TableColumnSelector

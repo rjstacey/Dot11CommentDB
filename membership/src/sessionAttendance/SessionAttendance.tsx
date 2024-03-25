@@ -294,6 +294,7 @@ function InportAttendeeForm({ methods }: DropdownRendererProps) {
 	function submit() {
 		if (importNew) dispatch(addMembers(adds));
 		if (importUpdates) dispatch(updateMembers(updates));
+		methods.close();
 	}
 
 	return (

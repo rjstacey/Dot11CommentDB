@@ -281,11 +281,11 @@ function memberExpectedStatusFromAttendanceStats(
 
 	/* An Aspirant becomes a Potential Voter after attending 2 of the last 4 plenary sessions. One intervening
 	 * interim meeting may be substituted for a plenary meeting. */
-	if (count === 2 && status === "Aspirant") return "Potential Voter";
+	if (count === 2 && (status === "Non-Voter" || status === "Aspirant")) return "Potential Voter";
 
 	/* A Potential Voter becomes a Voter at the next plenary session after attending 2 of the last 4 plenary
 	 * sessions. One intervening interim meeting may be substituted for a plenary meeting. */
-	if (((count === 3 && lastP) || count > 3) && status === "Potential Voter")
+	if (((count === 3 && lastP) || count > 3) && (status === "Non-Voter" || status === "Aspirant" || status === "Potential Voter"))
 		return "Voter";
 
 	return "";
@@ -340,6 +340,36 @@ export const selectAttendancesWithMembershipAndSummary = createSelector(
 			};
 		});
 		return newEntities;
+	}
+);
+
+export const selectMemberRecentAttendances = createSelector(
+	selectAttendanceSessionIds,
+	selectAttendancesEntities,
+	(state: RootState, SAPIN: number) => SAPIN,
+	(sessionIds, attendancesEntities, SAPIN) => {
+		const session_ids = sessionIds.slice().reverse() as number[];
+		const attendances: Record<number, SessionAttendanceSummary>[] = [];
+		for (const session_id of session_ids) {
+			const sessionAttendances =
+				attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
+			let a = sessionAttendances.find((a) => a.session_id === session_id);
+			if (!a) {
+				// No entry for this session; generate a "null" entry
+				a = {
+					id: 0,
+					session_id,
+					AttendancePercentage: 0,
+					DidAttend: false,
+					DidNotAttend: false,
+					Notes: "",
+					SAPIN,
+					CurrentSAPIN: SAPIN
+				};
+			}
+			attendances.push(a);
+		}
+		return attendances;
 	}
 );
 

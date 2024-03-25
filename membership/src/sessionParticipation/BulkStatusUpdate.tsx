@@ -12,90 +12,54 @@ import {
 	type DropdownRendererProps,
 } from "dot11-components";
 
-import type { RootState } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { updateMembers, type MemberUpdate } from "../store/members";
 import {
 	selectMostRecentAttendedSession,
 	selectAttendancesState,
 	selectAttendancesWithMembershipAndSummary,
-	type MemberAttendances,
 } from "../store/sessionParticipation";
 import {
 	selectMostRecentBallotSeries,
 	selectBallotParticipationState,
 	selectBallotParticipationWithMembershipAndSummary,
 	selectBallotEntities,
-	type MemberParticipation,
 } from "../store/ballotParticipation";
-
-function selectEntriesAndDefaults(
-	state: RootState,
-	isSession: boolean,
-	selectedOnly: boolean
-) {
-	let ids: EntityId[], selected: EntityId[];
-	let entities:
-		| Dictionary<MemberParticipation>
-		| Dictionary<MemberAttendances>;
-	let defaultReason: string, defaultDate: string;
-	if (isSession) {
-		const recentSession = selectMostRecentAttendedSession(state);
-		defaultReason = `Post session ${
-			recentSession.number || `id=${recentSession.id}`
-		} update`;
-		defaultDate = recentSession.endDate;
-		const attendencesState = selectAttendancesState(state);
-		ids = attendencesState.ids;
-		selected = attendencesState.selected;
-		entities = selectAttendancesWithMembershipAndSummary(state);
-	} else {
-		const recentBallotSeries = selectMostRecentBallotSeries(state);
-		const ballotEntities = selectBallotEntities(state);
-		const ballotId =
-			recentBallotSeries.ballotIds[
-				recentBallotSeries.ballotIds.length - 1
-			];
-		const lastBallot = ballotEntities[ballotId];
-		defaultReason = `Post ballot ${lastBallot?.BallotID || ""} update`;
-		defaultDate = recentBallotSeries.end.slice(0, 10);
-		const ballotParticipationState = selectBallotParticipationState(state);
-		ids = ballotParticipationState.ids;
-		selected = ballotParticipationState.selected;
-		entities = selectBallotParticipationWithMembershipAndSummary(state);
-	}
-	const entries = (selectedOnly ? selected : ids)
-		.map((id) => entities[id]!)
-		.filter((a) => a.ExpectedStatus);
-
-	return {
-		defaultReason,
-		defaultDate,
-		entries,
-	};
-}
 
 function BulkStatusUpdateForm({
 	methods,
-	isSession,
-}: DropdownRendererProps & { isSession: boolean }) {
+	defaultReason,
+	defaultDate,
+	ids,
+	selected,
+	entities,
+}: DropdownRendererProps & {
+	defaultReason: string;
+	defaultDate: string;
+	ids: EntityId[];
+	selected: EntityId[];
+	entities: Dictionary<{ SAPIN: number; ExpectedStatus: string }>;
+}) {
 	const dispatch = useAppDispatch();
 	const [selectedOnly, setSelectedOnly] = React.useState(false);
-	const { defaultReason, defaultDate, entries } = useAppSelector((state) =>
-		selectEntriesAndDefaults(state, isSession, selectedOnly)
-	);
 	const [reason, setReason] = React.useState(defaultReason);
 	const [date, setDate] = React.useState(defaultDate);
 	const [busy, setBusy] = React.useState(false);
 
-	const updates: MemberUpdate[] = entries.map((a) => ({
-		id: a.SAPIN,
-		changes: {
-			Status: a.ExpectedStatus,
-			StatusChangeReason: reason,
-			StatusChangeDate: date,
-		},
-	}));
+	const updates: MemberUpdate[] = (selectedOnly ? selected : ids)
+		.map((id) => entities[id])
+		.filter((entity) => Boolean(entity))
+		.map((entity) => {
+			const { SAPIN, ExpectedStatus } = entity!;
+			return {
+				id: SAPIN,
+				changes: {
+					Status: ExpectedStatus,
+					StatusChangeReason: reason,
+					StatusChangeDate: date,
+				},
+			};
+		});
 
 	let warning = `${updates.length} updates`;
 
@@ -148,6 +112,51 @@ function BulkStatusUpdateForm({
 	);
 }
 
+function BulkStatusUpdateFormSession(props: DropdownRendererProps) {
+	const recentSession = useAppSelector(selectMostRecentAttendedSession);
+	const defaultReason = `Post session ${
+		recentSession.number || `id=${recentSession.id}`
+	} update`;
+	const defaultDate = recentSession.endDate;
+	const { ids, selected } = useAppSelector(selectAttendancesState);
+	const entities = useAppSelector(selectAttendancesWithMembershipAndSummary);
+
+	return (
+		<BulkStatusUpdateForm
+			{...props}
+			defaultReason={defaultReason}
+			defaultDate={defaultDate}
+			ids={ids}
+			selected={selected}
+			entities={entities}
+		/>
+	);
+}
+
+function BulkStatusUpdateFormBallotSeries(props: DropdownRendererProps) {
+	const recentBallotSeries = useAppSelector(selectMostRecentBallotSeries);
+	const ballotEntities = useAppSelector(selectBallotEntities);
+	const ballotId =
+		recentBallotSeries.ballotIds[recentBallotSeries.ballotIds.length - 1];
+	const lastBallot = ballotEntities[ballotId];
+	const defaultReason = `Post ballot ${lastBallot?.BallotID || ""} update`;
+	const defaultDate = recentBallotSeries.end.slice(0, 10);
+	const { ids, selected } = useAppSelector(selectBallotParticipationState);
+	const entities = useAppSelector(
+		selectBallotParticipationWithMembershipAndSummary
+	);
+
+	return (
+		<BulkStatusUpdateForm
+			{...props}
+			defaultReason={defaultReason}
+			defaultDate={defaultDate}
+			ids={ids}
+			selected={selected}
+			entities={entities}
+		/>
+	);
+}
 const label = "Bulk Status Update";
 const title = label;
 
@@ -156,28 +165,32 @@ type BulkStatusUpdateProps = {
 	isSession: boolean;
 } & React.ComponentProps<typeof Dropdown>;
 
-const BulkStatusUpdate = ({
+function BulkStatusUpdate({
 	disabled,
 	isSession,
 	...rest
-}: BulkStatusUpdateProps) => (
-	<Dropdown
-		handle={false}
-		selectRenderer={({ state, methods }) => (
-			<Button
-				title={title}
-				disabled={disabled}
-				isActive={state.isOpen}
-				onClick={state.isOpen ? methods.close : methods.open}
-			>
-				{label}
-			</Button>
-		)}
-		dropdownRenderer={(props) => (
-			<BulkStatusUpdateForm {...props} isSession={isSession} />
-		)}
-		{...rest}
-	/>
-);
+}: BulkStatusUpdateProps) {
+	const dropdownRenderer = isSession?
+		(props: DropdownRendererProps) => <BulkStatusUpdateFormSession {...props} />:
+		(props: DropdownRendererProps) => <BulkStatusUpdateFormBallotSeries {...props} />;
+
+	return (
+		<Dropdown
+			handle={false}
+			selectRenderer={({ state, methods }) => (
+				<Button
+					title={title}
+					disabled={disabled}
+					isActive={state.isOpen}
+					onClick={state.isOpen ? methods.close : methods.open}
+				>
+					{label}
+				</Button>
+			)}
+			dropdownRenderer={dropdownRenderer}
+			{...rest}
+		/>
+	);
+}
 
 export default BulkStatusUpdate;

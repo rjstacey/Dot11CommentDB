@@ -94,6 +94,9 @@ function MemberDetail({
 				) as MultipleMember;
 				originals.push(member);
 			}
+			if (originals.length === 0) {
+				message = "Nothing selected";
+			}
 		}
 		return {
 			action,
@@ -244,6 +247,13 @@ function MemberDetail({
 				<div>
 					{!readOnly && (
 						<>
+							<ActionButton
+								name="bi-person-plus"
+								title="Add member"
+								disabled={loading || readOnly}
+								isActive={state.action === "add"}
+								onClick={clickAdd}
+							/>
 							<ActionButton
 								name="add"
 								title="Add member"

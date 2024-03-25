@@ -18,6 +18,7 @@ import {
 	GroupType,
 } from "../store/groups";
 import { loadMembers } from "../store/members";
+import { loadUsers } from "../store/users";
 import { loadOfficers } from "../store/officers";
 import { loadCommittees } from "../store/imatCommittees";
 import { loadTimeZones } from "../store/timeZones";
@@ -55,6 +56,7 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	if (groupName) {
 		dispatch(loadGroups(groupName));
 		dispatch(loadMembers(groupName));
+		dispatch(loadUsers(groupName));
 		dispatch(loadOfficers(groupName));
 	}
 	return null;

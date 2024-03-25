@@ -233,6 +233,7 @@ export function MemberAttendanceDetail() {
 			console.warn("Add with unexpected state");
 			return;
 		}
+		console.log(originals)
 		const ids = await membersAdd(edited, saved, originals);
 		dispatch(setSelected(ids));
 		setState(initState);

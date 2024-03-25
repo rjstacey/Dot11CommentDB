@@ -16,7 +16,9 @@ import {
 } from "dot11-components";
 
 import Editor, {replaceClassWithInlineStyle} from "../editor/Editor";
+import { genSessionAttendanceTableHtml } from "../sessionParticipation/MemberAttendances";
 
+import type { RootState } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	addEmailTemplate,
@@ -29,30 +31,48 @@ import {
 	type Email,
 } from "../store/email";
 import { selectMembersState, type Member } from "../store/members";
-import { type Session } from "../store/sessions";
 import { selectMostRecentAttendedSession } from "../store/sessionParticipation";
 import { selectUser, type User } from "../store/user";
+
+function substitute(key: string, member: Member, state: RootState): string {
+	console.log(key, Object.keys(member))
+	if (Object.keys(member).includes(key)) {
+		return "" + member[key as keyof Member] || "(Blank)";
+	}
+
+	if (key.startsWith('Session')) {
+		if (key === 'SessionAttendance')
+			return genSessionAttendanceTableHtml(state, member.SAPIN);
+
+		const session = selectMostRecentAttendedSession(state);
+		if (!session) return "(Blank)"
+		let s = "";
+		if (key === 'SessionName')
+			s = session.name;
+		if (key === 'SessionNumber')
+			s = "" + session.number;
+		if (key === 'SessionDate')
+			s = displayDateRange(session.startDate, session.endDate);
+		return s || "(Blank)";
+	}
+
+	return "(Not implemented)";
+}
 
 function doSubstitution(
 	email: EmailTemplate,
 	member: Member,
-	session: Session | undefined
+	state: RootState
 ) {
-	const sub: { [K: string]: string } = {
-		FirstName: member.FirstName,
-		LastName: member.LastName,
-		Name: member.Name,
-		Status: member.Status,
-		SessionName: session?.name || "None",
-		SessionNumber: "" + session?.number + "(None)",
-		SessionDate: session? displayDateRange(session.startDate, session.endDate): "-",
-		BallotParticipation: "ballot participation",
-	};
-
-	let body = Object.entries(sub).reduce(
-		(body, [key, value]) => body.replace(`{{${key}}}`, value),
-		email.body
-	);
+	let body = email.body;
+	const m = body.match(/{{[a-zA-Z]+}}/g);
+	console.log(m)
+	if (m) {
+		for (let i = 0; i < m.length; i++) {
+			const key = m[i].replace('{{', '').replace('}}', '');
+			body = body.replace(`{{${key}}}`, substitute(key, member, state))
+		}
+	}
 
 	body = replaceClassWithInlineStyle(body);
 
@@ -63,15 +83,16 @@ const genEmailAddress = (m: Member | User) => `${m.Name} <${m.Email}>`;
 
 function genEmails({
 	emailTemplate,
-	info,
+	members,
+	state
 }: {
 	emailTemplate: EmailTemplate;
-	info: Info;
+	members: Member[];
+	state: RootState;
 }) {
-	const { members, session, user } = info;
-
+	const user = selectUser(state);
 	return members.map((member) => {
-		const email = doSubstitution(emailTemplate, member, session);
+		const email = doSubstitution(emailTemplate, member, state);
 
 		const html = render(<FormatBody body={email.body} />);
 
@@ -154,12 +175,6 @@ function SelectEmailTemplate({
 	);
 }
 
-type Info = {
-	members: Member[];
-	session: Session;
-	user: User;
-}
-
 function NotificationEmail() {
 	const dispatch = useAppDispatch();
 	const [edited, setEdited] = React.useState<EmailTemplate | null>(null);
@@ -167,14 +182,8 @@ function NotificationEmail() {
 	const [preview, setPreview] = React.useState(false);
 
 	const { selected, entities } = useAppSelector(selectMembersState);
-	const members = selected.map((id) => entities[id]!);
-	const session = useAppSelector(selectMostRecentAttendedSession);
-	const user = useAppSelector(selectUser);
-	const info: Info = {
-		members,
-		session,
-		user,
-	};
+	const members = selected.map((id) => entities[id]).filter(m => Boolean(m)) as Member[];
+	const state = useAppSelector(state => state);
 
 	const debouncedSave = useDebounce(() => {
 		const changes = shallowDiff(saved!, edited!);
@@ -210,7 +219,7 @@ function NotificationEmail() {
 			return;
 		if (!preview) {
 			debouncedSave.flush();
-			const email = doSubstitution(edited, info.members[0], info.session);
+			const email = doSubstitution(edited, members[0], state);
 			setEdited(email);
 		}
 		else {
@@ -220,7 +229,7 @@ function NotificationEmail() {
 	}
 
 	function onSend() {
-		genEmails({ emailTemplate: edited!, info }).forEach((email) =>
+		genEmails({ emailTemplate: saved!, members, state }).forEach((email) =>
 			dispatch(sendEmail(email))
 		);
 	}

@@ -203,6 +203,14 @@ const tableColumns: ColumnProperties[] = [
 		flexShrink: 1,
 	},
 	{
+		key: "OldStatus",
+		...fields.OldStatus,
+		width: 160,
+		flexGrow: 1,
+		flexShrink: 1,
+		dropdownWidth: 200,
+	},
+	{
 		key: "Status",
 		...fields.Status,
 		width: 160,
@@ -213,6 +221,13 @@ const tableColumns: ColumnProperties[] = [
 	{
 		key: "StatusChangeDate",
 		...fields.StatusChangeDate,
+		width: 100,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{
+		key: "DateAdded",
+		...fields.DateAdded,
 		width: 100,
 		flexGrow: 1,
 		flexShrink: 1,

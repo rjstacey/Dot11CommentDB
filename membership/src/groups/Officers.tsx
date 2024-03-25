@@ -39,6 +39,7 @@ function Officers({
 	function updateOne(id: OfficerId, changes: Partial<Officer>) {
 		const i = officers.findIndex((o) => o.id === id);
 		if (i < 0) throw Error("Can't find officer with id=" + id);
+		officers = officers.slice();
 		officers[i] = { ...officers[i], ...changes };
 		onChange(officers);
 	}

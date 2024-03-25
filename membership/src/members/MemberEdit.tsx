@@ -16,7 +16,7 @@ import {
 	shallowDiff,
 	type Multiple,
 	deepMerge,
-	deepDiff
+	deepDiff,
 } from "dot11-components";
 
 import type { AppThunk } from "../store";
@@ -36,12 +36,14 @@ import {
 	type MemberAdd,
 } from "../store/members";
 
+import UserSelector from "./UserSelector";
 import StatusSelector from "./StatusSelector";
 import MemberSelector from "./MemberAllSelector";
 import MemberStatusChangeHistory from "./MemberStatusChange";
 import MemberContactInfo from "./MemberContactInfo";
 import MemberAttendances from "../sessionParticipation/MemberAttendances";
 import MemberBallotParticipation from "../ballotParticipation/MemberBallotParticipation";
+import { selectUserEntities } from "../store/users";
 
 export type MultipleMember = Multiple<
 	Omit<MemberAdd, "StatusChangeHistory" | "ContactEmails" | "ContactInfo">
@@ -53,12 +55,14 @@ export type MultipleMember = Multiple<
 
 export type EditAction = "view" | "update" | "add";
 
-export function hasChangesStyle<O extends object>(edited: O, saved: O | undefined, dataKey: keyof O) {
-	return (
-		(saved && edited[dataKey] !== saved[dataKey])
+export function hasChangesStyle<O extends object>(
+	edited: O,
+	saved: O | undefined,
+	dataKey: keyof O
+) {
+	return saved && edited[dataKey] !== saved[dataKey]
 		? { backgroundColor: "yellow" }
-		: undefined
-	);
+		: undefined;
 }
 
 const BLANK_STR = "(Blank)";
@@ -269,7 +273,7 @@ function MemberBasicInfo({
 					<StatusSelector
 						style={{
 							flexBasis: 200,
-							...hasChangesStyle(member, saved, "Status")
+							...hasChangesStyle(member, saved, "Status"),
 						}}
 						value={isMultiple(member.Status) ? "" : member.Status}
 						onChange={(value) => updateMember({ Status: value })}
@@ -287,7 +291,11 @@ function MemberBasicInfo({
 					>
 						<label>Override</label>
 						<Checkbox
-							style={hasChangesStyle(member, saved, "StatusChangeOverride")}
+							style={hasChangesStyle(
+								member,
+								saved,
+								"StatusChangeOverride"
+							)}
 							checked={Boolean(member.StatusChangeOverride)}
 							indeterminate={isMultiple(
 								member.StatusChangeOverride
@@ -312,7 +320,11 @@ function MemberBasicInfo({
 						<label>Last change</label>
 						<Input
 							type="date"
-							style={hasChangesStyle(member, saved, "StatusChangeDate")}
+							style={hasChangesStyle(
+								member,
+								saved,
+								"StatusChangeDate"
+							)}
 							value={statusChangeDate}
 							onChange={(e) =>
 								updateMember({
@@ -394,6 +406,8 @@ export function MemberEntryForm({
 	readOnly?: boolean;
 	basicOnly?: boolean;
 }) {
+	const userEntities = useAppSelector(selectUserEntities);
+
 	let errMsg = "";
 	if (!member.SAPIN) errMsg = "SA PIN not set";
 	else if (!member.Name) errMsg = "Name not set";
@@ -421,6 +435,18 @@ export function MemberEntryForm({
 		cancelForm = cancel;
 	}
 
+	function setMember(sapin: number) {
+		const user = userEntities[sapin];
+		if (user) {
+			const member: MemberAdd = {
+				...user,
+				Affiliation: '',
+				Status: 'Non-Voter'
+			}
+			updateMember(member);
+		}
+	}
+
 	return (
 		<Form
 			className="main"
@@ -429,8 +455,14 @@ export function MemberEntryForm({
 			cancel={cancelForm}
 			errorText={errMsg}
 		>
+			{action === "add" &&
+				<UserSelector
+					value={member.SAPIN as number}
+					onChange={sapin => setMember(sapin)}
+				/>
+			}
 			<MemberBasicInfo
-				sapins={sapins}
+				sapins={action === "add"? [member.SAPIN as number]: sapins}
 				member={member}
 				saved={saved}
 				updateMember={updateMember}
@@ -556,7 +588,9 @@ export function useMembersAdd() {
 		members: MemberAdd[]
 	) => {
 		const changes = deepDiff(saved, edited);
-		const newMembers = members.map((m) => deepMerge(m, changes));
+		const newMembers = changes
+			? members.map((m) => deepMerge(m, changes))
+			: members;
 		const ids = await dispatch(addMembers(newMembers));
 		return ids;
 	};

@@ -105,18 +105,27 @@ export const fields = {
 	Email: { label: "Email" },
 	Employer: { label: "Employer" },
 	Affiliation: { label: "Affiliation" },
+	OldStatus: { label: "Previous status"},
 	Status: { label: "Status" },
 	StatusChangeDate: {
 		label: "Status change date",
 		dataRenderer: displayDate,
 		type: FieldType.DATE,
 	},
+	DateAdded: { label: "Date added", dataRenderer: displayDate, type: FieldType.DATE },
 	AttendancesSummary: { label: "Session participation" },
 	BallotParticipationSummary: { label: "Ballot participation" },
 };
 
 /* Fields derived from other fields */
 export function getField(entity: Member, key: string): any {
+	if (key === 'OldStatus') {
+		const history = entity.StatusChangeHistory;
+		const lastChange = history[0];
+		if (lastChange)
+			return lastChange.OldStatus;
+		return "";
+	}
 	if (!(key in entity)) console.warn(dataSet + " has no field " + key);
 	return entity[key as keyof Member];
 }
@@ -259,6 +268,7 @@ export function selectMembersStatusChangeSinceDate(
 
 export const membersSelectors = getAppTableDataSelectors(selectMembersState, {
 	selectEntities: selectMemberWithParticipationSummary,
+	getField
 });
 
 export const selectUiProperties = membersSelectors.selectUiProperties;
