@@ -238,8 +238,8 @@ function Sessions() {
 	return (
 		<>
 			<div className="top-row justify-right">
-				<div style={{ display: "flex" }}>
-					<ButtonGroup>
+				<div className="control-group">
+					<ButtonGroup className="button-group">
 						<div>Table view</div>
 						<div style={{ display: "flex" }}>
 							<TableViewSelector

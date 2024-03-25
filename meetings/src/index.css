@@ -48,6 +48,7 @@ div#root {
 
 .top-row {
 	display: flex;
+	flex-wrap: wrap;
 	justify-content: space-between;
 	align-items: center;
 	width: 100%;
@@ -57,6 +58,13 @@ div#root {
 
 .top-row.justify-right {
 	justify-content: flex-end;
+}
+
+.control-group {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
 }
 
 .table-container {

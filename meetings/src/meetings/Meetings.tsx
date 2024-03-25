@@ -308,7 +308,7 @@ function Meetings() {
 					)}
 				/>
 
-				<div style={{ display: "flex", alignItems: "center" }}>
+				<div className="control-group">
 					<SelectDisplayFormat
 						value={showDays}
 						onChange={changeShowDays}
