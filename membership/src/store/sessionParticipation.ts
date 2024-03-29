@@ -204,6 +204,21 @@ function recentAttendanceStats(
 				).toMillis()
 		); // Sort latest to oldest
 
+	// Check if last attendend was a plenary (partially or in full)
+	let lastPpartial = false,
+		lastPfull = false;
+	if (attendances.length > 0) {
+		// Last attended
+		const a = attendances[0];
+		const s = sessionEntities[a.session_id]!;
+		if (s.type === 'p') {
+			if (a.AttendancePercentage > 0 && a.AttendancePercentage < 75 && !a.DidNotAttend)
+				lastPpartial = true;
+			if ((a.AttendancePercentage > 75 && !a.DidNotAttend) || a.DidAttend)
+				lastPfull = true;
+		}
+	}
+
 	// Keep properly attended sessions
 	attendances = attendances.filter(
 		(a) => (a.AttendancePercentage >= 75 && !a.DidNotAttend) || a.DidAttend
@@ -225,9 +240,8 @@ function recentAttendanceStats(
 	return {
 		total, // total considered
 		count: attendendedSessionIds.length, // properly attended sessions
-		lastP:
-			attendendedSessionIds.length > 0 &&
-			sessionEntities[attendendedSessionIds[0]]!.type === "p", // last attended was a plenary
+		lastPpartial, // last attended was a plenary
+		lastPfull,
 		lastSessionId: attendendedSessionIds[0] || 0,
 	};
 }
@@ -257,7 +271,8 @@ export const selectMemberAttendanceStats = createSelector(
 function memberExpectedStatusFromAttendanceStats(
 	member: Member,
 	count: number,
-	lastP: boolean
+	lastPpartial: boolean,
+	lastPfull: boolean
 ) {
 	const status = member.Status;
 
@@ -285,7 +300,7 @@ function memberExpectedStatusFromAttendanceStats(
 
 	/* A Potential Voter becomes a Voter at the next plenary session after attending 2 of the last 4 plenary
 	 * sessions. One intervening interim meeting may be substituted for a plenary meeting. */
-	if (((count === 3 && lastP) || count > 3) && (status === "Non-Voter" || status === "Aspirant" || status === "Potential Voter"))
+	if (((count >= 2 && lastPpartial) || (count === 3 && lastPfull) || count > 3) && (status === "Non-Voter" || status === "Aspirant" || status === "Potential Voter"))
 		return "Voter";
 
 	return "";
@@ -317,11 +332,12 @@ export const selectAttendancesWithMembershipAndSummary = createSelector(
 					sessionEntities,
 					nonVoterDate
 				);
-				let { total, count, lastP } = stats;
+				let { total, count, lastPpartial, lastPfull } = stats;
 				expectedStatus = memberExpectedStatusFromAttendanceStats(
 					member,
 					count,
-					lastP
+					lastPpartial,
+					lastPfull
 				);
 				summary = `${count}/${total}`;
 				lastSessionId = stats.lastSessionId;
