@@ -30,6 +30,8 @@ import {
 	uploadMembers,
 	importMyProjectRoster,
 	exportMyProjectRoster,
+	exportMembersPublic,
+	exportMembersPrivate
 } from "../services/members";
 
 const router = Router();
@@ -98,6 +100,24 @@ router
 		if (access < AccessLevel.admin)
 			next(new ForbiddenError("Insufficient karma"));
 		exportMyProjectRoster(req.user, group.id, res)
+			.then(() => res.end())
+			.catch(next);
+	})
+	.get("/public", (req, res, next) => {
+		const group = req.group!;
+		const access = group.permissions.members || AccessLevel.none;
+		if (access < AccessLevel.admin)
+			next(new ForbiddenError("Insufficient karma"));
+		exportMembersPublic(group.id, res)
+			.then(() => res.end())
+			.catch(next);
+	})
+	.get("/private", (req, res, next) => {
+		const group = req.group!;
+		const access = group.permissions.members || AccessLevel.none;
+		if (access < AccessLevel.admin)
+			next(new ForbiddenError("Insufficient karma"));
+		exportMembersPrivate(group.id, res)
 			.then(() => res.end())
 			.catch(next);
 	})

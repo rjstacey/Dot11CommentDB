@@ -18,7 +18,7 @@ import {
 	parseHistorySpreadsheet,
 } from "./membersSpreadsheets";
 
-import { NotFoundError, isPlainObject } from "../utils";
+import { NotFoundError, csvStringify, isPlainObject } from "../utils";
 import { AccessLevel } from "../auth/access";
 
 type UserType = {
@@ -51,6 +51,7 @@ type GroupMember = {
 	DateAdded: string | null;	// Date member was added
 	MemberID: number;			// Member identifier from Adrian's Access database
 	Notes: string;
+	InRoster: boolean;			// Present in MyProject roster
 }
 
 type GroupMemberDB = Omit<GroupMember, "StatusChangeHistory"> & {
@@ -93,6 +94,7 @@ type MembersQueryConstraints = {
 	SAPIN?: number | number[];
 	Status?: string | string[];
 	groupId?: string | string[];
+	InRoster?: 0 | 1;
 };
 
 // prettier-ignore
@@ -117,7 +119,8 @@ const createViewMembersSQL =
 		"m.StatusChangeOverride AS StatusChangeOverride, " +
 		"m.StatusChangeHistory AS StatusChangeHistory, " +
 		"m.Notes AS Notes, " +
-		"m.DateAdded AS DateAdded " +
+		"m.DateAdded AS DateAdded, " +
+		"m.InRoster AS InRoster " +
 	"FROM users u LEFT JOIN groupMembers m ON (u.SAPIN=m.SAPIN)"
 
 export async function init() {
@@ -158,7 +161,8 @@ function selectMembersSql(constraints: MembersQueryConstraints) {
 				"ContactInfo, " +
 				"ContactEmails, " +
 				"JSON_ARRAY() as StatusChangeHistory, " +
-				"JSON_ARRAY() AS ObsoleteSAPINs " +
+				"JSON_ARRAY() AS ObsoleteSAPINs, " +
+				"FALSE as InRoster " +
 			"FROM users";
 
 		Object.entries(rest).forEach(([key, value]) => {
@@ -190,7 +194,8 @@ function selectMembersSql(constraints: MembersQueryConstraints) {
 				"ContactInfo, " +
 				"ContactEmails, " +
 				"StatusChangeHistory, " +
-				"COALESCE(ObsoleteSAPINs, JSON_ARRAY()) AS ObsoleteSAPINs " +
+				"COALESCE(ObsoleteSAPINs, JSON_ARRAY()) AS ObsoleteSAPINs, " +
+				"InRoster " +
 			"FROM members m " +
 				'LEFT JOIN (SELECT ReplacedBySAPIN AS SAPIN, JSON_ARRAYAGG(SAPIN) AS ObsoleteSAPINs FROM members WHERE Status="Obsolete" GROUP BY ReplacedBySAPIN) AS o ON m.SAPIN=o.SAPIN ';
 
@@ -757,9 +762,10 @@ async function uploadDatabaseMembers(groupId: string, buffer: Buffer) {
 		await db.query(sql);
 
 		let groupMembers = members.map((r) => ({
-			...memberEntry(r),
 			groupId,
 			SAPIN: r.SAPIN,
+			Affiliation: r.Affiliation,
+			InRoster: true
 		}));
 
 		insertKeys = Object.keys(groupMembers[0]);
@@ -967,7 +973,7 @@ export async function importMyProjectRoster(
 		(u) =>
 			typeof u.SAPIN === "number" &&
 			u.SAPIN > 0 &&
-			!u.Status.search(/^Voter|^Potential|^Aspirant|^Non-Voter/)
+			u.Status.search(/Voter|Potential|Aspirant|Non-Voter/) === 0
 	);
 
 	if (roster.length > 0) {
@@ -982,16 +988,21 @@ export async function importMyProjectRoster(
 		);
 		let updateKeys = insertKeys.filter((k) => k !== "SAPIN");
 		let sql =
-			`INSERT INTO users (${insertKeys}) VALUES ` +
-			insertValues.map((v) => `(${v})`).join(", ") +
-			" ON DUPLICATE KEY UPDATE " +
-			updateKeys.map((k) => k + "=VALUES(" + k + ")");
+			db.format("INSERT INTO users (??) VALUES ", [insertKeys]) +
+			insertValues.map(s => "(" + s + ")").join(", ") +
+			" AS new ON DUPLICATE KEY UPDATE " +
+			updateKeys.map((k) => db.format("??=new.??", [k, k])).join(", ");
+		let result = await db.query<ResultSetHeader>(sql);
+
+		sql = db.format("UPDATE groupMembers SET InRoster=0 WHERE groupId=UUID_TO_BIN(?)", [groupId]);
 		await db.query(sql);
 
 		let members = roster.map((r) => ({
 			...memberEntry(r),
 			groupId,
 			SAPIN: r.SAPIN,
+			Status: "Non-Voter",	// Always import as Non-Voter
+			InRoster: true
 		}));
 
 		insertKeys = Object.keys(members[0]);
@@ -1004,15 +1015,12 @@ export async function importMyProjectRoster(
 				)
 				.join(", ")
 		);
-		updateKeys = insertKeys.filter(
-			(key) => key !== "groupId" && key !== "SAPIN"
-		);
 		sql =
-			`INSERT INTO groupMembers (${insertKeys}) VALUES ` +
-			insertValues.map((v) => `(${v})`).join(", ") +
-			" ON DUPLICATE KEY UPDATE " +
-			updateKeys.map((k) => k + "=VALUES(" + k + ")");
-		await db.query(sql);
+			db.format("INSERT INTO groupMembers (??) VALUES ", [insertKeys]) +
+			insertValues.map(s => "(" + s + ")").join(", ") +
+			" AS new ON DUPLICATE KEY UPDATE `Affiliation`=new.`Affiliation`, `InRoster`=new.`InRoster`";
+		result = await db.query<ResultSetHeader>(sql);
+		console.log(result)
 	}
 
 	return getMembers(AccessLevel.admin, { groupId });
@@ -1023,9 +1031,49 @@ export async function exportMyProjectRoster(
 	groupId: string,
 	res: Response
 ) {
-	const members = await getMembers(AccessLevel.admin, {
+	let members = await getMembers(AccessLevel.admin, {
 		groupId,
-		Status: ["Voter", "Aspirant", "Potential Voter", "Non-Voter"],
+		Status: ["Voter", "Aspirant", "Potential Voter", "Non-Voter", "ExOfficio"],
 	});
+	members = members.filter(m => m.Status !== "Non-Voter" || m.InRoster);
 	return genMyProjectRosterSpreadsheet(user, members, res);
+}
+
+export async function exportMembersPublic(groupId: string, res: Response) {
+	let members = await getMembers(AccessLevel.admin, {
+		groupId,
+		Status: ["Voter", "Aspirant", "Potential Voter", "ExOfficio"],
+	});
+
+	let ssData = members.map(m => ({
+		"Family Name": m.LastName,
+		"Given Name": m.FirstName,
+		"MI": m.MI,
+		"Affiliation": m.Affiliation,
+		"Status": m.Status
+	}));
+
+	const csv = await csvStringify(ssData, { header: true });
+	res.attachment("members-public.csv");
+	res.status(200).send(csv);
+}
+
+export async function exportMembersPrivate(groupId: string, res: Response) {
+	let members = await getMembers(AccessLevel.admin, {
+		groupId,
+		Status: ["Voter", "Aspirant", "Potential Voter", "ExOfficio"],
+	});
+	
+	let ssData = members.map(m => ({
+		SAPIN: m.SAPIN,
+		"Family Name": m.LastName,
+		"Given Name": m.FirstName,
+		MI: m.MI,
+		Affiliation: m.Affiliation,
+		Status: m.Status
+	}));
+
+	const csv = await csvStringify(ssData, { header: true });
+	res.attachment("members-private.csv");
+	res.status(200).send(csv);
 }

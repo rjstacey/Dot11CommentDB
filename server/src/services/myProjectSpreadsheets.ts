@@ -217,7 +217,8 @@ const statusToInvolvementLevel = {
 	Aspirant: "Aspirant Member",
 	"Potential Voter": "Potential Member",
 	Voter: "Voting Member",
-	"Non-Voter": "Observer",
+	"ExOfficio": "Voting Member",
+	"Non-Voter": "Observer"
 };
 
 type Col = {
@@ -248,6 +249,7 @@ const myProjectRosterColumns: Record<string, Col> = {
 	},
 	"Street Address/PO Box": { width: 41 },
 	City: { width: 41 },
+	"State/Province": { width: 41 },
 	"Postal Code": { width: 41 },
 	Country: { width: 41 },
 	Phone: { width: 31 },
