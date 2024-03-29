@@ -26,27 +26,34 @@ type RecentSessionAttendances = {
 	sessionAttendanceSummaries: SessionAttendanceSummary[];
 };
 
-const getSessionAttendancesSQL = (groupId: string, session_ids: number[]) =>
+function getSessionAttendancesSQL(groupId: string, session_ids: number[]) {
 	// prettier-ignore
-	db.format(
-		"SELECT " +
-			"COALESCE(m.ReplacedBySAPIN, a.SAPIN) as SAPIN, " +
-			"JSON_ARRAYAGG(JSON_OBJECT(" +
-				'"id", a.id, ' +
-				'"session_id", a.session_id, ' +
-				'"AttendancePercentage", a.AttendancePercentage, ' +
-				'"DidAttend", IF(a.DidAttend = 1, CAST(TRUE as json), CAST(FALSE as json)), ' +
-				'"DidNotAttend", IF(a.DidNotAttend = 1, CAST(TRUE as json), CAST(FALSE as json)), ' +
-				'"Notes", a.Notes, ' +
-				'"SAPIN", a.SAPIN, ' +
-				'"CurrentSAPIN", COALESCE(m.ReplacedBySAPIN, a.SAPIN) ' +
-			")) as sessionAttendanceSummaries " +
-		"FROM attendance_summary a " +
-			'LEFT JOIN members m ON m.SAPIN=a.SAPIN AND m.Status="Obsolete" ' +
-		"WHERE a.groupId=UUID_TO_BIN(?) AND a.session_id IN (?) " +
-		"GROUP BY SAPIN ",
-		[groupId, session_ids]
-	);
+	const sql =
+		"WITH cte AS (" +
+			"SELECT " +
+				"COALESCE(m.ReplacedBySAPIN, a.SAPIN) as SAPIN, " +
+				"JSON_ARRAYAGG(JSON_OBJECT(" +
+					'"id", a.id, ' +
+					'"session_id", a.session_id, ' +
+					'"AttendancePercentage", a.AttendancePercentage, ' +
+					'"DidAttend", IF(a.DidAttend = 1, CAST(TRUE as json), CAST(FALSE as json)), ' +
+					'"DidNotAttend", IF(a.DidNotAttend = 1, CAST(TRUE as json), CAST(FALSE as json)), ' +
+					'"Notes", a.Notes, ' +
+					'"SAPIN", a.SAPIN, ' +
+					'"CurrentSAPIN", COALESCE(m.ReplacedBySAPIN, a.SAPIN) ' +
+				")) as sessionAttendanceSummaries " +
+			"FROM attendance_summary a " +
+				'LEFT JOIN members m ON m.SAPIN=a.SAPIN AND m.Status="Obsolete" ' +
+			db.format("WHERE a.groupId=UUID_TO_BIN(?) AND a.session_id IN (?) ", [groupId, session_ids]) +
+			"GROUP BY SAPIN " +
+		") " +
+		"SELECT m.SAPIN, COALESCE(c.sessionAttendanceSummaries, JSON_ARRAY()) as sessionAttendanceSummaries " +
+		"FROM members m " +
+		db.format("LEFT JOIN cte c ON m.groupId=UUID_TO_BIN(?) AND c.SAPIN=m.SAPIN ", [groupId]) +
+		"WHERE m.Status IN ('Non-Voter', 'Aspirant', 'Potential Voter', 'Voter', 'ExOfficio')";
+
+	return sql;
+}
 
 function getAttendancesSql(
 	constraints: Partial<{
@@ -309,9 +316,10 @@ function validAttendance(a: any): a is SessionAttendanceSummary {
 async function addAttendance(groupId: string, attendance: SessionAttendanceSummary) {
 	const changes = attendanceSummaryChanges(attendance);
 
-	const { insertId } = (await db.query("INSERT attendance_summary SET group=UUID_TO_BIN(?), ?", [
-		groupId, changes
-	])) as ResultSetHeader;
+	const { insertId } = await db.query<ResultSetHeader>(
+		"INSERT attendance_summary SET group=UUID_TO_BIN(?), ?",
+		[groupId, changes]
+	);
 
 	[attendance] = (await db.query(
 		getAttendancesSql({ id: insertId })
@@ -335,9 +343,9 @@ export function validAttendanceIds(ids: any): ids is number[] {
 }
 
 export async function deleteAttendances(ids: number[]) {
-	const { affectedRows } = (await db.query(
+	const { affectedRows } = await db.query<ResultSetHeader>(
 		"DELETE FROM attendance_summary WHERE ID IN (?)",
 		[ids]
-	)) as ResultSetHeader;
+	);
 	return affectedRows;
 }
