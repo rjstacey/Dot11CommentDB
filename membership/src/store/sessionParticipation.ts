@@ -585,3 +585,25 @@ export const importAttendances =
 		);
 		dispatch(getSuccess(response.attendances));
 	};
+
+	export const exportAttendanceForMinutes =
+		(session_id: number): AppThunk =>
+		async (dispatch, getState) => {
+			const groupName = selectAttendancesGroupName(getState());
+			if (!groupName) {
+				dispatch(setError("Unable to export attendances", "group not set"));
+				return;
+			}
+			let url = `/api/${groupName}/attendances/${session_id}/exportForMinutes`;
+			try {
+				await fetcher.getFile(url);
+			} catch (error) {
+				dispatch(
+					setError(
+						"Unable to export attendance for session " +
+							`id=${session_id}`,
+						error
+					)
+				);
+			}
+		};

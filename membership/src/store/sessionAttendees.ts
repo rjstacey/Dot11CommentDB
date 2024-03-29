@@ -97,7 +97,7 @@ const initialState: {
 } = {
 	groupName: null,
 	sessionId: null,
-	dailyAttendance: false,
+	dailyAttendance: true,
 };
 
 const dataSet = "sessionAttendees";

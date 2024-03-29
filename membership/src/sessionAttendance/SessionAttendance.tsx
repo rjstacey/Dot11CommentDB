@@ -47,11 +47,13 @@ import {
 	type MemberAdd,
 	type MemberUpdate,
 } from "../store/members";
+import { selectSessionEntities, Session } from "../store/sessions";
 
 import MemberAttendanceDetail from "./MemberAttendanceDetail";
 import SessionSelector from "./SessionSelector";
 
 import styles from "./sessionAttendance.module.css";
+import { exportAttendanceForMinutes } from "../store/sessionParticipation";
 
 const BLANK_STR = "(Blank)";
 
@@ -225,8 +227,9 @@ for (tableView in defaultTablesColumns) {
 	defaultTablesConfig[tableView] = tableConfig;
 }
 
-function sessionAttendeeToMember(attendee: SessionAttendee) {
+function sessionAttendeeToMember(session: Session, attendee: SessionAttendee) {
 	const member: MemberAdd = {
+		DateAdded: session.startDate,		// Show add as from session start
 		SAPIN: attendee.SAPIN,
 		Name: attendee.Name,
 		FirstName: attendee.FirstName,
@@ -241,7 +244,10 @@ function sessionAttendeeToMember(attendee: SessionAttendee) {
 	return member;
 }
 
-function InportAttendeeForm({ methods }: DropdownRendererProps) {
+function ImportAttendeeForm({ methods }: DropdownRendererProps) {
+	const { sessionId } = useAppSelector(selectSessionAttendeesState);
+	const session = useAppSelector(selectSessionEntities)[sessionId!]!;
+
 	const [importNew, setImportNew] = React.useState(true);
 	const [importUpdates, setImportUpdates] = React.useState(true);
 	const [selectedOnly, setSelectedOnly] = React.useState(false);
@@ -261,7 +267,7 @@ function InportAttendeeForm({ methods }: DropdownRendererProps) {
 				.filter(
 					(attendee) => attendee && !memberEntities[attendee.SAPIN]
 				)
-				.map(sessionAttendeeToMember),
+				.map(attendee => sessionAttendeeToMember(session, attendee)),
 		[list, entities, memberEntities]
 	);
 
@@ -416,17 +422,23 @@ function SessionAttendance() {
 							/>
 						</div>
 					</ButtonGroup>
-					<ActionButton
-						name="copy"
-						title="Copy email addresses"
-						onClick={copyEmails}
-					/>
 					<ActionButtonDropdown
 						name="import"
 						title="Import new attendees"
 						dropdownRenderer={(props) => (
-							<InportAttendeeForm {...props} />
+							<ImportAttendeeForm {...props} />
 						)}
+					/>
+					<ActionButton 
+						name="bi-list-check"
+						title="Export attendance for minutes"
+						disabled={!sessionId}
+						onClick={() => dispatch(exportAttendanceForMinutes(sessionId!))}
+					/>
+					<ActionButton
+						name="copy"
+						title="Copy email addresses"
+						onClick={copyEmails}
 					/>
 					<ActionButton
 						name="refresh"
