@@ -2,6 +2,7 @@ import * as React from "react";
 
 import {
 	ActionButton,
+	ButtonGroup,
 	ActionButtonDropdown,
 	Form,
 	Row,
@@ -65,7 +66,7 @@ function RosterImportDropdown({ methods }: DropdownRendererProps) {
 const RosterImport = () => (
 	<ActionButtonDropdown
 		name="import"
-		title="Import roster"
+		title="Import member updates from myProject roster"
 		dropdownRenderer={(props) => <RosterImportDropdown {...props} />}
 	/>
 );
@@ -76,10 +77,22 @@ function RosterExport() {
 	return (
 		<ActionButton
 			name="export"
-			title="Export roster"
+			title="Export members for myProject roster update"
 			onClick={() => dispatch(exportMyProjectRoster())}
 		/>
 	);
 }
 
-export { RosterImport, RosterExport };
+function MembersRoster() {
+	return (
+		<ButtonGroup className="button-group">
+			<div>Roster</div>
+			<div style={{ display: "flex" }}>
+				<RosterImport />
+				<RosterExport />
+			</div>
+		</ButtonGroup>
+	);
+}
+
+export default MembersRoster;

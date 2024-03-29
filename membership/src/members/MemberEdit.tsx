@@ -468,8 +468,9 @@ export function MemberEntryForm({
 				updateMember={updateMember}
 				readOnly={readOnly}
 			/>
+			{sapins.length <= 1 &&
 			<Row>
-				{action !== "add" && !basicOnly ? (
+				{(action !== "add" && !basicOnly) ? (
 					<MemberDetailInfo
 						sapin={sapins[0]}
 						member={member}
@@ -485,7 +486,7 @@ export function MemberEntryForm({
 						readOnly={readOnly}
 					/>
 				)}
-			</Row>
+			</Row>}
 		</Form>
 	);
 }

@@ -290,6 +290,7 @@ function MemberDetail({
 					update={update}
 					cancel={cancel}
 					readOnly={readOnly}
+					basicOnly={state.originals.length > 1}
 				/>
 			)}
 			<ShowAccess access={access} />

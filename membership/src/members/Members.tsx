@@ -24,7 +24,8 @@ import {
 import MembersUpload from "./MembersUpload";
 import MembersSummary from "./MembersSummary";
 import MemberDetail from "./MemberDetail";
-import { RosterImport, RosterExport } from "./Roster";
+import MembersRoster from "./MembersRoster";
+import MembersExport from "./MembersExport";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
@@ -134,7 +135,8 @@ const tableColumns: ColumnProperties[] = [
 		headerRenderer: (p) => (
 			<SelectHeaderCell
 				customSelectorElement=<IdSelector
-					style={{ width: "200px" }}
+					dataKey="SAPIN"
+					style={{ width: "400px" }}
 					selectors={membersSelectors}
 					actions={membersActions}
 					focusOnMount
@@ -303,13 +305,8 @@ function Members() {
 						selectors={membersSelectors}
 						actions={membersActions}
 					/>
-					<ButtonGroup className="button-group">
-						<div>Roster</div>
-						<div style={{ display: "flex" }}>
-							<RosterImport />
-							<RosterExport />
-						</div>
-					</ButtonGroup>
+					<MembersRoster />
+					<MembersExport />
 					<ButtonGroup className="button-group">
 						<div>Edit</div>
 						<div style={{ display: "flex" }}>

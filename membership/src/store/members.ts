@@ -9,6 +9,7 @@ import {
 	FieldType,
 	isObject,
 	displayDate,
+	Fields,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
@@ -99,7 +100,7 @@ export type MemberWithParticipation = Member & {
 
 export type MembersDictionary = Dictionary<Member>;
 
-export const fields = {
+export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
 	Name: { label: "Name" },
 	Email: { label: "Email" },
@@ -501,4 +502,34 @@ export const importMyProjectRoster =
 			return;
 		}
 		dispatch(getSuccess(response));
+	};
+
+export const exportMembersPublic =
+	(): AppThunk => async (dispatch, getState) => {
+		const { groupName } = selectMembersState(getState());
+		if (!groupName) {
+			dispatch(setError("Unable to export member list", "Group not selected"));
+			return;
+		}
+		const url = `/api/${groupName}/members/public`;
+		try {
+			await fetcher.getFile(url);
+		} catch (error) {
+			dispatch(setError("Unable to get file", error));
+		}
+	};
+
+export const exportMembersPrivate =
+	(): AppThunk => async (dispatch, getState) => {
+		const { groupName } = selectMembersState(getState());
+		if (!groupName) {
+			dispatch(setError("Unable to export member list", "Group not selected"));
+			return;
+		}
+		const url = `/api/${groupName}/members/private`;
+		try {
+			await fetcher.getFile(url);
+		} catch (error) {
+			dispatch(setError("Unable to get file", error));
+		}
 	};
