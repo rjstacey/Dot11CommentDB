@@ -1,5 +1,6 @@
 import db from "../utils/database";
 import { NotFoundError } from "../utils";
+import type { Response } from "express";
 
 import { getSessions, Session } from "./sessions";
 import { getGroupHierarchy, type Group } from "./groups";
@@ -8,8 +9,12 @@ import {
 	getImatMeetingDailyAttendance,
 } from "./imat";
 import { isPlainObject } from "../utils";
-import type { ResultSetHeader } from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { User } from "./users";
+import type { Member } from "./members";
+import { getMembers, getMembersSnapshot } from "./members";
+import { AccessLevel } from "../auth/access";
+import { genAttendanceSpreadsheet } from "./attendancesSpreadsheet";
 
 type SessionAttendanceSummary = {
 	id: number;
@@ -18,6 +23,7 @@ type SessionAttendanceSummary = {
 	DidAttend: boolean;		// Declare attendance criteria met
 	DidNotAttend: boolean;	// Declare attendance criteria not met
 	SAPIN: number;			// SA PIN under which attendance was logged
+	CurrentSAPIN: number;	// Member's current SA PIN
 	Notes: string;
 };
 
@@ -183,18 +189,50 @@ export async function importAttendances(
 	return getRecentAttendances(user, group.id);
 }
 
+export type MemberAttendance = SessionAttendanceSummary & {
+	Name: string,
+	Affiliation: string,
+	Status: string
+}
+
+/*
+ * Export attendances for meeting minutes
+ */
+export async function exportAttendancesForMinutes(user: User, group: Group, session_id: number, res: Response) {
+
+	const {session, attendances} = await getAttendances(group.id, session_id);
+
+	const memberEntities: Record<number, Member> = {};
+	let members = await getMembers(AccessLevel.admin, { groupId: group.id });
+	members.forEach(m => memberEntities[m.SAPIN] = m);
+	members = await getMembersSnapshot(AccessLevel.admin, group.id, session.startDate);
+	members.forEach(m => memberEntities[m.SAPIN] = m);
+	const memberAttendances: MemberAttendance[] = attendances.map(a => {
+		const m = memberEntities[a.CurrentSAPIN];
+		const entry: MemberAttendance = {
+			...a,
+			Name: m? `${m.LastName}, ${m.FirstName}`: `SAPIN=${a.SAPIN}`,
+			Affiliation: m?.Affiliation || "",
+			Status: m?.Status || "Non-Voter",
+		}
+		return entry;
+	})
+
+	return genAttendanceSpreadsheet(user, group, session, memberAttendances, res);
+}
+
 /**
  * Get attendances for session
  * @param session_id Session identifier
  * @returns An object with the session and attendances
  */
-export async function getAttendances(groupId: string, session_id: number) {
+export async function getAttendances(groupId: string, session_id: number): Promise<{session: Session; attendances: SessionAttendanceSummary[]}> {
 	let [session] = await getSessions({ id: session_id });
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 
 	const sql = getAttendancesSql({ groupId, session_id });
-	const attendances = (await db.query(sql)) as SessionAttendanceSummary[];
+	const attendances = await db.query<(RowDataPacket & SessionAttendanceSummary)[]>(sql);
 
 	return {
 		session,

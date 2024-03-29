@@ -2,7 +2,7 @@
  * Manage sessions and session attendance
  */
 import { DateTime } from "luxon";
-import type { ResultSetHeader } from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import db from "../utils/database";
 
@@ -136,7 +136,7 @@ export function getCredit(creditStr: string): {credit: Credit, creditOverrideNum
  *
  * @returns an array of session objects
  */
-export function getSessions(constraints?: SessionsQueryConstraints) {
+export function getSessions(constraints?: SessionsQueryConstraints): Promise<Session[]> {
 	let sql = getSessionsSQL(constraints?.groupId);
 
 	if (constraints) {
@@ -155,7 +155,7 @@ export function getSessions(constraints?: SessionsQueryConstraints) {
 	sql += " ORDER BY startDate DESC";
 
 	//console.log(sql)
-	return db.query({ sql, dateStrings: true }) as Promise<Session[]>;
+	return db.query<(RowDataPacket & Session)[]>(sql);
 }
 
 /**
@@ -223,10 +223,10 @@ function sessionEntrySetSql(s: Partial<Session>) {
 
 	const sets: string[] = [];
 	for (const [key, value] of Object.entries(entry)) {
-		let sql: string;
-		if (key === "groupId")
-			sql = db.format("??=UUID_TO_BIN(?)", [key, value]);
-		else sql = db.format("??=?", [key, value]);
+		const sql =
+			(key === "groupId")?
+				db.format("??=UUID_TO_BIN(?)", [key, value]):
+				db.format("??=?", [key, value]);
 		sets.push(sql);
 	}
 
@@ -246,11 +246,8 @@ function replaceSessionRooms(sessionId: number, rooms: Room[]) {
 }
 
 export async function addSession(session: Session) {
-	const setSql = sessionEntrySetSql(session);
-	const { insertId } = (await db.query({
-		sql: `INSERT INTO sessions SET ${setSql};`,
-		dateStrings: true,
-	})) as ResultSetHeader;
+	const sql = "INSERT INTO sessions SET " + sessionEntrySetSql(session);
+	const { insertId } = await db.query<ResultSetHeader>(sql);
 	if (session.rooms) await replaceSessionRooms(insertId, session.rooms);
 	const [insertedSession] = await getSessions({ id: insertId });
 	return insertedSession;
@@ -259,14 +256,10 @@ export async function addSession(session: Session) {
 export async function updateSession(id: number, changes: Partial<Session>) {
 	const setSql = sessionEntrySetSql(changes);
 	if (setSql) {
-		//console.log(setSql)
-		await db.query(
-			{
-				sql: `UPDATE sessions SET ${setSql} WHERE id=?;`,
-				dateStrings: true,
-			},
-			[id]
-		);
+		const sql =
+			"UPDATE sessions SET " + setSql +
+			"WHERE id=" + db.escape(id);
+		await db.query(sql);
 	}
 
 	if (changes.rooms) await replaceSessionRooms(id, changes.rooms);
@@ -276,13 +269,10 @@ export async function updateSession(id: number, changes: Partial<Session>) {
 }
 
 export async function deleteSessions(ids: number[]) {
-	const results = (await db.query(
+	const sql =
 		db.format("DELETE FROM sessions WHERE id IN (?);", [ids]) +
-			db.format("DELETE FROM rooms WHERE sessionId IN (?);", [ids]) +
-			db.format(
-				"DELETE FROM attendance_summary WHERE session_id IN (?);",
-				[ids]
-			)
-	)) as ResultSetHeader[];
+		db.format("DELETE FROM rooms WHERE sessionId IN (?);", [ids]) +
+		db.format("DELETE FROM attendance_summary WHERE session_id IN (?);", [ids]);
+	const results = await db.query<ResultSetHeader[]>(sql);
 	return results[0].affectedRows;
 }

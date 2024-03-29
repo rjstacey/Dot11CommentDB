@@ -13,6 +13,7 @@ import {
 	updateAttendances,
 	deleteAttendances,
 	importAttendances,
+	exportAttendancesForMinutes,
 	validAttendances,
 	validAttendanceUpdates,
 	validAttendanceIds,
@@ -42,11 +43,17 @@ router
 			.then((data) => res.json(data))
 			.catch(next);
 	})
+	.get("/:session_id(\\d+)/exportForMinutes", async (req, res, next) => {
+		const session_id = Number(req.params.session_id);
+		exportAttendancesForMinutes(req.user, req.group!, session_id, res)
+			.then(() => res.end())
+			.catch(next);
+	})
 	.post("/:session_id(\\d+)/import", async (req, res, next) => {
 		const session_id = Number(req.params.session_id);
 		const { use } = req.query;
 		let useDailyAttendance =
-			typeof use === "string" && use.toLowerCase() === "daily-attendance";
+			typeof use === "string" && use.toLowerCase().startsWith("daily");
 		importAttendances(req.user, req.group!, session_id, useDailyAttendance)
 			.then((data) => res.json(data))
 			.catch(next);
