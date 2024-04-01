@@ -15,7 +15,7 @@ const attendanceColumns: Col[] = [
 	{ label: "Name", width: 30, set: (a) => a.Name },
 	{ label: "Affiliation", width: 40, set: (a) => a.Affiliation },
 	{
-		label: "Attendend ≥ 75%",
+		label: "Attended ≥ 75%",
 		width: 18,
 		set: (m) => m.AttendancePercentage >= 75,
 	},
@@ -58,16 +58,6 @@ export function genAttendanceSpreadsheet(
 			attendanceColumns.map((col) => typeof col.set === "function" ? col.set(a) : col.set || "")
 		),
 	});
-
-	/*worksheet.getRow(1).values = Object.keys(attendanceColumns);
-    worksheet.addRow(Object.keys(attendanceColumns));
-	worksheet.getRow(1).font = { bold: true };
-    attendances.forEach((a, i) => {
-		const row = worksheet.getRow(i + 2);
-		row.values = Object.values(attendanceColumns).map((col) =>
-			typeof col.set === "function" ? col.set(a) : col.set || ""
-		);
-	});*/
 
 	res.attachment(`${group.name}_${session.number}_attendance.xlsx`);
 	return workbook.xlsx.write(res);
