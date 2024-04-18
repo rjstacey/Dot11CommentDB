@@ -258,6 +258,10 @@ export async function getGroupByName(user: User, name: string): Promise<Group | 
 	return group;
 }
 
+export function selectWorkingGroup(groups: Group[]) {
+	return groups.find(group => group.type === "wg");
+}
+
 export async function getWorkingGroup(user: User, group_id: string): Promise<Group | undefined> {
 	const groups = await getGroupHierarchy(user, group_id);
 	return groups.find(group => group.type === "wg");

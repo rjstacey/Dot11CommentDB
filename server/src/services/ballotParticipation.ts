@@ -1,6 +1,6 @@
 import { getRecentBallotSeries, type Ballot } from "./ballots";
 import { getVotersForBallots } from "./voters";
-import { getResultsForWgBallot, Result } from "./results";
+import { getWGResults, Result } from "./results";
 
 type BallotSeries = {
 	id: number;
@@ -19,7 +19,7 @@ type BallotSeriesParticipationSummary = {
 	vote: string | null;		// Last vote
 	SAPIN: number | null;		// SAPIN used for last vote
 	ballot_id: number | null;	// Ballot identifier for last vote
-	commentCount: number | null;//Number of comments submitted with las vote
+	commentCount: number | null;//Number of comments submitted with last vote
 };
 
 type RecentBallotSeriesParticipation = {
@@ -33,6 +33,7 @@ export async function getBallotSeriesParticipation(groupId: string) {
 
 	//const t2 = Date.now();
 	const ballotsArr = await getRecentBallotSeries(groupId);
+	console.log(ballotsArr)
 
 	//const t3 = Date.now();
 	const ballotSeriesArr: BallotSeries[] = [];
@@ -44,7 +45,7 @@ export async function getBallotSeriesParticipation(groupId: string) {
 		initialBallot_ids.push(id);
 		allBallots = allBallots.concat(ballots);
 		const results = await Promise.all(
-			ballots.map((ballot) => getResultsForWgBallot(ballot.id))
+			ballots.map((ballot) => getWGResults(ballot.id))
 		);
 		results.forEach(
 			(results, i) => (resultsEntities[ballots[i].id] = results)
@@ -89,7 +90,7 @@ export async function getBallotSeriesParticipation(groupId: string) {
 					const results = resultsEntities[ballot_id];
 					let r = results.find(
 						(r) =>
-							r.CurrentSAPIN === v.SAPIN &&
+							r.SAPIN === v.SAPIN &&
 							[
 								"Approve",
 								"Disapprove",

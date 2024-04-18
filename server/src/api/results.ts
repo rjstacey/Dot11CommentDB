@@ -30,14 +30,17 @@
  */
 import { Router } from "express";
 import Multer from "multer";
-import { ForbiddenError } from "../utils";
+import { ForbiddenError, NotFoundError } from "../utils";
 import { AccessLevel } from "../auth/access";
+import { selectWorkingGroup } from "../services/groups";
 import {
 	getResultsCoalesced,
+	updateResults,
 	deleteResults,
 	importEpollResults,
 	uploadResults,
 	exportResults,
+	validResultUpdates,
 } from "../services/results";
 
 const upload = Multer();
@@ -48,7 +51,7 @@ router
 		const access = req.permissions?.results || AccessLevel.none;
 		if (req.method === "GET" && access >= AccessLevel.ro) return next();
 		if (
-			(req.method === "DELETE" || req.method === "POST") &&
+			(req.method === "DELETE" || req.method === "POST" || req.method === "PATCH") &&
 			access >= AccessLevel.admin
 		)
 			return next();
@@ -56,6 +59,10 @@ router
 		next(new ForbiddenError("Insufficient karma"));
 	})
 	.get("/export", (req, res, next) => {
+		const workingGroup = selectWorkingGroup(req.groups!);
+		if (!workingGroup)
+			return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
+
 		const { forSeries } = req.query;
 		if (forSeries && forSeries !== "true" && forSeries !== "false")
 			return next(
@@ -66,27 +73,53 @@ router
 
 		const access = req.permissions?.results || AccessLevel.none;
 
-		exportResults(req.user, access, req.ballot!, forSeries === "true", res)
+		exportResults(req.user, access, workingGroup.id, req.ballot!, forSeries === "true", res)
 			.then(() => res.end())
 			.catch(next);
 	})
 	.post("/import", (req, res, next) => {
-		importEpollResults(req.user, req.ballot!)
+		const workingGroup = selectWorkingGroup(req.groups!);
+		if (!workingGroup)
+			return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
+
+		importEpollResults(req.user, workingGroup, req.ballot!)
 			.then((data) => res.json(data))
 			.catch(next);
 	})
 	.post("/upload", upload.single("ResultsFile"), (req, res, next) => {
+		const workingGroup = selectWorkingGroup(req.groups!);
+		if (!workingGroup)
+			return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
+
 		if (!req.file) return next(new TypeError("Missing file"));
-		uploadResults(req.user, req.ballot!, req.file)
+		uploadResults(req.user, workingGroup.id, req.ballot!, req.file)
 			.then((data) => res.json(data))
 			.catch(next);
 	})
 	.route("/")
 		.get((req, res, next) => {
+			const workingGroup = selectWorkingGroup(req.groups!);
+			if (!workingGroup)
+				return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
+
 			const access = req.permissions?.results || AccessLevel.none;
-			getResultsCoalesced(req.user, access, req.ballot!)
+			getResultsCoalesced(req.user, access, workingGroup.id, req.ballot!)
 				.then((data) => res.json(data))
 				.catch(next);
+		})
+		.patch((req, res, next) => {
+			const workingGroup = selectWorkingGroup(req.groups!);
+			if (!workingGroup)
+				return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
+
+			const updates: any = req.body;
+			if (!validResultUpdates(updates))
+				return next(new TypeError("Bad or missing updates array; expect array with shape {id: number, changes: object}"));
+
+			const access = req.permissions?.results || AccessLevel.none;
+			updateResults(req.user, access, workingGroup.id, req.ballot!, updates)
+				.then((data) => res.json(data))
+				.catch(next)
 		})
 		.delete((req, res, next) => {
 			deleteResults(req.ballot!.id)

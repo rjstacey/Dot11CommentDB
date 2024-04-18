@@ -7,7 +7,7 @@ import { getResultsCoalesced, ResultsSummary } from "./results";
 import { CommentsSummary } from "./comments";
 
 import { type User } from "./users";
-import { type Group } from "./groups";
+import { getWorkingGroup, type Group } from "./groups";
 import { AccessLevel } from "../auth/access";
 
 export type Ballot = {
@@ -44,6 +44,33 @@ export const BallotType = {
 	Motion: 5, // motion
 };
 
+/* Suppose you have a ballot series ids = [40, 39, 38].
+ * Each id points to the prev in the series, last pointing to null.
+ * This view will create a table:
+ * +-----------+----+---------+------------+
+ * | ballot_id | id | prev_id | initial_id |
+ * |        40 | 40 |      39 |         38 |
+ * |        40 | 39 |      38 |         38 | 
+ * |        40 | 38 |    NULL |         38 |
+ * |        39 | 39 |      38 |         38 |
+ * |        39 | 38 |    NULL |         38 |
+ * |        38 | 38 |    NULL |         38 |
+ * +-----------+----+---------+------------+
+ * Each unique ballot_id will comprise an exhaustive list of current and previous ballots. */
+const createViewBallotSeries = `
+	DROP VIEW IF EXISTS ballotSeries;
+	CREATE VIEW ballotSeries AS
+		WITH RECURSIVE cte AS (
+			SELECT b.id as ballot_id, b.* FROM ballots b
+			UNION ALL
+			SELECT c.ballot_id, t.* FROM cte c JOIN ballots t ON c.prev_id=t.id
+		) SELECT c1.*, c2.id as initial_id FROM cte c1 LEFT JOIN cte c2 ON c2.ballot_id=c1.ballot_id AND c2.prev_id IS NULL;
+`;
+
+export function init() {
+	return db.query(createViewBallotSeries);
+}
+
 /*
  * Get ballots SQL query.
  */
@@ -53,7 +80,8 @@ const getBallotsSQL = `
 		BIN_TO_UUID(b.groupId) as groupId,
 		b.Type,
 		b.number,
-		b.BallotID, b.Project, b.IsRecirc, b.IsComplete,
+		COALESCE(CONCAT(IF(b.Type=0, "CC", ""), IF(b.Type=1, "LB", ""), IF(b.Type=2, "SA", ""), IF(b.Type=5, "M", ""), b.number), b.BallotID) as BallotID,  
+		b.Project, b.IsRecirc, b.IsComplete,
 		DATE_FORMAT(b.Start, "%Y-%m-%dT%TZ") AS Start,
 		DATE_FORMAT(b.End, "%Y-%m-%dT%TZ") AS End,
 		b.Document, b.Topic, b.VotingPoolID, b.prev_id, b.EpollNum,
@@ -119,10 +147,17 @@ export async function getBallot(id: number) {
 
 export async function getBallotWithNewResultsSummary(
 	user: User,
+	workingGroupId: string | null,
 	ballot_id: number
 ) {
 	let ballot = await getBallot(ballot_id);
-	ballot = (await getResultsCoalesced(user, AccessLevel.ro, ballot)).ballot;
+	if (!workingGroupId) {
+		const workingGroup = await getWorkingGroup(user, ballot.groupId!);
+		if (!workingGroup)
+			throw new NotFoundError(`Can't find working group for ballot ${ballot.BallotID}`);
+		workingGroupId = workingGroup.id;
+	}
+	ballot = (await getResultsCoalesced(user, AccessLevel.ro, workingGroupId, ballot)).ballot;
 	return ballot;
 }
 
@@ -159,7 +194,7 @@ type BallotSeriesRange = {
 export async function getRecentBallotSeries(groupId: string) {
 	const sql = `
 		WITH RECURSIVE cte AS (
-			SELECT id, prev_id, 1 level, Start, End FROM ballots WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND IsComplete<>0 AND type=1 
+			SELECT id, prev_id, 1 level, Start, End FROM ballots WHERE workingGroupId=UUID_TO_BIN(${db.escape(groupId)}) AND IsComplete<>0 AND type=1 
 			UNION ALL 
 			SELECT c.id, t.prev_id, level + 1, t.Start, NULL End FROM cte c 
 			INNER JOIN ballots t on t.id=c.prev_id
@@ -285,8 +320,17 @@ function ballotSetSql(ballot: Partial<BallotDB>) {
  */
 async function addBallot(user: User, workingGroup: Group, ballot: Ballot) {
 	const entry = ballotEntry(ballot);
-	if (!entry.BallotID)
-		entry.BallotID = "__BallotID__"
+	if (!entry.BallotID) {
+		if (entry.Type === BallotType.CC)
+			entry.BallotID = "CC";
+		else if (entry.Type === BallotType.WG)
+			entry.BallotID = "LB";
+		else if (entry.Type === BallotType.SA)
+			entry.BallotID = "SA";
+		else
+			entry.BallotID = "M";
+		entry.BallotID += entry.number || 0;
+	}
 
 	// If the group is not set, set to working group
 	if (!entry.groupId) entry.groupId = workingGroup.id;
@@ -310,7 +354,7 @@ async function addBallot(user: User, workingGroup: Group, ballot: Ballot) {
 			: err;
 	}
 
-	return getBallotWithNewResultsSummary(user, id);
+	return getBallotWithNewResultsSummary(user, workingGroup.id, id);
 }
 
 function validBallot(ballot: any): ballot is Ballot {
@@ -376,7 +420,7 @@ async function updateBallot(
 			throw new Error(`Unexpected: no update for ballot with id=${id}`);
 	}
 
-	return getBallotWithNewResultsSummary(user, id);
+	return getBallotWithNewResultsSummary(user, workingGroup.id, id);
 }
 
 function validUpdate(update: any): update is BallotUpdate {

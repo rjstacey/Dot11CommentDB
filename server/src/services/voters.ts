@@ -4,6 +4,7 @@ import {
 	isPlainObject,
 	parseSpreadsheet,
 	BasicFile,
+	NotFoundError,
 } from "../utils";
 
 import type { Response } from "express";
@@ -13,6 +14,7 @@ import db from "../utils/database";
 
 import { getMembersSnapshot } from "./members";
 import { AccessLevel } from "../auth/access";
+import { User } from "./users";
 
 export type Voter = {
 	id: string;
@@ -23,7 +25,7 @@ export type Voter = {
 	Affiliation: string;
 	Status: string;
 	Excused: boolean;
-	VotingPoolID: string;
+	//VotingPoolID: string;
 	ballot_id: number;
 };
 
@@ -45,6 +47,38 @@ const membersHeader = [
 	"Email",
 	"Status",
 ] as const;
+
+const createViewVotersCurrent = `
+	DROP VIEW IF EXISTS votersCurrent;
+	CREATE VIEW votersCurrent AS
+	WITH membersCurrent AS (
+		SELECT
+			SAPIN, SAPIN as CurrentSAPIN, Name, Email, Affiliation, Status, groupId
+		FROM members WHERE Status<>'Obsolete'
+		UNION ALL
+		SELECT
+			m1.SAPIN, m1.ReplacedBySAPIN as CurrentSAPIN, m2.Name, m2.Email, m2.Affiliation, m2.Status, m2.groupId
+		FROM members m1
+			LEFT JOIN members m2 ON m1.groupId=m2.groupId AND m2.SAPIN=m1.ReplacedBySAPIN
+		WHERE m1.Status='Obsolete'
+	)
+	SELECT
+		v.id,
+		v.SAPIN,
+		m.CurrentSAPIN, m.Name, m.Email, m.Affiliation,
+		v.Status,
+		v.Excused,
+		v.ballot_id,
+		m.groupId
+	FROM wgVoters v
+		LEFT JOIN ballots b ON b.id=v.ballot_id
+		LEFT JOIN membersCurrent m ON v.SAPIN=m.SAPIN AND b.workingGroupId=m.groupId;
+`;
+
+export function init() {
+	return db.query(createViewVotersCurrent);
+}
+
 
 async function parseVoters(file: BasicFile) {
 	const rows = await parseSpreadsheet(file, membersHeader);
@@ -69,37 +103,36 @@ type VotersQueryConstraints = {
 };
 
 export function getVoters(
+	workingGroupId: string,
 	constraints?: VotersQueryConstraints
 ): Promise<Voter[]> {
 	// prettier-ignore
 	let sql =
-		'SELECT ' +
-			'v.*, ' + 
-			'BIN_TO_UUID(v.id) AS id, ' +
-			'COALESCE(m.SAPIN, o.CurrentSAPIN) AS CurrentSAPIN, ' +
-			'COALESCE(m.Name, o.Name) AS Name, ' +
-			'COALESCE(m.Email, o.Email) AS Email, ' +
-			'COALESCE(m.Affiliation, o.Affiliation) AS Affiliation ' +
-		'FROM wgVoters v ' + 
-			'LEFT JOIN members m ON m.Status<>\'Obsolete\' AND m.SAPIN=v.SAPIN ' +
-			'LEFT JOIN (SELECT ' + 
-					'm2.SAPIN AS OldSAPIN, m1.SAPIN AS CurrentSAPIN, m1.Name, m1.Email, m1.Affiliation ' + 
-				'FROM members m1 LEFT JOIN members m2 ON m1.SAPIN=m2.ReplacedBySAPIN AND m2.Status=\'Obsolete\') AS o ON v.SAPIN=o.OldSAPIN';
+		"SELECT " +
+			"BIN_TO_UUID(id) AS id, " +
+			"SAPIN, " + 
+			"CurrentSAPIN, Name, Email, Affiliation, " +
+			"BIN_TO_UUID(groupId) as groupId, " +
+			"Status, " +
+			"Excused, " +
+			"ballot_id " +
+		"FROM votersCurrent";
 
 	if (constraints) {
 		let wheres: string[] = [];
 		if (constraints.ballot_id)
 			wheres.push(db.format("ballot_id IN (?)", [constraints.ballot_id]));
 		if (constraints.sapin)
-			wheres.push(db.format("v.SAPIN IN (?)", [constraints.sapin]));
+			wheres.push(db.format("SAPIN IN (?)", [constraints.sapin]));
 		if (constraints.id)
 			wheres.push(
-				db.format("BIN_TO_UUID(v.id) IN (?)", [constraints.id])
+				db.format("BIN_TO_UUID(id) IN (?)", [constraints.id])
 			);
 		if (wheres.length) sql += " WHERE " + wheres.join(" AND ");
 	}
 
 	sql += " ORDER BY ballot_id, SAPIN;";
+	console.log(sql)
 
 	//return (await db.query<(Voter)[]>(sql)) as Voter[];
 	return db.query<(RowDataPacket & Voter)[]>(sql);
@@ -173,7 +206,7 @@ function validVoters(voters: any): voters is Voter[] {
 	return Array.isArray(voters) && voters.every(isPlainObject);
 }
 
-export async function addVoters(ballot_id: number, votersIn: any) {
+export async function addVoters(workingGroupId: string, ballot_id: number, votersIn: any) {
 	if (!validVoters(votersIn))
 		throw new TypeError(
 			"Bad or missing body: expected an array of voter objects"
@@ -195,7 +228,7 @@ export async function addVoters(ballot_id: number, votersIn: any) {
 		]) as Promise<ResultSetHeader>;
 	});
 	await Promise.all(results);
-	voters = await getVoters({ id: voters.map((voter) => voter.id) });
+	voters = await getVoters(workingGroupId, { id: voters.map((voter) => voter.id) });
 	const ballots = await getVoterBallotUpdates(ballot_id);
 	return { voters, ballots };
 }
@@ -213,7 +246,7 @@ function validUpdates(updates: any): updates is VoterUpdate[] {
 	return Array.isArray(updates) && updates.every(validUpdate);
 }
 
-export async function updateVoters(updates: any) {
+export async function updateVoters(workingGroupId: string, updates: any) {
 	if (!validUpdates(updates))
 		throw new TypeError(
 			"Bad or missing updates array; expect array with shape {id: number, changes: object}"
@@ -225,7 +258,7 @@ export async function updateVoters(updates: any) {
 		)
 	);
 	await Promise.all(results);
-	const voters = await getVoters({ id: updates.map((u) => u.id) });
+	const voters = await getVoters(workingGroupId, { id: updates.map((u) => u.id) });
 	return { voters };
 }
 
@@ -244,7 +277,7 @@ export async function deleteVoters(ids: any) {
 	return result.affectedRows;
 }
 
-async function insertVoters(ballot_id: number, votersIn: Partial<Voter>[]) {
+async function insertVoters(workingGroupId: string, ballot_id: number, votersIn: Partial<Voter>[]) {
 	let sql = db.format("DELETE FROM wgVoters WHERE ballot_id=?;", [ballot_id]);
 	if (votersIn.length > 0) {
 		sql +=
@@ -262,33 +295,35 @@ async function insertVoters(ballot_id: number, votersIn: Partial<Voter>[]) {
 			";";
 	}
 	await db.query(sql);
-	const voters = await getVoters({ ballot_id });
+	const voters = await getVoters(workingGroupId, { ballot_id });
 	const ballots = await getVoterBallotUpdates(ballot_id);
 	return { voters, ballots };
 }
 
 export async function uploadVoters(
+	workingGroupId: string,
 	ballot_id: number,
 	file: Express.Multer.File
 ) {
 	const voters = await parseVoters(file);
-	return insertVoters(ballot_id, voters);
+	return insertVoters(workingGroupId, ballot_id, voters);
 }
 
 export async function votersFromMembersSnapshot(
-	groupId: string,
+	user: User,
+	workingGroupId: string,
 	ballot_id: number,
 	date: string
 ) {
-	const members = await getMembersSnapshot(AccessLevel.admin, groupId, date);
+	const members = await getMembersSnapshot(AccessLevel.admin, workingGroupId, date);
 	const voters = members.filter(
 		(m) => m.Status === "Voter" || m.Status === "ExOfficio"
 	);
-	return insertVoters(ballot_id, voters);
+	return insertVoters(workingGroupId, ballot_id, voters);
 }
 
-export async function exportVoters(ballot_id: number, res: Response) {
-	const voters = await getVoters({ ballot_id });
+export async function exportVoters(workingGroupId: string, ballot_id: number, res: Response) {
+	const voters = await getVoters(workingGroupId, { ballot_id });
 	const arr = voters.map((v) => [v.SAPIN, v.Name, v.Email]);
 	arr.unshift(["SA PIN", "Name", "Email"]);
 	const csv = await csvStringify(arr, {});

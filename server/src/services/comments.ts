@@ -15,9 +15,8 @@ import { parsePublicReviewComments } from "./publicReviewSpreadsheets";
 import { BallotType, Ballot, getBallotWithNewResultsSummary } from "./ballots";
 import { type Resolution } from "./resolutions";
 import { selectUser, type User } from "./users";
-import { getMember } from "./members";
 import { AccessLevel } from "../auth/access";
-import { getGroups } from "./groups";
+import { getGroups, getWorkingGroup } from "./groups";
 
 export type Comment = {
 	id: bigint;
@@ -412,7 +411,8 @@ async function insertComments(
 	}
 
 	comments = await getComments(ballot_id);
-	const ballot = await getBallotWithNewResultsSummary(user, ballot_id);
+
+	const ballot = await getBallotWithNewResultsSummary(user, null, ballot_id);
 
 	return {
 		comments,

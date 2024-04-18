@@ -16,6 +16,9 @@ import { init as initDatabaseConnection } from "./utils/database";
 import { init as initMembers } from "./services/members";
 import { init as initComments } from "./services/comments";
 import { init as initCommentHistory } from "./services/commentHistory";
+import { init as initBallots } from "./services/ballots";
+import { init as initBallotVoters } from "./services/voters";
+import { init as initBallotResults } from "./services/results";
 import { init as webexInit } from "./services/webex";
 import { init as calendarInit } from "./services/calendar";
 import { init as emailInit } from "./services/email";
@@ -40,6 +43,18 @@ async function initServices() {
 	try {
 		process.stdout.write("init members... ");
 		await initMembers();
+		process.stdout.write("success\n");
+
+		process.stdout.write("init ballots... ");
+		await initBallots();
+		process.stdout.write("success\n");
+
+		process.stdout.write("init ballot voters... ");
+		await initBallotVoters();
+		process.stdout.write("success\n");
+
+		process.stdout.write("init ballot results... ");
+		await initBallotResults();
 		process.stdout.write("success\n");
 
 		process.stdout.write("init comments... ");

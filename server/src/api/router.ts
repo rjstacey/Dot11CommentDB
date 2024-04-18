@@ -63,6 +63,7 @@ declare global {
 	namespace Express {
 		interface Request {
 			user: User;
+			groups?: Group[];
 			group?: Group;
 			ballot?: Ballot;
 			permissions?: Record<string, number>;
@@ -72,10 +73,10 @@ declare global {
 
 async function parseGroupName(req: Request, res: Response, next: NextFunction) {
 	const { groupName } = req.params;
-	const [group] = await getGroups(req.user, {name: groupName});
-	if (!group)
+	req.groups = await getGroups(req.user, {name: groupName});
+	if (req.groups.length < 1)
 		return next(new NotFoundError(`Group ${groupName} does not exist`));
-	req.group = group;
+	req.group = req.groups[0];
 	next();
 }
 
@@ -119,11 +120,11 @@ async function parseBallot_id(req: Request, res: Response, next: NextFunction) {
 	if (!ballot.groupId)
 		return next(new NotFoundError(`Ballot ${ballot_id} not associated with a group`));
 	req.ballot = ballot;
-	const [group] = await getGroups(req.user, {id: ballot.groupId});
-	if (!group)
+	req.groups = await getGroups(req.user, {id: ballot.groupId});
+	if (req.groups.length < 1)
 		return next(new NotFoundError(`Group associated with ballot ${ballot_id} does not exist`));
-	req.group = group;
-	req.permissions = group? group.permissions: {};
+	req.group = req.groups[0];
+	req.permissions = req.group.permissions;
 	next();
 }
 
