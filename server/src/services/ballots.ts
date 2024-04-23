@@ -5,10 +5,8 @@ import { isPlainObject, NotFoundError } from "../utils";
 
 import { getResultsCoalesced, ResultsSummary } from "./results";
 import { CommentsSummary } from "./comments";
-
 import { type User } from "./users";
 import { getWorkingGroup, type Group } from "./groups";
-import { AccessLevel } from "../auth/access";
 
 export type Ballot = {
 	id: number;
@@ -24,7 +22,6 @@ export type Ballot = {
 	End: string | null;
 	Document: string;
 	Topic: string;
-	VotingPoolID: string | null;
 	prev_id: number | null;
 	EpollNum: number | null;
 	Results: ResultsSummary | null;
@@ -44,55 +41,68 @@ export const BallotType = {
 	Motion: 5, // motion
 };
 
-/* Suppose you have a ballot series ids = [40, 39, 38].
- * Each id points to the prev in the series, last pointing to null.
+/* View ballot series.
+ *
+ * Suppose you have a ballot series with id in [40, 39, 38].
+ * Each ballot points to the prev in the series, with the initial ballot pointing to null.
  * This view will create a table:
- * +-----------+----+---------+------------+
- * | ballot_id | id | prev_id | initial_id |
- * |        40 | 40 |      39 |         38 |
- * |        40 | 39 |      38 |         38 | 
- * |        40 | 38 |    NULL |         38 |
- * |        39 | 39 |      38 |         38 |
- * |        39 | 38 |    NULL |         38 |
- * |        38 | 38 |    NULL |         38 |
- * +-----------+----+---------+------------+
+ * +-----------+------------+----+---------+--------------+
+ * | series_id | initial_id | id | prev_id | other fields |
+ * |        40 |         38 | 40 |      39 | ...          |
+ * |        40 |         38 | 39 |      38 | 
+ * |        40 |         38 | 38 |    NULL |
+ * |        39 |         38 | 39 |      38 |
+ * |        39 |         38 | 38 |    NULL |
+ * |        38 |         38 | 38 |    NULL |
+ * +-----------+----+---------+------------+---
  * Each unique ballot_id will comprise an exhaustive list of current and previous ballots. */
 const createViewBallotSeries = `
 	DROP VIEW IF EXISTS ballotSeries;
 	CREATE VIEW ballotSeries AS
 		WITH RECURSIVE cte AS (
-			SELECT b.id as ballot_id, b.* FROM ballots b
+			SELECT b.id as series_id, b.* FROM ballots b
 			UNION ALL
-			SELECT c.ballot_id, t.* FROM cte c JOIN ballots t ON c.prev_id=t.id
-		) SELECT c1.*, c2.id as initial_id FROM cte c1 LEFT JOIN cte c2 ON c2.ballot_id=c1.ballot_id AND c2.prev_id IS NULL;
+			SELECT c.series_id, b.* FROM cte c JOIN ballots b ON c.prev_id=b.id
+		)
+		SELECT
+			c1.*,
+			(SELECT c2.id FROM cte c2 WHERE c2.series_id=c1.series_id AND c2.prev_id IS NULL) AS initial_id,
+			(SELECT c2.Start FROM cte c2 WHERE c2.series_id=c1.series_id AND c2.prev_id IS NULL) AS initialStart,
+			(SELECT JSON_ARRAYAGG(c2.id) FROM cte c2 WHERE c2.series_id=c1.series_id GROUP BY c2.series_id ORDER BY c2.Start) AS ballotIds
+		FROM cte c1
 `;
 
 export function init() {
 	return db.query(createViewBallotSeries);
 }
 
+/* Get ballot fields */
+const getBallotFieldsSQL = `
+	b.id,
+	BIN_TO_UUID(b.groupId) as groupId,
+	b.Type,
+	b.number,
+	CONCAT(COALESCE(IF(b.Type=0, "CC", NULL), IF(b.Type=1, "LB", NULL), IF(b.Type=2, "SA", NULL), IF(b.Type=5, "M", NULL), "??"), b.number) as BallotID,  
+	b.Project, b.IsRecirc, b.IsComplete,
+	DATE_FORMAT(b.Start, "%Y-%m-%dT%TZ") AS Start,
+	DATE_FORMAT(b.End, "%Y-%m-%dT%TZ") AS End,
+	b.Document, b.Topic, b.prev_id, b.EpollNum,
+	BIN_TO_UUID(b.workingGroupId) as workingGroupId,
+	b.ResultsSummary AS Results,
+	JSON_OBJECT(
+		"Count", (SELECT COUNT(*) FROM comments c WHERE b.id=c.ballot_id),
+		"CommentIDMin", (SELECT MIN(CommentID) FROM comments c WHERE b.id=c.ballot_id),
+		"CommentIDMax", (SELECT MAX(CommentID) FROM comments c WHERE b.id=c.ballot_id)
+	) AS Comments,
+	(SELECT COUNT(*) FROM wgVoters v WHERE b.id=v.ballot_id) as Voters
+`;
+
 /*
  * Get ballots SQL query.
  */
 const getBallotsSQL = `
 	SELECT
-		b.id,
-		BIN_TO_UUID(b.groupId) as groupId,
-		b.Type,
-		b.number,
-		COALESCE(CONCAT(IF(b.Type=0, "CC", ""), IF(b.Type=1, "LB", ""), IF(b.Type=2, "SA", ""), IF(b.Type=5, "M", ""), b.number), b.BallotID) as BallotID,  
-		b.Project, b.IsRecirc, b.IsComplete,
-		DATE_FORMAT(b.Start, "%Y-%m-%dT%TZ") AS Start,
-		DATE_FORMAT(b.End, "%Y-%m-%dT%TZ") AS End,
-		b.Document, b.Topic, b.VotingPoolID, b.prev_id, b.EpollNum,
-		BIN_TO_UUID(b.workingGroupId) as workingGroupId,
-		b.ResultsSummary AS Results,
-		JSON_OBJECT(
-			"Count", (SELECT COUNT(*) FROM comments c WHERE b.id=c.ballot_id),
-			"CommentIDMin", (SELECT MIN(CommentID) FROM comments c WHERE b.id=c.ballot_id),
-			"CommentIDMax", (SELECT MAX(CommentID) FROM comments c WHERE b.id=c.ballot_id)
-		) AS Comments,
-		(SELECT COUNT(*) FROM wgVoters v WHERE b.id=v.ballot_id) as Voters
+		${getBallotFieldsSQL}
 	FROM ballots b`;
 
 interface BallotsQueryConstraints {
@@ -109,7 +119,7 @@ interface BallotsQueryConstraints {
  * @param constraints Constraints on the query
  * @returns An array of ballot objects.
  */
-export async function getBallots(constraints?: BallotsQueryConstraints) {
+export async function getBallots(constraints?: BallotsQueryConstraints): Promise<Ballot[]> {
 
 	let sql = getBallotsSQL;
 
@@ -128,7 +138,7 @@ export async function getBallots(constraints?: BallotsQueryConstraints) {
 
 	sql += " ORDER BY b.Project, b.Start";
 
-	const ballots = (await db.query({ sql, dateStrings: true })) as Ballot[];
+	const ballots = await db.query<(RowDataPacket & Ballot)[]>(sql);
 	return ballots;
 }
 
@@ -157,7 +167,7 @@ export async function getBallotWithNewResultsSummary(
 			throw new NotFoundError(`Can't find working group for ballot ${ballot.BallotID}`);
 		workingGroupId = workingGroup.id;
 	}
-	ballot = (await getResultsCoalesced(user, AccessLevel.ro, workingGroupId, ballot)).ballot;
+	ballot = (await getResultsCoalesced(ballot)).ballot;
 	return ballot;
 }
 
@@ -170,66 +180,16 @@ export async function getBallotWithNewResultsSummary(
 export function getBallotSeries(id: number): Promise<Ballot[]> {
 	const sql = `
 		WITH RECURSIVE cte AS (
-			${getBallotsSQL} WHERE b.id = ${db.escape(id)}
+			SELECT b.*
+				FROM ballots b WHERE b.id=${db.escape(id)}
 			UNION ALL
-			${getBallotsSQL}
-			INNER JOIN cte ON b.id = cte.prev_id
+			SELECT b.*
+				FROM ballots b JOIN cte ON b.id=cte.prev_id
 		)
-		SELECT * FROM cte ORDER BY Start;
+		SELECT ${getBallotFieldsSQL} FROM cte ORDER BY Start;
 	`;
 
-	return db.query<(RowDataPacket & Ballot)[]>({ sql, dateStrings: true });
-}
-
-type BallotSeriesRange = {
-	id: number;
-	Start: string;
-	End: string;
-};
-
-/**
- * Get recent ballot series
- * @returns An array of ballot arrays that are the recent ballot series
- */
-export async function getRecentBallotSeries(groupId: string) {
-	const sql = `
-		WITH RECURSIVE cte AS (
-			SELECT id, prev_id, 1 level, Start, End FROM ballots WHERE workingGroupId=UUID_TO_BIN(${db.escape(groupId)}) AND IsComplete<>0 AND type=1 
-			UNION ALL 
-			SELECT c.id, t.prev_id, level + 1, t.Start, NULL End FROM cte c 
-			INNER JOIN ballots t on t.id=c.prev_id
-		)
-		SELECT
-			id,
-			DATE_FORMAT(MIN(Start), "%Y-%m-%dT%TZ") AS Start,
-			DATE_FORMAT(MAX(End), "%Y-%m-%dT%TZ") AS End
-		FROM cte
-		GROUP BY id
-		ORDER BY End;
-	`;
-	const allBallotSeries = (await db.query({
-		sql,
-		dateStrings: true,
-	})) as BallotSeriesRange[];
-
-	// Find the earliest start of the last three ballot series
-	let minStart = DateTime.now();
-	allBallotSeries.slice(-3).forEach((ballotSeries) => {
-		const start = DateTime.fromISO(ballotSeries.Start);
-		if (minStart > start) minStart = start;
-	});
-
-	// Get an array of ballot arrays that are the recent ballot series
-	const ballotsArr = await Promise.all(
-		allBallotSeries
-			.filter(
-				(ballotSeries) =>
-					DateTime.fromISO(ballotSeries.Start) >= minStart
-			)
-			.map((ballotSeries) => getBallotSeries(ballotSeries.id))
-	);
-
-	return ballotsArr;
+	return db.query<(RowDataPacket & Ballot)[]>(sql);
 }
 
 type BallotDB = {
@@ -246,7 +206,6 @@ type BallotDB = {
 	Start?: string | null;
 	End?: string | null;
 	EpollNum?: number | null;
-	VotingPoolID?: string | null;
 	prev_id?: number | null;
 };
 
@@ -287,7 +246,6 @@ function ballotEntry(ballot: Partial<Ballot>) {
 	}
 
 	if (ballot.prev_id) {
-		entry.VotingPoolID = "";
 		entry.prev_id = ballot.prev_id;
 	}
 

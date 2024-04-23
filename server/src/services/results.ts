@@ -1,7 +1,10 @@
-import { v4 as uuid } from "uuid";
-
 import db from "../utils/database";
-import { shallowEqual, AuthError, NotFoundError, isPlainObject } from "../utils";
+import {
+	shallowEqual,
+	AuthError,
+	NotFoundError,
+	isPlainObject,
+} from "../utils";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Response } from "express";
 import type { User } from "./users";
@@ -22,30 +25,27 @@ export type Result = {
 	Name: string;
 	Affiliation: string;
 	Status: string;
-	LastBallotId: number;
-	LastSAPIN: number;
-	Vote: string;
-	CommentCount: number;
-	TotalCommentCount?: number;
-	Notes: string;
+	lastBallotId: number;
+	lastSAPIN: number;
+	vote: string;
+	commentCount: number;
+	totalCommentCount?: number;
+	notes: string;
 };
 
 export type ResultDB = {
 	id: string;
-} & Pick<Result,
-	| "ballot_id"
-	| "SAPIN"
-	| "Email"
-	| "Name"
-	| "Affiliation"
-	| "Vote"
-	| "Notes"
+	Vote: Result["vote"];
+	Notes: Result["notes"];
+} & Pick<
+	Result,
+	"ballot_id" | "SAPIN" | "Email" | "Name" | "Affiliation"
 >;
 
-type ResultChange = Partial<Pick<ResultDB, "Vote" | "Notes">>;
+type ResultChange = Partial<Pick<Result, "vote" | "notes">>;
 
 type ResultUpdate = {
-	id: ResultDB["id"];
+	id: Result["id"];
 	changes: ResultChange;
 };
 
@@ -84,17 +84,15 @@ const createViewResultsCurrent = `
 		COALESCE(m.Name, r.Name) AS Name,
 		COALESCE(m.Email, r.Email) AS Email,
 		COALESCE(m.Affiliation, r.Affiliation) AS Affiliation,
-		r.Vote,
-		COALESCE(c1.CommentCount, c2.CommentCount, c3.CommentCount, 0) AS CommentCount,
-		r.Notes,
 		r.ballot_id,
-		m.groupId
-	FROM results r
-		JOIN ballots b ON b.id=r.ballot_id
-		LEFT JOIN (SELECT COUNT(*) AS CommentCount, ballot_id, CommenterSAPIN FROM comments WHERE CommenterSAPIN>0 GROUP BY ballot_id, CommenterSAPIN) c1 ON c1.ballot_id=r.ballot_id AND c1.CommenterSAPIN=r.SAPIN
-		LEFT JOIN (SELECT COUNT(*) AS CommentCount, ballot_id, CommenterEmail FROM comments WHERE CommenterEmail<>"" GROUP BY ballot_id, CommenterEmail) c2 ON c2.ballot_id=r.ballot_id AND c2.CommenterEmail=r.Email
-		LEFT JOIN (SELECT COUNT(*) AS CommentCount, ballot_id, CommenterName FROM comments GROUP BY ballot_id, CommenterName) c3 ON c3.ballot_id=r.ballot_id AND c3.CommenterName=r.Name
-		LEFT JOIN membersCurrent m ON r.SAPIN=m.SAPIN AND b.workingGroupId=m.groupId;
+		r.Vote AS vote,
+		COALESCE(c1.commentCount, c2.commentCount, c3.commentCount, 0) AS commentCount,
+		r.Notes AS notes
+	FROM results r JOIN ballots b ON b.id=r.ballot_id
+		LEFT JOIN membersCurrent m ON r.SAPIN=m.SAPIN AND b.workingGroupId=m.groupId
+		LEFT JOIN (SELECT COUNT(*) AS commentCount, ballot_id, CommenterSAPIN FROM comments WHERE CommenterSAPIN>0 GROUP BY ballot_id, CommenterSAPIN) c1 ON c1.ballot_id=r.ballot_id AND c1.CommenterSAPIN=r.SAPIN
+		LEFT JOIN (SELECT COUNT(*) AS commentCount, ballot_id, CommenterEmail FROM comments WHERE CommenterEmail<>"" GROUP BY ballot_id, CommenterEmail) c2 ON c2.ballot_id=r.ballot_id AND c2.CommenterEmail=r.Email
+		LEFT JOIN (SELECT COUNT(*) AS commentCount, ballot_id, CommenterName FROM comments GROUP BY ballot_id, CommenterName) c3 ON c3.ballot_id=r.ballot_id AND c3.CommenterName=r.Name;
 `;
 
 export function init() {
@@ -113,21 +111,20 @@ const zeroResultsSummary: ResultsSummary = {
 	BallotReturns: 0,
 	VotingPoolSize: 0,
 	Commenters: 0,
-}
+};
 
 function summarizeWGResults(results: Result[]): ResultsSummary {
-
-	let summary = {...zeroResultsSummary};
+	let summary = { ...zeroResultsSummary };
 
 	for (let r of results) {
 		if (/^Voter|^ExOfficio/.test(r.Status)) {
-			if (/^Approve/.test(r.Vote)) summary.Approve++;
-			else if (/^Disapprove/.test(r.Vote)) {
-				if (r.CommentCount) summary.Disapprove++;
+			if (/^Approve/.test(r.vote)) summary.Approve++;
+			else if (/^Disapprove/.test(r.vote)) {
+				if (r.commentCount) summary.Disapprove++;
 				else summary.InvalidDisapprove++;
-			} else if (/^Abstain.*expertise/.test(r.Vote)) {
+			} else if (/^Abstain.*expertise/.test(r.vote)) {
 				summary.Abstain++;
-			} else if (/^Abstain/.test(r.Vote)) {
+			} else if (/^Abstain/.test(r.vote)) {
 				summary.InvalidAbstain++;
 			}
 
@@ -136,44 +133,43 @@ function summarizeWGResults(results: Result[]): ResultsSummary {
 			if (/^Voter/.test(r.Status)) {
 				summary.ReturnsPoolSize++;
 			} else if (
-				/^Approve/.test(r.Vote) ||
-				(/^Disapprove/.test(r.Vote) && r.CommentCount) ||
-				/^Abstain.*expertise/.test(r.Vote)
+				/^Approve/.test(r.vote) ||
+				(/^Disapprove/.test(r.vote) && r.commentCount) ||
+				/^Abstain.*expertise/.test(r.vote)
 			) {
 				summary.ReturnsPoolSize++;
 			}
 			summary.VotingPoolSize++;
-		}
-		else {
+		} else {
 			summary.InvalidVote++;
 		}
 
-		if (!/None/.test(r.Vote)) {
+		if (!/None/.test(r.vote)) {
 			summary.BallotReturns++;
 		}
 
-		if (r.TotalCommentCount) summary.Commenters++;
+		if (r.totalCommentCount) summary.Commenters++;
 	}
-	summary.TotalReturns = summary.Approve + summary.Disapprove + summary.Abstain;
+	summary.TotalReturns =
+		summary.Approve + summary.Disapprove + summary.Abstain;
 
 	return summary;
 }
 
 function summarizeSAResults(results: Result[]) {
-
-	let summary = {...zeroResultsSummary};
+	let summary = { ...zeroResultsSummary };
 
 	results.forEach((r) => {
-		if (/^Approve/.test(r.Vote)) {
+		if (/^Approve/.test(r.vote)) {
 			summary.Approve++;
-		} else if (/^Disapprove/.test(r.Vote)) {
-			if (r.CommentCount) summary.Disapprove++;
+		} else if (/^Disapprove/.test(r.vote)) {
+			if (r.commentCount) summary.Disapprove++;
 			else summary.InvalidDisapprove++;
-		} else if (/^Abstain/.test(r.Vote)) {
+		} else if (/^Abstain/.test(r.vote)) {
 			summary.Abstain++;
 		}
 
-		if (r.CommentCount) summary.Commenters++;
+		if (r.commentCount) summary.Commenters++;
 	});
 
 	summary.BallotReturns = results.length;
@@ -189,102 +185,27 @@ function summarizeSAResults(results: Result[]) {
 	return summary;
 }
 
-
 function summarizeCCResults(results: Result[]) {
-
 	let summary = { ...zeroResultsSummary };
-	
+
 	results.forEach((r) => {
-		if (/^Approve/.test(r.Vote)) summary.Approve++;
-		else if (/^Disapprove/.test(r.Vote)) summary.Disapprove++;
-		else if (/^Abstain/.test(r.Vote)) summary.Abstain++;
+		if (/^Approve/.test(r.vote)) summary.Approve++;
+		else if (/^Disapprove/.test(r.vote)) summary.Disapprove++;
+		else if (/^Abstain/.test(r.vote)) summary.Abstain++;
 
 		// Count the number of commenters
-		if (r.CommentCount) summary.Commenters++;
+		if (r.commentCount) summary.Commenters++;
 	});
 
 	summary.TotalReturns =
-		summary.Approve +
-		summary.Disapprove +
-		summary.Abstain;
+		summary.Approve + summary.Disapprove + summary.Abstain;
 
 	summary.BallotReturns = results.length;
 
 	return summary;
 }
 
-export type ResultsCoalesced = {
-	ballot: Ballot;
-	results: Result[];
-};
-
-function getWGResultsCoalesced(ballot: Ballot): Promise<Result[]> {
-
-	const sql = `
-		WITH resultsColated AS (
-			SELECT
-				*
-			FROM (
-				SELECT
-					b.ballot_id,
-					b.initial_id as InitialBallotId,
-					r.CurrentSAPIN as SAPIN,
-					LAST_VALUE(r.ballot_id) OVER w AS LastBallotId,
-					LAST_VALUE(r.SAPIN) OVER w AS LastSAPIN,
-					LAST_VALUE(r.Vote) OVER w AS Vote,
-					LAST_VALUE(r.CommentCount) OVER w AS CommentCount,
-					SUM(r.CommentCount) OVER w AS TotalCommentCount,
-					LAST_VALUE(r.Notes) OVER w AS Notes
-				FROM resultsCurrent r
-					JOIN ballotSeries b ON r.ballot_id=b.id
-				WHERE b.ballot_id=${ballot.id}
-				WINDOW w AS (PARTITION BY r.CurrentSAPIN)
-			) AS t
-			GROUP BY InitialBallotId, SAPIN, LastBallotId, LastSAPIN, Vote, CommentCount, TotalCommentCount, Notes
-		), resultsCoalesced AS (
-			SELECT
-				CONCAT(t1.ballot_id, "-", t1.SAPIN) AS id,
-				t1.ballot_id,
-				t1.InitialBallotId,
-				t1.SAPIN,
-				m.Name, m.Email, m.Affiliation,
-				COALESCE(v.Status, "Non-Voter") as Status,
-				t1.LastBallotId,
-				t1.LastSAPIN,
-				t1.Vote,
-				t1.CommentCount,
-				t1.TotalCommentCount,
-				t1.Notes
-			FROM resultsColated t1
-				LEFT JOIN votersCurrent v ON t1.InitialBallotId=v.ballot_id AND t1.SAPIN=v.CurrentSAPIN
-				LEFT JOIN members m ON m.SAPIN=t1.SAPIN
-			UNION ALL
-			SELECT
-				CONCAT(${ballot.id}, "-", v.CurrentSAPIN) AS id,
-				${ballot.id} as ballot_id,
-				v.ballot_id as InitialBallotId,
-				v.CurrentSAPIN as SAPIN,
-				m.Name, m.Email, m.Affiliation,
-				v.Status,
-				NULL as LastBallotId,
-				v.SAPIN as LastSAPIN,
-				"None" as Vote,
-				0 AS CommentCount,
-				0 AS TotalCommentCount,
-				NULL as Notes
-			FROM (SELECT v.* FROM votersCurrent v LEFT JOIN ballotSeries b ON b.initial_id=v.ballot_id AND b.prev_id IS NULL WHERE b.ballot_id=${ballot.id}) v
-				LEFT JOIN resultsColated t1 ON t1.InitialBallotId=v.ballot_id AND t1.SAPIN=v.CurrentSAPIN
-				LEFT JOIN members m ON m.SAPIN=v.CurrentSAPIN
-			WHERE t1.SAPIN IS NULL
-		)
-		SELECT * from resultsCoalesced ORDER BY SAPIN;
-	`;
-
-	return db.query<(Result & RowDataPacket)[]>(sql);
-}
-
-function getCCResultsCoalesced(ballot: Ballot): Promise<Result[]> {
-
+function getCCResults(ballot_id: number): Promise<Result[]> {
 	const sql = `
 		SELECT
 			BIN_TO_UUID(id) AS id,
@@ -294,21 +215,91 @@ function getCCResultsCoalesced(ballot: Ballot): Promise<Result[]> {
 			Name,
 			Affiliation,
 			NULL AS Status,
-			ballot_id AS LastBallotId,
-			SAPIN AS LastSAPIN,
-			Vote,
-			CommentCount,
-			CommentCount AS TotalCommentCount,
-			Notes
+			ballot_id AS lastBallotId,
+			SAPIN AS lastSAPIN,
+			vote,
+			commentCount,
+			commentCount AS totalCommentCount,
+			notes
 		FROM resultsCurrent
-		WHERE ballot_id=${ballot.id}
+		WHERE ballot_id=${ballot_id}
 	`;
 
-	return db.query<(Result & RowDataPacket)[]>(sql);
+	return db.query<(RowDataPacket & Result)[]>(sql);
 }
 
-function getSAResultsCoalesced(ballot: Ballot): Promise<Result[]> {
+export async function getWGBallotResults(ballot_id: number): Promise<Result[]> {
 
+	/* The resultsForSeries table gets the most recent result for each member that returned
+	 * a ballot (including those not in the pool).
+	 * The votersForSeries table gets all the voters for the ballot series.
+	 * The resultsPlusVoters table has the last result for the voters that did vote plus
+	 * the voters that did not vote.
+	 */
+	const sql = `
+		WITH resultsForSeries AS (
+			SELECT *
+			FROM (
+				SELECT
+					b.id,
+					b.series_id,
+					r.CurrentSAPIN,
+					LAST_VALUE(r.ballot_id) OVER w AS lastBallotId,
+					LAST_VALUE(r.SAPIN) OVER w AS lastSAPIN,
+					LAST_VALUE(r.vote) OVER w AS vote,
+					LAST_VALUE(r.commentCount) OVER w AS commentCount,
+					SUM(r.commentCount) OVER (PARTITION BY b.series_id, r.CurrentSAPIN) AS totalCommentCount,
+					LAST_VALUE(r.notes) OVER w AS notes,
+					ROW_NUMBER() OVER w AS n
+				FROM resultsCurrent r JOIN ballotSeries b ON b.id=r.ballot_id
+				WHERE b.series_id=${ballot_id}
+				WINDOW w AS (PARTITION BY b.series_id, r.CurrentSAPIN ORDER BY b.Start DESC)
+			) t
+			WHERE n=1
+		),
+		votersForSeries AS (
+			SELECT v.*
+			FROM votersCurrent v JOIN ballotSeries b ON b.id=v.ballot_id
+			WHERE b.series_id=${ballot_id} AND b.prev_id IS NULL
+		),
+		resultsPlusVoters AS (
+			SELECT
+				CONCAT(${ballot_id}, "-", r.CurrentSAPIN) AS id,
+				${ballot_id} AS ballot_id,
+				r.CurrentSAPIN AS SAPIN,
+				COALESCE(v.Status, "Non-Voter") as Status,
+				r.lastBallotId,
+				r.lastSAPIN,
+				r.vote,
+				r.commentCount,
+				r.totalCommentCount,
+				r.notes AS notes
+			FROM resultsForSeries r	LEFT JOIN votersForSeries v ON r.CurrentSAPIN=v.CurrentSAPIN
+			UNION ALL
+			SELECT
+				CONCAT(${ballot_id}, "-", v.CurrentSAPIN) AS id,
+				${ballot_id} AS ballot_id,
+				v.CurrentSAPIN AS SAPIN,
+				v.Status,
+				NULL as lastBallotId,
+				v.SAPIN as lastSAPIN,
+				"None" as vote,
+				0 AS commentCount,
+				0 AS totalCommentCount,
+				NULL as Notes
+			FROM votersForSeries v LEFT JOIN resultsForSeries r ON r.CurrentSAPIN=v.CurrentSAPIN
+			WHERE r.CurrentSAPIN IS NULL
+		)
+		SELECT t.*, m.Name, m.Email, m.Affiliation
+		FROM resultsPlusVoters t LEFT JOIN members m ON m.SAPIN=t.SAPIN
+		ORDER BY SAPIN;
+	`;
+
+	return db.query<(RowDataPacket & Result)[]>(sql);
+}
+
+
+function getSABallotResults(ballot_id: number): Promise<Result[]> {
 	const sql = `
 		SELECT
 			CONCAT(ballot_id, "-", Email) id,
@@ -316,51 +307,44 @@ function getSAResultsCoalesced(ballot: Ballot): Promise<Result[]> {
 			NULL AS Status
 		FROM (
 			SELECT
-				b.ballot_id,
-				b.initial_id as InitialBallotId,
+				b.series_id as ballot_id,
 				r.Email,
 				LAST_VALUE(r.Name) OVER w AS Name,
 				LAST_VALUE(r.Affiliation) OVER w AS Affiliation,
-				LAST_VALUE(r.ballot_id) OVER w AS LastBallotId,
-				LAST_VALUE(r.Vote) OVER w AS Vote,
-				LAST_VALUE(r.CommentCount) OVER w AS CommentCount,
-				SUM(r.CommentCount) OVER w AS TotalCommentCount,
-				LAST_VALUE(r.Notes) OVER w AS Notes
-			FROM resultsCurrent r
-				JOIN ballotSeries b ON r.ballot_id=b.id
-			WHERE b.ballot_id=${ballot.id}
-			WINDOW w AS (PARTITION BY r.Email)
+				LAST_VALUE(r.ballot_id) OVER w AS lastBallotId,
+				LAST_VALUE(r.vote) OVER w AS vote,
+				LAST_VALUE(r.commentCount) OVER w AS commentCount,
+				SUM(r.commentCount) OVER w AS totalCommentCount,
+				LAST_VALUE(r.notes) OVER w AS notes,
+				ROW_NUMBER() OVER w AS n
+			FROM resultsCurrent r JOIN ballotSeries b ON b.id=r.ballot_id
+			WHERE b.series_id=${ballot_id}
+			WINDOW w AS (PARTITION BY b.series_id, r.Email ORDER BY b.Start DESC)
 		) AS t
-		GROUP BY InitialBallotId, Email, Name, Affiliation, LastBallotId, Vote, CommentCount, TotalCommentCount, Notes
+		WHERE n=1
 	`;
 
-	return db.query<(Result & RowDataPacket)[]>(sql);
+	return db.query<(RowDataPacket & Result)[]>(sql);
 }
 
+export type ResultsCoalesced = {
+	ballot: Ballot;
+	results: Result[];
+};
 
-export async function getResultsCoalesced(
-	user: User,
-	access: number,
-	workingGroupId: string,
-	ballot: Ballot
-): Promise<ResultsCoalesced> {
-
-	let results: Result[],
-		summary: ResultsSummary;
+export async function getResultsCoalesced(ballot: Ballot): Promise<ResultsCoalesced> {
+	let results: Result[], summary: ResultsSummary;
 
 	if (ballot.Type === BallotType.CC) {
-		results = await getCCResultsCoalesced(ballot);
+		results = await getCCResults(ballot.id);
 		summary = summarizeCCResults(results);
-	}
-	else if (ballot.Type === BallotType.WG) {
-		results = await getWGResultsCoalesced(ballot);
+	} else if (ballot.Type === BallotType.WG) {
+		results = await getWGBallotResults(ballot.id);
 		summary = summarizeWGResults(results);
-	}
-	else if (ballot.Type === BallotType.SA) {
-		results = await getSAResultsCoalesced(ballot);
+	} else if (ballot.Type === BallotType.SA) {
+		results = await getSABallotResults(ballot.id);
 		summary = summarizeSAResults(results);
-	}
-	else {
+	} else {
 		results = [];
 		summary = zeroResultsSummary;
 	}
@@ -380,34 +364,13 @@ export async function getResultsCoalesced(
 	};
 }
 
-export function getWGResults(ballot_id: number): Promise<Result[]> {
-	const e_ballot_id = db.escape(ballot_id);
-	// prettier-ignore
-	const sql = `
-		SELECT
-			BIN_TO_UUID(r.id) AS id,
-			r.ballot_id,
-			r.SAPIN,
-			r.Email,
-			r.Name,
-			r.Affiliation,
-			r.ballot_id AS LastBallotId,
-			r.SAPIN AS LastSAPIN,
-			r.Vote,
-			r.CommentCount,
-			r.Notes
-		FROM resultsCurrent r
-		WHERE r.ballot_id=${e_ballot_id}
-	`;
-
-	return db.query<(RowDataPacket & Result)[]>(sql);
-}
-
 function validResultChange(changes: any): changes is ResultChange {
 	return (
 		isPlainObject(changes) &&
-		(typeof changes.Vote === "undefined" || typeof changes.Vote === "string") &&
-		(typeof changes.Notes === "undefined" || typeof changes.Notes === "string")
+		(typeof changes.vote === "undefined" ||
+			typeof changes.vote === "string") &&
+		(typeof changes.notes === "undefined" ||
+			typeof changes.notes === "string")
 	);
 }
 
@@ -423,18 +386,33 @@ export function validResultUpdates(updates: any): updates is ResultUpdate[] {
 	return Array.isArray(updates) && updates.every(validResultUpdate);
 }
 
-async function updateResult(workingGroupId: string, ballot: Ballot, {id, changes}: ResultUpdate) {
+async function updateResult(
+	workingGroupId: string,
+	ballot: Ballot,
+	{ id, changes }: ResultUpdate
+) {
 	if (ballot.Type === BallotType.WG) {
-		const m = id.match(/(\d+)-(\d+)/);	// id has format "{ballot_id}-{SAPIN}"
+		const m = id.match(/(\d+)-(\d+)/); // id has format "{ballot_id}-{SAPIN}"
 		if (!m)
-			throw new TypeError(`Invalid id=${id}; expected format "{ballot_id}-{SAPIN}"`);
-		const ballot_id=Number(m[1]);
+			throw new TypeError(
+				`Invalid id=${id}; expected format "{ballot_id}-{SAPIN}"`
+			);
+		const ballot_id = Number(m[1]);
 		if (ballot_id !== ballot.id)
-			throw new TypeError(`Invalid id=${id}; first number must match ballot_id=${ballot.id}`);
+			throw new TypeError(
+				`Invalid id=${id}; first number must match ballot_id=${ballot.id}`
+			);
 		const sapin = Number(m[2]);
-		const result = await db.query<ResultSetHeader>("UPDATE results SET ? WHERE ballot_id=? AND SAPIN=?", [changes, ballot.id, sapin]);
+		const result = await db.query<ResultSetHeader>(
+			"UPDATE results SET ? WHERE ballot_id=? AND SAPIN=?",
+			[changes, ballot.id, sapin]
+		);
 		if (result.affectedRows === 0) {
-			const member = await getMember(AccessLevel.admin, workingGroupId, sapin);
+			const member = await getMember(
+				AccessLevel.admin,
+				workingGroupId,
+				sapin
+			);
 			if (!member)
 				throw new TypeError(`Invalid SAPIN=${sapin}; not a member`);
 			const sql = `
@@ -445,21 +423,28 @@ async function updateResult(workingGroupId: string, ballot: Ballot, {id, changes
 					Name=${db.escape(member.Name)},
 					Email=${db.escape(member.Email)},
 					Affiliation=${db.escape(member.Affiliation)},
-					Vote=${db.escape(changes.Vote || "None")},
-					Notes=${db.escape(changes.Notes || "")}
+					Vote=${db.escape(changes.vote || "None")},
+					Notes=${db.escape(changes.notes || "")}
 			`;
 			await db.query(sql);
 		}
-	}
-	else {
-		await db.query("UPDATE results SET ? WHERE ballot_id=? AND id=UUID_TO_BIN(?)", [changes, ballot.id, id]);
+	} else {
+		await db.query(
+			"UPDATE results SET ? WHERE ballot_id=? AND id=UUID_TO_BIN(?)",
+			[changes, ballot.id, id]
+		);
 	}
 }
 
-export async function updateResults(user: User, access: number, workingGroupId: string, ballot: Ballot, updates: ResultUpdate[]) {
-	const results = updates.map(update => updateResult(workingGroupId, ballot, update));
-	console.log(await Promise.all(results));
-	return getResultsCoalesced(user, access, workingGroupId, ballot);
+export async function updateResults(
+	workingGroupId: string,
+	ballot: Ballot,
+	updates: ResultUpdate[]
+) {
+	await Promise.all(updates.map((update) =>
+		updateResult(workingGroupId, ballot, update)
+	));
+	return getResultsCoalesced(ballot);
 }
 
 export async function deleteResults(ballot_id: number) {
@@ -472,9 +457,6 @@ export async function deleteResults(ballot_id: number) {
 }
 
 async function insertResults(
-	user: User,
-	access: number,
-	workingGroupId: string,
 	ballot: Ballot,
 	results: Partial<Result>[]
 ) {
@@ -490,10 +472,14 @@ async function insertResults(
 			";";
 	}
 	await db.query(sql);
-	return getResultsCoalesced(user, access, workingGroupId, ballot);
+	return getResultsCoalesced(ballot);
 }
 
-export async function importEpollResults(user: User, workingGroup: Group, ballot: Ballot) {
+export async function importEpollResults(
+	user: User,
+	workingGroup: Group,
+	ballot: Ballot
+) {
 	if (!ballot.EpollNum)
 		throw new TypeError("Ballot does not have an ePoll number");
 
@@ -517,21 +503,17 @@ export async function importEpollResults(user: User, workingGroup: Group, ballot
 	var pollResults2 = parseEpollResultsHtml(response.data);
 
 	// Update poll results with Name and Affiliation from HTML (not present in .csv)
-	const results: Omit<
-		ResultDB,
-		| "id"
-		| "ballot_id"
-		| "Notes"
-	>[] = pollResults.map((r) => {
-		const h = pollResults2.find((h) => h.Email === r.Email);
-		return {
-			...r,
-			Name: h ? h.Name : "",
-			Affiliation: h ? h.Affiliation : "",
-		};
-	});
+	const results: Omit<ResultDB, "id" | "ballot_id" | "Notes">[] =
+		pollResults.map((r) => {
+			const h = pollResults2.find((h) => h.Email === r.Email);
+			return {
+				...r,
+				Name: h ? h.Name : "",
+				Affiliation: h ? h.Affiliation : "",
+			};
+		});
 
-	return insertResults(user, AccessLevel.admin, workingGroup.id, ballot, results);
+	return insertResults(ballot, results);
 }
 
 /**
@@ -542,8 +524,6 @@ export async function importEpollResults(user: User, workingGroup: Group, ballot
  * For WG ballot, the ePoll .xlsx or .csv format is expected.
  */
 export async function uploadResults(
-	user: User,
-	workingGroupId: string,
 	ballot: Ballot,
 	file: Express.Multer.File
 ) {
@@ -553,7 +533,7 @@ export async function uploadResults(
 	} else {
 		results = await parseEpollResults(file);
 	}
-	return insertResults(user, AccessLevel.admin, workingGroupId, ballot, results);
+	return insertResults(ballot, results);
 }
 
 export const sanitize = (name: string) =>
@@ -561,8 +541,6 @@ export const sanitize = (name: string) =>
 
 export async function exportResults(
 	user: User,
-	access: number,
-	workingGroupId: string,
 	ballot: Ballot,
 	forBallotSeries: boolean,
 	res: Response
@@ -573,11 +551,13 @@ export async function exportResults(
 		if (ballots.length === 0)
 			throw new NotFoundError(`No such ballot: ${ballot.id}`);
 		results = await Promise.all(
-			ballots.map((b) => getResultsCoalesced(user, access, workingGroupId, b))
+			ballots.map((b) =>
+				getResultsCoalesced(b)
+			)
 		);
 		res.attachment(sanitize(ballots[0].Project) + "_results.xlsx");
 	} else {
-		const result = await getResultsCoalesced(user, access, workingGroupId, ballot);
+		const result = await getResultsCoalesced(ballot);
 		results = [result];
 		res.attachment(sanitize(ballot.BallotID) + "_results.xlsx");
 	}

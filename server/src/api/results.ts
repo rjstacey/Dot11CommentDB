@@ -59,10 +59,6 @@ router
 		next(new ForbiddenError("Insufficient karma"));
 	})
 	.get("/export", (req, res, next) => {
-		const workingGroup = selectWorkingGroup(req.groups!);
-		if (!workingGroup)
-			return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
-
 		const { forSeries } = req.query;
 		if (forSeries && forSeries !== "true" && forSeries !== "false")
 			return next(
@@ -71,9 +67,7 @@ router
 				)
 			);
 
-		const access = req.permissions?.results || AccessLevel.none;
-
-		exportResults(req.user, access, workingGroup.id, req.ballot!, forSeries === "true", res)
+		exportResults(req.user, req.ballot!, forSeries === "true", res)
 			.then(() => res.end())
 			.catch(next);
 	})
@@ -87,23 +81,14 @@ router
 			.catch(next);
 	})
 	.post("/upload", upload.single("ResultsFile"), (req, res, next) => {
-		const workingGroup = selectWorkingGroup(req.groups!);
-		if (!workingGroup)
-			return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
-
 		if (!req.file) return next(new TypeError("Missing file"));
-		uploadResults(req.user, workingGroup.id, req.ballot!, req.file)
+		uploadResults(req.ballot!, req.file)
 			.then((data) => res.json(data))
 			.catch(next);
 	})
 	.route("/")
 		.get((req, res, next) => {
-			const workingGroup = selectWorkingGroup(req.groups!);
-			if (!workingGroup)
-				return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
-
-			const access = req.permissions?.results || AccessLevel.none;
-			getResultsCoalesced(req.user, access, workingGroup.id, req.ballot!)
+			getResultsCoalesced(req.ballot!)
 				.then((data) => res.json(data))
 				.catch(next);
 		})
@@ -114,10 +99,9 @@ router
 
 			const updates: any = req.body;
 			if (!validResultUpdates(updates))
-				return next(new TypeError("Bad or missing updates array; expect array with shape {id: number, changes: object}"));
+				return next(new TypeError("Bad or missing body; expect updates array with shape {id: string, changes: object}"));
 
-			const access = req.permissions?.results || AccessLevel.none;
-			updateResults(req.user, access, workingGroup.id, req.ballot!, updates)
+			updateResults(workingGroup.id, req.ballot!, updates)
 				.then((data) => res.json(data))
 				.catch(next)
 		})

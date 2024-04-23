@@ -25,7 +25,6 @@ export type Voter = {
 	Affiliation: string;
 	Status: string;
 	Excused: boolean;
-	//VotingPoolID: string;
 	ballot_id: number;
 };
 
@@ -102,10 +101,7 @@ type VotersQueryConstraints = {
 	sapin?: number | number[];
 };
 
-export function getVoters(
-	workingGroupId: string,
-	constraints?: VotersQueryConstraints
-): Promise<Voter[]> {
+export function getVoters(constraints?: VotersQueryConstraints): Promise<Voter[]> {
 	// prettier-ignore
 	let sql =
 		"SELECT " +
@@ -132,9 +128,7 @@ export function getVoters(
 	}
 
 	sql += " ORDER BY ballot_id, SAPIN;";
-	console.log(sql)
 
-	//return (await db.query<(Voter)[]>(sql)) as Voter[];
 	return db.query<(RowDataPacket & Voter)[]>(sql);
 }
 
@@ -228,7 +222,7 @@ export async function addVoters(workingGroupId: string, ballot_id: number, voter
 		]) as Promise<ResultSetHeader>;
 	});
 	await Promise.all(results);
-	voters = await getVoters(workingGroupId, { id: voters.map((voter) => voter.id) });
+	voters = await getVoters({ id: voters.map((voter) => voter.id) });
 	const ballots = await getVoterBallotUpdates(ballot_id);
 	return { voters, ballots };
 }
@@ -258,7 +252,7 @@ export async function updateVoters(workingGroupId: string, updates: any) {
 		)
 	);
 	await Promise.all(results);
-	const voters = await getVoters(workingGroupId, { id: updates.map((u) => u.id) });
+	const voters = await getVoters({ id: updates.map((u) => u.id) });
 	return { voters };
 }
 
@@ -295,7 +289,7 @@ async function insertVoters(workingGroupId: string, ballot_id: number, votersIn:
 			";";
 	}
 	await db.query(sql);
-	const voters = await getVoters(workingGroupId, { ballot_id });
+	const voters = await getVoters({ ballot_id });
 	const ballots = await getVoterBallotUpdates(ballot_id);
 	return { voters, ballots };
 }
@@ -323,7 +317,7 @@ export async function votersFromMembersSnapshot(
 }
 
 export async function exportVoters(workingGroupId: string, ballot_id: number, res: Response) {
-	const voters = await getVoters(workingGroupId, { ballot_id });
+	const voters = await getVoters({ ballot_id });
 	const arr = voters.map((v) => [v.SAPIN, v.Name, v.Email]);
 	arr.unshift(["SA PIN", "Name", "Email"]);
 	const csv = await csvStringify(arr, {});

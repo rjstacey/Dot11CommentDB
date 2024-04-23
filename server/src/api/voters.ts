@@ -30,12 +30,8 @@ router
 	})
 	.route("/")
 		.get(async (req, res, next) => {
-			const workingGroup = selectWorkingGroup(req.groups!);
-			if (!workingGroup)
-				return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
-
 			const ballot_id = req.ballot!.id;
-			getVoters(workingGroup.id, { ballot_id })
+			getVoters({ ballot_id })
 				.then((data) => res.json(data))
 				.catch(next);
 		})
