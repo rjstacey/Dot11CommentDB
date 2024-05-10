@@ -342,7 +342,7 @@ export async function setStartCommentId(
 			startCommentId
 		)} - (SELECT MIN(CommentID) FROM comments WHERE ballot_id=${db.escape(
 			ballot_id
-		)};` +
+		)}); ` +
 		"UPDATE comments " +
 		`SET LastModifiedBy=${db.escape(
 			user.SAPIN

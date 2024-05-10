@@ -168,15 +168,20 @@ export function validOAuthAccountChanges(
 
 /**
  * Add Oauth account
- * @param type Type of OAuth account (calendar or webex)
  * @param account OAuth account create object
  * @returns OAuth account object as added
  */
 export async function addOAuthAccount(account: OAuthAccountCreate) {
-	const { insertId } = (await db.query<ResultSetHeader>(
-		"INSERT INTO oauth_accounts (??) VALUES (?);",
-		[Object.keys(account), Object.values(account)]
-	));
+	
+	const sql = db.format(
+		"INSERT INTO oauth_accounts SET " +
+			"`name`=?, " +
+			"`type`=?, " +
+			"`groupId`=UUID_TO_BIN(?)",
+		[account.name || "", account.type, account.groupId]
+	);
+
+	const { insertId } = await db.query<ResultSetHeader>(sql);
 	return insertId;
 }
 

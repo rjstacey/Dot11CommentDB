@@ -34,7 +34,7 @@ import { ForbiddenError, NotFoundError } from "../utils";
 import { AccessLevel } from "../auth/access";
 import { selectWorkingGroup } from "../services/groups";
 import {
-	getResultsCoalesced,
+	getResults,
 	updateResults,
 	deleteResults,
 	importEpollResults,
@@ -88,7 +88,7 @@ router
 	})
 	.route("/")
 		.get((req, res, next) => {
-			getResultsCoalesced(req.ballot!)
+			getResults(req.ballot!)
 				.then((data) => res.json(data))
 				.catch(next);
 		})

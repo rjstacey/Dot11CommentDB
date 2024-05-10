@@ -291,7 +291,7 @@ export function getUserMembers(access: number, groupId: string) {
  * by walking through the status change history.
  */
 export async function getMembersSnapshot(access: number, groupId: string, date: string) {
-	let members = await getMembers(access, { groupId, Status: ["Non-Voter", "Aspirant", "Potential Voter", "Voter", "ExOfficio"] });
+	let members = await getMembers(access, { groupId, Status: ["Non-Voter", "Aspirant", "Potential Voter", "Voter", "ExOfficio", "Obsolete"] });
 	let fromDate = new Date(date);
 	//console.log(date.toISOString().substr(0,10));
 	members = members

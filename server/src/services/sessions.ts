@@ -258,7 +258,7 @@ export async function updateSession(id: number, changes: Partial<Session>) {
 	if (setSql) {
 		const sql =
 			"UPDATE sessions SET " + setSql +
-			"WHERE id=" + db.escape(id);
+			" WHERE id=" + db.escape(id);
 		await db.query(sql);
 	}
 

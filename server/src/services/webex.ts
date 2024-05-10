@@ -52,10 +52,16 @@ type WebexMeetingPreferences = {
 	personalMeetingRoom: any;
 }
 
+type WebexSites = {
+	siteUrl: string;
+	default: boolean;
+}
+
 type WebexAccount = OAuthAccount & {
 	authUrl: string;
 	templates: any[];
 	owner?: WebexPerson;
+	siteUrl?: string;
 	preferences?: WebexMeetingPreferences;
 	displayName?: string;
 	userName?: string;
@@ -133,10 +139,10 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 			'Timezone': defaultTimezone
 		},
 		baseURL: webexApiBaseUrl,
-		refresh_token: authParams.refresh_token
+		refresh_token: authParams.refresh_token,
 	});
 
-	/*if (process.env.NODE_ENV === 'development') {
+	if (process.env.NODE_ENV === 'development') {
 		api.interceptors.request.use(
 			config => {
 				console.log(id, config.method, config.url)
@@ -145,7 +151,7 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 				return config;
 			}
 		);
-	}*/
+	}
 
 	// Add a response interceptor
 	api.interceptors.response.use(
@@ -176,6 +182,7 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 	);
 
 	apis[id] = api;
+	return api;
 }
 
 /**
@@ -269,6 +276,20 @@ export async function completeAuthWebexAccount({
 
 	// Create an axios instance for this account
 	createWebexApi(accountId, authParams);
+
+	const data = await getWebexMeetingPreferencesSites(accountId);
+
+	if (!isPlainObject(data) || !Array.isArray(data.sites) || data.sites.length < 1) {
+		console.warn("Missing sites array or array empty");
+		return;
+	}
+	const sites: WebexSites[] = data.sites;
+	console.log(sites)
+	if (!sites.find(site => site.default)) {
+		// If there is no default, get the first site
+		const r = await setWebexDefaultSite(accountId, sites[0].siteUrl);
+		console.log("success", r)
+	}
 }
 
 export async function getWebexAccounts(
@@ -303,19 +324,19 @@ export async function getWebexAccounts(
 					.catch(error => console.warn(error))
 			)
 			p.push(
-				getWebexTemplates(account.id)
-					.then((templates) => {
-						account.templates = templates;
-					})
-					.catch(error => console.warn(error))
-			);
-			p.push(
-				getWebexMeetingPreferences(account.id)
+				getWebexMeetingPreferences(account)
 					.then((preferences) => {
 						account.preferences = preferences;
 					})
 					.catch(error => console.warn(error))
 			);
+			/*p.push(
+				getWebexTemplates(account.id)
+					.then((templates) => {
+						account.templates = templates;
+					})
+					.catch(error => console.warn(error))
+			);*/
 		}
 		return account;
 	});
@@ -418,9 +439,26 @@ async function getWebexTemplates(id: number) {
 		.catch(webexApiError);
 }
 
-function getWebexMeetingPreferences(id: number) {
+function getWebexMeetingPreferencesSites(id: number) {
 	const api = getWebexApi(id);
-	return api.get('/meetingPreferences')
+	let url = '/meetingPreferences/sites';
+	return api.get(url)
+		.then(response => response.data)
+		.catch(webexApiError);
+}
+
+function setWebexDefaultSite(id: number, siteUrl: string) {
+	const api = getWebexApi(id);
+	let url = '/meetingPreferences/sites?defaultSite=true';
+	return api.put(url, {siteUrl})
+		.then(response => response.data)
+		.catch(webexApiError);
+}
+
+function getWebexMeetingPreferences(account: WebexAccount) {
+	const api = getWebexApi(account.id);
+	let url = '/meetingPreferences';
+	return api.get(url)
 		.then(response => response.data)
 		.catch(webexApiError);
 }
@@ -741,6 +779,7 @@ export async function getWebexMeeting(accountId: number, id: string, timezone?: 
  */
 export async function addWebexMeeting({accountId, ...params}: WebexMeetingCreate): Promise<WebexMeeting> {
 	const api = getWebexApi(accountId);
+	params.siteUrl = "ieeesa.webex.com";	// Hack
 	return api.post('/meetings', params)
 		.then(response => ({accountId, ...response.data}))
 		.catch(webexApiError);

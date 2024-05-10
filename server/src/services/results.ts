@@ -37,10 +37,7 @@ export type ResultDB = {
 	id: string;
 	Vote: Result["vote"];
 	Notes: Result["notes"];
-} & Pick<
-	Result,
-	"ballot_id" | "SAPIN" | "Email" | "Name" | "Affiliation"
->;
+} & Pick<Result, "ballot_id" | "SAPIN" | "Email" | "Name" | "Affiliation">;
 
 type ResultChange = Partial<Pick<Result, "vote" | "notes">>;
 
@@ -229,7 +226,6 @@ function getCCResults(ballot_id: number): Promise<Result[]> {
 }
 
 export async function getWGBallotResults(ballot_id: number): Promise<Result[]> {
-
 	/* The resultsForSeries table gets the most recent result for each member that returned
 	 * a ballot (including those not in the pool).
 	 * The votersForSeries table gets all the voters for the ballot series.
@@ -298,7 +294,6 @@ export async function getWGBallotResults(ballot_id: number): Promise<Result[]> {
 	return db.query<(RowDataPacket & Result)[]>(sql);
 }
 
-
 function getSABallotResults(ballot_id: number): Promise<Result[]> {
 	const sql = `
 		SELECT
@@ -332,8 +327,9 @@ export type ResultsCoalesced = {
 	results: Result[];
 };
 
-export async function getResultsCoalesced(ballot: Ballot): Promise<ResultsCoalesced> {
-	let results: Result[], summary: ResultsSummary;
+export async function getResultsCoalesced(ballot: Ballot): Promise<Result[]> {
+	let results: Result[],
+		summary: ResultsSummary;
 
 	if (ballot.Type === BallotType.CC) {
 		results = await getCCResults(ballot.id);
@@ -358,10 +354,13 @@ export async function getResultsCoalesced(ballot: Ballot): Promise<ResultsCoales
 		ballot = { ...ballot, Results: summary };
 	}
 
-	return {
-		ballot,
-		results,
-	};
+	return results;
+}
+
+export async function getResults(ballot: Ballot) {
+	const results = await getResultsCoalesced(ballot);
+	const ballots = await getBallotSeries(ballot.id);
+	return {ballots, results};
 }
 
 function validResultChange(changes: any): changes is ResultChange {
@@ -441,10 +440,10 @@ export async function updateResults(
 	ballot: Ballot,
 	updates: ResultUpdate[]
 ) {
-	await Promise.all(updates.map((update) =>
-		updateResult(workingGroupId, ballot, update)
-	));
-	return getResultsCoalesced(ballot);
+	await Promise.all(
+		updates.map((update) => updateResult(workingGroupId, ballot, update))
+	);
+	return getResults(ballot);
 }
 
 export async function deleteResults(ballot_id: number) {
@@ -456,10 +455,7 @@ export async function deleteResults(ballot_id: number) {
 	return results[0].affectedRows;
 }
 
-async function insertResults(
-	ballot: Ballot,
-	results: Partial<Result>[]
-) {
+async function insertResults(ballot: Ballot, results: Partial<Result>[]) {
 	let sql = db.format("DELETE FROM results WHERE ballot_id=?;", ballot.id);
 	if (results.length) {
 		sql +=
@@ -472,7 +468,7 @@ async function insertResults(
 			";";
 	}
 	await db.query(sql);
-	return getResultsCoalesced(ballot);
+	return getResults(ballot);
 }
 
 export async function importEpollResults(
@@ -523,10 +519,7 @@ export async function importEpollResults(
  * For SA ballot, the MyProject spreadsheet format is expected.
  * For WG ballot, the ePoll .xlsx or .csv format is expected.
  */
-export async function uploadResults(
-	ballot: Ballot,
-	file: Express.Multer.File
-) {
+export async function uploadResults(ballot: Ballot, file: Express.Multer.File) {
 	let results: Partial<ResultDB>[];
 	if (ballot.Type === BallotType.SA) {
 		results = await parseMyProjectResults(file);
@@ -545,21 +538,20 @@ export async function exportResults(
 	forBallotSeries: boolean,
 	res: Response
 ) {
-	let results: ResultsCoalesced[];
+	let fileNamePrefix: string;
+	let resultsArr: Result[][];
+	let ballots = await getBallotSeries(ballot.id);
+	if (ballots.length === 0)
+		throw new NotFoundError(`No such ballot: ${ballot.id}`);
+
 	if (forBallotSeries) {
-		let ballots = await getBallotSeries(ballot.id);
-		if (ballots.length === 0)
-			throw new NotFoundError(`No such ballot: ${ballot.id}`);
-		results = await Promise.all(
-			ballots.map((b) =>
-				getResultsCoalesced(b)
-			)
-		);
-		res.attachment(sanitize(ballots[0].Project) + "_results.xlsx");
-	} else {
-		const result = await getResultsCoalesced(ballot);
-		results = [result];
-		res.attachment(sanitize(ballot.BallotID) + "_results.xlsx");
-	}
-	return genResultsSpreadsheet(user, results, res);
+		resultsArr = await Promise.all(ballots.map(getResultsCoalesced));
+		fileNamePrefix = ballot.Project;
+	 }
+	 else {
+		resultsArr = [await getResultsCoalesced(ballot)];
+		fileNamePrefix = ballot.BallotID;
+	 }
+	 res.attachment(sanitize(fileNamePrefix) + "_results.xlsx");
+	return genResultsSpreadsheet(user, ballots, resultsArr, res);
 }

@@ -3,7 +3,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { DateTime } from "luxon";
 import { isPlainObject, NotFoundError } from "../utils";
 
-import { getResultsCoalesced, ResultsSummary } from "./results";
+import { getResults, ResultsSummary } from "./results";
 import { CommentsSummary } from "./comments";
 import { type User } from "./users";
 import { getWorkingGroup, type Group } from "./groups";
@@ -82,7 +82,7 @@ const getBallotFieldsSQL = `
 	BIN_TO_UUID(b.groupId) as groupId,
 	b.Type,
 	b.number,
-	CONCAT(COALESCE(IF(b.Type=0, "CC", NULL), IF(b.Type=1, "LB", NULL), IF(b.Type=2, "SA", NULL), IF(b.Type=5, "M", NULL), "??"), b.number) as BallotID,  
+	CONCAT(IF(b.Type=0, "CC", IF(b.Type=1, "LB", IF(b.Type=2, "SA", IF(b.Type=5, "M", "??")))), b.number) as BallotID,  
 	b.Project, b.IsRecirc, b.IsComplete,
 	DATE_FORMAT(b.Start, "%Y-%m-%dT%TZ") AS Start,
 	DATE_FORMAT(b.End, "%Y-%m-%dT%TZ") AS End,
@@ -167,8 +167,8 @@ export async function getBallotWithNewResultsSummary(
 			throw new NotFoundError(`Can't find working group for ballot ${ballot.BallotID}`);
 		workingGroupId = workingGroup.id;
 	}
-	ballot = (await getResultsCoalesced(ballot)).ballot;
-	return ballot;
+	const {ballots} = await getResults(ballot);
+	return ballots[ballots.length - 1];
 }
 
 /** 
@@ -186,7 +186,7 @@ export function getBallotSeries(id: number): Promise<Ballot[]> {
 			SELECT b.*
 				FROM ballots b JOIN cte ON b.id=cte.prev_id
 		)
-		SELECT ${getBallotFieldsSQL} FROM cte ORDER BY Start;
+		SELECT ${getBallotFieldsSQL} FROM cte b ORDER BY Start;
 	`;
 
 	return db.query<(RowDataPacket & Ballot)[]>(sql);

@@ -170,7 +170,7 @@ export async function parseMyProjectResults(file: Express.Multer.File) {
 			Name: c[0],
 			Email: c[1],
 			Affiliation: c[2],
-			Vote: c[4],
+			vote: c[4],
 		};
 		return result;
 	});
