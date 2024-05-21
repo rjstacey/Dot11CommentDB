@@ -6,7 +6,7 @@ import {
 	Field,
 	Input,
 	ActionIcon,
-	Dropdown,
+	Dropdown
 } from "dot11-components";
 
 import type { Member, StatusChangeType } from "../store/members";
@@ -149,22 +149,39 @@ function MemberStatusChangeHistory({
 			id: number,
 			changes: Partial<StatusChangeType>
 		) {
-			const StatusChangeHistory = statusChangeHistory.map((h) =>
-				h.id === id ? { ...h, ...changes } : h
-			);
-			//console.log(id, changes, StatusChangeHistory)
+			const StatusChangeHistory = statusChangeHistory
+				.map((h) => h.id === id ? { ...h, ...changes } : h);
+			updateMember({ StatusChangeHistory });
+		}
+
+		function addClick() {
+			let id = 0;
+			for (const h of statusChangeHistory)
+				if (h.id > id) id = h.id + 1;
+			const entry: StatusChangeType = {
+				id,
+				Date: new Date().toISOString(),
+				NewStatus: member.Status,
+				OldStatus: member.Status,
+				Reason: ""
+			}
+			const StatusChangeHistory = [entry].concat(...statusChangeHistory);
 			updateMember({ StatusChangeHistory });
 		}
 
 		function remove(id: number) {
-			const StatusChangeHistory = statusChangeHistory.filter(
-				(h) => h.id !== id
-			);
+			const StatusChangeHistory = statusChangeHistory
+				.filter((h) => h.id !== id);
 			updateMember({ StatusChangeHistory });
 		}
 
 		const columns = statusChangeHistoryColumns.map((col) => {
 			if (col.key === "actions") {
+				const label =
+					<ActionIcon
+						type="add"
+						onClick={addClick}
+					/>
 				const renderCell = (entry: StatusChangeType) => (
 					<>
 						<MemberStatusChangeDropdown
@@ -181,12 +198,13 @@ function MemberStatusChangeHistory({
 						/>
 					</>
 				);
-				return { ...col, renderCell };
+
+				return { ...col, label, renderCell };
 			}
 			return col;
 		});
 		return columns;
-	}, [statusChangeHistory, readOnly, updateMember]);
+	}, [member, statusChangeHistory, readOnly, updateMember]);
 
 	return (
 		<Table

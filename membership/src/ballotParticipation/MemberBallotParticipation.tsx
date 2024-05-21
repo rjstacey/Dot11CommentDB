@@ -10,10 +10,12 @@ import {
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
+	getBallotId,
 	selectBallotParticipationState,
 	selectMemberBallotParticipationCount,
 	updateBallotParticipation,
 	BallotSeriesParticipationSummary,
+	selectSyncedBallotSeriesEntities,
 } from "../store/ballotParticipation";
 
 import { EditTable as Table, TableColumn } from "../components/Table";
@@ -45,8 +47,7 @@ function MemberBallotParticipation({
 	);
 
 	const entities = useAppSelector(selectBallotParticipationState).entities;
-	const ballotSeriesEntities = useAppSelector(selectBallotParticipationState)
-		.ballotSeries.entities;
+	const ballotSeriesEntities = useAppSelector(selectSyncedBallotSeriesEntities);
 	const ballotEntities = useAppSelector(selectBallotParticipationState)
 		.ballots.entities;
 
@@ -82,8 +83,8 @@ function MemberBallotParticipation({
 		const entity = entities[SAPIN];
 		if (entity) {
 			for (const summary of entity.ballotSeriesParticipationSummaries) {
-				participation[summary.id] = summary;
-				ids.push(summary.id);
+				participation[summary.series_id] = summary;
+				ids.push(summary.series_id);
 			}
 		}
 		setCurrentSAPIN(SAPIN);
@@ -113,14 +114,15 @@ function MemberBallotParticipation({
 		}
 
 		function renderDateRange(entity: BallotSeriesParticipationSummary) {
-			const ballotSeries = ballotSeriesEntities[entity.id]!;
+			const ballotSeries = ballotSeriesEntities[entity.series_id]!;
 			return displayDateRange(ballotSeries.start, ballotSeries.end);
 		}
 
 		function renderVoteSummary(entity: BallotSeriesParticipationSummary) {
-			if (!entity.ballot_id) return "Did not vote";
-			const ballotId = ballotEntities[entity.ballot_id]?.BallotID || "?";
-			return `${ballotId}/${entity.vote}/${entity.commentCount}`;
+			if (!entity.lastBallotId) return "Did not vote";
+			const ballot = ballotEntities[entity.lastBallotId];
+			const ballotName = ballot? getBallotId(ballot): "?";
+			return `${ballotName}/${entity.vote}` + (entity.commentCount? `/${entity.commentCount}`: "");
 		}
 
 		return ballotSeriesParticipationColumns.map((col) => {
@@ -131,19 +133,17 @@ function MemberBallotParticipation({
 				| undefined;
 			if (col.key === "project")
 				renderCell = (entry) =>
-					ballotSeriesEntities[entry.id]?.project || "?";
+					ballotSeriesEntities[entry.series_id]?.project || "?";
 			if (col.key === "ballotIds")
 				renderCell = (entry) =>
-					ballotSeriesEntities[entry.id]?.ballotIds
-						.map((id) => ballotEntities[id]?.BallotID || "?")
-						.join(", ") || "?";
+					ballotSeriesEntities[entry.series_id]?.ballotNames.join(", ") || "?";
 			if (col.key === "period") renderCell = renderDateRange;
 			if (col.key === "excused") {
 				renderCell = (entry) => (
 					<Checkbox
 						checked={entry.excused}
 						onChange={(e) =>
-							update(entry.id, { excused: e.target.checked })
+							update(entry.series_id, { excused: e.target.checked })
 						}
 						disabled={readOnly}
 					/>
@@ -154,7 +154,7 @@ function MemberBallotParticipation({
 			}
 			if (col.key === "SAPIN") {
 				renderCell = (entry) =>
-					(entry.SAPIN !== entry.currentSAPIN && entry.SAPIN) || "";
+					(entry.SAPIN !== entry.lastSAPIN && entry.lastSAPIN) || "";
 			}
 
 			if (renderCell) return { ...col, renderCell };

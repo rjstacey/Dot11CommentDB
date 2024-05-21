@@ -20,6 +20,7 @@ import {
 	selectAttendancesWithMembershipAndSummary,
 } from "../store/sessionParticipation";
 import {
+	getBallotId,
 	selectMostRecentBallotSeries,
 	selectBallotParticipationState,
 	selectBallotParticipationWithMembershipAndSummary,
@@ -48,7 +49,7 @@ function BulkStatusUpdateForm({
 
 	const updates: MemberUpdate[] = (selectedOnly ? selected : ids)
 		.map((id) => entities[id])
-		.filter((entity) => Boolean(entity))
+		.filter((entity) => entity && entity.ExpectedStatus)
 		.map((entity) => {
 			const { SAPIN, ExpectedStatus } = entity!;
 			return {
@@ -139,7 +140,7 @@ function BulkStatusUpdateFormBallotSeries(props: DropdownRendererProps) {
 	const ballotId =
 		recentBallotSeries.ballotIds[recentBallotSeries.ballotIds.length - 1];
 	const lastBallot = ballotEntities[ballotId];
-	const defaultReason = `Post ballot ${lastBallot?.BallotID || ""} update`;
+	const defaultReason = `Post ballot ${lastBallot? getBallotId(lastBallot): "Unknown"} update`;
 	const defaultDate = recentBallotSeries.end.slice(0, 10);
 	const { ids, selected } = useAppSelector(selectBallotParticipationState);
 	const entities = useAppSelector(

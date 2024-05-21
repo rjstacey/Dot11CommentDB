@@ -25,12 +25,13 @@ import {
 	clearBallotParticipation,
 	setSelected,
 	selectBallotParticipationState,
-	selectBallotSeries,
 	selectBallotEntities,
 	ballotParticipationSelectors,
 	ballotParticipationActions,
 	BallotSeriesParticipationSummary,
 	RecentBallotSeriesParticipation,
+	selectSyncedBallotSeriesEntities,
+	selectBallotSeriesIds,
 } from "../store/ballotParticipation";
 
 import MemberDetail from "../members/MemberDetail";
@@ -38,22 +39,20 @@ import { renderNameAndEmail } from "../members/Members";
 import BulkStatusUpdate from "../sessionParticipation/BulkStatusUpdate";
 
 function BallotSeriesSummary() {
-	const { ids: ballotSeriesIds, entities: ballotSeriesEntities } =
-		useAppSelector(selectBallotSeries);
+	const ballotSeriesIds = useAppSelector(selectBallotSeriesIds);
+	const ballotSeriesEntities = useAppSelector(selectSyncedBallotSeriesEntities);
 	const ballotEntities = useAppSelector(selectBallotEntities);
 
 	const elements = ballotSeriesIds.map((id) => {
 		const ballotSeries = ballotSeriesEntities[id]!;
-		const ballotIdsStr = ballotSeries.ballotIds
-			.map((id) => ballotEntities[id]!.BallotID)
-			.join(", ");
+		const ballotNamesStr = ballotSeries.ballotNames.join(', ');
 		return (
 			<div key={id} style={{ display: "flex", flexDirection: "column" }}>
 				<div>{ballotEntities[id]!.Project}</div>
 				<div>
 					{displayDateRange(ballotSeries.start, ballotSeries.end)}
 				</div>
-				<div>{ballotIdsStr}</div>
+				<div>{ballotNamesStr}</div>
 			</div>
 		);
 	});
@@ -76,7 +75,7 @@ const renderBallotSeriesParticipationSummary = (
 	if (summary) {
 		voteSummary = summary.vote ? summary.vote : "Did not vote";
 		if (summary.commentCount)
-			voteSummary += ` (${summary.commentCount} comments)`;
+			voteSummary += `/${summary.commentCount}`;
 	}
 
 	return (
@@ -141,19 +140,19 @@ function BallotParticipation() {
 	const { selected, groupName } = useAppSelector(
 		selectBallotParticipationState
 	);
-	const { ids: ballotSeriesIds, entities: ballotSeriesEntities } =
-		useAppSelector(selectBallotSeries);
+	const ballotSeriesIds = useAppSelector(selectBallotSeriesIds);
+	const ballotSeriesEntities = useAppSelector(selectSyncedBallotSeriesEntities);
 
 	const columns = React.useMemo(() => {
 		return tableColumns.concat(
 			ballotSeriesIds.map((id, i) => {
-				const ballotSeries = ballotSeriesEntities[id]!;
+				const ballotSeries = ballotSeriesEntities[id as number]!;
 				const cellRenderer = ({
 					rowData,
 				}: CellRendererProps<RecentBallotSeriesParticipation>) => {
 					const summary =
 						rowData.ballotSeriesParticipationSummaries.find(
-							(s) => s.id === ballotSeries.id
+							(s) => s.series_id === ballotSeries.id
 						);
 					return renderBallotSeriesParticipationSummary(summary);
 				};

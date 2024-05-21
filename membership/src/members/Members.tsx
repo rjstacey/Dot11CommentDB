@@ -7,6 +7,7 @@ import {
 	SelectCell,
 	TableColumnHeader,
 	ShowFilters,
+	GlobalFilter,
 	IdSelector,
 	IdFilter,
 	SplitPanel,
@@ -51,18 +52,20 @@ function setClipboard(selected: EntityId[], members: MembersDictionary) {
 	const header = `
 		<tr>
 			${th("SAPIN")}
-			${th("Name")}
+			${th("Family Name")}
+			${th("Given Name")}
+			${th("MI")}
+			${th("Email")}
 			${th("Status")}
-			${th("Session participation")}
-			${th("Ballot participation")}
 		</tr>`;
 	const row = (m: Member) => `
 		<tr>
 			${td(m.SAPIN)}
-			${td(m.Name)}
+			${td(m.LastName)}
+			${td(m.FirstName)}
+			${td(m.MI)}
+			${td(m.Email)}
 			${td(m.Status)}
-			${td(m.AttendanceCount)}
-			${td(`${m.BallotSeriesCount}/${m.BallotSeriesTotal}`)}
 		</tr>`;
 	const table = `
 		<style>
@@ -327,11 +330,19 @@ function Members() {
 				</div>
 			</div>
 
-			<ShowFilters
-				selectors={membersSelectors}
-				actions={membersActions}
-				fields={fields}
-			/>
+			<div
+				style={{ width: "100%", display: "flex", alignItems: "center" }}
+			>
+				<ShowFilters
+					selectors={membersSelectors}
+					actions={membersActions}
+					fields={fields}
+				/>
+				<GlobalFilter
+					selectors={membersSelectors}
+					actions={membersActions}
+				/>
+			</div>
 
 			<SplitPanel selectors={membersSelectors} actions={membersActions}>
 				<Panel>

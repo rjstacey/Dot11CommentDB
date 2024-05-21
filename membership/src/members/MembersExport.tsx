@@ -4,7 +4,7 @@ import {
 } from "dot11-components";
 
 import { useAppDispatch } from "../store/hooks";
-import { exportMembersPrivate, exportMembersPublic } from "../store/members";
+import { exportMembersPrivate, exportMembersPublic, exportVotingMembers } from "../store/members";
 
 
 function MembersExport() {
@@ -30,6 +30,15 @@ function MembersExport() {
 				>
 					<div style={{position: "relative", top: '-4px', height: 0, fontSize: 'x-small', fontWeight: 'bold'}}>
 						private
+					</div>
+					<i className="bi-person-lines-fill" style={{position: 'relative', top: '4px', marginLeft: 'auto', marginRight: 'auto'}} />
+				</Button>
+				<Button
+					title="Export voring members list for session"
+					onClick={() => dispatch(exportVotingMembers())}
+				>
+					<div style={{position: "relative", top: '-4px', height: 0, fontSize: 'x-small', fontWeight: 'bold'}}>
+						session
 					</div>
 					<i className="bi-person-lines-fill" style={{position: 'relative', top: '4px', marginLeft: 'auto', marginRight: 'auto'}} />
 				</Button>

@@ -533,3 +533,18 @@ export const exportMembersPrivate =
 			dispatch(setError("Unable to get file", error));
 		}
 	};
+
+export const exportVotingMembers =
+	(plenary?: boolean): AppThunk => async (dispatch, getState) => {
+		const { groupName } = selectMembersState(getState());
+		if (!groupName) {
+			dispatch(setError("Unable to export member list", "Group not selected"));
+			return;
+		}
+		let url = `/api/${groupName}/members/voters` + (plenary? "?plenary=1": "");
+		try {
+			await fetcher.getFile(url);
+		} catch (error) {
+			dispatch(setError("Unable to get file", error));
+		}
+	};

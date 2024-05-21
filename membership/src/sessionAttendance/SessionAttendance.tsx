@@ -268,7 +268,7 @@ function ImportAttendeeForm({ methods }: DropdownRendererProps) {
 					(attendee) => attendee && !memberEntities[attendee.SAPIN]
 				)
 				.map(attendee => sessionAttendeeToMember(session, attendee)),
-		[list, entities, memberEntities]
+		[list, entities, memberEntities, session]
 	);
 
 	const updates = React.useMemo(() => {

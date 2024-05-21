@@ -32,32 +32,27 @@ import {
 	type Member,
 } from "../store/members";
 import { selectMostRecentAttendedSession } from "../store/sessionParticipation";
-import {
-	selectBallotEntities,
-	selectMostRecentBallotSeries,
-} from "../store/ballotParticipation";
+import { selectMostRecentBallotSeries } from "../store/ballotParticipation";
 
 import NotificationEmail from "./NotificationEmail";
 
 function MostRecentBallotSummary() {
 	const ballotSeries = useAppSelector(selectMostRecentBallotSeries);
-	const ballotEntities = useAppSelector(selectBallotEntities);
 
 	let content: React.ReactNode;
 	if (ballotSeries) {
-		const ballotIdsStr = ballotSeries.ballotIds
-			.map((id) => ballotEntities[id]?.BallotID || "?")
-			.join(", ");
+		const ballotNamesStr = ballotSeries.ballotNames.join(", ");
 		content = (
 			<>
 				<div>{ballotSeries.project}</div>
-				<div>{displayDateRange(ballotSeries.start, ballotSeries.end)}</div>
-				<div>{ballotIdsStr}</div>
+				<div>
+					{displayDateRange(ballotSeries.start, ballotSeries.end)}
+				</div>
+				<div>{ballotNamesStr}</div>
 			</>
-		)
-	}
-	else {
-		content = <i>None</i>
+		);
+	} else {
+		content = <i>None</i>;
 	}
 
 	return (
@@ -91,10 +86,9 @@ function MostRecentSessionSummary() {
 				</div>
 				<div>{`(${session.attendees} attendees)`}</div>
 			</>
-		)
-	}
-	else {
-		content = <i>None</i>
+		);
+	} else {
+		content = <i>None</i>;
 	}
 
 	return (
@@ -106,11 +100,11 @@ function MostRecentSessionSummary() {
 }
 
 const lineTruncStyle: React.CSSProperties = {
-	width: '100%',
-	overflow: 'hidden',
-	whiteSpace: 'nowrap',
-	textOverflow: 'ellipses'
-}
+	width: "100%",
+	overflow: "hidden",
+	whiteSpace: "nowrap",
+	textOverflow: "ellipses",
+};
 
 export const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) => (
 	<>
@@ -312,7 +306,7 @@ for (tableView in defaultTablesColumns) {
 
 function Members() {
 	const navigate = useNavigate();
-	const refresh = () => navigate(".", {replace: true});
+	const refresh = () => navigate(".", { replace: true });
 
 	return (
 		<>

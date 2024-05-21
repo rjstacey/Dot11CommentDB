@@ -220,10 +220,14 @@ function MemberDetail({
 			return;
 		}
 		await membersUpdate(edited, saved, originals);
+		//setState(initState);
 		setState((state) => ({
 			...state,
 			action: "view",
-			saved: edited,
+			saved: null,//edited,
+			edited: null,
+			originals: [],
+			message: "Updating..."
 		}));
 	};
 
@@ -247,13 +251,6 @@ function MemberDetail({
 				<div>
 					{!readOnly && (
 						<>
-							<ActionButton
-								name="bi-person-plus"
-								title="Add member"
-								disabled={loading || readOnly}
-								isActive={state.action === "add"}
-								onClick={clickAdd}
-							/>
 							<ActionButton
 								name="add"
 								title="Add member"

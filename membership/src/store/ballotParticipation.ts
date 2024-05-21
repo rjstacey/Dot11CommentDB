@@ -40,29 +40,53 @@ export const fields = {
 
 type Ballot = {
 	id: number;
-	BallotID: string;
+	number: number;
+	Type: number;
 	Project: string;
 };
+
+export const BallotType = {
+	CC: 0, // comment collection
+	WG: 1, // WG ballot
+	SA: 2, // SA ballot
+	Motion: 5, // motion
+};
+
+export const BallotTypeLabels = {
+	[BallotType.CC]: "CC",
+	[BallotType.WG]: "LB",
+	[BallotType.SA]: "SA",
+	[BallotType.Motion]: "Motion",
+};
+
+export function getBallotId(ballot: Ballot) {
+	return BallotTypeLabels[ballot.Type] + (ballot.number || "(Blank)")
+}
 
 export type BallotSeries = {
 	id: number;
 	ballotIds: number[];
-	votingPoolId: string;
+	votingPoolId: number;
 	start: string;
 	end: string;
-	project: string;
 };
 
+type SyncedBallotSeries = BallotSeries & {
+	ballotNames: string[];
+	project: string;
+}
+
 export type BallotSeriesParticipationSummary = {
-	id: number;					// Ballot series identifier
-	votingPoolSAPIN: number;	// SAPIN in voting pool
-	currentSAPIN: number;		// Current SAPIN (voting pool SAPIN may be obsolete)
-	voter_id: string;			// Voter identifier
-	excused: boolean;			// Excused from participation (recorded in voting pool table)
-	vote: string | null;		// Last vote
-	SAPIN: number | null;		// SAPIN used for last vote
-	ballot_id: number | null;	// Ballot identifier for last vote
-	commentCount: number | null;//Number of comments submitted with las vote
+	SAPIN: number;				// Current SAPIN
+	series_id: number;			// Ballot series identifier
+	voterSAPIN: number;			// SAPIN in voting pool
+	voter_id: string;			// Voter identifier in voting pool
+	excused: boolean;			// Excused from participation (recorded in voting pool)
+	vote: string | null;			// Last vote
+	lastSAPIN: number | null;		// SAPIN used for last vote
+	lastBallotId: number | null;	// Ballot for last vote
+	commentCount: number | null;	// Number of comments submitted with last vote
+	totalCommentCount: number | null;	// Total comments over ballot series
 };
 
 export type RecentBallotSeriesParticipation = {
@@ -158,20 +182,44 @@ export const selectBallotSeriesIds = (state: RootState) =>
 	selectBallotSeries(state).ids;
 export const selectBallotSeriesEntities = (state: RootState) =>
 	selectBallotSeries(state).entities;
-export const selectRecentBallotSeries = createSelector(
-	selectBallotSeriesIds,
-	selectBallotSeriesEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
-);
-export const selectMostRecentBallotSeries = (state: RootState) => {
-	const ballotSeries = selectRecentBallotSeries(state);
-	return ballotSeries[ballotSeries.length - 1];
-};
 
 export const selectBallotIds = (state: RootState) =>
 	selectBallotParticipationState(state).ballots.ids;
 export const selectBallotEntities = (state: RootState) =>
 	selectBallotParticipationState(state).ballots.entities;
+
+export const selectMostRecentBallotSeries = (state: RootState) => {
+	const ballotSeries = selectRecentBallotSeries(state);
+	return ballotSeries[ballotSeries.length - 1];
+};
+
+export const selectSyncedBallotSeriesEntities = createSelector(
+	selectBallotEntities,
+	selectBallotSeriesEntities,
+	(ballotEntities, ballotSeriesEntities) => {
+		const syncedBallotSeriesEntities: Record<EntityId, SyncedBallotSeries> = {};
+		Object.values(ballotSeriesEntities).forEach(entity => {
+			const ballotNames = entity!.ballotIds.map(id => {
+				const ballot = ballotEntities[id];
+				return ballot? getBallotId(ballot): "Unknown";
+			});
+			const project = ballotEntities[entity!.id]?.Project || "Unknown";
+			const newEntity: SyncedBallotSeries = {
+				...entity!,
+				project,
+				ballotNames
+			};
+			syncedBallotSeriesEntities[entity!.id] = newEntity;
+		});
+		return syncedBallotSeriesEntities
+	}
+)
+
+export const selectRecentBallotSeries = createSelector(
+	selectBallotSeriesIds,
+	selectSyncedBallotSeriesEntities,
+	(ids, entities) => ids.map((id) => entities[id as number]!)
+);
 
 export function memberBallotParticipationCount(
 	member: Member,
@@ -180,18 +228,18 @@ export function memberBallotParticipationCount(
 ) {
 	// Only care about ballots since becoming a Voter
 	// (a member may have lost voting status and we don't want participation from that time affecting the result)
-	const h = member.StatusChangeHistory.find((h) => h.NewStatus === "Voter");
+	const h = member.StatusChangeHistory.find((h) => h.NewStatus === "Voter" && h.OldStatus !== "Voter");
 	if (h && h.Date)
 		ballotSeriesParticipationSummaries =
 			ballotSeriesParticipationSummaries.filter(
 				(s) =>
-					DateTime.fromISO(ballotSeriesEntities[s.id]!.start) >
+					DateTime.fromISO(ballotSeriesEntities[s.series_id]!.start) >
 					DateTime.fromISO(h.Date)
 			);
 
 	const count = ballotSeriesParticipationSummaries.reduce(
 		(count, participation) =>
-			participation.vote || participation.excused ? count + 1 : count,
+			(participation.vote || participation.excused) ? count + 1 : count,
 		0
 	);
 	return {
@@ -358,7 +406,8 @@ export const updateBallotParticipation =
 		> = {};
 		let updatedSummaries = entity.ballotSeriesParticipationSummaries.map(
 			(summary) => {
-				const update = updates.find((u) => u.id === summary.id);
+
+				const update = updates.find((u) => u.id === summary.series_id);
 				if (!update) return summary;
 				const { changes } = update;
 				if ("excused" in changes) {
@@ -366,9 +415,9 @@ export const updateBallotParticipation =
 						id: summary.voter_id,
 						changes: { Excused: changes.excused! },
 					};
-					if (voterUpdates[summary.id])
-						voterUpdates[summary.id].push(update);
-					else voterUpdates[summary.id] = [update];
+					if (voterUpdates[summary.series_id])
+						voterUpdates[summary.series_id].push(update);
+					else voterUpdates[summary.series_id] = [update];
 				}
 				return { ...summary, ...changes };
 			}
