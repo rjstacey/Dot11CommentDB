@@ -1,346 +1,216 @@
 import * as React from "react";
 
-import { IconCollapse } from "dot11-components";
+import { Dropdown, Button, DropdownRendererProps } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
 
 import {
-	BallotType,
-	BallotTypeLabels,
-	selectCurrentBallot,
+	getBallotId,
 	Ballot,
+	selectCurrentBallotSeries,
+	BallotType,
 } from "../store/ballots";
 
 import styles from "./ResultsSummary.module.css";
 
-type ResultsSummaryForDisplay = {
-	opened: string;
-	closed: string;
-	duration: string;
-	votingPoolSize: number;
-	comments: number;
+type Label = string | ((b: Ballot) => string);
+type Value = null | ((b: Ballot) => string | number);
+type Style = undefined | ((b: Ballot) => React.CSSProperties);
 
-	approvalRate: string;
-	approvalRateReq: string;
-	approvalRatePass: boolean;
-	approve: number;
-	disapprove: number;
-	abstain: number;
-
-	invalidVote: number;
-	invalidDisapprove: number;
-	invalidAbstain: number;
-
-	returns: number;
-	returnsRate: string;
-	returnsRateReq: string;
-	returnsRatePass: boolean;
-
-	abstainsRate: string;
-	abstainsRateReq: string;
-	abstainsRatePass: boolean;
-};
-
-function getResultsSummary(ballot: Ballot) {
-	const summary: ResultsSummaryForDisplay = {
-		opened: "",
-		closed: "",
-		duration: "",
-		votingPoolSize: 0,
-		comments: 0,
-
-		approvalRate: "",
-		approvalRateReq: "",
-		approvalRatePass: false,
-		approve: 0,
-		disapprove: 0,
-		abstain: 0,
-
-		invalidVote: 0,
-		invalidDisapprove: 0,
-		invalidAbstain: 0,
-
-		returns: 0,
-		returnsRate: "",
-		returnsRateReq: "",
-		returnsRatePass: false,
-		abstainsRate: "",
-		abstainsRateReq: "",
-		abstainsRatePass: false,
-	};
-
-	if (ballot.Start && ballot.End) {
-		const dStart = new Date(ballot.Start);
-		summary.opened = dStart.toLocaleString("en-US", {
-			year: "numeric",
-			month: "numeric",
-			day: "numeric",
-			timeZone: "America/New_York",
-		});
-		const dEnd = new Date(ballot.End);
-		summary.closed = dEnd.toLocaleString("en-US", {
-			year: "numeric",
-			month: "numeric",
-			day: "numeric",
-			timeZone: "America/New_York",
-		});
-		const _MS_PER_DAY = 1000 * 60 * 60 * 24;
-		const dur = Math.floor(
-			(dEnd.getMilliseconds() - dStart.getMilliseconds()) / _MS_PER_DAY
-		);
-		if (!isNaN(dur)) summary.duration = `${dur} days`;
-	}
-
-	if (ballot.Comments) {
-		summary.comments = ballot.Comments.Count;
-	}
-
-	const r = ballot.Results;
-	if (r) {
-		summary.votingPoolSize = r.ReturnsPoolSize;
-		let pct = r.Approve / (r.Approve + r.Disapprove);
-		if (!isNaN(pct)) {
-			summary.approvalRate = `${(100 * pct).toFixed(1)}%`;
-			if (ballot.Type !== BallotType.CC) {
-				summary.approvalRatePass = pct > 0.75;
-				summary.approvalRateReq =
-					(summary.approvalRatePass ? "Meets" : "Does not meet") +
-					" approval requirement (>75%)";
-			}
-		}
-		summary.approve = r.Approve;
-		summary.disapprove = r.Disapprove;
-		summary.abstain = r.Abstain;
-		summary.invalidVote = r.InvalidVote;
-		summary.invalidDisapprove = r.InvalidDisapprove;
-		summary.invalidAbstain = r.InvalidAbstain;
-		summary.returns = r.TotalReturns;
-		pct = r.TotalReturns / r.ReturnsPoolSize;
-		if (!isNaN(pct)) {
-			summary.returnsRate = `${(100 * pct).toFixed(1)}%`;
-			if (ballot.Type !== BallotType.CC) {
-				const threshold =
-					ballot.Type === BallotType.SA
-						? 0.75 // SA ballot requirement
-						: 0.5; // WG ballot or motion requirement
-				summary.returnsRatePass = pct > threshold;
-				summary.returnsRateReq =
-					(summary.returnsRatePass ? "Meets" : "Does not meet") +
-					` return requirement (>${threshold * 100}%)`;
-			}
-		}
-		pct = r.Abstain / r.ReturnsPoolSize;
-		if (!isNaN(pct)) {
-			summary.abstainsRate = `${(100 * pct).toFixed(1)}%`;
-			if (ballot.Type !== BallotType.CC) {
-				summary.abstainsRatePass = pct < 0.3;
-				summary.abstainsRateReq =
-					(summary.abstainsRatePass ? "Meets" : "Does not meet") +
-					" abstain requirement (<30%)";
-			}
-		}
-	}
-
-	return summary;
+type ResultRender = {
+	label?: Label;
+	value?: Value;
+	style?: Style;
 }
 
-const Title = (props: React.ComponentProps<"div">) => (
-	<div className={styles.title} {...props} />
-);
+const ballotDate = (d: string | null) => d? new Date(d).toLocaleString("en-US", {
+	year: "numeric",
+	month: "numeric",
+	day: "numeric",
+	timeZone: "America/New_York",
+}): "-";
 
-const LV = (props: React.ComponentProps<"div">) => (
-	<div className={styles.labelValue} {...props} />
-);
+const ballotDuration = (b: Ballot) => {
+	if (b.Start && b.End) {
+		const dStart = new Date(b.Start);
+		const dEnd = new Date(b.End);
+		const _MS_PER_DAY = 1000 * 60 * 60 * 24;
+		const dur = Math.floor(
+			(dEnd.valueOf() - dStart.valueOf()) / _MS_PER_DAY
+		);
+		if (!isNaN(dur)) return `${dur} days`;
+	}
+	return "-";
+}
 
-const Col = ({
-	width,
-	...props
-}: { width: number } & React.ComponentProps<"div">) => (
-	<div className={styles.col} style={{ flex: `0 1 ${width}px` }} {...props} />
-);
+const percentageStr = (n: number) => `${(100 * n).toFixed(1)}%`;
 
-const PassFailBlock = ({ pass, ...props }: { pass: any } & React.ComponentProps<"div">) => (
-	<div style={{backgroundColor: pass ? "#d3ecd3" : "#f3c0c0"}} {...props} />
-);
+const passFailStyle = (pass: boolean): React.CSSProperties => ({backgroundColor: pass? "#d3ecd3": "#f3c0c0"});
 
-const PassFailSpan = ({ pass, ...props }: { pass: any } & React.ComponentProps<"span">) => (
-	<span style={{backgroundColor: pass ? "#d3ecd3" : "#f3c0c0"}} {...props} />
-);
+const approvalRate = (b: Ballot) => {
+	const approve = b.Results?.Approve || 0;
+	const disapprove = b.Results?.Disapprove || 0;
+	return approve / (approve + disapprove);
+}
 
-const LabelValue = ({
-	label,
-	children,
-	...otherProps
-}: { label: string } & React.ComponentProps<typeof LV>) => (
-	<LV {...otherProps}>
-		<span>{label}</span>
-		{typeof children === "string" || typeof children === "number" ? (
-			<span>{children}</span>
-		) : (
-			children
-		)}
-	</LV>
-);
+const approvalRateStr = (b: Ballot) => percentageStr(approvalRate(b));
+const approvalRatePass = (b: Ballot) => approvalRate(b) > 0.75;
 
-const BallotColumn = ({
-	ballot,
-	summary,
-}: {
-	ballot: Ballot;
-	summary: ResultsSummaryForDisplay;
-}) => (
-	<Col width={260}>
-		<Title>{BallotTypeLabels[ballot.Type] || "Unexpected"}</Title>
-		<LabelValue label="Opened:">{summary.opened}</LabelValue>
-		<LabelValue label="Closed:">{summary.closed}</LabelValue>
-		<LabelValue label="Duration:">{summary.duration}</LabelValue>
-		{ballot.Type === BallotType.SA && (
-			<LabelValue label="Ballot group members:">
-				{summary.votingPoolSize}
-			</LabelValue>
-		)}
-		{(ballot.Type === BallotType.WG ||
-			ballot.Type === BallotType.Motion) && (
-			<LabelValue label="Voting pool size:">
-				{summary.votingPoolSize}
-			</LabelValue>
-		)}
-		<LabelValue label="Comments:">{summary.comments}</LabelValue>
-	</Col>
-);
+const returnsRate = (b: Ballot) => {
+	const totalReturns = b.Results?.TotalReturns || 0;
+	const poolSize = b.Results?.ReturnsPoolSize || 0;
+	return totalReturns / poolSize;
+}
 
-const ResultColumn = ({
-	ballot,
-	summary,
-}: {
-	ballot: Ballot;
-	summary: ResultsSummaryForDisplay;
-}) => (
-	<Col width={300}>
-		<Title>Result</Title>
-		<LabelValue label="Approve:">{summary.approve}</LabelValue>
-		<LabelValue label="Disapprove:">{summary.disapprove}</LabelValue>
-		{ballot.Type === BallotType.SA && (
-			<LabelValue label="Disapprove without MBS comment:">
-				{summary.invalidDisapprove}
-			</LabelValue>
-		)}
-		<LabelValue label="Abstain:">{summary.abstain}</LabelValue>
-		<LabelValue label="Total returns:">{summary.returns}</LabelValue>
-		{ballot.Type === BallotType.Motion && (
-			<LabelValue label="Not in pool:">{summary.invalidVote}</LabelValue>
-		)}
-	</Col>
-);
+const returnsRateStr = (b: Ballot) => percentageStr(returnsRate(b));
+const returnsRatePass = (b: Ballot) => {
+	const threshold = b.Type === BallotType.SA? 0.75: 0.5;
+	return returnsRate(b) > threshold;
+}
 
-const InvalidVotesColumn = ({
-	summary,
-}: {
-	summary: ResultsSummaryForDisplay;
-}) => (
-	<Col width={300}>
-		<Title>Invalid votes</Title>
-		<LabelValue label="Not in pool:">{summary.invalidVote}</LabelValue>
-		<LabelValue label="Disapprove without comment:">
-			{summary.invalidDisapprove}
-		</LabelValue>
-		<LabelValue label="Abstain reason:">
-			{summary.invalidAbstain}
-		</LabelValue>
-	</Col>
-);
+const abstainRate = (b: Ballot) => {
+	const abstain = b.Results?.Abstain || 0;
+	const poolSize = b.Results?.ReturnsPoolSize || 0;
+	return abstain / poolSize;
+}
 
-const ApprovalCriteriaColumn = ({
-	summary,
-}: {
-	summary: ResultsSummaryForDisplay;
-}) => (
-	<Col width={400}>
-		<Title>Approval criteria</Title>
-		<PassFailBlock pass={summary.approvalRatePass}>
-			<LabelValue label="Approval rate:">
-				{summary.approvalRate}
-			</LabelValue>
-			{summary.approvalRateReq && <div>{summary.approvalRateReq}</div>}
-		</PassFailBlock>
-		<PassFailBlock pass={summary.returnsRatePass}>
-			<LabelValue label="Returns as % of pool:">
-				{summary.returnsRate}
-			</LabelValue>
-			<div>{summary.returnsRateReq}</div>
-		</PassFailBlock>
-		<PassFailBlock pass={summary.abstainsRatePass}>
-			<LabelValue label="Abstains as % of returns:">
-				{summary.abstainsRate}
-			</LabelValue>
-			<div>{summary.abstainsRateReq}</div>
-		</PassFailBlock>
-	</Col>
-);
+const abstainRateStr = (b: Ballot) => percentageStr(abstainRate(b));
+const abstainRatePass = (b: Ballot) => abstainRate(b) < 0.3;
 
-const DetailedSummary = ({
-	ballot,
-	summary,
-}: {
-	ballot: Ballot;
-	summary: ResultsSummaryForDisplay;
-}) => (
-	<>
-		<BallotColumn ballot={ballot} summary={summary} />
-		<ResultColumn ballot={ballot} summary={summary} />
-		{ballot.Type === BallotType.WG && (
-			<InvalidVotesColumn summary={summary} />
-		)}
-		{ballot.Type !== BallotType.CC && (
-			<ApprovalCriteriaColumn summary={summary} />
-		)}
-	</>
-);
+const overallPass = (b: Ballot) =>
+	approvalRatePass(b) && returnsRatePass(b) && abstainRatePass(b);
+const overallPassStr = (b: Ballot) => overallPass(b)? "PASS": "FAIL";
 
-const BasicSummary = ({
-	ballot,
-	summary,
-}: {
-	ballot: Ballot;
-	summary: ResultsSummaryForDisplay;
-}) => (
-	<>
-		<Col width={200}>
-			<Title>{BallotTypeLabels[ballot.Type] || "Unexpected"}</Title>
-		</Col>
-		<Col width={200}>
-			<PassFailSpan pass={summary.approvalRatePass}>
-				{summary.approve}/{summary.disapprove}/{summary.abstain} (
-				{summary.approvalRate})
-			</PassFailSpan>
-		</Col>
-	</>
-);
+const basicsRenderer: (Label | ResultRender)[] = [
+	{value: getBallotId, style: (b) => ({textAlign: "center"})},
+	{label: "Opened:", value: (b) => ballotDate(b.Start)},
+	{label: "Closed:", value: (b) => ballotDate(b.End)},
+	{label: "Duration:", value: ballotDuration},
+	{label: "Voting pool size:", value: (b) => b.Results?.VotingPoolSize || 0}
+];
 
-function ShowResultsSummary({
-	style,
-}: {
-	style?: React.CSSProperties;
-}) {
-	const [showSummary, setShowSummary] = React.useState(true);
-	const ballot = useAppSelector(selectCurrentBallot);
-	//console.log(ballot)
-	if (!ballot) return null;
+const wgResultsRenderer: (Label | ResultRender)[] = basicsRenderer.concat([
+	"Result",
+	{label: "Approve:", value: (b) => b.Results?.Approve || 0},
+	{label: "Disappove:", value: (b) => b.Results?.Disapprove || 0},
+	{label: "Abstain:", value: (b) => b.Results?.Abstain || 0},
+	{label: "Total returns:", value: (b) => b.Results?.TotalReturns || 0},
+	{label: "Comments:", value: (b) => b.Comments?.Count || 0},
+	"Invalid votes",
+	{label: "Not in pool:", value: (b) => b.Results?.InvalidVote || 0},
+	{label: "Disapprove w/out comment:", value: (b) => b.Results?.InvalidDisapprove || 0},
+	{label: "Invalid abstain:", value: (b) => b.Results?.InvalidAbstain || 0},
+	"Approval criteria",
+	{label: "Approval rate (≥ 75%):", value: approvalRateStr, style: (b) => passFailStyle(approvalRatePass(b))},
+	{label: "Returns as % of pool (≥ 50%):", value: returnsRateStr, style: (b) => passFailStyle(returnsRatePass(b))},
+	{label: "Abstains as % of pool (< 30%):", value: abstainRateStr, style: (b) => passFailStyle(abstainRatePass(b))},
+	{value: overallPassStr, style: (b) => passFailStyle(overallPass(b))}
+]);
 
-	const summary = getResultsSummary(ballot);
+const saResultsRenderer: (Label | ResultRender)[] = basicsRenderer.concat([
+	"Result",
+	{label: "Approve:", value: (b) => b.Results?.Approve || 0},
+	{label: "Disappove:", value: (b) => b.Results?.Disapprove || 0},
+	{label: "Disapprove w/out comment:", value: (b) => b.Results?.InvalidDisapprove || 0},
+	{label: "Abstain:", value: (b) => b.Results?.Abstain || 0},
+	{label: "Total returns:", value: (b) => b.Results?.TotalReturns || 0},
+	{label: "Comments:", value: (b) => b.Comments?.Count || 0},
+	"Approval criteria",
+	{label: "Approval rate (≥ 75%):", value: approvalRateStr, style: (b) => passFailStyle(approvalRatePass(b))},
+	{label: "Returns as % of pool (≥ 75%):", value: returnsRateStr, style: (b) => passFailStyle(returnsRatePass(b))},
+	{label: "Abstains as % of pool (< 30%):", value: abstainRateStr, style: (b) => passFailStyle(abstainRatePass(b))},
+	{value: overallPassStr, style: (b) => passFailStyle(overallPass(b))}
+]);
+
+
+function LongSummary({ballots}: {ballots: Ballot[]}) {
+	const renderer = ballots[0].Type === BallotType.SA? saResultsRenderer: wgResultsRenderer;
+	const labelCol = renderer.map((r, y) => {
+		let gridColumn: string = "1";
+		let s: string | undefined;
+		let style: React.CSSProperties | undefined;
+		if (typeof r === "string") {
+			s = r;
+			gridColumn += "/3";
+			style = {fontWeight: "bold", marginTop: "10px"}
+		} else if (typeof r === "object" && typeof r.label === "string") {
+			s = r.label;
+		}
+		return (
+			<div
+				key={"" + y + "-1"}
+				style={{...style, gridRow: 1+y, gridColumn}}
+			>
+				{s}
+			</div>
+		);
+	});
+
+	const valueCols = ballots.map((ballot, x) => {
+		return renderer.map((r, y) => {
+			let s: undefined | string | number;
+			let style: React.CSSProperties = {gridRow: 1+y, gridColumn: 2+x, textAlign: "right"};
+			if (typeof r === "object") {
+				if (r.value)
+					s = r.value(ballot);
+				if (!r.label) 
+					style = {...style, fontWeight: "bold"};
+				if (r.style)
+					style = {...style, ...r.style(ballot)}
+			}
+			return (
+				<div
+					key={"" + y + "-" + (2+x)}
+					style={style}
+				>
+					{s}
+				</div>
+			);
+		});
+	});
 
 	return (
-		<div className={styles.container} style={style}>
-			{showSummary ? (
-				<DetailedSummary ballot={ballot} summary={summary} />
-			) : (
-				<BasicSummary ballot={ballot} summary={summary} />
-			)}
-			<IconCollapse
-				isCollapsed={!showSummary}
-				onClick={() => setShowSummary(!showSummary)}
-			/>
+		<div
+			className={styles.container}
+		>
+			<div
+				className={styles.grid}
+				style={{gridTemplateColumns: `220px repeat(${valueCols.length}, 100px)`}}
+			>
+				{labelCol}
+				{valueCols}
+			</div>
 		</div>
+	)
+}
+
+function resultsSummary(ballot: Ballot) {
+	const r = ballot.Results!;
+	return <span>{`${r.Approve}/${r.Disapprove}/${r.Abstain} (${approvalRateStr(ballot)})`}</span>
+}
+
+function SummaryButton({ballot, props, state, methods}: {ballot: Ballot} & DropdownRendererProps) {
+	return (
+		<Button
+			onClick={state.isOpen? methods.close: methods.open}
+			style={{display: 'flex', ...passFailStyle(overallPass(ballot))}}
+		>
+			{resultsSummary(ballot)}
+			<i className={"bi-chevron" + (state.isOpen? "-up": "-down")} />
+		</Button>
+	);
+}
+
+function ShowResultsSummary() {
+	const ballots = useAppSelector(selectCurrentBallotSeries);
+	if (ballots.length === 0) return null;
+
+	return (
+			<Dropdown
+				selectRenderer={(props) => <SummaryButton ballot={ballots[ballots.length - 1]} {...props}/>}
+			>
+				<LongSummary ballots={ballots} />
+			</Dropdown>
 	);
 }
 

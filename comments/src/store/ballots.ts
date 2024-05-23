@@ -69,7 +69,6 @@ export type Ballot = {
 	End: string | null;
 	Document: string;
 	Topic: string;
-	VotingPoolID: string | null;
 	prev_id: number | null;
 	EpollNum: number | null;
 	Results: ResultsSummary | null;
@@ -78,15 +77,17 @@ export type Ballot = {
 };
 
 export function validBallot(ballot: any): ballot is Ballot {
-	return (
+	const r = (
 		isObject(ballot) &&
 		typeof ballot.id === "number" &&
 		(ballot.Type === BallotType.CC || ballot.Type === BallotType.WG || ballot.Type === BallotType.SA || ballot.Type === BallotType.Motion) &&
 		(ballot.number === null || typeof ballot.number === "number") &&
-		typeof ballot.BallotID === "string" &&
 		typeof ballot.Project === "string" &&
 		typeof ballot.groupId === 'string'
 	);
+	if (!r)
+		console.log(ballot)
+	return r;
 }
 
 export type BallotCommentsSummary = Pick<Ballot, "id" | "Comments">;
@@ -487,6 +488,20 @@ export const selectCurrentBallot = (state: RootState) => {
 	const { entities, currentBallot_id } = selectBallotsState(state);
 	return currentBallot_id ? entities[currentBallot_id] : undefined;
 };
+
+export const selectCurrentBallotSeries = createSelector(
+	selectBallotEntities,
+	selectCurrentBallot_id,
+	(entities, currentBallot_id) => {
+		const ballots: Ballot[] = [];
+		let ballot: Ballot | undefined = currentBallot_id? entities[currentBallot_id]: undefined;;
+		while (ballot) {
+			ballots.unshift(ballot);
+			ballot = ballot.prev_id? entities[ballot.prev_id]: undefined;
+		}
+		return ballots;
+	}
+);
 
 export const ballotsSelectors = getAppTableDataSelectors(selectBallotsState, {
 	selectEntities: selectSyncedBallotEntities,

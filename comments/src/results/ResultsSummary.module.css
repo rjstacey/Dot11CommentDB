@@ -8,6 +8,19 @@
 	justify-content: space-between;
 }
 
+.pass {
+	background-color: #d3ecd3;
+}
+
+.fail {
+	background-color: #f3c0c0
+}
+
+.passFailText {
+	text-align: center;
+	font-weight: bold;
+}
+
 .col {
 	display: flex;
 	flex-direction: column;
@@ -20,12 +33,23 @@
 	padding-right: 0;
 }
 
-.container {
-	position: relative;
+.row {
 	display: flex;
-	justify-content: space-between;
+	flex-direction: row;
 	align-items: center;
-	width: 100%;
-	padding: 0 10px 10px 10px;
-	box-sizing: border-box;
+}
+
+.row > div {
+	margin-right: 20px;
+}
+
+.container {
+	max-height: calc(100vh - 180px);
+	overflow: auto;
+}
+
+.grid {
+	display: grid;
+	gap: 10px;
+	padding: 10px;
 }

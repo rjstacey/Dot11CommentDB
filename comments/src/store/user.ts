@@ -12,9 +12,6 @@ export type User = {
 	SAPIN: number;
 	Name: string;
 	Email: string;
-	Permissions: string[];
-	Access: number;
-	Status: string;
 	Token: any;
 };
 
@@ -22,9 +19,6 @@ const initialState: User = {
 	SAPIN: 0,
 	Name: "",
 	Email: "",
-	Permissions: [],
-	Access: AccessLevel.none,
-	Status: "Non-Voter",
 	Token: null,
 };
 

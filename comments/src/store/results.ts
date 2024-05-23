@@ -1,4 +1,4 @@
-import { createAction, Action } from "@reduxjs/toolkit";
+import { createAction, Action, createSelector } from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -18,6 +18,7 @@ import {
 	validBallot,
 	getBallotId,
 	Ballot,
+	BallotTypeLabels,
 } from "./ballots";
 import { selectGroupPermissions } from "./groups";
 
@@ -25,32 +26,46 @@ export type Result = {
 	id: string;
 	ballot_id: number;
 	SAPIN: number;
-	CurrentSAPIN: number;
-	Email?: string;
+	Email: string;
 	Name: string;
 	Affiliation: string;
 	Status: string;
-	Vote: string;
-	CommentCount: number;
-	Notes: string;
+	lastBallotId: number;
+	lastSAPIN: number;
+	vote: string;
+	commentCount: number;
+	totalCommentCount: number;
+	notes: string;
+};
+
+export type ResultChange = Partial<Pick<Result, "vote" | "notes">>;
+
+export type ResultUpdate = {
+	id: string;
+	changes: ResultChange;
 };
 
 function validResult(result: any): result is Result {
 	return (
 		isObject(result) &&
 		typeof result.id === "string" &&
-		typeof result.ballot_id === "number"
+		typeof result.ballot_id === "number" &&
+		(typeof result.SAPIN === "undefined" || typeof result.SAPIN === "number")
 	);
 }
 
-const fields = {
+export const fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
 	Name: { label: "Name" },
 	Affiliation: { label: "Affiliation" },
 	Email: { label: "Email" },
-	Vote: { label: "Vote" },
-	CommentCount: { label: "Comments", type: FieldType.NUMERIC },
-	Notes: { label: "Notes" },
+	Status: { label: "Status" },
+	vote: { label: "Vote" },
+	lastSAPIN: {label: "SA PIN Used" },
+	BallotName: {label: "Last Ballot" },
+	commentCount: { label: "Comments", type: FieldType.NUMERIC },
+	totalCommentCount: { label: "Total Comments", type: FieldType.NUMERIC },
+	notes: { label: "Notes" },
 };
 
 /* Create slice */
@@ -64,6 +79,7 @@ const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	initialState,
+	selectId: (entity: Result) => entity.id,
 	reducers: {},
 	extraReducers: (builder, dataAdapter) => {
 		builder
@@ -94,7 +110,7 @@ export default slice;
 /* Slice actions */
 export const resultsActions = slice.actions;
 
-const { getSuccess, getFailure, upsertTableColumns } = slice.actions;
+const { getSuccess, getFailure, setMany, upsertTableColumns } = slice.actions;
 
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ ballot_id: number | null }>(
@@ -113,6 +129,33 @@ export const selectResultsEntities = (state: RootState) =>
 export const selectResultsBallot_id = (state: RootState) =>
 	selectResultsState(state).ballot_id;
 
+export type ResultExtended = Omit<Result, "lastSAPIN"> & {
+	lastSAPIN: number | null;
+	BallotName: string | null;
+};
+
+const selectResultExtendedEntities = createSelector(
+	selectResultsEntities,
+	selectResultsBallot_id,
+	selectBallotEntities,
+	(entities, ballot_id, ballotEntities) => {
+		const newEntities: Record<string, ResultExtended> = {};
+		Object.values(entities).forEach((entity) => {
+			let BallotName: string | null = null;
+			if (entity!.lastBallotId && entity!.lastBallotId !== ballot_id) {
+				const ballot = ballotEntities[entity!.lastBallotId];
+				BallotName = ballot? BallotTypeLabels[ballot.Type] + ballot.number: "??";
+			}
+			newEntities[entity!.id] = {
+				...entity!,
+				lastSAPIN: entity!.lastSAPIN === entity!.SAPIN? null: entity!.lastSAPIN,
+				BallotName,
+			};
+		});
+		return newEntities;
+	}
+);
+
 export const selectResultsAccess = (state: RootState) => {
 	const { ballot_id } = selectResultsState(state);
 	const ballot = ballot_id ? selectBallot(state, ballot_id) : undefined;
@@ -123,16 +166,17 @@ export const selectResultsAccess = (state: RootState) => {
 	);
 };
 
-export const resultsSelectors = getAppTableDataSelectors(selectResultsState);
+export const resultsSelectors = getAppTableDataSelectors(selectResultsState, {selectEntities: selectResultExtendedEntities});
 
 /* Thunk actions */
 
 function validResponse(
 	response: any
-): response is { ballot: Ballot; results: Result[] } {
+): response is { ballots: Ballot[]; results: Result[] } {
 	return (
 		isObject(response) &&
-		validBallot(response.ballot) &&
+		Array.isArray(response.ballots) &&
+		response.ballots.every(validBallot) &&
 		Array.isArray(response.results) &&
 		response.results.every(validResult)
 	);
@@ -157,8 +201,10 @@ export const loadResults =
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
-				dispatch(getSuccess(response.results));
-				return response.results;
+				const {ballots, results} = response;
+				dispatch(getSuccess(results));
+				dispatch(updateBallotsLocal(ballots));
+				return results;
 			})
 			.catch((error: any) => {
 				const ballot = selectBallotEntities(getState())[ballot_id];
@@ -185,6 +231,22 @@ export const exportResults =
 		} catch (error) {
 			dispatch(setError("Unable to export results", error));
 		}
+	};
+
+export const updateResults =
+	(ballot_id: number, updates: ResultUpdate[]): AppThunk =>
+	async (dispatch, getState) => {
+		let response: any;
+		try {
+			response = await fetcher.patch(`${baseUrl}/${ballot_id}`, updates);
+			if (!validResponse(response))
+				throw new TypeError("Unexpected response");
+		} catch (error) {
+			dispatch(setError("Unable to delete results", error));
+			return;
+		}
+		dispatch(setMany(response.results));
+		dispatch(updateBallotsLocal(response.ballots));
 	};
 
 export const deleteResults =
@@ -214,7 +276,7 @@ export const importResults =
 			dispatch(setError("Unable to import results", error));
 			return;
 		}
-		dispatch(updateBallotsLocal([response.ballot]));
+		dispatch(updateBallotsLocal(response.ballots));
 		if (selectResultsBallot_id(getState()) === ballot_id)
 			dispatch(getSuccess(response.results));
 	};
@@ -231,7 +293,7 @@ export const uploadResults =
 			dispatch(setError("Unable to upload results", error));
 			return;
 		}
-		dispatch(updateBallotsLocal([response.ballot]));
+		dispatch(updateBallotsLocal(response.ballots));
 		if (selectResultsBallot_id(getState()) === ballot_id)
 			dispatch(getSuccess(response.results));
 	};

@@ -380,6 +380,7 @@ export function CommentBasics({
 				<Col>
 					<FieldLeft label="Page/Line:">
 						<CommentPage
+							key={comment.id}
 							comment={comment}
 							setComment={updateComment}
 							readOnly={readOnly}

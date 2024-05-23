@@ -82,7 +82,6 @@ function getDefaultBallot(): Ballot {
 		Topic: "",
 		Start: today.toISOString(),
 		End: today.toISOString(),
-		VotingPoolID: "",
 		prev_id: 0,
 		Type: 0,
 		IsRecirc: false,

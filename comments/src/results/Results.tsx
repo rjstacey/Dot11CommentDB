@@ -3,11 +3,18 @@ import * as React from "react";
 import {
 	AppTable,
 	TableColumnSelector,
+	ShowFilters,
 	ActionButton,
 	ColumnProperties,
 	TablesConfig,
 	ChangeableColumnProperties,
-	CellRendererProps
+	CellRendererProps,
+	AppModal,
+	Form,
+	Row,
+	Field,
+	Select,
+	TextArea,
 } from "dot11-components";
 
 import ProjectBallotSelector from "../components/ProjectBallotSelector";
@@ -17,6 +24,7 @@ import ResultsExport from "./ResultsExport";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import {
+	fields,
 	loadResults,
 	clearResults,
 	selectResultsBallot_id,
@@ -24,9 +32,138 @@ import {
 	resultsActions,
 	upsertTableColumns,
 	selectResultsAccess,
+	updateResults,
+	type Result,
+	type ResultChange,
+	type ResultUpdate,
 } from "../store/results";
-import { selectBallot, BallotType } from "../store/ballots";
+import {
+	selectBallot,
+	getBallotId,
+	BallotType,
+	Ballot,
+} from "../store/ballots";
 import { selectIsOnline } from "../store/offline";
+
+const voteOptions = [
+	{ label: "Approve", value: "Approve" },
+	{ label: "Disapprove", value: "Disapprove" },
+	{
+		label: "Abstain - Lack of expertise",
+		value: "Abstain - Lack of expertise",
+	},
+	{
+		label: "Abstain - Lack of time",
+		value: "Abstain - Lack of time",
+		disabled: true,
+	},
+	{
+		label: "Abstain - Conflict of Interest",
+		value: "Abstain - Conflict of Interest",
+		disabled: true,
+	},
+	{ label: "Abstain - Other", value: "Abstain - Other", disabled: true },
+];
+
+function SelectVote({
+	value,
+	onChange,
+}: {
+	value: string;
+	onChange: (value: string) => void;
+}) {
+	let options = voteOptions;
+	let values = voteOptions.filter((v) => v.value === value);
+	if (value && values.length === 0) {
+		const missingOption = { label: value, value, disabled: true };
+		options = [...options, missingOption];
+		values = [missingOption];
+	}
+	return (
+		<Select
+			style={{ width: 220 }}
+			options={options}
+			values={values}
+			onChange={(values) => onChange(values[0].value)}
+		/>
+	);
+}
+
+function EditResultModal({
+	ballot,
+	result,
+	close,
+}: {
+	ballot: Ballot | undefined;
+	result: Result | null;
+	close: () => void;
+}) {
+	const dispatch = useAppDispatch();
+	const [open, setOpen] = React.useState(Boolean(result));
+	const [update, setUpdate] = React.useState<ResultUpdate>({
+		id: "",
+		changes: {},
+	});
+
+	React.useEffect(() => {
+		if (result) {
+			if (update.id !== result.id) {
+				let changes: ResultChange = {
+					vote: result.vote,
+					notes: result.notes,
+				};
+				setUpdate({ id: result.id, changes });
+			}
+		}
+		setOpen(Boolean(result) && Boolean(ballot));
+	}, [update.id, result, ballot]);
+
+	function change(changes: ResultChange) {
+		setUpdate({
+			id: update.id,
+			changes: { ...update.changes, ...changes },
+		});
+	}
+
+	async function submit() {
+		await dispatch(updateResults(ballot!.id, [update]));
+		close();
+	}
+
+	const memberStr = result
+		? `${result.SAPIN} ${result.Name} (${result.Affiliation})`
+		: "";
+
+	return (
+		<AppModal isOpen={open}>
+			<Form
+				title={`Edit result for ${ballot ? getBallotId(ballot) : "-"}`}
+				cancel={close}
+				submit={submit}
+			>
+				<Row>{memberStr}</Row>
+				<Row>
+					<Field label="Vote:">
+						<SelectVote
+							value={update.changes.vote!}
+							onChange={(vote) => change({ vote })}
+						/>
+					</Field>
+				</Row>
+				<Row>
+					<Field label="Notes:">
+						<TextArea
+							style={{ width: "100%" }}
+							rows={2}
+							value={update.changes.notes || ""}
+							onChange={(e) => change({ notes: e.target.value })}
+						/>
+					</Field>
+				</Row>
+			</Form>
+		</AppModal>
+	);
+}
 
 const lineTruncStyle: React.CSSProperties = {
 	overflow: "hidden",
@@ -34,10 +171,9 @@ const lineTruncStyle: React.CSSProperties = {
 	textOverflow: "ellipses",
 };
 
-const renderItem = ({
-	rowData,
-	dataKey,
-}: CellRendererProps) => <div style={lineTruncStyle}>{rowData[dataKey]}</div>;
+const renderItem = ({ rowData, dataKey }: CellRendererProps) => (
+	<div style={lineTruncStyle}>{rowData[dataKey]}</div>
+);
 
 const tableColumns: ColumnProperties[] = [
 	{ key: "SAPIN", label: "SA PIN", width: 75 },
@@ -49,9 +185,14 @@ const tableColumns: ColumnProperties[] = [
 		cellRenderer: renderItem,
 	},
 	{ key: "Email", label: "Email", width: 250, cellRenderer: renderItem },
-	{ key: "Vote", label: "Vote", width: 210 },
-	{ key: "CommentCount", label: "Comments", width: 110 },
-	{ key: "Notes", label: "Notes", width: 250, flexShrink: 1, flexGrow: 1 },
+	{ key: "Status", label: "Status", width: 150 },
+	{ key: "vote", label: "Vote", width: 210 },
+	{ key: "commentCount", label: "Comments", width: 110 },
+	{ key: "totalCommentCount", label: "Total Comments", width: 110 },
+	{ key: "lastSAPIN", label: "SA PIN Used", width: 100 },
+	{ key: "BallotName", label: "Ballot", width: 100 },
+	{ key: "notes", label: "Notes", width: 250, flexShrink: 1, flexGrow: 1 },
+	{ key: "Action", label: "", width: 100 },
 ];
 
 function getDefaultTablesConfig(access: number, type: number): TablesConfig {
@@ -128,11 +269,31 @@ function Results() {
 			resultsBallot_id ? loadResults(resultsBallot_id) : clearResults()
 		);
 
+	const [editResult, setEditResult] = React.useState<Result | null>(null);
+
+	const columns = React.useMemo(() => {
+		return tableColumns.map((col) => {
+			if (col.key === "Action") {
+				col = {
+					...col,
+					cellRenderer: (props) => (
+						<ActionButton
+							name="edit"
+							onClick={() => setEditResult(props.rowData)}
+						/>
+					),
+				};
+			}
+			return col;
+		});
+	}, [setEditResult]);
+
 	return (
 		<>
 			<div className="top-row" style={{ maxWidth }}>
 				<ProjectBallotSelector />
 				<div style={{ display: "flex" }}>
+					<ResultsSummary />
 					<ResultsExport ballot={resultsBallot} />
 					<TableColumnSelector
 						selectors={resultsSelectors}
@@ -147,17 +308,26 @@ function Results() {
 					/>
 				</div>
 			</div>
-			<ResultsSummary style={{ maxWidth }} />
+			<ShowFilters
+				selectors={resultsSelectors}
+				actions={resultsActions}
+				fields={fields}
+			/>
 			<div className="table-container centered-rows" style={{ maxWidth }}>
 				<AppTable
 					defaultTablesConfig={defaultTablesConfig}
-					columns={tableColumns}
+					columns={columns}
 					headerHeight={28}
 					estimatedRowHeight={32}
 					selectors={resultsSelectors}
 					actions={resultsActions}
 				/>
 			</div>
+			<EditResultModal
+				ballot={resultsBallot}
+				result={editResult}
+				close={() => setEditResult(null)}
+			/>
 		</>
 	);
 }

@@ -7,6 +7,7 @@ import {
 	SelectCell,
 	ConfirmModal,
 	ActionButton,
+	ShowFilters,
 	ColumnProperties,
 	displayDateRange
 } from "dot11-components";
@@ -14,6 +15,7 @@ import {
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { selectIsOnline } from "../store/offline";
 import {
+	fields,
 	deleteVoters,
 	exportVoters,
 	selectVotersState,
@@ -206,6 +208,13 @@ function Voters() {
 			<div className="top-row" style={{ maxWidth }}>
 				<BallotSeriesSummary />
 			</div>
+
+			<ShowFilters
+				style={{ maxWidth }}
+				fields={fields}
+				selectors={votersSelectors}
+				actions={votersActions}
+			/>
 
 			<div className="table-container centered-rows" style={{ maxWidth }}>
 				<AppTable
