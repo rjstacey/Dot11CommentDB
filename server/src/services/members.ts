@@ -677,7 +677,7 @@ export async function updateMember(
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
-	if (Status && Status !== member.Status)
+	if (Status && Status !== member.Status) {
 		p.push(
 			updateMemberStatus(
 				member,
@@ -686,12 +686,21 @@ export async function updateMember(
 				changes.StatusChangeDate || undefined
 			)
 		);
+	}
+	const entry1 = userEntry(changesRest);
+	if (Object.keys(entry1).length > 0) {
+		const sql = db.format(
+			"UPDATE users SET ? WHERE SAPIN=?",
+			[entry1, sapin]
+		);
+		p.push(db.query(sql));
+	}
 
-	const entry = memberEntry(changesRest);
-	if (Object.keys(entry).length) {
+	const entry2 = memberEntry(changesRest);
+	if (Object.keys(entry2).length) {
 		const sql = db.format(
 			"UPDATE groupMembers SET ? WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?",
-			[entry, groupId, sapin]
+			[entry2, groupId, sapin]
 		);
 		p.push(db.query(sql));
 	}
@@ -1077,3 +1086,27 @@ export async function exportMembersPrivate(groupId: string, res: Response) {
 	res.attachment("members-private.csv");
 	res.status(200).send(csv);
 }
+
+export async function exportVotingMembers(groupId: string, forPlenarySession: boolean, res: Response) {
+	const Status = forPlenarySession?
+		["Voter", "ExOfficio", "Potential Voter"]:
+		["Voter", "ExOfficio"];
+	let members = await getMembers(AccessLevel.admin, {
+		groupId,
+		Status,
+	});
+	
+	let ssData = members.map(m => ({
+		SAPIN: m.SAPIN,
+		"Family Name": m.LastName,
+		"Given Name": m.FirstName,
+		MI: m.MI,
+		Email: m.Email,
+		Status: m.Status
+	}));
+
+	const csv = await csvStringify(ssData, { header: true });
+	res.attachment("voting-members.csv");
+	res.status(200).send(csv);
+}
+
