@@ -16,9 +16,9 @@ import {
 } from "dot11-components";
 
 import Editor, {replaceClassWithInlineStyle} from "../editor/Editor";
-import { genSessionAttendanceTableHtml } from "../sessionParticipation/MemberAttendances";
+import { useRenderSessionAttendances } from "../sessionParticipation/MemberAttendances";
+import { useRenderBallotParticipation } from "../ballotParticipation/MemberBallotParticipation";
 
-import type { RootState } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	addEmailTemplate,
@@ -32,19 +32,24 @@ import {
 } from "../store/email";
 import { selectMembersState, type Member } from "../store/members";
 import { selectMostRecentAttendedSession } from "../store/sessionParticipation";
+import { type Session } from "../store/sessions";
 import { selectUser, type User } from "../store/user";
 
-function substitute(key: string, member: Member, state: RootState): string {
-	console.log(key, Object.keys(member))
-	if (Object.keys(member).includes(key)) {
+function substitute(
+	key: string,
+	member: Member,
+	session: Session | undefined,
+	renderSessionAttendances: ReturnType<typeof useRenderSessionAttendances>,
+	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>
+): string {
+
+	if (Object.keys(member).includes(key))
 		return "" + member[key as keyof Member] || "(Blank)";
-	}
 
 	if (key.startsWith('Session')) {
 		if (key === 'SessionAttendance')
-			return genSessionAttendanceTableHtml(state, member.SAPIN);
+			return renderSessionAttendances(member.SAPIN);
 
-		const session = selectMostRecentAttendedSession(state);
 		if (!session) return "(Blank)"
 		let s = "";
 		if (key === 'SessionName')
@@ -56,21 +61,25 @@ function substitute(key: string, member: Member, state: RootState): string {
 		return s || "(Blank)";
 	}
 
+	if (key === "BallotParticipation")
+		return renderBallotParticipation(member.SAPIN);
+
 	return "(Not implemented)";
 }
 
 function doSubstitution(
 	email: EmailTemplate,
 	member: Member,
-	state: RootState
+	session: Session | undefined,
+	renderSessionAttendances: ReturnType<typeof useRenderSessionAttendances>,
+	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>
 ) {
 	let body = email.body;
 	const m = body.match(/{{[a-zA-Z]+}}/g);
-	console.log(m)
 	if (m) {
 		for (let i = 0; i < m.length; i++) {
 			const key = m[i].replace('{{', '').replace('}}', '');
-			body = body.replace(`{{${key}}}`, substitute(key, member, state))
+			body = body.replace(`{{${key}}}`, substitute(key, member, session, renderSessionAttendances, renderBallotParticipation))
 		}
 	}
 
@@ -82,17 +91,22 @@ function doSubstitution(
 const genEmailAddress = (m: Member | User) => `${m.Name} <${m.Email}>`;
 
 function genEmails({
+	user,
 	emailTemplate,
 	members,
-	state
+	session,
+	renderSessionAttendances,
+	renderBallotParticipation
 }: {
-	emailTemplate: EmailTemplate;
-	members: Member[];
-	state: RootState;
+	user: User,
+	emailTemplate: EmailTemplate,
+	members: Member[],
+	session: Session | undefined,
+	renderSessionAttendances: ReturnType<typeof useRenderSessionAttendances>,
+	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>
 }) {
-	const user = selectUser(state);
 	return members.map((member) => {
-		const email = doSubstitution(emailTemplate, member, state);
+		const email = doSubstitution(emailTemplate, member, session, renderSessionAttendances, renderBallotParticipation);
 
 		const html = render(<FormatBody body={email.body} />);
 
@@ -183,7 +197,12 @@ function NotificationEmail() {
 
 	const { selected, entities } = useAppSelector(selectMembersState);
 	const members = selected.map((id) => entities[id]).filter(m => Boolean(m)) as Member[];
-	const state = useAppSelector(state => state);
+
+	const session = useAppSelector(selectMostRecentAttendedSession);
+	const renderSessionAttendances = useRenderSessionAttendances();
+	const renderBallotParticipation = useRenderBallotParticipation();
+
+	const user = useAppSelector(selectUser);
 
 	const debouncedSave = useDebounce(() => {
 		const changes = shallowDiff(saved!, edited!);
@@ -219,7 +238,7 @@ function NotificationEmail() {
 			return;
 		if (!preview) {
 			debouncedSave.flush();
-			const email = doSubstitution(edited, members[0], state);
+			const email = doSubstitution(edited, members[0], session, renderSessionAttendances, renderBallotParticipation);
 			setEdited(email);
 		}
 		else {
@@ -229,7 +248,7 @@ function NotificationEmail() {
 	}
 
 	function onSend() {
-		genEmails({ emailTemplate: saved!, members, state }).forEach((email) =>
+		genEmails({ user, emailTemplate: saved!, members, session, renderSessionAttendances, renderBallotParticipation }).forEach((email) =>
 			dispatch(sendEmail(email))
 		);
 	}

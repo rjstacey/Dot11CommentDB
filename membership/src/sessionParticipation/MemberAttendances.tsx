@@ -21,22 +21,9 @@ import { selectSessionEntities, Session } from "../store/sessions";
 
 import styles from "../sessionAttendance/sessionAttendance.module.css";
 
-import { EditTable as Table, TableColumn } from "../components/Table";
+import { EditTable as Table, TableColumn, renderTable } from "../components/Table";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 
-
-function renderTable(headings: string[], values: string[][]) {
-	const header = `<tr style="text-align: left">${headings.map((d) => `<th>${d}</th>`).join("")}</tr>`;
-	const row = (r: string[]) =>
-		`<tr>${r.map((d) => `<td>${d}</td>`).join("")}</tr>`;
-	const table =
-		`<table style="border-collapse: collapse" cellpadding="5" border="1">
-			<thead>${header}</thead>
-			<tbody>${values.map(row).join("")}</tbody>
-		</table>`;
-
-	return table;
-}
 
 function renderSessionSummary(session: Session | undefined) {
 	if (!session) return "Unknown";
@@ -61,40 +48,42 @@ const nullAttendance = (session_id: number, SAPIN: number) => ({
 	CurrentSAPIN: SAPIN
 })
 
-export function genSessionAttendanceTableHtml(state: RootState, SAPIN: number) {
+const headings = [
+	"Session",
+	"Attendance",
+	"Notes",
+];
 
-	const session_ids = selectAttendanceSessionIds(state);
-	const sessionEntities = selectSessionEntities(state);
-	const attendancesEntities = selectAttendancesEntities(state);
+export function useRenderSessionAttendances() {
+	const session_ids = useAppSelector(selectAttendanceSessionIds);
+	const sessionEntities = useAppSelector(selectSessionEntities);
+	const attendancesEntities = useAppSelector(selectAttendancesEntities);
 
-	const sessions = session_ids.map(id => sessionEntities[id]!).reverse();
+	return React.useCallback((SAPIN: number) => {
 
-	const headings = [
-		"Session",
-		"Attendance",
-		"Notes",
-	];
+		const values = session_ids.map((id) => {
+			const session = sessionEntities[id]!;
+			const sessionAttendances = attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
+			let a = sessionAttendances.find((a) => a.session_id === session.id) || nullAttendance(session.id, SAPIN);
+			let notes = "";
+			if (a.DidAttend)
+				notes = "Override: did attend";
+			else if (a.DidNotAttend)
+				notes = "Override: did not attend";
+			if (a.SAPIN !== a.CurrentSAPIN) {
+				if (notes) notes += "; ";
+				notes += `Attended under SAPIN=${SAPIN}`;
+			}
+			return [
+				renderSessionSummary(session),
+				a.AttendancePercentage.toFixed(1) + "%",
+				notes
+			]
+		});
 
-	const values = sessions.map((session) => {
-		const sessionAttendances = attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
-		let a = sessionAttendances.find((a) => a.session_id === session.id) || nullAttendance(session.id, SAPIN);
-		let notes = "";
-		if (a.DidAttend)
-			notes = "Override: did attend";
-		else if (a.DidNotAttend)
-			notes = "Override: did not attend";
-		if (a.SAPIN !== a.CurrentSAPIN) {
-			if (notes) notes += "; ";
-			notes += `Attended under SAPIN=${SAPIN}`;
-		}
-		return [
-			renderSessionSummary(session),
-			a.AttendancePercentage.toFixed(1) + "%",
-			notes
-		]
-	});
+		return renderTable(headings, values);
 
-	return renderTable(headings, values);
+	}, [session_ids, sessionEntities, attendancesEntities])
 }
 
 export function useSessionAttendances(SAPIN: number) {
