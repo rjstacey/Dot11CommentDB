@@ -68,7 +68,6 @@ const TopicTextArea = (props: React.ComponentProps<typeof TextArea>) => (
 	/>
 );
 
-
 const ballotTypeLabels = {
 	[BallotType.CC]: "CC",
 	[BallotType.WG]: "LB",
@@ -86,18 +85,22 @@ const BallotTypeSelect = ({
 	readOnly?: boolean;
 }) => (
 	<div
-		style={{display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', width: 300}}
+		style={{
+			display: "flex",
+			justifyContent: "space-between",
+			flexWrap: "wrap",
+			width: 300,
+		}}
 	>
 		{Object.entries(BallotType).map(([key, value]) => (
-			<div
-				style={{display: 'flex', alignContent: 'center'}}
-				key={key}
-			>
+			<div style={{ display: "flex", alignContent: "center" }} key={key}>
 				<Checkbox
 					id={key}
-					checked={isMultiple(ballot.Type)? false: ballot.Type === value}
+					checked={
+						isMultiple(ballot.Type) ? false : ballot.Type === value
+					}
 					indeterminate={isMultiple(value)}
-					onChange={(e) => updateBallot({Type: value})}
+					onChange={(e) => updateBallot({ Type: value })}
 					disabled={readOnly}
 				/>
 				<label htmlFor={key}>{ballotTypeLabels[value]}</label>
@@ -106,52 +109,48 @@ const BallotTypeSelect = ({
 	</div>
 );
 
-
 const BallotStage = ({
 	ballot,
 	updateBallot,
-	readOnly
+	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
 	updateBallot: (changes: Partial<BallotEdit>) => void;
 	readOnly?: boolean;
 }) => (
 	<div
-		style={{display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', width: 200}}
+		style={{
+			display: "flex",
+			justifyContent: "space-between",
+			flexWrap: "wrap",
+			width: 200,
+		}}
 	>
-		<div
-			style={{display: 'flex', alignContent: 'center'}}
-		>
+		<div style={{ display: "flex", alignContent: "center" }}>
 			<Checkbox
 				id="initial"
-				checked={isMultiple(ballot.IsRecirc)? false: !ballot.IsRecirc}
+				checked={isMultiple(ballot.IsRecirc) ? false : !ballot.IsRecirc}
 				indeterminate={isMultiple(ballot.IsRecirc)}
-				onChange={(e) => updateBallot({IsRecirc: !ballot.IsRecirc})}
+				onChange={(e) => updateBallot({ IsRecirc: !ballot.IsRecirc })}
 				disabled={readOnly}
 			/>
 			<label htmlFor="initial">Initial</label>
 		</div>
-		<div
-			style={{display: 'flex', alignContent: 'center'}}
-		>
+		<div style={{ display: "flex", alignContent: "center" }}>
 			<Checkbox
 				id="recirc"
-				checked={isMultiple(ballot.IsRecirc)? false: ballot.IsRecirc}
+				checked={isMultiple(ballot.IsRecirc) ? false : ballot.IsRecirc}
 				indeterminate={isMultiple(ballot.IsRecirc)}
-				onChange={(e) => updateBallot({IsRecirc: !ballot.IsRecirc})}
+				onChange={(e) => updateBallot({ IsRecirc: !ballot.IsRecirc })}
 				disabled={readOnly}
 			/>
 			<label htmlFor="recirc">Recirc</label>
 		</div>
-		<div
-			style={{display: 'flex', alignContent: 'center'}}
-		>
+		<div style={{ display: "flex", alignContent: "center" }}>
 			<Checkbox
 				id="IsComplete"
 				checked={
-					isMultiple(ballot.IsComplete)
-						? false
-						: ballot.IsComplete
+					isMultiple(ballot.IsComplete) ? false : ballot.IsComplete
 				}
 				indeterminate={isMultiple(ballot.IsComplete)}
 				onChange={(e) =>
@@ -161,9 +160,7 @@ const BallotStage = ({
 				}
 				disabled={readOnly}
 			/>
-			<label htmlFor="IsComplete">
-				Final in ballot series
-			</label>
+			<label htmlFor="IsComplete">Final in ballot series</label>
 		</div>
 	</div>
 );
@@ -239,17 +236,19 @@ export function Column1({
 			<Row>
 				<Field label="Ballot number:">
 					<Input
-						style={{lineHeight: '25px'}}
+						style={{ lineHeight: "25px" }}
 						type="number"
 						name="number"
 						value={
-							(isMultiple(ballot.number) || ballot.number === null) ? "" : ballot.number
+							isMultiple(ballot.number) || ballot.number === null
+								? ""
+								: ballot.number
 						}
-						onChange={change}
+						onChange={(e) =>
+							updateBallot({ number: Number(e.target.value) })
+						}
 						placeholder={
-							isMultiple(ballot.number)
-								? MULTIPLE_STR
-								: BLANK_STR
+							isMultiple(ballot.number) ? MULTIPLE_STR : BLANK_STR
 						}
 						disabled={readOnly || isMultipleBallots}
 					/>
@@ -343,15 +342,18 @@ export function Column1({
 					/>
 				</Field>
 			</Row>
-			<Row>
-				<Field label="Ballot stage:">
-					<BallotStage
-						ballot={ballot}
-						updateBallot={updateBallot}
-						readOnly={readOnly}
-					/>
-				</Field>
-			</Row>
+			{(ballot.Type === BallotType.WG ||
+				ballot.Type === BallotType.SA) && (
+				<Row>
+					<Field label="Ballot stage:">
+						<BallotStage
+							ballot={ballot}
+							updateBallot={updateBallot}
+							readOnly={readOnly}
+						/>
+					</Field>
+				</Row>
+			)}
 			{(ballot.Type === BallotType.WG || ballot.Type === BallotType.SA) &&
 				!!ballot.IsRecirc && (
 					<Row>
@@ -425,11 +427,8 @@ export function BallotEditMultiple({
 		)
 			return;
 		let diff: Multiple<Ballot> | null = null;
-		ballots.forEach(ballot => {
-			diff = deepMergeTagMultiple(
-				diff || {},
-				ballot
-			) as Multiple<Ballot>;
+		ballots.forEach((ballot) => {
+			diff = deepMergeTagMultiple(diff || {}, ballot) as Multiple<Ballot>;
 		});
 		setEdited(diff);
 		setSaved(diff);
