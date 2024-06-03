@@ -50,7 +50,8 @@ function validResult(result: any): result is Result {
 		isObject(result) &&
 		typeof result.id === "string" &&
 		typeof result.ballot_id === "number" &&
-		(typeof result.SAPIN === "undefined" || typeof result.SAPIN === "number")
+		(typeof result.SAPIN === "undefined" ||
+			typeof result.SAPIN === "number")
 	);
 }
 
@@ -61,8 +62,8 @@ export const fields = {
 	Email: { label: "Email" },
 	Status: { label: "Status" },
 	vote: { label: "Vote" },
-	lastSAPIN: {label: "SA PIN Used" },
-	BallotName: {label: "Last Ballot" },
+	lastSAPIN: { label: "SA PIN Used" },
+	BallotName: { label: "Last Ballot" },
 	commentCount: { label: "Comments", type: FieldType.NUMERIC },
 	totalCommentCount: { label: "Total Comments", type: FieldType.NUMERIC },
 	notes: { label: "Notes" },
@@ -72,7 +73,7 @@ export const fields = {
 const initialState: {
 	ballot_id: number | null;
 } = {
-	ballot_id: null
+	ballot_id: null,
 };
 const dataSet = "results";
 const slice = createAppTableDataSlice({
@@ -144,11 +145,16 @@ const selectResultExtendedEntities = createSelector(
 			let BallotName: string | null = null;
 			if (entity!.lastBallotId && entity!.lastBallotId !== ballot_id) {
 				const ballot = ballotEntities[entity!.lastBallotId];
-				BallotName = ballot? BallotTypeLabels[ballot.Type] + ballot.number: "??";
+				BallotName = ballot
+					? BallotTypeLabels[ballot.Type] + ballot.number
+					: "??";
 			}
 			newEntities[entity!.id] = {
 				...entity!,
-				lastSAPIN: entity!.lastSAPIN === entity!.SAPIN? null: entity!.lastSAPIN,
+				lastSAPIN:
+					entity!.lastSAPIN === entity!.SAPIN
+						? null
+						: entity!.lastSAPIN,
 				BallotName,
 			};
 		});
@@ -166,7 +172,9 @@ export const selectResultsAccess = (state: RootState) => {
 	);
 };
 
-export const resultsSelectors = getAppTableDataSelectors(selectResultsState, {selectEntities: selectResultExtendedEntities});
+export const resultsSelectors = getAppTableDataSelectors(selectResultsState, {
+	selectEntities: selectResultExtendedEntities,
+});
 
 /* Thunk actions */
 
@@ -201,14 +209,16 @@ export const loadResults =
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
-				const {ballots, results} = response;
+				const { ballots, results } = response;
 				dispatch(getSuccess(results));
 				dispatch(updateBallotsLocal(ballots));
 				return results;
 			})
 			.catch((error: any) => {
 				const ballot = selectBallotEntities(getState())[ballot_id];
-				const ballotId = ballot ? getBallotId(ballot) : `id=${ballot_id}`;
+				const ballotId = ballot
+					? getBallotId(ballot)
+					: `id=${ballot_id}`;
 				dispatch(getFailure());
 				dispatch(
 					setError(
@@ -242,7 +252,7 @@ export const updateResults =
 			if (!validResponse(response))
 				throw new TypeError("Unexpected response");
 		} catch (error) {
-			dispatch(setError("Unable to delete results", error));
+			dispatch(setError("Unable to update results", error));
 			return;
 		}
 		dispatch(setMany(response.results));
