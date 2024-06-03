@@ -21,16 +21,26 @@ function SelectProject({
 	React.ComponentProps<typeof Select>,
 	"values" | "options" | "onChange"
 >) {
-	const options = useAppSelector(selectGroupProjectOptions).filter(
-		(o) => o.groupId === groupId
-	);
+	const existingOptions = useAppSelector(selectGroupProjectOptions);
+	const [options, setOptions] = React.useState<GroupProjectOption[]>([]);
+
+	React.useEffect(() => {
+		setOptions(existingOptions.filter((o) => o.groupId === groupId));
+	}, [existingOptions, groupId]);
 
 	const values = options.filter((o) => value === o.project);
+
 	const handleChange = (values: typeof options) =>
 		onChange((values.length > 0 && values[0].project) || "");
 
 	function createOption({ state }: SelectRendererProps): GroupProjectOption {
-		return { groupId: groupId, project: state.search, label: state.search };
+		const option = {
+			groupId: groupId,
+			project: state.search,
+			label: state.search,
+		};
+		setOptions(options.concat(option));
+		return option;
 	}
 
 	return (
