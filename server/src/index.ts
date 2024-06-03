@@ -7,6 +7,7 @@
 import dotenv from "dotenv";
 import path from "path";
 import express, { ErrorRequestHandler, RequestHandler } from "express";
+import { ZodError } from "zod";
 
 import login from "./auth/login";
 import oauth2 from "./auth/oauth2";
@@ -25,7 +26,7 @@ import { init as emailInit } from "./services/email";
 
 dotenv.config();
 
-const LISTEN_PORT =	process.env.PORT || 8080;
+const LISTEN_PORT = process.env.PORT || 8080;
 
 async function initDatabase() {
 	process.stdout.write("init database... ");
@@ -90,12 +91,21 @@ const requestLog: RequestHandler = function (req, res, next) {
 const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 	if (process.env.NODE_ENV === "development") console.warn(err);
 
-	let message: string;
+	let message: string = "";
+	let status = 500;
 	if (typeof err === "string") {
 		message = err;
-	} else if (err.hasOwnProperty("message")) {
-		// Error and its ilk caught here
-		message = err.message;
+	} else if (err instanceof Error) {
+		message = err.message + ":\n";
+		if (err instanceof ZodError) {
+			const m = err.issues.map((e) => `${e.path[0]}: ${e.message}`);
+			message += m.join("\n");
+		}
+		if (err.name === "TypeError" || err.hasOwnProperty("sqlState"))
+			status = 400;
+		else if (err.name === "AuthError") status = 401;
+		else if (err.name === "ForbiddenError") status = 403;
+		else if (err.name === "NotFoundError") status = 404;
 	} else {
 		try {
 			message = err.toString();
@@ -103,11 +113,6 @@ const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 			message = JSON.stringify(err);
 		}
 	}
-	let status = 500;
-	if (err.name === "TypeError" || err.sqlState) status = 400;
-	else if (err.name === "AuthError") status = 401;
-	else if (err.name === "ForbiddenError") status = 403;
-	else if (err.name === "NotFoundError") status = 404;
 	res.status(status).send(message);
 };
 
@@ -126,6 +131,10 @@ function initServer() {
 	app.all("*", (req, res, next) => {
 		res.setHeader("Cache-Control", "max-age=0");
 		next();
+	});
+
+	app.get("/health-check", async (req, res, next) => {
+		res.status(200).send("I'm healthy!");
 	});
 
 	app.use("/auth", login);
@@ -197,7 +206,7 @@ async function main() {
 		console.log(error);
 		process.exitCode = 1;
 	}
-	
+
 	initServer();
 }
 

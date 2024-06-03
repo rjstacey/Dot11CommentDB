@@ -3,7 +3,7 @@
  */
 import ExcelJS from "exceljs";
 import { isCorrectSpreadsheetHeader } from "../utils";
-import { Ballot } from "./ballots";
+import type { Ballot } from "../schemas/ballots";
 import { getComments } from "./comments";
 import type { CommentResolution } from "./comments";
 import type { User } from "./users";
@@ -215,7 +215,7 @@ const legacyColumns: Record<string, Col> = {
 		get: (v, c) => {
 			if (["I", "N"].includes(v)) c.EditStatus = v;
 			else c.EditStatus = null;
-		}
+		},
 	},
 	"Edit Notes": {
 		width: 25,
@@ -379,7 +379,7 @@ const modernColumns: Record<string, Col> = {
 		get: (v, c) => {
 			if (["I", "N"].includes(v)) c.EditStatus = v;
 			else c.EditStatus = null;
-		}
+		},
 	},
 	"Edited in Draft": {
 		width: 9,

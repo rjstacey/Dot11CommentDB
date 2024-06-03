@@ -2,7 +2,7 @@
  * Handle public review comment spreadsheet
  */
 import { parseSpreadsheet } from "../utils";
-import { Comment } from "./comments";
+import type { Comment } from "../schemas/comments";
 
 const publicReviewCommentsHeader = [
 	"Comment #",
@@ -49,7 +49,7 @@ function parsePublicReviewComment(c: string[]) {
 
 export async function parsePublicReviewComments(
 	startCommentId: number,
-	file: Express.Multer.File,
+	file: Express.Multer.File
 ) {
 	const rows = await parseSpreadsheet(file, publicReviewCommentsHeader, 3);
 

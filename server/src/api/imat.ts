@@ -47,7 +47,7 @@
  *		Get a list of attendees for a specified breakout.
  *		Returns an array of attendance objects (user info with timestamp).
  */
-import { Router } from "express";
+import { Request, Response, NextFunction, Router } from "express";
 import {
 	getImatCommittees,
 	getImatMeetings,
@@ -59,96 +59,133 @@ import {
 	getImatBreakoutAttendance,
 	getImatMeetingDailyAttendance,
 	getImatMeetingAttendanceSummary,
-	validateImatBreakouts,
-	validateImatBreakoutUpdates,
-	validateImatBreakoutIds,
 } from "../services/imat";
+import {
+	BreakoutCreate,
+	BreakoutUpdate,
+	breakoutCreatesSchema,
+	breakoutIdsSchema,
+	breakoutUpdatesSchema,
+} from "../schemas/imat";
+
+function getCommittees(req: Request, res: Response, next: NextFunction) {
+	getImatCommittees(req.user, req.group!)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function getMeetings(req: Request, res: Response, next: NextFunction) {
+	getImatMeetings(req.user)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function getBreakouts(req: Request, res: Response, next: NextFunction) {
+	const imatMeetingId = Number(req.params.imatMeetingId);
+	getImatBreakouts(req.user, imatMeetingId)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function addBreakouts(req: Request, res: Response, next: NextFunction) {
+	const imatMeetingId = Number(req.params.imatMeetingId);
+	let breakouts: BreakoutCreate[];
+	try {
+		breakouts = breakoutCreatesSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+	addImatBreakouts(req.user, imatMeetingId, breakouts)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function updateBreakouts(req: Request, res: Response, next: NextFunction) {
+	const imatMeetingId = Number(req.params.imatMeetingId);
+	let breakouts: BreakoutUpdate[];
+	try {
+		breakouts = breakoutUpdatesSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+	updateImatBreakouts(req.user, imatMeetingId, breakouts)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function removeBreakouts(req: Request, res: Response, next: NextFunction) {
+	const imatMeetingId = Number(req.params.imatMeetingId);
+	let ids: number[];
+	try {
+		ids = breakoutIdsSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+	deleteImatBreakouts(req.user, imatMeetingId, ids)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function getMeetingAttendance(req: Request, res: Response, next: NextFunction) {
+	const imatMeetingId = Number(req.params.imatMeetingId);
+	getImatMeetingAttendance(req.user, imatMeetingId)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function getMeetingDailyAttendance(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const imatMeetingId = Number(req.params.imatMeetingId);
+	getImatMeetingDailyAttendance(req.user, req.group!, imatMeetingId)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function getMeetingAttendanceSummary(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const imatMeetingId = Number(req.params.imatMeetingId);
+	getImatMeetingAttendanceSummary(req.user, req.group!, imatMeetingId)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function getBreakoutAttendance(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const imatMeetingId = Number(req.params.imatMeetingId);
+	const imatBreakoutId = Number(req.params.imatBreakoutId);
+	getImatBreakoutAttendance(req.user, imatMeetingId, imatBreakoutId)
+		.then((data) => res.json(data))
+		.catch(next);
+}
 
 const router = Router();
-
 router
-	.get("/committees", (req, res, next) => {
-		getImatCommittees(req.user, req.group!)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
-	.get("/meetings", (req, res, next) => {
-		getImatMeetings(req.user)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
+	.get("/committees", getCommittees)
+	.get("/meetings", getMeetings)
 	.route("/breakouts/:imatMeetingId(\\d+)")
-		.get((req, res, next) => {
-			const imatMeetingId = Number(req.params.imatMeetingId);
-			getImatBreakouts(req.user, imatMeetingId)
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.post((req, res, next) => {
-			const imatMeetingId = Number(req.params.imatMeetingId);
-			const breakouts = req.body;
-			try {
-				validateImatBreakouts(breakouts);
-			} catch (error) {
-				return next(error);
-			}
-			addImatBreakouts(req.user, imatMeetingId, breakouts)
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.put(async (req, res, next) => {
-			const imatMeetingId = Number(req.params.imatMeetingId);
-			const breakouts = req.body;
-			try {
-				validateImatBreakoutUpdates(breakouts);
-			} catch (error) {
-				return next(error);
-			}
-			updateImatBreakouts(req.user, imatMeetingId, breakouts)
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.delete(async (req, res, next) => {
-			const imatMeetingId = Number(req.params.imatMeetingId);
-			const ids = req.body;
-			try {
-				validateImatBreakoutIds(ids);
-			} catch (error) {
-				return next(error);
-			}
-			deleteImatBreakouts(req.user, imatMeetingId, ids)
-				.then((data) => res.json(data))
-				.catch(next);
-		});
-
+	.get(getBreakouts)
+	.post(addBreakouts)
+	.put(updateBreakouts)
+	.delete(removeBreakouts);
 router
-	.get("/attendance/:imatMeetingId(\\d+)$", (req, res, next) => {
-		const imatMeetingId = Number(req.params.imatMeetingId);
-		getImatMeetingAttendance(req.user, imatMeetingId)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
+	.get("/attendance/:imatMeetingId(\\d+)", getMeetingAttendance)
 	.get(
 		"/attendance/:imatMeetingId(\\d+)/:imatBreakoutId(\\d+)",
-		async (req, res, next) => {
-			const imatMeetingId = Number(req.params.imatMeetingId);
-			const imatBreakoutId = Number(req.params.imatBreakoutId);
-			getImatBreakoutAttendance(req.user, imatMeetingId, imatBreakoutId)
-				.then((data) => res.json(data))
-				.catch(next);
-		}
+		getBreakoutAttendance
 	)
-	.get("/attendance/:imatMeetingId(\\d+)/daily", async (req, res, next) => {
-		const imatMeetingId = Number(req.params.imatMeetingId);
-		getImatMeetingDailyAttendance(req.user, req.group!, imatMeetingId)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
-	.get("/attendance/:imatMeetingId(\\d+)/summary", async (req, res, next) => {
-		const imatMeetingId = Number(req.params.imatMeetingId);
-		getImatMeetingAttendanceSummary(req.user, req.group!, imatMeetingId)
-			.then((data) => res.json(data))
-			.catch(next);
-	});
+	.get("/attendance/:imatMeetingId(\\d+)/daily", getMeetingDailyAttendance)
+	.get(
+		"/attendance/:imatMeetingId(\\d+)/summary",
+		getMeetingAttendanceSummary
+	);
 
 export default router;

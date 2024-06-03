@@ -6,8 +6,10 @@
 import { NextFunction, Request, Response, Router } from "express";
 
 import { User } from "../services/users";
-import { getGroups,	Group } from "../services/groups";
-import { getBallot, Ballot } from "../services/ballots";
+import { getGroups } from "../services/groups";
+import type { Group } from "../schemas/groups";
+import { getBallot } from "../services/ballots";
+import { Ballot } from "../schemas/ballots";
 import { authorize } from "../auth/jwt";
 import { NotFoundError } from "../utils";
 
@@ -45,11 +47,13 @@ const router = Router();
 router.use("/timezones", timezones);
 
 /* A get on root tests connectivity and provides server info */
-router.get("/", (req, res, next) => res.json({
-	name: pkg.name,
-	version: pkg.version,
-	description: pkg.description
-}));
+router.get("/", (req, res, next) =>
+	res.json({
+		name: pkg.name,
+		version: pkg.version,
+		description: pkg.description,
+	})
+);
 
 /*
  * The remainder of the API requires an authorized user
@@ -73,7 +77,7 @@ declare global {
 
 async function parseGroupName(req: Request, res: Response, next: NextFunction) {
 	const { groupName } = req.params;
-	req.groups = await getGroups(req.user, {name: groupName});
+	req.groups = await getGroups(req.user, { name: groupName });
 	if (req.groups.length < 1)
 		return next(new NotFoundError(`Group ${groupName} does not exist`));
 	req.group = req.groups[0];
@@ -118,11 +122,17 @@ async function parseBallot_id(req: Request, res: Response, next: NextFunction) {
 	if (!ballot)
 		return next(new NotFoundError(`Ballot ${ballot_id} does not exist`));
 	if (!ballot.groupId)
-		return next(new NotFoundError(`Ballot ${ballot_id} not associated with a group`));
+		return next(
+			new NotFoundError(`Ballot ${ballot_id} not associated with a group`)
+		);
 	req.ballot = ballot;
-	req.groups = await getGroups(req.user, {id: ballot.groupId});
+	req.groups = await getGroups(req.user, { id: ballot.groupId });
 	if (req.groups.length < 1)
-		return next(new NotFoundError(`Group associated with ballot ${ballot_id} does not exist`));
+		return next(
+			new NotFoundError(
+				`Group associated with ballot ${ballot_id} does not exist`
+			)
+		);
 	req.group = req.groups[0];
 	req.permissions = req.group.permissions;
 	next();

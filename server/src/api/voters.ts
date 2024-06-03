@@ -1,11 +1,18 @@
 /*
  * Voters API
  */
-import { Router } from "express";
+import { Request, Response, NextFunction, Router } from "express";
 import Multer from "multer";
 import { ForbiddenError, NotFoundError, isPlainObject } from "../utils";
 import { AccessLevel } from "../auth/access";
 import { selectWorkingGroup } from "../services/groups";
+import {
+	VoterCreate,
+	VoterUpdate,
+	voterCreatesSchema,
+	voterUpdatesSchema,
+	voterIdsSchema,
+} from "../schemas/voters";
 import {
 	getVoters,
 	addVoters,
@@ -16,87 +23,134 @@ import {
 	exportVoters,
 } from "../services/voters";
 
+function validatePermissions(req: Request, res: Response, next: NextFunction) {
+	const access = req.permissions?.voters || AccessLevel.none;
+	if (req.method === "GET" && access >= AccessLevel.ro) return next();
+	if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
+	if (access >= AccessLevel.admin) return next();
+
+	next(new ForbiddenError("Insufficient karma"));
+}
+
+function get(req: Request, res: Response, next: NextFunction) {
+	const ballot_id = req.ballot!.id;
+	getVoters({ ballot_id })
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function addMany(req: Request, res: Response, next: NextFunction) {
+	const workingGroup = selectWorkingGroup(req.groups!);
+	if (!workingGroup)
+		return next(
+			new NotFoundError(
+				`Can't find working group for ${req.groups![0].id}`
+			)
+		);
+
+	const ballot = req.ballot!;
+	let voters: VoterCreate[];
+	try {
+		voters = voterCreatesSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+	addVoters(workingGroup.id, ballot.id, voters)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function updateMany(req: Request, res: Response, next: NextFunction) {
+	const workingGroup = selectWorkingGroup(req.groups!);
+	if (!workingGroup)
+		return next(
+			new NotFoundError(
+				`Can't find working group for ${req.groups![0].id}`
+			)
+		);
+	let updates: VoterUpdate[];
+	try {
+		updates = voterUpdatesSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+	updateVoters(workingGroup.id, updates)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function removeMany(req: Request, res: Response, next: NextFunction) {
+	let ids: string[];
+	try {
+		ids = voterIdsSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+	deleteVoters(ids)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function getExport(req: Request, res: Response, next: NextFunction) {
+	const workingGroup = selectWorkingGroup(req.groups!);
+	if (!workingGroup)
+		return next(
+			new NotFoundError(
+				`Can't find working group for ${req.groups![0].id}`
+			)
+		);
+
+	const ballot = req.ballot!;
+	exportVoters(workingGroup.id, ballot.id, res).catch(next);
+}
+
+function postUpload(req: Request, res: Response, next: NextFunction) {
+	const workingGroup = selectWorkingGroup(req.groups!);
+	if (!workingGroup)
+		return next(
+			new NotFoundError(
+				`Can't find working group for ${req.groups![0].id}`
+			)
+		);
+
+	const ballot = req.ballot!;
+	if (!req.file) return next(new TypeError("Missing file"));
+	uploadVoters(workingGroup.id, ballot.id, req.file)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function postMembersnapshot(req: Request, res: Response, next: NextFunction) {
+	const user = req.user;
+	const workingGroup = selectWorkingGroup(req.groups!);
+	if (!workingGroup)
+		return next(
+			new NotFoundError(
+				`Can't find working group for ${req.groups![0].id}`
+			)
+		);
+
+	const ballot = req.ballot!;
+	if (!isPlainObject(req.body) || !req.body.hasOwnProperty("date"))
+		return next(
+			new TypeError(
+				"Bad or missing body; expected object with shape {date: string}"
+			)
+		);
+	const { date } = req.body;
+	votersFromMembersSnapshot(user, workingGroup.id, ballot.id, date)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
 const upload = Multer();
 const router = Router();
 
+router.all("*", validatePermissions);
+router.route("/").get(get).patch(updateMany).post(addMany).delete(removeMany);
 router
-	.all("*", (req, res, next) => {
-		const access = req.permissions?.voters || AccessLevel.none;
-		if (req.method === "GET" && access >= AccessLevel.ro) return next();
-		if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
-		if (access >= AccessLevel.admin) return next();
-
-		next(new ForbiddenError("Insufficient karma"));
-	})
-	.route("/")
-		.get(async (req, res, next) => {
-			const ballot_id = req.ballot!.id;
-			getVoters({ ballot_id })
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.patch(async (req, res, next) => {
-			const workingGroup = selectWorkingGroup(req.groups!);
-			if (!workingGroup)
-				return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
-
-			updateVoters(workingGroup.id, req.body)
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.post(async (req, res, next) => {
-			const workingGroup = selectWorkingGroup(req.groups!);
-			if (!workingGroup)
-				return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
-
-			const ballot = req.ballot!;
-			addVoters(workingGroup.id, ballot.id, req.body)
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.delete((req, res, next) => {
-			deleteVoters(req.body)
-				.then((data) => res.json(data))
-				.catch(next);
-		});
-
-router
-	.get("/export", async (req, res, next) => {
-		const workingGroup = selectWorkingGroup(req.groups!);
-		if (!workingGroup)
-			return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
-
-		const ballot = req.ballot!;
-		exportVoters(workingGroup.id, ballot.id, res).catch(next);
-	})
-	.post("/upload", upload.single("File"), async (req, res, next) => {
-		const workingGroup = selectWorkingGroup(req.groups!);
-		if (!workingGroup)
-			return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
-
-		const ballot = req.ballot!;
-		if (!req.file) return next(new TypeError("Missing file"));
-		uploadVoters(workingGroup.id, ballot.id, req.file)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
-	.post("/membersSnapshot", async (req, res, next) => {
-		const user = req.user;
-		const workingGroup = selectWorkingGroup(req.groups!);
-		if (!workingGroup)
-			return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
-
-		const ballot = req.ballot!;
-		if (!isPlainObject(req.body) || !req.body.hasOwnProperty("date"))
-			return next(
-				new TypeError(
-					"Bad or missing body; expected object with shape {date: string}"
-				)
-			);
-		const { date } = req.body;
-		votersFromMembersSnapshot(user, workingGroup.id, ballot.id, date)
-			.then((data) => res.json(data))
-			.catch(next);
-	});
+	.get("/export", getExport)
+	.post("/upload", upload.single("File"), postUpload)
+	.post("/membersSnapshot", postMembersnapshot);
 
 export default router;

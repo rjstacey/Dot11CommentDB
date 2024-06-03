@@ -21,81 +21,36 @@ import {
 import { NotFoundError, csvStringify, isPlainObject } from "../utils";
 import { AccessLevel } from "../auth/access";
 
-type UserType = {
-	SAPIN: number;				// SA PIN (unique identifier for IEEE SA account)
-	Name: string;				// Member name (formed from FirstName + MI + LastName)
-	FirstName: string;
-	MI: string;
-	LastName: string;
-	Email: string;				// Member account email (alternate unique identifier for IEEE SA account)
-	Employer: string;			// Member declared employer
-	ContactInfo: ContactInfo;
-	ContactEmails: ContactEmail[];
-}
+import {
+	UserType,
+	GroupMember,
+	Member,
+	MemberQuery,
+	MemberCreate,
+	StatusChangeEntry,
+	ContactEmail,
+} from "../schemas/members";
 
 type UserTypeDB = Omit<UserType, "ContactInfo" | "ContactEmails"> & {
-	ContactInfo: string;		// JSON
-	ContactEmails: string;		// JSON
-}
-
-type GroupMember = {
-	SAPIN: number;
-	groupId: string;
-	Affiliation: string;
-	Status: string;				// Group member status
-	ObsoleteSAPINs: number[];	// Array of SAPINs previously used by member
-	ReplacedBySAPIN: number;	// SAPIN that replaces this one
-	StatusChangeDate: string | null; // Date of last status change (ISO date string)
-	StatusChangeHistory: StatusChangeEntry[]; // History of status change
-	StatusChangeOverride: boolean; // Manually maintain status; don't update based on attendance/participation
-	DateAdded: string | null;	// Date member was added
-	MemberID: number;			// Member identifier from Adrian's Access database
-	Notes: string;
-	InRoster: boolean;			// Present in MyProject roster
-}
+	ContactInfo: string; // JSON
+	ContactEmails: string; // JSON
+};
 
 type GroupMemberDB = Omit<GroupMember, "StatusChangeHistory"> & {
-	StatusChangeHistory: string;	// JSON
+	StatusChangeHistory: string; // JSON
 };
 
-export type Member = UserType & GroupMember;
+export type MemberBasic = Pick<
+	Member,
+	"SAPIN" | "groupId" | "Name" | "Affiliation" | "Status"
+>;
 
-export type MemberBasic = Pick<Member, "SAPIN" | "groupId" | "Name" | "Affiliation" | "Status">;
-
-export type StatusChangeEntry = {
-	id: number;
-	Date: string | null;
-	OldStatus: string;
-	NewStatus: string;
-	Reason: string;
-};
-
-export type ContactEmail = {
-	id: number;
-	Email: string;
-	DateAdded: string | null;
-	Primary: boolean;
-	Broken: boolean;
-};
-
-export type ContactInfo = {
-	StreetLine1: string;
-	StreetLine2: string;
-	City: string;
-	State: string;
-	Zip: string;
-	Country: string;
-	Phone: string;
-	Fax: string;
-};
-
-
-type MembersQueryConstraints = {
+/*type MembersQueryConstraints = {
 	SAPIN?: number | number[];
 	Status?: string | string[];
 	groupId?: string | string[];
 	InRoster?: 0 | 1;
-};
+};*/
 
 // prettier-ignore
 const createViewMembersSQL =
@@ -135,7 +90,7 @@ export async function init() {
 	return db.query(createViewMembersSQL);
 }
 
-function selectMembersSql(constraints: MembersQueryConstraints) {
+function selectMembersSql(constraints: MemberQuery) {
 	const { groupId, ...rest } = constraints;
 	const wheres: string[] = [];
 
@@ -230,13 +185,17 @@ function selectMembersSql(constraints: MembersQueryConstraints) {
  */
 export function getMembers(
 	access: number,
-	constraints: MembersQueryConstraints
+	constraints: MemberQuery
 ): Promise<Member[]> {
 	const sql = selectMembersSql(constraints);
 	return db.query<(RowDataPacket & Member)[]>(sql);
 }
 
-export async function getMember(access: number, groupId: string, SAPIN: number) {
+export async function getMember(
+	access: number,
+	groupId: string,
+	SAPIN: number
+) {
 	const members: (Member | undefined)[] = await getMembers(access, {
 		groupId,
 		SAPIN,
@@ -248,17 +207,17 @@ export async function getMember(access: number, groupId: string, SAPIN: number) 
  * A details list of users (IEEE account holders)
  */
 export function getUsers() {
-	let sql = 
+	let sql =
 		"SELECT " +
-			"SAPIN, " +
-			"Email, " +
-			"Name, " +
-			"FirstName, MI, LastName, " +
-			"Employer, " +
-			"ContactInfo, " +
-			"ContactEmails " +
+		"SAPIN, " +
+		"Email, " +
+		"Name, " +
+		"FirstName, MI, LastName, " +
+		"Employer, " +
+		"ContactInfo, " +
+		"ContactEmails " +
 		"FROM users";
-	console.log(sql)
+	console.log(sql);
 	return db.query(sql) as Promise<UserType[]>;
 }
 
@@ -290,8 +249,22 @@ export function getUserMembers(access: number, groupId: string) {
  * Get a snapshot of the members and their status at a specific date
  * by walking through the status change history.
  */
-export async function getMembersSnapshot(access: number, groupId: string, date: string) {
-	let members = await getMembers(access, { groupId, Status: ["Non-Voter", "Aspirant", "Potential Voter", "Voter", "ExOfficio", "Obsolete"] });
+export async function getMembersSnapshot(
+	access: number,
+	groupId: string,
+	date: string
+) {
+	let members = await getMembers(access, {
+		groupId,
+		Status: [
+			"Non-Voter",
+			"Aspirant",
+			"Potential Voter",
+			"Voter",
+			"ExOfficio",
+			"Obsolete",
+		],
+	});
 	let fromDate = new Date(date);
 	//console.log(date.toISOString().substr(0,10));
 	members = members
@@ -411,7 +384,7 @@ function memberSetsSql(entry: Partial<GroupMemberDB>) {
 	return sets.join(", ");
 }
 
-async function addMember(groupId: string, member: Member) {
+async function addMember(groupId: string, member: MemberCreate) {
 	let sql: string;
 
 	const SAPIN = member.SAPIN;
@@ -433,7 +406,7 @@ async function addMember(groupId: string, member: Member) {
 	return getMember(AccessLevel.rw, groupId, SAPIN);
 }
 
-export async function addMembers(groupId: string, members: Member[]) {
+export async function addMembers(groupId: string, members: MemberCreate[]) {
 	return await Promise.all(members.map((m) => addMember(groupId, m)));
 }
 
@@ -689,10 +662,10 @@ export async function updateMember(
 	}
 	const entry1 = userEntry(changesRest);
 	if (Object.keys(entry1).length > 0) {
-		const sql = db.format(
-			"UPDATE users SET ? WHERE SAPIN=?",
-			[entry1, sapin]
-		);
+		const sql = db.format("UPDATE users SET ? WHERE SAPIN=?", [
+			entry1,
+			sapin,
+		]);
 		p.push(db.query(sql));
 	}
 
@@ -774,7 +747,7 @@ async function uploadDatabaseMembers(groupId: string, buffer: Buffer) {
 			groupId,
 			SAPIN: r.SAPIN,
 			Affiliation: r.Affiliation,
-			InRoster: true
+			InRoster: true,
 		}));
 
 		insertKeys = Object.keys(groupMembers[0]);
@@ -998,20 +971,23 @@ export async function importMyProjectRoster(
 		let updateKeys = insertKeys.filter((k) => k !== "SAPIN");
 		let sql =
 			db.format("INSERT INTO users (??) VALUES ", [insertKeys]) +
-			insertValues.map(s => "(" + s + ")").join(", ") +
+			insertValues.map((s) => "(" + s + ")").join(", ") +
 			" AS new ON DUPLICATE KEY UPDATE " +
 			updateKeys.map((k) => db.format("??=new.??", [k, k])).join(", ");
 		let result = await db.query<ResultSetHeader>(sql);
 
-		sql = db.format("UPDATE groupMembers SET InRoster=0 WHERE groupId=UUID_TO_BIN(?)", [groupId]);
+		sql = db.format(
+			"UPDATE groupMembers SET InRoster=0 WHERE groupId=UUID_TO_BIN(?)",
+			[groupId]
+		);
 		await db.query(sql);
 
 		let members = roster.map((r) => ({
 			...memberEntry(r),
 			groupId,
 			SAPIN: r.SAPIN,
-			Status: "Non-Voter",	// Always import as Non-Voter
-			InRoster: true
+			Status: "Non-Voter", // Always import as Non-Voter
+			InRoster: true,
 		}));
 
 		insertKeys = Object.keys(members[0]);
@@ -1026,10 +1002,10 @@ export async function importMyProjectRoster(
 		);
 		sql =
 			db.format("INSERT INTO groupMembers (??) VALUES ", [insertKeys]) +
-			insertValues.map(s => "(" + s + ")").join(", ") +
+			insertValues.map((s) => "(" + s + ")").join(", ") +
 			" AS new ON DUPLICATE KEY UPDATE `Affiliation`=new.`Affiliation`, `InRoster`=new.`InRoster`";
 		result = await db.query<ResultSetHeader>(sql);
-		console.log(result)
+		console.log(result);
 	}
 
 	return getMembers(AccessLevel.admin, { groupId });
@@ -1042,9 +1018,15 @@ export async function exportMyProjectRoster(
 ) {
 	let members = await getMembers(AccessLevel.admin, {
 		groupId,
-		Status: ["Voter", "Aspirant", "Potential Voter", "Non-Voter", "ExOfficio"],
+		Status: [
+			"Voter",
+			"Aspirant",
+			"Potential Voter",
+			"Non-Voter",
+			"ExOfficio",
+		],
 	});
-	members = members.filter(m => m.Status !== "Non-Voter" || m.InRoster);
+	members = members.filter((m) => m.Status !== "Non-Voter" || m.InRoster);
 	return genMyProjectRosterSpreadsheet(user, members, res);
 }
 
@@ -1054,12 +1036,12 @@ export async function exportMembersPublic(groupId: string, res: Response) {
 		Status: ["Voter", "Aspirant", "Potential Voter", "ExOfficio"],
 	});
 
-	let ssData = members.map(m => ({
+	let ssData = members.map((m) => ({
 		"Family Name": m.LastName,
 		"Given Name": m.FirstName,
-		"MI": m.MI,
-		"Affiliation": m.Affiliation,
-		"Status": m.Status
+		MI: m.MI,
+		Affiliation: m.Affiliation,
+		Status: m.Status,
 	}));
 
 	const csv = await csvStringify(ssData, { header: true });
@@ -1072,14 +1054,14 @@ export async function exportMembersPrivate(groupId: string, res: Response) {
 		groupId,
 		Status: ["Voter", "Aspirant", "Potential Voter", "ExOfficio"],
 	});
-	
-	let ssData = members.map(m => ({
+
+	let ssData = members.map((m) => ({
 		SAPIN: m.SAPIN,
 		"Family Name": m.LastName,
 		"Given Name": m.FirstName,
 		MI: m.MI,
 		Affiliation: m.Affiliation,
-		Status: m.Status
+		Status: m.Status,
 	}));
 
 	const csv = await csvStringify(ssData, { header: true });
@@ -1087,26 +1069,29 @@ export async function exportMembersPrivate(groupId: string, res: Response) {
 	res.status(200).send(csv);
 }
 
-export async function exportVotingMembers(groupId: string, forPlenarySession: boolean, res: Response) {
-	const Status = forPlenarySession?
-		["Voter", "ExOfficio", "Potential Voter"]:
-		["Voter", "ExOfficio"];
+export async function exportVotingMembers(
+	groupId: string,
+	forPlenarySession: boolean,
+	res: Response
+) {
+	const Status = forPlenarySession
+		? ["Voter", "ExOfficio", "Potential Voter"]
+		: ["Voter", "ExOfficio"];
 	let members = await getMembers(AccessLevel.admin, {
 		groupId,
 		Status,
 	});
-	
-	let ssData = members.map(m => ({
+
+	let ssData = members.map((m) => ({
 		SAPIN: m.SAPIN,
 		"Family Name": m.LastName,
 		"Given Name": m.FirstName,
 		MI: m.MI,
 		Email: m.Email,
-		Status: m.Status
+		Status: m.Status,
 	}));
 
 	const csv = await csvStringify(ssData, { header: true });
 	res.attachment("voting-members.csv");
 	res.status(200).send(csv);
 }
-

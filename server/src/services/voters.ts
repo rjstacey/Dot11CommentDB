@@ -1,11 +1,5 @@
-import { v4 as uuid, validate as validateUUID } from "uuid";
-import {
-	csvStringify,
-	isPlainObject,
-	parseSpreadsheet,
-	BasicFile,
-	NotFoundError,
-} from "../utils";
+import { v4 as uuid } from "uuid";
+import { csvStringify, parseSpreadsheet, BasicFile } from "../utils";
 
 import type { Response } from "express";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
@@ -15,23 +9,7 @@ import db from "../utils/database";
 import { getMembersSnapshot } from "./members";
 import { AccessLevel } from "../auth/access";
 import { User } from "./users";
-
-export type Voter = {
-	id: string;
-	SAPIN: number;
-	CurrentSAPIN: number;
-	Name: string;
-	Email: string;
-	Affiliation: string;
-	Status: string;
-	Excused: boolean;
-	ballot_id: number;
-};
-
-type VoterUpdate = {
-	id: Voter["id"];
-	changes: Partial<Voter>;
-};
+import { Voter, VoterQuery, VoterCreate, VoterUpdate } from "../schemas/voters";
 
 type VoterFromSpreadsheet = {
 	SAPIN: number;
@@ -78,7 +56,6 @@ export function init() {
 	return db.query(createViewVotersCurrent);
 }
 
-
 async function parseVoters(file: BasicFile) {
 	const rows = await parseSpreadsheet(file, membersHeader);
 
@@ -95,13 +72,7 @@ async function parseVoters(file: BasicFile) {
 	});
 }
 
-type VotersQueryConstraints = {
-	id?: string | string[];
-	ballot_id?: number | number[];
-	sapin?: number | number[];
-};
-
-export function getVoters(constraints?: VotersQueryConstraints): Promise<Voter[]> {
+export function getVoters(constraints?: VoterQuery): Promise<Voter[]> {
 	// prettier-ignore
 	let sql =
 		"SELECT " +
@@ -121,9 +92,7 @@ export function getVoters(constraints?: VotersQueryConstraints): Promise<Voter[]
 		if (constraints.sapin)
 			wheres.push(db.format("SAPIN IN (?)", [constraints.sapin]));
 		if (constraints.id)
-			wheres.push(
-				db.format("BIN_TO_UUID(id) IN (?)", [constraints.id])
-			);
+			wheres.push(db.format("BIN_TO_UUID(id) IN (?)", [constraints.id]));
 		if (wheres.length) sql += " WHERE " + wheres.join(" AND ");
 	}
 
@@ -196,24 +165,16 @@ function votersEntry(v: Partial<Voter>) {
 	return entry;
 }
 
-function validVoters(voters: any): voters is Voter[] {
-	return Array.isArray(voters) && voters.every(isPlainObject);
-}
-
-export async function addVoters(workingGroupId: string, ballot_id: number, votersIn: any) {
-	if (!validVoters(votersIn))
-		throw new TypeError(
-			"Bad or missing body: expected an array of voter objects"
-		);
-
-	let voters: Voter[] = votersIn.map((voter) => {
-		if (!voter.SAPIN) throw new TypeError("Must provide SAPIN");
-		return {
-			...voter,
-			ballot_id,
-			id: validateUUID(voter.id) ? voter.id : uuid(),
-		};
-	});
+export async function addVoters(
+	workingGroupId: string,
+	ballot_id: number,
+	votersIn: VoterCreate[]
+) {
+	let voters = votersIn.map((voter) => ({
+		...voter,
+		ballot_id,
+		id: voter.id || uuid(),
+	}));
 	const results = voters.map((voter) => {
 		let { id, ...voterDB } = voter;
 		return db.query("INSERT INTO wgVoters SET ?, id=UUID_TO_BIN(?);", [
@@ -227,24 +188,10 @@ export async function addVoters(workingGroupId: string, ballot_id: number, voter
 	return { voters, ballots };
 }
 
-function validUpdate(update: any): update is VoterUpdate {
-	return (
-		isPlainObject(update) &&
-		typeof update.id === "string" &&
-		update.id &&
-		isPlainObject(update.changes)
-	);
-}
-
-function validUpdates(updates: any): updates is VoterUpdate[] {
-	return Array.isArray(updates) && updates.every(validUpdate);
-}
-
-export async function updateVoters(workingGroupId: string, updates: any) {
-	if (!validUpdates(updates))
-		throw new TypeError(
-			"Bad or missing updates array; expect array with shape {id: number, changes: object}"
-		);
+export async function updateVoters(
+	workingGroupId: string,
+	updates: VoterUpdate[]
+) {
 	let results = updates.map(({ id, changes }) =>
 		db.query<ResultSetHeader>(
 			"UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)",
@@ -256,14 +203,7 @@ export async function updateVoters(workingGroupId: string, updates: any) {
 	return { voters };
 }
 
-function validVoterIds(ids: any): ids is string[] {
-	return Array.isArray(ids) && ids.every((id) => typeof id === "string");
-}
-
-export async function deleteVoters(ids: any) {
-	if (!validVoterIds(ids))
-		throw new TypeError("Bad voter identifier array; expected string[]");
-
+export async function deleteVoters(ids: string[]) {
 	const sql = db.format("DELETE FROM wgVoters WHERE BIN_TO_UUID(id) IN (?)", [
 		ids,
 	]);
@@ -271,7 +211,11 @@ export async function deleteVoters(ids: any) {
 	return result.affectedRows;
 }
 
-async function insertVoters(workingGroupId: string, ballot_id: number, votersIn: Partial<Voter>[]) {
+async function insertVoters(
+	workingGroupId: string,
+	ballot_id: number,
+	votersIn: Partial<Voter>[]
+) {
 	let sql = db.format("DELETE FROM wgVoters WHERE ballot_id=?;", [ballot_id]);
 	if (votersIn.length > 0) {
 		sql +=
@@ -309,14 +253,22 @@ export async function votersFromMembersSnapshot(
 	ballot_id: number,
 	date: string
 ) {
-	const members = await getMembersSnapshot(AccessLevel.admin, workingGroupId, date);
+	const members = await getMembersSnapshot(
+		AccessLevel.admin,
+		workingGroupId,
+		date
+	);
 	const voters = members.filter(
 		(m) => m.Status === "Voter" || m.Status === "ExOfficio"
 	);
 	return insertVoters(workingGroupId, ballot_id, voters);
 }
 
-export async function exportVoters(workingGroupId: string, ballot_id: number, res: Response) {
+export async function exportVoters(
+	workingGroupId: string,
+	ballot_id: number,
+	res: Response
+) {
 	const voters = await getVoters({ ballot_id });
 	const arr = voters.map((v) => [v.SAPIN, v.Name, v.Email]);
 	arr.unshift(["SA PIN", "Name", "Email"]);

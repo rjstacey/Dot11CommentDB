@@ -7,8 +7,11 @@ import type { ResultSetHeader } from "mysql2";
 
 import type { User } from "./users";
 
-import { getSession, Session } from "./sessions";
-import { getGroupAndSubgroupIds, getWorkingGroup, Group } from "./groups";
+import { getSession } from "./sessions";
+import type { Session } from "../schemas/sessions";
+
+import { getGroupAndSubgroupIds, getWorkingGroup } from "./groups";
+import type { Group } from "../schemas/groups";
 
 import {
 	getWebexAccount,
@@ -17,17 +20,19 @@ import {
 	addWebexMeeting,
 	updateWebexMeeting,
 	deleteWebexMeeting,
+} from "./webex";
+import {
 	WebexMeeting,
 	WebexMeetingCreate,
 	WebexMeetingUpdate,
-} from "./webex";
+} from "../schemas/webex";
 
 import {
 	deleteImatBreakouts,
 	addImatBreakoutFromMeeting,
 	updateImatBreakoutFromMeeting,
-	Breakout,
 } from "./imat";
+import type { Breakout } from "../schemas/imat";
 
 import {
 	addCalendarEvent,
@@ -36,38 +41,12 @@ import {
 	CalendarEvent,
 } from "./calendar";
 
-export interface Meeting {
-	id: number;
-	organizationId: string;
-	start: string;
-	end: string;
-	timezone: string;
-	summary: string;
-	location: string;
-	isCancelled: boolean;
-	hasMotions: boolean;
-	webexAccountId: number | null;
-	webexMeetingId: string | null;
-	webexMeeting: Partial<WebexMeeting>;
-	calendarAccountId: number | null;
-	calendarEventId: string | null;
-	imatMeetingId: number | null;
-	imatBreakoutId: number | null;
-	sessionId: number;
-	roomId: number;
-	roomName: string;
-}
-
-interface MeetingAddUpdate
-	extends Omit<Meeting, "webexMeetingId" | "imatBreakoutId"> {
-	webexMeetingId: string | null | "$add";
-	imatBreakoutId: number | null | "$add";
-}
-
-interface MeetingUpdate {
-	id: number;
-	changes: Partial<MeetingAddUpdate>;
-}
+import type {
+	Meeting,
+	MeetingCreate,
+	MeetingUpdate,
+	MeetingChanges,
+} from "../schemas/meetings";
 
 interface SelectMeetingsConstraints {
 	id?: number | number[];
@@ -120,9 +99,7 @@ function selectMeetingsSql(constraints: SelectMeetingsConstraints) {
 	} else if (Object.keys(rest).length === 0 && !fromDate) {
 		/* Without other constraints, default fromDate is now */
 		const date = DateTime.now().toUTC();
-		wheres.push(
-			db.format("end > ?", date.toFormat("yyyy-MM-dd HH:mm:ss"))
-		);
+		wheres.push(db.format("end > ?", date.toFormat("yyyy-MM-dd HH:mm:ss")));
 	}
 
 	if (fromDate) {
@@ -173,7 +150,9 @@ function selectMeetingsSql(constraints: SelectMeetingsConstraints) {
  */
 async function selectMeetings(constraints: SelectMeetingsConstraints) {
 	if (constraints.groupId && !constraints.organizationId) {
-		const organizationId = await getGroupAndSubgroupIds(constraints.groupId);
+		const organizationId = await getGroupAndSubgroupIds(
+			constraints.groupId
+		);
 		constraints = { ...constraints, organizationId };
 		delete constraints.groupId;
 	}
@@ -532,7 +511,7 @@ function meetingToCalendarEvent(
  * @param meetingToAdd The meeting object to be added
  * @returns An object that includes the meeting as added, the Webex meeting event (if created) and IMAT breakout (if created).
  */
-async function addMeeting(user: User, meetingToAdd: MeetingAddUpdate) {
+async function addMeeting(user: User, meetingToAdd: MeetingCreate) {
 	let webexMeeting: WebexMeeting | undefined,
 		breakout: Breakout | undefined,
 		session: Promise<Session | undefined> | Session | undefined,
@@ -624,19 +603,6 @@ async function addMeeting(user: User, meetingToAdd: MeetingAddUpdate) {
 	return { meeting: meetingOut, webexMeeting, breakout };
 }
 
-function validMeeting(meeting: any): meeting is MeetingAddUpdate {
-	return isPlainObject(meeting);
-}
-
-export function validateMeetings(
-	meetings: any
-): asserts meetings is MeetingAddUpdate[] {
-	if (!Array.isArray(meetings) || !meetings.every(validMeeting))
-		throw new TypeError(
-			"Bad or missing meetings array; expected an array of meeting objects"
-		);
-}
-
 /**
  * Add meetings, including webex, calendar and imat entries.
  *
@@ -644,7 +610,7 @@ export function validateMeetings(
  * @param meetings An array of meeting objects to be added
  * @returns An object that contains an array of meeting objects as added, an array of webex meetings and an array of IMAT breakouts.
  */
-export async function addMeetings(user: User, meetingsIn: MeetingAddUpdate[]) {
+export async function addMeetings(user: User, meetingsIn: MeetingCreate[]) {
 	if (!user.ieeeClient) throw new AuthError("Not logged in");
 
 	const entries = await Promise.all(
@@ -676,7 +642,7 @@ export async function addMeetings(user: User, meetingsIn: MeetingAddUpdate[]) {
  */
 async function meetingMakeWebexUpdates(
 	meeting: Meeting,
-	changes: Partial<MeetingAddUpdate>
+	changes: MeetingChanges
 ) {
 	let webexMeeting: WebexMeeting | undefined;
 
@@ -807,7 +773,7 @@ async function meetingMakeWebexUpdates(
 async function meetingMakeImatBreakoutUpdates(
 	user: User,
 	meeting: Meeting,
-	changes: Partial<MeetingAddUpdate>,
+	changes: MeetingChanges,
 	session: Session | undefined,
 	webexMeeting: WebexMeeting | undefined
 ) {
@@ -979,7 +945,7 @@ async function meetingMakeCalendarUpdates(
 export async function updateMeeting(
 	user: User,
 	id: number,
-	changesIn: Partial<MeetingAddUpdate>
+	changesIn: MeetingChanges
 ) {
 	let changes: Partial<Meeting> = {
 		...changesIn,

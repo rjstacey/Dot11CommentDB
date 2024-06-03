@@ -2,8 +2,8 @@ import ExcelJS from "exceljs";
 import type { Response } from "express";
 import type { MemberAttendance } from "./attendances";
 import { User } from "./users";
-import { Group } from "./groups";
-import { Session } from "./sessions";
+import { Group } from "../schemas/groups";
+import { Session } from "../schemas/sessions";
 
 type Col = {
 	label: string;
@@ -42,7 +42,7 @@ export function genAttendanceSpreadsheet(
 	});
 
 	worksheet.addTable({
-		name: "attendance",     // Numbers in table name result in a corrupt spreadsheet warning
+		name: "attendance", // Numbers in table name result in a corrupt spreadsheet warning
 		ref: "A1",
 		headerRow: true,
 		totalsRow: false,
@@ -55,7 +55,9 @@ export function genAttendanceSpreadsheet(
 			filterButton: true,
 		})),
 		rows: attendances.map((a) =>
-			attendanceColumns.map((col) => typeof col.set === "function" ? col.set(a) : col.set || "")
+			attendanceColumns.map((col) =>
+				typeof col.set === "function" ? col.set(a) : col.set || ""
+			)
 		),
 	});
 

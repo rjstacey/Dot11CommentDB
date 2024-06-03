@@ -3,36 +3,16 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { DateTime } from "luxon";
 import { isPlainObject, NotFoundError } from "../utils";
 
-import { getResults, ResultsSummary } from "./results";
-import { CommentsSummary } from "./comments";
+import { getResults } from "./results";
 import { type User } from "./users";
-import { getWorkingGroup, type Group } from "./groups";
-
-export type Ballot = {
-	id: number;
-	groupId: string | null;
-	Type: number;
-	number: number;
-	workingGroupId: string;
-	BallotID: string;
-	Project: string;
-	IsRecirc: boolean;
-	IsComplete: boolean;
-	Start: string | null;
-	End: string | null;
-	Document: string;
-	Topic: string;
-	prev_id: number | null;
-	EpollNum: number | null;
-	Results: ResultsSummary | null;
-	Comments: CommentsSummary;
-	Voters: number;
-};
-
-type BallotUpdate = {
-	id: Ballot["id"];
-	changes: Partial<Ballot>;
-};
+import { getWorkingGroup } from "./groups";
+import { Group } from "../schemas/groups";
+import {
+	Ballot,
+	BallotQuery,
+	BallotCreate,
+	BallotUpdate,
+} from "../schemas/ballots";
 
 export const BallotType = {
 	CC: 0, // comment collection
@@ -49,7 +29,7 @@ export const BallotType = {
  * +-----------+------------+----+---------+--------------+
  * | series_id | initial_id | id | prev_id | other fields |
  * |        40 |         38 | 40 |      39 | ...          |
- * |        40 |         38 | 39 |      38 | 
+ * |        40 |         38 | 39 |      38 |
  * |        40 |         38 | 38 |    NULL |
  * |        39 |         38 | 39 |      38 |
  * |        39 |         38 | 38 |    NULL |
@@ -105,35 +85,33 @@ const getBallotsSQL = `
 		${getBallotFieldsSQL}
 	FROM ballots b`;
 
-interface BallotsQueryConstraints {
-	id?: number | number[];
-	workingGroupId?: string | string[];
-	groupId?: string | string[];
-	BallotID?: string | string[];
-	Type?: number | number[];
-};
-
 /**
  * Get all ballots.
  *
  * @param constraints Constraints on the query
  * @returns An array of ballot objects.
  */
-export async function getBallots(constraints?: BallotsQueryConstraints): Promise<Ballot[]> {
-
+export async function getBallots(constraints?: BallotQuery): Promise<Ballot[]> {
 	let sql = getBallotsSQL;
 
 	if (constraints) {
 		const wheres: string[] = [];
 		Object.entries(constraints).forEach(([key, value]) => {
 			wheres.push(
-				(key === 'groupId' || key === 'workingGroupId')?
-					db.format(Array.isArray(value)? 'BIN_TO_UUID(??) IN (?)': 'BIN_TO_UUID(??)=?', [key, value]):
-					db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
+				key === "groupId" || key === "workingGroupId"
+					? db.format(
+							Array.isArray(value)
+								? "BIN_TO_UUID(??) IN (?)"
+								: "BIN_TO_UUID(??)=?",
+							[key, value]
+					  )
+					: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
+							key,
+							value,
+					  ])
 			);
 		});
-		if (wheres.length > 0)
-			sql += ' WHERE ' + wheres.join(' AND ');
+		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 	}
 
 	sql += " ORDER BY b.Project, b.Start";
@@ -164,14 +142,16 @@ export async function getBallotWithNewResultsSummary(
 	if (!workingGroupId) {
 		const workingGroup = await getWorkingGroup(user, ballot.groupId!);
 		if (!workingGroup)
-			throw new NotFoundError(`Can't find working group for ballot ${ballot.BallotID}`);
+			throw new NotFoundError(
+				`Can't find working group for ballot ${ballot.BallotID}`
+			);
 		workingGroupId = workingGroup.id;
 	}
-	const {ballots} = await getResults(ballot);
+	const { ballots } = await getResults(ballot);
 	return ballots[ballots.length - 1];
 }
 
-/** 
+/**
  * Get ballot series
  * Walk back through the previous ballots until the initial ballot
  * @param id last ballot in series
@@ -198,7 +178,7 @@ type BallotDB = {
 	BallotID?: string;
 	Project?: string;
 	Type?: number;
-	number?: number,
+	number?: number;
 	IsRecirc?: boolean;
 	IsComplete?: boolean;
 	Document?: string;
@@ -276,17 +256,17 @@ function ballotSetSql(ballot: Partial<BallotDB>) {
  * @param ballot The ballot to be added
  * @returns The ballot as added
  */
-async function addBallot(user: User, workingGroup: Group, ballot: Ballot) {
+async function addBallot(
+	user: User,
+	workingGroup: Group,
+	ballot: BallotCreate
+) {
 	const entry = ballotEntry(ballot);
 	if (!entry.BallotID) {
-		if (entry.Type === BallotType.CC)
-			entry.BallotID = "CC";
-		else if (entry.Type === BallotType.WG)
-			entry.BallotID = "LB";
-		else if (entry.Type === BallotType.SA)
-			entry.BallotID = "SA";
-		else
-			entry.BallotID = "M";
+		if (entry.Type === BallotType.CC) entry.BallotID = "CC";
+		else if (entry.Type === BallotType.WG) entry.BallotID = "LB";
+		else if (entry.Type === BallotType.SA) entry.BallotID = "SA";
+		else entry.BallotID = "M";
 		entry.BallotID += entry.number || 0;
 	}
 
@@ -307,24 +287,12 @@ async function addBallot(user: User, workingGroup: Group, ballot: Ballot) {
 	} catch (err: any) {
 		throw err.code == "ER_DUP_ENTRY"
 			? new TypeError(
-					"An entry already exists with BallotID=" + ballot.BallotID
+					"An entry already exists with BallotID=" + entry.BallotID
 			  )
 			: err;
 	}
 
 	return getBallotWithNewResultsSummary(user, workingGroup.id, id);
-}
-
-function validBallot(ballot: any): ballot is Ballot {
-	return (
-		isPlainObject(ballot) &&
-		ballot.Project &&
-		typeof ballot.Project === "string"
-	);
-}
-
-export function validBallots(ballots: any): ballots is Ballot[] {
-	return Array.isArray(ballots) && ballots.every(validBallot);
 }
 
 /**
@@ -337,11 +305,8 @@ export function validBallots(ballots: any): ballots is Ballot[] {
 export async function addBallots(
 	user: User,
 	workingGroup: Group,
-	ballots: Ballot[]
+	ballots: BallotCreate[]
 ) {
-	if (!validBallots(ballots))
-		throw new TypeError("Bad or missing array of ballot objects");
-
 	return Promise.all(ballots.map((b) => addBallot(user, workingGroup, b)));
 }
 

@@ -7,7 +7,6 @@ import * as cheerio from "cheerio";
 import { AuthError, parseSpreadsheet, BasicFile } from "../utils";
 
 import type { User } from "./users";
-import { type Member } from "./members";
 
 // Convert date string to UTC
 function parseDateTime(dateStr: string) {
@@ -254,12 +253,7 @@ export async function parseEpollUserComments(
 	const rows = await parseSpreadsheet(file, epollUserCommentsHeader, 3);
 
 	return rows.map((row, index) =>
-		parseUserComment(
-			user,
-			startCommentId + index,
-			startIndex + index,
-			row
-		)
+		parseUserComment(user, startCommentId + index, startIndex + index, row)
 	);
 }
 

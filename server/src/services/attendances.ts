@@ -2,35 +2,27 @@ import db from "../utils/database";
 import { NotFoundError } from "../utils";
 import type { Response } from "express";
 
-import { getSessions, Session } from "./sessions";
-import { getGroupHierarchy, type Group } from "./groups";
+import { getSessions } from "./sessions";
+import type { Session } from "../schemas/sessions";
+import { getGroupHierarchy } from "./groups";
+import type { Group } from "../schemas/groups";
 import {
 	getImatMeetingAttendanceSummaryForSession,
 	getImatMeetingDailyAttendance,
 } from "./imat";
-import { isPlainObject } from "../utils";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { User } from "./users";
-import type { Member } from "./members";
+import type { Member } from "../schemas/members";
 import { getMembers, getMembersSnapshot } from "./members";
 import { AccessLevel } from "../auth/access";
 import { genAttendanceSpreadsheet } from "./attendancesSpreadsheet";
-
-type SessionAttendanceSummary = {
-	id: number;
-	session_id: number;		// Session identifier
-	AttendancePercentage: number;	// Percentage of meeting slots attended
-	DidAttend: boolean;		// Declare attendance criteria met
-	DidNotAttend: boolean;	// Declare attendance criteria not met
-	SAPIN: number;			// SA PIN under which attendance was logged
-	CurrentSAPIN: number;	// Member's current SA PIN
-	Notes: string;
-};
-
-type RecentSessionAttendances = {
-	SAPIN: number;
-	sessionAttendanceSummaries: SessionAttendanceSummary[];
-};
+import type {
+	SessionAttendanceSummary,
+	RecentSessionAttendances,
+	SessionAttendanceSummaryCreate,
+	SessionAttendanceSummaryUpdate,
+	SessionAttendanceSummaryChanges,
+} from "../schemas/attendances";
 
 function getSessionAttendancesSQL(groupId: string, session_ids: number[]) {
 	// prettier-ignore
@@ -84,7 +76,10 @@ function getAttendancesSql(
 
 	if (constraints) {
 		const wheres = Object.entries(constraints).map(([key, value]) =>
-			db.format(key === "groupId"? "a.??=UUID_TO_BIN(?)": "a.??=?", [key, value])
+			db.format(key === "groupId" ? "a.??=UUID_TO_BIN(?)" : "a.??=?", [
+				key,
+				value,
+			])
 		);
 		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 	}
@@ -98,14 +93,16 @@ function getAttendancesSql(
 export async function getRecentAttendances(user: User, groupId: string) {
 	let groups = await getGroupHierarchy(user, groupId);
 	if (groups.length === 0)
-		throw new NotFoundError(`getGroupHierarchy() failed for groupId=${groupId}`);
-	const groupIds = groups.map(group => group.id);
+		throw new NotFoundError(
+			`getGroupHierarchy() failed for groupId=${groupId}`
+		);
+	const groupIds = groups.map((group) => group.id);
 
 	let attendances: RecentSessionAttendances[] = [],
 		sessions: Session[] = [];
 
 	const now = Date.now();
-	const allSessions = (await getSessions({groupId: groupIds}))
+	const allSessions = (await getSessions({ groupId: groupIds }))
 		.filter((s) => Date.parse(s.endDate) < now && !s.isCancelled)
 		.sort((s1, s2) => Date.parse(s1.startDate) - Date.parse(s2.startDate)); // Oldest to newest
 
@@ -123,7 +120,10 @@ export async function getRecentAttendances(user: User, groupId: string) {
 				Date.parse(s.startDate) >= fromTimestamp
 		);
 
-		const sql = getSessionAttendancesSQL(groupId, sessions.map((s) => s.id));
+		const sql = getSessionAttendancesSQL(
+			groupId,
+			sessions.map((s) => s.id)
+		);
 		//console.log(sql)
 		attendances = (await db.query(sql)) as RecentSessionAttendances[];
 	}
@@ -164,7 +164,11 @@ export async function importAttendances(
 		}));
 	} else {
 		const imatAttendanceSummary =
-			await getImatMeetingAttendanceSummaryForSession(user, group, session);
+			await getImatMeetingAttendanceSummaryForSession(
+				user,
+				group,
+				session
+			);
 		attendances = imatAttendanceSummary.map((a) => ({
 			SAPIN: a.SAPIN,
 			AttendancePercentage: a.AttendancePercentage,
@@ -181,7 +185,13 @@ export async function importAttendances(
 				[Object.keys(attendances[0])]
 			) +
 			attendances
-				.map((a) => db.format("(?, UUID_TO_BIN(?), ?)", [session.id, group.id, Object.values(a)]))
+				.map((a) =>
+					db.format("(?, UUID_TO_BIN(?), ?)", [
+						session.id,
+						group.id,
+						Object.values(a),
+					])
+				)
 				.join(", ");
 		await db.query(sql);
 	}
@@ -190,35 +200,49 @@ export async function importAttendances(
 }
 
 export type MemberAttendance = SessionAttendanceSummary & {
-	Name: string,
-	Affiliation: string,
-	Status: string
-}
+	Name: string;
+	Affiliation: string;
+	Status: string;
+};
 
 /*
  * Export attendances for meeting minutes
  */
-export async function exportAttendancesForMinutes(user: User, group: Group, session_id: number, res: Response) {
-
-	const {session, attendances} = await getAttendances(group.id, session_id);
+export async function exportAttendancesForMinutes(
+	user: User,
+	group: Group,
+	session_id: number,
+	res: Response
+) {
+	const { session, attendances } = await getAttendances(group.id, session_id);
 
 	const memberEntities: Record<number, Member> = {};
 	let members = await getMembers(AccessLevel.admin, { groupId: group.id });
-	members.forEach(m => memberEntities[m.SAPIN] = m);
-	members = await getMembersSnapshot(AccessLevel.admin, group.id, session.startDate);
-	members.forEach(m => memberEntities[m.SAPIN] = m);
-	const memberAttendances: MemberAttendance[] = attendances.map(a => {
+	members.forEach((m) => (memberEntities[m.SAPIN] = m));
+	members = await getMembersSnapshot(
+		AccessLevel.admin,
+		group.id,
+		session.startDate
+	);
+	members.forEach((m) => (memberEntities[m.SAPIN] = m));
+	const memberAttendances: MemberAttendance[] = attendances.map((a) => {
 		const m = memberEntities[a.CurrentSAPIN];
 		const entry: MemberAttendance = {
 			...a,
-			Name: m? `${m.LastName}, ${m.FirstName}`: `SAPIN=${a.SAPIN}`,
+			Name: m ? `${m.LastName}, ${m.FirstName}` : `SAPIN=${a.SAPIN}`,
 			Affiliation: m?.Affiliation || "",
 			Status: m?.Status || "Non-Voter",
-		}
+		};
 		return entry;
-	})
+	});
 
-	return genAttendanceSpreadsheet(user, group, session, memberAttendances, res);
+	return genAttendanceSpreadsheet(
+		user,
+		group,
+		session,
+		memberAttendances,
+		res
+	);
 }
 
 /**
@@ -226,13 +250,18 @@ export async function exportAttendancesForMinutes(user: User, group: Group, sess
  * @param session_id Session identifier
  * @returns An object with the session and attendances
  */
-export async function getAttendances(groupId: string, session_id: number): Promise<{session: Session; attendances: SessionAttendanceSummary[]}> {
+export async function getAttendances(
+	groupId: string,
+	session_id: number
+): Promise<{ session: Session; attendances: SessionAttendanceSummary[] }> {
 	let [session] = await getSessions({ id: session_id });
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 
 	const sql = getAttendancesSql({ groupId, session_id });
-	const attendances = await db.query<(RowDataPacket & SessionAttendanceSummary)[]>(sql);
+	const attendances = await db.query<
+		(RowDataPacket & SessionAttendanceSummary)[]
+	>(sql);
 
 	return {
 		session,
@@ -243,7 +272,7 @@ export async function getAttendances(groupId: string, session_id: number): Promi
 /**
  * Filter the changes object so that it contains only valid fields
  */
-function attendanceSummaryChanges(a: Partial<SessionAttendanceSummary>) {
+function attendanceSummaryChanges(a: SessionAttendanceSummaryChanges) {
 	const changes = {
 		session_id: a.session_id,
 		SAPIN: a.SAPIN,
@@ -260,54 +289,10 @@ function attendanceSummaryChanges(a: Partial<SessionAttendanceSummary>) {
 	return changes;
 }
 
-type Update<T> = {
-	id: number;
-	changes: Partial<T>;
-};
-
-function validAttendanceUpdate(
-	update: any
-): update is Update<SessionAttendanceSummary> {
-	if (!isPlainObject(update)) return false;
-	const { id, changes } = update;
-	if (typeof id !== "number" || !isPlainObject(changes)) return false;
-	if (
-		typeof changes.session_id !== "undefined" &&
-		typeof changes.session_id !== "number"
-	)
-		return false;
-	if (
-		typeof changes.SAPIN !== "undefined" &&
-		typeof changes.SAPIN !== "number"
-	)
-		return false;
-	if (
-		typeof changes.Notes !== "undefined" &&
-		typeof changes.Notes !== "string"
-	)
-		return false;
-	if (
-		typeof changes.DidAttend !== "undefined" &&
-		typeof changes.DidAttend !== "boolean"
-	)
-		return false;
-	if (
-		typeof changes.DidNotAttend !== "undefined" &&
-		typeof changes.DidNotAttend !== "boolean"
-	)
-		return false;
-	if (
-		typeof changes.AttendancePercentage !== "undefined" &&
-		typeof changes.AttendancePercentage !== "boolean"
-	)
-		return false;
-	return true;
-}
-
 async function updateAttendance({
 	id,
 	changes,
-}: Update<SessionAttendanceSummary>) {
+}: SessionAttendanceSummaryUpdate) {
 	changes = attendanceSummaryChanges(changes);
 	await db.query("UPDATE attendance_summary SET ? WHERE id=?", [changes, id]);
 	const [attendance] = (await db.query(
@@ -317,41 +302,17 @@ async function updateAttendance({
 	return attendance;
 }
 
-export function validAttendanceUpdates(
-	updates: any
-): updates is Update<SessionAttendanceSummary>[] {
-	return Array.isArray(updates) && updates.every(validAttendanceUpdate);
-}
-
 export async function updateAttendances(
-	updates: Update<SessionAttendanceSummary>[]
+	updates: SessionAttendanceSummaryUpdate[]
 ) {
 	const attendances = await Promise.all(updates.map(updateAttendance));
 	return attendances;
 }
 
-function validAttendance(a: any): a is SessionAttendanceSummary {
-	if (!isPlainObject(a)) return false;
-	if (typeof a.session_id !== "number") return false;
-	if (typeof a.SAPIN !== "number") return false;
-	if (typeof a.Notes !== "undefined" && typeof a.Notes !== "string")
-		return false;
-	if (typeof a.DidAttend !== "undefined" && typeof a.DidAttend !== "boolean")
-		return false;
-	if (
-		typeof a.DidNotAttend !== "undefined" &&
-		typeof a.DidNotAttend !== "boolean"
-	)
-		return false;
-	if (
-		typeof a.AttendancePercentage !== "undefined" &&
-		typeof a.AttendancePercentage !== "number"
-	)
-		return false;
-	return true;
-}
-
-async function addAttendance(groupId: string, attendance: SessionAttendanceSummary) {
+async function addAttendance(
+	groupId: string,
+	attendance: SessionAttendanceSummaryCreate
+) {
 	const changes = attendanceSummaryChanges(attendance);
 
 	const { insertId } = await db.query<ResultSetHeader>(
@@ -365,19 +326,14 @@ async function addAttendance(groupId: string, attendance: SessionAttendanceSumma
 	return attendance;
 }
 
-export function validAttendances(
-	attendances: any
-): attendances is SessionAttendanceSummary[] {
-	return Array.isArray(attendances) && attendances.every(validAttendance);
-}
-
-export async function addAttendances(groupId: string, attendances: SessionAttendanceSummary[]) {
-	attendances = await Promise.all(attendances.map(a => addAttendance(groupId, a)));
+export async function addAttendances(
+	groupId: string,
+	attendances: SessionAttendanceSummaryCreate[]
+) {
+	attendances = await Promise.all(
+		attendances.map((a) => addAttendance(groupId, a))
+	);
 	return attendances;
-}
-
-export function validAttendanceIds(ids: any): ids is number[] {
-	return Array.isArray(ids) && ids.every((id) => typeof id === "number");
 }
 
 export async function deleteAttendances(ids: number[]) {

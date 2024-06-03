@@ -8,7 +8,7 @@ import type {
 	StatusChangeEntry,
 	ContactEmail,
 	ContactInfo,
-} from "./members";
+} from "../schemas/members";
 
 /*
  * Valid status mappings

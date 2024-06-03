@@ -1,10 +1,5 @@
 import db from "../utils/database";
-import {
-	shallowEqual,
-	AuthError,
-	NotFoundError,
-	isPlainObject,
-} from "../utils";
+import { shallowEqual, AuthError, NotFoundError } from "../utils";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Response } from "express";
 import type { User } from "./users";
@@ -12,53 +7,18 @@ import type { User } from "./users";
 import { parseEpollResults, parseEpollResultsHtml } from "./epoll";
 import { parseMyProjectResults } from "./myProjectSpreadsheets";
 import { genResultsSpreadsheet } from "./resultsSpreadsheet";
-import { getBallotSeries, BallotType, Ballot } from "./ballots";
+import { getBallotSeries, BallotType } from "./ballots";
 import { AccessLevel } from "../auth/access";
-import { type Group } from "./groups";
 import { getMember } from "./members";
-
-export type Result = {
-	id: string;
-	ballot_id: number;
-	SAPIN: number;
-	Email: string;
-	Name: string;
-	Affiliation: string;
-	Status: string;
-	lastBallotId: number;
-	lastSAPIN: number;
-	vote: string;
-	commentCount: number;
-	totalCommentCount?: number;
-	notes: string;
-};
+import { Group } from "../schemas/groups";
+import { Result, ResultsSummary, ResultUpdate } from "../schemas/results";
+import { Ballot } from "../schemas/ballots";
 
 export type ResultDB = {
 	id: string;
 	Vote: Result["vote"];
 	Notes: Result["notes"];
 } & Pick<Result, "ballot_id" | "SAPIN" | "Email" | "Name" | "Affiliation">;
-
-type ResultChange = Partial<Pick<Result, "vote" | "notes">>;
-
-type ResultUpdate = {
-	id: Result["id"];
-	changes: ResultChange;
-};
-
-export type ResultsSummary = {
-	Approve: number;
-	Disapprove: number;
-	Abstain: number;
-	InvalidVote: number;
-	InvalidAbstain: number;
-	InvalidDisapprove: number;
-	ReturnsPoolSize: number;
-	TotalReturns: number;
-	BallotReturns: number;
-	VotingPoolSize: number;
-	Commenters: number;
-};
 
 const createViewResultsCurrent = `
 	DROP VIEW IF EXISTS resultsCurrent;
@@ -160,7 +120,7 @@ function summarizeSAResults(results: Result[]) {
 		if (/^Approve/.test(r.vote)) {
 			summary.Approve++;
 		} else if (/^Disapprove/.test(r.vote)) {
-			if (r.commentCount) summary.Disapprove++;
+			if (r.totalCommentCount) summary.Disapprove++;
 			else summary.InvalidDisapprove++;
 		} else if (/^Abstain/.test(r.vote)) {
 			summary.Abstain++;
@@ -303,20 +263,21 @@ function getSABallotResults(ballot_id: number): Promise<Result[]> {
 		FROM (
 			SELECT
 				b.series_id as ballot_id,
+				b.id AS bid,
 				r.Email,
 				LAST_VALUE(r.Name) OVER w AS Name,
 				LAST_VALUE(r.Affiliation) OVER w AS Affiliation,
 				LAST_VALUE(r.ballot_id) OVER w AS lastBallotId,
 				LAST_VALUE(r.vote) OVER w AS vote,
 				LAST_VALUE(r.commentCount) OVER w AS commentCount,
-				SUM(r.commentCount) OVER w AS totalCommentCount,
+				SUM(r.commentCount) OVER (PARTITION BY b.series_id, r.Email) AS totalCommentCount,
 				LAST_VALUE(r.notes) OVER w AS notes,
 				ROW_NUMBER() OVER w AS n
 			FROM resultsCurrent r JOIN ballotSeries b ON b.id=r.ballot_id
 			WHERE b.series_id=${ballot_id}
 			WINDOW w AS (PARTITION BY b.series_id, r.Email ORDER BY b.Start DESC)
 		) AS t
-		WHERE n=1
+		WHERE bid=${ballot_id}
 	`;
 
 	return db.query<(RowDataPacket & Result)[]>(sql);
@@ -328,8 +289,7 @@ export type ResultsCoalesced = {
 };
 
 export async function getResultsCoalesced(ballot: Ballot): Promise<Result[]> {
-	let results: Result[],
-		summary: ResultsSummary;
+	let results: Result[], summary: ResultsSummary;
 
 	if (ballot.Type === BallotType.CC) {
 		results = await getCCResults(ballot.id);
@@ -360,29 +320,7 @@ export async function getResultsCoalesced(ballot: Ballot): Promise<Result[]> {
 export async function getResults(ballot: Ballot) {
 	const results = await getResultsCoalesced(ballot);
 	const ballots = await getBallotSeries(ballot.id);
-	return {ballots, results};
-}
-
-function validResultChange(changes: any): changes is ResultChange {
-	return (
-		isPlainObject(changes) &&
-		(typeof changes.vote === "undefined" ||
-			typeof changes.vote === "string") &&
-		(typeof changes.notes === "undefined" ||
-			typeof changes.notes === "string")
-	);
-}
-
-function validResultUpdate(update: any): update is ResultUpdate {
-	return (
-		isPlainObject(update) &&
-		typeof update.id === "string" &&
-		validResultChange(update.changes)
-	);
-}
-
-export function validResultUpdates(updates: any): updates is ResultUpdate[] {
-	return Array.isArray(updates) && updates.every(validResultUpdate);
+	return { ballots, results };
 }
 
 async function updateResult(
@@ -547,11 +485,10 @@ export async function exportResults(
 	if (forBallotSeries) {
 		resultsArr = await Promise.all(ballots.map(getResultsCoalesced));
 		fileNamePrefix = ballot.Project;
-	 }
-	 else {
+	} else {
 		resultsArr = [await getResultsCoalesced(ballot)];
 		fileNamePrefix = ballot.BallotID;
-	 }
-	 res.attachment(sanitize(fileNamePrefix) + "_results.xlsx");
+	}
+	res.attachment(sanitize(fileNamePrefix) + "_results.xlsx");
 	return genResultsSpreadsheet(user, ballots, resultsArr, res);
 }

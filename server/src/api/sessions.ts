@@ -1,29 +1,14 @@
 /*
  * Sessions API
- *
- * GET /
- *		Get sessions.
- *		Return and array of session objects.
- *
- * POST /
- *		Add a session.
- *		Body is the session object to be added.
- *		Returns the session object as added.
- *
- * PATCH /
- * 		Update a session.
- *		Body is an object with shape {id, changes}.
- *		Returns the session object as updated.
- *
- * DELETE /
- *		Delete sessions.
- *		Body contains an array of session identifiers.
- *		Returns the number of sessions deleted.
- *
  */
-import { Router } from "express";
-
-import { isPlainObject } from "../utils";
+import { Request, Response, NextFunction, Router } from "express";
+import {
+	SessionCreate,
+	SessionUpdate,
+	sessionCreateSchema,
+	sessionUpdateSchema,
+	sessionIdsSchema,
+} from "../schemas/sessions";
 import {
 	getSessions,
 	updateSession,
@@ -31,48 +16,49 @@ import {
 	deleteSessions,
 } from "../services/sessions";
 
-const router = Router();
+function get(req: Request, res: Response, next: NextFunction) {
+	getSessions(req.query)
+		.then((data) => res.json(data))
+		.catch(next);
+}
 
-router
-	.route("/")
-		.get((req, res, next) => {
-			getSessions(req.query)
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.post((req, res, next) => {
-			const session = req.body;
-			if (!isPlainObject(session))
-				return next(new TypeError("Bad or missing body; expected object"));
-			addSession(session)
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.patch((req, res, next) => {
-			if (!isPlainObject(req.body))
-				return next(new TypeError("Bad or missing session object"));
-			const { id, changes } = req.body;
-			if (typeof id !== "number" || !isPlainObject(changes))
-				return next(
-					new TypeError(
-						"Bad body; expected update object with shape {id, changes}"
-					)
-				);
-			updateSession(id, changes)
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.delete((req, res, next) => {
-			const ids = req.body;
-			if (!Array.isArray(ids))
-				return next(
-					new TypeError("Bad or missing array of session identifiers")
-				);
-			if (!ids.every((id) => typeof id === "number"))
-				return next(new TypeError("Expected an array of numbers"));
-			deleteSessions(ids)
-				.then((data) => res.json(data))
-				.catch(next);
-		});
+function addOne(req: Request, res: Response, next: NextFunction) {
+	let session: SessionCreate;
+	try {
+		session = sessionCreateSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+	addSession(session)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function updateOne(req: Request, res: Response, next: NextFunction) {
+	let update: SessionUpdate;
+	try {
+		update = sessionUpdateSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+	updateSession(update.id, update.changes)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function removeMany(req: Request, res: Response, next: NextFunction) {
+	let ids: number[];
+	try {
+		ids = sessionIdsSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+	deleteSessions(ids)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+const router = Router();
+router.route("/").get(get).post(addOne).patch(updateOne).delete(removeMany);
 
 export default router;

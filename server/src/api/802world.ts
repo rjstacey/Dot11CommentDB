@@ -1,14 +1,11 @@
 /*
  * 802 World schedule API
  */
-import { Router } from "express";
+import { Request, Response, NextFunction, Router } from "express";
 import axios from "axios";
 
-const router = Router();
-
 const url = "https://schedule.802world.com/schedule/schedule/show.json";
-
-router.get("*", (req, res, next) => {
+function get802WorldSchedule(req: Request, res: Response, next: NextFunction) {
 	return axios
 		.get(url)
 		.then((response) => {
@@ -20,6 +17,9 @@ router.get("*", (req, res, next) => {
 			else next(new Error("Unexpected response"));
 		})
 		.catch(next);
-});
+}
+
+const router = Router();
+router.get("*", get802WorldSchedule);
 
 export default router;

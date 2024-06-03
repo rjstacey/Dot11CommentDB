@@ -5,13 +5,21 @@ import { DateTime } from "luxon";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import db from "../utils/database";
+import {
+	Room,
+	Session,
+	SessionsQuery,
+	SessionCreate,
+	SessionChanges,
+} from "../schemas/sessions";
 
 function getSessionsSQL(groupId?: string | string[]) {
-	let attendanceSql = "SELECT COUNT(DISTINCT(SAPIN)) FROM attendance_summary WHERE ";
+	let attendanceSql =
+		"SELECT COUNT(DISTINCT(SAPIN)) FROM attendance_summary WHERE ";
 	if (groupId) {
-		attendanceSql += Array.isArray(groupId)?
-			`BIN_TO_UUID(groupId) IN (${db.escape(groupId)})`:
-			`groupId = ${db.escape(groupId)}`;
+		attendanceSql += Array.isArray(groupId)
+			? `BIN_TO_UUID(groupId) IN (${db.escape(groupId)})`
+			: `groupId = ${db.escape(groupId)}`;
 		attendanceSql += " AND ";
 	}
 	attendanceSql += "session_id=s.id";
@@ -43,55 +51,12 @@ function getSessionsSQL(groupId?: string | string[]) {
 	`;
 }
 
-export type Room = {
-	id: number;
-	name: string;
-	description: string;
-};
-
-export type Timeslot = {
-	id: number;
-	name: string;
-	startTime: string;
-	endTime: string;
-};
-
-export type SessionType = "p" | "i" | "o" | "g";
-
-export interface Session {
-	id: number;
-	number: number | null;
-	name: string;
-	type: SessionType;
-	groupId: string | null;
-	isCancelled: boolean;
-	imatMeetingId: number | null;
-	OrganizerID: string;
-	timezone: string;
-	startDate: string;
-	endDate: string;
-	rooms: Room[];
-	timeslots: Timeslot[];
-	defaultCredits: string[][];
-	attendees: number;
-}
-
 type SessionDB = Partial<
 	Omit<Session, "rooms" | "timeslots" | "defaultCredits" | "attendees">
 > & {
 	timeslots?: string;
 	defaultCredits?: string;
 };
-
-interface SessionsQueryConstraints {
-	id?: number | number[];
-	number?: number | number[];
-	name?: string | string[];
-	type?: string | string[];
-	timezone?: string | string[];
-	groupId?: string | string[];
-	isCancelled?: boolean | boolean[];
-}
 
 export type AttendanceSummary = {
 	id: number | null;
@@ -105,10 +70,13 @@ export type AttendanceSummary = {
 
 export type Credit = "Normal" | "Extra" | "Zero" | "Other";
 
-export function getCredit(creditStr: string): {credit: Credit, creditOverrideNumerator: number, creditOverrideDenominator: number} {
+export function getCredit(creditStr: string): {
+	credit: Credit;
+	creditOverrideNumerator: number;
+	creditOverrideDenominator: number;
+} {
 	let m = /(Normal|Zero|Extra|Other)/.exec(creditStr);
-	if (!m)
-		throw Error("Invalid credit string " + creditStr);
+	if (!m) throw Error("Invalid credit string " + creditStr);
 
 	let credit = m[1] as Credit,
 		creditOverrideNumerator = 0,
@@ -117,7 +85,9 @@ export function getCredit(creditStr: string): {credit: Credit, creditOverrideNum
 	if (credit === "Other") {
 		m = /Other\s*(\d+)\s*\/\s*(\d+)/.exec(creditStr);
 		if (!m)
-			throw new Error(`Unexpected format for "Other" credit: ${creditStr}`);
+			throw new Error(
+				`Unexpected format for "Other" credit: ${creditStr}`
+			);
 		creditOverrideNumerator = Number(m[1]);
 		creditOverrideDenominator = Number(m[2]);
 	}
@@ -125,8 +95,8 @@ export function getCredit(creditStr: string): {credit: Credit, creditOverrideNum
 	return {
 		credit,
 		creditOverrideNumerator,
-		creditOverrideDenominator
-	}
+		creditOverrideDenominator,
+	};
 }
 
 /**
@@ -136,20 +106,27 @@ export function getCredit(creditStr: string): {credit: Credit, creditOverrideNum
  *
  * @returns an array of session objects
  */
-export function getSessions(constraints?: SessionsQueryConstraints): Promise<Session[]> {
+export function getSessions(constraints?: SessionsQuery): Promise<Session[]> {
 	let sql = getSessionsSQL(constraints?.groupId);
 
 	if (constraints) {
 		const wheres: string[] = [];
 		Object.entries(constraints).forEach(([key, value]) => {
 			wheres.push(
-				(key === 'groupId')?
-					db.format(Array.isArray(value)? 'BIN_TO_UUID(??) IN (?)': 'BIN_TO_UUID(??)=?', [key, value]):
-					db.format(Array.isArray(value)? '?? IN (?)': '??=?', [key, value])
+				key === "groupId"
+					? db.format(
+							Array.isArray(value)
+								? "BIN_TO_UUID(??) IN (?)"
+								: "BIN_TO_UUID(??)=?",
+							[key, value]
+					  )
+					: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
+							key,
+							value,
+					  ])
 			);
 		});
-		if (wheres.length > 0)
-			sql += ' WHERE ' + wheres.join(' AND ');
+		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 	}
 
 	sql += " ORDER BY startDate DESC";
@@ -224,9 +201,9 @@ function sessionEntrySetSql(s: Partial<Session>) {
 	const sets: string[] = [];
 	for (const [key, value] of Object.entries(entry)) {
 		const sql =
-			(key === "groupId")?
-				db.format("??=UUID_TO_BIN(?)", [key, value]):
-				db.format("??=?", [key, value]);
+			key === "groupId"
+				? db.format("??=UUID_TO_BIN(?)", [key, value])
+				: db.format("??=?", [key, value]);
 		sets.push(sql);
 	}
 
@@ -245,7 +222,7 @@ function replaceSessionRooms(sessionId: number, rooms: Room[]) {
 	return db.query(sql);
 }
 
-export async function addSession(session: Session) {
+export async function addSession(session: SessionCreate) {
 	const sql = "INSERT INTO sessions SET " + sessionEntrySetSql(session);
 	const { insertId } = await db.query<ResultSetHeader>(sql);
 	if (session.rooms) await replaceSessionRooms(insertId, session.rooms);
@@ -253,12 +230,11 @@ export async function addSession(session: Session) {
 	return insertedSession;
 }
 
-export async function updateSession(id: number, changes: Partial<Session>) {
+export async function updateSession(id: number, changes: SessionChanges) {
 	const setSql = sessionEntrySetSql(changes);
 	if (setSql) {
 		const sql =
-			"UPDATE sessions SET " + setSql +
-			" WHERE id=" + db.escape(id);
+			"UPDATE sessions SET " + setSql + " WHERE id=" + db.escape(id);
 		await db.query(sql);
 	}
 
@@ -272,7 +248,9 @@ export async function deleteSessions(ids: number[]) {
 	const sql =
 		db.format("DELETE FROM sessions WHERE id IN (?);", [ids]) +
 		db.format("DELETE FROM rooms WHERE sessionId IN (?);", [ids]) +
-		db.format("DELETE FROM attendance_summary WHERE session_id IN (?);", [ids]);
+		db.format("DELETE FROM attendance_summary WHERE session_id IN (?);", [
+			ids,
+		]);
 	const results = await db.query<ResultSetHeader[]>(sql);
 	return results[0].affectedRows;
 }

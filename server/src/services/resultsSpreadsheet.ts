@@ -4,15 +4,11 @@
 import ExcelJS from "exceljs";
 import type { Response } from "express";
 import type { User } from "./users";
-import type { Ballot } from "./ballots";
-import type { Result, ResultsCoalesced } from "./results";
+import type { Ballot } from "../schemas/ballots";
+import type { Result } from "../schemas/results";
 import { getSheetName } from "./commentsSpreadsheet";
 
-function populateSummaryWorksheet(
-	ws: ExcelJS.Worksheet,
-	ballots: Ballot[]
-) {
-
+function populateSummaryWorksheet(ws: ExcelJS.Worksheet, ballots: Ballot[]) {
 	let colNum = 1;
 	let labelCol = [
 		"Ballot",
@@ -46,7 +42,6 @@ function populateSummaryWorksheet(
 			horizontal: "left",
 		};
 	});
-
 
 	for (const b of ballots) {
 		colNum++;
@@ -126,19 +121,19 @@ function populateSummaryWorksheet(
 		);
 
 		ws.getCell(19, colNum).fill = {
-			type: 'pattern',
-			pattern: 'solid',
-			fgColor: { argb: approvalRate > 0.75? 'FFD3ECD3': 'fff3c0c0' }
+			type: "pattern",
+			pattern: "solid",
+			fgColor: { argb: approvalRate > 0.75 ? "FFD3ECD3" : "fff3c0c0" },
 		};
 		ws.getCell(20, colNum).fill = {
-			type: 'pattern',
-			pattern: 'solid',
-			fgColor: { argb: returnsRate > 0.5? 'FFD3ECD3': 'fff3c0c0' }
+			type: "pattern",
+			pattern: "solid",
+			fgColor: { argb: returnsRate > 0.5 ? "FFD3ECD3" : "fff3c0c0" },
 		};
 		ws.getCell(21, colNum).fill = {
-			type: 'pattern',
-			pattern: 'solid',
-			fgColor: { argb: abstainsRate < 0.3? 'FFD3ECD3': 'fff3c0c0' }
+			type: "pattern",
+			pattern: "solid",
+			fgColor: { argb: abstainsRate < 0.3 ? "FFD3ECD3" : "fff3c0c0" },
 		};
 	}
 }
@@ -148,7 +143,6 @@ function populateResultsWorksheet(
 	ballot: Ballot,
 	results: Result[]
 ) {
-
 	/* Create a table with the results */
 	const columns = [
 		{ dataKey: "SAPIN", label: "SA PIN", width: 10 },
@@ -180,7 +174,6 @@ function populateResultsWorksheet(
 	columns.forEach((col, i) => {
 		ws.getColumn(i + 1).width = col.width;
 	});
-
 }
 
 export async function genResultsSpreadsheet(
@@ -193,8 +186,7 @@ export async function genResultsSpreadsheet(
 	workbook.creator = user.Name;
 
 	const ballotEntities: Record<number, Ballot> = {};
-	for (const b of ballots)
-		ballotEntities[b.id] = b;
+	for (const b of ballots) ballotEntities[b.id] = b;
 
 	let ws = workbook.addWorksheet("Summary");
 	populateSummaryWorksheet(ws, ballots);
@@ -202,11 +194,12 @@ export async function genResultsSpreadsheet(
 	resultsArr.forEach((results, i) => {
 		const ballot = ballots[i];
 		ws = workbook.addWorksheet(getSheetName(ballot.BallotID));
-		const results2 = results.map(r => {
+		const results2 = results.map((r) => {
 			let lastBallotName = "";
 			if (r.lastBallotId && r.lastBallotId !== r.ballot_id)
-				lastBallotName = ballotEntities[r.lastBallotId]?.BallotID || "??";
-			return {...r, lastBallotName};
+				lastBallotName =
+					ballotEntities[r.lastBallotId]?.BallotID || "??";
+			return { ...r, lastBallotName };
 		});
 		populateResultsWorksheet(ws, ballot, results2);
 	});

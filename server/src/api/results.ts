@@ -28,11 +28,13 @@
  *		Upload ballot results for a given ballot from ePoll CSV file or MyProject ballot members spreadsheet
  *		Returns an array of result objects that is the results as uploaded
  */
-import { Router } from "express";
+import { Request, Response, NextFunction, Router } from "express";
 import Multer from "multer";
 import { ForbiddenError, NotFoundError } from "../utils";
 import { AccessLevel } from "../auth/access";
 import { selectWorkingGroup } from "../services/groups";
+import { resultUpdatesSchema, ResultUpdate } from "../schemas/results";
+
 import {
 	getResults,
 	updateResults,
@@ -40,75 +42,96 @@ import {
 	importEpollResults,
 	uploadResults,
 	exportResults,
-	validResultUpdates,
 } from "../services/results";
+
+function validatePermissions(req: Request, res: Response, next: NextFunction) {
+	const access = req.permissions?.results || AccessLevel.none;
+	if (req.method === "GET" && access >= AccessLevel.ro) return next();
+	if (
+		(req.method === "DELETE" ||
+			req.method === "POST" ||
+			req.method === "PATCH") &&
+		access >= AccessLevel.admin
+	)
+		return next();
+
+	next(new ForbiddenError("Insufficient karma"));
+}
+
+function getAll(req: Request, res: Response, next: NextFunction) {
+	getResults(req.ballot!)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function updateMany(req: Request, res: Response, next: NextFunction) {
+	const workingGroup = selectWorkingGroup(req.groups!);
+	if (!workingGroup)
+		return next(
+			new NotFoundError(
+				`Can't find working group for ${req.groups![0].id}`
+			)
+		);
+
+	let updates: ResultUpdate[];
+	try {
+		updates = resultUpdatesSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+
+	updateResults(workingGroup.id, req.ballot!, updates)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function removeAll(req: Request, res: Response, next: NextFunction) {
+	deleteResults(req.ballot!.id)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function postUpload(req: Request, res: Response, next: NextFunction) {
+	if (!req.file) return next(new TypeError("Missing file"));
+	uploadResults(req.ballot!, req.file)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function postImport(req: Request, res: Response, next: NextFunction) {
+	const workingGroup = selectWorkingGroup(req.groups!);
+	if (!workingGroup)
+		return next(
+			new NotFoundError(
+				`Can't find working group for ${req.groups![0].id}`
+			)
+		);
+
+	importEpollResults(req.user, workingGroup, req.ballot!)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function getExport(req: Request, res: Response, next: NextFunction) {
+	const { forSeries } = req.query;
+	if (forSeries && forSeries !== "true" && forSeries !== "false")
+		return next(
+			new TypeError("Invalid forSeries parameter: expected true or false")
+		);
+
+	exportResults(req.user, req.ballot!, forSeries === "true", res)
+		.then(() => res.end())
+		.catch(next);
+}
 
 const upload = Multer();
 const router = Router();
 
+router.all("*", validatePermissions);
 router
-	.all("*", (req, res, next) => {
-		const access = req.permissions?.results || AccessLevel.none;
-		if (req.method === "GET" && access >= AccessLevel.ro) return next();
-		if (
-			(req.method === "DELETE" || req.method === "POST" || req.method === "PATCH") &&
-			access >= AccessLevel.admin
-		)
-			return next();
-
-		next(new ForbiddenError("Insufficient karma"));
-	})
-	.get("/export", (req, res, next) => {
-		const { forSeries } = req.query;
-		if (forSeries && forSeries !== "true" && forSeries !== "false")
-			return next(
-				new TypeError(
-					"Invalid forSeries parameter: expected true or false"
-				)
-			);
-
-		exportResults(req.user, req.ballot!, forSeries === "true", res)
-			.then(() => res.end())
-			.catch(next);
-	})
-	.post("/import", (req, res, next) => {
-		const workingGroup = selectWorkingGroup(req.groups!);
-		if (!workingGroup)
-			return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
-
-		importEpollResults(req.user, workingGroup, req.ballot!)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
-	.post("/upload", upload.single("ResultsFile"), (req, res, next) => {
-		if (!req.file) return next(new TypeError("Missing file"));
-		uploadResults(req.ballot!, req.file)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
-	.route("/")
-		.get((req, res, next) => {
-			getResults(req.ballot!)
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.patch((req, res, next) => {
-			const workingGroup = selectWorkingGroup(req.groups!);
-			if (!workingGroup)
-				return next(new NotFoundError(`Can't find working group for ${req.groups![0].id}`));
-
-			const updates: any = req.body;
-			if (!validResultUpdates(updates))
-				return next(new TypeError("Bad or missing body; expect updates array with shape {id: string, changes: object}"));
-
-			updateResults(workingGroup.id, req.ballot!, updates)
-				.then((data) => res.json(data))
-				.catch(next)
-		})
-		.delete((req, res, next) => {
-			deleteResults(req.ballot!.id)
-				.then((data) => res.json(data))
-				.catch(next);
-		});
+	.get("/export", getExport)
+	.post("/import", postImport)
+	.post("/upload", upload.single("ResultsFile"), postUpload);
+router.route("/").get(getAll).patch(updateMany).delete(removeAll);
 
 export default router;

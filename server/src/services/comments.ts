@@ -12,37 +12,13 @@ import {
 import { parseEpollComments, parseEpollUserComments } from "./epoll";
 import { parseMyProjectComments } from "./myProjectSpreadsheets";
 import { parsePublicReviewComments } from "./publicReviewSpreadsheets";
-import { BallotType, Ballot, getBallotWithNewResultsSummary } from "./ballots";
-import { type Resolution } from "./resolutions";
+import { BallotType, getBallotWithNewResultsSummary } from "./ballots";
+import type { Resolution } from "../schemas/resolutions";
 import { selectUser, type User } from "./users";
 import { AccessLevel } from "../auth/access";
-import { getGroups, getWorkingGroup } from "./groups";
-
-export type Comment = {
-	id: bigint;
-	ballot_id: number;
-	CommentID: number;
-	CommenterSAPIN: number | null;
-	CommenterName: string;
-	CommenterEmail: string;
-	Vote: string;
-	Category: string;
-	C_Clause: string;
-	C_Page: string;
-	C_Line: string;
-	C_Index: number;
-	MustSatisfy: boolean;
-	Clause: string | null;
-	Page: number | null;
-	Comment: string;
-	AdHocGroupId: string | null;
-	AdHoc: string;
-	Notes: string | null;
-	CommentGroup: string;
-	ProposedChange: string;
-	LastModifiedBy: number | null;
-	LastModifiedTime: string | null;
-};
+import { getGroups } from "./groups";
+import { Comment, CommentsSummary } from "../schemas/comments";
+import { Ballot } from "../schemas/ballots";
 
 /** Editable comment fields array */
 export const commentEditableFields = [
@@ -69,12 +45,6 @@ export type CommentResolution = Omit<Comment, "id"> &
 		ResolutionCount: number;
 		CID: string;
 	};
-
-export type CommentsSummary = {
-	Count: number;
-	CommentIDMin: number | null;
-	CommentIDMax: number | null;
-};
 
 // prettier-ignore
 const createViewCommentResolutionsSQL =
@@ -510,9 +480,8 @@ export async function uploadUserComments(
 	sapin: number,
 	file: Express.Multer.File
 ) {
-	const commenter = await selectUser({SAPIN: sapin});
-	if (!commenter)
-		throw new NotFoundError(`User SAPIN=${sapin} not found`);
+	const commenter = await selectUser({ SAPIN: sapin });
+	if (!commenter) throw new NotFoundError(`User SAPIN=${sapin} not found`);
 
 	const { MaxCommentId, MaxIndex } = await getHighestIndexes(ballot.id);
 	const startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;

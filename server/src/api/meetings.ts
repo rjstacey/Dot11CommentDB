@@ -32,7 +32,7 @@
  *		Body is an array of meeting IDs.
  *		Returns the number of meetings deleted.
  */
-import { Router } from "express";
+import { Request, Response, NextFunction, Router } from "express";
 import { AccessLevel } from "../auth/access";
 import { ForbiddenError } from "../utils";
 import {
@@ -40,69 +40,82 @@ import {
 	updateMeetings,
 	addMeetings,
 	deleteMeetings,
-	validateMeetings,
-	validateMeetingUpdates,
-	validateMeetingIds,
 } from "../services/meetings";
+import {
+	MeetingCreate,
+	MeetingUpdate,
+	meetingCreatesSchema,
+	meetingUpdatesSchema,
+	meetingIdsSchema,
+} from "../schemas/meetings";
+
+function validatePermissions(req: Request, res: Response, next: NextFunction) {
+	const { group } = req;
+	if (!group) return next(new Error("Group not set"));
+
+	const access = group.permissions.meetings || AccessLevel.none;
+
+	if (req.method === "GET" && access >= AccessLevel.ro) return next();
+	if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
+	if (
+		(req.method === "DELETE" || req.method === "POST") &&
+		access >= AccessLevel.admin
+	)
+		return next();
+
+	next(new ForbiddenError("Insufficient karma"));
+}
+
+function get(req: Request, res: Response, next: NextFunction) {
+	const group = req.group!;
+	getMeetings({ groupId: group.id, ...req.query })
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function addMany(req: Request, res: Response, next: NextFunction) {
+	let meetings: MeetingCreate[];
+	try {
+		meetings = meetingCreatesSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+	addMeetings(req.user, meetings)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function updateMany(req: Request, res: Response, next: NextFunction) {
+	let updates: MeetingUpdate[];
+	try {
+		updates = meetingUpdatesSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+	updateMeetings(req.user, updates)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function removeMany(req: Request, res: Response, next: NextFunction) {
+	let ids: number[];
+	try {
+		ids = meetingIdsSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+	deleteMeetings(req.user, ids)
+		.then((data) => res.json(data))
+		.catch(next);
+}
 
 const router = Router();
-
 router
-	.all("*", (req, res, next) => {
-		const { user, group } = req;
-		if (!group) return next(new Error("Group not set"));
-
-		const access = group.permissions.meetings || AccessLevel.none;
-
-		if (req.method === "GET" && access >= AccessLevel.ro) return next();
-		if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
-		if (
-			(req.method === "DELETE" || req.method === "POST") &&
-			access >= AccessLevel.admin
-		)
-			return next();
-
-		next(new ForbiddenError("Insufficient karma"));
-	})
+	.all("*", validatePermissions)
 	.route("/")
-		.get((req, res, next) => {
-			const group = req.group!;
-			getMeetings({ groupId: group.id, ...req.query })
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.post((req, res, next) => {
-			const meetings = req.body;
-			try {
-				validateMeetings(meetings);
-			} catch (error) {
-				return next(error);
-			}
-			addMeetings(req.user, meetings)
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.patch((req, res, next) => {
-			const updates = req.body;
-			try {
-				validateMeetingUpdates(updates);
-			} catch (error) {
-				return next(error);
-			}
-			updateMeetings(req.user, updates)
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.delete((req, res, next) => {
-			const ids = req.body;
-			try {
-				validateMeetingIds(ids);
-			} catch (error) {
-				return next(error);
-			}
-			deleteMeetings(req.user, ids)
-				.then((data) => res.json(data))
-				.catch(next);
-		});
+	.get(get)
+	.post(addMany)
+	.patch(updateMany)
+	.delete(removeMany);
 
 export default router;

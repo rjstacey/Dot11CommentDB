@@ -28,7 +28,7 @@
  *			accoundId:any 	Identifies the account
  *		Returns 1.
  */
-import { Router } from "express";
+import { Request, Response, NextFunction, Router } from "express";
 
 import { ForbiddenError } from "../utils";
 import { AccessLevel } from "../auth/access";
@@ -40,56 +40,66 @@ import {
 	deleteCalendarAccount,
 } from "../services/calendar";
 
+function validatePermissions(req: Request, res: Response, next: NextFunction) {
+	if (!req.group) return next(new Error("Group not set"));
+
+	const access = req.group.permissions.meetings || AccessLevel.none;
+
+	if (req.method === "GET" && access >= AccessLevel.ro) return next();
+	if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
+	if (
+		(req.method === "DELETE" || req.method === "POST") &&
+		access >= AccessLevel.admin
+	)
+		return next();
+
+	next(new ForbiddenError("Insufficient karma"));
+}
+
+function getAccounts(req: Request, res: Response, next: NextFunction) {
+	getCalendarAccounts(req, req.user, { groupId: req.group!.id })
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function addAccount(req: Request, res: Response, next: NextFunction) {
+	const account = req.body;
+	addCalendarAccount(req, req.user, req.group!.id, account)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function updateAccount(req: Request, res: Response, next: NextFunction) {
+	const accountId = Number(req.params.accountId);
+	const changes = req.body;
+	updateCalendarAccount(req, req.user, req.group!.id, accountId, changes)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function revokeAccountAuth(req: Request, res: Response, next: NextFunction) {
+	const accountId = Number(req.params.accountId);
+	revokeAuthCalendarAccount(req, req.user, req.group!.id, accountId)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function removeAccount(req: Request, res: Response, next: NextFunction) {
+	const accountId = Number(req.params.accountId);
+	deleteCalendarAccount(req.group!.id, accountId)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
 const router = Router();
-
 router
-	.all("*", (req, res, next) => {
-		if (!req.group) return next(new Error("Group not set"));
-
-		const access = req.group.permissions.meetings || AccessLevel.none;
-
-		if (req.method === "GET" && access >= AccessLevel.ro) return next();
-		if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
-		if (
-			(req.method === "DELETE" || req.method === "POST") &&
-			access >= AccessLevel.admin
-		)
-			return next();
-
-		next(new ForbiddenError("Insufficient karma"));
-	})
+	.all("*", validatePermissions)
 	.route("/accounts")
-		.get((req, res, next) => {
-			getCalendarAccounts(req, req.user, {groupId: req.group!.id})
-				.then((data) => res.json(data))
-				.catch(next);
-		})
-		.post((req, res, next) => {
-			const account = req.body;
-			addCalendarAccount(req, req.user, req.group!.id, account)
-				.then((data) => res.json(data))
-				.catch(next);
-		});
-
+	.get(getAccounts)
+	.post(addAccount);
 router
-	.patch("/accounts/:accountId(\\d+)", (req, res, next) => {
-		const accountId = Number(req.params.accountId);
-		const changes = req.body;
-		updateCalendarAccount(req, req.user, req.group!.id, accountId, changes)
-			.then((data) => res.json(data))
-			.catch(next)
-	})
-	.patch("/accounts/:accountId(\\d+)/revoke", (req, res, next) => {
-		const accountId = Number(req.params.accountId);
-		revokeAuthCalendarAccount(req, req.user, req.group!.id, accountId)
-			.then((data) => res.json(data))
-			.catch(next);
-	})
-	.delete("/accounts/:accountId(\\d+)", (req, res, next) => {
-		const accountId = Number(req.params.accountId);
-		deleteCalendarAccount(req.group!.id, accountId)
-			.then((data) => res.json(data))
-			.catch(next);
-	});
+	.patch("/accounts/:accountId(\\d+)", updateAccount)
+	.patch("/accounts/:accountId(\\d+)/revoke", revokeAccountAuth)
+	.delete("/accounts/:accountId(\\d+)", removeAccount);
 
 export default router;

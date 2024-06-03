@@ -9,12 +9,11 @@ import { DateTime } from "luxon";
 // @ts-ignore
 import { zones } from "tzdata";
 
-const router = Router();
-
 const timezones = Object.keys(zones)
 	.filter((tz) => DateTime.local().setZone(tz).isValid)
 	.sort();
 
+const router = Router();
 router.get("/", (req, res, next) => res.json(timezones));
 
 export default router;

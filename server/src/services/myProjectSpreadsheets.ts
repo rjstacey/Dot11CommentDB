@@ -5,9 +5,10 @@ import ExcelJS from "exceljs";
 import { validateSpreadsheetHeader, parseSpreadsheet } from "../utils";
 import { fromHtml } from "./commentsSpreadsheet";
 import type { Response } from "express";
-import { Comment, CommentResolution, getComments } from "./comments";
-import type { Member } from "./members";
-import type { Result } from "./results";
+import { CommentResolution, getComments } from "./comments";
+import type { Comment } from "../schemas/comments";
+import type { Member } from "../schemas/members";
+import type { Result } from "../schemas/results";
 import type { User } from "./users";
 
 const myProjectCommentsHeader = [
@@ -71,7 +72,7 @@ export async function parseMyProjectComments(
 	startCommentId: number,
 	file: Express.Multer.File
 ) {
-	const rows = await parseSpreadsheet(file, myProjectCommentsHeader, 0, 26)
+	const rows = await parseSpreadsheet(file, myProjectCommentsHeader, 0, 26);
 
 	// Parse each row and assign CommentID
 	return rows.map((c, i) => {
@@ -163,7 +164,7 @@ const myProjectResultsHeader = [
 ] as const;
 
 export async function parseMyProjectResults(file: Express.Multer.File) {
-	const rows = await parseSpreadsheet(file, myProjectResultsHeader, 1)
+	const rows = await parseSpreadsheet(file, myProjectResultsHeader, 1);
 
 	const results = rows.map((c) => {
 		let result: Partial<Result> = {
@@ -217,8 +218,8 @@ const statusToInvolvementLevel = {
 	Aspirant: "Aspirant Member",
 	"Potential Voter": "Potential Member",
 	Voter: "Voting Member",
-	"ExOfficio": "Voting Member",
-	"Non-Voter": "Observer"
+	ExOfficio: "Voting Member",
+	"Non-Voter": "Observer",
 };
 
 type Col = {
