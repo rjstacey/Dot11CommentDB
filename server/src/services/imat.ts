@@ -16,7 +16,7 @@ import {
 import { webexMeetingImatLocation } from "./meetings";
 import { getGroupHierarchy } from "./groups";
 
-import type { Meeting } from "../schemas/meetings";
+import type { Meeting, MeetingCreate } from "../schemas/meetings";
 import type { WebexMeeting } from "../schemas/webex";
 import { getCredit } from "./sessions";
 import type { Session } from "../schemas/sessions";
@@ -969,7 +969,7 @@ async function meetingToBreakout(
 	timeslots: Timeslot[],
 	committees: Committee[],
 	session: Session | undefined,
-	meeting: Meeting,
+	meeting: MeetingCreate,
 	webexMeeting: WebexMeeting | undefined,
 	breakout?: Breakout
 ) {
@@ -1153,7 +1153,7 @@ async function meetingToBreakout(
 export async function addImatBreakoutFromMeeting(
 	user: User,
 	session: Session | undefined,
-	meeting: Meeting,
+	meeting: MeetingCreate,
 	webexMeeting: WebexMeeting | undefined
 ): Promise<Breakout> {
 	const imatMeetingId = meeting.imatMeetingId;
@@ -1193,7 +1193,7 @@ export async function addImatBreakoutFromMeeting(
 export async function updateImatBreakoutFromMeeting(
 	user: User,
 	session: Session | undefined,
-	meeting: Meeting,
+	meeting: MeetingCreate,
 	webexMeeting: WebexMeeting | undefined
 ) {
 	const { imatMeetingId, imatBreakoutId } = meeting;

@@ -43,22 +43,13 @@ import {
 
 import type {
 	Meeting,
+	MeetingsQuery,
 	MeetingCreate,
 	MeetingUpdate,
 	MeetingChanges,
 } from "../schemas/meetings";
 
-interface SelectMeetingsConstraints {
-	id?: number | number[];
-	groupId?: string;
-	sessionId?: string;
-	fromDate?: string;
-	toDate?: string;
-	timezone?: string;
-	organizationId?: string | string[];
-}
-
-function selectMeetingsSql(constraints: SelectMeetingsConstraints) {
+function selectMeetingsSql(constraints: MeetingsQuery) {
 	// prettier-ignore
 	let sql =
 		"SELECT " +
@@ -148,7 +139,7 @@ function selectMeetingsSql(constraints: SelectMeetingsConstraints) {
  *
  * Returns an array of meeting objects that meet the constraints.
  */
-async function selectMeetings(constraints: SelectMeetingsConstraints) {
+async function selectMeetings(constraints: MeetingsQuery) {
 	if (constraints.groupId && !constraints.organizationId) {
 		const organizationId = await getGroupAndSubgroupIds(
 			constraints.groupId
@@ -168,7 +159,7 @@ async function selectMeetings(constraints: SelectMeetingsConstraints) {
  * Returns an object with shape {meetings, webexMeetings} where @meetings is array of meetings that meet the
  * constraints and @webexMeetings is an array of Webex meetings referenced by the meetings.
  */
-export async function getMeetings(constraints: SelectMeetingsConstraints) {
+export async function getMeetings(constraints: MeetingsQuery) {
 	const meetings = await selectMeetings(constraints);
 	const ids = meetings.reduce(
 		(ids, m) => (m.webexMeetingId ? ids.concat([m.webexMeetingId]) : ids),
@@ -192,7 +183,7 @@ export async function getMeetings(constraints: SelectMeetingsConstraints) {
  *
  * Returns an escaped SQL SET string, e.g., '`hasMotions`=1, `location`="Bar"'
  */
-function meetingToSetSql(e: Partial<Meeting>) {
+function meetingToSetSql(e: MeetingChanges) {
 	const entry: Record<string, any> = {
 		organizationId: e.organizationId,
 		summary: e.summary,
@@ -250,7 +241,7 @@ function meetingToSetSql(e: Partial<Meeting>) {
  * @param meeting Meeting object.
  * @returns The Webex meeting event object.
  */
-function meetingToWebexMeeting(meeting: Meeting) {
+function meetingToWebexMeeting(meeting: MeetingCreate) {
 	const timezone = meeting.timezone || "America/New_York";
 	const webexMeeting: WebexMeetingCreate & WebexMeetingUpdate = {
 		accountId: meeting.webexAccountId!,
@@ -414,7 +405,7 @@ function meetingToCalendarDescriptionHtml(
  * @returns A string that is the calendar event description.
  */
 function meetingToCalendarDescriptionText(
-	meeting: Meeting,
+	meeting: MeetingCreate,
 	webexMeeting: WebexMeeting | undefined,
 	breakout: Breakout | undefined
 ) {
@@ -460,7 +451,7 @@ function meetingToCalendarDescriptionText(
  * @returns The calendar event object.
  */
 function meetingToCalendarEvent(
-	meeting: Meeting,
+	meeting: MeetingCreate,
 	session: Session | undefined,
 	workingGroup: Group | undefined,
 	webexMeeting: WebexMeeting | undefined,
@@ -519,7 +510,7 @@ async function addMeeting(user: User, meetingToAdd: MeetingCreate) {
 
 	//console.log(meetingToAdd);
 
-	let meeting: Meeting = {
+	let meeting: Omit<Meeting, "id"> = {
 		...meetingToAdd,
 		webexMeetingId: null,
 		imatBreakoutId: null,
@@ -859,7 +850,7 @@ async function meetingMakeImatBreakoutUpdates(
 
 async function meetingMakeCalendarUpdates(
 	meeting: Meeting,
-	changes: Partial<Meeting>,
+	changes: MeetingChanges,
 	session: Session | undefined,
 	workingGroup: Group | undefined,
 	webexMeeting: WebexMeeting | undefined,
@@ -947,7 +938,7 @@ export async function updateMeeting(
 	id: number,
 	changesIn: MeetingChanges
 ) {
-	let changes: Partial<Meeting> = {
+	let changes: MeetingChanges = {
 		...changesIn,
 		webexMeetingId: undefined,
 		imatBreakoutId: undefined,

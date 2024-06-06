@@ -3,7 +3,7 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import Multer from "multer";
-import { ForbiddenError, NotFoundError, isPlainObject } from "../utils";
+import { ForbiddenError, NotFoundError } from "../utils";
 import { AccessLevel } from "../auth/access";
 import { selectWorkingGroup } from "../services/groups";
 import {
@@ -12,6 +12,8 @@ import {
 	voterCreatesSchema,
 	voterUpdatesSchema,
 	voterIdsSchema,
+	voterMemberSnapshotParamsSchema,
+	VoterMemberSnapshotParams,
 } from "../schemas/voters";
 import {
 	getVoters,
@@ -131,14 +133,14 @@ function postMembersnapshot(req: Request, res: Response, next: NextFunction) {
 		);
 
 	const ballot = req.ballot!;
-	if (!isPlainObject(req.body) || !req.body.hasOwnProperty("date"))
-		return next(
-			new TypeError(
-				"Bad or missing body; expected object with shape {date: string}"
-			)
-		);
+	let params: VoterMemberSnapshotParams;
+	try {
+		params = voterMemberSnapshotParamsSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
 	const { date } = req.body;
-	votersFromMembersSnapshot(user, workingGroup.id, ballot.id, date)
+	votersFromMembersSnapshot(user, workingGroup.id, ballot.id, params.date)
 		.then((data) => res.json(data))
 		.catch(next);
 }

@@ -559,7 +559,7 @@ export async function getWebexMeetings({
 	ids,
 }: {
 	groupId?: string;
-	sessionId?: string;
+	sessionId?: number;
 	fromDate?: string;
 	toDate?: string;
 	timezone?: string;

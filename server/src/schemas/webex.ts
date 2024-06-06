@@ -20,7 +20,7 @@ export const webexMeetingOptionsSchema = z.object({
 	 *  The value of this attribute also depends on the session type. */
 	enabledNote: z.boolean().optional(),
 	/** Whether note taking is enabled. If the value of `enabledNote` is false, users can not set this attribute and get default value `allowAll`. */
-	noteType: z.enum(["allowAll", "allowOne"]),
+	noteType: z.enum(["allowAll", "allowOne"]).optional(),
 	/** Whether or not to allow any attendee to have closed captions in the meeting.
 	 *  The value of this attribute also depends on the session type. */
 	enabledClosedCaptions: z.boolean().optional(),
@@ -47,7 +47,9 @@ export const webexAudioConnectionOptionsSchema = z.object({
 	/** Whether or not to allow the host to unmute participants. */
 	allowHostToUnmuteParticipants: z.boolean(),
 	/** Choose how meeting attendees join the audio portion of the meeting. */
-	audioConnectionType: z.enum(["webexAudio", "VoIP", "other", "none"]),
+	audioConnectionType: z
+		.enum(["webexAudio", "VoIP", "other", "none"])
+		.optional(),
 	/** Whether or not to allow attendees to receive a call-back and call-in is available. Can only be set true for a webinar. */
 	enabledAudienceCallBack: z.boolean(),
 	/** Whether or not to show global call-in numbers to attendees. */
@@ -111,14 +113,12 @@ export const webexMeetingCreateSchema = webexMeetingAlwaysSchema.merge(
 		integrationTags: z.string().array().optional(),
 	})
 );
-export type WebexMeetingCreate = z.infer<typeof webexMeetingCreateSchema>;
 
 export const webexMeetingUpdateSchema = webexMeetingCreateSchema
 	.omit({ templateId: true })
 	.partial()
 	.merge(z.object({ id: z.string() }))
 	.merge(webexMeetingAlwaysSchema);
-export type WebexMeetingUpdate = z.infer<typeof webexMeetingUpdateSchema>;
 
 const callInNumberSchema = z.object({
 	/** Label for the call-in number. */
@@ -128,7 +128,6 @@ const callInNumberSchema = z.object({
 	/** Type of toll for the call-in number. */
 	tollType: z.enum(["toll", "tollFree"]),
 });
-type CallInNumber = z.infer<typeof callInNumberSchema>;
 
 const linksForTelephonySchema = z.object({
 	/** Link relation describing how the target resource is related to the current context (conforming with RFC5998). */
@@ -138,7 +137,6 @@ const linksForTelephonySchema = z.object({
 	/** Target resource method (conforming with RFC5998). */
 	method: z.string(),
 });
-type LinksForTelephony = z.infer<typeof linksForTelephonySchema>;
 
 const telephonySchema = z.object({
 	/** Code for authenticating a user to join teleconference. Users join the teleconference using the call-in number or the global call-in number, followed by the value of the accessCode. */
@@ -148,7 +146,6 @@ const telephonySchema = z.object({
 	/** HATEOAS information of global call-in numbers for joining a teleconference from a phone. */
 	link: linksForTelephonySchema.array(),
 });
-type Telephony = z.infer<typeof telephonySchema>;
 
 export const webexMeetingSchema = webexMeetingUpdateSchema.required().merge(
 	z.object({
@@ -191,13 +188,11 @@ export const webexMeetingSchema = webexMeetingUpdateSchema.required().merge(
 		hostDisplayName: z.string(),
 	})
 );
-export type WebexMeeting = z.infer<typeof webexMeetingSchema>;
 
 export const webexMeetingDeleteSchema = webexMeetingSchema.pick({
 	accountId: true,
 	id: true,
 });
-export type WebexMeetingDelete = Pick<WebexMeeting, "accountId" | "id">;
 
 export const webexMeetingTemplateSchema = z.object({
 	/** Unique identifier for meeting template. */
@@ -218,3 +213,8 @@ export const webexMeetingTemplateSchema = z.object({
 	meeting: z.object({}),
 });
 type WebexMeetingTemplate = z.infer<typeof webexMeetingTemplateSchema>;
+
+export type WebexMeeting = z.infer<typeof webexMeetingSchema>;
+export type WebexMeetingCreate = z.infer<typeof webexMeetingCreateSchema>;
+export type WebexMeetingUpdate = z.infer<typeof webexMeetingUpdateSchema>;
+export type WebexMeetingDelete = z.infer<typeof webexMeetingDeleteSchema>;

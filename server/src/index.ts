@@ -164,9 +164,13 @@ function initServer() {
 	);
 
 	app.get("/$", (req, res) => res.redirect("/comments"));
-	app.get("/login", (req, res) =>
-		res.sendFile(path.join(__dirname, devdir, "auth/index.html"))
-	);
+	app.get("/login", (req, res) => {
+		console.log(
+			"send file",
+			path.join(__dirname, devdir, "auth/index.html")
+		);
+		res.sendFile(path.join(__dirname, devdir, "auth/index.html"));
+	});
 	app.get("/logout", (req, res) =>
 		res.sendFile(path.join(__dirname, devdir, "auth/logout.html"))
 	);

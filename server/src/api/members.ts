@@ -272,7 +272,7 @@ function getVoters(req: Request, res: Response, next: NextFunction) {
 	if (access < AccessLevel.admin)
 		return next(new ForbiddenError("Insufficient karma"));
 	const forPlenary = Boolean(req.query.plenary);
-	exportVotingMembers(group.id, forPlenary, res)
+	exportVotingMembers(group, forPlenary, res)
 		.then(() => res.end())
 		.catch(next);
 }

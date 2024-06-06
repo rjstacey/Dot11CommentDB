@@ -177,10 +177,10 @@ export async function addVoters(
 	}));
 	const results = voters.map((voter) => {
 		let { id, ...voterDB } = voter;
-		return db.query("INSERT INTO wgVoters SET ?, id=UUID_TO_BIN(?);", [
-			voterDB,
-			id,
-		]) as Promise<ResultSetHeader>;
+		return db.query<ResultSetHeader>(
+			"INSERT INTO wgVoters SET ?, id=UUID_TO_BIN(?);",
+			[voterDB, id]
+		);
 	});
 	await Promise.all(results);
 	voters = await getVoters({ id: voters.map((voter) => voter.id) });

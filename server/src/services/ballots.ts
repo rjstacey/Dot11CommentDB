@@ -128,7 +128,7 @@ export async function getBallots(constraints?: BallotQuery): Promise<Ballot[]> {
  */
 export async function getBallot(id: number) {
 	const sql = getBallotsSQL + db.format(" WHERE b.id=?", [id]);
-	const [ballot] = (await db.query({ sql, dateStrings: true })) as Ballot[];
+	const [ballot] = await db.query<(RowDataPacket & Ballot)[]>(sql);
 	if (!ballot) throw new NotFoundError(`No such ballot: ${id}`);
 	return ballot;
 }
@@ -279,10 +279,7 @@ async function addBallot(
 			"INSERT INTO ballots SET " +
 			db.format("workingGroupId=UUID_TO_BIN(?), ", [workingGroup.id]) +
 			ballotSetSql(entry);
-		const results = (await db.query({
-			sql,
-			dateStrings: true,
-		})) as ResultSetHeader;
+		const results = await db.query<ResultSetHeader>(sql);
 		id = results.insertId;
 	} catch (err: any) {
 		throw err.code == "ER_DUP_ENTRY"
@@ -302,7 +299,7 @@ async function addBallot(
  * @param ballots An array of ballots to be added
  * @returns An array of ballots as added
  */
-export async function addBallots(
+export function addBallots(
 	user: User,
 	workingGroup: Group,
 	ballots: BallotCreate[]
@@ -335,27 +332,12 @@ async function updateBallot(
 				id,
 				workingGroup.id,
 			]);
-		const result = (await db.query({
-			sql,
-			dateStrings: true,
-		})) as ResultSetHeader;
+		const result = await db.query<ResultSetHeader>(sql);
 		if (result.affectedRows !== 1)
 			throw new Error(`Unexpected: no update for ballot with id=${id}`);
 	}
 
 	return getBallotWithNewResultsSummary(user, workingGroup.id, id);
-}
-
-function validUpdate(update: any): update is BallotUpdate {
-	return (
-		isPlainObject(update) &&
-		typeof update.id === "number" &&
-		isPlainObject(update.changes)
-	);
-}
-
-export function validBallotUpdates(updates: any): updates is BallotUpdate[] {
-	return Array.isArray(updates) && updates.every(validUpdate);
 }
 
 /**
@@ -374,10 +356,6 @@ export function updateBallots(
 	return Promise.all(updates.map((u) => updateBallot(user, workingGroup, u)));
 }
 
-export function validBallotIds(ids: any): ids is number[] {
-	return Array.isArray(ids) && ids.every((id) => typeof id === "number");
-}
-
 /**
  * Delete ballots along with associated comments, resolutions and results
  *
@@ -392,10 +370,10 @@ export async function deleteBallots(
 ) {
 	// Make sure the ids are owned by the working group
 	ids = (
-		(await db.query(
+		await db.query<(RowDataPacket & { id: number })[]>(
 			"SELECT id FROM ballots WHERE id IN (?) AND workingGroupId=UUID_TO_BIN(?)",
 			[ids, workingGroup.id]
-		)) as { id: number }[]
+		)
 	).map((b) => b.id);
 
 	if (ids.length === 0) return 0;

@@ -1,5 +1,5 @@
 import db from "../utils/database";
-import type { ResultSetHeader } from "mysql2";
+import { RowDataPacket, type ResultSetHeader } from "mysql2";
 import { isPlainObject } from "../utils";
 
 export type OAuthAccountCreate = {
@@ -84,9 +84,10 @@ export function updateAuthParams(
 
 	const setsSql = sets.join(", ");
 
-	return db.query("UPDATE oauth_accounts SET " + setsSql + " WHERE id=?", [
-		id,
-	]) as Promise<ResultSetHeader>;
+	return db.query<ResultSetHeader>(
+		"UPDATE oauth_accounts SET " + setsSql + " WHERE id=?",
+		[id]
+	);
 }
 
 type OAuthConstraints = {
@@ -117,28 +118,32 @@ function getConstraintsWhereSql(constraints?: OAuthConstraints) {
 	);
 }
 
-export function getOAuthAccounts(constraints?: OAuthConstraints) {
+export function getOAuthAccounts(
+	constraints?: OAuthConstraints
+): Promise<OAuthAccount[]> {
 	let sql =
 		"SELECT " +
-			"id, " +
-			"name, " +
-			"type, " +
-			"BIN_TO_UUID(groupId) as groupId, " +
-			'DATE_FORMAT(authDate, "%Y-%m-%dT%TZ") AS authDate, ' +
-			"authUserId " +
+		"id, " +
+		"name, " +
+		"type, " +
+		"BIN_TO_UUID(groupId) as groupId, " +
+		'DATE_FORMAT(authDate, "%Y-%m-%dT%TZ") AS authDate, ' +
+		"authUserId " +
 		"FROM oauth_accounts " +
 		getConstraintsWhereSql(constraints);
-	return db.query({ sql, dateStrings: true }) as Promise<OAuthAccount[]>;
+	return db.query<(RowDataPacket & OAuthAccount)[]>(sql);
 }
 
-export function getOAuthParams(constraints?: OAuthConstraints) {
+export function getOAuthParams(
+	constraints?: OAuthConstraints
+): Promise<OAuthParams[]> {
 	let sql =
 		"SELECT " +
-			"id, " + 
-			"authParams " + 
+		"id, " +
+		"authParams " +
 		"FROM oauth_accounts " +
 		getConstraintsWhereSql(constraints);
-	return db.query(sql) as Promise<OAuthParams[]>;
+	return db.query<(RowDataPacket & OAuthParams)[]>(sql);
 }
 
 export function validOAuthAccountCreate(
@@ -172,7 +177,6 @@ export function validOAuthAccountChanges(
  * @returns OAuth account object as added
  */
 export async function addOAuthAccount(account: OAuthAccountCreate) {
-	
 	const sql = db.format(
 		"INSERT INTO oauth_accounts SET " +
 			"`name`=?, " +
@@ -214,9 +218,9 @@ export async function updateOAuthAccount(
  */
 export async function deleteOAuthAccount(groupId: string, id: number) {
 	if (!id) throw new TypeError("Must provide id with delete");
-	const { affectedRows } = (await db.query<ResultSetHeader>(
+	const { affectedRows } = await db.query<ResultSetHeader>(
 		"DELETE FROM oauth_accounts WHERE id=? AND groupId=UUID_TO_BIN(?)",
 		[id, groupId]
-	));
+	);
 	return affectedRows;
 }

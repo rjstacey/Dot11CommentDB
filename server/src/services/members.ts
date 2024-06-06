@@ -30,6 +30,7 @@ import {
 	StatusChangeEntry,
 	ContactEmail,
 } from "../schemas/members";
+import { Group } from "../schemas/groups";
 
 type UserTypeDB = Omit<UserType, "ContactInfo" | "ContactEmails"> & {
 	ContactInfo: string; // JSON
@@ -1070,7 +1071,7 @@ export async function exportMembersPrivate(groupId: string, res: Response) {
 }
 
 export async function exportVotingMembers(
-	groupId: string,
+	group: Group,
 	forPlenarySession: boolean,
 	res: Response
 ) {
@@ -1078,20 +1079,22 @@ export async function exportVotingMembers(
 		? ["Voter", "ExOfficio", "Potential Voter"]
 		: ["Voter", "ExOfficio"];
 	let members = await getMembers(AccessLevel.admin, {
-		groupId,
+		groupId: group.id,
 		Status,
 	});
 
 	let ssData = members.map((m) => ({
 		SAPIN: m.SAPIN,
-		"Family Name": m.LastName,
-		"Given Name": m.FirstName,
-		MI: m.MI,
+		"Last Name": m.LastName,
+		"First Name": m.FirstName,
+		"Middle Name": m.MI,
 		Email: m.Email,
+		Employer: m.Employer,
+		Affiliation: m.Affiliation,
 		Status: m.Status,
 	}));
 
 	const csv = await csvStringify(ssData, { header: true });
-	res.attachment("voting-members.csv");
+	res.attachment(group.name + "-voting-members.csv");
 	res.status(200).send(csv);
 }

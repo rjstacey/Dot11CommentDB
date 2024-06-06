@@ -36,7 +36,6 @@ export const sessionSchema = z.object({
 	defaultCredits: z.string().array().array(),
 	attendees: z.number(),
 });
-export type Session = z.infer<typeof sessionSchema>;
 
 export const sessionsQuerySchema = z
 	.object({
@@ -49,13 +48,11 @@ export const sessionsQuerySchema = z
 		isCancelled: z.union([z.boolean(), z.boolean().array()]),
 	})
 	.partial();
-export type SessionsQuery = z.infer<typeof sessionsQuerySchema>;
 
 export const sessionCreateSchema = sessionSchema.omit({
 	id: true,
 	attendees: true,
 });
-export type SessionCreate = z.infer<typeof sessionCreateSchema>;
 export const sessionCreatesSchema = sessionCreateSchema.array();
 
 export const sessionChangesSchema = sessionSchema
@@ -63,12 +60,16 @@ export const sessionChangesSchema = sessionSchema
 		attendees: true,
 	})
 	.partial();
-export type SessionChanges = z.infer<typeof sessionChangesSchema>;
 export const sessionUpdateSchema = z.object({
 	id: z.number(),
 	changes: sessionChangesSchema,
 });
-export type SessionUpdate = z.infer<typeof sessionUpdateSchema>;
 export const sessionUpdatesSchema = sessionUpdateSchema.array();
 
 export const sessionIdsSchema = z.number().array();
+
+export type Session = z.infer<typeof sessionSchema>;
+export type SessionsQuery = z.infer<typeof sessionsQuerySchema>;
+export type SessionCreate = z.infer<typeof sessionCreateSchema>;
+export type SessionChanges = z.infer<typeof sessionChangesSchema>;
+export type SessionUpdate = z.infer<typeof sessionUpdateSchema>;
