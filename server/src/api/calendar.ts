@@ -39,6 +39,12 @@ import {
 	revokeAuthCalendarAccount,
 	deleteCalendarAccount,
 } from "../services/calendar";
+import {
+	CalendarAccountChange,
+	CalendarAccountCreate,
+	calendarAccountChangeSchema,
+	calendarAccountCreateSchema,
+} from "../schemas/calendar";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	if (!req.group) return next(new Error("Group not set"));
@@ -63,7 +69,12 @@ function getAccounts(req: Request, res: Response, next: NextFunction) {
 }
 
 function addAccount(req: Request, res: Response, next: NextFunction) {
-	const account = req.body;
+	let account: CalendarAccountCreate;
+	try {
+		account = calendarAccountCreateSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
 	addCalendarAccount(req, req.user, req.group!.id, account)
 		.then((data) => res.json(data))
 		.catch(next);
@@ -71,7 +82,12 @@ function addAccount(req: Request, res: Response, next: NextFunction) {
 
 function updateAccount(req: Request, res: Response, next: NextFunction) {
 	const accountId = Number(req.params.accountId);
-	const changes = req.body;
+	let changes: CalendarAccountChange;
+	try {
+		changes = calendarAccountChangeSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
 	updateCalendarAccount(req, req.user, req.group!.id, accountId, changes)
 		.then((data) => res.json(data))
 		.catch(next);

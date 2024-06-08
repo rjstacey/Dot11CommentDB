@@ -19,8 +19,10 @@ export type Timeslot = z.infer<typeof timeslotSchema>;
 export const sessionTypeSchema = z.enum(["p", "i", "o", "g"]);
 export type SessionType = z.infer<typeof sessionTypeSchema>;
 
+export const sessionIdSchema = z.number();
+
 export const sessionSchema = z.object({
-	id: z.number(),
+	id: sessionIdSchema,
 	number: z.number().nullable(),
 	name: z.string(),
 	type: sessionTypeSchema,
@@ -39,7 +41,7 @@ export const sessionSchema = z.object({
 
 export const sessionsQuerySchema = z
 	.object({
-		id: z.union([z.number(), z.number().array()]),
+		id: z.union([sessionIdSchema, sessionIdSchema.array()]),
 		number: z.union([z.number(), z.number().array()]),
 		name: z.union([z.string(), z.string().array()]),
 		type: z.union([sessionTypeSchema, sessionTypeSchema.array()]),
@@ -61,12 +63,12 @@ export const sessionChangesSchema = sessionSchema
 	})
 	.partial();
 export const sessionUpdateSchema = z.object({
-	id: z.number(),
+	id: sessionIdSchema,
 	changes: sessionChangesSchema,
 });
 export const sessionUpdatesSchema = sessionUpdateSchema.array();
 
-export const sessionIdsSchema = z.number().array();
+export const sessionIdsSchema = sessionIdSchema.array();
 
 export type Session = z.infer<typeof sessionSchema>;
 export type SessionsQuery = z.infer<typeof sessionsQuerySchema>;

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { OAuth2Client } from "google-auth-library";
+import { OAuth2Client, Credentials } from "google-auth-library";
 // Google Calendar: https://developers.google.com/calendar/api/v3/reference/calendars
 import { google, calendar_v3 } from "googleapis";
 import { Request } from "express";
@@ -9,23 +9,27 @@ import {
 	genOAuthState,
 	parseOAuthState,
 	getOAuthAccounts,
-	getOAuthParams,
-	validOAuthAccountChanges,
 	addOAuthAccount,
 	updateOAuthAccount,
 	deleteOAuthAccount,
 	updateAuthParams,
-	OAuthAccount,
-	OAuthAccountCreate,
 } from "./oauthAccounts";
-import { isPlainObject } from "../utils";
+import { OAuthAccount, OAuthAccountCreate } from "../schemas/oauthAccounts";
+import {
+	CalendarAccount,
+	CalendarAccountCreate,
+	CalendarAccountChange,
+	CalendarAccountsQuery,
+} from "../schemas/calendar";
+import { NotFoundError } from "../utils";
 
-type CalendarAccount = OAuthAccount & {
-	authUrl?: string;
-	details?: calendar_v3.Schema$Calendar;
-	displayName?: string;
-	userName?: string;
-	calendarList?: calendar_v3.Schema$CalendarListEntry[];
+type CalendarAccountLocal = Omit<
+	CalendarAccount,
+	"authUrl" | "userName" | "displayName"
+> & {
+	calendar?: calendar_v3.Calendar;
+	auth: OAuth2Client;
+	authParams: Record<string, any> | null;
 };
 
 const calendarRevokeUrl = "https://oauth2.googleapis.com/revoke";
@@ -38,22 +42,10 @@ const calendarAuthScope = "https://www.googleapis.com/auth/calendar"; // string 
 
 const calendarAuthRedirectPath = "/oauth2/calendar";
 
-// Calendar account cache
-const calendars: Record<number, calendar_v3.Calendar> = {};
-const auths: Record<number, OAuth2Client> = {};
+const calendarAccounts: Record<number, CalendarAccountLocal> = {};
 
 let googleClientId = "Google client ID";
 let googleClientSecret = "Google client secret";
-
-function getCalendarApi(id: number) {
-	const calendar = calendars[id];
-	if (!calendar) throw new Error(`Invalid calendar context id=${id}`);
-	return calendar;
-}
-
-function hasCalendarApi(id: number) {
-	return !!calendars[id];
-}
 
 function createCalendarApi(id: number, auth: OAuth2Client) {
 	google.options({
@@ -75,21 +67,64 @@ function createCalendarApi(id: number, auth: OAuth2Client) {
 		version: "v3",
 		auth,
 	});
-	calendars[id] = calendar;
 	return calendar;
 }
 
-function deleteCalendarApi(id: number) {
-	delete calendars[id];
+function activateCalendarAccount(id: number, authParams: Credentials) {
+	const account = calendarAccounts[id];
+	const { access_token, ...tokens } = authParams;
+	account.auth.setCredentials(tokens);
+	account.calendar = createCalendarApi(id, account.auth);
+
+	getPrimaryCalendar(account.id)
+		.then((details) => {
+			if (details) {
+				account.details = details;
+			}
+		})
+		.catch((error) => console.warn(error));
+	getCalendarList(account.id)
+		.then((calendarList: calendar_v3.Schema$CalendarListEntry[] | void) => {
+			if (calendarList) {
+				calendarList = calendarList.filter(
+					(cal) => cal.accessRole === "owner"
+				);
+				console.log(calendarList);
+				account.calendarList = calendarList;
+			}
+		})
+		.catch((error) => console.warn(error));
 }
 
-function getAuthApi(id: number) {
-	const auth = auths[id];
-	if (!auth) throw new Error(`Invalid calendar auth context id=${id}`);
-	return auth;
+function createCalendarAccount(account: OAuthAccount) {
+	const id = account.id;
+	calendarAccounts[id] = {
+		...account,
+		auth: createAuth(id),
+		calendarList: [],
+		lastAccessed: null,
+	};
+	if (account.authParams)
+		activateCalendarAccount(id, account.authParams as Credentials);
 }
 
-function createAuthApi(id: number) {
+export function getCalendarAccount(id: number) {
+	const account = calendarAccounts[id];
+	if (!account) throw new NotFoundError(`Invalid account id=${id}`);
+	return account;
+}
+
+function removeCalendarAccount(id: number) {
+	delete calendarAccounts[id];
+}
+
+function getCalendarApi(id: number) {
+	const api = getCalendarAccount(id).calendar;
+	if (!api) throw new TypeError(`Inactive calendar account id=${id}`);
+	return api;
+}
+
+function createAuth(id: number) {
 	const auth = new google.auth.OAuth2(
 		googleClientId,
 		googleClientSecret
@@ -101,12 +136,7 @@ function createAuthApi(id: number) {
 			updateAuthParams(id, tokens);
 		}
 	});
-	auths[id] = auth;
 	return auth;
-}
-
-function deleteAuthApi(id: number) {
-	delete auths[id];
 }
 
 export async function init() {
@@ -123,21 +153,8 @@ export async function init() {
 		);
 
 	// Cache the active calendar accounts and create an api instance for each
-	const accounts = await getOAuthParams({ type: "calendar" });
-	for (const account of accounts) {
-		const { id, authParams } = account;
-		const auth = createAuthApi(id);
-		if (authParams) {
-			//console.log(`create calendar context ${id}:`, authParams);
-			// Don't restore the access_token; it is probably invalid anyway. Use the refresh_token to get a new one.
-			const { access_token, ...tokens } = authParams as Record<
-				string,
-				string
-			>;
-			auth.setCredentials(tokens);
-			createCalendarApi(id, auth);
-		}
-	}
+	const accounts = await getOAuthAccounts({ type: "calendar" });
+	accounts.forEach(createCalendarAccount);
 }
 
 /**
@@ -146,7 +163,7 @@ export async function init() {
  * @param id Calendar account identifier
  */
 function getAuthUrl(user: User, host: string, id: number) {
-	const auth = getAuthApi(id);
+	const auth = getCalendarAccount(id).auth;
 	return auth.generateAuthUrl({
 		access_type: "offline",
 		scope: calendarAuthScope,
@@ -174,7 +191,7 @@ export async function completeAuthCalendarAccount({
 		return;
 	}
 	const { accountId, userId, host } = stateObj;
-	const auth = getAuthApi(accountId);
+	const auth = getCalendarAccount(accountId).auth;
 
 	const { tokens } = await auth.getToken({
 		code,
@@ -185,70 +202,57 @@ export async function completeAuthCalendarAccount({
 	await updateAuthParams(accountId, tokens, userId);
 
 	// Create a google calendar api for this account
-	createCalendarApi(accountId, auth);
+	activateCalendarAccount(accountId, tokens);
+}
+
+function getCalendarAccountsLocal(constraints?: CalendarAccountsQuery) {
+	let accounts = Object.values(calendarAccounts).filter(
+		(account) => account.calendar
+	);
+	if (constraints) {
+		if (constraints.groupId) {
+			accounts = accounts.filter(
+				(account) => account.groupId === constraints.groupId
+			);
+		}
+		if (constraints.id) {
+			accounts = accounts.filter(
+				(account) => account.id === constraints.id
+			);
+		}
+		if (constraints.isActive) {
+			accounts = accounts.filter((account) => account.calendar);
+		}
+	}
+	return accounts;
 }
 
 export async function getCalendarAccounts(
 	req: Request,
 	user: User,
-	constraints?: {
-		id?: number | number[];
-		name?: string | string[];
-		groupId?: string | string[];
-	}
+	constraints?: CalendarAccountsQuery
 ) {
-	const accountsDB = await getOAuthAccounts({
-		type: "calendar",
-		...constraints,
-	});
-
 	const m = /(https{0,1}:\/\/[^\/]+)/i.exec(req.headers.referer || "");
 	const host = m ? m[1] : "";
 
-	const p: Promise<any>[] = [];
-	const accounts = accountsDB.map((accountDB) => {
-		const account: CalendarAccount = { ...accountDB };
+	const accounts = getCalendarAccountsLocal(constraints);
+	const accountsOut: CalendarAccount[] = accounts.map((account) => {
+		const { authParams, auth, calendar, ...rest } = account;
+		let authUrl: string = "";
 		try {
-			account.authUrl = getAuthUrl(user, host, account.id);
+			authUrl = getAuthUrl(user, host, account.id);
 		} catch (error) {
 			console.warn(error);
 		}
-		if (hasCalendarApi(account.id)) {
-			p.push(
-				getPrimaryCalendar(account.id)
-					.then((details) => {
-						if (details) {
-							account.details = details;
-							account.displayName = details.summary || "";
-							account.userName = details.id || "";
-						}
-					})
-					.catch((error) => console.warn(error))
-			);
-			p.push(
-				getCalendarList(account.id)
-					.then(
-						(
-							calendarList:
-								| calendar_v3.Schema$CalendarListEntry[]
-								| void
-						) => {
-							if (calendarList) {
-								calendarList = calendarList.filter(
-									(cal) => cal.accessRole === "owner"
-								);
-								console.log(calendarList);
-								account.calendarList = calendarList;
-							}
-						}
-					)
-					.catch((error) => console.warn(error))
-			);
-		}
-		return account;
+		const accountOut: CalendarAccount = {
+			...rest,
+			authUrl,
+			displayName: account.details?.summary || "",
+			userName: account.details?.id || "",
+		};
+		return accountOut;
 	});
-	await Promise.all(p);
-	return accounts;
+	return accountsOut;
 }
 
 /**
@@ -256,29 +260,25 @@ export async function getCalendarAccounts(
  * @param req The express request
  * @param user User executing the add
  * @param groupId Working group identifier
- * @param accountIn Expects calendar account create object, throws otherwise
+ * @param accountIn Expects calendar account create object
  * @returns Calendar account object as added
  */
 export async function addCalendarAccount(
 	req: Request,
 	user: User,
 	groupId: string,
-	accountIn: any
+	accountIn: CalendarAccountCreate
 ) {
-	if (!isPlainObject(accountIn))
-		throw new TypeError(
-			"Bad body; expected calendar account create object"
-		);
-	let account: OAuthAccountCreate = {
-		name: "",
-		...(accountIn as object),
+	let oauthAccount: OAuthAccountCreate = {
+		...accountIn,
 		type: "calendar",
 		groupId,
 	};
-	const id = await addOAuthAccount(account);
-	createAuthApi(id);
-	const [accountUpdated] = await getCalendarAccounts(req, user, { id });
-	return accountUpdated;
+	const id = await addOAuthAccount(oauthAccount);
+	const [account] = await getOAuthAccounts({ id });
+	createCalendarAccount(account);
+	const accounts = await getCalendarAccounts(req, user, { id: account.id });
+	return accounts[0];
 }
 
 /**
@@ -287,23 +287,21 @@ export async function addCalendarAccount(
  * @param user User executing the update
  * @param groupId Working group identifier
  * @param id Calendar account identifier
- * @param changes Expects calendar account update object, throws otherwise
+ * @param changes Calendar account change object
  */
 export async function updateCalendarAccount(
 	req: Request,
 	user: User,
 	groupId: string,
 	id: number,
-	changes: any
+	changes: CalendarAccountChange
 ) {
 	if (!id) throw new TypeError("Must provide id with update");
-	if (!validOAuthAccountChanges(changes))
-		throw new TypeError(
-			"Bad body; expected calendar account changes object"
-		);
 	await updateOAuthAccount(groupId, id, changes);
-	const [account] = await getCalendarAccounts(req, user, { id });
-	return account;
+	let account = getCalendarAccountsLocal({ id })[0];
+	if (changes.name) account.name = changes.name;
+	const accounts = await getCalendarAccounts(req, user, { id: account.id });
+	return accounts[0];
 }
 
 /**
@@ -319,8 +317,8 @@ export async function revokeAuthCalendarAccount(
 	groupId: string,
 	id: number
 ) {
-	const auth = getAuthApi(id);
-
+	const account = getCalendarAccount(id);
+	const auth = account.auth;
 	axios
 		.post(calendarRevokeUrl, { token: auth.credentials.access_token })
 		.then((response) =>
@@ -328,11 +326,11 @@ export async function revokeAuthCalendarAccount(
 		)
 		.catch((error) => console.log("revoke calendar token error:", error));
 	await updateAuthParams(id, null, user.SAPIN);
-	deleteCalendarApi(id);
-	createAuthApi(id); // replace current auth context with clean one
+	delete account.calendar;
+	account.auth = createAuth(id); // replace current auth context with clean one
 
-	const [account] = await getCalendarAccounts(req, user, { id });
-	return account;
+	const [accountOut] = await getCalendarAccounts(req, user, { id });
+	return accountOut;
 }
 
 /**
@@ -342,8 +340,7 @@ export async function revokeAuthCalendarAccount(
  */
 export async function deleteCalendarAccount(groupId: string, id: number) {
 	const affectedRows = await deleteOAuthAccount(groupId, id);
-	deleteCalendarApi(id);
-	deleteAuthApi(id);
+	removeCalendarAccount(id);
 	return affectedRows;
 }
 
@@ -364,20 +361,28 @@ function calendarApiError(error: any) {
 export async function getPrimaryCalendar(
 	id: number
 ): Promise<calendar_v3.Schema$Calendar | void> {
+	const account = getCalendarAccount(id);
 	const calendar = getCalendarApi(id);
 	return calendar.calendars
 		.get({ calendarId: "primary" })
-		.then((response) => response.data)
+		.then((response) => {
+			account.lastAccessed = new Date().toISOString();
+			return response.data;
+		})
 		.catch(calendarApiError);
 }
 
 export async function getCalendarList(
 	id: number
 ): Promise<calendar_v3.Schema$CalendarListEntry[] | void> {
+	const account = getCalendarAccount(id);
 	const calendar = getCalendarApi(id);
 	return calendar.calendarList
 		.list({ showHidden: true })
-		.then((response) => response.data.items)
+		.then((response) => {
+			account.lastAccessed = new Date().toISOString();
+			return response.data.items;
+		})
 		.catch(calendarApiError);
 }
 
@@ -389,10 +394,14 @@ export async function getCalendarEvent(
 	id: number,
 	eventId: string
 ): Promise<CalendarEvent | void> {
+	const account = getCalendarAccount(id);
 	const calendar = getCalendarApi(id);
 	return calendar.events
 		.get({ calendarId, eventId })
-		.then((response) => response.data)
+		.then((response) => {
+			account.lastAccessed = new Date().toISOString();
+			return response.data;
+		})
 		.catch(calendarApiError);
 }
 
@@ -400,10 +409,14 @@ export async function addCalendarEvent(
 	id: number,
 	params: object
 ): Promise<CalendarEvent | void> {
+	const account = getCalendarAccount(id);
 	const calendar = getCalendarApi(id);
 	return calendar.events
 		.insert({ calendarId, requestBody: params })
-		.then((response) => response.data)
+		.then((response) => {
+			account.lastAccessed = new Date().toISOString();
+			return response.data;
+		})
 		.catch(calendarApiError);
 }
 
@@ -411,10 +424,14 @@ export async function deleteCalendarEvent(
 	id: number,
 	eventId: string
 ): Promise<CalendarEvent | void> {
+	const account = getCalendarAccount(id);
 	const calendar = getCalendarApi(id);
 	return calendar.events
 		.delete({ calendarId, eventId })
-		.then((response) => response.data)
+		.then((response) => {
+			account.lastAccessed = new Date().toISOString();
+			return response.data;
+		})
 		.catch(calendarApiError);
 }
 
@@ -423,9 +440,13 @@ export async function updateCalendarEvent(
 	eventId: string,
 	changes: object
 ): Promise<CalendarEvent | void> {
+	const account = getCalendarAccount(id);
 	const calendar = getCalendarApi(id);
 	return calendar.events
 		.patch({ calendarId, eventId, requestBody: changes })
-		.then((response) => response.data)
+		.then((response) => {
+			account.lastAccessed = new Date().toISOString();
+			return response.data;
+		})
 		.catch(calendarApiError);
 }

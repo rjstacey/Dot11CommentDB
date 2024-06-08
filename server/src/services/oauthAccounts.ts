@@ -1,25 +1,13 @@
 import db from "../utils/database";
 import { RowDataPacket, type ResultSetHeader } from "mysql2";
 import { isPlainObject } from "../utils";
-
-export type OAuthAccountCreate = {
-	name: string;
-	type: string;
-	groupId: string;
-};
-
-export type OAuthAccount = OAuthAccountCreate & {
-	id: number;
-	authUserId: number | null;
-	authDate: string | null;
-};
-
-export type OAuthParams = {
-	id: OAuthAccount["id"];
-	authParams: object | null;
-};
-
-export type OAuthAccountChanges = Partial<OAuthAccountCreate>;
+import {
+	OAuthAccount,
+	OAuthAccountCreate,
+	OAuthAccountChange,
+	OAuthAccountsQuery,
+	OAuthParams,
+} from "../schemas/oauthAccounts";
 
 type AuthState = {
 	accountId: number;
@@ -90,11 +78,7 @@ export function updateAuthParams(
 	);
 }
 
-type OAuthConstraints = {
-	[K in keyof OAuthAccount]?: OAuthAccount[K] | OAuthAccount[K][];
-};
-
-function getConstraintsWhereSql(constraints?: OAuthConstraints) {
+function getConstraintsWhereSql(constraints?: OAuthAccountsQuery) {
 	if (!constraints) return "";
 
 	return (
@@ -119,28 +103,31 @@ function getConstraintsWhereSql(constraints?: OAuthConstraints) {
 }
 
 export function getOAuthAccounts(
-	constraints?: OAuthConstraints
+	constraints?: OAuthAccountsQuery
 ): Promise<OAuthAccount[]> {
+	// prettier-ignore
 	let sql =
 		"SELECT " +
-		"id, " +
-		"name, " +
-		"type, " +
-		"BIN_TO_UUID(groupId) as groupId, " +
-		'DATE_FORMAT(authDate, "%Y-%m-%dT%TZ") AS authDate, ' +
-		"authUserId " +
+			"id, " +
+			"name, " +
+			"type, " +
+			"BIN_TO_UUID(groupId) as groupId, " +
+			'DATE_FORMAT(authDate, "%Y-%m-%dT%TZ") AS authDate, ' +
+			"authUserId, " +
+			"authParams " +
 		"FROM oauth_accounts " +
 		getConstraintsWhereSql(constraints);
 	return db.query<(RowDataPacket & OAuthAccount)[]>(sql);
 }
 
 export function getOAuthParams(
-	constraints?: OAuthConstraints
+	constraints?: OAuthAccountsQuery
 ): Promise<OAuthParams[]> {
+	// prettier-ignore
 	let sql =
 		"SELECT " +
-		"id, " +
-		"authParams " +
+			"id, " +
+			"authParams " +
 		"FROM oauth_accounts " +
 		getConstraintsWhereSql(constraints);
 	return db.query<(RowDataPacket & OAuthParams)[]>(sql);
@@ -159,7 +146,7 @@ export function validOAuthAccountCreate(
 
 export function validOAuthAccountChanges(
 	account: any
-): account is OAuthAccountChanges {
+): account is OAuthAccountChange {
 	return (
 		isPlainObject(account) &&
 		(typeof account.type === "undefined" ||
@@ -198,7 +185,7 @@ export async function addOAuthAccount(account: OAuthAccountCreate) {
 export async function updateOAuthAccount(
 	groupId: string,
 	id: number,
-	changes: OAuthAccountChanges
+	changes: OAuthAccountChange
 ) {
 	if (!id) throw new TypeError("Must provide id with update");
 	if (!validOAuthAccountChanges(changes))

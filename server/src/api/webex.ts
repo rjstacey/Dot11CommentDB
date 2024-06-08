@@ -5,6 +5,18 @@ import { Request, Response, NextFunction, Router } from "express";
 import { ForbiddenError } from "../utils";
 import { AccessLevel } from "../auth/access";
 import {
+	webexAccountCreateSchema,
+	webexAccountChangeSchema,
+	WebexAccountCreate,
+	WebexAccountChange,
+	webexMeetingDeletesSchema,
+	webexMeetingChangesSchema,
+	webexMeetingCreatesSchema,
+	WebexMeetingDelete,
+	WebexMeetingChange,
+	WebexMeetingCreate,
+} from "../schemas/webex";
+import {
 	getWebexAccounts,
 	updateWebexAccount,
 	addWebexAccount,
@@ -38,7 +50,12 @@ function getAccounts(req: Request, res: Response, next: NextFunction) {
 }
 
 function addAccount(req: Request, res: Response, next: NextFunction) {
-	const account = req.body;
+	let account: WebexAccountCreate;
+	try {
+		account = webexAccountCreateSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
 	addWebexAccount(req, req.user, req.group!.id, account)
 		.then((data) => res.json(data))
 		.catch(next);
@@ -46,7 +63,12 @@ function addAccount(req: Request, res: Response, next: NextFunction) {
 
 function updateAccount(req: Request, res: Response, next: NextFunction) {
 	const accountId = Number(req.params.accountId);
-	const changes = req.body;
+	let changes: WebexAccountChange;
+	try {
+		changes = webexAccountChangeSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
 	updateWebexAccount(req, req.user, req.group!.id, accountId, changes)
 		.then((data) => res.json(data))
 		.catch(next);
@@ -67,21 +89,36 @@ function getMeetings(req: Request, res: Response, next: NextFunction) {
 }
 
 function addMeetings(req: Request, res: Response, next: NextFunction) {
-	const webexMeetings = req.body;
+	let webexMeetings: WebexMeetingCreate[];
+	try {
+		webexMeetings = webexMeetingCreatesSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
 	addWebexMeetings(webexMeetings)
 		.then((data) => res.json(data))
 		.catch(next);
 }
 
 function updateMeetings(req: Request, res: Response, next: NextFunction) {
-	const webexMeetings = req.body;
+	let webexMeetings: WebexMeetingChange[];
+	try {
+		webexMeetings = webexMeetingChangesSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
 	updateWebexMeetings(webexMeetings)
 		.then((data) => res.json(data))
 		.catch(next);
 }
 
 function removeMeetings(req: Request, res: Response, next: NextFunction) {
-	const webexMeetings = req.body;
+	let webexMeetings: WebexMeetingDelete[];
+	try {
+		webexMeetings = webexMeetingDeletesSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
 	deleteWebexMeetings(webexMeetings)
 		.then((data) => res.json(data))
 		.catch(next);

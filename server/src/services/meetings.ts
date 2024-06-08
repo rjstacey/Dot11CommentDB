@@ -24,7 +24,7 @@ import {
 import {
 	WebexMeeting,
 	WebexMeetingCreate,
-	WebexMeetingUpdate,
+	WebexMeetingChange,
 } from "../schemas/webex";
 
 import {
@@ -243,7 +243,7 @@ function meetingToSetSql(e: MeetingChanges) {
  */
 function meetingToWebexMeeting(meeting: MeetingCreate) {
 	const timezone = meeting.timezone || "America/New_York";
-	const webexMeeting: WebexMeetingCreate & WebexMeetingUpdate = {
+	const webexMeeting: WebexMeetingCreate & WebexMeetingChange = {
 		accountId: meeting.webexAccountId!,
 		password: "wireless",
 		enabledAutoRecordMeeting: false,
@@ -315,7 +315,7 @@ export async function webexMeetingImatLocation(
 	webexMeeting: WebexMeeting
 ) {
 	let location = "";
-	const webexAccount = await getWebexAccount(webexAccountId);
+	const webexAccount = getWebexAccount(webexAccountId);
 	if (webexAccount) location = webexAccount.name + ": ";
 	location += formatMeetingNumber(webexMeeting.meetingNumber);
 	return location;
