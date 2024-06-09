@@ -358,6 +358,10 @@ function calendarApiError(error: any) {
 	throw new Error(error);
 }
 
+function touchAccount(account: CalendarAccountLocal) {
+	account.lastAccessed = new Date().toISOString();
+}
+
 export async function getPrimaryCalendar(
 	id: number
 ): Promise<calendar_v3.Schema$Calendar | void> {
@@ -366,7 +370,7 @@ export async function getPrimaryCalendar(
 	return calendar.calendars
 		.get({ calendarId: "primary" })
 		.then((response) => {
-			account.lastAccessed = new Date().toISOString();
+			touchAccount(account);
 			return response.data;
 		})
 		.catch(calendarApiError);
@@ -380,7 +384,7 @@ export async function getCalendarList(
 	return calendar.calendarList
 		.list({ showHidden: true })
 		.then((response) => {
-			account.lastAccessed = new Date().toISOString();
+			touchAccount(account);
 			return response.data.items;
 		})
 		.catch(calendarApiError);
@@ -399,7 +403,7 @@ export async function getCalendarEvent(
 	return calendar.events
 		.get({ calendarId, eventId })
 		.then((response) => {
-			account.lastAccessed = new Date().toISOString();
+			touchAccount(account);
 			return response.data;
 		})
 		.catch(calendarApiError);
@@ -414,7 +418,7 @@ export async function addCalendarEvent(
 	return calendar.events
 		.insert({ calendarId, requestBody: params })
 		.then((response) => {
-			account.lastAccessed = new Date().toISOString();
+			touchAccount(account);
 			return response.data;
 		})
 		.catch(calendarApiError);
@@ -429,7 +433,7 @@ export async function deleteCalendarEvent(
 	return calendar.events
 		.delete({ calendarId, eventId })
 		.then((response) => {
-			account.lastAccessed = new Date().toISOString();
+			touchAccount(account);
 			return response.data;
 		})
 		.catch(calendarApiError);
@@ -445,7 +449,7 @@ export async function updateCalendarEvent(
 	return calendar.events
 		.patch({ calendarId, eventId, requestBody: changes })
 		.then((response) => {
-			account.lastAccessed = new Date().toISOString();
+			touchAccount(account);
 			return response.data;
 		})
 		.catch(calendarApiError);

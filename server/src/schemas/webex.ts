@@ -301,6 +301,7 @@ export const webexAccountSchema = oAuthAccountSchema
 			siteUrl: z.string().url().optional(),
 			preferences: webexMeetingPreferencesSchema.optional(),
 			templates: webexMeetingTemplateSchema.array(),
+			lastAccessed: z.string().datetime().nullable(),
 		})
 	);
 export type WebexAccount = z.infer<typeof webexAccountSchema>;

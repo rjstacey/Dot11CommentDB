@@ -113,7 +113,11 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 
 	// Add a response interceptor
 	api.interceptors.response.use(
-		(response) => response,
+		(response) => {
+			const account = getWebexAccount(id);
+			account.lastAccessed = new Date().toISOString();
+			return response;
+		},
 		async (error) => {
 			if (error.response && error.response.status === 401) {
 				// If we get 'Unauthorized' then refresh the access token
@@ -155,8 +159,7 @@ function activateWebexAccount(id: number, authParams: WebexAuthParams) {
 		})
 		.catch((error) => console.warn(`getWebexAccountOwner(${id})`, error));
 	getWebexMeetingPreferencesSites(id)
-		.then((data: { sites: WebexSites[] }) => {
-			const { sites } = data;
+		.then((sites) => {
 			let siteUrl: string | undefined;
 			for (const site of sites) {
 				if (site.default) siteUrl = site.siteUrl;
@@ -186,6 +189,7 @@ function createWebexAccount(account: OAuthAccount) {
 	webexAccounts[id] = {
 		...account,
 		templates: [],
+		lastAccessed: null,
 	};
 	if (account.authParams)
 		activateWebexAccount(id, account.authParams as WebexAuthParams);
@@ -440,12 +444,12 @@ async function getWebexTemplates(id: number) {
 		.catch(webexApiError);
 }
 
-function getWebexMeetingPreferencesSites(id: number) {
+function getWebexMeetingPreferencesSites(id: number): Promise<WebexSites[]> {
 	const api = getWebexAccountApi(id);
 	let url = "/meetingPreferences/sites";
 	return api
 		.get(url)
-		.then((response) => response.data)
+		.then((response) => response.data.sites)
 		.catch(webexApiError);
 }
 
