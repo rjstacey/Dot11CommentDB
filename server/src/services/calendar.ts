@@ -89,7 +89,6 @@ function activateCalendarAccount(id: number, authParams: Credentials) {
 				calendarList = calendarList.filter(
 					(cal) => cal.accessRole === "owner"
 				);
-				console.log(calendarList);
 				account.calendarList = calendarList;
 			}
 		})

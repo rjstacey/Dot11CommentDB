@@ -208,17 +208,17 @@ export async function getMember(
  * A details list of users (IEEE account holders)
  */
 export function getUsers() {
+	// prettier-ignore
 	let sql =
 		"SELECT " +
-		"SAPIN, " +
-		"Email, " +
-		"Name, " +
-		"FirstName, MI, LastName, " +
-		"Employer, " +
-		"ContactInfo, " +
-		"ContactEmails " +
+			"SAPIN, " +
+			"Email, " +
+			"Name, " +
+			"FirstName, MI, LastName, " +
+			"Employer, " +
+			"ContactInfo, " +
+			"ContactEmails " +
 		"FROM users";
-	console.log(sql);
 	return db.query(sql) as Promise<UserType[]>;
 }
 
@@ -233,7 +233,10 @@ export type UserMember = {
  * A list of members is available to any member (for reassigning comments, etc.).
  * We only care about members with status Aspirant, Potential Voter, Voter or ExOfficial.
  */
-export function getUserMembers(access: number, groupId: string) {
+export function getUserMembers(
+	access: number,
+	groupId: string
+): Promise<UserMember[]> {
 	let sql = "SELECT SAPIN, Name, Status";
 	// Admin privileges needed to see email addresses
 	if (access >= AccessLevel.rw) sql += ", Email";
@@ -243,7 +246,7 @@ export function getUserMembers(access: number, groupId: string) {
 		`groupId=UUID_TO_BIN(${db.escape(groupId)}) ` +
 		'AND Status IN ("Aspirant", "Potential Voter", "Voter", "ExOfficio")';
 
-	return db.query(sql) as Promise<UserMember[]>;
+	return db.query<(RowDataPacket & UserMember)[]>(sql);
 }
 
 /*
