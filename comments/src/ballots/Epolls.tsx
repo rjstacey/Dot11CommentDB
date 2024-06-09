@@ -129,11 +129,7 @@ function Epolls() {
 						onClick={load}
 						disabled={loading || !isOnline}
 					/>
-					<ActionButton
-						name="close"
-						title="Close"
-						onClick={close}
-					/>
+					<ActionButton name="close" title="Close" onClick={close} />
 				</span>
 			</div>
 			<div className="table-container" style={{ maxWidth }}>
@@ -149,10 +145,12 @@ function Epolls() {
 				isOpen={addBallot !== null}
 				onRequestClose={() => setAddBallot(null)}
 			>
-				<BallotAddForm
-					defaultBallot={addBallot || undefined}
-					close={() => setAddBallot(null)}
-				/>
+				{addBallot && (
+					<BallotAddForm
+						defaultBallot={addBallot}
+						close={() => setAddBallot(null)}
+					/>
+				)}
 			</AppModal>
 		</>
 	);

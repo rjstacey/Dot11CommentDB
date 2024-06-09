@@ -70,12 +70,22 @@ function BallotEditMultipleWithActions({
 	);
 }
 
-function getDefaultBallot(): Ballot {
+function nextBallotNumber(ballots: Ballot[], type: number) {
+	let maxNumber = 0;
+	for (const b of ballots) {
+		if (b.Type === type && b.number && b.number > maxNumber)
+			maxNumber = b.number;
+	}
+	return maxNumber + 1;
+}
+
+function getDefaultBallot(ballots: Ballot[]): Ballot {
 	const now = new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	return {
 		groupId: null,
-		number: 0,
+		Type: 0,
+		number: nextBallotNumber(ballots, 0),
 		Project: "",
 		EpollNum: 0,
 		Document: "",
@@ -83,7 +93,6 @@ function getDefaultBallot(): Ballot {
 		Start: today.toISOString(),
 		End: today.toISOString(),
 		prev_id: 0,
-		Type: 0,
 		IsRecirc: false,
 		IsComplete: false,
 
@@ -98,14 +107,12 @@ export function BallotAddForm({
 	defaultBallot,
 	close,
 }: {
-	defaultBallot?: Ballot;
+	defaultBallot: Ballot;
 	close: () => void;
 }) {
 	const dispatch = useAppDispatch();
 	const [busy, setBusy] = React.useState(false);
-	const [ballot, setBallot] = React.useState(
-		defaultBallot || getDefaultBallot
-	);
+	const [ballot, setBallot] = React.useState(defaultBallot);
 
 	let errorMsg = "";
 	if (!ballot.groupId) errorMsg = "Group not set";
@@ -171,6 +178,13 @@ function BallotDetail({
 	const ballots = React.useMemo(
 		() => selected.map((id) => entities[id]!).filter((b) => Boolean(b)),
 		[selected, entities]
+	);
+	const defaultBallot = React.useMemo(
+		() =>
+			getDefaultBallot(
+				Object.values(entities as { [s: string]: Ballot })
+			),
+		[entities]
 	);
 
 	const edit: boolean | undefined =
@@ -245,7 +259,10 @@ function BallotDetail({
 			{placeholder ? (
 				<Placeholder>{placeholder}</Placeholder>
 			) : action === "add" ? (
-				<BallotAddForm close={() => setAction("update")} />
+				<BallotAddForm
+					defaultBallot={defaultBallot}
+					close={() => setAction("update")}
+				/>
 			) : (
 				<BallotEditMultipleWithActions
 					ballots={ballots}

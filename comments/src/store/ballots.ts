@@ -77,16 +77,17 @@ export type Ballot = {
 };
 
 export function validBallot(ballot: any): ballot is Ballot {
-	const r = (
+	const r =
 		isObject(ballot) &&
 		typeof ballot.id === "number" &&
-		(ballot.Type === BallotType.CC || ballot.Type === BallotType.WG || ballot.Type === BallotType.SA || ballot.Type === BallotType.Motion) &&
+		(ballot.Type === BallotType.CC ||
+			ballot.Type === BallotType.WG ||
+			ballot.Type === BallotType.SA ||
+			ballot.Type === BallotType.Motion) &&
 		(ballot.number === null || typeof ballot.number === "number") &&
 		typeof ballot.Project === "string" &&
-		typeof ballot.groupId === 'string'
-	);
-	if (!r)
-		console.log(ballot)
+		typeof ballot.groupId === "string";
+	if (!r) console.log(ballot);
 	return r;
 }
 
@@ -175,7 +176,7 @@ export const fields = {
 };
 
 export function getBallotId(ballot: Ballot) {
-	return BallotTypeLabels[ballot.Type] + (ballot.number || "(Blank)")
+	return BallotTypeLabels[ballot.Type] + (ballot.number || "(Blank)");
 }
 
 export function getField(entity: Ballot, dataKey: string) {
@@ -188,8 +189,7 @@ export function getField(entity: Ballot, dataKey: string) {
 		return getBallotId(entity);
 	}
 	return entity[dataKey as keyof Ballot];
-};
-
+}
 
 export type GroupProject = {
 	groupId: string | null;
@@ -214,7 +214,7 @@ const sortComparer = (b1: Ballot, b2: Ballot) => {
 	if (b1.Project === b2.Project)
 		return (b1.Start || "").localeCompare(b2.Start || "");
 	return (b1.Project || "").localeCompare(b2.Project || "");
-}
+};
 const dataSet = "ballots";
 
 const slice = createAppTableDataSlice({
@@ -308,9 +308,7 @@ const {
 } = slice.actions;
 
 // Overload getPending() with one that sets groupName
-const getPending = createAction<{ groupName: string }>(
-	dataSet + "/getPending"
-);
+const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
 export const clearBallots = createAction(dataSet + "/clear");
 
 export { setUiProperties, setSelectedBallots };
@@ -331,11 +329,13 @@ export const selectCurrentProject = (state: RootState) =>
 	selectBallotsState(state).currentProject;
 export const selectCurrentBallotID = (state: RootState) => {
 	const { currentBallot_id, entities } = selectBallotsState(state);
-	if (currentBallot_id === null)
-		return;
+	if (currentBallot_id === null) return;
 	const ballot = entities[currentBallot_id];
 	if (ballot)
-		return BallotTypeLabels[ballot.Type] + (ballot.number? ballot.number: "(Blank)");
+		return (
+			BallotTypeLabels[ballot.Type] +
+			(ballot.number ? ballot.number : "(Blank)")
+		);
 };
 
 export const selectBallots = createSelector(
@@ -347,9 +347,10 @@ export const selectBallots = createSelector(
 export const selectBallotByBallotID = (state: RootState, ballotId: string) => {
 	const m = ballotId.match(/(CC|LB|SA|M)(\d+)/);
 	if (m) {
-		const entry = Object.entries(BallotTypeLabels).find(([key, value]) => value === m[1]);
-		if (!entry)
-			return;
+		const entry = Object.entries(BallotTypeLabels).find(
+			([key, value]) => value === m[1]
+		);
+		if (!entry) return;
 		const type = Number(entry[0]);
 		const n = Number(m[2]);
 		const ballots = selectBallots(state);
@@ -366,10 +367,12 @@ const selectSyncedBallotEntities = createSelector(
 		const syncedEntities: Record<EntityId, SyncedBallot> = {};
 		ids.forEach((id) => {
 			const ballot = entities[id]!;
-			const prevBallot = ballot.prev_id? entities[ballot.prev_id]: undefined;
-			const PrevBallotID = prevBallot?
-				BallotTypeLabels[prevBallot.Type] + prevBallot.number:
-				null;
+			const prevBallot = ballot.prev_id
+				? entities[ballot.prev_id]
+				: undefined;
+			const PrevBallotID = prevBallot
+				? BallotTypeLabels[prevBallot.Type] + prevBallot.number
+				: null;
 			const GroupName =
 				(ballot.groupId &&
 					(groupEntities[ballot.groupId]?.name || "Unknown")) ||
@@ -462,24 +465,23 @@ export const selectBallotSeries = createSelector(
 			for (const id of ids) {
 				const ballotNext = entities[id]!;
 				if (ballotNext.prev_id === ballot.id)
-					return ballotSeries.concat(getBallotSeries(ballotNext))
+					return ballotSeries.concat(getBallotSeries(ballotNext));
 			}
 			return ballotSeries;
 		}
 		const ballot = entities[ballot_id];
-		return ballot? getBallotSeries(ballot): undefined;
+		return ballot ? getBallotSeries(ballot) : undefined;
 	}
-)
+);
 
 export const selectBallotSeriesId = (state: RootState, ballot: Ballot) => {
 	const entities = selectBallotEntities(state);
 	let b: Ballot | undefined = ballot;
 	do {
-		if (b.Type === BallotType.WG && !b.IsRecirc)
-			return b.id;
-		b = b.prev_id? entities[b.prev_id]: undefined;
+		if (b.Type === BallotType.WG && !b.IsRecirc) return b.id;
+		b = b.prev_id ? entities[b.prev_id] : undefined;
 	} while (b);
-}
+};
 
 export const selectBallot = (state: RootState, ballot_id: number) =>
 	selectSyncedBallotEntities(state)[ballot_id];
@@ -494,10 +496,12 @@ export const selectCurrentBallotSeries = createSelector(
 	selectCurrentBallot_id,
 	(entities, currentBallot_id) => {
 		const ballots: Ballot[] = [];
-		let ballot: Ballot | undefined = currentBallot_id? entities[currentBallot_id]: undefined;;
+		let ballot: Ballot | undefined = currentBallot_id
+			? entities[currentBallot_id]
+			: undefined;
 		while (ballot) {
 			ballots.unshift(ballot);
-			ballot = ballot.prev_id? entities[ballot.prev_id]: undefined;
+			ballot = ballot.prev_id ? entities[ballot.prev_id] : undefined;
 		}
 		return ballots;
 	}
@@ -554,7 +558,9 @@ export const loadBallots =
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
-				response.forEach((b: any) => {delete b.BallotID})
+				response.forEach((b: any) => {
+					delete b.BallotID;
+				});
 				dispatch(getSuccess(response));
 				return response;
 			})
@@ -609,9 +615,7 @@ export const addBallot =
 			if (!validResponse(response) || response.length !== 1)
 				throw new TypeError("Unexpected response");
 		} catch (error) {
-			dispatch(
-				setError("Unable to add ballot", error)
-			);
+			dispatch(setError("Unable to add ballot", error));
 			return;
 		}
 		const [updatedBallot] = response;

@@ -17,7 +17,7 @@ import SelectGroup from "./GroupSelector";
 import SelectProject from "./ProjectSelector";
 import SelectPrevBallot from "./PrevBallotSelecor";
 
-import { useAppDispatch } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	updateBallots,
 	setCurrentGroupProject,
@@ -25,6 +25,7 @@ import {
 	Ballot,
 	BallotEdit,
 	BallotUpdate,
+	selectBallots,
 } from "../store/ballots";
 
 const BLANK_STR = "(Blank)";
@@ -165,6 +166,15 @@ const BallotStage = ({
 	</div>
 );
 
+function nextBallotNumber(ballots: Ballot[], type: number) {
+	let maxNumber = 0;
+	for (const b of ballots) {
+		if (b.Type === type && b.number && b.number > maxNumber)
+			maxNumber = b.number;
+	}
+	return maxNumber + 1;
+}
+
 export function Column1({
 	ballot,
 	updateBallot,
@@ -174,7 +184,14 @@ export function Column1({
 	updateBallot: (changes: Partial<BallotEdit>) => void;
 	readOnly?: boolean;
 }) {
+	const ballots = useAppSelector(selectBallots);
 	const isMultipleBallots = isMultiple(ballot.id);
+
+	function handleUpdate(changes: Partial<BallotEdit>) {
+		if (typeof changes.Type !== "undefined")
+			changes.number = nextBallotNumber(ballots, changes.Type);
+		updateBallot(changes);
+	}
 
 	const change: React.ChangeEventHandler<
 		HTMLInputElement | HTMLTextAreaElement
@@ -228,7 +245,7 @@ export function Column1({
 				<Field label="Ballot type:">
 					<BallotTypeSelect
 						ballot={ballot}
-						updateBallot={updateBallot}
+						updateBallot={handleUpdate}
 						readOnly={readOnly}
 					/>
 				</Field>
