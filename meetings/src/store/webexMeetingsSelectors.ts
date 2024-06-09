@@ -27,7 +27,7 @@ export type WebexMeetingAudioConnectionOptions = {
 	allowHostToUnmuteParticipants: boolean;
 	audioConnectionType?: "webexAudio" | "VoIP" | "other" | "none";
 	enabledAudienceCallBack: boolean;
-	enabledGlobalCallIn: boolean;
+	enabledGlobalCallIn?: boolean;
 	enabledTollFreeCallIn: boolean;
 };
 
@@ -106,7 +106,7 @@ export const defaultWebexMeetingParams: WebexMeetingParams = {
 		allowHostToUnmuteParticipants: false,
 		//audioConnectionType: "webexAudio",
 		enabledAudienceCallBack: false,
-		enabledGlobalCallIn: true,
+		//enabledGlobalCallIn: true,
 		enabledTollFreeCallIn: false,
 		entryAndExitTone: "noTone",
 		muteAttendeeUponEntry: true,
@@ -220,7 +220,9 @@ export const webexMeetingsSelectors = getAppTableDataSelectors(
 );
 
 export const selectUserWebexMeetingsAccess = (state: RootState) => {
-	const {groupName} = selectWebexMeetingsState(state);
-	const group = groupName? selectWorkingGroupByName(state, groupName): undefined;
+	const { groupName } = selectWebexMeetingsState(state);
+	const group = groupName
+		? selectWorkingGroupByName(state, groupName)
+		: undefined;
 	return group?.permissions.meetings || AccessLevel.none;
-}
+};

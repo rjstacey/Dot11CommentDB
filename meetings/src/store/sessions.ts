@@ -40,6 +40,7 @@ export interface Session {
 	name: string;
 	type: SessionType | null;
 	groupId: string | null;
+	isCancelled: boolean;
 	imatMeetingId: number | null;
 	OrganizerID: string;
 	timezone: string;
@@ -67,11 +68,16 @@ export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 		({ value, label } as { value: SessionType; label: string })
 );
 
-export const displaySessionType = (type: SessionType | null) =>	type? SessionTypeLabels[type]: '';
+export const displaySessionType = (type: SessionType | null) =>
+	type ? SessionTypeLabels[type] : "";
 
 export type Credit = "Normal" | "Extra" | "Zero" | "Other";
 
-export function getCredit(creditStr: string): {credit: Credit, creditOverrideNumerator: number, creditOverrideDenominator: number} {
+export function getCredit(creditStr: string): {
+	credit: Credit;
+	creditOverrideNumerator: number;
+	creditOverrideDenominator: number;
+} {
 	let credit: Credit = "Zero",
 		creditOverrideNumerator = 0,
 		creditOverrideDenominator = 0;
@@ -80,15 +86,14 @@ export function getCredit(creditStr: string): {credit: Credit, creditOverrideNum
 		credit = "Other";
 		creditOverrideNumerator = Number(m[2]);
 		creditOverrideDenominator = Number(m[3]);
-	}
-	else if (/Normal|Extra|Zero/.test(creditStr)) {
+	} else if (/Normal|Extra|Zero/.test(creditStr)) {
 		credit = creditStr as Credit;
 	}
 	return {
 		credit,
 		creditOverrideNumerator,
-		creditOverrideDenominator
-	}
+		creditOverrideDenominator,
+	};
 }
 
 export const fields = {
@@ -115,7 +120,6 @@ export const fields = {
 	attendees: { label: "Attendees" },
 };
 
-
 /*
  * Slice
  */
@@ -135,24 +139,24 @@ const slice = createAppTableDataSlice({
 	reducers: {},
 	extraReducers(builder, dataAdapter) {
 		builder
-		.addMatcher(
-			(action) => action.type === getPending.toString(),
-			(state, action: ReturnType<typeof getPending>) => {
-				const {groupName} = action.payload;
-				if (state.groupName !== groupName) {
-					state.groupName = groupName;
-					dataAdapter.removeAll(state);
+			.addMatcher(
+				(action) => action.type === getPending.toString(),
+				(state, action: ReturnType<typeof getPending>) => {
+					const { groupName } = action.payload;
+					if (state.groupName !== groupName) {
+						state.groupName = groupName;
+						dataAdapter.removeAll(state);
+					}
 				}
-			}
-		)
-		.addMatcher(
-			(action) => action.type === clearSessions.toString(),
-			(state) => {
-				dataAdapter.removeAll(state);
-				state.valid = false;
-			}
-		)
-	}
+			)
+			.addMatcher(
+				(action) => action.type === clearSessions.toString(),
+				(state) => {
+					dataAdapter.removeAll(state);
+					state.valid = false;
+				}
+			);
+	},
 });
 
 export default slice;
@@ -242,13 +246,15 @@ export const sessionsSelectors = getAppTableDataSelectors(selectSessionsState, {
 });
 
 export const selectUserSessionsAccess = (state: RootState) => {
-	const {groupName} = selectSessionsState(state);
-	const group = groupName? selectWorkingGroupByName(state, groupName): undefined;
+	const { groupName } = selectSessionsState(state);
+	const group = groupName
+		? selectWorkingGroupByName(state, groupName)
+		: undefined;
 	return group?.permissions.meetings || AccessLevel.none;
-}
+};
 
 // Override the default getPending()
-const getPending = createAction<{groupName: string}>(dataSet + "/getPending");
+const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
 export const clearSessions = createAction(dataSet + "/clear");
 
 /* Thunk actions */
@@ -276,13 +282,16 @@ let loadingPromise: Promise<Session[]>;
 export const loadSessions =
 	(groupName: string): AppThunk<Session[]> =>
 	(dispatch, getState) => {
-		const {loading, groupName: currnetGroupName} = selectSessionsState(getState());
+		const { loading, groupName: currnetGroupName } = selectSessionsState(
+			getState()
+		);
 		if (loading && currnetGroupName === groupName) {
 			return loadingPromise;
 		}
-		dispatch(getPending({groupName}));
+		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/sessions`;
-		loadingPromise = fetcher.get(url)
+		loadingPromise = fetcher
+			.get(url)
 			.then((response: any) => {
 				if (!validSessions(response))
 					throw new TypeError("Unexpected response to GET " + url);

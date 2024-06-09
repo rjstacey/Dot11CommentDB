@@ -24,6 +24,7 @@ export interface WebexAccount {
 	displayName?: string;
 	userName?: string;
 	templates: WebexTemplate[];
+	lastAccessed: string | null;
 }
 
 function validWebexAccount(account: any): account is WebexAccount {
@@ -147,10 +148,13 @@ export const loadWebexAccounts =
 		return loadingPromise;
 	};
 
-export const refreshWebexAccounts = (): AppThunk => async (dispatch, getState) => {
-	const groupName = selectWebexAccountsGroupName(getState());
-	dispatch(groupName ? loadWebexAccounts(groupName) : clearWebexAccounts());
-};
+export const refreshWebexAccounts =
+	(): AppThunk => async (dispatch, getState) => {
+		const groupName = selectWebexAccountsGroupName(getState());
+		dispatch(
+			groupName ? loadWebexAccounts(groupName) : clearWebexAccounts()
+		);
+	};
 
 export const updateWebexAccount =
 	(id: number, changes: Partial<WebexAccount>): AppThunk =>

@@ -159,6 +159,14 @@ const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 			return account.authDate ? displayDate(account.authDate) : "-";
 		},
 	},
+	accessed: {
+		label: "Last accessed",
+		renderCell({ account }: CellProps) {
+			return account.lastAccessed
+				? displayDate(account.lastAccessed)
+				: "-";
+		},
+	},
 	authButtons: {
 		label: "Authorize",
 		renderCell: (props: CellProps) => <AuthButtons {...props} />,

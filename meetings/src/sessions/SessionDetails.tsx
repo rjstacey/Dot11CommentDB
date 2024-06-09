@@ -54,6 +54,7 @@ const defaultSession: SessionAdd = {
 	number: null,
 	name: "New session",
 	type: "p",
+	isCancelled: false,
 	imatMeetingId: null,
 	startDate: new Date().toISOString().substring(0, 10),
 	endDate: new Date().toISOString().substring(0, 10),
