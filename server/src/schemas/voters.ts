@@ -47,7 +47,7 @@ export const voterUpdatesSchema = voterUpdateSchema.array();
 export const voterIdsSchema = voterIdSchema.array();
 
 export const voterMemberSnapshotParamsSchema = z.object({
-	date: z.string().datetime({ offset: true }),
+	date: z.string().date(),
 });
 export type VoterMemberSnapshotParams = z.infer<
 	typeof voterMemberSnapshotParamsSchema
