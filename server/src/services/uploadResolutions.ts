@@ -3,8 +3,8 @@ import { v4 as uuid } from "uuid";
 import db from "../utils/database";
 import type { User } from "./users";
 import { parseCommentsSpreadsheet } from "./commentsSpreadsheet";
-import { getComments, getCommentsSummary, CommentResolution } from "./comments";
-import type { Comment } from "../schemas/comments";
+import { getComments, getCommentsSummary } from "./comments";
+import type { Comment, CommentResolution } from "../schemas/comments";
 import type { Resolution } from "../schemas/resolutions";
 
 const matchClause = (dbValue: string, sValue: string) => {

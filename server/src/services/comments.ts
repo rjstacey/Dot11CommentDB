@@ -3,48 +3,22 @@ import { DateTime } from "luxon";
 import db from "../utils/database";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
-import {
-	AuthError,
-	ForbiddenError,
-	NotFoundError,
-	isPlainObject,
-} from "../utils";
+import { AuthError, ForbiddenError, NotFoundError } from "../utils";
 import { parseEpollComments, parseEpollUserComments } from "./epoll";
 import { parseMyProjectComments } from "./myProjectSpreadsheets";
 import { parsePublicReviewComments } from "./publicReviewSpreadsheets";
 import { BallotType, getBallotWithNewResultsSummary } from "./ballots";
-import type { Resolution } from "../schemas/resolutions";
 import { selectUser, type User } from "./users";
 import { AccessLevel } from "../auth/access";
 import { getGroups } from "./groups";
-import { Comment, CommentsSummary } from "../schemas/comments";
-import { Ballot } from "../schemas/ballots";
-
-/** Editable comment fields array */
-export const commentEditableFields = [
-	"CommentID",
-	"Category",
-	"Clause",
-	"Page",
-	"AdHoc",
-	"AdHocGroupId",
-	"CommentGroup",
-	"Notes",
-] as const;
-
-/** Editable comment fields */
-export type CommentEditable = Pick<
+import type {
 	Comment,
-	(typeof commentEditableFields)[number]
->;
-
-export type CommentResolution = Omit<Comment, "id"> &
-	Omit<Resolution, "id"> & {
-		resolution_id: string;
-		ResolutionID: number;
-		ResolutionCount: number;
-		CID: string;
-	};
+	CommentsSummary,
+	CommentResolution,
+	CommentChange,
+	CommentUpdate,
+} from "../schemas/comments";
+import { Ballot } from "../schemas/ballots";
 
 // prettier-ignore
 const createViewCommentResolutionsSQL =
@@ -54,7 +28,7 @@ const createViewCommentResolutionsSQL =
 		"c.id AS comment_id, " +
 		"BIN_TO_UUID(r.id) AS resolution_id, " +
 		"IF(r.id IS NOT NULL, BIN_TO_UUID(r.id), cast(c.id as CHAR)) AS id, " +
-		'IF((SELECT count(0) from resolutions r WHERE (c.id = r.comment_id)) > 1, concat(c.CommentID, ".", r.ResolutionID), c.CommentID) AS CID, ' +
+		'IF((SELECT count(*) from resolutions r WHERE (c.id = r.comment_id)) > 1, concat(c.CommentID, ".", r.ResolutionID), c.CommentID) AS CID, ' +
 		"b.BallotID AS BallotID, " +
 		"c.CommentID AS CommentID, " +
 		"r.ResolutionID AS ResolutionID, " +
@@ -87,11 +61,14 @@ const createViewCommentResolutionsSQL =
 		"r.EditStatus AS EditStatus, " +
 		"r.EditInDraft AS EditInDraft, " +
 		"r.EditNotes AS EditNotes, " +
+		'DATE_FORMAT(IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedTime, r.LastModifiedTime), "%Y-%m-%dT%TZ") AS LastModifiedTime, ' +
 		"IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) AS LastModifiedBy, " +
-		'DATE_FORMAT(IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedTime, r.LastModifiedTime), "%Y-%m-%dT%TZ") AS LastModifiedTime ' +
+		"IF(c.LastModifiedTime > r.LastModifiedTime, mc.Name, mr.Name) AS LastModifiedName " +
 	"FROM ballots b JOIN comments c ON (b.id = c.ballot_id) " +
 		"LEFT JOIN resolutions r ON (c.id = r.comment_id) " +
 		"LEFT JOIN members m ON (r.AssigneeSAPIN = m.SAPIN) " +
+		"LEFT JOIN members mc ON (c.LastModifiedBy = mc.SAPIN) " +
+		"LEFT JOIN members mr ON (r.LastModifiedBy = mr.SAPIN) " +
 		"LEFT JOIN results ON (b.id = results.ballot_id AND ((c.CommenterSAPIN <> NULL AND c.CommenterSAPIN = results.SAPIN) OR (c.CommenterSAPIN = NULL AND c.CommenterEmail = results.Email)));";
 
 export function init() {
@@ -155,10 +132,7 @@ export function selectComments(
 	}
 	sql += " ORDER BY CommentID, ResolutionID";
 
-	return db.query<(RowDataPacket & CommentResolution)[]>({
-		sql,
-		dateStrings: true,
-	});
+	return db.query<(RowDataPacket & CommentResolution)[]>(sql);
 }
 
 /**
@@ -178,18 +152,19 @@ export function getComments(ballot_id: number, modifiedSince?: string) {
 export async function getCommentsSummary(
 	ballot_id: number
 ): Promise<CommentsSummary | undefined> {
+	// prettier-ignore
 	const sql =
 		"SELECT " +
-		"COUNT(*) AS Count, " +
-		"MIN(CommentID) AS CommentIDMin, " +
-		"MAX(CommentID) AS CommentIDMax " +
+			"COUNT(*) AS Count, " +
+			"MIN(CommentID) AS CommentIDMin, " +
+			"MAX(CommentID) AS CommentIDMax " +
 		"FROM comments c WHERE ballot_id=" +
 		db.escape(ballot_id);
 	const [summary] = await db.query<(RowDataPacket & CommentsSummary)[]>(sql);
 	return summary;
 }
 
-function commentsSetSql(changes: Partial<Comment>) {
+function commentsSetSql(changes: CommentChange) {
 	const sets: string[] = [];
 	for (const [key, value] of Object.entries(changes)) {
 		const sql = db.format(
@@ -212,8 +187,8 @@ function commentsSetSql(changes: Partial<Comment>) {
 async function updateComment(
 	user: User,
 	ballot_id: number,
-	id: bigint,
-	changes: Partial<Comment>
+	id: number,
+	changes: CommentChange
 ) {
 	if (Object.keys(changes).length === 0) return;
 	const sql =
@@ -226,24 +201,6 @@ async function updateComment(
 	return db.query<ResultSetHeader>(sql);
 }
 
-type CommentUpdate = {
-	id: bigint;
-	changes: Partial<Comment>;
-};
-
-function validUpdate(update: any): update is CommentUpdate {
-	return (
-		isPlainObject(update) &&
-		update.id &&
-		typeof update.id === "number" &&
-		isPlainObject(update.changes)
-	);
-}
-
-export function validUpdates(updates: any): updates is CommentUpdate[] {
-	return Array.isArray(updates) && updates.every(validUpdate);
-}
-
 export async function updateComments(
 	user: User,
 	ballot_id: number,
@@ -251,10 +208,12 @@ export async function updateComments(
 	updates: CommentUpdate[],
 	modifiedSince?: string
 ) {
+	const ids = updates.map((u) => u.id);
+
 	if (access <= AccessLevel.ro && updates.length > 0) {
 		const comments = await selectComments({
 			ballot_id,
-			comment_id: updates.map((u) => u.id),
+			comment_id: ids,
 		});
 		if (!updates.every((u) => comments.find((c) => c.comment_id === u.id)))
 			throw new NotFoundError(
@@ -284,7 +243,6 @@ export async function updateComments(
 		updates.map((u) => updateComment(user, ballot_id, u.id, u.changes))
 	);
 
-	const ids = updates.map((u) => u.changes.id || u.id);
 	const comments = await selectComments(
 		{ comment_id: ids },
 		{ ballot_id, modifiedSince }

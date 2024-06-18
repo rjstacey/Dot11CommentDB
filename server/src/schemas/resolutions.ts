@@ -7,7 +7,7 @@ export const resolutionIdSchema = z.string().uuid();
 
 export const resolutionSchema = z.object({
 	id: resolutionIdSchema,
-	comment_id: z.bigint(),
+	comment_id: z.number(),
 	ResolutionID: z.number(),
 	AssigneeSAPIN: z.number().nullable(),
 	AssigneeName: z.string(),
@@ -48,30 +48,34 @@ export const resolutionCreateSchema = resolutionSchema
 
 export const resolutionCreatesSchema = resolutionCreateSchema.array();
 
-export const resolutionChangesSchema = resolutionSchema
-	.omit({
-		LastModifiedBy: true,
-		LastModifiedTime: true,
+export const resolutionChangeSchema = resolutionSchema
+	.pick({
+		ResolutionID: true,
+		AssigneeSAPIN: true,
+		AssigneeName: true,
+		Submission: true,
+		ResnStatus: true,
+		Resolution: true,
+		ReadyForMotion: true,
+		ApprovedByMotion: true,
+		EditStatus: true,
+		EditNotes: true,
+		EditInDraft: true,
 	})
 	.partial();
 
 export const resolutionUpdateSchema = z.object({
 	id: resolutionIdSchema,
-	changes: resolutionChangesSchema,
+	changes: resolutionChangeSchema,
 });
 
 export const resolutionUpdatesSchema = resolutionUpdateSchema.array();
 
 export const resolutionIdsSchema = resolutionIdSchema.array();
 
-export const resolutionQuerySchema = z.object({
-	modifiedSince: z.string().datetime(),
-});
-
 export type ResnStatusType = z.infer<typeof resnStatusTypeSchema>;
 export type EditStatusType = z.infer<typeof editStatusTypeSchema>;
 export type Resolution = z.infer<typeof resolutionSchema>;
-export type ResolutionQuery = z.infer<typeof resolutionQuerySchema>;
 export type ResolutionCreate = z.infer<typeof resolutionCreateSchema>;
-export type ResolutionChanges = z.infer<typeof resolutionChangesSchema>;
+export type ResolutionChange = z.infer<typeof resolutionChangeSchema>;
 export type ResolutionUpdate = z.infer<typeof resolutionUpdateSchema>;

@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { groupIdSchema } from "./groups";
+import { resolutionSchema } from "./resolutions";
 
 export const commentSchema = z.object({
-	id: z.bigint(),
+	id: z.number(),
 	ballot_id: z.number(),
 	CommentID: z.number(),
 	CommenterSAPIN: z.nullable(z.number()),
@@ -45,5 +46,48 @@ export type CommentsUploadUserParams = z.infer<
 	typeof commentsUploadUserParamsSchema
 >;
 
+export const commentChangeSchema = commentSchema
+	.pick({
+		CommentID: true,
+		Category: true,
+		Clause: true,
+		Page: true,
+		AdHoc: true,
+		AdHocGroupId: true,
+		CommentGroup: true,
+		Notes: true,
+	})
+	.partial();
+
+export const commentUpdateSchema = z.object({
+	id: commentSchema.shape.id,
+	changes: commentChangeSchema,
+});
+export const commentUpdatesSchema = commentUpdateSchema.array();
+
 export type Comment = z.infer<typeof commentSchema>;
 export type CommentsSummary = z.infer<typeof commentsSummarySchema>;
+export type CommentChange = z.infer<typeof commentChangeSchema>;
+export type CommentUpdate = z.infer<typeof commentUpdateSchema>;
+
+export const commentResolutionSchema = commentSchema
+	.omit({ id: true })
+	.merge(resolutionSchema.omit({ id: true }))
+	.extend({
+		resolution_id: resolutionSchema.shape.id,
+		ResolutionID: z.number(),
+		ResolutionCount: z.number(),
+		CID: z.string(),
+		LastModifiedName: z.string(),
+	});
+
+export const commentResolutionQuerySchema = z
+	.object({
+		modifiedSince: z.string().datetime(),
+	})
+	.partial();
+
+export type CommentResolution = z.infer<typeof commentResolutionSchema>;
+export type CommentResolutionQuery = z.infer<
+	typeof commentResolutionQuerySchema
+>;

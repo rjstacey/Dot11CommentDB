@@ -53,12 +53,14 @@ import {
 	uploadResolutions,
 } from "../services/uploadResolutions";
 import {
+	commentResolutionQuerySchema,
+	CommentResolutionQuery,
+} from "../schemas/comments";
+import {
 	ResolutionCreate,
-	ResolutionQuery,
 	ResolutionUpdate,
 	resolutionCreatesSchema,
 	resolutionIdsSchema,
-	resolutionQuerySchema,
 	resolutionUpdatesSchema,
 } from "../schemas/resolutions";
 
@@ -72,9 +74,9 @@ function addMany(req: Request, res: Response, next: NextFunction) {
 			)
 		);
 	const ballot_id = req.ballot!.id;
-	let query: ResolutionQuery;
+	let query: CommentResolutionQuery;
 	try {
-		query = resolutionQuerySchema.parse(req.query);
+		query = commentResolutionQuerySchema.parse(req.query);
 	} catch (error) {
 		return next(error);
 	}
@@ -106,9 +108,9 @@ function updateMany(req: Request, res: Response, next: NextFunction) {
 			)
 		);
 	const ballot_id = req.ballot!.id;
-	let query: ResolutionQuery;
+	let query: CommentResolutionQuery;
 	try {
-		query = resolutionQuerySchema.parse(req.query);
+		query = commentResolutionQuerySchema.parse(req.query);
 	} catch (error) {
 		return next(error);
 	}
@@ -133,9 +135,9 @@ function removeMany(req: Request, res: Response, next: NextFunction) {
 			)
 		);
 	const ballot_id = req.ballot!.id;
-	let query: ResolutionQuery;
+	let query: CommentResolutionQuery;
 	try {
-		query = resolutionQuerySchema.parse(req.query);
+		query = commentResolutionQuerySchema.parse(req.query);
 	} catch (error) {
 		return next(error);
 	}

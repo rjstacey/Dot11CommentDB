@@ -9,32 +9,12 @@ import { ForbiddenError, NotFoundError, isPlainObject } from "../utils";
 import { AccessLevel } from "../auth/access";
 import { getGroups } from "./groups";
 import type {
-	Resolution,
 	ResolutionCreate,
-	ResolutionChanges,
+	ResolutionChange,
 	ResolutionUpdate,
 } from "../schemas/resolutions";
 
-export const resolutionEditableFields = [
-	"ResolutionID",
-	"AssigneeSAPIN",
-	"AssigneeName",
-	"Submission",
-	"ResnStatus",
-	"Resolution",
-	"ReadyForMotion",
-	"ApprovedByMotion",
-	"EditStatus",
-	"EditNotes",
-	"EditInDraft",
-] as const;
-
-export type ResolutionEditable = Pick<
-	Resolution,
-	(typeof resolutionEditableFields)[number]
->;
-
-export const defaultResolution: ResolutionEditable = {
+export const defaultResolution: Required<ResolutionChange> = {
 	ResolutionID: 0,
 	AssigneeSAPIN: 0,
 	AssigneeName: "",
@@ -180,7 +160,7 @@ async function updateResolution(
 	user: User,
 	ballot_id: number,
 	id: string,
-	changes: ResolutionChanges
+	changes: ResolutionChange
 ) {
 	if (Object.keys(changes).length > 0) {
 		/* The ballot_id in WHERE clause is to qualify the update on the ballot_id since the update was authorized using
@@ -211,13 +191,15 @@ export async function updateResolutions(
 	updates: ResolutionUpdate[],
 	modifiedSince?: string
 ) {
+	const ids = updates.map((u) => u.id);
+
 	/* If the user does not have ballot level comments read-write access, then see if the user has comment level or resolution level read-write access.
 	 * Comment level read-write access is available if comment is assigned to an ad-hoc and the user is an ad-hoc officer.
 	 * Resolution level read-write access is available if the user is the assignee. */
 	if (access < AccessLevel.rw && updates.length > 0) {
 		const comments = await selectComments({
 			ballot_id,
-			resolution_id: updates.map((u) => u.id),
+			resolution_id: ids,
 		});
 		if (comments.length !== updates.length)
 			throw new NotFoundError(
@@ -271,7 +253,7 @@ export async function updateResolutions(
 		updates.map((u) => updateResolution(user, ballot_id, u.id, u.changes))
 	);
 	const comments = await selectComments(
-		{ resolution_id: updates.map((u) => u.id) },
+		{ resolution_id: ids },
 		{ ballot_id, modifiedSince }
 	);
 	return { comments };

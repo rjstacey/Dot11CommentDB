@@ -5,11 +5,27 @@ import ExcelJS from "exceljs";
 import { isCorrectSpreadsheetHeader } from "../utils";
 import type { Ballot } from "../schemas/ballots";
 import { getComments } from "./comments";
-import type { CommentResolution } from "./comments";
+import type { CommentResolution } from "../schemas/comments";
 import type { User } from "./users";
 import type { Response } from "express";
 
-function parseResolution(v: any, c: Partial<CommentResolution>) {
+type ColSet = (c: CommentResolution, v: ExcelJS.Cell) => void;
+type ColGet = (v: ExcelJS.CellValue, c: Partial<CommentResolution>) => void;
+
+type Col = {
+	width?: number;
+	outlineLevel?: number;
+	numFmt?: string;
+	set?: ColSet;
+	get?: ColGet;
+	value?: any;
+};
+
+function parseString(v: ExcelJS.CellValue) {
+	return typeof v === "string" ? v : "";
+}
+
+function getResolution(v: ExcelJS.CellValue, c: Partial<CommentResolution>) {
 	if (typeof v === "string") {
 		// Override 'Resn Status' if the resolution itself has something that looks like a resolution status
 		if (v.search(/^\s*(ACCEPT|ACCEPTED)/i) >= 0) c.ResnStatus = "A";
@@ -31,7 +47,7 @@ const mapResnStatus = {
 	V: "REVISED",
 };
 
-function genResolution(c: CommentResolution) {
+function setResolution(c: CommentResolution, cell: ExcelJS.Cell) {
 	let r = "";
 	if (c.ResnStatus && mapResnStatus[c.ResnStatus]) {
 		r += mapResnStatus[c.ResnStatus];
@@ -40,47 +56,88 @@ function genResolution(c: CommentResolution) {
 	if (c.Resolution) {
 		r += fromHtml(c.Resolution);
 	}
-	return r;
+	cell.value = r;
 }
 
-function parsePage(v: string) {
-	let page = parseFloat(v);
-	if (isNaN(page)) page = 0;
-	return page;
+function getPage(v: ExcelJS.CellValue, c: Partial<CommentResolution>) {
+	let page = 0;
+	if (typeof v === "string") {
+		page = parseFloat(v);
+		if (isNaN(page)) page = 0;
+	}
+	c.Page = page;
 }
 
-function genStatus(c: CommentResolution) {
+function setStatus(c: CommentResolution, cell: ExcelJS.Cell) {
 	let Status = "";
 	if (c.ApprovedByMotion) Status = "Resolution approved";
 	else if (c.ReadyForMotion) Status = "Ready for motion";
 	else if (c.ResnStatus) Status = "Resolution drafted";
 	else if (c.AssigneeName) Status = "Assigned";
-	return Status;
+	cell.value = Status;
 }
 
-type ColSet = (c: CommentResolution) => any;
-type ColGet = (v: any, c: Partial<CommentResolution>) => void;
+const getResnStatus: ColGet = (v, c) => {
+	c.ResnStatus = null;
+	if (typeof v === "string") {
+		v = v.toUpperCase()[0];
+		if (v === "A" || v === "V" || v === "J") c.ResnStatus = v;
+	}
+};
 
-type Col = {
-	width?: number;
-	outlineLevel?: number;
-	numFmt?: string;
-	set?: ColSet;
-	get?: ColGet;
-	value?: any;
+const getEditStatus: ColGet = (v, c) => {
+	c.EditStatus = null;
+	if (typeof v === "string") {
+		v = v.toUpperCase()[0];
+		if (v === "I" || v === "N") c.EditStatus = v;
+	}
+};
+
+const setSubmission: ColSet = (c, cell) => {
+	cell.value = "";
+	if (c.Submission) {
+		let text = c.Submission;
+		let gg = "11";
+		let m = text.match(/^(\d{1,2})-/);
+		if (m) {
+			gg = ("0" + m[1]).slice(-2);
+			text = text.replace(/^\d{1,2}-/, "");
+		}
+		m = text.match(/(\d{2})\/(\d{1,4})r(\d+)/);
+		if (m) {
+			const yy = ("0" + m[1]).slice(-2);
+			const nnnn = ("0000" + m[2]).slice(-4);
+			const rr = ("0" + m[3]).slice(-2);
+			const hyperlink = `https://mentor.ieee.org/802.11/dcn/${yy}/${gg}-${yy}-${nnnn}-${rr}`;
+			cell.value = {
+				text: c.Submission,
+				hyperlink,
+				tooltip: hyperlink,
+			};
+			cell.style.font = { color: { argb: "7f0011e0" }, underline: true };
+		}
+	}
 };
 
 const legacyColumns: Record<string, Col> = {
 	CID: {
 		width: 8,
-		set: (c) => parseFloat("" + c.CID),
-		get: (v, c) => (c.CID = v),
+		set: (c, cell) => {
+			cell.value = parseFloat("" + c.CID);
+		},
+		get: (v, c) => {
+			c.CID = parseString(v);
+		},
 	},
 	Commenter: {
 		width: 14,
 		outlineLevel: 1,
-		set: (c) => c.CommenterName || "",
-		get: (v, c) => (c.CommenterName = v),
+		set: (c, cell) => {
+			cell.value = c.CommenterName || "";
+		},
+		get: (v, c) => {
+			c.CommenterName = parseString(v);
+		},
 	},
 	LB: {
 		width: 8,
@@ -93,316 +150,478 @@ const legacyColumns: Record<string, Col> = {
 	"Clause Number(C)": {
 		width: 11,
 		outlineLevel: 1,
-		set: (c) => c.C_Clause || "",
-		get: (v, c) => (c.C_Clause = v),
+		set: (c, cell) => {
+			cell.value = c.C_Clause || "";
+		},
+		get: (v, c) => {
+			c.C_Clause = parseString(v);
+		},
 	},
 	"Page(C)": {
 		width: 8,
 		outlineLevel: 1,
-		set: (c) => c.C_Page || "",
-		get: (v, c) => (c.C_Page = v),
+		set: (c, cell) => {
+			cell.value = c.C_Page || "";
+		},
+		get: (v, c) => {
+			c.C_Page = parseString(v);
+		},
 	},
 	"Line(C)": {
 		width: 8,
 		outlineLevel: 1,
-		set: (c) => c.C_Line || "",
-		get: (v, c) => (c.C_Line = v),
+		set: (c, cell) => {
+			cell.value = c.C_Line || "";
+		},
+		get: (v, c) => {
+			c.C_Line = parseString(v);
+		},
 	},
 	"Type of Comment": {
 		width: 10,
 		outlineLevel: 1,
 		set: (c) => c.Category || "",
-		get: (v, c) => (c.Category = v),
+		get: (v, c) => {
+			c.Category = parseString(v);
+		},
 	},
 	"Part of No Vote": {
 		width: 10,
 		outlineLevel: 1,
-		set: (c) => (c.MustSatisfy ? "Yes" : "No"),
-		get: (v, c) => (c.MustSatisfy = v === "Yes"),
+		set: (c, cell) => {
+			cell.value = c.MustSatisfy ? "Yes" : "No";
+		},
+		get: (v, c) => {
+			c.MustSatisfy = v === "Yes";
+		},
 	},
 	Page: {
 		width: 8,
 		numFmt: "#0.00",
-		set: (c) => c.Page,
-		get: (v, c) => (c.Page = parsePage(v)),
+		set: (c, cell) => {
+			cell.value = c.Page;
+		},
+		get: getPage,
 	},
 	Line: {
 		width: 7,
 		outlineLevel: 1,
-		set: (c) => c.C_Line || "",
+		set: (c, cell) => {
+			cell.value = c.C_Line || "";
+		},
 	},
 	Clause: {
 		width: 11,
 		numFmt: "@",
-		set: (c) => c.Clause || "",
-		get: (v, c) => (c.Clause = v),
+		set: (c, cell) => {
+			cell.value = c.Clause || "";
+		},
+		get: (v, c) => {
+			c.Clause = parseString(v);
+		},
 	},
 	"Duplicate of CID": {
 		width: 10,
-		value: "",
+		set: (c, cell) => {
+			cell.value = "";
+		},
 	},
 	"Resn Status": {
 		width: 8,
 		numFmt: "@",
-		set: (c) => c.ResnStatus || "",
-		get: (v, c) => (c.ResnStatus = v),
+		set: (c, cell) => {
+			cell.value = c.ResnStatus || "";
+		},
+		get: getResnStatus,
 	},
 	Assignee: {
 		width: 11,
 		outlineLevel: 1,
 		numFmt: "@",
-		set: (c) => c.AssigneeName || "",
-		get: (v, c) => (c.AssigneeName = v),
+		set: (c, cell) => {
+			cell.value = c.AssigneeName || "";
+		},
+		get: (v, c) => {
+			c.AssigneeName = parseString(v);
+		},
 	},
 	Submission: {
 		width: 12,
 		outlineLevel: 1,
 		numFmt: "@",
-		set: (c) => c.Submission || "",
-		get: (v, c) => (c.Submission = v),
+		set: (c, cell) => {
+			cell.value = c.Submission || "";
+		},
+		get: (v, c) => {
+			c.Submission = parseString(v);
+		},
 	},
 	"Motion Number": {
 		width: 9,
 		outlineLevel: 1,
-		set: (c) => c.ApprovedByMotion || "",
-		get: (v, c) => (c.ApprovedByMotion = v),
+		set: (c, cell) => {
+			cell.value = c.ApprovedByMotion || "";
+		},
+		get: (v, c) => {
+			c.ApprovedByMotion = parseString(v);
+		},
 	},
 	Comment: {
 		width: 25,
 		numFmt: "@",
-		set: (c) => c.Comment || "",
-		get: (v, c) => (c.Comment = v),
+		set: (c, cell) => {
+			cell.value = (c.Comment || "").replace(/[\u{0080}-\u{FFFF}]/gu, "");
+		},
+		get: (v, c) => {
+			c.Comment = parseString(v);
+		},
 	},
 	"Proposed Change": {
 		width: 25,
 		numFmt: "@",
-		set: (c) => c.ProposedChange || "",
-		get: (v, c) => (c.ProposedChange = v),
+		set: (c, cell) => {
+			cell.value = (c.ProposedChange || "").replace(
+				/[\u{0080}-\u{FFFF}]/gu,
+				""
+			);
+		},
+		get: (v, c) => {
+			c.ProposedChange = parseString(v);
+		},
 	},
 	Resolution: {
 		width: 25,
 		numFmt: "@",
-		set: genResolution,
-		get: parseResolution,
+		set: setResolution,
+		get: getResolution,
 	},
 	"Owning Ad-hoc": {
 		width: 9,
 		numFmt: "@",
-		set: (c) => c.AdHoc || "",
-		get: (v, c) => (c.AdHoc = v),
+		set: (c, cell) => {
+			cell.value = c.AdHoc || "";
+		},
+		get: (v, c) => {
+			c.AdHoc = parseString(v);
+		},
 	},
 	"Comment Group": {
 		width: 10,
 		numFmt: "@",
-		value: (c) => c.CommentGroup || "",
-		get: (v, c) => (c.CommentGroup = v),
+		set: (c, cell) => {
+			cell.value = c.CommentGroup || "";
+		},
+		get: (v, c) => {
+			c.CommentGroup = parseString(v);
+		},
 	},
 	"Ad-hoc Status": {
 		width: 10,
 		numFmt: "@",
-		set: (c) => genStatus(c),
+		set: setStatus,
 	},
 	"Ad-hoc Notes": {
 		width: 25,
 		numFmt: "@",
-		set: (c) => fromHtml(c.Notes),
-		get: (v, c) => (c.Notes = toHtml(v)),
+		set: (c, cell) => {
+			cell.value = fromHtml(c.Notes);
+		},
+		get: (v, c) => {
+			c.Notes = toHtml(parseString(v));
+		},
 	},
 	"Edit Status": {
 		width: 8,
 		numFmt: "@",
-		set: (c) => c.EditStatus || "",
-		get: (v, c) => {
-			if (["I", "N"].includes(v)) c.EditStatus = v;
-			else c.EditStatus = null;
+		set: (c, cell) => {
+			cell.value = c.EditStatus || "";
 		},
+		get: getEditStatus,
 	},
 	"Edit Notes": {
 		width: 25,
 		numFmt: "@",
-		set: (c) => fromHtml(c.EditNotes),
-		get: (v, c) => (c.EditNotes = toHtml(v)),
+		set: (c, cell) => {
+			cell.value = fromHtml(c.EditNotes);
+		},
+		get: (v, c) => {
+			c.EditNotes = toHtml(parseString(v));
+		},
 	},
 	"Edited in Draft": {
 		width: 9,
 		numFmt: "@",
-		set: (c) => c.EditInDraft || "",
-		get: (v, c) => (c.EditInDraft = v),
+		set: (c, cell) => {
+			cell.value = c.EditInDraft || "";
+		},
+		get: (v, c) => {
+			c.EditInDraft = parseString(v);
+		},
 	},
 	"Last Updated": {
 		width: 15,
 		outlineLevel: 1,
 		numFmt: "yyyy-mm-dd hh:mm",
-		set: (c) => c.LastModifiedTime,
+		set: (c, cell) => {
+			cell.value = c.LastModifiedTime;
+		},
 	},
 	"Last Updated By": {
 		numFmt: "@",
 		outlineLevel: 1,
-		set: () => "",
+		set: (c, cell) => {
+			cell.value = "";
+		},
 	},
 };
 
 const modernColumns: Record<string, Col> = {
 	CID: {
 		width: 8,
-		set: (c) => parseFloat("" + c.CID),
-		get: (v, c) => (c.CID = v),
+		numFmt: "#",
+		set: (c, cell) => {
+			if (c.ResolutionCount > 1) cell.numFmt = "#.0";
+			cell.value = parseFloat(c.CID);
+		},
+		get: (v, c) => {
+			c.CID = parseString(v);
+		},
 	},
 	Commenter: {
 		width: 14,
 		outlineLevel: 2,
-		set: (c) => c.CommenterName || "",
-		get: (v, c) => (c.CommenterName = v),
+		set: (c, cell) => {
+			cell.value = c.CommenterName || "";
+		},
+		get: (v, c) => {
+			c.CommenterName = parseString(v);
+		},
 	},
 	"Must Be Satisfied": {
 		width: 10,
 		outlineLevel: 2,
-		set: (c) => (c.MustSatisfy ? "Yes" : "No"),
-		get: (v, c) => (c.MustSatisfy = v === "Yes"),
+		set: (c, cell) => {
+			cell.value = c.MustSatisfy ? "Yes" : "No";
+		},
+		get: (v, c) => {
+			c.MustSatisfy = v === "Yes";
+		},
 	},
 	"Clause Number(C)": {
 		width: 11,
 		outlineLevel: 2,
-		set: (c) => c.C_Clause || "",
-		get: (v, c) => (c.C_Clause = v),
+		set: (c, cell) => {
+			cell.value = c.C_Clause || "";
+		},
+		get: (v, c) => {
+			c.C_Clause = parseString(v);
+		},
 	},
 	"Page(C)": {
 		width: 8,
 		outlineLevel: 2,
-		set: (c) => c.C_Page || "",
-		get: (v, c) => (c.C_Page = v),
+		set: (c, cell) => {
+			cell.value = c.C_Page || "";
+		},
+		get: (v, c) => {
+			c.C_Page = parseString(v);
+		},
 	},
 	"Line(C)": {
 		width: 8,
 		outlineLevel: 2,
-		set: (c) => c.C_Line || "",
-		get: (v, c) => (c.C_Line = v),
+		set: (c, cell) => {
+			cell.value = c.C_Line || "";
+		},
+		get: (v, c) => {
+			c.C_Line = parseString(v);
+		},
 	},
 	Category: {
 		width: 10,
 		outlineLevel: 2,
-		set: (c) => c.Category || "",
-		get: (v, c) => (c.Category = v),
+		set: (c, cell) => {
+			cell.value = c.Category || "";
+		},
+		get: (v, c) => {
+			c.Category = parseString(v);
+		},
 	},
 	Clause: {
 		width: 11,
 		numFmt: "@",
-		set: (c) => c.Clause || "",
-		get: (v, c) => (c.Clause = v),
+		set: (c, cell) => {
+			cell.value = c.Clause || "";
+		},
+		get: (v, c) => {
+			c.Clause = parseString(v);
+		},
 	},
 	Page: {
 		width: 8,
 		numFmt: "#0.00",
-		set: (c) => c.Page,
-		get: (v, c) => (c.Page = parsePage(v)),
+		set: (c, cell) => {
+			cell.value = c.Page;
+		},
+		get: getPage,
 	},
 	Comment: {
 		width: 25,
 		numFmt: "@",
-		set: (c) => c.Comment || "",
-		get: (v, c) => (c.Comment = v),
+		set: (c, cell) => {
+			cell.value = (c.Comment || "").replace(/[\u{0080}-\u{FFFF}]/gu, "");
+		},
+		get: (v, c) => {
+			c.Comment = parseString(v);
+		},
 	},
 	"Proposed Change": {
 		width: 25,
 		numFmt: "@",
-		set: (c) => c.ProposedChange || "",
-		get: (v, c) => (c.ProposedChange = v),
+		set: (c, cell) => {
+			cell.value = (c.ProposedChange || "").replace(
+				/[\u{0080}-\u{FFFF}]/gu,
+				""
+			);
+		},
+		get: (v, c) => {
+			c.ProposedChange = parseString(v);
+		},
 	},
 	"Ad-hoc": {
 		width: 9,
 		numFmt: "@",
 		outlineLevel: 1,
-		set: (c) => c.AdHoc || "",
-		get: (v, c) => (c.AdHoc = v),
+		set: (c, cell) => {
+			cell.value = c.AdHoc || "";
+		},
+		get: (v, c) => {
+			c.AdHoc = parseString(v);
+		},
 	},
 	"Comment Group": {
 		width: 10,
 		numFmt: "@",
 		outlineLevel: 1,
-		value: (c) => c.CommentGroup || "",
-		get: (v, c) => (c.CommentGroup = v),
+		set: (c, cell) => {
+			cell.value = c.CommentGroup || "";
+		},
+		get: (v, c) => {
+			c.CommentGroup = parseString(v);
+		},
 	},
 	"Ad-hoc Notes": {
 		width: 25,
 		numFmt: "@",
 		outlineLevel: 1,
-		set: (c) => fromHtml(c.Notes),
-		get: (v, c) => (c.Notes = toHtml(v)),
+		set: (c, cell) => {
+			cell.value = fromHtml(c.Notes);
+		},
+		get: (v, c) => {
+			c.Notes = toHtml(parseString(v));
+		},
 	},
 	Status: {
 		width: 10,
 		numFmt: "@",
-		set: genStatus,
+		set: setStatus,
 	},
 	Assignee: {
 		width: 11,
 		outlineLevel: 1,
 		numFmt: "@",
-		set: (c) => c.AssigneeName || "",
-		get: (v, c) => (c.AssigneeName = v),
+		set: (c, cell) => {
+			cell.value = c.AssigneeName || "";
+		},
+		get: (v, c) => {
+			c.AssigneeName = parseString(v);
+		},
 	},
 	Submission: {
 		width: 12,
 		outlineLevel: 1,
 		numFmt: "@",
-		set: (c) => c.Submission || "",
-		get: (v, c) => (c.Submission = v),
+		set: setSubmission,
+		get: (v, c) => {
+			c.Submission = parseString(v);
+		},
 	},
 	"Resn Status": {
 		width: 8,
 		numFmt: "@",
-		set: (c) => c.ResnStatus || "",
-		get: (v, c) => (c.ResnStatus = v),
+		set: (c, cell) => {
+			cell.value = c.ResnStatus || "";
+		},
+		get: getResnStatus,
 	},
 	Resolution: {
 		width: 25,
 		numFmt: "@",
-		set: genResolution,
-		get: parseResolution,
+		set: setResolution,
+		get: getResolution,
 	},
 	"Ready For Motion": {
 		width: 9,
 		outlineLevel: 1,
-		set: (c) => (c.ReadyForMotion ? "Yes" : ""),
-		get: (v, c) => (c.ReadyForMotion = v.search(/y|1/i) >= 0),
+		set: (c, cell) => {
+			cell.value = c.ReadyForMotion ? "Yes" : "";
+		},
+		get: (v, c) => {
+			c.ReadyForMotion = parseString(v).search(/y|1/i) >= 0;
+		},
 	},
 	"Motion Number": {
 		width: 9,
 		outlineLevel: 1,
-		set: (c) => c.ApprovedByMotion || "",
-		get: (v, c) => (c.ApprovedByMotion = v),
+		set: (c, cell) => {
+			cell.value = c.ApprovedByMotion || "";
+		},
+		get: (v, c) => {
+			c.ApprovedByMotion = parseString(v);
+		},
 	},
 	"Edit Status": {
 		width: 8,
 		numFmt: "@",
-		set: (c) => c.EditStatus || "",
-		get: (v, c) => {
-			if (["I", "N"].includes(v)) c.EditStatus = v;
-			else c.EditStatus = null;
+		set: (c, cell) => {
+			cell.value = c.EditStatus || "";
 		},
+		get: getEditStatus,
 	},
 	"Edited in Draft": {
 		width: 9,
 		numFmt: "@",
-		set: (c) => c.EditInDraft || "",
-		get: (v, c) => (c.EditInDraft = v),
+		set: (c, cell) => {
+			cell.value = c.EditInDraft || "";
+		},
+		get: (v, c) => {
+			c.EditInDraft = parseString(v);
+		},
 	},
 	"Edit Notes": {
 		width: 25,
 		numFmt: "@",
-		set: (c) => fromHtml(c.EditNotes),
-		get: (v, c) => (c.EditNotes = toHtml(v)),
+		set: (c, cell) => {
+			cell.value = fromHtml(c.EditNotes);
+		},
+		get: (v, c) => {
+			c.EditNotes = toHtml(parseString(v));
+		},
 	},
 	"Last Updated": {
 		width: 15,
 		outlineLevel: 1,
 		numFmt: "yyyy-mm-dd hh:mm",
-		set: (c) => c.LastModifiedTime,
+		set: (c, cell) => {
+			cell.value = c.LastModifiedTime ? new Date(c.LastModifiedTime) : "";
+		},
 	},
 	"Last Updated By": {
 		numFmt: "@",
 		outlineLevel: 1,
-		set: () => "",
+		set: (c, cell) => {
+			cell.value = c.LastModifiedName || "";
+		},
 	},
 };
 
@@ -425,11 +644,6 @@ const commentColumns = [
 	"Ad-hoc Notes",
 ];
 
-/*
-function headingsMatch(headingRow: string[], expectedHeadings: string[]) {
-	return !expectedHeadings.reduce((result, heading, i) => result || heading !== headingRow[i], false)
-}
-*/
 export async function parseCommentsSpreadsheet(
 	buffer: Buffer,
 	sheetName: string
@@ -581,6 +795,7 @@ function addResolutionFormatting(
 	});
 }
 
+/*
 function addStatus(
 	sheet: ExcelJS.Worksheet,
 	columns: Record<string, Col>,
@@ -616,6 +831,7 @@ function addStatus(
 		} as ExcelJS.CellSharedFormulaValue;
 	}
 }
+*/
 
 function genWorksheet(
 	sheet: ExcelJS.Worksheet,
@@ -624,23 +840,58 @@ function genWorksheet(
 	doc: string,
 	comments: CommentResolution[]
 ) {
-	sheet.addRow(Object.keys(columns));
+	// Adjust column width, outlineLevel and style
+	const borderStyle: ExcelJS.Border = {
+		style: "thin",
+		color: { argb: "33333300" },
+	};
+	const fontStyle = { name: "Arial", size: 10, family: 2 };
 
-	// array of unique comments
-	const comment_ids = [...new Set(comments.map((c) => c.comment_id))];
+	Object.entries(columns).forEach(([key, entry], i) => {
+		const column = sheet.getColumn(i + 1);
+		column.header = key;
+		if (entry.width) column.width = entry.width;
+		if (entry.outlineLevel) column.outlineLevel = entry.outlineLevel;
+		if (entry.numFmt) column.numFmt = entry.numFmt;
+		column.font = fontStyle;
+		column.alignment = { wrapText: true, vertical: "top" };
+		column.border = {
+			top: borderStyle,
+			left: borderStyle,
+			bottom: borderStyle,
+			right: borderStyle,
+		};
+	});
+
+	// Override the font style for the table header row
+	sheet.getRow(1).font = { ...fontStyle, bold: true };
+
+	// Table header is frozen
+	sheet.views = [{ state: "frozen", xSplit: 0, ySplit: 1 }];
+
+	// Normalize by comment_id
+	const entities: Record<string, CommentResolution[]> = {};
+	const ids: string[] = [];
+	for (const c of comments) {
+		const id = "" + c.comment_id;
+		if (entities[id]) entities[id].push(c);
+		else {
+			entities[id] = [c];
+			ids.push(id);
+		}
+	}
+
 	let n = 2;
-	comment_ids.forEach((id) => {
-		const cmts = comments.filter((c) => c.comment_id === id);
-		cmts.forEach((c, i) => {
+	for (const id of ids) {
+		const cmts = entities[id];
+		cmts.forEach((c) => {
 			const row = sheet.getRow(n);
-			row.values = Object.keys(columns).map((key) => {
+			Object.keys(columns).forEach((key, i) => {
+				const cell = sheet.getCell(n, i + 1);
 				const column = columns[key];
-				if (key === "LB") return ballotId;
-				else if (key === "Draft") return doc;
-				else
-					return typeof column.set === "function"
-						? column.set(c)
-						: column.set || "";
+				if (key === "LB") return (cell.value = ballotId);
+				else if (key === "Draft") return (cell.value = doc);
+				else return column.set ? column.set(c, cell) : "";
 			});
 			n++;
 		});
@@ -652,7 +903,7 @@ function genWorksheet(
 				}
 			});
 		}
-	});
+	}
 
 	addResolutionFormatting(sheet, columns, n);
 
@@ -664,32 +915,6 @@ function genWorksheet(
 		from: { row: 1, column: 1 },
 		to: { row: 1, column: Object.keys(columns).length },
 	};
-
-	// Adjust column width, outlineLevel and style
-	const borderStyle: ExcelJS.Border = {
-		style: "thin",
-		color: { argb: "33333300" },
-	};
-	let i = 0;
-	Object.values(columns).forEach((entry, i) => {
-		const column = sheet.getColumn(i + 1);
-		if (entry.width) column.width = entry.width;
-		if (entry.outlineLevel) column.outlineLevel = entry.outlineLevel;
-		if (entry.numFmt) column.numFmt = entry.numFmt;
-		column.font = { name: "Arial", size: 10, family: 2 };
-		column.alignment = { wrapText: true, vertical: "top" };
-		column.border = {
-			top: borderStyle,
-			left: borderStyle,
-			bottom: borderStyle,
-			right: borderStyle,
-		};
-	});
-	// override the column font style for the header row
-	sheet.getRow(1).font = { bold: true };
-
-	// Table header is frozen
-	sheet.views = [{ state: "frozen", xSplit: 0, ySplit: 1 }];
 }
 
 export const commentSpreadsheetStyles = [
@@ -779,6 +1004,7 @@ export async function exportCommentsSpreadsheet(
 	res: Response
 ) {
 	const comments = await getComments(ballot.id);
+	console.log(comments.filter((c, i) => i < 10));
 
 	res.attachment("comments.xlsx");
 	return genCommentsSpreadsheet(

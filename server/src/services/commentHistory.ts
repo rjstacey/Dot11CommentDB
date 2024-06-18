@@ -1,12 +1,18 @@
 import db from "../utils/database";
-import { commentEditableFields, CommentEditable } from "./comments";
-import type { Comment } from "../schemas/comments";
 import {
-	resolutionEditableFields,
-	defaultResolution,
-	ResolutionEditable,
-} from "./resolutions";
+	commentChangeSchema,
+	Comment,
+	CommentChange,
+} from "../schemas/comments";
+import { defaultResolution } from "./resolutions";
+import {
+	resolutionChangeSchema,
+	ResolutionChange,
+} from "../schemas/resolutions";
 import type { Resolution } from "../schemas/resolutions";
+
+const commentChangeFields = Object.keys(commentChangeSchema.shape);
+const resolutionChangeFields = Object.keys(resolutionChangeSchema.shape);
 
 //const jsonField = (field: string) => `JSON_UNQUOTE(JSON_EXTRACT(Changes, "$.${field}")) AS ${field}`;
 
@@ -22,7 +28,7 @@ const createTriggerCommentsUpdateSQL = `
 	BEGIN
 		SET @action ="update";
 		SET @changes = JSON_OBJECT();
-		${commentEditableFields
+		${commentChangeFields
 			.map(
 				(f) =>
 					`IF NOT(NEW.${f}<=>OLD.${f}) THEN SET @changes = JSON_INSERT(@changes, '$.${f}', ${convertNewField(
@@ -45,7 +51,7 @@ const createTriggerCommentsAddSQL = `
 	BEGIN
 		SET @action ="add";
 		SET @changes = JSON_OBJECT(
-			${commentEditableFields
+			${commentChangeFields
 				.map((f) => `"${f}", ${convertNewField(f)}`)
 				.join(",\n\t\t\t")}
 		);
@@ -67,7 +73,7 @@ const createTriggerResolutionsAddSQL = `
 	BEGIN
 		SET @action ="add";
 		SET @changes = JSON_OBJECT(
-			${resolutionEditableFields.map((f) => `"${f}", NEW.${f}`).join(",\n\t\t\t")}
+			${resolutionChangeFields.map((f) => `"${f}", NEW.${f}`).join(",\n\t\t\t")}
 		);
 		INSERT INTO resolutionsLog (comment_id, resolution_id, Action, Changes, UserID, Timestamp) VALUES (NEW.comment_id, NEW.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime);
 	END;
@@ -79,7 +85,7 @@ const createTriggerResolutionsUpdateSQL = `
 	BEGIN
 		SET @action ="update";
 		SET @changes = JSON_OBJECT();
-		${resolutionEditableFields
+		${resolutionChangeFields
 			.map(
 				(f) =>
 					`IF NOT(NEW.${f}<=>OLD.${f}) THEN SET @changes = JSON_INSERT(@changes, '$.${f}', NEW.${f}); END IF;`
@@ -100,7 +106,7 @@ const createTriggerResolutionsDeleteSQL = `
 	BEGIN
 		SET @action ="delete";
 		SET @changes = JSON_OBJECT(
-			${resolutionEditableFields.map((f) => `"${f}", OLD.${f}`).join(",\n\t\t\t")}
+			${resolutionChangeFields.map((f) => `"${f}", OLD.${f}`).join(",\n\t\t\t")}
 		);
 		INSERT INTO resolutionsLog (comment_id, resolution_id, Action, Changes, UserID, Timestamp) VALUES (OLD.comment_id, OLD.id, @action, @changes, OLD.LastModifiedBy, UTC_TIMESTAMP());
 	END;
@@ -124,7 +130,7 @@ export type CommentHistoryEvent = {
 	comment_id: number;
 	resolution_id?: string;
 	Action: "add" | "update" | "delete";
-	Changes: CommentEditable | ResolutionEditable;
+	Changes: CommentChange | ResolutionChange;
 	UserID: number | null;
 	UserName: string;
 	Timestamp: string;
@@ -162,17 +168,10 @@ const getCommentsHistorySql = `
 export async function getCommentHistory(comment_id: number) {
 	const sql =
 		db.format(getCommentsHistorySql, [comment_id]) +
-		db.format("SELECT * FROM comments WHERE id=?;", [comment_id]) +
-		db.format("SELECT * FROM resolutions WHERE comment_id=?;", [
-			comment_id,
-		]);
-	const results = (await db.query({ sql, dateStrings: true })) as [
-		CommentHistoryEvent[],
-		Comment[],
-		Resolution[]
-	];
+		db.format("SELECT * FROM comments WHERE id=?;", [comment_id]);
+	const results = (await db.query(sql)) as [CommentHistoryEvent[], Comment[]];
 
-	const [commentsHistory, comments, resolutions] = results;
+	const [commentsHistory, comments] = results;
 
 	let comment = comments[0];
 	const resolutionEntities: Record<string, Resolution> = {};

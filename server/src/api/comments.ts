@@ -71,7 +71,6 @@ import {
 	uploadComments,
 	uploadUserComments,
 	uploadPublicReviewComments,
-	validUpdates,
 } from "../services/comments";
 import { exportResolutionsForMyProject } from "../services/myProjectSpreadsheets";
 import {
@@ -82,8 +81,12 @@ import {
 import {
 	CommentsUploadParams,
 	CommentsUploadUserParams,
+	commentUpdatesSchema,
 	commentsUploadParamsSchema,
 	commentsUploadUserParamsSchema,
+	CommentUpdate,
+	commentResolutionQuerySchema,
+	CommentResolutionQuery,
 } from "../schemas/comments";
 
 const commentsSpreadsheetFormats = ["legacy", "modern", "myproject"] as const;
@@ -301,11 +304,13 @@ function getAll(req: Request, res: Response, next: NextFunction) {
 			)
 		);
 
-	const modifiedSince =
-		typeof req.query.modifiedSince === "string"
-			? req.query.modifiedSince
-			: undefined;
-	getComments(req.ballot!.id, modifiedSince)
+	let query: CommentResolutionQuery;
+	try {
+		query = commentResolutionQuerySchema.parse(req.query);
+	} catch (error) {
+		return next(error);
+	}
+	getComments(req.ballot!.id, query.modifiedSince)
 		.then((data) => res.json(data))
 		.catch(next);
 }
@@ -320,19 +325,27 @@ function updateMany(req: Request, res: Response, next: NextFunction) {
 			)
 		);
 
-	const modifiedSince =
-		typeof req.query.modifiedSince === "string"
-			? req.query.modifiedSince
-			: undefined;
-	const updates = req.body;
-	if (!validUpdates(updates))
-		return next(
-			new TypeError(
-				"Bad or missing updates; expected an array of objects with shape {id, changes}"
-			)
-		);
+	let query: CommentResolutionQuery;
+	try {
+		query = commentResolutionQuerySchema.parse(req.query);
+	} catch (error) {
+		return next(error);
+	}
 
-	updateComments(req.user, req.ballot!.id, access, updates, modifiedSince)
+	let updates: CommentUpdate[];
+	try {
+		updates = commentUpdatesSchema.parse(req.body);
+	} catch (error) {
+		return next(error);
+	}
+
+	updateComments(
+		req.user,
+		req.ballot!.id,
+		access,
+		updates,
+		query.modifiedSince
+	)
 		.then((data) => res.json(data))
 		.catch(next);
 }
