@@ -616,7 +616,11 @@ export async function addWebexMeeting({
 	const api = getWebexAccountApi(accountId);
 	return api
 		.post("/meetings", { siteUrl, ...params })
-		.then((response) => ({ accountId, ...response.data }))
+		.then((response) => ({
+			accountId,
+			accountName: account.name,
+			...response.data,
+		}))
 		.catch(webexApiError);
 }
 
@@ -646,10 +650,15 @@ export async function updateWebexMeeting({
 	id,
 	...params
 }: WebexMeetingChange): Promise<WebexMeeting> {
+	const account = getWebexAccount(accountId);
 	const api = getWebexAccountApi(accountId);
 	return api
 		.patch(`/meetings/${id}`, params)
-		.then((response) => ({ accountId, ...response.data }))
+		.then((response) => ({
+			accountId,
+			accountName: account.name,
+			...response.data,
+		}))
 		.catch(webexApiError);
 }
 

@@ -1,4 +1,4 @@
-import { boolean, z } from "zod";
+import { z } from "zod";
 
 export const resultIdSchema = z.string(); // "{ballot_id}-{SAPIN}"
 

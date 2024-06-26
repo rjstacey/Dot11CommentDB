@@ -17,7 +17,7 @@ export const meetingSchema = z.object({
 	end: z.string().datetime({ offset: true }),
 	timezone: z.string(),
 	summary: z.string(),
-	location: z.string().optional(),
+	location: z.string().nullable().optional(),
 	isCancelled: z.boolean(),
 	hasMotions: z.boolean(),
 	webexAccountId: z.number().nullable(),
@@ -28,7 +28,7 @@ export const meetingSchema = z.object({
 	imatMeetingId: z.number().nullable(),
 	imatBreakoutId: z.number().nullable(),
 	sessionId: z.number(),
-	roomId: z.number(),
+	roomId: z.number().nullable(),
 	roomName: z.string().optional(),
 });
 

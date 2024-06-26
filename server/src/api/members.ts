@@ -261,7 +261,7 @@ function getPrivate(req: Request, res: Response, next: NextFunction) {
 	const access = group.permissions.members || AccessLevel.none;
 	if (access < AccessLevel.admin)
 		return next(new ForbiddenError("Insufficient karma"));
-	exportMembersPrivate(group.id, res)
+	exportMembersPrivate(req.user, group.id, res)
 		.then(() => res.end())
 		.catch(next);
 }

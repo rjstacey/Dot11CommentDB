@@ -2,7 +2,7 @@ import db from "../utils/database";
 import type { RowDataPacket } from "mysql2";
 import { getBallots } from "./ballots";
 
-type BallotSeries = {
+export type BallotSeries = {
 	id: number;
 	ballotIds: number[];
 	votingPoolId: number;
@@ -15,7 +15,9 @@ type BallotSeries = {
  * Get recent ballot series
  * @returns An array of ballot arrays that are the recent ballot series
  */
-async function getRecentCompletedBallotSeries(workingGroupId: string): Promise<BallotSeries[]> {
+async function getRecentCompletedBallotSeries(
+	workingGroupId: string
+): Promise<BallotSeries[]> {
 	let sql = `
 		SELECT
 			series_id AS id,
@@ -25,10 +27,14 @@ async function getRecentCompletedBallotSeries(workingGroupId: string): Promise<B
 			ballotIds,
 			Project AS project
 		FROM ballotSeries s1
-		WHERE workingGroupId=UUID_TO_BIN(${db.escape(workingGroupId)}) AND IsComplete<>0 AND type=1
+		WHERE workingGroupId=UUID_TO_BIN(${db.escape(
+			workingGroupId
+		)}) AND IsComplete<>0 AND type=1
 		ORDER BY End;
 	`;
-	let ballotSeries: BallotSeries[] = await db.query<(RowDataPacket & BallotSeries)[]>(sql);
+	let ballotSeries: BallotSeries[] = await db.query<
+		(RowDataPacket & BallotSeries)[]
+	>(sql);
 
 	// Find the earliest start of the last three ballot series
 	let earliestStart = new Date();
@@ -38,25 +44,59 @@ async function getRecentCompletedBallotSeries(workingGroupId: string): Promise<B
 	});
 
 	// Select all that start after the earliest start of the three
-	ballotSeries = ballotSeries.filter(series => new Date(series.start) >= earliestStart);
+	ballotSeries = ballotSeries.filter(
+		(series) => new Date(series.start) >= earliestStart
+	);
+
+	return ballotSeries;
+}
+
+/**
+ * Get active ballot series
+ * @returns An array of ballot arrays that are the recent ballot series
+ */
+async function getActiveBallotSeries(
+	workingGroupId: string
+): Promise<BallotSeries[]> {
+	let sql = `
+		SELECT
+			s1.series_id AS id,
+			s1.initial_id AS votingPoolId,
+			DATE_FORMAT(s1.initialStart, "%Y-%m-%dT%TZ") AS start,
+			DATE_FORMAT(s1.End, "%Y-%m-%dT%TZ") AS end,
+			s1.ballotIds,
+			s1.Project AS project
+		FROM ballotSeries s1
+		LEFT JOIN ballots ON s1.id=ballots.prev_id
+		WHERE s1.workingGroupId=UUID_TO_BIN(${db.escape(
+			workingGroupId
+		)}) AND s1.IsComplete=0 AND s1.type=1 AND ballots.id IS NULL AND s1.Project NOT LIKE "%TEST%"
+		ORDER BY End;
+	`;
+	let ballotSeries: BallotSeries[] = await db.query<
+		(RowDataPacket & BallotSeries)[]
+	>(sql);
 
 	return ballotSeries;
 }
 
 type BallotSeriesParticipationSummary = {
-	SAPIN: number;					// Current SAPIN
-	series_id: number;				// Ballot series identifier
-	voterSAPIN: number;				// SAPIN in voting pool
-	voter_id: string;				// Voter identifier in voting pool
-	excused: boolean;				// Excused from participation (recorded in voting pool)
-	lastVote: string | null;		// Last vote
-	lastSAPIN: number | null;		// SAPIN used for last vote
-	lastBallotId: number | null;	// Ballot identifier for last vote
-	commentCount: number | null;	// Number of comments submitted with last vote
-	totalCommentCount: number | null;	// Total comments over ballot series
+	SAPIN: number; // Current SAPIN
+	series_id: number; // Ballot series identifier
+	voterSAPIN: number; // SAPIN in voting pool
+	voter_id: string; // Voter identifier in voting pool
+	excused: boolean; // Excused from participation (recorded in voting pool)
+	vote: string | null; // Last vote
+	lastSAPIN: number | null; // SAPIN used for last vote
+	lastBallotId: number | null; // Ballot identifier for last vote
+	commentCount: number | null; // Number of comments submitted with last vote
+	totalCommentCount: number | null; // Total comments over ballot series
 };
 
-export function getBallotSeriesParticipationSummary(series_id: number, initial_id: number): Promise<BallotSeriesParticipationSummary[]> {
+export function getBallotSeriesParticipationSummary(
+	series_id: number,
+	initial_id: number
+): Promise<BallotSeriesParticipationSummary[]> {
 	const sql = `
 		WITH resultsForSeries AS (
 			SELECT *
@@ -105,16 +145,23 @@ type RecentBallotSeriesParticipation = {
 };
 
 export async function getBallotSeriesParticipation(groupId: string) {
-
 	const ballotSeries = await getRecentCompletedBallotSeries(groupId);
 
-	const ballotIds = ballotSeries.reduce((ids, series) => ids.concat(...series.ballotIds), [] as number[]);
-	const ballots = ballotIds.length > 0? await getBallots({ id: ballotIds }): [];
+	const ballotIds = ballotSeries.reduce(
+		(ids, series) => ids.concat(...series.ballotIds),
+		[] as number[]
+	);
+	const ballots =
+		ballotIds.length > 0 ? await getBallots({ id: ballotIds }) : [];
 
 	const summaryIds: number[] = [];
-	const summaryEntities: Record<number, BallotSeriesParticipationSummary[]> = {};
+	const summaryEntities: Record<number, BallotSeriesParticipationSummary[]> =
+		{};
 	for (const series of ballotSeries) {
-		const summaries = await getBallotSeriesParticipationSummary(series.id, series.votingPoolId);
+		const summaries = await getBallotSeriesParticipationSummary(
+			series.id,
+			series.votingPoolId
+		);
 		for (const s of summaries) {
 			if (!summaryIds.includes(s.SAPIN)) {
 				summaryIds.push(s.SAPIN);
@@ -124,10 +171,51 @@ export async function getBallotSeriesParticipation(groupId: string) {
 		}
 	}
 
-	const ballotSeriesParticipation: RecentBallotSeriesParticipation[] = summaryIds.map(sapin => ({
-		SAPIN: sapin,
-		ballotSeriesParticipationSummaries: summaryEntities[sapin]
-	}));
+	const ballotSeriesParticipation: RecentBallotSeriesParticipation[] =
+		summaryIds.map((sapin) => ({
+			SAPIN: sapin,
+			ballotSeriesParticipationSummaries: summaryEntities[sapin],
+		}));
+
+	return {
+		ballotSeries,
+		ballots,
+		ballotSeriesParticipation,
+	};
+}
+
+export async function getActiveBallotSeriesParticipation(groupId: string) {
+	const ballotSeries = await getActiveBallotSeries(groupId);
+
+	const ballotIds = ballotSeries.reduce(
+		(ids, series) => ids.concat(...series.ballotIds),
+		[] as number[]
+	);
+	const ballots =
+		ballotIds.length > 0 ? await getBallots({ id: ballotIds }) : [];
+
+	const summaryIds: number[] = [];
+	const summaryEntities: Record<number, BallotSeriesParticipationSummary[]> =
+		{};
+	for (const series of ballotSeries) {
+		const summaries = await getBallotSeriesParticipationSummary(
+			series.id,
+			series.votingPoolId
+		);
+		for (const s of summaries) {
+			if (!summaryIds.includes(s.SAPIN)) {
+				summaryIds.push(s.SAPIN);
+				summaryEntities[s.SAPIN] = [];
+			}
+			summaryEntities[s.SAPIN].push(s);
+		}
+	}
+
+	const ballotSeriesParticipation: RecentBallotSeriesParticipation[] =
+		summaryIds.map((sapin) => ({
+			SAPIN: sapin,
+			ballotSeriesParticipationSummaries: summaryEntities[sapin],
+		}));
 
 	return {
 		ballotSeries,

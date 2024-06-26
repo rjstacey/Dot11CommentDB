@@ -1004,7 +1004,6 @@ export async function exportCommentsSpreadsheet(
 	res: Response
 ) {
 	const comments = await getComments(ballot.id);
-	console.log(comments.filter((c, i) => i < 10));
 
 	res.attachment("comments.xlsx");
 	return genCommentsSpreadsheet(

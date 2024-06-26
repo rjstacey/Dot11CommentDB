@@ -723,16 +723,19 @@ async function meetingMakeWebexUpdates(
 					webexMeetingParams = {
 						...webexMeeting,
 						...webexMeetingParams,
+						accountId: webexAccountId,
+						id: changes.webexMeetingId,
 					};
 					if (
 						webexMeetingUpdateNeeded(
 							webexMeeting,
 							webexMeetingParams
 						)
-					)
+					) {
 						webexMeeting = await updateWebexMeeting(
 							webexMeetingParams
 						);
+					}
 				} catch (error) {
 					if (!(error instanceof NotFoundError)) throw error;
 					// meeting not found

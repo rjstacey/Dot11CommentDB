@@ -47,7 +47,7 @@ const calendarAccounts: Record<number, CalendarAccountLocal> = {};
 let googleClientId = "Google client ID";
 let googleClientSecret = "Google client secret";
 
-function createCalendarApi(id: number, auth: OAuth2Client) {
+function createCalendarApi(auth: OAuth2Client) {
 	google.options({
 		retryConfig: {
 			currentRetryAttempt: 0,
@@ -70,11 +70,9 @@ function createCalendarApi(id: number, auth: OAuth2Client) {
 	return calendar;
 }
 
-function activateCalendarAccount(id: number, authParams: Credentials) {
+function activateCalendarAccount(id: number) {
 	const account = calendarAccounts[id];
-	const { access_token, ...tokens } = authParams;
-	account.auth.setCredentials(tokens);
-	account.calendar = createCalendarApi(id, account.auth);
+	account.calendar = createCalendarApi(account.auth);
 
 	getPrimaryCalendar(account.id)
 		.then((details) => {
@@ -97,14 +95,17 @@ function activateCalendarAccount(id: number, authParams: Credentials) {
 
 function createCalendarAccount(account: OAuthAccount) {
 	const id = account.id;
+	const auth = createAuth(id);
 	calendarAccounts[id] = {
 		...account,
-		auth: createAuth(id),
+		auth,
 		calendarList: [],
 		lastAccessed: null,
 	};
-	if (account.authParams)
-		activateCalendarAccount(id, account.authParams as Credentials);
+	if (account.authParams) {
+		auth.setCredentials(account.authParams as Credentials);
+		activateCalendarAccount(id);
+	}
 }
 
 export function getCalendarAccount(id: number) {
@@ -129,11 +130,9 @@ function createAuth(id: number) {
 		googleClientSecret
 		//calendarAuthRedirectUri
 	).on("tokens", (tokens) => {
-		//console.log(`updateAuthParams for ${id}:`, tokens);
+		console.log(`updateAuthParams for ${id}:`, tokens);
 		// Listen for token updates. Store the refresh_token if we get one.
-		if (tokens.refresh_token) {
-			updateAuthParams(id, tokens);
-		}
+		updateAuthParams(id, tokens);
 	});
 	return auth;
 }
@@ -169,6 +168,7 @@ function getAuthUrl(user: User, host: string, id: number) {
 		state: genOAuthState({ accountId: id, userId: user.SAPIN, host }),
 		include_granted_scopes: true,
 		redirect_uri: host + calendarAuthRedirectPath,
+		prompt: "consent",
 	});
 }
 
@@ -196,12 +196,12 @@ export async function completeAuthCalendarAccount({
 		code,
 		redirect_uri: host + calendarAuthRedirectPath,
 	});
-	console.log("comppleteAuth: ", tokens);
+	console.log("completeAuth: ", tokens);
 	auth.setCredentials(tokens);
 	await updateAuthParams(accountId, tokens, userId);
 
 	// Create a google calendar api for this account
-	activateCalendarAccount(accountId, tokens);
+	activateCalendarAccount(accountId);
 }
 
 function getCalendarAccountsLocal(constraints?: CalendarAccountsQuery) {
@@ -344,16 +344,17 @@ export async function deleteCalendarAccount(groupId: string, id: number) {
 }
 
 function calendarApiError(error: any) {
-	const { response, code } = error;
-	if (response && code >= 400 && code < 500) {
+	const { response, status } = error;
+	if (response && status >= 400 && status < 500) {
 		//console.log(response.config)
 		const { error } = response.data;
-		console.log(response.data);
+		console.log(response);
 		let message = "";
 		if (typeof error === "string") message = error;
 		if (typeof error === "object") message = error.message;
-		throw new Error(`calendar api: code=${code} ${message}`);
+		throw new Error(`calendar api: status=${status} ${message}`);
 	}
+	console.log(error);
 	throw new Error(error);
 }
 
