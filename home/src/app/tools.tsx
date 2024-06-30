@@ -28,11 +28,9 @@ function Tools() {
 		selectWorkingGroupByName(state, groupName!)
 	);
 
-	const showCommentResolution = group
-		? group.permissions.comments >= 0
-		: false;
-	const showMembership = group ? group.permissions.members >= 0 : false;
-	const showMeetings = group ? group.permissions.meetings >= 0 : false;
+	const showCommentResolution = (group?.permissions.comments || 0) >= 0;
+	const showMembership = (group?.permissions.members || 0) >= 0;
+	const showMeetings = (group?.permissions.meetings || 0) >= 0;
 
 	const tools: JSX.Element[] = [];
 	if (showCommentResolution) {
@@ -70,7 +68,7 @@ function Tools() {
 	}
 
 	if (tools.length === 0) {
-		tools.push(<div>You do not have access to any tools</div>);
+		return <p>You do not have access to any tools</p>;
 	}
 
 	return (
