@@ -34,7 +34,6 @@ function Tools() {
 
 	const tools: JSX.Element[] = [];
 	if (showCommentResolution) {
-		console.log("/comments" + location.pathname);
 		tools.push(
 			<Tool
 				key="cr"

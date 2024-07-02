@@ -30,7 +30,6 @@ import styles from "./app.module.css";
  */
 const rootLoader: LoaderFunction = async () => {
 	const { dispatch } = store;
-	console.log("rootLoader");
 	let user: User;
 	try {
 		user = await getUser();
