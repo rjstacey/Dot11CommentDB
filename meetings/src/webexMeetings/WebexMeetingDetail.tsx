@@ -766,7 +766,7 @@ function convertWebexMeetingToEntry(
 export function convertEntryToWebexMeeting(
 	entry: WebexMeetingEntry
 ): Omit<WebexMeetingParams, "id"> {
-	let { date, startTime, endTime, accountId, meetingId, ...rest } = entry;
+	let { date, startTime, endTime, accountId, ...rest } = entry;
 	const webexMeeting = { ...rest };
 
 	const zone = webexMeeting.timezone;
@@ -900,6 +900,7 @@ class WebexMeetingDetail extends React.Component<
 		const diff: PartialWebexMeetingEntry = deepDiff(saved, entry) || {};
 		const webexMeetingUpdates: WebexMeetingUpdate[] = [];
 		const meetingUpdates: { id: number; changes: Partial<Meeting> }[] = [];
+		console.log(diff);
 		for (const webexMeeting of webexMeetings) {
 			const local: WebexMeetingEntry = deepMerge(
 				convertWebexMeetingToEntry(webexMeeting),
@@ -908,6 +909,7 @@ class WebexMeetingDetail extends React.Component<
 			const updated = convertEntryToWebexMeeting(local);
 			const changes: Partial<WebexMeetingParams> =
 				deepDiff(webexMeeting, updated) || {};
+			console.log(local, updated, changes);
 			if (changes.meetingId) {
 				// Associating with a meeting
 				meetingUpdates.push({
@@ -1006,7 +1008,7 @@ class WebexMeetingDetail extends React.Component<
 		this.setState({ busy: true });
 
 		const { webexMeetingUpdates, meetingUpdates } = this.getUpdates();
-		//console.log(webexMeetingUpdates, meetingUpdates)
+		console.log(webexMeetingUpdates, meetingUpdates);
 		if (webexMeetingUpdates.length > 0)
 			await updateWebexMeetings(webexMeetingUpdates);
 		if (meetingUpdates.length > 0) await updateMeetings(meetingUpdates);

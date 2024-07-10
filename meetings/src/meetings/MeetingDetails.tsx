@@ -321,7 +321,6 @@ class MeetingDetails extends React.Component<
 		entry.dates = [...new Set(entry.dates.sort())]; // array of unique dates
 
 		if (action === "add-by-slot") {
-			console.log(entry);
 			entry.slots = selectedSlots;
 
 			let date: string | typeof MULTIPLE | null = null,
@@ -350,6 +349,7 @@ class MeetingDetails extends React.Component<
 				entry.startTime = timeslot ? timeslot.startTime : "";
 				entry.endTime = timeslot ? timeslot.endTime : "";
 			}
+			entry.hasMotions = false;
 		} else if (action === "add-by-date") {
 			if (meetings.length > 0) {
 				entry = {
@@ -603,21 +603,19 @@ class MeetingDetails extends React.Component<
 
 		let submit, cancel;
 		let title = "";
-		if (!notAvailableStr)
-			title = isSession? "Session meeting": "Telecon";
+		if (!notAvailableStr) title = isSession ? "Session meeting" : "Telecon";
 		if (action === "add-by-slot" || action === "add-by-date") {
 			submit = this.add;
 			cancel = this.cancel;
-			if (action === 'add-by-slot') {
+			if (action === "add-by-slot") {
 				title = "Add session meeting to selected slots";
-			}
-			else if (action === 'add-by-date') {
-				title = isSession? "Add session meeting": "Add telecon";
+			} else if (action === "add-by-date") {
+				title = isSession ? "Add session meeting" : "Add telecon";
 			}
 		} else if (this.hasUpdates()) {
 			submit = this.update;
 			cancel = this.cancel;
-			title = isSession? "Update session meeting": "Update telecon";
+			title = isSession ? "Update session meeting" : "Update telecon";
 		}
 
 		const actionButtons = (
@@ -634,10 +632,7 @@ class MeetingDetails extends React.Component<
 					name="add"
 					title="Add meeting"
 					disabled={
-						action === "add-by-slot" ||
-						loading ||
-						busy ||
-						readOnly
+						action === "add-by-slot" || loading || busy || readOnly
 					}
 					isActive={action === "add-by-date"}
 					onClick={this.clickAdd}
@@ -651,7 +646,7 @@ class MeetingDetails extends React.Component<
 					onClick={this.clickDelete}
 				/>
 			</div>
-		)
+		);
 
 		return (
 			<>

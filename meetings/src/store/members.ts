@@ -84,13 +84,16 @@ let loadingPromise: Promise<Member[]>;
 export const loadMembers =
 	(groupName: string): AppThunk<Member[]> =>
 	(dispatch, getState) => {
-		const {loading, groupName: currentGroupName} = selectMembersState(getState());
+		const { loading, groupName: currentGroupName } = selectMembersState(
+			getState()
+		);
 		if (loading && currentGroupName === groupName) {
 			return loadingPromise;
 		}
-		const url = `/api/${groupName}/users`;
+		const url = `/api/${groupName}/members/user`;
 		dispatch(getPending({ groupName }));
-		loadingPromise = fetcher.get(url)
+		loadingPromise = fetcher
+			.get(url)
 			.then((response: any) => {
 				if (!validUsers(response))
 					throw new TypeError("Unexpected response");
