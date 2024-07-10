@@ -7,7 +7,8 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	if (!req.group) return next(new Error("Group not set"));
 
 	const access = req.group.permissions.users || AccessLevel.none;
-	if (access >= AccessLevel.admin) return next();
+	console.log(req.group);
+	if (access >= AccessLevel.ro) return next();
 
 	next(new ForbiddenError("Insufficient karma"));
 }

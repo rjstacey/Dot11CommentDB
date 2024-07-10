@@ -321,11 +321,15 @@ export async function getWebexAccounts(
 	constraints?: WebexAccountsQuery
 ) {
 	const accounts = getWebexAccountsLocal(constraints);
+	const proxyHost = req.headers["x-forwarded-host"] as string;
+	const m = /(http[s]?:\/\/[^\/]+)\//.exec(req.headers["referer"] || "");
+	const host = m ? m[1] : proxyHost || req.headers.host || "";
+	console.log(host);
 	const accountsOut: WebexAccount[] = accounts.map((account) => {
 		const { authParams, axios, ...rest } = account;
 		const accountOut: WebexAccount = {
 			...rest,
-			authUrl: getAuthUrl(user, req.hostname, account.id),
+			authUrl: getAuthUrl(user, host, account.id),
 			displayName: rest.owner?.displayName,
 			userName: rest.owner?.userName,
 		};

@@ -163,12 +163,7 @@ function initServer() {
 		express.static(path.join(__dirname, devdir, ""), { maxAge: 31536000 })
 	);
 
-	app.get("/$", (req, res) => res.redirect("/comments"));
 	app.get("/login", (req, res) => {
-		console.log(
-			"send file",
-			path.join(__dirname, devdir, "auth/index.html")
-		);
 		res.sendFile(path.join(__dirname, devdir, "auth/index.html"));
 	});
 	app.get("/logout", (req, res) =>
@@ -182,6 +177,9 @@ function initServer() {
 	);
 	app.get("/meetings*", (req, res) =>
 		res.sendFile(path.join(__dirname, devdir, "meetings/index.html"))
+	);
+	app.get("/*", (req, res) =>
+		res.sendFile(path.join(__dirname, devdir, "home/index.html"))
 	);
 	//app.get('*', (req, res) => res.redirect('/'));
 

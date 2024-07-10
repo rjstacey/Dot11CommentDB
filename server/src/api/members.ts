@@ -44,7 +44,7 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	// Getting a list of user members requires ro access */
 	if (
 		req.method === "GET" &&
-		req.path === "/users" &&
+		req.path === "/user" &&
 		access >= AccessLevel.ro
 	)
 		return next();

@@ -11,8 +11,8 @@ export type Room = z.infer<typeof roomSchema>;
 export const timeslotSchema = z.object({
 	id: z.number(),
 	name: z.string(),
-	startTime: z.string().datetime(),
-	endTime: z.string().datetime(),
+	startTime: z.string(),
+	endTime: z.string(),
 });
 export type Timeslot = z.infer<typeof timeslotSchema>;
 
