@@ -20,7 +20,7 @@ export type UserMember = {
 	MI: string;
 	Email: string;
 	Employer: string;
-    ContactEmails: MemberContactEmail[];
+	ContactEmails: MemberContactEmail[];
 	ContactInfo: MemberContactInfo;
 };
 
@@ -72,12 +72,7 @@ export default slice;
 /* Slice actions */
 export const usersActions = slice.actions;
 
-const {
-	getSuccess,
-	getFailure,
-	setUiProperties,
-	setSelected,
-} = slice.actions;
+const { getSuccess, getFailure, setUiProperties, setSelected } = slice.actions;
 
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
@@ -102,8 +97,7 @@ export const selectUsers = createSelector(
 
 /* Thunk actions */
 function validUserMember(member: any): member is UserMember {
-	return isObject(member) &&
-		typeof member.SAPIN === "number";
+	return isObject(member) && typeof member.SAPIN === "number";
 }
 
 function validResponse(members: unknown): members is UserMember[] {
@@ -122,7 +116,7 @@ export const loadUsers =
 		}
 		dispatch(getPending({ groupName }));
 		loadingPromise = fetcher
-			.get(`/api/${groupName}/users`)
+			.get(`/api/${groupName}/members/user`)
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response to GET");
