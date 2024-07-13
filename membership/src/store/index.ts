@@ -2,11 +2,7 @@ import {
 	combineReducers,
 	configureStore as configureReduxStore,
 } from "@reduxjs/toolkit";
-import type {
-	Action,
-	ThunkAction,
-	Middleware,
-} from "@reduxjs/toolkit";
+import type { Action, ThunkAction, Middleware } from "@reduxjs/toolkit";
 
 import { createLogger } from "redux-logger";
 import { persistStore, persistReducer, createTransform } from "redux-persist";
@@ -25,6 +21,7 @@ import sessionAttendeesSlice from "./sessionAttendees";
 import imatCommitteesSlice from "./imatCommittees";
 import sessionsSlice from "./sessions";
 import emailTemlatesSlice from "./email";
+import affliationMapSlice from "./affiliationMap";
 
 import { errorsSlice } from "dot11-components";
 
@@ -48,6 +45,7 @@ const transformState = createTransform(
 			ballotParticipationSlice.name,
 			sessionAttendeesSlice.name,
 			emailTemlatesSlice.name,
+			affliationMapSlice.name,
 		],
 	}
 );
@@ -65,6 +63,7 @@ const appReducer = combineReducers({
 	[timeZonesSlice.name]: timeZonesSlice.reducer,
 	[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
 	[emailTemlatesSlice.name]: emailTemlatesSlice.reducer,
+	[affliationMapSlice.name]: affliationMapSlice.reducer,
 	[errorsSlice.name]: errorsSlice.reducer,
 });
 
@@ -95,6 +94,7 @@ const persistConfig = {
 		timeZonesSlice.name,
 		imatCommitteesSlice.name,
 		emailTemlatesSlice.name,
+		affliationMapSlice.name,
 	],
 	stateReconciler: autoMergeLevel2,
 	transforms: [transformState],

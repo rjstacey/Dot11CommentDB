@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import { Outlet, RouteObject, useNavigate, useParams } from "react-router-dom";
 
 import { ActionButton, Button } from "dot11-components";
 
@@ -9,6 +9,8 @@ import {
 	Member,
 	type MemberWithParticipation,
 } from "../store/members";
+
+import MembersChart from "./MembersChart";
 
 import styles from "./reports.module.css";
 
@@ -150,44 +152,74 @@ function membersPrivate(members: MemberWithParticipation[]): TableData {
 	return { headings, values };
 }
 
-const reports = {
-	"Members summary": membersSummary,
-	"Members public list": membersPublic,
-	"Members private list": membersPrivate,
+function ChartReport() {
+	const svgRef = React.useRef<SVGSVGElement>(null);
+	return <MembersChart svgRef={svgRef} height={500} width={500} />;
+}
+
+type ReportRouteObject = RouteObject & {
+	label?: string;
+};
+
+export const reportRoutes: ReportRouteObject[] = [
+	{
+		path: "summary",
+		label: "Members summary",
+		element: <ReportTable report="summary" />,
+	},
+	{
+		path: "publicList",
+		label: "Members public list",
+		element: <ReportTable report="publicList" />,
+	},
+	{
+		path: "privateList",
+		label: "Members private list",
+		element: <ReportTable report="publicList" />,
+	},
+	{
+		path: "byAffiliation",
+		label: "Members by affiliation",
+		element: <ChartReport />,
+	},
+];
+
+const tableReportData = {
+	summary: membersSummary,
+	publicList: membersPublic,
+	privateList: membersPrivate,
 } as const;
-const reportsList = Object.keys(reports) as (keyof typeof reports)[];
+
+export function ReportTable({
+	report,
+}: {
+	report: keyof typeof tableReportData;
+}) {
+	const members = useAppSelector(selectActiveMembersWithParticipationSummary);
+	const tableData: TableData | null = React.useMemo(() => {
+		return tableReportData[report]?.(members);
+	}, [members, report]);
+
+	return (
+		<>
+			<div className={styles.mainCol}>{renderTable(tableData)}</div>
+			<div className={styles.actionsCol}>
+				<ActionButton
+					name="copy"
+					onClick={() => renderTableToClipboard(tableData)}
+				/>
+			</div>
+		</>
+	);
+}
 
 function Reports() {
 	const navigate = useNavigate();
-
-	const members = useAppSelector(selectActiveMembersWithParticipationSummary);
-	const [report, setReport] = React.useState<keyof typeof reports | null>(
-		null
-	);
+	const { report } = useParams();
 
 	const refresh = () => {
 		navigate(".", { replace: true });
 	};
-
-	const tableData: TableData | null = React.useMemo(() => {
-		if (!report) return null;
-		return reports[report](members);
-	}, [members, report]);
-
-	const ReportButton = ({
-		report: thisReport,
-		label,
-	}: {
-		report: keyof typeof reports;
-		label: string;
-	}) => (
-		<Button
-			onClick={() => setReport(thisReport)}
-			isActive={thisReport === report}
-		>
-			{label}
-		</Button>
-	);
 
 	return (
 		<>
@@ -201,21 +233,22 @@ function Reports() {
 			<div className={styles.body}>
 				<div className={styles.selectCol}>
 					<label>Select a report:</label>
-					{reportsList.map((report) => (
-						<ReportButton
-							key={report}
-							report={report}
-							label={report}
-						/>
-					))}
+					{reportRoutes.map(
+						({ path, label }) =>
+							label && (
+								<Button
+									key={path}
+									onClick={
+										path ? () => navigate(path) : undefined
+									}
+									isActive={path === report}
+								>
+									{label}
+								</Button>
+							)
+					)}
 				</div>
-				<div className={styles.mainCol}>{renderTable(tableData)}</div>
-				<div className={styles.actionsCol}>
-					<ActionButton
-						name="copy"
-						onClick={() => renderTableToClipboard(tableData)}
-					/>
-				</div>
+				<Outlet />
 			</div>
 		</>
 	);

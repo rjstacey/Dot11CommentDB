@@ -25,6 +25,7 @@ import { loadTimeZones } from "../store/timeZones";
 import { loadAttendances } from "../store/sessionParticipation";
 import { loadBallotParticipation } from "../store/ballotParticipation";
 import { loadEmailTemplates } from "../store/email";
+import { loadAffiliationMap } from "../store/affiliationMap";
 import { loadSessions } from "../store/sessions";
 
 import { ErrorModal, ConfirmModal } from "dot11-components";
@@ -36,7 +37,8 @@ import SessionParticipation from "../sessionParticipation/SessionParticipation";
 import BallotParticipation from "../ballotParticipation/BallotParticipation";
 import SessionAttendance from "../sessionAttendance/SessionAttendance";
 import Notification from "../notification/Notification";
-import Reports from "../reports/Reports";
+import AffiliationMap from "../affiliationMap/AffiliationMap";
+import Reports, { reportRoutes } from "../reports/Reports";
 
 import styles from "./app.module.css";
 
@@ -84,6 +86,7 @@ const membersLoader: LoaderFunction = async ({ params }) => {
 		// We have already loaded the members, but we need participation
 		dispatch(loadAttendances(groupName));
 		dispatch(loadBallotParticipation(groupName));
+		dispatch(loadAffiliationMap(groupName));
 	}
 	return null;
 };
@@ -204,7 +207,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <Members />,
 		loader: membersLoader,
 		minAccess: AccessLevel.admin,
-		groupTypes: ['r', 'c', 'wg']
+		groupTypes: ["r", "c", "wg"],
 	},
 	{
 		menuLabel: "Groups",
@@ -212,7 +215,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <Groups />,
 		loader: groupsLoader,
 		minAccess: AccessLevel.ro,
-		groupTypes: ['r', 'c', 'wg']
+		groupTypes: ["r", "c", "wg"],
 	},
 	{
 		menuLabel: "Session participation",
@@ -220,7 +223,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <SessionParticipation />,
 		loader: sessionParticipationLoader,
 		minAccess: AccessLevel.admin,
-		groupTypes: ['c', 'wg']
+		groupTypes: ["c", "wg"],
 	},
 	{
 		menuLabel: "Ballot pariticipation",
@@ -228,7 +231,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <BallotParticipation />,
 		loader: ballotParticipationLoader,
 		minAccess: AccessLevel.admin,
-		groupTypes: ['c', 'wg']
+		groupTypes: ["c", "wg"],
 	},
 	{
 		menuLabel: "Session attendance",
@@ -236,7 +239,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <SessionAttendance />,
 		loader: sessionAttendanceLoader,
 		minAccess: AccessLevel.admin,
-		groupTypes: ['c', 'wg']
+		groupTypes: ["c", "wg"],
 	},
 	{
 		menuLabel: "Notification",
@@ -244,7 +247,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <Notification />,
 		loader: notificationsLoader,
 		minAccess: AccessLevel.admin,
-		groupTypes: ['c', 'wg']
+		groupTypes: ["c", "wg"],
 	},
 	{
 		menuLabel: "Reports",
@@ -252,7 +255,15 @@ const groupRoutes_ungated: AppRoute[] = [
 		element: <Reports />,
 		loader: membersLoader,
 		minAccess: AccessLevel.ro,
-		groupTypes: ['c', 'wg']
+		groupTypes: ["c", "wg"],
+		children: reportRoutes,
+	},
+	{
+		path: "affiliationMap",
+		element: <AffiliationMap />,
+		loader: membersLoader,
+		minAccess: AccessLevel.ro,
+		groupTypes: ["c", "wg"],
 	},
 ];
 
