@@ -259,6 +259,7 @@ const groupRoutes_ungated: AppRoute[] = [
 		children: reportRoutes,
 	},
 	{
+		menuLabel: "Affiliation Map",
 		path: "affiliationMap",
 		element: <AffiliationMap />,
 		loader: membersLoader,

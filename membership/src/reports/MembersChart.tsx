@@ -4,6 +4,7 @@ import { createSelector } from "@reduxjs/toolkit";
 
 import { useAppSelector } from "../store/hooks";
 import { selectActiveMembers, Member } from "../store/members";
+import { AffiliationMap, selectAffiliationMaps } from "../store/affiliationMap";
 
 const countedStatus = ["Voter", "Potential Voter", "Aspirant"] as const;
 const isCountedStatus = (s: string): s is (typeof countedStatus)[number] =>
@@ -11,53 +12,109 @@ const isCountedStatus = (s: string): s is (typeof countedStatus)[number] =>
 
 const colors = {
 	Aspirant: "green",
-	"Potential Voter": "yellow",
+	"Potential Voter": "orange",
 	Voter: "blue",
-};
+} as const;
 
 type StatusCountRecord = Record<
 	(typeof countedStatus)[number] | "Total",
 	number
 >;
 
-const membersByAffiliation = createSelector(selectActiveMembers, (members) => {
-	const membersEntities: Record<string, Member[]> = {};
-	let ids: string[] = [];
-	for (const m of members) {
-		if (ids.includes(m.Affiliation)) {
-			membersEntities[m.Affiliation].push(m);
-		} else {
-			ids.push(m.Affiliation);
-			membersEntities[m.Affiliation] = [m];
-		}
+function matchRegExp(map: AffiliationMap) {
+	const parts = map.match.split("/");
+	let re: RegExp;
+	try {
+		if ((parts.length === 2 || parts.length === 3) && parts[0] === "")
+			re = new RegExp(parts[1], parts[2]);
+		else re = new RegExp(map.match);
+	} catch (error) {
+		return;
 	}
-	const entities: Record<string, StatusCountRecord> = {};
-	for (const id of ids) {
-		const entry: StatusCountRecord = {
-			Aspirant: 0,
-			"Potential Voter": 0,
-			Voter: 0,
-			Total: 0,
-		};
-		for (const m of membersEntities[id]) {
-			if (isCountedStatus(m.Status)) entry[m.Status]++;
+	return re;
+}
+
+const nullEntry: StatusCountRecord = {
+	Aspirant: 0,
+	"Potential Voter": 0,
+	Voter: 0,
+	Total: 0,
+};
+
+const membersByAffiliation = createSelector(
+	selectActiveMembers,
+	selectAffiliationMaps,
+	(members, maps) => {
+		const membersEntities: Record<string, Member[]> = {};
+		let ids: string[] = [];
+		for (const m of members) {
+			let affiliation = m.Affiliation;
+			for (const map of maps) {
+				const re = matchRegExp(map);
+				if (re && re.test(affiliation)) {
+					affiliation = map.shortAffiliation;
+					break;
+				}
+			}
+			if (ids.includes(affiliation)) {
+				membersEntities[affiliation].push(m);
+			} else {
+				ids.push(affiliation);
+				membersEntities[affiliation] = [m];
+			}
 		}
-		entry.Total = entry.Aspirant + entry["Potential Voter"] + entry.Voter;
+		const entities: Record<string, StatusCountRecord> = {};
+		for (const id of ids) {
+			const entry = { ...nullEntry };
+			for (const m of membersEntities[id]) {
+				if (isCountedStatus(m.Status)) entry[m.Status]++;
+			}
+			entry.Total =
+				entry.Aspirant + entry["Potential Voter"] + entry.Voter;
+			entities[id] = entry;
+		}
+		function idsComp(id1: string, id2: string) {
+			const e1 = entities[id1];
+			const e2 = entities[id2];
+			const n = e2.Voter - e1.Voter;
+			return n; //n === 0 ? id1.localeCompare(id2) : n;
+		}
+		ids = ids.sort(idsComp);
+
+		const entry = { ...nullEntry };
+		ids.forEach((id, i) => {
+			const entity = entities[id];
+			if (entity.Total === 1 || id === "No affiliation") {
+				entry.Aspirant += entity.Aspirant;
+				entry["Potential Voter"] += entity["Potential Voter"];
+				entry.Voter += entity.Voter;
+				entry.Total += entity.Total;
+			}
+		});
+		const id = "Single or no affiliation";
 		entities[id] = entry;
+		ids.push(id);
+
+		ids = ids.filter(
+			(id) => entities[id].Total > 1 && id !== "No affiliation"
+		);
+
+		const totals = { ...nullEntry };
+		ids.forEach((id) => {
+			const entity = entities[id];
+			totals.Aspirant += entity.Aspirant;
+			totals["Potential Voter"] += entity["Potential Voter"];
+			totals.Voter += entity.Voter;
+			totals.Total += entity.Total;
+		});
+
+		const maxCount = ids.reduce(
+			(max, id) => Math.max(max, entities[id].Total),
+			0
+		);
+		return { ids, entities, maxCount, totals };
 	}
-	const maxCount = ids.reduce(
-		(max, id) => Math.max(max, entities[id].Voter),
-		0
-	);
-	function idsComp(id1: string, id2: string) {
-		const e1 = entities[id1];
-		const e2 = entities[id2];
-		const n = e2.Voter - e1.Voter;
-		return n; //n === 0 ? id1.localeCompare(id2) : n;
-	}
-	ids = ids.sort(idsComp).slice(0, 40);
-	return { ids, entities, maxCount };
-});
+);
 
 type ReportChartProps = {
 	className?: string;
@@ -67,102 +124,129 @@ type ReportChartProps = {
 	width: number;
 };
 
-function MembersChart({ width, height, svgRef }: ReportChartProps) {
-	const yAxisWidth = 200;
-	const xAxisHeight = 40;
-	const marginRight = 50; // For text overflow
-	const plotWidth = width - yAxisWidth - marginRight;
-	const plotHeight = height - xAxisHeight;
-
-	const { ids, entities, maxCount } = useAppSelector(membersByAffiliation);
-
-	const xScale = React.useMemo(() => {
-		return d3.scaleLinear().domain([0, maxCount]).range([0, plotWidth]);
-	}, [maxCount, plotWidth]);
-
-	const xAxis = (
-		<g transform={`translate(${yAxisWidth},${height - xAxisHeight})`}>
-			{xScale
-				.ticks(5)
-				.slice(1)
-				.map((value, i) => (
-					<g key={i}>
-						<line
-							y1={-plotHeight + 10}
-							y2={0}
-							x1={xScale(value)}
-							x2={xScale(value)}
-							stroke="#808080"
-							opacity={0.2}
-						/>
-						<text
-							y={0}
-							x={xScale(value)}
-							textAnchor="middle"
-							alignmentBaseline="central"
-							fontSize={14}
-							opacity={0.8}
-						>
-							{value}
-						</text>
-					</g>
-				))}
+function Ledgend({
+	totals,
+	...props
+}: { totals: StatusCountRecord } & React.ComponentProps<"g">) {
+	return (
+		<g {...props}>
+			{(Object.keys(colors) as (keyof typeof colors)[]).map(
+				(status, i) => {
+					return (
+						<g key={i}>
+							<rect
+								x={10}
+								y={10 + 20 * i}
+								width={10}
+								height={10}
+								fill={colors[status]}
+							/>
+							<text
+								x={30}
+								y={10 + 20 * i + 6}
+								alignmentBaseline="middle"
+							>
+								{`${status} (${totals[status]})`}
+							</text>
+						</g>
+					);
+				}
+			)}
 		</g>
 	);
+}
+
+function MembersChart({ width, height, svgRef }: ReportChartProps) {
+	const margin = 10;
+	const yAxisWidth = 40;
+	const xAxisHeight = 200;
+	const plotWidth = width - 2 * margin - yAxisWidth;
+	const plotHeight = height - 2 * margin - xAxisHeight - 10;
+
+	const { ids, entities, maxCount, totals } =
+		useAppSelector(membersByAffiliation);
 
 	const yScale = React.useMemo(() => {
-		return d3.scaleBand().domain(ids).range([0, plotHeight]).padding(0.5);
-	}, [ids, plotHeight]);
+		return d3.scaleLinear([0, maxCount], [plotHeight, 0]);
+	}, [maxCount, plotHeight]);
 
-	const yAxis = (
-		<g>
-			{ids.map((id, i) => (
-				<text
-					key={i}
-					x={yAxisWidth - 10}
-					y={yScale(id)! + yScale.bandwidth() / 2}
-					textAnchor="end"
-					alignmentBaseline="central"
-					fontSize={14}
-				>
-					{id}
-				</text>
-			))}
-		</g>
-	);
+	const xScale = React.useMemo(() => {
+		return d3.scaleBand().domain(ids).range([0, plotWidth]).padding(0.5);
+	}, [ids, plotWidth]);
 
 	const plotArea = (
-		<g transform={`translate(${yAxisWidth},0)`}>
+		<g transform={`translate(${margin + yAxisWidth},${margin})`}>
 			{ids.map((id) => {
 				const entry = entities[id];
 				const rects: JSX.Element[] = [];
-				let count = 0;
+				let value = 0;
 				for (const status of countedStatus) {
+					let height = yScale(0) - yScale(entry[status]);
 					rects.push(
 						<rect
 							key={`${id}-${status}`}
-							x={xScale(count)}
-							y={yScale(id)}
-							height={yScale.bandwidth()}
-							width={xScale(entry[status])}
+							x={xScale(id)}
+							width={xScale.bandwidth()}
+							y={yScale(value) - height}
+							height={height}
 							fill={colors[status] || "#ffffff"}
 							stroke="grey"
 							opacity={0.8}
 							//rx="0.5%"
 						/>
 					);
-					count += entry[status];
+					value += entry[status];
 				}
 				return <g key={id}>{rects}</g>;
 			})}
 		</g>
 	);
 
+	const gx = React.useRef<SVGSVGElement>(null);
+	const gy = React.useRef<SVGSVGElement>(null);
+	React.useEffect(
+		() =>
+			void d3
+				.select(gx.current!)
+				.call(d3.axisBottom(xScale))
+				.selectAll("text")
+				.style("text-anchor", "end")
+				.attr("dx", "-.8em")
+				.attr("dy", ".15em")
+				.attr("transform", "rotate(-45)"),
+		[gx, xScale]
+	);
+	React.useEffect(
+		() => void d3.select(gy.current!).call(d3.axisLeft(yScale)),
+		[gy, yScale]
+	);
+
 	return (
 		<svg ref={svgRef} style={{ width, height }}>
-			{yAxis}
-			{xAxis}
+			<g
+				ref={gx}
+				transform={`translate(${margin + yAxisWidth},${
+					height - xAxisHeight - 2 * margin
+				})`}
+			/>
+			<text
+				y={0}
+				x={-plotHeight / 2}
+				dy="1em"
+				transform="rotate(-90)"
+				style={{ textAnchor: "middle" }}
+			>
+				Number of members
+			</text>
+			<g
+				ref={gy}
+				transform={`translate(${margin + yAxisWidth},${margin})`}
+			/>
 			{plotArea}
+			<Ledgend
+				totals={totals}
+				transform={`translate(${plotWidth - 200},20)`}
+			/>
 		</svg>
 	);
 }
