@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import { URLSearchParams } from "url";
-import { NotFoundError, isPlainObject } from "../utils";
+import { NotFoundError } from "../utils";
 
 import axios, { AxiosInstance } from "axios";
 import { User } from "./users";
@@ -149,9 +149,14 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 	return api;
 }
 
-function activateWebexAccount(id: number, authParams: WebexAuthParams) {
+function activateWebexAccount(
+	id: number,
+	authParams: WebexAuthParams,
+	userId: number | null
+) {
 	const account = webexAccounts[id];
 	account.authParams = authParams;
+	account.authUserId = userId;
 	account.axios = createWebexApi(account.id, authParams);
 	getWebexAccountOwner(id)
 		.then((owner) => {
@@ -192,7 +197,11 @@ function createWebexAccount(account: OAuthAccount) {
 		lastAccessed: null,
 	};
 	if (account.authParams)
-		activateWebexAccount(id, account.authParams as WebexAuthParams);
+		activateWebexAccount(
+			id,
+			account.authParams as WebexAuthParams,
+			account.authUserId
+		);
 }
 
 export function getWebexAccount(id: number) {
@@ -202,9 +211,7 @@ export function getWebexAccount(id: number) {
 }
 
 function getWebexAccountsLocal(constraints?: WebexAccountsQuery) {
-	let accounts = Object.values(webexAccounts).filter(
-		(account) => account.axios
-	);
+	let accounts = Object.values(webexAccounts);
 	if (constraints) {
 		if (constraints.groupId) {
 			accounts = accounts.filter(
@@ -312,7 +319,7 @@ export async function completeAuthWebexAccount({
 	await updateAuthParams(accountId, authParams, userId);
 
 	// Activate axios instance for this account
-	activateWebexAccount(accountId, authParams);
+	activateWebexAccount(accountId, authParams, userId);
 }
 
 export async function getWebexAccounts(
@@ -324,7 +331,6 @@ export async function getWebexAccounts(
 	const proxyHost = req.headers["x-forwarded-host"] as string;
 	const m = /(http[s]?:\/\/[^\/]+)\//.exec(req.headers["referer"] || "");
 	const host = m ? m[1] : proxyHost || req.headers.host || "";
-	console.log(host);
 	const accountsOut: WebexAccount[] = accounts.map((account) => {
 		const { authParams, axios, ...rest } = account;
 		const accountOut: WebexAccount = {
@@ -354,10 +360,6 @@ export async function addWebexAccount(
 	groupId: string,
 	accountIn: WebexAccountCreate
 ) {
-	if (!isPlainObject(accountIn))
-		throw new TypeError(
-			"Bad body; expected calendar account create object"
-		);
 	let oauthAccount: OAuthAccountCreate = {
 		...accountIn,
 		type: "webex",
@@ -366,7 +368,7 @@ export async function addWebexAccount(
 	const id = await addOAuthAccount(oauthAccount);
 	const [account] = await getOAuthAccounts({ id });
 	createWebexAccount(account);
-	const accounts = await getWebexAccounts(req, user, { id: account.id });
+	const accounts = await getWebexAccounts(req, user, { id });
 	return accounts[0];
 }
 
@@ -391,7 +393,7 @@ export async function updateWebexAccount(
 	await updateOAuthAccount(groupId, id, changes);
 	let account = getWebexAccountsLocal({ id })[0];
 	if (changes.name) account.name = changes.name;
-	const accounts = await getWebexAccounts(req, user, { id: account.id });
+	const accounts = await getWebexAccounts(req, user, { id });
 	return accounts[0];
 }
 
