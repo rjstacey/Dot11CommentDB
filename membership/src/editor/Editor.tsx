@@ -76,7 +76,6 @@ function substituteStyleForClass(n: HTMLElement) {
 	let styles = [n.style.cssText];
 	n.classList.forEach((cn) => {
 		if (Object.keys(emailStylesObj).includes(cn)) {
-			console.log("got ", cn);
 			styles.push(emailStylesObj[cn]);
 			n.classList.remove(cn);
 		}
@@ -173,7 +172,7 @@ function Editor({
 
 	if (preview) {
 		body = replaceClassWithInlineStyle(body);
-		console.log(body);
+		//console.log(body);
 	}
 
 	return (
