@@ -128,38 +128,45 @@ function Ledgend({
 	totals,
 	...props
 }: { totals: StatusCountRecord } & React.ComponentProps<"g">) {
+	const statuses = Object.keys(colors) as (keyof typeof colors)[];
 	return (
 		<g {...props}>
-			{(Object.keys(colors) as (keyof typeof colors)[]).map(
-				(status, i) => {
-					return (
-						<g key={i}>
-							<rect
-								x={10}
-								y={10 + 20 * i}
-								width={10}
-								height={10}
-								fill={colors[status]}
-							/>
-							<text
-								x={30}
-								y={10 + 20 * i + 6}
-								alignmentBaseline="middle"
-							>
-								{`${status} (${totals[status]})`}
-							</text>
-						</g>
-					);
-				}
-			)}
+			<rect
+				x={0}
+				y={0}
+				width="200"
+				height={10 + 20 * statuses.length}
+				fill="white"
+				stroke="gray"
+			/>
+			{statuses.map((status, i) => {
+				return (
+					<g key={i}>
+						<rect
+							x={10}
+							y={10 + 20 * i}
+							width={10}
+							height={10}
+							fill={colors[status]}
+						/>
+						<text
+							x={30}
+							y={10 + 20 * i + 6}
+							alignmentBaseline="middle"
+						>
+							{`${status} (${totals[status]})`}
+						</text>
+					</g>
+				);
+			})}
 		</g>
 	);
 }
 
 function MembersChart({ width, height, svgRef }: ReportChartProps) {
+	const [xAxisHeight, setXAxisHeight] = React.useState(200);
+	const [yAxisWidth, setYAxisWidth] = React.useState(40);
 	const margin = 10;
-	const yAxisWidth = 40;
-	const xAxisHeight = 200;
 	const plotWidth = width - 2 * margin - yAxisWidth;
 	const plotHeight = height - 2 * margin - xAxisHeight - 10;
 
@@ -171,7 +178,7 @@ function MembersChart({ width, height, svgRef }: ReportChartProps) {
 	}, [maxCount, plotHeight]);
 
 	const xScale = React.useMemo(() => {
-		return d3.scaleBand().domain(ids).range([0, plotWidth]).padding(0.5);
+		return d3.scaleBand().domain(ids).range([0, plotWidth]).padding(0.25);
 	}, [ids, plotWidth]);
 
 	const plotArea = (
@@ -190,9 +197,8 @@ function MembersChart({ width, height, svgRef }: ReportChartProps) {
 							y={yScale(value) - height}
 							height={height}
 							fill={colors[status] || "#ffffff"}
-							stroke="grey"
 							opacity={0.8}
-							//rx="0.5%"
+							//rx="0.25%"
 						/>
 					);
 					value += entry[status];
@@ -203,49 +209,62 @@ function MembersChart({ width, height, svgRef }: ReportChartProps) {
 	);
 
 	const gx = React.useRef<SVGSVGElement>(null);
+	React.useEffect(() => {
+		if (!gx.current) return;
+		d3.select(gx.current)
+			.call(d3.axisBottom(xScale))
+			.selectAll("text")
+			.style("text-anchor", "end")
+			.attr("dx", "-.8em")
+			.attr("dy", ".15em")
+			.attr("transform", "rotate(-45)");
+		const b = gx.current.getBoundingClientRect();
+		setXAxisHeight(b.height);
+	}, [gx, xScale]);
+
 	const gy = React.useRef<SVGSVGElement>(null);
-	React.useEffect(
-		() =>
-			void d3
-				.select(gx.current!)
-				.call(d3.axisBottom(xScale))
-				.selectAll("text")
-				.style("text-anchor", "end")
-				.attr("dx", "-.8em")
-				.attr("dy", ".15em")
-				.attr("transform", "rotate(-45)"),
-		[gx, xScale]
-	);
-	React.useEffect(
-		() => void d3.select(gy.current!).call(d3.axisLeft(yScale)),
-		[gy, yScale]
-	);
+	React.useEffect(() => {
+		if (!gy.current) return;
+		d3.select(gy.current!).call(d3.axisLeft(yScale));
+		const b = gy.current.getBoundingClientRect();
+		setYAxisWidth(b.width);
+	}, [gy, yScale]);
 
 	return (
-		<svg ref={svgRef} style={{ width, height }}>
+		<svg
+			id="chart"
+			ref={svgRef}
+			viewBox={`0 0 ${width} ${height}`}
+			width={width}
+			height={height}
+			style={{ color: "black" }}
+		>
 			<g
 				ref={gx}
 				transform={`translate(${margin + yAxisWidth},${
 					height - xAxisHeight - 2 * margin
 				})`}
 			/>
-			<text
-				y={0}
-				x={-plotHeight / 2}
-				dy="1em"
-				transform="rotate(-90)"
-				style={{ textAnchor: "middle" }}
-			>
-				Number of members
-			</text>
+
 			<g
 				ref={gy}
 				transform={`translate(${margin + yAxisWidth},${margin})`}
-			/>
+			>
+				<text
+					y={0}
+					x={-plotHeight / 2}
+					dy="-2.5em"
+					transform="rotate(-90)"
+					fill="currentColor"
+					textAnchor="middle"
+				>
+					Number of members
+				</text>
+			</g>
 			{plotArea}
 			<Ledgend
 				totals={totals}
-				transform={`translate(${plotWidth - 200},20)`}
+				transform={`translate(${plotWidth - 200},60)`}
 			/>
 		</svg>
 	);

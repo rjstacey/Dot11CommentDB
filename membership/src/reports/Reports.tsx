@@ -29,7 +29,7 @@ function blinkElement(el: Element) {
  * from SVG to a PNG and then do the write to the clipboard.
  */
 interface F {
-	(svg: SVGSVGElement | null): Promise<Blob | null | undefined>;
+	(svg: Element | null): Promise<Blob | null | undefined>;
 	canvas?: HTMLCanvasElement;
 }
 const svgToPngBlob: F = async function (svg) {
@@ -74,35 +74,45 @@ const svgToPngBlob: F = async function (svg) {
 	});
 };
 
-function copyToClipboard(svg: SVGSVGElement | null) {
+function copySvgToClipboard() {
+	const svg = document.getElementById("chart");
 	if (!svg) return;
 
 	let svgText = svg.outerHTML;
-
 	if (!svgText.match(/xmlns="/im))
 		svgText = svgText.replace(
 			"<svg ",
 			'<svg xmlns="http://www.w3.org/2000/svg" '
 		);
+
 	const svgBlob = new Blob([svgText], {
 		type: "image/svg+xml;charset=utf-8",
 	});
-	const item = new ClipboardItem({ "image/svg+xml": svgBlob });
+
+	const svgUrl = URL.createObjectURL(svgBlob);
+	const downloadLink = document.createElement("a");
+	downloadLink.href = svgUrl;
+	downloadLink.download = "chart.svg";
+	document.body.appendChild(downloadLink);
+	downloadLink.click();
+	document.body.removeChild(downloadLink);
+
+	/*const item = new ClipboardItem({ "image/svg+xml": svgBlob });
 	navigator.clipboard
 		.write([item])
 		.then(() => {
-			blinkElement(svg);
+			blinkElement(svg!);
 			console.log("copied");
 		})
 		.catch((error) => {
-			svgToPngBlob(svg).then((blob) => {
+			svgToPngBlob(svg!).then((blob) => {
 				const item = new ClipboardItem({ "image/png": blob! });
 				navigator.clipboard
 					.write([item])
-					.then(() => blinkElement(svg))
+					.then(() => blinkElement(svg!))
 					.catch((error) => console.warn(error));
 			});
-		});
+		});*/
 }
 
 const Table = ({
@@ -264,12 +274,6 @@ function ChartReport() {
 					}}
 				</AutoSizer>
 			</div>
-			<ActionButton
-				name="copy"
-				title="Copy chart to clipboard"
-				onClick={() => copyToClipboard(svgRef.current)}
-				//disabled={!svgRef.current}
-			/>
 		</>
 	);
 }
@@ -341,6 +345,12 @@ function Reports() {
 	return (
 		<>
 			<div className="top-row justify-right">
+				<ActionButton
+					name="copy"
+					title="Copy chart to clipboard"
+					onClick={() => copySvgToClipboard()}
+					//disabled={!svgRef.current}
+				/>
 				<ActionButton
 					name="refresh"
 					title="Refresh"
