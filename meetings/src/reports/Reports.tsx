@@ -138,6 +138,15 @@ function copyToClipboard(svg: SVGSVGElement | null) {
 	const svgBlob = new Blob([svgText], {
 		type: "image/svg+xml;charset=utf-8",
 	});
+
+	const svgUrl = URL.createObjectURL(svgBlob);
+	const downloadLink = document.createElement("a");
+	downloadLink.href = svgUrl;
+	downloadLink.download = "chart.svg";
+	document.body.appendChild(downloadLink);
+	downloadLink.click();
+	document.body.removeChild(downloadLink);
+
 	const item = new ClipboardItem({ "image/svg+xml": svgBlob });
 	navigator.clipboard
 		.write([item])
@@ -167,13 +176,15 @@ function ReportsChart({
 			<AutoSizer>
 				{({ height, width }: { height: number; width: number }) => {
 					// Rescale to create 16:9
-					if ((16/9)*height > width)
-						height = 9*width/16;
-					else
-						width = 16*height/9;
+					if ((16 / 9) * height > width) height = (9 * width) / 16;
+					else width = (16 * height) / 9;
 					return (
-						<Component svgRef={svgRef} width={width} height={height} />
-					)
+						<Component
+							svgRef={svgRef}
+							width={width}
+							height={height}
+						/>
+					);
 				}}
 			</AutoSizer>
 		</div>
@@ -226,9 +237,7 @@ function Reports() {
 					/>
 				</div>
 			</div>
-			<div
-				className={styles.main}
-			>
+			<div className={styles.main}>
 				<ReportsNav action={action} setAction={setAction} />
 				{action && <ReportsChart action={action} svgRef={svgRef} />}
 			</div>

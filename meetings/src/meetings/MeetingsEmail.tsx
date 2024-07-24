@@ -78,7 +78,7 @@ function genEmailBody(user: User, officers: Member[], tableHtml: string) {
 	return `\
 Hello ${names}<br>\
 <br>\
-Here are the host keys for your upcomming teleconferences:<br>\
+Here are the host keys for your upcoming teleconferences:<br>\
 <br>\
 ${tableHtml}\n\
 <br>\

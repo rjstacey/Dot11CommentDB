@@ -26,7 +26,8 @@ export const getTextWidth: F = function (element, text) {
 	const styleDeclaration = window.getComputedStyle(element, null);
 	const fontWeight =
 		styleDeclaration.getPropertyValue("font-weight") || "normal";
-	const fontSize = styleDeclaration.getPropertyValue("font-size") || "16px";
+	const fontSize =
+		/*styleDeclaration.getPropertyValue("font-size") ||*/ "10px";
 	const fontFamily =
 		styleDeclaration.getPropertyValue("font-family") || "Times New Roman";
 	const font = `${fontWeight} ${fontSize} ${fontFamily}`;
@@ -218,11 +219,11 @@ const selectAttendanceSeriesInfo = createSelector(
 );
 
 function SessionAttendanceChart({ width, height, svgRef }: ReportChartProps) {
-	const yAxisWidth = 120;
-	const xAxisHeight = 40;
-	const marginRight = 50; // For text overflow
-	const plotWidth = width - yAxisWidth - marginRight;
-	const plotHeight = height - xAxisHeight;
+	const [xAxisHeight, setXAxisHeight] = React.useState(40);
+	const [yAxisWidth, setYAxisWidth] = React.useState(120);
+	const margin = 10;
+	const plotWidth = width - 2 * margin - yAxisWidth;
+	const plotHeight = height - 2 * margin - xAxisHeight;
 
 	const { seriesIds, seriesData, maxCount } = useAppSelector(
 		selectAttendanceSeriesInfo
@@ -231,105 +232,97 @@ function SessionAttendanceChart({ width, height, svgRef }: ReportChartProps) {
 	const xScale = React.useMemo(() => {
 		return d3.scaleLinear().domain([0, maxCount]).range([0, plotWidth]);
 	}, [maxCount, plotWidth]);
-
-	const xAxis = (
-		<g transform={`translate(${yAxisWidth},${height - xAxisHeight})`}>
-			{xScale
-				.ticks(5)
-				.slice(1)
-				.map((value, i) => (
-					<g key={i}>
-						<line
-							y1={-plotHeight + 10}
-							y2={0}
-							x1={xScale(value)}
-							x2={xScale(value)}
-							stroke="#808080"
-							opacity={0.2}
-						/>
-						<text
-							y={0}
-							x={xScale(value)}
-							textAnchor="middle"
-							alignmentBaseline="central"
-							fontSize={14}
-							opacity={0.8}
-						>
-							{value}
-						</text>
-					</g>
-				))}
-		</g>
-	);
+	const gx = React.useRef<SVGSVGElement>(null);
+	React.useEffect(() => {
+		if (!gx.current) return;
+		d3.select(gx.current)
+			.call(d3.axisBottom(xScale))
+			.selectAll("text")
+			.attr("textAnchor", "middle")
+			.attr("alignmentBaseline", "central")
+			.attr("fontSize", "12");
+		const b = gx.current.getBoundingClientRect();
+		setXAxisHeight(b.height);
+	}, [gx, xScale]);
 
 	const yScale = React.useMemo(() => {
-		return d3
-			.scaleBand()
-			.domain(seriesIds)
-			.range([0, plotHeight])
-			.padding(0.5);
+		return d3.scaleBand(seriesIds, [0, plotHeight]).padding(0.5);
 	}, [seriesIds, plotHeight]);
 
-	const yAxis = (
-		<g>
-			{seriesData.map((series, i) => (
-				<text
-					key={i}
-					x={yAxisWidth - 10}
-					y={yScale(series.id)! + yScale.bandwidth() / 2}
-					textAnchor="end"
-					alignmentBaseline="central"
-					fontSize={14}
-				>
-					{series.label}
-				</text>
-			))}
-		</g>
-	);
+	const gy = React.useRef<SVGSVGElement>(null);
+	React.useEffect(() => {
+		if (!gy.current) return;
+		//d3.select(gy.current!).call(d3.axisLeft(yScale));
+		const b = gy.current.getBoundingClientRect();
+		setYAxisWidth(b.width);
+	}, [gy, yScale]);
 
-	const plotArea = (
-		<g transform={`translate(${yAxisWidth},0)`}>
-			{seriesData.map((series) => {
-				let xTextEnd = 0;
-				return series.items.map((item, itemIndex) => {
-					let xText = xScale(item.low);
-					if (xText < xTextEnd) xText = xTextEnd;
-					xTextEnd =
-						xText +
-						(svgRef.current
-							? getTextWidth(svgRef.current, item.label + " ")
-							: 0);
-					return (
-						<g key={`${series.id}-${itemIndex}`}>
-							<rect
-								x={xScale(item.low)}
-								y={yScale(series.id)}
-								height={yScale.bandwidth()}
-								width={xScale(item.high) - xScale(item.low)}
-								fill={item.color || "#ffffff"}
-								stroke="grey"
-								opacity={0.8}
-								rx="0.5%"
-							/>
-							<text
-								x={xText}
-								y={yScale(series.id)}
-								alignmentBaseline="after-edge"
-							>
-								{item.label}
-							</text>
-						</g>
-					);
-				});
-			})}
-		</g>
-	);
+	const plot = seriesData.map((series) => {
+		let xTextEnd = 0;
+		return series.items.map((item, itemIndex) => {
+			let xText = xScale(item.low);
+			if (xText < xTextEnd) xText = xTextEnd;
+			xTextEnd =
+				xText +
+				(svgRef.current
+					? getTextWidth(svgRef.current, item.label + " ")
+					: 0);
+			return (
+				<g key={`${series.id}-${itemIndex}`}>
+					<rect
+						x={xScale(item.low)}
+						y={yScale(series.id)}
+						height={yScale.bandwidth()}
+						width={xScale(item.high) - xScale(item.low)}
+						fill={item.color || "#ffffff"}
+						stroke="grey"
+						opacity={0.8}
+						rx="0.5%"
+					/>
+					<text
+						x={xText}
+						y={yScale(series.id)}
+						alignmentBaseline="after-edge"
+						fontSize={10}
+					>
+						{item.label}
+					</text>
+				</g>
+			);
+		});
+	});
 
 	return (
-		<svg ref={svgRef} style={{ width, height }}>
-			{yAxis}
-			{xAxis}
-			{plotArea}
+		<svg
+			ref={svgRef}
+			viewBox={`0 0 ${width} ${height}`}
+			width={width}
+			height={height}
+			style={{ color: "black" }}
+		>
+			<g
+				ref={gx}
+				transform={`translate(${margin + yAxisWidth},${
+					height - margin - xAxisHeight
+				})`}
+			/>
+			<g ref={gy} transform={`translate(${margin},${margin})`}>
+				{seriesData.map((series, i) => (
+					<text
+						key={i}
+						x={yAxisWidth - 10}
+						y={yScale(series.id)! + yScale.bandwidth() / 2}
+						textAnchor="end"
+						alignmentBaseline="central"
+						fontSize={14}
+					>
+						{series.label}
+					</text>
+				))}
+			</g>
+			<g transform={`translate(${margin + yAxisWidth},${margin})`}>
+				{plot}
+			</g>
 		</svg>
 	);
 }
