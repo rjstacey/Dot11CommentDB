@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const statusChangeEntrySchema = z.object({
 	id: z.number(),
-	Date: z.nullable(z.string().date()),
+	Date: z.nullable(z.string().datetime({ offset: true })),
 	OldStatus: z.string(),
 	NewStatus: z.string(),
 	Reason: z.string(),
@@ -11,7 +11,7 @@ const statusChangeEntrySchema = z.object({
 const contactEmailSchema = z.object({
 	id: z.number(),
 	Email: z.string().email(),
-	DateAdded: z.nullable(z.string().date()),
+	DateAdded: z.nullable(z.string().datetime({ offset: true })),
 	Primary: z.boolean(),
 	Broken: z.boolean(),
 });
@@ -86,7 +86,6 @@ export const memberCreateSchema = userSchema
 	)
 	.merge(
 		groupMemberSchema.pick({
-			groupId: true,
 			Affiliation: true,
 			Status: true,
 		})
