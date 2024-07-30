@@ -93,7 +93,7 @@ const sortComparer = (
 const initialState: {
 	groupName: string | null;
 	sessionId: number | null;
-	dailyAttendance: boolean;	// derive from IMAT "daily attendance" (vs "attendance summary")
+	dailyAttendance: boolean; // derive from IMAT "daily attendance" (vs "attendance summary")
 } = {
 	groupName: null,
 	sessionId: null,
@@ -158,7 +158,9 @@ export default slice;
 export const sessionAttendeesActions = slice.actions;
 export const { setSelected } = slice.actions;
 export const clearSessionAttendees = createAction(dataSet + "/clear");
-export const setDailyAttendance = createAction<boolean>(dataSet + "/setDailyAttendance");
+export const setDailyAttendance = createAction<boolean>(
+	dataSet + "/setDailyAttendance"
+);
 
 const { getSuccess, getFailure } = slice.actions;
 // Overload getPending() with one that sets groupName
@@ -179,7 +181,7 @@ export const selectSessionAttendeesEntities = (state: RootState) =>
 export const selectDailyAttendance = (state: RootState) =>
 	selectSessionAttendeesState(state).dailyAttendance;
 
-const selectSyncedSessionAtendeesEntities = createSelector(
+export const selectSyncedSessionAtendeesEntities = createSelector(
 	selectSessionAttendeesIds,
 	selectSessionAttendeesEntities,
 	selectMemberEntities,

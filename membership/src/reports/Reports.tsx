@@ -14,11 +14,12 @@ import {
 import MembersChart from "./MembersChart";
 
 import styles from "./reports.module.css";
+import AttendeesChart from "./AttendeesChart";
 
 function blinkElement(el: Element) {
 	function removeBlink() {
-		el!.classList.remove("blink");
-		el!.removeEventListener("transitionend", removeBlink);
+		el.classList.remove("blink");
+		el.removeEventListener("transitionend", removeBlink);
 	}
 	el.addEventListener("transitionend", removeBlink);
 	el.classList.add("blink");
@@ -74,7 +75,40 @@ const svgToPngBlob: F = async function (svg) {
 	});
 };
 
-function copySvgToClipboard() {
+function copyChartToClipboard() {
+	const svg = document.getElementById("chart");
+	if (!svg) return;
+
+	let svgText = svg.outerHTML;
+	if (!svgText.match(/xmlns="/im))
+		svgText = svgText.replace(
+			"<svg ",
+			'<svg xmlns="http://www.w3.org/2000/svg" '
+		);
+
+	const svgBlob = new Blob([svgText], {
+		type: "image/svg+xml;charset=utf-8",
+	});
+
+	const item = new ClipboardItem({ "image/svg+xml": svgBlob });
+	navigator.clipboard
+		.write([item])
+		.then(() => {
+			blinkElement(svg);
+			console.log("copied");
+		})
+		.catch((error) => {
+			svgToPngBlob(svg!).then((blob) => {
+				const item = new ClipboardItem({ "image/png": blob! });
+				navigator.clipboard
+					.write([item])
+					.then(() => blinkElement(svg!))
+					.catch((error) => console.warn(error));
+			});
+		});
+}
+
+function downloadChart() {
 	const svg = document.getElementById("chart");
 	if (!svg) return;
 
@@ -96,23 +130,6 @@ function copySvgToClipboard() {
 	document.body.appendChild(downloadLink);
 	downloadLink.click();
 	document.body.removeChild(downloadLink);
-
-	/*const item = new ClipboardItem({ "image/svg+xml": svgBlob });
-	navigator.clipboard
-		.write([item])
-		.then(() => {
-			blinkElement(svg!);
-			console.log("copied");
-		})
-		.catch((error) => {
-			svgToPngBlob(svg!).then((blob) => {
-				const item = new ClipboardItem({ "image/png": blob! });
-				navigator.clipboard
-					.write([item])
-					.then(() => blinkElement(svg!))
-					.catch((error) => console.warn(error));
-			});
-		});*/
 }
 
 const Table = ({
@@ -253,7 +270,13 @@ function membersPrivate(members: MemberWithParticipation[]): TableData {
 	return { headings, values };
 }
 
-function ChartReport() {
+type SvgComponent = (props: {
+	height: number;
+	width: number;
+	svgRef: React.RefObject<SVGSVGElement>;
+}) => JSX.Element;
+
+function ChartReport({ Component }: { Component: SvgComponent }) {
 	const svgRef = React.useRef<SVGSVGElement>(null);
 	return (
 		<>
@@ -265,7 +288,7 @@ function ChartReport() {
 							height = (9 * width) / 16;
 						else width = (16 * height) / 9;
 						return (
-							<MembersChart
+							<Component
 								svgRef={svgRef}
 								width={width}
 								height={height}
@@ -301,7 +324,12 @@ export const reportRoutes: ReportRouteObject[] = [
 	{
 		path: "byAffiliation",
 		label: "Members by affiliation",
-		element: <ChartReport />,
+		element: <ChartReport Component={MembersChart} />,
+	},
+	{
+		path: "attendanceChart",
+		label: "Attendees by affiliation",
+		element: <ChartReport Component={AttendeesChart} />,
 	},
 ];
 
@@ -346,10 +374,16 @@ function Reports() {
 		<>
 			<div className="top-row justify-right">
 				<ActionButton
+					name="export"
+					title="Download chart"
+					onClick={() => downloadChart()}
+					disabled={!document.getElementById("chart")}
+				/>
+				<ActionButton
 					name="copy"
 					title="Copy chart to clipboard"
-					onClick={() => copySvgToClipboard()}
-					//disabled={!svgRef.current}
+					onClick={() => copyChartToClipboard()}
+					disabled={!document.getElementById("chart")}
 				/>
 				<ActionButton
 					name="refresh"

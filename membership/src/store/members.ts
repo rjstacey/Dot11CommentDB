@@ -106,25 +106,32 @@ export const fields: Fields = {
 	Email: { label: "Email" },
 	Employer: { label: "Employer" },
 	Affiliation: { label: "Affiliation" },
-	OldStatus: { label: "Previous status"},
+	OldStatus: { label: "Previous status" },
 	Status: { label: "Status" },
 	StatusChangeDate: {
 		label: "Status change date",
 		dataRenderer: displayDate,
 		type: FieldType.DATE,
 	},
-	DateAdded: { label: "Date added", dataRenderer: displayDate, type: FieldType.DATE },
+	DateAdded: {
+		label: "Date added",
+		dataRenderer: displayDate,
+		type: FieldType.DATE,
+	},
+	StatusChangeOverride: {
+		label: "Status override",
+		dataRenderer: (d) => (d ? "YES" : "NO"),
+	},
 	AttendancesSummary: { label: "Session participation" },
 	BallotParticipationSummary: { label: "Ballot participation" },
 };
 
 /* Fields derived from other fields */
 export function getField(entity: Member, key: string): any {
-	if (key === 'OldStatus') {
+	if (key === "OldStatus") {
 		const history = entity.StatusChangeHistory;
 		const lastChange = history[0];
-		if (lastChange)
-			return lastChange.OldStatus;
+		if (lastChange) return lastChange.OldStatus;
 		return "";
 	}
 	if (!(key in entity)) console.warn(dataSet + " has no field " + key);
@@ -257,7 +264,6 @@ export const selectActiveMembersWithParticipationSummary = createSelector(
 	(members, entities) => members.map((m) => entities[m.SAPIN]!)
 );
 
-
 export function selectMembersStatusChangeSinceDate(
 	state: RootState,
 	dateStr: string
@@ -269,7 +275,7 @@ export function selectMembersStatusChangeSinceDate(
 
 export const membersSelectors = getAppTableDataSelectors(selectMembersState, {
 	selectEntities: selectMemberWithParticipationSummary,
-	getField
+	getField,
 });
 
 export const selectUiProperties = membersSelectors.selectUiProperties;
@@ -284,9 +290,11 @@ export const selectUserMembersAccess = (state: RootState) => {
 
 /* Thunk actions */
 function validMember(member: any): member is Member {
-	return isObject(member) &&
+	return (
+		isObject(member) &&
 		typeof member.SAPIN === "number" &&
-		Array.isArray(member.StatusChangeHistory);
+		Array.isArray(member.StatusChangeHistory)
+	);
 }
 
 function validResponse(members: unknown): members is Member[] {
@@ -508,7 +516,9 @@ export const exportMembersPublic =
 	(): AppThunk => async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
-			dispatch(setError("Unable to export member list", "Group not selected"));
+			dispatch(
+				setError("Unable to export member list", "Group not selected")
+			);
 			return;
 		}
 		const url = `/api/${groupName}/members/public`;
@@ -523,7 +533,9 @@ export const exportMembersPrivate =
 	(): AppThunk => async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
-			dispatch(setError("Unable to export member list", "Group not selected"));
+			dispatch(
+				setError("Unable to export member list", "Group not selected")
+			);
 			return;
 		}
 		const url = `/api/${groupName}/members/private`;
@@ -535,13 +547,17 @@ export const exportMembersPrivate =
 	};
 
 export const exportVotingMembers =
-	(plenary?: boolean): AppThunk => async (dispatch, getState) => {
+	(plenary?: boolean): AppThunk =>
+	async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
-			dispatch(setError("Unable to export member list", "Group not selected"));
+			dispatch(
+				setError("Unable to export member list", "Group not selected")
+			);
 			return;
 		}
-		let url = `/api/${groupName}/members/voters` + (plenary? "?plenary=1": "");
+		let url =
+			`/api/${groupName}/members/voters` + (plenary ? "?plenary=1" : "");
 		try {
 			await fetcher.getFile(url);
 		} catch (error) {

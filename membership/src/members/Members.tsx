@@ -238,6 +238,13 @@ const tableColumns: ColumnProperties[] = [
 		flexShrink: 1,
 	},
 	{
+		key: "StatusChangeOverride",
+		...fields.StatusChangeOverride,
+		width: 50,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{
 		key: "AttendancesSummary",
 		...fields.AttendancesSummary,
 		label: "Session participation",
