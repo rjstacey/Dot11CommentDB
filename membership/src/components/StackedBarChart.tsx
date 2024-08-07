@@ -176,7 +176,7 @@ function StackedBarChart({
 	ids,
 	entities,
 }: {
-	svgRef: React.RefObject<SVGSVGElement>;
+	svgRef?: React.RefObject<SVGSVGElement>;
 	height: number;
 	width: number;
 	keys: readonly string[];

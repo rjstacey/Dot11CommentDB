@@ -34,7 +34,10 @@ import {
 import ShowAccess from "../components/ShowAccess";
 
 /** Identify changes to an existing member */
-function sessionAttendeeMemberChanges(member: Member, attendee: SessionAttendee) {
+function sessionAttendeeMemberChanges(
+	member: Member,
+	attendee: SessionAttendee
+) {
 	const memberChanges: Partial<Member> = {
 		Name: attendee.Name,
 		FirstName: attendee.FirstName,
@@ -70,8 +73,8 @@ function sessionAttendeeToNewMember(attendee: SessionAttendee) {
 		Zip: "",
 		Country: "",
 		Phone: "",
-		Fax: ""
-	}
+		Fax: "",
+	};
 	const member: MemberAdd = {
 		SAPIN: attendee.SAPIN,
 		Name: attendee.Name,
@@ -108,8 +111,15 @@ export function MemberAttendanceDetail() {
 	const readOnly = access < AccessLevel.rw;
 
 	const memberEntities = useAppSelector(selectMemberEntities);
-	const { loading, valid, selected, entities } = useAppSelector(
-		selectSessionAttendeesState
+	const {
+		loading,
+		valid,
+		selected: selectedAll,
+		entities,
+	} = useAppSelector(selectSessionAttendeesState);
+	let selected = React.useMemo(
+		() => selectedAll.filter((id) => Boolean(entities[id])),
+		[selectedAll, entities]
 	);
 
 	const initState = React.useCallback((): MemberAttendanceDetailState => {
@@ -125,16 +135,17 @@ export function MemberAttendanceDetail() {
 			message = "Nothing selected";
 		} else if (selected.every((id) => Boolean(memberEntities[id]))) {
 			// All selected are existing members
-			action = "update";
 			for (const sapin of selected as number[]) {
 				const member = memberEntities[sapin]!;
 				const attendee = entities[sapin];
 				if (!attendee) {
 					console.warn("Can't get attendee with SAPIN=" + sapin);
+					message = "Invalid selection";
 					continue;
 				}
 				const changes = sessionAttendeeMemberChanges(member, attendee);
-				edited = deepMergeTagMultiple(edited || {},
+				edited = deepMergeTagMultiple(
+					edited || {},
 					deepMerge(member, changes)
 				) as MultipleMember;
 				saved = deepMergeTagMultiple(
@@ -144,8 +155,9 @@ export function MemberAttendanceDetail() {
 				originals.push(member);
 			}
 			if (isEqual(edited, saved)) {
-				action = "view";
 				saved = edited;
+			} else if (edited) {
+				action = "update";
 			}
 		} else if (selected.every((id) => !Boolean(memberEntities[id]))) {
 			// All selected are new attendees
@@ -184,9 +196,12 @@ export function MemberAttendanceDetail() {
 	React.useEffect(() => {
 		const { action, edited, created, originals } = state;
 		const ids = originals.map((m) => m.SAPIN);
-		if (action === "view" && (selected.join() !== ids.join() || (loading && !valid))) {
+		if (action === "view" && selected.join() !== ids.join()) {
 			setState(initState);
-		} else if ((action === "update" || action === "add") && selected.join() !== ids.join()) {
+		} else if (
+			(action === "update" || action === "add") &&
+			selected.join() !== ids.join()
+		) {
 			if (edited === created) {
 				// No edits made
 				setState(initState);
@@ -206,22 +221,21 @@ export function MemberAttendanceDetail() {
 			console.warn("Update with unexpected state");
 			return;
 		}
-		setState(state => {
+		setState((state) => {
 			let { action, edited, saved } = state;
 			edited = { ...edited!, ...changes };
 			if (isEqual(edited, saved)) {
 				if (action !== "add") action = "view";
 				edited = saved!;
-			}
-			else {
+			} else {
 				if (action !== "add") action = "update";
 			}
 			return {
 				...state,
 				action,
 				edited,
-				saved
-			}
+				saved,
+			};
 		});
 	};
 
@@ -233,7 +247,7 @@ export function MemberAttendanceDetail() {
 			console.warn("Add with unexpected state");
 			return;
 		}
-		console.log(originals)
+		console.log(originals);
 		const ids = await membersAdd(edited, saved, originals);
 		dispatch(setSelected(ids));
 		setState(initState);

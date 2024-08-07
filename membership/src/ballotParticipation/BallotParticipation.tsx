@@ -35,17 +35,19 @@ import {
 } from "../store/ballotParticipation";
 
 import MemberDetail from "../members/MemberDetail";
-import { renderNameAndEmail } from "../members/Members";
+import { renderNameAndEmail } from "../members/table";
 import BulkStatusUpdate from "../sessionParticipation/BulkStatusUpdate";
 
 function BallotSeriesSummary() {
 	const ballotSeriesIds = useAppSelector(selectBallotSeriesIds);
-	const ballotSeriesEntities = useAppSelector(selectSyncedBallotSeriesEntities);
+	const ballotSeriesEntities = useAppSelector(
+		selectSyncedBallotSeriesEntities
+	);
 	const ballotEntities = useAppSelector(selectBallotEntities);
 
 	const elements = ballotSeriesIds.map((id) => {
 		const ballotSeries = ballotSeriesEntities[id]!;
-		const ballotNamesStr = ballotSeries.ballotNames.join(', ');
+		const ballotNamesStr = ballotSeries.ballotNames.join(", ");
 		return (
 			<div key={id} style={{ display: "flex", flexDirection: "column" }}>
 				<div>{ballotEntities[id]!.Project}</div>
@@ -74,8 +76,7 @@ const renderBallotSeriesParticipationSummary = (
 	let excused = "";
 	if (summary) {
 		voteSummary = summary.vote ? summary.vote : "Did not vote";
-		if (summary.commentCount)
-			voteSummary += `/${summary.commentCount}`;
+		if (summary.commentCount) voteSummary += `/${summary.commentCount}`;
 	}
 
 	return (
@@ -141,7 +142,9 @@ function BallotParticipation() {
 		selectBallotParticipationState
 	);
 	const ballotSeriesIds = useAppSelector(selectBallotSeriesIds);
-	const ballotSeriesEntities = useAppSelector(selectSyncedBallotSeriesEntities);
+	const ballotSeriesEntities = useAppSelector(
+		selectSyncedBallotSeriesEntities
+	);
 
 	const columns = React.useMemo(() => {
 		return tableColumns.concat(

@@ -2,6 +2,8 @@ import * as React from "react";
 import {
 	useParams,
 	useRouteError,
+	useLocation,
+	matchRoutes,
 	Outlet,
 	RouteObject,
 	LoaderFunction,
@@ -31,14 +33,14 @@ import { loadSessions } from "../store/sessions";
 import { ErrorModal, ConfirmModal } from "dot11-components";
 import Header from "./Header";
 import WorkingGroupSelector from "./WorkingGroupSelector";
-import Members from "../members/Members";
 import Groups from "../groups/Groups";
 import SessionParticipation from "../sessionParticipation/SessionParticipation";
 import BallotParticipation from "../ballotParticipation/BallotParticipation";
-import SessionAttendance from "../sessionAttendance/SessionAttendance";
 import Notification from "../notification/Notification";
 import AffiliationMap from "../affiliationMap/AffiliationMap";
-import Reports, { reportRoutes } from "../reports/Reports";
+
+import membersRoute from "../members/routes";
+import sessionAttendanceRoute from "../sessionAttendance/routes";
 
 import styles from "./app.module.css";
 
@@ -109,7 +111,7 @@ const ballotParticipationLoader: LoaderFunction = async ({ params }) => {
 	return null;
 };
 
-const sessionAttendanceLoader: LoaderFunction = async ({ params }) => {
+const sessionAttendanceRootLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {
@@ -204,10 +206,10 @@ const groupRoutes_ungated: AppRoute[] = [
 	{
 		menuLabel: "Members",
 		path: "members",
-		element: <Members />,
 		loader: membersLoader,
 		minAccess: AccessLevel.admin,
 		groupTypes: ["r", "c", "wg"],
+		...membersRoute,
 	},
 	{
 		menuLabel: "Groups",
@@ -236,10 +238,10 @@ const groupRoutes_ungated: AppRoute[] = [
 	{
 		menuLabel: "Session attendance",
 		path: "sessionAttendance",
-		element: <SessionAttendance />,
-		loader: sessionAttendanceLoader,
+		loader: sessionAttendanceRootLoader,
 		minAccess: AccessLevel.admin,
 		groupTypes: ["c", "wg"],
+		...sessionAttendanceRoute,
 	},
 	{
 		menuLabel: "Notification",
@@ -248,15 +250,6 @@ const groupRoutes_ungated: AppRoute[] = [
 		loader: notificationsLoader,
 		minAccess: AccessLevel.admin,
 		groupTypes: ["c", "wg"],
-	},
-	{
-		menuLabel: "Reports",
-		path: "reports",
-		element: <Reports />,
-		loader: membersLoader,
-		minAccess: AccessLevel.ro,
-		groupTypes: ["c", "wg"],
-		children: reportRoutes,
 	},
 	{
 		menuLabel: "Affiliation Map",
@@ -322,5 +315,19 @@ const routes: AppRoute[] = [
 		element: <span>Not found</span>,
 	},
 ];
+
+export function useRoutePath() {
+	const location = useLocation();
+	return React.useMemo(() => {
+		const m = matchRoutes(routes, location);
+		return m
+			? m
+					.map(({ route: { path } }) => path)
+					.filter(Boolean)
+					.join("/")
+					.replace(/\/\*?\//g, "/")
+			: "/";
+	}, [location]);
+}
 
 export default routes;

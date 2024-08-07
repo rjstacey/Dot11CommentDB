@@ -1,13 +1,16 @@
-import * as React from "react";
 import { createSelector } from "@reduxjs/toolkit";
+import AutoSizer from "react-virtualized-auto-sizer";
 
 import { useAppSelector } from "../store/hooks";
-import { selectActiveMembers, Member } from "../store/members";
 import { AffiliationMap, selectAffiliationMaps } from "../store/affiliationMap";
+import {
+	selectSyncedSessionAtendeesEntities,
+	selectSessionAttendeesIds,
+	SyncedSessionAttendee,
+} from "../store/sessionAttendees";
+import StackedBarChart from "../components/StackedBarChart";
 
-import StackedBarChart from "./StackedBarChart";
-
-const countedStatus = ["Voter", "Potential Voter", "Aspirant"] as const;
+const countedStatus = ["Voter", "Potential Voter", "Aspirant", "New"] as const;
 const isCountedStatus = (s: string): s is (typeof countedStatus)[number] =>
 	(countedStatus as readonly string[]).includes(s);
 
@@ -30,15 +33,18 @@ const nullEntry: StatusCountRecord = {
 	Aspirant: 0,
 	"Potential Voter": 0,
 	Voter: 0,
+	New: 0,
 };
 
-const membersByAffiliation = createSelector(
-	selectActiveMembers,
+const attendeesByAffiliation = createSelector(
+	selectSessionAttendeesIds,
+	selectSyncedSessionAtendeesEntities,
 	selectAffiliationMaps,
-	(members, maps) => {
-		const membersEntities: Record<string, Member[]> = {};
+	(attendeeIds, attendeeEntities, maps) => {
+		const membersEntities: Record<string, SyncedSessionAttendee[]> = {};
 		let shortAffiliations: string[] = [];
-		for (const m of members) {
+		for (const id of attendeeIds) {
+			const m = attendeeEntities[id];
 			let affiliation = m.Affiliation;
 			for (const map of maps) {
 				const re = matchRegExp(map);
@@ -58,7 +64,9 @@ const membersByAffiliation = createSelector(
 		for (const id of shortAffiliations) {
 			const entry = { ...nullEntry };
 			for (const m of membersEntities[id]) {
-				if (isCountedStatus(m.Status)) entry[m.Status]++;
+				let status = m.Status;
+				if (status === "Non-Voter") status = "New";
+				if (isCountedStatus(status)) entry[status]++;
 			}
 			entities[id] = entry;
 		}
@@ -75,13 +83,15 @@ const membersByAffiliation = createSelector(
 		shortAffiliations.forEach((id, i) => {
 			const entity = entities[id];
 			const total =
+				entity["New"] +
 				entity["Aspirant"] +
 				entity["Potential Voter"] +
 				entity["Voter"];
 			if (total <= 1 || id === "No affiliation") {
-				entry.Aspirant += entity.Aspirant;
+				entry["New"] += entity["New"];
+				entry["Aspirant"] += entity["Aspirant"];
 				entry["Potential Voter"] += entity["Potential Voter"];
-				entry.Voter += entity.Voter;
+				entry["Voter"] += entity["Voter"];
 			} else {
 				ids.push(id);
 			}
@@ -94,27 +104,27 @@ const membersByAffiliation = createSelector(
 	}
 );
 
-function MembersChart({
-	width,
-	height,
-	svgRef,
-}: {
-	svgRef: React.RefObject<SVGSVGElement>;
-	height: number;
-	width: number;
-}) {
-	const { ids, entities } = useAppSelector(membersByAffiliation);
+function SessionAttendanceChart() {
+	const { ids, entities } = useAppSelector(attendeesByAffiliation);
 
 	return (
-		<StackedBarChart
-			svgRef={svgRef}
-			width={width}
-			height={height}
-			keys={countedStatus}
-			ids={ids}
-			entities={entities}
-		/>
+		<AutoSizer>
+			{({ height, width }: { height: number; width: number }) => {
+				// Rescale to create 16:9
+				if ((16 / 9) * height > width) height = (9 * width) / 16;
+				else width = (16 * height) / 9;
+				return (
+					<StackedBarChart
+						width={width}
+						height={height}
+						keys={countedStatus}
+						ids={ids}
+						entities={entities}
+					/>
+				);
+			}}
+		</AutoSizer>
 	);
 }
 
-export default MembersChart;
+export default SessionAttendanceChart;
