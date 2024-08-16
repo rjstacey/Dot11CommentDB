@@ -14,6 +14,7 @@ import {
 	TablesConfig,
 	CellRendererProps,
 	HeaderCellRendererProps,
+	SplitTableButtonGroup,
 } from "dot11-components";
 
 import MemberDetail from "./MemberDetail";
@@ -27,6 +28,21 @@ import {
 	membersActions,
 	Member,
 } from "../store/members";
+import React from "react";
+
+export const MembersTableActions = (
+	props: Omit<
+		React.ComponentProps<typeof SplitTableButtonGroup>,
+		"columns" | "selectors" | "actions"
+	>
+) => (
+	<SplitTableButtonGroup
+		columns={tableColumns}
+		selectors={membersSelectors}
+		actions={membersActions}
+		{...props}
+	/>
+);
 
 const lineTruncStyle: React.CSSProperties = {
 	overflow: "hidden",
@@ -246,7 +262,7 @@ for (tableView in defaultTablesColumns) {
 	defaultTablesConfig[tableView] = tableConfig;
 }
 
-function Members() {
+function MembersTable() {
 	const dispatch = useAppDispatch();
 	const { selected } = useAppSelector(selectMembersState);
 
@@ -288,4 +304,4 @@ function Members() {
 	);
 }
 
-export default Members;
+export default MembersTable;

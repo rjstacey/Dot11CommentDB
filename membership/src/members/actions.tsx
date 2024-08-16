@@ -1,27 +1,20 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import type { EntityId } from "@reduxjs/toolkit";
-import {
-	ButtonGroup,
-	ActionButton,
-	SplitTableButtonGroup,
-} from "dot11-components";
+import { ButtonGroup, ActionButton } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
 import {
 	selectMembersState,
-	membersSelectors,
-	membersActions,
 	Member,
 	MembersDictionary,
 } from "../store/members";
 
+import { copyChartToClipboard, downloadChart } from "../components/copyChart";
 import MembersUpload from "./MembersUpload";
 import MembersSummary from "./MembersSummary";
 import MembersRoster from "./MembersRoster";
 import MembersExport from "./MembersExport";
-import { copyChartToClipboard, downloadChart } from "../components/copyChart";
-
-import { tableColumns } from "./table";
+import { MembersTableActions } from "./table";
 
 function copyHtmlToClipboard(html: string) {
 	const type = "text/html";
@@ -66,7 +59,6 @@ function setClipboard(selected: EntityId[], members: MembersDictionary) {
 }
 
 function MembersActions() {
-	//const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const location = useLocation();
 	const refresh = () => navigate(".", { replace: true });
@@ -84,11 +76,7 @@ function MembersActions() {
 		<div className="top-row">
 			<MembersSummary />
 			<div className="control-group">
-				<SplitTableButtonGroup
-					columns={tableColumns}
-					selectors={membersSelectors}
-					actions={membersActions}
-				/>
+				<MembersTableActions />
 				<MembersRoster />
 				<MembersExport />
 				<ButtonGroup className="button-group">

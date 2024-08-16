@@ -34,13 +34,13 @@ import { ErrorModal, ConfirmModal } from "dot11-components";
 import Header from "./Header";
 import WorkingGroupSelector from "./WorkingGroupSelector";
 import Groups from "../groups/Groups";
-import SessionParticipation from "../sessionParticipation/SessionParticipation";
 import BallotParticipation from "../ballotParticipation/BallotParticipation";
 import Notification from "../notification/Notification";
 import AffiliationMap from "../affiliationMap/AffiliationMap";
 
-import membersRoute from "../members/routes";
+import membersRoute from "../members/route";
 import sessionAttendanceRoute from "../sessionAttendance/routes";
+import sessionParticipationRoute from "../sessionParticipation/route";
 
 import styles from "./app.module.css";
 
@@ -89,15 +89,6 @@ const membersLoader: LoaderFunction = async ({ params }) => {
 		dispatch(loadAttendances(groupName));
 		dispatch(loadBallotParticipation(groupName));
 		dispatch(loadAffiliationMap(groupName));
-	}
-	return null;
-};
-
-const sessionParticipationLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	const { groupName } = params;
-	if (groupName) {
-		dispatch(loadAttendances(groupName));
 	}
 	return null;
 };
@@ -206,7 +197,6 @@ const groupRoutes_ungated: AppRoute[] = [
 	{
 		menuLabel: "Members",
 		path: "members",
-		loader: membersLoader,
 		minAccess: AccessLevel.admin,
 		groupTypes: ["r", "c", "wg"],
 		...membersRoute,
@@ -222,10 +212,9 @@ const groupRoutes_ungated: AppRoute[] = [
 	{
 		menuLabel: "Session participation",
 		path: "sessionParticipation",
-		element: <SessionParticipation />,
-		loader: sessionParticipationLoader,
 		minAccess: AccessLevel.admin,
 		groupTypes: ["c", "wg"],
+		...sessionParticipationRoute,
 	},
 	{
 		menuLabel: "Ballot pariticipation",
