@@ -24,9 +24,8 @@ export const voterQuerySchema = z
 
 export const voterCreateSchema = voterSchema
 	.pick({
+		ballot_id: true,
 		SAPIN: true,
-		Name: true,
-		Email: true,
 		Status: true,
 	})
 	.merge(
