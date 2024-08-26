@@ -30,10 +30,11 @@ function validVoter(voter: any): voter is Voter {
 
 export type VoterCreate = {
 	id?: Voter["id"];
-	ballot_id?: Voter["ballot_id"];
+	ballot_id: Voter["ballot_id"];
 	SAPIN: Voter["SAPIN"];
-	Excused?: Voter["Excused"];
 	Status: Voter["Status"];
+	Excused?: Voter["Excused"];
+	Affiliation?: Voter["Affiliation"];
 };
 
 type BallotVotersUpdate = {
@@ -41,7 +42,9 @@ type BallotVotersUpdate = {
 	Voters: number;
 };
 
-function validBallotVotersUpdateArray(ballots: any): ballots is BallotVotersUpdate[] {
+function validBallotVotersUpdateArray(
+	ballots: any
+): ballots is BallotVotersUpdate[] {
 	return (
 		Array.isArray(ballots) &&
 		ballots.every(
@@ -69,7 +72,6 @@ export const fields = {
 	Status: { label: "Status", options: voterStatusOptions },
 	Excused: { label: "Excused", options: voterExcusedOptions },
 };
-
 
 const sortComparer = (v1: Voter, v2: Voter) => v1.SAPIN - v2.SAPIN;
 
@@ -119,11 +121,8 @@ export const votersActions = slice.actions;
 const { getSuccess, getFailure, removeMany, setMany } = slice.actions;
 
 // Overload getPending() with one that sets ballot_id
-const getPending = createAction<{ ballot_id: number }>(
-	dataSet + "/getPending"
-);
+const getPending = createAction<{ ballot_id: number }>(dataSet + "/getPending");
 export const clearVoters = createAction(dataSet + "/clear");
-
 
 /* Selectors */
 export const selectVotersState = (state: RootState) => state[dataSet];
@@ -180,10 +179,12 @@ export const loadVoters =
 
 export const deleteVoters =
 	(ids: EntityId[]): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
+		const ballot_id = selectVotersBallot_id(getState());
+		const url = `${baseUrl}/${ballot_id}`;
 		dispatch(removeMany(ids));
 		try {
-			await fetcher.delete(baseUrl, ids);
+			await fetcher.delete(url, ids);
 		} catch (error) {
 			dispatch(setError(`Unable to delete voters`, error));
 		}
