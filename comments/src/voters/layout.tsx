@@ -24,7 +24,6 @@ export type SetVotersState = (state: VotersState) => void;
 
 function VotersLayout() {
 	const votersBallot_id = useAppSelector(selectVotersBallot_id);
-	console.log(votersBallot_id);
 
 	const [editVoter, setEditVoter] = React.useState<VotersState>({
 		action: null,
