@@ -108,6 +108,7 @@ const slice = createAppTableDataSlice({
 				(state) => {
 					dataAdapter.removeAll(state);
 					state.valid = false;
+					state.ballot_id = null;
 				}
 			);
 	},
