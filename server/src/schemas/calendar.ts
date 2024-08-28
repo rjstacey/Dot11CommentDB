@@ -13,7 +13,6 @@ export const calendarAccountsQuery = z.object({
 	id: z.number().optional(),
 	name: z.string().optional(),
 	groupId: groupIdSchema.optional(),
-	isActive: z.boolean().optional(),
 });
 
 export const calendarAccountSchema = oAuthAccountSchema

@@ -1,9 +1,9 @@
 import { DateTime } from "luxon";
 import isEqual from "lodash.isequal";
-import { isPlainObject, AuthError, NotFoundError } from "../utils";
+import { AuthError, NotFoundError } from "../utils";
 
 import db from "../utils/database";
-import type { ResultSetHeader } from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import type { User } from "./users";
 
@@ -13,8 +13,8 @@ import type { Session } from "../schemas/sessions";
 import { getGroupAndSubgroupIds, getWorkingGroup } from "./groups";
 import type { Group } from "../schemas/groups";
 
+import { getOAuthAccounts } from "./oauthAccounts";
 import {
-	getWebexAccount,
 	getWebexMeetings,
 	getWebexMeeting,
 	addWebexMeeting,
@@ -159,7 +159,7 @@ async function selectMeetings(constraints: MeetingsQuery) {
  * Returns an object with shape {meetings, webexMeetings} where @meetings is array of meetings that meet the
  * constraints and @webexMeetings is an array of Webex meetings referenced by the meetings.
  */
-export async function getMeetings(constraints: MeetingsQuery) {
+export async function getMeetings(user: User, constraints: MeetingsQuery) {
 	const meetings = await selectMeetings(constraints);
 	const ids = meetings.reduce(
 		(ids, m) => (m.webexMeetingId ? ids.concat([m.webexMeetingId]) : ids),
@@ -173,6 +173,30 @@ export async function getMeetings(constraints: MeetingsQuery) {
 			console.log(error);
 		}
 	}
+	// Normalize webexMeetings
+	const webexMeetingEntities: Record<string, WebexMeeting> = {};
+	webexMeetings.forEach(
+		(webexMeeting) => (webexMeetingEntities[webexMeeting.id] = webexMeeting)
+	);
+	// Make sure the webexAccountId matches. It is possible that a new account has been created.
+	const updates: MeetingUpdate[] = [];
+	for (const meeting of meetings) {
+		if (meeting.webexMeetingId) {
+			const webexMeeting = webexMeetingEntities[meeting.webexMeetingId];
+			if (
+				webexMeeting &&
+				meeting.webexAccountId !== webexMeeting.accountId
+			) {
+				meeting.webexAccountId = webexMeeting.accountId;
+				updates.push({
+					id: meeting.id,
+					changes: { webexAccountId: meeting.webexAccountId },
+				});
+			}
+		}
+	}
+	//await Promise.all(updates.map((u) => updateMeetingDB(u.id, u.changes)));
+
 	return { meetings, webexMeetings };
 }
 
@@ -315,8 +339,8 @@ export async function webexMeetingImatLocation(
 	webexMeeting: WebexMeeting
 ) {
 	let location = "";
-	const webexAccount = getWebexAccount(webexAccountId);
-	if (webexAccount) location = webexAccount.name + ": ";
+	const [oauthAccount] = await getOAuthAccounts({ id: webexAccountId });
+	if (oauthAccount) location = oauthAccount.name + ": ";
 	location += formatMeetingNumber(webexMeeting.meetingNumber);
 	return location;
 }
@@ -332,7 +356,7 @@ const meetingDescriptionStyle = `
 			margin: 20px;
 		}
 		a {
-			color: #049FD9; 
+			color: #049FD9;
 			text-decoration: none;
 		}
 		.intro {
@@ -928,6 +952,17 @@ async function meetingMakeCalendarUpdates(
 	return calendarEvent;
 }
 
+async function updateMeetingDB(id: number, changes: MeetingChanges) {
+	const setSql = meetingToSetSql(changes);
+	if (setSql) {
+		const sql = db.format(
+			"UPDATE meetings SET " + setSql + " WHERE id=?;",
+			[id]
+		);
+		await db.query(sql);
+	}
+}
+
 /**
  * Update meeting, including changes to webex, calendar and imat.
  *
@@ -999,29 +1034,11 @@ export async function updateMeeting(
 			"UPDATE meetings SET " + setSql + " WHERE id=?;",
 			[id]
 		);
-		await db.query({ sql, dateStrings: true });
+		await db.query(sql);
 		[meeting] = await selectMeetings({ id });
 	}
 
 	return { meeting, webexMeeting, breakout };
-}
-
-function validMeetingUpdate(update: any): update is MeetingUpdate {
-	return (
-		isPlainObject(update) &&
-		update.id &&
-		typeof update.id === "number" &&
-		isPlainObject(update.changes)
-	);
-}
-
-export function validateMeetingUpdates(
-	updates: any
-): asserts updates is MeetingUpdate[] {
-	if (!Array.isArray(updates) || !updates.every(validMeetingUpdate))
-		throw new TypeError(
-			"Bad or missing array of meeting updates; expected array of objects with shape {id, changes}"
-		);
 }
 
 /**
@@ -1033,14 +1050,6 @@ export function validateMeetingUpdates(
  */
 export async function updateMeetings(user: User, updates: MeetingUpdate[]) {
 	if (!user.ieeeClient) throw new AuthError("Not logged in");
-
-	// Validate request
-	for (const u of updates) {
-		if (!isPlainObject(u) || !u.id || !isPlainObject(u.changes))
-			throw new TypeError(
-				"Expected array of objects with shape {id, changes}"
-			);
-	}
 
 	const entries = await Promise.all(
 		updates.map((u) => updateMeeting(user, u.id, u.changes))
@@ -1057,13 +1066,6 @@ export async function updateMeetings(user: User, updates: MeetingUpdate[]) {
 	});
 
 	return { meetings, webexMeetings, breakouts };
-}
-
-export function validateMeetingIds(ids: any): asserts ids is number[] {
-	if (!Array.isArray(ids) || !ids.every((id) => typeof id === "number"))
-		throw new TypeError(
-			"Bad or missing array of meeting identifiers; expected number[]"
-		);
 }
 
 /**
@@ -1089,10 +1091,21 @@ export async function deleteMeetings(
 		| "imatBreakoutId"
 	>;
 
-	const entries = (await db.query(
-		"SELECT webexAccountId, webexMeetingId, calendarAccountId, calendarEventId, imatMeetingId, imatBreakoutId FROM meetings WHERE id IN (?);",
+	// prettier-ignore
+	let sql = db.format(
+		"SELECT " + 
+			"webexAccountId, " + 
+			"webexMeetingId, " + 
+			"calendarAccountId, " + 
+			"calendarEventId, " +
+			"imatMeetingId, " + 
+			"imatBreakoutId " + 
+		"FROM meetings WHERE id IN (?);",
 		[ids]
-	)) as DeleteMeetingSelect[];
+	);
+	const entries = await db.query<(RowDataPacket & DeleteMeetingSelect)[]>(
+		sql
+	);
 	for (const entry of entries) {
 		if (entry.webexAccountId && entry.webexMeetingId) {
 			try {
@@ -1125,9 +1138,8 @@ export async function deleteMeetings(
 			}
 		}
 	}
-	const { affectedRows } = (await db.query(
-		"DELETE FROM meetings WHERE id IN (?);",
-		[ids]
-	)) as ResultSetHeader;
+
+	sql = db.format("DELETE FROM meetings WHERE id IN (?);", [ids]);
+	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }

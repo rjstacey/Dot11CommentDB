@@ -2,7 +2,16 @@ import { z } from "zod";
 
 export const groupIdSchema = z.string().uuid();
 
-export const groupTypeSchema = z.enum(["r", "c", "wg", "tg", "sg", "sc", "ah"]);
+export const groupTypeSchema = z.enum([
+	"r", // Root
+	"c", // Standards committee
+	"wg", // Working group
+	"tg", // Task group
+	"sg", // Study group
+	"sc", // Standing committee
+	"ah", // Ad-hoc group
+	"tig", // Topic of interest group
+]);
 
 export const groupSchema = z.object({
 	id: groupIdSchema,

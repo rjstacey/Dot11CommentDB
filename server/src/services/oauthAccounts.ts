@@ -81,10 +81,19 @@ export function updateAuthParams(
 function getConstraintsWhereSql(constraints?: OAuthAccountsQuery) {
 	if (!constraints) return "";
 
+	const fields: string[] = [];
+	if (constraints.groupId) fields.push("groupId");
+	if (constraints.id) fields.push("id");
+	if (constraints.name) fields.push("name");
+	if (constraints.type) fields.push("type");
+
+	if (fields.length === 0) return "";
+
 	return (
 		"WHERE " +
-		Object.entries(constraints)
-			.map(([key, value]) => {
+		fields
+			.map((key) => {
+				const value = constraints[key];
 				if (key === "groupId")
 					return db.format(
 						Array.isArray(value)

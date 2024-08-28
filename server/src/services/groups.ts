@@ -23,6 +23,7 @@ const GroupTypeLabels: { [K in GroupType]: string } = {
 	sg: "Study Group",
 	sc: "Standing Committee",
 	ah: "Ad-hoc Group",
+	tig: "Topic of Interest Group",
 };
 
 // prettier-ignore

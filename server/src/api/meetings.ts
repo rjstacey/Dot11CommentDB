@@ -68,7 +68,7 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 
 function get(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
-	getMeetings({ groupId: group.id, ...req.query })
+	getMeetings(req.user, { groupId: group.id, ...req.query })
 		.then((data) => res.json(data))
 		.catch(next);
 }

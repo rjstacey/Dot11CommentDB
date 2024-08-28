@@ -24,6 +24,7 @@ import {
 	getWebexMeetings,
 	addWebexMeetings,
 	updateWebexMeetings,
+	revokeAuthWebexAccount,
 	deleteWebexMeetings,
 } from "../services/webex";
 
@@ -70,6 +71,13 @@ function updateAccount(req: Request, res: Response, next: NextFunction) {
 		return next(error);
 	}
 	updateWebexAccount(req, req.user, req.group!.id, accountId, changes)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function revokeAccountAuth(req: Request, res: Response, next: NextFunction) {
+	const accountId = Number(req.params.accountId);
+	revokeAuthWebexAccount(req, req.user, req.group!.id, accountId)
 		.then((data) => res.json(data))
 		.catch(next);
 }
@@ -131,9 +139,9 @@ router
 	.get(getAccounts)
 	.post(addAccount);
 router
-	.route("/accounts/:accountId(\\d+)")
-	.patch(updateAccount)
-	.delete(removeAccount);
+	.patch("/accounts/:accountId(\\d+)", updateAccount)
+	.patch("/accounts/:accountId(\\d+)/revoke", revokeAccountAuth)
+	.delete("/accounts/:accountId(\\d+)", removeAccount);
 router
 	.route("/meetings")
 	.get(getMeetings)

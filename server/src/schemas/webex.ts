@@ -11,8 +11,8 @@ export const webexAccountChangeSchema = webexAccountCreateSchema.partial();
 
 export const webexAccountsQuery = z.object({
 	id: z.number().optional(),
+	name: z.string().optional(),
 	groupId: groupIdSchema.optional(),
-	isActive: z.boolean().optional(),
 });
 
 export type WebexAccountCreate = z.infer<typeof webexAccountCreateSchema>;

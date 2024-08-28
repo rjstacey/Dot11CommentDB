@@ -36,7 +36,7 @@ type WebexAccountLocal = Omit<
 	"authUrl" | "userName" | "displayName"
 > & {
 	axios?: AxiosInstance;
-	authParams: Record<string, any> | null;
+	authParams: WebexAuthParams | null;
 };
 
 const webexApiBaseUrl = "https://webexapis.com/v1";
@@ -56,10 +56,6 @@ const webexAuthScope = [
 	"meeting:preferences_read",
 ].join(" ");
 
-/* const webexAuthRedirectUri = process.env.NODE_ENV === 'development'?
-	'http://localhost:3000/oauth2/webex':
-	'https://802tools.org/oauth2/webex';*/
-
 const webexAuthRedirectPath = "/oauth2/webex";
 
 /**  Webex accounts indexed by account ID. */
@@ -74,11 +70,19 @@ type WebexAuthParams = {
 	refresh_token: string;
 };
 
-// Add refresh_token to the Axios request config object
-declare module "axios" {
-	export interface AxiosRequestConfig {
-		refresh_token?: string;
-	}
+/**
+ * Init routine, run at startup.
+ *
+ * Instantiate an API for each of the configured Webex accounts.
+ */
+export async function init() {
+	if (process.env.WEBEX_CLIENT_ID)
+		webexClientId = process.env.WEBEX_CLIENT_ID;
+	else console.warn("Webex API: Missing .env variable WEBEX_CLIENT_ID");
+
+	if (process.env.WEBEX_CLIENT_SECRET)
+		webexClientSecret = process.env.WEBEX_CLIENT_SECRET;
+	else console.warn("Webex API: Missing .env variable WEBEX_CLIENT_SECRET");
 }
 
 /**
@@ -100,7 +104,7 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 			Timezone: defaultTimezone,
 		},
 		baseURL: webexApiBaseUrl,
-		refresh_token: authParams.refresh_token,
+		//refresh_token: authParams.refresh_token,
 	});
 
 	if (process.env.NODE_ENV === "development") {
@@ -114,7 +118,7 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 	// Add a response interceptor
 	api.interceptors.response.use(
 		(response) => {
-			const account = getWebexAccount(id);
+			const account = webexAccounts[id];
 			account.lastAccessed = new Date().toISOString();
 			return response;
 		},
@@ -122,17 +126,17 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 			if (error.response && error.response.status === 401) {
 				// If we get 'Unauthorized' then refresh the access token
 				console.log("unauthorized");
+				let authParams = webexAccounts[id].authParams!;
 				const request = error.config;
 				const params = {
 					grant_type: "refresh_token",
 					client_id: webexClientId,
 					client_secret: webexClientSecret,
-					refresh_token: api.defaults.refresh_token,
+					refresh_token: authParams.refresh_token,
 				};
 				const response = await axios.post(webexTokenUrl, params);
-				const authParams = response.data;
+				authParams = { ...authParams, ...response.data };
 				await updateAuthParams(id, authParams);
-				api.defaults.refresh_token = authParams.refresh_token;
 				api.defaults.headers[
 					"Authorization"
 				] = `Bearer ${authParams.access_token}`;
@@ -149,91 +153,49 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 	return api;
 }
 
-function activateWebexAccount(
-	id: number,
-	authParams: WebexAuthParams,
-	userId: number | null
-) {
+async function activateWebexAccount(id: number, authParams: WebexAuthParams) {
 	const account = webexAccounts[id];
 	account.authParams = authParams;
-	account.authUserId = userId;
-	account.axios = createWebexApi(account.id, authParams);
-	getWebexAccountOwner(id)
-		.then((owner) => {
-			account.owner = owner;
-		})
-		.catch((error) => console.warn(`getWebexAccountOwner(${id})`, error));
-	getWebexMeetingPreferencesSites(id)
-		.then((sites) => {
-			let siteUrl: string | undefined;
-			for (const site of sites) {
-				if (site.default) siteUrl = site.siteUrl;
-			}
-			if (!siteUrl) siteUrl = sites[0]?.siteUrl;
-			account.siteUrl = siteUrl;
-			getWebexMeetingPreferences(id)
-				.then((preferences) => {
-					account.preferences = preferences;
-				})
-				.catch((error) =>
-					console.warn(`getWebexMeetingPreferences(${id})`, error)
-				);
-			getWebexTemplates(id)
-				.then((templates) => {
-					account.templates = templates;
-				})
-				.catch((error) =>
-					console.warn(`getWebexTemplates(${id})`, error)
-				);
-		})
-		.catch((error) => console.warn(error));
+	account.axios = createWebexApi(id, authParams);
+	account.owner = await getWebexAccountOwner(id);
+	const sites = await getWebexMeetingPreferencesSites(id);
+	let siteUrl: string | undefined;
+	for (const site of sites) {
+		if (site.default) siteUrl = site.siteUrl;
+	}
+	if (!siteUrl) siteUrl = sites[0]?.siteUrl;
+	account.siteUrl = siteUrl;
+	account.preferences = await getWebexMeetingPreferences(id);
+	account.templates = await getWebexTemplates(id);
 }
 
-function createWebexAccount(account: OAuthAccount) {
-	const id = account.id;
+async function deactivateWebexAccount(id: number) {
+	const account = webexAccounts[id];
+	if (account) {
+		account.authParams = null;
+		delete account.axios;
+		delete account.owner;
+		delete account.siteUrl;
+		delete account.preferences;
+		account.templates = [];
+	}
+}
+
+function createWebexAccount(oauthAccount: OAuthAccount) {
+	const id = oauthAccount.id;
 	webexAccounts[id] = {
-		...account,
+		...oauthAccount,
+		authParams: oauthAccount.authParams as WebexAuthParams,
 		templates: [],
 		lastAccessed: null,
 	};
-	if (account.authParams)
-		activateWebexAccount(
-			id,
-			account.authParams as WebexAuthParams,
-			account.authUserId
-		);
+	return webexAccounts[id];
 }
 
-export function getWebexAccount(id: number) {
-	const account = webexAccounts[id];
-	if (!account) throw new NotFoundError(`Invalid account id=${id}`);
-	return account;
-}
-
-function getWebexAccountsLocal(constraints?: WebexAccountsQuery) {
-	let accounts = Object.values(webexAccounts);
-	if (constraints) {
-		if (constraints.groupId) {
-			accounts = accounts.filter(
-				(account) => account.groupId === constraints.groupId
-			);
-		}
-		if (constraints.id) {
-			accounts = accounts.filter(
-				(account) => account.id === constraints.id
-			);
-		}
-		if (constraints.isActive) {
-			accounts = accounts.filter((account) => account.axios);
-		}
-	}
-	return accounts;
-}
-
-function getWebexAccountApi(id: number) {
-	const api = getWebexAccount(id).axios;
-	if (!api) throw new TypeError(`Inactive Webex account id=${id}`);
-	return api;
+async function getWebexAccountApi(id: number) {
+	const account = await getActiveWebexAccount(id);
+	if (!account.axios) throw new TypeError(`Inactive Webex account id=${id}`);
+	return account.axios;
 }
 
 /**
@@ -243,25 +205,6 @@ function getWebexAccountApi(id: number) {
  */
 function removeWebexAccount(id: number) {
 	delete webexAccounts[id];
-}
-
-/**
- * Init routine, run at startup.
- *
- * Instantiate an API for each of the configured Webex accounts.
- */
-export async function init() {
-	if (process.env.WEBEX_CLIENT_ID)
-		webexClientId = process.env.WEBEX_CLIENT_ID;
-	else console.warn("Webex API: Missing .env variable WEBEX_CLIENT_ID");
-
-	if (process.env.WEBEX_CLIENT_SECRET)
-		webexClientSecret = process.env.WEBEX_CLIENT_SECRET;
-	else console.warn("Webex API: Missing .env variable WEBEX_CLIENT_SECRET");
-
-	// Cache the active webex accounts and create an axios api for each
-	const accounts = await getOAuthAccounts({ type: "webex" });
-	accounts.forEach(createWebexAccount);
 }
 
 /**
@@ -304,7 +247,16 @@ export async function completeAuthWebexAccount({
 		return;
 	}
 	const { accountId, userId, host } = stateObj;
-	console.log(`webex auth completion, accountId=${accountId}`);
+
+	let account = webexAccounts[accountId];
+	if (!account) {
+		const [oauthAccount] = await getOAuthAccounts({
+			type: "webex",
+			id: accountId,
+		});
+		if (!oauthAccount) return;
+		account = createWebexAccount(oauthAccount);
+	}
 
 	let params = {
 		grant_type: "authorization_code",
@@ -319,28 +271,93 @@ export async function completeAuthWebexAccount({
 	await updateAuthParams(accountId, authParams, userId);
 
 	// Activate axios instance for this account
-	activateWebexAccount(accountId, authParams, userId);
+	await activateWebexAccount(accountId, authParams);
+}
+
+async function cleanWebexAccounts() {
+	const oauthAccounts = await getOAuthAccounts({
+		type: "webex",
+	});
+	const oauthIds = oauthAccounts.map((oauthAccount) => oauthAccount.id);
+
+	for (const id of Object.keys(webexAccounts)) {
+		if (!oauthIds.includes(Number(id))) delete webexAccounts[id];
+	}
+}
+
+async function getActiveWebexAccounts(query?: WebexAccountsQuery) {
+	let oauthAccounts = await getOAuthAccounts({
+		...query,
+		type: "webex",
+	});
+
+	const accountsOut: WebexAccountLocal[] = [];
+	for (const oauthAccount of oauthAccounts) {
+		const id = oauthAccount.id;
+		let account = webexAccounts[id];
+		if (!account) account = createWebexAccount(oauthAccount);
+		if (account.authParams) accountsOut.push(account);
+	}
+
+	return accountsOut;
+}
+
+async function getActiveWebexAccount(id: number) {
+	const [account] = await getActiveWebexAccounts({ id });
+	if (!account)
+		throw new NotFoundError(`Active Webex account (id=${id}) not found`);
+	if (!account.axios)
+		await activateWebexAccount(id, account.authParams as WebexAuthParams);
+	return account;
 }
 
 export async function getWebexAccounts(
 	req: Request,
 	user: User,
-	constraints?: WebexAccountsQuery
+	query?: WebexAccountsQuery
 ) {
-	const accounts = getWebexAccountsLocal(constraints);
 	const proxyHost = req.headers["x-forwarded-host"] as string;
 	const m = /(http[s]?:\/\/[^\/]+)\//.exec(req.headers["referer"] || "");
 	const host = m ? m[1] : proxyHost || req.headers.host || "";
-	const accountsOut: WebexAccount[] = accounts.map((account) => {
-		const { authParams, axios, ...rest } = account;
-		const accountOut: WebexAccount = {
-			...rest,
-			authUrl: getAuthUrl(user, host, account.id),
-			displayName: rest.owner?.displayName,
-			userName: rest.owner?.userName,
-		};
-		return accountOut;
+
+	// Use "get" as a way to remove stale entries from the cache
+	await cleanWebexAccounts();
+
+	let oauthAccounts = await getOAuthAccounts({
+		...query,
+		type: "webex",
 	});
+
+	const accountsOut: WebexAccount[] = [];
+	for (const oauthAccount of oauthAccounts) {
+		const id = oauthAccount.id;
+		let account = webexAccounts[id];
+		if (!account) account = createWebexAccount(oauthAccount);
+
+		if (account.authParams && !account.axios) {
+			try {
+				await activateWebexAccount(
+					id,
+					account.authParams as WebexAuthParams
+				);
+			} catch (error) {
+				console.warn(error);
+			}
+		}
+
+		let accountOut: WebexAccount;
+		const { authParams, ...rest } = oauthAccount;
+		accountOut = {
+			...rest,
+			authUrl: getAuthUrl(user, host, id),
+			displayName: account.owner?.displayName,
+			userName: account.owner?.userName,
+			templates: account.templates,
+			lastAccessed: account.lastAccessed,
+		};
+		accountsOut.push(accountOut);
+	}
+
 	return accountsOut;
 }
 
@@ -360,16 +377,14 @@ export async function addWebexAccount(
 	groupId: string,
 	accountIn: WebexAccountCreate
 ) {
-	let oauthAccount: OAuthAccountCreate = {
+	let oauthAccountIn: OAuthAccountCreate = {
 		...accountIn,
 		type: "webex",
 		groupId,
 	};
-	const id = await addOAuthAccount(oauthAccount);
-	const [account] = await getOAuthAccounts({ id });
-	createWebexAccount(account);
-	const accounts = await getWebexAccounts(req, user, { id });
-	return accounts[0];
+	const id = await addOAuthAccount(oauthAccountIn);
+	const [account] = await getWebexAccounts(req, user, { id });
+	return account;
 }
 
 /**
@@ -389,12 +404,16 @@ export async function updateWebexAccount(
 	id: number,
 	changes: WebexAccountChange
 ) {
-	if (!id) throw new TypeError("Must provide id with update");
+	const [oauthAccount] = await getOAuthAccounts({
+		id,
+		groupId,
+		type: "webex",
+	});
+	if (!oauthAccount)
+		throw new NotFoundError(`Webex account id=${id} not found`);
 	await updateOAuthAccount(groupId, id, changes);
-	let account = getWebexAccountsLocal({ id })[0];
-	if (changes.name) account.name = changes.name;
-	const accounts = await getWebexAccounts(req, user, { id });
-	return accounts[0];
+	const [account] = await getWebexAccounts(req, user, { id });
+	return account;
 }
 
 /**
@@ -411,6 +430,33 @@ export async function deleteWebexAccount(
 	const affectedRows = await deleteOAuthAccount(groupId, id);
 	removeWebexAccount(id);
 	return affectedRows;
+}
+
+/**
+ * Revoke calendar account authorization
+ * @param req The express request
+ * @param user User revoking authorization
+ * @param groupId Working group identifier
+ * @param id Calendar account identifier
+ */
+export async function revokeAuthWebexAccount(
+	req: Request,
+	user: User,
+	groupId: string,
+	id: number
+) {
+	const [oauthAccount] = await getOAuthAccounts({
+		id,
+		groupId,
+		type: "webex",
+	});
+	if (!oauthAccount)
+		throw new NotFoundError(`Webex account id=${id} not found`);
+	await updateAuthParams(id, null, user.SAPIN);
+	deactivateWebexAccount(id);
+
+	const [accountOut] = await getWebexAccounts(req, user, { id });
+	return accountOut;
 }
 
 /*
@@ -432,7 +478,7 @@ function webexApiError(error: any) {
 }
 
 async function getWebexAccountOwner(id: number) {
-	const api = getWebexAccountApi(id);
+	const api = await getWebexAccountApi(id);
 	return api
 		.get("/people/me")
 		.then((response) => response.data)
@@ -440,8 +486,9 @@ async function getWebexAccountOwner(id: number) {
 }
 
 async function getWebexTemplates(id: number) {
-	const siteUrl = getWebexAccount(id)?.siteUrl;
-	const api = getWebexAccountApi(id);
+	const account = await getActiveWebexAccount(id);
+	const api = await getWebexAccountApi(id);
+	const siteUrl = account.siteUrl;
 	return api
 		.get("/meetings/templates", {
 			params: { siteUrl, templateType: "meeting" },
@@ -450,8 +497,10 @@ async function getWebexTemplates(id: number) {
 		.catch(webexApiError);
 }
 
-function getWebexMeetingPreferencesSites(id: number): Promise<WebexSites[]> {
-	const api = getWebexAccountApi(id);
+async function getWebexMeetingPreferencesSites(
+	id: number
+): Promise<WebexSites[]> {
+	const api = await getWebexAccountApi(id);
 	let url = "/meetingPreferences/sites";
 	return api
 		.get(url)
@@ -459,8 +508,8 @@ function getWebexMeetingPreferencesSites(id: number): Promise<WebexSites[]> {
 		.catch(webexApiError);
 }
 
-function setWebexDefaultSite(id: number, siteUrl: string) {
-	const api = getWebexAccountApi(id);
+async function setWebexDefaultSite(id: number, siteUrl: string) {
+	const api = await getWebexAccountApi(id);
 	let url = "/meetingPreferences/sites?defaultSite=true";
 	return api
 		.put(url, { siteUrl })
@@ -468,10 +517,10 @@ function setWebexDefaultSite(id: number, siteUrl: string) {
 		.catch(webexApiError);
 }
 
-function getWebexMeetingPreferences(
+async function getWebexMeetingPreferences(
 	id: number
 ): Promise<WebexMeetingPreferences> {
-	const account = getWebexAccount(id);
+	const account = await getActiveWebexAccount(id);
 	let url = "/meetingPreferences";
 	if (account.siteUrl)
 		url += "?" + new URLSearchParams({ siteUrl: account.siteUrl });
@@ -564,9 +613,9 @@ export async function getWebexMeetings({
 	};
 
 	let webexMeetings: WebexMeeting[] = [];
-	const accounts = getWebexAccountsLocal({ groupId, isActive: true });
+	const accounts = await getActiveWebexAccounts({ groupId });
 	for (const account of accounts) {
-		const api = getWebexAccountApi(account.id);
+		const api = await getWebexAccountApi(account.id);
 
 		const response = await api
 			.get("/meetings", { params, headers: { timezone } })
@@ -598,7 +647,7 @@ export async function getWebexMeeting(
 	id: string,
 	timezone?: string
 ): Promise<WebexMeeting> {
-	const api = getWebexAccountApi(accountId);
+	const api = await getWebexAccountApi(accountId);
 	const config = timezone ? { headers: { timezone } } : undefined;
 	return api
 		.get(`/meetings/${id}`, config)
@@ -617,9 +666,9 @@ export async function addWebexMeeting({
 	accountId,
 	...params
 }: WebexMeetingCreate): Promise<WebexMeeting> {
-	const account = getWebexAccount(accountId);
+	const account = await getActiveWebexAccount(accountId);
+	const api = await getWebexAccountApi(accountId);
 	const siteUrl = account.siteUrl || "ieeesa.webex.com";
-	const api = getWebexAccountApi(accountId);
 	return api
 		.post("/meetings", { siteUrl, ...params })
 		.then((response) => ({
@@ -638,7 +687,9 @@ export async function addWebexMeeting({
  */
 export async function addWebexMeetings(webexMeetings: WebexMeetingCreate[]) {
 	// Make sure the account Ids are active
-	webexMeetings.forEach((m) => getWebexAccountApi(m.accountId));
+	await Promise.all(
+		webexMeetings.map((m) => getWebexAccountApi(m.accountId))
+	);
 	return Promise.all(webexMeetings.map(addWebexMeeting));
 }
 
@@ -656,8 +707,8 @@ export async function updateWebexMeeting({
 	id,
 	...params
 }: WebexMeetingChange): Promise<WebexMeeting> {
-	const account = getWebexAccount(accountId);
-	const api = getWebexAccountApi(accountId);
+	const account = await getActiveWebexAccount(accountId);
+	const api = await getWebexAccountApi(accountId);
 	return api
 		.patch(`/meetings/${id}`, params)
 		.then((response) => ({
@@ -676,7 +727,9 @@ export async function updateWebexMeeting({
  */
 export async function updateWebexMeetings(webexMeetings: WebexMeetingChange[]) {
 	// Make sure the account Ids are active
-	webexMeetings.forEach((m) => getWebexAccountApi(m.accountId));
+	await Promise.all(
+		webexMeetings.map((m) => getWebexAccountApi(m.accountId))
+	);
 	return Promise.all(webexMeetings.map(updateWebexMeeting));
 }
 
@@ -691,7 +744,7 @@ export async function deleteWebexMeeting({
 	accountId,
 	id,
 }: WebexMeetingDelete) {
-	const api = getWebexAccountApi(accountId);
+	const api = await getWebexAccountApi(accountId);
 	return api
 		.delete(`/meetings/${id}`)
 		.then((response) => response.data)
@@ -706,7 +759,9 @@ export async function deleteWebexMeeting({
  */
 export async function deleteWebexMeetings(webexMeetings: WebexMeetingDelete[]) {
 	// Make sure the account Ids are active
-	webexMeetings.forEach((m) => getWebexAccountApi(m.accountId));
+	await Promise.all(
+		webexMeetings.map((m) => getWebexAccountApi(m.accountId))
+	);
 	await Promise.all(webexMeetings.map(deleteWebexMeeting));
 	return webexMeetings.length;
 }
