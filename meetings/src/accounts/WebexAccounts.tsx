@@ -1,12 +1,6 @@
 import * as React from "react";
 
-import {
-	Button,
-	ActionButton,
-	Input,
-	ActionIcon,
-	Checkbox,
-} from "dot11-components";
+import { ActionButton, Input, ActionIcon, Checkbox } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { selectMemberEntities } from "../store/members";
@@ -15,6 +9,7 @@ import {
 	updateWebexAccount,
 	addWebexAccount,
 	deleteWebexAccount,
+	revokeAuthWebexAccount,
 	selectWebexAccountsState,
 	selectWebexAccounts,
 	WebexAccount,
@@ -28,6 +23,8 @@ import {
 
 import { EditTable as Table, TableColumn } from "../components/Table";
 import WebexTemplateSelector from "../components/WebexTemplateSelector";
+
+import styles from "./accounts.module.css";
 
 const displayDate = (d: string) =>
 	new Intl.DateTimeFormat("default", {
@@ -77,14 +74,28 @@ function AuthorizedBy({ account }: { account: WebexAccount }) {
 }
 
 function AuthButtons({ account }: CellProps) {
+	const dispatch = useAppDispatch();
+	const handleRevoke = (id: number) => dispatch(revokeAuthWebexAccount(id));
 	if (!account.authUrl) return null;
 	return (
-		<Button
-			style={{ marginLeft: "1em" }}
-			onClick={() => (window.location.href = account.authUrl!)}
-		>
-			{account.authDate ? "Reauthorize" : "Authorize"}
-		</Button>
+		<>
+			<a
+				style={{ marginLeft: "1em" }}
+				className={styles.button}
+				href={account.authUrl}
+			>
+				{account.authDate ? "Reauthorize" : "Authorize"}
+			</a>
+			{account.authDate && (
+				<button
+					style={{ marginLeft: "1em" }}
+					className={styles.button}
+					onClick={() => handleRevoke(account.id)}
+				>
+					{"Revoke"}
+				</button>
+			)}
+		</>
 	);
 }
 

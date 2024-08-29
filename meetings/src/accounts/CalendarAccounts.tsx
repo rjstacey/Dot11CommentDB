@@ -1,12 +1,6 @@
 import * as React from "react";
 
-import {
-	Button,
-	ActionButton,
-	Input,
-	ActionIcon,
-	Checkbox,
-} from "dot11-components";
+import { ActionButton, Input, ActionIcon, Checkbox } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
@@ -28,6 +22,8 @@ import {
 } from "../store/current";
 
 import { EditTable as Table, TableColumn } from "../components/Table";
+
+import styles from "./accounts.module.css";
 
 const displayDate = (d: string) =>
 	new Intl.DateTimeFormat("default", {
@@ -84,18 +80,20 @@ function AuthButtons({ account }: CellProps) {
 	if (!account.authUrl) return null;
 	return (
 		<>
-			<Button
+			<a
 				style={{ marginLeft: "1em" }}
-				onClick={() => (window.location.href = account.authUrl!)}
+				className={styles.button}
+				href={account.authUrl}
 			>
 				{account.authDate ? "Reauthorize" : "Authorize"}
-			</Button>
-			<Button
+			</a>
+			<button
 				style={{ marginLeft: "1em" }}
+				className={styles.button}
 				onClick={() => handleRevoke(account.id)}
 			>
 				{"Revoke"}
-			</Button>
+			</button>
 		</>
 	);
 }

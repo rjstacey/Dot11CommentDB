@@ -84,6 +84,7 @@ const slice = createSlice({
 		updateOne: dataAdapter.updateOne,
 		addOne: dataAdapter.addOne,
 		removeOne: dataAdapter.removeOne,
+		setOne: dataAdapter.setOne,
 	},
 });
 
@@ -98,6 +99,7 @@ const {
 	updateOne,
 	addOne,
 	removeOne,
+	setOne,
 } = slice.actions;
 
 /* Selectors */
@@ -202,4 +204,21 @@ export const deleteWebexAccount =
 		} catch (error: any) {
 			dispatch(setError("Unable to delete webex account", error));
 		}
+	};
+
+export const revokeAuthWebexAccount =
+	(id: number): AppThunk =>
+	async (dispatch, getState) => {
+		const groupName = selectWebexAccountsGroupName(getState());
+		const url = `/api/${groupName}/webex/accounts/${id}/revoke`;
+		let response: any;
+		try {
+			response = await fetcher.patch(url);
+			if (!validWebexAccount(response))
+				throw new TypeError("Unexpected response to PATCH");
+		} catch (error) {
+			dispatch(setError(`Unable to deauthorize webex account`, error));
+			return;
+		}
+		dispatch(setOne(response));
 	};

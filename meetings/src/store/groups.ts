@@ -17,12 +17,13 @@ import {
 import type { RootState, AppThunk } from ".";
 
 const GroupTypeLabels = {
-	c: "Committee",
+	c: "Standards Committee",
 	wg: "Working Group",
 	sg: "Study Group",
 	tg: "Task Group",
 	sc: "Standing Committee",
 	ah: "Ad-hoc Group",
+	tig: "Topic of Interest Group",
 };
 
 export type GroupType = keyof typeof GroupTypeLabels;
@@ -97,12 +98,15 @@ const slice = createAppTableDataSlice({
 		builder.addMatcher(
 			(action: Action) => action.type === getSuccess2.toString(),
 			(state, action: PayloadAction<Group[]>) => {
-				dataAdapter.setMany(state, action.payload);	// add or replace
+				dataAdapter.setMany(state, action.payload); // add or replace
 				state.loading = false;
 				state.valid = true;
 				const { ids, entities } = state;
 
-				interface Node { id: EntityId; children: Node[]; }
+				interface Node {
+					id: EntityId;
+					children: Node[];
+				}
 
 				// Order by group type and then alphabetically
 				function compare(id1: EntityId, id2: EntityId) {
@@ -114,14 +118,14 @@ const slice = createAppTableDataSlice({
 					if (n === 0) n = g1.name.localeCompare(g2.name);
 					return n;
 				}
-				
+
 				function buildTree(parent_id: EntityId | null): Node[] {
 					return ids
-						.filter(id => entities[id]!.parent_id === parent_id)
+						.filter((id) => entities[id]!.parent_id === parent_id)
 						.sort(compare)
-						.map(id => ({ id, children: buildTree(id) }));
+						.map((id) => ({ id, children: buildTree(id) }));
 				}
-			
+
 				function flattenTree(nodes: Node[]): EntityId[] {
 					let ids: EntityId[] = [];
 					for (const node of nodes)
@@ -133,9 +137,10 @@ const slice = createAppTableDataSlice({
 				const sortedIds = flattenTree(nodes);
 
 				if (ids.length !== sortedIds.length) {
-					console.warn("One or more groups present without its parent");
-				}
-				else {
+					console.warn(
+						"One or more groups present without its parent"
+					);
+				} else {
 					if (sortedIds.join() !== ids.join()) state.ids = sortedIds;
 				}
 			}
