@@ -9,7 +9,8 @@ import {
 	selectBreakoutAttendanceEntries,
 	type BreakoutAttendanceEntry,
 } from "./SessionAttendanceChart";
-import type { ReportChartProps } from "./Reports";
+
+import type { ReportChartProps } from "./chart";
 
 const selectAttendanceSeriesInfo = createSelector(
 	selectBreakoutAttendanceEntries,
@@ -34,7 +35,8 @@ const selectAttendanceSeriesInfo = createSelector(
 	}
 );
 
-function TeleconAttendanceChart({ width, height, svgRef }: ReportChartProps) {
+function TeleconAttendanceChart({ width, height, ...props }: ReportChartProps) {
+	const svgRef = React.useRef<SVGSVGElement>(null);
 	const xAxisRef = React.useRef<SVGGElement>(null);
 
 	const yAxisWidth = 50;
@@ -144,7 +146,7 @@ function TeleconAttendanceChart({ width, height, svgRef }: ReportChartProps) {
 	);
 
 	return (
-		<svg ref={svgRef} style={{ width, height }}>
+		<svg ref={svgRef} style={{ width, height }} {...props}>
 			{yAxis}
 			{xAxis}
 			{plotArea}

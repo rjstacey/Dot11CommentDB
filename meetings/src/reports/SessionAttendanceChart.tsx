@@ -16,7 +16,7 @@ import {
 import { selectMeetingAttendanceCountsByBreakout } from "../store/imatMeetingAttendance";
 import { Group, selectGroupEntities } from "../store/groups";
 
-import type { ReportChartProps } from "./Reports";
+import type { ReportChartProps } from "./chart";
 
 interface F {
 	(element: SVGElement, text: string): number;
@@ -218,7 +218,8 @@ const selectAttendanceSeriesInfo = createSelector(
 	}
 );
 
-function SessionAttendanceChart({ width, height, svgRef }: ReportChartProps) {
+function SessionAttendanceChart({ width, height, ...props }: ReportChartProps) {
+	const svgRef = React.useRef<SVGSVGElement>(null);
 	const [xAxisHeight, setXAxisHeight] = React.useState(40);
 	const [yAxisWidth, setYAxisWidth] = React.useState(120);
 	const margin = 10;
@@ -299,6 +300,7 @@ function SessionAttendanceChart({ width, height, svgRef }: ReportChartProps) {
 			width={width}
 			height={height}
 			style={{ color: "black" }}
+			{...props}
 		>
 			<g
 				ref={gx}
