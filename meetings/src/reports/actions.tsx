@@ -1,22 +1,11 @@
-import * as React from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { ActionButton, Spinner } from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { selectCurrentImatMeeting } from "../store/imatMeetings";
-import {
-	loadImatMeetingAttendance,
-	clearImatMeetingAttendance,
-	selectMeetingAttendanceState,
-} from "../store/imatMeetingAttendance";
+import { useAppSelector } from "../store/hooks";
+import { selectMeetingAttendanceState } from "../store/imatMeetingAttendance";
 
 import CurrentSessionSelector from "../components/CurrentSessionSelector";
-import { loadBreakouts } from "../store/imatBreakouts";
-
-const actions = ["sessionAttendance", "teleconAttendance"] as const;
-
-type Action = (typeof actions)[number];
 
 function blinkElement(el: Element) {
 	function removeBlink() {
@@ -77,7 +66,8 @@ const svgToPngBlob: F = async function (svg) {
 	});
 };
 
-function copyToClipboard(svg: SVGSVGElement | null) {
+function copyToClipboard() {
+	const svg: SVGSVGElement | null = document.querySelector("#chart");
 	if (!svg) return;
 
 	let svgText = svg.outerHTML;
@@ -115,29 +105,11 @@ function copyToClipboard(svg: SVGSVGElement | null) {
 }
 
 function ReportsActions() {
-	const dispatch = useAppDispatch();
-	const svgRef = React.useRef<SVGSVGElement>(null);
-	const { groupName } = useParams();
-	const imatMeeting = useAppSelector(selectCurrentImatMeeting);
+	const navigate = useNavigate();
+	const { chart } = useParams();
 	const { loading } = useAppSelector(selectMeetingAttendanceState);
 
-	const refresh = () => {
-		if (groupName && imatMeeting) {
-			dispatch(loadBreakouts(groupName, imatMeeting.id));
-			dispatch(loadImatMeetingAttendance(groupName, imatMeeting.id));
-		} else {
-			dispatch(clearImatMeetingAttendance());
-		}
-		setAction(
-			imatMeeting?.type === "Other"
-				? "teleconAttendance"
-				: "sessionAttendance"
-		);
-	};
-
-	React.useEffect(refresh, [groupName, imatMeeting, dispatch]);
-
-	const [action, setAction] = React.useState<Action | null>(null);
+	const refresh = () => navigate(".");
 
 	return (
 		<div className="top-row">
@@ -149,8 +121,8 @@ function ReportsActions() {
 				<ActionButton
 					name="copy"
 					title="Copy chart to clipboard"
-					onClick={() => copyToClipboard(svgRef.current)}
-					disabled={!action || !svgRef.current}
+					onClick={() => copyToClipboard()}
+					disabled={!chart}
 				/>
 				<ActionButton
 					name="refresh"

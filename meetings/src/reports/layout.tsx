@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, useParams } from "react-router-dom";
+import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Button } from "dot11-components";
 
@@ -6,8 +6,8 @@ import ReportsActions from "./actions";
 
 import styles from "./reports.module.css";
 
-const actions = ["sessionAttendance", "teleconAttendance"] as const;
-type Action = (typeof actions)[number];
+const charts = ["sessionAttendance", "teleconAttendance"] as const;
+type Action = (typeof charts)[number];
 
 const navLabels: { [K in Action]: string } = {
 	sessionAttendance: "Session Attendance",
@@ -16,15 +16,19 @@ const navLabels: { [K in Action]: string } = {
 
 function ReportsNav() {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const { chart } = useParams();
 
 	function handleAction(newAction: Action) {
-		navigate(newAction === chart ? "" : newAction);
+		navigate({
+			pathname: newAction === chart ? "" : newAction,
+			search: location.search,
+		});
 	}
 
 	return (
 		<div className="chart-select">
-			{actions.map((a) => (
+			{charts.map((a) => (
 				<Button
 					key={a}
 					onClick={() => handleAction(a)}
