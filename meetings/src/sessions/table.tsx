@@ -1,18 +1,10 @@
-import { useNavigate, useParams } from "react-router-dom";
-
 import {
 	AppTable,
 	SelectHeaderCell,
 	SelectCell,
-	TableColumnSelector,
 	TableColumnHeader,
-	ButtonGroup,
-	TableViewSelector,
-	SplitPanelButton,
 	SplitPanel,
 	Panel,
-	ConfirmModal,
-	ActionButton,
 	displayDateRange,
 	HeaderCellRendererProps,
 	CellRendererProps,
@@ -21,11 +13,8 @@ import {
 	TableConfig,
 } from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	fields,
-	deleteSessions,
-	selectSessionsState,
 	sessionsSelectors,
 	sessionsActions,
 	displaySessionType,
@@ -102,7 +91,7 @@ const renderCellSessionSummary = ({ rowData: session }: CellRendererProps) => (
 	</>
 );
 
-const tableColumns: ColumnProperties[] = [
+export const tableColumns: ColumnProperties[] = [
 	{
 		key: "__ctrl__",
 		width: 30,
@@ -216,83 +205,24 @@ for (tableView in defaultTablesColumns) {
 	defaultTablesConfig[tableView] = tableConfig;
 }
 
-function Sessions() {
-	const dispatch = useAppDispatch();
-	const navigate = useNavigate();
-	const { groupName } = useParams();
-
-	const { selected } = useAppSelector(selectSessionsState);
-
-	const refresh = () => navigate(".", { replace: true });
-	const showImatMeetings = () => navigate(`/${groupName}/imatMeetings`);
-
-	const handleRemoveSelected = async () => {
-		if (selected.length) {
-			const ok = await ConfirmModal.show(
-				"Are you sure you want to delete " + selected.join(", ") + "?"
-			);
-			if (ok) await dispatch(deleteSessions(selected));
-		}
-	};
-
+function SessionsTable() {
 	return (
-		<>
-			<div className="top-row justify-right">
-				<div className="control-group">
-					<ButtonGroup className="button-group">
-						<div>Table view</div>
-						<div style={{ display: "flex" }}>
-							<TableViewSelector
-								selectors={sessionsSelectors}
-								actions={sessionsActions}
-							/>
-							<TableColumnSelector
-								selectors={sessionsSelectors}
-								actions={sessionsActions}
-								columns={tableColumns}
-							/>
-							<SplitPanelButton
-								selectors={sessionsSelectors}
-								actions={sessionsActions}
-							/>
-						</div>
-					</ButtonGroup>
-					<ActionButton
-						name="import"
-						title="Import IMAT session"
-						onClick={showImatMeetings}
-					/>
-					<ActionButton
-						name="delete"
-						title="Remove selected"
-						disabled={selected.length === 0}
-						onClick={handleRemoveSelected}
-					/>
-					<ActionButton
-						name="refresh"
-						title="Refresh"
-						onClick={refresh}
-					/>
-				</div>
-			</div>
-
-			<SplitPanel selectors={sessionsSelectors} actions={sessionsActions}>
-				<Panel>
-					<AppTable
-						defaultTablesConfig={defaultTablesConfig}
-						columns={tableColumns}
-						headerHeight={44}
-						estimatedRowHeight={44}
-						selectors={sessionsSelectors}
-						actions={sessionsActions}
-					/>
-				</Panel>
-				<Panel className="details-panel">
-					<SessionDetails />
-				</Panel>
-			</SplitPanel>
-		</>
+		<SplitPanel selectors={sessionsSelectors} actions={sessionsActions}>
+			<Panel>
+				<AppTable
+					defaultTablesConfig={defaultTablesConfig}
+					columns={tableColumns}
+					headerHeight={44}
+					estimatedRowHeight={44}
+					selectors={sessionsSelectors}
+					actions={sessionsActions}
+				/>
+			</Panel>
+			<Panel className="details-panel">
+				<SessionDetails />
+			</Panel>
+		</SplitPanel>
 	);
 }
 
-export default Sessions;
+export default SessionsTable;
