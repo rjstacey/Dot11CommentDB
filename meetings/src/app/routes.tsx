@@ -35,7 +35,7 @@ import { load802WorldSchedule } from "../store/ieee802World";
 import { ErrorModal, ConfirmModal } from "dot11-components";
 import Header from "./Header";
 import WorkingGroupSelector from "./WorkingGroupSelector";
-import Accounts from "../accounts/Accounts";
+import accountsRoute from "../accounts/route";
 import Sessions from "../sessions/Sessions";
 import Meetings from "../meetings/Meetings";
 import WebexMeetings from "../webexMeetings/WebexMeetings";
@@ -48,7 +48,6 @@ import Ieee802World from "../ieee802World/Ieee802World";
 import Reports from "../reports/Reports";
 
 import styles from "./app.module.css";
-
 
 /*
  * Routing loader functions
@@ -162,7 +161,6 @@ const ieee802WorldLoader: LoaderFunction = async ({ params }) => {
 	return null;
 };
 
-
 /*
  * Top level components
  */
@@ -188,7 +186,6 @@ function GateComponent({
 
 	return <>{children}</>;
 }
-
 
 function Layout() {
 	return (
@@ -245,7 +242,7 @@ const groupRoutes_ungated: AppRoute[] = [
 	{
 		menuLabel: "Accounts",
 		path: "accounts",
-		element: <Accounts />,
+		...accountsRoute,
 		minAccess: AccessLevel.admin,
 	},
 	{
