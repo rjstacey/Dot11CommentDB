@@ -17,6 +17,8 @@ import {
 	sessionsActions,
 } from "../store/sessions";
 
+import { tableColumns } from "./table";
+
 function SessionsActions() {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
