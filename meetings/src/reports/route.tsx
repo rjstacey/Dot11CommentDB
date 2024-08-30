@@ -1,4 +1,4 @@
-import { LoaderFunction } from "react-router-dom";
+import { LoaderFunction, RouteObject } from "react-router-dom";
 import { store } from "../store";
 import { loadSessions, selectSessionByNumber } from "../store/sessions";
 import { loadImatMeetings } from "../store/imatMeetings";
@@ -12,30 +12,28 @@ import ReportsLayout from "./layout";
 import ReportsChart from "./chart";
 
 const sessionsLoader: LoaderFunction = async ({ params, request }) => {
-	const { dispatch, getState } = store;
 	const { groupName } = params;
+	if (!groupName) throw new Error("Route error: groupName not set");
 	const url = new URL(request.url);
 	const sessionNumber = Number(url.searchParams.get("sessionNumber"));
-	console.log(sessionNumber);
-	if (groupName) {
-		dispatch(loadSessions(groupName));
-		dispatch(loadImatMeetings(groupName));
-		if (sessionNumber) {
-			const session = selectSessionByNumber(getState(), sessionNumber);
-			const imatMeetingId = session?.imatMeetingId;
-			console.log(imatMeetingId);
-			if (imatMeetingId) {
-				dispatch(loadBreakouts(groupName, imatMeetingId));
-				dispatch(loadImatMeetingAttendance(groupName, imatMeetingId));
-			} else {
-				dispatch(clearImatMeetingAttendance());
-			}
+	const { dispatch, getState } = store;
+	dispatch(loadSessions(groupName));
+	dispatch(loadImatMeetings(groupName));
+	if (sessionNumber) {
+		const session = selectSessionByNumber(getState(), sessionNumber);
+		const imatMeetingId = session?.imatMeetingId;
+		console.log(imatMeetingId);
+		if (imatMeetingId) {
+			dispatch(loadBreakouts(groupName, imatMeetingId));
+			dispatch(loadImatMeetingAttendance(groupName, imatMeetingId));
+		} else {
+			dispatch(clearImatMeetingAttendance());
 		}
 	}
 	return null;
 };
 
-const route = {
+const route: RouteObject = {
 	element: <ReportsLayout />,
 	loader: sessionsLoader,
 	children: [

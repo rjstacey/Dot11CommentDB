@@ -30,12 +30,12 @@ export type CalendarAccount = {
 	id: number;
 	name: string;
 	groupId: string;
-	details?: GoogleCalendarSchema;
 	authDate?: string;
 	authUrl?: string;
 	authUserId: number | null;
 	displayName?: string;
 	userName?: string;
+	primaryCalendar?: GoogleCalendarSchema;
 	lastAccessed: string | null;
 };
 

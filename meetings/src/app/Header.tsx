@@ -101,7 +101,9 @@ function NavMenu({
 	className?: string;
 	methods?: DropdownRendererProps["methods"];
 }) {
+	const location = useLocation();
 	const menu = useMenuLinks();
+	console.log(location.search);
 
 	let classNames: string = "nav-menu";
 	if (className) classNames += " " + className;
@@ -112,7 +114,11 @@ function NavMenu({
 			onClick={methods?.close} // If a click bubbles up, close the dropdown
 		>
 			{menu.map((m) => (
-				<NavLink className="nav-link" key={m.link} to={m.link}>
+				<NavLink
+					className="nav-link"
+					key={m.link}
+					to={m.link + location.search}
+				>
 					{m.label}
 				</NavLink>
 			))}

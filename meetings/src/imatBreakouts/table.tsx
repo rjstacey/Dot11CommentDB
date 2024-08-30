@@ -1,15 +1,12 @@
-import { Link, useNavigate, useLocation, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import {
 	AppTable,
 	SelectHeaderCell,
 	SelectCell,
 	TableColumnHeader,
-	SplitPanelButton,
 	SplitPanel,
 	Panel,
-	TableColumnSelector,
-	ActionButton,
 	displayDateRange,
 	HeaderCellRendererProps,
 	ColumnProperties,
@@ -18,12 +15,7 @@ import {
 	RowGetterProps,
 } from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
-	loadBreakouts,
-	clearBreakouts,
-	selectBreakoutMeetingId,
-	selectBreakoutMeeting,
 	getField,
 	fields,
 	imatBreakoutsSelectors,
@@ -34,7 +26,6 @@ import type { ImatMeeting } from "../store/imatMeetings";
 
 import ImatBreakoutDetails from "./ImatBreakoutDetails";
 import MeetingSummary from "../components/MeetingSummary";
-import ImatMeetingSelector from "../components/ImatMeetingSelector";
 
 const renderGroup = ({ rowData }: { rowData: Breakout }) => {
 	if (rowData.groupShortName) return rowData.groupShortName;
@@ -75,15 +66,21 @@ const renderTimeRangeHeader = (props: HeaderCellRendererProps) => (
 	</>
 );
 
-const AttendanceLink = ({ breakoutId }: { breakoutId: number }) => {
-	const location = useLocation();
-	const path =
-		location.pathname.replace("imatBreakouts", "imatAttendance") +
-		`/${breakoutId}`;
-	return <Link to={path}>view attendance</Link>;
+const AttendanceLink = ({
+	imatMeetingId,
+	breakoutId,
+}: {
+	imatMeetingId: number;
+	breakoutId: number;
+}) => {
+	return (
+		<Link to={`../../imatAttendance/${imatMeetingId}/${breakoutId}`}>
+			view attendance
+		</Link>
+	);
 };
 
-const tableColumns: ColumnProperties[] = [
+export const tableColumns: ColumnProperties[] = [
 	{
 		key: "__ctrl__",
 		width: 30,
@@ -149,7 +146,10 @@ const tableColumns: ColumnProperties[] = [
 		flexGrow: 1,
 		flexShrink: 1,
 		cellRenderer: ({ rowData }) => (
-			<AttendanceLink breakoutId={rowData.id} />
+			<AttendanceLink
+				imatMeetingId={rowData.imatMeetingId}
+				breakoutId={rowData.id}
+			/>
 		),
 	},
 ];
@@ -206,76 +206,27 @@ function breakoutsRowGetter({ rowIndex, ids, entities }: RowGetterProps) {
 }
 
 function Breakouts() {
-	const dispatch = useAppDispatch();
-	const navigate = useNavigate();
-	const location = useLocation();
-
-	const { groupName } = useParams();
-	const imatMeetingId = useAppSelector(selectBreakoutMeetingId);
-	const imatMeeting = useAppSelector(selectBreakoutMeeting);
-
-	const setImatMeetingId = (imatMeetingId: number | null) => {
-		let path = location.pathname.replace(/\/\d+$/, "");
-		if (imatMeetingId) path += `/${imatMeetingId}`;
-		navigate(path);
-	};
-
-	const refresh = () =>
-		dispatch(
-			groupName && imatMeetingId
-				? loadBreakouts(groupName, imatMeetingId)
-				: clearBreakouts()
-		);
-
 	return (
-		<>
-			<div className="top-row">
-				<ImatMeetingSelector
-					value={imatMeetingId}
-					onChange={setImatMeetingId}
+		<SplitPanel
+			selectors={imatBreakoutsSelectors}
+			actions={imatBreakoutsActions}
+		>
+			<Panel>
+				<AppTable
+					fixed
+					columns={tableColumns}
+					headerHeight={46}
+					estimatedRowHeight={56}
+					rowGetter={breakoutsRowGetter}
+					defaultTablesConfig={defaultTablesConfig}
+					selectors={imatBreakoutsSelectors}
+					actions={imatBreakoutsActions}
 				/>
-
-				<ImatMeetingInfo imatMeeting={imatMeeting} />
-
-				<div style={{ display: "flex" }}>
-					<TableColumnSelector
-						selectors={imatBreakoutsSelectors}
-						actions={imatBreakoutsActions}
-						columns={tableColumns}
-					/>
-					<SplitPanelButton
-						selectors={imatBreakoutsSelectors}
-						actions={imatBreakoutsActions}
-					/>
-					<ActionButton
-						name="refresh"
-						title="Refresh"
-						onClick={refresh}
-					/>
-				</div>
-			</div>
-
-			<SplitPanel
-				selectors={imatBreakoutsSelectors}
-				actions={imatBreakoutsActions}
-			>
-				<Panel>
-					<AppTable
-						fixed
-						columns={tableColumns}
-						headerHeight={46}
-						estimatedRowHeight={56}
-						rowGetter={breakoutsRowGetter}
-						defaultTablesConfig={defaultTablesConfig}
-						selectors={imatBreakoutsSelectors}
-						actions={imatBreakoutsActions}
-					/>
-				</Panel>
-				<Panel className="details-panel">
-					<ImatBreakoutDetails />
-				</Panel>
-			</SplitPanel>
-		</>
+			</Panel>
+			<Panel className="details-panel">
+				<ImatBreakoutDetails />
+			</Panel>
+		</SplitPanel>
 	);
 }
 

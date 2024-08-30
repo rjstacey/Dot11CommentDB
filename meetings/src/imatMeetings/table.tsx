@@ -1,30 +1,23 @@
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import {
 	AppTable,
 	SelectHeaderCell,
 	SelectCell,
 	TableColumnHeader,
-	ActionButton,
 	HeaderCellRendererProps,
 	ColumnProperties,
 	displayDate,
 	TablesConfig,
 	TableConfig,
-	ButtonGroup,
-	TableViewSelector,
-	TableColumnSelector,
 	CellRendererProps,
 	displayDateRange,
 } from "dot11-components";
 
-import { useAppDispatch } from "../store/hooks";
 import {
-	loadImatMeetings,
 	fields,
 	imatMeetingsSelectors,
 	imatMeetingsActions,
-	clearImatMeetings,
 } from "../store/imatMeetings";
 
 const renderHeaderStartEnd = (props: HeaderCellRendererProps) => (
@@ -87,16 +80,16 @@ const renderCellSummary = ({ rowData: session }: CellRendererProps) => (
 );
 
 const BreakoutsLink = ({ imatMeetingId }: { imatMeetingId: number }) => {
-	const location = useLocation();
-	const path =
-		location.pathname.replace("imatMeetings", "imatBreakouts") +
-		`/${imatMeetingId}`;
-	return <Link to={path}>view breakouts</Link>;
+	return (
+		<Link to={`../imatBreakouts/${imatMeetingId.toString()}`}>
+			view breakouts
+		</Link>
+	);
 };
 
 type ColumnPropertiesWithWidth = ColumnProperties & { width: number };
 
-const tableColumns: ColumnPropertiesWithWidth[] = [
+export const tableColumns: ColumnPropertiesWithWidth[] = [
 	{
 		key: "__ctrl__",
 		width: 40,
@@ -220,53 +213,20 @@ for (tableView in defaultTablesColumns) {
 	defaultTablesConfig[tableView] = tableConfig;
 }
 
-function ImatMeetings() {
-	const dispatch = useAppDispatch();
-	const { groupName } = useParams();
-
-	const refresh = () =>
-		dispatch(groupName ? loadImatMeetings(groupName) : clearImatMeetings());
-
+function ImatMeetingsTable() {
 	return (
-		<>
-			<div className="top-row">
-				<div>IMAT Sessions</div>
-				<div style={{ display: "flex" }}>
-					<ButtonGroup>
-						<div>Table view</div>
-						<div style={{ display: "flex" }}>
-							<TableViewSelector
-								selectors={imatMeetingsSelectors}
-								actions={imatMeetingsActions}
-							/>
-							<TableColumnSelector
-								selectors={imatMeetingsSelectors}
-								actions={imatMeetingsActions}
-								columns={tableColumns}
-							/>
-						</div>
-					</ButtonGroup>
-					<ActionButton
-						name="refresh"
-						title="Refresh"
-						onClick={refresh}
-					/>
-				</div>
-			</div>
-
-			<div className="table-container centered-rows">
-				<AppTable
-					fixed
-					columns={tableColumns}
-					headerHeight={44}
-					estimatedRowHeight={44}
-					selectors={imatMeetingsSelectors}
-					actions={imatMeetingsActions}
-					defaultTablesConfig={defaultTablesConfig}
-				/>
-			</div>
-		</>
+		<div className="table-container centered-rows">
+			<AppTable
+				fixed
+				columns={tableColumns}
+				headerHeight={44}
+				estimatedRowHeight={44}
+				selectors={imatMeetingsSelectors}
+				actions={imatMeetingsActions}
+				defaultTablesConfig={defaultTablesConfig}
+			/>
+		</div>
 	);
 }
 
-export default ImatMeetings;
+export default ImatMeetingsTable;

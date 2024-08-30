@@ -11,6 +11,8 @@ import {
 } from "../store/current";
 
 import SessionSelector from "./SessionSelector";
+import { useLocation, useNavigate } from "react-router-dom";
+import { selectSessionEntities } from "../store/sessions";
 
 export function CurrentSessionSelector({
 	onChange,
@@ -18,12 +20,23 @@ export function CurrentSessionSelector({
 }: {
 	onChange?: (sessionId: number | null) => void;
 } & Omit<React.ComponentProps<typeof SessionSelector>, "value" | "onChange">) {
+	const navigate = useNavigate();
+	const location = useLocation();
 	const dispatch = useAppDispatch();
 	const sessionId = useAppSelector(selectCurrentSessionId);
+	const sessionEntities = useAppSelector(selectSessionEntities);
 
 	const handleChange = (sessionId: number | null) => {
 		dispatch(setCurrentSessionId(sessionId));
 		onChange?.(sessionId);
+		const s = new URLSearchParams(location.search);
+		s.delete("sessionNumber");
+		if (sessionId) {
+			const session = sessionEntities[sessionId];
+			if (session && session.number)
+				s.set("sessionNumber", session.number.toString());
+		}
+		navigate({ search: s.toString() });
 	};
 
 	return (
@@ -41,8 +54,18 @@ function LabeledCurrentSessionSelector({
 }: {
 	allowShowDateRange?: boolean;
 } & React.ComponentProps<typeof CurrentSessionSelector>) {
+	const navigate = useNavigate();
+	const location = useLocation();
 	const dispatch = useAppDispatch();
 	const showDateRange = useAppSelector(selectShowDateRange);
+
+	const handleShowDateRange = (show: boolean) => {
+		const s = new URLSearchParams(location.search);
+		s.delete("showDateRange");
+		if (showDateRange) s.set("showDateRange", "1");
+		navigate({ search: s.toString() });
+	};
+
 	return (
 		<div style={{ display: "flex", alignItems: "center" }}>
 			<label style={{ marginRight: 10, fontWeight: "bold" }}>

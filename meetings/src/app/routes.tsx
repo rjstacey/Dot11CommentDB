@@ -25,27 +25,20 @@ import {
 import { loadMembers } from "../store/members";
 import { loadOfficers } from "../store/officers";
 import { loadTimeZones } from "../store/timeZones";
-import { loadSessions } from "../store/sessions";
-import { loadBreakouts, clearBreakouts } from "../store/imatBreakouts";
-import { loadImatMeetings } from "../store/imatMeetings";
-import { loadImatMeetingAttendance } from "../store/imatMeetingAttendance";
-import { loadBreakoutAttendance } from "../store/imatBreakoutAttendance";
-import { load802WorldSchedule } from "../store/ieee802World";
 
 import { ErrorModal, ConfirmModal } from "dot11-components";
 import Header from "./Header";
 import WorkingGroupSelector from "./WorkingGroupSelector";
 import accountsRoute from "../accounts/route";
-import Sessions from "../sessions/Sessions";
-import Meetings from "../meetings/Meetings";
-import WebexMeetings from "../webexMeetings/WebexMeetings";
-import ImatBreakouts from "../imat/ImatBreakouts";
-import ImatMeetings from "../imat/ImatMeetings";
-import ImatMeetingAttendance from "../imat/ImatMeetingAttendance";
-import ImatBreakoutAttendance from "../imat/ImatBreakoutAttendance";
-import Calendar from "../calendar/Calendar";
-import Ieee802World from "../ieee802World/Ieee802World";
-import Reports from "../reports/Reports";
+import sessionsRoute from "../sessions/route";
+import reportsRoute from "../reports/route";
+import meetingsRoute from "../meetings/route";
+import webexMeetingsRoute from "../webexMeetings/route";
+import imatBreakoutsRoute from "../imatBreakouts/route";
+import imatMeetingsRoute from "../imatMeetings/route";
+import imatAttendanceRoute from "../imatAttendance/route";
+import calendarRoute from "../calendar/route";
+import ieee802WorldRoute from "../ieee802World/route";
 
 import styles from "./app.module.css";
 
@@ -60,104 +53,21 @@ const rootLoader: LoaderFunction = async () => {
 };
 
 const groupLoader: LoaderFunction = async ({ params }) => {
+	const { groupName } = params;
+	if (!groupName) throw new Error("Route error: groupName not set");
 	const { dispatch, getState } = store;
-	const { groupName } = params;
-	if (groupName) {
-		// Make sure we have the working groups loaded so that we can set the working group ID
-		const { valid } = selectGroupsState(getState());
-		if (!valid) {
-			await dispatch(loadGroups());
-		}
-		const group = selectWorkingGroupByName(getState(), groupName);
-		dispatch(setWorkingGroupId(group?.id || null));
-		dispatch(loadGroups(groupName));
-		dispatch(loadCalendarAccounts(groupName));
-		dispatch(loadWebexAccounts(groupName));
-		dispatch(loadMembers(groupName));
-		dispatch(loadOfficers(groupName));
+	// Make sure we have the working groups loaded so that we can set the working group ID
+	const { valid } = selectGroupsState(getState());
+	if (!valid) {
+		await dispatch(loadGroups());
 	}
-	return null;
-};
-
-const sessionsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	const { groupName } = params;
-	if (groupName) {
-		dispatch(loadSessions(groupName));
-		dispatch(loadImatMeetings(groupName));
-	}
-	return null;
-};
-
-const meetingsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	const { groupName } = params;
-	if (groupName) {
-		dispatch(loadSessions(groupName));
-		dispatch(loadImatMeetings(groupName));
-	}
-	return null;
-};
-
-const webexMeetingsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	const { groupName } = params;
-	if (groupName) {
-		dispatch(loadSessions(groupName));
-	}
-	return null;
-};
-
-const imatBreakoutsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	const { groupName } = params;
-	const meetingNumber = Number(params.meetingNumber);
-	if (groupName) {
-		dispatch(loadImatMeetings(groupName));
-		dispatch(
-			meetingNumber
-				? loadBreakouts(groupName, meetingNumber)
-				: clearBreakouts()
-		);
-	}
-	return null;
-};
-
-const imatMeetingsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	const { groupName } = params;
-	if (groupName) {
-		dispatch(loadImatMeetings(groupName));
-	}
-	return null;
-};
-
-const imatMeetingAttendanceLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	const { groupName } = params;
-	const meetingNumber = Number(params.meetingNumber);
-	if (groupName && meetingNumber) {
-		dispatch(loadImatMeetingAttendance(groupName, meetingNumber));
-	}
-	return null;
-};
-
-const imatBreakoutAttendanceLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	const { groupName } = params;
-	const meetingNumber = Number(params.meetingNumber);
-	const breakoutNumber = Number(params.breakoutNumber);
-	if (groupName && meetingNumber && breakoutNumber) {
-		dispatch(
-			loadBreakoutAttendance(groupName, meetingNumber, breakoutNumber)
-		);
-	}
-	return null;
-};
-
-const ieee802WorldLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	dispatch(load802WorldSchedule());
+	const group = selectWorkingGroupByName(getState(), groupName);
+	dispatch(setWorkingGroupId(group?.id || null));
+	dispatch(loadGroups(groupName));
+	dispatch(loadCalendarAccounts(groupName));
+	dispatch(loadWebexAccounts(groupName));
+	dispatch(loadMembers(groupName));
+	dispatch(loadOfficers(groupName));
 	return null;
 };
 
@@ -248,68 +158,54 @@ const groupRoutes_ungated: AppRoute[] = [
 	{
 		menuLabel: "Sessions",
 		path: "sessions",
-		element: <Sessions />,
-		loader: sessionsLoader,
+		...sessionsRoute,
 		minAccess: AccessLevel.ro,
 	},
 	{
 		menuLabel: "Meetings",
 		path: "meetings",
-		element: <Meetings />,
-		loader: meetingsLoader,
+		...meetingsRoute,
 		minAccess: AccessLevel.ro,
 	},
 	{
 		menuLabel: "Webex",
 		path: "webexMeetings",
-		element: <WebexMeetings />,
-		loader: webexMeetingsLoader,
+		...webexMeetingsRoute,
 		minAccess: AccessLevel.ro,
 	},
 	{
 		menuLabel: "IMAT breakouts",
-		path: "imatBreakouts/:meetingNumber?",
-		element: <ImatBreakouts />,
-		loader: imatBreakoutsLoader,
+		path: "imatBreakouts",
+		...imatBreakoutsRoute,
 		minAccess: AccessLevel.ro,
 	},
 	{
 		menuLabel: "IMAT sessions",
 		path: "imatMeetings",
-		element: <ImatMeetings />,
-		loader: imatMeetingsLoader,
+		...imatMeetingsRoute,
 		minAccess: AccessLevel.ro,
 	},
 	{
-		path: "imatAttendance/:meetingNumber",
-		element: <ImatMeetingAttendance />,
-		loader: imatMeetingAttendanceLoader,
-		minAccess: AccessLevel.ro,
-	},
-	{
-		path: "imatAttendance/:meetingNumber/:breakoutNumber",
-		element: <ImatBreakoutAttendance />,
-		loader: imatBreakoutAttendanceLoader,
+		path: "imatAttendance",
+		...imatAttendanceRoute,
 		minAccess: AccessLevel.ro,
 	},
 	{
 		menuLabel: "Calendar",
 		path: "calendar",
-		element: <Calendar />,
+		...calendarRoute,
 		minAccess: AccessLevel.ro,
 	},
 	{
 		menuLabel: "802 World",
 		path: "ieee802World",
-		element: <Ieee802World />,
-		loader: ieee802WorldLoader,
+		...ieee802WorldRoute,
 		minAccess: AccessLevel.ro,
 	},
 	{
 		menuLabel: "Reports",
 		path: "reports",
-		element: <Reports />,
-		loader: sessionsLoader,
+		...reportsRoute,
 		minAccess: AccessLevel.ro,
 	},
 ];

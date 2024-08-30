@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import {
 	AppTable,
 	SelectHeaderCell,
@@ -15,7 +16,6 @@ import {
 
 import { useAppDispatch } from "../store/hooks";
 import {
-	load802WorldSchedule,
 	importSelectedAsMeetings,
 	fields,
 	getField,
@@ -177,9 +177,10 @@ function schedRowGetter({ rowIndex, ids, entities }: RowGetterProps) {
 }
 
 function Ieee802WorldSchedule() {
+	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
 
-	const refresh = () => dispatch(load802WorldSchedule());
+	const refresh = () => navigate(".", { replace: true });
 
 	const importSelected = async () => {
 		const ok = await ConfirmModal.show("Import selected?");
