@@ -56,6 +56,8 @@ import {
 
 import MeetingEntryForm from "./MeetingEntry";
 import ShowAccess from "../components/ShowAccess";
+import { selectCalendarAccountDefaultId } from "../store/calendarAccounts";
+import { selectWebexAccountDefaultId } from "../store/webexAccounts";
 
 //const toTimeStr = (hour, min) => ('0' + hour).substr(-2) + ':' + ('0' + min).substr(-2);
 const fromTimeStr = (str: string) => {
@@ -278,6 +280,8 @@ class MeetingDetails extends React.Component<
 			selectedMeetings,
 			selectedSlots,
 			defaults,
+			defaultWebexAccountId,
+			defaultCalenderAccountId,
 			groupId,
 			session,
 			groupEntities,
@@ -388,16 +392,15 @@ class MeetingDetails extends React.Component<
 			const subgroup =
 				entry.organizationId && groupEntities[entry.organizationId];
 			entry.summary = subgroup ? subgroup.name : "";
-			entry.webexAccountId = defaults.webexAccountId;
+			entry.webexAccountId = defaultWebexAccountId;
 			entry.webexMeetingId = null;
-			entry.calendarAccountId = defaults.calendarAccountId;
+			entry.calendarAccountId = defaultCalenderAccountId;
 			entry.calendarEventId = null;
 			entry.imatMeetingId = session ? session.imatMeetingId : null;
 			entry.imatBreakoutId = null;
 			entry.webexMeeting = {
 				...defaultWebexMeeting,
-				accountId: defaults.webexAccountId,
-				templateId: defaults.webexTemplateId,
+				accountId: defaultWebexAccountId,
 			};
 		}
 
@@ -682,6 +685,8 @@ const connector = connect(
 		selectedSlots: selectSelectedSlots(state),
 		entities: selectSyncedMeetingEntities(state),
 		defaults: selectCurrentGroupDefaults(state),
+		defaultCalenderAccountId: selectCalendarAccountDefaultId(state),
+		defaultWebexAccountId: selectWebexAccountDefaultId(state),
 		groupEntities: selectGroupEntities(state),
 		access: selectUserMeetingsAccess(state),
 	}),

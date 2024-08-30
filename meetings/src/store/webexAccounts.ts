@@ -45,6 +45,7 @@ type ExtraState = {
 	valid: boolean;
 	loading: boolean;
 	groupName: string | null;
+	defaultId: number | null;
 };
 
 const dataAdapter = createEntityAdapter<WebexAccount>({});
@@ -52,6 +53,7 @@ const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
 	groupName: null,
+	defaultId: null,
 });
 
 const dataSet = "webexAccounts";
@@ -66,12 +68,15 @@ const slice = createSlice({
 				state.groupName = groupName;
 				state.valid = false;
 				dataAdapter.removeAll(state);
+				state.defaultId = null;
 			}
 		},
 		getSuccess(state, action: PayloadAction<WebexAccount[]>) {
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
+			if (state.defaultId && !state.ids.includes(state.defaultId))
+				state.defaultId = null;
 		},
 		getFailure(state) {
 			state.loading = false;
@@ -85,6 +90,12 @@ const slice = createSlice({
 		addOne: dataAdapter.addOne,
 		removeOne: dataAdapter.removeOne,
 		setOne: dataAdapter.setOne,
+		setDefaultId(state, action: PayloadAction<number | null>) {
+			const defaultId = action.payload;
+			if (defaultId && state.ids.includes(defaultId))
+				state.defaultId = defaultId;
+			else state.defaultId = null;
+		},
 	},
 });
 
@@ -102,6 +113,8 @@ const {
 	setOne,
 } = slice.actions;
 
+export const setWebexAccountDefaultId = slice.actions.setDefaultId;
+
 /* Selectors */
 export const selectWebexAccountsState = (state: RootState) => state[dataSet];
 export const selectWebexAccountIds = (state: RootState) =>
@@ -110,6 +123,9 @@ export const selectWebexAccountEntities = (state: RootState) =>
 	selectWebexAccountsState(state).entities;
 export const selectWebexAccountsGroupName = (state: RootState) =>
 	selectWebexAccountsState(state).groupName;
+export const selectWebexAccountDefaultId = (state: RootState) =>
+	selectWebexAccountsState(state).defaultId;
+
 export const selectWebexAccounts = createSelector(
 	selectWebexAccountIds,
 	selectWebexAccountEntities,

@@ -48,6 +48,7 @@ type ExtraState = {
 	valid: boolean;
 	loading: boolean;
 	groupName: string | null;
+	defaultId: number | null;
 };
 
 const dataAdapter = createEntityAdapter<CalendarAccount>({});
@@ -55,6 +56,7 @@ const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
 	groupName: null,
+	defaultId: null,
 });
 const dataSet = "calendarAccounts";
 const slice = createSlice({
@@ -68,12 +70,15 @@ const slice = createSlice({
 				state.groupName = groupName;
 				state.valid = false;
 				dataAdapter.removeAll(state);
+				state.defaultId = null;
 			}
 		},
 		getSuccess(state, action: PayloadAction<CalendarAccount[]>) {
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
+			if (state.defaultId && !state.ids.includes(state.defaultId))
+				state.defaultId = null;
 		},
 		getFailure(state) {
 			state.loading = false;
@@ -87,6 +92,12 @@ const slice = createSlice({
 		addOne: dataAdapter.addOne,
 		removeOne: dataAdapter.removeOne,
 		setOne: dataAdapter.setOne,
+		setDefaultId(state, action: PayloadAction<number | null>) {
+			const defaultId = action.payload;
+			if (defaultId && state.ids.includes(defaultId))
+				state.defaultId = defaultId;
+			else state.defaultId = null;
+		},
 	},
 });
 
@@ -97,12 +108,13 @@ const {
 	getPending,
 	getSuccess,
 	getFailure,
-	clear: clearCalendarAccounts,
 	updateOne,
 	setOne,
 	removeOne,
 	addOne,
 } = slice.actions;
+
+export const setCalendarAccountDefaultId = slice.actions.setDefaultId;
 
 /* Selectors */
 export const selectCalendarAccountsState = (state: RootState) => state[dataSet];
@@ -112,6 +124,8 @@ export const selectCalendarAccountEntities = (state: RootState) =>
 	selectCalendarAccountsState(state).entities;
 const selectCalendarAccountsGroupName = (state: RootState) =>
 	selectCalendarAccountsState(state).groupName;
+export const selectCalendarAccountDefaultId = (state: RootState) =>
+	selectCalendarAccountsState(state).defaultId;
 export const selectCalendarAccounts = createSelector(
 	selectCalendarAccountIds,
 	selectCalendarAccountEntities,
@@ -161,16 +175,6 @@ export const loadCalendarAccounts =
 				return [];
 			});
 		return loadingPromise;
-	};
-
-export const refreshCalendarAccounts =
-	(): AppThunk => async (dispatch, getState) => {
-		const groupName = selectCalendarAccountsGroupName(getState());
-		dispatch(
-			groupName
-				? loadCalendarAccounts(groupName)
-				: clearCalendarAccounts()
-		);
 	};
 
 export const addCalendarAccount =

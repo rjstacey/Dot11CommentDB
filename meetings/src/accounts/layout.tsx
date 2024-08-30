@@ -1,9 +1,10 @@
 import CalendarAccounts from "./CalendarAccounts";
 import WebexAccounts from "./WebexAccounts";
+import styles from "./accounts.module.css";
 
 function AccountsLayout() {
 	return (
-		<div style={{ padding: 10, overflow: "auto" }}>
+		<div className={styles.container}>
 			<WebexAccounts />
 			<CalendarAccounts />
 		</div>

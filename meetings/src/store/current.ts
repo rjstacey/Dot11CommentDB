@@ -7,17 +7,11 @@ import { selectWorkingGroup } from "./groups";
 export type GroupDefaults = {
 	meetingId: string;
 	timezone: string;
-	calendarAccountId: number | null;
-	webexAccountId: number | null;
-	webexTemplateId: string | null;
 };
 
 const initDefaults: GroupDefaults = {
 	meetingId: "",
 	timezone: "",
-	calendarAccountId: 0,
-	webexAccountId: 0,
-	webexTemplateId: "",
 };
 
 type CurrentState = {
@@ -87,9 +81,9 @@ export const selectCurrentGroupDefaults = (state: RootState) => {
 };
 
 /* Thunk actions */
-export const updateCurrentGroupDefaults = 
+export const updateCurrentGroupDefaults =
 	(changes: Partial<GroupDefaults>): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWorkingGroup(getState())?.name || "";
-		dispatch(updateGroupDefaults({groupName, changes}))
-	}
+		dispatch(updateGroupDefaults({ groupName, changes }));
+	};

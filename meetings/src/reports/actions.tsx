@@ -5,7 +5,7 @@ import { ActionButton, Spinner } from "dot11-components";
 import { useAppSelector } from "../store/hooks";
 import { selectMeetingAttendanceState } from "../store/imatMeetingAttendance";
 
-import CurrentSessionSelector from "../components/CurrentSessionSelector";
+import SessionSelectorNav from "../components/SessionSelectorNav";
 
 function blinkElement(el: Element) {
 	function removeBlink() {
@@ -113,7 +113,7 @@ function ReportsActions() {
 
 	return (
 		<div className="top-row">
-			<CurrentSessionSelector />
+			<SessionSelectorNav />
 
 			{loading && <Spinner />}
 

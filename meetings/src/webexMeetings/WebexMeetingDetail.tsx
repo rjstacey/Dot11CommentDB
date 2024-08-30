@@ -41,13 +41,11 @@ import {
 	WebexMeetingUpdate,
 } from "../store/webexMeetings";
 import { updateMeetings, Meeting } from "../store/meetings";
-import { selectWebexAccountEntities } from "../store/webexAccounts";
-import { selectCurrentGroupDefaults } from "../store/current";
+import { selectWebexAccountDefaultId } from "../store/webexAccounts";
 import { selectCurrentSession } from "../store/sessions";
 import { AccessLevel } from "../store/user";
 
 import WebexAccountSelector from "../components/WebexAccountSelector";
-import WebexTemplateSelector from "../components/WebexTemplateSelector";
 import TimeZoneSelector from "../components/TimeZoneSelector";
 import InputTimeRangeAsDuration from "../components/InputTimeRangeAsDuration";
 import MeetingSelector from "../components/MeetingSelector";
@@ -75,25 +73,9 @@ export function WebexMeetingAccount({
 	changeEntry: (changes: Partial<WebexMeetingEntry>) => void;
 	readOnly?: boolean;
 }) {
-	const webexAccountEntities = useAppSelector(selectWebexAccountEntities);
-	const defaults = useAppSelector(selectCurrentGroupDefaults);
-
 	function onChange(accountId: number | null) {
 		let changes: Partial<WebexMeetingEntry> = { accountId };
 
-		// If the account is changed to the default webex account, select the default template.
-		// If not, try to find the default template for the account.
-		if (accountId === defaults.webexAccountId && defaults.webexTemplateId) {
-			changes.templateId = defaults.webexTemplateId;
-		} else {
-			const webexAccount = accountId && webexAccountEntities[accountId];
-			if (webexAccount) {
-				const template = webexAccount.templates.find(
-					(t) => t.isDefault
-				);
-				if (template) changes.templateId = template.id;
-			}
-		}
 		// If account was not previously selected, revert to defaults
 		if (!entry.accountId && accountId) {
 			changes = {
@@ -473,24 +455,6 @@ export function WebexMeetingParamsEdit({
 
 	return (
 		<>
-			{entry.templateId && (
-				<Row>
-					<Field label="Template">
-						<WebexTemplateSelector
-							value={entry.templateId}
-							onChange={(templateId) =>
-								handleChange({ templateId })
-							}
-							accountId={
-								isMultiple(entry.accountId)
-									? null
-									: entry.accountId
-							}
-							readOnly={readOnly}
-						/>
-					</Field>
-				</Row>
-			)}
 			<Row>
 				<Field label="Password:">
 					<Input
@@ -831,7 +795,7 @@ class WebexMeetingDetail extends React.Component<
 	}
 
 	initState = (action: Actions): WebexMeetingDetailState => {
-		const { entities, selected, defaults } = this.props;
+		const { entities, selected, defaultWebexAccountId } = this.props;
 
 		const webexMeetings: WebexMeetingParams[] = selected
 			.filter((id) => entities[id])
@@ -875,8 +839,7 @@ class WebexMeetingDetail extends React.Component<
 		} else {
 			entry = {
 				...defaultWebexMeeting,
-				accountId: defaults.webexAccountId,
-				templateId: defaults.webexTemplateId,
+				accountId: defaultWebexAccountId,
 			};
 		}
 		//console.log(action, entry)
@@ -1089,7 +1052,7 @@ const connector = connect(
 		loading: selectWebexMeetingsState(state).loading,
 		selected: selectWebexMeetingsState(state).selected,
 		entities: selectSyncedWebexMeetingEntities(state),
-		defaults: selectCurrentGroupDefaults(state),
+		defaultWebexAccountId: selectWebexAccountDefaultId(state),
 		access: selectUserWebexMeetingsAccess(state),
 	}),
 	{

@@ -4,7 +4,6 @@ import { ActionButton, Input, ActionIcon, Checkbox } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
-	refreshCalendarAccounts,
 	updateCalendarAccount,
 	addCalendarAccount,
 	deleteCalendarAccount,
@@ -13,17 +12,16 @@ import {
 	selectCalendarAccounts,
 	CalendarAccountCreate,
 	CalendarAccount,
+	loadCalendarAccounts,
+	selectCalendarAccountDefaultId,
+	setCalendarAccountDefaultId,
 } from "../store/calendarAccounts";
 import { selectMemberEntities } from "../store/members";
-import {
-	selectCurrentGroupDefaults,
-	updateCurrentGroupDefaults,
-	GroupDefaults,
-} from "../store/current";
 
 import { EditTable as Table, TableColumn } from "../components/Table";
 
 import styles from "./accounts.module.css";
+import { useParams } from "react-router-dom";
 
 const displayDate = (d: string) =>
 	new Intl.DateTimeFormat("default", {
@@ -100,20 +98,11 @@ function AuthButtons({ account }: CellProps) {
 
 function Defaults({ account }: CellProps) {
 	const dispatch = useAppDispatch();
-	const defaults = useAppSelector(selectCurrentGroupDefaults);
-	const doUpdate = (changes: Partial<GroupDefaults>) =>
-		dispatch(updateCurrentGroupDefaults(changes));
-	const isDefault = account.id === defaults.calendarAccountId;
-	return (
-		<Checkbox
-			checked={isDefault}
-			onChange={(e) =>
-				doUpdate({
-					calendarAccountId: e.target.checked ? account.id : 0,
-				})
-			}
-		/>
-	);
+	const defaultId = useAppSelector(selectCalendarAccountDefaultId);
+	const isDefault = account.id === defaultId;
+	const toggleDefaultId = () =>
+		dispatch(setCalendarAccountDefaultId(isDefault ? null : account.id));
+	return <Checkbox checked={isDefault} onChange={toggleDefaultId} />;
 }
 
 function Actions({ account }: CellProps) {
@@ -178,12 +167,13 @@ const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 };
 
 function CalendarAccounts() {
+	const { groupName } = useParams();
 	const dispatch = useAppDispatch();
 	const { loading } = useAppSelector(selectCalendarAccountsState);
 	const accounts = useAppSelector(selectCalendarAccounts);
 
 	const [readOnly, setReadOnly] = React.useState(true);
-	const refresh = () => dispatch(refreshCalendarAccounts());
+	const refresh = () => dispatch(loadCalendarAccounts(groupName!));
 
 	const colProps = React.useMemo(
 		() => accounts.map((account) => ({ account, readOnly })),

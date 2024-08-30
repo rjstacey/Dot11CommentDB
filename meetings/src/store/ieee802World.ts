@@ -15,13 +15,15 @@ import {
 
 import type { AppThunk, RootState } from ".";
 import { selectGroupsState, selectWorkingGroup } from "./groups";
-import { selectCurrentGroupDefaults, selectCurrentSessionId } from "./current";
+import { selectCurrentSessionId } from "./current";
 import { selectSessionEntities, selectCurrentSession } from "./sessions";
 import { addMeetings, selectMeetingEntities, MeetingAdd } from "./meetings";
 import {
 	defaultWebexMeetingParams,
 	WebexMeetingParams,
 } from "./webexMeetingsSelectors";
+import { selectWebexAccountDefaultId } from "./webexAccounts";
+import { selectCalendarAccountDefaultId } from "./calendarAccounts";
 
 export type Ieee802WorldScheduleEntry = {
 	id: number;
@@ -88,8 +90,6 @@ export function getField(entity: Ieee802WorldScheduleEntry, key: string) {
 	return entity[key as keyof Ieee802WorldScheduleEntry];
 }
 
-
-
 /* Slice */
 const dataSet = "ieee802World";
 const slice = createAppTableDataSlice({
@@ -120,7 +120,8 @@ export const selectSynced802WorldEntities = createSelector(
 	selectCurrentSession,
 	selectWorkingGroup,
 	(ids, entities, meetingEntities, session, workingGroup) => {
-		const newEntities: Record<EntityId, SyncedIeee802WorldScheduleEntry> = {};
+		const newEntities: Record<EntityId, SyncedIeee802WorldScheduleEntry> =
+			{};
 		ids.forEach((id) => {
 			const entity = entities[id]!;
 			let meetingId = null;
@@ -198,7 +199,8 @@ export const importSelectedAsMeetings =
 			selectGroupsState(state);
 		const sessionId = selectCurrentSessionId(state)!;
 		const session = selectSessionEntities(state)[sessionId];
-		const defaults = selectCurrentGroupDefaults(state);
+		const defaultWebexAccountId = selectWebexAccountDefaultId(state);
+		const defaultCalendarAccountId = selectCalendarAccountDefaultId(state);
 
 		if (!session) {
 			dispatch(setError("Session not selected", null));
@@ -246,10 +248,10 @@ export const importSelectedAsMeetings =
 			const room = session.rooms.find((r) => r.name === entry.mtgRoom);
 
 			let webexMeeting: WebexMeetingParams | undefined;
-			if (defaults.webexAccountId) {
+			if (defaultWebexAccountId) {
 				webexMeeting = {
 					...defaultWebexMeetingParams,
-					accountId: defaults.webexAccountId,
+					accountId: defaultWebexAccountId,
 				};
 			}
 
@@ -274,9 +276,9 @@ export const importSelectedAsMeetings =
 				imatBreakoutId: session.imatMeetingId ? "$add" : null,
 				hasMotions: false,
 				isCancelled: false,
-				webexAccountId: defaults.webexAccountId,
-				webexMeetingId: defaults.webexAccountId ? "$add" : null,
-				calendarAccountId: defaults.calendarAccountId,
+				webexAccountId: defaultWebexAccountId,
+				webexMeetingId: defaultWebexAccountId ? "$add" : null,
+				calendarAccountId: defaultCalendarAccountId,
 				calendarEventId: null,
 				webexMeeting,
 			};

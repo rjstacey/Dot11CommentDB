@@ -1,14 +1,24 @@
 import { LoaderFunction, RouteObject } from "react-router-dom";
 
+import { setError } from "dot11-components";
 import { store } from "../store";
-import { loadSessions, selectSessionByNumber } from "../store/sessions";
+import {
+	loadSessions,
+	selectSessionByNumber,
+	Session,
+} from "../store/sessions";
 import { loadImatMeetings } from "../store/imatMeetings";
 import { loadWebexMeetings } from "../store/webexMeetings";
 import { LoadMeetingsConstraints } from "../store/meetingsSelectors";
 
 import WebexMeetingsLayout from "./layout";
 
-const webexMeetingsLoader: LoaderFunction = async ({ params, request }) => {
+export type LoaderData = Session | null;
+
+const webexMeetingsLoader: LoaderFunction = async ({
+	params,
+	request,
+}): Promise<LoaderData> => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	const url = new URL(request.url);
@@ -29,6 +39,11 @@ const webexMeetingsLoader: LoaderFunction = async ({ params, request }) => {
 				constraints.sessionId = "" + session.id;
 			}
 			dispatch(loadWebexMeetings(groupName, constraints));
+			return session;
+		} else {
+			dispatch(
+				setError("Session not found", `sessionNumber=${sessionNumber}`)
+			);
 		}
 	}
 	return null;

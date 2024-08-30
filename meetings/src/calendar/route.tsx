@@ -9,6 +9,8 @@ import {
 
 import Calendar from "./Calendar";
 
+export type LoaderData = string | null;
+
 function getPrimaryCalendarId(
 	ids: EntityId[],
 	entities: Dictionary<CalendarAccount>
@@ -20,7 +22,7 @@ function getPrimaryCalendarId(
 	return null;
 }
 
-const calendarLoader: LoaderFunction = async ({ params }) => {
+const calendarLoader: LoaderFunction<LoaderData> = async ({ params }) => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	const { dispatch, getState } = store;

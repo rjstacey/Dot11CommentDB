@@ -1,11 +1,14 @@
+import { useLoaderData } from "react-router-dom";
+import { LoaderData } from "./route";
 import WebexMeetingsActions from "./actions";
 import WebexMeetingsTable from "./table";
 
 function WebexMeetingsLayout() {
+	const session = useLoaderData() as LoaderData;
 	return (
 		<>
 			<WebexMeetingsActions />
-			<WebexMeetingsTable />
+			{session && <WebexMeetingsTable />}
 		</>
 	);
 }

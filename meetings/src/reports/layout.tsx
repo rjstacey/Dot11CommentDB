@@ -1,10 +1,17 @@
-import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+	Outlet,
+	useLoaderData,
+	useLocation,
+	useNavigate,
+	useParams,
+} from "react-router-dom";
 
 import { Button } from "dot11-components";
 
 import ReportsActions from "./actions";
 
 import styles from "./reports.module.css";
+import { LoaderData } from "./route";
 
 const charts = ["sessionAttendance", "teleconAttendance"] as const;
 type Action = (typeof charts)[number];
@@ -42,13 +49,16 @@ function ReportsNav() {
 }
 
 function ReportsLayout() {
+	const session = useLoaderData() as LoaderData;
 	return (
 		<>
 			<ReportsActions />
-			<div className={styles.main}>
-				<ReportsNav />
-				<Outlet />
-			</div>
+			{session && (
+				<div className={styles.main}>
+					<ReportsNav />
+					<Outlet />
+				</div>
+			)}
 		</>
 	);
 }

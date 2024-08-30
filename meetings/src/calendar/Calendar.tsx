@@ -1,8 +1,10 @@
 import { useLoaderData } from "react-router-dom";
 import styles from "./Calendar.module.css";
 
+import { LoaderData } from "./route";
+
 function Calendar() {
-	const calendarId = useLoaderData() as string | null;
+	const calendarId = useLoaderData() as LoaderData;
 	if (!calendarId) return null;
 
 	// see https://support.google.com/calendar/thread/23205641/advanced-embed-option-descriptions?hl=en

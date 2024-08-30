@@ -10,19 +10,15 @@ import {
 	addWebexAccount,
 	deleteWebexAccount,
 	revokeAuthWebexAccount,
+	setWebexAccountDefaultId,
 	selectWebexAccountsState,
+	selectWebexAccountDefaultId,
 	selectWebexAccounts,
 	WebexAccount,
 	WebexAccountCreate,
 } from "../store/webexAccounts";
-import {
-	GroupDefaults,
-	selectCurrentGroupDefaults,
-	updateCurrentGroupDefaults,
-} from "../store/current";
 
 import { EditTable as Table, TableColumn } from "../components/Table";
-import WebexTemplateSelector from "../components/WebexTemplateSelector";
 
 import styles from "./accounts.module.css";
 
@@ -101,31 +97,11 @@ function AuthButtons({ account }: CellProps) {
 
 function Defaults({ account }: CellProps) {
 	const dispatch = useAppDispatch();
-	const defaults = useAppSelector(selectCurrentGroupDefaults);
-	const doUpdate = (changes: Partial<GroupDefaults>) =>
-		dispatch(updateCurrentGroupDefaults(changes));
-	const isDefault = account.id === defaults.webexAccountId;
-	return (
-		<>
-			<Checkbox
-				checked={isDefault}
-				onChange={(e) =>
-					doUpdate({
-						webexAccountId: e.target.checked ? account.id : 0,
-					})
-				}
-			/>
-			{isDefault && (
-				<WebexTemplateSelector
-					accountId={account.id}
-					value={defaults.webexTemplateId}
-					onChange={(webexTemplateId) =>
-						doUpdate({ webexTemplateId })
-					}
-				/>
-			)}
-		</>
-	);
+	const defaultId = useAppSelector(selectWebexAccountDefaultId);
+	const isDefault = account.id === defaultId;
+	const toggleDefaultId = () =>
+		dispatch(setWebexAccountDefaultId(isDefault ? null : account.id));
+	return <Checkbox checked={isDefault} onChange={toggleDefaultId} />;
 }
 
 function Actions({ account }: CellProps) {

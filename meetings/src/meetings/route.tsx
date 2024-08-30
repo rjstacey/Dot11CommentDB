@@ -2,13 +2,22 @@ import { LoaderFunction, RouteObject } from "react-router-dom";
 
 import { setError } from "dot11-components";
 import { store } from "../store";
-import { loadSessions, selectSessionByNumber } from "../store/sessions";
+import {
+	loadSessions,
+	selectSessionByNumber,
+	Session,
+} from "../store/sessions";
 import { loadImatMeetings } from "../store/imatMeetings";
 import { loadMeetings, LoadMeetingsConstraints } from "../store/meetings";
 
 import MeetingsLayout from "./layout";
 
-const meetingsLoader: LoaderFunction = async ({ params, request }) => {
+export type LoaderData = Session | null;
+
+const meetingsLoader: LoaderFunction<LoaderData> = async ({
+	params,
+	request,
+}): Promise<LoaderData> => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	const url = new URL(request.url);
@@ -34,6 +43,7 @@ const meetingsLoader: LoaderFunction = async ({ params, request }) => {
 				constraints.sessionId = "" + session.id;
 			}
 			dispatch(loadMeetings(groupName, constraints));
+			return session;
 		} else {
 			dispatch(
 				setError("Session not found", `sessionNumber=${sessionNumber}`)
