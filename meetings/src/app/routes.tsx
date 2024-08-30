@@ -1,12 +1,4 @@
-import * as React from "react";
-import {
-	useParams,
-	useRouteError,
-	Outlet,
-	Navigate,
-	RouteObject,
-	LoaderFunction,
-} from "react-router-dom";
+import { Navigate, RouteObject, LoaderFunction } from "react-router-dom";
 
 import { store } from "../store";
 import { useAppSelector } from "../store/hooks";
@@ -26,8 +18,8 @@ import { loadMembers } from "../store/members";
 import { loadOfficers } from "../store/officers";
 import { loadTimeZones } from "../store/timeZones";
 
-import { ErrorModal, ConfirmModal } from "dot11-components";
-import Header from "./Header";
+import AppLayout from "./layout";
+import ErrorPage from "./errorPage";
 import WorkingGroupSelector from "./WorkingGroupSelector";
 import accountsRoute from "../accounts/route";
 import sessionsRoute from "../sessions/route";
@@ -75,61 +67,11 @@ const groupLoader: LoaderFunction = async ({ params }) => {
  * Top level components
  */
 
-/** A component that only renders its children if the user has a defined minimum access */
-function GateComponent({
-	minAccess,
-	children,
-}: {
-	minAccess: number;
-	children: React.ReactNode;
-}) {
-	const { groupName } = useParams();
-	const group = useAppSelector((state) =>
-		groupName ? selectWorkingGroupByName(state, groupName) : undefined
-	);
-
-	if (!group) return <span>Invalid group: {groupName}</span>;
-
-	const access = group.permissions.meetings || AccessLevel.none;
-	if (access < minAccess)
-		return <span>You do not have permission to view this data</span>;
-
-	return <>{children}</>;
-}
-
-function Layout() {
-	return (
-		<>
-			<Header />
-			<main className={styles.main}>
-				<Outlet />
-			</main>
-			<ErrorModal />
-			<ConfirmModal />
-		</>
-	);
-}
-
 function Root() {
 	return (
 		<div className={styles.root}>
 			<div className="intro">Working group/Committee</div>
 			<WorkingGroupSelector />
-		</div>
-	);
-}
-
-function ErrorPage() {
-	const error: any = useRouteError();
-	console.error(error);
-
-	return (
-		<div id="error-page">
-			<h1>Oops!</h1>
-			<p>Sorry, an unexpected error has occurred.</p>
-			<p>
-				<i>{error.statusText || error.message}</i>
-			</p>
 		</div>
 	);
 }
@@ -148,7 +90,7 @@ export type AppRoute = RouteObject & {
 	menuLabel?: string;
 };
 
-const groupRoutes_ungated: AppRoute[] = [
+const groupRoutes: AppRoute[] = [
 	{
 		menuLabel: "Accounts",
 		path: "accounts",
@@ -210,59 +152,39 @@ const groupRoutes_ungated: AppRoute[] = [
 	},
 ];
 
-/** Rework the routes so that the elements are gated for the min access level */
-const groupRoutes = groupRoutes_ungated.map((r) => {
-	if (typeof r.minAccess === "number")
-		return {
-			...r,
-			element: (
-				<GateComponent minAccess={r.minAccess} children={r.element} />
-			),
-		};
-	return r;
-});
-
 const routes: AppRoute[] = [
 	{
 		path: "/",
-		element: <Layout />,
+		element: <AppLayout />,
 		errorElement: <ErrorPage />,
 		loader: rootLoader,
 		children: [
+			{
+				index: true,
+				element: <Root />,
+			},
+			{
+				// Oauth2 completion will dump us here; navigate to the current group account
+				path: "accounts",
+				element: <NavigateToGroupAccounts />,
+			},
 			{
 				path: ":groupName",
 				loader: groupLoader,
 				errorElement: <ErrorPage />,
 				children: [
-					...groupRoutes,
 					{
 						index: true,
-						element: (
-							<GateComponent minAccess={AccessLevel.none}>
-								<Root />
-							</GateComponent>
-						),
+						element: <Root />,
 					},
+					...groupRoutes,
 					{
 						path: "*",
-						element: (
-							<GateComponent minAccess={AccessLevel.none}>
-								<span>Not found</span>
-							</GateComponent>
-						),
+						element: <span>Not found</span>,
 					},
 				],
 			},
-			{
-				index: true,
-				element: <Root />,
-			},
 		],
-	},
-	{
-		// Oauth2 completion will dump us here; navigate to the current group account
-		path: "/accounts",
-		element: <NavigateToGroupAccounts />,
 	},
 	{
 		path: "/*",

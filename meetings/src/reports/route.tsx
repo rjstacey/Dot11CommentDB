@@ -1,6 +1,8 @@
 import { LoaderFunction, RouteObject } from "react-router-dom";
 import { setError } from "dot11-components";
 import { store } from "../store";
+import { selectWorkingGroupByName } from "../store/groups";
+import { AccessLevel } from "../store/user";
 import {
 	loadSessions,
 	selectSessionByNumber,
@@ -25,7 +27,14 @@ const sessionsLoader: LoaderFunction = async ({
 	if (!groupName) throw new Error("Route error: groupName not set");
 	const url = new URL(request.url);
 	const sessionNumber = Number(url.searchParams.get("sessionNumber"));
+
 	const { dispatch, getState } = store;
+	const group = selectWorkingGroupByName(getState(), groupName);
+	if (!group) throw new Error("Invalid group: " + groupName);
+	const access = group.permissions.meetings || AccessLevel.none;
+	if (access < AccessLevel.ro)
+		throw new Error("You don't have permission to view this data");
+
 	const p1 = dispatch(loadSessions(groupName));
 	dispatch(loadImatMeetings(groupName));
 	if (sessionNumber) {
