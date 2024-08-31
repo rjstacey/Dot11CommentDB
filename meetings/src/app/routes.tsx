@@ -4,7 +4,6 @@ import { store } from "../store";
 import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import {
-	selectGroupsState,
 	selectWorkingGroupByName,
 	setWorkingGroupId,
 	loadGroups,
@@ -47,15 +46,13 @@ const rootLoader: LoaderFunction = async () => {
 const groupLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
+
 	const { dispatch, getState } = store;
-	// Make sure we have the working groups loaded so that we can set the working group ID
-	const { valid } = selectGroupsState(getState());
-	if (!valid) {
-		await dispatch(loadGroups());
-	}
+
+	await dispatch(loadGroups());
 	const group = selectWorkingGroupByName(getState(), groupName);
 	dispatch(setWorkingGroupId(group?.id || null));
-	dispatch(loadGroups(groupName));
+	await dispatch(loadGroups(groupName));
 	dispatch(loadCalendarAccounts(groupName));
 	dispatch(loadWebexAccounts(groupName));
 	dispatch(loadMembers(groupName));

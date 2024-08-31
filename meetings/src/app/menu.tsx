@@ -86,7 +86,6 @@ export function NavMenu({
 }) {
 	const location = useLocation();
 	const menu = useMenuLinks();
-	console.log(location.search);
 
 	let classNames: string = "nav-menu";
 	if (className) classNames += " " + className;

@@ -2,7 +2,7 @@ import { LoaderFunction, RouteObject } from "react-router-dom";
 
 import { setError } from "dot11-components";
 import { store } from "../store";
-import { selectWorkingGroupByName } from "../store/groups";
+import { selectWorkingGroupByName, loadGroups } from "../store/groups";
 import { AccessLevel } from "../store/user";
 import {
 	loadSessions,
@@ -28,6 +28,8 @@ const webexMeetingsLoader: LoaderFunction = async ({
 	const showDateRange = Boolean(url.searchParams.get("showDateRange"));
 
 	const { dispatch, getState } = store;
+
+	await dispatch(loadGroups());
 	const group = selectWorkingGroupByName(getState(), groupName);
 	if (!group) throw new Error("Invalid group: " + groupName);
 	const access = group.permissions.meetings || AccessLevel.none;

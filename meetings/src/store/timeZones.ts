@@ -9,6 +9,7 @@ interface TimeZonesState {
 	valid: boolean;
 	timeZones: Array<string>;
 	timeZone: string;
+	lastLoad: string | null;
 }
 
 const initialState: TimeZonesState = {
@@ -16,6 +17,7 @@ const initialState: TimeZonesState = {
 	valid: false,
 	timeZones: [],
 	timeZone: "America/New_York",
+	lastLoad: null,
 };
 
 const dataSet = "timeZones";
@@ -25,6 +27,7 @@ const slice = createSlice({
 	reducers: {
 		getPending(state: TimeZonesState) {
 			state.loading = true;
+			state.lastLoad = new Date().toISOString();
 		},
 		getSuccess(
 			state: TimeZonesState,
@@ -36,6 +39,7 @@ const slice = createSlice({
 		},
 		getFailure(state: TimeZonesState) {
 			state.loading = false;
+			state.lastLoad = null;
 		},
 		setTimezone(state: TimeZonesState, action: PayloadAction<string>) {
 			state.timeZone = action.payload;
@@ -51,10 +55,23 @@ const { getSuccess, getPending, getFailure, setTimezone } = slice.actions;
 /* Selectors */
 export const selectTimeZonesState = (state: RootState): TimeZonesState =>
 	state[dataSet];
+export const selectDefaultTimeZone = (state: RootState) =>
+	selectTimeZonesState(state).timeZone;
+export const selectTimeZonesAge = (state: RootState) => {
+	let lastLoad = selectTimeZonesState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 
 /* Thunk actions */
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
 const url = "/api/timeZones";
-export const loadTimeZones = (): AppThunk => async (dispatch) => {
+export const loadTimeZones = (): AppThunk => async (dispatch, getState) => {
+	const age = selectTimeZonesAge(getState());
+	if (age && age < AGE_STALE) {
+		return;
+	}
 	dispatch(getPending());
 	let timeZones;
 	try {

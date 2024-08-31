@@ -81,8 +81,10 @@ export const fields = {
 const dataSet = "groups";
 const initialState: {
 	workingGroupId: string | null;
+	lastLoad: Record<string, string | null>;
 } = {
 	workingGroupId: null,
+	lastLoad: {},
 };
 const slice = createAppTableDataSlice({
 	name: dataSet,
@@ -97,8 +99,13 @@ const slice = createAppTableDataSlice({
 	extraReducers: (builder, dataAdapter) => {
 		builder.addMatcher(
 			(action: Action) => action.type === getSuccess2.toString(),
-			(state, action: PayloadAction<Group[]>) => {
-				dataAdapter.setMany(state, action.payload); // add or replace
+			(
+				state,
+				action: PayloadAction<{ groupName: string; groups: Group[] }>
+			) => {
+				const { groupName, groups } = action.payload;
+				state.lastLoad[groupName] = new Date().toISOString();
+				dataAdapter.setMany(state, groups); // add or replace
 				state.loading = false;
 				state.valid = true;
 				const { ids, entities } = state;
@@ -163,7 +170,9 @@ const {
 } = slice.actions;
 
 export { setSelected, setFilter, clearFilter, setWorkingGroupId };
-const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
+const getSuccess2 = createAction<{ groupName: string; groups: Group[] }>(
+	dataSet + "/getSuccess2"
+);
 
 /* Selectors */
 export const selectGroupsState = (state: RootState) => state[dataSet];
@@ -171,6 +180,11 @@ export const selectGroupEntities = (state: RootState) =>
 	selectGroupsState(state).entities;
 export const selectGroupIds = (state: RootState) =>
 	selectGroupsState(state).ids;
+const selectGroupsAge = (state: RootState, groupName: string) => {
+	let lastLoad = selectGroupsState(state).lastLoad[groupName];
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 
 export const selectWorkingGroups = (state: RootState) => {
 	const { ids, entities } = selectGroupsState(state);
@@ -253,20 +267,34 @@ function validResponse(response: any): response is Group[] {
 	return Array.isArray(response) && response.every(validGroup);
 }
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
+let loadingPromise: Record<string, Promise<void> | undefined> = {};
 export const loadGroups =
-	(groupName?: string): AppThunk =>
-	(dispatch) => {
+	(groupName: string = ""): AppThunk<void> =>
+	(dispatch, getState) => {
+		if (loadingPromise[groupName]) {
+			return loadingPromise[groupName]!;
+		}
+		const age = selectGroupsAge(getState(), groupName);
+		if (age && age < AGE_STALE) {
+			return loadingPromise[groupName]!;
+		}
 		dispatch(getPending());
 		const url = groupName ? `${baseUrl}/${groupName}` : baseUrl;
-		return fetcher
+		loadingPromise[groupName] = fetcher
 			.get(url, groupName ? undefined : { type: ["c", "wg"] })
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
-				dispatch(getSuccess2(response));
+				dispatch(getSuccess2({ groupName, groups: response }));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get groups", error));
+			})
+			.finally(() => {
+				loadingPromise[groupName] = undefined;
 			});
+		return loadingPromise[groupName]!;
 	};
