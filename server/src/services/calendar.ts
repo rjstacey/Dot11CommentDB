@@ -113,7 +113,7 @@ async function activateCalendarAccount(id: number, authParams: Credentials) {
 	account.authParams = authParams;
 	account.auth.setCredentials(authParams);
 	account.calendar = createCalendarApi(account.auth);
-	account.details = await getPrimaryCalendar(account.id);
+	account.primaryCalendar = await getPrimaryCalendar(account.id);
 	let calendarList = await getCalendarList(account.id);
 	if (calendarList) {
 		calendarList = calendarList.filter((cal) => cal.accessRole === "owner");
@@ -127,7 +127,7 @@ async function deactivateCalendarAccount(id: number) {
 		account.authParams = null;
 		account.auth = createAuth(id); // replace current auth context with clean one
 		delete account.calendar;
-		delete account.details;
+		delete account.primaryCalendar;
 		account.calendarList = [];
 	}
 }
@@ -282,8 +282,9 @@ export async function getCalendarAccounts(
 		accountOut = {
 			...rest,
 			authUrl,
-			displayName: account.details?.summary || "",
-			userName: account.details?.id || "",
+			displayName: account.primaryCalendar?.summary || "",
+			userName: account.primaryCalendar?.id || "",
+			primaryCalendar: account.primaryCalendar,
 			calendarList: account.calendarList,
 			lastAccessed: account.lastAccessed,
 		};

@@ -77,11 +77,20 @@ async function login(
 
 	// Add an interceptor that will login again if a request returns the login page
 	ieeeClient.interceptors.response.use((response) => {
-		if (
-			response.headers["content-type"] === "text/html" &&
-			typeof response.data === "string" &&
-			response.data.search(/<div class="title">Sign In<\/div>/) !== -1
-		) {
+		if (response.headers["content-type"] !== "text/html") return response;
+		const responseType = response.request.responseType;
+		let text: string;
+		if (responseType === "arraybuffer") {
+			const enc = new TextDecoder();
+			text = enc.decode(response.data);
+		} else if (typeof response.data === "string") {
+			text = response.data;
+		} else {
+			console.warn("Can't handle responseType=" + responseType);
+			console.warn("typeof data=" + typeof response.data);
+			return response;
+		}
+		if (text.search(/<div class="title">Sign In<\/div>/) !== -1) {
 			console.log("Try login again");
 			m = /name="v" value="(.*)"/.exec(response.data);
 			const v = m ? m[1] : "1";
@@ -104,7 +113,7 @@ async function login(
 	return { SAPIN, Name, Email: username };
 }
 
-function logout(ieeeClient: AxiosInstance) {
+export function logout(ieeeClient: AxiosInstance) {
 	return ieeeClient.get(logoutUrl);
 }
 

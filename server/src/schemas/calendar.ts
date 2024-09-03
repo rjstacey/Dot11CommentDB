@@ -21,7 +21,7 @@ export const calendarAccountSchema = oAuthAccountSchema
 		authUrl: z.string().url(),
 		displayName: z.string().optional(),
 		userName: z.string().optional(),
-		details: z.any().optional(),
+		primaryCalendar: z.any().optional(),
 		calendarList: z.any().array(),
 		lastAccessed: z.string().datetime().nullable(),
 	});
