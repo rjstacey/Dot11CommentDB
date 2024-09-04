@@ -1,5 +1,5 @@
-import * as React from "react";
-import ProjectBallotSelector from "../components/ProjectBallotSelector";
+import React from "react";
+import { createPortal } from "react-dom";
 import VotersActions from "./actions";
 import VotersTable from "./table";
 import VoterEditModal from "./VoterEdit";
@@ -30,14 +30,15 @@ function VotersLayout() {
 		voter: getDefaultVoter(votersBallot_id || 0),
 	});
 
+	const actionsRef = document.querySelector("#actions");
+
 	return (
 		<>
-			<div className="top-row">
-				<ProjectBallotSelector />
-				{votersBallot_id && (
-					<VotersActions setVotersState={setEditVoter} />
+			{actionsRef &&
+				createPortal(
+					<VotersActions setVotersState={setEditVoter} />,
+					actionsRef
 				)}
-			</div>
 			<div className="table-container centered-rows">
 				{votersBallot_id && (
 					<VotersTable setVotersState={setEditVoter} />

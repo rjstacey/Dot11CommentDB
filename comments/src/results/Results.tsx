@@ -17,7 +17,6 @@ import {
 	TextArea,
 } from "dot11-components";
 
-import ProjectBallotSelector from "../components/ProjectBallotSelector";
 import ResultsSummary from "./ResultsSummary";
 import ResultsExport from "./ResultsExport";
 
@@ -44,6 +43,7 @@ import {
 	Ballot,
 } from "../store/ballots";
 import { selectIsOnline } from "../store/offline";
+import { createPortal } from "react-dom";
 
 const voteOptions = [
 	{ label: "Approve", value: "Approve" },
@@ -288,26 +288,29 @@ function Results() {
 		});
 	}, [setEditResult]);
 
+	const actionsRef = document.querySelector("#actions");
+
 	return (
 		<>
-			<div className="top-row" style={{ maxWidth }}>
-				<ProjectBallotSelector />
-				<div style={{ display: "flex" }}>
-					<ResultsSummary />
-					<ResultsExport ballot={resultsBallot} />
-					<TableColumnSelector
-						selectors={resultsSelectors}
-						actions={resultsActions}
-						columns={tableColumns}
-					/>
-					<ActionButton
-						name="refresh"
-						title="Refresh"
-						disabled={!isOnline}
-						onClick={refresh}
-					/>
-				</div>
-			</div>
+			{actionsRef &&
+				createPortal(
+					<div style={{ display: "flex" }}>
+						<ResultsSummary />
+						<ResultsExport ballot={resultsBallot} />
+						<TableColumnSelector
+							selectors={resultsSelectors}
+							actions={resultsActions}
+							columns={tableColumns}
+						/>
+						<ActionButton
+							name="refresh"
+							title="Refresh"
+							disabled={!isOnline}
+							onClick={refresh}
+						/>
+					</div>,
+					actionsRef
+				)}
 			<ShowFilters
 				selectors={resultsSelectors}
 				actions={resultsActions}

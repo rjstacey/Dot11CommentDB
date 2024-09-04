@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -21,7 +21,7 @@ import {
 	SyncedEpoll,
 } from "../store/epolls";
 
-import { BallotAddForm } from "./BallotDetail";
+import { BallotAddForm } from "../ballots/BallotDetail";
 
 function ePollToBallot(epoll: SyncedEpoll): Ballot {
 	// See if the ePoll name has something like CC53 or LB245

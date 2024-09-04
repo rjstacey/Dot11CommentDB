@@ -1,39 +1,22 @@
-import * as React from "react";
-import {
-	useParams,
-	useRouteError,
-	Outlet,
-	RouteObject,
-	LoaderFunction,
-} from "react-router-dom";
+import { RouteObject, LoaderFunction, Outlet } from "react-router-dom";
 
 import { store } from "../store";
-import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import { selectIsOnline } from "../store/offline";
-import { selectWorkingGroupByName, loadGroups } from "../store/groups";
+import { loadGroups } from "../store/groups";
 import { loadMembers } from "../store/members";
-import { loadEpolls } from "../store/epolls";
-import {
-	loadBallots,
-	selectBallotByBallotID,
-	setCurrentBallot_id,
-	Ballot,
-} from "../store/ballots";
-import { clearResults, loadResults } from "../store/results";
-import { clearComments, loadComments } from "../store/comments";
 
-import { ErrorModal, ConfirmModal } from "dot11-components";
-import Header from "./Header";
-import WorkingGroupSelector from "./WorkingGroupSelector";
-import Ballots from "../ballots/Ballots";
-import Epolls from "../ballots/Epolls";
+import AppLayout from "./layout";
+import AppErrorPage from "./errorPage";
+import RootMain from "./rootMain";
+import ballotsRoute from "../ballots/route";
+import epollsRoute from "../epolls/route";
 import votersRoute from "../voters/route";
-import Results from "../results/Results";
-import Comments from "../comments/Comments";
-import Reports from "../reports/Reports";
+import resultsRoute from "../results/route";
+import commentsRoute from "../comments/route";
+import reportsRoute from "../reports/route";
 
-import styles from "./app.module.css";
+import ProjectBallotSelector from "../components/ProjectBallotSelector";
 
 /*
  * Route loaders
@@ -47,79 +30,13 @@ const rootLoader: LoaderFunction = async () => {
 };
 
 const groupLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
-	if (selectIsOnline(getState())) {
-		const { groupName } = params;
-		if (groupName) {
-			dispatch(loadGroups(groupName));
-			dispatch(loadMembers(groupName));
-		}
-	}
-	return null;
-};
+	const { groupName } = params;
+	if (!groupName) throw new Error("Route error: groupName not set");
 
-const ballotsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	if (selectIsOnline(getState())) {
-		const { groupName } = params;
-		if (groupName) {
-			dispatch(loadBallots(groupName));
-		}
-	}
-	return null;
-};
-
-const epollsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
-	if (selectIsOnline(getState())) {
-		const { groupName } = params;
-		if (groupName) {
-			dispatch(loadBallots(groupName));
-			dispatch(loadEpolls(groupName));
-		}
-	}
-	return null;
-};
-
-const resultsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
-	if (selectIsOnline(getState())) {
-		const { groupName, ballotId } = params;
-		if (groupName) {
-			const p = dispatch(loadBallots(groupName));
-			let ballot: Ballot | undefined;
-			if (ballotId) {
-				ballot = selectBallotByBallotID(getState(), ballotId);
-				if (!ballot) {
-					await p; // see if we get it with a ballots refresh
-					ballot = selectBallotByBallotID(getState(), ballotId);
-				}
-			}
-			dispatch(setCurrentBallot_id(ballot ? ballot.id : null));
-			dispatch(ballot ? loadResults(ballot.id) : clearResults());
-		}
-	}
-	return null;
-};
-
-const commentsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
-	if (selectIsOnline(getState())) {
-		const { groupName, ballotId } = params;
-		console.log(ballotId);
-		if (groupName) {
-			const p = dispatch(loadBallots(groupName));
-			let ballot: Ballot | undefined;
-			if (ballotId) {
-				ballot = selectBallotByBallotID(getState(), ballotId);
-				if (!ballot) {
-					await p; // see if we get it with a ballots refresh
-					ballot = selectBallotByBallotID(getState(), ballotId);
-				}
-			}
-			dispatch(setCurrentBallot_id(ballot ? ballot.id : null));
-			dispatch(ballot ? loadComments(ballot.id) : clearComments());
-		}
+		dispatch(loadGroups(groupName));
+		dispatch(loadMembers(groupName));
 	}
 	return null;
 };
@@ -127,67 +44,56 @@ const commentsLoader: LoaderFunction = async ({ params }) => {
 /*
  * Layout components
  */
-
-/** A component that only renders its children if the user has a defined minimum access */
-function GateComponent({
-	scope = "",
-	minAccess,
-	children,
-}: {
-	scope?: string;
-	minAccess: number;
-	children: React.ReactNode;
-}) {
-	const { groupName } = useParams();
-	const group = useAppSelector((state) =>
-		selectWorkingGroupByName(state, groupName || "")
-	);
-	const access = group?.permissions[scope] || AccessLevel.none;
-
-	if (!group) return <span>Invalid group: {groupName}</span>;
-
-	if (access < minAccess)
-		return <span>You do not have permission to view this data</span>;
-
-	return <>{children}</>;
-}
-
-function Layout() {
+function BallotItemLayout() {
 	return (
 		<>
-			<Header />
-			<main className={styles.main}>
-				<Outlet />
-			</main>
-			<ErrorModal />
-			<ConfirmModal />
+			<div className="top-row" id="actions">
+				<ProjectBallotSelector />
+			</div>
+			<Outlet />
 		</>
 	);
 }
 
-function Root() {
-	return (
-		<div className={styles.root}>
-			<div className="intro">Working group/Committee</div>
-			<WorkingGroupSelector />
-		</div>
-	);
-}
+export type MenuItem = {
+	path: string;
+	label: string;
+	scope: string;
+	minAccess: number;
+};
 
-function ErrorPage() {
-	const error: any = useRouteError();
-	console.error(error);
-
-	return (
-		<div id="error-page">
-			<h1>Oops!</h1>
-			<p>Sorry, an unexpected error has occurred.</p>
-			<p>
-				<i>{error.statusText || error.message}</i>
-			</p>
-		</div>
-	);
-}
+export const menu: MenuItem[] = [
+	{
+		path: "/:groupName/ballots",
+		label: "Ballots",
+		scope: "ballots",
+		minAccess: AccessLevel.ro,
+	},
+	{
+		path: "/:groupName/voters/:ballotId?",
+		label: "Voters",
+		scope: "ballots",
+		minAccess: AccessLevel.ro,
+	},
+	{
+		path: "/:groupName/results/:ballotId?",
+		label: "Results",
+		scope: "results",
+		minAccess: AccessLevel.ro,
+	},
+	{
+		path: "/:groupName/comments/:ballotId?",
+		label: "Comments",
+		scope: "comments",
+		minAccess: AccessLevel.ro,
+	},
+	{
+		path: "/:groupName/reports/:ballotId?",
+		label: "Reports",
+		scope: "comments",
+		minAccess: AccessLevel.ro,
+	},
+];
 
 /*
  * Routes
@@ -196,106 +102,67 @@ export type AppRoute = RouteObject & {
 	scope?: string;
 	minAccess?: number;
 	menuLabel?: string;
+	children?: AppRoute[];
 };
 
-const groupRoutes_ungated: AppRoute[] = [
+const groupRoutes: RouteObject[] = [
 	{
-		menuLabel: "Ballots",
 		path: "ballots",
-		element: <Ballots />,
-		scope: "ballots",
-		loader: ballotsLoader,
-		minAccess: AccessLevel.ro,
+		...ballotsRoute,
 	},
 	{
 		path: "epolls",
-		element: <Epolls />,
-		scope: "ballots",
-		loader: epollsLoader,
-		minAccess: AccessLevel.admin,
+		...epollsRoute,
 	},
 	{
-		menuLabel: "Voters",
-		scope: "ballots",
-		minAccess: AccessLevel.ro,
-		...votersRoute,
-	},
-	{
-		menuLabel: "Results",
-		path: "results/:ballotId?",
-		element: <Results />,
-		loader: resultsLoader,
-		scope: "results",
-		minAccess: AccessLevel.ro,
-	},
-	{
-		menuLabel: "Comments",
-		path: "comments/:ballotId?",
-		element: <Comments />,
-		loader: commentsLoader,
-		scope: "comments",
-		minAccess: AccessLevel.ro,
-	},
-	{
-		menuLabel: "Reports",
-		path: "reports/:ballotId?",
-		element: <Reports />,
-		loader: commentsLoader,
-		scope: "comments",
-		minAccess: AccessLevel.ro,
+		element: <BallotItemLayout />,
+		children: [
+			{
+				path: "voters",
+				...votersRoute,
+			},
+			{
+				path: "results",
+				...resultsRoute,
+			},
+			{
+				path: "comments",
+				...commentsRoute,
+			},
+			{
+				path: "reports",
+				...reportsRoute,
+			},
+		],
 	},
 ];
 
-/** Rework the routes so that the elements are gated for the min access level */
-const groupRoutes = groupRoutes_ungated.map((r) => {
-	if (typeof r.minAccess === "number")
-		return {
-			...r,
-			element: (
-				<GateComponent
-					scope={r.scope}
-					minAccess={r.minAccess}
-					children={r.element}
-				/>
-			),
-		};
-	return r;
-});
-
-const routes: AppRoute[] = [
+const routes: RouteObject[] = [
 	{
 		path: "/",
-		element: <Layout />,
-		errorElement: <ErrorPage />,
+		element: <AppLayout />,
+		errorElement: <AppErrorPage />,
 		loader: rootLoader,
 		children: [
 			{
-				path: ":groupName",
-				loader: groupLoader,
-				errorElement: <ErrorPage />,
-				children: [
-					...groupRoutes,
-					{
-						index: true,
-						element: (
-							<GateComponent minAccess={AccessLevel.none}>
-								<Root />
-							</GateComponent>
-						),
-					},
-					{
-						path: "*",
-						element: (
-							<GateComponent minAccess={AccessLevel.none}>
-								<span>Not found</span>
-							</GateComponent>
-						),
-					},
-				],
+				index: true,
+				element: <RootMain />,
 			},
 			{
-				index: true,
-				element: <Root />,
+				path: ":groupName",
+				loader: groupLoader,
+				errorElement: <AppErrorPage />,
+				children: [
+					{
+						index: true,
+						element: <RootMain />,
+					},
+					...groupRoutes,
+					{
+						path: "*",
+						element: <span>Not found</span>,
+					},
+				],
 			},
 		],
 	},

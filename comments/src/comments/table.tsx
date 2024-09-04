@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 
 import {
 	AppTable,
@@ -7,39 +7,22 @@ import {
 	SelectExpandHeaderCell,
 	SelectExpandCell,
 	TableColumnHeader,
-	TableColumnSelector,
-	TableViewSelector,
 	IdSelector,
 	IdFilter,
 	ShowFilters,
 	GlobalFilter,
-	ActionButton,
-	ButtonGroup,
 	ColumnProperties,
 	HeaderCellRendererProps,
 	RowGetterProps,
 	ChangeableColumnProperties,
 } from "dot11-components";
 
-import ProjectBallotSelector from "../components/ProjectBallotSelector";
 import CommentDetail from "./CommentDetail";
 import { renderMBS, renderCommenter, renderCategory } from "./CommentEdit";
 import { renderSubmission } from "./SubmissionSelector";
-import CommentsImport from "./CommentsImport";
-import CommentsExport from "./CommentsExport";
-import CommentsCopy from "./CommentsCopy";
-import { useEditorStylesheet } from "../editor";
-
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { AccessLevel } from "../store/user";
-import { selectBallot } from "../store/ballots";
 import {
 	fields,
-	loadComments,
-	clearComments,
 	getCID,
-	selectCommentsBallot_id,
-	selectCommentsAccess,
 	commentsSelectors,
 	commentsActions,
 	getCommentStatus,
@@ -47,7 +30,6 @@ import {
 	type CommentResolution,
 	type ResnStatusType,
 } from "../store/comments";
-import { selectIsOnline } from "../store/offline";
 
 import styles from "./comments.module.css";
 
@@ -329,7 +311,7 @@ const renderHeaderCellResolution = ({
 	</>
 );
 
-const tableColumns: (ColumnProperties & { width: number })[] = [
+export const tableColumns: (ColumnProperties & { width: number })[] = [
 	{
 		key: "__ctrl__",
 		width: 48,
@@ -584,89 +566,9 @@ function commentsRowGetter({ rowIndex, ids, entities }: RowGetterProps) {
 	};
 }
 
-function Comments() {
-	const dispatch = useAppDispatch();
-
-	const isOnline = useAppSelector(selectIsOnline);
-
-	const access = useAppSelector(selectCommentsAccess);
-	const commentsBallot_id = useAppSelector(selectCommentsBallot_id);
-	const commentsBallot = useAppSelector((state) =>
-		commentsBallot_id ? selectBallot(state, commentsBallot_id) : undefined
-	);
-
-	const { isSplit } = useAppSelector(
-		commentsSelectors.selectCurrentPanelConfig
-	);
-	const setIsSplit = (isSplit: boolean) =>
-		dispatch(commentsActions.setPanelIsSplit({ isSplit }));
-
-	const refresh = () =>
-		dispatch(
-			commentsBallot_id
-				? loadComments(commentsBallot_id)
-				: clearComments()
-		);
-
-	useEditorStylesheet(styles.editor);
-
+function CommentsTable() {
 	return (
 		<>
-			<div className="top-row">
-				<ProjectBallotSelector />
-				<div style={{ display: "flex", alignItems: "center" }}>
-					<ButtonGroup>
-						<div>Table view</div>
-						<div style={{ display: "flex", alignItems: "center" }}>
-							<TableViewSelector
-								selectors={commentsSelectors}
-								actions={commentsActions}
-							/>
-							<TableColumnSelector
-								selectors={commentsSelectors}
-								actions={commentsActions}
-								columns={tableColumns}
-							/>
-							<ActionButton
-								name="book-open"
-								title="Show detail"
-								isActive={isSplit}
-								onClick={() => setIsSplit(!isSplit)}
-							/>
-						</div>
-					</ButtonGroup>
-					{access >= AccessLevel.rw ? (
-						<ButtonGroup>
-							<div style={{ textAlign: "center" }}>Edit</div>
-							<div
-								style={{
-									display: "flex",
-									alignItems: "center",
-								}}
-							>
-								<CommentsCopy />
-								<CommentsImport
-									ballot={commentsBallot}
-									disabled={!isOnline}
-								/>
-								<CommentsExport
-									ballot={commentsBallot}
-									disabled={!isOnline}
-								/>
-							</div>
-						</ButtonGroup>
-					) : (
-						<CommentsCopy />
-					)}
-					<ActionButton
-						name="refresh"
-						title="Refresh"
-						disabled={!isOnline}
-						onClick={refresh}
-					/>
-				</div>
-			</div>
-
 			<div
 				style={{ width: "100%", display: "flex", alignItems: "center" }}
 			>
@@ -701,4 +603,4 @@ function Comments() {
 	);
 }
 
-export default Comments;
+export default CommentsTable;

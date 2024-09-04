@@ -234,18 +234,9 @@ function renderTableToClipboard(data: Counts[]) {
 }
 
 function Reports() {
-	const dispatch = useAppDispatch();
 	const [report, setReport] = React.useState<Report | null>(null);
 
 	const { ids, entities } = useAppSelector(selectCommentsState);
-	const commentsBallot_id = useAppSelector(selectCommentsBallot_id);
-
-	const refresh = () =>
-		dispatch(
-			commentsBallot_id
-				? loadComments(commentsBallot_id)
-				: clearComments()
-		);
 
 	const data: Counts[] = React.useMemo(() => {
 		const comments = ids.map((id) => {
@@ -277,14 +268,6 @@ function Reports() {
 
 	return (
 		<>
-			<div className="top-row">
-				<ProjectBallotSelector />
-				<ActionButton
-					name="refresh"
-					title="Refresh"
-					onClick={refresh}
-				/>
-			</div>
 			<div className={styles.body}>
 				<div className={styles.selectCol}>
 					<label>Select a report:</label>

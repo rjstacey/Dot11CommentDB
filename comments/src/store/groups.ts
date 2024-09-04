@@ -47,10 +47,12 @@ const initialState: {
 	workingGroupId: string | null;
 	loading: boolean;
 	valid: boolean;
+	lastLoad: Record<string, string | null>;
 } = {
 	workingGroupId: null,
 	loading: false,
 	valid: false,
+	lastLoad: {},
 };
 const dataAdapter = createEntityAdapter<Group>();
 const dataSet = "groups";
@@ -61,10 +63,15 @@ const slice = createSlice({
 		getPending(state) {
 			state.loading = true;
 		},
-		getSuccess(state, action: PayloadAction<Group[]>) {
+		getSuccess(
+			state,
+			action: PayloadAction<{ groupName: string; groups: Group[] }>
+		) {
+			const { groupName, groups } = action.payload;
+			state.lastLoad[groupName] = new Date().toISOString();
 			state.loading = false;
 			state.valid = true;
-			dataAdapter.setMany(state, action);
+			dataAdapter.setMany(state, groups);
 		},
 		getFailure(state) {
 			state.loading = false;
@@ -90,6 +97,11 @@ export function selectGroupEntities(state: RootState) {
 }
 export const selectGroupIds = (state: RootState) =>
 	selectGroupsState(state).ids;
+const selectGroupsAge = (state: RootState, groupName: string) => {
+	let lastLoad = selectGroupsState(state).lastLoad[groupName];
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectWorkingGroupId = (state: RootState) =>
 	selectGroupsState(state).workingGroupId;
 
@@ -154,10 +166,12 @@ export const selectGroupPermissions = (
 	groupId: string
 ): Record<string, number> => {
 	const group = selectGroup(state, groupId);
-	return group? group.permissions: {};
+	return group ? group.permissions : {};
 };
 
 /* Thunk actions */
+const baseUrl = "/api/groups";
+
 function validGroup(group: any): group is Group {
 	return isObject(group) && group.id && typeof group.id === "string";
 }
@@ -166,7 +180,8 @@ function validResponse(response: any): response is Group[] {
 	return Array.isArray(response) && response.every(validGroup);
 }
 
-const baseUrl = "/api/groups";
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
 const loadingPromise: Record<string, Promise<Group[]> | undefined> = {};
 export const loadGroups =
 	(groupName: string = ""): AppThunk<Group[]> =>
@@ -188,16 +203,18 @@ export const loadGroups =
 		if (loadingPromise[groupName]) {
 			return loadingPromise[groupName]!;
 		}
+		const age = selectGroupsAge(getState(), groupName);
+		if (age && age < AGE_STALE) {
+			return loadingPromise[groupName]!;
+		}
 		dispatch(getPending());
-		const url = groupName
-			? `${baseUrl}/${groupName}`
-			: `${baseUrl}?type=wg`;
+		const url = groupName ? `${baseUrl}/${groupName}` : baseUrl;
 		loadingPromise[groupName] = fetcher
-			.get(url)
+			.get(url, groupName ? undefined : { type: ["c", "wg"] })
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response to GET " + url);
-				dispatch(getSuccess(response));
+				dispatch(getSuccess({ groupName, groups: response }));
 				return response;
 			})
 			.catch((error: any) => {

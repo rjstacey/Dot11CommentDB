@@ -55,35 +55,33 @@ function VotersActions({ setVotersState }: { setVotersState: SetVotersState }) {
 		});
 
 	return (
-		<>
-			<div style={{ display: "flex" }}>
-				<ActionButton
-					name="add"
-					title="Add voter"
-					disabled={!votersBallot_id}
-					onClick={handleAddVoter}
-				/>
-				<ActionButton
-					name="delete"
-					title="Remove selected"
-					disabled={selected.length === 0}
-					onClick={handleRemoveSelected}
-				/>
-				<VotersImportButton ballot_id={votersBallot_id} />
-				<ActionButton
-					name="export"
-					title="Export voters"
-					disabled={!votersBallot_id || !isOnline}
-					onClick={() => dispatch(exportVoters(votersBallot_id!))}
-				/>
-				<ActionButton
-					name="refresh"
-					title="Refresh"
-					onClick={refresh}
-					disabled={loading || !isOnline}
-				/>
-			</div>
-		</>
+		<div style={{ display: "flex" }}>
+			<ActionButton
+				name="add"
+				title="Add voter"
+				disabled={!votersBallot_id}
+				onClick={handleAddVoter}
+			/>
+			<ActionButton
+				name="delete"
+				title="Remove selected"
+				disabled={selected.length === 0}
+				onClick={handleRemoveSelected}
+			/>
+			<VotersImportButton ballot_id={votersBallot_id} />
+			<ActionButton
+				name="export"
+				title="Export voters"
+				disabled={!votersBallot_id || !isOnline}
+				onClick={() => dispatch(exportVoters(votersBallot_id!))}
+			/>
+			<ActionButton
+				name="refresh"
+				title="Refresh"
+				onClick={refresh}
+				disabled={loading || !isOnline}
+			/>
+		</div>
 	);
 }
 

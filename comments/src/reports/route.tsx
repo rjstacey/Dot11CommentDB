@@ -4,17 +4,17 @@ import { selectIsOnline } from "../store/offline";
 import {
 	loadBallots,
 	selectBallotByBallotID,
-	selectBallotSeriesId,
 	setCurrentBallot_id,
 	Ballot,
 } from "../store/ballots";
 import { loadMembers } from "../store/members";
-import { clearVoters, loadVoters } from "../store/voters";
+import { clearComments, loadComments } from "../store/comments";
 
-import Voters from "./layout";
+import ReportsLayout from "./layout";
+import Reports from "./Reports";
 
 const indexLoader: LoaderFunction = async () => {
-	store.dispatch(clearVoters);
+	store.dispatch(clearComments);
 	return null;
 };
 
@@ -28,29 +28,29 @@ const ballotIdLoader: LoaderFunction = async ({ params }) => {
 		const p = dispatch(loadBallots(groupName));
 		dispatch(loadMembers(groupName));
 		let ballot: Ballot | undefined;
-		let ballotSeries_id: number | undefined;
 		ballot = selectBallotByBallotID(getState(), ballotId);
 		if (!ballot) {
 			await p; // see if we get it with a ballots refresh
 			ballot = selectBallotByBallotID(getState(), ballotId);
 		}
 		dispatch(setCurrentBallot_id(ballot ? ballot.id : null));
-		if (ballot) ballotSeries_id = selectBallotSeriesId(getState(), ballot);
-		dispatch(ballotSeries_id ? loadVoters(ballotSeries_id) : clearVoters());
+		dispatch(ballot ? loadComments(ballot.id) : clearComments());
 	}
 	return null;
 };
 
 const route: RouteObject = {
-	element: <Voters />,
+	element: <ReportsLayout />,
 	children: [
 		{
 			index: true,
 			loader: indexLoader,
+			element: null,
 		},
 		{
 			path: ":ballotId",
 			loader: ballotIdLoader,
+			element: <Reports />,
 		},
 	],
 };
