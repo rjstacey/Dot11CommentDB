@@ -96,7 +96,7 @@ function VotersTable({ setVotersState }: { setVotersState: SetVotersState }) {
 	}, [dispatch, setVotersState]);
 
 	return (
-		<>
+		<div className="table-container centered-rows">
 			<ShowFilters
 				style={{ maxWidth }}
 				fields={fields}
@@ -113,7 +113,7 @@ function VotersTable({ setVotersState }: { setVotersState: SetVotersState }) {
 				selectors={votersSelectors}
 				actions={votersActions}
 			/>
-		</>
+		</div>
 	);
 }
 

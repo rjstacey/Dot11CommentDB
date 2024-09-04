@@ -1,12 +1,15 @@
-import { createPortal } from "react-dom";
 import { Outlet } from "react-router";
+import ProjectBallotSelector from "../components/ProjectBallotSelector";
 import CommentsActions from "./actions";
 
 function CommentsLayout() {
 	const actionsRef = document.querySelector("#actions");
 	return (
 		<>
-			{actionsRef && createPortal(<CommentsActions />, actionsRef)}
+			<div className="top-row">
+				<ProjectBallotSelector />
+				<CommentsActions />
+			</div>
 			<Outlet />
 		</>
 	);

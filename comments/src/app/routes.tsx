@@ -16,45 +16,6 @@ import resultsRoute from "../results/route";
 import commentsRoute from "../comments/route";
 import reportsRoute from "../reports/route";
 
-import ProjectBallotSelector from "../components/ProjectBallotSelector";
-
-/*
- * Route loaders
- */
-const rootLoader: LoaderFunction = async () => {
-	const { dispatch, getState } = store;
-	if (selectIsOnline(getState())) {
-		await dispatch(loadGroups());
-	}
-	return null;
-};
-
-const groupLoader: LoaderFunction = async ({ params }) => {
-	const { groupName } = params;
-	if (!groupName) throw new Error("Route error: groupName not set");
-
-	const { dispatch, getState } = store;
-	if (selectIsOnline(getState())) {
-		dispatch(loadGroups(groupName));
-		dispatch(loadMembers(groupName));
-	}
-	return null;
-};
-
-/*
- * Layout components
- */
-function BallotItemLayout() {
-	return (
-		<>
-			<div className="top-row" id="actions">
-				<ProjectBallotSelector />
-			</div>
-			<Outlet />
-		</>
-	);
-}
-
 export type MenuItem = {
 	path: string;
 	label: string;
@@ -96,6 +57,29 @@ export const menu: MenuItem[] = [
 ];
 
 /*
+ * Route loaders
+ */
+const rootLoader: LoaderFunction = async () => {
+	const { dispatch, getState } = store;
+	if (selectIsOnline(getState())) {
+		await dispatch(loadGroups());
+	}
+	return null;
+};
+
+const groupLoader: LoaderFunction = async ({ params }) => {
+	const { groupName } = params;
+	if (!groupName) throw new Error("Route error: groupName not set");
+
+	const { dispatch, getState } = store;
+	if (selectIsOnline(getState())) {
+		dispatch(loadGroups(groupName));
+		dispatch(loadMembers(groupName));
+	}
+	return null;
+};
+
+/*
  * Routes
  */
 export type AppRoute = RouteObject & {
@@ -115,25 +99,20 @@ const groupRoutes: RouteObject[] = [
 		...epollsRoute,
 	},
 	{
-		element: <BallotItemLayout />,
-		children: [
-			{
-				path: "voters",
-				...votersRoute,
-			},
-			{
-				path: "results",
-				...resultsRoute,
-			},
-			{
-				path: "comments",
-				...commentsRoute,
-			},
-			{
-				path: "reports",
-				...reportsRoute,
-			},
-		],
+		path: "voters",
+		...votersRoute,
+	},
+	{
+		path: "results",
+		...resultsRoute,
+	},
+	{
+		path: "comments",
+		...commentsRoute,
+	},
+	{
+		path: "reports",
+		...reportsRoute,
 	},
 ];
 

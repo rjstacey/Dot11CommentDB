@@ -1,12 +1,14 @@
-import { createPortal } from "react-dom";
 import { Outlet } from "react-router";
+import ProjectBallotSelector from "../components/ProjectBallotSelector";
 import ReportsActions from "./actions";
 
 function ReportsLayout() {
-	const actionsRef = document.querySelector("#actions");
 	return (
 		<>
-			{actionsRef && createPortal(<ReportsActions />, actionsRef)}
+			<div className="top-row">
+				<ProjectBallotSelector />
+				<ReportsActions />
+			</div>
 			<Outlet />
 		</>
 	);

@@ -10,7 +10,7 @@ import {
 import { loadMembers } from "../store/members";
 import { clearResults, loadResults } from "../store/results";
 
-import Results from "./Results";
+import ResultsLayout from "./layout";
 
 const indexLoader: LoaderFunction = async () => {
 	store.dispatch(clearResults);
@@ -39,7 +39,7 @@ const ballotIdLoader: LoaderFunction = async ({ params }) => {
 };
 
 const route: RouteObject = {
-	element: <Results />,
+	element: <ResultsLayout />,
 	children: [
 		{
 			index: true,

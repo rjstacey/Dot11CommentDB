@@ -1,10 +1,11 @@
 import React from "react";
-import { createPortal } from "react-dom";
+import { useAppSelector } from "../store/hooks";
+import { selectVotersBallot_id, VoterCreate } from "../store/voters";
+import ProjectBallotSelector from "../components/ProjectBallotSelector";
+
 import VotersActions from "./actions";
 import VotersTable from "./table";
 import VoterEditModal from "./VoterEdit";
-import { useAppSelector } from "../store/hooks";
-import { selectVotersBallot_id, VoterCreate } from "../store/voters";
 
 function getDefaultVoter(ballot_id: number): VoterCreate {
 	let voter: VoterCreate = {
@@ -30,20 +31,13 @@ function VotersLayout() {
 		voter: getDefaultVoter(votersBallot_id || 0),
 	});
 
-	const actionsRef = document.querySelector("#actions");
-
 	return (
 		<>
-			{actionsRef &&
-				createPortal(
-					<VotersActions setVotersState={setEditVoter} />,
-					actionsRef
-				)}
-			<div className="table-container centered-rows">
-				{votersBallot_id && (
-					<VotersTable setVotersState={setEditVoter} />
-				)}
+			<div className="top-row">
+				<ProjectBallotSelector />
+				<VotersActions setVotersState={setEditVoter} />
 			</div>
+			{votersBallot_id && <VotersTable setVotersState={setEditVoter} />}
 			<VoterEditModal
 				isOpen={Boolean(editVoter.action)}
 				close={() =>

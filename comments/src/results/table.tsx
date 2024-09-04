@@ -1,8 +1,7 @@
-import * as React from "react";
+import React from "react";
 
 import {
 	AppTable,
-	TableColumnSelector,
 	ShowFilters,
 	ActionButton,
 	ColumnProperties,
@@ -17,15 +16,10 @@ import {
 	TextArea,
 } from "dot11-components";
 
-import ResultsSummary from "./ResultsSummary";
-import ResultsExport from "./ResultsExport";
-
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import {
 	fields,
-	loadResults,
-	clearResults,
 	selectResultsBallot_id,
 	resultsSelectors,
 	resultsActions,
@@ -42,8 +36,6 @@ import {
 	BallotType,
 	Ballot,
 } from "../store/ballots";
-import { selectIsOnline } from "../store/offline";
-import { createPortal } from "react-dom";
 
 const voteOptions = [
 	{ label: "Approve", value: "Approve" },
@@ -175,7 +167,7 @@ const renderItem = ({ rowData, dataKey }: CellRendererProps) => (
 	<div style={lineTruncStyle}>{rowData[dataKey]}</div>
 );
 
-const tableColumns: ColumnProperties[] = [
+export const tableColumns: ColumnProperties[] = [
 	{ key: "SAPIN", label: "SA PIN", width: 75 },
 	{ key: "Name", label: "Name", width: 200, cellRenderer: renderItem },
 	{
@@ -246,8 +238,6 @@ const maxWidth = 1600;
 function Results() {
 	const dispatch = useAppDispatch();
 
-	const isOnline = useAppSelector(selectIsOnline);
-
 	const access = useAppSelector(selectResultsAccess);
 	const resultsBallot_id = useAppSelector(selectResultsBallot_id);
 	const resultsBallot = useAppSelector((state) =>
@@ -263,11 +253,6 @@ function Results() {
 		if (resultsBallot)
 			dispatch(updateTableConfigAction(access, resultsBallot.Type));
 	}, [dispatch, access, resultsBallot]);
-
-	const refresh = () =>
-		dispatch(
-			resultsBallot_id ? loadResults(resultsBallot_id) : clearResults()
-		);
 
 	const [editResult, setEditResult] = React.useState<Result | null>(null);
 
@@ -288,36 +273,18 @@ function Results() {
 		});
 	}, [setEditResult]);
 
-	const actionsRef = document.querySelector("#actions");
-
 	return (
 		<>
-			{actionsRef &&
-				createPortal(
-					<div style={{ display: "flex" }}>
-						<ResultsSummary />
-						<ResultsExport ballot={resultsBallot} />
-						<TableColumnSelector
-							selectors={resultsSelectors}
-							actions={resultsActions}
-							columns={tableColumns}
-						/>
-						<ActionButton
-							name="refresh"
-							title="Refresh"
-							disabled={!isOnline}
-							onClick={refresh}
-						/>
-					</div>,
-					actionsRef
-				)}
-			<ShowFilters
-				selectors={resultsSelectors}
-				actions={resultsActions}
-				fields={fields}
-			/>
-			<div className="table-container centered-rows" style={{ maxWidth }}>
+			<div className="table-container centered-rows">
+				<ShowFilters
+					style={{ maxWidth }}
+					selectors={resultsSelectors}
+					actions={resultsActions}
+					fields={fields}
+				/>
 				<AppTable
+					fitWidth
+					fixed
 					defaultTablesConfig={defaultTablesConfig}
 					columns={columns}
 					headerHeight={28}
