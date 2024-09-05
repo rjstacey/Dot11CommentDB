@@ -11,9 +11,10 @@ import { loadMembers } from "../store/members";
 import { clearResults, loadResults } from "../store/results";
 
 import ResultsLayout from "./layout";
+import ResultsTable from "./table";
 
 const indexLoader: LoaderFunction = async () => {
-	store.dispatch(clearResults);
+	store.dispatch(clearResults());
 	return null;
 };
 
@@ -44,10 +45,12 @@ const route: RouteObject = {
 		{
 			index: true,
 			loader: indexLoader,
+			element: null,
 		},
 		{
 			path: ":ballotId",
 			loader: ballotIdLoader,
+			element: <ResultsTable />,
 		},
 	],
 };

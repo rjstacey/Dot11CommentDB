@@ -3,7 +3,6 @@ import ProjectBallotSelector from "../components/ProjectBallotSelector";
 import CommentsActions from "./actions";
 
 function CommentsLayout() {
-	const actionsRef = document.querySelector("#actions");
 	return (
 		<>
 			<div className="top-row">

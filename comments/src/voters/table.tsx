@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { useAppDispatch } from "../store/hooks";
 import {
 	ActionButton,

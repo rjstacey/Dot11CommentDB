@@ -6,24 +6,23 @@ import { Dropdown, DropdownRendererProps } from "dot11-components";
 import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import { selectWorkingGroupByName } from "../store/groups";
+
+import { menu, MenuItem } from "./routes";
 import { selectCurrentBallotID } from "../store/ballots";
 
-import { menu } from "./routes";
-
-type MenuLinkItem = {
+type MenuLinkItem = MenuItem & {
 	link: string;
-	label: string;
-	scope?: string;
-	minAccess?: number;
 };
 
 function useMenuLinks() {
-	const groupName = useParams().groupName || "";
-	const group = useAppSelector((state) =>
-		selectWorkingGroupByName(state, groupName)
-	);
+	let { groupName } = useParams();
 	const ballotId = useAppSelector(selectCurrentBallotID);
+	const group = useAppSelector((state) =>
+		groupName ? selectWorkingGroupByName(state, groupName) : undefined
+	);
 
+	// Only display links for which the use has permissions
+	// Replace params with the current setting
 	const menuLinks: MenuLinkItem[] = React.useMemo(() => {
 		return menu
 			.filter((m) => {
@@ -32,9 +31,8 @@ function useMenuLinks() {
 			})
 			.map((m) => {
 				const link = m.path
-					.replace(":groupName", groupName)
-					.replace("/:ballotId?", ballotId ? `/${ballotId}` : "")
-					.replace(/\/:[^/]+\?/, ""); // remove optional parameters
+					.replace(/:groupName/, groupName ? groupName : "")
+					.replace(/:ballotId\?{0,1}/, ballotId ? ballotId : "");
 				return { ...m, link };
 			});
 	}, [group, groupName, ballotId]);
@@ -49,6 +47,7 @@ function Menu({
 	className?: string;
 	methods?: DropdownRendererProps["methods"];
 }) {
+	const location = useLocation();
 	const menu = useMenuLinks();
 
 	let classNames: string = "nav-menu";
@@ -60,7 +59,12 @@ function Menu({
 			onClick={methods?.close} // If a click bubbles up, close the dropdown
 		>
 			{menu.map((m) => (
-				<NavLink className="nav-link" key={m.link} to={m.link}>
+				<NavLink
+					className="nav-link"
+					key={m.link}
+					to={m.link}
+					state={location.state}
+				>
 					{m.label}
 				</NavLink>
 			))}

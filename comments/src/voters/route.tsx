@@ -14,7 +14,7 @@ import { clearVoters, loadVoters } from "../store/voters";
 import Voters from "./layout";
 
 const indexLoader: LoaderFunction = async () => {
-	store.dispatch(clearVoters);
+	store.dispatch(clearVoters());
 	return null;
 };
 

@@ -1,6 +1,6 @@
+import { Outlet } from "react-router";
 import ProjectBallotSelector from "../components/ProjectBallotSelector";
 import ResultsActions from "./actions";
-import ResultsTable from "./table";
 
 function ResultsLayout() {
 	return (
@@ -9,7 +9,7 @@ function ResultsLayout() {
 				<ProjectBallotSelector />
 				<ResultsActions />
 			</div>
-			<ResultsTable />
+			<Outlet />
 		</>
 	);
 }

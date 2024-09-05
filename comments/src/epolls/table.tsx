@@ -1,21 +1,17 @@
 import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
 
 import {
 	AppTable,
 	ActionButton,
 	AppModal,
-	Spinner,
 	ColumnProperties,
 } from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppSelector } from "../store/hooks";
 import { selectIsOnline } from "../store/offline";
 import { BallotType, Ballot } from "../store/ballots";
 import {
 	fields,
-	loadEpolls,
-	selectEpollsState,
 	epollsSelectors,
 	epollsActions,
 	SyncedEpoll,
@@ -66,27 +62,8 @@ const tableColumns: (ColumnProperties & { width: number })[] = [
 
 const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
 
-function Epolls() {
-	const navigate = useNavigate();
-	const dispatch = useAppDispatch();
-	const { groupName } = useParams();
-	const { loading } = useAppSelector(selectEpollsState);
+function EpollsTable() {
 	const isOnline = useAppSelector(selectIsOnline);
-
-	const numberEpolls = React.useRef(20);
-	const load = React.useCallback(
-		() =>
-			groupName && dispatch(loadEpolls(groupName, numberEpolls.current)),
-		[dispatch, groupName]
-	);
-
-	const close = () => navigate(`/${groupName}/ballots`);
-
-	function loadMore() {
-		numberEpolls.current += 10;
-		load();
-	}
-
 	const [addBallot, setAddBallot] = React.useState<Ballot | null>(null);
 
 	const columns = React.useMemo(() => {
@@ -111,27 +88,6 @@ function Epolls() {
 
 	return (
 		<>
-			<div className="top-row" style={{ maxWidth }}>
-				<span>
-					<label>Closed ePolls</label>
-				</span>
-				{loading && <Spinner />}
-				<span>
-					<ActionButton
-						name="more"
-						title="Load More"
-						onClick={loadMore}
-						disabled={loading || !isOnline}
-					/>
-					<ActionButton
-						name="refresh"
-						title="Refresh"
-						onClick={load}
-						disabled={loading || !isOnline}
-					/>
-					<ActionButton name="close" title="Close" onClick={close} />
-				</span>
-			</div>
 			<div className="table-container" style={{ maxWidth }}>
 				<AppTable
 					columns={columns}
@@ -156,4 +112,4 @@ function Epolls() {
 	);
 }
 
-export default Epolls;
+export default EpollsTable;

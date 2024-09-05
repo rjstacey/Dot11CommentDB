@@ -1,5 +1,5 @@
 import React from "react";
-import { useMatches, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { Select } from "dot11-components";
 
@@ -13,9 +13,11 @@ import {
 	selectBallotOptions,
 	selectBallotByBallotID,
 	GroupProject,
+	selectCurrentGroupProject,
 } from "../store/ballots";
 
 import styles from "./ProjectBallotSelector.module.css";
+import { selectIsOnline } from "../store/offline";
 
 function ProjectSelect({
 	value,
@@ -93,25 +95,35 @@ function BallotSelect({
 function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
-	const { ballotId } = useParams();
 
-	const { loading, valid, currentGroupId, currentProject, currentBallot_id } =
-		useAppSelector(selectBallotsState);
+	const isOnline = useAppSelector(selectIsOnline);
+	if (!isOnline) readOnly = true;
+
+	const { ballotId } = useParams();
 	const ballot = useAppSelector((state) =>
 		ballotId ? selectBallotByBallotID(state, ballotId) : undefined
 	);
-	const ballot_id = ballot ? ballot.id : currentBallot_id;
-	const project = ballot ? ballot.Project : currentProject;
-	const groupId = ballot ? ballot.groupId : currentGroupId;
+	const ballot_id = ballot?.id || null;
+	let groupProject = useAppSelector(selectCurrentGroupProject);
+	if (
+		ballot &&
+		(groupProject.groupId !== ballot.groupId ||
+			groupProject.project !== ballot.Project)
+	)
+		groupProject = { groupId: ballot.groupId, project: ballot.Project };
 
-	const handleProjectChange = async (value: GroupProject) => {
-		const ballot = await dispatch(setCurrentGroupProject(value));
-		navigate(ballot ? getBallotId(ballot) : "");
+	const { loading, valid } = useAppSelector(selectBallotsState);
+
+	const handleProjectChange = async (groupProject: GroupProject) => {
+		const ballot = await dispatch(setCurrentGroupProject(groupProject));
+		const ballotId = ballot ? getBallotId(ballot) : undefined;
+		navigate(ballotId || "");
 	};
 
 	const handleBallotChange = async (value: number | null) => {
 		const ballot = await dispatch(setCurrentBallot_id(value));
-		navigate(ballot ? getBallotId(ballot) : "");
+		const ballotId = ballot ? getBallotId(ballot) : undefined;
+		navigate(ballotId || "");
 	};
 
 	return (
@@ -120,7 +132,7 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 				<label>Project:</label>
 				<ProjectSelect
 					style={{ minWidth: 150, marginRight: 20 }}
-					value={{ groupId, project }}
+					value={groupProject}
 					onChange={handleProjectChange}
 					loading={loading && !valid}
 					readOnly={readOnly}

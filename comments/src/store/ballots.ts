@@ -198,15 +198,13 @@ export type GroupProject = {
 
 type ExtraState = {
 	groupName: string | null;
-	currentGroupId: string | null;
-	currentProject: string | null;
+	currentGroupProject: GroupProject;
 	currentBallot_id: number | null;
 };
 
 const initialState: ExtraState = {
 	groupName: null,
-	currentGroupId: null,
-	currentProject: null,
+	currentGroupProject: { groupId: null, project: null },
 	currentBallot_id: null,
 };
 
@@ -216,7 +214,6 @@ const sortComparer = (b1: Ballot, b2: Ballot) => {
 	return (b1.Project || "").localeCompare(b2.Project || "");
 };
 const dataSet = "ballots";
-
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -225,26 +222,19 @@ const slice = createAppTableDataSlice({
 	reducers: {
 		setCurrentGroupProject(state, action: PayloadAction<GroupProject>) {
 			const { groupId, project } = action.payload;
-			const { entities, currentBallot_id } = state;
-			const currentBallot =
-				(currentBallot_id && entities[currentBallot_id]) || undefined;
-			if (
-				currentBallot &&
-				(currentBallot.groupId !== groupId ||
-					currentBallot.Project !== project)
-			)
-				state.currentBallot_id = null;
-			state.currentGroupId = groupId;
-			state.currentProject = project;
+			state.currentBallot_id = null;
+			state.currentGroupProject.groupId = groupId;
+			state.currentGroupProject.project = project;
 		},
 		setCurrentBallot_id(state, action: PayloadAction<number | null>) {
 			const id = action.payload;
-			state.currentBallot_id = id;
-			const ballot = (id && state.entities[id]) || undefined;
-			if (ballot) {
-				state.currentGroupId = ballot.groupId;
-				state.currentProject = ballot.Project;
-			}
+			const { entities } = state;
+			const ballot = id ? entities[id] : undefined;
+			const groupId = ballot?.groupId || null;
+			const project = ballot?.Project || null;
+			state.currentBallot_id = ballot ? ballot.id : null;
+			state.currentGroupProject.groupId = groupId;
+			state.currentGroupProject.project = project;
 		},
 	},
 	extraReducers: (builder, dataAdapter) => {
@@ -263,17 +253,13 @@ const slice = createAppTableDataSlice({
 			.addMatcher(
 				(action: Action) => action.type === dataSet + "/getSuccess",
 				(state) => {
-					if (state.currentBallot_id) {
-						const ballot = state.entities[state.currentBallot_id];
-						if (ballot) {
-							state.currentGroupId = ballot.groupId;
-							state.currentProject = ballot.Project;
-						} else {
-							state.currentBallot_id = null;
-							state.currentGroupId = null;
-							state.currentProject = null;
-						}
-					}
+					const { entities, currentBallot_id: id } = state;
+					const ballot = id ? entities[id] : undefined;
+					const groupId = ballot?.groupId || null;
+					const project = ballot?.Project || null;
+					state.currentBallot_id = ballot ? ballot.id : null;
+					state.currentGroupProject.groupId = groupId;
+					state.currentGroupProject.project = project;
 				}
 			)
 			.addMatcher(
@@ -282,8 +268,8 @@ const slice = createAppTableDataSlice({
 					dataAdapter.removeAll(state);
 					state.valid = false;
 					state.currentBallot_id = null;
-					state.currentGroupId = null;
-					state.currentProject = null;
+					state.currentGroupProject.groupId = null;
+					state.currentGroupProject.project = null;
 				}
 			);
 	},
@@ -323,10 +309,8 @@ export const selectBallotEntities = (state: RootState) =>
 	selectBallotsState(state).entities;
 export const selectCurrentBallot_id = (state: RootState) =>
 	selectBallotsState(state).currentBallot_id;
-export const selectCurrentGroupId = (state: RootState) =>
-	selectBallotsState(state).currentGroupId;
-export const selectCurrentProject = (state: RootState) =>
-	selectBallotsState(state).currentProject;
+export const selectCurrentGroupProject = (state: RootState) =>
+	selectBallotsState(state).currentGroupProject;
 export const selectCurrentBallotID = (state: RootState) => {
 	const { currentBallot_id, entities } = selectBallotsState(state);
 	if (currentBallot_id === null) return;
@@ -441,14 +425,16 @@ export const selectGroupProjectOptions = createSelector(
 export const selectBallotOptions = createSelector(
 	selectBallotIds,
 	selectBallotEntities,
-	selectCurrentGroupId,
-	selectCurrentProject,
-	(ids, entities, groupId, project) => {
+	selectCurrentGroupProject,
+	(ids, entities, groupProject) => {
 		let ballotIds = ids as number[];
-		if (groupId || project) {
+		if (groupProject.groupId || groupProject.project) {
 			ballotIds = ballotIds.filter((id) => {
 				const ballot = entities[id]!;
-				return ballot.groupId === groupId && ballot.Project === project;
+				return (
+					ballot.groupId === groupProject.groupId &&
+					ballot.Project === groupProject.project
+				);
 			});
 		}
 		return ballotIds.map((id) => entities[id]!);
@@ -524,10 +510,36 @@ export const updateBallotsLocal =
 	};
 
 export const setCurrentGroupProject =
-	(value: GroupProject): AppThunk<Ballot | undefined> =>
+	(groupProject: GroupProject): AppThunk<Ballot | undefined> =>
 	async (dispatch, getState) => {
-		dispatch(setCurrentGroupProjectLocal(value));
-		return selectCurrentBallot(getState());
+		// See if the current ballot matches
+		const currentBallot = selectCurrentBallot(getState());
+		if (
+			currentBallot &&
+			currentBallot.groupId === groupProject.groupId &&
+			currentBallot.Project === groupProject.project
+		)
+			return currentBallot;
+
+		// Find newest ballot for this project
+		const ballots = selectBallots(getState())
+			.filter(
+				(b) =>
+					b.groupId === groupProject.groupId &&
+					b.Project === groupProject.project
+			)
+			.sort(
+				(b1, b2) =>
+					new Date(b1.End || "").valueOf() -
+					new Date(b2.End || "").valueOf()
+			);
+		const ballot = ballots[ballots.length - 1];
+		dispatch(
+			ballot
+				? setCurrentBallotIdLocal(ballot.id)
+				: setCurrentGroupProjectLocal(groupProject)
+		);
+		return ballot;
 	};
 
 export const setCurrentBallot_id =

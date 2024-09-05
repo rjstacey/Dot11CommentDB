@@ -1,4 +1,4 @@
-import { RouteObject, LoaderFunction, Outlet } from "react-router-dom";
+import { RouteObject, LoaderFunction } from "react-router-dom";
 
 import { store } from "../store";
 import { AccessLevel } from "../store/user";

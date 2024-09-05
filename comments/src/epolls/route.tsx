@@ -5,7 +5,7 @@ import { selectIsOnline } from "../store/offline";
 import { loadBallots } from "../store/ballots";
 import { loadEpolls } from "../store/epolls";
 
-import Epolls from "./Epolls";
+import EpollsLayout from "./layout";
 
 const epollsLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
@@ -20,7 +20,7 @@ const epollsLoader: LoaderFunction = async ({ params }) => {
 };
 
 const route: RouteObject = {
-	element: <Epolls />,
+	element: <EpollsLayout />,
 	loader: epollsLoader,
 };
 
