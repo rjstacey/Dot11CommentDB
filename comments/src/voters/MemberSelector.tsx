@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { Select } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";

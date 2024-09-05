@@ -88,7 +88,7 @@ function EpollsTable() {
 
 	return (
 		<>
-			<div className="table-container" style={{ maxWidth }}>
+			<div className="table-container" style={{ alignItems: "unset" }}>
 				<AppTable
 					columns={columns}
 					headerHeight={28}

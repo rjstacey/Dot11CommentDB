@@ -131,7 +131,7 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 			<div className={styles.selector}>
 				<label>Project:</label>
 				<ProjectSelect
-					style={{ minWidth: 150, marginRight: 20 }}
+					style={{ minWidth: 150, width: 250, marginRight: 20 }}
 					value={groupProject}
 					onChange={handleProjectChange}
 					loading={loading && !valid}
@@ -141,7 +141,7 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 			<div className={styles.selector}>
 				<label>Ballot:</label>
 				<BallotSelect
-					style={{ minWidth: 250 }}
+					style={{ minWidth: 250, width: 300 }}
 					value={ballot_id}
 					onChange={handleBallotChange}
 					loading={loading && !valid}
