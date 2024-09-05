@@ -45,11 +45,7 @@ const ballotIdLoader: LoaderFunction = async ({ params }) => {
 			throw new Error("You do not have permission to view this data");
 
 		const ballotSeries_id = selectBallotSeriesId(getState(), ballot);
-		if (ballotSeries_id) {
-			if (isOnline) dispatch(loadVoters(ballotSeries_id));
-		} else {
-			dispatch(clearVoters());
-		}
+		dispatch(ballotSeries_id ? loadVoters(ballotSeries_id) : clearVoters());
 	} else {
 		dispatch(clearVoters());
 		throw new Error(`Ballot ${ballotId} not found`);

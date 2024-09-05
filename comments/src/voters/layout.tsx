@@ -1,11 +1,10 @@
 import React from "react";
-import { useAppSelector } from "../store/hooks";
-import { selectVotersBallot_id, VoterCreate } from "../store/voters";
+import { Outlet } from "react-router";
+import { VoterCreate } from "../store/voters";
 import ProjectBallotSelector from "../components/ProjectBallotSelector";
 
 import VotersActions from "./actions";
 import VoterEditModal from "./VoterEdit";
-import { Outlet } from "react-router";
 
 export function getDefaultVoter(ballot_id: number): VoterCreate {
 	let voter: VoterCreate = {

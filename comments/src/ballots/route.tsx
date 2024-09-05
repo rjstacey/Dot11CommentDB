@@ -2,9 +2,7 @@ import { LoaderFunction, RouteObject, useRouteError } from "react-router-dom";
 
 import { store } from "../store";
 import { AccessLevel } from "../store/user";
-import { selectIsOnline } from "../store/offline";
 import { selectWorkingGroupByName } from "../store/groups";
-import { loadBallots } from "../store/ballots";
 
 import Ballots from "./Ballots";
 

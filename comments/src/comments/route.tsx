@@ -43,7 +43,7 @@ export const ballotIdLoader: LoaderFunction = async ({ params }) => {
 		if (access < AccessLevel.ro)
 			throw new Error("You do not have permission to view this data");
 
-		if (isOnline) dispatch(loadComments(ballot.id));
+		dispatch(loadComments(ballot.id));
 	} else {
 		dispatch(clearComments());
 		throw new Error(`Ballot ${ballotId} not found`);

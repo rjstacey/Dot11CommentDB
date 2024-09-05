@@ -21,6 +21,7 @@ import {
 	BallotTypeLabels,
 } from "./ballots";
 import { selectGroupPermissions } from "./groups";
+import { selectIsOnline } from "./offline";
 
 export type Result = {
 	id: string;
@@ -201,6 +202,10 @@ export const loadResults =
 		);
 		if (loading && currentBallot_id === ballot_id) {
 			return loadingPromise;
+		}
+		if (!selectIsOnline(getState())) {
+			if (ballot_id !== currentBallot_id) dispatch(clearResults());
+			return Promise.resolve([]);
 		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}`;

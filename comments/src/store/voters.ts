@@ -10,6 +10,7 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import { updateBallotsLocal } from "./ballots";
+import { selectIsOnline } from "./offline";
 
 export type Voter = {
 	id: string;
@@ -161,6 +162,10 @@ export const loadVoters =
 		if (loading && currentBallot_id === ballot_id) {
 			return loadingPromise;
 		}
+		if (!selectIsOnline(getState())) {
+			if (ballot_id !== currentBallot_id) dispatch(clearVoters());
+			return Promise.resolve([]);
+		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}`;
 		loadingPromise = fetcher
@@ -169,6 +174,7 @@ export const loadVoters =
 				if (!validGetResponse(response))
 					throw new TypeError("Unexpected response to GET " + url);
 				dispatch(getSuccess(response));
+				return response;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());

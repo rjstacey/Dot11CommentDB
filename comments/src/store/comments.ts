@@ -27,7 +27,7 @@ import {
 	BallotCommentsSummary,
 } from "./ballots";
 import { selectGroupPermissions } from "./groups";
-import { offlineFetch } from "./offline";
+import { offlineFetch, selectIsOnline } from "./offline";
 
 export type CategoryType = "T" | "E" | "G";
 
@@ -430,24 +430,42 @@ function validGetResponse(response: any): response is CommentResolution[] {
 	return Array.isArray(response) && response.every(validCommentResolution);
 }
 
+let loadingPromise: Promise<CommentResolution[]>;
 export const loadComments =
-	(ballot_id: number): AppThunk =>
+	(ballot_id: number): AppThunk<CommentResolution[]> =>
 	async (dispatch, getState) => {
+		const { loading, ballot_id: currentBallot_id } = selectCommentsState(
+			getState()
+		);
+		if (loading && currentBallot_id === ballot_id) {
+			return loadingPromise;
+		}
+		if (!selectIsOnline(getState())) {
+			if (ballot_id !== currentBallot_id) dispatch(clearComments());
+			return Promise.resolve([]);
+		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseCommentsUrl}/${ballot_id}`;
-		let response: any;
-		try {
-			response = await fetcher.get(url);
-			if (!validGetResponse(response))
-				throw new TypeError("Unexpected response");
-		} catch (error) {
-			const ballot = selectBallotEntities(getState())[ballot_id];
-			const ballotId = ballot? getBallotId(ballot): `id=${ballot_id}`;
-			dispatch(getFailure());
-			dispatch(setError(`Unable to get comments for ${ballotId}`, error));
-			return;
-		}
-		dispatch(getSuccess(response));
+		loadingPromise = fetcher
+			.get(url)
+			.then((response: any) => {
+				if (!validGetResponse(response))
+					throw new TypeError("Unexpected response");
+				dispatch(getSuccess(response));
+				return response;
+			})
+			.catch((error: any) => {
+				const ballot = selectBallotEntities(getState())[ballot_id];
+				const ballotId = ballot
+					? getBallotId(ballot)
+					: `id=${ballot_id}`;
+				dispatch(getFailure());
+				dispatch(
+					setError(`Unable to get comments for ${ballotId}`, error)
+				);
+				return [];
+			});
+		return loadingPromise;
 	};
 
 export const getCommentUpdates = (): AppThunk => async (dispatch, getState) => {
@@ -975,7 +993,7 @@ export const exportCommentsSpreadsheet =
 			await fetcher.postForFile(url, { style }, file);
 		} catch (error) {
 			const ballot = selectBallotEntities(getState())[ballot_id];
-			const ballotId = ballot? getBallotId(ballot): `id=${ballot_id}`;
+			const ballotId = ballot ? getBallotId(ballot) : `id=${ballot_id}`;
 			dispatch(
 				setError(
 					`Unable to export comments for ballot ${ballotId}`,

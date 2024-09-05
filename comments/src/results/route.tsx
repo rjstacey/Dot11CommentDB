@@ -9,7 +9,6 @@ import {
 	Ballot,
 } from "../store/ballots";
 import { selectGroup } from "../store/groups";
-import { loadMembers } from "../store/members";
 import { clearResults, loadResults } from "../store/results";
 
 import ResultsLayout from "./layout";
@@ -44,7 +43,7 @@ const ballotIdLoader: LoaderFunction = async ({ params }) => {
 		if (access < AccessLevel.ro)
 			throw new Error("You do not have permission to view this data");
 
-		if (isOnline) dispatch(loadResults(ballot.id));
+		dispatch(loadResults(ballot.id));
 	} else {
 		dispatch(clearResults());
 		throw new Error(`Ballot ${ballotId} not found`);
