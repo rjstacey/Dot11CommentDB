@@ -1,5 +1,6 @@
-import { RouteObject, LoaderFunction } from "react-router";
+import { RouteObject, LoaderFunction, useRouteError } from "react-router";
 import { store } from "../store";
+import { AccessLevel } from "../store/user";
 import { selectIsOnline } from "../store/offline";
 import {
 	loadBallots,
@@ -7,6 +8,7 @@ import {
 	setCurrentBallot_id,
 	Ballot,
 } from "../store/ballots";
+import { selectGroup } from "../store/groups";
 import { loadMembers } from "../store/members";
 import { clearResults, loadResults } from "../store/results";
 
@@ -24,20 +26,44 @@ const ballotIdLoader: LoaderFunction = async ({ params }) => {
 	if (!ballotId) throw new Error("Route error: ballotId not set");
 
 	const { dispatch, getState } = store;
-	if (selectIsOnline(getState())) {
-		const p = dispatch(loadBallots(groupName));
-		dispatch(loadMembers(groupName));
-		let ballot: Ballot | undefined;
+	const isOnline = selectIsOnline(getState());
+
+	let ballot: Ballot | undefined;
+	ballot = selectBallotByBallotID(getState(), ballotId);
+	if (isOnline && !ballot) {
+		await dispatch(loadBallots(groupName)); // see if we get it with a ballots refresh
 		ballot = selectBallotByBallotID(getState(), ballotId);
-		if (!ballot) {
-			await p; // see if we get it with a ballots refresh
-			ballot = selectBallotByBallotID(getState(), ballotId);
-		}
-		dispatch(setCurrentBallot_id(ballot ? ballot.id : null));
-		dispatch(ballot ? loadResults(ballot.id) : clearResults());
+	}
+
+	if (ballot) {
+		dispatch(setCurrentBallot_id(ballot.id));
+
+		const group = selectGroup(getState(), ballot.groupId!);
+		if (!group) throw new Error(`Group for ${ballotId} not found`);
+		const access = group.permissions.results || AccessLevel.none;
+		if (access < AccessLevel.ro)
+			throw new Error("You do not have permission to view this data");
+
+		if (isOnline) dispatch(loadResults(ballot.id));
+	} else {
+		dispatch(clearResults());
+		throw new Error(`Ballot ${ballotId} not found`);
 	}
 	return null;
 };
+
+function ErrorPage() {
+	const error: any = useRouteError();
+
+	return (
+		<div id="error-page">
+			<h1>Error</h1>
+			<p>
+				<i>{error.statusText || error.message}</i>
+			</p>
+		</div>
+	);
+}
 
 const route: RouteObject = {
 	element: <ResultsLayout />,
@@ -51,6 +77,7 @@ const route: RouteObject = {
 			path: ":ballotId",
 			loader: ballotIdLoader,
 			element: <ResultsTable />,
+			errorElement: <ErrorPage />,
 		},
 	],
 };

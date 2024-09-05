@@ -198,12 +198,14 @@ export type GroupProject = {
 
 type ExtraState = {
 	groupName: string | null;
+	lastLoad: string | null;
 	currentGroupProject: GroupProject;
 	currentBallot_id: number | null;
 };
 
 const initialState: ExtraState = {
 	groupName: null,
+	lastLoad: null,
 	currentGroupProject: { groupId: null, project: null },
 	currentBallot_id: null,
 };
@@ -245,6 +247,7 @@ const slice = createAppTableDataSlice({
 					const { groupName } = action.payload;
 					if (groupName !== state.groupName) {
 						state.groupName = groupName;
+						state.lastLoad = null;
 						state.valid = false;
 						dataAdapter.removeAll(state);
 					}
@@ -253,6 +256,7 @@ const slice = createAppTableDataSlice({
 			.addMatcher(
 				(action: Action) => action.type === dataSet + "/getSuccess",
 				(state) => {
+					state.lastLoad = new Date().toISOString();
 					const { entities, currentBallot_id: id } = state;
 					const ballot = id ? entities[id] : undefined;
 					const groupId = ballot?.groupId || null;
@@ -267,6 +271,7 @@ const slice = createAppTableDataSlice({
 				(state) => {
 					dataAdapter.removeAll(state);
 					state.valid = false;
+					state.lastLoad = null;
 					state.currentBallot_id = null;
 					state.currentGroupProject.groupId = null;
 					state.currentGroupProject.project = null;
@@ -303,6 +308,11 @@ export { setUiProperties, setSelectedBallots };
 export const selectBallotsState = (state: RootState) => state[dataSet];
 const selectBallotsGroupName = (state: RootState) =>
 	selectBallotsState(state).groupName;
+const selectBallotsAge = (state: RootState) => {
+	let lastLoad = selectBallotsState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectBallotIds = (state: RootState) =>
 	selectBallotsState(state).ids;
 export const selectBallotEntities = (state: RootState) =>
@@ -553,15 +563,21 @@ function validResponse(response: any): response is Ballot[] {
 	return Array.isArray(response) && response.every(validBallot);
 }
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
 let loadingPromise: Promise<Ballot[]>;
 export const loadBallots =
-	(groupName: string): AppThunk<Ballot[]> =>
+	(groupName: string, force = false): AppThunk<Ballot[]> =>
 	async (dispatch, getState) => {
 		const { loading, groupName: currentGroupName } = selectBallotsState(
 			getState()
 		);
 		if (loading && groupName === currentGroupName) {
 			return loadingPromise;
+		}
+		const age = selectBallotsAge(getState());
+		if (age && age < AGE_STALE && !force) {
+			return loadingPromise!;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/ballots`;

@@ -2,7 +2,7 @@ import {
 	createSlice,
 	createEntityAdapter,
 	createSelector,
-	PayloadAction
+	PayloadAction,
 } from "@reduxjs/toolkit";
 
 import { fetcher, isObject, setError } from "dot11-components";
@@ -30,10 +30,12 @@ const initialState: {
 	valid: boolean;
 	loading: boolean;
 	groupName: string | null;
+	lastLoad: string | null;
 } = {
 	valid: false,
 	loading: false,
 	groupName: null,
+	lastLoad: null,
 };
 const selectId = (user: UserMember) => user.SAPIN;
 const dataAdapter = createEntityAdapter({ selectId });
@@ -48,10 +50,12 @@ const slice = createSlice({
 			if (state.groupName !== groupName) {
 				state.groupName = groupName;
 				state.valid = false;
+				state.lastLoad = null;
 				dataAdapter.removeAll(state);
 			}
 		},
 		getSuccess(state, action: PayloadAction<UserMember[]>) {
+			state.lastLoad = new Date().toISOString();
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
@@ -62,6 +66,7 @@ const slice = createSlice({
 		clearMembers(state) {
 			state.groupName = null;
 			state.valid = false;
+			state.lastLoad = null;
 			dataAdapter.removeAll(state);
 		},
 	},
@@ -74,9 +79,13 @@ const { getPending, getSuccess, getFailure, clearMembers } = slice.actions;
 
 export { clearMembers };
 
-
 /* Selectors */
 export const selectMembersState = (state: RootState) => state[dataSet];
+const selectMembersAge = (state: RootState) => {
+	let lastLoad = selectMembersState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectMemberIds = (state: RootState) =>
 	selectMembersState(state).ids;
 export const selectMemberEntities = (state: RootState) =>
@@ -92,17 +101,26 @@ function validResponse(response: any): response is UserMember[] {
 	return Array.isArray(response) && response.every(validUser);
 }
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
 let loadingPromise: Promise<UserMember[]>;
 export const loadMembers =
-	(groupName: string): AppThunk<UserMember[]> =>
+	(groupName: string, force = false): AppThunk<UserMember[]> =>
 	(dispatch, getState) => {
-		const {loading, groupName: currentGroupName} = selectMembersState(getState());
+		const { loading, groupName: currentGroupName } = selectMembersState(
+			getState()
+		);
 		if (loading && currentGroupName === groupName) {
 			return loadingPromise;
 		}
+		const age = selectMembersAge(getState());
+		if (age && age < AGE_STALE && !force) {
+			return loadingPromise!;
+		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/members/user`;
-		loadingPromise = fetcher.get(url)
+		loadingPromise = fetcher
+			.get(url)
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");

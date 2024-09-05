@@ -3,8 +3,9 @@ import { RouteObject, LoaderFunction } from "react-router-dom";
 import { store } from "../store";
 import { AccessLevel } from "../store/user";
 import { selectIsOnline } from "../store/offline";
-import { loadGroups } from "../store/groups";
+import { loadGroups, selectWorkingGroupByName } from "../store/groups";
 import { loadMembers } from "../store/members";
+import { loadBallots } from "../store/ballots";
 
 import AppLayout from "./layout";
 import AppErrorPage from "./errorPage";
@@ -72,9 +73,17 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;
+
+	const group = selectWorkingGroupByName(getState(), groupName);
+	if (!group) throw new Error("Invalid group: " + groupName);
+	const access = group.permissions.ballots || AccessLevel.none;
+	if (access < AccessLevel.ro)
+		throw new Error("You don't have permission to view this data");
+
 	if (selectIsOnline(getState())) {
 		dispatch(loadGroups(groupName));
 		dispatch(loadMembers(groupName));
+		dispatch(loadBallots(groupName));
 	}
 	return null;
 };

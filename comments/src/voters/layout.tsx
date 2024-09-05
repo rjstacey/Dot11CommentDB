@@ -4,10 +4,10 @@ import { selectVotersBallot_id, VoterCreate } from "../store/voters";
 import ProjectBallotSelector from "../components/ProjectBallotSelector";
 
 import VotersActions from "./actions";
-import VotersTable from "./table";
 import VoterEditModal from "./VoterEdit";
+import { Outlet } from "react-router";
 
-function getDefaultVoter(ballot_id: number): VoterCreate {
+export function getDefaultVoter(ballot_id: number): VoterCreate {
 	let voter: VoterCreate = {
 		ballot_id,
 		SAPIN: 0,
@@ -21,14 +21,12 @@ type VotersState = {
 	voter: VoterCreate;
 };
 
-export type SetVotersState = (state: VotersState) => void;
+export type VotersContext = { setVotersState: (state: VotersState) => void };
 
 function VotersLayout() {
-	const votersBallot_id = useAppSelector(selectVotersBallot_id);
-
 	const [editVoter, setEditVoter] = React.useState<VotersState>({
 		action: null,
-		voter: getDefaultVoter(votersBallot_id || 0),
+		voter: getDefaultVoter(0),
 	});
 
 	return (
@@ -37,13 +35,16 @@ function VotersLayout() {
 				<ProjectBallotSelector />
 				<VotersActions setVotersState={setEditVoter} />
 			</div>
-			{votersBallot_id && <VotersTable setVotersState={setEditVoter} />}
+			<Outlet
+				context={
+					{ setVotersState: setEditVoter } satisfies VotersContext
+				}
+			/>
 			<VoterEditModal
 				isOpen={Boolean(editVoter.action)}
 				close={() =>
 					setEditVoter((state) => ({ ...state, action: null }))
 				}
-				ballot_id={votersBallot_id}
 				voter={editVoter.voter}
 				action={editVoter.action}
 			/>

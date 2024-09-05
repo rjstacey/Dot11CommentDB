@@ -1,43 +1,68 @@
-import { RouteObject, LoaderFunction } from "react-router";
+import { RouteObject, LoaderFunction, useRouteError } from "react-router";
 import { store } from "../store";
 import { selectIsOnline } from "../store/offline";
+import { AccessLevel } from "../store/user";
+import { selectGroup } from "../store/groups";
 import {
 	loadBallots,
 	selectBallotByBallotID,
 	setCurrentBallot_id,
 	Ballot,
 } from "../store/ballots";
-import { loadMembers } from "../store/members";
 import { clearComments, loadComments } from "../store/comments";
 
 import CommentsLayout from "./layout";
 import CommentsTable from "./table";
 
-const indexLoader: LoaderFunction = async () => {
+export const indexLoader: LoaderFunction = async () => {
 	store.dispatch(clearComments());
 	return null;
 };
 
-const ballotIdLoader: LoaderFunction = async ({ params }) => {
+export const ballotIdLoader: LoaderFunction = async ({ params }) => {
 	const { groupName, ballotId } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	if (!ballotId) throw new Error("Route error: ballotId not set");
 
 	const { dispatch, getState } = store;
-	if (selectIsOnline(getState())) {
-		const p = dispatch(loadBallots(groupName));
-		dispatch(loadMembers(groupName));
-		let ballot: Ballot | undefined;
+	const isOnline = selectIsOnline(getState());
+
+	let ballot: Ballot | undefined;
+	ballot = selectBallotByBallotID(getState(), ballotId);
+	if (isOnline && !ballot) {
+		// see if we get it with a ballots refresh
+		await dispatch(loadBallots(groupName));
 		ballot = selectBallotByBallotID(getState(), ballotId);
-		if (!ballot) {
-			await p; // see if we get it with a ballots refresh
-			ballot = selectBallotByBallotID(getState(), ballotId);
-		}
-		dispatch(setCurrentBallot_id(ballot ? ballot.id : null));
-		dispatch(ballot ? loadComments(ballot.id) : clearComments());
+	}
+
+	dispatch(setCurrentBallot_id(ballot ? ballot.id : null));
+	if (ballot) {
+		const group = selectGroup(getState(), ballot.groupId!);
+		if (!group) throw new Error(`Group for ${ballotId} not found`);
+		const access = group.permissions.comments || AccessLevel.none;
+		if (access < AccessLevel.ro)
+			throw new Error("You do not have permission to view this data");
+
+		if (isOnline) dispatch(loadComments(ballot.id));
+	} else {
+		dispatch(clearComments());
+		throw new Error(`Ballot ${ballotId} not found`);
 	}
 	return null;
 };
+
+export function ErrorPage() {
+	const error: any = useRouteError();
+
+	return (
+		<div id="error-page">
+			<h1>Error</h1>
+			<p>
+				<i>{error.statusText || error.message}</i>
+			</p>
+		</div>
+	);
+}
 
 const route: RouteObject = {
 	element: <CommentsLayout />,
@@ -50,6 +75,7 @@ const route: RouteObject = {
 			path: ":ballotId",
 			loader: ballotIdLoader,
 			element: <CommentsTable />,
+			errorElement: <ErrorPage />,
 		},
 	],
 };

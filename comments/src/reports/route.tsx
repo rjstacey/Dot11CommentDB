@@ -1,43 +1,9 @@
-import { RouteObject, LoaderFunction } from "react-router";
-import { store } from "../store";
-import { selectIsOnline } from "../store/offline";
-import {
-	loadBallots,
-	selectBallotByBallotID,
-	setCurrentBallot_id,
-	Ballot,
-} from "../store/ballots";
-import { loadMembers } from "../store/members";
-import { clearComments, loadComments } from "../store/comments";
+import { RouteObject } from "react-router";
 
 import ReportsLayout from "./layout";
 import Reports from "./Reports";
 
-const indexLoader: LoaderFunction = async () => {
-	store.dispatch(clearComments);
-	return null;
-};
-
-const ballotIdLoader: LoaderFunction = async ({ params }) => {
-	const { groupName, ballotId } = params;
-	if (!groupName) throw new Error("Route error: groupName not set");
-	if (!ballotId) throw new Error("Route error: ballotId not set");
-
-	const { dispatch, getState } = store;
-	if (selectIsOnline(getState())) {
-		const p = dispatch(loadBallots(groupName));
-		dispatch(loadMembers(groupName));
-		let ballot: Ballot | undefined;
-		ballot = selectBallotByBallotID(getState(), ballotId);
-		if (!ballot) {
-			await p; // see if we get it with a ballots refresh
-			ballot = selectBallotByBallotID(getState(), ballotId);
-		}
-		dispatch(setCurrentBallot_id(ballot ? ballot.id : null));
-		dispatch(ballot ? loadComments(ballot.id) : clearComments());
-	}
-	return null;
-};
+import { indexLoader, ballotIdLoader, ErrorPage } from "../comments/route";
 
 const route: RouteObject = {
 	element: <ReportsLayout />,
@@ -51,6 +17,7 @@ const route: RouteObject = {
 			path: ":ballotId",
 			loader: ballotIdLoader,
 			element: <Reports />,
+			errorElement: <ErrorPage />,
 		},
 	],
 };

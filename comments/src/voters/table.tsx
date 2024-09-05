@@ -1,5 +1,6 @@
 import React from "react";
-import { useAppDispatch } from "../store/hooks";
+import { useOutletContext } from "react-router";
+import { useAppSelector, useAppDispatch } from "../store/hooks";
 import {
 	ActionButton,
 	AppTable,
@@ -14,10 +15,11 @@ import {
 	deleteVoters,
 	votersSelectors,
 	votersActions,
+	selectVotersBallot_id,
 	Voter,
 } from "../store/voters";
 
-import type { SetVotersState } from "./layout";
+import type { VotersContext } from "./layout";
 
 const RowActions = ({
 	onEdit,
@@ -69,8 +71,10 @@ const tableColumns: ColumnPropertiesWithWidth[] = [
 	},
 ];
 
-function VotersTable({ setVotersState }: { setVotersState: SetVotersState }) {
+function VotersTable() {
+	const { setVotersState } = useOutletContext<VotersContext>();
 	const dispatch = useAppDispatch();
+	const votersBallot_id = useAppSelector(selectVotersBallot_id);
 
 	const [columns, maxWidth] = React.useMemo(() => {
 		const onDelete = async (voter: Voter) => {
@@ -94,6 +98,10 @@ function VotersTable({ setVotersState }: { setVotersState: SetVotersState }) {
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
 		return [columns, maxWidth];
 	}, [dispatch, setVotersState]);
+
+	if (!votersBallot_id) {
+		return <span>No voting pool</span>;
+	}
 
 	return (
 		<div className="table-container centered-rows">

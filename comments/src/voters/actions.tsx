@@ -1,4 +1,3 @@
-import * as React from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ConfirmModal, ActionButton } from "dot11-components";
@@ -11,22 +10,12 @@ import {
 	selectVotersState,
 	selectVotersBallot_id,
 	votersSelectors,
-	VoterCreate,
 } from "../store/voters";
 import VotersImportButton from "./VotersImport";
 
-import type { SetVotersState } from "./layout";
+import { getDefaultVoter, VotersContext } from "./layout";
 
-function getDefaultVoter(ballot_id: number): VoterCreate {
-	let voter: VoterCreate = {
-		ballot_id,
-		SAPIN: 0,
-		Status: "Voter",
-	};
-	return voter;
-}
-
-function VotersActions({ setVotersState }: { setVotersState: SetVotersState }) {
+function VotersActions({ setVotersState }: VotersContext) {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 

@@ -1,5 +1,4 @@
-import * as React from "react";
-
+import React from "react";
 import {
 	Form,
 	Row,
@@ -114,7 +113,6 @@ function VoterEditModal({
 }: {
 	isOpen: boolean;
 	close: () => void;
-	ballot_id: number | null;
 	voter: VoterCreate;
 	action: "add" | "update" | null;
 }) {
