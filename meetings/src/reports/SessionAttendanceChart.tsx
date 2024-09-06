@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { createSelector, EntityId, Dictionary } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 import * as d3 from "d3";
@@ -295,6 +295,7 @@ function SessionAttendanceChart({ width, height, ...props }: ReportChartProps) {
 
 	return (
 		<svg
+			id="chart"
 			ref={svgRef}
 			viewBox={`0 0 ${width} ${height}`}
 			width={width}

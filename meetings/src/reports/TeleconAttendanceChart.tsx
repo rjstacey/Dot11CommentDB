@@ -1,11 +1,11 @@
-import * as React from "react";
+import React from "react";
 import { createSelector } from "@reduxjs/toolkit";
 import * as d3 from "d3";
 
 import { useAppSelector } from "../store/hooks";
 
 import {
-	useDimensions,
+	//useDimensions,
 	selectBreakoutAttendanceEntries,
 	type BreakoutAttendanceEntry,
 } from "./SessionAttendanceChart";
@@ -37,49 +37,22 @@ const selectAttendanceSeriesInfo = createSelector(
 
 function TeleconAttendanceChart({ width, height, ...props }: ReportChartProps) {
 	const svgRef = React.useRef<SVGSVGElement>(null);
-	const xAxisRef = React.useRef<SVGGElement>(null);
+	//const [xAxisHeight, setXAxisHeight] = React.useState(120);
+	const gx = React.useRef<SVGSVGElement>(null);
+	const xAxisHeight = 120; //useDimensions(gx).height;
+	console.log(xAxisHeight);
 
-	const yAxisWidth = 50;
-	const xAxisHeight = useDimensions(xAxisRef).height + 10 || 120;
-	const plotWidth = width - yAxisWidth;
-	const plotHeight = height - xAxisHeight;
+	//const [yAxisWidth, setYAxisWidth] = React.useState(50);
+	const gy = React.useRef<SVGSVGElement>(null);
+	const yAxisWidth = 50; //useDimensions(gy).width;
+	console.log(yAxisWidth);
+
+	const margin = 10;
+	const plotWidth = width - 2 * margin - yAxisWidth;
+	const plotHeight = height - 2 * margin - xAxisHeight;
 
 	const { seriesIds, seriesEntities, maxValue } = useAppSelector(
 		selectAttendanceSeriesInfo
-	);
-
-	const yScale = React.useMemo(() => {
-		return d3.scaleLinear().domain([0, maxValue]).range([plotHeight, 0]);
-	}, [maxValue, plotHeight]);
-
-	const yAxis = (
-		<g>
-			{yScale
-				.ticks(5)
-				.slice(1)
-				.map((value, i) => (
-					<g key={i}>
-						<line
-							x1={yAxisWidth - 10}
-							x2={width}
-							y1={yScale(value)}
-							y2={yScale(value)}
-							stroke="#808080"
-							opacity={0.2}
-						/>
-						<text
-							y={yScale(value)}
-							x={yAxisWidth - 15}
-							textAnchor="end"
-							alignmentBaseline="central"
-							fontSize={14}
-							opacity={0.8}
-						>
-							{value}
-						</text>
-					</g>
-				))}
-		</g>
 	);
 
 	const xScale = React.useMemo(() => {
@@ -90,66 +63,117 @@ function TeleconAttendanceChart({ width, height, ...props }: ReportChartProps) {
 			.padding(0.2);
 	}, [seriesIds, plotWidth]);
 
-	const xAxis = (
-		<g
-			ref={xAxisRef}
-			transform={`translate(${yAxisWidth},${height - xAxisHeight})`}
+	/*React.useEffect(() => {
+		if (!gx.current) return;
+		const b = gx.current.getBoundingClientRect();
+		setXAxisHeight(b.height);
+	}, [gx, xScale]);*/
+
+	const xAxis = seriesIds.map((id) => (
+		<text
+			key={id}
+			x={0}
+			y={0}
+			textAnchor="end"
+			alignmentBaseline="central"
+			fontSize={14}
+			transform={`translate(${
+				xScale(id)! + xScale.bandwidth() / 2
+			},10)rotate(-90)`}
 		>
-			{seriesIds.map((id) => (
+			{seriesEntities[id].date}
+		</text>
+	));
+
+	const yScale = React.useMemo(() => {
+		return d3.scaleLinear().domain([0, maxValue]).range([plotHeight, 0]);
+	}, [maxValue, plotHeight]);
+
+	/*React.useEffect(() => {
+		if (!gy.current) return;
+		//d3.select(gy.current).call(d3.axisLeft(yScale));
+		const b = gy.current.getBoundingClientRect();
+		setYAxisWidth(b.width);
+	}, [gy, yScale]);*/
+
+	const yAxis = yScale
+		.ticks(5)
+		.slice(1)
+		.map((value, i) => (
+			<g key={i}>
+				<line
+					x1={yAxisWidth - 10}
+					x2={width}
+					y1={yScale(value)}
+					y2={yScale(value)}
+					stroke="#808080"
+					opacity={0.2}
+				/>
 				<text
-					key={id}
-					x={0}
-					y={0}
+					y={yScale(value)}
+					x={yAxisWidth - 15}
 					textAnchor="end"
 					alignmentBaseline="central"
 					fontSize={14}
+					opacity={0.8}
+				>
+					{value}
+				</text>
+			</g>
+		));
+
+	const plot = seriesIds.map((id) => {
+		const entity = seriesEntities[id];
+		return (
+			<g key={id}>
+				<rect
+					x={xScale(id)}
+					y={yScale(entity.attendanceCount)}
+					width={xScale.bandwidth()}
+					height={yScale(0) - yScale(entity.attendanceCount)}
+					fill={entity.color}
+					stroke="grey"
+					rx="0.3%"
+				/>
+				<text
+					x={0}
+					y={0}
+					textAnchor="start"
+					alignmentBaseline="central"
 					transform={`translate(${
 						xScale(id)! + xScale.bandwidth() / 2
-					},10)rotate(-90)`}
+					},${yScale(0) - 10})rotate(-90)`}
 				>
-					{seriesEntities[id].date}
+					{entity.label}
 				</text>
-			))}
-		</g>
-	);
-
-	const plotArea = (
-		<g transform={`translate(${yAxisWidth},0)`}>
-			{seriesIds.map((id) => {
-				const entity = seriesEntities[id];
-				return (
-					<g key={id}>
-						<rect
-							x={xScale(id)}
-							y={yScale(entity.attendanceCount)}
-							width={xScale.bandwidth()}
-							height={yScale(0) - yScale(entity.attendanceCount)}
-							fill={entity.color}
-							stroke="grey"
-							rx="0.3%"
-						/>
-						<text
-							x={0}
-							y={0}
-							textAnchor="start"
-							alignmentBaseline="central"
-							transform={`translate(${
-								xScale(id)! + xScale.bandwidth() / 2
-							},${yScale(0) - 10})rotate(-90)`}
-						>
-							{entity.label}
-						</text>
-					</g>
-				);
-			})}
-		</g>
-	);
+			</g>
+		);
+	});
 
 	return (
-		<svg ref={svgRef} style={{ width, height }} {...props}>
-			{yAxis}
-			{xAxis}
-			{plotArea}
+		<svg
+			id="chart"
+			ref={svgRef}
+			viewBox={`0 0 ${width} ${height}`}
+			width={width}
+			height={height}
+			style={{ color: "black" }}
+			{...props}
+		>
+			<g
+				ref={gx}
+				transform={`translate(${margin + yAxisWidth},${
+					height - margin - xAxisHeight
+				})`}
+			>
+				{xAxis}
+			</g>
+			<g ref={gy} transform={`translate(${margin},${margin})`}>
+				{yAxis}
+			</g>
+			<g transform={`translate(${margin + yAxisWidth},${margin})`}>
+				{plot}
+			</g>
 		</svg>
 	);
 }
