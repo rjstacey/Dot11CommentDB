@@ -25,6 +25,7 @@ import {
 	getBallotId,
 	validBallotCommentsSummary,
 	BallotCommentsSummary,
+	BallotType,
 } from "./ballots";
 import { selectGroupPermissions } from "./groups";
 import { offlineFetch, selectIsOnline } from "./offline";
@@ -207,7 +208,7 @@ export const fields: Record<string, FieldProperties> = {
 //const selectId = (c) => c.id; //c.CID;
 
 export const getField = (entity: CommentResolution, dataKey: string) => {
-	if (dataKey === "CID") return getCID(entity);
+	//if (dataKey === "CID") return getCID(entity);
 	if (dataKey === "Status") return getCommentStatus(entity);
 	return entity[dataKey as keyof CommentResolution];
 };
@@ -408,8 +409,31 @@ const selectCommentsLastModified = createSelector(
 	}
 );
 
+const selectSyncedCommentEntities = createSelector(
+	selectCommentIds,
+	selectCommentEntities,
+	selectBallotEntities,
+	(ids, entities, ballotEntities) => {
+		const newCommentEntities: typeof entities = {};
+		for (const id of ids) {
+			const c = entities[id]!;
+			const b = ballotEntities[c.ballot_id];
+			let CID = getCID(c);
+			if (b && b.Type === BallotType.SA) {
+				CID = (b.stage === 0 ? "I" : "R" + b.stage) + "-" + CID;
+			}
+			if (c.CID !== CID) newCommentEntities[id] = { ...c, CID };
+		}
+		if (Object.keys(newCommentEntities).length > 0) {
+			return { ...entities, ...newCommentEntities };
+		}
+		return entities;
+	}
+);
+
 export const commentsSelectors = getAppTableDataSelectors(selectCommentsState, {
-	getField,
+	//getField,
+	selectEntities: selectSyncedCommentEntities,
 });
 
 /*

@@ -62,6 +62,7 @@ export const menu: MenuItem[] = [
  */
 const rootLoader: LoaderFunction = async () => {
 	const { dispatch, getState } = store;
+	console.log(selectIsOnline(getState()));
 	if (selectIsOnline(getState())) {
 		await dispatch(loadGroups());
 	}

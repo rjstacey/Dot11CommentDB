@@ -12,7 +12,7 @@ type OfflineState = {
 };
 
 export const initialState: OfflineState = {
-	online: true,
+	online: window.navigator.onLine,
 	busy: false,
 	timerId: 0,
 	outbox: [],
@@ -92,8 +92,10 @@ export const selectOfflineStatus = (state: RootState): OfflineStatus => {
 	else if (offline.online) status = "online";
 	return status;
 };
-export const selectIsOnline = (state: RootState) => selectOfflineState(state).online;
-export const selectOfflineOutbox = (state: RootState) => selectOfflineState(state).outbox;
+export const selectIsOnline = (state: RootState) =>
+	selectOfflineState(state).online;
+export const selectOfflineOutbox = (state: RootState) =>
+	selectOfflineState(state).outbox;
 
 /*
  * Thunk actions => update transaction state and initiate new actions

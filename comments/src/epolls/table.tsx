@@ -21,7 +21,7 @@ import { BallotAddForm } from "../ballots/BallotDetail";
 
 function ePollToBallot(epoll: SyncedEpoll): Ballot {
 	// See if the ePoll name has something like CC53 or LB245
-	let type = BallotType.Motion,
+	let type = BallotType.CC,
 		number = 0;
 	const m = epoll.name.match(/(CC|LB)(\d+)/);
 	if (m) {
@@ -31,6 +31,7 @@ function ePollToBallot(epoll: SyncedEpoll): Ballot {
 	return {
 		groupId: null,
 		number,
+		stage: 0,
 		Project: "",
 		Type: type,
 		EpollNum: epoll.id,
@@ -59,8 +60,6 @@ const tableColumns: (ColumnProperties & { width: number })[] = [
 	{ key: "resultsSummary", ...fields.resultsSummary, width: 100 },
 	{ key: "actions", label: "", width: 200, headerRenderer: () => "" },
 ];
-
-const maxWidth = tableColumns.reduce((acc, col) => acc + col.width, 0) + 40;
 
 function EpollsTable() {
 	const isOnline = useAppSelector(selectIsOnline);

@@ -10,7 +10,7 @@ import {
 	useDebounce,
 	type Multiple,
 	isMultiple,
-	MULTIPLE
+	MULTIPLE,
 } from "dot11-components";
 
 import CommentHistory from "./CommentHistory";
@@ -31,7 +31,6 @@ import {
 	Resolution,
 	ResolutionUpdate,
 	ResolutionCreate,
-	getCID,
 	getCommentStatus,
 } from "../store/comments";
 import { selectGroupEntities } from "../store/groups";
@@ -46,17 +45,14 @@ function renderAccess(access: number) {
 
 function renderCommentsStatus(comments: CommentResolution[]) {
 	let status: string | typeof MULTIPLE = "";
-	comments.forEach(c => {
+	comments.forEach((c) => {
 		const s = getCommentStatus(c);
-		if (!status)
-			status = s;
-		else if (status !== s)
-			status = MULTIPLE;
+		if (!status) status = s;
+		else if (status !== s) status = MULTIPLE;
 	});
 	if (isMultiple(status))
-		return <span style={{fontStyle: 'italic'}}>(Multiple)</span>
-	else
-		return status;
+		return <span style={{ fontStyle: "italic" }}>(Multiple)</span>;
+	else return status;
 }
 
 function CommentResolutionEdit({
@@ -75,12 +71,17 @@ function CommentResolutionEdit({
 		React.useState<Multiple<CommentResolution> | null>(null);
 	const [saved, setSaved] =
 		React.useState<Multiple<CommentResolution> | null>(null);
-	const [editedComments, setEditedComments] = React.useState<CommentResolution[]>([]);
+	const [editedComments, setEditedComments] = React.useState<
+		CommentResolution[]
+	>([]);
 
-	const key = editedComments.map(c => c.id).join();
+	const key = editedComments.map((c) => c.id).join();
 
 	React.useEffect(() => {
-		if (comments.map(c => c.id).join() === editedComments.map(c => c.id).join())
+		if (
+			comments.map((c) => c.id).join() ===
+			editedComments.map((c) => c.id).join()
+		)
 			return;
 
 		let diff: Multiple<CommentResolution> | null = null;
@@ -94,11 +95,14 @@ function CommentResolutionEdit({
 
 	const triggerSave = useDebounce(() => {
 		/* Find changes */
-		const changes = shallowDiff(saved!, edited!) as Partial<CommentResolution>;
+		const changes = shallowDiff(
+			saved!,
+			edited!
+		) as Partial<CommentResolution>;
 		if (Object.keys(changes).length > 0) {
 			const updates: ResolutionUpdate[] = [];
 			const adds: ResolutionCreate[] = [];
-			comments.forEach(c => {
+			comments.forEach((c) => {
 				if (c.resolution_id)
 					updates.push({
 						id: c.resolution_id,
@@ -134,9 +138,7 @@ function CommentResolutionEdit({
 				key={"1" + key}
 				resolution={edited}
 				updateResolution={updateResolution}
-				readOnly={
-					readOnly || resolutionsAccess < AccessLevel.rw
-				}
+				readOnly={readOnly || resolutionsAccess < AccessLevel.rw}
 				commentsAccess={commentsAccess}
 			/>
 			<EditingEdit
@@ -164,11 +166,14 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 
 	const user = useAppSelector(selectUser);
 	const { entities, loading, selected } = useAppSelector(selectCommentsState);
-	const comments = React.useMemo(() => selected.map(id => entities[id]!).filter(c => Boolean(c)), [selected, entities]);
+	const comments = React.useMemo(
+		() => selected.map((id) => entities[id]!).filter((c) => Boolean(c)),
+		[selected, entities]
+	);
 	const groupEntities = useAppSelector(selectGroupEntities);
 	const access = useAppSelector(selectCommentsAccess);
 
-	const cids = comments.map((c) => getCID(c));
+	const cids = comments.map((c) => c.CID /*getCID(c)*/);
 	const cidsStr = cids.join(", ");
 	const cidsLabel = cids.length > 1 ? "CIDs:" : "CID:";
 
@@ -310,7 +315,11 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 						</Row>
 						<CommentEdit
 							comments={comments}
-							readOnly={readOnly || !editComment || commentsAccess < AccessLevel.rw}
+							readOnly={
+								readOnly ||
+								!editComment ||
+								commentsAccess < AccessLevel.rw
+							}
 						/>
 						<CommentResolutionEdit
 							comments={comments}

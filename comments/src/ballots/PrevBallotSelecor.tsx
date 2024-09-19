@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { Select } from "dot11-components";
 import { useAppSelector } from "../store/hooks";
 import { getBallotId, selectBallotsState } from "../store/ballots";
@@ -12,11 +12,18 @@ function usePrevBallotOptions(ballot_id: number) {
 			.map((id) => entities[id]!)
 			.filter(
 				(b) =>
+					b.Type === ballot.Type &&
 					b.groupId === ballot.groupId &&
 					b.Project === ballot.Project &&
-					new Date(b.Start || "") < new Date(ballot.Start || "")
+					new Date(b.Start || "") < new Date(ballot.Start || "") &&
+					b.id !== ballot.id
 			)
-			.map((b) => ({id: b.id, label: getBallotId(b)}));
+			.sort(
+				(b1, b2) =>
+					new Date(b1.Start || "").valueOf() -
+					new Date(b2.Start || "").valueOf()
+			)
+			.map((b) => ({ id: b.id, label: getBallotId(b) }));
 	}, [ballot_id, ids, entities]);
 }
 

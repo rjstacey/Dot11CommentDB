@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -19,12 +19,12 @@ import {
 	TableConfig,
 	HeaderCellRendererProps,
 	displayDate,
-	RowGetterProps,
+	CellRendererProps,
 } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
-import { selectWorkingGroupName } from "../store/groups";
+import { selectGroupEntities, selectWorkingGroupName } from "../store/groups";
 import {
 	fields,
 	getBallotId,
@@ -36,6 +36,7 @@ import {
 	SyncedBallot,
 	Ballot,
 	selectBallotEntities,
+	loadBallots,
 } from "../store/ballots";
 
 import BallotDetail from "./BallotDetail";
@@ -51,12 +52,35 @@ const renderHeaderGroupProject = (props: HeaderCellRendererProps) => (
 	</>
 );
 
-const renderCellGroupProject = ({ rowData }: { rowData: SyncedBallot }) => (
-	<>
-		<div style={lineTruncStyle}>{rowData.GroupName}</div>
-		<div style={lineTruncStyle}>{rowData.Project}</div>
-	</>
-);
+function CellGroupProject({
+	prevRowId,
+	rowData: ballot,
+}: CellRendererProps<Ballot>) {
+	const ballotEntities = useAppSelector(selectBallotEntities);
+	const groupEntities = useAppSelector(selectGroupEntities);
+	let groupName = "(Blank)";
+	if (ballot.groupId) {
+		const group = groupEntities[ballot.groupId];
+		groupName = group?.name || "Unknown";
+	}
+	let project = ballot.Project;
+	const prevRowBallot = prevRowId ? ballotEntities[prevRowId] : undefined;
+	if (prevRowBallot) {
+		if (
+			ballot.groupId === prevRowBallot.groupId &&
+			ballot.Project === prevRowBallot.Project
+		) {
+			groupName = "";
+			project = "";
+		}
+	}
+	return (
+		<>
+			<div style={lineTruncStyle}>{groupName}</div>
+			<div style={lineTruncStyle}>{project}</div>
+		</>
+	);
+}
 
 const renderHeaderStartEnd = (props: HeaderCellRendererProps) => (
 	<>
@@ -69,10 +93,10 @@ const renderCellStartEnd = ({ rowData }: { rowData: SyncedBallot }) =>
 	displayDateRange(rowData.Start || "", rowData.End || "");
 
 const lineTruncStyle: React.CSSProperties = {
-	overflow: 'hidden',
-	whiteSpace: 'nowrap',
-	textOverflow: 'ellipses'
-}
+	overflow: "hidden",
+	whiteSpace: "nowrap",
+	textOverflow: "ellipses",
+};
 
 const renderHeaderTypeStage = (props: HeaderCellRendererProps) => (
 	<>
@@ -83,8 +107,12 @@ const renderHeaderTypeStage = (props: HeaderCellRendererProps) => (
 
 const renderCellTypeStage = ({ rowData }: { rowData: SyncedBallot }) => (
 	<>
-		<div style={lineTruncStyle}>{fields.Type.dataRenderer(rowData.Type)}</div>
-		<div style={lineTruncStyle}>{ballotsSelectors.getField(rowData, "Stage")}</div>
+		<div style={lineTruncStyle}>
+			{fields.Type.dataRenderer(rowData.Type)}
+		</div>
+		<div style={lineTruncStyle}>
+			{ballotsSelectors.getField(rowData, "Stage")}
+		</div>
 	</>
 );
 
@@ -94,7 +122,7 @@ const GroupNameLink = (props: React.ComponentProps<typeof Link>) => {
 	return <Link to={`/${groupName}/${to}`} {...rest} />;
 };
 
-function BallotVoters({ballot}: {ballot: Ballot}) {
+function BallotVoters({ ballot }: { ballot: Ballot }) {
 	const access = useAppSelector(selectBallotsAccess);
 	const entities = useAppSelector(selectBallotEntities);
 
@@ -103,7 +131,7 @@ function BallotVoters({ballot}: {ballot: Ballot}) {
 	while (ballotInitial.prev_id && entities[ballotInitial.prev_id])
 		ballotInitial = entities[ballotInitial.prev_id]!;
 
-	if ((ballotInitial.Type === BallotType.WG && !ballotInitial.IsRecirc) || ballotInitial.Type === BallotType.Motion) {
+	if (ballotInitial.Type === BallotType.WG && !ballotInitial.IsRecirc) {
 		return access >= AccessLevel.admin ? (
 			<GroupNameLink to={`/voters/${getBallotId(ballot)}`}>
 				{ballotInitial.Voters}
@@ -115,7 +143,7 @@ function BallotVoters({ballot}: {ballot: Ballot}) {
 	return <></>;
 }
 
-export function BallotResults({ballot}: {ballot: Ballot}) {
+export function BallotResults({ ballot }: { ballot: Ballot }) {
 	const access = useAppSelector(selectBallotsAccess);
 	const results = ballot.Results;
 	let str = "";
@@ -133,7 +161,9 @@ export function BallotResults({ballot}: {ballot: Ballot}) {
 		if (!str) str = "None";
 	}
 	return access >= AccessLevel.admin ? (
-		<GroupNameLink to={`/results/${getBallotId(ballot)}`}>{str}</GroupNameLink>
+		<GroupNameLink to={`/results/${getBallotId(ballot)}`}>
+			{str}
+		</GroupNameLink>
 	) : (
 		<>{str}</>
 	);
@@ -152,7 +182,7 @@ export function renderComments({ rowData }: { rowData: Ballot }) {
 	);
 }
 
-export function BallotComments({ballot}: {ballot: Ballot}) {
+export function BallotComments({ ballot }: { ballot: Ballot }) {
 	const comments = ballot.Comments;
 	const str =
 		comments && comments.Count > 0
@@ -187,12 +217,16 @@ const tableColumns: ColumnProperties[] = [
 		flexShrink: 1,
 		flexGrow: 1,
 		dropdownWidth: 200,
+		cellRenderer: ({ rowData: ballot }) => {
+			if (ballot.Type === 2) console.log(ballot);
+			return <span>{getBallotId(ballot)}</span>;
+		},
 	},
 	{
 		key: "Group/Project",
 		label: "Group/Project",
 		headerRenderer: renderHeaderGroupProject,
-		cellRenderer: renderCellGroupProject,
+		cellRenderer: (props) => <CellGroupProject {...props} />,
 		width: 130,
 		flexShrink: 1,
 		flexGrow: 1,
@@ -282,7 +316,7 @@ const tableColumns: ColumnProperties[] = [
 		width: 100,
 		flexShrink: 1,
 		flexGrow: 1,
-		cellRenderer: ({rowData}) => <BallotVoters ballot={rowData} />,
+		cellRenderer: ({ rowData }) => <BallotVoters ballot={rowData} />,
 	},
 	{
 		key: "Results",
@@ -290,7 +324,7 @@ const tableColumns: ColumnProperties[] = [
 		width: 150,
 		flexShrink: 1,
 		flexGrow: 1,
-		cellRenderer: ({rowData}) => <BallotResults ballot={rowData} />,
+		cellRenderer: ({ rowData }) => <BallotResults ballot={rowData} />,
 	},
 	{
 		key: "Comments",
@@ -298,7 +332,7 @@ const tableColumns: ColumnProperties[] = [
 		width: 100,
 		flexShrink: 1,
 		flexGrow: 1,
-		cellRenderer: ({rowData}) => <BallotComments ballot={rowData} />,
+		cellRenderer: ({ rowData }) => <BallotComments ballot={rowData} />,
 	},
 ];
 
@@ -344,23 +378,6 @@ for (tableView in defaultTablesColumns) {
 	defaultTablesConfig[tableView] = tableConfig;
 }
 
-function getRow({ rowIndex, ids, entities }: RowGetterProps) {
-	const currData = entities[ids[rowIndex]];
-	if (rowIndex === 0) return currData;
-	const prevData = entities[ids[rowIndex - 1]];
-	if (
-		currData.Project !== prevData.Project ||
-		currData.GroupName !== prevData.GroupName
-	)
-		return currData;
-	// Previous row holds the same comment
-	return {
-		...currData,
-		GroupName: "",
-		Project: "",
-	};
-}
-
 function Ballots() {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
@@ -372,7 +389,7 @@ function Ballots() {
 		ballotsSelectors.selectCurrentPanelConfig
 	);
 
-	const refresh = () => navigate(".", {replace: true});
+	const refresh = () => dispatch(loadBallots(groupName!, true)); //navigate(".", {replace: true});
 	const showEpolls = () => navigate(`/${groupName}/epolls/`);
 
 	return (
@@ -437,7 +454,7 @@ function Ballots() {
 						columns={tableColumns}
 						headerHeight={42}
 						estimatedRowHeight={42}
-						rowGetter={getRow}
+						//rowGetter={getRow}
 						selectors={ballotsSelectors}
 						actions={ballotsActions}
 					/>

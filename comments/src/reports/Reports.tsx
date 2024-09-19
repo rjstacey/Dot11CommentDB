@@ -2,14 +2,9 @@ import * as React from "react";
 
 import { ActionButton, Button } from "dot11-components";
 
-import ProjectBallotSelector from "../components/ProjectBallotSelector";
-
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppSelector } from "../store/hooks";
 import {
-	loadComments,
-	clearComments,
 	selectCommentsState,
-	selectCommentsBallot_id,
 	getCID,
 	getCommentStatus,
 	commentStatusOrder,

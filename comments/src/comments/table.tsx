@@ -22,7 +22,6 @@ import { renderMBS, renderCommenter, renderCategory } from "./CommentEdit";
 import { renderSubmission } from "./SubmissionSelector";
 import {
 	fields,
-	getCID,
 	commentsSelectors,
 	commentsActions,
 	getCommentStatus,
@@ -218,7 +217,7 @@ const renderDataCellStacked1 = ({
 		<>
 			<FlexRow>
 				<DataSubcomponent width={70} style={{ fontWeight: "bold" }}>
-					{getCID(rowData)}
+					{rowData.CID /*getCID(rowData)*/}
 				</DataSubcomponent>
 				<DataSubcomponent width={40}>
 					{renderCategory(rowData)}
@@ -547,7 +546,7 @@ function commentsRowGetter({ rowIndex, ids, entities }: RowGetterProps) {
 	comment = {
 		...comment,
 		Status: getCommentStatus(comment),
-		CID: getCID(comment),
+		//CID: getCID(comment),
 	};
 	if (rowIndex === 0) return comment;
 	const prevComment = entities[ids[rowIndex - 1]];

@@ -54,7 +54,7 @@ export const BallotType = {
 	CC: 0, // comment collection
 	WG: 1, // WG ballot
 	SA: 2, // SA ballot
-	Motion: 5, // motion
+	//Motion: 5, // motion
 };
 
 export type Ballot = {
@@ -62,6 +62,7 @@ export type Ballot = {
 	groupId: string | null;
 	Type: number;
 	number: number | null;
+	stage: number;
 	Project: string;
 	IsRecirc: boolean;
 	IsComplete: boolean;
@@ -80,10 +81,7 @@ export function validBallot(ballot: any): ballot is Ballot {
 	const r =
 		isObject(ballot) &&
 		typeof ballot.id === "number" &&
-		(ballot.Type === BallotType.CC ||
-			ballot.Type === BallotType.WG ||
-			ballot.Type === BallotType.SA ||
-			ballot.Type === BallotType.Motion) &&
+		typeof ballot.Type === "number" &&
 		(ballot.number === null || typeof ballot.number === "number") &&
 		typeof ballot.Project === "string" &&
 		typeof ballot.groupId === "string";
@@ -99,7 +97,10 @@ export function validBallotCommentsSummary(
 	return isObject(ballot) && validCommentsSummary(ballot.Comments);
 }
 
-export type BallotEdit = Omit<Ballot, "id" | "Results" | "Comments" | "Voters">;
+export type BallotEdit = Omit<
+	Ballot,
+	"id" | "Results" | "Comments" | "Voters" | "stage"
+>;
 
 export type BallotUpdate = {
 	id: number;
@@ -115,7 +116,7 @@ export const BallotTypeLabels = {
 	[BallotType.CC]: "CC",
 	[BallotType.WG]: "LB",
 	[BallotType.SA]: "SA",
-	[BallotType.Motion]: "Motion",
+	//[BallotType.Motion]: "Motion",
 };
 
 export const BallotTypeOptions = Object.values(BallotType).map((v) => ({
@@ -176,7 +177,19 @@ export const fields = {
 };
 
 export function getBallotId(ballot: Ballot) {
-	return BallotTypeLabels[ballot.Type] + (ballot.number || "(Blank)");
+	if (ballot.Type === BallotType.CC) {
+		return "CC" + (ballot.number || "(Blank)");
+	} else if (ballot.Type === BallotType.WG) {
+		return "LB" + (ballot.number || "(Blank)");
+	} else if (ballot.Type === BallotType.SA) {
+		return (
+			ballot.Project +
+			"-" +
+			(ballot.stage === 0 ? "I" : "R" + ballot.stage)
+		);
+	}
+
+	return ballot.id.toString();
 }
 
 export function getField(entity: Ballot, dataKey: string) {
@@ -339,16 +352,34 @@ export const selectBallots = createSelector(
 );
 
 export const selectBallotByBallotID = (state: RootState, ballotId: string) => {
-	const m = ballotId.match(/(CC|LB|SA|M)(\d+)/);
+	const ballots = selectBallots(state);
+	let m = ballotId.match(/(CC|LB)(\d+)/);
 	if (m) {
+		const label = m[1];
 		const entry = Object.entries(BallotTypeLabels).find(
-			([key, value]) => value === m[1]
+			([key, value]) => value === label
 		);
 		if (!entry) return;
 		const type = Number(entry[0]);
 		const n = Number(m[2]);
-		const ballots = selectBallots(state);
 		return ballots.find((b) => b.Type === type && b.number === n);
+	}
+	m = ballotId.match(/([a-zA-Z0-9.]+)-(I|R)(\d*)/);
+	if (m) {
+		const project = m[1];
+		let stage = 0;
+		if (m[2] === "R") stage = Number(m[3]);
+		return ballots.find(
+			(b) =>
+				b.Type === BallotType.SA &&
+				b.Project === project &&
+				b.stage === stage
+		);
+	}
+	m = ballotId.match(/\d+/);
+	if (m) {
+		const id = Number(m[0]);
+		return ballots.find((b) => b.id === id);
 	}
 };
 

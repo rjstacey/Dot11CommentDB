@@ -1,27 +1,21 @@
-import * as React from "react";
+import React from "react";
+import { Dictionary, EntityId } from "@reduxjs/toolkit";
 
-import {
-	ActionButton,
-	Form,
-	Row,
-	Spinner,
-	ConfirmModal,
-} from "dot11-components";
+import { ActionButton, Row, Spinner, ConfirmModal } from "dot11-components";
 
 import VotersActions from "./VotersActions";
 import ResultsActions from "./ResultsActions";
 import CommentsActions from "./CommentsActions";
-import { BallotEditMultiple, EditBallot } from "./BallotEdit";
+import { BallotEditMultiple } from "./BallotEdit";
 import ShowAccess from "../components/ShowAccess";
+import BallotAddForm from "./BallotAdd";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { selectIsOnline } from "../store/offline";
 import {
 	deleteBallots,
-	addBallot,
 	setUiProperties,
 	setSelectedBallots,
-	setCurrentGroupProject,
 	selectBallotsState,
 	Ballot,
 	BallotType,
@@ -42,8 +36,7 @@ function BallotEditMultipleWithActions({
 
 	const actions = ballot ? (
 		<>
-			{((ballot.Type === BallotType.WG && !ballot.IsRecirc) ||
-				ballot.Type === BallotType.Motion) && (
+			{ballot.Type === BallotType.WG && !ballot.IsRecirc && (
 				<VotersActions ballot={ballot} readOnly={readOnly} />
 			)}
 			<ResultsActions
@@ -79,21 +72,73 @@ function nextBallotNumber(ballots: Ballot[], type: number) {
 	return maxNumber + 1;
 }
 
-function getDefaultBallot(ballots: Ballot[]): Ballot {
+function getDefaultBallot(
+	ids: EntityId[],
+	entities: Dictionary<Ballot>,
+	ballotTemplate: Ballot | undefined
+): Ballot {
+	const allBallots = ids.map((id) => entities[id]!);
 	const now = new Date();
-	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const today = new Date(
+		now.getFullYear(),
+		now.getMonth(),
+		now.getDate()
+	).toISOString();
+	let groupId: string | null = null;
+	let project: string = "";
+	let type = 0;
+	let number = 0;
+	let stage = 0;
+	let prev_id: number | null = null;
+	if (ballotTemplate) {
+		groupId = ballotTemplate.groupId;
+		project = ballotTemplate.Project;
+		type = ballotTemplate.Type;
+		const ballots = allBallots
+			.filter((b) => b.groupId === groupId && b.Project === project)
+			.sort(
+				(b1, b2) =>
+					new Date(b1.Start || "").valueOf() -
+					new Date(b2.Start || "").valueOf()
+			);
+		const latestBallot = ballots[ballots.length - 1];
+		if (latestBallot) {
+			if (latestBallot.Type === BallotType.CC) {
+				type = BallotType.WG;
+			} else if (latestBallot.Type === BallotType.WG) {
+				if (latestBallot.IsComplete) {
+					type = BallotType.SA;
+				} else {
+					type = BallotType.WG;
+					prev_id = latestBallot.id;
+				}
+			} else if (latestBallot.Type === BallotType.SA) {
+				type = BallotType.SA;
+				prev_id = latestBallot.id;
+			}
+		}
+		if (prev_id) {
+			let id: number | null | undefined = prev_id;
+			while (id) {
+				stage++;
+				id = entities[id]?.prev_id;
+			}
+		}
+	}
+	number = nextBallotNumber(allBallots, type);
 	return {
-		groupId: null,
-		Type: 0,
-		number: nextBallotNumber(ballots, 0),
-		Project: "",
+		groupId,
+		Project: project,
+		Type: type,
+		number,
+		stage,
 		EpollNum: 0,
 		Document: "",
 		Topic: "",
-		Start: today.toISOString(),
-		End: today.toISOString(),
-		prev_id: 0,
-		IsRecirc: false,
+		Start: today,
+		End: today,
+		prev_id,
+		IsRecirc: Boolean(prev_id),
 		IsComplete: false,
 
 		id: 0,
@@ -101,60 +146,6 @@ function getDefaultBallot(ballots: Ballot[]): Ballot {
 		Comments: { Count: 0, CommentIDMax: 0, CommentIDMin: 0 },
 		Results: null,
 	};
-}
-
-export function BallotAddForm({
-	defaultBallot,
-	close,
-}: {
-	defaultBallot: Ballot;
-	close: () => void;
-}) {
-	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-	const [ballot, setBallot] = React.useState(defaultBallot);
-
-	let errorMsg = "";
-	if (!ballot.groupId) errorMsg = "Group not set";
-	else if (ballot.Type === null) errorMsg = "Ballot type not set";
-	else if (!ballot.number) errorMsg = "Ballot number not set";
-	else if (!ballot.Project) errorMsg = "Project not set";
-
-	const submit = async () => {
-		if (!errorMsg) {
-			setBusy(true);
-			const b = await dispatch(addBallot(ballot));
-			if (b) {
-				dispatch(
-					setCurrentGroupProject({
-						groupId: ballot.groupId,
-						project: ballot.Project,
-					})
-				);
-				dispatch(setSelectedBallots([b.id]));
-			}
-			setBusy(false);
-			close();
-		}
-	};
-
-	return (
-		<Form
-			submit={submit}
-			submitLabel="Add"
-			cancel={close}
-			errorText={errorMsg}
-			busy={busy}
-		>
-			<EditBallot
-				ballot={ballot}
-				updateBallot={(changes) =>
-					setBallot((ballot) => ({ ...ballot, ...changes }))
-				}
-				readOnly={false}
-			/>
-		</Form>
-	);
 }
 
 const Placeholder = (props: React.ComponentProps<"span">) => (
@@ -172,19 +163,12 @@ function BallotDetail({
 }) {
 	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
-	const { selected, entities, loading, valid } =
+	const { selected, ids, entities, loading, valid } =
 		useAppSelector(selectBallotsState);
 	// Only ballots that exist (selection may be old)
-	const ballots = React.useMemo(
+	const selectedBallots = React.useMemo(
 		() => selected.map((id) => entities[id]!).filter((b) => Boolean(b)),
 		[selected, entities]
-	);
-	const defaultBallot = React.useMemo(
-		() =>
-			getDefaultBallot(
-				Object.values(entities as { [s: string]: Ballot })
-			),
-		[entities]
 	);
 
 	const edit: boolean | undefined =
@@ -193,33 +177,39 @@ function BallotDetail({
 
 	const [action, setAction] = React.useState<"add" | "update">("update");
 
+	const [defaultBallot, setDefaultBallot] = React.useState<
+		Ballot | undefined
+	>();
+
 	const addClick = React.useCallback(() => {
+		const ballot = selectedBallots[0];
+		setDefaultBallot(getDefaultBallot(ids, entities, ballot));
 		setAction("add");
 		dispatch(setSelectedBallots([]));
-	}, [dispatch]);
+	}, [dispatch, ids, entities, selectedBallots]);
 
 	const deleteClick = React.useCallback(async () => {
-		const list = ballots.map(getBallotId).join(", ");
-		const ids = ballots.map((b) => b.id);
+		const list = selectedBallots.map(getBallotId).join(", ");
+		const ids = selectedBallots.map((b) => b.id);
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete ballot${
-				ballots.length > 1 ? "s" : ""
+				selectedBallots.length > 1 ? "s" : ""
 			} ${list}?`
 		);
 		if (!ok) return;
 		await dispatch(deleteBallots(ids));
-	}, [dispatch, ballots]);
+	}, [dispatch, selectedBallots]);
 
 	let title = "";
 	let placeholder: string | null = null;
 	if (action === "update") {
 		if (!valid && loading) {
 			placeholder = "Loading...";
-		} else if (ballots.length === 0) {
+		} else if (selectedBallots.length === 0) {
 			placeholder = "Nothing selected";
 		} else {
 			title = edit ? "Edit ballot" : "Ballot";
-			if (ballots.length > 1) title += "s";
+			if (selectedBallots.length > 1) title += "s";
 		}
 	} else {
 		title = "Add ballot";
@@ -244,7 +234,7 @@ function BallotDetail({
 			<ActionButton
 				name="delete"
 				title="Delete ballot"
-				disabled={ballots.length === 0 || loading || !isOnline}
+				disabled={selectedBallots.length === 0 || loading || !isOnline}
 				onClick={deleteClick}
 			/>
 		</>
@@ -260,12 +250,12 @@ function BallotDetail({
 				<Placeholder>{placeholder}</Placeholder>
 			) : action === "add" ? (
 				<BallotAddForm
-					defaultBallot={defaultBallot}
+					defaultBallot={defaultBallot!}
 					close={() => setAction("update")}
 				/>
 			) : (
 				<BallotEditMultipleWithActions
-					ballots={ballots}
+					ballots={selectedBallots}
 					readOnly={readOnly || !isOnline || !edit}
 				/>
 			)}
