@@ -38,6 +38,8 @@ const myProjectCommentsHeader = [
 	"Other3",
 ] as const;
 
+const reCommentID = /(I|R\d+)-(\d+)/;
+
 function parseMyProjectComment(c: any[]) {
 	// MyProject uses <last name>, <first name> for comments but <first name> <last name> for results
 	let [lastName, firstName] = c[3].split(", ");
@@ -49,8 +51,13 @@ function parseMyProjectComment(c: any[]) {
 	let Page = parseFloat(C_Page) + parseFloat(C_Line) / 100;
 	if (isNaN(Page)) Page = 0;
 
+	let m = reCommentID.exec(c[2]);
+	if (!m) throw new TypeError("Invalid Comment # = " + c[2]);
+	let CommentID = Number(m[2]);
+
 	const comment: Partial<Comment> = {
-		C_Index: c[0], // Comment ID
+		C_Index: Number(c[0]), // Comment ID
+		CommentID, // Comment #
 		CommenterSAPIN: null,
 		CommenterName: name, // Name
 		CommenterEmail: c[4], // Email
@@ -75,13 +82,7 @@ export async function parseMyProjectComments(
 	const rows = await parseSpreadsheet(file, myProjectCommentsHeader, 0, 26);
 
 	// Parse each row and assign CommentID
-	return rows.map((c, i) => {
-		const comment: Partial<Comment> = {
-			CommentID: startCommentId + i,
-			...parseMyProjectComment(c),
-		};
-		return comment;
-	});
+	return rows.map(parseMyProjectComment);
 }
 
 const mapResnStatus = {

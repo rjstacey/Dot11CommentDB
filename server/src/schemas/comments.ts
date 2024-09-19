@@ -46,6 +46,8 @@ export type CommentsUploadUserParams = z.infer<
 	typeof commentsUploadUserParamsSchema
 >;
 
+export const commentCreateSchema = commentSchema.omit({ id: true }).partial();
+
 export const commentChangeSchema = commentSchema
 	.pick({
 		CommentID: true,
@@ -67,6 +69,7 @@ export const commentUpdatesSchema = commentUpdateSchema.array();
 
 export type Comment = z.infer<typeof commentSchema>;
 export type CommentsSummary = z.infer<typeof commentsSummarySchema>;
+export type CommentCreate = z.infer<typeof commentCreateSchema>;
 export type CommentChange = z.infer<typeof commentChangeSchema>;
 export type CommentUpdate = z.infer<typeof commentUpdateSchema>;
 
@@ -74,6 +77,7 @@ export const commentResolutionSchema = commentSchema
 	.omit({ id: true })
 	.merge(resolutionSchema.omit({ id: true }))
 	.extend({
+		id: z.string(),
 		resolution_id: resolutionSchema.shape.id,
 		ResolutionID: z.number(),
 		ResolutionCount: z.number(),

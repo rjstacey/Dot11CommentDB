@@ -3,13 +3,14 @@
  */
 import ExcelJS from "exceljs";
 import { isCorrectSpreadsheetHeader } from "../utils";
-import type { Ballot } from "../schemas/ballots";
+import { ballotChangesSchema, type Ballot } from "../schemas/ballots";
 import { getComments } from "./comments";
 import type { CommentResolution } from "../schemas/comments";
 import type { User } from "./users";
 import type { Response } from "express";
+import { BallotType } from "./ballots";
 
-type ColSet = (c: CommentResolution, v: ExcelJS.Cell) => void;
+type ColSet = (b: Ballot, c: CommentResolution, v: ExcelJS.Cell) => void;
 type ColGet = (v: ExcelJS.CellValue, c: Partial<CommentResolution>) => void;
 
 type Col = {
@@ -23,6 +24,15 @@ type Col = {
 
 function parseString(v: ExcelJS.CellValue) {
 	return typeof v === "string" ? v : "";
+}
+
+function setCID(b: Ballot, c: CommentResolution, cell: ExcelJS.Cell) {
+	if (b.Type === BallotType.SA) {
+		cell.value = c.CID;
+	} else {
+		cell.numFmt = c.ResolutionCount > 1 ? "#.0" : "#";
+		cell.value = parseFloat(c.CID);
+	}
 }
 
 function getResolution(v: ExcelJS.CellValue, c: Partial<CommentResolution>) {
@@ -47,7 +57,7 @@ const mapResnStatus = {
 	V: "REVISED",
 };
 
-function setResolution(c: CommentResolution, cell: ExcelJS.Cell) {
+function setResolution(b: Ballot, c: CommentResolution, cell: ExcelJS.Cell) {
 	let r = "";
 	if (c.ResnStatus && mapResnStatus[c.ResnStatus]) {
 		r += mapResnStatus[c.ResnStatus];
@@ -68,7 +78,7 @@ function getPage(v: ExcelJS.CellValue, c: Partial<CommentResolution>) {
 	c.Page = page;
 }
 
-function setStatus(c: CommentResolution, cell: ExcelJS.Cell) {
+function setStatus(b: Ballot, c: CommentResolution, cell: ExcelJS.Cell) {
 	let Status = "";
 	if (c.ApprovedByMotion) Status = "Resolution approved";
 	else if (c.ReadyForMotion) Status = "Ready for motion";
@@ -93,7 +103,7 @@ const getEditStatus: ColGet = (v, c) => {
 	}
 };
 
-const setSubmission: ColSet = (c, cell) => {
+const setSubmission: ColSet = (b, c, cell) => {
 	cell.value = "";
 	if (c.Submission) {
 		let text = c.Submission;
@@ -122,9 +132,7 @@ const setSubmission: ColSet = (c, cell) => {
 const legacyColumns: Record<string, Col> = {
 	CID: {
 		width: 8,
-		set: (c, cell) => {
-			cell.value = parseFloat("" + c.CID);
-		},
+		set: setCID,
 		get: (v, c) => {
 			c.CID = parseString(v);
 		},
@@ -132,7 +140,7 @@ const legacyColumns: Record<string, Col> = {
 	Commenter: {
 		width: 14,
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.CommenterName || "";
 		},
 		get: (v, c) => {
@@ -142,15 +150,21 @@ const legacyColumns: Record<string, Col> = {
 	LB: {
 		width: 8,
 		outlineLevel: 1,
+		set: (b, c, cell) => {
+			cell.value = b.BallotID;
+		},
 	},
 	Draft: {
 		width: 8,
 		outlineLevel: 1,
+		set: (b, c, cell) => {
+			cell.value = b.Document;
+		},
 	},
 	"Clause Number(C)": {
 		width: 11,
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.C_Clause || "";
 		},
 		get: (v, c) => {
@@ -160,7 +174,7 @@ const legacyColumns: Record<string, Col> = {
 	"Page(C)": {
 		width: 8,
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.C_Page || "";
 		},
 		get: (v, c) => {
@@ -170,7 +184,7 @@ const legacyColumns: Record<string, Col> = {
 	"Line(C)": {
 		width: 8,
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.C_Line || "";
 		},
 		get: (v, c) => {
@@ -180,7 +194,9 @@ const legacyColumns: Record<string, Col> = {
 	"Type of Comment": {
 		width: 10,
 		outlineLevel: 1,
-		set: (c) => c.Category || "",
+		set: (b, c, cell) => {
+			cell.value = c.Category || "";
+		},
 		get: (v, c) => {
 			c.Category = parseString(v);
 		},
@@ -188,7 +204,7 @@ const legacyColumns: Record<string, Col> = {
 	"Part of No Vote": {
 		width: 10,
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.MustSatisfy ? "Yes" : "No";
 		},
 		get: (v, c) => {
@@ -198,7 +214,7 @@ const legacyColumns: Record<string, Col> = {
 	Page: {
 		width: 8,
 		numFmt: "#0.00",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.Page;
 		},
 		get: getPage,
@@ -206,14 +222,14 @@ const legacyColumns: Record<string, Col> = {
 	Line: {
 		width: 7,
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.C_Line || "";
 		},
 	},
 	Clause: {
 		width: 11,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.Clause || "";
 		},
 		get: (v, c) => {
@@ -222,14 +238,14 @@ const legacyColumns: Record<string, Col> = {
 	},
 	"Duplicate of CID": {
 		width: 10,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = "";
 		},
 	},
 	"Resn Status": {
 		width: 8,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.ResnStatus || "";
 		},
 		get: getResnStatus,
@@ -238,7 +254,7 @@ const legacyColumns: Record<string, Col> = {
 		width: 11,
 		outlineLevel: 1,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.AssigneeName || "";
 		},
 		get: (v, c) => {
@@ -249,7 +265,7 @@ const legacyColumns: Record<string, Col> = {
 		width: 12,
 		outlineLevel: 1,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.Submission || "";
 		},
 		get: (v, c) => {
@@ -259,7 +275,7 @@ const legacyColumns: Record<string, Col> = {
 	"Motion Number": {
 		width: 9,
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.ApprovedByMotion || "";
 		},
 		get: (v, c) => {
@@ -269,7 +285,7 @@ const legacyColumns: Record<string, Col> = {
 	Comment: {
 		width: 25,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = (c.Comment || "").replace(/[\u{0080}-\u{FFFF}]/gu, "");
 		},
 		get: (v, c) => {
@@ -279,7 +295,7 @@ const legacyColumns: Record<string, Col> = {
 	"Proposed Change": {
 		width: 25,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = (c.ProposedChange || "").replace(
 				/[\u{0080}-\u{FFFF}]/gu,
 				""
@@ -298,7 +314,7 @@ const legacyColumns: Record<string, Col> = {
 	"Owning Ad-hoc": {
 		width: 9,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.AdHoc || "";
 		},
 		get: (v, c) => {
@@ -308,7 +324,7 @@ const legacyColumns: Record<string, Col> = {
 	"Comment Group": {
 		width: 10,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.CommentGroup || "";
 		},
 		get: (v, c) => {
@@ -323,7 +339,7 @@ const legacyColumns: Record<string, Col> = {
 	"Ad-hoc Notes": {
 		width: 25,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = fromHtml(c.Notes);
 		},
 		get: (v, c) => {
@@ -333,7 +349,7 @@ const legacyColumns: Record<string, Col> = {
 	"Edit Status": {
 		width: 8,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.EditStatus || "";
 		},
 		get: getEditStatus,
@@ -341,7 +357,7 @@ const legacyColumns: Record<string, Col> = {
 	"Edit Notes": {
 		width: 25,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = fromHtml(c.EditNotes);
 		},
 		get: (v, c) => {
@@ -351,7 +367,7 @@ const legacyColumns: Record<string, Col> = {
 	"Edited in Draft": {
 		width: 9,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.EditInDraft || "";
 		},
 		get: (v, c) => {
@@ -362,14 +378,14 @@ const legacyColumns: Record<string, Col> = {
 		width: 15,
 		outlineLevel: 1,
 		numFmt: "yyyy-mm-dd hh:mm",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.LastModifiedTime;
 		},
 	},
 	"Last Updated By": {
 		numFmt: "@",
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = "";
 		},
 	},
@@ -378,11 +394,7 @@ const legacyColumns: Record<string, Col> = {
 const modernColumns: Record<string, Col> = {
 	CID: {
 		width: 8,
-		numFmt: "#",
-		set: (c, cell) => {
-			if (c.ResolutionCount > 1) cell.numFmt = "#.0";
-			cell.value = parseFloat(c.CID);
-		},
+		set: setCID,
 		get: (v, c) => {
 			c.CID = parseString(v);
 		},
@@ -390,7 +402,7 @@ const modernColumns: Record<string, Col> = {
 	Commenter: {
 		width: 14,
 		outlineLevel: 2,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.CommenterName || "";
 		},
 		get: (v, c) => {
@@ -400,7 +412,7 @@ const modernColumns: Record<string, Col> = {
 	"Must Be Satisfied": {
 		width: 10,
 		outlineLevel: 2,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.MustSatisfy ? "Yes" : "No";
 		},
 		get: (v, c) => {
@@ -410,7 +422,7 @@ const modernColumns: Record<string, Col> = {
 	"Clause Number(C)": {
 		width: 11,
 		outlineLevel: 2,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.C_Clause || "";
 		},
 		get: (v, c) => {
@@ -420,7 +432,7 @@ const modernColumns: Record<string, Col> = {
 	"Page(C)": {
 		width: 8,
 		outlineLevel: 2,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.C_Page || "";
 		},
 		get: (v, c) => {
@@ -430,7 +442,7 @@ const modernColumns: Record<string, Col> = {
 	"Line(C)": {
 		width: 8,
 		outlineLevel: 2,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.C_Line || "";
 		},
 		get: (v, c) => {
@@ -440,7 +452,7 @@ const modernColumns: Record<string, Col> = {
 	Category: {
 		width: 10,
 		outlineLevel: 2,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.Category || "";
 		},
 		get: (v, c) => {
@@ -450,7 +462,7 @@ const modernColumns: Record<string, Col> = {
 	Clause: {
 		width: 11,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.Clause || "";
 		},
 		get: (v, c) => {
@@ -460,7 +472,7 @@ const modernColumns: Record<string, Col> = {
 	Page: {
 		width: 8,
 		numFmt: "#0.00",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.Page;
 		},
 		get: getPage,
@@ -468,7 +480,7 @@ const modernColumns: Record<string, Col> = {
 	Comment: {
 		width: 25,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = (c.Comment || "").replace(/[\u{0080}-\u{FFFF}]/gu, "");
 		},
 		get: (v, c) => {
@@ -478,7 +490,7 @@ const modernColumns: Record<string, Col> = {
 	"Proposed Change": {
 		width: 25,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = (c.ProposedChange || "").replace(
 				/[\u{0080}-\u{FFFF}]/gu,
 				""
@@ -492,7 +504,7 @@ const modernColumns: Record<string, Col> = {
 		width: 9,
 		numFmt: "@",
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.AdHoc || "";
 		},
 		get: (v, c) => {
@@ -503,7 +515,7 @@ const modernColumns: Record<string, Col> = {
 		width: 10,
 		numFmt: "@",
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.CommentGroup || "";
 		},
 		get: (v, c) => {
@@ -514,7 +526,7 @@ const modernColumns: Record<string, Col> = {
 		width: 25,
 		numFmt: "@",
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = fromHtml(c.Notes);
 		},
 		get: (v, c) => {
@@ -530,7 +542,7 @@ const modernColumns: Record<string, Col> = {
 		width: 11,
 		outlineLevel: 1,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.AssigneeName || "";
 		},
 		get: (v, c) => {
@@ -549,7 +561,7 @@ const modernColumns: Record<string, Col> = {
 	"Resn Status": {
 		width: 8,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.ResnStatus || "";
 		},
 		get: getResnStatus,
@@ -563,7 +575,7 @@ const modernColumns: Record<string, Col> = {
 	"Ready For Motion": {
 		width: 9,
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.ReadyForMotion ? "Yes" : "";
 		},
 		get: (v, c) => {
@@ -573,7 +585,7 @@ const modernColumns: Record<string, Col> = {
 	"Motion Number": {
 		width: 9,
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.ApprovedByMotion || "";
 		},
 		get: (v, c) => {
@@ -583,7 +595,7 @@ const modernColumns: Record<string, Col> = {
 	"Edit Status": {
 		width: 8,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.EditStatus || "";
 		},
 		get: getEditStatus,
@@ -591,7 +603,7 @@ const modernColumns: Record<string, Col> = {
 	"Edited in Draft": {
 		width: 9,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.EditInDraft || "";
 		},
 		get: (v, c) => {
@@ -601,7 +613,7 @@ const modernColumns: Record<string, Col> = {
 	"Edit Notes": {
 		width: 25,
 		numFmt: "@",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = fromHtml(c.EditNotes);
 		},
 		get: (v, c) => {
@@ -612,14 +624,14 @@ const modernColumns: Record<string, Col> = {
 		width: 15,
 		outlineLevel: 1,
 		numFmt: "yyyy-mm-dd hh:mm",
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.LastModifiedTime ? new Date(c.LastModifiedTime) : "";
 		},
 	},
 	"Last Updated By": {
 		numFmt: "@",
 		outlineLevel: 1,
-		set: (c, cell) => {
+		set: (b, c, cell) => {
 			cell.value = c.LastModifiedName || "";
 		},
 	},
@@ -836,8 +848,7 @@ function addStatus(
 function genWorksheet(
 	sheet: ExcelJS.Worksheet,
 	columns: Record<string, Col>,
-	ballotId: number | string,
-	doc: string,
+	ballot: Ballot,
 	comments: CommentResolution[]
 ) {
 	// Adjust column width, outlineLevel and style
@@ -885,13 +896,11 @@ function genWorksheet(
 	for (const id of ids) {
 		const cmts = entities[id];
 		cmts.forEach((c) => {
-			const row = sheet.getRow(n);
 			Object.keys(columns).forEach((key, i) => {
 				const cell = sheet.getCell(n, i + 1);
 				const column = columns[key];
-				if (key === "LB") return (cell.value = ballotId);
-				else if (key === "Draft") return (cell.value = doc);
-				else return column.set ? column.set(c, cell) : "";
+				if (column.set) column.set(ballot, c, cell);
+				else cell.value = "";
 			});
 			n++;
 		});
@@ -937,8 +946,7 @@ async function genCommentsSpreadsheet(
 	user: User,
 	isLegacy: boolean,
 	style: CommentSpreadsheetStyle,
-	ballotId: string,
-	doc: string,
+	ballot: Ballot,
 	comments: CommentResolution[],
 	file: { buffer: Buffer } | undefined,
 	res: Response
@@ -965,7 +973,7 @@ async function genCommentsSpreadsheet(
 	const columns = isLegacy ? legacyColumns : modernColumns;
 
 	let sheet = workbook.addWorksheet("All Comments");
-	genWorksheet(sheet, columns, ballotId, doc, comments);
+	genWorksheet(sheet, columns, ballot, comments);
 	if (style === "TabPerAdHoc") {
 		// List of unique AdHoc values
 		const adhocs = [
@@ -976,7 +984,7 @@ async function genCommentsSpreadsheet(
 			const selectComments = comments.filter((c) =>
 				adhoc === "(Blank)" ? !c.AdHoc : c.AdHoc === adhoc
 			);
-			genWorksheet(sheet, columns, ballotId, doc, selectComments);
+			genWorksheet(sheet, columns, ballot, selectComments);
 		});
 	} else if (style === "TabPerCommentGroup") {
 		// List of unique CommentGroup values
@@ -988,7 +996,7 @@ async function genCommentsSpreadsheet(
 			const selectComments = comments.filter((c) =>
 				group === "(Blank)" ? !c.CommentGroup : c.CommentGroup === group
 			);
-			genWorksheet(sheet, columns, ballotId, doc, selectComments);
+			genWorksheet(sheet, columns, ballot, selectComments);
 		});
 	}
 
@@ -1010,8 +1018,7 @@ export async function exportCommentsSpreadsheet(
 		user,
 		isLegacy,
 		style,
-		ballot.BallotID,
-		ballot.Document,
+		ballot,
 		comments,
 		file,
 		res

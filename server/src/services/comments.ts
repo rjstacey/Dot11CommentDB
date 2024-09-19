@@ -17,6 +17,7 @@ import type {
 	CommentResolution,
 	CommentChange,
 	CommentUpdate,
+	CommentCreate,
 } from "../schemas/comments";
 import { Ballot } from "../schemas/ballots";
 
@@ -28,7 +29,10 @@ const createViewCommentResolutionsSQL =
 		"c.id AS comment_id, " +
 		"BIN_TO_UUID(r.id) AS resolution_id, " +
 		"IF(r.id IS NOT NULL, BIN_TO_UUID(r.id), cast(c.id as CHAR)) AS id, " +
-		'IF((SELECT count(*) from resolutions r WHERE (c.id = r.comment_id)) > 1, concat(c.CommentID, ".", r.ResolutionID), c.CommentID) AS CID, ' +
+		'CONCAT(' +
+			'IF(b.Type=2, IF(b.stage=0, "I-", CONCAT("R", b.stage, "-")), ""), ' +
+			'IF((SELECT count(*) from resolutions r WHERE (c.id = r.comment_id)) > 1, concat(c.CommentID, ".", r.ResolutionID), c.CommentID)' +
+		') AS CID, ' +
 		"b.BallotID AS BallotID, " +
 		"c.CommentID AS CommentID, " +
 		"r.ResolutionID AS ResolutionID, " +
@@ -64,7 +68,7 @@ const createViewCommentResolutionsSQL =
 		'DATE_FORMAT(IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedTime, r.LastModifiedTime), "%Y-%m-%dT%TZ") AS LastModifiedTime, ' +
 		"IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) AS LastModifiedBy, " +
 		"IF(c.LastModifiedTime > r.LastModifiedTime, mc.Name, mr.Name) AS LastModifiedName " +
-	"FROM ballots b JOIN comments c ON (b.id = c.ballot_id) " +
+	"FROM ballotsStage b JOIN comments c ON (b.id = c.ballot_id) " +
 		"LEFT JOIN resolutions r ON (c.id = r.comment_id) " +
 		"LEFT JOIN members m ON (r.AssigneeSAPIN = m.SAPIN) " +
 		"LEFT JOIN members mc ON (c.LastModifiedBy = mc.SAPIN) " +
@@ -307,7 +311,7 @@ export async function deleteComments(user: User, ballot_id: number) {
 async function insertComments(
 	user: User,
 	ballot_id: number,
-	comments: Partial<Comment>[]
+	comments: CommentCreate[]
 ) {
 	if (comments.length) {
 		// Insert the comments
@@ -354,7 +358,7 @@ async function insertComments(
 async function replaceComments(
 	user: User,
 	ballot_id: number,
-	comments: Partial<Comment>[]
+	comments: CommentCreate[]
 ) {
 	// Delete existing comments (and resolutions) for this ballot
 	await deleteComments(user, ballot_id);
@@ -445,7 +449,7 @@ export async function uploadUserComments(
 	const startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;
 	const startIndex = MaxIndex ? MaxIndex + 1 : 1;
 
-	let comments: Partial<Comment>[] = await parseEpollUserComments(
+	let comments: CommentCreate[] = await parseEpollUserComments(
 		commenter,
 		startCommentId,
 		startIndex,
@@ -466,7 +470,7 @@ export async function uploadPublicReviewComments(
 	const { MaxCommentId } = await getHighestIndexes(ballot.id);
 	const startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;
 
-	const comments: Partial<Comment>[] = await parsePublicReviewComments(
+	const comments: CommentCreate[] = await parsePublicReviewComments(
 		startCommentId,
 		file
 	);

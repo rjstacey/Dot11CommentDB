@@ -6,18 +6,19 @@ import { commentsSummarySchema } from "./comments";
 export const ballotSchema = z.object({
 	id: z.number(),
 	groupId: groupIdSchema,
+	workingGroupId: groupIdSchema,
 	Type: z.number(),
 	number: z.number(),
-	workingGroupId: groupIdSchema,
 	BallotID: z.string(),
 	Project: z.string(),
+	prev_id: z.number().nullable(),
 	IsRecirc: z.boolean(),
 	IsComplete: z.boolean(),
+	stage: z.number(),
 	Start: z.string().datetime({ offset: true }).nullable(),
 	End: z.string().datetime({ offset: true }).nullable(),
 	Document: z.string(),
 	Topic: z.string(),
-	prev_id: z.number().nullable(),
 	EpollNum: z.number().nullable(),
 	Results: resultsSummarySchema.nullable(),
 	Comments: commentsSummarySchema,
@@ -51,6 +52,7 @@ export const ballotCreateSchema = ballotSchema.pick({
 export const ballotCreatesSchema = ballotCreateSchema.array();
 export const ballotChangesSchema = ballotSchema
 	.omit({
+		stage: true,
 		Results: true,
 		Comments: true,
 		Voters: true,

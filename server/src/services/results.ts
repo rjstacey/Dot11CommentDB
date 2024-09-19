@@ -207,7 +207,7 @@ export async function getWGBallotResults(ballot_id: number): Promise<Result[]> {
 					SUM(r.commentCount) OVER (PARTITION BY b.series_id, r.CurrentSAPIN) AS totalCommentCount,
 					LAST_VALUE(r.notes) OVER w AS notes,
 					ROW_NUMBER() OVER w AS n
-				FROM resultsCurrent r JOIN ballotSeries b ON b.id=r.ballot_id
+				FROM resultsCurrent r JOIN ballotsSeries b ON b.id=r.ballot_id
 				WHERE b.series_id=${ballot_id}
 				WINDOW w AS (PARTITION BY b.series_id, r.CurrentSAPIN ORDER BY b.Start DESC)
 			) t
@@ -215,7 +215,7 @@ export async function getWGBallotResults(ballot_id: number): Promise<Result[]> {
 		),
 		votersForSeries AS (
 			SELECT v.*
-			FROM votersCurrent v JOIN ballotSeries b ON b.id=v.ballot_id
+			FROM votersCurrent v JOIN ballotsSeries b ON b.id=v.ballot_id
 			WHERE b.series_id=${ballot_id} AND b.prev_id IS NULL
 		),
 		resultsPlusVoters AS (
@@ -273,7 +273,7 @@ function getSABallotResults(ballot_id: number): Promise<Result[]> {
 				SUM(r.commentCount) OVER (PARTITION BY b.series_id, r.Email) AS totalCommentCount,
 				LAST_VALUE(r.notes) OVER w AS notes,
 				ROW_NUMBER() OVER w AS n
-			FROM resultsCurrent r JOIN ballotSeries b ON b.id=r.ballot_id
+			FROM resultsCurrent r JOIN ballotsSeries b ON b.id=r.ballot_id
 			WHERE b.series_id=${ballot_id}
 			WINDOW w AS (PARTITION BY b.series_id, r.Email ORDER BY b.Start DESC)
 		) AS t

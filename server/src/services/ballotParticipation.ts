@@ -22,11 +22,11 @@ async function getRecentCompletedBallotSeries(
 		SELECT
 			series_id AS id,
 			initial_id AS votingPoolId,
-			DATE_FORMAT(initialStart, "%Y-%m-%dT%TZ") AS start,
+			DATE_FORMAT(series_start, "%Y-%m-%dT%TZ") AS start,
 			DATE_FORMAT(End, "%Y-%m-%dT%TZ") AS end,
 			ballotIds,
 			Project AS project
-		FROM ballotSeries s1
+		FROM ballotsSeries s1
 		WHERE workingGroupId=UUID_TO_BIN(${db.escape(
 			workingGroupId
 		)}) AND IsComplete<>0 AND type=1
@@ -62,11 +62,11 @@ async function getActiveBallotSeries(
 		SELECT
 			s1.series_id AS id,
 			s1.initial_id AS votingPoolId,
-			DATE_FORMAT(s1.initialStart, "%Y-%m-%dT%TZ") AS start,
+			DATE_FORMAT(s1.series_start, "%Y-%m-%dT%TZ") AS start,
 			DATE_FORMAT(s1.End, "%Y-%m-%dT%TZ") AS end,
 			s1.ballotIds,
 			s1.Project AS project
-		FROM ballotSeries s1
+		FROM ballotsSeries s1
 		LEFT JOIN ballots ON s1.id=ballots.prev_id
 		WHERE s1.workingGroupId=UUID_TO_BIN(${db.escape(
 			workingGroupId
@@ -112,7 +112,7 @@ export function getBallotSeriesParticipationSummary(
 					LAST_VALUE(r.commentCount) OVER w AS commentCount,
 					SUM(r.commentCount) OVER w AS totalCommentCount,
 					ROW_NUMBER() OVER w AS n
-				FROM resultsCurrent r JOIN ballotSeries b ON b.id=r.ballot_id
+				FROM resultsCurrent r JOIN ballotsSeries b ON b.id=r.ballot_id
 				WHERE b.series_id=${series_id} AND
 					(r.Vote="Approve" OR r.Vote="Disapprove" OR r.Vote LIKE "Abstain%expertise")
 				WINDOW w AS (PARTITION BY b.series_id, r.CurrentSAPIN ORDER BY b.Start DESC)
