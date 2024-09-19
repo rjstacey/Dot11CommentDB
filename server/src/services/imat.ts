@@ -369,22 +369,17 @@ export function parseSessionDetailPage(body: string) {
 	const $ = getPage(body, "Session detail");
 
 	m = /<td>(.*) Time Zone<\/td>/.exec(body);
-	if (!m) throw new Error("Can't find timezone");
+	if (!m) throw new Error("On IMAT 'Session detail', can't find timezone");
 	const timezone = m[1];
 
 	m = /<td>(\d{2}-[a-zA-Z]{3}-\d{4}) - (\d{2}-[a-zA-Z]{3}-\d{4})<\/td>/.exec(
 		body
 	);
-	if (!m) throw new Error("Can't find session dates");
+	if (!m)
+		throw new Error("On IMAT 'Session detail', can't find session dates");
 	const sessionStart = DateTime.fromFormat(m[1], "dd-MMM-yyyy", {
 		zone: timezone,
 	});
-
-	// Find "Add a new Meeting" link
-	href = $('a[href*="/breakout?"]').attr("href") || "";
-	m = /p=(\d+)/.exec(href);
-	if (!m) throw new Error("Can't find session ID");
-	const imatMeetingId = parseInt(m[1]);
 
 	const breakouts: PageBreakout[] = [];
 	const timeslots: { [id: string]: PageTimeslot } = {};
@@ -400,19 +395,6 @@ export function parseSessionDetailPage(body: string) {
 				startTime: tds.eq(1).text(),
 				endTime: tds.eq(2).text(),
 			};
-			/* The user may not have permission to edit the timeslots, in which case the timeslot edit link and thus
-			 * the ID is not available. */
-			/*href = tds.eq(3).find('a[href*="timeslot-edit"]').attr('href') || '';
-			if (href) {
-				m = /t=(\d+)/.exec(href);
-				if (!m)
-					throw Error("Can't parse timeslot-edit link");
-				t.id = parseInt(m[1]);
-			}
-			else {
-				t.id = t.name;
-			}*/
-
 			timeslots[t.name] = t;
 		}
 
@@ -429,7 +411,8 @@ export function parseSessionDetailPage(body: string) {
 				);
 			if (!m)
 				throw new Error(
-					"Can't parse Time Period column; got " + timePeriod
+					"On IMAT 'Session detail', can't parse Time Period column; got " +
+						timePeriod
 				);
 			const slotsRange = m[1];
 			const eventDate = DateTime.fromFormat(m[2], "dd-MMM-yyyy", {
@@ -471,9 +454,15 @@ export function parseSessionDetailPage(body: string) {
 
 			href =
 				tds.eq(7).find('a[href*="breakout-edit"]').attr("href") || "";
-			if (!href) throw new Error("Can't find edit breakout link");
+			if (!href)
+				throw new Error(
+					"On IMAT 'Session detail', can't find edit breakout link"
+				);
 			m = /\/(.*)\/breakout-edit\?t=(\d+)&p=(\d+)&fc=(.+)/.exec(href);
-			if (!m) throw new Error("Can't parse edit breakout link");
+			if (!m)
+				throw new Error(
+					"On IMAT 'Session detail', can't parse edit breakout link"
+				);
 			const id = parseInt(m[2]);
 			//b.imatMeetingId = parseInt(m[3]);
 			const editContext = decodeURIComponent(m[4]);
@@ -481,9 +470,14 @@ export function parseSessionDetailPage(body: string) {
 
 			const inputName = $(`input[value="${id}"]`).attr("name");
 			if (!inputName)
-				throw new Error("Can't find breakout delete checkbox");
+				throw new Error(
+					"On IMAT 'Session detail', can't find breakout delete checkbox"
+				);
 			m = /f5_(\d+)/.exec(inputName);
-			if (!m) throw new Error("Can't parse input field");
+			if (!m)
+				throw new Error(
+					"On IMAT 'Session detail', can't parse input field"
+				);
 			const formIndex = m[1];
 
 			//console.log(b);
