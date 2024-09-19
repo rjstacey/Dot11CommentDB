@@ -101,7 +101,7 @@ const lineTruncStyle: React.CSSProperties = {
 const renderHeaderTypeStage = (props: HeaderCellRendererProps) => (
 	<>
 		<TableColumnHeader {...props} dataKey="Type" {...fields.Type} />
-		<TableColumnHeader {...props} dataKey="Stage" {...fields.Stage} />
+		<TableColumnHeader {...props} dataKey="stage" {...fields.stage} />
 	</>
 );
 
@@ -294,7 +294,6 @@ const tableColumns: ColumnProperties[] = [
 		flexGrow: 1,
 		dropdownWidth: 300,
 	},
-	{ key: "Topic", ...fields.Topic, width: 300, flexShrink: 1, flexGrow: 1 },
 	{
 		key: "EpollNum",
 		...fields.EpollNum,
@@ -389,7 +388,7 @@ function Ballots() {
 		ballotsSelectors.selectCurrentPanelConfig
 	);
 
-	const refresh = () => dispatch(loadBallots(groupName!, true)); //navigate(".", {replace: true});
+	const refresh = () => dispatch(loadBallots(groupName!, true));
 	const showEpolls = () => navigate(`/${groupName}/epolls/`);
 
 	return (

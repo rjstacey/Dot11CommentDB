@@ -62,10 +62,7 @@ export const menu: MenuItem[] = [
  */
 const rootLoader: LoaderFunction = async () => {
 	const { dispatch, getState } = store;
-	console.log(selectIsOnline(getState()));
-	if (selectIsOnline(getState())) {
-		await dispatch(loadGroups());
-	}
+	if (selectIsOnline(getState())) await dispatch(loadGroups());
 	return null;
 };
 
@@ -75,7 +72,9 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 
 	const { dispatch, getState } = store;
 
+	if (selectIsOnline(getState())) await dispatch(loadGroups());
 	const group = selectWorkingGroupByName(getState(), groupName);
+
 	if (!group) throw new Error("Invalid group: " + groupName);
 	const access = group.permissions.ballots || AccessLevel.none;
 	if (access < AccessLevel.ro)

@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { createRoot } from "react-dom/client";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
@@ -8,10 +8,9 @@ import { selectUser, setUser, type User } from "./store/user";
 
 import "./index.css";
 import App from "./app";
-import { fetcher, getUser } from "dot11-components";
+import { fetcher, getUser, loginAndReturn } from "dot11-components";
 // @ts-ignore
 import registerServiceWorker from "./registerServiceWorker";
-import { redirect } from "react-router";
 
 function persistGate(done: boolean, user: User) {
 	if (!done) return "loading...";
@@ -25,7 +24,7 @@ getUser()
 	.then((user) => {
 		const root = createRoot(document.getElementById("root")!);
 		try {
-			fetcher.setAuth(user.Token, () => redirect("/"));
+			fetcher.setAuth(user.Token, loginAndReturn);
 			root.render(
 				<React.StrictMode>
 					<Provider store={store}>
@@ -42,5 +41,5 @@ getUser()
 	})
 	.catch((error) => {
 		console.error(error);
-		//logout();
+		loginAndReturn();
 	});

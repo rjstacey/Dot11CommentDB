@@ -1,7 +1,7 @@
 import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 
-import { ActionButton, Spinner } from "dot11-components";
+import { ActionButton, Button, Spinner } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { selectIsOnline } from "../store/offline";
@@ -9,14 +9,11 @@ import { loadEpolls, selectEpollsState } from "../store/epolls";
 
 function EpollsActions() {
 	const dispatch = useAppDispatch();
-	const navigate = useNavigate();
 	const { groupName } = useParams();
 
 	const { loading } = useAppSelector(selectEpollsState);
 	const isOnline = useAppSelector(selectIsOnline);
 	const numberEpolls = React.useRef(20);
-
-	const close = () => navigate(-1);
 
 	const load = React.useCallback(
 		() =>
@@ -48,7 +45,11 @@ function EpollsActions() {
 					onClick={load}
 					disabled={loading || !isOnline}
 				/>
-				<ActionButton name="close" title="Close" onClick={close} />
+				<Link to="../ballots">
+					<Button>
+						<i className="bi-x" />
+					</Button>
+				</Link>
 			</span>
 		</div>
 	);

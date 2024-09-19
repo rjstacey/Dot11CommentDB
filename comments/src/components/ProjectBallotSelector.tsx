@@ -14,6 +14,8 @@ import {
 	selectBallotByBallotID,
 	GroupProject,
 	selectCurrentGroupProject,
+	BallotType,
+	getStage,
 } from "../store/ballots";
 
 import styles from "./ProjectBallotSelector.module.css";
@@ -72,7 +74,12 @@ function BallotSelect({
 		() =>
 			ballots.map((b) => ({
 				value: b.id,
-				label: `${getBallotId(b)} ${b.Document}`,
+				label:
+					(b.Type === BallotType.SA
+						? `SA ${getStage(b)}`
+						: getBallotId(b)) +
+					" on " +
+					b.Document,
 			})),
 		[ballots]
 	);

@@ -108,7 +108,6 @@ export type BallotUpdate = {
 };
 
 export type SyncedBallot = Ballot & {
-	PrevBallotID: string | null;
 	GroupName: string;
 };
 
@@ -126,22 +125,6 @@ export const BallotTypeOptions = Object.values(BallotType).map((v) => ({
 export const renderBallotType = (type: number) =>
 	BallotTypeLabels[type] || "Unknown";
 
-export const BallotStage = {
-	Initial: 0,
-	Recirc: 1,
-};
-
-export const BallotStageLabels = {
-	[BallotStage.Initial]: "Initial",
-	[BallotStage.Recirc]: "Recirc",
-};
-
-export const BallotStageOptions = Object.values(BallotStage).map((v) => ({
-	value: v,
-	label: BallotStageLabels[v],
-}));
-export const renderBallotStage = (v: boolean) => (v ? "Recirc" : "Initial");
-
 export const fields = {
 	GroupName: { label: "Group" },
 	Project: { label: "Project" },
@@ -158,12 +141,10 @@ export const fields = {
 	BallotID: {
 		label: "ID",
 	},
-	Stage: { label: "Stage" },
-	IsRecirc: {
+	stage: {
 		label: "Stage",
+		dataRenderer: getStage,
 		type: FieldType.NUMERIC,
-		options: BallotStageOptions,
-		dataRenderer: renderBallotStage,
 	},
 	IsComplete: { label: "Final", type: FieldType.NUMERIC },
 	Document: { label: "Document" },
@@ -175,6 +156,10 @@ export const fields = {
 	Comments: { label: "Comments", dontFilter: true, dontSort: true },
 	PrevBallotID: { label: "Prev ballot" },
 };
+
+export function getStage(ballot: Ballot) {
+	return ballot.stage === 0 ? "Initial" : `Recirc ${ballot.stage}`;
+}
 
 export function getBallotId(ballot: Ballot) {
 	if (ballot.Type === BallotType.CC) {
@@ -194,8 +179,9 @@ export function getBallotId(ballot: Ballot) {
 
 export function getField(entity: Ballot, dataKey: string) {
 	if (dataKey === "Stage") {
-		if (entity.Type === BallotType.SA || entity.Type === BallotType.WG)
-			return entity.IsRecirc ? "Recirc" : "Inital";
+		if (entity.Type === BallotType.SA || entity.Type === BallotType.WG) {
+			return entity.stage === 0 ? "Initial" : `Recirc ${entity.stage}`;
+		}
 		return "";
 	}
 	if (dataKey === "BallotID") {
@@ -392,17 +378,11 @@ const selectSyncedBallotEntities = createSelector(
 		const syncedEntities: Record<EntityId, SyncedBallot> = {};
 		ids.forEach((id) => {
 			const ballot = entities[id]!;
-			const prevBallot = ballot.prev_id
-				? entities[ballot.prev_id]
-				: undefined;
-			const PrevBallotID = prevBallot
-				? BallotTypeLabels[prevBallot.Type] + prevBallot.number
-				: null;
 			const GroupName =
 				(ballot.groupId &&
 					(groupEntities[ballot.groupId]?.name || "Unknown")) ||
 				"(Blank)";
-			syncedEntities[id] = { ...ballot, PrevBallotID, GroupName };
+			syncedEntities[id] = { ...ballot, GroupName };
 		});
 		return syncedEntities;
 	}

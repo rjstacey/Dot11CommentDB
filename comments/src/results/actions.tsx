@@ -18,7 +18,7 @@ import { tableColumns } from "./table";
 
 function ResultsActions() {
 	const navigate = useNavigate();
-	const refresh = () => navigate(".", { replace: true });
+	const refresh = () => navigate(0);
 
 	const isOnline = useAppSelector(selectIsOnline);
 

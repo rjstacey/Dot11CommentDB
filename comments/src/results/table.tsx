@@ -287,7 +287,7 @@ function Results() {
 					fixed
 					defaultTablesConfig={defaultTablesConfig}
 					columns={columns}
-					headerHeight={28}
+					headerHeight={38}
 					estimatedRowHeight={32}
 					selectors={resultsSelectors}
 					actions={resultsActions}

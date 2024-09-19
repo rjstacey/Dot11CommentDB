@@ -25,7 +25,7 @@ function VotersActions({ setVotersState }: VotersContext) {
 	const { loading, selected } = useAppSelector(selectVotersState);
 	const shownIds = useAppSelector(votersSelectors.selectSortedFilteredIds);
 
-	const refresh = () => navigate(".", { replace: true });
+	const refresh = () => navigate(0);
 
 	async function handleRemoveSelected() {
 		const ids = selected.filter((id) => shownIds.includes(id)); // only select checked items that are visible

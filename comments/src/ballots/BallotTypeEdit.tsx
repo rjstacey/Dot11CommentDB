@@ -141,7 +141,7 @@ function BallotSeries({
 	);
 	const isLast = ballot.id === ballotSeries[ballotSeries.length - 1]?.id;
 
-	const ballotSeriesStr = ballotSeries.map((b) => (
+	const ballotSeriesStr = ballotSeries.map((b, i) => (
 		<span
 			key={b.id}
 			style={{
@@ -149,7 +149,7 @@ function BallotSeries({
 				fontWeight: ballot.id === b.id ? "bold" : "normal",
 			}}
 		>
-			{getBallotId(b)}
+			{getBallotId({ ...b, stage: i })}
 		</span>
 	));
 
