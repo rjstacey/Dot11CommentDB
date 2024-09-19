@@ -17,7 +17,7 @@ import { tableColumns } from "./table";
 
 function WebexMeetingsActions() {
 	const navigate = useNavigate();
-	const refresh = () => navigate(".", { replace: true });
+	const refresh = () => navigate(0);
 
 	return (
 		<div className="top-row">

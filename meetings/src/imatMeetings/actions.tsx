@@ -15,7 +15,7 @@ import { tableColumns } from "./table";
 
 function ImatMeetingsActions() {
 	const navigate = useNavigate();
-	const refresh = () => navigate(".", { replace: true });
+	const refresh = () => navigate(0);
 	return (
 		<div className="top-row">
 			<div>IMAT Sessions</div>

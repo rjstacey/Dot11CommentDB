@@ -1,18 +1,16 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 
-import { ActionButton } from "dot11-components";
+import { ActionButton, Button } from "dot11-components";
 
 import ImatMeetingInfo from "../components/ImatMeetingInfo";
 import ImatBreakoutInfo from "../components/ImatBreakoutInfo";
 
 function ImatAttendanceActions() {
 	const navigate = useNavigate();
+	const refresh = () => navigate(0);
 	const params = useParams();
 	const meetingNumber = Number(params.meetingNumber);
 	const breakoutNumber = Number(params.breakoutNumber);
-
-	const close = () => navigate("..");
-	const refresh = () => navigate(".", { replace: true });
 
 	return (
 		<>
@@ -28,7 +26,11 @@ function ImatAttendanceActions() {
 						title="Refresh"
 						onClick={refresh}
 					/>
-					<ActionButton name="close" title="Close" onClick={close} />
+					<Link to={`../imatBreakouts/${meetingNumber}`}>
+						<Button>
+							<i className="bi-x" />
+						</Button>
+					</Link>
 				</div>
 			</div>
 		</>

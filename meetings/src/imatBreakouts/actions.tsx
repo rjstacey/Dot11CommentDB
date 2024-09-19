@@ -17,7 +17,7 @@ import { tableColumns } from "./table";
 
 function ImatBreakoutsActions() {
 	const navigate = useNavigate();
-	const refresh = () => navigate(".", { replace: true });
+	const refresh = () => navigate(0);
 
 	const imatMeetingId = Number(useParams().meetingNumber);
 	const setImatMeetingId = (imatMeetingId: number | null) => {

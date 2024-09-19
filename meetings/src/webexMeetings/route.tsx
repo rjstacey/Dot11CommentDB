@@ -12,6 +12,7 @@ import {
 import { loadImatMeetings } from "../store/imatMeetings";
 import { loadWebexMeetings } from "../store/webexMeetings";
 import { LoadMeetingsConstraints } from "../store/meetingsSelectors";
+import { setCurrentSessionId, setShowDateRange } from "../store/current";
 
 import WebexMeetingsLayout from "./layout";
 
@@ -41,6 +42,8 @@ const webexMeetingsLoader: LoaderFunction = async ({
 	if (sessionNumber) {
 		const session = selectSessionByNumber(getState(), sessionNumber);
 		if (session) {
+			dispatch(setCurrentSessionId(session.id));
+			dispatch(setShowDateRange(showDateRange));
 			const constraints: LoadMeetingsConstraints = {};
 			if (showDateRange) {
 				constraints.fromDate = session.startDate;

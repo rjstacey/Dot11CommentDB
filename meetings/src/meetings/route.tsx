@@ -11,6 +11,7 @@ import {
 } from "../store/sessions";
 import { loadImatMeetings } from "../store/imatMeetings";
 import { loadMeetings, LoadMeetingsConstraints } from "../store/meetings";
+import { setCurrentSessionId, setShowDateRange } from "../store/current";
 
 import MeetingsLayout from "./layout";
 
@@ -45,6 +46,8 @@ const meetingsLoader: LoaderFunction<LoaderData> = async ({
 			session = selectSessionByNumber(getState(), sessionNumber);
 		}
 		if (session) {
+			dispatch(setCurrentSessionId(session.id));
+			dispatch(setShowDateRange(showDateRange));
 			const constraints: LoadMeetingsConstraints = {};
 			if (showDateRange) {
 				constraints.fromDate = session.startDate;

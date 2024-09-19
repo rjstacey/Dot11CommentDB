@@ -13,7 +13,7 @@ function ReportsActions() {
 	const { chart } = useParams();
 	const { loading } = useAppSelector(selectMeetingAttendanceState);
 
-	const refresh = () => navigate(".");
+	const refresh = () => navigate(0);
 
 	return (
 		<div className="top-row">

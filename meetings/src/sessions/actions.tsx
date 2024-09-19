@@ -24,7 +24,7 @@ function SessionsActions() {
 	const navigate = useNavigate();
 	const { groupName } = useParams();
 	const { selected } = useAppSelector(selectSessionsState);
-	const refresh = () => navigate(".", { replace: true });
+	const refresh = () => navigate(0);
 	const showImatMeetings = () => navigate(`/${groupName}/imatMeetings`);
 	const handleRemoveSelected = async () => {
 		if (selected.length) {

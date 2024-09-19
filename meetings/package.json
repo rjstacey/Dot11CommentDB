@@ -7,7 +7,7 @@
 	"dependencies": {
 		"@reduxjs/toolkit": "^1.9.7",
 		"d3": "^7.8.5",
-		"dot11-components": "^1.9.85",
+		"dot11-components": "^1.9.90",
 		"idb-keyval": "^6.2.1",
 		"luxon": "^3.4.4",
 		"react": "^18.2.0",

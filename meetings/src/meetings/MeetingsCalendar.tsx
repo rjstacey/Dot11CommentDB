@@ -289,17 +289,22 @@ function RoomColumn({ date, room }: { date: string; room: Room }) {
 	);
 }
 
-const SessionDayContainer = ({style, n, ...props}: {n: number} & React.ComponentProps<"div">) =>
+const SessionDayContainer = ({
+	style,
+	n,
+	...props
+}: { n: number } & React.ComponentProps<"div">) => (
 	<div
 		style={{
 			...style,
-			width: '100%',
-			display: 'grid',
+			width: "100%",
+			display: "grid",
 			gridTemplateColumns: `8px repeat(${n}, minmax(10px, 1fr))`,
-			gridTemplateRows: 'minmax(10px, 1fr)'
+			gridTemplateRows: "minmax(10px, 1fr)",
 		}}
 		{...props}
 	/>
+);
 
 function SessionDayHead({
 	style,
@@ -389,7 +394,7 @@ function SessionDayBody({
 	);
 }
 
-function MeetingCalendar({ nDays }: { nDays: number }) {
+function MeetingsCalendar({ nDays }: { nDays: number }) {
 	const dates = useAppSelector(selectCurrentSessionDates);
 	const [day, setDay] = React.useState(0);
 
@@ -477,4 +482,4 @@ function MeetingCalendar({ nDays }: { nDays: number }) {
 	);
 }
 
-export default MeetingCalendar;
+export default MeetingsCalendar;
