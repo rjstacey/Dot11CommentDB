@@ -3,12 +3,15 @@
  */
 import ExcelJS from "exceljs";
 import { isCorrectSpreadsheetHeader } from "../utils";
-import { ballotChangesSchema, type Ballot } from "../schemas/ballots";
-import { getComments } from "./comments";
-import type { CommentResolution } from "../schemas/comments";
+import { type Ballot } from "../schemas/ballots";
+import type {
+	CommentResolution,
+	CommentsExportStyle,
+} from "../schemas/comments";
 import type { User } from "./users";
 import type { Response } from "express";
 import { BallotType } from "./ballots";
+import { getComments } from "./comments";
 
 type ColSet = (b: Ballot, c: CommentResolution, v: ExcelJS.Cell) => void;
 type ColGet = (v: ExcelJS.CellValue, c: Partial<CommentResolution>) => void;
@@ -926,26 +929,23 @@ function genWorksheet(
 	};
 }
 
-export const commentSpreadsheetStyles = [
-	"AllComments",
-	"TabPerAdHoc",
-	"TabPerCommentGroup",
-] as const;
-export type CommentSpreadsheetStyle = (typeof commentSpreadsheetStyles)[number];
-export function validCommentSpreadsheetStyle(
-	style: any
-): style is CommentSpreadsheetStyle {
-	return commentSpreadsheetStyles.includes(style);
-}
-
-// Sheet name cannot be longer than 31 characters and cannot include: * ? : \ / [ ]
+/** Generate sheet name; cannot be longer than 31 characters and cannot include: * ? : \ / [ ] */
 export const getSheetName = (name: string) =>
 	name.slice(0, 30).replace(/[*.\?:\\\/\[\]]/g, "_");
+
+/** Add a worksheet, replacing existing worksheet of the same name if it exists */
+function addWorksheet(workbook: ExcelJS.Workbook, name: string) {
+	let sheet: ExcelJS.Worksheet | undefined;
+	sheet = workbook.getWorksheet(name);
+	if (sheet) workbook.removeWorksheet(sheet.id);
+	return workbook.addWorksheet(name);
+}
 
 async function genCommentsSpreadsheet(
 	user: User,
 	isLegacy: boolean,
-	style: CommentSpreadsheetStyle,
+	style: CommentsExportStyle,
+	appendSheets: boolean,
 	ballot: Ballot,
 	comments: CommentResolution[],
 	file: { buffer: Buffer } | undefined,
@@ -957,12 +957,14 @@ async function genCommentsSpreadsheet(
 			throw new TypeError("Invalid workbook: " + error);
 		});
 
-		let sheetIds: number[] = [];
-		workbook.eachSheet((sheet) => {
-			if (sheet.name !== "Title" && sheet.name !== "Revision History")
-				sheetIds.push(sheet.id);
-		});
-		sheetIds.forEach((id) => workbook.removeWorksheet(id));
+		if (!appendSheets) {
+			let sheetIds: number[] = [];
+			workbook.eachSheet((sheet) => {
+				if (sheet.name !== "Title" && sheet.name !== "Revision History")
+					sheetIds.push(sheet.id);
+			});
+			sheetIds.forEach((id) => workbook.removeWorksheet(id));
+		}
 	} else {
 		workbook.creator = user.Name;
 		workbook.created = new Date();
@@ -972,7 +974,8 @@ async function genCommentsSpreadsheet(
 
 	const columns = isLegacy ? legacyColumns : modernColumns;
 
-	let sheet = workbook.addWorksheet("All Comments");
+	let sheet: ExcelJS.Worksheet | undefined;
+	sheet = addWorksheet(workbook, "All Comments");
 	genWorksheet(sheet, columns, ballot, comments);
 	if (style === "TabPerAdHoc") {
 		// List of unique AdHoc values
@@ -980,7 +983,7 @@ async function genCommentsSpreadsheet(
 			...new Set(comments.map((c) => c.AdHoc || "(Blank)")),
 		].sort();
 		adhocs.forEach((adhoc) => {
-			sheet = workbook.addWorksheet(getSheetName(adhoc));
+			sheet = addWorksheet(workbook, getSheetName(adhoc));
 			const selectComments = comments.filter((c) =>
 				adhoc === "(Blank)" ? !c.AdHoc : c.AdHoc === adhoc
 			);
@@ -992,7 +995,7 @@ async function genCommentsSpreadsheet(
 			...new Set(comments.map((c) => c.CommentGroup || "(Blank)")),
 		].sort();
 		groups.forEach((group) => {
-			sheet = workbook.addWorksheet(getSheetName(group));
+			sheet = addWorksheet(workbook, getSheetName(group));
 			const selectComments = comments.filter((c) =>
 				group === "(Blank)" ? !c.CommentGroup : c.CommentGroup === group
 			);
@@ -1007,7 +1010,8 @@ export async function exportCommentsSpreadsheet(
 	user: User,
 	ballot: Ballot,
 	isLegacy: boolean,
-	style: CommentSpreadsheetStyle,
+	style: CommentsExportStyle,
+	appendSheets: boolean,
 	file: { buffer: Buffer } | undefined,
 	res: Response
 ) {
@@ -1018,6 +1022,7 @@ export async function exportCommentsSpreadsheet(
 		user,
 		isLegacy,
 		style,
+		appendSheets,
 		ballot,
 		comments,
 		file,

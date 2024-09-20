@@ -73,11 +73,7 @@ import {
 	uploadPublicReviewComments,
 } from "../services/comments";
 import { exportResolutionsForMyProject } from "../services/myProjectSpreadsheets";
-import {
-	exportCommentsSpreadsheet,
-	commentSpreadsheetStyles,
-	CommentSpreadsheetStyle,
-} from "../services/commentsSpreadsheet";
+import { exportCommentsSpreadsheet } from "../services/commentsSpreadsheet";
 import {
 	CommentsUploadParams,
 	CommentsUploadUserParams,
@@ -87,28 +83,10 @@ import {
 	CommentUpdate,
 	commentResolutionQuerySchema,
 	CommentResolutionQuery,
+	commentsExportParamsSchema,
+	CommentsExportParams,
 } from "../schemas/comments";
 
-const commentsSpreadsheetFormats = ["legacy", "modern", "myproject"] as const;
-type CommentsSpreadsheetForamt = (typeof commentsSpreadsheetFormats)[number];
-const validCommentSpreadsheetFormat = (
-	format: any
-): format is CommentsSpreadsheetForamt =>
-	commentsSpreadsheetFormats.includes(format);
-
-function validateExportParams(
-	params: any
-): asserts params is { style: CommentSpreadsheetStyle } {
-	if (
-		!isPlainObject(params) ||
-		!commentSpreadsheetStyles.includes(params.style)
-	)
-		throw new TypeError(
-			`Bad body; extected params to be object with shape {style: ${commentSpreadsheetStyles
-				.map((s) => '"' + s + '"')
-				.join(" | ")}}`
-		);
-}
 function patchStartCommentId(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;
 	// Need admin privileges to change CIDs
@@ -251,42 +229,28 @@ function postExport(req: Request, res: Response, next: NextFunction) {
 			)
 		);
 
-	let format: CommentsSpreadsheetForamt = "legacy";
-	if (typeof req.query.format === "string") {
-		let formatIn = req.query.format.toLowerCase();
-		if (!validCommentSpreadsheetFormat(formatIn))
-			return next(
-				new TypeError(
-					"Invalid format; expected one of " +
-						commentsSpreadsheetFormats.join(", ")
-				)
-			);
-		format = formatIn;
+	let params: CommentsExportParams;
+	try {
+		params = commentsExportParamsSchema.parse(req.query);
+	} catch (error) {
+		return next(error);
 	}
 
-	if (format === "myproject") {
+	if (params.format === "myproject") {
 		if (!req.file) return next(new TypeError("Missing file"));
 		exportResolutionsForMyProject(req.ballot!.id, req.file, res)
 			.then(() => res.end())
 			.catch((err) => next(err));
 	} else {
-		let params: any;
-		try {
-			if (typeof req.body.params !== "string")
-				throw new TypeError(
-					"Bad multipart body; expected part params to contain JSON string"
-				);
-			params = JSON.parse(req.body.params);
-			validateExportParams(params);
-		} catch (error) {
-			return next(error);
-		}
-		const isLegacy = format === "legacy";
+		const isLegacy = params.format === "legacy";
+		const style = params.style || "AllComments";
+		const appendSheets = params.appendSheets === "true";
 		exportCommentsSpreadsheet(
 			req.user,
 			req.ballot!,
 			isLegacy,
-			params.style,
+			style,
+			appendSheets,
 			req.file,
 			res
 		)

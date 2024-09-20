@@ -95,3 +95,18 @@ export type CommentResolution = z.infer<typeof commentResolutionSchema>;
 export type CommentResolutionQuery = z.infer<
 	typeof commentResolutionQuerySchema
 >;
+
+const commentsExportFormatSchema = z.enum(["modern", "legacy", "myproject"]);
+const commentsExportStyleSchema = z.enum([
+	"AllComments",
+	"TabPerAdHoc",
+	"TabPerCommentGroup",
+]);
+export const commentsExportParamsSchema = z.object({
+	format: commentsExportFormatSchema.optional(),
+	style: commentsExportStyleSchema.optional(),
+	appendSheets: z.enum(["true", "false"]).optional(),
+});
+export type CommentsExportParams = z.infer<typeof commentsExportParamsSchema>;
+export type CommentsExportFormat = z.infer<typeof commentsExportFormatSchema>;
+export type CommentsExportStyle = z.infer<typeof commentsExportStyleSchema>;
