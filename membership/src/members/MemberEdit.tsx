@@ -60,8 +60,8 @@ export function hasChangesStyle<O extends object>(
 	saved: O | undefined,
 	dataKey: keyof O
 ) {
-	return saved && edited[dataKey] !== saved[dataKey]
-		? { backgroundColor: "yellow" }
+	return !saved || edited[dataKey] !== saved[dataKey]
+		? { backgroundColor: "#ffff003d" }
 		: undefined;
 }
 
@@ -187,7 +187,7 @@ function ExpandingInput({
 			{...props}
 			type="text"
 			style={{
-				...hasChangesStyle(member, saved, "Name"),
+				...hasChangesStyle(member, saved, dataKey),
 				width: `${Math.max(value.length, 20) + 2}ch`,
 			}}
 			name={dataKey}
@@ -440,9 +440,9 @@ export function MemberEntryForm({
 		if (user) {
 			const member: MemberAdd = {
 				...user,
-				Affiliation: '',
-				Status: 'Non-Voter'
-			}
+				Affiliation: "",
+				Status: "Non-Voter",
+			};
 			updateMember(member);
 		}
 	}
@@ -455,38 +455,39 @@ export function MemberEntryForm({
 			cancel={cancelForm}
 			errorText={errMsg}
 		>
-			{action === "add" &&
+			{action === "add" && (
 				<UserSelector
 					value={member.SAPIN as number}
-					onChange={sapin => setMember(sapin)}
+					onChange={(sapin) => setMember(sapin)}
 				/>
-			}
+			)}
 			<MemberBasicInfo
-				sapins={action === "add"? [member.SAPIN as number]: sapins}
+				sapins={action === "add" ? [member.SAPIN as number] : sapins}
 				member={member}
 				saved={saved}
 				updateMember={updateMember}
 				readOnly={readOnly}
 			/>
-			{sapins.length <= 1 &&
-			<Row>
-				{(action !== "add" && !basicOnly) ? (
-					<MemberDetailInfo
-						sapin={sapins[0]}
-						member={member}
-						saved={saved}
-						updateMember={updateMember}
-						readOnly={readOnly}
-					/>
-				) : (
-					<MemberContactInfo
-						edited={member}
-						saved={saved}
-						onChange={updateMember}
-						readOnly={readOnly}
-					/>
-				)}
-			</Row>}
+			{sapins.length <= 1 && (
+				<Row>
+					{action !== "add" && !basicOnly ? (
+						<MemberDetailInfo
+							sapin={sapins[0]}
+							member={member}
+							saved={saved}
+							updateMember={updateMember}
+							readOnly={readOnly}
+						/>
+					) : (
+						<MemberContactInfo
+							edited={member}
+							saved={saved}
+							onChange={updateMember}
+							readOnly={readOnly}
+						/>
+					)}
+				</Row>
+			)}
 		</Form>
 	);
 }

@@ -1,11 +1,12 @@
-import * as React from "react";
+import React from "react";
 import { DateTime } from "luxon";
 
 import { Col, Checkbox, Input, ActionIcon } from "dot11-components";
-import type {
+import {
 	Member,
 	MemberContactEmail,
 	MemberContactInfo,
+	memberContactInfoEmpty,
 } from "../store/members";
 import { hasChangesStyle, type MultipleMember } from "./MemberEdit";
 
@@ -186,21 +187,18 @@ function MemberContactInfoEdit({
 	onChange: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
 }) {
-	const editedContactInfo = edited.ContactInfo;
+	const editedContactInfo = edited.ContactInfo || memberContactInfoEmpty;
 	const savedContactInfo = saved?.ContactInfo;
 
 	const contactInfoRows = ContactInfoFields.map((f) => (
-		<div
-			key={f.key}
-			style={{display: 'flex', alignItems: 'center'}}
-		>
-			<label
-				style={{fontWeight: 'bold', width: 100}}
-			>
-				{f.label}
-			</label>
+		<div key={f.key} style={{ display: "flex", alignItems: "center" }}>
+			<label style={{ fontWeight: "bold", width: 100 }}>{f.label}</label>
 			<Input
-				style={hasChangesStyle(editedContactInfo, savedContactInfo, f.key)}
+				style={hasChangesStyle(
+					editedContactInfo,
+					savedContactInfo,
+					f.key
+				)}
 				type="text"
 				size={f.size}
 				value={editedContactInfo[f.key]}

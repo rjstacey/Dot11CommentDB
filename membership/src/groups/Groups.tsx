@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -104,7 +104,7 @@ defaultTablesConfig["default"] = tableConfig;
 
 function Organization() {
 	const navigate = useNavigate();
-	const refresh = () => navigate(".", { replace: true });
+	const refresh = () => navigate(0);
 
 	return (
 		<>

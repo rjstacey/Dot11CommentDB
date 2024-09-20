@@ -17,6 +17,7 @@ import {
 	type MemberAdd,
 	MemberContactEmail,
 	MemberContactInfo,
+	memberContactInfoEmpty,
 } from "../store/members";
 import {
 	setSelected,
@@ -65,16 +66,8 @@ function sessionAttendeeToNewMember(attendee: SessionAttendee) {
 		Broken: 0,
 		DateAdded: date,
 	};
-	const contactInfo: MemberContactInfo = attendee.ContactInfo || {
-		StreetLine1: "",
-		StreetLine2: "",
-		City: "",
-		State: "",
-		Zip: "",
-		Country: "",
-		Phone: "",
-		Fax: "",
-	};
+	const contactInfo: MemberContactInfo =
+		attendee.ContactInfo || memberContactInfoEmpty;
 	const member: MemberAdd = {
 		SAPIN: attendee.SAPIN,
 		Name: attendee.Name,

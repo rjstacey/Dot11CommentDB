@@ -57,7 +57,8 @@ function validSession(session: any): session is Session {
 	);
 }
 
-export const displaySessionType = (type: SessionType | null) =>	type? SessionTypeLabels[type]: '';
+export const displaySessionType = (type: SessionType | null) =>
+	type ? SessionTypeLabels[type] : "";
 
 /*
  * Slice
@@ -145,9 +146,8 @@ export const selectRecentSessions = createSelector(
 	selectSessions,
 	(sessions) => {
 		const today = new Date();
-		return sessions
-			.filter((s) => new Date(s.startDate) < today)
-			//.slice(0, 8);
+		return sessions.filter((s) => new Date(s.startDate) < today);
+		//.slice(0, 8);
 	}
 );
 
@@ -162,7 +162,7 @@ function validSessions(sessions: any): sessions is Session[] {
 	return Array.isArray(sessions) && sessions.every(validSession);
 }
 
-let loadingPromise: Promise<Session[]>;
+let loadingPromise: Promise<Session[]> | undefined;
 export const loadSessions =
 	(groupName: string): AppThunk<Session[]> =>
 	async (dispatch, getState) => {
@@ -170,7 +170,7 @@ export const loadSessions =
 		const { loading, groupName: currentGroupName } =
 			selectSessionsState(state);
 		if (loading && currentGroupName === groupName) {
-			return loadingPromise;
+			return loadingPromise!;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/sessions`;
@@ -186,6 +186,9 @@ export const loadSessions =
 				dispatch(getFailure());
 				dispatch(setError("Unable to get sessions", error));
 				return [];
+			})
+			.finally(() => {
+				loadingPromise = undefined;
 			});
-		return loadingPromise;
+		return loadingPromise!;
 	};

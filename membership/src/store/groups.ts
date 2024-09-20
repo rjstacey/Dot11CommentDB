@@ -33,23 +33,23 @@ export const GroupTypeLabels = {
 	tg: "Task Group",
 	sc: "Standing Committee",
 	ah: "Ad-hoc Group",
-	tig: "Topic of Interest Group"
+	tig: "Topic of Interest Group",
 } as const;
 
 export type GroupType = keyof typeof GroupTypeLabels;
 
 export function getSubgroupTypes(parentType: GroupType): GroupType[] {
-	if (parentType === 'r') {
-		return ['c', 'wg'];
+	if (parentType === "r") {
+		return ["c", "wg"];
 	}
-	if (parentType === 'c') {
-		return ['wg', 'sc', 'ah'];
+	if (parentType === "c") {
+		return ["wg", "sc", "ah"];
 	}
-	if (parentType === 'wg') {
-		return ['sg', 'tg', 'sc', 'ah', 'tig'];
+	if (parentType === "wg") {
+		return ["sg", "tg", "sc", "ah", "tig"];
 	}
-	if (parentType === 'tg') {
-		return ['ah'];
+	if (parentType === "tg") {
+		return ["ah"];
 	}
 	return [];
 }
@@ -104,8 +104,10 @@ export const fields = {
 /* Create slice */
 const initialState: {
 	workingGroupId: string | null;
+	lastLoad: Record<string, string | null>;
 } = {
 	workingGroupId: null,
+	lastLoad: {},
 };
 const dataSet = "groups";
 const selectId = (entity: Group) => entity.id;
@@ -122,13 +124,21 @@ const slice = createAppTableDataSlice({
 	extraReducers: (builder, dataAdapter) => {
 		builder.addMatcher(
 			(action: Action) => action.type === getSuccess2.toString(),
-			(state, action: PayloadAction<Group[]>) => {
-				dataAdapter.setMany(state, action.payload);	// add or replace
+			(
+				state,
+				action: PayloadAction<{ groupName: string; groups: Group[] }>
+			) => {
+				const { groupName, groups } = action.payload;
+				state.lastLoad[groupName] = new Date().toISOString();
+				dataAdapter.setMany(state, groups); // add or replace
 				state.loading = false;
 				state.valid = true;
 				const { ids, entities } = state;
 
-				interface Node { id: EntityId; children: Node[]; }
+				interface Node {
+					id: EntityId;
+					children: Node[];
+				}
 
 				// Order by group type and then alphabetically
 				function compare(id1: EntityId, id2: EntityId) {
@@ -140,14 +150,14 @@ const slice = createAppTableDataSlice({
 					if (n === 0) n = g1.name.localeCompare(g2.name);
 					return n;
 				}
-				
+
 				function buildTree(parent_id: EntityId | null): Node[] {
 					return ids
-						.filter(id => entities[id]!.parent_id === parent_id)
+						.filter((id) => entities[id]!.parent_id === parent_id)
 						.sort(compare)
-						.map(id => ({ id, children: buildTree(id) }));
+						.map((id) => ({ id, children: buildTree(id) }));
 				}
-			
+
 				function flattenTree(nodes: Node[]): EntityId[] {
 					let ids: EntityId[] = [];
 					for (const node of nodes)
@@ -159,9 +169,10 @@ const slice = createAppTableDataSlice({
 				const sortedIds = flattenTree(nodes);
 
 				if (ids.length !== sortedIds.length) {
-					console.warn("One or more groups present without its parent");
-				}
-				else {
+					console.warn(
+						"One or more groups present without its parent"
+					);
+				} else {
 					if (sortedIds.join() !== ids.join()) state.ids = sortedIds;
 				}
 			}
@@ -189,7 +200,9 @@ const {
 	setWorkingGroupId: setWorkingGroupIdLocal,
 } = slice.actions;
 
-const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
+const getSuccess2 = createAction<{ groupName: string; groups: Group[] }>(
+	dataSet + "/getSuccess2"
+);
 
 export { setSelected, setFilter, clearFilter };
 
@@ -199,7 +212,11 @@ export const selectGroupEntities = (state: RootState) =>
 	selectGroupsState(state).entities;
 export const selectGroupIds = (state: RootState) =>
 	selectGroupsState(state).ids;
-
+const selectGroupsAge = (state: RootState, groupName: string) => {
+	let lastLoad = selectGroupsState(state).lastLoad[groupName];
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectGroup = (state: RootState, id: EntityId) =>
 	selectGroupEntities(state)[id];
 
@@ -232,8 +249,10 @@ export const selectWorkingGroupIds = createSelector(
 	(ids, entities, workingGroupId) => {
 		if (workingGroupId) {
 			const parent = entities[workingGroupId];
-			if (parent && (parent.type === 'r' || parent.type === 'c')) {
-				ids = ids.filter(id => ['r', 'c', 'wg'].includes(entities[id]!.type!))
+			if (parent && (parent.type === "r" || parent.type === "c")) {
+				ids = ids.filter((id) =>
+					["r", "c", "wg"].includes(entities[id]!.type!)
+				);
 			}
 			function isWorkingGroupDescendent(id: EntityId) {
 				if (id === workingGroupId) return true;
@@ -290,7 +309,7 @@ export const groupsSelectors = getAppTableDataSelectors(selectGroupsState, {
 export const selectUserGroupsAccess = (state: RootState) => {
 	const group = selectWorkingGroup(state);
 	return group?.permissions.groups || AccessLevel.none;
-}
+};
 
 /* Thunk actions */
 const baseUrl = "/api/groups";
@@ -319,11 +338,31 @@ function validResponse(response: any): response is Group[] {
 	return Array.isArray(response) && response.every(validGroup);
 }
 
-let loadingPromise: Record<string, Promise<void> | undefined> = {};
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
+const loadingPromise: Record<string, Promise<Group[]> | undefined> = {};
 export const loadGroups =
-	(groupName: string = ""): AppThunk<void> =>
-	(dispatch) => {
+	(groupName: string = ""): AppThunk<Group[]> =>
+	async (dispatch, getState) => {
+		if (groupName) {
+			await loadingPromise[""];
+			if (selectWorkingGroup(getState())?.name !== groupName) {
+				const group = selectWorkingGroupByName(getState(), groupName);
+				if (!group) {
+					setError(
+						"Unable to load subgroups",
+						"Invalid working group: " + groupName
+					);
+					return [];
+				}
+				dispatch(setWorkingGroupId(group.id));
+			}
+		}
 		if (loadingPromise[groupName]) {
+			return loadingPromise[groupName]!;
+		}
+		const age = selectGroupsAge(getState(), groupName);
+		if (age && age < AGE_STALE) {
 			return loadingPromise[groupName]!;
 		}
 		dispatch(getPending());
@@ -332,15 +371,17 @@ export const loadGroups =
 			.get(url, groupName ? undefined : { type: ["c", "wg"] })
 			.then((response: any) => {
 				if (!validResponse(response))
-					throw new TypeError("Unexpected response");
-				dispatch(getSuccess2(response));
+					throw new TypeError("Unexpected response to GET " + url);
+				dispatch(getSuccess2({ groupName, groups: response }));
+				return response;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get groups", error));
+				return [];
 			})
 			.finally(() => {
-				loadingPromise[groupName] = undefined;
+				delete loadingPromise[groupName];
 			});
 		return loadingPromise[groupName]!;
 	};

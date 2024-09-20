@@ -1,6 +1,6 @@
 {
 	"name": "membership",
-	"version": "1.5.0",
+	"version": "1.5.1",
 	"private": true,
 	"homepage": "membership",
 	"proxy": "https://localhost:8080",
@@ -13,7 +13,7 @@
 		"@types/d3": "^7.4.3",
 		"@types/react-color": "^3.0.10",
 		"d3": "^7.9.0",
-		"dot11-components": "^1.9.85",
+		"dot11-components": "^1.9.90",
 		"idb-keyval": "^6.2.1",
 		"lexical": "^0.12.2",
 		"lodash.debounce": "^4.0.8",

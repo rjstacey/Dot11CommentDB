@@ -100,6 +100,17 @@ export type MemberWithParticipation = Member & {
 
 export type MembersDictionary = Dictionary<Member>;
 
+export const memberContactInfoEmpty: MemberContactInfo = {
+	StreetLine1: "",
+	StreetLine2: "",
+	City: "",
+	State: "",
+	Zip: "",
+	Country: "",
+	Phone: "",
+	Fax: "",
+};
+
 export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
 	Name: { label: "Name" },

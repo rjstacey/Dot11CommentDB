@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { shallowEqual } from "react-redux";
 import type { EntityId } from "@reduxjs/toolkit";
 
@@ -11,6 +11,7 @@ import {
 import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import {
+	memberContactInfoEmpty,
 	selectMembersState,
 	selectUserMembersAccess,
 	type Member,
@@ -38,16 +39,7 @@ const defaultMember = {
 	Affiliation: "",
 	Employer: "",
 	Access: 0,
-	ContactInfo: {
-		StreetLine1: "",
-		StreetLine2: "",
-		City: "",
-		State: "",
-		Zip: "",
-		Country: "",
-		Phone: "",
-		Fax: "",
-	},
+	ContactInfo: memberContactInfoEmpty,
 };
 
 type MemberDetailState = {
@@ -224,10 +216,10 @@ function MemberDetail({
 		setState((state) => ({
 			...state,
 			action: "view",
-			saved: null,//edited,
+			saved: null, //edited,
 			edited: null,
 			originals: [],
-			message: "Updating..."
+			message: "Updating...",
 		}));
 	};
 

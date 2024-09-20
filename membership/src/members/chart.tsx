@@ -97,22 +97,24 @@ function MembersChart() {
 	const { ids, entities } = useAppSelector(membersByAffiliation);
 
 	return (
-		<AutoSizer>
-			{({ height, width }: { height: number; width: number }) => {
-				// Rescale to create 16:9
-				if ((16 / 9) * height > width) height = (9 * width) / 16;
-				else width = (16 * height) / 9;
-				return (
-					<StackedBarChart
-						width={width}
-						height={height}
-						keys={countedStatus}
-						ids={ids}
-						entities={entities}
-					/>
-				);
-			}}
-		</AutoSizer>
+		<div style={{ flex: 1, width: "100%" }}>
+			<AutoSizer>
+				{({ height, width }: { height: number; width: number }) => {
+					// Rescale to create 16:9
+					if ((16 / 9) * height > width) height = (9 * width) / 16;
+					else width = (16 * height) / 9;
+					return (
+						<StackedBarChart
+							width={width}
+							height={height}
+							keys={countedStatus}
+							ids={ids}
+							entities={entities}
+						/>
+					);
+				}}
+			</AutoSizer>
+		</div>
 	);
 }
 

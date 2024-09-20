@@ -185,10 +185,7 @@ function SessionAttendanceActions() {
 
 	const showChart = /chart$/.test(routePath);
 	const setShowChart = (showChart: boolean) => {
-		let path =
-			generatePath(routePath, params).replace("/chart", "") +
-			(showChart ? "/chart" : "");
-		navigate(path);
+		navigate("" + params.sessionNumber + "/" + (showChart ? "chart" : ""));
 	};
 
 	return (

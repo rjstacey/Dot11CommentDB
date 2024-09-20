@@ -1,9 +1,9 @@
-import * as React from "react";
+import React from "react";
 import { createRoot } from "react-dom/client";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 
-import { getUser, logout, fetcher } from "dot11-components";
+import { getUser, loginAndReturn, fetcher } from "dot11-components";
 
 import { store, persistor, resetStore } from "./store";
 import { selectUser, setUser, type User } from "./store/user";
@@ -24,8 +24,8 @@ function persistGate(done: boolean, user: User) {
 		store.dispatch(resetStore());
 	}
 
-	fetcher.setAuth(user.Token, logout);	// Prime fetcher with autherization token
-	store.dispatch(setUser(user));			// Make sure we have the latest user info
+	fetcher.setAuth(user.Token, loginAndReturn); // Prime fetcher with autherization token
+	store.dispatch(setUser(user)); // Make sure we have the latest user info
 
 	return <App />;
 }
@@ -51,5 +51,5 @@ getUser()
 	})
 	.catch((error) => {
 		console.error(error);
-		logout();
+		loginAndReturn();
 	});

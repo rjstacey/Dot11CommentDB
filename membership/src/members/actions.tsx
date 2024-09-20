@@ -61,15 +61,12 @@ function setClipboard(selected: EntityId[], members: MembersDictionary) {
 function MembersActions() {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const refresh = () => navigate(".", { replace: true });
+	const refresh = () => navigate(0);
 	const { selected, entities: members } = useAppSelector(selectMembersState);
 
 	const showChart = /chart$/.test(location.pathname);
 	const setShowChart = (showChart: boolean) => {
-		let path =
-			location.pathname.replace("/chart", "") +
-			(showChart ? "/chart" : "");
-		navigate(path);
+		navigate(showChart ? "chart" : "");
 	};
 
 	return (
