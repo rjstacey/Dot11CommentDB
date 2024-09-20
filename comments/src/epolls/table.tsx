@@ -40,7 +40,7 @@ function ePollToBallot(epoll: SyncedEpoll): Ballot {
 		Document: epoll.document,
 		Topic: epoll.topic,
 		prev_id: 0,
-		IsRecirc: false,
+		//IsRecirc: false,
 		IsComplete: false,
 
 		id: 0,

@@ -209,11 +209,11 @@ function BallotStage({
 									checked
 										? {
 												prev_id: null,
-												IsRecirc: false,
+												//IsRecirc: false,
 										  }
 										: {
 												prev_id: prevBallot!.id,
-												IsRecirc: true,
+												//IsRecirc: true,
 										  }
 								)
 							}
@@ -229,11 +229,11 @@ function BallotStage({
 									checked
 										? {
 												prev_id: prevBallot!.id,
-												IsRecirc: true,
+												//IsRecirc: true,
 										  }
 										: {
 												prev_id: null,
-												IsRecirc: false,
+												//IsRecirc: false,
 										  }
 								)
 							}
@@ -267,7 +267,7 @@ export function BallotTypeSelect({
 		if (type !== ballot.Type) {
 			updateBallot({
 				Type: type,
-				IsRecirc: false,
+				//IsRecirc: false,
 				prev_id: null,
 			});
 			if (!isMultiple(ballot.id)) {

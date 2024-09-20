@@ -1,15 +1,15 @@
-import * as React from "react";
+import React from "react";
 
 import { ActionButton, Button } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
 import {
-	selectCommentsState,
-	getCID,
 	getCommentStatus,
 	commentStatusOrder,
 	CommentResolution,
 	getField,
+	selectCommentIds,
+	selectSyncedCommentEntities,
 } from "../store/comments";
 
 import styles from "./reports.module.css";
@@ -231,14 +231,14 @@ function renderTableToClipboard(data: Counts[]) {
 function Reports() {
 	const [report, setReport] = React.useState<Report | null>(null);
 
-	const { ids, entities } = useAppSelector(selectCommentsState);
+	const ids = useAppSelector(selectCommentIds);
+	const entities = useAppSelector(selectSyncedCommentEntities);
 
 	const data: Counts[] = React.useMemo(() => {
 		const comments = ids.map((id) => {
 			const c = entities[id]!;
 			return {
 				...c,
-				CID: getCID(c),
 				Status: getCommentStatus(c),
 			};
 		});

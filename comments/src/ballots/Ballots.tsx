@@ -24,7 +24,7 @@ import {
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
-import { selectGroupEntities, selectWorkingGroupName } from "../store/groups";
+import { selectGroupEntities } from "../store/groups";
 import {
 	fields,
 	getBallotId,
@@ -116,12 +116,6 @@ const renderCellTypeStage = ({ rowData }: { rowData: SyncedBallot }) => (
 	</>
 );
 
-const GroupNameLink = (props: React.ComponentProps<typeof Link>) => {
-	const { to, ...rest } = props;
-	const groupName = useAppSelector(selectWorkingGroupName);
-	return <Link to={`/${groupName}/${to}`} {...rest} />;
-};
-
 function BallotVoters({ ballot }: { ballot: Ballot }) {
 	const access = useAppSelector(selectBallotsAccess);
 	const entities = useAppSelector(selectBallotEntities);
@@ -131,11 +125,11 @@ function BallotVoters({ ballot }: { ballot: Ballot }) {
 	while (ballotInitial.prev_id && entities[ballotInitial.prev_id])
 		ballotInitial = entities[ballotInitial.prev_id]!;
 
-	if (ballotInitial.Type === BallotType.WG && !ballotInitial.IsRecirc) {
+	if (ballotInitial.Type === BallotType.WG && !ballotInitial.prev_id) {
 		return access >= AccessLevel.admin ? (
-			<GroupNameLink to={`/voters/${getBallotId(ballot)}`}>
+			<Link to={`../voters/${getBallotId(ballot)}`}>
 				{ballotInitial.Voters}
-			</GroupNameLink>
+			</Link>
 		) : (
 			<>{ballotInitial.Voters}</>
 		);
@@ -161,24 +155,9 @@ export function BallotResults({ ballot }: { ballot: Ballot }) {
 		if (!str) str = "None";
 	}
 	return access >= AccessLevel.admin ? (
-		<GroupNameLink to={`/results/${getBallotId(ballot)}`}>
-			{str}
-		</GroupNameLink>
+		<Link to={`../results/${getBallotId(ballot)}`}>{str}</Link>
 	) : (
 		<>{str}</>
-	);
-}
-
-export function renderComments({ rowData }: { rowData: Ballot }) {
-	const comments = rowData.Comments;
-	const str =
-		comments && comments.Count > 0
-			? `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
-			: "None";
-	return (
-		<GroupNameLink to={`/comments/${getBallotId(rowData)}`}>
-			{str}
-		</GroupNameLink>
 	);
 }
 
@@ -188,11 +167,7 @@ export function BallotComments({ ballot }: { ballot: Ballot }) {
 		comments && comments.Count > 0
 			? `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
 			: "None";
-	return (
-		<GroupNameLink to={`/comments/${getBallotId(ballot)}`}>
-			{str}
-		</GroupNameLink>
-	);
+	return <Link to={`../comments/${getBallotId(ballot)}`}>{str}</Link>;
 }
 
 const tableColumns: ColumnProperties[] = [
@@ -218,7 +193,6 @@ const tableColumns: ColumnProperties[] = [
 		flexGrow: 1,
 		dropdownWidth: 200,
 		cellRenderer: ({ rowData: ballot }) => {
-			if (ballot.Type === 2) console.log(ballot);
 			return <span>{getBallotId(ballot)}</span>;
 		},
 	},
@@ -301,13 +275,6 @@ const tableColumns: ColumnProperties[] = [
 		flexGrow: 1,
 		flexShrink: 1,
 		dropdownWidth: 200,
-	},
-	{
-		key: "PrevBallotID",
-		label: "Prev ballot",
-		width: 100,
-		flexShrink: 1,
-		flexGrow: 1,
 	},
 	{
 		key: "Voters",

@@ -36,7 +36,7 @@ function BallotEditMultipleWithActions({
 
 	const actions = ballot ? (
 		<>
-			{ballot.Type === BallotType.WG && !ballot.IsRecirc && (
+			{ballot.Type === BallotType.WG && !ballot.prev_id && (
 				<VotersActions ballot={ballot} readOnly={readOnly} />
 			)}
 			<ResultsActions
@@ -138,7 +138,7 @@ function getDefaultBallot(
 		Start: today,
 		End: today,
 		prev_id,
-		IsRecirc: Boolean(prev_id),
+		//IsRecirc: Boolean(prev_id),
 		IsComplete: false,
 
 		id: 0,

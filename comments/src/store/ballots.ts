@@ -64,7 +64,7 @@ export type Ballot = {
 	number: number | null;
 	stage: number;
 	Project: string;
-	IsRecirc: boolean;
+	//IsRecirc: boolean;
 	IsComplete: boolean;
 	Start: string | null;
 	End: string | null;
@@ -323,12 +323,8 @@ export const selectCurrentGroupProject = (state: RootState) =>
 export const selectCurrentBallotID = (state: RootState) => {
 	const { currentBallot_id, entities } = selectBallotsState(state);
 	if (currentBallot_id === null) return;
-	const ballot = entities[currentBallot_id];
-	if (ballot)
-		return (
-			BallotTypeLabels[ballot.Type] +
-			(ballot.number ? ballot.number : "(Blank)")
-		);
+	const ballot = entities[currentBallot_id]!;
+	return getBallotId(ballot);
 };
 
 export const selectBallots = createSelector(
@@ -483,11 +479,10 @@ export const selectBallotSeries = createSelector(
 
 export const selectBallotSeriesId = (state: RootState, ballot: Ballot) => {
 	const entities = selectBallotEntities(state);
-	let b: Ballot | undefined = ballot;
-	do {
-		if (b.Type === BallotType.WG && !b.IsRecirc) return b.id;
-		b = b.prev_id ? entities[b.prev_id] : undefined;
-	} while (b);
+	let ballotInitial: Ballot = ballot;
+	while (ballotInitial.prev_id && entities[ballotInitial.prev_id])
+		ballotInitial = entities[ballotInitial.prev_id]!;
+	return ballotInitial.id;
 };
 
 export const selectBallot = (state: RootState, ballot_id: number) =>

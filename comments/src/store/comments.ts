@@ -26,6 +26,7 @@ import {
 	validBallotCommentsSummary,
 	BallotCommentsSummary,
 	BallotType,
+	Ballot,
 } from "./ballots";
 import { selectGroupPermissions } from "./groups";
 import { offlineFetch, selectIsOnline } from "./offline";
@@ -141,8 +142,14 @@ const mustSatisfyLabels = mustSatisfyOptions.reduce((obj, o) => {
 	return obj;
 }, {} as Record<number, string>);
 
-export const getCID = (c: CommentResolution) =>
-	c.CommentID + (c.ResolutionCount > 1 ? "." + c.ResolutionID : "");
+function getCID(b: Ballot | undefined, c: CommentResolution) {
+	let CID: string;
+	if (b && b.Type === BallotType.SA)
+		CID = (b.stage === 0 ? "I" : "R" + b.stage) + "-" + c.CommentID;
+	else CID = c.CommentID.toString();
+	if (c.ResolutionCount > 1) CID += "." + c.ResolutionID;
+	return CID;
+}
 
 export const commentStatusOrder = [
 	"",
@@ -207,11 +214,11 @@ export const fields: Record<string, FieldProperties> = {
 
 //const selectId = (c) => c.id; //c.CID;
 
-export const getField = (entity: CommentResolution, dataKey: string) => {
+export function getField(entity: CommentResolution, dataKey: string) {
 	//if (dataKey === "CID") return getCID(entity);
 	if (dataKey === "Status") return getCommentStatus(entity);
 	return entity[dataKey as keyof CommentResolution];
-};
+}
 
 type Update<T> = {
 	id: EntityId;
@@ -409,31 +416,29 @@ const selectCommentsLastModified = createSelector(
 	}
 );
 
-const selectSyncedCommentEntities = createSelector(
+export const selectSyncedCommentEntities = createSelector(
 	selectCommentIds,
 	selectCommentEntities,
 	selectBallotEntities,
-	(ids, entities, ballotEntities) => {
-		const newCommentEntities: typeof entities = {};
+	(ids, entitiesIn, ballotEntities): Record<EntityId, CommentResolution> => {
+		const entities = entitiesIn as Record<EntityId, CommentResolution>;
+		const changedEntities: Record<EntityId, CommentResolution> = {};
 		for (const id of ids) {
 			const c = entities[id]!;
 			const b = ballotEntities[c.ballot_id];
-			let CID = getCID(c);
-			if (b && b.Type === BallotType.SA) {
-				CID = (b.stage === 0 ? "I" : "R" + b.stage) + "-" + CID;
-			}
-			if (c.CID !== CID) newCommentEntities[id] = { ...c, CID };
+			let CID = getCID(b, c);
+			if (c.CID !== CID) changedEntities[id] = { ...c, CID };
 		}
-		if (Object.keys(newCommentEntities).length > 0) {
-			return { ...entities, ...newCommentEntities };
+		if (Object.keys(changedEntities).length > 0) {
+			return { ...entities, ...changedEntities };
 		}
 		return entities;
 	}
 );
 
 export const commentsSelectors = getAppTableDataSelectors(selectCommentsState, {
-	//getField,
 	selectEntities: selectSyncedCommentEntities,
+	getField,
 });
 
 /*
@@ -998,8 +1003,8 @@ export const uploadResolutions =
 		return { matched, unmatched, added, remaining, updated };
 	};
 
-export type CommentsSpreadsheetFormat = "myproject" | "legacy" | "modern";
-export type CommentsSpreadsheetStyle =
+export type CommentsExportFormat = "myproject" | "legacy" | "modern";
+export type CommentsExportStyle =
 	| "AllComments"
 	| "TabPerAdHoc"
 	| "TabPerCommentGroup";
@@ -1007,14 +1012,19 @@ export type CommentsSpreadsheetStyle =
 export const exportCommentsSpreadsheet =
 	(
 		ballot_id: number,
-		format: CommentsSpreadsheetFormat,
-		style: CommentsSpreadsheetStyle,
-		file: File
+		format: CommentsExportFormat,
+		style: CommentsExportStyle,
+		file?: File,
+		appendSheets = false
 	): AppThunk =>
 	async (dispatch, getState) => {
-		const url = `${baseCommentsUrl}/${ballot_id}/export?format=${format}`;
+		console.log(file);
+		const params: { [K: string]: any } = { format, style, appendSheets };
+		const url =
+			`${baseCommentsUrl}/${ballot_id}/export?` +
+			new URLSearchParams(params);
 		try {
-			await fetcher.postForFile(url, { style }, file);
+			await fetcher.postForFile(url, {}, file);
 		} catch (error) {
 			const ballot = selectBallotEntities(getState())[ballot_id];
 			const ballotId = ballot ? getBallotId(ballot) : `id=${ballot_id}`;
