@@ -157,7 +157,7 @@ function CommentsExportDropdown({
 							<input
 								type="radio"
 								id="sheetAction"
-								title='Replace existing sheets (except for the "Title" and "Revision History" sheets).'
+								title='Delete sheets (except for the "Title" and "Revision History" sheets).'
 								checked={!appendSheets}
 								onChange={(e) => setAppendSheets(false)}
 							/>
@@ -170,7 +170,7 @@ function CommentsExportDropdown({
 							<input
 								type="radio"
 								id="sheetAction"
-								title="Append as new sheets."
+								title="Replace existing sheets with same name or append as new sheets."
 								checked={Boolean(appendSheets)}
 								onChange={(e) => setAppendSheets(true)}
 							/>
