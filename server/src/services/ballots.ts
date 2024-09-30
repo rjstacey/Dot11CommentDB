@@ -79,14 +79,25 @@ export async function init() {
 const ballotsStageFieldsSQL = `
 	b.id,
 	BIN_TO_UUID(b.groupId) as groupId,
+	IF(b.Type=0,
+		CONCAT("CC", b.number),
+		IF(b.Type=1,
+			CONCAT("LB", b.number), 
+			IF(b.Type=2,
+				CONCAT(b.Project, "-", IF(b.stage=0, "I", CONCAT("R", b.stage))),
+				b.id
+			)
+		)
+	) as BallotID,
 	b.Type,
 	b.number,
-	CONCAT(IF(b.Type=0, "CC", IF(b.Type=1, "LB", IF(b.Type=2, "SA", IF(b.Type=5, "M", "??")))), b.number) as BallotID,
 	b.stage,
-	b.Project, b.IsRecirc, b.IsComplete,
+	b.prev_id,
+	b.Project,
+	b.IsComplete,
 	DATE_FORMAT(b.Start, "%Y-%m-%dT%TZ") AS Start,
 	DATE_FORMAT(b.End, "%Y-%m-%dT%TZ") AS End,
-	b.Document, b.Topic, b.prev_id, b.EpollNum,
+	b.Document, b.Topic, b.EpollNum,
 	BIN_TO_UUID(b.workingGroupId) as workingGroupId,
 	b.ResultsSummary AS Results,
 	JSON_OBJECT(
@@ -187,7 +198,6 @@ type BallotDB = {
 	Project?: string;
 	Type?: number;
 	number?: number;
-	IsRecirc?: boolean;
 	IsComplete?: boolean;
 	Document?: string;
 	Topic?: string;
@@ -204,7 +214,6 @@ function ballotEntry(changes: Partial<Ballot>) {
 		BallotID: changes.BallotID,
 		Project: changes.Project,
 		Type: changes.Type,
-		IsRecirc: changes.IsRecirc,
 		IsComplete: changes.IsComplete,
 		Document: changes.Document,
 		Topic: changes.Topic,

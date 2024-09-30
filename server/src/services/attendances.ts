@@ -24,6 +24,20 @@ import type {
 	SessionAttendanceSummaryChanges,
 } from "../schemas/attendances";
 
+type AttendanceSummaryDB = {
+	id: number;
+	groupId: string;
+	SAPIN: number;
+	session_id: number;
+	AttendancePercentage: number;
+	InPerson: boolean;
+	DidAttend: boolean;
+	DidNotAttend: boolean;
+	Notes: string;
+};
+
+type AttendanceSummaryDBChanges = Omit<AttendanceSummaryDB, "id">;
+
 function getSessionAttendancesSQL(groupId: string, session_ids: number[]) {
 	// prettier-ignore
 	const sql =
@@ -34,6 +48,7 @@ function getSessionAttendancesSQL(groupId: string, session_ids: number[]) {
 					'"id", a.id, ' +
 					'"session_id", a.session_id, ' +
 					'"AttendancePercentage", a.AttendancePercentage, ' +
+					'"InPerson", IF(a.InPerson = 1, CAST(TRUE as json), CAST(FALSE as json)), ' +
 					'"DidAttend", IF(a.DidAttend = 1, CAST(TRUE as json), CAST(FALSE as json)), ' +
 					'"DidNotAttend", IF(a.DidNotAttend = 1, CAST(TRUE as json), CAST(FALSE as json)), ' +
 					'"Notes", a.Notes, ' +
@@ -66,6 +81,7 @@ function getAttendancesSql(
 			"a.id, " +
 			"a.session_id, " +
 			"a.AttendancePercentage, " +
+			"a.InPerson, " +
 			"a.DidAttend, " +
 			"a.DidNotAttend, " +
 			"a.Notes, " +
@@ -277,6 +293,7 @@ function attendanceSummaryChanges(a: SessionAttendanceSummaryChanges) {
 		session_id: a.session_id,
 		SAPIN: a.SAPIN,
 		AttendancePercentage: a.AttendancePercentage,
+		InPerson: a.InPerson,
 		DidAttend: a.DidAttend,
 		DidNotAttend: a.DidNotAttend,
 		Notes: a.Notes,
@@ -294,7 +311,13 @@ async function updateAttendance({
 	changes,
 }: SessionAttendanceSummaryUpdate) {
 	changes = attendanceSummaryChanges(changes);
-	await db.query("UPDATE attendance_summary SET ? WHERE id=?", [changes, id]);
+	if (Object.keys(changes).length > 0) {
+		const sql = db.format("UPDATE attendance_summary SET ? WHERE id=?", [
+			changes,
+			id,
+		]);
+		await db.query(sql);
+	}
 	const [attendance] = (await db.query(
 		"SELECT * FROM attendance_summary WHERE id=?",
 		[id]
@@ -337,9 +360,9 @@ export async function addAttendances(
 }
 
 export async function deleteAttendances(ids: number[]) {
-	const { affectedRows } = await db.query<ResultSetHeader>(
-		"DELETE FROM attendance_summary WHERE ID IN (?)",
-		[ids]
-	);
+	const sql = db.format("DELETE FROM attendance_summary WHERE ID IN (?)", [
+		ids,
+	]);
+	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }

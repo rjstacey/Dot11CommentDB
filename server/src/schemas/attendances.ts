@@ -4,6 +4,8 @@ export const sessionAttendanceSummarySchema = z.object({
 	id: z.number(),
 	session_id: z.number(), // Session identifier
 	AttendancePercentage: z.number(), // Percentage of meeting slots attended
+	IsRegistered: z.boolean(), // Registered for session
+	InPerson: z.boolean(), // Attended in-person (vs remote)
 	DidAttend: z.boolean(), // Declare attendance criteria met
 	DidNotAttend: z.boolean(), // Declare attendance criteria not met
 	SAPIN: z.number(), // SA PIN under which attendance was logged
@@ -32,6 +34,8 @@ export const sessionAttendanceSummaryCreateSchema =
 			sessionAttendanceSummarySchema
 				.pick({
 					AttendancePercentage: true,
+					IsRegistered: true,
+					InPerson: true,
 					DidAttend: true,
 					DidNotAttend: true,
 					Notes: true,
@@ -50,6 +54,8 @@ export const sessionAttendanceSummaryChangesSchema =
 			session_id: true,
 			SAPIN: true,
 			AttendancePercentage: true,
+			IsRegistered: true,
+			InPerson: true,
 			DidAttend: true,
 			DidNotAttend: true,
 			Notes: true,
