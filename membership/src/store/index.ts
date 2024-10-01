@@ -20,7 +20,7 @@ import ballotParticipationSlice from "./ballotParticipation";
 import sessionAttendeesSlice from "./sessionAttendees";
 import imatCommitteesSlice from "./imatCommittees";
 import sessionsSlice from "./sessions";
-import emailTemlatesSlice from "./email";
+import emailTemlatesSlice from "./emailTemplates";
 import affliationMapSlice from "./affiliationMap";
 
 import { errorsSlice } from "dot11-components";
