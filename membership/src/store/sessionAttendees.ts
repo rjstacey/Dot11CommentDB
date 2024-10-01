@@ -18,8 +18,18 @@ import {
 import type { RootState, AppThunk } from ".";
 import type { MemberContactInfo } from "./members";
 import { selectMemberEntities } from "./members";
-import { SessionAttendanceSummary } from "./sessionParticipation";
-import { selectSession, Session } from "./sessions";
+import {
+	validResponse as validRecentSessionAttendanceReponse,
+	getPending as getPendingRecentSessionAttendance,
+	getSuccess as getSuccessRecentSessionAttendance,
+	getFailure as getFailureRecentSessionAttendance,
+	SessionAttendanceSummary,
+} from "./sessionParticipation";
+import {
+	selectSessionByNumber,
+	upsertSessions,
+	type Session,
+} from "./sessions";
 
 export const fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
@@ -92,12 +102,12 @@ const sortComparer = (
 
 const initialState: {
 	groupName: string | null;
-	sessionId: number | null;
-	dailyAttendance: boolean; // derive from IMAT "daily attendance" (vs "attendance summary")
+	sessionNumber: number | null;
+	useDaily: boolean; // derive from IMAT "daily attendance" (vs "attendance summary")
 } = {
 	groupName: null,
-	sessionId: null,
-	dailyAttendance: true,
+	sessionNumber: null,
+	useDaily: false,
 };
 
 const dataSet = "sessionAttendees";
@@ -113,13 +123,16 @@ const slice = createAppTableDataSlice({
 			.addMatcher(
 				(action: Action) => action.type === getPending.toString(),
 				(state, action: ReturnType<typeof getPending>) => {
-					const { groupName, sessionId } = action.payload;
+					const { groupName, sessionNumber, useDaily } =
+						action.payload;
 					if (
 						groupName !== state.groupName ||
-						sessionId !== state.sessionId
+						sessionNumber !== state.sessionNumber ||
+						useDaily !== state.useDaily
 					) {
 						state.groupName = groupName;
-						state.sessionId = sessionId;
+						state.sessionNumber = sessionNumber;
+						state.useDaily = useDaily;
 						state.valid = false;
 						dataAdapter.removeAll(state);
 					}
@@ -130,21 +143,9 @@ const slice = createAppTableDataSlice({
 					action.type === clearSessionAttendees.toString(),
 				(state) => {
 					state.groupName = null;
-					state.sessionId = null;
+					state.sessionNumber = null;
 					state.valid = false;
 					dataAdapter.removeAll(state);
-				}
-			)
-			.addMatcher(
-				(action: Action) =>
-					action.type === setDailyAttendance.toString(),
-				(state, action) => {
-					if (state.dailyAttendance !== action.payload) {
-						state.dailyAttendance = action.payload;
-						dataAdapter.removeAll(state);
-						state.valid = false;
-						state.loading = false;
-					}
 				}
 			);
 	},
@@ -158,15 +159,14 @@ export default slice;
 export const sessionAttendeesActions = slice.actions;
 export const { setSelected } = slice.actions;
 export const clearSessionAttendees = createAction(dataSet + "/clear");
-export const setDailyAttendance = createAction<boolean>(
-	dataSet + "/setDailyAttendance"
-);
 
 const { getSuccess, getFailure } = slice.actions;
 // Overload getPending() with one that sets groupName
-const getPending = createAction<{ groupName: string; sessionId: number }>(
-	dataSet + "/getPending"
-);
+const getPending = createAction<{
+	groupName: string;
+	sessionNumber: number | null;
+	useDaily: boolean;
+}>(dataSet + "/getPending");
 
 /*
  * Selectors
@@ -176,10 +176,8 @@ export const selectSessionAttendeesIds = (state: RootState) =>
 	selectSessionAttendeesState(state).ids;
 export const selectSessionAttendeesEntities = (state: RootState) =>
 	selectSessionAttendeesState(state).entities;
-//const selectSessionAttendeesUseDaily = (state: RootState) => selectSessionAttendeesState(state).useDaily;
-
-export const selectDailyAttendance = (state: RootState) =>
-	selectSessionAttendeesState(state).dailyAttendance;
+export const selectSessionAttendeesSessionNumber = (state: RootState) =>
+	selectSessionAttendeesState(state).sessionNumber;
 
 export const selectSyncedSessionAtendeesEntities = createSelector(
 	selectSessionAttendeesIds,
@@ -252,17 +250,13 @@ function validGetAttendancesResponse(
 
 let loadingPromise: Promise<SessionAttendee[]>;
 export const loadSessionAttendees =
-	(groupName: string, sessionId: number): AppThunk<SessionAttendee[]> =>
+	(
+		groupName: string,
+		sessionNumber: number,
+		useDaily = false
+	): AppThunk<SessionAttendee[]> =>
 	async (dispatch, getState) => {
-		const { loading, ...current } = selectSessionAttendeesState(getState());
-		if (
-			loading &&
-			groupName === current.groupName &&
-			sessionId === current.sessionId
-		) {
-			return loadingPromise;
-		}
-		const session = selectSession(getState(), sessionId);
+		const session = selectSessionByNumber(getState(), sessionNumber);
 		if (!session || !session.imatMeetingId) {
 			dispatch(
 				setError(
@@ -275,12 +269,24 @@ export const loadSessionAttendees =
 			dispatch(clearSessionAttendees());
 			return [];
 		}
-		dispatch(getPending({ groupName, sessionId }));
-		const dailyAttendance = selectDailyAttendance(getState());
+
+		const { loading, ...current } = selectSessionAttendeesState(getState());
+		if (
+			loading &&
+			groupName === current.groupName &&
+			session.number === current.sessionNumber &&
+			useDaily === current.useDaily
+		) {
+			return loadingPromise;
+		}
+
+		dispatch(
+			getPending({ groupName, sessionNumber: session.number, useDaily })
+		);
 		const attendanceUrl = `/api/${groupName}/attendances/${session.id}`;
 		const imatAttendanceUrl = `/api/${groupName}/imat/attendance/${
 			session.imatMeetingId
-		}/${dailyAttendance ? "daily" : "summary"}`;
+		}/${useDaily ? "daily" : "summary"}`;
 		loadingPromise = fetcher
 			.get(attendanceUrl)
 			.then((response: any) => {
@@ -324,14 +330,59 @@ export const loadSessionAttendees =
 		return loadingPromise;
 	};
 
-export const refreshSessionAttendees =
-	(): AppThunk => async (dispatch, getState) => {
-		const { groupName, sessionId } = selectSessionAttendeesState(
-			getState()
-		);
-		dispatch(
-			groupName && sessionId
-				? loadSessionAttendees(groupName, sessionId)
-				: clearSessionAttendees()
-		);
+export const importAttendances =
+	(groupName: string, sessionNumber: number, useDaily = false): AppThunk =>
+	async (dispatch, getState) => {
+		const session = selectSessionByNumber(getState(), sessionNumber);
+		if (!session) {
+			dispatch(
+				setError("Can't retrieve attendance", "Bad session number")
+			);
+			return;
+		}
+		let url = `/api/${groupName}/attendances/${session.id}/import`;
+		if (useDaily) url += "?use=daily-attendance";
+		dispatch(getPendingRecentSessionAttendance({ groupName }));
+		let response: any;
+		try {
+			response = await fetcher.post(url);
+			if (!validRecentSessionAttendanceReponse(response))
+				throw new TypeError("Unexpected response to POST " + url);
+		} catch (error) {
+			dispatch(getFailureRecentSessionAttendance());
+			dispatch(
+				setError(
+					"Unable to import attendance summary for session " +
+						sessionNumber,
+					error
+				)
+			);
+			return;
+		}
+		dispatch(upsertSessions(response.sessions));
+		dispatch(getSuccessRecentSessionAttendance(response.attendances));
+	};
+
+export const exportAttendanceForMinutes =
+	(groupName: string, sessionNumber: number): AppThunk =>
+	async (dispatch, getState) => {
+		const session = selectSessionByNumber(getState(), sessionNumber);
+		if (!session) {
+			dispatch(
+				setError("Can't retrieve attendance", "Bad session number")
+			);
+			return;
+		}
+		let url = `/api/${groupName}/attendances/${session.id}/exportForMinutes`;
+		try {
+			await fetcher.getFile(url);
+		} catch (error) {
+			dispatch(
+				setError(
+					"Unable to export attendance for session " +
+						`id=${session.id}`,
+					error
+				)
+			);
+		}
 	};

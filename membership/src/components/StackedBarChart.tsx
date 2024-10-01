@@ -39,10 +39,12 @@ function yAxis({
 	gRef,
 	yScale,
 	plotHeight,
+	label,
 }: {
 	gRef: SVGGElement;
 	yScale: d3.ScaleLinear<number, number>;
 	plotHeight: number;
+	label: string;
 }) {
 	d3.select(gRef)
 		.call((g) => g.select("#y-label").remove())
@@ -53,7 +55,7 @@ function yAxis({
 		.attr("id", "y-label")
 		.attr("transform", `translate(0,${plotHeight / 2})`)
 		.append("text")
-		.text("Number of attendees")
+		.text(label /*"Number of attendees"*/)
 		.attr("fill", "currentColor")
 		.attr("dy", "-2.5em")
 		.attr("transform", "rotate(-90)")
@@ -175,6 +177,7 @@ function StackedBarChart({
 	keys,
 	ids,
 	entities,
+	yLabel,
 }: {
 	svgRef?: React.RefObject<SVGSVGElement>;
 	height: number;
@@ -182,6 +185,7 @@ function StackedBarChart({
 	keys: readonly string[];
 	ids: string[];
 	entities: Record<string, Record<string, number>>;
+	yLabel: string;
 }) {
 	const viewWidth = 1600;
 	const viewHeight = 900;
@@ -228,10 +232,10 @@ function StackedBarChart({
 	const gyRef = React.useRef<SVGSVGElement>(null);
 	React.useEffect(() => {
 		const gRef = gyRef.current!;
-		yAxis({ gRef, yScale, plotHeight });
+		yAxis({ gRef, yScale, plotHeight, label: yLabel });
 		const b = gRef.getBoundingClientRect();
 		setYAxisWidth(b.width);
-	}, [yScale, plotHeight]);
+	}, [yScale, plotHeight, yLabel]);
 
 	const gLegendRef = React.useRef<SVGSVGElement>(null);
 	React.useEffect(

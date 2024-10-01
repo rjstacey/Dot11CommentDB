@@ -21,7 +21,6 @@ import type { RootState, AppThunk } from ".";
 import { selectMemberEntities, type Member } from "./members";
 import {
 	selectSessionEntities,
-	selectSession,
 	upsertSessions,
 	type Session,
 } from "./sessions";
@@ -49,20 +48,46 @@ export const fields = {
 
 export type SessionAttendanceSummary = {
 	id: number;
-	/** Session identifier */
-	session_id: number;
-	/** Percentage of meeting slots attended */
-	AttendancePercentage: number;
-	/** Declare attendance criteria met */
-	DidAttend: boolean;
-	/** Declare attendance criteria not met */
-	DidNotAttend: boolean;
-	/** SA PIN under which attendance was logged */
-	SAPIN: number;
-	/** Current SA PIN */
-	CurrentSAPIN: number;
+	session_id: number; // Session identifier
+	AttendancePercentage: number; // Percentage of meeting slots attended
+	IsRegistered: boolean; // Registered for session
+	InPerson: boolean; // Attended in-person (not remotely)
+	DidAttend: boolean; // Declare attendance criteria met
+	DidNotAttend: boolean; // Declare attendance criteria not met
+	SAPIN: number; // SA PIN under which attendance was logged
+	CurrentSAPIN: number; // Current SA PIN
 	Notes: string;
 };
+
+function getNullSessionAttendanceSummary(
+	session_id: number,
+	SAPIN: number
+): SessionAttendanceSummary {
+	return {
+		id: 0,
+		session_id,
+		AttendancePercentage: 0,
+		IsRegistered: false,
+		InPerson: false,
+		DidAttend: false,
+		DidNotAttend: false,
+		Notes: "",
+		SAPIN,
+		CurrentSAPIN: SAPIN,
+	};
+}
+
+function isNullSessionAttendanceSummary(a: SessionAttendanceSummary) {
+	return (
+		a.id &&
+		!a.AttendancePercentage &&
+		!a.IsRegistered &&
+		!a.InPerson &&
+		!a.DidAttend &&
+		!a.DidNotAttend &&
+		!a.Notes
+	);
+}
 
 type RecentSessionAttendances = {
 	SAPIN: number;
@@ -132,12 +157,13 @@ export default slice;
 /* Slice actions */
 export const attendancesActions = slice.actions;
 
-const { getSuccess, getFailure, setOne, setDetails, setSelected } = slice.actions;
+const { getSuccess, getFailure, setOne, setDetails, setSelected } =
+	slice.actions;
 
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
 export const clearAttendances = createAction(dataSet + "/clear");
-export { setSelected };
+export { setSelected, getPending, getSuccess, getFailure };
 
 /*
  * Selectors
@@ -211,8 +237,12 @@ function recentAttendanceStats(
 		// Last attended
 		const a = attendances[0];
 		const s = sessionEntities[a.session_id]!;
-		if (s.type === 'p') {
-			if (a.AttendancePercentage > 0 && a.AttendancePercentage < 75 && !a.DidNotAttend)
+		if (s.type === "p") {
+			if (
+				a.AttendancePercentage > 0 &&
+				a.AttendancePercentage < 75 &&
+				!a.DidNotAttend
+			)
 				lastPpartial = true;
 			if ((a.AttendancePercentage > 75 && !a.DidNotAttend) || a.DidAttend)
 				lastPfull = true;
@@ -252,8 +282,15 @@ export const selectMemberAttendanceStats = createSelector(
 	selectSessionEntities,
 	selectMemberEntities,
 	(state: RootState, SAPIN: number) => SAPIN,
-	(attendancesEntities, sessionIds, sessionEntities, memberEntities, SAPIN) => {
-		const attendances = attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
+	(
+		attendancesEntities,
+		sessionIds,
+		sessionEntities,
+		memberEntities,
+		SAPIN
+	) => {
+		const attendances =
+			attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
 		const member = memberEntities[SAPIN];
 		const since = member?.StatusChangeHistory.find(
 			(h) => h.NewStatus === "Non-Voter"
@@ -266,7 +303,7 @@ export const selectMemberAttendanceStats = createSelector(
 			SAPIN
 		);
 	}
-)
+);
 
 function memberExpectedStatusFromAttendanceStats(
 	member: Member,
@@ -296,11 +333,19 @@ function memberExpectedStatusFromAttendanceStats(
 
 	/* An Aspirant becomes a Potential Voter after attending 2 of the last 4 plenary sessions. One intervening
 	 * interim meeting may be substituted for a plenary meeting. */
-	if (count === 2 && (status === "Non-Voter" || status === "Aspirant")) return "Potential Voter";
+	if (count === 2 && (status === "Non-Voter" || status === "Aspirant"))
+		return "Potential Voter";
 
 	/* A Potential Voter becomes a Voter at the next plenary session after attending 2 of the last 4 plenary
 	 * sessions. One intervening interim meeting may be substituted for a plenary meeting. */
-	if (((count >= 2 && lastPpartial) || (count === 3 && lastPfull) || count > 3) && (status === "Non-Voter" || status === "Aspirant" || status === "Potential Voter"))
+	if (
+		((count >= 2 && lastPpartial) ||
+			(count === 3 && lastPfull) ||
+			count > 3) &&
+		(status === "Non-Voter" ||
+			status === "Aspirant" ||
+			status === "Potential Voter")
+	)
 		return "Voter";
 
 	return "";
@@ -369,20 +414,9 @@ export const selectMemberRecentAttendances = createSelector(
 		for (const session_id of session_ids) {
 			const sessionAttendances =
 				attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
-			let a = sessionAttendances.find((a) => a.session_id === session_id);
-			if (!a) {
-				// No entry for this session; generate a "null" entry
-				a = {
-					id: 0,
-					session_id,
-					AttendancePercentage: 0,
-					DidAttend: false,
-					DidNotAttend: false,
-					Notes: "",
-					SAPIN,
-					CurrentSAPIN: SAPIN
-				};
-			}
+			let a =
+				sessionAttendances.find((a) => a.session_id === session_id) ||
+				getNullSessionAttendanceSummary(session_id, SAPIN);
 			attendances.push(a);
 		}
 		return attendances;
@@ -407,9 +441,7 @@ export const attendancesSelectors = getAppTableDataSelectors(
 /*
  * Thunk actions
  */
-function validResponse(
-	response: any
-): response is {
+export function validResponse(response: any): response is {
 	attendances: RecentSessionAttendances[];
 	sessions: Session[];
 } {
@@ -439,7 +471,11 @@ export const loadAttendances =
 					throw new TypeError("Unexpected response to GET " + url);
 				dispatch(upsertSessions(response.sessions));
 				dispatch(getSuccess(response.attendances));
-				dispatch(setDetails({sessionIds: response.sessions.map(s => s.id)}));
+				dispatch(
+					setDetails({
+						sessionIds: response.sessions.map((s) => s.id),
+					})
+				);
 				return response.attendances;
 			})
 			.catch((error: any) => {
@@ -472,30 +508,12 @@ export const updateAttendances =
 			attendanceDeletes: number[] = [];
 		for (const update of updates) {
 			const { session_id, changes } = update;
-			let a = entity.sessionAttendanceSummaries.find(
-				(a) => a.session_id === session_id
-			);
-			if (!a) {
-				// Entry does not exist; generate null entry
-				a = {
-					id: 0,
-					session_id,
-					AttendancePercentage: 0,
-					DidAttend: false,
-					DidNotAttend: false,
-					Notes: "",
-					SAPIN: entity.SAPIN,
-					CurrentSAPIN: entity.SAPIN
-				};
-			}
+			let a =
+				entity.sessionAttendanceSummaries.find(
+					(a) => a.session_id === session_id
+				) || getNullSessionAttendanceSummary(session_id, entity.SAPIN);
 			a = { ...a, ...changes };
-			if (
-				a.id &&
-				!a.AttendancePercentage &&
-				!a.DidAttend &&
-				!a.DidNotAttend &&
-				!a.Notes
-			) {
+			if (isNullSessionAttendanceSummary(a)) {
 				// If change results in a null entry, then delete the entry
 				attendanceDeletes.push(a.id);
 			} else if (!a.id) {
@@ -537,7 +555,8 @@ export const updateAttendances =
 				const attendances = response as SessionAttendanceSummary[];
 				updatedSessionAttendances = updatedSessionAttendances.map(
 					(aOrig) =>
-						attendances.find((aUpdt) => aUpdt.id === aOrig.id) || aOrig
+						attendances.find((aUpdt) => aUpdt.id === aOrig.id) ||
+						aOrig
 				);
 			} catch (error) {
 				dispatch(setError("Unable to update attendances", error));
@@ -550,60 +569,3 @@ export const updateAttendances =
 			})
 		);
 	};
-
-export const importAttendances =
-	(session_id: number, useDailyAttendance?: boolean): AppThunk =>
-	async (dispatch, getState) => {
-		const groupName = selectAttendancesGroupName(getState());
-		if (!groupName) {
-			dispatch(setError("Unable to import attendances", "group not set"));
-			return;
-		}
-		let url = `/api/${groupName}/attendances/${session_id}/import`;
-		if (useDailyAttendance) url += "?use=daily-attendance";
-		dispatch(getPending({ groupName }));
-		let response: any;
-		try {
-			response = await fetcher.post(url);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
-		} catch (error) {
-			dispatch(getFailure());
-			const session = selectSession(getState(), session_id);
-			dispatch(
-				setError(
-					"Unable to import attendance summary for session " +
-						session?.number || `id=${session_id}`,
-					error
-				)
-			);
-			return;
-		}
-		dispatch(upsertSessions(response.sessions));
-		dispatch(
-			setDetails({ sessionIds: response.sessions.map((s) => s.id) })
-		);
-		dispatch(getSuccess(response.attendances));
-	};
-
-	export const exportAttendanceForMinutes =
-		(session_id: number): AppThunk =>
-		async (dispatch, getState) => {
-			const groupName = selectAttendancesGroupName(getState());
-			if (!groupName) {
-				dispatch(setError("Unable to export attendances", "group not set"));
-				return;
-			}
-			let url = `/api/${groupName}/attendances/${session_id}/exportForMinutes`;
-			try {
-				await fetcher.getFile(url);
-			} catch (error) {
-				dispatch(
-					setError(
-						"Unable to export attendance for session " +
-							`id=${session_id}`,
-						error
-					)
-				);
-			}
-		};

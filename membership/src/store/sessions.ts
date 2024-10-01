@@ -142,6 +142,11 @@ export const selectSessions = createSelector(
 	(ids, entities) => ids.map((id) => entities[id]!)
 );
 
+export const selectSessionByNumber = (state: RootState, number: number) => {
+	const sessions = selectSessions(state);
+	return sessions.find((session) => session.number === number);
+};
+
 export const selectRecentSessions = createSelector(
 	selectSessions,
 	(sessions) => {

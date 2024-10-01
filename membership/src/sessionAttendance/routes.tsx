@@ -7,11 +7,17 @@ import SessionAttendanceLayout from "./layout";
 import SessionAttendanceTable from "./table";
 import SessionAttendanceChart from "./chart";
 
-const sessionAttendanceLoader: LoaderFunction = async ({ params }) => {
+const sessionAttendanceLoader: LoaderFunction = async ({ params, request }) => {
 	const { dispatch } = store;
 	const { groupName, sessionNumber } = params;
+	const searchParams = new URL(request.url).searchParams;
+	const useDaily =
+		searchParams.has("useDaily") &&
+		searchParams.get("useDaily") !== "false";
 	if (groupName && sessionNumber) {
-		dispatch(loadSessionAttendees(groupName, Number(sessionNumber)));
+		dispatch(
+			loadSessionAttendees(groupName, Number(sessionNumber), useDaily)
+		);
 	}
 	return null;
 };

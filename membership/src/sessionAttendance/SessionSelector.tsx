@@ -38,9 +38,9 @@ function SessionSelector({
 }) {
 	const { loading, valid } = useAppSelector(selectSessionsState);
 	const options = useAppSelector(selectRecentSessions);
-	const values = options.filter((o) => o.id === value);
+	const values = options.filter((o) => o.number === value);
 	const handleChange = (values: typeof options) =>
-		onChange(values.length > 0 ? values[0].id : null);
+		onChange(values.length > 0 ? values[0].number : null);
 
 	return (
 		<Select

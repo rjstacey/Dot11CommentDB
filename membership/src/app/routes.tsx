@@ -1,48 +1,76 @@
-import * as React from "react";
-import {
-	useParams,
-	useRouteError,
-	useLocation,
-	matchRoutes,
-	Outlet,
-	RouteObject,
-	LoaderFunction,
-} from "react-router-dom";
+import { RouteObject, LoaderFunction } from "react-router-dom";
 
 import { store } from "../store";
-import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
-import {
-	selectWorkingGroupByName,
-	loadGroups,
-	selectGroupsState,
-	setWorkingGroupId,
-	GroupType,
-} from "../store/groups";
+import { loadGroups, GroupType } from "../store/groups";
 import { loadMembers } from "../store/members";
 import { loadUsers } from "../store/users";
 import { loadOfficers } from "../store/officers";
-import { loadCommittees } from "../store/imatCommittees";
 import { loadTimeZones } from "../store/timeZones";
-import { loadAttendances } from "../store/sessionParticipation";
-import { loadBallotParticipation } from "../store/ballotParticipation";
-import { loadEmailTemplates } from "../store/email";
-import { loadAffiliationMap } from "../store/affiliationMap";
-import { loadSessions } from "../store/sessions";
 
-import { ErrorModal, ConfirmModal } from "dot11-components";
-import Header from "./Header";
-import WorkingGroupSelector from "./WorkingGroupSelector";
-import Groups from "../groups/Groups";
-import BallotParticipation from "../ballotParticipation/BallotParticipation";
-import Notification from "../notification/Notification";
-import AffiliationMap from "../affiliationMap/AffiliationMap";
+import AppLayout from "./layout";
+import AppErrorPage from "./errorPage";
+import RootMain from "./rootMain";
 
 import membersRoute from "../members/route";
+import groupsRoute from "../groups/route";
 import sessionAttendanceRoute from "../sessionAttendance/routes";
 import sessionParticipationRoute from "../sessionParticipation/route";
+import ballotParticipationRoute from "../ballotParticipation/route";
+import notificationRoute from "../notification/route";
+import affiliationMapRoute from "../affiliationMap/route";
 
-import styles from "./app.module.css";
+export type MenuItem = {
+	path: string;
+	label: string;
+	minAccess: number;
+	groupTypes?: GroupType[];
+};
+
+export const menu: MenuItem[] = [
+	{
+		path: "/:groupName/members",
+		label: "Members",
+		minAccess: AccessLevel.ro,
+		groupTypes: ["r", "c", "wg"],
+	},
+	{
+		path: "/:groupName/groups",
+		label: "Groups",
+		minAccess: AccessLevel.ro,
+		groupTypes: ["r", "c", "wg"],
+	},
+	{
+		path: "/:groupName/sessionParticipation",
+		label: "Session participation",
+		minAccess: AccessLevel.admin,
+		groupTypes: ["c", "wg"],
+	},
+	{
+		path: "/:groupName/ballotParticipation",
+		label: "Ballot pariticipation",
+		minAccess: AccessLevel.admin,
+		groupTypes: ["c", "wg"],
+	},
+	{
+		path: "/:groupName/sessionAttendance/:sessionNumber?",
+		label: "Session attendance",
+		minAccess: AccessLevel.admin,
+		groupTypes: ["c", "wg"],
+	},
+	{
+		path: "/:groupName/notification",
+		label: "Notification",
+		minAccess: AccessLevel.admin,
+		groupTypes: ["c", "wg"],
+	},
+	{
+		path: "/:groupName/affiliationMap",
+		label: "Affiliation Map",
+		minAccess: AccessLevel.ro,
+		groupTypes: ["c", "wg"],
+	},
+];
 
 /*
  * Routing loaders
@@ -66,236 +94,70 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	return null;
 };
 
-const groupsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch, getState } = store;
-	const { groupName } = params;
-	if (groupName) {
-		const { valid } = selectGroupsState(getState());
-		if (!valid) {
-			await dispatch(loadGroups());
-		}
-		const group = selectWorkingGroupByName(getState(), groupName);
-		dispatch(setWorkingGroupId(group?.id || null));
-		dispatch(loadCommittees(groupName));
-	}
-	return null;
-};
-
-const membersLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	const { groupName } = params;
-	if (groupName) {
-		// We have already loaded the members, but we need participation
-		dispatch(loadAttendances(groupName));
-		dispatch(loadBallotParticipation(groupName));
-		dispatch(loadAffiliationMap(groupName));
-	}
-	return null;
-};
-
-const ballotParticipationLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	const { groupName } = params;
-	if (groupName) {
-		dispatch(loadBallotParticipation(groupName));
-	}
-	return null;
-};
-
-const sessionAttendanceRootLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	const { groupName } = params;
-	if (groupName) {
-		dispatch(loadSessions(groupName));
-	}
-	return null;
-};
-
-const notificationsLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
-	const { groupName } = params;
-	if (groupName) {
-		dispatch(loadMembers(groupName));
-		dispatch(loadEmailTemplates(groupName));
-	}
-	return null;
-};
-
-/*
- * Layout components
- */
-
-/** A component that only renders its children if the user has a defined minimum access */
-function GateComponent({
-	minAccess,
-	children,
-}: {
-	minAccess: number;
-	children: React.ReactNode;
-}) {
-	const { groupName } = useParams();
-	const group = useAppSelector((state) =>
-		groupName ? selectWorkingGroupByName(state, groupName) : undefined
-	);
-
-	if (!group) return <span>Invalid group: {groupName}</span>;
-
-	const access = group.permissions.members || AccessLevel.none;
-	if (access < minAccess)
-		return <span>You do not have permission to view this data</span>;
-
-	return <>{children}</>;
-}
-
-function Layout() {
-	return (
-		<>
-			<Header />
-			<main className={styles.main}>
-				<Outlet />
-			</main>
-			<ErrorModal />
-			<ConfirmModal />
-		</>
-	);
-}
-
-function Root() {
-	return (
-		<div className={styles.root}>
-			<div className="intro">Working group/Committee</div>
-			<WorkingGroupSelector />
-		</div>
-	);
-}
-
-function ErrorPage() {
-	const error: any = useRouteError();
-	console.error(error);
-
-	return (
-		<div id="error-page">
-			<h1>Oops!</h1>
-			<p>Sorry, an unexpected error has occurred.</p>
-			<p>
-				<i>{error.statusText || error.message}</i>
-			</p>
-		</div>
-	);
-}
-
 /*
  * Routes
  */
-export type AppRoute = RouteObject & {
-	minAccess?: number;
-	menuLabel?: string;
-	groupTypes?: GroupType[];
-};
-
-const groupRoutes_ungated: AppRoute[] = [
+const groupRoutes: RouteObject[] = [
 	{
-		menuLabel: "Members",
 		path: "members",
-		minAccess: AccessLevel.admin,
-		groupTypes: ["r", "c", "wg"],
 		...membersRoute,
 	},
 	{
-		menuLabel: "Groups",
 		path: "groups",
-		element: <Groups />,
-		loader: groupsLoader,
-		minAccess: AccessLevel.ro,
-		groupTypes: ["r", "c", "wg"],
+		...groupsRoute,
 	},
 	{
-		menuLabel: "Session participation",
 		path: "sessionParticipation",
-		minAccess: AccessLevel.admin,
-		groupTypes: ["c", "wg"],
 		...sessionParticipationRoute,
 	},
 	{
-		menuLabel: "Ballot pariticipation",
 		path: "ballotParticipation",
-		element: <BallotParticipation />,
-		loader: ballotParticipationLoader,
-		minAccess: AccessLevel.admin,
-		groupTypes: ["c", "wg"],
+		...ballotParticipationRoute,
 	},
 	{
-		menuLabel: "Session attendance",
 		path: "sessionAttendance",
-		loader: sessionAttendanceRootLoader,
-		minAccess: AccessLevel.admin,
-		groupTypes: ["c", "wg"],
 		...sessionAttendanceRoute,
 	},
 	{
-		menuLabel: "Notification",
 		path: "notification",
-		element: <Notification />,
-		loader: notificationsLoader,
-		minAccess: AccessLevel.admin,
-		groupTypes: ["c", "wg"],
+		...notificationRoute,
 	},
 	{
-		menuLabel: "Affiliation Map",
 		path: "affiliationMap",
-		element: <AffiliationMap />,
-		loader: membersLoader,
-		minAccess: AccessLevel.ro,
-		groupTypes: ["c", "wg"],
+		...affiliationMapRoute,
 	},
 ];
 
-/** Rework the routes so that the elements are gated for the min access level */
-const groupRoutes = groupRoutes_ungated.map((r) => {
-	if (typeof r.minAccess === "number")
-		return {
-			...r,
-			element: (
-				<GateComponent minAccess={r.minAccess} children={r.element} />
-			),
-		};
-	return r;
-});
-
-const routes: AppRoute[] = [
+const routes: RouteObject[] = [
 	{
 		path: "/",
-		element: <Layout />,
-		errorElement: <ErrorPage />,
+		element: <AppLayout />,
+		errorElement: <AppErrorPage />,
 		loader: rootLoader,
 		children: [
 			{
+				index: true,
+				element: <RootMain />,
+			},
+			{
 				path: ":groupName",
 				loader: groupLoader,
-				errorElement: <ErrorPage />,
+				errorElement: <AppErrorPage />,
 				children: [
-					...groupRoutes,
 					{
 						index: true,
-						element: (
-							<GateComponent minAccess={AccessLevel.none}>
-								<Root />
-							</GateComponent>
-						),
+						element: <RootMain />,
 					},
+					...groupRoutes,
 					{
 						path: "*",
-						element: (
-							<GateComponent minAccess={AccessLevel.none}>
-								<span>Not found</span>
-							</GateComponent>
-						),
+						element: <span>Not found</span>,
 					},
 				],
 			},
 			{
 				index: true,
-				element: <Root />,
+				element: <RootMain />,
 			},
 		],
 	},
@@ -304,19 +166,5 @@ const routes: AppRoute[] = [
 		element: <span>Not found</span>,
 	},
 ];
-
-export function useRoutePath() {
-	const location = useLocation();
-	return React.useMemo(() => {
-		const m = matchRoutes(routes, location);
-		return m
-			? m
-					.map(({ route: { path } }) => path)
-					.filter(Boolean)
-					.join("/")
-					.replace(/\/\*?\//g, "/")
-			: "/";
-	}, [location]);
-}
 
 export default routes;

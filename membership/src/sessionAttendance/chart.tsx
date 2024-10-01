@@ -121,6 +121,7 @@ function SessionAttendanceChart() {
 							keys={countedStatus}
 							ids={ids}
 							entities={entities}
+							yLabel="Number of attendees"
 						/>
 					);
 				}}

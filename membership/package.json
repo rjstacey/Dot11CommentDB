@@ -1,6 +1,6 @@
 {
 	"name": "membership",
-	"version": "1.5.1",
+	"version": "1.5.3",
 	"private": true,
 	"homepage": "membership",
 	"proxy": "https://localhost:8080",

@@ -110,6 +110,7 @@ function MembersChart() {
 							keys={countedStatus}
 							ids={ids}
 							entities={entities}
+							yLabel="Number of members"
 						/>
 					);
 				}}

@@ -21,9 +21,12 @@ import { selectSessionEntities, Session } from "../store/sessions";
 
 import styles from "../sessionAttendance/sessionAttendance.module.css";
 
-import { EditTable as Table, TableColumn, renderTable } from "../components/Table";
+import {
+	EditTable as Table,
+	TableColumn,
+	renderTable,
+} from "../components/Table";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-
 
 function renderSessionSummary(session: Session | undefined) {
 	if (!session) return "Unknown";
@@ -45,52 +48,52 @@ const nullAttendance = (session_id: number, SAPIN: number) => ({
 	DidNotAttend: false,
 	Notes: "",
 	SAPIN,
-	CurrentSAPIN: SAPIN
-})
+	CurrentSAPIN: SAPIN,
+});
 
-const headings = [
-	"Session",
-	"Attendance",
-	"Notes",
-];
+const headings = ["Session", "Attendance", "Notes"];
 
 export function useRenderSessionAttendances() {
-	const session_ids = useAppSelector(selectAttendanceSessionIds);
+	const sessionIds = useAppSelector(selectAttendanceSessionIds);
 	const sessionEntities = useAppSelector(selectSessionEntities);
 	const attendancesEntities = useAppSelector(selectAttendancesEntities);
 
-	return React.useCallback((SAPIN: number) => {
+	return React.useCallback(
+		(SAPIN: number) => {
+			const session_ids = sessionIds.slice().reverse() as number[];
+			const values = session_ids.map((id) => {
+				const session = sessionEntities[id]!;
+				const sessionAttendances =
+					attendancesEntities[SAPIN]?.sessionAttendanceSummaries ||
+					[];
+				let a =
+					sessionAttendances.find(
+						(a) => a.session_id === session.id
+					) || nullAttendance(session.id, SAPIN);
+				let notes = "";
+				if (a.DidAttend) notes = "Override: did attend";
+				else if (a.DidNotAttend) notes = "Override: did not attend";
+				if (a.SAPIN !== SAPIN) {
+					if (notes) notes += "; ";
+					notes += `Attended using SAPIN=${a.SAPIN}`;
+				}
+				return [
+					renderSessionSummary(session),
+					a.AttendancePercentage.toFixed(1) + "%",
+					notes,
+				];
+			});
 
-		const values = session_ids.map((id) => {
-			const session = sessionEntities[id]!;
-			const sessionAttendances = attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
-			let a = sessionAttendances.find((a) => a.session_id === session.id) || nullAttendance(session.id, SAPIN);
-			let notes = "";
-			if (a.DidAttend)
-				notes = "Override: did attend";
-			else if (a.DidNotAttend)
-				notes = "Override: did not attend";
-			if (a.SAPIN !== a.CurrentSAPIN) {
-				if (notes) notes += "; ";
-				notes += `Attended under SAPIN=${SAPIN}`;
-			}
-			return [
-				renderSessionSummary(session),
-				a.AttendancePercentage.toFixed(1) + "%",
-				notes
-			]
-		});
-
-		return renderTable(headings, values);
-
-	}, [session_ids, sessionEntities, attendancesEntities])
+			return renderTable(headings, values);
+		},
+		[sessionIds, sessionEntities, attendancesEntities]
+	);
 }
 
 export function useSessionAttendances(SAPIN: number) {
-
 	const sessionIds = useAppSelector(selectAttendanceSessionIds);
 	const attendancesEntities = useAppSelector(selectAttendancesEntities);
-	
+
 	return React.useMemo(() => {
 		const session_ids = sessionIds.slice().reverse() as number[];
 		const attendances: Record<number, SessionAttendanceSummary> = {};
@@ -104,11 +107,13 @@ export function useSessionAttendances(SAPIN: number) {
 					id: 0,
 					session_id,
 					AttendancePercentage: 0,
+					IsRegistered: false,
+					InPerson: false,
 					DidAttend: false,
 					DidNotAttend: false,
 					Notes: "",
 					SAPIN,
-					CurrentSAPIN: SAPIN
+					CurrentSAPIN: SAPIN,
 				};
 			}
 			attendances[session_id] = a;
@@ -117,8 +122,8 @@ export function useSessionAttendances(SAPIN: number) {
 		return {
 			SAPIN,
 			session_ids,
-			attendances
-		}
+			attendances,
+		};
 	}, [SAPIN, sessionIds, attendancesEntities]);
 }
 
@@ -128,6 +133,16 @@ const attendancesColumns: TableColumn[] = [
 		key: "AttendancePercentage",
 		label: "Attendance",
 		styleCell: { justifyContent: "flex-end" },
+	},
+	{
+		key: "IsRegistered",
+		label: "Registered",
+		styleCell: { justifyContent: "center" },
+	},
+	{
+		key: "InPerson",
+		label: "In-person",
+		styleCell: { justifyContent: "center" },
 	},
 	{
 		key: "DidAttend",
@@ -149,7 +164,7 @@ const attendancesColumns: TableColumn[] = [
 
 function MemberAttendances({
 	SAPIN,
-	readOnly
+	readOnly,
 }: {
 	SAPIN: number;
 	readOnly?: boolean;
@@ -158,17 +173,25 @@ function MemberAttendances({
 
 	const sessionEntities = useAppSelector(selectSessionEntities);
 
-	const {session_ids, attendances} = useSessionAttendances(SAPIN);
+	const { session_ids, attendances } = useSessionAttendances(SAPIN);
 
 	const [editedSAPIN, setEditedSAPIN] = React.useState<number>(SAPIN);
-	const [editedSessionIds, setEditedSessionIds] = React.useState<number[]>(session_ids);
-	const [editedAttendances, setEditedAttendances] = React.useState<Record<number, SessionAttendanceSummary>>(attendances);
-	const [savedAttendances, setSavedAttendances] = React.useState<Record<number, SessionAttendanceSummary>>(attendances);
+	const [editedSessionIds, setEditedSessionIds] =
+		React.useState<number[]>(session_ids);
+	const [editedAttendances, setEditedAttendances] =
+		React.useState<Record<number, SessionAttendanceSummary>>(attendances);
+	const [savedAttendances, setSavedAttendances] =
+		React.useState<Record<number, SessionAttendanceSummary>>(attendances);
 
-	const selectAttendanceStats = React.useCallback((state: RootState) => selectMemberAttendanceStats(state, SAPIN), [SAPIN]);
+	const selectAttendanceStats = React.useCallback(
+		(state: RootState) => selectMemberAttendanceStats(state, SAPIN),
+		[SAPIN]
+	);
 	const { count, total } = useAppSelector(selectAttendanceStats);
 
-	const values = editedSessionIds.map((session_id) => editedAttendances[session_id]);
+	const values = editedSessionIds.map(
+		(session_id) => editedAttendances[session_id]
+	);
 
 	const triggerSave = useDebounce(() => {
 		const updates = [];
@@ -180,7 +203,8 @@ function MemberAttendances({
 			if (Object.keys(changes).length > 0)
 				updates.push({ session_id, changes });
 		}
-		if (updates.length > 0) dispatch(updateAttendances(editedSAPIN, updates));
+		if (updates.length > 0)
+			dispatch(updateAttendances(editedSAPIN, updates));
 		setSavedAttendances(editedAttendances);
 	});
 
@@ -189,7 +213,15 @@ function MemberAttendances({
 		setEditedSessionIds(session_ids);
 		setEditedAttendances(attendances);
 		setSavedAttendances(attendances);
-	}, [SAPIN, session_ids, attendances, setEditedSAPIN, setEditedSessionIds, setEditedAttendances, setSavedAttendances]);
+	}, [
+		SAPIN,
+		session_ids,
+		attendances,
+		setEditedSAPIN,
+		setEditedSessionIds,
+		setEditedAttendances,
+		setSavedAttendances,
+	]);
 
 	const columns = React.useMemo(() => {
 		function renderSessionSummary(id: number) {
@@ -207,10 +239,13 @@ function MemberAttendances({
 			);
 		}
 
-		function update(session_id: number,	changes: Partial<SessionAttendanceSummary>) {
-			setEditedAttendances(attendances => ({
+		function update(
+			session_id: number,
+			changes: Partial<SessionAttendanceSummary>
+		) {
+			setEditedAttendances((attendances) => ({
 				...attendances,
-				[session_id]: {...attendances[session_id], ...changes}
+				[session_id]: { ...attendances[session_id], ...changes },
 			}));
 			triggerSave();
 		}
@@ -226,6 +261,32 @@ function MemberAttendances({
 			if (col.key === "AttendancePercentage")
 				renderCell = (entry) =>
 					`${entry.AttendancePercentage.toFixed(0)}%`;
+			if (col.key === "IsRegistered") {
+				renderCell = (entry) => (
+					<Checkbox
+						checked={entry.IsRegistered}
+						onChange={(e) =>
+							update(entry.session_id, {
+								IsRegistered: e.target.checked,
+							})
+						}
+						disabled={readOnly}
+					/>
+				);
+			}
+			if (col.key === "InPerson") {
+				renderCell = (entry) => (
+					<Checkbox
+						checked={entry.InPerson}
+						onChange={(e) =>
+							update(entry.session_id, {
+								InPerson: e.target.checked,
+							})
+						}
+						disabled={readOnly}
+					/>
+				);
+			}
 			if (col.key === "DidAttend") {
 				renderCell = (entry) => (
 					<Checkbox

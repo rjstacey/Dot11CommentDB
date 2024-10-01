@@ -9,7 +9,7 @@ import MembersLayout from "./layout";
 import MembersTable from "./table";
 import MembersChart from "./chart";
 
-const membersLoader: LoaderFunction = async ({ params }) => {
+export const membersLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch } = store;
 	const { groupName } = params;
 	if (groupName) {

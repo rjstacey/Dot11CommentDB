@@ -1,5 +1,10 @@
-import * as React from "react";
-import { useParams, useNavigate, generatePath } from "react-router-dom";
+import React from "react";
+import {
+	useParams,
+	useNavigate,
+	useSearchParams,
+	useLocation,
+} from "react-router-dom";
 
 import {
 	ActionButton,
@@ -13,18 +18,20 @@ import {
 	DropdownRendererProps,
 	Form,
 	Row,
+	Button,
 } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
-	setDailyAttendance,
 	sessionAttendeesSelectors,
 	sessionAttendeesActions,
 	selectSessionAttendeesState,
-	selectDailyAttendance,
+	exportAttendanceForMinutes,
 	SessionAttendee,
+	importAttendances,
+	selectSessionAttendeesSessionNumber,
 } from "../store/sessionAttendees";
-import { selectSessionEntities, Session } from "../store/sessions";
+import { selectSessionByNumber, Session } from "../store/sessions";
 import {
 	selectMemberEntities,
 	addMembers,
@@ -33,11 +40,9 @@ import {
 	MemberAdd,
 	MemberUpdate,
 } from "../store/members";
-import { exportAttendanceForMinutes } from "../store/sessionParticipation";
 
 import SessionSelector from "./SessionSelector";
 import { tableColumns } from "./table";
-import { useRoutePath } from "../app/routes";
 import { copyChartToClipboard, downloadChart } from "../components/copyChart";
 
 function sessionAttendeeToMember(session: Session, attendee: SessionAttendee) {
@@ -58,17 +63,21 @@ function sessionAttendeeToMember(session: Session, attendee: SessionAttendee) {
 }
 
 function ImportAttendeeForm({ methods }: DropdownRendererProps) {
-	const { sessionId } = useAppSelector(selectSessionAttendeesState);
-	const session = useAppSelector(selectSessionEntities)[sessionId!]!;
+	const { groupName, selected, ids, entities } = useAppSelector(
+		selectSessionAttendeesState
+	);
+	const sessionNumber = useAppSelector(selectSessionAttendeesSessionNumber)!;
+	const session = useAppSelector((state) =>
+		selectSessionByNumber(state, sessionNumber)
+	)!;
 
+	const [importAttendance, setImportAttendance] = React.useState(true);
 	const [importNew, setImportNew] = React.useState(true);
 	const [importUpdates, setImportUpdates] = React.useState(true);
 	const [selectedOnly, setSelectedOnly] = React.useState(false);
+	const [busy, setBusy] = React.useState(false);
 
 	const dispatch = useAppDispatch();
-	const { selected, ids, entities } = useAppSelector(
-		selectSessionAttendeesState
-	);
 	const memberEntities = useAppSelector(selectMemberEntities);
 
 	const list = selectedOnly ? selected : ids;
@@ -110,9 +119,13 @@ function ImportAttendeeForm({ methods }: DropdownRendererProps) {
 		return updates;
 	}, [list, entities, memberEntities]);
 
-	function submit() {
-		if (importNew) dispatch(addMembers(adds));
-		if (importUpdates) dispatch(updateMembers(updates));
+	async function submit() {
+		setBusy(true);
+		if (importAttendance)
+			await dispatch(importAttendances(groupName!, session.number!));
+		if (importNew) await dispatch(addMembers(adds));
+		if (importUpdates) await dispatch(updateMembers(updates));
+		setBusy(false);
 		methods.close();
 	}
 
@@ -123,20 +136,30 @@ function ImportAttendeeForm({ methods }: DropdownRendererProps) {
 			cancelLabel="Cancel"
 			submit={submit}
 			cancel={methods.close}
+			busy={busy}
 		>
+			<Row style={{ justifyContent: "flex-start" }}>
+				<Checkbox
+					checked={importAttendance}
+					onChange={() => setImportAttendance(!importAttendance)}
+				/>
+				<label>Import session attendance</label>
+			</Row>
 			<Row style={{ justifyContent: "flex-start" }}>
 				<Checkbox
 					checked={importNew}
 					onChange={() => setImportNew(!importNew)}
 				/>
-				<label>Import new members</label>
+				<label>Add new members ({`${adds.length} members`})</label>
 			</Row>
 			<Row style={{ justifyContent: "flex-start" }}>
 				<Checkbox
 					checked={importUpdates}
 					onChange={() => setImportUpdates(!importUpdates)}
 				/>
-				<label>Import member updates</label>
+				<label>
+					Update member details ({`${updates.length} members`})
+				</label>
 			</Row>
 			<Row style={{ justifyContent: "flex-start" }}>
 				<Checkbox
@@ -145,53 +168,55 @@ function ImportAttendeeForm({ methods }: DropdownRendererProps) {
 				/>
 				<label>Selected entries only</label>
 			</Row>
-			<Row>
-				<span>{importNew ? `${adds.length} adds` : ""}</span>
-				<span>{importUpdates ? `${updates.length} updates` : ""}</span>
-			</Row>
 		</Form>
 	);
 }
 
 function SessionAttendanceActions() {
 	const dispatch = useAppDispatch();
+	const location = useLocation();
 	const navigate = useNavigate();
-	let routePath = useRoutePath();
 	const params = useParams();
+	const groupName = params.groupName!;
+	let [searchParams] = useSearchParams();
+	const useDaily =
+		searchParams.has("useDaily") &&
+		searchParams.get("useDaily") !== "false";
 
 	const { loading } = useAppSelector(selectSessionAttendeesState);
-	const dailyAttendance = useAppSelector(selectDailyAttendance);
+
 	const toggleUseDaily = () => {
-		dispatch(setDailyAttendance(!dailyAttendance));
-		refresh();
+		if (useDaily) searchParams.delete("useDaily");
+		else searchParams.append("useDaily", "true");
+		navigate({ search: searchParams.toString() });
 	};
 
-	const sessionId = Number(params.sessionNumber);
-	const setSession = (sessionId: number | null) => {
-		if (sessionId) {
-			if (!/\/:sessionNumber/.test(routePath))
-				routePath += "/:sessionNumber";
-		} else {
-			routePath = routePath.replace(/\/:sessionNumber(\/chart)?/, "");
-		}
-		navigate(
-			generatePath(routePath, {
-				...params,
-				sessionNumber: sessionId ? sessionId.toString() : undefined,
-			})
-		);
-	};
-	const refresh = () => setSession(sessionId);
-
-	const showChart = /chart$/.test(routePath);
+	const showChart = /chart$/.test(location.pathname);
 	const setShowChart = (showChart: boolean) => {
-		navigate("" + params.sessionNumber + "/" + (showChart ? "chart" : ""));
+		let pathname = "" + sessionNumber;
+		if (showChart) pathname += "/chart";
+		navigate({ pathname, search: searchParams.toString() });
 	};
+
+	const sessionNumber = Number(params.sessionNumber);
+	const setSessionNumber = (sessionNumber: number | null) => {
+		let pathname = "";
+		if (sessionNumber) {
+			pathname += sessionNumber;
+			if (showChart) pathname += "/chart";
+		}
+		navigate({ pathname, search: searchParams.toString() });
+	};
+
+	const refresh = () => navigate(0);
 
 	return (
 		<div className="top-row">
 			<div style={{ display: "flex" }}>
-				<SessionSelector value={sessionId} onChange={setSession} />
+				<SessionSelector
+					value={sessionNumber}
+					onChange={setSessionNumber}
+				/>
 				<div
 					style={{
 						display: "flex",
@@ -201,7 +226,7 @@ function SessionAttendanceActions() {
 				>
 					<div style={{ display: "flex", alignItems: "center" }}>
 						<Checkbox
-							checked={dailyAttendance}
+							checked={useDaily}
 							onChange={toggleUseDaily}
 							disabled={loading}
 						/>
@@ -211,7 +236,7 @@ function SessionAttendanceActions() {
 					</div>
 					<div style={{ display: "flex", alignItems: "center" }}>
 						<Checkbox
-							checked={!dailyAttendance}
+							checked={!useDaily}
 							onChange={toggleUseDaily}
 							disabled={loading}
 						/>
@@ -246,23 +271,69 @@ function SessionAttendanceActions() {
 				</ButtonGroup>
 				<ActionButtonDropdown
 					name="import"
-					title="Import new attendees"
+					title="Bulk import form"
+					selectRenderer={() => (
+						<Button
+							style={{
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center",
+								fontSize: 10,
+								fontWeight: 700,
+							}}
+							disabled={!sessionNumber}
+						>
+							<span>Bulk</span>
+							<span>Update</span>
+						</Button>
+					)}
 					dropdownRenderer={(props) => (
 						<ImportAttendeeForm {...props} />
 					)}
+					disabled={!sessionNumber}
 				/>
-				<ActionButton
-					name="bi-list-check"
+				<Button
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "center",
+						fontSize: 10,
+						fontWeight: 700,
+					}}
 					title="Export attendance for minutes"
-					disabled={!sessionId}
+					disabled={!sessionNumber}
 					onClick={() =>
-						dispatch(exportAttendanceForMinutes(sessionId!))
+						dispatch(
+							exportAttendanceForMinutes(groupName, sessionNumber)
+						)
 					}
-				/>
+				>
+					<span>Attendance</span>
+					<span>for minutes</span>
+				</Button>
+				<Button
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "center",
+						fontSize: 10,
+						fontWeight: 700,
+					}}
+					title="Export attendance for minutes"
+					disabled={!sessionNumber}
+					onClick={() =>
+						dispatch(
+							exportAttendanceForMinutes(groupName, sessionNumber)
+						)
+					}
+				>
+					<span>Import</span>
+					<span>registration</span>
+				</Button>
 				<ActionButton
 					name="bi-bar-chart-line"
 					title="Chart attendance"
-					disabled={!sessionId}
+					disabled={!sessionNumber}
 					isActive={showChart}
 					onClick={() => setShowChart(!showChart)}
 				/>
