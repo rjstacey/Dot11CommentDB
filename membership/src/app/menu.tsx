@@ -9,53 +9,9 @@ import { selectTopLevelGroupByName } from "../store/groups";
 
 import { selectSessionAttendeesSessionNumber } from "../store/sessionAttendees";
 
-export type MenuItem = {
-	path: string;
-	label: string;
-	membersMinAccess?: number;
-	groupsMinAccess?: number;
-};
-
-export const menu: MenuItem[] = [
-	{
-		path: "/:groupName?/groups",
-		label: "Groups",
-		groupsMinAccess: AccessLevel.ro,
-	},
-	{
-		path: "/:groupName/members",
-		label: "Members",
-		membersMinAccess: AccessLevel.ro,
-	},
-	{
-		path: "/:groupName/sessionParticipation",
-		label: "Session participation",
-		membersMinAccess: AccessLevel.admin,
-	},
-	{
-		path: "/:groupName/ballotParticipation",
-		label: "Ballot pariticipation",
-		membersMinAccess: AccessLevel.admin,
-	},
-	{
-		path: "/:groupName/sessionAttendance/:sessionNumber?",
-		label: "Session attendance",
-		membersMinAccess: AccessLevel.admin,
-	},
-	{
-		path: "/:groupName/notification",
-		label: "Notification",
-		membersMinAccess: AccessLevel.admin,
-	},
-	{
-		path: "/:groupName/affiliationMap",
-		label: "Affiliation Map",
-		membersMinAccess: AccessLevel.ro,
-	},
-];
-
-type MenuLinkItem = MenuItem & {
+type MenuItem = {
 	link: string;
+	label: string;
 };
 
 function useMenuLinks() {
@@ -64,45 +20,63 @@ function useMenuLinks() {
 		selectTopLevelGroupByName(state, groupName)
 	);
 	const sessionNumber = useAppSelector(selectSessionAttendeesSessionNumber);
-	console.log(`groupName="${groupName}"`, group);
 
 	// Only display links for which the use has permissions
 	// Replace params with the current setting
-	const menuLinks: MenuLinkItem[] = React.useMemo(() => {
-		return menu
-			.filter((m) => {
-				// No items if there is no group
-				if (!group) return false;
-				// Filter paths that require groupName
-				if (/:groupName(?!\?)/.test(m.path) && !groupName) return false;
-				let access = group.permissions.members || AccessLevel.none;
-				if (
-					m.membersMinAccess !== undefined &&
-					access < m.membersMinAccess
-				)
-					return false;
-				access = group.permissions.groups || AccessLevel.none;
-				if (
-					m.groupsMinAccess !== undefined &&
-					access < m.groupsMinAccess
-				)
-					return false;
-				return true;
-			})
-			.map((m) => {
-				const link = m.path
-					.replace(/:groupName\?{0,1}/, groupName)
-					.replace(
-						/:sessionNumber\?{0,1}/,
-						sessionNumber ? sessionNumber.toString() : ""
-					)
-					.replace("//", "/");
-				return { ...m, link };
-			});
-	}, [group, groupName, sessionNumber]);
-	console.log(menuLinks);
+	return React.useMemo(() => {
+		const menu: MenuItem[] = [];
 
-	return menuLinks;
+		// No menu items if there is no group
+		if (!group) return menu;
+
+		// Groups link for "root" (/groups) or committee/working group ("/:groupName/groups")
+		let groupsAccess = group.permissions.groups || AccessLevel.none;
+		if (groupsAccess >= AccessLevel.ro) {
+			menu.push({
+				link: (group.type === "r" ? "/" : `/${group.name}`) + "/groups",
+				label: "Groups",
+			});
+		}
+
+		const membersAccess = group.permissions.members || AccessLevel.none;
+
+		if (membersAccess >= AccessLevel.ro) {
+			menu.push({
+				link: `/${group.name}/members`,
+				label: "Members",
+			});
+		}
+
+		if (membersAccess >= AccessLevel.admin) {
+			menu.push({
+				link: `/${group.name}/sessionParticipation`,
+				label: "Session participation",
+			});
+			menu.push({
+				link: `/${group.name}/ballotParticipation`,
+				label: "Ballot participation",
+			});
+			menu.push({
+				link:
+					`/${group.name}/sessionAttendance` +
+					(sessionNumber ? `/${sessionNumber}` : ""),
+				label: "Session attendance",
+			});
+			menu.push({
+				link: `/${group.name}/notification`,
+				label: "Notification",
+			});
+		}
+
+		if (membersAccess >= AccessLevel.ro) {
+			menu.push({
+				link: `/${group.name}/affiliationMap`,
+				label: "Affiliation map",
+			});
+		}
+
+		return menu;
+	}, [group, sessionNumber]);
 }
 
 function Menu({
@@ -139,12 +113,13 @@ function Menu({
 
 function CurrentMenuItem() {
 	const { pathname } = useLocation();
-	const menuItem = menu.find((m) => matchPath(m.path, pathname));
+	const menu = useMenuLinks();
+	const menuItem = menu.find((m) => m.link === pathname);
 
 	return (
 		<>
 			<i className="bi-list" />
-			<div className="nav-link active">{menuItem?.label}</div>
+			<div className="nav-link active">{menuItem?.label || "??"}</div>
 		</>
 	);
 }

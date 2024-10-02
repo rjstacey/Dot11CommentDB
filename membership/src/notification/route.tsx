@@ -14,8 +14,8 @@ const notificationsLoader: LoaderFunction = async ({ params }) => {
 
 	const { dispatch, getState } = store;
 	const group = selectTopLevelGroupByName(getState(), groupName);
-	if (!group) throw new Error("Invalid group: " + groupName);
-	const access = group.permissions.membership || AccessLevel.none;
+	if (!group) throw new Error(`Group ${groupName} not found`);
+	const access = group.permissions.members || AccessLevel.none;
 	if (access < AccessLevel.admin)
 		throw new Error("You don't have permission to view this data");
 

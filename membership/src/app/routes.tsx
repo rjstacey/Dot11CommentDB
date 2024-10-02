@@ -2,7 +2,11 @@ import { RouteObject, LoaderFunction } from "react-router-dom";
 
 import { store } from "../store";
 import { AccessLevel } from "../store/user";
-import { loadGroups, selectTopLevelGroupByName } from "../store/groups";
+import {
+	loadGroups,
+	selectTopLevelGroupByName,
+	setTopLevelGroupId,
+} from "../store/groups";
 import { loadMembers } from "../store/members";
 import { loadUsers } from "../store/users";
 import { loadOfficers } from "../store/officers";
@@ -43,6 +47,7 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	if (access < AccessLevel.ro)
 		throw new Error("You don't have permission to view this data");
 
+	dispatch(setTopLevelGroupId(group.id));
 	dispatch(loadGroups(groupName));
 	dispatch(loadMembers(groupName));
 	dispatch(loadUsers(groupName));
@@ -56,12 +61,12 @@ const groupLoader: LoaderFunction = async ({ params }) => {
  */
 const groupRoutes: RouteObject[] = [
 	{
-		path: "members",
-		...membersRoute,
-	},
-	{
 		path: "groups",
 		...groupsRoute,
+	},
+	{
+		path: "members",
+		...membersRoute,
 	},
 	{
 		path: "sessionParticipation",
