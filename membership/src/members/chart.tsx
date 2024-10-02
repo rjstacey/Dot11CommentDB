@@ -64,8 +64,10 @@ const membersByAffiliation = createSelector(
 		function idsComp(id1: string, id2: string) {
 			const e1 = entities[id1];
 			const e2 = entities[id2];
-			const n = e2.Voter - e1.Voter;
-			return n; //n === 0 ? id1.localeCompare(id2) : n;
+			let n = e2.Voter - e1.Voter;
+			if (n === 0) n = e2["Potential Voter"] - e1["Potential Voter"];
+			if (n === 0) n = e2.Aspirant - e1.Aspirant;
+			return n;
 		}
 		shortAffiliations = shortAffiliations.sort(idsComp);
 
