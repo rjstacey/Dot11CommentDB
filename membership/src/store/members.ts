@@ -15,7 +15,7 @@ import {
 import type { RootState, AppThunk } from ".";
 import { selectAttendancesWithMembershipAndSummary } from "./sessionParticipation";
 import { selectBallotParticipationWithMembershipAndSummary } from "./ballotParticipation";
-import { selectWorkingGroupByName } from "./groups";
+import { selectTopLevelGroupByName } from "./groups";
 import { AccessLevel } from "./user";
 
 const Status = {
@@ -294,7 +294,7 @@ export const selectUiProperties = membersSelectors.selectUiProperties;
 export const selectUserMembersAccess = (state: RootState) => {
 	const { groupName } = selectMembersState(state);
 	const group = groupName
-		? selectWorkingGroupByName(state, groupName)
+		? selectTopLevelGroupByName(state, groupName)
 		: undefined;
 	return group?.permissions.members || AccessLevel.none;
 };

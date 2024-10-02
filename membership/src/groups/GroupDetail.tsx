@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { shallowEqual } from "react-redux";
 
 import {
@@ -13,7 +13,7 @@ import { AccessLevel } from "../store/user";
 import {
 	selectGroupsState,
 	selectUserGroupsAccess,
-	selectWorkingGroupId,
+	selectTopLevelGroupId,
 	setSelected,
 	Group,
 	GroupCreate,
@@ -69,7 +69,7 @@ function GroupDetail() {
 		useAppSelector(selectGroupsState);
 	const officerEntities = useAppSelector(selectOfficerEntities);
 	const officerIds = useAppSelector(selectOfficerIds);
-	const groupId = useAppSelector(selectWorkingGroupId);
+	const groupId = useAppSelector(selectTopLevelGroupId);
 
 	const initState = React.useCallback((): GroupDetailState => {
 		const groups = selected

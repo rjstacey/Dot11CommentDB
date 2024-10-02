@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { Html } from "@react-email/html";
 import { render } from "@react-email/render";
 import {
@@ -12,10 +12,10 @@ import {
 	displayDateRange,
 	ActionButton,
 	ConfirmModal,
-	useDebounce
+	useDebounce,
 } from "dot11-components";
 
-import Editor, {replaceClassWithInlineStyle} from "../editor/Editor";
+import Editor, { replaceClassWithInlineStyle } from "../editor/Editor";
 import { useRenderSessionAttendances } from "../sessionParticipation/MemberAttendances";
 import { useRenderBallotParticipation } from "../ballotParticipation/MemberBallotParticipation";
 
@@ -25,15 +25,15 @@ import {
 	selectEmailTemplatesState,
 	updateEmailTemplate,
 	deleteEmailTemplate,
-	sendEmail,
 	type EmailTemplateCreate,
 	type EmailTemplate,
-	type Email,
-} from "../store/email";
+} from "../store/emailTemplates";
+import { sendEmail, type Email } from "../store/emailSend";
 import { selectMembersState, type Member } from "../store/members";
 import { selectMostRecentAttendedSession } from "../store/sessionParticipation";
 import { type Session } from "../store/sessions";
 import { selectUser, type User } from "../store/user";
+import { useParams } from "react-router-dom";
 
 function substitute(
 	key: string,
@@ -42,21 +42,18 @@ function substitute(
 	renderSessionAttendances: ReturnType<typeof useRenderSessionAttendances>,
 	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>
 ): string {
-
 	if (Object.keys(member).includes(key))
 		return "" + member[key as keyof Member] || "(Blank)";
 
-	if (key.startsWith('Session')) {
-		if (key === 'SessionAttendance')
+	if (key.startsWith("Session")) {
+		if (key === "SessionAttendance")
 			return renderSessionAttendances(member.SAPIN);
 
-		if (!session) return "(Blank)"
+		if (!session) return "(Blank)";
 		let s = "";
-		if (key === 'SessionName')
-			s = session.name;
-		if (key === 'SessionNumber')
-			s = "" + session.number;
-		if (key === 'SessionDate')
+		if (key === "SessionName") s = session.name;
+		if (key === "SessionNumber") s = "" + session.number;
+		if (key === "SessionDate")
 			s = displayDateRange(session.startDate, session.endDate);
 		return s || "(Blank)";
 	}
@@ -78,8 +75,17 @@ function doSubstitution(
 	const m = body.match(/{{[a-zA-Z]+}}/g);
 	if (m) {
 		for (let i = 0; i < m.length; i++) {
-			const key = m[i].replace('{{', '').replace('}}', '');
-			body = body.replace(`{{${key}}}`, substitute(key, member, session, renderSessionAttendances, renderBallotParticipation))
+			const key = m[i].replace("{{", "").replace("}}", "");
+			body = body.replace(
+				`{{${key}}}`,
+				substitute(
+					key,
+					member,
+					session,
+					renderSessionAttendances,
+					renderBallotParticipation
+				)
+			);
 		}
 	}
 
@@ -96,17 +102,23 @@ function genEmails({
 	members,
 	session,
 	renderSessionAttendances,
-	renderBallotParticipation
+	renderBallotParticipation,
 }: {
-	user: User,
-	emailTemplate: EmailTemplate,
-	members: Member[],
-	session: Session | undefined,
-	renderSessionAttendances: ReturnType<typeof useRenderSessionAttendances>,
-	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>
+	user: User;
+	emailTemplate: EmailTemplate;
+	members: Member[];
+	session: Session | undefined;
+	renderSessionAttendances: ReturnType<typeof useRenderSessionAttendances>;
+	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>;
 }) {
 	return members.map((member) => {
-		const email = doSubstitution(emailTemplate, member, session, renderSessionAttendances, renderBallotParticipation);
+		const email = doSubstitution(
+			emailTemplate,
+			member,
+			session,
+			renderSessionAttendances,
+			renderBallotParticipation
+		);
 
 		const html = render(<FormatBody body={email.body} />);
 
@@ -138,13 +150,9 @@ function genEmails({
 	});
 }
 
-function FormatBody({
-	body
-}: {
-	body: string;
-}) {
+function FormatBody({ body }: { body: string }) {
 	return (
-		<Html lang="en" dir="ltr" dangerouslySetInnerHTML={{__html: body}} />
+		<Html lang="en" dir="ltr" dangerouslySetInnerHTML={{ __html: body }} />
 	);
 }
 
@@ -190,13 +198,16 @@ function SelectEmailTemplate({
 }
 
 function NotificationEmail() {
+	const { groupName } = useParams();
 	const dispatch = useAppDispatch();
 	const [edited, setEdited] = React.useState<EmailTemplate | null>(null);
 	const [saved, setSaved] = React.useState<EmailTemplate | null>(null);
 	const [preview, setPreview] = React.useState(false);
 
 	const { selected, entities } = useAppSelector(selectMembersState);
-	const members = selected.map((id) => entities[id]).filter(m => Boolean(m)) as Member[];
+	const members = selected
+		.map((id) => entities[id])
+		.filter((m) => Boolean(m)) as Member[];
 
 	const session = useAppSelector(selectMostRecentAttendedSession);
 	const renderSessionAttendances = useRenderSessionAttendances();
@@ -217,8 +228,7 @@ function NotificationEmail() {
 	}
 
 	function changeTemplate(changes: Partial<EmailTemplate>) {
-		if (preview)
-			return;
+		if (preview) return;
 		setEdited((state) => ({ ...state!, ...changes }));
 		debouncedSave();
 	}
@@ -234,23 +244,32 @@ function NotificationEmail() {
 	}
 
 	function togglePreview() {
-		if (!edited)
-			return;
+		if (!edited) return;
 		if (!preview) {
 			debouncedSave.flush();
-			const email = doSubstitution(edited, members[0], session, renderSessionAttendances, renderBallotParticipation);
+			const email = doSubstitution(
+				edited,
+				members[0],
+				session,
+				renderSessionAttendances,
+				renderBallotParticipation
+			);
 			setEdited(email);
-		}
-		else {
+		} else {
 			setEdited(saved);
 		}
 		setPreview(!preview);
 	}
 
 	function onSend() {
-		genEmails({ user, emailTemplate: saved!, members, session, renderSessionAttendances, renderBallotParticipation }).forEach((email) =>
-			dispatch(sendEmail(email))
-		);
+		genEmails({
+			user,
+			emailTemplate: saved!,
+			members,
+			session,
+			renderSessionAttendances,
+			renderBallotParticipation,
+		}).forEach((email) => dispatch(sendEmail(groupName!, email)));
 	}
 
 	return (
@@ -258,29 +277,24 @@ function NotificationEmail() {
 			<Row>
 				<div style={{ display: "flex" }}>
 					<Field label="Template">
-					<SelectEmailTemplate
-						value={saved}
-						onChange={setTemplate}
-					/>
-					<ActionButton
-						name="delete"
-						title="Delete template"
-						onClick={deleteTemplate}
-						disabled={!edited}
-					/>
+						<SelectEmailTemplate
+							value={saved}
+							onChange={setTemplate}
+						/>
+						<ActionButton
+							name="delete"
+							title="Delete template"
+							onClick={deleteTemplate}
+							disabled={!edited}
+						/>
 					</Field>
 				</div>
 				<div>
-					<Button
-						onClick={togglePreview}
-						isActive={preview}
-					>
+					<Button onClick={togglePreview} isActive={preview}>
 						<i className="bi-eye" />
 						<span>&nbsp;Preview</span>
 					</Button>
-					<Button
-						onClick={onSend}
-					>
+					<Button onClick={onSend}>
 						<i className="bi-send" />
 						<span>&nbsp;Send</span>
 					</Button>
@@ -288,14 +302,16 @@ function NotificationEmail() {
 			</Row>
 			{edited && (
 				<Row>
-						<Editor
-							key={"" + preview + edited.id}
-							subject={edited.subject}
-							body={edited.body}
-							onChangeSubject={(subject) => changeTemplate({ subject })}
-							onChangeBody={(body) => changeTemplate({ body })}
-							preview={preview}
-						/>
+					<Editor
+						key={"" + preview + edited.id}
+						subject={edited.subject}
+						body={edited.body}
+						onChangeSubject={(subject) =>
+							changeTemplate({ subject })
+						}
+						onChangeBody={(body) => changeTemplate({ body })}
+						preview={preview}
+					/>
 				</Row>
 			)}
 		</Form>

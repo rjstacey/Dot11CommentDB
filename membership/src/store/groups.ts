@@ -103,10 +103,10 @@ export const fields = {
 
 /* Create slice */
 const initialState: {
-	workingGroupId: string | null;
+	topLevelGroupId: string | null;
 	lastLoad: Record<string, string | null>;
 } = {
-	workingGroupId: null,
+	topLevelGroupId: null,
 	lastLoad: {},
 };
 const dataSet = "groups";
@@ -117,8 +117,8 @@ const slice = createAppTableDataSlice({
 	selectId,
 	initialState,
 	reducers: {
-		setWorkingGroupId(state, action: PayloadAction<string | null>) {
-			state.workingGroupId = action.payload;
+		setTopLevelGroupId(state, action: PayloadAction<string | null>) {
+			state.topLevelGroupId = action.payload;
 		},
 	},
 	extraReducers: (builder, dataAdapter) => {
@@ -197,14 +197,14 @@ const {
 	setSelected,
 	setFilter,
 	clearFilter,
-	setWorkingGroupId: setWorkingGroupIdLocal,
+	setTopLevelGroupId,
 } = slice.actions;
 
 const getSuccess2 = createAction<{ groupName: string; groups: Group[] }>(
 	dataSet + "/getSuccess2"
 );
 
-export { setSelected, setFilter, clearFilter };
+export { setSelected, setFilter, clearFilter, setTopLevelGroupId };
 
 /* Selectors */
 export const selectGroupsState = (state: RootState) => state[dataSet];
@@ -226,18 +226,24 @@ export const selectWorkingGroups = (state: RootState) => {
 		.map((id) => entities[id]!)
 		.filter((g) => ["r", "c", "wg"].includes(g.type!));
 };
-export const selectWorkingGroupByName = (
+
+/** Select top level group by name. Only for root ("r"), committee (c) and working group (wg). Root is selected with groupName = "". */
+export const selectTopLevelGroupByName = (
 	state: RootState,
 	groupName: string
 ) => {
 	const groups = selectWorkingGroups(state);
-	return groups.find((g) => g.name === groupName);
+	return groups.find((g) =>
+		groupName
+			? (g.type === "c" || g.type === "wg") && g.name === groupName
+			: g.type === "r"
+	);
 };
-export const selectWorkingGroupId = (state: RootState) =>
-	selectGroupsState(state).workingGroupId;
+export const selectTopLevelGroupId = (state: RootState) =>
+	selectGroupsState(state).topLevelGroupId;
 export const selectWorkingGroup = (state: RootState) => {
-	const { workingGroupId, entities } = selectGroupsState(state);
-	return (workingGroupId && entities[workingGroupId]) || undefined;
+	const { topLevelGroupId, entities } = selectGroupsState(state);
+	return (topLevelGroupId && entities[topLevelGroupId]) || undefined;
 };
 export const selectWorkingGroupName = (state: RootState) =>
 	selectWorkingGroup(state)?.name || "";
@@ -245,20 +251,20 @@ export const selectWorkingGroupName = (state: RootState) =>
 export const selectWorkingGroupIds = createSelector(
 	selectGroupIds,
 	selectGroupEntities,
-	selectWorkingGroupId,
-	(ids, entities, workingGroupId) => {
-		if (workingGroupId) {
-			const parent = entities[workingGroupId];
+	selectTopLevelGroupId,
+	(ids, entities, topLevelGroupId) => {
+		if (topLevelGroupId) {
+			const parent = entities[topLevelGroupId];
 			if (parent && (parent.type === "r" || parent.type === "c")) {
 				ids = ids.filter((id) =>
 					["r", "c", "wg"].includes(entities[id]!.type!)
 				);
 			}
 			function isWorkingGroupDescendent(id: EntityId) {
-				if (id === workingGroupId) return true;
+				if (id === topLevelGroupId) return true;
 				let g: Group | undefined = entities[id]!;
 				do {
-					if (g.parent_id === workingGroupId) return true; // id is descendent of ownerGroupId
+					if (g.parent_id === topLevelGroupId) return true; // id is descendent of ownerGroupId
 					g = g.parent_id ? entities[g.parent_id] : undefined;
 				} while (g);
 				return false; // id is not an descendent of ownerGroupId
@@ -317,7 +323,7 @@ const baseUrl = "/api/groups";
 export const setWorkingGroupId =
 	(groupId: string | null): AppThunk<Group | undefined> =>
 	async (dispatch, getState) => {
-		dispatch(setWorkingGroupIdLocal(groupId));
+		dispatch(setTopLevelGroupId(groupId));
 		return selectWorkingGroup(getState());
 	};
 
@@ -347,11 +353,11 @@ export const loadGroups =
 		if (groupName) {
 			await loadingPromise[""];
 			if (selectWorkingGroup(getState())?.name !== groupName) {
-				const group = selectWorkingGroupByName(getState(), groupName);
+				const group = selectTopLevelGroupByName(getState(), groupName);
 				if (!group) {
 					setError(
 						"Unable to load subgroups",
-						"Invalid working group: " + groupName
+						"Invalid top level group: " + groupName
 					);
 					return [];
 				}

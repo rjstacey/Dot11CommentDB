@@ -2,7 +2,7 @@ import { RouteObject, LoaderFunction } from "react-router-dom";
 
 import { store } from "../store";
 import { AccessLevel } from "../store/user";
-import { loadGroups, GroupType } from "../store/groups";
+import { loadGroups, selectTopLevelGroupByName } from "../store/groups";
 import { loadMembers } from "../store/members";
 import { loadUsers } from "../store/users";
 import { loadOfficers } from "../store/officers";
@@ -20,58 +20,6 @@ import ballotParticipationRoute from "../ballotParticipation/route";
 import notificationRoute from "../notification/route";
 import affiliationMapRoute from "../affiliationMap/route";
 
-export type MenuItem = {
-	path: string;
-	label: string;
-	minAccess: number;
-	groupTypes?: GroupType[];
-};
-
-export const menu: MenuItem[] = [
-	{
-		path: "/:groupName/members",
-		label: "Members",
-		minAccess: AccessLevel.ro,
-		groupTypes: ["r", "c", "wg"],
-	},
-	{
-		path: "/:groupName/groups",
-		label: "Groups",
-		minAccess: AccessLevel.ro,
-		groupTypes: ["r", "c", "wg"],
-	},
-	{
-		path: "/:groupName/sessionParticipation",
-		label: "Session participation",
-		minAccess: AccessLevel.admin,
-		groupTypes: ["c", "wg"],
-	},
-	{
-		path: "/:groupName/ballotParticipation",
-		label: "Ballot pariticipation",
-		minAccess: AccessLevel.admin,
-		groupTypes: ["c", "wg"],
-	},
-	{
-		path: "/:groupName/sessionAttendance/:sessionNumber?",
-		label: "Session attendance",
-		minAccess: AccessLevel.admin,
-		groupTypes: ["c", "wg"],
-	},
-	{
-		path: "/:groupName/notification",
-		label: "Notification",
-		minAccess: AccessLevel.admin,
-		groupTypes: ["c", "wg"],
-	},
-	{
-		path: "/:groupName/affiliationMap",
-		label: "Affiliation Map",
-		minAccess: AccessLevel.ro,
-		groupTypes: ["c", "wg"],
-	},
-];
-
 /*
  * Routing loaders
  */
@@ -83,14 +31,23 @@ const rootLoader: LoaderFunction = async () => {
 };
 
 const groupLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
 	const { groupName } = params;
-	if (groupName) {
-		dispatch(loadGroups(groupName));
-		dispatch(loadMembers(groupName));
-		dispatch(loadUsers(groupName));
-		dispatch(loadOfficers(groupName));
-	}
+	if (!groupName) throw new Error("Route error: groupName not set");
+
+	const { dispatch, getState } = store;
+
+	// Check permissions
+	const group = selectTopLevelGroupByName(getState(), groupName);
+	if (!group) throw new Error(`Group ${groupName} not found`);
+	const access = group.permissions.members || AccessLevel.none;
+	if (access < AccessLevel.ro)
+		throw new Error("You don't have permission to view this data");
+
+	dispatch(loadGroups(groupName));
+	dispatch(loadMembers(groupName));
+	dispatch(loadUsers(groupName));
+	dispatch(loadOfficers(groupName));
+
 	return null;
 };
 
@@ -138,6 +95,10 @@ const routes: RouteObject[] = [
 			{
 				index: true,
 				element: <RootMain />,
+			},
+			{
+				path: "groups",
+				...groupsRoute,
 			},
 			{
 				path: ":groupName",

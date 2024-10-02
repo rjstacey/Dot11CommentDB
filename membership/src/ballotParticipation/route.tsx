@@ -6,11 +6,12 @@ import { loadBallotParticipation } from "../store/ballotParticipation";
 import BallotParticipation from "./BallotParticipation";
 
 const ballotParticipationLoader: LoaderFunction = async ({ params }) => {
-	const { dispatch } = store;
 	const { groupName } = params;
-	if (groupName) {
-		dispatch(loadBallotParticipation(groupName));
-	}
+	if (!groupName) throw new Error("Route error: groupName not set");
+
+	const { dispatch } = store;
+	dispatch(loadBallotParticipation(groupName));
+
 	return null;
 };
 

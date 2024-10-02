@@ -5,40 +5,102 @@ import { Dropdown, DropdownRendererProps } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
-import { selectWorkingGroupByName } from "../store/groups";
+import { selectTopLevelGroupByName } from "../store/groups";
 
-import { menu, MenuItem } from "./routes";
 import { selectSessionAttendeesSessionNumber } from "../store/sessionAttendees";
+
+export type MenuItem = {
+	path: string;
+	label: string;
+	membersMinAccess?: number;
+	groupsMinAccess?: number;
+};
+
+export const menu: MenuItem[] = [
+	{
+		path: "/:groupName?/groups",
+		label: "Groups",
+		groupsMinAccess: AccessLevel.ro,
+	},
+	{
+		path: "/:groupName/members",
+		label: "Members",
+		membersMinAccess: AccessLevel.ro,
+	},
+	{
+		path: "/:groupName/sessionParticipation",
+		label: "Session participation",
+		membersMinAccess: AccessLevel.admin,
+	},
+	{
+		path: "/:groupName/ballotParticipation",
+		label: "Ballot pariticipation",
+		membersMinAccess: AccessLevel.admin,
+	},
+	{
+		path: "/:groupName/sessionAttendance/:sessionNumber?",
+		label: "Session attendance",
+		membersMinAccess: AccessLevel.admin,
+	},
+	{
+		path: "/:groupName/notification",
+		label: "Notification",
+		membersMinAccess: AccessLevel.admin,
+	},
+	{
+		path: "/:groupName/affiliationMap",
+		label: "Affiliation Map",
+		membersMinAccess: AccessLevel.ro,
+	},
+];
 
 type MenuLinkItem = MenuItem & {
 	link: string;
 };
 
 function useMenuLinks() {
-	let { groupName } = useParams();
-	const sessionNumber = useAppSelector(selectSessionAttendeesSessionNumber);
+	const groupName = useParams().groupName || "";
 	const group = useAppSelector((state) =>
-		groupName ? selectWorkingGroupByName(state, groupName) : undefined
+		selectTopLevelGroupByName(state, groupName)
 	);
+	const sessionNumber = useAppSelector(selectSessionAttendeesSessionNumber);
+	console.log(`groupName="${groupName}"`, group);
 
 	// Only display links for which the use has permissions
 	// Replace params with the current setting
 	const menuLinks: MenuLinkItem[] = React.useMemo(() => {
 		return menu
 			.filter((m) => {
-				const access = group?.permissions.members || AccessLevel.none;
-				return access >= (m.minAccess || AccessLevel.none);
+				// No items if there is no group
+				if (!group) return false;
+				// Filter paths that require groupName
+				if (/:groupName(?!\?)/.test(m.path) && !groupName) return false;
+				let access = group.permissions.members || AccessLevel.none;
+				if (
+					m.membersMinAccess !== undefined &&
+					access < m.membersMinAccess
+				)
+					return false;
+				access = group.permissions.groups || AccessLevel.none;
+				if (
+					m.groupsMinAccess !== undefined &&
+					access < m.groupsMinAccess
+				)
+					return false;
+				return true;
 			})
 			.map((m) => {
 				const link = m.path
-					.replace(/:groupName/, groupName ? groupName : "")
+					.replace(/:groupName\?{0,1}/, groupName)
 					.replace(
 						/:sessionNumber\?{0,1}/,
 						sessionNumber ? sessionNumber.toString() : ""
-					);
+					)
+					.replace("//", "/");
 				return { ...m, link };
 			});
 	}, [group, groupName, sessionNumber]);
+	console.log(menuLinks);
 
 	return menuLinks;
 }
