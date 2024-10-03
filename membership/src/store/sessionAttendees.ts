@@ -13,6 +13,7 @@ import {
 	FieldType,
 	getAppTableDataSelectors,
 	isObject,
+	Fields,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
@@ -31,7 +32,7 @@ import {
 	type Session,
 } from "./sessions";
 
-export const fields = {
+export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
 	"Name/Email": { label: "Name/Email" },
 	Name: { label: "Name" },
@@ -43,6 +44,14 @@ export const fields = {
 	Status: { label: "Status" },
 	AttendancePercentage: { label: "Attendance", type: FieldType.NUMERIC },
 	AttendanceOverride: { label: "Attendance override" },
+	InPerson: {
+		label: "In-Person",
+		options: [
+			{ value: true, label: "In-person x" },
+			{ value: false, label: "Remote x" },
+		],
+	},
+	IsRegistered: { label: "Registered" },
 	Notes: { label: "Notes" },
 };
 
@@ -64,6 +73,8 @@ type SessionAttendeeWithOverrride = SessionAttendee & {
 	DidAttend: boolean;
 	DidNotAttend: boolean;
 	AttendancePercentageOverride: number;
+	InPerson: boolean;
+	IsRegistered: boolean;
 	Notes: string;
 };
 
@@ -316,6 +327,9 @@ export const loadSessionAttendees =
 									Notes: attendance?.Notes || "",
 									AttendancePercentageOverride:
 										attendance?.AttendancePercentage || 0,
+									InPerson: attendance?.InPerson || false,
+									IsRegistered:
+										attendance?.IsRegistered || false,
 								};
 							});
 						dispatch(getSuccess(mergedAttendances));
@@ -346,6 +360,38 @@ export const importAttendances =
 		let response: any;
 		try {
 			response = await fetcher.post(url);
+			if (!validRecentSessionAttendanceReponse(response))
+				throw new TypeError("Unexpected response to POST " + url);
+		} catch (error) {
+			dispatch(getFailureRecentSessionAttendance());
+			dispatch(
+				setError(
+					"Unable to import attendance summary for session " +
+						sessionNumber,
+					error
+				)
+			);
+			return;
+		}
+		dispatch(upsertSessions(response.sessions));
+		dispatch(getSuccessRecentSessionAttendance(response.attendances));
+	};
+
+export const uploadRegistration =
+	(groupName: string, sessionNumber: number, file: File): AppThunk =>
+	async (dispatch, getState) => {
+		const session = selectSessionByNumber(getState(), sessionNumber);
+		if (!session) {
+			dispatch(
+				setError("Can't upload registration", "Bad session number")
+			);
+			return;
+		}
+		let url = `/api/${groupName}/attendances/${session.id}/uploadRegistration`;
+		dispatch(getPendingRecentSessionAttendance({ groupName }));
+		let response: any;
+		try {
+			response = await fetcher.postMultipart(url, { file });
 			if (!validRecentSessionAttendanceReponse(response))
 				throw new TypeError("Unexpected response to POST " + url);
 		} catch (error) {

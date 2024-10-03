@@ -13,7 +13,7 @@ import userSlice from "./user";
 import groupsSlice from "./groups";
 import timeZonesSlice from "./timeZones";
 import membersSlice from "./members";
-import usersSlice from "./users";
+import ieeeMembersSlice from "./ieeeMembers";
 import officersSlice from "./officers";
 import attendancesSlice from "./sessionParticipation";
 import ballotParticipationSlice from "./ballotParticipation";
@@ -38,7 +38,7 @@ const transformState = createTransform(
 	{
 		whitelist: [
 			membersSlice.name,
-			usersSlice.name,
+			ieeeMembersSlice.name,
 			groupsSlice.name,
 			officersSlice.name,
 			attendancesSlice.name,
@@ -54,7 +54,7 @@ const appReducer = combineReducers({
 	[userSlice.name]: userSlice.reducer,
 	[groupsSlice.name]: groupsSlice.reducer,
 	[membersSlice.name]: membersSlice.reducer,
-	[usersSlice.name]: usersSlice.reducer,
+	[ieeeMembersSlice.name]: ieeeMembersSlice.reducer,
 	[sessionsSlice.name]: sessionsSlice.reducer,
 	[officersSlice.name]: officersSlice.reducer,
 	[attendancesSlice.name]: attendancesSlice.reducer,
@@ -85,7 +85,7 @@ const persistConfig = {
 		userSlice.name,
 		groupsSlice.name,
 		membersSlice.name,
-		usersSlice.name,
+		ieeeMembersSlice.name,
 		sessionsSlice.name,
 		officersSlice.name,
 		attendancesSlice.name,

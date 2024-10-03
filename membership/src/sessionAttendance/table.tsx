@@ -8,12 +8,14 @@ import {
 	TablesConfig,
 	TableConfig,
 	CellRendererProps,
+	ShowFilters,
 } from "dot11-components";
 
 import {
 	sessionAttendeesSelectors,
 	sessionAttendeesActions,
 	type SyncedSessionAttendee,
+	fields,
 } from "../store/sessionAttendees";
 
 import MemberAttendanceDetail from "./detail";
@@ -148,6 +150,22 @@ export const tableColumns: ColumnProperties[] = [
 		flexShrink: 1,
 	},
 	{
+		key: "InPerson",
+		label: "In-Person",
+		width: 80,
+		flexGrow: 1,
+		flexShrink: 1,
+		dataRenderer: (d: boolean) => (d ? "In-person" : "Remote"),
+	},
+	{
+		key: "IsRegistered",
+		label: "Registered",
+		width: 80,
+		flexGrow: 1,
+		flexShrink: 1,
+		dataRenderer: (d: boolean) => (d ? "Registered" : ""),
+	},
+	{
 		key: "Notes",
 		label: "Notes",
 		width: 150,
@@ -201,6 +219,11 @@ for (tableView in defaultTablesColumns) {
 function SessionAttendanceTable() {
 	return (
 		<div className="table-container">
+			<ShowFilters
+				fields={fields}
+				selectors={sessionAttendeesSelectors}
+				actions={sessionAttendeesActions}
+			/>
 			<SplitPanel
 				selectors={sessionAttendeesSelectors}
 				actions={sessionAttendeesActions}

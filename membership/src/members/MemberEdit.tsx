@@ -36,14 +36,14 @@ import {
 	type MemberAdd,
 } from "../store/members";
 
-import UserSelector from "./UserSelector";
+import IeeeMemberSelector from "./IeeeMemberSelector";
 import StatusSelector from "./StatusSelector";
 import MemberSelector from "./MemberAllSelector";
 import MemberStatusChangeHistory from "./MemberStatusChange";
 import MemberContactInfo from "./MemberContactInfo";
 import MemberAttendances from "../sessionParticipation/MemberAttendances";
 import MemberBallotParticipation from "../ballotParticipation/MemberBallotParticipation";
-import { selectUserEntities } from "../store/users";
+import { selectIeeeMemberEntities } from "../store/ieeeMembers";
 
 export type MultipleMember = Multiple<
 	Omit<MemberAdd, "StatusChangeHistory" | "ContactEmails" | "ContactInfo">
@@ -406,7 +406,7 @@ export function MemberEntryForm({
 	readOnly?: boolean;
 	basicOnly?: boolean;
 }) {
-	const userEntities = useAppSelector(selectUserEntities);
+	const ieeeMemberEntities = useAppSelector(selectIeeeMemberEntities);
 
 	let errMsg = "";
 	if (!member.SAPIN) errMsg = "SA PIN not set";
@@ -436,10 +436,10 @@ export function MemberEntryForm({
 	}
 
 	function setMember(sapin: number) {
-		const user = userEntities[sapin];
-		if (user) {
+		const ieeeMember = ieeeMemberEntities[sapin];
+		if (ieeeMember) {
 			const member: MemberAdd = {
-				...user,
+				...ieeeMember,
 				Affiliation: "",
 				Status: "Non-Voter",
 			};
@@ -456,7 +456,7 @@ export function MemberEntryForm({
 			errorText={errMsg}
 		>
 			{action === "add" && (
-				<UserSelector
+				<IeeeMemberSelector
 					value={member.SAPIN as number}
 					onChange={(sapin) => setMember(sapin)}
 				/>

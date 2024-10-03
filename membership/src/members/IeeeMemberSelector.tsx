@@ -1,11 +1,11 @@
-import * as React from "react";
+import React from "react";
 
 import { Select } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
-import { selectUsers } from "../store/users";
+import { selectIeeeMembers } from "../store/ieeeMembers";
 
-function UserSelector({
+function IeeeMemberSelector({
 	value, // value is SAPIN
 	onChange,
 	readOnly,
@@ -18,14 +18,14 @@ function UserSelector({
 	React.ComponentProps<typeof Select>,
 	"values" | "onChange" | "options"
 >) {
-	const options = useAppSelector(selectUsers);
+	const options = useAppSelector(selectIeeeMembers);
 	const values = options.filter((o) => o.SAPIN === value);
 	const handleChange = (values: typeof options) =>
 		onChange(values.length > 0 ? values[0].SAPIN : 0);
 
 	return (
 		<Select
-			style={{width: 300}}
+			style={{ width: 300 }}
 			values={values}
 			onChange={handleChange}
 			options={options}
@@ -40,4 +40,4 @@ function UserSelector({
 	);
 }
 
-export default UserSelector;
+export default IeeeMemberSelector;

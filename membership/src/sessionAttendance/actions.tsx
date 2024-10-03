@@ -29,6 +29,7 @@ import {
 	exportAttendanceForMinutes,
 	SessionAttendee,
 	importAttendances,
+	uploadRegistration,
 	selectSessionAttendeesSessionNumber,
 } from "../store/sessionAttendees";
 import { selectSessionByNumber, Session } from "../store/sessions";
@@ -44,6 +45,49 @@ import {
 import SessionSelector from "./SessionSelector";
 import { tableColumns } from "./table";
 import { copyChartToClipboard, downloadChart } from "../components/copyChart";
+
+function ImportRegistrationForm({ methods }: DropdownRendererProps) {
+	const dispatch = useAppDispatch();
+	const { groupName } = useAppSelector(selectSessionAttendeesState);
+	const sessionNumber = useAppSelector(selectSessionAttendeesSessionNumber)!;
+	const session = useAppSelector((state) =>
+		selectSessionByNumber(state, sessionNumber)
+	)!;
+
+	const [busy, setBusy] = React.useState(false);
+	const [file, setFile] = React.useState<File | null>(null);
+
+	let errorText = "";
+	if (!file) errorText = "Select spreadsheet file";
+
+	async function submit() {
+		if (!file) return;
+		setBusy(true);
+		await dispatch(uploadRegistration(groupName!, session.number!, file));
+		setBusy(false);
+		methods.close();
+	}
+
+	return (
+		<Form
+			style={{ width: 300 }}
+			errorText={errorText}
+			submitLabel="OK"
+			cancelLabel="Cancel"
+			submit={submit}
+			cancel={methods.close}
+			busy={busy}
+		>
+			<Row>
+				<input
+					type="file"
+					accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+					onChange={(e) => setFile(e.target.files?.[0] || null)}
+				/>
+			</Row>
+		</Form>
+	);
+}
 
 function sessionAttendeeToMember(session: Session, attendee: SessionAttendee) {
 	const member: MemberAdd = {
@@ -62,7 +106,7 @@ function sessionAttendeeToMember(session: Session, attendee: SessionAttendee) {
 	return member;
 }
 
-function ImportAttendeeForm({ methods }: DropdownRendererProps) {
+function BulkUpdateForm({ methods }: DropdownRendererProps) {
 	const { groupName, selected, ids, entities } = useAppSelector(
 		selectSessionAttendeesState
 	);
@@ -270,8 +314,7 @@ function SessionAttendanceActions() {
 					</div>
 				</ButtonGroup>
 				<ActionButtonDropdown
-					name="import"
-					title="Bulk import form"
+					title="Bulk update form"
 					selectRenderer={() => (
 						<Button
 							style={{
@@ -287,8 +330,28 @@ function SessionAttendanceActions() {
 							<span>Update</span>
 						</Button>
 					)}
+					dropdownRenderer={(props) => <BulkUpdateForm {...props} />}
+					disabled={!sessionNumber}
+				/>
+				<ActionButtonDropdown
+					title="Import registration form"
+					selectRenderer={() => (
+						<Button
+							style={{
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center",
+								fontSize: 10,
+								fontWeight: 700,
+							}}
+							disabled={!sessionNumber}
+						>
+							<span>Import</span>
+							<span>Registration</span>
+						</Button>
+					)}
 					dropdownRenderer={(props) => (
-						<ImportAttendeeForm {...props} />
+						<ImportRegistrationForm {...props} />
 					)}
 					disabled={!sessionNumber}
 				/>
@@ -310,25 +373,6 @@ function SessionAttendanceActions() {
 				>
 					<span>Attendance</span>
 					<span>for minutes</span>
-				</Button>
-				<Button
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						alignItems: "center",
-						fontSize: 10,
-						fontWeight: 700,
-					}}
-					title="Export attendance for minutes"
-					disabled={!sessionNumber}
-					onClick={() =>
-						dispatch(
-							exportAttendanceForMinutes(groupName, sessionNumber)
-						)
-					}
-				>
-					<span>Import</span>
-					<span>registration</span>
 				</Button>
 				<ActionButton
 					name="bi-bar-chart-line"

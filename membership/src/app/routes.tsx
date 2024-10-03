@@ -8,7 +8,7 @@ import {
 	setTopLevelGroupId,
 } from "../store/groups";
 import { loadMembers } from "../store/members";
-import { loadUsers } from "../store/users";
+import { loadIeeeMembers } from "../store/ieeeMembers";
 import { loadOfficers } from "../store/officers";
 import { loadTimeZones } from "../store/timeZones";
 
@@ -49,8 +49,8 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 
 	dispatch(setTopLevelGroupId(group.id));
 	dispatch(loadGroups(groupName));
+	dispatch(loadIeeeMembers());
 	dispatch(loadMembers(groupName));
-	dispatch(loadUsers(groupName));
 	dispatch(loadOfficers(groupName));
 
 	return null;
